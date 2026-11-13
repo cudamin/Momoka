@@ -18,6 +18,7 @@ public sealed partial class DetailPage
             new(TitlePlate),
             new(CornerArt),
             new(FooterBanner),
+            new(StoreBackdropImageBrush, StoreBackdropPicture),
         ];
     }
 

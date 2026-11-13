@@ -9,6 +9,67 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
+        Test("商店模式：四类详情独立装饰背景，不增加正文占位，宽度与模式变化通知绑定", () =>
+        {
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                var target = f.Get("PlayTarget");
+                var shelf = f.Get("EpisodeShelf");
+                var notices = new List<string>();
+                ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
+                f.Ui.EnableImmersive = false;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                Assert.True((bool)f.Get("StoreMode")!);
+                Assert.Equal("Collapsed", f.Get("HeroCardVisibility")!.ToString());
+                Assert.Equal(180d, (double)f.Get("StillWidth")!);
+                Assert.Equal(270d, (double)f.Get("StillHeight")!);
+                Assert.False((bool)f.Get("BackdropShown")!);
+                Assert.Equal("Collapsed", f.Get("StoreBackdropVisibility")!.ToString(), "无图时不得留下背景层");
+                Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());
+                Assert.Equal(0d, (double)f.Get("TailMinHeight")!);
+                Assert.Equal(0d, (double)f.Get("PaperMinHeight")!);
+                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "CornerVisibility", "HeroContent" })
+                    Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
+                foreach (var width in new[] { 360d, 760d, 1200d, 2400d })
+                {
+                    notices.Clear();
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                    var height = (double)f.Get("StoreBackdropHeight")!;
+                    Assert.True(height > 0 && height <= 520);
+                    Assert.True(notices.Contains("StoreBackdropHeight"));
+                    var previewWidth = Math.Min(640, width * 0.46);
+                    var leftWidth = Math.Max(0, width - 64 - (width >= 1100 ? previewWidth + 28 : 0));
+                    Assert.Equal(Math.Max(0, leftWidth - (double)f.Get("StillWidth")! - 22), (double)f.Get("StoreTextWidth")!);
+                    Assert.True(notices.Contains("StoreContentWidth"));
+                }
+                f.Ui.EnableImmersive = true;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                Assert.False((bool)f.Get("StoreMode")!);
+                Assert.True(ReferenceEquals(target, f.Get("PlayTarget")));
+                Assert.True(ReferenceEquals(shelf, f.Get("EpisodeShelf")));
+            }
+        });
+
+        Test("商店剧情与剩余时间：固定两行截断，保留沉浸展开偏好与续播值", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            f.Vm.GetType().GetProperty("Expanded")!.SetValue(f.Vm, true);
+            f.Ui.EnableImmersive = false;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
+            Assert.Equal("CharacterEllipsis", f.Get("OverviewTrimming")!.ToString());
+            Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString());
+            Assert.Equal("Collapsed", f.Get("RemainingTimeVisibility")!.ToString());
+            f.Ui.EnableImmersive = true;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
+            Assert.Equal("None", f.Get("OverviewTrimming")!.ToString());
+            Assert.Equal(f.Get("ResumeVisibility")!.ToString(), f.Get("RemainingTimeVisibility")!.ToString());
+        });
+
         Test("P4 详情布局：请求在途跨真实断点，完整主体到达保留最新宽高和集合", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
@@ -40,7 +101,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("详情两种模式：开启宽窗固定沉浸，窄窗仍紧凑，关闭一律无背景", () =>
+        Test("详情两种模式：开启宽窗固定沉浸，窄窗仍紧凑，商店保留卡面布局", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
             {
@@ -71,7 +132,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("沉浸总开关：电影剧季同页关闭成卡面，宽窄无背景，恢复原偏好", () =>
+        Test("沉浸总开关：电影剧季同页关闭成卡面，宽窄保留卡面，恢复原偏好", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
             {
@@ -100,7 +161,7 @@ internal static partial class DetailActionReadinessTests
                 Assert.True(ReferenceEquals(target, f.Get("PlayTarget")), "外观切换改变播放目标");
                 Set("PageWidth", 760d);
                 Assert.False((bool)f.Get("BackdropShown")!);
-                Assert.True((bool)f.Get("HeroCardShown")!, "简洁模式窄窗继续使用卡面");
+                Assert.True((bool)f.Get("HeroCardShown")!, "商店模式窄窗继续使用卡面");
                 Assert.False((bool)f.Get("IsCompact")!);
                 Set("PageWidth", 1200d);
                 Assert.True((bool)f.Get("HeroCardShown")!);
@@ -126,7 +187,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("简洁模式：跨窄窗断点保留封面、双栏操作并同页恢复紧凑模式", () =>
+        Test("商店模式：跨窄窗断点保留封面、双栏操作并同页恢复紧凑模式", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
             {
@@ -144,8 +205,8 @@ internal static partial class DetailActionReadinessTests
                     Refresh();
                     Assert.False((bool)f.Get("IsCompact")!);
                     Assert.True((bool)f.Get("HeroCardShown")!);
-                    Assert.Equal(250d, (double)f.Get("StillWidth")!);
-                    Assert.Equal(375d, (double)f.Get("StillHeight")!);
+                    Assert.Equal(180d, (double)f.Get("StillWidth")!);
+                    Assert.Equal(270d, (double)f.Get("StillHeight")!);
                     Assert.Equal("Collapsed", f.Get("CompactVisibility")!.ToString());
                     Assert.Equal("Visible", f.Get("ColumnActionsVisibility")!.ToString());
                     foreach (var name in new[] { "IsCompact", "StillVisibility", "CompactVisibility", "CornerVisibility", "ColumnActionsVisibility", "WideProgressVisibility", "PickersVisibility" })
@@ -158,7 +219,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("简洁模式：主体更正为单集时重新通知紧凑布局并清除封面占位", () =>
+        Test("商店模式：主体更正为单集时重新通知紧凑布局并清除封面占位", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);
             f.Ui.EnableImmersive = false;
@@ -208,14 +269,14 @@ internal static partial class DetailActionReadinessTests
             Assert.True((bool)f.Get("HeroCardShown")!);
             Assert.False((bool)f.Get("BackdropShown")!);
             Assert.False((bool)f.Get("Showcase")!);
-            Assert.Equal(260d, (double)f.Get("StillWidth")!);
-            Assert.Equal(375d, (double)f.Get("StillHeight")!);
-            Assert.Equal("Center", f.Get("CoverAlignment")!.ToString());
+            Assert.Equal(180d, (double)f.Get("StillWidth")!);
+            Assert.Equal(270d, (double)f.Get("StillHeight")!);
+            Assert.Equal("Top", f.Get("CoverAlignment")!.ToString());
             foreach (var name in new[] { "CornerVisibility", "CoverAlignment", "HeroContentAlignment", "HeroCardShown" })
                 Assert.True(notices.Contains(name), "模式变化缺少通知：" + name);
             Set("PageWidth", 760d);
             Assert.False((bool)f.Get("HeroCardShown")!);
-            Assert.False((bool)f.Get("BackdropShown")!, "简洁模式窄窗应显示云母，不再恢复剧照");
+            Assert.False((bool)f.Get("BackdropShown")!, "商店模式窄窗应显示云母，不再恢复剧照");
             Assert.Equal(0d, (double)f.Get("StillWidth")!);
             f.Ui.EnableImmersive = true;
             Refresh();
@@ -252,7 +313,7 @@ internal static partial class DetailActionReadinessTests
         });
 
         foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
-            Test($"详情 {shape} 简洁模式关闭背景并使用卡面，切回恢复沉浸", () =>
+            Test($"详情 {shape} 商店模式关闭背景并使用卡面，切回恢复沉浸", () =>
             {
                 using var f = new Fixture(assembly, root, shape);
                 Await(f.Load());
@@ -283,7 +344,7 @@ internal static partial class DetailActionReadinessTests
 
 
         foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
-            Test($"详情 {shape} 唯一音轨显示文字、增加音轨恢复下拉，宽窄选择框在播放前", () =>
+            Test($"详情 {shape} 唯一音轨整行隐藏、增加音轨恢复下拉，宽窄选择框在播放前", () =>
             {
                 using var f = new Fixture(assembly, root, shape);
                 Await(f.Load());
@@ -291,8 +352,8 @@ internal static partial class DetailActionReadinessTests
                 source.MediaStreams = [new() { Type = "Audio", Index = 1, Codec = "aac" }];
                 Await(f.Load());
                 Assert.Equal("Collapsed", f.Get("AudioVisibility")!.ToString());
-                Assert.Equal("Visible", f.Get("AudioRowVisibility")!.ToString());
-                Assert.Equal("Visible", f.Get("SingleAudioVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("AudioRowVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("SingleAudioVisibility")!.ToString());
                 Assert.True(!string.IsNullOrWhiteSpace((string)f.Get("SingleAudioText")!));
                 source.MediaStreams.Add(new() { Type = "Audio", Index = 2, Codec = "aac" });
                 Await(f.Load());

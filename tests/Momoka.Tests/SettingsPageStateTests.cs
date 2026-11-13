@@ -119,7 +119,7 @@ internal static class SettingsPageStateTests
                     Assert.Equal(1, saves);
                     Assert.Equal(1, applied);
                 });
-        TestHarness.Test("详情显示模式：排在按钮材质之前，简洁模式收起按钮与背景两组并保留偏好", () =>
+        TestHarness.Test("详情显示模式：排在按钮材质之前，商店模式收起按钮与背景两组并保留偏好", () =>
         {
             var settings = new FakeSettings();
             settings.Settings.Ui.EnableImmersive = true;
@@ -135,7 +135,7 @@ internal static class SettingsPageStateTests
             var rows = fixture.List(section, "Rows");
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
-            Assert.Equal("电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面，"
+            Assert.Equal("电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用商店模式的顶部渐隐背景，"
                 + "按钮与选择框换成固定材质，下面两组参数随之收起。",
                 fixture.Get<string>(mode, "Note"));
             // 2026-11-11 用户令：显示模式挪到按钮与选择框背景上方，它决定下面几组在不在。
@@ -148,12 +148,12 @@ internal static class SettingsPageStateTests
             }), "亚克力模式的行集合不对：" + string.Join('|', Labels()));
             var choices = fixture.List(mode, "Choices");
             Assert.True(choices.Cast<object>().Select(choice => fixture.Get<string>(choice, "Label"))
-                .SequenceEqual(new[] { "沉浸模式", "简洁模式" }));
+                .SequenceEqual(new[] { "沉浸模式", "商店模式" }));
             fixture.Set(mode, "Selected", choices[1]!);
             Assert.False(settings.Settings.Ui.EnableImmersive);
-            // 简洁模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效，整张卡只剩显示模式。
+            // 商店模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效，整张卡只剩显示模式。
             Assert.True(Labels().SequenceEqual(new[] { "显示模式" }),
-                "简洁模式没有收起按钮与背景两组：" + string.Join('|', Labels()));
+                "商店模式没有收起按钮与背景两组：" + string.Join('|', Labels()));
             Assert.Equal("#654321", settings.Settings.Ui.ControlBackgroundColor);
             Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
             Assert.Equal(37d, settings.Settings.Ui.BackdropTintOpacity);

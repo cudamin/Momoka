@@ -327,24 +327,27 @@ internal static class Program
             Assert.Equal(1d, image.Opacity);
             Assert.Equal(0, Storyboard.Created.Single().CompletionSubscriptions);
         });
-        Test("详情五种图片共用实际接线，Release清理且重新Attach可再次淡入", () =>
+        Test("详情与商店背景六种图片共用实际接线，Release清理且重新Attach可再次淡入", () =>
         {
             ResetUi();
             var page = new DetailPage();
             var images = new[] { page.PosterImage, page.TitlePlate, page.CornerArt, page.FooterBanner };
             foreach (var image in images) image.Load();
             page.BackdropPicture.Load();
+            page.StoreBackdropPicture.Load();
             page.Watch();
             page.Watch();
             foreach (var image in images) image.Source = new BitmapImage();
             page.BackdropImageBrush.ImageSource = new BitmapImage();
+            page.StoreBackdropImageBrush.ImageSource = new BitmapImage();
             Assert.True(page.ArtworkArrivalRunning);
-            Assert.Equal(5, Storyboard.Created.Count);
-            Assert.Equal(5, HomeMotion.Subscriptions);
+            Assert.Equal(6, Storyboard.Created.Count);
+            Assert.Equal(6, HomeMotion.Subscriptions);
             page.Release();
             Assert.False(page.ArtworkArrivalRunning);
             Assert.Equal(0, HomeMotion.Subscriptions);
             Assert.Equal(0, page.BackdropImageBrush.PropertySubscriptions);
+            Assert.Equal(0, page.StoreBackdropImageBrush.PropertySubscriptions);
             foreach (var image in images)
             {
                 Assert.Equal(0, image.PropertySubscriptions);

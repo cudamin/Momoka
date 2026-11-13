@@ -198,7 +198,7 @@
     </Page.Resources>
 
     <Grid>
-        <!-- 简洁模式（不铺背景图那一档）的底就是外壳那块窗口画布 —— Mica Base 加一层 60% 窗口色，全树只在
+        <!-- 商店模式（卡面排版）的底就是外壳那块窗口画布 —— Mica Base 加一层 60% 窗口色，全树只在
              ShellPage.ContentHost 画一次（2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」）。
              这一页因此不再挂自己的局部材质：从前这里是一块铺满整页的 SystemBackdropElement（Mica Alt），它把外壳
              那层画布整个盖掉，同一档设置在主页是「Base + 60% 画布」、在详情页却是「Alt 原样」，两页的底对不上。
@@ -282,6 +282,56 @@
             HorizontalScrollMode="Disabled"
             SizeChanged="OnBodySizeChanged"
             ViewChanged="OnBodyViewChanged">
+            <Grid x:Name="StoreScrollContent">
+        <!-- 商店模式：条目的横向剧照只装饰顶部，左右保护文字、底部渐隐，不改变卡面排版。 -->
+        <Grid x:Name="StoreBackdrop" Height="{x:Bind ViewModel.StoreBackdropHeight, Mode=OneWay}"
+              Width="{x:Bind ViewModel.StoreBackdropWidth, Mode=OneWay}" HorizontalAlignment="Right"
+              VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
+            <Grid x:Name="StoreBackdropContent">
+                <Border x:Name="StoreBackdropPicture">
+                    <Border.Background>
+                        <ImageBrush x:Name="StoreBackdropImageBrush" ImageSource="{x:Bind ViewModel.HeroImage, Mode=OneWay}"
+                                    AlignmentX="Right" AlignmentY="Top" Stretch="UniformToFill" />
+                    </Border.Background>
+                </Border>
+                <Border x:Name="StoreBackdropSides" />
+                <Border x:Name="StoreBackdropBottom" />
+            </Grid>
+            <Border x:Name="StoreBackdropMask" />
+        </Grid>
+                <Grid x:Name="StoreTrailerHost" Margin="0,16,32,0" HorizontalAlignment="Right"
+                      VerticalAlignment="Top" Visibility="Collapsed">
+                    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid x:Name="StoreTrailerContent" />
+                    <!-- Gallery MediaTransportControls template / 693f472: native command surface. -->
+                    <CommandBar x:Name="StoreTrailerControls" Grid.Row="1" HorizontalAlignment="Right"
+                                DefaultLabelPosition="Collapsed" IsOpen="True" IsDynamicOverflowEnabled="False"
+                                OverflowButtonVisibility="Collapsed" Background="Transparent" Margin="0,6,0,0">
+                        <CommandBar.Resources>
+                            <Style TargetType="AppBarButton" BasedOn="{StaticResource DefaultAppBarButtonStyle}">
+                                <Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" />
+                                <Setter Property="MinWidth" Value="0" /><Setter Property="CornerRadius" Value="20" />
+                                <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
+                            </Style>
+                        </CommandBar.Resources>
+                        <AppBarButton x:Name="StoreTrailerPause" Click="OnStoreTrailerPause" Label="暂停预告片"
+                                      AutomationProperties.AutomationId="StoreTrailerPause">
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE769;" FontSize="14" /></AppBarButton.Icon>
+                        </AppBarButton>
+                        <AppBarButton x:Name="StoreTrailerMute" Click="OnStoreTrailerMute" Label="预告片静音"
+                                      AutomationProperties.AutomationId="StoreTrailerMute">
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE74F;" FontSize="14" /></AppBarButton.Icon>
+                        </AppBarButton>
+                        <AppBarButton x:Name="StoreTrailerSubtitles" Click="OnStoreTrailerSubtitles" Label="预告片字幕"
+                                      AutomationProperties.AutomationId="StoreTrailerSubtitles" Visibility="Collapsed">
+                            <AppBarButton.Icon><FontIcon Glyph="&#xED1E;" FontSize="14" /></AppBarButton.Icon>
+                        </AppBarButton>
+                        <AppBarButton x:Name="StoreTrailerAudio" Click="OnStoreTrailerAudio" Label="预告片音频"
+                                      AutomationProperties.AutomationId="StoreTrailerAudio" Visibility="Collapsed">
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE8D6;" FontSize="14" /></AppBarButton.Icon>
+                        </AppBarButton>
+                    </CommandBar>
+                </Grid>
             <StackPanel>
 
                 <!-- ============ 头部 ============ -->
@@ -358,7 +408,7 @@
                     </Border>
 
                     <!-- 两栏加一角：海报那一栏、字那一栏（徽标顶在片名头上，见 TitlePlate）、右上角那一栏
-                         （CornerArt，电影、剧、集三页在两种模式下都画 —— 「给集页面右上角添加艺术图」，2026-11-08
+                         （CornerArt，电影、剧、集三页仅在沉浸模式画 —— 「给集页面右上角添加艺术图」，2026-11-08
                          起沉浸档也画；季页没有艺术图可画，那一栏收成 0 宽，片名那一栏照旧把地方全占回来）。
                          左右 60 而不是页面那 28：这一块是压在底色上的内容，边沿本就该留得比页面多（同主页大图
                          上那块字，理由写在 HomeBanner.xaml）。底下留 64 —— 图铺满一屏之后这一叠东西就站在窗口
@@ -373,7 +423,8 @@
                         Height="{x:Bind ViewModel.HeroLayoutHeight, Mode=OneWay}">
                     <Grid
                         x:Name="HeroContent"
-                        ColumnSpacing="{x:Bind ViewModel.ColumnSpacing, Mode=OneTime}"
+                        SizeChanged="OnStoreHeroSizeChanged"
+                        ColumnSpacing="{x:Bind ViewModel.ColumnSpacing, Mode=OneWay}"
                         Margin="{x:Bind ViewModel.HeroInset, Mode=OneWay}"
                         VerticalAlignment="{x:Bind ViewModel.HeroContentAlignment, Mode=OneWay}">
                         <Grid.ColumnDefinitions>
@@ -393,6 +444,7 @@
                              测量，内容多高就是多高；带子里的富余由 HeroContent 自己的对齐去站 ——
                              靠上（集页）还是靠下（其余页面，HeroContentAlignment）。 -->
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
@@ -519,6 +571,7 @@
                         <StackPanel
                             x:Name="HeroStack"
                             Grid.Column="1"
+                            MaxWidth="{x:Bind ViewModel.StoreTextWidth, Mode=OneWay}"
                             SizeChanged="OnHeroStackSizeChanged"
                             VerticalAlignment="{x:Bind ViewModel.HeroContentAlignment, Mode=OneWay}"
                             Spacing="10">
@@ -662,7 +715,7 @@
                                  分数后面那一小格写着这个数是谁给的（「豆瓣」「烂番茄」「公众评分」），因为
                                  「可在设置使用豆瓣、tmdb、烂番茄等平台的评分」之后，一个光秃秃的 8.4 说不清是哪家
                                  的分。它走暗墨、跟事实那一行同一档层次，而分数走强墨 —— 读的是分，署名是注脚。 -->
-                            <StackPanel Orientation="Horizontal" Spacing="14">
+                            <StackPanel x:Name="StoreRatingRow" Orientation="Horizontal" Spacing="14">
                                 <StackPanel
                                     x:Name="ScoreStack"
                                     VerticalAlignment="Center"
@@ -884,7 +937,7 @@
                                         Content="预告片"
                                         Click="OnTrailersClick"
                                         Style="{StaticResource EgPillButtonStyle}"
-                                        Visibility="{x:Bind ViewModel.TrailerVisibility, Mode=OneWay}" />
+                                        Visibility="{x:Bind ViewModel.TrailerButtonVisibility, Mode=OneWay}" />
 
                                     <Button
                                         x:Name="ColumnExtrasButton"
@@ -1000,10 +1053,15 @@
                                         VerticalAlignment="Center"
                                         FontSize="{StaticResource EgCaptionFontSize}"
                                         Foreground="{StaticResource EgAccentBrush}"
-                                        Text="{x:Bind ViewModel.ResumeRemain, Mode=OneWay}" />
+                                        Text="{x:Bind ViewModel.ResumeRemain, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.RemainingTimeVisibility, Mode=OneWay}" />
                                 </Grid>
                             </StackPanel>
                         </StackPanel>
+
+                        <StackPanel x:Name="StoreHeroDetails" Grid.Row="1" Grid.ColumnSpan="2"
+                                    Margin="0,12,0,0" Spacing="8" Visibility="Collapsed"
+                                    SizeChanged="OnStoreHeroSizeChanged" />
 
                         <!--
                           右上角那张艺术图 —— 「给集页面右上角添加艺术图」（2026-09-12）。艺术图是横的、上面没有字，
@@ -1304,7 +1362,7 @@
                                     Content="预告片"
                                     Click="OnTrailersClick"
                                     Style="{StaticResource EgPillButtonStyle}"
-                                    Visibility="{x:Bind ViewModel.TrailerVisibility, Mode=OneWay}" />
+                                    Visibility="{x:Bind ViewModel.TrailerButtonVisibility, Mode=OneWay}" />
 
                                 <Button
                                     x:Name="CompactExtrasButton"
@@ -1403,7 +1461,8 @@
                                     VerticalAlignment="Center"
                                     FontSize="{StaticResource EgCaptionFontSize}"
                                     Foreground="{StaticResource EgAccentBrush}"
-                                    Text="{x:Bind ViewModel.ResumeRemain, Mode=OneWay}" />
+                                    Text="{x:Bind ViewModel.ResumeRemain, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.RemainingTimeVisibility, Mode=OneWay}" />
                             </Grid>
 
                         </StackPanel>
@@ -1445,7 +1504,14 @@
                                 MaxWidth="{StaticResource EgProseWidth}"
                                 Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
                                 TextTrimming="{x:Bind ViewModel.OverviewTrimming, Mode=OneWay}"
-                                TextWrapping="Wrap" />
+                                TextWrapping="Wrap">
+                                <!-- Gallery Styles/ItemTemplates.xaml, v2.9.3 / 14a4a1a2. -->
+                                <ToolTipService.ToolTip>
+                                    <ToolTip Visibility="{x:Bind local:DetailPage.OverviewTipVisibility(ViewModel.StoreMode, ViewModel.OverviewTrimmed), Mode=OneWay}">
+                                        <TextBlock Text="{x:Bind ViewModel.Overview, Mode=OneWay}" TextWrapping="Wrap" MaxWidth="520" />
+                                    </ToolTip>
+                                </ToolTipService.ToolTip>
+                            </TextBlock>
                             </Grid>
                             <HyperlinkButton
                                 AutomationProperties.AutomationId="DetailReadMoreButton"
@@ -1706,6 +1772,7 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
+            </Grid>
         </ScrollView>
 
         <!-- 播放键被滚动视口顶部裁切到一半时接手。作为 Body 的同级浮层，不改变正文高度或滚动落点。 -->

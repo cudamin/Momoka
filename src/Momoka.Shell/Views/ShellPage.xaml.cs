@@ -964,6 +964,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     internal void ShowPlayer(bool playing)
     {
+        (ContentFrame.Content as DetailPage)?.SetStorePreviewActive(!playing);
         _sidebarPlaying = playing;
         if (playing)
         {
@@ -2180,6 +2181,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// 走不动时只是变暗」只对非主页那一档还成立。
     /// </para>
     /// </summary>
+    internal void RefreshDetailChrome() => ApplyChrome(ContentFrame.CanGoBack, _trail.Count);
+
     private void ApplyChrome(bool canGoBack, int crumbs)
     {
         BackButton.IsEnabled = canGoBack;
@@ -2190,7 +2193,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
         // right below, and a row left standing empty is a band of nothing 38 pixels tall.
-        TrailBar.Visibility = crumbs > 1 ? Visibility.Visible : Visibility.Collapsed;
+        var storeDetail = ContentFrame.Content is DetailPage detail && detail.ViewModel.StoreMode;
+        TrailBar.Visibility = crumbs > 1 && !storeDetail ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>

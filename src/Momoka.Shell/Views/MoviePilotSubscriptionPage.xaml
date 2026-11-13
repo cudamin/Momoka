@@ -95,6 +95,20 @@
         </Border>
     </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnDetailScrollSizeChanged" ViewChanged="OnDetailViewChanged">
+        <Grid>
+    <Grid x:Name="StoreBackdrop" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
+        <Grid x:Name="StoreBackdropContent">
+            <Border>
+                <Border.Background>
+                    <ImageBrush ImageSource="{x:Bind MediaViewModel.Backdrop, Mode=OneWay}"
+                                Stretch="UniformToFill" AlignmentX="Right" AlignmentY="Top" />
+                </Border.Background>
+            </Border>
+            <Border x:Name="StoreBackdropSides" />
+            <Border x:Name="StoreBackdropBottom" />
+            </Grid>
+        <Border x:Name="StoreBackdropMask" />
+    </Grid>
         <StackPanel>
             <!-- 简介紧随文字列操作；右卡自然长高，下方季与相关列表保持全宽。 -->
             <StackPanel x:Name="HeroSection">
@@ -257,6 +271,7 @@
             </StackPanel>
             </StackPanel>
         </StackPanel>
+        </Grid>
     </ScrollViewer>
     </Grid>
     <ScrollViewer x:Name="DetailErrorState" VerticalScrollBarVisibility="Auto"

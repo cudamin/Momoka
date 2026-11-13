@@ -167,7 +167,8 @@ internal static class MoviePilotSubscriptionPageStateTests
                     Assert.True(scope < page.IndexOf("Subscriptions.AttachRow", StringComparison.Ordinal));
                     Assert.Contains("private void OnRefresh(object sender, RoutedEventArgs e) => _ = ViewModel.ReloadAsync();", page);
                     var xaml = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionsPage.xaml"));
-                    Assert.Contains("Visibility=\"{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}\"", xaml);
+                    Assert.Contains("Visibility=\"{x:Bind PageEmptyVisibility(ViewModel.EmptyStateVisibility), Mode=OneWay}\"", xaml);
+                    Assert.Contains("private Visibility PageEmptyVisibility(Visibility visibility) => _wallCategory ? Visibility.Collapsed : visibility;", page);
                     Assert.Contains("x:Name=\"RefreshSubscriptions\"", xaml);
                     Assert.Contains("Click=\"OnRefresh\"", xaml);
                 });
@@ -456,6 +457,13 @@ internal static class MoviePilotSubscriptionPageStateTests
         private readonly TaskCompletionSource _pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            // 分类墙新增的排序和批次均为匿名只读；不能把 GET 误计成写入，也不放开未知请求。
+            var path = request.RequestUri?.AbsolutePath;
+            if (request.Method == HttpMethod.Get && path is "/api/v1/user/config/SubscribeMovieOrder"
+                or "/api/v1/user/config/SubscribeTvOrder" or "/api/v1/subscribe/execution/batches")
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new StringContent(path.Contains("/user/config/", StringComparison.Ordinal)
+                    ? "{\"value\":null}" : "[]", Encoding.UTF8, "application/json") };
             if (request.Method != HttpMethod.Get || request.RequestUri?.AbsolutePath != "/api/v1/subscribe/")
             {
                 Writes++;

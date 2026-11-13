@@ -317,6 +317,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeroVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropVisibility))]
     public partial ImageSource? HeroImage { get; set; }
 
     [ObservableProperty]
@@ -358,7 +359,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 右上角那张艺术图 —— 「给集页面右上角添加艺术图」（2026-09-12）。哪一张归这儿是
     /// <see cref="ItemArtwork.Corner"/> 的事（这一集自己的，没有就借剧集那一层的）；这里只存解出来的那张。
-    /// 电影、剧、集三页在两种模式下都显示（见 <see cref="CornerVisibility"/>），没有艺术图时收起。
+    /// 电影、剧、集三页仅在沉浸模式显示（见 <see cref="CornerVisibility"/>），没有艺术图时收起。
     /// <para>
     /// 图到没到也算进带高（<see cref="HeroContent"/> 按 <c>CornerShown</c> 分档）：<see cref="ShowCorner"/> 先
     /// 排尺寸再换图，所以这一句把带高那几支一并喊上 —— 否则「尺寸没变、只是图来了」的那一次，带子会留在没有
@@ -439,6 +440,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(WideProgressVisibility))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
     [NotifyPropertyChangedFor(nameof(CardTailGapHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -488,6 +492,17 @@ public sealed partial class DetailViewModel : PageViewModel
 
     internal void RefreshAppearance()
     {
+        OnPropertyChanged(nameof(StoreMode));
+        OnPropertyChanged(nameof(OverviewMaxLines));
+        OnPropertyChanged(nameof(OverviewTrimming));
+        OnPropertyChanged(nameof(ReadMoreVisibility));
+        OnPropertyChanged(nameof(RemainingTimeVisibility));
+        OnPropertyChanged(nameof(TrailerButtonVisibility));
+        OnPropertyChanged(nameof(StoreBackdropVisibility));
+        OnPropertyChanged(nameof(StoreBackdropHeight));
+        OnPropertyChanged(nameof(StoreBackdropWidth));
+        OnPropertyChanged(nameof(StoreTextWidth));
+        OnPropertyChanged(nameof(StoreContentWidth));
         SyncBackdrop();
         RefitArtwork();
         OnPropertyChanged(nameof(IsCompact));
@@ -588,6 +603,8 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
     [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     public partial double HeroHeightRatio { get; set; } = 9d / 16;
 
     // 裁切模糊的三个数：门槛（裁切不超过它不糊 —— 「提高拉长窗口后，背景被裁切触发背景图模糊的阈值」，
@@ -644,7 +661,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 显示 —— 与 2026-11-06 那句「0 档图原样清晰」是同一件事，只是现在的 0 档由两项染色浓度一起表达。
     /// </para>
     /// </summary>
-    private int HeroBlurTarget => BackdropCoverage <= 0 ? 0 : BackdropBlur.CropRadius(
+    private int HeroBlurTarget => StoreMode || BackdropCoverage <= 0 ? 0 : BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
     /// <summary>
@@ -733,6 +750,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
     public partial double StillWidth { get; set; }
 
     [ObservableProperty]
@@ -959,7 +977,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public double HeroContent =>
-        Math.Max(Math.Max(StackRoom, StillHeight), CornerShown ? CornerHeight : 0);
+        StoreMode ? Math.Max(Math.Max(StackRoom, StillHeight) + StoreDetailsRoom, StoreTrailerRoom)
+            : Math.Max(Math.Max(StackRoom, StillHeight), CornerShown ? CornerHeight : 0);
 
     /// <summary>
     /// 带子里那一叠（剧照、片名、副标题、读数、那排键）连同上下留白实测要占多高。集页那一格的高就是它
@@ -989,7 +1008,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <see cref="HeroRoom"/> 自然回落到文字那一叠。
     /// </para>
     /// </summary>
-    public double HeroLayoutHeight => IsCompact
+    public double HeroLayoutHeight => StoreMode ? HeroRoom : IsCompact
         ? DetailHero.CompactHeight(PageWidth, HeroHeightRatio, HeroRoom, HeroArt)
         : IsEpisodePage
             ? DetailHero.EpisodeHeight(HeroRoom)
@@ -1010,6 +1029,7 @@ public sealed partial class DetailViewModel : PageViewModel
     partial void OnPageWidthChanged(double value)
     {
         RefitArtwork();
+        OnPropertyChanged(nameof(StoreContentWidth));
         SyncBackdrop();
     }
 
@@ -1072,8 +1092,8 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var maxW = (double)PosterStillWidth;
-        var maxH = (double)PosterStillHeight;
+        var maxW = StoreMode ? 180d : PosterStillWidth;
+        var maxH = StoreMode ? 270d : PosterStillHeight;
 
         if (_stillPixels is { } pixels
             && DetailHero.StillBox(pixels.Width, pixels.Height, maxW, maxH) is { } fit)
@@ -1130,10 +1150,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 对齐摆出来一模一样。
     /// </para>
     /// </summary>
-    public VerticalAlignment HeroContentAlignment => HeroCard ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+    public VerticalAlignment HeroContentAlignment => StoreMode || HeroCard ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 
     /// <summary>沉浸单集沿用剧页封面顶对齐；简洁单集保留居中卡面。</summary>
-    public VerticalAlignment CoverAlignment => IsEpisodePage && !Showcase ? VerticalAlignment.Center : VerticalAlignment.Top;
+    public VerticalAlignment CoverAlignment => !StoreMode && IsEpisodePage && !Showcase ? VerticalAlignment.Center : VerticalAlignment.Top;
 
     /// <summary>
     /// 右上角艺术图这一次的上限盒宽，默认 360，窗口超过 1280 后逐步放大至 540，
@@ -1329,7 +1349,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 归零不会让字贴到板沿上。其余页面照旧 16／24。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => IsCompact
+    public Thickness HeroInset => StoreMode ? new(32, 16, 32, 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)
@@ -1367,7 +1387,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 截图里那几行就是这么对齐的（「按键布局参考上方截图」，2026-09-12）。
     /// </para>
     /// </summary>
-    public Thickness TailInset => IsCompact
+    public Thickness TailInset => StoreMode ? new(8, 2, 8, 0) : IsCompact
         ? new(2, 12, 2, 8)
         : HeroCard
             ? new(StackLeft, 12, PlainDetail ? 58 : StackLeft, 0)
@@ -1405,7 +1425,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         get
         {
-            if (!HeroCard || OverviewVisibility != Visibility.Visible) return default;
+            if (StoreMode || !HeroCard || OverviewVisibility != Visibility.Visible) return default;
 
             var pull = DetailHero.TailPull(
                 HeroHeight, HeroInset.Top, StackRoom, TailInset.Top, OverviewPanelPadding.Top,
@@ -1423,7 +1443,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 圆角照旧画得出来，而字到板底仍然是 <see cref="OverviewPanelPadding"/> 那 8 加这一格的 16。
     /// </para>
     /// </summary>
-    public double CardTailGapHeight => HeroCard ? DetailHero.CardTailGap : 0d;
+    public double CardTailGapHeight => !StoreMode && HeroCard ? DetailHero.CardTailGap : 0d;
 
     /// <summary>
     /// 尾部那几块（文件选项、播放那排键和进度、剧情说明）之间的竖距（<c>TailContent.Spacing</c>）——
@@ -1483,7 +1503,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
     /// </summary>
-    public Thickness OverviewPanelPadding => HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
+    public Thickness OverviewPanelPadding => StoreMode ? new(24, 4, 24, 4) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 默认宽详情左8加面板24，内容与封面左沿32对齐。
@@ -1513,7 +1533,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 只剩「把两块货架隔开」一个作用，而隔着模糊背景读起来就是一截空。左右不动，货架标题和卡片的左沿不变。
     /// </para>
     /// </summary>
-    public Thickness BodyPanelPadding => Showcase
+    public Thickness BodyPanelPadding => StoreMode ? new(24, 12, 24, 12) : Showcase
         ? new(24, DetailHero.ShowcasePanelPadding, 24, DetailHero.ShowcasePanelPadding)
         : new(24);
 
@@ -1627,6 +1647,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ProgressValue))]
     [NotifyPropertyChangedFor(nameof(ResumeRemain))]
     [NotifyPropertyChangedFor(nameof(ResumeVisibility))]
+    [NotifyPropertyChangedFor(nameof(RemainingTimeVisibility))]
     [NotifyPropertyChangedFor(nameof(InfoVisibility))]
     [NotifyPropertyChangedFor(nameof(PickersVisibility))]
     [NotifyPropertyChangedFor(nameof(ColumnPickersVisibility))]
@@ -1665,7 +1686,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility WideProgressVisibility => Show(WideProgressShown);
 
     /// <summary><see cref="WideProgressVisibility"/> 的 bool 面 —— 带高那头也读它，版面不吃 Visibility。</summary>
-    private bool WideProgressShown => !IsCompact && PlayTarget?.HasResumePosition == true;
+    private bool WideProgressShown => !StoreMode && !IsCompact && PlayTarget?.HasResumePosition == true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WatchedVisibility))]
@@ -1929,7 +1950,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 显隐和 <c>DetailPage.PaintScrim</c> 的分档，四样一起。
     /// </para>
     /// </summary>
-    public Visibility HeroCardVisibility => Show(HeroCard);
+    public Visibility HeroCardVisibility => Show(HeroCard && !StoreMode);
 
     /// <summary>
     /// <see cref="HeroCardVisibility"/> 的布尔那一份 —— 视图在代码里要问它两句：尾部那一块的底色（有板时透明、
@@ -1972,14 +1993,14 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility PlateVisibility => Show(PlateImage is not null);
 
     /// <summary>
-    /// 右上角那张艺术图画不画 —— 电影、剧、集三页在两种模式下都画（2026-11-08「沉浸模式下在右上角显示艺术图」，
+    /// 右上角那张艺术图画不画 —— 电影、剧、集三页仅在沉浸模式画（2026-11-08「沉浸模式下在右上角显示艺术图」，
     /// 从前沉浸档整页站在背景图上，这一角跟着收掉）；没有图、紧凑版式或题栏空间不足时收起。
     /// </summary>
     public Visibility CornerVisibility => Show(CornerShown);
 
     /// <summary>同一句话的第二半：带高（<see cref="HeroContent"/>）读的是这个布尔值，不是 <c>Visibility</c>。</summary>
     private bool CornerShown =>
-        DetailHero.ShowsCorner(CornerImage is not null, IsCompact, CornerMaxWidth, ItemType);
+        !StoreMode && DetailHero.ShowsCorner(CornerImage is not null, IsCompact, CornerMaxWidth, ItemType);
 
     /// <summary>
     /// 页面最底下那张横幅画不画。两句话：图解出来了没有，以及这一页是不是那三种页面之一 —— 用户点的名是「电影
@@ -2121,8 +2142,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>自动不算实际音轨；至少两条实际音轨才提供选择。</summary>
     public Visibility AudioVisibility => Show(AudioTracks.Count > AutoRows + 1);
 
-    public Visibility AudioRowVisibility => Show(AudioTracks.Count > AutoRows);
-    public Visibility SingleAudioVisibility => Show(AudioTracks.Count == AutoRows + 1);
+    public Visibility AudioRowVisibility => AudioVisibility;
+    public Visibility SingleAudioVisibility => Visibility.Collapsed;
     public string SingleAudioText => AudioTracks.Count == AutoRows + 1 ? AudioTracks[AutoRows].Text : "";
 
     /// <summary>Two rows are 自动 and 不使用字幕, which is not a choice either.</summary>
@@ -2137,7 +2158,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>有播放目标及版本、音频信息或字幕选项时显示文件栏。</summary>
     private bool Pickable =>
         PlayTarget is not null
-        && (Sources.Count > 1 || AudioTracks.Count > AutoRows || SubtitleTracks.Count > AutoRows + 1);
+        && (Sources.Count > 1 || AudioTracks.Count > AutoRows + 1 || SubtitleTracks.Count > AutoRows + 1);
 
     /// <summary>The 自动 row every track picker carries whether the file has tracks or not.</summary>
     private const int AutoRows = 1;
@@ -2169,13 +2190,13 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ReadMoreVisibility))]
     public partial bool OverviewTrimmed { get; set; }
 
-    public int OverviewMaxLines => Expanded ? 0 : CollapsedLines;
+    public int OverviewMaxLines => StoreMode ? 2 : Expanded ? 0 : CollapsedLines;
 
-    public TextTrimming OverviewTrimming => Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
+    public TextTrimming OverviewTrimming => !StoreMode && Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
 
     public string ReadMoreText => Expanded ? "收起" : "阅读更多";
 
-    public Visibility ReadMoreVisibility => Show(OverviewTrimmed || Expanded);
+    public Visibility ReadMoreVisibility => Show(!StoreMode && (OverviewTrimmed || Expanded));
 
     /// <summary>
     /// 简介那一块整块的显隐 —— 简介和导演两行都空的时候收起来。
@@ -2665,6 +2686,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private void AnnounceAffordances()
     {
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(ExtraVisibility));
         OnPropertyChanged(nameof(FavoriteActionVisibility));
         OnPropertyChanged(nameof(CanOpenGenre));
@@ -2688,6 +2710,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void AnnounceShape()
     {
+        OnPropertyChanged(nameof(StoreMode));
+        OnPropertyChanged(nameof(StoreBackdropVisibility));
+        OnPropertyChanged(nameof(StoreTextWidth));
         AnnounceAffordances();
         // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。
         // 不能读 ItemType：它会回退到 seed，让存根首次 Apply 被误认为已经通知过。
@@ -2986,6 +3011,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _trailersReady = true;
         _extrasReady = true;
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(ExtraVisibility));
         NotifyActionAvailability();
         NavigationTiming.Mark("actions-ready");

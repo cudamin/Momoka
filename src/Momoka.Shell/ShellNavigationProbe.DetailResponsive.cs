@@ -144,9 +144,9 @@ internal sealed partial class ShellNavigationProbe
                         Require(options.Visibility == Visibility.Visible && optionsBottom <= actionsTop + 1,
                             $"{item.Type} {width} 文件选项没有排在播放前：{optionsBottom:0.#}/{actionsTop:0.#}");
                         Require(Get<ComboBox>(page, compact ? "AudioPicker" : "ColumnAudioPicker").Visibility == Visibility.Collapsed
-                            && Get<TextBlock>(page, compact ? "AudioText" : "ColumnAudioText").Visibility == Visibility.Visible
-                            && !string.IsNullOrWhiteSpace(Get<TextBlock>(page, compact ? "AudioText" : "ColumnAudioText").Text),
-                            $"{item.Type} {width} 唯一音轨未保留文字或仍显示下拉");
+                            && page.ViewModel.SingleAudioVisibility == Visibility.Collapsed
+                            && page.ViewModel.AudioRowVisibility == Visibility.Collapsed,
+                            $"{item.Type} {width} 唯一音轨未收起整行");
                         Require(Get<Border>(page, "PosterStill").Visibility == view.StillVisibility,
                             $"{item.Type} {width} 封面显隐没有跟随宽窄排版");
                         // 右上角那张艺术图：电影、剧、集三页在沉浸档也画（2026-11-08「沉浸模式下在右上角显示
@@ -264,8 +264,8 @@ internal sealed partial class ShellNavigationProbe
                 "简洁电影剧季始终保留卡面，单集保持原宽窄布局");
             var cover = Get<Border>(page, "PosterStill");
             Require(oldEpisodeCompact ? cover.Visibility == Visibility.Collapsed
-                : cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 250) < 1
-                    && Math.Abs(cover.ActualHeight - 375) < 1, "详情封面没有统一为集页尺寸");
+                : cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 180) < 1
+                    && Math.Abs(cover.ActualHeight - 270) < 1, "商店封面未使用紧凑尺寸");
             // 悬停遮罩只在集页上（2026-11-08「集页面鼠标移到左上角的封面的时候要显示遮罩」）：其余三页的封面
             // 要么另有播放键，要么根本点不动，一层遮罩只会在那里说谎。
             Require(Get<Border>(page, "CoverShade").Visibility
@@ -276,7 +276,7 @@ internal sealed partial class ShellNavigationProbe
                 && (Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible) == !oldEpisodeCompact,
                 "简洁模式仍切换到窄窗操作");
             var corner = Get<Image>(page, "CornerArt");
-            var hasCorner = DetailHero.ShowsCorner(view.CornerImage is not null, view.IsCompact,
+            var hasCorner = !view.StoreMode && DetailHero.ShowsCorner(view.CornerImage is not null, view.IsCompact,
                 view.CornerMaxWidth, view.ItemType);
             Require((corner.Visibility == Visibility.Visible) == hasCorner && (!hasCorner || corner.Source is not null),
                 "简洁模式电影和剧的艺术图未按空间显示或季页错误显示艺术图");

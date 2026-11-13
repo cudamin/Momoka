@@ -10,6 +10,39 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterTrailerTests(Assembly assembly, string root)
     {
+        Test("商店预告：入口隐藏不改变资源能力，切回沉浸恢复", () =>
+        {
+            using var f = TrailersFixture(assembly, root);
+            Await(f.Load());
+            Assert.Equal("Visible", f.Get("TrailerVisibility")!.ToString());
+            f.Ui.EnableImmersive = false;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            Assert.Equal("Collapsed", f.Get("TrailerButtonVisibility")!.ToString());
+            Assert.Equal("Visible", f.Get("TrailerVisibility")!.ToString());
+            f.Ui.EnableImmersive = true;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            Assert.Equal("Visible", f.Get("TrailerButtonVisibility")!.ToString());
+        });
+
+        Test("商店预告预览：只准备独立预告匿名流，不调用正式播放或保存", () =>
+        {
+            using var f = TrailersFixture(assembly, root);
+            f.Transport.Trailers[0].MediaSources = [new() { Id = "preview", Container = "mp4" }];
+            Await(f.Load());
+            var previewType = assembly.GetType("Momoka.Shell.Media.StoreTrailerPreview", true)!;
+            var task = (Task)previewType.GetMethod("CreateAsync", BindingFlags.Static | BindingFlags.NonPublic)!
+                .Invoke(null, [f.Seed, CancellationToken.None])!;
+            Await(task);
+            var preview = task.GetType().GetProperty("Result")!.GetValue(task)!;
+            Assert.NotNull(preview);
+            var uri = (Uri)previewType.GetProperty("Source", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(preview)!;
+            Assert.True(uri.IsLoopback);
+            Assert.DoesNotContain("offline", uri.AbsoluteUri);
+            Assert.DoesNotContain("trailer", uri.AbsoluteUri);
+            Assert.Equal(0, f.Actions.Plays);
+            ((IAsyncDisposable)preview).DisposeAsync().AsTask().GetAwaiter().GetResult();
+        });
+
         Test("预告片：详情没有资源时隐藏入口", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);
