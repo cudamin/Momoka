@@ -2,7 +2,7 @@
 
 用户截图：收藏页整页只剩「最近搜索」，收藏卡片一个也看不到。原因是 Frame 复用同一个 `LibraryPage` 实例：空搜索框切到收藏时 `SearchText` 前后都是空串，生成的 setter 不发通知，`RecentSearchVisibility`／`SearchResultsVisibility` 停在搜索页的值上；最近搜索块占着结果区第一行，还把下面的收藏挤到屏外。`Attach` 现在拿到新请求后按新身份重算这几块显隐（`RaiseSearchVisibility`），并补上同一场景的空态刷新。
 
-**验证**：Shell／Tests Release 编译 0 警告 0 错误；`library-resume-paging-fixture` **52/52**（新增「空搜索页切到收藏页」用例，断言两类显隐都发通知）；`--probe-shell --probe-section search --screen 2` **13/13**（新增「空搜索切收藏」，先断言 Frame 确实复用同一页面实例，再断言最近搜索退场、结果区接位；截图 `foundation-favorites-after-empty-search-screen.png` 上收藏卡片正常）。产品 `5a2acee`，合并 `bf3f15c`，台账 `cfeb799` 记第 5 条待交付。主树未发布、未推远端。
+**验证**：Shell／Tests Release 编译 0 警告 0 错误；`library-resume-paging-fixture` **52/52**（新增「空搜索页切到收藏页」用例，断言两类显隐都发通知）；`--probe-shell --probe-section search --screen 2` **13/13**（新增「空搜索切收藏」，先断言 Frame 确实复用同一页面实例，再断言最近搜索退场、结果区接位；截图 `foundation-favorites-after-empty-search-screen.png` 上收藏卡片正常）。产品 `5a2acee`，合并 `bf3f15c`，台账 `cfeb799` 记第 5 条待交付。主树未发布、未推远端。本聊天工作树 `WorkBuddy/Worktrees/Momoka/master-a6bdca58` 与分支 `workbuddy/master-a6bdca58` 的内容已全部进入 master，待本会话关闭后按同一条口径删除（这一段只存在于 master，分支不用跟着更新）。
 
 ## 2026-11-13 P4–P8 合并收尾与最后工具回执
 
