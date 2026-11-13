@@ -6,11 +6,11 @@
 
 **验证。** Shell/Core 与 Tests Release/x64 均 0 警告 0 错误；主测试 **5043/5043、0 失败 0 跳过**（新增三条 Core 判断；`Agreements.txt` 按有意删除 `SidebarSearch` 更新；两条下载用例需要可写 TEMP，本轮把 TEMP/TMP 指向用户临时目录后全绿）。`--probe-shell --probe-section shell --screen 1` **15/15**（新增栏里无搜索项、标题搜索框关联动画 started）；`--probe-section search --screen 1` **12/12**（新增订阅同步、已订阅标记落地、订阅组实屏与截图）；`--probe-section library --screen 1` 47 项 **35 过、12 红**，红项均在本批未触碰区域，相关的「飞牛剧集卡片右上角的集数角标」通过。`dotnet format whitespace` 定向改动文件无差异，`git diff --check` 干净。
 
-**变基与合并轮。** 会话期间 master 前进到 `000344d`（轮播外圈删除、折叠侧栏媒体库悬停预览）；本批变基解冲突（PROGRESS／docs 两条记录都留，`Agreements.txt` 保留新预览句柄、删 `SidebarSearch`，`OnSearchTextChanged` 保留新 `RaiseSearchVisibility` 与本批订阅刷新）。变基后 Shell/Tests Release/x64 重新编译 0 警告 0 错误；主测试 5043 项中 **16 项因另一会话桌面探针占用 `SelfCheckRun` 锁失败，其余 5027 通过**；按新合并规则与「不结束其他进程」不回抢锁、不重跑全量，登记到交付时统一验证。变基后两次 `--probe-section shell/search` 也被该锁挡住（退出 1、无报告），本批探针证据以上面变基前 `shell-probe-20261113-115153549-29180` 与 `shell-probe-20261113-115232560-3188` 为准。
+**变基与合并轮。** 会话期间 master 连续前进到 `bf2d143`（轮播外圈删除与折叠侧栏媒体库悬停预览、图片筛选、封面到媒体详情关联动画，以及各自的台账）；本批先后两轮变基解冲突（PROGRESS／docs 两条记录都留，`Agreements.txt` 保留新预览句柄、删 `SidebarSearch`，`OnSearchTextChanged` 保留新 `RaiseSearchVisibility` 与本批订阅刷新，`LibraryPage.OnLoaded` 同时保留卡片关联动画与本批标题搜索关联动画的接线）。最终变基后 Shell/Tests Release/x64 重新编译 **0 警告 0 错误**；主测试 5043 项中 **16 项因另一会话桌面探针占用 `SelfCheckRun` 锁失败，其余 5027 通过**；按新合并规则与「不结束其他进程」不回抢锁、不重跑全量，登记到交付时统一验证。变基后两次 `--probe-section shell/search` 也被该锁挡住（退出 1、无报告），本批探针证据以变基前 `shell-probe-20261113-115153549-29180` 与 `shell-probe-20261113-115232560-3188` 为准。
 
 **没做／边界。** 未发布、未推远端；未连接真实 MoviePilot、未读用户真实订阅清单、未写服务器；MP 只用 `.invalid` 假 HTTP。12 项 library 红未在基线树同命令复跑，不全部认作既有红。侧边栏模式窄于 700 时标题搜索框收起且栏里没有第二个搜索入口（用户令的直接结果）。
 
-**合入状态。** 已随本批以 ff 合入 master；用户令「只合并，先不交付」，交付件的编译/全量测试/探针与发布留到交付轮统一执行，交付件不动。
+**合入状态。** 产品提交 `41ac2d1`、台账 `6bbe15b`，以 ff 合入 master（基线 `bf2d143`）；用户令「只合并，先不交付」，交付件的编译/全量测试/探针与发布留到交付轮统一执行，交付件不动。本段随第三次台账提交追记最终基线。
 
 
 
