@@ -145,6 +145,35 @@ internal static class LibrarySearchViewTests
                 finally { ((IDisposable)vm).Dispose(); }
             });
 
+        Case("页面复用：空搜索页切到收藏页，最近搜索与搜索专属区块跟着退场", async () =>
+        {
+            using var fixture = new Fixture(shell, 0);
+            var vm = fixture.CreateSearchView("");
+            try
+            {
+                Assert.Equal("Visible", shell.Get<object>(vm, "RecentSearchVisibility").ToString());
+                Assert.Equal("Collapsed", shell.Get<object>(vm, "SearchResultsVisibility").ToString());
+
+                var changed = new List<string?>();
+                ((System.ComponentModel.INotifyPropertyChanged)vm).PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+                // 同一个视图模型换成收藏请求：词前后都是空串，SearchText 的 setter 不会发通知。
+                fixture.Reattach(vm, favorites: true);
+
+                Assert.True(changed.Contains("RecentSearchVisibility"), "收藏页没有收到最近搜索的显隐通知，屏上会留着上一页那块");
+                Assert.True(changed.Contains("SearchResultsVisibility"), "收藏页没有收到结果区的显隐通知，卡片墙会停在收起状态");
+                Assert.Equal("Collapsed", shell.Get<object>(vm, "RecentSearchVisibility").ToString());
+                Assert.Equal("Visible", shell.Get<object>(vm, "SearchResultsVisibility").ToString());
+
+                changed.Clear();
+                fixture.Reattach(vm, searchTerm: "");
+                Assert.True(changed.Contains("RecentSearchVisibility"), "回到空搜索页没有恢复最近搜索的显隐");
+                Assert.Equal("Visible", shell.Get<object>(vm, "RecentSearchVisibility").ToString());
+                Assert.Equal("Collapsed", shell.Get<object>(vm, "SearchResultsVisibility").ToString());
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
+
         List<object> Cards(object vm) => Sequence(shell.Get<object>(vm, "Cards"));
     }
 

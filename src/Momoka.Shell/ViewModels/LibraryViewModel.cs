@@ -1350,6 +1350,8 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         Heading = request.IsSearch ? LibraryRequest.SearchTitle(request.SearchTerm!) : request.Title;
         SearchText = request.SearchTerm ?? "";
+        // 空搜索框切到收藏或媒体库时词没变，setter 不会发通知；这几块的显隐必须按新请求重算一次。
+        RaiseSearchVisibility();
 
         // 「这里没有内容」读起来像仓库空了，而这一页是「你还没看什么」—— 一部都没看完过的时候，那两句话说的
         // 其实是两件事（2026-09-14「继续观看」那一排接通之后才有人走到这一页）。两排的空页文案也分开：继续观看
