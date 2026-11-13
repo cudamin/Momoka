@@ -90,7 +90,8 @@ public sealed partial class ShellPage
         TitleUtilities.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
         // 搜索框（标题栏正中）与那一排里的放大镜：门槛与顶班规则在 SyncTitleSearch 里。
         SyncTitleSearch();
-        // 主页、返回与前进每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
+        // 主页、返回与前进每一档都在；设置、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
+        // 搜索 2026-11-13 起只在标题栏正中那颗框里，栏里不再有第二份入口。
         SyncTitleActions();
         SidebarFavorites.Visibility = Favorites.Visibility;
 
@@ -119,7 +120,6 @@ public sealed partial class ShellPage
         var selected = tag switch
         {
             "home" => SidebarHome,
-            LibraryRequest.SearchTag => SidebarSearch,
             LibraryRequest.FavoritesTag when Favorites.HasItems => SidebarFavorites,
             HomeLayout.MoviePilotMovies when moviePilot => SidebarMoviePilotMovies,
             HomeLayout.MoviePilotSeries when moviePilot => SidebarMoviePilotSeries,

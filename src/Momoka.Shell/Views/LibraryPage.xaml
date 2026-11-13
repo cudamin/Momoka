@@ -157,6 +157,17 @@
             </StackPanel>
         </DataTemplate>
 
+        <!-- 搜索页「媒体库」来源同时命中的 MoviePilot 订阅（2026-11-13 用户令「搜索媒体库时候同时搜索订阅」）：
+             只在本机订阅清单里按作品名找，点封面进这条订阅的媒体页。 -->
+        <DataTemplate x:Key="SubscriptionMatchTemplate" x:DataType="vm:MoviePilotSubscriptionCard">
+            <StackPanel Width="{x:Bind CardWidth}" Spacing="8">
+                <local:MoviePilotSubscriptionPoster Card="{x:Bind}" Width="{x:Bind CardWidth}" Height="{x:Bind PosterHeight}"
+                    OpenRequested="OnSubscriptionMatchOpen" PosterRequested="OnSubscriptionMatchPosterRequested" />
+                <TextBlock Text="{x:Bind Title, Mode=OneWay}" TextWrapping="Wrap"
+                    Style="{StaticResource EgBodyStyle}" ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
+            </StackPanel>
+        </DataTemplate>
+
         <!-- 搜索结果的类型分组：一块标题接一片同类型的卡片。空组不在清单里，
              组与卡片清单都由视图模型保持同一实例，翻页只往组里追加。 -->
         <DataTemplate x:Key="SearchGroupTemplate" x:DataType="vm:SearchResultGroup">
@@ -1019,16 +1030,37 @@
                 VerticalScrollBarVisibility="Auto"
                 VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.SearchGroupsVisibility, Mode=OneWay}">
-                <ItemsRepeater
-                    x:Name="SearchGroupsList"
-                    x:FieldModifier="internal"
-                    ItemTemplate="{StaticResource SearchGroupTemplate}"
-                    ItemsSource="{x:Bind ViewModel.SearchGroups, Mode=OneWay}">
-                    <ItemsRepeater.Layout>
-                        <!-- 组与组之间 32：比组标题到卡片的 12 宽得多，一眼读得出是几件事。 -->
-                        <StackLayout Orientation="Vertical" Spacing="32" />
-                    </ItemsRepeater.Layout>
-                </ItemsRepeater>
+                <StackPanel Spacing="32">
+                    <!-- 同时搜到的订阅排在最上面：它们往往就是用户正在找、媒体库里还没有的那一项。
+                         摆法和下面那些类型组一致（组标题 + 同一档海报卡），读起来是同一张结果表里的一组。 -->
+                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SubscriptionMatchesVisibility, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="订阅" Style="{StaticResource EgSectionTitleStyle}"
+                                AutomationProperties.HeadingLevel="Level2" />
+                            <TextBlock Text="{x:Bind ViewModel.SubscriptionMatchesNote, Mode=OneWay}"
+                                Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                                VerticalAlignment="Bottom" />
+                        </StackPanel>
+                        <ItemsRepeater x:Name="SubscriptionMatches"
+                            ItemsSource="{x:Bind ViewModel.MatchingSubscriptions, Mode=OneWay}"
+                            ItemTemplate="{StaticResource SubscriptionMatchTemplate}">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout ItemsJustification="Start" ItemsStretch="None"
+                                    MinItemWidth="170" MinItemHeight="310" MinColumnSpacing="16" MinRowSpacing="24" />
+                            </ItemsRepeater.Layout>
+                        </ItemsRepeater>
+                    </StackPanel>
+                    <ItemsRepeater
+                        x:Name="SearchGroupsList"
+                        x:FieldModifier="internal"
+                        ItemTemplate="{StaticResource SearchGroupTemplate}"
+                        ItemsSource="{x:Bind ViewModel.SearchGroups, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <!-- 组与组之间 32：比组标题到卡片的 12 宽得多，一眼读得出是几件事。 -->
+                            <StackLayout Orientation="Vertical" Spacing="32" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </StackPanel>
             </ScrollViewer>
 
             <!-- 推荐页那三排。占的是网格那一格（同一行、同样跨到字母条那一行），两者互斥：

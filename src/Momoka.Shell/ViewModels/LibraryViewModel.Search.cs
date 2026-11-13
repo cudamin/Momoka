@@ -118,6 +118,11 @@ public sealed partial class LibraryViewModel
         RaiseSearchVisibility();
         OnPropertyChanged(nameof(SearchGroupsVisibility));
         OnPropertyChanged(nameof(GridVisibility));
+        if (_request?.IsSearch == true)
+        {
+            EnsureMoviePilotSubscriptions();
+            RefreshMatchingSubscriptions();
+        }
         if (value.Length == 0) EnsureRecentSearches();
     }
 
@@ -131,7 +136,9 @@ public sealed partial class LibraryViewModel
                 && !string.Equals(request.SearchTerm, SearchText.Trim(), StringComparison.Ordinal))
                 PrepareSearch(SearchText);
             EnsureRecentSearches();
+            EnsureMoviePilotSubscriptions();
         }
+        RefreshMatchingSubscriptions();
     }
 
     /// <summary>Cards 的所有增删都经过这里，分组清单因此不会与平铺清单走散。</summary>

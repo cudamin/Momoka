@@ -8,6 +8,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.FnNas;
 using Momoka.Infrastructure;
+using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Views;
@@ -547,7 +548,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
     public partial bool ShowEmptyNotice { get; set; }
 
-    public Visibility EmptyVisibility => Show(ShowEmptyNotice && (_request?.IsSearch != true || SearchText.Length > 0));
+    public Visibility EmptyVisibility => Show(ShowEmptyNotice && MatchingSubscriptions.Count == 0
+        && (_request?.IsSearch != true || SearchText.Length > 0));
 
     /// <summary>
     /// What the middle of an empty grid says. A property rather than the literal the markup used to
@@ -569,9 +571,177 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility MoviePilotTabsVisibility =>
         Show(_request?.IsSearch == true);
 
-    private Momoka.MoviePilot.MoviePilotService? _moviePilot;
+    private MoviePilotService? _moviePilot;
 
-    internal void RefreshMoviePilotAvailability() => OnPropertyChanged(nameof(MoviePilotTabsVisibility));
+    /// <summary>
+    /// 搜索页「媒体库」来源里同时命中的 MoviePilot 订阅（2026-11-13 用户令「搜索媒体库时候同时搜索订阅」）。
+    /// 只在本机订阅清单里按标题找，不另发搜索请求 —— 订阅清单在进入媒体库页面时读一次，键入时只做内存过滤。
+    /// </summary>
+    public ObservableCollection<MoviePilotSubscriptionCard> MatchingSubscriptions { get; } = [];
+
+    public Visibility SubscriptionMatchesVisibility => Show(_request?.IsSearch == true && _embySourceActive
+        && SearchText.Trim().Length > 0 && MatchingSubscriptions.Count > 0);
+
+    public string SubscriptionMatchesNote => MatchingSubscriptions.Count == 0 ? "" : $"{MatchingSubscriptions.Count} 条订阅";
+
+    private MoviePilotSubscription[] _moviePilotSubscriptions = [];
+    private MoviePilotSubscriptionIndex _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Empty;
+    private CancellationTokenSource? _moviePilotSubscriptionLoad;
+    private int _moviePilotSubscriptionGeneration;
+    private bool _moviePilotSubscriptionsLoaded;
+    private bool _moviePilotSubscriptionsLoading;
+    private bool _moviePilotSubscriptionsAttempted;
+
+    internal void RefreshMoviePilotAvailability()
+    {
+        OnPropertyChanged(nameof(MoviePilotTabsVisibility));
+        if (_moviePilot?.Available == true)
+        {
+            if (!_moviePilotSubscriptionsLoaded)
+            {
+                _moviePilotSubscriptionsAttempted = false;
+                EnsureMoviePilotSubscriptions();
+            }
+            else MarkMoviePilotSubscriptions();
+            return;
+        }
+
+        // 断线或关掉 MoviePilot：标记是附加信息，不能留着旧连接上的结论。
+        _moviePilotSubscriptionGeneration++;
+        _moviePilotSubscriptionLoad?.Cancel();
+        _moviePilotSubscriptionLoad = null;
+        _moviePilotSubscriptionsLoading = false;
+        _moviePilotSubscriptionsLoaded = false;
+        _moviePilotSubscriptionsAttempted = false;
+        _moviePilotSubscriptions = [];
+        _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Empty;
+        foreach (var card in Cards) card.MoviePilotSubscribed = false;
+        RefreshMatchingSubscriptions();
+    }
+
+    /// <summary>
+    /// 订阅清单读一趟就够：进入媒体库页面、连接恢复或第一次需要时才开始。失败只让角标缺席，不打断媒体库读取。
+    /// </summary>
+    private void EnsureMoviePilotSubscriptions()
+    {
+        if (!_active || _moviePilot?.Available != true || _moviePilotSubscriptionsLoaded || _moviePilotSubscriptionsLoading
+            || _moviePilotSubscriptionsAttempted) return;
+        _moviePilotSubscriptionsAttempted = true;
+        _ = LoadMoviePilotSubscriptionsAsync(_moviePilot);
+    }
+
+    /// <summary>换页、换账号或离开媒体库时把上一份订阅快照与命中货架收干净；下一次 Attach 会重读。</summary>
+    private void ResetMoviePilotSubscriptionState()
+    {
+        _moviePilotSubscriptionGeneration++;
+        _moviePilotSubscriptionLoad?.Cancel();
+        _moviePilotSubscriptionLoad = null;
+        _moviePilotSubscriptionsLoading = false;
+        _moviePilotSubscriptionsLoaded = false;
+        _moviePilotSubscriptionsAttempted = false;
+        _moviePilotSubscriptions = [];
+        _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Empty;
+        foreach (var card in Cards) card.MoviePilotSubscribed = false;
+        foreach (var card in MatchingSubscriptions) card.Release();
+        MatchingSubscriptions.Clear();
+        RaiseMoviePilotSubscriptionState();
+    }
+
+    private async Task LoadMoviePilotSubscriptionsAsync(MoviePilotService service)
+    {
+        var generation = ++_moviePilotSubscriptionGeneration;
+        var pending = new CancellationTokenSource();
+        _moviePilotSubscriptionLoad = pending;
+        _moviePilotSubscriptionsLoading = true;
+        try
+        {
+            var items = await service.SubscriptionsAsync(pending.Token).ConfigureAwait(true);
+            if (!_active || generation != _moviePilotSubscriptionGeneration || !ReferenceEquals(service, _moviePilot)
+                || !service.Available) return;
+            _moviePilotSubscriptions = items.ToArray();
+            _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Build(items);
+            _moviePilotSubscriptionsLoaded = true;
+            MarkMoviePilotSubscriptions();
+            RefreshMatchingSubscriptions();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            // 附加标记读取失败不影响媒体库；连接恢复时下一次 Refresh 会再试。
+            Log.Warn(Category, "读取 MoviePilot 订阅失败，媒体库暂不显示订阅标记", error);
+        }
+        finally
+        {
+            if (generation == _moviePilotSubscriptionGeneration)
+            {
+                _moviePilotSubscriptionsLoading = false;
+                _moviePilotSubscriptionLoad = null;
+            }
+            pending.Dispose();
+        }
+    }
+
+    private void MarkMoviePilotSubscriptions()
+    {
+        foreach (var card in Cards) card.MoviePilotSubscribed = _moviePilotSubscriptionIndex.Contains(card.Item);
+    }
+
+    /// <summary>
+    /// 按当前搜索词在本机订阅清单里挑命中项。集合与卡片都保持稳定：同一个订阅只换位置或更新字段，
+    /// 刚命中的才建卡取图 —— 键入时每个字都重建一次会把封面重新下载一遍。
+    /// </summary>
+    private void RefreshMatchingSubscriptions()
+    {
+        var matches = _active && _request?.IsSearch == true && _embySourceActive
+            ? MoviePilotSubscriptionSearch.Match(_moviePilotSubscriptions, SearchText)
+            : [];
+        var wanted = matches.Select(subscription => subscription.Id).ToHashSet();
+        foreach (var stale in MatchingSubscriptions.Where(card => !wanted.Contains(card.Subscription.Id)).ToArray())
+        {
+            stale.Release();
+            MatchingSubscriptions.Remove(stale);
+        }
+
+        var service = _moviePilot;
+        for (var index = 0; index < matches.Count; index++)
+        {
+            var subscription = matches[index];
+            var existing = MatchingSubscriptions.FirstOrDefault(card => card.Subscription.Id == subscription.Id);
+            if (existing is not null)
+            {
+                existing.Update(subscription);
+                var current = MatchingSubscriptions.IndexOf(existing);
+                if (current != index) MatchingSubscriptions.Move(current, index);
+            }
+            else if (service?.Available == true)
+            {
+                var card = new MoviePilotSubscriptionCard(subscription);
+                card.BindImages(service.CaptureImageFetcher());
+                MatchingSubscriptions.Insert(Math.Min(index, MatchingSubscriptions.Count), card);
+                _ = card.LoadPosterAsync(service);
+            }
+        }
+        RaiseMoviePilotSubscriptionState();
+    }
+
+    private void RaiseMoviePilotSubscriptionState()
+    {
+        OnPropertyChanged(nameof(SubscriptionMatchesVisibility));
+        OnPropertyChanged(nameof(SubscriptionMatchesNote));
+        OnPropertyChanged(nameof(EmptyVisibility));
+    }
+
+    internal void OpenMatchingSubscription(MoviePilotSubscriptionCard card)
+    {
+        if (_moviePilot?.IsCurrentSubscription(card.Subscription) != true || !MatchingSubscriptions.Contains(card)) return;
+        _actions?.OpenMoviePilotMedia(card.Subscription.Media, card.Subscription);
+    }
+
+    internal void RequestMatchingSubscriptionPoster(MoviePilotSubscriptionCard card)
+    {
+        if (_moviePilot is { Available: true } service && MatchingSubscriptions.Contains(card))
+            _ = card.LoadPosterAsync(service);
+    }
 
     /// <summary>What the box holds, so it survives the page being rebuilt around it.</summary>
     [ObservableProperty]
@@ -1344,6 +1514,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         _images = images;
         _capabilities = capabilities;
         _moviePilot = moviePilot;
+        ResetMoviePilotSubscriptionState();
+        // 搜索页等真的有词要搜时再读（见 OnSearchTextChanged）；普通媒体库页进来就要拿它标封面。
+        if (request.IsSearch != true) EnsureMoviePilotSubscriptions();
 
         // 「海报宽度」那一行设置 2026-09-05 删掉了，宽度回到 CardSize 固定的默认档。
         CardWidth = Momoka.Infrastructure.CardSize.PosterWidth;
@@ -1634,36 +1807,41 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <item><c>containArtwork</c>：只有台标要留边（铺满会把字切掉），四格封面照旧铺满。</item>
     /// </list>
     /// </remarks>
-    private CardItem NewCard(EmbyItem item) => IsUpcomingPage
-        ? new(item, _images!, _upcomingCardWidth, wide: true,
-            subtitle: LibraryUpcoming.Subtitle(item), title: LibraryUpcoming.Title(item),
-            artwork: LibraryUpcoming.Artwork(item), indicators: false, upcoming: true)
-        : IndexKind != LibraryIndexKind.None
-        ? new(item, _images!, CardBuildWidth, CardBuildWide,
-            subtitle: "", indicators: false, imageTypes: CardImageTypes,
-            title: item.Name, centeredText: true,
-            containArtwork: LibraryIndexCards.ContainArtwork(IndexKind),
-            aspect: LibraryIndexCards.Aspect(IndexKind))
-        : new(item, _images!, CardBuildWidth,
-            // 搜索结果的单集按 16:9 剧照摆（用户令 2026-11-01），其余照这一面墙的宽窄。
-            CardBuildWide || (_request?.IsSearch == true && item.Type == EmbyItemType.Episode),
-            subtitle: CardLine(item),
-            // 飞牛横卡把竖版海报摆在正中、同一张图铺底，所以先要 Primary；别的视图照旧。
-            imageTypes: IsFnNas && View == LibraryView.Thumb
-                ? [EmbyImageStore.Primary, EmbyImageStore.Thumb] : CardImageTypes,
-            tableFields: View == LibraryView.Table ? Fields : null,
-            note: LibraryCardText.Note(item, Fields),
-            title: Section is LibrarySection.Episodes or LibrarySection.Folders
-                ? LibraryCardText.Title(item, Fields, Section) : null,
-            // 飞牛的「横幅海报」照官网页端：卡片底下两行字居中；竖幅海报仍是默认的左对齐。
-            centeredText: Section is LibrarySection.Episodes or LibrarySection.Folders
-                || IsFnNas && View == LibraryView.Thumb
-                || IsCardFrameView,
-            fnNasWide: IsFnNas && View == LibraryView.Thumb,
-            folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster,
-            cardLayout: IsCardFrameView,
-            // 搜索结果里的单集用另一档框线（见 PosterCard 的 EpisodeFrameStyle）；别的页面不动。
-            episodeFrame: _request?.IsSearch == true);
+    private CardItem NewCard(EmbyItem item)
+    {
+        CardItem card = IsUpcomingPage
+            ? new(item, _images!, _upcomingCardWidth, wide: true,
+                subtitle: LibraryUpcoming.Subtitle(item), title: LibraryUpcoming.Title(item),
+                artwork: LibraryUpcoming.Artwork(item), indicators: false, upcoming: true)
+            : IndexKind != LibraryIndexKind.None
+            ? new(item, _images!, CardBuildWidth, CardBuildWide,
+                subtitle: "", indicators: false, imageTypes: CardImageTypes,
+                title: item.Name, centeredText: true,
+                containArtwork: LibraryIndexCards.ContainArtwork(IndexKind),
+                aspect: LibraryIndexCards.Aspect(IndexKind))
+            : new(item, _images!, CardBuildWidth,
+                // 搜索结果的单集按 16:9 剧照摆（用户令 2026-11-01），其余照这一面墙的宽窄。
+                CardBuildWide || (_request?.IsSearch == true && item.Type == EmbyItemType.Episode),
+                subtitle: CardLine(item),
+                // 飞牛横卡把竖版海报摆在正中、同一张图铺底，所以先要 Primary；别的视图照旧。
+                imageTypes: IsFnNas && View == LibraryView.Thumb
+                    ? [EmbyImageStore.Primary, EmbyImageStore.Thumb] : CardImageTypes,
+                tableFields: View == LibraryView.Table ? Fields : null,
+                note: LibraryCardText.Note(item, Fields),
+                title: Section is LibrarySection.Episodes or LibrarySection.Folders
+                    ? LibraryCardText.Title(item, Fields, Section) : null,
+                // 飞牛的「横幅海报」照官网页端：卡片底下两行字居中；竖幅海报仍是默认的左对齐。
+                centeredText: Section is LibrarySection.Episodes or LibrarySection.Folders
+                    || IsFnNas && View == LibraryView.Thumb
+                    || IsCardFrameView,
+                fnNasWide: IsFnNas && View == LibraryView.Thumb,
+                folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster,
+                cardLayout: IsCardFrameView,
+                // 搜索结果里的单集用另一档框线（见 PosterCard 的 EpisodeFrameStyle）；别的页面不动。
+                episodeFrame: _request?.IsSearch == true);
+        card.MoviePilotSubscribed = _moviePilotSubscriptionIndex.Contains(item);
+        return card;
+    }
 
     /// <summary>只在当前合集页生成关系上下文；查询取消后旧菜单立即失效。</summary>
     internal void PrepareCollectionMembers()
@@ -2175,6 +2353,14 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
         CaptureSnapshot();
         _active = false;
+        _moviePilotSubscriptionGeneration++;
+        _moviePilotSubscriptionLoad?.Cancel();
+        _moviePilotSubscriptionLoad = null;
+        _moviePilotSubscriptionsLoading = false;
+        _moviePilotSubscriptionsAttempted = false;
+        foreach (var card in MatchingSubscriptions) card.Release();
+        MatchingSubscriptions.Clear();
+        RaiseMoviePilotSubscriptionState();
         OnPropertyChanged(nameof(LayoutVisibility));
         _queries.Cancel();
         _jumps.Cancel();
@@ -2194,6 +2380,12 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (_active) return;
         _active = SourcesAvailable;
         if (_active && IsPlex) ResumePlex();
+        if (_active)
+        {
+            EnsureMoviePilotSubscriptions();
+            MarkMoviePilotSubscriptions();
+            RefreshMatchingSubscriptions();
+        }
         OnPropertyChanged(nameof(LayoutVisibility));
         OnPropertyChanged(nameof(ExtendedSearchCategoriesVisibility));
         if (_active && !reload) _queryToken = _queries.Begin();

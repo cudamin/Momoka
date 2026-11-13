@@ -656,7 +656,6 @@ handle  Views/ShellPage.xaml  SidebarHost
 handle  Views/ShellPage.xaml  SidebarLibrariesHeader
 handle  Views/ShellPage.xaml  SidebarMoviePilotMovies
 handle  Views/ShellPage.xaml  SidebarMoviePilotSeries
-handle  Views/ShellPage.xaml  SidebarSearch
 handle  Views/ShellPage.xaml  SidebarLibraryPreviewMore
 handle  Views/ShellPage.xaml  SidebarSettings
 handle  Views/ShellPage.xaml  SidebarSubscriptionsHeader

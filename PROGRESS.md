@@ -1,3 +1,17 @@
+## 2026-11-13 侧栏搜索删除、标题搜索框下落、媒体库同步搜订阅与 MP 已订阅角标（未发布）
+
+用户四条令：①「标题上的搜索栏怎么给我做成按钮了，开启侧边栏模式时候，点击标题上的搜索栏，新增 ui 动画，把标题上的搜索栏移到下方」；②「开启侧边栏模式时删除侧边栏的搜索按钮」；③「搜索媒体库时候同时搜索订阅，并且在媒体搜索结果里面显示已订阅的媒体」；④「新增媒体库中 mp 已订阅的资源在封面左上角新增一个 mp 的灰色图标（设置中那个），放集数左边，大小要和集数一致」。
+
+**改了什么。** 栏里 `SidebarSearch` 与 `SearchTag` 选中映射删除；新增 `TitleSearchTransition`（ConnectedAnimation，Direct 补间；侧边栏模式点标题框时备票，搜索页 Loaded 接到 `SearchInput`，失败/离树/900 ms 超时取消并回退淡入，遵循动画偏好）。Core 新增 `MoviePilotSubscriptionSearch.Match` 与 `MoviePilotSubscriptionIndex`（身份规则复用 `MoviePilotLibraryPlayback.Provider`）；媒体库页进入时读一次订阅清单，搜索页首次有词时读一次，键入只做内存过滤；命中项以「订阅 · N 条」组摆在搜索结果最上面，点封面进订阅媒体页；只有订阅命中时不显示「没有找到」。`CardItem.MoviePilotSubscribed` 接到 `PosterCard` 右上角角标簇最左的 20×20 scrim 方块（设置页同一份 MP 标记，压暗 0.72），集数/未看集数/已看对勾在其右 —— 当前集数角标在右上角，故按「放集数左边」落在同一角；首页/详情/最近搜索小卡不置位。
+
+**验证。** Shell/Core 与 Tests Release/x64 均 0 警告 0 错误；主测试 **5043/5043、0 失败 0 跳过**（新增三条 Core 判断；`Agreements.txt` 按有意删除 `SidebarSearch` 更新；两条下载用例需要可写 TEMP，本轮把 TEMP/TMP 指向用户临时目录后全绿）。`--probe-shell --probe-section shell --screen 1` **15/15**（新增栏里无搜索项、标题搜索框关联动画 started）；`--probe-section search --screen 1` **12/12**（新增订阅同步、已订阅标记落地、订阅组实屏与截图）；`--probe-section library --screen 1` 47 项 **35 过、12 红**，红项均在本批未触碰区域，相关的「飞牛剧集卡片右上角的集数角标」通过。`dotnet format whitespace` 定向改动文件无差异，`git diff --check` 干净。
+
+**没做／边界。** 未发布、未推远端；未连接真实 MoviePilot、未读用户真实订阅清单、未写服务器；MP 只用 `.invalid` 假 HTTP。12 项 library 红未在基线树同命令复跑，不全部认作既有红。侧边栏模式窄于 700 时标题搜索框收起且栏里没有第二个搜索入口（用户令的直接结果）。
+
+**合入状态。** 待合入 master；用户令「只合并，先不交付」，主树编译/测试/探针与发布这一轮不跑，交付件不动。
+
+
+
 ## 2026-11-13 封面进入详情的 Gallery 原生关联动画
 
 用户要求原封面保持可见并移动到详情左上角；沿用 Gallery 6de91fe 的 ItemsRepeaterCollectionPage→DetailedInfoPage，保留前进Gravity/返回Direct和Momoka身份取消守卫。源码、必要本地适配及验证见 [封面关联动画](docs/封面关联动画.md)。本任务树21c5、范围CardDetailTransition/PosterCard/详情图片及三页入口、两个定向测试项目。Shell最终Release/x64 0警告0错误；关联40/40、图片26/26、页面契约223/223；最终原生单项1/1通过，零真实网络/播放。修复原生回退在新页Loaded前打断Frame创建的红，并保留原报告与遮挡红。证据artifacts/cover-connected-animation-20261113。纯UI状态留code-behind，不新增抽象层或依赖。产品08cd474已挑拣为4027fe6进入master；仅PROGRESS新增记录冲突，双方记录均保留。合并不跑全量或刷新publish、不上传。已将同哈希开发件复制到artifacts/cover-connected-development-win-x64，Shell SHA256 84049B515ACA62B30482E331516219C9F80EDC22CC826F4073B7891AA1B379EB，PID22432/窗口0x100820可响应，匿名详情供用户查看。复制件再次单项因Chrome遮挡截图红，未作为通过；原开发件最终独立运行1/1绿仍保留。复制件不等于master重编译或发布。源树干净、产品逐文件已纳入master（主页仅另批改动不同），21c5的Git登记和全部文件已移除；空目录因当前会话占用Permission denied保留，目录项0、无源码或独有提交。顶端08cd474恢复线索已记，开发查看实例运行于主树artifacts独立副本。

@@ -225,30 +225,55 @@
                     IsHitTestVisible="False"
                     Opacity="0" />
 
-                <Border
-                    Style="{StaticResource EgCornerBadgeStyle}"
-                    Visibility="{x:Bind Card.WatchedBadgeVisibility, Mode=OneWay}">
-                    <FontIcon
-                        FontSize="12"
-                        Foreground="{ThemeResource EgTextOnAccentBrush}"
-                        Glyph="&#xE73E;" />
-                </Border>
-                <Border
-                    Style="{StaticResource EgCornerBadgeStyle}"
-                    Visibility="{x:Bind Card.UnplayedVisibility, Mode=OneWay}">
-                    <TextBlock
-                        Style="{StaticResource EgCornerBadgeTextStyle}"
-                        Text="{x:Bind Card.UnplayedText, Mode=OneWay}" />
-                </Border>
-                <!-- 同一个角上的另一种说法：飞牛不给未看集数，于是这里写这部剧库里有多少集（「14 集」）。
-                     两颗互斥 —— 见 CardItem.EpisodeCountVisibility。 -->
-                <Border
-                    Style="{StaticResource EgCornerBadgeStyle}"
-                    Visibility="{x:Bind Card.EpisodeCountVisibility, Mode=OneWay}">
-                    <TextBlock
-                        Style="{StaticResource EgCornerBadgeTextStyle}"
-                        Text="{x:Bind Card.EpisodeCountText, Mode=OneWay}" />
-                </Border>
+                <!-- 右上角这一簇角标：MoviePilot 已订阅标记在最左，紧跟的是已看对勾／未看集数／本地集数
+                     —— 三颗本来就在同一个角上互斥，现在都排在 MP 标记右边（2026-11-13 用户令「放集数左边，
+                     大小要和集数一致」）。MP 标记用设置页那一份白色重绘标记，压暗成灰色，方块与集数角标同大。
+                     整簇是 IsHitTestVisible=False 的装饰层，不抢卡片本身的点击。 -->
+                <StackPanel
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Orientation="Horizontal"
+                    Spacing="4"
+                    IsHitTestVisible="False">
+                    <Border
+                        Width="{StaticResource EgCornerBadgeSize}"
+                        Height="{StaticResource EgCornerBadgeSize}"
+                        Background="{ThemeResource EgScrimBrush}"
+                        CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
+                        Visibility="{x:Bind Card.MoviePilotBadgeVisibility, Mode=OneWay}">
+                        <Viewbox Width="12" Height="12">
+                            <ContentPresenter
+                                Content="MoviePilot"
+                                ContentTemplate="{StaticResource EgMoviePilotMarkTemplate}"
+                                Opacity="0.72" />
+                        </Viewbox>
+                    </Border>
+
+                    <Border
+                        Style="{StaticResource EgCornerBadgeStyle}"
+                        Visibility="{x:Bind Card.WatchedBadgeVisibility, Mode=OneWay}">
+                        <FontIcon
+                            FontSize="12"
+                            Foreground="{ThemeResource EgTextOnAccentBrush}"
+                            Glyph="&#xE73E;" />
+                    </Border>
+                    <Border
+                        Style="{StaticResource EgCornerBadgeStyle}"
+                        Visibility="{x:Bind Card.UnplayedVisibility, Mode=OneWay}">
+                        <TextBlock
+                            Style="{StaticResource EgCornerBadgeTextStyle}"
+                            Text="{x:Bind Card.UnplayedText, Mode=OneWay}" />
+                    </Border>
+                    <!-- 同一个角上的另一种说法：飞牛不给未看集数，于是这里写这部剧库里有多少集（「14 集」）。
+                         两颗互斥 —— 见 CardItem.EpisodeCountVisibility。 -->
+                    <Border
+                        Style="{StaticResource EgCornerBadgeStyle}"
+                        Visibility="{x:Bind Card.EpisodeCountVisibility, Mode=OneWay}">
+                        <TextBlock
+                            Style="{StaticResource EgCornerBadgeTextStyle}"
+                            Text="{x:Bind Card.EpisodeCountText, Mode=OneWay}" />
+                    </Border>
+                </StackPanel>
                 <FontIcon
                     Margin="8"
                     FontSize="14"

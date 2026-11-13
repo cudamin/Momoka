@@ -728,7 +728,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         UpdateTabColors(ThemeHost.Current);
         if (ViewModel.IsFnNas && !ViewModel.IsFolderDrillDown && _request?.IsSearch != true) ReorderFnNasToolbar();
         ApplyHeaderLayout();
-        if (_request?.IsSearch == true) HomeMotion.Reveal(SearchSurface, 0, 220, 8);
+        if (_request?.IsSearch == true)
+        {
+            // 侧边栏模式点标题搜索框进来时，先让关联动画把那只框接到这里；接不上才退回原来的淡入。
+            if (!TitleSearchTransition.Attach(Frame, SearchInput,
+                started => { if (!started) HomeMotion.Reveal(SearchSurface, 0, 220, 8); }))
+                HomeMotion.Reveal(SearchSurface, 0, 220, 8);
+        }
 
         // The search page opens with an empty box and nothing to look at, so the caret belongs in the box.
         // Here rather than in OnNavigatedTo: nothing can take focus before it is in the tree.
@@ -1648,6 +1654,22 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_suppressSourceApply) return;
         ApplySource();
+    }
+
+    /// <summary>
+    /// 搜索页「媒体库」来源同时命中的订阅（2026-11-13）：点封面进这条订阅的媒体页，
+    /// 用的是搜索页已经接好的 <see cref="IShellActions.OpenMoviePilotMedia"/>。
+    /// </summary>
+    private void OnSubscriptionMatchOpen(object? sender, EventArgs args)
+    {
+        if (_released || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        ViewModel.OpenMatchingSubscription(card);
+    }
+
+    private void OnSubscriptionMatchPosterRequested(object? sender, EventArgs args)
+    {
+        if (_released || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        ViewModel.RequestMatchingSubscriptionPoster(card);
     }
 
     /// <summary>

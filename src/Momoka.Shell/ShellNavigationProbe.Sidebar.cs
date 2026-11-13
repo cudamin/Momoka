@@ -128,6 +128,24 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
 
+            // 2026-11-13 用户令：栏里的搜索项删除；侧边栏模式里点标题栏搜索框，框顺着关联动画落到页内输入框。
+            Require(nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
+                .All(item => item.Tag as string != "search"), "侧边栏里仍有搜索入口");
+            var titleSearch = Get<Button>(shell, "TitleSearchBox");
+            Require(titleSearch.Visibility == Visibility.Visible, "宽窗侧边栏模式没有标题搜索框");
+            HomeMotion.ApplyPreference(true);
+            TitleSearchTransition.ResetOutcome();
+            ((IInvokeProvider)new ButtonAutomationPeer(titleSearch).GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => shell.CurrentTag == LibraryRequest.SearchTag
+                && frame.Content is LibraryPage searchPage && searchPage.ViewModel.SearchVisibility == Visibility.Visible);
+            await UntilAsync(() => TitleSearchTransition.LastOutcome is "started" or "skipped");
+            Require(TitleSearchTransition.LastOutcome == "started",
+                "标题搜索框没有接到搜索页输入框：" + TitleSearchTransition.LastOutcome);
+            Call(shell, "GoBack");
+            await UntilAsync(() => frame.Content is HomePage && shell.ActiveContentReady);
+            await LayoutAsync(shell);
+            HomeMotion.ApplyPreference(false);
+
             var musicTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "music"));
             Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == musicTag));
             await UntilAsync(() => frame.Content is MusicLibraryPage music && music.ViewModel.IsReady);

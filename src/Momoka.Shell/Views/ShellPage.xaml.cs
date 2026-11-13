@@ -2242,10 +2242,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>
     /// 标题栏正中那颗搜索框（2026-11-12）：和旁边那颗放大镜走同一条路 —— 进这一页的搜索页，不另开窗口。
     /// 它只是个按钮，不是输入框：搜索页自己有输入框和来源栏，焦点要落在那一页里。
+    /// <para>
+    /// 侧边栏模式里按下去时，先给这颗框备一段关联动画（2026-11-13），由搜索页落定后把同一只框接到页内
+    /// 输入框上 —— 读起来就是「标题上的搜索栏移到下方」。已经在搜索页时不备票：那一下不会导航，票只会在
+    /// 超时后作废，还会把框白藏一下。
+    /// </para>
     /// </summary>
     private void OnSearchBoxClicked(object sender, RoutedEventArgs e)
     {
         NavigationTiming.Click("search-box");
+        if (SidebarShown && _current != LibraryRequest.SearchTag)
+            TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox);
         OpenSearch();
     }
 
@@ -2255,7 +2262,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一颗（最宽 240，
     /// 离右沿 152 = 系统那三颗 144 加 8 的缝），中间再塞一段就得一千像素往上；侧边栏模式左边只有返回/折叠，
     /// 右边是账号那一颗（40 宽）加系统那三颗，七百就够。收起来的时候各有替代：非侧边栏模式那一排里的
-    /// 放大镜键（<see cref="SearchButton"/>），侧边栏模式栏里那条「搜索」。
+    /// 放大镜键（<see cref="SearchButton"/>）；侧边栏模式 2026-11-13 起栏里没有「搜索」项，所以它在窄窗里
+    /// 收起时就没有搜索入口 —— 用户令只删入口，不为窄窗另造一颗。
     /// </para>
     /// <para>
     /// 宽度取窗口的三成、夹在 220–420 之间：商店那颗也是这么一段，窄窗跟着缩、宽屏不会拉成一条横杠。
@@ -2268,7 +2276,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         TitleSearchBox.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
 
-        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，栏里有搜索）。
+        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
         SearchButton.Visibility = !SidebarShown && !shown ? Visibility.Visible : Visibility.Collapsed;
     }
 

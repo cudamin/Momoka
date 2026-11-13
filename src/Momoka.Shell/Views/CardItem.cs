@@ -877,6 +877,30 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility EpisodeCountVisibility =>
         Show(EpisodeCountText.Length > 0 && !Watched && UnplayedText.Length == 0);
 
+    private bool _moviePilotSubscribed;
+
+    /// <summary>
+    /// 这一项在 MoviePilot 的订阅清单里（2026-11-13 用户令：媒体库里已订阅的资源在封面加一颗灰色 MP 图标）。
+    /// <para>
+    /// 订阅清单是这一页打开之后才读的一趟附加数据，卡片可能已经画出来了，所以它是可变的并会发通知；
+    /// 只在媒体库页面由 <c>LibraryViewModel</c> 写入，主页、详情页和搜索建议的小卡不会置位。
+    /// 角标本身跟随 <see cref="_indicators"/>：搜索建议那张 56 宽的小卡上没有它的位置。
+    /// </para>
+    /// </summary>
+    internal bool MoviePilotSubscribed
+    {
+        get => _moviePilotSubscribed;
+        set
+        {
+            if (_moviePilotSubscribed == value) return;
+            _moviePilotSubscribed = value;
+            Raise(nameof(MoviePilotSubscribed));
+            Raise(nameof(MoviePilotBadgeVisibility));
+        }
+    }
+
+    public Visibility MoviePilotBadgeVisibility => Show(_indicators && _moviePilotSubscribed);
+
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>

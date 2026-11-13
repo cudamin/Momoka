@@ -50,7 +50,8 @@
         左端（页面导航）：返回（只在非主页）· 主页 · 收藏（没有收藏时不在）· 设置 · 搜索
         正中：搜索框（够宽时才在）
         右端（身份）：账号 ┄┄ 系统那三颗窗口按钮
-        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 —— 主页/收藏/设置/搜索让给栏里的入口，
+        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 —— 主页/收藏/设置让给栏里的入口（搜索 2026-11-13
+        起从栏里删除，只留标题栏正中那颗框），
         前进键 2026-11-12 晚按用户令退役（Alt+→ 与鼠标侧键还在，见 GoForward）；标题「Momoka」
         2026-11-13 按用户令删掉，账号那一颗从窗口左下角回到右上角、只留人像。
         ────────────────────────────────────────────────────────────────────
@@ -196,7 +197,8 @@
                         Glyph="&#xEB51;" />
                 </Button>
                 <!-- 设置与搜索：2026-11-11 从账号那一组挪回标题栏左上这一排（用户令「把设置和搜索移回左上」），
-                     排在收藏右边。侧边栏模式里两颗收起 —— 那一档设置与搜索都在栏里。 -->
+                     排在收藏右边。侧边栏模式里这一整排收起：设置回到栏的页脚；搜索 2026-11-13 起不在栏里
+                     （用户令删除栏里的搜索按钮），只剩标题栏正中那颗框。 -->
                 <StackPanel
                     x:Name="TitleUtilities"
                     Orientation="Horizontal"
@@ -220,7 +222,8 @@
              （那一页有自己的输入框和来源栏），所以用 Button 而不是 TextBox：键盘焦点、UIA 名字和回车都是按钮语义。
              它站在窗口算成标题栏的那 48 像素里，所以和左边那一排、账号那颗一样要挖洞（见 ReportTitleBarHoles）——
              不挖洞的话按下去是拖窗口。窄窗收起（门槛见 SyncTitleSearch）：这一排左边是按钮、右边是账号，
-             中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式由栏里的「搜索」接手。 -->
+             中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式没有第二个搜索入口。
+             侧边栏模式下按下它时，搜索框会顺着关联动画落到搜索页那只输入框上（见 TitleSearchTransition）。 -->
         <Button
             x:Name="TitleSearchBox"
             x:Uid="ShellPage_TitleSearchBox"
@@ -624,7 +627,8 @@
                 </NavigationView.Resources>
                 <NavigationView.MenuItems>
                     <NavigationViewItem x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />
-                    <NavigationViewItem x:Name="SidebarSearch" Content="搜索" Tag="search" Icon="Find" />
+                    <!-- 「搜索」这一项 2026-11-13 按用户令删掉（「开启侧边栏模式时删除侧边栏的搜索按钮」）：
+                         搜索入口只剩标题栏正中那颗框（窄窗没有替代入口），点它进搜索页。 -->
                     <NavigationViewItem x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
                         <NavigationViewItem.Icon><FontIcon Glyph="&#xEB51;" /></NavigationViewItem.Icon>
                     </NavigationViewItem>
