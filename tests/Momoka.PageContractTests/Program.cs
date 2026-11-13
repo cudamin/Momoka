@@ -88,6 +88,7 @@ internal static class Program
         ImageRecoveryTests.Register();
         CardArtworkRecoveryTests.Register();
         CardArtworkIdentityTests.Register();
+        ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
         SettingsControlNameTests.Register();
         DeferredCardsTests.Register();

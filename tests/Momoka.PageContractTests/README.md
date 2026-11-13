@@ -38,3 +38,5 @@ card-waiter completion is not treated as completion of every linked cancellation
 ## 2026-11-13实际卡片取图身份
 
 CardArtworkIdentityTests原样执行CardItem.EnsurePosterAsync：冷下载记录Primary，释放图使引用不可用，热缓存/全新卡命中恢复真实引用；宽卡Thumb成功和Primary失败后Thumb回退准确记图种，不以首选候选猜图。新增4项后当前PageContract211/211，失败0、跳过0。该证据用于关联动画选源，仍不证明实际WinUI显示或动画帧。
+
+实际原生研究在首次自定义Page Frame.Navigate崩溃，dump定位于关联Prepare前。改用已有LibraryPage正式导航与缓存返回，新增源契约核现有Page、真实realized源、原Page/Poster实例恢复、Started且Completed、匿名失败回退与禁止直接Content替换。当前212/212，真实运行由协调会话复验。

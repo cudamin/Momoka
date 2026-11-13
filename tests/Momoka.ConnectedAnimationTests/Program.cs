@@ -439,6 +439,23 @@ internal static class Program
             detach?.Invoke();
             detachFault?.Invoke();
         });
+        Test("源离页正常释放海报仍可准备返回，重入只接受原实际Primary", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            fixture.Source.Card!.LoadedPosterArtwork = null;
+            fixture.Source.ConnectedPoster.Source = null;
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            fixture.Source.Card.LoadedPosterArtwork = new("item", "Primary", "poster");
+            fixture.Source.ConnectedPoster.Source = new BitmapSource();
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+            ConnectedAnimationService.Created.Last().Complete();
+        });
         return Run();
     }
 

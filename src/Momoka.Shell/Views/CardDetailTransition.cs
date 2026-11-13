@@ -243,7 +243,8 @@ internal static class CardDetailTransition
         {
             if (_disposed || !_resolved || !HomeMotion.AnimationsEnabled || page.ViewModel.CurrentItem is not { } item
                 || !Matches(item) || PrimaryArtwork(item) != _artwork || !_source.TryGetTarget(out var source)
-                || source.Card?.Item.IdentityKey != _identity || source.Card.LoadedPosterArtwork != _artwork
+                || source.Card?.Item.IdentityKey != _identity || PrimaryArtwork(source.Card.Item) != _artwork
+                || source.Card.LoadedPosterArtwork is { } loaded && loaded != _artwork
                 || _sourcePage?.TryGetTarget(out _) != true || !VisibleImage(page.ConnectedPoster)) return false;
             try
             {
