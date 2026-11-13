@@ -12926,3 +12926,11 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 当前Core/Tests/Shell Release编译0警告0错误，完整主测试5025/5025、页面207/207、定向12/12均0失败0跳过。新增InspectHoverPreview与library分区原生检查，覆盖1280/760/360、长标题/缺数据/虚拟条目/续播、迟到图片与原生关闭重开、UIA进度和匿名播放事件、动效反转和五主题。尚未执行原生检查：另一ebd7会话正在占用诊断桌面，等待串行运行。当前未合入master、未发布、未上传；不能视为已交付。原文与编译/测试日志在artifacts/hover-preview。输入图片目前1张，未到40暂停线。
 
 原生复验已完成：本树当前构建PID23136、InspectHoverPreview单项1/1通过，9组布局/关闭重开全部执行，五主题截图与宽窄/空字段/虚拟条目实屏已目视，运行目录artifacts/hover-preview/runtime。该检查同时执行真实ProgressBar/播放按钮UIA，播放仅记录CardAction事件、正式播放服务调用0次。没有移动鼠标或真实点击外部；Popup.IsOpen=false只证明Closed清理，不能称真实点外按下通过。应用关动画与快速反转已执行；真实系统动画切换、高对比度、文字缩放、跨DPI/Narrator/触摸未覆盖。截止当前已输入9张图片。
+
+## 2026-11-13 悬停预览主树交付完成
+
+产品提交9f13da1已等效合入master的0d689bc，验证文档a8f83aa。主树当前Core/Tests/Shell编译0警告0错误，主测试5025/5025、页面207/207，均0失败0跳过；定向空白与文本检查通过（format另有工作区加载提示，未报告空白错误）。主树开发件PID23104的InspectHoverPreview单项1/1通过，9组宽窄/空字段/虚拟条目、图片迟到、Closed重开、UIA、动效反转和五主题均实际执行，截图已目视，证据artifacts/hover-preview-final/runtime。没有真实播放与服务器写入。
+
+主树publish -NoArchive -Shortcut成功，547文件288.9MB，批准载荷60项；快捷方式Target与工作目录都指向主树artifacts/publish/win-x64，发布/构建Momoka.dll SHA256同为81C5B8BAF8AC46F6AB52B47FD2A5AD172DB87B323DF3E94823E3A05B0CC27E4D，回执artifacts/hover-preview-final/delivery-receipt.json。正式发布件PID20384以show-preview启动、顶层窗口响应，真实媒体悬停实屏published-preview-screen.png已目视，保留运行供用户体验；未操作播放。程序化Closed覆盖不等于物理点外点击，高对比度/跨DPI/文字缩放/Narrator/触摸与OS动画切换仍未覆盖；输入图片19张，未达40暂停线。
+
+本轮无远程上传。临时codex/hover-preview-refresh顶端9f13da1的全部产品/测试内容已逐文件确认在master，工作树清洁，原构建失败及后续通过日志一并保存在主树artifacts/hover-preview-final/worktree-evidence；交付后移除本聊天1294树与临时分支。
