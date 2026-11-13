@@ -117,7 +117,7 @@ internal sealed partial class ShellNavigationProbe
             var requests = DataRequests();
             await ToggleAsync(true);
             await LayoutAsync(shell);
-            Require(host.Visibility == Visibility.Visible && nav.IsPaneOpen && Math.Abs(host.ActualWidth - 220) < 1,
+            Require(host.Visibility == Visibility.Visible && nav.IsPaneOpen && Math.Abs(host.ActualWidth - 256) < 1,
                 $"宽窗侧栏未展开：shown={host.Visibility} pane={nav.IsPaneOpen} host={host.ActualWidth:0.0}/{host.Width:0.0} shell={shell.ActualWidth:0.0} mode={fixture.Settings.Ui.SidebarMode} live={fixture.Session.IsSignedIn} loaded={shell.IsLoaded}");
             Require(ReferenceEquals(home, frame.Content) && shelves.SequenceEqual(home.ViewModel.Shelves)
                 && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
@@ -198,7 +198,7 @@ internal sealed partial class ShellNavigationProbe
                 $"开关侧栏丢失页面、返回记录或滚动位置：page={ReferenceEquals(libraryPage, frame.Content)} "
                 + $"history={history}/{frame.BackStack.Count} forward={forward}/{frame.ForwardStack.Count} "
                 + $"offset={offset:R}/{scroll.VerticalOffset:R} extent={scroll.ExtentHeight:R} viewport={scroll.ViewportHeight:R}");
-            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 48) < 1, "窄窗未自动收成图标栏");
+            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "窄窗未自动收成图标栏");
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "760 compact");
             await SaveProbeScreenAsync("sidebar-compact-760-screen.png");
@@ -206,9 +206,9 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(600, 650);
             shell.ShowAccount("用于验证窄窗的很长很长的账号名称", "名称很长的离线服务器");
             await LayoutAsync(shell);
-            // 收起那一档先读一格底色：栏 48 宽，x=24 落在它的中线上；y 取七成高，两档都落在栏的空白上
-            // （条目到 236 为止、账号那一组从 613 起）。
-            var railSpot = (X: 24.0, Y: shell.ActualHeight * 0.7);
+            // 收起那一档先读一格底色：栏 56 宽，x=28 落在它的中线上；y 取七成高，两档都落在栏的空白上
+            // （条目到 236 为止，栏底那颗设置从 613 起）。
+            var railSpot = (X: 28.0, Y: shell.ActualHeight * 0.7);
             var railColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
             // 2026-10-13 起开合由标题栏左上角那颗导航开关负责（框架自带那颗收掉了），它同时把菜单项
             // 往上顶到标题栏下沿。走的仍是 UIA 的 Invoke，和用户按下去是同一条路。
@@ -230,25 +230,23 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "600 expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
-            // 账号那一组挪到左下角之后，标题栏那一排不再和它抢地方：整排必须留在标题栏里（不越出那 40），
-            // 而账号必须落在窗口下半、栏的左端。
+            // 账号那一颗 2026-11-13 起回到标题栏右上角（用户令「人像图标移到最小化左边、和搜索栏对齐」）：
+            // 整排必须留在标题栏里（不越出那 48），账号落在右上角、只留一颗 40 见方的人像。
             Require(Top(title, shell) + title.ActualHeight <= HomePage.ChromeHeight + 1,
                 "标题栏那一排被挤出了标题栏");
-            // 账号那一组在左下角那一格里还留着 6 的内边距（AccountCluster 的 Padding），所以左沿不是 0。
-            Require(Left(account, shell) <= 12 && Top(account, shell) > shell.ActualHeight / 2,
-                "账号没有落在左下角");
-            Require(Left(account, shell) + account.ActualWidth <= host.ActualWidth + 1,
-                "账号溢出了侧边栏的宽");
+            Require(Left(account, shell) > shell.ActualWidth / 2
+                && Top(account, shell) + account.ActualHeight <= HomePage.ChromeHeight + 1
+                && Math.Abs(account.ActualWidth - 40) <= 0.5
+                && Math.Abs(account.ActualHeight - 40) <= 0.5,
+                $"账号没有落在标题栏右上角：({Left(account, shell):0},{Top(account, shell):0}) "
+                    + $"{account.ActualWidth:0}×{account.ActualHeight:0}");
             // 2026-11-12 晚的排法（用户令「主页不显示返回按钮…放左上角，折叠侧边栏按钮移到它右边」）：
-            // 这一跑停在详情页（非主页），返回在最左、折叠键紧贴它右边、标题跟在折叠键右边。
+            // 这一跑停在详情页（非主页），返回在最左、折叠键紧贴它右边；标题 2026-11-13 删掉。
             var backButton = Get<Button>(shell, "BackButton");
-            var titleText = Get<TextBlock>(shell, "AppTitleText");
             Require(backButton.Visibility == Visibility.Visible
-                && Left(backButton, shell) <= 20
                 && Left(toggle, shell) >= Left(backButton, shell) + backButton.ActualWidth
-                && Left(titleText, shell) > Left(toggle, shell) + toggle.ActualWidth
                 && Top(toggle, shell) + toggle.ActualHeight <= HomePage.ChromeHeight + 1,
-                "媒体库页上「返回 · 折叠 · 标题」的次序不对");
+                "媒体库页上「返回 · 折叠」的次序不对");
             await SaveProbeScreenAsync("sidebar-expanded-600-screen.png");
             ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
@@ -355,7 +353,7 @@ internal sealed partial class ShellNavigationProbe
     /// <para>
     /// 与「运行中拨开关」不是同一条路：那一档设置文件里存着 true，<c>Loaded</c> 那一刻外壳还没量到宽度
     /// （ActualWidth 是 0），宽窄档与栏的宽都要等第一次 SizeChanged 才落定。这一条要证明的就是 —— 等它落定之后
-    /// 屏上是「标题 + 220 宽的栏」，而不是只剩标题、栏被裁到看不见。
+    /// 屏上是「栏 + 页面」，而不是只剩页面、栏被裁到看不见。
     /// </para>
     /// </summary>
     private async Task SidebarAtStartupAsync()
@@ -380,15 +378,14 @@ internal sealed partial class ShellNavigationProbe
 
             var host = Get<Grid>(shell, "SidebarHost");
             var nav = Get<NavigationView>(shell, "Sidebar");
-            var title = Get<TextBlock>(shell, "AppTitleText");
-            Require(host.Visibility == Visibility.Visible && Math.Abs(host.ActualWidth - 220) < 1,
+            Require(host.Visibility == Visibility.Visible && Math.Abs(host.ActualWidth - 256) < 1,
                 $"启动时侧栏没有展开：显示 {host.Visibility}、宽 {host.ActualWidth:0}、pane={nav.IsPaneOpen}、"
                     + $"外壳宽 {shell.ActualWidth:0}");
-            Require(title.Visibility == Visibility.Visible, "启动时侧栏模式没有标题");
-            Require(Math.Abs(shell.BrowseRoot.Margin.Left - 220) < 1,
+            Require(Get<Button>(shell, "NavToggleButton").Visibility == Visibility.Visible, "启动时折叠键没有出现");
+            Require(Math.Abs(shell.BrowseRoot.Margin.Left - 256) < 1,
                 $"内容区没有让开侧栏：左让 {shell.BrowseRoot.Margin.Left:0}");
 
-            // 栏里的项真的在屏上：几何上「有一块 220 宽的栏」和「栏里画得出字」是两件事，后者才是用户看到的。
+            // 栏里的项真的在屏上：几何上「有一块 256 宽的栏」和「栏里画得出字」是两件事，后者才是用户看到的。
             var home = Get<NavigationViewItem>(shell, "SidebarHome");
             Require(home.Visibility == Visibility.Visible && home.ActualWidth > 0 && home.ActualHeight > 0,
                 "启动时栏里的入口没有实现出来");
@@ -475,23 +472,31 @@ internal sealed partial class ShellNavigationProbe
             }
         }
 
-        // 2026-10-13 起账号和设置不在 NavigationView 里，是左下角那一组里的两颗按钮。图标栏那一档按钮里
-        // 只剩一颗字形，所以字形本身也读一遍：它被内容格挤窄的时候，按钮的矩形看着照旧是对的。
-        foreach (var (entry, button, glyph) in new (string, Button, FontIcon)[]
+        // 账号那一颗在标题栏右上角（2026-11-13），只留一颗人像；栏底那颗设置是 NavigationView 的页脚项，
+        // 走的是和条目同一条度量。两处都读一遍字形矩形：被内容格挤窄的时候，按钮的矩形看着照旧是对的。
+        var account = Get<Button>(shell, "AccountButton");
+        var accountBounds = Bounds(account, host);
+        lines.Add($"  [账号] vis={account.Visibility} rect={accountBounds.X:F1},{accountBounds.Y:F1},"
+            + $"{accountBounds.Width:F1},{accountBounds.Height:F1}");
+        var accountGlyph = Get<FontIcon>(shell, "AccountGlyph");
+        if (accountGlyph.Visibility == Visibility.Visible)
         {
-            ("账号", Get<Button>(shell, "AccountButton"), Get<FontIcon>(shell, "AccountGlyph")),
-            ("设置", Get<Button>(shell, "SidebarSettingsButton"), Get<FontIcon>(shell, "SidebarSettingsGlyph"))
-        })
-        {
-            var bounds = Bounds(button, host);
-            lines.Add($"  [{entry}] vis={button.Visibility} rect={bounds.X:F1},{bounds.Y:F1},{bounds.Width:F1},{bounds.Height:F1}");
-            if (glyph.Visibility != Visibility.Visible) continue;
-            var glyphBounds = Bounds(glyph, host);
+            var glyphBounds = Bounds(accountGlyph, host);
             lines.Add($"    glyph rect={glyphBounds.X:F1},{glyphBounds.Y:F1},{glyphBounds.Width:F1},{glyphBounds.Height:F1} " +
-                $"visible={VisibleArea(glyph, host):F1}/{glyphBounds.Width * glyphBounds.Height:F1}");
+                $"visible={VisibleArea(accountGlyph, host):F1}/{glyphBounds.Width * glyphBounds.Height:F1}");
+        }
+        var settings = Get<NavigationViewItem>(shell, "SidebarSettings");
+        var settingsBounds = Bounds(settings, host);
+        lines.Add($"  [设置] vis={settings.Visibility} rect={settingsBounds.X:F1},{settingsBounds.Y:F1},"
+            + $"{settingsBounds.Width:F1},{settingsBounds.Height:F1}");
+        if (settings.Icon is { } settingsIcon)
+        {
+            var iconBounds = Bounds(settingsIcon, host);
+            lines.Add($"    glyph rect={iconBounds.X:F1},{iconBounds.Y:F1},{iconBounds.Width:F1},{iconBounds.Height:F1} " +
+                $"visible={VisibleArea(settingsIcon, host):F1}/{iconBounds.Width * iconBounds.Height:F1}");
         }
 
-        // 账号那两格字的矩形也读一遍：两行那一档排错了只是「一行小字」，尺寸上看得出来的是行距和左沿。
+        // 账号那几格字的矩形也读一遍：排错了只是「一行小字」，尺寸上看得出来的是行距和左沿。
         foreach (var (entry, text) in new (string, TextBlock)[]
         {
             ("名字", Get<TextBlock>(shell, "AccountUser")),
@@ -551,35 +556,56 @@ internal sealed partial class ShellNavigationProbe
         Require(Math.Abs(Left(content, shell) - (shown ? host.ActualWidth : 0)) < 1
             && Math.Abs(content.ActualWidth + Left(content, shell) - shell.ActualWidth) < 1, "侧栏与内容区重叠或出现空白");
 
-        // 导航开关的字形要和栏里那几项的图标落在同一条竖线上（用户 2026-10-13：「关闭导航没和下面对齐」）。
-        // 判 3 像素：栏收成 48 宽那一档，框架模板把图标中线放在 26 上（展开时是 24），而缩进只有一个数，
-        // 两档里必有一档差 2 像素 —— 这里钉的是「不再差 15 像素」，不是「两档都精确到 0」。
-        //
-        // **2026-11-12 晚起只在返回收起时判**：用户令「返回放左上角，折叠侧边栏按钮移到它右边」，于是媒体页
-        // 与媒体库页上折叠键被返回顶开一整格 —— 那一档它本来就不该和栏里的图标对齐。主页上它仍是第一颗。
-        if (shown
-            && Get<Button>(shell, "BackButton").Visibility != Visibility.Visible
-            && Get<Button>(shell, "NavToggleButton") is { Visibility: Visibility.Visible } toggle
-            && toggle.Content is FrameworkElement glyph
-            && Get<NavigationViewItem>(shell, "SidebarHome").Icon is { } navIcon
-            && glyph.ActualWidth > 0 && navIcon.ActualWidth > 0)
+        // 标题栏左上那两颗（返回、折叠）的字形要和栏里那几项的图标落在同一条竖线上（用户 2026-10-13：
+        // 「关闭导航没和下面对齐」，2026-11-13 又钉了一次：「返回键出现时要和下面那一列对齐」）。
+        // 两档的图标中线不一样（展开 32、收成图标栏 28，见 ShellPage.Sidebar.cs 的 ApplySidebarLayout），
+        // 而那一排的缩进跟着档走，所以两档都该对得上 —— 容差 3 像素，钉的是「不再差一整格」。
+        if (shown && Get<NavigationViewItem>(shell, "SidebarHome").Icon is { ActualWidth: > 0 } homeIcon)
         {
-            var toggleCentre = Left(glyph, shell) + glyph.ActualWidth / 2;
-            var navCentre = Left(navIcon, shell) + navIcon.ActualWidth / 2;
-            Require(Math.Abs(toggleCentre - navCentre) <= 3,
-                $"导航开关的字形没和栏里那几项对齐：中线 {toggleCentre:0.#} 对 {navCentre:0.#}");
+            var railCentre = Left(homeIcon, shell) + homeIcon.ActualWidth / 2;
+            var back = Get<Button>(shell, "BackButton");
+            var toggle = Get<Button>(shell, "NavToggleButton");
+            // 这一排的第一颗（非主页时是返回，主页上是折叠）和栏里那几项同一条竖线；后面那颗按托盘加间距
+            // 跟在它右边 —— 「返回键出现时要和下面那一列对齐」说的是第一颗，不是每一颗。
+            var first = back.Visibility == Visibility.Visible ? back : toggle;
+            var entry = ReferenceEquals(first, back) ? "返回" : "折叠";
+            if (first.Visibility == Visibility.Visible && first.Content is FrameworkElement glyph
+                && glyph.ActualWidth > 0)
+            {
+                var centre = Left(glyph, shell) + glyph.ActualWidth / 2;
+                Require(Math.Abs(centre - railCentre) <= 3,
+                    $"{entry}的字形没和栏里那几项对齐：中线 {centre:0.#} 对 {railCentre:0.#}");
+            }
+            if (back.Visibility == Visibility.Visible && toggle.Visibility == Visibility.Visible)
+            {
+                var gap = Left(toggle, shell) - (Left(back, shell) + back.ActualWidth);
+                Require(Math.Abs(gap - 2) <= 1.5, $"折叠键没有紧贴在返回右边：间距 {gap:0.#}");
+            }
         }
         var title = shell.ProbeTitleActions();
         Require(title.Ok, "标题栏布局错误：" + title.Detail);
         var hit = (int)typeof(ShellSelfCheck).GetMethod("HitAt", BindingFlags.NonPublic | BindingFlags.Static)!
             .Invoke(null, [_window, title.X + title.Width / 2, title.Y + title.Height / 2])!;
         Require(hit == Native.HitClient, "侧栏收放后标题栏仍把按钮当拖动区");
-        var settings = Get<Button>(shell, "SidebarSettingsButton");
-        var at = settings.TransformToVisual(shell).TransformPoint(new Windows.Foundation.Point());
-        Require(settings.ActualHeight > 0 && at.Y + settings.ActualHeight <= shell.ActualHeight + 1, "侧栏设置入口被裁掉");
-        Require(at.X >= -1 && at.X + settings.ActualWidth <= host.ActualWidth + 1, "侧栏设置入口跑到栏外");
+
+        // 栏底那颗设置（2026-11-13 回到 FooterMenuItems）：它和栏里那些条目走同一条度量，得整块留在栏内、
+        // 贴着窗口下沿，尺寸也和条目一致 —— 用户令「统一侧边栏按钮的大小」要的正是这个。
         var nav = Get<NavigationView>(shell, "Sidebar");
-        foreach (var item in nav.MenuItems.OfType<NavigationViewItem>().Where(item => item.Visibility == Visibility.Visible))
+        var settings = Get<NavigationViewItem>(shell, "SidebarSettings");
+        var settingsAt = settings.TransformToVisual(shell).TransformPoint(new Windows.Foundation.Point());
+        Require(settings.ActualHeight > 0 && settingsAt.Y + settings.ActualHeight <= shell.ActualHeight + 1,
+            "栏底的设置入口被裁掉");
+        Require(settingsAt.X >= -1 && settingsAt.X + settings.ActualWidth <= host.ActualWidth + 1,
+            "栏底的设置入口跑到栏外");
+        if (Get<NavigationViewItem>(shell, "SidebarHome") is { ActualHeight: > 0 } sizedHome)
+        {
+            Require(Math.Abs(settings.ActualHeight - sizedHome.ActualHeight) <= 0.5
+                && Math.Abs(settings.ActualWidth - sizedHome.ActualWidth) <= 0.5,
+                $"栏底的设置和条目不一样大：{settings.ActualWidth:0.#}×{settings.ActualHeight:0.#} 对 "
+                    + $"{sizedHome.ActualWidth:0.#}×{sizedHome.ActualHeight:0.#}");
+        }
+        foreach (var item in nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
+            .Where(item => item.Visibility == Visibility.Visible))
         {
             var icon = item.Icon;
             Require(icon is { ActualWidth: > 0, ActualHeight: > 0 }, $"侧栏入口 {item.Content} 的图标没有尺寸");
@@ -594,60 +620,32 @@ internal sealed partial class ShellNavigationProbe
                 $"侧栏入口 {item.Content} 的图标被裁到栏外：可见 {VisibleArea(icon, host):F1}/{area:F1} 平方像素");
         }
 
-        // 图标栏那一档，账号和设置各只剩一颗字形：字形必须整块留在栏内、中线要和栏里那几项对齐。从前按钮的
-        // 内容格只有 12 宽（栏 48 − 组内边距 6×2 − 列间距 4 − 按钮内边距 10×2），16 宽的字形右边被裁掉 3 像素
-        //（用户 2026-10-13：「收起侧边栏时候会被遮挡」）。被内容格挤窄的元素连自己的矩形都跟着变小，所以
-        // 「宽」和「裁剪后可见面积」两条都要量。
-        if (!nav.IsPaneOpen && Get<NavigationViewItem>(shell, "SidebarHome").Icon is { ActualWidth: > 0 } railIcon)
+        // 账号那一颗在标题栏右上角（2026-11-13）：侧边栏模式里只留一颗人像，字形整块在格子里，
+        // 竖直中线和标题栏正中那颗搜索框同一条 —— 用户令「和搜索栏对齐」。搜索框窄窗会收起，收起时只判字形。
+        var account = Get<Button>(shell, "AccountButton");
+        var accountGlyph = Get<FontIcon>(shell, "AccountGlyph");
+        Require(account.Visibility == Visibility.Visible && AccountTextHidden(shell),
+            "侧边栏模式里账号还留着文字那一格");
+        Require(accountGlyph.Visibility == Visibility.Visible && accountGlyph.ActualWidth > 0,
+            "侧边栏模式里账号的人像字形没有露出来");
+        Require(accountGlyph.ActualWidth >= accountGlyph.FontSize - 0.5,
+            $"账号的人像被内容格挤窄：{accountGlyph.ActualWidth:F1} 对字号 {accountGlyph.FontSize:F1}");
+        var glyphBox = Bounds(accountGlyph, host);
+        Require(VisibleArea(accountGlyph, host) >= glyphBox.Width * glyphBox.Height - 0.5,
+            $"账号的人像被裁到格外交外：可见 {VisibleArea(accountGlyph, host):F1}/{glyphBox.Width * glyphBox.Height:F1} 平方像素");
+        var searchBox = Get<Button>(shell, "TitleSearchBox");
+        if (searchBox.Visibility == Visibility.Visible && searchBox.ActualHeight > 0)
         {
-            var railCentre = Left(railIcon, host) + railIcon.ActualWidth / 2;
-            foreach (var (entry, entryGlyph) in new (string, FontIcon)[]
-            {
-                ("账号", Get<FontIcon>(shell, "AccountGlyph")),
-                ("设置", Get<FontIcon>(shell, "SidebarSettingsGlyph"))
-            })
-            {
-                Require(entryGlyph.Visibility == Visibility.Visible && entryGlyph.ActualWidth > 0,
-                    $"图标栏里 {entry} 的字形没有露出来");
-                Require(entryGlyph.ActualWidth >= entryGlyph.FontSize - 0.5,
-                    $"图标栏里 {entry} 的字形被内容格挤窄：{entryGlyph.ActualWidth:F1} 对字号 {entryGlyph.FontSize:F1}");
-                var glyphBounds = Bounds(entryGlyph, host);
-                Require(VisibleArea(entryGlyph, host) >= glyphBounds.Width * glyphBounds.Height - 0.5,
-                    $"图标栏里 {entry} 的字形被裁到栏外：可见 {VisibleArea(entryGlyph, host):F1}/{glyphBounds.Width * glyphBounds.Height:F1} 平方像素");
-                var centre = Left(entryGlyph, host) + entryGlyph.ActualWidth / 2;
-                // 判 3 像素：框架模板在图标栏那一档自己就有两处位置 —— 按窗宽自动收起来时图标中线是 24，
-                // 从展开态按开关收起来时是 26（同一份读数见 sidebar-layout.txt 的两档）。缩进只有一个数，
-                // 这里钉的是「字形落在栏的中线上、不再差十几像素」，不是「框架两档都精确到 0」。
-                Require(Math.Abs(centre - railCentre) <= 3,
-                    $"{entry} 的字形没和栏里那几项对齐：中线 {centre:0.#} 对 {railCentre:0.#}");
-            }
-        }
-
-        // 左下角那一组里那两格字（2026-10-13 用户：「改成用户名在上服务器名在下」）：侧边栏展开那一档是两行 ——
-        // 用户名在上、服务器名在下、左沿对齐在同一条竖线上，中间那个「·」收起，按钮真长到了两行那么高。
-        // 排错（挤成一行、或者服务器名跑到上面）在截图里都只是「一行小字」，得逐字读才看得出来。
-        if (shown && nav.IsPaneOpen && Get<Grid>(shell, "AccountText").Visibility == Visibility.Visible)
-        {
-            var user = Get<TextBlock>(shell, "AccountUser");
-            var server = Get<TextBlock>(shell, "AccountServer");
-            var accountButton = Get<Button>(shell, "AccountButton");
-            Require(user.Visibility == Visibility.Visible && server.Visibility == Visibility.Visible,
-                "侧边栏展开时账号那两格字没有都露出来");
-            Require(Top(user, shell) + user.ActualHeight <= Top(server, shell) + 1,
-                $"用户名不在服务器名上面：{Top(user, shell):0.#} 对 {Top(server, shell):0.#}");
-            Require(Math.Abs(Left(user, shell) - Left(server, shell)) <= 1,
-                $"两行字没有左对齐：{Left(user, shell):0.#} 对 {Left(server, shell):0.#}");
-            Require(Get<TextBlock>(shell, "AccountDot").Visibility == Visibility.Collapsed,
-                "两行那一档还留着名字和服务器之间那个「·」");
-            Require(accountButton.ActualHeight >= user.ActualHeight + server.ActualHeight,
-                $"账号那颗按钮没有长到两行：{accountButton.ActualHeight:0.#} 装不下 "
-                    + $"{user.ActualHeight:0.#}+{server.ActualHeight:0.#}");
-            var accountBounds = Bounds(accountButton, host);
-            var serverBounds = Bounds(server, host);
-            Require(serverBounds.Bottom <= accountBounds.Bottom + 1 && serverBounds.Right <= accountBounds.Right + 1,
-                $"服务器名那一行被账号按钮裁掉了：{serverBounds} 对 {accountBounds}");
+            var glyphCentre = Top(accountGlyph, shell) + accountGlyph.ActualHeight / 2;
+            var boxCentre = Top(searchBox, shell) + searchBox.ActualHeight / 2;
+            Require(Math.Abs(glyphCentre - boxCentre) <= 1.5,
+                $"账号的人像没和搜索框对齐：中线 {glyphCentre:0.#} 对 {boxCentre:0.#}");
         }
     }
+
+    /// <summary>账号那两格文字在侧边栏模式里收着（那一档只留一颗人像）。</summary>
+    private static bool AccountTextHidden(ShellPage shell) =>
+        Get<Grid>(shell, "AccountText").Visibility == Visibility.Collapsed;
 
     private static double Left(FrameworkElement element, UIElement root) =>
         element.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point()).X;
@@ -699,7 +697,7 @@ internal sealed partial class ShellNavigationProbe
             var host = Get<Grid>(shell, "SidebarHost");
             nav.IsPaneOpen = true;
             await LayoutAsync(shell);
-            Require(nav.IsPaneOpen && Math.Abs(host.ActualWidth - 220) < 1, "订阅那一段没有把栏展开");
+            Require(nav.IsPaneOpen && Math.Abs(host.ActualWidth - 256) < 1, "订阅那一段没有把栏展开");
 
             await ConnectMoviePilotAsync(fixture);
             await UntilAsync(() => movies.Visibility == Visibility.Visible && series.Visibility == Visibility.Visible);
@@ -835,12 +833,13 @@ internal sealed partial class ShellNavigationProbe
             Require(shell.Pages.BackStack.All(entry => entry.SourcePageType != typeof(MoviePilotSubscriptionsPage))
                 && shell.Pages.ForwardStack.All(entry => entry.SourcePageType != typeof(MoviePilotSubscriptionsPage)),
                 "断线后返回或前进历史里还留着订阅列表页");
-            // 断线只收那两条入口，账号那一组和设置照旧站在左下角。
+            // 断线只收那两条入口：账号那一颗和栏底的设置照旧在各自的位置上。
             var account = Get<Button>(shell, "AccountButton");
             Require(account.Visibility == Visibility.Visible
-                && Left(account, shell) <= 12 && Top(account, shell) > shell.ActualHeight / 2,
-                "断线后账号那一组离开了左下角");
-            Require(Get<Button>(shell, "SidebarSettingsButton").Visibility == Visibility.Visible, "断线后设置入口丢了");
+                && Left(account, shell) > shell.ActualWidth / 2
+                && Top(account, shell) + account.ActualHeight <= HomePage.ChromeHeight + 1,
+                "断线后账号那一颗离开了标题栏右上角");
+            Require(Get<NavigationViewItem>(shell, "SidebarSettings").Visibility == Visibility.Visible, "断线后设置入口丢了");
         }
         finally
         {

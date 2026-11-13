@@ -83,7 +83,6 @@ public sealed partial class ShellPage
                 : Visibility.Collapsed;
             var slots = BackButton.Visibility == backExpected
                 && NavToggleButton.Visibility == (SidebarShown ? Visibility.Visible : Visibility.Collapsed)
-                && AppTitleText.Visibility == (SidebarShown ? Visibility.Visible : Visibility.Collapsed)
                 && HomeButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible)
                 && FavoritesButton.Visibility == (favoritesShown ? Visibility.Visible : Visibility.Collapsed)
                 && SettingsButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible);
@@ -94,9 +93,9 @@ public sealed partial class ShellPage
             if (BackButton.Visibility == Visibility.Collapsed) BackButton.Visibility = Visibility.Visible;
             UpdateLayout();
 
-            // 声明次序就是视觉次序：返回 → 折叠 → 标题 → 主页 → 收藏 → 设置/搜索。
+            // 声明次序就是视觉次序：返回 → 折叠 → 主页 → 收藏 → 设置/搜索（标题 2026-11-13 删掉）。
             FrameworkElement[] order =
-                [BackButton, NavToggleButton, AppTitleText, HomeButton, FavoritesButton, SettingsButton, SearchButton];
+                [BackButton, NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton];
             var keys = order.Where(key => key.Visibility == Visibility.Visible).ToArray();
             var places = keys.Select(At).ToArray();
 
@@ -107,9 +106,8 @@ public sealed partial class ShellPage
             {
                 var gap = places[index].X - (places[index - 1].X + keys[index - 1].ActualWidth);
                 widest = Math.Max(widest, gap);
-                // 按键之间挨着排（0–8）；标题是字不是键，它自己带 8 的左边距、再叠上这一排的 2 格间距，
-                // 所以跟在折叠键后面那一段可以宽一档 —— 只判「不叠、不跳开一整格」。
-                var allowed = keys[index] is TextBlock ? 16 : 8;
+                // 按键之间挨着排（0–8）—— 这一排全是 40 见方的托盘、间距 2，标题删掉之后没有更宽的一档了。
+                const double allowed = 8;
                 // 竖着比中心：按键 32 高、标题那行字只有二十来像素，比上沿会把「居中对齐」判成「错开一行」。
                 var centre = places[index].Y + keys[index].ActualHeight / 2;
                 lined &= gap >= 0 && gap <= allowed && Math.Abs(centre - rowCentre) < 2;
@@ -121,19 +119,19 @@ public sealed partial class ShellPage
                     && Math.Abs(At(NavToggleButton).X - (At(BackButton).X + BackButton.ActualWidth)) <= 8
                     && Math.Abs(At(NavToggleButton).Y - At(BackButton).Y) < 1);
 
-            // 图标外面那层 26 是放大那一步（PathIcon 不缩放几何，见 ShellPage.xaml 的注释）。
+            // 图标外面那层 28 是放大那一步（PathIcon 不缩放几何，见 ShellPage.xaml 的注释）。
             var glyph = keys.OfType<Button>().Select(button => button.Content as Viewbox)
                 .FirstOrDefault(viewbox => viewbox is not null);
-            var enlarged = glyph is { ActualWidth: >= 26, ActualHeight: >= 26 };
+            var enlarged = glyph is { ActualWidth: >= 28, ActualHeight: >= 28 };
 
             var sized = TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0
                 && keys.All(key => key.ActualWidth > 0 && key.ActualHeight > 0);
 
-            // 在标题栏里：整排从顶部下移 6 像素起（2026-11-01 用户令「再往下移一点，然后再稍微放大一点点」），
-            // 32 高的托盘底边离标题栏下沿 2 像素 —— 既没有越出去，也不是居中。
+            // 在标题栏里：整排从顶部下移 4 像素起（2026-11-13 起 40 高的托盘落在 48 高的条子里），
+            // 托盘底边离标题栏下沿 4 像素 —— 既没有越出去，也不是居中。
             var group = At(TitleActions);
             var bar = At(AppTitleBar);
-            var lowered = Math.Abs(group.Y - (bar.Y + 6)) <= 1;
+            var lowered = Math.Abs(group.Y - (bar.Y + 4)) <= 1;
             var inBar = lowered
                 && group.Y + TitleActions.ActualHeight <= bar.Y + AppTitleBar.Height
                 && group.X > bar.X
@@ -163,7 +161,7 @@ public sealed partial class ShellPage
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
                     + $"{(toggleAfterBack ? "折叠键贴在返回右边" : "折叠键没贴在返回右边")}；"
-                    + $"{(sized ? "各格都有尺寸" : "有格子没尺寸")}、{(enlarged ? "图标是 26 的放大框" : "图标不是 26 的放大框")}、"
+                    + $"{(sized ? "各格都有尺寸" : "有格子没尺寸")}、{(enlarged ? "图标是 28 的放大框" : "图标不是 28 的放大框")}、"
                     + $"该在的{(slots ? "都在" : "有缺")}、返回判据{(backRule ? "对" : "错")}、"
                     + $"哪儿都走不动时{(idle ? "返回按不动、面包屑收起" : "不对")}、"
                     + $"退得回去时{(shallow ? "返回亮、面包屑收着" : "不对")}、"
@@ -174,8 +172,7 @@ public sealed partial class ShellPage
                     + $"搜索框 {(TitleSearchBox.Visibility == Visibility.Visible ? $"在（{TitleSearchBox.ActualWidth:0} 宽）" : "收")}、"
                     + $"放大镜 {(SearchButton.Visibility == Visibility.Visible ? "在" : "收")}、"
                     + $"返回 {(BackButton.Visibility == Visibility.Visible ? "在" : "收")}/{BackButton.IsEnabled}、"
-                    + $"折叠 {(NavToggleButton.Visibility == Visibility.Visible ? "在" : "收")}、"
-                    + $"标题 {(AppTitleText.Visibility == Visibility.Visible ? "在" : "收")}",
+                    + $"折叠 {(NavToggleButton.Visibility == Visibility.Visible ? "在" : "收")}",
                 group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
         }
         finally
@@ -194,13 +191,14 @@ public sealed partial class ShellPage
     /// 外壳只剩标题栏这一行）。这一关剩下四件事，每一件的坏法在截图里都看不出来：
     /// <list type="number">
     /// <item>那一行在屏上（登录页和播放时整块收起）。</item>
-    /// <item>整条外壳正好 40 高（<c>ChromeHeight</c>）—— 页面顶上让开的那一段就是这个数，少让就是页头被切半行，
+    /// <item>整条外壳正好 48 高（<c>ChromeHeight</c>）—— 页面顶上让开的那一段就是这个数，少让就是页头被切半行，
     /// 多让就是图上一条底色，而第 1 行没删干净的样子正是这里多出来的那 48。内容区自己的上内边距也得是同一
     /// 个数：标题栏加高时只改一边，页面就会被压掉或露出一条底。</item>
-    /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排同在标题栏那 40 像素里
+    /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排同在标题栏这 48 像素里
     /// —— 它挪进来是第 1 行删掉的后果，落位错了就压不进挖给它的洞，一按就是拖窗口。</item>
-    /// <item>账号那两格字的排法跟着落位走：侧边栏展开那一档两行（用户名在上、服务器名在下），其余各档一行
-    /// （「名字 · 服务器」）。</item>
+    /// <item>账号那一格的样子跟着模式走：侧边栏模式只留一颗 40×40 的人像（和栏里那些按钮同一块方格，
+    /// 中心 y=24 与标题栏正中那颗搜索框对齐），其余模式是一行「名字 · 服务器」。两行那一档 2026-11-13 随
+    /// 「人像图标移到最小化左边」一起退役 —— 名字和服务器名只在标题栏那一格里露字。</item>
     /// </list>
     /// 那颗「主页」按钮和左边那一排的落位排布由 <see cref="ProbeTitleActions"/> 一起量。
     /// </summary>
@@ -211,57 +209,47 @@ public sealed partial class ShellPage
         var barAt = At(AppTitleBar);
         var chrome = barAt.Y + AppTitleBar.Height;
         var stacked = Math.Abs(chrome - HomePage.ChromeHeight) <= 0.5;
-        // 页面顶上让开的那一段必须和外壳同高：2026-11-01 标题栏 32→40 时，忘掉这一份就会让页面从 y=32
-        // 起画、被外壳压掉 8 像素。2026-11-12 晚起这一份从内边距搬到了外边距（画布要让开标题栏那一层材质，
-        // 见 ShellPage.xaml 的 ContentHost），量的是同一个数。
+        // 页面顶上让开的那一段必须和外壳同高：2026-11-01 标题栏 32→40、2026-11-13 40→48 时，忘掉这一份就会
+        // 让页面从旧的高度起画、被外壳压掉一截。2026-11-12 晚起这一份从内边距搬到了外边距（画布要让开标题栏
+        // 那一层材质，见 ShellPage.xaml 的 ContentHost），量的是同一个数。
         var padded = Math.Abs(ContentHost.Margin.Top - HomePage.ChromeHeight) <= 0.5;
 
         var accountAt = At(AccountButton);
         var right = accountAt.X + AccountButton.ActualWidth;
         var accountShown = AccountButton.Visibility == Visibility.Visible;
 
-        // 账号那一组 2026-10-13 起有两种落位：侧边栏在屏上时它整组落在窗口左下角（栏的左端、贴着下沿），
-        // 不在侧边栏模式时它回到标题栏右上角、留在系统那三颗窗口按钮左边。两种都要求它真的在屏上、
-        // 而且没有压出窗口。
-        var clusterAt = At(AccountCluster);
+        // 账号那一颗 2026-11-13 起只有一种落位：标题栏右上角、系统那三颗窗口按钮左边（用户令「人像图标移到
+        // 最小化左边」）。要求它真的在屏上、没有压出窗口、没越进那三颗按钮的地盘，并且和左边那一排同在
+        // 标题栏这一行里 —— 落位错了就压不进挖给它的洞，一按就是拖窗口。
         var corner = accountShown
             && AccountButton.ActualWidth > 0
             && AccountButton.ActualHeight > 0
-            && (SidebarShown
-                ? clusterAt.X <= 1
-                    && clusterAt.Y + AccountCluster.ActualHeight >= ActualHeight - 1
-                    && clusterAt.X + AccountCluster.ActualWidth <= ActualWidth + 0.5
-                : right <= ActualWidth + 0.5
-                    && ActualWidth - right <= 200
-                    && accountAt.Y >= barAt.Y - 0.5
-                    && accountAt.Y + AccountButton.ActualHeight <= chrome + 0.5);
+            && right <= ActualWidth + 0.5
+            && ActualWidth - right <= 200
+            && accountAt.Y >= barAt.Y - 0.5
+            && accountAt.Y + AccountButton.ActualHeight <= chrome + 0.5;
 
-        // 账号那两格字的排法（2026-10-13 用户：「改成用户名在上服务器名在下」）：侧边栏展开那一档是两行 ——
-        // 用户名在上、服务器名在下、左沿对齐在同一条竖线上，中间那个「·」收起，按钮真长到了两行那么高；
-        // 其余各档是一行 —— 「名字 · 服务器」，名字在服务器名左边。排错了在截图里都只是「一行小字」，
-        // 得逐字读才看得出来，所以按两格字的相对位置判，不按截图。
+        // 那一格的样子：侧边栏模式只留一颗 40×40 的人像（和栏里那些按钮同一块方格、同一条中线）；
+        // 其余模式是一行「名字 · 服务器」，名字在服务器名左边、中间那颗「·」露着。
         // 一行那一档比的是**竖直中心**不是上沿：名字是 13 号 SemiBold（实高约 16.5）、服务器名走 12 号
         // 等宽（约 14），两格都 VerticalAlignment=Center，上沿天生差 (16.5−14)/2≈1.3 像素 —— 比上沿会把
-        // 这个字体高度差当成「没排在一行」，而屏上两者的基线其实对得只差 0.05 像素。容差取 1.5（中心实测
-        // 差 0.72），既容得下这个高度差，又能逮住真正错开一整行（两行那一档的中心差有十来像素）。
-        var twoLines = SidebarShown && Sidebar.IsPaneOpen;
-        var textShown = AccountText.Visibility == Visibility.Visible;
+        // 这个字体高度差当成「没排在一行」，而屏上两者的基线其实对得只差 0.05 像素。容差取 1.5。
+        var iconOnly = SidebarShown
+            && AccountGlyph.Visibility == Visibility.Visible
+            && AccountText.Visibility == Visibility.Collapsed
+            && Math.Abs(AccountButton.ActualWidth - 40) <= 0.5
+            && Math.Abs(AccountButton.ActualHeight - 40) <= 0.5;
         var userAt = At(AccountUser);
         var serverAt = At(AccountServer);
-        var sameLine = Math.Abs(userAt.Y + AccountUser.ActualHeight / 2 - (serverAt.Y + AccountServer.ActualHeight / 2)) <= 1.5;
-        var arrangement = !textShown
-            ? true
-            : twoLines
-                ? userAt.Y + AccountUser.ActualHeight <= serverAt.Y + 1
-                    && Math.Abs(userAt.X - serverAt.X) <= 1
-                    && AccountDot.Visibility == Visibility.Collapsed
-                    && AccountButton.ActualHeight >= AccountUser.ActualHeight + AccountServer.ActualHeight
-                : sameLine && userAt.X < serverAt.X;
-        var arrangementText = !textShown
-            ? "那两格字收着（图标栏）"
-            : twoLines
-                ? arrangement ? "两行：用户名在上、服务器名在下" : "两格字的排法不对（该两行、用户名在上）"
-                : arrangement ? "一行：名字 · 服务器" : "两格字的排法不对（该一行、名字在左）";
+        var textMode = !SidebarShown
+            && AccountText.Visibility == Visibility.Visible
+            && AccountDot.Visibility == Visibility.Visible
+            && userAt.X < serverAt.X
+            && Math.Abs(userAt.Y + AccountUser.ActualHeight / 2 - (serverAt.Y + AccountServer.ActualHeight / 2)) <= 1.5;
+        var arrangement = iconOnly || textMode;
+        var arrangementText = iconOnly
+            ? "只留一颗 40×40 的人像"
+            : textMode ? "一行：名字 · 服务器" : "那一格的样子不对（该人像或一行文字）";
 
         var ok = shown && stacked && padded && corner && arrangement;
 

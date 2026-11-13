@@ -281,12 +281,18 @@ internal sealed partial class HostWindow : IDisposable
     /// <summary>
     /// The strip the shell paints its title bar into, in logical pixels. It is the height of the caption and
     /// passthrough regions this window declares, so it has to stay equal to the shell's row — the row grew
-    /// from 32 to 40 on 2026-11-01 (「再往下移一点，然后再稍微放大一点点」) and the drag area grew with it.
-    /// The framework's own caption buttons keep their standard 32-pixel strip; only the region height and
-    /// the holes declared here follow this number.
+    /// from 32 to 40 on 2026-11-01 (「再往下移一点，然后再稍微放大一点点」), then from 40 to 48 on 2026-11-13
+    /// (「参考 codex 窗口边框的宽度和高度」), and the drag area grew with it.
+    /// <para>
+    /// The framework's own caption buttons are 32 high in the standard option, which in a 48-pixel strip would
+    /// leave them hugging the top edge while every icon in the row centres on 24. The shell therefore asks for
+    /// <see cref="TitleBarHeightOption.Tall"/> (48-high buttons) — see <c>ConfigureTitleBar</c>.
+    /// </para>
     /// </summary>
-    private const int TitleBarHeight = 40;
-    private const int CaptionButtonWidth = 46;
+    private const int TitleBarHeight = 48;
+    /// <summary>Tall 档那三颗系统按钮各 48 见方（Standard 档是 46×32）。这里只当框架没报出 RightInset 时的
+    /// 兜底宽度用 —— 真值以 <c>TitleBar.RightInset</c> 为准。</summary>
+    private const int CaptionButtonWidth = 48;
     private const int SystemButtonsWidth = CaptionButtonWidth * 3;
 
     /// <summary>
@@ -664,7 +670,7 @@ internal sealed partial class HostWindow : IDisposable
             _playbackTitleBar = value;
 
             if (_appWindow?.TitleBar is { } titleBar)
-                titleBar.PreferredHeightOption = value ? TitleBarHeightOption.Collapsed : TitleBarHeightOption.Standard;
+                titleBar.PreferredHeightOption = value ? TitleBarHeightOption.Collapsed : TitleBarHeightOption.Tall;
 
             // Straight to the repartition, with nothing cleared on the way: the two modes claim different
             // region kinds and every kind is assigned below, so there is no rect left behind to withdraw —
@@ -2526,9 +2532,13 @@ internal sealed partial class HostWindow : IDisposable
                 // 就是把它抹掉：框架于是照旧保留标题栏那 32 像素、照旧在右上角画三颗系统按钮，而播放态的
                 // 区域声明说那三颗「哪儿都不在」（见 UpdateTitleBarRegions）—— 三颗画着、点上去什么也不
                 // 接住，就是 2026-09-14 的「窗口化时右上角的最小化 最大化 关闭点了没反应」。
+                //
+                // **2026-11-13 起浏览态选 Tall**：外壳那一行 40→48，Standard 那三颗仍是 32 高、贴着顶边，
+                // 而标题栏里每一颗图标的中线都在 24 —— 屏上就是「按钮比图标高一截」。Tall 让它们也占满 48、
+                // 中线同样落在 24；右端要预留的宽度仍是三颗 46（见 SystemButtonsWidth），没有变宽。
                 titleBar.PreferredHeightOption = _playbackTitleBar
                     ? TitleBarHeightOption.Collapsed
-                    : TitleBarHeightOption.Standard;
+                    : TitleBarHeightOption.Tall;
 
                 PaintCaption(titleBar);
 

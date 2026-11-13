@@ -9,16 +9,17 @@ internal static class ToolbarIconTests
 
     internal static void Register()
     {
-        TestHarness.Test("标题栏那一排：返回、折叠、标题、主页、收藏、设置、搜索按这个次序", () =>
+        TestHarness.Test("标题栏那一排：返回、折叠、主页、收藏、设置、搜索按这个次序", () =>
         {
             var panel = Named(Shell(), "TitleActions");
             var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
             // 2026-11-12 晚用户令「主页不显示返回按钮，进入媒体页面或者媒体库页面的时候显示，放左上角，折叠侧边栏
-            // 按钮移到它右边」「标题栏左上角写 Momoka」，并选定「前进键退役」：这一排从此是
-            // 返回 · 折叠 · 标题 · 主页 · 收藏 · 设置/搜索。前进那颗整颗删掉，Alt+→ 与鼠标侧键仍在（GoForward）。
+            // 按钮移到它右边」「标题栏左上角写 Momoka」，并选定「前进键退役」；2026-11-13 又令「移除左上角的
+            // momoka」，那一格整块删掉。这一排从此是 返回 · 折叠 · 主页 · 收藏 · 设置/搜索。前进那颗整颗删掉，
+            // Alt+→ 与鼠标侧键仍在（GoForward）。
             Assert.True(order.SequenceEqual(new[]
             {
-                "BackButton", "NavToggleButton", "AppTitleText", "HomeButton", "FavoritesButton", "TitleUtilities"
+                "BackButton", "NavToggleButton", "HomeButton", "FavoritesButton", "TitleUtilities"
             }), "标题栏这一排的顺序不对：" + string.Join('、', order));
 
             var utilities = Named(Shell(), "TitleUtilities");
@@ -37,17 +38,17 @@ internal static class ToolbarIconTests
             var data = icon.Attribute("Data")?.Value ?? string.Empty;
             Assert.True(data.StartsWith("F1 M 6.2,3.6", StringComparison.Ordinal), "折叠键的图标不是那块面板：" + data);
             Assert.Equal(3, data.Split('Z').Length - 1, "面板图标不是三笔（外框、内孔、左栏）");
-            Assert.Equal("Left", toggle.Attribute("HorizontalContentAlignment")?.Value);
-            // 外面那层 26 的放大框和这一排别的图标一样（PathIcon 不缩放几何）。
-            Assert.True(toggle.Descendants().Any(element => element.Name.LocalName == "Viewbox"
-                && element.Attribute("Width")?.Value == "26"), "折叠键没有走 26 的放大框");
+            // 2026-11-13 起字形居中、不再靠左：托盘 40 宽、字形 28，缩进 8，字形中线落在 28 ——
+            // 和栏里那些图标同一条竖线（用户令「返回键出现时要和下面那一列对齐」）。靠左摆会落到 22。
+            Assert.True(toggle.Attribute("HorizontalContentAlignment") is null, "折叠键又靠左摆了");
+            var toggleBox = toggle.Descendants().Single(element => element.Name.LocalName == "Viewbox");
+            Assert.Equal("28", toggleBox.Attribute("Width")?.Value);
+            Assert.Equal("28", toggleBox.Attribute("Height")?.Value);
         });
-        TestHarness.Test("标题栏标题：侧边栏模式才露脸，默认收起", () =>
+        TestHarness.Test("标题栏不再写应用名：侧边栏模式那一排只有返回与折叠", () =>
         {
-            var title = Named(Shell(), "AppTitleText");
-            Assert.Equal("TextBlock", title.Name.LocalName);
-            Assert.Equal("Momoka", title.Attribute("Text")?.Value);
-            Assert.Equal("Collapsed", title.Attribute("Visibility")?.Value);
+            Assert.True(!Shell().Descendants().Any(element =>
+                element.Attribute(Xaml + "Name")?.Value == "AppTitleText"), "左上角又写回了 Momoka");
         });
         TestHarness.Test("标题栏搜索框：标题栏正中一颗按钮，写着搜索媒体库、订阅等", () =>
         {

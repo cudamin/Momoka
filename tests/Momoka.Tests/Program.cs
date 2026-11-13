@@ -660,6 +660,7 @@ internal static class Program
         HomeCarouselTests.Register();
         CarouselAmbientTests.Register();
         HomeChromeTests.Register();
+        ShellChromeTests.Register();
         HomeFoldTests.Register();
         BackdropBlurTests.Register();
         GaussianBackdropTests.Register();

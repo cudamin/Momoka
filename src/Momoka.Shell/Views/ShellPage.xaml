@@ -45,13 +45,14 @@
     </UserControl.KeyboardAccelerators>
 
     <!--
-      外壳一行，浮在页面上面，40 像素高（<c>ChromeHeight</c>）：
+      外壳一行，浮在页面上面，48 像素高（<c>ChromeHeight</c>，2026-11-13 起 40→48）：
 
         左端（页面导航）：返回（只在非主页）· 主页 · 收藏（没有收藏时不在）· 设置 · 搜索
         正中：搜索框（够宽时才在）
-        右端（身份）：账号（用户名 · 服务器名） ┄┄ 系统那三颗窗口按钮
-        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 · 标题 Momoka —— 主页/收藏/设置/搜索让给栏里的
-        入口，前进键 2026-11-12 晚按用户令退役（Alt+→ 与鼠标侧键还在，见 GoForward）。
+        右端（身份）：账号 ┄┄ 系统那三颗窗口按钮
+        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 —— 主页/收藏/设置/搜索让给栏里的入口，
+        前进键 2026-11-12 晚按用户令退役（Alt+→ 与鼠标侧键还在，见 GoForward）；标题「Momoka」
+        2026-11-13 按用户令删掉，账号那一颗从窗口左下角回到右上角、只留人像。
         ────────────────────────────────────────────────────────────────────
         页面（从窗口最左边开始；侧边栏模式时它让开那条栏的宽）
 
@@ -62,16 +63,16 @@
 
       **2026-10-13 侧边栏模式回来了一条窄栏**（设置 → 界面），但它不是原来那条：≡ 从栏里挪到这一行的最前面
       （NavToggleButton，标题的位置），栏自带的那颗开关收掉，菜单项因此上顶到标题栏下沿；主页与返回紧跟在 ≡
-      右边；账号＋设置那一组整组落在窗口左下角（展开并排、折叠上下叠，见 AccountCluster），所以这一行的右端
-      只剩系统那三颗窗口按钮。不在这条栏里的时候，账号那一组回到右上角 —— 它是同一个面板两种落位。
+      右边。**2026-11-13 起账号也不再蹲在左下角**（用户令「人像图标移到最小化左边、和搜索栏对齐」），
+      设置回到栏自己的页脚 —— 于是这条栏从顶到底只有目的地，身份那一格两种模式都在右上角同一处。
 
       **这一行不上底色。** 页面自己那一块底色由 ContentHost 涂，主页上则是那张铺满的剧照本身 —— 一条实心条
       压在大图上就是图顶上一道黑边，那正是「红框框出来的地方全填充上海报」要去掉的东西。压在图上那一档的墨走
-      不随主题走的浅墨（见 PaintTitleInk），底是轮播自己顶上那层 120 高的黑色渐变，40 装得进 120。
+      不随主题走的浅墨（见 PaintTitleInk），底是轮播自己顶上那层 120 高的黑色渐变，48 装得进 120。
 
-      叠放次序写成 Canvas.ZIndex 而不是靠声明顺序：这几块的上下关系是「页面 → 侧边栏 → 外壳 → 账号那一组 →
-      登录卡 → 播放器 → 通知」，写成数字，读这个文件的人不用在心里数元素的先后。账号那一组在侧边栏之上、外壳
-      之下，是因为它在侧边栏模式里要压在栏的左下角上，而它自己不是外壳那一行的一部分。
+      叠放次序写成 Canvas.ZIndex 而不是靠声明顺序：这几块的上下关系是「页面 → 侧边栏 → 外壳 → 账号那一颗 →
+      登录卡 → 播放器 → 通知」，写成数字，读这个文件的人不用在心里数元素的先后。账号那颗在侧边栏之上、外壳
+      之下，因为它两种模式都落在标题栏右上角那一格，而它自己不是外壳那一行的一部分。
     -->
     <Grid x:Name="Root" KeyboardAcceleratorPlacementMode="Auto">
         <!-- 外壳那一行。整块一起收起（播放时），所以是一个 Grid：播放层要整个窗口，而「外壳收一半」是
@@ -110,7 +111,7 @@
              这一排一个、账号一个（见 ReportTitleBarHoles）—— 账号那块不挖洞的话，按下去同样是拖窗口。 -->
         <Grid
             x:Name="AppTitleBar"
-            Height="40"
+            Height="48"
             Padding="0,0,148,0"
             Background="Transparent">
             <!-- 只保留图标，没有按钮底板。交互区域仍是标准 Button，键盘焦点和标题栏穿透区域不变。 -->
@@ -119,14 +120,15 @@
                     <Setter Property="Background" Value="Transparent" />
                     <Setter Property="BorderThickness" Value="0" />
                     <Setter Property="CornerRadius" Value="8" />
-                    <!-- 2026-11-01 用户令「再往下移一点，然后再稍微放大一点点」：托盘 32 高、从标题栏顶下 6 像素起，
-                         图标 26（原 24）。整排因此比上一版低 4 像素、图标大 2 像素，底边离标题栏下沿 2 像素。 -->
-                    <Setter Property="Height" Value="32" />
-                    <Setter Property="Width" Value="42" />
+                    <!-- 2026-11-13 用户令「参考 codex 窗口边框的宽度和高度」：标题栏 40→48、侧栏 48→56，
+                         托盘跟着长到 40×40（和栏里那些按钮同一块方格），图标 26→28，从标题栏顶下 4 起，
+                         上下各留 4、底边正好落在 48 的下沿。 -->
+                    <Setter Property="Height" Value="40" />
+                    <Setter Property="Width" Value="40" />
                     <Setter Property="Padding" Value="0" />
                 </Style>
-                <!-- 图标仍是 24 坐标系的 PathIcon（几何按 24 画好），外面那层 26 的 Viewbox 才是放大那一步：
-                     PathIcon 不缩放几何（见 PlayerPage.xaml 那条实测），直接把 Width 改成 26 只会多留一圈空。 -->
+                <!-- 图标仍是 24 坐标系的 PathIcon（几何按 24 画好），外面那层 28 的 Viewbox 才是放大那一步：
+                     PathIcon 不缩放几何（见 PlayerPage.xaml 那条实测），直接把 Width 改成 28 只会多留一圈空。 -->
                 <Style TargetType="PathIcon">
                     <Setter Property="Width" Value="24" />
                     <Setter Property="Height" Value="24" />
@@ -137,7 +139,7 @@
                  图标继承 Button 前景，主题、高对比度与停用态仍由 PaintTitleInk 统一管理。 -->
             <StackPanel
                 x:Name="TitleActions"
-                Margin="18,6,0,0"
+                Margin="18,4,0,0"
                 Orientation="Horizontal"
                 Spacing="2"
                 VerticalAlignment="Top"
@@ -148,7 +150,7 @@
                      显隐由 SyncChrome 按当前页决定（判据是 BackVisibilityFor），这里不写死。
                      图标仍按 24×24 画；走不动时变暗那一档没变（见 ApplyChrome）。 -->
                 <Button x:Name="BackButton" x:Uid="ShellPage_BackButton" Click="OnBackClicked" IsEnabled="False">
-                    <Viewbox Width="26" Height="26">
+                    <Viewbox Width="28" Height="28">
                         <PathIcon Data="F1 M 11.74,5.73 L 4.94,12.63 A 0.9,0.9 0 0 1 3.66,11.37 L 10.46,4.47 A 0.9,0.9 0 0 1 11.74,5.73 Z M 4.94,11.37 L 11.74,18.27 A 0.9,0.9 0 0 1 10.46,19.53 L 3.66,12.63 A 0.9,0.9 0 0 1 4.94,11.37 Z M 4.6,11.1 L 20.3,11.1 A 0.9,0.9 0 0 1 20.3,12.9 L 4.6,12.9 A 0.9,0.9 0 0 1 4.6,11.1 Z" />
                     </Viewbox>
                 </Button>
@@ -160,33 +162,23 @@
                      它退到返回右边（用户令「折叠侧边栏按钮移到它右边」）。
                      图标照这一排的规矩按 24×24 画：一个圆角面板，左栏实心、右侧留白 —— 就是用户给的那张图。
                      三笔：外框（顺时针）、内孔（逆时针，非零绕数成洞）、左栏（顺时针，盖住洞的左半）。
-                     **内容靠左、不带内边距**：这一排的缩进是 11，栏里那几项的字形中线落在 26 上（栏的图标格
-                     48 宽、字形居中）—— 靠左摆，这颗的字形中线落在 24，和那几项差 2 像素（探针按 3 像素判，
-                     理由见 ShellPage.Sidebar.cs 的 ApplySidebarLayout）。居中会偏到 32，差 6 像素。 -->
+                     **2026-11-13 起字形居中、不再靠左**：这一排的缩进是 8（和栏里那几项同一块方格的左沿），
+                     托盘 40 宽、字形 28 —— 居中之后字形中线落在 28，正好是栏里那些图标的中线（栏 56 宽、
+                     按钮左沿 8、图标格 40）—— 用户令「返回键出现时要和下面那一列对齐」，两颗一起对齐。 -->
                 <Button x:Name="NavToggleButton" x:Uid="ShellPage_NavToggleButton" Click="OnNavToggleClicked"
-                    Padding="0" HorizontalContentAlignment="Left" Visibility="Collapsed">
-                    <Viewbox Width="26" Height="26">
+                    Padding="0" Visibility="Collapsed">
+                    <Viewbox Width="28" Height="28">
                         <PathIcon Data="F1 M 6.2,3.6 L 17.8,3.6 A 3.6,3.6 0 0 1 21.4,7.2 L 21.4,16.8 A 3.6,3.6 0 0 1 17.8,20.4 L 6.2,20.4 A 3.6,3.6 0 0 1 2.6,16.8 L 2.6,7.2 A 3.6,3.6 0 0 1 6.2,3.6 Z M 6.2,5.3 A 1.9,1.9 0 0 0 4.3,7.2 L 4.3,16.8 A 1.9,1.9 0 0 0 6.2,18.7 L 17.8,18.7 A 1.9,1.9 0 0 0 19.7,16.8 L 19.7,7.2 A 1.9,1.9 0 0 0 17.8,5.3 Z M 4.3,7.2 A 1.9,1.9 0 0 1 6.2,5.3 L 9.6,5.3 L 9.6,18.7 L 6.2,18.7 A 1.9,1.9 0 0 1 4.3,16.8 Z" />
                     </Viewbox>
                 </Button>
-                <!-- 标题（2026-11-12 用户令「侧边栏模式新增标题」）：商店那种样子 —— 应用名站在标题栏左上、
-                     折叠键右边。只在侧边栏模式露脸（没有那条栏的时候这一排是主页/收藏/设置，应用名在任务栏上），
-                     墨跟着标题栏那支走（见 PaintTitleInk）。 -->
-                <TextBlock
-                    x:Name="AppTitleText"
-                    Margin="8,0,8,0"
-                    VerticalAlignment="Center"
-                    FontWeight="SemiBold"
-                    Style="{StaticResource EgBodyStyle}"
-                    Text="Momoka"
-                    Visibility="Collapsed" />
-
                 <!-- 主页。2026-11-11 用户令「左上角统一留主页、收藏、设置、搜索、返回」，于是这一排不再按页型
                      换脸（旧版：首页/收藏页露胶囊、媒体页只留后退+主页），六颗固定按这个次序从左排到右
                      （前进当晚加回、排在返回右边）；收藏那颗按「有没有收藏」显隐，见 SyncTitleActions。
-                     在主页上它自己变暗（见 SyncChrome）。 -->
+                     在主页上它自己变暗（见 SyncChrome）。
+                     标题「Momoka」2026-11-13 按用户令「移除左上角的 momoka」整块删掉：折叠键右边直接就是
+                     这一排的目的地，应用名只在任务栏上。 -->
                 <Button x:Name="HomeButton" x:Uid="ShellPage_HomeButton" Click="OnHomeClicked">
-                    <Viewbox Width="26" Height="26">
+                    <Viewbox Width="28" Height="28">
                         <PathIcon Data="F1 M 2.92,9.61 L 11.42,2.51 A 0.9,0.9 0 0 1 12.58,3.89 L 4.08,10.99 A 0.9,0.9 0 0 1 2.92,9.61 Z M 12.58,2.51 L 21.08,9.61 A 0.9,0.9 0 0 1 19.92,10.99 L 11.42,3.89 A 0.9,0.9 0 0 1 12.58,2.51 Z M 6.1,9.2 L 6.1,20 A 0.9,0.9 0 0 1 4.3,20 L 4.3,9.2 A 0.9,0.9 0 0 1 6.1,9.2 Z M 5.2,19.1 L 9.5,19.1 A 0.9,0.9 0 0 1 9.5,20.9 L 5.2,20.9 A 0.9,0.9 0 0 1 5.2,19.1 Z M 8.6,20 L 8.6,14.5 A 0.9,0.9 0 0 1 10.4,14.5 L 10.4,20 A 0.9,0.9 0 0 1 8.6,20 Z M 9.5,13.6 L 14.5,13.6 A 0.9,0.9 0 0 1 14.5,15.4 L 9.5,15.4 A 0.9,0.9 0 0 1 9.5,13.6 Z M 15.4,14.5 L 15.4,20 A 0.9,0.9 0 0 1 13.6,20 L 13.6,14.5 A 0.9,0.9 0 0 1 15.4,14.5 Z M 14.5,19.1 L 18.8,19.1 A 0.9,0.9 0 0 1 18.8,20.9 L 14.5,20.9 A 0.9,0.9 0 0 1 14.5,19.1 Z M 17.9,20 L 17.9,9.2 A 0.9,0.9 0 0 1 19.7,9.2 L 19.7,20 A 0.9,0.9 0 0 1 17.9,20 Z" />
                     </Viewbox>
                 </Button>
@@ -194,7 +186,7 @@
                      Segoe 的空心心形（EB51，和详情页、音乐播放栏、侧栏收藏入口同一颗），有收藏才露面 ——
                      取消最后一项、退出登录、以及纯 Plex 这类没有收藏能力的来源都整颗收起（判据见
                      SyncTitleActions）。它站在原来那枚「首页/收藏」胶囊的位置上，胶囊随之退役。
-                     字号取 EgTitleFontSize：这一排别的图标是 26 的放大框（实测墨高约 20），16 那档在这里会显小；
+                     字号取 EgTitleFontSize：这一排别的图标是 28 的放大框（实测墨高约 22），16 那档在这里会显小；
                      走刻度键而不是内联数字，字号基线因此不动。 -->
                 <Button x:Name="FavoritesButton" x:Uid="ShellPage_FavoritesButton" Click="OnFavoritesClicked"
                     Visibility="Collapsed">
@@ -210,12 +202,12 @@
                     Orientation="Horizontal"
                     Spacing="2">
                     <Button x:Name="SettingsButton" x:Uid="ShellPage_SettingsButton" Click="OnSettingsClicked">
-                        <Viewbox Width="26" Height="26">
+                        <Viewbox Width="28" Height="28">
                             <PathIcon Data="F1 M 8.14,5.11 L 9.09,2.46 A 0.83,0.83 0 0 1 10.64,3.02 L 9.69,5.66 A 0.83,0.83 0 0 1 8.14,5.11 Z M 9.86,1.92 L 14.14,1.92 A 0.83,0.83 0 0 1 14.14,3.57 L 9.86,3.57 A 0.83,0.83 0 0 1 9.86,1.92 Z M 14.91,2.46 L 15.86,5.11 A 0.83,0.83 0 0 1 14.31,5.66 L 13.36,3.02 A 0.83,0.83 0 0 1 14.91,2.46 Z M 15.5,4.67 L 16.6,5.31 A 0.83,0.83 0 0 1 15.77,6.73 L 14.67,6.1 A 0.83,0.83 0 0 1 15.5,4.67 Z M 16.04,5.21 L 18.8,4.71 A 0.83,0.83 0 0 1 19.09,6.33 L 16.33,6.83 A 0.83,0.83 0 0 1 16.04,5.21 Z M 19.66,5.11 L 21.8,8.81 A 0.83,0.83 0 0 1 20.37,9.63 L 18.23,5.93 A 0.83,0.83 0 0 1 19.66,5.11 Z M 21.71,9.76 L 19.9,11.9 A 0.83,0.83 0 0 1 18.64,10.83 L 20.46,8.69 A 0.83,0.83 0 0 1 21.71,9.76 Z M 20.1,11.36 L 20.1,12.64 A 0.83,0.83 0 0 1 18.45,12.64 L 18.45,11.36 A 0.83,0.83 0 0 1 20.1,11.36 Z M 19.9,12.1 L 21.71,14.24 A 0.83,0.83 0 0 1 20.46,15.31 L 18.64,13.17 A 0.83,0.83 0 0 1 19.9,12.1 Z M 21.8,15.19 L 19.66,18.89 A 0.83,0.83 0 0 1 18.23,18.07 L 20.37,14.37 A 0.83,0.83 0 0 1 21.8,15.19 Z M 18.8,19.29 L 16.04,18.79 A 0.83,0.83 0 0 1 16.33,17.17 L 19.09,17.67 A 0.83,0.83 0 0 1 18.8,19.29 Z M 16.6,18.69 L 15.5,19.33 A 0.83,0.83 0 0 1 14.67,17.9 L 15.77,17.27 A 0.83,0.83 0 0 1 16.6,18.69 Z M 15.86,18.89 L 14.91,21.54 A 0.83,0.83 0 0 1 13.36,20.98 L 14.31,18.34 A 0.83,0.83 0 0 1 15.86,18.89 Z M 14.14,22.08 L 9.86,22.08 A 0.83,0.83 0 0 1 9.86,20.43 L 14.14,20.43 A 0.83,0.83 0 0 1 14.14,22.08 Z M 9.09,21.54 L 8.14,18.89 A 0.83,0.83 0 0 1 9.69,18.34 L 10.64,20.98 A 0.83,0.83 0 0 1 9.09,21.54 Z M 8.5,19.33 L 7.4,18.69 A 0.83,0.83 0 0 1 8.23,17.27 L 9.33,17.9 A 0.83,0.83 0 0 1 8.5,19.33 Z M 7.96,18.79 L 5.2,19.29 A 0.83,0.83 0 0 1 4.91,17.67 L 7.67,17.17 A 0.83,0.83 0 0 1 7.96,18.79 Z M 4.34,18.89 L 2.2,15.19 A 0.83,0.83 0 0 1 3.63,14.37 L 5.77,18.07 A 0.83,0.83 0 0 1 4.34,18.89 Z M 2.29,14.24 L 4.1,12.1 A 0.83,0.83 0 0 1 5.36,13.17 L 3.54,15.31 A 0.83,0.83 0 0 1 2.29,14.24 Z M 3.9,12.64 L 3.9,11.36 A 0.83,0.83 0 0 1 5.55,11.36 L 5.55,12.64 A 0.83,0.83 0 0 1 3.9,12.64 Z M 4.1,11.9 L 2.29,9.76 A 0.83,0.83 0 0 1 3.54,8.69 L 5.36,10.83 A 0.83,0.83 0 0 1 4.1,11.9 Z M 2.2,8.81 L 4.34,5.11 A 0.83,0.83 0 0 1 5.77,5.93 L 3.63,9.63 A 0.83,0.83 0 0 1 2.2,8.81 Z M 5.2,4.71 L 7.96,5.21 A 0.83,0.83 0 0 1 7.67,6.83 L 4.91,6.33 A 0.83,0.83 0 0 1 5.2,4.71 Z M 7.4,5.31 L 8.5,4.67 A 0.83,0.83 0 0 1 9.33,6.1 L 8.23,6.73 A 0.83,0.83 0 0 1 7.4,5.31 Z M 12,8.28 A 3.72,3.72 0 1 1 12,15.73 A 3.72,3.72 0 1 1 12,8.28 Z M 12,9.93 A 2.08,2.08 0 1 0 12,14.08 A 2.08,2.08 0 1 0 12,9.93 Z" />
                         </Viewbox>
                     </Button>
                     <Button x:Name="SearchButton" x:Uid="ShellPage_SearchButton" Click="OnSearchClicked">
-                        <Viewbox Width="26" Height="26">
+                        <Viewbox Width="28" Height="28">
                             <PathIcon Data="F1 M 10.25,2.75 A 7.5,7.5 0 1 1 10.25,17.75 A 7.5,7.5 0 1 1 10.25,2.75 Z M 10.25,4.55 A 5.7,5.7 0 1 0 10.25,15.95 A 5.7,5.7 0 1 0 10.25,4.55 Z M 16.19,14.91 L 21.64,20.36 A 0.9,0.9 0 0 1 20.36,21.64 L 14.91,16.19 A 0.9,0.9 0 0 1 16.19,14.91 Z" />
                         </Viewbox>
                     </Button>
@@ -226,14 +218,14 @@
         <!-- 搜索框（2026-11-12 用户令「标题上方新增搜索栏，点击搜索栏进入搜索页面，搜索栏里写搜索媒体库、订阅等」）：
              商店那颗的样子 —— 标题栏正中一段半透明圆角框，放大镜加一行占位字。它**不是输入框**，按下去就进搜索页
              （那一页有自己的输入框和来源栏），所以用 Button 而不是 TextBox：键盘焦点、UIA 名字和回车都是按钮语义。
-             它站在窗口算成标题栏的那 40 像素里，所以和左边那一排、账号那颗一样要挖洞（见 ReportTitleBarHoles）——
+             它站在窗口算成标题栏的那 48 像素里，所以和左边那一排、账号那颗一样要挖洞（见 ReportTitleBarHoles）——
              不挖洞的话按下去是拖窗口。窄窗收起（门槛见 SyncTitleSearch）：这一排左边是按钮、右边是账号，
              中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式由栏里的「搜索」接手。 -->
         <Button
             x:Name="TitleSearchBox"
             x:Uid="ShellPage_TitleSearchBox"
-            Height="30"
-            Margin="0,5,0,0"
+            Height="34"
+            Margin="0,7,0,0"
             Padding="12,0,12,0"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
@@ -259,40 +251,27 @@
 
     </Grid>
 
-        <!-- 账号那一组（账号 + 设置）：2026-10-13 起，侧边栏模式里它整组站在左下角 —— 账号在最左、设置
-             紧挨它右边（栏收成图标栏时改成上下叠，设置在账号下面，见 ShellPage.Sidebar.cs 的
-             ApplyAccountCluster）。不在这条侧边栏里的时候，整组回到它原来的地方：标题栏右上角、系统那三颗
-             窗口按钮左边。**一个面板两种落位**，而不是两个账号两份菜单 —— 服务器／用户／注销那张菜单只有
-             一份，账号名的墨也只有一处要跟着主题走。
+        <!-- 账号那一颗：2026-11-13 用户令「人像图标移到最小化左边、和搜索栏对齐」—— 侧边栏模式里它不再跟着
+             设置一起蹲在窗口左下角，而是回到标题栏右上角、系统那三颗窗口按钮左边，只留那一颗人像字形。
+             于是「栏里的账号」和「标题栏里的账号」又合成一个落位，服务器／用户／注销那张菜单始终只有一份。
 
-             里面那两格字也随落位换排法：侧边栏展开时用户名在上、服务器名在下（两行），标题栏那一档
-             仍旧一行「名字 · 服务器」—— 那 40 像素装不进两行。见 ApplyAccountText。
+             两档的样子：侧边栏模式那一档是 40×40 的方格里一颗人像（和栏里那些按钮同一块方格、同一条中线，
+             中心 y=24 与正中那颗搜索框对齐）；非侧边栏模式那一档仍是「名字 · 服务器」那一段文字，从顶下 4 起。
 
-             右上角那一档从顶下 4 像素起（2026-11-01 与按钮同步）：系统那三颗窗口按钮仍是 32 高的标准
-             标题栏居中，这一组落在这个位置才和它们同一条中线，不会在加高后的条子里显得贴顶。
+             它站在窗口算成标题栏的那 48 像素里，所以得像左边那一排一样挖洞（见 ReportTitleBarHoles）。
 
-             它站在窗口算成标题栏的那 40 像素里（右上角那一档），所以得像左边那一排一样挖洞
-             （见 ReportTitleBarHoles）；挪进侧边栏之后它在标题栏之外，那一头不再为它挖洞。 -->
+             设置不再跟着它走：那颗现在是侧边栏自己的页脚项（NavigationView.FooterMenuItems，见下面那条
+             Sidebar），尺寸、右沿、图标格子都由框架按同一条度量算，不必再手摆一个「并排还是上下叠」。 -->
+        <!-- 这里的边距只是首次布局前的一个近似值：每次落位都由 ApplyAccountCluster 按
+             TitleBar.RightInset + 8 重算（系统那三颗在 Tall 档是 144 宽）。 -->
         <Grid
             x:Name="AccountCluster"
             Canvas.ZIndex="11"
-            Margin="0,4,160,0"
+            Margin="0,4,152,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Top">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-
             <Button
                 x:Name="AccountButton"
-                Grid.Row="0"
-                Grid.Column="0"
                 Padding="10,3"
                 MaxWidth="240"
                 HorizontalAlignment="Stretch"
@@ -305,57 +284,49 @@
                 <!-- 外一层两列（字形、文字）而不是 StackPanel：StackPanel 横向量孩子时给的是无限宽，
                      里面那几格 `*` 因此退化成 `Auto`，服务器名长了只能被按钮裁掉、截不出省略号。
                      这里第二列是 `*`，文字那一格拿到的是按钮真正的宽度，超了会截字。列间距写 0 ——
-                     字形在展开那一档是收着的，格与格之间那道 8 会白占一段，把它挤得偏左。 -->
+                     字形在侧边栏那一档才露面，格与格之间那道 8 会白占一段，把它挤得偏左。 -->
                 <Grid ColumnSpacing="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- 收成图标栏那一档：栏只有 48 宽，用户名和服务器名都放不下，留一颗人像字形；展开时它收起，
-                         文字那一格出来。字号取 EgSubheadFontSize，和旁边那几颗 24×24 的 PathIcon 一样大。 -->
+                    <!-- 侧边栏模式那一档只留这一颗人像：栏里放不下名字和服务器名，而标题栏右上角那一格
+                         只有 40 见方。字号取 EgTitleFontSize（20）—— 这一排的图标是 28 的放大框（实测墨高
+                         约 22），16 那档放进 40 的方格会显小；走刻度键而不是内联数字。 -->
                     <FontIcon
                         x:Name="AccountGlyph"
                         Grid.Column="0"
                         FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                        FontSize="{StaticResource EgSubheadFontSize}"
+                        FontSize="{StaticResource EgTitleFontSize}"
                         Glyph="&#xE77B;"
                         VerticalAlignment="Center"
                         Visibility="Collapsed" />
 
-                    <!-- 两格文字，两种排法（2026-10-13 起）：
-                         侧边栏展开那一档**用户名在上、服务器名在下**（用户：「改成用户名在上服务器名在下」）——
-                         那条栏 220 宽、左下角那一格也放得下两行，名字和服务器各占一行，长名字不再和服务器名挤在
-                         一行里互相截字；标题栏右上角那一档只有 40 像素高，两行装不进（13 号那行自己就 17），所以
-                         那一档仍旧一行：「名字 · 服务器」，中间那颗「·」在那一档露脸、两行那一档收起。
-                         两种排法的格位由 ApplyAccountCluster 里的 ApplyAccountText 落（列宽、跨列、跨行都在那里改）。 -->
-                    <Grid x:Name="AccountText" Grid.Column="1" ColumnSpacing="8" RowSpacing="2">
+                    <!-- 两格文字：2026-11-13 起只剩一行这一种排法。侧边栏模式里账号只留一颗人像（名字和服务器名
+                         都放不下），两行那一档随之退役 —— 现在唯一露字的地方是标题栏右上角，那里只有 48 像素高，
+                         13 号那行自己就 17，两行本来就装不进。名字、中间那颗「·」、服务器名从左排到右，
+                         服务器名占 `*`、长了截省略号。 -->
+                    <Grid x:Name="AccountText" Grid.Column="1" ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
 
                         <TextBlock
                             x:Name="AccountUser"
                     x:Uid="ShellPage_AccountUser"
-                            Grid.Row="0"
                             Grid.Column="0"
                             FontSize="13"
                             FontWeight="SemiBold"
                             TextTrimming="CharacterEllipsis"
                             VerticalAlignment="Center" />
 
-                        <!-- 中间那个「·」：把名字和服务器隔开，墨跟着服务器那一行走（淡的一支）。只在标题栏那一档
-                             （一行）露脸 —— 两行那一档服务器名另起一行，这个点就是多余的。 -->
+                        <!-- 中间那个「·」：把名字和服务器隔开，墨跟着服务器那一行走（淡的一支）。-->
                         <TextBlock
                             x:Name="AccountDot"
-                            Grid.Row="0"
                             Grid.Column="1"
                             FontSize="13"
                             Text="·"
@@ -366,18 +337,14 @@
                         <TextBlock
                             x:Name="AccountServer"
                     x:Uid="ShellPage_AccountServer"
-                            Grid.Row="0"
                             Grid.Column="2"
                             Style="{StaticResource EgDataStyle}"
                             TextTrimming="CharacterEllipsis"
                             VerticalAlignment="Center" />
 
-                        <!-- 朝下：菜单从这颗按钮底下落出来。挪进侧边栏之后它贴着窗口下沿，Placement 由
-                             ApplyAccountCluster 改成朝上，不然那张菜单会落到屏幕外面去。两行那一档它跨两行、
-                             竖着居中。 -->
+                        <!-- 朝下：菜单从这颗按钮底下落出来（标题栏右上角那一档没有别的落法）。 -->
                         <FontIcon
                             x:Name="AccountChevron"
-                            Grid.Row="0"
                             Grid.Column="3"
                             FontSize="12"
                             Glyph="&#xE70D;"
@@ -447,34 +414,6 @@
                 </Flyout>
             </Button.Flyout>
             </Button>
-
-            <!-- 设置：2026-10-13 从 NavigationView 的 FooterMenuItems 里搬出来 —— 那一栏只能竖着摞，
-                 而这里要的是「展开时并排在账号右边、折叠时叠在账号下面」。外观照旧是一行图标加字，
-                 折叠时只留图标；它开的是设置窗口，不改变这一页的选中目的地。 -->
-            <Button
-                x:Name="SidebarSettingsButton"
-                x:Uid="ShellPage_SidebarSettingsButton"
-                Grid.Row="0"
-                Grid.Column="1"
-                Padding="10,3"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Center"
-                HorizontalContentAlignment="Left"
-                Background="Transparent"
-                BorderThickness="0"
-                CornerRadius="{StaticResource EgCardCornerRadius}"
-                Click="OnSidebarSettingsClicked"
-                Visibility="Collapsed">
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <FontIcon
-                        x:Name="SidebarSettingsGlyph"
-                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                        FontSize="{StaticResource EgSubheadFontSize}"
-                        Glyph="&#xE713;"
-                        VerticalAlignment="Center" />
-                    <TextBlock x:Name="SidebarSettingsText" Text="设置" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
         </Grid>
 
         <!-- 页面那一块，从窗口最左边开始 —— 侧边栏删掉之后这里再没有第二列，所以从前那道竖发丝线（面板和
@@ -483,7 +422,7 @@
 
              **顶上让出 40（ChromeHeight，标题栏那一行）的方式 2026-11-12 晚从内边距改成了外边距**：用户令
              「侧边栏和标题栏采用云母 Alt」，那两处从此不再压画布、直接露出窗口材质；内边距只推孩子、画布仍会
-             铺满整个客户区（包括标题栏那 40 像素），于是标题栏那一档永远是画布色、云母一点也露不出来。
+             铺满整个客户区（包括标题栏那 48 像素），于是标题栏那一档永远是画布色，云母一点也露不出来。
              改成外边距之后，这一块从 y=40 起画，顶上那一条留给材质。**页面的坐标系没有变**：孩子仍从 40 起，
              和原来的内边距一模一样；变的是画布自己的上沿。
 
@@ -497,7 +436,7 @@
         <Grid
             x:Name="ContentHost"
             Background="{ThemeResource EgCanvasBrush}"
-            Margin="0,40,0,0"
+            Margin="0,48,0,0"
             Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -563,22 +502,45 @@
              左上角（标题的位置）当标题栏那一排的第一颗（见 NavToggleButton）。收掉它换来的正是「菜单项往上顶
              到标题栏下沿」：那颗开关原先在栏里占着一格，主页/搜索那几项因此被压到它下面。
 
-             设置那一项也从 FooterMenuItems 搬走了（它现在和账号一起站在左下角，见 AccountCluster）——
-             那一栏只能竖着摞，而那里要的是「展开并排、折叠上下叠」。
+             **2026-11-13 设置那颗又回到 FooterMenuItems**（用户令「统一侧边栏按钮的大小」）：2026-10-13 把它
+             搬出去，是为了和账号「展开并排、折叠上下叠」；现在账号已回到标题栏右上角，栏底只剩它一颗，页脚项
+             反而最合适 —— 尺寸、右沿、图标格子都由框架按栏里那些条目同一条度量算，手摆两档的代码整段删掉。
+             它 `SelectsOnInvoked="False"`：开的是另一个窗口，不该把这一页的目的地改掉或点亮。
 
              **底色 2026-11-12 晚清掉了**（用户令「侧边栏和标题栏采用云母 Alt」）：这一块原先是
              LayerFillColorAltBrush（面色 + 50%），压在画布上比内容再透一档；现在它和标题栏一样直接露出
-             窗口的 Mica Alt，只在底下压着这一页的画布（ContentHost 从 y=40 起画）。栏自己的
+             窗口的 Mica Alt，只在底下压着这一页的画布（ContentHost 从 y=48 起画）。栏自己的
              NavigationViewDefaultPaneBackground 早在 2026-10-14 就钉成 Transparent 了，所以这一处透明之后
              整条栏只剩一层材质 —— 没有第二道面。 -->
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
             Background="Transparent" Visibility="Collapsed">
-            <NavigationView x:Name="Sidebar" Margin="0,40,0,0"
-                PaneDisplayMode="Left" OpenPaneLength="220" CompactPaneLength="48"
+            <NavigationView x:Name="Sidebar" Margin="0,48,0,0"
+                PaneDisplayMode="Left" OpenPaneLength="256" CompactPaneLength="56"
                 IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
                 IsPaneToggleButtonVisible="False"
                 IsTitleBarAutoPaddingEnabled="False" AlwaysShowHeader="False"
                 ItemInvoked="OnSidebarItemInvoked" SelectionChanged="OnSidebarSelectionChanged">
+                <!-- 栏里那几项的度量（2026-11-13 用户令「统一侧边栏按钮的大小」＋「参考 codex 窗口边框的宽度
+                     和高度」）：**订在 NavigationView 自己身上**，而不是应用级调色板 —— 元素级资源是最近的一层，
+                     模板里的 ThemeResource 一定先找到这几颗，不会被框架主题字典里同名的 36/16/4,2 抢走。
+
+                     栏 56 宽、按钮左右各留 4 → 方格 48 宽、40 高；框架给条目的图标格等于栏宽减 8（56−8=48），
+                     正好和方格同宽，字形因此居中落在栏的中线 28 上 —— 标题栏那一排（托盘 40、字形 28、缩进 8）
+                     的字形中线也是 28，用户要的「返回键和下面那一列对齐」就是这条线。图标盒 16→20（模板里那层
+                     Viewbox 按它缩放，栏里所有图标一起放大，不用逐个改字号）；条目 36→40 高、上下各 2
+                     → 一格 44 的行。
+
+                     选中那一项用实心底（用户令「切换到对应页面后按钮切换为实心」）：框架默认只是 6% 白，
+                     压在云母上几乎看不出来。取 EgSurfaceHoverBrush —— 不透明、和别处的悬停面同一支角色色，
+                     换主题时由 ThemeHost 顺手涂过去。 -->
+                <NavigationView.Resources>
+                    <x:Double x:Key="NavigationViewItemOnLeftMinHeight">40</x:Double>
+                    <x:Double x:Key="NavigationViewItemOnLeftIconBoxHeight">20</x:Double>
+                    <Thickness x:Key="NavigationViewItemButtonMargin">4,2</Thickness>
+                    <StaticResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="EgSurfaceHoverBrush" />
+                </NavigationView.Resources>
                 <NavigationView.MenuItems>
                     <NavigationViewItem x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />
                     <NavigationViewItem x:Name="SidebarSearch" Content="搜索" Tag="search" Icon="Find" />
@@ -591,7 +553,7 @@
                          SidebarLibrariesHeader 之后、SidebarSubscriptionsHeader 之前 —— 所以这两条标题
                          的先后就是两段的先后，别把订阅标题挪到媒体库标题上面去。
 
-                         分区标题只有栏展开时才画得出字（收成 48 宽的图标栏时框架把标题整条收掉），这正是
+                         分区标题只有栏展开时才画得出字（收成 56 宽的图标栏时框架把标题整条收掉），这正是
                          「侧边栏展开时新增订阅分区」那一句要的样子。「订阅」这条的可见性跟两条订阅入口
                          同进同退，见 ShellPage.Sidebar.cs 的 SyncSidebar。 -->
                     <NavigationViewItemHeader x:Name="SidebarLibrariesHeader" Content="媒体库" Visibility="Collapsed" />
@@ -620,6 +582,12 @@
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
                 </NavigationView.MenuItems>
+                <NavigationView.FooterMenuItems>
+                    <!-- 设置（2026-11-13 回到页脚）：栏里那几项的字形是 16 的 PathIcon/FontIcon，由同一个图标盒
+                         放大，这里只换字形本身。名字与提示沿用原来那颗按钮的本地化键。 -->
+                    <NavigationViewItem x:Name="SidebarSettings" x:Uid="ShellPage_SidebarSettingsButton"
+                        Content="设置" Tag="settings" SelectsOnInvoked="False" Icon="Setting" />
+                </NavigationView.FooterMenuItems>
             </NavigationView>
         </Grid>
 
@@ -642,7 +610,7 @@
             Canvas.ZIndex="30"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
-            Margin="0,52,0,0"
+            Margin="0,60,0,0"
             MaxWidth="560"
             CornerRadius="16"
             IsClosable="True"

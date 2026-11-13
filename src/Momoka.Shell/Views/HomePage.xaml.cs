@@ -1174,11 +1174,12 @@ public sealed partial class HomePage : Page, IShellContent
     /// 同一个数」。
     /// <para>
     /// 2026-09-09 起外壳只有标题栏这一行：第 1 行（标签栏删掉后剩下的那条空带）删掉了，这个数从 80 收到 32；
-    /// 2026-11-01 按钮再下移并放大，标题栏加到 40。2026-11-12 晚之前主页拿它当一口 −40 的上边距把画布顶开
-    /// （通栏轮播那一版），那一手随圆角卡片版式一起退役。
+    /// 2026-11-01 按钮再下移并放大，标题栏加到 40；**2026-11-13 按用户令「参考 codex 窗口边框的宽度和高度」
+    /// 加到 48**（侧边栏同时 48→56、标题栏那一排的托盘 40 见方）。2026-11-12 晚之前主页拿它当一口 −40 的上边距
+    /// 把画布顶开（通栏轮播那一版），那一手随圆角卡片版式一起退役。
     /// </para>
     /// </summary>
-    internal const double ChromeHeight = 40;
+    internal const double ChromeHeight = 48;
 
     /// <summary>
     /// 自检：the cards this page has actually realised, in tree order. Which row each came from is not

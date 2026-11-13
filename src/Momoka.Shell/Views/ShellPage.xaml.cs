@@ -436,14 +436,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
         AppTitleBar.Resources["ButtonForegroundPressed"] = _titleInkHover;
         AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInk;
 
-        // 标题那几个字（侧边栏模式）走同一支墨：它压的是标题栏那一层材质，和旁边那几颗按钮同一块底。
-        AppTitleText.Foreground = _titleInk;
-
         // 账号那几样直接写在元素上，不走键：那行字一个走 FontWeight、一个走 EgDataStyle，而样式自己设了
         // Foreground —— 写在元素上的值压得过样式里的 setter，写进字典里的键则压不过。
         //
-        // 它自己那两支墨（见 _accountInk）：侧边栏模式里这一组在左下角、压在栏的底色上，那时它不跟剧照走。
-        var accountOnScrim = onScrim && !SidebarShown;
+        // 它自己那两支墨（见 _accountInk）：2026-11-13 起这颗两种模式都在标题栏右上角，压在那一层材质上，
+        // 有剧照那几页就跟着浅墨走 —— 不再有「在栏里、压栏底色」那一档。
+        var accountOnScrim = onScrim;
         _accountInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : accountOnScrim ? "EgOnScrimBrush" : "EgTextBrush");
         _accountInkDim.Color = Ink(highContrast ? "SystemColorWindowTextColor" : accountOnScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
         AccountUser.Foreground = _accountInk;
@@ -451,9 +449,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         AccountServer.Foreground = _accountInkDim;
         AccountChevron.Foreground = _accountInkDim;
         AccountGlyph.Foreground = _accountInk;
-        // 左下角那颗设置一直在栏里，所以它跟着栏的墨走，不跟着剧照走。
-        SidebarSettingsGlyph.Foreground = _accountInk;
-        SidebarSettingsText.Foreground = _accountInk;
+        // 栏底那颗设置（页脚项）不在这里涂：它的墨归 NavigationViewItemForeground，见 Palette.xaml。
 
         // 系统那三颗归窗口画：它们不在这棵树上，是 Win32 的非客户区。洗过那一档跟着「不在图上」走 ——
         // 那时它们压的是页面洗出来的正文底色，白墨在一套浅色主题上就没了。
@@ -2216,9 +2212,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private (double X, double Y, double Width, double Height)? AccountRect()
     {
-        // 侧边栏模式里这一组在左下角、不在标题栏那 40 像素里 —— 报出去就是在一个跟标题栏无关的地方挖洞。
-        if (SidebarShown) return null;
-
+        // 2026-11-13 起这颗两种模式都在标题栏右上角，所以只问「在不在屏上」—— 不再有「在侧边栏里、与
+        // 标题栏无关」那一档。
         if (AccountButton.Visibility != Visibility.Visible
             || AccountButton.ActualWidth <= 0
             || AccountButton.ActualHeight <= 0) return null;
@@ -2250,10 +2245,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>
     /// 标题栏正中那颗搜索框在不在屏上、多宽。
     /// <para>
-    /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一组（最宽 240，离右沿
-    /// 160），中间再塞一段就得一千像素往上；侧边栏模式左边只有返回/折叠/标题，右边只有系统那三颗，
-    /// 七百就够。收起来的时候各有替代：非侧边栏模式那一排里的放大镜键（<see cref="SearchButton"/>），
-    /// 侧边栏模式栏里那条「搜索」。
+    /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一颗（最宽 240，
+    /// 离右沿 152 = 系统那三颗 144 加 8 的缝），中间再塞一段就得一千像素往上；侧边栏模式左边只有返回/折叠，
+    /// 右边是账号那一颗（40 宽）加系统那三颗，七百就够。收起来的时候各有替代：非侧边栏模式那一排里的
+    /// 放大镜键（<see cref="SearchButton"/>），侧边栏模式栏里那条「搜索」。
     /// </para>
     /// <para>
     /// 宽度取窗口的三成、夹在 220–420 之间：商店那颗也是这么一段，窄窗跟着缩、宽屏不会拉成一条横杠。

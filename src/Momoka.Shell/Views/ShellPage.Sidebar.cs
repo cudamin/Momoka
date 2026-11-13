@@ -77,10 +77,8 @@ public sealed partial class ShellPage
         // 导航开关（≡）只在这条栏出现时露脸：没有栏就没有可开可关的东西，而它站在标题栏那一排的最前面
         // （见 ApplySidebarLayout 的缩进），所以收藏/后退/前进跟在它右边。
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        // 标题（2026-11-12「侧边栏模式新增标题」）和导航开关同进同退：没有那条栏的时候应用名在任务栏上，
-        // 标题栏那一排是主页/收藏/设置，不需要再写一遍名字。
-        AppTitleText.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        // 主页与收藏也在这条栏出现时让给栏里的入口（2026-11-12 晚）：那一档左边只剩返回 · 折叠 · 标题，
+        // 标题「Momoka」2026-11-13 按用户令整块删掉（那一格让给返回/折叠）。
+        // 主页与收藏也在这条栏出现时让给栏里的入口（2026-11-12 晚）：那一档左边只剩返回 · 折叠，
         // 栏里第一项就是「主页」、收藏那条也在栏里 —— 同一页不出两个同样的入口。
         HomeButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
         SettingsButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
@@ -90,14 +88,13 @@ public sealed partial class ShellPage
         // 主页、返回与前进每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
         SyncTitleActions();
         SidebarFavorites.Visibility = Favorites.Visibility;
-        SidebarSettingsButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
         // MoviePilot 的两条订阅入口跟着服务可用性走：开关已开且本进程真的连得上才算可用。收起只收入口，
         // 不删订阅也不解除防重状态；条件恢复后它们照原样回来（同 momoka-moviepilot 的入口显隐）。
         // 那条「订阅」分区标题跟两条入口同进同退 —— 段里一条都不剩时留着一条光标题就是空带子。
         //
         // 它和「媒体库」那条标题用的是同一套机制（翻 Visibility），所以也带着同一个框架脾气：分区标题的
-        // 内容可见性是 NavigationView 按面板模式在**实现那一刻**算的，标题在栏收着（48 宽）的时候翻成
+        // 内容可见性是 NavigationView 按面板模式在**实现那一刻**算的，标题在栏收着（56 宽）的时候翻成
         // Visible，之后把栏展开也不回头补 —— 标题占着位置、一个字不画（2026-10-13 晚实测）。应用里那条
         // 路是「窗宽那一拍先把栏开起来、MoviePilot 的可用性随后才到」，所以不踩；**窄窗启动（栏收着）
         // 再拉宽**那一档会踩，而「媒体库」那条标题自始就是这个脾气（它的内容一样是框架按模式收放的）。
@@ -151,14 +148,14 @@ public sealed partial class ShellPage
         ContentHost.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();
 
-        // 标题栏那一排的缩进：侧边栏在屏上时是 11，其余时候是 18（标记里那个值）。11 是「导航开关的字形
-        // 和栏里那几项对齐」算出来的 —— 开关靠左摆、字形宽 26（2026-11-01 从 24 放大到 26），所以它的中线
-        // = 缩进 + 13；栏里那几项的图标中线实测展开时 24（用户 2026-10-13：「关闭导航没和下面对齐」），
-        // 收成 48 宽的图标栏时框架模板会把它再往右挪 2 像素（26）—— 一个数没法两档都精确，取展开那一档，
-        // 另一档差 2 像素（探针按 3 像素判）。11 也把窗口自己那 8 像素缩放边框让开了。上边那 6 像素是
-        // 2026-11-01「再往下移一点」的落位，由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进，
-        // 不能把它抹掉。
-        var titleMargin = new Thickness(shown ? 11 : 18, 6, 0, 0);
+        // 标题栏那一排的缩进：侧边栏在屏上时是 8，其余时候是 18（标记里那个值）。
+        // **2026-11-13 从 11 改成 8，并实测过两档**：栏 48→56 宽之后，框架给条目的图标格是「栏宽 − 8」= 48，
+        // 而按钮左右各留 4 —— 方格与图标格同宽，字形因此居中落在栏的中线 28 上，展开与收成图标栏两档
+        // 都是这个数（实体屏量过 32→28 那一版之后的读数）。这一排的托盘 40 宽、字形 28 居中，缩进 8 时
+        // 字形中线同样是 28 —— 用户令「返回键出现时要和下面那一列对齐」，两颗（返回、折叠）都落在栏里
+        // 那些图标的同一条竖线上，换档时也不挪。8 同时让开了窗口自己那 8 像素的缩放边框。
+        // 上边那 4 像素由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进。
+        var titleMargin = new Thickness(shown ? 8 : 18, 4, 0, 0);
         if (TitleActions.Margin != titleMargin)
         {
             // Moving an unchanged row does not raise SizeChanged. Measure after layout,
@@ -168,7 +165,7 @@ public sealed partial class ShellPage
         }
 
         ToolTipService.SetToolTip(NavToggleButton, Sidebar.IsPaneOpen ? "关闭导航" : "打开导航");
-        ApplyAccountCluster(shown, width);
+        ApplyAccountCluster(shown);
 
         // 标题栏那三个洞跟着窗宽走（正中那颗搜索框、右上角那组账号都是随窗宽落位的），而这条路径是
         // 「窗口尺寸变了」唯一一定会走到的地方 —— 不在这里补一次，拉宽之后点搜索框就变成拖窗口。
@@ -177,80 +174,44 @@ public sealed partial class ShellPage
     }
 
     /// <summary>
-    /// 账号那一组（账号 + 设置）此刻站在哪儿。侧边栏在屏上时它整组落在窗口左下角、宽度就是那条栏的宽：
-    /// 展开时账号占满剩下的宽、设置并排在它右边；收成图标栏时两块上下叠、设置在账号下面。不在侧边栏模式里
-    /// 时它回到标题栏右上角，设置那一颗收起（那一档设置是标题栏里那颗齿轮），账号只留文字那一格。
+    /// 账号那一颗此刻站在哪儿。**两种模式都在标题栏右上角、系统那三颗窗口按钮左边**（2026-11-13 用户令
+    /// 「人像图标移到最小化左边，和搜索栏对齐」）：侧边栏在屏上时只留一颗 40×40 的人像（字形 20 居中），
+    /// 中心落在 y=24，与正中那颗搜索框、左边那一排、系统那三颗（Tall 档 48 高）同一条中线；
+    /// 不在侧边栏模式时仍是「名字 · 服务器」那一段文字。
     /// <para>
-    /// 纯摆位，留在 code-behind：它读的全是「这一栏现在开着没有、多宽」，没有业务判断。
+    /// 纯摆位，留在 code-behind：它读的全是「这一栏现在开着没有」「系统给那三颗按钮留了多宽」，没有业务判断。
     /// </para>
     /// </summary>
-    private void ApplyAccountCluster(bool shown, double width)
+    private void ApplyAccountCluster(bool shown)
     {
-        var expanded = Sidebar.IsPaneOpen;
+        AccountCluster.HorizontalAlignment = HorizontalAlignment.Right;
+        AccountCluster.VerticalAlignment = VerticalAlignment.Top;
+        AccountCluster.Width = double.NaN;
+        // 右端让开系统那三颗按钮、再留 8 的缝：这颗按钮的右沿因此贴在最小化左边。
+        AccountCluster.Margin = new Thickness(0, 4, CaptionRoom() + 8, 0);
+        // 菜单从这颗按钮底下落出来；两种模式都在标题栏里，朝下这一档就是唯一那一档。
+        AccountMenu.Placement = FlyoutPlacementMode.BottomEdgeAlignedRight;
+
         if (shown)
         {
-            AccountCluster.HorizontalAlignment = HorizontalAlignment.Left;
-            AccountCluster.VerticalAlignment = VerticalAlignment.Bottom;
-            AccountCluster.Margin = new Thickness(0);
-            // 收成 48 宽的图标栏时左右只留 4：按钮因此是 40 宽，字形中线落在 24 上 —— 和栏里那几项图标同一条
-            // 竖线（栏里那几项的高亮也是往里收 4）。留 6 的话按钮只剩 32 宽、去掉按钮自己那 10 的横向内边距后
-            // 内容格只有 12 宽，装不下 16 宽的图标字形，右边会被裁掉 3 像素
-            //（用户 2026-10-13：「收起侧边栏时候会被遮挡」）。
-            AccountCluster.Padding = expanded ? new Thickness(6, 6, 6, 8) : new Thickness(4, 6, 4, 8);
-            AccountCluster.ColumnSpacing = expanded ? 4 : 0;
-            AccountCluster.RowSpacing = 4;
-            AccountCluster.Width = width;
-
-            // 展开时按钮自己留 10 的横向内边距（名字和服务器名要地方）；图标栏那一档按钮里就是那一颗字形，
-            // 横向不留 —— 留下的横向内边距就是裁字形的刀。竖向：展开那一档要装两行字，取 5（两行 + 10 = 43）；
-            // 图标栏那一档只有一颗字形，取 6 —— 那一档账号与设置一样高（28），而设置从前是 3、比账号矮 6 像素。
-            AccountButton.Padding = expanded ? new Thickness(10, 5, 10, 5) : new Thickness(0, 6, 0, 6);
-            AccountButton.MaxWidth = double.PositiveInfinity;
-            AccountButton.HorizontalContentAlignment = expanded ? HorizontalAlignment.Left : HorizontalAlignment.Center;
-            // 图标栏只有 48 宽：名字和服务器名都放不下，那一档留一颗人像字形。
-            AccountGlyph.Visibility = expanded ? Visibility.Collapsed : Visibility.Visible;
-            AccountText.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
-            // 展开那一档两行：用户名在上、服务器名在下。图标栏那一档两格字都收着，排法无所谓，仍按一行落。
-            ApplyAccountText(expanded);
-            // 它贴着窗口下沿，菜单朝上落，不然那张菜单会落到屏幕外面去。
-            AccountMenu.Placement = FlyoutPlacementMode.TopEdgeAlignedLeft;
-
-            SidebarSettingsButton.Padding = expanded ? new Thickness(10, 3, 10, 3) : new Thickness(0, 6, 0, 6);
-            SidebarSettingsButton.HorizontalContentAlignment = expanded ? HorizontalAlignment.Left : HorizontalAlignment.Center;
-            SidebarSettingsText.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
-            Grid.SetRow(SidebarSettingsButton, expanded ? 0 : 1);
-            Grid.SetColumn(SidebarSettingsButton, expanded ? 1 : 0);
-
-            AccountCluster.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-            AccountCluster.ColumnDefinitions[1].Width = expanded ? GridLength.Auto : new GridLength(0);
-            AccountCluster.RowDefinitions[1].Height = expanded ? new GridLength(0) : GridLength.Auto;
+            // 侧边栏模式：只留一颗人像，按钮缩回 40 见方 —— 和栏里那些按钮、和标题栏那一排同一块方格。
+            AccountButton.Width = 40;
+            AccountButton.Height = 40;
+            AccountButton.Padding = new Thickness(0);
+            AccountButton.MaxWidth = 40;
+            AccountButton.HorizontalContentAlignment = HorizontalAlignment.Center;
+            AccountGlyph.Visibility = Visibility.Visible;
+            AccountText.Visibility = Visibility.Collapsed;
         }
         else
         {
-            AccountCluster.HorizontalAlignment = HorizontalAlignment.Right;
-            AccountCluster.VerticalAlignment = VerticalAlignment.Top;
-            AccountCluster.Margin = new Thickness(0, 4, 160, 0);
-            AccountCluster.Padding = new Thickness(0);
-            AccountCluster.ColumnSpacing = 0;
-            AccountCluster.RowSpacing = 0;
-            AccountCluster.Width = double.NaN;
-
+            AccountButton.Width = double.NaN;
+            AccountButton.Height = double.NaN;
             AccountButton.Padding = new Thickness(10, 3, 10, 3);
             AccountButton.MaxWidth = 240;
             AccountButton.HorizontalContentAlignment = HorizontalAlignment.Left;
             AccountGlyph.Visibility = Visibility.Collapsed;
             AccountText.Visibility = Visibility.Visible;
-            // 标题栏那一档只有 40 像素高：13 号那行自己就 17，再加 12 号那行是 35 —— 装不下，仍旧一行。
-            ApplyAccountText(false);
-            AccountMenu.Placement = FlyoutPlacementMode.BottomEdgeAlignedRight;
-
-            SidebarSettingsButton.Padding = new Thickness(10, 3, 10, 3);
-            SidebarSettingsButton.HorizontalContentAlignment = HorizontalAlignment.Left;
-            Grid.SetRow(SidebarSettingsButton, 0);
-            Grid.SetColumn(SidebarSettingsButton, 1);
-            AccountCluster.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-            AccountCluster.ColumnDefinitions[1].Width = GridLength.Auto;
-            AccountCluster.RowDefinitions[1].Height = new GridLength(0);
         }
 
         // 挪位不改尺寸，SizeChanged 不会再发一次：这一拍先报一遍（对齐刚落下去，位置可能还是旧的），
@@ -260,37 +221,13 @@ public sealed partial class ShellPage
     }
 
     /// <summary>
-    /// 账号那两格文字怎么排（2026-10-13 用户：「改成用户名在上服务器名在下」）。
-    /// <para>
-    /// <c>stacked</c>：用户名在上、服务器名在下，两行左对齐、中间那颗「·」收起、朝下的箭头跨两行竖着居中。
-    /// 只有侧边栏展开那一档走这条 —— 那条栏 220 宽，名字和服务器各占一行才不会互相挤掉。格位这样落：
-    /// 第 0 列换成 <c>*</c>（两格字都跨 0–2 列，因此都拿得到整行剩下的宽、长了截省略号而不是被按钮裁掉），
-    /// 第 2 列退回 <c>Auto</c>（服务器名搬到第 1 行，那一列空了）。
-    /// </para>
-    /// <para>
-    /// 一行那一档（标题栏右上角、图标栏）：名字、<c>·</c>、服务器名并排，第 2 列是 <c>*</c>、由服务器名截字 ——
-    /// 标题栏那 40 像素装不下两行（13 号那行自己就 17）。列间距那一档要 8，两行那一档归 0：跨列的两格字
-    /// 会把跨过的那两道间距也算进去，白占 16 像素，改由箭头自己留 8。
-    /// </para>
+    /// 标题栏右端要给系统那三颗窗口按钮让出多宽（DIP）。框架报的 <c>RightInset</c> 是准数；拿不到时退回
+    /// 三颗 48 宽的 Tall 值（同 <c>HostWindow</c> 的 <c>CaptionButtonWidth × 3</c>）—— 那时窗口还没建好，
+    /// 之后 <see cref="ApplySidebarLayout"/> 会再走一遍。
     /// </summary>
-    private void ApplyAccountText(bool stacked)
-    {
-        AccountDot.Visibility = stacked ? Visibility.Collapsed : Visibility.Visible;
-        AccountText.ColumnSpacing = stacked ? 0 : 8;
-        // 行距也要跟着排法走：两行那一档名字与服务器各占一行，留 2 像素的行距；一行那一档第 1 行是空的
-        // （Auto 收成 0），可 RowSpacing 还在，它照样在那一行上下各摊一份，两格字的重心因此差出 2 像素
-        // （实测 user y=3、server y=5）—— 「一行」这一档要把行距归零。
-        AccountText.RowSpacing = stacked ? 2 : 0;
-        AccountText.ColumnDefinitions[0].Width = stacked ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
-        AccountText.ColumnDefinitions[2].Width = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
-
-        Grid.SetColumnSpan(AccountUser, stacked ? 3 : 1);
-        Grid.SetRow(AccountServer, stacked ? 1 : 0);
-        Grid.SetColumn(AccountServer, stacked ? 0 : 2);
-        Grid.SetColumnSpan(AccountServer, stacked ? 3 : 1);
-        Grid.SetRowSpan(AccountChevron, stacked ? 2 : 1);
-        AccountChevron.Margin = stacked ? new Thickness(8, 0, 0, 0) : new Thickness(0);
-    }
+    private double CaptionRoom() => _window is { } window && window.TitleBarMetrics.RightInset > 0
+        ? window.TitleBarMetrics.RightInset
+        : 144;
 
     /// <summary>导航开关：侧边栏的开与关。框架那颗自带开关收掉之后（<c>IsPaneToggleButtonVisible=False</c>），
     /// 开合只剩这一处入口 —— 它也把菜单项从栏顶那一格解放出来，让它们往上顶到标题栏下沿。</summary>
@@ -300,17 +237,13 @@ public sealed partial class ShellPage
         Sidebar.IsPaneOpen = !Sidebar.IsPaneOpen;
     }
 
-    /// <summary>左下角那颗设置。它开的是设置窗口，不改变这一页的选中目的地（同原来那条 FooterMenuItems 的
-    /// <c>SelectsOnInvoked=False</c>）。</summary>
-    private void OnSidebarSettingsClicked(object sender, RoutedEventArgs e) => ShowSettings();
-
     /// <summary>
     /// SplitView draws its compact pane as "full-width clip rectangle + offset": the clip stays
     /// <c>OpenPaneLength</c> wide and is shifted by (compact − expanded), so only the leftmost
     /// compact strip survives. When NavigationView collapses the pane it rewrites the pane's
-    /// <c>OpenPaneLength</c> to the compact length (48), but the offset was already computed from the
-    /// expanded width (48 − 220 = −172) and is not recomputed: the clip rectangle is 48 wide and yet
-    /// slides 172 DIP left, which clips the entire icon rail off-screen and leaves only the ≡ button.
+    /// <c>OpenPaneLength</c> to the compact length (56), but the offset was already computed from the
+    /// expanded width (56 − 256 = −200) and is not recomputed: the clip rectangle is 56 wide and yet
+    /// slides 200 DIP left, which clips the entire icon rail off-screen and leaves only the ≡ button.
     /// Our rail is always exactly as wide as the pane, so the correct offset is always 0; put it back
     /// whenever the visual state writes one.
     /// </summary>
@@ -374,8 +307,14 @@ public sealed partial class ShellPage
     private void OnSidebarItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
         if (!SidebarShown || args.InvokedItemContainer is not NavigationViewItem { Tag: string tag }) return;
-        // Invoking the selected home item must still retry a failed directory request;
-        // settings opens a separate window without changing this frame's selected destination.
+        // 页脚那颗设置开的是另一个窗口，不改变这一页的选中目的地（SelectsOnInvoked="False" 已把选中挡在
+        // 外面，这里连 GoTo 也不走）。
+        if (tag == "settings")
+        {
+            ShowSettings();
+            return;
+        }
+        // Invoking the selected home item must still retry a failed directory request.
         GoTo(tag);
         if (tag == "home")
         {

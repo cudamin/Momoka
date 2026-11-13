@@ -10,6 +10,10 @@
 # 标题栏那颗搜索框压在 Mica Alt 上的底、悬停底与边线），Dark/Light 各三处，颜色计数 82→88 —— 同样是角色色按字面值写，
 # ThemeHost.Brushes 一并接上（自检「主题角色覆盖」盯着）。句柄：ForwardButton 随「前进键退役」有意删除，
 # 新增 AppTitleText / TitleSearchBox（标题栏标题与搜索框）、BannerCard / BannerGlow / BannerGlowBrush（主页轮播卡片）。
+# 2026-11-13（标题栏与侧边栏加高加宽）：AppTitleText 随用户令「移除左上角的 momoka」有意删除；
+# SidebarSettingsButton / SidebarSettingsGlyph / SidebarSettingsText 三处换成 NavigationView 的页脚项 SidebarSettings
+# （用户令「统一侧边栏按钮的大小」，尺寸由框架同一条度量算，不再手摆两档）。覆盖仍在：ShellChromeTests 钉住
+# 页脚项本身、它的 Tag/SelectsOnInvoked 与本地化键，--probe-shell 的 sidebar 分区量它在屏上的矩形与尺寸。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -626,7 +630,6 @@ handle  Views/ShellPage.xaml  AccountSignOutItem
 handle  Views/ShellPage.xaml  AccountText
 handle  Views/ShellPage.xaml  AccountUser
 handle  Views/ShellPage.xaml  AppTitleBar
-handle  Views/ShellPage.xaml  AppTitleText
 handle  Views/ShellPage.xaml  BackButton
 handle  Views/ShellPage.xaml  Chrome
 handle  Views/ShellPage.xaml  ContentFrame
@@ -646,9 +649,7 @@ handle  Views/ShellPage.xaml  SidebarLibrariesHeader
 handle  Views/ShellPage.xaml  SidebarMoviePilotMovies
 handle  Views/ShellPage.xaml  SidebarMoviePilotSeries
 handle  Views/ShellPage.xaml  SidebarSearch
-handle  Views/ShellPage.xaml  SidebarSettingsButton
-handle  Views/ShellPage.xaml  SidebarSettingsGlyph
-handle  Views/ShellPage.xaml  SidebarSettingsText
+handle  Views/ShellPage.xaml  SidebarSettings
 handle  Views/ShellPage.xaml  SidebarSubscriptionsHeader
 handle  Views/ShellPage.xaml  SignIn
 handle  Views/ShellPage.xaml  TitleActions

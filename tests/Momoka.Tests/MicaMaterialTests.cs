@@ -50,9 +50,9 @@ internal static class MicaMaterialTests
             // 2026-11-12 晚用户令「侧边栏和标题栏采用云母 Alt」：栏自己不再铺那层半透明面色，直接露出窗口材质。
             Assert.Equal("Transparent", Named(shell, "SidebarHost").Attribute("Background")?.Value,
                 "侧边栏又铺了自己的一块底，云母 Alt 被盖住");
-            // 画布必须让开标题栏那 40 像素：它原本靠内边距让位，而内边距只推孩子、画布仍铺满整条 —— 那一档
-            // 标题栏永远是画布色，材质一点也露不出来。2026-11-12 晚改成外边距。
-            Assert.Equal("0,40,0,0", Named(shell, "ContentHost").Attribute("Margin")?.Value,
+            // 画布必须让开标题栏那一整条：它原本靠内边距让位，而内边距只推孩子、画布仍铺满整条 —— 那一档
+            // 标题栏永远是画布色，材质一点也露不出来。2026-11-12 晚改成外边距，2026-11-13 标题栏 40→48。
+            Assert.Equal("0,48,0,0", Named(shell, "ContentHost").Attribute("Margin")?.Value,
                 "画布又盖住了标题栏那一层材质");
 
             // 页面自己再画一层，屏上就是两道 60% 叠成 84% —— 顶上一条比正文暗两档。
