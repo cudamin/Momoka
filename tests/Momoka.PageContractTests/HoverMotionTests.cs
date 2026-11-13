@@ -21,6 +21,58 @@ internal static class HoverMotionTests
             Assert.Contains("6de91fe", source);
         });
 
+        Test("悬停预览：Popup独立于缩放卡片，窗口坐标不再次乘祖先缩放", () =>
+        {
+            var source = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
+            Assert.DoesNotContain("Root.Children.Add(_previewHost);", source);
+            Assert.Contains("width, rootWidth, PreviewMargin) + art.Left", source);
+            Assert.Contains("height, rootHeight, PreviewMargin) + art.Top", source);
+        });
+
+        Test("主页命中探针：显式打开分隔线后量边界，保留原主页无通栏线检查", () =>
+        {
+            var source = Read("src/Momoka.Shell/ShellNavigationProbe.HomeHeader.cs");
+            Assert.Contains("!initialRule && rule.Visibility == Visibility.Collapsed", source);
+            Assert.True(source.IndexOf("head.ShowRule = true;", StringComparison.Ordinal)
+                < source.IndexOf("!HitsScope(Center(rule))", StringComparison.Ordinal));
+            Assert.Contains("head.ShowRule = initialRule;", source);
+            Assert.Contains("负向检查没有检测到整行点击回归", source);
+            Assert.Contains("Get<Grid>(card, \"Root\").IsHitTestVisible = false;", source);
+            Assert.Contains("Call(card, \"ResetMotion\");", source);
+            Assert.Contains("对齐检查未检出旧的居中布局", source);
+        });
+        Test("外壳队列：播放器附加前所有能力、动作和事件均有守卫", () =>
+        {
+            var source = Read("src/Momoka.Shell/Views/ShellPage.xaml.cs");
+            var start = source.IndexOf("bool IShellActions.CanQueueVideo(", StringComparison.Ordinal);
+            var end = source.IndexOf("/// <summary>进播放前", start, StringComparison.Ordinal);
+            var queue = source[start..end];
+            foreach (var statement in queue.Split(';').Where(part => part.Contains("Player.ViewModel", StringComparison.Ordinal)
+                && !part.Contains("if (intent == _shellPlayIntent)", StringComparison.Ordinal)))
+                Assert.Contains("Player.Attached", statement);
+        });
+        Test("整理菜单探针：保留真实菜单验收并记录激活结果，不强求前台", () =>
+        {
+            var source = Read("src/Momoka.Shell/ShellNavigationProbe.SeriesResourceBrowser.cs");
+            Assert.DoesNotContain("UntilAsync(() => Native.GetForegroundWindow() == handle)", source);
+            Assert.Contains("mp-series-menu-activation.txt", source);
+            Assert.Contains("UntilAsync(() => menu.IsOpen)", source);
+            Assert.Contains("整理清单菜单超出窗口可用边界", source);
+            Assert.Contains("菜单缺少运行时UIA句柄或名称", source);
+        });
+
+        Test("标题栏自检：切换前后取同一真实拖动点，避开按钮洞", () =>
+        {
+            var run = Read("src/Momoka.Shell/ShellSelfCheck.Run.cs");
+            var frame = Read("src/Momoka.Shell/ShellSelfCheck.Frame.cs");
+            Assert.DoesNotContain("HitAt(window, 8, 16)", run);
+            Assert.Contains("CaptionDragPoint(window)", run);
+            Assert.Contains("window.TitleBarMetrics.Height / scale - 2", frame);
+            Assert.Contains("captionBefore.Hit == Native.HitCaption", frame);
+            Assert.Contains("HitAt(window, captionBefore.Point.X, captionBefore.Point.Y) == Native.HitCaption", frame);
+            Assert.Contains("centre == Native.HitClient", frame);
+            Assert.Contains("beyond == Native.HitCaption", frame);
+        });
         Test("悬停放大：预览面板用弹簧驱动 Progress，不再用关键帧", () =>
         {
             var source = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");

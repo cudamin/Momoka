@@ -86,6 +86,19 @@ internal sealed partial class ShellNavigationProbe
                             });
                             continue;
                         }
+                        if (expected == EmbyItemType.Person)
+                        {
+                            await UntilAsync(() => frame.Content is PersonPage person && person.ViewModel.IsReady && !person.ViewModel.Busy);
+                            var person = (PersonPage)frame.Content;
+                            Require(person.NavigationRequest is PersonRequest request && request.Person.Source?.Key == source.Key
+                                && person.ViewModel.Subject.Id == target.Item.Id, "人物页丢失原身份或人物编号");
+                            Require(person.ViewModel.MovieShelf?.Cards.Select(card => card.Item.Id).SequenceEqual(new[] { "work" }) == true,
+                                "人物作品未读到");
+                            await LayoutAsync(person);
+                            await SaveProbeScreenAsync($"discovery-open-{kind}-{category}-{width}-screen.png");
+                            evidence.Add(new { Backend = kind.ToString(), Width = width, Category = category, SourceRetained = true });
+                            continue;
+                        }
                         // Frame may reuse the cached LibraryPage; its request, rather than page object, identifies navigation.
                         await UntilAsync(() => frame.Content is LibraryPage next && !ReferenceEquals(next.NavigationRequest, searchRequest)
                             && next.IsReady && !next.ViewModel.Busy);
@@ -183,6 +196,7 @@ internal sealed partial class ShellNavigationProbe
             }
             if (path.EndsWith("/Playlists/playlist/Users/user", StringComparison.Ordinal))
                 return Reply(Json(new { UserId = "user", CanEdit = false }));
+            if (path.EndsWith("/Items/person-1", StringComparison.Ordinal)) return Reply(Json(Entry("person-1", "星海 同名人物", EmbyItemType.Person)));
             if (path.EndsWith("/Items/playlist", StringComparison.Ordinal))
                 return Reply(Json(new { Id = "playlist", Type = "Playlist", Name = "星海 播放列表", MediaType = "Video", CanEditItems = false }));
             if (path.EndsWith("/Items", StringComparison.Ordinal))

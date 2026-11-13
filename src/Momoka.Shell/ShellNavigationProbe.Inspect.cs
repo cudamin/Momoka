@@ -199,6 +199,9 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(subscriptionCovers);
             await UntilAsync(() => subscriptionCovers.ViewModel.Movies[0].SubscriberAvatar is not null);
         });
+        AddCheck("InspectMoviePilotMenus", "MP 菜单未附加播放器与能力恢复", MoviePilotMenusAsync, ShellProbeSections.MoviePilot);
+        AddCheck("InspectMoviePilotManagement", "MP 媒体管理菜单与权限恢复", MoviePilotMediaManagementAsync, ShellProbeSections.MoviePilot, 120);
+        AddCheck("InspectMoviePilotSeasons", "MP 季订阅关窗与提交", MoviePilotSeasonSelectionAsync, ShellProbeSections.MoviePilot);
         AddCheck("InspectMoviePilotSeriesResources", "MP 剧资源菜单检查", MoviePilotSeriesReorganizeAsync);
         AddCheck("InspectDetailMenu", "详情菜单材质", MaterialLifecycleAsync, ShellProbeSections.Materials);
         AddCheck("InspectSystemAppearance", "系统外观切换检查", SettingsSystemAppearanceAsync, ShellProbeSections.Materials, 540);
@@ -327,6 +330,8 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectMoviePilotJourney", "MP 订阅操作", async () => moviePilotJourney = await InspectMoviePilotJourneyAsync(frame));
         Add("InspectMoviePilotSnapshot", "记录 MP 状态", () => { moviePilotJourney?.Capture(); return Task.CompletedTask; }, keepJourney: true);
         Add("InspectMoviePilotMediaManagement", "MP 媒体管理", InspectMediaManagementAsync);
+        AddCheck("InspectHomeFold", "首页矮窗媒体库下沿", HomeFoldThresholdAsync);
+        AddCheck("InspectDiscoverySearch", "搜索人物与合集当前页面导航", LibraryDiscoverySearchAsync, ShellProbeSections.Search);
         AddCheck("InspectHomePolish", "首页原版布局验证", HomeBannerLibrariesAsync);
         AddCheck("InspectHomeMoviePilotLibrary", "首页 MP 订阅库验证", HomeMoviePilotLibraryAsync);
         AddCheck("InspectMoviePilotSidebar", "MP 分类订阅导航验证", MoviePilotSidebarAsync);

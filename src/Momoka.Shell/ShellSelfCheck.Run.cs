@@ -91,12 +91,11 @@ internal static partial class ShellSelfCheck
         // Read before anything below touches the title bar: this is the browsing drag region as the window
         // came up. The check itself is about to run the playback transition twice, and 「the strip still
         // drags the window afterwards」 is only a claim worth making if it dragged it to begin with.
-        // x=8 是标题栏左端那块留白里的一点：那一排图标从 17 起（ShellPage.xaml 里 TitleActions 的缩进，
-        // = 页边距 24 减掉托盘自己的 7），所以 8 一定在洞的左边。这里写死是因为这一读发生在探针之前、
-        // 手上还没有量出来的矩形；TitleBarKeys 那一处是按现场算的，见那段说明。
-        var captionAtStartup = HitAt(window, 8, 16);
+        // 切换前后量同一个真实拖动点：标题栏下沿避开40高按钮与34高搜索框。
+        // x=8在当前左侧按钮洞里，不能再当作留白；DIP由当前窗口DPI与原生标题栏度量换算。
         var metricsAtStartup = window.TitleBarMetrics;
-
+        var captionPoint = CaptionDragPoint(window);
+        var captionAtStartup = (Point: captionPoint, Hit: HitAt(window, captionPoint.X, captionPoint.Y));
         var wasPlaybackTitleBar = window.PlaybackTitleBar;
         window.PlaybackTitleBar = true;
         var playbackStyle = (long)Native.GetWindowLongPtr(window.Handle, Native.GwlStyle);

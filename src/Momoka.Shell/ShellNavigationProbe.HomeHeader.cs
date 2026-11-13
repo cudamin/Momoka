@@ -65,6 +65,7 @@ internal sealed partial class ShellNavigationProbe
             var rule = Get<Border>(head, "Rule");
             var initialTitle = head.Title;
             var initialNote = head.Note;
+            var initialRule = head.ShowRule;
             var fired = 0;
             head.Invoked += (_, _) => fired++;
 
@@ -74,6 +75,9 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(home);
                 await Task.Delay(450);
                 await CheckCardAlignmentAsync(width);
+                Require(!initialRule && rule.Visibility == Visibility.Collapsed, "主页仍显示已退役的通栏线");
+                // 主页已按产品要求收起通栏线；先显式打开，再检查可见分隔线的命中边界。
+                head.ShowRule = true;
                 foreach (var caption in new[] { initialTitle, "离线服务器 · 最近添加 · 纪录片" })
                 {
                     head.Title = caption;
@@ -90,6 +94,7 @@ internal sealed partial class ShellNavigationProbe
                         readings.Add($"{width} / {caption} / {count}: 标题按钮 {scope.ActualWidth:0.##}，整行 {head.ActualWidth:0.##}");
                     }
                 }
+                head.ShowRule = initialRule;
                 head.Title = initialTitle;
                 head.Note = initialNote;
                 await LayoutAsync(head);
@@ -237,6 +242,16 @@ internal sealed partial class ShellNavigationProbe
             async Task CheckCardAlignmentAsync(int width)
             {
                 var cards = Descendants(strip).OfType<PosterCard>().Where(card => card.Card is not null).ToArray();
+                // 本项量普通布局；真实指针落在第一张卡会抬到1.03，不能把悬停变换当布局尺寸。
+                // 卡片区禁用真实命中，标题与翻页控件仍参与本项命中/UIA检查，后续主题状态显式设置。
+                foreach (var card in cards)
+                {
+                    Get<Grid>(card, "Root").IsHitTestVisible = false;
+                    Get<HoverWatch>(card, "_watch").Leave();
+                    Call(card, "ClosePreview", true);
+                    Call(card, "ResetMotion");
+                }
+                await LayoutAsync(strip);
                 Require(cards.Any(card => card.Card!.SubtitleVisibility == Visibility.Visible)
                     && cards.Any(card => card.Card!.SubtitleVisibility == Visibility.Collapsed),
                     "封面对齐夹具没有同时呈现有、无副标题的卡片");

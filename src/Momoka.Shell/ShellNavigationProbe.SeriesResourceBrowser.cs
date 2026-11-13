@@ -153,7 +153,10 @@ internal sealed partial class ShellNavigationProbe
             _window!.Activate();
             var handle = _window.Handle;
             Require(handle != nint.Zero, "整理清单探针窗口没有有效句柄");
-            await UntilAsync(() => Native.GetForegroundWindow() == handle);
+            // SetForegroundWindow受当前前台输入限制（HostWindow.Activate与官方API合同）。
+            // 本项使用UIA调用且不注入键盘；记录激活结果，实际菜单打开、边界、UIA及像素才是验收对象。
+            File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "mp-series-menu-activation.txt"),
+                $"{buttonName}: requested={handle}, foreground={Native.GetForegroundWindow()}\n");
             var button = Get<Button>(picker, buttonName);
             Require(button.IsLoaded && button.ActualWidth > 0 && button.ActualHeight > 0, "菜单按钮未完成布局");
             InvokeSeriesButton(picker, buttonName);
