@@ -1,6 +1,6 @@
 ## 2026-11-13 封面进入详情的 Gallery 原生关联动画
 
-用户要求原封面保持可见并移动到详情左上角；沿用 Gallery 6de91fe 的 ItemsRepeaterCollectionPage→DetailedInfoPage，保留前进Gravity/返回Direct和Momoka身份取消守卫。源码、必要本地适配及验证见 [封面关联动画](docs/封面关联动画.md)。本任务树21c5、范围CardDetailTransition/PosterCard/详情图片及三页入口、两个定向测试项目。Shell最终Release/x64 0警告0错误；关联40/40、图片26/26、页面契约223/223；最终原生单项1/1通过，零真实网络/播放。修复原生回退在新页Loaded前打断Frame创建的红，并保留原报告与遮挡红。证据artifacts/cover-connected-animation-20261113。纯UI状态留code-behind，不新增抽象层或依赖。产品08cd474已挑拣为4027fe6进入master；仅PROGRESS新增记录冲突，双方记录均保留。合并不跑全量或刷新publish、不上传。最终开发窗口与证据保留；工作树清理以验证进程释放为前件。
+用户要求原封面保持可见并移动到详情左上角；沿用 Gallery 6de91fe 的 ItemsRepeaterCollectionPage→DetailedInfoPage，保留前进Gravity/返回Direct和Momoka身份取消守卫。源码、必要本地适配及验证见 [封面关联动画](docs/封面关联动画.md)。本任务树21c5、范围CardDetailTransition/PosterCard/详情图片及三页入口、两个定向测试项目。Shell最终Release/x64 0警告0错误；关联40/40、图片26/26、页面契约223/223；最终原生单项1/1通过，零真实网络/播放。修复原生回退在新页Loaded前打断Frame创建的红，并保留原报告与遮挡红。证据artifacts/cover-connected-animation-20261113。纯UI状态留code-behind，不新增抽象层或依赖。产品08cd474已挑拣为4027fe6进入master；仅PROGRESS新增记录冲突，双方记录均保留。合并不跑全量或刷新publish、不上传。已将同哈希开发件复制到artifacts/cover-connected-development-win-x64，Shell SHA256 84049B515ACA62B30482E331516219C9F80EDC22CC826F4073B7891AA1B379EB，PID22432/窗口0x100820可响应，匿名详情供用户查看。复制件再次单项因Chrome遮挡截图红，未作为通过；原开发件最终独立运行1/1绿仍保留。复制件不等于master重编译或发布。源树干净、产品逐文件已纳入master（主页仅另批改动不同），准备清理21c5；顶端08cd474恢复线索已记。
 ## 2026-11-13 图片筛选已合入 master、待交付
 
 图片筛选收尾：两测试子树原SHA 2bd6a6b/470d1ea经git cherry均为已纳入主树，干净后移除；60b2最终HEAD 75a0d2a与master内容一致，无独有改动，清理本次开发树。原生证据保留用户隔离日志目录，当前无本任务临时分支。60b2的Git工作树登记与全部内容已移除，空目录因本会话当前目录占用返回Permission denied；不含源码、未提交内容或独有提交，待会话关闭释放后移除空目录。
