@@ -15,3 +15,5 @@ P8媒体信息定位另外编译时严格提取真实`DetailPage.ScrollToInfo`�
 原生搜索名称另有资源/XAML链契约，当前17项；Library SearchInput与SettingsSearchBox的ownerName/resw提供具体搜索作用，保留WinUI模板的owner→内部TextBox原生复制。真实probe核对这两层名称相等，不能在Focus阶段造fakeName绕过产品缺口。
 
 `InspectKeyboardJourneyManualFromSearch`只允许manual，前六步身份以固定匿名资料播种并逐段标记`resumedFromSearch/seededIdentity`，第7步之后保持真实按键与最终回执检查；不冒称前半手动。两项规则/源码契约覆盖恢复限制和取消继续抛出，实际用户后半链须单列运行证据。
+
+P8返回滚动增加原样提取的`KeepScrollThroughReveal`及其实际事件/计时/取消方法，控件和时钟为窄边界；七项覆盖临时可滚范围恢复、迟到加载、在途correlation去重、用户输入放手、重复登记和释放后迟到回执。另三项链接数字轨迹写入/失败重试与正式自检接线，当前本树31/31。实际WinUI事件与原自检仍由主控串行复验，回归不会启动播放、保存账号或操作桌面。

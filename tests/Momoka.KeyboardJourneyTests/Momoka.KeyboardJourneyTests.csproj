@@ -31,6 +31,20 @@
         var generated = "// Exact production ScrollToInfo; geometry and scroll endpoints are boundaries.\n#nullable enable\n" +
             "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Windows.Foundation;\nnamespace Momoka.Shell.Views;\n" +
             "internal sealed partial class DetailPage\n{\n" + source.Substring(first, last - first) + "\n}\n";
+        Func<string, string, string> between = (from, to) =>
+        {
+            var begin = source.IndexOf(from, StringComparison.Ordinal);
+            if (begin < 0 || source.IndexOf(from, begin + from.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous reveal source start: " + from);
+            var finish = source.IndexOf(to, begin + from.Length, StringComparison.Ordinal);
+            if (finish < 0 || source.IndexOf(to, finish + to.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous reveal source end: " + to);
+            return source.Substring(begin, finish - begin);
+        };
+        generated += "\ninternal sealed partial class DetailPage\n{\n" +
+            between("    private double? _revealScrollTarget;", "\n    internal PlaybackReturnReading PlaybackReturnReading()") +
+            between("    internal void KeepScrollThroughReveal(double offset)", "\n    /// <summary>\n    /// Every non-empty piece of text") + "\n}\n";
+        generated = generated.Replace("using Microsoft.UI.Xaml;\n", "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Dispatching;\nusing Microsoft.UI.Xaml.Input;\nusing System.ComponentModel;\n");
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
             File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

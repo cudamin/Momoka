@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -130,6 +131,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // navigation is fine.
         Unloaded += (_, _) =>
         {
+            StopScrollReveal();
             StopArtworkArrival();
             ThemeHost.Changed -= OnThemeChanged;
             StopAppearance();
@@ -345,10 +347,9 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 自检：从播放回来那一趟走完之后，这一页还是刚打开的样子 —— 「点击开始播放后点击左上方的返回，集列表会跑到
     /// 下方去」。
     /// <para>
-    /// 停止播放走的是三步：视图模型先喊 <c>RefreshRequested</c>（外壳照着重新导航一遍，见
-    /// <c>ShellPage.RefreshActive</c>），再落 <c>LeavePlayer</c> 把导航外壳放回来。也就是说<em>那一次重新导航发生在
-    /// 外壳还收着的时候</em>，这一页于是在一棵量不到尺寸的树上走完了 <c>OnNavigatedTo</c> —— 而正常那一路
-    /// （点一张卡片进来）外壳一直是显着的。两条路上唯一不同的就是这个，所以这一条读的是那一趟走完之后的样子。
+    /// 停止播放先喊 <c>RefreshRequested</c>，<c>ShellPage.RefreshActive</c> 在原页面异步重读；
+    /// 再落 <c>LeavePlayer</c> 把导航外壳放回来。刷新开始时浏览层仍收着，清空/填回货架可暂时改变
+    /// 正文可滚范围，和普通点入详情的路径不同。此读数检查完成后的原实例、集带次序和离开前偏移。
     /// </para>
     /// <para>
     /// 两句话，各对一种屏上看得见、别的读数一条都不会响的坏法。那一带集得是正文那张纸的第一块
@@ -378,7 +379,7 @@ public sealed partial class DetailPage : Page, IShellContent
                 + $"（下限 {ViewModel.TailMinHeight:0}）、纸面上沿 {PaperOffset():0}、视口 {ViewModel.Viewport:0}、"
                 + $"页面 {scrollBefore:0} → 刷新后 {afterRefresh:0} → 收起后 {afterHide:0} → 读数 {offset:0}"
                 + (placed ? "" : "，集带没排在纸的第一块")
-                + (top ? "" : "，这一趟回来把页面滚下去了"));
+                + (top ? "" : "，这一趟回来改变了页面滚动位置"));
     }
 
     /// <summary>
@@ -1535,6 +1536,10 @@ public sealed partial class DetailPage : Page, IShellContent
 
     private double? _revealScrollTarget;
     private long _revealArmedAt;
+    private bool _revealWaitingForLoad;
+    private int? _revealScrollCorrelation;
+    private double? _revealRequestedOffset;
+    private DispatcherQueueTimer? _revealStopTimer;
 
     internal PlaybackReturnReading PlaybackReturnReading() => new(Body.VerticalOffset, Body.ScrollableHeight,
         Body.ExtentHeight, Body.ViewportHeight, (Body.Content as FrameworkElement)?.ActualHeight ?? 0,
@@ -1547,33 +1552,124 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 播放层收起、详情页重新露出来那一小段里，把滚动位按在离开时看的地方。
     /// <para>
     /// 收起播放层时框架会把焦点挪进这一页，随之把落点滚进视口（见 <c>ShellSelfCheck.ReturnFromPlayer</c> 注释）——
-    /// 于是退出播放后页面自己往下跳了一截。退出播放该停在离开时的位置，所以在焦点那一跳之后把偏移按回去：钩住
-    /// <see cref="ScrollView.ViewChanged"/>，在收起后那 600ms 的窗口里撤销框架滚过去的那一下；窗口之外的滚动是
-    /// 用户自己在滚，只撤钩子、不再拽他（2026-09-23：字幕/音轨那批把详情页版面改高、焦点落点比从前低之后这一跳
-    /// 才显出来，闸门 4「播放回来那一页」记的就是它）。<see cref="ShowPlayer"/> 进播放时记位、收起时叫这一句。
+    /// 于是退出播放后页面自己跳了一截。原地刷新会先清空、再填回货架，期间 extent 可能暂时变小：保留原目标，
+    /// 请求时只夹到当前可滚范围，范围恢复后再落实目标。600ms 布局期从本次刷新 Ready 后开始，避免网络往返
+    /// 吃掉布局时间；监听 extent 变化，不把“offset 没变”当作范围没变。用户主动滚动、导航键或离页立即解除。
     /// </para>
     /// </summary>
     internal void KeepScrollThroughReveal(double offset)
     {
-        _revealScrollTarget = offset;
-        _revealArmedAt = Environment.TickCount64;
-        Body.ViewChanged -= OnRevealViewChanged;
+        StopScrollReveal();
+        if (!double.IsFinite(offset)) return;
+        _revealScrollTarget = Math.Max(0, offset);
+        _revealWaitingForLoad = ViewModel.Busy || !ViewModel.IsReady;
         Body.ViewChanged += OnRevealViewChanged;
+        Body.ExtentChanged += OnRevealViewChanged;
+        Body.StateChanged += OnRevealViewChanged;
+        Body.ScrollCompleted += OnRevealScrollCompleted;
+        Body.AddHandler(PointerWheelChangedEvent, new PointerEventHandler(OnRevealUserScroll), true);
+        Body.AddHandler(PointerPressedEvent, new PointerEventHandler(OnRevealUserScroll), true);
+        Body.AddHandler(KeyDownEvent, new KeyEventHandler(OnRevealUserKey), true);
+        ViewModel.PropertyChanged += OnRevealLoadChanged;
+        if (!_revealWaitingForLoad) StartRevealLayoutPeriod();
+        RestoreRevealScroll();
     }
 
     private void OnRevealViewChanged(ScrollView sender, object args)
     {
-        if (_revealScrollTarget is not { } off || Environment.TickCount64 - _revealArmedAt > 600)
+        if (Body.State == ScrollingInteractionState.Interaction)
         {
-            Body.ViewChanged -= OnRevealViewChanged;
-            _revealScrollTarget = null;
+            StopScrollReveal();
             return;
         }
+        RestoreRevealScroll();
+    }
 
-        // 已经在位（多半是我们刚按回去触发的这一次 ViewChanged）就别再按，免得空转。
-        if (Math.Abs(Body.VerticalOffset - off) < 1) return;
+    private void OnRevealLoadChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (!_revealWaitingForLoad || args.PropertyName is not (nameof(ViewModel.Busy) or nameof(ViewModel.IsReady))
+            || ViewModel.Busy || !ViewModel.IsReady) return;
+        _revealWaitingForLoad = false;
+        StartRevealLayoutPeriod();
+        RestoreRevealScroll();
+    }
 
-        Body.ScrollTo(0, off, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+    private void StartRevealLayoutPeriod()
+    {
+        _revealArmedAt = Environment.TickCount64;
+        _revealStopTimer ??= DispatcherQueue.CreateTimer();
+        _revealStopTimer.Stop();
+        _revealStopTimer.IsRepeating = false;
+        _revealStopTimer.Interval = TimeSpan.FromMilliseconds(600);
+        _revealStopTimer.Tick -= OnRevealLayoutPeriodEnded;
+        _revealStopTimer.Tick += OnRevealLayoutPeriodEnded;
+        _revealStopTimer.Start();
+    }
+
+    private void OnRevealLayoutPeriodEnded(DispatcherQueueTimer timer, object args)
+    {
+        var elapsed = Environment.TickCount64 - _revealArmedAt;
+        if (_revealWaitingForLoad || _revealScrollTarget is null) return;
+        if (elapsed < 600)
+        {
+            timer.Interval = TimeSpan.FromMilliseconds(600 - elapsed);
+            timer.Start();
+            return;
+        }
+        StopScrollReveal();
+    }
+
+    private void RestoreRevealScroll()
+    {
+        if (_revealScrollTarget is not { } offset) return;
+        if (!_revealWaitingForLoad && Environment.TickCount64 - _revealArmedAt >= 600)
+        {
+            StopScrollReveal();
+            return;
+        }
+        var target = Math.Clamp(offset, 0, Body.ScrollableHeight);
+        if (Math.Abs(Body.VerticalOffset - target) < 1
+            || _revealScrollCorrelation is not null && _revealRequestedOffset is { } requested
+                && Math.Abs(requested - target) < 1) return;
+        _revealRequestedOffset = target;
+        var correlation = Body.ScrollTo(0, target, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        _revealScrollCorrelation = correlation >= 0 ? correlation : null;
+    }
+
+    private void OnRevealScrollCompleted(ScrollView sender, ScrollingScrollCompletedEventArgs args)
+    {
+        if (_revealScrollCorrelation != args.CorrelationId) return;
+        _revealScrollCorrelation = null;
+        _revealRequestedOffset = null;
+        RestoreRevealScroll();
+    }
+
+    private void OnRevealUserScroll(object sender, PointerRoutedEventArgs args) => StopScrollReveal();
+
+    private void OnRevealUserKey(object sender, KeyRoutedEventArgs args)
+    {
+        if (args.Key is Windows.System.VirtualKey.Tab or Windows.System.VirtualKey.Up or Windows.System.VirtualKey.Down
+            or Windows.System.VirtualKey.Left or Windows.System.VirtualKey.Right or Windows.System.VirtualKey.Home
+            or Windows.System.VirtualKey.End or Windows.System.VirtualKey.PageUp or Windows.System.VirtualKey.PageDown)
+            StopScrollReveal();
+    }
+
+    private void StopScrollReveal()
+    {
+        _revealScrollTarget = null;
+        _revealWaitingForLoad = false;
+        _revealScrollCorrelation = null;
+        _revealRequestedOffset = null;
+        _revealStopTimer?.Stop();
+        if (_revealStopTimer is not null) _revealStopTimer.Tick -= OnRevealLayoutPeriodEnded;
+        Body.ViewChanged -= OnRevealViewChanged;
+        Body.ExtentChanged -= OnRevealViewChanged;
+        Body.StateChanged -= OnRevealViewChanged;
+        Body.ScrollCompleted -= OnRevealScrollCompleted;
+        Body.RemoveHandler(PointerWheelChangedEvent, new PointerEventHandler(OnRevealUserScroll));
+        Body.RemoveHandler(PointerPressedEvent, new PointerEventHandler(OnRevealUserScroll));
+        Body.RemoveHandler(KeyDownEvent, new KeyEventHandler(OnRevealUserKey));
+        ViewModel.PropertyChanged -= OnRevealLoadChanged;
     }
 
     /// <summary>
@@ -1890,6 +1986,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        StopScrollReveal();
         if (Frame is { } frame && !CardDetailTransition.Returning(frame)) CardDetailTransition.Cancel(frame);
         _trailerMenu?.Hide();
         _extraMenu?.Hide();
