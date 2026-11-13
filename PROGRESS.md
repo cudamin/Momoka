@@ -1,3 +1,21 @@
+## 2026-11-13 工作树 toolkit-ui：流光接到主页、媒体库与详情页（未合入）
+
+用户令「主页和详情页都加」，随后一句「铺满窗口的背景图不要加」。同一工作树、同一分支 `workbuddy/toolkit-ui`，master 未动、不推送。
+
+**判据**（`CardItem.ImagePending`）：不是「`Poster` 还是空的」，而是「有一趟请求在路上」（`_loading`）。服务器明说没有封面（`_missing`）、上次取失败还在冷却里（`_failedAt`）、容器还没把这张卡递进来 —— 这三种都不是等待，照「空着就是等」写会闪出一道永不消失的光。只在请求起止两处通知（`RaiseImagePending`）；失败、缺图、取消三条路共用 finally 那一个收尾，光也跟着收干净。
+
+**落在哪**：①`PosterCard` 封面框里加一层 `views:Shimmer`（`IsActive` 绑 `Card.ImagePending`，圆角同 `EgPosterCornerRadius`）—— 这一张卡同时是主页各条横带、媒体库卡墙、详情页的季／演员／相似那几排，一处接上三处都有；②`HomeBanner` 在 `Frame`（`Band` 外面）加一层，`Paint()` 按「台上那层有没有图」起停，空清单、丢幻灯片、离树三处显式收掉 —— 换张时另一层还压着上一张，所以换张不闪；③`DetailPage` 左上角封面那一格：`StillVisibility` 的第一句从「图已经解出来」扩成「解出来了，或者这一趟还在路上」（新 `StillPending`，在等首帧之前就抬起来），那一格因此从第一帧就站住、底下一道光；空手回来（没有封面／没取到）时框收起，版面回到没有封面的那一档。封面上的播放键与悬停遮罩各加一句 `StillImage is not null` —— 原来它们靠显隐判「图到没到」，现在显隐里含等待，不加就会浮在空框上。
+
+**按用户令没做**：详情页铺满窗口的那张背景图（`Backdrop`）不加。
+
+**顺带的行为变化**：详情页封面没到的那一拍，片名那一栏不再顶在板的内沿、图到了再整页右移一格（「开页抖一下」的来源）。`StillShape()` 自检对「先站着等图」这一档给通过并写明读数。
+
+**验证**：Shell Release 0 警告 0 错误；`dotnet format whitespace` 定向 6 个源文件通过；主测试 **5028/5028**、页面契约 **210/210**（新增 3 条 `CardItem.ImagePending` 用例：请求在飞时亮、图到就收；放手当场收；没有封面的条目等完那趟不留死光）。`--probe-section shell` **15/15 退出 0**。`--probe-section library` **36/47**：失败清单与本批改动前逐条对过 —— 详情那 6 条（`EpisodeStrip`／`CastRow` 副行颜色 `#FFE8EDF7` 对 `#FFC9D0D9`、819 那一档背景层 `Collapsed`）两轮一字不差，另两条 UIA 用例在两轮之间互换，都不是本批引出。
+
+**没拍到**：光是一道会动的带子，局域网里封面几百毫秒就到，探针的截图全落在图到之后；这一层沿用上一批 `library-dialog-cover-loading-screen.png`（同一个控件、同一份起停判据）。
+
+**环境**：期间主树另一个会话的 `--probe-shell inspect` 反复以孤儿进程留在后台（父进程已退出、结果文件已写完），占着单实例锁与自检 mutex —— 主测试首跑因此有 16 条「自检输出」红（`已有当前用户的自检运行中`），结束后重跑全绿。
+
 ## 2026-11-13 工作树 toolkit-ui：候选封面加载流光与看大图阴影（未合入）
 
 用户令「单开一个工作树按你的建议做」，前情是审查 Toolkit 的 TransitionHelper / Attached Shadows / Shimmer / ConstrainedBox 能否内置。分支 `workbuddy/toolkit-ui`（工作树 `C:\Users\89400\WorkBuddy\Worktrees\Momoka\toolkit-ui`），master 未动，不推送。

@@ -489,11 +489,16 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     internal (bool Ok, string Detail) StillShape()
     {
-        // 图还没解出来的那一拍这一格整个是收着的（StillVisibility），这时候「没裁」是句空话，不是坏事。
+        // 图还没解出来的那一拍这一格可能是收着的（这个条目没有封面），也可能先站着等图（StillPending，底下一道光）：
+        // 两种都还没有「裁没裁」可量，不是坏事。
         if (PosterStill.Visibility != Visibility.Visible) return (true, "海报还没解出来，这一格收着");
 
         if (PosterImage.Source is not BitmapImage { PixelWidth: > 0, PixelHeight: > 0 } bitmap)
-            return (false, "这一格显着，可里面装的不是一张解好的位图");
+        {
+            return ViewModel.StillPending
+                ? (true, "封面还在路上，这一格先站着等图")
+                : (false, "这一格显着，可里面装的不是一张解好的位图");
+        }
 
         var width = PosterStill.ActualWidth;
         var height = PosterStill.ActualHeight;
