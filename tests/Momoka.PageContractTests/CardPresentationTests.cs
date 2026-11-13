@@ -47,7 +47,9 @@ internal static class CardPresentationTests
             await using var fixture = new CardImageFixture(false, MediaServerKind.Emby);
             var card = new CardItem(fixture.Scope.Bind(new EmbyItem
             {
-                Id = "movie", Type = EmbyItemType.Movie, Name = "影片",
+                Id = "movie",
+                Type = EmbyItemType.Movie,
+                Name = "影片",
                 UserData = new EmbyUserData { IsFavorite = true }
             }), fixture.Images, 170);
             var original = new[] { card.PlayVisibility, card.UserStateVisibility, card.FavoriteActionVisibility, card.MoreVisibility };

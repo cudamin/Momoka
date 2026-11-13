@@ -340,9 +340,20 @@ internal sealed partial class ShellNavigationProbe
             settingsPrompt?.Show(stage, resumeFromSearch, resumeFromResult);
             Read(stage, hwnd);
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-stage.json"), JsonSerializer.Serialize(new
-            { stage, input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch, resumeFromResult) : input, process = Environment.ProcessId,
-                hwnd = hwnd.ToInt64(), run, keys, manual, resumedFromSearch = resumeFromSearch, resumedFromResult = resumeFromResult,
-                seededIdentity = resumeFromAnonymousSeed, seededSearch = resumeFromResult, physicalInputRequired = true }));
+            {
+                stage,
+                input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch, resumeFromResult) : input,
+                process = Environment.ProcessId,
+                hwnd = hwnd.ToInt64(),
+                run,
+                keys,
+                manual,
+                resumedFromSearch = resumeFromSearch,
+                resumedFromResult = resumeFromResult,
+                seededIdentity = resumeFromAnonymousSeed,
+                seededSearch = resumeFromResult,
+                physicalInputRequired = true
+            }));
         }
         void Read(string stage, IntPtr hwnd)
         {
@@ -350,14 +361,28 @@ internal sealed partial class ShellNavigationProbe
             var peer = focus is null ? null : FrameworkElementAutomationPeer.CreatePeerForElement(focus);
             snapshot.Add(new
             {
-                stage, process = Environment.ProcessId, hwnd = hwnd.ToInt64(), run, keys, lastKey,
-                page = shell.Pages.Content?.GetType().Name, source = fixture.Session.IsSignedIn ? fixture.Session.Capture().Connection.ApiBase.Host : null,
-                focus = focus?.Name, automationId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
-                automationName = peer?.GetName(), role = peer?.GetAutomationControlType().ToString(),
-                programmaticFocus = true, physicalKeysObserved = keys > 0, narratorTested = false,
-                resumedFromSearch = resumeFromSearch, resumedFromResult = resumeFromResult,
-                seededIdentity = resumeFromAnonymousSeed, seededSearch = resumeFromResult,
-                plays = actions.Plays, server.AuthenticationPosts, server.RejectedWrites
+                stage,
+                process = Environment.ProcessId,
+                hwnd = hwnd.ToInt64(),
+                run,
+                keys,
+                lastKey,
+                page = shell.Pages.Content?.GetType().Name,
+                source = fixture.Session.IsSignedIn ? fixture.Session.Capture().Connection.ApiBase.Host : null,
+                focus = focus?.Name,
+                automationId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
+                automationName = peer?.GetName(),
+                role = peer?.GetAutomationControlType().ToString(),
+                programmaticFocus = true,
+                physicalKeysObserved = keys > 0,
+                narratorTested = false,
+                resumedFromSearch = resumeFromSearch,
+                resumedFromResult = resumeFromResult,
+                seededIdentity = resumeFromAnonymousSeed,
+                seededSearch = resumeFromResult,
+                plays = actions.Plays,
+                server.AuthenticationPosts,
+                server.RejectedWrites
             });
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-receipt.json"), JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }));
         }

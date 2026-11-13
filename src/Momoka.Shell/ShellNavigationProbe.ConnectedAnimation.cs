@@ -17,8 +17,14 @@ internal sealed partial class ShellNavigationProbe
         Log.Info("关联动画探针", "阶段：创建匿名夹具");
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
-        var item = new EmbyItem { Id = "connected-movie", Name = "匿名关联动画", Type = EmbyItemType.Movie,
-            ImageTags = new() { ["Primary"] = "poster" }, BackdropImageTags = ["backdrop"] };
+        var item = new EmbyItem
+        {
+            Id = "connected-movie",
+            Name = "匿名关联动画",
+            Type = EmbyItemType.Movie,
+            ImageTags = new() { ["Primary"] = "poster" },
+            BackdropImageTags = ["backdrop"]
+        };
         var bytes = await FixtureImageAsync(260, 375);
         fixture.Transport.Reply = (request, _) =>
         {
@@ -44,8 +50,14 @@ internal sealed partial class ShellNavigationProbe
         {
             ResizeProbeClient(1280, 850);
             HomeMotion.ApplyPreference(true);
-            var request = new LibraryRequest { Services = fixture.Services, Title = "匿名关联动画库", ParentId = "connected-library",
-                CollectionType = "movies", Source = fixture.Session.Capture() };
+            var request = new LibraryRequest
+            {
+                Services = fixture.Services,
+                Title = "匿名关联动画库",
+                ParentId = "connected-library",
+                CollectionType = "movies",
+                Source = fixture.Session.Capture()
+            };
             Log.Info("关联动画探针", "阶段：正式导航现有LibraryPage源");
             Require(frame.Navigate(typeof(LibraryPage), request, new SuppressNavigationTransitionInfo()), "现有媒体库源Page正式导航失败");
             sourcePage = (LibraryPage)frame.Content;
@@ -87,10 +99,16 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => receipts.Any(receipt => receipt.Direction == "return" && (receipt.Completed || receipt.TimedOut || !receipt.Started)));
             Require(ReferenceEquals(frame.Content, sourcePage), "Frame缓存返回没有恢复原源Page");
             Require(receipts.Any(receipt => receipt.Direction == "return" && receipt.Started && receipt.Completed), "正式GoBack没有完成原生返回关联动画");
-            samples.Add(new { State = "return", Prepared = returnPrepared, FrameRestored = true, FrameGoBack = true,
+            samples.Add(new
+            {
+                State = "return",
+                Prepared = returnPrepared,
+                FrameRestored = true,
+                FrameGoBack = true,
                 TryStart = receipts.Any(receipt => receipt.Direction == "return" && receipt.Started),
                 Completed = receipts.Any(receipt => receipt.Direction == "return" && receipt.Completed),
-                TimeoutFallback = receipts.Any(receipt => receipt.Direction == "return" && receipt.TimedOut) });
+                TimeoutFallback = receipts.Any(receipt => receipt.Direction == "return" && receipt.TimedOut)
+            });
             Log.Info("关联动画探针", "阶段：原生正式返回完成，核对普通回退");
             CardDetailTransition.Cancel(frame);
 

@@ -162,7 +162,9 @@ internal static partial class DetailActionReadinessTests
         fixture.Seed.LocalTrailerCount = 1;
         fixture.Transport.Trailers.Add(new()
         {
-            Id = "trailer", Name = "正式预告", Type = EmbyItemType.Trailer,
+            Id = "trailer",
+            Name = "正式预告",
+            Type = EmbyItemType.Trailer,
             UserData = new() { PlaybackPositionTicks = 300_000_000 }
         });
         return fixture;

@@ -199,7 +199,10 @@ internal sealed partial class ShellNavigationProbe
             await VerifyFnNasListLayoutAsync(folder, "folder");
             var folderRequest = new LibraryRequest
             {
-                Services = fixture.Services, Title = "文件夹", ParentId = "fn-folder", ParentType = EmbyItemType.Folder
+                Services = fixture.Services,
+                Title = "文件夹",
+                ParentId = "fn-folder",
+                ParentType = EmbyItemType.Folder
             };
             folder.Release();
             frame.Navigate(typeof(LibraryPage), folderRequest);
@@ -209,7 +212,10 @@ internal sealed partial class ShellNavigationProbe
             folder.Release();
             frame.Navigate(typeof(LibraryPage), new LibraryRequest
             {
-                Services = fixture.Services, Title = "其他媒体", ParentId = "fn-other", CollectionType = "homevideos"
+                Services = fixture.Services,
+                Title = "其他媒体",
+                ParentId = "fn-other",
+                CollectionType = "homevideos"
             });
             var other = (LibraryPage)frame.Content;
             await UntilAsync(() => other.ViewModel.IsReady && !other.ViewModel.Busy);

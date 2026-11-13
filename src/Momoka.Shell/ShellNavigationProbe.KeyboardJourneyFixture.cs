@@ -67,14 +67,20 @@ internal sealed class KeyboardJourneyProbeServer
 
     private static EmbyUser User() => new()
     {
-        Id = Username, Name = Username, HasPassword = true,
+        Id = Username,
+        Name = Username,
+        HasPassword = true,
         Policy = new EmbyUserPolicy { IsAdministrator = false, EnableContentDeletion = false, EnableContentDownloading = false }
     };
     private static EmbyItem Movie() => new()
     {
-        Id = MovieId, Name = "匿名键盘电影", Type = EmbyItemType.Movie, RunTimeTicks = TimeSpan.FromMinutes(90).Ticks,
+        Id = MovieId,
+        Name = "匿名键盘电影",
+        Type = EmbyItemType.Movie,
+        RunTimeTicks = TimeSpan.FromMinutes(90).Ticks,
         Overview = "此条目仅用于原生键盘导航，网络、媒体和写入均由匿名夹具隔离。",
-        ImageTags = new() { ["Primary"] = "keyboard" }, BackdropImageTags = ["keyboard"],
+        ImageTags = new() { ["Primary"] = "keyboard" },
+        BackdropImageTags = ["keyboard"],
         MediaSources = [new MediaSource { Id = "keyboard-source", Name = "匿名版本", Container = "mkv",
             MediaStreams = [new() { Type = "Video", Index = 0, Codec = "h264", Width = 1920, Height = 1080 },
                 new() { Type = "Audio", Index = 1, Codec = "aac", IsDefault = true }] }]

@@ -25,7 +25,7 @@ internal static class Program
             Assert.NotNull(directory);
             var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
             Assert.Contains("KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromAnonymousSeed);", source);
-            Assert.Contains("seededIdentity = resumeFromAnonymousSeed", source);
+            RequireSeedReceiptFields(source);
             Assert.Contains("Read(\"anonymous-first-six-seeded\"", source);
             Assert.Contains("await fixture.Session.SignInAsync", source);
             Assert.Contains("await Stage(\"search-ready\"", source);
@@ -46,6 +46,16 @@ internal static class Program
             Assert.Contains("seededSearch = resumeFromResult", source);
             Assert.Contains("await Stage(\"result-ready\"", source);
             Assert.Contains("KeyboardJourneyProbeRules.RequireFinal", source);
+        });
+        Test("从搜索继续回执接线忽略格式换行但拒绝字段或值漂移", () =>
+        {
+            var expressions = "resumedFromSearch = resumeFromSearch, resumedFromResult = resumeFromResult, seededIdentity = resumeFromAnonymousSeed, seededSearch = resumeFromResult";
+            RequireSeedReceiptFields(expressions + "\n" + expressions);
+            RequireSeedReceiptFields(expressions.Replace(", ", ",\n                ") + "\n" + expressions.Replace(", ", ",\n                "));
+            foreach (var invalid in new[] { expressions, (expressions + "\n" + expressions).Replace("seededIdentity", "otherIdentity", StringComparison.Ordinal),
+                (expressions + "\n" + expressions).Replace("= resumeFromSearch", "= false", StringComparison.Ordinal),
+                (expressions + "\n" + expressions).Replace("= resumeFromAnonymousSeed", "= resumeFromSearch", StringComparison.Ordinal) })
+                Assert.Throws<AssertionException>(() => RequireSeedReceiptFields(invalid));
         });
         Test("手动取消单独记录且重新抛出，不能冒称完整通过", () =>
         {
@@ -237,6 +247,13 @@ internal static class Program
 
     private static HttpRequestMessage Authentication(string user, string password) => new(HttpMethod.Post, "https://keyboard-a.invalid/emby/Users/AuthenticateByName")
     { Content = new StringContent(JsonSerializer.Serialize(new { UserName = user, Pw = password })) };
+    private static void RequireSeedReceiptFields(string source)
+    {
+        foreach (var (field, value) in new[] { ("resumedFromSearch", "resumeFromSearch"), ("resumedFromResult", "resumeFromResult"),
+            ("seededIdentity", "resumeFromAnonymousSeed"), ("seededSearch", "resumeFromResult") })
+            Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(source, @"\b" + field + @"\s*=\s*" + value + @"\b").Count,
+                "阶段与最终读数必须分别保留来源播种字段和原值：" + field);
+    }
     private static void TestHarnessRun(Func<Task> action)
     {
         var running = action();

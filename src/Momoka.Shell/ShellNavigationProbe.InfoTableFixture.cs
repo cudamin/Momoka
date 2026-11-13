@@ -6,7 +6,9 @@ internal static class InfoTableProbeFixture
 {
     internal static EmbyItem Movie() => new()
     {
-        Id = "info-movie", Name = "匿名媒体信息定位", Type = EmbyItemType.Movie,
+        Id = "info-movie",
+        Name = "匿名媒体信息定位",
+        Type = EmbyItemType.Movie,
         Overview = "固定匿名10行媒体信息，仅验证正文滚动、表格虚拟化和可达性。",
         MediaSources = [new MediaSource
         {
@@ -19,7 +21,8 @@ internal static class InfoTableProbeFixture
                 new() { Type = "Subtitle", Index = 2, Codec = "srt", DisplayTitle = "匿名字幕" }
             ]
         }],
-        ImageTags = new() { ["Primary"] = "fixture" }, BackdropImageTags = ["fixture"]
+        ImageTags = new() { ["Primary"] = "fixture" },
+        BackdropImageTags = ["fixture"]
     };
 
     internal static void RequireRendered(int expected, IReadOnlyList<int> realized, bool firstLabelRendered)

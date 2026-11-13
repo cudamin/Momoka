@@ -16,9 +16,13 @@ public sealed class FnMusicHttp : IDisposable
 
     public FnMusicHttp() : this(new SocketsHttpHandler
     {
-        AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.All,
-        ConnectTimeout = TimeSpan.FromSeconds(8), PooledConnectionLifetime = TimeSpan.FromMinutes(5)
-    }) { }
+        AllowAutoRedirect = false,
+        UseCookies = false,
+        AutomaticDecompression = DecompressionMethods.All,
+        ConnectTimeout = TimeSpan.FromSeconds(8),
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+    })
+    { }
 
     public FnMusicHttp(HttpMessageHandler handler, bool disposeHandler = true)
     {
@@ -97,8 +101,12 @@ public sealed class FnMusicHttp : IDisposable
 
     private static EmbyApiException Business(int code) => code == 120001 ? new EmbyTokenExpiredException() : new EmbyApiException(code switch
     {
-        100002 => "飞牛音乐拒绝了请求参数", 100003 => "该操作需要飞牛音乐管理员权限", 100004 => "当前飞牛音乐账户没有执行此操作的权限",
-        100005 => "飞牛音乐上找不到该条目", 110002 => "请先在飞牛音乐网页端完成初始化", 120002 => "飞牛音乐账户已被禁用",
+        100002 => "飞牛音乐拒绝了请求参数",
+        100003 => "该操作需要飞牛音乐管理员权限",
+        100004 => "当前飞牛音乐账户没有执行此操作的权限",
+        100005 => "飞牛音乐上找不到该条目",
+        110002 => "请先在飞牛音乐网页端完成初始化",
+        120002 => "飞牛音乐账户已被禁用",
         _ => $"飞牛音乐操作失败（错误码 {code}）"
     });
 

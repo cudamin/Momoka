@@ -503,8 +503,13 @@ internal sealed partial class ShellNavigationProbe
                     File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "library-batch-menu-failure.json"),
                         JsonSerializer.Serialize(new
                         {
-                            Command = command.ToString(), menu.IsOpen, Items = menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray(),
-                            BarOpen = bar.IsOpen, actions.IsInOverflow, actions.IsLoaded, actions.IsEnabled,
+                            Command = command.ToString(),
+                            menu.IsOpen,
+                            Items = menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray(),
+                            BarOpen = bar.IsOpen,
+                            actions.IsInOverflow,
+                            actions.IsLoaded,
+                            actions.IsEnabled,
                             Commands = page!.ProbeBatchCommands().Select(value => value.ToString()).ToArray(),
                             Popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Where(popup => popup.Child is not null).Select(popup => new
                             {

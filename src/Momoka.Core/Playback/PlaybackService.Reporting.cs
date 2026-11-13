@@ -327,7 +327,8 @@ public sealed partial class PlaybackService
             var ticks = TimeFormat.ToTicks(seconds);
             if (!Current()) return;
             Raise(ProgressChanged, new PlaybackProgress(ticks, attempt.Request.RunTimeTicks, paused,
-                attempt.Request.Title, attempt.Generation) { AudioOnly = attempt.Request.AudioOnly });
+                attempt.Request.Title, attempt.Generation)
+            { AudioOnly = attempt.Request.AudioOnly });
             await ReportProgressAsync(scope, attempt, ticks, paused, paused ? "pause" : "unpause", CancellationToken.None, revision)
                 .ConfigureAwait(false);
         }

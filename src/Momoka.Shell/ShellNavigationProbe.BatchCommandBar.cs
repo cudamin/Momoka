@@ -45,8 +45,11 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(600, 760);
             frame.Navigate(typeof(LibraryPage), new LibraryRequest
             {
-                Services = fixture.Services, Title = "匿名多选键盘验证", ParentId = "1",
-                CollectionType = "movies", Source = fixture.Session.Capture()
+                Services = fixture.Services,
+                Title = "匿名多选键盘验证",
+                ParentId = "1",
+                CollectionType = "movies",
+                Source = fixture.Session.Capture()
             });
             page = (LibraryPage)frame.Content;
             await UntilAsync(() => page.IsReady && !page.ViewModel.Busy && page.ViewModel.Cards.Count == 3);
@@ -132,12 +135,20 @@ internal sealed partial class ShellNavigationProbe
                 var focus = FocusManager.GetFocusedElement(_root.XamlRoot) as FrameworkElement;
                 readings.Add(new
                 {
-                    Stage = stage, PageWidth = page.ActualWidth, BarWidth = bar.ActualWidth,
+                    Stage = stage,
+                    PageWidth = page.ActualWidth,
+                    BarWidth = bar.ActualWidth,
                     Overflow = bar.PrimaryCommands.OfType<AppBarButton>().Where(button => button.IsInOverflow).Select(button => button.Name).ToArray(),
-                    bar.IsOpen, SubmenuOpen = menu.IsOpen, Selection = wall.SelectedItems.Count,
-                    FlyoutMatches = ReferenceEquals(actions.Flyout, menu), MenuItems = menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray(),
-                    FocusName = focus?.Name, FocusType = focus?.GetType().Name, FocusId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
-                    Popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count, Writes = server.Writes.Count
+                    bar.IsOpen,
+                    SubmenuOpen = menu.IsOpen,
+                    Selection = wall.SelectedItems.Count,
+                    FlyoutMatches = ReferenceEquals(actions.Flyout, menu),
+                    MenuItems = menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray(),
+                    FocusName = focus?.Name,
+                    FocusType = focus?.GetType().Name,
+                    FocusId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
+                    Popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count,
+                    Writes = server.Writes.Count
                 });
                 File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "batch-commandbar-keyboard.json"),
                     JsonSerializer.Serialize(readings, new JsonSerializerOptions { WriteIndented = true }));

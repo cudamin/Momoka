@@ -61,8 +61,15 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(_root.ActualWidth - width) < 2 && Math.Abs(_root.ActualHeight - 600) < 2,
                     "现有HostWindow客户区DIP未匹配实际client/nonclient尺寸请求");
                 var physicalHost = _window.ClientSize;
-                readings.Add(new { Host = "HostWindow", WidthDip = _root.ActualWidth, HeightDip = _root.ActualHeight,
-                    Physical = new { physicalHost.Width, physicalHost.Height }, Scale = hostScale, AppWindow = hostApp.Id.Value });
+                readings.Add(new
+                {
+                    Host = "HostWindow",
+                    WidthDip = _root.ActualWidth,
+                    HeightDip = _root.ActualHeight,
+                    Physical = new { physicalHost.Width, physicalHost.Height },
+                    Scale = hostScale,
+                    AppWindow = hostApp.Id.Value
+                });
 
                 app.ResizeClient(new SizeInt32((int)Math.Round(width * scale), (int)Math.Round(600 * scale)));
                 await LayoutAsync(root);
@@ -77,8 +84,16 @@ internal sealed partial class ShellNavigationProbe
                 Require(focus.Focus(FocusState.Keyboard) && ReferenceEquals(FocusManager.GetFocusedElement(root.XamlRoot), focus),
                     "framework Window按钮不能接受键盘焦点");
                 Native.GetClientRect(handle, out var client);
-                readings.Add(new { Host = "Window", WidthDip = root.ActualWidth, HeightDip = root.ActualHeight,
-                    Physical = new { client.Width, client.Height }, Scale = scale, Peer = peer.GetClassName(), Name = peer.GetName() });
+                readings.Add(new
+                {
+                    Host = "Window",
+                    WidthDip = root.ActualWidth,
+                    HeightDip = root.ActualHeight,
+                    Physical = new { client.Width, client.Height },
+                    Scale = scale,
+                    Peer = peer.GetClassName(),
+                    Name = peer.GetName()
+                });
                 if (!injectFailure && width == 760)
                     await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, "window-host-research-760-screen.png"));
             }
@@ -124,8 +139,15 @@ internal sealed partial class ShellNavigationProbe
         var file = injectFailure ? "window-host-research-failure.json" : "window-host-research.json";
         await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, file), JsonSerializer.Serialize(new
         {
-            Readings = readings, Hidden = hidden, Closed = closed, AppWindowChanges = changed, InjectedFailure = failureObserved,
-            CleanupPassed = true, VideoLoaded = false, RealNetwork = false, MainHostMigrated = false,
+            Readings = readings,
+            Hidden = hidden,
+            Closed = closed,
+            AppWindowChanges = changed,
+            InjectedFailure = failureObserved,
+            CleanupPassed = true,
+            VideoLoaded = false,
+            RealNetwork = false,
+            MainHostMigrated = false,
             Unverified = new[] { "mpv composition", "HDR", "fullscreen video", "cross-monitor DPI", "Narrator", "desktop activation" }
         }, new JsonSerializerOptions { WriteIndented = true }));
     }

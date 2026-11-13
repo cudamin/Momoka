@@ -79,20 +79,36 @@ internal sealed partial class ShellNavigationProbe
                         var row = table.TryGetElement(index) as FrameworkElement;
                         var inBody = row?.TransformToVisual(body).TransformPoint(new Windows.Foundation.Point());
                         var inContent = row?.TransformToVisual(content).TransformPoint(new Windows.Foundation.Point());
-                        return new { index, realized = row is not null, topInViewport = inBody?.Y, topInContent = inContent?.Y,
-                            width = row?.ActualWidth, height = row?.ActualHeight, label = page.ViewModel.InfoRows[index].Label };
+                        return new
+                        {
+                            index,
+                            realized = row is not null,
+                            topInViewport = inBody?.Y,
+                            topInContent = inContent?.Y,
+                            width = row?.ActualWidth,
+                            height = row?.ActualHeight,
+                            label = page.ViewModel.InfoRows[index].Label
+                        };
                     }).ToArray();
                     evidence.Add(new
                     {
-                        phase, size.Width, size.Height, body.ViewportHeight, body.ExtentHeight, body.ScrollableHeight, body.VerticalOffset,
+                        phase,
+                        size.Width,
+                        size.Height,
+                        body.ViewportHeight,
+                        body.ExtentHeight,
+                        body.ScrollableHeight,
+                        body.VerticalOffset,
                         panelContentY = panel.TransformToVisual(content).TransformPoint(new()).Y,
                         panelViewportY = panel.TransformToVisual(body).TransformPoint(new()).Y,
                         panelHeight = panel.ActualHeight,
                         tableContentY = table.TransformToVisual(content).TransformPoint(new()).Y,
                         tableViewportY = table.TransformToVisual(body).TransformPoint(new()).Y,
-                        tableHeight = table.ActualHeight, contentHeight = content.ActualHeight,
+                        tableHeight = table.ActualHeight,
+                        contentHeight = content.ActualHeight,
                         viewHeight = page.ViewModel.Viewport,
-                        realized = rows.Where(row => row.realized).Select(row => row.index).ToArray(), rows
+                        realized = rows.Where(row => row.realized).Select(row => row.index).ToArray(),
+                        rows
                     });
                     File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "info-table-geometry.json"),
                         JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
