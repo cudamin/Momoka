@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- An audit can provide an exact Git blob without replacing the working product source. -->
+    <ArtworkPickerSource Condition="'$(ArtworkPickerSource)' == ''">$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/CoverPickerDialog.xaml.cs</ArtworkPickerSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="$(ArtworkPickerSource)" Link="Production/CoverPickerDialog.xaml.cs" />
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../Momoka.SubtitleDialogTests/UiQueue.cs" Link="UiQueue.cs" />
+    <None Include="../../src/Momoka.Shell/Views/CoverPickerDialog.xaml" Link="Production/CoverPickerDialog.xaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
