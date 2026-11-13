@@ -1,3 +1,11 @@
+## 2026-11-13 WinUI P4–P8 持续执行，待最终主树交付
+
+本任务协调树ebd7/Momoka，分支codex/winui-p4-p8；产品已含设置小工作区FitAxis、详情请求在途断点、音乐三墙分页及唯一纵滚属主、图片Source唯一属主/phase守卫、三动效立即落定、有限焦点重试和自身Primary关联动画。同期master到5d1f1a5的悬停撑开/徽标/详情入口已整合。最新图片模板迟到修复c7b7b26（原7107090），纯订阅读数86da53d，空白e7379e6；尚未把本任务合回master、发布或推远端。
+
+原生音乐分页18组合、详情连续缩放、匿名10行信息表和P7正常/故障清理已有证据；真实LibraryPage→Detail→Frame.GoBack关联Started/Completed及缺图/版本回退通过。图片原Albums100 tail realized21/Source26/需求22红项保留，模板生成晚于Loaded导致漏订阅的生产修复35/35离线通过，最终原生预算待重验。空白25文件Roslyn token/非空白trivia一致；与新版FromResult接线合并后的键盘21/21通过。
+
+自动键盘注入审批仅返回blocked by policy，用户选择手动；未绕过。前6步和查询来自不同真实运行；本轮FromResult匿名播种账号/查询，从第8步Enter进详情成功，设置入口未收到后续键而5分钟超时（manual-from-result-first），不可拼作完整同run全绿。继续重开后半、验证取消路径，随后最终构建/测试/定向UI/自检、合主树重验与发布，再移除本任务树。跨DPI/系统文字200%/Narrator/触摸笔、新宿主mpv/HDR仍无证据；无主宿主迁移/通知/MSIX/升级授权。详情见docs/WinUI-P4-P8执行记录.md；本条为在途事实，交付后追加最终产物与清理结论。
+
 ## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
 
 ## 2026-11-13 三库视口主树交付
