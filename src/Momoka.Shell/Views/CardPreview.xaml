@@ -85,7 +85,7 @@
             <!-- 同一个媒体表面随封面撑开；前层渐显新图，背后旧图保持不透明，不露出底色。 -->
             <Canvas IsHitTestVisible="False">
                 <Border x:Name="TransitionCover" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                    Background="{ThemeResource EgSurfaceAltBrush}" Visibility="Collapsed">
+                    Background="{ThemeResource EgSurfaceAltBrush}">
                     <Grid>
                         <Image x:Name="PreviewImage" Stretch="UniformToFill" />
                         <Image x:Name="TransitionImage" Stretch="UniformToFill" Opacity="0" />
