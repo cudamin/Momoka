@@ -181,6 +181,19 @@ internal static class Program
             Assert.Contains("cancelSource ??= source;", cancel);
             Assert.Contains("cancelSource,", journey);
         });
+        Test("主提示子树在Shell后登记，默认同TabIndex时取消入口保持末序", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            var shell = source.IndexOf("manualHost.Children.Add(shell);", StringComparison.Ordinal);
+            var prompt = source.IndexOf("manualHost.Children.Add(prompt.Surface);", StringComparison.Ordinal);
+            Assert.True(shell >= 0 && prompt > shell);
+            Assert.Equal(-1, source.IndexOf("manualHost.Children.Add(prompt.Surface);", 0, shell, StringComparison.Ordinal));
+            var settings = source.IndexOf("settingsPromptHost.Children.Add(settingsPrompt.Surface);", StringComparison.Ordinal);
+            Assert.True(settings >= 0);
+        });
         Test("键盘流程菜单按键独立挂Flyout分支并在finally解绑，来源仍要求按键增量", () =>
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);

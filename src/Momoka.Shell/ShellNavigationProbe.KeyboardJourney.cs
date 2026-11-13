@@ -73,9 +73,10 @@ internal sealed partial class ShellNavigationProbe
             manualHost = new Grid();
             manualHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             manualHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            manualHost.Children.Add(prompt.Surface);
             Grid.SetRow(shell, 1);
             manualHost.Children.Add(shell);
+            // 平台默认 TabIndex 也是 Int32.MaxValue；同指数按子树次序，工具取消放在产品树之后。
+            manualHost.Children.Add(prompt.Surface);
             _root.Children.Add(manualHost);
             prompt.Show("preparing");
         }

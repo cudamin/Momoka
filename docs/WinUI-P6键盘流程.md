@@ -85,10 +85,12 @@ Gallery固定ItemsViewPage的各ItemContainer模板显式绑定AutomationPropert
 
 `061220368-25576`真实运行第8、9步Enter已经通过，随后在设置焦点定位中收到取消；回执只记录按钮焦点，没有取消输入来源，不能据此断言用户误按。详情实屏的提示行消失而导航下移：正式DetailPage.LiftBackdrop将背景负Margin扩到XamlRoot上沿，后绘制的Shell能跨行盖住原工具提示。
 
-提示仍是工具专属Auto行，现在以正Canvas.ZIndex在兄弟Shell上方绘制，取消Button保持单次Enter/Space可操作且TabIndex排到末尾。只忽略实际KeyStatus.WasKeyDown为真的激活键重复按下，不加时间防抖或禁用取消；Ctrl+Shift+Q保留。`cancel-button`与`cancel-accelerator`先记录来源、当前焦点和阶段，再取消；不能把取消登记为成功。
+提示仍是工具专属Auto行，现在以正Canvas.ZIndex在兄弟Shell上方绘制，取消Button保持单次Enter/Space可操作。平台默认TabIndex本来就是Int32.MaxValue；主工具树先登记Shell再登记提示，设置工具行也追加在原Frame之后，按同指数子树次序将取消入口放在末尾，不只靠显式MaxValue冒称末序。只忽略实际KeyStatus.WasKeyDown为真的激活键重复按下，不加时间防抖或禁用取消；Ctrl+Shift+Q保留。`cancel-button`与`cancel-accelerator`先记录来源、当前焦点和阶段，再取消；不能把取消登记为成功。
 
 设置提示直接插进现有Window.Content根Grid的标题栏与正文之间，保留原Window.Content、标题栏、Frame和SettingsPage父链；finally移除工具行并恢复原行号。没有改正式设置窗口的生命周期或产品控件。每个manual阶段先等待真实提示布局并检查连接、可见性、正层级、窗口bounds及文本实际尺寸，回执增加promptGeometry。几何与层级断言仍不代替原生像素和用户输入；协调会话须在本轮最终构建目视提示和完整后半步骤，取消也单独重验。
 
 固定框架源码`microsoft-ui-xaml 693f472aeaf89c6dff66256ee6fcd453e5d553b8`的`dxaml/xcp/core/core/elements/uielement.cpp::ZIndex/SetZIndex/OnZOrderChanged`将Canvas_ZIndex应用到CUIElement，并对任意父UIElement的child render order置dirty，没有Canvas父类型前件；`GetChildrenInRenderOrder`交给子集合排序。`dxaml/xcp/dxaml/lib/KeyRoutedEventArgs_Partial.cpp::get_KeyStatusImpl`把实际physicalKeyStatus的WasKeyDown暴露给事件；`ButtonBase_Partial.cpp::OnKeyDown`先读取Handled，已处理则跳过按钮激活。这些是实现适用性依据，实际Grid内遮挡仍由实屏核验。
 
 新增3项几何/重复激活/源码接线回归；当前KeyboardJourneyTests24/24、0失败0跳过，编译0警告0错误。首轮Shell有2个委托捕获局部变量未初始化编译错误及连带XAML错误，已先显式初始化两个prompt变量，保留原日志。最终Shell与格式验证结果随本提交记录；不读取真实数据、不驱动桌面、不合主树/发布或远端推送。
+
+后续只读复核固定同提交`dxaml/xcp/core/dll/focusmgr.cpp::GetTabIndex/CompareTabIndex`确认默认Int32.MaxValue且同值按focus children集合排序，因此主manualHost改成先登记Shell、后登记提示；布局Row0/1和正ZIndex保持。新增实际源码登记顺序契约，本树KeyboardJourneyTests25/25；不把TabIndex数值存在当原生Tab末序已测。
