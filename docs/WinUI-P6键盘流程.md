@@ -56,3 +56,11 @@ P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemC
 屏内“取消验收（Ctrl+Shift+Q）”按钮可键盘到达；取消令牌终止当前步骤，finally解绑输入witness、还原工具占位及窗口。只有manual阶段等待上限为5分钟，普通工具仍60秒；manual Case仍15分钟，只有点击这个manual检查入口才将检查台外层驻留延到20分钟，其它检查路径保持8分钟。12步动作/匿名数据/零播放写入/真实按键判据不变，程序焦点起点仍单独记录，不把手动模式算全链纯Tab无需定位。
 
 新增两条中文动作/时限与提示行/取消/解绑契约，当前KeyboardJourneyTests16项通过、0失败0跳过。原生屏内布局、用户输入和取消成功/失败路径须主控当轮验证，不以源码存在冒称已完成。
+
+## 原生搜索控件名称
+
+手动真实链完成登录、账号及切来源到搜索后，SearchInput peer的Name为空而role为Group；实际焦点是内部TextBox、within为true。LibrarySearchBox只有占位提示没有可访问名称，不能靠placeholder当标签。现在正式LibraryPage.SearchInput通过AutomationProperties.Name及现有x:Uid/resw提供“搜索媒体库”；SettingsSearchBox提供“搜索设置”并接resw，保留原占位提示与布局。
+
+已读取Gallery固定`6de91fe...`的AutoSuggestBoxPage.xaml/.cs：基础样例直接AutomationProperties.Name，QuerySubmitted承接用户Enter。框架固定`693f472`的`dxaml/xcp/dxaml/lib/AutoSuggestBox_Partial.cpp`在模板接入时明确读取group的Name并传给内部TextBox（“Add the automation name from the group to the edit box”）。因此不换控件、不复制模板或在探针里补假名；保留原生名称传播。实际探针进一步检查owner及命名TextBox模板层的peer名相等，避免只有外层名而输入仍无名。
+
+资源/XAML链回归新增1项，KeyboardJourneyTests17项全部通过。实际修复后peer名和后续手动流程由根本轮验证；用户此前已执行的6步与后续恢复第7步的运行范围须分开记录，不能写为同一完整运行链通过。

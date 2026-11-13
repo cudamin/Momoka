@@ -298,6 +298,12 @@
   <data name="LibrarySearchBox.PlaceholderText" xml:space="preserve">
     <value>搜索影片、剧集、演员</value>
   </data>
+  <data name="LibrarySearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索媒体库</value>
+  </data>
+  <data name="SettingsSearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索设置</value>
+  </data>
   <data name="MetadataDialog_CommunityRatingBox.Header" xml:space="preserve">
     <value>公众评分</value>
   </data>

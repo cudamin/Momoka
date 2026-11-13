@@ -10,6 +10,30 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("原生搜索名称：媒体库与设置外层有本地化名并保留原生模板传给输入层", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var root = directory!.FullName;
+            System.Xml.Linq.XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var resources = System.Xml.Linq.XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
+            foreach (var (file, name, uid, label) in new[] { ("LibraryPage.xaml", "SearchInput", "LibrarySearchBox", "搜索媒体库"),
+                ("SettingsPage.xaml", "SettingsSearchBox", "SettingsSearchBox", "搜索设置") })
+            {
+                var page = System.Xml.Linq.XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views", file));
+                var control = page.Descendants().Single(node => (string?)node.Attribute(x + "Name") == name);
+                Assert.Equal("AutoSuggestBox", control.Name.LocalName);
+                Assert.Equal(uid, (string?)control.Attribute(x + "Uid"));
+                Assert.Equal(label, (string?)control.Attribute("AutomationProperties.Name"));
+                Assert.False(control.Attributes().Any(attribute => attribute.Name.LocalName == "Template"));
+                var key = uid + ".[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name";
+                Assert.Equal(label, resources.Descendants("data").Single(data => (string?)data.Attribute("name") == key).Element("value")!.Value);
+            }
+            var probe = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            Assert.Contains("KeyboardJourneyProbeRules.RequireName(inputPeer.GetName(), peer.GetName());", probe);
+            Assert.Contains("box.Name == \"TextBox\"", probe);
+        });
         Test("手动键盘提示：12步中文动作与5分钟时限，普通模式仍60秒", () =>
         {
             Assert.Equal(300_000, KeyboardJourneyProbeRules.ManualStageMilliseconds);

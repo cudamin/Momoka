@@ -260,6 +260,14 @@ internal sealed partial class ShellNavigationProbe
                     + $"name={peer.GetName()} role={peer.GetAutomationControlType()}，focus={actual?.Name}/{actual?.GetType().Name}，"
                     + $"within={IsWithin(target)} visible={target.Visibility} bounds={bounds.X:0.#},{bounds.Y:0.#},{bounds.Width:0.#},{bounds.Height:0.#}", error);
             }
+            if (target is AutoSuggestBox)
+            {
+                var input = Descendants(target).OfType<TextBox>().SingleOrDefault(box => box.Name == "TextBox")
+                    ?? throw new InvalidOperationException("搜索控件缺少实际原生输入层");
+                var inputPeer = FrameworkElementAutomationPeer.CreatePeerForElement(input)
+                    ?? throw new InvalidOperationException("搜索输入层缺少自动化peer");
+                KeyboardJourneyProbeRules.RequireName(inputPeer.GetName(), peer.GetName());
+            }
         }
         async Task FocusAsync(Control target, string id)
         {

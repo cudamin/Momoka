@@ -364,6 +364,7 @@
                             <AutoSuggestBox
                                 x:Name="SearchInput"
                                 x:Uid="LibrarySearchBox"
+                                AutomationProperties.Name="搜索媒体库"
                                 HorizontalAlignment="Stretch"
                                 MinHeight="40" CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 VerticalAlignment="Center"
