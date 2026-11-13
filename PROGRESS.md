@@ -1,3 +1,34 @@
+## 2026-11-13 轮播删外圈与折叠侧栏媒体库悬停预览（已合并 master，待交付）
+
+用户三句话（附主页截图）：①删除轮播图外面那一圈卡片；②继续观看改用缩略图；③侧边栏折叠时媒体库鼠标悬停添加
+从左到右展开的 UI 动画，显示在内容区、不遮挡侧边栏，支持查看媒体库名与媒体封面，聚合模式下支持查看更多。
+追问第②条后用户明确「算了，这个你别改了」，**继续观看本批未动**。
+
+**改了什么。** ①轮播按第①条撤掉 2026-11-12 晚那层外圈：`BannerGlow` / `BannerGlowBrush` /
+`PaintBannerGlow` / `BannerSlide.Ambient` / `HomeBanner.AmbientChanged` / Core `CarouselAmbient` 及其 5 条单测、
+`HomeFoldCompletionTests` 的 ambient 断言一起退役；`BannerZone` 的 36/20/13 与 `BannerCard` 的
+`EgCardCornerRadius` 保留（后者改 `Background=Transparent`，只做圆角剪裁）。②新增
+`ShellPage.LibraryPreview.cs`：56 宽图标栏里指针停在库图标上，200ms 后从栏右沿（栏宽 + 8）滑出一块
+160～360 宽的浮层，`ScaleX 0.72→1` 渐显展开、不压侧栏；显示库名、多账号时的来源服务器名与最多三张封面
+（主图 → 缩略图 → 背景图），封面走 `GetLatestAsync`／`HomeLatest.SeriesQuery` 与既有图片缓存；聚合模式显示
+「查看更多」，点它关闭面板并进入该库。指针移入面板取消收起；侧栏展开、选择变化、重建库列表、离树都会关闭并
+取消在飞请求。③测试：`HomeChromeTests` 改判「四边留白 + 圆角 + 无光晕/无卡片底」并新增
+`home-chrome-fixture` 入口；`AgreementsTests` 句柄基线按有意删除 `BannerGlow*`、新增 `LibraryPreview*` 与
+`SidebarLibraryPreviewMore` 逐行更新。
+
+**验证。** Shell/Core 与 Momoka.Tests Release/x64 编译 0 警告 0 错误；`home-carousel-fixture` **35/35**、
+`home-chrome-fixture` **2/2**、`Momoka.HomeFoldCompletionTests` **68/68**、`moviepilot-subscription-fixture`
+**111/111**；`--probe-shell --probe-section shell --screen 1` **15/15、退出 0**
+（`shell-probe-20261113-113242845-35244`），新增用例核对预览面板不压栏、库名、三张封面加载与聚合模式
+「查看更多」显隐；截图 `sidebar-library-preview-760-screen.png`、`sidebar-on-1240-screen.png` 已目视。
+全量 `Momoka.Tests` 未跑成完整一份：先因 `C:\WINDOWS\TEMP` 不可写红 20 项，改到可写临时目录后又被另一会话的
+桌面探针占住 `SelfCheckRun` 锁，按「不结束其他进程」的规则停止本会话这一趟；不把局部通过冒充全量通过。
+
+**边界与待办。** 未真实播放、未写服务器、未推远端；悬停由探针调用真实指针事件处理函数，不移动真实鼠标。
+工作树 `C:/Users/89400/.qoder-cn/worktrees/app/333f9d/Momoka`，分支 `qoder/hero-sidebar-preview`，基于 master
+`39acbff` 合并。本批已进 master，按「分支只合并不交付」的规则不发布、不推远端；待交付验证登记在
+[待交付批次](docs/待交付批次.md)。
+
 ## 2026-11-13 规则：改 UI 先抄 WinUI Gallery 现成实现
 
 用户令：「修改项目规则，改ui时优先查WinUIGallery有没有现成的代码，有就直接抄」。

@@ -156,11 +156,12 @@
     </Page.Resources>
 
     <!--
-      整页就是一个滚动条，第一块是那张圆角卡片轮播。
+      整页就是一个滚动条，第一块是那张四边留白的圆角大图轮播。
 
       这一页从第 40 行起画，和别的页面一样。**2026-11-12 晚起不再把那 40 像素顶回去**：轮播改成四边留白的
-      卡片之后，它本来就不该碰窗口的边（用户令「参考上图给轮播图添加圆角，和四周染色的效果」），标题栏也
-      就不再压在剧照上。从前那条 <c>Margin="0,-40,0,0"</c>（连同 SyncBleed）随通栏版式一起退役。
+      圆角大图之后，它本来就不该碰窗口的边（2026-11-13 用户令「删除轮播图外面那一圈卡片」，外圈光晕已退役，
+      四边留白与圆角保留），标题栏也就不再压在剧照上。从前那条 <c>Margin="0,-40,0,0"</c>（连同 SyncBleed）
+      随通栏版式一起退役。
 
       进度条和提示条都跟着内容滚动。加载条放在 Overlay 已有的顶部留白内，不为短暂读取改变货架高度；
       提示条仍占正常内容流并自带 12 的下边距，关闭后不占位置。
@@ -212,39 +213,19 @@
               Overlay 那 16 的 Padding —— 和关掉轮播那一档（设置 → 主页）一样自然。
             -->
             <!--
-              轮播卡片（2026-11-12 晚按用户令「参考上图给轮播图添加圆角，和四周染色的效果」改）：
-              商店那张头图的样子 —— 一块四边留白、圆角、四周带一圈从剧照里取色的光晕的卡片。
+              轮播大图（2026-11-12 晚「四边留白 + 圆角 + 四周染色」；2026-11-13 按用户令「删除轮播图外面那一圈
+              卡片」去掉外圈）：现在只剩四边留白、圆角的大图本身，外面不再有光晕或卡片圈。四边留白让标题栏
+              回到页面顶上（墨色走主题那支，见 SyncTitleStrip），剧照也不会被窗口上沿切掉一条。
 
-              这一版推翻了 2026-09-11「占满窗口的上半部分（包括窗口标题）」那一版：通栏到窗口顶边时顶上
-              没有边可画圆角、也没有「四周」可染色，所以那两件事和通栏是互斥的。四边留白之后标题栏回到
-              页面顶上、不再压在剧照上（墨色随之回到主题那支，见 SyncTitleStrip），剧照自己也不再被窗口
-              上沿切掉一条。
-
-              三个孩子：
-              · BannerGlow —— 卡片外沿那圈光晕，比卡片大 20（Margin 负 20），底色是一支从剧照算出来的
-                径向渐变（BannerSlide.Ambient → CarouselAmbient → 这里四个停点），换一张就换一个色。
-                它在卡片后面，只从卡片外面那一圈露出来。
-              · BannerCard —— 圆角卡片本身，把带子裁进圆角里（Border 的 CornerRadius 会裁孩子）。
+              两个孩子：
+              · BannerCard —— 圆角剪裁层，把带子裁进圆角里（Border 的 CornerRadius 会裁孩子）。它不画底，
+                也不再有外圈；用户要的就是「图不再像被装在一张卡里」。
               · LibraryOverlay —— 矮窗档压在左下角的那一排，跟着卡片一起被裁。
             -->
             <Grid x:Name="BannerZone" Margin="36,20,13,0">
-                <Border x:Name="BannerGlow" Margin="-20" CornerRadius="24" IsHitTestVisible="False">
-                    <Border.Background>
-                        <!-- 四个停点不给颜色（默认全透明），由 HomePage.PaintBannerGlow 按当前剧照写。
-                             停点位置是「卡片边沿」算出来的：卡片边沿落在归一化半径 0.5 上，所以 0.52 那一档
-                             是紧贴卡片外沿的最浓处，往外 0.82、1 两档散尽。 -->
-                        <RadialGradientBrush x:Name="BannerGlowBrush" Center="0.5,0.5" RadiusX="1" RadiusY="1">
-                            <GradientStop Offset="0" />
-                            <GradientStop Offset="0.52" />
-                            <GradientStop Offset="0.82" />
-                            <GradientStop Offset="1" />
-                        </RadialGradientBrush>
-                    </Border.Background>
-                </Border>
-
                 <Border
                     x:Name="BannerCard"
-                    Background="{StaticResource EgBannerBaseBrush}"
+                    Background="Transparent"
                     CornerRadius="{StaticResource EgCardCornerRadius}">
                     <Grid>
                         <local:HomeBanner

@@ -52,23 +52,6 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private HeroPictureLoader.HeroPixels? _backdropPixels;
     internal HeroPictureLoader.HeroPixels? BackdropPixels => _backdropPixels;
 
-    /// <summary>
-    /// 这张剧照的代表色（卡片四周那圈染色用它，2026-11-12「四周染色的效果」）。第一次问的时候从已经解好的
-    /// 像素里算一遍，之后缓存 —— 换张回来不会重算，而一张 1280 宽的图按 <see cref="CarouselAmbient"/> 的
-    /// 采样预算只有几千个样本。像素还没到（或者这张压根没有图）时是 <see cref="ArtworkAmbient.None"/>。
-    /// </summary>
-    internal ArtworkAmbient Ambient
-    {
-        get
-        {
-            _ambient ??= _backdropPixels is { } pixels
-                ? CarouselAmbient.Sample(pixels.Pixels, pixels.Width, pixels.Height)
-                : ArtworkAmbient.None;
-            return _ambient.Value;
-        }
-    }
-
-    private ArtworkAmbient? _ambient;
     private bool _useGaussian;
     private bool _renderedGaussian;
     private int _effectGeneration;

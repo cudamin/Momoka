@@ -35,6 +35,7 @@ public sealed partial class ShellPage
         {
             if (args.PropertyName == nameof(Favorites.HasItems)) SyncSidebar();
         };
+        InitializeLibraryPreview();
         Loaded += (_, _) =>
         {
             ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
@@ -42,7 +43,11 @@ public sealed partial class ShellPage
             if (_settings is not null) OnSidebarPreferencesChanged(Settings.Ui);
             UpdateSidebarWidth();
         };
-        Unloaded += (_, _) => ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
+        Unloaded += (_, _) =>
+        {
+            ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
+            HideLibraryPreview();
+        };
     }
 
     private void OnSidebarPreferencesChanged(UiSettings ui)
@@ -141,6 +146,7 @@ public sealed partial class ShellPage
         }
         AlignSidebarPaneClip();
         var shown = SidebarShown;
+        if (!shown || Sidebar.IsPaneOpen) HideLibraryPreview();
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
         // 顶上那 40 是标题栏：2026-11-12 晚起画布让开它（见 ShellPage.xaml 里 ContentHost 那一段），
@@ -284,6 +290,7 @@ public sealed partial class ShellPage
     /// </summary>
     private void RebuildSidebarLibraries()
     {
+        HideLibraryPreview();
         foreach (var item in _sidebarLibraries.Values) Sidebar.MenuItems.Remove(item);
         _sidebarLibraries.Clear();
         var at = Sidebar.MenuItems.IndexOf(SidebarLibrariesHeader) + 1;
@@ -297,6 +304,8 @@ public sealed partial class ShellPage
             };
             AutomationProperties.SetAutomationId(item, "SidebarLibrary_" + library.ParentId);
             AutomationProperties.SetName(item, library.Title);
+            item.PointerEntered += OnSidebarLibraryPointerEntered;
+            item.PointerExited += OnSidebarLibraryPointerExited;
             Sidebar.MenuItems.Insert(at++, item);
             _sidebarLibraries.Add(tag, item);
         }
@@ -306,6 +315,7 @@ public sealed partial class ShellPage
 
     private void OnSidebarItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
+        HideLibraryPreview();
         if (!SidebarShown || args.InvokedItemContainer is not NavigationViewItem { Tag: string tag }) return;
         // 页脚那颗设置开的是另一个窗口，不改变这一页的选中目的地（SelectsOnInvoked="False" 已把选中挡在
         // 外面，这里连 GoTo 也不走）。
@@ -328,6 +338,7 @@ public sealed partial class ShellPage
     {
         if (_syncingSidebar || !SidebarShown || args.SelectedItem is not NavigationViewItem { Tag: string tag }
             || tag == "settings") return;
+        HideLibraryPreview();
         GoTo(tag);
     }
 }
