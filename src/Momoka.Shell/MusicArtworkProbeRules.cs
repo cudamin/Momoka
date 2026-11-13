@@ -34,6 +34,17 @@ internal static class MusicArtworkProbeRules
             throw new InvalidOperationException($"音乐端点滚动未完成：requested={requested}, currentMax={currentMax}, actual={actual}, tail={tail}");
     }
 
+    internal static void HeadSample(bool correlationCompleted, double actualOffset, string expectedItem, string actualItem,
+        double top, double height, double viewportHeight)
+    {
+        if (!correlationCompleted || !double.IsFinite(actualOffset) || Math.Abs(actualOffset) >= 1
+            || string.IsNullOrWhiteSpace(expectedItem) || expectedItem != actualItem
+            || !double.IsFinite(top) || !double.IsFinite(height) || height <= 0
+            || !double.IsFinite(viewportHeight) || viewportHeight <= 0
+            || top + height <= 0 || top >= viewportHeight)
+            throw new InvalidOperationException("音乐首屏样本未完成回首项或沿用前组锚点");
+    }
+
     internal static void Viewport(double hostHeight, double viewportHeight)
     {
         if (!double.IsFinite(hostHeight) || !double.IsFinite(viewportHeight) || hostHeight <= 0

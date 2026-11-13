@@ -144,6 +144,17 @@ ItemsView.xaml的ScrollView.Content就是内部ItemsRepeater；读取这个Conte
 新增3例生产源码夹具覆盖无模板Loaded→晚Content、模板更换、离页已捕获通知及重复Loaded，
 预算保持原样，真实验证由协调会话重新运行。
 
+协调会话`061220368-25576`复验已证明productionSame为true，ElementClearing后的需求和Source为false；
+Albums100初/尾/返均26个实际layout项，所有图片需求不超过当时realized，原池残留已解除。
+同次Albums1000首屏读到42个realized而超34预算，原红保留；容器mappedIndex为4–45，
+TryGetElement均为同对象，Y覆盖-925到1352，说明该样本保留了前组滚动锚点，不能标作从0开始的首屏。
+当前工具每组替换匿名元数据后先把焦点放页头，墙通过实际ScrollTo(0)关联完成并等待首项身份、
+可见bounds和Focus引起的BringIntoView全部落定后才采initial；曲目同样先真实ScrollIntoView首项。
+初始scroll日志保留correlationCompleted，HeadSample拒绝旧offset、未完成关联、错项、屏外bounds及无效读数。
+增加1个规则回归后图片专项36/36、0失败0跳过；Shell、格式和原生复验各按本轮证据记录。
+34预算、图片/持图/wanted/live均不超过actual realized、离页清理等判据未变，
+没有改生产缓存策略或扫描回收池。归一化路线后的首图时间包含回首项与焦点落定，不与旧首图时间冒称速度提升。
+
 同轮P4滚尾请求13485、布局重估后currentMax13232、actual13232、Idle，
 平台已夹到最终底部而共用静态offset断言误报；当前仅音乐端点helper按真实correlation等完成，
 精确核actual==clamp(requested,currentMax)且tail==currentMax，并继续末项ID/Focus/严格bounds。

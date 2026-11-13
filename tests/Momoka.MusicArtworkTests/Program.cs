@@ -482,6 +482,19 @@ internal static class MusicArtworkProgram
             Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.EndOffset(13485, 14000, 13485, true));
         });
 
+        Test("音乐首屏样本：拒绝前组offset锚点、旧项和未完成滚动关联", () =>
+        {
+            Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "new-0", "new-0", 0, 229, 589);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(false, 0, "new-0", "new-0", 0, 229, 589));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 925, "new-0", "new-0", -925, 229, 589));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "new-0", "old-0", 0, 229, 589));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "new-0", "new-0", 589, 229, 589));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, double.NaN, "new-0", "new-0", 0, 229, 589));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "new-0", "new-0", 0, 229, double.NaN));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "new-0", "new-0", 0, 229, 0));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "", "", 0, 229, 589));
+        });
+
         Case("音乐池页面：已Release的迟到Loaded不能重订阅，附加恢复仅订阅一次", async () =>
         {
             await using var f = new CardImageFixture();

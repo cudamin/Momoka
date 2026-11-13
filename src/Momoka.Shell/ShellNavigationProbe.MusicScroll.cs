@@ -52,6 +52,7 @@ internal sealed partial class ShellNavigationProbe
                 correlation,
                 before,
                 after = MusicScrollState(scroll),
+                correlationCompleted = correlation == -1 || seen.Contains(correlation),
                 trace
             });
             scroll.ScrollCompleted -= OnCompleted;

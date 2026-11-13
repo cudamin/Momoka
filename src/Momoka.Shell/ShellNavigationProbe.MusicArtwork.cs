@@ -84,6 +84,9 @@ internal sealed partial class ShellNavigationProbe
                 {
                     foreach (var card in page.ViewModel.Rows) card.AbandonPoster();
                     page.ViewModel.Rows.Clear();
+                    // 上一组末项/首项仍占焦点时，平台会把新集合保持在原anchor。
+                    // 每组从页头焦点及真实offset0开始，避免把上组滚动位置带进“首屏”样本。
+                    Require(Get<Button>(page, "RefreshButton").Focus(FocusState.Programmatic), "音乐量测页头焦点未恢复");
                     page.ViewModel.EmptyVisibility = Visibility.Collapsed;
                     var wall = MusicCatalog.UsesCoverWall(section);
                     var type = section switch
@@ -132,7 +135,14 @@ internal sealed partial class ShellNavigationProbe
                         }
                         Require(scroll is not null, "音乐墙没有原生ScrollView");
                         MusicArtworkProbeRules.Viewport(outer.ActualHeight, scroll!.ViewportHeight);
+                        await ScrollMusicWallAsync(scroll, false, $"{section}-{total}-initial");
+                        var headCard = await FocusMusicItemAsync(wallView, 0, prefix + "0", $"{section}-{total}-initial");
+                        var headElement = (FrameworkElement)repeater.TryGetElement(0)!;
+                        var headPoint = headElement.TransformToVisual(scroll).TransformPoint(new());
+                        MusicArtworkProbeRules.HeadSample(true, scroll.VerticalOffset, prefix + "0", headCard.Item.Id,
+                            headPoint.Y, headElement.ActualHeight, scroll.ViewportHeight);
                     }
+                    else await ScrollMusicTracksAsync(list, 0, $"{total}-initial");
                     await UntilAsync(() => Descendants(wall ? wallView : list).OfType<Image>()
                         .Any(image => CardArtwork.GetItem(image)?.Item.Id.StartsWith(prefix, StringComparison.Ordinal) == true && image.Source is not null));
                     var firstImageMs = first.Elapsed.TotalMilliseconds;
