@@ -90,6 +90,46 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    /// <summary>
+    /// 空搜索框切到标题栏「收藏」：两者是同一个 <see cref="LibraryPage"/> 类型，Frame 会复用页面实例。
+    /// 词前后都是空串，<c>SearchText</c> 的 setter 不发通知，搜索专属那几块只能靠 <c>Attach</c> 重算。
+    /// 2026-11-13 用户截图：收藏页上整页只剩「最近搜索」，收藏内容被挤到屏幕下方。
+    /// </summary>
+    private async Task FoundationFavoritesAfterEmptySearchAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var frame = new Frame();
+        _root.Children.Add(frame);
+        try
+        {
+            ResizeProbeClient(1100, 760);
+            frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
+            var search = (LibraryPage)frame.Content;
+            await UntilAsync(() => search.IsReady && !search.ViewModel.Busy);
+            await LayoutAsync(search);
+            Require(Get<Grid>(search, "RecentSearchSection").Visibility == Visibility.Visible, "空搜索页没有摆出最近搜索");
+
+            frame.Navigate(typeof(LibraryPage), LibraryRequest.Favorites(fixture.Services));
+            var favorites = (LibraryPage)frame.Content;
+            var reused = ReferenceEquals(search, favorites);
+            await UntilAsync(() => favorites.IsReady && !favorites.ViewModel.Busy);
+            await LayoutAsync(favorites);
+            Require(reused, "收藏页没有复用同一个页面实例，这一条测不到绑定残留");
+            Require(Get<Grid>(favorites, "RecentSearchSection").Visibility == Visibility.Collapsed,
+                "收藏页仍摆着最近搜索，收藏内容被挤到屏幕下方");
+            Require(favorites.ViewModel.SearchVisibility == Visibility.Collapsed, "收藏页仍显示搜索框");
+            Require(Get<ScrollViewer>(favorites, "TableScroll").Visibility == Visibility.Visible, "收藏页的结果区没有接位");
+            await SaveProbeScreenAsync("foundation-favorites-after-empty-search-screen.png");
+        }
+        finally
+        {
+            (frame.Content as IShellContent)?.Release();
+            _root.Children.Remove(frame);
+            ResizeProbeClient(1420, 980);
+        }
+    }
+
     private async Task FoundationHomeDirectoryReturnAsync()
     {
         using var fixture = CreateFixture();

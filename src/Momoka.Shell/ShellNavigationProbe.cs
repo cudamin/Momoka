@@ -162,6 +162,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("电视节目预告日期分组、加载动画、分页和恢复", LibraryUpcomingAsync, 45);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("当前搜索来源、迟到旧查询与 Frame 返回（匿名UI）", FoundationSearchReturnAsync, 45, section: ShellProbeSections.Search);
+            await CaseAsync("空搜索切收藏：最近搜索退场、收藏结果接位（匿名UI）", FoundationFavoritesAfterEmptySearchAsync, 45, section: ShellProbeSections.Search);
             await CaseAsync("剧页换季只换锚点与集带起点", EpisodeSeasonAnchorAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
             await CaseAsync("分页失败立即停止", PagingFailureAsync);

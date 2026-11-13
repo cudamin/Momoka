@@ -35,6 +35,9 @@ public sealed partial class CardShelf : ObservableObject
     private readonly bool _wide;
     private readonly bool _indicators;
     private readonly bool _sourceLine;
+
+    /// <summary>这一排的宽卡先要剧集那一层的缩略图；见 <see cref="Views.CardItem"/> 的同名参数。</summary>
+    private readonly bool _preferShowThumb;
     private Func<EmbyItem, string?>? _cardSubtitle;
     private Func<EmbyItem, string?>? _cardTitle;
 
@@ -65,7 +68,7 @@ public sealed partial class CardShelf : ObservableObject
     /// </param>
     internal CardShelf(string title, EmbyImageStore images, int width, bool wide, bool indicators = true,
         string? libraryId = null, HomeLayout.HomeRowTarget target = HomeLayout.HomeRowTarget.None,
-        bool sourceLine = false)
+        bool sourceLine = false, bool preferShowThumb = false)
     {
         Title = title;
         _images = images;
@@ -73,6 +76,7 @@ public sealed partial class CardShelf : ObservableObject
         _wide = wide;
         _indicators = indicators;
         _sourceLine = sourceLine;
+        _preferShowThumb = preferShowThumb;
         LibraryId = libraryId;
         Target = target;
 
@@ -191,7 +195,7 @@ public sealed partial class CardShelf : ObservableObject
         _cardTitle = null;
         Cards.ResetDeferred(items, item => new CardItem(item, _images, _width, _wide,
             subtitle?.Invoke(item), _indicators, page is not null && ItemDetail.IsCurrentEpisode(item, page),
-            sourceLine: _sourceLine));
+            sourceLine: _sourceLine, preferShowThumb: _preferShowThumb));
     }
 
     /// <summary>
@@ -281,7 +285,7 @@ public sealed partial class CardShelf : ObservableObject
 
         foreach (var (item, subtitle) in items)
             Cards.Add(new CardItem(item, _images, _width, _wide, subtitle, _indicators,
-                sourceLine: _sourceLine));
+                sourceLine: _sourceLine, preferShowThumb: _preferShowThumb));
     }
 
     /// <summary>
@@ -291,7 +295,7 @@ public sealed partial class CardShelf : ObservableObject
     /// </summary>
     internal CardItem NewCard(EmbyItem item) =>
         new(item, _images, _width, _wide, _cardSubtitle?.Invoke(item), _indicators,
-            title: _cardTitle?.Invoke(item), sourceLine: _sourceLine);
+            title: _cardTitle?.Invoke(item), sourceLine: _sourceLine, preferShowThumb: _preferShowThumb);
 
     /// <summary>
     /// The same, for a shelf drawn as 列表 rows rather than as cards — 详情页's 单集 list. Its own path
@@ -312,6 +316,6 @@ public sealed partial class CardShelf : ObservableObject
         foreach (var item in items)
             Cards.Add(new CardItem(
                 item, _images, _width, _wide, subtitle: null, _indicators,
-                ItemDetail.IsCurrentEpisode(item, page)));
+                ItemDetail.IsCurrentEpisode(item, page), preferShowThumb: _preferShowThumb));
     }
 }

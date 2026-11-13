@@ -15,6 +15,60 @@
 临时复制父树产品文件仅供本树编译，提交前已按原 Git blob 定点写回并删除临时新 record，没有暂存产品。验证对应候选源 SHA256 `2D33EBA48129DDF04D082BE47967C8BEBF7125A869581C35819B29AD3007A293`：Core/专项 Release 0 警告 0 错误，26/26、0 失败 0 跳过；新来源大小写反例曾 25/26，通过修复后重编再全过。定向 `format whitespace`、文本/差异检查及 `run-regressions.ps1 -List` 清单一致性通过，当前清单 81 专项。Copy-Item 保留时间戳曾让增量编译使用旧链接输出，本轮已更新仅验证副本时间后重编，旧红保留为过程证据。
 
 没有运行原生 UI、网络、真实账号、媒体写入或播放，不以本专项证明外层原生按钮同步/渲染。待父会话挑拣测试提交、在最终产品树重新编译本专项及按批次规则合入 master；不发布或上传远端。
+## 2026-11-13 轮播删外圈与折叠侧栏媒体库悬停预览（已合并 master，待交付）
+
+用户三句话（附主页截图）：①删除轮播图外面那一圈卡片；②继续观看改用缩略图；③侧边栏折叠时媒体库鼠标悬停添加
+从左到右展开的 UI 动画，显示在内容区、不遮挡侧边栏，支持查看媒体库名与媒体封面，聚合模式下支持查看更多。
+追问第②条后用户明确「算了，这个你别改了」，**继续观看本批未动**。
+
+**改了什么。** ①轮播按第①条撤掉 2026-11-12 晚那层外圈：`BannerGlow` / `BannerGlowBrush` /
+`PaintBannerGlow` / `BannerSlide.Ambient` / `HomeBanner.AmbientChanged` / Core `CarouselAmbient` 及其 5 条单测、
+`HomeFoldCompletionTests` 的 ambient 断言一起退役；`BannerZone` 的 36/20/13 与 `BannerCard` 的
+`EgCardCornerRadius` 保留（后者改 `Background=Transparent`，只做圆角剪裁）。②新增
+`ShellPage.LibraryPreview.cs`：56 宽图标栏里指针停在库图标上，200ms 后从栏右沿（栏宽 + 8）滑出一块
+160～360 宽的浮层，`ScaleX 0.72→1` 渐显展开、不压侧栏；显示库名、多账号时的来源服务器名与最多三张封面
+（主图 → 缩略图 → 背景图），封面走 `GetLatestAsync`／`HomeLatest.SeriesQuery` 与既有图片缓存；聚合模式显示
+「查看更多」，点它关闭面板并进入该库。指针移入面板取消收起；侧栏展开、选择变化、重建库列表、离树都会关闭并
+取消在飞请求。③测试：`HomeChromeTests` 改判「四边留白 + 圆角 + 无光晕/无卡片底」并新增
+`home-chrome-fixture` 入口；`AgreementsTests` 句柄基线按有意删除 `BannerGlow*`、新增 `LibraryPreview*` 与
+`SidebarLibraryPreviewMore` 逐行更新。
+
+**验证。** Shell/Core 与 Momoka.Tests Release/x64 编译 0 警告 0 错误；`home-carousel-fixture` **35/35**、
+`home-chrome-fixture` **2/2**、`Momoka.HomeFoldCompletionTests` **68/68**、`moviepilot-subscription-fixture`
+**111/111**；`--probe-shell --probe-section shell --screen 1` **15/15、退出 0**
+（`shell-probe-20261113-113242845-35244`），新增用例核对预览面板不压栏、库名、三张封面加载与聚合模式
+「查看更多」显隐；截图 `sidebar-library-preview-760-screen.png`、`sidebar-on-1240-screen.png` 已目视。
+全量 `Momoka.Tests` 未跑成完整一份：先因 `C:\WINDOWS\TEMP` 不可写红 20 项，改到可写临时目录后又被另一会话的
+桌面探针占住 `SelfCheckRun` 锁，按「不结束其他进程」的规则停止本会话这一趟；不把局部通过冒充全量通过。
+
+**边界与待办。** 未真实播放、未写服务器、未推远端；悬停由探针调用真实指针事件处理函数，不移动真实鼠标。
+产品提交 `39c8987`，以 ff 方式合入 master。工作树 `C:/Users/89400/.qoder-cn/worktrees/app/333f9d/Momoka`，
+分支 `qoder/hero-sidebar-preview`；按「分支只合并不交付」的规则不发布、不推远端，待交付验证登记在
+[待交付批次](docs/待交付批次.md) 第 7 条。rebase 时 PROGRESS 顶部的规则条目与本条各保留，文档已按最新 master 对齐。
+
+## 2026-11-13 规则：改 UI 先抄 WinUI Gallery 现成实现
+
+用户令：「修改项目规则，改ui时优先查WinUIGallery有没有现成的代码，有就直接抄」。
+
+**改了什么**：`CLAUDE.md`「WinUI 官方优先与偏离确认」在「多参考官方设计指南」后加一条：动手改任何界面前，先在 WinUI Gallery 源码里找同一控件、同一交互的现成实现，能用的就照抄那一份（保留资源键、附加属性、事件接线、焦点与无障碍语义，只改命名空间、项目字号刻度与 `Eg*Style`、绑定与生命周期归属），注释留 Gallery 路径与固定提交；没有现成实现或样例依赖本项目不用的版本／实验包时，才按「默认顺序」自行组合或自定义，并在 PROGRESS 记一行查过哪些路由、为什么不能抄。同步 `momoka-winui-shell` 技能第 3 步（copy-first）、其 `gallery-source-map.md` 的许可证条目，以及 `docs/开发与验证.md`「WinUI 重构与规则入口」那一段。
+
+**检查**：`py tools/check-main-tree-policy.py --self-test` 通过（4 份文档、51 条反例）；`tools/check-diff.ps1 -Paths` 四个文件的行尾、末尾换行、BOM 与空白通过。纯规则、技能说明与文档改动，未构建、未跑测试、未跑探针、未发布。
+
+## 2026-11-13 收藏页残留最近搜索（已合并，待交付）
+
+用户截图：收藏页整页只剩「最近搜索」，收藏卡片一个也看不到。原因是 Frame 复用同一个 `LibraryPage` 实例：空搜索框切到收藏时 `SearchText` 前后都是空串，生成的 setter 不发通知，`RecentSearchVisibility`／`SearchResultsVisibility` 停在搜索页的值上；最近搜索块占着结果区第一行，还把下面的收藏挤到屏外。`Attach` 现在拿到新请求后按新身份重算这几块显隐（`RaiseSearchVisibility`），并补上同一场景的空态刷新。
+
+**验证**：Shell／Tests Release 编译 0 警告 0 错误；`library-resume-paging-fixture` **52/52**（新增「空搜索页切到收藏页」用例，断言两类显隐都发通知）；`--probe-shell --probe-section search --screen 2` **13/13**（新增「空搜索切收藏」，先断言 Frame 确实复用同一页面实例，再断言最近搜索退场、结果区接位；截图 `foundation-favorites-after-empty-search-screen.png` 上收藏卡片正常）。产品 `5a2acee`，合并 `bf3f15c`，台账 `cfeb799` 记第 5 条待交付。主树未发布、未推远端。本聊天工作树 `WorkBuddy/Worktrees/Momoka/master-a6bdca58` 与分支 `workbuddy/master-a6bdca58` 的内容已全部进入 master，待本会话关闭后按同一条口径删除（这一段只存在于 master，分支不用跟着更新）。
+
+## 2026-11-13 主页「继续观看」那一排改用剧集缩略图
+
+用户令「主页继续观看那一列改用缩略图」（附当前主页那一排与「修改媒体封面图 — 青之箱」的缩略图两图）。只读查询真实 Emby 4.10.1 的 Resume 返回：续播条目全是单集，单集只有 `Primary`（从视频截的剧照），`Thumb` 只挂在剧那一层（`ParentThumbItemId`/`ParentThumbImageTag`）；「青之箱」的剧缩略图正是用户圈出的那张宽图。所以改的是取图来源，卡片形状不变（那一排本来就是 16:9 宽卡）。
+
+**改了什么**：新增 `ItemArtwork.InheritedThumb`（集/季借剧集那一层的缩略图，电影与剧不借媒体库）、`HomeLayout.WantsShowThumb`（只有 `resume` 打开）、`CardItem`/`CardShelf` 的 `preferShowThumb`；主页 `BuildShelves` 只给继续观看传这个开关。卡片候选顺序变成「剧集缩略图 → 条目自己的缩略图/背景图/剧照」，取不到照旧往下退。接下来看、继续观看那一页（库页缩略图视图）、轮播和悬停预览不动。
+
+**验证**：分支合入最新 master 后 Shell/Core Release/x64 编译 0 警告 0 错误；主测试 **5045/5045、0 失败 0 跳过**（新增 `ItemArtworkTests` 四条、`HomeLayoutTests` 一条、页面契约三条）；`Momoka.PageContractTests` **226/226**。环境注意：本会话 shell 的 `TEMP=/tmp` 会让 .NET 回退到 `C:\WINDOWS\TEMP`，主测试里的自检复制与下载到设备用例因此先红；改用用户临时目录后全绿。未做真实主页截图（按规则留到交付），未播放、未写服务器、未推远端。
+
+**合入状态**：产品 `50366e0`，合入 master `5144aed`（ff）。待交付台账第 6 条。
 
 ## 2026-11-13 P4–P8 合并收尾与最后工具回执
 

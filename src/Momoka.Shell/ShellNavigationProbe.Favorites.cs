@@ -164,7 +164,8 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 820);
                 await LayoutAsync(shell);
                 var center = banner.TransformToVisual(shell).TransformPoint(new(0, 0));
-                // 2026-11-12 晚：轮播是四边留白的圆角卡片，上沿落在标题栏底下 20 处（BannerZone 的 36,20,13,0）。
+                // 2026-11-12 晚：轮播是四边留白的圆角大图（外圈光晕 2026-11-13 已删），上沿落在标题栏底下 20 处
+                // （BannerZone 的 36,20,13,0）。
                 Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y - (HomePage.ChromeHeight + 20)) < 1,
                     $"轮播没有落在标题栏底下 20 处（实测 {center.Y:0}）");
                 Require(favoritesButton.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,

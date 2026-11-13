@@ -107,6 +107,13 @@ public sealed class CardItem : INotifyPropertyChanged
 
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
     private readonly IReadOnlyList<string> _imageTypes;
+
+    /// <summary>
+    /// 这一张卡先要剧集那一层的缩略图（见 <see cref="ItemArtwork.InheritedThumb"/>）。主页「继续观看」那一排
+    /// 打开它：单集自己只有剧照，而那一排要的是这个剧的缩略图。
+    /// </summary>
+    private readonly bool _preferShowThumb;
+
     private ArtworkRef? _loadedArtwork;
 
     /// <summary>
@@ -328,7 +335,8 @@ public sealed class CardItem : INotifyPropertyChanged
         bool episodeFrame = false,
         Action? navigate = null,
         string? localPosterPath = null,
-        Func<CancellationToken, Task<byte[]>>? fetchPoster = null)
+        Func<CancellationToken, Task<byte[]>>? fetchPoster = null,
+        bool preferShowThumb = false)
     {
         _item = item;
         _images = images;
@@ -356,6 +364,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _note = note;
         _indicators = indicators;
         _sourceLine = sourceLine;
+        _preferShowThumb = preferShowThumb;
         IsCurrentEpisode = current;
 
         _imageTypes = imageTypes is { Count: > 0 } wanted
@@ -1174,6 +1183,7 @@ public sealed class CardItem : INotifyPropertyChanged
     private IEnumerable<ArtworkRef> PosterCandidates()
     {
         if (_artwork is { } explicitArtwork) { yield return explicitArtwork; yield break; }
+        if (_preferShowThumb && ItemArtwork.InheritedThumb(_item) is { } inherited) yield return inherited;
         foreach (var type in _imageTypes.Distinct(StringComparer.OrdinalIgnoreCase))
             if (EmbyImageStore.TagFor(_item, type) is { } tag)
                 yield return new(EmbyImageStore.ImageItemId(_item, type), type, tag);

@@ -352,17 +352,6 @@ public sealed partial class HomeBanner : UserControl
     public event EventHandler<BannerSlide>? SlideDropped;
 
     /// <summary>
-    /// 台上那张的代表色（2026-11-12「四周染色的效果」）：换人时、以及那一张的像素迟到时各报一次。
-    /// 页面拿它在卡片外沿画一圈光晕 —— 颜色本身是 Core 里 <see cref="CarouselAmbient"/> 从像素算出来的，
-    /// 这条带子只负责「此刻台上是谁」。
-    /// <para>
-    /// 传的是 <c>Transparent</c> 表示这一张没有可借的颜色（没有图、或者整张图都是近黑）：页面据此把光晕收掉，
-    /// 而不是拿上一张的颜色继续画。
-    /// </para>
-    /// </summary>
-    internal event Action<Windows.UI.Color>? AmbientChanged;
-
-    /// <summary>
     /// 这条带放哪几张。整份换掉而不是往里增删：一次读取重建一批 <see cref="BannerSlide"/>，上一批的图连着解码
     /// 出来的画面一起丢掉（<see cref="Apply"/>），这样「换了一批」就只有一个入口。
     /// </summary>
@@ -445,7 +434,6 @@ public sealed partial class HomeBanner : UserControl
             LogoImage.Source = null;
             LogoRow.Visibility = Visibility.Collapsed;
             SlideChanged?.Invoke(this, null);
-            AmbientChanged?.Invoke(Microsoft.UI.Colors.Transparent);
             SyncArrows();
             SyncTimer();
             return;
@@ -524,16 +512,6 @@ public sealed partial class HomeBanner : UserControl
 
         // 最后一句：上面那几件都是这条带自己的事，这一声是给外面的听者的。
         SlideChanged?.Invoke(this, slide);
-        PublishAmbient();
-    }
-
-    /// <summary>把台上那张的代表色报给页面（见 <see cref="AmbientChanged"/>）。没有可借的颜色就报透明。</summary>
-    private void PublishAmbient()
-    {
-        var ambient = _current?.Ambient ?? ArtworkAmbient.None;
-        AmbientChanged?.Invoke(ambient.IsNone
-            ? Microsoft.UI.Colors.Transparent
-            : Windows.UI.Color.FromArgb(0xFF, ambient.R, ambient.G, ambient.B));
     }
 
     /// <summary>台上那张的订阅撤掉。换人和离开树都走这里。</summary>
@@ -886,7 +864,7 @@ public sealed partial class HomeBanner : UserControl
     /// 整条带都是自己的：继续观看从前「压在图的下半截上」，后来当过第一屏右边那一栏（那一栏 2026-09-08 随着
     /// 「移除轮播图右边的媒体库」删掉了），所以字块不用让开谁 —— 底边那排分页横条从前也站在这条带上，
     /// 2026-09-13「删除封面中心下方的那个组件」整个删了。带宽就是卡片自己的宽（2026-11-12 晚起这一页是
-    /// 四边留白的圆角卡片，带子跟着卡片走，不再通栏到窗口的边）。
+    /// 四边留白的圆角大图，带子跟着那块圆角剪裁走，不再通栏到窗口的边）。
     /// </para>
     /// <para>
     /// 一屏是带高的上限（超宽屏上「带宽 × 六成 ÷ 16 × 9」算出来会比一屏还高），问的是 <c>XamlRoot.Size</c>，
@@ -1019,8 +997,6 @@ public sealed partial class HomeBanner : UserControl
         if (e.PropertyName == nameof(BannerSlide.Picture))
         {
             Paint(slide.Picture);
-            // 图到了，像素也就在了：四周那圈染色的颜色此刻才算得出来（见 BannerSlide.Ambient）。
-            PublishAmbient();
         }
         else if (e.PropertyName == nameof(BannerSlide.Logo)) PaintLogo(slide);
     }

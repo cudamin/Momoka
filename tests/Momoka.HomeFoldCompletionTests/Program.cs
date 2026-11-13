@@ -97,14 +97,13 @@ internal static class Program
             Check(clock.Running, "reattaching multiple slides resumes automatic paging");
         }
         ));
-        Cases.Add(("banner/empty-list-clears-ambient-and-clock", () =>
+        Cases.Add(("banner/empty-list-clears-clock", () =>
         {
             var clock = new BannerClockFixture();
             clock.Apply([new BannerSlide("first"), new BannerSlide("second")]);
             Check(clock.Running, "nonempty carousel runs");
             clock.Apply([]);
             Check(!clock.Running, "empty carousel cannot retain paging timer");
-            Equal(Microsoft.UI.Colors.Transparent, clock.AmbientReadings.Single(), "empty carousel publishes transparent ambient");
         }
         ));
         Cases.Add(("banner/loading-placeholder-updates-before-same-null-shortcut", () =>

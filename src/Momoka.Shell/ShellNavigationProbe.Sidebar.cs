@@ -123,7 +123,7 @@ internal sealed partial class ShellNavigationProbe
                 && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
             Require(shell.LibraryViews.Count == 3 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>
                 item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 3, "媒体库数量或音乐入口错误");
-            Require(home.BannerCardRead().Ok, "侧栏模式轮播不是四边留白的圆角卡片：" + home.BannerCardRead().Detail);
+            Require(home.BannerCardRead().Ok, "侧栏模式轮播不是四边留白的圆角大图：" + home.BannerCardRead().Detail);
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
@@ -202,6 +202,42 @@ internal sealed partial class ShellNavigationProbe
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "760 compact");
             await SaveProbeScreenAsync("sidebar-compact-760-screen.png");
+
+            // 折叠侧栏的媒体库悬停预览（2026-11-13 用户令）：沿图标栏右沿展开、不压栏，库名/封面在，
+            // 聚合模式下多一颗「查看更多」。这里走真实的指针进入/离开事件，只把指针本身留给验证者。
+            var preview = Get<Border>(shell, "LibraryPreviewPanel");
+            var previewCovers = Get<Grid>(shell, "LibraryPreviewCovers");
+            var previewTitle = Get<TextBlock>(shell, "LibraryPreviewTitle");
+            var previewMore = Get<Button>(shell, "LibraryPreviewMore");
+            var previewItem = nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag);
+            var aggregate = fixture.Settings.AggregateMode;
+            try
+            {
+                fixture.Settings.AggregateMode = true;
+                Call(shell, "OnSidebarLibraryPointerEntered", previewItem, null);
+                await UntilAsync(() => preview.Visibility == Visibility.Visible && previewCovers.Children.Count == 3);
+                await LayoutAsync(preview);
+                Require(Left(preview, shell) >= host.ActualWidth + 7 && Top(preview, shell) >= HomePage.ChromeHeight - 1,
+                    $"媒体库悬停预览压住侧栏或跑出内容区：left={Left(preview, shell):0} rail={host.ActualWidth:0} top={Top(preview, shell):0}");
+                Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
+                Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
+                await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));
+                await SaveProbeScreenAsync("sidebar-library-preview-760-screen.png");
+
+                Call(shell, "OnSidebarLibraryPointerExited", previewItem, null);
+                await UntilAsync(() => preview.Visibility == Visibility.Collapsed);
+
+                fixture.Settings.AggregateMode = false;
+                Call(shell, "OnSidebarLibraryPointerEntered", previewItem, null);
+                await UntilAsync(() => preview.Visibility == Visibility.Visible);
+                await LayoutAsync(preview);
+                Require(previewMore.Visibility == Visibility.Collapsed, "非聚合模式仍显示「查看更多」");
+            }
+            finally
+            {
+                fixture.Settings.AggregateMode = aggregate;
+                Call(shell, "HideLibraryPreview");
+            }
 
             ResizeProbeClient(600, 650);
             shell.ShowAccount("用于验证窄窗的很长很长的账号名称", "名称很长的离线服务器");

@@ -165,18 +165,15 @@ public sealed partial class HomePage : Page, IShellContent
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
 
-        // 这一页的两件事都挂在轮播上：卡片外沿那圈染色跟着台上那张的颜色走（PaintBannerGlow），竖滚动条
-        // 不从卡片上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，2026-10-01）。
-        // 两件都只在带子可见时有意义 —— 没有幻灯片时 Apply 会把 Visibility 收起来，各条都在那之后重新对一遍。
+        // 竖滚动条不从轮播图上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，
+        // 2026-10-01）。它只在带子可见时有意义 —— 没有幻灯片时 Apply 会把 Visibility 收起来，过一拍再对一遍。
         //
-        // 2026-11-12 晚起不再有「把外壳那 40 像素顶回去」那一条（SyncBleed）：轮播改成四边留白的圆角卡片
-        // 之后它本来就不碰窗口的边，标题栏也不必再按「压在图上的浅墨」画（见 PaintInk）。
-        Banner.Loaded += (_, _) => { PaintBannerGlow(); PlaceScrollBar(); };
+        // 2026-11-12 晚起不再有「把外壳那 40 像素顶回去」那一条（SyncBleed）：轮播改成四边留白之后它本来
+        // 就不碰窗口的边，标题栏也不必再按「压在图上的浅墨」画（见 PaintInk）。
+        Banner.Loaded += (_, _) => PlaceScrollBar();
         Banner.SizeChanged += (_, _) => PlaceScrollBar();
-        Banner.AmbientChanged += color => { _ambientInk = color; PaintBannerGlow(); };
         Banner.SlideChanged += (_, _) =>
         {
-            PaintBannerGlow();
             PaintInk();
             PlaceScrollBar();
         };
@@ -353,16 +350,17 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 自检：轮播是一块四边留白的圆角卡片，不是通栏。
+    /// 自检：轮播是一块四边留白的圆角大图，不是通栏，也不带外圈卡片或光晕。
     /// <para>
-    /// 2026-11-12 晚按用户令「参考上图给轮播图添加圆角，和四周染色的效果」改：卡片左沿让出页脊线（36）、
+    /// 2026-11-12 晚按用户令「参考上图给轮播图添加圆角，和四周染色的效果」改：左沿让出页脊线（36）、
     /// 右沿让出滚动条那条车道（13）、上沿落在标题栏底下（≥ 40，也就是页面自己的第 0 行再加 20 的那一口气），
-    /// 整块都圆角。量的是 Banner 在窗口里的位置与 BannerCard 的圆角 —— 卡片和带子现在同宽（带子在卡片里），
-    /// 所以两者的内缩是同一个数。
+    /// 整块都圆角。2026-11-13 用户令「删除轮播图外面那一圈卡片」之后，四边留白与圆角保留，外面那圈光晕
+    /// 与卡片圈撤掉。量的是 Banner 在窗口里的位置与 BannerCard 的圆角 —— 带子在剪裁层里，所以两者的内缩
+    /// 是同一个数。
     /// </para>
     /// <para>
-    /// 判据与上一版正好相反：上一版（2026-09-11「占满窗口的上半部分（包括窗口标题）」）要求左、上、右三条
-    /// 都贴到 0。谁把 BannerZone 的边距删掉、或者把卡片拆了换回通栏，这一条当场红。
+    /// 判据与通栏版（2026-09-11「占满窗口的上半部分（包括窗口标题）」）正好相反：那一版要求左、上、右三条
+    /// 都贴到 0。谁把 BannerZone 的边距删掉、或者把圆角剪裁层拆了换回通栏，这一条当场红。
     /// </para>
     /// </summary>
     internal (bool Ok, string Detail) BannerCardRead()
@@ -389,37 +387,8 @@ public sealed partial class HomePage : Page, IShellContent
                 + $"，左让 {left:0}、右让 {right:0}、上让 {at.Y:0}（标题栏 {ChromeHeight:0}），"
                 + $"圆角 {(rounded ? $"{BannerCard.CornerRadius.TopLeft:0}" : "没有")}"
                 + $"，滚动视口从 {viewportTop:0} 起"
-                + (ok ? " —— 四边留白的圆角卡片" : " —— 卡片的内缩、圆角或滚动视口不对"));
+                + (ok ? " —— 四边留白的圆角大图" : " —— 大图的内缩、圆角或滚动视口不对"));
     }
-
-    /// <summary>
-    /// 卡片外沿那圈染色的颜色（2026-11-12 用户令「参考上图给轮播图添加圆角，和四周染色的效果」）。
-    /// <para>
-    /// 颜色来自台上那张剧照：<c>BannerSlide.Ambient</c> → Core 的 <c>CarouselAmbient</c> 从像素里挑一个
-    /// 有代表性的色相，这条带子换人（或者那一张的图迟到）时报一次，这里把四个停点重写一遍。
-    /// 传过来的是透明就表示这一张没有可借的颜色 —— 四个停点全透明，光晕收掉，不拿上一张的颜色继续画。
-    /// </para>
-    /// <para>
-    /// 停点的位置在 XAML 里（0 / 0.52 / 0.82 / 1）：卡片边沿落在归一化半径 0.5 上，所以 0.52 是紧贴卡片外沿
-    /// 最浓的一档，往外两档散尽。浓度（alpha）压得低：它压在深色画布上，浓了就是一圈发光的边，而商店那张
-    /// 只是「四周有一点这张图的颜色」。
-    /// </para>
-    /// </summary>
-    private void PaintBannerGlow()
-    {
-        var color = _ambientInk;
-        var stops = BannerGlowBrush.GradientStops;
-        stops[0].Color = Fade(color, 0x50);
-        stops[1].Color = Fade(color, 0x3C);
-        stops[2].Color = Fade(color, 0x10);
-        stops[3].Color = Microsoft.UI.Colors.Transparent;
-
-        static Windows.UI.Color Fade(Windows.UI.Color color, byte alpha) =>
-            color.A == 0 ? Microsoft.UI.Colors.Transparent : Windows.UI.Color.FromArgb(alpha, color.R, color.G, color.B);
-    }
-
-    /// <summary>台上那张的代表色，见 <see cref="PaintBannerGlow"/>；透明表示这一张没有可借的颜色。</summary>
-    private Windows.UI.Color _ambientInk = Microsoft.UI.Colors.Transparent;
 
     /// <summary>
     /// 这一页自己的竖滚动条（EgNarrowScrollBarStyle 那支），模板树里找到后缓存。
@@ -430,7 +399,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// 把竖滚动条的顶压到轮播的下沿（「滚动条不要延伸到轮播图上，在下半部分显示就行」，2026-10-01）。
     /// 滚动条跟着视口铺满整页，而这一页第一块内容就是通栏轮播 —— 不挪的话，滚动或悬停时那条 bar 正压在
     /// 剧照上。量 <see cref="HomeBanner.ActualHeight"/> 而不是按宽换算（HomeCarousel.Height）：轮播收起、
-    /// 矮窗档这些档位下事件来源（与 PaintBannerGlow／PlaceScrollBar 同一批 Banner 钩子）已把「带子变了」都送过来，读实际值
+    /// 矮窗档这些档位下事件来源（与 PlaceScrollBar 同一批 Banner 钩子）已把「带子变了」都送过来，读实际值
     /// 省得再算；**窗口高矮不必单独听** —— 带高只随宽度走，宽度一变 Banner.SizeChanged 必响。没有幻灯片时
     /// 带子收起（ActualHeight 归零），滚动条回到通长，本来就没有要避的东西。
     /// <para>
@@ -1176,7 +1145,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// 2026-09-09 起外壳只有标题栏这一行：第 1 行（标签栏删掉后剩下的那条空带）删掉了，这个数从 80 收到 32；
     /// 2026-11-01 按钮再下移并放大，标题栏加到 40；**2026-11-13 按用户令「参考 codex 窗口边框的宽度和高度」
     /// 加到 48**（侧边栏同时 48→56、标题栏那一排的托盘 40 见方）。2026-11-12 晚之前主页拿它当一口 −40 的上边距
-    /// 把画布顶开（通栏轮播那一版），那一手随圆角卡片版式一起退役。
+    /// 把画布顶开（通栏轮播那一版），那一手随四边留白的圆角大图版式一起退役。
     /// </para>
     /// </summary>
     internal const double ChromeHeight = 48;
@@ -1441,7 +1410,7 @@ public sealed partial class HomePage : Page, IShellContent
             host.PlayerLayerEnded += OnPlayerLayerEnded;
         }
 
-        // 标题栏那一行不再压在剧照上（2026-11-12 晚轮播改成四边留白的圆角卡片），所以那一行的墨走主题那一支。
+        // 标题栏那一行不再压在剧照上（2026-11-12 晚轮播改成四边留白的圆角大图），所以那一行的墨走主题那一支。
         _actions?.SetTitleStrip(TitleStrip.Plain);
 
         // The one place this page resolves anything. It is deliberately a single block: it is the line
@@ -1532,7 +1501,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// <summary>
     /// 标题栏那一行的墨：**2026-11-12 晚起主页永远是 <see cref="TitleStrip.Plain"/>**。
     /// <para>
-    /// 轮播改成四边留白的圆角卡片之后，剧照不再铺到窗口的顶边，标题栏底下是页面自己的画布 —— 于是那条
+    /// 轮播改成四边留白的圆角大图之后，剧照不再铺到窗口的顶边，标题栏底下是页面自己的画布 —— 于是那条
     /// 「带子在屏上就换浅墨」的联动（2026-09-11 找回来的）失去了对象。留着它在两种墨之间来回切，反而会在
     /// 换幻灯片时把标题栏闪一下。
     /// </para>

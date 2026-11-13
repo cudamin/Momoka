@@ -182,8 +182,12 @@ internal static class Program
         if (args is ["home-carousel-fixture"])
         {
             HomeCarouselTests.Register();
-            CarouselAmbientTests.Register();
             GaussianBackdropTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["home-chrome-fixture"])
+        {
+            HomeChromeTests.Register();
             return TestHarness.Run();
         }
         if (args is ["verification-harness-fixture"])
@@ -664,7 +668,6 @@ internal static class Program
         ItemBatchPlaybackTests.Register();
         DownloadCollisionTests.Register();
         HomeCarouselTests.Register();
-        CarouselAmbientTests.Register();
         HomeChromeTests.Register();
         ShellChromeTests.Register();
         HomeFoldTests.Register();
