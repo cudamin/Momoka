@@ -91,6 +91,7 @@ internal static class Program
         ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
         SettingsControlNameTests.Register();
+        SystemManagedThemeRoleTests.Register();
         DeferredCardsTests.Register();
         FilterValuesTests.Register();
         HomeSubscriptionRefreshTests.Register();

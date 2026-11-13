@@ -283,6 +283,13 @@ public static class ThemeHost
     public static IReadOnlyList<string> BrushKeys { get; } = Brushes.Select(entry => entry.Key).ToArray();
 
     /// <summary>
+    /// 此别名的 Color 三主题都用 ThemeResource 接系统角色，不能由 Apply 改成项目色。
+    /// 只核明确声明且实际三字典仍有的原生画刷；XAML 动态表达式由对应源码契约验证。
+    /// </summary>
+    internal static bool IsSystemManagedBrush(string key) => SystemManagedThemeRole.IsManaged(key, (theme, name) =>
+        Dictionary(theme) is { } entries && entries.TryGetValue(name, out var value) && value is SolidColorBrush);
+
+    /// <summary>
     /// 自检用：读回某个字典里某个键现在是什么颜色。亚克力那一支报的是它的 <c>TintColor</c> —— 一张亚克力
     /// 没有「一个颜色」，而这里问的是「<see cref="Apply"/> 有没有把这套主题的色写进去」，答的就是那一个。
     /// </summary>
