@@ -839,6 +839,7 @@
                                 Visibility="{x:Bind ViewModel.ColumnActionsVisibility, Mode=OneWay}">
                                 <local:WrapRow RowSpacing="10" Spacing="10">
                                     <Button
+                                        x:Name="ColumnPlayButton"
                                         AutomationProperties.AutomationId="ColumnPlayButton"
                                         Command="{x:Bind ViewModel.PlayCommand}"
                                         Style="{StaticResource EgPlayButtonStyle}"
@@ -1260,6 +1261,7 @@
                             Visibility="{x:Bind ViewModel.CompactVisibility, Mode=OneWay}">
                             <local:WrapRow RowSpacing="10" Spacing="10">
                                 <Button
+                                    x:Name="CompactPlayButton"
                                     AutomationProperties.AutomationId="CompactPlayButton"
                                     Command="{x:Bind ViewModel.PlayCommand}"
                                     Style="{StaticResource EgPlayButtonStyle}"
@@ -1700,6 +1702,69 @@
                 </Grid>
             </StackPanel>
         </ScrollView>
+
+        <!-- 播放键被滚动视口顶部裁切到一半时接手。作为 Body 的同级浮层，不改变正文高度或滚动落点。 -->
+        <Border
+            x:Name="StickyHeader"
+            AutomationProperties.AutomationId="DetailStickyHeader"
+            Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="{ThemeResource OverlayCornerRadius}"
+            IsHitTestVisible="False"
+            Margin="32,12,32,0"
+            Padding="16,12"
+            VerticalAlignment="Top"
+            Visibility="Collapsed">
+            <Grid x:Name="StickyHeaderContent" ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image
+                    x:Name="StickyPoster"
+                    AutomationProperties.AccessibilityView="Raw"
+                    Width="48"
+                    Height="68"
+                    Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
+                    Stretch="UniformToFill"
+                    Visibility="{x:Bind local:DetailPage.HeaderPosterVisibility(ViewModel.StillImage), Mode=OneWay}" />
+                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock
+                        AutomationProperties.AutomationId="DetailStickyTitle"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        FontSize="18"
+                        Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="{x:Bind ViewModel.Subline, Mode=OneWay}"
+                        Visibility="{x:Bind local:DetailPage.HeaderSubtitleVisibility(ViewModel.Subline), Mode=OneWay}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button
+                    x:Name="StickyPlayButton"
+                    Grid.Column="2"
+                    AutomationProperties.AutomationId="DetailStickyPlayButton"
+                    AutomationProperties.Name="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                    Command="{x:Bind ViewModel.PlayCommand}"
+                    MaxWidth="220"
+                    MinHeight="40"
+                    Padding="16,8"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                    VerticalAlignment="Center"
+                    Visibility="{x:Bind ViewModel.PlayVisibility, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE768;" />
+                        <TextBlock
+                            x:Name="StickyPlayText"
+                            Text="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
 
         <!-- ============ 进度条和通知条 ============ -->
         <!-- 「点击主页封面后窗口会闪一下，然后才会进入页面」的后一半。这两条原来占着一个 Auto 行，读完了就收起

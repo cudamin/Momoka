@@ -100,6 +100,7 @@ public sealed partial class DetailPage : Page, IShellContent
         PrepareShowcase();
         PrepareCardLayout();
         PrepareCoverHover();
+        PrepareStickyHeader();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
@@ -1774,6 +1775,7 @@ public sealed partial class DetailPage : Page, IShellContent
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+        ResetStickyHeader();
 
         if (e.Parameter is not DetailRequest request)
         {
@@ -1995,6 +1997,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        StopStickyHeader();
         StopScrollReveal();
         CardDetailTransition.Release(this);
         _trailerMenu?.Hide();
@@ -2286,6 +2289,7 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <summary>滚到哪儿了 —— 标题栏先接图上的黑底，再跟随正文纸面。</summary>
     private void OnBodyViewChanged(ScrollView sender, object args)
     {
+        UpdateStickyHeader();
         PaintWash();
         PaintReadingColors();
     }

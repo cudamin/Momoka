@@ -349,6 +349,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
         AddCheck("InspectDetailTrailers", "详情预告片验证", DetailTrailersAsync);
         AddCheck("InspectDetailExtras", "详情花絮特典验证", DetailExtrasAsync);
+        AddCheck("InspectDetailStickyHeader", "详情滚动悬浮卡片", DetailStickyHeaderAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
         AddCheck("InspectServerLists", "服务器清单与成员管理", ServerListsAsync);
         AddCheck("InspectPlexServerLists", "Plex清单与独立合集", PlexServerListsAsync);

@@ -129,6 +129,7 @@ internal sealed partial class ShellNavigationProbe
             // 截图 `detail-responsive-<类型>-<宽度>.png` 与 `detail-responsive-crop-*`／`-maximized`。
             await CaseAsync("简洁详情底材与卡面的主题、宽窄和导航恢复", DetailMicaAsync, 120);
             await CaseAsync("电影/剧/季页面的宽窗沉浸、窄窗紧凑与无图恢复", DetailResponsiveAsync, 150);
+            await CaseAsync("详情滚动悬浮亚克力卡片", DetailStickyHeaderAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("悬停预览布局与关闭重开", HoverPreviewAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
