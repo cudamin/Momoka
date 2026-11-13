@@ -729,24 +729,24 @@ public sealed partial class PosterCard : UserControl
         var rootHeight = content is FrameworkElement frame ? frame.ActualHeight : 0;
         var width = Math.Min(PreviewWidth, Math.Max(PreviewMinWidth, rootWidth - (PreviewMargin * 2)));
 
-        // 卡片左上角在窗口内容里的位置。面板以卡片中心为原点向左右长，纵向与卡片齐平往下长。
+        // Popup 偏移相对 Root，居中与动画起点都使用不含标题的真实封面矩形。
         var origin = Root.TransformToVisual(content).TransformPoint(new Windows.Foundation.Point(0, 0));
+        var art = Art.TransformToVisual(content).TransformBounds(new Windows.Foundation.Rect(0, 0, Art.ActualWidth, Art.ActualHeight));
 
         _preview!.SetSize(width);
-        // 面板至少要盖住原来那张卡：底下的片名和副标题不能从面板边缘露出来。
+        // 短内容仍保留足够的预览高度。
         _preview.MinHeight = Math.Max(Root.ActualHeight, 0);
         _preview.Show(Card!);
 
         // 量一遍才知道面板多高：图是固定的 2:1，字有几行却不一定（简介两行封顶，续播那块时有时无）。
-        // 量出来是 0（还没进树、量不出来）就按「与卡片齐平」摆，底下的夹取自然也就退化成不夹。
         _preview.Measure(new Windows.Foundation.Size(width, double.PositiveInfinity));
         var height = _preview.DesiredSize.Height;
 
         _preview.IsHitTestVisible = true;
         _previewHost!.HorizontalOffset = CardPreviewPlacement.Horizontal(
-            origin.X, Root.ActualWidth, width, rootWidth, PreviewMargin);
-        _previewHost.VerticalOffset = CardPreviewPlacement.Vertical(origin.Y, height, rootHeight, PreviewMargin);
-        var art = Art.TransformToVisual(content).TransformBounds(new Windows.Foundation.Rect(0, 0, Art.ActualWidth, Art.ActualHeight));
+            art.Left, art.Width, width, rootWidth, PreviewMargin) + art.Left - origin.X;
+        _previewHost.VerticalOffset = CardPreviewPlacement.Vertical(
+            art.Top, art.Height, height, rootHeight, PreviewMargin) + art.Top - origin.Y;
         _preview.Prepare(new Windows.Foundation.Rect(
             art.Left - origin.X - _previewHost.HorizontalOffset,
             art.Top - origin.Y - _previewHost.VerticalOffset, art.Width, art.Height), height);
@@ -884,7 +884,7 @@ public sealed partial class PosterCard : UserControl
 
         if (_preview is null || _previewHost is null) return;
 
-        // 淡出的那一百多毫秒里别再挡住底下的卡片：指针可能已经落到邻居上了。
+        // 收回的那一百多毫秒里别再挡住底下的卡片：指针可能已经落到邻居上了。
         _preview.IsHitTestVisible = false;
 
         if (immediately || !HomeMotion.AnimationsEnabled)

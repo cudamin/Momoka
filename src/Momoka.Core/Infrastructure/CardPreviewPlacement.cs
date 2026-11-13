@@ -3,7 +3,7 @@ namespace Momoka.Infrastructure;
 /// <summary>
 /// 悬停预览摆在哪儿（2026-11-12 用户令「从中心向两边扩散」）。
 /// <para>
-/// 横向以卡片中心为原点：面板比卡片宽，向左右两边各长出同样多的一段。只做这一件事的话，靠边的卡片
+/// 横向、纵向都以封面中心为原点：面板比封面大，向两边各长出同样多的一段。只做这一件事的话，靠边的卡片
 /// 会把面板顶出窗口 —— 所以再把它夹回窗口里，夹的代价只是那一边少长一点。
 /// </para>
 /// <para>
@@ -47,18 +47,19 @@ public static class CardPreviewPlacement
     }
 
     /// <summary>
-    /// 面板上沿相对卡片上沿的偏移：默认与卡片齐平、向下长开；底下放不下就整体上移，但不会移出窗口
-    /// 上沿的 <paramref name="margin"/>。
+    /// 面板上沿相对封面上沿的偏移：上下以封面中心对齐，空间不足时夹回窗口边界。
     /// </summary>
     /// <param name="cardTop">卡片上沿在窗口内容里的纵坐标。</param>
+    /// <param name="cardHeight">封面当前的高，不包含下方标题。</param>
     /// <param name="panelHeight">面板量出来的高。</param>
     /// <param name="windowHeight">窗口内容的高。</param>
     /// <param name="margin">面板与窗口边缘至少留出的距离。</param>
-    public static double Vertical(double cardTop, double panelHeight, double windowHeight, double margin)
+    public static double Vertical(double cardTop, double cardHeight, double panelHeight, double windowHeight, double margin)
     {
         if (panelHeight <= 0 || windowHeight <= 0) return 0;
 
-        var wanted = Math.Min(cardTop, windowHeight - margin - panelHeight);
-        return Math.Max(wanted, margin) - cardTop;
+        var wanted = cardTop + ((cardHeight - panelHeight) / 2);
+        var highest = Math.Max(margin, windowHeight - margin - panelHeight);
+        return Math.Clamp(wanted, margin, highest) - cardTop;
     }
 }

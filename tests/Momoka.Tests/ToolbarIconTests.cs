@@ -135,6 +135,14 @@ internal static class ToolbarIconTests
             Assert.Equal("Left", accelerators[0].Attribute("Key")?.Value);
             Assert.Equal("Right", accelerators[1].Attribute("Key")?.Value);
         });
+        TestHarness.Test("外壳快捷键：不向整页生成Alt提示，返回按钮仍保留正常提示", () =>
+        {
+            Assert.Equal("Hidden", Shell().Root?.Attribute("KeyboardAcceleratorPlacementMode")?.Value);
+            Assert.Equal("Auto", Named(Shell(), "Root").Attribute("KeyboardAcceleratorPlacementMode")?.Value);
+            var tip = ShellResources().Descendants("data").Single(element =>
+                element.Attribute("name")?.Value == "ShellPage_BackButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip");
+            Assert.True(tip.Element("value")?.Value.Contains("返回", StringComparison.Ordinal) == true);
+        });
     }
 
     private static XElement Named(XDocument document, string name) => document.Descendants().Single(element =>
