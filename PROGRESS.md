@@ -1,3 +1,17 @@
+## 2026-11-13 人物页关联动画与侧栏设置 AnimatedIcon（已合入 master，未发布）
+
+按上一轮只读动效审查的建议落地三处：人物页作品卡复用现有 `CardDetailTransition`；详情页演职人员卡新增只做前进的 `PersonTransition`；侧栏设置项换 Gallery 的 `AnimatedSettingsVisualSource`。
+
+**人物票据。** `PersonPage.OnCardClicked` 把作品卡（节目／电影／集三排）交给 `CardDetailTransition.Navigate`。`PersonTransition` 只接当前账号、可见、已加载自身 Primary 图的人物卡；准备时保留来源位图，人物页 `PortraitImage` 在还没有高清头像时先接住它，高清到达后由 `PersonViewModel` 替换；只做前进，返回继续普通导航／页面淡入（详情页没有缓存，不为了动画改缓存策略）。失败、700 ms 准备超时、Stopped／Failed、应用或系统动画关闭、身份变化都回普通导航并释放保留图。壳层 `Navigating` 同时识别详情票据和人物票据，人物页有动画时不叠页面淡入。
+
+**侧栏图标。** `ShellPage.xaml` 的页脚设置项改成 `AnimatedIcon`，`Source` 是 `AnimatedSettingsVisualSource`，回退是同一颗 `E713` 齿轮。`HomeMotion.AnimationsEnabled` 为假时把 `Source` 置空，落到静态回退；系统或应用开关变化都重新同步；标题栏手绘 PathIcon 不动。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.ConnectedAnimationTests` **48/48**、`Momoka.PageContractTests` **230/230**，均 0 失败 0 跳过；`dotnet format whitespace` 通过；重复代码 **65 段 / 0.51%**（预算 70 段 / 1%）。匿名原生 `--probe-shell --probe-section person --screen 1` **2/2、退出 0**（`shell-probe-20261113-152816842-8012`），新增用例确认人物卡到人物页关联动画真实启动并接住来源照片，实屏 `person-transition-screen.png`；`--probe-section shell --screen 1` **15/15、退出 0**（`shell-probe-20261113-153739072-35620`），AnimatedIcon 20×20 完整可见、设置项与其它条目同尺寸，新增关动画 Source 为空／开动画恢复／再次关动画收起三条断言全过。共享桌面锁被另一 worktree 的 Momoka 占用时等待释放后重跑，未结束其他进程。
+
+**没做／边界。** 本树开发发布被既有 mpv 载荷核对拦下：`assets/mpv-runtime/approved-payload.json` 仍记 `THIRD-PARTY-NOTICES.md` 8964 字节，而当前文件 10761 字节；该红与本批代码无关，`publish.ps1` 在核对前生成的发布目录只用于本树探针，不是交付。未连接真实服务器、未播放、未写服务器；未做触摸、读屏、高对比度、跨 DPI 覆盖。人物页作品卡→详情的入口只在代码与单测层覆盖，原生探针本轮验的是详情演职人员卡→人物页；交付时按台账补实际入口与截图。
+
+**合入状态。** 产品与测试提交 `ad0898e` 以 ff 合入 master（基线 `120c4da`）；本轮只合并，不发布、不推远端，快捷方式仍指向当前发布版。
+
 ## 2026-11-13 主页矮窗档判定线改为媒体库整排下沿（已合入 master，未发布）
 
 用户一张 951×395 的实屏截图加一句「这都重叠了媒体库还不下移，修复」：截图里媒体库三张库卡压在圆角轮播左下角，
