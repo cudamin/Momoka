@@ -1,8 +1,8 @@
-## 2026-11-13 详情滚动悬浮卡片（本树待合并）
+## 2026-11-13 详情滚动悬浮卡片（已合入 master，待交付）
 
 用户要求主播放键在顶部被裁切约一半时显示缩略亚克力卡片，先查桌面WinUIGallery.exe。有对应show/hide动效：实际2.10.0/7b4314a的ControlExample.xaml，显示400/200ms、隐藏200/100ms，配套Toolkit8.2.251219 DLL与本地哈希完全相同。先读实际XAML/CIL/helper，沿用Implicit显示/隐藏与EaseOut；没有半切滚动头完整样例，本地组合ScrollView同级Border和原详情绑定。Translation代替布局Offset、顶部负24DIP、去From适配反转和取消；来源、必要适配和MIT许可见docs/详情悬浮卡片.md。
 
-当前树4a79；专项代理仅在独立detail-sticky-tests树写测试（原f548ea5挑拣为ffc5912，已干净），主代理写产品及原生单项。完整正式partial源链接专项54/54；界面动效46/46、详情能力85/85、图片到达23/23，均0失败0跳过，当前Shell Release/x64 0警告0错误。新增InspectDetailStickyHeader/library原生单项只用匿名假HTTP和零起播，1000/760/360 DIP检查实际滚动、系统刷子、绑定、关动画、离页和实屏。首轮Transform断树异常及首次Translation未注册导致原生导航失败均已修并补正式边界测试，保留原红报告。共享桌面锁被同期诊断占用时已用轻量探针等待释放，未结束其他进程或绕锁；最终可见窗口原生单项1/1通过，1000/760/360三张实屏逐张目视，命令/名称/系统亚克力/阈值/关动画与零位移/离页通过，零起播，6次匿名GET。证据artifacts/detail-sticky-native-final；未测实际系统高对比/关闭透明/节电、跨DPI、Narrator、物理键鼠及GPU帧连续性，不把静态或托管边界当这些实证。首次Hidden宿主与Translation红报告均保留。合并记录待补。本轮按规则仅合并，不发布、不上传。
+当前树4a79；专项代理仅在独立detail-sticky-tests树写测试（原f548ea5挑拣为ffc5912，已干净），主代理写产品及原生单项。完整正式partial源链接专项54/54；界面动效46/46、详情能力85/85、图片到达23/23，均0失败0跳过，当前Shell Release/x64 0警告0错误。新增InspectDetailStickyHeader/library原生单项只用匿名假HTTP和零起播，1000/760/360 DIP检查实际滚动、系统刷子、绑定、关动画、离页和实屏。首轮Transform断树异常及首次Translation未注册导致原生导航失败均已修并补正式边界测试，保留原红报告。共享桌面锁被同期诊断占用时已用轻量探针等待释放，未结束其他进程或绕锁；最终可见窗口原生单项1/1通过，1000/760/360三张实屏逐张目视，命令/名称/系统亚克力/阈值/关动画与零位移/离页通过，零起播，6次匿名GET。证据artifacts/detail-sticky-native-final；未测实际系统高对比/关闭透明/节电、跨DPI、Narrator、物理键鼠及GPU帧连续性，不把静态或托管边界当这些实证。首次Hidden宿主与Translation红报告均保留。产品14a195e挑拣为dff6018进入master，测试ffc5912/1e43703挑拣为22c4d2c/9c87e2f；保留master新海报关联Attach/Release/Navigate与同期测试注册。合并未跑全量或发布，统一交付按台账复验；本任务detached开发树核对内容均入master后归档。本轮按规则仅合并，不发布、不上传。
 
 ## 2026-11-13 侧栏搜索删除、标题搜索框下落、媒体库同步搜订阅与 MP 已订阅角标（未发布）
 

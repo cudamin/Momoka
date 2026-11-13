@@ -187,3 +187,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## WinUI Gallery 详情悬浮卡片动效
+
+顶部缩略卡片沿用桌面 WinUI Gallery 2.10.0（产品提交7b4314a25904c784e5a1b4bb0627f535550d88bd）的 ControlExample.xaml 显示/隐藏动画配置。Copyright (c) Microsoft Corporation. All rights reserved. 适用上节同一MIT许可证全文；来源、必要的Translation/生命周期适配及完整许可见 [详情悬浮卡片](docs/详情悬浮卡片.md)。
