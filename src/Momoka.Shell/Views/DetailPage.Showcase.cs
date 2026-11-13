@@ -17,7 +17,7 @@ public sealed partial class DetailPage
     private readonly SolidColorBrush _sheetBrush = new();
 
     /// <summary>
-    /// 简洁模式 —— 设置里那条「显示模式」关掉沉浸之后这一页的样子：不铺背景图，底就是外壳那块窗口画布。
+    /// 商店模式 —— 设置里那条「显示模式」关掉沉浸之后这一页的样子：保留卡面排版，顶部装饰背景单独渐隐到外壳画布。
     /// <para>
     /// 名字里不再带 Mica：2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」之后，这一页不再挂自己的
     /// 局部材质（从前那块铺满整页的 Mica Alt 把外壳的「Base ＋ 60% 画布」盖掉了），剩下的判断只是「哪几类页面
@@ -30,16 +30,19 @@ public sealed partial class DetailPage
     private void ApplyPlainSurfaces()
     {
         var plain = PlainMode;
-        // 简洁详情顶部是内容卡：共享窗口云母，再叠加系统内容层色。上下两截使用同一支画刷，
-        // 不再分别创建局部 Mica；普通/沉浸布局仍使用原有卡面。下方信息面板保留自己的层色。
-        var surface = plain ? HeroContentLayerSource.Background : Application.Current.Resources["EgSurfaceBrush"] as Brush;
+        // 商店顶部直接在渐隐剧照上排海报、标题与操作，不再用整块卡面覆盖背景。
+        // 内部 HeroCard 判断仍负责旧的文件选项与简介排版，视觉框单独收起。
+        var surface = plain ? null : Application.Current.Resources["EgSurfaceBrush"] as Brush;
         HeroCardTop.Background = surface;
         HeroCardBottom.Background = surface;
         PlainHeroSurface.Background = surface;
         PlainHeroSurface.Opacity = plain ? 0 : 1;
         HeroScrim.Opacity = plain ? 0 : 1;
         foreach (var panel in BodyPanels)
-            panel.Background = plain ? MicaLayerSource.Background : _panelFill;
+        {
+            panel.Background = plain ? null : _panelFill;
+            panel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
+        }
         // 资源回调的顺序不固定；沉浸信息卡必须保留可读卡面，不能被透明的正文面板刷覆盖。
         PaintBackdropReading();
     }
@@ -63,6 +66,7 @@ public sealed partial class DetailPage
     /// <summary>第一帧之前准备本页的正文画刷。</summary>
     private void PrepareShowcase()
     {
+        _storeBackdropFade = new StoreBackdropFade(StoreBackdropContent, StoreBackdrop, StoreBackdropMask);
         _sheetBrush.Color = PaperColor;
         BodyPaper.Background = _sheetBrush;
         BodySheet.Background = null;
@@ -141,6 +145,7 @@ public sealed partial class DetailPage
     /// <summary>首次显示、模式切换和窄窗排版后统一应用纸面、卡面及尾部留白。</summary>
     private void SettleShowcase()
     {
+        PaintStoreBackdrop();
         PaintScrim();
         var showcase = ViewModel.Showcase;
         _sheetBrush.Color = PlainMode ? Microsoft.UI.Colors.Transparent : showcase ? WashColor : PaperColor;

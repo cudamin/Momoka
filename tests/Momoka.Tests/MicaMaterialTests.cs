@@ -170,9 +170,9 @@ internal static class MicaMaterialTests
             Assert.DoesNotContain("SettingsNavigationLayer", page, "分类栏又铺了一块自己的底");
         });
 
-        Test("简洁模式底材：详情页与订阅详情页不再挂页面级材质", () =>
+        Test("商店模式底材：详情页与订阅详情页不再挂页面级材质", () =>
         {
-            // 2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」：这两页的底从此就是外壳那块画布
+            // 2026-11-12 用户令「把媒体详情页的商店模式也改成跟主页一样的」：这两页的底从此就是外壳那块画布
             // （Mica Base ＋ 60% 窗口色，只在 ShellPage.ContentHost 画一次）。从前它们各自铺一块 Mica Alt 把
             // 画布盖掉，同一格设置在主页与详情页是两种底 —— 屏上不报错，只有截图与探针读得出来。
             foreach (var (file, label, showcase) in new[]
@@ -194,7 +194,7 @@ internal static class MicaMaterialTests
             }
         });
 
-        Test("简洁详情内容卡：共享窗口底材，内容层色与高对比度使用系统角色", () =>
+        Test("商店详情内容卡：共享窗口底材，内容层色与高对比度使用系统角色", () =>
         {
             var page = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
             Assert.False(page.Descendants().Any(element => element.Name.LocalName == "SystemBackdropElement"),

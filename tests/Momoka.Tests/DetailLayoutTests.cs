@@ -10,6 +10,44 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
+        Test("商店背景：完整剧照靠右缩小，宽高保持原图比例且不随窗口高度撑开", () =>
+        {
+            foreach (var width in new[] { 360d, 760d, 1200d, 2400d })
+            {
+                var pictureWidth = DetailHero.StorePictureWidth(width, 9d / 16);
+                var height = DetailHero.StorePictureHeight(width, 9d / 16);
+                Assert.True(pictureWidth < width && height <= 520);
+                Assert.Equal(9d / 16, height / pictureWidth);
+            }
+            Assert.Equal(520d, DetailHero.StorePictureHeight(0, 9d / 16));
+            Assert.Equal(520d, DetailHero.StorePictureHeight(double.NaN, 1));
+            Assert.Equal(472.5d, DetailHero.StorePictureHeight(1000, 0));
+        });
+
+        Test("商店遮罩：随红蓝剧照取色，坏图与纯黑回退，原像素不变", () =>
+        {
+            var fallback = Momoka.Theming.ThemeColor.Rgb(10, 15, 20);
+            var red = new byte[] { 10, 20, 200, 255, 10, 20, 200, 255 };
+            var saved = red.ToArray();
+            var color = Momoka.Theming.ArtworkShade.Sample(red, 2, 1, fallback);
+            Assert.True(color.R > color.B && color.R < 100);
+            Assert.True(red.SequenceEqual(saved));
+            var blue = Momoka.Theming.ArtworkShade.Sample(new byte[] { 200, 20, 10, 255 }, 1, 1, fallback);
+            Assert.True(blue.B > blue.R);
+            Assert.Equal(fallback, Momoka.Theming.ArtworkShade.Sample([], 2, 1, fallback));
+            Assert.Equal(fallback, Momoka.Theming.ArtworkShade.Sample(new byte[4], 1, 1, fallback));
+        });
+
+        Test("商店远程预告：YouTube白名单只保留11位视频ID，拒绝伪造来源与无效ID", () =>
+        {
+            Assert.Equal("Abc_123-xyz", TrailerPreview.YouTubeId([new() { Url = "https://www.youtube.com/watch?v=Abc_123-xyz&feature=share" }]));
+            Assert.Equal("Abc_123-xyz", TrailerPreview.YouTubeId([new() { Url = "https://youtu.be/Abc_123-xyz" }]));
+            Assert.Null(TrailerPreview.YouTubeId([new() { Url = "https://youtube.com.evil.invalid/watch?v=Abc_123-xyz" }]));
+            Assert.Null(TrailerPreview.YouTubeId([new() { Url = "http://youtube.com/watch?v=Abc_123-xyz" }]));
+            Assert.Null(TrailerPreview.YouTubeId([new() { Url = "https://youtube.com/watch?v=short" }]));
+            Assert.Null(TrailerPreview.YouTubeId([new() { Url = "https://youtube.com/watch?v=Abc_123-xyz&v=Abc_123-xyz" }]));
+        });
+
         Test("沉浸总开关：缺键默认开启，显式关闭可保存导入并恢复默认", () =>
         {
             var property = typeof(UiSettings).GetProperty("EnableImmersive");
@@ -264,9 +302,9 @@ internal static class DetailLayoutTests
             Assert.False(DetailHero.BackdropMaterial(false, false, true, EmbyItemType.Series));
         });
 
-        Test("右上角艺术图：电影、剧、集两种模式都摆，季页与紧凑版式不摆", () =>
+        Test("右上角艺术图：电影、剧、集按空间可摆，季页与紧凑版式不摆", () =>
         {
-            // 2026-11-08 用户令「沉浸模式下在右上角显示艺术图」：从前这一角按模式分档（集页，以及简洁模式的
+            // 2026-11-08 用户令「沉浸模式下在右上角显示艺术图」：从前这一角按模式分档（集页，以及商店模式的
             // 电影和剧页），沉浸档整页站在背景图上，于是它被一起收掉了。现在模式不再是判据。
             foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Episode })
             {

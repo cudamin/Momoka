@@ -26,6 +26,7 @@ public sealed partial class DetailViewModel
         _trailersReady = false;
         _trailersEmpty = false;
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(TrailerButtonVisibility));
     }
 
     internal sealed class TrailerOption(string title, EmbyItem? item = null, string? url = null)
@@ -88,6 +89,7 @@ public sealed partial class DetailViewModel
         _trailersEmpty = selection.Options.Count == 0 && selection.Error is null;
         if (_trailersEmpty) Notify("暂无预告片", "服务器未返回可用的预告片", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Informational);
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(TrailerButtonVisibility));
         return selection;
     }
 

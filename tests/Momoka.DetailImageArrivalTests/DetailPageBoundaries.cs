@@ -12,6 +12,8 @@ public sealed partial class DetailPage
     public Image TitlePlate { get; } = new();
     public Image CornerArt { get; } = new();
     public Image FooterBanner { get; } = new();
+    public ImageBrush StoreBackdropImageBrush { get; } = new();
+    public FrameworkElement StoreBackdropPicture { get; } = new();
     public void Watch() => WatchArtworkArrival();
     public void Release() => StopArtworkArrival();
 }

@@ -291,7 +291,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 别让压在图上那几行字落到图外面去。
     /// <para>
     /// 沉浸档（<see cref="Showcase"/>）里直接铺到窗口下沿（<see cref="DetailHero.ImmersivePictureHeight"/>）：
-    /// 那一档正文纸面变成半透明洗色，背景要从片名一直透到页尾。简洁模式不画图，这个数只剩留白的参考值。
+    /// 那一档正文纸面变成半透明洗色，背景要从片名一直透到页尾。商店模式另有装饰背景，这个数不参与商店布局。
     /// </para>
     /// </summary>
     public double BackdropHeight => Showcase
@@ -312,13 +312,13 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 电影／剧／季详情页听同一个开关（<c>UiSettings.EnableImmersive</c>），由页面在挂上时与设置改动时写进来。
     /// <para>
     /// 开着是沉浸模式：宽版式且有图时正文纸面让开、背景从片名铺到窗口下沿（<see cref="Showcase"/>）；窄窗仍是
-    /// 「图 + 纸面」那一套。关掉是简洁模式（<see cref="Plain"/>）：不铺背景图，头部收成一张卡面。
+    /// 「图 + 纸面」那一套。关掉是商店模式（<see cref="Plain"/>）：顶部铺渐隐装饰背景，头部保留卡面。
     /// </para>
     /// </summary>
     [ObservableProperty]
     public partial bool Immersive { get; set; } = true;
 
-    /// <summary>简洁模式 —— 显示模式关掉沉浸之后这一页的样子：没有背景图，头部是一张卡。</summary>
+    /// <summary>商店模式 —— 显示模式关掉沉浸之后这一页的样子：顶部渐隐背景与内容卡面。</summary>
     public bool Plain => !Immersive;
 
     /// <summary>
@@ -348,7 +348,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public double BackdropOpacity => Showcase ? DetailHero.ShowcaseBackdropOpacity : DetailHero.BackdropOpacity;
 
     /// <summary>
-    /// 图下沿那道黑色渐变只在纸面版式里画：沉浸档里那条边已经不在屏上，压一道黑只是白费；简洁模式整张图都不在，
+    /// 图下沿那道黑色渐变只在纸面版式里画：沉浸档里那条边已经不在屏上，压一道黑只是白费；商店模式使用另一层装饰背景，
     /// 更没有那条边。
     /// </summary>
     public Visibility BackdropFadeVisibility => Show(Backdrop is not null && Immersive && !Showcase);

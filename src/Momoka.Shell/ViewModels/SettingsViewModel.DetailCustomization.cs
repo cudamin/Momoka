@@ -13,10 +13,10 @@ public sealed partial class SettingsViewModel
         // 显示模式排在按钮材质前面（2026-11-11 用户令）：它决定下面几组在不在，先说它，再列从属于它的行。
         var rows = new List<SettingRow>
         {
-            Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
+            Choice("显示模式", new[] { ("沉浸模式", true), ("商店模式", false) },
                 () => ui.EnableImmersive,
                 value => ui.EnableImmersive = value,
-                "电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面，"
+                "电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用商店模式的顶部渐隐背景，"
                     + "按钮与选择框换成固定材质，下面两组参数随之收起。",
                 after: () =>
                 {
@@ -24,14 +24,14 @@ public sealed partial class SettingsViewModel
                     RefreshDetailAppearance();
                 })
         };
-        // 简洁模式的按钮与选择框改用页面自己的固定材质，这一整组参数在那一档不生效，整组收起；
+        // 商店模式的按钮与选择框改用页面自己的固定材质，这一整组参数在那一档不生效，整组收起；
         // 收起只影响显示，用户调好的值留在设置里，切回沉浸模式照旧回来。
         if (ui.EnableImmersive)
         {
             rows.Add(Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
                 "详情按钮与闭合选择框共用同一份背景；选亚克力时由下面三项染色参数决定材质。"
-                    + "简洁模式改用固定材质，不读这一组。",
+                    + "商店模式改用固定材质，不读这一组。",
                 after: () =>
                 {
                     ShellPrefs.ApplyAppearance(ui);

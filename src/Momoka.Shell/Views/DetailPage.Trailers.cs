@@ -60,6 +60,7 @@ public sealed partial class DetailPage
 
     private void OnTrailerStateChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(DetailViewModel.TrailerVisibility)) UpdateStoreTrailer();
         if (args.PropertyName == nameof(DetailViewModel.TrailerVisibility)
             && ViewModel.TrailerVisibility != Visibility.Visible)
             _trailerMenu?.Hide();

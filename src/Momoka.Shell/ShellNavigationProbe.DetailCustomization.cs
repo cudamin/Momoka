@@ -193,17 +193,17 @@ internal sealed partial class ShellNavigationProbe
             await Set("背景明暗不透明度（%）", 51);
             Require(fixture.Settings.Ui.BackdropTintOpacity == 42 && fixture.Settings.Ui.BackdropTintLuminosityOpacity == 51,
                 "背景染色参数没有写回设置");
-            // 显示模式排在最前（2026-11-11 用户令），简洁模式把按钮与背景两组整块收起，只留它自己。
+            // 显示模式排在最前（2026-11-11 用户令），商店模式把按钮与背景两组整块收起，只留它自己。
             // 行是整组重建的：切完重新从 appearance.Rows 里拿那一行，不拿切换前那个实例。
             var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
             Require(ReferenceEquals(appearance.Rows[0], modeRow), "显示模式没有排在详情页外观的第一行");
-            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "商店模式");
             Require(appearance.Rows.Count == 1 && appearance.Rows[0].Label == "显示模式"
-                && appearance.Rows[0] is SettingChoiceRow { Selected.Label: "简洁模式" },
-                "简洁模式没有收起按钮与背景两组：" + string.Join('|', appearance.Rows.Select(row => row.Label)));
+                && appearance.Rows[0] is SettingChoiceRow { Selected.Label: "商店模式" },
+                "商店模式没有收起按钮与背景两组：" + string.Join('|', appearance.Rows.Select(row => row.Label)));
             Require(appearance.Rows.All(row => row.Label is not ("按钮与选择框背景" or "按钮与选择框颜色"
                 or "按钮与选择框底色不透明度（%）" or "背景亚克力色调" or "背景染色不透明度（%）" or "背景明暗不透明度（%）")),
-                "简洁模式仍留着按钮或背景的设置行");
+                "商店模式仍留着按钮或背景的设置行");
             // 截图取景对着卡头：只 bring 行的话卡片标题会被卷到视口上面，看不出这一行属于哪张卡。
             var appearanceTitle = Descendants(page).OfType<TextBlock>().First(item => item.Text == "详情页外观");
             appearanceTitle.StartBringIntoView();
@@ -598,12 +598,12 @@ internal sealed partial class ShellNavigationProbe
                     && Get<Grid>(page, "Backdrop").Visibility == (oldEpisodeBackdrop ? Visibility.Visible : Visibility.Collapsed),
                     "关闭沉浸后背景未恢复该类型原有宽窄规则");
                 var expectedCard = subject?.Type != EmbyItemType.Episode || wide;
-                Require(page.ViewModel.HeroCardShown == expectedCard && card.Visibility == (expectedCard ? Visibility.Visible : Visibility.Collapsed),
-                    "简洁三类详情始终保留卡面，单集恢复原宽窗卡片布局");
+                Require(page.ViewModel.HeroCardShown == expectedCard && card.Visibility == Visibility.Collapsed,
+                    "商店模式顶部仍显示大卡框或改变文件选项布局");
                 // 沉浸关掉之后卡片带回到主题那套墨、信息卡回到正文面板共享的那支画刷。
                 RequireCardInk(page, onScrim: false);
-                Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background, Get<Border>(page, "MicaLayerSource").Background),
-                    "纸面信息卡没有回到正文面板底色");
+                Require(Get<StackPanel>(page, "InfoPanel").Background is null,
+                    "商店信息区又套回整块卡面");
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");
@@ -671,18 +671,26 @@ internal sealed partial class ShellNavigationProbe
             var strip = Get<ShelfStrip>(page, name);
             Require(strip.OnScrim == onScrim,
                 (onScrim ? "沉浸卡片带没有换成压图浅墨：" : "纸面卡片带仍用压图浅墨：") + name);
-            foreach (var card in CardsIn(strip))
+            var repeater = Get<ItemsRepeater>(strip, "Repeater");
+            // ItemsRepeater 的回收池仍留在可视子树；只读当前已实现的容器，避免把屏外旧副本当成当前文字。
+            for (var index = 0; index < (repeater.ItemsSourceView?.Count ?? 0); index++)
             {
-                var subline = Get<TextBlock>(card, "SubLine");
-                if (subline.Visibility != Visibility.Visible) continue;
-                Require(subline.Foreground is SolidColorBrush ink && ink.Color == expected,
-                    $"{name} 副行颜色是{(subline.Foreground as SolidColorBrush)?.Color}，该是{expected}");
+                if (repeater.TryGetElement(index) is not DependencyObject container) continue;
+                foreach (var card in CardsIn(container))
+                {
+                    Require(card.OnScrim == onScrim, $"{name} 当前第 {index} 张卡没有同步文字模式");
+                    var subline = Get<TextBlock>(card, "SubLine");
+                    if (subline.Visibility != Visibility.Visible) continue;
+                    Require(subline.Foreground is SolidColorBrush ink && ink.Color == expected,
+                        $"{name} 副行颜色是{(subline.Foreground as SolidColorBrush)?.Color}，该是{expected}");
+                }
             }
         }
     }
 
     private static IEnumerable<PosterCard> CardsIn(DependencyObject node)
     {
+        if (node is PosterCard own) { yield return own; yield break; }
         for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
         {
             var child = VisualTreeHelper.GetChild(node, index);
@@ -916,7 +924,7 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 简洁模式（2026-11-11 用户令）：按钮与闭合选择框吃那一支固定面色，按钮材质那四项设置怎么改都不动它。
+    /// 商店模式（2026-11-11 用户令）：按钮与闭合选择框吃那一支固定面色，按钮材质那四项设置怎么改都不动它。
     /// 与 <see cref="CheckControlBackgroundOpacityAsync"/> 的沉浸档相对 —— 那一档量的是四条滑块落到画笔上，
     /// 这一档量的是「不读它们」。
     /// </summary>
@@ -927,7 +935,7 @@ internal sealed partial class ShellNavigationProbe
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
             .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
-        Require(controls.Length > 0, "简洁模式夹具没有操作按钮或选择框");
+        Require(controls.Length > 0, "商店模式夹具没有操作按钮或选择框");
         RequireFixedSurface(controls);
         var snapshot = (ui.UseAcrylicControls, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity,
             ui.ControlBackgroundOpacity, ui.ControlBackgroundColor);
@@ -977,7 +985,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(control.Resources[prefix + "Background" + suffix] is AcrylicBrush { AlwaysUseFallback: true } copy
                     && copy.FallbackColor == surface
                     && Math.Abs(copy.Opacity - levels[index]) < 0.000001,
-                    $"{control.Name}/{suffix} 简洁模式没有用固定面色："
+                    $"{control.Name}/{suffix} 商店模式没有用固定面色："
                         + (control.Resources[prefix + "Background" + suffix] is AcrylicBrush actual
                             ? $"实际 {actual.FallbackColor}、{actual.Opacity:0.###}、回退 {actual.AlwaysUseFallback}"
                             : "不是亚克力画刷"));
@@ -985,7 +993,7 @@ internal sealed partial class ShellNavigationProbe
             if (control is ComboBox)
                 Require(ReferenceEquals(control.Resources["ComboBoxBackground"], control.Resources["ComboBoxBackgroundFocused"])
                     && ReferenceEquals(control.Resources["ComboBoxBackground"], control.Resources["ComboBoxBackgroundUnfocused"]),
-                    control.Name + " 简洁模式的聚焦底色没有沿用固定面色");
+                    control.Name + " 商店模式的聚焦底色没有沿用固定面色");
         }
     }
 

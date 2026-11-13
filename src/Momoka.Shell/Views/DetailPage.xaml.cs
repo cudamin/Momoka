@@ -131,6 +131,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // navigation is fine.
         Unloaded += (_, _) =>
         {
+            StopStoreTrailer();
             StopScrollReveal();
             StopArtworkArrival();
             ThemeHost.Changed -= OnThemeChanged;
@@ -1994,6 +1995,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        StopStoreTrailer();
         StopScrollReveal();
         if (Frame is { } frame && !CardDetailTransition.Returning(frame)) CardDetailTransition.Cancel(frame);
         _trailerMenu?.Hide();
@@ -2271,7 +2273,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同样赶在提前返回之前写。
         ViewModel.HeaderLift = Math.Max(0, lift);
 
-        // 背景那一层（有图那一档）顶到窗口上沿。简洁档没有这一层 —— 底是外壳那块画布，它本来就铺满整个窗口，
+        // 背景那一层（有图那一档）顶到窗口上沿。商店档不使用这一层 —— 底是外壳那块画布，它本来就铺满整个窗口，
         // 不需要谁再往回挪（2026-11-12 起这一页不再有页面的局部材质，从前这里还同步挪过一次 PlainBackdrop）。
         if (Math.Abs(Backdrop.Margin.Top + lift) < 0.5) return;
 
@@ -2285,6 +2287,7 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <summary>滚到哪儿了 —— 标题栏先接图上的黑底，再跟随正文纸面。</summary>
     private void OnBodyViewChanged(ScrollView sender, object args)
     {
+        ScrollStoreTrailer();
         PaintWash();
         PaintReadingColors();
     }

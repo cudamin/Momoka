@@ -35,10 +35,12 @@ internal sealed partial class ShellNavigationProbe
         Require(Top(overview, page) - Top(actions, page) - actions.ActualHeight is >= 10 and <= 14
             && Math.Abs(overview.TransformToVisual(actions).TransformPoint(default).X) <= 1,
             "简介没有紧随操作排或与按钮左对齐");
-        Require(poster.ActualWidth >= 154 && poster.ActualHeight >= 220
-            && Math.Abs(poster.ActualWidth / poster.ActualHeight - 0.7) < 0.001,
-            "放大的封面比例或窄版尺寸不对");
-        if (Grid.GetColumn(content) == 1)
+        Require(page.MediaViewModel.Plain
+            ? Math.Abs(poster.ActualWidth - 140) < 1 && Math.Abs(poster.ActualHeight - 210) < 1
+            : poster.ActualWidth >= 154 && poster.ActualHeight >= 220
+                && Math.Abs(poster.ActualWidth / poster.ActualHeight - 0.7) < 0.001,
+            "封面比例或当前模式尺寸不对");
+        if (Grid.GetColumn(content) == 1 && !page.MediaViewModel.Plain)
             Require(poster.ActualWidth > 210 && poster.ActualHeight > 300
                 && content.TransformToVisual(poster).TransformPoint(default).X >= poster.ActualWidth + 18,
                 "宽版封面未放大，或挤住了文字列");
@@ -47,7 +49,8 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(season, page) >= Math.Max(Top(primary, page) + primary.ActualHeight, Top(facts, page) + facts.ActualHeight)
                 && Top(season, page) - Top(hero, page) - hero.ActualHeight is >= 6 and <= 10,
                 "全宽季区没有紧接完整头部，或覆盖了简介/资料卡");
-            Require(season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
+            Require(page.MediaViewModel.Plain ? season.Background is null
+                : season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
                 "季区域没有保留主题材质或高对比度实色回退");
         }
         Require(side
@@ -582,19 +585,24 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => media.Plain && !media.Showcase);
             await LayoutAsync(page);
             Require(backdrop.Visibility == Visibility.Collapsed, "简洁模式仍铺着背景图");
-            Require(surface.Background is null && Get<SystemBackdropElement>(page, "HeroMica").SystemBackdrop is MicaBackdrop,
-                "简洁模式的头部没有使用 Mica");
-            Require(surface.Padding.Left == 12 && surface.Padding.Top == 12, "简洁模式的卡面没有内边距：" + surface.Padding);
+            Require(Get<Grid>(page, "StoreBackdrop").Visibility == Visibility.Visible
+                && Get<Grid>(page, "StoreBackdrop").Height is > 0 and <= 520,
+                "MP 商店模式缺少顶部渐隐背景");
+            Require(Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,
+                "MP 商店背景未启用透明渐隐");
+            Require(surface.Background is null && Get<SystemBackdropElement>(page, "HeroMica").SystemBackdrop is null,
+                "商店顶部仍用局部 Mica 卡片覆盖背景");
+            Require(surface.Padding == default, "商店顶部仍有卡片内边距：" + surface.Padding);
             Require(surface.VerticalAlignment == VerticalAlignment.Top,
                 "简洁模式的卡面没有按自己的内容收边");
             RequireSubscriptionBodyLayout(page, true);
-            Require(surface.BorderThickness == (Thickness)Application.Current.Resources["EgCardBorderThickness"],
-                "简洁模式的卡面没有接主题那一条描边");
+            Require(surface.BorderThickness == default,
+                "商店顶部仍保留卡片描边");
             Require(sheet.Background is SolidColorBrush { Color.A: 0 }, "简洁模式的正文纸挡住了窗口画布");
             // 2026-11-12 同媒体详情页：这一页也不许再挂页面级的局部材质，底就是外壳那块画布。
             Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
                 "简洁模式又给页面挂了局部材质");
-            Require(ReferenceEquals(panel.Background, Get<Border>(page, "MicaLayerSource").Background), "简洁模式正文没有使用云母叠层");
+            Require(panel.Background is null && panel.BorderThickness == default, "商店正文仍套整块卡面");
             Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
             // 简洁模式的按钮同样是那支固定面色（2026-11-11 用户令），不读按钮材质那四项设置。
             RequireFixedSurface(Get<WrapRow>(page, "DetailActions").Children.OfType<Button>());
@@ -602,7 +610,7 @@ internal sealed partial class ShellNavigationProbe
             Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介没有顶对齐");
             Require(strips.Count > 0 && strips[^1] == TitleStrip.PagePainted, "简洁模式的标题栏没有回到页面字色");
             readings.Add($"简洁 1240：卡面内边距 {surface.Padding}、纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、"
-                + $"面板 {panel.Background.Opacity:0.##}、资料卡 {facts.ActualWidth:0}");
+                + $"面板 {panel.Background?.Opacity ?? 0:0.##}、资料卡 {facts.ActualWidth:0}");
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
                 ThemeHost.Apply(theme.Id);
@@ -618,6 +626,8 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(media.Plain && !media.Showcase && backdrop.Visibility == Visibility.Collapsed,
                 "简洁模式窄窗又铺回了背景图");
+            Require(Get<Grid>(page, "StoreBackdrop").Visibility == Visibility.Visible,
+                "MP 商店模式窄窗丢失顶部背景");
             RequireSubscriptionBodyLayout(page, false);
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {

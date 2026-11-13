@@ -190,13 +190,10 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Grid.SetRow(HeroContent, compact ? 1 : 0);
         Grid.SetColumn(HeroContent, compact ? 0 : 1);
         Grid.SetColumnSpan(HeroContent, compact ? 2 : 1);
-        DetailPoster.Width = compact ? CompactPosterWidth : PosterWidth;
-        DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
+        DetailPoster.Width = MediaViewModel.Plain ? 140 : compact ? CompactPosterWidth : PosterWidth;
+        DetailPoster.Height = MediaViewModel.Plain ? 210 : compact ? CompactPosterHeight : PosterHeight;
         ApplyMaterialAppearance();
     }
-
-    /// <summary>头部那张卡面里，海报与字离卡沿的距离。</summary>
-    private const double HeroCardPadding = 12;
 
     /// <summary>头部那一行在卡面里外两种模式下的外边距 —— 沉浸档照旧（压在图上，上面多让一截），卡面里归 0。</summary>
     private const double HeroRowTop = 12;
@@ -252,16 +249,24 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 头部那一叠的底：简洁模式里是一张卡面（底色、描边、圆角、内边距），沉浸模式里整块让开，让海报和字直接
+    /// 头部那一叠的底：商店模式移除大卡面，和沉浸模式一样让海报与字直接
     /// 压在剧照上。两种模式换的是同一个 Border 的几样属性 —— 不另造两套标记，也不必让绑定去追模式。
     /// </summary>
     private void ApplyHeroSurface()
     {
         var plain = MediaViewModel.Plain;
         HeroSurface.Background = null;
-        HeroSurface.BorderBrush = plain ? ResourceBrush("EgBorderBrush") : null;
-        HeroSurface.BorderThickness = plain ? CardBorderThickness : default;
-        HeroSurface.Padding = plain ? new Thickness(HeroCardPadding) : default;
+        HeroSurface.BorderBrush = null;
+        HeroSurface.BorderThickness = default;
+        HeroSurface.Padding = default;
+        HeroGrid.MinHeight = plain ? 0 : PosterHeight;
+        if (plain) { DetailPoster.Width = 140; DetailPoster.Height = 210; }
+        else
+        {
+            var compact = HeroGrid.ActualWidth < 580;
+            DetailPoster.Width = compact ? CompactPosterWidth : PosterWidth;
+            DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
+        }
         HeroRow.Margin = plain ? default : new Thickness(0, HeroRowTop, 0, HeroRowBottom);
 
         HeroFacts.Margin = MediaViewModel.WideLayout ? new Thickness(0, HeroSurface.Padding.Top, 0, 0) : default;
@@ -269,15 +274,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         HeroOverview.VerticalAlignment = VerticalAlignment.Top;
     }
 
-    private static Brush? ResourceBrush(string key) =>
-        Application.Current?.Resources.TryGetValue(key, out var value) == true ? value as Brush : null;
-
-    private static Thickness CardBorderThickness =>
-        Application.Current?.Resources.TryGetValue("EgCardBorderThickness", out var value) == true && value is Thickness thickness
-            ? thickness : default;
-
     /// <summary>
-    /// 标题栏那一行字压不压在图上：有图、沉浸模式、详情没出错时用浅墨；简洁模式整张图不在，回到页面字色。
+    /// 标题栏那一行字压不压在图上：有图、沉浸模式、详情没出错时用浅墨；商店模式不覆盖标题栏，回到页面字色。
     /// </summary>
     private void SyncTitleStrip() => _request?.SetTitleStrip?.Invoke(
         MediaViewModel.Plain ? TitleStrip.PagePainted

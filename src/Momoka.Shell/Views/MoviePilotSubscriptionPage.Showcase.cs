@@ -54,6 +54,7 @@ public sealed partial class MoviePilotSubscriptionPage
     // 背景和按钮各使用自己的三项设置；窄窗保留媒体详情页的实色阅读罩。
     private void ApplyMaterialAppearance()
     {
+        PaintStoreBackdrop();
         var ui = _appearanceSettings;
         var contrast = _accessibility.HighContrast;
         var tint = contrast ? _systemAppearance.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
@@ -96,7 +97,10 @@ public sealed partial class MoviePilotSubscriptionPage
         RefreshActionInk();
     }
 
-    private void OnDetailViewChanged(object sender, ScrollViewerViewChangedEventArgs args) => RefreshActionInk();
+    private void OnDetailViewChanged(object sender, ScrollViewerViewChangedEventArgs args)
+    {
+        RefreshActionInk();
+    }
 
     // 滚动改变按钮背后的固定画面，只重算文字颜色，不重建或重置材质。
     private void RefreshActionInk()
@@ -133,6 +137,7 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void PrepareShowcase()
     {
+        _storeBackdropFade = new StoreBackdropFade(StoreBackdropContent, StoreBackdrop, StoreBackdropMask);
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
         DetailBackdropBand.Opacity = DetailHero.BackdropOpacity;
@@ -201,6 +206,9 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void OnShowcaseChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName is nameof(MoviePilotMediaViewModel.Backdrop)
+            or nameof(MoviePilotMediaViewModel.PageWidth) or nameof(MoviePilotMediaViewModel.BackdropRatio))
+            PaintStoreBackdrop();
         if (args.PropertyName is nameof(MoviePilotMediaViewModel.Showcase) or nameof(MoviePilotMediaViewModel.Plain))
         {
             SettleShowcase();
@@ -211,10 +219,15 @@ public sealed partial class MoviePilotSubscriptionPage
     private void ApplyPlainMica()
     {
         var plain = MediaViewModel.Plain;
-        // 页面级的底材交回外壳画布（2026-11-12，同媒体详情页）；头部那块卡面自己的局部 Mica 保留。
-        DetailMica.Apply(HeroMica, plain && _appearanceObserved);
+        // 顶部内容直接叠在渐隐背景上，不用局部云母卡面遮挡图片。
+        DetailMica.Apply(HeroMica, false);
         foreach (var panel in BodyPanels)
-            panel.Background = plain ? MicaLayerSource.Background : _panelFill;
+        {
+            panel.Background = plain ? null : _panelFill;
+            panel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
+        }
+        SeasonPanel.Background = plain ? null : CardMaterialSource.Background;
+        SeasonPanel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
     }
 
@@ -225,6 +238,7 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void SettleShowcase()
     {
+        PaintStoreBackdrop();
         var showcase = MediaViewModel.Showcase;
         _sheetBrush.Color = MediaViewModel.Plain ? Microsoft.UI.Colors.Transparent : showcase ? WashColor : PaperColor;
         ApplyPlainMica();
