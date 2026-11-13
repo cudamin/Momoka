@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["remote-image-search-fixture"])
+        {
+            RemoteImageSearchTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["hover-preview-fixture"])
         {
             CardPreviewTextTests.Register();
@@ -652,6 +657,7 @@ internal static class Program
         EpisodeDisplayTests.Register();
         ItemArtworkTests.Register();
         ArtworkPreviewTests.Register();
+        RemoteImageSearchTests.Register();
         ItemMenuTests.Register();
         ItemIdentifyTests.Register();
         ItemActionTests.Register();
