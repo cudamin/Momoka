@@ -95,8 +95,9 @@ internal static class KeyboardJourneyProbeRules
         if (resumeFromSearch && !manual) throw new InvalidOperationException("从搜索继续只供手动匿名验收");
     }
 
-    internal static string ManualInstruction(string stage, bool resumeFromSearch) => resumeFromSearch
-        ? "前六步上轮已验证，本轮从搜索继续；本轮账号为匿名播种。" + ManualInstruction(stage)
+    internal static string ManualInstruction(string stage, bool resumeFromSearch, bool resumeFromResult = false) => resumeFromResult
+        ? "登录、来源与搜索上轮已验证，本轮从结果继续；本轮账号与搜索结果为匿名播种。" + ManualInstruction(stage)
+        : resumeFromSearch ? "前六步上轮已验证，本轮从搜索继续；本轮账号为匿名播种。" + ManualInstruction(stage)
         : ManualInstruction(stage);
 
     internal static string ManualInstruction(string stage) => stage switch

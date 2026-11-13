@@ -78,3 +78,5 @@ P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemC
 用户从搜索真实输入`keyboard-query`后查询成功，但搜索分组的外Button peer名为空（角色Button、焦点within为true）。内层PosterCard有片名不保证外Button自动获取名称；ShelfCardTemplate、PosterTemplate与ThumbTemplate现将外导航容器的AutomationProperties.Name以OneWay绑定当前CardItem.Title。保留原Button/ItemContainer模板、选择与事件语义，不在探针Focus时造名字。
 
 Gallery固定ItemsViewPage的各ItemContainer模板显式绑定AutomationProperties.Name到Title，框架已有PositionInSet/SizeOfSet位置语义，本修复不重写它们。页面契约新增实际模板绑定检查与正式CardItem展示标题/身份/原地标题通知验证；原生结果名称及Enter导航由主控本轮重验，原失败保留。
+
+`InspectKeyboardJourneyManualFromResult`供用户已经实际完成第7步搜索后的继续验收，只manual播种固定账号/来源和同一匿名查询结果。从第8步结果Enter继续，之后设置/Tab/关闭/返回仍要求真实按键和严格最终回执。每段标`resumedFromResult=true`、`seededSearch=true`和`seededIdentity=true`，提示说明上轮搜索已验证、本轮账号/结果播种；不把本轮seed计作用户输入。默认完整/FromSearch入口仍保持其原验证范围。

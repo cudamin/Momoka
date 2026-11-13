@@ -45,5 +45,6 @@ internal sealed class KeyboardManualPrompt
         Surface.Children.Add(stop);
     }
 
-    internal void Show(string stage, bool resumeFromSearch = false) => _instruction.Text = KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch);
+    internal void Show(string stage, bool resumeFromSearch = false, bool resumeFromResult = false) =>
+        _instruction.Text = KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch, resumeFromResult);
 }

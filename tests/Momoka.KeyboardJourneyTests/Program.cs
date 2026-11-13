@@ -24,13 +24,28 @@ internal static class Program
             while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
             Assert.NotNull(directory);
             var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
-            Assert.Contains("KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromSearch);", source);
-            Assert.Contains("resumedFromSearch = resumeFromSearch, seededIdentity = resumeFromSearch", source);
+            Assert.Contains("KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromAnonymousSeed);", source);
+            Assert.Contains("seededIdentity = resumeFromAnonymousSeed", source);
             Assert.Contains("Read(\"anonymous-first-six-seeded\"", source);
             Assert.Contains("await fixture.Session.SignInAsync", source);
             Assert.Contains("await Stage(\"search-ready\"", source);
             Assert.Contains("KeyboardJourneyProbeRules.RequireFinal", source);
             Assert.Contains("if (minimumKeys > 0) KeyboardJourneyProbeRules.RequireKeyProgress(before, keys);", source);
+        });
+        Test("从结果继续仅播种匿名查询，真实后半按键与回执明确范围", () =>
+        {
+            Assert.Contains("本轮从结果继续", KeyboardJourneyProbeRules.ManualInstruction("result-ready", false, true));
+            Assert.Contains("搜索结果为匿名播种", KeyboardJourneyProbeRules.ManualInstruction("result-ready", false, true));
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            Assert.Contains("await searchPage.SubmitSearchAsync(KeyboardJourneyProbeServer.Keyword);", source);
+            Assert.Contains("Read(\"anonymous-search-seeded\"", source);
+            Assert.Contains("resumedFromResult = resumeFromResult", source);
+            Assert.Contains("seededSearch = resumeFromResult", source);
+            Assert.Contains("await Stage(\"result-ready\"", source);
+            Assert.Contains("KeyboardJourneyProbeRules.RequireFinal", source);
         });
         Test("手动取消单独记录且重新抛出，不能冒称完整通过", () =>
         {

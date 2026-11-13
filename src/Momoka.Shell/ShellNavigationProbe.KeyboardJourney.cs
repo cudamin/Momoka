@@ -22,9 +22,10 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>Single inspect task held at concrete stages for real keyboard input from the coordinating run.</summary>
-    private async Task KeyboardJourneyAsync(bool failFocusName = false, bool manual = false, bool resumeFromSearch = false)
+    private async Task KeyboardJourneyAsync(bool failFocusName = false, bool manual = false, bool resumeFromSearch = false, bool resumeFromResult = false)
     {
-        KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromSearch);
+        var resumeFromAnonymousSeed = resumeFromSearch || resumeFromResult;
+        KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromAnonymousSeed);
         using var cancelled = new CancellationTokenSource();
         using var fixture = CreateFixture();
         var server = new KeyboardJourneyProbeServer { Poster = await FixtureImageAsync(400, 600) };
@@ -86,7 +87,7 @@ internal sealed partial class ShellNavigationProbe
             HomeMotion.ApplyPreference(true);
             _window.TopMost = true;
             ResizeProbeClient(1280, 800);
-            if (resumeFromSearch)
+            if (resumeFromAnonymousSeed)
             {
                 // Only seed the fixed anonymous identity and the preceding navigation. These are not manual steps in this run.
                 var seededServer = fixture.SettingsService.ResolveServer(KeyboardJourneyProbeServer.Address);
@@ -145,10 +146,19 @@ internal sealed partial class ShellNavigationProbe
             }
             var searchPage = (LibraryPage)shell.Pages.Content;
             var searchInput = Get<AutoSuggestBox>(searchPage, "SearchInput");
-            await FocusAsync(searchInput, "KeyboardJourneySearch");
-            await Stage("search-ready", "type keyboard-query then Enter", _window.Handle,
-                () => !searchPage.ViewModel.Busy && searchPage.ViewModel.Cards.Count == 1
-                    && searchPage.ViewModel.SearchText == KeyboardJourneyProbeServer.Keyword);
+            if (resumeFromResult)
+            {
+                // The previous run already witnessed the user's query; this run seeds only the same anonymous result.
+                await searchPage.SubmitSearchAsync(KeyboardJourneyProbeServer.Keyword);
+                Read("anonymous-search-seeded", _window.Handle);
+            }
+            else
+            {
+                await FocusAsync(searchInput, "KeyboardJourneySearch");
+                await Stage("search-ready", "type keyboard-query then Enter", _window.Handle,
+                    () => !searchPage.ViewModel.Busy && searchPage.ViewModel.Cards.Count == 1
+                        && searchPage.ViewModel.SearchText == KeyboardJourneyProbeServer.Keyword);
+            }
             Require(searchPage.ViewModel.Cards[0].Scope?.Connection.ApiBase.Host == "keyboard-b.invalid", "搜索结果没有保留目标来源");
             ResizeProbeClient(760, 760);
             HomeMotion.ApplyPreference(false);
@@ -326,12 +336,13 @@ internal sealed partial class ShellNavigationProbe
         }
         void WriteStage(string stage, string input, IntPtr hwnd)
         {
-            prompt?.Show(stage, resumeFromSearch);
-            settingsPrompt?.Show(stage, resumeFromSearch);
+            prompt?.Show(stage, resumeFromSearch, resumeFromResult);
+            settingsPrompt?.Show(stage, resumeFromSearch, resumeFromResult);
             Read(stage, hwnd);
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-stage.json"), JsonSerializer.Serialize(new
-            { stage, input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch) : input, process = Environment.ProcessId,
-                hwnd = hwnd.ToInt64(), run, keys, manual, resumedFromSearch = resumeFromSearch, seededIdentity = resumeFromSearch, physicalInputRequired = true }));
+            { stage, input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch, resumeFromResult) : input, process = Environment.ProcessId,
+                hwnd = hwnd.ToInt64(), run, keys, manual, resumedFromSearch = resumeFromSearch, resumedFromResult = resumeFromResult,
+                seededIdentity = resumeFromAnonymousSeed, seededSearch = resumeFromResult, physicalInputRequired = true }));
         }
         void Read(string stage, IntPtr hwnd)
         {
@@ -344,7 +355,8 @@ internal sealed partial class ShellNavigationProbe
                 focus = focus?.Name, automationId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
                 automationName = peer?.GetName(), role = peer?.GetAutomationControlType().ToString(),
                 programmaticFocus = true, physicalKeysObserved = keys > 0, narratorTested = false,
-                resumedFromSearch = resumeFromSearch, seededIdentity = resumeFromSearch,
+                resumedFromSearch = resumeFromSearch, resumedFromResult = resumeFromResult,
+                seededIdentity = resumeFromAnonymousSeed, seededSearch = resumeFromResult,
                 plays = actions.Plays, server.AuthenticationPosts, server.RejectedWrites
             });
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-receipt.json"), JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }));
