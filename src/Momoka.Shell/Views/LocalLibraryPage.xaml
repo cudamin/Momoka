@@ -17,13 +17,23 @@
                 AutomationProperties.HeadingLevel="Level1" />
             <TextBlock Text="{x:Bind ViewModel.SourceDirectory, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                 Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-            <local:WrapRow Spacing="{StaticResource EgSpaceL}" RowSpacing="{StaticResource EgSpaceS}">
-                <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
-                <Button x:Name="LocalLibraryRefresh" Content="刷新媒体库" Style="{StaticResource EgSecondaryButtonStyle}" Click="OnRefresh"
-                    Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
-                <Button x:Name="LocalLibraryOpenSource" Content="打开源目录" Style="{StaticResource EgSecondaryButtonStyle}" Click="OnOpenSource"
-                    Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
-            </local:WrapRow>
+            <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
+                 Samples/CommandBar/CommandBarPage.xaml, PrimaryCommandBar. Keep native labels,
+                 dynamic overflow, keyboard focus and light-dismiss; the count has its own column. -->
+            <Grid ColumnSpacing="{StaticResource EgSpaceL}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <TextBlock x:Name="LocalLibraryCount" Text="{x:Bind ViewModel.CountText, Mode=OneWay}"
+                    Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                <CommandBar x:Name="LocalLibraryCommands" Grid.Column="1" DefaultLabelPosition="Right" IsOpen="False"
+                    Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}">
+                    <AppBarButton x:Name="LocalLibraryRefresh" Icon="Refresh" Label="刷新媒体库" Click="OnRefresh"
+                        AutomationProperties.Name="刷新媒体库"
+                        Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
+                    <AppBarButton x:Name="LocalLibraryOpenSource" Icon="OpenLocal" Label="打开源目录" Click="OnOpenSource"
+                        AutomationProperties.Name="打开源目录"
+                        Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
+                </CommandBar>
+            </Grid>
             <TextBlock Text="{x:Bind ViewModel.Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                 Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
         </StackPanel>

@@ -4,11 +4,49 @@ using Momoka.LocalMedia;
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+    public class RoutedEventArgs : EventArgs;
+    public class FrameworkElement
+    {
+        public object? Tag { get; set; }
+    }
 }
 
 namespace Microsoft.UI.Xaml.Controls
 {
     public enum InfoBarSeverity { Informational, Success, Warning, Error }
+    public sealed class AppBarButton : Xaml.FrameworkElement;
+    public class Page : Xaml.FrameworkElement
+    {
+        public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
+        protected virtual void OnNavigatedTo(Xaml.Navigation.NavigationEventArgs args) { }
+        protected virtual void OnNavigatedFrom(Xaml.Navigation.NavigationEventArgs args) { }
+    }
+}
+
+namespace Microsoft.UI.Xaml.Navigation
+{
+    public sealed class NavigationEventArgs(object? parameter = null) : EventArgs
+    {
+        public object? Parameter { get; } = parameter;
+    }
+}
+
+namespace Microsoft.UI.Dispatching
+{
+    public sealed class DispatcherQueue
+    {
+        public bool TryEnqueue(Action action) { action(); return true; }
+    }
+}
+
+namespace Momoka.Shell.Views
+{
+    public sealed partial class LocalLibraryPage
+    {
+        private void InitializeComponent() { }
+        internal void InvokeRefresh() => OnRefresh(new Microsoft.UI.Xaml.Controls.AppBarButton(), new());
+        internal void InvokeOpenSource() => OnOpenSource(new Microsoft.UI.Xaml.Controls.AppBarButton(), new());
+    }
 }
 
 namespace Microsoft.UI.Xaml.Media.Imaging
