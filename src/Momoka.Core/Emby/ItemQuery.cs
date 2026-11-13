@@ -55,7 +55,7 @@ public static class EmbyFields
     /// <c>EndDate</c> and <c>Status</c> supply the series card's year range or “至今”, matching the web client.
     /// </para>
     /// </summary>
-    public const string Browse = "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,Status,ChildCount,DateCreated,Genres,Tags";
+    public const string Browse = "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,Status,ChildCount,DateCreated,Genres,Tags,CommunityRating";
 
     /// <summary>
     /// Adds the media sources needed to build a stream URL and list tracks, plus the chapter
@@ -76,8 +76,8 @@ public static class EmbyFields
     /// OfficialRating, CommunityRating) are not on that list either, and this client has always worked.
     /// </para>
     /// <para>
-    /// Only this one, deliberately. <see cref="Browse"/> is the list request and nothing in a list shows a
-    /// rating; <see cref="Detail"/>'s callers fetch one item at a time.
+    /// <see cref="Browse"/> requests the community score for hover previews; critic scores and provider
+    /// identities remain detail-only.
     /// </para>
     /// </summary>
     public const string Detail =

@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
 using System.Net;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Shell.Views;
 using Momoka.Theming;
@@ -21,6 +23,7 @@ internal sealed partial class ShellNavigationProbe
         await fixture.SelectAsync("hover-preview.invalid");
         var portrait = await FixtureImageAsync(400, 600);
         var landscape = await FixtureImageAsync(800, 400);
+        var logoBytes = await FixtureImageAsync(420, 88);
         var originalTheme = ThemeHost.Current;
         var originalMotion = HomeMotion.PreferenceEnabled;
         var poster = new PosterCard { CardWidth = 170, PosterHeight = 255 };
@@ -35,6 +38,11 @@ internal sealed partial class ShellNavigationProbe
         var actions = 0;
         poster.ActionRequested += (_, args) =>
         {
+            if (args.Action == CardAction.Details)
+            {
+                ItemCommands.Handle(fixture.Session, fixture.Actions, poster, args);
+                return;
+            }
             Require(args.Action == CardAction.Play, "预览按钮产生了非播放动作");
             actions++;
         };
@@ -51,6 +59,8 @@ internal sealed partial class ShellNavigationProbe
                     fixture.Transport.Reply = (request, token) =>
                     {
                         Require(request.Method == HttpMethod.Get, "悬停不能写入服务器");
+                        if (request.RequestUri!.AbsolutePath.EndsWith("/Images/Logo", StringComparison.Ordinal))
+                            return Task.FromResult(Picture(logoBytes));
                         if (!request.RequestUri!.AbsolutePath.EndsWith("/Images/Thumb", StringComparison.Ordinal))
                             return Task.FromResult(FakeTransport.Standard(request));
                         var response = Pending<HttpResponseMessage>();
@@ -75,6 +85,9 @@ internal sealed partial class ShellNavigationProbe
                         item.Genres = ["Animation", "Comedy", "Romance"];
                         item.Overview = "终于迎来了冬季杯的首场比赛。在队友的鼓励下，带着共同的约定踏上赛场，迎接属于自己的挑战。";
                         item.UserData = new() { PlaybackPositionTicks = TimeSpan.FromMinutes(6).Ticks };
+                        item.ParentLogoItemId = "series-logo";
+                        item.ParentLogoImageTag = "logo";
+                        item.PremiereDate = new DateTimeOffset(2026, 11, 13, 0, 0, 0, TimeSpan.Zero);
                     }
                     if (scenario == "virtual") item.LocationType = "Virtual";
                     var card = new CardItem(fixture.Session.Capture().Bind(item), fixture.Images, 170,
@@ -129,6 +142,14 @@ internal sealed partial class ShellNavigationProbe
                             Require(Get<FrameworkElement>(preview, name).Visibility == Visibility.Collapsed, "空字段未收起：" + name);
                     if (scenario == "resume")
                     {
+                        await UntilAsync(() => Get<Image>(preview, "LogoImage").Source is not null);
+                        Require(Bounds(Get<Image>(preview, "LogoImage"), preview).Bottom
+                            <= Bounds(Get<TextBlock>(preview, "TitleText"), preview).Top, "徽标未在片名上方");
+                        var ratingBounds = Bounds(Get<TextBlock>(preview, "RatingText"), preview);
+                        var dateBounds = Bounds(Get<TextBlock>(preview, "MetaText"), preview);
+                        var genresBounds = Bounds(Get<TextBlock>(preview, "GenresText"), preview);
+                        Require(Math.Abs(ratingBounds.Top - dateBounds.Top) < 2 && Math.Abs(dateBounds.Top - genresBounds.Top) < 2,
+                            "评分日期类型未排在一行");
                         Require(Get<TextBlock>(preview, "PlayText").Text == "继续播放", "续播文案错误");
                         Require(!Get<TextBlock>(preview, "MetaText").Text.Contains(item.SeriesName!, StringComparison.Ordinal), "重复剧名");
                         var progress = Get<ProgressBar>(preview, "ResumeProgress");
@@ -157,10 +178,11 @@ internal sealed partial class ShellNavigationProbe
                                 preview.PlayExit(() => completed++);
                                 preview.PlayEnter();
                                 await Task.Delay(300);
-                                Require(completed == 0 && Get<Border>(preview, "Panel").Opacity > 0.99, "反转执行旧关闭回调");
+                                Require(completed == 0 && Get<Grid>(preview, "Panel").Visibility == Visibility.Visible, "反转执行旧关闭回调");
                                 preview.PlayExit(() => completed++);
                                 HomeMotion.ApplyPreference(false);
-                                Require(completed == 1 && Get<Border>(preview, "Panel").Opacity == 0, "关动画未立即落定");
+                                Require(completed == 1 && Get<Grid>(preview, "Panel").Visibility == Visibility.Collapsed, "关动画未立即落定");
+                                await HoverMorphFramesAsync(preview, readings);
                             }
                             else readings.Add("系统动画关闭，未覆盖有帧反转");
                             HomeMotion.ApplyPreference(originalMotion);
@@ -170,6 +192,13 @@ internal sealed partial class ShellNavigationProbe
                         var expected = actions + 1;
                         ((IInvokeProvider)buttonPeer.GetPattern(PatternInterface.Invoke)).Invoke();
                         await UntilAsync(() => actions == expected && !popup.IsOpen);
+                        Require(poster.ShowPreviewForShot() == card.Title, "播放后无法重开预览验证详情");
+                        await LayoutAsync(preview);
+                        var details = Get<Button>(preview, "DetailsButton");
+                        var opened = fixture.Actions.Opened;
+                        ((IInvokeProvider)new ButtonAutomationPeer(details).GetPattern(PatternInterface.Invoke)).Invoke();
+                        await UntilAsync(() => fixture.Actions.Opened == opened + 1 && !popup.IsOpen);
+                        Require(actions == expected, "打开详情错误触发了播放");
                     }
                     else await SaveProbeScreenAsync($"hover-preview-{scenario}-{width}-screen.png");
                     readings.Add($"{width}/{scenario}: panel={before}; media={mediaBefore}; Closed后重开通过");
@@ -178,7 +207,7 @@ internal sealed partial class ShellNavigationProbe
                     card.AbandonPoster();
                 }
             }
-            Require(actions == 3 && fixture.Actions.Plays == 0, "匿名动作次数错误或进入播放服务");
+            Require(actions == 3 && fixture.Actions.Opened == 3 && fixture.Actions.Plays == 0, "匿名动作次数错误或进入播放服务");
         }
         finally
         {
@@ -193,5 +222,45 @@ internal sealed partial class ShellNavigationProbe
         static HttpResponseMessage Picture(byte[] bytes) => new(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) };
         static Rect Bounds(FrameworkElement element, UIElement target) => element.TransformToVisual(target)
             .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+    }
+
+    private async Task HoverMorphFramesAsync(CardPreview preview, List<string> readings)
+    {
+        var state = Get<CompositionPropertySet>(preview, "_state");
+        HomeMotion.ApplyPreference(true);
+        state.StopAnimation("Progress");
+        state.InsertScalar("Progress", 0);
+        var title = Get<TextBlock>(preview, "TitleText");
+        var titleWidth = title.ActualWidth;
+        var frames = 0;
+        var samples = new List<float>();
+        void Frame(object? sender, object args)
+        {
+            var controller = state.TryGetAnimationController("Progress");
+            frames++;
+            samples.Add(controller?.Progress ?? -1);
+            Require(Get<Grid>(preview, "Panel").Opacity == 1 && Get<Grid>(preview, "ContentRoot").Opacity == 1,
+                "撑开动画不能淡入淡出");
+            Require(Math.Abs(title.ActualWidth - titleWidth) < 1, "撑开时文字被重排");
+        }
+        CompositionTarget.Rendering += Frame;
+        try { preview.PlayEnter(); await Task.Delay(350); }
+        finally { CompositionTarget.Rendering -= Frame; }
+        readings.Add($"撑开动画：frames={frames}，controller={string.Join(',', samples)}，整卡不透明且标题宽度不变");
+        Require(frames >= 2, "没有收到撑开期间的呈现事件");
+        // 独立冻结中点留像素证据；明确不是动画帧速率测量。
+        state.InsertScalar("Progress", 0.5f);
+        Get<Border>(preview, "TransitionCover").Visibility = Visibility.Visible;
+        Get<Image>(preview, "PreviewImage").Visibility = Visibility.Collapsed;
+        await SaveProbeScreenAsync("hover-preview-morph-midpoint-screen.png");
+        var surface = Get<Border>(preview, "Surface");
+        var middle = surface.TransformToVisual(preview).TransformBounds(new Rect(0, 0, surface.ActualWidth, surface.ActualHeight));
+        Require(middle.Width > 170 && middle.Width < preview.ActualWidth - 1,
+            $"半程边框没有实际撑开：{middle.Width:0.0}/{preview.ActualWidth:0.0}");
+        Require(Get<Grid>(preview, "Panel").Opacity == 1, "半程卡片不应半透明");
+        readings.Add($"冻结半程真实边框={middle}，最终={preview.ActualWidth:0.0}×{preview.ActualHeight:0.0}");
+        state.InsertScalar("Progress", 1);
+        Get<Border>(preview, "TransitionCover").Visibility = Visibility.Collapsed;
+        Get<Image>(preview, "PreviewImage").Visibility = Visibility.Visible;
     }
 }

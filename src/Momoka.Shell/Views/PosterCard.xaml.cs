@@ -63,7 +63,8 @@ public enum CardAction
     Play,
     Watched,
     Favorite,
-    More
+    More,
+    Details
 }
 
 /// <summary>
@@ -706,6 +707,7 @@ public sealed partial class PosterCard : UserControl
             _preview.PointerEntered += OnPreviewPointerEntered;
             _preview.PointerExited += OnPreviewPointerExited;
             _preview.PlayRequested += (_, _) => Raise(_preview.PlayAnchor, CardAction.Play);
+            _preview.DetailsRequested += (_, _) => Raise(_preview.DetailsAnchor, CardAction.Details);
 
             _previewHost = new Popup
             {
@@ -750,10 +752,14 @@ public sealed partial class PosterCard : UserControl
         _previewHost!.HorizontalOffset = CardPreviewPlacement.Horizontal(
             origin.X, Root.ActualWidth, width, rootWidth, PreviewMargin);
         _previewHost.VerticalOffset = CardPreviewPlacement.Vertical(origin.Y, height, rootHeight, PreviewMargin);
+        var art = Art.TransformToVisual(content).TransformBounds(new Windows.Foundation.Rect(0, 0, Art.ActualWidth, Art.ActualHeight));
+        _preview.Prepare(new Windows.Foundation.Rect(
+            art.Left - origin.X - _previewHost.HorizontalOffset,
+            art.Top - origin.Y - _previewHost.VerticalOffset, art.Width, art.Height), height);
         _previewHost.IsOpen = true;
         _previewOpen = true;
 
-        // 保持卡片中心的来源关系，等比轻微放大；文字不再跟随海报宽度横向挤压。
+        // 原封面边框与图片撑开，内容只通过裁剪显露，文字不拉伸。
         _preview.PlayEnter();
         WatchPreviewScroll();
         AnimateCard();
@@ -775,6 +781,7 @@ public sealed partial class PosterCard : UserControl
 
     private async Task LoadPreviewArtworkAsync(CardItem card, CardPreview preview, int width, CancellationTokenSource cts)
     {
+        var logo = LoadPreviewLogoAsync(card, preview, cts.Token);
         try
         {
             var artwork = await card.LoadPreviewArtworkAsync(width, cts.Token).ConfigureAwait(true);
@@ -792,10 +799,22 @@ public sealed partial class PosterCard : UserControl
         }
         finally
         {
+            await logo.ConfigureAwait(true);
             // 先清字段再释放：中间没有 await，别人看到的要么是空、要么是一个还能用的。
             if (ReferenceEquals(_previewArtwork, cts)) _previewArtwork = null;
             cts.Dispose();
         }
+    }
+
+    private async Task LoadPreviewLogoAsync(CardItem card, CardPreview preview, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var logo = await card.LoadPreviewLogoAsync(220, cancellationToken).ConfigureAwait(true);
+            if (!cancellationToken.IsCancellationRequested && _previewOpen && ReferenceEquals(Card, card)) preview.SetLogo(logo);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { Log.Debug("封面预览", $"徽标加载失败：{error.GetType().Name}"); }
     }
 
     /// <summary>

@@ -1009,6 +1009,17 @@ public sealed class CardItem : INotifyPropertyChanged
         return null;
     }
 
+    internal async Task<BitmapImage?> LoadPreviewLogoAsync(int width, CancellationToken cancellationToken)
+    {
+        if (Scope is not { IsAvailable: true } scope || ItemArtwork.Plate(_item) is not { } logo) return null;
+        var key = PosterCache.Key(scope.Connection, logo.ItemId, logo.ImageType, logo.Tag, width);
+        if (PosterCache.TryGet(key, out var cached)) return cached;
+        var bitmap = await _images.GetDecodedAsync(scope, logo.ItemId, logo.ImageType, logo.Tag,
+            EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cancellationToken).ConfigureAwait(true);
+        if (bitmap is not null) PosterCache.Remember(key, bitmap);
+        return bitmap;
+    }
+
     /// <summary>预览按这个顺序找宽图：缩略图最像「一格画面」，背景图次之，海报最后兜底。</summary>
     private static readonly string[] PreviewImageTypes =
         [EmbyImageStore.Thumb, EmbyImageStore.Backdrop, EmbyImageStore.Primary];

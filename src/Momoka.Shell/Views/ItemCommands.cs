@@ -89,6 +89,9 @@ internal static partial class ItemCommands
 
         switch (args.Action)
         {
+            case CardAction.Details:
+                shell.OpenItem(card.Item);
+                break;
             case CardAction.Play:
                 _ = shell.PlayAsync(card.Item, episodes: siblings);
                 break;

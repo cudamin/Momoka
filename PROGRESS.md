@@ -12936,3 +12936,11 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 本轮无远程上传。临时codex/hover-preview-refresh顶端9f13da1的全部产品/测试内容已逐文件确认在master，工作树清洁，原构建失败及后续通过日志一并保存在主树artifacts/hover-preview-final/worktree-evidence；交付后移除本聊天1294树与临时分支。
 
 清理结果：Git已解除1294工作树登记、临时分支已删除。目录删除末步返回Permission denied，检查目录为空；保留该空目录，不绕过权限删除。主树交付与应用运行不受影响。
+
+## 2026-11-13 悬停预览按用户纠正为封面撑开（hover-preview-morph树）
+
+用户明确要求：边框从原封面撑开而不是淡入淡出；有播放记录写继续播放；点击卡片进详情；徽标在片名上方，评分/日期/类型同行。当前实现使用CompositionPropertySet.Progress驱动Surface和原封面图的Scale/Translation、Panel RectangleClip与HitRoot InsetClip，内容保持最终尺寸，无Opacity动画、无逐帧布局动画。起点用Art实际矩形，终点用面板/媒体视口；250/167ms，支持反转、关闭、应用动画偏好立即落定。详情Button与播放Button为兄弟，通过CardAction.Details→现有shell.OpenItem；播放起点不变，文案按位置/次数/LastPlayedDate，手动已看标记不伪称播放历史。
+
+徽标复用ItemArtwork.Plate的本条目Logo/Banner及明确父Logo引用，使用原Scope/缓存/取消归属，等待logo与宽图都结束才DisposeCTS。徽标引用存在时先预留44DIP保持动画目标稳定；真实缺图/失败时本次预留会留空。评分补EmbyFields.Browse的CommunityRating，类型原已请求，Jellyfin继续过滤不支持的Fields。实读Emby4.10.1.0 home/hometab.js显式追加CommunityRating/CriticRating的评分展示分支，SHA256 35553AC5CDD1D66083C6FE8183552AD51662D355E3A4BECFD7C3AF2244C188AD；Gallery固定6de91fe... XamlCompInteropPage真实ExpressionAnimation与Scale/Translation源码；当前包RectangleClip/InsetClip和框架e38939f...裁剪命中实现均核对。
+
+本树Core/Tests/Shell Release0警告0错误，主测试5028/5028、定向15/15、页面207/207，零失败零跳过；文本/空白检查通过。原生PID26128 InspectHoverPreview1/1，1280/760/360的9组布局、父徽标、同行资料、播放/详情隔离、迟到取消、关闭重开与动画反转均通过。冻结半程实际边框285×352，终点400×449，实屏已目视且整卡Opacity=1/标题宽不变。Composition controller getter实测只报0后-1，最初“中间进度”断言红日志保留；改测呈现事件/不透明与冻结实际几何，不冒称测得真实动画中间数值或帧率。原生匿名播放服务调用0，未做真实播放、写入、物理点外点击/触摸/读屏/跨DPI。累计输入27张图片。当前产品待提交合入master、重验发布，证据artifacts/hover-morph。

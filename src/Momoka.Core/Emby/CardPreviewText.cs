@@ -17,6 +17,17 @@ namespace Momoka.Emby;
 /// </summary>
 public static class CardPreviewText
 {
+    /// <summary>播放记录决定文案；可续播区间仍由 HasResumePosition 决定，不改播放起点。</summary>
+    public static string PlayLabel(EmbyItem item) =>
+        item.ResumeTicks > 0 || item.UserData is { PlayCount: > 0 } or { LastPlayedDate: not null }
+            ? "继续播放" : "播放";
+
+    /// <summary>紧凑资料行中的日期；单集优先首播日期，其余沿用卡片年份区间。</summary>
+    public static string Date(EmbyItem item) => item.Type == EmbyItemType.Episode
+        ? item.PremiereDate?.ToString("yyyy/M/d", CultureInfo.InvariantCulture)
+            ?? (item.ProductionYear is > 0 ? item.ProductionYear.Value.ToString(CultureInfo.InvariantCulture) : item.EpisodeCode)
+        : item.CardSubtitle;
+
     /// <summary>
     /// 年份、时长、分级，用项目那套「  ·  」连起来。时长对剧集写「每集 24 分钟」—— 一部剧自己的
     /// <c>RunTimeTicks</c> 是单集时长，不写「每集」会被读成整部剧只有 24 分钟（与媒体库表格同一条规则）。

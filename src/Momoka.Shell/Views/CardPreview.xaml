@@ -1,121 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 悬停预览沿用已确认的右上播放、下方宽图与实色面板；文字按阅读顺序分组。 -->
+<!-- 边框从原封面撑开；文字保持最终尺寸，详情点击面与播放键是兄弟控件。 -->
 <UserControl
     x:Class="Momoka.Shell.Views.CardPreview"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     AutomationProperties.AccessibilityView="Raw">
-    <Border
-        x:Name="Panel"
-        Background="{ThemeResource EgSurfaceBrush}"
-        BorderBrush="{ThemeResource EgBorderBrush}"
-        BorderThickness="1"
-        CornerRadius="{StaticResource EgCardCornerRadius}"
-        RenderTransformOrigin="0.5,0.5">
-        <Border.RenderTransform>
-            <CompositeTransform x:Name="PanelMotion" />
-        </Border.RenderTransform>
-        <Grid Padding="18">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <StackPanel Spacing="10">
-                <Grid ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock
-                        x:Name="TitleText"
-                        FontSize="{StaticResource EgTitleFontSize}"
-                        FontWeight="SemiBold"
-                        MaxLines="2"
-                        Style="{StaticResource EgBodyStyle}"
-                        TextTrimming="CharacterEllipsis"
-                        TextWrapping="Wrap"
-                        VerticalAlignment="Center" />
-                    <Button
-                        x:Name="PlayButton"
-                        Grid.Column="1"
-                        AutomationProperties.AutomationId="CardPreviewPlay"
-                        Click="OnPlayClicked"
-                        CornerRadius="10"
-                        Padding="14,8"
-                        Style="{StaticResource EgSecondaryButtonStyle}"
-                        VerticalAlignment="Top">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE768;" FontSize="{StaticResource EgCaptionFontSize}" />
-                            <TextBlock x:Name="PlayText" />
+    <Grid x:Name="Panel">
+        <Grid x:Name="HitRoot">
+            <Border x:Name="Surface"
+                Background="{ThemeResource EgSurfaceBrush}"
+                BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource EgCardCornerRadius}" />
+            <Button x:Name="DetailsButton"
+                AutomationProperties.AutomationId="CardPreviewDetails"
+                Click="OnDetailsClicked" Padding="0" BorderThickness="0"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                Background="Transparent" CornerRadius="{StaticResource EgCardCornerRadius}">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                </Button.Resources>
+            </Button>
+            <Grid x:Name="ContentRoot" Padding="19" IsHitTestVisible="False">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Spacing="10">
+                    <StackPanel x:Name="Heading" MinHeight="40" Spacing="8" Margin="0,0,116,0">
+                        <Grid x:Name="LogoSlot" Height="44" Visibility="Collapsed">
+                            <Image x:Name="LogoImage" Stretch="Uniform" HorizontalAlignment="Left" MaxWidth="220" />
+                        </Grid>
+                        <TextBlock x:Name="TitleText"
+                            FontSize="{StaticResource EgTitleFontSize}" FontWeight="SemiBold"
+                            MaxLines="2" Style="{StaticResource EgBodyStyle}"
+                            TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Grid x:Name="FactsBlock">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel x:Name="RatingBlock" Orientation="Horizontal" Spacing="4" Margin="0,0,10,0">
+                            <FontIcon Glyph="&#xE735;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
+                            <TextBlock x:Name="RatingText" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold" />
                         </StackPanel>
-                    </Button>
-                </Grid>
-                <StackPanel x:Name="FactsBlock" Spacing="6">
-                    <TextBlock
-                        x:Name="MetaText"
-                        MaxLines="2"
-                        Style="{StaticResource EgCaptionStyle}"
-                        TextTrimming="CharacterEllipsis"
-                        TextWrapping="Wrap" />
-                    <Grid x:Name="TagsRow" ColumnSpacing="12">
+                        <TextBlock x:Name="MetaText" Grid.Column="1" Margin="0,0,10,0"
+                            Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="GenresText" Grid.Column="2"
+                            Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                    <TextBlock x:Name="OverviewText" Foreground="{ThemeResource EgTextDimBrush}"
+                        MaxLines="2" Style="{StaticResource EgBodyStyle}"
+                        TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                </StackPanel>
+                <Border x:Name="Media" Grid.Row="1" Margin="0,14,0,0"
+                    Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                    SizeChanged="OnMediaSizeChanged">
+                    <Canvas><Image x:Name="PreviewImage" Stretch="UniformToFill" /></Canvas>
+                </Border>
+                <StackPanel x:Name="ResumeBlock" Grid.Row="2" Margin="0,14,0,0" Spacing="8">
+                    <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel x:Name="RatingBlock" Orientation="Horizontal" Spacing="4">
-                            <FontIcon Glyph="&#xE735;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
-                            <TextBlock x:Name="RatingText" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold" />
-                        </StackPanel>
-                        <TextBlock
-                            x:Name="GenresText"
-                            Grid.Column="1"
-                            Style="{StaticResource EgCaptionStyle}"
-                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Uid="CardPreview_Resume" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock x:Name="ResumeText" Grid.Column="1" HorizontalAlignment="Right"
+                            Style="{StaticResource EgDataStrongStyle}" TextTrimming="CharacterEllipsis" />
                     </Grid>
+                    <ProgressBar x:Name="ResumeProgress" AutomationProperties.AutomationId="CardPreviewProgress"
+                        Minimum="0" Maximum="100" IsIndeterminate="False" Foreground="{ThemeResource EgAccentBrush}" />
                 </StackPanel>
-                <TextBlock
-                    x:Name="OverviewText"
-                    Foreground="{ThemeResource EgTextDimBrush}"
-                    MaxLines="2"
-                    Style="{StaticResource EgBodyStyle}"
-                    TextTrimming="CharacterEllipsis"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-            <!-- Canvas 不把图源的原始尺寸带进 Measure；海报换成宽图时浮层不会跳高。 -->
-            <Border
-                x:Name="Media"
-                Grid.Row="1"
-                Margin="0,14,0,0"
-                Background="{ThemeResource EgSurfaceAltBrush}"
-                CornerRadius="{StaticResource EgPosterCornerRadius}"
-                SizeChanged="OnMediaSizeChanged">
-                <Canvas>
-                    <Image x:Name="PreviewImage" Stretch="UniformToFill" />
-                </Canvas>
-            </Border>
-            <StackPanel x:Name="ResumeBlock" Grid.Row="2" Margin="0,14,0,0" Spacing="8">
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock x:Uid="CardPreview_Resume" Style="{StaticResource EgCaptionStyle}" />
-                    <TextBlock
-                        x:Name="ResumeText"
-                        Grid.Column="1"
-                        HorizontalAlignment="Right"
-                        Style="{StaticResource EgDataStrongStyle}"
-                        TextTrimming="CharacterEllipsis" />
-                </Grid>
-                <ProgressBar
-                    x:Name="ResumeProgress"
-                    AutomationProperties.AutomationId="CardPreviewProgress"
-                    Minimum="0"
-                    Maximum="100"
-                    IsIndeterminate="False"
-                    Foreground="{ThemeResource EgAccentBrush}" />
-            </StackPanel>
+            </Grid>
+            <Button x:Name="PlayButton" AutomationProperties.AutomationId="CardPreviewPlay"
+                Click="OnPlayClicked" CornerRadius="10" Padding="14,8" Margin="19"
+                Style="{StaticResource EgSecondaryButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE768;" FontSize="{StaticResource EgCaptionFontSize}" />
+                    <TextBlock x:Name="PlayText" />
+                </StackPanel>
+            </Button>
+            <!-- 只移动原封面图，遮住尚未撑开的内容；不缩放文字、不改变整卡透明度。 -->
+            <Canvas IsHitTestVisible="False">
+                <Border x:Name="TransitionCover" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                    Background="{ThemeResource EgSurfaceAltBrush}" Visibility="Collapsed">
+                    <Image x:Name="TransitionImage" Stretch="UniformToFill" />
+                </Border>
+            </Canvas>
         </Grid>
-    </Border>
+    </Grid>
 </UserControl>

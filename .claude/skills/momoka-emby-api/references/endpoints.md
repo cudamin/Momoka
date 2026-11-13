@@ -174,3 +174,5 @@ py -m json.tool work/emby-openapi.json > /dev/null
 ```
 
 上面是 Bash 写法；先将 `API_BASE` 设为已核对、不含凭据的服务器基址，并逐步检查退出码，下载失败时不要拿旧文件继续校对。然后按**结构和 HTTP 方法**对路径，不要按字面量 grep：参数名在两边不一样（见上）。规格里找不到时登记缺口和证据状态，而不是改成"规格里有的写法"。
+
+浏览字段（2026-11-13）：EmbyFields.Browse显式请求CommunityRating供悬停评分。已读4.10.1.0官方home/hometab.js的评分展示查询分支；固定SHA与匿名验证见开发文档‘悬停预览纠正’。不因此给Jellyfin发送不支持的Fields，也不额外发逐卡详情请求。
