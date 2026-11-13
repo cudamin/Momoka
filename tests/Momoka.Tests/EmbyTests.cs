@@ -352,6 +352,23 @@ internal static class EmbyTests
             Assert.Contains("SortOrder=Descending", query);
         });
 
+        Test("查询：人物作品的 PersonTypes 只在带人物 id 时发出", () =>
+        {
+            var query = new ItemQuery
+            {
+                PersonId = "person-1",
+                PersonTypes = ["Actor", "Director"]
+            }.ToQueryString();
+
+            Assert.Contains("PersonIds=person-1", query);
+            Assert.Contains("PersonTypes=Actor%2CDirector", query, "服务器规定的是逗号，查询串里要转义");
+
+            // 没有人的 id 时，一份类型列表会被服务器读成「这一页只要这几种署名」，演职人员那一格
+            // 于是答出半个库。这一位不跟着别的条件走。
+            Assert.DoesNotContain("PersonTypes",
+                new ItemQuery { PersonTypes = ["Actor"] }.ToQueryString());
+        });
+
         Test("查询：全服务器搜索只找可播放的类型", () =>
         {
             var query = new ItemQuery

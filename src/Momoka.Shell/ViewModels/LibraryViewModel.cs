@@ -2796,6 +2796,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             Genre = source.Genre,
             Studio = source.Studio,
             PersonId = source.PersonId,
+            PersonTypes = source.PersonTypes,
             Filters = source.Filters,
             MediaTypes = source.MediaTypes,
             NameStartsWith = letter
@@ -3593,6 +3594,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             return new ItemQuery
             {
                 PersonId = personId,
+                PersonTypes = request.PersonType is { Length: > 0 } personType ? [personType] : [],
                 Recursive = true,
                 IncludeItemTypes = ItemQuery.SweptTypes,
                 SortBy = SortKey,

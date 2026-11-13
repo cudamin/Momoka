@@ -217,22 +217,26 @@ public static class ItemMenu
     /// 账号确认过的能力（<see cref="ItemMenuPermissions"/>）。只有服务器明确答 false 才收起对应入口；
     /// 默认全是 null，也就是「还没问到」——照旧显示，由服务器最终拒绝。
     /// </param>
+    /// <param name="self">
+    /// True for the 「更多」 button on a page that is already this item's own page: the 打开 row would push
+    /// a second copy of the page that is already open, so it is left out. Every other row is unchanged.
+    /// </param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
         bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
         ItemMenuPermissions permissions = default, bool aniBtEnabled = true, bool allowResumeRemoval = true,
-        CollectionMembership? collectionMembership = null) => fnNas
-        ? Join(Opening(item, false), FnNasUserState(item, allowResumeRemoval), FnNasManagement(item, permissions),
+        CollectionMembership? collectionMembership = null, bool self = false) => fnNas
+        ? Join(Opening(item, false, self), FnNasUserState(item, allowResumeRemoval), FnNasManagement(item, permissions),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
-        ? Join(Opening(item, false), UserState(item, true, favorites: false),
+        ? Join(Opening(item, false, self), UserState(item, true, favorites: false),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         : Join(
-        Opening(item, jellyfin),
+        Opening(item, jellyfin, self),
         MissingEpisodes(item),
         UserState(item, jellyfin),
         Organising(item, jellyfin, permissions, collectionMembership),
@@ -263,7 +267,8 @@ public static class ItemMenu
 
     private static List<ItemMenuEntry> FnNasUserState(EmbyItem item, bool allowResumeRemoval)
     {
-        var rows = UserState(item, true);
+        // 飞牛的人物只有 person_guid，没有可收藏的媒体条目；人物菜单那一行只在 Emby/Jellyfin 成立。
+        var rows = UserState(item, true, personFavorites: false);
         if (allowResumeRemoval && item.IsFnNasResumeRecord && !string.IsNullOrWhiteSpace(item.Id))
             rows.Add(new(ItemCommand.RemoveContinueWatching, "从继续观看移除"));
         return rows;
@@ -344,12 +349,16 @@ public static class ItemMenu
     public static bool IsEpisodeSet(EmbyItem item) =>
         item.Type is EmbyItemType.Series or EmbyItemType.Season;
 
-    private static List<ItemMenuEntry> Opening(EmbyItem item, bool jellyfin) => item.IsPlayable
-        ? [
-            new(ItemCommand.Play, jellyfin ? "播放" : item.HasResumePosition ? "继续播放" : "立即播放"),
-            new(ItemCommand.Details, "详细信息")
-        ]
-        : [new(ItemCommand.Open, "打开")];
+    private static List<ItemMenuEntry> Opening(EmbyItem item, bool jellyfin, bool self = false)
+    {
+        if (self) return [];
+        return item.IsPlayable
+            ? [
+                new(ItemCommand.Play, jellyfin ? "播放" : item.HasResumePosition ? "继续播放" : "立即播放"),
+                new(ItemCommand.Details, "详细信息")
+            ]
+            : [new(ItemCommand.Open, "打开")];
+    }
 
     /// <summary>
     /// 已观看、收藏、从继续观看中移除 —— 都是「这个账号跟这个条目的关系」，服务器上存在用户数据那一头。
@@ -363,9 +372,23 @@ public static class ItemMenu
     /// 里不再列它（服务器上是 <c>HideFromResume</c>），下次还能接着看；「标记为未观看」是把进度清成零。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> UserState(EmbyItem item, bool jellyfin, bool favorites = true)
+    private static List<ItemMenuEntry> UserState(EmbyItem item, bool jellyfin, bool favorites = true,
+        bool personFavorites = true)
     {
         var rows = new List<ItemMenuEntry>(4);
+
+        // 人物只有「收藏」这一种账号关系：没有已观看、没有续播点。服务器那边
+        // Users/{userId}/FavoriteItems/{itemId} 对任何条目都成立，Emby 网页端的人物页也挂着这颗心；
+        // 演职人员从前因为 TracksUserState=false 连收藏都被一起收掉，从人物页开始只放开这一条。
+        if (item.Type == EmbyItemType.Person)
+        {
+            if (favorites && personFavorites)
+                rows.Add(item.UserData?.IsFavorite == true
+                    ? new(ItemCommand.Unfavorite, "取消收藏")
+                    : new(ItemCommand.Favorite, jellyfin ? "加入收藏" : "添加到收藏"));
+            return rows;
+        }
+
         if (!item.TracksUserState) return rows;
 
         var played = item.UserData?.Played == true;
@@ -455,13 +478,20 @@ public static class ItemMenu
     /// </summary>
     private static List<ItemMenuEntry> Metadata(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions)
     {
-        // 编辑元数据对媒体库自己也成立（库有名字、简介和封面），所以它不看 IsCatalogue。
+        // 编辑元数据对媒体库自己和人物都成立（人物有名字、简介和照片），所以它不看 IsCatalogue。
         var rows = new List<ItemMenuEntry>(6);
         if (CanEdit(permissions)) rows.Add(new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据…"));
 
-        if (IsCatalogue(item))
+        // 人物不是「目录里的条目」，但它的照片、识别和刷新都作用在人物自己身上：从前和合集、删除、
+        // 扫库一起被 IsCatalogue 收掉，是因为手上只有一张演职人员存根。现在人物页按 id 读回了完整条目，
+        // 这三条才跟着放出来（Emby 网页端的人物菜单也有它们）。
+        var person = item.Type == EmbyItemType.Person;
+        if (IsCatalogue(item) || person)
         {
-            if (CanEdit(permissions)) rows.Add(new(ItemCommand.ChangeCover, jellyfin ? "修改图片" : "修改封面图…"));
+            if (CanEdit(permissions))
+                rows.Add(new(ItemCommand.ChangeCover, person
+                    ? jellyfin ? "修改照片" : "修改照片…"
+                    : jellyfin ? "修改图片" : "修改封面图…"));
             if (IsFile(item) && CanManageSubtitles(permissions))
                 rows.Add(new(ItemCommand.Subtitles, jellyfin ? "修改字幕" : "搜索字幕…"));
             if (ItemIdentify.Supports(item) && IsAdministrator(permissions))

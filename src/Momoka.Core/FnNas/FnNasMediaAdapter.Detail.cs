@@ -95,7 +95,8 @@ public sealed partial class FnNasMediaAdapter
     // 官方人物页的 ZB 分别取这四种职业；不能省略 job 来猜测“全部作品”协议。
     private async Task<ItemsResult> GetPersonItemsAsync(ItemQuery query, CancellationToken ct)
     {
-        if (query.Filters is { IsBlank: false } || query.FnNasFilters is { IsBlank: false } || !SupportsSort(query.SortBy))
+        if (query.Filters is { IsBlank: false } || query.FnNasFilters is { IsBlank: false }
+            || query.PersonTypes.Count > 0 || !SupportsSort(query.SortBy))
             throw new NotSupportedException("飞牛影视尚不支持此人物作品浏览条件");
         var items = new List<EmbyItem>();
         foreach (var job in new[] { "Actor", "Director", "Screenplay", "Producer" })

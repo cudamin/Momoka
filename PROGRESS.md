@@ -13241,3 +13241,11 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 独立树 Shell/Core/Tests 与字幕专项 Release/x64 编译均0警告0错误；详情动作专项85/85、花絮协议11/11、字幕生命周期89/89。`InspectDetailExtras` PID15480、退出0、单项通过：空花絮单集简洁/沉浸×1280/760，以及Emby/Jellyfin菜单、失败重试、空态恢复、旧选项/离页迟到；实屏16张、代表4张目视通过；最终格式化后重新编译、详情专项及原生检查通过，7个变更文件行尾/编码/差异检查和3项目定向空白检查通过。日志 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261113-110316147-15480/logs`。首轮辅助启动使用隐藏窗口导致宿主可见性红项，改为可见检查窗口后正常通过；另一次原生探针编译因调用私有外观方法失败，修正后重新编译0警告0错误，未使用失败产物。
 
 用户明确只合并，不发布、不联系其他聊天；主树最终整合的完整测试、适用UI复验及发布由用户安排交付聊天完成。当前分支验证不能代替主树交付验证。只用匿名GET/假播放，无真实服务器播放或写入，未推远端。等待主树并行文档写入释放后，产品 `9126482` 先整合最新master，再以 `331eaef` 快进合入master；受影响产品文件无整合冲突、逐文件相同。已追加待交付台账第4项，主树未构建/跑全量/发布。临时分支在内容核对后删除；当前4175为本聊天受保护primary工作树，保留干净detached，不绕过保护删除。
+
+## 2026-11-13 演职人员页：Emby／Jellyfin 独立人物页与本树验证
+
+用户令参考 WinUI Gallery 与网页端人物页新增演职人员功能和页面。产品：`PersonRequest` / `PersonPage` / `PersonViewModel`，从左栏人物卡进入；照片、名字、出生/逝世与年龄、出生地、简介；「节目」「电影」「集」三排；「其他信息」数据库链接；「影视作品」按职务分组（演员/导演/编剧/制片/客串/配乐），显示总数与前 20 行，「查看全部」进入带 `PersonTypes` 的人物作品网格。人物卡右键菜单按人物排收藏、编辑元数据、修改照片、识别、刷新；合集、删除、扫库不出现；人物页自己的「更多」不重复「打开」。飞牛没有人物条目，保留原人物作品网格；Plex 无导航身份仍不可点。人物卡悬浮层仍不长收藏键，人物页有独立的心；`ItemCommands.SetFavorite` 对人物单独放行，飞牛人物仍拒绝。
+
+协议：人物详情先走 `Users/{userId}/Items/{id}`，404/400 退回 `Persons/{Name}?UserId=`；`Fields` 点名 `ProductionLocations`/`PremiereDate`/`EndDate`/`ProviderIds`。作品沿用 `PersonIds`，影视作品每组带 `PersonTypes` 与 `People` 读角色；`PersonTypes` 只在有 `PersonIds` 时发送。源 pin：`EmbyItem.cs` 新增 `ProductionLocations`、`EmbyPerson.DescribeCredit` 公开为 `CreditName`，自然接续专项的 18 份其它 pin 逐份核对一致，仅定点更新该文件 SHA256。
+
+验证：Release 全方案 **0 警告 0 错误**；主测试 **5089/5089、0 失败 0 跳过**；Plex 入口 **85/85**、页面源码控制流 **228/228**、导航目的地 **18/18**；自然接续 caller **81/81**、源提取反例 **10/10**。新增 `--probe-shell --probe-section person --screen 1` 原生检查 **1/1、退出 0**（`shell-probe-20261113-140246626-20284`），真实 PersonPage 1280/760 实屏、资料/三条作品带/影视作品分组/其他信息/人物菜单/收藏写入全部通过；实屏 `person-page-1280-screen.png`、`person-page-760-screen.png`、`person-page-filmography-screen.png` 已目视。只用匿名假 HTTP、假身份和假播放；未在真实服务器执行人物详情、收藏、元数据、识别或照片写入；飞牛人物页、物理点外、触摸、读屏、跨 DPI、高对比度未覆盖。未推远端、未发布、未合 master。

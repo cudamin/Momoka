@@ -684,9 +684,13 @@ public sealed class EmbyPerson
 
     /// <summary>What a portrait card shows under the name: the character, else the credit.</summary>
     [JsonIgnore]
-    public string Credit => Role is { Length: > 0 } role ? role.Trim() : DescribeCredit(Type);
+    public string Credit => Role is { Length: > 0 } role ? role.Trim() : CreditName(Type);
 
-    private static string DescribeCredit(string? type) => type switch
+    /// <summary>
+    /// 一种署名的中文说法。演职人员那一排、人物页的影视作品分组和详情页的导演行读的都是这一份 ——
+    /// 三处各写一套的结果是同一个人在三处叫三个名字。
+    /// </summary>
+    public static string CreditName(string? type) => type switch
     {
         "Actor" => "演员",
         "GuestStar" => "客串",
@@ -910,6 +914,14 @@ public sealed class EmbyItem
     /// </para>
     /// </summary>
     public Dictionary<string, string> ProviderIds { get; set; } = [];
+
+    /// <summary>
+    /// 人物条目上的出生地，按服务器的顺序。Jellyfin 的 <c>Person</c> 把它放在
+    /// <c>ProductionLocations</c> 里（TMDB 的 PlaceOfBirth 落到这里，见
+    /// <c>TmdbPersonProvider</c>），Emby 的 <c>Person</c> 用同一个字段名。只有点名
+    /// <c>Fields=ProductionLocations</c> 的人物详情请求会带回来；影视条目的这一项是空的。
+    /// </summary>
+    public List<string> ProductionLocations { get; set; } = [];
 
     public string? OfficialRating { get; set; }
 

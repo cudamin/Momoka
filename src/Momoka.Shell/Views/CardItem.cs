@@ -855,7 +855,14 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     public Visibility UserStateVisibility => Show(!IsSelecting && _item.TracksUserState);
 
-    /// <summary>收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。</summary>
+    /// <summary>
+    /// 收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。
+    /// <para>
+    /// 演职人员在这里仍是 false：它的 <see cref="EmbyItem.TracksUserState"/> 为 false，人物卡的悬浮层
+    /// 不长收藏键。人物页自己那颗心和右键菜单里的「添加到收藏」不走这一位 —— 前者由人物页的视图模型
+    /// 直接写，后者在 <c>ItemCommands.SetFavorite</c> 里单独放行。
+    /// </para>
+    /// </summary>
     internal bool CanFavorite => _item.TracksUserState
         && Scope is { IsAvailable: true, Connection.SupportsFavorites: true };
 

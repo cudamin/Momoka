@@ -69,6 +69,20 @@ internal interface IShellActions
     /// </summary>
     void OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source = null);
 
+    /// <summary>
+    /// 人物页上「影视作品」某一组的「查看全部」：同一格人物作品网格，只多带一种署名。
+    /// <para>
+    /// 和 <see cref="OpenGenre"/>、<see cref="OpenRow"/> 同一个形状：外壳造一个 <c>LibraryRequest</c>
+    /// 交给 <c>LibraryPage</c>，排序、筛选、视图、翻页都跟着来。人物页自己不开 Frame —— 面包屑和返回栈
+    /// 只有外壳知道。
+    /// </para>
+    /// <para>
+    /// 默认实现什么都不做，是为了让只实现菜单/播放的测试替身不必为了新入口再写一遍；真正的外壳
+    /// （<c>ShellPage</c>）覆盖它。人物页上那颗按钮只在外壳已经附上时出现。
+    /// </para>
+    /// </summary>
+    void OpenPersonCredits(EmbyItem person, string? personType) { }
+
     void OpenSignIn(ServerProfile? server = null, bool newAccount = false);
 
     Task SwitchProfileAsync(ServerProfile server, AccountProfile? account);

@@ -20,13 +20,14 @@ internal static class ItemIdentifyTests
         Test("识别：只有服务器查得动的那几种才算支持", () =>
         {
             foreach (var type in (string[])[
-                EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.BoxSet, EmbyItemType.Trailer])
+                EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.BoxSet, EmbyItemType.Trailer, EmbyItemType.Person])
                 Assert.True(ItemIdentify.Supports(new EmbyItem { Id = "x", Type = type }), $"{type} 应该能识别");
 
-            // 季和单集跟着所属的剧一起识别；文件夹、播放列表、媒体库、演职人员都没有可对上的片子。
+            // 季和单集跟着所属的剧一起识别；文件夹、播放列表、媒体库没有可对上的片子。人物在里头：
+            // 服务器有 Items/RemoteSearch/Person，Emby 的 SDK 和 Jellyfin 网页端的人物菜单都认它。
             foreach (var type in (string[])[
                 EmbyItemType.Season, EmbyItemType.Episode, EmbyItemType.Folder, EmbyItemType.Playlist,
-                EmbyItemType.CollectionFolder, EmbyItemType.Person, ""])
+                EmbyItemType.CollectionFolder, ""])
                 Assert.False(ItemIdentify.Supports(new EmbyItem { Id = "x", Type = type }), $"{type} 不该有识别");
         });
 

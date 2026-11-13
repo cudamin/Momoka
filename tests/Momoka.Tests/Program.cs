@@ -656,6 +656,7 @@ internal static class Program
         MoviePilotAvailabilityTests.Register();
         MoviePilotMediaDetailTests.Register();
         ItemDetailTests.Register();
+        PersonDetailTests.Register();
         ItemTrailerTests.Register();
         ItemExtraTests.Register();
         EpisodeDisplayTests.Register();

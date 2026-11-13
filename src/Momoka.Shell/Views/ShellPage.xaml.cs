@@ -1560,11 +1560,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
             return;
         }
 
-        // A person is the one thing here that is not a folder. Asked for as a parent it answers an empty
-        // grid — nothing on the server has an actor as its parent — so it goes in as 「什么里有这个人」
-        // instead. Everything else that lands here really is a container: a library, a box set, a folder.
+        // A person is the one thing here that is not a folder. Emby 和 Jellyfin 上它是一个有自己条目、
+        // 出生地、外部链接和作品清单的人，所以进人物页；飞牛只有 person/list 与 person/item/list
+        // 两套作品接口，没有可读的人物条目，仍走「什么里有这个人」那一格。Plex 的人物卡没有可导航
+        // 身份（见 EmbyPerson.DisplayWithoutIdentity），走不到这里。
         if (item.Type == EmbyItemType.Person)
         {
+            var kind = item.Source?.Connection.ServerKind ?? _session?.Connection?.ServerKind;
+            if (kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
+            {
+                OpenPerson(PersonRequest.For(_services, item));
+                return;
+            }
+
             OpenChild(LibraryRequest.ForPerson(_services, item));
             return;
         }
@@ -1627,6 +1635,20 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
+    /// 一个人物的页面，从演职人员卡点进来。和 <see cref="OpenDetail"/> 同一条下钻：面包屑多一节、
+    /// 侧边栏那一格不再算「已经在这儿」。
+    /// </summary>
+    internal void OpenPerson(PersonRequest request)
+    {
+        RememberTrail();
+        ContentFrame.Navigate(typeof(PersonPage), request, BrowseTransition());
+
+        _trail.Add(new Crumb(request.Title, string.Empty));
+        _current = null;
+        SyncChrome();
+    }
+
+    /// <summary>
     /// Opens a folder, series or season from inside a page: same page type, one level deeper, and the
     /// trail grows instead of being replaced. This is the one navigation the tab row knows nothing about.
     /// </summary>
@@ -1674,6 +1696,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     void IShellActions.OpenGenre(string genre, EmbySessionScope? source) => OpenGenre(genre, source);
 
     void IShellActions.OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source) => OpenRow(target, source);
+
+    void IShellActions.OpenPersonCredits(EmbyItem person, string? personType) => OpenPersonCredits(person, personType);
 
     void IShellActions.OpenSignIn(ServerProfile? server, bool newAccount) => OpenSignIn(server, newAccount);
 
@@ -2506,6 +2530,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Log.Info(Category, $"打开一排：{request.Title}");
 
         Open(typeof(LibraryPage), request, request.Title, tag: "");
+    }
+
+    /// <summary>
+    /// 人物页上「查看全部」的去处。和按类型浏览、主页某一排是同一格网格，只多带一种人物署名；
+    /// 没有单独开一页 —— 排序、筛选、翻页和返回栈都跟着外壳走。
+    /// </summary>
+    public void OpenPersonCredits(EmbyItem person, string? personType)
+    {
+        if (_services is null) return;
+
+        var request = LibraryRequest.ForPerson(_services, person, personType);
+        Log.Info(Category, $"打开人物作品：{request.Title}");
+        OpenChild(request);
     }
 
     /// <summary>

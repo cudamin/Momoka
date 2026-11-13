@@ -97,21 +97,26 @@
             </Button>
         </DataTemplate>
 
-        <!-- 人物卡：Person 不是可播放类型，所以卡上不会长出播放键，也没有已看和收藏，
-             右键也不挂菜单 —— 那些命令都是针对可播放条目的。水洗底同上压掉。 -->
+        <!-- 人物卡：Person 不是可播放类型，所以卡上不会长出播放键和已看，悬浮层也不挂收藏（人物卡的
+             CanFavorite 仍按 TracksUserState 收着）；但右键菜单按人物排：收藏、编辑元数据、修改照片、
+             识别、刷新，合集和删除仍不出现。人物页自己有一颗收藏的心（见 PersonViewModel）。没有服务器
+             身份的 Plex 署名仍是死的，没有 Button，自然也没有菜单。水洗底同上压掉。 -->
         <DataTemplate x:Key="PersonTemplate" x:DataType="local:CardItem">
             <Grid>
                 <Button
+                    AutomationProperties.Name="{x:Bind Title, Mode=OneWay}"
                     Visibility="{x:Bind PersonNavigationVisibility}"
                     Background="Transparent"
                     BorderThickness="0"
                     Click="OnCardClicked"
+                    ContextRequested="OnCardContextRequested"
                     Padding="0">
                     <Button.Resources>
                         <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
                         <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
                     </Button.Resources>
                     <local:PosterCard
+                        ActionRequested="OnCardActionRequested"
                         Card="{x:Bind}"
                         CardWidth="{x:Bind CardWidth}"
                         PosterHeight="{x:Bind PosterHeight}" />

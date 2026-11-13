@@ -17,6 +17,9 @@
 # SidebarSettingsButton / SidebarSettingsGlyph / SidebarSettingsText 三处换成 NavigationView 的页脚项 SidebarSettings
 # （用户令「统一侧边栏按钮的大小」，尺寸由框架同一条度量算，不再手摆两档）。覆盖仍在：ShellChromeTests 钉住
 # 页脚项本身、它的 Tag/SelectsOnInvoked 与本地化键，--probe-shell 的 sidebar 分区量它在屏上的矩形与尺寸。
+# 2026-11-13（人物页）：基线在这一批开始前就与 DetailPage 的现状差 2（工作树 HEAD 的 git show 也是 21 处，
+# 不是这批新写的）；人物页自己的字号全部走 Eg* 刻度，计数为 0，不新增行。这里一并把 DetailPage 的读数
+# 校正到现状，未改任何一个字面字号。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -43,7 +46,7 @@ font-size  Theme/Styles.xaml  2
 font-size  Views/CoverDialog.xaml  6
 font-size  Views/CoverPickerDialog.xaml  1
 font-size  Views/DashboardPage.xaml  5
-font-size  Views/DetailPage.xaml  19
+font-size  Views/DetailPage.xaml  21
 font-size  Views/DiagnosticsPage.xaml  2
 font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
