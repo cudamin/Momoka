@@ -357,6 +357,69 @@ internal static class Program
             page.Release();
             Assert.Equal(0, HomeMotion.Subscriptions);
         });
+        Test("关联封面高清替换保持不透明，新页面停留恢复正常淡入", () =>
+        {
+            ResetUi();
+            var page = new DetailPage();
+            page.PosterImage.Load();
+            page.Watch();
+            page.PosterImage.Source = new BitmapImage();
+            Assert.Equal(0d, page.PosterImage.Opacity);
+            page.StopConnectedPosterArrival();
+            Assert.Equal(1d, page.PosterImage.Opacity);
+            var count = Storyboard.Created.Count;
+            page.PosterImage.Source = new BitmapImage();
+            Assert.Equal(count, Storyboard.Created.Count);
+            Assert.Equal(1d, page.PosterImage.Opacity);
+            page.Release();
+            page.Watch();
+            page.PosterImage.Source = new BitmapImage();
+            Assert.Equal(0d, page.PosterImage.Opacity);
+            page.Release();
+        });
+        Test("真实源封面保留方法在离树清图时保持可见，释放与回收换卡不借旧图", () =>
+        {
+            ResetUi();
+            var poster = new PosterCard { Card = new CardItem() };
+            poster.Poster.Load();
+            var picture = new BitmapImage();
+            poster.Card.Poster = picture;
+            poster.Poster.Source = picture;
+            var release = poster.RetainConnectedPoster();
+            Assert.Equal(1d, poster.Poster.Opacity);
+            poster.Card.Poster = null;
+            poster.Poster.Source = null;
+            Assert.True(ReferenceEquals(picture, poster.Poster.Source));
+            Assert.Equal(1d, poster.Poster.Opacity);
+            release();
+            Assert.Null(poster.Poster.Source);
+            poster.Card.Poster = picture;
+            poster.Poster.Source = picture;
+            release = poster.RetainConnectedPoster();
+            poster.Card = new CardItem();
+            poster.Poster.Source = null;
+            Assert.Null(poster.Poster.Source);
+            release();
+            Assert.Null(poster.Poster.Source);
+        });
+        Test("真实详情封面交接在网络门控前显示并先更新尺寸，离页和错项不借图", () =>
+        {
+            var gate = Gate();
+            var vm = new DetailArtworkFixture();
+            UseGate(vm, gate.Task);
+            var item = Item();
+            var load = vm.Start(item);
+            var picture = new BitmapSource { PixelWidth = 170, PixelHeight = 255 };
+            Assert.True(vm.UseConnectedPoster(item, picture));
+            Assert.True(ReferenceEquals(picture, vm.StillImage));
+            Assert.Equal((170, 255), vm.RefittedPixels!.Value);
+            Assert.Equal(0, vm.DecodeRequests);
+            Assert.False(vm.UseConnectedPoster(new EmbyItem { Id = "another-item" }, new BitmapSource()));
+            vm.Cancel();
+            Assert.False(vm.UseConnectedPoster(item, new BitmapSource()));
+            gate.SetResult();
+            Await(load);
+        });
         return Run();
     }
     private static EmbyItem Item() => new()

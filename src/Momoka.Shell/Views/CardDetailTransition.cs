@@ -16,18 +16,44 @@ internal static class CardDetailTransition
 {
     private static readonly ConditionalWeakTable<Frame, Ticket> Tickets = new();
 
+    internal static void Navigate(Page page, PosterCard? source, Action navigate)
+    {
+        var frame = page.Frame;
+        var prepared = source is not null && Prepare(frame, source);
+        try { navigate(); }
+        finally
+        {
+            if (prepared && ReferenceEquals(frame?.Content, page)) Cancel(frame);
+        }
+    }
+
+    internal static void Release(DetailPage page)
+    {
+        if (page.Frame is { } frame && Tickets.TryGetValue(frame, out var ticket)
+            && !ticket.IsReturning && !ticket.DepartsFrom(page)) Cancel(frame);
+    }
+
     internal static bool Prepare(Frame? frame, PosterCard? source)
     {
         if (frame is null) return false;
         Cancel(frame);
         if (source?.Card is not { Item.Source.IsCurrent: true, LoadedPosterArtwork: { } artwork } card
             || !VideoDetail(card.Item) || PrimaryArtwork(card.Item) != artwork
-            || !HomeMotion.AnimationsEnabled || !VisibleImage(source.ConnectedPoster)) return false;
+            || !HomeMotion.AnimationsEnabled || !VisibleImage(source.ConnectedPoster)
+            || source.ConnectedPoster.Source is not BitmapSource picture) return false;
         var item = card.Item;
+        Action? releaseSource = null;
+        ConnectedAnimation? animation = null;
+        Ticket? ticket = null;
         try
         {
-            var animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPoster);
-            var ticket = new Ticket(frame, item, source, artwork, animation);
+            releaseSource = source.RetainConnectedPoster();
+            // WinUI Gallery, Microsoft (MIT), 6de91feccadfbb0a796b71caedead5a2284f730e:
+            // WinUIGallery/SampleSupport/SamplePages/ItemsRepeaterCollectionPage.xaml.cs
+            // -> DetailedInfoPage.xaml.cs. Keep the sample's native forward/default and return/Direct.
+            // Prepare before Suppress navigation, populate the same image, then TryStart.
+            animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPoster);
+            ticket = new Ticket(frame, item, source, artwork, picture, animation, releaseSource);
             Tickets.Add(frame, ticket);
             ticket.Watch();
             frame.Navigating += OnNavigating;
@@ -38,6 +64,14 @@ internal static class CardDetailTransition
         catch (Exception)
         {
             Cancel(frame);
+            if (ticket is not null) ticket.Dispose();
+            else
+            {
+                try { animation?.Cancel(); }
+                catch (Exception) { }
+                try { releaseSource?.Invoke(); }
+                catch (Exception) { }
+            }
             return false;
         }
     }
@@ -146,6 +180,8 @@ internal static class CardDetailTransition
         private readonly ArtworkRef _artwork;
         private readonly WeakReference<PosterCard> _source;
         private readonly WeakReference<FrameworkElement>? _sourcePage;
+        private BitmapSource? _picture;
+        private Action? _releaseSource;
         private readonly UISettings _settings = new();
         private ConnectedAnimation? _animation;
         private TypedEventHandler<ConnectedAnimation, object>? _completed;
@@ -162,7 +198,7 @@ internal static class CardDetailTransition
         private Action? _preferenceChanged;
         private TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _systemPreferenceChanged;
 
-        internal Ticket(Frame frame, EmbyItem item, PosterCard source, ArtworkRef artwork, ConnectedAnimation animation)
+        internal Ticket(Frame frame, EmbyItem item, PosterCard source, ArtworkRef artwork, BitmapSource picture, ConnectedAnimation animation, Action releaseSource)
         {
             _frame = frame;
             _item = item;
@@ -172,6 +208,8 @@ internal static class CardDetailTransition
             _source = new(source);
             _sourcePage = frame.Content is FrameworkElement page ? new(page) : null;
             _animation = animation;
+            _picture = picture;
+            _releaseSource = releaseSource;
         }
 
         internal bool IsReturning { get; private set; }
@@ -191,6 +229,14 @@ internal static class CardDetailTransition
         internal void Attach(DetailPage page)
         {
             _target = page;
+            if (PrimaryArtwork(_item) == _artwork && page.ViewModel.CurrentItem is { } current
+                && Matches(current) && PrimaryArtwork(current) == _artwork && _picture is { } picture)
+            {
+                page.StopConnectedPosterArrival();
+                // x:Bind更新可能晚于Loaded；此处同步供平台生成目标快照。
+                if (page.ViewModel.StillImage is not BitmapSource { PixelWidth: > 0, PixelHeight: > 0 }
+                    && page.ViewModel.UseConnectedPoster(_item, picture)) page.ConnectedPoster.Source = picture;
+            }
             page.Loaded += OnLayout;
             page.Unloaded += OnTargetUnloaded;
             page.LayoutUpdated += OnLayoutUpdated;
@@ -203,9 +249,12 @@ internal static class CardDetailTransition
 
         private void TryStart()
         {
-            if (_disposed || _resolved || _target is not { } target) return;
+            // OnNavigatedTo尚在Frame事务里；取消/普通淡入同样等Loaded，不能拆正在创建的新页。
+            if (_disposed || _resolved || _target is not { IsLoaded: true } target) return;
             if (_item.Source?.IsCurrent != true || !HomeMotion.AnimationsEnabled || target.ViewModel.CurrentItem is { } item
-                && (!Matches(item) || PrimaryArtwork(item) != _artwork))
+                && (!Matches(item) || PrimaryArtwork(item) != _artwork)
+                || !_source.TryGetTarget(out var source) || source.Card is not { } card
+                || !Matches(card.Item) || PrimaryArtwork(card.Item) != _artwork)
             { Resolve(false); return; }
             if (target.ViewModel.CurrentItem is null || !VisibleImage(target.ConnectedPoster)) return;
             target.StopConnectedPosterArrival();
@@ -250,6 +299,7 @@ internal static class CardDetailTransition
             {
                 StopAnimation();
                 _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPoster);
+                _animation.Configuration = new DirectConnectedAnimationConfiguration();
                 IsReturning = true;
                 _returnQueued = false;
                 _generation++;
@@ -331,6 +381,11 @@ internal static class CardDetailTransition
 
         private void StopAnimation()
         {
+            var releaseSource = _releaseSource;
+            _releaseSource = null;
+            _picture = null;
+            try { releaseSource?.Invoke(); }
+            catch (Exception) { /* 来源已撤销保留资格；释放失败不能阻断原生取消。 */ }
             if (_animation is not { } animation) return;
             _animation = null;
             var completed = _completed;
@@ -403,6 +458,7 @@ internal static class CardDetailTransition
         private void OnFrameUnloaded(object sender, RoutedEventArgs args) => Cancel(_frame);
 
         internal bool ReturnPageMatches => _sourcePage?.TryGetTarget(out var page) == true && ReferenceEquals(_frame.Content, page);
+        internal bool DepartsFrom(DetailPage page) => !_resolved && _sourcePage?.TryGetTarget(out var source) == true && ReferenceEquals(source, page);
 
         public void Dispose()
         {

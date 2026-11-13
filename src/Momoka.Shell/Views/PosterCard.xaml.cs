@@ -206,6 +206,30 @@ public sealed partial class PosterCard : UserControl
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
     internal Image ConnectedPoster => Poster;
 
+    /// <summary>平台下一帧才冻结来源；离页清空卡片图片时保留这张图，完成或取消后释放。</summary>
+    internal Action RetainConnectedPoster()
+    {
+        var card = Card;
+        var picture = Poster.Source;
+        var active = true;
+        _posterArrival.Stop();
+        var token = Poster.RegisterPropertyChangedCallback(Image.SourceProperty, (_, _) =>
+        {
+            if (active && ReferenceEquals(Card, card) && Poster.Source is null)
+            {
+                Poster.Source = picture;
+                _posterArrival.Stop();
+            }
+        });
+        return () =>
+        {
+            active = false;
+            Poster.UnregisterPropertyChangedCallback(Image.SourceProperty, token);
+            if (ReferenceEquals(Card, card) && ReferenceEquals(Poster.Source, picture)) Poster.Source = card?.Poster;
+            _posterArrival.Stop();
+        };
+    }
+
     /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
     private Storyboard? _removal;
 

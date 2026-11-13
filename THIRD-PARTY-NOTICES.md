@@ -177,3 +177,13 @@ GPL-2.0-or-later 处理；换内核后按文件本身的许可写。
 
 许可正文取自 SPDX license-list-data（MIT 与 Apache-2.0 于 2026-10-14 获取，
 LGPL/GPL 三份于 2026-10-04 获取），除 `mpv-ui\LICENSE.LGPL` 为随上游分发原样保留。
+
+## WinUI Gallery 关联动画样例
+
+封面关联动画沿用 Microsoft WinUI Gallery（MIT）固定提交 6de91feccadfbb0a796b71caedead5a2284f730e 的 ItemsRepeaterCollectionPage / DetailedInfoPage 原生调用顺序。Copyright (c) Microsoft Corporation. All rights reserved. 来源与本地适配见 [封面关联动画](docs/封面关联动画.md)。
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the Software), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

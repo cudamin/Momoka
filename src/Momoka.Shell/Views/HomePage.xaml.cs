@@ -1610,8 +1610,9 @@ public sealed partial class HomePage : Page, IShellContent
     private void OnCardActionRequested(object? sender, CardActionEventArgs args)
     {
         if (sender is PosterCard { Card.IsNavigation: true }) return;
-        ItemCommands.Handle(_session, _actions, sender, args,
-            changed: CaptureCardReload(), removed: RemoveCard, watched: ViewModel.MarkedWatched);
+        CardDetailTransition.Navigate(this, args.Action == CardAction.Details ? sender as PosterCard : null, () =>
+            ItemCommands.Handle(_session, _actions, sender, args,
+                changed: CaptureCardReload(), removed: RemoveCard, watched: ViewModel.MarkedWatched));
     }
 
     /// <summary>删除成功：和 MoviePilot 那两个删除范围走同一条离场动画与摘除路径。</summary>

@@ -1123,8 +1123,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
 
         ViewModel.PrepareCollectionMembers();
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched,
-            select: SelectionCallback());
+        CardDetailTransition.Navigate(this, args.Action == CardAction.Details ? sender as PosterCard : null, () =>
+            ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched,
+                select: SelectionCallback()));
     }
 
     private double ContentScrollOffset => ViewModel.IsUpcomingPage ? UpcomingScroll.VerticalOffset

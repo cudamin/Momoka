@@ -85,6 +85,10 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public class Page : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public Frame? Frame { get; set; }
+    }
     public sealed class ScrollView : Microsoft.UI.Xaml.FrameworkElement;
     public sealed class ScrollViewer : Microsoft.UI.Xaml.FrameworkElement;
     public sealed class Frame : Microsoft.UI.Xaml.FrameworkElement
@@ -142,8 +146,10 @@ namespace Microsoft.UI.Xaml.Media.Imaging
 
 namespace Microsoft.UI.Xaml.Media.Animation
 {
+    public sealed class DirectConnectedAnimationConfiguration;
     public sealed class ConnectedAnimation
     {
+        public object? Configuration { get; set; }
         public enum EventFailure { None, Before, After }
         public EventFailure AddFailure { get; set; }
         public EventFailure RemoveFailure { get; set; }
@@ -281,6 +287,12 @@ namespace Momoka.Shell.Views
     {
         public CardItem? Card { get; set; } = new();
         public Microsoft.UI.Xaml.Controls.Image ConnectedPoster { get; set; } = new();
+        public int Retentions { get; private set; }
+        public Action RetainConnectedPoster()
+        {
+            Retentions++;
+            return () => Retentions--;
+        }
     }
     public sealed class DetailRequest
     {
@@ -288,11 +300,12 @@ namespace Momoka.Shell.Views
     }
     public sealed class DetailViewModel
     {
+        public Microsoft.UI.Xaml.Media.Imaging.BitmapSource? StillImage { get; set; }
         public Momoka.Emby.EmbyItem? CurrentItem { get; set; }
+        public bool UseConnectedPoster(Momoka.Emby.EmbyItem item, Microsoft.UI.Xaml.Media.Imaging.BitmapSource picture) => true;
     }
-    public sealed class DetailPage : Microsoft.UI.Xaml.FrameworkElement
+    public sealed class DetailPage : Microsoft.UI.Xaml.Controls.Page
     {
-        public Microsoft.UI.Xaml.Controls.Frame? Frame { get; set; }
         public Microsoft.UI.Xaml.Controls.Image ConnectedPoster { get; set; } = new();
         public DetailViewModel ViewModel { get; } = new();
         public int StoppedArrivals { get; private set; }

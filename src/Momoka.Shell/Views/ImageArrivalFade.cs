@@ -27,6 +27,7 @@ internal sealed class ImageArrivalFade : IDisposable
     private EventHandler<object>? _completed;
     private bool _watchingPreferences;
     private bool _disposed;
+    private bool _suppressed;
 
     internal ImageArrivalFade(Image image)
         : this(image, Image.SourceProperty, image, image.Opacity)
@@ -65,7 +66,7 @@ internal sealed class ImageArrivalFade : IDisposable
         if (ReferenceEquals(source, _seen)) return;
         _seen = source;
         Stop();
-        if (source is null || _host.XamlRoot is null || !HomeMotion.AnimationsEnabled) return;
+        if (_suppressed || source is null || _host.XamlRoot is null || !HomeMotion.AnimationsEnabled) return;
 
         // Repeater 的回收幻影可能把 IsLoaded 置为 false，但 XamlRoot 仍在、画面也仍在。
         WatchPreferences();
@@ -107,6 +108,13 @@ internal sealed class ImageArrivalFade : IDisposable
         StopWatchingPreferences();
         board?.Stop();
         SetOpacity(_finalOpacity);
+    }
+
+    // 关联封面本次停留始终连续呈现；高清替换不能再次从透明开始。
+    internal void Suppress()
+    {
+        _suppressed = true;
+        Stop();
     }
 
     private void SetOpacity(double value)
