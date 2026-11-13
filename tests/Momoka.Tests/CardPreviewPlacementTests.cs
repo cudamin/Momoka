@@ -41,11 +41,27 @@ internal static class CardPreviewPlacementTests
             Assert.Equal(12d, 100 + offset, "左沿仍留 12");
         });
 
-        Test("悬停预览：纵向与卡片齐平，底下放不下就整体上移", () =>
+        Test("悬停预览：纵向以封面中心向上下展开", () =>
         {
-            Assert.Equal(0d, CardPreviewPlacement.Vertical(300, 311, 1000, 12), "放得下");
-            Assert.Equal(-123d, CardPreviewPlacement.Vertical(800, 311, 1000, 12), "底下放不下");
-            Assert.Equal(12d, 600 + CardPreviewPlacement.Vertical(600, 2000, 1000, 12), "比窗口还高时顶上留 12");
+            var offset = CardPreviewPlacement.Vertical(300, 255, 449, 1000, 12);
+            Assert.Equal(-97d, offset, "上下各多出 97");
+            Assert.Equal(427.5d, 300 + offset + (449d / 2), "封面和面板中心一致");
+        });
+
+        Test("悬停预览：纵向居中遇上下边界时仍留安全距离", () =>
+        {
+            Assert.Equal(-24d, CardPreviewPlacement.Vertical(36, 255, 449, 1000, 12), "贴近顶边");
+            Assert.Equal(-261d, CardPreviewPlacement.Vertical(800, 255, 449, 1000, 12), "贴近底边");
+            Assert.Equal(12d, 600 + CardPreviewPlacement.Vertical(600, 255, 2000, 1000, 12), "比窗口还高");
+        });
+
+        Test("悬停预览：横向和纵向相同尺寸使用相同中心规则", () =>
+        {
+            foreach (var position in new[] { -50d, 12d, 250d, 800d })
+                Assert.Equal(CardPreviewPlacement.Horizontal(position, 255, 449, 1000, 12),
+                    CardPreviewPlacement.Vertical(position, 255, 449, 1000, 12), "两轴一致");
+            Assert.Equal(0d, CardPreviewPlacement.Vertical(300, 255, 0, 1000, 12), "未量出面板");
+            Assert.Equal(0d, CardPreviewPlacement.Vertical(300, 255, 449, 0, 12), "未量出窗口");
         });
 
         Test("悬停预览：缩略图统一 2:1", () =>

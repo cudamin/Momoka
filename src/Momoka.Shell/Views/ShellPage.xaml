@@ -31,12 +31,14 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
+    KeyboardAcceleratorPlacementMode="Hidden"
     FontFamily="{StaticResource EgUiFontFamily}"
     FontSize="{StaticResource EgBodyFontSize}">
 
     <!-- Alt+← / Alt+→ 挂在外壳上，而不是按钮自己：两支箭头走不动时只是变暗（停用的按钮自己那条
          加速器不响），而这两支快捷键要一直能按 —— 它们自己查外壳在不在屏上、Frame 的栈里还有没有路。
-         鼠标那两颗侧键是同一条路（见 OnRootPointerPressed）。 -->
+         鼠标那两颗侧键是同一条路（见 OnRootPointerPressed）。根元素隐藏自动提示，避免整页悬停都弹出
+         第一条 Alt+←；各按钮自己的本地化 ToolTip 保留。 -->
     <UserControl.KeyboardAccelerators>
         <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnBackInvoked" />
         <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="OnForwardInvoked" />
@@ -71,7 +73,7 @@
       登录卡 → 播放器 → 通知」，写成数字，读这个文件的人不用在心里数元素的先后。账号那一组在侧边栏之上、外壳
       之下，是因为它在侧边栏模式里要压在栏的左下角上，而它自己不是外壳那一行的一部分。
     -->
-    <Grid x:Name="Root">
+    <Grid x:Name="Root" KeyboardAcceleratorPlacementMode="Auto">
         <!-- 外壳那一行。整块一起收起（播放时），所以是一个 Grid：播放层要整个窗口，而「外壳收一半」是
              没有意义的中间态。 -->
         <Grid

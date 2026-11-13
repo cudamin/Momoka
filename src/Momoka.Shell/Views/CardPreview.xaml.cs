@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -16,6 +17,7 @@ public sealed partial class CardPreview : UserControl
 {
     private const int EnterMs = 250;
     private const int ExitMs = 167;
+    private const int ArtworkFadeMs = 200;
     private const double PanelPadding = 19;
     private CompositionPropertySet? _state;
     private CompositionScopedBatch? _batch;
@@ -23,6 +25,8 @@ public sealed partial class CardPreview : UserControl
     private InsetClip? _hitClip;
     private Action? _exitCompleted;
     private BitmapImage? _pendingArtwork;
+    private Storyboard? _artworkFade;
+    private CardItem? _card;
     private bool _running;
     private bool _shown;
     private int _generation;
@@ -54,8 +58,13 @@ public sealed partial class CardPreview : UserControl
     internal void Show(CardItem card)
     {
         Panel.Visibility = Visibility.Visible;
-        PreviewImage.Source = card.Poster;
-        TransitionImage.Source = card.Poster;
+        if (!ReferenceEquals(_card, card))
+        {
+            StopArtworkFade();
+            _pendingArtwork = null;
+            PreviewImage.Source = card.Poster;
+            _card = card;
+        }
         LogoImage.Source = null;
         LogoSlot.Visibility = Shown(ItemArtwork.Plate(card.Item) is not null);
         TitleText.Text = card.Title;
@@ -83,17 +92,63 @@ public sealed partial class CardPreview : UserControl
 
     internal void SetArtwork(BitmapImage? artwork)
     {
-        if (artwork is null) return;
-        if (_running) _pendingArtwork = artwork;
-        else PreviewImage.Source = artwork;
+        if (artwork is null || !_shown) return;
+        if (_running || _artworkFade is not null) { _pendingArtwork = artwork; return; }
+        if (ReferenceEquals(PreviewImage.Source, artwork)) return;
+        if (!HomeMotion.AnimationsEnabled || PreviewImage.Source is null)
+        {
+            PreviewImage.Source = artwork;
+            return;
+        }
+
+        // 两张图共用随封面撑开的表面。新图在不透明旧图上渐显，混合时不会闪出底色。
+        TransitionImage.Source = artwork;
+        var board = new Storyboard();
+        var animation = new DoubleAnimation { From = 0, To = 1, Duration = TimeSpan.FromMilliseconds(ArtworkFadeMs) };
+        Storyboard.SetTarget(animation, TransitionImage);
+        Storyboard.SetTargetProperty(animation, "Opacity");
+        board.Children.Add(animation);
+        _artworkFade = board;
+        board.Completed += (_, _) =>
+        {
+            if (!ReferenceEquals(_artworkFade, board)) return;
+            PreviewImage.Source = artwork;
+            StopArtworkFade();
+            ApplyPendingArtwork();
+        };
+        try { board.Begin(); }
+        catch (Exception)
+        {
+            // 离树或关闭过程中平台可能拒绝动画；新图仍正常显示，后续请求也不能卡在队列里。
+            PreviewImage.Source = artwork;
+            StopArtworkFade();
+            ApplyPendingArtwork();
+        }
+    }
+
+    private void ApplyPendingArtwork()
+    {
+        if (_running || _artworkFade is not null || !_shown) return;
+        var artwork = _pendingArtwork;
+        _pendingArtwork = null;
+        SetArtwork(artwork);
+    }
+
+    private void StopArtworkFade()
+    {
+        var board = _artworkFade;
+        _artworkFade = null;
+        board?.Stop();
+        TransitionImage.Opacity = 0;
+        TransitionImage.Source = null;
     }
 
     internal void SetLogo(BitmapImage? logo) => LogoImage.Source = logo;
 
     private void OnMediaSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        PreviewImage.Width = e.NewSize.Width;
-        PreviewImage.Height = e.NewSize.Height;
+        PreviewImage.Width = TransitionImage.Width = e.NewSize.Width;
+        PreviewImage.Height = TransitionImage.Height = e.NewSize.Height;
     }
 
     // 源矩形与目标同为 Popup 内的 DIP。先固定最终布局，再安装只在合成线程求值的表达式。
@@ -133,11 +188,9 @@ public sealed partial class CardPreview : UserControl
     internal void PlayEnter()
     {
         if (_state is null) return;
-        if (_shown && !_running) TransitionImage.Source = PreviewImage.Source;
         _shown = true;
         Panel.Visibility = Visibility.Visible;
         TransitionCover.Visibility = Visibility.Visible;
-        PreviewImage.Visibility = Visibility.Collapsed;
         Animate(1, EnterMs, null);
     }
 
@@ -145,10 +198,8 @@ public sealed partial class CardPreview : UserControl
     {
         if (_state is null) { Reset(); closed(); return; }
         _shown = false;
-        // 收回当前正在显示的图片，避免退出第一帧突然换回竖海报。
-        TransitionImage.Source = PreviewImage.Source;
+        // 新旧图片一起收回，保持当前交叉淡化画面，退出第一帧不换图。
         TransitionCover.Visibility = Visibility.Visible;
-        PreviewImage.Visibility = Visibility.Collapsed;
         Animate(0, ExitMs, closed);
     }
 
@@ -190,11 +241,8 @@ public sealed partial class CardPreview : UserControl
         _state?.InsertScalar("Progress", target);
         _running = false;
         _exitCompleted = null;
-        TransitionCover.Visibility = Visibility.Collapsed;
-        PreviewImage.Visibility = Visibility.Visible;
         Panel.Visibility = target == 1 ? Visibility.Visible : Visibility.Collapsed;
-        if (target == 1 && _pendingArtwork is { } artwork) PreviewImage.Source = artwork;
-        _pendingArtwork = null;
+        if (target == 1) ApplyPendingArtwork();
         closed?.Invoke();
     }
 
@@ -208,15 +256,21 @@ public sealed partial class CardPreview : UserControl
         _running = _shown = false;
         _exitCompleted = null;
         _pendingArtwork = null;
+        StopArtworkFade();
+        _card = null;
         Panel.Visibility = Visibility.Collapsed;
         TransitionCover.Visibility = Visibility.Collapsed;
-        PreviewImage.Visibility = Visibility.Visible;
         PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;
     }
 
     private void OnMotionPreferenceChanged()
     {
-        if (HomeMotion.AnimationsEnabled || !_running) return;
+        if (HomeMotion.AnimationsEnabled) return;
+        var artwork = _pendingArtwork ?? TransitionImage.Source;
+        _pendingArtwork = null;
+        if (artwork is not null) PreviewImage.Source = artwork;
+        StopArtworkFade();
+        if (!_running) return;
         var closed = _exitCompleted;
         ++_generation;
         _batch?.Dispose();

@@ -59,9 +59,7 @@
                 </StackPanel>
                 <Border x:Name="Media" Grid.Row="1" Margin="0,14,0,0"
                     Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                    SizeChanged="OnMediaSizeChanged">
-                    <Canvas><Image x:Name="PreviewImage" Stretch="UniformToFill" /></Canvas>
-                </Border>
+                    SizeChanged="OnMediaSizeChanged" />
                 <StackPanel x:Name="ResumeBlock" Grid.Row="2" Margin="0,14,0,0" Spacing="8">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
@@ -84,11 +82,14 @@
                     <TextBlock x:Name="PlayText" />
                 </StackPanel>
             </Button>
-            <!-- 只移动原封面图，遮住尚未撑开的内容；不缩放文字、不改变整卡透明度。 -->
+            <!-- 同一个媒体表面随封面撑开；前层渐显新图，背后旧图保持不透明，不露出底色。 -->
             <Canvas IsHitTestVisible="False">
                 <Border x:Name="TransitionCover" CornerRadius="{StaticResource EgPosterCornerRadius}"
                     Background="{ThemeResource EgSurfaceAltBrush}" Visibility="Collapsed">
-                    <Image x:Name="TransitionImage" Stretch="UniformToFill" />
+                    <Grid>
+                        <Image x:Name="PreviewImage" Stretch="UniformToFill" />
+                        <Image x:Name="TransitionImage" Stretch="UniformToFill" Opacity="0" />
+                    </Grid>
                 </Border>
             </Canvas>
         </Grid>
