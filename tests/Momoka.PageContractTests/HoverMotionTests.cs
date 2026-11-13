@@ -41,15 +41,24 @@ internal static class HoverMotionTests
             Assert.Contains("Call(card, \"ResetMotion\");", source);
             Assert.Contains("对齐检查未检出旧的居中布局", source);
         });
-        Test("外壳队列：播放器附加前所有能力、动作和事件均有守卫", () =>
+        Test("外壳队列：初始空ViewModel安全隐藏，独占Detach后保留队列", () =>
         {
             var source = Read("src/Momoka.Shell/Views/ShellPage.xaml.cs");
             var start = source.IndexOf("bool IShellActions.CanQueueVideo(", StringComparison.Ordinal);
             var end = source.IndexOf("/// <summary>进播放前", start, StringComparison.Ordinal);
             var queue = source[start..end];
-            foreach (var statement in queue.Split(';').Where(part => part.Contains("Player.ViewModel", StringComparison.Ordinal)
-                && !part.Contains("if (intent == _shellPlayIntent)", StringComparison.Ordinal)))
-                Assert.Contains("Player.Attached", statement);
+            Assert.DoesNotContain("Player.Attached", queue);
+            Assert.Contains("Player.ViewModel?.CanQueue(item) == true", queue);
+            Assert.Contains("Player.ViewModel?.Queue(item, next) == true", queue);
+            Assert.Contains("Player.ViewModel?.HasPendingQueue == true", queue);
+            Assert.Contains("Player.ViewModel?.CanResumeQueue == true", queue);
+            Assert.Contains("Player.ViewModel is not { CanResumeQueue: true } player", queue);
+            Assert.Contains("Player.ViewModel?.ClearQueue()", queue);
+            Assert.Contains("Player.ViewModel is { } player", queue);
+            var page = Read("src/Momoka.Shell/Views/PlayerPage.xaml.cs");
+            var detach = page[page.IndexOf("internal void Detach()", StringComparison.Ordinal)..];
+            detach = detach[..detach.IndexOf("// ---- 输出尺寸", StringComparison.Ordinal)];
+            Assert.DoesNotContain("ViewModel = null", detach);
         });
         Test("整理菜单探针：保留真实菜单验收并记录激活结果，不强求前台", () =>
         {
