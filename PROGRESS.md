@@ -16,6 +16,8 @@
 
 **环境**：期间主树另一个会话的 `--probe-shell inspect` 反复以孤儿进程留在后台（父进程已退出、结果文件已写完），占着单实例锁与自检 mutex —— 主测试首跑因此有 16 条「自检输出」红（`已有当前用户的自检运行中`），结束后重跑全绿。
 
+**补记（15:45，用户令「要更稳」）**：`LoadArtworkAsync` 拆成外层（抬 `StillPending` ＋ `finally` 收）和 `LoadArtworkCoreAsync`（原体）。收尾判据 `_art is null || ReferenceEquals(art, _art)`：首帧前取消、离树、代次过期这三条早退也收；只有「更新的一趟已经接手」时才不动。顺带补上上一批漏掉的 `Momoka.DetailImageArrivalTests` —— 它的 `LoadArtworkAsync` 是构建时从生产文件原样抽取的，`StillPending` 在夹具里没有字段，上一批就已经 `CS0103` 编译不过；本批补字段并加三条用例（门控前取消、离树后的迟到图、旧批次不按新一代）。该工程 **23/23**；Shell Release **0 警告 0 错误**；主测试 **5028/5028**（清掉另一会话父进程已退出的孤儿探针后）、页面契约 **210/210**、`SubtitleDialog` **89/89**；`PlexAffordance`／`DetailDeleteCommand` 是带参数的夹具命令行，编译通过、未跑。`--probe-section library` **37/47**：失败 10 条与上轮 36/47 那份逐条同文（详情 6 条颜色／819 背景层，外加 UIA 抖动），上轮那条「媒体库多选」本轮转绿，无新增红。
+
 ## 2026-11-13 工作树 toolkit-ui：候选封面加载流光与看大图阴影（未合入）
 
 用户令「单开一个工作树按你的建议做」，前情是审查 Toolkit 的 TransitionHelper / Attached Shadows / Shimmer / ConstrainedBox 能否内置。分支 `workbuddy/toolkit-ui`（工作树 `C:\Users\89400\WorkBuddy\Worktrees\Momoka\toolkit-ui`），master 未动，不推送。

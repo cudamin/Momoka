@@ -3575,6 +3575,21 @@ public sealed partial class DetailViewModel : PageViewModel
         // 封面那一格从第一帧就站住（底下一道光，见 StillPending）：图到了换成画面，空手回来就收起。
         // 摆在等首帧之前是有意的 —— 摆在那句后面的话，这一格会等页面画完才冒出来，片名那一栏跟着再挪一次。
         StillPending = true;
+        try
+        {
+            await LoadArtworkCoreAsync(item, art).ConfigureAwait(true);
+        }
+        finally
+        {
+            // 不管从哪条路出去（成、缺、取消、离树、代次过期），只要没有更新的一趟接手（_art 换了），
+            // 或者页面已经扔了（Dispose 把 _art 归空），就把这一格收掉。收在 finally 里而不是结尾那一句：
+            // 早退的那两条也是收尾，从前只靠「下次进入会重来」兜着，等于把一条永不消失的光押在别处。
+            if (_art is null || ReferenceEquals(art, _art)) StillPending = false;
+        }
+    }
+
+    private async Task LoadArtworkCoreAsync(EmbyItem item, CancellationTokenSource art)
+    {
         var presentation = _imagePresentation;
         // 文字与主体 GET 继续先行；缓存命中的图片也等这次页面首帧之后再开始解码/回填。
         try
@@ -3626,9 +3641,7 @@ public sealed partial class DetailViewModel : PageViewModel
             Log.Debug(Category, $"加载详情图片失败：{error.Message}");
         }
 
-        // 图都落定了（成的成、缺的缺、取消的取消）：空框的等待收掉 —— 有图的档由 StillImage 自己撑着。
-        // 换条目时新一代那一趟会重新把它抬起来，所以这里先认代次：旧的一趟收尾时不许把新的那一次按下去。
-        if (ReferenceEquals(art, _art)) StillPending = false;
+        // 图都落定了（成的成、缺的缺、取消的取消）：空框由外层 finally 收 —— 有图的档由 StillImage 自己撑着。
         NavigationTiming.Mark("art-load-end");
 
         // Every one of the four ends the same way: show it if it arrived and if this page is still the

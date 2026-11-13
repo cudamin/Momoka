@@ -43,6 +43,7 @@ namespace Momoka.Shell.ViewModels
         public BitmapImage? HeroImage { get; private set; }
         public BitmapImage? FooterImage { get; private set; }
         public BitmapImage? StillImage { get; private set; }
+        public bool StillPending { get; private set; }
         public BitmapImage? CornerImage { get; private set; }
         public ArtworkRef? FooterPick { get; private set; }
         public double HeroHeightRatio { get; private set; }
