@@ -124,7 +124,8 @@ internal static class Program
             Assert.Contains("KeyboardManualInstruction", prompt);
             Assert.Contains("AutomationLiveSetting.Polite", prompt);
             Assert.Contains("KeyboardManualCancel", prompt);
-            Assert.Contains("cancel();", prompt);
+            Assert.Contains("cancel(\"cancel-button\")", prompt);
+            Assert.Contains("cancel(\"cancel-accelerator\")", prompt);
             Assert.Contains("Grid.SetRow(shell, 1);", journey);
             Assert.Contains("cancelled.Token.ThrowIfCancellationRequested();", journey);
             Assert.Contains("Task.Delay(50, cancelled.Token)", journey);
@@ -133,6 +134,52 @@ internal static class Program
             Assert.Contains("KeyboardJourneyAsync(manual: true)", inspect);
             Assert.Contains("inspectKeyboardStarted.TrySetResult();", inspect);
             Assert.Contains("Task.Delay(TimeSpan.FromMinutes(20))", inspect);
+        });
+        Test("手动提示几何拒绝未连接、零文字、越界与兄弟层覆盖", () =>
+        {
+            var reading = new KeyboardManualPromptReading(true, true, 0, 40, 760, 90, 760, 760, 450, 72, 1);
+            KeyboardJourneyProbeRules.RequireVisiblePrompt(reading);
+            foreach (var invalid in new[] { reading with { Connected = false }, reading with { Visible = false },
+                reading with { ZIndex = 0 }, reading with { Width = 0 }, reading with { Height = 0 },
+                reading with { InstructionWidth = 0 }, reading with { InstructionHeight = 0 }, reading with { Left = -5 },
+                reading with { Top = -5 }, reading with { Width = 770 }, reading with { Top = 700 }, reading with { Left = double.NaN },
+                reading with { RootWidth = 0 }, reading with { RootHeight = double.NaN }, reading with { RootWidth = double.PositiveInfinity },
+                reading with { InstructionWidth = double.PositiveInfinity } })
+                Reject(() => KeyboardJourneyProbeRules.RequireVisiblePrompt(invalid));
+        });
+        Test("取消入口只拒激活键的重复按下，单次Enter/Space和其它键仍可达", () =>
+        {
+            Assert.True(KeyboardJourneyProbeRules.IgnoreRepeatedCancelPress(true, true));
+            Assert.False(KeyboardJourneyProbeRules.IgnoreRepeatedCancelPress(true, false));
+            Assert.False(KeyboardJourneyProbeRules.IgnoreRepeatedCancelPress(false, true));
+            Assert.False(KeyboardJourneyProbeRules.IgnoreRepeatedCancelPress(false, false));
+        });
+        Test("提示原生接线保留Window.Content及原行，阶段有几何断言且取消先存来源", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var root = directory!.FullName;
+            var prompt = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.KeyboardManualPrompt.cs"));
+            var journey = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            Assert.Contains("Canvas.SetZIndex(Surface, 1);", prompt);
+            Assert.Contains("TabIndex = int.MaxValue", prompt);
+            Assert.Contains("args.KeyStatus.WasKeyDown", prompt);
+            Assert.Contains("KeyboardJourneyProbeRules.RequireVisiblePrompt(activePrompt.ReadGeometry());", journey);
+            Assert.False(journey.Contains("settingsFrameworkWindow.Content =", StringComparison.Ordinal));
+            Assert.Contains("settingsPromptHost.RowDefinitions.Insert(1", journey);
+            Assert.Contains("if (row >= 1) Grid.SetRow(element, row + 1);", journey);
+            Assert.Contains("settingsPromptHost.RowDefinitions.RemoveAt(1);", journey);
+            Assert.Contains("Grid.SetRow(element, row);", journey);
+            Assert.Contains("promptGeometry =", journey);
+            var start = journey.IndexOf("void CancelManual(string source)", StringComparison.Ordinal);
+            Assert.True(start >= 0);
+            var cancel = journey[start..];
+            var read = cancel.IndexOf("Read(\"cancel-requested\"", StringComparison.Ordinal);
+            var stop = cancel.IndexOf("cancelled.Cancel();", StringComparison.Ordinal);
+            Assert.True(read >= 0 && stop > read);
+            Assert.Contains("cancelSource ??= source;", cancel);
+            Assert.Contains("cancelSource,", journey);
         });
         Test("键盘流程菜单按键独立挂Flyout分支并在finally解绑，来源仍要求按键增量", () =>
         {

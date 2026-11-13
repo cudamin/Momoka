@@ -54,6 +54,7 @@ internal sealed partial class ShellNavigationProbe
         var snapshot = new List<object>();
         var keys = 0;
         var lastKey = "";
+        string? cancelSource = null;
         var run = Guid.NewGuid().ToString("N");
         SettingsWindow? settingsWindow = null;
         var topMost = _window!.TopMost;
@@ -62,7 +63,9 @@ internal sealed partial class ShellNavigationProbe
         // Flyout内容被平台移动到独立Popup，菜单按键不沿Shell的可视父链冒泡。
         var accountMenuBody = Get<FrameworkElement>(shell, "AccountMenuBody");
         accountMenuBody.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
-        KeyboardManualPrompt? prompt = manual ? new KeyboardManualPrompt(cancelled.Cancel) : null;
+        KeyboardManualPrompt? prompt = null;
+        KeyboardManualPrompt? settingsPrompt = null;
+        if (manual) prompt = new KeyboardManualPrompt(CancelManual);
         Grid? manualHost = null;
         if (prompt is not null)
         {
@@ -77,10 +80,8 @@ internal sealed partial class ShellNavigationProbe
             prompt.Show("preparing");
         }
         else _root.Children.Add(shell);
-        KeyboardManualPrompt? settingsPrompt = null;
         Grid? settingsPromptHost = null;
-        FrameworkElement? settingsOriginalContent = null;
-        Window? settingsFrameworkWindow = null;
+        List<(FrameworkElement Element, int Row)>? settingsOriginalRows = null;
         FrameworkElement? settingsWitnessHost = null;
         try
         {
@@ -190,19 +191,19 @@ internal sealed partial class ShellNavigationProbe
             var settings = shell.SettingsRoot!;
             if (manual)
             {
-                settingsFrameworkWindow = Get<Window>(settingsWindow, "_window");
-                settingsOriginalContent = settingsFrameworkWindow.Content as FrameworkElement
+                var settingsFrameworkWindow = Get<Window>(settingsWindow, "_window");
+                settingsPromptHost = settingsFrameworkWindow.Content as Grid
                     ?? throw new InvalidOperationException("手动设置窗口缺少实际内容");
-                settingsPrompt = new KeyboardManualPrompt(cancelled.Cancel);
-                settingsPrompt.Surface.Margin = new Thickness(0, 40, 0, 0);
-                settingsPromptHost = new Grid();
-                settingsPromptHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                settingsPromptHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                settingsFrameworkWindow.Content = null;
+                Require(settingsPromptHost.RowDefinitions.Count == 2, "手动设置提示需要正式标题栏与正文两行");
+                settingsPrompt = new KeyboardManualPrompt(CancelManual);
+                settingsOriginalRows = settingsPromptHost.Children.OfType<FrameworkElement>()
+                    .Select(element => (element, Grid.GetRow(element))).ToList();
+                // 保持原 Window.Content、标题栏与 Frame；只在两行之间插入工具提示，不触发整树卸载/自动重新聚焦。
+                settingsPromptHost.RowDefinitions.Insert(1, new RowDefinition { Height = GridLength.Auto });
+                foreach (var (element, row) in settingsOriginalRows)
+                    if (row >= 1) Grid.SetRow(element, row + 1);
+                Grid.SetRow(settingsPrompt.Surface, 1);
                 settingsPromptHost.Children.Add(settingsPrompt.Surface);
-                Grid.SetRow(settingsOriginalContent, 1);
-                settingsPromptHost.Children.Add(settingsOriginalContent);
-                settingsFrameworkWindow.Content = settingsPromptHost;
             }
             await LayoutAsync(settings);
             settings.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
@@ -239,12 +240,11 @@ internal sealed partial class ShellNavigationProbe
         {
             settingsWindow?.Hide();
             settingsWitnessHost?.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
-            if (settingsFrameworkWindow is not null && settingsPromptHost is not null && settingsOriginalContent is not null)
+            if (settingsPromptHost is not null && settingsPrompt is not null && settingsOriginalRows is not null)
             {
-                settingsFrameworkWindow.Content = null;
-                settingsPromptHost.Children.Remove(settingsOriginalContent);
-                Grid.SetRow(settingsOriginalContent, 0);
-                settingsFrameworkWindow.Content = settingsOriginalContent;
+                settingsPromptHost.Children.Remove(settingsPrompt.Surface);
+                settingsPromptHost.RowDefinitions.RemoveAt(1);
+                foreach (var (element, row) in settingsOriginalRows) Grid.SetRow(element, row);
             }
             Call(shell, "StopMoviePilotMonitoring");
             Get<BrowsePresentation>(shell, "_browsePresentation").Stop();
@@ -319,6 +319,13 @@ internal sealed partial class ShellNavigationProbe
         async Task Stage(string stage, string input, IntPtr hwnd, Func<bool> ready, int minimumKeys = 1)
         {
             var before = keys;
+            var activePrompt = settingsWindow?.IsOpen == true ? settingsPrompt : prompt;
+            activePrompt?.Show(stage, resumeFromSearch, resumeFromResult);
+            if (activePrompt is not null)
+            {
+                await LayoutAsync(activePrompt.Surface);
+                KeyboardJourneyProbeRules.RequireVisiblePrompt(activePrompt.ReadGeometry());
+            }
             WriteStage(stage, input, hwnd);
             var waits = (manual ? KeyboardJourneyProbeRules.ManualStageMilliseconds : KeyboardJourneyProbeRules.AutomaticStageMilliseconds) / 50;
             for (var attempt = 0; attempt < waits; attempt++)
@@ -380,11 +387,19 @@ internal sealed partial class ShellNavigationProbe
                 resumedFromResult = resumeFromResult,
                 seededIdentity = resumeFromAnonymousSeed,
                 seededSearch = resumeFromResult,
+                cancelSource,
+                promptGeometry = (settingsWindow?.IsOpen == true ? settingsPrompt : prompt)?.ReadGeometry(),
                 plays = actions.Plays,
                 server.AuthenticationPosts,
                 server.RejectedWrites
             });
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-receipt.json"), JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        void CancelManual(string source)
+        {
+            cancelSource ??= source;
+            Read("cancel-requested", settingsWindow?.IsOpen == true ? settingsWindow.Handle : _window.Handle);
+            cancelled.Cancel();
         }
     }
 

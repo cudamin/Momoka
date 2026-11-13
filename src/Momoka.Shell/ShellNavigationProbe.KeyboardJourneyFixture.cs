@@ -91,10 +91,29 @@ internal sealed class KeyboardJourneyProbeServer
     { Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json") };
 }
 
+internal sealed record KeyboardManualPromptReading(bool Connected, bool Visible, double Left, double Top, double Width, double Height,
+    double RootWidth, double RootHeight, double InstructionWidth, double InstructionHeight, int ZIndex);
+
 internal static class KeyboardJourneyProbeRules
 {
     internal const int ManualStageMilliseconds = 300_000;
     internal const int AutomaticStageMilliseconds = 60_000;
+
+    internal static bool IgnoreRepeatedCancelPress(bool activationKey, bool wasKeyDown) => activationKey && wasKeyDown;
+
+    internal static void RequireVisiblePrompt(KeyboardManualPromptReading reading)
+    {
+        if (!reading.Connected || !reading.Visible || reading.ZIndex <= 0
+            || !double.IsFinite(reading.Left) || !double.IsFinite(reading.Top)
+            || !double.IsFinite(reading.Width) || !double.IsFinite(reading.Height)
+            || !double.IsFinite(reading.RootWidth) || !double.IsFinite(reading.RootHeight)
+            || !double.IsFinite(reading.InstructionWidth) || !double.IsFinite(reading.InstructionHeight)
+            || !(reading.Width > 0) || !(reading.Height > 0) || !(reading.InstructionWidth > 0) || !(reading.InstructionHeight > 0)
+            || !(reading.RootWidth > 0) || !(reading.RootHeight > 0)
+            || reading.Left < -1 || reading.Top < -1 || reading.Left + reading.Width > reading.RootWidth + 1
+            || reading.Top + reading.Height > reading.RootHeight + 1)
+            throw new InvalidOperationException("手动键盘提示未连接、文字未布局、越出窗口或被兄弟背景层覆盖");
+    }
 
     internal static void RequireResumeMode(bool manual, bool resumeFromSearch)
     {
