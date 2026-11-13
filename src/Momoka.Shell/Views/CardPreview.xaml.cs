@@ -1,5 +1,6 @@
 using System.Numerics;
 using Microsoft.UI.Composition;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -20,7 +21,13 @@ public sealed partial class CardPreview : UserControl
     private const int ArtworkFadeMs = 200;
     private const double PanelPadding = 19;
     private CompositionPropertySet? _state;
-    private CompositionScopedBatch? _batch;
+
+    /// <summary>
+    /// 弹簧静定之后把面板落定的那一拍。弹簧自己在合成线程上收敛，没有可靠的「完成」回调整到 UI 线程，
+    /// 所以时长仍由调用方给的毫秒数决定 —— 与原来那段 keyframe 一样，只是曲线换成了弹簧。
+    /// </summary>
+    private DispatcherQueueTimer? _completion;
+
     private RectangleClip? _clip;
     private InsetClip? _hitClip;
     private Action? _exitCompleted;
@@ -226,8 +233,8 @@ public sealed partial class CardPreview : UserControl
     private void Animate(float target, int milliseconds, Action? closed)
     {
         var generation = ++_generation;
-        _batch?.Dispose();
-        _batch = null;
+        _completion?.Stop();
+        _completion = null;
         _exitCompleted = closed;
         if (!HomeMotion.AnimationsEnabled)
         {
@@ -236,27 +243,37 @@ public sealed partial class CardPreview : UserControl
         }
         _running = true;
         var compositor = _state!.Compositor;
-        var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
-        _batch = batch;
-        using var ease = compositor.CreateCubicBezierEasingFunction(Vector2.Zero, new Vector2(0, 1));
-        using var animation = compositor.CreateScalarKeyFrameAnimation();
-        // 省略起始关键帧，替换正在运行的动画时由合成器接住当下值。
-        animation.InsertKeyFrame(1, target, ease);
-        animation.Duration = TimeSpan.FromMilliseconds(milliseconds);
-        animation.StopBehavior = AnimationStopBehavior.LeaveCurrentValue;
-        batch.Completed += (_, _) =>
+        // 弹簧驱动同一个 Progress，边框、裁剪区、命中区和封面的表达式一个都不用改。
+        // 参考 WinUI Gallery 的自然运动（Samples/XamlCompInterop，固定提交 6de91fe）：那一份把
+        // CreateSpringVector3Animation 挂在元素的 Scale 上；这块面板的 Scale 是一组读 Progress 的
+        // 表达式，所以弹簧落在 Progress 这一层。周期取原时长除以六，静定时间与原来那段 keyframe
+        // 相当；撑开留一点回弹，收起用临界阻尼，免得进度冲过零再弹回来。
+        using var spring = compositor.CreateSpringScalarAnimation();
+        spring.Target = "Progress";
+        spring.FinalValue = target;
+        spring.DampingRatio = target >= 1 ? 0.82f : 1f;
+        spring.Period = TimeSpan.FromMilliseconds(Math.Max(1, milliseconds / 6.0));
+        spring.StopBehavior = AnimationStopBehavior.LeaveCurrentValue;
+        _state.StartAnimation("Progress", spring);
+        // 弹簧没有跨线程的完成回调；落定仍按原来那段 keyframe 的时长走，反转与关闭动画都在这里接住。
+        var completion = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        completion.Interval = TimeSpan.FromMilliseconds(milliseconds);
+        completion.IsRepeating = false;
+        completion.Tick += (_, _) =>
         {
             if (generation != _generation) return;
-            _batch = null;
-            try { Finish(target, closed); }
-            finally { batch.Dispose(); }
+            _completion = null;
+            completion.Stop();
+            Finish(target, closed);
         };
-        _state.StartAnimation("Progress", animation);
-        batch.End();
+        _completion = completion;
+        completion.Start();
     }
 
     private void Finish(float target, Action? closed)
     {
+        _completion?.Stop();
+        _completion = null;
         _state?.StopAnimation("Progress");
         _state?.InsertScalar("Progress", target);
         _running = false;
@@ -269,8 +286,8 @@ public sealed partial class CardPreview : UserControl
     internal void Reset()
     {
         _generation++;
-        _batch?.Dispose();
-        _batch = null;
+        _completion?.Stop();
+        _completion = null;
         _state?.StopAnimation("Progress");
         _state?.InsertScalar("Progress", 0);
         _running = _shown = false;
@@ -292,8 +309,8 @@ public sealed partial class CardPreview : UserControl
         if (!_running) return;
         var closed = _exitCompleted;
         ++_generation;
-        _batch?.Dispose();
-        _batch = null;
+        _completion?.Stop();
+        _completion = null;
         Finish(_shown ? 1 : 0, closed);
     }
 

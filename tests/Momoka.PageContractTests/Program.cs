@@ -97,6 +97,7 @@ internal static class Program
         HomeSubscriptionRefreshTests.Register();
         SubscriptionWallWiringTests.Register();
         SelectionInputTests.Register();
+        HoverMotionTests.Register();
         return TestHarness.Run();
     }
 

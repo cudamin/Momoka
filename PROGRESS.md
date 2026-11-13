@@ -18,6 +18,14 @@
 
 **合入状态。** 产品提交 `41ac2d1`、台账 `6bbe15b`，以 ff 合入 master（基线 `bf2d143`）；合并后主测试 5073/5073、shell/search 分区全绿。用户令「只合并，先不交付」，发布与交付件仍不动，交付轮再统一验证发布。
 
+## 2026-11-13 悬停放大：卡片整卡 1.03、预览面板换弹簧（参考 Gallery 6de91fe）
+
+用户令「单开一个工作树，参考源码修改本项目的」，接前一轮只读查证。参考 WinUI Gallery 的 Motion > Animation interop（`WinUIGallery/Samples/XamlCompInterop/XamlCompInteropPage.xaml.cs`，固定提交 `6de91fe`）：那份示例在 `PointerEntered/Exited` 里用 `CreateSpringVector3Animation` 把元素 Scale 从 1 弹到 1.5，`Target="Scale"`，阻尼 0.6、周期 50 ms。
+
+**改了什么。** ①`PosterCard` 悬停时整卡抬到 1.03（`HoverScale`），原来只把框内图片推近 1.045、整卡不动；键盘焦点不触发整卡放大，避免 Tab 扫过时整排跳动。抬起那一下用 `BackEase`（Amplitude 0.3、EaseOut）过冲一点再落定，不照搬 1.5（卡片网格里会压邻居），也不取 Composition 的 visual Scale —— `HomeMotion` 记着 2026-09-16「Calling Scale API is not allowed」那次进程崩溃，弹簧只借手感，仍走 `CardMotion` 的 RenderTransform。②`CardPreview` 的撑开/收起从一段 cubic keyframe 换成 `CreateSpringScalarAnimation` 驱动同一个 `Progress`（`DampingRatio` 撑开 0.82／收起 1.0，`Period` 取原时长÷6），边框、裁剪区、命中区与封面的表达式一个没改。弹簧没有跨线程完成回调，落定仍按原时长（250/167 ms）由 `DispatcherQueueTimer` 接住，反转与关动画走同一条路。
+
+**验证。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/hover-scale`，分支 `workbuddy/hover-scale`，基点 `8bb4676`。本树 Shell Release/x64 0 警告 0 错误；`Momoka.PageContractTests` 228/228（新增 `HoverMotionTests` 两条源码契约：卡片 1.03 + BackEase + Gallery 出处、面板 spring 且不再用 keyframe）。**未做运行截图**：启动 `--probe-shell` 时桌面锁被另一会话的 `--probe-shell inspect`（PID 33300，`.codex/worktrees/6b9b`）占着；代码层面的完成回调风险已由 timer 方案消除，但卡片放大后的实际观感、边缘卡片的裁剪和面板回弹仍需在交付探针里看一眼。合并后记 [待交付批次](docs/待交付批次.md)。
+
 ## 2026-11-13 封面进入详情的 Gallery 原生关联动画
 
 用户要求原封面保持可见并移动到详情左上角；沿用 Gallery 6de91fe 的 ItemsRepeaterCollectionPage→DetailedInfoPage，保留前进Gravity/返回Direct和Momoka身份取消守卫。源码、必要本地适配及验证见 [封面关联动画](docs/封面关联动画.md)。本任务树21c5、范围CardDetailTransition/PosterCard/详情图片及三页入口、两个定向测试项目。Shell最终Release/x64 0警告0错误；关联40/40、图片26/26、页面契约223/223；最终原生单项1/1通过，零真实网络/播放。修复原生回退在新页Loaded前打断Frame创建的红，并保留原报告与遮挡红。证据artifacts/cover-connected-animation-20261113。纯UI状态留code-behind，不新增抽象层或依赖。产品08cd474已挑拣为4027fe6进入master；仅PROGRESS新增记录冲突，双方记录均保留。合并不跑全量或刷新publish、不上传。已将同哈希开发件复制到artifacts/cover-connected-development-win-x64，Shell SHA256 84049B515ACA62B30482E331516219C9F80EDC22CC826F4073B7891AA1B379EB，PID22432/窗口0x100820可响应，匿名详情供用户查看。复制件再次单项因Chrome遮挡截图红，未作为通过；原开发件最终独立运行1/1绿仍保留。复制件不等于master重编译或发布。源树干净、产品逐文件已纳入master（主页仅另批改动不同），21c5的Git登记和全部文件已移除；空目录因当前会话占用Permission denied保留，目录项0、无源码或独有提交。顶端08cd474恢复线索已记，开发查看实例运行于主树artifacts独立副本。
