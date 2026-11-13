@@ -46,6 +46,12 @@
                             Visibility="{x:Bind PreviewVisibility}"
                             Style="{StaticResource EgFrameStyle}">
                             <Grid>
+                                <!-- 图还没回来的这一格先扫一道光，底下那行「加载中…」继续写着 ——
+                                     只靠一行小字时，一整排空格子看着像坏了。 -->
+                                <views:Shimmer
+                                    CornerRadius="{StaticResource EgPosterCornerRadius}"
+                                    IsActive="{x:Bind IsLoading, Mode=OneWay}"
+                                    Visibility="{x:Bind PreviewVisibility}" />
                                 <Image Source="{x:Bind Picture, Mode=OneWay}" Stretch="Uniform" />
                                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Style="{StaticResource EgDataStyle}" Text="{x:Bind PreviewStatus, Mode=OneWay}"

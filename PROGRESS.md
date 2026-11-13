@@ -1,3 +1,17 @@
+## 2026-11-13 工作树 toolkit-ui：候选封面加载流光与看大图阴影（未合入）
+
+用户令「单开一个工作树按你的建议做」，前情是审查 Toolkit 的 TransitionHelper / Attached Shadows / Shimmer / ConstrainedBox 能否内置。分支 `workbuddy/toolkit-ui`（工作树 `C:\Users\89400\WorkBuddy\Worktrees\Momoka\toolkit-ui`），master 未动，不推送。
+
+**采用**：①新增 `Views/Shimmer.xaml(.cs)`：Composition 的高光带，只认 `HomeMotion.AnimationsEnabled`，失活／离树／关动画时整层摘掉，不参与布局与命中；用在 `CoverPickerDialog` 候选封面的 `CoverChoice.IsLoading` 期间，图回来即停。②`ArtworkViewer` 画框试装现有 `CommunityToolkit.WinUI.Extensions` 的 `AttachedDropShadow`（零新包）：透明宿主 ＋ `CastTo=ViewerRoot` ＋ `IsMasked=False`，四周留 24 给影子落脚。
+
+**不采用**：ConstrainedBox —— 只缩不放（`ScaleX/ScaleY` 0～1），与本项目「三尺寸分家、窄窗重排」冲突；现有唯一 Viewbox（登录页欢迎图）需要放大到 640，它给不了。TransitionHelper —— 8.x 组件与本地 Animations 程序集都没有此类型，项目又刻意统一 `SuppressNavigationTransitionInfo`，加了就是双重动画。
+
+**验证**：Shell Release 0 警告 0 错误；`--probe-shell --probe-section metadata` **11/11 退出 0**（新增两条断言：候选等待格的流光子视觉 `SpriteVisual` 存在且尺寸非零、看大图的阴影容器挂在 `ViewerRoot` 上），`library-dialog-cover-loading-screen.png` 光带按行采样 40→68→45，`library-dialog-ArtworkViewer-*-screen.png` 五主题均出图并目视；主测试 **5028/5028、0 失败 0 跳过**，页面契约 **207/207**。首跑 18 项失败是沙箱把 `TEMP` 指到 `C:\WINDOWS\TEMP` 造成的环境红，换可写临时目录后全绿。
+
+**既有红**：`Momoka.HomeFoldCompletionTests` 在本树与 master 都编译失败（生成夹具引用不存在的 `AmbientChanged`、`Microsoft.UI.Colors`），与本批无关，未改。
+
+**待办**：合入 master 前按主规则在主树重跑受影响验证与发布；本批未改真实服务器数据、未播放。
+
 ## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
 
 ## 2026-11-13 三库视口主树交付
