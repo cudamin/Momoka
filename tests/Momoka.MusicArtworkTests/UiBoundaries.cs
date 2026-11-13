@@ -40,6 +40,7 @@ namespace Microsoft.UI.Xaml.Controls
 {
     public sealed class Image : UIElement
     {
+        public Microsoft.UI.Xaml.Media.Imaging.BitmapImage? Source { get; set; }
         public event RoutedEventHandler? Loaded;
         public event RoutedEventHandler? Unloaded;
         internal int LoadedHandlers => Loaded?.GetInvocationList().Length ?? 0;

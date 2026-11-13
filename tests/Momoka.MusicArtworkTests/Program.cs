@@ -33,7 +33,7 @@ internal static class MusicArtworkProgram
                 var template = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == name);
                 var image = template.Descendants().Single(element => element.Name.LocalName == "Image");
                 Assert.Equal("{x:Bind Mode=OneWay}", (string?)image.Attributes().Single(attribute => attribute.Name.LocalName == "CardArtwork.Item").Value);
-                Assert.Equal("{x:Bind RowPoster, Mode=OneWay}", (string?)image.Attribute("Source"));
+                Assert.Null(image.Attribute("Source"), "CardArtwork应是唯一Source属主，重复x:Bind在Recycle后会停监听而保留位图");
                 Assert.Equal("UniformToFill", (string?)image.Attribute("Stretch"));
             }
         });
@@ -67,10 +67,13 @@ internal static class MusicArtworkProgram
                     request.Complete(type);
                     await CardImageFixture.UntilAsync(() => card.RowPoster is not null, "音乐图未回填");
                     Assert.Equal(width, card.RowPoster!.DecodePixelWidth);
+                    Assert.True(ReferenceEquals(card.RowPoster, image.Source));
                     image.Unload();
                     Assert.Null(card.RowPoster);
+                    Assert.Null(image.Source);
                     image.Load();
                     Assert.NotNull(card.RowPoster, "缓存图需要同步恢复");
+                    Assert.True(ReferenceEquals(card.RowPoster, image.Source));
                     Assert.Equal(1, fixture.Handler.Count);
                 }
                 finally { CardArtwork.SetItem(image, null); card.AbandonPoster(); BrowsePresentation.Ready = Task.CompletedTask; }
@@ -297,12 +300,14 @@ internal static class MusicArtworkProgram
             Assert.NotNull(image.XamlRoot, "夹具必须保留真实同属主池模型");
             Assert.True(ReferenceEquals(f.Card, CardArtwork.GetItem(image)), "清layout不抹x:Bind身份");
             Assert.Null(f.Card.Poster);
+            Assert.Null(image.Source);
             Assert.Equal(0, ImageArrivalFade.Living);
             image.Unload(phantom: true);
             image.Load();
             Assert.Null(f.Card.Poster, "池元素的幻影Loaded不能恢复需求");
             repeater.Prepare(container, 0);
             Assert.Equal("pooled", f.Card.Poster!.FixtureImage);
+            Assert.True(ReferenceEquals(f.Card.RowPoster, image.Source));
             Assert.Equal(1, f.Handler.Count);
             page.ReleaseArtwork();
             Assert.Null(f.Card.Poster);
@@ -587,6 +592,52 @@ internal static class MusicArtworkProgram
             (await f.Handler.AtAsync(0)).Complete("reentered phase");
             await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "重入有效phase未恢复");
             CardArtwork.SetItem(image, null);
+        });
+
+        Case("音乐Image唯一source：缓存同项同步恢复且晚图属性变化跟随真实属主", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var image = new Image();
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            (await f.Handler.AtAsync(0)).Complete("source-owner");
+            await CardImageFixture.UntilAsync(() => image.Source is not null, "Source未跟随RowPoster");
+            var original = image.Source;
+            Assert.True(ReferenceEquals(f.Card.RowPoster, original));
+            CardArtwork.SetRealized(image, false);
+            Assert.Null(image.Source);
+            Assert.Null(f.Card.RowPoster);
+            CardArtwork.SetRealized(image, true);
+            Assert.True(ReferenceEquals(original, image.Source), "缓存同项无需PropertyChanged也必须同步恢复Source");
+            CardArtwork.SetItem(image, null);
+            var after = new BitmapImage { FixtureImage = "after-dispose" };
+            typeof(CardItem).GetProperty(nameof(CardItem.Poster))!.SetValue(f.Card, after);
+            Assert.Null(image.Source, "已Dispose的PropertyChanged不能再填Image");
+            f.Card.AbandonPoster();
+        });
+
+        Case("音乐Image池：绑定已停止监听也显式清Source，旧容器释放不清新容器", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var old = new Image();
+            var current = new Image();
+            CardArtwork.SetItem(old, f.Card);
+            old.Load();
+            (await f.Handler.AtAsync(0)).Complete("shared-source");
+            await CardImageFixture.UntilAsync(() => old.Source is not null, "旧容器Source未完成");
+            CardArtwork.SetItem(current, f.Card);
+            current.Load();
+            var poster = current.Source;
+            CardArtwork.SetRealized(old, false);
+            Assert.Null(old.Source, "holder已换到新容器也必须放掉旧Image.Source");
+            Assert.True(ReferenceEquals(poster, current.Source));
+            Assert.True(ReferenceEquals(poster, f.Card.RowPoster));
+            CardArtwork.SetRealized(current, false);
+            Assert.Null(current.Source);
+            Assert.Null(f.Card.RowPoster);
+            CardArtwork.SetItem(old, null);
+            CardArtwork.SetItem(current, null);
+            Assert.Equal(0, ImageArrivalFade.Living);
         });
     }
 
