@@ -4,6 +4,8 @@
 
 测试覆盖半切阈值、4 DIP/小按钮滞回、宽窄主播放按钮选择、底部未出现按钮不误触、重复及反向滚动、播放能力失效/恢复、附属读取继续可用、断树/平台异常、LayoutUpdated 合并、Dispatcher 拒绝恢复、重复 Loaded、Release/Unloaded、旧代回调、焦点交接、系统/应用动画关闭、360/520 DIP 与迟到/空海报。
 
+Composition 边界要求 Translation 属性先注册再 StopAnimation，并像 Toolkit 实现一样在非空隐式动画 hook 时注册；首次导航 Reset 早于 Loaded/hook、启动前关闭应用动画、未上树平台延后注册三条路径另有回归。没有注册时的 ArgumentException 保持为失败，不能让宽松边界掩盖真实平台初始化顺序。
+
 ```powershell
 & "$HOME/.dotnet/dotnet.exe" restore ./tests/Momoka.DetailStickyHeaderTests/Momoka.DetailStickyHeaderTests.csproj --disable-parallel -m:1 -p:BuildInParallel=false
 & "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.DetailStickyHeaderTests/Momoka.DetailStickyHeaderTests.csproj -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false

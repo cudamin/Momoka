@@ -246,10 +246,13 @@ namespace Microsoft.UI.Composition
     public sealed class CompositionPropertySet
     {
         public Vector3 Translation { get; private set; }
+        public bool TranslationRegistered { get; private set; }
         public int TranslationWrites { get; private set; }
+        public void RegisterTranslation() => TranslationRegistered = true;
         public void InsertVector3(string name, Vector3 value)
         {
             if (name != "Translation") throw new InvalidOperationException("Unexpected composition property: " + name);
+            TranslationRegistered = true;
             Translation = value;
             TranslationWrites++;
         }
@@ -259,7 +262,12 @@ namespace Microsoft.UI.Composition
         public CompositionPropertySet Properties { get; } = new();
         public double Opacity { get; set; } = 1;
         public HashSet<string> Stopped { get; } = [];
-        public void StopAnimation(string property) => Stopped.Add(property);
+        public void StopAnimation(string property)
+        {
+            if (property == "Translation" && !Properties.TranslationRegistered)
+                throw new ArgumentException("Composition property not found: Translation", nameof(property));
+            Stopped.Add(property);
+        }
     }
 }
 
@@ -268,6 +276,11 @@ namespace Microsoft.UI.Xaml.Hosting
     public static class ElementCompositionPreview
     {
         private static readonly Dictionary<UIElement, Microsoft.UI.Composition.Visual> Visuals = [];
+        public static bool DeferTranslationRegistration { get; set; }
+        public static void SetIsTranslationEnabled(UIElement element, bool enabled)
+        {
+            if (enabled && !DeferTranslationRegistration) GetElementVisual(element).Properties.RegisterTranslation();
+        }
         public static Microsoft.UI.Composition.Visual GetElementVisual(UIElement element)
         {
             if (!Visuals.TryGetValue(element, out var visual)) Visuals.Add(element, visual = new());
@@ -303,8 +316,16 @@ namespace CommunityToolkit.WinUI.Animations
         public static int StartedHides(UIElement element) => Starts.TryGetValue(element, out var state) ? state.Hides : 0;
         public static ImplicitAnimationSet? GetShowAnimations(UIElement element) => Shows.GetValueOrDefault(element);
         public static ImplicitAnimationSet? GetHideAnimations(UIElement element) => Hides.GetValueOrDefault(element);
-        public static void SetShowAnimations(UIElement element, ImplicitAnimationSet? value) => Shows[element] = value;
-        public static void SetHideAnimations(UIElement element, ImplicitAnimationSet? value) => Hides[element] = value;
+        public static void SetShowAnimations(UIElement element, ImplicitAnimationSet? value)
+        {
+            if (value is not null) Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.SetIsTranslationEnabled(element, true);
+            Shows[element] = value;
+        }
+        public static void SetHideAnimations(UIElement element, ImplicitAnimationSet? value)
+        {
+            if (value is not null) Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.SetIsTranslationEnabled(element, true);
+            Hides[element] = value;
+        }
         public static void VisibilityChanged(UIElement element, Visibility visibility)
         {
             var state = Starts.GetValueOrDefault(element);

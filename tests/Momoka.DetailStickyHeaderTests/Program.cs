@@ -17,6 +17,72 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("平台边界拒绝停止从未注册的Translation属性", () =>
+        {
+            var visual = ElementCompositionPreview.GetElementVisual(new Microsoft.UI.Xaml.Controls.Border());
+            Assert.False(visual.Properties.TranslationRegistered);
+            Assert.Throws<ArgumentException>(() => visual.StopAnimation("Translation"));
+            visual.StopAnimation("Opacity");
+        });
+        Test("首次导航Reset早于Loaded和implicit hook也先注册Translation", () =>
+        {
+            HomeMotion.ApplyPreference(true);
+            UISettings.SetAnimationsEnabled(true);
+            var page = new DetailPage();
+            var visual = ElementCompositionPreview.GetElementVisual(page.StickyHeader);
+            Assert.False(visual.Properties.TranslationRegistered);
+            Assert.Null(Implicit.GetShowAnimations(page.StickyHeader));
+            page.ResetHeader();
+            Assert.True(visual.Properties.TranslationRegistered);
+            Assert.Equal(Vector3.Zero, visual.Properties.Translation);
+            Assert.Equal(1d, visual.Opacity);
+            Assert.Equal(Visibility.Collapsed, page.StickyHeader.Visibility);
+            Assert.True(visual.Stopped.SetEquals(["Opacity", "Translation"]));
+            Assert.False(page.Active);
+            page.ReleaseHeader();
+        });
+        Test("启动前关闭应用动画的首次Loaded仍能安全清理Translation", () =>
+        {
+            HomeMotion.ApplyPreference(false);
+            UISettings.SetAnimationsEnabled(true);
+            var page = new DetailPage();
+            try
+            {
+                var visual = ElementCompositionPreview.GetElementVisual(page.StickyHeader);
+                Assert.False(visual.Properties.TranslationRegistered);
+                page.LoadHeader();
+                page.DispatcherQueue.Drain();
+                Assert.True(visual.Properties.TranslationRegistered);
+                Assert.Null(Implicit.GetShowAnimations(page.StickyHeader));
+                page.Scroll(120);
+                Assert.True(page.Shown);
+                Assert.Equal(0, Implicit.StartedShows(page.StickyHeader));
+            }
+            finally
+            {
+                page.ReleaseHeader();
+                HomeMotion.ApplyPreference(true);
+            }
+        });
+        Test("未上树平台延后注册时Reset主动建立Translation再停止", () =>
+        {
+            ElementCompositionPreview.DeferTranslationRegistration = true;
+            var page = new DetailPage();
+            try
+            {
+                var visual = ElementCompositionPreview.GetElementVisual(page.StickyHeader);
+                Assert.False(visual.Properties.TranslationRegistered);
+                page.ResetHeader();
+                Assert.True(visual.Properties.TranslationRegistered);
+                Assert.True(visual.Stopped.Contains("Translation"));
+                Assert.Equal(Vector3.Zero, visual.Properties.Translation);
+            }
+            finally
+            {
+                page.ReleaseHeader();
+                ElementCompositionPreview.DeferTranslationRegistration = false;
+            }
+        });
         Test("主播放按钮刚少于半切不出现，正好半切显示", () =>
         {
             using var f = new Fixture();

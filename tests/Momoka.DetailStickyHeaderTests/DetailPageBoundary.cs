@@ -38,6 +38,7 @@ public sealed partial class DetailPage : Page
 
     public void LoadHeader() => RaiseLoaded();
     public void ReleaseHeader() => StopStickyHeader();
+    public void ResetHeader() => ResetStickyHeader();
     public void UpdateHeader() => UpdateStickyHeader();
     public void Scroll(double offset) { Body.VerticalOffset = offset; UpdateStickyHeader(); }
     public bool Shown => _headerShown;
