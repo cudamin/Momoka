@@ -4,7 +4,7 @@
 
 ## 原生流程与归属
 
-主页卡片和媒体库实际PosterCard调用时，对其原Poster Image执行ConnectedAnimationService.PrepareToAnimate。前件是Bitmap尺寸已知、图在视口可见、类型为Movie/Series/Season/Episode，捕获来源仍是当前身份。媒体库只找已经实现的当前CardItem对应PosterCard，不为动效GetOrCreate或重建整个列表。
+主页卡片和媒体库实际PosterCard调用时，对其原Poster Image执行ConnectedAnimationService.PrepareToAnimate。最终前件是 Bitmap 尺寸已知、图在视口可见、类型为 Movie/Series/Season 且已显示自身 Primary 图，捕获来源仍是当前身份；Episode、Thumb/Backdrop、错图片身份或版本走普通导航。媒体库只找已经实现的当前CardItem对应PosterCard，不为动效GetOrCreate或重建整个列表。
 
 `CardDetailTransition` 的票据按Frame隔离，源PosterCard与源Page只弱引用；记录完整Item IdentityKey和UserStateOwner，避免同ID跨账号复用。Shell导航只在票据与DetailRequest匹配或明确返回原页时接管淡入。DetailViewModel.Attach重置完成后，等待当前CurrentItem、Loaded/Layout及真实可见PosterImage，再TryStart。等待最多700ms，缺图、窄窗隐藏、账号失效、平台失败或取消都回退普通呈现；不等待动画再导航。
 

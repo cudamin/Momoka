@@ -18,7 +18,7 @@
 
 Gallery 在导航前 PrepareToAnimate，目标页 GetAnimation/TryStart，导航用 SuppressNavigationTransitionInfo。Repeater 示例用 TryGetElement、GetOrCreateElement、StartBringIntoView 和焦点事件，realized 容器由 ElementPrepared/ElementClearing 登记。Momoka 的有限焦点恢复继续使用这些原生路径；横带本地滚动保留以避免外层页面跟着 BringIntoView 下跳。Gallery 依赖 `2.6.6-experimental`，本批保持 Momoka 已锁定稳定依赖。
 
-当前生产代码没有 ConnectedAnimation 入口。现有 BrowsePresentation 已抑制平台重复过渡并有取消/首帧/失败回退覆盖；卡片导航接口只携条目，不携确定源元素，目标详情图片可能尚未到达。本批先修已证实的取消与输入缺口，尚未实施卡片到详情的关联动画，不把普通入场当作关联动画通过。后续需明确来源/目标/返回的身份桥接并在 HWND XAML 岛实测，不能直接抄示例补第二套动画。
+本动效生命周期单元开始时，生产代码尚无 ConnectedAnimation 入口；先修取消与输入缺口，未把普通入场当作关联动画通过。后续独立单元已经实现来源/目标/返回的身份桥接及自身 Primary 海报关联，并取得 HWND XAML 岛的真实 Started/Completed 和普通回退证据，范围见 [关联动画](WinUI-P6关联动画.md) 与 [执行记录](WinUI-P4-P8执行记录.md)。本节历史测试记录不替代最终整合版验收。
 
 ## 当前测试
 
