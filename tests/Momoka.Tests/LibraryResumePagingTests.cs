@@ -972,6 +972,23 @@ internal static class LibraryResumePagingTests
             return vm;
         }
 
+        /// <summary>
+        /// 同一个视图模型再接一个新请求 —— Frame 缓存 <c>LibraryPage</c> 后换目的地走的就是这条路：
+        /// 页面和它的绑定都不重建，上一页的显隐只能靠 <c>Attach</c> 里的重算改过来。
+        /// </summary>
+        public void Reattach(object vm, EmbySession session, EmbyImageStore images, ISettingsService settings,
+            EmbySessionScope? source, bool favorites = false, string? searchTerm = null)
+        {
+            var request = searchTerm is not null
+                ? _request.GetMethod("Search")!.Invoke(null, [new NoServices(), searchTerm])!
+                : favorites
+                    ? _request.GetMethod("Favorites")!.Invoke(null, [new NoServices()])!
+                    : _request.GetMethod("ForRow")!.Invoke(null, [new NoServices(), HomeLayout.HomeRowTarget.Resume, source])!;
+            if (favorites && source is not null) _request.GetProperty("FavoriteAccountKey")!.SetValue(request, source.Key);
+            var actions = DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy));
+            Invoke(vm, "Attach", request, actions, settings, session, images, new ServerCapabilities(session), null);
+        }
+
         public object CreateLoadingHome(EmbySession session, EmbyImageStore images, ISettingsService settings,
             IReadOnlyList<EmbyItem> libraries, BrowseSnapshotStore? snapshots = null)
         {
@@ -1101,6 +1118,10 @@ internal static class LibraryResumePagingTests
         /// <summary>同一套匿名来源上再建一页普通媒体库；用来核对隐藏的最近搜索不参与这一页。</summary>
         public object CreateNormalView(BrowseSnapshotStore? snapshots = null) =>
             _shell.Create(_session, _images, Settings, Source("a"), snapshots: snapshots);
+
+        /// <summary>同一个页面实例换一个请求；返回栈与 Frame 缓存下就是这样换页的。</summary>
+        public void Reattach(object vm, bool favorites = false, string? searchTerm = null) =>
+            _shell.Reattach(vm, _session, _images, Settings, Source("a"), favorites, searchTerm);
 
         public object CreateLibraryView(BrowseSnapshotStore? snapshots = null, object? savedRequest = null,
             string? collectionType = "movies", string? parentType = null, LibrarySection section = LibrarySection.Items) =>
