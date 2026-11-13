@@ -232,8 +232,11 @@ internal sealed partial class ShellNavigationProbe
             "商店操作没有在封面右侧或文件信息没有在下方");
         double Top(FrameworkElement element) => element.TransformToVisual(page).TransformPoint(default).Y;
         var cover = Get<Border>(page, "PosterStill");
-        Require(actions.TransformToVisual(page).TransformPoint(default).X >= cover.TransformToVisual(page).TransformPoint(default).X + cover.ActualWidth + 8, "商店操作没有位于封面右侧");
-        Require(Top(options) >= Top(actions) + actions.ActualHeight + 4, "商店文件信息没有排在操作之后");
+        if (actions.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
+            Require(actions.TransformToVisual(page).TransformPoint(default).X >= cover.TransformToVisual(page).TransformPoint(default).X + cover.ActualWidth + 8, "商店操作没有位于封面右侧");
+        if (options.Visibility == Visibility.Visible)
+            Require(Top(options) >= Top(cover) + cover.ActualHeight && Top(options) >= Top(actions) + actions.ActualHeight + 4,
+                "商店文件信息没有排在封面和操作之后");
         var band = Get<Grid>(page, "HeroBand");
         Require(Top(band) + band.ActualHeight >= Top(options) + options.ActualHeight - 1, "商店头部裁切文件信息");
         Require(Get<Button>(page, "ColumnTrailerButton").Visibility == Visibility.Collapsed

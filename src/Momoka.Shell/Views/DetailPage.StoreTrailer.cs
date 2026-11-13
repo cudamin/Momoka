@@ -105,45 +105,7 @@ public sealed partial class DetailPage
             }
             _storeTrailerPreview = preview;
             preview = null;
-            _storeTrailerPlayer = new MediaPlayer { IsMuted = true, IsLoopingEnabled = true, AutoPlay = true };
-            _storeTrailerPlayer.CommandManager.IsEnabled = false;
-            _storeTrailerPlayer.MediaOpened += (_, _) => DispatcherQueue.TryEnqueue(() =>
-            {
-                if (generation == _storeTrailerGeneration && IsLoaded && ViewModel.StoreMode)
-                {
-                    _storeTrailerOpened = true;
-                    ViewModel.StoreTrailerRoom = StoreTrailerContent.Height + 46;
-                    StoreTrailerHost.Opacity = 1;
-                    StoreTrailerHost.Visibility = Visibility.Visible;
-                    StoreBackdrop.Visibility = Visibility.Collapsed;
-                    ScrollStoreTrailer();
-                }
-            });
-            _storeTrailerPlayer.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
-            {
-                if (generation == _storeTrailerGeneration) { _storeTrailerFailed = subject; StopStoreTrailer(); }
-            });
-            _storeTrailerElement = new MediaPlayerElement { AreTransportControlsEnabled = false, Stretch = Stretch.Uniform };
-            _storeTrailerElement.SetMediaPlayer(_storeTrailerPlayer);
-            StoreTrailerContent.Children.Add(_storeTrailerElement);
-            _storeTrailerSource = MediaSource.CreateFromUri(_storeTrailerPreview.Source);
-            _storeTrailerItem = new MediaPlaybackItem(_storeTrailerSource);
-            _storeTrailerItem.AudioTracksChanged += (_, _) => DispatcherQueue.TryEnqueue(() =>
-            {
-                if (generation == _storeTrailerGeneration) UpdateStoreTrailerControls();
-            });
-            _storeTrailerItem.TimedMetadataTracksChanged += (_, _) => DispatcherQueue.TryEnqueue(() =>
-            {
-                if (generation == _storeTrailerGeneration)
-                {
-                    _storeTrailerTracksMenu?.Hide();
-                    if (_storeTrailerItem is { } item)
-                        foreach (var index in SubtitleTracks()) item.TimedMetadataTracks.SetPresentationMode((uint)index, TimedMetadataTrackPresentationMode.Hidden);
-                    UpdateStoreTrailerControls();
-                }
-            });
-            _storeTrailerPlayer.Source = _storeTrailerItem;
-            UpdateStoreTrailerControls();
+            StartStoreMedia(MediaSource.CreateFromUri(_storeTrailerPreview.Source), generation);
 
         }
         catch (OperationCanceledException) { }
@@ -153,6 +115,52 @@ public sealed partial class DetailPage
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }
     }
+
+    // Gallery Samples/MediaPlayerElement: independent player, page-owned disposal.
+    private void StartStoreMedia(MediaSource source, int generation)
+    {
+        _storeTrailerPlayer = new MediaPlayer { IsMuted = true, IsLoopingEnabled = true, AutoPlay = true };
+        _storeTrailerPlayer.CommandManager.IsEnabled = false;
+        _storeTrailerPlayer.MediaOpened += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (generation == _storeTrailerGeneration && IsLoaded && ViewModel.StoreMode)
+            {
+                _storeTrailerOpened = true;
+                ViewModel.StoreTrailerRoom = StoreTrailerContent.Height + 46;
+                StoreTrailerHost.Opacity = 1;
+                StoreTrailerHost.Visibility = Visibility.Visible;
+                StoreBackdrop.Visibility = Visibility.Collapsed;
+                ScrollStoreTrailer();
+            }
+        });
+        _storeTrailerPlayer.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (generation == _storeTrailerGeneration) { _storeTrailerFailed = _storeTrailerSubject; StopStoreTrailer(); }
+        });
+        _storeTrailerElement = new MediaPlayerElement { AreTransportControlsEnabled = false, Stretch = Stretch.Uniform };
+        _storeTrailerElement.SetMediaPlayer(_storeTrailerPlayer);
+        StoreTrailerContent.Children.Add(_storeTrailerElement);
+        _storeTrailerSource = source;
+        _storeTrailerItem = new MediaPlaybackItem(_storeTrailerSource);
+        _storeTrailerItem.AudioTracksChanged += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (generation == _storeTrailerGeneration) UpdateStoreTrailerControls();
+        });
+        _storeTrailerItem.TimedMetadataTracksChanged += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (generation == _storeTrailerGeneration)
+            {
+                _storeTrailerTracksMenu?.Hide();
+                if (_storeTrailerItem is { } item)
+                    foreach (var index in SubtitleTracks()) item.TimedMetadataTracks.SetPresentationMode((uint)index, TimedMetadataTrackPresentationMode.Hidden);
+                UpdateStoreTrailerControls();
+            }
+        });
+        _storeTrailerPlayer.Source = _storeTrailerItem;
+        UpdateStoreTrailerControls();
+
+    }
+
 
     private void StopStoreTrailer()
     {
@@ -256,7 +264,8 @@ public sealed partial class DetailPage
             var track = item.AudioTracks[i];
             var entry = new RadioMenuFlyoutItem
             {
-                Text = TrackLabel(track.Label, track.Language, "音轨", i), GroupName = group,
+                Text = TrackLabel(track.Label, track.Language, "音轨", i),
+                GroupName = group,
                 IsChecked = item.AudioTracks.SelectedIndex == i
             };
             entry.Click += (_, _) => { if (ReferenceEquals(item, _storeTrailerItem) && index < item.AudioTracks.Count) item.AudioTracks.SelectedIndex = index; };
@@ -276,15 +285,23 @@ public sealed partial class DetailPage
             foreach (var index in SubtitleTracks()) item.TimedMetadataTracks.SetPresentationMode((uint)index,
                 index == selected ? TimedMetadataTrackPresentationMode.PlatformPresented : TimedMetadataTrackPresentationMode.Hidden);
         }
-        var off = new RadioMenuFlyoutItem { Text = "关闭字幕", GroupName = group,
-            IsChecked = SubtitleTracks().All(index => item.TimedMetadataTracks.GetPresentationMode((uint)index) == TimedMetadataTrackPresentationMode.Hidden) };
+        var off = new RadioMenuFlyoutItem
+        {
+            Text = "关闭字幕",
+            GroupName = group,
+            IsChecked = SubtitleTracks().All(index => item.TimedMetadataTracks.GetPresentationMode((uint)index) == TimedMetadataTrackPresentationMode.Hidden)
+        };
         off.Click += (_, _) => Select(-1);
         menu.Items.Add(off);
         foreach (var index in SubtitleTracks())
         {
             var track = item.TimedMetadataTracks[index];
-            var entry = new RadioMenuFlyoutItem { Text = TrackLabel(track.Label, track.Language, "字幕", index), GroupName = group,
-                IsChecked = item.TimedMetadataTracks.GetPresentationMode((uint)index) == TimedMetadataTrackPresentationMode.PlatformPresented };
+            var entry = new RadioMenuFlyoutItem
+            {
+                Text = TrackLabel(track.Label, track.Language, "字幕", index),
+                GroupName = group,
+                IsChecked = item.TimedMetadataTracks.GetPresentationMode((uint)index) == TimedMetadataTrackPresentationMode.PlatformPresented
+            };
             entry.Click += (_, _) => Select(index);
             menu.Items.Add(entry);
         }

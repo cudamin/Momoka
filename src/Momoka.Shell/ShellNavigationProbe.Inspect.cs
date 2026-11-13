@@ -347,6 +347,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);
         AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
+        AddCheck("InspectStoreTrailer", "商店预告实帧与独立控制", StoreTrailerAsync);
         AddCheck("InspectDetailTrailers", "详情预告片验证", DetailTrailersAsync);
         AddCheck("InspectDetailExtras", "详情花絮特典验证", DetailExtrasAsync);
         AddCheck("InspectDetailStickyHeader", "详情滚动悬浮卡片", DetailStickyHeaderAsync);

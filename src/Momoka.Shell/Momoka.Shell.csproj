@@ -387,4 +387,7 @@
              Condition="'@(_FrameworkPri)' == ''" />
   </Target>
 
+  <ItemGroup>
+    <Content Include="..\..\tests\fixtures\store-trailer.mp4" Link="ProbeAssets\store-trailer.mp4" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

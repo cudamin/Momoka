@@ -108,6 +108,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("多个本地媒体库：目录事件自动刮削已有与新增、首页逐库入口", LocalLibrariesAsync, 90, section: ShellProbeSections.LocalMedia);
             await CaseAsync("电影/剧/季页连续缩放跨断点后布局稳定", DetailResizeAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("详情封面与面包屑等距", DetailCoverGapAsync, 60, section: ShellProbeSections.Library);
+            await CaseAsync("商店预告实帧、轨道菜单与离页关闭", StoreTrailerAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("详情预告片：宽窄菜单、错误与隐藏恢复", DetailTrailersAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("飞牛详情：父剧标识、演职人员和更多类似宽窄与空态恢复", FnNasDetailAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30, section: ShellProbeSections.Library);

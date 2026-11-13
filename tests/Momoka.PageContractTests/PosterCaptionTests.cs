@@ -76,6 +76,16 @@ internal static class PosterCaptionTests
             Assert.False(MediaRoleUsed(Named(original, "CaptionOnScrim")), "反例未检出首页角色覆盖详情副行");
             Assert.True(MediaRoleUsed(state));
         });
+        Test("人物卡双模板：整组卡片都接收货架文字模式", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(FindRoot(), "src/Momoka.Shell/Views/ShelfStrip.xaml.cs"));
+            var start = source.IndexOf("private void PaintInk", StringComparison.Ordinal);
+            var end = source.IndexOf("internal PosterCard? CardElement", start, StringComparison.Ordinal);
+            Assert.Contains("foreach (var card in CardsIn(container)) card.OnScrim = OnScrim;", source[start..end]);
+            var template = XDocument.Load(Path.Combine(FindRoot(), "src/Momoka.Shell/Views/DetailPage.xaml"));
+            var person = template.Descendants().Single(element => (string?)element.Attribute(Xaml + "Key") == "PersonTemplate");
+            Assert.Equal(2, person.Descendants().Count(element => element.Name.LocalName == "PosterCard"));
+        });
         Test("详情压图文字：OnScrim切换与回收换卡均调用同一生产样式入口", () =>
         {
             var source = File.ReadAllText(Path.Combine(FindRoot(), "src/Momoka.Shell/Views/PosterCard.xaml.cs"));

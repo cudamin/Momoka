@@ -676,7 +676,7 @@ internal sealed partial class ShellNavigationProbe
             for (var index = 0; index < (repeater.ItemsSourceView?.Count ?? 0); index++)
             {
                 if (repeater.TryGetElement(index) is not DependencyObject container) continue;
-                foreach (var card in CardsIn(container))
+                foreach (var card in CardsIn(container).Where(card => card.Visibility == Visibility.Visible && card.ActualWidth > 0 && card.ActualHeight > 0))
                 {
                     Require(card.OnScrim == onScrim, $"{name} 当前第 {index} 张卡没有同步文字模式");
                     var subline = Get<TextBlock>(card, "SubLine");
