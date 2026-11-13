@@ -30,17 +30,30 @@ public sealed partial class CardPreview : UserControl
     private bool _running;
     private bool _shown;
     private int _generation;
+    private bool _watchingMotion;
 
     public CardPreview()
     {
         InitializeComponent();
         Panel.Visibility = Visibility.Collapsed;
-        Loaded += (_, _) => HomeMotion.PreferenceChanged += OnMotionPreferenceChanged;
-        Unloaded += (_, _) =>
-        {
-            HomeMotion.PreferenceChanged -= OnMotionPreferenceChanged;
-            Reset();
-        };
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs args)
+    {
+        if (_watchingMotion) return;
+        _watchingMotion = true;
+        HomeMotion.PreferenceChanged += OnMotionPreferenceChanged;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs args)
+    {
+        // Popup 快速关闭后重开也会迟到投递 Unloaded；仍在活动树上的新预览不能被旧事件清空。
+        if (XamlRoot is not null) return;
+        if (_watchingMotion) HomeMotion.PreferenceChanged -= OnMotionPreferenceChanged;
+        _watchingMotion = false;
+        Reset();
     }
 
     internal event EventHandler? PlayRequested;
@@ -155,6 +168,8 @@ public sealed partial class CardPreview : UserControl
     internal void Prepare(Rect source, double height)
     {
         Height = height;
+        // 可复用 Popup 的图片表面必须参加本次测量；撑开后再显现会偶发保留上一轮零尺寸。
+        TransitionCover.Visibility = Visibility.Visible;
         Measure(new Size(Width, height));
         Arrange(new Rect(0, 0, Width, height));
         UpdateLayout();
@@ -180,8 +195,13 @@ public sealed partial class CardPreview : UserControl
         var media = Media.TransformToVisual(Panel).TransformBounds(new Rect(0, 0, Media.ActualWidth, Media.ActualHeight));
         TransitionCover.Width = media.Width;
         TransitionCover.Height = media.Height;
+        PreviewImage.Width = TransitionImage.Width = media.Width;
+        PreviewImage.Height = TransitionImage.Height = media.Height;
         Canvas.SetLeft(TransitionCover, media.Left);
         Canvas.SetTop(TransitionCover, media.Top);
+        TransitionCover.Measure(new Size(media.Width, media.Height));
+        TransitionCover.Arrange(media);
+        UpdateLayout();
         Morph(TransitionCover, source, media);
     }
 
@@ -259,7 +279,6 @@ public sealed partial class CardPreview : UserControl
         StopArtworkFade();
         _card = null;
         Panel.Visibility = Visibility.Collapsed;
-        TransitionCover.Visibility = Visibility.Collapsed;
         PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;
     }
 

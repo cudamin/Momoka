@@ -753,10 +753,11 @@ public sealed partial class PosterCard : UserControl
             art.Left, art.Width, width, rootWidth, PreviewMargin) + art.Left - origin.X;
         _previewHost.VerticalOffset = CardPreviewPlacement.Vertical(
             art.Top, art.Height, height, rootHeight, PreviewMargin) + art.Top - origin.Y;
+        // Popup 接入活动视觉树后才可测量图片 Canvas；关闭时它的布局处于暂停状态。
+        _previewHost.IsOpen = true;
         _preview.Prepare(new Windows.Foundation.Rect(
             art.Left - origin.X - _previewHost.HorizontalOffset,
             art.Top - origin.Y - _previewHost.VerticalOffset, art.Width, art.Height), height);
-        _previewHost.IsOpen = true;
         _previewOpen = true;
 
         // 原封面边框与图片撑开，内容只通过裁剪显露，文字不拉伸。
