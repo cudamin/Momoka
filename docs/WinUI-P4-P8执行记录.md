@@ -16,7 +16,7 @@
 
 当前图片红证据为 `artifacts/winui-p48-20261113/source-owner-traces/logs`：Albums100 尾部 realized=21、树容器=26、Image.Source=26、held/wanted/live=22；5 个池容器 mappedIndex=-1，仍有图片需求。曲目暖缓存实际 51 项，按实际 viewport、行高和平台 CacheLength=4 推导预算 54，所有图片需求仍须不超过实际容器数。不能把曲目与墙口径混用，也不能豁免焦点项来消掉墙红。
 
-`artifacts/winui-p48-20261113/native-paging-success/logs` 中音乐分页入口通过；同一次其它检查的图片/键盘红项保留，不能称整个运行全绿。`actual-connected-return/logs` 中真实关联动画通过；该运行的其它失败也保持原样。匿名信息表三档实现 0–9 行及故意移出视口的拒绝证据在 `native-repaired/logs`；完整自检须另跑最终构建。
+`artifacts/winui-p48-20261113/native-paging-success/logs` 中音乐分页入口通过；同一次其它检查的图片/键盘红项保留，不能称整个运行全绿。`actual-connected-return/logs` 中真实关联动画通过；该运行的其它失败也保持原样。`native-repaired/logs` 的正常信息表检查通过，故意移出视口的检查被拒绝，该运行整体 3 过 3 红。最后几何 JSON 被故障路径覆盖，只保留 1280 档，不能用它单独证明 760 两档的全部行；最终构建须重验正常三档和完整自检。
 
 手动键盘使用正式 Shell/搜索/详情/设置控件和匿名内存服务。自动键盘注入被自动审批拒绝，工具仅返回 `blocked by policy`；用户已选择手动验收，未换工具绕过。前六步、实际查询和从结果继续的不同运行必须分开记录；恢复工具明确标记匿名身份/查询播种。每段程序聚焦起点不证明完整纯 Tab 遍历，也不证明 Narrator。
 
