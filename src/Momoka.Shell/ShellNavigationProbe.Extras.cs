@@ -15,6 +15,7 @@ internal sealed partial class ShellNavigationProbe
     /// <summary>真实详情与菜单，HTTP和播放只到匿名内存边界，不启动内核或真实媒体请求。</summary>
     private async Task DetailExtrasAsync()
     {
+        await DetailExtrasEmptyEpisodeAsync();
         var receipts = new List<object>();
         var poster = await FixtureImageAsync(400, 600);
         var backdrop = await FixtureImageAsync(1600, 900);
@@ -146,6 +147,7 @@ internal sealed partial class ShellNavigationProbe
 
                 var narrow = Get<Button>(page, "CompactExtrasButton");
                 fail = true;
+                await page.ViewModel.ReloadAsync();
                 await page.ShowExtrasAsync(narrow);
                 var failed = Get<MenuFlyout>(page, "_extraMenu");
                 var retry = failed.Items.OfType<MenuFlyoutItem>().Single(row => AutomationProperties.GetAutomationId(row) == "ExtraRetry");
@@ -162,6 +164,9 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => !retryMenu.IsOpen && Get<MenuFlyout?>(page, "_extraMenu") is null);
 
                 extras.Clear();
+                await page.ViewModel.ReloadAsync();
+                Require(page.ViewModel.ExtraVisibility == Visibility.Collapsed,
+                    "详情已读到空列表，花絮入口仍等待点击才隐藏");
                 await page.ShowExtrasAsync(narrow);
                 await UntilAsync(() => page.ViewModel.ExtraVisibility == Visibility.Collapsed
                     && Get<MenuFlyout?>(page, "_extraMenu") is null);
@@ -195,6 +200,10 @@ internal sealed partial class ShellNavigationProbe
                 await page.ViewModel.ReloadAsync();
                 await page.ViewModel.OpenExtraAsync(stale, oldOption);
                 Require(fixture.Actions.Plays == beforeCancel, "重新读取后旧菜单仍能播放");
+                await page.ShowExtrasAsync(narrow);
+                var preparedMenu = Get<MenuFlyout>(page, "_extraMenu");
+                preparedMenu.Hide();
+                await UntilAsync(() => !preparedMenu.IsOpen && Get<MenuFlyout?>(page, "_extraMenu") is null);
                 held = Pending<HttpResponseMessage>();
                 reads = paths.Count;
                 var pending = page.ShowExtrasAsync(narrow);
@@ -246,5 +255,78 @@ internal sealed partial class ShellNavigationProbe
             UserData = new() { PlaybackPositionTicks = 300_000_000 },
             MediaSources = [new() { Id = id + "-file", Container = "mkv", RunTimeTicks = 600_000_000 }]
         };
+    }
+
+    private async Task DetailExtrasEmptyEpisodeAsync()
+    {
+        using var fixture = CreateFixture();
+        var episode = new EmbyItem
+        {
+            Id = "empty-episode",
+            Name = "单集空花絮 · 连播位置回归",
+            Type = EmbyItemType.Episode,
+            MediaType = "Video",
+            IndexNumber = 5,
+            ParentIndexNumber = 2,
+            MediaSources = [new() { Id = "episode-file", Container = "mkv", RunTimeTicks = 900_000_000 }]
+        };
+        var reads = 0;
+        var hasExtra = false;
+        fixture.Transport.Reply = (request, _) =>
+        {
+            Require(request.Method == HttpMethod.Get, "单集空花絮探针拒绝写入");
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/SpecialFeatures", StringComparison.Ordinal))
+            {
+                reads++;
+                return Task.FromResult(Json(hasExtra
+                    ? new[] { new EmbyItem { Id = "episode-extra", Name = "幕后花絮", Type = EmbyItemType.Video, MediaType = "Video" } }
+                    : Array.Empty<EmbyItem>()));
+            }
+            if (path.EndsWith("/Items/empty-episode", StringComparison.Ordinal)) return Task.FromResult(Json(episode));
+            if (path.EndsWith("/Similar", StringComparison.Ordinal)) return Task.FromResult(Items(0, 0, "similar"));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        await fixture.SelectAsync();
+        var frame = new Frame { Margin = new Thickness(0, 68, 0, 0) };
+        _root.Children.Add(frame);
+        DetailPage? page = null;
+        try
+        {
+            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, episode));
+            page = (DetailPage)frame.Content;
+            page.AttachWindow(_window!);
+            await UntilAsync(() => page.IsReady);
+            foreach (var immersive in new[] { false, true })
+            {
+                fixture.Settings.Ui.EnableImmersive = immersive;
+                typeof(DetailPage).GetMethod("ApplyAppearance", System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)!.Invoke(page, null);
+                foreach (var width in new[] { 1280, 760 })
+                {
+                    await ResizeResponsiveAsync(page, width, 900);
+                    await LayoutAsync(page);
+                    var anchor = Get<Button>(page, width < 820 ? "CompactExtrasButton" : "ColumnExtrasButton");
+                    Require(anchor.Visibility == Visibility.Collapsed && page.ViewModel.ContinueVisibility == Visibility.Visible,
+                        "空单集仍显示花絮入口或收起了连播");
+                    var continuePlay = page.ViewModel.ContinuePlay;
+                    var before = reads;
+                    await page.ShowExtrasAsync(anchor);
+                    Require(reads == before && page.ViewModel.ContinuePlay == continuePlay && fixture.Actions.Plays == 0,
+                        "隐藏入口仍读取内容、切换连播或起播");
+                    await SaveProbeScreenAsync($"detail-extras-empty-episode-{immersive}-{width}-screen.png");
+                }
+            }
+            hasExtra = true;
+            await page.ViewModel.ReloadAsync();
+            await LayoutAsync(page);
+            Require(page.ViewModel.ExtraVisibility == Visibility.Visible, "重新读取详情后单集花絮没有恢复");
+        }
+        finally
+        {
+            page?.Release();
+            frame.Content = null;
+            _root.Children.Remove(frame);
+        }
     }
 }

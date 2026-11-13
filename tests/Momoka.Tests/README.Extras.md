@@ -13,7 +13,11 @@
 
 详情专项加载正式 Shell DLL，执行真实 `DetailViewModel`，包含既有动作、预告片及花絮回归；不能把总数都算成新增花絮测试。花絮用例检查独立条目/文件、精确零起点、原片续播不变、空态隐藏与重读恢复、错误可重试、重复/不可播放/伪造来源过滤、菜单生成后的修改、取消/重附加/新菜单/注销后的旧操作及迟到结果。同身份客户端替换制造真实 401 重试，重新绑定的 Scope 可播放；相同账号键但不同在线所有者不能借菜单播放。播放止于捕获参数的 `IShellActions`，不启动播放器或窗口。
 
+进入详情时先按各服务器原有前提读取附加内容；实际可播放列表非空或读取失败才显示入口，首次打开菜单复用这份结果。Emby 的视频前提仍允许读取数量未知/0的条目。空单集不再先露出「花絮与特典」、点击后收起并让「连播」移到原位置；正片播放与连播偏好不等这趟读取。专项覆盖读取在途、空列表、仅不可播放列表、首次点击请求数、刷新恢复与离页迟到；读取失败仍能从菜单重新加载。
+
 原生检查台 `--probe-shell inspect --screen 1` 的 `InspectDetailExtras`，以及 `--probe-shell --probe-section library --screen 1`，执行真实 `DetailPage` 与 `MenuFlyout`，覆盖 Emby/Jellyfin 各 1280/760 DIP、按钮及选项 UIA invoke、假播放参数、失败重试、隐藏恢复、关闭无播放、旧菜单和离页迟到。输出 `detail-extras-receipt.json` 与 `detail-extras-*-screen.png`。只有本次代码实际执行成功并检查实屏后，才算原生证据；编译探针不等于它已通过。
+
+同一原生检查还覆盖空花絮单集的简洁/沉浸模式 × 1280/760 DIP：入口在详情完成时已经隐藏，隐藏入口不会读取、切连播或播放，重新读取非空列表后恢复。截图为 `detail-extras-empty-episode-{False/True}-{1280/760}-screen.png`。
 
 `Momoka.DetailImageArrivalTests` 和 `Momoka.SubtitleDialogTests` 逐字提取的详情生命周期现在包含 `ResetExtras()`；各自只补无作用的外部 partial 边界，不删改提取正文。运行这两项可确认新增接线没有切断既有图片/字幕调用覆盖。
 
