@@ -1,6 +1,6 @@
 ---
 name: "momoka-verification"
-description: "Verify Momoka changes using CLAUDE.md: fresh build/test evidence, WinUI material and fallback pixels, responsive layout/DPI, keyboard and Narrator, motion interruption, virtualization, capability restoration and playback coverage boundaries. Use at delivery-batch close, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
+description: "Verify Momoka changes using CLAUDE.md: fresh build/test evidence, WinUI material and fallback pixels, responsive layout/DPI, keyboard and Narrator, motion interruption, virtualization, capability restoration and playback coverage boundaries. Use when delivering merged batches, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
 ---
 
 # Momoka — verification evidence
@@ -15,14 +15,16 @@ Use [CLAUDE.md's official-guidance confirmation rule](../../../CLAUDE.md#winui-�
 
 For documentation-only skill changes, check routing, links, source assertions and realistic read-only decision scenarios. Structure validation does not measure actual automatic skill discovery or prove product runtime behavior.
 
-## Delivery batches
+## Change batches and delivery
 
-Verification runs per delivery batch, not per small edit.
+Verification runs per change batch, not per small edit. Merging closes a batch; publishing happens only on an explicit delivery request.
 
-- Intermediate edits need a compile of the affected projects/tests and the tests covering that change. At batch close, run gate 2, the affected runtime checks/probes and gate 3 once, against the final code. For `--probe-shell`, select the affected areas with `--probe-section`; a partial run is not a full-probe pass.
-- For temporary-branch integration, follow [CLAUDE.md's main-tree rules](../../../CLAUDE.md#git-与协作) and [post-merge verification](../../../CLAUDE.md#四道闸门与日常交付). Record pending product commits, verify the final integrated master tree rather than reusing branch-only reports, and distinguish a worktree publish from actual desktop delivery. An explicit request to defer merging keeps that pending item open; it is not permission to merge or publish.
+- Intermediate edits need a compile of the affected projects/tests and the tests covering that change.
+- Merging into `master` runs no full suite and no publish. Handle integration differences, record what stays unverified in [the pending-delivery ledger](../../../docs/待交付批次.md), and leave the delivered build at the previous version. Say so in the report.
+- When the user asks for delivery, merge the ledger's pending entries into one verification scope and run it against the final integrated master tree: gate 2, the affected runtime checks/probes and screenshots, then gate 3 and the shortcut check. Do not reuse branch-only reports. For `--probe-shell`, select the affected areas with `--probe-section`; a partial run is not a full-probe pass.
+- For temporary-branch integration, follow [CLAUDE.md's main-tree rules](../../../CLAUDE.md#git-与协作) and [delivery verification](../../../CLAUDE.md#四道闸门与日常交付). An explicit request to defer merging keeps that pending item open; it is not permission to merge or publish.
 - Documentation and progress-record commits do not trigger a build, probe or publish.
-- A user request to test or publish closes the current batch at the requested commit; later edits start a new batch.
+- A user request to deliver closes the pending ledger entries at the requested commit; later edits start a new batch.
 - A result is evidence only for the code it ran against. If later code changes a probed path, rerun the affected check; do not recycle earlier logs, screenshots or publish hashes.
 - Do not rerun a full probe or self-check after every tweak. An environment-attributed red stays red in the report; do not repeat it each round while the relevant code and environment are unchanged, and never turn it green with a lucky rerun or a baseline edit.
 - Verification-tool changes are the exception: run the affected success and failure paths in the same round, because the tool itself is under test.
