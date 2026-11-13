@@ -7,6 +7,40 @@ internal static class CardPreviewTextTests
 {
     public static void Register()
     {
+        Test("悬停播放文案：位置、次数或日期有记录就继续播放", () =>
+        {
+            var item = new EmbyItem();
+            Assert.Equal("播放", CardPreviewText.PlayLabel(item));
+            item.UserData = new() { PlaybackPositionTicks = 1 };
+            Assert.Equal("继续播放", CardPreviewText.PlayLabel(item));
+            item.UserData = new() { PlayCount = 1 };
+            Assert.Equal("继续播放", CardPreviewText.PlayLabel(item));
+            item.UserData = new() { LastPlayedDate = DateTimeOffset.UnixEpoch };
+            Assert.Equal("继续播放", CardPreviewText.PlayLabel(item));
+            item.UserData = new() { Played = true };
+            Assert.Equal("播放", CardPreviewText.PlayLabel(item));
+        });
+        Test("悬停日期：单集首播与剧集年份区间", () =>
+        {
+            var item = Episode();
+            item.PremiereDate = new DateTimeOffset(2026, 11, 13, 0, 0, 0, TimeSpan.Zero);
+            Assert.Equal("2026/11/13", CardPreviewText.Date(item));
+            item.Type = EmbyItemType.Series;
+            item.ProductionYear = 2024;
+            item.Status = "Continuing";
+            Assert.Equal("2024 – 至今", CardPreviewText.Date(item));
+        });
+        Test("悬停评分：浏览请求包含评分而Jellyfin保留协议过滤", () =>
+        {
+            var stub = new StubTransport().Answer("Items/Resume", """{"Items":[{"Id":"episode","Type":"Episode","CommunityRating":8.6,"Genres":["动画"]}]}""");
+            var client = new EmbyClient(new EmbyHttp(stub), new EmbyConnection(new Uri("https://fixture.invalid/emby/"),
+                "fixture-token", "user", "user", "fixture", DeviceIdentity.Create("fixture", "1.0")));
+            var items = client.GetResumeAsync(10, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Contains("CommunityRating", Uri.UnescapeDataString(stub.Only("Items/Resume").Url));
+            Assert.Equal("8.6", CardPreviewText.Rating(items.Single()));
+            Assert.Equal("动画", CardPreviewText.Genres(items.Single()));
+            Assert.False(JellyfinQuery.FilterFields(EmbyFields.Browse).Contains("CommunityRating", StringComparison.Ordinal));
+        });
         Test("悬停文字：剧名与标题相同时只保留集号和时长", () =>
         {
             var episode = Episode();
