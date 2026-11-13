@@ -168,13 +168,13 @@ internal sealed class HoverWatch(FrameworkElement target, Action<bool> reveal)
         .TransformBounds(new Rect(0, 0, target.ActualWidth, target.ActualHeight));
 
     /// <summary>
-    /// Whether anything other than a tooltip is popped up over this island — a card's 更多 menu, a dialog.
+    /// Menus and dialogs hold their anchors open. Tooltips and hover previews keep polling their own bounds.
     /// </summary>
     private static bool MenuOpen(XamlRoot root)
     {
         foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(root))
         {
-            if (popup.Child is not ToolTip) return true;
+            if (popup.Child is not (ToolTip or CardPreview)) return true;
         }
 
         return false;

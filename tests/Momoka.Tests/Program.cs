@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["hover-preview-fixture"])
+        {
+            CardPreviewTextTests.Register();
+            CardPreviewPlacementTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["plex-container-fixture"])
         {
             PlexContainerTests.Register();
@@ -738,6 +744,7 @@ internal static class Program
         PlayerToolDownloadTests.Register();
         MusicTests.Register();
         CardPreviewPlacementTests.Register();
+        CardPreviewTextTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

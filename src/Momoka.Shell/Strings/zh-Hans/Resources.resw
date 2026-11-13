@@ -456,9 +456,6 @@
   <data name="PlayerPage_VolumeSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>音量</value>
   </data>
-  <data name="CardPreview_PlayButton.Content" xml:space="preserve">
-    <value>播放</value>
-  </data>
   <data name="CardPreview_Resume.Text" xml:space="preserve">
     <value>继续观看</value>
   </data>
