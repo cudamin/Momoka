@@ -571,6 +571,10 @@ internal static partial class ShellSelfCheck
         _writeInfoGeometry = text => Write(options.Paths, "selfcheck-info-geometry.json", text);
         _infoGeometryFailure = error => Log.Warn(Category, "媒体信息几何证据失败", error);
         InfoGeometryReadings.Clear();
+        _notificationsLayoutWaits = 0;
+        _writeNotificationsLayout = text => Write(options.Paths, "selfcheck-notifications-layout.json", text);
+        _notificationsLayoutFailure = error => Log.Warn(Category, "通知页面布局证据失败", error);
+        NotificationsLayoutReadings.Clear();
         // Invalidate the last run's report before this one has anything to say. Without this a crash
         // leaves the previous report on disk, and a passing report from twenty minutes ago is worse than
         // no report at all: it reads as "this build is fine" when the build under test never finished.
@@ -891,7 +895,16 @@ internal static partial class ShellSelfCheck
             // 页面自己会画进度条，快照要的是装载完的那份。
             if (page.Notifications is not { } notifications || !notifications.IsReady) return true;
 
+            notifications.UpdateLayout();
             var (bound, drawn) = notifications.Realised;
+            RecordNotificationsLayout(notifications, bound, drawn);
+            // HTTP/VM就绪不表示嵌入页刚显示后的列表模板已经量过。
+            // 每拍500ms，最多另等8拍；空列表不等待，期满仍按原bound/drawn判红。
+            if (bound > 0 && drawn < bound && _notificationsLayoutWaits < 8)
+            {
+                _notificationsLayoutWaits++;
+                return true;
+            }
             var stopReport = notifications.StopReport;
             var note = notifications.NoteState;
             _notifications = new NotificationsState(

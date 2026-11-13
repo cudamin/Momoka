@@ -265,6 +265,7 @@ internal static class Program
         });
         InfoTableProbeTests.Register();
         InfoGeometryTraceTests.Register();
+        NotificationsLayoutTests.Register();
         PlaybackReturnTraceTests.Register();
         PlaybackReturnScrollTests.Register();
         Test("键盘结果定位按子卡片身份，不依赖原生容器DataContext", () =>
