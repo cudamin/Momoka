@@ -703,6 +703,7 @@ public sealed class CardItem : INotifyPropertyChanged
         // 在路上的那一趟是按旧宽度取的：撤掉，按新宽度重来。
         _loading?.Cancel();
         _loading = null;
+        RaiseImagePending();
 
         Poster = null;
         ClearCollageTiles();
@@ -729,6 +730,26 @@ public sealed class CardItem : INotifyPropertyChanged
 
     /// <summary>列表行只显示一张图；目录封面拼图以第一张已到达海报作为首图。</summary>
     public BitmapImage? RowPoster => Poster ?? FolderTile0;
+
+    /// <summary>
+    /// 屏上这一格此刻正等着图 —— 海报卡上那道流光问的就是这一句（见 <c>Shimmer</c>）。
+    /// <para>
+    /// 判据是「有一趟请求在路上」（<see cref="_loading"/>），不是「<see cref="Poster"/> 还是空的」。后者会把三种
+    /// 不属于等待的状态一起算进来：服务器明说没有封面的条目（<see cref="_missing"/>，永远空着）、上一次取失败还在
+    /// 冷却里的（<see cref="_failedAt"/>），以及容器还没把这张卡递进来的一瞬 —— 那三种都该安安静静地空着，
+    /// 闪一道永不消失的光比空着更像坏了。拼图的两档（<see cref="FolderCollage"/>、<see cref="LibraryWall"/>）
+    /// 一格一格地填，也不走这一张。
+    /// </para>
+    /// <para>
+    /// 只在请求的起止两处通知：那一趟回来时不管成没成，<c>_loading</c> 都会在 finally 里落回 null —— 失败、缺图、
+    /// 取消三条路用的是同一个收尾，于是这道光也一样收得干净。
+    /// </para>
+    /// </summary>
+    public bool ImagePending =>
+        _loading is not null && _poster is null && !FolderCollage && !LibraryWall;
+
+    /// <summary>「在等图」变了就喊一声 —— 绑定它的那道流光据此起停。</summary>
+    private void RaiseImagePending() => Raise(nameof(ImagePending));
 
     public bool Watched => _item.IsWatched;
 
@@ -889,6 +910,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
         var cts = new CancellationTokenSource();
         _loading = cts;
+        RaiseImagePending();
         presentation ??= BrowsePresentation.WaitForImagesAsync();
         _presentation = presentation;
 
@@ -955,7 +977,11 @@ public sealed class CardItem : INotifyPropertyChanged
         {
             // Null first, then dispose: there is no await between the two, so nothing can observe a
             // disposed source through the field.
-            if (ReferenceEquals(_loading, cts)) _loading = null;
+            if (ReferenceEquals(_loading, cts))
+            {
+                _loading = null;
+                RaiseImagePending();
+            }
             cts.Dispose();
         }
     }
@@ -1089,6 +1115,7 @@ public sealed class CardItem : INotifyPropertyChanged
         var loading = new CancellationTokenSource();
         var width = _width;
         _loading = loading;
+        RaiseImagePending();
         try
         {
             var bytes = await (_fetchPoster is { } fetch ? fetch(loading.Token)
@@ -1105,7 +1132,11 @@ public sealed class CardItem : INotifyPropertyChanged
         }
         finally
         {
-            if (ReferenceEquals(loading, _loading)) _loading = null;
+            if (ReferenceEquals(loading, _loading))
+            {
+                _loading = null;
+                RaiseImagePending();
+            }
             loading.Dispose();
         }
         bool Current() => !loading.IsCancellationRequested && ReferenceEquals(loading, _loading) && width == _width;
@@ -1127,6 +1158,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _resizeWanted = false;
         _loading?.Cancel();
         _loading = null;
+        RaiseImagePending();
         Poster = null;
         ClearCollageTiles();
     }

@@ -544,7 +544,7 @@ internal static class AcrylicControlsTests
             // 「只有这两页」和「跟着播放目标走」是视图模型的判据，页面只照着绑。
             var vm = Source("ViewModels/DetailViewModel.cs");
             Assert.Contains("public Visibility CoverPlayVisibility => Show(CoverPlayShown);", vm);
-            Assert.Contains("private bool CoverPlayShown => StillVisibility == Visibility.Visible && PlayTarget is not null", vm);
+            Assert.Contains("private bool CoverPlayShown => StillImage is not null && StillVisibility == Visibility.Visible", vm);
             Assert.Contains("&& ItemType is EmbyItemType.Movie or EmbyItemType.Series;", vm);
             Assert.Contains("[NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]", vm);
             Assert.Equal(3, vm.Split("OnPropertyChanged(nameof(CoverPlayVisibility));", StringSplitOptions.None).Length - 1,

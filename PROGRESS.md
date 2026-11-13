@@ -10,6 +10,41 @@
 产品41942f8已以9f658d1进入master。主树当前Core/Tests/Shell0警告0错误，完整5031/5031、页面207/207、定向17/17均通过。最终原生PID1152属性通过但760截图图片为空，追加屏幕像素检查后PID25672重现360图片层ActualBounds为0×0、Source非空。修CardPreview.Prepare：媒体层测量前Visible，按Media实测矩形显式Measure/Arrange/UpdateLayout后再启合成变换。PID23840首轮九组实际屏幕像素通过，图片半程alpha255及0.500混合仍过。
 
 同进程重复验证暴露两个夹具问题并保留红证据：旧固定ID命中图片缓存导致等待请求超时，已改每轮唯一ID；底边案例card top624+295超出900高窗口，Popup焦点自动滚动触发产品ViewChanged即时关闭，现将原卡完整放在窗口内（top574）而预览仍需夹底。最初像素检查插在模拟播放/详情之后，自然读到Reset后的空图，已移到动作之前。不以这些红或旧属性通过冒充最终验收。当前最终探针与小修未提交，主树尚未发布桌面。证据artifacts/hover-center-crossfade-final包含全部失败、独立树和主树日志，累计输入约34张，未达40暂停线。
+
+## 2026-11-13 工作树 toolkit-ui：流光接到主页、媒体库与详情页（已合入 master，未发布）
+
+用户令「主页和详情页都加」，随后一句「铺满窗口的背景图不要加」。同一工作树、同一分支 `workbuddy/toolkit-ui`；已合入 master（`--no-ff`），未发布、未推送。
+
+**判据**（`CardItem.ImagePending`）：不是「`Poster` 还是空的」，而是「有一趟请求在路上」（`_loading`）。服务器明说没有封面（`_missing`）、上次取失败还在冷却里（`_failedAt`）、容器还没把这张卡递进来 —— 这三种都不是等待，照「空着就是等」写会闪出一道永不消失的光。只在请求起止两处通知（`RaiseImagePending`）；失败、缺图、取消三条路共用 finally 那一个收尾，光也跟着收干净。
+
+**落在哪**：①`PosterCard` 封面框里加一层 `views:Shimmer`（`IsActive` 绑 `Card.ImagePending`，圆角同 `EgPosterCornerRadius`）—— 这一张卡同时是主页各条横带、媒体库卡墙、详情页的季／演员／相似那几排，一处接上三处都有；②`HomeBanner` 在 `Frame`（`Band` 外面）加一层，`Paint()` 按「台上那层有没有图」起停，空清单、丢幻灯片、离树三处显式收掉 —— 换张时另一层还压着上一张，所以换张不闪；③`DetailPage` 左上角封面那一格：`StillVisibility` 的第一句从「图已经解出来」扩成「解出来了，或者这一趟还在路上」（新 `StillPending`，在等首帧之前就抬起来），那一格因此从第一帧就站住、底下一道光；空手回来（没有封面／没取到）时框收起，版面回到没有封面的那一档。封面上的播放键与悬停遮罩各加一句 `StillImage is not null` —— 原来它们靠显隐判「图到没到」，现在显隐里含等待，不加就会浮在空框上。
+
+**按用户令没做**：详情页铺满窗口的那张背景图（`Backdrop`）不加。
+
+**顺带的行为变化**：详情页封面没到的那一拍，片名那一栏不再顶在板的内沿、图到了再整页右移一格（「开页抖一下」的来源）。`StillShape()` 自检对「先站着等图」这一档给通过并写明读数。
+
+**验证**：Shell Release 0 警告 0 错误；`dotnet format whitespace` 定向 6 个源文件通过；主测试 **5028/5028**、页面契约 **210/210**（新增 3 条 `CardItem.ImagePending` 用例：请求在飞时亮、图到就收；放手当场收；没有封面的条目等完那趟不留死光）。`--probe-section shell` **15/15 退出 0**。`--probe-section library` **36/47**：失败清单与本批改动前逐条对过 —— 详情那 6 条（`EpisodeStrip`／`CastRow` 副行颜色 `#FFE8EDF7` 对 `#FFC9D0D9`、819 那一档背景层 `Collapsed`）两轮一字不差，另两条 UIA 用例在两轮之间互换，都不是本批引出。
+
+**没拍到**：光是一道会动的带子，局域网里封面几百毫秒就到，探针的截图全落在图到之后；这一层沿用上一批 `library-dialog-cover-loading-screen.png`（同一个控件、同一份起停判据）。
+
+**环境**：期间主树另一个会话的 `--probe-shell inspect` 反复以孤儿进程留在后台（父进程已退出、结果文件已写完），占着单实例锁与自检 mutex —— 主测试首跑因此有 16 条「自检输出」红（`已有当前用户的自检运行中`），结束后重跑全绿。
+
+**补记（15:45，用户令「要更稳」）**：`LoadArtworkAsync` 拆成外层（抬 `StillPending` ＋ `finally` 收）和 `LoadArtworkCoreAsync`（原体）。收尾判据 `_art is null || ReferenceEquals(art, _art)`：首帧前取消、离树、代次过期这三条早退也收；只有「更新的一趟已经接手」时才不动。顺带补上上一批漏掉的 `Momoka.DetailImageArrivalTests` —— 它的 `LoadArtworkAsync` 是构建时从生产文件原样抽取的，`StillPending` 在夹具里没有字段，上一批就已经 `CS0103` 编译不过；本批补字段并加三条用例（门控前取消、离树后的迟到图、旧批次不按新一代）。该工程 **23/23**；Shell Release **0 警告 0 错误**；主测试 **5028/5028**（清掉另一会话父进程已退出的孤儿探针后）、页面契约 **210/210**、`SubtitleDialog` **89/89**；`PlexAffordance`／`DetailDeleteCommand` 是带参数的夹具命令行，编译通过、未跑。`--probe-section library` **37/47**：失败 10 条与上轮 36/47 那份逐条同文（详情 6 条颜色／819 背景层，外加 UIA 抖动），上轮那条「媒体库多选」本轮转绿，无新增红。
+
+## 2026-11-13 工作树 toolkit-ui：候选封面加载流光与看大图阴影（已合入 master，未发布）
+
+用户令「单开一个工作树按你的建议做」，前情是审查 Toolkit 的 TransitionHelper / Attached Shadows / Shimmer / ConstrainedBox 能否内置。分支 `workbuddy/toolkit-ui`（工作树 `C:\Users\89400\WorkBuddy\Worktrees\Momoka\toolkit-ui`）；已合入 master，未发布、未推送。
+
+**采用**：①新增 `Views/Shimmer.xaml(.cs)`：Composition 的高光带，只认 `HomeMotion.AnimationsEnabled`，失活／离树／关动画时整层摘掉，不参与布局与命中；用在 `CoverPickerDialog` 候选封面的 `CoverChoice.IsLoading` 期间，图回来即停。②`ArtworkViewer` 画框试装现有 `CommunityToolkit.WinUI.Extensions` 的 `AttachedDropShadow`（零新包）：透明宿主 ＋ `CastTo=ViewerRoot` ＋ `IsMasked=False`，四周留 24 给影子落脚。
+
+**不采用**：ConstrainedBox —— 只缩不放（`ScaleX/ScaleY` 0～1）。理由不是「和几套固定版面冲突」：这一页的版面本来就不是一个尺寸维度上的分档 —— `简洁`／`沉浸` 各自还要按条目类型、宽窄、有图无图再分（`DetailViewModel.IsCompact` 在简洁的电影／剧／季上恒 false，任何宽度都保留卡面、封面与双栏，只靠按钮换行；单集才走 819.2 断点。沉浸档 `Showcase` 要开关、非紧凑、有图、四类同时成立，落不到就是裸头／集页板／单列带图／单列裸底四种），宽版式内部 819.2–1440 还是 `Narrow()` 的连续收紧曲线，且只在 `Crowdable`（非紧凑、非卡面）时生效。整体缩放没有单一设计尺寸可依，而且正是 2026-09-12 撤掉的那一版（1024–1280 缩到八成「又小又松」，改成换行）。现有唯一 Viewbox（登录页欢迎图）需要放大到 640，它给不了。TransitionHelper —— 8.x 组件与本地 Animations 程序集都没有此类型，项目又刻意统一 `SuppressNavigationTransitionInfo`，加了就是双重动画。
+
+**验证**：Shell Release 0 警告 0 错误；`--probe-shell --probe-section metadata` **11/11 退出 0**（新增两条断言：候选等待格的流光子视觉 `SpriteVisual` 存在且尺寸非零、看大图的阴影容器挂在 `ViewerRoot` 上），`library-dialog-cover-loading-screen.png` 光带按行采样 40→68→45，`library-dialog-ArtworkViewer-*-screen.png` 五主题均出图并目视；主测试 **5028/5028、0 失败 0 跳过**，页面契约 **207/207**。首跑 18 项失败是沙箱把 `TEMP` 指到 `C:\WINDOWS\TEMP` 造成的环境红，换可写临时目录后全绿。
+
+**既有红**：`Momoka.HomeFoldCompletionTests` 在本树与 master 都编译失败（生成夹具引用不存在的 `AmbientChanged`、`Microsoft.UI.Colors`），与本批无关，未改。
+
+**待办**：主树按主规则重跑受影响验证；用户令「只合并到主树 不交付」，未发布。本批未改真实服务器数据、未播放。
+
 ## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
 
 ## 2026-11-13 三库视口主树交付

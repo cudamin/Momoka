@@ -61,6 +61,43 @@ internal static class Program
             Assert.Equal(0, vm.ShowRequests);
             Assert.Equal(0, vm.DecodeRequests);
         });
+        Test("首帧门控前取消也把封面空框收掉", () =>
+        {
+            var release = Gate();
+            var vm = new DetailArtworkFixture();
+            UseGate(vm, release.Task);
+            var load = vm.Start(Item());
+            Assert.True(vm.StillPending, "空框没有在第一帧前站住");
+            vm.Cancel();
+            Await(load);
+            Assert.False(vm.StillPending, "门控前取消后仍留着等待空框");
+            release.SetResult();
+        });
+        Test("离树后迟到的图片收尾也把封面空框收掉", () =>
+        {
+            var vm = new DetailArtworkFixture { HoldDecode = true };
+            var load = vm.Start(Item());
+            Assert.True(vm.StillPending, "空框没有在第一帧前站住");
+            vm.DetachWithoutCancellingTransport();
+            vm.DecodeRelease.SetResult(new());
+            Await(load);
+            Assert.False(vm.StillPending, "离树后的收尾没有把空框收掉");
+        });
+        Test("旧批次收尾不按掉新一代的封面空框", () =>
+        {
+            var vm = new DetailArtworkFixture { HoldDecode = true };
+            var first = vm.Start(Item());
+            Assert.True(vm.StillPending, "第一代没有站住空框");
+            var secondGate = Gate();
+            UseGate(vm, secondGate.Task);
+            var second = vm.Start(Item());
+            vm.DecodeRelease.SetResult(new());
+            Await(first);
+            Assert.True(vm.StillPending, "旧批次收尾把新一代的空框按掉了");
+            secondGate.SetResult();
+            Await(second);
+            Assert.False(vm.StillPending, "新一代收尾后空框还亮着");
+        });
         Test("详情已捕获门控不借新环境或下一次门控提前放行", () =>
         {
             BrowsePresentation.Gate = Task.CompletedTask;

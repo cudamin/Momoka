@@ -1,6 +1,8 @@
 using System.Text.Json.Nodes;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Shell.Media;
@@ -58,6 +60,9 @@ internal sealed partial class ShellNavigationProbe
                             RequireSearchRadius(Get<TextBox>(dialog, "NameBox"));
                         if (dialog is FnNasMatchDialog)
                             RequireSearchRadius(Get<TextBox>(dialog, "KeywordBox"));
+                        if (dialog is ArtworkViewer)
+                            Require(ElementCompositionPreview.GetElementChildVisual(Get<Grid>(dialog, "ViewerRoot")) is not null,
+                                "看大图的画框没有装上阴影");
                         Require(dialog.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
                             $"{theme.Id}/{dialog.GetType().Name} 未使用统一圆角");
                         Require(dialog.BorderThickness == new Thickness(0), $"{dialog.GetType().Name} 留下了方形外边框");
@@ -131,8 +136,56 @@ internal sealed partial class ShellNavigationProbe
                 })("删除确认（离线示例）", "本探针不删除真实媒体", "删除");
                 Require(confirmationChecked, "库确认表面检查没有完成；不能把安全取消/吞异常当作检查通过");
             }
+            await CoverLoadingShimmerAsync();
         }
         finally { ThemeHost.Apply(savedTheme); }
+    }
+
+    /// <summary>
+    /// 候选封面还没回来时那一格该有流光。<see cref="CoverPickerDialog"/> 的预览是异步取的，
+    /// 这里让取图那一趟一直不完成 —— 断言的是「等待中」这一档，不是取到或失败之后的样子。
+    /// </summary>
+    private async Task CoverLoadingShimmerAsync()
+    {
+        var item = new EmbyItem { Id = "cover-shimmer", Name = "离线示例 · 封面候选", Type = EmbyItemType.Movie };
+        var found = new RemoteImageResult
+        {
+            Providers = ["离线源"],
+            Images =
+            [
+                new RemoteImageInfo { ProviderName = "离线源", Url = "https://offline.invalid/one.jpg", Width = 1000, Height = 1500, Language = "zh" },
+                new RemoteImageInfo { ProviderName = "离线源", Url = "https://offline.invalid/two.jpg", Width = 1000, Height = 1500, Language = "zh" }
+            ]
+        };
+        var cover = Cover(item, () => Task.FromResult<EmbyItem?>(item), remote: async (_, token) =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), token);
+            return (byte[]?)null;
+        });
+        var picker = new CoverPickerDialog(item, ItemArtwork.SingleKinds.First(), found, cover)
+        {
+            XamlRoot = _root.XamlRoot,
+            RequestedTheme = ElementTheme.Dark
+        };
+
+        var shown = picker.ShowAsync().AsTask();
+        try
+        {
+            await LayoutAsync(picker);
+            var shimmers = Descendants(picker).OfType<Shimmer>()
+                .Where(shimmer => shimmer.Visibility == Visibility.Visible).ToArray();
+            Require(shimmers.Length > 0, "封面候选没有等待占位");
+            foreach (var shimmer in shimmers)
+            {
+                var visual = ElementCompositionPreview.GetElementChildVisual(shimmer) as SpriteVisual;
+                Require(visual is { Size.X: > 0, Size.Y: > 0 }, "封面候选的等待占位没有起流光");
+                // 截图要能对上一条稳定的光带：动画停在中点，扫到哪儿就交给运行期，探针只证明这一层在。
+                visual!.StopAnimation("Offset.X");
+                visual.Offset = new System.Numerics.Vector3(0, 0, 0);
+            }
+            await SaveProbeScreenAsync("library-dialog-cover-loading-screen.png");
+        }
+        finally { picker.Hide(); await shown; }
     }
 
     private static Windows.UI.Color BrushColor(Brush? brush) => brush switch

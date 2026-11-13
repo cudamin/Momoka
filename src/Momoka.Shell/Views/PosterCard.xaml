@@ -3,7 +3,8 @@
 <UserControl
     x:Class="Momoka.Shell.Views.PosterCard"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:Momoka.Shell.Views">
 
     <UserControl.Resources>
         <Style x:Key="FolderFrameStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
@@ -88,6 +89,12 @@
                     FontSize="32"
                     Foreground="{ThemeResource EgTextFaintBrush}"
                     Glyph="{x:Bind Card.Glyph, Mode=OneWay}" />
+                <!-- 图还在路上的那一格扫一道光（同换封面那张表里的候选格）：一整屏卡片各空着一块底色时，
+                     分不清是在取图还是这库里就没图。图一到这一层就停 —— 判据在 CardItem.ImagePending，
+                     不是「Poster 是空的」（没有封面的条目会是空的那一种不算等待）。 -->
+                <views:Shimmer
+                    CornerRadius="{StaticResource EgPosterCornerRadius}"
+                    IsActive="{x:Bind Card.ImagePending, Mode=OneWay}" />
                 <!-- 飞牛横卡的底：同一张海报放大、压暗，竖版封面摆在正中（见 CardItem.FnNasWide）。 -->
                 <Grid Visibility="{x:Bind Card.FnNasWideVisibility, Mode=OneWay}">
                     <Image

@@ -379,6 +379,10 @@ internal static class CardImageResizeTests
             var initial = fixture.Begin();
             var old = await fixture.Handler.AtAsync(0);
             var token = fixture.LoadingToken!.Value;
+
+            // 从这里开始数：请求上路那一刻会喊一声 ImagePending（卡片上那道流光靠它亮起来），
+            // 而那一声属于上一段，不是这三次换宽要证明的东西。
+            fixture.Changes.Clear();
             fixture.Card.Resize(170);
             fixture.Card.Resize(0);
             fixture.Card.Resize(-1);
@@ -496,6 +500,46 @@ internal static class CardImageResizeTests
             await initial;
             Assert.True(ReferenceEquals(kept, fixture.Card.Poster));
             Assert.Equal(0, PosterLoader.Calls.Count);
+        });
+
+        Case("R-012：等图那段 ImagePending 只在请求在飞时亮着，图到就收", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var card = fixture.Card;
+
+            // 没上屏、没起请求的卡片不该亮：卡片清单里绝大多数卡片就是这个状态。
+            Assert.False(card.ImagePending, "还没起请求的卡片不该显示等待");
+
+            var initial = fixture.Begin();
+            Assert.True(card.ImagePending, "请求上路之后应当亮着");
+
+            var request = await fixture.Handler.AtAsync(0);
+            await fixture.DeliverAsync(request, "pending-resolved");
+            await PosterAsync(fixture, 170, "pending-resolved");
+            Assert.False(card.ImagePending, "图到了就该收");
+            await initial;
+        });
+
+        Case("R-012：放手一张还在等的卡，ImagePending 当场收掉", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var card = fixture.Card;
+            var initial = fixture.Begin();
+            Assert.True(card.ImagePending);
+
+            card.AbandonPoster();
+            Assert.False(card.ImagePending, "放手之后没有人在等，光要跟着收");
+            await initial;
+        });
+
+        Case("R-012：没有封面的条目等完那一趟要收干净，不留一条永不消失的光", async () =>
+        {
+            await using var fixture = new CardImageFixture(artwork: false);
+            var card = fixture.Card;
+            var initial = fixture.Begin();
+            await initial;
+            Assert.Null(card.Poster);
+            Assert.False(card.ImagePending, "服务器上就没有这张图，等的状态必须收掉");
         });
     }
 
