@@ -107,6 +107,31 @@ internal static class Program
             Equal(Microsoft.UI.Colors.Transparent, clock.AmbientReadings.Single(), "empty carousel publishes transparent ambient");
         }
         ));
+        Cases.Add(("banner/loading-placeholder-updates-before-same-null-shortcut", () =>
+        {
+            var banner = new BannerReturnFixture();
+            banner.SetLoadingPicture();
+            Check(banner.ShimmerActive, "first null picture still enables loading placeholder before same-null return");
+            banner.RestoreImage();
+            Check(!banner.ShimmerActive, "decoded picture disables loading sweep");
+            Equal(1, banner.ShimmerStops, "arrival stops the previously active placeholder");
+            banner.SetLoadingPicture();
+            Check(banner.ShimmerActive, "next missing picture enables the placeholder again");
+            banner.RestoreImage();
+            Equal(2, banner.ShimmerStops, "second arrival stops only the current placeholder");
+        }
+        ));
+        Cases.Add(("banner/empty-list-stops-loading-placeholder", () =>
+        {
+            var clock = new BannerClockFixture();
+            clock.Apply([new BannerSlide("first"), new BannerSlide("second")]);
+            clock.SetLoadingPlaceholder();
+            Check(clock.ShimmerActive, "fixture has an active pending picture");
+            clock.Apply([]);
+            Check(!clock.ShimmerActive, "production empty Apply cannot retain the loading placeholder");
+            Equal(1, clock.ShimmerStops, "empty Apply stops the current loading placeholder");
+        }
+        ));
         var passed = 0;
         var failed = 0;
         foreach (var test in Cases)

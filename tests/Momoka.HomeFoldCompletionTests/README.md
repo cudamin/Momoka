@@ -52,3 +52,11 @@ Remove-Item Env:Platform -ErrorAction SilentlyContinue # Shell 项目自身已�
 单趟 HomeFoldMotion 只加 active／complete 与一个 Completed 委托，终态幂等并摘事件；页面只加当前 owner 比较及一个迟一拍版本。主动画完成会清当前活动标记，但不会把属于这一趟的迟一拍误作旧回调；新翻档／取消才废弃它。仍然保留活动回程的保护早退，不改变动画曲线／时长、模板、阈值或用户布局体验，不引入通用动画框架。
 
 主树限定整合时项目已最小入方案，当前51项全过／0跳过／退出0；日志 `artifacts/staged-repair/batch05/r066-*.log`，来源树51项不代替主树。主树一份框架夹具仅对象初始化换行修正，生产两文件与来源逐字一致。
+
+## 2026-11-13 封面流光接线兼容
+
+整合dff1bf2的HomeBanner加入PictureShimmer.IsActive后，本专项原样提取Apply/Paint出现2个CS0103：HomeFoldPage.g.cs 799/869缺PictureShimmer。只在现有BannerClockFixture/BannerReturnFixture增加共享ShimmerBoundary的IsActive值与停止读数，没有改产品、提取器或通过条件，也不复制Composition扫描实现。
+
+新增两例执行原样生产方法：开场Paint(null)即使命中same-null早退，也必须先激活占位；到图关闭、再缺图/到图重复恢复，以及空Apply必须关闭正在等待的占位。当前本树Core/专项Release0警告0错误，68/68、0失败0跳过；定向whitespace及UTF8/LF/diff通过，证据artifacts/homefold-shimmer-boundary保留修前2错、修后build/run和format。
+
+这里仅证明HomeBanner对流光值的需求和停止，不证明实际Shimmer的Composition视觉、帧或功耗。实际运行与主树交付仍由主协调会话验证；没有驱动桌面、连接真实服务、播放、改主树或发布。

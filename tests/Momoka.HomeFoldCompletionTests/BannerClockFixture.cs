@@ -17,6 +17,7 @@ internal sealed partial class BannerClockFixture
     private readonly Layer LayerB = new();
     private readonly Layer LogoImage = new();
     private readonly Layer LogoRow = new();
+    private readonly ShimmerBoundary PictureShimmer = new();
     private readonly Scale CountdownScale = new();
     private Visibility Visibility { get; set; }
     private BannerSlide? Current => _slides.ElementAtOrDefault(_index);
@@ -27,6 +28,9 @@ internal sealed partial class BannerClockFixture
     internal bool Running => _timer.Running;
     internal int Starts => _timer.Starts;
     internal int Stops => _timer.Stops;
+    internal bool ShimmerActive => PictureShimmer.IsActive;
+    internal int ShimmerStops => PictureShimmer.Stops;
+    internal void SetLoadingPlaceholder() => PictureShimmer.IsActive = true;
     internal void SetActive(bool value) { _active = value; SyncTimer(); }
     private void StopMotions() { }
     private void Unwatch() { }
@@ -50,6 +54,22 @@ internal sealed partial class BannerClockFixture
         internal void Start() { Running = true; Starts++; }
         internal void Stop() { Running = false; Stops++; }
     }
+}
+
+// Only the IsActive value and stop receipt; actual Composition visuals belong to Shimmer's native probe.
+internal sealed class ShimmerBoundary
+{
+    private bool _active;
+    internal bool IsActive
+    {
+        get => _active;
+        set
+        {
+            if (_active && !value) Stops++;
+            _active = value;
+        }
+    }
+    internal int Stops { get; private set; }
 }
 
 internal sealed class BannerSlide(string id)
