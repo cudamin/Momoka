@@ -29,6 +29,10 @@ Verification runs per delivery batch, not per small edit.
 
 ## Before accepting a result
 
+### Waiting for an occupied resource
+
+Follow [resource occupancy and waiting](../../../CLAUDE.md#资源占用与等待). Use a read-only, lightweight probe and short interruptible waits, then continue automatically after release. Keep doing independent work while waiting; do not repeatedly ask the user to close another run. Never terminate another chat's or the user's process, bypass a lock, or overlap shared-desktop verification. A probe's availability reading is only a snapshot: the real operation must recheck its target and acquire its own lock; return to waiting if another run wins the race. Explain the concrete owner and reason only when timeout or required user action prevents progress. Unfinished checks remain pending.
+
 ### Shipped runtime approval
 
 `tools/verify-publish.ps1` delegates complete mpv-ui/native/license approval to
