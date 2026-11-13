@@ -132,7 +132,7 @@ internal sealed partial class ShellNavigationProbe
             var panel = (Task<ContentDialogResult>)Call(episodeDialog, "ShowPanelAsync", episodePicker)!;
             try
             {
-                var choice = Get<List<CoverChoice>>(episodePicker, "_choices").Single();
+                var choice = Get<System.Collections.ObjectModel.ObservableCollection<CoverChoice>>(episodePicker, "_choices").Single();
                 await UntilAsync(() => choice.Picture is not null && !choice.IsLoading);
                 await LayoutAsync(episodeDialog);
                 var preview = Descendants(episodeDialog).OfType<Border>()
@@ -348,7 +348,7 @@ internal sealed partial class ShellNavigationProbe
         var maximum = 0;
         var calls = new List<string>();
         var item = new EmbyItem { Id = "candidate-list", Name = "离线完整候选列表" };
-        var dialog = new CoverDialog(item, (_, _) => Task.FromResult(new RemoteImageResult()),
+        var dialog = new CoverDialog(item, (_, _, _, _) => Task.FromResult(new RemoteImageResult()),
             (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _, _) => Task.CompletedTask,
             (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask,
             _ => Task.FromResult<EmbyItem?>(item), async (address, token) =>
@@ -373,7 +373,7 @@ internal sealed partial class ShellNavigationProbe
             var panel = (Task<ContentDialogResult>)Call(dialog, "ShowPanelAsync", picker)!;
             try
             {
-                var choices = Get<List<CoverChoice>>(picker, "_choices");
+                var choices = Get<System.Collections.ObjectModel.ObservableCollection<CoverChoice>>(picker, "_choices");
                 Require(choices.Count == 60 && choices.All(choice => !string.IsNullOrWhiteSpace(choice.Info.Url)),
                     "完整候选列表不能截成24张，空URL必须过滤");
                 await UntilAsync(() => calls.Count == 4);
@@ -413,7 +413,7 @@ internal sealed partial class ShellNavigationProbe
         var tokens = new List<CancellationToken>();
         var allowRetry = false;
         var item = new EmbyItem { Id = "remote-preview", Name = "离线候选图" };
-        var dialog = new CoverDialog(item, (_, _) => Task.FromResult(new RemoteImageResult()),
+        var dialog = new CoverDialog(item, (_, _, _, _) => Task.FromResult(new RemoteImageResult()),
             (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _, _) => Task.CompletedTask,
             (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask,
             _ => Task.FromResult<EmbyItem?>(item), (address, token) =>
@@ -448,7 +448,7 @@ internal sealed partial class ShellNavigationProbe
             var panel = (Task<ContentDialogResult>)Call(dialog, "ShowPanelAsync", picker)!;
             try
             {
-                var choices = Get<List<CoverChoice>>(picker, "_choices");
+                var choices = Get<System.Collections.ObjectModel.ObservableCollection<CoverChoice>>(picker, "_choices");
                 await UntilAsync(() => choices[1].Picture is not null && choices[2].Picture is not null);
                 Require(choices[0].Picture is null && !slow.Task.IsCompleted,
                     "慢首张不应阻塞其他候选图显示");
@@ -513,7 +513,7 @@ internal sealed partial class ShellNavigationProbe
             var cancelPanel = (Task<ContentDialogResult>)Call(dialog, "ShowPanelAsync", cancelPicker)!;
             try
             {
-                var cancelChoice = Get<List<CoverChoice>>(cancelPicker, "_choices").Single();
+                var cancelChoice = Get<System.Collections.ObjectModel.ObservableCollection<CoverChoice>>(cancelPicker, "_choices").Single();
                 await UntilAsync(() => calls.Contains("https://fixture.invalid/cancelled"));
                 Get<TaskCompletionSource<ContentDialogResult>>(dialog, "_panelCompletion").TrySetResult(ContentDialogResult.None);
                 Require(await cancelPanel == ContentDialogResult.None, "关闭候选必须保留取消结果");

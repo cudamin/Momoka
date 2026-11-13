@@ -800,7 +800,7 @@ internal static partial class ShellSelfCheck
         // 这张面板自己要的八个动作，在这儿全是空答复：这一关问的是「面板搭得起来吗」，一条网络都不该走
         // （<see cref="ReadDialogs"/> 头上那段说明）。以前那一版只传两个，因为面板只做一件事；这一版每一格
         // 都能换能删能看，所以这八个全都要给。
-        static Task<RemoteImageResult> Find(string itemId, string imageType) => Task.FromResult(new RemoteImageResult
+        static Task<RemoteImageResult> Find(string itemId, string imageType, RemoteImageSearch search, CancellationToken cancellationToken) => Task.FromResult(new RemoteImageResult
         {
             Images = [new RemoteImageInfo { Url = "https://selfcheck.invalid/a.jpg", ProviderName = "自检" }],
             Providers = ["自检"]

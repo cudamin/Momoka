@@ -24,11 +24,25 @@
     </ContentDialog.Resources>
 
     <StackPanel Spacing="{StaticResource EgSpaceM}">
+        <!-- Gallery 6de91fe: Samples/ComboBox/ComboBoxPage.xaml (Header/ItemsSource/SelectionChanged)
+             and Samples/ToggleSwitch/ToggleSwitchPage.xaml (Header/IsOn). Server search owns cancellation. -->
+        <VariableSizedWrapGrid Orientation="Horizontal" HorizontalAlignment="Right">
+            <ComboBox x:Name="SourcePicker" Header="来源" MinWidth="160" MaxWidth="240"
+                Margin="0,0,16,8" SelectionChanged="OnSourceChanged"
+                AutomationProperties.AutomationId="ArtworkSourcePicker" AutomationProperties.Name="图片来源" />
+            <ToggleSwitch x:Name="AllLanguagesToggle" Header="所有语言" IsOn="True"
+                Margin="0,0,0,8" Toggled="OnLanguagesChanged"
+                AutomationProperties.AutomationId="ArtworkAllLanguages" AutomationProperties.Name="所有语言" />
+        </VariableSizedWrapGrid>
+        <ProgressBar x:Name="SearchProgress" IsIndeterminate="True" Visibility="Collapsed"
+            AutomationProperties.AutomationId="ArtworkSearchProgress" />
         <TextBlock
             x:Name="Notice"
             Style="{StaticResource EgDataStyle}"
             TextWrapping="Wrap"
             Visibility="Collapsed" />
+        <Button x:Name="RetryArtworkSearch" Content="重新搜索" Click="OnRetrySearch" Visibility="Collapsed"
+            Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.AutomationId="RetryArtworkSearch" />
 
         <GridView
             x:Name="Grid"

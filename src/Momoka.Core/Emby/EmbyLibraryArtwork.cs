@@ -5,6 +5,7 @@ public sealed class EmbyLibraryArtwork(EmbySessionScope scope, EmbyItem item, Ca
 {
     public EmbyItem Item { get; } = item;
     public Task<RemoteImageResult> FindAsync(string type) => ReadAsync((client, token) => client.GetRemoteImagesAsync(Item.Id, type, token));
+    public Task<RemoteImageResult> FindAsync(string type, RemoteImageSearch search) => ReadAsync((client, token) => client.GetRemoteImagesAsync(Item.Id, type, search, token));
     public Task<byte[]> FetchAsync(string type, string tag, int width, int? index) => ReadAsync((client, token) => client.GetImageBytesAsync(Item.Id, type, tag, width, token, index));
     public Task<byte[]> FetchRemoteAsync(string url) => ReadAsync((client, token) => client.GetRemoteImageBytesAsync(url, token));
     public Task<EmbyItem> ReloadAsync() => ReadAsync((client, token) => client.GetItemAsync(Item.Id, token));

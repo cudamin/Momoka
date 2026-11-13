@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -82,7 +83,16 @@ public sealed partial class CoverPickerDialog : ContentDialog
     /// <summary>缩略图解到多宽。和模板里那一格的宽度一致，见 <see cref="PosterLoader.DecodeAsync"/>。</summary>
     private const int ThumbnailWidth = 150;
 
-    private readonly List<CoverChoice> _choices = [];
+    private readonly ObservableCollection<CoverChoice> _choices = [];
+    private readonly ObservableCollection<string> _providers = ["全部"];
+    private readonly ArtworkKind _kind;
+    private readonly double _previewHeight;
+    private bool _updatingFilters;
+    private bool _searching;
+    private int _searchGeneration;
+    private CancellationTokenSource? _searchCancellation;
+    private readonly List<CancellationTokenSource> _searchTokens = [];
+    private readonly List<Task> _searchLoads = [];
 
     /// <summary>
     /// 外面那张面板。取候选缩略图的委托从它身上拿，免得同一份「按地址取图」的接线在这儿和那儿各写一遍 ——
@@ -101,13 +111,23 @@ public sealed partial class CoverPickerDialog : ContentDialog
         if (_closed) return;
         _closed = true;
         _previewCancellation.Cancel();
+        _searchCancellation?.Cancel();
         _ = DisposeLoadsAsync();
     }
 
     private async Task DisposeLoadsAsync()
     {
-        try { await Task.WhenAll(_previewLoads).ConfigureAwait(true); }
-        finally { _previewCancellation.Dispose(); _previewSlots.Dispose(); }
+        try
+        {
+            await Task.WhenAll(_searchLoads).ConfigureAwait(true);
+            await Task.WhenAll(_previewLoads).ConfigureAwait(true);
+        }
+        finally
+        {
+            foreach (var token in _searchTokens) token.Dispose();
+            _previewCancellation.Dispose();
+            _previewSlots.Dispose();
+        }
     }
 
     /// <param name="kind">正在换的是哪一种图。它只用来写标题 —— 剩下的事外面那位已经知道了。</param>
@@ -118,45 +138,133 @@ public sealed partial class CoverPickerDialog : ContentDialog
         InitializeComponent();
 
         _owner = owner;
+        _kind = kind;
+        _searchCancellation = CancellationTokenSource.CreateLinkedTokenSource(_previewCancellation.Token);
+        _searchTokens.Add(_searchCancellation);
 
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
         Title = $"{(kind.Many ? "另加一张" : "换一张")}{kind.Name} — {item.Name}";
-        PrimaryButtonText = "使用这张";
+        CloseButtonText = "返回";
         Closed += (_, _) => CancelLoads();
 
         var previewKind = ArtworkPreview.KindFor(item, kind);
-        var previewHeight = previewKind is { ImageType: "Primary", Ratio: > 1 }
-            ? ThumbnailWidth / previewKind.Ratio : 210;
-        foreach (var image in found.Images.Where(image => !string.IsNullOrWhiteSpace(image.Url)))
-            _choices.Add(new CoverChoice(image, owner.CanPreviewRemoteArtwork, previewHeight));
-
+        _previewHeight = ThumbnailWidth / Math.Max(0.1, previewKind.Ratio);
+        _updatingFilters = true;
+        SourcePicker.ItemsSource = _providers;
+        SourcePicker.SelectedIndex = 0;
+        _updatingFilters = false;
         Grid.ItemsSource = _choices;
-        Grid.Visibility = _choices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (!owner.CanPreviewRemoteArtwork) Grid.Height = double.NaN;
-
-        if (_choices.Count == 0)
-        {
-            // 一家刮削源都没答上来和「答了但没有这一种图」是两件事，用户能做的处置不同：前者要去服务器上装
-            // 或者配刮削插件，后者只能等那一家有图。
-            Notice.Text = found.Providers.Count == 0
-                ? "服务器上没有能提供图片的刮削源，或者这个条目没有对上任何一家的记录。底下那颗「从本机传一张」照样能用。"
-                : $"刮削源（{string.Join("、", found.Providers)}）上没有这个条目的{kind.Name}。底下那颗「从本机传一张」照样能用。";
-            Notice.Visibility = Visibility.Visible;
-        }
-
-        IsPrimaryButtonEnabled = false;
+        SetResults(found, new RemoteImageSearch());
 
         // 不 await：一张张图慢慢回来，这张表先画出来。
         if (owner.CanPreviewRemoteArtwork) _loadTask = LoadAsync();
     }
 
     /// <summary>挑中的那一张，没挑就是空。</summary>
-    public RemoteImageInfo? Picked => (Grid.SelectedItem as CoverChoice)?.Info;
+    public RemoteImageInfo? Picked => !_searching && Grid.SelectedItem is CoverChoice choice && _choices.Contains(choice)
+        ? choice.Info : null;
 
     /// <summary>从本机选中的那张图（字节 + 文件名），没选就是空。</summary>
     public PickedArtwork? Uploaded { get; private set; }
 
-    private void OnPicked(object sender, SelectionChangedEventArgs e) => IsPrimaryButtonEnabled = !_picking && Picked is not null;
+    private void OnPicked(object sender, SelectionChangedEventArgs e) => UpdateSelection();
+
+    private void UpdateSelection()
+    {
+        var selected = !_picking && Picked is not null;
+        PrimaryButtonText = selected ? "使用这张" : "";
+        IsPrimaryButtonEnabled = selected;
+    }
+
+    private RemoteImageSearch CurrentSearch => new(SourcePicker.SelectedIndex > 0
+        ? SourcePicker.SelectedItem as string : null, AllLanguagesToggle.IsOn);
+
+    private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_updatingFilters && _owner is not null) QueueSearch();
+    }
+
+    private void OnLanguagesChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_updatingFilters && _owner is not null) QueueSearch();
+    }
+
+    private void OnRetrySearch(object sender, RoutedEventArgs e) => QueueSearch();
+
+    private void QueueSearch()
+    {
+        if (_closed || _picking) return;
+        var load = RefreshSearchAsync();
+        _searchLoads.Add(load);
+    }
+
+    private async Task RefreshSearchAsync()
+    {
+        var search = CurrentSearch;
+        var generation = ++_searchGeneration;
+        _searchCancellation?.Cancel();
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_previewCancellation.Token);
+        _searchCancellation = cancellation;
+        _searchTokens.Add(cancellation);
+        _searching = true;
+        Grid.SelectedItem = null;
+        foreach (var choice in _choices) choice.Picture = null;
+        _choices.Clear();
+        Grid.Visibility = Visibility.Collapsed;
+        UpdateSelection();
+        UpdatePreviewNotice();
+        Notice.Visibility = Visibility.Collapsed;
+        RetryArtworkSearch.Visibility = Visibility.Collapsed;
+        SearchProgress.Visibility = Visibility.Visible;
+        try
+        {
+            var found = await _owner.FindAsync(_kind.ImageType, search, cancellation.Token).ConfigureAwait(true);
+            if (_closed || generation != _searchGeneration || cancellation.IsCancellationRequested) return;
+            _searching = false;
+            SetResults(found, search);
+            if (_owner.CanPreviewRemoteArtwork) _loadTask = LoadAsync();
+        }
+        catch (OperationCanceledException) when (_closed || generation != _searchGeneration || cancellation.IsCancellationRequested) { }
+        catch (Exception error)
+        {
+            if (_closed || generation != _searchGeneration) return;
+            Notice.Text = $"搜索图片失败：{Failure.Describe(error)}";
+            Notice.Visibility = Visibility.Visible;
+            RetryArtworkSearch.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            if (!_closed && generation == _searchGeneration)
+            {
+                _searching = false;
+                SearchProgress.Visibility = Visibility.Collapsed;
+                UpdateSelection();
+            }
+        }
+    }
+
+    private void SetResults(RemoteImageResult found, RemoteImageSearch search)
+    {
+        _updatingFilters = true;
+        try
+        {
+            _providers.Clear();
+            _providers.Add("全部");
+            foreach (var provider in found.Providers.Concat(found.Images.Select(image => image.ProviderName))
+                .Append(search.ProviderName).Where(provider => !string.IsNullOrWhiteSpace(provider)).Distinct(StringComparer.OrdinalIgnoreCase))
+                _providers.Add(provider!);
+            SourcePicker.SelectedIndex = search.ProviderName is null ? 0 : _providers.IndexOf(_providers.First(provider =>
+                string.Equals(provider, search.ProviderName, StringComparison.OrdinalIgnoreCase)));
+        }
+        finally { _updatingFilters = false; }
+        foreach (var image in found.Images.Where(image => !string.IsNullOrWhiteSpace(image.Url)))
+            _choices.Add(new CoverChoice(image, _owner.CanPreviewRemoteArtwork, _previewHeight));
+        Grid.Visibility = _choices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        Notice.Text = _choices.Count == 0 ? $"没有找到这个条目的{_kind.Name}。可以调整筛选或从本机上传图片。" : "";
+        Notice.Visibility = _choices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateSelection();
+    }
 
     /// <summary>
     /// 从本机传一张。选完就把答案收下并关掉这张表 —— 上传那一趟由外面那张面板发，因为要往服务器写。
@@ -189,7 +297,7 @@ public sealed partial class CoverPickerDialog : ContentDialog
         {
             _picking = false;
             UploadArtworkButton.IsEnabled = true;
-            IsPrimaryButtonEnabled = Picked is not null;
+            UpdateSelection();
         }
     }
 
@@ -217,7 +325,7 @@ public sealed partial class CoverPickerDialog : ContentDialog
         if (_closed || choice.IsLoading || choice.Picture is not null) return Task.CompletedTask;
         choice.SetPreviewState(true, false);
         UpdatePreviewNotice();
-        var load = LoadChoiceAsync(choice, _previewCancellation.Token);
+        var load = LoadChoiceAsync(choice, _searchCancellation?.Token ?? _previewCancellation.Token);
         _previewLoads.Add(load);
         return load;
     }
@@ -239,14 +347,14 @@ public sealed partial class CoverPickerDialog : ContentDialog
                 token.ThrowIfCancellationRequested();
                 return decoded;
             }, cancellationToken).ConfigureAwait(true);
-            if (_closed) return;
+            if (_closed || cancellationToken.IsCancellationRequested || !_choices.Contains(choice)) return;
             choice.Picture = picture;
             choice.SetPreviewState(false, picture is null);
         }
         catch (OperationCanceledException) when (_closed || cancellationToken.IsCancellationRequested) { }
         catch (Exception error)
         {
-            if (_closed) return;
+            if (_closed || cancellationToken.IsCancellationRequested || !_choices.Contains(choice)) return;
             choice.SetPreviewState(false, true);
             Log.Debug(Category, $"候选封面取不回来（{choice.Info.ProviderName}）：{error.Message}");
         }

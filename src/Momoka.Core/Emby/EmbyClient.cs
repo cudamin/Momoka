@@ -1046,21 +1046,39 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <summary>
     /// 「修改媒体封面图」的候选：各家刮削源上这个条目有哪些这一种图。
     /// <para>
-    /// <c>IncludeAllLanguages</c> 开着 —— 中文封面在服务器的默认语言之外，关着的话这台服务器上常常一张都
-    /// 列不出来。上限 60 张：多到足够挑，又还是一趟请求。
+    /// 默认包含所有语言。切换来源或语言时重新请求，上限仍为 60 张。
     /// </para>
     /// </summary>
     public Task<RemoteImageResult> GetRemoteImagesAsync(
         string itemId,
         string imageType,
-        CancellationToken cancellationToken) =>
-        http.GetJsonAsync<RemoteImageResult>(
-            Url($"Items/{itemId}/RemoteImages",
+        CancellationToken cancellationToken) => GetRemoteImagesAsync(itemId, imageType, new RemoteImageSearch(), cancellationToken);
+
+    public Task<RemoteImageResult> GetRemoteImagesAsync(
+        string itemId,
+        string imageType,
+        RemoteImageSearch search,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(search);
+        return http.GetJsonAsync<RemoteImageResult>(
+            Url($"Items/{RemoteImageItemId(itemId)}/RemoteImages",
                 ("Type", imageType),
-                ("IncludeAllLanguages", "true"),
+                ("ProviderName", string.IsNullOrWhiteSpace(search.ProviderName) ? null : search.ProviderName),
+                ("IncludeAllLanguages", search.IncludeAllLanguages ? "true" : "false"),
                 ("Limit", "60")),
             Context,
             cancellationToken);
+    }
+
+    private static string RemoteImageItemId(string itemId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemId);
+        if (itemId is "." or ".." || itemId.IndexOfAny(['/', '\\', '?', '#']) >= 0)
+            throw new ArgumentException("图片搜索缺少有效的条目标识", nameof(itemId));
+        return Uri.EscapeDataString(itemId);
+    }
 
     /// <summary>挑中的那一张交给服务器去取并挂到条目上。管理员才能用。</summary>
     public Task ApplyRemoteImageAsync(

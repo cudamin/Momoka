@@ -315,7 +315,7 @@ public sealed partial class CoverDialog : ContentDialog
         if (SlotOf(sender) is not { } slot) return;
         await OperateAsync("换封面图失败", async () =>
         {
-            var found = await _find(_item.Id, slot.ImageType).ConfigureAwait(true);
+            var found = await FindAsync(slot.ImageType, new RemoteImageSearch(), CancellationToken.None).ConfigureAwait(true);
             var picker = new CoverPickerDialog(_item, slot.Kind, found, this);
             var result = await ShowPanelAsync(picker).ConfigureAwait(true);
             if (result != ContentDialogResult.Primary) return;
@@ -435,6 +435,9 @@ public sealed partial class CoverDialog : ContentDialog
         Notice.Visibility = Visibility.Visible;
     }
 
+    internal Task<RemoteImageResult> FindAsync(string imageType, RemoteImageSearch search, CancellationToken token) =>
+        _find(_item.Id, imageType, search, token);
+
     // WinUI 同一 XamlRoot 只能有一张 ContentDialog；选择、查看、确认复用其内容区和命令按钮。
     private async Task<ContentDialogResult> ShowPanelAsync(ContentDialog panel)
     {
@@ -453,6 +456,8 @@ public sealed partial class CoverDialog : ContentDialog
         IsPrimaryButtonEnabled = panel.IsPrimaryButtonEnabled;
         var registration = panel.RegisterPropertyChangedCallback(IsPrimaryButtonEnabledProperty,
             (_, _) => IsPrimaryButtonEnabled = panel.IsPrimaryButtonEnabled);
+        var textRegistration = panel.RegisterPropertyChangedCallback(PrimaryButtonTextProperty,
+            (_, _) => PrimaryButtonText = panel.PrimaryButtonText);
         void Primary(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         { args.Cancel = true; completion.TrySetResult(ContentDialogResult.Primary); }
         void Secondary(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -465,6 +470,7 @@ public sealed partial class CoverDialog : ContentDialog
         finally
         {
             panel.UnregisterPropertyChangedCallback(IsPrimaryButtonEnabledProperty, registration);
+            panel.UnregisterPropertyChangedCallback(PrimaryButtonTextProperty, textRegistration);
             PrimaryButtonClick -= Primary;
             SecondaryButtonClick -= Secondary;
             if (panel is CoverPickerDialog finishedPicker) { finishedPicker.UploadCompleted -= Uploaded; finishedPicker.CancelLoads(); }
@@ -476,7 +482,7 @@ public sealed partial class CoverDialog : ContentDialog
     }
 }
 
-public delegate Task<RemoteImageResult> FindArtwork(string itemId, string imageType);
+public delegate Task<RemoteImageResult> FindArtwork(string itemId, string imageType, RemoteImageSearch search, CancellationToken cancellationToken);
 public delegate Task<byte[]?> FetchArtwork(string itemId, string imageType, string tag, int width, int? index);
 public delegate Task SwapArtwork(string itemId, string imageType, int index, RemoteImageInfo chosen);
 public delegate Task DeleteArtwork(string itemId, string imageType, int? index);

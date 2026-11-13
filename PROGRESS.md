@@ -1,3 +1,13 @@
+## 2026-11-13 图片选择来源与语言筛选、光盘空态修复
+
+产品在 `60b2` 树实现，匿名测试来自独立子树 `artwork-search-tests`（原SHA `2bd6a6b`，挑拣 `409b388`）与 `artwork-query-tests`（原SHA `470d1ea`，挑拣 `09bcd5b`）。来源和所有语言由服务器重新筛选，默认全部来源/所有语言开，仍最多60张；清旧选择、取消旧查询/首批预览、拒绝迟到结果、失败重试、本机上传保持可达。光盘候选为空只陈述无结果，不再从Providers空推测插件或条目识别；未选图隐藏使用按钮，宿主动态同步并清理订阅。Thumb/Logo/Banner/Disc等候选按现有图种比例画框。
+
+实现前读取Emby4.10.1.0发布前端、固定SDK与Jellyfin10.10.7前后端，路径/哈希/行为在 [图片筛选证据](docs/图片搜索筛选.md)。Microsoft Learn ComboBox/Toggle指南与Gallery固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的Samples/ComboBox、ToggleSwitch XAML/code-behind已读；沿用原生Header/ItemsSource/IsOn与事件。Gallery没有服务器图片查询、四路预览与同宿主子面板的完整现成实现，异步归属与窄窗组合按本项目既有生命周期适配，未引入实验包或新样式体系。
+
+本树最终Shell/Core、主Tests、ArtworkSearchDialogTests Release均0警告0错误；协议30/30、候选实际控制流26/26、既有预览72/72（各0失败0跳过）。候选新增目录大小写与请求预取消曾红，产品修复后本树重新编译全部定向通过。曾并行编译共同Core产生文件锁重试警告，后续串行重编已0警告。文本/空白检查、回归清单81项一致性通过。
+
+原生 `--probe-shell --probe-section covers --screen 2` 最终 `shell-probe-20261113-115406645-36244`：11/11、退出0；新筛选用例执行1000/760/360宽度、来源/语言、旧请求取消、失败重试、动态宿主按钮、Disc空态，断言筛选/上传实际边界，7张artwork-search实屏逐张目视。此前 `shell-probe-20261113-115043391-23512` 与紧接一次运行停于已有宿主IsHostVisible前件；保留失败日志，不改断言，诊断占用释放后最终同代码运行通过。证据目录在 `%LOCALAPPDATA%/Momoka/logs/`，只用匿名假端点，不登录、不真实上传/应用图片或播放；未验证真实服务器筛选、原生键盘输入和提供商成功率。按用户规则只合master记台账，不发布、不推远端。
+
 ## 2026-11-13 图片筛选专项测试子树（待父会话整合）
 
 测试树 `C:/Users/89400/.codex/worktrees/artwork-search-tests/Momoka`，基点 `5c6dfee`。仅新增 `Momoka.ArtworkSearchDialogTests` 并登记方案与统一回归清单，产品由父会话在 `60b2` 树实现。本专项编译链接完整候选弹窗，WinUI 为最小值/事件边界，外层仅匿名读取与选文件委托；覆盖默认值与初始化 Toggled、真实筛选事件、稳定集合、选择按钮恢复、快切迟到结果/错误、关闭取消、客观空态、请求/预览重试、上传取消/失败/成功、无代理文字选择、图种比例、首批预览释放和实际 XAML 接线。
