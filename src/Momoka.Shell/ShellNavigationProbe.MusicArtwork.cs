@@ -32,6 +32,30 @@ internal sealed partial class ShellNavigationProbe
         var frame = new Frame();
         _root.Children.Add(frame);
         var samples = new List<object>();
+        var recycling = new List<object>();
+        ItemsRepeater? tracedRepeater = null;
+        string currentSet = "";
+        string currentStage = "";
+        void RecordRecycle(string operation, UIElement element)
+        {
+            if (recycling.Count > 1000) return;
+            recycling.Add(new
+            {
+                set = currentSet,
+                stage = currentStage,
+                operation,
+                index = tracedRepeater?.GetElementIndex(element),
+                images = Descendants(element).OfType<Image>().Select(image => new
+                {
+                    item = CardArtwork.GetItem(image)?.Item.Id,
+                    realizedDemand = CardArtwork.IsRealized(image),
+                    source = image.Source is not null,
+                    wanted = CardArtwork.GetItem(image) is { } card && Get<bool>(card, "_wanted")
+                }).ToArray()
+            });
+        }
+        void OnPrepared(ItemsRepeater sender, ItemsRepeaterElementPreparedEventArgs args) => RecordRecycle("prepared", args.Element);
+        void OnClearing(ItemsRepeater sender, ItemsRepeaterElementClearingEventArgs args) => RecordRecycle("clearing", args.Element);
         try
         {
             ResizeProbeClient(1100, 760);
@@ -65,6 +89,8 @@ internal sealed partial class ShellNavigationProbe
                     };
                     var width = wall ? MusicCatalog.WallTileWidth : MusicCatalog.TrackArtWidth;
                     var prefix = $"art-{section}-{total}-";
+                    currentSet = $"{section}-{total}";
+                    currentStage = "initial";
                     page.ViewModel.Title = "匿名音乐容器量测";
                     page.ViewModel.CountLabel = MusicCatalog.CountLabel(section, total);
                     var readsBefore = requests;
@@ -86,6 +112,18 @@ internal sealed partial class ShellNavigationProbe
                     var scroll = wallView.ScrollView;
                     if (wall)
                     {
+                        var repeater = Descendants(wallView).OfType<ItemsRepeater>().Single();
+                        if (!ReferenceEquals(tracedRepeater, repeater))
+                        {
+                            if (tracedRepeater is not null)
+                            {
+                                tracedRepeater.ElementPrepared -= OnPrepared;
+                                tracedRepeater.ElementClearing -= OnClearing;
+                            }
+                            tracedRepeater = repeater;
+                            repeater.ElementPrepared += OnPrepared;
+                            repeater.ElementClearing += OnClearing;
+                        }
                         Require(scroll is not null, "音乐墙没有原生ScrollView");
                         MusicArtworkProbeRules.Viewport(outer.ActualHeight, scroll!.ViewportHeight);
                     }
@@ -93,6 +131,7 @@ internal sealed partial class ShellNavigationProbe
                         .Any(image => CardArtwork.GetItem(image)?.Item.Id.StartsWith(prefix, StringComparison.Ordinal) == true && image.Source is not null));
                     var firstImageMs = first.Elapsed.TotalMilliseconds;
                     var initial = Read();
+                    await WriteContainersAsync("initial");
                     await WritePerformanceEvidenceAsync("music-artwork-current-state.json", new
                     {
                         section = section.ToString(),
@@ -132,6 +171,7 @@ internal sealed partial class ShellNavigationProbe
                     {
                         if (wall)
                         {
+                            currentStage = "tail";
                             await ScrollMusicWallAsync(scroll!, true, $"{section}-{total}-tail");
                         }
                         else
@@ -141,6 +181,7 @@ internal sealed partial class ShellNavigationProbe
                         await WaitForDiagnosticsFrameAsync();
                         await CheckItemAsync(total - 1);
                         var tail = Read();
+                        await WriteContainersAsync("tail");
                         await WritePerformanceEvidenceAsync("music-artwork-current-state.json", new
                         {
                             section = section.ToString(),
@@ -151,12 +192,14 @@ internal sealed partial class ShellNavigationProbe
                             innerViewportHeight = scroll?.ViewportHeight
                         });
                         Check(tail);
+                        currentStage = "restored";
                         if (wall) await ScrollMusicWallAsync(scroll!, false, $"{section}-{total}-head");
                         else await ScrollMusicTracksAsync(list, 0, $"{total}-head");
                         await LayoutAsync(page);
                         await WaitForDiagnosticsFrameAsync();
                         await CheckItemAsync(0);
                         var restored = Read();
+                        await WriteContainersAsync("restored");
                         await WritePerformanceEvidenceAsync("music-artwork-current-state.json", new
                         {
                             section = section.ToString(),
@@ -237,6 +280,43 @@ internal sealed partial class ShellNavigationProbe
                         if (!wall) return;
                         await FocusMusicItemAsync(wallView, index, prefix + index, $"{section}-{total}-{index}");
                     }
+
+                    async Task WriteContainersAsync(string stage)
+                    {
+                        if (!wall || tracedRepeater is null) return;
+                        var containers = Enumerable.Range(0, VisualTreeHelper.GetChildrenCount(tracedRepeater))
+                            .Select(value => VisualTreeHelper.GetChild(tracedRepeater, value)).OfType<FrameworkElement>()
+                            .Select(element =>
+                            {
+                                var index = tracedRepeater.GetElementIndex(element);
+                                return new
+                                {
+                                    container = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(element),
+                                    mappedIndex = index,
+                                    tryGetSame = index >= 0 && ReferenceEquals(tracedRepeater.TryGetElement(index), element),
+                                    actualHeight = element.ActualHeight,
+                                    y = element.TransformToVisual(scroll).TransformPoint(new()).Y,
+                                    images = Descendants(element).OfType<Image>().Select(image =>
+                                    {
+                                        var item = CardArtwork.GetItem(image);
+                                        var holder = item is null ? null : Get<WeakReference<object>?>(item, "_holder");
+                                        return new
+                                        {
+                                            image = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(image),
+                                            item = item?.Item.Id,
+                                            realizedDemand = CardArtwork.IsRealized(image),
+                                            source = image.Source is not null,
+                                            rowPoster = item?.RowPoster is not null,
+                                            sourceIsRowPoster = ReferenceEquals(image.Source, item?.RowPoster),
+                                            wanted = item is not null && Get<bool>(item, "_wanted"),
+                                            heldByThis = holder is not null && holder.TryGetTarget(out var target) && ReferenceEquals(target, image)
+                                        };
+                                    }).ToArray()
+                                };
+                            }).ToArray();
+                        await WritePerformanceEvidenceAsync($"music-containers-{section}-{total}-{stage}.json", containers);
+                        await WritePerformanceEvidenceAsync("music-recycling-trace.json", recycling);
+                    }
                 }
             }
             await WritePerformanceEvidenceAsync("music-artwork-performance.json", samples);
@@ -246,6 +326,11 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            if (tracedRepeater is not null)
+            {
+                tracedRepeater.ElementPrepared -= OnPrepared;
+                tracedRepeater.ElementClearing -= OnClearing;
+            }
             (frame.Content as IShellContent)?.Release();
             frame.Content = null;
             frame.BackStack.Clear();

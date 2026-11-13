@@ -19,7 +19,9 @@
 卡片自己判断当前持有者，旧容器迟到释放不能清掉新容器图。重新进树同步复用有限PosterCache。
 局部复用ImageArrivalFade，离树/移除行为释放其订阅；没有新增逐帧布局或窗口级订阅。
 
-保留RowPoster的OneWay绑定、曲目44 DIP/方墙170 DIP、方形比例、UniformToFill、ListView与ItemsView/UniformGridLayout。
+音乐两Image现在仅绑定CardArtwork.Item，附加行为是Source唯一属主，
+realized期间订阅RowPoster通知，回收时先退订再清Image.Source，prepared同项同步恢复缓存。
+其他PosterCard/EpisodeRow模板不变；曲目44 DIP/方墙170 DIP、方形比例、UniformToFill、ListView与ItemsView/UniformGridLayout保留。
 PosterLoader使用已有Logical解码宽，服务请求使用既有RequestWidth的2倍/80阶梯，
 没有改变图片全局缓存、协议、身份守卫或现有分页。音乐墙分页由P4独立单元实现。
 WallScroll由滚动容器改为有限高度Grid，MusicWall自身ScrollView为唯一竖滚宿主，
@@ -52,11 +54,11 @@ Gallery同提交使用实验SDK，本单元保留Momoka现有WinUI2.3.9/Runtime2
 ## 测试和运行入口
 
 `Momoka.MusicArtworkTests` 编译链接完整生产CardArtwork/CardItem和真实Core，
-30项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
+32项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
 100/1,000/10,000元数据和20个模拟容器。控制台边界不冒充实际WinUI、WinRT解码或GPU显存。
 新增6例保留Tree/XamlRoot/x:Bind项的同owner池、prepared无Loaded、首次订阅池区分、
 ListView回收和旧持有者/重入事件；新增3例预算/页面入口，拒绝真实超预算读数反例。
-当前Release：新专项30/30、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
+当前Release：新专项32/32、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
 原页面契约207/207是上一单元的覆盖，本修复不复用其日志称已重验。
 加入坏解码项的首轮因测试只交付一次坏响应，
 真实Store正在重取而非已回传失败，17项中5项失败（后续4项为前例未清边界）；
@@ -115,6 +117,19 @@ finite产品首次原生检查`190016656-31692`：Albums100初始realized/held/w
 `ModernCollectionBasePanel::ContainerManager::Interface_ElementFromDataIndex`返回valid range、
 单个preparationHoldingArea或pinned项，故ContainerFromIndex是raw保留口径，不能称屏上可见数。
 曲目工具等待ScrollIntoView后的真实ViewChanged/首末项可见，再保存First/LastCache、Visible、cacheLength与raw数。
+
+`194119530-15120`运行曲目三组均已达到平台暖缓存51项（所有图/需求≤51，在理论54内），
+墙末项也已Y328/229/589可见且scroll4479等于bottom；墙图片预算仍真红：
+tail Realized21/Tree26/Images26/HeldWanted22。
+当前本树生成`MusicLibraryPage.g.cs::Recycle`只有ReleaseAllListeners，不清Source；
+父层回收先调用这一段，之后CardItem.ReleasePoster通知已无人响应，造成Image仍攥旧图。
+因此移除音乐两图重复Source x:Bind，让CardArtwork作为Source唯一属主显式释放/恢复，
+新增两项生产回归：缓存同项同步恢复、已退订通知拒绝及旧持有者Source释放不连累新容器。
+额外1个需求尚需逐容器证据定位，不提高预算。
+`music-containers-*.json`记录mappedIndex、TryGetElement是否同元素、DemandRealized、attachedItem、Source/RowPoster/wanted/holder；
+`music-recycling-trace.json`记录prepared/clearing时序。
+固定VirtualizationInfo.cpp的IsRealized包含Layout与PinnedPool，TryGetElement已包含Pinned；
+不能把需求22/Realized21直接解释为“允许多一张焦点图”。
 
 同轮P4滚尾请求13485、布局重估后currentMax13232、actual13232、Idle，
 平台已夹到最终底部而共用静态offset断言误报；当前仅音乐端点helper按真实correlation等完成，

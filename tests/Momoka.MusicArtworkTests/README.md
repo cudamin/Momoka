@@ -19,7 +19,9 @@ ListView边界提供InRecycleQueue事件输入。该池模型不是实际WinUI�
 100/1,000/10,000匿名元数据各使用20个模拟容器，两次换项只保留20张卡片首图，全部卸载回0；
 这是生产图片需求生命周期证据，不是 WinUI 实际 viewport/虚拟化/帧测量。
 新增预算纯断言使用实际native基线反例：Realized21而四口径25、557宿主而50576内viewport必须拒绝；
-当前独立入口30项，0失败/跳过。实际有限viewport与首末项聚焦仍由运行probe验收。
+当前独立入口32项，0失败/跳过。实际有限viewport与首末项聚焦仍由运行probe验收。
+音乐两Image只绑定CardArtwork.Item，Source由该行为唯一拥有；回收时取消RowPoster监听并清Source，
+返回同项同步恢复缓存。新增Source不残留/已退订通知拒绝/旧holder不清新Source回归。
 新增精确ListView顺序：先CCC旧绑定，后phase0新绑定，再原生下一phase callback；
 无缓存旧tag不能产生GET，代次/身份/回收/离页守卫全部执行生产方法，框架callback边界只负责输入时序。
 
