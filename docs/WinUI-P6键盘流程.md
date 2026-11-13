@@ -46,3 +46,5 @@ P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemC
 首次真实链已完成连接、用户名及登录后，账户Focus验收失败；原运行日志保持。定位起点现在先等实际布局，再用最长2秒的有限Focus/IsWithin读取等待导航重排；名称和角色断言不放宽。异常报告目标名/自动化ID、peer名称/角色、实际焦点类型/名、是否位于目标树、可见性和实际bounds，使空名称与焦点归属问题可区分。程序Focus仍不保证OS输入落点，根代理实际发送前须确认前台/输入句柄。
 
 第二次真实链完成登录、账号菜单选择第二来源，但工具在来源已切换/主页就绪后立刻断言全树Popup数量零，误把关闭动画或其它提示浮层混为账号菜单。正式账号选择Click先AccountMenu.Hide再SwitchAsync；阶段现等待自身`AccountMenu.IsOpen=false`且包含AccountMenuBody的相关Popup退出，保留严格关闭验收，忽略无关ToolTip。共享SourceReady规则覆盖菜单开启/关闭过渡、错来源与未就绪，不修改产品账号菜单行为。
+
+后续原生选来源已到B且菜单已关闭，但工具按键计数未增加：Flyout内容移到独立Popup，菜单事件不冒泡到ShellPage。现在同时在实际AccountMenuBody分支登记同一个PreviewKeyDown witness，finally解绑；source-ready继续要求真实按键增量，不改minimumKeys。挂载/解绑和严格来源阶段回归新增1项，实际修复后链由根代理重跑，旧超时报告保留。

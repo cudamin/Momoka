@@ -56,6 +56,9 @@ internal sealed partial class ShellNavigationProbe
         var topMost = _window!.TopMost;
         var witness = new KeyEventHandler((_, args) => { keys++; lastKey = args.Key.ToString(); });
         shell.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
+        // Flyout内容被平台移动到独立Popup，菜单按键不沿Shell的可视父链冒泡。
+        var accountMenuBody = Get<FrameworkElement>(shell, "AccountMenuBody");
+        accountMenuBody.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
         _root.Children.Add(shell);
         try
         {
@@ -170,6 +173,7 @@ internal sealed partial class ShellNavigationProbe
             (shell.Pages.Content as IShellContent)?.Release();
             shell.SignInRoot.Detach();
             shell.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
+            accountMenuBody.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
             Field(shell, "_window", null);
             _root.Children.Remove(shell);
             await playback.ShutdownAsync();

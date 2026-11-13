@@ -10,6 +10,18 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("键盘流程菜单按键独立挂Flyout分支并在finally解绑，来源仍要求按键增量", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            Assert.Contains("accountMenuBody.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);", source);
+            Assert.Contains("accountMenuBody.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);", source);
+            var start = source.IndexOf("await Stage(\"source-ready\"", StringComparison.Ordinal);
+            var end = source.IndexOf("Require(!accountMenu.IsOpen", start, StringComparison.Ordinal);
+            Assert.False(source[start..end].Contains("minimumKeys: 0", StringComparison.Ordinal));
+        });
         Test("键盘来源阶段等待自己的账号菜单关闭，不把别的提示气泡算成账号浮层", () =>
         {
             Assert.True(KeyboardJourneyProbeRules.SourceReady(true, true, false, false));
