@@ -266,6 +266,8 @@
                  别把这颗接到 LayerFillColorDefaultBrush 上：那一支被十几张弹窗和 ContentDialogTopOverlay
                  当表面用，做成半透明会把弹窗一起变成玻璃。 -->
             <SolidColorBrush x:Key="EgCanvasBrush" Color="#990C1116" />
+            <!-- 详情顶部内容卡：采用 WinUI 的内容层色；全局 LayerFillColorDefaultBrush 已另作浮层，不能复用。 -->
+            <SolidColorBrush x:Key="EgDetailContentLayerBrush" Color="{ThemeResource LayerFillColorDefault}" />
 
             <!-- 卡片与详情菜单共用深色染色浓度；关闭透明效果时回退到同主题卡片色。 -->
             <AcrylicBrush
@@ -542,6 +544,7 @@
             <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#80E8EBEF" />
             <SolidColorBrush x:Key="EgCanvasBrush" Color="#99F1F3F6" />
+            <SolidColorBrush x:Key="EgDetailContentLayerBrush" Color="{ThemeResource LayerFillColorDefault}" />
             <!-- 同 Dark 那份的卡片玻璃：浅色这边 tint 取白面（原来的卡面），浓度 0.8。 -->
             <AcrylicBrush
                 x:Key="CardBackgroundFillColorDefaultBrush"
@@ -629,6 +632,7 @@
             <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgWindowBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgCanvasBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgDetailContentLayerBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceAltBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceElevatedBrush" Color="{ThemeResource SystemColorWindowColor}" />

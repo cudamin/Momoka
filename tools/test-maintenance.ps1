@@ -98,6 +98,7 @@ $sentinel = Join-Path $fixture 'artifacts\publish\win-x64\preserve.txt'
 [System.IO.File]::WriteAllText($sentinel, 'keep')
 $result = Run-Script $guard
 Check ($result.ExitCode -eq 17) '目标程序在运行时发布提前拒绝'
+Check (($result.Output -join "`n") -match '等待占用释放后重新核对并发布') '占用提示先等待释放后重查，不反复要求关闭'
 Check ((Test-Path -LiteralPath $sentinel) -and [System.IO.File]::ReadAllText($sentinel) -eq 'keep') '发布拒绝时保留原输出目录'
 
 # Run the full production script; only SDK/verifier endpoints above are anonymous. A junction

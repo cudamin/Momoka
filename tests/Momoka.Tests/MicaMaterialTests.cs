@@ -171,6 +171,29 @@ internal static class MicaMaterialTests
                 Assert.DoesNotContain("DetailMica.Apply(PlainBackdrop", source, $"{label} 的简洁档又去挂页面级材质了");
             }
         });
+
+        Test("简洁详情内容卡：共享窗口底材，内容层色与高对比度使用系统角色", () =>
+        {
+            var page = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            Assert.False(page.Descendants().Any(element => element.Name.LocalName == "SystemBackdropElement"),
+                "顶部内容卡又创建了独立系统材质，没有共享窗口基底");
+            Assert.Equal("{ThemeResource EgDetailContentLayerBrush}",
+                Named(page, "HeroContentLayerSource").Attribute("Background")?.Value);
+            foreach (var name in new[] { "HeroCardTop", "HeroCardBottom" })
+                Assert.False(Named(page, name).Elements().Any(), "卡片背景仍有多余的子材质层");
+
+            var dictionaries = Dictionaries(Palette());
+            foreach (var key in new[] { "Dark", "Light" })
+            {
+                var brush = Entry(dictionaries[key], "EgDetailContentLayerBrush");
+                Assert.Equal("SolidColorBrush", brush.Name.LocalName);
+                Assert.Equal("{ThemeResource LayerFillColorDefault}", brush.Attribute("Color")?.Value,
+                    "内容卡必须使用系统内容层角色，而非命令层或项目亚克力卡面");
+            }
+            Assert.Equal("{ThemeResource SystemColorWindowColor}",
+                Entry(dictionaries["HighContrast"], "EgDetailContentLayerBrush").Attribute("Color")?.Value,
+                "高对比度不能使用系统层色的占位 Color，必须使用系统窗口色");
+        });
     }
 
     private static XDocument Palette() =>

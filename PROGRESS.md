@@ -1,3 +1,11 @@
+## 2026-11-13 简洁详情顶部卡片采用共享窗口内容层（独立树已验，待主树整合）
+
+用户令「单开一个工作树，按首选推荐改」。树 `C:/Users/89400/.codex/worktrees/detail-card-layering/Momoka`，分支 `codex/detail-card-layering`，起点 `339799e`。仅普通媒体详情顶部上下两段卡面：移除 `HeroMicaTop/Bottom` 局部系统材质，共享外壳窗口云母，加系统内容层色；保留布局、圆角、下方信息面板、沉浸材质及 MoviePilot 详情。
+
+官方依据：Microsoft Learn Mica 的 App layering with Mica/Alt 将内容卡指向 `LayerFillColorDefaultBrush`；Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 MainWindow.xaml 窗口材质与 NavigationView 内容层；框架固定 `2a73274618c3f1042ee617dca5f64be782f93261` 的 `controls/dev/CommonStyles/Common_themeresources_any.xaml`，本机 WinUI 2.3.9 `generic.xaml` 层色一致。项目全局同名 Brush 已用于不透明浮层，因此新增 `EgDetailContentLayerBrush`，深浅资源引用系统 Color `LayerFillColorDefault`，高对比度直接用 `SystemColorWindowColor`；不重染系统内容层角色。
+
+回归更新原 `DetailMicaAsync`：四类型、两宽度、五主题自然刷新、顶部两段共享层色、拒绝不透明卡底、模式恢复、全树无局部材质；另验证顶部资源回调不覆盖沉浸信息卡。新增 `MicaMaterialTests` 内容层/高对比度契约。当前 Shell/Core/Tests Release/x64 编译均0警告0错误，按钮契约39/39，材质契约7/7；完整主测试已在锁释放后补跑5032/5032、0失败0跳过（首轮16项因另一诊断占锁失败，旧红日志保留）。首轮单项原生已完成Series五主题两宽，Season读取到初始化按钮刷，探针补等待真实Loaded外观观察后复跑通过：PID15656，`shell-probe-20261113-093019962-15656/logs`，四类型×1200/760×五主题共40次读数/实屏，代表五主题截图已目视，顶部回调单独触发保持沉浸信息卡、模式来回及不透明反例全部通过。最终Shell SHA256 `F540D57B7AFAF8C3C062F97096350BFBECC318E68B7929DC8EF8C2C41D9847BC`。用户追加「遇占用弄探针等、记到规则」：同步CLAUDE、验证技能、开发文档及政策删条反例，并更新发布拒绝提示和匿名维护测试；等待不结束其他进程、不绕过锁。政策31反例及3文档链接、维护28项、两PowerShell编码/语法与13文件格式检查通过；高对比度/关闭透明仅资源契约，未改用户系统设置，未实测这些系统状态。待主树整合后重编译/主测试/单项原生及发布。未合并、未发布、未推送，快捷方式仍为既有版本。
+
 ## 2026-11-13 悬停居中与图片淡化最终原生复验
 
 产品41942f8以9f658d1进入master；后续修正同树开发并同步hover-preview-morph以保留恢复线索。图片空图由活动Popup之前测量处于暂停布局的Canvas导致，最终改打开Popup后显式测量/排列；图层不单独折叠，Panel仍按关闭流程收起。CardPreview使用幂等动画偏好订阅，并忽略仍在树上的迟到Unloaded。固定WinUI框架源码已核；未改变播放器、账号或依赖。
@@ -12545,7 +12553,7 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 最终复验曾出现原Service/Emby订阅断言偶发红（40过/1败），原样复验41/41仍保留两份日志。根因是假HTTP接收信号早于响应完成，生产合法随后进入Monitor才挂第三订阅；父授权只修夹具等待实际条件。原Emby/Jellyfin用例增加可控响应闸，修前39过/2败；夹具保持两秒上限等真实订阅挂齐，未到或提前结束明确失败，原断言不减。最终本树编译0警告/错误、完整41/41及10次匿名假HTTP通过，不修改生产顺序或仅加固定延时。
 - 当前生成handle/lifetime正文与本树产品源码逐字一致，夹具与ABI生成文件无DllImport，当前x64输出无PDB；仅本次文件格式校验退出0，6个文本的行尾/BOM/空白及git diff检查通过，回执含当前测试/Core与源文件SHA256。
 - 仅测试基础设施与相关文档；不改Core/Shell、主树、检查或基线，不启动GUI/native/媒体/服务器，不接真实账号、设置或凭据。本树交由父会话一次复核、整合后验证最终主树完整方案/主测试及实际交付；此阶段不宣称完整批次或主树交付完成，不删除树或推送。
-## 2026-11-07 第九批设置夹具生成兼容（独立树进行中）
+## 2026-11-07 第九批设置夹具生成兼容（独立树已验，待主树整合）
 
 - 本代理独占 review9-settings-fixture，基点5c9afa0；仅改 SettingsLifetimeTests、SettingsProbeContractTests、HomeOrderProbeTests 及其README，父会话保留主树写入、全方案验证与发布权。
 - 三专项因原样ReleaseHosted新增颜色取消调用但生成器未抽取对应partial而各CS0103一错；原红保留artifacts/review-batch9-settings。补实际方法原样提取和真实Shell行代理，保留所有旧断言，新增两卡颜色草稿释放/重复取消覆盖。

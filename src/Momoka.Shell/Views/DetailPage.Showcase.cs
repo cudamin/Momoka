@@ -27,14 +27,12 @@ public sealed partial class DetailPage
     private bool PlainMode => !ViewModel.AppearanceSettings.EnableImmersive
         && ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
-    private void ApplyPlainMica()
+    private void ApplyPlainSurfaces()
     {
         var plain = PlainMode;
-        // 集页那块板（HeroCardTop／HeroCardBottom）在简洁档仍是卡面，它自己那层局部 Mica 保留；页面级的底材
-        // 已经交回外壳画布，见 DetailPage.xaml 顶上那段。
-        DetailMica.Apply(HeroMicaTop, plain && _appearanceObserved && ViewModel.HeroCardShown);
-        DetailMica.Apply(HeroMicaBottom, plain && _appearanceObserved && ViewModel.HeroCardShown);
-        var surface = plain ? null : Application.Current.Resources["EgSurfaceBrush"] as Brush;
+        // 简洁详情顶部是内容卡：共享窗口云母，再叠加系统内容层色。上下两截使用同一支画刷，
+        // 不再分别创建局部 Mica；普通/沉浸布局仍使用原有卡面。下方信息面板保留自己的层色。
+        var surface = plain ? HeroContentLayerSource.Background : Application.Current.Resources["EgSurfaceBrush"] as Brush;
         HeroCardTop.Background = surface;
         HeroCardBottom.Background = surface;
         PlainHeroSurface.Background = surface;
@@ -42,12 +40,8 @@ public sealed partial class DetailPage
         HeroScrim.Opacity = plain ? 0 : 1;
         foreach (var panel in BodyPanels)
             panel.Background = plain ? MicaLayerSource.Background : _panelFill;
-    }
-
-    private void ReleasePlainMica()
-    {
-        HeroMicaTop.SystemBackdrop = null;
-        HeroMicaBottom.SystemBackdrop = null;
+        // 资源回调的顺序不固定；沉浸信息卡必须保留可读卡面，不能被透明的正文面板刷覆盖。
+        PaintBackdropReading();
     }
 
     /// <summary>五块正文面板的底 —— 沉浸档里淡到 0，纸面让开之后不再有「板里的板」那一层。</summary>
@@ -82,7 +76,8 @@ public sealed partial class DetailPage
             RefreshPanelBrushes();
             PaintBackdropReading();
         });
-        MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainMica());
+        MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainSurfaces());
+        HeroContentLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainSurfaces());
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
         {
@@ -149,7 +144,7 @@ public sealed partial class DetailPage
         PaintScrim();
         var showcase = ViewModel.Showcase;
         _sheetBrush.Color = PlainMode ? Microsoft.UI.Colors.Transparent : showcase ? WashColor : PaperColor;
-        ApplyPlainMica();
+        ApplyPlainSurfaces();
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
 

@@ -28,19 +28,31 @@ REQUIRED = {
         "判定以内容为准，不只看分支指针",
         "没有未保留的改动或提交",
         "不是其他聊天正在开发的树",
+        "用探针等待释放后自动继续，不反复让用户关闭",
+        "不得擅自结束其他聊天或用户的进程、绕过锁",
+        "由正式操作重新取得锁，竞争失败时回到等待",
+        "等待超时或证据表明必须由用户处理时",
     ),
     DOC: (
         "../CLAUDE.md#git-与协作",
         "../CLAUDE.md#四道闸门与日常交付",
         "py tools/check-main-tree-policy.py --self-test",
         "只检查文档，不合并、不构建、不运行应用或发布",
+        "../CLAUDE.md#资源占用与等待",
+        "使用只读轻量探针、短间隔等待释放后自动继续",
     ),
     SKILL: (
         "../../../CLAUDE.md#git-与协作",
         "../../../CLAUDE.md#四道闸门与日常交付",
         "final integrated master tree rather than reusing branch-only reports",
         "explicit request to defer merging keeps that pending item open",
+        "../../../CLAUDE.md#资源占用与等待",
+        "short interruptible waits, then continue automatically after release",
+        "the real operation must recheck its target and acquire its own lock",
     ),
+}
+FORBIDDEN = {
+    POLICY: ("文件锁须请用户关闭",),
 }
 
 
@@ -52,9 +64,12 @@ def validate(texts: dict[str, str]) -> None:
         for phrase in phrases:
             if phrase not in text:
                 raise ValueError(f"missing rule or synchronization: {relative}: {phrase}")
-    for anchor in ("Git 与协作", "四道闸门与日常交付"):
-        if f"## {anchor}\n" not in texts[POLICY]:
-            raise ValueError(f"broken policy anchor: {anchor}")
+        for phrase in FORBIDDEN.get(relative, ()):
+            if phrase in text:
+                raise ValueError(f"superseded occupancy rule: {relative}: {phrase}")
+    for heading in ("## Git 与协作", "## 四道闸门与日常交付", "### 资源占用与等待"):
+        if f"{heading}\n" not in texts[POLICY]:
+            raise ValueError(f"broken policy anchor: {heading}")
 
 
 def check_links(root: Path, texts: dict[str, str]) -> None:
@@ -68,7 +83,7 @@ def check_links(root: Path, texts: dict[str, str]) -> None:
             path, _, anchor = target.partition("#")
             if (root / relative).parent.joinpath(path).resolve() != (root / POLICY).resolve():
                 raise ValueError(f"wrong policy link: {relative}: {target}")
-            if anchor not in {"git-与协作", "四道闸门与日常交付"}:
+            if anchor not in {"git-与协作", "四道闸门与日常交付", "资源占用与等待"}:
                 raise ValueError(f"unknown policy anchor: {relative}: {target}")
 
 
@@ -84,6 +99,16 @@ def self_test(texts: dict[str, str]) -> int:
                 rejected += 1
             else:
                 raise AssertionError(f"missing text incorrectly passed: {relative}: {phrase}")
+    for relative, phrases in FORBIDDEN.items():
+        for phrase in phrases:
+            broken = dict(texts)
+            broken[relative] += phrase + "\n"
+            try:
+                validate(broken)
+            except ValueError:
+                rejected += 1
+            else:
+                raise AssertionError(f"superseded rule incorrectly passed: {relative}: {phrase}")
     return rejected
 
 

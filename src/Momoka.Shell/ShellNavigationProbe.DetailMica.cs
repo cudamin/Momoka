@@ -1,5 +1,4 @@
 using System.Net;
-using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -55,6 +54,8 @@ internal sealed partial class ShellNavigationProbe
                 Field(page, "_actions", shell);
                 page.AttachWindow(_window);
                 await UntilAsync(() => page.IsReady);
+                // 数据完成可能早于真实 Loaded；必须等页面接上外观观察，不能把构造期按钮刷当最终状态。
+                await UntilAsync(() => Get<bool>(page, "_appearanceObserved"));
                 foreach (var width in new[] { 1200, 760 })
                 {
                     await ResizeResponsiveAsync(page, width, 900);
@@ -96,18 +97,12 @@ internal sealed partial class ShellNavigationProbe
                     {
                         ThemeHost.Apply(theme.Id);
                         await LayoutAsync(shell);
-                        Call(page, "SettleShowcase");
-                        // 2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」：这一页不再挂页面级的
-                        // 局部材质，底就是外壳 ContentHost 那块画布（Mica Base ＋ 60% 窗口色）。从前这里读的是
-                        // PlainBackdrop 上的 Mica Alt —— 它把外壳画布整个盖掉，两页的底因此对不上。
+                        // 顶部与页面共用窗口基底；内容卡只叠系统层色，不能回到局部 Mica 或不透明卡底。
                         var host = Get<Grid>(shell, "ContentHost");
-                        var top = Get<SystemBackdropElement>(page, "HeroMicaTop");
-                        Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
-                            "简洁详情又给页面挂了局部材质");
+                        RequireSharedDetailContentLayer(page);
                         Require(host.Background is SolidColorBrush { Color.A: 0x99 }, "外壳画布不是那层 60% 的窗口色");
                         Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 }, "正文实色挡住了窗口画布");
                         Require(!page.ViewModel.BackdropShown && Get<StackPanel>(page, "HeroTail").Background is null, "简洁详情仍铺图或黑色尾部");
-                        Require(!page.ViewModel.HeroCardShown || top.SystemBackdrop is MicaBackdrop { Kind: MicaKind.Base }, "头部卡面缺少 Mica");
                         Require(shell.TrailBase is null && shell.TitleStripNow == TitleStrip.PagePainted, "面包屑实色挡住了窗口画布");
                         Require(Get<Border>(page, "PlainHeroSurface").Opacity == 0
                             && Get<Border>(page, "HeroScrim").Opacity == 0, "旧顶部渐变挡住了窗口画布");
@@ -122,27 +117,49 @@ internal sealed partial class ShellNavigationProbe
                             Require(rejected, "画布检查没有拒绝旧实色正文");
                         }
                         finally { paper.Color = original; }
-                        reads.Add($"{item.Type}/{width}/{theme.Id}: canvas + {(page.ViewModel.HeroCardShown ? "Base" : "—")}, "
+                        var top = Get<Border>(page, "HeroCardTop");
+                        var savedBackground = top.Background;
+                        try
+                        {
+                            top.Background = new SolidColorBrush(Microsoft.UI.Colors.Black);
+                            var rejected = false;
+                            try { RequireSharedDetailContentLayer(page); }
+                            catch (InvalidOperationException) { rejected = true; }
+                            Require(rejected, "内容卡检查没有拒绝旧不透明背景");
+                        }
+                        finally { top.Background = savedBackground; }
+                        reads.Add($"{item.Type}/{width}/{theme.Id}: canvas + {(page.ViewModel.HeroCardShown ? "content layer" : "—")}, "
                             + $"body=transparent");
                         await SaveProbeScreenAsync($"detail-mica-{item.Type}-{width}-{theme.Id}-screen.png");
                     }
                 }
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                await LayoutAsync(page);
-                Require(Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is null
-                    && Get<SystemBackdropElement>(page, "HeroMicaBottom").SystemBackdrop is null, "沉浸恢复后未释放简洁材质");
+                // 前一轮停在760窄窗，先恢复宽窗，实际进入沉浸后才检验资源回调。
+                await ResizeResponsiveAsync(page, 1200, 900);
+                Require(page.ViewModel.Showcase, "回调检查未进入有图宽窗沉浸模式");
+                Require(!DetailHasLocalBackdrop(page), "沉浸恢复后出现局部系统材质");
+                Require(!ReferenceEquals(Get<Border>(page, "HeroCardTop").Background,
+                    Get<Border>(page, "HeroContentLayerSource").Background), "沉浸恢复后仍使用简洁内容层");
+                if (page.ViewModel.Showcase)
+                {
+                    // 单独触发顶部资源回调，拒绝它把沉浸信息卡覆盖成透明正文刷的旧路径。
+                    var source = Get<Border>(page, "HeroContentLayerSource");
+                    var savedLayer = source.Background;
+                    try
+                    {
+                        source.Background = new SolidColorBrush(Microsoft.UI.Colors.Black);
+                        Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background,
+                            Get<Border>(page, "CardMaterialSource").Background), "顶部主题回调覆盖了沉浸信息卡背景");
+                    }
+                    finally { source.Background = savedLayer; }
+                }
                 fixture.Settings.Ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
-                Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
-                    "简洁恢复后页面级材质又回来了");
-                Require(!page.ViewModel.HeroCardShown
-                    || Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is MicaBackdrop,
-                    "简洁恢复后卡面没有重新连接材质");
+                RequireSharedDetailContentLayer(page);
                 page.Release();
-                Require(Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is null
-                    && Get<SystemBackdropElement>(page, "HeroMicaBottom").SystemBackdrop is null, "离页未释放材质");
+                Require(!DetailHasLocalBackdrop(page), "离页后仍有局部系统材质");
             }
         }
         finally
@@ -155,5 +172,26 @@ internal sealed partial class ShellNavigationProbe
             ThemeHost.Apply(savedTheme);
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-mica.txt"), reads);
         }
+    }
+
+    private static void RequireSharedDetailContentLayer(DetailPage page)
+    {
+        Require(!DetailHasLocalBackdrop(page), "详情页又创建了局部系统材质");
+        var layer = Get<Border>(page, "HeroContentLayerSource").Background;
+        Require(layer is SolidColorBrush { Color.A: > 0 and < 255 }, "普通模式内容层不是半透明系统层色");
+        foreach (var name in new[] { "HeroCardTop", "HeroCardBottom" })
+        {
+            var card = Get<Border>(page, name);
+            Require(ReferenceEquals(card.Background, layer), "顶部卡面没有共用系统内容层");
+            Require(card.Child is null, "顶部卡面仍叠了子材质层");
+        }
+    }
+
+    private static bool DetailHasLocalBackdrop(DependencyObject node)
+    {
+        if (node is SystemBackdropElement) return true;
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
+            if (DetailHasLocalBackdrop(VisualTreeHelper.GetChild(node, index))) return true;
+        return false;
     }
 }
