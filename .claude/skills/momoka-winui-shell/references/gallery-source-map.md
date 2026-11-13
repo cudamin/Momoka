@@ -7,7 +7,7 @@ Policy: [CLAUDE.md](../../../../CLAUDE.md#winui-官方优先与偏离确认). Re
 - Momoka planning base: `da64fe3a87c758c51c0654a3ba73c17101fe56dd`. Other sessions had uncommitted settings/Mica work; reacquire source state before implementation.
 - Gallery: [microsoft/WinUI-Gallery at 6de91feccadfbb0a796b71caedead5a2284f730e](https://github.com/microsoft/WinUI-Gallery/tree/6de91feccadfbb0a796b71caedead5a2284f730e), fetched 2026-11-12. Its `standalone.props` requests `2.6.6-experimental`. Do not copy that package selection into Momoka's stable-only dependency policy.
 - Momoka's Shell project at the planning base uses the Windows App SDK split packages, including WinUI `2.3.9` and Runtime `[2.5.1]`. Read the csproj again at implementation; subpackage versions are not interchangeable with meta-package release numbers.
-- Gallery is MIT licensed. Retain appropriate attribution/license when copying code; reading a pattern does not require vendoring the whole repository or shipping its sample data.
+- Gallery is MIT licensed. Retain appropriate attribution/license when copying code; reading a pattern does not require vendoring the whole repository or shipping its sample data. When a sample matches the requested behavior, copying it is the default under CLAUDE's copy-first rule: keep the pinned path and commit in a comment, and re-read the sample when Gallery or our SDK version changes.
 
 ## Concrete source routes
 

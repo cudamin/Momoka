@@ -1,3 +1,11 @@
+## 2026-11-13 规则：改 UI 先抄 WinUI Gallery 现成实现
+
+用户令：「修改项目规则，改ui时优先查WinUIGallery有没有现成的代码，有就直接抄」。
+
+**改了什么**：`CLAUDE.md`「WinUI 官方优先与偏离确认」在「多参考官方设计指南」后加一条：动手改任何界面前，先在 WinUI Gallery 源码里找同一控件、同一交互的现成实现，能用的就照抄那一份（保留资源键、附加属性、事件接线、焦点与无障碍语义，只改命名空间、项目字号刻度与 `Eg*Style`、绑定与生命周期归属），注释留 Gallery 路径与固定提交；没有现成实现或样例依赖本项目不用的版本／实验包时，才按「默认顺序」自行组合或自定义，并在 PROGRESS 记一行查过哪些路由、为什么不能抄。同步 `momoka-winui-shell` 技能第 3 步（copy-first）、其 `gallery-source-map.md` 的许可证条目，以及 `docs/开发与验证.md`「WinUI 重构与规则入口」那一段。
+
+**检查**：`py tools/check-main-tree-policy.py --self-test` 通过（4 份文档、51 条反例）；`tools/check-diff.ps1 -Paths` 四个文件的行尾、末尾换行、BOM 与空白通过。纯规则、技能说明与文档改动，未构建、未跑测试、未跑探针、未发布。
+
 ## 2026-11-13 收藏页残留最近搜索（已合并，待交付）
 
 用户截图：收藏页整页只剩「最近搜索」，收藏卡片一个也看不到。原因是 Frame 复用同一个 `LibraryPage` 实例：空搜索框切到收藏时 `SearchText` 前后都是空串，生成的 setter 不发通知，`RecentSearchVisibility`／`SearchResultsVisibility` 停在搜索页的值上；最近搜索块占着结果区第一行，还把下面的收藏挤到屏外。`Attach` 现在拿到新请求后按新身份重算这几块显隐（`RaiseSearchVisibility`），并补上同一场景的空态刷新。
