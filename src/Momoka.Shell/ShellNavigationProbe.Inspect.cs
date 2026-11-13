@@ -317,6 +317,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectHomeClock", "轮播静止与读秒验证", HomeBannerClockAsync);
         AddCheck("InspectHomeRefresh", "主页订阅停留与手动刷新", HomeOrderAsync);
         AddCheck("InspectHeaderPolish", "继续观看页头验证", LibraryHeaderPolishAsync);
+        AddCheck("InspectHoverPreview", "悬停预览布局与关闭重开", HoverPreviewAsync);
         AddCheck("InspectBrowsePolish", "分类与工具栏验证", LibraryBrowseAsync);
         AddCheck("InspectHomeCardPolish", "首页按钮与主题验证", HomeHeaderAsync);
         AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);

@@ -1,5 +1,13 @@
 ## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
 
+## 2026-11-13 三库视口主树交付
+
+产品cbb5406与整合修正29e9188已在master。保留侧栏/圆角轮播/ambient新功能，LibraryOverlay位于BannerCard内且左24、MaxWidth660，底部reading模糊遮罩及资源/回调已完全移除；全部库仍滚动/翻页。合并漏Grid结束标签由当前编译及XML测试拒绝，补齐后重编。圆角轮播实际宽比页面少49，探针以Banner.ActualWidth判断800界线，增加窗口848/849/850连续跨界验证。
+
+主树当前Core/Tests/Shell Release0警告0错误，完整5019/5019、页面207/207，文本/定向空白通过。publish -NoArchive -Shortcut成功547文件288.8MB、批准60项；旧生成bin deps移至证据再按一致参数生成，未改产品依赖或批准清单。PID34568正式发布件原生检查台首页布局及订阅入口2/2通过并结束；宽窄首三卡/首翻/末库/读数避让与单张恢复，轮播内外/订阅导航/关闭恢复均执行，零真实播放/MP写入；runtime截图已目视。回执artifacts/home-three-libraries-final/delivery-receipt.json，快捷方式Target/工作目录指向主树发布。无远程上传。
+
+系统高对比度/跨DPI/文字缩放/Narrator/触摸未验证。无底部遮罩后亮背景的标题对比度随原图变化，这是用户选择的展示；不冒称全背景对比≥4.5。累计输入27张图片，未达到40暂停线。
+
 `5352953`（workbuddy/master-8f12571e）以 `449f261` 合入 master `171a1e6`。冲突三处：PROGRESS 与开发文档两段都留、新的在前；`HomePage.xaml` 的 `LibraryOverlay` 取「卡片内左边距 24」并保留主树新加的 `LibraryReadingLayer` 模糊/遮罩层（`LibraryHost` 的 `SizeChanged` 也在）。合并后只做了静态核对：三个改动过的 XAML 用 XML 解析器验过结构完整（合并时曾漏掉 `BannerCard` 与 `BannerZone` 的两条闭合标签，已补齐），全树再无 `SyncBleed`/`BleedRead`/`ForwardButton` 的活代码引用（只剩注释与 `obj/` 旧产物），`Agreements.txt` 的 Palette 颜色计数 88 与实际字面值数一致。
 
 **没有做**（用户 00:42 明确「合并后暂停主树构建和发布」）：未编译、未跑主测试/探针/自检、未发布、未推远端。桌面快捷方式仍指向既有主树发布件（`%USERPROFILE%\Momoka\artifacts\publish\win-x64`），那一份不含本批改动。
@@ -12908,3 +12916,13 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 - 交付：旧目录改名 `artifacts/publish/win-x64-pre-card-preview` 备份；`tools\publish.ps1 -NoArchive -Shortcut` 发布本体成功，**389 文件 / 290 MB**，发布件与主树构建 `Momoka.dll` SHA-256 同为 `80b4888d…`；交付目录里的 exe 再跑一次 `--show-preview` 冒烟通过。
 - 快捷方式：`C:/Users/89400/Desktop/Momoka.lnk` 目标仍是 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`（同一交付目录，二进制已刷新）。脚本重写那一步被沙箱拒绝 —— 桌面上的 .lnk 只读、沙箱进程只能读；目标路径没变，快捷方式不是旧版，未另建。
 - 未做：预告片（列表接口没有 `RemoteTrailers`，Shell 没有内嵌播放面）；未推远端（master 仍比 origin/master 多 213 笔，沿用既有做法）；未做 `--probe-section` 全分区（本批只碰卡片悬停，走实屏 + 单测）。
+
+## 2026-11-13 悬停预览布局与动效重做（1294 工作树）
+
+本轮在 codex/hover-preview-refresh 开发，范围为 CardPreview、PosterCard 的预览生命周期和相关测试。保留右上播放、下方宽图、无小海报与实色面板。标题用20 DIP角色、元信息独立满宽，题材与评分分开，续播按钮40 DIP并显示相应文字，进度改原生 ProgressBar。图片视口由 Canvas 隔离自然测量，宽图晚到不撑高面板；Popup.Closed清理带重开守卫，预览自身HoverWatch兜底移出窗口。
+
+已读用户指定 winui-app 技能、Microsoft Motion原文，以及 Gallery 固定6de91feccadfbb0a796b71caedead5a2284f730e的ThemeTransition/ProgressBar XAML和code-behind。Gallery为2.6.6-experimental，项目保持WinUI2.3.9/Runtime2.5.1，未改依赖。动画使用当前包KeySpline(0,0,0,1)，等比.96→1加4 DIP位移，入场250ms、离场167ms、淡入淡出83ms；应用动画偏好关闭立即落定，系统偏好在起步读取。没有新增材质或更改已确认产品例外。
+
+当前Core/Tests/Shell Release编译0警告0错误，完整主测试5025/5025、页面207/207、定向12/12均0失败0跳过。新增InspectHoverPreview与library分区原生检查，覆盖1280/760/360、长标题/缺数据/虚拟条目/续播、迟到图片与原生关闭重开、UIA进度和匿名播放事件、动效反转和五主题。尚未执行原生检查：另一ebd7会话正在占用诊断桌面，等待串行运行。当前未合入master、未发布、未上传；不能视为已交付。原文与编译/测试日志在artifacts/hover-preview。输入图片目前1张，未到40暂停线。
+
+原生复验已完成：本树当前构建PID23136、InspectHoverPreview单项1/1通过，9组布局/关闭重开全部执行，五主题截图与宽窄/空字段/虚拟条目实屏已目视，运行目录artifacts/hover-preview/runtime。该检查同时执行真实ProgressBar/播放按钮UIA，播放仅记录CardAction事件、正式播放服务调用0次。没有移动鼠标或真实点击外部；Popup.IsOpen=false只证明Closed清理，不能称真实点外按下通过。应用关动画与快速反转已执行；真实系统动画切换、高对比度、文字缩放、跨DPI/Narrator/触摸未覆盖。截止当前已输入9张图片。

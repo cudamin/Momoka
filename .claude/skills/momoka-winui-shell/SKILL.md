@@ -10,7 +10,7 @@ Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviatio
 ## Start with the affected experience
 
 1. Identify the surface, lifetime, users, input modes and current behavior. Trace XAML, code-behind, VM, service and tests only as far as the task needs. Preserve server-specific video-library capabilities and the shared music UI.
-2. Read the appropriate references below. Apply the available `winui-app` skill for generic guidance; project references remain usable without a particular global installation.
+2. Consult the [Microsoft Learn Windows app design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/) for the affected experience, as requested in CLAUDE, and read the appropriate references below. Apply the available `winui-app` skill for generic guidance; project references remain usable without a particular global installation.
 3. Inspect the matching Gallery XAML, code-behind and called resources/helpers at a fixed commit. Compare its SDK version with Momoka. Use [source evidence](references/gallery-source-map.md) to distinguish design recommendations, supported options and technical limits.
 4. When a conflict triggers the CLAUDE confirmation rule, finish the read-only comparison and present the actual tradeoff before implementation. A general request to modernize does not approve a new deviation or the reversal of an existing product choice.
 5. Make the smallest coherent change with its behavioral tests. Preserve Attach/identity/cancellation ownership, stable collections, input semantics and settings migrations. Avoid mechanical replacement just to increase the count of native APIs.

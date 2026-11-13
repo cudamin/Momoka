@@ -186,6 +186,7 @@ public sealed partial class PosterCard : UserControl
 
     private Popup? _previewHost;
     private CardPreview? _preview;
+    private HoverWatch? _previewWatch;
 
     /// <summary>
     /// 面板打开之后去取那张宽图的那一趟。收起、换卡或离树就取消 —— 停一秒又走开的卡片不该在后台
@@ -690,6 +691,12 @@ public sealed partial class PosterCard : UserControl
         if (_previewHost is null)
         {
             _preview = new CardPreview();
+            _previewWatch = new HoverWatch(_preview, hovered =>
+            {
+                _previewHovered = hovered;
+                if (hovered) CancelPreviewClose();
+                else SchedulePreviewClose();
+            });
             _preview.PointerEntered += OnPreviewPointerEntered;
             _preview.PointerExited += OnPreviewPointerExited;
             _preview.PlayRequested += (_, _) => Raise(_preview.PlayAnchor, CardAction.Play);
@@ -705,6 +712,12 @@ public sealed partial class PosterCard : UserControl
                 // 代码里新建的 Popup 不在任何页面自己的 XAML 树里，XamlRoot 得点名给 —— 不给的话 IsOpen
                 // 只是把它记成「想开」，屏上什么都不出来。要在挂进树之前给：挂进去之后再设会抛。
                 XamlRoot = XamlRoot,
+            };
+            _previewHost.Closed += (_, _) =>
+            {
+                // Closed 可以晚于同一 Popup 的重开投递，不让旧事件收掉新面板。
+                if (_previewHost.IsOpen) return;
+                ClosePreview(immediately: true);
             };
             Root.Children.Add(_previewHost);
         }
@@ -734,8 +747,8 @@ public sealed partial class PosterCard : UserControl
         _previewHost.IsOpen = true;
         _previewOpen = true;
 
-        // 起手宽度就是卡片自己的宽：缩放原点在面板正中，于是它看起来是从卡片里向左右两边长开的。
-        _preview.PlayEnter(Root.ActualWidth / width);
+        // 保持卡片中心的来源关系，等比轻微放大；文字不再跟随海报宽度横向挤压。
+        _preview.PlayEnter();
         WatchPreviewScroll();
         AnimateCard();
         LoadPreviewArtwork(width);
@@ -821,14 +834,17 @@ public sealed partial class PosterCard : UserControl
 
     private void OnPreviewPointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        _previewHovered = true;
-        CancelPreviewClose();
+        _previewWatch?.Enter();
     }
 
     private void OnPreviewPointerExited(object sender, PointerRoutedEventArgs e)
     {
-        _previewHovered = false;
-        SchedulePreviewClose();
+        if (_preview is { } preview)
+        {
+            var point = e.GetCurrentPoint(preview).Position;
+            if (point.X >= 0 && point.Y >= 0 && point.X < preview.ActualWidth && point.Y < preview.ActualHeight) return;
+        }
+        _previewWatch?.Leave();
     }
 
     /// <summary>
@@ -841,6 +857,7 @@ public sealed partial class PosterCard : UserControl
 
         Log.Debug("封面预览", $"收起「{Card?.Title}」：immediate={immediately}");
         _previewOpen = false;
+        _previewWatch?.Leave();
         _previewHovered = false;
         _previewArtwork?.Cancel();
         UnwatchPreviewScroll();
@@ -858,7 +875,7 @@ public sealed partial class PosterCard : UserControl
             return;
         }
 
-        _preview.PlayExit(_preview.Width > 0 ? Root.ActualWidth / _preview.Width : 0.5, () =>
+        _preview.PlayExit(() =>
         {
             // 收起途中又被打开：这一次的落点作废，别把新打开的面板关掉。
             if (_previewOpen) return;
