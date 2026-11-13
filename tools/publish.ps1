@@ -147,7 +147,7 @@ if (-not $SkipPublish) {
     $targetExe = Join-Path $publishRoot 'Momoka.exe'
     foreach ($running in @(Get-Process -Name 'Momoka' -ErrorAction SilentlyContinue)) {
         if (-not $running.Path -or [string]::Equals($running.Path, $targetExe, [System.StringComparison]::OrdinalIgnoreCase)) {
-            throw '交付程序仍在运行或无法确认它的路径。请先关闭目标应用再发布；原发布目录尚未清理。'
+            throw '交付程序仍在运行或无法确认它的路径。等待占用释放后重新核对并发布；原发布目录尚未清理。'
         }
     }
 }
