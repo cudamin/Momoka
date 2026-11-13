@@ -6,6 +6,13 @@ internal static class MusicArtworkProbeRules
     // 当前1100x760基线首尾最高26个layout项；保留8项波动用于平台缓存和第一次量测，
     // 总元数据放大到10000不得增加这个上限。池里不属于realized的图片需求容许值是0。
     internal const int MaxRealizedAtProbeSize = 34;
+    internal const int HeaderFocusAttempts = 40;
+
+    internal static void HeaderFocus(bool withinHeader, int attempts)
+    {
+        if (!withinHeader || attempts < 0 || attempts >= HeaderFocusAttempts)
+            throw new InvalidOperationException("音乐量测页头焦点未在有界等待内恢复");
+    }
 
     internal static void Demands(int total, int realized, int images, int held, int wanted, int liveHolders, int maxRealized = MaxRealizedAtProbeSize)
     {

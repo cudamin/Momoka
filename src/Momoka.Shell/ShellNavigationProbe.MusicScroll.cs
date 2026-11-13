@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Shell.Views;
 
@@ -7,6 +8,43 @@ namespace Momoka.Shell;
 
 internal sealed partial class ShellNavigationProbe
 {
+    private async Task FocusMusicHeaderAsync(MusicLibraryPage page)
+    {
+        await LayoutAsync(page);
+        var header = Get<Button>(page, "RefreshButton");
+        await LayoutAsync(header);
+        var focused = false;
+        var attempts = 0;
+        try
+        {
+            for (; attempts < MusicArtworkProbeRules.HeaderFocusAttempts; attempts++)
+            {
+                header.Focus(FocusState.Keyboard);
+                await Task.Delay(50);
+                if (FocusManager.GetFocusedElement(page.XamlRoot) is not DependencyObject current) continue;
+                for (; current is not null; current = VisualTreeHelper.GetParent(current))
+                    if (ReferenceEquals(current, header)) { focused = true; break; }
+                if (focused) break;
+            }
+            MusicArtworkProbeRules.HeaderFocus(focused, attempts);
+        }
+        finally
+        {
+            await WritePerformanceEvidenceAsync("music-header-focus.json", new
+            {
+                focused,
+                attempts,
+                maximumAttempts = MusicArtworkProbeRules.HeaderFocusAttempts,
+                focusType = FocusManager.GetFocusedElement(page.XamlRoot)?.GetType().Name,
+                header.IsLoaded,
+                header.IsEnabled,
+                header.ActualWidth,
+                header.ActualHeight,
+                physicalKeys = false
+            });
+        }
+    }
+
     private async Task ScrollMusicWallAsync(ScrollView scroll, bool tail, string key)
     {
         await LayoutAsync(scroll);

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Music;
@@ -86,7 +87,7 @@ internal sealed partial class ShellNavigationProbe
                     page.ViewModel.Rows.Clear();
                     // 上一组末项/首项仍占焦点时，平台会把新集合保持在原anchor。
                     // 每组从页头焦点及真实offset0开始，避免把上组滚动位置带进“首屏”样本。
-                    Require(Get<Button>(page, "RefreshButton").Focus(FocusState.Programmatic), "音乐量测页头焦点未恢复");
+                    await FocusMusicHeaderAsync(page);
                     page.ViewModel.EmptyVisibility = Visibility.Collapsed;
                     var wall = MusicCatalog.UsesCoverWall(section);
                     var type = section switch

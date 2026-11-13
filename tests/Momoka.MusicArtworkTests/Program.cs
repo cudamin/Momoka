@@ -495,6 +495,28 @@ internal static class MusicArtworkProgram
             Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeadSample(true, 0, "", "", 0, 229, 589));
         });
 
+        Test("音乐页头焦点：等待真实归属且最多重试40次，不能凭Focus返回当通过", () =>
+        {
+            Momoka.Shell.MusicArtworkProbeRules.HeaderFocus(true, 0);
+            Momoka.Shell.MusicArtworkProbeRules.HeaderFocus(true, 39);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeaderFocus(false, 1));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeaderFocus(true, 40));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.HeaderFocus(true, -1));
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Assert.NotNull(root);
+            var probe = File.ReadAllText(Path.Combine(root!.FullName, "src/Momoka.Shell/ShellNavigationProbe.MusicArtwork.cs"));
+            var focus = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.MusicScroll.cs"));
+            Assert.Contains("await FocusMusicHeaderAsync(page);", probe);
+            Assert.False(probe.Contains("Require(Get<Button>(page, \"RefreshButton\").Focus", StringComparison.Ordinal));
+            Assert.Contains("await LayoutAsync(page);", focus);
+            Assert.Contains("await LayoutAsync(header);", focus);
+            Assert.Contains("attempts < MusicArtworkProbeRules.HeaderFocusAttempts", focus);
+            Assert.Contains("FocusManager.GetFocusedElement(page.XamlRoot)", focus);
+            Assert.Contains("VisualTreeHelper.GetParent(current)", focus);
+            Assert.Contains("MusicArtworkProbeRules.HeaderFocus(focused, attempts);", focus);
+        });
+
         Case("音乐池页面：已Release的迟到Loaded不能重订阅，附加恢复仅订阅一次", async () =>
         {
             await using var f = new CardImageFixture();

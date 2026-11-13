@@ -155,6 +155,11 @@ TryGetElement均为同对象，Y覆盖-925到1352，说明该样本保留了前�
 34预算、图片/持图/wanted/live均不超过actual realized、离页清理等判据未变，
 没有改生产缓存策略或扫描回收池。归一化路线后的首图时间包含回首项与焦点落定，不与旧首图时间冒称速度提升。
 
+首屏路线首轮原生在页头按钮的一次同步Focus返回false而提前退出，尚未产生图片预算读数，原红保留。
+工具现在先等待实际页面和RefreshButton布局，再以40次、每次50ms的有限重试读取FocusManager当前焦点的祖先链，
+只在焦点真正属于页头按钮时继续；失败仍报红，`music-header-focus.json`保留按钮Loaded/Enabled/尺寸和实际焦点类型。
+没有调用刷新事件、模拟按键或略过清除旧容器焦点。增加1项预算/归属与真实入口接线回归后37/37，0失败0跳过。
+
 同轮P4滚尾请求13485、布局重估后currentMax13232、actual13232、Idle，
 平台已夹到最终底部而共用静态offset断言误报；当前仅音乐端点helper按真实correlation等完成，
 精确核actual==clamp(requested,currentMax)且tail==currentMax，并继续末项ID/Focus/严格bounds。
