@@ -64,3 +64,11 @@ P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemC
 已读取Gallery固定`6de91fe...`的AutoSuggestBoxPage.xaml/.cs：基础样例直接AutomationProperties.Name，QuerySubmitted承接用户Enter。框架固定`693f472`的`dxaml/xcp/dxaml/lib/AutoSuggestBox_Partial.cpp`在模板接入时明确读取group的Name并传给内部TextBox（“Add the automation name from the group to the edit box”）。因此不换控件、不复制模板或在探针里补假名；保留原生名称传播。实际探针进一步检查owner及命名TextBox模板层的peer名相等，避免只有外层名而输入仍无名。
 
 资源/XAML链回归新增1项，KeyboardJourneyTests17项全部通过。实际修复后peer名和后续手动流程由根本轮验证；用户此前已执行的6步与后续恢复第7步的运行范围须分开记录，不能写为同一完整运行链通过。
+
+## 从搜索继续的手动入口
+
+用户已经在此前真实运行完成登录、账号与切来源到搜索，`InspectKeyboardJourneyManualFromSearch`允许从第7步继续。此参数只供manual；默认完整入口仍依次等待前六步真实按键。恢复入口仅用固定匿名账号自动登录一次、播种第二来源与正式主页→搜索导航，回执每段标记`resumedFromSearch=true`、`seededIdentity=true`，并另写`anonymous-first-six-seeded`；这些setup操作不能算本轮手动验收。
+
+屏内提示明确“前六步上轮已验证，本轮从搜索继续；本轮账号为匿名播种”。第7步搜索真实键入、结果Enter、设置Enter、Tab/Shift+Tab、Alt+F4与Alt+Left继续用原真实按键增量和最终查询/来源/零播放写入断言。取消写`cancelled`阶段并重新抛出，保留已执行步骤而不登记通过。恢复入口与此前运行只能分别报告范围，不能拼成同运行全链通过。
+
+新增manual恢复限制、前六步播种/回执与取消读数两项源码/规则契约；实际后半成功与取消仍由用户/根代理本轮验证。

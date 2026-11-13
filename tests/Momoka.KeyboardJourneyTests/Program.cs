@@ -10,6 +10,41 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("从搜索继续仅供手动：播种身份与前六步明确单列，后半仍须真实输入", () =>
+        {
+            KeyboardJourneyProbeRules.RequireResumeMode(false, false);
+            KeyboardJourneyProbeRules.RequireResumeMode(true, false);
+            KeyboardJourneyProbeRules.RequireResumeMode(true, true);
+            Assert.Throws<InvalidOperationException>(() => KeyboardJourneyProbeRules.RequireResumeMode(false, true));
+            Assert.Contains("前六步上轮已验证", KeyboardJourneyProbeRules.ManualInstruction("search-ready", true));
+            Assert.Contains("本轮账号为匿名播种", KeyboardJourneyProbeRules.ManualInstruction("search-ready", true));
+            Assert.Contains("第7步", KeyboardJourneyProbeRules.ManualInstruction("search-ready", true));
+            Assert.False(KeyboardJourneyProbeRules.ManualInstruction("search-ready", false).Contains("匿名播种", StringComparison.Ordinal));
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            Assert.Contains("KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromSearch);", source);
+            Assert.Contains("resumedFromSearch = resumeFromSearch, seededIdentity = resumeFromSearch", source);
+            Assert.Contains("Read(\"anonymous-first-six-seeded\"", source);
+            Assert.Contains("await fixture.Session.SignInAsync", source);
+            Assert.Contains("await Stage(\"search-ready\"", source);
+            Assert.Contains("KeyboardJourneyProbeRules.RequireFinal", source);
+            Assert.Contains("if (minimumKeys > 0) KeyboardJourneyProbeRules.RequireKeyProgress(before, keys);", source);
+        });
+        Test("手动取消单独记录且重新抛出，不能冒称完整通过", () =>
+        {
+            Assert.Contains("取消不是通过", KeyboardJourneyProbeRules.ManualInstruction("cancelled"));
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            var start = source.IndexOf("catch (OperationCanceledException) when (cancelled.IsCancellationRequested)", StringComparison.Ordinal);
+            var end = source.IndexOf("        finally", start, StringComparison.Ordinal);
+            Assert.True(start >= 0 && end > start);
+            Assert.Contains("WriteStage(\"cancelled\"", source[start..end]);
+            Assert.Contains("throw;", source[start..end]);
+        });
         Test("原生搜索名称：媒体库与设置外层有本地化名并保留原生模板传给输入层", () =>
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);

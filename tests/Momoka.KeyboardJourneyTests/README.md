@@ -13,3 +13,5 @@ P8媒体信息定位另外编译时严格提取真实`DetailPage.ScrollToInfo`�
 手动入口`InspectKeyboardJourneyManual`提供屏内12步中文提示/取消按钮，manual每段5分钟、检查台20分钟驻留只在点击此入口后启用，普通阶段仍60秒。文案/时限与提示独立行、状态播报、取消令牌/解绑的契约使当前16项；实际屏幕/用户按键不在离线测试边界内。
 
 原生搜索名称另有资源/XAML链契约，当前17项；Library SearchInput与SettingsSearchBox的ownerName/resw提供具体搜索作用，保留WinUI模板的owner→内部TextBox原生复制。真实probe核对这两层名称相等，不能在Focus阶段造fakeName绕过产品缺口。
+
+`InspectKeyboardJourneyManualFromSearch`只允许manual，前六步身份以固定匿名资料播种并逐段标记`resumedFromSearch/seededIdentity`，第7步之后保持真实按键与最终回执检查；不冒称前半手动。两项规则/源码契约覆盖恢复限制和取消继续抛出，实际用户后半链须单列运行证据。

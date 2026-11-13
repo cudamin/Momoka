@@ -22,8 +22,9 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>Single inspect task held at concrete stages for real keyboard input from the coordinating run.</summary>
-    private async Task KeyboardJourneyAsync(bool failFocusName = false, bool manual = false)
+    private async Task KeyboardJourneyAsync(bool failFocusName = false, bool manual = false, bool resumeFromSearch = false)
     {
+        KeyboardJourneyProbeRules.RequireResumeMode(manual, resumeFromSearch);
         using var cancelled = new CancellationTokenSource();
         using var fixture = CreateFixture();
         var server = new KeyboardJourneyProbeServer { Poster = await FixtureImageAsync(400, 600) };
@@ -85,47 +86,63 @@ internal sealed partial class ShellNavigationProbe
             HomeMotion.ApplyPreference(true);
             _window.TopMost = true;
             ResizeProbeClient(1280, 800);
-            shell.SignInRoot.Prepare();
-            await LayoutAsync(shell);
-            var signIn = shell.SignInRoot;
-            var address = Get<TextBox>(signIn, "ServerBox");
-            if (failFocusName) AutomationProperties.SetName(address, "错误名称夹具");
-            await FocusAsync(address, "KeyboardJourneyAddress");
-            await Stage("address-ready", "type https://keyboard-a.invalid then Enter", _window.Handle,
-                () => signIn.ViewModel.Step == ViewModels.SignInStep.Credential && !signIn.ViewModel.Busy);
-            Require(!signIn.ViewModel.NoticeOpen, "匿名连接没有成功到账号页");
-            var user = Get<TextBox>(signIn, "UserBox");
-            await FocusAsync(user, "KeyboardJourneyUsername");
-            var password = Get<PasswordBox>(signIn, "PasswordInput");
-            await Stage("username-ready", "Ctrl+A, type keyboard-user, then Enter", _window.Handle,
-                () => signIn.ViewModel.Username == KeyboardJourneyProbeServer.Username && IsWithin(password));
-            RequireFocus(password);
-            AutomationProperties.SetAutomationId(password, "KeyboardJourneyPassword");
-            await Stage("password-ready", "type fixture-password then Enter", _window.Handle,
-                () => fixture.Session.IsSignedIn && !shell.SignInVisible && shell.Pages.Content is HomePage { IsReady: true });
-            Require(server.AuthenticationPosts == 1, "真实表单未且仅提交一次匿名登录");
-            await fixture.SelectAsync("keyboard-b.invalid", KeyboardJourneyProbeServer.Username);
-            var second = fixture.Session.Capture();
-            var first = fixture.Session.Sources.Single(scope => scope.Connection.ApiBase.Host == "keyboard-a.invalid");
-            fixture.Session.SelectSource(first);
-            await (Task)Call(shell, "EnterShellAsync")!;
-            await LayoutAsync(shell);
-            var account = Get<Button>(shell, "AccountButton");
-            await FocusAsync(account, "KeyboardJourneyAccount");
-            var accountMenu = Get<Flyout>(shell, "AccountMenu");
-            await Stage("account-ready", "press Enter to open the account menu", _window.Handle,
-                () => accountMenu.IsOpen && AccountPopupPresent());
-            var select = Descendants(Get<FrameworkElement>(shell, "AccountMenuBody")).OfType<Button>()
-                .Single(button => AutomationProperties.GetAutomationId(button) == "AccountSelect:" + second.Key);
-            await FocusAsync(select, "KeyboardJourneySecondSource");
-            await Stage("source-ready", "press Enter to select keyboard-b.invalid", _window.Handle,
-                () => KeyboardJourneyProbeRules.SourceReady(fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid",
-                    shell.Pages.Content is HomePage { IsReady: true }, accountMenu.IsOpen, AccountPopupPresent()));
-            Require(!accountMenu.IsOpen && !AccountPopupPresent(), "选来源后账号菜单仍未结束关闭");
-            var openSearch = Get<Button>(shell, "TitleSearchBox");
-            await FocusAsync(openSearch, "KeyboardJourneyOpenSearch");
-            await Stage("search-entry-ready", "press Enter to open search", _window.Handle,
-                () => shell.Pages.Content is LibraryPage search && search.SearchState.IsSearch);
+            if (resumeFromSearch)
+            {
+                // Only seed the fixed anonymous identity and the preceding navigation. These are not manual steps in this run.
+                var seededServer = fixture.SettingsService.ResolveServer(KeyboardJourneyProbeServer.Address);
+                var seededAccount = fixture.SettingsService.ResolveAccount(seededServer, KeyboardJourneyProbeServer.Username);
+                await fixture.Session.SignInAsync(seededServer, seededAccount, KeyboardJourneyProbeServer.Password,
+                    KeyboardJourneyProbeServer.Username, rememberPassword: false, cancelled.Token);
+                await fixture.SelectAsync("keyboard-b.invalid", KeyboardJourneyProbeServer.Username);
+                await (Task)Call(shell, "EnterShellAsync")!;
+                shell.OpenSearch();
+                await UntilAsync(() => shell.Pages.Content is LibraryPage ready && ready.SearchState.IsSearch && ready.IsReady);
+                Read("anonymous-first-six-seeded", _window.Handle);
+            }
+            else
+            {
+                shell.SignInRoot.Prepare();
+                await LayoutAsync(shell);
+                var signIn = shell.SignInRoot;
+                var address = Get<TextBox>(signIn, "ServerBox");
+                if (failFocusName) AutomationProperties.SetName(address, "错误名称夹具");
+                await FocusAsync(address, "KeyboardJourneyAddress");
+                await Stage("address-ready", "type https://keyboard-a.invalid then Enter", _window.Handle,
+                    () => signIn.ViewModel.Step == ViewModels.SignInStep.Credential && !signIn.ViewModel.Busy);
+                Require(!signIn.ViewModel.NoticeOpen, "匿名连接没有成功到账号页");
+                var user = Get<TextBox>(signIn, "UserBox");
+                await FocusAsync(user, "KeyboardJourneyUsername");
+                var password = Get<PasswordBox>(signIn, "PasswordInput");
+                await Stage("username-ready", "Ctrl+A, type keyboard-user, then Enter", _window.Handle,
+                    () => signIn.ViewModel.Username == KeyboardJourneyProbeServer.Username && IsWithin(password));
+                RequireFocus(password);
+                AutomationProperties.SetAutomationId(password, "KeyboardJourneyPassword");
+                await Stage("password-ready", "type fixture-password then Enter", _window.Handle,
+                    () => fixture.Session.IsSignedIn && !shell.SignInVisible && shell.Pages.Content is HomePage { IsReady: true });
+                Require(server.AuthenticationPosts == 1, "真实表单未且仅提交一次匿名登录");
+                await fixture.SelectAsync("keyboard-b.invalid", KeyboardJourneyProbeServer.Username);
+                var second = fixture.Session.Capture();
+                var first = fixture.Session.Sources.Single(scope => scope.Connection.ApiBase.Host == "keyboard-a.invalid");
+                fixture.Session.SelectSource(first);
+                await (Task)Call(shell, "EnterShellAsync")!;
+                await LayoutAsync(shell);
+                var account = Get<Button>(shell, "AccountButton");
+                await FocusAsync(account, "KeyboardJourneyAccount");
+                var accountMenu = Get<Flyout>(shell, "AccountMenu");
+                await Stage("account-ready", "press Enter to open the account menu", _window.Handle,
+                    () => accountMenu.IsOpen && AccountPopupPresent());
+                var select = Descendants(Get<FrameworkElement>(shell, "AccountMenuBody")).OfType<Button>()
+                    .Single(button => AutomationProperties.GetAutomationId(button) == "AccountSelect:" + second.Key);
+                await FocusAsync(select, "KeyboardJourneySecondSource");
+                await Stage("source-ready", "press Enter to select keyboard-b.invalid", _window.Handle,
+                    () => KeyboardJourneyProbeRules.SourceReady(fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid",
+                        shell.Pages.Content is HomePage { IsReady: true }, accountMenu.IsOpen, AccountPopupPresent()));
+                Require(!accountMenu.IsOpen && !AccountPopupPresent(), "选来源后账号菜单仍未结束关闭");
+                var openSearch = Get<Button>(shell, "TitleSearchBox");
+                await FocusAsync(openSearch, "KeyboardJourneyOpenSearch");
+                await Stage("search-entry-ready", "press Enter to open search", _window.Handle,
+                    () => shell.Pages.Content is LibraryPage search && search.SearchState.IsSearch);
+            }
             var searchPage = (LibraryPage)shell.Pages.Content;
             var searchInput = Get<AutoSuggestBox>(searchPage, "SearchInput");
             await FocusAsync(searchInput, "KeyboardJourneySearch");
@@ -202,6 +219,11 @@ internal sealed partial class ShellNavigationProbe
                 actions.Plays, server.AuthenticationPosts, server.RejectedWrites);
             await SaveProbeScreenAsync("keyboard-journey-return-760-screen.png");
             WriteStage("complete", "completed", _window.Handle);
+        }
+        catch (OperationCanceledException) when (cancelled.IsCancellationRequested)
+        {
+            WriteStage("cancelled", "cancelled", settingsWindow?.Handle ?? _window.Handle);
+            throw;
         }
         finally
         {
@@ -304,12 +326,12 @@ internal sealed partial class ShellNavigationProbe
         }
         void WriteStage(string stage, string input, IntPtr hwnd)
         {
-            prompt?.Show(stage);
-            settingsPrompt?.Show(stage);
+            prompt?.Show(stage, resumeFromSearch);
+            settingsPrompt?.Show(stage, resumeFromSearch);
             Read(stage, hwnd);
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-stage.json"), JsonSerializer.Serialize(new
-            { stage, input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage) : input, process = Environment.ProcessId,
-                hwnd = hwnd.ToInt64(), run, keys, manual, physicalInputRequired = true }));
+            { stage, input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage, resumeFromSearch) : input, process = Environment.ProcessId,
+                hwnd = hwnd.ToInt64(), run, keys, manual, resumedFromSearch = resumeFromSearch, seededIdentity = resumeFromSearch, physicalInputRequired = true }));
         }
         void Read(string stage, IntPtr hwnd)
         {
@@ -322,6 +344,7 @@ internal sealed partial class ShellNavigationProbe
                 focus = focus?.Name, automationId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
                 automationName = peer?.GetName(), role = peer?.GetAutomationControlType().ToString(),
                 programmaticFocus = true, physicalKeysObserved = keys > 0, narratorTested = false,
+                resumedFromSearch = resumeFromSearch, seededIdentity = resumeFromSearch,
                 plays = actions.Plays, server.AuthenticationPosts, server.RejectedWrites
             });
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-receipt.json"), JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }));

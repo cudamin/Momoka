@@ -90,6 +90,15 @@ internal static class KeyboardJourneyProbeRules
     internal const int ManualStageMilliseconds = 300_000;
     internal const int AutomaticStageMilliseconds = 60_000;
 
+    internal static void RequireResumeMode(bool manual, bool resumeFromSearch)
+    {
+        if (resumeFromSearch && !manual) throw new InvalidOperationException("从搜索继续只供手动匿名验收");
+    }
+
+    internal static string ManualInstruction(string stage, bool resumeFromSearch) => resumeFromSearch
+        ? "前六步上轮已验证，本轮从搜索继续；本轮账号为匿名播种。" + ManualInstruction(stage)
+        : ManualInstruction(stage);
+
     internal static string ManualInstruction(string stage) => stage switch
     {
         "address-ready" => "第1步：焦点已放到服务器地址。输入 https://keyboard-a.invalid 后按 Enter。",
@@ -105,6 +114,7 @@ internal static class KeyboardJourneyProbeRules
         "settings-close-ready" => "第11步：按 Alt+F4 关闭设置窗口。这里只隐藏测试设置窗口，继续回到详情页。",
         "back-ready" => "第12步：焦点已放到返回按钮。按 Alt+← 返回搜索页。",
         "complete" => "键盘流程已完成。测试已记录输入与返回结果，可回到检查台。",
+        "cancelled" => "已取消本次键盘验收。取消不是通过，已保留执行到的步骤。",
         _ => "正在准备匿名键盘验收。每步最多等待5分钟；焦点由测试定位，按屏幕提示操作。"
     };
     internal static bool SourceReady(bool selectedSource, bool homeReady, bool accountMenuOpen, bool accountPopupPresent) =>

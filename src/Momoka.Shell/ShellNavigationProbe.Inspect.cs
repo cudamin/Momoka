@@ -123,6 +123,11 @@ internal sealed partial class ShellNavigationProbe
             inspectKeyboardStarted.TrySetResult();
             await KeyboardJourneyAsync(manual: true);
         }, ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyManualFromSearch", "从搜索继续手动键盘验收", async () =>
+        {
+            inspectKeyboardStarted.TrySetResult();
+            await KeyboardJourneyAsync(manual: true, resumeFromSearch: true);
+        }, ShellProbeSections.Shell, timeoutSeconds: 900);
         AddCheck("InspectKeyboardJourneyFailure", "键盘流程名称失败反例", () => KeyboardJourneyAsync(failFocusName: true), ShellProbeSections.Shell);
         AddCheck("InspectInfoTable", "匿名10行媒体信息定位", () => InfoTableAsync(), ShellProbeSections.Library);
         AddCheck("InspectInfoTableFailure", "媒体信息定位失败反例", () => InfoTableAsync(wrongOffset: true), ShellProbeSections.Library);
