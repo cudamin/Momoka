@@ -12944,3 +12944,11 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 徽标复用ItemArtwork.Plate的本条目Logo/Banner及明确父Logo引用，使用原Scope/缓存/取消归属，等待logo与宽图都结束才DisposeCTS。徽标引用存在时先预留44DIP保持动画目标稳定；真实缺图/失败时本次预留会留空。评分补EmbyFields.Browse的CommunityRating，类型原已请求，Jellyfin继续过滤不支持的Fields。实读Emby4.10.1.0 home/hometab.js显式追加CommunityRating/CriticRating的评分展示分支，SHA256 35553AC5CDD1D66083C6FE8183552AD51662D355E3A4BECFD7C3AF2244C188AD；Gallery固定6de91fe... XamlCompInteropPage真实ExpressionAnimation与Scale/Translation源码；当前包RectangleClip/InsetClip和框架e38939f...裁剪命中实现均核对。
 
 本树Core/Tests/Shell Release0警告0错误，主测试5028/5028、定向15/15、页面207/207，零失败零跳过；文本/空白检查通过。原生PID26128 InspectHoverPreview1/1，1280/760/360的9组布局、父徽标、同行资料、播放/详情隔离、迟到取消、关闭重开与动画反转均通过。冻结半程实际边框285×352，终点400×449，实屏已目视且整卡Opacity=1/标题宽不变。Composition controller getter实测只报0后-1，最初“中间进度”断言红日志保留；改测呈现事件/不透明与冻结实际几何，不冒称测得真实动画中间数值或帧率。原生匿名播放服务调用0，未做真实播放、写入、物理点外点击/触摸/读屏/跨DPI。累计输入27张图片。当前产品待提交合入master、重验发布，证据artifacts/hover-morph。
+
+## 2026-11-13 悬停撑开版主树交付
+
+临时a7ffc00已合入master 9b226c9；当前主树Core/Tests/Shell Release0警告0错误，完整5028/5028、页面207/207、零失败零跳过，文本与定向空白通过。主树开发件PID10504 InspectHoverPreview1/1，9组宽窄、徽标/同行资料、详情与播放隔离、关闭重开、动画反转和冻结半程几何通过，实屏已目视，证据artifacts/hover-morph-final/runtime。controller getter限制与首次红日志保留于worktree-evidence，不声称真实中间进度或FPS。截图输入累计30张，低于40暂停线。
+
+主树publish -NoArchive -Shortcut通过，547文件288.9MB，批准载荷60项。快捷方式Target/工作目录指向主树artifacts/publish/win-x64；发布/构建Momoka.dll SHA256同为F44D9D8D86C78AED18B82AEA35089C056FD02E398D75654D67CCE1B02F207C10，回执delivery-receipt.json。当前等待另一会话PID12284释放桌面后启动正式版。没有真实播放/写入或远程上传。
+
+仅改本次文案与行为：有播放位置/次数/LastPlayedDate显示继续播放，手工Played标记不作为真实记录；实际续播起点仍由已有规则决定。评分类型使用服务器真实字段；没有评分不造分。徽标引用存在但加载失败时44DIP预留会留空，这是本轮固定动画目标的取舍。系统动画即时切换/跨DPI/文字缩放/触摸/Narrator未覆盖，程序化Closed也不等同物理点外点击。
