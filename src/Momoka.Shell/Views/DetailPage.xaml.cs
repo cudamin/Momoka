@@ -1536,6 +1536,13 @@ public sealed partial class DetailPage : Page, IShellContent
     private double? _revealScrollTarget;
     private long _revealArmedAt;
 
+    internal PlaybackReturnReading PlaybackReturnReading() => new(Body.VerticalOffset, Body.ScrollableHeight,
+        Body.ExtentHeight, Body.ViewportHeight, (Body.Content as FrameworkElement)?.ActualHeight ?? 0,
+        ViewModel.Busy, ViewModel.IsReady, _revealScrollTarget,
+        _revealScrollTarget is null ? -1 : Environment.TickCount64 - _revealArmedAt,
+        Body.State.ToString(), FocusManager.GetFocusedElement(XamlRoot)?.GetType().Name,
+        ViewModel.EpisodeShelf?.Cards.Count ?? 0);
+
     /// <summary>
     /// 播放层收起、详情页重新露出来那一小段里，把滚动位按在离开时看的地方。
     /// <para>

@@ -567,6 +567,7 @@ internal static partial class ShellSelfCheck
         IServiceProvider services,
         StartupOptions options)
     {
+        _writePlaybackReturnTrace = text => Write(options.Paths, "selfcheck-playback-return.json", text);
         // Invalidate the last run's report before this one has anything to say. Without this a crash
         // leaves the previous report on disk, and a passing report from twenty minutes ago is worse than
         // no report at all: it reads as "this build is fine" when the build under test never finished.
@@ -754,6 +755,7 @@ internal static partial class ShellSelfCheck
 
                 if (_fileReturn is null && shell.Pages.Content is DetailPage back)
                 {
+                    EndPlaybackReturnTrace();
                     var (returnOk, returnRead) = back.ReturnRead(_returnScrollBefore, _returnScrollAfterRefresh, _returnScrollAfterHide);
                     _fileReturn = (back.ViewModel.ItemType, returnOk, returnRead);
                 }
@@ -1122,17 +1124,21 @@ internal static partial class ShellSelfCheck
         // 这一趟开始前的位置。走完三步之后再读的是绝对值，而自检为了让媒体信息与页尾横幅进视口，早就把这一页自己
         // 滚过了 —— 只有这两个数之差才说明是这一趟干的（见 DetailPage.ReturnRead）。
         _returnScrollBefore = back.BodyScrollOffset;
+        BeginPlaybackReturnTrace(back);
 
         shell.PlayerRoot.Visibility = Visibility.Visible;
         shell.PlayerRoot.Focus(FocusState.Programmatic);
         shell.ShowPlayer(true);
+        _playbackReturnTrace?.Record("player-shown");
 
         shell.RefreshActive();
         _returnScrollAfterRefresh = back.BodyScrollOffset;
+        _playbackReturnTrace?.Record("refresh-requested");
 
         shell.PlayerRoot.Visibility = Visibility.Collapsed;
         shell.ShowPlayer(false);
         _returnScrollAfterHide = back.BodyScrollOffset;
+        _playbackReturnTrace?.Record("player-hidden");
         return true;
     }
 
