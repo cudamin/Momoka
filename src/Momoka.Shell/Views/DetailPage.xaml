@@ -316,19 +316,19 @@
                         </CommandBar.Resources>
                         <AppBarButton x:Name="StoreTrailerPause" Click="OnStoreTrailerPause" Label="暂停预告片"
                                       AutomationProperties.AutomationId="StoreTrailerPause">
-                            <AppBarButton.Icon><FontIcon Glyph="&#xE769;" FontSize="14" /></AppBarButton.Icon>
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE769;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
                         <AppBarButton x:Name="StoreTrailerMute" Click="OnStoreTrailerMute" Label="预告片静音"
                                       AutomationProperties.AutomationId="StoreTrailerMute">
-                            <AppBarButton.Icon><FontIcon Glyph="&#xE74F;" FontSize="14" /></AppBarButton.Icon>
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE74F;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
                         <AppBarButton x:Name="StoreTrailerSubtitles" Click="OnStoreTrailerSubtitles" Label="预告片字幕"
                                       AutomationProperties.AutomationId="StoreTrailerSubtitles" Visibility="Collapsed">
-                            <AppBarButton.Icon><FontIcon Glyph="&#xED1E;" FontSize="14" /></AppBarButton.Icon>
+                            <AppBarButton.Icon><FontIcon Glyph="&#xED1E;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
                         <AppBarButton x:Name="StoreTrailerAudio" Click="OnStoreTrailerAudio" Label="预告片音频"
                                       AutomationProperties.AutomationId="StoreTrailerAudio" Visibility="Collapsed">
-                            <AppBarButton.Icon><FontIcon Glyph="&#xE8D6;" FontSize="14" /></AppBarButton.Icon>
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE8D6;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
                     </CommandBar>
                 </Grid>

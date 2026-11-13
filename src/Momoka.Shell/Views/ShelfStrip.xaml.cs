@@ -215,7 +215,16 @@ public sealed partial class ShelfStrip : UserControl
     /// </summary>
     private void PaintInk(DependencyObject container)
     {
-        if (CardIn(container) is { } found) found.OnScrim = OnScrim;
+        foreach (var card in CardsIn(container)) card.OnScrim = OnScrim;
+    }
+
+    private static IEnumerable<PosterCard> CardsIn(DependencyObject node)
+    {
+        if (node is PosterCard card) { yield return card; yield break; }
+        if (node is ContentControl { Content: DependencyObject content })
+            foreach (var inside in CardsIn(content)) yield return inside;
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
+            foreach (var child in CardsIn(VisualTreeHelper.GetChild(node, index))) yield return child;
     }
 
     /// <summary>

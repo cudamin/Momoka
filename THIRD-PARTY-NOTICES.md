@@ -191,3 +191,7 @@ THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED
 ## WinUI Gallery 详情悬浮卡片动效
 
 顶部缩略卡片沿用桌面 WinUI Gallery 2.10.0（产品提交7b4314a25904c784e5a1b4bb0627f535550d88bd）的 ControlExample.xaml 显示/隐藏动画配置。Copyright (c) Microsoft Corporation. All rights reserved. 适用上节同一MIT许可证全文；来源、必要的Translation/生命周期适配及完整许可见 [详情悬浮卡片](docs/详情悬浮卡片.md)。
+
+## WinUI Gallery 商店详情组合
+
+商店详情的单层透明遮罩、Grid布局、CommandBar、MediaPlayerElement、WebView2及文本截断ToolTip参考 Microsoft WinUI Gallery（MIT）固定提交14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。Copyright (c) Microsoft Corporation. All rights reserved. 适用上节MIT许可证全文；本地取消与二维alpha适配见开发与验证文档。

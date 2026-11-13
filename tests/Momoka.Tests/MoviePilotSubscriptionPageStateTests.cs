@@ -462,8 +462,10 @@ internal static class MoviePilotSubscriptionPageStateTests
             if (request.Method == HttpMethod.Get && path is "/api/v1/user/config/SubscribeMovieOrder"
                 or "/api/v1/user/config/SubscribeTvOrder" or "/api/v1/subscribe/execution/batches")
                 return new HttpResponseMessage(HttpStatusCode.OK)
-                { Content = new StringContent(path.Contains("/user/config/", StringComparison.Ordinal)
-                    ? "{\"value\":null}" : "[]", Encoding.UTF8, "application/json") };
+                {
+                    Content = new StringContent(path.Contains("/user/config/", StringComparison.Ordinal)
+                    ? "{\"value\":null}" : "[]", Encoding.UTF8, "application/json")
+                };
             if (request.Method != HttpMethod.Get || request.RequestUri?.AbsolutePath != "/api/v1/subscribe/")
             {
                 Writes++;
