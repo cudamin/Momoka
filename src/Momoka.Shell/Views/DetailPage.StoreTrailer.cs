@@ -47,12 +47,11 @@ public sealed partial class DetailPage
             StopStoreTrailer();
             return;
         }
-        StoreTrailerHost.Width = ViewModel.StorePreviewWidth;
-        StoreTrailerContent.Height = StoreTrailerHost.Width * 9 / 16;
+        LayoutStoreTrailer();
 
         if (ReferenceEquals(subject, _storeTrailerSubject))
         {
-            if (_storeTrailerOpened) { StoreBackdrop.Visibility = Visibility.Collapsed; ViewModel.StoreTrailerRoom = StoreTrailerContent.Height + 46; }
+            if (_storeTrailerOpened) StoreBackdrop.Visibility = Visibility.Collapsed;
             return;
         }
         if (ReferenceEquals(subject, _storeTrailerFailed)) return;
@@ -71,6 +70,15 @@ public sealed partial class DetailPage
         _ = StartStoreTrailerAsync(subject, generation, _storeTrailerLoad.Token);
     }
 
+    private void LayoutStoreTrailer()
+    {
+        StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
+        StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(ViewModel.PageWidth);
+        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, 48, 0);
+        StoreBackdropStyle.ApplyVideo(StoreTrailerSides, StoreTrailerBottom,
+            ThemeHost.ToColor(ThemeHost.Current.Colors.Window));
+    }
+
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
     {
         StoreTrailerPreview? preview = null;
@@ -84,11 +92,11 @@ public sealed partial class DetailPage
                 var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
                 if (id is null) return;
                 _storeYouTube = new StoreYouTubePreview();
-                _storeTrailerScrollPaused = Body.VerticalOffset > StoreTrailerContent.Height * 0.5 + StoreTrailerHost.Margin.Top;
+                _storeTrailerScrollPaused = Body.VerticalOffset > StoreTrailerHost.Height * 0.5;
                 _storeYouTube.SetActive(!_storeTrailerScrollPaused);
                 StoreTrailerContent.Children.Add(_storeYouTube.Element);
                 StoreTrailerHost.Visibility = Visibility.Visible;
-                StoreTrailerHost.Opacity = 1;
+                StoreTrailerHost.Opacity = 0;
                 UpdateStoreTrailerControls();
                 await _storeYouTube.StartAsync(id, Path.Combine(_request!.Services.GetRequiredService<Momoka.Infrastructure.AppPaths>().LogDirectory,
                     "trailer-preview", Guid.NewGuid().ToString("N")), token, playing =>
@@ -96,8 +104,8 @@ public sealed partial class DetailPage
                     if (token.IsCancellationRequested || generation != _storeTrailerGeneration || subject.Source?.IsAvailable != true) return;
                     if (!playing) { _storeTrailerFailed = subject; StopStoreTrailer(); return; }
                     _storeTrailerOpened = true;
-                    ViewModel.StoreTrailerRoom = StoreTrailerContent.Height + 46;
                     StoreTrailerHost.Opacity = 1;
+                    StoreTrailerControls.Visibility = Visibility.Visible;
                     StoreBackdrop.Visibility = Visibility.Collapsed;
                     ScrollStoreTrailer();
                 });
@@ -116,7 +124,8 @@ public sealed partial class DetailPage
         finally { if (preview is not null) await preview.DisposeAsync(); }
     }
 
-    // Gallery Samples/MediaPlayerElement: independent player, page-owned disposal.
+    // Gallery Samples/MediaPlayerElement/MediaPlayerElementPage.xaml/.xaml.cs,
+    // v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7：独立播放器，无transport控件的自动播放样例。
     private void StartStoreMedia(MediaSource source, int generation)
     {
         _storeTrailerPlayer = new MediaPlayer { IsMuted = true, IsLoopingEnabled = true, AutoPlay = true };
@@ -126,9 +135,9 @@ public sealed partial class DetailPage
             if (generation == _storeTrailerGeneration && IsLoaded && ViewModel.StoreMode)
             {
                 _storeTrailerOpened = true;
-                ViewModel.StoreTrailerRoom = StoreTrailerContent.Height + 46;
                 StoreTrailerHost.Opacity = 1;
                 StoreTrailerHost.Visibility = Visibility.Visible;
+                StoreTrailerControls.Visibility = Visibility.Visible;
                 StoreBackdrop.Visibility = Visibility.Collapsed;
                 ScrollStoreTrailer();
             }
@@ -137,7 +146,13 @@ public sealed partial class DetailPage
         {
             if (generation == _storeTrailerGeneration) { _storeTrailerFailed = _storeTrailerSubject; StopStoreTrailer(); }
         });
-        _storeTrailerElement = new MediaPlayerElement { AreTransportControlsEnabled = false, Stretch = Stretch.Uniform };
+        _storeTrailerElement = new MediaPlayerElement
+        {
+            AreTransportControlsEnabled = false,
+            Stretch = Stretch.UniformToFill,
+            IsHitTestVisible = false,
+            IsTabStop = false
+        };
         _storeTrailerElement.SetMediaPlayer(_storeTrailerPlayer);
         StoreTrailerContent.Children.Add(_storeTrailerElement);
         _storeTrailerSource = source;
@@ -174,7 +189,6 @@ public sealed partial class DetailPage
         _storeTrailerItem = null;
         _storeTrailerTracksMenu?.Hide();
         _storeTrailerTracksMenu = null;
-        ViewModel.StoreTrailerRoom = 0;
         _storeTrailerOpened = false;
         _storeTrailerUserPaused = false;
         _storeTrailerScrollPaused = false;
@@ -182,6 +196,7 @@ public sealed partial class DetailPage
         _storeYouTube?.Dispose();
         _storeYouTube = null;
         StoreTrailerHost.Visibility = Visibility.Collapsed;
+        StoreTrailerControls.Visibility = Visibility.Collapsed;
         var player = _storeTrailerPlayer;
         var element = _storeTrailerElement;
         var source = _storeTrailerSource;

@@ -16,6 +16,11 @@ public sealed partial class DetailPage
             ? Visibility.Collapsed : ViewModel.StoreBackdropVisibility;
         StoreBackdropStyle.Apply(StoreBackdropSides, StoreBackdropBottom,
             _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window));
+        StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < 1100
+            && ViewModel.HeroImage is not null && !_actionAccessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;
+        StoreBackdropStyle.ApplyAcrylic(StoreBackdropAcrylicFill, StoreBackdropAcrylicBottom,
+            _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window),
+            ThemeHost.ToColor(ThemeHost.Current.Colors.Window));
         UpdateStoreTrailer();
     }
 

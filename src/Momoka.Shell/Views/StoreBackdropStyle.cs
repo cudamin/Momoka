@@ -39,6 +39,32 @@ internal static class StoreBackdropStyle
             [(0, 0.08), (0.3, 0.08), (0.55, 0.2), (0.78, 0.6), (1, 1)]);
     }
 
+    internal static void ApplyVideo(Border sides, Border bottom, Color color)
+    {
+        // 外部视频表面上实际绘制XAML渐变，端点与页面窗口色完全一致，文字区域保持可读。
+        sides.Background = Gradient(color, new Point(0, 0.5), new Point(1, 0.5),
+            [(0, 1), (0.18, 0.68), (0.38, 0.2), (0.65, 0.08), (0.9, 0.3), (1, 1)]);
+        bottom.Background = Gradient(color, new Point(0.5, 0), new Point(0.5, 1),
+            [(0, 0.08), (0.35, 0.08), (0.6, 0.22), (0.82, 0.72), (1, 1)]);
+    }
+
+    // Gallery Samples/Acrylic/AcrylicPage.xaml/.xaml.cs,
+    // v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7：原生页面内亚克力，平台负责回退。
+    internal static void ApplyAcrylic(Border surface, Border bottom, Color color, Color pageColor)
+    {
+        bottom.Background = Gradient(pageColor, new Point(0.5, 0), new Point(0.5, 1),
+            [(0, 0), (0.35, 0.2), (0.7, 0.7), (1, 1)]);
+        if (surface.Background is AcrylicBrush existing && existing.TintColor == color) return;
+        surface.Background = new AcrylicBrush
+        {
+            TintColor = color,
+            FallbackColor = color,
+            TintOpacity = 0.5,
+            TintLuminosityOpacity = 0.65,
+            TintTransitionDuration = TimeSpan.Zero
+        };
+    }
+
     private static LinearGradientBrush Gradient(Color color, Point start, Point end,
         (double Offset, double Opacity)[] stops)
     {

@@ -299,14 +299,28 @@
             </Grid>
             <Border x:Name="StoreBackdropMask" />
         </Grid>
-                <Grid x:Name="StoreTrailerHost" Margin="0,16,32,0" HorizontalAlignment="Right"
+                <!-- 窄窗亚克力在实际图片输出上绘制，宽窗恢复清晰右侧背景。 -->
+                <Grid x:Name="StoreBackdropAcrylic" IsHitTestVisible="False" HorizontalAlignment="Right"
+                        VerticalAlignment="Top" Visibility="Collapsed"
+                        Width="{x:Bind ViewModel.StoreBackdropWidth, Mode=OneWay}"
+                        Height="{x:Bind ViewModel.StoreBackdropHeight, Mode=OneWay}">
+                    <Border x:Name="StoreBackdropAcrylicFill" />
+                    <Border x:Name="StoreBackdropAcrylicBottom" Height="120" VerticalAlignment="Bottom" />
+                </Grid>
+                <!-- 视频直接呈现，不能经过静态图片的VisualSurface重定向：WebView2和媒体使用外部输出桥。
+                     顶部右侧画面与页面色渐隐衔接；输入只交给上层原生按钮。 -->
+                <Grid x:Name="StoreTrailerHost" HorizontalAlignment="Right" IsHitTestVisible="False"
                       VerticalAlignment="Top" Visibility="Collapsed">
-                    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <Grid x:Name="StoreTrailerContent" />
-                    <!-- Gallery MediaTransportControls template / 693f472: native command surface. -->
-                    <CommandBar x:Name="StoreTrailerControls" Grid.Row="1" HorizontalAlignment="Right"
-                                DefaultLabelPosition="Collapsed" IsOpen="True" IsDynamicOverflowEnabled="False"
-                                OverflowButtonVisibility="Collapsed" Background="Transparent" Margin="0,6,0,0">
+                    <Grid x:Name="StoreTrailerContent" IsHitTestVisible="False" />
+                    <Border x:Name="StoreTrailerSides" />
+                    <Border x:Name="StoreTrailerBottom" />
+                </Grid>
+                    <!-- Gallery Samples/CommandBar/CommandBarPage.xaml,
+                         v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7：原生命令与可访问标签。 -->
+                    <CommandBar x:Name="StoreTrailerControls" HorizontalAlignment="Right"
+                                VerticalAlignment="Top" Canvas.ZIndex="1" Visibility="Collapsed"
+                                DefaultLabelPosition="Collapsed" IsOpen="False" IsDynamicOverflowEnabled="False"
+                                OverflowButtonVisibility="Collapsed" Background="Transparent">
                         <CommandBar.Resources>
                             <Style TargetType="AppBarButton" BasedOn="{StaticResource DefaultAppBarButtonStyle}">
                                 <Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" />
@@ -331,7 +345,6 @@
                             <AppBarButton.Icon><FontIcon Glyph="&#xE8D6;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
                     </CommandBar>
-                </Grid>
             <StackPanel>
 
                 <!-- ============ 头部 ============ -->

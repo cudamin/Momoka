@@ -19,16 +19,18 @@ namespace Momoka.Emby;
 /// </summary>
 public static class DetailHero
 {
-    /// <summary>商店剧照靠右等比收进页面，保留完整画面；最大高520，不参与正文占位。</summary>
-    public static double StorePictureWidth(double width, double ratio)
-    {
-        var aspect = ratio > 0 && double.IsFinite(ratio) ? ratio : 9d / 16;
-        var page = width > 0 && double.IsFinite(width) ? width : 1200;
-        return Math.Min(page * 0.84, 520 / aspect);
-    }
+    /// <summary>商店剧照与预告使用同一顶部右侧视口，原图在视口内等比裁切。</summary>
+    public static double StorePictureWidth(double width, double ratio) => TrailerPreview.BackgroundWidth(width);
 
     public static double StorePictureHeight(double width, double ratio) =>
-        StorePictureWidth(width, ratio) * (ratio > 0 && double.IsFinite(ratio) ? ratio : 9d / 16);
+        TrailerPreview.BackgroundHeight(width);
+
+    /// <summary>窄商店窗口将静态背景铺在顶部内容后，由页面内亚克力遮住。</summary>
+    public static double StoreBackdropWidth(double width) => width is > 0 and < 1100
+        ? width : StorePictureWidth(width, 9d / 16);
+
+    public static double StoreBackdropHeight(double width, double heroHeight) => width is > 0 and < 1100
+        ? Math.Max(420, double.IsFinite(heroHeight) ? heroHeight : 0) : StorePictureHeight(width, 9d / 16);
 
     /// <summary>
     /// 没有剧照的条目上这一格有多高：一格底色加一层罩子，垫住海报、片名和那排键。

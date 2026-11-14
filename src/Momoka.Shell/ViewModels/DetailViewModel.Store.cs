@@ -12,8 +12,8 @@ public sealed partial class DetailViewModel
     public Visibility StoreBackdropVisibility => Show(StoreMode && HeroImage is not null);
 
     /// <summary>顶部背景随页宽缩放，并限制高度；不参与内容布局。</summary>
-    public double StoreBackdropHeight => DetailHero.StorePictureHeight(PageWidth, HeroHeightRatio);
-    public double StoreBackdropWidth => DetailHero.StorePictureWidth(PageWidth, HeroHeightRatio);
+    public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(PageWidth, HeroHeight);
+    public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     public double StorePreviewWidth => Math.Min(640, PageWidth * 0.46);
     public double StoreContentWidth => Math.Max(0, PageWidth - 64
@@ -28,12 +28,6 @@ public sealed partial class DetailViewModel
     {
         get => _storeDetailsRoom;
         set { if (SetProperty(ref _storeDetailsRoom, value)) NotifyStoreRoom(); }
-    }
-    private double _storeTrailerRoom;
-    internal double StoreTrailerRoom
-    {
-        get => _storeTrailerRoom;
-        set { if (SetProperty(ref _storeTrailerRoom, value)) NotifyStoreRoom(); }
     }
     private void NotifyStoreRoom()
     {
