@@ -16,7 +16,7 @@ public sealed partial class DetailViewModel
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     public double StorePreviewWidth => Math.Min(640, PageWidth * 0.46);
-    public double StoreContentWidth => Math.Max(0, PageWidth - 64
+    public double StoreContentWidth => Math.Max(0, PageWidth - 2 * DetailHero.StorePageInset(PageWidth)
         - (StoreMode && PageWidth >= 1100 ? StorePreviewWidth + 28 : 0));
     public double StoreTextWidth => StoreMode
         ? Math.Max(0, StoreContentWidth - StillWidth - ColumnSpacing) : double.PositiveInfinity;

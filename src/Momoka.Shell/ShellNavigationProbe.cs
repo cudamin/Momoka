@@ -61,6 +61,11 @@ internal sealed partial class ShellNavigationProbe
                 await CaseAsync("媒体多选播放列表保持原授权和写入", LibraryBatchAsync, 150, section: ShellProbeSections.ServerLists);
                 return;
             }
+            if (_options.ProbeSections is { Count: 1 } cardOnly && cardOnly.Contains(ShellProbeSections.DetailCards))
+            {
+                await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
+                return;
+            }
             // Music also exercises the real navigation shell; the music controls themselves cannot
             // establish directory dispatch or sidebar integration. Keep this under the same selected scope.
             if (_options.ProbeSections is { Count: 1 } musicOnly && musicOnly.Contains(ShellProbeSections.Music))
@@ -337,6 +342,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("性能：真实诊断 UI 队列洪峰合并、拒绝与访问归属", PerformanceDiagnosticsAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("资源：真实XAML封面解码预算、快速换片与队列响应", PerformanceCoverAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实设置滑块合并保存、失败重试与离页排空", PerformanceSettingsAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
         }
     }
 

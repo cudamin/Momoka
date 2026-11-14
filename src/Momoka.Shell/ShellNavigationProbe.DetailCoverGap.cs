@@ -103,7 +103,7 @@ internal sealed partial class ShellNavigationProbe
                 var sheetRight = Bounds(sheet, shell).Right;
                 foreach (var bodyPanel in panels)
                 {
-                    var bodyHead = bodyPanel.Children.OfType<ShelfHead>().First();
+                    var bodyHead = Descendants(bodyPanel).OfType<ShelfHead>().First();
                     Require(Math.Abs(Bounds(bodyHead, shell).Left - box.Left) < 1,
                         $"{width} {bodyPanel.Name} 标题起点未对齐封面");
                     Require(Math.Abs(sheetRight - Bounds(bodyPanel, shell).Right - 8) < 1
@@ -116,7 +116,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(Math.Abs(Bounds(bodyHead, shell).Left - (shellWidth - Bounds(bodyHead, shell).Right)) < 1,
                         $"{width} {bodyPanel.Name} 窗口左右空位不等：左 {Bounds(bodyHead, shell).Left:0.##}，"
                             + $"右 {shellWidth - Bounds(bodyHead, shell).Right:0.##}");
-                    foreach (var row in bodyPanel.Children.OfType<ShelfStrip>())
+                    foreach (var row in Descendants(bodyPanel).OfType<ShelfStrip>())
                     {
                         Require(Math.Abs(Bounds(row, shell).Left - box.Left) < 1,
                             $"{width} {bodyPanel.Name} 卡片起点未对齐封面");

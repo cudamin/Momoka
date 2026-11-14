@@ -1,3 +1,14 @@
+## 2026-11-14 商店详情分区卡片与两侧留白（065c树，已验证待合并）
+
+用户要求参考微软商店，在商店媒体详情下方增加分区卡片，并统一订阅/媒体详情卡面；追加两侧留空、左沿对齐。当前树065c、分支codex/store-detail-cards、基点5d1fe05。媒体五个分区与MoviePilot四个分区共用原生StackPanel/Border样式：圆角8、标题最小48/字号16、1 DIP通栏分隔、内容内边距24、卡间距10。保留原分区根/名称/显隐/重排及集合身份、货架和Expander；商店季区只显示外层标题，沉浸恢复内部标题。两页StorePageInset按>=1100/600～1099/<600分别64/40/24，1840内容上限居中保留，封面、简介和下方卡外沿对齐；主题资源与模式/宽度通知即时更新。
+
+来源：微软商店闭源，附件仅作外观参考。实施前已读取稳定Gallery v2.9.3/14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的Samples/Grid、Samples/Border完整XAML/code-behind，Controls/ControlExample、SampleThemeListener与Styles/Grid.xaml；没有媒体卡内标题/货架完整组合，按原生控件组合，不升级依赖。Microsoft Learn layering指南核对表面层次。本机来源ZIP为logs/gallery-frontend-source-20261114-741e/Gallery-14a4a1.zip，SHA256 42D46136938B67D6FF6A7336B9C3A6D415850C5819C28B1E2E88B68FEAF37EF6。两名子代理只读审查身份、通知、测试覆盖和同期主树差异，没有并行写入或桌面操作。
+
+分支Release Shell/Core/Tests/PageContractTests均0警告0错误；页面契约258/258，detail-customization-fixture 52/52、acrylic-controls-fixture 39/39、真实Shell DLL详情状态89/89、MP页面状态40/40，0失败0跳过。29个变更文本的LF/BOM/末尾换行/空白检查通过。新匿名原生detail-cards专项最终主屏日志shell-probe-20261114-073915454-36016/logs，1/1 Passed；两页1240/760/360/1240卡头、分隔、留白/左沿，隐藏恢复、模式往返、主题/资源更新和空背景/错误Padding拒绝全部通过，直接复用CheckImmersiveSwitchAsync跑1200/760并保留主体和分区身份、固定操作材质。六张最终尺寸截图已逐张目视主屏完整画面。专项直接Frame宿主，不当作最新侧栏整壳验证。原生检查台shell-probe-20261114-072936694-24532/logs，InspectDetailCoverGap和InspectMoviePilotMica具名2/2通过，实际执行嵌套卡头/货架遍历及旧订阅卡面断言；等距用例旧居中/右留白反例被拒并恢复，最终以InspectDone正常退出。单集旧入口前段有过时商店窄窗断言，未启动该整项；受影响模式helper通过专项直接执行，未放宽旧前件。
+
+历史报告保留：070108304-39480首次夹具缺SeriesCards失败，已初始化DetailLayout.Plan；071126571-1076副屏成功，但宽屏截图右侧被裁，不当完整1240视觉证据；072644861-18336主屏隐藏启动导致探针宿主不可见失败，后用可见诊断窗口启动正常，没有改断言。072743390-24048主屏成功，再加旧模式helper后最终36016成功。桌面锁占用时只读探针等待，未结束其他进程。全部假HTTP/假身份/隔离设置，未播放或写真实媒体；未覆盖跨DPI、真实系统高对比/关透明、文字缩放、触摸或读屏。分支报告不冒充最终主树交付。
+
+本批按用户常设规则只提交和合入master，不发布、不改桌面快捷方式、不推远程；合并时保留同期商店默认/沉浸标题工具栏、侧栏预览、订阅简介上移/Shimmer、商店版本框和主题色播放键，三方整合后登记待交付台账。用户输入图片共4张，未达40暂停阈值。
 ## 2026-11-14 商店预告右侧背景与窄窗亚克力（已合入，未发布）
 
 本轮工作树 `6a4d`，分支 `codex/trailer-background`，基点 `0fdf357`。用户要求对照微软商店红框：预告与静态图共用顶部右侧60%宽、最大920 DIP的16:9区域，无固定宿主右边距；最大1840居中内容区自然产生宽窗留白。视频不用静态图VisualSurface重定向，直接绘制XAML两侧/底部渐变；原生40 DIP圆形CommandBar按钮移到画面下方右侧，媒体/WebView/iframe均不接受指针和Tab，YouTube controls/disablekb/fs/loop与固定ID白名单保留。移除预告给正文撑高的占位。

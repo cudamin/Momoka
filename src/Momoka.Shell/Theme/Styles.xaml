@@ -543,6 +543,26 @@
         <Setter Property="Padding" Value="{StaticResource EgPanelPadding}" />
     </Style>
 
+    <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
+         Controls/ControlExample.xaml、Styles/Grid.xaml 使用原生圆角表面与分隔线。
+         Gallery 没有卡内标题和媒体货架的成套样例，详情两页共用这一组原生组合。 -->
+    <Style x:Key="EgStoreDetailCardStyle" TargetType="StackPanel" BasedOn="{StaticResource EgBodyPanelStyle}">
+        <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Spacing" Value="0" />
+    </Style>
+    <Style x:Key="EgStoreDetailCardHeaderStyle" TargetType="Border">
+        <Setter Property="Padding" Value="24,10" />
+        <Setter Property="MinHeight" Value="48" />
+        <Setter Property="BorderBrush" Value="{ThemeResource DividerStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <Style x:Key="EgStoreDetailCardContentStyle" TargetType="StackPanel">
+        <Setter Property="Padding" Value="24" />
+        <Setter Property="Spacing" Value="10" />
+    </Style>
+
     <!--
       右上角那颗方块。数字和对勾用同一颗，因为它们说的是同一件事 ——「还剩多少」，对勾就是「零」。
       跟框线齐平（没有外边距），它是框的一部分而不是浮在图上的贴纸；四角磨圆 6（见

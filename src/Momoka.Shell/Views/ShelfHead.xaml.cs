@@ -99,6 +99,31 @@ public sealed partial class ShelfHead : UserControl
         typeof(ShelfHead),
         new PropertyMetadata(true, OnShowRuleChanged));
 
+    /// <summary>详情商店卡的标题栏：文字与通栏分隔由卡片承载，保留原标题和导航语义。</summary>
+    public static readonly DependencyProperty StoreCardProperty = DependencyProperty.Register(
+        nameof(StoreCard), typeof(bool), typeof(ShelfHead), new PropertyMetadata(false, OnStoreCardChanged));
+
+    public bool StoreCard
+    {
+        get => (bool)GetValue(StoreCardProperty);
+        set => SetValue(StoreCardProperty, value);
+    }
+
+    private static void OnStoreCardChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var head = (ShelfHead)sender;
+        head.PaintLines();
+        head.TitleText.Style = Resource<Style>(head.StoreCard ? "EgSubheadStyle"
+            : head.OnScrim ? "EgOnScrimSectionTitleStyle" : "EgSectionTitleStyle");
+        head.Underline.Visibility = head.StoreCard ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void PaintLines()
+    {
+        Accent.Visibility = ShowLines && !StoreCard ? Visibility.Visible : Visibility.Collapsed;
+        Rule.Visibility = ShowLines && ShowRule && !StoreCard ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     /// <summary>
     /// 下划线的看门人（<see cref="HoverWatch"/>），看的是 <see cref="Scope"/>。事件是快路，十分之一秒一次的
     /// 轮询兜底 —— 指针从牌子上直接出窗时，Exited 报的位置是旧的，没有这道网下划线就永远亮着
@@ -177,17 +202,13 @@ public sealed partial class ShelfHead : UserControl
     private static void OnShowLinesChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var head = (ShelfHead)sender;
-        var shown = (bool)args.NewValue;
-
-        head.Accent.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        // 两条线各有一支开关：ShowLines 是「沉浸详情页一条都不要」，ShowRule 是「只收底下那条」。
-        head.Rule.Visibility = shown && head.ShowRule ? Visibility.Visible : Visibility.Collapsed;
+        head.PaintLines();
     }
 
     private static void OnShowRuleChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var head = (ShelfHead)sender;
-        head.Rule.Visibility = (bool)args.NewValue && head.ShowLines ? Visibility.Visible : Visibility.Collapsed;
+        head.PaintLines();
     }
 
     /// <inheritdoc cref="OfferProperty"/>
@@ -262,7 +283,8 @@ public sealed partial class ShelfHead : UserControl
         var head = (ShelfHead)sender;
         var scrim = (bool)args.NewValue;
 
-        head.TitleText.Style = Resource<Style>(scrim ? "EgOnScrimSectionTitleStyle" : "EgSectionTitleStyle");
+        head.TitleText.Style = Resource<Style>(head.StoreCard ? "EgSubheadStyle"
+            : scrim ? "EgOnScrimSectionTitleStyle" : "EgSectionTitleStyle");
         head.NoteText.Style = Resource<Style>(scrim ? "EgOnScrimDataStyle" : "EgDataStyle");
         head.OpenGlyph.Foreground = Resource<Microsoft.UI.Xaml.Media.Brush>(
             scrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");

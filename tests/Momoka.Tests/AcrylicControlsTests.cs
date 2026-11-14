@@ -127,7 +127,7 @@ internal static class AcrylicControlsTests
         {
             var code = Source("Views/DetailPage.Appearance.cs");
             // 2026-11-12 起这一档叫 PlainMode（页面级的局部材质撤掉了，剩下的只是「简洁模式」这个判断）。
-            Assert.Contains("InfoPanel.Background = PlainMode ? null", code);
+            Assert.Contains("InfoPanel.Background = PlainMode ? StoreCardMaterialSource.Background", code);
             Assert.Contains(": ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;", code);
             // 从前只管单集页；用户 2026-11-08 要求电影、剧、季也加同一块卡面，判据里不该再有类型分支。
             var paint = code[code.IndexOf("private void PaintBackdropReading()", StringComparison.Ordinal)..];

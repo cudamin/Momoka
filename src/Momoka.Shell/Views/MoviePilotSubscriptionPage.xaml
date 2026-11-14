@@ -75,6 +75,8 @@
                 Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Border x:Name="StoreCardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
+                Background="{ThemeResource EgSurfaceBrush}" />
     <Grid x:Name="DetailContent" Visibility="{x:Bind MediaViewModel.DetailContentVisibility, Mode=OneWay}">
     <Grid x:Name="DetailBackdropRoot" IsHitTestVisible="False" Visibility="{x:Bind MediaViewModel.BackdropVisibility, Mode=OneWay}">
         <Border x:Name="DetailBackdropBand" Opacity="0.9" VerticalAlignment="Top"
@@ -244,33 +246,46 @@
             <StackPanel x:Name="BodyFlow" VerticalAlignment="Top" Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
             <Grid x:Name="BodyRow" SizeChanged="OnBodyRowSizeChanged">
             <StackPanel x:Name="SeasonPanel" Visibility="{x:Bind MediaViewModel.SeasonsVisibility, Mode=OneWay}"
-                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
-                Style="{StaticResource EgBodyPanelStyle}" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Top">
-                <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
+                Style="{StaticResource EgBodyPanelStyle}" VerticalAlignment="Top">
+                <Border x:Name="SeasonPanelHeader">
+                    <local:ShelfHead x:Name="SeasonHead" Title="季" />
+                </Border>
+                <StackPanel x:Name="SeasonPanelContent">
+                    <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
+                </StackPanel>
             </StackPanel>
 
             </Grid>
 
-            <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}"
-                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
-                Spacing="10" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
-                <local:ShelfHead Title="演员阵容" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
-                <local:ShelfStrip x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}"
-                    ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+            <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
+
+                <Border x:Name="PeoplePanelHeader">
+                    <local:ShelfHead Title="演员阵容" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
+                </Border>
+                <StackPanel x:Name="PeoplePanelContent">
+                    <local:ShelfStrip x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}"
+                        ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+                </StackPanel>
             </StackPanel>
-            <StackPanel x:Name="RecommendationsPanel" Style="{StaticResource EgBodyPanelStyle}"
-                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
-                Spacing="10" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
-                <local:ShelfHead Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
-                <local:ShelfStrip x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}"
-                    ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+            <StackPanel x:Name="RecommendationsPanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
+
+                <Border x:Name="RecommendationsPanelHeader">
+                    <local:ShelfHead Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
+                </Border>
+                <StackPanel x:Name="RecommendationsPanelContent">
+                    <local:ShelfStrip x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}"
+                        ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+                </StackPanel>
             </StackPanel>
-            <StackPanel x:Name="SimilarPanel" Style="{StaticResource EgBodyPanelStyle}"
-                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
-                Spacing="10" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
-                <local:ShelfHead Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
-                <local:ShelfStrip x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}"
-                    ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+            <StackPanel x:Name="SimilarPanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
+
+                <Border x:Name="SimilarPanelHeader">
+                    <local:ShelfHead Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
+                </Border>
+                <StackPanel x:Name="SimilarPanelContent">
+                    <local:ShelfStrip x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}"
+                        ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+                </StackPanel>
             </StackPanel>
             </StackPanel>
             </StackPanel>

@@ -144,6 +144,7 @@ public sealed partial class MoviePilotSubscriptionPage
 
         // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
         CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => RefreshPanelBrushes());
+        StoreCardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainMica());
         MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainMica());
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
@@ -224,10 +225,13 @@ public sealed partial class MoviePilotSubscriptionPage
         DetailMica.Apply(HeroMica, false);
         foreach (var panel in BodyPanels)
         {
-            panel.Background = plain ? null : _panelFill;
+            DetailSectionCard.Apply(panel, plain, MediaViewModel.BodyPanelPadding);
+            panel.Background = plain ? StoreCardMaterialSource.Background : _panelFill;
             panel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         }
-        SeasonPanel.Background = plain ? null : CardMaterialSource.Background;
+        DetailSectionCard.Apply(SeasonPanel, plain, MediaViewModel.BodyPanelPadding, 16);
+        SeasonPanelHeader.Visibility = plain ? Visibility.Visible : Visibility.Collapsed;
+        SeasonPanel.Background = plain ? StoreCardMaterialSource.Background : CardMaterialSource.Background;
         SeasonPanel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
     }

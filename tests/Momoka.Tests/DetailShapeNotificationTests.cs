@@ -43,7 +43,7 @@ internal static partial class DetailActionReadinessTests
                         "商店窄窗仍把封面尺寸归零：" + shape);
                     Assert.True(notices.Contains("StoreBackdropHeight"));
                     var previewWidth = Math.Min(640, width * 0.46);
-                    var leftWidth = Math.Max(0, width - 64 - (width >= 1100 ? previewWidth + 28 : 0));
+                    var leftWidth = Math.Max(0, width - 2 * DetailHero.StorePageInset(width) - (width >= 1100 ? previewWidth + 28 : 0));
                     Assert.Equal(Math.Max(0, leftWidth - (double)f.Get("StillWidth")! - 22), (double)f.Get("StoreTextWidth")!);
                     Assert.True(notices.Contains("StoreContentWidth"));
                 }

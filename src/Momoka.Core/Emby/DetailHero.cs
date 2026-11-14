@@ -19,6 +19,9 @@ namespace Momoka.Emby;
 /// </summary>
 public static class DetailHero
 {
+    /// <summary>商店内容两侧留白；超宽页面由视图的居中最大宽度继续留出外侧空间。</summary>
+    public static double StorePageInset(double width) => width >= 1100 ? 64 : width >= 600 ? 40 : 24;
+
     /// <summary>商店剧照与预告使用同一顶部右侧视口，原图在视口内等比裁切。</summary>
     public static double StorePictureWidth(double width, double ratio) => TrailerPreview.BackgroundWidth(width);
 

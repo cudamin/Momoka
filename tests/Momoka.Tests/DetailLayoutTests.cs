@@ -10,6 +10,12 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
+        Test("商店内容留白：宽窄断点和小窗回退", () =>
+        {
+            foreach (var width in new[] { double.NaN, 0, 360, 599 }) Assert.Equal(24d, DetailHero.StorePageInset(width));
+            foreach (var width in new[] { 600d, 760, 1099 }) Assert.Equal(40d, DetailHero.StorePageInset(width));
+            foreach (var width in new[] { 1100d, 1240, 1840, 2560 }) Assert.Equal(64d, DetailHero.StorePageInset(width));
+        });
         Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
         {
             Assert.Equal(768d, TrailerPreview.BackgroundWidth(1280));

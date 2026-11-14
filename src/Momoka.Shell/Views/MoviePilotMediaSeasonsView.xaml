@@ -4,9 +4,9 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:local="using:Momoka.Shell.Views">
     <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SeasonsVisibility, Mode=OneWay}">
-        <Grid ColumnSpacing="16">
+        <Grid ColumnSpacing="{x:Bind local:MoviePilotMediaSeasonsView.HeadingSpacing(ViewModel.Plain), Mode=OneWay}" Visibility="{x:Bind local:MoviePilotMediaSeasonsView.HeadingRowVisibility(ViewModel.Plain, ViewModel.GroupsVisibility), Mode=OneWay}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <TextBlock x:Name="SeasonsHeading" Text="季" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+            <TextBlock x:Name="SeasonsHeading" Visibility="{x:Bind local:MoviePilotMediaSeasonsView.HeadingVisibility(ViewModel.Plain), Mode=OneWay}" Text="季" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
             <TextBlock x:Name="EpisodeGroupsHeading" Grid.Column="1" Text="选择剧集组" Style="{StaticResource EgCaptionStyle}"
                 VerticalAlignment="Center" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}" />
         </Grid>

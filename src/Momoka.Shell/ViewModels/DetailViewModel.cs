@@ -1351,7 +1351,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 归零不会让字贴到板沿上。其余页面照旧 16／24。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(32, 16, 32, 0) : IsCompact
+    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 16, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)
@@ -1389,7 +1389,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 截图里那几行就是这么对齐的（「按键布局参考上方截图」，2026-09-12）。
     /// </para>
     /// </summary>
-    public Thickness TailInset => StoreMode ? new(8, 2, 8, 0) : IsCompact
+    public Thickness TailInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth) - 24, 2, DetailHero.StorePageInset(PageWidth) - 24, 0) : IsCompact
         ? new(2, 12, 2, 8)
         : HeroCard
             ? new(StackLeft, 12, PlainDetail ? 58 : StackLeft, 0)
@@ -1517,7 +1517,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 沉浸档把上下收到 10 / 14：那一档没有纸，28 只是把第一块货架从剧情说明底下推开。
     /// </para>
     /// </summary>
-    public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18)
+    public Thickness SheetPadding => StoreMode ? new(DetailHero.StorePageInset(PageWidth) - 10, 28, DetailHero.StorePageInset(PageWidth) - 10, 28)
+        : IsCompact ? new(28, 18, 28, 18)
         : HeroCard ? new(28)
         : Showcase ? new(8, DetailHero.ShowcaseSheetTop, 8, DetailHero.ShowcaseSheetBottom)
         : new(8, 28, 8, 28);
@@ -1526,10 +1527,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 纸面上那几块（单集、媒体信息、剧季、相似、演职人员）之间的竖距（<c>BodySheet.Spacing</c>）——
     /// 紧凑版式收一档，同 <see cref="TailSpacing"/>；沉浸档再紧一档（8），理由同 <see cref="TailSpacing"/>。
     /// </summary>
-    public double SheetSpacing => Showcase ? DetailHero.ShowcaseSheetSpacing : IsCompact ? 14 : 20;
+    public double SheetSpacing => StoreMode ? 10 : Showcase ? DetailHero.ShowcaseSheetSpacing : IsCompact ? 14 : 20;
 
     /// <summary>
-    /// 正文那几块货架面板自己的上下内边距（标记里每块各绑一次）—— 沉浸档从样式的 24 收到 10。
+    /// 正文货架的原模式留白由 DetailSectionCard 写入；商店模式统一采用卡内标题与内容留白。
     /// <para>
     /// 那几块在沉浸档里没有底也没有框（<c>DetailPage.Showcase.cs</c> 把它们的画刷淡到 0），24 的上下留白于是
     /// 只剩「把两块货架隔开」一个作用，而隔着模糊背景读起来就是一截空。左右不动，货架标题和卡片的左沿不变。

@@ -13,6 +13,11 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
     public MoviePilotMediaSeasonsView() => InitializeComponent();
     internal bool HasSubscriptionFiles => ViewModel.Seasons.Any(row => row.Files is not null);
 
+    public static Visibility HeadingVisibility(bool store) => store ? Visibility.Collapsed : Visibility.Visible;
+    public static double HeadingSpacing(bool store) => store ? 0 : 16;
+    public static Visibility HeadingRowVisibility(bool store, Visibility groups) =>
+        store && groups != Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+
     /// <summary>
     /// <paramref name="files"/> 是订阅详情的视图模型：给了它，订阅那一季的折叠栏就不再展开通用集列表，
     /// 改为装文件统计（统计、筛选与逐集播放/搜索，用户令 2026-10-12）。数值不直接绑过去 —— 嵌套 x:Bind

@@ -91,6 +91,7 @@
                     <Grid>
                     <TextBlock
                         x:Name="TitleText"
+                        AutomationProperties.HeadingLevel="Level3"
                         MaxLines="1"
                         Style="{StaticResource EgSectionTitleStyle}"
                         TextTrimming="CharacterEllipsis" />

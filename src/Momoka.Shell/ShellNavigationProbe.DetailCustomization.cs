@@ -602,8 +602,7 @@ internal sealed partial class ShellNavigationProbe
                     "商店模式顶部仍显示大卡框或改变文件选项布局");
                 // 沉浸关掉之后卡片带回到主题那套墨、信息卡回到正文面板共享的那支画刷。
                 RequireCardInk(page, onScrim: false);
-                Require(Get<StackPanel>(page, "InfoPanel").Background is null,
-                    "商店信息区又套回整块卡面");
+                RequireStoreDetailCards(page, ["EpisodePanel", "InfoPanel", "SeasonPanel", "CastPanel", "SimilarPanel"]);
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");

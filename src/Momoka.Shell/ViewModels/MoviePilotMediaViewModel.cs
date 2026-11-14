@@ -250,6 +250,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    [NotifyPropertyChangedFor(nameof(BodySheetPadding))]
+    [NotifyPropertyChangedFor(nameof(HeaderPadding))]
     public partial double PageWidth { get; set; }
 
     /// <inheritdoc cref="PageWidth"/>
@@ -354,9 +356,11 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public Visibility BackdropFadeVisibility => Show(Backdrop is not null && Immersive && !Showcase);
 
     /// <summary>所有模式使用同一套紧凑留白。</summary>
-    public Thickness BodySheetPadding => new(PageMargin.Left, 8, PageMargin.Right, 8);
-    public Thickness HeaderPadding => new(PageMargin.Left, 12, PageMargin.Right, 0);
-    public double BodySheetSpacing => 8;
+    public Thickness BodySheetPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left, 8,
+        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 8);
+    public Thickness HeaderPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left, 12,
+        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 0);
+    public double BodySheetSpacing => Plain ? 10 : 8;
     public Thickness BodyPanelPadding => new(12);
 
     /// <summary>大窗模式里货架标题前那条强调条与底下那条通栏线都收起（同详情页）。</summary>
@@ -374,6 +378,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(BackdropOpacity));
         OnPropertyChanged(nameof(BackdropFadeVisibility));
         OnPropertyChanged(nameof(BodySheetPadding));
+        OnPropertyChanged(nameof(HeaderPadding));
         OnPropertyChanged(nameof(BodySheetSpacing));
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));

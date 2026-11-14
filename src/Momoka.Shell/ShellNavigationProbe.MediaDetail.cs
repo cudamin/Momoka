@@ -49,7 +49,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(season, page) >= Math.Max(Top(primary, page) + primary.ActualHeight, Top(facts, page) + facts.ActualHeight)
                 && Top(season, page) - Top(hero, page) - hero.ActualHeight is >= 6 and <= 10,
                 "全宽季区没有紧接完整头部，或覆盖了简介/资料卡");
-            Require(page.MediaViewModel.Plain ? season.Background is null
+            Require(page.MediaViewModel.Plain ? season.Background is SolidColorBrush { Color.A: 255 }
                 : season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
                 "季区域没有保留主题材质或高对比度实色回退");
         }
@@ -622,7 +622,7 @@ internal sealed partial class ShellNavigationProbe
             // 2026-11-12 同媒体详情页：这一页也不许再挂页面级的局部材质，底就是外壳那块画布。
             Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
                 "简洁模式又给页面挂了局部材质");
-            Require(panel.Background is null && panel.BorderThickness == default, "商店正文仍套整块卡面");
+            RequireStoreDetailCards(page, ["SeasonPanel", "PeoplePanel", "RecommendationsPanel", "SimilarPanel"]);
             Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
             // 简洁模式的按钮同样是那支固定面色（2026-11-11 用户令），不读按钮材质那四项设置。
             RequireFixedSurface(Get<WrapRow>(page, "DetailActions").Children.OfType<Button>());

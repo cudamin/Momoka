@@ -40,7 +40,8 @@ public sealed partial class DetailPage
         HeroScrim.Opacity = plain ? 0 : 1;
         foreach (var panel in BodyPanels)
         {
-            panel.Background = plain ? null : _panelFill;
+            DetailSectionCard.Apply(panel, plain, panel == InfoPanel ? new Thickness(24) : ViewModel.BodyPanelPadding);
+            panel.Background = plain ? StoreCardMaterialSource.Background : _panelFill;
             panel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         }
         // 资源回调的顺序不固定；沉浸信息卡必须保留可读卡面，不能被透明的正文面板刷覆盖。
@@ -80,6 +81,7 @@ public sealed partial class DetailPage
             RefreshPanelBrushes();
             PaintBackdropReading();
         });
+        StoreCardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainSurfaces());
         MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainSurfaces());
         HeroContentLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainSurfaces());
         RefreshPanelBrushes();
