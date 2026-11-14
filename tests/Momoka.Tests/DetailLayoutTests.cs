@@ -78,16 +78,24 @@ internal static class DetailLayoutTests
             }
         });
 
-        Test("商店遮罩：随红蓝剧照取色，坏图与纯黑回退，原像素不变", () =>
+        Test("商店环境底：随红蓝剧照取色、亮图收到阅读上限，坏图与纯黑回退，原像素不变", () =>
         {
             var fallback = Momoka.Theming.ThemeColor.Rgb(10, 15, 20);
+            var paper = Momoka.Theming.ThemeColor.Rgb(0xF2, 0xF6, 0xFA);
             var red = new byte[] { 10, 20, 200, 255, 10, 20, 200, 255 };
             var saved = red.ToArray();
             var color = Momoka.Theming.ArtworkShade.Sample(red, 2, 1, fallback);
             Assert.True(color.R > color.B && color.R < 100);
+            // 2026-11-14 用户令「渐变不能根据背景图颜色自动切换吗」：补过饱和度的底要能看出色相，
+            // 同时最亮通道收到一个暗底的上限 —— 白字压在任何一张剧照取出来的底上都还得读得出来。
+            Assert.True(color.R - color.B > 60);
+            Assert.True(Momoka.Theming.ThemeColor.Contrast(paper, color) >= 4.5);
             Assert.True(red.SequenceEqual(saved));
             var blue = Momoka.Theming.ArtworkShade.Sample(new byte[] { 200, 20, 10, 255 }, 1, 1, fallback);
             Assert.True(blue.B > blue.R);
+            var white = Momoka.Theming.ArtworkShade.Sample(Enumerable.Repeat<byte>(255, 16).ToArray(), 2, 2, fallback);
+            Assert.True(Math.Max(white.R, Math.Max(white.G, white.B)) <= 92);
+            Assert.True(Momoka.Theming.ThemeColor.Contrast(paper, white) >= 4.5);
             Assert.Equal(fallback, Momoka.Theming.ArtworkShade.Sample([], 2, 1, fallback));
             Assert.Equal(fallback, Momoka.Theming.ArtworkShade.Sample(new byte[4], 1, 1, fallback));
         });

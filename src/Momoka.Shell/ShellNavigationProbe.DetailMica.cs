@@ -190,6 +190,8 @@ internal sealed partial class ShellNavigationProbe
                     "恢复沉浸后操作和文件选项没有回到原位置");
                 Require(!Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,
                     "恢复沉浸后商店背景仍在持续采样");
+                Require(!Get<StoreBackdropFade>(page, "_storeAmbientFade").IsActive,
+                    "恢复沉浸后商店环境底仍在持续采样");
                 Require(page.ViewModel.CornerVisibility == (item.Type == EmbyItemType.Season ? Visibility.Collapsed : Visibility.Visible),
                     "恢复沉浸后右上角艺术图未恢复");
                 Require(!DetailHasLocalBackdrop(page), "沉浸恢复后出现局部系统材质");
@@ -228,6 +230,7 @@ internal sealed partial class ShellNavigationProbe
                     page.ViewModel.HeroImage = null;
                     await LayoutAsync(page);
                     Require(store.Visibility == Visibility.Collapsed, "商店背景缺图后未收起");
+                    Require(Get<Grid>(page, "StoreAmbient").Visibility == Visibility.Collapsed, "商店环境底缺图后未收起");
                     Require(!Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,
                         "商店背景缺图后未释放组合资源");
                 }
@@ -327,11 +330,17 @@ internal sealed partial class ShellNavigationProbe
             "商店背景没有启用透明渐隐");
         Require(Get<Border>(page, "StoreBackdropMask").Background is ImageBrush { ImageSource: Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap },
             "商店背景没有双轴透明遮罩");
-        Require(Get<Border>(page, "StoreBackdropSides").Background is LinearGradientBrush { GradientStops.Count: 5 },
-            "商店背景没有左右阅读渐变");
-        Require(Get<Border>(page, "StoreBackdropBottom").Background is LinearGradientBrush { GradientStops.Count: 5 } bottom
-            && bottom.GradientStops[^1].Color.A == 255,
-            "商店背景底部没有渐隐到当前图片色");
+        // 2026-11-14 用户令「渐变参考图二改」：染色不再压在剧照上，剧照在一块主题色环境底上渐隐。
+        var ambient = Get<Grid>(page, "StoreAmbient");
+        Require(ambient.Visibility == store.Visibility
+            && Math.Abs(ambient.ActualHeight - view.StoreAmbientHeight) < 1,
+            "商店环境底没有跟随背景的高度与显隐");
+        Require(Get<Border>(page, "StoreBackdropSides").Background is SolidColorBrush { Color.A: 255 },
+            "商店环境底没有按剧照取色");
+        Require(Get<Border>(page, "StoreAmbientMask").Background is ImageBrush { ImageSource: Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap },
+            "商店环境底没有双轴透明遮罩");
+        Require(Get<StoreBackdropFade>(page, "_storeAmbientFade").IsActive,
+            "商店环境底没有启用透明渐隐");
     }
 
     private static bool DetailHasLocalBackdrop(DependencyObject node)

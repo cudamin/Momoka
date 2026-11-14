@@ -613,6 +613,15 @@ internal sealed partial class ShellNavigationProbe
                 "MP 商店模式缺少顶部渐隐背景");
             Require(Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,
                 "MP 商店背景未启用透明渐隐");
+            // 2026-11-14 同媒体详情页：剧照不再被染色，改在一层随剧照取色的环境底上渐隐。
+            var ambient = Get<Grid>(page, "StoreAmbient");
+            Require(ambient.Visibility == Visibility.Visible
+                && Math.Abs(ambient.Height - Get<Grid>(page, "StoreBackdrop").Height) < 1,
+                "MP 商店环境底没有跟随背景的高度与显隐");
+            Require(Get<Border>(page, "StoreBackdropSides").Background is SolidColorBrush { Color.A: 255 },
+                "MP 商店环境底没有按剧照取色");
+            Require(Get<StoreBackdropFade>(page, "_storeAmbientFade").IsActive,
+                "MP 商店环境底未启用透明渐隐");
             Require(surface.Background is null && Get<SystemBackdropElement>(page, "HeroMica").SystemBackdrop is null,
                 "商店顶部仍用局部 Mica 卡片覆盖背景");
             Require(surface.Padding == default, "商店顶部仍有卡片内边距：" + surface.Padding);

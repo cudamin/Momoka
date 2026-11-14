@@ -1,4 +1,14 @@
-## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
+## 2026-11-14 商店背景：随剧照取色的环境底与「图二」式渐隐（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/feat-plot-desc-right-LdxbV3/feat-auto-gradient-bg-tLiaKz`，分支 `feat-auto-gradient-bg-tLiaKz`，基点 `7610ee5`。用户附当前界面与微软商店条目页两张截图，两句话：「这个渐变不能根据背景图颜色自动切换吗？」「而且渐变的效果也不像。参考图二改把，不行算了」。微软商店闭源，截图只作视觉参考。
+
+**改了什么。** 商店模式（设置里关掉沉浸）的媒体详情与 MoviePilot 订阅详情，顶部背景从「剧照上压两道取色渐变」改成「剧照在一块取色环境底上渐隐」：`StoreBackdropStyle.Apply` 只画纯色；新加的 `StoreAmbient` 铺满内容宽、垫在剧照下，高度取「剧照盒」与「顶部内容」里更高的一个（`DetailViewModel.StoreAmbientHeight`，超宽窗口图的下半段也不会渐隐到画布上），左端与底部由 Ambient 遮罩收到画布；剧照自己只按 Picture 遮罩在左边与底部收边，右边铺到屏沿（旧的右边收边与 70% 染色退役）。两块各一次 Gallery `OpacityMaskView` 式 VisualSurface/MaskBrush 重定向，离树、缺图、高对比度或恢复沉浸时释放；窄窗（<1100）的亚克力盖层与预告片那两道渐变不动。
+
+**自动换色。** `ArtworkShade.Sample` 仍按饱和度加权取均值，但先朝灰度反方向补 1.35 档饱和度、再把最亮通道收到 68：浅色剧照取出来的底不发灰，白字与主题次字仍有对比度。取色按 `BackdropPixels` 实例缓存，换条目重新采样；缺图回退窗口色。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；主测试 **5103 项，通过 5087、失败 16**，16 条全部是既有自检用例撞上「已有当前用户的自检运行中」（另一会话的测试进程持有共享 mutex，与本批无关，未结束他人进程）；新增/更新的「商店环境底」用例通过。原生检查台 `InspectDetailMica` **1/1**、`InspectMoviePilotMica` **1/1** 通过（日志 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261114-150209049-33716`），Movie 1200/760、Series/Season/Episode 各档与 360 窄窗截图已逐张目视：1200 的深色绿底随测试剧照取色，剧照本身不再被染色，左、下渐隐且右边铺到屏沿；MP 简洁模式同色底。**未合并、未交付**；未连真实服务器、未播放或写入；高对比度、触摸、读屏、跨 DPI 未实测。
+
+
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。
 

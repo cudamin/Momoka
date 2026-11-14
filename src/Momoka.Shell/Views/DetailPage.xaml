@@ -285,7 +285,17 @@
             SizeChanged="OnBodySizeChanged"
             ViewChanged="OnBodyViewChanged">
             <Grid x:Name="StoreScrollContent">
-        <!-- 商店模式：条目的横向剧照只装饰顶部，左右保护文字、底部渐隐，不改变卡面排版。 -->
+        <!-- 商店模式：条目的横向剧照只装饰顶部，左右保护文字、底部渐隐，不改变卡面排版。
+             2026-11-14 用户令「渐变参考图二改」：压在剧照上的那两道染色退役，换成一块从剧照取色的环境底
+             （StoreAmbient，铺满内容宽，左端与底部收到画布）；剧照自己在同一块底上按左、下两向渐隐，
+             右边铺到屏沿 —— 与微软商店条目页的顶图一致。两块各有一张二维 alpha 遮罩（StoreBackdropFade）。 -->
+        <Grid x:Name="StoreAmbient" Height="{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}"
+              HorizontalAlignment="Stretch" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
+            <Grid x:Name="StoreAmbientContent">
+                <Border x:Name="StoreBackdropSides" />
+            </Grid>
+            <Border x:Name="StoreAmbientMask" />
+        </Grid>
         <Grid x:Name="StoreBackdrop" Height="{x:Bind ViewModel.StoreBackdropHeight, Mode=OneWay}"
               Width="{x:Bind ViewModel.StoreBackdropWidth, Mode=OneWay}" HorizontalAlignment="Right"
               VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
@@ -296,8 +306,6 @@
                                     AlignmentX="Right" AlignmentY="Top" Stretch="UniformToFill" />
                     </Border.Background>
                 </Border>
-                <Border x:Name="StoreBackdropSides" />
-                <Border x:Name="StoreBackdropBottom" />
             </Grid>
             <Border x:Name="StoreBackdropMask" />
         </Grid>

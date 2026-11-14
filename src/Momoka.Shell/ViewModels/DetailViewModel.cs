@@ -186,7 +186,11 @@ public sealed partial class DetailViewModel : PageViewModel
         PropertyChanged += (_, args) =>
         {
             // 标题、封面和操作晚到都会改变顶部实测高度，窄窗背景与亚克力一起跟随。
-            if (args.PropertyName == nameof(HeroHeight)) OnPropertyChanged(nameof(StoreBackdropHeight));
+            if (args.PropertyName == nameof(HeroHeight))
+            {
+                OnPropertyChanged(nameof(StoreBackdropHeight));
+                OnPropertyChanged(nameof(StoreAmbientHeight));
+            }
             if (args.PropertyName == nameof(Showcase))
             {
                 RefitArtwork();
@@ -374,6 +378,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     public partial ImageSource? CornerImage { get; set; }
 
@@ -409,6 +414,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -443,6 +449,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMargin))]
     [NotifyPropertyChangedFor(nameof(CardTailGapHeight))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     public partial double PageWidth { get; set; }
@@ -502,6 +509,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreBackdropHeight));
+        OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StoreBackdropWidth));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreContentWidth));
@@ -532,6 +540,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(CardTailGapHeight));
         OnPropertyChanged(nameof(HeroLayoutHeight));
         OnPropertyChanged(nameof(HeroHeight));
+        OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(ScrimHeight));
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(Narrow));
@@ -592,6 +601,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -606,6 +616,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
     [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     public partial double HeroHeightRatio { get; set; } = 9d / 16;
 
@@ -760,6 +771,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -790,6 +802,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -827,6 +840,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -888,6 +902,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
@@ -912,6 +927,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -958,6 +974,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -1604,6 +1621,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -1663,6 +1681,7 @@ public sealed partial class DetailViewModel : PageViewModel
     // 带高一变，站在带高上的这一串都得重喊一遍（同 PageWidth 的名单）。
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
@@ -2748,6 +2767,7 @@ public sealed partial class DetailViewModel : PageViewModel
         // 那两处的通知一次都不会来。
         OnPropertyChanged(nameof(HeroLayoutHeight));
         OnPropertyChanged(nameof(HeroHeight));
+        OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(ScrimHeight));
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(TailMinHeight));
