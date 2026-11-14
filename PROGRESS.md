@@ -13337,7 +13337,7 @@ selfcheck-diff当前正式入口真实运行：原固定x=8取点落入新返回
 源码证据已复制到用户隔离日志 `gallery-frontend-source-20261114-741e`，ZIP SHA256与原件一致；音乐运行证据仍在 `shell-probe-20261113-183632738-924`。合并不重跑全量、不发布、不推远端，桌面仍是原发布件；本轮台账与进度做内容、路径、提交及编码一致性检查。分支顶端 `8db683b` 已完全进入 master，干净本树无独有产品或测试；应用 `archive_worktree` 拒绝移除当前聊天主检出（The task's primary checkout cannot be removed），按应用保护保留741e干净检出，不用原生命令绕过。仅将该检出在相同提交上分离并删除已合入的本任务临时分支；源码及运行恢复线索均已保留。
 ## 2026-11-14 详情续播条改为播放按钮裁切三分之一触发
 
-用户要求参考WinUI Gallery优化截图中的顶部续播条，并明确选择「裁切播放按钮三分之一后」。在隔离树 `C:/Users/89400/.codex/worktrees/f094/Momoka`、分支 `codex/sticky-trigger-conditions` 基于 `140bfe8` 完成产品 `393a1a2`，合并提交 `b034daf` 已进入master；并行主树封面停留改动 `61d59d2` 保留，六份本轮产品/测试/说明与分支逐文件一致。当前树无独有未保存内容，分支顶端SHA可从产品提交追溯，收尾删除本轮分支和工作树，不处理其他会话的树。
+用户要求参考WinUI Gallery优化截图中的顶部续播条，并明确选择「裁切播放按钮三分之一后」。在隔离树 `C:/Users/89400/.codex/worktrees/f094/Momoka`、分支 `codex/sticky-trigger-conditions` 基于 `140bfe8` 完成产品 `393a1a2`，合并提交 `b034daf` 已进入master；并行主树封面停留改动 `61d59d2` 保留，六份本轮产品/测试/说明与分支逐文件一致。当前树无独有未保存内容，分支顶端SHA可从产品提交追溯；应用 `archive_worktree` 拒绝移除当前聊天主检出（The task's primary checkout cannot be removed），遵守应用保护保留干净检出，在相同提交上分离并删除已合入的本轮分支，不用原生命令绕过保护或处理其他会话的树。
 
 正式判断按播放按钮实际 `TransformToVisual(Body)` 边界计算顶部裁掉三分之一，保留4 DIP/小按钮十分之一的回滚滞回、原生ViewChanged、宽窄主按钮选择、可用性、生命周期与焦点。原生检查同步成三分之一线后1 DIP显示，确保早于原半切；XAML注释与专项说明同步。完整核对稳定Gallery `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的ScrollView/ItemsView、HomePageHeader/ItemPage和旧ImageScrollBehavior；没有同款完整样例，旧85 DIP逻辑被上游csproj排除，比例明确是用户产品条件。原动效仍沿用先前桌面Gallery证据，未改依赖。
 
