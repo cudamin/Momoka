@@ -113,10 +113,18 @@ internal sealed partial class ShellNavigationProbe
             inputToggle.IsOn = true;
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.ShowInput && fixture.Settings.Danmaku.Show, "打开输入栏影响了弹幕显示或未保存偏好");
+            var heatToggle = Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == "在进度条显示弹幕热力");
+            Require(heatToggle.IsOn && fixture.Settings.Danmaku.ShowHeatmap, "热力开关默认值或自动化定位不一致");
+            ((IToggleProvider)new ToggleSwitchAutomationPeer(heatToggle).GetPattern(PatternInterface.Toggle)).Toggle();
+            await LayoutAsync(page);
+            Require(!fixture.Settings.Danmaku.ShowHeatmap, "热力开关没有保存关闭偏好");
             var show = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(!DanmakuRows(page).OfType<SettingSliderRow>().Any() && fixture.Settings.Danmaku.Opacity == 55, "关闭显示未完整隐藏或丢失偏好");
+            Require(!DanmakuRows(page).Any(row => row.Label == "在进度条显示弹幕热力")
+                && !fixture.Settings.Danmaku.ShowHeatmap, "关闭弹幕未隐藏热力行或清掉了关闭偏好");
             Require(cards.Single(section => section.Title == "显示与外观").Rows.Count == 1
                 && cards.Single(section => section.Title == "类型与屏蔽").Rows.Count == 0,
                 "关闭显示后「类型与屏蔽」应整张收起");
@@ -124,6 +132,12 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.ShowInput && DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "显示弹幕输入栏"), "恢复弹幕未保留输入栏偏好或未恢复开关");
+            heatToggle = Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == "在进度条显示弹幕热力");
+            Require(!heatToggle.IsOn && !fixture.Settings.Danmaku.ShowHeatmap, "恢复弹幕后热力行未保留关闭偏好");
+            ((IToggleProvider)new ToggleSwitchAutomationPeer(heatToggle).GetPattern(PatternInterface.Toggle)).Toggle();
+            await LayoutAsync(page);
+            Require(fixture.Settings.Danmaku.ShowHeatmap, "恢复热力开关未保存开启偏好");
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
             enabled.IsOn = false;
             await UntilAsync(() => page.IsContentMotionSettled);

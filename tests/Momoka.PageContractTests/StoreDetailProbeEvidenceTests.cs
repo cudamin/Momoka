@@ -7,6 +7,39 @@ internal static class StoreDetailProbeEvidenceTests
 {
     internal static void Register()
     {
+        Test("交付动效检查台：五项动效及设置宽窄并集接线", () =>
+        {
+            var probe = Read("ShellNavigationProbe.Inspect.cs");
+            Assert.Contains("\"InspectPersonTransition\"", probe);
+            Assert.Contains("\"InspectMotionPageTransitions\"", probe);
+            Assert.Contains("\"InspectDeliveryMotion\"", probe);
+            Assert.Contains("await FoundationHomeDirectoryReturnAsync();", probe);
+            Assert.Contains("\"InspectDeliveryMotionSettings\"", probe);
+            foreach (var call in new[] { "await SettingsEntranceAsync();", "await SettingsPriorityFiltersAsync(width);",
+                "await SettingsConditionalRowsAsync(width);", "await SettingsDanmakuAsync(width);",
+                "await MusicAsync();", "await FilterValuesAsync();" }) Assert.Contains(call, probe);
+            Assert.Contains("foreach (var width in new[] { 1100, 760 })", probe);
+            var danmaku = Read("ShellNavigationProbe.Danmaku.cs");
+            Assert.Contains("关闭弹幕未隐藏热力行或清掉了关闭偏好", danmaku);
+            Assert.Contains("恢复弹幕后热力行未保留关闭偏好", danmaku);
+        });
+        Test("商店诊断收尾：释放失败仍还原状态并保留失败", () =>
+        {
+            var restored = 0;
+            var failure = new InvalidOperationException("释放反例");
+            try
+            {
+                StoreDetailProbeEvidence.Cleanup(() => throw failure, () => restored++,
+                    () => throw new ArgumentException("还原反例"), () => restored++);
+                throw new AssertionException("收尾失败被吞掉");
+            }
+            catch (AggregateException error)
+            {
+                Assert.Equal(2, restored);
+                Assert.Equal(2, error.InnerExceptions.Count);
+                Assert.True(ReferenceEquals(failure, error.InnerExceptions[0]));
+            }
+        });
         Test("商店运行判据：实际视口与三处右沿空隙必须一致", () =>
         {
             StoreDetailProbeEvidence.RequireViewport(1240, 1240, 744, 744, 16, 16, 16, 16);
@@ -81,6 +114,7 @@ internal static class StoreDetailProbeEvidenceTests
             Assert.Contains("\"InspectStoreDetailBackdrop\"", Read("ShellNavigationProbe.Inspect.cs"));
             var probe = Read("ShellNavigationProbe.StoreDetailBackdrop.cs");
             Assert.Contains("page.SetStorePreviewActive(false);", probe);
+            Assert.Contains("series.MediaSources = episode.MediaSources;", probe);
             Assert.Contains("fixture.Actions.Plays == 0", probe);
             Assert.Contains("StoreDetailProbeEvidence.RequireClearance", probe);
             Assert.Contains("StoreDetailProbeEvidence.RequireGlyph", probe);

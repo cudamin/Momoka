@@ -322,8 +322,11 @@ internal static class PersonTransition
         {
             if (_lifecycle.Report(started, completed, reason, terminal) is not { } result || Observed is not { } observers) return;
             foreach (Action<PersonTransitionReceipt> observer in observers.GetInvocationList())
-                try { observer(new(result.Started, result.Completed, result.TimedOut, result.Reason,
-                    result.Terminal, result.PrepareToStartMs, result.ElapsedMs)); }
+                try
+                {
+                    observer(new(result.Started, result.Completed, result.TimedOut, result.Reason,
+                    result.Terminal, result.PrepareToStartMs, result.ElapsedMs));
+                }
                 catch (Exception) { /* 可选诊断不能影响导航或原生清理。 */ }
         }
 

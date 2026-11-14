@@ -3,6 +3,17 @@ namespace Momoka.Shell;
 /// <summary>商店详情探针的实际布局、遮罩与首字屏幕读数判据；不产生界面或重写产品布局。</summary>
 internal static class StoreDetailProbeEvidence
 {
+    internal static void Cleanup(params Action[] actions)
+    {
+        List<Exception>? failures = null;
+        foreach (var action in actions)
+        {
+            try { action(); }
+            catch (Exception error) { (failures ??= []).Add(error); }
+        }
+        if (failures is not null) throw new AggregateException("商店诊断收尾失败，已继续还原其他状态", failures);
+    }
+
     internal static void RequireViewport(double actualWidth, double pageWidth, double expectedWidth,
         double pictureWidth, double pictureGap, double acrylicGap, double trailerGap, double expectedGap)
     {

@@ -89,9 +89,16 @@ internal sealed partial class ShellNavigationProbe
                 Require(card.Background is not AcrylicBrush, "材质反例未替换成功");
                 card.Background = acrylic;
                 await SaveProbeScreenAsync($"detail-sticky-{width}-screen.png");
-                samples.Add(new { Width = width, ClientWidth = _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale,
-                    PageWidth = page.ActualWidth, Bounds = bounds.ToString(), ThirdClipOffset = clipLine,
-                    Card = "Acrylic", Name = AutomationProperties.GetName(play) });
+                samples.Add(new
+                {
+                    Width = width,
+                    ClientWidth = _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale,
+                    PageWidth = page.ActualWidth,
+                    Bounds = bounds.ToString(),
+                    ThirdClipOffset = clipLine,
+                    Card = "Acrylic",
+                    Name = AutomationProperties.GetName(play)
+                });
                 await ScrollProbeAsync(scroll, clipLine - 6);
                 await UntilAsync(() => card.Visibility == Visibility.Collapsed && !card.IsHitTestVisible);
                 await ScrollProbeAsync(scroll, clipLine + 1);

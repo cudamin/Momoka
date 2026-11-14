@@ -365,6 +365,28 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectWindowHostResearch", "P7窗口宿主研究", () => WindowHostResearchAsync(), ShellProbeSections.Shell);
         AddCheck("InspectWindowHostFailure", "P7窗口失败清理", () => WindowHostResearchAsync(injectFailure: true), ShellProbeSections.Shell);
         AddCheck("InspectCardDetailConnected", "P6海报详情关联动画", CardDetailConnectedAnimationAsync, ShellProbeSections.Shell, timeoutSeconds: 120);
+        AddCheck("InspectPersonTransition", "人物关联动画交付验证", PersonTransitionAsync, ShellProbeSections.Motion, timeoutSeconds: 60);
+        AddCheck("InspectMotionPageTransitions", "页面过渡候选交付验证", MotionPageTransitionsAsync, ShellProbeSections.Motion, timeoutSeconds: 90);
+        AddCheck("InspectDeliveryMotion", "本批五项动效验证", async () =>
+        {
+            await CardDetailConnectedAnimationAsync();
+            await PersonTransitionAsync();
+            await DetailStickyHeaderAsync();
+            await FoundationHomeDirectoryReturnAsync();
+            await MotionPageTransitionsAsync();
+        }, ShellProbeSections.Motion, timeoutSeconds: 450);
+        AddCheck("InspectDeliveryMotionSettings", "本批设置、音乐与筛选动效验证", async () =>
+        {
+            await SettingsEntranceAsync();
+            foreach (var width in new[] { 1100, 760 })
+            {
+                await SettingsPriorityFiltersAsync(width);
+                await SettingsConditionalRowsAsync(width);
+                await SettingsDanmakuAsync(width);
+            }
+            await MusicAsync();
+            await FilterValuesAsync();
+        }, ShellProbeSections.Settings, timeoutSeconds: 420);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

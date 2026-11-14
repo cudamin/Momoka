@@ -135,8 +135,11 @@ internal sealed partial class ShellNavigationProbe
         // 所有候选使用同一16ms配置，它增加采样负担，本探针不测CPU/GPU/帧率。
         var heartbeat = new Border
         {
-            Width = 2, Height = 2, HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom, IsHitTestVisible = false,
+            Width = 2,
+            Height = 2,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            IsHitTestVisible = false,
             Background = new SolidColorBrush(Color.FromArgb(255, 160, 0, 0))
         };
         _root.Children.Add(heartbeat);

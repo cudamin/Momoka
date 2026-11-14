@@ -21,36 +21,42 @@ internal sealed partial class ShellNavigationProbe
         await fixture.SelectAsync();
         var savedTheme = ThemeHost.Current.Id;
         var motion = HomeMotion.PreferenceEnabled;
-        HomeMotion.ApplyPreference(false);
-        var poster = await FixtureImageAsync(400, 600);
-        var backdrop = await StoreBackdropFixtureAsync();
-        var series = Series();
-        series.Name = "商店详情";
-        series.Overview = "首字完整。" + string.Concat(Enumerable.Repeat(ResponsiveOverview, 8));
-        series.People = [new() { Id = "store-director", Name = "离线导演", Type = "Director" }];
-        series.ImageTags["Primary"] = "store-poster";
-        series.BackdropImageTags = ["store-backdrop"];
-        var episode = Episode("a");
-        episode.MediaSources = [new() { Id = "store-source", Container = "mkv", MediaStreams =
-            [new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 }] }];
-        fixture.Transport.Reply = (request, _) =>
-        {
-            var path = request.RequestUri!.AbsolutePath;
-            if (path.Contains("/Images/", StringComparison.Ordinal))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                { Content = new ByteArrayContent(path.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop) });
-            return Task.FromResult(path.EndsWith("/Items/show", StringComparison.Ordinal) ? Json(series)
-                : path.EndsWith("/Episodes", StringComparison.Ordinal) ? Json(new { Items = new[] { episode } })
-                : path.EndsWith("/Items/" + episode.Id, StringComparison.Ordinal) ? Json(episode)
-                : FakeTransport.Standard(request));
-        };
-        fixture.Settings.Ui.EnableImmersive = false;
-        ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
         var frame = new Frame();
-        _root.Children.Add(frame);
         var reads = new List<object>();
         try
         {
+            HomeMotion.ApplyPreference(false);
+            var poster = await FixtureImageAsync(400, 600);
+            var backdrop = await StoreBackdropFixtureAsync();
+            var series = Series();
+            series.Name = "商店详情";
+            series.Overview = "首字完整。" + string.Concat(Enumerable.Repeat(ResponsiveOverview, 8));
+            series.People = [new() { Id = "store-director", Name = "离线导演", Type = "Director" }];
+            series.ImageTags["Primary"] = "store-poster";
+            series.BackdropImageTags = ["store-backdrop"];
+            var episode = Episode("a");
+            episode.MediaSources =
+            [
+                new() { Id = "store-source-a", Container = "mkv", MediaStreams =
+                    [new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 }] },
+                new() { Id = "store-source-b", Container = "mkv", MediaStreams =
+                    [new() { Index = 0, Type = "Video", Codec = "h264", Width = 1280, Height = 720 }] }
+            ];
+            series.MediaSources = episode.MediaSources;
+            fixture.Transport.Reply = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                if (path.Contains("/Images/", StringComparison.Ordinal))
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    { Content = new ByteArrayContent(path.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop) });
+                return Task.FromResult(path.EndsWith("/Items/show", StringComparison.Ordinal) ? Json(series)
+                    : path.EndsWith("/Episodes", StringComparison.Ordinal) ? Json(new { Items = new[] { episode } })
+                    : path.EndsWith("/Items/" + episode.Id, StringComparison.Ordinal) ? Json(episode)
+                    : FakeTransport.Standard(request));
+            };
+            fixture.Settings.Ui.EnableImmersive = false;
+            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+            _root.Children.Add(frame);
             Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, series)), "商店顶部检查导航失败");
             var page = (DetailPage)frame.Content;
             page.SetStorePreviewActive(false);
@@ -114,10 +120,27 @@ internal sealed partial class ShellNavigationProbe
                     screen.Bytes, screen.Width, screen.Height, (int)Math.Round(glyphBox.Left * scale), (int)Math.Round(glyphBox.Top * scale),
                     Math.Min(reference.PixelWidth, (int)Math.Ceiling(overview.FontSize * scale)),
                     Math.Min(reference.PixelHeight, (int)Math.Ceiling(overview.LineHeight * scale)));
-                reads.Add(new { width, pageWidth = page.ActualWidth, canvasWidth = canvas.ActualWidth, pictureBox,
-                    pictureGap, acrylicGap, trailerGap, firstCard = Bounds(firstCard, canvas), cover = Bounds(cover, canvas),
-                    details = Bounds(details, canvas), lines = overview.MaxLines, overview.IsTextTrimmed, pictureMask, ambientMask,
-                    glyph, screen.Stable, theme = savedTheme, localPlayback = false });
+                reads.Add(new
+                {
+                    width,
+                    pageWidth = page.ActualWidth,
+                    canvasWidth = canvas.ActualWidth,
+                    pictureBox,
+                    pictureGap,
+                    acrylicGap,
+                    trailerGap,
+                    firstCard = Bounds(firstCard, canvas),
+                    cover = Bounds(cover, canvas),
+                    details = Bounds(details, canvas),
+                    lines = overview.MaxLines,
+                    overview.IsTextTrimmed,
+                    pictureMask,
+                    ambientMask,
+                    glyph,
+                    screen.Stable,
+                    theme = savedTheme,
+                    localPlayback = false
+                });
                 StoreDetailProbeEvidence.RequireGlyph(glyph);
                 if (width == 1240) await StoreTrailerClearanceAsync(page, canvas, firstCard, reads);
             }
@@ -144,11 +167,12 @@ internal sealed partial class ShellNavigationProbe
             try { await WritePerformanceEvidenceAsync("store-detail-backdrop.json", new { reads, localPlayback = false, realServer = false }); }
             finally
             {
-                (frame.Content as IShellContent)?.Release();
-                _root.Children.Remove(frame);
-                ShellPrefs.ApplyAppearance(new());
-                HomeMotion.ApplyPreference(motion);
-                ThemeHost.Apply(savedTheme);
+                StoreDetailProbeEvidence.Cleanup(
+                    () => (frame.Content as IShellContent)?.Release(),
+                    () => _root.Children.Remove(frame),
+                    () => ShellPrefs.ApplyAppearance(new()),
+                    () => HomeMotion.ApplyPreference(motion),
+                    () => ThemeHost.Apply(savedTheme));
             }
         }
     }
