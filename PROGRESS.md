@@ -7,6 +7,14 @@
 **同步测试。** `MoviePilotSubscriptionPageStateTests` 的 XAML 次序断言改为头部无 `HeroSurface`/`HeroMica`、`HeroFacts` 与 `BodyFlow` 同住 `BodyRow`，并新增 `ShellPage.ApplyChrome` 为本页收起面包屑的源码契约；`Agreements.txt` 删除 `HeroSurface` 句柄基线；`ShellNavigationProbe.MediaDetail.RequireSubscriptionBodyLayout` 与 `ShellNavigationProbe.Subscriptions` 的资料卡／分区断面断言改为「资料卡在正文右列、左列分区只与左列同宽且不与它重叠」，并删去不存在的 `HeroSurface`/`HeroMica` 读数。
 
 **验证。** Release Shell/x64 **0 警告 0 错误**；`moviepilot-subscription-page-state-fixture <当前 Shell DLL> <树根>` **40/40**；`Momoka.PageContractTests` **274/274**；`Momoka.MoviePilotSubscribeSettingsTests` **77/77**；主测试首轮 **5103/5103**，末次在最终代码上重跑为 **5087/5103**，16 条红全部是 `SelfCheckOutputIsolationTests` 的「已有当前用户的自检运行中」——别的进程占着本机自检互斥量，本页相关用例（页面状态 40/40）在最终代码上全过，这 16 条按环境红如实记录，不冒充全绿。原生 `--probe-shell --probe-section moviepilot --screen 1`：日志 `shell-probe-20261114-143814928-1792` 跑完 27 项，除既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时外全部通过（订阅详情、电影订阅详情、编辑订阅、最窄布局恢复都在内），随后在同一处已知的「无图季列表图片恢复」布局循环路径崩溃（该用例自带 `StartBringIntoView` 会打成 LayoutCycle 的注释，先前的修复轮次也记录过同一路径），因此更后面的「订阅详情沉浸与简洁模式切换」没有跑到。宽窄实屏 `mp-subscription-header-1240.png`、`mp-subscription-header-760.png`、`mp-subscription-related-1240.png` 已目视：1240 是左列季／货架、右列资料卡；760 资料卡在正文最上面且左列全宽，头部没有卡面。面包屑收起只有 `ShellPage.ApplyChrome` 的源码契约与页面实屏（页面截图不含外壳），没有用整窗外壳截图复核；简洁模式（关沉浸）的实屏也没跑到。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏与跨 DPI。
+## 2026-11-14 设置窗口每次显现回到主窗口前面（已合入，待交付）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-settings-on-top-Odo2OM`，分支 `fix-settings-on-top-Odo2OM`，基点 `5ac4c45`。用户报「点完设置会自动跑到主窗口后面，再点一次主窗口的设置按钮也不会跑到主窗口前面」。根因读框架源码确认：WinUI 3 的 `DesktopWindowImpl::ActivateImpl` 只做 `ShowWindow(SW_SHOW)` 与 `SetActiveWindow`，对一扇已经看得见的窗口不改 z 序；设置窗口被主窗口盖住之后，`Window.Activate()` 只是把它「激活」在主窗口底下，所以再点设置也拿不回来。修法：`SettingsWindow.Show` 在 Activate 之后调用官方 `AppWindow.MoveInZOrderAtTop()`（WinAppSDK 1.1+，即 `SetWindowPos(HWND_TOP)`），首开、隐藏后重开、已经开着再点设置三条路都会把窗口提到主窗口前面；不改成 owned/topmost，保留全屏播放时 `HostWindow.StandAsideForOwnWindow` 的让位与收摊还原语义。
+
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.SettingsLifetimeTests` **62/62、0 失败 0 跳过**（新增「设置窗口每次显现都提到主窗口前面」，把首开／隐藏后重开／已开着再点设置三条路都钉住；原「设置窗显现前清理旧关闭悬停」同步补上 z-top 顺序）。改动文件 whitespace 与 diff 行尾/BOM/末尾换行通过；全仓 `check-diff -All` 仍有 6 个与本批无关的既有文件末尾换行红。原生 `--probe-shell --probe-section settings --screen 1` **28/28、退出 0**（`shell-probe-20261114-145505209-2492`）：其中「聚合设置窗口首开与缓存重开」新增一段回归，先把探针主窗口提到前面盖住设置窗，再走真实 `SettingsWindow.Show`，用设置窗口中心命中判它回到最前，读数 `重按设置回到最前 1526 ms`；该段在探针原有的 `presenter.IsAlwaysOnTop` 保护之前跑，不被探针自己的置顶掩盖。探针使用匿名假服务与独立目录，未登录真实服务器、未播放。
+
+合入：产品与测试 `cede788`；只解决 PROGRESS 顶部双侧追加冲突，产品与测试文件自动合并。按批次规则不跑全量、不发布，交付验证范围记入待交付台账。
+
 ## 2026-11-14 商店详情宽版式断点下调与内容右移（已合入，待交付）
 
 用户报一张 1338 宽窗口的商店详情：「才这个窗口大小你就切窄窗模式了？右边还留着一大片空位呢，而且你也不懂得往中间移一点？」。该窗客户区 1328、侧栏 256，内容区约 1072 DIP；原判断写死 `PageWidth >= 1100`，差 28 就落进窄档（整幅背景＋亚克力＋40 留白的一列），右侧空出约 470 DIP。新增 `DetailHero.StoreWideFloor = 1024` 统一收口：`StorePageInset`、`StoreBackdropWidth／Height`、`StoreContentWidth`、详情页与 MoviePilot 订阅页的亚克力显隐、商店预告的宽档判断全部改读这个常量。页宽 1024～1099 这一段因此从窄档的 40 留白换到宽档的 64，内容列随之右移 24 DIP（用户要的「触发时往右移一点点」），同时右侧恢复剧照／预告视口。
@@ -21,6 +29,19 @@
 验证：Shell Release x64 **0 警告 0 错误**；`Momoka.Tests` **5106 项、通过 5090、失败 16、跳过 0**，16 条全部是 `自检：…`／`自检输出：…` 因当前用户共享自检互斥锁被其他会话占用（`已有当前用户的自检运行中；请等它退出，不会关闭用户程序`），本批未触碰自检代码，未结束他人进程；本批新增/更新的 5 条账号菜单与按钮间距测试全部通过；`Momoka.NavigationStateTests` **10/10、0 失败 0 跳过**；`tools/check-diff.ps1` 检查 20 个文本文件通过。原生探针与实屏未跑：同一时刻另一工作树有 `--probe-shell` 在运行，交付时按台账补 `shell` 分区与账号菜单截图。未发布、未推送；合并后登记待交付台账。
 
 合入：产品 `8747796`，master 合并提交 `01e452f`；只解决 PROGRESS 顶部双侧追加冲突，产品与测试自动合并。合并后主树 Shell Release x64 **0 警告 0 错误**；台账已登记该批的交付验证范围。
+
+## 2026-11-14 商店背景：随剧照取色的环境底与「图二」式渐隐（已合入，待交付）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/feat-plot-desc-right-LdxbV3/feat-auto-gradient-bg-tLiaKz`，分支 `feat-auto-gradient-bg-tLiaKz`，基点 `7610ee5`。用户附当前界面与微软商店条目页两张截图，两句话：「这个渐变不能根据背景图颜色自动切换吗？」「而且渐变的效果也不像。参考图二改把，不行算了」。微软商店闭源，截图只作视觉参考。
+
+**改了什么。** 商店模式（设置里关掉沉浸）的媒体详情与 MoviePilot 订阅详情，顶部背景从「剧照上压两道取色渐变」改成「剧照在一块取色环境底上渐隐」：`StoreBackdropStyle.Apply` 只画纯色；新加的 `StoreAmbient` 铺满内容宽、垫在剧照下，高度取「剧照盒」与「顶部内容」里更高的一个（`DetailViewModel.StoreAmbientHeight`，超宽窗口图的下半段也不会渐隐到画布上），左端与底部由 Ambient 遮罩收到画布；剧照自己只按 Picture 遮罩在左边与底部收边，右边铺到屏沿（旧的右边收边与 70% 染色退役）。两块各一次 Gallery `OpacityMaskView` 式 VisualSurface/MaskBrush 重定向，离树、缺图、高对比度或恢复沉浸时释放；窄窗（<1100）的亚克力盖层与预告片那两道渐变不动。
+
+**自动换色。** `ArtworkShade.Sample` 仍按饱和度加权取均值，但先朝灰度反方向补 1.35 档饱和度、再把最亮通道收到 68：浅色剧照取出来的底不发灰，白字与主题次字仍有对比度。取色按 `BackdropPixels` 实例缓存，换条目重新采样；缺图回退窗口色。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；主测试 **5103 项，通过 5087、失败 16**，16 条全部是既有自检用例撞上「已有当前用户的自检运行中」（另一会话的测试进程持有共享 mutex，与本批无关，未结束他人进程）；新增/更新的「商店环境底」用例通过。原生检查台 `InspectDetailMica` **1/1**、`InspectMoviePilotMica` **1/1** 通过（日志 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261114-150209049-33716`），Movie 1200/760、Series/Season/Episode 各档与 360 窄窗截图已逐张目视：1200 的深色绿底随测试剧照取色，剧照本身不再被染色，左、下渐隐且右边铺到屏沿；MP 简洁模式同色底。**未合并、未交付**；未连真实服务器、未播放或写入；高对比度、触摸、读屏、跨 DPI 未实测。
+
+合入：产品与文档提交 `8bf0ab6`；master 在本批之后又前进了若干同期改动（商店宽版式断点、账号菜单、设置窗口置顶等），合并时只解决 PROGRESS 顶部双侧追加冲突，产品与测试文件自动合并。按批次规则不跑全量、不发布，交付验证范围记入待交付台账。
+
 
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 

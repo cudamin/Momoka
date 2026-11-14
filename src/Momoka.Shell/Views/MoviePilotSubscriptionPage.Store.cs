@@ -7,6 +7,7 @@ namespace Momoka.Shell.Views;
 public sealed partial class MoviePilotSubscriptionPage
 {
     private StoreBackdropFade? _storeBackdropFade;
+    private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
 
     private void PaintStoreBackdrop()
@@ -20,7 +21,10 @@ public sealed partial class MoviePilotSubscriptionPage
         var width = MediaViewModel.Plain ? Math.Min(1840, MediaViewModel.PageWidth) : MediaViewModel.PageWidth;
         StoreBackdrop.Height = DetailHero.StoreBackdropHeight(width, MediaViewModel.HeroBandHeight);
         StoreBackdrop.Width = DetailHero.StoreBackdropWidth(width);
-        StoreBackdropStyle.Apply(StoreBackdropSides, StoreBackdropBottom,
+        // 环境底跟剧照背景同进同退，高度取同一档。
+        StoreAmbient.Height = StoreBackdrop.Height;
+        StoreAmbient.Visibility = StoreBackdrop.Visibility;
+        StoreBackdropStyle.Apply(StoreBackdropSides,
             _storeTint.Resolve(MediaViewModel.BackdropPixels, MediaViewModel.Backdrop is not null, ThemeHost.Current.Colors.Window));
         StoreBackdropAcrylic.Width = StoreBackdrop.Width;
         StoreBackdropAcrylic.Height = StoreBackdrop.Height;

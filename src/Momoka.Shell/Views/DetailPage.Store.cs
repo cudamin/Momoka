@@ -20,6 +20,7 @@ public sealed partial class DetailPage
     private bool _syncingStoreOverview;
 
     private StoreBackdropFade? _storeBackdropFade;
+    private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
 
     private void PaintStoreBackdrop()
@@ -28,7 +29,9 @@ public sealed partial class DetailPage
         Overview.MaxWidth = ViewModel.StoreMode ? Math.Min(520, ViewModel.StoreContentWidth) : (double)Application.Current.Resources["EgProseWidth"];
         StoreBackdrop.Visibility = _actionAccessibility.HighContrast
             ? Visibility.Collapsed : ViewModel.StoreBackdropVisibility;
-        StoreBackdropStyle.Apply(StoreBackdropSides, StoreBackdropBottom,
+        // 环境底跟剧照背景同进同退：缺图、高对比度、退出商店模式都不单独留一块色。
+        StoreAmbient.Visibility = StoreBackdrop.Visibility;
+        StoreBackdropStyle.Apply(StoreBackdropSides,
             _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window));
         StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < DetailHero.StoreWideFloor
             && ViewModel.HeroImage is not null && !_actionAccessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;

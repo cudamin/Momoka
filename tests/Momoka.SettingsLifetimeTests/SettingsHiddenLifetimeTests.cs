@@ -23,6 +23,7 @@ internal static class SettingsHiddenLifetimeTests
         TestHarness.Test("R-026 Hide与X重复收起只发送一次Hidden", HideParity);
         TestHarness.Test("R-026 真Close也先释放订阅与目录活动期", RealClose);
         TestHarness.Test("设置窗显现前清理旧关闭悬停而不移动光标", CaptionPointerReset);
+        TestHarness.Test("设置窗口每次显现都提到主窗口前面", ShowRaisesAboveMainWindow);
         foreach (var path in new[] { "Hide", "标题栏X", "离页", "Release", "Close" })
             TestHarness.Test($"设置颜色草稿在{path}时跨卡取消且不保存", () => CancelAppearance(path));
     }
@@ -61,8 +62,35 @@ internal static class SettingsHiddenLifetimeTests
         var window = new SettingsWindow(page);
         Momoka.Shell.Interop.Native.Events.Clear();
         window.Show(new SettingsRequest(fixture.Services, "主页"));
-        Assert.True(Momoka.Shell.Interop.Native.Events.SequenceEqual(new[] { "move:160:0:2818035", "activate" }),
-            "显现前应以HTNOWHERE清旧悬停，并保留负数屏幕坐标的低16位");
+        Assert.True(Momoka.Shell.Interop.Native.Events.SequenceEqual(
+                new[] { "move:160:0:2818035", "activate", "z-top" }),
+            "显现前应以HTNOWHERE清旧悬停，随后激活并提到主窗口前面，且保留负数屏幕坐标的低16位");
+    }
+
+    /// <summary>
+    /// 2026-11-14 用户报「点完设置会自动跑到主窗口后面，再点一次设置也不会跑到前面」。WinUI 3 的
+    /// Window.Activate 对已经看得见的窗口只 SetActiveWindow、不改 z 序，所以每次 Show 都要自己把窗口
+    /// 提到最前 —— 首开、隐藏后重开、已经开着再点设置，三条路都得走到。
+    /// </summary>
+    private static void ShowRaisesAboveMainWindow()
+    {
+        using var context = new FixtureContext();
+        using var fixture = new LifetimeFixture();
+        var page = fixture.NewCachedPage("主页");
+        var window = new SettingsWindow(page);
+
+        window.Show(new SettingsRequest(fixture.Services, "主页"));
+        Assert.Equal(1, window.BoundaryWindow.MovedToTop, "首开没有把设置窗口提到主窗口前面");
+
+        window.Hide();
+        window.Show(new SettingsRequest(fixture.Services, "主页"));
+        Assert.Equal(2, window.BoundaryWindow.MovedToTop, "隐藏后重开没有把设置窗口提到主窗口前面");
+
+        // 窗口还开着的时候再按一次设置：Activate 对可见窗口不动 z 序，这一路只能靠显式提到最前。
+        window.Show(new SettingsRequest(fixture.Services, "主页"));
+        Assert.Equal(3, window.BoundaryWindow.MovedToTop, "设置窗已开着时再按设置没有把它提到主窗口前面");
+
+        page.Release();
     }
 
     private static (LifetimeFixture Fixture, SettingsPage Page, SettingsWindow Window, EmbySessionScope B) OpenFnNas(FixtureContext context)

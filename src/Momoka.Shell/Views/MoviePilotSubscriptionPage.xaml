@@ -98,6 +98,15 @@
     </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnDetailScrollSizeChanged" ViewChanged="OnDetailViewChanged">
         <Grid x:Name="StoreScrollContent">
+    <!-- 商店模式的环境底与剧照分开：底是一块随剧照取色的色面（左端与底部收到画布），剧照在它上面渐隐。
+         两块各有一张二维 alpha 遮罩，见 StoreBackdropFade。 -->
+    <Grid x:Name="StoreAmbient" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+          IsHitTestVisible="False" Visibility="Collapsed">
+        <Grid x:Name="StoreAmbientContent">
+            <Border x:Name="StoreBackdropSides" />
+        </Grid>
+        <Border x:Name="StoreAmbientMask" />
+    </Grid>
     <Grid x:Name="StoreBackdrop" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
         <Grid x:Name="StoreBackdropContent">
             <Border>
@@ -106,8 +115,6 @@
                                 Stretch="UniformToFill" AlignmentX="Right" AlignmentY="Top" />
                 </Border.Background>
             </Border>
-            <Border x:Name="StoreBackdropSides" />
-            <Border x:Name="StoreBackdropBottom" />
             </Grid>
         <Border x:Name="StoreBackdropMask" />
     </Grid>

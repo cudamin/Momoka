@@ -138,6 +138,8 @@ public sealed partial class MoviePilotSubscriptionPage
     private void PrepareShowcase()
     {
         _storeBackdropFade = new StoreBackdropFade(StoreBackdropContent, StoreBackdrop, StoreBackdropMask);
+        _storeAmbientFade = new StoreBackdropFade(StoreAmbientContent, StoreAmbient, StoreAmbientMask,
+            StoreBackdropFadeShape.Ambient);
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
         DetailBackdropBand.Opacity = DetailHero.BackdropOpacity;

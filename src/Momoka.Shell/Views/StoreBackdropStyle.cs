@@ -26,17 +26,16 @@ internal static class StoreBackdropStyle
         }
     }
 
-    internal static void Apply(Border sides, Border bottom, Color color)
+    /// <summary>
+    /// 剧照后面那块环境底：2026-11-14 用户令「渐变参考图二改」之后，它不再往剧照上压一层染色，
+    /// 而是一块纯色铺在剧照下面，由 <see cref="StoreBackdropFade"/> 的 Ambient 遮罩把它的左端与底部
+    /// 收到透明。剧照自己在同一块底上渐隐，屏幕上是「画面融进一块跟着剧照换色的暗底」，
+    /// 与微软商店条目页的顶图同一种做法（微软商店闭源，截图只作视觉参考）。
+    /// </summary>
+    internal static void Apply(Border ambient, Color color)
     {
-        if (sides.Background is LinearGradientBrush { GradientStops.Count: 5 } existing
-            && bottom.Background is LinearGradientBrush { GradientStops.Count: 5 }
-            && existing.GradientStops[0].Color is var first
-            && first.R == color.R && first.G == color.G && first.B == color.B)
-            return;
-        sides.Background = Gradient(color, new Point(0, 0.5), new Point(1, 0.5),
-            [(0, 0.8), (0.16, 0.3), (0.45, 0.08), (0.85, 0.08), (1, 0.7)]);
-        bottom.Background = Gradient(color, new Point(0.5, 0), new Point(0.5, 1),
-            [(0, 0.08), (0.3, 0.08), (0.55, 0.2), (0.78, 0.6), (1, 1)]);
+        if (ambient.Background is SolidColorBrush existing && existing.Color == color) return;
+        ambient.Background = new SolidColorBrush(color);
     }
 
     internal static void ApplyVideo(Border sides, Border bottom, Color color)
