@@ -41,7 +41,7 @@ public sealed class DanmakuHeat
     public static DanmakuHeat Build(IEnumerable<DanmakuComment> comments, double duration)
     {
         if (!double.IsFinite(duration) || duration <= 0) return Empty;
-        var seconds = Math.Min((int)Math.Ceiling(duration), MaximumSeconds);
+        var seconds = (int)Math.Min(Math.Ceiling(duration), MaximumSeconds);
         if (seconds <= 0) return Empty;
 
         var counts = new int[seconds];
@@ -97,8 +97,8 @@ public sealed class DanmakuHeat
         var half = Math.Max(0, windowSeconds) / 2;
         var start = Math.Max(0, seconds - half);
         var end = Math.Min(Duration, seconds + half);
-        var first = (int)Math.Floor(start);
-        var last = (int)Math.Ceiling(end);
+        var first = (int)Math.Clamp(Math.Floor(start), 0, _perSecond.Length);
+        var last = (int)Math.Clamp(Math.Ceiling(end), 0, _perSecond.Length);
         var sum = 0;
         for (var second = first; second < last && second < _perSecond.Length; second++)
             if (second >= 0) sum += _perSecond[second];
