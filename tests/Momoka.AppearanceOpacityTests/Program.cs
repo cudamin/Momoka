@@ -136,6 +136,7 @@ resources["EgSurfaceAltBrush"] = new SolidColorBrush { Color = 0xFF1C252E };
 resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0x0FFFFFFF };
 resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0x15FFFFFF };
 resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0x08FFFFFF };
+resources["EgStoreControlBrush"] = new SolidColorBrush { Color = 0xFFFFFFFF };
 foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton"), (new ComboBox(), "ComboBox") })
     Check(prefix + "详情默认薄白三态、可调浓度和选中态共底", () =>
     {
@@ -185,7 +186,7 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
         brushes.Apply(37, useAcrylic: true, tint: (Windows.UI.Color)0xFF345678,
             tintOpacity: 0.43, luminosityOpacity: 0.59);
         brushes.ApplyFixedSurface();
-        var surface = (SolidColorBrush)resources["EgSurfaceHoverBrush"];
+        var surface = (SolidColorBrush)resources["EgStoreControlBrush"];
         var levels = new[]
         {
             ControlBackgroundBrushes.FixedRest, ControlBackgroundBrushes.FixedHover,
@@ -195,7 +196,7 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
         {
             var copy = (AcrylicBrush)control.Resources[prefix + "Background" + suffix];
             if (copy.TintColor != surface.Color || copy.FallbackColor != surface.Color)
-                throw new InvalidOperationException(suffix + " 没有用那支固定面色");
+                throw new InvalidOperationException(suffix + " 没有用那支浅色固定面");
             if (!copy.AlwaysUseFallback) throw new InvalidOperationException(suffix + " 还在合成亚克力");
             Equal(0, copy.TintOpacity);
             Equal(levels[index], copy.Opacity);
@@ -205,16 +206,17 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
                 if (!ReferenceEquals(control.Resources[prefix + "Background" + suffix],
                     control.Resources[prefix + "BackgroundChecked" + suffix]))
                     throw new InvalidOperationException("连播选中态没有沿用固定面色");
-        // 主题换色：EgSurfaceHoverBrush 换了颜色，重画一次就跟上，不重建控件。
-        var ink = surface.Color;
+        // 主题换色：这一档不再跟主题走，重画之后仍是那支浅色固定面。
+        var hover = (SolidColorBrush)resources["EgSurfaceHoverBrush"];
+        var ink = hover.Color;
         try
         {
-            surface.Color = 0xFF38492B;
+            hover.Color = 0xFF38492B;
             brushes.ApplyFixedSurface();
-            if (((AcrylicBrush)control.Resources[prefix + "Background"]).FallbackColor != 0xFF38492B)
-                throw new InvalidOperationException("固定面色没有跟随主题换色");
+            if (((AcrylicBrush)control.Resources[prefix + "Background"]).FallbackColor != surface.Color)
+                throw new InvalidOperationException("固定面色跟着主题变了");
         }
-        finally { surface.Color = ink; }
+        finally { hover.Color = ink; }
         if (!ReferenceEquals(control.Background, control.Resources[prefix + "Background"]))
             throw new InvalidOperationException("固定面色替换了控件自己的底色画刷");
         Equal(1, control.Opacity);

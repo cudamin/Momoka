@@ -28,8 +28,8 @@ public static class DetailHero
     /// （1280 级及更宽）都留在宽版式；窄档只在真正放不下右侧视口时才出现。
     /// </para>
     /// <para>
-    /// 同一档起两侧留白也换成 64（见 <see cref="StorePageInset"/>）：宽版式的内容列因此比窄档的 40 再往右
-    /// 让一截，正是用户那句「触发时往右移一点点」。
+    /// 同一档起两侧留白也换成 96（见 <see cref="StorePageInset"/>）：宽版式的内容列因此比窄档的 56 再往右
+    /// 让一截，正是用户那句「触发时往右移一点点」；2026-11-15 起三档一起加宽，让开侧栏和窗口边。
     /// </para>
     /// </summary>
     public const double StoreWideFloor = 1024;
@@ -68,8 +68,14 @@ public static class DetailHero
         return Math.Max(0, Math.Round(pictureHeight + trailer + room - hero));
     }
 
-    /// <summary>商店内容两侧留白；超宽页面由视图的居中最大宽度继续留出外侧空间。</summary>
-    public static double StorePageInset(double width) => width >= StoreWideFloor ? 64 : width >= 600 ? 40 : 24;
+    /// <summary>
+    /// 商店内容两侧留白；超宽页面由视图的居中最大宽度继续留出外侧空间。
+    /// <para>
+    /// 2026-11-15 用户令「加宽组件和侧边栏／窗口边缘之间的间距」：三档一起加宽（64→96、40→56、24→32），
+    /// 内容列与封面不再贴着侧栏和窗口边。宽版式那一档仍从 <see cref="StoreWideFloor"/> 起。
+    /// </para>
+    /// </summary>
+    public static double StorePageInset(double width) => width >= StoreWideFloor ? 96 : width >= 600 ? 56 : 32;
 
     /// <summary>商店剧照与预告使用同一顶部右侧视口，原图在视口内等比裁切。</summary>
     public static double StorePictureWidth(double width, double ratio) => TrailerPreview.BackgroundWidth(width);

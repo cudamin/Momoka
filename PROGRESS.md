@@ -6,7 +6,23 @@
 
 **验证。** Shell/Core x64 Release **0 警告 0 错误**；主测试 **5107/5107、0 失败 0 跳过**；`Momoka.PageContractTests` **275/275**（新增简介圆角为 0 的源码契约）。原生 `--probe-shell --probe-section detail-cards --screen 1` 在隔离单实例名下跑出 `store-detail-cards-media-1240/760/360.png` 与 `detail-immersive-*-Series-1200-screen.png`，逐张目视：1240/760 的剧照左右两端都与环境底渐变衔接、右侧留出 16 的空隙，第一块分区卡片落在画面之下；360 窄档封面与卡片不重叠，简介首字完整。该轮在 MoviePilot 订阅段的 760 检查前后未写出最终 `shell-probe.json`（日志止于 `0:47:36`，截图后进程未正常收尾），因此只报媒体详情截图，不宣称整个 detail-cards 用例通过；未连接真实服务、未播放、未写服务器，未覆盖高对比度、触摸、读屏与跨 DPI。
 
-**整合与合并后验证。** master `32717b9`（14 个提交）已合入，合并提交 `936c3dd`；唯一冲突是 PROGRESS.md 顶部双侧追加，保留双方条目。整合后本树全解决方案 Release **0 警告 0 错误**；主测试 **5126/5126、0 失败 0 跳过**；PageContract **276/276**；`danmaku-fixture` **64/64**、R045 **75/75**、R046 **81/81**、弹幕性能 **77/77**、弹幕来源边界 **23/23**。合并时发现 master 上其他批次遗留的专项固定件未随产品同步（R045 的 `RenderDanmakuHeat` 渲染桩、R046 的 `PlayerViewModel.cs`/`PlayerViewModel.Events.cs` 两份源哈希、弹幕性能与来源边界各缺 `RefreshDanmakuHeat` 桩），已在下一提交只改测试补齐；不改产品代码。台账见 [第 33 批](docs/待交付批次.md)。
+**整合与合并后验证。** master `32717b9`（14 个提交）已合入，合并提交 `936c3dd`；唯一冲突是 PROGRESS.md 顶部双侧追加，保留双方条目。整合后本树全解决方案 Release **0 警告 0 错误**；主测试 **5126/5126、0 失败 0 跳过**；PageContract **276/276**；`danmaku-fixture` **64/64**、R045 **75/75**、R046 **81/81**、弹幕性能 **77/77**、弹幕来源边界 **23/23**。合并时发现 master 上其他批次遗留的专项固定件未随产品同步（R045 的 `RenderDanmakuHeat` 渲染桩、R046 的 `PlayerViewModel.cs`/`PlayerViewModel.Events.cs` 两份源哈希、弹幕性能与来源边界各缺 `RefreshDanmakuHeat` 桩），已在下一提交只改测试补齐；不改产品代码。台账见 [第 33 批](docs/待交付批次.md)。随后又整合 master `dccb2b1`（商店模式按钮浅色背景批次）：`DetailHero.cs` 的 `StorePageInset` 采用 master 的 96/56/32，右沿空隙与尾部补高保留本批；PROGRESS 双方条目都保留。
+
+## 2026-11-15 商店模式按钮浅色高透明底、活动图标绿与加宽留白（已合入 master）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-modify-store-mode-0pEcUv`，分支 `feat-modify-store-mode-0pEcUv`。用户三令（附商店模式按钮截图与微软商店「已播放／连播」参考图）：①把这些按钮换成浅色高透明背景；②开启连播还有已观看时，按钮中心的图标要切换为绿色；③加宽组件和侧边栏／窗口边缘之间的间距。中途明确「这个按钮的修改包括沉浸模式」「沉浸模式不改背景，只给触发的图标切换为绿色」。
+
+**背景。** 商店（简洁）模式的操作按钮与闭合选择框不再吃主题悬停面 55% 的深色板，改成 `EgStoreControlBrush` 的白：常态 12%、悬停 20%、按下 8%、禁用 5%（`ControlBackgroundBrushes.ApplyFixedSurface` 与四个 `Fixed*` 常量）。沉浸模式仍走原来的 `Apply` 材质四参数，一处未动。主播放键仍走 `ApplyAccentSurface` 的主题色面。
+
+**图标。** 页面局部新增 `EgActionActiveBrush`（#52B54B，取自用户参考图的绿）。连播勾上的三档 `ToggleButtonForegroundChecked*` 与「已观看」图标都指向它；已观看从裸绿勾改成参考图那副「绿实心圆 + 白勾」（宽版式与紧凑版式两份）。`DetailPage.Appearance.PaintActionActiveInk` 正常对比度下固定绿，只有高对比度回 `EgAccentBrush`；商店与沉浸两档同一支墨。
+
+**留白。** `DetailHero.StorePageInset` 三档一起加宽：页面宽 ≥1024 时 96（原 64）、600–1023 时 56（原 40）、<600 时 32（原 24）。封面、简介、文件选项、操作排与下方卡片仍同一条左沿；超宽页仍由 1840 最大内容宽居中。
+
+**验证。** Shell/Core Release x64 **0 警告 0 错误**；`detail-customization-fixture` **54/54**、`acrylic-controls-fixture` **39/39**、`Momoka.PageContractTests` **275/275**、`Momoka.AppearanceOpacityTests` **71/71**，均 0 失败 0 跳过。原生 `--probe-shell --probe-section detail-cards --screen 1`（`shell-probe-20261114-165956528-33452`）媒体商店部分全过：1240/760/360 左沿 96/56/32、简介与操作排对齐、绿色图标断言（商店与沉浸两档）均通过，截图 `store-detail-cards-media-{1240,760,360}.png` 与 `detail-immersive-enabled-Series-1200-screen.png` 已目视。该用例随后在 MoviePilot 订阅详情 `SeasonPanel` 两侧留白（左 96、右 408）失败：本批之前同命令即以左 64、右 376 失败，属既有基线问题（订阅页正文有右侧资料卡列），本批未触碰；未用放宽断言洗绿。
+
+**边界。** 已随合并提交 `c2673fd` 合入 master，未发布、未推远端；未连接真实服务器、未播放、未写服务器。用户参考图来自商店界面截图；高对比度、触摸、读屏与跨 DPI 未实测。
+
+**合入。** 合并时只与 master 新增的动效台账在 `PROGRESS.md` 顶部冲突，按双方保留处理；产品与测试文件自动合并。合并后主树 Shell/Core Release x64 与 `Momoka.Tests` 均 0 警告 0 错误；`detail-customization-fixture` 54/54、`acrylic-controls-fixture` 39/39、`Momoka.PageContractTests` 276/276、`Momoka.AppearanceOpacityTests` 71/71，均 0 失败 0 跳过。
 
 ## 2026-11-15 WinUI动效定向原生入口与候选测量（在途）
 

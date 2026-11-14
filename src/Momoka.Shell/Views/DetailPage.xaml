@@ -23,6 +23,11 @@
     <Page.Resources>
         <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起收紧。仅作用于详情页。 -->
         <x:Double x:Key="ComboBoxMinHeight">28</x:Double>
+        <!-- 「开启连播 / 已观看」两颗图标共用的那支墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，
+             不跟主题强调色走 —— 用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，
+             并明确「这个按钮的修改包括沉浸模式」；只有高对比度由 ApplyAppearance 换回系统强调色。
+             用页面局部的一支画刷而不是替换 ToggleButton 里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
+        <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
         <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="MinHeight" Value="{StaticResource EgPickerRowHeight}" />
             <Setter Property="Padding" Value="10,3,0,3" />
@@ -55,7 +60,10 @@
         <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
              勾上时**只有图标换色**（2026-10-11，参考图里那颗回转图标是绿的、药丸和字原样不动）：
              底那三档按回不带勾时的那三支（常／悬／按，见两颗 ToggleButton 各自的 Resources），
-             字钉死在压在图上那支浅墨上，于是 Foreground 一路继承下来只剩那颗 FontIcon 跟着走。 -->
+             字钉死在压在图上那支浅墨上，于是 Foreground 一路继承下来只剩那颗 FontIcon 跟着走。
+             勾上那三档指向页面局部的 EgActionActiveBrush：正常对比下它就是固定的绿（2026-11-15 用户令
+             「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确包括沉浸模式），
+             只有高对比度由 ApplyAppearance 换回系统强调色。 -->
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
@@ -982,13 +990,14 @@
                                         IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                         Style="{StaticResource EgPillToggleButtonStyle}"
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
-                                        <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取 accent
-                                             而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
+                                        <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取
+                                             EgActionActiveBrush 而字自己钉在浅墨上 —— 那支墨于是只落在没写
+                                             Foreground 的 FontIcon 上。
                                              背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
                                         <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgActionActiveBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgActionActiveBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgActionActiveBrush" />
                                         </ToggleButton.Resources>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontSize="14" Glyph="&#xE8EE;" />
@@ -1002,16 +1011,24 @@
                                         Command="{x:Bind ViewModel.ToggleWatchedCommand}"
                                         Style="{StaticResource EgPillButtonStyle}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Grid x:Name="ColumnWatchedGlyphs">
+                                            <Grid x:Name="ColumnWatchedGlyphs" Width="18" Height="18">
                                                 <FontIcon
                                                     FontSize="15"
                                                     Glyph="&#xE73E;"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
                                                     Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
-                                                <FontIcon
-                                                    FontSize="15"
-                                                    Foreground="{ThemeResource EgAccentBrush}"
-                                                    Glyph="&#xE73E;"
-                                                    Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                                <!-- 已观看：绿实心圆加白勾（2026-11-15 用户参考图），圆和连播那颗图标共用
+                                                     EgActionActiveBrush，白勾仍是压在图上那支浅墨。 -->
+                                                <Grid Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}">
+                                                    <Ellipse Fill="{StaticResource EgActionActiveBrush}" />
+                                                    <FontIcon
+                                                        FontSize="11"
+                                                        Foreground="{ThemeResource EgDetailActionTextBrush}"
+                                                        Glyph="&#xE73E;"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Grid>
                                             </Grid>
                                             <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                             <TextBlock x:Uid="DetailPage_WatchedOff" Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
@@ -1397,18 +1414,19 @@
                                     Visibility="{x:Bind ViewModel.ExtraVisibility, Mode=OneWay}" />
 
                                 <!-- 连播，和宽版式那两颗同一个开关同一句话；紧凑版式这颗也是**勾上只换图标色**
-                                     （2026-10-11 起：底按回不带勾的三档，字钉在浅墨上，accent 只落在图标上；
-                                     更早那两版是「勾上走 accent 底」、再往前格子那一版是「图标取 accent、底按住不画」，
-                                     这回把两版的结论合起来——底不画，色只给图标）。 -->
+                                     （2026-10-11 起：底按回不带勾的三档，字钉在浅墨上，勾上那支墨只落在图标上；
+                                     更早那两版是「勾上走强调色底」、再往前格子那一版是「图标取强调色、底按住不画」，
+                                     这回把两版的结论合起来——底不画，色只给图标。2026-11-15 起那支墨是固定的绿
+                                     （商店与沉浸两档都用，见 EgActionActiveBrush）。 -->
                                 <ToggleButton
                                     AutomationProperties.AutomationId="CompactContinueButton"
                                     IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgActionActiveBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgActionActiveBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgActionActiveBrush" />
                                     </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon FontSize="14" Glyph="&#xE8EE;" />
@@ -1422,16 +1440,23 @@
                                     Command="{x:Bind ViewModel.ToggleWatchedCommand}"
                                     Style="{StaticResource EgPillButtonStyle}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Grid x:Name="CompactWatchedGlyphs">
+                                        <Grid x:Name="CompactWatchedGlyphs" Width="18" Height="18">
                                             <FontIcon
                                                 FontSize="15"
                                                 Glyph="&#xE73E;"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
                                                 Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
-                                            <FontIcon
-                                                FontSize="15"
-                                                Foreground="{ThemeResource EgAccentBrush}"
-                                                Glyph="&#xE73E;"
-                                                Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                            <!-- 已观看：绿实心圆加白勾，和宽版式那颗同一份画法。 -->
+                                            <Grid Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}">
+                                                <Ellipse Fill="{StaticResource EgActionActiveBrush}" />
+                                                <FontIcon
+                                                    FontSize="11"
+                                                    Foreground="{ThemeResource EgDetailActionTextBrush}"
+                                                    Glyph="&#xE73E;"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
                                         </Grid>
                                         <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                         <TextBlock x:Uid="DetailPage_WatchedOff" Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />

@@ -255,16 +255,16 @@ internal sealed class ControlBackgroundBrushes
 
     /// <summary>
     /// 简洁模式的固定按钮材质（2026-11-11 用户令「重新设计简洁模式下按钮与选择框的颜色与材质样式，
-    /// 使其为固定值，不再跟随沉浸模式的设置变化」）。
+    /// 使其为固定值，不再跟随沉浸模式的设置变化」；2026-11-15 用户令「把这些按钮换成浅色高透明背景」）。
     /// <para>
-    /// 颜色取主题的悬停面（<c>EgSurfaceHoverBrush</c>，这套主题里最亮的一档面色），四态各铺一个定值浓度；
-    /// 换主题跟着换色相，但<b>一个字节都不读</b>按钮材质那四项设置 —— 四条滑块拖成什么样都改不到它。
+    /// 颜色取 <c>EgStoreControlBrush</c> 的白（浅色），四态各铺一个定值浓度（常态 12%、悬停 20%、按下 8%、
+    /// 禁用 5%）：高透明，压在商店的取色环境底上是一层亮而看得见的薄片，不再是一块比底更暗的板。
+    /// 换主题不改这一档 —— 浅色是固定的；按钮材质那四项设置也<b>一个字节都不读</b>。
     /// </para>
     /// <para>
     /// 这一档<b>故意不再用亚克力</b>：简洁模式的底是页面局部的系统云母（<c>MicaBackdrop</c>），那层东西不在
     /// XAML 树里，应用内亚克力采不到它 —— 同一支玻璃在云母上会落成一块比页面更暗的板。这里改用可预期的
-    /// 半透明面色：常态 55%、悬停 85%、按下 40%、禁用 25%，压在云母上仍是「比页面亮一点」的那颗按钮。
-    /// （2026-11-11 实屏核对：直接用操作玻璃那一版比页面暗，像内凹。）
+    /// 半透明面色。
     /// </para>
     /// <para>
     /// 四条顺序就是构造时的顺序：常态、悬停、按下、禁用。
@@ -272,13 +272,13 @@ internal sealed class ControlBackgroundBrushes
     /// </summary>
     public void ApplyFixedSurface()
     {
-        var surface = Resource("EgSurfaceHoverBrush");
+        var surface = Resource("EgStoreControlBrush").Color;
         var levels = new[] { FixedRest, FixedHover, FixedPressed, FixedDisabled };
         for (var index = 0; index < _brushes.Count; index++)
         {
             var (_, _, copy, _, _) = _brushes[index];
-            copy.TintColor = surface.Color;
-            copy.FallbackColor = surface.Color;
+            copy.TintColor = surface;
+            copy.FallbackColor = surface;
             copy.TintOpacity = 0;
             copy.TintLuminosityOpacity = 0;
             copy.Opacity = levels[index];
@@ -287,13 +287,13 @@ internal sealed class ControlBackgroundBrushes
     }
 
     /// <summary>简洁模式固定材质的四态浓度：常态、悬停、按下、禁用。见 <see cref="ApplyFixedSurface"/>。</summary>
-    public const double FixedRest = 0.55;
+    public const double FixedRest = 0.12;
 
-    public const double FixedHover = 0.85;
+    public const double FixedHover = 0.20;
 
-    public const double FixedPressed = 0.40;
+    public const double FixedPressed = 0.08;
 
-    public const double FixedDisabled = 0.25;
+    public const double FixedDisabled = 0.05;
 
     /// <summary>
     /// 商店模式那颗主播放键的主题色面（2026-11-14 用户令「播放按钮改成主题色」）：常态取强调色实心，
