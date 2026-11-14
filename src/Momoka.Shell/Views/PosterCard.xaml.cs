@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Diagnostics;
+using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Interop;
 using Windows.Foundation;
@@ -734,9 +735,14 @@ public sealed partial class PosterCard : UserControl
     /// <summary>
     /// 这张卡值不值得给一块预览。导航卡（文件夹、媒体库、人物）没有可读的简介，选择模式下的卡片
     /// 只等着被勾，两者都不弹 —— 弹出来也只是一块把邻居盖住的空板。
+    /// <para>
+    /// 人物再按类型挡一次：详情页演职人员那一排的人物卡不是导航卡（点击由详情页自己接），照
+    /// <see cref="CardItem.IsNavigation"/> 判会漏过去，可它同样没有简介 —— 2026-11-14 用户令
+    /// 「演职人员不要这种悬浮」。
+    /// </para>
     /// </summary>
     private bool PreviewEligible() => _live && XamlRoot is not null && Card is { IsNavigation: false, IsSelecting: false } card
-        && !card.Item.IsDisplayOnly;
+        && !card.Item.IsDisplayOnly && card.Item.Type != EmbyItemType.Person;
 
     private void StartHoverDwellTimer()
     {

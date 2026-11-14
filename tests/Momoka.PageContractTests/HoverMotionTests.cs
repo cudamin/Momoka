@@ -77,6 +77,16 @@ internal static class HoverMotionTests
             Assert.Contains("height, rootHeight, PreviewMargin) + art.Top", source);
         });
 
+        Test("悬停预览：演职人员的人物卡不弹预览面板", () =>
+        {
+            var source = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
+            var start = source.IndexOf("private bool PreviewEligible(", StringComparison.Ordinal);
+            var end = source.IndexOf("private void StartHoverDwellTimer(", start, StringComparison.Ordinal);
+            Assert.True(start >= 0 && end > start, "找不到 PreviewEligible");
+            Assert.Contains("card.Item.Type != EmbyItemType.Person", source[start..end],
+                "演职人员卡不是导航卡，必须按人物类型再挡一次预览");
+        });
+
         Test("主页命中探针：显式打开分隔线后量边界，保留原主页无通栏线检查", () =>
         {
             var source = Read("src/Momoka.Shell/ShellNavigationProbe.HomeHeader.cs");
