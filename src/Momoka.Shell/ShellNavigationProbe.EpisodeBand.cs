@@ -237,10 +237,10 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(cardGap.ActualHeight) < 0.01,
                     $"{width} 这一档不应再有旧卡面收尾格：{cardGap.ActualHeight:0.##}");
 
-                // 紧凑档那几个数就是用户要的那一档（8／8／14），宽版式照旧（12／24／20）。
-                var wantTail = compact ? 8d : 12d;
-                var wantPanel = compact ? 8d : 24d;
-                var wantSheet = compact ? 14d : 20d;
+                // 本检查显式进入沉浸档；有图宽窗的Showcase同样收紧，不能沿用旧纸面宽档12/24/20。
+                var wantTail = compact || view.Showcase ? 8d : 12d;
+                var wantPanel = compact || view.Showcase ? 8d : 24d;
+                var wantSheet = view.Showcase ? DetailHero.ShowcaseSheetSpacing : compact ? 14d : 20d;
                 Require(Math.Abs(tail.Spacing - wantTail) < 0.01
                         && Math.Abs(pickers.Padding.Top - wantPanel) < 0.01
                         && Math.Abs(pickers.Padding.Left - 24) < 0.01
@@ -359,8 +359,9 @@ internal sealed partial class ShellNavigationProbe
                         && Math.Abs(cover.ActualHeight - expectedPoster.Height) < 1.5,
                         $"单集沉浸海报未使用统一剧页尺寸：{cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}");
                     Require(Get<Grid>(page, "CoverSlot").VerticalAlignment == VerticalAlignment.Top
-                        && Get<Grid>(page, "HeroContent").VerticalAlignment == VerticalAlignment.Bottom,
+                        && Get<Grid>(page, "HeroContent").VerticalAlignment == VerticalAlignment.Top,
                         "单集沉浸封面或文字栏未使用剧页对齐");
+                    RequireHeroColumn(page);
                     Require(view.TailMargin == default && view.HeroInset.Left == 42,
                         "单集沉浸仍使用旧卡面简介提拉或 58/42 左距");
                     RequireImmersiveSurface(page);

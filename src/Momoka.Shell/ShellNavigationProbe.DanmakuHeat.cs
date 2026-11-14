@@ -49,6 +49,8 @@ internal sealed partial class ShellNavigationProbe
         vm.Title = "弹幕热力 · 匿名加载与悬停检查";
         var page = new PlayerPage { IsHitTestVisible = false };
         page.Attach(vm, new ShellPage(), _window!);
+        // 没有真实PlayerShown事件，显式展示诊断层与既有匿名播放控件探针保持一致。
+        page.Visibility = Visibility.Visible;
         // 正式偏好通知初始化来源身份；后面的热力开关不会被误判成首次连接变化。
         vm.ChangeDanmakuPreferences(settings => settings.Show = true);
         _root.Children.Add(page);

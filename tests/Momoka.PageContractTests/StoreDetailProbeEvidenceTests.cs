@@ -22,6 +22,12 @@ internal static class StoreDetailProbeEvidenceTests
             var danmaku = Read("ShellNavigationProbe.Danmaku.cs");
             Assert.Contains("关闭弹幕未隐藏热力行或清掉了关闭偏好", danmaku);
             Assert.Contains("恢复弹幕后热力行未保留关闭偏好", danmaku);
+            Assert.Contains("page.Visibility = Visibility.Visible;", Read("ShellNavigationProbe.DanmakuHeat.cs"));
+            var episode = Read("ShellNavigationProbe.EpisodeBand.cs");
+            Assert.Contains("compact || view.Showcase ? 8d : 12d", episode);
+            Assert.Contains("view.Showcase ? DetailHero.ShowcaseSheetSpacing", episode);
+            Assert.Contains("Get<Grid>(page, \"HeroContent\").VerticalAlignment == VerticalAlignment.Top", episode);
+            Assert.Contains("RequireHeroColumn(page);", episode);
         });
         Test("商店诊断收尾：释放失败仍还原状态并保留失败", () =>
         {
