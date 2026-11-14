@@ -16,8 +16,14 @@ public sealed partial class DetailViewModel
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     public double StorePreviewWidth => Math.Min(640, PageWidth * 0.46);
+
+    /// <summary>
+    /// 商店模式左边那一列内容能有多宽。宽版式（<see cref="DetailHero.StoreWideFloor"/> 及以上）要让开
+    /// 顶部右侧的剧照／预告视口，窄档才把整幅宽度都给内容 —— 两条判据同一个断点，屏上不会出现
+    /// 「背景已经变成右侧视口、内容却还按整幅排」的半档。
+    /// </summary>
     public double StoreContentWidth => Math.Max(0, PageWidth - 2 * DetailHero.StorePageInset(PageWidth)
-        - (StoreMode && PageWidth >= 1100 ? StorePreviewWidth + 28 : 0));
+        - (StoreMode && PageWidth >= DetailHero.StoreWideFloor ? StorePreviewWidth + 28 : 0));
     public double StoreTextWidth => StoreMode
         ? Math.Max(0, StoreContentWidth - StillWidth - ColumnSpacing) : double.PositiveInfinity;
     public Visibility RemainingTimeVisibility => StoreMode ? Visibility.Collapsed : ResumeVisibility;

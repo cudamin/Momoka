@@ -24,7 +24,7 @@ public sealed partial class MoviePilotSubscriptionPage
             _storeTint.Resolve(MediaViewModel.BackdropPixels, MediaViewModel.Backdrop is not null, ThemeHost.Current.Colors.Window));
         StoreBackdropAcrylic.Width = StoreBackdrop.Width;
         StoreBackdropAcrylic.Height = StoreBackdrop.Height;
-        StoreBackdropAcrylic.Visibility = MediaViewModel.Plain && width is > 0 and < 1100
+        StoreBackdropAcrylic.Visibility = MediaViewModel.Plain && width is > 0 and < DetailHero.StoreWideFloor
             && MediaViewModel.Backdrop is not null && !_accessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;
         StoreBackdropStyle.ApplyAcrylic(StoreBackdropAcrylicFill, StoreBackdropAcrylicBottom,
             _storeTint.Resolve(MediaViewModel.BackdropPixels, MediaViewModel.Backdrop is not null, ThemeHost.Current.Colors.Window),

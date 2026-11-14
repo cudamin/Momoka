@@ -32,7 +32,7 @@ internal static partial class DetailActionReadinessTests
                 Assert.Equal(0d, (double)f.Get("PaperMinHeight")!);
                 foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "CornerVisibility", "HeroContent" })
                     Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
-                foreach (var width in new[] { 360d, 760d, 1099d, 1100d, 1101d, 1200d, 2400d, 760d })
+                foreach (var width in new[] { 360d, 760d, 1023d, 1024d, 1025d, 1072d, 1200d, 2400d, 760d })
                 {
                     notices.Clear();
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
@@ -43,7 +43,7 @@ internal static partial class DetailActionReadinessTests
                         "商店窄窗仍把封面尺寸归零：" + shape);
                     Assert.True(notices.Contains("StoreBackdropHeight"));
                     var previewWidth = Math.Min(640, width * 0.46);
-                    var leftWidth = Math.Max(0, width - 2 * DetailHero.StorePageInset(width) - (width >= 1100 ? previewWidth + 28 : 0));
+                    var leftWidth = Math.Max(0, width - 2 * DetailHero.StorePageInset(width) - (width >= DetailHero.StoreWideFloor ? previewWidth + 28 : 0));
                     Assert.Equal(Math.Max(0, leftWidth - (double)f.Get("StillWidth")! - 22), (double)f.Get("StoreTextWidth")!);
                     Assert.True(notices.Contains("StoreContentWidth"));
                 }
