@@ -1,3 +1,9 @@
+## 2026-11-15 WinUI动效定向原生入口与候选测量（在途）
+
+本树 `C:/Users/89400/.codex/worktrees/winui-motion-native/Momoka`、临时分支 `codex/winui-motion-native`，基线master `63ef01a`；接入已验证的 `b03668b` 呈现归属实现。新增 `motion` 匿名分区，串行海报前进/返回/回退、人物、悬浮卡、主页历史与Library/Music原生Entrance候选，沿固定 Gallery `6de91fe` 实际 XAML/code-behind配置Frame.ContentTransitions。候选仍使用生产首帧/图片门控，用实际Rendered后的BGRA标记读数核对中段、应用动效关闭、正式GoForward和最终呈现；不改系统开关、不伪造历史，不把candidate-only算迁移通过。
+
+真实链接生产证据判断与StartupArgs的 `motion-probe-fixture` **24/24、0失败0跳过**，Core/Tests编译0警告0错误；Shell最终门控/ROI/心跳版本0警告0错误；随后诊断收尾改动由主控整合后重编。原生UI留主控合入S1/S3后串行实际运行，当前没有该分区运行证据。每试验finally保留结果，汇总与截图不超过四张；心跳与截图采样有负担，不能宣称GPU/CPU改善。命令与覆盖见 [原生动效候选说明](tests/Momoka.Tests/README.MotionProbe.md)。未发布、上传、读取真实凭据或播放。
+
 ## 2026-11-14 WinUI动效施工 S0 与呈现归属（在途）
 
 用户按 [施工文档](docs/WinUI动效施工文档.md) 授权开始S0～S4。当前树 `C:/Users/89400/.codex/worktrees/winui-motion-review-doc/Momoka`，分支 `codex/winui-motion-implementation`，刷新基线为master `63ef01a`，开始时主树及本树干净；WinUI2.3.9/Runtime2.5.1/Toolkit8.2.251219未变。S1与S3在各自独立树并行写入，原生运行统一串行。
