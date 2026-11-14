@@ -8,6 +8,8 @@
 
 **验证。** Shell Release/x64 **0 警告 0 错误**；主测试 **5103 项，通过 5087、失败 16**，16 条全部是既有自检用例撞上「已有当前用户的自检运行中」（另一会话的测试进程持有共享 mutex，与本批无关，未结束他人进程）；新增/更新的「商店环境底」用例通过。原生检查台 `InspectDetailMica` **1/1**、`InspectMoviePilotMica` **1/1** 通过（日志 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261114-150209049-33716`），Movie 1200/760、Series/Season/Episode 各档与 360 窄窗截图已逐张目视：1200 的深色绿底随测试剧照取色，剧照本身不再被染色，左、下渐隐且右边铺到屏沿；MP 简洁模式同色底。**未合并、未交付**；未连真实服务器、未播放或写入；高对比度、触摸、读屏、跨 DPI 未实测。
 
+收尾：产品与文档提交 `8bf0ab6`，台账尝试登记 `18dc81c` 后因 master 在本批提交后又前进（现 `e70f55b`）、快进合并失败，按台账口径以 `6c32f09` 撤回这条未合并批次的登记。本批留在临时分支；合并时需与同期详情沉浸宽版式等改动整合，合入后再补台账。
+
 
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。
