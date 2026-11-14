@@ -13,7 +13,7 @@ from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 
 FILES = ("docs/WinUI-P1基线.md", "docs/WinUI-P1材质与窗口清单.md",
-         "docs/WinUI-P1页面与控件清单.md", "docs/WinUI重构计划.md", "docs/winui-p1/baseline.json")
+         "docs/WinUI-P1页面与控件清单.md", "docs/winui-p1/baseline.json")
 
 
 def require(condition: bool, detail: str) -> None:

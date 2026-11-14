@@ -26,7 +26,7 @@ Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviatio
 | DI, view models, bindings, source-linked contracts or moving business rules | [Architecture and binding ownership](references/architecture.md) |
 | Async paging, session changes, settings reentry, startup or report completion | [Page lifetimes and regression contracts](references/page-lifetimes.md) |
 | Capability visibility, dialog dismissal, images, namescopes, recycling or popup geometry | [Measured XAML pitfalls](references/xaml-pitfalls.md) |
-| Plan the wider refactor | [Phased plan](../../../docs/WinUI重构计划.md); rebase its evidence against the actual tree before each phase |
+| Plan further UI work | Start from the current request and source, then use the [Gallery source map](references/gallery-source-map.md) and [validation matrix](../momoka-verification/references/winui-validation.md). Historical phase reports are evidence, not an active task list. |
 
 ## Current source owners
 
@@ -50,6 +50,6 @@ This is an existing Momoka requirement, not a claim about default ContentDialog 
 
 Read `DetailMenuBackdrop` with `DetailMenuSurface`: successful controller attachment, system Fallback and a presenter's XAML solid fallback are separate results. Copied canvas/caption colors need UI-dispatched system observations. Read the material guide before changing these paths; diagnostics are not pixel evidence.
 
-Read [materials](references/materials.md) before touching a brush or backdrop. `Palette.xaml` currently uses `Dark`, `Light`, `HighContrast`; the first two are repainted, while high contrast uses system roles. This is a project contract, not a platform prohibition on a `Default` dictionary. Existing shipped palettes are dark; adding light/system mode remains a product decision in the plan. Keep theme keys, first-frame values and runtime updates aligned.
+Read [materials](references/materials.md) before touching a brush or backdrop. `Palette.xaml` currently uses `Dark`, `Light`, `HighContrast`; the first two are repainted, while high contrast uses system roles. This is a project contract, not a platform prohibition on a `Default` dictionary. Existing shipped palettes are dark; adding light/system mode remains a product decision under CLAUDE. Keep theme keys, first-frame values and runtime updates aligned.
 
 Use [momoka-playback](../momoka-playback/SKILL.md) for the integrated/standalone and backend boundaries. A XAML material must not be assumed to sample native mpv video or a WebView surface. Do not restore the retired timeline capture/blur chain as a side effect of UI modernization.

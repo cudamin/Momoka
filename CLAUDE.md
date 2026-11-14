@@ -52,7 +52,7 @@
 | 窗口与系统能力 | 优先官方窗口/激活/通知路径，核对 HWND/XAML 岛与播放组合的适用性；不为凑特性新增通知、后台活动或多窗口。 |
 | 部署 | 当前非打包 x64 是受支持的产品路线；包身份、PRI、运行库、体积和冷启动按实际分发方式验证，依赖升级单独成批。 |
 
-详细方法与逐表面限制见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md)、[材质指南](.claude/skills/momoka-winui-shell/references/materials.md)与[验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)。分阶段范围见 [WinUI 重构计划](docs/WinUI重构计划.md)，计划中“待核实/待确认”不视为已批准产品改动。
+详细方法与逐表面限制见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md)、[材质指南](.claude/skills/momoka-winui-shell/references/materials.md)与[验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)。后续优化按当次需求与当前源码制定范围；历史阶段报告保留实施和验证证据，不作为待执行计划，“待核实/待确认”不视为已批准产品改动。
 
 ## 项目与技能
 

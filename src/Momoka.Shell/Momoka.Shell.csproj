@@ -7,7 +7,7 @@
     (Windowing/HostWindow.cs); integrated mpv video uses a SpriteVisual and a D3D11 composition
     swapchain. Settings already uses a framework Window. Earlier child-HWND video experiments
     do not establish compatibility limits for the current composition pipeline. Framework Window
-    migration remains a separate research and product decision under the WinUI phased plan.
+    migration remains a separate research and product decision under CLAUDE.md.
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

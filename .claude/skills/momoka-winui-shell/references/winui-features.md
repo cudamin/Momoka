@@ -93,4 +93,4 @@ Reuse HomeMotion, SurfaceMotion, GlyphPulse and current settings motion only whe
 - Maintain unpackaged x64 unless the user chooses another distribution model. Verify package identity requirements, runtime/bootstrap behavior, merged PRI resources, native assets/licenses and install/update behavior from actual output.
 - Do not adopt Gallery's experimental SDK, broad meta-package or self-contained settings as a side effect of a UI refactor. Dependency upgrades follow the separate project procedure and payload review.
 
-Use the [validation matrix](../../momoka-verification/references/winui-validation.md) and [phased plan](../../../../docs/WinUI重构计划.md) to turn these methods into scoped work with measurable exit criteria.
+Use the [validation matrix](../../momoka-verification/references/winui-validation.md), current source and current task requirements to turn these methods into scoped work with measurable exit criteria. Historical phase reports record past evidence rather than an active work plan.
