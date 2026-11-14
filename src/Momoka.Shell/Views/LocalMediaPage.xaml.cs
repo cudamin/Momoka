@@ -56,6 +56,11 @@ public sealed partial class LocalMediaPage : Page, IShellContent
     }
 
     public static Visibility Show(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    private void OnModesSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        // 量的是卡片内真正可用的宽度，独立页面和设置窗口的左栏占宽都能正确折行。
+        VisualStateManager.GoToState(this, args.NewSize.Width >= 520 ? "LocalMediaWide" : "LocalMediaNarrow", false);
+    }
     private async void OnScan(object sender, RoutedEventArgs args) => await ViewModel.ScanAsync();
     private async void OnApply(object sender, RoutedEventArgs args) => await ViewModel.ApplyAsync();
     private async void OnSearch(object sender, RoutedEventArgs args) => await ViewModel.SearchAsync();

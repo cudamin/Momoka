@@ -4,6 +4,13 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["local-media-layout-fixture"])
+        {
+            LocalMediaLayoutTests.Register();
+            SettingsLayoutTests.Register();
+            AgreementsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["remote-image-search-fixture"])
         {
             RemoteImageSearchTests.Register();
@@ -603,6 +610,7 @@ internal static class Program
         SelfCheckOutputIsolationTests.Register();
         SettingsTests.Register();
         SettingsLayoutTests.Register();
+        LocalMediaLayoutTests.Register();
         ToolbarIconTests.Register();
         StartupEntryTests.Register();
         NotificationTests.Register();

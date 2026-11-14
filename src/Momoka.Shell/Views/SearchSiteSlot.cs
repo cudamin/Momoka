@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -16,6 +17,8 @@ namespace Momoka.Shell.Views;
 /// </summary>
 internal static class SearchSiteSlot
 {
+    private static readonly ConditionalWeakTable<Grid, ColumnDefinition> Slots = new();
+
     /// <summary>插好返回 true；模板还没建出来、或者已经插过，返回 false。</summary>
     internal static bool Place(AutoSuggestBox box, MoviePilotSitePicker picker)
     {
@@ -35,15 +38,24 @@ internal static class SearchSiteSlot
 
         if (picker.Parent is Panel previous) previous.Children.Remove(picker);
 
-        var column = Grid.GetColumn(query);
-        host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto });
-        foreach (var child in host.Children.OfType<FrameworkElement>())
+        // 宽窄切换会暂时把站点入口移到页面；复用原来的 Auto 列，空时宽度自然为零。
+        var column = Slots.TryGetValue(host, out var slot) ? host.ColumnDefinitions.IndexOf(slot) : -1;
+        if (column < 0)
         {
-            var start = Grid.GetColumn(child);
-            var span = Grid.GetColumnSpan(child);
-            if (start >= column) Grid.SetColumn(child, start + 1);
-            else if (start + span > column) Grid.SetColumnSpan(child, span + 1);
+            column = Grid.GetColumn(query);
+            slot = new ColumnDefinition { Width = GridLength.Auto };
+            host.ColumnDefinitions.Insert(column, slot);
+            Slots.Remove(host);
+            Slots.Add(host, slot);
+            foreach (var child in host.Children.OfType<FrameworkElement>())
+            {
+                var start = Grid.GetColumn(child);
+                var span = Grid.GetColumnSpan(child);
+                if (start >= column) Grid.SetColumn(child, start + 1);
+                else if (start + span > column) Grid.SetColumnSpan(child, span + 1);
+            }
         }
+        Grid.SetColumnSpan(picker, 1);
 
         Grid.SetRow(picker, Grid.GetRow(query));
         Grid.SetColumn(picker, column);

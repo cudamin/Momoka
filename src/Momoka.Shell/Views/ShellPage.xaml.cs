@@ -202,6 +202,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
             _browsePresentation.Attach();
             CardDetailTransition.CompleteReturn(ContentFrame);
             CompleteNavigation();
+            // Frame.Navigated 早于页面 OnNavigatedTo；等该页接完依赖后再转交标题输入。
+            var navigatedPage = ContentFrame.Content;
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (ReferenceEquals(ContentFrame.Content, navigatedPage)) SyncTitleSearch();
+            });
         };
         ContentFrame.NavigationStopped += (_, _) =>
         {
@@ -249,6 +255,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // answers move with the strip's layout: the theme's font, the scale factor, the account name's
         // own width. Measured whenever either changes rather than worked out once here.
         TitleActions.SizeChanged += (_, _) => ReportTitleBarHoles();
+        AppTitleLabel.SizeChanged += (_, _) => ReportTitleBarHoles();
         AccountButton.SizeChanged += (_, _) => ReportTitleBarHoles();
 
         // 菜单每次打开前重读一遍：在设置里拨了聚合模式之后，按钮上的身份没变，但两张子菜单的叫法
@@ -441,6 +448,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _titleInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextBrush");
         _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
+        AppTitleLabel.Foreground = _titleInk;
 
         // 面包屑那一行不再自己上底色（2026-11-12 用户令「改为Mica」）：它站的那一格由 ContentHost 的
         // EgCanvasBrush 提供。这里再涂一层同色会让顶上那一条比正文暗两档 —— 两次 60% 叠起来是 84%。
@@ -2217,6 +2225,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void ReportTitleBarHoles()
     {
+        if (TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0)
+        {
+            var titleOrigin = TitleActions.TransformToVisual(AppTitleBar).TransformPoint(new Windows.Foundation.Point());
+            var titleMargin = new Thickness(titleOrigin.X + TitleActions.ActualWidth + 8, 0, 0, 0);
+            if (AppTitleLabel.Margin != titleMargin) AppTitleLabel.Margin = titleMargin;
+            var right = AppTitleBar.ActualWidth - AppTitleBar.Padding.Right;
+            if (AccountRect() is { } account) right = Math.Min(right, account.X);
+            if (SearchRect() is { } search) right = Math.Min(right, search.X);
+            var maxWidth = Math.Max(0, right - titleMargin.Left - 8);
+            if (AppTitleLabel.MaxWidth != maxWidth) AppTitleLabel.MaxWidth = maxWidth;
+        }
         // Zero while the strip is collapsed for playback. Reporting that would hand the whole strip back to
         // the frame, which is right for playback and wrong the moment browsing returns — and playback has
         // already claimed the strip whole by then anyway, so the last real rectangle is the one to keep.
@@ -2281,23 +2300,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
-    /// 标题栏正中那颗搜索框（2026-11-12）：和旁边那颗放大镜走同一条路 —— 进这一页的搜索页，不另开窗口。
-    /// 它只是个按钮，不是输入框：搜索页自己有输入框和来源栏，焦点要落在那一页里。
-    /// <para>
-    /// 侧边栏模式里按下去时，先给这颗框备一段关联动画（2026-11-13），由搜索页落定后把同一只框接到页内
-    /// 输入框上 —— 读起来就是「标题上的搜索栏移到下方」。已经在搜索页时不备票：那一下不会导航，票只会在
-    /// 超时后作废，还会把框白藏一下。
-    /// </para>
-    /// </summary>
-    private void OnSearchBoxClicked(object sender, RoutedEventArgs e)
-    {
-        NavigationTiming.Click("search-box");
-        if (SidebarShown && _current != LibraryRequest.SearchTag)
-            TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox);
-        OpenSearch();
-    }
-
-    /// <summary>
     /// 标题栏正中那颗搜索框在不在屏上、多宽。
     /// <para>
     /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一颗（最宽 240，
@@ -2314,11 +2316,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         var room = SidebarShown ? 700 : 1000;
         var shown = Chrome.Visibility == Visibility.Visible && ActualWidth >= room;
+        // 收起标题框之前记录内部 TextBox 的焦点；页面在下一次布局后把光标交给可见输入。
+        if (ContentFrame.Content is LibraryPage page)
+            page.SetTitleSearchInput(shown ? TitleSearchBox : null);
         TitleSearchBox.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
 
         // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
         SearchButton.Visibility = !SidebarShown && !shown ? Visibility.Visible : Visibility.Collapsed;
+        if (TitleSearchPage is null)
+        {
+            TitleSearchBox.Text = string.Empty;
+            TitleSearchBox.PlaceholderText = "搜索媒体库、订阅等";
+        }
     }
 
     /// <summary>

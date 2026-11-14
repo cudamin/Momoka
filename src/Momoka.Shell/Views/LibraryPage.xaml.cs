@@ -169,11 +169,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchInput.AddHandler(UIElement.KeyUpEvent, new KeyEventHandler(OnSearchKeyUp), handledEventsToo: true);
         SearchInput.Loaded += (_, _) => PlaceSearchSites();
         ViewModel.SubmitRecentSearch = SubmitSearchAsync;
-        SearchInput.LostFocus += (_, _) =>
-        {
-            _searchEnterDown = false;
-            CancelImeSubmit();
-        };
+        SearchInput.LostFocus += OnSearchLostFocus;
         SearchCategories.SelectionChanged += OnSearchCategoryChanged;
         HeaderLayout.SizeChanged += OnHeaderSizeChanged;
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
@@ -266,6 +262,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
         if (e.PropertyName is nameof(LibraryViewModel.UpcomingVisibility) or nameof(LibraryViewModel.FavoritesVisibility)) ApplyHeaderLayout();
         if (e.PropertyName == nameof(LibraryViewModel.MoviePilotTabsVisibility)) ApplyHeaderLayout();
+        if (e.PropertyName == nameof(LibraryViewModel.SearchText)) SyncTitleSearchText();
         if (e.PropertyName == nameof(LibraryViewModel.SortLabel)
             || e.PropertyName == nameof(LibraryViewModel.SortDescending))
             Alpha.SetCurrent(null);
@@ -319,8 +316,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     internal (bool IsSearch, bool BoxShown, string Text, string Notice, int Rows) SearchState => (
         _request?.IsSearch == true,
-        SearchInput.Visibility == Visibility.Visible,
-        SearchInput.Text ?? string.Empty,
+        ActiveSearchInput.Visibility == Visibility.Visible,
+        ActiveSearchInput.Text ?? string.Empty,
         ViewModel.EmptyNotice,
         ViewModel.LoadedCount);
 
@@ -665,6 +662,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     public void Release()
     {
         if (_released) return;
+        var searchDraft = _titleSearchInput?.Text;
         EndSelection();
         if (_session is { } batchSession)
         {
@@ -682,6 +680,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
         CancelTyping();
         CancelImeSubmit();
+        SetTitleSearchInput(null);
         _navigation++;
         SearchSitePicker.ClosePopup();
         if (_request is { } request)
@@ -691,12 +690,14 @@ public sealed partial class LibraryPage : Page, IShellContent
             request.LoadedCount = ViewModel.LoadedCount;
             if (request.IsSearch)
             {
-                request.SearchTerm = ViewModel.SearchText;
+                request.SearchTerm = searchDraft ?? ViewModel.SearchText;
                 request.SearchSource = SearchSource;
                 if (_moviePilotPanel is { } panel)
                 {
-                    request.MoviePilotScrollOffset = panel.ScrollOffset;
-                    request.MoviePilotSearch = panel.ViewModel.Capture();
+                    var snapshot = panel.ViewModel.Capture();
+                    request.MoviePilotSearch = snapshot is not null
+                        && string.Equals(snapshot.Term, request.SearchTerm.Trim(), StringComparison.Ordinal) ? snapshot : null;
+                    request.MoviePilotScrollOffset = request.MoviePilotSearch is not null ? panel.ScrollOffset : 0;
                 }
             }
         }
@@ -730,16 +731,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         ApplyHeaderLayout();
         if (_request?.IsSearch == true)
         {
-            // 侧边栏模式点标题搜索框进来时，先让关联动画把那只框接到这里；接不上才退回原来的淡入。
-            if (!TitleSearchTransition.Attach(Frame, SearchInput,
-                started => { if (!started) HomeMotion.Reveal(SearchSurface, 0, 220, 8); }))
-                HomeMotion.Reveal(SearchSurface, 0, 220, 8);
+            HomeMotion.Reveal(SearchSurface, 0, 220, 8);
         }
 
         // The search page opens with an empty box and nothing to look at, so the caret belongs in the box.
         // Here rather than in OnNavigatedTo: nothing can take focus before it is in the tree.
         if (_request is { IsSearch: true } && ViewModel.SearchText.Length == 0)
-            SearchInput.Focus(FocusState.Programmatic);
+            ActiveSearchInput.Focus(FocusState.Programmatic);
         if (_request is { IsSearch: true, SearchSource: 1 } search && _moviePilotPanel is { } panel)
             panel.RestoreScroll(search.MoviePilotScrollOffset);
 
@@ -850,7 +848,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 库根、Jellyfin 的 list 根与所有文件夹下钻页都用库页这 20 边距：卡片宽度是「可用宽 ÷ 列数」，
         // 同样是 1368 宽的窗口，32 边距会让下钻页从 7 列掉成 6 列、封面比 Emby 库大一档
         // （2026-11-01 用户令「参考 emby 库封面的大小统一其他库的封面大小」）。
-        PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
+        PageRoot.Margin = search ? new Thickness(pageMargin.Left, _titleSearchInput is null ? 40 : 12, pageMargin.Right, pageMargin.Bottom)
             : sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList ? new Thickness(20) : pageMargin;
         PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
@@ -905,8 +903,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSurface.Width = formWidth;
         SearchSurface.MaxWidth = width;
         SearchEntry.Width = formWidth;
+        SearchEntry.Visibility = _titleSearchInput is null ? Visibility.Visible : Visibility.Collapsed;
         SearchForm.ColumnSpacing = 0;
-        SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0;
+        // 间距放在可见来源栏上；第3行站点入口收起后不能留下 Grid 的额外行距。
+        SearchForm.RowSpacing = 0;
+        SourceTabs.Margin = _titleSearchInput is null && SourceTabs.Visibility == Visibility.Visible
+            ? new Thickness(0, 8, 0, 0) : new Thickness(0);
         SourceTabs.Width = Math.Min(480, formWidth);
         var visibleTabs = SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>()
             .Where(item => item.Visibility == Visibility.Visible).ToArray();
@@ -1499,7 +1501,25 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// 同时扩展模板的跨列表面，站点入口也在输入框边框内；模板重建时重新挂载。搜索页与「在 MoviePilot 搜索版本」
     /// 窗口共用 <see cref="SearchSiteSlot"/> 这一份做法。
     /// </summary>
-    private void PlaceSearchSites() => SearchSiteSlot.Place(SearchInput, SearchSitePicker);
+    private void PlaceSearchSites()
+    {
+        if (_titleSearchInput is null)
+        {
+            SearchSiteSlot.Place(SearchInput, SearchSitePicker);
+            return;
+        }
+        // 标题栏只放关键词；站点入口留在来源栏下面，避免窄标题框被清除/查询/站点三颗按钮挤满。
+        if (!ReferenceEquals(SearchSitePicker.Parent, SearchForm))
+        {
+            if (SearchSitePicker.Parent is Panel previous) previous.Children.Remove(SearchSitePicker);
+            SearchForm.Children.Add(SearchSitePicker);
+        }
+        Grid.SetRow(SearchSitePicker, 2);
+        Grid.SetColumn(SearchSitePicker, 0);
+        Grid.SetColumnSpan(SearchSitePicker, 2);
+        SearchSitePicker.HorizontalAlignment = HorizontalAlignment.Center;
+        SearchSitePicker.Margin = new Thickness(0, 8, 0, 0);
+    }
 
     private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
     {
@@ -1535,19 +1555,19 @@ public sealed partial class LibraryPage : Page, IShellContent
         CancelImeSubmit();
         var pending = new CancellationTokenSource();
         _imeSubmit = pending;
-        var before = SearchInput.Text ?? string.Empty;
+        var before = ActiveSearchInput.Text ?? string.Empty;
         try
         {
             for (var attempt = 0; attempt < 14; attempt++)
             {
                 await Task.Delay(25, pending.Token).ConfigureAwait(true);
-                if (string.Equals(SearchInput.Text, before, StringComparison.Ordinal)) continue;
+                if (string.Equals(ActiveSearchInput.Text, before, StringComparison.Ordinal)) continue;
                 await Task.Delay(60, pending.Token).ConfigureAwait(true);
                 break;
             }
 
             if (pending.IsCancellationRequested || _released) return;
-            await SubmitSearchAsync(SearchInput.Text ?? string.Empty).ConfigureAwait(true);
+            await SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         finally
@@ -1568,7 +1588,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         CancelTyping();
         if (_released) return Task.CompletedTask;
         // 从来源标签按回车后把焦点交回输入框，接着修改关键词不必再点一次。
-        SearchInput.Focus(FocusState.Programmatic);
+        ActiveSearchInput.Focus(FocusState.Programmatic);
         return RunSearchAsync(text, remember: true);
     }
 
@@ -1679,7 +1699,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSourceTabsPointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        if (!_released && _request?.IsSearch == true) SearchInput.Focus(FocusState.Programmatic);
+        if (!_released && _request?.IsSearch == true) ActiveSearchInput.Focus(FocusState.Programmatic);
     }
 
     /// <summary>
@@ -1691,7 +1711,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_released || e.Key != Windows.System.VirtualKey.Enter) return;
         e.Handled = true;
-        _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
+        _ = SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty);
         // 提交把焦点交到输入框后，这颗回车的 keyup 也会过去，不能误认为输入法补提交。
         _searchEnterDown = true;
     }
@@ -1859,6 +1879,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ => ViewModel.ExtendedSearchCategoriesVisibility == Visibility.Visible
                 ? "搜索影片、节目、人物、合集和播放列表" : "搜索媒体库中的影片、节目和单集"
         };
+        if (_titleSearchInput is { } titleInput) titleInput.PlaceholderText = SearchInput.PlaceholderText;
         ApplyHeaderLayout();
         ViewModel.Cancel();
         ViewModel.NoticeOpen = false;

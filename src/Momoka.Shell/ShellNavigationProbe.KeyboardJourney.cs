@@ -147,13 +147,13 @@ internal sealed partial class ShellNavigationProbe
                     () => KeyboardJourneyProbeRules.SourceReady(fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid",
                         shell.Pages.Content is HomePage { IsReady: true }, accountMenu.IsOpen, AccountPopupPresent()));
                 Require(!accountMenu.IsOpen && !AccountPopupPresent(), "选来源后账号菜单仍未结束关闭");
-                var openSearch = Get<Button>(shell, "TitleSearchBox");
+                var openSearch = Get<AutoSuggestBox>(shell, "TitleSearchBox");
                 await FocusAsync(openSearch, "KeyboardJourneyOpenSearch");
                 await Stage("search-entry-ready", "press Enter to open search", _window.Handle,
                     () => shell.Pages.Content is LibraryPage search && search.SearchState.IsSearch);
             }
             var searchPage = (LibraryPage)shell.Pages.Content;
-            var searchInput = Get<AutoSuggestBox>(searchPage, "SearchInput");
+            var searchInput = searchPage.ActiveSearchInput;
             if (resumeFromResult)
             {
                 // The previous run already witnessed the user's query; this run seeds only the same anonymous result.
@@ -266,7 +266,7 @@ internal sealed partial class ShellNavigationProbe
             await Stage("back-ready", "press Alt+Left to return to search", _window.Handle,
                 () => shell.Pages.Content is LibraryPage restored && restored.SearchState.IsSearch && restored.ViewModel.IsReady);
             var restoredSearch = (LibraryPage)shell.Pages.Content;
-            KeyboardJourneyProbeRules.RequireFinal(Get<AutoSuggestBox>(restoredSearch, "SearchInput").Text,
+            KeyboardJourneyProbeRules.RequireFinal(restoredSearch.ActiveSearchInput.Text,
                 restoredSearch.ViewModel.Cards.All(card => card.Scope?.Connection.ApiBase.Host == "keyboard-b.invalid"),
                 actions.Plays, server.AuthenticationPosts, server.RejectedWrites);
             await SaveProbeScreenAsync("keyboard-journey-return-760-screen.png");

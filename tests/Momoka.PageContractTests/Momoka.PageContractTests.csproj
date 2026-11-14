@@ -21,6 +21,8 @@
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\PosterCard.Caption.cs" Link="Production\PosterCard.Caption.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\PosterHoverDwell.cs" Link="Production\PosterHoverDwell.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ShellPage.SidebarIcons.cs" Link="Production\ShellPage.SidebarIcons.cs" />
+    <Compile Include="..\Momoka.Tests\ToolbarIconTests.cs" Link="ToolbarIconTests.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Theme\SystemManagedThemeRole.cs" Link="Production\SystemManagedThemeRole.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\CardShelf.cs" Link="Production\CardShelf.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\CardCollection.cs" Link="Production\CardCollection.cs" />

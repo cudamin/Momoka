@@ -1631,7 +1631,7 @@
                                   Jellyfin 的分类已全部进字形表；认不出的分类给一页通用纸，不再拿齿轮兜底
                                   （2026-10-19 用户当场指出左栏齿轮太多）。
                                 -->
-                                <Grid>
+                                <Grid Width="20" Height="20" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw">
                                     <FontIcon
                                         FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                         FontSize="16"

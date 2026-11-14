@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\src\Momoka.Shell\Views\StoreTrailerDocument.cs" Link="Shell\StoreTrailerDocument.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\SettingsCategoryGlyphConverter.cs" Link="Shell\SettingsCategoryGlyphConverter.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Services\FnNasLibraryRemovalService.cs" Link="Shell\FnNasLibraryRemovalService.cs" />
     <!-- Execute the actual selected-playback handoff; this fixture supplies inert UI and shell owners. -->
     <Compile Include="..\..\src\Momoka.Shell\Views\LibraryPage.SelectionPlayback.cs" Link="Shell\LibraryPage.SelectionPlayback.cs" />
