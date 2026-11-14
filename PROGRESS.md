@@ -13466,3 +13466,5 @@ PROGRESS/开发说明自动整合并保留原记录。所有10份产品/测试/�
 应用archive_worktree返回 `This worktree is not attached to the current task`，本轮不能由该工具归档，保留当前工作目录，
 不改动其他聊天的树。独有产品/测试改动已进入master，恢复顶端 `8dd0b86`。最终桌面发布仍为此前版本。
 2026-11-14整合验证：产品提交 `5ba450e` 后在本树整合master `dcb811c`，自动合并商店/沉浸和首页柔光，唯一PROGRESS追加冲突保留双方完整记录；新增预览probe明确 `EnableImmersive=false`，未恢复退役SidebarMode，主树所有模式/搜索/轮播/工具组检查保持。接线契约另守初始化handled PointerPressed及独立probe商店模式；专项重新31/31、0失败0跳过（`artifacts/regressions/20261114-071223725-0276f70620fc414cbac5357644521d06/summary.json`），整合后Release x64 Shell/Core0警告0错误（`work/sidebar-preview-build-integrated.log`）。两名代理只读审查产品/整合/测试，无确定未解决缺陷；物理输入仍不在替身覆盖内。测试子树全部内容已保留，应用归档成功，恢复键 `C:/Users/89400/.codex/worktrees/sidebar-preview-tests/Momoka`、原HEAD `5d1fe05`；忽略内容仅匿名测试与构建产物。整合原生probe暂等待其他聊天PID4648诊断锁释放，未结束进程或绕锁。
+
+2026-11-14主树合入：干净master `dcb811c` 以ff进入 `1d97cea`，产品 `5ba450e` 与测试全部已保留；13份任务文件整合后逐文件无master缺少的内容，双方历史保持。台账第23项登记适用验证与物理输入/真实播放边界；最终原生检查仍按只读探针等待其他聊天诊断锁，不自行交付，不发布或上传，桌面保持原发布件。
