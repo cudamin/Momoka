@@ -53,7 +53,7 @@ public sealed partial class ShellPage
     /// <para>
     /// 2026-11-12 晚的规矩（用户令「主页不显示返回按钮，进入媒体页面或者媒体库页面的时候显示，放左上角，
     /// 折叠侧边栏按钮移到它右边」「标题栏左上角写 Momoka」，前进键同日退役）：非侧边栏模式是
-    /// 返回（非主页）· 主页 · 收藏（有收藏才在）· 设置 · 搜索（窄窗才在）；侧边栏模式是
+    /// 返回（非主页）· 主页 · 收藏（有收藏才在）· 设置 · 搜索；商店侧边栏模式是
     /// 返回（非主页）· 折叠（搜索入口 2026-11-13 起不在栏里，只剩标题栏正中那颗框）。这一关判五件事：
     /// 返回的显隐与目的地对得上、该在的都在、可见的那几颗按这个次序排成一行、折叠键紧贴在返回右边、
     /// 整排落在标题栏那 40 像素里。
@@ -211,9 +211,11 @@ public sealed partial class ShellPage
         var chrome = barAt.Y + AppTitleBar.Height;
         var stacked = Math.Abs(chrome - HomePage.ChromeHeight) <= 0.5;
         // 页面顶上让开的那一段必须和外壳同高：2026-11-01 标题栏 32→40、2026-11-13 40→48 时，忘掉这一份就会
-        // 让页面从旧的高度起画、被外壳压掉一截。2026-11-12 晚起这一份从内边距搬到了外边距（画布要让开标题栏
-        // 那一层材质，见 ShellPage.xaml 的 ContentHost），量的是同一个数。
-        var padded = Math.Abs(ContentHost.Margin.Top - HomePage.ChromeHeight) <= 0.5;
+        // 让页面从旧的高度起画、被外壳压掉一截。商店用外边距露出 Mica，沉浸恢复内边距覆盖画布；两档合计同高。
+        var padded = Math.Abs(ContentHost.Margin.Top + ContentHost.Padding.Top - HomePage.ChromeHeight) <= 0.5
+            && (_sidebarMode
+                ? ContentHost.Padding.Top == 0 && ContentHost.Margin.Top == HomePage.ChromeHeight
+                : ContentHost.Margin.Top == 0 && ContentHost.Padding.Top == HomePage.ChromeHeight);
 
         var accountAt = At(AccountButton);
         var right = accountAt.X + AccountButton.ActualWidth;
@@ -258,7 +260,7 @@ public sealed partial class ShellPage
             $"{(shown ? "外壳在屏上" : "外壳收着了")}；"
                 + $"标题栏从 y={barAt.Y:0} 起、高 {AppTitleBar.Height:0}，外壳共 {chrome:0} 高"
                 + $"（该 {HomePage.ChromeHeight:0}{(stacked ? "" : "，对不上")}）"
-                + $"，内容区上外边距 {ContentHost.Margin.Top:0}{(padded ? "" : " 对不上")}；"
+                + $"，内容区上外边距 {ContentHost.Margin.Top:0}／内边距 {ContentHost.Padding.Top:0}{(padded ? "" : " 对不上")}；"
                 + $"账号 {(accountShown ? $"{AccountButton.ActualWidth:0}×{AccountButton.ActualHeight:0} 左沿 {accountAt.X:0}／窗口 {ActualWidth:0}×{ActualHeight:0}" : "收着")}"
                 + $"，{(corner ? SidebarShown ? "落在左下角、在侧边栏里" : "贴着右上角、在标题栏里" : "不在它该在的位置")}"
                 + $"，{arrangementText}");

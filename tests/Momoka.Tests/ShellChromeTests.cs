@@ -24,8 +24,10 @@ internal static class ShellChromeTests
             // 2026-11-13 用户令「参考 codex 窗口边框的宽度和高度」：那一条 40→48、那条栏 48→56。
             Assert.Equal("48", Named(document, "AppTitleBar").Attribute("Height")?.Value,
                 "标题栏不是 48 高了");
-            Assert.Equal("0,48,0,0", Named(document, "ContentHost").Attribute("Margin")?.Value,
-                "内容区没有让开 48 的标题栏");
+            Assert.Equal("0,48,0,0", Named(document, "ContentHost").Attribute("Padding")?.Value,
+                "默认沉浸模式没有通过内边距让开 48 的标题栏");
+            Assert.True(Named(document, "ContentHost").Attribute("Margin") is null,
+                "默认沉浸模式没有恢复铺入标题栏的画布");
             Assert.Equal("0,48,0,0", Named(document, "Sidebar").Attribute("Margin")?.Value,
                 "侧边栏没有从 48 起画");
 

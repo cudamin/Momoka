@@ -2300,10 +2300,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>
     /// 标题栏正中那颗搜索框在不在屏上、多宽。
     /// <para>
-    /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一颗（最宽 240，
-    /// 离右沿 152 = 系统那三颗 144 加 8 的缝），中间再塞一段就得一千像素往上；侧边栏模式左边只有返回/折叠，
-    /// 右边是账号那一颗（40 宽）加系统那三颗，七百就够。收起来的时候各有替代：非侧边栏模式那一排里的
-    /// 放大镜键（<see cref="SearchButton"/>）；侧边栏模式 2026-11-13 起栏里没有「搜索」项，所以它在窄窗里
+    /// 商店侧边栏左边只有返回/折叠，右边是账号（40 宽）加系统那三颗，七百就够。
+    /// 2026-11-14 关闭商店模式恢复旧标题栏：居中框收起，左上放大镜（<see cref="SearchButton"/>）始终显示。
+    /// 侧边栏 2026-11-13 起没有「搜索」项，所以居中框在窄窗里
     /// 收起时就没有搜索入口 —— 用户令只删入口，不为窄窗另造一颗。
     /// </para>
     /// <para>
@@ -2312,13 +2311,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void SyncTitleSearch()
     {
-        var room = SidebarShown ? 700 : 1000;
-        var shown = Chrome.Visibility == Visibility.Visible && ActualWidth >= room;
+        var shown = SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700;
         TitleSearchBox.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
 
-        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
-        SearchButton.Visibility = !SidebarShown && !shown ? Visibility.Visible : Visibility.Collapsed;
+        SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>

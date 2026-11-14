@@ -81,6 +81,15 @@ internal static class ToolbarIconTests
             var text = box.Descendants().Single(element => element.Name.LocalName == "TextBlock");
             Assert.Equal("搜索媒体库、订阅等", text.Attribute("Text")?.Value);
         });
+        TestHarness.Test("标题栏搜索：商店侧栏使用居中框，沉浸宽窄窗口恢复左上放大镜", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
+            var method = source[source.IndexOf("    private void SyncTitleSearch()", StringComparison.Ordinal)..];
+            method = method[..method.IndexOf("\n    }", StringComparison.Ordinal)];
+            Assert.Contains("SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700", method);
+            Assert.Contains("SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible", method);
+            Assert.DoesNotContain("1000", method);
+        });
         TestHarness.Test("标题栏收藏：爱心字形默认收着，没有收藏时不出现在那一排", () =>
         {
             var heart = Named(Shell(), "FavoritesButton");
@@ -148,6 +157,13 @@ internal static class ToolbarIconTests
 
     private static XElement Named(XDocument document, string name) => document.Descendants().Single(element =>
         element.Attribute(Xaml + "Name")?.Value == name);
+
+    private static string Root()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) return directory.FullName;
+        throw new InvalidOperationException("找不到源码树");
+    }
 
     private static XDocument Shell()
     {

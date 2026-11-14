@@ -32,7 +32,7 @@ internal sealed partial class ShellNavigationProbe
         var server = new KeyboardJourneyProbeServer { Poster = await FixtureImageAsync(400, 600) };
         fixture.Transport.Reply = server.ReplyAsync;
         fixture.Settings.AggregateMode = true;
-        fixture.Settings.Ui.SidebarMode = false;
+        fixture.Settings.Ui.EnableImmersive = true;
         fixture.Settings.Ui.AnimationsEnabled = true;
         fixture.Settings.Ui.ShowHomeBanner = false;
         fixture.Settings.MoviePilot.Enabled = false;
@@ -147,7 +147,7 @@ internal sealed partial class ShellNavigationProbe
                     () => KeyboardJourneyProbeRules.SourceReady(fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid",
                         shell.Pages.Content is HomePage { IsReady: true }, accountMenu.IsOpen, AccountPopupPresent()));
                 Require(!accountMenu.IsOpen && !AccountPopupPresent(), "选来源后账号菜单仍未结束关闭");
-                var openSearch = Get<Button>(shell, "TitleSearchBox");
+                var openSearch = Get<Button>(shell, "SearchButton");
                 await FocusAsync(openSearch, "KeyboardJourneyOpenSearch");
                 await Stage("search-entry-ready", "press Enter to open search", _window.Handle,
                     () => shell.Pages.Content is LibraryPage search && search.SearchState.IsSearch);

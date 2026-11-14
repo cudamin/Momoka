@@ -91,8 +91,8 @@ public sealed partial class ShellPage
     private void OnSidebarPreferencesChanged(UiSettings ui)
     {
         // All open windows receive ShellPrefs; unrelated preferences must not reflow this shell.
-        if (_settings is null || !ReferenceEquals(ui, Settings.Ui) || _sidebarMode == ui.SidebarMode) return;
-        _sidebarMode = ui.SidebarMode;
+        if (_settings is null || !ReferenceEquals(ui, Settings.Ui) || _sidebarMode == !ui.EnableImmersive) return;
+        _sidebarMode = !ui.EnableImmersive;
         _sidebarWide = ActualWidth >= SidebarWideThreshold;
         if (_sidebarMode) Sidebar.IsPaneOpen = _sidebarWide;
         SyncSidebar();
@@ -106,6 +106,7 @@ public sealed partial class ShellPage
             _sidebarWide = wide;
             Sidebar.IsPaneOpen = wide;
         }
+        SyncTitleSearch();
         ApplySidebarLayout();
     }
 
@@ -187,9 +188,10 @@ public sealed partial class ShellPage
         if (!shown || Sidebar.IsPaneOpen) HideLibraryPreview();
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
-        // 顶上那 40 是标题栏：2026-11-12 晚起画布让开它（见 ShellPage.xaml 里 ContentHost 那一段），
-        // 所以这一份外边距是「让开侧边栏的宽 + 让开标题栏的高」两件事合起来的一个值。
-        ContentHost.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
+        // 商店模式让画布与页面一起避开标题栏，露出 Mica；沉浸模式恢复旧版画布铺入标题栏、
+        // 页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
+        ContentHost.Margin = new Thickness(width, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);
+        ContentHost.Padding = new Thickness(0, _sidebarMode ? 0 : HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();
 
         // 标题栏那一排的缩进：侧边栏在屏上时是 8，其余时候是 18（标记里那个值）。

@@ -34,7 +34,12 @@ public static class ShellPrefs
     /// <summary>按钮底色、背景图和沉浸模式只更新画面，不触发主页重新查询。</summary>
     public static event Action<UiSettings>? AppearanceChanged;
 
-    public static void ApplyAppearance(UiSettings ui) => AppearanceChanged?.Invoke(ui);
+    public static void ApplyAppearance(UiSettings ui)
+    {
+        // 显示模式也决定外壳导航；先落定侧栏与标题栏，再让当前详情重排，不通知主页重新查询。
+        ApplySidebar(ui);
+        AppearanceChanged?.Invoke(ui);
+    }
 
     // 草稿只属于打开拾色器的设置对象，不进入 AppSettings，也不会随别的设置保存。
     private static UiSettings? _controlPreviewOwner;
@@ -103,7 +108,6 @@ public static class ShellPrefs
     public static void Apply(UiSettings ui)
     {
         Views.HomeMotion.ApplyPreference(ui.AnimationsEnabled);
-        ApplySidebar(ui);
         ApplyAppearance(ui);
         ApplyDetailLayout(ui);
         ApplyDetailCast(ui);

@@ -83,15 +83,14 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
 
             // 首页、空收藏（2026-11-12 晚的规矩）：收藏没有内容可去、收起；主页走不动、暗着；**返回在主页上整个
-            // 收起**（用户令「主页不显示返回按钮」）；前进键退役；搜索入口在标题栏正中那颗框里（1420 宽够放），
-            // 这一排的放大镜让位。
+            // 收起**（用户令「主页不显示返回按钮」）；前进键退役；沉浸模式恢复左上放大镜，居中框收起。
             var box = Get<Button>(shell, "TitleSearchBox");
             Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
             Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Collapsed,
                 "主页上主页键不在、或者返回没有收起");
             Require(settingsButton.Visibility == Visibility.Visible, "设置没在左上这一排");
-            Require(box.Visibility != searchButton.Visibility,
-                $"搜索入口不对：搜索框 {box.Visibility}、放大镜 {searchButton.Visibility}（两者应当恰好一个在）");
+            Require(box.Visibility == Visibility.Collapsed && searchButton.Visibility == Visibility.Visible,
+                $"沉浸搜索入口不对：搜索框 {box.Visibility}、放大镜 {searchButton.Visibility}");
             Require(!homeButton.IsEnabled && !backButton.IsEnabled, "首页上主页或返回没有变暗");
             Require(Left(homeButton, shell) < Left(settingsButton, shell),
                 "标题栏这一排的次序不是 主页 · 设置");
