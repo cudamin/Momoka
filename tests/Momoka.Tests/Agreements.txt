@@ -26,6 +26,8 @@
 # 2026-11-14 晚（标题栏与侧栏同色）：句柄新增 TitleBarBackground（整条标题栏那一层 EgSidebarBrush 的底，
 # 栏在屏上时由 SyncSidebar 露出）。侧栏宿主 SidebarHost 改从标题栏下沿起画，Sidebar 自己的 Margin 随之移除
 # —— 两处句柄都还在，ShellChromeTests 改钉宿主那一处。
+# 2026-11-15（商店模式按钮浅色高透明底）：Palette.xaml 新增 EgStoreControlBrush（白，四态浓度由
+# ControlBackgroundBrushes 的定值分档），颜色计数 90→91；它是角色色按字面值写，与同一字典里的层色一致。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -43,7 +45,7 @@ bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  90
+color  Theme/Palette.xaml  91
 color  Views/DetailPage.xaml  12
 color  Views/HomeBanner.xaml  18
 color  Views/HtmlColorPicker.xaml  11
