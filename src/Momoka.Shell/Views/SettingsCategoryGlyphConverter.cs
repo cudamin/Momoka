@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Data;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 设置页左边那列分类的图标：分类名 → 一个 Segoe Fluent 字形，参考图里 QQ 那样每个分类带一个图标。
+/// 设置页分类名到 Segoe Fluent 字形；导航与分组卡片共用平台线性图标。
 /// <para>
 /// 分类还是一串字符串（<c>SettingsViewModel.Categories</c>，是 <c>SelectedCategory</c>、跳转、自检等十来处
 /// 共用的那份），没有为了加图标改成对象 —— 那要动一大圈。这里只在渲染时把名字翻成一个字形，认不出的名字给个
@@ -24,21 +24,24 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
 
     private static readonly IReadOnlyDictionary<string, int> Glyphs = new Dictionary<string, int>(StringComparer.Ordinal)
     {
+        // 字形语义核对：WinUI Gallery Samples/Iconography/IconsData.json
+        // @ 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。
         ["播放器"] = 0xE768,       // Play
         ["播放工具"] = 0xE90F,     // Repair
         ["播放行为"] = 0xE81C,     // History（续播、进度）
-        ["字幕"] = 0xE8D2,         // Font（字）
-        ["弹幕"] = 0xE8F2,     // Message
+        ["字幕"] = 0xF15F,         // ClosedCaptionsInternational
+        ["弹幕"] = 0xE8F2,         // ChatBubbles
         ["视频输出"] = 0xE7F4,     // TVMonitor
         ["音频输出"] = 0xE767,     // Volume
         ["主页"] = 0xE80F,         // Home
         ["界面"] = 0xE771,         // Personalize
-        ["快捷键"] = 0xE765,       // KeyboardClassic
+        ["快捷键"] = 0xEDA7,       // KeyboardShortcut
+        ["本机整理"] = 0xE8DE,     // MoveToFolder
         ["关于"] = 0xE946,         // Info
         ["服务器"] = 0xE753,       // Cloud（远端服务器）
-        ["诊断"] = 0xE8A5,         // Document（日志）
-        ["通知"] = 0xE7E7,         // Mail（转发出去的消息；与通知页自己的头图标同一个字形）
-        ["控制台"] = 0xE9D9,       // ViewDashboard
+        ["诊断"] = 0xE9D9,         // Diagnostic
+        ["通知"] = 0xEA8F,         // Ringer
+        ["控制台"] = 0xF246,       // ViewDashboard
         ["常规"] = 0xE713,         // Settings
         ["通用"] = 0xE713,         // Settings
         ["用户"] = 0xE716,         // People

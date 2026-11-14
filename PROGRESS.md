@@ -13371,3 +13371,15 @@ selfcheck-diff当前正式入口真实运行：原固定x=8取点落入新返回
 正式判断按播放按钮实际 `TransformToVisual(Body)` 边界计算顶部裁掉三分之一，保留4 DIP/小按钮十分之一的回滚滞回、原生ViewChanged、宽窄主按钮选择、可用性、生命周期与焦点。原生检查同步成三分之一线后1 DIP显示，确保早于原半切；XAML注释与专项说明同步。完整核对稳定Gallery `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的ScrollView/ItemsView、HomePageHeader/ItemPage和旧ImageScrollBehavior；没有同款完整样例，旧85 DIP逻辑被上游csproj排除，比例明确是用户产品条件。原动效仍沿用先前桌面Gallery证据，未改依赖。
 
 分支专项先红8项后58/58绿、0失败0跳过；Shell/Core与专项Release单节点编译均0警告0错误，6个变更文本行尾/BOM/空白检查通过。匿名原生检查台 `InspectDetailStickyHeader` 单项通过，1000/760/360 DIP实屏三张已目视，回滚及关动画通过，Plays=0；日志 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-033450301-25484/logs`。该检查台仅执行此项，范围文件的「全量」是入口默认字段，不代表整套探针覆盖。检查结束正常退出，无真实服务器读取/写入、播放、推送或发布。合入后不重跑全量，交付时按台账在最终主树重验；未覆盖物理滚轮/触摸、跨DPI和读屏。
+
+## 2026-11-14 本机整理四卡与设置分类图标（分支已验证，待合入）
+
+用户要求重新设计截图中的图标，并给右侧加卡片。本树 `C:/Users/89400/.codex/worktrees/4646/Momoka` 以 detached HEAD `0fdf357` 隔离开发；当前输入图片一张。设置分类统一20×20图标托盘，更新本机整理、字幕、快捷键、诊断、通知及控制台的专属Segoe Fluent字形，MoviePilot官方标记保留。右侧分为媒体库、识别与整理、目录、自动入库四张展开卡片，系统卡片主题资源、12圆角、独立标题和图标；原输入名称、双向绑定、事件和业务流程保留。识别与整理按卡内实际520 DIP折行，窄窗恢复宽窗不改变偏好；直接改名整组收起目标行，TMDB/MP来源说明整组切换。结果列表保留原单层卡片和单一滚动区。
+
+来源核对：稳定WinUI Gallery `v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 `Pages/SettingsPage.xaml` / `.xaml.cs`、`Samples/Iconography/IconsData.json` 与模型/helpers，结合Learn设置及图标指南；已读本项目Toolkit `8.2.251219` 对应源码 `a6b4dc451c0e54dd29f58743894a956100e7f713` 的SettingsCard XAML、code-behind及属性。Gallery没有此多字段完整页面，先试当前Toolkit：基于DefaultSettingsCardStyle时资源解析失败；去掉BasedOn后属性探针2/2但实际截图标题/正文仍横排、长路径溢出，Vertical没有实际生效。最终采用原生Grid组合保证标题上、正文下，未改依赖或创建自定义控件；原失败和不合格截图保留，不能当最终证据。原生Grid不带SettingsCard的Group自动化控件类型，现有二级标题、装饰图标Raw和输入名称保持，读屏仍待验。
+
+最终代码Release单节点Shell/Core与Tests编译均0警告0错误；在上一轮编译期间变更XAML产生的CS1697一条警告已保留，稳定最终代码复编0/0。定向 `local-media-layout-fixture` **21/21**（14项卡片/设置布局、7项真实约定和分析器哈希），`local-media-vm-fixture` **6/6**，均0失败0跳过。自动化扫描本轮输入均有句柄，旧句柄无删除；全仓扫描另有PersonPage三个既存无句柄按钮，不属本轮。变更文本行尾/BOM/UTF-8/空白检查通过。较广 `local-media-fixture` **179项178通过1红**：未改动的「本地监控：断开目录后刷新恢复扫描但不跟随链接目录」4秒超时；未重跑洗绿、未修无关Core监控或放宽断言，本轮专项全绿不等于广套件全绿。
+
+最终本树开发构建运行匿名 `--probe-shell --probe-section local-media --screen 1` **2/2、退出0**：完整SettingsPage宿主、四卡标题/正文、长路径和按钮边界、确认取消零文件写入、来源与目标行恢复，以及独立本地库假文件硬链接/NFO/图片。窗口1100/760/600再回1100；卡内读数732/620/460/732 DIP，600确实进入下一行，再回双列且原输入保留。每档滚到底再回顶，最终1100/760/600、恢复、底部与TMDB、确认截图已目视，无横向溢出。日志和 `local-media-layout.json`：`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-045342085-25060/logs`。先前以Hidden启动的15912宿主在页面创建前不可见而退出1（`shell-probe-20261114-045300170-15912`），改为可见诊断窗口后运行；不隐藏失败日志。共享桌面锁曾被其他树占用，按轻量探针等待释放，未结束它们进程或绕锁。
+
+本轮未读真实媒体库、未播放、未向真实服务器写入、未发布或上传。未测519/520/521精确边界、跨DPI/文字200%/高对比度/Narrator/触摸及物理键盘焦点；交付时按主树最终整合代码补验。产品和测试提交后主动合入master并追加待交付台账；当前截图仅覆盖本树最终开发构建，不当作主树交付证据。
