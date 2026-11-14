@@ -1,3 +1,13 @@
+## 2026-11-14 进度条弹幕热力（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-danmaku-heatmap-7MAFQ8`，分支 `feat-danmaku-heatmap-7MAFQ8`，基点 master `63ef01a`。用户要求做弹幕热力图；只读审查后确认落在集成播放页进度条、悬停显示条数、统计全部已加载弹幕。产品与测试提交 `25a79e3`。
+
+**实现。** 新增 Core `DanmakuHeat`：按秒聚合已加载弹幕，按轨道宽度切桶，非零桶 95 分位开方归一化，并提供悬停前后各 2.5 秒计数；超时长、负数和非有限时间不计入。`PlayerViewModel` 在加载、发送、换片、来源切换和时长变化时重建快照，评论和时长都没变就跳过；`DanmakuHeatVisible` 同时受服务可用、显示开关和新增 `DanmakuSettings.ShowHeatmap` 约束。集成页 `PlayerPage.DanmakuHeat.cs` 在 `SeekTrack` 的滑杆之上、缓存之下画底对齐细柱，宽度约 2 DIP、最多 600 桶、最高 60% 轨高；悬停读数复用 `ChapterPeek` 新增一行「此处约 N 条弹幕」。设置 → 弹幕 → 显示与外观新增「在进度条显示弹幕热力」，默认开，随「显示弹幕」收起；颜色走 `PlayerPalette.DanmakuHeat`（薄荷绿 40%）。独占 uosc 时间轴不画；不新增网络请求或额度消耗。
+
+**验证。** Shell/Core Release x64 **0 警告 0 错误**；`danmaku-fixture` **64/64**（新增按秒聚合、95 分位归一化、空快照与播放页层次契约）；主测试 **5110/5110、失败 0、跳过 0**。`tools/check-diff.ps1` 检查 19 个文本文件通过。未跑原生探针与实屏截图，未连真实服务器、未播放；交付时需补设置页与集成播放页 1200/760 截图及悬停读数检查。
+
+**收尾。** 按批次规则只合入 master，不发布、不交付。
+
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 
 用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。
