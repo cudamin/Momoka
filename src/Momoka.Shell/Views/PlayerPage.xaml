@@ -114,6 +114,7 @@
         <SolidColorBrush x:Key="PlayerTrackBrush" />
         <SolidColorBrush x:Key="PlayerTrackFillBrush" />
         <SolidColorBrush x:Key="PlayerLineBrush" />
+        <SolidColorBrush x:Key="PlayerDanmakuHeatBrush" />
         <SolidColorBrush x:Key="PlayerPulseBrush" />
 
         <!-- 上下两条浮层底共用的一支：标题条与控制条。2026-09-27 按用户的话换过来（原话：「去掉黑色渐变，
@@ -1277,6 +1278,9 @@
                 <local:PlayerSlider x:Name="SeekSlider" x:Uid="PlayerPage_SeekSlider" Style="{StaticResource BlockSliderStyle}"
                         Minimum="0" Maximum="1000" StepFrequency="0.001" VerticalAlignment="Stretch"
                         IsThumbToolTipEnabled="False" Value="{x:Bind ViewModel.SeekValue, Mode=TwoWay}" />
+                <!-- 弹幕热力在滑杆之上、缓存与章节色块之下：压在已播放的浅色填充上仍读得出来，
+                     又不会盖住缓冲条纹和片头/片尾/广告的色块。 -->
+                <Canvas x:Name="DanmakuHeat" AutomationProperties.AccessibilityView="Raw" IsHitTestVisible="False" />
                 <Canvas x:Name="CacheBar" AutomationProperties.AccessibilityView="Raw" IsHitTestVisible="False" />
                 <Canvas x:Name="TimelineSections" AutomationProperties.AccessibilityView="Raw" IsHitTestVisible="False" />
                 <Border Height="1" VerticalAlignment="Top" Background="{StaticResource PlayerStageBrush}" IsHitTestVisible="False" />
@@ -1438,6 +1442,13 @@
                     Foreground="{StaticResource PlayerInkDimBrush}"
                     HorizontalAlignment="Center"
                     Text="{x:Bind ViewModel.ChapterClock, Mode=OneWay}" />
+                <TextBlock
+                    x:Name="DanmakuHeatPeek"
+                    FontSize="{StaticResource EgCaptionFontSize}"
+                    Foreground="{StaticResource PlayerInkSoftBrush}"
+                    HorizontalAlignment="Center"
+                    Text="{x:Bind ViewModel.DanmakuHeatCaption, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.DanmakuHeatCaptionVisibility, Mode=OneWay}" />
             </StackPanel>
         </Border>
 

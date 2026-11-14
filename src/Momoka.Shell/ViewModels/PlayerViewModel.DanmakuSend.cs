@@ -132,6 +132,7 @@ public sealed partial class PlayerViewModel
             // 只把服务确认的评论加入当前库；不为刷新本人的一条弹幕再消耗获取额度。
             _danmakuComments = _danmakuComments.Take(DanmakuComments.MaximumCount - 1)
                 .Append(new DanmakuComment(time, 1, 0xFFFFFF, text)).OrderBy(comment => comment.Time).ToArray();
+            RefreshDanmakuHeat();
             await PushDanmakuAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) { message = "发送已中断，结果未确认；请勿立即重复发送。"; }

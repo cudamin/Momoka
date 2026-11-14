@@ -652,6 +652,11 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty]
     public partial string? ChapterClock { get; set; }
 
+    /// <summary>悬停位置附近的弹幕条数；没有热力数据时为空，不占预览的一块行高。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DanmakuHeatCaptionVisibility))]
+    public partial string? DanmakuHeatCaption { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ChapterStillVisibility))]
     public partial BitmapImage? ChapterStill { get; set; }
@@ -681,6 +686,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// chip instead.
     /// </summary>
     public Visibility ChapterCaptionVisibility => Show(ChapterCaption is { Length: > 0 });
+
+    public Visibility DanmakuHeatCaptionVisibility => Show(DanmakuHeatCaption is { Length: > 0 });
 
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 

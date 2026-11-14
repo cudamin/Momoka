@@ -1014,6 +1014,7 @@ public sealed partial class PlayerViewModel
     private void ApplyStatus(PlayerStatus status)
     {
         Status = status;
+        RefreshDanmakuHeat();
         if (status.Loaded && status.Chapters is { } chapters)
         {
             var chaptersChanged = !ReferenceEquals(chapters, ChapterMarks) && !chapters.SequenceEqual(ChapterMarks);

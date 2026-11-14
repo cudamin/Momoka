@@ -244,6 +244,12 @@ public static class PlayerPalette
     public static ThemeColor CloseRedPressed { get; } = ThemeColor.Parse("#B02719");
 
     /// <summary>
+    /// 进度条上的弹幕热力：应用强调色薄荷绿，遮四成。它压在已播放的浅色填充与空轨的深色底上都要读得出来，
+    /// 所以不能用墨色四档里的任何一支。
+    /// </summary>
+    public static ThemeColor DanmakuHeat { get; } = ThemeColor.Parse("#6EE7C5").WithAlpha(0x66);
+
+    /// <summary>
     /// 画刷键 → 颜色。<c>PlayerPage.PaintPalette</c> 逐条走这张表，把 XAML 里同名那支空画刷填上。
     /// <para>
     /// 键名带 <c>Player</c> 前缀，是为了和应用那套 <c>Eg*</c> 分清：那一套跟主题走，这一套不跟。
@@ -324,6 +330,10 @@ public static class PlayerPalette
         ("PlayerTrackBrush", White.WithAlpha(0x33)),
         ("PlayerTrackFillBrush", White.WithAlpha(0x59)),
         ("PlayerLineBrush", White.WithAlpha(0x26)),
+
+        // 进度条上的弹幕密度条（2026-11-14）：不是墨色，也不跟主题走 —— 它在已播放的浅色填充上压一层，
+        // 必须是一支有色的半透明画刷，否则和白条、已缓冲段分不开。
+        ("PlayerDanmakuHeatBrush", DanmakuHeat),
 
         // 暂停/播放 那一秒的角标：一层纯白，别的什么都没有 —— 「不要黑色的圆形边框，只要白色的三角形」去掉了
         // 底板，「点击画面暂停和开始的图标要纯白色，去掉灰色」（2026-09-05）去掉了它背后那圈半透明黑描边。

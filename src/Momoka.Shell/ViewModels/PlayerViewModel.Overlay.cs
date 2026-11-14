@@ -48,6 +48,8 @@ public sealed partial class PlayerViewModel
         // no chapters at all, and the slider's own tooltip only appears while the thumb is being dragged,
         // so hovering such a file used to show nothing whatsoever.
         ChapterClock = TimelineScale.Clock(moment, Status.Duration);
+        var heatCount = DanmakuHeatVisible ? _danmakuHeatmap.CountAround(moment, 5) : 0;
+        DanmakuHeatCaption = heatCount > 0 ? $"此处约 {heatCount} 条弹幕" : null;
 
         // Two lookups against two lists, both correct — see ChapterTimeline. The name comes from whichever
         // marks the bar is currently drawing, which is mpv's once it has published them; the picture is
@@ -79,6 +81,7 @@ public sealed partial class PlayerViewModel
         ChapterStill = null;
         ChapterCaption = null;
         ChapterClock = null;
+        DanmakuHeatCaption = null;
     }
 
     /// <summary>

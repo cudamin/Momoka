@@ -64,6 +64,7 @@ public sealed partial class PlayerPage
     {
         RenderChapterTicks();
         RenderTimelineLayers();
+        RenderDanmakuHeat();
         PaintTransportReadouts();
     }
 
