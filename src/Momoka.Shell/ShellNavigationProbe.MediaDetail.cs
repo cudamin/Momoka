@@ -32,9 +32,9 @@ internal sealed partial class ShellNavigationProbe
             && materialHost.Children.Contains(Get<SystemBackdropElement>(page, "HeroMica")) && content.Children.Contains(overview)
             && overview.VerticalAlignment == VerticalAlignment.Top,
             "简介没有放在按钮所在文字列");
-        Require(Top(overview, page) - Top(actions, page) - actions.ActualHeight is >= 10 and <= 14
-            && Math.Abs(overview.TransformToVisual(actions).TransformPoint(default).X) <= 1,
-            "简介没有紧随操作排或与按钮左对齐");
+        Require(Top(actions, page) - Top(overview, page) - overview.ActualHeight is >= 10 and <= 14
+            && Math.Abs(actions.TransformToVisual(overview).TransformPoint(default).X) <= 1,
+            "操作排没有紧随简介或与简介左对齐");
         Require(page.MediaViewModel.Plain
             ? Math.Abs(poster.ActualWidth - 140) < 1 && Math.Abs(poster.ActualHeight - 210) < 1
             : poster.ActualWidth >= 154 && poster.ActualHeight >= 220

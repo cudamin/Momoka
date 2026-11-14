@@ -188,7 +188,7 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：简介紧随操作文字列，完整资料卡右列，季与相关列表全宽", () =>
+        Test("MP 详情布局：简介在操作文字列上方，完整资料卡右列，季与相关列表全宽", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -201,7 +201,7 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.True(ReferenceEquals(Named("HeroMica").Parent, materialHost));
             Assert.Equal("False", (string?)Named("HeroMica").Attribute("IsHitTestVisible"));
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, Named("HeroContent")));
-            Assert.True(ReferenceEquals(Named("DetailActions").ElementsAfterSelf().First(), Named("HeroOverview")));
+            Assert.True(ReferenceEquals(Named("HeroOverview").ElementsAfterSelf().First(), Named("DetailActions")));
             Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, body));
             Assert.True(ReferenceEquals(Named("HeroFacts").Parent, Named("HeroRow")));
             Assert.True(ReferenceEquals(body.Parent, Named("BodyFlow")));

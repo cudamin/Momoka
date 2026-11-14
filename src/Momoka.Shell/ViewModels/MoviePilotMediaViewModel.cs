@@ -187,9 +187,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 首次读取媒体详情时这一页要不要摆加载动画（2026-10-28 用户令「点击进入订阅页面时候需要时间加载，
-    /// 添加动画过渡」）。读完了（不论成败）或详情已到就收起；刷新既有内容时不显示 —— 屏上已经有读得出的
-    /// 东西，再盖一颗转圈只会挡着它。转圈本身不是那条被撤掉的细进度条（见订阅页 XAML 顶上那段）。
+    /// 首次读取媒体详情时这一页要不要摆加载占位（2026-10-28 用户令「点击进入订阅页面时候需要时间加载，
+    /// 添加动画过渡」；2026-11-14 改成流光骨架）。读完了（不论成败）或详情已到就收起；刷新既有内容时不显示
+    /// —— 屏上已经有读得出的东西，再盖一层占位只会挡着它。这层占位本身不是那条被撤掉的细进度条
+    /// （见订阅页 XAML 顶上那段）。
     /// </summary>
     public bool InitialLoading => Busy && _firstDetailLoad && Detail is null;
     public Visibility InitialLoadingVisibility => Show(InitialLoading);

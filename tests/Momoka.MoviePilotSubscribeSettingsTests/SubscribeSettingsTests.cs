@@ -879,7 +879,7 @@ internal static class SubscribeSettingsTests
             Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Name") == "ToggleSeasonCard" && (string?)item.Attribute("Click") == "OnToggleSeasonCard"));
             var text = Resource("Production.MoviePilotSearchPanel.xaml.cs"); Check.Contains("UseSeasonPicker", text); Check.Contains("MoviePilotSeasonPicker.ShowAsync", text);
             var page = Resource("Production.MoviePilotSubscriptionPage.xaml.cs"); Check.Contains("ApplyMovieSubscriptionAsync", page);
-            // 2026-10-28：搜索结果卡可调用（点封面进订阅页），订阅页首次读取有转圈、且不再有细进度条。
+            // 2026-10-28：搜索结果卡可调用（点封面进订阅页）；订阅页首次读取用带流光的骨架占位、且不再有细进度条或转圈。
             var search = XDocument.Parse(Resource("Production.MoviePilotSearchPanel.xaml"));
             var results = search.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "Results");
             Check.Equal("False", (string?)results.Attribute("IsItemInvokedEnabled"));
@@ -888,12 +888,14 @@ internal static class SubscribeSettingsTests
             Check.Equal("OnOpenResult", (string?)open.Attribute("Click"));
             Check.Contains("ViewModel.Open(", text);
             var subscriptionPage = XDocument.Parse(Resource("Production.MoviePilotSubscriptionPage.xaml"));
-            var loadingRing = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoadingRing");
-            Check.Contains("InitialLoading", loadingRing.Attribute("IsActive")?.Value ?? "");
+            var loadingShimmer = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoadingShimmer");
+            Check.Contains("InitialLoading", loadingShimmer.Attribute("IsActive")?.Value ?? "");
             var loadingPanel = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoading");
             Check.Contains("InitialLoadingVisibility", loadingPanel.Attribute("Visibility")?.Value ?? "");
             Check.False(subscriptionPage.Descendants().Any(item => item.Name.LocalName == "ProgressBar"),
                 "订阅页又画了那条细进度条");
+            Check.False(subscriptionPage.Descendants().Any(item => item.Name.LocalName == "ProgressRing"),
+                "订阅页又用转圈当加载动画");
             return Task.CompletedTask;
         });
     }

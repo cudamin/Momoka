@@ -28,7 +28,8 @@ internal sealed partial class ShellNavigationProbe
             var content = Get<Grid>(page, "DetailContent");
             var error = Get<ScrollViewer>(page, "DetailErrorState");
             Require(content.Visibility == Visibility.Collapsed && error.Visibility == Visibility.Visible, "半成品媒体与错误页同时显示");
-            Require(!Get<ProgressRing>(page, "DetailLoadingRing").IsActive, "错误页背后仍在运行动画");
+            Require(Get<Grid>(page, "DetailLoading").Visibility == Visibility.Collapsed
+                && !Get<Shimmer>(page, "DetailLoadingShimmer").IsActive, "错误页背后仍在运行动画");
             var scale = _root.XamlRoot?.RasterizationScale ?? 1;
             foreach (var theme in UiThemes.All)
             {
