@@ -13493,3 +13493,17 @@ PROGRESS/开发说明自动整合并保留原记录。所有10份产品/测试/�
 
 ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同，独有进度已进入master；工作树干净，顶端 `1d97cea` 已合入，在同一提交转detached并删除本任务分支。测试子树已由应用成功归档。ed02为本聊天主检出，应用archive_worktree明确拒绝（The task's primary checkout cannot be removed），遵守保护保留本树，不用原生命令绕过。Shell两轮构建和整合回归摘要已保留用户日志 `sidebar-preview-evidence-20261114-ed02`，运行截图仍在各自shell-probe目录；恢复线索产品 `5ba450e`、整合 `1d97cea`。
 2026-11-14最终原生结果：等待其他树MoviePilot分区完成并释放共享锁后自动继续，整合构建（产品/测试与master已逐文件同blob）正式可见 `--probe-shell --probe-section shell --screen 1` **16/16、0失败、退出0**。完整侧栏模式/导航、独立预览、首启侧栏均通过，760/600实屏已再次目视，三封面与查看更多完整、面板不压栏，商店窄窗标题搜索也随主树新逻辑收起。报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-072544766-18996/logs`；只覆盖shell，范围文件另有209检查未执行。较早旧构建的货架稳定、隐藏宿主和分区遗漏失败报告保留，没有删检查、放宽断言或更新基线来洗绿；此次绿覆盖整合后的不同代码。读取封面UIA Invoke模式而未Invoke封面，未移动鼠标、未真实播放或向真实服务器读写；物理静止/点击投递与跨DPI/读屏仍待验。台账第23项证据已更新，master只追加文档，未重新发布、未推远端，桌面快捷方式仍是原发布件。
+
+## 2026-11-14 音乐播放栏胶囊、短进度与图标居中（5148 树）
+
+用户先否决首次重排，明确「别改布局，改按钮和背景」，随后要求重绘随机/循环/收藏、音乐页左上标题参考其他媒体库、胶囊和短进度；最后澄清「按钮居中」是图标在按钮内偏上。未提交的首次分组/通栏方案已核对撤销；ShellPage及音乐避让无差异，保留1120上限、Auto/Auto/*/Auto四列、原按钮组位置与顺序、42封面、40命中区和760/480断点。背景复用现有EgActionGlassBrush，去描边，正常两端按半高取圆角、两行窄窗保留24；不改共享材质参数、依赖或播放管线。
+
+按钮基于原生SubtleButtonStyle及DefaultToggleButtonStyle，Padding0与两向Center；主按钮/队列/音量用18DIP字体图标，随机/循环/收藏用微软Fluent20px矢量。随机IsChecked使用真实VM单向状态，Click只翻转一次；收藏空/实心和循环图标随状态更新。每实例将x:String经WinUI原生XamlBindingHelper转换为独立Geometry并缓存，避免跨控件父级关联。进度条保留左边缘、按TrackInfo可用宽度缩放，最大360；显式宽度避免Left自然测量只剩Thumb。页头删除额外「音乐库」眉标，沿用普通LibraryPage的真实库名单行、EgPageTitleStyle、省略/Tooltip/HeadingLevel1，计数与刷新仍独立保留。
+
+已读Microsoft Learn Acrylic/in-app-acrylic/command-bar/iconography及Gallery固定6de91feccadfbb0a796b71caedead5a2284f730e的Button、AppBarToggleButton、CommandBar、Acrylic、Slider和IconElementPage Example5，连同code-behind/helper；现有排列按用户明确指令保留，未机械替换CommandBar。Fluent system icons固定67e6dec1ee956af3ab4c746a2b3bb6a2e5520a44，20px Shuffle/Repeat All/Repeat 1/Heart原几何，MIT归属已补THIRD-PARTY-NOTICES。框架2a73274618c3f1042ee617dca5f64be782f93261核对PathIcon内部Path默认Stretch.None、Geometry类型转换及关联约束；20画布不做隐式缩放。两只子代理只读审查，主代理唯一写入。
+
+失败证据保留：063129731-27732为被否决的布局中间产物；064627931-12480隐藏启动失败；064656916-33108旧图标版本音乐3过/侧栏1红；PathGeometry内文及Figures字符串在当前2.3.9编译失败，改字符串原生转换；070856875-31704因复用资源Path.Data父级关联导致音乐/分页2红，已修复。071431025-40064修复后音乐/分页/图片3过、侧栏「切换侧栏重建主页货架或重新请求数据」1红。该轮5主题/1280、760、360实测seek360/336/316、bar1120x78/728x78/328x118；九颗墨迹中线700～701，与按钮中心701一致。该轮短轨道因Stretch上限而居中，最终又改为显式宽度+Left并增加左边缘断言，该轮为中间证据，最新收紧版见下。
+
+本批Shell/Core、Tests与MusicViewModelTests Release编译0警告0错误；music-fixture8/8、music-playback-fixture21/21、含Agreements的moviepilot-subscription-fixture114/114、MusicViewModelTests41/41，0失败0跳过。自动化扫描本任务均有稳定句柄，3处未定位位于未改PersonPage；本树8文件行尾/BOM/空白通过。最终收紧版原生证据为shell-probe-20261114-074121190-26172/logs：音乐界面、分页、图片3过；侧栏「切换侧栏重建主页货架或重新请求数据」1红，完整报告退出非零，不宣称分区全过。本批未触碰侧栏，缺乏同命令基线归因，交付前须在整合主树核实。5存活主题与1280/760/360宽度往返通过：seek/info360/252/298，surface836/644/310；收藏隐藏缩42并恢复、九颗图标居中与三态往返全过，代表实屏已目视。共享诊断锁曾被其他会话占用，等待释放后运行，没有结束其他进程。
+
+只用匿名假HTTP与拒绝启动的音乐后端，未真实播放/写服务器。跨DPI、200%文字、高对比度/关闭透明、Narrator/触摸及真实键盘/拖动仍留到用户要求交付时按主树最终代码补验。用户随后指出短轨道末端到时间读数之间的大片空位。进一步将Surface原生Center按内容测量、TrackInfo限制360，使胶囊随内容收紧（全按钮约836、收藏隐藏约794）；外层MusicBar仍Stretch/1120提供原760/480断点，避免自然尺寸使辅助按钮永远隐藏。初始轨道360，外层宽变化恢复目标宽、TrackInfo实际安排再裁到可用宽；保留顺序与两行回退。探针补信息区与轨道等宽、Surface上限、收藏隐藏缩42及恢复断言。产品提交后主动合入master并登记待交付；不发布、不改快捷方式、不推远端。

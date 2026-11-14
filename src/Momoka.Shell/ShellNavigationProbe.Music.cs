@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -142,14 +143,23 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(shell);
                     var surface = Get<Border>(bar, "Surface");
                     Require(surface.Background is AcrylicBrush, "音乐栏不是亚克力画刷");
+                    Require(surface.BorderThickness == new Thickness(0), "音乐栏恢复了厚重描边");
                     Require(bar.TransformToVisual(page).TransformPoint(new()).Y < page.ActualHeight - 8,
                         $"{width} 窗口下播放栏没有压在页面内容上");
                     if (width >= 480)
                     {
                         Require(bar.ActualHeight <= 80, $"{width} 窗口下播放栏不是单行胶囊：{bar.ActualHeight:0.#}");
-                        Require(surface.CornerRadius.TopLeft >= bar.ActualHeight / 2 - 0.5,
-                            $"{width} 窗口下胶囊两端不是半圆");
+                        Require(surface.CornerRadius.TopLeft >= bar.ActualHeight / 2 - 0.5, "播放栏不是胶囊形状");
                     }
+                    var seek = Get<Slider>(bar, "SeekSlider");
+                    var trackInfo = Get<Grid>(bar, "TrackInfo");
+                    Require(seek.ActualWidth <= 360.5, "进度条仍过长");
+                    Require(trackInfo.ActualWidth <= 360.5 && Math.Abs(trackInfo.ActualWidth - seek.ActualWidth) <= 0.5,
+                        "进度条缩短后信息区仍留着大片空白");
+                    Require(surface.ActualWidth <= 836.5, "胶囊没有随短进度一起收紧");
+                    if (width >= 760) Require(seek.ActualWidth >= 120, "进度条缩成了短点，无法正常拖动");
+                    Require(Math.Abs(seek.TransformToVisual(trackInfo).TransformPoint(new()).X) <= 0.5,
+                        "缩短进度条改变了原来的左边缘");
                     Require(Get<ListView>(page, "MusicRows").Padding.Bottom >= bar.ActualHeight,
                         $"{width} 窗口下曲目表没有给悬浮播放栏留避让");
                     Require(Get<Slider>(bar, "VolumeSlider").Maximum == AudioSettings.MaxVolume, "音量上限不一致");
@@ -162,6 +172,45 @@ internal sealed partial class ShellNavigationProbe
                         Require(FrameworkElementAutomationPeer.CreatePeerForElement(button) is not null, name + " 缺少自动化节点");
                     }
                     await SaveProbeScreenAsync($"music-{theme.Id}-{width}-screen.png");
+                    if (theme == UiThemes.All[0] && width == 1280)
+                    {
+                        var shuffle = Get<ToggleButton>(bar, "ShuffleButton");
+                        var toggle = (IToggleProvider)FrameworkElementAutomationPeer.CreatePeerForElement(shuffle)!.GetPattern(PatternInterface.Toggle);
+                        toggle.Toggle();
+                        Require(vm.Shuffle && shuffle.IsChecked == true, "随机输入没有同步真实状态");
+                        toggle.Toggle();
+                        Require(!vm.Shuffle && shuffle.IsChecked == false, "随机输入没有恢复或重复翻转");
+                        Require(Get<Button>(bar, "PauseButton").Style == (Style)bar.Resources["MusicButtonStyle"],
+                            "主播放按钮恢复了抢眼的实心底");
+                        foreach (var name in new[] { "PreviousButton", "PauseButton", "StopButton", "NextButton", "ShuffleButton", "RepeatButton", "FavoriteButton", "QueueButton", "VolumeButton" })
+                        {
+                            var button = Get<ContentControl>(bar, name);
+                            var icon = (FrameworkElement)button.Content;
+                            var point = icon.TransformToVisual(button).TransformPoint(new());
+                            Require(Math.Abs(point.Y + icon.ActualHeight / 2 - button.ActualHeight / 2) <= 1,
+                                name + " 图标垂直偏离按钮中心");
+                        }
+                        vm.Favorite = true;
+                        Require(Get<PathIcon>(bar, "FavoriteIcon").Data == bar.FavoriteGeometry(true), "收藏后图标没有切换实心");
+                        vm.RepeatLabel = "单曲循环";
+                        Require(Get<PathIcon>(bar, "RepeatIcon").Data == bar.RepeatGeometry("单曲循环"), "单曲循环图标没有更新");
+                        toggle.Toggle();
+                        await LayoutAsync(shell);
+                        await SaveProbeScreenAsync("music-icons-selected-1280-screen.png");
+                        toggle.Toggle();
+                        vm.Favorite = false;
+                        vm.RepeatLabel = "顺序播放";
+                        Require(Get<PathIcon>(bar, "FavoriteIcon").Data == bar.FavoriteGeometry(false)
+                            && Get<PathIcon>(bar, "RepeatIcon").Data == bar.RepeatGeometry("顺序播放")
+                            && !vm.Shuffle && shuffle.IsChecked == false, "图标状态往返没有恢复");
+                        var fullSurfaceWidth = surface.ActualWidth;
+                        vm.FavoriteVisibility = Visibility.Collapsed;
+                        await LayoutAsync(shell);
+                        Require(Math.Abs(surface.ActualWidth - (fullSurfaceWidth - 42)) <= 0.5,
+                            "隐藏收藏入口后胶囊仍残留按钮空位");
+                        vm.FavoriteVisibility = Visibility.Visible;
+                        await LayoutAsync(shell);
+                    }
 
                     // 版面的读数：药丸、搜索框和页边的关系没法靠肉眼从截图里量准，写进同目录的文本供复核。
                     var search = Get<AutoSuggestBox>(page, "MusicSearch");
@@ -170,7 +219,7 @@ internal sealed partial class ShellNavigationProbe
                     File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "music-layout.txt"),
                         $"{theme.Id} {width}: page={page.ActualWidth:0.#} pill={Get<Border>(page, "SectionSurface").ActualWidth:0.#} "
                         + $"search={search.Width:0.#}/{search.ActualWidth:0.#} [{searchLeft:0.#}..{searchRight:0.#}] "
-                        + $"lane={page.ActualWidth - 32:0.#} rows={page.ViewModel.Rows.Count}{Environment.NewLine}");
+                        + $"lane={page.ActualWidth - 32:0.#} rows={page.ViewModel.Rows.Count} seek={seek.ActualWidth:0.#} info={trackInfo.ActualWidth:0.#} surface={surface.ActualWidth:0.#} bar={bar.ActualWidth:0.#}x{bar.ActualHeight:0.#}{Environment.NewLine}");
                     Require(search.ActualWidth >= 179, $"{width} 窗口下搜索框窄到不可用：{search.ActualWidth:0.#}");
                     Require(searchRight <= page.ActualWidth - 31, $"{width} 窗口下搜索框越过页边：{searchRight:0.#}");
                 }

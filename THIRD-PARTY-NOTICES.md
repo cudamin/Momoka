@@ -195,3 +195,8 @@ THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED
 ## WinUI Gallery 商店详情组合
 
 商店详情的单层透明遮罩、Grid布局、CommandBar、MediaPlayerElement、WebView2及文本截断ToolTip参考 Microsoft WinUI Gallery（MIT）固定提交14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。Copyright (c) Microsoft Corporation. All rights reserved. 适用上节MIT许可证全文；本地取消与二维alpha适配见开发与验证文档。
+
+## 音乐播放栏的 Fluent 矢量图标
+
+随机、循环（含单曲）和收藏图标取自 Microsoft Fluent UI System Icons，固定提交 `67e6dec1ee956af3ab4c746a2b3bb6a2e5520a44` 的 `assets/Arrow Shuffle`、`Arrow Repeat All`、`Arrow Repeat 1`、`Heart` 下20px SVG。仅提取填充路径用于原生 PathIcon，前景由按钮/主题提供。Copyright (c) 2020 Microsoft Corporation，MIT；适用上节保留的完整 MIT 许可正文。
+来源：https://github.com/microsoft/fluentui-system-icons/tree/67e6dec1ee956af3ab4c746a2b3bb6a2e5520a44
