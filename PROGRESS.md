@@ -12,7 +12,7 @@
 
 整合追加（e3a6ffe）：三方保留master的简介移入StoreHeroDetails/零左右Padding、版本框、七颗操作、Accent播放键、MP简介在操作上方和Shimmer；只解决PROGRESS/开发文档双侧追加与PageContract两项注册，产品自动合并。整合Shell/Core/Tests/PageContract均0警告0错误，页面契约260/260，52/52、39/39、89/89、40/40定向全过；新增简介/版本框/操作实际左沿与Margin反例，补两媒体源/音轨/字幕假数据保证版本框真实呈现。080006334-23156首次整合专项在CheckImmersiveSwitchAsync恢复沉浸时失败，卡片与顶部左沿四尺寸已通过；保留报告，增加切换后等待目标客户区宽落地和失败读数，未放宽模式判据。最终整合专项shell-probe-20261114-080935558-29212/logs为1/1 Passed true，当前客户区1200/760模式回切、Accent播放与固定操作、两媒体源版本框和简介实际对齐、Margin移位拒绝及两页1240/760/360卡片均通过；主屏宽窄实屏已目视。只覆盖e3a6ffe整合差异，随后音乐/侧栏新提交不以此冒充交付验收。
 
-合入收尾：产品e3623a5、详情整合7f71c26、最新主树整合759bf61；从干净master6db7743以ff合入759bf61，保留音乐胶囊、侧栏调宽/预览高亮、演职人员悬停过滤等同期内容。759bf61相对7f71c26的本任务产品与探针文件没有差异；分支最终验证不冒称侧栏最新整壳或主树交付通过。合并后只登记台账28，不跑全量、不发布、不上传。临时分支顶端759bf61与master内容一致且树干净，后续按Codex检出保护收尾。
+合入收尾：产品e3623a5、详情整合7f71c26、最新主树整合759bf61；从干净master6db7743以ff合入759bf61，保留音乐胶囊、侧栏调宽/预览高亮、演职人员悬停过滤等同期内容。759bf61相对7f71c26的本任务产品与探针文件没有差异；分支最终验证不冒称侧栏最新整壳或主树交付通过。合并后只登记台账28，不跑全量、不发布、不上传。临时分支顶端759bf61的产品内容全部进入master，树干净；已将065c转为master detached并删除codex/store-detail-cards。Codex archive_worktree明确拒绝移除本聊天primary checkout（The task's primary checkout cannot be removed），遵守保护保留该干净检出，不用原生命令绕过；没有独有未提交内容。
 ## 2026-11-14 侧栏选中：从主页进详情不再亮着「主页」（已合入，待交付）
 
 独立树 `C:/Users/89400/.trae-cn/worktrees/feat-sidebar-drag-resize-p7Vx1S/fix-media-nav-highlight-8NILY6`，分支 `fix-media-nav-highlight-8NILY6`，基点 `e3a6ffe`。用户报「我都进入媒体详情页了，怎么左边的主页框还亮着」并提供侧栏折叠态实屏：详情页没有顶层目的地，`SyncSidebar` 原来用面包屑第一节回退，从主页卡片下钻时第一节正是「主页」，于是主页项继续被选中。改为 `ResolveSidebarTag(_current, _trail.FirstOrDefault()?.Tag)`：面包屑第一节是「主页」时不算详情所属媒体库，侧栏不亮任何目的地；从媒体库/收藏下钻的详情仍保留所属媒体库高亮（2026-11-14 侧栏图标批次的用户要求不变），顶层主页仍选中主页项。
