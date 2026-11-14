@@ -2312,19 +2312,18 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void SyncTitleSearch()
     {
         var shown = SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700;
-        // 收起标题框之前记录内部 TextBox 的焦点；页面在下一次布局后把光标交给可见输入。
-        if (ContentFrame.Content is LibraryPage page)
-            page.SetTitleSearchInput(shown ? TitleSearchBox : null);
-        TitleSearchBox.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
-
-        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
-        SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible;
+        // 搜索页的输入在内容区（标题框点进来的那一只已经移到那里），标题栏这颗在这一页收起，离开再出现。
+        var visible = shown && TitleSearchPage is null;
         if (TitleSearchPage is null)
         {
             TitleSearchBox.Text = string.Empty;
             TitleSearchBox.PlaceholderText = "搜索媒体库、订阅等";
         }
+        TitleSearchBox.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
+
+        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
+        SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>

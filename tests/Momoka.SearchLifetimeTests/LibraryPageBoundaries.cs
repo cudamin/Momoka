@@ -67,9 +67,6 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableTitle { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableMessage { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchInput { get; } = new();
-        private Microsoft.UI.Xaml.Controls.TextBox? _titleSearchInput;
-        private void SetTitleSearchInput(object? input) => _titleSearchInput = input as Microsoft.UI.Xaml.Controls.TextBox;
-        internal void TitleDraft(string text) => _titleSearchInput = new() { Text = text };
         internal string? SavedSearchTerm => _request.SearchTerm;
         internal Momoka.Shell.ViewModels.MoviePilotSearchSnapshot? SavedMoviePilotSearch => _request.MoviePilotSearch;
         private double ContentScrollOffset => 73;

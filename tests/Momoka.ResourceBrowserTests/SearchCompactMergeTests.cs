@@ -10,22 +10,21 @@ internal static class SearchCompactMergeTests
 
     internal static void Register(string sourceRoot)
     {
-        Test("标题输入复用搜索页并在离页解除，窄窗保留恢复入口", () =>
+        Test("标题框只负责把输入送进内容区，关联动画接在页内输入框上", () =>
         {
             var title = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/ShellPage.Search.cs"));
-            Assert.Contains("AutoSuggestionBoxTextChangeReason.UserInput", title);
-            Assert.Contains("page.SearchTypingAsync(text)", title);
-            Assert.DoesNotContain("OpenSearch(text)", title);
-            var owner = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.TitleSearch.cs"));
-            Assert.Contains("previous.RemoveHandler(UIElement.KeyDownEvent", owner);
-            Assert.Contains("previous.RemoveHandler(UIElement.KeyUpEvent", owner);
-            Assert.Contains("previous.LostFocus -= OnSearchLostFocus", owner);
-            Assert.Contains("CancelImeSubmit()", owner);
+            Assert.Contains("if (TitleSearchPage is not null) return", title);
+            Assert.Contains("TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox)", title);
+            Assert.Contains("OpenSearch()", title);
+            Assert.DoesNotContain("OnTitleSearchTextChanged", title);
+            var motion = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/TitleSearchTransition.cs"));
+            Assert.Contains("ConnectedAnimationService.GetForCurrentView()", motion);
+            Assert.Contains("DirectConnectedAnimationConfiguration", motion);
             var page = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
-            Assert.Contains("SearchEntry.Visibility = _titleSearchInput is null ? Visibility.Visible : Visibility.Collapsed", page);
-            Assert.Contains("SetTitleSearchInput(null)", page);
-            Assert.Contains("ActiveSearchInput.Focus(FocusState.Programmatic)", page);
-            Assert.Contains("SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty)", page);
+            Assert.Contains("TitleSearchTransition.Attach(Frame, SearchInput", page);
+            Assert.Contains("SearchEntry.Width = formWidth", page);
+            Assert.DoesNotContain("_titleSearchInput", page);
+            Assert.DoesNotContain("SetTitleSearchInput", page);
         });
         Test("搜索返回：工具栏由页面来源统一显隐，绑定不再覆盖", () =>
         {
@@ -48,7 +47,7 @@ internal static class SearchCompactMergeTests
             Assert.DoesNotContain("_searchOptionsCollapsed", source);
             Assert.DoesNotContain("_searchPresentationVersion", source);
             Assert.Contains("SearchForm.RowSpacing = 0", source);
-            Assert.Contains("SourceTabs.Margin = _titleSearchInput is null", source);
+            Assert.Contains("SourceTabs.Margin = SourceTabs.Visibility == Visibility.Visible", source);
             Assert.Contains("get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3)", source);
             Assert.Contains("AniBtSourceTab.Visibility = Visibility.Visible", source);
             Assert.Contains("if (!SearchSourceAvailable)", source);
@@ -67,6 +66,20 @@ internal static class SearchCompactMergeTests
             Assert.Contains("AutomationProperties.SetAccessibilityView(query, AccessibilityView.Content)", slot);
             var vm = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/ViewModels/LibraryViewModel.cs"));
             Assert.Contains("public Visibility MoviePilotTabsVisibility =>\n        Show(_request?.IsSearch == true)", vm.Replace("\r\n", "\n"));
+        });
+
+        Test("搜索来源：页内输入收起后来源栏仍居中在搜索区", () =>
+            CheckSearchFormColumns(Load(sourceRoot, "LibraryPage.xaml")));
+
+        Test("搜索来源：契约拒绝恢复双 Auto 列把来源栏钉在左沿", () =>
+        {
+            var xml = Load(sourceRoot, "LibraryPage.xaml");
+            var columns = Named(xml, "SearchForm").Elements()
+                .Single(node => node.Name.LocalName == "Grid.ColumnDefinitions");
+            columns.ReplaceNodes(
+                new XElement(columns.Name.Namespace + "ColumnDefinition", new XAttribute("Width", "Auto")),
+                new XElement(columns.Name.Namespace + "ColumnDefinition", new XAttribute("Width", "Auto")));
+            Assert.Throws<AssertionException>(() => CheckSearchFormColumns(xml));
         });
 
         Test("搜索合并：紧凑探针与来源退役检查共存", () =>
@@ -279,6 +292,21 @@ internal static class SearchCompactMergeTests
             && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16"));
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
             && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "12"));
+    }
+
+    /// <summary>
+    /// 页内输入框收起以后（标题栏接管输入），来源栏的格子仍是搜索区整宽，栏才居得中。
+    /// 两列 Auto 会让跨列的孩子只剩自身宽度、被钉在搜索区左沿 —— 2026-11-14 截图的歪。
+    /// </summary>
+    private static void CheckSearchFormColumns(XDocument xml)
+    {
+        var form = Named(xml, "SearchForm");
+        var columns = form.Elements().Single(node => node.Name.LocalName == "Grid.ColumnDefinitions")
+            .Elements().Where(node => node.Name.LocalName == "ColumnDefinition").ToArray();
+        Assert.Equal(1, columns.Length);
+        Assert.Equal("*", columns[0].Attribute("Width")?.Value);
+        Assert.Null(Named(xml, "SearchEntry").Attribute("Grid.ColumnSpan"));
+        Assert.Null(Named(xml, "SourceTabs").Attribute("Grid.ColumnSpan"));
     }
 
     private static void CheckSourceTabSize(XDocument xml)

@@ -53,6 +53,17 @@
 
 合入：产品与文档提交 `8bf0ab6`；master 在本批之后又前进了若干同期改动（商店宽版式断点、账号菜单、设置窗口置顶等），合并时只解决 PROGRESS 顶部双侧追加冲突，产品与测试文件自动合并。按批次规则不跑全量、不发布，交付验证范围记入待交付台账。
 
+## 2026-11-14 搜索框点标题栏后移进内容区、来源栏居中（已合入 master）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-crooked-alignment-vebOKM`，分支 `fix-crooked-alignment-vebOKM`，基点 `eb30ae8`。用户上传搜索页截图问「这个怎么是歪的」，追问后明确要「新增动画，点击标题的搜索栏后自动移到内容区」。
+
+**歪的原因。** 标题栏接管输入（`93a1c12`）后页内 `SearchEntry` 收起，`SearchForm` 那两列 `Auto` 只剩来源栏自身的 480，跨两列的孩子因此只占 480 并被钉在 900 宽搜索区左沿；页内输入在时两列被撑满，所以只有标题输入这一档看得出偏。
+
+**改法。** ① `SearchForm` 改单列 `*`，来源栏在任何输入归属下都居中；`SearchSitePicker` 不再跨列。② 撤销标题栏接管输入的整套机制（删 `LibraryPage.TitleSearch.cs`）：搜索页始终用页内 `SearchInput`，`PageRoot` 顶部恢复 40 DIP，站点入口回到输入框模板内。③ 恢复 `TitleSearchTransition`：点标题框先 `PrepareToAnimate` 再导航，搜索页 `OnLoaded` 把输入框交给 `TryStart`，接不上退回淡入；框落下后光标交给内容区输入框。④ `SyncTitleSearch`：搜索页开着时标题框收起（屏幕上只剩移下来的那一只），离开搜索页再出现；标题框不再挂 `TextChanged`/`QuerySubmitted`。
+
+验证：Shell Release 0 警告 0 错误；`Momoka.LibraryHeaderTests` 21/21；`Momoka.SearchLifetimeTests` 44/44；`Momoka.ResourceBrowserTests` 189/189；`Momoka.PageContractTests` 274/274；`toolbar-icon-fixture` 15/15；`tools/check-diff.ps1` 通过。原生 `--probe-shell --probe-section shell --screen 1` **16/16、退出 0**（运行目录 `shell-probe-20261114-151717276-28532`）：关联动画 `started`、搜索页标题框收起、页内输入框接住焦点、来源栏居中、宽窄/显示模式往返与离开搜索页后标题框恢复全过；实屏 `sidebar-title-search-screen.png` 已目视——标题栏没有搜索框，输入框与来源栏同心居中在内容区。未连接真实服务器、未播放。
+
+合入：产品与测试 `3a07ef8`、`5b430c3`，文档记录 `cc6ef92`；master 合并时只保留 PROGRESS 与开发文档的双侧追加内容，产品与测试文件自动合并。按批次规则不跑全量、不发布，交付验证范围记入待交付台账。
 
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 

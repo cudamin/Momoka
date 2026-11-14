@@ -119,6 +119,9 @@ internal sealed partial class ShellNavigationProbe
                 categoryScroll.ChangeView(0, null, null, disableAnimation: true);
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 Require(tabs.ActualWidth <= search.ActualWidth, "来源切换超出搜索区");
+                var tabsBox = Bounds(tabs, search);
+                Require(Math.Abs(tabsBox.Left + tabsBox.Width / 2 - search.ActualWidth / 2) <= 1,
+                    $"{width} 来源栏没有居中在搜索区");
                 Require(tabs.CornerRadius == new CornerRadius(16) && tabs.BorderThickness == new Thickness(0)
                     && ReferenceEquals(tabs.Background, Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]),
                     "来源栏圆角或现有卡片材质不正确");
