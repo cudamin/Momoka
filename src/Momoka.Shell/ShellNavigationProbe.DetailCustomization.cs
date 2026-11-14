@@ -935,8 +935,12 @@ internal sealed partial class ShellNavigationProbe
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
             .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
-        Require(controls.Length > 0, "商店模式夹具没有操作按钮或选择框");
-        RequireFixedSurface(controls);
+        // 商店模式的主播放键自 2026-11-14 起吃主题色（用户令「播放按钮改成主题色」），其余按钮和选择框仍是固定面色。
+        var plays = controls.Where(control => control.Name is "ColumnPlayButton" or "CompactPlayButton").ToArray();
+        var fixedControls = controls.Except(plays).ToArray();
+        Require(fixedControls.Length > 0, "商店模式夹具没有操作按钮或选择框");
+        RequireFixedSurface(fixedControls);
+        RequireAccentSurface(plays);
         var snapshot = (ui.UseAcrylicControls, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity,
             ui.ControlBackgroundOpacity, ui.ControlBackgroundColor);
         try
@@ -946,14 +950,16 @@ internal sealed partial class ShellNavigationProbe
             ui.ControlBackgroundColor = "#FF00FF";
             ShellPrefs.ApplyAppearance(ui);
             await LayoutAsync(page);
-            RequireFixedSurface(controls);
+            RequireFixedSurface(fixedControls);
+            RequireAccentSurface(plays);
             ui.UseAcrylicControls = true;
             ui.ControlTintOpacity = 88;
             ui.ControlTintLuminosityOpacity = 12;
             ui.ControlBackgroundColor = "#00FF00";
             ShellPrefs.ApplyAppearance(ui);
             await LayoutAsync(page);
-            RequireFixedSurface(controls);
+            RequireFixedSurface(fixedControls);
+            RequireAccentSurface(plays);
         }
         finally
         {
@@ -994,6 +1000,32 @@ internal sealed partial class ShellNavigationProbe
                 Require(ReferenceEquals(control.Resources["ComboBoxBackground"], control.Resources["ComboBoxBackgroundFocused"])
                     && ReferenceEquals(control.Resources["ComboBoxBackground"], control.Resources["ComboBoxBackgroundUnfocused"]),
                     control.Name + " 商店模式的聚焦底色没有沿用固定面色");
+        }
+    }
+
+    /// <summary>
+    /// 商店模式主播放键的主题色面（2026-11-14 用户令「播放按钮改成主题色」）：四态取主题里已经定好的
+    /// 强调、悬停、按下和弱化档，字和图标取实心强调键的对比色。按钮材质那四项设置改到哪儿都不动它。
+    /// </summary>
+    private static void RequireAccentSurface(IEnumerable<Control> controls)
+    {
+        var levels = new[] { "EgAccentBrush", "EgAccentHoverBrush", "EgAccentPressedBrush", "EgAccentMutedBrush" };
+        var ink = ((SolidColorBrush)Application.Current.Resources["EgTextOnAccentBrush"]).Color;
+        foreach (var control in controls)
+        {
+            for (var index = 0; index < 4; index++)
+            {
+                var suffix = new[] { "", "PointerOver", "Pressed", "Disabled" }[index];
+                var expected = ((SolidColorBrush)Application.Current.Resources[levels[index]]).Color;
+                Require(control.Resources["ButtonBackground" + suffix] is AcrylicBrush { AlwaysUseFallback: true } copy
+                    && copy.FallbackColor == expected && Math.Abs(copy.Opacity - 1) < 0.000001,
+                    $"{control.Name}/{suffix} 播放键没有用主题色："
+                        + (control.Resources["ButtonBackground" + suffix] is AcrylicBrush actual
+                            ? $"实际 {actual.FallbackColor}、{actual.Opacity:0.###}，该是 {expected}"
+                            : "不是亚克力画刷"));
+            }
+            Require(control.Foreground is SolidColorBrush { Color: var foreground } && foreground == ink,
+                control.Name + " 播放键的文字和图标没有用强调面对比色");
         }
     }
 

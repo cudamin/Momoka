@@ -108,7 +108,6 @@ handle  Views/DetailPage.xaml  ColumnFavoriteButton
 handle  Views/DetailPage.xaml  ColumnMoreButton
 handle  Views/DetailPage.xaml  ColumnPickers
 handle  Views/DetailPage.xaml  ColumnPlayButton
-handle  Views/DetailPage.xaml  ColumnRestartButton
 handle  Views/DetailPage.xaml  ColumnSourcePicker
 handle  Views/DetailPage.xaml  ColumnSubtitlePicker
 handle  Views/DetailPage.xaml  ColumnWatchedButton
@@ -117,7 +116,6 @@ handle  Views/DetailPage.xaml  CompactContinueButton
 handle  Views/DetailPage.xaml  CompactFavoriteButton
 handle  Views/DetailPage.xaml  CompactMoreButton
 handle  Views/DetailPage.xaml  CompactPlayButton
-handle  Views/DetailPage.xaml  CompactRestartButton
 handle  Views/DetailPage.xaml  CompactResumeProgress
 handle  Views/DetailPage.xaml  CompactWatchedButton
 handle  Views/DetailPage.xaml  CornerArt

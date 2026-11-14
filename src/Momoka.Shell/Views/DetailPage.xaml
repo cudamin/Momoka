@@ -816,6 +816,7 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock
+                                            x:Name="SourceLabel"
                                             x:Uid="DetailPage_TextBlock2"
                                             Style="{StaticResource EgOnScrimBodyStyle}"
                                             VerticalAlignment="Center"
@@ -841,6 +842,7 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock
+                                            x:Name="AudioLabel"
                                             x:Uid="DetailPage_TextBlock3"
                                             Style="{StaticResource EgOnScrimBodyStyle}"
                                             VerticalAlignment="Center"
@@ -875,6 +877,7 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock
+                                            x:Name="SubtitleLabel"
                                             x:Uid="DetailPage_TextBlock4"
                                             Style="{StaticResource EgOnScrimBodyStyle}"
                                             VerticalAlignment="Center"
@@ -902,6 +905,11 @@
                                  封面行结束 —— 文字和按键之间空出海报高出来的那一截。进了这一叠，按键永远紧跟
                                  文字；封面自己另有一道「不超过文字栏」的上限（DetailViewModel.FitStill），
                                  两边谁也不给谁留洞。
+                                 商店模式例外（2026-11-14 用户令「参考上图布局」）：这一叠被 DetailPage.Store.cs
+                                 搬到封面下方的 StoreHeroDetails，排在剧情说明和文件选项之后，当那一块的收尾行 ——
+                                 和微软商店条目页一样，标题块底下依次是简介、版本框、操作按钮。同一个实例只换父级，
+                                 绑定、事件和焦点都不动。从前那颗「从头开始」不再单独占一颗键：它并进「更多」菜单，
+                                 只在有断点、原先那颗会露头的同一判据下出现（RestartVisibility）。
                                  七颗键同一批命令；AutomationId 前缀 Column，和紧凑版式那份（Compact*）
                                  同一个规矩 —— 一个 id 只说一颗键。 -->
                             <StackPanel
@@ -926,22 +934,12 @@
                                                 Foreground="{StaticResource EgDetailActionTextBrush}"
                                                 Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
                                             <FontIcon
+                                                x:Name="ColumnResumeGlyph"
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
                                                 Foreground="{StaticResource EgAccentBrush}"
                                                 Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                             <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
-                                        </StackPanel>
-                                    </Button>
-
-                                    <Button
-                                        AutomationProperties.AutomationId="ColumnRestartButton"
-                                        Command="{x:Bind ViewModel.RestartCommand}"
-                                        Style="{StaticResource EgPillButtonStyle}"
-                                        Visibility="{x:Bind ViewModel.RestartVisibility, Mode=OneWay}">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon FontSize="14" Glyph="&#xE892;" />
-                                            <TextBlock x:Uid="DetailPage_TextBlock1" />
                                         </StackPanel>
                                     </Button>
 
@@ -1072,6 +1070,11 @@
                             </StackPanel>
                         </StackPanel>
 
+                        <!-- 商店模式封面下方的那一整块（2026-11-14 参考微软商店条目页重排）：由上到下是
+                             剧情说明、文件选项（版本框）和操作那排键。三样都是既有实例，运行期由
+                             DetailPage.Store.cs 的 PlaceStoreComponents 搬进来，退出商店模式时原样放回：
+                             说明回 TailContent，文件选项和那排键回 HeroStack。这一叠只在商店模式显示，
+                             其他版式里它是空的、不占一个像素。 -->
                         <StackPanel x:Name="StoreHeroDetails" Grid.Row="1" Grid.ColumnSpan="2"
                                     Margin="0,12,0,0" Spacing="8" Visibility="Collapsed"
                                     SizeChanged="OnStoreHeroSizeChanged" />
@@ -1351,22 +1354,12 @@
                                             Foreground="{StaticResource EgDetailActionTextBrush}"
                                             Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
                                         <FontIcon
+                                            x:Name="CompactResumeGlyph"
                                             FontSize="14"
                                             Glyph="&#xE768;"
                                             Foreground="{StaticResource EgAccentBrush}"
                                             Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                         <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
-                                    </StackPanel>
-                                </Button>
-
-                                <Button
-                                    AutomationProperties.AutomationId="CompactRestartButton"
-                                    Command="{x:Bind ViewModel.RestartCommand}"
-                                    Style="{StaticResource EgPillButtonStyle}"
-                                    Visibility="{x:Bind ViewModel.RestartVisibility, Mode=OneWay}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon FontSize="14" Glyph="&#xE892;" />
-                                        <TextBlock x:Uid="DetailPage_TextBlock1" />
                                     </StackPanel>
                                 </Button>
 

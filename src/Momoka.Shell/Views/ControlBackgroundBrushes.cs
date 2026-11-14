@@ -295,6 +295,31 @@ internal sealed class ControlBackgroundBrushes
 
     public const double FixedDisabled = 0.25;
 
+    /// <summary>
+    /// 商店模式那颗主播放键的主题色面（2026-11-14 用户令「播放按钮改成主题色」）：常态取强调色实心，
+    /// 悬停、按下各取主题里已经定好的亮暗一档，禁用取弱化档。其余按钮仍走
+    /// <see cref="ApplyFixedSurface"/> 的固定面色，只有播放键例外。
+    /// <para>
+    /// 前景不在这里：字和图标由调用方用 <see cref="ApplyDefaultForeground"/> 换成
+    /// <c>EgTextOnAccentBrush</c>（实心强调面配的那支对比色），和主题里别的实心强调键同一套。
+    /// </para>
+    /// </summary>
+    public void ApplyAccentSurface()
+    {
+        var levels = new[] { "EgAccentBrush", "EgAccentHoverBrush", "EgAccentPressedBrush", "EgAccentMutedBrush" };
+        for (var index = 0; index < _brushes.Count; index++)
+        {
+            var (_, _, copy, _, _) = _brushes[index];
+            var color = Resource(levels[index]).Color;
+            copy.TintColor = color;
+            copy.FallbackColor = color;
+            copy.TintOpacity = 0;
+            copy.TintLuminosityOpacity = 0;
+            copy.Opacity = 1;
+            copy.AlwaysUseFallback = true;
+        }
+    }
+
     private AcrylicBrush Copy(SolidColorBrush source, string targetKey, bool feedback, double extra)
     {
         var copy = new AcrylicBrush

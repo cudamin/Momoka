@@ -20,6 +20,15 @@ internal sealed partial class ShellNavigationProbe
         var picture = await FixtureImageAsync(400, 600);
         var backdrop = await FixtureImageAsync(1600, 900);
         var items = new[] { Series(), Season("a"), Episode("a"), new EmbyItem { Id = "mica-movie", Type = EmbyItemType.Movie } };
+        // 商店模式的三颗版本框要有真内容可量：两条媒体源、两条音轨和两条字幕，四种条目都带同一份。
+        var streams = new List<MediaStream>
+        {
+            new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
+            new() { Index = 1, Type = "Audio", DisplayTitle = "国语 · AAC 2.0", IsDefault = true },
+            new() { Index = 2, Type = "Audio", DisplayTitle = "日语 · AAC 2.0" },
+            new() { Index = 3, Type = "Subtitle", DisplayTitle = "简体中文", IsDefault = true },
+            new() { Index = 4, Type = "Subtitle", DisplayTitle = "English" }
+        };
         foreach (var item in items)
         {
             item.Name = "云母详情 · " + item.Type;
@@ -27,6 +36,15 @@ internal sealed partial class ShellNavigationProbe
             item.ImageTags["Primary"] = "fixture";
             item.BackdropImageTags.Add("fixture");
             item.ImageTags["Art"] = "fixture";
+            item.MediaSources =
+            [
+                new MediaSource { Id = "source-a", Name = "离线版本 · 1080p", Container = "mkv", MediaStreams = streams },
+                new MediaSource
+                {
+                    Id = "source-b", Name = "离线版本 · 720p", Container = "mkv",
+                    MediaStreams = [new MediaStream { Index = 0, Type = "Video", Codec = "h264", Width = 1280, Height = 720 }]
+                }
+            ];
         }
         fixture.Transport.Reply = (request, _) =>
         {
@@ -65,6 +83,9 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var width in item.Type == EmbyItemType.Episode ? new[] { 1200, 760, 360 } : new[] { 1200, 760 })
                 {
                     await ResizeResponsiveAsync(page, width, 900);
+                    // 带高要等 StoreDetailsRoom 这一拍量完、绑到 HeroHeight 上再量：ResizeResponsiveAsync 只等
+                    // 页宽到位，差这一拍时头部还停在上一档的高度上，看起来就像「头部裁切文件信息」。
+                    await LayoutAsync(page);
                     RequireStoreComponents(page, shell);
                     Require(page.ViewModel.StillImage is not null && page.ViewModel.StillVisibility == Visibility.Visible
                         && Get<Border>(page, "PosterStill").ActualWidth > 0, "商店窄窗没有保留实际封面图");
@@ -75,10 +96,14 @@ internal sealed partial class ShellNavigationProbe
                         .SelectMany(row => row.Children).OfType<Control>()
                         .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
                         .ToArray();
+                    // 主播放键 2026-11-14 起是主题色（用户令「播放按钮改成主题色」），其余按钮仍是固定面色。
+                    var plays = actions.Where(control => control.Name is "ColumnPlayButton" or "CompactPlayButton").ToArray();
+                    var fixedActions = actions.Except(plays).ToArray();
                     if (width == 1200)
                     {
-                        Require(actions.Length > 0, "简洁详情没有找到操作按钮");
-                        RequireFixedSurface(actions);
+                        Require(fixedActions.Length > 0, "简洁详情没有找到操作按钮");
+                        RequireFixedSurface(fixedActions);
+                        RequireAccentSurface(plays);
                         var saved = (fixture.Settings.Ui.UseAcrylicControls, fixture.Settings.Ui.ControlTintOpacity,
                             fixture.Settings.Ui.ControlTintLuminosityOpacity, fixture.Settings.Ui.ControlBackgroundOpacity,
                             fixture.Settings.Ui.ControlBackgroundColor);
@@ -91,7 +116,8 @@ internal sealed partial class ShellNavigationProbe
                             fixture.Settings.Ui.ControlBackgroundColor = "#FF00FF";
                             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                             await LayoutAsync(page);
-                            RequireFixedSurface(actions);
+                            RequireFixedSurface(fixedActions);
+                            RequireAccentSurface(plays);
                         }
                         finally
                         {
@@ -230,17 +256,45 @@ internal sealed partial class ShellNavigationProbe
         var details = Get<StackPanel>(page, "StoreHeroDetails");
         var actions = Get<StackPanel>(page, "ColumnActions");
         var options = Get<StackPanel>(page, "FileOptions");
-        Require(ReferenceEquals(actions.Parent, Get<StackPanel>(page, "HeroStack")) && ReferenceEquals(options.Parent, details),
-            "商店操作没有在封面右侧或文件信息没有在下方");
+        var overview = Get<StackPanel>(page, "OverviewPanel");
+        // 2026-11-14 用户令「参考上图布局」：简介、版本框、操作按钮整组搬到封面下方，顺序同微软商店条目页。
+        Require(ReferenceEquals(actions.Parent, details) && ReferenceEquals(options.Parent, details)
+            && ReferenceEquals(overview.Parent, details), "商店简介、文件信息或操作没有在封面下方的详情块里");
+        Require(details.Children.IndexOf(overview) < details.Children.IndexOf(options)
+            && details.Children.IndexOf(options) < details.Children.IndexOf(actions),
+            "商店详情块的顺序不是简介、文件信息、操作");
         double Top(FrameworkElement element) => element.TransformToVisual(page).TransformPoint(default).Y;
         var cover = Get<Border>(page, "PosterStill");
-        if (actions.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
-            Require(actions.TransformToVisual(page).TransformPoint(default).X >= cover.TransformToVisual(page).TransformPoint(default).X + cover.ActualWidth + 8, "商店操作没有位于封面右侧");
-        if (options.Visibility == Visibility.Visible)
-            Require(Top(options) >= Top(cover) + cover.ActualHeight && Top(options) >= Top(actions) + actions.ActualHeight + 4,
-                "商店文件信息没有排在封面和操作之后");
+        if (overview.Visibility == Visibility.Visible && options.Visibility == Visibility.Visible)
+            Require(Top(options) >= Top(overview) + overview.ActualHeight - 1, "商店文件信息没有排在简介之后");
+        if (options.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
+            Require(Top(options) >= Top(cover) + cover.ActualHeight - 1, "商店文件信息没有排在封面之后");
+        if (actions.Visibility == Visibility.Visible && options.Visibility == Visibility.Visible)
+            Require(Top(actions) >= Top(options) + options.ActualHeight - 1, "商店操作没有排在文件信息之后");
         var band = Get<Grid>(page, "HeroBand");
-        Require(Top(band) + band.ActualHeight >= Top(options) + options.ActualHeight - 1, "商店头部裁切文件信息");
+        // 紧凑版式的集页把文件选项交给尾部那一份（ColumnPickers 收起、源多于一个时视频行也收起），
+        // 这一格收着时量不到位置，不拿它去判头部裁切。
+        if (options.Visibility == Visibility.Visible)
+            Require(Top(band) + band.ActualHeight >= Top(options) + options.ActualHeight - 1, "商店头部裁切文件信息");
+        // 版本框：选择框横跨标签那一列，标签压在框里左侧；外形量控件而不是视图模型，见同一分支的说明。
+        foreach (var (labelName, pickerName) in new[]
+        {
+            ("SourceLabel", "ColumnSourcePicker"), ("AudioLabel", "ColumnAudioPicker"), ("SubtitleLabel", "ColumnSubtitlePicker")
+        })
+        {
+            var picker = Get<EgPicker>(page, pickerName);
+            // 行的显隐在父 Grid 上（媒体源 >1、音轨 >2、字幕 >2）；选择框自己收起时也量不到，
+            // 所以按实际尺寸跳过，只核这一档真正露出来的版本框。
+            if (picker.ActualWidth <= 0 || picker.ActualHeight <= 0) continue;
+            var label = Get<TextBlock>(page, labelName);
+            var pickerBox = picker.TransformToVisual(page).TransformBounds(new(0, 0, picker.ActualWidth, picker.ActualHeight));
+            var labelBox = label.TransformToVisual(page).TransformBounds(new(0, 0, label.ActualWidth, label.ActualHeight));
+            Require(Grid.GetColumnSpan(picker) == 2 && picker.MinHeight >= 36 && picker.Padding.Left >= 40
+                && labelBox.Left > pickerBox.Left && labelBox.Right < pickerBox.Right && !label.IsHitTestVisible,
+                $"{pickerName} 不是商店版本框：span={Grid.GetColumnSpan(picker)}、高 {picker.MinHeight:0}、"
+                    + $"内边距 {picker.Padding}、标签 {labelBox.Left:0}–{labelBox.Right:0} 在框 {pickerBox.Left:0}–{pickerBox.Right:0} 里，"
+                    + $"命中 {label.IsHitTestVisible}");
+        }
         Require(Get<Button>(page, "ColumnTrailerButton").Visibility == Visibility.Collapsed
             && Get<Button>(page, "CompactTrailerButton").Visibility == Visibility.Collapsed, "商店仍显示预告片入口");
         Require(Get<Grid>(shell, "TrailBar").Visibility == Visibility.Collapsed, "商店仍显示媒体路径栏");

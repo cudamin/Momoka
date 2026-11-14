@@ -4,7 +4,21 @@
 
 同步更新页面次序与几何断言、加载态探针（`DetailLoadingShimmer` 的 Composition 子视觉挂载）、`Momoka.MoviePilotSubscribeSettingsTests` 源码契约和 `Agreements.txt` 句柄基线；`docs/MoviePilot订阅.md` 与开发文档已改。
 
-验证：最终 Shell Release 0 警告 0 错误；`Momoka.PageContractTests` 254/254；主测试 5099 项通过 5094、失败 5（2 项 `C:\WINDOWS\TEMP` 环境红，3 项基线标题栏 28 字形与两条 AutoSuggestBox 圆角红，均不经本页）；`Momoka.MoviePilotSubscribeSettingsTests` 77/77。原生 `--probe-shell --probe-section moviepilot --screen 1` 37 项通过 36，唯一红为既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时；订阅详情三条相关用例通过，日志 `shell-probe-20261114-060554052-29764`，骨架/两模式/详情截图已目视。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏、跨 DPI。分支未合并、未交付（待合并）。
+验证：最终 Shell Release 0 警告 0 错误；`Momoka.PageContractTests` 254/254；主测试 5099 项通过 5094、失败 5（2 项 `C:\WINDOWS\TEMP` 环境红，3 项基线标题栏 28 字形与两条 AutoSuggestBox 圆角红，均不经本页）；`Momoka.MoviePilotSubscribeSettingsTests` 77/77。原生 `--probe-shell --probe-section moviepilot --screen 1` 37 项通过 36，唯一红为既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时；订阅详情三条相关用例通过，日志 `shell-probe-20261114-060554052-29764`，骨架/两模式/详情截图已目视。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏、跨 DPI。已随两轮整合合入 master；未交付。
+
+## 2026-11-14 商店详情按微软商店条目页重排、从头开始入「更多」、版本框与主题色播放键（已随两轮整合合入 master）
+
+用户给了一张微软商店游戏条目页截图，四句话：①「参考上图布局修改商店模型下媒体详情页的布局」；②「把从头开始按钮折叠进更多按钮」；③「参考上图修改选择框」；④「播放按钮改成主题色」。工作树 `C:/Users/89400/.qoder-cn/worktrees/app/8641b7/Momoka`、分支 `codex/store-detail-layout`，基线 `140bfe8`；产品与测试提交 `1a7a187`。两轮整合时主树 `5d1fe05`。
+
+**布局与版本框。** 商店模式（设置里关掉沉浸）的详情页改成「封面与片名 → 简介 → 版本框 → 操作按钮」：`DetailPage.Store.cs` 把 `OverviewPanel`、`FileOptions`、`ColumnActions` 三份既有实例搬进封面下方 `StoreHeroDetails`（行 1、跨两列），退出商店模式按原顺序放回；商店简介左右内边距归零、左沿与封面和版本框对齐。三颗选择框（媒体源/音频/字幕）排成参考图的「版本」框：约 520 宽、40 高，标签用 `Canvas.ZIndex` 压在框里左侧并关掉命中，选择框横跨标签列（`ColumnSpan=2`）、内边距 76 让开标签，宽度用 `MinWidth`（`EgPicker` 展开时会临时钉住 `Width` 并在收起时清除）。标签补了 `SourceLabel`/`AudioLabel`/`SubtitleLabel` 三个句柄。
+
+**从头开始。** 宽版式 `ColumnRestartButton` 与紧凑版式 `CompactRestartButton` 删除、`DetailPage_TextBlock1` 本地化字串退役；`ItemCommands.Show` 新增可选 `restart` 动作，有断点时在「更多」菜单「继续播放」后插一行「从头开始」（`DetailRestartMenuItem`，无 `Tag`，不参与 MoviePilot/队列补行对账），动作仍是 `RestartCommand`，起点、媒体源、音轨和字幕都取详情页当前选择。无断点不出现。`Agreements.txt` 删两条旧句柄，`AcrylicControlsTests` 的按钮数基线按有意删除从八颗改为七颗。
+
+**播放键主题色。** 商店模式的主播放键（`ColumnPlayButton`/`CompactPlayButton`）改吃 `ControlBackgroundBrushes.ApplyAccentSurface`：四态取 `EgAccentBrush`/`EgAccentHoverBrush`/`EgAccentPressedBrush`/`EgAccentMutedBrush`，文字和图标取 `EgTextOnAccentBrush`；断点那颗图标原先是强调色，压在强调面上会消失，商店档改跟按钮同一支对比色，其余模式仍还原成强调色图标。商店其余按钮与选择框保持 2026-11-11 的固定面色，按钮材质四项设置仍改不动它们；沉浸模式播放键不变；高对比度仍走系统实色。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **238/238**（新增两条源码契约）；主测试 **5093 项，通过 5091、失败 2**，两条均为既有的 `C:\WINDOWS\TEMP` 下载到设备环境红。`dotnet format whitespace --verify-no-changes` 通过、`git diff --check` 干净。原生 `--probe-shell --probe-section library --screen 1`（`shell-probe-20261114-045634222-29532`）**50 项 42 过 8 红**：7 条既有红（飞牛人物头像、集页 180×270 商店封面、合集菜单像素被自身浮层遮挡、Jellyfin 标题字号、继续观看 20DIP、飞牛移出空序列、单音轨整行隐藏后的旧竖距断言），第 8 条「简洁详情底材」是本批新检查的测量问题（紧凑集页的文件选项在尾部、详情块里那一份收着；探针拿收着的控件判头部裁切，并把父行收着的选择框当版本框量）。探针改为按实际尺寸跳过收着的块并在改宽后等一拍布局，在同一份产品代码上定向 `--probe-section person`（`shell-probe-20261114-051633998-24080`，3 项含 DetailMica）**3/3 通过**；四种条目 × 1200/760 × 五主题逐张核过父级、顺序、版本框几何与播放键四态强调色，实屏 `detail-mica-{类型}-{1200,760}-{主题}-screen.png` 已目视，Movie/Series/Episode 宽窄档都是「封面片名 → 简介 → 版本框 → 主题色播放键与操作」。
+
+**没做／边界。** 只改商店模式；沉浸模式排版、按钮材质与强调色断点图标不变；版本框只落在详情页这三颗文件选择框，设置页与其他下拉不动。探针只用匿名假 HTTP 与假图片，没有真实服务器登录、播放或写入；高对比度、触摸、读屏、跨 DPI 未实机覆盖。**已随两轮整合合入 master**；交付按台账统一复验。
 
 ## 2026-11-14 商店预告右侧背景与窄窗亚克力（已合入，未发布）
 
