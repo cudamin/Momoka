@@ -31,8 +31,11 @@ internal sealed partial class ShellNavigationProbe
             MediaSources = [new() { Id = "movie", Container = "mkv" }]
         };
         fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal)
-            ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(
-                request.RequestUri.AbsolutePath.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop) })
+            ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(
+                request.RequestUri.AbsolutePath.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop)
+            })
             : request.RequestUri!.AbsolutePath.EndsWith("/Items/preview-movie", StringComparison.Ordinal)
             ? Task.FromResult(Json(movie)) : Task.FromResult(FakeTransport.Standard(request));
         var host = new Grid { Margin = new Thickness(0, 48, 0, 0) };

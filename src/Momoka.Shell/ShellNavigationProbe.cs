@@ -386,6 +386,12 @@ internal sealed partial class ShellNavigationProbe
 
     private async Task InitializeProbeWindowAsync()
     {
+        // 探针模式把界面线程异常的完整堆栈留在日志里：App 的处理器只记 e.Message，
+        // LayoutCycle 这类没有消息文本的异常就只剩一句「布局环」，找不到是哪一次排版触发的。
+        // 放在这里而不是 RunAsync：ProbeFinalizationTests 会逐字提取 RunAsync，那边的宿主没有 XAML 事件。
+        void OnProbeUnhandled(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e) =>
+            Log.Error("probe", "探针界面线程未处理异常：" + e.Exception);
+        if (Application.Current is { } application) application.UnhandledException += OnProbeUnhandled;
         // 正式启动先有 ShellPage 再接入岛。空根岛仅有 Loaded/Rendering 时尚未建立可呈现的内容；
         // 用未 Attach 的真实登录页复现启动前件，等待提交后移除，不靠动画或位图渲染催过断言。
         var motion = HomeMotion.PreferenceEnabled;

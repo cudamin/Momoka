@@ -495,13 +495,22 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var (name, title, cards) in sections)
                 {
                     var strip = Get<ShelfStrip>(page, name);
-                    var section = strip.Parent as StackPanel;
-                    var parts = section?.Children.OfType<FrameworkElement>().ToArray() ?? [];
-                    var head = parts.Length == 2 ? parts[0] as ShelfHead : null;
-                    Require(section is not null && head?.Title == title && ReferenceEquals(parts[1], strip),
-                        $"{name} 那一段不是「板 + 牌子 + 货架带」：父级 {section?.GetType().Name ?? "空"}，子项 "
-                            + string.Join("、", parts.Select(part => part.GetType().Name)));
-                    var panel = section!;
+                    // 商店卡片（2026-11-14 用户令参考微软商店）把每段改成「板 → 标题栏 Border + 内容 StackPanel」，
+                    // 牌子与货架带各在卡头、卡身里；沉浸模式沿用同一结构。两者都不在内层再套 ScrollViewer。
+                    var section = name switch
+                    {
+                        "MediaPeople" => Get<StackPanel>(page, "PeoplePanel"),
+                        "MediaRecommendations" => Get<StackPanel>(page, "RecommendationsPanel"),
+                        _ => Get<StackPanel>(page, "SimilarPanel")
+                    };
+                    var header = section.Children[0] as Border;
+                    var content = section.Children[1] as StackPanel;
+                    var head = header?.Child as ShelfHead;
+                    Require(section.Children.Count == 2 && head?.Title == title
+                        && content is not null && ReferenceEquals(content.Children.Single(), strip),
+                        $"{name} 那一段不是「板 + 卡头 + 卡身货架带」：子项 "
+                            + string.Join("、", section.Children.OfType<FrameworkElement>().Select(part => part.GetType().Name)));
+                    var panel = section;
                     var factsBox = Get<Border>(page, "HeroFacts");
                     var factsBottom = factsBox.TransformToVisual(page).TransformPoint(default).Y + factsBox.ActualHeight;
                     var panelTop = panel.TransformToVisual(page).TransformPoint(default).Y;
@@ -509,11 +518,14 @@ internal sealed partial class ShellNavigationProbe
                     var expectedWidth = Get<Grid>(page, "BodyRow").ActualWidth;
                     Require(!overlaps && Math.Abs(panel.ActualWidth - expectedWidth) < 1,
                         $"{name} 应完整全宽且不与资料卡重叠：{panel.ActualWidth:0.0}/{expectedWidth:0.0}");
-                    var panelFill = panel.Background as Microsoft.UI.Xaml.Media.AcrylicBrush;
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
-                    Require(panelFill is not null && panelFill.FallbackColor.A > 0,
-                        $"{name} 那一段没有板底（用户要的就是这个背景）");
+                    // 商店档板底是主题实色表面（与媒体详情的分区卡同一套），沉浸档仍是半透明亚克力。
+                    Require(media.Plain
+                            ? panel.Background is Microsoft.UI.Xaml.Media.SolidColorBrush { Color.A: 255 }
+                                && ReferenceEquals(panel.Style, Application.Current.Resources["EgStoreDetailCardStyle"])
+                            : panel.Background is Microsoft.UI.Xaml.Media.AcrylicBrush { FallbackColor.A: > 0 },
+                        $"{name} 那一段没有板底（商店档实色卡面，沉浸档亚克力）");
                     Require(Descendants(strip).OfType<ScrollViewer>().Count() == 0 && Descendants(strip).OfType<ScrollView>().Any(),
                         $"{name} 里还有内层 ScrollViewer —— 指针停在带上时它会吃掉整页的竖向滚轮");
                     Require(strip.Visibility == Visibility.Visible && ReferenceEquals(strip.ItemsSource, cards),
@@ -551,7 +563,10 @@ internal sealed partial class ShellNavigationProbe
                         "封面下片名仍被省略、限制行数或与图片重叠");
                     var subtitleBottom = subtitleText.TransformToVisual(tile).TransformPoint(new Windows.Foundation.Point(0, subtitleText.ActualHeight)).Y;
                     Require(subtitleBottom <= tile.ActualHeight + 1, "推荐卡片文字被底边裁掉");
-                    relatedReadings.Add($"{width} 宽 {name}：列表 {panel.ActualWidth:0.0}、相交 {overlaps}、卡片 {tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}、板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
+                    var fillText = panel.Background is SolidColorBrush solidFill
+                        ? solidFill.Color.ToString()
+                        : panel.Background is AcrylicBrush acrylicFill ? $"acrylic {acrylicFill.TintColor}" : "（无）";
+                    relatedReadings.Add($"{width} 宽 {name}：列表 {panel.ActualWidth:0.0}、相交 {overlaps}、卡片 {tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}、板底 {fillText}、带高 {strip.ActualHeight:0.0}、"
                         + $"牌子「{head!.Title}」、内层滚动面 ScrollView（无 ScrollViewer）");
                 }
                 Require(media.People.Count == 12 && media.Recommendations.Count == 12 && media.Similar.Count == 12,

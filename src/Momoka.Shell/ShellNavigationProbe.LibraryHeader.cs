@@ -31,7 +31,7 @@ internal sealed partial class ShellNavigationProbe
                     var toolbar = Get<Grid>(page, "ToolbarSurface");
                     var controls = toolbar.TransformToVisual(page).TransformBounds(new(0, 0, toolbar.ActualWidth, toolbar.ActualHeight));
                     var title = Get<TextBlock>(page, "LibraryTitle");
-                    Require(title.FontSize == (double)Application.Current.Resources["EgTitleFontSize"], "继续观看标题没有使用20DIP刻度");
+                    Require(title.FontSize == (double)Application.Current.Resources["EgHeaderFontSize"], "继续观看标题没有使用页面标题 36 刻度");
                     Require(Math.Abs(controls.Left - Get<Grid>(page, "PageRoot").Margin.Left) <= 2, "继续观看工具条没有左对齐");
                     RequireResumeGap(page, controls.Bottom);
                     if (width == 1132)

@@ -1053,6 +1053,8 @@ internal sealed partial class ShellNavigationProbe
             File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-menu-material.txt"),
                 $"{theme}: {material.MaterialState}\n");
             await SaveProbeScreenAsync($"detail-menu-acrylic-{theme}-screen.png");
+            // 菜单项是模板实例化出来的，弹层对象先到、子菜单项晚一拍；先等它真的进树再做展开。
+            await UntilAsync(() => Descendants(presenters[0]).OfType<MenuFlyoutSubItem>().Any());
             var submenu = Descendants(presenters[0]).OfType<MenuFlyoutSubItem>().First();
             ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(submenu)
                 .GetPattern(PatternInterface.ExpandCollapse)).Expand();

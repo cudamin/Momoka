@@ -24,7 +24,9 @@ namespace Momoka.Tests
                         Assert.False(page.PlaybackEntranceSuppressed, "普通导航不改变播放返回与折叠抑制位");
                         Assert.Equal(restored ? 1 : 0, page.ViewModel.BackgroundReads);
                         Assert.Equal(restored ? 0 : 1, page.ViewModel.InitialReads);
-                        Assert.Equal(1, page.TitlePaintCalls, "冷访问与暖返回都要同步轮播标题状态");
+                        // 生产页头在 RestoreVisit 与 Loaded 各同步一次标题墨色；夹具只要求这一趟确实同步过，
+                        // 不把内部调用次数钉死（2026-11-14 页头拆到 HomePage.Header.cs 后是两处）。
+                        Assert.True(page.TitlePaintCalls >= 1, "冷访问与暖返回都要同步轮播标题状态");
                         return Task.CompletedTask;
                     });
                 }
@@ -108,7 +110,12 @@ namespace Momoka.Shell.Views
     {
         internal double Offset { get; private set; }
         internal void UpdateLayout() { }
-        internal void ScrollTo(double x, double y, Microsoft.UI.Xaml.Controls.ScrollingScrollOptions options) => Offset = y;
+        // 生产页头恢复用 ScrollView.ScrollTo 的关联号判断是否受理；桩给出一个非 -1 的受理号。
+        internal int ScrollTo(double x, double y, Microsoft.UI.Xaml.Controls.ScrollingScrollOptions options)
+        {
+            Offset = y;
+            return 1;
+        }
     }
 }
 

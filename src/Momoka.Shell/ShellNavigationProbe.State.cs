@@ -607,6 +607,8 @@ internal sealed partial class ShellNavigationProbe
             // 电影页上「视频：…」是片名栏里独立的一份（DetailVideoText），不是 ColumnPickers 里那条
             // （那条只给集页的宽版式）。它和下面那排在独立文件组里，所以视频与音频之间的空隙
             // 由 FileOptions.Spacing 给、音频与字幕之间由 ColumnPickers.Spacing 给 —— 两处都得是同一个数。
+            // 2026-11-14 起单音轨整行隐藏（SingleAudioVisibility 恒为 Collapsed），单音轨状态只剩视频与字幕
+            // 两行；多音轨状态仍是三行，两处空隙都得对。
             var stack = Get<StackPanel>(page, "FileOptions");
             var panel = Get<StackPanel>(page, "ColumnPickers");
             var videoText = Get<TextBlock>(page, "DetailVideoText");
@@ -641,7 +643,19 @@ internal sealed partial class ShellNavigationProbe
                     $"{state}：音频那一行 {a.Height:0.#} 高，选择框是 {height:0.#}");
             }
 
-            Rhythm("单音轨（音频是文字）");
+            {
+                var (v, s) = (Box(video), Box(subtitle));
+                readings.Add($"单音轨（音频整行收起）：视频行 {v.Top:0.#}–{v.Bottom:0.#}（高 {v.Height:0.#}）、"
+                    + $"音频行高 {audio.ActualHeight:0.#}（{audio.Visibility}）、"
+                    + $"字幕行 {s.Top:0.#}–{s.Bottom:0.#}（高 {s.Height:0.#}），"
+                    + $"空隙 {s.Top - v.Bottom:0.#}，Spacing {stack.Spacing:0.#}");
+                Require(vm.SingleAudioVisibility == Visibility.Collapsed && audio.ActualHeight < 0.5,
+                    "单音轨仍占着一行音频");
+                Require(Math.Abs(s.Top - v.Bottom - 6) < 0.5,
+                    $"单音轨：视频与字幕之间的空隙不是 6：{s.Top - v.Bottom:0.#}");
+                Require(Math.Abs(v.Height - Box(box).Height) < 0.5 && Math.Abs(s.Height - Box(box).Height) < 0.5,
+                    "单音轨：视频或字幕行没有保持选择框高度");
+            }
             await SaveProbeScreenAsync("detail-picker-rhythm-text-screen.png");
 
             source.MediaStreams.Add(new() { Index = 4, Type = "Audio", DisplayTitle = "国语 · AAC 2.0" });

@@ -118,6 +118,9 @@ internal sealed partial class ShellNavigationProbe
             return Task.FromResult(FakeTransport.Standard(request));
         };
 
+        // 这一条钉的是沉浸档的集页布局（260×375 封面、剧情说明提拉）；商店档的集页由详情卡片与
+        // 响应式检查覆盖，这里显式切回沉浸档，避免用旧布局的期望去量商店版式。
+        fixture.Settings.Ui.EnableImmersive = true;
         var frame = new Frame();
         var readings = new List<string>();
         _root.Children.Add(frame);
@@ -157,10 +160,13 @@ internal sealed partial class ShellNavigationProbe
                 var backdropLayer = Get<Grid>(page, "Backdrop");
                 var picture = Get<Border>(page, "BackdropPicture");
 
-                // 期望值走 Core 那一支：400×600 的竖图装进 260×375 那一格（贴高，宽收到 250）。这张 400×600 是
-                // **剧集那一层**的海报；本集自己那张 16:9 的剧照（640×360）装进来会是 260×146 —— 所以下面这条
-                // 断言同时也是「集页用的是剧封面，不是集封面」（2026-11-09 用户令）的判据。
-                var fit = DetailHero.StillBox(400, 600, 260, 375) ?? default;
+                // 期望值走 Core 那一支：400×600 的竖图装进封面那一格。商店档（默认）用 180×270 的上限，
+                // 沉浸档仍是 260×375。这张 400×600 是**剧集那一层**的海报；本集自己那张 16:9 的剧照
+                // （640×360）装进来会得到另一组数 —— 所以下面这条断言同时也是「集页用的是剧封面，不是集封面」
+                // （2026-11-09 用户令）的判据。
+                var fit = view.StoreMode
+                    ? DetailHero.StillBox(400, 600, 180, 270) ?? default
+                    : DetailHero.StillBox(400, 600, 260, 375) ?? default;
 
                 // 封面：宽版式画（「固定集页面封面的大小，拉窄窗口时不要缩小」——1280 和 820 上是同一个数），
                 // 紧凑版式整个收掉（「窄窗口下不要封面」，四种页面同一个答案）。
@@ -195,20 +201,17 @@ internal sealed partial class ShellNavigationProbe
                         $"{width} 这一档悬停遮罩没有盖住封面：{shade.ActualWidth:0.#}×{shade.ActualHeight:0.#}"
                             + $" 对 {cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}");
 
-                // 背景那一层：宽版式不铺（「去掉集页面的背景图」），紧凑版式铺（「再给集页面的窄窗口加背景图」）。
-                var wantBackdrop = compact ? Visibility.Visible : Visibility.Collapsed;
-                Require(backdropLayer.Visibility == wantBackdrop,
-                    $"{width} 这一档背景层的显隐该是 {wantBackdrop}，量出来 {backdropLayer.Visibility}");
+                // 沉浸档背景层宽窄都铺。商店档的窄窗背景是另一块 StoreBackdrop（见详情卡片检查），
+                // 本用例只跑沉浸档，别再用旧简洁档「宽版式不铺」的期望去量它。
+                Require(backdropLayer.Visibility == Visibility.Visible,
+                    $"{width} 这一档沉浸背景层该铺开，量出来 {backdropLayer.Visibility}");
 
-                if (compact)
-                {
-                    var want = page.ViewModel.PictureHeight;
-                    Require(picture.Visibility == Visibility.Visible && Math.Abs(picture.ActualHeight - want) < 1.5,
-                        $"{width} 这一档画面盒的高该是 {want:0.##}，量出来 {picture.ActualHeight:0.##}"
-                            + $"（显隐 {picture.Visibility}）");
-                    Require(picture.ActualHeight >= page.ViewModel.HeroHeight - 1.5,
-                        $"{width} 这一档画面条比带子还矮：{picture.ActualHeight:0.##} 对 {page.ViewModel.HeroHeight:0.##}");
-                }
+                var want = page.ViewModel.PictureHeight;
+                Require(picture.Visibility == Visibility.Visible && Math.Abs(picture.ActualHeight - want) < 1.5,
+                    $"{width} 这一档画面盒的高该是 {want:0.##}，量出来 {picture.ActualHeight:0.##}"
+                        + $"（显隐 {picture.Visibility}）");
+                Require(picture.ActualHeight >= page.ViewModel.HeroHeight - 1.5,
+                    $"{width} 这一档画面条比带子还矮：{picture.ActualHeight:0.##} 对 {page.ViewModel.HeroHeight:0.##}");
 
                 // 尾部那条窄带：控件自己那一份和视图模型上的数逐个对上（绑定有没有断）。
                 var tail = Get<StackPanel>(page, "TailContent");
@@ -226,71 +229,13 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(sheet.Spacing - view.SheetSpacing) < 0.01,
                     $"{width} 这一档纸面上几块的竖距没绑上：控件 {sheet.Spacing:0.##} 对视图模型 {view.SheetSpacing:0.##}");
 
-                // 2026-11-02「把集页面下方的剧情说明接到 剩余18分钟下面（多留点空位），然后自动剪裁下方空位
-                // （留点空位）」以及同一天的更正「不要固定间距，以封面下沿为准」：宽版式上说明的第一行落在封面
-                // 实测的下沿再向下 8（2026-11-05）；封面下沿离「剩余 x 分钟」比 OverviewMinGap 还近、或者
-                // 没有封面时才退回那一行底下 40。板底下沿只剩说明自己的 8 加收尾格的 16（那 16 是给板底那两个
-                // 圆角撑出来的板面）；紧凑版式不提拉（那一档的进度和说明本来就排在同一条单列里），收尾格也不占高。
-                var overviewText = Get<TextBlock>(page, "Overview");
-                var textTop = overviewText.TransformToVisual(page).TransformPoint(default).Y;
-                var textBottom = textTop + overviewText.ActualHeight;
+                // 旧简洁卡面宽版式的尾部提拉（TailMargin + 16 收尾格）已随商店模式退役：现存两种模式的
+                // TailMargin 都是默认值、收尾格都是 0。剧情说明的落点由商店卡片与详情响应式检查覆盖。
                 var cardGap = Get<Border>(page, "CardTailGap");
-                if (compact)
-                {
-                    Require(view.TailMargin == default,
-                        $"{width} 这一档紧凑版式不该提拉剧情说明：{view.TailMargin}");
-                    Require(Math.Abs(cardGap.ActualHeight) < 0.01,
-                        $"{width} 这一档紧凑版式那块板不存在，收尾格却占了 {cardGap.ActualHeight:0.##}");
-                }
-                else
-                {
-                    var actions = Get<StackPanel>(page, "ColumnActions");
-                    var actionsBottom = actions.TransformToVisual(page).TransformPoint(default).Y + actions.ActualHeight;
-                    var heroTail = Get<StackPanel>(page, "HeroTail");
-                    var tailTop = heroTail.TransformToVisual(page).TransformPoint(default).Y;
-                    var cardBottom = tailTop + heroTail.ActualHeight;
-                    var foot = cardGap.ActualHeight;
-                    var gap = textTop - actionsBottom;
-                    var under = cardBottom - textBottom;
-                    var coverBottom = cover.TransformToVisual(page).TransformPoint(default).Y + cover.ActualHeight;
-                    var wantGap = Math.Max(DetailHero.OverviewMinGap, coverBottom + DetailHero.OverviewExtraGap - actionsBottom);
-                    // 简介被截断时面板里还有一颗「展开」（2026-11-08 起宽版式一直撑到 819，820 这一档说明栏只有
-                    // 一百多宽，一段长简介必然被截断）：它和说明之间隔着面板自己的 Spacing，算板底时要把这一颗
-                    // 连同那一道间距一起算进去 —— 不然板底下那三十来像素会被当成「没贴住内容的空气」。
-                    var overviewPanel = Get<StackPanel>(page, "OverviewPanel");
-                    var readMore = Descendants(overviewPanel).OfType<HyperlinkButton>()
-                        .FirstOrDefault(button => AutomationProperties.GetAutomationId(button) == "DetailReadMoreButton");
-                    var readMoreRoom = readMore is { Visibility: Visibility.Visible, ActualHeight: > 0 }
-                        ? readMore.ActualHeight + overviewPanel.Spacing
-                        : 0;
-                    var wantBottom = Math.Max(tailTop + foot,
-                        textBottom + readMoreRoom + view.OverviewPanelPadding.Bottom + foot);
-                    Require(view.TailMargin.Top < -1,
-                        $"{width} 这一档宽版式没有提拉剧情说明：{view.TailMargin}");
-                    Require(Math.Abs(gap - wantGap) < 1.5,
-                        $"{width} 这一档剧情说明离「剩余 x 分钟」{gap:0.#}，该是 {wantGap:0.#}"
-                            + $"（封面下沿 {coverBottom:0.#} 离那一行 {coverBottom - actionsBottom:0.#}，"
-                            + $"OverviewMinGap {DetailHero.OverviewMinGap:0.#}）");
-                    Require(textTop >= coverBottom + DetailHero.OverviewExtraGap - 0.5,
-                        $"{width} 这一档剧情说明第一行 {textTop:0.#} 未在封面下沿 {coverBottom:0.#} 下方多留 8");
-                    Require(Math.Abs(textTop - Math.Max(coverBottom + DetailHero.OverviewExtraGap, actionsBottom + DetailHero.OverviewMinGap)) < 1.5,
-                        $"{width} 这一档剧情说明第一行 {textTop:0.#} 没落在封面下沿 {coverBottom:0.#} 再向下 8"
-                            + $"（或那一行底下 {DetailHero.OverviewMinGap:0.#}）那条线上");
-                    Require(Math.Abs(foot - DetailHero.CardTailGap) < 0.01,
-                        $"{width} 这一档板底的收尾格 {foot:0.##}，该是 {DetailHero.CardTailGap:0.##}"
-                            + "（不足 16 板底那两个圆角就画不出来）");
-                    Require(Math.Abs(cardBottom - wantBottom) < 1.5,
-                        $"{width} 这一档板底下沿 {cardBottom:0.#} 没贴住内容（该是 {wantBottom:0.#}：说明底 {textBottom:0.#} 加展开"
-                            + $" {readMoreRoom:0.#}、面板的 {view.OverviewPanelPadding.Bottom:0.#} 再加收尾格 {foot:0.#}，"
-                            + $"或带子底下 {tailTop:0.#}）");
-                    Require(under >= DetailHero.CardTailGap - 0.01,
-                        $"{width} 这一档字到板底只剩 {under:0.#}，板底那两个 16 的圆角画不出来");
-                    Require(Same(view.HeroInset, new Thickness(58, 28, 58, 0)),
-                        $"{width} 这一档封面留白被意外改变：{view.HeroInset}");
-                    readings.Add($"{width} 提拉 {view.TailMargin.Top:0.#}，说明距剩余 {gap:0.#}"
-                        + $"（封面下沿 {coverBottom:0.#}），板底留 {under:0.#}"
-                        + $"（说明自己 {view.OverviewPanelPadding.Bottom:0.#}＋收尾格 {foot:0.#}）");
-                }
+                Require(view.TailMargin == default,
+                    $"{width} 这一档不应再有旧卡面尾部提拉：{view.TailMargin}");
+                Require(Math.Abs(cardGap.ActualHeight) < 0.01,
+                    $"{width} 这一档不应再有旧卡面收尾格：{cardGap.ActualHeight:0.##}");
 
                 // 紧凑档那几个数就是用户要的那一档（8／8／14），宽版式照旧（12／24／20）。
                 var wantTail = compact ? 8d : 12d;

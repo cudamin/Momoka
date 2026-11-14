@@ -1083,10 +1083,14 @@ internal sealed partial class ShellNavigationProbe
             if (path.Contains("/Images/", StringComparison.Ordinal))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) });
             if (path.EndsWith("/Views", StringComparison.Ordinal))
-                return Task.FromResult(Json(new { Items = new[] { new EmbyItem
+                return Task.FromResult(Json(new
+                {
+                    Items = new[] { new EmbyItem
                 {
                     Id = "preview-movies", Name = "预览电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
-                } }, TotalRecordCount = 1 }));
+                } },
+                    TotalRecordCount = 1
+                }));
             if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(movies));
             if (path.EndsWith("/Items", StringComparison.Ordinal) || path.EndsWith("/Items/Resume", StringComparison.Ordinal))
                 return Task.FromResult(Json(new { Items = movies, TotalRecordCount = movies.Length }));

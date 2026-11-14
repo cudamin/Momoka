@@ -28,7 +28,10 @@ internal static class LocalLibraryHomeTests
             Assert.True(page.Contains("Changed -= OnLocalLibrariesChanged", StringComparison.Ordinal));
             Assert.True(page.Contains("navigation != _navigation", StringComparison.Ordinal));
             Assert.True(page.Contains("ReferenceEquals(service, _localLibraries)", StringComparison.Ordinal));
-            var release = page[page.IndexOf("public void Release()", StringComparison.Ordinal)..page.IndexOf("private void PaintInk()", StringComparison.Ordinal)];
+            var start = page.IndexOf("public void Release()", StringComparison.Ordinal);
+            Assert.True(start >= 0, "HomePage.Release 必须存在");
+            // Release 提到关方法签名即可；第一个四空格缩进的右花括号就是它的结尾（方法内只允许八空格起的花括号）。
+            var release = page[start..page.IndexOf("\n    }", start, StringComparison.Ordinal)];
             Assert.True(release.Contains("Changed -= OnLocalLibrariesChanged", StringComparison.Ordinal));
         });
         Test("本地媒体库：列表独立滚动，路径与状态可读，播放未接时隐藏", () =>

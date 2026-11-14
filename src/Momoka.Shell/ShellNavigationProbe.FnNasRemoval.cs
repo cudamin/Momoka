@@ -108,7 +108,9 @@ internal sealed partial class ShellNavigationProbe
             button.Tag = row;
             ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
             FnNasRemovedFilesDialog? recovery = null;
-            await UntilAsync(() => (recovery = OpenDialogs().OfType<FnNasRemovedFilesDialog>().SingleOrDefault()) is not null && recovery.ViewModel.CanUse);
+            // 对话框对象与 CanUse 先到，目录条目随后一拍才读回来；等条目也在树里再取第一项。
+            await UntilAsync(() => (recovery = OpenDialogs().OfType<FnNasRemovedFilesDialog>().SingleOrDefault()) is not null
+                && recovery.ViewModel.CanUse && recovery.ViewModel.Entries.Count == 1);
             var directory = recovery!.ViewModel.Entries.Single();
             await recovery.ViewModel.OpenAsync(directory);
             Require(recovery.ViewModel.Entries.Single().IsRemoved, "恢复目录没有移出文件");

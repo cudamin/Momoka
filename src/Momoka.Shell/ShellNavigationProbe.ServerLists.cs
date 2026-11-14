@@ -60,6 +60,9 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => DialogsFor(_root.XamlRoot).Length == 1);
                 var dialog = DialogsFor(_root.XamlRoot)[0];
                 Require(DialogDismiss.GetClosesOnOutsideClick(dialog), "清单编辑表未接点外取消");
+                // 对话框对象先出现，模板与内容随后一拍才实例化；Machine 慢或窗口刚缩放时直接 Single 会读到空树。
+                await LayoutAsync(dialog);
+                await UntilAsync(() => Descendants(dialog).OfType<TextBox>().Any(item => item.Name == "ServerListSearchTerm"));
                 var search = Descendants(dialog).OfType<TextBox>().Single(item => item.Name == "ServerListSearchTerm");
                 search.Text = "星海";
                 new ButtonAutomationPeer(Descendants(dialog).OfType<Button>().Single(item => item.Name == "ServerListSearch")).Invoke();
@@ -93,6 +96,8 @@ internal sealed partial class ShellNavigationProbe
                         ItemCommands.Run(ItemCommand.AddToPlaylist, fixture.Session, fixture.Actions, page, card);
                         await UntilAsync(() => DialogsFor(_root.XamlRoot).Length == 1);
                         var single = DialogsFor(_root.XamlRoot)[0];
+                        await LayoutAsync(single);
+                        await UntilAsync(() => Descendants(single).OfType<ComboBox>().Any(element => element.Name == "BatchPlaylist"));
                         Descendants(single).OfType<ComboBox>().Single(element => element.Name == "BatchPlaylist").SelectedIndex = 0;
                         Require(single.IsPrimaryButtonEnabled, "单项列表选择后不能提交");
                         var previousWrites = server.Writes.Count;

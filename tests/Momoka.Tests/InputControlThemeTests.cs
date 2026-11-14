@@ -470,7 +470,7 @@ internal static class InputControlThemeTests
                     Assert.True(path == "src/Momoka.Shell/Theme/Styles.xaml" && radius.Parent == document.Root,
                         path + " 不局部重定义共享搜索圆角");
             }
-            Assert.Equal(9, count, "番剧、主搜索、版本、整理、音乐与两处设置搜索均纳入检查");
+            Assert.Equal(10, count, "番剧、主搜索、标题搜索、版本、整理、音乐与两处设置搜索均纳入检查");
             foreach (var page in new[] { "LibraryPage.xaml", "MoviePilotVersionsView.xaml" })
             {
                 var search = Named(Read("src/Momoka.Shell/Views/" + page), "SearchInput");

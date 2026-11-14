@@ -91,6 +91,24 @@ internal sealed partial class ShellNavigationProbe
                     CloseMenus();
                     await SettleAsync();
                 }
+                // 权限拒绝的截图留在两张卡都在的时候：第二张卡的菜单落在右侧，不会盖住像素守卫的左侧取样点。
+                // 移除关系之后再打开菜单，剩下的那张卡在最左，菜单会覆盖取样点，严格宿主遮挡守卫会拒绝截图。
+                fixture.Session.ReplaceClient(source, source.CurrentConnection with { IsAdministrator = false, CanManageCollections = false });
+                await OpenMenuAsync("collection-second");
+                Require(!Has(ItemCommand.AddToCollection) && !Has(ItemCommand.RemoveFromCollection), "明确拒绝没有隐藏合集操作");
+                await SaveProbeScreenAsync($"collections-{kind}-denied-screen.png");
+                CloseMenus();
+                fixture.Session.ReplaceClient(source, source.CurrentConnection with
+                {
+                    IsAdministrator = kind == MediaServerKind.Emby,
+                    CanManageCollections = true
+                });
+                await OpenMenuAsync("collection-second");
+                Require(Has(ItemCommand.AddToCollection) && Has(ItemCommand.RemoveFromCollection), "授权恢复后当前页入口没有恢复");
+                // 两张卡都在、菜单刚绑过关系时取成员身份；移除后刷新出来的卡不再重新绑菜单，晚取会是空的。
+                var membership = page.ViewModel.Cards.Single(card => card.Item.Id == "collection-second").CollectionMembership!;
+                CloseMenus();
+
                 var original = page.ViewModel.Cards.Single(card => card.Item.Id == "collection-first").Item;
                 var oldReads = reads;
                 await OpenMenuAsync("collection-first");
@@ -105,21 +123,6 @@ internal sealed partial class ShellNavigationProbe
                     "移除关系破坏媒体或观看状态");
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"collections-{kind}-removed-screen.png");
-
-                fixture.Session.ReplaceClient(source, source.CurrentConnection with { IsAdministrator = false, CanManageCollections = false });
-                await OpenMenuAsync("collection-second");
-                Require(!Has(ItemCommand.AddToCollection) && !Has(ItemCommand.RemoveFromCollection), "明确拒绝没有隐藏合集操作");
-                await SaveProbeScreenAsync($"collections-{kind}-denied-screen.png");
-                CloseMenus();
-                fixture.Session.ReplaceClient(source, source.CurrentConnection with
-                {
-                    IsAdministrator = kind == MediaServerKind.Emby,
-                    CanManageCollections = true
-                });
-                await OpenMenuAsync("collection-second");
-                Require(Has(ItemCommand.AddToCollection) && Has(ItemCommand.RemoveFromCollection), "授权恢复后当前页入口没有恢复");
-                var membership = page.ViewModel.Cards[0].CollectionMembership!;
-                CloseMenus();
                 page.ViewModel.Cancel();
                 Require(!membership.Matches(page.ViewModel.Cards[0].Item) && source.IsAvailable, "页面取消未终止合集关系或误注销账号");
                 Require(writes.Count == 1 && fixture.Actions.Plays == 0 && media.Count == 2, "匿名验证删除了媒体或启动播放");

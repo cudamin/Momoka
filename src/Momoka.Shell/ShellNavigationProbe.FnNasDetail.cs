@@ -66,10 +66,12 @@ internal sealed partial class ShellNavigationProbe
                     // 左上角那一格封面用的是**剧集那一层**的海报（2026-11-09 用户令「Emby、飞牛、Jellyfin 的
                     // 集页面左上角统一使用剧封面，不要用集封面」）。这条夹具的单集故意没有 tv_guid（列表上的飞牛
                     // 单集就是这样），剧是详情那一趟才补回来的 —— 所以它同时钉住「剧问出来之后封面要重取」
-                    // （ItemArtwork.SameCoverSource）：本集自己那张 1280×720 的剧照装进 260×375 会是 260×146，
-                    // 只有 400×600 的剧海报才量得到 250×375。
+                    // （ItemArtwork.SameCoverSource）：本集自己那张 1280×720 的剧照装进同一格会得到另一组数，
+                    // 只有 400×600 的剧海报才量与这一格一致。商店档（默认）上限 180×270，沉浸档 260×375。
                     await UntilAsync(() => page.ViewModel.StillImage is not null);
-                    var poster = DetailHero.StillBox(400, 600, 260, 375) ?? default;
+                    var poster = page.ViewModel.StoreMode
+                        ? DetailHero.StillBox(400, 600, 180, 270) ?? default
+                        : DetailHero.StillBox(400, 600, 260, 375) ?? default;
                     Require(Math.Abs(page.ViewModel.StillWidth - poster.Width) < 0.6
                         && Math.Abs(page.ViewModel.StillHeight - poster.Height) < 0.6,
                         $"飞牛集页的封面不是剧海报：量到 {page.ViewModel.StillWidth:0.#}×{page.ViewModel.StillHeight:0.#}，"
@@ -211,7 +213,10 @@ internal sealed partial class ShellNavigationProbe
             "人员和推荐没有实际布局或顺序倒置");
         await ScrollFnNasDetailPanelAsync(page, shell, castPanel);
         await UntilAsync(() => cast.Cards.All(card => card.Poster is not null));
-        var portraitCards = Descendants(Get<ShelfStrip>(page, "CastRow")).OfType<PosterCard>().ToArray();
+        // 人物模板自 2026-11-14 起带两张 PosterCard：可导航时用按钮里的那张，没有人物页时用下面那张纯展示；
+        // 两张只有一张是 Visible 的，别把模板里备用的那一份也算成一张卡片。
+        var portraitCards = Descendants(Get<ShelfStrip>(page, "CastRow")).OfType<PosterCard>()
+            .Where(card => card.Visibility == Visibility.Visible).ToArray();
         Require(portraitCards.Length == 2 && portraitCards.All(card => card.ActualWidth > 0 && card.ActualHeight > 0
             && card.Card?.Poster is not null && ReferenceEquals(Get<Image>(card, "Poster").Source, card.Card.Poster)),
             "人员头像没有进入实际人物模板");

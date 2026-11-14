@@ -62,7 +62,11 @@
             "    internal void RestoreVisit(HomeRequest request, NavigationEventArgs e, bool reused)\n    {\n" +
             between(home, "        var restored = reused || ViewModel.RestoreSnapshot();", "\n    }\n\n    public void Release()") + "\n    }\n" +
             "    internal void WireLoaded()\n    {\n" +
-            between(home, "        Loaded += (_, _) =>", "\n    }\n\n    /// <summary>\n    /// Created with the page rather") + "\n    }\n}\n";
+            between(home, "        Loaded += (_, _) =>", "\n    }\n\n    /// <summary>\n    /// Created with the page rather") + "\n    }\n" +
+            // 页头滚动状态与绘制在 HomePage.Header.cs / HomePage.Carousel.cs；本夹具只测目录、账号与导航控制流，
+            // 这里给提取到的那几处调用留同签名的空实现，不让页头实现细节把整个生成文件拖成不可编译。
+            "    private bool _restoringHeaderScroll;\n    private int _headerRestoreCorrelation = -1;\n" +
+            "    private void ResetHeaderScroll() { if (_restoringHeaderScroll) _headerRestoreCorrelation = -1; PaintInk(); }\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
             File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

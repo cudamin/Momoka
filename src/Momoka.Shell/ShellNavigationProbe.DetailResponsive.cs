@@ -263,9 +263,14 @@ internal sealed partial class ShellNavigationProbe
                 && view.IsCompact == oldEpisodeCompact && view.HeroCardShown == !oldEpisodeCompact,
                 "简洁电影剧季始终保留卡面，单集保持原宽窄布局");
             var cover = Get<Border>(page, "PosterStill");
-            Require(oldEpisodeCompact ? cover.Visibility == Visibility.Collapsed
-                : cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 180) < 1
-                    && Math.Abs(cover.ActualHeight - 270) < 1, "商店封面未使用紧凑尺寸");
+            // 这一支在方法开头就把显示模式改成简洁（商店），商店档四类详情都保留封面（2026-11-14 窄窗也保留），
+            // 上限 180×270，不随紧凑版式收起。
+            Require(view.StoreMode, $"{width} 这一档没有进入简洁商店模式");
+            Require(cover.Visibility == Visibility.Visible,
+                $"{width} 这一档商店封面不该收起：{cover.Visibility}");
+            Require(Math.Abs(cover.ActualWidth - 180) < 1 && Math.Abs(cover.ActualHeight - 270) < 1,
+                $"{width} 这一档商店封面未使用 180×270：{cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}"
+                    + $"（紧凑 {view.IsCompact}）");
             // 悬停遮罩只在集页上（2026-11-08「集页面鼠标移到左上角的封面的时候要显示遮罩」）：其余三页的封面
             // 要么另有播放键，要么根本点不动，一层遮罩只会在那里说谎。
             Require(Get<Border>(page, "CoverShade").Visibility

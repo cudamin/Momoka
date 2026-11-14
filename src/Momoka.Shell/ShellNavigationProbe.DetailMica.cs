@@ -67,6 +67,9 @@ internal sealed partial class ShellNavigationProbe
             if (_window!.IsMaximized) _window.ToggleMaximize();
             await (Task)Call(shell, "EnterShellAsync")!;
             await UntilAsync(() => shell.ActiveContentReady);
+            // 商店模式默认带侧栏；这一项量的是详情页自身的材质与响应式布局，先把侧栏收起，让页宽等于请求的
+            // 客户区宽。侧栏宽度与详情表面无关，收起来不改变本节要验的窗口画布、内容层和商店背景。
+            HideProbeSidebar(shell);
             foreach (var item in items)
             {
                 shell.OpenDetail(DetailRequest.For(fixture.Services, item));
@@ -82,6 +85,10 @@ internal sealed partial class ShellNavigationProbe
                     await UntilAsync(() => page.ViewModel.CornerImage is not null);
                 foreach (var width in item.Type == EmbyItemType.Episode ? new[] { 1200, 760, 360 } : new[] { 1200, 760 })
                 {
+                    HideProbeSidebar(shell);
+                    reads.Add($"{item.Type}/{width} 前：content={Get<Grid>(shell, "ContentHost").Margin} "
+                        + $"sidebar={Get<Grid>(shell, "SidebarHost").Visibility} mode={Get<bool>(shell, "_sidebarMode")} "
+                        + $"shell={shell.ActualWidth:0.#} page={page.ActualWidth:0.#}");
                     await ResizeResponsiveAsync(page, width, 900);
                     // 带高要等 StoreDetailsRoom 这一拍量完、绑到 HeroHeight 上再量：ResizeResponsiveAsync 只等
                     // 页宽到位，差这一拍时头部还停在上一档的高度上，看起来就像「头部裁切文件信息」。
@@ -115,6 +122,7 @@ internal sealed partial class ShellNavigationProbe
                             fixture.Settings.Ui.ControlTintLuminosityOpacity = 5;
                             fixture.Settings.Ui.ControlBackgroundColor = "#FF00FF";
                             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                            HideProbeSidebar(shell);
                             await LayoutAsync(page);
                             RequireFixedSurface(fixedActions);
                             RequireAccentSurface(plays);
@@ -125,6 +133,7 @@ internal sealed partial class ShellNavigationProbe
                                 fixture.Settings.Ui.ControlTintLuminosityOpacity, fixture.Settings.Ui.ControlBackgroundOpacity,
                                 fixture.Settings.Ui.ControlBackgroundColor) = saved;
                             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                            HideProbeSidebar(shell);
                             await LayoutAsync(page);
                         }
                     }
@@ -201,6 +210,7 @@ internal sealed partial class ShellNavigationProbe
                 }
                 fixture.Settings.Ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                HideProbeSidebar(shell);
                 await LayoutAsync(page);
                 RequireSharedDetailContentLayer(page);
                 RequireStoreBackdrop(page);
@@ -249,6 +259,13 @@ internal sealed partial class ShellNavigationProbe
         }
 
         static double storeTop(DetailPage page) => Get<Grid>(page, "StoreBackdrop").TransformToVisual(page).TransformPoint(default).Y;
+    }
+
+    /// <summary>商店模式的侧栏会占掉客户区宽度；本项只量详情页，先隐藏侧栏再按页宽缩放窗口。</summary>
+    private static void HideProbeSidebar(ShellPage shell)
+    {
+        Field(shell, "_sidebarMode", false);
+        Call(shell, "SyncSidebar");
     }
 
     private static void RequireStoreComponents(DetailPage page, ShellPage shell)

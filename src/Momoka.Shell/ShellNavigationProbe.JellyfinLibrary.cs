@@ -173,8 +173,9 @@ internal sealed partial class ShellNavigationProbe
                 && !page.ViewModel.IsFolderDrillDown, "Jellyfin 混合内容根没有按 list 页处理");
             Require(TabLabels(page).Length == 0, $"Jellyfin 混合内容页仍画了分区签：{TabLabels(page)}");
             var mixedTitle = Get<TextBlock>(page, "LibraryTitle");
-            Require(mixedTitle.Visibility == Visibility.Visible && Math.Abs(mixedTitle.FontSize - 20) < 0.1,
-                $"Jellyfin 混合内容标题字号不是 20（{mixedTitle.FontSize}）");
+            Require(mixedTitle.Visibility == Visibility.Visible
+                && Math.Abs(mixedTitle.FontSize - (double)Application.Current.Resources["EgHeaderFontSize"]) < 0.1,
+                $"Jellyfin 混合内容标题没有使用页面标题 36 刻度（{mixedTitle.FontSize}）");
             Require(Get<TextBlock>(page, "LibraryItemCount").Text == "44 的 1-44"
                 && page.ViewModel.TotalLabel == "44 的 1-44",
                 $"混合内容计数不是 list.html 的 ListPaging（{page.ViewModel.TotalLabel}）");
