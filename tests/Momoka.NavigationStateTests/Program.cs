@@ -17,7 +17,7 @@ internal static class Program
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
-        Console.WriteLine("源链接音乐/服务器清单页面与Shell导航；Frame/ViewModel是边界，无窗口、登录或媒体请求");
+        Console.WriteLine("源链接音乐页面与Shell导航；Frame/ViewModel是边界，无窗口、登录或媒体请求");
         foreach (var mode in new[] { NavigationMode.New, NavigationMode.Back, NavigationMode.Forward })
         {
             Test("音乐根页实际导航恢复目的地/" + mode, () =>
@@ -27,15 +27,6 @@ internal static class Program
                 page.VisitForTest(request, mode);
                 Assert.Equal(request.Tag, page.Tag as string); Assert.True(ReferenceEquals(request, page.RequestForTest));
                 Assert.Equal(1, page.ViewModel.Attaches); Assert.Equal(1, page.ViewModel.Reloads); Assert.False(page.ReleasedForTest);
-            });
-            Test("服务器清单根页实际导航恢复目的地/" + mode, () =>
-            {
-                using var fixture = new Fixture(); var page = new ServerListsPage();
-                var request = new ServerListsRequest(fixture);
-                page.VisitForTest(request, mode);
-                Assert.Equal(ServerListsRequest.Tag, page.Tag as string);
-                Assert.True(ReferenceEquals(request, page.RequestForTest)); Assert.False(page.SeedingForTest);
-                Assert.Equal(1, page.ViewModel.Reloads); Assert.Equal(0, page.ViewModel.Opens);
             });
         }
         Test("音乐Release保留历史Tag，重入容器清掉旧根页Tag", () =>
@@ -70,29 +61,11 @@ internal static class Program
             Assert.Equal(2, page.TrackArtworkStopsForTest);
             Assert.Equal(2, page.ViewModel.Releases);
         });
-        Test("服务器清单Item导航是下钻，重用页面不会遗留目录Tag", () =>
+        Test("无有效导航参数不覆盖旧目的地/music", () =>
         {
-            using var fixture = new Fixture(); var page = new ServerListsPage();
-            page.VisitForTest(new ServerListsRequest(fixture));
-            page.LeaveForTest(); Assert.Equal(ServerListsRequest.Tag, page.Tag as string);
-            var item = new EmbyItem { Id = "list-a", Name = "匿名清单", Type = EmbyItemType.Playlist };
-            page.VisitForTest(new ServerListsRequest(fixture, Item: item), NavigationMode.Back);
-            Assert.Equal("", page.Tag as string); Assert.Equal(1, page.ViewModel.Opens); Assert.Equal(1, page.ViewModel.Reloads);
+            using var fixture = new Fixture(); Page page = new MusicLibraryPage();
+            page.Tag = "existing"; page.VisitForTest(null); Assert.Equal("existing", page.Tag as string);
         });
-        Test("服务器清单离页仍取消在飞弹窗，与Tag修复互不替代", () =>
-        {
-            using var fixture = new Fixture(); var page = new ServerListsPage();
-            page.VisitForTest(new ServerListsRequest(fixture));
-            using var lifetime = new CancellationTokenSource(); page.HoldDialogForTest(lifetime);
-            page.LeaveForTest(); Assert.True(lifetime.IsCancellationRequested); Assert.Equal(1, page.ViewModel.Cancels);
-            Assert.Equal(ServerListsRequest.Tag, page.Tag as string);
-        });
-        foreach (var target in new[] { "music", "lists" })
-            Test("无有效导航参数不覆盖旧目的地/" + target, () =>
-            {
-                using var fixture = new Fixture(); Page page = target == "music" ? new MusicLibraryPage() : new ServerListsPage();
-                page.Tag = "existing"; page.VisitForTest(null); Assert.Equal("existing", page.Tag as string);
-            });
         Test("音乐根页真实Shell返回后再次GoTo不重建", () =>
         {
             using var fixture = new Fixture(); var shell = fixture.Shell;
@@ -129,24 +102,6 @@ internal static class Program
             Assert.Equal(count + 1, shell.ContentFrame.Navigations);
             Assert.Equal(request.Tag, shell.CurrentForTest);
         });
-        Test("服务器目录历史恢复与显式入口刷新语义同时保留", () =>
-        {
-            using var fixture = new Fixture(); var shell = fixture.Shell;
-            shell.OpenListsForTest(); var root = shell.ContentFrame.Content;
-            shell.GoTo("home"); shell.BackForTest(); Assert.Equal(ServerListsRequest.Tag, shell.CurrentForTest);
-            Assert.True(ReferenceEquals(root, shell.ContentFrame.Content));
-            shell.ForwardForTest(); shell.BackForTest(); Assert.Equal(ServerListsRequest.Tag, shell.CurrentForTest);
-            var count = shell.ContentFrame.Navigations; shell.OpenListsForTest();
-            Assert.Equal(count + 1, shell.ContentFrame.Navigations, "账号清单入口继续显式刷新，不加同目标守卫");
-        });
-        Test("服务器Item历史恢复不冒充根目的地", () =>
-        {
-            using var fixture = new Fixture(); var shell = fixture.Shell;
-            shell.ContentFrame.Navigate(typeof(ServerListsPage), new ServerListsRequest(fixture, Item: new EmbyItem { Id = "list", Type = EmbyItemType.Playlist }));
-            shell.AdoptForTest(); Assert.Null(shell.CurrentForTest);
-            shell.GoTo("home"); shell.BackForTest(); Assert.Null(shell.CurrentForTest);
-            shell.ForwardForTest(); Assert.Equal("home", shell.CurrentForTest);
-        });
         Test("Shell实际AdoptContentTag仅接受非空字符串Tag", () =>
         {
             using var fixture = new Fixture(); var shell = fixture.Shell;
@@ -162,7 +117,6 @@ internal static class Program
         private readonly SettingsStore _store;
         private readonly EmbySession _session;
         private readonly EmbyImageStore _images;
-        private readonly ServerListsService _lists = new();
         private readonly ActionsBoundary _actions = new();
         internal ShellPage Shell { get; }
         internal Fixture()
@@ -180,7 +134,7 @@ internal static class Program
         }
         internal LibraryRequest MusicRequest(string tag) => new() { Services = this, Title = "匿名音乐库", ParentId = "music-root", CollectionType = "music", Tag = tag };
         public object? GetService(Type type) => type == typeof(EmbySession) ? _session : type == typeof(EmbyImageStore) ? _images
-            : type == typeof(ServerListsService) ? _lists : type == typeof(IShellActions) ? _actions : null;
+            : type == typeof(IShellActions) ? _actions : null;
         public void Dispose() => _session.Dispose();
         private sealed class ActionsBoundary : IShellActions { public void SetTitleStrip(TitleStrip strip) { } }
         private sealed class RejectNetwork : HttpMessageHandler

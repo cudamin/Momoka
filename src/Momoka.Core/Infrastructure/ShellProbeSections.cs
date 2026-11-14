@@ -30,13 +30,12 @@ public static class ShellProbeSections
     public const string LocalMedia = "local-media";
     public const string Music = "music";
     public const string FnNasSubtitles = "fnnas-subtitles";
-    public const string ServerLists = "server-lists";
     /// <summary>手动离线试用，不属于自动全量探针，也不计自动检查通过数。</summary>
     public const string SearchPreview = "search-preview";
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, DetailCards, Person, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, JellyfinUpload, LocalMedia, Music, FnNasSubtitles, ServerLists,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, DetailCards, Person, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, JellyfinUpload, LocalMedia, Music, FnNasSubtitles,
     ];
 
     public static bool IsKnown(string name) =>

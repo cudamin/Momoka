@@ -5,6 +5,11 @@
 验证：Shell/Core x64 Release 0 警告 0 错误；`detail-customization-fixture` 53/53、`detail-action-readiness-fixture` 89/89，0 失败 0 跳过，覆盖 1023／1024／1025 与 1072 的断点、背景尺寸和实际 ViewModel 通知。未跑原生探针与实屏截图；按 UI 布局项留到交付时在最终主树补 1280／1072／760 截图与宽窄切换检查。
 
 合入：产品 `e8edce1`，master 合并提交 `049d6f5`（自动提交工具给的是通用消息）；冲突只剩 `DetailPage.Store.cs` 的 using 列表，按 master 去掉已不再需要的 `Microsoft.UI.Xaml.Controls`、保留 `Momoka.Emby`。合并后主树 Shell/Core/Tests x64 Release 0 警告 0 错误，`detail-customization-fixture` 54/54、`detail-action-readiness-fixture` 89/89，0 失败 0 跳过。
+## 2026-11-14 账号菜单整理：按钮左移、分组线、删除服务器清单与添加服务器（已合入，待交付）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/fix-narrow-mode-center-yM3M3i/feat-ui-layout-update-NBowFS`，分支 `feat-ui-layout-update-NBowFS`，基点 `5ac4c45`。用户附账号菜单截图四句：①用户按钮往左移一点；②聚合模式下面划条线分割；③删除服务器清单选项和服务器清单页面，删除添加服务器按钮；④添加账号上面加条线分割。追问后用户选择「彻底删除清单功能（推荐）」：账号菜单入口、`ServerListsPage`／`ServerListsViewModel`／`ServerListsService`／`ServerListModels`／`ServerListDialogs`、专用探针与 `Momoka.ServerListsTests`、`Momoka.ServerListsOwnershipTests` 两个专项一起退役，`server-lists` 探针分区与检查台两项入口一并移除；搜索/媒体库点开播放列表改走普通 `LibraryPage`（`ParentType = Playlist`，仍按服务器列表顺序读成员）。账号按钮右缝 8→16 DIP（XAML 首帧近似值 152→160）；聚合开关下、添加账号上各加 1 DIP `EgBorderBrush` 分割线，聚合开关按保存服务器数收起时上分割线一起收起。
+
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.Tests` **5106 项、通过 5090、失败 16、跳过 0**，16 条全部是 `自检：…`／`自检输出：…` 因当前用户共享自检互斥锁被其他会话占用（`已有当前用户的自检运行中；请等它退出，不会关闭用户程序`），本批未触碰自检代码，未结束他人进程；本批新增/更新的 5 条账号菜单与按钮间距测试全部通过；`Momoka.NavigationStateTests` **10/10、0 失败 0 跳过**；`tools/check-diff.ps1` 检查 20 个文本文件通过。原生探针与实屏未跑：同一时刻另一工作树有 `--probe-shell` 在运行，交付时按台账补 `shell` 分区与账号菜单截图。未发布、未推送；合并后登记待交付台账。
 
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 

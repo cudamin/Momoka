@@ -48,6 +48,8 @@ internal sealed partial class ShellNavigationProbe
             var online = Get<TextBlock>(shell, "AccountOnlineItem");
             var identity = Get<TextBlock>(shell, "AccountIdentityItem");
             var aggregateRow = Get<Grid>(shell, "AggregateModeRow");
+            var aggregateDivider = Get<Border>(shell, "AggregateModeDivider");
+            var actionsDivider = Get<Border>(shell, "AccountActionsDivider");
             var management = new ViewModels.ServersViewModel();
             management.Attach(fixture.Actions, fixture.SettingsService, fixture.Session);
             var beforeVisibility = fixture.Transport.Requests.Count;
@@ -69,11 +71,13 @@ internal sealed partial class ShellNavigationProbe
                     menu.ShowAt(Get<Button>(shell, "AccountButton"));
                     await LayoutAsync(shell);
                     var expected = count > 1 ? Visibility.Visible : Visibility.Collapsed;
-                    Require(aggregateRow.Visibility == expected && management.AggregateOptionsVisibility == expected
+                    Require(aggregateRow.Visibility == expected && aggregateDivider.Visibility == expected
+                        && management.AggregateOptionsVisibility == expected
                         && management.NoteVisibility == expected, $"{count} 台保存服务器的聚合选项或说明显隐错误");
                     Require(!fixture.Settings.AggregateMode && fixture.Session.Sources.Count == 1,
                         "隐藏聚合选项修改了偏好或在线会话");
-                    Require(count > 1 || aggregateRow.ActualHeight == 0, "隐藏聚合选项留下行高");
+                    Require(count > 1 || (aggregateRow.ActualHeight == 0 && aggregateDivider.ActualHeight == 0),
+                        "隐藏聚合选项留下行高或分组线");
                     if (count == 1) await SaveProbeScreenAsync($"account-menu-single-server-{_root.ActualWidth:F0}-screen.png");
                     await HideMenuAsync();
                 }
@@ -284,6 +288,8 @@ internal sealed partial class ShellNavigationProbe
                     : online.Visibility == Visibility.Collapsed && identity.Visibility == Visibility.Visible,
                     "账号菜单顶部身份与在线数量没有按模式切换");
                 Require(actual > 0 && actual <= 300, $"账号菜单未保持紧凑：{actual:F1}");
+                Require(actionsDivider.Visibility == Visibility.Visible && actionsDivider.ActualHeight > 0,
+                    "添加账号上方没有分组线");
                 Require(presenter.Background is AcrylicBrush { AlwaysUseFallback: false }, "账号菜单背景不是亚克力");
                 Require(profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
                     .All(button => button.FontSize == 12 && button.ActualHeight <= 33), "账号行未使用较小字号或紧凑高度");
