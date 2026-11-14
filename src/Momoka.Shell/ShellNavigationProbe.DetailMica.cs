@@ -62,10 +62,12 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => page.ViewModel.HeroImage is not null);
                 if (item.Type != EmbyItemType.Season)
                     await UntilAsync(() => page.ViewModel.CornerImage is not null);
-                foreach (var width in new[] { 1200, 760 })
+                foreach (var width in item.Type == EmbyItemType.Episode ? new[] { 1200, 760, 360 } : new[] { 1200, 760 })
                 {
                     await ResizeResponsiveAsync(page, width, 900);
                     RequireStoreComponents(page, shell);
+                    Require(page.ViewModel.StillImage is not null && page.ViewModel.StillVisibility == Visibility.Visible
+                        && Get<Border>(page, "PosterStill").ActualWidth > 0, "商店窄窗没有保留实际封面图");
                     // 简洁模式的按钮与闭合选择框吃那支固定面色（2026-11-11 用户令）：先核四态画笔，
                     // 再把按钮材质那几项改到另一个极端，证明它一个字节都不读。
                     var actions = new[] { Get<StackPanel>(page, "ColumnActions"), Get<StackPanel>(page, "CompactBlock") }
@@ -262,8 +264,11 @@ internal sealed partial class ShellNavigationProbe
         var store = Get<Grid>(page, "StoreBackdrop");
         Require(view.StoreMode && view.HeroImage is not null && store.Visibility == Visibility.Visible,
             "商店模式有图时没有显示顶部背景");
-        Require(store.ActualHeight is > 0 and <= 520 && store.ActualWidth < view.PageWidth && !store.IsHitTestVisible,
+        Require(Math.Abs(store.ActualHeight - view.StoreBackdropHeight) < 1
+            && Math.Abs(store.ActualWidth - view.StoreBackdropWidth) < 1 && !store.IsHitTestVisible,
             "商店背景高度越界或遮挡输入");
+        Require((Get<Grid>(page, "StoreBackdropAcrylic").Visibility == Visibility.Visible) == (view.PageWidth < 1100),
+            "商店亚克力未随窄窗显示");
         Require(Get<Image>(page, "CornerArt").Visibility == Visibility.Collapsed,
             "商店模式仍显示右上角艺术图");
         Require(Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,

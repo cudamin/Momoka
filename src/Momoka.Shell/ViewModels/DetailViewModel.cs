@@ -185,6 +185,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
         PropertyChanged += (_, args) =>
         {
+            // 标题、封面和操作晚到都会改变顶部实测高度，窄窗背景与亚克力一起跟随。
+            if (args.PropertyName == nameof(HeroHeight)) OnPropertyChanged(nameof(StoreBackdropHeight));
             if (args.PropertyName == nameof(Showcase))
             {
                 RefitArtwork();
@@ -977,7 +979,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public double HeroContent =>
-        StoreMode ? Math.Max(Math.Max(StackRoom, StillHeight) + StoreDetailsRoom, StoreTrailerRoom)
+        StoreMode ? Math.Max(StackRoom, StillHeight) + StoreDetailsRoom
             : Math.Max(Math.Max(StackRoom, StillHeight), CornerShown ? CornerHeight : 0);
 
     /// <summary>
@@ -1198,11 +1200,11 @@ public sealed partial class DetailViewModel : PageViewModel
         : DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, HeroHeight);
 
     /// <summary>
-    /// 这一档版面要不要封面 —— 规则在 Core（<see cref="DetailHero.ShowsStill"/>）：紧凑版式下一律不画
-    /// （2026-10-13「窄窗口下不要封面」，四种页面同一个答案；在那之前是「剧、电影两页不画，季、集照旧」）。
+    /// 商店模式在窄窗也保留封面（2026-11-14）；沉浸模式按 Core 的
+    /// <see cref="DetailHero.ShowsStill"/> 判断，紧凑版式收起。
     /// 图解出来没有不算在这里 —— 那是 <see cref="StillVisibility"/> 自己的另一半。
     /// </summary>
-    private bool CoverShown => DetailHero.ShowsStill(IsCompact);
+    private bool CoverShown => StoreMode || DetailHero.ShowsStill(IsCompact);
 
     /// <summary>
     /// 带子左边那张海报（集页上是剧照）显不显 —— 两句话合起来：「这一格现在有东西可画吗」，和「这一档版面要不要它」
@@ -1215,8 +1217,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// <para>
     /// 第二句的规矩翻过好几回（2026-09-12 一天四句，来龙去脉记在 <see cref="DetailHero.ShowsStill"/> 那边），
-    /// 最后落在 2026-10-13 的「窄窗口下不要封面」：紧凑版式下四种页面都不画，宽版式四页全画。规则本体在
-    /// <see cref="DetailHero.ShowsStill"/>，这里只照着问。
+    /// 2026-11-14 商店模式改为窄窗也保留；沉浸模式继续使用 2026-10-13 的紧凑版式规则。
+    /// <see cref="CoverShown"/> 统一组合这两个模式的判据。
     /// </para>
     /// <para>
     /// 不画的那一档 <see cref="FitStill"/> 把那一格的宽高一并归零：带高（<see cref="HeroRoom"/> 读

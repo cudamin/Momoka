@@ -2,6 +2,12 @@ namespace Momoka.Emby;
 
 public static class TrailerPreview
 {
+    /// <summary>预告只装饰顶部右侧，保持16:9，不铺到左栏或底部正文。</summary>
+    public static double BackgroundWidth(double width) =>
+        Math.Min((double.IsFinite(width) && width > 0 ? width : 1280) * 0.60, 920);
+
+    public static double BackgroundHeight(double width) => BackgroundWidth(width) * 9 / 16;
+
     public static string? YouTubeId(IEnumerable<MediaTrailerUrl> trailers)
     {
         foreach (var trailer in trailers)

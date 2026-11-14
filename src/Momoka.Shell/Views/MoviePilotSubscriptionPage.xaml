@@ -95,7 +95,7 @@
         </Border>
     </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnDetailScrollSizeChanged" ViewChanged="OnDetailViewChanged">
-        <Grid>
+        <Grid x:Name="StoreScrollContent">
     <Grid x:Name="StoreBackdrop" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
         <Grid x:Name="StoreBackdropContent">
             <Border>
@@ -108,6 +108,10 @@
             <Border x:Name="StoreBackdropBottom" />
             </Grid>
         <Border x:Name="StoreBackdropMask" />
+    </Grid>
+    <Grid x:Name="StoreBackdropAcrylic" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
+        <Border x:Name="StoreBackdropAcrylicFill" />
+        <Border x:Name="StoreBackdropAcrylicBottom" Height="120" VerticalAlignment="Bottom" />
     </Grid>
         <StackPanel>
             <!-- 简介紧随文字列操作；右卡自然长高，下方季与相关列表保持全宽。 -->

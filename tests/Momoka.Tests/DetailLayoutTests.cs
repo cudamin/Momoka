@@ -10,7 +10,36 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
-        Test("商店背景：完整剧照靠右缩小，宽高保持原图比例且不随窗口高度撑开", () =>
+        Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
+        {
+            Assert.Equal(768d, TrailerPreview.BackgroundWidth(1280));
+            Assert.Equal(432d, TrailerPreview.BackgroundHeight(1280));
+            Assert.Equal(920d, TrailerPreview.BackgroundWidth(2400));
+            Assert.Equal(517.5d, TrailerPreview.BackgroundHeight(2400));
+            foreach (var width in new[] { 360d, 760d, 1280d, 2400d })
+            {
+                Assert.True(TrailerPreview.BackgroundWidth(width) < width);
+                Assert.Equal(9d / 16, TrailerPreview.BackgroundHeight(width) / TrailerPreview.BackgroundWidth(width));
+            }
+            foreach (var width in new[] { 0d, -1, double.NaN, double.PositiveInfinity })
+                Assert.Equal(432d, TrailerPreview.BackgroundHeight(width));
+        });
+        Test("商店预告网页：拒绝HTML注入，关闭嵌入控件和键盘，单视频循环并保留宿主消息", () =>
+        {
+            var html = Momoka.Shell.Views.StoreTrailerDocument.Build("Abc_123-xyz");
+            foreach (var setting in new[] { "controls=0", "disablekb=1", "fs=0", "loop=1", "playlist=Abc_123-xyz",
+                "pointer-events:none", "tabindex=\"-1\"", "p.pauseVideo()", "p.playVideo()", "p.mute()", "p.unMute()" })
+                Assert.Contains(setting, html);
+            Assert.DoesNotContain("showinfo", html);
+            foreach (var id in new[] { "short", "Abc_123-xy<", "Abc_123-xy\"" })
+            {
+                var rejected = false;
+                try { Momoka.Shell.Views.StoreTrailerDocument.Build(id); }
+                catch (ArgumentException) { rejected = true; }
+                Assert.True(rejected, "预告网页接受了未验证ID");
+            }
+        });
+        Test("商店背景：剧照与预告共用右侧视口，不随原图比例或窗口高度撑开", () =>
         {
             foreach (var width in new[] { 360d, 760d, 1200d, 2400d })
             {
@@ -18,10 +47,29 @@ internal static class DetailLayoutTests
                 var height = DetailHero.StorePictureHeight(width, 9d / 16);
                 Assert.True(pictureWidth < width && height <= 520);
                 Assert.Equal(9d / 16, height / pictureWidth);
+                Assert.Equal(TrailerPreview.BackgroundWidth(width), pictureWidth);
+                Assert.Equal(TrailerPreview.BackgroundHeight(width), height);
+                Assert.Equal(height, DetailHero.StorePictureHeight(width, 1.5));
             }
-            Assert.Equal(520d, DetailHero.StorePictureHeight(0, 9d / 16));
-            Assert.Equal(520d, DetailHero.StorePictureHeight(double.NaN, 1));
-            Assert.Equal(472.5d, DetailHero.StorePictureHeight(1000, 0));
+            Assert.Equal(432d, DetailHero.StorePictureHeight(0, 9d / 16));
+            Assert.Equal(432d, DetailHero.StorePictureHeight(double.NaN, 1));
+            Assert.Equal(337.5d, DetailHero.StorePictureHeight(1000, 0));
+        });
+
+        Test("商店窄窗背景：1100断点切换，亚克力区域覆盖晚到内容且不依赖原图比例", () =>
+        {
+            foreach (var width in new[] { 360d, 760d, 1099d })
+            {
+                Assert.Equal(width, DetailHero.StoreBackdropWidth(width));
+                Assert.Equal(420d, DetailHero.StoreBackdropHeight(width, 270));
+                Assert.Equal(700d, DetailHero.StoreBackdropHeight(width, 700));
+                Assert.Equal(420d, DetailHero.StoreBackdropHeight(width, double.NaN));
+            }
+            foreach (var width in new[] { 1100d, 1101d, 1840d })
+            {
+                Assert.Equal(TrailerPreview.BackgroundWidth(width), DetailHero.StoreBackdropWidth(width));
+                Assert.Equal(TrailerPreview.BackgroundHeight(width), DetailHero.StoreBackdropHeight(width, 700));
+            }
         });
 
         Test("商店遮罩：随红蓝剧照取色，坏图与纯黑回退，原像素不变", () =>

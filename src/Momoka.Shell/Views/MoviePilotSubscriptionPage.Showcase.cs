@@ -207,7 +207,8 @@ public sealed partial class MoviePilotSubscriptionPage
     private void OnShowcaseChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName is nameof(MoviePilotMediaViewModel.Backdrop)
-            or nameof(MoviePilotMediaViewModel.PageWidth) or nameof(MoviePilotMediaViewModel.BackdropRatio))
+            or nameof(MoviePilotMediaViewModel.PageWidth) or nameof(MoviePilotMediaViewModel.BackdropRatio)
+            or nameof(MoviePilotMediaViewModel.HeroBandHeight) or nameof(MoviePilotMediaViewModel.BackdropPixels))
             PaintStoreBackdrop();
         if (args.PropertyName is nameof(MoviePilotMediaViewModel.Showcase) or nameof(MoviePilotMediaViewModel.Plain))
         {

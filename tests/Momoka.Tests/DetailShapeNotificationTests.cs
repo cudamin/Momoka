@@ -32,18 +32,25 @@ internal static partial class DetailActionReadinessTests
                 Assert.Equal(0d, (double)f.Get("PaperMinHeight")!);
                 foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "CornerVisibility", "HeroContent" })
                     Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
-                foreach (var width in new[] { 360d, 760d, 1200d, 2400d })
+                foreach (var width in new[] { 360d, 760d, 1099d, 1100d, 1101d, 1200d, 2400d, 760d })
                 {
                     notices.Clear();
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
                     var height = (double)f.Get("StoreBackdropHeight")!;
-                    Assert.True(height > 0 && height <= 520);
+                    Assert.Equal(DetailHero.StoreBackdropHeight(width, (double)f.Get("HeroHeight")!), height);
+                    Assert.Equal(DetailHero.StoreBackdropWidth(width), (double)f.Get("StoreBackdropWidth")!);
+                    Assert.True((double)f.Get("StillWidth")! > 0 && (double)f.Get("StillHeight")! > 0,
+                        "商店窄窗仍把封面尺寸归零：" + shape);
                     Assert.True(notices.Contains("StoreBackdropHeight"));
                     var previewWidth = Math.Min(640, width * 0.46);
                     var leftWidth = Math.Max(0, width - 64 - (width >= 1100 ? previewWidth + 28 : 0));
                     Assert.Equal(Math.Max(0, leftWidth - (double)f.Get("StillWidth")! - 22), (double)f.Get("StoreTextWidth")!);
                     Assert.True(notices.Contains("StoreContentWidth"));
                 }
+                notices.Clear();
+                f.Vm.GetType().GetProperty("StoreDetailsRoom", Members)!.SetValue(f.Vm, 700d);
+                Assert.True(notices.Contains("StoreBackdropHeight"), "详情晚到变高没有通知亚克力区域");
+                Assert.Equal((double)f.Get("HeroHeight")!, (double)f.Get("StoreBackdropHeight")!);
                 f.Ui.EnableImmersive = true;
                 f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
                 Assert.False((bool)f.Get("StoreMode")!);
@@ -219,7 +226,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("商店模式：主体更正为单集时重新通知紧凑布局并清除封面占位", () =>
+        Test("商店模式：主体更正为单集时重新通知紧凑布局并保留封面", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);
             f.Ui.EnableImmersive = false;
@@ -232,7 +239,7 @@ internal static partial class DetailActionReadinessTests
             f.Seed.Type = EmbyItemType.Episode;
             Await(f.Load());
             Assert.True((bool)f.Get("IsCompact")!);
-            Assert.Equal(0d, (double)f.Get("StillHeight")!);
+            Assert.Equal(270d, (double)f.Get("StillHeight")!);
             foreach (var name in new[] { "IsCompact", "CompactVisibility", "StillVisibility" })
                 Assert.True(notices.Contains(name), "类型更正缺少布局通知：" + name);
         });
@@ -276,8 +283,8 @@ internal static partial class DetailActionReadinessTests
                 Assert.True(notices.Contains(name), "模式变化缺少通知：" + name);
             Set("PageWidth", 760d);
             Assert.False((bool)f.Get("HeroCardShown")!);
-            Assert.False((bool)f.Get("BackdropShown")!, "商店模式窄窗应显示云母，不再恢复剧照");
-            Assert.Equal(0d, (double)f.Get("StillWidth")!);
+            Assert.False((bool)f.Get("BackdropShown")!, "商店模式使用独立静态背景与亚克力");
+            Assert.Equal(180d, (double)f.Get("StillWidth")!);
             f.Ui.EnableImmersive = true;
             Refresh();
             Assert.False((bool)f.Get("Showcase")!);
