@@ -51,12 +51,11 @@ public sealed partial class ShellPage
     /// <summary>
     /// 自检：标题栏左上那一排此刻的排法与显隐。
     /// <para>
-    /// 2026-11-12 晚的规矩（用户令「主页不显示返回按钮，进入媒体页面或者媒体库页面的时候显示，放左上角，
-    /// 折叠侧边栏按钮移到它右边」「标题栏左上角写 Momoka」，前进键同日退役）：非侧边栏模式是
-    /// 返回（非主页）· 主页 · 收藏（有收藏才在）· 设置 · 搜索；商店侧边栏模式是
+    /// 2026-11-14 用户确认恢复0.2.5：沉浸模式是
+    /// 主页 · 收藏（有收藏才在）· 设置 · 搜索 · 返回 · 前进；商店侧边栏模式是
     /// 返回（非主页）· 折叠（搜索入口 2026-11-13 起不在栏里，只剩标题栏正中那颗框）。这一关判五件事：
     /// 返回的显隐与目的地对得上、该在的都在、可见的那几颗按这个次序排成一行、折叠键紧贴在返回右边、
-    /// 整排落在标题栏那 40 像素里。
+    /// 整排落在标题栏那 48 像素里。
     /// </para>
     /// <para>
     /// 「折叠键在返回右边」在主页上看不见（返回收着），所以量之前先把它摆出来一拍，量完在 finally 里交回
@@ -69,6 +68,8 @@ public sealed partial class ShellPage
 
         try
         {
+            // 原生导航/显隐已经生效，先完成这一拍布局再读取真实坐标。
+            UpdateLayout();
             Windows.Foundation.Point At(FrameworkElement element) =>
                 element.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
 
@@ -80,13 +81,21 @@ public sealed partial class ShellPage
             // 收藏是唯一会自己收放的一颗：判据与 SyncTitleActions 同一句 —— 有收藏且不在侧边栏模式。
             var favoritesShown = !SidebarShown && _session?.IsSignedIn == true && Favorites.HasItems;
             var backExpected = ContentHost.Visibility == Visibility.Visible
-                ? BackVisibilityFor(_current)
+                ? _sidebarMode ? BackVisibilityFor(_current) : Visibility.Visible
                 : Visibility.Collapsed;
             var slots = BackButton.Visibility == backExpected
+                && ForwardButton.Visibility == (!_sidebarMode && !_sidebarPlaying && ContentHost.Visibility == Visibility.Visible
+                    ? Visibility.Visible : Visibility.Collapsed)
                 && NavToggleButton.Visibility == (SidebarShown ? Visibility.Visible : Visibility.Collapsed)
                 && HomeButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible)
                 && FavoritesButton.Visibility == (favoritesShown ? Visibility.Visible : Visibility.Collapsed)
                 && SettingsButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible);
+
+            // 先量真实布局；随后为主页展开返回的那一拍仅检查排列，不替产品代码补间距。
+            var backPlacement = _sidebarMode || ForwardButton.Visibility == Visibility.Collapsed
+                || Math.Abs(At(HomeButton).X - (At(AppTitleBar).X + 18)) <= 0.5
+                    && Math.Abs(At(BackButton).X - (At(SearchButton).X + SearchButton.ActualWidth) - 2) <= 0.5
+                    && Math.Abs(At(ForwardButton).X - (At(BackButton).X + BackButton.ActualWidth) - 2) <= 0.5;
 
             // 返回与折叠的先后：摆出来量一拍（主页上返回本来收着）。
             // **量之前一定要排一拍**：刚露面的返回键在这一次布局之前 ActualWidth 还是 0，而下面那条
@@ -94,9 +103,10 @@ public sealed partial class ShellPage
             if (BackButton.Visibility == Visibility.Collapsed) BackButton.Visibility = Visibility.Visible;
             UpdateLayout();
 
-            // 声明次序就是视觉次序：返回 → 折叠 → 主页 → 收藏 → 设置/搜索（应用名独立于按钮行）。
+            // 当前集合顺序就是视觉顺序，SyncTitleActions 按模式移动同一控件。
             FrameworkElement[] order =
-                [BackButton, NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton];
+                _sidebarMode ? [BackButton, NavToggleButton]
+                    : [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton];
             var keys = order.Where(key => key.Visibility == Visibility.Visible).ToArray();
             var places = keys.Select(At).ToArray();
 
@@ -124,47 +134,55 @@ public sealed partial class ShellPage
             var glyph = keys.OfType<Button>().Select(button => button.Content as Viewbox)
                 .FirstOrDefault(viewbox => viewbox is not null);
             var enlarged = glyph is { ActualWidth: >= 20, ActualHeight: >= 20 }
-                && BackButton.Content is Viewbox { Width: 20, Height: 20 }
+                && BackButton.Content is Viewbox backGlyph && backGlyph.Width == (_sidebarMode ? 20 : 26)
+                && ForwardButton.Content is Viewbox forwardGlyph && forwardGlyph.Width == (_sidebarMode ? 20 : 26)
                 && NavToggleButton.Content is Viewbox { Width: 20, Height: 20 };
 
             var sized = TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0
                 && keys.All(key => key.ActualWidth > 0 && key.ActualHeight > 0);
 
             // 在标题栏里：整排从顶部下移 4 像素起（2026-11-13 起 40 高的托盘落在 48 高的条子里），
-            // 托盘底边离标题栏下沿 4 像素 —— 既没有越出去，也不是居中。
+            // 商店托盘上距4、沉浸恢复0.2.5上距6，整排均须落在48高宿主内。
             var group = At(TitleActions);
             var bar = At(AppTitleBar);
-            var lowered = Math.Abs(group.Y - (bar.Y + 4)) <= 1;
+            var lowered = Math.Abs(group.Y - (bar.Y + (_sidebarMode ? 4 : 6))) <= 1;
             var inBar = lowered
                 && group.Y + TitleActions.ActualHeight <= bar.Y + AppTitleBar.Height
                 && group.X > bar.X
                 && group.X + TitleActions.ActualWidth <= bar.X + AppTitleBar.ActualWidth;
 
-            // 两支箭头的状态：走不动时只是变暗、面包屑按层数收放。前进键退役之后只剩返回这一支。
-            ApplyChrome(false, 1);
+            // 两支箭头按各自历史启停，面包屑按层数收放；前进仅在沉浸显示。
+            ApplyChrome(false, false, 1);
             UpdateLayout();
-            var idle = !BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+            var idle = !BackButton.IsEnabled && !ForwardButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
 
-            ApplyChrome(true, 1);
+            ApplyChrome(true, false, 1);
             UpdateLayout();
-            var shallow = BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+            var shallow = BackButton.IsEnabled && !ForwardButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
 
             _trail.Add(new Crumb("自检", string.Empty));
             _trail.Add(new Crumb("自检 · 下一层", string.Empty));
-            ApplyChrome(true, _trail.Count);
+            ApplyChrome(true, true, _trail.Count);
             UpdateLayout();
-            var deep = BackButton.IsEnabled && TrailBar.Visibility == Visibility.Visible;
+            var deep = BackButton.IsEnabled && ForwardButton.IsEnabled && TrailBar.Visibility == Visibility.Visible;
 
-            var ok = backRule && slots && sized && enlarged && inBar && lined && toggleAfterBack
+            var ok = backRule && slots && sized && enlarged && inBar && lined && toggleAfterBack && backPlacement
                 && idle && shallow && deep;
 
+            // 临时排列只参与判定；交给原生命中检查的矩形必须是恢复后的真实可见工具组。
+            _trail.Clear();
+            foreach (var crumb in saved) _trail.Add(crumb);
+            SyncChrome();
+            UpdateLayout();
+            var realGroup = At(TitleActions);
             return new TitleActionProbe(ok,
                 $"{keys.Length} 格：{string.Join(" · ", keys.Select(key => key.Name))}，"
                     + $"整排从 ({group.X:0},{group.Y:0}) 起，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
+                    + $"沉浸0.2.5工具组顺序/2DIP间距{(backPlacement ? "正确" : "错误")}；"
                     + $"{(toggleAfterBack ? "折叠键贴在返回右边" : "折叠键没贴在返回右边")}；"
-                    + $"{(sized ? "各格都有尺寸" : "有格子没尺寸")}、{(enlarged ? "导航图标是 20 的统一框" : "导航图标尺寸不一致")}、"
+                    + $"{(sized ? "各格都有尺寸" : "有格子没尺寸")}、{(enlarged ? $"导航图标是 {(_sidebarMode ? 20 : 26)} 的统一框" : "导航图标尺寸不一致")}、"
                     + $"该在的{(slots ? "都在" : "有缺")}、返回判据{(backRule ? "对" : "错")}、"
                     + $"哪儿都走不动时{(idle ? "返回按不动、面包屑收起" : "不对")}、"
                     + $"退得回去时{(shallow ? "返回亮、面包屑收着" : "不对")}、"
@@ -175,8 +193,9 @@ public sealed partial class ShellPage
                     + $"搜索框 {(TitleSearchBox.Visibility == Visibility.Visible ? $"在（{TitleSearchBox.ActualWidth:0} 宽）" : "收")}、"
                     + $"放大镜 {(SearchButton.Visibility == Visibility.Visible ? "在" : "收")}、"
                     + $"返回 {(BackButton.Visibility == Visibility.Visible ? "在" : "收")}/{BackButton.IsEnabled}、"
+                    + $"前进 {(ForwardButton.Visibility == Visibility.Visible ? "在" : "收")}/{ForwardButton.IsEnabled}、"
                     + $"折叠 {(NavToggleButton.Visibility == Visibility.Visible ? "在" : "收")}",
-                group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
+                realGroup.X, realGroup.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
         }
         finally
         {

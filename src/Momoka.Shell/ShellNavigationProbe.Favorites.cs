@@ -86,8 +86,8 @@ internal sealed partial class ShellNavigationProbe
             // 收起**（用户令「主页不显示返回按钮」）；前进键退役；沉浸模式恢复左上放大镜，居中框收起。
             var box = Get<AutoSuggestBox>(shell, "TitleSearchBox");
             Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
-            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Collapsed,
-                "主页上主页键不在、或者返回没有收起");
+            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible,
+                "0.2.5沉浸主页没有保留主页和返回键");
             Require(settingsButton.Visibility == Visibility.Visible, "设置没在左上这一排");
             Require(box.Visibility == Visibility.Collapsed && searchButton.Visibility == Visibility.Visible,
                 $"沉浸搜索入口不对：搜索框 {box.Visibility}、放大镜 {searchButton.Visibility}");
@@ -96,7 +96,12 @@ internal sealed partial class ShellNavigationProbe
                 "标题栏这一排的次序不是 主页 · 设置");
             Require(shell.Pages.Margin.Top == 0, "标题栏又给页面留了旧的顶部占位");
             Require(shell.ProbeTitleActions().Ok, "首页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
-            Require(Left(homeButton, shell) <= 24 && Top(homeButton, shell) + homeButton.ActualHeight <= HomePage.ChromeHeight,
+            var forwardButton = Get<Button>(shell, "ForwardButton");
+            Require(forwardButton.Visibility == Visibility.Visible && !forwardButton.IsEnabled
+                && Math.Abs(Left(homeButton, shell) - 18) <= 0.5
+                && Left(homeButton, shell) < Left(backButton, shell)
+                && Left(backButton, shell) < Left(forwardButton, shell)
+                && Top(homeButton, shell) + homeButton.ActualHeight <= HomePage.ChromeHeight,
                 "标题栏那一排没有从左上角起");
             await SaveProbeScreenAsync("favorites-star-home-empty-screen.png");
 
@@ -185,7 +190,8 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             Require(favoritesButton.Visibility == Visibility.Visible, "历史返回首页后爱心丢了（收藏还在）");
             Require(!backButton.IsEnabled, "回到首页后返回按钮仍按得动");
-            Require(backButton.Visibility == Visibility.Collapsed, "回到首页后返回按钮没有收起");
+            Require(backButton.Visibility == Visibility.Visible && !backButton.IsEnabled,
+                "回到首页后0.2.5返回按钮状态不对");
             // 前进键 2026-11-12 晚退役（用户选「前进键退役」）：那一步改由 Alt+→ / 鼠标侧键走同一条 GoForward。
             Call(shell, "GoForward");
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);

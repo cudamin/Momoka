@@ -120,10 +120,9 @@ public sealed partial class ShellPage
         SidebarHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         AppTitleLabel.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
-        // 导航开关（≡）只在这条栏出现时露脸：没有栏就没有可开可关的东西，而它站在标题栏那一排的最前面
-        // （见 ApplySidebarLayout 的缩进），所以收藏/后退/前进跟在它右边。
+        // 折叠开关只在商店侧栏出现时显示，主页位于最左，其他浏览页跟在返回右侧。
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        // 应用名 2026-11-14 按用户令加回，独立于按钮行，始终跟在可见的导航按钮右侧。
+        // 应用名只在商店侧栏浏览态显示，独立于按钮行，位于导航按钮右侧；沉浸整块收起。
         // 主页与收藏也在这条栏出现时让给栏里的入口（2026-11-12 晚）：那一档左边只剩返回 · 折叠，
         // 栏里第一项就是「主页」、收藏那条也在栏里 —— 同一页不出两个同样的入口。
         HomeButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
@@ -204,7 +203,7 @@ public sealed partial class ShellPage
         // 字形中线同样是 28 —— 用户令「返回键出现时要和下面那一列对齐」，两颗（返回、折叠）都落在栏里
         // 那些图标的同一条竖线上，换档时也不挪。8 同时让开了窗口自己那 8 像素的缩放边框。
         // 上边那 4 像素由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进。
-        var titleMargin = new Thickness(shown ? 8 : 18, 4, 0, 0);
+        var titleMargin = new Thickness(shown ? 8 : 18, _sidebarMode ? 4 : 6, 0, 0);
         if (TitleActions.Margin != titleMargin)
         {
             // Moving an unchanged row does not raise SizeChanged. Measure after layout,

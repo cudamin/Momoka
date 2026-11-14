@@ -424,15 +424,36 @@ internal sealed partial class ShellNavigationProbe
                     && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "ForwardButton").Visibility == Visibility.Visible
                     && Get<AutoSuggestBox>(shell, "TitleSearchBox").Visibility == Visibility.Collapsed
                     && Get<TextBlock>(shell, "AppTitleLabel").Visibility == Visibility.Collapsed
                     && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible,
                     "媒体库页的标题栏那一排缺了按键");
                 Require(shell.BrowseRoot.Margin.Top == 0 && Get<Grid>(shell, "ContentHost").Padding.Top == HomePage.ChromeHeight,
                     "沉浸模式没有恢复标题栏画布与页内让位");
+                var back = Get<Button>(shell, "BackButton");
+                var forwardButton = Get<Button>(shell, "ForwardButton");
+                var homeButton = Get<Button>(shell, "HomeButton");
+                var searchButton = Get<Button>(shell, "SearchButton");
+                Require(Math.Abs(Left(homeButton, shell) - 18) <= 0.5
+                    && Math.Abs(Left(back, shell) - Left(searchButton, shell) - searchButton.ActualWidth - 2) <= 0.5
+                    && Math.Abs(Left(forwardButton, shell) - Left(back, shell) - back.ActualWidth - 2) <= 0.5,
+                    "沉浸工具组没有恢复0.2.5顺序和间距");
+                Require(title.Children.IndexOf(back) < title.Children.IndexOf(forwardButton)
+                    && title.Children.IndexOf(homeButton) < title.Children.IndexOf(back),
+                    "沉浸返回/前进的默认键盘顺序与视觉次序不一致");
+                foreach (var button in new[] { homeButton, Get<Button>(shell, "FavoritesButton"),
+                    Get<Button>(shell, "SettingsButton"), searchButton, back, forwardButton })
+                    Require(button.ActualWidth == 42 && button.ActualHeight == 32
+                        && button.Content is Viewbox { Width: 26, Height: 26 }, "沉浸工具组未恢复0.2.5统一尺寸");
+                Require((int)typeof(ShellSelfCheck).GetMethod("HitAt", BindingFlags.NonPublic | BindingFlags.Static)!
+                    .Invoke(null, [_window, Left(forwardButton, shell) + forwardButton.ActualWidth / 2, Top(forwardButton, shell) + forwardButton.ActualHeight / 2])!
+                    == Native.HitClient, "前进按钮落在不可点击的拖动区");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
+            Require(Get<Button>(shell, "ForwardButton").Visibility == Visibility.Collapsed,
+                "商店模式保留了沉浸前进按钮及空格");
             favorite = false;
             await shell.Favorites.RefreshAsync();
             Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed,

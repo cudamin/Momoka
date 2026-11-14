@@ -52,10 +52,10 @@ internal static class ShellChromeTests
             Assert.Equal("40", width.Attribute("Value")?.Value, "托盘不是 40 宽");
 
             // 四个按 24×24 画的路径图标外面那层放大框：26 → 28（PathIcon 不缩放几何）。
-            foreach (var name in new[] { "BackButton", "NavToggleButton", "HomeButton", "SearchButton", "SettingsButton" })
+            foreach (var name in new[] { "BackButton", "ForwardButton", "NavToggleButton", "HomeButton", "SearchButton", "SettingsButton" })
             {
                 var box = Named(Shell(), name).Descendants().Single(element => element.Name.LocalName == "Viewbox");
-                var expected = name is "BackButton" or "NavToggleButton" ? "20" : "28";
+                var expected = name is "BackButton" or "ForwardButton" or "NavToggleButton" ? "20" : "28";
                 Assert.Equal(expected, box.Attribute("Width")?.Value, $"{name} 的字形尺寸不对");
                 Assert.Equal(expected, box.Attribute("Height")?.Value, $"{name} 的字形尺寸不对");
             }
