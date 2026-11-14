@@ -7,6 +7,7 @@ public sealed partial class HomePage
 {
     private readonly HomeHeaderScrollState _headerScroll = new();
     private bool _restoringHeaderScroll;
+    private bool _reflowingHeader;
     private int _headerRestoreCorrelation = -1;
     internal HomeHeaderMode HeaderMode => _headerScroll.Mode;
 
@@ -31,7 +32,7 @@ public sealed partial class HomePage
     private void OnHeaderViewChanged(ScrollView sender, object args)
     {
         if (_released) return;
-        if (_restoringHeaderScroll || _restoredScroll is not null)
+        if (_reflowingHeader || _restoringHeaderScroll || _restoredScroll is not null)
             _headerScroll.Reset(BannerImmersive, sender.VerticalOffset);
         else
             _headerScroll.Update(BannerImmersive, sender.VerticalOffset);

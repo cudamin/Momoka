@@ -136,9 +136,14 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(shell);
                 Read("immersive-restored", HomeHeaderMode.Revealed);
+                Require(Math.Abs(scroll.VerticalOffset - 228) <= 1,
+                    "恢复沉浸模式后没有保留原来的主页位置");
 
                 await ScrollProbeAsync(scroll, 300);
                 Read("before-leave", HomeHeaderMode.Hidden);
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(shell);
+                Read("same-mode-hidden", HomeHeaderMode.Hidden);
                 var preserved = scroll.VerticalOffset;
                 shell.OpenChild(LibraryRequest.For(fixture.Services, libraries[0]));
                 await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is LibraryPage);
@@ -183,6 +188,8 @@ internal sealed partial class ShellNavigationProbe
                         mode = (current?.HeaderMode ?? HomeHeaderMode.Top).ToString(),
                         expectedMode = expected.ToString(),
                         offset = current is null ? (double?)null : Get<ScrollView>(current, "Scroller").VerticalOffset,
+                        viewport = current is null ? (double?)null : Get<ScrollView>(current, "Scroller").ViewportHeight,
+                        extent = current is null ? (double?)null : Get<ScrollView>(current, "Scroller").ExtentHeight,
                         reading,
                         caption,
                         focus = (FocusManager.GetFocusedElement(shell.XamlRoot) as FrameworkElement)?.Name

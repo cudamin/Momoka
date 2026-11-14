@@ -8,6 +8,12 @@
 原生商店新判据1240/760/360已通过并逐张目视；响应式模式往返通过（logs/shell-probe-20261114-183257007-29380）。前一检查台标题搜索、海报/人物关联、Sticky、商店底材以及设置/音乐/筛选并集通过；页面候选仍inconclusive，未当成通过。初轮商店单源夹具错误与build被本会话1148窗口锁定的失败日志保留。尚未正式交付或push，最终验收与发布记录另记。
 ## 2026-11-15 交付补齐沉浸主页顶部滚动原生检查（独立树待整合）
 
+同树追加模式恢复产品修复：主交付 `shell-probe-20261114-183257007-29380` 实机在 `immersive-restored` 红，前段顶端/滚动/五主题通过。JSON 确认沉浸 1240 宽、偏移 228 的 Revealed，切商店后 Home 宽 984、自动偏移 118，恢复沉浸时 Home 回 1240、偏移回 228，却误成 Hidden。`ShellPrefs.ApplyAppearance` 先布局侧栏，Home 外观通知在旧偏移 118 重新定锚；随后布局锚定的 +110 被方向判断当下滚。读固定 WinUI `693f472aeaf89c6dff66256ee6fcd453e5d553b8` 的 `controls/dev/ScrollPresenter/ScrollPresenter.cpp` 907–935：ArrangeOverride 会同步更新锚定偏移并发 ViewChanged，故本次属于产品误归类，不修改探针期望为 Hidden。
+
+只在沉浸开关真正改变时，用页内 `_reflowingHeader` 将 `SyncCarouselLayout` 与一次 `UpdateLayout` 的偏移事件按恢复处理，finally 清守卫并按最终偏移重定锚；同模式外观通知保留原方向，没有计时冻结或改变滚动位置。Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 `WinUIGallery/Samples/ItemsView/ItemsViewPage.xaml.cs` 仍沿用标准 ScrollView.ViewChanged，没有可复制的方向隐藏/模式恢复实现；不改依赖或其他控件。源链接 HomeFold 先在旧产品复现唯一红 71/72（布局内 expected Revealed、actual Hidden），修后 74/74；PageContract 286/286，均 0 失败、0 跳过。补布局异常必须抛且不冻结后续滚动、布局内离页不复活、外国设置拒绝、同模式不强制布局/保留 Hidden，真正 12 DIP 下滚仍会隐藏。原生探针补恢复偏移 228、same-mode-hidden 及视口/内容高度读数；主树整合后必须重跑宽窄完整路径，独立树未启动 UI。
+
+该修复当前 Shell/Core Release 0 警告、0 错误，限定变更 whitespace 与 9 个文本的 LF/BOM/末尾换行和 diff 检查通过。证据在本树 `artifacts/delivery-home-header/mode-layout-*`；未同步其他分支、未发布或上传，原生是否修复仍待主交付重验。
+
 同树追加宽度与失败收尾补丁：原检查只比较控件相互尺寸，未证明请求 1240/760 已生效。现在每轮布局和状态读数先保存实际客户区像素、窗口 DPI、XamlRoot 缩放及 Shell/Home 宽度，再按目标宽、最多 1.5 DIP 断言；商店模式的 Home 随侧栏收窄，只守卫全窗和 Shell，恢复沉浸重新守卫 Home。错误宽度在写截图前拒绝，非法浮点读数也能落盘；状态快照同样改为断言前保存。清理按步尝试、外层 finally 保证窗口区域、主题及尺寸恢复，首项失败不阻止解绑/移除，清理失败汇总并保留原探针异常，不转成通过。
 
 本补丁当前 Shell/Core Release 0 警告、0 错误；PageContract 286/286、0 失败、0 跳过（新增目标宽成功/badwidth/错误缩放/同宽旧布局及清理首项和恢复异常反例）。限定变更文件的 whitespace 与编码检查通过；只改本探针、判据、测试与说明，没有同步其他分支、改产品、启动 UI、发布或推送。根交付会话须整合后重编并实际运行 `InspectHomeHeaderChrome` 或 `--probe-shell --probe-section shell --screen 1`，核对 1240/760 的目标与实际读数及五张实屏，不能沿用本树单测或旧宽度截图当原生通过。

@@ -123,7 +123,7 @@ internal static class HomeHeaderScrollTests
             var header = Source("Views/HomePage.Header.cs");
             Assert.Contains("if (_released) return", header);
             Assert.Contains("args.CorrelationId != _headerRestoreCorrelation", header);
-            Assert.Contains("_restoringHeaderScroll || _restoredScroll is not null", header);
+            Assert.Contains("_reflowingHeader || _restoringHeaderScroll || _restoredScroll is not null", header);
             var shell = Source("Views/ShellPage.HomeHeader.cs");
             Assert.Contains("ContentFrame.Content is HomePage home", shell);
             Assert.Contains("AppTitleBar.Visibility = hidden ? Visibility.Collapsed", shell);

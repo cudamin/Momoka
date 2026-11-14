@@ -327,6 +327,75 @@ internal static class Program
 
     private static void RegisterPage()
     {
+        Case("page/header-mode-layout-anchoring-is-not-user-down-scroll", () =>
+        {
+            var page = new HomePage();
+            page.ScrollHeader(240);
+            page.ScrollHeader(228);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "up scroll reveals before mode change");
+            page.Ui.EnableImmersive = false;
+            page.TestLayout = () => page.ScrollHeader(118);
+            page.NotifyAppearance(page.Ui);
+            page.ScrollHeader(118);
+            Equal(HomeHeaderMode.Top, page.HeaderMode, "store remains visible after layout anchoring");
+            page.Ui.EnableImmersive = true;
+            var layoutCalls = 0;
+            page.TestLayout = () =>
+            {
+                layoutCalls++;
+                page.ScrollHeader(228);
+                Equal(HomeHeaderMode.Revealed, page.HeaderMode, "layout ViewChanged must not hide header transiently");
+            };
+            page.NotifyAppearance(page.Ui);
+            if (layoutCalls == 0) page.TestLayout();
+            Equal(228d, page.Scroller.VerticalOffset, "native layout restores original offset");
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "mode return is immediately usable at depth");
+            Equal(1, layoutCalls, "one mode layout establishes the final anchor");
+            page.ScrollHeader(239);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "real down jitter remains below 12 DIP");
+            page.ScrollHeader(240);
+            Equal(HomeHeaderMode.Hidden, page.HeaderMode, "real 12 DIP down movement still hides");
+            page.ScrollHeader(228);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "real reverse movement still restores");
+        });
+        Case("page/header-mode-layout-failure-does-not-freeze-future-scroll", () =>
+        {
+            var page = new HomePage();
+            page.Scroller.VerticalOffset = 118;
+            page.Ui.EnableImmersive = false;
+            page.NotifyAppearance(page.Ui);
+            page.Ui.EnableImmersive = true;
+            var expected = new InvalidOperationException("mode layout failed");
+            page.TestLayout = () =>
+            {
+                page.ScrollHeader(228);
+                throw expected;
+            };
+            Exception? observed = null;
+            try { page.NotifyAppearance(page.Ui); }
+            catch (Exception error) { observed = error; }
+            Check(ReferenceEquals(expected, observed), "layout failure must remain a failure");
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "failure still rebases current offset");
+            page.ScrollHeader(240);
+            Equal(HomeHeaderMode.Hidden, page.HeaderMode, "finally clears reflow guard");
+        });
+        Case("page/header-mode-layout-release-and-foreign-notification-cannot-revive-page", () =>
+        {
+            var page = new HomePage();
+            page.Ui.EnableImmersive = false;
+            page.NotifyAppearance(page.Ui);
+            page.Ui.EnableImmersive = true;
+            var layoutCalls = 0;
+            page.TestLayout = () => layoutCalls++;
+            page.NotifyAppearance(new() { EnableImmersive = true });
+            Equal(0, layoutCalls, "foreign settings cannot reflow this page");
+            page.TestLayout = page.Release;
+            page.NotifyAppearance(page.Ui);
+            Equal(HomeHeaderMode.Top, page.HeaderMode, "release wins over mode completion");
+            var refreshes = page.HeaderRefreshes;
+            page.ScrollHeader(300);
+            Equal(refreshes, page.HeaderRefreshes, "released layout callback cannot publish header");
+        });
         Case("page/header-real-events-preserve-direction-through-appearance-and-release", () =>
         {
             var page = new HomePage();
@@ -334,8 +403,10 @@ internal static class Program
             page.NotifyAppearance(page.Ui);
             page.ScrollHeader(200);
             Equal(HomeHeaderMode.Hidden, page.HeaderMode, "down scroll hides");
+            page.TestLayout = () => throw new InvalidOperationException("same-mode notification forced a layout");
             page.NotifyAppearance(page.Ui);
             Equal(HomeHeaderMode.Hidden, page.HeaderMode, "same-mode appearance preserves direction");
+            page.TestLayout = null;
             page.ScrollHeader(180);
             Equal(HomeHeaderMode.Revealed, page.HeaderMode, "up scroll restores");
             page.ScrollHeader(220);

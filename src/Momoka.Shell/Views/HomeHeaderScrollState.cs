@@ -11,6 +11,7 @@ internal sealed class HomeHeaderScrollState
     private double _anchor;
 
     internal HomeHeaderMode Mode { get; private set; }
+    internal bool Enabled => _enabled;
 
     internal void Reset(bool enabled, double offset)
     {

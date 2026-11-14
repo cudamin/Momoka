@@ -12,8 +12,30 @@ public sealed partial class HomePage
     private void OnAppearanceChanged(UiSettings ui)
     {
         if (_released || !ReferenceEquals(ui, _homeSettings?.Settings.Ui)) return;
-        _headerScroll.Update(BannerImmersive, Scroller.VerticalOffset);
-        SyncCarouselLayout();
+        if (_headerScroll.Enabled == BannerImmersive)
+        {
+            _headerScroll.Update(BannerImmersive, Scroller.VerticalOffset);
+            SyncCarouselLayout();
+            return;
+        }
+
+        // ScrollPresenter 693f472aeaf89c6dff66256ee6fcd453e5d553b8,
+        // controls/dev/ScrollPresenter/ScrollPresenter.cpp ArrangeOverride updates anchored offsets
+        // and raises ViewChanged during layout. A mode reflow is not a user's downward gesture.
+        // Complete that one layout under the reset guard, then resume direction from its final offset.
+        var reflowing = _reflowingHeader;
+        _reflowingHeader = true;
+        try
+        {
+            _headerScroll.Reset(BannerImmersive, Scroller.VerticalOffset);
+            SyncCarouselLayout();
+            UpdateLayout();
+        }
+        finally
+        {
+            _reflowingHeader = reflowing;
+            if (!_released) ResetHeaderScroll();
+        }
     }
 
     /// <summary>恢复主树 171a1e6 的通栏轮播与 SyncBleed；商店保留后来加入的圆角留白。</summary>
