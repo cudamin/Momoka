@@ -202,6 +202,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
             _browsePresentation.Attach();
             CardDetailTransition.CompleteReturn(ContentFrame);
             CompleteNavigation();
+            // Frame.Navigated 早于页面 OnNavigatedTo；等该页接完依赖后再转交标题输入。
+            var navigatedPage = ContentFrame.Content;
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (ReferenceEquals(ContentFrame.Content, navigatedPage)) SyncTitleSearch();
+            });
         };
         ContentFrame.NavigationStopped += (_, _) =>
         {
@@ -2294,23 +2300,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
-    /// 标题栏正中那颗搜索框（2026-11-12）：和旁边那颗放大镜走同一条路 —— 进这一页的搜索页，不另开窗口。
-    /// 它只是个按钮，不是输入框：搜索页自己有输入框和来源栏，焦点要落在那一页里。
-    /// <para>
-    /// 侧边栏模式里按下去时，先给这颗框备一段关联动画（2026-11-13），由搜索页落定后把同一只框接到页内
-    /// 输入框上 —— 读起来就是「标题上的搜索栏移到下方」。已经在搜索页时不备票：那一下不会导航，票只会在
-    /// 超时后作废，还会把框白藏一下。
-    /// </para>
-    /// </summary>
-    private void OnSearchBoxClicked(object sender, RoutedEventArgs e)
-    {
-        NavigationTiming.Click("search-box");
-        if (SidebarShown && _current != LibraryRequest.SearchTag)
-            TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox);
-        OpenSearch();
-    }
-
-    /// <summary>
     /// 标题栏正中那颗搜索框在不在屏上、多宽。
     /// <para>
     /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一颗（最宽 240，
@@ -2327,11 +2316,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         var room = SidebarShown ? 700 : 1000;
         var shown = Chrome.Visibility == Visibility.Visible && ActualWidth >= room;
+        // 收起标题框之前记录内部 TextBox 的焦点；页面在下一次布局后把光标交给可见输入。
+        if (ContentFrame.Content is LibraryPage page)
+            page.SetTitleSearchInput(shown ? TitleSearchBox : null);
         TitleSearchBox.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
 
         // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
         SearchButton.Visibility = !SidebarShown && !shown ? Visibility.Visible : Visibility.Collapsed;
+        if (TitleSearchPage is null)
+        {
+            TitleSearchBox.Text = string.Empty;
+            TitleSearchBox.PlaceholderText = "搜索媒体库、订阅等";
+        }
     }
 
     /// <summary>

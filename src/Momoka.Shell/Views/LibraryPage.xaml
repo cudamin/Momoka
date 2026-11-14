@@ -371,6 +371,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid x:Name="SearchEntry" Grid.ColumnSpan="2">
                             <AutoSuggestBox

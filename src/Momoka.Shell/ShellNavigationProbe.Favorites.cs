@@ -85,7 +85,7 @@ internal sealed partial class ShellNavigationProbe
             // 首页、空收藏（2026-11-12 晚的规矩）：收藏没有内容可去、收起；主页走不动、暗着；**返回在主页上整个
             // 收起**（用户令「主页不显示返回按钮」）；前进键退役；搜索入口在标题栏正中那颗框里（1420 宽够放），
             // 这一排的放大镜让位。
-            var box = Get<Button>(shell, "TitleSearchBox");
+            var box = Get<AutoSuggestBox>(shell, "TitleSearchBox");
             Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
             Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Collapsed,
                 "主页上主页键不在、或者返回没有收起");

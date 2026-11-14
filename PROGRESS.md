@@ -5,6 +5,24 @@
 实现前读固定 Gallery `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 MainWindow、NavigationView 完整 XAML/code-behind，以及 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 Iconography/IconsData.json 和本机 WinUI 2.3.9 模板。Gallery 没有选中自动填实与两档空心折叠图的成套示例，使用原生图标组合并保留现有事件/焦点/可访问名称。主页 Home/HomeSolid、收藏 Heart/HeartFill、电视剧 Video/VideoSolid 使用已核对的字形；MP 订阅去掉已有 MDI 内孔；其他库保留已有 Movies 图标语义，按真实 Segoe Fluent Icons 圆角胶片轮廓填中央并留六齿孔。Microsoft Learn NavigationView 与 Segoe Fluent Icons 指南已读，不改依赖、主题或播放。
 
 本树 PageContract Release 0 警告 0 错误；链接正式 ShellPage.SidebarIcons 的定向测试及标题栏契约 17/17、完整页面契约 254/254，均 0 失败 0 跳过；文本行尾/BOM/空白 12 文件通过。最终 Shell Release 0 警告 0 错误；匿名原生检查台等待另一会话诊断锁释放后执行 `InspectSidebarNavigation` 与 `InspectMoviePilotSidebar`，2/2 通过、退出0；不把离线替身视作真实布局。最终运行目录 `shell-probe-20261114-042106330-31552`：1240展开、760图标栏、600展开/收起和MP选中页实屏已目视，真实窗口HWND594094；标题右側/可拖动与按钮点击区域、开合两档、音乐/电影/详情及返回/前进图标同步通过。只用匿名假HTTP与不可播放句柄，无真实登录/播放/写入；2项单项检查不冒称完整shell分区。用户随后追加左上角 Momoka 与统一图标大小：返回/折叠 Viewbox 28→20，对齐侧栏20图标盒，40按钮托盘不变；应用名在导航按钮右侧，以原生TextBlock保持拖动区，颜色随标题墨、右界避开账号/搜索/系统按钮并支持省略。自检读数同步20尺寸，原生探针增加标题位置及HitCaption检查。Windows 10 未安装 Fluent 字体时的 MDL2 回退、系统高对比/触摸/读屏/跨 DPI 尚未实测。
+## 2026-11-14 标题搜索批次合入与收尾
+
+产品/测试提交 `93a1c12` 已从 `codex/title-search-input` 快进合入master（基点 `0fdf357`）；逐文件核对主树完整保留分支内容，没有冲突。21个变更文本的LF/UTF-8无BOM检查及git diff空白检查通过。仅合并，不跑全量验证、不发布、不推送。
+
+本轮共享桌面锁持续由另一工作树PID29416的 `--probe-shell --probe-section library --screen 1` 运行占用；已多次只读短探针等待，没有结束进程或绕过锁。最终原生标题输入/焦点/截图未执行，按项目合并规则列入待交付批次17；离线26/26、44/44、187/187、toolbar10/10与最终Shell0警告0错误仅覆盖本分支。源码固定Gallery资料可追溯用户logs/gallery-frontend-source-20261114-741e/原ZIP，开发文档已更新。
+
+收尾依据：分支内容全部进入master，当前独立树干净、无未保留提交，分支顶端 `93a1c12`；Codex归档工具明确拒绝删除本聊天primary checkout，故受保护工作树保留；已把本树转为master的detached状态并删除临时分支。本地其他聊天工作树不动。
+
+## 2026-11-14 标题搜索原生输入与搜索页上移
+
+独立树 `C:/Users/89400/.codex/worktrees/3b1c/Momoka`、临时分支 `codex/title-search-input`，基点 `0fdf357`。用户截图的全局标题搜索换为原生AutoSuggestBox，标题可见时收起页内完整输入行及余白，来源与结果整体上移；窄窗保留页内输入。沿用原搜索来源、防抖/显式提交、中文IME补偿和窗口命中，MP站点入口移到来源栏下方、窄窗回框内。原TitleSearchTransition随重复输入栏退役。两个子代理只读核Gallery稳定源码、输入/Frame时序和回归，未并行写本树。
+
+已读 Gallery v2.9.3 固定 `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` MainWindow、AutoSuggestBox、TitleBar完整XAML/code-behind和Learn标题栏/AutoSuggestBox；沿其原生控件与UserInput/QuerySubmitted接线，样式和搜索生命周期本地适配，没有依赖升级。源码临时证据为本树work/gallery-title-search，源ZIP哈希核对通过。
+
+定向Release验证：Shell/Core及测试编译0警告0错误；LibraryHeaderTests 26/26，SearchLifetimeTests 44/44，ResourceBrowserTests 187/187，主测试toolbar-icon-fixture 10/10，均0失败0跳过。新增真实partial源链接检查覆盖迟到输入、回车后同词、离页不重开、未通知草稿、内部焦点、重复订阅/解绑及布局恢复；生命周期新增不同词草稿拒绝旧MP快照。正式Sidebar检查已改走内部TextBox原生输入、立即Query按钮、四次宽窄焦点/原词恢复，保留原侧栏检查；不以源码或测试替代真实UI。
+
+本轮等待共享桌面诊断锁释放，没有结束其他进程或绕锁。真实UI检查与中文物理IME/键盘、MP资源站点宽窄、DPI/Narrator待补；只合并不交付，桌面仍为原发布版。产品提交、合并与树清理在收尾记录补充，未推送origin。
+
 ## 2026-11-14 封面静止半秒才放大，点击操作后不再误触发
 
 本轮在主树 master 开发，基点 `140bfe8`。`PosterCard` 的整卡 1.03、封面 1.045 与展开预览统一等鼠标在 Art 封面上静止 500ms；实际移动重计，同坐标不重计。按下或播放/收藏/已看/更多及预览按钮动作统一取消并抑制重触发，直到真正离开封面或换卡；假移出/捕获事件不解除。只读当前实际 Keyboard 焦点驱动键盘推近，鼠标点击焦点不能绕过计时。保留即时暗罩/按钮和预览离开宽限。

@@ -10,6 +10,23 @@ internal static class SearchCompactMergeTests
 
     internal static void Register(string sourceRoot)
     {
+        Test("标题输入复用搜索页并在离页解除，窄窗保留恢复入口", () =>
+        {
+            var title = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/ShellPage.Search.cs"));
+            Assert.Contains("AutoSuggestionBoxTextChangeReason.UserInput", title);
+            Assert.Contains("page.SearchTypingAsync(text)", title);
+            Assert.DoesNotContain("OpenSearch(text)", title);
+            var owner = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.TitleSearch.cs"));
+            Assert.Contains("previous.RemoveHandler(UIElement.KeyDownEvent", owner);
+            Assert.Contains("previous.RemoveHandler(UIElement.KeyUpEvent", owner);
+            Assert.Contains("previous.LostFocus -= OnSearchLostFocus", owner);
+            Assert.Contains("CancelImeSubmit()", owner);
+            var page = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
+            Assert.Contains("SearchEntry.Visibility = _titleSearchInput is null ? Visibility.Visible : Visibility.Collapsed", page);
+            Assert.Contains("SetTitleSearchInput(null)", page);
+            Assert.Contains("ActiveSearchInput.Focus(FocusState.Programmatic)", page);
+            Assert.Contains("SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty)", page);
+        });
         Test("搜索返回：工具栏由页面来源统一显隐，绑定不再覆盖", () =>
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
@@ -30,7 +47,8 @@ internal static class SearchCompactMergeTests
             Assert.Contains("SourceTabs.Visibility = ViewModel.MoviePilotTabsVisibility", source);
             Assert.DoesNotContain("_searchOptionsCollapsed", source);
             Assert.DoesNotContain("_searchPresentationVersion", source);
-            Assert.Contains("SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0", source);
+            Assert.Contains("SearchForm.RowSpacing = 0", source);
+            Assert.Contains("SourceTabs.Margin = _titleSearchInput is null", source);
             Assert.Contains("get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3)", source);
             Assert.Contains("AniBtSourceTab.Visibility = Visibility.Visible", source);
             Assert.Contains("if (!SearchSourceAvailable)", source);
@@ -39,8 +57,10 @@ internal static class SearchCompactMergeTests
             // 模板里插那一列的做法只有一份（SearchSiteSlot），搜索页与独立窗口都用它。
             Assert.Contains("SearchSiteSlot.Place(SearchInput, SearchSitePicker)", source);
             var slot = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/SearchSiteSlot.cs"));
-            Assert.Contains("host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto })", slot);
+            Assert.Contains("host.ColumnDefinitions.Insert(column, slot)", slot);
             Assert.Contains("Grid.SetColumn(picker, column)", slot);
+            Assert.Contains("Slots.TryGetValue(host, out var slot)", slot);
+            Assert.Contains("Grid.SetColumnSpan(picker, 1)", slot);
             Assert.Contains("query.Width = 64", slot);
             Assert.Contains("query.MinWidth = 64", slot);
             Assert.Contains("query.IsTabStop = true", slot);

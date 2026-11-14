@@ -202,6 +202,21 @@ internal static class MoviePilotLifetimeTests
             Check.Equal(before, f.Http.Searches);
             page.Release();
         });
+        Test("标题新草稿离页拒绝旧词MP快照，同词仍保留", async () =>
+        {
+            foreach (var draft in new[] { "新词", "旧词" })
+            {
+                using var f = new MoviePilotFixture(); await f.ConnectAsync();
+                var page = new LibraryPage(); page.AttachFixture(f.Service);
+                await page.MoviePilotPanel.SearchAsync("旧词");
+                page.ViewModel.SearchText = "旧词";
+                page.TitleDraft(draft);
+                page.Release();
+                Check.Equal(draft, page.SavedSearchTerm);
+                if (draft == "新词") Check.Null(page.SavedMoviePilotSearch);
+                else Check.Equal("旧词", page.SavedMoviePilotSearch?.Term);
+            }
+        });
         Test("实际 LibraryPage 离页/来源切换原样方法：单例退订、取消、重入与滚动快照", async () =>
         {
             using var f = new MoviePilotFixture(); await f.ConnectAsync();
