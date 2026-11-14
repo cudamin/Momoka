@@ -1,10 +1,10 @@
 ## 2026-11-14 进度条弹幕热力（本树，待合并）
 
-工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-danmaku-heatmap-7MAFQ8`，分支 `feat-danmaku-heatmap-7MAFQ8`，基点 master `63ef01a`。用户要求做弹幕热力图；只读审查后确认落在集成播放页进度条、悬停显示条数、统计全部已加载弹幕。产品与测试提交 `25a79e3`。
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-danmaku-heatmap-7MAFQ8`，分支 `feat-danmaku-heatmap-7MAFQ8`，基点 master `63ef01a`。用户要求做弹幕热力图；只读审查后确认落在集成播放页进度条、悬停显示条数、统计全部已加载弹幕。产品与测试提交 `25a79e3`，边界补丁 `b1b7f37`。
 
 **实现。** 新增 Core `DanmakuHeat`：按秒聚合已加载弹幕，按轨道宽度切桶，非零桶 95 分位开方归一化，并提供悬停前后各 2.5 秒计数；超时长、负数和非有限时间不计入。`PlayerViewModel` 在加载、发送、换片、来源切换和时长变化时重建快照，评论和时长都没变就跳过；`DanmakuHeatVisible` 同时受服务可用、显示开关和新增 `DanmakuSettings.ShowHeatmap` 约束。集成页 `PlayerPage.DanmakuHeat.cs` 在 `SeekTrack` 的滑杆之上、缓存之下画底对齐细柱，宽度约 2 DIP、最多 600 桶、最高 60% 轨高；悬停读数复用 `ChapterPeek` 新增一行「此处约 N 条弹幕」。设置 → 弹幕 → 显示与外观新增「在进度条显示弹幕热力」，默认开，随「显示弹幕」收起；颜色走 `PlayerPalette.DanmakuHeat`（薄荷绿 40%）。独占 uosc 时间轴不画；不新增网络请求或额度消耗。
 
-**验证。** Shell/Core Release x64 **0 警告 0 错误**；`danmaku-fixture` **64/64**（新增按秒聚合、95 分位归一化、空快照与播放页层次契约）；主测试 **5110/5110、失败 0、跳过 0**。`tools/check-diff.ps1` 检查 19 个文本文件通过。未跑原生探针与实屏截图，未连真实服务器、未播放；交付时需补设置页与集成播放页 1200/760 截图及悬停读数检查。
+**验证。** Shell/Core Release x64 **0 警告 0 错误**；`danmaku-fixture` **64/64**（新增按秒聚合、95 分位归一化、空快照与播放页层次契约，补丁后在最终代码上重跑）；主测试 **5110/5110、失败 0、跳过 0**（补丁前；补丁只改 Core 热力时长/索引边界，专项已覆盖）。`tools/check-diff.ps1` 检查 19 个文本文件通过。未跑原生探针与实屏截图，未连真实服务器、未播放；交付时需补设置页与集成播放页 1200/760 截图及悬停读数检查。
 
 **收尾。** 按批次规则只合入 master，不发布、不交付。
 
