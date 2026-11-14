@@ -55,6 +55,17 @@ public static class ThemeHost
     private const byte SidebarLayerAlpha = 0x80;
 
     /// <summary>
+    /// 侧边栏自己那层底（<c>EgSidebarBrush</c>）的浓度：0xD9 ≈ 85%，比内容画布（窗口色 60%）更实一档。
+    /// <para>
+    /// 2026-11-14 用户令「侧边栏与内容区之间对比度不够高，侧栏加深一层面色」：栏作为一整列铺一层更实的
+    /// 面色（<see cref="UiTheme.Colors"/> 的 Surface），和右侧页面之间因此分得开；15% 的 Mica Alt 仍从
+    /// 底下透上来。首帧字面值写在 Palette.xaml 的 <c>EgSidebarBrush</c> 上，两处必须一起改 ——
+    /// <c>MicaMaterialTests</c> 盯着这对数。
+    /// </para>
+    /// </summary>
+    private const byte SidebarSurfaceAlpha = 0xD9;
+
+    /// <summary>
     /// 每个画刷键 → 这套主题里的哪个角色。前二十条是我们自己的角色名，后面那些是框架控件真正读的键。
     /// <para>
     /// 后半截必须在这里再写一遍，不能只覆盖 <c>SystemAccentColor</c>：框架在解析它自己那份字典时就用
@@ -93,6 +104,9 @@ public static class ThemeHost
         // 主窗口画布（2026-11-12 用户令「改为Mica」）：窗口角色加上浓度，压在本窗口的 Mica 上。
         // 只有 ShellPage.ContentHost 画它；各页面根背景都是 Transparent，整页因此只有一道底。
         ("EgCanvasBrush", theme => theme.Colors.Window.WithAlpha(CanvasAlpha)),
+
+        // 侧边栏那一列自己的底（2026-11-14）：比画布更实一档的面色，栏与页面之间因此分得开。
+        ("EgSidebarBrush", theme => theme.Colors.Surface.WithAlpha(SidebarSurfaceAlpha)),
 
         // 详情页正文那张亚克力（见 Apply 里的亚克力分支）。取窗口底色 ——
         // 它是这一页正文本来的底，亚克力只是让背后那张剧照透上来一点点，不是换一种颜色。

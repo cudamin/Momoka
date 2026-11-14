@@ -484,6 +484,10 @@ public static class SettingsMigration
         settings.EnsureDeviceId();
         settings.Ui.PageSize = Math.Clamp(settings.Ui.PageSize, 20, 500);
 
+        // 侧边栏展开宽度（2026-11-14 用户令「拖动侧边栏边缘调整宽度」）：上下限与出厂值都在 UiSettings 上，
+        // 拖动与这里读同一对常量。非有限值（手改文件、旧版本坏值）读成 256，不把 NaN 交给布局。
+        settings.Ui.SidebarWidth = UiSettings.ClampSidebarWidth(settings.Ui.SidebarWidth);
+
         // 三页各自保存；null、重复或旧版不认识的卡片统一收口，缺项按当前目录恢复默认显示。
         settings.Ui.SeriesCards = [.. DetailLayout.Plan(EmbyItemType.Series, settings.Ui.SeriesCards)];
         settings.Ui.EpisodeCards = [.. DetailLayout.Plan(EmbyItemType.Episode, settings.Ui.EpisodeCards)];

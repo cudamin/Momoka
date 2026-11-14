@@ -813,6 +813,30 @@ internal static partial class SettingsTests
             Assert.Equal(Momoka.Emby.ImageCachePolicy.DefaultMegabytes, settings.Ui.ImageCacheMegabytes);
         });
 
+        Test("规整：侧边栏宽度只在拖动允许的范围内，坏值读成出厂宽度", () =>
+        {
+            // 2026-11-14 用户令「拖动侧边栏边缘调整宽度」：上下限、出厂值与拖动那一头共用 UiSettings 上的
+            // 同一对常量 —— 两处各写一遍就是「设置页显示一个数、保存时被悄悄搬走」那一类老 bug。
+            var settings = SettingsMigration.NewDefaults();
+            Assert.Equal(UiSettings.DefaultSidebarWidth, settings.Ui.SidebarWidth);
+
+            settings.Ui.SidebarWidth = 40;
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(UiSettings.MinSidebarWidth, settings.Ui.SidebarWidth);
+
+            settings.Ui.SidebarWidth = 9999;
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(UiSettings.MaxSidebarWidth, settings.Ui.SidebarWidth);
+
+            settings.Ui.SidebarWidth = double.NaN;
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(UiSettings.DefaultSidebarWidth, settings.Ui.SidebarWidth, "NaN 不能交给布局");
+
+            settings.Ui.SidebarWidth = 320;
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(320, settings.Ui.SidebarWidth, "范围内的宽度原样保留");
+        });
+
         Test("规整：认不出来的主题 id 被写回默认那套", () =>
         {
             var settings = SettingsMigration.NewDefaults();

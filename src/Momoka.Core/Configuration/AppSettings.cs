@@ -1474,6 +1474,34 @@ public sealed class UiSettings
     public bool EnableImmersive { get; set; }
 
     /// <summary>
+    /// 侧边栏展开时的宽度（DIP）。2026-11-14 用户令「新增支持拖动侧边栏边缘调整侧边栏宽度」：
+    /// 拖动栏的右沿改的是这一格，松手时写回设置文件，下次启动照这个宽度展开。
+    /// <para>
+    /// 出厂 256 与 ShellPage.xaml 里 NavigationView 的 <c>OpenPaneLength</c> 是同一个数；缺键的旧设置
+    /// 文件读出来就是它，行为不变。上下限见 <see cref="MinSidebarWidth"/>／<see cref="MaxSidebarWidth"/>，
+    /// 规整时由 <see cref="ClampSidebarWidth"/> 夹取。窗口窄到放不下这么宽的栏时，外壳按当前窗宽再收一档
+    /// （见 ShellPage.Sidebar.cs 的 ClampSidebarWidth），但<b>不改写</b>这里 —— 窗口拉回来之后原宽度回来。
+    /// </para>
+    /// </summary>
+    public double SidebarWidth { get; set; } = DefaultSidebarWidth;
+
+    /// <summary>侧边栏展开宽度的出厂值（DIP），与标签里的 256 成对。</summary>
+    public const double DefaultSidebarWidth = 256;
+
+    /// <summary>侧边栏最窄一档：再窄就放不下栏里那些条目的字了。</summary>
+    public const double MinSidebarWidth = 180;
+
+    /// <summary>侧边栏最宽一档；窗口本身太窄时外壳会按可用宽度再收。</summary>
+    public const double MaxSidebarWidth = 480;
+
+    /// <summary>把存下来的宽度夹回 <see cref="MinSidebarWidth"/>～<see cref="MaxSidebarWidth"/>；
+    /// 非有限值（手改文件、旧版本留下的坏值）读成出厂值。</summary>
+    public static double ClampSidebarWidth(double width) =>
+        double.IsFinite(width)
+            ? Math.Clamp(width, MinSidebarWidth, MaxSidebarWidth)
+            : DefaultSidebarWidth;
+
+    /// <summary>
     /// 演职人员那一排只列有头像的人 —— 「在设置中新增功能，隐藏没有封面的演职人员」（用户的话，2026-11-09）。
     /// <para>
     /// 判据是服务器有没有给这个人一张头像（<see cref="Emby.EmbyPerson.PrimaryImageTag"/>），不是那张图下载
