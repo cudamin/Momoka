@@ -300,6 +300,7 @@ internal sealed partial class Host(AppSettings settings)
     internal void SeedDandan(DandanPlayEpisode episode) => _danmakuEpisode = episode;
     internal void Change() => DanmakuSettingsChanged();
     private void RefreshDanmakuProperties() { }
+    private void RefreshDanmakuHeat() { }
     private void OnPropertyChanged(string name) { }
     private void CancelDanmakuRequests() { }
     private void RefreshDanmakuInput() { _ = DanmakuSending; _ = DanmakuSendStatus; _ = _preserveDanmakuDraft; }

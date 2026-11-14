@@ -28,6 +28,7 @@ public sealed partial class PlayerPage
     private void CloseDanmakuPanel() { }
     private void StopWatchdog() { }
     private void ArrangeTransport() { }
+    private void RenderDanmakuHeat() { }
     private void ShowCoverPlate() { }
     private void OnPlaybackStarted() { }
     private void OnChaptersChanged() { }

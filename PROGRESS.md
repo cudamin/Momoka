@@ -1,10 +1,12 @@
-## 2026-11-15 商店详情背景四边渐隐、右侧留缝与下方卡片避让（本树，待合并）
+## 2026-11-15 商店详情背景四边渐隐、右侧留缝与下方卡片避让（已合入 master）
 
 用户三句（附微软商店宽窄两张参考图）：①「背景图/预告片 下方和左右要加渐变」；②「下方的卡片别压在封面上」；③「剧情说明第一个字的左上角不知道为什么少了一点」；随后补「收窄窗口时候自动向右上角缩小，最右边要留一点空隙」，并要求验收时自己截图对比。过程中曾要求把徽标移到封面上方，后明确「算了，不要移到封面上面」，该改动未保留。
 
 **改了什么。** 商店模式（关闭沉浸）的剧照与环境底遮罩（`StoreBackdropFade`）在原有左、下渐隐之外补上右端渐隐；剧照、预告与窄窗亚克力共用 `DetailHero.StorePreviewGap = 16` 的右沿空隙（`StorePreviewMargin`），窗口越窄 60% 宽的视口越往右上角收。头图尾部新增 `DetailHero.StoreTailHeight`：剧照盒（以及有预告时的暂停/静音控制排）比头图内容高时，由尾部补足差额，正文第一块卡片因此排在画面、控制排和空隙之下，不再压在封面/剧照上。`StoreHeroDetails` 离封面的上距 8→16，两处 `StoreDetailsRoom` 改读实际 `Margin.Top`。剧情说明那块透明面板的 `CornerRadius` 归零（`EgBodyPanelStyle` 的 16 圆角此前贴着首字左上角）；`PickerPanel`、`CompactBlock` 同步归零，三者都不画底和框。
 
 **验证。** Shell/Core x64 Release **0 警告 0 错误**；主测试 **5107/5107、0 失败 0 跳过**；`Momoka.PageContractTests` **275/275**（新增简介圆角为 0 的源码契约）。原生 `--probe-shell --probe-section detail-cards --screen 1` 在隔离单实例名下跑出 `store-detail-cards-media-1240/760/360.png` 与 `detail-immersive-*-Series-1200-screen.png`，逐张目视：1240/760 的剧照左右两端都与环境底渐变衔接、右侧留出 16 的空隙，第一块分区卡片落在画面之下；360 窄档封面与卡片不重叠，简介首字完整。该轮在 MoviePilot 订阅段的 760 检查前后未写出最终 `shell-probe.json`（日志止于 `0:47:36`，截图后进程未正常收尾），因此只报媒体详情截图，不宣称整个 detail-cards 用例通过；未连接真实服务、未播放、未写服务器，未覆盖高对比度、触摸、读屏与跨 DPI。
+
+**整合与合并后验证。** master `32717b9`（14 个提交）已合入，合并提交 `936c3dd`；唯一冲突是 PROGRESS.md 顶部双侧追加，保留双方条目。整合后本树全解决方案 Release **0 警告 0 错误**；主测试 **5126/5126、0 失败 0 跳过**；PageContract **276/276**；`danmaku-fixture` **64/64**、R045 **75/75**、R046 **81/81**、弹幕性能 **77/77**、弹幕来源边界 **23/23**。合并时发现 master 上其他批次遗留的专项固定件未随产品同步（R045 的 `RenderDanmakuHeat` 渲染桩、R046 的 `PlayerViewModel.cs`/`PlayerViewModel.Events.cs` 两份源哈希、弹幕性能与来源边界各缺 `RefreshDanmakuHeat` 桩），已在下一提交只改测试补齐；不改产品代码。台账见 [第 33 批](docs/待交付批次.md)。
 
 ## 2026-11-15 WinUI动效定向原生入口与候选测量（在途）
 

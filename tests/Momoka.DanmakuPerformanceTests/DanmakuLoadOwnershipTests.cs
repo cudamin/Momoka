@@ -37,6 +37,7 @@ internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettin
     private bool IsCurrentPlayback(int context) => context == Generation && _playback.IsPlaying;
     private void ResetDanmakuInput(bool preserveDraft = false) => InputResetPreferences.Add(preserveDraft);
     private void RefreshDanmakuInput() { }
+    private void RefreshDanmakuHeat() { }
     private Task ClearDanmakuAsync() => ClearHook?.Invoke() ?? Task.CompletedTask;
     private Task PingDanmakuAsync() => Task.CompletedTask;
     private Task PushDanmakuAsync() { Pushes++; return Task.CompletedTask; }
