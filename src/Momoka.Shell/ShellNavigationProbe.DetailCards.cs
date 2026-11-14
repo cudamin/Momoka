@@ -160,7 +160,7 @@ internal sealed partial class ShellNavigationProbe
             finally { source.Background = savedBrush; }
             // 直接复用旧模式检查；单集入口的旧窄窗前件不能代替本次受影响路径的运行证据。
             await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
-            reads.Add("媒体旧模式检查：1200/760 商店与沉浸往返、主体与分区身份、操作材质均通过；简介、版本框与操作左沿及移位反例通过。");
+            reads.Add("媒体旧模式检查：1200/760 商店与沉浸往返、主体与分区身份、操作材质均通过；简介、文件选项与操作左沿及移位反例通过。");
             page.Release();
             frame.Content = null;
 
@@ -221,7 +221,7 @@ internal sealed partial class ShellNavigationProbe
         if (page.ViewModel.PageWidth >= 600)
             Require(Get<StackPanel>(page, "FileOptions").ActualHeight > 0
                 && Get<EgPicker>(page, "ColumnSourcePicker").ActualWidth > 0,
-                "常规宽度没有呈现可测量的版本框");
+                "常规宽度没有呈现可测量的文件选项");
         foreach (var name in new[] { "StoreHeroDetails", "OverviewPanel", "FileOptions", "ColumnActions" })
         {
             var node = Get<FrameworkElement>(page, name);
