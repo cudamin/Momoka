@@ -973,12 +973,12 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 这组控件的四态底色是不是那支固定面色 —— 比画笔自己的读数：颜色取当前主题的悬停面，
+    /// 这组控件的四态底色是不是那支浅色固定面 —— 比画笔自己的读数：颜色取 <c>EgStoreControlBrush</c> 的白，
     /// 浓度取 <see cref="ControlBackgroundBrushes"/> 上那四个定值。
     /// </summary>
     private static void RequireFixedSurface(IEnumerable<Control> controls)
     {
-        var surface = ((SolidColorBrush)Application.Current.Resources["EgSurfaceHoverBrush"]).Color;
+        var surface = ((SolidColorBrush)Application.Current.Resources["EgStoreControlBrush"]).Color;
         var levels = new[]
         {
             ControlBackgroundBrushes.FixedRest, ControlBackgroundBrushes.FixedHover,
