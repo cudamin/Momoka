@@ -26,17 +26,17 @@ internal static class ToolbarIconTests
             Assert.Contains("AccountUser.Text} · {AccountServer.Text}", method);
         });
 
-        TestHarness.Test("标题栏那一排：返回、折叠、主页、收藏、设置、搜索按这个次序", () =>
+        TestHarness.Test("标题栏那一排：返回、沉浸前进、商店折叠、主页、收藏、设置、搜索", () =>
         {
             var panel = Named(Shell(), "TitleActions");
             var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
             // 2026-11-12 晚用户令「主页不显示返回按钮，进入媒体页面或者媒体库页面的时候显示，放左上角，折叠侧边栏
             // 按钮移到它右边」「标题栏左上角写 Momoka」，并选定「前进键退役」；2026-11-13 又令「移除左上角的
-            // momoka」，那一格整块删掉。这一排从此是 返回 · 折叠 · 主页 · 收藏 · 设置/搜索。前进那颗整颗删掉，
+            // momoka」，那一格整块删掉。这一排按模式插入前进/折叠，沉浸前进于2026-11-14补回，
             // Alt+→ 与鼠标侧键仍在（GoForward）。
             Assert.True(order.SequenceEqual(new[]
             {
-                "BackButton", "NavToggleButton", "HomeButton", "FavoritesButton", "TitleUtilities"
+                "BackButton", "ForwardButton", "NavToggleButton", "HomeButton", "FavoritesButton", "TitleUtilities"
             }), "标题栏这一排的顺序不对：" + string.Join('、', order));
 
             var utilities = Named(Shell(), "TitleUtilities");
@@ -78,6 +78,9 @@ internal static class ToolbarIconTests
             Assert.Equal("Momoka", label.Attribute("Text")?.Value);
             Assert.Equal("False", label.Attribute("IsHitTestVisible")?.Value);
             Assert.Equal("Center", label.Attribute("VerticalAlignment")?.Value);
+            Assert.Equal("Collapsed", label.Attribute("Visibility")?.Value);
+            var sidebar = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.Sidebar.cs"));
+            Assert.Contains("AppTitleLabel.Visibility = shown ? Visibility.Visible : Visibility.Collapsed", sidebar);
             Assert.True(!Named(Shell(), "TitleActions").Descendants().Any(element =>
                 element.Attribute(Xaml + "Name")?.Value == "AppTitleLabel"), "标题文字进了按钮命中区");
         });
@@ -93,6 +96,15 @@ internal static class ToolbarIconTests
             Assert.Equal("Collapsed", box.Attribute("Visibility")?.Value);
             Assert.Equal("搜索媒体库、订阅等", box.Attribute("PlaceholderText")?.Value);
         });
+        TestHarness.Test("标题栏搜索：商店侧栏使用居中框，沉浸宽窄窗口恢复左上放大镜", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
+            var method = source[source.IndexOf("    private void SyncTitleSearch()", StringComparison.Ordinal)..];
+            method = method[..method.IndexOf("\n    }", StringComparison.Ordinal)];
+            Assert.Contains("SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700", method);
+            Assert.Contains("SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible", method);
+            Assert.DoesNotContain("1000", method);
+        });
         TestHarness.Test("标题栏收藏：爱心字形默认收着，没有收藏时不出现在那一排", () =>
         {
             var heart = Named(Shell(), "FavoritesButton");
@@ -100,11 +112,11 @@ internal static class ToolbarIconTests
             Assert.Equal("Collapsed", heart.Attribute("Visibility")?.Value);
             Assert.Equal("OnFavoritesClicked", heart.Attribute("Click")?.Value);
             Assert.Equal("ShellPage_FavoritesButton", heart.Attribute(Xaml + "Uid")?.Value);
-            // 2026-11-11 用户令「不要星星，改回之前的爱心」：EB51 是 Segoe 的空心心形，和详情页、音乐播放栏、
-            // 侧栏收藏入口同一颗；这一排里其余图标仍是 24 网格的 PathIcon，收藏这颗是字体字形。
-            var icon = heart.Descendants().Single(element => element.Name.LocalName == "FontIcon");
-            Assert.Equal("\uEB51", icon.Attribute("Glyph")?.Value);
-            Assert.True(!heart.Descendants().Any(element => element.Name.LocalName == "PathIcon"), "收藏又画成路径图标了");
+            // v0.2.5固定2ff1224的双闭合轮廓空心爱心，和其他入口共用26放大框。
+            var icon = heart.Descendants().Single(element => element.Name.LocalName == "PathIcon");
+            Assert.True(icon.Attribute("Data")?.Value.StartsWith("F0 M 12,21.4", StringComparison.Ordinal) == true);
+            Assert.True(!heart.Descendants().Any(element => element.Name.LocalName == "FontIcon"));
+            Assert.Equal("26", heart.Descendants().Single(element => element.Name.LocalName == "Viewbox").Attribute("Width")?.Value);
         });
         TestHarness.Test("标题栏收藏：可访问名称与悬停提示走本地化资源", () =>
         {
@@ -121,16 +133,22 @@ internal static class ToolbarIconTests
                 Assert.Equal("收藏", value);
             }
         });
-        TestHarness.Test("标题栏前进：按钮已退役，Alt+→ 与鼠标侧键仍走同一条 GoForward", () =>
+        TestHarness.Test("沉浸标题栏前进：原生按钮、自动化名称与原历史入口恢复", () =>
         {
             var document = Shell();
-            // 2026-11-12 晚用户选定「前进键退役」：标题栏不再有那颗按钮，那一格让给折叠与标题。
-            // 「刚退回去那一步还能补回来」这件事本身没删 —— 两支快捷键和鼠标侧键仍在，见下一条。
-            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "ForwardButton"),
-                "前进按钮又回到了标题栏");
-            Assert.True(!document.Descendants().Any(element =>
-                    element.Name.LocalName == "Button" && element.Attribute(Xaml + "Uid")?.Value == "ShellPage_ForwardButton"),
-                "前进按钮的本地化键还在");
+            var button = Named(document, "ForwardButton");
+            Assert.Equal("Button", button.Name.LocalName);
+            Assert.Equal("ShellPage_ForwardButton", button.Attribute(Xaml + "Uid")?.Value);
+            Assert.Equal("OnForwardClicked", button.Attribute("Click")?.Value);
+            Assert.Equal("Collapsed", button.Attribute("Visibility")?.Value);
+            Assert.Equal("False", button.Attribute("IsEnabled")?.Value);
+            foreach (var property in new[]
+            {
+                "[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name",
+                "[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip"
+            })
+                Assert.Equal("前进", ShellResources().Descendants("data").Single(element =>
+                    element.Attribute("name")?.Value == "ShellPage_ForwardButton." + property).Element("value")?.Value);
         });
         TestHarness.Test("标题栏导航：首页/收藏胶囊已退役，两支快捷键挂在外壳上", () =>
         {
@@ -160,6 +178,13 @@ internal static class ToolbarIconTests
 
     private static XElement Named(XDocument document, string name) => document.Descendants().Single(element =>
         element.Attribute(Xaml + "Name")?.Value == name);
+
+    private static string Root()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) return directory.FullName;
+        throw new InvalidOperationException("找不到源码树");
+    }
 
     private static XDocument Shell()
     {

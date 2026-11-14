@@ -20,7 +20,7 @@ public sealed partial class ShellPage
     {
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput || !args.CheckCurrent()) return;
         // WinUI 的 TextChanged 会延迟到达：Enter 已提交的同词不能再清结果，离页后也不能重新导航。
-        if (TitleSearchPage is not { } page) return;
+        if (TitleSearchPage is not { } page || !ReferenceEquals(page.ActiveSearchInput, sender)) return;
         var text = sender.Text ?? string.Empty;
         if (string.Equals(text, page.ViewModel.SearchText, StringComparison.Ordinal)) return;
         _ = page.SearchTypingAsync(text);
@@ -28,6 +28,8 @@ public sealed partial class ShellPage
 
     private void OnTitleSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
+        // 同页切回沉浸或窄窗后，已退役标题框的迟到事件不能覆盖当前页内草稿或重新提交。
+        if (TitleSearchPage is { } page && !ReferenceEquals(page.ActiveSearchInput, sender)) return;
         var text = args.QueryText ?? sender.Text ?? string.Empty;
         if (TitleSearchPage is null) OpenSearch();
         TitleSearchPage?.SubmitTitleSearch(text);

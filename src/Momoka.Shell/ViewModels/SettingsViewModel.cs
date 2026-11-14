@@ -2192,11 +2192,6 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value => ui.AnimationsEnabled = value,
                 after: () => ShellPrefs.Apply(ui)),
 
-            Toggle("侧边栏模式", "在主窗口左侧显示主页、收藏和媒体库导航；默认关闭，改完立即生效",
-                () => ui.SidebarMode,
-                value => ui.SidebarMode = value,
-                after: () => ShellPrefs.ApplySidebar(ui)),
-
             // 「在设置中新增开机自启的功能」。打包安装（MSIX）之后这一条办不到（见 IStartupRegistration），
             // 那时整行不显示 —— 按项目规则，当前配置下不会生效的功能整个收起，不是置灰。
         };
@@ -2247,7 +2242,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         ]);
 
         return new SettingSection("界面", "界面",
-            "配色主题、UI 动画、侧边栏模式、开机自启、隐藏功能下方说明和媒体库分页。",
+            "配色主题、UI 动画、开机自启、隐藏功能下方说明和媒体库分页。",
             rows);
     }
 

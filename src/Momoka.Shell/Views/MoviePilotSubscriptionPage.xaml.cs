@@ -307,7 +307,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         MediaViewModel.AniBtSearch = request.Subscription is not null && request.SearchAniBt is not null;
         MediaViewModel.OpenMedia = request.OpenMedia;
         MediaViewModel.OpenPerson = url => request.Launcher?.OpenUrl(url);
-        // 显示模式跟着设置走；没带设置（探针、旧入口）时按出厂的沉浸模式。写在 Bindings.Update 之前，
+        // 显示模式跟着设置走；没带设置（探针、旧入口）时按出厂的商店模式。写在 Bindings.Update 之前，
         // 第一帧就是用户选的那一档。
         _appearanceSettings = request.Settings?.Settings.Ui ?? new UiSettings();
         MediaViewModel.Immersive = _appearanceSettings.EnableImmersive;

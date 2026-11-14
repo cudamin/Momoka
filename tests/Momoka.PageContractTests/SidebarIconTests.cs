@@ -95,7 +95,8 @@ internal static class SidebarIconTests
             Assert.Contains("NavPaneExpandedIcon.Visibility = Sidebar.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;", source);
             Assert.Contains("NavPaneCollapsedIcon.Visibility = Sidebar.IsPaneOpen ? Visibility.Collapsed : Visibility.Visible;", source);
             var selfCheck = Read("ShellPage.SelfCheck.cs");
-            Assert.Contains("BackButton.Content is Viewbox { Width: 20, Height: 20 }", selfCheck);
+            Assert.Contains("backGlyph.Width == (_sidebarMode ? 20 : 26)", selfCheck);
+            Assert.Contains("forwardGlyph.Width == (_sidebarMode ? 20 : 26)", selfCheck);
             Assert.Contains("NavToggleButton.Content is Viewbox { Width: 20, Height: 20 }", selfCheck);
         });
     }

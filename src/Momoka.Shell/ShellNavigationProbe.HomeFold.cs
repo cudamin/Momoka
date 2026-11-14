@@ -18,6 +18,7 @@ internal sealed partial class ShellNavigationProbe
     private async Task HomeFoldThresholdAsync()
     {
         using var fixture = CreateFixture();
+        fixture.Settings.Ui.EnableImmersive = false;
         await fixture.SelectAsync();
         var libraries = Enumerable.Range(0, 3).Select(index => new EmbyItem
         {

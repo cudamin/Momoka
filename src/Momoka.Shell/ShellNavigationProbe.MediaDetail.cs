@@ -391,12 +391,14 @@ internal sealed partial class ShellNavigationProbe
     private async Task MoviePilotMediaBackgroundAsync()
     {
         using var server = new SubscriptionProbeServer { Poster = await FixtureImageAsync() };
-        var (_, service) = SubscriptionService(server);
+        var (settings, service) = SubscriptionService(server);
+        settings.Ui.EnableImmersive = true;
+        using var settingsService = new SettingsService(null!, settings);
         var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => item.IsSeries);
         var page = new MoviePilotSubscriptionPage();
         var originalTheme = ThemeHost.Current.Id;
         _root.Children.Add(page);
-        page.Attach(new(service, subscription));
+        page.Attach(new(service, subscription, Settings: settingsService));
         static Windows.Foundation.Rect Box(UIElement anchor, FrameworkElement element) => element
             .TransformToVisual(anchor)
             .TransformBounds(new Windows.Foundation.Rect(0, 0, element.ActualWidth, element.ActualHeight));
@@ -528,6 +530,7 @@ internal sealed partial class ShellNavigationProbe
     {
         using var server = new SubscriptionProbeServer { Poster = await FixtureImageAsync(), Related = true };
         var (settings, service) = SubscriptionService(server);
+        settings.Ui.EnableImmersive = true;
         using var settingsService = new SettingsService(null!, settings);
         var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => item.IsSeries);
         var strips = new List<TitleStrip>();
@@ -564,7 +567,7 @@ internal sealed partial class ShellNavigationProbe
             media.Tagline = originalTagline;
             await LayoutAsync(page);
 
-            // ---- 沉浸模式（出厂那一档）：宽版式一成立就铺图，不必先把窗口最大化 ----
+            // 显式沉浸夹具：宽版式一成立就铺图，不必先把窗口最大化。
             Require(media.Immersive && media.Showcase && media.WideLayout,
                 $"宽版式下没有进入沉浸档：开关 {media.Immersive}、宽版式 {media.WideLayout}、沉浸 {media.Showcase}");
             Require(backdrop.Visibility == Visibility.Visible, "沉浸档没有画背景图");

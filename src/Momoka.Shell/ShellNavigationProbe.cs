@@ -559,6 +559,8 @@ internal sealed partial class ShellNavigationProbe
             // 非聚合模式的收口由单测与「服务器页」那一条探针单独核对。
             Settings.AggregateMode = true;
             Settings.Ui.PageSize = 20;
+            // 普通离线夹具固定沉浸外壳；商店/默认启动由各自用例显式设置并核对。
+            Settings.Ui.EnableImmersive = true;
             Settings.Ui.ShowHomeBanner = false;
             var paths = new AppPaths(root);
             paths.EnsureCreated();

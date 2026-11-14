@@ -68,7 +68,16 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public readonly record struct Duration(TimeSpan TimeSpan);
-    public readonly record struct Thickness(double Left, double Top, double Right, double Bottom);
+    public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
+    {
+        public Thickness(double uniform) : this(uniform, uniform, uniform, uniform) { }
+    }
+    public readonly record struct CornerRadius(double Radius);
+    public sealed class Application
+    {
+        public static Application Current { get; } = new();
+        public Dictionary<string, object> Resources { get; } = new() { ["EgCardCornerRadius"] = new CornerRadius(16) };
+    }
     public class DependencyObject
     {
         public List<DependencyObject> TestChildren { get; } = [];
@@ -97,6 +106,10 @@ namespace Microsoft.UI.Xaml
         public Transform? RenderTransform { get; set; } = new MatrixTransform();
         public double TestTop { get; set; }
         public GeneralTransform TransformToVisual(UIElement? space) => new(TestTop, this, space);
+    }
+    public sealed class Border : FrameworkElement
+    {
+        public CornerRadius CornerRadius { get; set; }
     }
 }
 

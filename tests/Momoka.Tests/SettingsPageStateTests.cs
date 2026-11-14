@@ -135,7 +135,7 @@ internal static class SettingsPageStateTests
             var rows = fixture.List(section, "Rows");
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
-            Assert.Equal("电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用商店模式的顶部渐隐背景，"
+            Assert.Equal("沉浸模式使用标题栏导航；商店模式使用侧边栏和居中搜索框，并立即切换电影、剧、季、单集与 MoviePilot 详情布局，"
                 + "按钮与选择框换成固定材质，下面两组参数随之收起。",
                 fixture.Get<string>(mode, "Note"));
             // 2026-11-11 用户令：显示模式挪到按钮与选择框背景上方，它决定下面几组在不在。
@@ -149,8 +149,16 @@ internal static class SettingsPageStateTests
             var choices = fixture.List(mode, "Choices");
             Assert.True(choices.Cast<object>().Select(choice => fixture.Get<string>(choice, "Label"))
                 .SequenceEqual(new[] { "沉浸模式", "商店模式" }));
+            var notifications = new List<string>();
+            using var sidebarNotice = fixture.SubscribeShellPreference("SidebarChanged", ui =>
+                notifications.Add("sidebar:" + ui.EnableImmersive));
+            using var appearanceNotice = fixture.SubscribeShellPreference("AppearanceChanged", ui =>
+                notifications.Add("appearance:" + ui.EnableImmersive));
+            using var homeNotice = fixture.SubscribeShellPreference("Changed", _ => notifications.Add("home"));
             fixture.Set(mode, "Selected", choices[1]!);
             Assert.False(settings.Settings.Ui.EnableImmersive);
+            Assert.True(notifications.SequenceEqual(new[] { "sidebar:False", "appearance:False" }),
+                "商店切换须同步侧栏和详情，不能重查主页：" + string.Join('|', notifications));
             // 商店模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效，整张卡只剩显示模式。
             Assert.True(Labels().SequenceEqual(new[] { "显示模式" }),
                 "商店模式没有收起按钮与背景两组：" + string.Join('|', Labels()));
@@ -160,6 +168,9 @@ internal static class SettingsPageStateTests
             Assert.Equal(45d, settings.Settings.Ui.ControlTintOpacity);
             fixture.Set(mode, "Selected", choices[0]!);
             Assert.True(settings.Settings.Ui.EnableImmersive);
+            Assert.True(notifications.SequenceEqual(new[] { "sidebar:False", "appearance:False", "sidebar:True", "appearance:True" }));
+            Assert.DoesNotContain("Toggle(\"侧边栏模式\"", fixture.ViewModelSource,
+                "界面卡还保留独立侧边栏开关；实际行集合由原生侧栏探针核对");
             var restoredColor = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景亚克力色调");
             Assert.Equal("#123456", fixture.Get<string>(restoredColor, "Color"));
             var restoredButton = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "按钮与选择框颜色");
@@ -661,6 +672,17 @@ internal static class SettingsPageStateTests
         }
 
         public object NewViewModel() => Activator.CreateInstance(_viewModel)!;
+        public IDisposable SubscribeShellPreference(string name, Action<UiSettings> handler)
+        {
+            var preference = _shell.GetType("Momoka.Shell.ShellPrefs", throwOnError: true)!.GetEvent(name)!;
+            preference.AddEventHandler(null, handler);
+            return new PreferenceSubscription(preference, handler);
+        }
+
+        private sealed class PreferenceSubscription(EventInfo preference, Action<UiSettings> handler) : IDisposable
+        {
+            public void Dispose() => preference.RemoveEventHandler(null, handler);
+        }
         public MethodInfo Method(string name) => _viewModel.GetMethod(name, Members)
             ?? throw new AssertionException($"真实 SettingsViewModel 缺少入口 {name}");
         public object? Invoke(object target, string name, params object?[] args)
