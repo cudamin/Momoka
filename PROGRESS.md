@@ -1,3 +1,6 @@
+## 2026-11-15 交付诊断：订阅双列精确边界与单集读数
+
+原商店卡片检查把媒体详情的单列对称留白直接用于订阅页，1240上右408实际等于96页边+288资料列+24间隔。新CheckSubscriptionEdges按BodyRow实际960断点核主卡满BodyFlow、资料列288/24/右96、窄档零列间距与两行顺序、资料宽min(520,实际行宽)、精确行间距与底margin及资料右沿；坏右沿/重叠/主卡变窄反例实际拒绝。原媒体CheckEdges不变。单集对齐失败新增宽度/Showcase/两控件与VM读数，PDB核实此前红运行的是修改中的旧Bottom编译件，非当前Top绑定缺失。PageContract295/295、定向whitespace与diff通过，Shell/Core编译0警告0错误；最终整合编译与原生尚在进行，未发布。
 ## 2026-11-15 交付原生旧契约修正：热力显式展示与单集沉浸
 
 热力匿名夹具无真实PlayerShown事件，PlayerPage.Attach仍保留默认Collapsed；与既有匿名控制条/弹幕发送探针一致显式Visible后进入实际布局，没有创建真实后端。单集检查已显式进入沉浸，却仍问旧宽纸面12/24/20与HeroContent.Bottom；按当前VM和第30批产品条件改为Showcase8/8/8、紧凑8/8/14、HeroContent.Top并加RequireHeroColumn实际几何检查，不改产品布局。PageContract294/294与Shell/Core Release0警告0错误；热力原生1200/760加载、清层、恢复、41条悬停读数及像素差通过（shell-probe-20261114-184427109-28220）。单集完整路径重验中，旧失败保留。新增商店卡片检查台单项接线，保持原自动分区检查。

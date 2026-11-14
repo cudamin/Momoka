@@ -7,6 +7,15 @@ internal static class StoreDetailProbeEvidenceTests
 {
     internal static void Register()
     {
+        Test("商店订阅卡片：右资料列与窄窗堆叠仍核两侧边界", () =>
+        {
+            StoreDetailProbeEvidence.RequireSubscriptionColumns(1240, 96, 96, 96, 832, 856, 1144, 24, true);
+            StoreDetailProbeEvidence.RequireSubscriptionColumns(760, 56, 56, 56, 704, 56, 576, 0, false);
+            Reject(() => StoreDetailProbeEvidence.RequireSubscriptionColumns(1240, 96, 96, 96, 1144, 856, 1144, 24, true));
+            Reject(() => StoreDetailProbeEvidence.RequireSubscriptionColumns(1240, 96, 96, 96, 832, 856, 1200, 24, true));
+            Reject(() => StoreDetailProbeEvidence.RequireSubscriptionColumns(760, 56, 56, 56, 680, 56, 576, 0, false));
+            Reject(() => StoreDetailProbeEvidence.RequireSubscriptionColumns(760, 56, 56, 56, 704, 56, 1000, 0, false));
+        });
         Test("交付动效检查台：五项动效及设置宽窄并集接线", () =>
         {
             var probe = Read("ShellNavigationProbe.Inspect.cs");

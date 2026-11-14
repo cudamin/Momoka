@@ -185,11 +185,11 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => Math.Abs(mp.ActualWidth - width) < 2);
                 await LayoutAsync(mp);
                 RequireStoreDetailCards(mp, mpNames);
-                CheckEdges(Get<Border>(mp, "DetailPoster"), mpNames.Select(name => Get<StackPanel>(mp, name)), Get<Grid>(mp, "StoreScrollContent"));
+                CheckSubscriptionEdges(mp, mpNames);
                 Get<StackPanel>(mp, "SeasonPanel").StartBringIntoView();
                 await LayoutAsync(mp);
                 await SaveProbeScreenAsync($"store-detail-cards-subscription-{width}.png");
-                reads.Add($"订阅 {width}: 卡片与封面左沿对齐、卡头48、内容24、两侧对称");
+                reads.Add($"订阅 {width}: 卡片与封面左沿对齐、卡头48、内容24、正文列与资料列实际边界核对");
             }
             CheckFailure(mp, mpNames);
             settings.Ui.EnableImmersive = true;
@@ -273,6 +273,35 @@ internal sealed partial class ShellNavigationProbe
             Require(Math.Abs(left - DetailHero.StorePageInset(canvas.ActualWidth)) < 1
                 && Math.Abs(left - right) < 1 && Math.Abs(left - coverLeft) < 1,
                 $"{panel.Name} 两侧留白或封面对齐错误：左 {left:0.##} 右 {right:0.##} 封面 {coverLeft:0.##}");
+        }
+    }
+
+    private static void CheckSubscriptionEdges(MoviePilotSubscriptionPage page, string[] names)
+    {
+        var canvas = Get<Grid>(page, "StoreScrollContent");
+        var cover = Bounds(Get<Border>(page, "DetailPoster"), canvas);
+        var flow = Get<StackPanel>(page, "BodyFlow");
+        var row = Get<Grid>(page, "BodyRow");
+        var facts = Get<Border>(page, "HeroFacts");
+        var flowBox = Bounds(flow, canvas);
+        var factsBox = Bounds(facts, canvas);
+        var inset = DetailHero.StorePageInset(canvas.ActualWidth);
+        var side = Grid.GetColumn(facts) == 1;
+        Require(side == (row.ActualWidth >= 960), "订阅正文列没有按实际宽度切换并排与堆叠");
+        StoreDetailProbeEvidence.RequireSubscriptionColumns(canvas.ActualWidth, inset, cover.Left,
+            flowBox.Left, flowBox.Right, factsBox.Left, factsBox.Right, row.ColumnSpacing, side);
+        Require(side ? Math.Abs(facts.ActualWidth - 288) < 1 && Grid.GetRow(flow) == 0
+            : Grid.GetRow(flow) == 1 && Grid.GetRow(facts) == 0
+                && Math.Abs(flowBox.Top - factsBox.Bottom - row.RowSpacing - facts.Margin.Bottom - flow.Margin.Top) < 1
+                && Math.Abs(facts.ActualWidth - Math.Min(520, row.ActualWidth)) < 1,
+            "订阅资料列宽度或窄窗堆叠顺序与间距错误");
+        foreach (var name in names)
+        {
+            var panel = Get<StackPanel>(page, name);
+            if (panel.Visibility != Visibility.Visible || panel.ActualHeight <= 0) continue;
+            var box = Bounds(panel, canvas);
+            Require(Math.Abs(box.Left - flowBox.Left) < 1 && Math.Abs(box.Right - flowBox.Right) < 1,
+                name + " 没有铺满订阅正文列或越过资料列边界");
         }
     }
 

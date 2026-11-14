@@ -14,6 +14,18 @@ internal static class StoreDetailProbeEvidence
         if (failures is not null) throw new AggregateException("商店诊断收尾失败，已继续还原其他状态", failures);
     }
 
+    internal static void RequireSubscriptionColumns(double width, double inset, double coverLeft,
+        double flowLeft, double flowRight, double factsLeft, double factsRight, double gap, bool side)
+    {
+        var values = new[] { width, inset, coverLeft, flowLeft, flowRight, factsLeft, factsRight, gap };
+        if (values.Any(value => !double.IsFinite(value)) || width <= 0 || inset <= 0 || flowRight <= flowLeft
+            || Math.Abs(coverLeft - inset) > 1 || Math.Abs(flowLeft - inset) > 1
+            || (side ? Math.Abs(width - factsRight - inset) > 1 || Math.Abs(factsLeft - flowRight - gap) > 1 || gap != 24
+                : Math.Abs(width - flowRight - inset) > 1 || Math.Abs(factsLeft - inset) > 1
+                    || factsRight <= factsLeft || factsRight > width - inset + 1 || gap != 0))
+            throw new InvalidOperationException("订阅正文列、资料列或两侧实际留白错误");
+    }
+
     internal static void RequireViewport(double actualWidth, double pageWidth, double expectedWidth,
         double pictureWidth, double pictureGap, double acrylicGap, double trailerGap, double expectedGap)
     {

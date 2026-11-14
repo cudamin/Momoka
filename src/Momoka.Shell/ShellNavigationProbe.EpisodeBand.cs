@@ -360,7 +360,9 @@ internal sealed partial class ShellNavigationProbe
                         $"单集沉浸海报未使用统一剧页尺寸：{cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}");
                     Require(Get<Grid>(page, "CoverSlot").VerticalAlignment == VerticalAlignment.Top
                         && Get<Grid>(page, "HeroContent").VerticalAlignment == VerticalAlignment.Top,
-                        "单集沉浸封面或文字栏未使用剧页对齐");
+                        $"单集沉浸封面或文字栏未使用剧页对齐：宽{width}、Showcase={view.Showcase}、"
+                        + $"封面={Get<Grid>(page, "CoverSlot").VerticalAlignment}、"
+                        + $"文字={Get<Grid>(page, "HeroContent").VerticalAlignment}、模型={view.HeroContentAlignment}");
                     RequireHeroColumn(page);
                     Require(view.TailMargin == default && view.HeroInset.Left == 42,
                         "单集沉浸仍使用旧卡面简介提拉或 58/42 左距");
