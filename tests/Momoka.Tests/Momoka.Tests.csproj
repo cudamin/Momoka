@@ -33,6 +33,7 @@
     <!-- Execute the actual heat renderer; only XAML dimensions, brushes and child collections are substitutes. -->
     <Compile Include="..\..\src\Momoka.Shell\Views\PlayerPage.DanmakuHeat.cs" Link="Shell\PlayerPage.DanmakuHeat.cs" />
     <Compile Include="..\..\src\Momoka.Shell\DanmakuHeatProbeEvidence.cs" Link="Shell\DanmakuHeatProbeEvidence.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\StoreDetailTailProbeEvidence.cs" Link="Shell\StoreDetailTailProbeEvidence.cs" />
     <!-- Actual Shell color policy, without a WinUI dependency or a copied test model. -->
     <Compile Include="..\..\src\Momoka.Shell\Theme\InputControlTheme.cs" Link="Shell\InputControlTheme.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />

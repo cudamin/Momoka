@@ -605,7 +605,7 @@ internal sealed partial class ShellNavigationProbe
                 RequireStoreDetailCards(page, ["EpisodePanel", "InfoPanel", "SeasonPanel", "CastPanel", "SimilarPanel"]);
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
-                if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");
+                RequireDisabledStoreTail(page);
                 Require(ReferenceEquals(target, page.ViewModel.PlayTarget), "外观切换改变播放目标");
                 Require(page.ViewModel.Title == title && page.ViewModel.Subline == subline
                     && ReferenceEquals(subject, page.ViewModel.CurrentItem), "外观切换改变详情主体或标题");

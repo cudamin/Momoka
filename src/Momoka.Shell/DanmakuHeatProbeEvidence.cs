@@ -7,6 +7,31 @@ internal readonly record struct DanmakuHeatBarReading(double Left, double Top, d
 
 internal static class DanmakuHeatProbeEvidence
 {
+    internal static void RequireWidth(double requested, double page, double clientPixels, double scale)
+    {
+        if (!double.IsFinite(requested) || !double.IsFinite(page) || !double.IsFinite(clientPixels)
+            || !double.IsFinite(scale) || requested <= 0 || page <= 0 || clientPixels <= 0 || scale <= 0
+            || Math.Abs(page - requested) > 1.5 || Math.Abs(clientPixels / scale - requested) > 1.5)
+            throw new InvalidOperationException($"热力窗口没有到请求宽度 {requested:0.##}："
+                + $"实际页宽 {page:0.##}、客户区像素 {clientPixels:0.##}、缩放 {scale:0.##}");
+    }
+
+    /// <summary>清理失败也继续恢复每项全局状态；失败仍向调用者传播，不能作为通过结果。</summary>
+    internal static async Task ShutdownAndRestoreAsync(Func<Task> shutdown, Action restoreTheme,
+        Action restoreMotion, Action restoreTopMost)
+    {
+        try { await shutdown(); }
+        finally
+        {
+            try { restoreTheme(); }
+            finally
+            {
+                try { restoreMotion(); }
+                finally { restoreTopMost(); }
+            }
+        }
+    }
+
     internal static bool Matches(DanmakuHeat heat, double width, double height, IReadOnlyList<DanmakuHeatBarReading> bars)
     {
         if (!double.IsFinite(width) || !double.IsFinite(height) || width <= 1 || height <= 0 || heat.IsEmpty) return false;

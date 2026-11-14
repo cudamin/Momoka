@@ -86,6 +86,9 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 page.ShowChromeForShot(null);
                 await LayoutAsync(page);
+                // PlayerPage直接挂在_root，没有外壳侧栏占宽；控件彼此同宽不能证明窗口真的到了请求档位。
+                DanmakuHeatProbeEvidence.RequireWidth(width, page.ActualWidth, _window.ClientSize.Width,
+                    _root.XamlRoot.RasterizationScale);
                 Call(page, "UpdateTimelineHover", 0d, 0d);
                 Call(page, "HideChapterPeek");
                 RequireBars("loaded-" + width);
@@ -187,14 +190,21 @@ internal sealed partial class ShellNavigationProbe
             try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "danmaku-heat.txt"), readings); }
             finally
             {
-                Field(playback, "_current", null);
-                page.Detach();
-                page.Shutdown();
-                _root.Children.Remove(page);
-                await vm.ShutdownAsync();
-                ThemeHost.Apply(originalTheme);
-                HomeMotion.ApplyPreference(originalMotion);
-                _window.TopMost = originalTopMost;
+                await DanmakuHeatProbeEvidence.ShutdownAndRestoreAsync(async () =>
+                {
+                    Field(playback, "_current", null);
+                    try
+                    {
+                        page.Detach();
+                        page.Shutdown();
+                    }
+                    finally
+                    {
+                        _root.Children.Remove(page);
+                        await vm.ShutdownAsync();
+                    }
+                }, () => ThemeHost.Apply(originalTheme), () => HomeMotion.ApplyPreference(originalMotion),
+                    () => _window.TopMost = originalTopMost);
             }
         }
     }

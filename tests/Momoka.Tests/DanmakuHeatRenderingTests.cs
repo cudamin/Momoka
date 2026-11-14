@@ -9,6 +9,58 @@ internal static class DanmakuHeatRenderingTests
 {
     internal static void Register()
     {
+        Test("弹幕热力探针：请求宽、实际页宽、客户区换算宽同时匹配，坏宽和坏缩放拒绝", () =>
+        {
+            DanmakuHeatProbeEvidence.RequireWidth(1200, 1200, 1500, 1.25);
+            DanmakuHeatProbeEvidence.RequireWidth(760, 760, 1140, 1.5);
+            DanmakuHeatProbeEvidence.RequireWidth(760, 761.5, 1137.75, 1.5);
+            foreach (var bad in new[]
+            {
+                (760d, 1200d, 1800d, 1.5), // 页与客户区互相一致，但仍是旧宽窗。
+                (760d, 760d, 1800d, 1.5),
+                (760d, 762d, 1140d, 1.5),
+                (760d, 760d, 1143d, 1.5),
+                (760d, 760d, 1140d, 0d),
+                (760d, double.NaN, 1140d, 1.5),
+                (760d, 760d, double.PositiveInfinity, 1.5)
+            }) Assert.Throws<InvalidOperationException>(() => DanmakuHeatProbeEvidence.RequireWidth(
+                bad.Item1, bad.Item2, bad.Item3, bad.Item4));
+        });
+        Test("弹幕热力探针：Shutdown异常仍恢复全部状态，异常照常传播", () =>
+        {
+            var order = new List<string>();
+            var failure = new InvalidOperationException("offline-shutdown");
+            var task = DanmakuHeatProbeEvidence.ShutdownAndRestoreAsync(() =>
+            {
+                order.Add("shutdown");
+                return Task.FromException(failure);
+            }, () => order.Add("theme"), () => order.Add("motion"), () => order.Add("topmost"));
+            Assert.True(ReferenceEquals(failure, Assert.Catch<InvalidOperationException>(() => task.GetAwaiter().GetResult())));
+            Assert.True(order.SequenceEqual(new[] { "shutdown", "theme", "motion", "topmost" }));
+        });
+        Test("弹幕热力探针：恢复项失败仍执行后续恢复，成功路径不漏项", () =>
+        {
+            foreach (var failureStep in new[] { 0, 1, 2 })
+            {
+                var order = new List<string>();
+                var task = DanmakuHeatProbeEvidence.ShutdownAndRestoreAsync(() =>
+                {
+                    order.Add("shutdown");
+                    return Task.CompletedTask;
+                }, () =>
+                {
+                    order.Add("theme");
+                    if (failureStep == 1) throw new InvalidOperationException("offline-theme");
+                }, () =>
+                {
+                    order.Add("motion");
+                    if (failureStep == 2) throw new InvalidOperationException("offline-motion");
+                }, () => order.Add("topmost"));
+                if (failureStep > 0) Assert.Throws<InvalidOperationException>(() => task.GetAwaiter().GetResult());
+                else task.GetAwaiter().GetResult();
+                Assert.True(order.SequenceEqual(new[] { "shutdown", "theme", "motion", "topmost" }));
+            }
+        });
         Test("弹幕热力渲染：正式方法按当前轨宽绘制、底对齐并使用共享画刷", () =>
         {
             var page = Page();

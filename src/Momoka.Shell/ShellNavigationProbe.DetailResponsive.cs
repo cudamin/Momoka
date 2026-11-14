@@ -315,7 +315,7 @@ internal sealed partial class ShellNavigationProbe
             if (view.InfoRows.Count > 0)
                 Require(Bounds(mediaTitle, page).Bottom <= Bounds(Get<ItemsRepeater>(page, "InfoTable"), page).Top,
                     "媒体信息子标题没有位于文件信息上方");
-            if (!oldEpisodeCompact) Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸仍留有背景占位");
+            RequireDisabledStoreTail(page);
             RequireResponsiveBindings(page);
             if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
             if (page.ViewModel.CurrentItem is { Type: EmbyItemType.Episode } episode) RequireEpisodeSubject(page, episode);
@@ -338,6 +338,38 @@ internal sealed partial class ShellNavigationProbe
             if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
             if (page.ViewModel.CurrentItem is { Type: EmbyItemType.Episode } restoredEpisode) RequireEpisodeSubject(page, restoredEpisode);
         }
+    }
+
+    private static void RequireDisabledStoreTail(DetailPage page)
+    {
+        var view = page.ViewModel;
+        Require(view.StoreMode, "关闭沉浸后没有进入商店模式");
+        // 2026-11-15 起尾部合法补到剧照、预告控制和16DIP空隙之后，不能再把非零都当成背景占位。
+        // 紧凑单集的TailContent仍可能有文件选项，按可见子项的实高计算内容；不把隐藏卡片当首卡。
+        var canvas = Get<Grid>(page, "StoreScrollContent");
+        var tail = Get<StackPanel>(page, "HeroTail");
+        var content = tail.Children.OfType<FrameworkElement>()
+            .Where(child => child.Visibility == Visibility.Visible).ToArray();
+        var contentHeight = tail.Padding.Top + tail.Padding.Bottom
+            + content.Sum(child => Math.Max(0, child.ActualHeight + child.Margin.Top + child.Margin.Bottom))
+            + Math.Max(0, content.Length - 1) * tail.Spacing;
+        var firstCard = Get<StackPanel>(page, "BodySheet").Children.OfType<StackPanel>()
+            .FirstOrDefault(child => child.Visibility == Visibility.Visible);
+        Require(firstCard is null || firstCard.ActualWidth > 0 && firstCard.ActualHeight > 0,
+            "商店正文首个可见卡片没有实际尺寸");
+        double? Bottom(string name)
+        {
+            var element = Get<FrameworkElement>(page, name);
+            return element.Visibility == Visibility.Visible && element.ActualWidth > 0 && element.ActualHeight > 0
+                ? Bounds(element, canvas).Bottom : null;
+        }
+        StoreDetailTailProbeEvidence.Require(new(
+            view.StoreBackdropVisibility == Visibility.Visible,
+            view.TrailerVisibility == Visibility.Visible && view.PageWidth >= DetailHero.StoreWideFloor,
+            view.StoreBackdropHeight, view.HeroHeight, view.TailMinHeight, tail.MinHeight,
+            contentHeight, tail.ActualHeight, Bottom("PosterStill"), Bottom("StoreHeroDetails"),
+            Bottom("StoreBackdrop"), Bottom("StoreTrailerControls"),
+            firstCard is null ? null : Bounds(firstCard, canvas).Top));
     }
 
     /// <summary>

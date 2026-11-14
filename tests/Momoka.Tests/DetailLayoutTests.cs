@@ -10,6 +10,7 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
+        StoreDetailTailProbeEvidenceTests.Register();
         Test("商店内容留白：宽窄断点和小窗回退", () =>
         {
             foreach (var width in new[] { double.NaN, 0, 360, 599 }) Assert.Equal(32d, DetailHero.StorePageInset(width));

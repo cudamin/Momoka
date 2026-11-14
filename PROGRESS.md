@@ -3,6 +3,11 @@
 独立工作树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka`，基点 `875dedb`，只改诊断与 PageContract 测试，不改主页、外壳与窗口产品行为。既有 `HomeHeaderAsync` 只量旧标题/按钮；新增 `HomeHeaderChromeAsync` 接入 `shell` 分区与 `InspectHomeHeaderChrome`：真实匿名 Shell、HomePage、ScrollView 完成事件检查 1240/760 宽的顶端、下滚隐藏、停住、小幅反向、12 DIP 上滚恢复、横向货架、五主题、显示模式切换、离页及正式 GoBack 恢复。顶部焦点转交当前 Scroller 且保持深处偏移；实际 `TitleBarMetrics`、`TitleBarHoles`、`InputNonClientPointerSource.GetRegionRects` 核系统三键、穿透区域与整条拖动区域，背景为项目 `AcrylicBrush` 且全宽 48 DIP、不接管输入。仅给已经运行的匿名 HWND 读数，不调用 `ShellPage.AttachWindow` 接播放器；假传输拒绝非 GET，正式播放计数必须为 0。
 
 专项 Shell/Core Release 0 警告、0 错误；PageContract 当前 282/282、0 失败、0 跳过（6 项新增成功/失败读数及接线检查）。新增读数判据直接编译链接，坏原生高度、残留三键/洞、丢拖动区、背景错误及焦点回顶都实际拒绝。此树未启动 UI、未发布、未推送；原生成功路径与 5 张真实截图由根交付会话串行重验，回执 `home-header-chrome.json` 在运行失败时也保留。未覆盖物理 Tab、真实视频往返、关闭透明/高对比度、跨 DPI、触摸与读屏。没有新增产品控件、资源或动效，沿用正式 ScrollView 与窗口读数 API；Gallery 产品接线保持现状，未引入另一套控件实现。
+## 2026-11-15 交付补验：商店尾部准确判据与热力宽度、异常恢复
+
+独立树 `C:/Users/89400/.codex/worktrees/delivery-heat-probe/Momoka`（`codex/delivery-heat-probe`，基点9886d47）。主树原生响应式检查报「关闭沉浸仍留有背景占位」后核对第33批实际 `StoreTailHeight`、绑定与布局：有图商店档需补到剧照/宽窗预告控制和16DIP空隙之后，旧零下限断言不再适用。响应式与同页模式往返改用同一判据，核精确公式、真实 `HeroTail.MinHeight` 与可见内容实高、`BodySheet` 首个可见卡片（必须有实际尺寸）对封面/操作/实际可见剧照/预告控制下沿的16DIP避让；保留沉浸零尾部规则，不改产品布局或自检基线。新增编译链接判据4组成功/失败场景，防漏补、多补、绑定仍旧、卡片重叠与坏边界。
+
+热力探针页面直接挂根节点，新增请求宽、实际页宽与客户区像素/缩放三者1.5DIP守卫，拒绝控件彼此同宽却仍停留旧窗口；异常清理通过独立finally恢复主题、动效偏好与置顶，即使Shutdown/前一恢复项失败也执行后续恢复，错误照常传播。3组宽度与恢复反例。Shell/Core/Tests当前Release单节点编译均0警告0错误；`detail-customization-fixture`59/59、`danmaku-fixture`74/74，0失败0跳过；本轮源文件定向空白检查通过（新测试初次格式错误已局部格式化纠正）。日志在本树 `artifacts/tail-heat-probe-check/`。该树没有启动UI/native、读取真实凭据、播放、发布或推送；主交付会话须在最终主树实际运行受影响响应式/模式往返/热力路径后才能确认原生验收。
 
 ## 2026-11-15 交付补验：集成弹幕热力实际加载、宽窄和悬停
 
