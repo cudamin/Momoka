@@ -1,3 +1,11 @@
+## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
+
+用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。
+
+本轮修复：输入圆角统一共享 10 DIP；商店默认下的 180×270 封面、36 号页面标题、单音轨整行隐藏、分区卡新结构、双 PosterCard 人物模板等探针契约；`MoviePilotMediaSeasonsView` 图片恢复时的 LayoutCycle（`84b640b`）；订阅身份夹具调度器桩（`7610ee5`）；Fluent 图标许可字节同步到批准清单（`df37a93`）。21:11 主树被另一会话 `git reset` 冲掉未提交修复，已重新落盘并提交。
+
+验证：主测试 5103/5103（`7610ee5` 前）、13 个专项套件、15 个离线夹具、settings 28/28、search 13/13、favorites 7/7、music 4/4、detail-cards 1/1、HomeDirectory 82/82；moviepilot 37 项 35 过（2 项外部窗口遮挡）；自检 189 项绿于 23:00 构建。library 最终未能在无并发占锁的主屏跑完，StoreTrailer 前台/像素检查同样受外部窗口影响；按用户确认记为环境未通过，不宣称产品通过。发布件包含 `7610ee5` 之后其他会话合入的批次，但这些批次未由本会话重验，台账保留其待交付条目。详见 [交付记录](docs/2026-11-14-交付记录.md)。
+
 ## 2026-11-14 订阅详情去掉头部卡面、收起面包屑、评分卡移到正文右列（已合入 master，台账待补）
 
 独立树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-subscription-layout-HGmn7f`，分支 `feat-subscription-layout-HGmn7f`，基点 master `df37a93`。用户三点：①「去掉上图订阅详情页的卡片」；②「去掉顶部的主页 › 生日快乐(2025)，下面的组件整体上移」；③「参考图二修改订阅页面的布局，订阅页面右上角的评分卡片放到参考图片 发现更多 的那个位置」。①经追问确认只去掉头部大卡片，下方季／演员阵容／相关推荐／相似作品的分区卡片保留。
