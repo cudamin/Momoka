@@ -150,6 +150,30 @@ internal static class HoverMotionTests
             Assert.Contains("6de91fe", source);
             Assert.DoesNotContain("CreateScalarKeyFrameAnimation", source);
         });
+        Test("悬停预览：媒体库补齐资料并在面板内静音循环播放预告", () =>
+        {
+            var poster = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
+            Assert.Contains("OpenPreviewAfterDetailsAsync", poster);
+            Assert.Contains("EnsurePreviewDetailsAsync(card, CancellationToken.None)", poster);
+            Assert.Contains("client.GetItemAsync(card.Item.Id, token, EmbyFields.Preview)", poster);
+            Assert.Contains("card.ApplyPreviewDetails(detail);", poster);
+            Assert.Contains("StoreTrailerPreview.CreateAsync(subject, cts.Token)", poster);
+            Assert.Contains("preview.PlayTrailer(trailer);", poster);
+
+            var preview = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");
+            Assert.Contains("internal void PlayTrailer(StoreTrailerPreview preview)", preview);
+            Assert.Contains("IsMuted = true, IsLoopingEnabled = true, AutoPlay = true", preview);
+            Assert.Contains("AreTransportControlsEnabled = false", preview);
+            Assert.Contains("internal void StopTrailer()", preview);
+            Assert.Contains("StopTrailer();", preview[preview.IndexOf("internal void Reset(", StringComparison.Ordinal)..]);
+
+            var fields = Read("src/Momoka.Core/Emby/ItemQuery.cs");
+            var start = fields.IndexOf("public const string Preview", StringComparison.Ordinal);
+            var end = fields.IndexOf(';', start);
+            var previewFields = fields[start..end];
+            foreach (var name in new[] { "Overview", "Genres", "CommunityRating", "ProductionYear", "PremiereDate" })
+                Assert.Contains(name, previewFields);
+        });
     }
 
     private static string Read(string relativePath)

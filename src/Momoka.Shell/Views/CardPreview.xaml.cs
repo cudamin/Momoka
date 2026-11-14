@@ -5,11 +5,15 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.Shell.Media;
 using Windows.Foundation;
+using Windows.Media.Playback;
+using MediaSource = Windows.Media.Core.MediaSource;
 
 namespace Momoka.Shell.Views;
 
@@ -38,6 +42,17 @@ public sealed partial class CardPreview : UserControl
     private bool _shown;
     private int _generation;
     private bool _watchingMotion;
+
+    /// <summary>
+    /// 悬停面板里的预告片：静音、循环、不接收指针，盖在静态宽图上面。没有预告、读取失败或面板收起时
+    /// 整层藏起来，下面那张宽图原样露出来；播放器与流随面板复用，每次开合都重新建。
+    /// </summary>
+    private MediaPlayer? _trailerPlayer;
+    private MediaPlayerElement? _trailerElement;
+    private MediaSource? _trailerSource;
+    private StoreTrailerPreview? _trailerPreview;
+    private Storyboard? _trailerFade;
+    private int _trailerGeneration;
 
     public CardPreview()
     {
@@ -77,6 +92,7 @@ public sealed partial class CardPreview : UserControl
 
     internal void Show(CardItem card)
     {
+        StopTrailer();
         Panel.Visibility = Visibility.Visible;
         if (!ReferenceEquals(_card, card))
         {
@@ -88,16 +104,7 @@ public sealed partial class CardPreview : UserControl
         LogoImage.Source = null;
         LogoSlot.Visibility = Shown(ItemArtwork.Plate(card.Item) is not null);
         TitleText.Text = card.Title;
-        MetaText.Text = CardPreviewText.Date(card.Item);
-        MetaText.Visibility = Shown(MetaText.Text.Length > 0);
-        GenresText.Text = CardPreviewText.Genres(card.Item);
-        GenresText.Visibility = Shown(GenresText.Text.Length > 0);
-        RatingText.Text = CardPreviewText.Rating(card.Item);
-        RatingBlock.Visibility = Shown(RatingText.Text.Length > 0);
-        AutomationProperties.SetName(RatingText, $"评分 {RatingText.Text}");
-        FactsBlock.Visibility = Shown(MetaText.Text.Length + GenresText.Text.Length + RatingText.Text.Length > 0);
-        OverviewText.Text = CardPreviewText.Overview(card.Item);
-        OverviewText.Visibility = Shown(OverviewText.Text.Length > 0);
+        ApplyFacts(card.Item);
         ResumeText.Text = CardPreviewText.Resume(card.Item);
         ResumeBlock.Visibility = Shown(ResumeText.Text.Length > 0);
         ResumeProgress.Value = CardPreviewText.Progress(card.Item);
@@ -108,6 +115,24 @@ public sealed partial class CardPreview : UserControl
         ToolTipService.SetToolTip(PlayButton, PlayText.Text);
         AutomationProperties.SetName(DetailsButton, $"查看{card.Title}详情");
         Heading.Margin = new Thickness(0, 0, card.PlayVisibility == Visibility.Visible ? 116 : 0, 0);
+    }
+
+    /// <summary>
+    /// 预览的资料行：年份、题材、评分为一行，概要单独一行。媒体库列表按显示设置只点名卡片底下那几项，
+    /// 悬停时会先补读详情再打开面板，所以这里拿到的已经是和主页同一份资料。
+    /// </summary>
+    private void ApplyFacts(EmbyItem item)
+    {
+        MetaText.Text = CardPreviewText.Date(item);
+        MetaText.Visibility = Shown(MetaText.Text.Length > 0);
+        GenresText.Text = CardPreviewText.Genres(item);
+        GenresText.Visibility = Shown(GenresText.Text.Length > 0);
+        RatingText.Text = CardPreviewText.Rating(item);
+        RatingBlock.Visibility = Shown(RatingText.Text.Length > 0);
+        AutomationProperties.SetName(RatingText, $"评分 {RatingText.Text}");
+        FactsBlock.Visibility = Shown(MetaText.Text.Length + GenresText.Text.Length + RatingText.Text.Length > 0);
+        OverviewText.Text = CardPreviewText.Overview(item);
+        OverviewText.Visibility = Shown(OverviewText.Text.Length > 0);
     }
 
     internal void SetArtwork(BitmapImage? artwork)
@@ -164,6 +189,115 @@ public sealed partial class CardPreview : UserControl
     }
 
     internal void SetLogo(BitmapImage? logo) => LogoImage.Source = logo;
+
+    /// <summary>
+    /// 服务器内有预告时把它接到面板的媒体视口里：静音、循环、自动播放，不显示传输控件，也不接指针。
+    /// 流由调用方准备好并交出所有权；停止时这一层藏起来，静态宽图仍在下面。
+    /// </summary>
+    internal void PlayTrailer(StoreTrailerPreview preview)
+    {
+        StopTrailer();
+        if (!_shown)
+        {
+            _ = DisposeTrailerAsync(preview);
+            return;
+        }
+
+        var generation = ++_trailerGeneration;
+        _trailerPreview = preview;
+        var player = new MediaPlayer { IsMuted = true, IsLoopingEnabled = true, AutoPlay = true };
+        player.CommandManager.IsEnabled = false;
+        var source = MediaSource.CreateFromUri(preview.Source);
+        var element = new MediaPlayerElement
+        {
+            AreTransportControlsEnabled = false,
+            Stretch = Stretch.UniformToFill,
+            IsHitTestVisible = false,
+            IsTabStop = false
+        };
+        element.SetMediaPlayer(player);
+        TrailerHost.Children.Add(element);
+        _trailerPlayer = player;
+        _trailerElement = element;
+        _trailerSource = source;
+        player.MediaOpened += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (generation == _trailerGeneration) RevealTrailer();
+        });
+        player.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (generation == _trailerGeneration) StopTrailer();
+        });
+        player.Source = source;
+    }
+
+    private void RevealTrailer()
+    {
+        TrailerHost.Visibility = Visibility.Visible;
+        if (!HomeMotion.AnimationsEnabled)
+        {
+            TrailerHost.Opacity = 1;
+            return;
+        }
+
+        var board = new Storyboard();
+        var fade = new DoubleAnimation { From = 0, To = 1, Duration = TimeSpan.FromMilliseconds(ArtworkFadeMs) };
+        Storyboard.SetTarget(fade, TrailerHost);
+        Storyboard.SetTargetProperty(fade, "Opacity");
+        board.Children.Add(fade);
+        _trailerFade = board;
+        board.Completed += (_, _) =>
+        {
+            if (!ReferenceEquals(_trailerFade, board)) return;
+            _trailerFade = null;
+            TrailerHost.Opacity = 1;
+        };
+        try { board.Begin(); }
+        catch (Exception)
+        {
+            // 离树或关闭过程中平台可能拒绝动画；视频本身照常显示。
+            _trailerFade = null;
+            TrailerHost.Opacity = 1;
+        }
+    }
+
+    /// <summary>收起或换卡：停播、断开媒体源、释放流，整层重新藏到静态图后面。</summary>
+    internal void StopTrailer()
+    {
+        ++_trailerGeneration;
+        var board = _trailerFade;
+        _trailerFade = null;
+        board?.Stop();
+        TrailerHost.Opacity = 0;
+        TrailerHost.Visibility = Visibility.Collapsed;
+
+        var player = _trailerPlayer;
+        var element = _trailerElement;
+        var source = _trailerSource;
+        var preview = _trailerPreview;
+        _trailerPlayer = null;
+        _trailerElement = null;
+        _trailerSource = null;
+        _trailerPreview = null;
+
+        preview?.Cancel();
+        try { element?.SetMediaPlayer(null); }
+        catch (Exception error) when (error is System.Runtime.InteropServices.COMException or ObjectDisposedException) { }
+        TrailerHost.Children.Clear();
+        try { player?.Pause(); if (player is not null) player.Source = null; }
+        catch (Exception error) when (error is System.Runtime.InteropServices.COMException or ObjectDisposedException) { }
+        try { source?.Dispose(); }
+        catch (Exception error) when (error is System.Runtime.InteropServices.COMException or ObjectDisposedException) { }
+        try { player?.Dispose(); }
+        catch (Exception error) when (error is System.Runtime.InteropServices.COMException or ObjectDisposedException) { }
+        if (preview is not null) _ = DisposeTrailerAsync(preview);
+    }
+
+    private static async Task DisposeTrailerAsync(StoreTrailerPreview preview)
+    {
+        try { await preview.DisposeAsync(); }
+        catch (Exception error) when (error is IOException or ObjectDisposedException or OperationCanceledException) { }
+    }
 
     private void OnMediaSizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -294,6 +428,7 @@ public sealed partial class CardPreview : UserControl
         _exitCompleted = null;
         _pendingArtwork = null;
         StopArtworkFade();
+        StopTrailer();
         _card = null;
         Panel.Visibility = Visibility.Collapsed;
         PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;
