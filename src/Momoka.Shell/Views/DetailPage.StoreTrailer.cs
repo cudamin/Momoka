@@ -39,7 +39,7 @@ public sealed partial class DetailPage
     private void UpdateStoreTrailer()
     {
         var subject = ViewModel.CurrentItem;
-        var wide = ViewModel.PageWidth >= 1100;
+        var wide = ViewModel.PageWidth >= DetailHero.StoreWideFloor;
         if (_storeTrailerSuspended || !IsLoaded || !ViewModel.StoreMode || !wide || _actionAccessibility.HighContrast
             || subject is null || !ItemTrailers.HasAny(subject, subject.Source?.Connection.ServerKind ?? default)
             || subject.Source?.IsAvailable != true)

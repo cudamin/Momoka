@@ -13,8 +13,9 @@ internal static class DetailLayoutTests
         Test("商店内容留白：宽窄断点和小窗回退", () =>
         {
             foreach (var width in new[] { double.NaN, 0, 360, 599 }) Assert.Equal(24d, DetailHero.StorePageInset(width));
-            foreach (var width in new[] { 600d, 760, 1099 }) Assert.Equal(40d, DetailHero.StorePageInset(width));
-            foreach (var width in new[] { 1100d, 1240, 1840, 2560 }) Assert.Equal(64d, DetailHero.StorePageInset(width));
+            foreach (var width in new[] { 600d, 760, 1023 }) Assert.Equal(40d, DetailHero.StorePageInset(width));
+            foreach (var width in new[] { DetailHero.StoreWideFloor, 1024d, 1072, 1240, 1840, 2560 }) Assert.Equal(64d, DetailHero.StorePageInset(width));
+            Assert.Equal(1024d, DetailHero.StoreWideFloor);
         });
         Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
         {
@@ -62,16 +63,16 @@ internal static class DetailLayoutTests
             Assert.Equal(337.5d, DetailHero.StorePictureHeight(1000, 0));
         });
 
-        Test("商店窄窗背景：1100断点切换，亚克力区域覆盖晚到内容且不依赖原图比例", () =>
+        Test("商店窄窗背景：1024断点切换，亚克力区域覆盖晚到内容且不依赖原图比例", () =>
         {
-            foreach (var width in new[] { 360d, 760d, 1099d })
+            foreach (var width in new[] { 360d, 760d, 1023d })
             {
                 Assert.Equal(width, DetailHero.StoreBackdropWidth(width));
                 Assert.Equal(420d, DetailHero.StoreBackdropHeight(width, 270));
                 Assert.Equal(700d, DetailHero.StoreBackdropHeight(width, 700));
                 Assert.Equal(420d, DetailHero.StoreBackdropHeight(width, double.NaN));
             }
-            foreach (var width in new[] { 1100d, 1101d, 1840d })
+            foreach (var width in new[] { 1024d, 1025d, 1072d, 1100d, 1840d })
             {
                 Assert.Equal(TrailerPreview.BackgroundWidth(width), DetailHero.StoreBackdropWidth(width));
                 Assert.Equal(TrailerPreview.BackgroundHeight(width), DetailHero.StoreBackdropHeight(width, 700));

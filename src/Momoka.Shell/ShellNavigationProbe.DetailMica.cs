@@ -338,7 +338,7 @@ internal sealed partial class ShellNavigationProbe
         Require(Math.Abs(store.ActualHeight - view.StoreBackdropHeight) < 1
             && Math.Abs(store.ActualWidth - view.StoreBackdropWidth) < 1 && !store.IsHitTestVisible,
             "商店背景高度越界或遮挡输入");
-        Require((Get<Grid>(page, "StoreBackdropAcrylic").Visibility == Visibility.Visible) == (view.PageWidth < 1100),
+        Require((Get<Grid>(page, "StoreBackdropAcrylic").Visibility == Visibility.Visible) == (view.PageWidth < DetailHero.StoreWideFloor),
             "商店亚克力未随窄窗显示");
         Require(Get<Image>(page, "CornerArt").Visibility == Visibility.Collapsed,
             "商店模式仍显示右上角艺术图");
