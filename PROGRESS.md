@@ -5,6 +5,13 @@
 S0基线：Shell Release 0警告0错误；BrowsePresentation27/27、NavigationState10/10、HomeFoldCompletion71/71、HomeDirectory82/82。S1/S3专项证据另记本批提交。普通导航/下钻/Back/Forward/面包屑仍走真实Frame与请求，首页/搜索/设置局部入场保持原归属。静态复核本轮所审关联/门控/浮层源码相对文档基线未变，Shell只有其他批次接线变化。
 
 呈现责任：BrowsePresentation将跨阶段bool改为本次访问的明确状态；首帧/低优先级图片放行与fade选择独立，关联成功不补fade，启动拒绝只回退一次，下一访问清旧状态。真实链接生产代码的Browse专项32/32、NavigationState10/10、HomeDirectory82/82，0失败0跳过。Native状态目前只支持隔离候选试验，不代表已采用原生路由；原生Entrance需实际首屏、中断和历史证据后决定。没有发布、上传、真实播放或系统动画设置改动。分支待S1～S3整合、原生工具验证与合并master。
+## 2026-11-15 WinUI 动效 S1：关联计时、原因和人物完整回执（独立树待整合）
+
+工作树 `C:/Users/89400/.codex/worktrees/winui-motion-s1/Momoka`，分支 `codex/winui-motion-s1`，基点 `63ef01a`；用户授权按施工文档开始。保留 Gallery `6de91feccadfbb0a796b71caedead5a2284f730e` 的 ItemsRepeaterCollectionPage → DetailedInfoPage 原生 Prepare/Suppress/TryStart、前进默认/返回 Direct；本轮刷新可执行上游后仅适配本地生命周期，Gallery 没有当前 Frame/身份/超时的诊断结算样例，新增小型共享回执/单调计时类而非通用动画管理器。
+
+Card/Person 回执现在区分启动、完成、准备/完成超时、关动画、身份/图版本变化、目标/源缺失与导航取消，每次唯一终态；人物 Completed 在清观察者前发布。Prepare 成功返回后的单调时间与 TryStart 真正成功返回时点独立记录，Prepare 失败尚无票据走有限匿名 NavigationTiming 阶段，已有票据不重复写 PrepareFailed；不记录账号、地址、媒体名。Started 后的取消/超时只清理落定，不发送普通页面淡入；旧完成/超时和回执观察者重入不能清新票据或返回准备。Primary/高清保留、700ms 准备容错与1200ms 生命周期不改。
+
+验证：基线 Connected 48/48；当前 Connected 58/58、DetailImageArrival 26/26，0 失败 0 跳过；专项与 Shell/x64 Release 编译 0 警告 0 错误。两个原生探针收紧唯一终态/计时/原因，人物新增 `person-transition.json`；原生成功/失败本轮由主任务串行执行，当前不声明 ≤250ms、GPU 补间、跨 DPI 或读屏通过。主任务负责 Browse/整合验证及台账；未发布、未上传、未真实播放或服务器写入。
 
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 

@@ -10,5 +10,7 @@
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\CardDetailTransition.cs" Link="Production\CardDetailTransition.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\PersonTransition.cs" Link="Production\PersonTransition.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\ConnectedMotionReceipt.cs" Link="Production\ConnectedMotionReceipt.cs" />
+        <Compile Include="..\..\src\Momoka.Core\Diagnostics\NavigationTiming.cs" Link="Production\NavigationTiming.cs" />
     </ItemGroup>
 </Project>
