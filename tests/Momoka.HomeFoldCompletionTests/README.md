@@ -51,6 +51,8 @@ Remove-Item Env:Platform -ErrorAction SilentlyContinue # Shell 项目自身已�
 
 ## 最小实现取舍
 
+2026-11-14 本夹具同时编译链接实际 `HomePage.Header.cs` 与 `HomeHeaderScrollState.cs`，原样运行主页的纵向滚动回调、外观同步、恢复关联号和 Release。新增两例覆盖下滚隐藏、上滚恢复、改颜色保持隐藏、模式切换、离页迟到事件拒绝，以及恢复完成只接受自己的关联号。框架边界的 ScrollView 只提供偏移、焦点和 TabStop 值；焦点辅助方法不发滚动请求的断言不能替代实际 WinUI 焦点/BringIntoView 和材质截图。71/71 为本次定向结果；第一次新用例在 Release 清空设置后又读取 page.Ui，夹具空引用已改为保留离页前的 Ui 对象，产品没有因此改变。
+
 单趟 HomeFoldMotion 只加 active／complete 与一个 Completed 委托，终态幂等并摘事件；页面只加当前 owner 比较及一个迟一拍版本。主动画完成会清当前活动标记，但不会把属于这一趟的迟一拍误作旧回调；新翻档／取消才废弃它。仍然保留活动回程的保护早退，不改变动画曲线／时长、模板、阈值或用户布局体验，不引入通用动画框架。
 
 主树限定整合时项目已最小入方案，当前51项全过／0跳过／退出0；日志 `artifacts/staged-repair/batch05/r066-*.log`，来源树51项不代替主树。主树一份框架夹具仅对象初始化换行修正，生产两文件与来源逐字一致。

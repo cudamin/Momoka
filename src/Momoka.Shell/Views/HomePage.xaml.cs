@@ -164,6 +164,8 @@ public sealed partial class HomePage : Page, IShellContent
         NavigationCacheMode = NavigationCacheMode.Enabled;
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
+        Scroller.ViewChanged += OnHeaderViewChanged;
+        Scroller.ScrollCompleted += OnHeaderScrollCompleted;
 
         // 竖滚动条不从轮播图上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，
         // 2026-10-01）。它只在带子可见时有意义 —— 没有幻灯片时 Apply 会把 Visibility 收起来，过一拍再对一遍。
@@ -215,8 +217,11 @@ public sealed partial class HomePage : Page, IShellContent
                 _timing?.Mark("home-scroll-layout-begin");
                 Scroller.UpdateLayout();
                 _timing?.Mark("home-scroll-layout-end", 1);
-                Scroller.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+                _restoringHeaderScroll = true;
+                _headerRestoreCorrelation = Scroller.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+                if (_headerRestoreCorrelation == -1) _restoringHeaderScroll = false;
             }
+            ResetHeaderScroll();
         };
     }
 
@@ -1459,11 +1464,15 @@ public sealed partial class HomePage : Page, IShellContent
             _ = ViewModel.ReloadAsync();
         }
         // Cached empty slides need not raise SlideChanged again on return.
-        PaintInk();
+        ResetHeaderScroll();
     }
 
     public void Release()
     {
+        _restoringHeaderScroll = false;
+        _headerRestoreCorrelation = -1;
+        _headerScroll.Reset(false, 0);
+        _actions?.RefreshHomeHeader();
         _released = true;
         _navigation++;
         _foldScheduled = false;

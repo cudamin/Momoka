@@ -68,7 +68,8 @@
       右边。**2026-11-13 起账号也不再蹲在左下角**（用户令「人像图标移到最小化左边、和搜索栏对齐」），
       设置回到栏自己的页脚 —— 于是这条栏从顶到底只有目的地，身份那一格两种模式都在右上角同一处。
 
-      **这一行不上底色。** 页面自己那一块底色由 ContentHost 涂，主页上则是那张铺满的剧照本身 —— 一条实心条
+      **平时这一行不上底色。** 沉浸主页向上滚动时临时出现整条应用内亚克力，到顶部撤下。
+      页面自己那一块底色由 ContentHost 涂，主页上则是那张铺满的剧照本身 —— 一条实心条
       压在大图上就是图顶上一道黑边，那正是「红框框出来的地方全填充上海报」要去掉的东西。压在图上那一档的墨走
       不随主题走的浅墨（见 PaintTitleInk），底是轮播自己顶上那层 120 高的黑色渐变，48 装得进 120。
 
@@ -84,6 +85,11 @@
             Canvas.ZIndex="10"
             VerticalAlignment="Top"
             Background="Transparent">
+
+        <!-- 一张应用内亚克力浮条，覆盖全宽（包含系统三键），不拦截标题栏输入。
+             EgFrostBrush 沿用主题与高对比度回退；滚到顶部或离开主页时整层撤下。 -->
+        <Border x:Name="HomeHeaderBackground" Height="48" VerticalAlignment="Top"
+            Background="{ThemeResource EgFrostBrush}" IsHitTestVisible="False" Visibility="Collapsed" />
 
         <!-- App-drawn title bar, laid out the way the Claude app lays the same strip out: a flat row of icon
              buttons — 主页, 收藏, 设置, 搜索, 返回, 前进 — with both arrows dimmed rather than removed when

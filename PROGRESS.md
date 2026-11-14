@@ -13547,3 +13547,12 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 2026-11-14音乐合入核对：产品6b3291b已在master形成4b4ceec，6份产品/测试逐文件无差异，许可也相同，待交付台账包含音乐批次。主树另有会话侧栏合并进行中，本会话停止主树写入，保护其暂存差异；合并台账提交e5a29a7同时收录了当时侧栏合并，原进度冲突由该会话继续清理。未发布/上传。本树干净detached、没有本任务临时分支；list_artifacts无本树附件，保留用户提供的主检出，不绕过应用保护删除。最终实屏裁剪已保存到聊天visualizations/music-player-final.png。
 
 主树侧栏会话随后提交18c649b清除其进度冲突标记，589eef4收尾后主树干净；本轮仅追加音乐记录，产品与测试无新差异。
+## 2026-11-14 沉浸主页顶部按钮随滚动收放（f95f，待合并）
+
+用户要求主页下滚时隐藏上方所有按钮，反向上滚显示并加整行亚克力背景，到顶去掉背景恢复原样。本树 `C:/Users/89400/.codex/worktrees/f95f/Momoka`，分支 `codex/immersive-home-header`，基点 `e03221c`。下滚累计12 DIP隐藏顶部操作、账号及原生三键，上滚累计12 DIP恢复；0.5 DIP内判顶部透明，小抖动/相同偏移不翻档。只有沉浸主页生效，返回深处恢复操作与背景，商店模式、离页和播放优先级各自复位。背景为48 DIP全宽、不可命中的现有EgFrostBrush，保留系统高对比度与透明关闭回退，不增加依赖或设置。原生三键由独立BrowseTitleBarHidden控制Collapsed，隐藏时保留全宽Caption拖动、清掉按钮区域，不复用PlaybackTitleBar。
+
+查过 Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 Samples/ItemsView、ScrollViewer、Acrylic、AppWindowTitleBar 与 SampleSupport/SamplePages/AppWindowTitleBarExtendWindow。ScrollView原生ViewChanged/VerticalOffset及扩展标题栏PreferredHeightOption有样例，完整方向收放没有；旧ImageScrollBehavior只是缩标题且被项目排除，不能直接抄。因此方向状态留在Shell小类，页面拥有恢复关联号，外壳仅按当前页读状态。Learn Acrylic指南推荐滚动时覆盖内容的应用内辅助浮层，未发现本次材质用法或短暂Collapsed必须偏离确认的冲突。保留Gallery路径/提交注释。焦点复用SettingsPage现有临时打开视口TabStop策略，避免Frame默认不可聚焦导致子控件回顶。
+
+本树最终Shell/Core/主测试/PageContract/HomeFold Release均0警告0错误；PageContract 274/274（新增9项状态/接线契约），HomeFold 71/71（新增2项实际页面事件/恢复/离页），home-chrome 2/2、toolbar-icon 15/15、local-media-layout含约定21/21，共383项、0失败0跳过。HomeFold第一轮70/71为新增用例在Release后读取已清空Ui的夹具空引用，已保存原Ui重跑71/71。行尾/UTF8/BOM/git diff通过。自动化扫描现有PersonPage三颗无句柄，本次未新增交互控件；新增背景句柄逐行登记Agreements。日志本树artifacts/immersive-home-header。定向format第一次默认Debug缺Core Debug DLL产生工作区加载警告，改用Release后无工作区警告、0文件需格式化，另存证据，不以首次退出0冒充完整通过。
+
+按当前常设规则仅提交和合并，不刷新交付目录；本轮未启动GUI、未跑全量探针或截图，没有真实服务器读取、播放或写入。交付时必须验证宽窄窗上下滚/停住/回顶，顶部先得焦点后下滚不回顶，实际系统三键Height/隐藏/恢复点击与拖动，返回深处/切页/模式/播放往返，亚克力实屏与高对比度/关闭透明回退。分支离线通过不等于上述运行验收。合并前主树另有活动聊天和未提交修复，等待释放后再整合，保留其内容。

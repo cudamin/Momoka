@@ -181,6 +181,7 @@ internal sealed partial class HostWindow : IDisposable
 
     private bool _topMost;
     private bool _playbackTitleBar;
+    private bool _browseTitleBarHidden;
     private bool _playerLayer;
     private bool _cursorHidden;
 
@@ -670,7 +671,8 @@ internal sealed partial class HostWindow : IDisposable
             _playbackTitleBar = value;
 
             if (_appWindow?.TitleBar is { } titleBar)
-                titleBar.PreferredHeightOption = value ? TitleBarHeightOption.Collapsed : TitleBarHeightOption.Tall;
+                titleBar.PreferredHeightOption = _playbackTitleBar || _browseTitleBarHidden
+                    ? TitleBarHeightOption.Collapsed : TitleBarHeightOption.Tall;
 
             // Straight to the repartition, with nothing cleared on the way: the two modes claim different
             // region kinds and every kind is assigned below, so there is no rect left behind to withdraw —
@@ -692,6 +694,23 @@ internal sealed partial class HostWindow : IDisposable
     /// </para>
     /// </summary>
     public bool FreeSizing { get; set; }
+
+    /// <summary>主页滚动隐藏三键；独立于播放接管，保留浏览窗口的拖动和尺寸约束。</summary>
+    internal bool BrowseTitleBarHidden
+    {
+        get => _browseTitleBarHidden;
+        set
+        {
+            if (_browseTitleBarHidden == value) return;
+            _browseTitleBarHidden = value;
+            // Gallery 6de91feccadfbb0a796b71caedead5a2284f730e:
+            // SampleSupport/SamplePages/AppWindowTitleBarExtendWindow.xaml.cs，扩展标题栏后设 PreferredHeightOption。
+            if (_appWindow?.TitleBar is { } titleBar)
+                titleBar.PreferredHeightOption = _playbackTitleBar || _browseTitleBarHidden
+                    ? TitleBarHeightOption.Collapsed : TitleBarHeightOption.Tall;
+            UpdateTitleBarRegions();
+        }
+    }
 
     /// <summary>
     /// What the framework says its own title bar comes to, in physical pixels: the height it reserves and
@@ -2536,7 +2555,7 @@ internal sealed partial class HostWindow : IDisposable
                 // **2026-11-13 起浏览态选 Tall**：外壳那一行 40→48，Standard 那三颗仍是 32 高、贴着顶边，
                 // 而标题栏里每一颗图标的中线都在 24 —— 屏上就是「按钮比图标高一截」。Tall 让它们也占满 48、
                 // 中线同样落在 24；右端要预留的宽度仍是三颗 46（见 SystemButtonsWidth），没有变宽。
-                titleBar.PreferredHeightOption = _playbackTitleBar
+                titleBar.PreferredHeightOption = _playbackTitleBar || _browseTitleBarHidden
                     ? TitleBarHeightOption.Collapsed
                     : TitleBarHeightOption.Tall;
 
@@ -2665,7 +2684,7 @@ internal sealed partial class HostWindow : IDisposable
         var fallbackInset = SystemButtonsWidth * (int)dpi / 96;
         var titleInset = _appWindow?.TitleBar?.RightInset ?? 0.0;
         var systemInset = Math.Max(fallbackInset, (int)Math.Ceiling(titleInset));
-        var dragRight = Math.Max(0, width - Math.Max(systemInset, fallbackInset));
+        var dragRight = _browseTitleBarHidden ? width : Math.Max(0, width - Math.Max(systemInset, fallbackInset));
 
         // Playback claims no caption at all: the whole top strip stays XAML input, so hovering it reveals
         // the chrome, the three window commands get their clicks, and the page's own drag moves the window.
@@ -2677,7 +2696,7 @@ internal sealed partial class HostWindow : IDisposable
         // shell draws its buttons in — the five on the left, the account one at the right end (it moved
         // into the strip 2026-09-09 when its own row below went away) — which are passthrough for the same
         // reason: without them the frame answers 标题栏 there and the buttons never see a click.
-        var holes = _playbackTitleBar ? [] : HolePixels((int)dpi, dragRight, height);
+        var holes = _playbackTitleBar || _browseTitleBarHidden ? [] : HolePixels((int)dpi, dragRight, height);
 
         var strip = _playbackTitleBar && width > 0 && height > 0
             ? new RectInt32(0, 0, width, height)
@@ -2696,7 +2715,7 @@ internal sealed partial class HostWindow : IDisposable
         // whatever XAML is underneath — 「右上角的最小化 最大化 关闭 点不了」. So browsing states the three
         // columns of the reserved inset itself, and playback — which draws its own window commands in the
         // client area — states none.
-        var (minimise, maximise, close) = _playbackTitleBar
+        var (minimise, maximise, close) = _playbackTitleBar || _browseTitleBarHidden
             ? (Empty, Empty, Empty)
             : SystemButtonRects(dragRight, systemInset, height);
 

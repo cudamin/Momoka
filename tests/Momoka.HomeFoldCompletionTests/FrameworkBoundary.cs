@@ -67,6 +67,7 @@ namespace Microsoft.UI.Dispatching
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+    public enum FocusState { Programmatic }
     public readonly record struct Duration(TimeSpan TimeSpan);
     public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
     {
@@ -174,9 +175,16 @@ namespace Microsoft.UI.Xaml.Controls
         public object GetOrCreateElement(int index) => Elements.TryGetValue(index, out var element)
             ? element : throw new InvalidOperationException("Missing fake layout element " + index);
     }
-    public sealed class ScrollViewer : FrameworkElement
+    public sealed class ScrollView : FrameworkElement
     {
         public double VerticalOffset { get; set; }
+        public bool IsTabStop { get; set; }
+        public bool FocusedSelf { get; private set; }
+        public bool Focus(Microsoft.UI.Xaml.FocusState state) => FocusedSelf = IsTabStop;
+    }
+    public sealed class ScrollingScrollCompletedEventArgs
+    {
+        public int CorrelationId { get; set; }
     }
 }
 

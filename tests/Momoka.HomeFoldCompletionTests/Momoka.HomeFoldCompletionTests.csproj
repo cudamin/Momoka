@@ -10,6 +10,8 @@
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeFoldMotion.cs" Link="Production\HomeFoldMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Carousel.cs" Link="Production\HomePage.Carousel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Header.cs" Link="Production\HomePage.Header.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\HomeHeaderScrollState.cs" Link="Production\HomeHeaderScrollState.cs" />
     </ItemGroup>
     <!-- Compile the actual page methods unchanged. Missing or ambiguous boundaries fail closed;
          only layout values, UI owners and Storyboard delivery are inert test boundaries. -->

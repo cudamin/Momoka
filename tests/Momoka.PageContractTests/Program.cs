@@ -105,6 +105,7 @@ internal static class Program
         DeferredCardsTests.Register();
         FilterValuesTests.Register();
         HomeSubscriptionRefreshTests.Register();
+        HomeHeaderScrollTests.Register();
         SubscriptionWallWiringTests.Register();
         SelectionInputTests.Register();
         HoverMotionTests.Register();

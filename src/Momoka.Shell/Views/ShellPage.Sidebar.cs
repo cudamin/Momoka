@@ -306,6 +306,7 @@ public sealed partial class ShellPage
         finally { _syncingSidebar = false; }
         SyncSidebarIcons(selected);
         ApplySidebarLayout();
+        SyncHomeHeaderChrome();
     }
 
     private void ApplySidebarLayout()

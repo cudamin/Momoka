@@ -99,6 +99,9 @@ internal interface IShellActions
     /// </summary>
     void SetTitleStrip(TitleStrip strip);
 
+    /// <summary>按外壳当前页面刷新顶部滚动状态，不接收旧页面的缓存读数。</summary>
+    void RefreshHomeHeader() { }
+
     /// <summary>
     /// MoviePilot 已在设置启用且连接可用 —— 决定「更多」菜单上给不给「在 MoviePilot 搜索其他版本」那一条。菜单由
     /// Core 的 <see cref="Emby.ItemMenu.For"/> 按条目排，这一位是它唯一够不着、得由外壳递进去的输入（见

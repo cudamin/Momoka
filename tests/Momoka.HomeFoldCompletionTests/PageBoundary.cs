@@ -67,6 +67,8 @@ namespace Momoka.Shell.Views
     {
         internal TitleStrip Current { get; private set; }
         internal void SetTitleStrip(TitleStrip strip) => Current = strip;
+        internal int HeaderRefreshes { get; private set; }
+        internal void RefreshHomeHeader() => HeaderRefreshes++;
     }
     internal sealed class TestSubscriptions
     {
@@ -114,6 +116,7 @@ namespace Momoka.Shell.Views
         private TestHomeSettings? _homeSettings = new();
         private const double ChromeHeight = 48;
         private int _homeLibraryFlowIndex;
+        private double? _restoredScroll;
         private double _libraryFlowHeight;
         internal TestHomeState ViewModel { get; } = new();
         internal ObservableCollection<object> HomeRows { get; } = [];
@@ -134,7 +137,22 @@ namespace Momoka.Shell.Views
         };
         internal ContentControl LibraryHost { get; } = new();
         internal ItemsRepeater ShelfRepeater { get; } = new();
-        internal ScrollViewer Scroller { get; } = new() { ActualHeight = 900 };
+        internal ScrollView Scroller { get; } = new() { ActualHeight = 900 };
+        internal int HeaderRefreshes => _actions!.HeaderRefreshes;
+        internal bool RestoringHeader => _restoringHeaderScroll;
+        internal void ScrollHeader(double offset)
+        {
+            Scroller.VerticalOffset = offset;
+            OnHeaderViewChanged(Scroller, new object());
+        }
+        internal void BeginHeaderRestore(int correlation)
+        {
+            _restoringHeaderScroll = true;
+            _headerRestoreCorrelation = correlation;
+        }
+        internal void CompleteHeaderRestore(int correlation) =>
+            OnHeaderScrollCompleted(Scroller, new ScrollingScrollCompletedEventArgs { CorrelationId = correlation });
+        internal void SetPendingHeaderRestore(double? offset) => _restoredScroll = offset;
         internal HomeFoldMotion? MainMotion => _fold;
         internal HomeFoldMotion? LateMotion => _foldLate;
         internal bool EntranceSuppressed => _entranceSuppressed;

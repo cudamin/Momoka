@@ -642,6 +642,7 @@ handle  Views/ShellPage.xaml  ContentHost
 handle  Views/ShellPage.xaml  FavoritesButton
 handle  Views/ShellPage.xaml  ForwardButton
 handle  Views/ShellPage.xaml  HomeButton
+handle  Views/ShellPage.xaml  HomeHeaderBackground
 handle  Views/ShellPage.xaml  NavToggleButton
 handle  Views/ShellPage.xaml  LibraryPreviewCovers
 handle  Views/ShellPage.xaml  LibraryPreviewEmpty

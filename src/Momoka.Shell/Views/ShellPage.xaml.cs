@@ -2233,6 +2233,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // already claimed the strip whole by then anyway, so the last real rectangle is the one to keep.
         if (_window is null) return;
 
+        if (_homeHeaderHidden)
+        {
+            if (_titleHoles.Length == 0) return;
+            _titleHoles = [];
+            _window.SetTitleBarHoles();
+            return;
+        }
+
         if (TitleActions.ActualWidth <= 0 || TitleActions.ActualHeight <= 0) return;
 
         var origin = TitleActions.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));

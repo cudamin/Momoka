@@ -327,6 +327,57 @@ internal static class Program
 
     private static void RegisterPage()
     {
+        Case("page/header-real-events-preserve-direction-through-appearance-and-release", () =>
+        {
+            var page = new HomePage();
+            page.Ui.EnableImmersive = true;
+            page.NotifyAppearance(page.Ui);
+            page.ScrollHeader(200);
+            Equal(HomeHeaderMode.Hidden, page.HeaderMode, "down scroll hides");
+            page.NotifyAppearance(page.Ui);
+            Equal(HomeHeaderMode.Hidden, page.HeaderMode, "same-mode appearance preserves direction");
+            page.ScrollHeader(180);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "up scroll restores");
+            page.ScrollHeader(220);
+            page.Ui.EnableImmersive = false;
+            page.NotifyAppearance(page.Ui);
+            Equal(HomeHeaderMode.Top, page.HeaderMode, "store mode resets");
+            page.Ui.EnableImmersive = true;
+            page.NotifyAppearance(page.Ui);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "enter immersive at depth remains usable");
+            page.ScrollHeader(250);
+            var releasedUi = page.Ui;
+            page.Release();
+            Equal(HomeHeaderMode.Top, page.HeaderMode, "release clears hidden state");
+            var refreshes = page.HeaderRefreshes;
+            page.ScrollHeader(400);
+            page.NotifyAppearance(releasedUi);
+            Equal(refreshes, page.HeaderRefreshes, "late events cannot publish to shell");
+        });
+        Case("page/header-restore-correlations-ignore-old-completion-and-resume-user-scroll", () =>
+        {
+            var page = new HomePage();
+            page.Ui.EnableImmersive = true;
+            page.SetPendingHeaderRestore(500);
+            page.ScrollHeader(100);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "pending restore does not hide");
+            page.SetPendingHeaderRestore(null);
+            page.BeginHeaderRestore(12);
+            page.ScrollHeader(500);
+            page.CompleteHeaderRestore(11);
+            Check(page.RestoringHeader, "old completion does not end this restore");
+            page.ScrollHeader(550);
+            Equal(HomeHeaderMode.Revealed, page.HeaderMode, "restore still visible");
+            page.CompleteHeaderRestore(12);
+            Check(!page.RestoringHeader, "matching completion ends restore");
+            page.ScrollHeader(580);
+            Equal(HomeHeaderMode.Hidden, page.HeaderMode, "new user scroll hides");
+            page.FocusHeaderScroll();
+            Check(page.Scroller.FocusedSelf && !page.Scroller.IsTabStop, "viewport takes focus and restores tab order");
+            Equal(580d, page.Scroller.VerticalOffset, "focus helper issues no scrolling");
+            page.ScrollHeader(0);
+            Equal(HomeHeaderMode.Top, page.HeaderMode, "top is transparent");
+        });
         Case("page/carousel-mode-restores-full-bleed-and-store-insets-without-replacing-slides", () =>
         {
             var page = new HomePage();

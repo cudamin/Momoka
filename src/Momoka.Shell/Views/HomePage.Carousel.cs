@@ -12,6 +12,7 @@ public sealed partial class HomePage
     private void OnAppearanceChanged(UiSettings ui)
     {
         if (_released || !ReferenceEquals(ui, _homeSettings?.Settings.Ui)) return;
+        _headerScroll.Update(BannerImmersive, Scroller.VerticalOffset);
         SyncCarouselLayout();
     }
 
@@ -33,6 +34,11 @@ public sealed partial class HomePage
         ScheduleOverlay();
     }
 
-    private void PaintInk() => _actions?.SetTitleStrip(BannerImmersive && BannerShown
-        ? TitleStrip.OnScrim : TitleStrip.Plain);
+    private void PaintInk()
+    {
+        if (_released) return;
+        _actions?.SetTitleStrip(BannerImmersive && BannerShown && HeaderMode == HomeHeaderMode.Top
+            ? TitleStrip.OnScrim : TitleStrip.Plain);
+        _actions?.RefreshHomeHeader();
+    }
 }
