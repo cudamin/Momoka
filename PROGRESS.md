@@ -25,6 +25,17 @@
 **验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **238/238**（新增两条源码契约）；主测试 **5093 项，通过 5091、失败 2**，两条均为既有的 `C:\WINDOWS\TEMP` 下载到设备环境红。`dotnet format whitespace --verify-no-changes` 通过、`git diff --check` 干净。原生 `--probe-shell --probe-section library --screen 1`（`shell-probe-20261114-045634222-29532`）**50 项 42 过 8 红**：7 条既有红（飞牛人物头像、集页 180×270 商店封面、合集菜单像素被自身浮层遮挡、Jellyfin 标题字号、继续观看 20DIP、飞牛移出空序列、单音轨整行隐藏后的旧竖距断言），第 8 条「简洁详情底材」是本批新检查的测量问题（紧凑集页的文件选项在尾部、详情块里那一份收着；探针拿收着的控件判头部裁切，并把父行收着的选择框当版本框量）。探针改为按实际尺寸跳过收着的块并在改宽后等一拍布局，在同一份产品代码上定向 `--probe-section person`（`shell-probe-20261114-051633998-24080`，3 项含 DetailMica）**3/3 通过**；四种条目 × 1200/760 × 五主题逐张核过父级、顺序、版本框几何与播放键四态强调色，实屏 `detail-mica-{类型}-{1200,760}-{主题}-screen.png` 已目视，Movie/Series/Episode 宽窄档都是「封面片名 → 简介 → 版本框 → 主题色播放键与操作」。
 
 **没做／边界。** 只改商店模式；沉浸模式排版、按钮材质与强调色断点图标不变；版本框只落在详情页这三颗文件选择框，设置页与其他下拉不动。探针只用匿名假 HTTP 与假图片，没有真实服务器登录、播放或写入；高对比度、触摸、读屏、跨 DPI 未实机覆盖。**已随两轮整合合入 master**；交付按台账统一复验。
+## 2026-11-14 侧边栏拖动调宽与栏/内容区分界（已合入 master，待交付）
+
+工作树 `p7Vx1S`，分支 `feat-sidebar-drag-resize`，基点 `8d5e7cb`。用户两句：①新增支持拖动侧边栏边缘调整侧边栏宽度；②侧边栏标题和内容区的分界不够明显。追问后明确：分界指「侧边栏与内容区之间，对比度不够高」，做法选「侧栏加深一层面色」；拖动只在展开档支持。
+
+**拖动调宽。** 侧栏展开时右沿多一条 7 DIP 透明命中带（`SidebarResizeGrip`，Grid 子类只为拿到 protected 的 `ProtectedCursor` 设左右箭头），指针进入换光标；按下捕获指针，移动时按「起点宽度 + 指针位移」改 `NavigationView.OpenPaneLength`，每一拍走现有 `ApplySidebarLayout`，栏宽、内容区让位、标题栏缩进与裁剪切块同步。宽度夹在 180～480 DIP（`UiSettings.MinSidebarWidth`/`MaxSidebarWidth`）；窗口窄时再给内容区留 320 DIP，只夹屏上宽度、不改偏好，窗口拉回后原宽度回来。松手、捕获丢失、离树、栏收起都收尾，只有真正拖过才把宽度写回 `UiSettings.SidebarWidth` 并 `Save()`，下次启动照这个宽度展开；缺键的旧设置读成 256，`SettingsMigration.Normalize` 用同一对常量夹取。收成 56 DIP 图标栏时拖动条一起收起，开合仍归标题栏那颗折叠键。
+
+**分界。** 栏这一列（含左上角应用名所在的标题区）从 2026-11-12 的「纯 Mica」改为铺 `EgSidebarBrush`：主题面色 85% 压在 Mica Alt 上，内容区仍是 60% 窗口色。实屏取样栏 `#13192C`、内容 `#091022`，栏右沿与标题栏左侧的竖向分界清楚可见，Mica 仍透 15%。新角色在 Dark/Light/HighContrast 三份字典、`ThemeHost.Brushes` 与自检覆盖清单里成对接上；标题栏右侧仍只露材质。
+
+**验证。** Shell/Core 与 Tests、PageContract Release 单节点编译均 0 警告 0 错误。`--probe-shell --probe-section shell --screen 1` 15/15、退出 0（运行目录 `shell-probe-20261114-073739856-29964`）：新增的 `ResizeSidebar` 320／40／4000／256 与拖动条显隐检查通过，1240 展开、760 图标栏、600 展开三张实屏已目视；收起档拖动条 Collapsed。`Momoka.PageContractTests` 257/257（含新增 3 项拖动契约）；主测试 5099/5102、0 跳过，3 红为 `TitleSearchBox` 圆角期望 10 而 ShellPage.xaml 现值 8、`HomePage.Release` 与 `PaintInk` 源码标记缺失 —— 三项读取的源码本轮未改、与 HEAD 相同，不计入本批。真实鼠标/触摸拖动未执行：探针直接调产品重排方法并核对几何与夹取，指针链路由源码契约盯着；交付时按 UI 检查补真实拖动与截图。未连接真实服务器、未播放；高对比度与跨 DPI 未实测。未发布、未推远程。
+
+合入收尾：分支顶端 `9432188` 以 `--no-ff` 合入 master，自动合并 `ShellNavigationProbe.Sidebar.cs`、`ShellPage.Sidebar.cs`、`PageContractTests/Program.cs` 与 `Agreements.txt`，仅 `PROGRESS.md` 冲突；保留主树订阅详情与商店详情两条记录，台账登记与合并号见紧随其后的收尾提交。合并不发布、不改交付目录。
 
 ## 2026-11-14 侧栏并入商店模式与0.2.5标题工具栏恢复（已合入，待交付）
 
@@ -13499,3 +13510,19 @@ PROGRESS/开发说明自动整合并保留原记录。所有10份产品/测试/�
 
 ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同，独有进度已进入master；工作树干净，顶端 `1d97cea` 已合入，在同一提交转detached并删除本任务分支。测试子树已由应用成功归档。ed02为本聊天主检出，应用archive_worktree明确拒绝（The task's primary checkout cannot be removed），遵守保护保留本树，不用原生命令绕过。Shell两轮构建和整合回归摘要已保留用户日志 `sidebar-preview-evidence-20261114-ed02`，运行截图仍在各自shell-probe目录；恢复线索产品 `5ba450e`、整合 `1d97cea`。
 2026-11-14最终原生结果：等待其他树MoviePilot分区完成并释放共享锁后自动继续，整合构建（产品/测试与master已逐文件同blob）正式可见 `--probe-shell --probe-section shell --screen 1` **16/16、0失败、退出0**。完整侧栏模式/导航、独立预览、首启侧栏均通过，760/600实屏已再次目视，三封面与查看更多完整、面板不压栏，商店窄窗标题搜索也随主树新逻辑收起。报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-072544766-18996/logs`；只覆盖shell，范围文件另有209检查未执行。较早旧构建的货架稳定、隐藏宿主和分区遗漏失败报告保留，没有删检查、放宽断言或更新基线来洗绿；此次绿覆盖整合后的不同代码。读取封面UIA Invoke模式而未Invoke封面，未移动鼠标、未真实播放或向真实服务器读写；物理静止/点击投递与跨DPI/读屏仍待验。台账第23项证据已更新，master只追加文档，未重新发布、未推远端，桌面快捷方式仍是原发布件。
+
+## 2026-11-14 音乐播放栏胶囊、短进度与图标居中（5148 树）
+
+用户先否决首次重排，明确「别改布局，改按钮和背景」，随后要求重绘随机/循环/收藏、音乐页左上标题参考其他媒体库、胶囊和短进度；最后澄清「按钮居中」是图标在按钮内偏上。未提交的首次分组/通栏方案已核对撤销；ShellPage及音乐避让无差异，保留1120上限、Auto/Auto/*/Auto四列、原按钮组位置与顺序、42封面、40命中区和760/480断点。背景复用现有EgActionGlassBrush，去描边，正常两端按半高取圆角、两行窄窗保留24；不改共享材质参数、依赖或播放管线。
+
+按钮基于原生SubtleButtonStyle及DefaultToggleButtonStyle，Padding0与两向Center；主按钮/队列/音量用18DIP字体图标，随机/循环/收藏用微软Fluent20px矢量。随机IsChecked使用真实VM单向状态，Click只翻转一次；收藏空/实心和循环图标随状态更新。每实例将x:String经WinUI原生XamlBindingHelper转换为独立Geometry并缓存，避免跨控件父级关联。进度条保留左边缘、按TrackInfo可用宽度缩放，最大360；显式宽度避免Left自然测量只剩Thumb。页头删除额外「音乐库」眉标，沿用普通LibraryPage的真实库名单行、EgPageTitleStyle、省略/Tooltip/HeadingLevel1，计数与刷新仍独立保留。
+
+已读Microsoft Learn Acrylic/in-app-acrylic/command-bar/iconography及Gallery固定6de91feccadfbb0a796b71caedead5a2284f730e的Button、AppBarToggleButton、CommandBar、Acrylic、Slider和IconElementPage Example5，连同code-behind/helper；现有排列按用户明确指令保留，未机械替换CommandBar。Fluent system icons固定67e6dec1ee956af3ab4c746a2b3bb6a2e5520a44，20px Shuffle/Repeat All/Repeat 1/Heart原几何，MIT归属已补THIRD-PARTY-NOTICES。框架2a73274618c3f1042ee617dca5f64be782f93261核对PathIcon内部Path默认Stretch.None、Geometry类型转换及关联约束；20画布不做隐式缩放。两只子代理只读审查，主代理唯一写入。
+
+失败证据保留：063129731-27732为被否决的布局中间产物；064627931-12480隐藏启动失败；064656916-33108旧图标版本音乐3过/侧栏1红；PathGeometry内文及Figures字符串在当前2.3.9编译失败，改字符串原生转换；070856875-31704因复用资源Path.Data父级关联导致音乐/分页2红，已修复。071431025-40064修复后音乐/分页/图片3过、侧栏「切换侧栏重建主页货架或重新请求数据」1红。该轮5主题/1280、760、360实测seek360/336/316、bar1120x78/728x78/328x118；九颗墨迹中线700～701，与按钮中心701一致。该轮短轨道因Stretch上限而居中，最终又改为显式宽度+Left并增加左边缘断言，该轮为中间证据，最新收紧版见下。
+
+本批Shell/Core、Tests与MusicViewModelTests Release编译0警告0错误；music-fixture8/8、music-playback-fixture21/21、含Agreements的moviepilot-subscription-fixture114/114、MusicViewModelTests41/41，0失败0跳过。自动化扫描本任务均有稳定句柄，3处未定位位于未改PersonPage；本树8文件行尾/BOM/空白通过。最终收紧版原生证据为shell-probe-20261114-074121190-26172/logs：音乐界面、分页、图片3过；侧栏「切换侧栏重建主页货架或重新请求数据」1红，完整报告退出非零，不宣称分区全过。本批未触碰侧栏，缺乏同命令基线归因，交付前须在整合主树核实。5存活主题与1280/760/360宽度往返通过：seek/info360/252/298，surface836/644/310；收藏隐藏缩42并恢复、九颗图标居中与三态往返全过，代表实屏已目视。共享诊断锁曾被其他会话占用，等待释放后运行，没有结束其他进程。
+
+只用匿名假HTTP与拒绝启动的音乐后端，未真实播放/写服务器。跨DPI、200%文字、高对比度/关闭透明、Narrator/触摸及真实键盘/拖动仍留到用户要求交付时按主树最终代码补验。用户随后指出短轨道末端到时间读数之间的大片空位。进一步将Surface原生Center按内容测量、TrackInfo限制360，使胶囊随内容收紧（全按钮约836、收藏隐藏约794）；外层MusicBar仍Stretch/1120提供原760/480断点，避免自然尺寸使辅助按钮永远隐藏。初始轨道360，外层宽变化恢复目标宽、TrackInfo实际安排再裁到可用宽；保留顺序与两行回退。探针补信息区与轨道等宽、Surface上限、收藏隐藏缩42及恢复断言。产品提交后主动合入master并登记待交付；不发布、不改快捷方式、不推远端。
+
+2026-11-14音乐合入收尾：5148产品6b3291b合入干净master e3a6ffe为4b4ceec，仅追加进度冲突保留双方；7份产品/测试/许可文件SHA256一致。已登记待交付，合并未重跑全量、未发布/推远端。5148无临时分支，应用管理的聊天主检出清理遵守保护。

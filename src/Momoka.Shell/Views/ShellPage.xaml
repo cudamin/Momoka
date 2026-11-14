@@ -588,13 +588,13 @@
              反而最合适 —— 尺寸、右沿、图标格子都由框架按栏里那些条目同一条度量算，手摆两档的代码整段删掉。
              它 `SelectsOnInvoked="False"`：开的是另一个窗口，不该把这一页的目的地改掉或点亮。
 
-             **底色 2026-11-12 晚清掉了**（用户令「侧边栏和标题栏采用云母 Alt」）：这一块原先是
-             LayerFillColorAltBrush（面色 + 50%），压在画布上比内容再透一档；现在它和标题栏一样直接露出
-             窗口的 Mica Alt，只在底下压着这一页的画布（ContentHost 从 y=48 起画）。栏自己的
-             NavigationViewDefaultPaneBackground 早在 2026-10-14 就钉成 Transparent 了，所以这一处透明之后
-             整条栏只剩一层材质 —— 没有第二道面。 -->
+             **底色 2026-11-12 晚清掉，2026-11-14 又按用户令加回来**：清掉是用户令「侧边栏和标题栏采用云母
+             Alt」；11-14 用户指出「侧边栏与内容区之间对比度不够高」，要求侧栏加深一层面色。于是这一块铺
+             EgSidebarBrush（85% 主题面色，比内容画布的 60% 窗口色更实一档，15% 的 Mica Alt 仍透上来），栏作为一整列
+             （含左上角的应用名）自带分界，标题栏右侧仍只露材质。栏自己的 NavigationViewDefaultPaneBackground
+             早在 2026-10-14 就钉成 Transparent，所以整条栏只有这一道底，没有第二道面。 -->
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
-            Background="Transparent" Visibility="Collapsed">
+            Background="{ThemeResource EgSidebarBrush}" Visibility="Collapsed">
             <NavigationView x:Name="Sidebar" Margin="0,48,0,0"
                 PaneDisplayMode="Left" OpenPaneLength="256" CompactPaneLength="56"
                 IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
@@ -689,6 +689,23 @@
                 </NavigationView.FooterMenuItems>
             </NavigationView>
         </Grid>
+
+        <!-- 侧边栏右沿的拖动条（2026-11-14 用户令「新增支持拖动侧边栏边缘调整侧边栏宽度」）：
+             一条压在 SidebarHost 与内容区交界上的透明命中带，宽 7、从标题栏下沿（48）到底；指针进入时
+             换成左右箭头，按住左键左右拖就改 Sidebar.OpenPaneLength（见 ShellPage.Sidebar.cs）。
+             它整体站在内容区这一侧（左沿正好在栏的右沿），因此不会切走栏里滚动条与条目的命中；
+             Canvas.ZIndex 高于 SidebarHost（1）、低于外壳那一行（10），标题栏的拖动区不受影响。
+             栏收起时一起收起：收成 56 的图标栏没有「拖宽」这一档，开合仍归标题栏那颗折叠键。 -->
+        <local:SidebarResizeGrip
+            x:Name="SidebarResizeGrip"
+            Canvas.ZIndex="2"
+            Width="7"
+            Margin="256,48,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Stretch"
+            Background="Transparent"
+            AutomationProperties.Name="调整侧边栏宽度"
+            Visibility="Collapsed" />
 
         <local:SignInPage x:Name="SignIn" />
 

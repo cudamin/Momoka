@@ -69,9 +69,11 @@ internal static class MicaMaterialTests
             var shell = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml"));
             Assert.Equal("{ThemeResource EgCanvasBrush}", Named(shell, "ContentHost").Attribute("Background")?.Value,
                 "外壳那块画布不是 EgCanvasBrush");
-            // 2026-11-12 晚用户令「侧边栏和标题栏采用云母 Alt」：栏自己不再铺那层半透明面色，直接露出窗口材质。
-            Assert.Equal("Transparent", Named(shell, "SidebarHost").Attribute("Background")?.Value,
-                "侧边栏又铺了自己的一块底，云母 Alt 被盖住");
+            // 2026-11-12 晚用户令「侧边栏和标题栏采用云母 Alt」时这里清成了 Transparent；2026-11-14 用户
+            // 指出「侧边栏与内容区之间对比度不够高」并要求侧栏加深一层面色，于是栏这一列改铺 EgSidebarBrush
+            // （85% 窗口色，比内容画布更实一档，Mica Alt 仍透 15%）。透明度与配对见下面那条检查。
+            Assert.Equal("{ThemeResource EgSidebarBrush}", Named(shell, "SidebarHost").Attribute("Background")?.Value,
+                "侧边栏那层底不是 EgSidebarBrush");
             // 画布必须让开标题栏那一整条：它原本靠内边距让位，而内边距只推孩子、画布仍铺满整条 —— 那一档
             // 标题栏永远是画布色，材质一点也露不出来。2026-11-12 晚改成外边距，2026-11-13 标题栏 40→48。
             Assert.Equal("0,48,0,0", Named(shell, "ContentHost").Attribute("Margin")?.Value,
@@ -140,6 +142,35 @@ internal static class MicaMaterialTests
 
             Assert.Contains("(\"EgCanvasBrush\", theme => theme.Colors.Window.WithAlpha(CanvasAlpha))", source,
                 "ThemeHost 没有把画布按窗口角色加重画");
+        });
+
+        Test("侧栏面色：比内容画布更实一档的面色，换主题仍带同一个浓度", () =>
+        {
+            // 2026-11-14 用户令「侧边栏与内容区之间对比度不够高」→「侧栏加深一层面色」：栏这一列铺一层
+            // 85% 的面色，内容区是 60% 的窗口色 —— 两者底色不同、浓度也不同，栏右沿因此分得开。
+            var palette = Palette();
+            var dark = Dictionaries(palette)["Dark"];
+            var light = Dictionaries(palette)["Light"];
+            foreach (var (name, dictionary) in new[] { ("Dark", dark), ("Light", light) })
+            {
+                var sidebar = Entry(dictionary, "EgSidebarBrush");
+                var surface = Entry(dictionary, "EgSurfaceColor");
+                var color = sidebar.Attribute("Color")?.Value ?? string.Empty;
+
+                Assert.Equal(0xD9, Alpha(color), $"{name}：EgSidebarBrush 的浓度变了（{color}）");
+                Assert.Equal(LastSix(surface.Value), LastSix(color), $"{name}：侧栏底面不是主题的面色");
+                Assert.True(Alpha(color) > 0x80 && Alpha(color) < 0xFF,
+                    $"{name}：侧栏底面不是半透明的一层面色（{color}）");
+            }
+
+            Assert.NotNull(Entry(Dictionaries(palette)["HighContrast"], "EgSidebarBrush"),
+                "高对比度字典里没有侧栏面色");
+
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "ThemeHost.cs"));
+            Assert.Equal(Alpha(Entry(dark, "EgSidebarBrush").Attribute("Color")?.Value ?? string.Empty),
+                Constant(source, "SidebarSurfaceAlpha"), "首帧字面值与 ThemeHost 的浓度漂开了");
+            Assert.Contains("(\"EgSidebarBrush\", theme => theme.Colors.Surface.WithAlpha(SidebarSurfaceAlpha))", source,
+                "ThemeHost 没有把侧栏面色按主题面色重画");
         });
 
         Test("设置页材质：整窗一块 Mica ＋ 一层画布，标题栏与分类栏都不另铺底", () =>

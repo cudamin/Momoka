@@ -10,7 +10,7 @@
   把它摊成一面墙等于让每张图都变成一格模糊的色块；反过来，专辑、艺术家、歌单各只有几十个，它们要的是
   一眼认得出的封面。形状由 MusicCatalog.UsesCoverWall 决定（Core 里，有测试钉着）。
 
-  页头是一块场记板：眉字说这是哪一区，标题是库名，紧跟着等宽的条目读数 —— 数字走等宽是整套界面的老规矩，
+  页头与其他媒体库一样使用单行库名，紧跟着等宽的条目读数 —— 数字走等宽是整套界面的老规矩，
   「492 首」比「492 项」多说一件事（这一页读的是歌，不是条目）。
 
   分区按钮用 ToggleButton 而不是 RadioButton：后者带一圈单选圆点，是表单的写法；媒体库那边同一件事用的
@@ -197,44 +197,41 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- 场记板：眉字、库名、条目读数、刷新。 -->
+        <!-- 与 LibraryPage.LibraryTitle 一致：单行库名、独立计数与刷新。 -->
         <Grid ColumnSpacing="16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Spacing="2">
-                <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="音乐库" />
-                <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
-                     Styles/ItemTemplates.xaml keeps trimmed text in a star column beside Auto content.
-                     The music heading has no leading image, so it needs only the final two columns. -->
-                <Grid ColumnSpacing="12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock
-                        x:Name="MusicTitle"
-                        AutomationProperties.HeadingLevel="Level1"
-                        Style="{StaticResource EgPageTitleStyle}"
-                        Text="{x:Bind ViewModel.Title, Mode=OneWay}"
-                        TextTrimming="CharacterEllipsis"
-                        ToolTipService.ToolTip="{x:Bind ViewModel.Title, Mode=OneWay}" />
-                    <TextBlock
-                        x:Name="MusicCount"
-                        Grid.Column="1"
-                        Style="{StaticResource EgDataStyle}"
-                        Margin="0,0,0,6"
-                        Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}"
-                        VerticalAlignment="Bottom" />
-                </Grid>
-            </StackPanel>
+            <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
+                 Styles/ItemTemplates.xaml keeps trimmed text in a star column beside Auto content.
+                 The music heading has no leading image, so it needs only the final two columns. -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Name="MusicTitle"
+                    AutomationProperties.HeadingLevel="Level1"
+                    Style="{StaticResource EgPageTitleStyle}"
+                    Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                    TextTrimming="CharacterEllipsis"
+                    ToolTipService.ToolTip="{x:Bind ViewModel.Title, Mode=OneWay}" />
+                <TextBlock
+                    x:Name="MusicCount"
+                    Grid.Column="1"
+                    Style="{StaticResource EgDataStyle}"
+                    Margin="0,0,0,6"
+                    Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}"
+                    VerticalAlignment="Bottom" />
+            </Grid>
             <Button
                 x:Name="RefreshButton"
                 Grid.Column="1"
                 Click="OnRefresh"
                 Style="{StaticResource EgIconButtonStyle}"
-                VerticalAlignment="Top"
+                VerticalAlignment="Center"
                 AutomationProperties.Name="刷新音乐"
                 ToolTipService.ToolTip="刷新"><FontIcon Glyph="&#xE72C;" /></Button>
         </Grid>

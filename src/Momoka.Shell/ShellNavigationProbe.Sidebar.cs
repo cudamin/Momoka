@@ -167,6 +167,33 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
 
+            // 2026-11-14 用户令「拖动侧边栏边缘调整宽度」「只有展开时才支持调整」：拖动条只在展开档露面；
+            // 直接走产品那条重排方法，核对宽度生效、内容区让位、拖动条跟着走、夹取上下限，最后还原 256。
+            // 指针手势本身（按下、移动、松手）由 SidebarResizeContractTests 与下面的展开/收起显隐守卫覆盖，
+            // 这里不伪造指针坐标 —— 那只能证明被伪造的那一段。
+            var resizeGrip = Get<SidebarResizeGrip>(shell, "SidebarResizeGrip");
+            Require(resizeGrip.Visibility == Visibility.Visible, "展开档没有露出侧栏拖动条");
+            Call(shell, "ResizeSidebar", 320.0);
+            await LayoutAsync(shell);
+            Require(Math.Abs(nav.OpenPaneLength - 320) < 1 && Math.Abs(host.ActualWidth - 320) < 1
+                && Math.Abs(Get<Grid>(shell, "ContentHost").Margin.Left - 320) < 1,
+                $"拖动后侧栏宽度没有生效：pane={nav.OpenPaneLength:0.#} host={host.ActualWidth:0.#} "
+                    + $"content={Get<Grid>(shell, "ContentHost").Margin.Left:0.#}");
+            Require(Math.Abs(Left(resizeGrip, shell) - 320) < 1,
+                $"拖动条没有贴在栏的右沿：left={Left(resizeGrip, shell):0.#}");
+            Call(shell, "ResizeSidebar", 40.0);
+            await LayoutAsync(shell);
+            Require(Math.Abs(nav.OpenPaneLength - Momoka.Configuration.UiSettings.MinSidebarWidth) < 1,
+                $"拖动宽度没有夹到下限：{nav.OpenPaneLength:0.#}");
+            Call(shell, "ResizeSidebar", 4000.0);
+            await LayoutAsync(shell);
+            Require(Math.Abs(nav.OpenPaneLength - Momoka.Configuration.UiSettings.MaxSidebarWidth) < 1,
+                $"拖动宽度没有夹到上限：{nav.OpenPaneLength:0.#}");
+            Call(shell, "ResizeSidebar", 256.0);
+            await LayoutAsync(shell);
+            Require(resizeGrip.Visibility == Visibility.Visible && Math.Abs(host.ActualWidth - 256) < 1,
+                "侧栏宽度没有还原");
+
             void AssertCarouselScrollBar()
             {
                 var banner = Get<HomeBanner>(home, "Banner");
@@ -319,6 +346,7 @@ internal sealed partial class ShellNavigationProbe
                 + $"history={history}/{frame.BackStack.Count} forward={forward}/{frame.ForwardStack.Count} "
                 + $"offset={offset:R}/{scroll.VerticalOffset:R} extent={scroll.ExtentHeight:R} viewport={scroll.ViewportHeight:R}");
             Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "窄窗未自动收成图标栏");
+            Require(resizeGrip.Visibility == Visibility.Collapsed, "收起档仍露出侧栏拖动条（只有展开时才支持调整）");
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "760 compact");
             await SaveProbeScreenAsync("sidebar-compact-760-screen.png");
@@ -345,10 +373,11 @@ internal sealed partial class ShellNavigationProbe
             var expandedColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
             Require(railColor == expandedColor,
                 $"侧栏展开后底色变了：收起时 {railColor}、展开后 {expandedColor}");
-            // 2026-11-12 晚按用户令「侧边栏和标题栏采用云母 Alt」：栏自己不再铺那层半透明面色
-            // （LayerFillColorAltBrush），直接露出窗口材质 —— 再铺一块就是第二道面，云母被盖住。
-            Require(Get<Grid>(shell, "SidebarHost").Background is null or SolidColorBrush { Color.A: 0 },
-                "侧边栏又铺了自己的一块底，云母 Alt 被盖住了");
+            // 2026-11-14 按用户令「侧边栏与内容区之间对比度不够高，侧栏加深一层面色」：栏这一列铺
+            // EgSidebarBrush（85% 窗口色），比内容画布的 60% 更实一档；仍是半透明，Mica Alt 透得上来。
+            // 只读属性证明不了屏上的分界，但能钉住「这一层还在、并且没有变成实心或全透明」。
+            Require(Get<Grid>(shell, "SidebarHost").Background is SolidColorBrush { Color.A: > 0 and < 0xFF },
+                "侧边栏那层加深的面色不见或变成了实心/全透明");
             DumpSidebarLayout(shell, "600 expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
