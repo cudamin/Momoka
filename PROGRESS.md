@@ -1,4 +1,4 @@
-## 2026-11-15 商店模式按钮浅色高透明底、活动图标绿与加宽留白（本树，待合并）
+## 2026-11-15 商店模式按钮浅色高透明底、活动图标绿与加宽留白（已合入 master）
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-modify-store-mode-0pEcUv`，分支 `feat-modify-store-mode-0pEcUv`。用户三令（附商店模式按钮截图与微软商店「已播放／连播」参考图）：①把这些按钮换成浅色高透明背景；②开启连播还有已观看时，按钮中心的图标要切换为绿色；③加宽组件和侧边栏／窗口边缘之间的间距。中途明确「这个按钮的修改包括沉浸模式」「沉浸模式不改背景，只给触发的图标切换为绿色」。
 
@@ -10,7 +10,9 @@
 
 **验证。** Shell/Core Release x64 **0 警告 0 错误**；`detail-customization-fixture` **54/54**、`acrylic-controls-fixture` **39/39**、`Momoka.PageContractTests` **275/275**、`Momoka.AppearanceOpacityTests` **71/71**，均 0 失败 0 跳过。原生 `--probe-shell --probe-section detail-cards --screen 1`（`shell-probe-20261114-165956528-33452`）媒体商店部分全过：1240/760/360 左沿 96/56/32、简介与操作排对齐、绿色图标断言（商店与沉浸两档）均通过，截图 `store-detail-cards-media-{1240,760,360}.png` 与 `detail-immersive-enabled-Series-1200-screen.png` 已目视。该用例随后在 MoviePilot 订阅详情 `SeasonPanel` 两侧留白（左 96、右 408）失败：本批之前同命令即以左 64、右 376 失败，属既有基线问题（订阅页正文有右侧资料卡列），本批未触碰；未用放宽断言洗绿。
 
-**边界。** 未发布、未推远端、未合入 master；未连接真实服务器、未播放、未写服务器。用户参考图来自商店界面截图；高对比度、触摸、读屏与跨 DPI 未实测。
+**边界。** 已随合并提交 `c2673fd` 合入 master，未发布、未推远端；未连接真实服务器、未播放、未写服务器。用户参考图来自商店界面截图；高对比度、触摸、读屏与跨 DPI 未实测。
+
+**合入。** 合并时只与 master 新增的动效台账在 `PROGRESS.md` 顶部冲突，按双方保留处理；产品与测试文件自动合并。合并后主树 Shell/Core Release x64 与 `Momoka.Tests` 均 0 警告 0 错误；`detail-customization-fixture` 54/54、`acrylic-controls-fixture` 39/39、`Momoka.PageContractTests` 276/276、`Momoka.AppearanceOpacityTests` 71/71，均 0 失败 0 跳过。
 
 ## 2026-11-15 WinUI动效定向原生入口与候选测量（在途）
 
