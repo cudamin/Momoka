@@ -156,7 +156,8 @@ public sealed partial class ShellPage
             ? Visibility.Visible : Visibility.Collapsed;
 
         // A detail page has no destination tag; its first breadcrumb still identifies its library/search.
-        var tag = _current ?? _trail.FirstOrDefault()?.Tag;
+        // 从主页下钻时那一节是「主页」，不是详情所属的媒体库 —— 例外规则见 ResolveSidebarTag。
+        var tag = ResolveSidebarTag(_current, _trail.FirstOrDefault()?.Tag);
         var selected = tag switch
         {
             "home" => SidebarHome,

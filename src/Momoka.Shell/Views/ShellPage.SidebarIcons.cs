@@ -48,6 +48,16 @@ public sealed partial class ShellPage
         }
     }
 
+    /// <summary>
+    /// 侧栏该选中哪一项。顶层目的地直接用 <paramref name="current"/>；详情、人物、子网格这些下钻页
+    /// 没有目的地，用面包屑第一节认出它所属的媒体库或收藏。**第一节是「主页」时不算所属库** —— 那只是
+    /// 从主页卡片下钻的起点，不是详情所在的媒体库，侧栏不该继续亮着主页（2026-11-14 用户报）。
+    /// 纯函数留在这一份文件里，便于页面契约测试直接验证；选中项同时决定实心图标和
+    /// <c>NavigationView.SelectedItem</c>。
+    /// </summary>
+    internal static string? ResolveSidebarTag(string? current, string? firstCrumbTag) =>
+        current ?? (firstCrumbTag is { Length: > 0 } tag && tag != "home" ? tag : null);
+
     // 只解析本文件的固定路径，每个状态各持有自己的 Geometry；切页时复用对象，不重复解析或共享几何。
     private static PathIcon SidebarPathIcon(string data)
     {

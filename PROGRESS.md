@@ -1,3 +1,9 @@
+## 2026-11-14 侧栏选中：从主页进详情不再亮着「主页」（本树，待合并）
+
+独立树 `C:/Users/89400/.trae-cn/worktrees/feat-sidebar-drag-resize-p7Vx1S/fix-media-nav-highlight-8NILY6`，分支 `fix-media-nav-highlight-8NILY6`，基点 `e3a6ffe`。用户报「我都进入媒体详情页了，怎么左边的主页框还亮着」并提供侧栏折叠态实屏：详情页没有顶层目的地，`SyncSidebar` 原来用面包屑第一节回退，从主页卡片下钻时第一节正是「主页」，于是主页项继续被选中。改为 `ResolveSidebarTag(_current, _trail.FirstOrDefault()?.Tag)`：面包屑第一节是「主页」时不算详情所属媒体库，侧栏不亮任何目的地；从媒体库/收藏下钻的详情仍保留所属媒体库高亮（2026-11-14 侧栏图标批次的用户要求不变），顶层主页仍选中主页项。
+
+验证：Shell Release 0 警告 0 错误；`Momoka.PageContractTests` 257/257（新增纯函数用例：顶层主页仍选中、主页下钻不选中、媒体库/收藏下钻选中、空标签与 null 不选中）；`Momoka.SidebarPreviewTests` 31/31。均为定向离线验证，未起 GUI、未连真实服务器；运行截图与原生侧栏探针留待交付批次统一复验。未合并、未发布。
+
 ## 2026-11-14 订阅详情简介上移与 Shimmer 加载占位（本树，待合并）
 
 独立树 `C:/Users/89400/.qoder-cn/worktrees/app/8641b7/Momoka`，分支 `codex/mp-subscription-layout`，基点最新 master `5d1fe05`。用户令「参考上图修改订阅页面的布局」与「订阅页面的加载动画改为Shimmer」：MoviePilot 订阅详情头部文字列改为片名／媒体身份／评分／订阅状态 → 简介（标语、正文、资料站链接）→ 操作排，和微软商店条目页同一次序；右侧唯一资料卡、封面尺寸、季区与下方货架不动，沉浸与简洁共用同一份 XAML。首次读取媒体详情不再画居中转圈，改为整页骨架（封面、标题、身份、评分、简介行、操作胶囊、资料卡、季与演职员）加一道 `Shimmer` Composition 扫光；底色用不透明 `EgWindowBrush`，真实页面不再透出；关闭动画只留骨架，完成或失败整层收起。列表页转圈保留，不改。
