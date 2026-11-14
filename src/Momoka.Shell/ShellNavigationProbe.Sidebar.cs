@@ -221,7 +221,7 @@ internal sealed partial class ShellNavigationProbe
                     "商店搜索框宽度没有随窗口恢复");
             }
             Require(shell.BrowseRoot.Margin.Top == HomePage.ChromeHeight && Get<Grid>(shell, "ContentHost").Padding.Top == 0,
-                "商店模式没有让标题栏露出 Mica");
+                "商店模式没有让画布避开标题栏");
             HomeMotion.ApplyPreference(true);
             Require(settingsIcon.Source is not null, "开动画后侧栏设置图标没有恢复动态源");
             Require(titleSearch.Focus(FocusState.Programmatic), "标题搜索框不能获得焦点");
