@@ -271,6 +271,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("审查修复设置显隐与偏好恢复（宽窗）", () => ReviewSettingsAvailabilityAsync(1100), 60, section: ShellProbeSections.Settings);
             await CaseAsync("审查修复设置显隐与偏好恢复（窄窗）", () => ReviewSettingsAvailabilityAsync(760), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹幕输入栏、发送回执与截断搜索", DanmakuSendAsync, 60, section: ShellProbeSections.Playback);
+            await CaseAsync("弹幕热力正式加载、宽窄实屏与悬停读数", DanmakuHeatAsync, 60, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（宽窗）", () => DanmakuPanelAsync(1100), 30, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（窄窗）", () => DanmakuPanelAsync(360), 30, section: ShellProbeSections.Playback);
             await CaseAsync("播放控制条宽窄布局与负向溢出", PlayerTransportAsync, 30, section: ShellProbeSections.Playback);

@@ -360,6 +360,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailStickyHeader", "详情滚动悬浮卡片", DetailStickyHeaderAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
         AddCheck("InspectPlayerQueue", "播放画面队列选择", PlayerQueueAsync);
+        AddCheck("InspectDanmakuHeat", "弹幕热力加载、实屏与悬停", DanmakuHeatAsync, ShellProbeSections.Playback, timeoutSeconds: 60);
         AddCheck("InspectWindowHostResearch", "P7窗口宿主研究", () => WindowHostResearchAsync(), ShellProbeSections.Shell);
         AddCheck("InspectWindowHostFailure", "P7窗口失败清理", () => WindowHostResearchAsync(injectFailure: true), ShellProbeSections.Shell);
         AddCheck("InspectCardDetailConnected", "P6海报详情关联动画", CardDetailConnectedAnimationAsync, ShellProbeSections.Shell, timeoutSeconds: 120);

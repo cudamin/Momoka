@@ -18,6 +18,9 @@ internal static class DanmakuTests
 
     internal static void Register()
     {
+#if DANMAKU_HEAT_RENDERING_FIXTURE
+        DanmakuHeatRenderingTests.Register();
+#endif
         Test("弹幕：新增外观字段从旧配置补齐，非法字体和档位不能进入渲染", () =>
         {
             var settings = JsonSerializer.Deserialize<DanmakuSettings>("""{"FontFamily":"bad\\\\font{tag}","BorderStyle":99,"DensityMode":-1}""")!;
