@@ -13468,3 +13468,5 @@ PROGRESS/开发说明自动整合并保留原记录。所有10份产品/测试/�
 2026-11-14整合验证：产品提交 `5ba450e` 后在本树整合master `dcb811c`，自动合并商店/沉浸和首页柔光，唯一PROGRESS追加冲突保留双方完整记录；新增预览probe明确 `EnableImmersive=false`，未恢复退役SidebarMode，主树所有模式/搜索/轮播/工具组检查保持。接线契约另守初始化handled PointerPressed及独立probe商店模式；专项重新31/31、0失败0跳过（`artifacts/regressions/20261114-071223725-0276f70620fc414cbac5357644521d06/summary.json`），整合后Release x64 Shell/Core0警告0错误（`work/sidebar-preview-build-integrated.log`）。两名代理只读审查产品/整合/测试，无确定未解决缺陷；物理输入仍不在替身覆盖内。测试子树全部内容已保留，应用归档成功，恢复键 `C:/Users/89400/.codex/worktrees/sidebar-preview-tests/Momoka`、原HEAD `5d1fe05`；忽略内容仅匿名测试与构建产物。整合原生probe暂等待其他聊天PID4648诊断锁释放，未结束进程或绕锁。
 
 2026-11-14主树合入：干净master `dcb811c` 以ff进入 `1d97cea`，产品 `5ba450e` 与测试全部已保留；13份任务文件整合后逐文件无master缺少的内容，双方历史保持。台账第23项登记适用验证与物理输入/真实播放边界；最终原生检查仍按只读探针等待其他聊天诊断锁，不自行交付，不发布或上传，桌面保持原发布件。
+
+ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同，独有进度已进入master；工作树干净，顶端 `1d97cea` 已合入，在同一提交转detached并删除本任务分支。测试子树已由应用成功归档。ed02为本聊天主检出，应用archive_worktree明确拒绝（The task's primary checkout cannot be removed），遵守保护保留本树，不用原生命令绕过。Shell两轮构建和整合回归摘要已保留用户日志 `sidebar-preview-evidence-20261114-ed02`，运行截图仍在各自shell-probe目录；恢复线索产品 `5ba450e`、整合 `1d97cea`。
