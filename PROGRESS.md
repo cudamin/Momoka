@@ -13717,3 +13717,15 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 读取固定 WinUI main `9402930972f25cfcad82abc9f82ecab29936f404` 的Frame_Partial.cpp/NavigationHistory.cpp：公开GoBack(Suppress)先更新退出页PageStackEntry再推入ForwardStack，旧“仍须Entrance”断言与源码语义不符。改为分别严格核初次New/Entrance、返回后原页面/同request/Suppress、实际无参GoForward/Forward/Suppress，全部字段/异常及每route完整或部分结果落盘；源码只是解释，2.3.9实跑仍由主控重验。影视库失败仍串行跑音乐库，全部结束后汇总拒绝，不能吞失败为通过。
 
 完整生产证据源链接测试29/29、失败0、跳过0；当前Release/x64 Core/Tests编译0警告0错误，含成功、首路失败仍执行次路、两路失败及挂起串行反例，首轮完整实帧拒绝/缺历史证据不足回归。遵主控安排不重复Shell构建、不启动任何窗口、不发布或上传；主控接入后统一Shell编译与原生分区串行复验。
+
+## 2026-11-15 WinUI 动效 S0～S4 施工收尾
+
+用户“开始做吧”后在主施工树 `C:/Users/89400/.codex/worktrees/winui-motion-review-doc/Momoka`、临时分支 `codex/winui-motion-implementation` 实施默认 S0～S4，起点63ef01a，期间整合master ee3d23c，保留其他批次弹幕热力。产品/测试提交b03668b（呈现责任）、cad4f2e与3bc3cde（关联计时/唯一终态/重入）、4b9ed43（首页等待/排序/齿轮系统偏好及离页）、5669199与bbb9509/49714bc（原生motion分区、真实帧/历史与截图宽度守卫）。未改依赖、播放管线或真实数据。
+
+当前Shell Release重编0警告0错误（3分24秒），Core/主测试0警告0错误；Connected61/61、Browse32/32、DetailImage26/26、UiMotion80/80、Priority35/35、Sticky58/58、Rows46/46、PageContract276/276、SettingsProbe36/36、Navigation10/10、HomeDirectory82/82、HomeFold71/71、工具motion-probe-fixture29/29，均失败0跳过0，套件不相加。编码/空白43个文本文件通过；施工文档12/12、38处本地链接、22处固定/官方引用通过，另两处验收链接可达。S1/S3及文档独立只读复核，已修历史时态与离线/原生证据分类。
+
+原生匿名motion最终shell-probe-20261114-164224596-33304为5/5、退出0，正常结束；海报前进/正式返回、人物唯一Completed、失败回退、悬浮卡实际1000/760/360、主页历史/滚动及两路候选完成。首海报启动600.9283ms超过约250ms目标，返回209.1449ms、人物45.6615ms；不能从总时间归因网络/CPU，重复暖冷与分段性能留待交付。两路Entrance在应用关闭并清ContentTransitions后仍移动（影视103/102/101→终100；音乐112/110/109→终108），明确保留Suppress+原fade，未迁移。真实2.3.9历史确认GoBack(Suppress)后原Page/同request/Suppress与无参GoForward一致；起始不可见采样使HistorySettled为false，不能据此说旧Entrance重放。最终Shell哈希2FCFA843D614B085B6B794A365C2D6F5BE7777DFBA4B459FFE21FCE98904A730。
+
+首轮36764为3/5，海报截图Chrome遮挡及错误历史断言；另39048隐藏启动宿主不可见失败，原档均保留。760首轮实际1000的证据无效，工具改为等待真实客户区/页宽后重跑。少量代表实屏已目视，全部原生JSON留隔离日志；详细数字及边界在docs/WinUI动效施工验收-2026-11-15.md。没有Windows设置修改、真实服务、真实输入/读屏、跨DPI、GPU/资源、视频/独占uosc/外部mpv运行证明；AnimatedVisualPlayer/Composition Effects暂缓。
+
+分支已具备合并条件，按项目规则主动合入master并在合入后追加台账；不发布、不推送、不改快捷方式。交付时按台账并集在主树最终代码重验。本任务辅助树逐文件确认后清理，忽略故障日志先保留；聊天primary检出遵守应用保护。
