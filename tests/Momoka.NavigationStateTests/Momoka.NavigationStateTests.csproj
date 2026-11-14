@@ -11,7 +11,6 @@
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/LibraryRequest.cs" Link="Production/LibraryRequest.cs" />
-    <Compile Include="../../src/Momoka.Shell/Services/ServerListModels.cs" Link="Production/ServerListModels.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractNavigationStateSources" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
@@ -34,19 +33,13 @@
         };
         var shell = read("ShellPage.xaml.cs");
         var music = read("MusicLibraryPage.xaml.cs");
-        var lists = read("ServerListsPage.xaml.cs");
         var musicNavigation = read("ShellPage.Music.cs");
-        var listsNavigation = read("ShellPage.ServerLists.cs");
         var generated = "// Extracted verbatim from this tree; HWND/Frame/ViewModel boundaries are substitutes.\n#nullable enable\n" +
             "using System.ComponentModel;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Xaml.Media.Animation;\n" +
             "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nusing Momoka.Music;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Momoka.Shell.Services;\nusing Momoka.Shell.ViewModels;\nnamespace Momoka.Shell.Views;\n" +
             between(shell, "public sealed record Crumb(", "\n\n/// <summary>") +
-            between(lists, "internal sealed record ServerListsRequest(", "\n\npublic sealed partial class ServerListsPage") +
             "\npublic sealed partial class MusicLibraryPage : Page\n{\n" +
             between(music, "    protected override async void OnNavigatedTo(NavigationEventArgs args)", "\n    /// <summary>\n    /// 搜索框的宽度") +
-            "\n}\npublic sealed partial class ServerListsPage : Page\n{\n" +
-            between(lists, "    protected override async void OnNavigatedTo(NavigationEventArgs args)", "\n    private async void OnAccountChanged(") +
-            between(lists, "    public void Release()", "\n}\n") +
             "\n}\ninternal sealed partial class ShellPage\n{\n" +
             between(shell, "    public void GoTo(string tag, bool force = false)\n", "\n    /// <summary>\n    /// 设置 (需求 1") +
             between(shell, "    private static NavigationTransitionInfo BrowseTransition()", "\n    private void BeginNavigation(") +
@@ -56,7 +49,6 @@
             between(shell, "    private void GoForward()\n", "\n    private void OnBreadcrumbClicked(") +
             between(shell, "    private void AdoptContentTag()\n", "\n    /// <summary>\n    /// The search page:") +
             between(musicNavigation, "    internal void OpenMusicContainer(", "\n}\n") +
-            between(listsNavigation, "    private void OnServerListsClicked(", "\n    private bool OpenServerList(") +
             "\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)

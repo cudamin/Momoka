@@ -7,6 +7,36 @@
 **同步测试。** `MoviePilotSubscriptionPageStateTests` 的 XAML 次序断言改为头部无 `HeroSurface`/`HeroMica`、`HeroFacts` 与 `BodyFlow` 同住 `BodyRow`，并新增 `ShellPage.ApplyChrome` 为本页收起面包屑的源码契约；`Agreements.txt` 删除 `HeroSurface` 句柄基线；`ShellNavigationProbe.MediaDetail.RequireSubscriptionBodyLayout` 与 `ShellNavigationProbe.Subscriptions` 的资料卡／分区断面断言改为「资料卡在正文右列、左列分区只与左列同宽且不与它重叠」，并删去不存在的 `HeroSurface`/`HeroMica` 读数。
 
 **验证。** Release Shell/x64 **0 警告 0 错误**；`moviepilot-subscription-page-state-fixture <当前 Shell DLL> <树根>` **40/40**；`Momoka.PageContractTests` **274/274**；`Momoka.MoviePilotSubscribeSettingsTests` **77/77**；主测试首轮 **5103/5103**，末次在最终代码上重跑为 **5087/5103**，16 条红全部是 `SelfCheckOutputIsolationTests` 的「已有当前用户的自检运行中」——别的进程占着本机自检互斥量，本页相关用例（页面状态 40/40）在最终代码上全过，这 16 条按环境红如实记录，不冒充全绿。原生 `--probe-shell --probe-section moviepilot --screen 1`：日志 `shell-probe-20261114-143814928-1792` 跑完 27 项，除既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时外全部通过（订阅详情、电影订阅详情、编辑订阅、最窄布局恢复都在内），随后在同一处已知的「无图季列表图片恢复」布局循环路径崩溃（该用例自带 `StartBringIntoView` 会打成 LayoutCycle 的注释，先前的修复轮次也记录过同一路径），因此更后面的「订阅详情沉浸与简洁模式切换」没有跑到。宽窄实屏 `mp-subscription-header-1240.png`、`mp-subscription-header-760.png`、`mp-subscription-related-1240.png` 已目视：1240 是左列季／货架、右列资料卡；760 资料卡在正文最上面且左列全宽，头部没有卡面。面包屑收起只有 `ShellPage.ApplyChrome` 的源码契约与页面实屏（页面截图不含外壳），没有用整窗外壳截图复核；简洁模式（关沉浸）的实屏也没跑到。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏与跨 DPI。
+## 2026-11-14 商店详情宽版式断点下调与内容右移（已合入，待交付）
+
+用户报一张 1338 宽窗口的商店详情：「才这个窗口大小你就切窄窗模式了？右边还留着一大片空位呢，而且你也不懂得往中间移一点？」。该窗客户区 1328、侧栏 256，内容区约 1072 DIP；原判断写死 `PageWidth >= 1100`，差 28 就落进窄档（整幅背景＋亚克力＋40 留白的一列），右侧空出约 470 DIP。新增 `DetailHero.StoreWideFloor = 1024` 统一收口：`StorePageInset`、`StoreBackdropWidth／Height`、`StoreContentWidth`、详情页与 MoviePilot 订阅页的亚克力显隐、商店预告的宽档判断全部改读这个常量。页宽 1024～1099 这一段因此从窄档的 40 留白换到宽档的 64，内容列随之右移 24 DIP（用户要的「触发时往右移一点点」），同时右侧恢复剧照／预告视口。
+
+验证：Shell/Core x64 Release 0 警告 0 错误；`detail-customization-fixture` 53/53、`detail-action-readiness-fixture` 89/89，0 失败 0 跳过，覆盖 1023／1024／1025 与 1072 的断点、背景尺寸和实际 ViewModel 通知。未跑原生探针与实屏截图；按 UI 布局项留到交付时在最终主树补 1280／1072／760 截图与宽窄切换检查。
+
+合入：产品 `e8edce1`，master 合并提交 `049d6f5`（自动提交工具给的是通用消息）；冲突只剩 `DetailPage.Store.cs` 的 using 列表，按 master 去掉已不再需要的 `Microsoft.UI.Xaml.Controls`、保留 `Momoka.Emby`。合并后主树 Shell/Core/Tests x64 Release 0 警告 0 错误，`detail-customization-fixture` 54/54、`detail-action-readiness-fixture` 89/89，0 失败 0 跳过。
+## 2026-11-14 账号菜单整理：按钮左移、分组线、删除服务器清单与添加服务器（已合入，待交付）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/fix-narrow-mode-center-yM3M3i/feat-ui-layout-update-NBowFS`，分支 `feat-ui-layout-update-NBowFS`，基点 `5ac4c45`。用户附账号菜单截图四句：①用户按钮往左移一点；②聚合模式下面划条线分割；③删除服务器清单选项和服务器清单页面，删除添加服务器按钮；④添加账号上面加条线分割。追问后用户选择「彻底删除清单功能（推荐）」：账号菜单入口、`ServerListsPage`／`ServerListsViewModel`／`ServerListsService`／`ServerListModels`／`ServerListDialogs`、专用探针与 `Momoka.ServerListsTests`、`Momoka.ServerListsOwnershipTests` 两个专项一起退役，`server-lists` 探针分区与检查台两项入口一并移除；搜索/媒体库点开播放列表改走普通 `LibraryPage`（`ParentType = Playlist`，仍按服务器列表顺序读成员）。账号按钮右缝 8→16 DIP（XAML 首帧近似值 152→160）；聚合开关下、添加账号上各加 1 DIP `EgBorderBrush` 分割线，聚合开关按保存服务器数收起时上分割线一起收起。
+
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.Tests` **5106 项、通过 5090、失败 16、跳过 0**，16 条全部是 `自检：…`／`自检输出：…` 因当前用户共享自检互斥锁被其他会话占用（`已有当前用户的自检运行中；请等它退出，不会关闭用户程序`），本批未触碰自检代码，未结束他人进程；本批新增/更新的 5 条账号菜单与按钮间距测试全部通过；`Momoka.NavigationStateTests` **10/10、0 失败 0 跳过**；`tools/check-diff.ps1` 检查 20 个文本文件通过。原生探针与实屏未跑：同一时刻另一工作树有 `--probe-shell` 在运行，交付时按台账补 `shell` 分区与账号菜单截图。未发布、未推送；合并后登记待交付台账。
+
+合入：产品 `8747796`，master 合并提交 `01e452f`；只解决 PROGRESS 顶部双侧追加冲突，产品与测试自动合并。合并后主树 Shell Release x64 **0 警告 0 错误**；台账已登记该批的交付验证范围。
+
+## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。
+
+验证：Shell Release 0 警告 0 错误；`toolbar-icon-fixture` 15/15（`ShellChromeTests` 新增标题栏底色四条：48 高、`EgSidebarBrush`、不接管输入、默认收起，并把「栏从 48 起画」改钉在 `SidebarHost`）；`detail-customization-fixture` 53/53；`Momoka.PageContractTests` 274/274；`Momoka.SidebarPreviewTests` 31/31；`local-media-layout-fixture` 21/21（含 Agreements，句柄基线新增 `TitleBarBackground` 一行并注明来由）。原生探针本轮未跑：同一时刻本机已有别的树在跑 `--probe-shell --probe-section moviepilot`（PID 20716，桌面互斥锁被占），没有结束别人的进程；交付前需补 `--probe-section shell --screen 1` 与展开/收起实屏目视。未合并、未发布、未连真实服务器；高对比度、跨 DPI 未实测。
+
+## 2026-11-14 简洁（商店）详情：剧情说明移到封面右边、导演行与封面底齐平（已合入，待交付）
+
+用户给出一张简洁（商店）模式详情页截图，要求把封面下方的剧情说明移到封面右边，导演那一行的底部刚好和封面底部持平，填满剧情说明，写不完的自动折叠。独立树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-plot-desc-right-LdxbV3`，分支 `feat-plot-desc-right-LdxbV3`，基点 `df37a93`。适用面确认为仅简洁（商店）模式；超出的文字直接以省略号收尾、悬停看全文，不保留「阅读更多」。
+
+实现：`DetailPage.Store.cs` 把 `OverviewPanel` 从封面下方的 `StoreHeroDetails` 搬到 `HeroStack` 末尾（文件选项和操作键仍留在封面下方）；`SyncStoreOverviewFill` 以「封面下沿减简介顶」设简介高，`OverviewBody` 拆成星号正文行加底部 `OverviewFooter`（导演行钉底），两者共同保证导演行底与封面底齐平。`UpdateStoreOverviewLines` 按正文剩余高、底部行实测高和固定行高 24 算出 `DetailViewModel.StoreOverviewLines`，`OverviewMaxLines` 在商店模式读它并配合 `CharacterEllipsis` 自动折叠；片名折行把右栏撑得比封面高时用 52 的保底高，宁可让封面底那条线落空也不把简介压没。退出商店模式时清掉简介和正文容器的显式高度，尾部/紧凑/沉浸版式恢复原来的内容高排法。新增 Core 纯函数 `DetailHero.OverviewLines` 及单测；更新页面契约测试和 `InspectDetailMica`／`InspectStoreDetailCards` 探针的左沿、次序、底对齐与头部裁切期望。
+
+验证：Shell/Core Release x64 **0 警告 0 错误**；主测试 **5104/5104、失败 0、跳过 0**；`Momoka.PageContractTests` **274/274、失败 0、跳过 0**。原生 `--probe-shell --probe-section detail-cards --screen 2` 因已有 Momoka 实例持有单实例锁，本次进程按既有约定只发出激活信号后退出（未产生新的 shell-probe 目录），未结束其他进程、未绕锁，因此**没有**本轮的真实 UI 探针/截图证据；合并与交付前需在无实例占用时补跑该专项并目视截图。
+
+合入收尾：按用户令合入 master；解决与主树「文件选项去掉商店版本框样式」的冲突时保留主树的移除，只把简介搬到封面右栏和撑满逻辑接回。合并后只登记待交付批次，不跑全量、不发布、不推送；真实 UI 探针仍待无实例占用时补跑。
 
 ## 2026-11-14 删除已执行的旧 WinUI 重构计划
 

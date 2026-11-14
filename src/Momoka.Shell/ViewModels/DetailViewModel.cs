@@ -196,6 +196,7 @@ public sealed partial class DetailViewModel : PageViewModel
                 OnPropertyChanged(nameof(CoverAlignment));
                 OnPropertyChanged(nameof(CornerVisibility));
                 OnPropertyChanged(nameof(HeroContent));
+                OnPropertyChanged(nameof(HeroColumnHeight));
                 OnPropertyChanged(nameof(HeroRoom));
                 OnPropertyChanged(nameof(HeroInset));
                 OnPropertyChanged(nameof(TailInset));
@@ -758,6 +759,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
+    [NotifyPropertyChangedFor(nameof(HeroColumnHeight))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
@@ -1151,8 +1153,28 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 的部分是画面），片名压在画面的下沿上，参考图上正是这个样子；没有画面可铺时带子等于内容的高，两个
     /// 对齐摆出来一模一样。
     /// </para>
+    /// <para>
+    /// 沉浸宽版式也靠上（2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」）：
+    /// 那一档这一栏被撑到封面同高（<see cref="HeroColumnHeight"/>），徽标（没有徽标时是片名）从封面的上沿起排，
+    /// 操作那排键连同「剩余 x 分钟」仍贴在这一栏的下沿（页面把中间那一截空当让给 <c>ColumnActions</c> 的上边距）。
+    /// </para>
     /// </summary>
-    public VerticalAlignment HeroContentAlignment => StoreMode || HeroCard ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+    public VerticalAlignment HeroContentAlignment =>
+        StoreMode || HeroCard || Showcase ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+
+    /// <summary>
+    /// 沉浸宽版式里片名为首的那一栏要撑到多高 —— 和左边封面同高（2026-11-14 用户令「右侧的徽标要和封面图一样高，
+    /// 没有徽标的时候片名要和封面一样高」）。
+    /// <para>
+    /// 只在这一档给数：沉浸（<see cref="Showcase"/>）一定是有图、宽版式，封面按 <see cref="DetailHero.ShowsStill"/>
+    /// 摆着，<see cref="StillHeight"/> 就是它画出来的高。其余版式给 0（不撑），纸面档与紧凑档的版面一个像素不动。
+    /// </para>
+    /// <para>
+    /// 撑高的是那一栏自己（<c>HeroStack.MinHeight</c>），不是把测出来的高再喂回带高 —— <see cref="StillHeight"/>
+    /// 与内容都跟带高无关，所以不会出现「量到的高等于带高」那种自己咬自己的数（同 <c>StackRoom</c> 上那段）。
+    /// </para>
+    /// </summary>
+    public double HeroColumnHeight => Showcase ? StillHeight : 0;
 
     /// <summary>沉浸单集沿用剧页封面顶对齐；简洁单集保留居中卡面。</summary>
     public VerticalAlignment CoverAlignment => !StoreMode && IsEpisodePage && !Showcase ? VerticalAlignment.Center : VerticalAlignment.Top;
@@ -1350,6 +1372,11 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 的一截空气。板底要的那「少量边距」由 <see cref="CardTailGapHeight"/> 那 16 和说明自己的 8 出，所以这里
     /// 归零不会让字贴到板沿上。其余页面照旧 16／24。
     /// </para>
+    /// <para>
+    /// 沉浸档底下也收成 0（2026-11-14 用户令「剧情说明要接在剩余 22 分钟下方，留点空位」）：那一档这一栏撑满
+    /// 封面（<see cref="HeroColumnHeight"/>），「剩余 x 分钟」就贴在封面下沿上；带子底下再留 24 只是把剧情说明
+    /// 往下推。说明的第一行由此落在下沿底下 <see cref="TailInset"/> 那点缝加它自己的内边距上。
+    /// </para>
     /// </summary>
     public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 16, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
@@ -1361,7 +1388,7 @@ public sealed partial class DetailViewModel : PageViewModel
                     TailInset.Left + OverviewPanelPadding.Left,
                     DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
                     88,
-                    DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
+                    Showcase ? 0 : DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
 
     /// <summary>
     /// 带子底下那一段的内边距。同 <see cref="HeroInset"/>：集页把上面那道收到 12，那一叠键和「音频」
@@ -1505,11 +1532,12 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
     /// <para>
-    /// 商店模式左右归零（2026-11-14）：这一块已经搬进封面下方的 <c>StoreHeroDetails</c>，它的左沿就是封面的
-    /// 左沿，再留 24 会把简介推离那条竖线；上下留一点，和同组下一块的 14 间距一起读。
+    /// 商店模式左右归零（2026-11-14）：这一块搬进封面右边的片名栏，左沿与片名、评分对齐，再留 24 会把简介
+    /// 推离那条竖线。上留 2；底下归零 —— 简介撑到封面下沿，导演那一行的底就是这一块的底
+    /// （见 <c>DetailPage.Store.cs</c> 的 <c>SyncStoreOverviewFill</c>），再留 6 就不再齐平。
     /// </para>
     /// </summary>
-    public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 6) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
+    public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 0) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 默认宽详情左8加面板24，内容与封面左沿32对齐。
@@ -2197,7 +2225,11 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ReadMoreVisibility))]
     public partial bool OverviewTrimmed { get; set; }
 
-    public int OverviewMaxLines => StoreMode ? 2 : Expanded ? 0 : CollapsedLines;
+    /// <summary>
+    /// 简介最多写几行。简洁（商店）模式下由页面按「封面右栏还剩多高」实测回来
+    /// （<see cref="StoreOverviewLines"/>，见 <c>DetailPage.Store.cs</c>），其余版式是四行或展开后的不限。
+    /// </summary>
+    public int OverviewMaxLines => StoreMode ? StoreOverviewLines : Expanded ? 0 : CollapsedLines;
 
     public TextTrimming OverviewTrimming => !StoreMode && Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
 

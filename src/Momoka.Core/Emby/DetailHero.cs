@@ -19,8 +19,23 @@ namespace Momoka.Emby;
 /// </summary>
 public static class DetailHero
 {
+    /// <summary>
+    /// 商店详情从单列换成宽版式的断点：页面宽到这个数就不再走「整幅背景 + 亚克力 + 内容一列」的窄档，
+    /// 改成顶部右侧留出剧照／预告视口，内容列排在左边。
+    /// <para>
+    /// 原先是 1100。2026-11-14 用户在一张 1338 宽的窗口实拍上报「才这个窗口大小你就切窄窗模式了？右边还留着
+    /// 一大片空位」——那扇窗的内容区只有 1072，差 28 就掉进窄档，右侧空出一整块。取 1024 之后，常见窗口
+    /// （1280 级及更宽）都留在宽版式；窄档只在真正放不下右侧视口时才出现。
+    /// </para>
+    /// <para>
+    /// 同一档起两侧留白也换成 64（见 <see cref="StorePageInset"/>）：宽版式的内容列因此比窄档的 40 再往右
+    /// 让一截，正是用户那句「触发时往右移一点点」。
+    /// </para>
+    /// </summary>
+    public const double StoreWideFloor = 1024;
+
     /// <summary>商店内容两侧留白；超宽页面由视图的居中最大宽度继续留出外侧空间。</summary>
-    public static double StorePageInset(double width) => width >= 1100 ? 64 : width >= 600 ? 40 : 24;
+    public static double StorePageInset(double width) => width >= StoreWideFloor ? 64 : width >= 600 ? 40 : 24;
 
     /// <summary>商店剧照与预告使用同一顶部右侧视口，原图在视口内等比裁切。</summary>
     public static double StorePictureWidth(double width, double ratio) => TrailerPreview.BackgroundWidth(width);
@@ -29,10 +44,10 @@ public static class DetailHero
         TrailerPreview.BackgroundHeight(width);
 
     /// <summary>窄商店窗口将静态背景铺在顶部内容后，由页面内亚克力遮住。</summary>
-    public static double StoreBackdropWidth(double width) => width is > 0 and < 1100
+    public static double StoreBackdropWidth(double width) => width is > 0 and < StoreWideFloor
         ? width : StorePictureWidth(width, 9d / 16);
 
-    public static double StoreBackdropHeight(double width, double heroHeight) => width is > 0 and < 1100
+    public static double StoreBackdropHeight(double width, double heroHeight) => width is > 0 and < StoreWideFloor
         ? Math.Max(420, double.IsFinite(heroHeight) ? heroHeight : 0) : StorePictureHeight(width, 9d / 16);
 
     /// <summary>
@@ -301,6 +316,23 @@ public static class DetailHero
     {
         var along = double.IsFinite(share) ? Math.Clamp(share, 0, 1) : 0;
         return roomy + ((tight - roomy) * along);
+    }
+
+    /// <summary>
+    /// 一段固定行高的正文在给定高度里能写几行 —— 简洁（商店）模式把简介撑满封面右栏、
+    /// 写不完的用省略号收尾（2026-11-14 用户令「填满剧情说明，写不完的自动折叠」）。
+    /// <para>
+    /// 至少一行：高度还没量到（0）、或者片名折行把那一栏挤得只剩几个像素时，给 0 行会让简介
+    /// 整块消失，而「写不完就折叠」要的是先站住一行再截。行高不成话时同样按一行答。
+    /// </para>
+    /// </summary>
+    /// <param name="room">除去内边距和底部导演行之后留给正文的高。</param>
+    /// <param name="lineHeight">正文的行高（页面上 TextBlock 自己那个 <c>LineHeight</c>）。</param>
+    public static int OverviewLines(double room, double lineHeight)
+    {
+        if (!(lineHeight > 0) || !double.IsFinite(room)) return 1;
+
+        return Math.Max(1, (int)Math.Floor(room / lineHeight));
     }
 
     /// <summary>

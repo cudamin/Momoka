@@ -14,23 +14,27 @@ internal static class StoreDetailLayoutTests
 
     internal static void Register()
     {
-        Test("商店详情：简介、版本框和操作键依次排在封面下方", () =>
+        Test("商店详情：简介撑满封面右栏，文件选项和操作键排在封面下方", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
             var details = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreHeroDetails");
             Assert.Equal("1", (string?)details.Attribute("Grid.Row"));
             Assert.Equal("2", (string?)details.Attribute("Grid.ColumnSpan"));
-            // 版本框的三个标签都要有句柄：运行期把它们盖在选择框上，见 DetailPage.Store.cs。
-            foreach (var name in new[] { "SourceLabel", "AudioLabel", "SubtitleLabel" })
-                Assert.True(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == name),
-                    "版本框缺少标签句柄：" + name);
+            // 简介内部拆成「正文（星号行）+ 底部导演行」：撑满时正文吃掉差额，导演那一行钉在封面下沿。
+            var overview = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "OverviewPanel");
+            Assert.True(overview.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "OverviewBody"),
+                "简介没有拆出可撑满的正文容器 OverviewBody");
+            Assert.True(overview.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "OverviewFooter"),
+                "简介没有拆出底部导演行 OverviewFooter");
             var store = Source("Views/DetailPage.Store.cs");
-            Assert.Contains("StoreHeroDetails.Children.Insert(0, OverviewPanel);", store);
-            Assert.Contains("StoreHeroDetails.Children.Insert(at < 0 ? 0 : at + 1, FileOptions);", store);
+            Assert.Contains("HeroStack.Children.Add(OverviewPanel);", store);
+            Assert.Contains("StoreHeroDetails.Children.Add(FileOptions);", store);
             Assert.Contains("StoreHeroDetails.Children.Add(ColumnActions);", store);
-            Assert.Contains("Grid.SetColumnSpan(picker, 2);", store);
-            Assert.Contains("Canvas.SetZIndex(label, 1);", store);
-            Assert.Contains("picker.Padding = new Thickness(StorePickerLabelLane, 0, 0, 0);", store);
+            Assert.Contains("SyncStoreOverviewFill();", store);
+            Assert.Contains("DetailHero.OverviewLines(room, OverviewLineHeight);", store);
+            // 文件选项保持各页通用的行样式（标签在外、选择框自己一颗），不再排成商店「版本」框。
+            Assert.False(store.Contains("PlaceStorePickerBoxes", StringComparison.Ordinal),
+                "商店文件选项又排成了版本框");
         });
 
         Test("详情操作：从头开始只在更多菜单里，紧跟继续播放一行", () =>

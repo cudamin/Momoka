@@ -614,7 +614,7 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
                 ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(ui);
-                // 商店头部的版本框可能让滚动内容保留上一拍宽度；切换后先等当前客户区宽落地。
+                // 商店头部的文件选项可能让滚动内容保留上一拍宽度；切换后先等当前客户区宽落地。
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
                 await LayoutAsync(page);
                 Require(page.ViewModel.HeroCardShown == (wide && subject?.Type == EmbyItemType.Episode && !page.ViewModel.BackdropShown),
@@ -650,9 +650,9 @@ internal sealed partial class ShellNavigationProbe
             "沉浸正文仍保留卡片底色或描边");
         Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 },
             "沉浸正文纸面仍遮住固定背景");
-        // 2026-11-08 用户令「参考集页面给其他媒体页面的其他信息也加上亚克力背景」：四类页面都保留可读卡面。
-        Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255, Opacity: 1 },
-            "沉浸信息表没有保留可读亚克力卡面");
+        // 2026-11-14 用户令「改为去掉其他信息的背景卡片」：四类页面的信息表都不再铺卡面（此前那块亚克力
+        // 是 2026-11-08 为了暗字压图可读加的）。字换成压图浅墨，由 PaintInfoInk 负责。
+        Require(Get<StackPanel>(page, "InfoPanel").Background is null, "沉浸信息表仍铺着卡面");
         RequireCardInk(page, onScrim: true);
         Require(!page.ViewModel.ShowShelfLines && page.ViewModel.TailMinHeight == 0
             && Get<Border>(page, "CardTailGap").ActualHeight < 0.01,

@@ -1030,6 +1030,28 @@ public sealed class CardItem : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 悬停预览补读详情只做一次：媒体库列表按用户勾的显示字段点名，默认只有标题和年份，评分、题材、
+    /// 概要与预告数量都不在里面。补到之后并进条目，下一次停在同一个封面就不再问服务器。
+    /// </summary>
+    internal bool PreviewDetailsLoaded { get; set; }
+
+    /// <summary>把详情补读到的预览字段并进列表条目：列表已有的值不覆盖，缺的那样才补。</summary>
+    internal void ApplyPreviewDetails(EmbyItem detail)
+    {
+        if (string.IsNullOrWhiteSpace(_item.Overview)) _item.Overview = detail.Overview;
+        if (_item.Genres.Count == 0 && detail.Genres.Count > 0) _item.Genres = detail.Genres;
+        _item.CommunityRating ??= detail.CommunityRating;
+        _item.OfficialRating ??= detail.OfficialRating;
+        _item.ProductionYear ??= detail.ProductionYear;
+        _item.PremiereDate ??= detail.PremiereDate;
+        _item.EndDate ??= detail.EndDate;
+        _item.Status ??= detail.Status;
+        _item.LocalTrailerCount = detail.LocalTrailerCount ?? _item.LocalTrailerCount;
+        _item.RemoteTrailers ??= detail.RemoteTrailers;
+        PreviewDetailsLoaded = true;
+    }
+
+    /// <summary>
     /// 悬停预览底下那块宽缩略图（2026-11-12「图片统一显示缩略图」）。先 Thumb、再 Backdrop、最后 Primary，
     /// 取第一张服务器确实有的 —— 竖版海报裁成宽条会切掉大半张脸，有一张宽图就用宽图。
     /// <para>

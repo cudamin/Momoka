@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Danmaku;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -92,4 +93,7 @@ internal sealed partial class ShellNavigationProbe
             await vm.ShutdownAsync();
         }
     }
+
+    private static ContentDialog[] DialogsFor(XamlRoot root) => VisualTreeHelper.GetOpenPopupsForXamlRoot(root)
+        .SelectMany(popup => Descendants(popup.Child)).OfType<ContentDialog>().Distinct().ToArray();
 }

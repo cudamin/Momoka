@@ -12,6 +12,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Interop;
+using Momoka.Shell.Media;
 using Windows.Foundation;
 
 namespace Momoka.Shell.Views;
@@ -206,6 +207,12 @@ public sealed partial class PosterCard : UserControl
     /// 接着下载一张没人看的图。
     /// </summary>
     private CancellationTokenSource? _previewArtwork;
+
+    /// <summary>
+    /// 同一块面板里的预告片那一趟：先补读详情（媒体库列表没有点名评分/题材/概要），再读取服务器内预告。
+    /// 与宽图分开取消，宽图到了不该把还在读的预告一并放掉。
+    /// </summary>
+    private CancellationTokenSource? _previewTrailer;
 
     /// <summary>面板打开时盯住的那几条滚动：内容一动，卡片和面板就错位了，先收起再说。</summary>
     private readonly List<ScrollViewer> _previewScrolls = [];
@@ -789,6 +796,36 @@ public sealed partial class PosterCard : UserControl
             return;
         }
         AnimateCard();
+        _ = OpenPreviewAfterDetailsAsync();
+    }
+
+    /// <summary>
+    /// 摆面板之前先补读预览资料：媒体库列表按显示设置只点名标题与年份，而面板的高度在
+    /// <see cref="CardPreview.Prepare"/> 那一拍就定死了 —— 评分、题材和概要若是打开之后才长出来，
+    /// 封面视口会跟着挪位。补读失败或超时就照现有资料打开，不能为了资料把预览拦住。
+    /// </summary>
+    private async Task OpenPreviewAfterDetailsAsync()
+    {
+        if (Card is not { } card || !PreviewEligible() || AnotherPopupOpen()) return;
+
+        try
+        {
+            // 资料是锦上添花：服务器慢或没回应时最多等一秒，不能把预览本身拦住。
+            await EnsurePreviewDetailsAsync(card, CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+        }
+        catch (TimeoutException)
+        {
+            Log.Debug("封面预览", $"预览资料补读超时（{card.Title}），先按列表资料打开");
+        }
+        catch (Exception error)
+        {
+            Log.Debug("封面预览", $"预览资料补读失败（{card.Title}）：{error.Message}");
+        }
+
+        // 补读期间指针可能已经离开、换了卡或另一块浮层开了。
+        if (!_hovered || !_hoverDwell.IsReady || !ReferenceEquals(Card, card) || _previewOpen
+            || !PreviewEligible() || AnotherPopupOpen()) return;
         OpenPreview();
     }
 
@@ -876,6 +913,7 @@ public sealed partial class PosterCard : UserControl
         WatchPreviewScroll();
         AnimateCard();
         LoadPreviewArtwork(width);
+        LoadPreviewTrailer();
         Log.Debug("封面预览", $"打开「{Card?.Title}」：offset=({_previewHost.HorizontalOffset:0},{_previewHost.VerticalOffset:0})，width={width:0}，height={height:0}，card={Root.ActualWidth:0}x{Root.ActualHeight:0}，origin=({origin.X:0},{origin.Y:0})");
     }
 
@@ -928,6 +966,75 @@ public sealed partial class PosterCard : UserControl
         catch (OperationCanceledException) { }
         catch (Exception error) { Log.Debug("封面预览", $"徽标加载失败：{error.GetType().Name}"); }
     }
+
+    private void LoadPreviewTrailer()
+    {
+        if (Card is not { } card || _preview is not { } preview) return;
+        _previewTrailer?.Cancel();
+        var cts = new CancellationTokenSource();
+        _previewTrailer = cts;
+        _ = LoadPreviewTrailerAsync(card, preview, cts);
+    }
+
+    /// <summary>
+    /// 面板已经摆好之后再去取预告：资料在打开前已经补过，这里只负责拿服务器内预告；有就静音循环接到
+    /// 面板的媒体视口里，没有、取不到或不是 Emby/Jellyfin 就保持原来那张静态宽图。
+    /// </summary>
+    private async Task LoadPreviewTrailerAsync(CardItem card, CardPreview preview, CancellationTokenSource cts)
+    {
+        StoreTrailerPreview? trailer = null;
+        try
+        {
+            var subject = await EnsurePreviewDetailsAsync(card, cts.Token).ConfigureAwait(true);
+            if (cts.IsCancellationRequested || !_previewOpen
+                || !ReferenceEquals(Card, card) || !ReferenceEquals(_preview, preview)) return;
+
+            trailer = await StoreTrailerPreview.CreateAsync(subject, cts.Token).ConfigureAwait(true);
+            if (trailer is null || cts.IsCancellationRequested || !_previewOpen
+                || !ReferenceEquals(Card, card) || !ReferenceEquals(_preview, preview)) return;
+
+            preview.PlayTrailer(trailer);
+            trailer = null;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            Log.Debug("封面预览", $"预告片加载失败（{card.Title}）：{error.Message}");
+        }
+        finally
+        {
+            if (trailer is not null)
+            {
+                try { await trailer.DisposeAsync(); }
+                catch (Exception error) when (error is IOException or ObjectDisposedException or OperationCanceledException) { }
+            }
+            if (ReferenceEquals(_previewTrailer, cts)) _previewTrailer = null;
+            cts.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 悬停预览需要的资料：列表请求按用户勾的显示字段点名，媒体库那几页默认只要标题与年份。
+    /// 缺评分、题材、概要或预告数量时补读一次详情，并进卡片自己那份条目；下一次停在这张卡上不再问。
+    /// </summary>
+    private async Task<EmbyItem> EnsurePreviewDetailsAsync(CardItem card, CancellationToken cancellationToken)
+    {
+        if (card.PreviewDetailsLoaded || !NeedsPreviewDetails(card.Item)) return card.Item;
+        if (card.Scope is not { IsAvailable: true } scope) return card.Item;
+
+        var detail = await scope.ExecuteAsync((client, token) =>
+            client.GetItemAsync(card.Item.Id, token, EmbyFields.Preview), cancellationToken).ConfigureAwait(true);
+        cancellationToken.ThrowIfCancellationRequested();
+        card.ApplyPreviewDetails(detail);
+        return card.Item;
+    }
+
+    /// <summary>预告数量没有回来时也算缺：详情补读是唯一知道「这个条目有没有预告」的地方。</summary>
+    private static bool NeedsPreviewDetails(EmbyItem item) =>
+        string.IsNullOrWhiteSpace(item.Overview) || item.Genres.Count == 0
+        || item.CommunityRating is null || item.LocalTrailerCount is null;
 
     /// <summary>
     /// 工具用（<c>--show-preview</c>）：跳过静止半秒的计时，直接把预览摆出来给截图。
@@ -997,6 +1104,7 @@ public sealed partial class PosterCard : UserControl
         _previewWatch?.Leave();
         _previewHovered = false;
         _previewArtwork?.Cancel();
+        _previewTrailer?.Cancel();
         UnwatchPreviewScroll();
         AnimateCard();
 

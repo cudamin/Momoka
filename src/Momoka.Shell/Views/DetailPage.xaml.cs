@@ -109,6 +109,11 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel.PropertyChanged += OnTrailerStateChanged;
         ViewModel.PropertyChanged += OnExtraStateChanged;
 
+        // 那一栏撑满封面之后，操作那一块的空当靠上边距让出来（LayoutHeroColumn）。文字变短、宽度变大时
+        // 那一栏自己的高不一定变（停在 MinHeight 上），SizeChanged 不会来，所以跟着每一次布局再排一次 ——
+        // 里面的换算是幂等的，算出来还是同一个数就不再写。
+        HeroStack.LayoutUpdated += (_, _) => LayoutHeroColumn();
+
         // 集带左沿换了一张卡：把季锚点（和牌子上的季名）跟着带子走。页面这一份控件与页同寿，不用退订。
         EpisodeStrip.LeadingChanged += OnEpisodeStripLeadingChanged;
 
@@ -2023,8 +2028,17 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         OtherInfoLine.Inlines.Clear();
 
-        var faint = Paint("EgTextFaintBrush");
-        var dim = Paint("EgTextDimBrush");
+        // 沉浸档这张卡没有卡面可垫（2026-11-14 用户令「改为去掉其他信息的背景卡片」）：这一行和表里一样
+        // 换成压在图上那套浅墨，否则主题的暗墨落在一张剧照上几乎读不出来。纸面档仍是原来的层次。
+        // 高对比度仍让给系统前景（那一档不着材质，也不该拿浅墨去猜底色）。
+        var scrim = ViewModel.Showcase;
+        var forced = _actionAccessibility.HighContrast
+            ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+            : (Color?)null;
+        Brush faint = forced is { } system ? new SolidColorBrush(system)
+            : Paint(scrim ? "EgOnScrimDimBrush" : "EgTextFaintBrush");
+        Brush dim = forced is { } systemValue ? new SolidColorBrush(systemValue)
+            : Paint(scrim ? "EgOnScrimBrush" : "EgTextDimBrush");
         var accent = Paint("EgAccentBrush");
 
         foreach (var fact in ViewModel.OtherFacts)
@@ -2123,13 +2137,51 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         ViewModel.StackRoom = HeroStack.ActualHeight;
         MeasureCoverBottom();
+        // 简洁（商店）模式：简介接在这一栏最后，栏高一变就把它的底重新校到封面下沿（见 DetailPage.Store.cs）。
+        SyncStoreOverviewFill();
+        // 沉浸宽版式：操作那一块贴到封面下沿（见 DetailPage.LayoutHeroColumn）。
+        LayoutHeroColumn();
         QueueReadingColors();
     }
 
     private void OnCoverSizeChanged(object sender, SizeChangedEventArgs e)
     {
         MeasureCoverBottom();
+        SyncStoreOverviewFill();
+        LayoutHeroColumn();
         QueueReadingColors();
+    }
+
+    /// <summary>
+    /// 沉浸宽版式：片名为首的那一栏撑满左边封面的高（<see cref="DetailViewModel.HeroColumnHeight"/>）——
+    /// 徽标（没有徽标时是片名）顶在封面上沿，「操作那排键 + 剩余 x 分钟」贴到封面下沿
+    /// （2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」）。
+    /// <para>
+    /// 撑高由那一栏自己的 <c>MinHeight</c> 绑定给（<c>HeroStack</c>），这里只把多出来的那一截让给操作那一块的
+    /// 上边距：竖排 StackPanel 不会把最后一块推到底，给它一段上边距就是「剩下的全算在它头上」。
+    /// </para>
+    /// <para>
+    /// 量的是操作块现在的下沿，算的是「没有这段上边距时它会落在哪儿」（<c>bottom − margin.Top</c>）——
+    /// 那个数不随这段边距动，所以重算一次就收敛，不会出现「加边距 → 变高 → 再算」那种来回抖。
+    /// 商店档、纸面档和紧凑版式一律清零，那几个版面的一个像素都不动。
+    /// </para>
+    /// </summary>
+    private void LayoutHeroColumn()
+    {
+        var extra = 0d;
+        if (!ViewModel.StoreMode && ViewModel.Showcase
+            && ColumnActions.Visibility == Visibility.Visible
+            && ViewModel.HeroColumnHeight > 0 && ColumnActions.ActualHeight > 0)
+        {
+            var bottom = ColumnActions.TransformToVisual(HeroStack)
+                .TransformBounds(new Rect(0, 0, ColumnActions.ActualWidth, ColumnActions.ActualHeight)).Bottom;
+            extra = Math.Max(0, Math.Round(
+                ViewModel.HeroColumnHeight - (bottom - Math.Max(0, ColumnActions.Margin.Top))));
+        }
+
+        var margin = ColumnActions.Margin;
+        if (Math.Abs(margin.Top - extra) > 0.5 || margin.Left != 0 || margin.Bottom != 0 || margin.Right != 0)
+            ColumnActions.Margin = new Thickness(0, extra, 0, 0);
     }
 
     /// <summary>

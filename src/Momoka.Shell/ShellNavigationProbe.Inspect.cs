@@ -358,8 +358,6 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailExtras", "详情花絮特典验证", DetailExtrasAsync);
         AddCheck("InspectDetailStickyHeader", "详情滚动悬浮卡片", DetailStickyHeaderAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
-        AddCheck("InspectServerLists", "服务器清单与成员管理", ServerListsAsync);
-        AddCheck("InspectPlexServerLists", "Plex清单与独立合集", PlexServerListsAsync);
         AddCheck("InspectPlayerQueue", "播放画面队列选择", PlayerQueueAsync);
         AddCheck("InspectWindowHostResearch", "P7窗口宿主研究", () => WindowHostResearchAsync(), ShellProbeSections.Shell);
         AddCheck("InspectWindowHostFailure", "P7窗口失败清理", () => WindowHostResearchAsync(injectFailure: true), ShellProbeSections.Shell);

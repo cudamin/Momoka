@@ -253,6 +253,9 @@ public sealed partial class ShellPage
     {
         var shown = SidebarShown;
         SidebarHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        // 标题栏那一条与栏同色（2026-11-14 用户令「标题栏的颜色要和侧边栏一样」）：栏在屏上时整条铺
+        // EgSidebarBrush，栏顶那一格也归它画；栏收起（沉浸模式、登录页、播放）时整条撤下，让标题栏回到透明。
+        TitleBarBackground.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         AppTitleLabel.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
         // 折叠开关只在商店侧栏出现时显示，主页位于最左，其他浏览页跟在返回右侧。
@@ -333,8 +336,8 @@ public sealed partial class ShellPage
         if (!resizable && _resizingSidebar) EndSidebarResize(persist: false);
         SidebarResizeGrip.Visibility = resizable ? Visibility.Visible : Visibility.Collapsed;
         if (resizable) SidebarResizeGrip.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
-        // 商店模式让画布与页面一起避开标题栏，露出 Mica；沉浸模式恢复旧版画布铺入标题栏、
-        // 页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
+        // 商店模式让画布与页面一起避开标题栏，让标题栏那一条（与栏同色的 TitleBarBackground）整条露出；
+        // 沉浸模式恢复旧版画布铺入标题栏、页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
         ContentHost.Margin = new Thickness(width, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);
         ContentHost.Padding = new Thickness(0, _sidebarMode ? 0 : HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();
@@ -380,8 +383,9 @@ public sealed partial class ShellPage
         AccountCluster.HorizontalAlignment = HorizontalAlignment.Right;
         AccountCluster.VerticalAlignment = VerticalAlignment.Top;
         AccountCluster.Width = double.NaN;
-        // 右端让开系统那三颗按钮、再留 8 的缝：这颗按钮的右沿因此贴在最小化左边。
-        AccountCluster.Margin = new Thickness(0, 4, CaptionRoom() + 8, 0);
+        // 右端让开系统那三颗按钮、再留 16 的缝（2026-11-14 用户令「用户按钮往左移一点」：
+        // 原先是 8，贴在最小化左边；现在再让开 8，按钮与系统三颗之间留出一点空）。
+        AccountCluster.Margin = new Thickness(0, 4, CaptionRoom() + 16, 0);
         // 菜单从这颗按钮底下落出来；两种模式都在标题栏里，朝下这一档就是唯一那一档。
         AccountMenu.Placement = FlyoutPlacementMode.BottomEdgeAlignedRight;
 
@@ -494,6 +498,16 @@ public sealed partial class ShellPage
                 Tag = tag
             };
             RegisterSidebarLibraryIcon(item, library.CollectionType);
+            // 图标栏这一档不再让框架自己弹一颗「库名」提示：指针停半秒后展开的预览面板标题写的就是同一个名字，
+            // 两颗一起出现就是用户 2026-11-14 报的「显示了两个 电影」。NavigationViewItem 只在条目还没有自定义
+            // 提示时才把 Content 塞进 ToolTip（WinUI 的 UpdateNavigationViewItemToolTip），所以这里挂一颗
+            // 零尺寸、透明的提示占住那个位置；库名仍由预览面板标题和读屏名字（下一行）负责。
+            ToolTipService.SetToolTip(item, new ToolTip
+            {
+                Background = null,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0)
+            });
             AutomationProperties.SetAutomationId(item, "SidebarLibrary_" + library.ParentId);
             AutomationProperties.SetName(item, library.Title);
             item.PointerEntered += OnSidebarLibraryPointerEntered;

@@ -603,9 +603,6 @@
   <data name="ShellPage_SearchButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>搜索</value>
   </data>
-  <data name="ShellPage_AddServerItem.Content" xml:space="preserve">
-    <value>添加服务器…</value>
-  </data>
   <data name="ShellPage_SettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>设置</value>
   </data>

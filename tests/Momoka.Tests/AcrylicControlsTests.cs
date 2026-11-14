@@ -123,21 +123,18 @@ internal static class AcrylicControlsTests
                 Assert.Contains(strip, showcase);
             Assert.Contains("strip.OnScrim = showcase;", showcase);
         });
-        Test("详情沉浸：四类页面的其他信息卡都保留亚克力卡面", () =>
+        Test("详情沉浸：其他信息卡不再铺卡面，表里的字换成压图浅墨", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
-            // 2026-11-12 起这一档叫 PlainMode（页面级的局部材质撤掉了，剩下的只是「简洁模式」这个判断）。
+            // 2026-11-14 用户令「改为去掉其他信息的背景卡片」：沉浸档让开卡面（此前那块深色亚克力是
+            // 2026-11-08 为了暗字压在剧照上还能读加的），纸面档仍是正文面板那一支。
             Assert.Contains("InfoPanel.Background = PlainMode ? StoreCardMaterialSource.Background", code);
-            Assert.Contains(": ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;", code);
-            // 从前只管单集页；用户 2026-11-08 要求电影、剧、季也加同一块卡面，判据里不该再有类型分支。
-            var paint = code[code.IndexOf("private void PaintBackdropReading()", StringComparison.Ordinal)..];
-            paint = paint[..paint.IndexOf('}')];
-            Assert.False(paint.Contains("EmbyItemType", StringComparison.Ordinal));
-            var card = Resource(Theme("Dark"), "CardBackgroundFillColorDefaultBrush");
-            Assert.Equal("AcrylicBrush", card.Name.LocalName);
-            Assert.Equal("0.65", (string?)card.Attribute("TintOpacity"));
-            Assert.Equal("0.45", (string?)card.Attribute("TintLuminosityOpacity"));
-            Assert.Equal("{StaticResource EgSurfaceAltColor}", (string?)card.Attribute("TintColor"));
+            Assert.Contains(": ViewModel.Showcase ? null : _panelFill;", code);
+            Assert.Contains("PaintInfoInk();", code);
+            // 没有卡面垫着，标签和值就得自己换成压在图上那两支浅墨；行是回收着建的，ElementPrepared 也要接住。
+            Assert.Contains("InfoTable.ElementPrepared += (_, args) => PaintInfoRowInk(args.Element);", code);
+            Assert.Contains("EgOnScrimDimBrush", code);
+            Assert.Contains("EgOnScrimBrush", code);
         });
         Test("详情菜单：透明表面使用轻透系统亚克力", () =>
         {

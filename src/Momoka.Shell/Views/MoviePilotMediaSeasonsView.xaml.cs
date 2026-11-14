@@ -121,15 +121,30 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
         if (sender is not Grid grid) return;
         var picture = (Border)grid.Children[0];
         // 窄行缩小缩略图，文字始终在同一行；图片迟到或失败只收放 Auto 列，不留下空的上方行。
-        picture.Width = Math.Min(144, Math.Max(0, args.NewSize.Width / 3));
-        picture.Height = picture.Width * 9 / 16;
+        ResizeEpisodeArtwork(grid, picture, args.NewSize.Width);
     }
 
     private void OnEpisodeSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (sender is not Grid grid) return;
         var picture = (Border)grid.Children[0];
-        picture.Width = Math.Min(144, Math.Max(0, args.NewSize.Width / 3));
-        picture.Height = picture.Width * 9 / 16;
+        ResizeEpisodeArtwork(grid, picture, args.NewSize.Width);
+    }
+
+    /// <summary>
+    /// 图片到达或失败会改变行高，行高又会让列表视口重新量一次；在 SizeChanged 回调里同步改图片尺寸，
+    /// 等于把这一串变化原地喂回同一拍，2026-11-14 在「图片从失败恢复成功、两行同时有图」时实测打成
+    /// LayoutCycle。改到下一拍执行并跳过相同尺寸，布局环就断了。
+    /// </summary>
+    private static void ResizeEpisodeArtwork(Grid grid, Border picture, double rowWidth)
+    {
+        var width = Math.Min(144, Math.Max(0, rowWidth / 3));
+        var height = width * 9 / 16;
+        if (Math.Abs(picture.Width - width) < 0.5 && Math.Abs(picture.Height - height) < 0.5) return;
+        grid.DispatcherQueue.TryEnqueue(() =>
+        {
+            picture.Width = width;
+            picture.Height = height;
+        });
     }
 }

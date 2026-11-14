@@ -6,8 +6,22 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public sealed class SizeChangedEventArgs : EventArgs { public (double Width, double Height) NewSize { get; set; } }
-    public class FrameworkElement { public object? Tag { get; set; } public double Width { get; set; } public double Height { get; set; } public void StartBringIntoView() { } }
+    public class FrameworkElement
+    {
+        public object? Tag { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
+        public void StartBringIntoView() { }
+    }
     public sealed class Application { public static Application? Current => null; public Dictionary<string, object> Resources { get; } = []; }
+}
+namespace Microsoft.UI.Dispatching
+{
+    public sealed class DispatcherQueue
+    {
+        public bool TryEnqueue(Action callback) { callback(); return true; }
+    }
 }
 namespace Microsoft.UI.Xaml.Media { public class Brush; }
 namespace Microsoft.UI.Xaml.Media.Imaging { public class BitmapImage; }

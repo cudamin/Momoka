@@ -58,6 +58,14 @@ public static class EmbyFields
     public const string Browse = "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,Status,ChildCount,DateCreated,Genres,Tags,CommunityRating";
 
     /// <summary>
+    /// 悬停预览补读的那一趟：媒体库列表按用户勾的显示字段点名，默认只有标题与年份，评分、题材和概要
+    /// 都不在里面，预览于是只剩一行年份。<see cref="Browse"/> 又多带标签、图片比例和子项数，预览用不上；
+    /// 这里只点预览资料行要的几样。关联预告的数量与远程地址在 BaseItemDto 上，不列进 <c>Fields</c>。
+    /// </summary>
+    public const string Preview =
+        "Overview,ProductionYear,PremiereDate,EndDate,Status,Genres,CommunityRating,OfficialRating";
+
+    /// <summary>
     /// Adds the media sources needed to build a stream URL and list tracks, plus the chapter
     /// markers the seek bar previews.
     /// <para>

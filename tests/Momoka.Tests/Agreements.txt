@@ -23,6 +23,9 @@
 # 2026-11-14（侧栏拖动调宽与对比度）：Palette.xaml 新增 EgSidebarBrush（侧栏那一列 85% 主题面色的底），
 # Dark/Light 各一处字面值，颜色计数 88→90；ThemeHost 一并接上（自检「主题角色覆盖」盯着）。句柄新增
 # SidebarResizeGrip（侧栏右沿的拖动条）；它只在展开档露出，实际显隐与重排由 sidebar 分区探针核对。
+# 2026-11-14 晚（标题栏与侧栏同色）：句柄新增 TitleBarBackground（整条标题栏那一层 EgSidebarBrush 的底，
+# 栏在屏上时由 SyncSidebar 露出）。侧栏宿主 SidebarHost 改从标题栏下沿起画，Sidebar 自己的 Margin 随之移除
+# —— 两处句柄都还在，ShellChromeTests 改钉宿主那一处。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -668,6 +671,7 @@ handle  Views/ShellPage.xaml  SidebarSettings
 handle  Views/ShellPage.xaml  SidebarSubscriptionsHeader
 handle  Views/ShellPage.xaml  SignIn
 handle  Views/ShellPage.xaml  TitleActions
+handle  Views/ShellPage.xaml  TitleBarBackground
 handle  Views/ShellPage.xaml  TitleSearchBox
 handle  Views/ShellPage.xaml  TitleUtilities
 handle  Views/ShellPage.xaml  Toast

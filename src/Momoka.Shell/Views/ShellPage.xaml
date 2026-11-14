@@ -91,6 +91,15 @@
         <Border x:Name="HomeHeaderBackground" Height="48" VerticalAlignment="Top"
             Background="{ThemeResource EgFrostBrush}" IsHitTestVisible="False" Visibility="Collapsed" />
 
+        <!-- 标题栏那一条的底色（2026-11-14 用户令「标题栏的颜色要和侧边栏一样」）：侧边栏模式里整条 48 高
+             的标题栏铺与栏同一个角色色（EgSidebarBrush，85% 主题面色），从栏的左上角一路连到系统那三颗按钮，
+             栏顶那一格（应用名所在）也归这一条画 —— 两边因此是同一种颜色，中间不再露出窗口 Mica。
+             栏从这条的下沿（48）起画，两边不叠色：同一层 85% 的底叠两次会变成 97.75%，左上那一角就会比栏深一档。
+             沉浸模式整条收起（标题栏继续透明、让画布与剧照铺上来），登录页与播放时随外壳一起收起。
+             不接管输入：标题栏的拖动与那几处挖洞仍归窗口（IsHitTestVisible=False，同上面那条）。 -->
+        <Border x:Name="TitleBarBackground" Height="48" VerticalAlignment="Top"
+            Background="{ThemeResource EgSidebarBrush}" IsHitTestVisible="False" Visibility="Collapsed" />
+
         <!-- App-drawn title bar, laid out the way the Claude app lays the same strip out: a flat row of icon
              buttons — 主页, 收藏, 设置, 搜索, 返回, 前进 — with both arrows dimmed rather than removed when
              there is nowhere to go.
@@ -271,11 +280,11 @@
              设置不再跟着它走：那颗现在是侧边栏自己的页脚项（NavigationView.FooterMenuItems，见下面那条
              Sidebar），尺寸、右沿、图标格子都由框架按同一条度量算，不必再手摆一个「并排还是上下叠」。 -->
         <!-- 这里的边距只是首次布局前的一个近似值：每次落位都由 ApplyAccountCluster 按
-             TitleBar.RightInset + 8 重算（系统那三颗在 Tall 档是 144 宽）。 -->
+             TitleBar.RightInset + 16 重算（系统那三颗在 Tall 档是 144 宽）。 -->
         <Grid
             x:Name="AccountCluster"
             Canvas.ZIndex="11"
-            Margin="0,4,152,0"
+            Margin="0,4,160,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Top">
             <Button
@@ -405,6 +414,9 @@
                                 </ToggleSwitch.Resources>
                             </ToggleSwitch>
                         </Grid>
+                        <!-- 聚合开关那一档的分组线：开关本身按保存服务器数收起时，这条线一起收起。 -->
+                        <Border x:Name="AggregateModeDivider" Height="1" Margin="6,3"
+                            Background="{ThemeResource EgBorderBrush}" Visibility="Collapsed" />
                         <ListView x:Name="AccountProfileList" MaxHeight="256" SelectionMode="None"
                             AutomationProperties.Name="服务器与账号">
                             <ListView.ItemContainerStyle>
@@ -415,8 +427,9 @@
                                 </Style>
                             </ListView.ItemContainerStyle>
                         </ListView>
-                        <Button x:Name="ServerListsEntry" Content="服务器清单" Visibility="Collapsed" Style="{StaticResource AccountActionStyle}" Click="OnServerListsClicked" />
-                        <Button x:Name="AddServerItem" x:Uid="ShellPage_AddServerItem" Content="添加服务器…" Style="{StaticResource AccountActionStyle}" Click="OnAddServerClicked" />
+                        <!-- 账号行与下面两个操作之间的分组线：切换账号和添加账号不是同一类动作。 -->
+                        <Border x:Name="AccountActionsDivider" Height="1" Margin="6,3"
+                            Background="{ThemeResource EgBorderBrush}" />
                         <Button x:Name="AddAccountItem" x:Uid="ShellPage_AddAccountItem" Content="添加账号…" Style="{StaticResource AccountActionStyle}" Click="OnAddAccountClicked" />
                         <Button x:Name="AccountSignOutItem" x:Uid="ShellPage_AccountSignOutItem" Content="注销" Style="{StaticResource AccountActionStyle}" Click="OnSignOut" />
                     </StackPanel>
@@ -429,8 +442,9 @@
              片场之间那一根）跟着走了，框架给「工作区」画的那道边、那个圆角、那圈边距也一起没了（它们是
              NavigationView 模板的东西）。
 
-             2026-11-14 侧栏并入商店模式：商店用上外边距 48，让标题栏直接露出窗口 Mica；沉浸恢复旧版
-             上内边距 48，让画布铺入标题栏。页面起点始终是 48，切换只改变画布上沿（见 ApplySidebarLayout）。
+             2026-11-14 侧栏并入商店模式：商店用上外边距 48，标题栏那一条改由 TitleBarBackground 铺色
+             （2026-11-14 晚起与栏同色，不再是窗口 Mica）；沉浸恢复旧版上内边距 48，让画布铺入标题栏。
+             页面起点始终是 48，切换只改变画布上沿（见 ApplySidebarLayout）。
 
              **整棵树唯一画窗口画布的地方（2026-11-12，用户令「改为Mica」）**：EgCanvasBrush 是压在 Mica 上
              的一层 60% 窗口色，各页面的根背景因此都写 Transparent —— 见 Palette.xaml 那颗键的注释。这一块
@@ -596,11 +610,13 @@
              **底色 2026-11-12 晚清掉，2026-11-14 又按用户令加回来**：清掉是用户令「侧边栏和标题栏采用云母
              Alt」；11-14 用户指出「侧边栏与内容区之间对比度不够高」，要求侧栏加深一层面色。于是这一块铺
              EgSidebarBrush（85% 主题面色，比内容画布的 60% 窗口色更实一档，15% 的 Mica Alt 仍透上来），栏作为一整列
-             （含左上角的应用名）自带分界，标题栏右侧仍只露材质。栏自己的 NavigationViewDefaultPaneBackground
+             （含左上角的应用名）自带分界。**当晚用户又说「标题栏的颜色要和侧边栏一样」**：那一格的应用名底色
+             改由标题栏上那条 TitleBarBackground 出，栏因此从标题栏下沿（48）起画（Margin 见下），
+             两边同色、整条标题栏连成一片，且 85% 的底只叠一次。栏自己的 NavigationViewDefaultPaneBackground
              早在 2026-10-14 就钉成 Transparent，所以整条栏只有这一道底，没有第二道面。 -->
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
-            Background="{ThemeResource EgSidebarBrush}" Visibility="Collapsed">
-            <NavigationView x:Name="Sidebar" Margin="0,48,0,0"
+            Margin="0,48,0,0" Background="{ThemeResource EgSidebarBrush}" Visibility="Collapsed">
+            <NavigationView x:Name="Sidebar"
                 PaneDisplayMode="Left" OpenPaneLength="256" CompactPaneLength="56"
                 IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
                 IsPaneToggleButtonVisible="False"

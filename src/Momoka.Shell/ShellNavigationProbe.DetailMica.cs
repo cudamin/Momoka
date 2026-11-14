@@ -20,7 +20,7 @@ internal sealed partial class ShellNavigationProbe
         var picture = await FixtureImageAsync(400, 600);
         var backdrop = await FixtureImageAsync(1600, 900);
         var items = new[] { Series(), Season("a"), Episode("a"), new EmbyItem { Id = "mica-movie", Type = EmbyItemType.Movie } };
-        // 商店模式的三颗版本框要有真内容可量：两条媒体源、两条音轨和两条字幕，四种条目都带同一份。
+        // 商店模式的三颗文件选择框要有真内容可量：两条媒体源、两条音轨和两条字幕，四种条目都带同一份。
         var streams = new List<MediaStream>
         {
             new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
@@ -197,14 +197,15 @@ internal sealed partial class ShellNavigationProbe
                     Get<Border>(page, "HeroContentLayerSource").Background), "沉浸恢复后仍使用简洁内容层");
                 if (page.ViewModel.Showcase)
                 {
-                    // 单独触发顶部资源回调，拒绝它把沉浸信息卡覆盖成透明正文刷的旧路径。
+                    // 单独触发顶部资源回调，拒绝它给沉浸信息卡铺回卡面的旧路径（2026-11-14 用户令
+                    // 「改为去掉其他信息的背景卡片」，此前这一档保留的是那一块深色亚克力）。
                     var source = Get<Border>(page, "HeroContentLayerSource");
                     var savedLayer = source.Background;
                     try
                     {
                         source.Background = new SolidColorBrush(Microsoft.UI.Colors.Black);
-                        Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background,
-                            Get<Border>(page, "CardMaterialSource").Background), "顶部主题回调覆盖了沉浸信息卡背景");
+                        Require(Get<StackPanel>(page, "InfoPanel").Background is null,
+                            "顶部主题回调给沉浸信息卡铺回了卡面");
                     }
                     finally { source.Background = savedLayer; }
                 }
@@ -274,44 +275,48 @@ internal sealed partial class ShellNavigationProbe
         var actions = Get<StackPanel>(page, "ColumnActions");
         var options = Get<StackPanel>(page, "FileOptions");
         var overview = Get<StackPanel>(page, "OverviewPanel");
-        // 2026-11-14 用户令「参考上图布局」：简介、版本框、操作按钮整组搬到封面下方，顺序同微软商店条目页。
-        Require(ReferenceEquals(actions.Parent, details) && ReferenceEquals(options.Parent, details)
-            && ReferenceEquals(overview.Parent, details), "商店简介、文件信息或操作没有在封面下方的详情块里");
-        Require(details.Children.IndexOf(overview) < details.Children.IndexOf(options)
-            && details.Children.IndexOf(options) < details.Children.IndexOf(actions),
-            "商店详情块的顺序不是简介、文件信息、操作");
+        var stack = Get<StackPanel>(page, "HeroStack");
+        // 2026-11-14 第二令：简介搬到封面右边那一栏的末尾，版本框和操作按钮仍留在封面下方。
+        Require(ReferenceEquals(overview.Parent, stack), "商店简介没有在封面右侧的片名栏里");
+        Require(ReferenceEquals(actions.Parent, details) && ReferenceEquals(options.Parent, details),
+            "商店文件信息或操作没有在封面下方的详情块里");
+        Require(details.Children.IndexOf(options) < details.Children.IndexOf(actions),
+            "商店详情块的顺序不是文件信息、操作");
         double Top(FrameworkElement element) => element.TransformToVisual(page).TransformPoint(default).Y;
+        double Bottom(FrameworkElement element) => element.TransformToVisual(page)
+            .TransformBounds(new(0, 0, element.ActualWidth, element.ActualHeight)).Bottom;
         var cover = Get<Border>(page, "PosterStill");
         if (overview.Visibility == Visibility.Visible && options.Visibility == Visibility.Visible)
-            Require(Top(options) >= Top(overview) + overview.ActualHeight - 1, "商店文件信息没有排在简介之后");
+            Require(Top(options) >= Bottom(overview) - 1, "商店文件信息没有排在简介之后");
         if (options.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
-            Require(Top(options) >= Top(cover) + cover.ActualHeight - 1, "商店文件信息没有排在封面之后");
+            Require(Top(options) >= Bottom(cover) - 1, "商店文件信息没有排在封面之后");
         if (actions.Visibility == Visibility.Visible && options.Visibility == Visibility.Visible)
-            Require(Top(actions) >= Top(options) + options.ActualHeight - 1, "商店操作没有排在文件信息之后");
+            Require(Top(actions) >= Bottom(options) - 1, "商店操作没有排在文件信息之后");
+        // 简介在封面右边，底对齐封面下沿；导演那一行是这一块最后一行，所以它也落在同一条线上。
+        // 片名折行把这一栏撑得比封面还高时（很窄的窗口）没有「恰好齐平」可谈，只判它确实在右边。
+        if (overview.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
+        {
+            var coverBox = cover.TransformToVisual(page)
+                .TransformBounds(new(0, 0, cover.ActualWidth, cover.ActualHeight));
+            var overviewBox = overview.TransformToVisual(page)
+                .TransformBounds(new(0, 0, overview.ActualWidth, overview.ActualHeight));
+            Require(overviewBox.Left >= coverBox.Right - 0.5, "商店简介没有在封面右边");
+            if (coverBox.Bottom - overviewBox.Top > 70)
+            {
+                Require(Math.Abs(Bottom(overview) - coverBox.Bottom) < 1.5, "商店简介底没有和封面底齐平");
+                var director = Get<TextBlock>(page, "DetailDirectorsText");
+                if (director.Visibility == Visibility.Visible)
+                    Require(Math.Abs(Bottom(director) - coverBox.Bottom) < 1.5, "商店导演行没有和封面底齐平");
+            }
+        }
         var band = Get<Grid>(page, "HeroBand");
         // 紧凑版式的集页把文件选项交给尾部那一份（ColumnPickers 收起、源多于一个时视频行也收起），
         // 这一格收着时量不到位置，不拿它去判头部裁切。
         if (options.Visibility == Visibility.Visible)
-            Require(Top(band) + band.ActualHeight >= Top(options) + options.ActualHeight - 1, "商店头部裁切文件信息");
-        // 版本框：选择框横跨标签那一列，标签压在框里左侧；外形量控件而不是视图模型，见同一分支的说明。
-        foreach (var (labelName, pickerName) in new[]
-        {
-            ("SourceLabel", "ColumnSourcePicker"), ("AudioLabel", "ColumnAudioPicker"), ("SubtitleLabel", "ColumnSubtitlePicker")
-        })
-        {
-            var picker = Get<EgPicker>(page, pickerName);
-            // 行的显隐在父 Grid 上（媒体源 >1、音轨 >2、字幕 >2）；选择框自己收起时也量不到，
-            // 所以按实际尺寸跳过，只核这一档真正露出来的版本框。
-            if (picker.ActualWidth <= 0 || picker.ActualHeight <= 0) continue;
-            var label = Get<TextBlock>(page, labelName);
-            var pickerBox = picker.TransformToVisual(page).TransformBounds(new(0, 0, picker.ActualWidth, picker.ActualHeight));
-            var labelBox = label.TransformToVisual(page).TransformBounds(new(0, 0, label.ActualWidth, label.ActualHeight));
-            Require(Grid.GetColumnSpan(picker) == 2 && picker.MinHeight >= 36 && picker.Padding.Left >= 40
-                && labelBox.Left > pickerBox.Left && labelBox.Right < pickerBox.Right && !label.IsHitTestVisible,
-                $"{pickerName} 不是商店版本框：span={Grid.GetColumnSpan(picker)}、高 {picker.MinHeight:0}、"
-                    + $"内边距 {picker.Padding}、标签 {labelBox.Left:0}–{labelBox.Right:0} 在框 {pickerBox.Left:0}–{pickerBox.Right:0} 里，"
-                    + $"命中 {label.IsHitTestVisible}");
-        }
+            Require(Top(band) + band.ActualHeight >= Bottom(options) - 1, "商店头部裁切文件信息");
+        if (overview.Visibility == Visibility.Visible)
+            Require(Top(overview) >= Top(band) - 1 && Bottom(overview) <= Top(band) + band.ActualHeight + 1,
+                "商店头部裁切简介");
         Require(Get<Button>(page, "ColumnTrailerButton").Visibility == Visibility.Collapsed
             && Get<Button>(page, "CompactTrailerButton").Visibility == Visibility.Collapsed, "商店仍显示预告片入口");
         Require(Get<Grid>(shell, "TrailBar").Visibility == Visibility.Collapsed, "商店仍显示媒体路径栏");
@@ -338,7 +343,7 @@ internal sealed partial class ShellNavigationProbe
         Require(Math.Abs(store.ActualHeight - view.StoreBackdropHeight) < 1
             && Math.Abs(store.ActualWidth - view.StoreBackdropWidth) < 1 && !store.IsHitTestVisible,
             "商店背景高度越界或遮挡输入");
-        Require((Get<Grid>(page, "StoreBackdropAcrylic").Visibility == Visibility.Visible) == (view.PageWidth < 1100),
+        Require((Get<Grid>(page, "StoreBackdropAcrylic").Visibility == Visibility.Visible) == (view.PageWidth < DetailHero.StoreWideFloor),
             "商店亚克力未随窄窗显示");
         Require(Get<Image>(page, "CornerArt").Visibility == Visibility.Collapsed,
             "商店模式仍显示右上角艺术图");

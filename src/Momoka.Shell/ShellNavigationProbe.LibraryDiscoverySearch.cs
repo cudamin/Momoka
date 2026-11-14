@@ -66,26 +66,6 @@ internal sealed partial class ShellNavigationProbe
                         var target = page.ViewModel.Cards[0];
                         var searchRequest = page.NavigationRequest;
                         page.ViewModel.Open(target);
-                        if (expected == EmbyItemType.Playlist)
-                        {
-                            await UntilAsync(() => frame.Content is ServerListsPage listPage && listPage.ViewModel.IsReady && !listPage.ViewModel.Busy);
-                            var listPage = (ServerListsPage)frame.Content;
-                            Require(!listPage.ViewModel.NoticeOpen && listPage.ViewModel.Scope?.Key == source.Key
-                                && listPage.ViewModel.OpenedList?.Id == target.Item.Id, "播放列表打开失去身份或成员上下文");
-                            Require(listPage.ViewModel.Members.Select(entry => entry.Item.Id).SequenceEqual(new[] { "list-z", "list-a" }),
-                                "播放列表成员被标题排序或未读到");
-                            await LayoutAsync(listPage);
-                            await SaveProbeScreenAsync($"discovery-open-{kind}-{category}-{width}-screen.png");
-                            evidence.Add(new
-                            {
-                                Backend = kind.ToString(),
-                                Width = width,
-                                Category = category,
-                                SourceRetained = true,
-                                Items = listPage.ViewModel.Members.Select(entry => entry.Item.Id).ToArray()
-                            });
-                            continue;
-                        }
                         if (expected == EmbyItemType.Person)
                         {
                             await UntilAsync(() => frame.Content is PersonPage person && person.ViewModel.IsReady && !person.ViewModel.Busy);

@@ -89,6 +89,9 @@
                     <Grid>
                         <Image x:Name="PreviewImage" Stretch="UniformToFill" />
                         <Image x:Name="TransitionImage" Stretch="UniformToFill" Opacity="0" />
+                        <!-- 服务器内有预告时，静音循环的那一层盖在静态宽图上面；播放器由代码创建，
+                             失败或没有预告就保持下面那张图。 -->
+                        <Grid x:Name="TrailerHost" Visibility="Collapsed" IsHitTestVisible="False" />
                     </Grid>
                 </Border>
             </Canvas>

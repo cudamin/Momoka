@@ -16,12 +16,34 @@ public sealed partial class DetailViewModel
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     public double StorePreviewWidth => Math.Min(640, PageWidth * 0.46);
+
+    /// <summary>
+    /// 商店模式左边那一列内容能有多宽。宽版式（<see cref="DetailHero.StoreWideFloor"/> 及以上）要让开
+    /// 顶部右侧的剧照／预告视口，窄档才把整幅宽度都给内容 —— 两条判据同一个断点，屏上不会出现
+    /// 「背景已经变成右侧视口、内容却还按整幅排」的半档。
+    /// </summary>
     public double StoreContentWidth => Math.Max(0, PageWidth - 2 * DetailHero.StorePageInset(PageWidth)
-        - (StoreMode && PageWidth >= 1100 ? StorePreviewWidth + 28 : 0));
+        - (StoreMode && PageWidth >= DetailHero.StoreWideFloor ? StorePreviewWidth + 28 : 0));
     public double StoreTextWidth => StoreMode
         ? Math.Max(0, StoreContentWidth - StillWidth - ColumnSpacing) : double.PositiveInfinity;
     public Visibility RemainingTimeVisibility => StoreMode ? Visibility.Collapsed : ResumeVisibility;
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;
+
+    /// <summary>
+    /// 简洁（商店）模式里简介能写几行 —— 由页面按「封面右栏从简介顶到封面下沿还剩多高」实测回来。
+    /// 第一帧还没量到时按 2 行排，量到后由 <c>DetailPage.Store.cs</c> 的 <c>UpdateStoreOverviewLines</c> 写入；
+    /// 写不完的文字由 <see cref="OverviewTrimming"/> 那一支以省略号收尾。
+    /// </summary>
+    private int _storeOverviewLines = 2;
+    internal int StoreOverviewLines
+    {
+        get => _storeOverviewLines;
+        set
+        {
+            if (!SetProperty(ref _storeOverviewLines, value)) return;
+            OnPropertyChanged(nameof(OverviewMaxLines));
+        }
+    }
 
     private double _storeDetailsRoom;
     internal double StoreDetailsRoom

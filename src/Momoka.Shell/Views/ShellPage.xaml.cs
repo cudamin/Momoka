@@ -1083,9 +1083,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
             case LibraryPage library:
                 _ = library.ViewModel.ReloadAsync();
                 break;
-            case ServerListsPage lists:
-                _ = lists.ViewModel.ReloadAsync();
-                break;
             case MusicLibraryPage music:
                 _ = music.ViewModel.ReloadAsync();
                 break;
@@ -1559,8 +1556,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
             OpenChild(LibraryRequest.ForPlexRelation(_services, item));
             return;
         }
-
-        if (OpenServerList(item)) return;
 
         if (Momoka.Music.MusicCatalog.IsAudio(item.Type))
         {
@@ -2697,7 +2692,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
-    /// 切换服务器 / 切换用户（非聚合）或添加服务器 / 添加账号（聚合）: the saved servers and the accounts on
+    /// 切换服务器 / 切换用户（非聚合）或添加账号（聚合）: the saved servers and the accounts on
     /// the current one, both one click away from the button at the right end of the tab row. A switch that has
     /// a saved token or password does not ask for anything; one that does not lands on the sign-in card with
     /// the address already filled in.
@@ -2708,7 +2703,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void FillSwitchMenus()
     {
-        RefreshServerListEntrance();
         var session = _session!;
         var sources = session.Sources;
         var aggregate = Settings.AggregateMode;
@@ -2783,18 +2777,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void RefreshAccountModeVisibility()
     {
         // 按保存服务器数判断；非聚合通常只有一台在线，按在线数会藏掉开启入口。
-        AggregateModeRow.Visibility = _settings?.Settings.Servers.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        // 分组线跟着开关一起收：没有开关就没有它下面那一档分隔。
+        var visibility = _settings?.Settings.Servers.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        AggregateModeRow.Visibility = visibility;
+        AggregateModeDivider.Visibility = visibility;
     }
 
     private void OnAggregateModeToggled(object sender, RoutedEventArgs e)
     {
         if (!_seedingAccountMode && sender is ToggleSwitch toggle) _ = SetAccountAggregateModeAsync(toggle.IsOn);
-    }
-
-    private void OnAddServerClicked(object sender, RoutedEventArgs e)
-    {
-        AccountMenu.Hide();
-        ShowSignIn();
     }
 
     private void OnAddAccountClicked(object sender, RoutedEventArgs e)
