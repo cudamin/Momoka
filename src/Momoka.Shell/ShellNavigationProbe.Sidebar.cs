@@ -323,41 +323,7 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "760 compact");
             await SaveProbeScreenAsync("sidebar-compact-760-screen.png");
 
-            // 折叠侧栏的媒体库悬停预览（2026-11-13 用户令）：沿图标栏右沿展开、不压栏，库名/封面在，
-            // 聚合模式下多一颗「查看更多」。这里走真实的指针进入/离开事件，只把指针本身留给验证者。
-            var preview = Get<Border>(shell, "LibraryPreviewPanel");
-            var previewCovers = Get<Grid>(shell, "LibraryPreviewCovers");
-            var previewTitle = Get<TextBlock>(shell, "LibraryPreviewTitle");
-            var previewMore = Get<Button>(shell, "LibraryPreviewMore");
-            var previewItem = nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag);
-            var aggregate = fixture.Settings.AggregateMode;
-            try
-            {
-                fixture.Settings.AggregateMode = true;
-                Call(shell, "OnSidebarLibraryPointerEntered", previewItem, null);
-                await UntilAsync(() => preview.Visibility == Visibility.Visible && previewCovers.Children.Count == 3);
-                await LayoutAsync(preview);
-                Require(Left(preview, shell) >= host.ActualWidth + 7 && Top(preview, shell) >= HomePage.ChromeHeight - 1,
-                    $"媒体库悬停预览压住侧栏或跑出内容区：left={Left(preview, shell):0} rail={host.ActualWidth:0} top={Top(preview, shell):0}");
-                Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
-                Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
-                await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));
-                await SaveProbeScreenAsync("sidebar-library-preview-760-screen.png");
-
-                Call(shell, "OnSidebarLibraryPointerExited", previewItem, null);
-                await UntilAsync(() => preview.Visibility == Visibility.Collapsed);
-
-                fixture.Settings.AggregateMode = false;
-                Call(shell, "OnSidebarLibraryPointerEntered", previewItem, null);
-                await UntilAsync(() => preview.Visibility == Visibility.Visible);
-                await LayoutAsync(preview);
-                Require(previewMore.Visibility == Visibility.Collapsed, "非聚合模式仍显示「查看更多」");
-            }
-            finally
-            {
-                fixture.Settings.AggregateMode = aggregate;
-                Call(shell, "HideLibraryPreview");
-            }
+            await InspectLibraryPreviewAsync(shell, fixture, moviesTag, 760);
 
             ResizeProbeClient(600, 650);
             shell.ShowAccount("用于验证窄窗的很长很长的账号名称", "名称很长的离线服务器");
@@ -1066,5 +1032,124 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1420, 980);
         }
     }
+
+    private async Task SidebarLibraryPreviewAsync()
+    {
+        var motion = HomeMotion.PreferenceEnabled;
+        using var fixture = CreateFixture();
+        fixture.Settings.Ui.EnableImmersive = false;
+        fixture.Settings.Ui.AnimationsEnabled = false;
+        var picture = await FixtureImageAsync(400, 600);
+        var movies = Enumerable.Range(0, 3).Select(index => new EmbyItem
+        {
+            Id = "preview-movie-" + index,
+            Name = "预览影片 " + (index + 1),
+            Type = EmbyItemType.Movie,
+            ImageTags = new() { ["Primary"] = "poster" }
+        }).ToArray();
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            Require(request.Method == HttpMethod.Get, "预览探针拒绝服务器写入");
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) });
+            if (path.EndsWith("/Views", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { Items = new[] { new EmbyItem
+                {
+                    Id = "preview-movies", Name = "预览电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+                } }, TotalRecordCount = 1 }));
+            if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(movies));
+            if (path.EndsWith("/Items", StringComparison.Ordinal) || path.EndsWith("/Items/Resume", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { Items = movies, TotalRecordCount = movies.Length }));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        await fixture.SelectAsync();
+        var shell = new ShellPage();
+        shell.Attach(fixture.Services);
+        Field(shell, "_window", _window);
+        _root.Children.Add(shell);
+        try
+        {
+            HomeMotion.ApplyPreference(false);
+            await (Task)Call(shell, "EnterShellAsync")!;
+            await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 1);
+            var tag = HomeLayout.LibraryKey(shell.LibraryViews.Single());
+            foreach (var width in new[] { 760, 600 })
+            {
+                ResizeProbeClient(width, 650);
+                Get<NavigationView>(shell, "Sidebar").IsPaneOpen = false;
+                await LayoutAsync(shell);
+                await InspectLibraryPreviewAsync(shell, fixture, tag, width);
+            }
+            Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(request => request.StartsWith("GET ", StringComparison.Ordinal)),
+                "预览界面验证触发播放或服务器写入");
+        }
+        finally
+        {
+            Call(shell, "HideLibraryPreview");
+            Call(shell, "StopMoviePilotMonitoring");
+            Call(shell, "ReleaseContent");
+            shell.SignInRoot.Detach();
+            Field(shell, "_window", null);
+            _root.Children.Remove(shell);
+            _window!.PlaybackTitleBar = false;
+            _window.SetTitleBarHoles();
+            HomeMotion.ApplyPreference(motion);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    private async Task InspectLibraryPreviewAsync(ShellPage shell, Fixture fixture, string moviesTag, int width)
+    {
+        var nav = Get<NavigationView>(shell, "Sidebar");
+        var host = Get<Grid>(shell, "SidebarHost");
+        // 折叠侧栏的媒体库悬停预览（2026-11-13 用户令）：沿图标栏右沿展开、不压栏，库名/封面在，
+        // 聚合模式下多一颗「查看更多」。展示入口验证布局/图片，静止计时与点击抑制由源码链接夹具覆盖。
+        var preview = Get<Border>(shell, "LibraryPreviewPanel");
+        var previewCovers = Get<Grid>(shell, "LibraryPreviewCovers");
+        var previewTitle = Get<TextBlock>(shell, "LibraryPreviewTitle");
+        var previewMore = Get<Button>(shell, "LibraryPreviewMore");
+        var previewItem = nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag);
+        var aggregate = fixture.Settings.AggregateMode;
+        try
+        {
+            fixture.Settings.AggregateMode = true;
+            // 明确展示入口只验布局/图片；静止计时与点击抑制由源码链接夹具验证，不冒充物理指针。
+            await (Task)Call(shell, "ShowLibraryPreviewAsync", previewItem, moviesTag)!;
+            await UntilAsync(() => preview.Visibility == Visibility.Visible && previewCovers.Children.Count == 3);
+            await LayoutAsync(preview);
+            Require(Left(preview, shell) >= host.ActualWidth + 7 && Top(preview, shell) >= HomePage.ChromeHeight - 1,
+                $"媒体库悬停预览压住侧栏或跑出内容区：left={Left(preview, shell):0} rail={host.ActualWidth:0} top={Top(preview, shell):0}");
+            Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
+            Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
+            var coverButtons = previewCovers.Children.OfType<Button>().ToArray();
+            Require(coverButtons.Length == 3, "可播放封面没有使用三颗原生按钮");
+            foreach (var button in coverButtons)
+            {
+                Require(button.Tag is EmbyItem item && AutomationProperties.GetName(button) == $"播放：{item.Name}"
+                    && AutomationProperties.GetAutomationId(button).StartsWith("SidebarLibraryPreviewPlay_", StringComparison.Ordinal)
+                    && new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke) is IInvokeProvider,
+                    "封面播放按钮没有正确的可访问名称、定位句柄或原生调用语义");
+            }
+            await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));
+            await SaveProbeScreenAsync($"sidebar-library-preview-{width}-screen.png");
+
+            Call(shell, "HideLibraryPreview");
+            await UntilAsync(() => preview.Visibility == Visibility.Collapsed);
+
+            fixture.Settings.AggregateMode = false;
+            await (Task)Call(shell, "ShowLibraryPreviewAsync", previewItem, moviesTag)!;
+            await UntilAsync(() => preview.Visibility == Visibility.Visible);
+            await LayoutAsync(preview);
+            Require(previewMore.Visibility == Visibility.Collapsed, "非聚合模式仍显示「查看更多」");
+        }
+        finally
+        {
+            fixture.Settings.AggregateMode = aggregate;
+            Call(shell, "HideLibraryPreview");
+        }
+
+    }
+
 
 }

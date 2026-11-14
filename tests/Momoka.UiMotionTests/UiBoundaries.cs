@@ -420,6 +420,12 @@ namespace Microsoft.UI.Xaml.Controls.Primitives
 
 namespace Microsoft.UI.Xaml.Media
 {
+    public sealed class RadialGradientBrush
+    {
+        public Windows.Foundation.Point Center { get; set; }
+        public Windows.Foundation.Point GradientOrigin { get; set; }
+    }
+
     public abstract class Transform : DependencyObject;
     public sealed class TranslateTransform : Transform
     {

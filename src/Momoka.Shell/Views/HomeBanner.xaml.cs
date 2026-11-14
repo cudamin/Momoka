@@ -68,6 +68,7 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>「鼠标移出窗口后不会自动恢复」：翻页箭头浮出来了还得收回去，理由见 <see cref="HoverWatch"/>。</summary>
     private readonly HoverWatch _watch;
+    private readonly BannerPointerGlow _pointerGlow;
 
     /// <summary>
     /// 自动翻页和右下那条进度条共用的钟，见 <see cref="SyncTimer"/>。它每 <see cref="TickInterval"/> 响一次，
@@ -223,6 +224,8 @@ public sealed partial class HomeBanner : UserControl
     {
         InitializeComponent();
         _openBackground = ControlBackgroundBrushes.ForBanner(OpenButton, Resources);
+        _pointerGlow = new BannerPointerGlow(PointerGlow, PointerGlowBrush, Root);
+        PaintPointerGlowInk();
 
         // 字底下那层跟着字形走的影子（见 TextInk）。四行各一层，宿主是同一格里排在字前面那个空 Border。
         // 装在构造里而不是 Loaded 里：这四层是这块字的一部分，不是「进树之后才有的装饰」，而自检里那份
@@ -238,6 +241,7 @@ public sealed partial class HomeBanner : UserControl
         _watch = new HoverWatch(Root, up =>
         {
             _hover = up;
+            if (!up) _pointerGlow.Leave();
             SyncArrows();
         });
 
@@ -263,6 +267,8 @@ public sealed partial class HomeBanner : UserControl
         var contrast = _colorAccessibility.HighContrast;
         _lastColorContrast = contrast;
         _lastColorEffects = _uiSettings.AdvancedEffectsEnabled;
+        PaintPointerGlowInk();
+        _pointerGlow.SetEnabled(_active && !contrast && _lastColorEffects);
         _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls,
             contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)));
         PaintOpenButtonInk();
@@ -1076,7 +1082,22 @@ public sealed partial class HomeBanner : UserControl
         SlideDropped?.Invoke(this, failed);
     }
 
-    private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _watch.Enter();
+    private void OnPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _watch.Enter();
+        _pointerGlow.Move(e.GetCurrentPoint(Root).Position,
+            e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse);
+    }
+
+    private void PaintPointerGlowInk()
+    {
+        var color = ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color;
+        PointerGlowBrush.GradientStops[0].Color = color;
+        color.A = (byte)(color.A * 0.45);
+        PointerGlowBrush.GradientStops[1].Color = color;
+        color.A = 0;
+        PointerGlowBrush.GradientStops[2].Color = color;
+    }
 
     private void OnBannerGotFocus(object sender, RoutedEventArgs e)
     {
@@ -1139,6 +1160,7 @@ public sealed partial class HomeBanner : UserControl
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _active = true;
+        _pointerGlow.SetEnabled(!_colorAccessibility.HighContrast && _uiSettings.AdvancedEffectsEnabled);
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         ShellPrefs.AppearanceChanged += OnAppearanceChanged;
         ThemeHost.Changed -= OnAppearanceThemeChanged;
@@ -1193,6 +1215,7 @@ public sealed partial class HomeBanner : UserControl
         ThemeHost.Changed -= OnAppearanceThemeChanged;
         _timer?.Stop();
         _watch.Leave();
+        _pointerGlow.Leave(immediate: true);
         Unwatch();
         StopMotions();
         if (_settingsObserved)
@@ -1214,6 +1237,7 @@ public sealed partial class HomeBanner : UserControl
 
     private void OnColorSystemTick(DispatcherQueueTimer sender, object args)
     {
+        _pointerGlow.SetEnabled(_active && !_colorAccessibility.HighContrast && _uiSettings.AdvancedEffectsEnabled);
         if (_active && _appearanceSettings is { } ui && (_lastColorContrast != _colorAccessibility.HighContrast
             || _lastColorEffects != _uiSettings.AdvancedEffectsEnabled)) ApplyAppearance(ui);
     }
