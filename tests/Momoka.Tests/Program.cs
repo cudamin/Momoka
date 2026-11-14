@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["motion-probe-fixture"])
+        {
+            StartupArgsTests.Register();
+            MotionProbeEvidenceTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["local-media-layout-fixture"])
         {
             LocalMediaLayoutTests.Register();
@@ -702,6 +708,7 @@ internal static class Program
         CardSizeTests.Register();
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
+        MotionProbeEvidenceTests.Register();
         ThemeTests.Register();
         MicaMaterialTests.Register();
         InputControlThemeTests.Register();

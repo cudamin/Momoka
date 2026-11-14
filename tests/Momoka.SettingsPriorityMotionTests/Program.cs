@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Windows.UI.ViewManagement;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -74,6 +75,124 @@ internal static class Program
             Assert.True(fixture.Motion.HasSpring);
             HomeMotion.ApplyPreference(false);
             fixture.AssertClean();
+        }));
+        foreach (var active in new[] { false, true })
+            Test($"关闭系统动画不等布局就清理{(active ? "正在回弹" : "排队快照")}", () => With(fixture =>
+            {
+                fixture.Move();
+                if (active) fixture.Start();
+                var reads = fixture.LayoutReads;
+                UISettings.SetAnimationsEnabled(false);
+                fixture.AssertClean();
+                Assert.Null(Before(fixture.Motion));
+                fixture.List.DispatcherQueue.Drain();
+                Assert.Equal(reads, fixture.LayoutReads);
+            }));
+        Test("后台系统关闭通知优先取消低优先级换位队列", () => With(fixture =>
+        {
+            fixture.Move();
+            fixture.List.DispatcherQueue.HasThreadAccess = false;
+            UISettings.SetAnimationsEnabled(false);
+            Assert.Equal(2, fixture.List.DispatcherQueue.PendingCount);
+            var reads = fixture.LayoutReads;
+            fixture.List.DispatcherQueue.DrainOne();
+            fixture.AssertClean();
+            fixture.List.DispatcherQueue.Drain();
+            Assert.Equal(reads, fixture.LayoutReads);
+            Assert.Equal(0, Storyboard.Begun.Count);
+        }));
+        Test("旧系统通知不能结束后来拖拽的新回弹", () => With(fixture =>
+        {
+            fixture.Move();
+            fixture.Start();
+            fixture.List.DispatcherQueue.HasThreadAccess = false;
+            UISettings.SetAnimationsEnabled(false);
+            UISettings.SetAnimationsEnabled(true);
+            fixture.Motion.Stop();
+            fixture.List.DispatcherQueue.HasThreadAccess = true;
+            fixture.Layout();
+            fixture.Row.Rules.Move(1, 2);
+            fixture.Start();
+            Assert.True(fixture.Motion.HasSpring);
+            Storyboard.Advance(SettingsPriorityMotion.DurationMs);
+            fixture.AssertClean();
+        }));
+        Test("后台系统关闭又恢复仍撤销那次回弹，不因新偏好继续旧行程", () => With(fixture =>
+        {
+            fixture.Move();
+            fixture.Start();
+            fixture.List.DispatcherQueue.HasThreadAccess = false;
+            UISettings.SetAnimationsEnabled(false);
+            UISettings.SetAnimationsEnabled(true);
+            fixture.List.DispatcherQueue.Drain();
+            fixture.AssertClean();
+        }));
+        Test("离页旧系统回调不清理重入控制器的快照和时钟", () => With(fixture =>
+        {
+            var posted = UISettings.Created.Single().CapturePostedEvent();
+            fixture.Motion.Detach();
+            using var replacement = new PriorityControllerLifetime(fixture.List, fixture.Row);
+            UISettings.SetAnimationsEnabled(false);
+            UISettings.SetAnimationsEnabled(true);
+            fixture.Move();
+            var before = Before(replacement.Motion);
+            posted();
+            Assert.True(ReferenceEquals(before, Before(replacement.Motion)));
+            fixture.List.DispatcherQueue.Drain();
+            Assert.True(replacement.Motion.HasSpring);
+        }));
+        Test("系统关再开不复活旧队列，只有新移动会回弹", () => With(fixture =>
+        {
+            fixture.Move();
+            UISettings.SetAnimationsEnabled(false);
+            UISettings.SetAnimationsEnabled(true);
+            fixture.List.DispatcherQueue.Drain();
+            Assert.Equal(0, Storyboard.Begun.Count);
+            fixture.Move();
+            fixture.Start();
+            Assert.True(fixture.Motion.HasSpring);
+        }));
+        Test("拖拽中系统关闭仅取消动效，结束仍提交一次", () => With(fixture =>
+        {
+            fixture.Motion.BeginDrag();
+            UISettings.SetAnimationsEnabled(false);
+            Assert.Equal(0, fixture.Row.EndCalls);
+            fixture.Row.Rules.Move(0, 1);
+            fixture.Motion.EndDrag();
+            Assert.Equal(1, fixture.Row.BeginCalls);
+            Assert.Equal(1, fixture.Row.EndCalls);
+            fixture.AssertClean();
+        }));
+        foreach (var after in new[] { false, true })
+            Test($"排序系统观察{(after ? "注册后" : "注册前")}失败保留拖拽提交但不播放", () => With(fixture =>
+            {
+                fixture.Motion.Detach();
+                UISettings.ThrowOnAdd = !after;
+                UISettings.ThrowAfterAdd = after;
+                using var replacement = new PriorityControllerLifetime(fixture.List, fixture.Row);
+                UISettings.ThrowOnAdd = UISettings.ThrowAfterAdd = false;
+                replacement.Motion.BeginDrag();
+                fixture.Row.Rules.Move(0, 1);
+                replacement.Motion.EndDrag();
+                fixture.List.DispatcherQueue.Drain();
+                Assert.Equal(1, fixture.Row.BeginCalls);
+                Assert.Equal(1, fixture.Row.EndCalls);
+                Assert.False(replacement.Motion.IsAnimating);
+                Assert.Equal(0, Storyboard.Begun.Count);
+            }));
+        Test("排序系统退订异常不挡住本地时钟和拖拽收尾", () => With(fixture =>
+        {
+            fixture.Move();
+            fixture.Start();
+            var posted = UISettings.Created.Single().CapturePostedEvent();
+            UISettings.ThrowOnRemove = true;
+            fixture.Motion.Detach();
+            fixture.AssertClean();
+            var reads = fixture.LayoutReads;
+            posted();
+            Assert.Equal(reads, fixture.LayoutReads);
+            Assert.Equal(1, UISettings.Created.Sum(settings => settings.SubscriptionCount));
+            UISettings.EndFaultFixture();
         }));
         Test("旧generation回调不得消费替代queue或before", () => With(fixture =>
         {
@@ -322,6 +441,7 @@ internal sealed class PriorityFixture : IDisposable
 
     internal PriorityFixture()
     {
+        UISettings.Reset();
         HomeMotion.Reset();
         Storyboard.Reset();
         foreach (var term in new[] { "双语", "SDH", "简体" })
@@ -362,7 +482,15 @@ internal sealed class PriorityFixture : IDisposable
         Motion.Detach();
         Assert.Equal(0, List.LayoutSubscriberCount);
         Assert.Equal(0, HomeMotion.Subscribers);
+        Assert.Equal(0, UISettings.Created.Sum(settings => settings.SubscriptionCount));
         Storyboard.Reset();
         HomeMotion.Reset();
+        UISettings.Reset();
     }
+}
+
+internal sealed class PriorityControllerLifetime(ListView list, SettingTitleRulesRow row) : IDisposable
+{
+    internal SettingsPriorityMotion Motion { get; } = new(list, row);
+    public void Dispose() => Motion.Detach();
 }

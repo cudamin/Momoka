@@ -263,7 +263,7 @@ internal sealed partial class ShellNavigationProbe
         sourceHost.Children.Add(source);
         _root.Children.Add(frame);
         _root.Children.Add(sourceHost);
-        var receipts = new List<bool>();
+        var receipts = new List<PersonTransitionReceipt>();
         var motion = HomeMotion.PreferenceEnabled;
         Action? disconnect = null;
         try
@@ -281,9 +281,14 @@ internal sealed partial class ShellNavigationProbe
                 new SuppressNavigationTransitionInfo()), "人物页导航失败");
             sourceHost.Visibility = Visibility.Collapsed;
             var page = (PersonPage)frame.Content;
-            await UntilAsync(() => receipts.Count > 0 && page.ViewModel.Portrait is not null);
-            Require(receipts[0], "人物页关联动画没有启动");
+            await UntilAsync(() => receipts.Any(receipt => receipt.Started) && page.ViewModel.Portrait is not null);
+            Require(receipts.Any(receipt => receipt.Started && !receipt.Terminal), "人物页关联动画没有启动");
             Require(page.ViewModel.Portrait is not null, "人物页没有接住关联动画的来源照片");
+            await UntilAsync(() => receipts.Any(receipt => receipt.Terminal));
+            Require(receipts.Count(receipt => receipt.Terminal) == 1 && receipts.Any(receipt => receipt.Completed),
+                "人物页关联动画没有唯一的原生完成回执");
+            Require(receipts.All(receipt => receipt.ElapsedMs >= 0 && receipt.PrepareToStartMs is >= 0), "人物关联计时缺失或为负");
+            await WritePerformanceEvidenceAsync("person-transition.json", new { receipts, RealNetwork = false, MediaLoaded = false });
             await LayoutAsync(page);
             await SaveProbeScreenAsync("person-transition-screen.png");
         }

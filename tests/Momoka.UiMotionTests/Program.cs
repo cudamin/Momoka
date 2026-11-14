@@ -326,6 +326,8 @@ internal static class Program
         SubscriptionFailureTests.Register();
         ShelfFocusTests.Register();
         BannerPointerGlowTests.Register();
+        SidebarMotionTests.Register();
+        MusicBarMotionTests.Register();
 
         var result = Run();
         Reset();

@@ -21,11 +21,14 @@ internal static class SidebarMotionContractTests
         });
         Test("侧边栏设置图标跟随应用与系统动画开关", () =>
         {
-            var source = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "ShellPage.Sidebar.cs"));
+            var source = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "ShellPage.SidebarMotion.cs"));
             Assert.Contains("HomeMotion.AnimationsEnabled", source);
             Assert.Contains("SidebarSettingsIcon.Source", source);
             Assert.Contains("AnimationsEnabledChanged", source);
             Assert.Contains("SyncSidebarSettingsIcon", source);
+            var hookup = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "ShellPage.Sidebar.cs"));
+            Assert.Contains("AttachSidebarMotion();", hookup);
+            Assert.Contains("DetachSidebarMotion();", hookup);
         });
     }
 

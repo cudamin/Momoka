@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
+using Momoka.Diagnostics;
 using Momoka.Shell.Views;
 using Windows.UI.ViewManagement;
 using static Momoka.Tests.TestHarness;
@@ -574,7 +575,7 @@ internal static class Program
             Assert.True(fixture.Prepare());
             var picture = fixture.Source.ConnectedPoster.Source;
             var animation = ConnectedAnimationService.Created.Last();
-            var receipts = new List<bool>();
+            var receipts = new List<PersonTransitionReceipt>();
             var detach = PersonTransition.Observe(fixture.Frame, receipts.Add);
             fixture.Frame.Content = fixture.TargetPage;
             var adopted = false;
@@ -587,10 +588,13 @@ internal static class Program
             Assert.True(ReferenceEquals(picture, fixture.TargetImage.Source));
             Assert.Equal(1, animation.StartCalls);
             Assert.True(PersonTransition.Started(fixture.Frame));
-            Assert.True(receipts.SequenceEqual([true]));
-            detach?.Invoke();
+            Assert.Equal(1, receipts.Count);
+            Assert.True(receipts[0].Started && !receipts[0].Terminal);
             Assert.True(BrowsePresentation.Results.Any(result => result.Started));
             animation.Complete();
+            Assert.Equal(2, receipts.Count);
+            Assert.True(receipts[1].Started && receipts[1].Completed && receipts[1].Terminal);
+            detach?.Invoke();
             Assert.Null(animation.Handlers);
             Assert.Null(HomeMotion.Handlers);
             Assert.Equal(0, fixture.Source.Retentions);
@@ -708,7 +712,316 @@ internal static class Program
             Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
             ConnectedAnimationService.Created.Last().Complete();
         });
+        Test("关联回执的准备超时、启动拒绝和导航取消分别只结算一个终态", () =>
+        {
+            foreach (var state in new[] { "timeout", "rejected", "cancelled", "artwork" })
+            {
+                using var fixture = new Fixture();
+                var receipts = new List<CardDetailTransitionReceipt>();
+                fixture.Prepare();
+                CardDetailTransition.Observe(fixture.Frame, receipts.Add);
+                if (state == "timeout") DispatcherTimer.Created.Last().Fire();
+                else if (state == "cancelled") fixture.Frame.StopNavigation();
+                else
+                {
+                    if (state == "rejected") ConnectedAnimationService.Created.Last().Starts = false;
+                    else fixture.Item.PrimaryTag = "replacement";
+                    CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                }
+                var expected = state switch
+                {
+                    "timeout" => ConnectedMotionReason.PrepareTimeout,
+                    "rejected" => ConnectedMotionReason.StartRejected,
+                    "artwork" => ConnectedMotionReason.ArtworkChanged,
+                    _ => ConnectedMotionReason.NavigationCancelled
+                };
+                Assert.Equal(1, receipts.Count);
+                Assert.Equal(expected, receipts[0].Reason);
+                Assert.True(receipts[0].Terminal && !receipts[0].Started);
+                Assert.Equal(state == "timeout", receipts[0].TimedOut);
+                Assert.Equal(state == "rejected", receipts[0].PrepareToStartMs is not null);
+                CardDetailTransition.Cancel(fixture.Frame);
+                Assert.Equal(1, receipts.Count);
+                Assert.Equal(0, fixture.Source.Retentions);
+            }
+        });
+        Test("原生准备后的单调计时不包含Prepare调用，前进和返回独立", () =>
+        {
+            using var fixture = new Fixture();
+            var clock = new MotionClock();
+            var receipts = new List<CardDetailTransitionReceipt>();
+            ConnectedAnimationService.Preparing = () => clock.Advance(350);
+            Assert.True(CardDetailTransition.Prepare(fixture.Frame, fixture.Source, clock));
+            ConnectedAnimationService.Preparing = null;
+            CardDetailTransition.Observe(fixture.Frame, receipts.Add);
+            clock.Advance(125);
+            ConnectedAnimationService.Created.Last().Starting = () => clock.Advance(7);
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            clock.Advance(55);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.Equal(132d, receipts[0].PrepareToStartMs!.Value);
+            Assert.Equal(187d, receipts[1].ElapsedMs);
+            Assert.True(receipts[1].Terminal && receipts[1].Completed);
+            clock.Advance(4000);
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            clock.Advance(22);
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            clock.Advance(12);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.Equal(22d, receipts[2].PrepareToStartMs!.Value);
+            Assert.Equal(34d, receipts[3].ElapsedMs);
+            Assert.Equal(2, receipts.Count(receipt => receipt.Terminal));
+        });
+        Test("人物计时和完成超时分别报告Started与唯一终态，晚完成无效", () =>
+        {
+            using var fixture = new PersonFixture();
+            var clock = new MotionClock();
+            var receipts = new List<PersonTransitionReceipt>();
+            Assert.True(PersonTransition.Prepare(fixture.Frame, fixture.Source, clock));
+            PersonTransition.Observe(fixture.Frame, receipts.Add);
+            clock.Advance(90);
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            var animation = ConnectedAnimationService.Created.Last();
+            var lateComplete = animation.LateComplete();
+            Assert.Equal(90d, receipts[0].PrepareToStartMs!.Value);
+            clock.Advance(1200);
+            DispatcherTimer.Created.Last().Fire();
+            lateComplete();
+            Assert.Equal(2, receipts.Count);
+            Assert.True(receipts[1].Started && receipts[1].Terminal && receipts[1].TimedOut);
+            Assert.Equal(ConnectedMotionReason.CompletionTimeout, receipts[1].Reason);
+            Assert.Equal(1290d, receipts[1].ElapsedMs);
+            Assert.True(BrowsePresentation.Results.All(result => result.Started));
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("人物回执区分准备超时、目标不可见、图版本与动画关闭", () =>
+        {
+            foreach (var state in new[] { "timeout", "target", "artwork", "disabled" })
+            {
+                using var fixture = new PersonFixture();
+                var receipts = new List<PersonTransitionReceipt>();
+                fixture.Prepare();
+                PersonTransition.Observe(fixture.Frame, receipts.Add);
+                if (state == "timeout") DispatcherTimer.Created.Last().Fire();
+                else if (state == "disabled") HomeMotion.Change(false);
+                else
+                {
+                    if (state == "target") fixture.TargetImage.Visibility = Visibility.Collapsed;
+                    else fixture.Item.PrimaryTag = "replacement";
+                    fixture.Frame.Content = fixture.TargetPage;
+                    PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+                }
+                Assert.Equal(1, receipts.Count);
+                Assert.True(receipts[0].Terminal && !receipts[0].Started);
+                Assert.Equal(state switch
+                {
+                    "timeout" => ConnectedMotionReason.PrepareTimeout,
+                    "target" => ConnectedMotionReason.TargetUnavailable,
+                    "artwork" => ConnectedMotionReason.ArtworkChanged,
+                    _ => ConnectedMotionReason.Disabled
+                }, receipts[0].Reason);
+                Assert.Null(receipts[0].PrepareToStartMs);
+            }
+        });
+        Test("启动后关闭动画或导航取消只清理落定，不发失败页面回退", () =>
+        {
+            foreach (var disabled in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                var receipts = new List<CardDetailTransitionReceipt>();
+                fixture.Prepare();
+                CardDetailTransition.Observe(fixture.Frame, receipts.Add);
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                var stale = ConnectedAnimationService.Created.Last().LateComplete();
+                if (disabled) HomeMotion.Change(false);
+                else fixture.Frame.StopNavigation();
+                stale();
+                Assert.Equal(2, receipts.Count);
+                Assert.True(receipts[1].Started && receipts[1].Terminal && !receipts[1].Completed);
+                Assert.Equal(disabled ? ConnectedMotionReason.Disabled : ConnectedMotionReason.NavigationCancelled, receipts[1].Reason);
+                Assert.True(BrowsePresentation.Results.All(result => result.Started));
+                HomeMotion.Preference = true;
+            }
+        });
+        Test("准备前拒绝只记录有限匿名阶段，不创建票据或保留图片", () =>
+        {
+            var sink = new MotionSink();
+            NavigationTiming.Start(new(sink));
+            try
+            {
+                NavigationTiming.Click("motion-fixture");
+                using var fixture = new Fixture();
+                var timers = DispatcherTimer.Created.Count;
+                HomeMotion.Preference = false;
+                Assert.False(fixture.Prepare());
+                HomeMotion.Preference = true;
+                ConnectedAnimationService.ThrowOnPrepare = true;
+                Assert.False(fixture.Prepare());
+                Assert.Equal(timers, DispatcherTimer.Created.Count);
+                Assert.Null(CardDetailTransition.Observe(fixture.Frame, _ => { }));
+                Assert.Equal(0, fixture.Source.Retentions);
+                Assert.True(sink.Entries.Any(entry => entry.Stage == "card-forward-disabled"));
+                Assert.True(sink.Entries.Any(entry => entry.Stage == "card-forward-prepare-failed"));
+                Assert.True(sink.Entries.All(entry => entry.Stage.Length <= 40 && entry.Stage != "invalid"));
+                sink.Fail = true;
+                Assert.False(fixture.Prepare()); // 诊断写入失败也不能中断普通导航。
+            }
+            finally { NavigationTiming.Stop(); }
+        });
+        Test("人物Completed观察者发起新导航时旧清理不能取消新票据", () =>
+        {
+            using var fixture = new PersonFixture();
+            fixture.Prepare();
+            PersonTransition.Observe(fixture.Frame, receipt =>
+            {
+                if (receipt.Completed) Assert.True(fixture.Prepare());
+            });
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+            Assert.Equal(1, fixture.Source.Retentions);
+        });
+        Test("已创建票据的Prepare订阅失败只记录一次准备失败阶段", () =>
+        {
+            var sink = new MotionSink();
+            NavigationTiming.Start(new(sink));
+            try
+            {
+                NavigationTiming.Click("motion-fixture");
+                using var fixture = new Fixture();
+                UISettings.AddFailure = UISettings.EventFailure.Before;
+                Assert.False(fixture.Prepare());
+                Assert.Equal(1, sink.Entries.Count(entry => entry.Stage == "card-forward-prepare-failed"));
+                Assert.Equal(0, fixture.Source.Retentions);
+            }
+            finally { NavigationTiming.Stop(); }
+        });
+        Test("前进完成或超时观察者准备返回时旧尾声不能清掉返回动画", () =>
+        {
+            foreach (var timedOut in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                var receipts = new List<CardDetailTransitionReceipt>();
+                CardDetailTransition.Observe(fixture.Frame, receipt =>
+                {
+                    receipts.Add(receipt);
+                    if (receipt.Direction == "forward" && receipt.Terminal)
+                        Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+                });
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                var forward = ConnectedAnimationService.Created.Last();
+                if (timedOut) DispatcherTimer.Created.Last().Fire();
+                else forward.Complete();
+                Assert.True(CardDetailTransition.Returning(fixture.Frame));
+                Assert.True(DispatcherTimer.Created.Last().IsRunning);
+                fixture.Frame.Content = fixture.Source;
+                CardDetailTransition.CompleteReturn(fixture.Frame);
+                fixture.Frame.DispatcherQueue.Drain();
+                var returning = ConnectedAnimationService.Created.Last();
+                Assert.Equal(1, returning.StartCalls);
+                returning.Complete();
+                Assert.True(receipts.Any(receipt => receipt.Direction == "return" && receipt.Completed));
+            }
+        });
+        Test("返回完成超时只发已启动终态，旧回调不重复结算", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            var receipts = new List<CardDetailTransitionReceipt>();
+            CardDetailTransition.Observe(fixture.Frame, receipts.Add);
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            DispatcherTimer.Created.Last().Fire();
+            Assert.True(BrowsePresentation.Results.All(result => result.Started));
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            var late = ConnectedAnimationService.Created.Last().LateComplete();
+            DispatcherTimer.Created.Last().Fire();
+            late();
+            Assert.Equal(1, receipts.Count(receipt => receipt.Direction == "return" && receipt.Terminal));
+            Assert.True(receipts.Any(receipt => receipt.Direction == "return" && receipt.Started
+                && receipt.Terminal && receipt.Reason == ConnectedMotionReason.CompletionTimeout));
+            Assert.True(BrowsePresentation.Results.All(result => result.Started));
+        });
+        Test("人物图版本变化保留待决票据，由Attach发布正确图漂移回退", () =>
+        {
+            using var fixture = new PersonFixture();
+            fixture.Prepare();
+            var receipts = new List<PersonTransitionReceipt>();
+            PersonTransition.Observe(fixture.Frame, receipts.Add);
+            fixture.Item.PrimaryTag = "replacement";
+            Assert.True(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            Assert.Equal(1, receipts.Count);
+            Assert.Equal(ConnectedMotionReason.ArtworkChanged, receipts[0].Reason);
+            Assert.True(receipts[0].Terminal && !receipts[0].Started);
+        });
+        Test("海报Prepare取消回执重入时外层不覆盖或清掉内层新准备", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            var receipts = new List<CardDetailTransitionReceipt>();
+            CardDetailTransition.Observe(fixture.Frame, receipt =>
+            {
+                receipts.Add(receipt);
+                if (receipt.Reason == ConnectedMotionReason.Superseded) Assert.True(fixture.Prepare());
+            });
+            var created = ConnectedAnimationService.Created.Count;
+            Assert.False(fixture.Prepare());
+            Assert.Equal(created + 1, ConnectedAnimationService.Created.Count);
+            Assert.Equal(1, fixture.Source.Retentions);
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            Assert.Equal(1, receipts.Count);
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+        });
+        Test("人物Prepare取消回执重入时外层不覆盖或清掉内层新准备", () =>
+        {
+            using var fixture = new PersonFixture();
+            fixture.Prepare();
+            var receipts = new List<PersonTransitionReceipt>();
+            PersonTransition.Observe(fixture.Frame, receipt =>
+            {
+                receipts.Add(receipt);
+                if (receipt.Reason == ConnectedMotionReason.Superseded) Assert.True(fixture.Prepare());
+            });
+            var created = ConnectedAnimationService.Created.Count;
+            Assert.False(fixture.Prepare());
+            Assert.Equal(created + 1, ConnectedAnimationService.Created.Count);
+            Assert.Equal(1, fixture.Source.Retentions);
+            Assert.True(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+            Assert.Equal(1, receipts.Count);
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+        });
         return Run();
+    }
+
+    private sealed class MotionClock : TimeProvider
+    {
+        private long _timestamp;
+        public override long TimestampFrequency => 1000;
+        public override long GetTimestamp() => _timestamp;
+        internal void Advance(int milliseconds) => _timestamp += milliseconds;
+    }
+
+    private sealed class MotionSink : INavigationTimingSink
+    {
+        internal List<NavigationTimingEvent> Entries { get; } = [];
+        internal bool Fail { get; set; }
+        public void Write(NavigationTimingEvent entry)
+        {
+            if (Fail) throw new IOException("fixture sink unavailable");
+            Entries.Add(entry);
+        }
     }
 
     private sealed class Fixture : IDisposable
@@ -724,6 +1037,7 @@ internal static class Program
             UISettings.AddFailure = UISettings.EventFailure.None;
             UISettings.RemoveFailure = UISettings.EventFailure.None;
             ConnectedAnimationService.ThrowOnPrepare = false;
+            ConnectedAnimationService.Preparing = null;
             BrowsePresentation.Results.Clear();
             var root = new FrameworkElement { ActualWidth = 1280, ActualHeight = 900 };
             var xaml = new XamlRoot { Content = root };
@@ -750,6 +1064,7 @@ internal static class Program
             Assert.True(UISettings.Created.All(settings => settings.Handlers is null));
             UISettings.AddFailure = UISettings.EventFailure.None;
             UISettings.RemoveFailure = UISettings.EventFailure.None;
+            ConnectedAnimationService.Preparing = null;
         }
     }
 
@@ -768,6 +1083,7 @@ internal static class Program
             UISettings.AddFailure = UISettings.EventFailure.None;
             UISettings.RemoveFailure = UISettings.EventFailure.None;
             ConnectedAnimationService.ThrowOnPrepare = false;
+            ConnectedAnimationService.Preparing = null;
             BrowsePresentation.Results.Clear();
             var root = new FrameworkElement { ActualWidth = 1280, ActualHeight = 900 };
             var xaml = new XamlRoot { Content = root };

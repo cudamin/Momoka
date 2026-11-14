@@ -87,6 +87,8 @@ public sealed partial class SettingsViewModel
                 () => settings.Show, value => settings.Show = value, after: RefreshDanmakuRows));
             if (settings.Show)
             {
+                displayRows.Add(Toggle("在进度条显示弹幕热力", "用已加载弹幕的密度在进度条上画热力条；不额外请求弹幕服务。",
+                    () => settings.ShowHeatmap, value => settings.ShowHeatmap = value, after: ApplyDanmakuSettings));
                 if (DanmakuSourceRules.CanSend(settings.Source))
                     displayRows.Add(Toggle("显示弹幕输入栏", "在播放器顶部影片标题右侧显示输入栏；关闭不影响观看弹幕。",
                         () => settings.ShowInput, value => settings.ShowInput = value, after: RefreshDanmakuRows));

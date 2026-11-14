@@ -212,6 +212,7 @@ namespace Microsoft.UI.Xaml
         public int SizeSubscriptionCount => _sizeChanged?.GetInvocationList().Length ?? 0;
         public bool IsLoaded { get; set; } = true;
         public double Width { get; set; } = double.NaN;
+        public Thickness Margin { get; set; }
         public double Height { get => (double)GetValue(HeightProperty)!; set => SetValue(HeightProperty, value); }
         public double NaturalHeight { get; set; } = 50;
         public double ActualHeight => double.IsNaN(Height) ? NaturalHeight : Height;
@@ -608,6 +609,11 @@ namespace Windows.UI.ViewManagement
             if (_animationsEnabled == enabled) return;
             _animationsEnabled = enabled;
             foreach (var settings in Created.ToArray()) settings._changed?.Invoke(settings, new());
+        }
+        public Action CapturePostedEvent()
+        {
+            var posted = _changed;
+            return () => posted?.Invoke(this, new());
         }
         public static void Reset()
         {

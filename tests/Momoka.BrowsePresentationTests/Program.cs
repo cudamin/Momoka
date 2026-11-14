@@ -330,6 +330,70 @@ internal static class Program
                     UISettings.Enabled = true;
                     failed.ReleaseFaultEndpoint();
                 });
+        foreach (var presentation in new[] { BrowseMotion.Native, BrowseMotion.None })
+        {
+            Test("独立呈现策略仍释放首帧图片，不创建自定义淡入/" + presentation, () =>
+            {
+                using var fixture = new Fixture(loaded: true);
+                var before = Storyboard.Created.Count;
+                fixture.Begin(presentation);
+                var gate = Gate();
+                fixture.Attach();
+                Assert.False(gate.IsCompleted);
+                Assert.Equal(before, Storyboard.Created.Count);
+                BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+                Assert.Equal(before, Storyboard.Created.Count);
+                CompositionTarget.Render();
+                fixture.Frame.DispatcherQueue.Drain();
+                Assert.True(gate.IsCompletedSuccessfully);
+                Assert.Equal(1d, fixture.Frame.Opacity);
+            });
+        }
+        Test("关联启动后的迟到失败与完成不再补播整页", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            var before = Storyboard.Created.Count;
+            fixture.Begin(deferMotion: true);
+            fixture.Attach();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: true);
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: true);
+            Assert.Equal(before, Storyboard.Created.Count);
+            Assert.Equal(1d, fixture.Frame.Opacity);
+        });
+        Test("关联启动拒绝只补一次淡入，完成后旧失败不能重播", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            var before = Storyboard.Created.Count;
+            fixture.Begin(deferMotion: true);
+            fixture.Attach();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+            Assert.Equal(before + 1, Storyboard.Created.Count);
+            Storyboard.Created.Last().Complete();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+            Assert.Equal(before + 1, Storyboard.Created.Count);
+            Assert.Equal(1d, fixture.Frame.Opacity);
+        });
+        Test("下一次原生呈现不会继承待决关联的回退", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            fixture.Begin(deferMotion: true);
+            var oldGate = Gate();
+            fixture.Attach();
+            var lateFrame = CompositionTarget.LateRender();
+            var before = Storyboard.Created.Count;
+            fixture.Begin(BrowseMotion.Native);
+            var currentGate = Gate();
+            fixture.Attach();
+            lateFrame();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+            Assert.True(oldGate.IsCompletedSuccessfully);
+            Assert.False(currentGate.IsCompleted);
+            Assert.Equal(before, Storyboard.Created.Count);
+            CompositionTarget.Render();
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(currentGate.IsCompletedSuccessfully);
+        });
         Test("原生Storyboard.Stop抛错仍放行所有图片与本地透明终值", () =>
         {
             using var fixture = new Fixture(loaded: true);
@@ -378,7 +442,8 @@ internal static class Program
             _presentation = Activator.CreateInstance(Production, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, [Frame], null)!;
         }
-        public void Begin(bool deferMotion = false) => Production.GetMethod("Begin", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, [deferMotion]);
+        public void Begin(bool deferMotion = false) => Begin(deferMotion ? BrowseMotion.ConnectedPending : BrowseMotion.Fade);
+        public void Begin(BrowseMotion motion) => Production.GetMethod("Begin", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, [motion]);
         public void Attach() => Invoke("Attach");
         public void Stop() => Invoke("Stop");
         private void Invoke(string name) => Production.GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, null);

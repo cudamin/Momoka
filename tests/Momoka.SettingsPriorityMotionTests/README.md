@@ -1,5 +1,17 @@
 # 设置优先级回弹取消专项
 
+## 2026-11-14 动效施工 S3
+
+当前生产控制器直接观察 Windows 动画偏好，后台通知以 High 优先级回到 UI 线程；
+关闭时不用等下一次布局，就取消快照、队列与回弹。代次和 Detach 拒绝晚到通知。
+注册失败保留排序和拖拽两阶段提交，控制器使用静态结果；退订失败仍完成本地收尾，
+不把未知 native 订阅冒称为已释放。原 380ms 关键帧与业务提交入口保留。
+
+本轮源码链接专项 **35/35、0 失败、0 跳过**，比基线 24 项新增 11 项：系统即时/后台关闭、
+旧回调、离页重入、恢复不重播、拖拽关闭、注册前后异常与退订异常。
+UISettings、DispatcherQueue 和时钟均是边界；不证明真实系统开关通知、原生拖拽或 GPU 逐帧。
+下方旧树、旧通过数仅保留为历史证据。
+
 独立树 `C:/Users/89400/.codex/worktrees/settings-rows-motion/Momoka`，在 Rows 动画提交
 `c42d0653be34fdc7a3917fb56f013bd40c13c0b6` 之后单独修复。写集只有
 `src/Momoka.Shell/Views/SettingsPriorityMotion.cs` 和本目录，不改 SettingTitleRulesRow、

@@ -1,10 +1,10 @@
 # Momoka WinUI 动效施工文档
 
-日期：2026-11-14。状态：待施工。本轮只编写施工文档，产品代码、依赖、运行验证和发布均未开始。
+编写日期：2026-11-14；执行记录更新：2026-11-15。状态：S0～S3 已实施，S2 原生候选按门槛评估后保留现状；S4 已合入 master，待用户要求交付时统一验收。用户已要求开始施工，本批不发布、不上传。实际结果见第八节和 [本次施工验收记录](WinUI动效施工验收-2026-11-15.md)。
 
 目标：在现有动效上补齐可观测性、导航一致性和中断处理，让后续执行者可以按批次实施、测试、合并和验收。默认施工范围是 S0～S4；AnimatedVisualPlayer 和 Composition Effects 暂缓，原因与重新评估条件见第七节。
 
-本文只覆盖本次五类动效，不恢复已撤销的其他 WinUI 优化计划。项目规则以 [CLAUDE.md](../CLAUDE.md) 为准；后续明确要求“按本文施工”时执行这些批次，本次文档请求本身不启动产品施工。
+本文只覆盖本次五类动效，不恢复已撤销的其他 WinUI 优化计划。项目规则以 [CLAUDE.md](../CLAUDE.md) 为准。2026-11-14 的只读审查及文档编写已结束，随后用户“开始做吧”授权执行默认 S0～S4；原计划步骤保留，执行结论单独记录。
 
 ## 一、施工结论与范围
 
@@ -22,7 +22,7 @@
 
 ## 二、事实基线与证据边界
 
-### 2.1 本次核对基线
+### 2.1 文档编写时的核对基线
 
 | 项目 | 核对结果 |
 | --- | --- |
@@ -36,7 +36,7 @@
 
 本地版本来自 [Shell 项目文件](../src/Momoka.Shell/Momoka.Shell.csproj)。这些是项目声明，不是本次还原、构建或分发测试结果；Gallery 整仓使用实验 SDK 不代表所有基础动画 API 都要求实验包。施工前重新读取当前项目文件和包元数据，保持项目的稳定依赖与拆包策略。
 
-本轮核对了源码、现有测试编译输入和断言，以及官方文档和固定 Gallery 样例。没有运行客户端、产品测试、探针、真实服务器或性能采样。本文的风险是源码推导的验证事项，不是已复现故障。
+2026-11-14 文档编写阶段只核对源码、现有测试编译输入和断言，以及官方文档和固定 Gallery 样例，没有运行客户端、产品测试、探针、真实服务器或性能采样。下面清单保留该阶段的事实；之后施工的当前基线、真实通过/失败和覆盖限制见第八节及验收记录，不能混用。
 
 ### 2.2 历史记录如何使用
 
@@ -87,7 +87,7 @@ StickyHeader 注释中的原始参考来源是 Gallery 2.10.0 / `7b4314a`；本�
 
 浏览 Frame 当前显式 Suppress，随后由 BrowsePresentation 播放 180ms、透明度 0.8→1 的轻淡入。该类同时负责首帧后放行图片，动效只是其中一项职责。首页自己还有货架入场，媒体库 SearchSurface 自带 220ms / 8 DIP 局部入场；新增整页位移必须逐路排除叠加。
 
-侧栏设置齿轮使用 [ShellPage.xaml](../src/Momoka.Shell/Views/ShellPage.xaml) 中的 AnimatedIcon 和内置 AnimatedSettingsVisualSource，静态回退为 FontIconSource。[ShellPage.Sidebar.cs](../src/Momoka.Shell/Views/ShellPage.Sidebar.cs) 的 SyncSidebarSettingsIcon 在不允许动画时清空 Source。
+文档编写基线的侧栏设置齿轮使用 [ShellPage.xaml](../src/Momoka.Shell/Views/ShellPage.xaml) 中的 AnimatedIcon 和内置 AnimatedSettingsVisualSource，静态回退为 FontIconSource。[ShellPage.Sidebar.cs](../src/Momoka.Shell/Views/ShellPage.Sidebar.cs) 的 SyncSidebarSettingsIcon 在不允许动画时清空 Source。
 
 本次对应用源码的检索没有发现业务使用 AnimatedVisualPlayer、Lottie 动画文件或自写 CreateEffectFactory。这里指应用显式使用，不推断框架或系统材质内部没有合成效果。
 
@@ -95,11 +95,11 @@ StickyHeader 注释中的原始参考来源是 Gallery 2.10.0 / `7b4314a`；本�
 
 | 批次 | 产出 | 依赖 | 状态 |
 | --- | --- | --- | --- |
-| S0 | 刷新源码、路由、测试和测量基线 | 无 | 待施工 |
-| S1 | 关联动画计时、回退原因和完成验收 | S0 | 待施工 |
-| S2 | 有限普通前进路由的原生过渡与单一动效归属 | S1；先有可靠计时与回退 | 待施工 |
-| S3 | 隐式/局部动效的中断、命中、焦点和资源回归 | S0；涉及外壳时等待 S2 | 待施工 |
-| S4 | 合并记录与最终统一验收 | S1～S3 | 待施工 |
+| S0 | 刷新源码、路由、测试和测量基线 | 无 | 已完成，重复性能/资源采样留到交付 |
+| S1 | 关联动画计时、回退原因和完成验收 | S0 | 已实施，原生收尾结果见第八节 |
+| S2 | 有限普通前进路由的原生过渡与单一动效归属 | S1；先有可靠计时与回退 | 已评估，候选不采用 |
+| S3 | 隐式/局部动效的中断、命中、焦点和资源回归 | S0；涉及外壳时等待 S2 | 已实施/核对保留，真实输入和资源测量待交付 |
+| S4 | 合并记录与最终统一验收 | S1～S3 | 已合入master；交付另行授权 |
 
 S1、S2 共用 Frame、BrowsePresentation 和关联票据，顺序实施。S3 的只读审查或独立测试分析可以并行；修改同一文件、共享桌面验证和最终发布必须按项目规则协调。每批留下单独提交与可回滚边界，不堆成一次大规模动画替换。
 
@@ -126,12 +126,12 @@ S1、S2 共用 Frame、BrowsePresentation 和关联票据，顺序实施。S3 �
 **需要改变的行为与诊断**：
 
 1. 在每张关联票据内保存实际准备成功的单调时间戳，记录 TryStart 结果、Completed、取消及超时。前进和返回分别记录，不能用点击耗时替代 Prepare→TryStart。
-2. 扩展现有 receipt / Observe，使前进准备超时与普通不满足条件能区分。当前 CardDetailTransitionReceipt 只有 Direction、Started、Completed、TimedOut；准备超时可能与普通失败给出相同读数。PersonTransition.Observe 当前是 Action<bool>，Completed 路径只清理而不发布完成结果：需改为结构化生命周期回执，在清空观察者之前结算终态，并同步人物探针的 List<bool> 与相关测试。
+2. 扩展现有 receipt / Observe，使前进准备超时与普通不满足条件能区分。文档编写基线的 CardDetailTransitionReceipt 只有 Direction、Started、Completed、TimedOut；准备超时可能与普通失败给出相同读数。文档编写基线的 PersonTransition.Observe 是 Action<bool>，Completed 路径只清理而不发布完成结果：需改为结构化生命周期回执，在清空观察者之前结算终态，并同步人物探针的 List<bool> 与相关测试。
 3. 用固定原因集合表达回退：例如 Disabled、SourceUnavailable、TargetUnavailable、IdentityChanged、PrepareFailed、StartRejected、PrepareTimeout、CompletionTimeout、NavigationCancelled。最终名称可贴近现有类型；诊断不记录账号、地址、令牌或媒体名称。Prepare 因守卫或平台异常直接返回 false 时尚无票据，需通过轻量 Prepare 结果/直接诊断出口报告，不为观察失败而伪造活动票据；不把所有 false 都误记为平台拒绝。
 4. 既有 NavigationTiming 有严格阶段名称和长度限制。扩展时保持该限制，诊断写入失败不能破坏导航；没有开启采样时不创建持续定时任务。
 5. 保留来源小图立即交接、高清不降级及图片身份更正后取消。若测得元数据请求的同步前段影响启动，先检查能否安全把已有图交接提前；不能为了动画阻塞业务数据、跳过身份核对或永久冻结低清图。
 6. 正常场景以准备后约 250ms 内启动作为设计与测量目标。700ms 仍只是等待目标的容错上限；不把它改称允许等待时间。先记录实际数据，再判断是否收紧超时，不能仅为达标提前失败。
-7. 补人物动画的原生 Completed 验收。当前人物探针只证明 Started 和目标有照片；保持人物返回的普通导航，不为补功能强行重建/定位旧源卡。
+7. 补人物动画的原生 Completed 验收。文档编写基线的人物探针只证明 Started 和目标有照片；保持人物返回的普通导航，不为补功能强行重建/定位旧源卡。
 
 **测试工程**：Momoka.ConnectedAnimationTests、Momoka.BrowsePresentationTests、Momoka.DetailImageArrivalTests、Momoka.PageContractTests。探针修改位于 [ShellNavigationProbe.ConnectedAnimation.cs](../src/Momoka.Shell/ShellNavigationProbe.ConnectedAnimation.cs) 与 [ShellNavigationProbe.Person.cs](../src/Momoka.Shell/ShellNavigationProbe.Person.cs)。
 
@@ -147,7 +147,7 @@ S1、S2 共用 Frame、BrowsePresentation 和关联票据，顺序实施。S3 �
 
 **完成条件**：新增诊断可区分失败原因，源码测试通过；声明过的原生结果有当次证据。因正常守卫回退不视为功能错误，不能以动画成功率为由放宽守卫。
 
-### S2：有限普通导航采用原生页面过渡
+### S2：有限普通导航的原生页面过渡候选
 
 **主要文件**：ShellPage.xaml、ShellPage.xaml.cs、ShellPage.Music.cs、BrowsePresentation.cs；必要时在 Shell/Views 下增加小型导航动效选择类型。Frame 导航是 UI 职责，不把 WinUI 过渡对象或页面类型搬进 Core。
 
@@ -294,17 +294,17 @@ Gallery 的具体 LottieLogo1 生成源码使用 CanvasPathBuilder / CanvasGeome
 
 ## 八、执行记录与交接格式
 
-后续每批结束时更新下表，并在 [PROGRESS.md](../PROGRESS.md) 与 [待交付批次](待交付批次.md) 记录实际状态。只填执行过的结果；文档写完不勾选产品施工完成。
+每批结束时更新下表，并在 [PROGRESS.md](../PROGRESS.md) 与 [待交付批次](待交付批次.md) 记录实际状态。只填执行过的结果；文档写完不勾选产品施工完成。
 
 | 批次 | 产品提交/合并提交 | 受影响测试实际结果 | 原生/性能证据 | 未覆盖与后续动作 | 当前状态 |
 | --- | --- | --- | --- | --- | --- |
-| S0 | 未开始 | 未执行 | 未执行 | 施工时刷新当前基线 | 待施工 |
-| S1 | 未开始 | 未执行 | 未执行 | 计时、原因、人物完成验收 | 待施工 |
-| S2 | 未开始 | 未执行 | 未执行 | 候选采用或保留原方案须有依据 | 待施工 |
-| S3 | 未开始 | 未执行 | 未执行 | 按表面收敛中断/输入/资源 | 待施工 |
-| S4 | 未开始 | 未执行 | 未执行 | 合并与用户要求的最终交付分别记录 | 待施工 |
+| S0 | 基点 `63ef01a`，整合 `d711cbe` / master `ee3d23c` | 当前专项基线见验收记录 | 匿名图片/假 HTTP、实际 XAML 岛与同机对照配置已建立 | 暖/冷重复导航及资源采样待交付 | 已完成 |
+| S1 | `cad4f2e`、`3bc3cde` | Connected 61/61；Browse 32/32；图片26/26 | 海报前进/返回、人物唯一 Completed 已实测，原生motion5/5 | 海报首次600.9283ms超过250ms目标；返回209.1449ms，人物45.6615ms；重复性能/系统中断/跨DPI待验 | 已实施 |
+| S2 | `b03668b`、`5669199` 与工具收尾 | Browse 32/32；Navigation 10/10；HomeFold 71/71 | Entrance 仅探针候选；中途关闭实帧仍移动 | 保留 Suppress + 原轻淡入，未采用原生迁移；详细门槛/历史见验收记录 | 有依据保留原方案 |
+| S3 | `4b9ed43` | UiMotion80/80；Priority35/35；Sticky58/58；Rows46/46；SettingsProbe36/36 | motion5/5；悬浮卡真实客户区/页宽1000、760、360一致，静态截图已目视 | 其他表面核对保留；物理输入/Windows事件/资源测量待交付 | 已实施/核对保留 |
+| S4 | 原生工具 `5669199`、`bbb9509`、`49714bc`；快进合入master `d8d8d00` | PageContract276/276；工具29/29；Shell0警告0错误 | 首轮3/5与隐藏启动失败原档保留；可见motion5/5，PID33304 | 台账记录本批交付范围；本任务辅助树收尾，发布另行授权 | 已合入，待交付 |
 
-后续可直接下达：“按 WinUI动效施工文档.md 从 S0 开始，依次完成默认批次，暂缓项不做；分支完成后按项目规则合并，交付另行要求。”这句话是后续任务模板，不是本次已执行命令。
+原始施工任务模板：“按 WinUI动效施工文档.md 从 S0 开始，依次完成默认批次，暂缓项不做；分支完成后按项目规则合并，交付另行要求。”用户已开始本次施工；模板保留供复核范围，不能代替下面记录的执行事实。
 
 ## 九、官方文档与固定源码索引
 

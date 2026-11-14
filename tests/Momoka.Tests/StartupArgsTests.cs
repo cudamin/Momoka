@@ -14,6 +14,17 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("动效探针：分区归一、隐私开关与真实播放组合拒绝", () =>
+        {
+            Assert.True(ShellProbeSections.All.Contains(ShellProbeSections.Motion));
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "MOTION,motion"])!
+                .SetEquals([ShellProbeSections.Motion]));
+            StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "motion", "--screen", "1"]);
+            foreach (var flag in new[] { "--play", "--self-check", "--navigation-timing", "--self-check-data" })
+                Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "motion", flag]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(["--probe-shell", "inspect", "--probe-section", "motion"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "motion,unknown"]));
+        });
         Test("飞牛字幕探针：独立分区与错误组合隔离", () =>
         {
             var selected = StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "FNNAS-SUBTITLES,fnnas-subtitles"]);

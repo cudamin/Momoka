@@ -194,7 +194,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             var connected = detailConnected || personConnected;
             if (!detailConnected) CardDetailTransition.Cancel(ContentFrame);
             if (!personConnected) PersonTransition.Cancel(ContentFrame);
-            _browsePresentation.Begin(deferMotion: connected);
+            _browsePresentation.Begin(connected ? BrowseMotion.ConnectedPending
+                : HomeMotion.AnimationsEnabled ? BrowseMotion.Fade : BrowseMotion.None);
             BeginNavigation(args.SourcePageType);
         };
         ContentFrame.Navigated += (_, _) =>

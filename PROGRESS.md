@@ -6,6 +6,44 @@
 
 **验证。** Shell/Core x64 Release **0 警告 0 错误**；主测试 **5107/5107、0 失败 0 跳过**；`Momoka.PageContractTests` **275/275**（新增简介圆角为 0 的源码契约）。原生 `--probe-shell --probe-section detail-cards --screen 1` 在隔离单实例名下跑出 `store-detail-cards-media-1240/760/360.png` 与 `detail-immersive-*-Series-1200-screen.png`，逐张目视：1240/760 的剧照左右两端都与环境底渐变衔接、右侧留出 16 的空隙，第一块分区卡片落在画面之下；360 窄档封面与卡片不重叠，简介首字完整。该轮在 MoviePilot 订阅段的 760 检查前后未写出最终 `shell-probe.json`（日志止于 `0:47:36`，截图后进程未正常收尾），因此只报媒体详情截图，不宣称整个 detail-cards 用例通过；未连接真实服务、未播放、未写服务器，未覆盖高对比度、触摸、读屏与跨 DPI。
 
+## 2026-11-15 WinUI动效定向原生入口与候选测量（在途）
+
+本树 `C:/Users/89400/.codex/worktrees/winui-motion-native/Momoka`、临时分支 `codex/winui-motion-native`，基线master `63ef01a`；接入已验证的 `b03668b` 呈现归属实现。新增 `motion` 匿名分区，串行海报前进/返回/回退、人物、悬浮卡、主页历史与Library/Music原生Entrance候选，沿固定 Gallery `6de91fe` 实际 XAML/code-behind配置Frame.ContentTransitions。候选仍使用生产首帧/图片门控，用实际Rendered后的BGRA标记读数核对中段、应用动效关闭、正式GoForward和最终呈现；不改系统开关、不伪造历史，不把candidate-only算迁移通过。
+
+真实链接生产证据判断与StartupArgs的 `motion-probe-fixture` **24/24、0失败0跳过**，Core/Tests编译0警告0错误；Shell最终门控/ROI/心跳版本0警告0错误；随后诊断收尾改动由主控整合后重编。原生UI留主控合入S1/S3后串行实际运行，当前没有该分区运行证据。每试验finally保留结果，汇总与截图不超过四张；心跳与截图采样有负担，不能宣称GPU/CPU改善。命令与覆盖见 [原生动效候选说明](tests/Momoka.Tests/README.MotionProbe.md)。未发布、上传、读取真实凭据或播放。
+
+## 2026-11-14 WinUI动效施工 S0 与呈现归属（在途）
+
+用户按 [施工文档](docs/WinUI动效施工文档.md) 授权开始S0～S4。当前树 `C:/Users/89400/.codex/worktrees/winui-motion-review-doc/Momoka`，分支 `codex/winui-motion-implementation`，刷新基线为master `63ef01a`，开始时主树及本树干净；WinUI2.3.9/Runtime2.5.1/Toolkit8.2.251219未变。S1与S3在各自独立树并行写入，原生运行统一串行。
+
+S0基线：Shell Release 0警告0错误；BrowsePresentation27/27、NavigationState10/10、HomeFoldCompletion71/71、HomeDirectory82/82。S1/S3专项证据另记本批提交。普通导航/下钻/Back/Forward/面包屑仍走真实Frame与请求，首页/搜索/设置局部入场保持原归属。静态复核本轮所审关联/门控/浮层源码相对文档基线未变，Shell只有其他批次接线变化。
+
+呈现责任：BrowsePresentation将跨阶段bool改为本次访问的明确状态；首帧/低优先级图片放行与fade选择独立，关联成功不补fade，启动拒绝只回退一次，下一访问清旧状态。真实链接生产代码的Browse专项32/32、NavigationState10/10、HomeDirectory82/82，0失败0跳过。Native状态目前只支持隔离候选试验，不代表已采用原生路由；原生Entrance需实际首屏、中断和历史证据后决定。没有发布、上传、真实播放或系统动画设置改动。分支待S1～S3整合、原生工具验证与合并master。
+## 2026-11-15 WinUI 动效 S1：关联计时、原因和人物完整回执（独立树待整合）
+
+工作树 `C:/Users/89400/.codex/worktrees/winui-motion-s1/Momoka`，分支 `codex/winui-motion-s1`，基点 `63ef01a`；用户授权按施工文档开始。保留 Gallery `6de91feccadfbb0a796b71caedead5a2284f730e` 的 ItemsRepeaterCollectionPage → DetailedInfoPage 原生 Prepare/Suppress/TryStart、前进默认/返回 Direct；本轮刷新可执行上游后仅适配本地生命周期，Gallery 没有当前 Frame/身份/超时的诊断结算样例，新增小型共享回执/单调计时类而非通用动画管理器。
+
+Card/Person 回执现在区分启动、完成、准备/完成超时、关动画、身份/图版本变化、目标/源缺失与导航取消，每次唯一终态；人物 Completed 在清观察者前发布。Prepare 成功返回后的单调时间与 TryStart 真正成功返回时点独立记录，Prepare 失败尚无票据走有限匿名 NavigationTiming 阶段，已有票据不重复写 PrepareFailed；不记录账号、地址、媒体名。Started 后的取消/超时只清理落定，不发送普通页面淡入；旧完成/超时和回执观察者重入不能清新票据或返回准备。Primary/高清保留、700ms 准备容错与1200ms 生命周期不改。
+
+验证：基线 Connected 48/48；当前 Connected 58/58、DetailImageArrival 26/26，0 失败 0 跳过；专项与 Shell/x64 Release 编译 0 警告 0 错误。两个原生探针收紧唯一终态/计时/原因，人物新增 `person-transition.json`；原生成功/失败本轮由主任务串行执行，当前不声明 ≤250ms、GPU 补间、跨 DPI 或读屏通过。主任务负责 Browse/整合验证及台账；未发布、未上传、未真实播放或服务器写入。
+
+## 2026-11-15 WinUI 动效施工 S3：减少动画与离页收尾（独立树，待合并）
+
+树 `C:/Users/89400/.codex/worktrees/winui-motion-s3/Momoka`，分支 `codex/winui-motion-s3`，基点 master `63ef01a`。用户授权按施工文档开始；写集为 HomeMotion、SettingsPriorityMotion、ShellPage.Sidebar/SidebarMotion 与相关专项。首页待 Loaded 入场现在观察 Windows 关闭动画并撤销旧票据；恢复后不重播，旧通知不能取消回收后新的目标。设置排序直接响应 Windows 动画事件，以 High 队列落定，保留 380ms 关键帧与拖拽两阶段业务提交。齿轮只在 Loaded 活动期绑定动画源，离页及注册失败使用已有 FontIconSource 静态回退；旧原生/排队事件按 lifetime 拒绝。Gallery 对照固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 ImplicitTransition 与 AnimatedIcon XAML/code-behind；没有覆盖上述产品生命周期的成套样例，保留现有实现并补局部归属，未变包。
+
+基线当前源码专项：UiMotion 57/57、DetailStickyHeader 58/58、SettingsRowsMotion 46/46、SettingsPriorityMotion 24/24。施工后 UiMotion 80/80（新增23项，含音乐栏真实 PlaceMusicBar/PlaceMusicBarMargins 原样提取与启动失败回退）、Priority 35/35（新增11项）、PageContract 275/275、SettingsProbeContract 36/36，均零失败零跳过。音乐方法提取的缺起点、重复起点、缺终点均实际拒绝，合法源恢复成功；故障日志仅在 ignored work。Home Waiting/齿轮/Priority 的注册前后及退订异常明确断言本地收尾，native 退订未知不冒称零泄漏。本树受影响 Shell/x64 Release 两轮编译均 0 警告 0 错误；第二轮包含 Home Waiting、Priority 与 SidebarMotion 生产修改（末次 Priority 关闭事件取样由主代理最终整合编译覆盖）。
+
+StickyHeader、SurfaceMotion、SettingsRowsMotion、SettingsPage.Motion 与音乐栏产品方法核对保留：单一属性控制、快速反向/旧完成、命中、焦点、回收/终值已有专项。播放器 PlayerPage 的 220ms 原生 OpacityTransition 与 FadeRail/FadeStrip 命中规则只读核对，未改播放。未运行桌面 UI、系统设置、原生探针、真实网络/播放、发布或 push；假时钟不能证明 GPU 连续性、真实系统通知、Narrator、跨 DPI 或资源逐帧。原生待验由主代理串行采用现有 shell/settings/music/library 分区及最终主树台账处理，AVP/Effects仍暂缓。
+## 2026-11-14 进度条弹幕热力（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-danmaku-heatmap-7MAFQ8`，分支 `feat-danmaku-heatmap-7MAFQ8`，基点 master `63ef01a`。用户要求做弹幕热力图；只读审查后确认落在集成播放页进度条、悬停显示条数、统计全部已加载弹幕。产品与测试提交 `25a79e3`，边界补丁 `b1b7f37`。
+
+**实现。** 新增 Core `DanmakuHeat`：按秒聚合已加载弹幕，按轨道宽度切桶，非零桶 95 分位开方归一化，并提供悬停前后各 2.5 秒计数；超时长、负数和非有限时间不计入。`PlayerViewModel` 在加载、发送、换片、来源切换和时长变化时重建快照，评论和时长都没变就跳过；`DanmakuHeatVisible` 同时受服务可用、显示开关和新增 `DanmakuSettings.ShowHeatmap` 约束。集成页 `PlayerPage.DanmakuHeat.cs` 在 `SeekTrack` 的滑杆之上、缓存之下画底对齐细柱，宽度约 2 DIP、最多 600 桶、最高 60% 轨高；悬停读数复用 `ChapterPeek` 新增一行「此处约 N 条弹幕」。设置 → 弹幕 → 显示与外观新增「在进度条显示弹幕热力」，默认开，随「显示弹幕」收起；颜色走 `PlayerPalette.DanmakuHeat`（薄荷绿 40%）。独占 uosc 时间轴不画；不新增网络请求或额度消耗。
+
+**验证。** Shell/Core Release x64 **0 警告 0 错误**；`danmaku-fixture` **64/64**（新增按秒聚合、95 分位归一化、空快照与播放页层次契约，补丁后在最终代码上重跑）；主测试 **5110/5110、失败 0、跳过 0**（补丁前；补丁只改 Core 热力时长/索引边界，专项已覆盖）。`tools/check-diff.ps1` 检查 19 个文本文件通过。未跑原生探针与实屏截图，未连真实服务器、未播放；交付时需补设置页与集成播放页 1200/760 截图及悬停读数检查。
+
+**收尾。** 按批次规则只合入 master，不发布、不交付。
+
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 
 用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。
@@ -13679,3 +13717,27 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 文档明确 S0～S4 的文件、步骤、测试与验收：关联计时/回退/人物完成回执，普通顶层前进的原生 Entrance 候选，已有原生/Toolkit/Storyboard 动效的中断与命中收尾，最后按用户交付指令统一验收。Back 的准备时序、GoForward 无参及过渡属性只读、首帧图片门控、启动失败与启动后取消的区别均明确；AnimatedVisualPlayer 与 Composition Effects 暂缓。没有恢复旧优化计划，没有开始产品施工。
 
 编写并执行本轮文档静态检查：12/12，通过37处本地文件链接、22处官方/固定提交引用格式、当前源码参数与包声明、施工状态、编码/LF/BOM/末尾换行和空白核对。初次校验有一条因检查短句漏写“不能”的“能”而失败，按文档原句修正检查后通过；未删检查或改产品。两位独立只读审阅者核对上游与可执行性，提出的人物观察接口、无票据 Prepare 失败及启动后不补淡入三处已补齐。纯文档维护，未构建、运行应用、执行探针、改依赖、发布或上传。
+
+## 2026-11-15 — 原生动效候选首轮失败归因与继续检查
+
+仅在 `winui-motion-native/Momoka` 独立树修正候选探针及相关证据判定/测试，不修改关联动画或StickyHeader。主控首轮PID36764的三个影视库实帧JSON确认应用关闭并清ContentTransitions后Top仍105→103→102，基准100；不得采用原生候选。该轮历史在复合断言处失败且未记录各子条件，没有实帧历史通过证据。
+
+读取固定 WinUI main `9402930972f25cfcad82abc9f82ecab29936f404` 的Frame_Partial.cpp/NavigationHistory.cpp：公开GoBack(Suppress)先更新退出页PageStackEntry再推入ForwardStack，旧“仍须Entrance”断言与源码语义不符。改为分别严格核初次New/Entrance、返回后原页面/同request/Suppress、实际无参GoForward/Forward/Suppress，全部字段/异常及每route完整或部分结果落盘；源码只是解释，2.3.9实跑仍由主控重验。影视库失败仍串行跑音乐库，全部结束后汇总拒绝，不能吞失败为通过。
+
+完整生产证据源链接测试29/29、失败0、跳过0；当前Release/x64 Core/Tests编译0警告0错误，含成功、首路失败仍执行次路、两路失败及挂起串行反例，首轮完整实帧拒绝/缺历史证据不足回归。遵主控安排不重复Shell构建、不启动任何窗口、不发布或上传；主控接入后统一Shell编译与原生分区串行复验。
+
+## 2026-11-15 WinUI 动效 S0～S4 施工收尾
+
+用户“开始做吧”后在主施工树 `C:/Users/89400/.codex/worktrees/winui-motion-review-doc/Momoka`、临时分支 `codex/winui-motion-implementation` 实施默认 S0～S4，起点63ef01a，期间整合master ee3d23c，保留其他批次弹幕热力。产品/测试提交b03668b（呈现责任）、cad4f2e与3bc3cde（关联计时/唯一终态/重入）、4b9ed43（首页等待/排序/齿轮系统偏好及离页）、5669199与bbb9509/49714bc（原生motion分区、真实帧/历史与截图宽度守卫）。未改依赖、播放管线或真实数据。
+
+当前Shell Release重编0警告0错误（3分24秒），Core/主测试0警告0错误；Connected61/61、Browse32/32、DetailImage26/26、UiMotion80/80、Priority35/35、Sticky58/58、Rows46/46、PageContract276/276、SettingsProbe36/36、Navigation10/10、HomeDirectory82/82、HomeFold71/71、工具motion-probe-fixture29/29，均失败0跳过0，套件不相加。编码/空白43个文本文件通过；施工文档12/12、38处本地链接、22处固定/官方引用通过，另两处验收链接可达。S1/S3及文档独立只读复核，已修历史时态与离线/原生证据分类。
+
+原生匿名motion最终shell-probe-20261114-164224596-33304为5/5、退出0，正常结束；海报前进/正式返回、人物唯一Completed、失败回退、悬浮卡实际1000/760/360、主页历史/滚动及两路候选完成。首海报启动600.9283ms超过约250ms目标，返回209.1449ms、人物45.6615ms；不能从总时间归因网络/CPU，重复暖冷与分段性能留待交付。两路Entrance在应用关闭并清ContentTransitions后仍移动（影视103/102/101→终100；音乐112/110/109→终108），明确保留Suppress+原fade，未迁移。真实2.3.9历史确认GoBack(Suppress)后原Page/同request/Suppress与无参GoForward一致；起始不可见采样使HistorySettled为false，不能据此说旧Entrance重放。最终Shell哈希2FCFA843D614B085B6B794A365C2D6F5BE7777DFBA4B459FFE21FCE98904A730。
+
+首轮36764为3/5，海报截图Chrome遮挡及错误历史断言；另39048隐藏启动宿主不可见失败，原档均保留。760首轮实际1000的证据无效，工具改为等待真实客户区/页宽后重跑。少量代表实屏已目视，全部原生JSON留隔离日志；详细数字及边界在docs/WinUI动效施工验收-2026-11-15.md。没有Windows设置修改、真实服务、真实输入/读屏、跨DPI、GPU/资源、视频/独占uosc/外部mpv运行证明；AnimatedVisualPlayer/Composition Effects暂缓。
+
+分支已具备合并条件，按项目规则主动合入master并在合入后追加台账；不发布、不推送、不改快捷方式。交付时按台账并集在主树最终代码重验。本任务辅助树逐文件确认后清理，忽略故障日志先保留；聊天primary检出遵守应用保护。
+
+2026-11-15合入记录：干净master ee3d23c已快进到d8d8d00，无冲突；产品/测试逐文件与施工树一致，S1/S3/native职责文件逐项无缺失（部分commit patch-id因整合不同但内容一致）。已在台账追加32，完整失败/最终原生证据与S3提取故障复制到artifacts/winui-motion-20261115，未发布/上传。S1尾df6f9dc、S3尾88e61fc、native尾bab66b5均干净并已完整保留；只清本任务三树，primary检出保护遵守应用工具。
+
+2026-11-15清理完成：三项原生git工作树winui-motion-s1/s3/native逐文件核对后已移除，相关四条本任务临时分支已删；S1唯一差异是master后续截图修正，完整保留。主施工树干净detached到6de6ffb；应用archive_worktree拒绝删除primary（The task's primary checkout cannot be removed.），遵守保护保留检出，不以原生命令绕过。其他聊天分支/工作树不处理。

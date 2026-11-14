@@ -9,6 +9,16 @@ using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
+/// <summary>每次导航独立选择呈现方式；首帧与图片门控不依赖动效完成。</summary>
+internal enum BrowseMotion
+{
+    None,
+    Fade,
+    Native,
+    ConnectedPending,
+    ConnectedStarted
+}
+
 /// <summary>
 /// 新页当拍淡入，首帧之后才放行图片处理。Frame 仍使用 Suppress，不等待旧页退出。
 /// 只动透明度，背景上沿、主页翻档和滚动锚点读取的布局坐标不随动画改变。
@@ -28,8 +38,7 @@ internal sealed class BrowsePresentation(Frame frame)
     private EventHandler<object>? _completed;
     private bool _watchingPreference;
     private SettingsPreferenceWatch? _preferenceWatch;
-    private bool _deferMotion;
-    private bool _connectedStarted;
+    private BrowseMotion _presentation;
     private int _generation;
 
     /// <summary>
@@ -61,13 +70,13 @@ internal sealed class BrowsePresentation(Frame frame)
         return Task.CompletedTask;
     }
 
-    internal void Begin(bool deferMotion = false)
+    internal void Begin(BrowseMotion presentation = BrowseMotion.Fade)
     {
         Stop();
         // 离线视图模型夹具和未上树的启动路径没有可提交的帧，不给它们制造永远等不到的门。
         if (frame.XamlRoot is null) return;
         _images = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _deferMotion = deferMotion;
+        _presentation = presentation;
         _timing = NavigationTiming.Capture();
         ImageGate.Value = _images.Task;
         Owners.Remove(frame);
@@ -123,15 +132,14 @@ internal sealed class BrowsePresentation(Frame frame)
         };
         CompositionTarget.Rendering += _rendering;
 
-        if (!_deferMotion && !_connectedStarted) StartMotion(generation);
+        if (_presentation == BrowseMotion.Fade) StartMotion(generation);
     }
 
     /// <summary>关联动画只接管呈现；首帧图片门控始终继续，失败恢复原页面淡入。</summary>
     internal static void ResolveConnectedMotion(Frame frame, bool started)
     {
-        if (!Owners.TryGetValue(frame, out var owner) || !owner._deferMotion) return;
-        owner._deferMotion = false;
-        owner._connectedStarted = started;
+        if (!Owners.TryGetValue(frame, out var owner) || owner._presentation != BrowseMotion.ConnectedPending) return;
+        owner._presentation = started ? BrowseMotion.ConnectedStarted : BrowseMotion.Fade;
         if (!started && owner._page?.IsLoaded == true) owner.StartMotion(owner._generation);
     }
 
@@ -249,8 +257,7 @@ internal sealed class BrowsePresentation(Frame frame)
             page.Unloaded -= _unloaded;
         }
         _page = null;
-        _deferMotion = false;
-        _connectedStarted = false;
+        _presentation = BrowseMotion.None;
         _loaded = null;
         _unloaded = null;
         var images = _images;

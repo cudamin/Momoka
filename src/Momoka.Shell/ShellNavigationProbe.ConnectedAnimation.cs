@@ -84,8 +84,14 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => target.IsReady && CardDetailTransition.Started(frame));
             samples.Add(new { State = "forward", Started = true, Identity = target.ViewModel.CurrentItem?.IdentityKey, NoPlayback = fixture.Actions.Plays == 0 });
             await UntilAsync(() => receipts.Any(receipt => receipt.Direction == "forward" && receipt.Completed));
+            Require(receipts.Count(receipt => receipt.Direction == "forward" && receipt.Terminal) == 1,
+                "海报前进未得到唯一终态");
+            Require(receipts.Where(receipt => receipt.Direction == "forward").All(receipt => receipt.ElapsedMs >= 0 && receipt.PrepareToStartMs is >= 0),
+                "海报前进缺少单调准备到启动计时");
             Log.Info("关联动画探针", "阶段：原生前进完成，准备正式GoBack");
-            await CompositionPlaybackProbe.SaveScreenAsync(_window!.Handle, Path.Combine(_options.Paths.LogDirectory, "card-detail-connected-forward-screen.png"));
+            // 原生回执先落盘；截图沿用探针的临时置顶/还原路径，仍由实屏捕获核对遮挡。
+            await WritePerformanceEvidenceAsync("card-detail-connected.json", new { samples, receipts, RealNetwork = false, MediaLoaded = false });
+            await SaveProbeScreenAsync("card-detail-connected-forward-screen.png");
 
             // 原始源已离树：仅尝试返回，不能为了动画强制恢复或创建源容器。
             var returnPrepared = CardDetailTransition.BeginReturn(target);
@@ -99,6 +105,10 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => receipts.Any(receipt => receipt.Direction == "return" && (receipt.Completed || receipt.TimedOut || !receipt.Started)));
             Require(ReferenceEquals(frame.Content, sourcePage), "Frame缓存返回没有恢复原源Page");
             Require(receipts.Any(receipt => receipt.Direction == "return" && receipt.Started && receipt.Completed), "正式GoBack没有完成原生返回关联动画");
+            Require(receipts.Count(receipt => receipt.Direction == "return" && receipt.Terminal) == 1,
+                "海报返回未得到唯一终态");
+            Require(receipts.Where(receipt => receipt.Direction == "return").All(receipt => receipt.ElapsedMs >= 0 && receipt.PrepareToStartMs is >= 0),
+                "海报返回缺少独立准备到启动计时");
             samples.Add(new
             {
                 State = "return",
@@ -131,6 +141,8 @@ internal sealed partial class ShellNavigationProbe
             target = (DetailPage)frame.Content;
             await UntilAsync(() => target.IsReady && receipts.Skip(beforeFailure).Any(receipt => receipt.Direction == "forward" && !receipt.Started));
             Require(!CardDetailTransition.Started(frame), "旧图前进仍报告原生成功");
+            Require(receipts.Skip(beforeFailure).Any(receipt => receipt.Terminal && receipt.Reason == ConnectedMotionReason.ArtworkChanged),
+                "旧图前进回退没有报告图版本变化原因");
             frame.GoBack(new SuppressNavigationTransitionInfo());
             await LayoutAsync(sourcePage);
             Require(ReferenceEquals(frame.Content, sourcePage), "前进动效回退破坏正常返回");
@@ -138,8 +150,13 @@ internal sealed partial class ShellNavigationProbe
             samples.Add(new { State = "forward-artwork-changed", FrameNavigated = true, TryStart = false, Fallback = true, FrameGoBack = true });
 
             Require(CardDetailTransition.Prepare(frame, source), "取消测试不能准备");
+            var beforeCancel = receipts.Count;
+            if (CardDetailTransition.Observe(frame, receipts.Add) is { } detachCancel) observations.Add(detachCancel);
             CardDetailTransition.Cancel(frame);
             Require(!CardDetailTransition.IsPrepared(frame, DetailRequest.For(fixture.Services, item)), "离页取消留下旧准备");
+            Require(receipts.Skip(beforeCancel).Count(receipt => receipt.Terminal) == 1
+                && receipts.Skip(beforeCancel).Any(receipt => receipt.Reason == ConnectedMotionReason.NavigationCancelled),
+                "离页取消没有唯一的取消原因回执");
             samples.Add(new { State = "cancelled", Prepared = false });
 
             // 第二次真实详情往返让已存在的源图失效：正常GoBack仍完成，关联动画必须给出普通回退回执。
@@ -156,6 +173,8 @@ internal sealed partial class ShellNavigationProbe
             source.ConnectedPoster.Source = null; // Loaded缓存恢复之后显式模拟源图片已不可用。
             CardDetailTransition.CompleteReturn(frame);
             await UntilAsync(() => receipts.Skip(previousReceipts).Any(receipt => receipt.Direction == "return" && !receipt.Started));
+            Require(receipts.Skip(previousReceipts).Any(receipt => receipt.Terminal && receipt.Reason == ConnectedMotionReason.SourceUnavailable),
+                "返回缺图没有报告源不可用原因");
             Require(ReferenceEquals(frame.Content, sourcePage), "源图片不可用阻止了正式返回");
             samples.Add(new { State = "missing-return-source", FrameGoBack = true, FrameRestored = true, TryStart = false, Fallback = true });
             Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(request => request.StartsWith("GET ", StringComparison.Ordinal)),

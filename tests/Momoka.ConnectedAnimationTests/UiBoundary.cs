@@ -155,6 +155,7 @@ namespace Microsoft.UI.Xaml.Media.Animation
         public EventFailure RemoveFailure { get; set; }
         public bool Starts { get; set; } = true;
         public bool ThrowOnStart { get; set; }
+        public Action? Starting { get; set; }
         public bool ThrowOnCancel { get; set; }
         public int StartCalls { get; private set; }
         public int CancelCalls { get; private set; }
@@ -177,6 +178,7 @@ namespace Microsoft.UI.Xaml.Media.Animation
         public bool TryStart(Microsoft.UI.Xaml.UIElement target)
         {
             StartCalls++;
+            Starting?.Invoke();
             if (ThrowOnStart) throw new InvalidOperationException("Injected start failure.");
             return Starts;
         }
@@ -196,10 +198,12 @@ namespace Microsoft.UI.Xaml.Media.Animation
     {
         public static ConnectedAnimationService Current { get; } = new();
         public static bool ThrowOnPrepare { get; set; }
+        public static Action? Preparing { get; set; }
         public static List<ConnectedAnimation> Created { get; } = [];
         public static ConnectedAnimationService GetForCurrentView() => Current;
         public ConnectedAnimation PrepareToAnimate(string key, Microsoft.UI.Xaml.UIElement source)
         {
+            Preparing?.Invoke();
             if (ThrowOnPrepare) throw new InvalidOperationException("Injected prepare failure.");
             var animation = new ConnectedAnimation();
             Created.Add(animation);

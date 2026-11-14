@@ -36,6 +36,7 @@ metadata: {agent_created: true}
 | `src/Momoka.Core/Danmaku/DanmakuSourceRules.cs` / `DanmakuSource.cs` | 模式、来源身份、本地可用性、手动来源与发送能力 |
 | `src/Momoka.Core/Danmaku/DandanPlayMatching.cs` / `DanmakuMatchRules.cs` | 官方唯一精确匹配 / 自部署文件名与返回集号校验 |
 | `src/Momoka.Core/Danmaku/DanmakuComment.cs` | 两源共用解析、排序合并、屏蔽与去重 |
+| `src/Momoka.Core/Danmaku/DanmakuHeat.cs` | 进度条热力：按秒聚合、按轨道宽度切桶、95 分位开方归一化与悬停 5 秒计数 |
 | `src/Momoka.Core/Danmaku/DandanPlayBuiltIn.cs` / `DandanPlayBuiltInCredentialSource.cs` / `IDandanPlayCredentialSource.cs` | 内置端点参数、解密、刷新、缓存与离线凭据替换点 |
 | `src/Momoka.Core/Configuration/DanmakuSettings.cs` / `SettingsPreferences.cs` | 当前默认值、归一化、外观恢复与连接备份边界 |
 | `src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs` | 四张卡、原地更新与显隐恢复 |
@@ -75,6 +76,7 @@ metadata: {agent_created: true}
 - `Enabled`、`Source`、自部署地址和受保护令牌属于本机连接：不导出，不被偏好恢复覆盖。`RestoreAppearance` 保留连接、匹配、显示开关、类型与屏蔽列表。
 - 分类名和设置跳转是跨文件契约：修改时一起核对 `CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`、探针与 `MpvUiTests`；跳转令牌保持 `danmaku`，服务名“弹弹play”不等于分类名。
 - 两源都解析 `p/m`：模式只接受 1/4/5，时间 0–86400 秒且有限，颜色 24 位，去控制字符、文本最多 300 字符。宿主过滤后按 `begin → chunk(128 条) → commit` 传给 Lua；文件序号与传输序号拒绝迟到数据。
+- 进度条热力由 `DanmakuHeat` 从已加载弹幕本地算出，不受颜色、类型和屏蔽词影响，也不额外请求；快照在加载、发送、换片和时长变化时重建，集成页由 `PlayerPage.DanmakuHeat.cs` 画在滑杆之上、缓存之下，独占 uosc 不画。`ShowHeatmap` 默认开，随 `Show` 一起收起。
 - Lua 只做时间轴、轨道和 ASS OSD，不联网、不读媒体或凭据；不占用主/次字幕轨。外观共用 `MpvDanmaku.RenderOptions`；智能防挡指本地防重叠，屏蔽词是本机列表，不承诺人像遮罩、平台账号同步或高级脚本弹幕。
 - 宿主负责发送校验、HTTP 与回执；`DanmakuInput` 只编辑草稿并回传消息。输入时播放快捷键让路，换片、换库及输入上下文变化隔离旧回执。临时隐藏保留恢复入口与偏好。升级 uosc 后检查 `main.lua` 仍实例化 `DanmakuInput`。
 

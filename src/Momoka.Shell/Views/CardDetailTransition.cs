@@ -33,14 +33,19 @@ internal static class CardDetailTransition
             && !ticket.IsReturning && !ticket.DepartsFrom(page)) Cancel(frame);
     }
 
-    internal static bool Prepare(Frame? frame, PosterCard? source)
+    internal static bool Prepare(Frame? frame, PosterCard? source, TimeProvider? clock = null)
     {
-        if (frame is null) return false;
-        Cancel(frame);
-        if (source?.Card is not { Item.Source.IsCurrent: true, LoadedPosterArtwork: { } artwork } card
-            || !VideoDetail(card.Item) || PrimaryArtwork(card.Item) != artwork
-            || !HomeMotion.AnimationsEnabled || !VisibleImage(source.ConnectedPoster)
-            || source.ConnectedPoster.Source is not BitmapSource picture) return false;
+        if (frame is null) return RejectPreparation(ConnectedMotionReason.TargetUnavailable);
+        Cancel(frame, ConnectedMotionReason.Superseded);
+        // 取消回执可以同步发起另一导航；它创建的新票据不能被外层 Prepare 覆盖或取消。
+        if (Tickets.TryGetValue(frame, out _)) return RejectPreparation(ConnectedMotionReason.Superseded);
+        if (!HomeMotion.AnimationsEnabled) return RejectPreparation(ConnectedMotionReason.Disabled);
+        if (source?.Card is not { LoadedPosterArtwork: { } artwork } card || !VideoDetail(card.Item))
+            return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
+        if (card.Item.Source?.IsCurrent != true) return RejectPreparation(ConnectedMotionReason.IdentityChanged);
+        if (PrimaryArtwork(card.Item) != artwork) return RejectPreparation(ConnectedMotionReason.ArtworkChanged);
+        if (!VisibleImage(source.ConnectedPoster) || source.ConnectedPoster.Source is not BitmapSource picture)
+            return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
         var item = card.Item;
         Action? releaseSource = null;
         ConnectedAnimation? animation = null;
@@ -53,7 +58,9 @@ internal static class CardDetailTransition
             // -> DetailedInfoPage.xaml.cs. Keep the sample's native forward/default and return/Direct.
             // Prepare before Suppress navigation, populate the same image, then TryStart.
             animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPoster);
-            ticket = new Ticket(frame, item, source, artwork, picture, animation, releaseSource);
+            var motionClock = clock ?? TimeProvider.System;
+            var preparedTimestamp = motionClock.GetTimestamp();
+            ticket = new Ticket(frame, item, source, artwork, picture, animation, releaseSource, motionClock, preparedTimestamp);
             Tickets.Add(frame, ticket);
             ticket.Watch();
             frame.Navigating += OnNavigating;
@@ -63,8 +70,12 @@ internal static class CardDetailTransition
         }
         catch (Exception)
         {
-            Cancel(frame);
-            if (ticket is not null) ticket.Dispose();
+            Cancel(frame, ConnectedMotionReason.PrepareFailed);
+            if (ticket is not null)
+            {
+                ticket.Dispose(ConnectedMotionReason.PrepareFailed);
+                return false; // 已有生命周期结算，不再写第二个 PrepareFailed 阶段。
+            }
             else
             {
                 try { animation?.Cancel(); }
@@ -72,8 +83,14 @@ internal static class CardDetailTransition
                 try { releaseSource?.Invoke(); }
                 catch (Exception) { }
             }
-            return false;
+            return RejectPreparation(ConnectedMotionReason.PrepareFailed);
         }
+    }
+
+    private static bool RejectPreparation(ConnectedMotionReason reason)
+    {
+        ConnectedMotionLifecycle.PrepareRejected("card", "forward", reason);
+        return false;
     }
 
     private static void OnNavigating(object sender, Microsoft.UI.Xaml.Navigation.NavigatingCancelEventArgs args)
@@ -97,7 +114,7 @@ internal static class CardDetailTransition
     internal static void Attach(DetailPage page, EmbyItem item)
     {
         if (page.Frame is not { } frame || !Tickets.TryGetValue(frame, out var ticket)) return;
-        if (!ticket.Matches(item)) { Cancel(frame); return; }
+        if (!ticket.Matches(item)) { Cancel(frame, ConnectedMotionReason.IdentityChanged); return; }
         ticket.Attach(page);
     }
 
@@ -128,14 +145,14 @@ internal static class CardDetailTransition
         Cancel(frame);
     }
 
-    internal static void Cancel(Frame? frame)
+    internal static void Cancel(Frame? frame, ConnectedMotionReason reason = ConnectedMotionReason.NavigationCancelled)
     {
         if (frame is null || !Tickets.TryGetValue(frame, out var ticket)) return;
         Tickets.Remove(frame);
         frame.Navigating -= OnNavigating;
         frame.NavigationStopped -= OnNavigationStopped;
         frame.NavigationFailed -= OnNavigationFailed;
-        ticket.Dispose();
+        ticket.Dispose(reason);
     }
 
     private static bool VideoDetail(EmbyItem item) => item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
@@ -183,6 +200,8 @@ internal static class CardDetailTransition
         private BitmapSource? _picture;
         private Action? _releaseSource;
         private readonly UISettings _settings = new();
+        private readonly TimeProvider _clock;
+        private ConnectedMotionLifecycle _lifecycle;
         private ConnectedAnimation? _animation;
         private TypedEventHandler<ConnectedAnimation, object>? _completed;
         private DetailPage? _target;
@@ -198,7 +217,8 @@ internal static class CardDetailTransition
         private Action? _preferenceChanged;
         private TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _systemPreferenceChanged;
 
-        internal Ticket(Frame frame, EmbyItem item, PosterCard source, ArtworkRef artwork, BitmapSource picture, ConnectedAnimation animation, Action releaseSource)
+        internal Ticket(Frame frame, EmbyItem item, PosterCard source, ArtworkRef artwork, BitmapSource picture,
+            ConnectedAnimation animation, Action releaseSource, TimeProvider clock, long preparedTimestamp)
         {
             _frame = frame;
             _item = item;
@@ -210,6 +230,9 @@ internal static class CardDetailTransition
             _animation = animation;
             _picture = picture;
             _releaseSource = releaseSource;
+            _clock = clock;
+            _lifecycle = new("card", "forward", clock, preparedTimestamp);
+            _lifecycle.Prepared();
         }
 
         internal bool IsReturning { get; private set; }
@@ -223,7 +246,7 @@ internal static class CardDetailTransition
         {
             WatchPreferences();
             _frame.Unloaded += OnFrameUnloaded;
-            BeginTimeout(700, () => Resolve(false));
+            BeginTimeout(700, () => Resolve(false, ConnectedMotionReason.PrepareTimeout));
         }
 
         internal void Attach(DetailPage page)
@@ -245,30 +268,36 @@ internal static class CardDetailTransition
 
         private void OnLayout(object sender, RoutedEventArgs args) => TryStart();
         private void OnLayoutUpdated(object? sender, object args) => TryStart();
-        private void OnTargetUnloaded(object sender, RoutedEventArgs args) => Cancel(_frame);
+        private void OnTargetUnloaded(object sender, RoutedEventArgs args) => Cancel(_frame, ConnectedMotionReason.TargetUnavailable);
 
         private void TryStart()
         {
             // OnNavigatedTo尚在Frame事务里；取消/普通淡入同样等Loaded，不能拆正在创建的新页。
             if (_disposed || _resolved || _target is not { IsLoaded: true } target) return;
-            if (_item.Source?.IsCurrent != true || !HomeMotion.AnimationsEnabled || target.ViewModel.CurrentItem is { } item
-                && (!Matches(item) || PrimaryArtwork(item) != _artwork)
-                || !_source.TryGetTarget(out var source) || source.Card is not { } card
-                || !Matches(card.Item) || PrimaryArtwork(card.Item) != _artwork)
-            { Resolve(false); return; }
+            if (!HomeMotion.AnimationsEnabled) { Resolve(false, ConnectedMotionReason.Disabled); return; }
+            if (_item.Source?.IsCurrent != true || target.ViewModel.CurrentItem is { } item && !Matches(item))
+            { Resolve(false, ConnectedMotionReason.IdentityChanged); return; }
+            if (target.ViewModel.CurrentItem is { } current && PrimaryArtwork(current) != _artwork)
+            { Resolve(false, ConnectedMotionReason.ArtworkChanged); return; }
+            if (!_source.TryGetTarget(out var source) || source.Card is not { } card)
+            { Resolve(false, ConnectedMotionReason.SourceUnavailable); return; }
+            if (!Matches(card.Item)) { Resolve(false, ConnectedMotionReason.IdentityChanged); return; }
+            if (PrimaryArtwork(card.Item) != _artwork) { Resolve(false, ConnectedMotionReason.ArtworkChanged); return; }
             if (target.ViewModel.CurrentItem is null || !VisibleImage(target.ConnectedPoster)) return;
             target.StopConnectedPosterArrival();
             var started = false;
             try
             {
                 WatchAnimationCompletion();
+                _lifecycle.StartAttempt();
                 started = _animation?.TryStart(target.ConnectedPoster) == true;
+                if (started) _lifecycle.StartSucceeded();
             }
             catch (Exception) { }
-            Resolve(started);
+            Resolve(started, started ? ConnectedMotionReason.None : ConnectedMotionReason.StartRejected);
         }
 
-        private void Resolve(bool started)
+        private void Resolve(bool started, ConnectedMotionReason reason)
         {
             if (_disposed || _resolved) return;
             _resolved = true;
@@ -277,12 +306,15 @@ internal static class CardDetailTransition
             StopTimeout();
             if (!started) StopAnimation();
             BrowsePresentation.ResolveConnectedMotion(_frame, started);
-            Report("forward", started, completed: false, timedOut: false);
-            if (_disposed) return;
-            if (!started) Cancel(_frame);
+            var resolvedGeneration = _generation;
+            Report(started, completed: false, reason, terminal: !started);
+            if (_disposed || resolvedGeneration != _generation) return;
+            if (!started) Cancel(_frame, reason);
             else BeginTimeout(1200, () =>
             {
-                Report("forward", started: true, completed: false, timedOut: true);
+                var generation = _generation;
+                Report(started: true, completed: false, ConnectedMotionReason.CompletionTimeout, terminal: true);
+                if (_disposed || generation != _generation) return;
                 StopAnimation();
                 StopWatchingPreferences();
             });
@@ -290,28 +322,55 @@ internal static class CardDetailTransition
 
         internal bool BeginReturn(DetailPage page)
         {
-            if (_disposed || !_resolved || !HomeMotion.AnimationsEnabled || page.ViewModel.CurrentItem is not { } item
-                || !Matches(item) || PrimaryArtwork(item) != _artwork || !_source.TryGetTarget(out var source)
-                || source.Card?.Item.IdentityKey != _identity || PrimaryArtwork(source.Card.Item) != _artwork
-                || source.Card.LoadedPosterArtwork is { } loaded && loaded != _artwork
-                || _sourcePage?.TryGetTarget(out _) != true || !VisibleImage(page.ConnectedPoster)) return false;
+            if (_disposed || !_resolved || IsReturning) return false;
+            if (!HomeMotion.AnimationsEnabled) return RejectReturn(ConnectedMotionReason.Disabled);
+            if (page.ViewModel.CurrentItem is not { } item || !Matches(item))
+                return RejectReturn(ConnectedMotionReason.IdentityChanged);
+            if (PrimaryArtwork(item) != _artwork) return RejectReturn(ConnectedMotionReason.ArtworkChanged);
+            if (!_source.TryGetTarget(out var source) || source.Card is not { } card || _sourcePage?.TryGetTarget(out _) != true)
+                return RejectReturn(ConnectedMotionReason.SourceUnavailable);
+            if (!Matches(card.Item)) return RejectReturn(ConnectedMotionReason.IdentityChanged);
+            if (PrimaryArtwork(card.Item) != _artwork || card.LoadedPosterArtwork is { } loaded && loaded != _artwork)
+                return RejectReturn(ConnectedMotionReason.ArtworkChanged);
+            if (!VisibleImage(page.ConnectedPoster)) return RejectReturn(ConnectedMotionReason.TargetUnavailable);
+            var returnPrepared = false;
             try
             {
+                var previousGeneration = _generation;
+                Report(Started, completed: false, ConnectedMotionReason.Superseded, terminal: true);
+                if (_disposed || previousGeneration != _generation) return false;
                 StopAnimation();
                 _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPoster);
-                _animation.Configuration = new DirectConnectedAnimationConfiguration();
+                _lifecycle = new("card", "return", _clock, _clock.GetTimestamp());
+                _lifecycle.Prepared();
                 IsReturning = true;
+                Started = false;
+                returnPrepared = true;
+                _animation.Configuration = new DirectConnectedAnimationConfiguration();
                 _returnQueued = false;
                 _generation++;
                 WatchPreferences();
                 BeginTimeout(1200, () =>
                 {
-                    Report("return", started: false, completed: false, timedOut: true);
-                    Cancel(_frame);
+                    var generation = _generation;
+                    var reason = Started ? ConnectedMotionReason.CompletionTimeout : ConnectedMotionReason.PrepareTimeout;
+                    Report(Started, completed: false, reason, terminal: true);
+                    if (_disposed || generation != _generation) return;
+                    CancelCurrent(reason);
                 });
                 return true;
             }
-            catch (Exception) { Cancel(_frame); return false; }
+            catch (Exception)
+            {
+                Cancel(_frame, ConnectedMotionReason.PrepareFailed);
+                return returnPrepared ? false : RejectReturn(ConnectedMotionReason.PrepareFailed);
+            }
+        }
+
+        private static bool RejectReturn(ConnectedMotionReason reason)
+        {
+            ConnectedMotionLifecycle.PrepareRejected("card", "return", reason);
+            return false;
         }
 
         internal void CompleteReturn()
@@ -323,21 +382,36 @@ internal static class CardDetailTransition
             {
                 if (_disposed || generation != _generation) return;
                 var started = false;
-                if (ReturnPageMatches && HomeMotion.AnimationsEnabled && _item.Source?.IsCurrent == true && _source.TryGetTarget(out var source)
-                    && source.Card?.Item.IdentityKey == _identity && source.Card.LoadedPosterArtwork == _artwork && VisibleImage(source.ConnectedPoster))
+                var reason = ReturnFailure();
+                if (reason == ConnectedMotionReason.None && _source.TryGetTarget(out var source))
                 {
                     try
                     {
                         WatchAnimationCompletion();
+                        _lifecycle.StartAttempt();
                         started = _animation?.TryStart(source.ConnectedPoster) == true;
+                        if (started) _lifecycle.StartSucceeded();
                     }
                     catch (Exception) { }
+                    if (!started) reason = ConnectedMotionReason.StartRejected;
                 }
+                Started = started;
                 BrowsePresentation.ResolveConnectedMotion(_frame, started);
-                Report("return", started, completed: false, timedOut: false);
+                Report(started, completed: false, reason, terminal: !started);
                 if (_disposed) return;
-                if (!started) Cancel(_frame);
-            })) Cancel(_frame);
+                if (!started) Cancel(_frame, reason);
+            })) Cancel(_frame, ConnectedMotionReason.TargetUnavailable);
+        }
+
+        private ConnectedMotionReason ReturnFailure()
+        {
+            if (!HomeMotion.AnimationsEnabled) return ConnectedMotionReason.Disabled;
+            if (!ReturnPageMatches) return ConnectedMotionReason.TargetUnavailable;
+            if (_item.Source?.IsCurrent != true) return ConnectedMotionReason.IdentityChanged;
+            if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return ConnectedMotionReason.SourceUnavailable;
+            if (!Matches(card.Item)) return ConnectedMotionReason.IdentityChanged;
+            if (card.LoadedPosterArtwork != _artwork || PrimaryArtwork(card.Item) != _artwork) return ConnectedMotionReason.ArtworkChanged;
+            return VisibleImage(source.ConnectedPoster) ? ConnectedMotionReason.None : ConnectedMotionReason.SourceUnavailable;
         }
 
         private void BeginTimeout(int milliseconds, Action expired)
@@ -372,8 +446,9 @@ internal static class CardDetailTransition
                 if (_disposed || generation != _generation || !ReferenceEquals(_animation, animation)) return;
                 StopAnimation();
                 StopTimeout();
-                Report(IsReturning ? "return" : "forward", started: true, completed: true, timedOut: false);
-                if (IsReturning) Cancel(_frame);
+                Report(started: true, completed: true, ConnectedMotionReason.None, terminal: true);
+                if (_disposed || generation != _generation) return;
+                if (IsReturning) CancelCurrent();
                 else StopWatchingPreferences();
             };
             animation.Completed += _completed;
@@ -399,11 +474,13 @@ internal static class CardDetailTransition
             catch (Exception) { /* 页面继续按静态内容呈现；取消失败不阻塞导航。 */ }
         }
 
-        private void Report(string direction, bool started, bool completed, bool timedOut)
+        private void Report(bool started, bool completed, ConnectedMotionReason reason, bool terminal)
         {
-            if (Observed is not { } observers) return;
+            if (_lifecycle.Report(started, completed, reason, terminal) is not { } result || Observed is not { } observers) return;
+            var receipt = new CardDetailTransitionReceipt(IsReturning ? "return" : "forward", result.Started, result.Completed, result.TimedOut,
+                result.Reason, result.Terminal, result.PrepareToStartMs, result.ElapsedMs);
             foreach (Action<CardDetailTransitionReceipt> observer in observers.GetInvocationList())
-                try { observer(new(direction, started, completed, timedOut)); }
+                try { observer(receipt); }
                 catch (Exception) { /* 可选诊断不能影响导航或原生清理。 */ }
         }
 
@@ -425,7 +502,7 @@ internal static class CardDetailTransition
             {
                 if (_disposed || !_watching || generation != _preferenceGeneration
                     || !Tickets.TryGetValue(_frame, out var ticket) || !ReferenceEquals(ticket, this)) return;
-                if (!HomeMotion.AnimationsEnabled) Cancel(_frame);
+                if (!HomeMotion.AnimationsEnabled) Cancel(_frame, ConnectedMotionReason.Disabled);
             }
             _preferenceChanged = ApplyCurrentPreference;
             _systemPreferenceChanged = (_, _) =>
@@ -457,10 +534,17 @@ internal static class CardDetailTransition
 
         private void OnFrameUnloaded(object sender, RoutedEventArgs args) => Cancel(_frame);
 
+        private void CancelCurrent(ConnectedMotionReason reason = ConnectedMotionReason.NavigationCancelled)
+        {
+            if (Tickets.TryGetValue(_frame, out var current) && ReferenceEquals(current, this)) Cancel(_frame, reason);
+        }
+
         internal bool ReturnPageMatches => _sourcePage?.TryGetTarget(out var page) == true && ReferenceEquals(_frame.Content, page);
         internal bool DepartsFrom(DetailPage page) => !_resolved && _sourcePage?.TryGetTarget(out var source) == true && ReferenceEquals(source, page);
 
-        public void Dispose()
+        public void Dispose() => Dispose(ConnectedMotionReason.NavigationCancelled);
+
+        internal void Dispose(ConnectedMotionReason reason)
         {
             if (_disposed) return;
             _disposed = true;
@@ -470,10 +554,9 @@ internal static class CardDetailTransition
             _frame.Unloaded -= OnFrameUnloaded;
             StopAnimation();
             StopWatchingPreferences();
-            BrowsePresentation.ResolveConnectedMotion(_frame, started: false);
+            BrowsePresentation.ResolveConnectedMotion(_frame, Started);
+            Report(Started, completed: false, reason, terminal: true);
             Observed = null;
         }
     }
 }
-
-internal sealed record CardDetailTransitionReceipt(string Direction, bool Started, bool Completed, bool TimedOut);

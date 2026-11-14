@@ -8,6 +8,8 @@
 
 后续系统订阅add/remove前后异常与Storyboard.Stop异常五项验证门控最终放行，旧失败系统观察不能取消新动画；当前27/27。Stop先捕获并清本地TCS，在finally释放图片等待，原生停止/退订失败只记本地收尾，不冒称native已释放。
 
+2026-11-14施工补充五项，当前32/32：呈现策略按本次访问选择None、Fade、Native或ConnectedPending；Native/None仍在首帧后放行图片，关联启动后迟到失败不会重播整页，启动拒绝只回退一次，新访问不继承旧票据。Native在此仅验证不叠加自定义fade与门控，实际采用路由需原生候选验收。
+
 ```powershell
 & 'C:\Users\89400\.dotnet\dotnet.exe' restore tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj
 & 'C:\Users\89400\.dotnet\dotnet.exe' build tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj -c Release --no-restore -p:Platform=x64 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false -m:1

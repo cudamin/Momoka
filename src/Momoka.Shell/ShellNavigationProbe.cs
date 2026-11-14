@@ -67,6 +67,15 @@ internal sealed partial class ShellNavigationProbe
                 await CaseAsync("侧边栏音乐目录与导航", SidebarAsync, 60, section: ShellProbeSections.Music);
                 return;
             }
+            if (_options.ProbeSections is { Count: 1 } motionOnly && motionOnly.Contains(ShellProbeSections.Motion))
+            {
+                await CaseAsync("动效：海报前进、正式返回与失败回退", CardDetailConnectedAnimationAsync, 120, ShellProbeSections.Motion);
+                await CaseAsync("动效：人物前进与完成回执", PersonTransitionAsync, 60, ShellProbeSections.Motion);
+                await CaseAsync("动效：详情悬浮卡片与关闭动画", DetailStickyHeaderAsync, 120, ShellProbeSections.Motion);
+                await CaseAsync("动效：主页真实历史、滚动与入场抑制", FoundationHomeDirectoryReturnAsync, 45, ShellProbeSections.Motion);
+                await CaseAsync("动效：原生页面过渡候选实帧与中断评估", MotionPageTransitionsAsync, 90, ShellProbeSections.Motion);
+                return;
+            }
             // inspect 是留给人手点的那一版检查台：它自己建假身份和假数据，前面的整套用例既拖时间又
             // 会占着同一块桌面。直接进检查台，截图和手动操作都只针对它。
             if (_options.InspectShell)
@@ -333,6 +342,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("资源：真实XAML封面解码预算、快速换片与队列响应", PerformanceCoverAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实设置滑块合并保存、失败重试与离页排空", PerformanceSettingsAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
+            await CaseAsync("动效：海报前进、正式返回与失败回退", CardDetailConnectedAnimationAsync, 120, ShellProbeSections.Motion);
+            await CaseAsync("动效：原生页面过渡候选实帧与中断评估", MotionPageTransitionsAsync, 90, ShellProbeSections.Motion);
         }
     }
 
