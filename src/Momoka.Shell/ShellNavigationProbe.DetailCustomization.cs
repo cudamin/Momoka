@@ -614,7 +614,7 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
                 ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(ui);
-                // 商店头部的版本框可能让滚动内容保留上一拍宽度；切换后先等当前客户区宽落地。
+                // 商店头部的文件选项可能让滚动内容保留上一拍宽度；切换后先等当前客户区宽落地。
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
                 await LayoutAsync(page);
                 Require(page.ViewModel.HeroCardShown == (wide && subject?.Type == EmbyItemType.Episode && !page.ViewModel.BackdropShown),

@@ -1,18 +1,10 @@
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Momoka.Theming;
 
 namespace Momoka.Shell.Views;
 
 public sealed partial class DetailPage
 {
-    /// <summary>商店模式版本框的左内边距 —— 标签压在这一段留白里，选中值从标签右侧起排。</summary>
-    private const double StorePickerLabelLane = 76;
-
-    /// <summary>版本框的高度与上限宽：同微软商店条目页那个「版本」框，55% 面色、约 520 宽。</summary>
-    private const double StorePickerHeight = 40;
-    private const double StorePickerMaxWidth = 520;
-
     private StoreBackdropFade? _storeBackdropFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
 
@@ -47,7 +39,7 @@ public sealed partial class DetailPage
             var store = ViewModel.StoreMode;
 
             // 2026-11-14 用户令「参考上图布局修改商店模式详情页」：微软商店条目页的顺序是封面和片名、
-            // 简介、版本框、操作按钮，全在封面下方同一条左沿上。三样都是既有实例，只换父级，绑定与事件不动。
+            // 简介、文件选项、操作按钮，全在封面下方同一条左沿上。三样都是既有实例，只换父级，绑定与事件不动。
             // 退出商店模式时按原位置放回：说明回尾部（TailContent 的最后一块），文件选项和那排键回片名那一栏
             // （文件选项仍排在那排键前面）。
             if (store)
@@ -95,8 +87,6 @@ public sealed partial class DetailPage
                 StoreScrollContent.Width = store ? Math.Min(1840, Body.ActualWidth) : double.NaN;
                 ViewModel.PageWidth = store ? Math.Min(1840, Body.ActualWidth) : Body.ActualWidth;
             }
-            // 版本框的宽跟着内容宽走，所以放在 PageWidth 落地之后再量一次。
-            PlaceStorePickerBoxes(store);
             StoreHeroDetails.Visibility = store ? Visibility.Visible : Visibility.Collapsed;
             StoreHeroDetails.Spacing = store ? 14 : 8;
             HeroContent.Width = store ? ViewModel.StoreContentWidth : double.NaN;
@@ -114,54 +104,6 @@ public sealed partial class DetailPage
             if (_actions is ShellPage shell) shell.RefreshDetailChrome();
         }
         finally { _placingStoreComponents = false; }
-    }
-
-    /// <summary>
-    /// 商店模式的三个文件选择框（媒体源、音频、字幕）排成微软商店「版本」框那一副样子：一个固定的宽框、
-    /// 标签写在框里左侧、选中值和下拉箭头在右。做法是把选择框横跨标签那一列（Grid.ColumnSpan），把标签
-    /// 盖在它上面（Canvas.ZIndex）—— 框自己的底色、悬停、按下、聚焦和箭头仍由框架模板和
-    /// <see cref="ControlBackgroundBrushes"/> 画，不另外描一层假框。
-    /// <para>
-    /// 标签压住的那一段靠选择框自己的 Padding 让开（<see cref="StorePickerLabelLane"/>）：模板里
-    /// ContentPresenter 的 Margin 就是 TemplateBinding Padding，所以选中值从标签右边起排，而整条框
-    /// （连同悬停底色）仍然是一个能点的面。宽度用 MinWidth 而不是 Width：EgPicker 展开时会临时钉住
-    /// Width、收起时 ClearValue，写 Width 会被那一下抹掉。
-    /// </para>
-    /// </summary>
-    private void PlaceStorePickerBoxes(bool store)
-    {
-        var width = Math.Max(0, Math.Min(StorePickerMaxWidth, ViewModel.StoreContentWidth));
-        foreach (var (label, picker) in new[]
-        {
-            (SourceLabel, ColumnSourcePicker),
-            (AudioLabel, ColumnAudioPicker),
-            (SubtitleLabel, ColumnSubtitlePicker)
-        })
-        {
-            if (store)
-            {
-                Grid.SetColumn(picker, 0);
-                Grid.SetColumnSpan(picker, 2);
-                picker.HorizontalAlignment = HorizontalAlignment.Left;
-                picker.MinWidth = width;
-                picker.Padding = new Thickness(StorePickerLabelLane, 0, 0, 0);
-                picker.MinHeight = StorePickerHeight;
-                Canvas.SetZIndex(label, 1);
-                label.IsHitTestVisible = false;
-                label.Margin = new Thickness(16, 0, 0, 0);
-            }
-            else
-            {
-                Grid.SetColumn(picker, 1);
-                Grid.SetColumnSpan(picker, 1);
-                picker.ClearValue(FrameworkElement.MinWidthProperty);
-                picker.ClearValue(Control.PaddingProperty);
-                picker.ClearValue(FrameworkElement.MinHeightProperty);
-                Canvas.SetZIndex(label, 0);
-                label.IsHitTestVisible = true;
-                label.ClearValue(FrameworkElement.MarginProperty);
-            }
-        }
     }
 
     private void OnStoreHeroSizeChanged(object sender, SizeChangedEventArgs args)

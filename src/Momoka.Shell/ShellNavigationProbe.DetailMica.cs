@@ -20,7 +20,7 @@ internal sealed partial class ShellNavigationProbe
         var picture = await FixtureImageAsync(400, 600);
         var backdrop = await FixtureImageAsync(1600, 900);
         var items = new[] { Series(), Season("a"), Episode("a"), new EmbyItem { Id = "mica-movie", Type = EmbyItemType.Movie } };
-        // 商店模式的三颗版本框要有真内容可量：两条媒体源、两条音轨和两条字幕，四种条目都带同一份。
+        // 商店模式的三颗文件选择框要有真内容可量：两条媒体源、两条音轨和两条字幕，四种条目都带同一份。
         var streams = new List<MediaStream>
         {
             new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
@@ -274,7 +274,7 @@ internal sealed partial class ShellNavigationProbe
         var actions = Get<StackPanel>(page, "ColumnActions");
         var options = Get<StackPanel>(page, "FileOptions");
         var overview = Get<StackPanel>(page, "OverviewPanel");
-        // 2026-11-14 用户令「参考上图布局」：简介、版本框、操作按钮整组搬到封面下方，顺序同微软商店条目页。
+        // 2026-11-14 用户令「参考上图布局」：简介、文件选项、操作按钮整组搬到封面下方，顺序同微软商店条目页。
         Require(ReferenceEquals(actions.Parent, details) && ReferenceEquals(options.Parent, details)
             && ReferenceEquals(overview.Parent, details), "商店简介、文件信息或操作没有在封面下方的详情块里");
         Require(details.Children.IndexOf(overview) < details.Children.IndexOf(options)
@@ -293,25 +293,6 @@ internal sealed partial class ShellNavigationProbe
         // 这一格收着时量不到位置，不拿它去判头部裁切。
         if (options.Visibility == Visibility.Visible)
             Require(Top(band) + band.ActualHeight >= Top(options) + options.ActualHeight - 1, "商店头部裁切文件信息");
-        // 版本框：选择框横跨标签那一列，标签压在框里左侧；外形量控件而不是视图模型，见同一分支的说明。
-        foreach (var (labelName, pickerName) in new[]
-        {
-            ("SourceLabel", "ColumnSourcePicker"), ("AudioLabel", "ColumnAudioPicker"), ("SubtitleLabel", "ColumnSubtitlePicker")
-        })
-        {
-            var picker = Get<EgPicker>(page, pickerName);
-            // 行的显隐在父 Grid 上（媒体源 >1、音轨 >2、字幕 >2）；选择框自己收起时也量不到，
-            // 所以按实际尺寸跳过，只核这一档真正露出来的版本框。
-            if (picker.ActualWidth <= 0 || picker.ActualHeight <= 0) continue;
-            var label = Get<TextBlock>(page, labelName);
-            var pickerBox = picker.TransformToVisual(page).TransformBounds(new(0, 0, picker.ActualWidth, picker.ActualHeight));
-            var labelBox = label.TransformToVisual(page).TransformBounds(new(0, 0, label.ActualWidth, label.ActualHeight));
-            Require(Grid.GetColumnSpan(picker) == 2 && picker.MinHeight >= 36 && picker.Padding.Left >= 40
-                && labelBox.Left > pickerBox.Left && labelBox.Right < pickerBox.Right && !label.IsHitTestVisible,
-                $"{pickerName} 不是商店版本框：span={Grid.GetColumnSpan(picker)}、高 {picker.MinHeight:0}、"
-                    + $"内边距 {picker.Padding}、标签 {labelBox.Left:0}–{labelBox.Right:0} 在框 {pickerBox.Left:0}–{pickerBox.Right:0} 里，"
-                    + $"命中 {label.IsHitTestVisible}");
-        }
         Require(Get<Button>(page, "ColumnTrailerButton").Visibility == Visibility.Collapsed
             && Get<Button>(page, "CompactTrailerButton").Visibility == Visibility.Collapsed, "商店仍显示预告片入口");
         Require(Get<Grid>(shell, "TrailBar").Visibility == Visibility.Collapsed, "商店仍显示媒体路径栏");
