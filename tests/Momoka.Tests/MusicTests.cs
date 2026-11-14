@@ -69,7 +69,7 @@ internal static class MusicTests
             Assert.Equal(-1, queue.Next(automatic: true));
             Assert.Equal(0, queue.Items.Count);
         });
-        Test("音乐播放栏：亚克力材质、停止及键盘定位入口", () =>
+        Test("音乐播放栏：保留单行布局、轻薄亚克力与原生按钮状态", () =>
         {
             var root = FindRoot();
             var path = Path.Combine(root, "src", "Momoka.Shell", "Views", "MusicPlayerBar.xaml");
@@ -79,7 +79,37 @@ internal static class MusicTests
             var names = document.Descendants().Select(element => (string?)element.Attribute(x + "Name")).ToHashSet();
             foreach (var name in new[] { "PreviousButton", "PauseButton", "StopButton", "NextButton", "QueueButton", "VolumeSlider", "SeekSlider" })
                 Assert.True(names.Contains(name), name);
-            Assert.True(document.Descendants().Any(element => ((string?)element.Attribute("Background"))?.Contains("EgFrostBrush", StringComparison.Ordinal) == true));
+            XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+            var surface = Named("Surface");
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", (string?)surface.Attribute("Background"));
+            Assert.Equal("Center", (string?)surface.Attribute("HorizontalAlignment"));
+            Assert.True(surface.Attribute("BorderBrush") is null && surface.Attribute("BorderThickness") is null, "播放栏不应叠加卡片描边");
+            var grid = Named("BarGrid");
+            Assert.True(new[] { "Auto", "Auto", "*", "Auto" }.SequenceEqual(grid.Elements()
+                .Single(element => element.Name.LocalName == "Grid.ColumnDefinitions").Elements()
+                .Select(element => (string)element.Attribute("Width")!)), "原布局列宽被改变");
+            Assert.True(new[] { "PreviousButton", "PauseButton", "StopButton", "NextButton" }.SequenceEqual(Named("Transport")
+                .Elements().Select(element => (string)element.Attribute(x + "Name")!)), "主播放按钮顺序被改变");
+            Assert.True(new[] { "ShuffleButton", "RepeatButton", "FavoriteButton", "QueueButton", "VolumeButton" }.SequenceEqual(Named("Extras")
+                .Elements().Select(element => (string)element.Attribute(x + "Name")!)), "辅助按钮顺序被改变");
+            Assert.Equal("{StaticResource MusicButtonStyle}", (string?)Named("PauseButton").Attribute("Style"));
+            Assert.Equal("ToggleButton", Named("ShuffleButton").Name.LocalName);
+            Assert.Equal("{x:Bind ViewModel.Shuffle, Mode=OneWay}", (string?)Named("ShuffleButton").Attribute("IsChecked"));
+            Assert.False(document.Descendants().Any(element => element.Name.LocalName == "CommandBar"), "本批不应重排命令位置");
+            Assert.Equal("42", (string?)Named("CoverFrame").Attribute("Width"));
+            Assert.Equal("2", (string?)Named("TrackInfo").Attribute("Grid.Column"));
+            Assert.Equal("360", (string?)Named("TrackInfo").Attribute("MaxWidth"));
+            Assert.Equal("360", (string?)Named("SeekSlider").Attribute("MaxWidth"));
+            Assert.Equal("Left", (string?)Named("SeekSlider").Attribute("HorizontalAlignment"));
+            foreach (var name in new[] { "ShuffleButton", "RepeatButton", "FavoriteButton" })
+                Assert.Equal("PathIcon", Named(name).Elements().Single().Name.LocalName);
+            var musicPage = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MusicLibraryPage.xaml"));
+            Assert.False(musicPage.Descendants().Any(element => (string?)element.Attribute("Text") == "音乐库"), "音乐页不再重复一行眉标");
+            var title = musicPage.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "MusicTitle");
+            Assert.Equal("{StaticResource EgPageTitleStyle}", (string?)title.Attribute("Style"));
+            Assert.Equal("Grid", title.Parent!.Parent!.Name.LocalName);
+            var code = File.ReadAllText(Path.ChangeExtension(path, ".xaml.cs"));
+            Assert.False(code.Contains("ShuffleButton.Opacity", StringComparison.Ordinal), "随机应使用原生选中状态");
         });
         Test("音乐界面：分区决定曲目表与封面墙，读数与第二行各有说法", () =>
         {

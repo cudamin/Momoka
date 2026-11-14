@@ -1,8 +1,10 @@
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.AnimatedVisuals;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -25,6 +27,15 @@ public sealed partial class ShellPage
     private bool _sidebarTitleLayoutPending;
     private bool _syncingSidebar;
 
+    /// <summary>侧栏右沿拖动条那一趟的起点；<see cref="_resizingSidebar"/> 为假时都不看。</summary>
+    private bool _resizingSidebar;
+    private double _sidebarResizeStartX;
+    private double _sidebarResizeStartWidth;
+    private bool _sidebarResizePointerOver;
+
+    /// <summary>拖动条的光标（左右箭头）。第一次指针进入时创建，离树时释放。</summary>
+    private InputSystemCursor? _sidebarResizeCursor;
+
     // Loaded/Unloaded also cover the temporary shells used by offline verification.
     // Reattaching reads the setting again, so an event missed while unloaded is harmless.
     private void InitializeSidebar()
@@ -32,6 +43,12 @@ public sealed partial class ShellPage
         InitializeSidebarIcons();
         Sidebar.RegisterPropertyChangedCallback(NavigationView.IsPaneOpenProperty, (_, _) => ApplySidebarLayout());
         SizeChanged += (_, _) => UpdateSidebarWidth();
+        SidebarResizeGrip.PointerEntered += OnSidebarResizePointerEntered;
+        SidebarResizeGrip.PointerExited += OnSidebarResizePointerExited;
+        SidebarResizeGrip.PointerPressed += OnSidebarResizePointerPressed;
+        SidebarResizeGrip.PointerMoved += OnSidebarResizePointerMoved;
+        SidebarResizeGrip.PointerReleased += OnSidebarResizePointerReleased;
+        SidebarResizeGrip.PointerCaptureLost += OnSidebarResizePointerCaptureLost;
         TitleActions.LayoutUpdated += (_, _) =>
         {
             if (!_sidebarTitleLayoutPending) return;
@@ -67,6 +84,12 @@ public sealed partial class ShellPage
                 try { _sidebarSettings.AnimationsEnabledChanged -= _sidebarSettingsChanged; }
                 catch (Exception) { /* 只确认本地回调失效，不能声称 native 已退订。 */ }
             }
+            // 拖动到一半离树：不写回设置，只把状态和光标收干净（离树后框架也不会再送指针事件）。
+            EndSidebarResize(persist: false);
+            _sidebarResizePointerOver = false;
+            SidebarResizeGrip.Cursor = null;
+            _sidebarResizeCursor?.Dispose();
+            _sidebarResizeCursor = null;
             HideLibraryPreview();
         };
     }
@@ -92,7 +115,15 @@ public sealed partial class ShellPage
     private void OnSidebarPreferencesChanged(UiSettings ui)
     {
         // All open windows receive ShellPrefs; unrelated preferences must not reflow this shell.
-        if (_settings is null || !ReferenceEquals(ui, Settings.Ui) || _sidebarMode == !ui.EnableImmersive) return;
+        if (_settings is null || !ReferenceEquals(ui, Settings.Ui)) return;
+        // 宽度偏好也可能单独改过（导入设置）。先钉回 NavigationView；真变了才重排，没变就让原来的路径收尾。
+        var before = Sidebar.OpenPaneLength;
+        ApplyPreferredSidebarWidth();
+        if (_sidebarMode == !ui.EnableImmersive)
+        {
+            if (Math.Abs(before - Sidebar.OpenPaneLength) > 0.01) ApplySidebarLayout();
+            return;
+        }
         _sidebarMode = !ui.EnableImmersive;
         _sidebarWide = ActualWidth >= SidebarWideThreshold;
         if (_sidebarMode) Sidebar.IsPaneOpen = _sidebarWide;
@@ -107,8 +138,112 @@ public sealed partial class ShellPage
             _sidebarWide = wide;
             Sidebar.IsPaneOpen = wide;
         }
+        // 窗宽变了，能放下多宽的栏也变了：按当前窗宽重夹一次，再排按钮那一排。
+        // 只动屏上的宽度，不写设置 —— 窗口拉回来时用户原来的宽度跟着回来。
+        ApplyPreferredSidebarWidth();
         SyncTitleSearch();
         ApplySidebarLayout();
+    }
+
+    /// <summary>设置里存下来的展开宽度。还没拿到设置文档（构造到 Attach 之间）时就是标记里的出厂值。</summary>
+    private double PreferredSidebarWidth => _settings?.Settings.Ui.SidebarWidth ?? UiSettings.DefaultSidebarWidth;
+
+    /// <summary>
+    /// 把偏好钉到 NavigationView 上。窗宽变了也要再走一遍：可用宽度变小时栏跟着收一档，
+    /// 窗口拉回来后按偏好复原 —— 这一路上的夹取不写回设置。
+    /// </summary>
+    private void ApplyPreferredSidebarWidth()
+    {
+        // 拖动途中不覆盖用户正在拖的那一档；松手、窗口变化之后才回到偏好与窗宽的夹取。
+        if (_resizingSidebar) return;
+        var width = ClampSidebarWidth(PreferredSidebarWidth);
+        if (Math.Abs(Sidebar.OpenPaneLength - width) > 0.01) Sidebar.OpenPaneLength = width;
+    }
+
+    /// <summary>
+    /// 侧栏宽度的夹取。偏好自己的上下限在 <see cref="UiSettings"/> 上（180～480）；窗口窄时再给内容区
+    /// 留出 320 DIP，免得拖宽的栏把页面挤没。窗口还没有尺寸（第一帧之前）时不按窗宽收。
+    /// </summary>
+    private double ClampSidebarWidth(double width)
+    {
+        var max = UiSettings.MaxSidebarWidth;
+        if (double.IsFinite(ActualWidth) && ActualWidth > 0)
+            max = Math.Max(UiSettings.MinSidebarWidth, Math.Min(max, ActualWidth - 320));
+        return double.IsFinite(width)
+            ? Math.Clamp(width, UiSettings.MinSidebarWidth, max)
+            : UiSettings.DefaultSidebarWidth;
+    }
+
+    /// <summary>把侧栏换成指定宽度并当场重排（拖动每一拍都走这里；离线探针也直接调它复核夹取）。</summary>
+    private void ResizeSidebar(double width)
+    {
+        width = ClampSidebarWidth(width);
+        if (Math.Abs(Sidebar.OpenPaneLength - width) < 0.5) return;
+        Sidebar.OpenPaneLength = width;
+        ApplySidebarLayout();
+    }
+
+    private InputSystemCursor SidebarResizeCursor() =>
+        _sidebarResizeCursor ??= InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
+
+    private void OnSidebarResizePointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _sidebarResizePointerOver = true;
+        SidebarResizeGrip.Cursor = SidebarResizeCursor();
+    }
+
+    private void OnSidebarResizePointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        _sidebarResizePointerOver = false;
+        if (!_resizingSidebar) SidebarResizeGrip.Cursor = null;
+    }
+
+    private void OnSidebarResizePointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        // 只有展开档能拖；收成图标栏时这条拖动条根本不在屏上（见 ApplySidebarLayout）。
+        if (!SidebarShown || !Sidebar.IsPaneOpen) return;
+        var point = e.GetCurrentPoint(Root);
+        if (!point.Properties.IsLeftButtonPressed) return;
+        _resizingSidebar = true;
+        _sidebarResizeStartX = point.Position.X;
+        _sidebarResizeStartWidth = Sidebar.OpenPaneLength;
+        // 捕获之后指针移出这条 7 宽的条件带也继续收到事件；松手或捕获丢失时收尾。
+        SidebarResizeGrip.CapturePointer(e.Pointer);
+        e.Handled = true;
+    }
+
+    private void OnSidebarResizePointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_resizingSidebar) return;
+        var x = e.GetCurrentPoint(Root).Position.X;
+        ResizeSidebar(_sidebarResizeStartWidth + (x - _sidebarResizeStartX));
+        e.Handled = true;
+    }
+
+    private void OnSidebarResizePointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_resizingSidebar) return;
+        SidebarResizeGrip.ReleasePointerCapture(e.Pointer);
+        EndSidebarResize();
+        e.Handled = true;
+    }
+
+    private void OnSidebarResizePointerCaptureLost(object sender, PointerRoutedEventArgs e) => EndSidebarResize();
+
+    /// <summary>
+    /// 一趟拖动收尾：把这一趟拖出来的宽度写回设置文件（下次启动照这个宽度展开）。捕获丢失、离树与
+    /// 栏收起这三条路也走这里，但只有真的拖过才写；不写的那几档只清状态。
+    /// </summary>
+    private void EndSidebarResize(bool persist = true)
+    {
+        if (!_resizingSidebar) return;
+        _resizingSidebar = false;
+        if (!_sidebarResizePointerOver) SidebarResizeGrip.Cursor = null;
+        if (!persist || _settings is null) return;
+        var width = ClampSidebarWidth(Sidebar.OpenPaneLength);
+        if (Math.Abs(Settings.Ui.SidebarWidth - width) < 0.01) return;
+        Settings.Ui.SidebarWidth = width;
+        _settings.Save();
     }
 
     private bool SidebarShown => _sidebarMode && !_sidebarPlaying && _session?.IsSignedIn == true
@@ -156,7 +291,8 @@ public sealed partial class ShellPage
             ? Visibility.Visible : Visibility.Collapsed;
 
         // A detail page has no destination tag; its first breadcrumb still identifies its library/search.
-        var tag = _current ?? _trail.FirstOrDefault()?.Tag;
+        // 从主页下钻时那一节是「主页」，不是详情所属的媒体库 —— 例外规则见 ResolveSidebarTag。
+        var tag = ResolveSidebarTag(_current, _trail.FirstOrDefault()?.Tag);
         var selected = tag switch
         {
             "home" => SidebarHome,
@@ -190,6 +326,12 @@ public sealed partial class ShellPage
         if (!shown || Sidebar.IsPaneOpen) HideLibraryPreview();
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
+        // 拖动条只跟着展开档走：收成 56 的图标栏没有可拖宽的一档，开合仍归标题栏那颗折叠键。
+        // 它整个站在内容区一侧（左沿 = 栏的右沿），所以栏里的条目与滚动条照旧拿得到命中。
+        var resizable = shown && Sidebar.IsPaneOpen;
+        if (!resizable && _resizingSidebar) EndSidebarResize(persist: false);
+        SidebarResizeGrip.Visibility = resizable ? Visibility.Visible : Visibility.Collapsed;
+        if (resizable) SidebarResizeGrip.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
         // 商店模式让画布与页面一起避开标题栏，露出 Mica；沉浸模式恢复旧版画布铺入标题栏、
         // 页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
         ContentHost.Margin = new Thickness(width, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);

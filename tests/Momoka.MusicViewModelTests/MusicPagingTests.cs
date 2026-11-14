@@ -42,6 +42,8 @@ internal static class MusicPagingTests
             && (string?)title.Attribute("ToolTipService.ToolTip") == "{x:Bind ViewModel.Title, Mode=OneWay}"
             && (string?)title.Attribute("AutomationProperties.HeadingLevel") == "Level1", "标题丢失裁切、全文或一级标题语义");
         Require((string?)Named(new XDocument(new XElement(grid)), "MusicCount").Attribute("Grid.Column") == "1", "计数没有自己的列");
+        Require(grid.Parent!.Name.LocalName == "Grid" && (string?)title.Attribute("Style") == "{StaticResource EgPageTitleStyle}"
+            && !ReadPage().Descendants().Any(element => (string?)element.Attribute("Text") == "音乐库"), "音乐标题没有统一为其他媒体库的单行库名");
         var search = Named(ReadPage(), "MusicSearch");
         var accelerator = search.Descendants(Presentation + "KeyboardAccelerator").Single();
         Require((string?)accelerator.Attribute("Key") == "F" && (string?)accelerator.Attribute("Modifiers") == "Control"

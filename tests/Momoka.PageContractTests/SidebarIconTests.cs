@@ -73,12 +73,23 @@ internal static class SidebarIconTests
             Assert.True(!((PathIcon)movies.Filled).Data.Contains("M 13.33,8", StringComparison.Ordinal));
             Assert.True(!((PathIcon)shows.Filled).Data.Contains("M 14,11.33", StringComparison.Ordinal));
         });
+        Test("侧栏选中目的地：顶层与详情所属库，从主页下钻不亮主页", () =>
+        {
+            Assert.Equal("home", ShellPage.ResolveSidebarTag("home", null));
+            Assert.Equal("home", ShellPage.ResolveSidebarTag("home", "home"));
+            Assert.Equal("library:movies", ShellPage.ResolveSidebarTag(null, "library:movies"));
+            Assert.Equal("favorites", ShellPage.ResolveSidebarTag(null, "favorites"));
+            Assert.Null(ShellPage.ResolveSidebarTag(null, "home"));
+            Assert.Null(ShellPage.ResolveSidebarTag(null, ""));
+            Assert.Null(ShellPage.ResolveSidebarTag(null, null));
+            Assert.Equal("search", ShellPage.ResolveSidebarTag("search", "home"));
+        });
         Test("侧栏图标同步接在最终导航状态并清理旧媒体库", () =>
         {
             var source = Read("ShellPage.Sidebar.cs");
             Assert.Contains("InitializeSidebarIcons();", source);
             Assert.Contains("SyncSidebarIcons(selected);", source);
-            Assert.Contains("_current ?? _trail.FirstOrDefault()?.Tag", source);
+            Assert.Contains("ResolveSidebarTag(_current, _trail.FirstOrDefault()?.Tag)", source);
             Assert.Contains("_sidebarIcons.Remove(item);", source);
             Assert.Contains("RegisterSidebarLibraryIcon(item, library.CollectionType);", source);
             Assert.True(source.IndexOf("SyncSidebarIcons(selected);", StringComparison.Ordinal)
