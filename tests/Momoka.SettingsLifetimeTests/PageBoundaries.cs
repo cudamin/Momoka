@@ -101,9 +101,15 @@ namespace Microsoft.UI.Windowing
     {
         public int Hidden { get; private set; }
         public int Shown { get; private set; }
+        public int MovedToTop { get; private set; }
         public event Action<AppWindow, AppWindowClosingEventArgs>? Closing;
         public void Hide() => Hidden++;
         public void Show() => Shown++;
+        public void MoveInZOrderAtTop()
+        {
+            MovedToTop++;
+            Momoka.Shell.Interop.Native.Events.Add("z-top");
+        }
         public AppWindowClosingEventArgs RaiseClosing()
         {
             var args = new AppWindowClosingEventArgs();

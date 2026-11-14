@@ -1,3 +1,11 @@
+## 2026-11-14 设置窗口每次显现回到主窗口前面（已合入，待交付）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-settings-on-top-Odo2OM`，分支 `fix-settings-on-top-Odo2OM`，基点 `5ac4c45`。用户报「点完设置会自动跑到主窗口后面，再点一次主窗口的设置按钮也不会跑到主窗口前面」。根因读框架源码确认：WinUI 3 的 `DesktopWindowImpl::ActivateImpl` 只做 `ShowWindow(SW_SHOW)` 与 `SetActiveWindow`，对一扇已经看得见的窗口不改 z 序；设置窗口被主窗口盖住之后，`Window.Activate()` 只是把它「激活」在主窗口底下，所以再点设置也拿不回来。修法：`SettingsWindow.Show` 在 Activate 之后调用官方 `AppWindow.MoveInZOrderAtTop()`（WinAppSDK 1.1+，即 `SetWindowPos(HWND_TOP)`），首开、隐藏后重开、已经开着再点设置三条路都会把窗口提到主窗口前面；不改成 owned/topmost，保留全屏播放时 `HostWindow.StandAsideForOwnWindow` 的让位与收摊还原语义。
+
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.SettingsLifetimeTests` **62/62、0 失败 0 跳过**（新增「设置窗口每次显现都提到主窗口前面」，把首开／隐藏后重开／已开着再点设置三条路都钉住；原「设置窗显现前清理旧关闭悬停」同步补上 z-top 顺序）。改动文件 whitespace 与 diff 行尾/BOM/末尾换行通过；全仓 `check-diff -All` 仍有 6 个与本批无关的既有文件末尾换行红。原生 `--probe-shell --probe-section settings --screen 1` **28/28、退出 0**（`shell-probe-20261114-145505209-2492`）：其中「聚合设置窗口首开与缓存重开」新增一段回归，先把探针主窗口提到前面盖住设置窗，再走真实 `SettingsWindow.Show`，用设置窗口中心命中判它回到最前，读数 `重按设置回到最前 1526 ms`；该段在探针原有的 `presenter.IsAlwaysOnTop` 保护之前跑，不被探针自己的置顶掩盖。探针使用匿名假服务与独立目录，未登录真实服务器、未播放。
+
+合入：产品与测试 `cede788`；只解决 PROGRESS 顶部双侧追加冲突，产品与测试文件自动合并。按批次规则不跑全量、不发布，交付验证范围记入待交付台账。
+
 ## 2026-11-14 商店详情宽版式断点下调与内容右移（已合入，待交付）
 
 用户报一张 1338 宽窗口的商店详情：「才这个窗口大小你就切窄窗模式了？右边还留着一大片空位呢，而且你也不懂得往中间移一点？」。该窗客户区 1328、侧栏 256，内容区约 1072 DIP；原判断写死 `PageWidth >= 1100`，差 28 就落进窄档（整幅背景＋亚克力＋40 留白的一列），右侧空出约 470 DIP。新增 `DetailHero.StoreWideFloor = 1024` 统一收口：`StorePageInset`、`StoreBackdropWidth／Height`、`StoreContentWidth`、详情页与 MoviePilot 订阅页的亚克力显隐、商店预告的宽档判断全部改读这个常量。页宽 1024～1099 这一段因此从窄档的 40 留白换到宽档的 64，内容列随之右移 24 DIP（用户要的「触发时往右移一点点」），同时右侧恢复剧照／预告视口。

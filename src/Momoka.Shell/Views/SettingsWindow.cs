@@ -30,6 +30,13 @@ namespace Momoka.Shell.Views;
 /// settings window pinned over a full-screen playback is the same class of complaint as the task bar
 /// showing over it; a window that can be sent behind and brought back by pressing 设置 again is not.
 /// </para>
+/// <para>
+/// 「按设置能拿回来」不是 Activate 白送的：WinUI 3 的 <c>DesktopWindowImpl::ActivateImpl</c> 只做
+/// <c>ShowWindow(SW_SHOW)</c> 与 <c>SetActiveWindow</c>，对一扇已经看得见的窗口不改 z 序。窗口被主窗口
+/// 盖住之后，再点设置只会把它「激活」在主窗口底下（2026-11-14 用户报「再点一次设置也不会跑到主窗口
+/// 前面」）。因此每次 <see cref="Show"/> 都在 Activate 之后显式 <c>AppWindow.MoveInZOrderAtTop()</c>：
+/// 主窗口不在 topmost 带里（全屏时由 <c>HostWindow.StandAsideForOwnWindow</c> 先让开）就一定会露出来。
+/// </para>
 /// </summary>
 internal sealed partial class SettingsWindow
 {
@@ -240,6 +247,10 @@ internal sealed partial class SettingsWindow
 
         // Activate 已执行 ShowWindow + UpdateWindow；避免在内容首帧前额外显窗。
         _window.Activate();
+
+        // 已经看得见的窗口，Activate 只 SetActiveWindow、不动 z 序 —— 被主窗口盖住之后，再点设置
+        // 仍然是盖住。每趟显现都把窗口提到 z 序最前，才与「按设置键就能拿回来」这句话对得上。
+        _window.AppWindow.MoveInZOrderAtTop();
         _open = true;
         ResumeSystemAppearance();
     }
