@@ -1,4 +1,4 @@
-## 2026-11-14 订阅详情去掉头部卡面、收起面包屑、评分卡移到正文右列（本树，待合并）
+## 2026-11-14 订阅详情去掉头部卡面、收起面包屑、评分卡移到正文右列（已合入 master，台账待补）
 
 独立树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-subscription-layout-HGmn7f`，分支 `feat-subscription-layout-HGmn7f`，基点 master `df37a93`。用户三点：①「去掉上图订阅详情页的卡片」；②「去掉顶部的主页 › 生日快乐(2025)，下面的组件整体上移」；③「参考图二修改订阅页面的布局，订阅页面右上角的评分卡片放到参考图片 发现更多 的那个位置」。①经追问确认只去掉头部大卡片，下方季／演员阵容／相关推荐／相似作品的分区卡片保留。
 
@@ -6,7 +6,10 @@
 
 **同步测试。** `MoviePilotSubscriptionPageStateTests` 的 XAML 次序断言改为头部无 `HeroSurface`/`HeroMica`、`HeroFacts` 与 `BodyFlow` 同住 `BodyRow`，并新增 `ShellPage.ApplyChrome` 为本页收起面包屑的源码契约；`Agreements.txt` 删除 `HeroSurface` 句柄基线；`ShellNavigationProbe.MediaDetail.RequireSubscriptionBodyLayout` 与 `ShellNavigationProbe.Subscriptions` 的资料卡／分区断面断言改为「资料卡在正文右列、左列分区只与左列同宽且不与它重叠」，并删去不存在的 `HeroSurface`/`HeroMica` 读数。
 
-**验证。** Release Shell/x64 **0 警告 0 错误**；`moviepilot-subscription-page-state-fixture <当前 Shell DLL> <树根>` **40/40**；`Momoka.PageContractTests` **274/274**；`Momoka.MoviePilotSubscribeSettingsTests` **77/77**；主测试首轮 **5103/5103**，末次在最终代码上重跑为 **5087/5103**，16 条红全部是 `SelfCheckOutputIsolationTests` 的「已有当前用户的自检运行中」——别的进程占着本机自检互斥量，本页相关用例（页面状态 40/40）在最终代码上全过，这 16 条按环境红如实记录，不冒充全绿。原生 `--probe-shell --probe-section moviepilot --screen 1`：日志 `shell-probe-20261114-143814928-1792` 跑完 27 项，除既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时外全部通过（订阅详情、电影订阅详情、编辑订阅、最窄布局恢复都在内），随后在同一处已知的「无图季列表图片恢复」布局循环路径崩溃（该用例自带 `StartBringIntoView` 会打成 LayoutCycle 的注释，先前的修复轮次也记录过同一路径），因此更后面的「订阅详情沉浸与简洁模式切换」没有跑到。宽窄实屏 `mp-subscription-header-1240.png`、`mp-subscription-header-760.png`、`mp-subscription-related-1240.png` 已目视：1240 是左列季／货架、右列资料卡；760 资料卡在正文最上面且左列全宽，头部没有卡面。面包屑收起只有 `ShellPage.ApplyChrome` 的源码契约与页面实屏（页面截图不含外壳），没有用整窗外壳截图复核；简洁模式（关沉浸）的实屏也没跑到。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏与跨 DPI。
+**验证。** Release Shell/x64 **0 警告 0 错误**；`moviepilot-subscription-page-state-fixture <当前 Shell DLL> <树根>` **40/40**；`Momoka.PageContractTests` **275/275**；`Momoka.MoviePilotSubscribeSettingsTests` **77/77**；主测试首轮 **5103/5103**，末次在最终代码上重跑为 **5087/5103**，16 条红全部是 `SelfCheckOutputIsolationTests` 的「已有当前用户的自检运行中」——别的进程占着本机自检互斥量，本页相关用例（页面状态 40/40）在最终代码上全过，这 16 条按环境红如实记录，不冒充全绿。原生 `--probe-shell --probe-section moviepilot --screen 1`：日志 `shell-probe-20261114-143814928-1792` 跑完 27 项，除既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时外全部通过（订阅详情、电影订阅详情、编辑订阅、最窄布局恢复都在内），随后在同一处已知的「无图季列表图片恢复」布局循环路径崩溃（该用例自带 `StartBringIntoView` 会打成 LayoutCycle 的注释，先前的修复轮次也记录过同一路径），因此更后面的「订阅详情沉浸与简洁模式切换」没有跑到。宽窄实屏 `mp-subscription-header-1240.png`、`mp-subscription-header-760.png`、`mp-subscription-related-1240.png` 已目视：1240 是左列季／货架、右列资料卡；760 资料卡在正文最上面且左列全宽，头部没有卡面。面包屑收起只有 `ShellPage.ApplyChrome` 的源码契约与页面实屏（页面截图不含外壳），没有用整窗外壳截图复核；简洁模式（关沉浸）的实屏也没跑到。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏与跨 DPI。
+
+合入：产品 `285b6dd`、`b8692a2`，文档 `dd19b2a`；整合 master `196456b`、`35bad25` 后以 `--ff-only` 进入 master（`35bad25`，基线 `c1fb644`）。合并后主树 Shell/Tests x64 Release 0 警告 0 错误，页面状态 40/40、PageContract 275/275。`docs/待交付批次.md` 当时有另一会话的未提交编辑，未写入本批条目，交付前须补登。
+
 ## 2026-11-14 设置窗口每次显现回到主窗口前面（已合入，待交付）
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-settings-on-top-Odo2OM`，分支 `fix-settings-on-top-Odo2OM`，基点 `5ac4c45`。用户报「点完设置会自动跑到主窗口后面，再点一次主窗口的设置按钮也不会跑到主窗口前面」。根因读框架源码确认：WinUI 3 的 `DesktopWindowImpl::ActivateImpl` 只做 `ShowWindow(SW_SHOW)` 与 `SetActiveWindow`，对一扇已经看得见的窗口不改 z 序；设置窗口被主窗口盖住之后，`Window.Activate()` 只是把它「激活」在主窗口底下，所以再点设置也拿不回来。修法：`SettingsWindow.Show` 在 Activate 之后调用官方 `AppWindow.MoveInZOrderAtTop()`（WinAppSDK 1.1+，即 `SetWindowPos(HWND_TOP)`），首开、隐藏后重开、已经开着再点设置三条路都会把窗口提到主窗口前面；不改成 owned/topmost，保留全屏播放时 `HostWindow.StandAsideForOwnWindow` 的让位与收摊还原语义。
