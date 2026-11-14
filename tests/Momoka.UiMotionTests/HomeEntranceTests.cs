@@ -130,6 +130,97 @@ internal static class HomeEntranceTests
             HomeMotion.StopEnter(repeater);
             Assert.Equal(0, Storyboard.Count);
         });
+        foreach (var background in new[] { false, true })
+            Test($"待Loaded货架系统关闭{(background ? "后台通知" : "即时通知")}撤销旧入场，恢复不重播", () =>
+            {
+                Reset();
+                var root = new FrameworkElement();
+                var repeater = new ItemsRepeater { ItemsSourceView = new(1) };
+                var child = new FrameworkElement();
+                var target = new FrameworkElement { IsLoaded = false };
+                child.AddVisualChild(target);
+                repeater.Prepare(0, child);
+                HomeMotion.Enter(root, repeater, 1);
+                Assert.Equal(1, target.LoadedSubscriptionCount);
+                target.DispatcherQueue.HasThreadAccess = !background;
+                UISettings.SetAnimationsEnabled(false);
+                UISettings.SetAnimationsEnabled(true);
+                target.DispatcherQueue.Drain();
+                Assert.Equal(0, target.LoadedSubscriptionCount);
+                Assert.Equal(0, target.UnloadedSubscriptionCount);
+                Assert.Equal(0, UISettings.Created.Sum(settings => settings.SubscriptionCount));
+                target.RaiseLoaded();
+                Assert.Equal(0, Storyboard.Count);
+                HomeMotion.StopEnter(repeater);
+            });
+        Test("回收旧等待后新模板的Loaded不被旧系统通知取消", () =>
+        {
+            Reset();
+            var root = new FrameworkElement();
+            var repeater = new ItemsRepeater { ItemsSourceView = new(1) };
+            var child = new FrameworkElement();
+            var target = new FrameworkElement { IsLoaded = false };
+            child.AddVisualChild(target);
+            repeater.Prepare(0, child);
+            HomeMotion.Enter(root, repeater, 1);
+            target.DispatcherQueue.HasThreadAccess = false;
+            UISettings.SetAnimationsEnabled(false);
+            repeater.Clear(0);
+            UISettings.SetAnimationsEnabled(true);
+            repeater.Prepare(0, child);
+            Assert.Equal(1, target.LoadedSubscriptionCount);
+            target.DispatcherQueue.Drain();
+            Assert.Equal(1, target.LoadedSubscriptionCount);
+            target.RaiseLoaded();
+            Assert.Equal(1, Storyboard.Count);
+            HomeMotion.StopEnter(repeater);
+            Assert.Equal(0, UISettings.Created.Sum(settings => settings.SubscriptionCount));
+        });
+        foreach (var after in new[] { false, true })
+            Test($"待Loaded系统观察{(after ? "注册后" : "注册前")}异常清理票据和旧Loaded", () =>
+            {
+                Reset();
+                var root = new FrameworkElement();
+                var repeater = new ItemsRepeater { ItemsSourceView = new(1) };
+                var child = new FrameworkElement();
+                var target = new FrameworkElement { IsLoaded = false };
+                child.AddVisualChild(target);
+                repeater.Prepare(0, child);
+                UISettings.ThrowOnAdd = !after;
+                UISettings.ThrowAfterAdd = after;
+                HomeMotion.Enter(root, repeater, 1);
+                Assert.Equal(0, target.LoadedSubscriptionCount);
+                Assert.Equal(0, target.UnloadedSubscriptionCount);
+                Assert.Equal(0, UISettings.Created.Sum(settings => settings.SubscriptionCount));
+                UISettings.ThrowOnAdd = UISettings.ThrowAfterAdd = false;
+                target.RaiseLoaded();
+                Assert.Equal(0, Storyboard.Count);
+                HomeMotion.StopEnter(repeater);
+            });
+        foreach (var after in new[] { false, true })
+            Test($"待Loaded系统观察退订{(after ? "后" : "前")}异常仍撤销本地票据", () =>
+            {
+                Reset();
+                var root = new FrameworkElement();
+                var repeater = new ItemsRepeater { ItemsSourceView = new(1) };
+                var child = new FrameworkElement();
+                var target = new FrameworkElement { IsLoaded = false };
+                child.AddVisualChild(target);
+                repeater.Prepare(0, child);
+                HomeMotion.Enter(root, repeater, 1);
+                var posted = UISettings.Created.First(settings => settings.SubscriptionCount > 0).CapturePostedEvent();
+                UISettings.ThrowOnRemove = !after;
+                UISettings.ThrowAfterRemove = after;
+                HomeMotion.StopEnter(repeater);
+                Assert.Equal(0, target.LoadedSubscriptionCount);
+                Assert.Equal(0, target.UnloadedSubscriptionCount);
+                Assert.Equal(after ? 0 : 1, UISettings.Created.Sum(settings => settings.SubscriptionCount));
+                posted();
+                target.RaiseLoaded();
+                Assert.Equal(0, Storyboard.Count);
+                Assert.Equal(1d, target.Opacity);
+                UISettings.EndFaultFixture();
+            });
     }
 
     private static void Reset()

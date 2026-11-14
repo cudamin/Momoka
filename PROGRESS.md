@@ -13,6 +13,13 @@ Card/Person 回执现在区分启动、完成、准备/完成超时、关动画�
 
 验证：基线 Connected 48/48；当前 Connected 58/58、DetailImageArrival 26/26，0 失败 0 跳过；专项与 Shell/x64 Release 编译 0 警告 0 错误。两个原生探针收紧唯一终态/计时/原因，人物新增 `person-transition.json`；原生成功/失败本轮由主任务串行执行，当前不声明 ≤250ms、GPU 补间、跨 DPI 或读屏通过。主任务负责 Browse/整合验证及台账；未发布、未上传、未真实播放或服务器写入。
 
+## 2026-11-15 WinUI 动效施工 S3：减少动画与离页收尾（独立树，待合并）
+
+树 `C:/Users/89400/.codex/worktrees/winui-motion-s3/Momoka`，分支 `codex/winui-motion-s3`，基点 master `63ef01a`。用户授权按施工文档开始；写集为 HomeMotion、SettingsPriorityMotion、ShellPage.Sidebar/SidebarMotion 与相关专项。首页待 Loaded 入场现在观察 Windows 关闭动画并撤销旧票据；恢复后不重播，旧通知不能取消回收后新的目标。设置排序直接响应 Windows 动画事件，以 High 队列落定，保留 380ms 关键帧与拖拽两阶段业务提交。齿轮只在 Loaded 活动期绑定动画源，离页及注册失败使用已有 FontIconSource 静态回退；旧原生/排队事件按 lifetime 拒绝。Gallery 对照固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 ImplicitTransition 与 AnimatedIcon XAML/code-behind；没有覆盖上述产品生命周期的成套样例，保留现有实现并补局部归属，未变包。
+
+基线当前源码专项：UiMotion 57/57、DetailStickyHeader 58/58、SettingsRowsMotion 46/46、SettingsPriorityMotion 24/24。施工后 UiMotion 80/80（新增23项，含音乐栏真实 PlaceMusicBar/PlaceMusicBarMargins 原样提取与启动失败回退）、Priority 35/35（新增11项）、PageContract 275/275、SettingsProbeContract 36/36，均零失败零跳过。音乐方法提取的缺起点、重复起点、缺终点均实际拒绝，合法源恢复成功；故障日志仅在 ignored work。Home Waiting/齿轮/Priority 的注册前后及退订异常明确断言本地收尾，native 退订未知不冒称零泄漏。本树受影响 Shell/x64 Release 两轮编译均 0 警告 0 错误；第二轮包含 Home Waiting、Priority 与 SidebarMotion 生产修改（末次 Priority 关闭事件取样由主代理最终整合编译覆盖）。
+
+StickyHeader、SurfaceMotion、SettingsRowsMotion、SettingsPage.Motion 与音乐栏产品方法核对保留：单一属性控制、快速反向/旧完成、命中、焦点、回收/终值已有专项。播放器 PlayerPage 的 220ms 原生 OpacityTransition 与 FadeRail/FadeStrip 命中规则只读核对，未改播放。未运行桌面 UI、系统设置、原生探针、真实网络/播放、发布或 push；假时钟不能证明 GPU 连续性、真实系统通知、Narrator、跨 DPI 或资源逐帧。原生待验由主代理串行采用现有 shell/settings/music/library 分区及最终主树台账处理，AVP/Effects仍暂缓。
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 
 用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。

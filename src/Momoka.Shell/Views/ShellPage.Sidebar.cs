@@ -2,14 +2,11 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.AnimatedVisuals;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
-using Windows.Foundation;
-using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
@@ -17,9 +14,6 @@ public sealed partial class ShellPage
 {
     private const double SidebarWideThreshold = 1008;
     private readonly Dictionary<string, NavigationViewItem> _sidebarLibraries = new(StringComparer.Ordinal);
-    private readonly AnimatedSettingsVisualSource _sidebarSettingsIconSource = new();
-    private readonly UISettings _sidebarSettings = new();
-    private TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _sidebarSettingsChanged;
     private CompositeTransform? _sidebarPaneClip;
     private bool _sidebarMode;
     private bool _sidebarWide;
@@ -66,24 +60,13 @@ public sealed partial class ShellPage
             ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
             ShellPrefs.SidebarChanged += OnSidebarPreferencesChanged;
             if (_settings is not null) OnSidebarPreferencesChanged(Settings.Ui);
-            HomeMotion.PreferenceChanged -= OnSidebarMotionPreferenceChanged;
-            HomeMotion.PreferenceChanged += OnSidebarMotionPreferenceChanged;
-            _sidebarSettingsChanged ??= OnSidebarSettingsChanged;
-            try { _sidebarSettings.AnimationsEnabledChanged -= _sidebarSettingsChanged; }
-            catch (Exception) { /* 先重挂一个本地失效的旧回调；退订失败不阻断后续同步。 */ }
-            _sidebarSettings.AnimationsEnabledChanged += _sidebarSettingsChanged;
-            SyncSidebarSettingsIcon();
+            AttachSidebarMotion();
             UpdateSidebarWidth();
         };
         Unloaded += (_, _) =>
         {
             ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
-            HomeMotion.PreferenceChanged -= OnSidebarMotionPreferenceChanged;
-            if (_sidebarSettingsChanged is not null)
-            {
-                try { _sidebarSettings.AnimationsEnabledChanged -= _sidebarSettingsChanged; }
-                catch (Exception) { /* 只确认本地回调失效，不能声称 native 已退订。 */ }
-            }
+            DetachSidebarMotion();
             // 拖动到一半离树：不写回设置，只把状态和光标收干净（离树后框架也不会再送指针事件）。
             EndSidebarResize(persist: false);
             _sidebarResizePointerOver = false;
@@ -92,24 +75,6 @@ public sealed partial class ShellPage
             _sidebarResizeCursor = null;
             HideLibraryPreview();
         };
-    }
-
-    /// <summary>
-    /// 设置那颗齿轮的动画只在应用与系统都允许时跑。关掉时把 Source 置空，AnimatedIcon 落到
-    /// Gallery 样例里那颗 FontIconSource 静态回退，不为动画留住一帧。
-    /// </summary>
-    private void SyncSidebarSettingsIcon()
-    {
-        var source = HomeMotion.AnimationsEnabled ? _sidebarSettingsIconSource : null;
-        if (!ReferenceEquals(SidebarSettingsIcon.Source, source)) SidebarSettingsIcon.Source = source;
-    }
-
-    private void OnSidebarMotionPreferenceChanged() => SyncSidebarSettingsIcon();
-
-    private void OnSidebarSettingsChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
-    {
-        if (DispatcherQueue.HasThreadAccess) SyncSidebarSettingsIcon();
-        else DispatcherQueue.TryEnqueue(SyncSidebarSettingsIcon);
     }
 
     private void OnSidebarPreferencesChanged(UiSettings ui)

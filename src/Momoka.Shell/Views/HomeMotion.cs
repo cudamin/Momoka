@@ -18,7 +18,7 @@ internal static class HomeMotion
     private const int StaggerMs = 65;
     private static readonly UISettings Settings = new();
     private static readonly ConditionalWeakTable<FrameworkElement, Motion> Active = new();
-    private static readonly ConditionalWeakTable<FrameworkElement, RoutedEventHandler> Waiting = new();
+    private static readonly ConditionalWeakTable<FrameworkElement, WaitingEntrance> Waiting = new();
     private static readonly ConditionalWeakTable<ItemsRepeater, ShelfEntrance> Shelves = new();
 
     internal static bool PreferenceEnabled { get; private set; } = true;
@@ -110,10 +110,14 @@ internal static class HomeMotion
         }
 
         Stop(element);
-        RoutedEventHandler handler = (_, _) => Reveal(element, delay);
-        Waiting.Add(element, handler);
-        element.Loaded += handler;
-        element.Unloaded += OnUnloaded;
+        var waiting = new WaitingEntrance(element, delay);
+        Waiting.Add(element, waiting);
+        try { waiting.Start(); }
+        catch (Exception)
+        {
+            // 待加载观察失败也保持可读，不给晚到 Loaded 留下一段旧入场。
+            Stop(element);
+        }
     }
 
     internal static void Reveal(FrameworkElement element, int delay, int durationMs = DurationMs, double distance = 20)
@@ -197,10 +201,10 @@ internal static class HomeMotion
         if (element is null) return;
 
         element.Unloaded -= OnUnloaded;
-        if (Waiting.TryGetValue(element, out var handler))
+        if (Waiting.TryGetValue(element, out var waiting))
         {
-            element.Loaded -= handler;
             Waiting.Remove(element);
+            waiting.Stop();
         }
 
         if (!Active.TryGetValue(element, out var motion))
@@ -221,6 +225,43 @@ internal static class HomeMotion
     private static void OnUnloaded(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement element) Stop(element);
+    }
+
+    private sealed class WaitingEntrance(FrameworkElement element, int delay)
+    {
+        internal void Start()
+        {
+            element.Loaded += OnLoaded;
+            element.Unloaded += OnUnloaded;
+            Settings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+        }
+
+        internal void Stop()
+        {
+            element.Loaded -= OnLoaded;
+            element.Unloaded -= OnUnloaded;
+            try { Settings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+            catch (Exception) { /* 票据已摘除，旧原生通知不能重新安排入场。 */ }
+        }
+
+        private bool IsCurrent => Waiting.TryGetValue(element, out var current) && ReferenceEquals(current, this);
+
+        private void OnLoaded(object sender, RoutedEventArgs args)
+        {
+            if (IsCurrent) Reveal(element, delay);
+        }
+
+        private void OnSystemPreferenceChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+        {
+            if (AnimationsEnabled || !IsCurrent) return;
+            void StopCurrent()
+            {
+                // 通知本身已经看到关闭；即使排队期间重新开启，也不能重播此前那次等待。
+                if (IsCurrent) HomeMotion.Stop(element);
+            }
+            if (element.DispatcherQueue.HasThreadAccess) StopCurrent();
+            else element.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, StopCurrent);
+        }
     }
 
     private sealed class Motion

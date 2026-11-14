@@ -5,6 +5,7 @@
         <PlatformTarget>x64</PlatformTarget>
         <IsPackable>false</IsPackable>
         <StartupObject>Momoka.Tests.Program</StartupObject>
+        <MusicBarMotionSource Condition="'$(MusicBarMotionSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\ShellPage.Music.cs</MusicBarMotionSource>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
@@ -13,6 +14,7 @@
         <Compile Include="..\..\src\Momoka.Shell\Views\GlyphPulse.cs" Link="Production\GlyphPulse.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\BannerPointerGlow.cs" Link="Production\BannerPointerGlow.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\ShellPage.SidebarMotion.cs" Link="Production\ShellPage.SidebarMotion.cs" />
     </ItemGroup>
     <UsingTask TaskName="ExtractShelfFocus" TaskFactory="RoslynCodeTaskFactory"
                AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
@@ -53,6 +55,41 @@
                            Output="$(IntermediateOutputPath)ShelfFocus.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)ShelfFocus.g.cs" />
+        </ItemGroup>
+    </Target>
+    <UsingTask TaskName="ExtractMusicBarMotion" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Source ParameterType="System.String" Required="true" />
+            <Output ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+                var start = "    private void PlaceMusicBar()";
+                var end = "    internal void OpenMusicContainer(";
+                var first = source.IndexOf(start, StringComparison.Ordinal);
+                if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+                    throw new InvalidOperationException("Missing or ambiguous music motion source: " + start);
+                var last = source.IndexOf(end, first + start.Length, StringComparison.Ordinal);
+                if (last < 0) throw new InvalidOperationException("Missing music motion source end: " + end);
+                var output = "// Verbatim current production music-bar motion. Do not edit.\n#nullable enable\n" +
+                    "using System;\nusing Microsoft.UI.Xaml;\nnamespace Momoka.Shell.Views;\n" +
+                    "internal sealed partial class MusicBarMotionFixture\n{\n" + source.Substring(first, last - first) + "\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(Output));
+                if (!File.Exists(Output) || File.ReadAllText(Output) != output)
+                    File.WriteAllText(Output, output, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateMusicBarMotion" BeforeTargets="CoreCompile">
+        <ExtractMusicBarMotion Source="$(MusicBarMotionSource)"
+                               Output="$(IntermediateOutputPath)MusicBarMotion.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)MusicBarMotion.g.cs" />
         </ItemGroup>
     </Target>
 </Project>

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Shell.ViewModels;
 using Windows.Foundation;
+using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
@@ -23,12 +24,14 @@ internal sealed class SettingsPriorityMotion
     private readonly Action _endReorder;
     private readonly Func<FrameworkElement, bool> _isRoot;
     private readonly Func<object, bool> _isItem;
+    private readonly UISettings _systemSettings = new();
     private readonly Dictionary<FrameworkElement, Storyboard> _active = [];
     private Dictionary<object, double> _positions = [];
     private Dictionary<object, double>? _before;
     private bool _dragging;
     private bool _queued;
     private bool _detached;
+    private bool _systemMotionWatching;
     private int _generation;
 
     internal SettingsPriorityMotion(ListView list, SettingTitleRulesRow row)
@@ -54,10 +57,23 @@ internal sealed class SettingsPriorityMotion
         _collection.CollectionChanged += OnChanged;
         _list.LayoutUpdated += OnLayoutUpdated;
         HomeMotion.PreferenceChanged += OnPreferenceChanged;
+        try
+        {
+            _systemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+            _systemMotionWatching = true;
+        }
+        catch (Exception)
+        {
+            // 无法持续观察减少动画偏好时保留业务排序，停用这一控制器的动效。
+            try { _systemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+            catch (Exception) { /* 退订结果未知；_systemMotionWatching 拒绝旧通知。 */ }
+            Stop();
+        }
     }
 
     internal bool IsAnimating => _queued || _active.Count > 0;
     internal bool HasSpring => _active.Count > 0;
+    private bool MotionEnabled => _systemMotionWatching && HomeMotion.AnimationsEnabled;
 
     private Dictionary<object, double> Measure()
     {
@@ -73,7 +89,7 @@ internal sealed class SettingsPriorityMotion
     private void OnLayoutUpdated(object? sender, object args)
     {
         if (_detached || _list.XamlRoot is null) return;
-        if (!HomeMotion.AnimationsEnabled)
+        if (!MotionEnabled)
         {
             if (IsAnimating || _before is not null) Stop();
             return;
@@ -84,7 +100,7 @@ internal sealed class SettingsPriorityMotion
     private void OnChanged(object? sender, NotifyCollectionChangedEventArgs args)
     {
         if (_dragging || _detached) return;
-        if (!HomeMotion.AnimationsEnabled || _list.XamlRoot is null)
+        if (!MotionEnabled || _list.XamlRoot is null)
         {
             Stop();
             return;
@@ -109,7 +125,7 @@ internal sealed class SettingsPriorityMotion
         if (_detached) return;
         Stop();
         // 拖拽提交与动画快照是两件事：禁动画仍 Begin/EndReorder，但不测量无用的 before。
-        _before = HomeMotion.AnimationsEnabled ? Measure() : null;
+        _before = MotionEnabled ? Measure() : null;
         _dragging = true;
         _beginReorder();
     }
@@ -125,7 +141,7 @@ internal sealed class SettingsPriorityMotion
     private void QueueSettle()
     {
         if (_detached) return;
-        if (!HomeMotion.AnimationsEnabled || _list.XamlRoot is null)
+        if (!MotionEnabled || _list.XamlRoot is null)
         {
             Stop();
             return;
@@ -139,7 +155,7 @@ internal sealed class SettingsPriorityMotion
             // An old delegate must not consume the new run's _queued flag or _before snapshot.
             if (generation != _generation) return;
             _queued = false;
-            if (_detached || _dragging || _list.XamlRoot is null || !HomeMotion.AnimationsEnabled)
+            if (_detached || _dragging || _list.XamlRoot is null || !MotionEnabled)
             {
                 Stop();
                 return;
@@ -148,7 +164,7 @@ internal sealed class SettingsPriorityMotion
             Stop();
             var run = _generation;
             _list.UpdateLayout();
-            if (run != _generation || _detached || _dragging || _list.XamlRoot is null || !HomeMotion.AnimationsEnabled) return;
+            if (run != _generation || _detached || _dragging || _list.XamlRoot is null || !MotionEnabled) return;
             var after = Measure();
             _positions = after;
             if (before is null) return;
@@ -207,8 +223,24 @@ internal sealed class SettingsPriorityMotion
 
     private void OnPreferenceChanged()
     {
-        if (!HomeMotion.AnimationsEnabled) Stop();
-        else if (!_detached && !_dragging && _list.XamlRoot is not null) _list.UpdateLayout();
+        if (_detached) return;
+        if (!MotionEnabled) Stop();
+        else if (!_dragging && _list.XamlRoot is not null) _list.UpdateLayout();
+    }
+
+    private void OnSystemPreferenceChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+    {
+        var generation = _generation;
+        var disabled = !HomeMotion.AnimationsEnabled;
+        void ApplyCurrentPreference()
+        {
+            // Windows 通知可能晚于 Stop、离页或新一趟拖拽；旧通知不能清掉新快照和时钟。
+            if (_detached || !_systemMotionWatching || generation != _generation) return;
+            if (disabled) Stop();
+            else OnPreferenceChanged();
+        }
+        if (_list.DispatcherQueue.HasThreadAccess) ApplyCurrentPreference();
+        else _list.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, ApplyCurrentPreference);
     }
 
     internal void Stop()
@@ -228,9 +260,15 @@ internal sealed class SettingsPriorityMotion
     {
         if (_detached) return;
         _detached = true;
+        _systemMotionWatching = false;
         _collection.CollectionChanged -= OnChanged;
         _list.LayoutUpdated -= OnLayoutUpdated;
         HomeMotion.PreferenceChanged -= OnPreferenceChanged;
+        try { _systemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+        catch (Exception)
+        {
+            // 原生退订失败不阻断本地收尾；_detached 使晚到通知失效。
+        }
         EndDrag();
         Stop();
     }

@@ -4,25 +4,33 @@ using System.Collections.ObjectModel;
 namespace Windows.Foundation
 {
     public readonly record struct Point(double X, double Y);
+    public delegate void TypedEventHandler<in TSender, in TArgs>(TSender sender, TArgs args);
 }
 
 namespace Microsoft.UI.Dispatching
 {
-    public enum DispatcherQueuePriority { Low }
+    public enum DispatcherQueuePriority { Low = -10, High = 10 }
     public sealed class DispatcherQueue
     {
-        private readonly Queue<Action> _pending = [];
+        private readonly List<(DispatcherQueuePriority Priority, Action Callback)> _pending = [];
         public int PendingCount => _pending.Count;
+        public bool HasThreadAccess { get; set; } = true;
         public bool RejectEnqueue { get; set; }
         public bool TryEnqueue(DispatcherQueuePriority priority, Action callback)
         {
             if (RejectEnqueue) return false;
-            _pending.Enqueue(callback);
+            _pending.Add((priority, callback));
             return true;
         }
         public void DrainOne()
         {
-            if (_pending.TryDequeue(out var callback)) callback();
+            if (_pending.Count == 0) return;
+            var next = _pending.OrderByDescending(item => item.Priority).First();
+            _pending.Remove(next);
+            var before = HasThreadAccess;
+            HasThreadAccess = true;
+            try { next.Callback(); }
+            finally { HasThreadAccess = before; }
         }
         public void Drain()
         {
@@ -225,19 +233,75 @@ namespace Momoka.Shell.Views
     internal static class HomeMotion
     {
         private static Action? _changed;
-        internal static bool AnimationsEnabled { get; private set; } = true;
+        private static bool _preference = true;
+        internal static bool AnimationsEnabled => _preference && Windows.UI.ViewManagement.UISettings.Enabled;
         internal static int Subscribers => _changed?.GetInvocationList().Length ?? 0;
         internal static event Action? PreferenceChanged { add => _changed += value; remove => _changed -= value; }
         internal static void ApplyPreference(bool enabled)
         {
-            if (AnimationsEnabled == enabled) return;
-            AnimationsEnabled = enabled;
+            if (_preference == enabled) return;
+            _preference = enabled;
             _changed?.Invoke();
         }
         internal static void Reset()
         {
             if (Subscribers != 0) throw new InvalidOperationException("Preference subscription leak.");
-            AnimationsEnabled = true;
+            _preference = true;
+        }
+    }
+}
+
+namespace Windows.UI.ViewManagement
+{
+    public sealed class UISettingsAnimationsEnabledChangedEventArgs : EventArgs;
+    public sealed class UISettings
+    {
+        public static bool Enabled { get; private set; } = true;
+        private Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _changed;
+        public static List<UISettings> Created { get; } = [];
+        public static bool ThrowOnAdd { get; set; }
+        public static bool ThrowAfterAdd { get; set; }
+        public static bool ThrowOnRemove { get; set; }
+        public UISettings() => Created.Add(this);
+        public bool AnimationsEnabled => Enabled;
+        public int SubscriptionCount => _changed?.GetInvocationList().Length ?? 0;
+        public event Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? AnimationsEnabledChanged
+        {
+            add
+            {
+                if (ThrowOnAdd) throw new InvalidOperationException("Registration rejected.");
+                _changed += value;
+                if (ThrowAfterAdd) throw new InvalidOperationException("Post-registration rejected.");
+            }
+            remove
+            {
+                if (ThrowOnRemove) throw new InvalidOperationException("Removal rejected.");
+                _changed -= value;
+            }
+        }
+        public static void SetAnimationsEnabled(bool enabled)
+        {
+            if (Enabled == enabled) return;
+            Enabled = enabled;
+            foreach (var settings in Created.ToArray()) settings._changed?.Invoke(settings, new());
+        }
+        public Action CapturePostedEvent()
+        {
+            var posted = _changed;
+            return () => posted?.Invoke(this, new());
+        }
+        public static void Reset()
+        {
+            if (Created.Any(settings => settings.SubscriptionCount != 0))
+                throw new InvalidOperationException("System preference subscription leak.");
+            Created.Clear();
+            Enabled = true;
+            ThrowOnAdd = ThrowAfterAdd = ThrowOnRemove = false;
+        }
+        public static void EndFaultFixture()
+        {
+            foreach (var settings in Created) settings._changed = null;
+            ThrowOnAdd = ThrowAfterAdd = ThrowOnRemove = false;
         }
     }
 }
