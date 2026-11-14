@@ -19,8 +19,24 @@ internal static class ConnectedProbeSourceTests
             Assert.Contains("forward-artwork-changed", source);
             Assert.Contains("missing-return-source", source);
             Assert.Contains("fixture.Actions.Plays == 0", source);
+            var evidence = source.IndexOf("await WritePerformanceEvidenceAsync(\"card-detail-connected.json\"", StringComparison.Ordinal);
+            var screen = source.IndexOf("await SaveProbeScreenAsync(\"card-detail-connected-forward-screen.png\")", StringComparison.Ordinal);
+            Assert.True(evidence >= 0 && screen > evidence, "原生回执应先落盘，再用临时置顶且还原的实屏截图路径");
+            Assert.False(source.Contains("CompositionPlaybackProbe.SaveScreenAsync", StringComparison.Ordinal), "不能绕过统一截图路径的遮挡准备和还原");
             Assert.False(source.Contains("CardDetailConnectedSourcePage", StringComparison.Ordinal), "不能用未具XAML元数据的自定义Page激活");
             Assert.False(source.Contains("frame.Content = sourcePage", StringComparison.Ordinal), "直接替换Content不能证明GoBack");
+        });
+        Test("悬浮卡片原生探针：核对真实客户区与页面宽，拒绝VM目标宽冒充视口", () =>
+        {
+            var path = Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.DetailStickyHeader.cs");
+            var source = File.ReadAllText(path);
+            var resize = source.IndexOf("await ResizeResponsiveAsync(page, width, 800);", StringComparison.Ordinal);
+            var actual = source.IndexOf("Math.Abs(page.ActualWidth - width) < 1", resize, StringComparison.Ordinal);
+            var capture = source.IndexOf("await SaveProbeScreenAsync", actual, StringComparison.Ordinal);
+            Assert.True(resize >= 0 && actual > resize && capture > actual);
+            Assert.Contains("_window!.ClientSize.Width / _root.XamlRoot.RasterizationScale - width", source);
+            Assert.Contains("ClientWidth = _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale", source);
+            Assert.Contains("PageWidth = page.ActualWidth", source);
         });
     }
 

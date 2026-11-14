@@ -56,6 +56,13 @@ internal sealed partial class ShellNavigationProbe
             foreach (var width in new[] { 1000, 760, 360 })
             {
                 await ResizeResponsiveAsync(page, width, 800);
+                // VM 的目标宽度可能先于 HWND/XAML 安排更新，必须等本次真实视口到位。
+                await UntilAsync(() =>
+                {
+                    page.UpdateLayout();
+                    return Math.Abs(_window!.ClientSize.Width / _root.XamlRoot.RasterizationScale - width) < 1
+                        && Math.Abs(page.ActualWidth - width) < 1;
+                });
                 await LayoutAsync(page);
                 var scroll = Get<ScrollView>(page, "Body");
                 var card = Get<Border>(page, "StickyHeader");
@@ -82,7 +89,9 @@ internal sealed partial class ShellNavigationProbe
                 Require(card.Background is not AcrylicBrush, "材质反例未替换成功");
                 card.Background = acrylic;
                 await SaveProbeScreenAsync($"detail-sticky-{width}-screen.png");
-                samples.Add(new { Width = width, Bounds = bounds.ToString(), ThirdClipOffset = clipLine, Card = "Acrylic", Name = AutomationProperties.GetName(play) });
+                samples.Add(new { Width = width, ClientWidth = _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale,
+                    PageWidth = page.ActualWidth, Bounds = bounds.ToString(), ThirdClipOffset = clipLine,
+                    Card = "Acrylic", Name = AutomationProperties.GetName(play) });
                 await ScrollProbeAsync(scroll, clipLine - 6);
                 await UntilAsync(() => card.Visibility == Visibility.Collapsed && !card.IsHitTestVisible);
                 await ScrollProbeAsync(scroll, clipLine + 1);

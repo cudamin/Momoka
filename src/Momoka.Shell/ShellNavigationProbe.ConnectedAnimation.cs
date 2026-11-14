@@ -89,7 +89,9 @@ internal sealed partial class ShellNavigationProbe
             Require(receipts.Where(receipt => receipt.Direction == "forward").All(receipt => receipt.ElapsedMs >= 0 && receipt.PrepareToStartMs is >= 0),
                 "海报前进缺少单调准备到启动计时");
             Log.Info("关联动画探针", "阶段：原生前进完成，准备正式GoBack");
-            await CompositionPlaybackProbe.SaveScreenAsync(_window!.Handle, Path.Combine(_options.Paths.LogDirectory, "card-detail-connected-forward-screen.png"));
+            // 原生回执先落盘；截图沿用探针的临时置顶/还原路径，仍由实屏捕获核对遮挡。
+            await WritePerformanceEvidenceAsync("card-detail-connected.json", new { samples, receipts, RealNetwork = false, MediaLoaded = false });
+            await SaveProbeScreenAsync("card-detail-connected-forward-screen.png");
 
             // 原始源已离树：仅尝试返回，不能为了动画强制恢复或创建源容器。
             var returnPrepared = CardDetailTransition.BeginReturn(target);
