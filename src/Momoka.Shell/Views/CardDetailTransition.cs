@@ -37,6 +37,8 @@ internal static class CardDetailTransition
     {
         if (frame is null) return RejectPreparation(ConnectedMotionReason.TargetUnavailable);
         Cancel(frame, ConnectedMotionReason.Superseded);
+        // 取消回执可以同步发起另一导航；它创建的新票据不能被外层 Prepare 覆盖或取消。
+        if (Tickets.TryGetValue(frame, out _)) return RejectPreparation(ConnectedMotionReason.Superseded);
         if (!HomeMotion.AnimationsEnabled) return RejectPreparation(ConnectedMotionReason.Disabled);
         if (source?.Card is not { LoadedPosterArtwork: { } artwork } card || !VideoDetail(card.Item))
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);

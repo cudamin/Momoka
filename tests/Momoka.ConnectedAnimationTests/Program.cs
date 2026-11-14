@@ -949,6 +949,59 @@ internal static class Program
                 && receipt.Terminal && receipt.Reason == ConnectedMotionReason.CompletionTimeout));
             Assert.True(BrowsePresentation.Results.All(result => result.Started));
         });
+        Test("人物图版本变化保留待决票据，由Attach发布正确图漂移回退", () =>
+        {
+            using var fixture = new PersonFixture();
+            fixture.Prepare();
+            var receipts = new List<PersonTransitionReceipt>();
+            PersonTransition.Observe(fixture.Frame, receipts.Add);
+            fixture.Item.PrimaryTag = "replacement";
+            Assert.True(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            Assert.Equal(1, receipts.Count);
+            Assert.Equal(ConnectedMotionReason.ArtworkChanged, receipts[0].Reason);
+            Assert.True(receipts[0].Terminal && !receipts[0].Started);
+        });
+        Test("海报Prepare取消回执重入时外层不覆盖或清掉内层新准备", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            var receipts = new List<CardDetailTransitionReceipt>();
+            CardDetailTransition.Observe(fixture.Frame, receipt =>
+            {
+                receipts.Add(receipt);
+                if (receipt.Reason == ConnectedMotionReason.Superseded) Assert.True(fixture.Prepare());
+            });
+            var created = ConnectedAnimationService.Created.Count;
+            Assert.False(fixture.Prepare());
+            Assert.Equal(created + 1, ConnectedAnimationService.Created.Count);
+            Assert.Equal(1, fixture.Source.Retentions);
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            Assert.Equal(1, receipts.Count);
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+        });
+        Test("人物Prepare取消回执重入时外层不覆盖或清掉内层新准备", () =>
+        {
+            using var fixture = new PersonFixture();
+            fixture.Prepare();
+            var receipts = new List<PersonTransitionReceipt>();
+            PersonTransition.Observe(fixture.Frame, receipt =>
+            {
+                receipts.Add(receipt);
+                if (receipt.Reason == ConnectedMotionReason.Superseded) Assert.True(fixture.Prepare());
+            });
+            var created = ConnectedAnimationService.Created.Count;
+            Assert.False(fixture.Prepare());
+            Assert.Equal(created + 1, ConnectedAnimationService.Created.Count);
+            Assert.Equal(1, fixture.Source.Retentions);
+            Assert.True(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+            Assert.Equal(1, receipts.Count);
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+        });
         return Run();
     }
 

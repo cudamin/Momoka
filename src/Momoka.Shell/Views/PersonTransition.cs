@@ -40,6 +40,8 @@ internal static class PersonTransition
     {
         if (frame is null) return RejectPreparation(ConnectedMotionReason.TargetUnavailable);
         Cancel(frame, ConnectedMotionReason.Superseded);
+        // 取消回执可以同步发起另一导航；外层不覆盖该回调建立的新票据。
+        if (Tickets.TryGetValue(frame, out _)) return RejectPreparation(ConnectedMotionReason.Superseded);
         if (!HomeMotion.AnimationsEnabled) return RejectPreparation(ConnectedMotionReason.Disabled);
         if (source?.Card is not { LoadedPosterArtwork: { } artwork } card || card.Item.Type != EmbyItemType.Person)
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
@@ -96,7 +98,7 @@ internal static class PersonTransition
 
     internal static bool IsPrepared(Frame frame, EmbyItem? person) =>
         person is not null && Tickets.TryGetValue(frame, out var ticket)
-        && !ticket.IsResolved && ticket.Matches(person) && CardDetailTransition.PrimaryArtwork(person) == ticket.Artwork;
+        && !ticket.IsResolved && ticket.Matches(person);
 
     internal static void Attach(Page page, EmbyItem person, Image target, Func<BitmapSource, bool>? adopt = null)
     {
