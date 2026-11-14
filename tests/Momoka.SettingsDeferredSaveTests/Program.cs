@@ -297,13 +297,13 @@ internal static class Program
             {
                 await committed.Task.WaitAsync(TimeSpan.FromSeconds(10));
                 fixture.Value = 160;
-                fixture.Document.Ui.SidebarMode = true;
+                fixture.Document.Ui.EnableImmersive = true;
                 Assert.False(flush.IsCompleted);
                 Assert.True(fixture.Store.PendingVersion > 0);
                 release.Set();
                 Assert.True(await flush.WaitAsync(TimeSpan.FromSeconds(10)));
                 Assert.Equal(160, fixture.Read().Playback.SubtitleScalePercent);
-                Assert.True(fixture.Read().Ui.SidebarMode);
+                Assert.True(fixture.Read().Ui.EnableImmersive);
                 Assert.Equal(2, fixture.Counter.Writes);
             }
             finally { release.Set(); }
@@ -328,13 +328,13 @@ internal static class Program
                 await failed.Task.WaitAsync(TimeSpan.FromSeconds(10));
                 Assert.True(fixture.Service.HasUnsavedChanges);
                 fixture.Value = 190;
-                fixture.Document.Ui.SidebarMode = true;
+                fixture.Document.Ui.EnableImmersive = true;
                 Assert.False(flush.IsCompleted);
                 locked.Dispose();
                 release.Set();
                 Assert.True(await flush.WaitAsync(TimeSpan.FromSeconds(10)), "旧失败不得取消已登记的新编辑");
                 Assert.Equal(190, fixture.Read().Playback.SubtitleScalePercent);
-                Assert.True(fixture.Read().Ui.SidebarMode);
+                Assert.True(fixture.Read().Ui.EnableImmersive);
                 Assert.Equal(2, fixture.Captures);
                 Assert.Equal(2, fixture.Counter.Writes, "初始文档加最终新文档，失败尝试不是成功落盘");
                 Assert.Equal(1, fixture.Counter.Entries.Count(entry => entry.Category == "settings" && entry.Level == LogLevel.Error));
@@ -378,13 +378,13 @@ internal static class Program
             fixture.Value = 60;
             var old = fixture.Store.CapturePendingSave(fixture.Document)!;
             fixture.Value = 90;
-            fixture.Document.Ui.SidebarMode = true;
+            fixture.Document.Ui.EnableImmersive = true;
             Assert.True(fixture.Service.TrySave());
             var writes = fixture.Counter.Writes;
             Assert.True(await Task.Run(() => fixture.Store.TrySaveSnapshot(old)));
             Assert.Equal(writes, fixture.Counter.Writes);
             Assert.True(await fixture.Flush());
-            Assert.True(fixture.Read().Ui.SidebarMode);
+            Assert.True(fixture.Read().Ui.EnableImmersive);
             Assert.Equal(90, fixture.Read().Playback.SubtitleScalePercent);
         });
         Case("旧保存失败通知重入较新同步成功，欠项/flush不能被旧失败覆盖", async fixture =>
@@ -433,12 +433,12 @@ internal static class Program
             app.ShutdownBoundary.Completion.SetResult();
             await prepare.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(175, fixture.Read().Playback.SubtitleScalePercent);
-            fixture.Document.Ui.SidebarMode = true;
+            fixture.Document.Ui.EnableImmersive = true;
             app.Close();
             Assert.True(app.Remembered);
             Assert.True(app.Exited);
             Assert.True(app.ContainerBoundary.Disposed);
-            Assert.True(fixture.Read().Ui.SidebarMode);
+            Assert.True(fixture.Read().Ui.EnableImmersive);
         });
         Case("播放收尾异常仍执行真实App finally的设置flush", async fixture =>
         {

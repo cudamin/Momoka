@@ -302,6 +302,9 @@ internal static class Program
     {
         Test("侧栏库重建接线：已处理的Moved仍进入静止计时，每项都有独立状态", () =>
         {
+            var preview = ReadSource("Views/ShellPage.LibraryPreview.cs");
+            var initialize = Between(preview, "    private void InitializeLibraryPreview()", "    private void OnSidebarLibraryPointerEntered(");
+            Assert.Contains("Sidebar.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSidebarPreviewPointerPressed), true);", initialize);
             var sidebar = ReadSource("Views/ShellPage.Sidebar.cs");
             var rebuild = Between(sidebar, "    private void RebuildSidebarLibraries()", "    private void OnSidebarItemInvoked(");
             Assert.Contains("item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);", rebuild);
@@ -336,6 +339,8 @@ internal static class Program
             var sidebar = Between(probe, "    private async Task SidebarAsync()", "    private async Task SidebarAtStartupAsync()");
             Assert.Contains("await InspectLibraryPreviewAsync(shell, fixture, moviesTag, 760);", sidebar);
             var standalone = Between(probe, "    private async Task SidebarLibraryPreviewAsync()", "    private async Task InspectLibraryPreviewAsync(");
+            Assert.Contains("fixture.Settings.Ui.EnableImmersive = false;", standalone);
+            Assert.DoesNotContain(".SidebarMode", standalone);
             Assert.Contains("await InspectLibraryPreviewAsync(shell, fixture, tag, width);", standalone);
             var helper = Between(probe, "    private async Task InspectLibraryPreviewAsync(", "\n}\n");
             Assert.Contains("Call(shell, \"ShowLibraryPreviewAsync\", previewItem, moviesTag)", helper);

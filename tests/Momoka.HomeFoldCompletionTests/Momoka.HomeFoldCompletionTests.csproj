@@ -9,6 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeFoldMotion.cs" Link="Production\HomeFoldMotion.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Carousel.cs" Link="Production\HomePage.Carousel.cs" />
     </ItemGroup>
     <!-- Compile the actual page methods unchanged. Missing or ambiguous boundaries fail closed;
          only layout values, UI owners and Storyboard delivery are inert test boundaries. -->
@@ -46,7 +47,7 @@
                     between(page, "    internal void PreparePlaybackReturn()", "\n    /// <summary>\n    /// The rows the page actually drew") +
                     between(page, "    private static long Now =>", "\n    /// <summary>\n    /// 元素顶边在「滚回顶上」") +
                     between(page, "    private double ViewportTopAtScrollZero", "\n    /// <summary>\n    /// 自检：轮播这条带的高度") +
-                    between(page, "    public void Release()", "\n    /// <summary>\n    /// 标题栏那一行的墨") +
+                    between(page, "    public void Release()", "\n    /// <summary>\n    /// 设置里主页那一组改了") +
                     "\n}\n";
                 var banner = File.ReadAllText(BannerSource).Replace("\r\n", "\n");
                 generated += "\ninternal sealed partial class BannerClockFixture\n{\n" +

@@ -336,6 +336,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectHomeMoviePilotLibrary", "首页 MP 订阅库验证", HomeMoviePilotLibraryAsync);
         AddCheck("InspectMoviePilotSidebar", "MP 分类订阅导航验证", MoviePilotSidebarAsync);
         AddCheck("InspectHomeClock", "轮播静止与读秒验证", HomeBannerClockAsync);
+        AddCheck("InspectHomeGlow", "轮播鼠标柔光验证", HomeBannerGlowAsync);
         AddCheck("InspectHomeRefresh", "主页订阅停留与手动刷新", HomeOrderAsync);
         AddCheck("InspectHeaderPolish", "继续观看页头验证", LibraryHeaderPolishAsync);
         AddCheck("InspectHoverPreview", "悬停预览布局与关闭重开", HoverPreviewAsync);

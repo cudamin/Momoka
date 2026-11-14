@@ -1465,13 +1465,13 @@ public sealed class UiSettings
     public bool UseAcrylicControls { get; set; } = true;
 
     /// <summary>
-    /// 电影、剧、季、单集与 MoviePilot 订阅详情的沉浸模式；关闭使用商店布局与顶部渐隐背景，保留外观偏好。
+    /// 显示模式；默认商店侧边栏、详情布局与顶部渐隐背景；开启沉浸后使用旧标题栏导航，保留外观偏好。
     /// <para>
     /// 2026-11-09 起 MoviePilot 订阅详情页也听这一格（用户令「给 MP 订阅也新增沉浸模式还有简洁模式」）：
     /// 开着时宽版式且有图就铺图，关掉则整张背景图收起、头部收成一张卡面。
     /// </para>
     /// </summary>
-    public bool EnableImmersive { get; set; } = true;
+    public bool EnableImmersive { get; set; }
 
     /// <summary>
     /// 演职人员那一排只列有头像的人 —— 「在设置中新增功能，隐藏没有封面的演职人员」（用户的话，2026-11-09）。
@@ -1497,8 +1497,8 @@ public sealed class UiSettings
     /// <summary>服务器页排序方向；只对名称、在线状态两种模式有意义。</summary>
     public bool ServerSortDescending { get; set; }
 
-    /// <summary>主窗口左侧导航；默认关闭，旧配置缺少此项时继续使用标题栏入口。</summary>
-    public bool SidebarMode { get; set; }
+    // 2026-11-14 用户令：侧边栏并入商店模式，由 EnableImmersive 唯一决定。
+    // 旧 JSON 的 SidebarMode 键由反序列化忽略，不再用另一份偏好覆盖显示模式。
 
     // 「海报宽度（像素）」那一行 2026-09-05 按用户的话删掉了（「删掉设置中的海报宽度」）：卡片从此固定用
     // CardSize 的默认尺寸（海报 170、剧照 300、演职人员人像 124）。这里不留一个存而不用的键 —— 反序列化碰到

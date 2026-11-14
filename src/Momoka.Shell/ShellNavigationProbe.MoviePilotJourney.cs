@@ -27,7 +27,7 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             await fixture.SelectAsync();
-            fixture.Settings.Ui.SidebarMode = true;
+            fixture.Settings.Ui.EnableImmersive = false;
             fixture.Settings.MoviePilot.AniBtEnabled = false;
             fixture.Transport.Reply = (request, _) =>
             {

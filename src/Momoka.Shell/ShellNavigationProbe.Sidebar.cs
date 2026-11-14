@@ -102,7 +102,9 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             var settingsIcon = Get<AnimatedIcon>(shell, "SidebarSettingsIcon");
             Require(settingsIcon.Source is null, "关动画后侧栏设置图标仍挂着动态源");
-            Require(!fixture.Settings.Ui.SidebarMode && host.Visibility == Visibility.Collapsed, "默认侧栏没有关闭");
+            Require(fixture.Settings.Ui.EnableImmersive && host.Visibility == Visibility.Collapsed, "默认侧栏没有关闭");
+            Require(!page.ViewModel.Sections.SelectMany(section => section.Rows).Any(row => row.Label == "侧边栏模式"),
+                "界面设置仍保留独立侧栏开关");
             await ToggleAsync(true);
             Require(host.Visibility == Visibility.Collapsed && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible,
                 "未登录时侧栏出现或设置入口丢失");
@@ -117,25 +119,82 @@ internal sealed partial class ShellNavigationProbe
             var shelves = home.ViewModel.Shelves.ToArray();
             int DataRequests() => fixture.Transport.Requests.Count(request => !request.Contains("/Images/", StringComparison.Ordinal));
             var requests = DataRequests();
+            Require(home.BannerCardRead().Ok && shell.TitleStripNow == TitleStrip.OnScrim,
+                "沉浸主页没有恢复通栏轮播与标题浅墨：" + home.BannerCardRead().Detail);
+            Require(ShellSelfCheck.ReadInk(shell, _window!).Ok, "沉浸轮播系统按钮墨色不对");
+            AssertCarouselScrollBar();
+            shell.SetTitleStrip(TitleStrip.Plain);
+            Require(!ShellSelfCheck.ReadInk(shell, _window!).Ok, "标题墨色检查没有拒绝错误模式档");
+            shell.SetTitleStrip(TitleStrip.OnScrim);
+            await SaveProbeScreenAsync("carousel-immersive-1240-screen.png");
             await ToggleAsync(true);
             await LayoutAsync(shell);
             Require(host.Visibility == Visibility.Visible && nav.IsPaneOpen && Math.Abs(host.ActualWidth - 256) < 1,
-                $"宽窗侧栏未展开：shown={host.Visibility} pane={nav.IsPaneOpen} host={host.ActualWidth:0.0}/{host.Width:0.0} shell={shell.ActualWidth:0.0} mode={fixture.Settings.Ui.SidebarMode} live={fixture.Session.IsSignedIn} loaded={shell.IsLoaded}");
+                $"宽窗侧栏未展开：shown={host.Visibility} pane={nav.IsPaneOpen} host={host.ActualWidth:0.0}/{host.Width:0.0} shell={shell.ActualWidth:0.0} immersive={fixture.Settings.Ui.EnableImmersive} live={fixture.Session.IsSignedIn} loaded={shell.IsLoaded}");
             Require(ReferenceEquals(home, frame.Content) && shelves.SequenceEqual(home.ViewModel.Shelves)
                 && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
             Require(shell.LibraryViews.Count == 3 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>
                 item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 3, "媒体库数量或音乐入口错误");
             Require(home.BannerCardRead().Ok, "侧栏模式轮播不是四边留白的圆角大图：" + home.BannerCardRead().Detail);
+            Require(shell.TitleStripNow == TitleStrip.Plain && ShellSelfCheck.ReadInk(shell, _window!).Ok,
+                "商店轮播标题墨色没有恢复主题");
+            AssertCarouselScrollBar();
+            var homeScroller = Get<ScrollView>(home, "Scroller");
+            homeScroller.ScrollTo(0, 100, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            await LayoutAsync(shell);
+            AssertCarouselScrollBar();
+            homeScroller.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            await LayoutAsync(shell);
+            await ToggleAsync(false);
+            Require(home.BannerCardRead().Ok && shell.TitleStripNow == TitleStrip.OnScrim
+                && ReferenceEquals(home, frame.Content) && shelves.SequenceEqual(home.ViewModel.Shelves)
+                && DataRequests() == requests, "切回沉浸没有恢复轮播或重查主页");
+            Get<HomeBanner>(home, "Banner").Apply([]);
+            await LayoutAsync(shell);
+            Require(Get<ScrollView>(home, "Scroller").Margin.Top == 0 && shell.TitleStripNow == TitleStrip.Plain,
+                "空轮播没有撤回标题栏扩展与浅墨");
+            AssertCarouselScrollBar();
+            Get<HomeBanner>(home, "Banner").Apply(home.ViewModel.Slides);
+            await LayoutAsync(shell);
+            Require(home.BannerCardRead().Ok && shell.TitleStripNow == TitleStrip.OnScrim,
+                "轮播恢复后没有再次贴顶");
+            AssertCarouselScrollBar();
+            await ToggleAsync(true);
+            Require(home.BannerCardRead().Ok, "再次切回商店轮播没有恢复圆角留白");
+            AssertCarouselScrollBar();
             AssertSidebarGeometry(shell, host, true);
             AssertSidebarIconSelection(shell);
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
+
+            void AssertCarouselScrollBar()
+            {
+                var banner = Get<HomeBanner>(home, "Banner");
+                var scrollBar = Get<Microsoft.UI.Xaml.Controls.Primitives.ScrollBar>(home, "_verticalScrollBar");
+                var expected = banner.Visibility == Visibility.Visible
+                    ? (fixture.Settings.Ui.EnableImmersive ? 0 : 20) + banner.ActualHeight : 0;
+                Require(scrollBar is not null && Math.Abs(scrollBar.Margin.Top - expected) < 1,
+                    $"轮播滚动条没有固定在下沿：实际 {scrollBar?.Margin.Top:0.0}、预期 {expected:0.0}");
+            }
 
             // 2026-11-13 用户令：栏里的搜索项删除；标题栏原生输入接管搜索，宽窄切换保留关键词。
             Require(nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
                 .All(item => item.Tag as string != "search"), "侧边栏里仍有搜索入口");
             var titleSearch = Get<AutoSuggestBox>(shell, "TitleSearchBox");
             Require(titleSearch.Visibility == Visibility.Visible, "宽窗侧边栏模式没有标题搜索框");
+            foreach (var width in new[] { 699, 700, 1240 })
+            {
+                ResizeProbeClient(width, 900);
+                await LayoutAsync(shell);
+                Require(titleSearch.Visibility == (width >= 700 ? Visibility.Visible : Visibility.Collapsed),
+                    $"商店搜索框没有随尺寸切换（{width}）");
+                Require(Get<Button>(shell, "SearchButton").Visibility == Visibility.Collapsed,
+                    "商店模式出现第二份搜索入口");
+                if (width >= 700) Require(Math.Abs(titleSearch.ActualWidth - Math.Clamp(shell.ActualWidth * 0.30, 220, 420)) < 1,
+                    "商店搜索框宽度没有随窗口恢复");
+            }
+            Require(shell.BrowseRoot.Margin.Top == HomePage.ChromeHeight && Get<Grid>(shell, "ContentHost").Padding.Top == 0,
+                "商店模式没有让标题栏露出 Mica");
             HomeMotion.ApplyPreference(true);
             Require(settingsIcon.Source is not null, "开动画后侧栏设置图标没有恢复动态源");
             Require(titleSearch.Focus(FocusState.Programmatic), "标题搜索框不能获得焦点");
@@ -167,6 +226,18 @@ internal sealed partial class ShellNavigationProbe
                     == (wideSearch ? Visibility.Collapsed : Visibility.Visible), "宽窄切换搜索输入未换班");
                 Require(titleSearchPage.ActiveSearchInput.Text == "离线标题", "宽窄切换丢失关键词");
                 Require(titleSearchPage.SearchInputFocused, "宽窄切换没有把焦点交给可见输入");
+            }
+            foreach (var immersive in new[] { true, false })
+            {
+                Require(titleSearchPage.ActiveSearchInput.Focus(FocusState.Programmatic), "模式切换前输入不能聚焦");
+                fixture.Settings.Ui.EnableImmersive = immersive;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(shell);
+                Require(ReferenceEquals(frame.Content, titleSearchPage) && titleSearchPage.ActiveSearchInput.Text == "离线标题",
+                    "显示模式切换重建搜索页或丢失关键词");
+                Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == (immersive ? Visibility.Visible : Visibility.Collapsed)
+                    && titleSearch.Visibility == (immersive ? Visibility.Collapsed : Visibility.Visible), "模式切换没有交接可见搜索输入");
+                Require(titleSearchPage.SearchInputFocused, "模式切换没有恢复输入焦点");
             }
             Call(shell, "GoBack");
             await UntilAsync(() => frame.Content is HomePage && shell.ActiveContentReady);
@@ -314,21 +385,41 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
                 Require(shell.ProbeTitleActions().Ok, "收藏页加入后标题栏布局不合法" + shell.ProbeTitleActions().Detail);
-                // 2026-11-12 晚：这一排是 返回 · 主页 · 收藏（有收藏才在）· 设置，前进键退役；
-                // 搜索入口在标题栏正中那颗框里，框收起来（窄窗）时才由这一排的放大镜顶班。
+                // 沉浸模式恢复旧标题栏：宽窄窗口都保留左上放大镜，居中搜索框与侧栏一起收起。
                 Require(Get<Button>(shell, "HomeButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "ForwardButton").Visibility == Visibility.Visible
+                    && Get<AutoSuggestBox>(shell, "TitleSearchBox").Visibility == Visibility.Collapsed
+                    && Get<TextBlock>(shell, "AppTitleLabel").Visibility == Visibility.Collapsed
                     && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible,
                     "媒体库页的标题栏那一排缺了按键");
-                var box = Get<AutoSuggestBox>(shell, "TitleSearchBox");
-                var wide = width >= 1000;
-                Require(box.Visibility == (wide ? Visibility.Visible : Visibility.Collapsed)
-                    && Get<Button>(shell, "SearchButton").Visibility == (wide ? Visibility.Collapsed : Visibility.Visible),
-                    $"搜索入口没有按窗宽换班（{width}）");
+                Require(shell.BrowseRoot.Margin.Top == 0 && Get<Grid>(shell, "ContentHost").Padding.Top == HomePage.ChromeHeight,
+                    "沉浸模式没有恢复标题栏画布与页内让位");
+                var back = Get<Button>(shell, "BackButton");
+                var forwardButton = Get<Button>(shell, "ForwardButton");
+                var homeButton = Get<Button>(shell, "HomeButton");
+                var searchButton = Get<Button>(shell, "SearchButton");
+                Require(Math.Abs(Left(homeButton, shell) - 18) <= 0.5
+                    && Math.Abs(Left(back, shell) - Left(searchButton, shell) - searchButton.ActualWidth - 2) <= 0.5
+                    && Math.Abs(Left(forwardButton, shell) - Left(back, shell) - back.ActualWidth - 2) <= 0.5,
+                    "沉浸工具组没有恢复0.2.5顺序和间距");
+                Require(title.Children.IndexOf(back) < title.Children.IndexOf(forwardButton)
+                    && title.Children.IndexOf(homeButton) < title.Children.IndexOf(back),
+                    "沉浸返回/前进的默认键盘顺序与视觉次序不一致");
+                foreach (var button in new[] { homeButton, Get<Button>(shell, "FavoritesButton"),
+                    Get<Button>(shell, "SettingsButton"), searchButton, back, forwardButton })
+                    Require(button.ActualWidth == 42 && button.ActualHeight == 32
+                        && button.Content is Viewbox { Width: 26, Height: 26 }, "沉浸工具组未恢复0.2.5统一尺寸");
+                Require((int)typeof(ShellSelfCheck).GetMethod("HitAt", BindingFlags.NonPublic | BindingFlags.Static)!
+                    .Invoke(null, [_window, Left(forwardButton, shell) + forwardButton.ActualWidth / 2, Top(forwardButton, shell) + forwardButton.ActualHeight / 2])!
+                    == Native.HitClient, "前进按钮落在不可点击的拖动区");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
+            Require(Get<Button>(shell, "ForwardButton").Visibility == Visibility.Collapsed,
+                "商店模式保留了沉浸前进按钮及空格");
             favorite = false;
             await shell.Favorites.RefreshAsync();
             Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed,
@@ -343,13 +434,14 @@ internal sealed partial class ShellNavigationProbe
 
             SettingsReset.Restore(fixture.Settings);
             await (Task)Call(page.ViewModel, "ReapplyAndReloadAsync", "离线恢复默认")!;
-            Require(host.Visibility == Visibility.Collapsed, "恢复默认没有当场关闭侧栏");
+            Require(host.Visibility == Visibility.Visible && !fixture.Settings.Ui.EnableImmersive,
+                "恢复默认没有当场进入商店模式并开启侧栏");
             var imported = SettingsMigration.NewDefaults();
-            imported.Ui.SidebarMode = true;
+            imported.Ui.EnableImmersive = true;
             imported.Ui.AnimationsEnabled = false;
             SettingsPreferences.Apply(fixture.Settings, imported);
             await (Task)Call(page.ViewModel, "ReapplyAndReloadAsync", "离线导入")!;
-            Require(host.Visibility == Visibility.Visible, "导入没有当场恢复侧栏");
+            Require(host.Visibility == Visibility.Collapsed, "导入沉浸模式没有当场关闭侧栏");
             await ToggleAsync(false);
             await ToggleAsync(true);
 
@@ -358,7 +450,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 6);
             var switched = nav.MenuItems.OfType<NavigationViewItem>()
                 .Where(item => item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)).ToArray();
-            Require(switched.Length == 6 && fixture.Settings.Ui.SidebarMode
+            Require(switched.Length == 6 && !fixture.Settings.Ui.EnableImmersive
                 && switched.Select(item => (string)item.Tag).ToHashSet(StringComparer.Ordinal)
                     .SetEquals(shell.LibraryViews.Select(HomeLayout.LibraryKey)), "第二个账号上线后没有保留所有来源的独立媒体库");
             Call(shell, "ShowSignIn", null, false, null);
@@ -369,11 +461,17 @@ internal sealed partial class ShellNavigationProbe
             {
                 page.Visibility = Visibility.Visible;
                 await LayoutAsync(page);
-                var toggle = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "侧边栏模式");
-                if (toggle.IsOn != enabled)
-                    ((IToggleProvider)new ToggleSwitchAutomationPeer(toggle).GetPattern(PatternInterface.Toggle)).Toggle();
-                Require(toggle.IsOn == enabled && fixture.Settings.Ui.SidebarMode == enabled
-                    && !fixture.SettingsService.HasUnsavedChanges, "设置开关没有保存并即时生效");
+                var section = page.ViewModel.Sections.Single(item => item.Category == "界面" && item.Title == "详情页外观");
+                var row = section.Rows.OfType<SettingChoiceRow>()
+                    .Single(item => item.Label == "显示模式");
+                var picker = Descendants(page).OfType<ComboBox>().Single(item => ReferenceEquals(item.ItemsSource, row.Choices));
+                picker.StartBringIntoView();
+                await LayoutAsync(picker);
+                var choice = enabled ? "商店模式" : "沉浸模式";
+                picker.SelectedItem = row.Choices.Single(item => item.Label == choice);
+                await UntilAsync(() => row.Selected?.Label == choice);
+                Require(row.Selected?.Label == choice && fixture.Settings.Ui.EnableImmersive == !enabled
+                    && !fixture.SettingsService.HasUnsavedChanges, "显示模式没有保存并即时生效");
                 if (enabled && !fixture.Session.IsSignedIn) await SaveProbeScreenAsync("sidebar-setting-screen.png");
                 page.Visibility = Visibility.Collapsed;
                 await LayoutAsync(shell);
@@ -402,7 +500,7 @@ internal sealed partial class ShellNavigationProbe
     /// <summary>
     /// 启动时侧边栏模式已经开着（2026-11-13 用户：「侧边栏模式怎么只有标题没有侧边栏」）。
     /// <para>
-    /// 与「运行中拨开关」不是同一条路：那一档设置文件里存着 true，<c>Loaded</c> 那一刻外壳还没量到宽度
+    /// 与「运行中切换显示模式」不是同一条路：那一档设置文件里存着 EnableImmersive=false，<c>Loaded</c> 那一刻外壳还没量到宽度
     /// （ActualWidth 是 0），宽窄档与栏的宽都要等第一次 SizeChanged 才落定。这一条要证明的就是 —— 等它落定之后
     /// 屏上是「栏 + 页面」，而不是只剩页面、栏被裁到看不见。
     /// </para>
@@ -410,7 +508,8 @@ internal sealed partial class ShellNavigationProbe
     private async Task SidebarAtStartupAsync()
     {
         using var fixture = CreateFixture();
-        fixture.Settings.Ui.SidebarMode = true;
+        fixture.Settings.Ui.EnableImmersive = SettingsMigration.NewDefaults().Ui.EnableImmersive;
+        Require(!fixture.Settings.Ui.EnableImmersive, "出厂显示模式应为商店模式");
         fixture.Settings.Ui.AnimationsEnabled = false;
         fixture.Settings.Ui.ShowHomeBanner = false;
         await fixture.SelectAsync();
@@ -744,7 +843,7 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture(server);
         await fixture.SelectAsync();
         fixture.Settings.Ui.AnimationsEnabled = false;
-        fixture.Settings.Ui.SidebarMode = true;
+        fixture.Settings.Ui.EnableImmersive = false;
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
         Field(shell, "_window", _window);
@@ -938,7 +1037,7 @@ internal sealed partial class ShellNavigationProbe
     {
         var motion = HomeMotion.PreferenceEnabled;
         using var fixture = CreateFixture();
-        fixture.Settings.Ui.SidebarMode = true;
+        fixture.Settings.Ui.EnableImmersive = false;
         fixture.Settings.Ui.AnimationsEnabled = false;
         var picture = await FixtureImageAsync(400, 600);
         var movies = Enumerable.Range(0, 3).Select(index => new EmbyItem

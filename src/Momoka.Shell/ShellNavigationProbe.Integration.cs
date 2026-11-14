@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Net;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
@@ -18,6 +21,7 @@ internal sealed partial class ShellNavigationProbe
     private async Task ShellHistoryAsync()
     {
         using var fixture = CreateFixture();
+        fixture.Settings.Ui.EnableImmersive = true;
         await fixture.SelectAsync();
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
@@ -25,8 +29,16 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             await LayoutAsync(shell);
-            shell.GoTo("home");
+            var forward = Get<Button>(shell, "ForwardButton");
+            void ClickForward() => ((IInvokeProvider)new ButtonAutomationPeer(forward)
+                .GetPattern(PatternInterface.Invoke)).Invoke();
+            await (Task)Call(shell, "EnterShellAsync")!;
             await UntilAsync(() => shell.ActiveContentReady);
+            Require(forward.Visibility == Visibility.Visible && !forward.IsEnabled,
+                "沉浸主页未保留无前进历史的按钮状态");
+            var idlePage = shell.Pages.Content;
+            Call(shell, "OnForwardClicked", forward, new RoutedEventArgs());
+            Require(ReferenceEquals(idlePage, shell.Pages.Content), "不可用的前进按钮仍执行导航");
             shell.OpenChild(new LibraryRequest { Services = fixture.Services, Title = "离线媒体库", ParentId = "library" });
             await UntilAsync(() => shell.ActiveContentReady);
             shell.OpenDetail(DetailRequest.For(fixture.Services, Series()));
@@ -38,12 +50,39 @@ internal sealed partial class ShellNavigationProbe
             Require(trail.Select(crumb => crumb.Label).SequenceEqual(new[] { "主页", "离线媒体库", Series().Name }),
                 "返回详情未恢复完整路径");
             Require(Get<Button>(shell, "HomeButton").IsEnabled, "详情页主页按钮未恢复");
-            Call(shell, "GoForward");
+            Require(forward.Visibility == Visibility.Visible && forward.IsEnabled, "返回后前进按钮没有当场启用");
+            Require(forward.Focus(FocusState.Keyboard)
+                && ReferenceEquals(FocusManager.GetFocusedElement(shell.XamlRoot), forward), "前进按钮无法取得原生键盘焦点");
+            var back = Get<Button>(shell, "BackButton");
+            var titleActions = Get<StackPanel>(shell, "TitleActions");
+            Require(titleActions.Children.IndexOf(forward) == titleActions.Children.IndexOf(back) + 1
+                && back.TabIndex == forward.TabIndex, "返回与前进的默认键盘顺序不一致");
+            Require(back.Focus(FocusState.Keyboard)
+                && ReferenceEquals(FocusManager.GetFocusedElement(shell.XamlRoot), back), "返回按钮无法取得原生键盘焦点");
+            ClickForward();
             await UntilAsync(() => shell.ActiveContentReady);
             Require(shell.CurrentTag == "home" && !Get<Button>(shell, "HomeButton").IsEnabled, "前进到主页的按钮状态不一致");
+            Require(!forward.IsEnabled && forward.Visibility == Visibility.Visible, "前进栈耗尽后按钮状态错误");
             Call(shell, "GoBack");
             await UntilAsync(() => shell.ActiveContentReady);
             Require(Get<Button>(shell, "HomeButton").IsEnabled && trail.Count == 3, "第二次返回的路径或按钮错误");
+            shell.ShowPlayer(true);
+            Require(forward.Visibility == Visibility.Collapsed, "播放时前进按钮仍显示");
+            shell.ShowPlayer(false);
+            await LayoutAsync(shell);
+            Require(forward.Visibility == Visibility.Visible && forward.IsEnabled
+                && back.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,
+                "播放返回后两颗导航箭头未恢复");
+            fixture.Settings.Ui.EnableImmersive = false;
+            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+            await LayoutAsync(shell);
+            Require(forward.Visibility == Visibility.Collapsed && shell.Pages.CanGoForward, "切换商店清除了前进历史或没收起按钮");
+            var storePage = shell.Pages.Content;
+            Call(shell, "OnForwardClicked", forward, new RoutedEventArgs());
+            Require(ReferenceEquals(storePage, shell.Pages.Content), "隐藏前进按钮的迟到点击仍导航");
+            Call(shell, "GoForward");
+            await UntilAsync(() => shell.ActiveContentReady);
+            Require(shell.CurrentTag == "home", "商店快捷键共用的前进历史失效");
         }
         finally
         {

@@ -16,6 +16,7 @@ internal static class Program
             var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox();
             shell.FocusTitle();
             var page = shell.Page!;
+            page.AttachTitle(title);
             title.Text = "搜索词";
             shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
             Assert.Equal(1, page.TypingCalls);
@@ -28,7 +29,9 @@ internal static class Program
         {
             var shell = new ShellPage();
             shell.FocusTitle();
-            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox { Text = "立即回车" };
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox();
+            shell.Page!.AttachTitle(title);
+            title.Text = "立即回车";
             shell.QueryTitle(title, title.Text);
             shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
             title.Text = "程序同步词";
@@ -46,6 +49,34 @@ internal static class Program
             shell.TypeTitle(new() { Text = "旧页草稿" }, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
             Assert.True(shell.Page is null);
             Assert.Equal(1, shell.Navigations);
+        });
+        Test("同页切回页内输入后，旧标题框迟到输入和提交不覆盖新词", () =>
+        {
+            var shell = new ShellPage();
+            shell.FocusTitle();
+            var page = shell.Page!;
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox();
+            page.AttachTitle(title);
+            title.Text = "尚未通知的标题草稿";
+            page.AttachTitle(null);
+            Assert.Equal("尚未通知的标题草稿", page.ViewModel.SearchText);
+            page.SearchInput.Text = "页内新词";
+            _ = page.SearchTypingAsync(page.SearchInput.Text);
+            var calls = page.TypingCalls;
+            shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
+            shell.QueryTitle(title, title.Text);
+            Assert.Equal("页内新词", page.ViewModel.SearchText);
+            Assert.Equal(calls, page.TypingCalls);
+            Assert.Equal(0, page.Submissions);
+            Assert.Equal(1, shell.Navigations);
+            Assert.True(ReferenceEquals(page, shell.Page));
+            page.AttachTitle(title);
+            title.Text = "重新接管的标题输入";
+            shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
+            shell.QueryTitle(title, title.Text);
+            Assert.Equal("重新接管的标题输入", page.ViewModel.SearchText);
+            Assert.Equal(calls + 1, page.TypingCalls);
+            Assert.Equal(1, page.Submissions);
         });
         Test("标题输入绑定同步原词，重复接管不重复订阅，释放彻底解绑", () =>
         {
