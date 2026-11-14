@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -298,8 +299,8 @@ public sealed partial class ShellPage
         for (var index = 0; index < picks.Length; index++)
         {
             var item = picks[index];
-            var (frame, picture, placeholder) = CreatePreviewCover(coverWidth, index, item, load);
-            LibraryPreviewCovers.Children.Add(frame);
+            var (cell, picture, placeholder) = CreatePreviewCover(coverWidth, index, item, load);
+            LibraryPreviewCovers.Children.Add(cell);
             if (_previewImages is not null && PreviewImageType(item) is { } imageType)
                 _ = LoadPreviewCoverAsync(picture, placeholder, item, item.Source ?? scope, imageType,
                     Math.Max(56, (int)Math.Round(coverWidth)), load);
@@ -311,9 +312,10 @@ public sealed partial class ShellPage
 
     private void ResetPreviewCovers()
     {
-        foreach (var child in LibraryPreviewCovers.Children.OfType<FrameworkElement>())
+        foreach (var cell in LibraryPreviewCovers.Children.OfType<StackPanel>())
         {
-            var content = child is Button button ? button.Content : (child as Border)?.Child;
+            var frame = cell.Children.OfType<FrameworkElement>().FirstOrDefault();
+            var content = frame is Button button ? button.Content : (frame as Border)?.Child;
             if (content is not Grid grid) continue;
             foreach (var picture in grid.Children.OfType<Image>()) picture.Source = null;
         }
@@ -335,7 +337,7 @@ public sealed partial class ShellPage
     private static readonly string[] PreviewImageTypes =
         [EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop];
 
-    private (FrameworkElement Frame, Image Picture, FontIcon Placeholder) CreatePreviewCover(double width, int column,
+    private (FrameworkElement Cell, Image Picture, FontIcon Placeholder) CreatePreviewCover(double width, int column,
         EmbyItem item, CancellationTokenSource load)
     {
         var placeholder = new FontIcon
@@ -381,8 +383,25 @@ public sealed partial class ShellPage
             };
             AutomationProperties.SetAccessibilityView(frame, AccessibilityView.Raw);
         }
-        Grid.SetColumn(frame, column);
-        return (frame, picture, placeholder);
+        // 封面下面那一行片名（2026-11-14 用户令「给封面下方加上片名」）：面板里只有图的时候认不出是哪一部。
+        // 两行封顶、再长就省略，完整名字交给指针提示；字号 / 颜色沿用正文卡片标题那一条的缩格版。
+        var title = new TextBlock
+        {
+            Text = item.Name,
+            Style = (Style)Application.Current.Resources["EgCaptionStyle"],
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)Application.Current.Resources["EgTextBrush"],
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.Wrap
+        };
+        ToolTipService.SetToolTip(title, item.Name);
+
+        var cell = new StackPanel { Width = width, Spacing = 6 };
+        cell.Children.Add(frame);
+        cell.Children.Add(title);
+        Grid.SetColumn(cell, column);
+        return (cell, picture, placeholder);
     }
 
     private static bool CanPlayPreviewItem(EmbyItem item) => !item.IsDisplayOnly
@@ -390,7 +409,9 @@ public sealed partial class ShellPage
 
     private void OnLibraryPreviewCoverClicked(Button button, EmbyItem item, CancellationTokenSource load)
     {
-        if (!IsCurrentPreview(load) || !LibraryPreviewCovers.Children.Contains(button)
+        // 封面按钮眼下是格子的孩子（图 + 片名那一格），不在网格的直接孩子里 —— 判在不在面板里要往下走一层。
+        if (!IsCurrentPreview(load)
+            || !LibraryPreviewCovers.Children.OfType<StackPanel>().Any(cell => cell.Children.Contains(button))
             || item.Source is not { IsAvailable: true } || !CanPlayPreviewItem(item)) return;
         SuppressLibraryPreview();
         _ = PlayAsync(item);
