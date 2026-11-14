@@ -129,6 +129,10 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
             await LayoutAsync(page);
             Require(!Get<ShelfHead>(page, "InfoHead").StoreCard && info.Padding == new Thickness(24), "沉浸未恢复原格式");
+            // 2026-11-15 用户明确「这个按钮的修改包括沉浸模式」：沉浸档也保持固定的绿。
+            var active = (SolidColorBrush)page.Resources["EgActionActiveBrush"];
+            Require(active.Color == Windows.UI.Color.FromArgb(0xFF, 0x52, 0xB5, 0x4B),
+                $"沉浸模式连播／已观看图标不是绿色：{active.Color}");
             fixture.Settings.Ui.EnableImmersive = false;
             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
             await LayoutAsync(page);
@@ -213,6 +217,10 @@ internal sealed partial class ShellNavigationProbe
 
     private static void RequireStoreHeroAlignment(DetailPage page)
     {
+        // 2026-11-15 用户令：商店模式里「开启连播 / 已观看」那两颗图标是固定的绿，不跟主题强调色走。
+        var active = (SolidColorBrush)page.Resources["EgActionActiveBrush"];
+        Require(active.Color == Windows.UI.Color.FromArgb(0xFF, 0x52, 0xB5, 0x4B),
+            $"商店模式连播／已观看图标不是绿色：{active.Color}");
         var cover = Get<Border>(page, "PosterStill");
         var overview = Get<StackPanel>(page, "OverviewPanel");
         var stack = Get<StackPanel>(page, "HeroStack");

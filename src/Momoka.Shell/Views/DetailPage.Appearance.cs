@@ -20,6 +20,8 @@ public sealed partial class DetailPage
     private readonly SolidColorBrush _infoValueInk = new();
     private readonly List<FontIcon> _plainActionIcons = [];
     private readonly Dictionary<FrameworkElement, Control> _explicitActionForegrounds = [];
+    /// <summary>「连播开着／已观看」的图标绿 —— 页面资源 <c>EgActionActiveBrush</c> 的初值。</summary>
+    private Color _actionActiveInk;
     private ControlBackgroundBrushes? _columnPlay;
     private ControlBackgroundBrushes? _compactPlay;
     private bool _readingQueued;
@@ -29,6 +31,8 @@ public sealed partial class DetailPage
 
     private void PrepareAppearance()
     {
+        // 「连播 / 已观看」共用的那支墨从 XAML 取初值；之后由 ApplyAppearance 在正常对比与高对比度之间换。
+        _actionActiveInk = ((SolidColorBrush)Resources["EgActionActiveBrush"]).Color;
         foreach (var strip in new[] { EpisodeStrip, SeasonRow, CastRow, SimilarRow })
             strip.ReadingChanged += QueueReadingColors;
         // 其他信息表里的行是回收着建的：新行建出来那一刻按当前那一套墨补一次（见 PaintInfoRowInk）。
@@ -120,6 +124,7 @@ public sealed partial class DetailPage
         // 主播放键例外（2026-11-14 用户令「播放按钮改成主题色」）：它吃强调色面，和参考图里的主操作一样
         // 是这一页唯一一块有颜色的键；其余按钮和闭合选择框仍是固定面色。
         var simple = !contrast && !ViewModel.AppearanceSettings.EnableImmersive;
+        PaintActionActiveInk();
         foreach (var brushes in _controlBackgrounds)
         {
             if (simple)
@@ -137,6 +142,15 @@ public sealed partial class DetailPage
         // 模式与背景强度直接应用终值，窄窗仍使用自己的排版。
         SettleShowcase();
     }
+
+    /// <summary>
+    /// 连播「开着」和「已观看」那两颗图标的墨：正常对比下固定用页面资源里的绿（2026-11-15 用户令
+    /// 「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确「这个按钮的修改包括沉浸模式」）；
+    /// 只有高对比度回到系统强调色，那颗图标原来就是 accent。
+    /// </summary>
+    internal void PaintActionActiveInk() =>
+        ((SolidColorBrush)Resources["EgActionActiveBrush"]).Color =
+            _actionAccessibility.HighContrast ? ResourceColor("EgAccentBrush") : _actionActiveInk;
 
     private void OnBackdropImageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {

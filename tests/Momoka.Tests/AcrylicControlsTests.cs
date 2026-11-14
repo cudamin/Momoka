@@ -341,9 +341,12 @@ internal static class AcrylicControlsTests
                     "详情页仍合入按钮亚克力字典");
             });
 
-        Test("详情操作：连播勾选保持同底，文字与图标均使用白色", () =>
+        Test("详情操作：连播勾选保持同底，勾选图标走固定绿、文字仍白色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
+            var active = page.Descendants(Xaml + "SolidColorBrush")
+                .Single(element => (string?)element.Attribute(X + "Key") == "EgActionActiveBrush");
+            Assert.Equal("#FF52B54B", (string?)active.Attribute("Color"));
             foreach (var button in page.Descendants(Xaml + "ToggleButton").Where(element =>
                 (string?)element.Attribute("Style") == "{StaticResource EgPillToggleButtonStyle}"))
             {
@@ -352,12 +355,15 @@ internal static class AcrylicControlsTests
                     // 背景现在由 ControlBackgroundBrushes 构造时提供，源链接专项覆盖三态与选中态共用副本。
                     // 本地 XAML 不能再声明别名，否则 WinUI 原地覆盖会按对象删错键。
                     Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundChecked" + States[index]));
-                    Assert.Equal("EgAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
+                    Assert.Equal("EgActionActiveBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
                 }
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));
                 var label = button.Descendants(Xaml + "TextBlock").Single();
                 Assert.Equal("{ThemeResource EgDetailActionTextBrush}", (string?)label.Attribute("Foreground"));
             }
+            // 宽版式和紧凑版式那两颗「已观看」的绿实心圆也指向同一支绿。
+            Assert.Equal(2, page.Descendants(Xaml + "Ellipse")
+                .Count(shape => (string?)shape.Attribute("Fill") == "{StaticResource EgActionActiveBrush}"));
         });
 
         Test("按钮亚克力：货架翻页字典的高对比度文字与图标仍跟随系统色", () =>

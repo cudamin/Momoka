@@ -28,6 +28,9 @@
     <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#15FFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#08FFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
+    <!-- 商店（简洁）模式的操作按钮与闭合选择框：浅色高透明底（2026-11-15 用户令「换成浅色高透明背景」）。
+         颜色是白，四态靠 ControlBackgroundBrushes 的定值浓度分档，不读主题面色。 -->
+    <SolidColorBrush x:Key="EgStoreControlBrush" Color="#FFFFFFFF" />
     <!-- 头图压着深色遮罩，与当前主题无关；媒体卡片通过主题别名支持系统高对比度覆盖。 -->
     <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
     <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
