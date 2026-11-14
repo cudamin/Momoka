@@ -98,6 +98,7 @@ internal static class Program
         ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
         SidebarMotionContractTests.Register();
+        SidebarResizeContractTests.Register();
         SidebarIconTests.Register();
         SettingsControlNameTests.Register();
         SystemManagedThemeRoleTests.Register();

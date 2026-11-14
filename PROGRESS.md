@@ -1,3 +1,13 @@
+## 2026-11-14 侧边栏拖动调宽与栏/内容区分界（未合并）
+
+工作树 `p7Vx1S`，分支 `feat-sidebar-drag-resize`，基点 `8d5e7cb`。用户两句：①新增支持拖动侧边栏边缘调整侧边栏宽度；②侧边栏标题和内容区的分界不够明显。追问后明确：分界指「侧边栏与内容区之间，对比度不够高」，做法选「侧栏加深一层面色」；拖动只在展开档支持。
+
+**拖动调宽。** 侧栏展开时右沿多一条 7 DIP 透明命中带（`SidebarResizeGrip`，Grid 子类只为拿到 protected 的 `ProtectedCursor` 设左右箭头），指针进入换光标；按下捕获指针，移动时按「起点宽度 + 指针位移」改 `NavigationView.OpenPaneLength`，每一拍走现有 `ApplySidebarLayout`，栏宽、内容区让位、标题栏缩进与裁剪切块同步。宽度夹在 180～480 DIP（`UiSettings.MinSidebarWidth`/`MaxSidebarWidth`）；窗口窄时再给内容区留 320 DIP，只夹屏上宽度、不改偏好，窗口拉回后原宽度回来。松手、捕获丢失、离树、栏收起都收尾，只有真正拖过才把宽度写回 `UiSettings.SidebarWidth` 并 `Save()`，下次启动照这个宽度展开；缺键的旧设置读成 256，`SettingsMigration.Normalize` 用同一对常量夹取。收成 56 DIP 图标栏时拖动条一起收起，开合仍归标题栏那颗折叠键。
+
+**分界。** 栏这一列（含左上角应用名所在的标题区）从 2026-11-12 的「纯 Mica」改为铺 `EgSidebarBrush`：主题面色 85% 压在 Mica Alt 上，内容区仍是 60% 窗口色。实屏取样栏 `#13192C`、内容 `#091022`，栏右沿与标题栏左侧的竖向分界清楚可见，Mica 仍透 15%。新角色在 Dark/Light/HighContrast 三份字典、`ThemeHost.Brushes` 与自检覆盖清单里成对接上；标题栏右侧仍只露材质。
+
+**验证。** Shell/Core 与 Tests、PageContract Release 单节点编译均 0 警告 0 错误。`--probe-shell --probe-section shell --screen 1` 15/15、退出 0（运行目录 `shell-probe-20261114-073739856-29964`）：新增的 `ResizeSidebar` 320／40／4000／256 与拖动条显隐检查通过，1240 展开、760 图标栏、600 展开三张实屏已目视；收起档拖动条 Collapsed。`Momoka.PageContractTests` 257/257（含新增 3 项拖动契约）；主测试 5099/5102、0 跳过，3 红为 `TitleSearchBox` 圆角期望 10 而 ShellPage.xaml 现值 8、`HomePage.Release` 与 `PaintInk` 源码标记缺失 —— 三项读取的源码本轮未改、与 HEAD 相同，不计入本批。真实鼠标/触摸拖动未执行：探针直接调产品重排方法并核对几何与夹取，指针链路由源码契约盯着；交付时按 UI 检查补真实拖动与截图。未连接真实服务器、未播放；高对比度与跨 DPI 未实测。未合并 master、未发布、未推远程。
+
 ## 2026-11-14 侧栏并入商店模式与0.2.5标题工具栏恢复（已合入，待交付）
 
 当前临时树356e/分支codex/store-sidebar-unified，基点0fdf357；用户要求为关闭侧栏恢复旧标题栏、侧栏合并到商店模式、商店模式设为默认；随后追加沉浸轮播恢复商店改造前样式。删除独立SidebarMode，以EnableImmersive唯一决定商店侧栏；新建、缺键和恢复默认选商店，显式保存的显示模式保持。沉浸恢复左上放大镜与标题栏画布，收起Momoka名称和居中搜索，页面通过Padding保持48起点；商店以Margin露出标题栏Mica。整合主树真实AutoSuggestBox、输入行去重与焦点交接、空心/实心侧栏图标及两档折叠图；商店返回/折叠20图标与40托盘保留，沉浸工具行最终恢复0.2.5，标题48与账号位置保留。旧配置四组合按显示模式，保存不再写旧键。
