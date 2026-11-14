@@ -21,6 +21,12 @@
 独立工作树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka`，基点 `875dedb`，只改诊断与 PageContract 测试，不改主页、外壳与窗口产品行为。既有 `HomeHeaderAsync` 只量旧标题/按钮；新增 `HomeHeaderChromeAsync` 接入 `shell` 分区与 `InspectHomeHeaderChrome`：真实匿名 Shell、HomePage、ScrollView 完成事件检查 1240/760 宽的顶端、下滚隐藏、停住、小幅反向、12 DIP 上滚恢复、横向货架、五主题、显示模式切换、离页及正式 GoBack 恢复。顶部焦点转交当前 Scroller 且保持深处偏移；实际 `TitleBarMetrics`、`TitleBarHoles`、`InputNonClientPointerSource.GetRegionRects` 核系统三键、穿透区域与整条拖动区域，背景为项目 `AcrylicBrush` 且全宽 48 DIP、不接管输入。仅给已经运行的匿名 HWND 读数，不调用 `ShellPage.AttachWindow` 接播放器；假传输拒绝非 GET，正式播放计数必须为 0。
 
 专项 Shell/Core Release 0 警告、0 错误；PageContract 当前 282/282、0 失败、0 跳过（6 项新增成功/失败读数及接线检查）。新增读数判据直接编译链接，坏原生高度、残留三键/洞、丢拖动区、背景错误及焦点回顶都实际拒绝。此树未启动 UI、未发布、未推送；原生成功路径与 5 张真实截图由根交付会话串行重验，回执 `home-header-chrome.json` 在运行失败时也保留。未覆盖物理 Tab、真实视频往返、关闭透明/高对比度、跨 DPI、触摸与读屏。没有新增产品控件、资源或动效，沿用正式 ScrollView 与窗口读数 API；Gallery 产品接线保持现状，未引入另一套控件实现。
+## 2026-11-15 交付补验：Entrance候选采屏与UI事件解耦
+
+独立树 `C:/Users/89400/.codex/worktrees/delivery-heat-probe/Momoka`（`codex/delivery-heat-probe`，基点e2d3a02）。主树PID1148实际可见检查台的JSON：video Suppress 104.88→602.97ms缺498ms，music Suppress139.06→795.41ms缺656ms，music Entrance117.41→759.85ms缺642ms，前者最终标记存在、video Entrance整窗采样末态仍无标记、music中段未观察到。源码 `CaptureResizeFrame` 没有等待下一帧，但同步Win32/GDI/拷贝在UI Rendered事件中，UI加载与截图会同时挡住Rendered和同线程16ms心跳；现有JSON未记捕获耗时，所以不能将缺口确定归因于GDI。video初次Suppress为snapshot-miss，候选为snapshot-hit并经过实际滚动布局，同样不据此推断产品时延或放宽基线。
+
+只改诊断：新增编译链接的 `MotionScreenSampler` 专用后台线程以相同800ms/16ms配置连续取HWND实际屏幕。复核 `CompositionPlaybackProbe.Pixels.cs` 的局部GDI创建/释放、Win32四点遮挡守卫与既有 `PlayerResizeProbe.cs` 后台调用；捕获线程不访问XAML。UI Rendering实际布局后发布一次不可变ROI、Rendering/Rendered仅记录事件时戳，逐帧记录捕获开始/结束/耗时/间隔/线程；失败截图保留同一份byte[]。中途关闭由后台检测真实非终态后入UI队列，实际执行 `HomeMotion(false)`/清Frame过渡后才记Applied，跨执行时刻的捕获仍算关闭前；停止后旧回调不可再动页面。连续三次请求后捕获仍未执行判retained，缺中段/坏帧仍inconclusive并报红；不改变产品路由、自检基线或候选门槛。源链接循环和调度8组成功/失败检查（取消等待本次捕获退出、异常传播、入队拒绝、迟到回调、UI动作异常与不持读数锁），`motion-probe-fixture`37/37、0失败0跳过，Shell/Core/Tests当前Release编译0警告0错误，定向格式与7文本编码检查通过。原生实际效果与捕获间隔由主交付会话最终主树串行复测；本树未启动UI、未读任何图片、未发布或推送。
+
 ## 2026-11-15 交付补验：商店尾部准确判据与热力宽度、异常恢复
 
 独立树 `C:/Users/89400/.codex/worktrees/delivery-heat-probe/Momoka`（`codex/delivery-heat-probe`，基点9886d47）。主树原生响应式检查报「关闭沉浸仍留有背景占位」后核对第33批实际 `StoreTailHeight`、绑定与布局：有图商店档需补到剧照/宽窗预告控制和16DIP空隙之后，旧零下限断言不再适用。响应式与同页模式往返改用同一判据，核精确公式、真实 `HeroTail.MinHeight` 与可见内容实高、`BodySheet` 首个可见卡片（必须有实际尺寸）对封面/操作/实际可见剧照/预告控制下沿的16DIP避让；保留沉浸零尾部规则，不改产品布局或自检基线。新增编译链接判据4组成功/失败场景，防漏补、多补、绑定仍旧、卡片重叠与坏边界。

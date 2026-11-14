@@ -72,7 +72,7 @@ internal static class MotionProbeEvidence
 
     internal static MotionCandidateDecision Evaluate(IReadOnlyList<MotionMarkerFrame> baseline,
         IReadOnlyList<MotionMarkerFrame> native, IReadOnlyList<MotionMarkerFrame> disabled,
-        IReadOnlyList<MotionMarkerFrame> history)
+        IReadOnlyList<MotionMarkerFrame> history, MotionDisableDispatchRead? disableDispatch = null)
     {
         if (new[] { baseline, native, disabled, history }.Any(frames => frames.Count < 3
             || frames.Any(frame => !frame.Stable || !double.IsFinite(frame.AtMs) || frame.AtMs < 0)
@@ -95,6 +95,13 @@ internal static class MotionProbeEvidence
             return new("inconclusive", "native-intermediate-not-observed", false, disableSettled, historySettled, comparable);
         if (!disabled.Any(frame => !frame.AfterDisable && frame.Visible && !SamePresentation(frame, baselineFinal)))
             return new("inconclusive", "disable-before-native-start-not-proved", true, disableSettled, historySettled, comparable);
+        // UI队列卡住时仍有真实后台帧：不能把排队时刻当作已关闭，再用迟到的末态洗绿。
+        // 三次捕获不是DWM帧号；这里只拒绝关闭请求之后连续三次实屏仍未实际执行的响应延迟。
+        if (disableDispatch?.RequestedAtMs is { } requested
+            && (disableDispatch.AppliedAtMs is null
+                || disabled.Count(frame => frame.AtMs > requested && !frame.AfterDisable) >= 3))
+            return new("retained", "in-flight-disable-dispatch-delayed-over-next-three-captures", true,
+                false, historySettled, comparable);
         if (!disableSettled)
             return new("retained", "in-flight-transition-did-not-settle-on-next-presented-frames", true, false, historySettled, comparable);
         if (!historySettled)

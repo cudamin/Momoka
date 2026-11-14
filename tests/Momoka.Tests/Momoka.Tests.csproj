@@ -30,6 +30,7 @@
     <Compile Include="..\..\src\Momoka.Shell\CompositionPositionReadiness.cs" Link="Shell\CompositionPositionReadiness.cs" />
     <Compile Include="..\..\src\Momoka.Shell\CompositionProbePixels.cs" Link="Shell\CompositionProbePixels.cs" />
     <Compile Include="..\..\src\Momoka.Shell\MotionProbeEvidence.cs" Link="Shell\MotionProbeEvidence.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\MotionScreenSampler.cs" Link="Shell\MotionScreenSampler.cs" />
     <!-- Execute the actual heat renderer; only XAML dimensions, brushes and child collections are substitutes. -->
     <Compile Include="..\..\src\Momoka.Shell\Views\PlayerPage.DanmakuHeat.cs" Link="Shell\PlayerPage.DanmakuHeat.cs" />
     <Compile Include="..\..\src\Momoka.Shell\DanmakuHeatProbeEvidence.cs" Link="Shell\DanmakuHeatProbeEvidence.cs" />

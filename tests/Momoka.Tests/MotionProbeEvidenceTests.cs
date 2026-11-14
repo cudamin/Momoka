@@ -7,6 +7,7 @@ internal static class MotionProbeEvidenceTests
 {
     public static void Register()
     {
+        MotionScreenSamplerTests.Register();
         Test("动效候选路由：全部成功按原顺序执行且通过", () =>
         {
             var attempted = new List<string>();
