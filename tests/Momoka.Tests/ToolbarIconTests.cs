@@ -50,22 +50,36 @@ internal static class ToolbarIconTests
             Assert.Equal("Button", toggle.Name.LocalName);
             Assert.Equal("OnNavToggleClicked", toggle.Attribute("Click")?.Value);
             Assert.Equal("Collapsed", toggle.Attribute("Visibility")?.Value);
-            // 2026-11-12 晚用户给了图：一个圆角面板、左栏实心。三笔几何 —— 外框、内孔、左栏 —— 都在同一段 Data 里。
-            var icon = toggle.Descendants().Single(element => element.Name.LocalName == "PathIcon");
-            var data = icon.Attribute("Data")?.Value ?? string.Empty;
-            Assert.True(data.StartsWith("F1 M 6.2,3.6", StringComparison.Ordinal), "折叠键的图标不是那块面板：" + data);
-            Assert.Equal(3, data.Split('Z').Length - 1, "面板图标不是三笔（外框、内孔、左栏）");
+            // 2026-11-14 新图：外框与内孔相同，展开是贯穿分隔线，收起是左侧短竖线，两档都不填实左栏。
+            var expanded = Named(Shell(), "NavPaneExpandedIcon");
+            var collapsed = Named(Shell(), "NavPaneCollapsedIcon");
+            Assert.Equal(2, toggle.Descendants().Count(element => element.Name.LocalName == "PathIcon"));
+            var openData = expanded.Attribute("Data")!.Value;
+            var closedData = collapsed.Attribute("Data")!.Value;
+            Assert.Equal(openData[..openData.LastIndexOf(" Z M ", StringComparison.Ordinal)],
+                closedData[..closedData.LastIndexOf(" Z M ", StringComparison.Ordinal)]);
+            Assert.Contains("H 10.45 V 18.7 H 8.75", openData);
+            Assert.Contains("V 15.8 A 0.85,0.85", closedData);
+            Assert.Equal("Collapsed", expanded.Attribute("Visibility")?.Value);
+            Assert.True(collapsed.Attribute("Visibility") is null);
             // 2026-11-13 起字形居中、不再靠左：托盘 40 宽、字形 28，缩进 8，字形中线落在 28 ——
             // 和栏里那些图标同一条竖线（用户令「返回键出现时要和下面那一列对齐」）。靠左摆会落到 22。
             Assert.True(toggle.Attribute("HorizontalContentAlignment") is null, "折叠键又靠左摆了");
             var toggleBox = toggle.Descendants().Single(element => element.Name.LocalName == "Viewbox");
-            Assert.Equal("28", toggleBox.Attribute("Width")?.Value);
-            Assert.Equal("28", toggleBox.Attribute("Height")?.Value);
+            Assert.Equal("20", toggleBox.Attribute("Width")?.Value);
+            Assert.Equal("20", toggleBox.Attribute("Height")?.Value);
+            var backBox = Named(Shell(), "BackButton").Descendants().Single(element => element.Name.LocalName == "Viewbox");
+            Assert.Equal("20", backBox.Attribute("Width")?.Value);
+            Assert.Equal("20", backBox.Attribute("Height")?.Value);
         });
-        TestHarness.Test("标题栏不再写应用名：侧边栏模式那一排只有返回与折叠", () =>
+        TestHarness.Test("标题栏应用名在导航按钮右边，保留拖动区域", () =>
         {
-            Assert.True(!Shell().Descendants().Any(element =>
-                element.Attribute(Xaml + "Name")?.Value == "AppTitleText"), "左上角又写回了 Momoka");
+            var label = Named(Shell(), "AppTitleLabel");
+            Assert.Equal("Momoka", label.Attribute("Text")?.Value);
+            Assert.Equal("False", label.Attribute("IsHitTestVisible")?.Value);
+            Assert.Equal("Center", label.Attribute("VerticalAlignment")?.Value);
+            Assert.True(!Named(Shell(), "TitleActions").Descendants().Any(element =>
+                element.Attribute(Xaml + "Name")?.Value == "AppTitleLabel"), "标题文字进了按钮命中区");
         });
         TestHarness.Test("标题栏搜索框：标题栏正中一颗按钮，写着搜索媒体库、订阅等", () =>
         {

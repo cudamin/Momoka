@@ -29,6 +29,7 @@ public sealed partial class ShellPage
     // Reattaching reads the setting again, so an event missed while unloaded is harmless.
     private void InitializeSidebar()
     {
+        InitializeSidebarIcons();
         Sidebar.RegisterPropertyChangedCallback(NavigationView.IsPaneOpenProperty, (_, _) => ApplySidebarLayout());
         SizeChanged += (_, _) => UpdateSidebarWidth();
         TitleActions.LayoutUpdated += (_, _) =>
@@ -120,7 +121,7 @@ public sealed partial class ShellPage
         // 导航开关（≡）只在这条栏出现时露脸：没有栏就没有可开可关的东西，而它站在标题栏那一排的最前面
         // （见 ApplySidebarLayout 的缩进），所以收藏/后退/前进跟在它右边。
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        // 标题「Momoka」2026-11-13 按用户令整块删掉（那一格让给返回/折叠）。
+        // 应用名 2026-11-14 按用户令加回，独立于按钮行，始终跟在可见的导航按钮右侧。
         // 主页与收藏也在这条栏出现时让给栏里的入口（2026-11-12 晚）：那一档左边只剩返回 · 折叠，
         // 栏里第一项就是「主页」、收藏那条也在栏里 —— 同一页不出两个同样的入口。
         HomeButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
@@ -166,6 +167,7 @@ public sealed partial class ShellPage
         _syncingSidebar = true;
         try { Sidebar.SelectedItem = selected; }
         finally { _syncingSidebar = false; }
+        SyncSidebarIcons(selected);
         ApplySidebarLayout();
     }
 
@@ -195,7 +197,7 @@ public sealed partial class ShellPage
         // 标题栏那一排的缩进：侧边栏在屏上时是 8，其余时候是 18（标记里那个值）。
         // **2026-11-13 从 11 改成 8，并实测过两档**：栏 48→56 宽之后，框架给条目的图标格是「栏宽 − 8」= 48，
         // 而按钮左右各留 4 —— 方格与图标格同宽，字形因此居中落在栏的中线 28 上，展开与收成图标栏两档
-        // 都是这个数（实体屏量过 32→28 那一版之后的读数）。这一排的托盘 40 宽、字形 28 居中，缩进 8 时
+        // 都是这个数（实体屏量过 32→28 那一版之后的读数）。这一排的托盘 40 宽、字形 20 居中，缩进 8 时
         // 字形中线同样是 28 —— 用户令「返回键出现时要和下面那一列对齐」，两颗（返回、折叠）都落在栏里
         // 那些图标的同一条竖线上，换档时也不挪。8 同时让开了窗口自己那 8 像素的缩放边框。
         // 上边那 4 像素由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进。
@@ -209,6 +211,8 @@ public sealed partial class ShellPage
         }
 
         ToolTipService.SetToolTip(NavToggleButton, Sidebar.IsPaneOpen ? "关闭导航" : "打开导航");
+        NavPaneExpandedIcon.Visibility = Sidebar.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;
+        NavPaneCollapsedIcon.Visibility = Sidebar.IsPaneOpen ? Visibility.Collapsed : Visibility.Visible;
         ApplyAccountCluster(shown);
 
         // 标题栏那三个洞跟着窗宽走（正中那颗搜索框、右上角那组账号都是随窗宽落位的），而这条路径是
@@ -329,7 +333,11 @@ public sealed partial class ShellPage
     private void RebuildSidebarLibraries()
     {
         HideLibraryPreview();
-        foreach (var item in _sidebarLibraries.Values) Sidebar.MenuItems.Remove(item);
+        foreach (var item in _sidebarLibraries.Values)
+        {
+            Sidebar.MenuItems.Remove(item);
+            _sidebarIcons.Remove(item);
+        }
         _sidebarLibraries.Clear();
         var at = Sidebar.MenuItems.IndexOf(SidebarLibrariesHeader) + 1;
         foreach (var (tag, library) in _libraries)
@@ -337,9 +345,9 @@ public sealed partial class ShellPage
             var item = new NavigationViewItem
             {
                 Content = library.Title,
-                Tag = tag,
-                Icon = new FontIcon { Glyph = library.CollectionType == "tvshows" ? "\uE714" : "\uE8B2" }
+                Tag = tag
             };
+            RegisterSidebarLibraryIcon(item, library.CollectionType);
             AutomationProperties.SetAutomationId(item, "SidebarLibrary_" + library.ParentId);
             AutomationProperties.SetName(item, library.Title);
             item.PointerEntered += OnSidebarLibraryPointerEntered;

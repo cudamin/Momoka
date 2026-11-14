@@ -1,3 +1,10 @@
+## 2026-11-14 侧边栏图标：空心开合与当前页面实心（9998 树）
+
+用户给图要求折叠按钮左栏空心，收起为左侧短竖线、展开为贯穿分隔线；当前页面对应的侧边栏图标实心。保留原生 NavigationView 与现有导航、详情所属库和返回/前进同步；每项独占空心/实心对象，仅状态变化换引用，重建库时移除旧配对，设置仍为另窗动作和原 AnimatedIcon。
+
+实现前读固定 Gallery `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 MainWindow、NavigationView 完整 XAML/code-behind，以及 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 Iconography/IconsData.json 和本机 WinUI 2.3.9 模板。Gallery 没有选中自动填实与两档空心折叠图的成套示例，使用原生图标组合并保留现有事件/焦点/可访问名称。主页 Home/HomeSolid、收藏 Heart/HeartFill、电视剧 Video/VideoSolid 使用已核对的字形；MP 订阅去掉已有 MDI 内孔；其他库保留已有 Movies 图标语义，按真实 Segoe Fluent Icons 圆角胶片轮廓填中央并留六齿孔。Microsoft Learn NavigationView 与 Segoe Fluent Icons 指南已读，不改依赖、主题或播放。
+
+本树 PageContract Release 0 警告 0 错误；链接正式 ShellPage.SidebarIcons 的定向测试及标题栏契约 17/17、完整页面契约 254/254，均 0 失败 0 跳过；文本行尾/BOM/空白 12 文件通过。最终 Shell Release 0 警告 0 错误；匿名原生检查台等待另一会话诊断锁释放后执行 `InspectSidebarNavigation` 与 `InspectMoviePilotSidebar`，2/2 通过、退出0；不把离线替身视作真实布局。最终运行目录 `shell-probe-20261114-042106330-31552`：1240展开、760图标栏、600展开/收起和MP选中页实屏已目视，真实窗口HWND594094；标题右側/可拖动与按钮点击区域、开合两档、音乐/电影/详情及返回/前进图标同步通过。只用匿名假HTTP与不可播放句柄，无真实登录/播放/写入；2项单项检查不冒称完整shell分区。用户随后追加左上角 Momoka 与统一图标大小：返回/折叠 Viewbox 28→20，对齐侧栏20图标盒，40按钮托盘不变；应用名在导航按钮右侧，以原生TextBlock保持拖动区，颜色随标题墨、右界避开账号/搜索/系统按钮并支持省略。自检读数同步20尺寸，原生探针增加标题位置及HitCaption检查。Windows 10 未安装 Fluent 字体时的 MDL2 回退、系统高对比/触摸/读屏/跨 DPI 尚未实测。
 ## 2026-11-14 封面静止半秒才放大，点击操作后不再误触发
 
 本轮在主树 master 开发，基点 `140bfe8`。`PosterCard` 的整卡 1.03、封面 1.045 与展开预览统一等鼠标在 Art 封面上静止 500ms；实际移动重计，同坐标不重计。按下或播放/收藏/已看/更多及预览按钮动作统一取消并抑制重触发，直到真正离开封面或换卡；假移出/捕获事件不解除。只读当前实际 Keyboard 焦点驱动键盘推近，鼠标点击焦点不能绕过计时。保留即时暗罩/按钮和预览离开宽限。

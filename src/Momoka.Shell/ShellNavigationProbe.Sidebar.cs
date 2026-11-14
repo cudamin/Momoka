@@ -127,6 +127,7 @@ internal sealed partial class ShellNavigationProbe
                 item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 3, "媒体库数量或音乐入口错误");
             Require(home.BannerCardRead().Ok, "侧栏模式轮播不是四边留白的圆角大图：" + home.BannerCardRead().Detail);
             AssertSidebarGeometry(shell, host, true);
+            AssertSidebarIconSelection(shell);
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
 
@@ -153,6 +154,7 @@ internal sealed partial class ShellNavigationProbe
             var musicTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "music"));
             Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == musicTag));
             await UntilAsync(() => frame.Content is MusicLibraryPage music && music.ViewModel.IsReady);
+            AssertSidebarIconSelection(shell);
             Require(((MusicLibraryPage)frame.Content).ViewModel.Rows.Single().Item.Type == EmbyItemType.Audio,
                 "侧栏音乐库未进入歌曲页面");
             await SaveProbeScreenAsync("sidebar-music-1240-screen.png");
@@ -173,6 +175,7 @@ internal sealed partial class ShellNavigationProbe
             shell.OpenDetail(DetailRequest.For(fixture.Services, Series()));
             await UntilAsync(() => shell.ActiveContentReady);
             Require((nav.SelectedItem as NavigationViewItem)?.Tag as string == moviesTag, "详情页丢失所属媒体库高亮");
+            AssertSidebarIconSelection(shell);
 
             async Task CheckMusicDestinationAsync(string direction)
             {
@@ -182,6 +185,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(shell.CurrentTag == musicTag && music.Tag as string == musicTag
                     && (nav.SelectedItem as NavigationViewItem)?.Tag as string == musicTag,
                     direction + "音乐根页后目的地没有恢复");
+                AssertSidebarIconSelection(shell);
                 var backEntries = frame.BackStack.ToArray();
                 var forwardEntries = frame.ForwardStack.ToArray();
                 var rows = music.ViewModel.Rows.ToArray();
@@ -610,6 +614,11 @@ internal sealed partial class ShellNavigationProbe
 
     private void AssertSidebarGeometry(ShellPage shell, Grid host, bool shown)
     {
+        var pane = Get<NavigationView>(shell, "Sidebar");
+        Require(Get<PathIcon>(shell, "NavPaneExpandedIcon").Visibility
+            == (pane.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed), "展开图标未随面板更新");
+        Require(Get<PathIcon>(shell, "NavPaneCollapsedIcon").Visibility
+            == (pane.IsPaneOpen ? Visibility.Collapsed : Visibility.Visible), "收起图标未随面板更新");
         var content = Get<Grid>(shell, "ContentHost");
         Require(Math.Abs(Left(content, shell) - (shown ? host.ActualWidth : 0)) < 1
             && Math.Abs(content.ActualWidth + Left(content, shell) - shell.ActualWidth) < 1, "侧栏与内容区重叠或出现空白");
@@ -642,6 +651,14 @@ internal sealed partial class ShellNavigationProbe
         }
         var title = shell.ProbeTitleActions();
         Require(title.Ok, "标题栏布局错误：" + title.Detail);
+        var label = Get<TextBlock>(shell, "AppTitleLabel");
+        var actions = Get<StackPanel>(shell, "TitleActions");
+        Require(label.Text == "Momoka" && label.ActualWidth > 0
+            && Left(label, shell) >= Left(actions, shell) + actions.ActualWidth + 7,
+            "应用名未出现在导航按钮右侧");
+        Require((int)typeof(ShellSelfCheck).GetMethod("HitAt", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, [_window, Left(label, shell) + label.ActualWidth / 2, Top(label, shell) + label.ActualHeight / 2])!
+            == Native.HitCaption, "应用名区域不再可拖动");
         var hit = (int)typeof(ShellSelfCheck).GetMethod("HitAt", BindingFlags.NonPublic | BindingFlags.Static)!
             .Invoke(null, [_window, title.X + title.Width / 2, title.Y + title.Height / 2])!;
         Require(hit == Native.HitClient, "侧栏收放后标题栏仍把按钮当拖动区");
@@ -710,6 +727,17 @@ internal sealed partial class ShellNavigationProbe
 
     private static double Top(FrameworkElement element, UIElement root) =>
         element.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point()).Y;
+
+    /// <summary>核对实际菜单项只有当前页面持有实心图标。</summary>
+    private static void AssertSidebarIconSelection(ShellPage shell)
+    {
+        var nav = Get<NavigationView>(shell, "Sidebar");
+        var icons = (Dictionary<NavigationViewItem, (IconElement Outline, IconElement Filled)>)
+            typeof(ShellPage).GetField("_sidebarIcons", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(shell)!;
+        foreach (var (item, pair) in icons)
+            Require(ReferenceEquals(item.Icon, ReferenceEquals(item, nav.SelectedItem) ? pair.Filled : pair.Outline),
+                "导航图标未随当前页面切换：" + item.Content);
+    }
 
     /// <summary>UIA 选中一个侧栏项 —— 和用户点它是同一条路（走 <c>SelectionChanged</c>）。</summary>
     private static void SelectSidebarItem(NavigationViewItem item) =>
@@ -820,6 +848,7 @@ internal sealed partial class ShellNavigationProbe
                 "订阅列表页的标题不对");
             Require(Get<NavigationView>(shell, "Sidebar").SelectedItem is NavigationViewItem { Tag: string tag }
                 && tag == HomeLayout.MoviePilotMovies, "订阅列表页没有高亮对应的侧栏项");
+            AssertSidebarIconSelection(shell);
             // 这一页只画它那一半：电影入口下电视剧那一排整块收着（数据两份都在，收的是版面）。
             // 两条货架带住在 MoviePilotSubscriptionsView 自己的名字域里，所以从那一层找。
             var view = Get<MoviePilotSubscriptionsView>(page, "Subscriptions");

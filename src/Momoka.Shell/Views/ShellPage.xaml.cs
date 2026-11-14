@@ -249,6 +249,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // answers move with the strip's layout: the theme's font, the scale factor, the account name's
         // own width. Measured whenever either changes rather than worked out once here.
         TitleActions.SizeChanged += (_, _) => ReportTitleBarHoles();
+        AppTitleLabel.SizeChanged += (_, _) => ReportTitleBarHoles();
         AccountButton.SizeChanged += (_, _) => ReportTitleBarHoles();
 
         // 菜单每次打开前重读一遍：在设置里拨了聚合模式之后，按钮上的身份没变，但两张子菜单的叫法
@@ -441,6 +442,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _titleInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextBrush");
         _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
+        AppTitleLabel.Foreground = _titleInk;
 
         // 面包屑那一行不再自己上底色（2026-11-12 用户令「改为Mica」）：它站的那一格由 ContentHost 的
         // EgCanvasBrush 提供。这里再涂一层同色会让顶上那一条比正文暗两档 —— 两次 60% 叠起来是 84%。
@@ -2217,6 +2219,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void ReportTitleBarHoles()
     {
+        if (TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0)
+        {
+            var titleOrigin = TitleActions.TransformToVisual(AppTitleBar).TransformPoint(new Windows.Foundation.Point());
+            var titleMargin = new Thickness(titleOrigin.X + TitleActions.ActualWidth + 8, 0, 0, 0);
+            if (AppTitleLabel.Margin != titleMargin) AppTitleLabel.Margin = titleMargin;
+            var right = AppTitleBar.ActualWidth - AppTitleBar.Padding.Right;
+            if (AccountRect() is { } account) right = Math.Min(right, account.X);
+            if (SearchRect() is { } search) right = Math.Min(right, search.X);
+            var maxWidth = Math.Max(0, right - titleMargin.Left - 8);
+            if (AppTitleLabel.MaxWidth != maxWidth) AppTitleLabel.MaxWidth = maxWidth;
+        }
         // Zero while the strip is collapsed for playback. Reporting that would hand the whole strip back to
         // the frame, which is right for playback and wrong the moment browsing returns — and playback has
         // already claimed the strip whole by then anyway, so the last real rectangle is the one to keep.
