@@ -127,10 +127,12 @@ public sealed partial class DetailPage
             HideStickyHeader(anchor, immediate: true);
             return;
         }
-        // 在视口顶部被裁切一半才接手，底部尚未滚到的按钮不触发。收回多让4 DIP，避免触控滚动临界抖动。
-        var center = box.Top + box.Height / 2;
+        // 已核对Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7
+        // Samples/ItemsView/ItemsViewPage.xaml.cs的ScrollView.ViewChanged；没有此裁切浮层的成套样例。
+        // 用户指定顶部裁掉三分之一就接手；底部尚未滚到不触发。收回多让4 DIP，避免临界抖动。
+        var clipLine = box.Top + box.Height / 3;
         var threshold = _headerShown ? Math.Min(4, box.Height * 0.1) : 0;
-        if (center <= threshold) ShowStickyHeader();
+        if (clipLine <= threshold) ShowStickyHeader();
         else HideStickyHeader(anchor, immediate: false);
     }
 

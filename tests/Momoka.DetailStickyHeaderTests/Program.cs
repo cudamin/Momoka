@@ -83,15 +83,40 @@ internal static class Program
                 ElementCompositionPreview.DeferTranslationRegistration = false;
             }
         });
-        Test("主播放按钮刚少于半切不出现，正好半切显示", () =>
+        foreach (var height in new[] { 15d, 60d, 90d })
+            Test($"主播放按钮高{height}DIP刚少于三分之一不出现，正好三分之一显示", () =>
+            {
+                using var f = new Fixture();
+                f.Page.ColumnPlayButton.ActualHeight = height;
+                var offset = 100 + height / 3;
+                f.Page.Scroll(offset - 0.001);
+                Assert.False(f.Page.Shown);
+                f.Page.Scroll(offset);
+                Assert.True(f.Page.Shown);
+                Assert.Equal(Visibility.Visible, f.Page.StickyHeader.Visibility);
+                Assert.True(f.Page.StickyHeader.IsHitTestVisible);
+            });
+        Test("默认按钮裁切三分之一后便接手，不再等到半切", () =>
         {
             using var f = new Fixture();
-            f.Page.Scroll(119.999);
+            f.Page.Scroll(100 + 40d / 3 - 0.001);
             Assert.False(f.Page.Shown);
-            f.Page.Scroll(120);
+            f.Page.Scroll(100 + 40d / 3 + 0.001);
             Assert.True(f.Page.Shown);
-            Assert.Equal(Visibility.Visible, f.Page.StickyHeader.Visibility);
-            Assert.True(f.Page.StickyHeader.IsHitTestVisible);
+        });
+        Test("不滚动但布局跨过三分之一线时，合并布局通知重新计算", () =>
+        {
+            using var f = new Fixture();
+            f.Page.Scroll(110);
+            Assert.False(f.Page.Shown);
+            f.Page.ColumnPlayButton.LayoutY = 95;
+            f.Page.RaiseLayout();
+            f.Drain();
+            Assert.True(f.Page.Shown);
+            f.Page.ColumnPlayButton.LayoutY = 102;
+            f.Page.RaiseLayout();
+            f.Drain();
+            Assert.False(f.Page.Shown);
         });
         Test("按钮完全消失后仍提供浮层播放入口", () =>
         {
@@ -120,6 +145,7 @@ internal static class Program
         Test("四DIP滞回抑制临界往返，超过阈值才退场", () =>
         {
             using var f = new Fixture();
+            f.Page.ColumnPlayButton.ActualHeight = 60;
             f.Page.Scroll(120);
             f.Page.Scroll(119);
             f.Page.Scroll(116);
@@ -132,11 +158,11 @@ internal static class Program
         Test("小按钮滞回不超过高度的十分之一", () =>
         {
             using var f = new Fixture();
-            f.Page.ColumnPlayButton.ActualHeight = 20;
+            f.Page.ColumnPlayButton.ActualHeight = 30;
             f.Page.Scroll(110);
-            f.Page.Scroll(108);
+            f.Page.Scroll(107);
             Assert.True(f.Page.Shown);
-            f.Page.Scroll(107.999);
+            f.Page.Scroll(106.999);
             Assert.False(f.Page.Shown);
         });
         Test("宽窄接入遵守IsCompact而不按窗口宽猜主播放按钮", () =>
@@ -157,10 +183,11 @@ internal static class Program
         Test("量TransformToVisual真实位置，不使用静态Hero高度推阈值", () =>
         {
             using var f = new Fixture();
-            f.Page.ColumnPlayButton.LayoutY = 341;
-            f.Page.Scroll(360.5);
+            f.Page.ColumnPlayButton.LayoutY = 341.25;
+            var offset = 341.25 + 40d / 3;
+            f.Page.Scroll(offset - 0.001);
             Assert.False(f.Page.Shown);
-            f.Page.Scroll(361);
+            f.Page.Scroll(offset + 0.001);
             Assert.True(f.Page.Shown);
         });
         Test("显示中重复滚动和重复布局不会重播入场", () =>
@@ -180,7 +207,7 @@ internal static class Program
         {
             using var f = new Fixture();
             f.Page.Scroll(120);
-            f.Page.Scroll(110);
+            f.Page.Scroll(108);
             var visual = ElementCompositionPreview.GetElementVisual(f.Page.StickyHeader);
             visual.Opacity = 0.45;
             visual.Properties.InsertVector3("Translation", new(0, -9, 0));
@@ -372,7 +399,7 @@ internal static class Program
             using var f = new Fixture();
             f.Page.Scroll(120);
             f.Page.StickyPlayButton.Focus(FocusState.Keyboard);
-            f.Page.Scroll(110);
+            f.Page.Scroll(108);
             Assert.True(ReferenceEquals(f.Page.ColumnPlayButton, FocusManager.GetFocusedElement(f.Page.XamlRoot!)));
             Assert.Equal(1, f.Page.ColumnPlayButton.FocusCalls);
             Assert.False(f.Page.StickyHeader.IsHitTestVisible);
@@ -382,7 +409,7 @@ internal static class Program
             using var f = new Fixture();
             f.Page.Scroll(120);
             f.Page.XamlRoot!.FocusedElement = f.Page.Body;
-            f.Page.Scroll(110);
+            f.Page.Scroll(108);
             Assert.True(ReferenceEquals(f.Page.Body, FocusManager.GetFocusedElement(f.Page.XamlRoot)));
             Assert.Equal(0, f.Page.ColumnPlayButton.FocusCalls);
         });
@@ -394,7 +421,7 @@ internal static class Program
                 f.Page.StickyPlayButton.Focus(FocusState.Keyboard);
                 if (unavailable == "收起") f.Page.ColumnPlayButton.Visibility = Visibility.Collapsed;
                 else f.Page.ColumnPlayButton.IsEnabled = false;
-                f.Page.Scroll(110);
+                f.Page.Scroll(108);
                 Assert.Equal(0, f.Page.ColumnPlayButton.FocusCalls);
                 Assert.False(f.Page.StickyHeader.IsHitTestVisible);
             });
@@ -404,7 +431,7 @@ internal static class Program
             f.Page.ViewModel.IsCompact = true;
             f.Page.Scroll(220);
             f.Page.StickyPlayButton.Focus(FocusState.Keyboard);
-            f.Page.Scroll(210);
+            f.Page.Scroll(208);
             Assert.Equal(1, f.Page.CompactPlayButton.FocusCalls);
             Assert.Equal(0, f.Page.ColumnPlayButton.FocusCalls);
         });
@@ -426,7 +453,7 @@ internal static class Program
                 Assert.Equal(1d, visual.Opacity);
                 Assert.Equal(Vector3.Zero, visual.Properties.Translation);
                 Assert.True(visual.Stopped.SetEquals(["Opacity", "Translation"]));
-                f.Page.Scroll(110);
+                f.Page.Scroll(108);
                 Assert.False(f.Page.Shown);
                 Assert.Equal(0, Implicit.StartedHides(f.Page.StickyHeader));
             });
@@ -441,7 +468,7 @@ internal static class Program
                 Assert.True(f.Page.Shown);
                 Assert.Equal(0, Implicit.StartedShows(f.Page.StickyHeader));
                 Assert.Equal(1d, ElementCompositionPreview.GetElementVisual(f.Page.StickyHeader).Opacity);
-                f.Page.Scroll(110);
+                f.Page.Scroll(108);
                 Assert.False(f.Page.Shown);
             });
         Test("显示中重新启用动画不重新播放入场或清零内容", () =>

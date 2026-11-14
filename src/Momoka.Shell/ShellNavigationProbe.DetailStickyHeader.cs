@@ -63,10 +63,10 @@ internal sealed partial class ShellNavigationProbe
                 var anchor = Get<Button>(page, page.ViewModel.IsCompact ? "CompactPlayButton" : "ColumnPlayButton");
                 await ScrollProbeAsync(scroll, 0);
                 Require(card.Visibility == Visibility.Collapsed && !card.IsHitTestVisible, "未滚动时卡片错误出现");
-                var center = anchor.TransformToVisual(scroll).TransformPoint(new Point(0, anchor.ActualHeight / 2)).Y;
-                await ScrollProbeAsync(scroll, center - 6);
-                Require(card.Visibility == Visibility.Collapsed, "播放键尚未裁切一半时卡片提前出现");
-                await ScrollProbeAsync(scroll, center + 6);
+                var clipLine = anchor.TransformToVisual(scroll).TransformPoint(new Point(0, anchor.ActualHeight / 3)).Y;
+                await ScrollProbeAsync(scroll, clipLine - 6);
+                Require(card.Visibility == Visibility.Collapsed, "播放键尚未裁切三分之一时卡片提前出现");
+                await ScrollProbeAsync(scroll, clipLine + 1);
                 await UntilAsync(() => card.Visibility == Visibility.Visible && card.IsHitTestVisible);
                 await Task.Delay(450);
                 Require(card.Background is AcrylicBrush, "悬浮卡片缺少系统应用内亚克力");
@@ -82,10 +82,10 @@ internal sealed partial class ShellNavigationProbe
                 Require(card.Background is not AcrylicBrush, "材质反例未替换成功");
                 card.Background = acrylic;
                 await SaveProbeScreenAsync($"detail-sticky-{width}-screen.png");
-                samples.Add(new { Width = width, Bounds = bounds.ToString(), HalfClipOffset = center, Card = "Acrylic", Name = AutomationProperties.GetName(play) });
-                await ScrollProbeAsync(scroll, center - 6);
+                samples.Add(new { Width = width, Bounds = bounds.ToString(), ThirdClipOffset = clipLine, Card = "Acrylic", Name = AutomationProperties.GetName(play) });
+                await ScrollProbeAsync(scroll, clipLine - 6);
                 await UntilAsync(() => card.Visibility == Visibility.Collapsed && !card.IsHitTestVisible);
-                await ScrollProbeAsync(scroll, center + 6);
+                await ScrollProbeAsync(scroll, clipLine + 1);
                 await UntilAsync(() => card.Visibility == Visibility.Visible);
                 HomeMotion.ApplyPreference(false);
                 Require(card.GetValue(Implicit.ShowAnimationsProperty) is null && card.GetValue(Implicit.HideAnimationsProperty) is null,
