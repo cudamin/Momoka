@@ -152,33 +152,21 @@ namespace Momoka.Shell.Views
     public sealed partial class ShellPage
     {
         private readonly Microsoft.UI.Xaml.Controls.Frame ContentFrame = new();
+        private readonly FrameworkElement TitleSearchBox = new();
         public LibraryPage? Page { get => ContentFrame.Content as LibraryPage; set => ContentFrame.Content = value; }
         public int Navigations { get; private set; }
         internal void OpenSearch() { Navigations++; Page = new LibraryPage(); Page.Apply(search: true); }
         public void FocusTitle() => OnTitleSearchGotFocus(this, new());
-        public void TypeTitle(AutoSuggestBox input, AutoSuggestBoxTextChangedEventArgs args) => OnTitleSearchTextChanged(input, args);
-        public void QueryTitle(AutoSuggestBox input, string text) => OnTitleSearchSubmitted(input, new() { QueryText = text });
     }
-    public sealed class TestDispatcher { public Queue<Action> Pending { get; } = new(); public bool TryEnqueue(Action action) { Pending.Enqueue(action); return true; } public void Run() { while (Pending.TryDequeue(out var action)) action(); } }
+    internal static class TitleSearchTransition
+    {
+        internal static int Prepared;
+        internal static bool Prepare(Frame? frame, UIElement? source) { Prepared++; return true; }
+    }
     public sealed partial class LibraryPage
     {
         private bool _attaching;
-        public TestDispatcher DispatcherQueue { get; } = new();
-        public bool TitleInputShown { get => _titleSearchInput is not null; set => _titleSearchInput = value ? new AutoSuggestBox() : null; }
-        private bool _released;
-        private bool _searchEnterDown;
-        public int ImeCancelCount { get; private set; }
-        public AutoSuggestBox SearchInput { get; } = new();
-        public void AttachTitle(AutoSuggestBox? input, bool released = false) { _released = released; _request.IsSearch = true; SetTitleSearchInput(input); }
-        private void CancelImeSubmit() => ImeCancelCount++;
-        private void PlaceSearchSites() { }
-        private void OnSearchKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs args) => _searchEnterDown = true;
-        private void OnSearchKeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs args) { if (_searchEnterDown) _searchEnterDown = false; }
-        public int Submissions { get; private set; }
-        public int TypingCalls { get; private set; }
         internal (bool IsSearch, bool BoxShown) SearchState => (_request.IsSearch, true);
-        internal Task SearchTypingAsync(string text) { TypingCalls++; ViewModel.SearchText = text; return Task.CompletedTask; }
-        private Task SubmitSearchAsync(string text) { Submissions++; ViewModel.SearchText = text; return Task.CompletedTask; }
         private readonly HeaderRequest _request = new();
         private readonly FrameworkElement _moviePilotPanel = new(), _moviePilotResources = new(), _aniBtPanel = new();
         public HeaderViewModel ViewModel { get; } = new();

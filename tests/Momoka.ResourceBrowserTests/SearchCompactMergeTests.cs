@@ -10,22 +10,21 @@ internal static class SearchCompactMergeTests
 
     internal static void Register(string sourceRoot)
     {
-        Test("标题输入复用搜索页并在离页解除，窄窗保留恢复入口", () =>
+        Test("标题框只负责把输入送进内容区，关联动画接在页内输入框上", () =>
         {
             var title = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/ShellPage.Search.cs"));
-            Assert.Contains("AutoSuggestionBoxTextChangeReason.UserInput", title);
-            Assert.Contains("page.SearchTypingAsync(text)", title);
-            Assert.DoesNotContain("OpenSearch(text)", title);
-            var owner = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.TitleSearch.cs"));
-            Assert.Contains("previous.RemoveHandler(UIElement.KeyDownEvent", owner);
-            Assert.Contains("previous.RemoveHandler(UIElement.KeyUpEvent", owner);
-            Assert.Contains("previous.LostFocus -= OnSearchLostFocus", owner);
-            Assert.Contains("CancelImeSubmit()", owner);
+            Assert.Contains("if (TitleSearchPage is not null) return", title);
+            Assert.Contains("TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox)", title);
+            Assert.Contains("OpenSearch()", title);
+            Assert.DoesNotContain("OnTitleSearchTextChanged", title);
+            var motion = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/TitleSearchTransition.cs"));
+            Assert.Contains("ConnectedAnimationService.GetForCurrentView()", motion);
+            Assert.Contains("DirectConnectedAnimationConfiguration", motion);
             var page = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
-            Assert.Contains("SearchEntry.Visibility = _titleSearchInput is null ? Visibility.Visible : Visibility.Collapsed", page);
-            Assert.Contains("SetTitleSearchInput(null)", page);
-            Assert.Contains("ActiveSearchInput.Focus(FocusState.Programmatic)", page);
-            Assert.Contains("SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty)", page);
+            Assert.Contains("TitleSearchTransition.Attach(Frame, SearchInput", page);
+            Assert.Contains("SearchEntry.Width = formWidth", page);
+            Assert.DoesNotContain("_titleSearchInput", page);
+            Assert.DoesNotContain("SetTitleSearchInput", page);
         });
         Test("搜索返回：工具栏由页面来源统一显隐，绑定不再覆盖", () =>
         {
@@ -48,7 +47,7 @@ internal static class SearchCompactMergeTests
             Assert.DoesNotContain("_searchOptionsCollapsed", source);
             Assert.DoesNotContain("_searchPresentationVersion", source);
             Assert.Contains("SearchForm.RowSpacing = 0", source);
-            Assert.Contains("SourceTabs.Margin = _titleSearchInput is null", source);
+            Assert.Contains("SourceTabs.Margin = SourceTabs.Visibility == Visibility.Visible", source);
             Assert.Contains("get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3)", source);
             Assert.Contains("AniBtSourceTab.Visibility = Visibility.Visible", source);
             Assert.Contains("if (!SearchSourceAvailable)", source);

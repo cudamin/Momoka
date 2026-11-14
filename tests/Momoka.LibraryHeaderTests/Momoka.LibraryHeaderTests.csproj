@@ -5,7 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Momoka.Shell/Views/ShellPage.Search.cs" Link="Production/ShellPage.Search.cs" />
-    <Compile Include="../../src/Momoka.Shell/Views/LibraryPage.TitleSearch.cs" Link="Production/LibraryPage.TitleSearch.cs" />
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="../Momoka.Tests/AgreementsTests.cs" Link="AgreementsTests.cs" />
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />

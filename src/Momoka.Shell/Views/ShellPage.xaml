@@ -257,8 +257,6 @@
             PlaceholderText="搜索媒体库、订阅等"
             QueryIcon="Find"
             GotFocus="OnTitleSearchGotFocus"
-            TextChanged="OnTitleSearchTextChanged"
-            QuerySubmitted="OnTitleSearchSubmitted"
             Visibility="Collapsed">
             <AutoSuggestBox.Resources>
                 <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />

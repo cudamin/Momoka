@@ -84,26 +84,32 @@ internal static class ToolbarIconTests
             Assert.True(!Named(Shell(), "TitleActions").Descendants().Any(element =>
                 element.Attribute(Xaml + "Name")?.Value == "AppTitleLabel"), "标题文字进了按钮命中区");
         });
-        TestHarness.Test("标题栏搜索框支持原生输入和提交", () =>
+        TestHarness.Test("标题栏搜索框点击后把输入移进内容区", () =>
         {
             var box = Named(Shell(), "TitleSearchBox");
             Assert.Equal("AutoSuggestBox", box.Name.LocalName);
             Assert.Equal("OnTitleSearchGotFocus", box.Attribute("GotFocus")?.Value);
-            Assert.Equal("OnTitleSearchTextChanged", box.Attribute("TextChanged")?.Value);
-            Assert.Equal("OnTitleSearchSubmitted", box.Attribute("QuerySubmitted")?.Value);
+            Assert.Null(box.Attribute("TextChanged"));
+            Assert.Null(box.Attribute("QuerySubmitted"));
             Assert.Equal("Find", box.Attribute("QueryIcon")?.Value);
             Assert.Equal("Center", box.Attribute("HorizontalAlignment")?.Value);
             Assert.Equal("Collapsed", box.Attribute("Visibility")?.Value);
             Assert.Equal("搜索媒体库、订阅等", box.Attribute("PlaceholderText")?.Value);
         });
-        TestHarness.Test("标题栏搜索：商店侧栏使用居中框，沉浸宽窄窗口恢复左上放大镜", () =>
+        TestHarness.Test("标题栏搜索：商店侧栏使用居中框，搜索页收起，沉浸宽窄窗口恢复左上放大镜", () =>
         {
             var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
             var method = source[source.IndexOf("    private void SyncTitleSearch()", StringComparison.Ordinal)..];
             method = method[..method.IndexOf("\n    }", StringComparison.Ordinal)];
             Assert.Contains("SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700", method);
+            Assert.Contains("var visible = shown && TitleSearchPage is null", method);
+            Assert.Contains("TitleSearchBox.Visibility = visible ? Visibility.Visible : Visibility.Collapsed", method);
             Assert.Contains("SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible", method);
             Assert.DoesNotContain("1000", method);
+            var search = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.Search.cs"));
+            Assert.Contains("TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox)", search);
+            var page = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "LibraryPage.xaml.cs"));
+            Assert.Contains("TitleSearchTransition.Attach(Frame, SearchInput", page);
         });
         TestHarness.Test("标题栏收藏：爱心字形默认收着，没有收藏时不出现在那一排", () =>
         {

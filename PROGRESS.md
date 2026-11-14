@@ -1,8 +1,12 @@
-## 2026-11-14 搜索页来源栏在标题输入下贴左（本树，待合并）
+## 2026-11-14 搜索框点标题栏后移进内容区、来源栏居中（本树，待合并）
 
-工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-crooked-alignment-vebOKM`，分支 `fix-crooked-alignment-vebOKM`，基点 `eb30ae8`。用户上传搜索页截图问「这个怎么是歪的」：标题栏接管输入后，页内 `SearchEntry` 收起，`SearchForm` 那两列 `Auto` 只剩来源栏自身的 480，跨两列的孩子因此只占 480 并被钉在 900 宽搜索区左沿，来源栏整体偏左。改成单列 `*` 后，输入框在不在，来源栏都居中在搜索区；`SearchSitePicker` 那一行不再需要跨列。新增 `Momoka.ResourceBrowserTests` 两条 XAML 契约（单列、无 ColumnSpan，双 Auto 列必须被拒绝）与两处原生断言（普通搜索页与标题输入页，来源栏中心对搜索区中心 ≤1 DIP）。
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-crooked-alignment-vebOKM`，分支 `fix-crooked-alignment-vebOKM`，基点 `eb30ae8`。用户上传搜索页截图问「这个怎么是歪的」，追问后明确要「新增动画，点击标题的搜索栏后自动移到内容区」。
 
-验证：Shell Release 0 警告 0 错误；`Momoka.ResourceBrowserTests` 189/189；`Momoka.LibraryHeaderTests` 27/27；`--probe-shell --probe-section shell --screen 1` 退出 0（`shell-probe-20261114-143238200-13440`，含新增的标题输入居中断言）；`tools/check-diff.ps1` 通过。未合并、未交付；未连接真实服务器、未播放。
+**歪的原因。** 标题栏接管输入（`93a1c12`）后页内 `SearchEntry` 收起，`SearchForm` 那两列 `Auto` 只剩来源栏自身的 480，跨两列的孩子因此只占 480 并被钉在 900 宽搜索区左沿；页内输入在时两列被撑满，所以只有标题输入这一档看得出偏。
+
+**改法。** ① `SearchForm` 改单列 `*`，来源栏在任何输入归属下都居中；`SearchSitePicker` 不再跨列。② 撤销标题栏接管输入的整套机制（删 `LibraryPage.TitleSearch.cs`）：搜索页始终用页内 `SearchInput`，`PageRoot` 顶部恢复 40 DIP，站点入口回到输入框模板内。③ 恢复 `TitleSearchTransition`：点标题框先 `PrepareToAnimate` 再导航，搜索页 `OnLoaded` 把输入框交给 `TryStart`，接不上退回淡入；框落下后光标交给内容区输入框。④ `SyncTitleSearch`：搜索页开着时标题框收起（屏幕上只剩移下来的那一只），离开搜索页再出现；标题框不再挂 `TextChanged`/`QuerySubmitted`。
+
+验证：Shell Release 0 警告 0 错误；`Momoka.LibraryHeaderTests` 21/21；`Momoka.SearchLifetimeTests` 44/44；`Momoka.ResourceBrowserTests` 189/189；`Momoka.PageContractTests` 274/274；`toolbar-icon-fixture` 15/15；`tools/check-diff.ps1` 通过。原生 `--probe-shell --probe-section shell --screen 1` 结果见下一条记录（共享桌面锁被其他工作树长时间占用，未拿到运行证据前不当作通过）。未合并、未交付；未连接真实服务器、未播放。
 
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 

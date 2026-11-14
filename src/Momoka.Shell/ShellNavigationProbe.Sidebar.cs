@@ -204,7 +204,7 @@ internal sealed partial class ShellNavigationProbe
                     $"轮播滚动条没有固定在下沿：实际 {scrollBar?.Margin.Top:0.0}、预期 {expected:0.0}");
             }
 
-            // 2026-11-13 用户令：栏里的搜索项删除；标题栏原生输入接管搜索，宽窄切换保留关键词。
+            // 2026-11-14 用户令：点标题框，框用关联动画移进内容区；搜索页开着时标题框收起，离开再出现。
             Require(nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
                 .All(item => item.Tag as string != "search"), "侧边栏里仍有搜索入口");
             var titleSearch = Get<AutoSuggestBox>(shell, "TitleSearchBox");
@@ -224,57 +224,63 @@ internal sealed partial class ShellNavigationProbe
                 "商店模式没有让画布避开标题栏");
             HomeMotion.ApplyPreference(true);
             Require(settingsIcon.Source is not null, "开动画后侧栏设置图标没有恢复动态源");
+            TitleSearchTransition.ResetOutcome();
             Require(titleSearch.Focus(FocusState.Programmatic), "标题搜索框不能获得焦点");
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.SearchTag
                 && frame.Content is LibraryPage searchPage && searchPage.ViewModel.SearchVisibility == Visibility.Visible);
             var titleSearchPage = (LibraryPage)frame.Content;
             await LayoutAsync(shell);
-            Require(ReferenceEquals(titleSearchPage.ActiveSearchInput, titleSearch), "搜索页未使用标题输入框");
-            Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == Visibility.Collapsed
-                && Get<Grid>(titleSearchPage, "SearchForm").RowSpacing == 0, "页内重复输入或空行未收起");
-            Require(titleSearch.Focus(FocusState.Programmatic), "导航后标题输入失焦");
-            // 改模板 TextBox 走原生 UserInput；立即查询要抵挡 150ms 后才到的 TextChanged。
-            var titleTextBox = Descendants(titleSearch).OfType<TextBox>().Single();
-            titleTextBox.Text = "离线标题";
-            var titleQuery = Descendants(titleSearch).OfType<Button>().Single(button => button.Name == "QueryButton");
-            ((IInvokeProvider)new ButtonAutomationPeer(titleQuery).GetPattern(PatternInterface.Invoke)).Invoke();
-            await Task.Delay(650);
-            Require(titleSearchPage.ViewModel.SearchText == titleSearch.Text && titleSearch.Text == "离线标题",
-                "标题输入或立即回车被延迟文本事件覆盖");
-            Require(titleSearchPage.ViewModel.LoadedCount > 0, "标题查询没有留下搜索结果");
-            // 标题栏接管输入后页内输入框收起，来源栏仍须居中在搜索区（两列 Auto 会把它钉在左沿）。
+            await UntilAsync(() => TitleSearchTransition.LastOutcome is "started" or "skipped");
+            Require(TitleSearchTransition.LastOutcome == "started",
+                $"标题框移到内容区的关联动画没有启动：{TitleSearchTransition.LastOutcome}");
+            Require(titleSearch.Visibility == Visibility.Collapsed, "搜索页仍留着标题搜索框");
+            Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == Visibility.Visible,
+                "搜索页没有接住移下来的输入框");
+            Require(titleSearchPage.SearchInputFocused, "框落下后光标不在内容区的输入框");
+            // 来源栏仍须居中在搜索区（搜索页这一档两列 Auto 会把它钉在左沿）。
             var searchTabs = Get<FrameworkElement>(titleSearchPage, "SourceTabs");
             var searchSurface = Get<Border>(titleSearchPage, "SearchSurface");
             Require(Math.Abs(Left(searchTabs, titleSearchPage) + searchTabs.ActualWidth / 2
                     - (Left(searchSurface, titleSearchPage) + searchSurface.ActualWidth / 2)) <= 1,
-                "标题输入时来源栏没有居中在搜索区");
+                "搜索页来源栏没有居中在搜索区");
+            var searchInput = Get<AutoSuggestBox>(titleSearchPage, "SearchInput");
+            var searchField = Descendants(searchInput).OfType<TextBox>().Single();
+            searchField.Text = "离线标题";
+            var searchQuery = Descendants(searchInput).OfType<Button>().Single(button => button.Name == "QueryButton");
+            ((IInvokeProvider)new ButtonAutomationPeer(searchQuery).GetPattern(PatternInterface.Invoke)).Invoke();
+            await Task.Delay(650);
+            Require(titleSearchPage.ViewModel.SearchText == searchInput.Text && searchInput.Text == "离线标题",
+                "内容区输入或立即回车被延迟文本事件覆盖");
+            Require(titleSearchPage.ViewModel.LoadedCount > 0, "标题查询没有留下搜索结果");
             await SaveProbeScreenAsync("sidebar-title-search-screen.png");
             foreach (var searchWidth in new[] { 620, 1240, 620, 1240 })
             {
-                Require(titleSearchPage.ActiveSearchInput.Focus(FocusState.Programmatic), "缩放前输入无法聚焦");
+                Require(searchInput.Focus(FocusState.Programmatic), "缩放前输入无法聚焦");
                 ResizeProbeClient(searchWidth, 900);
                 await LayoutAsync(shell);
-                var wideSearch = searchWidth >= 700;
-                Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility
-                    == (wideSearch ? Visibility.Collapsed : Visibility.Visible), "宽窄切换搜索输入未换班");
-                Require(titleSearchPage.ActiveSearchInput.Text == "离线标题", "宽窄切换丢失关键词");
+                Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == Visibility.Visible,
+                    "宽窄切换收起了内容区的输入框");
+                Require(titleSearch.Visibility == Visibility.Collapsed, "宽窄切换把标题框放回了标题栏");
+                Require(searchInput.Text == "离线标题", "宽窄切换丢失关键词");
                 Require(titleSearchPage.SearchInputFocused, "宽窄切换没有把焦点交给可见输入");
             }
             foreach (var immersive in new[] { true, false })
             {
-                Require(titleSearchPage.ActiveSearchInput.Focus(FocusState.Programmatic), "模式切换前输入不能聚焦");
+                Require(searchInput.Focus(FocusState.Programmatic), "模式切换前输入不能聚焦");
                 fixture.Settings.Ui.EnableImmersive = immersive;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(shell);
-                Require(ReferenceEquals(frame.Content, titleSearchPage) && titleSearchPage.ActiveSearchInput.Text == "离线标题",
+                Require(ReferenceEquals(frame.Content, titleSearchPage) && searchInput.Text == "离线标题",
                     "显示模式切换重建搜索页或丢失关键词");
-                Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == (immersive ? Visibility.Visible : Visibility.Collapsed)
-                    && titleSearch.Visibility == (immersive ? Visibility.Collapsed : Visibility.Visible), "模式切换没有交接可见搜索输入");
+                Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == Visibility.Visible,
+                    "模式切换收起了内容区的输入框");
+                Require(titleSearch.Visibility == Visibility.Collapsed, "搜索页把标题框放回了标题栏");
                 Require(titleSearchPage.SearchInputFocused, "模式切换没有恢复输入焦点");
             }
             Call(shell, "GoBack");
             await UntilAsync(() => frame.Content is HomePage && shell.ActiveContentReady);
             await LayoutAsync(shell);
+            Require(titleSearch.Visibility == Visibility.Visible, "离开搜索页后标题框没有回到标题栏");
             HomeMotion.ApplyPreference(false);
             Require(settingsIcon.Source is null, "再次关动画后侧栏设置图标没有收起动态源");
 

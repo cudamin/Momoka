@@ -153,7 +153,7 @@ internal sealed partial class ShellNavigationProbe
                     () => shell.Pages.Content is LibraryPage search && search.SearchState.IsSearch);
             }
             var searchPage = (LibraryPage)shell.Pages.Content;
-            var searchInput = searchPage.ActiveSearchInput;
+            var searchInput = Get<AutoSuggestBox>(searchPage, "SearchInput");
             if (resumeFromResult)
             {
                 // The previous run already witnessed the user's query; this run seeds only the same anonymous result.
@@ -266,7 +266,7 @@ internal sealed partial class ShellNavigationProbe
             await Stage("back-ready", "press Alt+Left to return to search", _window.Handle,
                 () => shell.Pages.Content is LibraryPage restored && restored.SearchState.IsSearch && restored.ViewModel.IsReady);
             var restoredSearch = (LibraryPage)shell.Pages.Content;
-            KeyboardJourneyProbeRules.RequireFinal(restoredSearch.ActiveSearchInput.Text,
+            KeyboardJourneyProbeRules.RequireFinal(Get<AutoSuggestBox>(restoredSearch, "SearchInput").Text,
                 restoredSearch.ViewModel.Cards.All(card => card.Scope?.Connection.ApiBase.Host == "keyboard-b.invalid"),
                 actions.Plays, server.AuthenticationPosts, server.RejectedWrites);
             await SaveProbeScreenAsync("keyboard-journey-return-760-screen.png");

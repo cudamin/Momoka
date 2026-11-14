@@ -262,7 +262,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
         if (e.PropertyName is nameof(LibraryViewModel.UpcomingVisibility) or nameof(LibraryViewModel.FavoritesVisibility)) ApplyHeaderLayout();
         if (e.PropertyName == nameof(LibraryViewModel.MoviePilotTabsVisibility)) ApplyHeaderLayout();
-        if (e.PropertyName == nameof(LibraryViewModel.SearchText)) SyncTitleSearchText();
         if (e.PropertyName == nameof(LibraryViewModel.SortLabel)
             || e.PropertyName == nameof(LibraryViewModel.SortDescending))
             Alpha.SetCurrent(null);
@@ -316,8 +315,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     internal (bool IsSearch, bool BoxShown, string Text, string Notice, int Rows) SearchState => (
         _request?.IsSearch == true,
-        ActiveSearchInput.Visibility == Visibility.Visible,
-        ActiveSearchInput.Text ?? string.Empty,
+        SearchInput.Visibility == Visibility.Visible,
+        SearchInput.Text ?? string.Empty,
         ViewModel.EmptyNotice,
         ViewModel.LoadedCount);
 
@@ -662,7 +661,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     public void Release()
     {
         if (_released) return;
-        var searchDraft = _titleSearchInput?.Text;
         EndSelection();
         if (_session is { } batchSession)
         {
@@ -680,7 +678,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
         CancelTyping();
         CancelImeSubmit();
-        SetTitleSearchInput(null);
         _navigation++;
         SearchSitePicker.ClosePopup();
         if (_request is { } request)
@@ -690,7 +687,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             request.LoadedCount = ViewModel.LoadedCount;
             if (request.IsSearch)
             {
-                request.SearchTerm = searchDraft ?? ViewModel.SearchText;
+                request.SearchTerm = ViewModel.SearchText;
                 request.SearchSource = SearchSource;
                 if (_moviePilotPanel is { } panel)
                 {
@@ -729,15 +726,18 @@ public sealed partial class LibraryPage : Page, IShellContent
         UpdateTabColors(ThemeHost.Current);
         if (ViewModel.IsFnNas && !ViewModel.IsFolderDrillDown && _request?.IsSearch != true) ReorderFnNasToolbar();
         ApplyHeaderLayout();
-        if (_request?.IsSearch == true)
-        {
+        // 侧边栏模式点标题框进来时，先让关联动画把那只框接到这里（它同时从标题栏收起）；
+        // 接不上才退回原来的淡入。
+        var connected = _request?.IsSearch == true
+            && TitleSearchTransition.Attach(Frame, SearchInput,
+                started => { if (!started) HomeMotion.Reveal(SearchSurface, 0, 220, 8); });
+        if (_request?.IsSearch == true && !connected)
             HomeMotion.Reveal(SearchSurface, 0, 220, 8);
-        }
 
-        // The search page opens with an empty box and nothing to look at, so the caret belongs in the box.
+        // 框刚落下来（或本来就空着）时光标就该在框里；带着结果回到这一页则不抢焦点。
         // Here rather than in OnNavigatedTo: nothing can take focus before it is in the tree.
-        if (_request is { IsSearch: true } && ViewModel.SearchText.Length == 0)
-            ActiveSearchInput.Focus(FocusState.Programmatic);
+        if (_request is { IsSearch: true } && (connected || ViewModel.SearchText.Length == 0))
+            SearchInput.Focus(FocusState.Programmatic);
         if (_request is { IsSearch: true, SearchSource: 1 } search && _moviePilotPanel is { } panel)
             panel.RestoreScroll(search.MoviePilotScrollOffset);
 
@@ -848,7 +848,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 库根、Jellyfin 的 list 根与所有文件夹下钻页都用库页这 20 边距：卡片宽度是「可用宽 ÷ 列数」，
         // 同样是 1368 宽的窗口，32 边距会让下钻页从 7 列掉成 6 列、封面比 Emby 库大一档
         // （2026-11-01 用户令「参考 emby 库封面的大小统一其他库的封面大小」）。
-        PageRoot.Margin = search ? new Thickness(pageMargin.Left, _titleSearchInput is null ? 40 : 12, pageMargin.Right, pageMargin.Bottom)
+        PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
             : sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList ? new Thickness(20) : pageMargin;
         PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
@@ -903,10 +903,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSurface.Width = formWidth;
         SearchSurface.MaxWidth = width;
         SearchEntry.Width = formWidth;
-        SearchEntry.Visibility = _titleSearchInput is null ? Visibility.Visible : Visibility.Collapsed;
         // 间距放在可见来源栏上；第3行站点入口收起后不能留下 Grid 的额外行距。
         SearchForm.RowSpacing = 0;
-        SourceTabs.Margin = _titleSearchInput is null && SourceTabs.Visibility == Visibility.Visible
+        SourceTabs.Margin = SourceTabs.Visibility == Visibility.Visible
             ? new Thickness(0, 8, 0, 0) : new Thickness(0);
         SourceTabs.Width = Math.Min(480, formWidth);
         var visibleTabs = SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>()
@@ -1500,22 +1499,25 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// 同时扩展模板的跨列表面，站点入口也在输入框边框内；模板重建时重新挂载。搜索页与「在 MoviePilot 搜索版本」
     /// 窗口共用 <see cref="SearchSiteSlot"/> 这一份做法。
     /// </summary>
-    private void PlaceSearchSites()
+    private void PlaceSearchSites() => SearchSiteSlot.Place(SearchInput, SearchSitePicker);
+
+    /// <summary>实际焦点在不在搜索框的模板 TextBox 里（AutoSuggestBox 自己的 FocusState 不反映这一点）。</summary>
+    internal bool SearchInputFocused
     {
-        if (_titleSearchInput is null)
+        get
         {
-            SearchSiteSlot.Place(SearchInput, SearchSitePicker);
-            return;
+            if (SearchInput.XamlRoot is null) return false;
+            for (var focused = FocusManager.GetFocusedElement(SearchInput.XamlRoot) as DependencyObject;
+                focused is not null; focused = VisualTreeHelper.GetParent(focused))
+                if (ReferenceEquals(focused, SearchInput)) return true;
+            return false;
         }
-        // 标题栏只放关键词；站点入口留在来源栏下面，避免窄标题框被清除/查询/站点三颗按钮挤满。
-        if (!ReferenceEquals(SearchSitePicker.Parent, SearchForm))
-        {
-            if (SearchSitePicker.Parent is Panel previous) previous.Children.Remove(SearchSitePicker);
-            SearchForm.Children.Add(SearchSitePicker);
-        }
-        Grid.SetRow(SearchSitePicker, 2);
-        SearchSitePicker.HorizontalAlignment = HorizontalAlignment.Center;
-        SearchSitePicker.Margin = new Thickness(0, 8, 0, 0);
+    }
+
+    private void OnSearchLostFocus(object sender, RoutedEventArgs args)
+    {
+        _searchEnterDown = false;
+        CancelImeSubmit();
     }
 
     private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
@@ -1552,19 +1554,19 @@ public sealed partial class LibraryPage : Page, IShellContent
         CancelImeSubmit();
         var pending = new CancellationTokenSource();
         _imeSubmit = pending;
-        var before = ActiveSearchInput.Text ?? string.Empty;
+        var before = SearchInput.Text ?? string.Empty;
         try
         {
             for (var attempt = 0; attempt < 14; attempt++)
             {
                 await Task.Delay(25, pending.Token).ConfigureAwait(true);
-                if (string.Equals(ActiveSearchInput.Text, before, StringComparison.Ordinal)) continue;
+                if (string.Equals(SearchInput.Text, before, StringComparison.Ordinal)) continue;
                 await Task.Delay(60, pending.Token).ConfigureAwait(true);
                 break;
             }
 
             if (pending.IsCancellationRequested || _released) return;
-            await SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty).ConfigureAwait(true);
+            await SubmitSearchAsync(SearchInput.Text ?? string.Empty).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         finally
@@ -1585,7 +1587,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         CancelTyping();
         if (_released) return Task.CompletedTask;
         // 从来源标签按回车后把焦点交回输入框，接着修改关键词不必再点一次。
-        ActiveSearchInput.Focus(FocusState.Programmatic);
+        SearchInput.Focus(FocusState.Programmatic);
         return RunSearchAsync(text, remember: true);
     }
 
@@ -1696,7 +1698,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSourceTabsPointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        if (!_released && _request?.IsSearch == true) ActiveSearchInput.Focus(FocusState.Programmatic);
+        if (!_released && _request?.IsSearch == true) SearchInput.Focus(FocusState.Programmatic);
     }
 
     /// <summary>
@@ -1708,7 +1710,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_released || e.Key != Windows.System.VirtualKey.Enter) return;
         e.Handled = true;
-        _ = SubmitSearchAsync(ActiveSearchInput.Text ?? string.Empty);
+        _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
         // 提交把焦点交到输入框后，这颗回车的 keyup 也会过去，不能误认为输入法补提交。
         _searchEnterDown = true;
     }
@@ -1876,7 +1878,6 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ => ViewModel.ExtendedSearchCategoriesVisibility == Visibility.Visible
                 ? "搜索影片、节目、人物、合集和播放列表" : "搜索媒体库中的影片、节目和单集"
         };
-        if (_titleSearchInput is { } titleInput) titleInput.PlaceholderText = SearchInput.PlaceholderText;
         ApplyHeaderLayout();
         ViewModel.Cancel();
         ViewModel.NoticeOpen = false;
