@@ -15,10 +15,58 @@ internal static class HoverMotionTests
         {
             var source = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
             Assert.Contains("private const double HoverScale = 1.03;", source);
-            Assert.Contains("var lifted = _hovered || _previewOpen;", source);
+            Assert.Contains("var lifted = _hoverDwell.IsReady || _previewOpen;", source);
+            Assert.Contains("var active = _hoverDwell.IsReady || keyboardFocused || _previewOpen;", source);
             Assert.Contains("new BackEase", source);
             Assert.Contains("XamlCompInterop", source);
             Assert.Contains("6de91fe", source);
+        });
+
+        Test("悬停放大：鼠标移动与计时都核对真实封面位置，保留按钮即时反馈", () =>
+        {
+            var source = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
+            Assert.Contains("Root.AddHandler(PointerMovedEvent, new PointerEventHandler(OnPointerMoved), true);", source);
+            Assert.Contains("e.Pointer.PointerDeviceType != PointerDeviceType.Mouse", source);
+            Assert.Contains("Art.TransformToVisual(content)", source);
+            Assert.Contains("position = (cursor.X, cursor.Y);", source);
+            var tickStart = source.IndexOf("private void OnHoverDwellTick(", StringComparison.Ordinal);
+            var tickEnd = source.IndexOf("private void OpenPreview(", tickStart, StringComparison.Ordinal);
+            var tick = source[tickStart..tickEnd];
+            Assert.Contains("AnotherPopupOpen() || !TryReadCoverPointer(out var position)", tick);
+            Assert.Contains("CancelHoverDwell();", tick);
+            Assert.Contains("_hoverDwell.Observe(position.X, position.Y, now);", tick);
+            Assert.Contains("_hoverDwell.TryComplete(now)", tick);
+            Assert.Contains("Hover.IsHitTestVisible = _hovered;", source);
+            Assert.DoesNotContain("ArmPreview()", source);
+            Assert.DoesNotContain("PreviewDwellMs = 1000", source);
+            var watchStart = source.IndexOf("_watch = new HoverWatch(", StringComparison.Ordinal);
+            var watchEnd = source.IndexOf("_focus = new FocusWatch(", watchStart, StringComparison.Ordinal);
+            Assert.Contains("CancelHoverDwell();", source[watchStart..watchEnd]);
+
+            foreach (var (start, end) in new[]
+            {
+                ("private static void OnCardChanged(", "private void OnLoaded("),
+                ("private void OnUnloaded(", "private void AnimateCard("),
+                ("private void ResetMotion(", "internal Task PlayRemovalAsync(")
+            })
+            {
+                var first = source.IndexOf(start, StringComparison.Ordinal);
+                var last = source.IndexOf(end, first, StringComparison.Ordinal);
+                Assert.Contains("CancelHoverDwell();", source[first..last]);
+            }
+        });
+
+        Test("悬停放大：指针按下和所有动作统一抑制，鼠标点击焦点不推近封面", () =>
+        {
+            var source = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
+            var pressStart = source.IndexOf("private void OnPointerPressed(", StringComparison.Ordinal);
+            var pressEnd = source.IndexOf("private void OnPointerReleased(", pressStart, StringComparison.Ordinal);
+            Assert.Contains("SuppressHoverDwell();", source[pressStart..pressEnd]);
+            var raise = source[source.IndexOf("private void Raise(", StringComparison.Ordinal)..];
+            Assert.True(raise.IndexOf("SuppressHoverDwell();", StringComparison.Ordinal)
+                < raise.IndexOf("ActionRequested?.Invoke", StringComparison.Ordinal));
+            Assert.Contains("FocusManager.GetFocusedElement(root) is Control { FocusState: FocusState.Keyboard }", source);
+            Assert.Contains("if (!TryReadCoverPointer(out _)) _hoverDwell.Reset();", source);
         });
 
         Test("悬停预览：Popup独立于缩放卡片，窗口坐标不再次乘祖先缩放", () =>
