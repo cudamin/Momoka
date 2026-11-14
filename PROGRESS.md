@@ -1,3 +1,11 @@
+## 2026-11-14 WinUI动效施工 S0 与呈现归属（在途）
+
+用户按 [施工文档](docs/WinUI动效施工文档.md) 授权开始S0～S4。当前树 `C:/Users/89400/.codex/worktrees/winui-motion-review-doc/Momoka`，分支 `codex/winui-motion-implementation`，刷新基线为master `63ef01a`，开始时主树及本树干净；WinUI2.3.9/Runtime2.5.1/Toolkit8.2.251219未变。S1与S3在各自独立树并行写入，原生运行统一串行。
+
+S0基线：Shell Release 0警告0错误；BrowsePresentation27/27、NavigationState10/10、HomeFoldCompletion71/71、HomeDirectory82/82。S1/S3专项证据另记本批提交。普通导航/下钻/Back/Forward/面包屑仍走真实Frame与请求，首页/搜索/设置局部入场保持原归属。静态复核本轮所审关联/门控/浮层源码相对文档基线未变，Shell只有其他批次接线变化。
+
+呈现责任：BrowsePresentation将跨阶段bool改为本次访问的明确状态；首帧/低优先级图片放行与fade选择独立，关联成功不补fade，启动拒绝只回退一次，下一访问清旧状态。真实链接生产代码的Browse专项32/32、NavigationState10/10、HomeDirectory82/82，0失败0跳过。Native状态目前只支持隔离候选试验，不代表已采用原生路由；原生Entrance需实际首屏、中断和历史证据后决定。没有发布、上传、真实播放或系统动画设置改动。分支待S1～S3整合、原生工具验证与合并master。
+
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 
 用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。
