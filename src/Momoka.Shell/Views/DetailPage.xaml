@@ -168,6 +168,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
+                    Tag="InfoLabel"
                     FontSize="{StaticResource EgCaptionFontSize}"
                     Foreground="{ThemeResource EgTextFaintBrush}"
                     HorizontalAlignment="Right"
@@ -176,6 +177,7 @@
                     Text="{x:Bind Label}" />
 
                 <TextBlock
+                    Tag="InfoValue"
                     Grid.Column="1"
                     Grid.ColumnSpan="{x:Bind Span}"
                     FontSize="{StaticResource EgCaptionFontSize}"
@@ -186,6 +188,7 @@
                     TextWrapping="Wrap" />
 
                 <TextBlock
+                    Tag="InfoValue"
                     Grid.Column="2"
                     FontSize="{StaticResource EgCaptionFontSize}"
                     Foreground="{ThemeResource EgTextDimBrush}"
@@ -587,6 +590,7 @@
                             x:Name="HeroStack"
                             Grid.Column="1"
                             MaxWidth="{x:Bind ViewModel.StoreTextWidth, Mode=OneWay}"
+                            MinHeight="{x:Bind ViewModel.HeroColumnHeight, Mode=OneWay}"
                             SizeChanged="OnHeroStackSizeChanged"
                             VerticalAlignment="{x:Bind ViewModel.HeroContentAlignment, Mode=OneWay}"
                             Spacing="10">

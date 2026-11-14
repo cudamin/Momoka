@@ -44,7 +44,7 @@ public sealed partial class DetailPage
             panel.Background = plain ? StoreCardMaterialSource.Background : _panelFill;
             panel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         }
-        // 资源回调的顺序不固定；沉浸信息卡必须保留可读卡面，不能被透明的正文面板刷覆盖。
+        // 资源回调的顺序不固定；信息卡那块的底（商店固定面色／纸面面板刷／沉浸无卡面）由那一支最后定。
         PaintBackdropReading();
     }
 
@@ -163,6 +163,10 @@ public sealed partial class DetailPage
         PaintBackdropReading();
 
         HeroTail.MinHeight = ViewModel.TailMinHeight;
+
+        // 那一栏撑满封面的高之后，操作那一块要贴到封面下沿 —— 换模式时它自己的高度可能没变，
+        // SizeChanged 不会再来，所以在这里主动排一次（见 DetailPage.LayoutHeroColumn）。
+        LayoutHeroColumn();
 
         PaintWash(force: true);
     }
