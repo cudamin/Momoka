@@ -13644,3 +13644,11 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 用户要求删除已有优化计划。本轮删除 `docs/WinUI优化计划-2026-11-14.md`，将文档维护台账改为已撤销并移除有效链接，六阶段不再作为待执行任务。原计划及编写时的检查结果保留在 Git 提交 `62573b1` 和上方历史记录中。
 
 本轮在 `C:/Users/89400/.codex/worktrees/winui-optimization-plan/Momoka`、临时分支 `codex/remove-winui-optimization-plan` 完成。文档删除、引用撤销、UTF-8、LF、BOM、末尾换行、Git 历史可恢复及差异空白检查通过，独立复核通过；不构建、运行客户端、执行探针或发布。合入时保留主树已有产品改动。
+
+## 2026-11-14 WinUI 动效施工文档
+
+用户要求把 Connected Animations、Implicit Animations、Page Transitions、Animated Visuals 和 Composition Effects 的只读审查整理为后续可执行的施工文档。本轮在 `C:/Users/89400/.codex/worktrees/winui-motion-review-doc/Momoka`、临时分支 `codex/winui-motion-construction-doc` 编写 `docs/WinUI动效施工文档.md`，源码基线 `e70f55b397845e92355c1ff22672424faa1f47bd`。
+
+文档明确 S0～S4 的文件、步骤、测试与验收：关联计时/回退/人物完成回执，普通顶层前进的原生 Entrance 候选，已有原生/Toolkit/Storyboard 动效的中断与命中收尾，最后按用户交付指令统一验收。Back 的准备时序、GoForward 无参及过渡属性只读、首帧图片门控、启动失败与启动后取消的区别均明确；AnimatedVisualPlayer 与 Composition Effects 暂缓。没有恢复旧优化计划，没有开始产品施工。
+
+编写并执行本轮文档静态检查：12/12，通过37处本地文件链接、22处官方/固定提交引用格式、当前源码参数与包声明、施工状态、编码/LF/BOM/末尾换行和空白核对。初次校验有一条因检查短句漏写“不能”的“能”而失败，按文档原句修正检查后通过；未删检查或改产品。两位独立只读审阅者核对上游与可执行性，提出的人物观察接口、无票据 Prepare 失败及启动后不补淡入三处已补齐。纯文档维护，未构建、运行应用、执行探针、改依赖、发布或上传。
