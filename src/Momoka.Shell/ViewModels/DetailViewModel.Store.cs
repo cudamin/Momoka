@@ -15,6 +15,15 @@ public sealed partial class DetailViewModel
     public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(PageWidth, HeroHeight);
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
+    /// <summary>
+    /// 商店背景那块环境底的高度：取「剧照盒」与「这一格内容」里更高的一个。
+    /// <para>
+    /// 剧照是 16:9，按钮那一排可能比它矮、也可能比它高：只按剧照盒画，底会在按钮上方截断；
+    /// 只按内容画，超宽窗口上图的下半段又会渐隐到窗口画布而不是色底上。取大之后两头都不露边。
+    /// </para>
+    /// </summary>
+    public double StoreAmbientHeight => Math.Max(StoreBackdropHeight, HeroHeight);
+
     public double StorePreviewWidth => Math.Min(640, PageWidth * 0.46);
 
     /// <summary>
@@ -57,6 +66,7 @@ public sealed partial class DetailViewModel
         OnPropertyChanged(nameof(HeroRoom));
         OnPropertyChanged(nameof(HeroLayoutHeight));
         OnPropertyChanged(nameof(HeroHeight));
+        OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(ScrimHeight));
         OnPropertyChanged(nameof(PictureHeight));
