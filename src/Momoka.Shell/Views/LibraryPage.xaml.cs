@@ -904,7 +904,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSurface.MaxWidth = width;
         SearchEntry.Width = formWidth;
         SearchEntry.Visibility = _titleSearchInput is null ? Visibility.Visible : Visibility.Collapsed;
-        SearchForm.ColumnSpacing = 0;
         // 间距放在可见来源栏上；第3行站点入口收起后不能留下 Grid 的额外行距。
         SearchForm.RowSpacing = 0;
         SourceTabs.Margin = _titleSearchInput is null && SourceTabs.Visibility == Visibility.Visible
@@ -1515,8 +1514,6 @@ public sealed partial class LibraryPage : Page, IShellContent
             SearchForm.Children.Add(SearchSitePicker);
         }
         Grid.SetRow(SearchSitePicker, 2);
-        Grid.SetColumn(SearchSitePicker, 0);
-        Grid.SetColumnSpan(SearchSitePicker, 2);
         SearchSitePicker.HorizontalAlignment = HorizontalAlignment.Center;
         SearchSitePicker.Margin = new Thickness(0, 8, 0, 0);
     }

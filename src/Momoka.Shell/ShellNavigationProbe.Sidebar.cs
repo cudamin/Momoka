@@ -242,6 +242,12 @@ internal sealed partial class ShellNavigationProbe
             Require(titleSearchPage.ViewModel.SearchText == titleSearch.Text && titleSearch.Text == "离线标题",
                 "标题输入或立即回车被延迟文本事件覆盖");
             Require(titleSearchPage.ViewModel.LoadedCount > 0, "标题查询没有留下搜索结果");
+            // 标题栏接管输入后页内输入框收起，来源栏仍须居中在搜索区（两列 Auto 会把它钉在左沿）。
+            var searchTabs = Get<FrameworkElement>(titleSearchPage, "SourceTabs");
+            var searchSurface = Get<Border>(titleSearchPage, "SearchSurface");
+            Require(Math.Abs(Left(searchTabs, titleSearchPage) + searchTabs.ActualWidth / 2
+                    - (Left(searchSurface, titleSearchPage) + searchSurface.ActualWidth / 2)) <= 1,
+                "标题输入时来源栏没有居中在搜索区");
             await SaveProbeScreenAsync("sidebar-title-search-screen.png");
             foreach (var searchWidth in new[] { 620, 1240, 620, 1240 })
             {

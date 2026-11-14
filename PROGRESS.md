@@ -1,3 +1,9 @@
+## 2026-11-14 搜索页来源栏在标题输入下贴左（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-crooked-alignment-vebOKM`，分支 `fix-crooked-alignment-vebOKM`，基点 `eb30ae8`。用户上传搜索页截图问「这个怎么是歪的」：标题栏接管输入后，页内 `SearchEntry` 收起，`SearchForm` 那两列 `Auto` 只剩来源栏自身的 480，跨两列的孩子因此只占 480 并被钉在 900 宽搜索区左沿，来源栏整体偏左。改成单列 `*` 后，输入框在不在，来源栏都居中在搜索区；`SearchSitePicker` 那一行不再需要跨列。新增 `Momoka.ResourceBrowserTests` 两条 XAML 契约（单列、无 ColumnSpan，双 Auto 列必须被拒绝）与两处原生断言（普通搜索页与标题输入页，来源栏中心对搜索区中心 ≤1 DIP）。
+
+验证：Shell Release 0 警告 0 错误；`Momoka.ResourceBrowserTests` 189/189；`Momoka.LibraryHeaderTests` 27/27；`--probe-shell --probe-section shell --screen 1` 退出 0（`shell-probe-20261114-143238200-13440`，含新增的标题输入居中断言）；`tools/check-diff.ps1` 通过。未合并、未交付；未连接真实服务器、未播放。
+
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。

@@ -363,17 +363,19 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
-                    <Grid x:Name="SearchForm" ColumnSpacing="12" RowSpacing="8">
+                    <!-- 一列占满搜索区宽度：标题栏接管输入时页内输入框收起，来源栏仍是这一格里居中的孩子。
+                         从前那两列是 Auto，输入框一收，两列就只剩来源栏的宽度、栏被钉在搜索区左沿 ——
+                         截图里的「歪」就是这一条。 -->
+                    <Grid x:Name="SearchForm" RowSpacing="8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Grid x:Name="SearchEntry" Grid.ColumnSpan="2">
+                        <Grid x:Name="SearchEntry">
                             <AutoSuggestBox
                                 x:Name="SearchInput"
                                 x:Uid="LibrarySearchBox"
@@ -403,7 +405,6 @@
                         <local:SearchSourceTabs
                             x:Name="SourceTabs"
                             Grid.Row="1"
-                            Grid.ColumnSpan="2"
                             SelectedIndex="0"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"

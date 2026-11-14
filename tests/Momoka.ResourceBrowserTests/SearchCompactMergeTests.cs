@@ -69,6 +69,20 @@ internal static class SearchCompactMergeTests
             Assert.Contains("public Visibility MoviePilotTabsVisibility =>\n        Show(_request?.IsSearch == true)", vm.Replace("\r\n", "\n"));
         });
 
+        Test("搜索来源：页内输入收起后来源栏仍居中在搜索区", () =>
+            CheckSearchFormColumns(Load(sourceRoot, "LibraryPage.xaml")));
+
+        Test("搜索来源：契约拒绝恢复双 Auto 列把来源栏钉在左沿", () =>
+        {
+            var xml = Load(sourceRoot, "LibraryPage.xaml");
+            var columns = Named(xml, "SearchForm").Elements()
+                .Single(node => node.Name.LocalName == "Grid.ColumnDefinitions");
+            columns.ReplaceNodes(
+                new XElement(columns.Name.Namespace + "ColumnDefinition", new XAttribute("Width", "Auto")),
+                new XElement(columns.Name.Namespace + "ColumnDefinition", new XAttribute("Width", "Auto")));
+            Assert.Throws<AssertionException>(() => CheckSearchFormColumns(xml));
+        });
+
         Test("搜索合并：紧凑探针与来源退役检查共存", () =>
         {
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/ShellNavigationProbe.SearchLayout.cs"));
@@ -279,6 +293,21 @@ internal static class SearchCompactMergeTests
             && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16"));
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
             && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "12"));
+    }
+
+    /// <summary>
+    /// 页内输入框收起以后（标题栏接管输入），来源栏的格子仍是搜索区整宽，栏才居得中。
+    /// 两列 Auto 会让跨列的孩子只剩自身宽度、被钉在搜索区左沿 —— 2026-11-14 截图的歪。
+    /// </summary>
+    private static void CheckSearchFormColumns(XDocument xml)
+    {
+        var form = Named(xml, "SearchForm");
+        var columns = form.Elements().Single(node => node.Name.LocalName == "Grid.ColumnDefinitions")
+            .Elements().Where(node => node.Name.LocalName == "ColumnDefinition").ToArray();
+        Assert.Equal(1, columns.Length);
+        Assert.Equal("*", columns[0].Attribute("Width")?.Value);
+        Assert.Null(Named(xml, "SearchEntry").Attribute("Grid.ColumnSpan"));
+        Assert.Null(Named(xml, "SourceTabs").Attribute("Grid.ColumnSpan"));
     }
 
     private static void CheckSourceTabSize(XDocument xml)
