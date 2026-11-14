@@ -342,6 +342,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectHoverPreview", "悬停预览布局与关闭重开", HoverPreviewAsync);
         AddCheck("InspectBrowsePolish", "分类与工具栏验证", LibraryBrowseAsync);
         AddCheck("InspectHomeCardPolish", "首页按钮与主题验证", HomeHeaderAsync);
+        AddCheck("InspectHomeHeaderChrome", "沉浸主页顶部滚动与系统三键", HomeHeaderChromeAsync, ShellProbeSections.Shell);
         AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);
         AddCheck("InspectFnNasPolish", "飞牛列表验证", FnNasLibrarySpacingAsync);
         AddCheck("InspectFnNasContinueRemoval", "飞牛续播移除验证", FnNasContinueRemovalAsync);

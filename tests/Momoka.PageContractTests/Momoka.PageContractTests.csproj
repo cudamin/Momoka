@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Momoka.Shell/Views/HomeHeaderScrollState.cs" Link="Production/HomeHeaderScrollState.cs" />
+    <Compile Include="../../src/Momoka.Shell/HomeHeaderChromeProbeReadings.cs" Link="Production/HomeHeaderChromeProbeReadings.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/DetailSectionCard.cs" Link="Production/DetailSectionCard.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Shell\LocalLibraryArtwork.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
