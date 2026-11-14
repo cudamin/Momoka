@@ -13398,3 +13398,14 @@ selfcheck-diff当前正式入口真实运行：原固定x=8取点落入新返回
 2026-11-14合入收尾：本树产品提交 `364456a` 在主树干净master `c419ebd` 上cherry-pick为 `6c8a97e`，未冲突，双方进度和标题搜索开发说明完整保留。9份产品/测试文件逐文件SHA256相同，同期侧边栏图标及其他批次保持。台账新增第19项，主树最终统一验证留到用户明确要求交付；本轮没有发布或推远端，桌面快捷方式仍是原发布件。当前4646为应用管理的聊天主检出且没有临时分支，删除遵守应用保护。
 
 4646清理核对：本轮产品与测试内容已完整进入master，干净detached检出无独有未保留改动或临时分支。应用 `archive_worktree` 明确拒绝（The task's primary checkout cannot be removed），遵守聊天主检出保护保留本树，不用原生命令绕过；保留产品顶端 `364456a` 与主树 `6c8a97e` 恢复线索。
+## 2026-11-14 侧栏预览封面播放、静止半秒与点击抑制
+
+用户一张截图要求封面可点击播放、鼠标静止0.5秒才展开、点击侧栏不能误开悬浮界面。本树 `C:/Users/89400/.codex/worktrees/ed02/Momoka` 基于 `5d1fe05` 隔离实现；库项复用实际 `PosterHoverDwell`、独立状态与物理屏幕坐标，移动/迟到tick重计时，鼠标按下/导航选择抑制到真正离开，捕获同坐标Exit/Enter不解除。显示库与悬停候选分开，旧封面/查看更多不串库。封面改原生Button、名称与稳定UIA句柄，沿既有PlayAsync；当前来源/展示条目/旧按钮拒绝，离页或取消释放封面图片。
+
+核对Gallery固定提交 `6de91feccadfbb0a796b71caedead5a2284f730e` 的ButtonPage.xaml Example2及Button_Click，保留原生Button图片、Name/Click及项目EgArtworkTileStyle。NavigationView/Flyout/Popup没有完整静止500ms且点击抑制的样例，因此复用本项目已测试的计时组件组合，未改依赖、播放管线或主题。纯UI事件归属留在Shell partial，避免把指针/视觉树搬入Core。
+
+最终分支Release x64 Shell/Core单节点构建0警告0错误；独立 `Momoka.SidebarPreviewTests` 31/31，0失败0跳过，完整编译生产preview partial并仅替换单调时钟，链接实际Core/PosterHoverDwell。覆盖静止/移动/迟到、触摸笔不触发、点击捕获/键盘导航、跨库/查看更多、播放交接、旧请求/图片和原样提取的按钮判据正反例；另有Rebuild/Invoke/Selection/分区接线契约。WinUI、指针、解码与Play为替身，不能证明平台输入投递或真实播放。证据 `artifacts/regressions/20261114-065905418-a9e783dcc0734688b4edf0443470b5d7/summary.json`；文本和自动化句柄检查通过。
+
+当前DLL匿名可见 `--probe-shell --probe-section shell --screen 1` 16项15过1红；新独立预览用例通过，760/600实屏已目视，面板不压栏、三颗Button封面/图片及聚合查看更多显隐成立；只读取UIA Invoke模式，未Invoke、未移动鼠标、未起播。运行目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-070637007-32632/logs`。旧SidebarAsync在切换侧栏后的货架/请求稳定断言失败，早于旧preview检查；保留原检查及全部失败报告，不放宽/删掉。此前Hidden宿主失败、旧DLL未归分区失败均保留，最终显式Shell分区已通过。整合主树商店/沉浸新逻辑后再核对受影响路径；分支截图不当作主树交付证据。
+
+此记录时尚未提交合入；下一步提交、保留同期master新逻辑、适配已删除的SidebarMode、重新编译并跑专项/原生受影响路径后合入登记。未真实服务器读取/写入、未真实播放、未发布/上传，桌面仍是原发布件。物理静止/点击投递、键盘焦点/读屏、触摸、不同DPI/文字缩放/高对比度待最终交付补验。

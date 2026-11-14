@@ -4,6 +4,16 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.SidebarPreviewTests",
+      "project": "tests/Momoka.SidebarPreviewTests/Momoka.SidebarPreviewTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SidebarPreviewTests/README.md",
+      "notes": "正式媒体库侧栏预览控制流、静止计时、点击抑制、封面播放及旧请求归属；匿名WinUI/指针/播放边界，不运行窗口、真实服务器或媒体。"
+    },
+    {
       "id": "Momoka.DetailStickyHeaderTests",
       "project": "tests/Momoka.DetailStickyHeaderTests/Momoka.DetailStickyHeaderTests.csproj",
       "mode": "dotnet",

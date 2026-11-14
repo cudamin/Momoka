@@ -333,6 +333,7 @@ public sealed partial class ShellPage
     private void RebuildSidebarLibraries()
     {
         HideLibraryPreview();
+        _previewDwells.Clear();
         foreach (var item in _sidebarLibraries.Values)
         {
             Sidebar.MenuItems.Remove(item);
@@ -352,6 +353,8 @@ public sealed partial class ShellPage
             AutomationProperties.SetName(item, library.Title);
             item.PointerEntered += OnSidebarLibraryPointerEntered;
             item.PointerExited += OnSidebarLibraryPointerExited;
+            item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);
+            _previewDwells.Add(item, new PosterHoverDwell());
             Sidebar.MenuItems.Insert(at++, item);
             _sidebarLibraries.Add(tag, item);
         }
@@ -361,7 +364,7 @@ public sealed partial class ShellPage
 
     private void OnSidebarItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
-        HideLibraryPreview();
+        SuppressLibraryPreview(args.InvokedItemContainer as NavigationViewItem);
         if (!SidebarShown || args.InvokedItemContainer is not NavigationViewItem { Tag: string tag }) return;
         // 页脚那颗设置开的是另一个窗口，不改变这一页的选中目的地（SelectsOnInvoked="False" 已把选中挡在
         // 外面，这里连 GoTo 也不走）。
@@ -384,7 +387,7 @@ public sealed partial class ShellPage
     {
         if (_syncingSidebar || !SidebarShown || args.SelectedItem is not NavigationViewItem { Tag: string tag }
             || tag == "settings") return;
-        HideLibraryPreview();
+        SuppressLibraryPreview(args.SelectedItem as NavigationViewItem);
         GoTo(tag);
     }
 }

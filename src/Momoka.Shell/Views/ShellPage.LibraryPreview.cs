@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -9,6 +11,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Shell.Interop;
 using Momoka.Shell.Media;
 using Windows.Foundation;
 
@@ -23,8 +26,8 @@ namespace Momoka.Shell.Views;
 /// 「不要遮挡侧边栏」。
 /// </para>
 /// <para>
-/// 指针从图标移到面板要跨过栏沿那条几像素的缝，所以收起延迟比展开延迟长一点；面板自己的指针进入会取消那趟
-/// 收起。纯 UI 行为留在 code-behind（同 CLAUDE 的分层默认值），网络与图片读取走既有的 Emby client / 图片缓存。
+/// 鼠标连续静止半秒才展开，点击后直到真正离开图标才允许重开。指针从图标移到面板跨过栏沿的小缝时，
+/// 收起留一小段宽限；面板自己的指针进入会取消收起。网络与图片读取走既有的 client / 图片缓存。
 /// </para>
 /// </summary>
 public sealed partial class ShellPage
@@ -42,6 +45,8 @@ public sealed partial class ShellPage
     private CancellationTokenSource? _previewLoad;
     private EmbyImageStore? _previewImages;
     private NavigationViewItem? _previewAnchor;
+    private NavigationViewItem? _previewHoverAnchor;
+    private readonly Dictionary<NavigationViewItem, PosterHoverDwell> _previewDwells = [];
     private string? _previewTag;
 
     private bool CanPreviewLibrary => _settings is not null && SidebarShown && !Sidebar.IsPaneOpen;
@@ -50,12 +55,10 @@ public sealed partial class ShellPage
     {
         _previewOpenTimer = DispatcherQueue.CreateTimer();
         _previewOpenTimer.IsRepeating = false;
-        _previewOpenTimer.Interval = TimeSpan.FromMilliseconds(200);
-        _previewOpenTimer.Tick += (_, _) =>
-        {
-            _previewOpenTimer?.Stop();
-            if (_previewAnchor is { } anchor && _previewTag is { } tag) _ = ShowLibraryPreviewAsync(anchor, tag);
-        };
+        _previewOpenTimer.Interval = TimeSpan.FromMilliseconds(PosterHoverDwell.DelayMs);
+        _previewOpenTimer.Tick += OnPreviewOpenTick;
+        // NavigationViewItem 会处理按下事件；仍监听这一拍，在导航/捕获变化之前取消悬停。
+        Sidebar.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSidebarPreviewPointerPressed), true);
 
         _previewCloseTimer = DispatcherQueue.CreateTimer();
         _previewCloseTimer.IsRepeating = false;
@@ -68,30 +71,128 @@ public sealed partial class ShellPage
     }
 
     private void OnSidebarLibraryPointerEntered(object sender, PointerRoutedEventArgs e)
-    {
-        if (sender is not NavigationViewItem { Tag: string tag } item || !CanPreviewLibrary) return;
+        => OnSidebarLibraryPointerMoved(sender, e);
 
-        _previewAnchor = item;
-        _previewTag = tag;
+    private void OnSidebarLibraryPointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not NavigationViewItem { Tag: string tag } item || !CanPreviewLibrary
+            || e is null || e.Pointer.PointerDeviceType != PointerDeviceType.Mouse) return;
+        var buttons = e.GetCurrentPoint(item).Properties;
+        if (buttons.IsLeftButtonPressed || buttons.IsRightButtonPressed || buttons.IsMiddleButtonPressed)
+        {
+            SuppressLibraryPreview(item);
+            return;
+        }
+        if (!TryReadSidebarPreviewPointer(item, out var position)) return;
+
+        // 一个库的点击抑制只在真正移开后解除；布局/捕获产生的同坐标 Exit/Enter 不能解除。
+        foreach (var (other, state) in _previewDwells)
+        {
+            if (!ReferenceEquals(other, item) && state.IsSuppressed && !TryReadSidebarPreviewPointer(other, out _))
+                state.Reset();
+        }
+        if (!_previewDwells.TryGetValue(item, out var dwell)) return;
+        if (!ReferenceEquals(_previewHoverAnchor, item))
+        {
+            if (_previewHoverAnchor is { } previous && _previewDwells.TryGetValue(previous, out var old)) old.Cancel();
+            _previewOpenTimer?.Stop();
+            _previewHoverAnchor = item;
+        }
+
         _previewCloseTimer?.Stop();
 
         // 面板已经摆着同一个库时只续命，不重播展开动画。
-        if (LibraryPreviewPanel.Visibility == Visibility.Visible) return;
+        if (LibraryPreviewPanel.Visibility == Visibility.Visible && _previewTag == tag) return;
+        if (dwell.Observe(position.X, position.Y, Environment.TickCount64)) StartPreviewOpenTimer(dwell);
+    }
 
+    private void StartPreviewOpenTimer(PosterHoverDwell dwell)
+    {
         _previewOpenTimer?.Stop();
-        _previewOpenTimer?.Start();
+        if (_previewOpenTimer is null) return;
+        _previewOpenTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(1, dwell.RemainingMilliseconds(Environment.TickCount64)));
+        _previewOpenTimer.Start();
+    }
+
+    private void OnPreviewOpenTick(DispatcherQueueTimer sender, object args)
+    {
+        sender.Stop();
+        if (_previewHoverAnchor is not { Tag: string tag } anchor
+            || !_previewDwells.TryGetValue(anchor, out var dwell) || !dwell.IsPending) return;
+        if (!CanPreviewLibrary || !TryReadSidebarPreviewPointer(anchor, out var position))
+        {
+            dwell.Cancel();
+            _previewHoverAnchor = null;
+            SchedulePreviewClose();
+            return;
+        }
+        var now = Environment.TickCount64;
+        dwell.Observe(position.X, position.Y, now);
+        if (!dwell.TryComplete(now))
+        {
+            StartPreviewOpenTimer(dwell);
+            return;
+        }
+        _ = ShowLibraryPreviewAsync(anchor, tag);
+    }
+
+    private bool TryReadSidebarPreviewPointer(NavigationViewItem item, out (int X, int Y) position)
+        => TryReadPreviewPointer(item, out position);
+
+    private bool TryReadPreviewPointer(FrameworkElement target, out (int X, int Y) position)
+    {
+        position = default;
+        if (XamlRoot is not { Content: UIElement content } root || !ReferenceEquals(target.XamlRoot, root)
+            || target.ActualWidth <= 0 || target.ActualHeight <= 0)
+            return false;
+        if (!Native.GetCursorPos(out var cursor)) return false;
+        position = (cursor.X, cursor.Y);
+        var id = root.ContentIslandEnvironment?.AppWindowId;
+        var handle = id is { } window ? Win32Interop.GetWindowFromWindowId(window) : IntPtr.Zero;
+        if (handle == IntPtr.Zero || root.RasterizationScale <= 0 || !Native.ScreenToClient(handle, ref cursor)) return false;
+        try
+        {
+            var bounds = target.TransformToVisual(content).TransformBounds(new Rect(0, 0, target.ActualWidth, target.ActualHeight));
+            return bounds.Contains(new Point(cursor.X / root.RasterizationScale, cursor.Y / root.RasterizationScale));
+        }
+        catch (ArgumentException)
+        {
+            // 重建媒体库时，旧条目的退出事件可能晚于视觉树脱离。
+            return false;
+        }
     }
 
     private void OnSidebarLibraryPointerExited(object sender, PointerRoutedEventArgs e)
     {
-        _previewOpenTimer?.Stop();
-        _previewAnchor = null;
+        if (sender is not NavigationViewItem item || TryReadSidebarPreviewPointer(item, out _)) return;
+        if (_previewDwells.TryGetValue(item, out var dwell)) dwell.Reset();
+        if (ReferenceEquals(_previewHoverAnchor, item))
+        {
+            _previewOpenTimer?.Stop();
+            _previewHoverAnchor = null;
+        }
         SchedulePreviewClose();
+    }
+
+    private void OnSidebarPreviewPointerPressed(object sender, PointerRoutedEventArgs e) => SuppressLibraryPreview();
+
+    private void SuppressLibraryPreview(NavigationViewItem? invoked = null)
+    {
+        foreach (var item in new[] { invoked, _previewHoverAnchor, _previewAnchor })
+        {
+            if (item is not null && _previewDwells.TryGetValue(item, out var dwell)
+                && TryReadSidebarPreviewPointer(item, out _)) dwell.Suppress();
+        }
+        HideLibraryPreview();
     }
 
     private void OnLibraryPreviewPointerEntered(object sender, PointerRoutedEventArgs e) => _previewCloseTimer?.Stop();
 
-    private void OnLibraryPreviewPointerExited(object sender, PointerRoutedEventArgs e) => SchedulePreviewClose();
+    private void OnLibraryPreviewPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        // 封面变为按钮后，其捕获/子元素退出同样会冒泡，鼠标仍在面板里就不收起。
+        if (!TryReadPreviewPointer(LibraryPreviewPanel, out _)) SchedulePreviewClose();
+    }
 
     private void SchedulePreviewClose()
     {
@@ -196,9 +297,9 @@ public sealed partial class ShellPage
         var coverWidth = PreviewCoverWidth();
         for (var index = 0; index < picks.Length; index++)
         {
-            var (frame, picture, placeholder) = CreatePreviewCover(coverWidth, index);
-            LibraryPreviewCovers.Children.Add(frame);
             var item = picks[index];
+            var (frame, picture, placeholder) = CreatePreviewCover(coverWidth, index, item, load);
+            LibraryPreviewCovers.Children.Add(frame);
             if (_previewImages is not null && PreviewImageType(item) is { } imageType)
                 _ = LoadPreviewCoverAsync(picture, placeholder, item, item.Source ?? scope, imageType,
                     Math.Max(56, (int)Math.Round(coverWidth)), load);
@@ -210,9 +311,10 @@ public sealed partial class ShellPage
 
     private void ResetPreviewCovers()
     {
-        foreach (var child in LibraryPreviewCovers.Children.OfType<Border>())
+        foreach (var child in LibraryPreviewCovers.Children.OfType<FrameworkElement>())
         {
-            if (child.Child is not Grid grid) continue;
+            var content = child is Button button ? button.Content : (child as Border)?.Child;
+            if (content is not Grid grid) continue;
             foreach (var picture in grid.Children.OfType<Image>()) picture.Source = null;
         }
         LibraryPreviewCovers.Children.Clear();
@@ -233,7 +335,8 @@ public sealed partial class ShellPage
     private static readonly string[] PreviewImageTypes =
         [EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop];
 
-    private (Border Frame, Image Picture, FontIcon Placeholder) CreatePreviewCover(double width, int column)
+    private (FrameworkElement Frame, Image Picture, FontIcon Placeholder) CreatePreviewCover(double width, int column,
+        EmbyItem item, CancellationTokenSource load)
     {
         var placeholder = new FontIcon
         {
@@ -247,17 +350,50 @@ public sealed partial class ShellPage
         var content = new Grid();
         content.Children.Add(placeholder);
         content.Children.Add(picture);
-        var frame = new Border
+        // Gallery ButtonPage.xaml Example2 / Button_Click，固定提交 6de91feccadfbb0a796b71caedead5a2284f730e：
+        // 保留 Button + 图片内容 + Click + 无障碍名称；使用本地画框样式和既有播放入口。
+        FrameworkElement frame;
+        if (CanPlayPreviewItem(item))
         {
-            Width = width,
-            Height = Math.Round(width * 1.5),
-            CornerRadius = (CornerRadius)Application.Current.Resources["EgPosterCornerRadius"],
-            Background = (Brush)Application.Current.Resources["EgSurfaceAltBrush"],
-            Child = content
-        };
-        AutomationProperties.SetAccessibilityView(frame, AccessibilityView.Raw);
+            var button = new Button
+            {
+                Width = width,
+                Height = Math.Round(width * 1.5),
+                Style = (Style)Application.Current.Resources["EgArtworkTileStyle"],
+                BorderThickness = new Thickness(0),
+                Content = content,
+                Tag = item
+            };
+            AutomationProperties.SetAutomationId(button, "SidebarLibraryPreviewPlay_" + column);
+            AutomationProperties.SetName(button, $"播放：{item.Name}");
+            button.Click += (_, _) => OnLibraryPreviewCoverClicked(button, item, load);
+            frame = button;
+        }
+        else
+        {
+            frame = new Border
+            {
+                Width = width,
+                Height = Math.Round(width * 1.5),
+                CornerRadius = (CornerRadius)Application.Current.Resources["EgPosterCornerRadius"],
+                Background = (Brush)Application.Current.Resources["EgSurfaceAltBrush"],
+                Child = content
+            };
+            AutomationProperties.SetAccessibilityView(frame, AccessibilityView.Raw);
+        }
         Grid.SetColumn(frame, column);
         return (frame, picture, placeholder);
+    }
+
+    private static bool CanPlayPreviewItem(EmbyItem item) => !item.IsDisplayOnly
+        && (item.IsPlayable || item.Type is EmbyItemType.Series or EmbyItemType.Season);
+
+    private void OnLibraryPreviewCoverClicked(Button button, EmbyItem item, CancellationTokenSource load)
+    {
+        if (!IsCurrentPreview(load) || !LibraryPreviewCovers.Children.Contains(button)
+            || item.Source is not { IsAvailable: true } || !CanPlayPreviewItem(item)) return;
+        SuppressLibraryPreview();
+        _ = PlayAsync(item);
     }
 
     private async Task LoadPreviewCoverAsync(Image picture, FontIcon placeholder, EmbyItem item,
@@ -377,6 +513,8 @@ public sealed partial class ShellPage
     private void HideLibraryPreview()
     {
         _previewOpenTimer?.Stop();
+        foreach (var dwell in _previewDwells.Values) dwell.Cancel();
+        _previewHoverAnchor = null;
         _previewCloseTimer?.Stop();
         _previewStoryboard?.Stop();
         _previewStoryboard = null;
@@ -398,7 +536,7 @@ public sealed partial class ShellPage
     private void OnLibraryPreviewMoreClicked(object sender, RoutedEventArgs e)
     {
         if (_previewTag is not { } tag) return;
-        HideLibraryPreview();
+        SuppressLibraryPreview();
         GoTo(tag);
         SyncSidebar();
     }
