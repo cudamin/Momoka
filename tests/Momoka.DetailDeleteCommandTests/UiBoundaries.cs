@@ -119,7 +119,8 @@ namespace Momoka.Shell.Views
         internal static ItemCommand NextCommand { get; set; } = ItemCommand.Delete;
         internal static void Show(EmbySession session, IShellActions shell, FrameworkElement owner, CardItem card,
             Windows.Foundation.Point? position, IReadOnlyList<EmbyItem>? siblings = null, Action? changed = null,
-            Action<CardItem>? removed = null, Action<CardItem>? watched = null, Style? presenterStyle = null)
+            Action<CardItem>? removed = null, Action<CardItem>? watched = null, Style? presenterStyle = null,
+            Action? restart = null)
         {
             Invoke(NextCommand, shell, owner, card, siblings, changed, removed, watched);
         }

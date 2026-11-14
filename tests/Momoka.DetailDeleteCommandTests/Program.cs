@@ -110,6 +110,10 @@ internal sealed class DetailVmBridge(object vm, EmbyImageStore images)
 {
     public object Vm { get; } = vm;
     public EmbyItem? CurrentItem => ShellRuntime.Get(Vm, "CurrentItem") as EmbyItem;
+    public Microsoft.UI.Xaml.Visibility RestartVisibility =>
+        (Microsoft.UI.Xaml.Visibility)Convert.ToInt32(ShellRuntime.Get(Vm, "RestartVisibility"));
+    public System.Windows.Input.ICommand RestartCommand =>
+        (System.Windows.Input.ICommand)ShellRuntime.Get(Vm, "RestartCommand")!;
     public void EnsureCurrentEpisodeCard() => ShellRuntime.Invoke(Vm, "EnsureCurrentEpisodeCard");
     public IReadOnlyList<EmbyItem> Episodes => (IReadOnlyList<EmbyItem>)ShellRuntime.Get(Vm, "Episodes")!;
     public void Reload() => ShellRuntime.Invoke(Vm, "Reload");
