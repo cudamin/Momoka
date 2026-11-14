@@ -37,7 +37,7 @@
 
 **验证。** Shell/Core 与 Tests、PageContract Release 单节点编译均 0 警告 0 错误。`--probe-shell --probe-section shell --screen 1` 15/15、退出 0（运行目录 `shell-probe-20261114-073739856-29964`）：新增的 `ResizeSidebar` 320／40／4000／256 与拖动条显隐检查通过，1240 展开、760 图标栏、600 展开三张实屏已目视；收起档拖动条 Collapsed。`Momoka.PageContractTests` 257/257（含新增 3 项拖动契约）；主测试 5099/5102、0 跳过，3 红为 `TitleSearchBox` 圆角期望 10 而 ShellPage.xaml 现值 8、`HomePage.Release` 与 `PaintInk` 源码标记缺失 —— 三项读取的源码本轮未改、与 HEAD 相同，不计入本批。真实鼠标/触摸拖动未执行：探针直接调产品重排方法并核对几何与夹取，指针链路由源码契约盯着；交付时按 UI 检查补真实拖动与截图。未连接真实服务器、未播放；高对比度与跨 DPI 未实测。未发布、未推远程。
 
-合入收尾：分支顶端 `9432188` 以 `--no-ff` 合入 master，自动合并 `ShellNavigationProbe.Sidebar.cs`、`ShellPage.Sidebar.cs`、`PageContractTests/Program.cs` 与 `Agreements.txt`，仅 `PROGRESS.md` 冲突；保留主树订阅详情与商店详情两条记录，台账登记与合并号见紧随其后的收尾提交。合并不发布、不改交付目录。
+合入收尾：分支顶端 `9432188` 以 `--no-ff` 合入 master（合并提交 `e5a29a7`，父母为 `4b4ceec` 与 `9432188`；该提交的消息来自并发音乐批次，实际索引含本批全部 14 个文件）。自动合并 `ShellNavigationProbe.Sidebar.cs`、`ShellPage.Sidebar.cs`、`PageContractTests/Program.cs` 与 `Agreements.txt`，仅 `PROGRESS.md` 冲突；并发提交带进的冲突标记由 `18c649b` 清掉，同时把三处「85% 窗口色」更正为「85% 主题面色」。台账登记第 25 条。合并后主树 Shell/Core 与 Tests、PageContract Release 单节点编译 0 警告 0 错误；PageContract 259/259；主测试 5099/5102，仍是标题搜索框圆角与 HomePage 源码标记三条既有红。主树 `--probe-shell --probe-section shell --screen 1` 14/15、退出 1：侧栏导航、预览、启动三组通过，唯一红为「运行状态紧凑布局…窄窗没有让实时跟随换到第二行」（Diagnostics.cs，与本批无关，未改动该页）。合并不发布、不改交付目录；分支指针仍挂在本聊天工作树，内容已由合并提交完全进入 master。
 
 ## 2026-11-14 侧栏并入商店模式与0.2.5标题工具栏恢复（已合入，待交付）
 
@@ -13528,3 +13528,7 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 只用匿名假HTTP与拒绝启动的音乐后端，未真实播放/写服务器。跨DPI、200%文字、高对比度/关闭透明、Narrator/触摸及真实键盘/拖动仍留到用户要求交付时按主树最终代码补验。用户随后指出短轨道末端到时间读数之间的大片空位。进一步将Surface原生Center按内容测量、TrackInfo限制360，使胶囊随内容收紧（全按钮约836、收藏隐藏约794）；外层MusicBar仍Stretch/1120提供原760/480断点，避免自然尺寸使辅助按钮永远隐藏。初始轨道360，外层宽变化恢复目标宽、TrackInfo实际安排再裁到可用宽；保留顺序与两行回退。探针补信息区与轨道等宽、Surface上限、收藏隐藏缩42及恢复断言。产品提交后主动合入master并登记待交付；不发布、不改快捷方式、不推远端。
 
 2026-11-14音乐合入收尾：5148产品6b3291b合入干净master e3a6ffe为4b4ceec，仅追加进度冲突保留双方；7份产品/测试/许可文件SHA256一致。已登记待交付，合并未重跑全量、未发布/推远端。5148无临时分支，应用管理的聊天主检出清理遵守保护。
+
+2026-11-14音乐合入核对：产品6b3291b已在master形成4b4ceec，6份产品/测试逐文件无差异，许可也相同，待交付台账包含音乐批次。主树另有会话侧栏合并进行中，本会话停止主树写入，保护其暂存差异；合并台账提交e5a29a7同时收录了当时侧栏合并，原进度冲突由该会话继续清理。未发布/上传。本树干净detached、没有本任务临时分支；list_artifacts无本树附件，保留用户提供的主检出，不绕过应用保护删除。最终实屏裁剪已保存到聊天visualizations/music-player-final.png。
+
+主树侧栏会话随后提交18c649b清除其进度冲突标记，589eef4收尾后主树干净；本轮仅追加音乐记录，产品与测试无新差异。
