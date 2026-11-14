@@ -20,7 +20,7 @@
 # 2026-11-13（人物页）：基线在这一批开始前就与 DetailPage 的现状差 2（工作树 HEAD 的 git show 也是 21 处，
 # 不是这批新写的）；人物页自己的字号全部走 Eg* 刻度，计数为 0，不新增行。这里一并把 DetailPage 的读数
 # 校正到现状，未改任何一个字面字号。
-# 2026-11-14（侧栏拖动调宽与对比度）：Palette.xaml 新增 EgSidebarBrush（侧栏那一列 85% 窗口色的底），
+# 2026-11-14（侧栏拖动调宽与对比度）：Palette.xaml 新增 EgSidebarBrush（侧栏那一列 85% 主题面色的底），
 # Dark/Light 各一处字面值，颜色计数 88→90；ThemeHost 一并接上（自检「主题角色覆盖」盯着）。句柄新增
 # SidebarResizeGrip（侧栏右沿的拖动条）；它只在展开档露出，实际显隐与重排由 sidebar 分区探针核对。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C

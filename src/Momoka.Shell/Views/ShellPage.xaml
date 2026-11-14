@@ -590,7 +590,7 @@
 
              **底色 2026-11-12 晚清掉，2026-11-14 又按用户令加回来**：清掉是用户令「侧边栏和标题栏采用云母
              Alt」；11-14 用户指出「侧边栏与内容区之间对比度不够高」，要求侧栏加深一层面色。于是这一块铺
-             EgSidebarBrush（85% 窗口色，比内容画布的 60% 更实一档，15% 的 Mica Alt 仍透上来），栏作为一整列
+             EgSidebarBrush（85% 主题面色，比内容画布的 60% 窗口色更实一档，15% 的 Mica Alt 仍透上来），栏作为一整列
              （含左上角的应用名）自带分界，标题栏右侧仍只露材质。栏自己的 NavigationViewDefaultPaneBackground
              早在 2026-10-14 就钉成 Transparent，所以整条栏只有这一道底，没有第二道面。 -->
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"

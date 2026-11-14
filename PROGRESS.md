@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ## 2026-11-14 订阅详情简介上移与 Shimmer 加载占位（本树，待合并）
 
 独立树 `C:/Users/89400/.qoder-cn/worktrees/app/8641b7/Momoka`，分支 `codex/mp-subscription-layout`，基点最新 master `5d1fe05`。用户令「参考上图修改订阅页面的布局」与「订阅页面的加载动画改为Shimmer」：MoviePilot 订阅详情头部文字列改为片名／媒体身份／评分／订阅状态 → 简介（标语、正文、资料站链接）→ 操作排，和微软商店条目页同一次序；右侧唯一资料卡、封面尺寸、季区与下方货架不动，沉浸与简洁共用同一份 XAML。首次读取媒体详情不再画居中转圈，改为整页骨架（封面、标题、身份、评分、简介行、操作胶囊、资料卡、季与演职员）加一道 `Shimmer` Composition 扫光；底色用不透明 `EgWindowBrush`，真实页面不再透出；关闭动画只留骨架，完成或失败整层收起。列表页转圈保留，不改。
@@ -20,8 +19,7 @@
 **验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **238/238**（新增两条源码契约）；主测试 **5093 项，通过 5091、失败 2**，两条均为既有的 `C:\WINDOWS\TEMP` 下载到设备环境红。`dotnet format whitespace --verify-no-changes` 通过、`git diff --check` 干净。原生 `--probe-shell --probe-section library --screen 1`（`shell-probe-20261114-045634222-29532`）**50 项 42 过 8 红**：7 条既有红（飞牛人物头像、集页 180×270 商店封面、合集菜单像素被自身浮层遮挡、Jellyfin 标题字号、继续观看 20DIP、飞牛移出空序列、单音轨整行隐藏后的旧竖距断言），第 8 条「简洁详情底材」是本批新检查的测量问题（紧凑集页的文件选项在尾部、详情块里那一份收着；探针拿收着的控件判头部裁切，并把父行收着的选择框当版本框量）。探针改为按实际尺寸跳过收着的块并在改宽后等一拍布局，在同一份产品代码上定向 `--probe-section person`（`shell-probe-20261114-051633998-24080`，3 项含 DetailMica）**3/3 通过**；四种条目 × 1200/760 × 五主题逐张核过父级、顺序、版本框几何与播放键四态强调色，实屏 `detail-mica-{类型}-{1200,760}-{主题}-screen.png` 已目视，Movie/Series/Episode 宽窄档都是「封面片名 → 简介 → 版本框 → 主题色播放键与操作」。
 
 **没做／边界。** 只改商店模式；沉浸模式排版、按钮材质与强调色断点图标不变；版本框只落在详情页这三颗文件选择框，设置页与其他下拉不动。探针只用匿名假 HTTP 与假图片，没有真实服务器登录、播放或写入；高对比度、触摸、读屏、跨 DPI 未实机覆盖。**已随两轮整合合入 master**；交付按台账统一复验。
-=======
-## 2026-11-14 侧边栏拖动调宽与栏/内容区分界（未合并）
+## 2026-11-14 侧边栏拖动调宽与栏/内容区分界（已合入 master，待交付）
 
 工作树 `p7Vx1S`，分支 `feat-sidebar-drag-resize`，基点 `8d5e7cb`。用户两句：①新增支持拖动侧边栏边缘调整侧边栏宽度；②侧边栏标题和内容区的分界不够明显。追问后明确：分界指「侧边栏与内容区之间，对比度不够高」，做法选「侧栏加深一层面色」；拖动只在展开档支持。
 
@@ -29,8 +27,9 @@
 
 **分界。** 栏这一列（含左上角应用名所在的标题区）从 2026-11-12 的「纯 Mica」改为铺 `EgSidebarBrush`：主题面色 85% 压在 Mica Alt 上，内容区仍是 60% 窗口色。实屏取样栏 `#13192C`、内容 `#091022`，栏右沿与标题栏左侧的竖向分界清楚可见，Mica 仍透 15%。新角色在 Dark/Light/HighContrast 三份字典、`ThemeHost.Brushes` 与自检覆盖清单里成对接上；标题栏右侧仍只露材质。
 
-**验证。** Shell/Core 与 Tests、PageContract Release 单节点编译均 0 警告 0 错误。`--probe-shell --probe-section shell --screen 1` 15/15、退出 0（运行目录 `shell-probe-20261114-073739856-29964`）：新增的 `ResizeSidebar` 320／40／4000／256 与拖动条显隐检查通过，1240 展开、760 图标栏、600 展开三张实屏已目视；收起档拖动条 Collapsed。`Momoka.PageContractTests` 257/257（含新增 3 项拖动契约）；主测试 5099/5102、0 跳过，3 红为 `TitleSearchBox` 圆角期望 10 而 ShellPage.xaml 现值 8、`HomePage.Release` 与 `PaintInk` 源码标记缺失 —— 三项读取的源码本轮未改、与 HEAD 相同，不计入本批。真实鼠标/触摸拖动未执行：探针直接调产品重排方法并核对几何与夹取，指针链路由源码契约盯着；交付时按 UI 检查补真实拖动与截图。未连接真实服务器、未播放；高对比度与跨 DPI 未实测。未合并 master、未发布、未推远程。
->>>>>>> feat-sidebar-drag-resize-p7Vx1S
+**验证。** Shell/Core 与 Tests、PageContract Release 单节点编译均 0 警告 0 错误。`--probe-shell --probe-section shell --screen 1` 15/15、退出 0（运行目录 `shell-probe-20261114-073739856-29964`）：新增的 `ResizeSidebar` 320／40／4000／256 与拖动条显隐检查通过，1240 展开、760 图标栏、600 展开三张实屏已目视；收起档拖动条 Collapsed。`Momoka.PageContractTests` 257/257（含新增 3 项拖动契约）；主测试 5099/5102、0 跳过，3 红为 `TitleSearchBox` 圆角期望 10 而 ShellPage.xaml 现值 8、`HomePage.Release` 与 `PaintInk` 源码标记缺失 —— 三项读取的源码本轮未改、与 HEAD 相同，不计入本批。真实鼠标/触摸拖动未执行：探针直接调产品重排方法并核对几何与夹取，指针链路由源码契约盯着；交付时按 UI 检查补真实拖动与截图。未连接真实服务器、未播放；高对比度与跨 DPI 未实测。未发布、未推远程。
+
+合入收尾：分支顶端 `9432188` 以 `--no-ff` 合入 master，自动合并 `ShellNavigationProbe.Sidebar.cs`、`ShellPage.Sidebar.cs`、`PageContractTests/Program.cs` 与 `Agreements.txt`，仅 `PROGRESS.md` 冲突；保留主树订阅详情与商店详情两条记录，台账登记与合并号见紧随其后的收尾提交。合并不发布、不改交付目录。
 
 ## 2026-11-14 侧栏并入商店模式与0.2.5标题工具栏恢复（已合入，待交付）
 
