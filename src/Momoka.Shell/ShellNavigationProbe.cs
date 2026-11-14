@@ -55,6 +55,7 @@ internal sealed partial class ShellNavigationProbe
             if (_options.ProbeSections is { Count: 1 } cardOnly && cardOnly.Contains(ShellProbeSections.DetailCards))
             {
                 await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
+                await CaseAsync("商店详情左右下渐隐、右沿空隙、首卡避让与首字实屏", StoreDetailBackdropAsync, 90, section: ShellProbeSections.DetailCards);
                 return;
             }
             // Music also exercises the real navigation shell; the music controls themselves cannot
@@ -344,6 +345,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("资源：真实XAML封面解码预算、快速换片与队列响应", PerformanceCoverAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实设置滑块合并保存、失败重试与离页排空", PerformanceSettingsAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
+            await CaseAsync("商店详情左右下渐隐、右沿空隙、首卡避让与首字实屏", StoreDetailBackdropAsync, 90, section: ShellProbeSections.DetailCards);
             await CaseAsync("动效：海报前进、正式返回与失败回退", CardDetailConnectedAnimationAsync, 120, ShellProbeSections.Motion);
             await CaseAsync("动效：原生页面过渡候选实帧与中断评估", MotionPageTransitionsAsync, 90, ShellProbeSections.Motion);
         }
