@@ -1,10 +1,10 @@
-## 2026-11-14 侧栏选中：从主页进详情不再亮着「主页」（本树，待合并）
+## 2026-11-14 侧栏选中：从主页进详情不再亮着「主页」（已合入，待交付）
 
 独立树 `C:/Users/89400/.trae-cn/worktrees/feat-sidebar-drag-resize-p7Vx1S/fix-media-nav-highlight-8NILY6`，分支 `fix-media-nav-highlight-8NILY6`，基点 `e3a6ffe`。用户报「我都进入媒体详情页了，怎么左边的主页框还亮着」并提供侧栏折叠态实屏：详情页没有顶层目的地，`SyncSidebar` 原来用面包屑第一节回退，从主页卡片下钻时第一节正是「主页」，于是主页项继续被选中。改为 `ResolveSidebarTag(_current, _trail.FirstOrDefault()?.Tag)`：面包屑第一节是「主页」时不算详情所属媒体库，侧栏不亮任何目的地；从媒体库/收藏下钻的详情仍保留所属媒体库高亮（2026-11-14 侧栏图标批次的用户要求不变），顶层主页仍选中主页项。
 
 验证：Shell Release 0 警告 0 错误；`Momoka.PageContractTests` 257/257（新增纯函数用例：顶层主页仍选中、主页下钻不选中、媒体库/收藏下钻选中、空标签与 null 不选中）；`Momoka.SidebarPreviewTests` 31/31。均为定向离线验证，未起 GUI、未连真实服务器；运行截图与原生侧栏探针留待交付批次统一复验。未合并、未发布。
 
-已整合当时 master `589eef4`（侧栏拖动调宽、音乐播放栏等，PROGRESS 自动合并无冲突）；整合后 Shell Release 仍 0 警告 0 错误，`Momoka.PageContractTests` 260/260、`Momoka.SidebarPreviewTests` 31/31。尚未合入 master。
+已整合当时 master `589eef4`（侧栏拖动调宽、音乐播放栏等，PROGRESS 自动合并无冲突）；整合后 Shell Release 仍 0 警告 0 错误，`Momoka.PageContractTests` 260/260、`Momoka.SidebarPreviewTests` 31/31。随后再整合 master `5bbad0c`（演职人员悬停预览过滤、侧栏拖动记录），整合后 Shell Release 0 警告 0 错误，`Momoka.PageContractTests` 261/261、`Momoka.SidebarPreviewTests` 31/31。已从干净 master `5bbad0c` 快进合入 master，产品提交 `439f847`，合并提交 `2ae6745`；未发布、未推送。
 
 ## 2026-11-14 订阅详情简介上移与 Shimmer 加载占位（本树，待合并）
 
