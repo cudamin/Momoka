@@ -19,6 +19,12 @@ P8可靠性检查补充注册/退订前后异常12项，当前46/46。三动效�
 
 不覆盖真实渲染、合成器补间、材质像素、原生键盘与 Narrator —— 这些由主树最终运行验收。
 
+2026-11-14 轮播鼠标柔光：原样链接 `BannerPointerGlow`，覆盖首次装饰层未布局、DIP光心同步、移动不重播、
+移出重入与迟到回调、触摸/笔和重复退出、高对比度/透明效果判定边界、关动画、卸载和宽窄边界。
+同时解析实际 `HomeBanner.xaml` 检查非命中装饰层、绝对圆形径向画刷及阅读遮罩顺序；假画刷不证明像素。
+原生像素入口为匿名检查台 `--probe-shell inspect --screen 1` 的 `InspectHomeGlow`，显式调用生产状态，
+核对1280/760 DIP增亮、移动、关闭恢复与零播放，仍不等于真实鼠标送达或真实系统设置回退。
+
 ```powershell
 & "$HOME/.dotnet/dotnet.exe" restore ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj --disable-parallel -m:1 -p:BuildInParallel=false
 & "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false

@@ -325,6 +325,7 @@ internal static class Program
         HomeEntranceTests.Register();
         SubscriptionFailureTests.Register();
         ShelfFocusTests.Register();
+        BannerPointerGlowTests.Register();
 
         var result = Run();
         Reset();

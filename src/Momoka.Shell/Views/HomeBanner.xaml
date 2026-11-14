@@ -251,6 +251,32 @@
                     </Grid.Background>
                 </Grid>
 
+                <!-- Gallery Samples/RadialGradientBrush/RadialGradientBrushPage.xaml/.xaml.cs,
+                     v2.9.3 / commit 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
+                     原生画刷的 Absolute 坐标和 Center/GradientOrigin 同步。只给剧照加轻微鼠标光，
+                     阅读遮罩、文字和按钮仍在上面；颜色由现有 EgOnScrimBrush 角色提供。 -->
+                <Rectangle
+                    x:Name="PointerGlow"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed"
+                    AutomationProperties.AccessibilityView="Raw">
+                    <Rectangle.Fill>
+                        <RadialGradientBrush
+                            x:Name="PointerGlowBrush"
+                            Center="0,0"
+                            GradientOrigin="0,0"
+                            MappingMode="Absolute"
+                            RadiusX="180"
+                            RadiusY="180"
+                            SpreadMethod="Pad"
+                            Opacity="0.13">
+                            <GradientStop Offset="0" Color="Transparent" />
+                            <GradientStop Offset="0.35" Color="Transparent" />
+                            <GradientStop Offset="1" Color="Transparent" />
+                        </RadialGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+
                 <!--
                   带上的阅读遮罩保留三层：标题栏顶罩（Top）、左侧字块渐变（Fade）和右侧边缘。
                   三层摆在剧照之后、字块之前，只压图；底部不加渐变。颜色使用固定 ARGB

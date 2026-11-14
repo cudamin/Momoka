@@ -12,6 +12,7 @@
         <Compile Include="..\..\src\Momoka.Shell\Views\SurfaceMotion.cs" Link="Production\SurfaceMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\GlyphPulse.cs" Link="Production\GlyphPulse.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\BannerPointerGlow.cs" Link="Production\BannerPointerGlow.cs" />
     </ItemGroup>
     <UsingTask TaskName="ExtractShelfFocus" TaskFactory="RoslynCodeTaskFactory"
                AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
