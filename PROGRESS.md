@@ -1,3 +1,9 @@
+## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。
+
+验证：Shell Release 0 警告 0 错误；`toolbar-icon-fixture` 15/15（`ShellChromeTests` 新增标题栏底色四条：48 高、`EgSidebarBrush`、不接管输入、默认收起，并把「栏从 48 起画」改钉在 `SidebarHost`）；`detail-customization-fixture` 53/53；`Momoka.PageContractTests` 274/274；`Momoka.SidebarPreviewTests` 31/31；`local-media-layout-fixture` 21/21（含 Agreements，句柄基线新增 `TitleBarBackground` 一行并注明来由）。原生探针本轮未跑：同一时刻本机已有别的树在跑 `--probe-shell --probe-section moviepilot`（PID 20716，桌面互斥锁被占），没有结束别人的进程；交付前需补 `--probe-section shell --screen 1` 与展开/收起实屏目视。未合并、未发布、未连真实服务器；高对比度、跨 DPI 未实测。
+
 ## 2026-11-14 删除已执行的旧 WinUI 重构计划
 
 用户明确旧计划已经做过，要求删除。独立树 `C:/Users/89400/.codex/worktrees/remove-old-winui-plan/Momoka`，分支 `codex/remove-old-winui-plan`，基点 `fe015d2`。删除 `docs/WinUI重构计划.md`，清理 CLAUDE、Shell 技能、开发文档、P1/P2/P3报告和项目注释中的现行入口；P1文档检查不再要求已删除文件，历史结果与证据校验保留。各阶段实施/验证报告和历史 PROGRESS 记录保留，明确不作为待执行清单。只做文档、链接、编码与受影响检查器验证，不构建、不运行应用或发布。

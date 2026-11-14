@@ -253,6 +253,9 @@ public sealed partial class ShellPage
     {
         var shown = SidebarShown;
         SidebarHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        // 标题栏那一条与栏同色（2026-11-14 用户令「标题栏的颜色要和侧边栏一样」）：栏在屏上时整条铺
+        // EgSidebarBrush，栏顶那一格也归它画；栏收起（沉浸模式、登录页、播放）时整条撤下，让标题栏回到透明。
+        TitleBarBackground.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         AppTitleLabel.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
         // 折叠开关只在商店侧栏出现时显示，主页位于最左，其他浏览页跟在返回右侧。
@@ -333,8 +336,8 @@ public sealed partial class ShellPage
         if (!resizable && _resizingSidebar) EndSidebarResize(persist: false);
         SidebarResizeGrip.Visibility = resizable ? Visibility.Visible : Visibility.Collapsed;
         if (resizable) SidebarResizeGrip.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
-        // 商店模式让画布与页面一起避开标题栏，露出 Mica；沉浸模式恢复旧版画布铺入标题栏、
-        // 页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
+        // 商店模式让画布与页面一起避开标题栏，让标题栏那一条（与栏同色的 TitleBarBackground）整条露出；
+        // 沉浸模式恢复旧版画布铺入标题栏、页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
         ContentHost.Margin = new Thickness(width, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);
         ContentHost.Padding = new Thickness(0, _sidebarMode ? 0 : HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();

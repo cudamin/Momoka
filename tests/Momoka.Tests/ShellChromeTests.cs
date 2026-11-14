@@ -25,11 +25,24 @@ internal static class ShellChromeTests
             Assert.Equal("48", Named(document, "AppTitleBar").Attribute("Height")?.Value,
                 "标题栏不是 48 高了");
             Assert.Equal("0,48,0,0", Named(document, "ContentHost").Attribute("Margin")?.Value,
-                "默认商店模式没有让标题栏露出 Mica");
+                "默认商店模式没有让画布避开标题栏");
             Assert.True(Named(document, "ContentHost").Attribute("Padding") is null,
                 "默认商店模式额外推开了页面内容");
-            Assert.Equal("0,48,0,0", Named(document, "Sidebar").Attribute("Margin")?.Value,
-                "侧边栏没有从 48 起画");
+            Assert.Equal("0,48,0,0", Named(document, "SidebarHost").Attribute("Margin")?.Value,
+                "侧边栏宿主没有从 48 起画（标题栏下沿）");
+            Assert.True(Named(document, "Sidebar").Attribute("Margin") is null,
+                "侧边栏在宿主里又推了一次标题栏");
+
+            // 2026-11-14 用户令「标题栏的颜色要和侧边栏一样」：整条标题栏铺栏那一支角色色（EgSidebarBrush），
+            // 不接管输入；默认收着，由 SyncSidebar 随栏一起露出。
+            var titleBackground = Named(document, "TitleBarBackground");
+            Assert.Equal("48", titleBackground.Attribute("Height")?.Value, "标题栏那一条不是 48 高");
+            Assert.Equal("{ThemeResource EgSidebarBrush}", titleBackground.Attribute("Background")?.Value,
+                "标题栏那一条不是侧边栏的颜色");
+            Assert.Equal("False", titleBackground.Attribute("IsHitTestVisible")?.Value,
+                "标题栏那一条接管了标题栏输入");
+            Assert.Equal("Collapsed", titleBackground.Attribute("Visibility")?.Value,
+                "标题栏那一条默认没有收着");
 
             var sidebar = Named(document, "Sidebar");
             Assert.Equal("256", sidebar.Attribute("OpenPaneLength")?.Value, "展开那一档不是 256");
