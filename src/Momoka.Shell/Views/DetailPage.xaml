@@ -1775,7 +1775,7 @@
             </Grid>
         </ScrollView>
 
-        <!-- 播放键被滚动视口顶部裁切到一半时接手。作为 Body 的同级浮层，不改变正文高度或滚动落点。 -->
+        <!-- 播放键被滚动视口顶部裁切到三分之一时接手。作为 Body 的同级浮层，不改变正文高度或滚动落点。 -->
         <Border
             x:Name="StickyHeader"
             AutomationProperties.AutomationId="DetailStickyHeader"
