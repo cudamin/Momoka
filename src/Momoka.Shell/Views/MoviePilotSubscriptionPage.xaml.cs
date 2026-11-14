@@ -25,6 +25,7 @@ internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
     private const double FactsSideWidth = 288;
+    private const double FactsColumnSpacing = 24;
     private const double FactsStackedMaxWidth = 520;
     private const double FactsSideBreakpoint = 960;
 
@@ -39,6 +40,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private MoviePilotSubscriptionRequest? _request;
     private CancellationTokenSource? _pageLifetime;
     private bool _appearanceObserved;
+
+    /// <summary>上一次算正文两列时 BodyRow 的宽；只按宽度重算，避免高度变化回灌成布局回路。</summary>
+    private double _bodyLayoutWidth = double.NaN;
     internal MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
     internal MoviePilotMediaViewModel MediaViewModel { get; } = new();
     public Visibility SubscriptionVisibility => SubscriptionSectionVisibility(ViewModel.Deleted);
@@ -123,14 +127,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// </summary>
     private void OnDetailScrollSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        // 宽高各自写回视图模型，派生值（背景盒高、头部下限）跟着它们自己重算。模式翻面不在这里结算：
-        // 沉浸档只看宽版式与图（ApplyBodyLayout 与 Backdrop 那两条来路），尺寸只是让那几个数换个值。
-        if (args.NewSize.Width > 0)
-        {
-            MediaViewModel.PageWidth = args.NewSize.Width;
-            var padding = MediaViewModel.HeaderPadding;
-            ApplyBodyLayout(Math.Max(0, args.NewSize.Width - padding.Left - padding.Right));
-        }
+        // 宽高各自写回视图模型，派生值（背景盒高、头部下限）跟着它们自己重算。正文两列的宽高由
+        // BodyRow 自己的 SizeChanged 处理（见 OnBodyRowSizeChanged），这里不再顺手调版面。
+        if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
         ApplyMaterialAppearance();
         if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
     }
@@ -168,9 +167,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 
     private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        var padding = MediaViewModel.HeaderPadding;
-        var width = DetailScroll.ActualWidth - padding.Left - padding.Right;
-        if (width > 0) ApplyBodyLayout(width);
+        // 只认宽度：ApplyBodyLayout 会把资料卡在行 0／行 1 之间搬，正文高度跟着变；要是高度变化也回
+        // 到这里，就成了「自己改版面 → 自己再算一遍」的回路，拖边框或切模式时能打成 LayoutCycle。
+        if (args.NewSize.Width <= 0) return;
+        if (!double.IsNaN(_bodyLayoutWidth) && Math.Abs(args.NewSize.Width - _bodyLayoutWidth) < 0.5) return;
+        _bodyLayoutWidth = args.NewSize.Width;
+        ApplyBodyLayout(args.NewSize.Width);
     }
 
     private void ApplyBodyLayout(double width)
@@ -183,6 +185,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Grid.SetColumn(HeroFacts, side ? 1 : 0);
         Grid.SetRow(HeroFacts, 0);
         FactsColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
+        // 窄窗右列宽 0 时列间距也跟着归零：留 24 的话左列会比改动前窄一截，600 宽下的集行会被挤到换行。
+        BodyRow.ColumnSpacing = side ? FactsColumnSpacing : 0;
         HeroFacts.HorizontalAlignment = side ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
         HeroFacts.Margin = side ? default : new Thickness(0, 0, 0, 8);
@@ -313,6 +317,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         // 尺寸没变时 SizeChanged 不会再发一次，这里按当前实际宽度补算一遍。尚未排版时读到 0，
         // 随后的 SizeChanged 会把它纠正过来。
         ApplyBodyLayout(BodyRow.ActualWidth);
+        _bodyLayoutWidth = BodyRow.ActualWidth > 0 ? BodyRow.ActualWidth : double.NaN;
         ApplyHeroSizing();
         ApplyMaterialAppearance();
         SettleShowcase();
@@ -561,6 +566,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
         ThemeHost.Changed -= OnShowcaseThemeChanged;
         _appearanceObserved = false;
+        _bodyLayoutWidth = double.NaN;
         _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;

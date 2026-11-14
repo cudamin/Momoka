@@ -702,14 +702,18 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => page.MediaViewModel.People.Count > 0 && page.MediaViewModel.Recommendations.Count > 0);
                 await LayoutAsync(page);
                 var movieFacts = Get<Border>(page, "HeroFacts");
-                var factsBottom = movieFacts.TransformToVisual(page).TransformPoint(default).Y + movieFacts.ActualHeight;
+                var movieFactsPosition = movieFacts.TransformToVisual(page).TransformPoint(default);
+                var movieFactsBottom = movieFactsPosition.Y + movieFacts.ActualHeight;
+                var movieBodyFlow = Get<StackPanel>(page, "BodyFlow");
                 foreach (var panelName in new[] { "PeoplePanel", "RecommendationsPanel", "SimilarPanel" })
                 {
                     var relatedPanel = Get<StackPanel>(page, panelName);
-                    var top = relatedPanel.TransformToVisual(page).TransformPoint(default).Y;
-                    var expectedWidth = Get<Grid>(page, "BodyRow").ActualWidth;
-                    Require(top >= factsBottom && Math.Abs(relatedPanel.ActualWidth - expectedWidth) < 1,
-                        $"电影 {panelName} 应全宽且不重叠：顶 {top:0.0}、资料底 {factsBottom:0.0}、宽 {relatedPanel.ActualWidth:0.0}/{expectedWidth:0.0}");
+                    var position = relatedPanel.TransformToVisual(page).TransformPoint(default);
+                    var overlaps = page.MediaViewModel.WideLayout
+                        ? position.X + relatedPanel.ActualWidth > movieFactsPosition.X + 0.5
+                        : position.Y < movieFactsBottom;
+                    Require(!overlaps && Math.Abs(relatedPanel.ActualWidth - movieBodyFlow.ActualWidth) < 1,
+                        $"电影 {panelName} 应填满正文左列且不重叠：顶 {position.Y:0.0}、资料底 {movieFactsBottom:0.0}、宽 {relatedPanel.ActualWidth:0.0}/{movieBodyFlow.ActualWidth:0.0}");
                 }
                 await SaveSettledFrameAsync(page, $"mp-movie-subscription-detail-{width}.png");
                 await SaveProbeScreenAsync($"mp-movie-overlap-{width}-screen.png");
