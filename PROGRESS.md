@@ -1,8 +1,10 @@
-## 2026-11-14 商店详情宽版式断点下调与内容右移（本树，待合并）
+## 2026-11-14 商店详情宽版式断点下调与内容右移（已合入，待交付）
 
 用户报一张 1338 宽窗口的商店详情：「才这个窗口大小你就切窄窗模式了？右边还留着一大片空位呢，而且你也不懂得往中间移一点？」。该窗客户区 1328、侧栏 256，内容区约 1072 DIP；原判断写死 `PageWidth >= 1100`，差 28 就落进窄档（整幅背景＋亚克力＋40 留白的一列），右侧空出约 470 DIP。新增 `DetailHero.StoreWideFloor = 1024` 统一收口：`StorePageInset`、`StoreBackdropWidth／Height`、`StoreContentWidth`、详情页与 MoviePilot 订阅页的亚克力显隐、商店预告的宽档判断全部改读这个常量。页宽 1024～1099 这一段因此从窄档的 40 留白换到宽档的 64，内容列随之右移 24 DIP（用户要的「触发时往右移一点点」），同时右侧恢复剧照／预告视口。
 
 验证：Shell/Core x64 Release 0 警告 0 错误；`detail-customization-fixture` 53/53、`detail-action-readiness-fixture` 89/89，0 失败 0 跳过，覆盖 1023／1024／1025 与 1072 的断点、背景尺寸和实际 ViewModel 通知。未跑原生探针与实屏截图；按 UI 布局项留到交付时在最终主树补 1280／1072／760 截图与宽窄切换检查。
+
+合入：产品 `e8edce1`，master 合并提交 `049d6f5`（自动提交工具给的是通用消息）；冲突只剩 `DetailPage.Store.cs` 的 using 列表，按 master 去掉已不再需要的 `Microsoft.UI.Xaml.Controls`、保留 `Momoka.Emby`。合并后主树 Shell/Core/Tests x64 Release 0 警告 0 错误，`detail-customization-fixture` 54/54、`detail-action-readiness-fixture` 89/89，0 失败 0 跳过。
 
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 
