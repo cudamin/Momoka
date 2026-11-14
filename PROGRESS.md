@@ -1,3 +1,11 @@
+## 2026-11-14 订阅详情简介上移与 Shimmer 加载占位（本树，待合并）
+
+独立树 `C:/Users/89400/.qoder-cn/worktrees/app/8641b7/Momoka`，分支 `codex/mp-subscription-layout`，基点最新 master `5d1fe05`。用户令「参考上图修改订阅页面的布局」与「订阅页面的加载动画改为Shimmer」：MoviePilot 订阅详情头部文字列改为片名／媒体身份／评分／订阅状态 → 简介（标语、正文、资料站链接）→ 操作排，和微软商店条目页同一次序；右侧唯一资料卡、封面尺寸、季区与下方货架不动，沉浸与简洁共用同一份 XAML。首次读取媒体详情不再画居中转圈，改为整页骨架（封面、标题、身份、评分、简介行、操作胶囊、资料卡、季与演职员）加一道 `Shimmer` Composition 扫光；底色用不透明 `EgWindowBrush`，真实页面不再透出；关闭动画只留骨架，完成或失败整层收起。列表页转圈保留，不改。
+
+同步更新页面次序与几何断言、加载态探针（`DetailLoadingShimmer` 的 Composition 子视觉挂载）、`Momoka.MoviePilotSubscribeSettingsTests` 源码契约和 `Agreements.txt` 句柄基线；`docs/MoviePilot订阅.md` 与开发文档已改。
+
+验证：最终 Shell Release 0 警告 0 错误；`Momoka.PageContractTests` 254/254；主测试 5099 项通过 5094、失败 5（2 项 `C:\WINDOWS\TEMP` 环境红，3 项基线标题栏 28 字形与两条 AutoSuggestBox 圆角红，均不经本页）；`Momoka.MoviePilotSubscribeSettingsTests` 77/77。原生 `--probe-shell --probe-section moviepilot --screen 1` 37 项通过 36，唯一红为既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时；订阅详情三条相关用例通过，日志 `shell-probe-20261114-060554052-29764`，骨架/两模式/详情截图已目视。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏、跨 DPI。分支未合并、未交付（待合并）。
+
 ## 2026-11-14 商店预告右侧背景与窄窗亚克力（已合入，未发布）
 
 本轮工作树 `6a4d`，分支 `codex/trailer-background`，基点 `0fdf357`。用户要求对照微软商店红框：预告与静态图共用顶部右侧60%宽、最大920 DIP的16:9区域，无固定宿主右边距；最大1840居中内容区自然产生宽窗留白。视频不用静态图VisualSurface重定向，直接绘制XAML两侧/底部渐变；原生40 DIP圆形CommandBar按钮移到画面下方右侧，媒体/WebView/iframe均不接受指针和Tab，YouTube controls/disablekb/fs/loop与固定ID白名单保留。移除预告给正文撑高的占位。
