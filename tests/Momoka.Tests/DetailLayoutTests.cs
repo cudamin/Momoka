@@ -90,6 +90,21 @@ internal static class DetailLayoutTests
             }
         });
 
+        Test("商店尾部下限：下方卡片排在剧照、预告控制与右沿空隙之后", () =>
+        {
+            // 内容高过画面：一个像素都不多占。
+            Assert.Equal(0d, DetailHero.StoreTailHeight(418, 520, 0, 16));
+            // 内容比画面矮：差额补在尾部，卡片从画面和 16 的空隙下面开始。
+            Assert.Equal(34d, DetailHero.StoreTailHeight(418, 400, 0, 16));
+            // 有预告片时把暂停/静音那排 72 也让出来。
+            Assert.Equal(106d, DetailHero.StoreTailHeight(418, 400, 72, 16));
+            // 没有画面、尺寸还没量到或坏数：不撑。
+            Assert.Equal(0d, DetailHero.StoreTailHeight(0, 400, 0, 16));
+            Assert.Equal(0d, DetailHero.StoreTailHeight(double.NaN, 400, 0, 16));
+            // 头图比画面还高时也不会是负数。
+            Assert.Equal(0d, DetailHero.StoreTailHeight(300, 900, 0, 16));
+        });
+
         Test("商店环境底：随红蓝剧照取色、亮图收到阅读上限，坏图与纯黑回退，原像素不变", () =>
         {
             var fallback = Momoka.Theming.ThemeColor.Rgb(10, 15, 20);

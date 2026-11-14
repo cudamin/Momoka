@@ -34,6 +34,40 @@ public static class DetailHero
     /// </summary>
     public const double StoreWideFloor = 1024;
 
+    /// <summary>
+    /// 商店剧照／预告视口与内容右沿之间留的那道空隙（2026-11-15 用户令「收窄窗口时候自动向右上角缩小，
+    /// 最右边要留一点空隙」）。视口靠右站，但不贴着滚动条；窗口越窄它越往右上角收。
+    /// </summary>
+    public const double StorePreviewGap = 16;
+
+    /// <summary>
+    /// 预告片暂停／静音那一排从视口下沿再往下占的高（页面里是 32 的间距加 40 的按钮）。
+    /// 头图尾部要把它一起让出来，下一条卡片才压不到那排键上。
+    /// </summary>
+    public const double StoreTrailerControlsRoom = 72;
+
+    /// <summary>
+    /// 商店模式头图尾部至少要补多高，下方卡片才不会压在剧照／预告上。
+    /// <para>
+    /// 剧照盒在宽版式里跟窗口宽走、并不跟头图内容走；头图内容（封面、片名、简介、版本框和那排键）比它矮时，
+    /// 正文卡片会从画面中间开始，把画面下沿盖掉。这里把差额交给尾部（那一档是透明的），卡片就排在画面、
+    /// 预告控制排和右沿空隙下面。内容已经高过画面时返回 0，一个像素都不多占。
+    /// </para>
+    /// </summary>
+    /// <param name="pictureHeight">剧照盒这一次的高（<see cref="StoreBackdropHeight"/>）。</param>
+    /// <param name="heroHeight">头图这一格已经占掉的高。</param>
+    /// <param name="trailerRoom">预告片那排控制键：有预告片时给 <see cref="StoreTrailerControlsRoom"/>，否则 0。</param>
+    /// <param name="gap">画面与下方卡片之间的空隙（<see cref="StorePreviewGap"/>）。</param>
+    public static double StoreTailHeight(double pictureHeight, double heroHeight, double trailerRoom, double gap)
+    {
+        if (!double.IsFinite(pictureHeight) || pictureHeight <= 0) return 0;
+
+        var hero = double.IsFinite(heroHeight) ? Math.Max(0, heroHeight) : 0;
+        var trailer = double.IsFinite(trailerRoom) ? Math.Max(0, trailerRoom) : 0;
+        var room = double.IsFinite(gap) ? Math.Max(0, gap) : 0;
+        return Math.Max(0, Math.Round(pictureHeight + trailer + room - hero));
+    }
+
     /// <summary>商店内容两侧留白；超宽页面由视图的居中最大宽度继续留出外侧空间。</summary>
     public static double StorePageInset(double width) => width >= StoreWideFloor ? 64 : width >= 600 ? 40 : 24;
 

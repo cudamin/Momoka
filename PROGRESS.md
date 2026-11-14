@@ -1,3 +1,11 @@
+## 2026-11-15 商店详情背景四边渐隐、右侧留缝与下方卡片避让（本树，待合并）
+
+用户三句（附微软商店宽窄两张参考图）：①「背景图/预告片 下方和左右要加渐变」；②「下方的卡片别压在封面上」；③「剧情说明第一个字的左上角不知道为什么少了一点」；随后补「收窄窗口时候自动向右上角缩小，最右边要留一点空隙」，并要求验收时自己截图对比。过程中曾要求把徽标移到封面上方，后明确「算了，不要移到封面上面」，该改动未保留。
+
+**改了什么。** 商店模式（关闭沉浸）的剧照与环境底遮罩（`StoreBackdropFade`）在原有左、下渐隐之外补上右端渐隐；剧照、预告与窄窗亚克力共用 `DetailHero.StorePreviewGap = 16` 的右沿空隙（`StorePreviewMargin`），窗口越窄 60% 宽的视口越往右上角收。头图尾部新增 `DetailHero.StoreTailHeight`：剧照盒（以及有预告时的暂停/静音控制排）比头图内容高时，由尾部补足差额，正文第一块卡片因此排在画面、控制排和空隙之下，不再压在封面/剧照上。`StoreHeroDetails` 离封面的上距 8→16，两处 `StoreDetailsRoom` 改读实际 `Margin.Top`。剧情说明那块透明面板的 `CornerRadius` 归零（`EgBodyPanelStyle` 的 16 圆角此前贴着首字左上角）；`PickerPanel`、`CompactBlock` 同步归零，三者都不画底和框。
+
+**验证。** Shell/Core x64 Release **0 警告 0 错误**；主测试 **5107/5107、0 失败 0 跳过**；`Momoka.PageContractTests` **275/275**（新增简介圆角为 0 的源码契约）。原生 `--probe-shell --probe-section detail-cards --screen 1` 在隔离单实例名下跑出 `store-detail-cards-media-1240/760/360.png` 与 `detail-immersive-*-Series-1200-screen.png`，逐张目视：1240/760 的剧照左右两端都与环境底渐变衔接、右侧留出 16 的空隙，第一块分区卡片落在画面之下；360 窄档封面与卡片不重叠，简介首字完整。该轮在 MoviePilot 订阅段的 760 检查前后未写出最终 `shell-probe.json`（日志止于 `0:47:36`，截图后进程未正常收尾），因此只报媒体详情截图，不宣称整个 detail-cards 用例通过；未连接真实服务、未播放、未写服务器，未覆盖高对比度、触摸、读屏与跨 DPI。
+
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 
 用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。

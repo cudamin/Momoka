@@ -121,9 +121,10 @@ public sealed partial class DetailPage
             TitleButton.Margin = new Thickness(-8, 0, 0, store ? 4 : 12);
             StoreRatingRow.Orientation = store ? Microsoft.UI.Xaml.Controls.Orientation.Vertical : Microsoft.UI.Xaml.Controls.Orientation.Horizontal;
             StoreRatingRow.Spacing = store ? 4 : 14;
-            StoreHeroDetails.Margin = new Thickness(0, 8, 0, 0);
+            // 2026-11-15 用户令「下方的卡片别压在封面上」：版本框与那排键离封面再让开一点。
+            StoreHeroDetails.Margin = new Thickness(0, store ? 16 : 8, 0, 0);
             HeroFacts.TextWrapping = store ? TextWrapping.Wrap : TextWrapping.NoWrap;
-            ViewModel.StoreDetailsRoom = store ? StoreHeroDetails.ActualHeight + 8 : 0;
+            ViewModel.StoreDetailsRoom = store ? StoreHeroDetails.ActualHeight + StoreHeroDetails.Margin.Top : 0;
             if (_actions is ShellPage shell) shell.RefreshDetailChrome();
         }
         finally { _placingStoreComponents = false; }
@@ -133,7 +134,7 @@ public sealed partial class DetailPage
     {
         if (!ViewModel.StoreMode) return;
 
-        ViewModel.StoreDetailsRoom = StoreHeroDetails.ActualHeight + 8;
+        ViewModel.StoreDetailsRoom = StoreHeroDetails.ActualHeight + StoreHeroDetails.Margin.Top;
         SyncStoreOverviewFill();
     }
 

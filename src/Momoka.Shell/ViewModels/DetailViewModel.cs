@@ -325,6 +325,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeroVisibility))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     public partial ImageSource? HeroImage { get; set; }
 
     [ObservableProperty]
@@ -514,6 +515,8 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreBackdropWidth));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreContentWidth));
+        OnPropertyChanged(nameof(StorePreviewMargin));
+        OnPropertyChanged(nameof(TailMinHeight));
         SyncBackdrop();
         RefitArtwork();
         OnPropertyChanged(nameof(IsCompact));
@@ -1673,8 +1676,15 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 「黑色渐变下方不要留太大的空位」框住的那一块（2026-09-13）。
     /// </para>
     /// </summary>
-    public double TailMinHeight => DetailHero.TailHeight(
-        Viewport, HeroHeight, BackdropShown, PaperLine, PictureHeight - HeaderLift, Showcase);
+    public double TailMinHeight => StoreMode
+        ? StoreBackdropVisibility == Visibility.Visible
+            ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroHeight,
+                TrailerVisibility == Visibility.Visible && PageWidth >= DetailHero.StoreWideFloor
+                    ? DetailHero.StoreTrailerControlsRoom : 0,
+                DetailHero.StorePreviewGap)
+            : 0
+        : DetailHero.TailHeight(
+            Viewport, HeroHeight, BackdropShown, PaperLine, PictureHeight - HeaderLift, Showcase);
 
     /// <summary>
     /// 正文那张纸自己的下限 —— 见 <see cref="DetailHero.PaperHeight"/>：滚到底的那一屏只能有纸。
@@ -2744,6 +2754,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private void AnnounceAffordances()
     {
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(TailMinHeight));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(ExtraVisibility));
         OnPropertyChanged(nameof(FavoriteActionVisibility));
@@ -3070,6 +3081,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _trailersReady = true;
         _extrasReady = true;
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(TailMinHeight));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(ExtraVisibility));
         NotifyActionAvailability();

@@ -12,10 +12,10 @@ namespace Momoka.Shell.Views;
 /// <summary>这块二维透明遮罩负责哪一种面。</summary>
 internal enum StoreBackdropFadeShape
 {
-    /// <summary>剧照：左边与下边渐隐，右边铺满 —— 收边的是画面，不是压在画面上的染色。</summary>
+    /// <summary>剧照：左边、右边与下边渐隐，画面落在环境底上，右侧留出滚动条的空隙。</summary>
     Picture,
 
-    /// <summary>环境底：左端起坡、底部收边，接窗口画布；右端铺到屏外。</summary>
+    /// <summary>环境底：左端起坡、底部收边、右端也收在画布上，接窗口画布。</summary>
     Ambient
 }
 
@@ -39,12 +39,14 @@ internal sealed class StoreBackdropFade
     private SpriteVisual? _output;
     internal bool IsActive => _output is not null;
 
+    // 2026-11-15 用户令「背景图/预告片下方和左右要加渐变」：左右两端都收到环境底，画面不再有一条贴着
+    // 滚动条的硬边；右端留的那道空隙（StorePreviewGap）与这段渐隐一起把视口收进页面。
     private static readonly (double Position, double Alpha)[] PictureAcross =
-        [(0, 0), (0.12, 0.5), (0.32, 0.92), (1, 1)];
+        [(0, 0), (0.12, 0.5), (0.32, 0.92), (0.9, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] PictureDown =
         [(0, 1), (0.7, 1), (0.86, 0.5), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientAcross =
-        [(0, 0), (0.05, 0.5), (0.16, 0.92), (1, 1)];
+        [(0, 0), (0.05, 0.5), (0.16, 0.92), (0.9, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =
         [(0, 1), (0.72, 1), (0.88, 0.55), (1, 0)];
 

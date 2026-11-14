@@ -16,6 +16,13 @@ public sealed partial class DetailViewModel
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     /// <summary>
+    /// 剧照、预告与亚克力视口贴右站，但给右侧滚动条留一道空隙（2026-11-15 用户令「最右边要留一点空隙」）。
+    /// 三个视口共用同一个边距，屏上才是同一块画面在移动；窗口收窄到窄档时那道空隙照留。
+    /// </summary>
+    public Thickness StorePreviewMargin => StoreMode
+        ? new(0, 0, DetailHero.StorePreviewGap, 0) : default;
+
+    /// <summary>
     /// 商店背景那块环境底的高度：取「剧照盒」与「这一格内容」里更高的一个。
     /// <para>
     /// 剧照是 16:9，按钮那一排可能比它矮、也可能比它高：只按剧照盒画，底会在按钮上方截断；
@@ -70,5 +77,6 @@ public sealed partial class DetailViewModel
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(ScrimHeight));
         OnPropertyChanged(nameof(PictureHeight));
+        OnPropertyChanged(nameof(TailMinHeight));
     }
 }

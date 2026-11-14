@@ -28,9 +28,10 @@ internal static class StoreBackdropStyle
 
     /// <summary>
     /// 剧照后面那块环境底：2026-11-14 用户令「渐变参考图二改」之后，它不再往剧照上压一层染色，
-    /// 而是一块纯色铺在剧照下面，由 <see cref="StoreBackdropFade"/> 的 Ambient 遮罩把它的左端与底部
+    /// 而是一块纯色铺在剧照下面，由 <see cref="StoreBackdropFade"/> 的 Ambient 遮罩把它的左端、右端与底部
     /// 收到透明。剧照自己在同一块底上渐隐，屏幕上是「画面融进一块跟着剧照换色的暗底」，
     /// 与微软商店条目页的顶图同一种做法（微软商店闭源，截图只作视觉参考）。
+    /// 2026-11-15 用户又令「下方和左右要加渐变」「最右边要留一点空隙」：右端一并收边，画面不再贴着滚动条。
     /// </summary>
     internal static void Apply(Border ambient, Color color)
     {
