@@ -449,6 +449,8 @@ handle  Views/PlayerPage.xaml  Cover
 handle  Views/PlayerPage.xaml  CoverArtwork
 handle  Views/PlayerPage.xaml  CoverRing
 handle  Views/PlayerPage.xaml  CoverText
+handle  Views/PlayerPage.xaml  DanmakuHeat
+handle  Views/PlayerPage.xaml  DanmakuHeatPeek
 handle  Views/PlayerPage.xaml  Disabled
 handle  Views/PlayerPage.xaml  DurationText
 handle  Views/PlayerPage.xaml  EpisodeButton

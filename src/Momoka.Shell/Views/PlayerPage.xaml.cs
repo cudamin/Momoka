@@ -519,6 +519,7 @@ public sealed partial class PlayerPage : UserControl
         ViewModel.SourceAspectChanged += OnSourceAspectChanged;
 
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        RenderDanmakuHeat();
         if (ViewModel.CoverUp) ShowCoverPlate();
 
         // 着色器档位 needs to know how large the picture is being drawn, which only the window can say. Pulled

@@ -19,6 +19,9 @@ public sealed partial class PlayerViewModel
     private CancellationTokenSource? _danmakuSearch;
     private CancellationTokenSource? _danmakuStylePush;
     private IReadOnlyList<DanmakuComment> _danmakuComments = [];
+    private IReadOnlyList<DanmakuComment>? _danmakuHeatSource;
+    private DanmakuHeat _danmakuHeatmap = DanmakuHeat.Empty;
+    private double _danmakuHeatDuration = double.NaN;
     private DandanPlayEpisode? _danmakuEpisode;
     private DandanPlayEpisode? _danmakuDanmuApiEpisode;
     private bool _danmakuFetched;
@@ -43,6 +46,8 @@ public sealed partial class PlayerViewModel
     public bool DanmakuAvailable => DanmakuSourceRules.IsAvailable(Settings) && Embedded;
     public Visibility DanmakuControlsVisibility => DanmakuAvailable ? Visibility.Visible : Visibility.Collapsed;
     public bool DanmakuShown => Settings.Danmaku.Show;
+    internal DanmakuHeat DanmakuHeatmap => _danmakuHeatmap;
+    public bool DanmakuHeatVisible => DanmakuAvailable && DanmakuShown && Settings.Danmaku.ShowHeatmap && !_danmakuHeatmap.IsEmpty;
     public string DanmakuToggleLabel => DanmakuShown ? "关闭弹幕" : "开启弹幕";
     public bool DanmakuSendSupported => DanmakuSourceRules.CanSend(Settings.Danmaku.Source);
     internal string DanmakuSearchTitle => _nowPlaying is { } item ? DandanPlayMatching.Title(item) : "";
@@ -83,6 +88,7 @@ public sealed partial class PlayerViewModel
         _danmakuEpisode = null;
         _danmakuDanmuApiEpisode = null;
         _danmakuFetched = false;
+        RefreshDanmakuHeat();
         _danmakuDelay = 0;
         _danmakuDandanCount = 0;
         _danmakuDanmuApiCount = 0;
@@ -131,9 +137,24 @@ public sealed partial class PlayerViewModel
         OnPropertyChanged(nameof(DanmakuAvailable));
         OnPropertyChanged(nameof(DanmakuControlsVisibility));
         OnPropertyChanged(nameof(DanmakuShown));
+        OnPropertyChanged(nameof(DanmakuHeatVisible));
         OnPropertyChanged(nameof(DanmakuToggleLabel));
         OnPropertyChanged(nameof(DanmakuSendSupported));
         RefreshDanmakuInput();
+    }
+
+    /// <summary>
+    /// 按当前已加载弹幕与时长重算热力快照；评论和时长都没变就直接返回，避免样式滑块每拍重扫四万条。
+    /// </summary>
+    private void RefreshDanmakuHeat()
+    {
+        if (ReferenceEquals(_danmakuHeatSource, _danmakuComments) && _danmakuHeatDuration.Equals(Status.Duration)) return;
+        _danmakuHeatSource = _danmakuComments;
+        _danmakuHeatDuration = Status.Duration;
+        _danmakuHeatmap = DanmakuHeat.Build(_danmakuComments, Status.Duration);
+        if (_danmakuHeatmap.IsEmpty) DanmakuHeatCaption = null;
+        OnPropertyChanged(nameof(DanmakuHeatmap));
+        OnPropertyChanged(nameof(DanmakuHeatVisible));
     }
 
     private void DanmakuSettingsChanged()
@@ -161,6 +182,7 @@ public sealed partial class PlayerViewModel
             _danmakuLabel = "";
             _danmakuWarning = "";
             _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
+            RefreshDanmakuHeat();
             DanmakuStatus = DefaultDanmakuStatus;
             ResetDanmakuInput(preserveDraft: true);
             _danmakuTransfer++;
@@ -386,6 +408,7 @@ public sealed partial class PlayerViewModel
         _danmakuEpisode = null;
         _danmakuDanmuApiEpisode = null;
         _danmakuFetched = false;
+        RefreshDanmakuHeat();
         _danmakuDandanCount = 0;
         _danmakuDanmuApiCount = 0;
         _danmakuLabel = selections[0].Episode.Label;
@@ -447,6 +470,7 @@ public sealed partial class PlayerViewModel
 
         _danmakuComments = DanmakuComments.Combine(comments);
         _danmakuFetched = true;
+        RefreshDanmakuHeat();
         _danmakuSourceSummary = string.Join(" + ", sourceLabels);
         _danmakuWarning = errors.Count > 0 ? string.Join("；", errors) : "";
         DanmakuStatus = $"来源：{string.Join(" + ", loaded)} · {_danmakuLabel}"

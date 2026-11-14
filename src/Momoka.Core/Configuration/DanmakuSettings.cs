@@ -21,6 +21,9 @@ public sealed class DanmakuSettings
     public bool WithRelated { get; set; } = true;
     public bool Show { get; set; } = true;
 
+    /// <summary>在集成播放页的进度条上显示已加载弹幕的密度热力；默认开，不增加弹幕请求。</summary>
+    public bool ShowHeatmap { get; set; } = true;
+
     /// <summary>播放页的弹幕输入框；出厂关（2026-11-08 按当前设置抄成默认，此前是开）。</summary>
     public bool ShowInput { get; set; }
     public double Opacity { get; set; } = 70;

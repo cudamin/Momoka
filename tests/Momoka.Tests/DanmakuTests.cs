@@ -27,6 +27,7 @@ internal static class DanmakuTests
             Assert.True(scale.GetBoolean());
             Assert.True(json.GetProperty("PreventOverlap").GetBoolean());
             Assert.True(json.GetProperty("SpeedSyncPlayback").GetBoolean());
+            Assert.True(json.GetProperty("ShowHeatmap").GetBoolean());
             Assert.Equal("Microsoft YaHei", json.GetProperty("FontFamily").GetString());
             Assert.Equal(0, json.GetProperty("BorderStyle").GetInt32());
             Assert.Equal(0, json.GetProperty("DensityMode").GetInt32());
@@ -1025,6 +1026,83 @@ internal static class DanmakuTests
             var many = Enumerable.Range(0, 50000).Select(index => new DanmakuComment(index, 1, 0xFFFFFF, $"C{index}"));
             Assert.Equal(40000, DanmakuComments.Combine(many).Count);
         });
+
+        Test("弹幕：热力按秒聚合，超出时长和非法时间不进入统计", () =>
+        {
+            var comments = new[]
+            {
+                new DanmakuComment(0.2, 1, 0xFFFFFF, "a"),
+                new DanmakuComment(0.8, 1, 0xFFFFFF, "b"),
+                new DanmakuComment(1.1, 1, 0xFFFFFF, "c"),
+                new DanmakuComment(9.5, 1, 0xFFFFFF, "d"),
+                new DanmakuComment(10, 1, 0xFFFFFF, "late"),
+                new DanmakuComment(11, 1, 0xFFFFFF, "later"),
+                new DanmakuComment(-1, 1, 0xFFFFFF, "negative"),
+                new DanmakuComment(double.NaN, 1, 0xFFFFFF, "nan"),
+                new DanmakuComment(double.PositiveInfinity, 1, 0xFFFFFF, "infinity")
+            };
+            var heat = DanmakuHeat.Build(comments, 10);
+            Assert.Equal(4, heat.Total);
+            Assert.Equal(10d, heat.Duration);
+            Assert.Equal(2, heat.PerSecond[0]);
+            Assert.Equal(1, heat.PerSecond[1]);
+            Assert.Equal(1, heat.PerSecond[9]);
+            Assert.Equal(0, heat.PeakSecond);
+            Assert.False(heat.IsEmpty);
+        });
+
+        Test("弹幕：热力切桶用95分位开方，尖峰不压平其他桶；5秒窗口按前后计数", () =>
+        {
+            var comments = new List<DanmakuComment>();
+            for (var second = 0; second < 100; second++)
+                for (var index = 0; index <= second % 10; index++)
+                    comments.Add(new DanmakuComment(second + 0.5, 1, 0xFFFFFF, $"S{second}-{index}"));
+            for (var index = 0; index < 1000; index++)
+                comments.Add(new DanmakuComment(50.5, 1, 0xFFFFFF, $"P{index}"));
+
+            var heat = DanmakuHeat.Build(comments, 100);
+            Assert.Equal(1550, heat.Total);
+            var levels = heat.Levels(100);
+            Assert.Equal(100, levels.Length);
+            Assert.True(levels.All(level => level is >= 0 and <= 1));
+            Assert.Equal(1d, levels[50]);
+            Assert.True(levels[9] > levels[0], "多弹幕的桶没有比少弹幕的桶高");
+            Assert.True(levels[0] is > 0 and < 1, "95分位没有压住尖峰");
+            Assert.Equal(1033, heat.CountAround(50, 5));
+            Assert.Equal(0, heat.CountAround(0, 0));
+        });
+
+        Test("弹幕：没有弹幕、时长未知或非正数时热力为空", () =>
+        {
+            Assert.True(DanmakuHeat.Build([], 10).IsEmpty);
+            Assert.True(DanmakuHeat.Build([new DanmakuComment(1, 1, 0xFFFFFF, "x")], 0).IsEmpty);
+            Assert.True(DanmakuHeat.Build([new DanmakuComment(1, 1, 0xFFFFFF, "x")], -5).IsEmpty);
+            Assert.True(DanmakuHeat.Build([new DanmakuComment(1, 1, 0xFFFFFF, "x")], double.NaN).IsEmpty);
+            Assert.True(DanmakuHeat.Build([new DanmakuComment(1, 1, 0xFFFFFF, "x")], double.PositiveInfinity).IsEmpty);
+            Assert.Equal(0, DanmakuHeat.Empty.Levels(10).Length);
+            Assert.Equal(0, DanmakuHeat.Empty.CountAround(1, 5));
+        });
+
+        Test("弹幕：播放页热力层在滑杆之上、缓存之下，读数住在章节预览里", () =>
+        {
+            var xaml = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.xaml"));
+            var seek = xaml.IndexOf("x:Name=\"SeekSlider\"", StringComparison.Ordinal);
+            var heat = xaml.IndexOf("x:Name=\"DanmakuHeat\"", StringComparison.Ordinal);
+            var cache = xaml.IndexOf("x:Name=\"CacheBar\"", StringComparison.Ordinal);
+            Assert.True(seek >= 0 && heat > seek && cache > heat, "热力层没有落在滑杆与缓存层之间");
+            var peek = xaml.IndexOf("x:Name=\"ChapterPeek\"", StringComparison.Ordinal);
+            var readout = xaml.IndexOf("x:Name=\"DanmakuHeatPeek\"", StringComparison.Ordinal);
+            Assert.True(peek >= 0 && readout > peek, "热力读数没有放进章节预览");
+        });
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+            directory = directory.Parent;
+        Assert.NotNull(directory);
+        return directory!.FullName;
     }
 
     private static HttpResponseMessage Reply(string body, HttpStatusCode code = HttpStatusCode.OK) => new(code)

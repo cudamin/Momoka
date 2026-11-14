@@ -40,6 +40,11 @@ public sealed partial class PlayerPage
                 break;
             case nameof(PlayerViewModel.DanmakuShown):
                 RefreshDanmakuToggle();
+                RenderDanmakuHeat();
+                break;
+            case nameof(PlayerViewModel.DanmakuHeatmap):
+            case nameof(PlayerViewModel.DanmakuHeatVisible):
+                RenderDanmakuHeat();
                 break;
             case nameof(PlayerViewModel.DanmakuInputVisible):
             case nameof(PlayerViewModel.DanmakuCanSend):

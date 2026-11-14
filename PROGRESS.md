@@ -20,6 +20,16 @@ Card/Person 回执现在区分启动、完成、准备/完成超时、关动画�
 基线当前源码专项：UiMotion 57/57、DetailStickyHeader 58/58、SettingsRowsMotion 46/46、SettingsPriorityMotion 24/24。施工后 UiMotion 80/80（新增23项，含音乐栏真实 PlaceMusicBar/PlaceMusicBarMargins 原样提取与启动失败回退）、Priority 35/35（新增11项）、PageContract 275/275、SettingsProbeContract 36/36，均零失败零跳过。音乐方法提取的缺起点、重复起点、缺终点均实际拒绝，合法源恢复成功；故障日志仅在 ignored work。Home Waiting/齿轮/Priority 的注册前后及退订异常明确断言本地收尾，native 退订未知不冒称零泄漏。本树受影响 Shell/x64 Release 两轮编译均 0 警告 0 错误；第二轮包含 Home Waiting、Priority 与 SidebarMotion 生产修改（末次 Priority 关闭事件取样由主代理最终整合编译覆盖）。
 
 StickyHeader、SurfaceMotion、SettingsRowsMotion、SettingsPage.Motion 与音乐栏产品方法核对保留：单一属性控制、快速反向/旧完成、命中、焦点、回收/终值已有专项。播放器 PlayerPage 的 220ms 原生 OpacityTransition 与 FadeRail/FadeStrip 命中规则只读核对，未改播放。未运行桌面 UI、系统设置、原生探针、真实网络/播放、发布或 push；假时钟不能证明 GPU 连续性、真实系统通知、Narrator、跨 DPI 或资源逐帧。原生待验由主代理串行采用现有 shell/settings/music/library 分区及最终主树台账处理，AVP/Effects仍暂缓。
+## 2026-11-14 进度条弹幕热力（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-danmaku-heatmap-7MAFQ8`，分支 `feat-danmaku-heatmap-7MAFQ8`，基点 master `63ef01a`。用户要求做弹幕热力图；只读审查后确认落在集成播放页进度条、悬停显示条数、统计全部已加载弹幕。产品与测试提交 `25a79e3`，边界补丁 `b1b7f37`。
+
+**实现。** 新增 Core `DanmakuHeat`：按秒聚合已加载弹幕，按轨道宽度切桶，非零桶 95 分位开方归一化，并提供悬停前后各 2.5 秒计数；超时长、负数和非有限时间不计入。`PlayerViewModel` 在加载、发送、换片、来源切换和时长变化时重建快照，评论和时长都没变就跳过；`DanmakuHeatVisible` 同时受服务可用、显示开关和新增 `DanmakuSettings.ShowHeatmap` 约束。集成页 `PlayerPage.DanmakuHeat.cs` 在 `SeekTrack` 的滑杆之上、缓存之下画底对齐细柱，宽度约 2 DIP、最多 600 桶、最高 60% 轨高；悬停读数复用 `ChapterPeek` 新增一行「此处约 N 条弹幕」。设置 → 弹幕 → 显示与外观新增「在进度条显示弹幕热力」，默认开，随「显示弹幕」收起；颜色走 `PlayerPalette.DanmakuHeat`（薄荷绿 40%）。独占 uosc 时间轴不画；不新增网络请求或额度消耗。
+
+**验证。** Shell/Core Release x64 **0 警告 0 错误**；`danmaku-fixture` **64/64**（新增按秒聚合、95 分位归一化、空快照与播放页层次契约，补丁后在最终代码上重跑）；主测试 **5110/5110、失败 0、跳过 0**（补丁前；补丁只改 Core 热力时长/索引边界，专项已覆盖）。`tools/check-diff.ps1` 检查 19 个文本文件通过。未跑原生探针与实屏截图，未连真实服务器、未播放；交付时需补设置页与集成播放页 1200/760 截图及悬停读数检查。
+
+**收尾。** 按批次规则只合入 master，不发布、不交付。
+
 ## 2026-11-14 第二次桌面交付：第 15～28 项、音乐胶囊与探针修复
 
 用户先要求更新桌面快捷方式，后在其他会话持续合并/占锁的前提下选择「直接把当前 HEAD 发布，不再重验」。主树发布 HEAD `8262702`，`artifacts/publish/win-x64` 548 文件 / 303,458,680 字节；Momoka.exe SHA256 `523795C97EFAB46AB413BBC1F2ABA6A7356AFE0834C2AF5EAC037E6107111F66`、Momoka.dll `514662E7DBF7DE612DBFEFF03844F8F95AA58DD60BB32971F09D93FD0E8417E6`；桌面 Momoka.lnk 已指向该 exe，`verify-publish.ps1` 通过（mpv 批准清单 60 文件）。

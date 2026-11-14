@@ -46,6 +46,8 @@ internal sealed partial class ShellNavigationProbe
             ((IToggleProvider)new ToggleSwitchAutomationPeer(enabled).GetPattern(PatternInterface.Toggle)).Toggle();
             await LayoutAsync(page);
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "开启后没有显示外观设置");
+            Require(DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "在进度条显示弹幕热力"),
+                "开启后没有显示弹幕热力开关");
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "应用凭据已退役，设置里仍出现 AppId");
             var sourceRow = DanmakuRows(page).OfType<SettingChoiceRow>().Single(row => row.Label == "弹幕来源");
             var sourceCombo = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "弹幕来源");
