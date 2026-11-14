@@ -13731,3 +13731,5 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 分支已具备合并条件，按项目规则主动合入master并在合入后追加台账；不发布、不推送、不改快捷方式。交付时按台账并集在主树最终代码重验。本任务辅助树逐文件确认后清理，忽略故障日志先保留；聊天primary检出遵守应用保护。
 
 2026-11-15合入记录：干净master ee3d23c已快进到d8d8d00，无冲突；产品/测试逐文件与施工树一致，S1/S3/native职责文件逐项无缺失（部分commit patch-id因整合不同但内容一致）。已在台账追加32，完整失败/最终原生证据与S3提取故障复制到artifacts/winui-motion-20261115，未发布/上传。S1尾df6f9dc、S3尾88e61fc、native尾bab66b5均干净并已完整保留；只清本任务三树，primary检出保护遵守应用工具。
+
+2026-11-15清理完成：三项原生git工作树winui-motion-s1/s3/native逐文件核对后已移除，相关四条本任务临时分支已删；S1唯一差异是master后续截图修正，完整保留。主施工树干净detached到6de6ffb；应用archive_worktree拒绝删除primary（The task's primary checkout cannot be removed.），遵守保护保留检出，不以原生命令绕过。其他聊天分支/工作树不处理。
