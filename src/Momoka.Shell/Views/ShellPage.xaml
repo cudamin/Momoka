@@ -218,40 +218,30 @@
             </StackPanel>
         </Grid>
 
-        <!-- 搜索框（2026-11-12 用户令「标题上方新增搜索栏，点击搜索栏进入搜索页面，搜索栏里写搜索媒体库、订阅等」）：
-             商店那颗的样子 —— 标题栏正中一段半透明圆角框，放大镜加一行占位字。它**不是输入框**，按下去就进搜索页
-             （那一页有自己的输入框和来源栏），所以用 Button 而不是 TextBox：键盘焦点、UIA 名字和回车都是按钮语义。
-             它站在窗口算成标题栏的那 48 像素里，所以和左边那一排、账号那颗一样要挖洞（见 ReportTitleBarHoles）——
-             不挖洞的话按下去是拖窗口。窄窗收起（门槛见 SyncTitleSearch）：这一排左边是按钮、右边是账号，
-             中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式没有第二个搜索入口。
-             侧边栏模式下按下它时，搜索框会顺着关联动画落到搜索页那只输入框上（见 TitleSearchTransition）。 -->
-        <Button
+        <!-- Gallery MainWindow.xaml at 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
+             标题栏用原生 AutoSuggestBox、Find 和 TextChanged/QuerySubmitted，适配现有窗口挖洞及搜索页生命周期。
+             Copyright (c) Microsoft Corporation. Licensed under the MIT License. -->
+        <AutoSuggestBox
             x:Name="TitleSearchBox"
             x:Uid="ShellPage_TitleSearchBox"
             Height="34"
             Margin="0,7,0,0"
-            Padding="12,0,12,0"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
-            Background="{ThemeResource EgFieldFillBrush}"
-            BorderBrush="{ThemeResource EgFieldStrokeBrush}"
-            BorderThickness="1"
+            VerticalContentAlignment="Center"
             CornerRadius="8"
-            Foreground="{ThemeResource EgTextDimBrush}"
-            Click="OnSearchBoxClicked"
+            TextBoxStyle="{StaticResource EgSearchTextBoxStyle}"
+            PlaceholderText="搜索媒体库、订阅等"
+            QueryIcon="Find"
+            GotFocus="OnTitleSearchGotFocus"
+            TextChanged="OnTitleSearchTextChanged"
+            QuerySubmitted="OnTitleSearchSubmitted"
             Visibility="Collapsed">
-            <Button.Resources>
-                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgFieldFillHoverBrush" />
-                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgFieldFillHoverBrush" />
-            </Button.Resources>
-            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <!-- 放大镜照这一排的规矩按 24×24 画（和标题栏那颗同一份几何），外面那层 16 的 Viewbox 是缩小那一步。 -->
-                <Viewbox Width="16" Height="16" VerticalAlignment="Center">
-                    <PathIcon Data="F1 M 10.25,2.75 A 7.5,7.5 0 1 1 10.25,17.75 A 7.5,7.5 0 1 1 10.25,2.75 Z M 10.25,4.55 A 5.7,5.7 0 1 0 10.25,15.95 A 5.7,5.7 0 1 0 10.25,4.55 Z M 16.19,14.91 L 21.64,20.36 A 0.9,0.9 0 0 1 20.36,21.64 L 14.91,16.19 A 0.9,0.9 0 0 1 16.19,14.91 Z" />
-                </Viewbox>
-                <TextBlock x:Uid="ShellPage_TitleSearchBoxText" Text="搜索媒体库、订阅等" VerticalAlignment="Center" />
-            </StackPanel>
-        </Button>
+            <AutoSuggestBox.Resources>
+                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+            </AutoSuggestBox.Resources>
+        </AutoSuggestBox>
 
     </Grid>
 

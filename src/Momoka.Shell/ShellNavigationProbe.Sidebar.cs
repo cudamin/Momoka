@@ -130,20 +130,43 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
 
-            // 2026-11-13 用户令：栏里的搜索项删除；侧边栏模式里点标题栏搜索框，框顺着关联动画落到页内输入框。
+            // 2026-11-13 用户令：栏里的搜索项删除；标题栏原生输入接管搜索，宽窄切换保留关键词。
             Require(nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
                 .All(item => item.Tag as string != "search"), "侧边栏里仍有搜索入口");
-            var titleSearch = Get<Button>(shell, "TitleSearchBox");
+            var titleSearch = Get<AutoSuggestBox>(shell, "TitleSearchBox");
             Require(titleSearch.Visibility == Visibility.Visible, "宽窗侧边栏模式没有标题搜索框");
             HomeMotion.ApplyPreference(true);
             Require(settingsIcon.Source is not null, "开动画后侧栏设置图标没有恢复动态源");
-            TitleSearchTransition.ResetOutcome();
-            ((IInvokeProvider)new ButtonAutomationPeer(titleSearch).GetPattern(PatternInterface.Invoke)).Invoke();
+            Require(titleSearch.Focus(FocusState.Programmatic), "标题搜索框不能获得焦点");
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.SearchTag
                 && frame.Content is LibraryPage searchPage && searchPage.ViewModel.SearchVisibility == Visibility.Visible);
-            await UntilAsync(() => TitleSearchTransition.LastOutcome is "started" or "skipped");
-            Require(TitleSearchTransition.LastOutcome == "started",
-                "标题搜索框没有接到搜索页输入框：" + TitleSearchTransition.LastOutcome);
+            var titleSearchPage = (LibraryPage)frame.Content;
+            await LayoutAsync(shell);
+            Require(ReferenceEquals(titleSearchPage.ActiveSearchInput, titleSearch), "搜索页未使用标题输入框");
+            Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility == Visibility.Collapsed
+                && Get<Grid>(titleSearchPage, "SearchForm").RowSpacing == 0, "页内重复输入或空行未收起");
+            Require(titleSearch.Focus(FocusState.Programmatic), "导航后标题输入失焦");
+            // 改模板 TextBox 走原生 UserInput；立即查询要抵挡 150ms 后才到的 TextChanged。
+            var titleTextBox = Descendants(titleSearch).OfType<TextBox>().Single();
+            titleTextBox.Text = "离线标题";
+            var titleQuery = Descendants(titleSearch).OfType<Button>().Single(button => button.Name == "QueryButton");
+            ((IInvokeProvider)new ButtonAutomationPeer(titleQuery).GetPattern(PatternInterface.Invoke)).Invoke();
+            await Task.Delay(650);
+            Require(titleSearchPage.ViewModel.SearchText == titleSearch.Text && titleSearch.Text == "离线标题",
+                "标题输入或立即回车被延迟文本事件覆盖");
+            Require(titleSearchPage.ViewModel.LoadedCount > 0, "标题查询没有留下搜索结果");
+            await SaveProbeScreenAsync("sidebar-title-search-screen.png");
+            foreach (var searchWidth in new[] { 620, 1240, 620, 1240 })
+            {
+                Require(titleSearchPage.ActiveSearchInput.Focus(FocusState.Programmatic), "缩放前输入无法聚焦");
+                ResizeProbeClient(searchWidth, 900);
+                await LayoutAsync(shell);
+                var wideSearch = searchWidth >= 700;
+                Require(Get<Grid>(titleSearchPage, "SearchEntry").Visibility
+                    == (wideSearch ? Visibility.Collapsed : Visibility.Visible), "宽窄切换搜索输入未换班");
+                Require(titleSearchPage.ActiveSearchInput.Text == "离线标题", "宽窄切换丢失关键词");
+                Require(titleSearchPage.SearchInputFocused, "宽窄切换没有把焦点交给可见输入");
+            }
             Call(shell, "GoBack");
             await UntilAsync(() => frame.Content is HomePage && shell.ActiveContentReady);
             await LayoutAsync(shell);
@@ -328,7 +351,7 @@ internal sealed partial class ShellNavigationProbe
                     && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible,
                     "媒体库页的标题栏那一排缺了按键");
-                var box = Get<Button>(shell, "TitleSearchBox");
+                var box = Get<AutoSuggestBox>(shell, "TitleSearchBox");
                 var wide = width >= 1000;
                 Require(box.Visibility == (wide ? Visibility.Visible : Visibility.Collapsed)
                     && Get<Button>(shell, "SearchButton").Visibility == (wide ? Visibility.Collapsed : Visibility.Visible),
@@ -691,7 +714,7 @@ internal sealed partial class ShellNavigationProbe
         var glyphBox = Bounds(accountGlyph, host);
         Require(VisibleArea(accountGlyph, host) >= glyphBox.Width * glyphBox.Height - 0.5,
             $"账号的人像被裁到格外交外：可见 {VisibleArea(accountGlyph, host):F1}/{glyphBox.Width * glyphBox.Height:F1} 平方像素");
-        var searchBox = Get<Button>(shell, "TitleSearchBox");
+        var searchBox = Get<AutoSuggestBox>(shell, "TitleSearchBox");
         if (searchBox.Visibility == Visibility.Visible && searchBox.ActualHeight > 0)
         {
             var glyphCentre = Top(accountGlyph, shell) + accountGlyph.ActualHeight / 2;

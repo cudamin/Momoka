@@ -1,3 +1,13 @@
+## 2026-11-14 标题搜索原生输入与搜索页上移
+
+独立树 `C:/Users/89400/.codex/worktrees/3b1c/Momoka`、临时分支 `codex/title-search-input`，基点 `0fdf357`。用户截图的全局标题搜索换为原生AutoSuggestBox，标题可见时收起页内完整输入行及余白，来源与结果整体上移；窄窗保留页内输入。沿用原搜索来源、防抖/显式提交、中文IME补偿和窗口命中，MP站点入口移到来源栏下方、窄窗回框内。原TitleSearchTransition随重复输入栏退役。两个子代理只读核Gallery稳定源码、输入/Frame时序和回归，未并行写本树。
+
+已读 Gallery v2.9.3 固定 `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` MainWindow、AutoSuggestBox、TitleBar完整XAML/code-behind和Learn标题栏/AutoSuggestBox；沿其原生控件与UserInput/QuerySubmitted接线，样式和搜索生命周期本地适配，没有依赖升级。源码临时证据为本树work/gallery-title-search，源ZIP哈希核对通过。
+
+定向Release验证：Shell/Core及测试编译0警告0错误；LibraryHeaderTests 26/26，SearchLifetimeTests 44/44，ResourceBrowserTests 187/187，主测试toolbar-icon-fixture 10/10，均0失败0跳过。新增真实partial源链接检查覆盖迟到输入、回车后同词、离页不重开、未通知草稿、内部焦点、重复订阅/解绑及布局恢复；生命周期新增不同词草稿拒绝旧MP快照。正式Sidebar检查已改走内部TextBox原生输入、立即Query按钮、四次宽窄焦点/原词恢复，保留原侧栏检查；不以源码或测试替代真实UI。
+
+本轮等待共享桌面诊断锁释放，没有结束其他进程或绕锁。真实UI检查与中文物理IME/键盘、MP资源站点宽窄、DPI/Narrator待补；只合并不交付，桌面仍为原发布版。产品提交、合并与树清理在收尾记录补充，未推送origin。
+
 ## 2026-11-14 封面静止半秒才放大，点击操作后不再误触发
 
 本轮在主树 master 开发，基点 `140bfe8`。`PosterCard` 的整卡 1.03、封面 1.045 与展开预览统一等鼠标在 Art 封面上静止 500ms；实际移动重计，同坐标不重计。按下或播放/收藏/已看/更多及预览按钮动作统一取消并抑制重触发，直到真正离开封面或换卡；假移出/捕获事件不解除。只读当前实际 Keyboard 焦点驱动键盘推近，鼠标点击焦点不能绕过计时。保留即时暗罩/按钮和预览离开宽限。

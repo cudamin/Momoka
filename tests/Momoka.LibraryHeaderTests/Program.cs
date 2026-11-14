@@ -10,6 +10,116 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("标题输入一次导航，当前页输入与回车不重建来源", () =>
+        {
+            var shell = new ShellPage();
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox();
+            shell.FocusTitle();
+            var page = shell.Page!;
+            title.Text = "搜索词";
+            shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
+            Assert.Equal(1, page.TypingCalls);
+            shell.QueryTitle(title, title.Text);
+            Assert.Equal(1, page.Submissions);
+            Assert.Equal(1, shell.Navigations);
+            Assert.True(ReferenceEquals(page, shell.Page));
+        });
+        Test("回车后的同词延迟通知及程序同步不重新清空查询", () =>
+        {
+            var shell = new ShellPage();
+            shell.FocusTitle();
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox { Text = "立即回车" };
+            shell.QueryTitle(title, title.Text);
+            shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
+            title.Text = "程序同步词";
+            shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.ProgrammaticChange });
+            shell.TypeTitle(title, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput, Current = false });
+            Assert.Equal(0, shell.Page!.TypingCalls);
+            Assert.Equal(1, shell.Page.Submissions);
+            Assert.Equal("立即回车", shell.Page.ViewModel.SearchText);
+        });
+        Test("离页后迟到文本事件不重新打开搜索页", () =>
+        {
+            var shell = new ShellPage();
+            shell.FocusTitle();
+            shell.Page = null;
+            shell.TypeTitle(new() { Text = "旧页草稿" }, new() { Reason = Microsoft.UI.Xaml.Controls.AutoSuggestionBoxTextChangeReason.UserInput });
+            Assert.True(shell.Page is null);
+            Assert.Equal(1, shell.Navigations);
+        });
+        Test("标题输入绑定同步原词，重复接管不重复订阅，释放彻底解绑", () =>
+        {
+            var page = new LibraryPage();
+            page.ViewModel.SearchText = "中文关键词";
+            page.SearchInput.Text = "中文关键词";
+            page.SearchInput.PlaceholderText = "资源搜索";
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox();
+            page.AttachTitle(title);
+            Assert.True(ReferenceEquals(title, page.ActiveSearchInput));
+            Assert.Equal("中文关键词", title.Text);
+            Assert.Equal("资源搜索", title.PlaceholderText);
+            Assert.Equal(2, title.HandlerCount);
+            page.AttachTitle(title);
+            Assert.Equal(2, title.HandlerCount);
+            var cancellations = page.ImeCancelCount;
+            title.LoseFocus();
+            Assert.Equal(cancellations + 1, page.ImeCancelCount);
+            page.AttachTitle(null);
+            Assert.Equal(0, title.HandlerCount);
+            Assert.True(ReferenceEquals(page.SearchInput, page.ActiveSearchInput));
+            cancellations = page.ImeCancelCount;
+            title.LoseFocus();
+            Assert.Equal(cancellations, page.ImeCancelCount);
+            page.AttachTitle(title, released: true);
+            Assert.Equal(0, title.HandlerCount);
+        });
+        Test("标题尚未同步的草稿在宽窄往返保留", () =>
+        {
+            var page = new LibraryPage();
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox();
+            page.AttachTitle(title);
+            title.Text = "未触发延迟事件的新词";
+            page.AttachTitle(null);
+            Assert.Equal(title.Text, page.ViewModel.SearchText);
+            Assert.Equal(1, page.TypingCalls);
+            Assert.Equal(title.Text, page.SearchInput.Text);
+            page.AttachTitle(title);
+            Assert.Equal("未触发延迟事件的新词", page.ActiveSearchInput.Text);
+        });
+        Test("原生内部输入焦点在宽窄切换后转交，离页取消迟到转交", () =>
+        {
+            var page = new LibraryPage();
+            var title = new Microsoft.UI.Xaml.Controls.AutoSuggestBox { XamlRoot = new object() };
+            page.AttachTitle(title);
+            Microsoft.UI.Xaml.Input.FocusManager.Focused = new DependencyObject { VisualParent = title };
+            page.AttachTitle(null);
+            Assert.Equal(1, page.DispatcherQueue.Pending.Count);
+            page.DispatcherQueue.Run();
+            Assert.Equal(FocusState.Programmatic, page.SearchInput.FocusState);
+            page.SearchInput.XamlRoot = new object();
+            Microsoft.UI.Xaml.Input.FocusManager.Focused = new DependencyObject { VisualParent = page.SearchInput };
+            page.AttachTitle(title);
+            page.AttachTitle(null, released: true);
+            page.DispatcherQueue.Run();
+            Assert.Equal(FocusState.Unfocused, title.FocusState);
+            Microsoft.UI.Xaml.Input.FocusManager.Focused = null;
+        });
+        Test("标题输入接管后收起整行并上移来源，窄窗恢复原布局", () =>
+        {
+            var page = new LibraryPage();
+            page.ViewModel.MoviePilotTabsVisibility = Visibility.Visible;
+            page.TitleInputShown = true;
+            page.Apply(search: true);
+            Assert.Equal(Visibility.Collapsed, page.SearchEntry.Visibility);
+            Assert.Equal(0d, page.SearchForm.RowSpacing);
+            Assert.Equal(12d, page.PageRoot.Margin.Top);
+            page.TitleInputShown = false;
+            page.Apply(search: true);
+            Assert.Equal(Visibility.Visible, page.SearchEntry.Visibility);
+            Assert.Equal(0d, page.SearchForm.RowSpacing);
+            Assert.Equal(8d, page.SourceTabs.Margin.Top);
+            Assert.Equal(40d, page.PageRoot.Margin.Top);
+        });
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
             Test($"{kind}继续观看保留小标题和28DIP间距", () =>
             {

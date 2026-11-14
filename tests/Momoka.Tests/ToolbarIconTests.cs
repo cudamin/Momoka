@@ -67,19 +67,17 @@ internal static class ToolbarIconTests
             Assert.True(!Shell().Descendants().Any(element =>
                 element.Attribute(Xaml + "Name")?.Value == "AppTitleText"), "左上角又写回了 Momoka");
         });
-        TestHarness.Test("标题栏搜索框：标题栏正中一颗按钮，写着搜索媒体库、订阅等", () =>
+        TestHarness.Test("标题栏搜索框支持原生输入和提交", () =>
         {
             var box = Named(Shell(), "TitleSearchBox");
-            Assert.Equal("Button", box.Name.LocalName);
-            Assert.Equal("OnSearchBoxClicked", box.Attribute("Click")?.Value);
+            Assert.Equal("AutoSuggestBox", box.Name.LocalName);
+            Assert.Equal("OnTitleSearchGotFocus", box.Attribute("GotFocus")?.Value);
+            Assert.Equal("OnTitleSearchTextChanged", box.Attribute("TextChanged")?.Value);
+            Assert.Equal("OnTitleSearchSubmitted", box.Attribute("QuerySubmitted")?.Value);
+            Assert.Equal("Find", box.Attribute("QueryIcon")?.Value);
             Assert.Equal("Center", box.Attribute("HorizontalAlignment")?.Value);
             Assert.Equal("Collapsed", box.Attribute("Visibility")?.Value);
-
-            // 它只是个按钮，不是输入框：搜索页自己有输入框与来源栏。
-            Assert.True(!box.Descendants().Any(element => element.Name.LocalName is "TextBox" or "AutoSuggestBox"),
-                "标题栏那颗搜索框变成了输入框");
-            var text = box.Descendants().Single(element => element.Name.LocalName == "TextBlock");
-            Assert.Equal("搜索媒体库、订阅等", text.Attribute("Text")?.Value);
+            Assert.Equal("搜索媒体库、订阅等", box.Attribute("PlaceholderText")?.Value);
         });
         TestHarness.Test("标题栏收藏：爱心字形默认收着，没有收藏时不出现在那一排", () =>
         {
