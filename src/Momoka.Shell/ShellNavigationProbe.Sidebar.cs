@@ -1155,8 +1155,14 @@ internal sealed partial class ShellNavigationProbe
                 $"媒体库悬停预览压住侧栏或跑出内容区：left={Left(preview, shell):0} rail={host.ActualWidth:0} top={Top(preview, shell):0}");
             Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
             Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
-            var coverButtons = previewCovers.Children.OfType<Button>().ToArray();
+            // 一颗封面现在是一格「图 + 片名」的竖排（2026-11-14 用户令「给封面下方加上片名」），
+            // 按钮在格子里，不再是预览网格的直接孩子。
+            var coverButtons = Descendants(previewCovers).OfType<Button>().ToArray();
             Require(coverButtons.Length == 3, "可播放封面没有使用三颗原生按钮");
+            var coverTitles = previewCovers.Children.OfType<StackPanel>()
+                .Select(cell => cell.Children.OfType<TextBlock>().LastOrDefault()?.Text).ToArray();
+            Require(coverTitles.Length == 3 && coverTitles.All(title => !string.IsNullOrEmpty(title)),
+                "预览封面下方没有显示片名");
             foreach (var button in coverButtons)
             {
                 Require(button.Tag is EmbyItem item && AutomationProperties.GetName(button) == $"播放：{item.Name}"

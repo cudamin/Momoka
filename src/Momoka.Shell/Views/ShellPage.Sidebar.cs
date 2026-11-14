@@ -497,6 +497,16 @@ public sealed partial class ShellPage
                 Tag = tag
             };
             RegisterSidebarLibraryIcon(item, library.CollectionType);
+            // 图标栏这一档不再让框架自己弹一颗「库名」提示：指针停半秒后展开的预览面板标题写的就是同一个名字，
+            // 两颗一起出现就是用户 2026-11-14 报的「显示了两个 电影」。NavigationViewItem 只在条目还没有自定义
+            // 提示时才把 Content 塞进 ToolTip（WinUI 的 UpdateNavigationViewItemToolTip），所以这里挂一颗
+            // 零尺寸、透明的提示占住那个位置；库名仍由预览面板标题和读屏名字（下一行）负责。
+            ToolTipService.SetToolTip(item, new ToolTip
+            {
+                Background = null,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0)
+            });
             AutomationProperties.SetAutomationId(item, "SidebarLibrary_" + library.ParentId);
             AutomationProperties.SetName(item, library.Title);
             item.PointerEntered += OnSidebarLibraryPointerEntered;
