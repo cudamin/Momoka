@@ -250,7 +250,8 @@ internal sealed partial class ShellNavigationProbe
         ResizeInspect(1240, 1000);
         _root.Children.Add(page);
         page.Attach(new(service, subscription, fixture.Session.Capture(),
-            target => { played.Add(target); return Task.CompletedTask; }, keyword => searched.Add(keyword)));
+            target => { played.Add(target); return Task.CompletedTask; }, keyword => searched.Add(keyword),
+            Settings: fixture.SettingsService));
         try
         {
             var vm = page.ViewModel;

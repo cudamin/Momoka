@@ -10,6 +10,13 @@ internal static class Program
     private static int Main(string[] args)
     {
         if (args is ["library-anchor-page-fixture"]) return LibraryAnchorTests.Run();
+        if (args is ["sidebar-icons-fixture"])
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+            SidebarIconTests.Register();
+            ToolbarIconTests.Register();
+            return TestHarness.Run();
+        }
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("页面源码控制流契约（无 WinUI 窗口／布局或真实服务）");
         foreach (var key in new[] { HomeLayout.MoviePilotMovies, HomeLayout.MoviePilotSeries })
@@ -91,6 +98,7 @@ internal static class Program
         ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
         SidebarMotionContractTests.Register();
+        SidebarIconTests.Register();
         SettingsControlNameTests.Register();
         SystemManagedThemeRoleTests.Register();
         DeferredCardsTests.Register();

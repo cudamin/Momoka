@@ -570,7 +570,7 @@
   <data name="ShellPage_TitleSearchBox.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>搜索媒体库、订阅等</value>
   </data>
-  <data name="ShellPage_TitleSearchBoxText.Text" xml:space="preserve">
+  <data name="ShellPage_TitleSearchBox.PlaceholderText" xml:space="preserve">
     <value>搜索媒体库、订阅等</value>
   </data>
   <data name="ShellPage_FavoritesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">

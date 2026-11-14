@@ -1,10 +1,40 @@
-## 2026-11-14 侧栏并入商店模式与标题栏恢复（在途）
+## 2026-11-14 侧栏并入商店模式与标题栏恢复（验证完成，整合中）
 
-当前临时树356e/分支codex/store-sidebar-unified，基点0fdf357；产品改动范围为显示模式、外壳布局与相关离线/原生探针。删除独立SidebarMode，以EnableImmersive唯一决定商店侧栏；沉浸恢复左上放大镜和标题栏画布，页面通过Padding保持48起点。保留48标题高度、28图标、账号位置及前进退役。旧配置四组合按显示模式，保存不再写旧键。
+当前临时树356e/分支codex/store-sidebar-unified，基点0fdf357；用户要求为关闭侧栏恢复旧标题栏、侧栏合并到商店模式、商店模式设为默认；随后追加沉浸轮播恢复商店改造前样式。删除独立SidebarMode，以EnableImmersive唯一决定商店侧栏；新建、缺键和恢复默认选商店，显式保存的显示模式保持。沉浸恢复左上放大镜与标题栏画布，收起Momoka名称和居中搜索，页面通过Padding保持48起点；商店以Margin露出标题栏Mica。整合主树真实AutoSuggestBox、输入行去重与焦点交接、空心/实心侧栏图标及两档折叠图；保留返回/折叠20、其他工具28、标题48、账号位置和前进退役。旧配置四组合按显示模式，保存不再写旧键。
 
 已读取Gallery稳定v2.9.3固定14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的MainWindow/NavigationView/TitleBar及helper，Learn导航/标题栏指南；没有同样的商店/沉浸产品切换样例，复用现有控件与事件，仅本地连接显示模式。恢复左上搜索是用户指定旧产品排法，不宣称微软建议如此。本机缓存ZIP哈希42D46136938B67D6FF6A7336B9C3A6D415850C5819C28B1E2E88B68FEAF37EF6。子代理只读查历史/官方实现/差异，无并行写入。
 
-本轮Shell/Core及Tests编译0警告0错误，设置存储183/183、标题15/15、真实设置VM57/57、延迟保存24/24；失败的测试夹具版本号/COM构造及首轮探针FrameworkElement.Padding编译错误均修复，失败日志保留于artifacts/store-sidebar。变更编码/行尾/空白通过。尚未做原生检查/发布/上传。master并行合入93a1c12真实标题搜索输入，待整合保留AutoSuggestBox、焦点交接与搜索页输入收起，再构建与定向验证；完成后主动合并master并登记待交付，不刷新桌面发布。
+已整合主树93a1c12真实标题搜索和5063f31侧栏图标，补同页退役标题输入的迟到事件归属守卫，LibraryHeader27/27；设置存储183/183、标题15/15、详情定制48/48、真实设置VM57/57、详情行为89/89、延迟保存24/24、页面契约254/254、搜索生命周期44/44、资源搜索187/187均0失败0跳过。用户追加轮播后已读171a1e6/2f74559旧版完整相关实现，恢复沉浸通栏/-48/OnScrim及媒体库左36，商店留白/圆角/左24，外观通知仅重排，不重查；同步系统按钮墨色的正反判据及滚动条下沿/非零滚动/空图恢复；HomeFold69/69含真实partial行为，待最终重建与原生复验。首次隐藏启动宿主红，改可见启动运行；原生shell/favorites/moviepilot59项55过4红，侧栏行定位同时匹配字幕同名行已修，MP首页封面与Chrome遮挡红保持证据，未冒称通过。首启商店与MP模式切换检查已过。最终验证与合并继续，所有日志保留artifacts/store-sidebar及shell-probe-20261114-044312203-25956；不发布、不上传。
+
+最终源码Release Shell/Core构建0警告0错误；上述定向测试以及home-chrome2/2、home-carousel35/35、HomeFold69/69均0失败0跳过，51文本/52路径编码、行尾与空白检查和定向dotnet format退出0。最终正式入口匿名开发探针 `--probe-shell --probe-section shell,favorites --screen 1` 22/22、退出0：运行目录 `shell-probe-20261114-051354168-30260`，沉浸轮播、商店圆角轮播、760导航与真实标题输入四张实屏已目视；系统墨色正反、空轮播、滚动下沿、699/700边界、真实焦点与模式切换均通过。22项仅覆盖shell/favorites，不将较早MP红项或未运行范围冒称通过；物理IME/DPI/Narrator未覆盖。产品首版提交2035bd8，正在提交轮播恢复、默认商店与主树搜索/侧栏整合，不发布、不上传。
+
+用户新追加沉浸返回按钮移到左上工具组最右侧。只读核对Learn标题栏设计固定7814a981875bc80bafd780cdb58f6f7455e9f400的Back button章节：推荐返回距左缘16px，无原生TitleBar控件/应用名限制；本项目现有自绘标题栏适用。UIElementCollection.Move为当前WinUI包公开API，技术支持换序，但涉及规则第②类推荐冲突，已说明收益/代价并异步询问，等待明确选择期间不修改换序产品代码。
+
+## 2026-11-14 侧边栏图标：空心开合与当前页面实心（9998 树）
+
+用户给图要求折叠按钮左栏空心，收起为左侧短竖线、展开为贯穿分隔线；当前页面对应的侧边栏图标实心。保留原生 NavigationView 与现有导航、详情所属库和返回/前进同步；每项独占空心/实心对象，仅状态变化换引用，重建库时移除旧配对，设置仍为另窗动作和原 AnimatedIcon。
+
+实现前读固定 Gallery `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 MainWindow、NavigationView 完整 XAML/code-behind，以及 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 Iconography/IconsData.json 和本机 WinUI 2.3.9 模板。Gallery 没有选中自动填实与两档空心折叠图的成套示例，使用原生图标组合并保留现有事件/焦点/可访问名称。主页 Home/HomeSolid、收藏 Heart/HeartFill、电视剧 Video/VideoSolid 使用已核对的字形；MP 订阅去掉已有 MDI 内孔；其他库保留已有 Movies 图标语义，按真实 Segoe Fluent Icons 圆角胶片轮廓填中央并留六齿孔。Microsoft Learn NavigationView 与 Segoe Fluent Icons 指南已读，不改依赖、主题或播放。
+
+本树 PageContract Release 0 警告 0 错误；链接正式 ShellPage.SidebarIcons 的定向测试及标题栏契约 17/17、完整页面契约 254/254，均 0 失败 0 跳过；文本行尾/BOM/空白 12 文件通过。最终 Shell Release 0 警告 0 错误；匿名原生检查台等待另一会话诊断锁释放后执行 `InspectSidebarNavigation` 与 `InspectMoviePilotSidebar`，2/2 通过、退出0；不把离线替身视作真实布局。最终运行目录 `shell-probe-20261114-042106330-31552`：1240展开、760图标栏、600展开/收起和MP选中页实屏已目视，真实窗口HWND594094；标题右側/可拖动与按钮点击区域、开合两档、音乐/电影/详情及返回/前进图标同步通过。只用匿名假HTTP与不可播放句柄，无真实登录/播放/写入；2项单项检查不冒称完整shell分区。用户随后追加左上角 Momoka 与统一图标大小：返回/折叠 Viewbox 28→20，对齐侧栏20图标盒，40按钮托盘不变；应用名在导航按钮右侧，以原生TextBlock保持拖动区，颜色随标题墨、右界避开账号/搜索/系统按钮并支持省略。自检读数同步20尺寸，原生探针增加标题位置及HitCaption检查。Windows 10 未安装 Fluent 字体时的 MDL2 回退、系统高对比/触摸/读屏/跨 DPI 尚未实测。
+## 2026-11-14 标题搜索批次合入与收尾
+
+产品/测试提交 `93a1c12` 已从 `codex/title-search-input` 快进合入master（基点 `0fdf357`）；逐文件核对主树完整保留分支内容，没有冲突。21个变更文本的LF/UTF-8无BOM检查及git diff空白检查通过。仅合并，不跑全量验证、不发布、不推送。
+
+本轮共享桌面锁持续由另一工作树PID29416的 `--probe-shell --probe-section library --screen 1` 运行占用；已多次只读短探针等待，没有结束进程或绕过锁。最终原生标题输入/焦点/截图未执行，按项目合并规则列入待交付批次17；离线26/26、44/44、187/187、toolbar10/10与最终Shell0警告0错误仅覆盖本分支。源码固定Gallery资料可追溯用户logs/gallery-frontend-source-20261114-741e/原ZIP，开发文档已更新。
+
+收尾依据：分支内容全部进入master，当前独立树干净、无未保留提交，分支顶端 `93a1c12`；Codex归档工具明确拒绝删除本聊天primary checkout，故受保护工作树保留；已把本树转为master的detached状态并删除临时分支。本地其他聊天工作树不动。
+
+## 2026-11-14 标题搜索原生输入与搜索页上移
+
+独立树 `C:/Users/89400/.codex/worktrees/3b1c/Momoka`、临时分支 `codex/title-search-input`，基点 `0fdf357`。用户截图的全局标题搜索换为原生AutoSuggestBox，标题可见时收起页内完整输入行及余白，来源与结果整体上移；窄窗保留页内输入。沿用原搜索来源、防抖/显式提交、中文IME补偿和窗口命中，MP站点入口移到来源栏下方、窄窗回框内。原TitleSearchTransition随重复输入栏退役。两个子代理只读核Gallery稳定源码、输入/Frame时序和回归，未并行写本树。
+
+已读 Gallery v2.9.3 固定 `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` MainWindow、AutoSuggestBox、TitleBar完整XAML/code-behind和Learn标题栏/AutoSuggestBox；沿其原生控件与UserInput/QuerySubmitted接线，样式和搜索生命周期本地适配，没有依赖升级。源码临时证据为本树work/gallery-title-search，源ZIP哈希核对通过。
+
+定向Release验证：Shell/Core及测试编译0警告0错误；LibraryHeaderTests 26/26，SearchLifetimeTests 44/44，ResourceBrowserTests 187/187，主测试toolbar-icon-fixture 10/10，均0失败0跳过。新增真实partial源链接检查覆盖迟到输入、回车后同词、离页不重开、未通知草稿、内部焦点、重复订阅/解绑及布局恢复；生命周期新增不同词草稿拒绝旧MP快照。正式Sidebar检查已改走内部TextBox原生输入、立即Query按钮、四次宽窄焦点/原词恢复，保留原侧栏检查；不以源码或测试替代真实UI。
+
+本轮等待共享桌面诊断锁释放，没有结束其他进程或绕锁。真实UI检查与中文物理IME/键盘、MP资源站点宽窄、DPI/Narrator待补；只合并不交付，桌面仍为原发布版。产品提交、合并与树清理在收尾记录补充，未推送origin。
+
 ## 2026-11-14 封面静止半秒才放大，点击操作后不再误触发
 
 本轮在主树 master 开发，基点 `140bfe8`。`PosterCard` 的整卡 1.03、封面 1.045 与展开预览统一等鼠标在 Art 封面上静止 500ms；实际移动重计，同坐标不重计。按下或播放/收藏/已看/更多及预览按钮动作统一取消并抑制重触发，直到真正离开封面或换卡；假移出/捕获事件不解除。只读当前实际 Keyboard 焦点驱动键盘推近，鼠标点击焦点不能绕过计时。保留即时暗罩/按钮和预览离开宽限。

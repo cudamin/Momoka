@@ -1465,13 +1465,13 @@ public sealed class UiSettings
     public bool UseAcrylicControls { get; set; } = true;
 
     /// <summary>
-    /// 显示模式；沉浸模式使用标题栏导航，关闭后使用商店侧边栏、详情布局与顶部渐隐背景，保留外观偏好。
+    /// 显示模式；默认商店侧边栏、详情布局与顶部渐隐背景；开启沉浸后使用旧标题栏导航，保留外观偏好。
     /// <para>
     /// 2026-11-09 起 MoviePilot 订阅详情页也听这一格（用户令「给 MP 订阅也新增沉浸模式还有简洁模式」）：
     /// 开着时宽版式且有图就铺图，关掉则整张背景图收起、头部收成一张卡面。
     /// </para>
     /// </summary>
-    public bool EnableImmersive { get; set; } = true;
+    public bool EnableImmersive { get; set; }
 
     /// <summary>
     /// 演职人员那一排只列有头像的人 —— 「在设置中新增功能，隐藏没有封面的演职人员」（用户的话，2026-11-09）。

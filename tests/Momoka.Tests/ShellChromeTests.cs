@@ -24,10 +24,10 @@ internal static class ShellChromeTests
             // 2026-11-13 用户令「参考 codex 窗口边框的宽度和高度」：那一条 40→48、那条栏 48→56。
             Assert.Equal("48", Named(document, "AppTitleBar").Attribute("Height")?.Value,
                 "标题栏不是 48 高了");
-            Assert.Equal("0,48,0,0", Named(document, "ContentHost").Attribute("Padding")?.Value,
-                "默认沉浸模式没有通过内边距让开 48 的标题栏");
-            Assert.True(Named(document, "ContentHost").Attribute("Margin") is null,
-                "默认沉浸模式没有恢复铺入标题栏的画布");
+            Assert.Equal("0,48,0,0", Named(document, "ContentHost").Attribute("Margin")?.Value,
+                "默认商店模式没有让标题栏露出 Mica");
+            Assert.True(Named(document, "ContentHost").Attribute("Padding") is null,
+                "默认商店模式额外推开了页面内容");
             Assert.Equal("0,48,0,0", Named(document, "Sidebar").Attribute("Margin")?.Value,
                 "侧边栏没有从 48 起画");
 
@@ -41,7 +41,7 @@ internal static class ShellChromeTests
                 "搜索框没有落在 48 的中线上");
         });
 
-        Test("标题栏那一排：40×40 的托盘、28 的字形", () =>
+        Test("标题栏那一排：40×40 的托盘，返回与折叠 20、工具字形 28", () =>
         {
             var style = Named(Shell(), "AppTitleBar").Descendants()
                 .First(element => element.Name.LocalName == "Style"
@@ -55,8 +55,9 @@ internal static class ShellChromeTests
             foreach (var name in new[] { "BackButton", "NavToggleButton", "HomeButton", "SearchButton", "SettingsButton" })
             {
                 var box = Named(Shell(), name).Descendants().Single(element => element.Name.LocalName == "Viewbox");
-                Assert.Equal("28", box.Attribute("Width")?.Value, $"{name} 的字形不是 28");
-                Assert.Equal("28", box.Attribute("Height")?.Value, $"{name} 的字形不是 28");
+                var expected = name is "BackButton" or "NavToggleButton" ? "20" : "28";
+                Assert.Equal(expected, box.Attribute("Width")?.Value, $"{name} 的字形尺寸不对");
+                Assert.Equal(expected, box.Attribute("Height")?.Value, $"{name} 的字形尺寸不对");
             }
         });
 

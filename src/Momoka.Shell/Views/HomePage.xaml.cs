@@ -167,16 +167,10 @@ public sealed partial class HomePage : Page, IShellContent
 
         // 竖滚动条不从轮播图上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，
         // 2026-10-01）。它只在带子可见时有意义 —— 没有幻灯片时 Apply 会把 Visibility 收起来，过一拍再对一遍。
-        //
-        // 2026-11-12 晚起不再有「把外壳那 40 像素顶回去」那一条（SyncBleed）：轮播改成四边留白之后它本来
-        // 就不碰窗口的边，标题栏也不必再按「压在图上的浅墨」画（见 PaintInk）。
-        Banner.Loaded += (_, _) => PlaceScrollBar();
-        Banner.SizeChanged += (_, _) => PlaceScrollBar();
-        Banner.SlideChanged += (_, _) =>
-        {
-            PaintInk();
-            PlaceScrollBar();
-        };
+        // 沉浸轮播恢复旧版贴顶；商店留白。幻灯片收起时同步撤销负边距与标题浅墨。
+        Banner.Loaded += (_, _) => SyncCarouselLayout();
+        Banner.SizeChanged += (_, _) => SyncCarouselLayout();
+        Banner.SlideChanged += (_, _) => SyncCarouselLayout();
 
         // 带子摘掉一张取不到图的幻灯片时，视图模型这份清单也要少这一件（「没有背景图就不要放到轮播列表里」，
         // 2026-11-02）；只摘带子自己那一份的话，下一次整页重读又会把它带回来。
@@ -350,7 +344,7 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 自检：轮播是一块四边留白的圆角大图，不是通栏，也不带外圈卡片或光晕。
+    /// 自检：商店轮播四边留白圆角，沉浸轮播贴顶通栏，两档都不带外圈卡片或光晕。
     /// <para>
     /// 2026-11-12 晚按用户令「参考上图给轮播图添加圆角，和四周染色的效果」改：左沿让出页脊线（36）、
     /// 右沿让出滚动条那条车道（13）、上沿落在标题栏底下（≥ 40，也就是页面自己的第 0 行再加 20 的那一口气），
@@ -359,8 +353,8 @@ public sealed partial class HomePage : Page, IShellContent
     /// 是同一个数。
     /// </para>
     /// <para>
-    /// 判据与通栏版（2026-09-11「占满窗口的上半部分（包括窗口标题）」）正好相反：那一版要求左、上、右三条
-    /// 都贴到 0。谁把 BannerZone 的边距删掉、或者把圆角剪裁层拆了换回通栏，这一条当场红。
+    /// 沉浸模式按商店改造前171a1e6的通栏判据：左、上、右三条都贴到0，没有外围圆角。
+    /// 商店模式继续按上面的留白判据；模式互相串用时检查失败。
     /// </para>
     /// </summary>
     internal (bool Ok, string Detail) BannerCardRead()
@@ -374,20 +368,20 @@ public sealed partial class HomePage : Page, IShellContent
         var rounded = BannerCard.CornerRadius.TopLeft > 0
             && BannerCard.CornerRadius.TopLeft == BannerCard.CornerRadius.BottomRight;
 
-        var ok = Banner.ActualWidth > 0
-            && window > 0
-            && Math.Abs(left - 36) <= 0.5
-            && Math.Abs(right - 13) <= 0.5
-            && at.Y >= ChromeHeight + 12
-            && Math.Abs(viewportTop - ChromeHeight) <= 0.5
-            && rounded;
+        var immersive = BannerImmersive;
+        var ok = Banner.ActualWidth > 0 && window > 0
+            && (immersive
+                ? Math.Abs(left) <= 0.5 && Math.Abs(right) <= 0.5 && Math.Abs(at.Y) <= 0.5
+                    && Math.Abs(viewportTop) <= 0.5 && BannerCard.CornerRadius == new CornerRadius(0)
+                : Math.Abs(left - 36) <= 0.5 && Math.Abs(right - 13) <= 0.5
+                    && at.Y >= ChromeHeight + 12 && Math.Abs(viewportTop - ChromeHeight) <= 0.5 && rounded);
 
         return (ok,
             $"起点 ({at.X:0},{at.Y:0})、{Banner.ActualWidth:0}×{Banner.ActualHeight:0}"
                 + $"，左让 {left:0}、右让 {right:0}、上让 {at.Y:0}（标题栏 {ChromeHeight:0}），"
                 + $"圆角 {(rounded ? $"{BannerCard.CornerRadius.TopLeft:0}" : "没有")}"
                 + $"，滚动视口从 {viewportTop:0} 起"
-                + (ok ? " —— 四边留白的圆角大图" : " —— 大图的内缩、圆角或滚动视口不对"));
+                + (ok ? immersive ? " —— 沉浸通栏轮播" : " —— 商店圆角轮播" : " —— 大图的内缩、圆角或滚动视口不对"));
     }
 
     /// <summary>
@@ -416,7 +410,7 @@ public sealed partial class HomePage : Page, IShellContent
             if (_verticalScrollBar is null) return;
         }
 
-        var top = Banner.Visibility == Visibility.Visible ? Banner.ActualHeight : 0;
+        var top = Banner.Visibility == Visibility.Visible ? ViewportTopAtScrollZero(Banner) + Banner.ActualHeight : 0;
         var sheet = _verticalScrollBar.Margin;
         if (Math.Abs(sheet.Top - top) <= 0.5) return;
         _verticalScrollBar.Margin = new Thickness(0, top, 0, 0);
@@ -780,10 +774,11 @@ public sealed partial class HomePage : Page, IShellContent
     private bool PlaceLibraryOverlay()
     {
         var margin = LibraryOverlay.Margin;
+        var left = BannerOverlayLeftInset;
         var right = Banner.LibraryOverlayRightInset;
-        if (Math.Abs(margin.Right - right) <= 0.5) return false;
+        if (Math.Abs(margin.Left - left) <= 0.5 && Math.Abs(margin.Right - right) <= 0.5) return false;
 
-        LibraryOverlay.Margin = new Thickness(margin.Left, margin.Top, right, margin.Bottom);
+        LibraryOverlay.Margin = new Thickness(left, margin.Top, right, margin.Bottom);
         return true;
     }
 
@@ -1127,14 +1122,14 @@ public sealed partial class HomePage : Page, IShellContent
 
     /// <summary>
     /// <c>ShellPage.xaml</c> 里 <c>ContentHost</c> 给外壳让开的那一段（<c>Margin="0,40,0,0"</c>）：标题栏那一行
-    /// 的高。这个数有三份用场：外壳自己按它摆内容区、<see cref="BannerCardRead"/> 拿它判「卡片落在标题栏底下」、
+    /// 的高。这个数有三份用场：外壳自己按它摆内容区、<see cref="BannerCardRead"/> 按模式核对轮播上沿、
     /// 自检那一关（<c>ShellPage.ProbeChrome</c>）拿它和屏上量出来的外壳高度对一遍 —— 对账要的正是「两边引的是
     /// 同一个数」。
     /// <para>
     /// 2026-09-09 起外壳只有标题栏这一行：第 1 行（标签栏删掉后剩下的那条空带）删掉了，这个数从 80 收到 32；
     /// 2026-11-01 按钮再下移并放大，标题栏加到 40；**2026-11-13 按用户令「参考 codex 窗口边框的宽度和高度」
     /// 加到 48**（侧边栏同时 48→56、标题栏那一排的托盘 40 见方）。2026-11-12 晚之前主页拿它当一口 −40 的上边距
-    /// 把画布顶开（通栏轮播那一版），那一手随四边留白的圆角大图版式一起退役。
+    /// 把画布顶开；现在仅沉浸模式轮播可见时恢复同样的扩展，商店仍让开标题栏。
     /// </para>
     /// </summary>
     internal const double ChromeHeight = 48;
@@ -1440,11 +1435,14 @@ public sealed partial class HomePage : Page, IShellContent
         // 没有设置，它等的是这句话。
         Banner.ApplyDwell(settings.Settings.Ui.CarouselSeconds);
         Banner.ApplyAppearance(settings.Settings.Ui);
+        SyncCarouselLayout();
         NavigationTiming.Mark("attach-end");
 
         // 版面（拖拽出来的次序、勾掉的那几排）改完当场生效：设置页在另一个窗口里，它改完喊一声，这一页重排。
         ShellPrefs.Changed -= OnShellPrefsChanged;
         ShellPrefs.Changed += OnShellPrefsChanged;
+        ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
+        ShellPrefs.AppearanceChanged += OnAppearanceChanged;
 
         // 同一身份和版面下有上次的条目就先摆出来，网络核对放到后台；没有快照才走首次读取。
         var restored = reused || ViewModel.RestoreSnapshot();
@@ -1474,6 +1472,7 @@ public sealed partial class HomePage : Page, IShellContent
         _homeSettings = null;
         Subscriptions.Release();
         ShellPrefs.Changed -= OnShellPrefsChanged;
+        ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         if (_localLibraries is { } localLibraries) localLibraries.Changed -= OnLocalLibrariesChanged;
         _localLibraries = null;
         if (_window is not null) _window.PlayerLayerEnded -= OnPlayerLayerEnded;
@@ -1486,16 +1485,6 @@ public sealed partial class HomePage : Page, IShellContent
 
         ViewModel.Cancel();
     }
-
-    /// <summary>
-    /// 标题栏那一行的墨：**2026-11-12 晚起主页永远是 <see cref="TitleStrip.Plain"/>**。
-    /// <para>
-    /// 轮播改成四边留白的圆角大图之后，剧照不再铺到窗口的顶边，标题栏底下是页面自己的画布 —— 于是那条
-    /// 「带子在屏上就换浅墨」的联动（2026-09-11 找回来的）失去了对象。留着它在两种墨之间来回切，反而会在
-    /// 换幻灯片时把标题栏闪一下。
-    /// </para>
-    /// </summary>
-    private void PaintInk() => _actions?.SetTitleStrip(TitleStrip.Plain);
 
     /// <summary>
     /// 设置里主页那一组改了（拖拽排序、勾选、轮播的来源媒体张数秒数），照新的重排一遍 —— 轮播那几行

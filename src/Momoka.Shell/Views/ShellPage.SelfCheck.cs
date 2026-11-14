@@ -94,7 +94,7 @@ public sealed partial class ShellPage
             if (BackButton.Visibility == Visibility.Collapsed) BackButton.Visibility = Visibility.Visible;
             UpdateLayout();
 
-            // 声明次序就是视觉次序：返回 → 折叠 → 主页 → 收藏 → 设置/搜索（标题 2026-11-13 删掉）。
+            // 声明次序就是视觉次序：返回 → 折叠 → 主页 → 收藏 → 设置/搜索（应用名独立于按钮行）。
             FrameworkElement[] order =
                 [BackButton, NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton];
             var keys = order.Where(key => key.Visibility == Visibility.Visible).ToArray();
@@ -107,7 +107,7 @@ public sealed partial class ShellPage
             {
                 var gap = places[index].X - (places[index - 1].X + keys[index - 1].ActualWidth);
                 widest = Math.Max(widest, gap);
-                // 按键之间挨着排（0–8）—— 这一排全是 40 见方的托盘、间距 2，标题删掉之后没有更宽的一档了。
+                // 按键之间挨着排（0–8）—— 这一排全是 40 见方的托盘、间距 2，应用名不占按钮行里的格子。
                 const double allowed = 8;
                 // 竖着比中心：按键 32 高、标题那行字只有二十来像素，比上沿会把「居中对齐」判成「错开一行」。
                 var centre = places[index].Y + keys[index].ActualHeight / 2;
@@ -120,10 +120,12 @@ public sealed partial class ShellPage
                     && Math.Abs(At(NavToggleButton).X - (At(BackButton).X + BackButton.ActualWidth)) <= 8
                     && Math.Abs(At(NavToggleButton).Y - At(BackButton).Y) < 1);
 
-            // 图标外面那层 28 是放大那一步（PathIcon 不缩放几何，见 ShellPage.xaml 的注释）。
+            // 2026-11-14 返回与折叠按下方导航图标盒统一为 20，其他标题栏入口沿用 28。
             var glyph = keys.OfType<Button>().Select(button => button.Content as Viewbox)
                 .FirstOrDefault(viewbox => viewbox is not null);
-            var enlarged = glyph is { ActualWidth: >= 28, ActualHeight: >= 28 };
+            var enlarged = glyph is { ActualWidth: >= 20, ActualHeight: >= 20 }
+                && BackButton.Content is Viewbox { Width: 20, Height: 20 }
+                && NavToggleButton.Content is Viewbox { Width: 20, Height: 20 };
 
             var sized = TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0
                 && keys.All(key => key.ActualWidth > 0 && key.ActualHeight > 0);
@@ -162,7 +164,7 @@ public sealed partial class ShellPage
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
                     + $"{(toggleAfterBack ? "折叠键贴在返回右边" : "折叠键没贴在返回右边")}；"
-                    + $"{(sized ? "各格都有尺寸" : "有格子没尺寸")}、{(enlarged ? "图标是 28 的放大框" : "图标不是 28 的放大框")}、"
+                    + $"{(sized ? "各格都有尺寸" : "有格子没尺寸")}、{(enlarged ? "导航图标是 20 的统一框" : "导航图标尺寸不一致")}、"
                     + $"该在的{(slots ? "都在" : "有缺")}、返回判据{(backRule ? "对" : "错")}、"
                     + $"哪儿都走不动时{(idle ? "返回按不动、面包屑收起" : "不对")}、"
                     + $"退得回去时{(shallow ? "返回亮、面包屑收着" : "不对")}、"

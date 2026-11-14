@@ -173,12 +173,12 @@ internal static partial class SettingsTests
 
     private static void RegisterMigration()
     {
-        Test("设置：默认沉浸模式，旧侧边栏键不覆盖显示模式且不再保存", () =>
+        Test("设置：默认商店模式，旧侧边栏键不覆盖显示模式且不再保存", () =>
         {
-            Assert.True(SettingsMigration.NewDefaults().Ui.EnableImmersive);
+            Assert.False(SettingsMigration.NewDefaults().Ui.EnableImmersive);
             var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);
-            Assert.True(settings.Ui.EnableImmersive);
-            Assert.True(SettingsMigration.FromJson("{\"Ui\":{\"SidebarMode\":true}}", Protector).Ui.EnableImmersive);
+            Assert.False(settings.Ui.EnableImmersive);
+            Assert.False(SettingsMigration.FromJson("{\"Ui\":{\"SidebarMode\":true}}", Protector).Ui.EnableImmersive);
             foreach (var immersive in new[] { true, false })
                 foreach (var sidebar in new[] { true, false })
                 {
@@ -1587,7 +1587,7 @@ internal static partial class SettingsTests
             ui.ShowHomeBanner = false;
             ui.CompactMode = true;
             ui.AnimationsEnabled = false;
-            ui.EnableImmersive = false;
+            ui.EnableImmersive = true;
             ui.ImageCacheMegabytes = ImageCachePolicy.MaxMegabytes;
             ui.HomeRows = [new HomeRowSetting { Key = "library:1", Title = "改过", Visible = false }];
 
@@ -1610,7 +1610,7 @@ internal static partial class SettingsTests
             Assert.Equal(fresh.ShowHomeBanner, ui.ShowHomeBanner, "「恢复默认」之后主页轮播大图要是开的");
             Assert.Equal(fresh.CompactMode, ui.CompactMode, "「恢复默认」之后精简模式要是关的（说明全部放回来）");
             Assert.True(ui.AnimationsEnabled, "恢复默认重新开启 UI 动画");
-            Assert.True(ui.EnableImmersive, "恢复默认回到沉浸模式并关闭侧边栏");
+            Assert.False(ui.EnableImmersive, "恢复默认回到商店模式并开启侧边栏");
             Assert.Equal(fresh.ImageCacheMegabytes, ui.ImageCacheMegabytes);
             Assert.Equal(0, ui.HomeRows.Count, "主页版面回到空，也就是「照默认版面排」");
             Assert.Equal(0, settings.Shortcuts.Bindings.Count, "快捷键改动清空，回到全默认");

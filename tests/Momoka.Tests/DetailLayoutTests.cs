@@ -48,14 +48,14 @@ internal static class DetailLayoutTests
             Assert.Null(TrailerPreview.YouTubeId([new() { Url = "https://youtube.com/watch?v=Abc_123-xyz&v=Abc_123-xyz" }]));
         });
 
-        Test("沉浸总开关：缺键默认开启，显式关闭可保存导入并恢复默认", () =>
+        Test("显示模式：缺键默认商店，显式沉浸可保存导入并恢复默认", () =>
         {
             var property = typeof(UiSettings).GetProperty("EnableImmersive");
             Assert.NotNull(property, "缺少沉浸模式总开关");
             bool Enabled(UiSettings ui) => (bool)property!.GetValue(ui)!;
             var defaults = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}",
                 PassthroughSecretProtector.Instance);
-            Assert.True(Enabled(defaults.Ui));
+            Assert.False(Enabled(defaults.Ui));
             var disabled = SettingsMigration.FromJson(
                 "{\"SchemaVersion\":28,\"Ui\":{\"EnableImmersive\":false,\"AlwaysImmersive\":true,\"BackdropTintOpacity\":37}}",
                 PassthroughSecretProtector.Instance);
@@ -67,7 +67,11 @@ internal static class DetailLayoutTests
             Assert.False(JsonSerializer.Serialize(defaults).Contains("AlwaysImmersive", StringComparison.Ordinal));
             Assert.Equal(37d, defaults.Ui.BackdropTintOpacity);
             SettingsPreferences.Apply(defaults, new AppSettings());
-            Assert.True(Enabled(defaults.Ui));
+            Assert.False(Enabled(defaults.Ui));
+            var immersive = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":28,\"Ui\":{\"EnableImmersive\":true}}", PassthroughSecretProtector.Instance);
+            Assert.True(Enabled(immersive.Ui), "改默认不能覆盖已有沉浸偏好");
+            Assert.True(Enabled(SettingsMigration.FromJson(JsonSerializer.Serialize(immersive), PassthroughSecretProtector.Instance).Ui));
         });
 
         Test("详情控件：新建与缺键默认按当前外观，显式偏好仍保留", () =>
@@ -96,7 +100,7 @@ internal static class DetailLayoutTests
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropTintOpacity, ui.BackdropTintOpacity);
             Assert.Equal(UiSettings.DefaultBackdropTintLuminosityOpacity, ui.BackdropTintLuminosityOpacity);
-            Assert.True(ui.EnableImmersive);
+            Assert.False(ui.EnableImmersive);
         });
 
         Test("详情外观：v28 退役背景浓度与两支效果键，旧文件不报错也不留下幽灵值", () =>
@@ -203,7 +207,7 @@ internal static class DetailLayoutTests
             Assert.False(restored.Ui.MovieCards[0].Visible);
             Assert.Equal(37.5, restored.Ui.ControlBackgroundOpacity);
             Assert.Equal(43d, restored.Ui.BackdropTintOpacity);
-            Assert.True(restored.Ui.EnableImmersive);
+            Assert.False(restored.Ui.EnableImmersive);
         });
 
         Test("详情染色：超界夹取、非有限值回各自出厂，零和小数原样保留", () =>
@@ -262,7 +266,7 @@ internal static class DetailLayoutTests
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropTintOpacity, live.Ui.BackdropTintOpacity);
             Assert.Equal(UiSettings.DefaultControlTintLuminosityOpacity, live.Ui.ControlTintLuminosityOpacity);
-            Assert.True(live.Ui.EnableImmersive);
+            Assert.False(live.Ui.EnableImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             Assert.Equal(900d, live.Ui.WindowHeight);
         });

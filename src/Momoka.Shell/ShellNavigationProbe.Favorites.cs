@@ -84,7 +84,7 @@ internal sealed partial class ShellNavigationProbe
 
             // 首页、空收藏（2026-11-12 晚的规矩）：收藏没有内容可去、收起；主页走不动、暗着；**返回在主页上整个
             // 收起**（用户令「主页不显示返回按钮」）；前进键退役；沉浸模式恢复左上放大镜，居中框收起。
-            var box = Get<Button>(shell, "TitleSearchBox");
+            var box = Get<AutoSuggestBox>(shell, "TitleSearchBox");
             Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
             Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Collapsed,
                 "主页上主页键不在、或者返回没有收起");
@@ -163,10 +163,9 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 820);
                 await LayoutAsync(shell);
                 var center = banner.TransformToVisual(shell).TransformPoint(new(0, 0));
-                // 2026-11-12 晚：轮播是四边留白的圆角大图（外圈光晕 2026-11-13 已删），上沿落在标题栏底下 20 处
-                // （BannerZone 的 36,20,13,0）。
-                Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y - (HomePage.ChromeHeight + 20)) < 1,
-                    $"轮播没有落在标题栏底下 20 处（实测 {center.Y:0}）");
+                var expectedTop = fixture.Settings.Ui.EnableImmersive ? 0 : HomePage.ChromeHeight + 20;
+                Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y - expectedTop) < 1,
+                    $"轮播没有按显示模式摆放（实测 {center.Y:0}、预期 {expectedTop}）");
                 Require(favoritesButton.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,
                     "轮播页的标题栏那一排没有正确排列");
                 await SaveProbeScreenAsync($"home-favorites-banner-{width}-screen.png");

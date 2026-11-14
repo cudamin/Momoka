@@ -195,6 +195,8 @@ internal static partial class DetailActionReadinessTests
             MediaServerKind kind = MediaServerKind.Emby, string version = "4.10.1.0")
         {
             _assembly = assembly;
+            // 行为夹具显式从沉浸起步，避免出厂显示模式改变关闭转场的覆盖。
+            _settings.Settings.Ui.EnableImmersive = true;
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
             var secrets = new NoSecrets();
             var output = Path.Combine(root, "artifacts", "p1-detail-actions", Guid.NewGuid().ToString("N"));
