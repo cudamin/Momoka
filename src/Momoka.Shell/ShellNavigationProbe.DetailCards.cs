@@ -53,12 +53,35 @@ internal sealed partial class ShellNavigationProbe
         series.People = [new() { Id = "card-person", Name = "示例演员", Type = "Actor", PrimaryImageTag = "fixture" }];
         series.ImageTags["Primary"] = "fixture";
         series.BackdropImageTags.Add("fixture");
+        var episode = Episode("a");
+        episode.MediaSources =
+        [
+            new()
+            {
+                Id = "source-a", Name = "离线版本 · 1080p", Container = "mkv",
+                MediaStreams =
+                [
+                    new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
+                    new() { Index = 1, Type = "Audio", DisplayTitle = "国语", IsDefault = true },
+                    new() { Index = 2, Type = "Audio", DisplayTitle = "日语" },
+                    new() { Index = 3, Type = "Subtitle", DisplayTitle = "简体中文", IsDefault = true },
+                    new() { Index = 4, Type = "Subtitle", DisplayTitle = "English" }
+                ]
+            },
+            new()
+            {
+                Id = "source-b", Name = "离线版本 · 720p", Container = "mkv",
+                MediaStreams = [new() { Index = 0, Type = "Video", Codec = "h264", Width = 1280, Height = 720 }]
+            }
+        ];
         fixture.Transport.Reply = (request, _) =>
         {
             var path = request.RequestUri!.AbsolutePath;
             return Task.FromResult(path.Contains("/Images/", StringComparison.Ordinal)
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) }
                 : path.EndsWith("/Items/show", StringComparison.Ordinal) ? Json(series)
+                : path.EndsWith("/Episodes", StringComparison.Ordinal) ? Json(new { Items = new[] { episode } })
+                : path.EndsWith("/Items/" + episode.Id, StringComparison.Ordinal) ? Json(episode)
                 : path.EndsWith("/Similar", StringComparison.Ordinal) ? Items(2, 2, "similar") : FakeTransport.Standard(request));
         };
         fixture.Settings.Ui.EnableImmersive = false;
@@ -84,6 +107,7 @@ internal sealed partial class ShellNavigationProbe
                 var cover = Get<Border>(page, "PosterStill");
                 var panels = names.Select(name => Get<StackPanel>(page, name)).ToArray();
                 CheckEdges(cover, panels, Get<Grid>(page, "StoreScrollContent"));
+                RequireStoreHeroAlignment(page);
                 RequireCardOrder(page, fixture.Settings.Ui.SeriesCards.Select(card => card.Key));
                 panels.First(panel => panel.Visibility == Visibility.Visible).StartBringIntoView();
                 await LayoutAsync(page);
@@ -110,6 +134,19 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             RequireStoreDetailCards(page, names);
             CheckFailure(page, names);
+            var overview = Get<StackPanel>(page, "OverviewPanel");
+            var overviewMargin = overview.Margin;
+            try
+            {
+                overview.Margin = new Thickness(8, overviewMargin.Top, overviewMargin.Right, overviewMargin.Bottom);
+                await LayoutAsync(page);
+                var rejected = false;
+                try { RequireStoreHeroAlignment(page); } catch (InvalidOperationException) { rejected = true; }
+                Require(rejected, "顶部对齐检查未拒绝简介左移位");
+            }
+            finally { overview.Margin = overviewMargin; }
+            await LayoutAsync(page);
+            RequireStoreHeroAlignment(page);
             ThemeHost.Apply(UiThemes.All.First(theme => theme.Id != savedTheme).Id);
             await LayoutAsync(page);
             RequireStoreDetailCards(page, names);
@@ -123,7 +160,7 @@ internal sealed partial class ShellNavigationProbe
             finally { source.Background = savedBrush; }
             // 直接复用旧模式检查；单集入口的旧窄窗前件不能代替本次受影响路径的运行证据。
             await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
-            reads.Add("媒体旧模式检查：1200/760 商店与沉浸往返、主体与分区身份、固定按钮材质均通过。");
+            reads.Add("媒体旧模式检查：1200/760 商店与沉浸往返、主体与分区身份、操作材质均通过；简介、版本框与操作左沿及移位反例通过。");
             page.Release();
             frame.Content = null;
 
@@ -171,6 +208,26 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyDetailLayout(new());
             ThemeHost.Apply(savedTheme);
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "store-detail-cards.txt"), reads);
+        }
+    }
+
+    private static void RequireStoreHeroAlignment(DetailPage page)
+    {
+        var cover = Get<Border>(page, "PosterStill");
+        var canvas = Get<Grid>(page, "StoreScrollContent");
+        var left = cover.TransformToVisual(canvas).TransformPoint(default).X;
+        Require(Get<StackPanel>(page, "OverviewPanel").Padding.Left == 0
+            && Get<StackPanel>(page, "OverviewPanel").Padding.Right == 0, "简介文字保留了额外左右缩进");
+        if (page.ViewModel.PageWidth >= 600)
+            Require(Get<StackPanel>(page, "FileOptions").ActualHeight > 0
+                && Get<EgPicker>(page, "ColumnSourcePicker").ActualWidth > 0,
+                "常规宽度没有呈现可测量的版本框");
+        foreach (var name in new[] { "StoreHeroDetails", "OverviewPanel", "FileOptions", "ColumnActions" })
+        {
+            var node = Get<FrameworkElement>(page, name);
+            if (node.Visibility != Visibility.Visible || node.ActualWidth <= 0 || node.ActualHeight <= 0) continue;
+            Require(Math.Abs(node.TransformToVisual(canvas).TransformPoint(default).X - left) < 1,
+                name + " 未与封面、下方卡片外沿对齐");
         }
     }
 

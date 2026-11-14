@@ -327,6 +327,44 @@ internal static class Program
 
     private static void RegisterPage()
     {
+        Case("page/carousel-mode-restores-full-bleed-and-store-insets-without-replacing-slides", () =>
+        {
+            var page = new HomePage();
+            var slides = page.ViewModel.Slides;
+            page.Ui.EnableImmersive = false;
+            page.ApplyCarousel();
+            Equal(new Thickness(36, 20, 13, 0), page.BannerZone.Margin, "store insets");
+            Equal(new CornerRadius(16), page.BannerCard.CornerRadius, "store corners");
+            Equal(0d, page.Scroller.Margin.Top, "store leaves caption room");
+            Equal(24d, page.LibraryOverlay.Margin.Left, "store overlay inset");
+            Equal(TitleStrip.Plain, page.CurrentTitle, "store caption ink");
+            page.Ui.EnableImmersive = true;
+            page.NotifyAppearance(page.Ui);
+            Equal(new Thickness(0), page.BannerZone.Margin, "immersive spans width");
+            Equal(new CornerRadius(0), page.BannerCard.CornerRadius, "immersive square corners");
+            Equal(-48d, page.Scroller.Margin.Top, "immersive extends through caption");
+            Equal(36d, page.LibraryOverlay.Margin.Left, "immersive overlay follows shelf spine");
+            Equal(TitleStrip.OnScrim, page.CurrentTitle, "immersive caption ink");
+            page.Banner.Visibility = Visibility.Collapsed;
+            page.ApplyCarousel();
+            Equal(0d, page.Scroller.Margin.Top, "empty carousel restores page start");
+            Equal(TitleStrip.Plain, page.CurrentTitle, "empty carousel restores plain ink");
+            page.Banner.Visibility = Visibility.Visible;
+            page.ApplyCarousel();
+            Equal(-48d, page.Scroller.Margin.Top, "carousel return restores full bleed");
+            page.Ui.EnableImmersive = false;
+            page.NotifyAppearance(new Momoka.Configuration.UiSettings());
+            Equal(-48d, page.Scroller.Margin.Top, "foreign settings cannot reflow page");
+            page.NotifyAppearance(page.Ui);
+            Equal(0d, page.Scroller.Margin.Top, "same page returns to store");
+            Check(ReferenceEquals(slides, page.ViewModel.Slides), "mode does not replace carousel data");
+            page.Release();
+            page.NotifyAppearance(new() { EnableImmersive = true });
+            Equal(0d, page.Scroller.Margin.Top, "released page rejects late appearance");
+            page.BannerZone.Margin = new Thickness(9);
+            page.ApplyCarousel();
+            Equal(new Thickness(9), page.BannerZone.Margin, "released page ignores late banner layout callbacks");
+        });
         Case("page/auto-return-entrance-does-not-move-library-onto-carousel", () =>
         {
             var scene = new Scene();

@@ -17,6 +17,8 @@ public sealed partial class DetailPage
     private readonly Dictionary<TextBlock, SolidColorBrush> _readingColors = [];
     private readonly List<FontIcon> _plainActionIcons = [];
     private readonly Dictionary<FrameworkElement, Control> _explicitActionForegrounds = [];
+    private ControlBackgroundBrushes? _columnPlay;
+    private ControlBackgroundBrushes? _compactPlay;
     private bool _readingQueued;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _appearanceSystemTimer;
     private bool _lastContrast;
@@ -30,7 +32,10 @@ public sealed partial class DetailPage
             foreach (var row in group.Children.OfType<WrapRow>())
                 foreach (var control in row.Children.OfType<Microsoft.UI.Xaml.Controls.Control>())
                 {
-                    _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(control, lightSurface: true));
+                    var brushes = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
+                    _controlBackgrounds.Add(brushes);
+                    if (ReferenceEquals(control, ColumnPlayButton)) _columnPlay = brushes;
+                    else if (ReferenceEquals(control, CompactPlayButton)) _compactPlay = brushes;
                 }
 
         foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
@@ -107,11 +112,16 @@ public sealed partial class DetailPage
             : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ViewModel.AppearanceSettings));
         // 商店模式的按钮与选择框用固定的面色，与按钮材质那四项设置脱钩（2026-11-11 用户令）：
         // 商店背景使用固定阅读渐变，设置页里那一整组也随显示模式收起。高对比度仍走系统实色。
+        // 主播放键例外（2026-11-14 用户令「播放按钮改成主题色」）：它吃强调色面，和参考图里的主操作一样
+        // 是这一页唯一一块有颜色的键；其余按钮和闭合选择框仍是固定面色。
         var simple = !contrast && !ViewModel.AppearanceSettings.EnableImmersive;
         foreach (var brushes in _controlBackgrounds)
         {
             if (simple)
-                brushes.ApplyFixedSurface();
+            {
+                if (IsStorePlay(brushes)) brushes.ApplyAccentSurface();
+                else brushes.ApplyFixedSurface();
+            }
             else
                 brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity,
                     !contrast && ViewModel.UseAcrylicControls, tint,
@@ -161,8 +171,12 @@ public sealed partial class DetailPage
         if (!_appearanceObserved) return;
         var contrast = _actionAccessibility.HighContrast;
         var forced = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground) : (Color?)null;
+        // 商店模式主播放键的强调面上，字和图标取实心强调键的对比色；高对比度仍让给系统前景。
+        var onAccent = !contrast && !ViewModel.AppearanceSettings.EnableImmersive
+            ? ((SolidColorBrush)Application.Current.Resources["EgTextOnAccentBrush"]).Color : (Color?)null;
         foreach (var backgrounds in _controlBackgrounds)
-            backgrounds.ApplyDefaultForeground(forced);
+            backgrounds.ApplyDefaultForeground(
+                forced ?? (onAccent is { } accent && IsStorePlay(backgrounds) ? accent : null));
         // 模板中显式指定过颜色的非强调图标/连播文字，跟同一颗按钮走。
         foreach (var backgrounds in _controlBackgrounds)
         {
@@ -190,6 +204,11 @@ public sealed partial class DetailPage
                     }
                 }
         }
+        // 商店模式的播放键是强调色面：断点那颗图标原先是强调色，压在强调面上等于消失，改成和字同一支
+        // 对比色；其余模式还原成主题色图标（那一档按钮还是半透明底，强调色本来只落在图标上）。
+        var resumeInk = (Brush)Application.Current.Resources["EgAccentBrush"];
+        foreach (var (glyph, button) in new[] { (ColumnResumeGlyph, ColumnPlayButton), (CompactResumeGlyph, CompactPlayButton) })
+            glyph.Foreground = onAccent is null ? resumeInk : button.Foreground;
         foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, ScoreSourceText,
             DetailVideoText, DetailDirectorsText, ColumnAudioText, AudioText })
         {
@@ -226,6 +245,10 @@ public sealed partial class DetailPage
                 brush.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color;
             }
     }
+
+    /// <summary>主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。</summary>
+    private bool IsStorePlay(ControlBackgroundBrushes brushes) =>
+        ReferenceEquals(brushes, _columnPlay) || ReferenceEquals(brushes, _compactPlay);
 
     private static bool IsPickerContent(DependencyObject node)
     {

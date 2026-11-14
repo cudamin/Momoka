@@ -129,7 +129,12 @@ internal sealed partial class ShellNavigationProbe
                         + $"收 {page.ViewModel.Squeeze:0.##}");
 
                     await SaveProbeScreenAsync($"detail-no-art-{type}-{state}-{width}.png");
-                    foreach (var suffix in new[] { "PlayButton", "RestartButton" })
+                    // 2026-11-14 起「从头开始」不再是单独一颗键（折进「更多」菜单），这里只量播放键；
+                    // 两颗旧键确实不在树上也要核一句，免得名称改了之后这条检查悄悄量到别的按钮。
+                    Require(!Descendants(page).OfType<Button>().Any(button =>
+                            AutomationProperties.GetAutomationId(button) is "ColumnRestartButton" or "CompactRestartButton"),
+                        "详情页仍留着从头开始的独立按钮");
+                    foreach (var suffix in new[] { "PlayButton" })
                     {
                         var id = (page.ViewModel.IsCompact ? "Compact" : "Column") + suffix;
                         var button = Descendants(page).OfType<Button>().Single(button => AutomationProperties.GetAutomationId(button) == id);

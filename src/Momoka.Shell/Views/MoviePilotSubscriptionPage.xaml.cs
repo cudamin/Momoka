@@ -50,7 +50,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// 两份数据谁在读取都算页面在读取）—— 它落在「简介」与「演职员」之间那块空地方，看着像那一块在
     /// 加载东西。整条撤掉：本页不再有进度线，两份数据的加载态仍各自住在自己的视图模型里，由头部与
     /// 各段自己的说明交代（入库徽标、文件统计那句「正在读取文件统计…」、季信息那句），失败走 InfoBar。
-    /// 2026-10-28 起首次读取媒体详情时页面中央另有一颗转圈（<c>DetailLoading</c>），判据在
+    /// 2026-10-28 起首次读取媒体详情时页面另盖一层带流光的骨架占位（<c>DetailLoading</c>），判据在
     /// <see cref="MoviePilotMediaViewModel.InitialLoading"/>，读完即收起。
     /// </summary>
     public MoviePilotSubscriptionPage()
@@ -307,7 +307,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         MediaViewModel.AniBtSearch = request.Subscription is not null && request.SearchAniBt is not null;
         MediaViewModel.OpenMedia = request.OpenMedia;
         MediaViewModel.OpenPerson = url => request.Launcher?.OpenUrl(url);
-        // 显示模式跟着设置走；没带设置（探针、旧入口）时按出厂的沉浸模式。写在 Bindings.Update 之前，
+        // 显示模式跟着设置走；没带设置（探针、旧入口）时按出厂的商店模式。写在 Bindings.Update 之前，
         // 第一帧就是用户选的那一档。
         _appearanceSettings = request.Settings?.Settings.Ui ?? new UiSettings();
         MediaViewModel.Immersive = _appearanceSettings.EnableImmersive;

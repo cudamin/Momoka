@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.SidebarPreviewTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/PosterHoverDwell.cs" Link="Production/PosterHoverDwell.cs" />
+  </ItemGroup>
+  <!-- Compile the complete production partial; substitute only its monotonic clock read.
+       HWND, pointer, dispatcher, bitmap and playback endpoints are inert fixture boundaries. -->
+  <UsingTask TaskName="ExtractSidebarPreviewSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceFile ParameterType="System.String" Required="true" />
+      <ProbeFile ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = File.ReadAllText(SourceFile).Replace("\r\n", "\n");
+        const string declaration = "public sealed partial class ShellPage";
+        var first = source.IndexOf(declaration, StringComparison.Ordinal);
+        if (first < 0 || source.IndexOf(declaration, first + declaration.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous production SidebarPreview partial");
+        const string clock = "Environment.TickCount64";
+        if (!source.Contains(clock)) throw new InvalidOperationException("Missing production monotonic clock boundary");
+        var probe = File.ReadAllText(ProbeFile).Replace("\r\n", "\n");
+        const string probeStart = "            var coverButtons = previewCovers.Children.OfType<Button>().ToArray();";
+        const string probeEnd = "            await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));";
+        var probeFirst = probe.IndexOf(probeStart, StringComparison.Ordinal);
+        var probeLast = probe.IndexOf(probeEnd, StringComparison.Ordinal);
+        if (probeFirst < 0 || probeLast <= probeFirst
+            || probe.IndexOf(probeStart, probeFirst + probeStart.Length, StringComparison.Ordinal) >= 0
+            || probe.IndexOf(probeEnd, probeLast + probeEnd.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous production sidebar button probe boundary");
+        var generated = "// Exact production source; only monotonic clock reads use the fixture clock.\n#nullable enable\nusing Microsoft.UI.Xaml.Automation.Provider;\n" +
+            source.Replace(clock, "PreviewClock.Now") +
+            "\ninternal static class PreviewProbeContract\n{\ninternal static void Validate(Grid previewCovers)\n{\n" +
+            probe.Substring(probeFirst, probeLast - probeFirst) +
+            "\n}\nprivate static void Require(bool condition, string message)\n{\nif (!condition) throw new InvalidOperationException(message);\n}\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSidebarPreviewSource" BeforeTargets="CoreCompile">
+    <ExtractSidebarPreviewSource SourceFile="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/ShellPage.LibraryPreview.cs" ProbeFile="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ShellNavigationProbe.Sidebar.cs" OutputSource="$(IntermediateOutputPath)SidebarPreview.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)SidebarPreview.g.cs" /></ItemGroup>
+  </Target>
+</Project>

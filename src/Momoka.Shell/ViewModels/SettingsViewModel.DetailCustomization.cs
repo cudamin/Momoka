@@ -16,7 +16,7 @@ public sealed partial class SettingsViewModel
             Choice("显示模式", new[] { ("沉浸模式", true), ("商店模式", false) },
                 () => ui.EnableImmersive,
                 value => ui.EnableImmersive = value,
-                "电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用商店模式的顶部渐隐背景，"
+                "沉浸模式使用标题栏导航；商店模式使用侧边栏和居中搜索框，并立即切换电影、剧、季、单集与 MoviePilot 详情布局，"
                     + "按钮与选择框换成固定材质，下面两组参数随之收起。",
                 after: () =>
                 {

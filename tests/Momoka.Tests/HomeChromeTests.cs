@@ -17,7 +17,7 @@ internal static class HomeChromeTests
 
     public static void Register()
     {
-        Test("主页轮播：四边留白的圆角大图，外沿没有光晕或卡片圈", () =>
+        Test("主页轮播：默认商店圆角留白，沉浸恢复通栏且外沿没有光晕或卡片圈", () =>
         {
             var page = HomePage();
             var zone = Named(page, "BannerZone");
@@ -39,6 +39,13 @@ internal static class HomeChromeTests
                 "轮播外圈光晕回来了");
             Assert.False(page.Descendants().Any(element => element.Name.LocalName == "RadialGradientBrush"),
                 "轮播里又出现了外圈径向渐变");
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "HomePage.Carousel.cs"));
+            Assert.Contains("171a1e6", source, "通栏恢复缺少旧版来源");
+            Assert.Contains("-ChromeHeight", source);
+            Assert.Contains("TitleStrip.OnScrim", source);
+            var pageSource = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "HomePage.xaml.cs"));
+            Assert.Contains("ShellPrefs.AppearanceChanged += OnAppearanceChanged", pageSource);
+            Assert.Contains("ShellPrefs.AppearanceChanged -= OnAppearanceChanged", pageSource);
         });
 
         Test("主页货架牌子：不画标题底下那条通栏线，标题到卡片收到 8", () =>

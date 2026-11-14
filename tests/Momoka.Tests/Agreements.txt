@@ -108,7 +108,6 @@ handle  Views/DetailPage.xaml  ColumnFavoriteButton
 handle  Views/DetailPage.xaml  ColumnMoreButton
 handle  Views/DetailPage.xaml  ColumnPickers
 handle  Views/DetailPage.xaml  ColumnPlayButton
-handle  Views/DetailPage.xaml  ColumnRestartButton
 handle  Views/DetailPage.xaml  ColumnSourcePicker
 handle  Views/DetailPage.xaml  ColumnSubtitlePicker
 handle  Views/DetailPage.xaml  ColumnWatchedButton
@@ -117,7 +116,6 @@ handle  Views/DetailPage.xaml  CompactContinueButton
 handle  Views/DetailPage.xaml  CompactFavoriteButton
 handle  Views/DetailPage.xaml  CompactMoreButton
 handle  Views/DetailPage.xaml  CompactPlayButton
-handle  Views/DetailPage.xaml  CompactRestartButton
 handle  Views/DetailPage.xaml  CompactResumeProgress
 handle  Views/DetailPage.xaml  CompactWatchedButton
 handle  Views/DetailPage.xaml  CornerArt
@@ -639,6 +637,7 @@ handle  Views/ShellPage.xaml  Chrome
 handle  Views/ShellPage.xaml  ContentFrame
 handle  Views/ShellPage.xaml  ContentHost
 handle  Views/ShellPage.xaml  FavoritesButton
+handle  Views/ShellPage.xaml  ForwardButton
 handle  Views/ShellPage.xaml  HomeButton
 handle  Views/ShellPage.xaml  NavToggleButton
 handle  Views/ShellPage.xaml  LibraryPreviewCovers
@@ -760,7 +759,8 @@ handle  Views/MoviePilotSubscriptionPage.xaml  BodySheet
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailBackdropFade
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailBackdropScrim
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoading
-handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingRing
+handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingShimmer
+handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingSkeleton
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroBlock
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroSection
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroSurface

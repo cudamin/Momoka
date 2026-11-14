@@ -106,6 +106,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("筛选多选下拉等宽、滚动与单字段全选", FilterValuesAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
+            await CaseAsync("侧边栏媒体库预览封面按钮与宽窄布局", SidebarLibraryPreviewAsync, 30, section: ShellProbeSections.Shell);
             await CaseAsync("启动时侧边栏模式已经开着", SidebarAtStartupAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
             await CaseAsync("首页 MP 订阅库入口、汇总与连接恢复", HomeMoviePilotLibraryAsync, 60, section: ShellProbeSections.MoviePilot);
@@ -565,6 +566,8 @@ internal sealed partial class ShellNavigationProbe
             // 非聚合模式的收口由单测与「服务器页」那一条探针单独核对。
             Settings.AggregateMode = true;
             Settings.Ui.PageSize = 20;
+            // 普通离线夹具固定沉浸外壳；商店/默认启动由各自用例显式设置并核对。
+            Settings.Ui.EnableImmersive = true;
             Settings.Ui.ShowHomeBanner = false;
             var paths = new AppPaths(root);
             paths.EnsureCreated();

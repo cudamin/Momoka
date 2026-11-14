@@ -2438,6 +2438,11 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <c>CompactMoreButton</c>），菜单都要开在按下的那颗边上 —— 菜单挂错了锚，弹出来的位置就漂到另一套版式
     /// 那一头去。
     /// </para>
+    /// <para>
+    /// 2026-11-14 用户令「把从头开始按钮折叠进更多按钮」：有断点时在「继续播放」下面多一行「从头开始」，
+    /// 动作仍是这一页的 <see cref="ViewModels.DetailViewModel.RestartCommand"/> —— 起点、媒体源、音轨和字幕
+    /// 都取这一页当前的选择。没有断点时不递这一行，菜单和从前一样。
+    /// </para>
     /// </summary>
     private void OnMoreClicked(object sender, RoutedEventArgs e)
     {
@@ -2459,7 +2464,9 @@ public sealed partial class DetailPage : Page, IShellContent
             siblings: ViewModel.Episodes,
             changed: ViewModel.CaptureReload(),
             removed: ViewModel.CaptureRemoval(),
-            presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
+            presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"],
+            restart: ViewModel.RestartVisibility == Visibility.Visible
+                ? () => ViewModel.RestartCommand.Execute(null) : null);
     }
 
     /// <summary>

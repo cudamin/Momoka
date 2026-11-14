@@ -62,10 +62,11 @@ namespace Momoka.Shell.Views
             PlayerLayerEnded?.Invoke();
         }
     }
-    internal enum TitleStrip { Plain }
+    internal enum TitleStrip { Plain, OnScrim }
     internal sealed class TestShellActions
     {
-        internal void SetTitleStrip(TitleStrip strip) { }
+        internal TitleStrip Current { get; private set; }
+        internal void SetTitleStrip(TitleStrip strip) => Current = strip;
     }
     internal sealed class TestSubscriptions
     {
@@ -81,6 +82,8 @@ namespace Momoka.Shell.Views
     internal static class ShellPrefs
     {
         internal static event Action? Changed;
+        internal static event Action<Momoka.Configuration.UiSettings>? AppearanceChanged;
+        internal static void NotifyAppearance(Momoka.Configuration.UiSettings ui) => AppearanceChanged?.Invoke(ui);
         internal static void Notify() => Changed?.Invoke();
     }
     internal static class HomeMotion
@@ -108,7 +111,8 @@ namespace Momoka.Shell.Views
         private TestWindow? _window = new();
         private TestShellActions? _actions = new();
         private TestLocalLibraries? _localLibraries;
-        private object? _homeSettings = new();
+        private TestHomeSettings? _homeSettings = new();
+        private const double ChromeHeight = 48;
         private int _homeLibraryFlowIndex;
         private double _libraryFlowHeight;
         internal TestHomeState ViewModel { get; } = new();
@@ -116,6 +120,12 @@ namespace Momoka.Shell.Views
         internal TestSubscriptions Subscriptions { get; } = new();
         internal TestBanner Banner { get; } = new() { ActualWidth = 1280, ActualHeight = 400 };
         internal FrameworkElement BannerZone { get; } = new();
+        internal Border BannerCard { get; } = new();
+        internal Momoka.Configuration.UiSettings Ui => _homeSettings!.Settings.Ui;
+        internal TitleStrip CurrentTitle => _actions!.Current;
+        internal void ApplyCarousel() => SyncCarouselLayout();
+        internal void NotifyAppearance(Momoka.Configuration.UiSettings ui) => OnAppearanceChanged(ui);
+        private void PlaceScrollBar() { }
         internal FrameworkElement LibraryOverlay { get; } = new()
         {
             RenderTransform = new TranslateTransform(),
@@ -159,5 +169,12 @@ namespace Momoka.Shell.Views
         internal static Storyboard BoardOf(HomeFoldMotion motion) =>
             (Storyboard)(typeof(HomeFoldMotion).GetField("_board", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .GetValue(motion) ?? throw new InvalidOperationException("Missing production storyboard"));
+    }
+    internal sealed class TestHomeSettings
+    {
+        internal Momoka.Configuration.AppSettings Settings { get; } = new()
+        {
+            Ui = new() { EnableImmersive = true }
+        };
     }
 }

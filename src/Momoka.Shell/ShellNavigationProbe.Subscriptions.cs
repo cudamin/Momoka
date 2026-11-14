@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json.Nodes;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
@@ -250,16 +252,18 @@ internal sealed partial class ShellNavigationProbe
         ResizeInspect(1240, 1000);
         _root.Children.Add(page);
         page.Attach(new(service, subscription, fixture.Session.Capture(),
-            target => { played.Add(target); return Task.CompletedTask; }, keyword => searched.Add(keyword)));
+            target => { played.Add(target); return Task.CompletedTask; }, keyword => searched.Add(keyword),
+            Settings: fixture.SettingsService));
         try
         {
             var vm = page.ViewModel;
             await UntilAsync(() => page.MediaViewModel.InitialLoading);
             await LayoutAsync(page);
             var loadingPanel = Get<Grid>(page, "DetailLoading");
-            var loadingRing = Get<ProgressRing>(page, "DetailLoadingRing");
-            Require(loadingPanel.Visibility == Visibility.Visible && loadingRing.IsActive,
-                "首次读取媒体详情时没有加载动画");
+            var loadingShimmer = Get<Shimmer>(page, "DetailLoadingShimmer");
+            Require(loadingPanel.Visibility == Visibility.Visible && loadingShimmer.IsActive
+                && ElementCompositionPreview.GetElementChildVisual(loadingShimmer) is SpriteVisual,
+                "首次读取媒体详情时没有加载占位，或流光没有启动");
             await SaveSettledFrameAsync(page, "mp-subscription-loading-1240.png");
             // 默认窗口 1422×800：图下沿正好在首屏底边，加载浮层必须仍然落在视口里。
             ResizeInspect(1422, 800);
@@ -272,8 +276,8 @@ internal sealed partial class ShellNavigationProbe
             detailGate.SetResult(true);
             server.DetailGate = null;
             await UntilAsync(() => vm.IsReady && page.MediaViewModel.IsReady);
-            Require(!page.MediaViewModel.InitialLoading && loadingPanel.Visibility == Visibility.Collapsed && !loadingRing.IsActive,
-                "媒体详情读取完成后加载动画没有收起");
+            Require(!page.MediaViewModel.InitialLoading && loadingPanel.Visibility == Visibility.Collapsed && !loadingShimmer.IsActive,
+                "媒体详情读取完成后加载占位没有收起");
             Require(page.MediaViewModel.Detail is not null, "媒体详情读取失败：" + page.MediaViewModel.NoticeMessage);
             Require(vm.Episodes.Count == 4 && vm.Episodes.Count(episode => episode.InLibrary) == 1, "入库和下载被混为一谈：" + vm.NoticeMessage);
             Require(vm.Episodes[1].Status == "已下载 · 待入库", "待入库集状态丢失");

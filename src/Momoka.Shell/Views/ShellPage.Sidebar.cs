@@ -92,8 +92,8 @@ public sealed partial class ShellPage
     private void OnSidebarPreferencesChanged(UiSettings ui)
     {
         // All open windows receive ShellPrefs; unrelated preferences must not reflow this shell.
-        if (_settings is null || !ReferenceEquals(ui, Settings.Ui) || _sidebarMode == ui.SidebarMode) return;
-        _sidebarMode = ui.SidebarMode;
+        if (_settings is null || !ReferenceEquals(ui, Settings.Ui) || _sidebarMode == !ui.EnableImmersive) return;
+        _sidebarMode = !ui.EnableImmersive;
         _sidebarWide = ActualWidth >= SidebarWideThreshold;
         if (_sidebarMode) Sidebar.IsPaneOpen = _sidebarWide;
         SyncSidebar();
@@ -107,6 +107,7 @@ public sealed partial class ShellPage
             _sidebarWide = wide;
             Sidebar.IsPaneOpen = wide;
         }
+        SyncTitleSearch();
         ApplySidebarLayout();
     }
 
@@ -117,11 +118,11 @@ public sealed partial class ShellPage
     {
         var shown = SidebarShown;
         SidebarHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        AppTitleLabel.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
-        // 导航开关（≡）只在这条栏出现时露脸：没有栏就没有可开可关的东西，而它站在标题栏那一排的最前面
-        // （见 ApplySidebarLayout 的缩进），所以收藏/后退/前进跟在它右边。
+        // 折叠开关只在商店侧栏出现时显示，主页位于最左，其他浏览页跟在返回右侧。
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        // 应用名 2026-11-14 按用户令加回，独立于按钮行，始终跟在可见的导航按钮右侧。
+        // 应用名只在商店侧栏浏览态显示，独立于按钮行，位于导航按钮右侧；沉浸整块收起。
         // 主页与收藏也在这条栏出现时让给栏里的入口（2026-11-12 晚）：那一档左边只剩返回 · 折叠，
         // 栏里第一项就是「主页」、收藏那条也在栏里 —— 同一页不出两个同样的入口。
         HomeButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
@@ -189,9 +190,10 @@ public sealed partial class ShellPage
         if (!shown || Sidebar.IsPaneOpen) HideLibraryPreview();
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
-        // 顶上那 40 是标题栏：2026-11-12 晚起画布让开它（见 ShellPage.xaml 里 ContentHost 那一段），
-        // 所以这一份外边距是「让开侧边栏的宽 + 让开标题栏的高」两件事合起来的一个值。
-        ContentHost.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
+        // 商店模式让画布与页面一起避开标题栏，露出 Mica；沉浸模式恢复旧版画布铺入标题栏、
+        // 页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
+        ContentHost.Margin = new Thickness(width, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);
+        ContentHost.Padding = new Thickness(0, _sidebarMode ? 0 : HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();
 
         // 标题栏那一排的缩进：侧边栏在屏上时是 8，其余时候是 18（标记里那个值）。
@@ -201,7 +203,7 @@ public sealed partial class ShellPage
         // 字形中线同样是 28 —— 用户令「返回键出现时要和下面那一列对齐」，两颗（返回、折叠）都落在栏里
         // 那些图标的同一条竖线上，换档时也不挪。8 同时让开了窗口自己那 8 像素的缩放边框。
         // 上边那 4 像素由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进。
-        var titleMargin = new Thickness(shown ? 8 : 18, 4, 0, 0);
+        var titleMargin = new Thickness(shown ? 8 : 18, _sidebarMode ? 4 : 6, 0, 0);
         if (TitleActions.Margin != titleMargin)
         {
             // Moving an unchanged row does not raise SizeChanged. Measure after layout,
@@ -333,6 +335,7 @@ public sealed partial class ShellPage
     private void RebuildSidebarLibraries()
     {
         HideLibraryPreview();
+        _previewDwells.Clear();
         foreach (var item in _sidebarLibraries.Values)
         {
             Sidebar.MenuItems.Remove(item);
@@ -352,6 +355,8 @@ public sealed partial class ShellPage
             AutomationProperties.SetName(item, library.Title);
             item.PointerEntered += OnSidebarLibraryPointerEntered;
             item.PointerExited += OnSidebarLibraryPointerExited;
+            item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);
+            _previewDwells.Add(item, new PosterHoverDwell());
             Sidebar.MenuItems.Insert(at++, item);
             _sidebarLibraries.Add(tag, item);
         }
@@ -361,7 +366,7 @@ public sealed partial class ShellPage
 
     private void OnSidebarItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
-        HideLibraryPreview();
+        SuppressLibraryPreview(args.InvokedItemContainer as NavigationViewItem);
         if (!SidebarShown || args.InvokedItemContainer is not NavigationViewItem { Tag: string tag }) return;
         // 页脚那颗设置开的是另一个窗口，不改变这一页的选中目的地（SelectsOnInvoked="False" 已把选中挡在
         // 外面，这里连 GoTo 也不走）。
@@ -384,7 +389,7 @@ public sealed partial class ShellPage
     {
         if (_syncingSidebar || !SidebarShown || args.SelectedItem is not NavigationViewItem { Tag: string tag }
             || tag == "settings") return;
-        HideLibraryPreview();
+        SuppressLibraryPreview(args.SelectedItem as NavigationViewItem);
         GoTo(tag);
     }
 }

@@ -254,6 +254,7 @@ internal static class Program
         if (args is ["toolbar-icon-fixture"])
         {
             ToolbarIconTests.Register();
+            ShellChromeTests.Register();
             return TestHarness.Run();
         }
         if (args is ["account-menu-fixture"])

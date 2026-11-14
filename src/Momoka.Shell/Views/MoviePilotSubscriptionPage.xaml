@@ -116,7 +116,8 @@
         <Border x:Name="StoreBackdropAcrylicBottom" Height="120" VerticalAlignment="Bottom" />
     </Grid>
         <StackPanel>
-            <!-- 简介紧随文字列操作；右卡自然长高，下方季与相关列表保持全宽。 -->
+            <!-- 简介排在操作排上方（2026-11-14 用户令「参考上图修改订阅页面的布局」：标题块底下依次是简介、
+                 操作，和微软商店条目页同一条次序）；右卡自然长高，下方季与相关列表保持全宽。 -->
             <StackPanel x:Name="HeroSection">
             <StackPanel x:Name="HeroBlock" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}" Spacing="12"
                 SizeChanged="OnHeroContentSizeChanged">
@@ -159,6 +160,22 @@
                             Style="{StaticResource EgOnScrimDataStyle}" Foreground="{ThemeResource EgAccentBrush}" />
                         <TextBlock Text="{x:Bind ViewModel.DetailStatus, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
                             Foreground="{ThemeResource EgAccentBrush}" />
+                        <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
+                            Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
+                            Padding="0" Spacing="{StaticResource EgSpaceS}">
+                            <TextBlock x:Name="MediaTagline" Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}"
+                                Visibility="{x:Bind local:MoviePilotSubscriptionPage.TextVisibility(MediaViewModel.Tagline), Mode=OneWay}"
+                                Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
+                            <TextBlock Text="简介" Style="{StaticResource EgSectionTitleStyle}" />
+                            <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                                TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
+                            <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
+                                    <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
+                                </DataTemplate></ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
                         <local:WrapRow x:Name="DetailActions" Spacing="10" RowSpacing="10">
                             <Button x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgActionButtonStyle}"
                                 IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}">
@@ -183,22 +200,6 @@
                                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE712;" />
                             </Button>
                         </local:WrapRow>
-                        <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
-                            Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
-                            Padding="0" Spacing="{StaticResource EgSpaceS}">
-                            <TextBlock x:Name="MediaTagline" Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}"
-                                Visibility="{x:Bind local:MoviePilotSubscriptionPage.TextVisibility(MediaViewModel.Tagline), Mode=OneWay}"
-                                Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
-                            <TextBlock Text="简介" Style="{StaticResource EgSectionTitleStyle}" />
-                            <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
-                                TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
-                            <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
-                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
-                                    <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
-                                </DataTemplate></ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                        </StackPanel>
                     </StackPanel>
                 </Grid>
                 </Border>
@@ -343,18 +344,75 @@
                 HorizontalAlignment="Center" Style="{StaticResource EgSecondaryButtonStyle}" />
         </StackPanel>
     </ScrollViewer>
-    <Grid x:Name="DetailLoading" Background="{ThemeResource EgScrimBrush}" IsHitTestVisible="False"
+    <!-- 首次读取媒体详情时的占位（2026-11-14 用户令「订阅页面的加载动画改为Shimmer」）：
+         骨架按头部（封面、片名、身份、评分、简介、操作、资料卡）和下方季／演职员的次序摆，
+         一整道流光由 Shimmer 扫过；读取完成或失败时整层收起。骨架不吃指针，底下页面照常可交互。 -->
+    <Grid x:Name="DetailLoading" Background="{ThemeResource EgWindowBrush}" IsHitTestVisible="False"
         Visibility="{x:Bind MediaViewModel.InitialLoadingVisibility, Mode=OneWay}">
-        <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24,16"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
-            <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Center">
-                <ProgressRing x:Name="DetailLoadingRing" Width="28" Height="28"
-                    IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}"
-                    Foreground="{ThemeResource EgAccentBrush}" AutomationProperties.Name="正在读取媒体详情" />
-                <TextBlock Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center"
-                    AutomationProperties.LiveSetting="Polite" />
+        <Grid x:Name="DetailLoadingSkeleton" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}"
+            VerticalAlignment="Top" RowSpacing="{StaticResource EgSpaceL}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="288" />
+                </Grid.ColumnDefinitions>
+                <Border Width="140" Height="210" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                    Background="{ThemeResource EgSurfaceAltBrush}" />
+                <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Top">
+                    <Border Width="72" Height="20" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
+                        HorizontalAlignment="Left" Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="36" MaxWidth="320" HorizontalAlignment="Stretch" CornerRadius="8"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="180" HorizontalAlignment="Stretch" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="96" HorizontalAlignment="Stretch" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="420" HorizontalAlignment="Stretch" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="360" HorizontalAlignment="Stretch" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="300" HorizontalAlignment="Stretch" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <local:WrapRow Spacing="10" RowSpacing="10">
+                        <Border Width="96" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Width="96" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Width="96" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Width="48" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                    </local:WrapRow>
+                </StackPanel>
+                <Border Grid.Column="2" Height="300" CornerRadius="{StaticResource EgCardCornerRadius}"
+                    Background="{ThemeResource EgSurfaceAltBrush}" />
+            </Grid>
+            <StackPanel Grid.Row="1" Spacing="12">
+                <Border Height="56" CornerRadius="{StaticResource EgCardCornerRadius}"
+                    Background="{ThemeResource EgSurfaceAltBrush}" />
+                <Border Width="120" Height="24" CornerRadius="6" HorizontalAlignment="Left"
+                    Background="{ThemeResource EgSurfaceAltBrush}" />
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                </StackPanel>
             </StackPanel>
-        </Border>
+            <local:Shimmer x:Name="DetailLoadingShimmer" Grid.RowSpan="2"
+                IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}" />
+        </Grid>
+        <TextBlock Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Bottom"
+            HorizontalAlignment="Center" Margin="0,0,0,32" AutomationProperties.LiveSetting="Polite" />
     </Grid>
     <local:MoviePilotResourcePanel x:Name="MediaResources" Visibility="Collapsed" Closed="OnResourcesClosed" />
 </Grid>

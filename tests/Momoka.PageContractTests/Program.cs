@@ -109,6 +109,7 @@ internal static class Program
         HoverMotionTests.Register();
         PosterHoverDwellTests.Register();
         DetailSectionCardTests.Register();
+        StoreDetailLayoutTests.Register();
         return TestHarness.Run();
     }
 

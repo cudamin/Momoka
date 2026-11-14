@@ -9,6 +9,50 @@
 历史报告保留：070108304-39480首次夹具缺SeriesCards失败，已初始化DetailLayout.Plan；071126571-1076副屏成功，但宽屏截图右侧被裁，不当完整1240视觉证据；072644861-18336主屏隐藏启动导致探针宿主不可见失败，后用可见诊断窗口启动正常，没有改断言。072743390-24048主屏成功，再加旧模式helper后最终36016成功。桌面锁占用时只读探针等待，未结束其他进程。全部假HTTP/假身份/隔离设置，未播放或写真实媒体；未覆盖跨DPI、真实系统高对比/关透明、文字缩放、触摸或读屏。分支报告不冒充最终主树交付。
 
 本批按用户常设规则只提交和合入master，不发布、不改桌面快捷方式、不推远程；合并时保留同期商店默认/沉浸标题工具栏、侧栏预览、订阅简介上移/Shimmer、商店版本框和主题色播放键，三方整合后登记待交付台账。用户输入图片共4张，未达40暂停阈值。
+
+整合追加（e3a6ffe）：三方保留master的简介移入StoreHeroDetails/零左右Padding、版本框、七颗操作、Accent播放键、MP简介在操作上方和Shimmer；只解决PROGRESS/开发文档双侧追加与PageContract两项注册，产品自动合并。整合Shell/Core/Tests/PageContract均0警告0错误，页面契约260/260，52/52、39/39、89/89、40/40定向全过；新增简介/版本框/操作实际左沿与Margin反例，补两媒体源/音轨/字幕假数据保证版本框真实呈现。080006334-23156首次整合专项在CheckImmersiveSwitchAsync恢复沉浸时失败，卡片与顶部左沿四尺寸已通过；保留报告，增加切换后等待目标客户区宽落地和失败读数，未放宽模式判据。最终整合专项shell-probe-20261114-080935558-29212/logs为1/1 Passed true，当前客户区1200/760模式回切、Accent播放与固定操作、两媒体源版本框和简介实际对齐、Margin移位拒绝及两页1240/760/360卡片均通过；主屏宽窄实屏已目视。只覆盖e3a6ffe整合差异，随后音乐/侧栏新提交不以此冒充交付验收。
+## 2026-11-14 订阅详情简介上移与 Shimmer 加载占位（本树，待合并）
+
+独立树 `C:/Users/89400/.qoder-cn/worktrees/app/8641b7/Momoka`，分支 `codex/mp-subscription-layout`，基点最新 master `5d1fe05`。用户令「参考上图修改订阅页面的布局」与「订阅页面的加载动画改为Shimmer」：MoviePilot 订阅详情头部文字列改为片名／媒体身份／评分／订阅状态 → 简介（标语、正文、资料站链接）→ 操作排，和微软商店条目页同一次序；右侧唯一资料卡、封面尺寸、季区与下方货架不动，沉浸与简洁共用同一份 XAML。首次读取媒体详情不再画居中转圈，改为整页骨架（封面、标题、身份、评分、简介行、操作胶囊、资料卡、季与演职员）加一道 `Shimmer` Composition 扫光；底色用不透明 `EgWindowBrush`，真实页面不再透出；关闭动画只留骨架，完成或失败整层收起。列表页转圈保留，不改。
+
+同步更新页面次序与几何断言、加载态探针（`DetailLoadingShimmer` 的 Composition 子视觉挂载）、`Momoka.MoviePilotSubscribeSettingsTests` 源码契约和 `Agreements.txt` 句柄基线；`docs/MoviePilot订阅.md` 与开发文档已改。
+
+验证：最终 Shell Release 0 警告 0 错误；`Momoka.PageContractTests` 254/254；主测试 5099 项通过 5094、失败 5（2 项 `C:\WINDOWS\TEMP` 环境红，3 项基线标题栏 28 字形与两条 AutoSuggestBox 圆角红，均不经本页）；`Momoka.MoviePilotSubscribeSettingsTests` 77/77。原生 `--probe-shell --probe-section moviepilot --screen 1` 37 项通过 36，唯一红为既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时；订阅详情三条相关用例通过，日志 `shell-probe-20261114-060554052-29764`，骨架/两模式/详情截图已目视。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏、跨 DPI。已随两轮整合合入 master；未交付。
+
+## 2026-11-14 商店详情按微软商店条目页重排、从头开始入「更多」、版本框与主题色播放键（已随两轮整合合入 master）
+
+用户给了一张微软商店游戏条目页截图，四句话：①「参考上图布局修改商店模型下媒体详情页的布局」；②「把从头开始按钮折叠进更多按钮」；③「参考上图修改选择框」；④「播放按钮改成主题色」。工作树 `C:/Users/89400/.qoder-cn/worktrees/app/8641b7/Momoka`、分支 `codex/store-detail-layout`，基线 `140bfe8`；产品与测试提交 `1a7a187`。两轮整合时主树 `5d1fe05`。
+
+**布局与版本框。** 商店模式（设置里关掉沉浸）的详情页改成「封面与片名 → 简介 → 版本框 → 操作按钮」：`DetailPage.Store.cs` 把 `OverviewPanel`、`FileOptions`、`ColumnActions` 三份既有实例搬进封面下方 `StoreHeroDetails`（行 1、跨两列），退出商店模式按原顺序放回；商店简介左右内边距归零、左沿与封面和版本框对齐。三颗选择框（媒体源/音频/字幕）排成参考图的「版本」框：约 520 宽、40 高，标签用 `Canvas.ZIndex` 压在框里左侧并关掉命中，选择框横跨标签列（`ColumnSpan=2`）、内边距 76 让开标签，宽度用 `MinWidth`（`EgPicker` 展开时会临时钉住 `Width` 并在收起时清除）。标签补了 `SourceLabel`/`AudioLabel`/`SubtitleLabel` 三个句柄。
+
+**从头开始。** 宽版式 `ColumnRestartButton` 与紧凑版式 `CompactRestartButton` 删除、`DetailPage_TextBlock1` 本地化字串退役；`ItemCommands.Show` 新增可选 `restart` 动作，有断点时在「更多」菜单「继续播放」后插一行「从头开始」（`DetailRestartMenuItem`，无 `Tag`，不参与 MoviePilot/队列补行对账），动作仍是 `RestartCommand`，起点、媒体源、音轨和字幕都取详情页当前选择。无断点不出现。`Agreements.txt` 删两条旧句柄，`AcrylicControlsTests` 的按钮数基线按有意删除从八颗改为七颗。
+
+**播放键主题色。** 商店模式的主播放键（`ColumnPlayButton`/`CompactPlayButton`）改吃 `ControlBackgroundBrushes.ApplyAccentSurface`：四态取 `EgAccentBrush`/`EgAccentHoverBrush`/`EgAccentPressedBrush`/`EgAccentMutedBrush`，文字和图标取 `EgTextOnAccentBrush`；断点那颗图标原先是强调色，压在强调面上会消失，商店档改跟按钮同一支对比色，其余模式仍还原成强调色图标。商店其余按钮与选择框保持 2026-11-11 的固定面色，按钮材质四项设置仍改不动它们；沉浸模式播放键不变；高对比度仍走系统实色。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **238/238**（新增两条源码契约）；主测试 **5093 项，通过 5091、失败 2**，两条均为既有的 `C:\WINDOWS\TEMP` 下载到设备环境红。`dotnet format whitespace --verify-no-changes` 通过、`git diff --check` 干净。原生 `--probe-shell --probe-section library --screen 1`（`shell-probe-20261114-045634222-29532`）**50 项 42 过 8 红**：7 条既有红（飞牛人物头像、集页 180×270 商店封面、合集菜单像素被自身浮层遮挡、Jellyfin 标题字号、继续观看 20DIP、飞牛移出空序列、单音轨整行隐藏后的旧竖距断言），第 8 条「简洁详情底材」是本批新检查的测量问题（紧凑集页的文件选项在尾部、详情块里那一份收着；探针拿收着的控件判头部裁切，并把父行收着的选择框当版本框量）。探针改为按实际尺寸跳过收着的块并在改宽后等一拍布局，在同一份产品代码上定向 `--probe-section person`（`shell-probe-20261114-051633998-24080`，3 项含 DetailMica）**3/3 通过**；四种条目 × 1200/760 × 五主题逐张核过父级、顺序、版本框几何与播放键四态强调色，实屏 `detail-mica-{类型}-{1200,760}-{主题}-screen.png` 已目视，Movie/Series/Episode 宽窄档都是「封面片名 → 简介 → 版本框 → 主题色播放键与操作」。
+
+**没做／边界。** 只改商店模式；沉浸模式排版、按钮材质与强调色断点图标不变；版本框只落在详情页这三颗文件选择框，设置页与其他下拉不动。探针只用匿名假 HTTP 与假图片，没有真实服务器登录、播放或写入；高对比度、触摸、读屏、跨 DPI 未实机覆盖。**已随两轮整合合入 master**；交付按台账统一复验。
+
+## 2026-11-14 侧栏并入商店模式与0.2.5标题工具栏恢复（已合入，待交付）
+
+当前临时树356e/分支codex/store-sidebar-unified，基点0fdf357；用户要求为关闭侧栏恢复旧标题栏、侧栏合并到商店模式、商店模式设为默认；随后追加沉浸轮播恢复商店改造前样式。删除独立SidebarMode，以EnableImmersive唯一决定商店侧栏；新建、缺键和恢复默认选商店，显式保存的显示模式保持。沉浸恢复左上放大镜与标题栏画布，收起Momoka名称和居中搜索，页面通过Padding保持48起点；商店以Margin露出标题栏Mica。整合主树真实AutoSuggestBox、输入行去重与焦点交接、空心/实心侧栏图标及两档折叠图；商店返回/折叠20图标与40托盘保留，沉浸工具行最终恢复0.2.5，标题48与账号位置保留。旧配置四组合按显示模式，保存不再写旧键。
+
+已读取Gallery稳定v2.9.3固定14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的MainWindow/NavigationView/TitleBar及helper，Learn导航/标题栏指南；没有同样的商店/沉浸产品切换样例，复用现有控件与事件，仅本地连接显示模式。恢复左上搜索是用户指定旧产品排法，不宣称微软建议如此。本机缓存ZIP哈希42D46136938B67D6FF6A7336B9C3A6D415850C5819C28B1E2E88B68FEAF37EF6。子代理只读查历史/官方实现/差异，无并行写入。
+
+已整合主树93a1c12真实标题搜索和5063f31侧栏图标，补同页退役标题输入的迟到事件归属守卫，LibraryHeader27/27；设置存储183/183、标题15/15、详情定制48/48、真实设置VM57/57、详情行为89/89、延迟保存24/24、页面契约254/254、搜索生命周期44/44、资源搜索187/187均0失败0跳过。用户追加轮播后已读171a1e6/2f74559旧版完整相关实现，恢复沉浸通栏/-48/OnScrim及媒体库左36，商店留白/圆角/左24，外观通知仅重排，不重查；同步系统按钮墨色的正反判据及滚动条下沿/非零滚动/空图恢复；HomeFold69/69含真实partial行为，待最终重建与原生复验。首次隐藏启动宿主红，改可见启动运行；原生shell/favorites/moviepilot59项55过4红，侧栏行定位同时匹配字幕同名行已修，MP首页封面与Chrome遮挡红保持证据，未冒称通过。首启商店与MP模式切换检查已过。最终验证与合并继续，所有日志保留artifacts/store-sidebar及shell-probe-20261114-044312203-25956；不发布、不上传。
+
+最终源码Release Shell/Core构建0警告0错误；上述定向测试以及home-chrome2/2、home-carousel35/35、HomeFold69/69均0失败0跳过，51文本/52路径编码、行尾与空白检查和定向dotnet format退出0。最终正式入口匿名开发探针 `--probe-shell --probe-section shell,favorites --screen 1` 22/22、退出0：运行目录 `shell-probe-20261114-051354168-30260`，沉浸轮播、商店圆角轮播、760导航与真实标题输入四张实屏已目视；系统墨色正反、空轮播、滚动下沿、699/700边界、真实焦点与模式切换均通过。22项仅覆盖shell/favorites，不将较早MP红项或未运行范围冒称通过；物理IME/DPI/Narrator未覆盖。产品首版提交2035bd8，正在提交轮播恢复、默认商店与主树搜索/侧栏整合，不发布、不上传。
+
+用户追加沉浸返回按钮放工具组最右后，已按规则只读核对并说明Learn标题栏设计固定7814a981875bc80bafd780cdb58f6f7455e9f400的Back button建议与取舍；用户明确改选“你按照指南改吧，并且补上前进按钮”。因此返回继续最左，仅沉浸补前进，主页也保留前进以补回上一页，按Frame.CanGoForward启停；商店保持返回/折叠。Gallery固定14a4a1的Helpers/NavigationHelper.cs:279–287核实CanGoForward/GoForward与Alt+→/侧键共用，没有配套Forward按钮样例；沿用本地OnForwardClicked及历史/面包屑守卫，不绕过原服务与事件。保留40托盘/20箭头，以按钮外框口径留左16和间隔16，避开8DIP缩放带，不冒称原生TitleBar像素复制；已核本机WinUI2.3.9模板的原生16字形与左缘口径不同。新控件本地化、反馈、显隐、原生焦点/Invoke、迟到禁用/隐藏输入及播放/模式恢复检查均已补，正在编译验证。产品2035bd8、四项整合a048b02、最新master整合30777c9，尚待本轮完成后合入主树。
+
+用户看图后明确撤回上一段的指南左置方案，改令“直接还原之前改好的0.2.5版本”。已核发行tag `2ff12246dcb5fead3591e32f647e8881e2e090be` 及升0.2.7前标题源码：沉浸工具组稳定为主页/收藏/设置/搜索/返回/前进，六图标26、42×32、左18/上6、间距2、旧F0空心心形，两箭头浏览态常驻且按历史启停；当前按此恢复，仅保留48标题宿主和商店原生侧栏/标题搜索/账号及后续输入守卫。用户再次明确“沉浸模式标题上不要加momoka和搜索栏”并提供旧版实屏，现1240/760两档原生断言名称与居中输入Collapsed，左上搜索按钮可见。没有回滚整应用或其他聊天的详情功能。Children.Move移动同一控件并保持默认顺序，用户确认旧产品恢复不冒称微软推荐。此前新增探针20/22的原红保留：首次未进入浏览态及旧主页第一按钮假设已修；FocusManager Next/Previous两重载均不适用当前Desktop宿主，最终移除，改为显式Focus与实际焦点回读及Children/TabIndex顺序检查，物理Tab遍历未验。首次读未排几何补开头UpdateLayout，匿名播放层显隐恢复后的箭头同步已修。
+
+恢复版Shell/Core与Tests、PageContract Release单节点构建均0警告0错误；工具组15/15、页面图标定向18/18，0失败0跳过。匿名正式入口shell/favorites初跑 `shell-probe-20261114-060246849-34128` 21/22、退出1，唯一红为未改动SignInPage的999/1000断点银幕恢复，工具组/历史/收藏均通过；同构建复验 `shell-probe-20261114-061503104-6656` 22/22、退出0，1240工具组实屏目视为主页/空心收藏/设置/搜索/返回/前进，名称和居中输入收起。保留前一失败报告，不以复跑抹去偶发风险：只读查到旧探针LayoutAsync未确认请求尺寸已到达，现有证据不足以归因环境或产品，交付前须核对窗口/岛/page尺寸与VSM时序并复验。此两轮覆盖本树恢复版开发构建，不能作为最终主树交付证据；未覆盖物理Tab、IME、跨DPI、Narrator、真实服务与媒体播放。
+
+2026-11-14合入收尾：产品65a6052及前两阶段2035bd8/a048b02在356e整合最新master5d1fe05为7b60b83，PROGRESS双方完整保留，DetailLayoutTests同时保留新商店背景测试与默认false/显式true；master新增16源码文件逐blob一致，两份测试源链接保持。整合后Shell/Core/Tests Release单节点零警告零错误，详情布局51/51、真实VM详情状态89/89、MP页面状态40/40、约定21/21全过，变更文本21路径检查通过。主树从干净5d1fe05快进合入7b60b83，台账登记第21批；未发布、不改快捷方式、不推远程，运行证据留待最终主树交付时统一复验。本轮新增Forward已有x:Name、本地化名称与真实UIA检查，自动化扫描另外3个PersonPage既存无句柄按钮不属本轮。
+
+356e收尾核对：分支顶端f3d9494与master逐文件无差异，工作区干净；应用archive_worktree拒绝移除聊天主检出（The task's primary checkout cannot be removed），遵守应用保护保留该检出，在相同提交上转detached并删除已完全合入的codex/store-sidebar-unified临时分支，不用原生命令绕过保护。产品恢复线索65a6052、整合7b60b83和台账f3d9494已进入master。
+
 ## 2026-11-14 商店预告右侧背景与窄窗亚克力（已合入，未发布）
 
 本轮工作树 `6a4d`，分支 `codex/trailer-background`，基点 `0fdf357`。用户要求对照微软商店红框：预告与静态图共用顶部右侧60%宽、最大920 DIP的16:9区域，无固定宿主右边距；最大1840居中内容区自然产生宽窗留白。视频不用静态图VisualSurface重定向，直接绘制XAML两侧/底部渐变；原生40 DIP圆形CommandBar按钮移到画面下方右侧，媒体/WebView/iframe均不接受指针和Tab，YouTube controls/disablekb/fs/loop与固定ID白名单保留。移除预告给正文撑高的占位。
@@ -13409,3 +13453,56 @@ selfcheck-diff当前正式入口真实运行：原固定x=8取点落入新返回
 2026-11-14合入收尾：本树产品提交 `364456a` 在主树干净master `c419ebd` 上cherry-pick为 `6c8a97e`，未冲突，双方进度和标题搜索开发说明完整保留。9份产品/测试文件逐文件SHA256相同，同期侧边栏图标及其他批次保持。台账新增第19项，主树最终统一验证留到用户明确要求交付；本轮没有发布或推远端，桌面快捷方式仍是原发布件。当前4646为应用管理的聊天主检出且没有临时分支，删除遵守应用保护。
 
 4646清理核对：本轮产品与测试内容已完整进入master，干净detached检出无独有未保留改动或临时分支。应用 `archive_worktree` 明确拒绝（The task's primary checkout cannot be removed），遵守聊天主检出保护保留本树，不用原生命令绕过；保留产品顶端 `364456a` 与主树 `6c8a97e` 恢复线索。
+
+## 2026-11-14 侧栏预览封面播放、静止半秒与点击抑制
+
+用户一张截图要求封面可点击播放、鼠标静止0.5秒才展开、点击侧栏不能误开悬浮界面。本树 `C:/Users/89400/.codex/worktrees/ed02/Momoka` 基于 `5d1fe05` 隔离实现；库项复用实际 `PosterHoverDwell`、独立状态与物理屏幕坐标，移动/迟到tick重计时，鼠标按下/导航选择抑制到真正离开，捕获同坐标Exit/Enter不解除。显示库与悬停候选分开，旧封面/查看更多不串库。封面改原生Button、名称与稳定UIA句柄，沿既有PlayAsync；当前来源/展示条目/旧按钮拒绝，离页或取消释放封面图片。
+
+核对Gallery固定提交 `6de91feccadfbb0a796b71caedead5a2284f730e` 的ButtonPage.xaml Example2及Button_Click，保留原生Button图片、Name/Click及项目EgArtworkTileStyle。NavigationView/Flyout/Popup没有完整静止500ms且点击抑制的样例，因此复用本项目已测试的计时组件组合，未改依赖、播放管线或主题。纯UI事件归属留在Shell partial，避免把指针/视觉树搬入Core。
+
+最终分支Release x64 Shell/Core单节点构建0警告0错误；独立 `Momoka.SidebarPreviewTests` 31/31，0失败0跳过，完整编译生产preview partial并仅替换单调时钟，链接实际Core/PosterHoverDwell。覆盖静止/移动/迟到、触摸笔不触发、点击捕获/键盘导航、跨库/查看更多、播放交接、旧请求/图片和原样提取的按钮判据正反例；另有Rebuild/Invoke/Selection/分区接线契约。WinUI、指针、解码与Play为替身，不能证明平台输入投递或真实播放。证据 `artifacts/regressions/20261114-065905418-a9e783dcc0734688b4edf0443470b5d7/summary.json`；文本和自动化句柄检查通过。
+
+当前DLL匿名可见 `--probe-shell --probe-section shell --screen 1` 16项15过1红；新独立预览用例通过，760/600实屏已目视，面板不压栏、三颗Button封面/图片及聚合查看更多显隐成立；只读取UIA Invoke模式，未Invoke、未移动鼠标、未起播。运行目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-070637007-32632/logs`。旧SidebarAsync在切换侧栏后的货架/请求稳定断言失败，早于旧preview检查；保留原检查及全部失败报告，不放宽/删掉。此前Hidden宿主失败、旧DLL未归分区失败均保留，最终显式Shell分区已通过。整合主树商店/沉浸新逻辑后再核对受影响路径；分支截图不当作主树交付证据。
+
+此记录时尚未提交合入；下一步提交、保留同期master新逻辑、适配已删除的SidebarMode、重新编译并跑专项/原生受影响路径后合入登记。未真实服务器读取/写入、未真实播放、未发布/上传，桌面仍是原发布件。物理静止/点击投递、键盘焦点/读屏、触摸、不同DPI/文字缩放/高对比度待最终交付补验。
+
+## 2026-11-14 首页轮播鼠标附近柔光
+
+工作树a03c，临时分支 `codex/home-banner-pointer-glow`，基点5d1fe05。范围只含首页轮播装饰、匿名像素检查和动效回归。
+按用户观察的微软商店首页效果实施：光半径180 DIP、峰值透明度0.13，直接跟随鼠标并短淡入淡出，
+复用EgOnScrimBrush、SurfaceMotion和HoverWatch，文字/遮罩/按钮位于光层上面，装饰不命中输入；
+高对比度或关闭透明禁用，触摸/笔不显示。首次Collapsed光层尺寸为零改用Root几何，重复非鼠标退出幂等，
+防止旧淡出不断重启；关动画立即落定、卸载清理、迟到完成不影响重入。没有改轮播读秒/换图或依赖。
+
+已读稳定Gallery `v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` RadialGradientBrush的XAML/code-behind，
+采用原生Absolute、Center/GradientOrigin同步与Rectangle.Fill；本机WinUI2.3.9具有所需成员。
+Gallery没有跟随鼠标的现成轮播样例，因此组合当前PointerMoved与原生画刷，保持生产生命周期和偏好。
+微软商店官网build2026.11.2.188/commit50a9bb6f6d88489880c9512886c2f0428adafcab的home/spotlight发布JS已沿导入读完，
+未找到鼠标光心，桌面客户端源码未核对，不能称精确复刻。实现未采用已不推荐的RevealBrush。
+
+本树Release Shell/Core和UiMotionTests编译0警告0错误；动效57/57、0失败0跳过，
+HomeFoldCompletionTests编译0/0、68/68，保留既有读秒/空图/返回/矮窗覆盖。
+源链接生产BannerPointerGlow及真实XAML契约，测试不证明物理指针或渲染。
+匿名原生InspectHomeGlow首次1/1通过：1280/760两档各9216采样像素变化且全部增亮、移出恢复原图、禁用恢复、非鼠标、零播放。
+两张真实屏幕截图已目视： `shell-probe-20261114-065622499-8268/logs`；补椭圆负例后最终重验另记录。
+普通InspectHome匿名夹具无轮播数据，未拿那张截图当柔光证据。未登录真实服务器、未播放、未改生产设置。
+真实连续鼠标送达、系统高对比度/关闭透明和跨DPI待交付补验，不能把显式生产状态调用当真实输入。
+本轮只提交合入master，未发布、未上传；合并及最终原生证据随后追加，桌面发布仍为此前版本。
+
+最终补RadiusY=90椭圆负例后，本树Shell再次Release0警告0错误，匿名 `InspectHomeGlow` 1/1、退出0。
+日志 `shell-probe-20261114-070238581-2508/logs`：两档各9216变化/9216增亮像素，原图恢复、模拟禁用恢复、
+非鼠标及负例拒绝全过，两张最终真实截图已目视。检查台通过结束检查释放，未保留共享桌面锁。
+自动化扫描本轮没有新增交互控件，既有PersonPage三处缺句柄不属本轮；12份变更文本行尾/BOM/UTF8/空白检查通过，
+主树政策文档离线4份/51负例通过。用户未要求交付，整套闸门与真实指针/系统回退等仍在待交付并集处理。
+
+2026-11-14柔光合入：a03c产品 `8dd0b86` 在干净master `7a708fb` 上cherry-pick为 `ccc63d1`，无产品冲突，
+PROGRESS/开发说明自动整合并保留原记录。所有10份产品/测试/专项说明逐文件与分支一致，未改变其他批次。
+已登记待交付并集；不在合并时跑全量、不发布、不上传。临时分支已删除，当前用户提供的a03c工作目录干净并转detached。
+应用archive_worktree返回 `This worktree is not attached to the current task`，本轮不能由该工具归档，保留当前工作目录，
+不改动其他聊天的树。独有产品/测试改动已进入master，恢复顶端 `8dd0b86`。最终桌面发布仍为此前版本。
+2026-11-14整合验证：产品提交 `5ba450e` 后在本树整合master `dcb811c`，自动合并商店/沉浸和首页柔光，唯一PROGRESS追加冲突保留双方完整记录；新增预览probe明确 `EnableImmersive=false`，未恢复退役SidebarMode，主树所有模式/搜索/轮播/工具组检查保持。接线契约另守初始化handled PointerPressed及独立probe商店模式；专项重新31/31、0失败0跳过（`artifacts/regressions/20261114-071223725-0276f70620fc414cbac5357644521d06/summary.json`），整合后Release x64 Shell/Core0警告0错误（`work/sidebar-preview-build-integrated.log`）。两名代理只读审查产品/整合/测试，无确定未解决缺陷；物理输入仍不在替身覆盖内。测试子树全部内容已保留，应用归档成功，恢复键 `C:/Users/89400/.codex/worktrees/sidebar-preview-tests/Momoka`、原HEAD `5d1fe05`；忽略内容仅匿名测试与构建产物。整合原生probe暂等待其他聊天PID4648诊断锁释放，未结束进程或绕锁。
+
+2026-11-14主树合入：干净master `dcb811c` 以ff进入 `1d97cea`，产品 `5ba450e` 与测试全部已保留；13份任务文件整合后逐文件无master缺少的内容，双方历史保持。台账第23项登记适用验证与物理输入/真实播放边界；最终原生检查仍按只读探针等待其他聊天诊断锁，不自行交付，不发布或上传，桌面保持原发布件。
+
+ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同，独有进度已进入master；工作树干净，顶端 `1d97cea` 已合入，在同一提交转detached并删除本任务分支。测试子树已由应用成功归档。ed02为本聊天主检出，应用archive_worktree明确拒绝（The task's primary checkout cannot be removed），遵守保护保留本树，不用原生命令绕过。Shell两轮构建和整合回归摘要已保留用户日志 `sidebar-preview-evidence-20261114-ed02`，运行截图仍在各自shell-probe目录；恢复线索产品 `5ba450e`、整合 `1d97cea`。
+2026-11-14最终原生结果：等待其他树MoviePilot分区完成并释放共享锁后自动继续，整合构建（产品/测试与master已逐文件同blob）正式可见 `--probe-shell --probe-section shell --screen 1` **16/16、0失败、退出0**。完整侧栏模式/导航、独立预览、首启侧栏均通过，760/600实屏已再次目视，三封面与查看更多完整、面板不压栏，商店窄窗标题搜索也随主树新逻辑收起。报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261114-072544766-18996/logs`；只覆盖shell，范围文件另有209检查未执行。较早旧构建的货架稳定、隐藏宿主和分区遗漏失败报告保留，没有删检查、放宽断言或更新基线来洗绿；此次绿覆盖整合后的不同代码。读取封面UIA Invoke模式而未Invoke封面，未移动鼠标、未真实播放或向真实服务器读写；物理静止/点击投递与跨DPI/读屏仍待验。台账第23项证据已更新，master只追加文档，未重新发布、未推远端，桌面快捷方式仍是原发布件。
