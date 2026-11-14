@@ -13566,3 +13566,9 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 合并收尾：产品提交b7c4117已从master e03221c快进合入。等待“清理多余的工作树”聊天完成后才写主树；17份原有未提交修复完整保留，其中ShellPage.xaml的标题框移除CornerRadius与本次背景位于不同区域，备份后定点整合，最终主树仍只呈现原有的那一行删除；其他16份哈希逐一相同。合并不重跑全量、不发布、不推送，交付按台账统一验收。
 
 收尾：临时分支codex/immersive-home-header已删除，f95f干净并指向master，产品/测试逐文件与master一致，验证日志已复制到主树artifacts/immersive-home-header-b7c4117。Codex归档工具拒绝删除本聊天primary checkout（The task's primary checkout cannot be removed.），遵守保护保留检出，不用原生命令绕过；没有独有提交或未保存内容。
+
+## 2026-11-14 独立 WinUI 优化计划文档
+
+用户要求把本轮优化计划生成文档，并明确不关联已经完成的旧重构计划。本任务在独立工作树 `C:/Users/89400/.codex/worktrees/winui-optimization-plan/Momoka`、分支 `codex/winui-optimization-plan` 编写 `docs/WinUI优化计划-2026-11-14.md`，内容覆盖导航状态、设置分组、SettingsCard 局部采用、依赖精简、列表图片测量与联合验收六阶段。只整理后续工作，源码风险与已复现故障区分；不修改或关联旧计划，不实施产品代码。
+
+文档静态检查7/7、12处本地链接可达，当前源码锚点和包声明一致；新文档编码、LF、BOM、末尾换行与空白检查通过，独立只读审阅通过。未构建、运行客户端、执行探针或发布。此次只提交文档与本记录，主树已有产品修改保持原样。
