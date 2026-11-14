@@ -214,20 +214,44 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireStoreHeroAlignment(DetailPage page)
     {
         var cover = Get<Border>(page, "PosterStill");
+        var overview = Get<StackPanel>(page, "OverviewPanel");
+        var stack = Get<StackPanel>(page, "HeroStack");
         var canvas = Get<Grid>(page, "StoreScrollContent");
         var left = cover.TransformToVisual(canvas).TransformPoint(default).X;
-        Require(Get<StackPanel>(page, "OverviewPanel").Padding.Left == 0
-            && Get<StackPanel>(page, "OverviewPanel").Padding.Right == 0, "简介文字保留了额外左右缩进");
+        // 2026-11-14 第二令起简介在封面右边那一栏，左右缩进仍为零：它与片名、评分同一条左沿。
+        Require(overview.Padding.Left == 0 && overview.Padding.Right == 0, "简介文字保留了额外左右缩进");
+        if (overview.Visibility == Visibility.Visible)
+            Require(Math.Abs(overview.TransformToVisual(canvas).TransformPoint(default).X
+                    - stack.TransformToVisual(canvas).TransformPoint(default).X) < 1,
+                "简介没有和封面右侧的片名栏同一条左沿");
         if (page.ViewModel.PageWidth >= 600)
             Require(Get<StackPanel>(page, "FileOptions").ActualHeight > 0
                 && Get<EgPicker>(page, "ColumnSourcePicker").ActualWidth > 0,
                 "常规宽度没有呈现可测量的文件选项");
-        foreach (var name in new[] { "StoreHeroDetails", "OverviewPanel", "FileOptions", "ColumnActions" })
+        // 封面下方的详情块和下方的卡片仍与封面同一条左沿；简介不在这一组里。
+        foreach (var name in new[] { "StoreHeroDetails", "FileOptions", "ColumnActions" })
         {
             var node = Get<FrameworkElement>(page, name);
             if (node.Visibility != Visibility.Visible || node.ActualWidth <= 0 || node.ActualHeight <= 0) continue;
             Require(Math.Abs(node.TransformToVisual(canvas).TransformPoint(default).X - left) < 1,
                 name + " 未与封面、下方卡片外沿对齐");
+        }
+        // 有足够高度时，简介底和导演那一行的底都压在封面下沿上。
+        if (overview.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
+        {
+            var coverBox = cover.TransformToVisual(canvas)
+                .TransformBounds(new(0, 0, cover.ActualWidth, cover.ActualHeight));
+            var overviewBox = overview.TransformToVisual(canvas)
+                .TransformBounds(new(0, 0, overview.ActualWidth, overview.ActualHeight));
+            if (coverBox.Bottom - overviewBox.Top > 70)
+            {
+                Require(Math.Abs(overviewBox.Bottom - coverBox.Bottom) < 1.5, "商店简介底没有和封面底齐平");
+                var director = Get<TextBlock>(page, "DetailDirectorsText");
+                if (director.Visibility == Visibility.Visible)
+                    Require(Math.Abs(director.TransformToVisual(canvas)
+                        .TransformBounds(new(0, 0, director.ActualWidth, director.ActualHeight)).Bottom
+                        - coverBox.Bottom) < 1.5, "商店导演行没有和封面底齐平");
+            }
         }
     }
 

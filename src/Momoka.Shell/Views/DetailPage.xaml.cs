@@ -2123,12 +2123,15 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         ViewModel.StackRoom = HeroStack.ActualHeight;
         MeasureCoverBottom();
+        // 简洁（商店）模式：简介接在这一栏最后，栏高一变就把它的底重新校到封面下沿（见 DetailPage.Store.cs）。
+        SyncStoreOverviewFill();
         QueueReadingColors();
     }
 
     private void OnCoverSizeChanged(object sender, SizeChangedEventArgs e)
     {
         MeasureCoverBottom();
+        SyncStoreOverviewFill();
         QueueReadingColors();
     }
 

@@ -1505,11 +1505,12 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
     /// <para>
-    /// 商店模式左右归零（2026-11-14）：这一块已经搬进封面下方的 <c>StoreHeroDetails</c>，它的左沿就是封面的
-    /// 左沿，再留 24 会把简介推离那条竖线；上下留一点，和同组下一块的 14 间距一起读。
+    /// 商店模式左右归零（2026-11-14）：这一块搬进封面右边的片名栏，左沿与片名、评分对齐，再留 24 会把简介
+    /// 推离那条竖线。上留 2；底下归零 —— 简介撑到封面下沿，导演那一行的底就是这一块的底
+    /// （见 <c>DetailPage.Store.cs</c> 的 <c>SyncStoreOverviewFill</c>），再留 6 就不再齐平。
     /// </para>
     /// </summary>
-    public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 6) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
+    public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 0) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 默认宽详情左8加面板24，内容与封面左沿32对齐。
@@ -2197,7 +2198,11 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ReadMoreVisibility))]
     public partial bool OverviewTrimmed { get; set; }
 
-    public int OverviewMaxLines => StoreMode ? 2 : Expanded ? 0 : CollapsedLines;
+    /// <summary>
+    /// 简介最多写几行。简洁（商店）模式下由页面按「封面右栏还剩多高」实测回来
+    /// （<see cref="StoreOverviewLines"/>，见 <c>DetailPage.Store.cs</c>），其余版式是四行或展开后的不限。
+    /// </summary>
+    public int OverviewMaxLines => StoreMode ? StoreOverviewLines : Expanded ? 0 : CollapsedLines;
 
     public TextTrimming OverviewTrimming => !StoreMode && Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
 

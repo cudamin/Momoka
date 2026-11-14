@@ -4,6 +4,16 @@
 
 验证：Shell Release 0 警告 0 错误；`toolbar-icon-fixture` 15/15（`ShellChromeTests` 新增标题栏底色四条：48 高、`EgSidebarBrush`、不接管输入、默认收起，并把「栏从 48 起画」改钉在 `SidebarHost`）；`detail-customization-fixture` 53/53；`Momoka.PageContractTests` 274/274；`Momoka.SidebarPreviewTests` 31/31；`local-media-layout-fixture` 21/21（含 Agreements，句柄基线新增 `TitleBarBackground` 一行并注明来由）。原生探针本轮未跑：同一时刻本机已有别的树在跑 `--probe-shell --probe-section moviepilot`（PID 20716，桌面互斥锁被占），没有结束别人的进程；交付前需补 `--probe-section shell --screen 1` 与展开/收起实屏目视。未合并、未发布、未连真实服务器；高对比度、跨 DPI 未实测。
 
+## 2026-11-14 简洁（商店）详情：剧情说明移到封面右边、导演行与封面底齐平（已合入，待交付）
+
+用户给出一张简洁（商店）模式详情页截图，要求把封面下方的剧情说明移到封面右边，导演那一行的底部刚好和封面底部持平，填满剧情说明，写不完的自动折叠。独立树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-plot-desc-right-LdxbV3`，分支 `feat-plot-desc-right-LdxbV3`，基点 `df37a93`。适用面确认为仅简洁（商店）模式；超出的文字直接以省略号收尾、悬停看全文，不保留「阅读更多」。
+
+实现：`DetailPage.Store.cs` 把 `OverviewPanel` 从封面下方的 `StoreHeroDetails` 搬到 `HeroStack` 末尾（文件选项和操作键仍留在封面下方）；`SyncStoreOverviewFill` 以「封面下沿减简介顶」设简介高，`OverviewBody` 拆成星号正文行加底部 `OverviewFooter`（导演行钉底），两者共同保证导演行底与封面底齐平。`UpdateStoreOverviewLines` 按正文剩余高、底部行实测高和固定行高 24 算出 `DetailViewModel.StoreOverviewLines`，`OverviewMaxLines` 在商店模式读它并配合 `CharacterEllipsis` 自动折叠；片名折行把右栏撑得比封面高时用 52 的保底高，宁可让封面底那条线落空也不把简介压没。退出商店模式时清掉简介和正文容器的显式高度，尾部/紧凑/沉浸版式恢复原来的内容高排法。新增 Core 纯函数 `DetailHero.OverviewLines` 及单测；更新页面契约测试和 `InspectDetailMica`／`InspectStoreDetailCards` 探针的左沿、次序、底对齐与头部裁切期望。
+
+验证：Shell/Core Release x64 **0 警告 0 错误**；主测试 **5104/5104、失败 0、跳过 0**；`Momoka.PageContractTests` **274/274、失败 0、跳过 0**。原生 `--probe-shell --probe-section detail-cards --screen 2` 因已有 Momoka 实例持有单实例锁，本次进程按既有约定只发出激活信号后退出（未产生新的 shell-probe 目录），未结束其他进程、未绕锁，因此**没有**本轮的真实 UI 探针/截图证据；合并与交付前需在无实例占用时补跑该专项并目视截图。
+
+合入收尾：按用户令合入 master；解决与主树「文件选项去掉商店版本框样式」的冲突时保留主树的移除，只把简介搬到封面右栏和撑满逻辑接回。合并后只登记待交付批次，不跑全量、不发布、不推送；真实 UI 探针仍待无实例占用时补跑。
+
 ## 2026-11-14 删除已执行的旧 WinUI 重构计划
 
 用户明确旧计划已经做过，要求删除。独立树 `C:/Users/89400/.codex/worktrees/remove-old-winui-plan/Momoka`，分支 `codex/remove-old-winui-plan`，基点 `fe015d2`。删除 `docs/WinUI重构计划.md`，清理 CLAUDE、Shell 技能、开发文档、P1/P2/P3报告和项目注释中的现行入口；P1文档检查不再要求已删除文件，历史结果与证据校验保留。各阶段实施/验证报告和历史 PROGRESS 记录保留，明确不作为待执行清单。只做文档、链接、编码与受影响检查器验证，不构建、不运行应用或发布。
