@@ -132,7 +132,11 @@ internal sealed partial class ShellNavigationProbe
                         Require(view.IsCompact == compact && view.Showcase == !compact && view.BackdropShown,
                             $"{item.Type} {width}：开启时未保持宽窗沉浸或窄窗紧凑背景");
                         Require(!view.HeroCardShown, "开启时错误保留关闭后的宽窗卡面");
-                        if (!compact) RequireImmersiveSurface(page);
+                        if (!compact)
+                        {
+                            RequireImmersiveSurface(page);
+                            RequireHeroColumn(page);
+                        }
                         if (item.Type == EmbyItemType.Episode) RequireEpisodeSubject(page, item);
                         RequireResponsiveBindings(page);
                         var scroll = Get<ScrollView>(page, "Body");
@@ -380,6 +384,39 @@ internal sealed partial class ShellNavigationProbe
         && Math.Abs(left.Top - right.Top) < 0.01
         && Math.Abs(left.Right - right.Right) < 0.01
         && Math.Abs(left.Bottom - right.Bottom) < 0.01;
+
+    /// <summary>
+    /// 沉浸宽版式：片名为首的那一栏撑到封面同高 —— 徽标（没有徽标时是片名）的顶与封面同一条线，
+    /// 操作那排键连同「剩余 x 分钟」贴在封面下沿，剧情说明紧接着那一行、只隔一小截空位
+    /// （2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」与
+    /// 「剧情说明要接在剩余 22 分钟下方，留点空位」）。
+    /// </summary>
+    private static void RequireHeroColumn(DetailPage page)
+    {
+        var cover = Get<Border>(page, "PosterStill");
+        var stack = Get<StackPanel>(page, "HeroStack");
+        var actions = Get<StackPanel>(page, "ColumnActions");
+        var overview = Get<StackPanel>(page, "OverviewPanel");
+        if (cover.Visibility != Visibility.Visible || actions.Visibility != Visibility.Visible) return;
+
+        var coverBox = Bounds(cover, page);
+        var stackBox = Bounds(stack, page);
+        var actionsBox = Bounds(actions, page);
+        Require(Math.Abs(stackBox.Top - coverBox.Top) < 1.5,
+            $"沉浸片名栏没有和封面对齐顶部：栏 {stackBox.Top:0.##} 对封面 {coverBox.Top:0.##}");
+        Require(stackBox.Bottom >= coverBox.Bottom - 1.5,
+            $"沉浸片名栏没有撑到封面同高：栏下沿 {stackBox.Bottom:0.##} 对封面 {coverBox.Bottom:0.##}");
+        // 内容比封面还高的那一档由带子自己长高（片名折行、文件选项多），那排键落在内容下沿，
+        // 不再强求和封面下沿齐平；只有装得下的时候才要求它真的被推到封面下沿。
+        if (stackBox.Height <= coverBox.Height + 1.5)
+            Require(Math.Abs(actionsBox.Bottom - coverBox.Bottom) < 2.5,
+                $"沉浸操作键没有贴到封面下沿：{actionsBox.Bottom:0.##} 对 {coverBox.Bottom:0.##}");
+
+        if (overview.Visibility != Visibility.Visible) return;
+        var text = Get<TextBlock>(page, "Overview");
+        var gap = Bounds(text, page).Top - actionsBox.Bottom;
+        Require(gap is > 4 and < 40, $"剧情说明离「剩余 x 分钟」那一行不是一个空位：{gap:0.##}");
+    }
 
     /// <summary>够长、够跨四行的简介 —— 窄窗下「剧情说明快掉出画面」那一条要的是一段真会折满的文字。</summary>
     private const string ResponsiveOverview =

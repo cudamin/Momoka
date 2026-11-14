@@ -15,6 +15,9 @@ public sealed partial class DetailPage
     private readonly Windows.UI.ViewManagement.AccessibilitySettings _actionAccessibility = new();
     private readonly Windows.UI.ViewManagement.UISettings _actionUiSettings = new();
     private readonly Dictionary<TextBlock, SolidColorBrush> _readingColors = [];
+    /// <summary>「其他信息」表里那两档墨（标签／值）；纸面档取主题的两支，沉浸档取压在图上那两支。</summary>
+    private readonly SolidColorBrush _infoLabelInk = new();
+    private readonly SolidColorBrush _infoValueInk = new();
     private readonly List<FontIcon> _plainActionIcons = [];
     private readonly Dictionary<FrameworkElement, Control> _explicitActionForegrounds = [];
     private ControlBackgroundBrushes? _columnPlay;
@@ -28,6 +31,8 @@ public sealed partial class DetailPage
     {
         foreach (var strip in new[] { EpisodeStrip, SeasonRow, CastRow, SimilarRow })
             strip.ReadingChanged += QueueReadingColors;
+        // 其他信息表里的行是回收着建的：新行建出来那一刻按当前那一套墨补一次（见 PaintInfoRowInk）。
+        InfoTable.ElementPrepared += (_, args) => PaintInfoRowInk(args.Element);
         foreach (var group in new[] { ColumnActions, CompactBlock })
             foreach (var row in group.Children.OfType<WrapRow>())
                 foreach (var control in row.Children.OfType<Microsoft.UI.Xaml.Controls.Control>())
@@ -143,13 +148,54 @@ public sealed partial class DetailPage
 
     private void PaintBackdropReading()
     {
-        // 信息卡的逐行标签、内联链接与数据统一留在深色亚克力卡面上，避免整段文字另做蒙版寿命管理。
-        // 2026-11-08 用户令「参考集页面给其他媒体页面的其他信息也加上亚克力背景」：这张卡在沉浸档四类页面上
-        // 都保留卡面，不再只管单集页（电影、剧、季三页从前在这里让开，表里的暗字直接压在剧照上）。
+        // 2026-11-14 用户令「改为去掉其他信息的背景卡片」：沉浸档这张卡和其余四块正文面板一样让开卡面，
+        // 表里的字改吃压在图上那套浅墨（PaintInfoInk）—— 此前那块深色亚克力正是为了让暗字压在剧照上还能读。
+        // 商店档仍用固定面色，纸面档仍用正文面板那支亚克力。
         InfoPanel.Background = PlainMode ? StoreCardMaterialSource.Background
-            : ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;
+            : ViewModel.Showcase ? null : _panelFill;
+        PaintInfoInk();
         PaintReadingColors();
     }
+
+    /// <summary>
+    /// 沉浸档没有卡面垫着的「其他信息」：表里的标签和值、上面那行「媒体信息」小标题、底下那条其他信息
+    /// 都换成压在图上那套浅墨；纸面档回到主题自己的两支暗墨。
+    /// <para>
+    /// 表里的行是回收着建的，所以两处都要：已经建出来的过一遍（<see cref="ItemsRepeater.TryGetElement"/>），
+    /// 之后建出来的由 <see cref="ItemsRepeater.ElementPrepared"/> 接住（订阅在 <see cref="PrepareAppearance"/>）。
+    /// </para>
+    /// </summary>
+    private void PaintInfoInk()
+    {
+        var forced = _actionAccessibility.HighContrast
+            ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+            : (Color?)null;
+        var scrim = ViewModel.Showcase;
+        _infoLabelInk.Color = forced ?? ResourceColor(scrim ? "EgOnScrimDimBrush" : "EgTextFaintBrush");
+        _infoValueInk.Color = forced ?? ResourceColor(scrim ? "EgOnScrimBrush" : "EgTextDimBrush");
+
+        if (scrim || forced is not null) MediaInfoTitle.Foreground = _infoValueInk;
+        else MediaInfoTitle.ClearValue(TextBlock.ForegroundProperty);
+
+        for (var index = 0; index < ViewModel.InfoRows.Count; index++)
+            if (InfoTable.TryGetElement(index) is { } element) PaintInfoRowInk(element);
+
+        // 那一行的字都在内联的 Run 上，画刷由它在搭的时候带走，所以整行重搭一遍。
+        PaintOtherInfo();
+    }
+
+    private void PaintInfoRowInk(DependencyObject row)
+    {
+        foreach (var text in AppearanceChildren(row).OfType<TextBlock>())
+        {
+            if (Equals(text.Tag, "InfoLabel")) text.Foreground = _infoLabelInk;
+            else if (Equals(text.Tag, "InfoValue")) text.Foreground = _infoValueInk;
+        }
+    }
+
+    private static Color ResourceColor(string key) => Application.Current.Resources[key] is SolidColorBrush brush
+        ? brush.Color
+        : Microsoft.UI.Colors.White;
 
     private ThemeColor ReadingBackground(FrameworkElement node)
     {

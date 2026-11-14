@@ -197,14 +197,15 @@ internal sealed partial class ShellNavigationProbe
                     Get<Border>(page, "HeroContentLayerSource").Background), "沉浸恢复后仍使用简洁内容层");
                 if (page.ViewModel.Showcase)
                 {
-                    // 单独触发顶部资源回调，拒绝它把沉浸信息卡覆盖成透明正文刷的旧路径。
+                    // 单独触发顶部资源回调，拒绝它给沉浸信息卡铺回卡面的旧路径（2026-11-14 用户令
+                    // 「改为去掉其他信息的背景卡片」，此前这一档保留的是那一块深色亚克力）。
                     var source = Get<Border>(page, "HeroContentLayerSource");
                     var savedLayer = source.Background;
                     try
                     {
                         source.Background = new SolidColorBrush(Microsoft.UI.Colors.Black);
-                        Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background,
-                            Get<Border>(page, "CardMaterialSource").Background), "顶部主题回调覆盖了沉浸信息卡背景");
+                        Require(Get<StackPanel>(page, "InfoPanel").Background is null,
+                            "顶部主题回调给沉浸信息卡铺回了卡面");
                     }
                     finally { source.Background = savedLayer; }
                 }
