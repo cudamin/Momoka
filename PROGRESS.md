@@ -1,4 +1,10 @@
-## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
+## 2026-11-14 设置窗口每次显现回到主窗口前面（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-settings-on-top-Odo2OM`，分支 `fix-settings-on-top-Odo2OM`，基点 `5ac4c45`。用户报「点完设置会自动跑到主窗口后面，再点一次主窗口的设置按钮也不会跑到主窗口前面」。根因读框架源码确认：WinUI 3 的 `DesktopWindowImpl::ActivateImpl` 只做 `ShowWindow(SW_SHOW)` 与 `SetActiveWindow`，对一扇已经看得见的窗口不改 z 序；设置窗口被主窗口盖住之后，`Window.Activate()` 只是把它「激活」在主窗口底下，所以再点设置也拿不回来。修法：`SettingsWindow.Show` 在 Activate 之后调用官方 `AppWindow.MoveInZOrderAtTop()`（WinAppSDK 1.1+，即 `SetWindowPos(HWND_TOP)`），首开、隐藏后重开、已经开着再点设置三条路都会把窗口提到主窗口前面；不改成 owned/topmost，保留全屏播放时 `HostWindow.StandAsideForOwnWindow` 的让位与收摊还原语义。
+
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.SettingsLifetimeTests` **62/62、0 失败 0 跳过**（新增「设置窗口每次显现都提到主窗口前面」，把首开／隐藏后重开／已开着再点设置三条路都钉住；原「设置窗显现前清理旧关闭悬停」同步补上 z-top 顺序）。改动文件 whitespace 与 diff 行尾/BOM/末尾换行通过；全仓 `check-diff -All` 仍有 6 个与本批无关的既有文件末尾换行红。原生 `--probe-shell --probe-section settings --screen 1` **28/28、退出 0**（`shell-probe-20261114-145505209-2492`）：其中「聚合设置窗口首开与缓存重开」新增一段回归，先把探针主窗口提到前面盖住设置窗，再走真实 `SettingsWindow.Show`，用设置窗口中心命中判它回到最前，读数 `重按设置回到最前 1526 ms`；该段在探针原有的 `presenter.IsAlwaysOnTop` 保护之前跑，不被探针自己的置顶掩盖。探针使用匿名假服务与独立目录，未登录真实服务器、未播放。未合并、未发布、未推送。
+
+
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。
 

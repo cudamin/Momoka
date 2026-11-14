@@ -66,6 +66,19 @@ internal sealed partial class ShellNavigationProbe
         await WaitForSettingsSettledAsync(page);
         await WaitForDiagnosticsFrameAsync();
         timing.Add($"首次正文稳定 {watch.ElapsedMilliseconds} ms；行={page.Realised}");
+
+        // 2026-11-14 用户报「点完设置会自动跑到主窗口后面，再点一次设置也不会跑到前面」。这一步走用户
+        // 真正走的那条路：先把主窗口提到前面（盖住设置窗口），再按一次设置。Window.Activate 对已经
+        // 看得见的窗口只 SetActiveWindow、不改 z 序，所以 Show 必须自己 MoveInZOrderAtTop。
+        // 放在 presenter.IsAlwaysOnTop 之前：那个开关是探针为了拍图自己加的置顶，会把这里要验的东西
+        // 整个盖过去。
+        _window!.Activate();
+        window.Show(new SettingsRequest(services, "界面"));
+        await LayoutAsync(page);
+        await WaitForDiagnosticsFrameAsync();
+        Require(SettingsWindowIsInFront(window), "主窗口在前时再按设置，设置窗口没有回到主窗口前面");
+        timing.Add($"重按设置回到最前 {watch.ElapsedMilliseconds} ms");
+
         var appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(window.Handle));
         var presenter = (OverlappedPresenter)appWindow.Presenter;
         var wasTopMost = presenter.IsAlwaysOnTop;
@@ -134,5 +147,22 @@ internal sealed partial class ShellNavigationProbe
             await playback.ShutdownAsync();
             ThemeHost.Apply(theme);
         }
+    }
+
+    /// <summary>
+    /// 设置窗口此刻是不是压在主窗口前面：取窗口正中间那一点，看命中的是不是它自己（含它的子窗口）。
+    /// 这是屏幕上量出来的层级，不是 API 有没有被调用 —— Activate 照旧调了，窗口却仍在主窗口底下，
+    /// 正是 2026-11-14 用户报的那个现象。
+    /// </summary>
+    private static bool SettingsWindowIsInFront(SettingsWindow window)
+    {
+        if (!Native.GetWindowRect(window.Handle, out var frame)) return false;
+
+        var hit = Native.WindowFromPoint(new NativePoint
+        {
+            X = (frame.Left + frame.Right) / 2,
+            Y = (frame.Top + frame.Bottom) / 2
+        });
+        return hit != IntPtr.Zero && Native.GetAncestor(hit, Native.GaRoot) == window.Handle;
     }
 }
