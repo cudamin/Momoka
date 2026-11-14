@@ -1502,8 +1502,12 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 圆角留的高度）画圆角；8 + 16 = 24 就是「剪裁下方空位（留点空位）」那一句里的「一点空位」。其余页面
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
+    /// <para>
+    /// 商店模式左右归零（2026-11-14）：这一块已经搬进封面下方的 <c>StoreHeroDetails</c>，它的左沿就是封面的
+    /// 左沿，再留 24 会把简介推离那条竖线；上下留一点，和同组下一块的 14 间距一起读。
+    /// </para>
     /// </summary>
-    public Thickness OverviewPanelPadding => StoreMode ? new(24, 4, 24, 4) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
+    public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 6) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 默认宽详情左8加面板24，内容与封面左沿32对齐。
@@ -2024,8 +2028,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 播放键上的回转图标亮不亮 —— 有断点就亮。和 <see cref="RestartVisibility"/> 同一个判据（<see
-    /// cref="ItemDetail.PlayText"/> 里那条 <c>HasResumePosition</c> 分支），所以图标、字、旁边的「从头开始」
-    /// 三样说的是同一件事：断点。
+    /// cref="ItemDetail.PlayText"/> 里那条 <c>HasResumePosition</c> 分支），所以图标、字、更多菜单里的
+    /// 「从头开始」三样说的是同一件事：断点（2026-11-14 起那颗键不再单独上屏，折进「更多」）。
     /// <para>
     /// 亮的是那一颗图标自己 —— 有断点时它取 accent（<c>EgAccentBrush</c>），没有断点时和字一样是压在图上
     /// 那支浅墨。按键的底是半透明的药丸（<c>EgPlayButtonStyle</c>，和连播同一块底，2026-10-11），强调色
@@ -2035,7 +2039,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 这里不问「点了会不会真的从断点接上」（那是 <see cref="PlaybackSettings.ResumeFromSavedPosition"/>，
     /// 关掉后 从头开始 也是片头）—— 亮的是「这颗条目有断点」，和 <see cref="PlayText"/> 的
-    /// 「继续播放 20:34」、旁边那颗 从头开始 同进同退。承接位置归播放器那一头算。
+    /// 「继续播放 20:34」、更多菜单里那一行 从头开始 同进同退。承接位置归播放器那一头算。
     /// </para>
     /// </summary>
     public Visibility ResumePlay => Show(PlayTarget?.HasResumePosition == true);
@@ -4006,7 +4010,10 @@ public sealed partial class DetailViewModel : PageViewModel
     [RelayCommand(CanExecute = nameof(CanPlay))]
     private Task PlayAsync() => StartAsync(fromStart: false);
 
-    /// <summary>从头开始. A second button rather than a switch, because 播放 already states the time.</summary>
+    /// <summary>
+    /// 从头开始. 2026-11-14 起它不再是一颗单独的键（用户令「把从头开始按钮折叠进更多按钮」）：
+    /// 有断点时详情页的「更多」菜单把它摆到「继续播放」下面，动作仍是这一支。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanPlay))]
     private Task RestartAsync() => StartAsync(fromStart: true);
 

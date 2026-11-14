@@ -141,9 +141,6 @@
   <data name="DetailPage_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>更多</value>
   </data>
-  <data name="DetailPage_TextBlock1.Text" xml:space="preserve">
-    <value>从头开始</value>
-  </data>
   <data name="DetailPage_TextBlock2.Text" xml:space="preserve">
     <value>媒体源</value>
   </data>
