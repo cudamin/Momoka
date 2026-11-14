@@ -16,6 +16,8 @@
 
 2026-11-14合入收尾：产品65a6052及前两阶段2035bd8/a048b02在356e整合最新master5d1fe05为7b60b83，PROGRESS双方完整保留，DetailLayoutTests同时保留新商店背景测试与默认false/显式true；master新增16源码文件逐blob一致，两份测试源链接保持。整合后Shell/Core/Tests Release单节点零警告零错误，详情布局51/51、真实VM详情状态89/89、MP页面状态40/40、约定21/21全过，变更文本21路径检查通过。主树从干净5d1fe05快进合入7b60b83，台账登记第21批；未发布、不改快捷方式、不推远程，运行证据留待最终主树交付时统一复验。本轮新增Forward已有x:Name、本地化名称与真实UIA检查，自动化扫描另外3个PersonPage既存无句柄按钮不属本轮。
 
+356e收尾核对：分支顶端f3d9494与master逐文件无差异，工作区干净；应用archive_worktree拒绝移除聊天主检出（The task's primary checkout cannot be removed），遵守应用保护保留该检出，在相同提交上转detached并删除已完全合入的codex/store-sidebar-unified临时分支，不用原生命令绕过保护。产品恢复线索65a6052、整合7b60b83和台账f3d9494已进入master。
+
 ## 2026-11-14 商店预告右侧背景与窄窗亚克力（已合入，未发布）
 
 本轮工作树 `6a4d`，分支 `codex/trailer-background`，基点 `0fdf357`。用户要求对照微软商店红框：预告与静态图共用顶部右侧60%宽、最大920 DIP的16:9区域，无固定宿主右边距；最大1840居中内容区自然产生宽窗留白。视频不用静态图VisualSurface重定向，直接绘制XAML两侧/底部渐变；原生40 DIP圆形CommandBar按钮移到画面下方右侧，媒体/WebView/iframe均不接受指针和Tab，YouTube controls/disablekb/fs/loop与固定ID白名单保留。移除预告给正文撑高的占位。
