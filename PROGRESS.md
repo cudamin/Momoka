@@ -6,7 +6,7 @@
 
 **改法。** ① `SearchForm` 改单列 `*`，来源栏在任何输入归属下都居中；`SearchSitePicker` 不再跨列。② 撤销标题栏接管输入的整套机制（删 `LibraryPage.TitleSearch.cs`）：搜索页始终用页内 `SearchInput`，`PageRoot` 顶部恢复 40 DIP，站点入口回到输入框模板内。③ 恢复 `TitleSearchTransition`：点标题框先 `PrepareToAnimate` 再导航，搜索页 `OnLoaded` 把输入框交给 `TryStart`，接不上退回淡入；框落下后光标交给内容区输入框。④ `SyncTitleSearch`：搜索页开着时标题框收起（屏幕上只剩移下来的那一只），离开搜索页再出现；标题框不再挂 `TextChanged`/`QuerySubmitted`。
 
-验证：Shell Release 0 警告 0 错误；`Momoka.LibraryHeaderTests` 21/21；`Momoka.SearchLifetimeTests` 44/44；`Momoka.ResourceBrowserTests` 189/189；`Momoka.PageContractTests` 274/274；`toolbar-icon-fixture` 15/15；`tools/check-diff.ps1` 通过。原生 `--probe-shell --probe-section shell --screen 1` 结果见下一条记录（共享桌面锁被其他工作树长时间占用，未拿到运行证据前不当作通过）。未合并、未交付；未连接真实服务器、未播放。
+验证：Shell Release 0 警告 0 错误；`Momoka.LibraryHeaderTests` 21/21；`Momoka.SearchLifetimeTests` 44/44；`Momoka.ResourceBrowserTests` 189/189；`Momoka.PageContractTests` 274/274；`toolbar-icon-fixture` 15/15；`tools/check-diff.ps1` 通过。原生 `--probe-shell --probe-section shell --screen 1` **16/16、退出 0**（运行目录 `shell-probe-20261114-151717276-28532`）：关联动画 `started`、搜索页标题框收起、页内输入框接住焦点、来源栏居中、宽窄/显示模式往返与离开搜索页后标题框恢复全过；实屏 `sidebar-title-search-screen.png` 已目视——标题栏没有搜索框，输入框与来源栏同心居中在内容区。未合并、未交付；未连接真实服务器、未播放。
 
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 
