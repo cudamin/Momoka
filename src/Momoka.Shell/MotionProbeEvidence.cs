@@ -12,8 +12,24 @@ internal sealed record MotionCandidateDecision(string Outcome, string Reason, bo
 
 internal readonly record struct MotionMarkerRegion(int Left, int Top, int Right, int Bottom);
 
+internal sealed record MotionRouteFailure(string Route, string ExceptionType, string Message);
+
 internal static class MotionProbeEvidence
 {
+    /// <summary>路由串行运行，失败仍保留并继续下一路；全部完成后汇总拒绝，不能吞成通过。</summary>
+    internal static async Task RunRoutesAsync(IEnumerable<string> routes,
+        Func<string, Task> sample)
+    {
+        var failures = new List<MotionRouteFailure>();
+        foreach (var route in routes)
+        {
+            try { await sample(route); }
+            catch (Exception error) { failures.Add(new(route, error.GetType().Name, error.Message)); }
+        }
+        if (failures.Count > 0) throw new InvalidOperationException("原生候选检查失败：" + string.Join("；",
+            failures.Select(value => value.Route + "：" + value.ExceptionType + "：" + value.Message)));
+    }
+
     internal static MotionMarkerFrame Read(byte[] bgra, int width, int height, bool stable, double atMs, bool afterDisable,
         MotionMarkerRegion? region = null)
     {

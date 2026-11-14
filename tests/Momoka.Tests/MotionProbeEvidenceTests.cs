@@ -7,6 +7,69 @@ internal static class MotionProbeEvidenceTests
 {
     public static void Register()
     {
+        Test("动效候选路由：全部成功按原顺序执行且通过", () =>
+        {
+            var attempted = new List<string>();
+            MotionProbeEvidence.RunRoutesAsync(["video-library", "music-library"], route =>
+            {
+                attempted.Add(route);
+                return Task.CompletedTask;
+            }).GetAwaiter().GetResult();
+            Assert.Equal("video-library,music-library", string.Join(",", attempted));
+        });
+        Test("动效候选路由：首路失败保留原因、执行音乐并整体拒绝", () =>
+        {
+            var attempted = new List<string>();
+            var preserved = new List<string>();
+            var error = Assert.Catch<InvalidOperationException>(() => MotionProbeEvidence.RunRoutesAsync(
+                ["video-library", "music-library"], route =>
+                {
+                    attempted.Add(route);
+                    try
+                    {
+                        if (route == "video-library") throw new InvalidOperationException("history-transition-mismatch");
+                        return Task.CompletedTask;
+                    }
+                    finally { preserved.Add(route); }
+                }).GetAwaiter().GetResult());
+            Assert.Equal("video-library,music-library", string.Join(",", attempted));
+            Assert.Equal("video-library,music-library", string.Join(",", preserved));
+            Assert.Contains("video-library：InvalidOperationException：history-transition-mismatch", error.Message);
+        });
+        Test("动效候选路由：两路异步失败均保留类型、原因和路由", () =>
+        {
+            var attempted = new List<string>();
+            var error = Assert.Catch<InvalidOperationException>(() => MotionProbeEvidence.RunRoutesAsync(
+                ["video-library", "music-library"], route =>
+                {
+                    attempted.Add(route);
+                    return Task.FromException(route == "video-library"
+                        ? new TimeoutException("no-rendered-frame") : new IOException("evidence-write-failed"));
+                }).GetAwaiter().GetResult());
+            Assert.Equal("video-library,music-library", string.Join(",", attempted));
+            Assert.Contains("video-library：TimeoutException：no-rendered-frame", error.Message);
+            Assert.Contains("music-library：IOException：evidence-write-failed", error.Message);
+        });
+        Test("动效候选路由：第一路在等待时不会启动第二路", () =>
+        {
+            var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var attempted = new List<string>();
+            var second = false;
+            var run = MotionProbeEvidence.RunRoutesAsync(["video-library", "music-library"], route =>
+            {
+                attempted.Add(route);
+                if (route == "video-library") return first.Task;
+                second = true;
+                return Task.CompletedTask;
+            });
+            Assert.False(run.IsCompleted);
+            Assert.False(second);
+            Assert.Equal("video-library", string.Join(",", attempted));
+            first.SetResult();
+            run.GetAwaiter().GetResult();
+            Assert.True(second);
+            Assert.Equal("video-library,music-library", string.Join(",", attempted));
+        });
         Test("动效实际像素：BGRA绿色标记位置、颜色与尺寸严格读取", () =>
         {
             var pixels = new byte[8 * 8 * 4];
@@ -92,6 +155,27 @@ internal static class MotionProbeEvidenceTests
             Assert.Equal("candidate-final-presentation-differs-from-control", MotionProbeEvidence.Evaluate(baseline,
                 [F(0, 20), F(16), F(800)], baseline, [F(0), F(16), F(800, 14)]).Reason);
         });
+        Test("动效候选：首轮完整实帧拒绝中途关闭后仍在移动，缺历史另报证据不足", () =>
+        {
+            // PID36764首轮匿名video-library三个JSON的完整实帧；没有伪造该轮失败前未采到的历史。
+            var baseline = FirstNativeRun.Baseline;
+            var native = FirstNativeRun.Entrance;
+            var disabled = FirstNativeRun.Disabled;
+            var after = disabled.Where(frame => frame.AfterDisable).Take(3).ToArray();
+            Assert.Equal(105, after[0].Top);
+            Assert.Equal(103, after[1].Top);
+            Assert.Equal(102, after[2].Top);
+            Assert.True(native.Any(frame => frame.Visible && !MotionProbeEvidence.SamePresentation(frame, baseline[^1])));
+            Assert.False(after.All(frame => MotionProbeEvidence.SamePresentation(frame, baseline[^1])));
+            // 单独校验已观察到的中断拒绝条件，受控历史只验证判定路径，不作为首轮历史实测。
+            var controlledHistory = new[] { baseline[^1] with { AtMs = 0 }, baseline[^1] with { AtMs = 16 }, baseline[^1] with { AtMs = 800 } };
+            var decision = MotionProbeEvidence.Evaluate(baseline, native, disabled, controlledHistory);
+            Assert.Equal("retained", decision.Outcome);
+            Assert.Equal("in-flight-transition-did-not-settle-on-next-presented-frames", decision.Reason);
+            Assert.False(decision.DisableSettled);
+            Assert.False(decision.FirstContentComparable);
+            Assert.Equal("inconclusive", MotionProbeEvidence.Evaluate(baseline, native, disabled, []).Outcome);
+        });
     }
 
     private static MotionMarkerFrame F(double at, int y = 10, bool disabled = false) =>
@@ -100,4 +184,59 @@ internal static class MotionProbeEvidenceTests
     private static MotionCandidateDecision Decide(IReadOnlyList<MotionMarkerFrame> disabled) =>
         MotionProbeEvidence.Evaluate([F(0), F(16), F(32), F(800)], [F(0, 20), F(16, 16), F(800)],
             disabled, [F(0), F(16), F(32), F(800)]);
+
+    private static class FirstNativeRun
+    {
+        internal static readonly MotionMarkerFrame[] Baseline =
+        [
+            new(77.8313, false, true, 1000, 720, -1, -1, 0, 0),
+            new(313.0992, false, true, 80, 100, 175, 127, 2688, 255),
+            new(337.5539, false, true, 80, 100, 175, 127, 2688, 255),
+            new(350.7101, false, true, 80, 100, 175, 127, 2688, 255),
+            new(379.7494, false, true, 80, 100, 175, 127, 2688, 255),
+            new(394.9298, false, true, 80, 100, 175, 127, 2688, 255),
+            new(617.2851, false, true, 80, 100, 175, 127, 2688, 255),
+            new(634.8926, false, true, 80, 100, 175, 127, 2688, 255),
+            new(648.6757, false, true, 80, 100, 175, 127, 2688, 255),
+            new(667.6737, false, true, 80, 100, 175, 127, 2688, 255),
+            new(688.6419, false, true, 80, 100, 175, 127, 2688, 255),
+            new(887.6448, false, true, 80, 100, 175, 127, 2688, 255)
+        ];
+        internal static readonly MotionMarkerFrame[] Entrance =
+        [
+            new(116.0327, false, true, 1000, 720, -1, -1, 0, 0),
+            new(131.5708, false, true, 1000, 720, -1, -1, 0, 0),
+            new(150.1265, false, true, 1000, 720, -1, -1, 0, 0),
+            new(170.5464, false, true, 1000, 720, -1, -1, 0, 0),
+            new(394.8429, false, true, 1000, 720, -1, -1, 0, 0),
+            new(414.6965, false, true, 80, 105, 175, 133, 2784, 247.31034482758622),
+            new(429.6323, false, true, 80, 104, 175, 131, 2688, 254.89285714285714),
+            new(447.5566, false, true, 80, 102, 175, 130, 2784, 247.31034482758622),
+            new(469.6017, false, true, 80, 101, 175, 129, 2784, 247.29238505747125),
+            new(669.0848, false, true, 80, 101, 175, 128, 2688, 253.46428571428572),
+            new(683.8604, false, true, 80, 100, 175, 127, 2688, 255),
+            new(705.1925, false, true, 80, 100, 175, 127, 2688, 255),
+            new(732.4137, false, true, 80, 100, 175, 127, 2688, 255),
+            new(760.8855, false, true, 80, 100, 175, 127, 2688, 255),
+            new(958.7118, false, true, 80, 100, 175, 127, 2688, 255)
+        ];
+        internal static readonly MotionMarkerFrame[] Disabled =
+        [
+            new(93.7328, false, true, 1000, 720, -1, -1, 0, 0),
+            new(108.2943, false, true, 1000, 720, -1, -1, 0, 0),
+            new(128.8943, false, true, 1000, 720, -1, -1, 0, 0),
+            new(149.2478, false, true, 1000, 720, -1, -1, 0, 0),
+            new(357.2615, false, true, 1000, 720, -1, -1, 0, 0),
+            new(371.8814, false, true, 80, 108, 175, 135, 2688, 253.64285714285714),
+            new(392.201, true, true, 80, 105, 175, 133, 2784, 247.31034482758622),
+            new(413.8563, true, true, 80, 103, 175, 131, 2784, 247.31034482758622),
+            new(434.0709, true, true, 80, 102, 175, 129, 2688, 254.14285714285714),
+            new(631.8206, true, true, 80, 101, 175, 128, 2688, 253.21428571428572),
+            new(642.8915, true, true, 80, 100, 175, 127, 2688, 255),
+            new(663.1243, true, true, 80, 100, 175, 127, 2688, 255),
+            new(682.9631, true, true, 80, 100, 175, 127, 2688, 255),
+            new(704.6653, true, true, 80, 100, 175, 127, 2688, 255),
+            new(886.6241, true, true, 80, 100, 175, 127, 2688, 255)
+        ];
+    }
 }

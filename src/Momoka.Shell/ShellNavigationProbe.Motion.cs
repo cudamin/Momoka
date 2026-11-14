@@ -25,69 +25,94 @@ internal sealed partial class ShellNavigationProbe
     {
         var original = HomeMotion.PreferenceEnabled;
         var results = new List<object>();
-        var inconclusive = new List<string>();
         try
         {
             ResizeProbeClient(1000, 720);
-            foreach (var music in new[] { false, true })
+            await MotionProbeEvidence.RunRoutesAsync(["video-library", "music-library"], async route =>
             {
-                using var fixture = CreateFixture();
-                await fixture.SelectAsync();
-                var route = music ? "music-library" : "video-library";
-                var picture = await FixtureImageAsync(160, 160);
-                var item = fixture.Session.Capture().Bind(new EmbyItem
+                var measurements = new Dictionary<string, IReadOnlyList<MotionMarkerFrame>>();
+                MotionCandidateDecision? decision = null;
+                Exception? failure = null;
+                var anonymousReadsVerified = false;
+                try
                 {
-                    Id = "motion-" + route,
-                    Name = "匿名动效条目",
-                    Type = music ? EmbyItemType.Audio : EmbyItemType.Movie,
-                    RunTimeTicks = TimeSpan.FromSeconds(120).Ticks,
-                    ImageTags = new() { ["Primary"] = "motion-marker-fixture" }
-                });
-                fixture.Transport.Reply = (request, _) =>
+                    using var fixture = CreateFixture();
+                    await fixture.SelectAsync();
+                    var music = route == "music-library";
+                    var picture = await FixtureImageAsync(160, 160);
+                    var item = fixture.Session.Capture().Bind(new EmbyItem
+                    {
+                        Id = "motion-" + route,
+                        Name = "匿名动效条目",
+                        Type = music ? EmbyItemType.Audio : EmbyItemType.Movie,
+                        RunTimeTicks = TimeSpan.FromSeconds(120).Ticks,
+                        ImageTags = new() { ["Primary"] = "motion-marker-fixture" }
+                    });
+                    fixture.Transport.Reply = (request, _) =>
+                    {
+                        Require(request.Method == HttpMethod.Get, "动效候选只允许匿名读取");
+                        if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
+                            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) });
+                        return Task.FromResult(request.RequestUri!.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)
+                            ? Json(new ItemsResult { Items = [item], TotalRecordCount = 1 }) : FakeTransport.Standard(request));
+                    };
+                    var request = new LibraryRequest
+                    {
+                        Services = fixture.Services,
+                        Source = fixture.Session.Capture(),
+                        Title = "匿名媒体库动效",
+                        Tag = "library-motion-" + route,
+                        ParentId = "motion-library-" + route,
+                        CollectionType = music ? "music" : "movies",
+                        MusicRootId = music ? "motion-library-" + route : null
+                    };
+                    var pageType = music ? typeof(MusicLibraryPage) : typeof(LibraryPage);
+                    var control = await SampleMotionPageAsync(pageType, request, route, "suppress", null);
+                    measurements.Add("suppress", control);
+                    var native = await SampleMotionPageAsync(pageType, request, route, "entrance", control[^1]);
+                    measurements.Add("entrance", native);
+                    var disabled = await SampleMotionPageAsync(pageType, request, route, "disable-in-flight", control[^1]);
+                    measurements.Add("disable-in-flight", disabled);
+                    var history = await SampleMotionPageAsync(pageType, request, route, "forward-disabled", control[^1]);
+                    measurements.Add("forward-disabled", history);
+                    decision = MotionProbeEvidence.Evaluate(control, native, disabled, history);
+                    Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
+                        "动效候选发生真实播放或写入");
+                    anonymousReadsVerified = true;
+                    Require(decision.Outcome != "inconclusive", "原生候选缺少有效实帧证据：" + decision.Reason);
+                }
+                catch (Exception error)
                 {
-                    Require(request.Method == HttpMethod.Get, "动效候选只允许匿名读取");
-                    if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
-                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) });
-                    return Task.FromResult(request.RequestUri!.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)
-                        ? Json(new ItemsResult { Items = [item], TotalRecordCount = 1 }) : FakeTransport.Standard(request));
-                };
-                var request = new LibraryRequest
+                    failure = error;
+                    throw;
+                }
+                finally
                 {
-                    Services = fixture.Services,
-                    Source = fixture.Session.Capture(),
-                    Title = "匿名媒体库动效",
-                    Tag = "library-motion-" + route,
-                    ParentId = "motion-library-" + route,
-                    CollectionType = music ? "music" : "movies",
-                    MusicRootId = music ? "motion-library-" + route : null
-                };
-                var pageType = music ? typeof(MusicLibraryPage) : typeof(LibraryPage);
-                var control = await SampleMotionPageAsync(pageType, request, route, "suppress", null);
-                var native = await SampleMotionPageAsync(pageType, request, route, "entrance", control[^1]);
-                var disabled = await SampleMotionPageAsync(pageType, request, route, "disable-in-flight", control[^1]);
-                var history = await SampleMotionPageAsync(pageType, request, route, "forward-disabled", control[^1]);
-                var decision = MotionProbeEvidence.Evaluate(control, native, disabled, history);
-                results.Add(new
-                {
-                    route,
-                    decision,
-                    control,
-                    native,
-                    disabled,
-                    history,
-                    nativeMigration = false,
-                    systemPreferenceChangeTested = false,
-                    sharedLibraryServices = "Emby anonymous fixture only",
-                    markerOnlyContentTiming = true,
-                    realNetwork = false,
-                    playback = false
-                });
-                Log.Info("动效候选", route + "：" + decision.Outcome + "；" + decision.Reason);
-                if (decision.Outcome == "inconclusive") inconclusive.Add(route + "：" + decision.Reason);
-                Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
-                    "动效候选发生真实播放或写入");
-            }
-            Require(inconclusive.Count == 0, "原生候选缺少有效实帧证据：" + string.Join("；", inconclusive));
+                    var result = new
+                    {
+                        route,
+                        decision,
+                        control = measurements.GetValueOrDefault("suppress"),
+                        native = measurements.GetValueOrDefault("entrance"),
+                        disabled = measurements.GetValueOrDefault("disable-in-flight"),
+                        history = measurements.GetValueOrDefault("forward-disabled"),
+                        failed = failure is not null,
+                        failureType = failure?.GetType().Name,
+                        failureMessage = failure?.Message,
+                        nativeMigration = false,
+                        systemPreferenceChangeTested = false,
+                        sharedLibraryServices = "Emby anonymous fixture only",
+                        markerOnlyContentTiming = true,
+                        anonymousReadsVerified,
+                        realNetwork = false,
+                        playback = false
+                    };
+                    results.Add(result);
+                    await WritePerformanceEvidenceAsync("motion-" + route + "-result.json", result);
+                    if (failure is not null) Log.Warn("动效候选", route + "：失败证据已保存，继续下一路", failure);
+                    else Log.Info("动效候选", route + "：" + decision!.Outcome + "；" + decision.Reason);
+                }
+            });
         }
         finally
         {
@@ -124,13 +149,17 @@ internal sealed partial class ShellNavigationProbe
             ((SolidColorBrush)heartbeat.Background).Color = Color.FromArgb(255, pulse ? (byte)160 : (byte)200, 0, 0);
         };
         var samples = new List<MotionMarkerFrame>();
+        var navigationEvents = new List<object>();
         Border? marker = null;
         Page? target = null;
         var clock = new Stopwatch();
         var collecting = false;
         var afterDisable = false;
         var sampling = false;
+        var initialEntranceObserved = false;
+        var forwardSuppressObserved = false;
         Exception? captureError = null;
+        Exception? trialFailure = null;
         CompositionPlaybackProbe.ResizeScreenFrame? evidence = null;
         var completed = Pending<bool>();
         var topMost = _window!.TopMost;
@@ -147,14 +176,34 @@ internal sealed partial class ShellNavigationProbe
             if (trial == "forward-disabled")
             {
                 Require(frame.Navigate(pageType, request, new EntranceNavigationTransitionInfo()), "历史候选首次前进失败");
+                Require(initialEntranceObserved, "历史候选初次Navigating没有实际页面、原参数与Entrance；见navigationEvents");
                 await Task.Delay(800);
                 Require(frame.CanGoBack, "原生候选没有真实返回记录");
+                // WinUI main 9402930972f25cfcad82abc9f82ecab29936f404:
+                // dxaml/xcp/dxaml/lib/Frame_Partial.cpp GoBackWithTransitionInfoImpl ->
+                // SetNavigationTransitionInfoOverrideImpl 先更新当前PageStackEntry，再由
+                // NavigationHistory::CommitNavigation 把它压入ForwardStack。此源码用于解释；
+                // 本次2.3.9的实际历史与Navigating字段才是运行证据，不直接写只读属性。
                 frame.GoBack(new SuppressNavigationTransitionInfo());
                 await LayoutAsync(frame);
-                Require(frame.CanGoForward && frame.ForwardStack[^1].SourcePageType == pageType
-                    && ReferenceEquals(frame.ForwardStack[^1].Parameter, request)
-                    && frame.ForwardStack[^1].NavigationTransitionInfo is EntranceNavigationTransitionInfo,
-                    "原生前进历史未保留页面、实际参数与Entrance；不能伪造GoForward");
+                var entry = frame.ForwardStack.Count > 0 ? frame.ForwardStack[^1] : null;
+                navigationEvents.Add(new
+                {
+                    stage = "history-after-back-suppress",
+                    frame.CanGoForward,
+                    forwardStackCount = frame.ForwardStack.Count,
+                    sourcePageType = entry?.SourcePageType.FullName,
+                    pageTypeMatches = entry?.SourcePageType == pageType,
+                    parameterType = entry?.Parameter?.GetType().FullName,
+                    sameRequest = ReferenceEquals(entry?.Parameter, request),
+                    transitionType = entry?.NavigationTransitionInfo?.GetType().FullName
+                });
+                Require(frame.CanGoForward, "GoBack(Suppress)后CanGoForward为false；见navigationEvents");
+                if (entry is null) throw new InvalidOperationException("GoBack(Suppress)后ForwardStack为空；不能伪造GoForward");
+                Require(entry.SourcePageType == pageType, "历史前进页面类型变化：" + entry.SourcePageType?.FullName);
+                Require(ReferenceEquals(entry.Parameter, request), "历史前进不再携带原request对象：" + entry.Parameter?.GetType().FullName);
+                Require(entry.NavigationTransitionInfo is SuppressNavigationTransitionInfo,
+                    "GoBack(Suppress)没有给实际前进条目留下Suppress：" + (entry.NavigationTransitionInfo?.GetType().FullName ?? "null"));
                 HomeMotion.ApplyPreference(false);
                 frame.ContentTransitions.Clear();
                 afterDisable = true;
@@ -171,6 +220,8 @@ internal sealed partial class ShellNavigationProbe
             if (captureError is not null) throw new InvalidOperationException("原生候选实帧捕获失败", captureError);
             Require(target is not null && target.IsLoaded && ReferenceEquals(frame.Content, target)
                 && target.IsHitTestVisible, "原生候选末态页面未加载或不可命中");
+            Require(trial != "forward-disabled" || forwardSuppressObserved,
+                "真实GoForward的Navigating未携带原页面、原参数与Suppress；见navigationEvents");
             Require(samples.Count >= 3 && samples[^1].Visible, "原生候选没有有效提交帧标记");
             var stages = sink.Snapshot();
             var latest = stages.LastOrDefault(entry => entry.Stage == "browse-first-frame");
@@ -182,6 +233,11 @@ internal sealed partial class ShellNavigationProbe
             if (evidence is not null)
                 await evidence.SaveAsync(Path.Combine(_options.Paths.LogDirectory, $"motion-{route}-{trial}-screen.png"));
             return samples;
+        }
+        catch (Exception error)
+        {
+            trialFailure = error;
+            throw;
         }
         finally
         {
@@ -199,10 +255,16 @@ internal sealed partial class ShellNavigationProbe
                     frames = samples,
                     captureError = captureError?.GetType().Name,
                     captureMessage = captureError?.Message,
+                    failureType = trialFailure?.GetType().Name,
+                    failureMessage = trialFailure?.Message,
+                    navigationEvents,
+                    initialEntranceObserved,
+                    forwardSuppressObserved,
                     afterDisable,
                     finished = completed.Task.IsCompletedSuccessfully && completed.Task.Result,
                     nativeIntermediateScreenshot = evidence is not null,
                     readAfterRendered = true,
+                    oneToOnePresentationFrameProved = false,
                     rootMarker = marker?.Parent is Grid,
                     baselineMotion = "Suppress + BrowseMotion.None (control isolating native transition cost)",
                     presentationEvents = sink.Snapshot(),
@@ -225,9 +287,28 @@ internal sealed partial class ShellNavigationProbe
             }
         }
 
-        void OnNavigating(object sender, NavigatingCancelEventArgs args) => presentation.Begin(
-            !HomeMotion.AnimationsEnabled || args.NavigationMode == NavigationMode.Back || trial == "suppress"
+        void OnNavigating(object sender, NavigatingCancelEventArgs args)
+        {
+            navigationEvents.Add(new
+            {
+                stage = "navigating",
+                mode = args.NavigationMode.ToString(),
+                sourcePageType = args.SourcePageType.FullName,
+                pageTypeMatches = args.SourcePageType == pageType,
+                parameterType = args.Parameter?.GetType().FullName,
+                sameRequest = ReferenceEquals(args.Parameter, request),
+                transitionType = args.NavigationTransitionInfo?.GetType().FullName
+            });
+            if (trial == "forward-disabled" && args.SourcePageType == pageType && ReferenceEquals(args.Parameter, request))
+            {
+                if (args.NavigationMode == NavigationMode.New)
+                    initialEntranceObserved = args.NavigationTransitionInfo is EntranceNavigationTransitionInfo;
+                if (args.NavigationMode == NavigationMode.Forward)
+                    forwardSuppressObserved = args.NavigationTransitionInfo is SuppressNavigationTransitionInfo;
+            }
+            presentation.Begin(!HomeMotion.AnimationsEnabled || args.NavigationMode == NavigationMode.Back || trial == "suppress"
                 ? BrowseMotion.None : BrowseMotion.Native);
+        }
 
         void OnNavigated(object sender, NavigationEventArgs args)
         {
@@ -256,7 +337,8 @@ internal sealed partial class ShellNavigationProbe
             sampling = true;
             try
             {
-                // Rendered发生后才读取该次已提交的屏幕帧；全帧一次BitBlt，不用连续GetPixel跨帧。
+                // Rendered通知后读取当时桌面实帧；没有DWM帧号，不声称与通知一一对应。
+                // 全帧一次BitBlt，不用连续GetPixel跨帧。
                 var pixels = CompositionPlaybackProbe.CaptureResizeFrame(_window.Handle, Stopwatch.GetTimestamp());
                 var scale = _root.XamlRoot.RasterizationScale;
                 var bounds = marker.TransformToVisual(_root).TransformBounds(new Rect(0, 0, marker.ActualWidth, marker.ActualHeight));
