@@ -1073,9 +1073,10 @@
                         </StackPanel>
 
                         <!-- 商店模式封面下方的那一整块（2026-11-14 参考微软商店条目页重排）：由上到下是
-                             剧情说明、文件选项（版本框）和操作那排键。三样都是既有实例，运行期由
+                             文件选项（版本框）和操作那排键。两样都是既有实例，运行期由
                              DetailPage.Store.cs 的 PlaceStoreComponents 搬进来，退出商店模式时原样放回：
-                             说明回 TailContent，文件选项和那排键回 HeroStack。这一叠只在商店模式显示，
+                             文件选项和那排键回 HeroStack。剧情说明同日搬到封面右边的片名栏（见
+                             OverviewPanel 上那一段），不再属于这一块。这一叠只在商店模式显示，
                              其他版式里它是空的、不占一个像素。 -->
                         <StackPanel x:Name="StoreHeroDetails" Grid.Row="1" Grid.ColumnSpan="2"
                                     Margin="0,12,0,0" Spacing="8" Visibility="Collapsed"
@@ -1497,44 +1498,62 @@
                             Background="Transparent"
                             BorderThickness="0"
                             Padding="{x:Bind ViewModel.OverviewPanelPadding, Mode=OneWay}"
-                            Spacing="2"
+                            Spacing="0"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
-                            <Grid>
-                            <TextBlock
-                                x:Name="Overview"
-                                FontSize="{StaticResource EgBodyFontSize}"
-                                Foreground="{StaticResource EgOnScrimBrush}"
-                                HorizontalAlignment="Left"
-                                IsTextSelectionEnabled="True"
-                                IsTextTrimmedChanged="OnOverviewTrimmedChanged"
-                                LineHeight="24"
-                                MaxLines="{x:Bind ViewModel.OverviewMaxLines, Mode=OneWay}"
-                                MaxWidth="{StaticResource EgProseWidth}"
-                                Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
-                                TextTrimming="{x:Bind ViewModel.OverviewTrimming, Mode=OneWay}"
-                                TextWrapping="Wrap">
-                                <!-- Gallery Styles/ItemTemplates.xaml, v2.9.3 / 14a4a1a2. -->
-                                <ToolTipService.ToolTip>
-                                    <ToolTip Visibility="{x:Bind local:DetailPage.OverviewTipVisibility(ViewModel.StoreMode, ViewModel.OverviewTrimmed), Mode=OneWay}">
-                                        <TextBlock Text="{x:Bind ViewModel.Overview, Mode=OneWay}" TextWrapping="Wrap" MaxWidth="520" />
-                                    </ToolTip>
-                                </ToolTipService.ToolTip>
-                            </TextBlock>
-                            </Grid>
-                            <HyperlinkButton
-                                AutomationProperties.AutomationId="DetailReadMoreButton"
-                                Command="{x:Bind ViewModel.ToggleOverviewCommand}"
-                                Content="{x:Bind ViewModel.ReadMoreText, Mode=OneWay}"
-                                Padding="0,4,0,4"
-                                Visibility="{x:Bind ViewModel.ReadMoreVisibility, Mode=OneWay}" />
-                            <!-- 导演 prose 行，Emby 的详情页把导演放在简介底下而不是只埋在演职人员里。 -->
-                            <Grid Margin="0,6,0,0" Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}">
-                            <TextBlock
-                                x:Name="DetailDirectorsText"
-                                FontSize="{StaticResource EgBodyFontSize}"
-                                Foreground="{StaticResource EgOnScrimDimBrush}"
-                                Text="{x:Bind ViewModel.Directors, Mode=OneWay}"
-                                Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}" />
+                            <!-- 2026-11-14 用户令「把下面的剧情说明移动到封面右边，导演那一行的底部要刚好和封面
+                                 底部持平，填满剧情说明，写不完的自动折叠」：简洁（商店）模式下这一块搬进片名那一栏，
+                                 并由页面把高度撑到封面下沿（DetailPage.Store.cs 的 SyncStoreOverviewFill）。星号行
+                                 吃掉「简介写到下面几行、导演钉在底」的差额；尾部、紧凑版式和沉浸版式里这一格仍是
+                                 内容高，星号行在无限测量下退化成内容高，版面与从前一致。 -->
+                            <Grid x:Name="OverviewBody" SizeChanged="OnOverviewBodySizeChanged">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid>
+                                <TextBlock
+                                    x:Name="Overview"
+                                    FontSize="{StaticResource EgBodyFontSize}"
+                                    Foreground="{StaticResource EgOnScrimBrush}"
+                                    HorizontalAlignment="Left"
+                                    IsTextSelectionEnabled="True"
+                                    IsTextTrimmedChanged="OnOverviewTrimmedChanged"
+                                    LineHeight="24"
+                                    MaxLines="{x:Bind ViewModel.OverviewMaxLines, Mode=OneWay}"
+                                    MaxWidth="{StaticResource EgProseWidth}"
+                                    Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
+                                    TextTrimming="{x:Bind ViewModel.OverviewTrimming, Mode=OneWay}"
+                                    TextWrapping="Wrap">
+                                    <!-- Gallery Styles/ItemTemplates.xaml, v2.9.3 / 14a4a1a2. -->
+                                    <ToolTipService.ToolTip>
+                                        <ToolTip Visibility="{x:Bind local:DetailPage.OverviewTipVisibility(ViewModel.StoreMode, ViewModel.OverviewTrimmed), Mode=OneWay}">
+                                            <TextBlock Text="{x:Bind ViewModel.Overview, Mode=OneWay}" TextWrapping="Wrap" MaxWidth="520" />
+                                        </ToolTip>
+                                    </ToolTipService.ToolTip>
+                                </TextBlock>
+                                </Grid>
+                                <StackPanel
+                                    x:Name="OverviewFooter"
+                                    Grid.Row="1"
+                                    Margin="0,2,0,0"
+                                    SizeChanged="OnOverviewFooterSizeChanged"
+                                    Spacing="2">
+                                    <HyperlinkButton
+                                        AutomationProperties.AutomationId="DetailReadMoreButton"
+                                        Command="{x:Bind ViewModel.ToggleOverviewCommand}"
+                                        Content="{x:Bind ViewModel.ReadMoreText, Mode=OneWay}"
+                                        Padding="0,4,0,4"
+                                        Visibility="{x:Bind ViewModel.ReadMoreVisibility, Mode=OneWay}" />
+                                    <!-- 导演 prose 行，Emby 的详情页把导演放在简介底下而不是只埋在演职人员里。 -->
+                                    <Grid Margin="0,6,0,0" Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}">
+                                    <TextBlock
+                                        x:Name="DetailDirectorsText"
+                                        FontSize="{StaticResource EgBodyFontSize}"
+                                        Foreground="{StaticResource EgOnScrimDimBrush}"
+                                        Text="{x:Bind ViewModel.Directors, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}" />
+                                    </Grid>
+                                </StackPanel>
                             </Grid>
                         </StackPanel>
                     </StackPanel>
