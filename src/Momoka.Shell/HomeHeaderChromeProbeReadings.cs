@@ -10,8 +10,27 @@ internal sealed record HomeHeaderChromeReading(
     int Holes, int PassthroughRegions, bool WholeCaption,
     bool MinimizeRegion, bool MaximizeRegion, bool CloseRegion);
 
+internal sealed record HomeHeaderChromeLayoutReading(
+    double RequestedWidth, bool ClientRectRead, int ClientWidthPixels,
+    uint WindowDpi, double RasterizationScale, double ShellWidth, double? HomeWidth);
+
 internal static class HomeHeaderChromeProbeReadings
 {
+    internal static void Layout(HomeHeaderChromeLayoutReading actual, bool fullHome)
+    {
+        Check(Finite(actual.RequestedWidth, actual.RasterizationScale, actual.ShellWidth)
+            && actual.RequestedWidth > 0 && actual.ClientRectRead && actual.ClientWidthPixels > 0
+            && actual.WindowDpi > 0 && actual.RasterizationScale > 0
+            && Math.Abs(actual.RasterizationScale - actual.WindowDpi / 96.0) <= 0.01,
+            "主页顶栏目标宽度缺少有效客户区或 DPI/缩放读数");
+        Check(Math.Abs(actual.ClientWidthPixels / actual.RasterizationScale - actual.RequestedWidth) <= 1.5
+            && Math.Abs(actual.ShellWidth - actual.RequestedWidth) <= 1.5
+            && (!fullHome || actual.HomeWidth is { } homeWidth && double.IsFinite(homeWidth)
+                && Math.Abs(homeWidth - actual.RequestedWidth) <= 1.5),
+            $"主页顶栏未到达目标宽度：target={actual.RequestedWidth} clientPx={actual.ClientWidthPixels} "
+            + $"scale={actual.RasterizationScale} shell={actual.ShellWidth} home={actual.HomeWidth}");
+    }
+
     internal static void State(HomeHeaderMode expected, HomeHeaderChromeReading actual)
     {
         var hidden = expected == HomeHeaderMode.Hidden;
@@ -59,5 +78,27 @@ internal static class HomeHeaderChromeProbeReadings
     private static void Check(bool ok, string message)
     {
         if (!ok) throw new InvalidOperationException(message);
+    }
+}
+
+internal static class HomeHeaderChromeProbeCleanup
+{
+    internal static void Run(Action[] detach, Action[] restore, Exception? probeFailure = null)
+    {
+        var failures = new List<Exception>();
+        try { RunSteps(detach); }
+        finally { RunSteps(restore); }
+        if (failures.Count == 0) return;
+        if (probeFailure is not null) failures.Insert(0, probeFailure);
+        throw new AggregateException("主页顶栏探针清理失败", failures);
+
+        void RunSteps(Action[] steps)
+        {
+            foreach (var step in steps)
+            {
+                try { step(); }
+                catch (Exception error) { failures.Add(error); }
+            }
+        }
     }
 }

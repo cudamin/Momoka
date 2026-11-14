@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -62,10 +63,13 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(shell);
         var originalTheme = ThemeHost.Current;
         var snapshots = new List<object>();
+        var layouts = new List<object>();
+        Exception? probeFailure = null;
         try
         {
             ResizeProbeClient(1240, 760);
             await LayoutAsync(shell);
+            ReadLayout(1240, "initial-shell-layout", false);
             await (Task)Call(shell, "EnterShellAsync")!;
             await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is HomePage home && !home.ViewModel.Busy);
             Require(window.UsesCustomTitleBar, "顶部收放检查缺少真实自定义非客户区");
@@ -74,6 +78,7 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 760);
                 var home = (HomePage)shell.Pages.Content;
                 await LayoutAsync(home);
+                ReadLayout(width, "home-layout", true);
                 var scroll = Get<ScrollView>(home, "Scroller");
                 await UntilAsync(() => scroll.ScrollableHeight > 400 && home.BannerShown);
                 await ScrollProbeAsync(scroll, 0);
@@ -101,6 +106,7 @@ internal sealed partial class ShellNavigationProbe
                 var shelf = home.HomeRows.OfType<CardShelf>().First(value => value.Cards.Count == movies.Length);
                 var row = (FrameworkElement)Get<ItemsRepeater>(home, "ShelfRepeater").GetOrCreateElement(home.HomeRows.IndexOf(shelf));
                 await LayoutAsync(row);
+                ReadLayout(width, "shelf-layout", true);
                 var strip = HomeFoldMotion.Find<ShelfStrip>(row)!;
                 var horizontal = Get<ScrollView>(strip, "Scroller");
                 await UntilAsync(() => horizontal.ScrollableWidth > 32);
@@ -120,6 +126,7 @@ internal sealed partial class ShellNavigationProbe
                     }
                     ThemeHost.Apply(originalTheme);
                     await LayoutAsync(shell);
+                    ReadLayout(width, "theme-restored", true);
                 }
                 fixture.Settings.Ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
@@ -151,8 +158,7 @@ internal sealed partial class ShellNavigationProbe
                 void Read(string stage, HomeHeaderMode expected)
                 {
                     var current = shell.Pages.Content as HomePage;
-                    Require((current?.HeaderMode ?? HomeHeaderMode.Top) == expected,
-                        $"主页顶部档位错误：{stage} expected={expected} actual={current?.HeaderMode}");
+                    ReadLayout(width, stage, fixture.Settings.Ui.EnableImmersive && current is not null);
                     var background = Get<Border>(shell, "HomeHeaderBackground");
                     var source = Get<InputNonClientPointerSource>(window, "_nonClient");
                     Require(Interop.Native.GetClientRect(window.Handle, out var client), "读取非客户区前无法确定窗口尺寸");
@@ -169,18 +175,21 @@ internal sealed partial class ShellNavigationProbe
                         Regions(NonClientRegionKind.Minimize).Length > 0,
                         Regions(NonClientRegionKind.Maximize).Length > 0,
                         Regions(NonClientRegionKind.Close).Length > 0);
-                    HomeHeaderChromeProbeReadings.State(expected, reading);
                     snapshots.Add(new
                     {
                         width,
                         stage,
                         theme = ThemeHost.Current.Id,
-                        mode = expected.ToString(),
+                        mode = (current?.HeaderMode ?? HomeHeaderMode.Top).ToString(),
+                        expectedMode = expected.ToString(),
                         offset = current is null ? (double?)null : Get<ScrollView>(current, "Scroller").VerticalOffset,
                         reading,
                         caption,
                         focus = (FocusManager.GetFocusedElement(shell.XamlRoot) as FrameworkElement)?.Name
                     });
+                    Require((current?.HeaderMode ?? HomeHeaderMode.Top) == expected,
+                        $"主页顶部档位错误：{stage} expected={expected} actual={current?.HeaderMode}");
+                    HomeHeaderChromeProbeReadings.State(expected, reading);
                     RectInt32[] Regions(NonClientRegionKind kind) => source.GetRegionRects(kind)
                         .Where(rect => rect.Width > 0 && rect.Height > 0).ToArray();
                 }
@@ -188,30 +197,46 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
                 "顶部收放匿名探针产生播放或服务器写入");
         }
+        catch (Exception error)
+        {
+            probeFailure = error;
+            throw;
+        }
         finally
         {
             // Retain partial observations on failure; no test can overwrite the user's real settings.
-            try
-            {
-                File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "home-header-chrome.json"),
-                    JsonSerializer.Serialize(new { snapshots, plays = fixture.Actions.Plays, mediaLoaded = false, realNetwork = false },
-                        new JsonSerializerOptions { WriteIndented = true }));
-            }
-            finally
-            {
-                Call(shell, "StopMoviePilotMonitoring");
-                Call(shell, "ReleaseContent");
-                shell.SignInRoot.Detach();
-                fixture.Actions.TitleStripChanged = null;
-                fixture.Actions.HomeHeaderChanged = null;
-                Field(shell, "_window", null);
-                _root.Children.Remove(shell);
-                window.BrowseTitleBarHidden = false;
-                window.PlaybackTitleBar = false;
-                window.SetTitleBarHoles();
-                ThemeHost.Apply(originalTheme);
-                ResizeProbeClient(1420, 980);
-            }
+            // Every detach is attempted; the cleanup runner's outer finally always attempts global restoration.
+            HomeHeaderChromeProbeCleanup.Run(
+            [
+                () => File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "home-header-chrome.json"),
+                    JsonSerializer.Serialize(new { snapshots, layouts, plays = fixture.Actions.Plays, mediaLoaded = false, realNetwork = false },
+                        new JsonSerializerOptions { WriteIndented = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals })),
+                () => Call(shell, "StopMoviePilotMonitoring"),
+                () => Call(shell, "ReleaseContent"),
+                () => shell.SignInRoot.Detach(),
+                () => fixture.Actions.TitleStripChanged = null,
+                () => fixture.Actions.HomeHeaderChanged = null,
+                () => Field(shell, "_window", null),
+                () => _root.Children.Remove(shell)
+            ],
+            [
+                () => window.BrowseTitleBarHidden = false,
+                () => window.PlaybackTitleBar = false,
+                () => window.SetTitleBarHoles(),
+                () => ThemeHost.Apply(originalTheme),
+                () => ResizeProbeClient(1420, 980)
+            ], probeFailure);
+        }
+
+        void ReadLayout(int requestedWidth, string stage, bool fullHome)
+        {
+            var clientRead = Interop.Native.GetClientRect(window.Handle, out var client);
+            var reading = new HomeHeaderChromeLayoutReading(requestedWidth, clientRead, client.Width,
+                Interop.Native.GetDpiForWindow(window.Handle), shell.XamlRoot.RasterizationScale,
+                shell.ActualWidth, (shell.Pages.Content as HomePage)?.ActualWidth);
+            layouts.Add(new { stage, fullHome, theme = ThemeHost.Current.Id, reading });
+            // Record the rejected width before throwing, and validate before any width-labelled screenshot.
+            HomeHeaderChromeProbeReadings.Layout(reading, fullHome);
         }
 
         bool FocusInHeader()

@@ -1,5 +1,9 @@
 ## 2026-11-15 交付补齐沉浸主页顶部滚动原生检查（独立树待整合）
 
+同树追加宽度与失败收尾补丁：原检查只比较控件相互尺寸，未证明请求 1240/760 已生效。现在每轮布局和状态读数先保存实际客户区像素、窗口 DPI、XamlRoot 缩放及 Shell/Home 宽度，再按目标宽、最多 1.5 DIP 断言；商店模式的 Home 随侧栏收窄，只守卫全窗和 Shell，恢复沉浸重新守卫 Home。错误宽度在写截图前拒绝，非法浮点读数也能落盘；状态快照同样改为断言前保存。清理按步尝试、外层 finally 保证窗口区域、主题及尺寸恢复，首项失败不阻止解绑/移除，清理失败汇总并保留原探针异常，不转成通过。
+
+本补丁当前 Shell/Core Release 0 警告、0 错误；PageContract 286/286、0 失败、0 跳过（新增目标宽成功/badwidth/错误缩放/同宽旧布局及清理首项和恢复异常反例）。限定变更文件的 whitespace 与编码检查通过；只改本探针、判据、测试与说明，没有同步其他分支、改产品、启动 UI、发布或推送。根交付会话须整合后重编并实际运行 `InspectHomeHeaderChrome` 或 `--probe-shell --probe-section shell --screen 1`，核对 1240/760 的目标与实际读数及五张实屏，不能沿用本树单测或旧宽度截图当原生通过。
+
 独立工作树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka`，基点 `875dedb`，只改诊断与 PageContract 测试，不改主页、外壳与窗口产品行为。既有 `HomeHeaderAsync` 只量旧标题/按钮；新增 `HomeHeaderChromeAsync` 接入 `shell` 分区与 `InspectHomeHeaderChrome`：真实匿名 Shell、HomePage、ScrollView 完成事件检查 1240/760 宽的顶端、下滚隐藏、停住、小幅反向、12 DIP 上滚恢复、横向货架、五主题、显示模式切换、离页及正式 GoBack 恢复。顶部焦点转交当前 Scroller 且保持深处偏移；实际 `TitleBarMetrics`、`TitleBarHoles`、`InputNonClientPointerSource.GetRegionRects` 核系统三键、穿透区域与整条拖动区域，背景为项目 `AcrylicBrush` 且全宽 48 DIP、不接管输入。仅给已经运行的匿名 HWND 读数，不调用 `ShellPage.AttachWindow` 接播放器；假传输拒绝非 GET，正式播放计数必须为 0。
 
 专项 Shell/Core Release 0 警告、0 错误；PageContract 当前 282/282、0 失败、0 跳过（6 项新增成功/失败读数及接线检查）。新增读数判据直接编译链接，坏原生高度、残留三键/洞、丢拖动区、背景错误及焦点回顶都实际拒绝。此树未启动 UI、未发布、未推送；原生成功路径与 5 张真实截图由根交付会话串行重验，回执 `home-header-chrome.json` 在运行失败时也保留。未覆盖物理 Tab、真实视频往返、关闭透明/高对比度、跨 DPI、触摸与读屏。没有新增产品控件、资源或动效，沿用正式 ScrollView 与窗口读数 API；Gallery 产品接线保持现状，未引入另一套控件实现。
