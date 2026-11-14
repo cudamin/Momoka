@@ -383,8 +383,9 @@ public sealed partial class ShellPage
         AccountCluster.HorizontalAlignment = HorizontalAlignment.Right;
         AccountCluster.VerticalAlignment = VerticalAlignment.Top;
         AccountCluster.Width = double.NaN;
-        // 右端让开系统那三颗按钮、再留 8 的缝：这颗按钮的右沿因此贴在最小化左边。
-        AccountCluster.Margin = new Thickness(0, 4, CaptionRoom() + 8, 0);
+        // 右端让开系统那三颗按钮、再留 16 的缝（2026-11-14 用户令「用户按钮往左移一点」：
+        // 原先是 8，贴在最小化左边；现在再让开 8，按钮与系统三颗之间留出一点空）。
+        AccountCluster.Margin = new Thickness(0, 4, CaptionRoom() + 16, 0);
         // 菜单从这颗按钮底下落出来；两种模式都在标题栏里，朝下这一档就是唯一那一档。
         AccountMenu.Placement = FlyoutPlacementMode.BottomEdgeAlignedRight;
 

@@ -14,10 +14,6 @@ namespace Microsoft.UI.Xaml
 {
     public class FrameworkElement { public object? Tag { get; set; } }
     public sealed class RoutedEventArgs : EventArgs;
-    public sealed class DispatcherQueue
-    {
-        public bool TryEnqueue(Action action) { action(); return true; }
-    }
 }
 namespace Microsoft.UI.Xaml.Navigation
 {
@@ -42,13 +38,7 @@ namespace Microsoft.UI.Xaml.Controls
         internal void VisitForTest(object? request, NavigationMode mode = NavigationMode.New) => OnNavigatedTo(new(request, mode));
         internal void LeaveForTest(NavigationMode mode = NavigationMode.New) => OnNavigatedFrom(new(null, mode));
     }
-    public sealed class SelectorBoundary
-    {
-        public object? SelectedItem { get; set; }
-        public int SelectedIndex { get; set; }
-    }
-    public sealed record EntryBoundary(Page Page, object Request);
-    // This models only the Frame's synchronous page hand-off and two history stacks.
+    public sealed record EntryBoundary(Page Page, object Request);    // This models only the Frame's synchronous page hand-off and two history stacks.
     // It does not assert native Frame caching, rendering, input or event ordering.
     public sealed class Frame
     {
@@ -118,25 +108,9 @@ namespace Momoka.Shell.ViewModels
         internal Task ReloadAsync() { Reloads++; return Task.CompletedTask; }
         internal void Release() => Releases++;
     }
-    public sealed class ServerListsViewModel
-    {
-        public List<ServerListAccount> Accounts { get; } = [];
-        public ServerListLibrary? Library => null;
-        public EmbySessionScope? Scope { get; private set; }
-        public int Attaches { get; private set; }
-        public int Reloads { get; private set; }
-        public int Opens { get; private set; }
-        public int Cancels { get; private set; }
-        internal void Attach(EmbySession session, ServerListsService service, Action<Action> dispatch, EmbySessionScope? source)
-        { Attaches++; Scope = source; }
-        internal Task OpenItemAsync(EmbyItem item) { Opens++; return Task.CompletedTask; }
-        internal Task ReloadAsync() { Reloads++; return Task.CompletedTask; }
-        internal void Cancel() => Cancels++;
-    }
 }
 namespace Momoka.Shell.Services
 {
-    public sealed class ServerListsService;
     internal sealed class LocalLibraryCoordinator { internal IReadOnlyList<LocalMediaLibrarySettings> Libraries => []; }
 }
 namespace Momoka.Shell.Platform
@@ -172,23 +146,6 @@ namespace Momoka.Shell.Views
         }
         private void PlaceSearchBox() { }
         private void OnMusicChanged(object? sender, PropertyChangedEventArgs args) { }
-    }
-    public sealed partial class ServerListsPage
-    {
-        private ServerListsRequest? _request;
-        private IShellActions? _actions;
-        private bool _seeding;
-        private long _visit;
-        private CancellationTokenSource? _dialogLifetime;
-        private SelectorBoundary ServerListAccount { get; } = new();
-        private SelectorBoundary ServerListKind { get; } = new();
-        private SelectorBoundary ServerListLibrary { get; } = new();
-        public ViewModels.ServerListsViewModel ViewModel { get; } = new();
-        private DispatcherQueue DispatcherQueue { get; } = new();
-        internal bool SeedingForTest => _seeding;
-        internal object? RequestForTest => _request;
-        internal IShellActions? ActionsForTest => _actions;
-        internal void HoldDialogForTest(CancellationTokenSource lifetime) => _dialogLifetime = lifetime;
     }
     internal sealed record HomeRequest(IServiceProvider Services, IReadOnlyList<EmbyItem> LibraryViews,
         Windowing.HostWindow? Window, Action<MoviePilotSubscription> Open)
@@ -234,7 +191,6 @@ namespace Momoka.Shell.Views
         private bool _closing;
         private string? _current;
         private readonly MenuBoundary AccountMenu = new();
-        private bool HasServerLists => true;
         internal Frame ContentFrame { get; } = new();
         internal string? CurrentForTest => _current;
         internal ShellPage(IServiceProvider services, EmbySession session) { _services = services; _session = session; }
@@ -242,7 +198,6 @@ namespace Momoka.Shell.Views
         internal void BackForTest() => GoBack();
         internal void ForwardForTest() => GoForward();
         internal void AdoptForTest() => AdoptContentTag();
-        internal void OpenListsForTest() => OnServerListsClicked(this, new());
         internal void LeaveForHomeForTest() => GoTo("home");
         internal void ClosingForTest() => _closing = true;
         private void SyncChrome() { }

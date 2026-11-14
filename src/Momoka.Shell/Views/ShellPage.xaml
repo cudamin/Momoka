@@ -280,11 +280,11 @@
              设置不再跟着它走：那颗现在是侧边栏自己的页脚项（NavigationView.FooterMenuItems，见下面那条
              Sidebar），尺寸、右沿、图标格子都由框架按同一条度量算，不必再手摆一个「并排还是上下叠」。 -->
         <!-- 这里的边距只是首次布局前的一个近似值：每次落位都由 ApplyAccountCluster 按
-             TitleBar.RightInset + 8 重算（系统那三颗在 Tall 档是 144 宽）。 -->
+             TitleBar.RightInset + 16 重算（系统那三颗在 Tall 档是 144 宽）。 -->
         <Grid
             x:Name="AccountCluster"
             Canvas.ZIndex="11"
-            Margin="0,4,152,0"
+            Margin="0,4,160,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Top">
             <Button
@@ -414,6 +414,9 @@
                                 </ToggleSwitch.Resources>
                             </ToggleSwitch>
                         </Grid>
+                        <!-- 聚合开关那一档的分组线：开关本身按保存服务器数收起时，这条线一起收起。 -->
+                        <Border x:Name="AggregateModeDivider" Height="1" Margin="6,3"
+                            Background="{ThemeResource EgBorderBrush}" Visibility="Collapsed" />
                         <ListView x:Name="AccountProfileList" MaxHeight="256" SelectionMode="None"
                             AutomationProperties.Name="服务器与账号">
                             <ListView.ItemContainerStyle>
@@ -424,8 +427,9 @@
                                 </Style>
                             </ListView.ItemContainerStyle>
                         </ListView>
-                        <Button x:Name="ServerListsEntry" Content="服务器清单" Visibility="Collapsed" Style="{StaticResource AccountActionStyle}" Click="OnServerListsClicked" />
-                        <Button x:Name="AddServerItem" x:Uid="ShellPage_AddServerItem" Content="添加服务器…" Style="{StaticResource AccountActionStyle}" Click="OnAddServerClicked" />
+                        <!-- 账号行与下面两个操作之间的分组线：切换账号和添加账号不是同一类动作。 -->
+                        <Border x:Name="AccountActionsDivider" Height="1" Margin="6,3"
+                            Background="{ThemeResource EgBorderBrush}" />
                         <Button x:Name="AddAccountItem" x:Uid="ShellPage_AddAccountItem" Content="添加账号…" Style="{StaticResource AccountActionStyle}" Click="OnAddAccountClicked" />
                         <Button x:Name="AccountSignOutItem" x:Uid="ShellPage_AccountSignOutItem" Content="注销" Style="{StaticResource AccountActionStyle}" Click="OnSignOut" />
                     </StackPanel>

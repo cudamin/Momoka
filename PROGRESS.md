@@ -1,3 +1,9 @@
+## 2026-11-14 账号菜单整理：按钮左移、分组线、删除服务器清单与添加服务器（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/fix-narrow-mode-center-yM3M3i/feat-ui-layout-update-NBowFS`，分支 `feat-ui-layout-update-NBowFS`，基点 `5ac4c45`。用户附账号菜单截图四句：①用户按钮往左移一点；②聚合模式下面划条线分割；③删除服务器清单选项和服务器清单页面，删除添加服务器按钮；④添加账号上面加条线分割。追问后用户选择「彻底删除清单功能（推荐）」：账号菜单入口、`ServerListsPage`／`ServerListsViewModel`／`ServerListsService`／`ServerListModels`／`ServerListDialogs`、专用探针与 `Momoka.ServerListsTests`、`Momoka.ServerListsOwnershipTests` 两个专项一起退役，`server-lists` 探针分区与检查台两项入口一并移除；搜索/媒体库点开播放列表改走普通 `LibraryPage`（`ParentType = Playlist`，仍按服务器列表顺序读成员）。账号按钮右缝 8→16 DIP（XAML 首帧近似值 152→160）；聚合开关下、添加账号上各加 1 DIP `EgBorderBrush` 分割线，聚合开关按保存服务器数收起时上分割线一起收起。
+
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.Tests` **5106 项、通过 5090、失败 16、跳过 0**，16 条全部是 `自检：…`／`自检输出：…` 因当前用户共享自检互斥锁被其他会话占用（`已有当前用户的自检运行中；请等它退出，不会关闭用户程序`），本批未触碰自检代码，未结束他人进程；本批新增/更新的 5 条账号菜单与按钮间距测试全部通过；`Momoka.NavigationStateTests` **10/10、0 失败 0 跳过**；`tools/check-diff.ps1` 检查 20 个文本文件通过。原生探针与实屏未跑：同一时刻另一工作树有 `--probe-shell` 在运行，交付时按台账补 `shell` 分区与账号菜单截图。未发布、未推送；合并后登记待交付台账。
+
 ## 2026-11-14 标题栏与侧边栏同色（本树，待合并）
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-header-sidebar-color-P5pwXY`，分支 `fix-header-sidebar-color-P5pwXY`，基点 `df37a93`。用户一句「标题栏的颜色要和侧边栏一样」：侧边栏模式里 48 高的标题栏此前只有栏顶那一格铺 `EgSidebarBrush`（侧栏宿主从窗口顶画下来），栏右沿到系统三键之间仍露窗口 Mica，一条标题栏上看得出两种颜色。现在整条标题栏由新加的 `TitleBarBackground` 铺色（`Chrome` 的子元素，48 高、全宽、`EgSidebarBrush`、`IsHitTestVisible=False`），栏顶那一格也归它画；`SidebarHost` 改从标题栏下沿（48）起画，`Sidebar` 自己的上边距随之移除 —— 两边不叠色（同一层 85% 的底叠两次会变成 97.75%，左上角会比栏深一档）。显隐由 `SyncSidebar` 跟栏同进同退：沉浸模式、登录页、播放时整条收起，标题栏回到透明，主页剧照与详情背景照旧铺到窗口顶。

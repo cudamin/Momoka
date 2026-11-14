@@ -104,26 +104,6 @@
       "notes": "编译链接真实材质、Host请求与菜单表面生命周期，匿名WinUI/Controller边界；不创建窗口、读账号或播放。"
     },
     {
-      "id": "Momoka.ServerListsOwnershipTests",
-      "project": "tests/Momoka.ServerListsOwnershipTests/Momoka.ServerListsOwnershipTests.csproj",
-      "mode": "dotnet",
-      "requiresShell": false,
-      "arguments": [],
-      "wrapper": null,
-      "readme": "tests/Momoka.ServerListsOwnershipTests/README.md",
-      "notes": "真实清单服务与VM的同步通知、晚失败、身份与Plex分页完整性；匿名HTTP，不启动窗口或真实服务器。"
-    },
-    {
-      "id": "Momoka.ServerListsTests",
-      "project": "tests/Momoka.ServerListsTests/Momoka.ServerListsTests.csproj",
-      "mode": "dotnet",
-      "requiresShell": false,
-      "arguments": [],
-      "wrapper": null,
-      "readme": "tests/Momoka.ServerListsTests/README.md",
-      "notes": "真实清单服务与VM、匿名HTTP、重复成员/写回执/取消/来源/权限回归；不启动窗口、原生播放或真实服务器。"
-    },
-    {
       "id": "Momoka.FnNasSubtitleTests",
       "project": "tests/Momoka.FnNasSubtitleTests/Momoka.FnNasSubtitleTests.csproj",
       "mode": "dotnet",

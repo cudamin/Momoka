@@ -4,7 +4,7 @@ Read only for the affected code path. Policy is in [CLAUDE.md](../../../../CLAUD
 
 ## Frame destination tags
 
-`ShellPage.AdoptContentTag` derives the current top-level destination from the restored page's `Tag`; returning from a cached or recreated page must obey the same contract as initial navigation. `MusicLibraryPage` uses `LibraryRequest.Tag`, retaining empty tags for album/playlist drill-downs. `ServerListsPage` uses `server-lists` only when its request has no Item; a specific server list remains a drill-down. Its account-menu directory entrance retains explicit refresh behavior. `Momoka.NavigationStateTests` extracts the actual page visits/releases and shell navigation methods with strict source boundaries. Its Frame and view-model substitutes do not prove native event order, caching, input, focus or scroll restoration.
+`ShellPage.AdoptContentTag` derives the current top-level destination from the restored page's `Tag`; returning from a cached or recreated page must obey the same contract as initial navigation. `MusicLibraryPage` uses `LibraryRequest.Tag`, retaining empty tags for album/playlist drill-downs. Playlist items themselves open through the ordinary `LibraryPage` with `ParentType = Playlist`; that page keeps the server's list order. `Momoka.NavigationStateTests` extracts the actual page visits/releases and shell navigation methods with strict source boundaries. Its Frame and view-model substitutes do not prove native event order, caching, input, focus or scroll restoration.
 
 ## Resume paging and displayed next episodes
 

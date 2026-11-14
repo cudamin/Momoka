@@ -52,15 +52,6 @@ internal sealed partial class ShellNavigationProbe
         {
             ThemeHost.Apply(_options.Theme ?? "midnight");
             await InitializeProbeWindowAsync();
-            if (_options.ProbeSections is { Count: 1 } listsOnly && listsOnly.Contains(ShellProbeSections.ServerLists))
-            {
-                await CaseAsync("服务器普通清单目录、重复成员、排序与权限恢复", ServerListsAsync, 120, section: ShellProbeSections.ServerLists);
-                await CaseAsync("Plex普通清单目录、成员、独立合集与权限恢复", PlexServerListsAsync, 120, section: ShellProbeSections.ServerLists);
-                await CaseAsync("播放画面本次队列搜索、确认与取消", PlayerQueueAsync, 90, section: ShellProbeSections.ServerLists);
-                await CaseAsync("搜索播放列表打开独立清单页", LibraryDiscoverySearchAsync, 120, section: ShellProbeSections.ServerLists);
-                await CaseAsync("媒体多选播放列表保持原授权和写入", LibraryBatchAsync, 150, section: ShellProbeSections.ServerLists);
-                return;
-            }
             if (_options.ProbeSections is { Count: 1 } cardOnly && cardOnly.Contains(ShellProbeSections.DetailCards))
             {
                 await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
@@ -90,8 +81,6 @@ internal sealed partial class ShellNavigationProbe
             }
             await CaseAsync("首页详情按钮圆角轮廓、三态与旧模板实屏对照", HomeButtonEdgesAsync, 120, section: ShellProbeSections.Materials);
             await CaseAsync("Plex 观看写后确认、真实卡片与宽窄详情刷新失败", PlexUserStateAsync, 90, section: ShellProbeSections.PlexState);
-            await CaseAsync("服务器普通清单目录、重复成员、排序与权限恢复", ServerListsAsync, 120, section: ShellProbeSections.Library);
-            await CaseAsync("Plex普通清单目录、成员、独立合集与权限恢复", PlexServerListsAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("播放画面本次队列搜索、确认与取消", PlayerQueueAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("媒体库搜索人物、合集、播放列表与实际导航", LibraryDiscoverySearchAsync, 90, section: ShellProbeSections.Search);
             await CaseAsync("Plex 人物题材身份与同库作品导航", LibraryDiscoveryPeopleAsync, 90, section: ShellProbeSections.Library);
@@ -585,7 +574,6 @@ internal sealed partial class ShellNavigationProbe
             var moviePilot = new MoviePilotService(new MoviePilotClient(moviePilotTransport ?? new RejectNetwork()),
                 new MoviePilotCredentials(PassthroughSecretProtector.Instance), Settings);
             Services = new ServiceCollection().AddSingleton(Session).AddSingleton(SettingsService).AddSingleton(paths)
-                .AddSingleton<Momoka.Shell.Services.ServerListsService>()
                 .AddSingleton(new Momoka.AniBt.AniBtClient(aniBtTransport ?? new RejectNetwork()))
                 .AddSingleton<Momoka.AniBt.AniBtService>()
                 // 按接口注册，不按 FakeCapabilities：页面解析的是 IServerCapabilities，而泛型参数写死之后

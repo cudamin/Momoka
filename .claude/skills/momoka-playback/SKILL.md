@@ -5,7 +5,7 @@ description: "Momoka playback: libmpv and external-mpv backends, integrated and 
 
 # Momoka — playback
 
-The current viewing queue is separate from server-persisted lists. Both picture menus request the same native read-only media picker through `PlayerViewModel.QueueRequested`; its captured intent/attempt/original account owns selection and confirmation. `SessionPlaybackQueue` consumes only an established `NowPlaying`, retains unconfirmed failures for resume, and clears on stop/new manual playback. The `server-lists` native section uses a non-playing handle to verify the picker; it does not establish actual standalone uosc/native switching. See [fifth-batch queue evidence](../../../docs/媒体库第五批-本次播放队列.md).
+The current viewing queue is separate from server-persisted lists. Both picture menus request the same native read-only media picker through `PlayerViewModel.QueueRequested`; its captured intent/attempt/original account owns selection and confirmation. `SessionPlaybackQueue` consumes only an established `NowPlaying`, retains unconfirmed failures for resume, and clears on stop/new manual playback. The `library` native section uses a non-playing handle to verify the picker; it does not establish actual standalone uosc/native switching. See [fifth-batch queue evidence](../../../docs/媒体库第五批-本次播放队列.md).
 
 Momoka is a WinUI 3 + .NET desktop client, unpackaged and x64, with libmpv as its built-in playback core. Work from the current checkout. Earlier application names survive in settings migration; current names and paths come from the source.
 
