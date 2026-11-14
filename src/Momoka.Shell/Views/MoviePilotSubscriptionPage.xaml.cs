@@ -176,12 +176,16 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void ApplyBodyLayout(double width)
     {
         var side = width >= FactsSideBreakpoint;
+        // 宽版式：左列季与三段货架，右列评分与资料卡（同商店条目页「发现更多」那一格）。
+        // 并排不下时资料卡换到正文最上面，左列顺次下移 —— 评分仍紧接头部，不必滚到页尾才看得到。
+        Grid.SetColumn(BodyFlow, 0);
+        Grid.SetRow(BodyFlow, side ? 0 : 1);
         Grid.SetColumn(HeroFacts, side ? 1 : 0);
-        Grid.SetRow(HeroFacts, side ? 0 : 1);
-        HeroFactColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
+        Grid.SetRow(HeroFacts, 0);
+        FactsColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
         HeroFacts.HorizontalAlignment = side ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
-        HeroFacts.Margin = side ? new Thickness(0, HeroSurface.Padding.Top, 0, 0) : default;
+        HeroFacts.Margin = side ? default : new Thickness(0, 0, 0, 8);
         MediaViewModel.WideLayout = side;
     }
 
@@ -217,7 +221,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Unloaded += (_, _) =>
         {
             _appearanceObserved = false;
-            ReleasePlainMica();
             _appearanceSystemTimer?.Stop();
             ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         };
@@ -243,23 +246,19 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         _appearanceSettings = ui;
         MediaViewModel.Immersive = ui.EnableImmersive;
-        ApplyHeroSurface();
+        ApplyHeroSizing();
         ApplyMaterialAppearance();
         SettleShowcase();
         SyncTitleStrip();
     }
 
     /// <summary>
-    /// 头部那一叠的底：商店模式移除大卡面，和沉浸模式一样让海报与字直接
-    /// 压在剧照上。两种模式换的是同一个 Border 的几样属性 —— 不另造两套标记，也不必让绑定去追模式。
+    /// 头部那一叠的尺寸：取消卡面之后这里只剩海报档位与上下留白（2026-11-14 用户令
+    /// 「去掉订阅详情页的卡片」—— 海报、片名与操作直接压在剧照上，不再垫卡底）。
     /// </summary>
-    private void ApplyHeroSurface()
+    private void ApplyHeroSizing()
     {
         var plain = MediaViewModel.Plain;
-        HeroSurface.Background = null;
-        HeroSurface.BorderBrush = null;
-        HeroSurface.BorderThickness = default;
-        HeroSurface.Padding = default;
         HeroGrid.MinHeight = plain ? 0 : PosterHeight;
         if (plain) { DetailPoster.Width = 140; DetailPoster.Height = 210; }
         else
@@ -269,9 +268,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
         }
         HeroRow.Margin = plain ? default : new Thickness(0, HeroRowTop, 0, HeroRowBottom);
-
-        HeroFacts.Margin = MediaViewModel.WideLayout ? new Thickness(0, HeroSurface.Padding.Top, 0, 0) : default;
-        HeroSurface.VerticalAlignment = VerticalAlignment.Top;
         HeroOverview.VerticalAlignment = VerticalAlignment.Top;
     }
 
@@ -317,7 +313,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         // 尺寸没变时 SizeChanged 不会再发一次，这里按当前实际宽度补算一遍。尚未排版时读到 0，
         // 随后的 SizeChanged 会把它纠正过来。
         ApplyBodyLayout(BodyRow.ActualWidth);
-        ApplyHeroSurface();
+        ApplyHeroSizing();
         ApplyMaterialAppearance();
         SettleShowcase();
         SyncTitleStrip();
@@ -565,7 +561,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
         ThemeHost.Changed -= OnShowcaseThemeChanged;
         _appearanceObserved = false;
-        ReleasePlainMica();
         _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;

@@ -188,7 +188,7 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：简介在操作文字列上方，完整资料卡右列，季与相关列表全宽", () =>
+        Test("MP 详情布局：简介在操作文字列上方，头部无卡片，资料卡在正文右列，季与相关列表在正文左列", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -196,15 +196,15 @@ internal static class MoviePilotSubscriptionPageStateTests
             var primary = Named("BodyPrimary");
             var body = Named("BodyRow");
             Assert.True(ReferenceEquals(primary.Parent, Named("HeroRow")));
-            var materialHost = Named("HeroSurface").Parent!;
-            Assert.True(ReferenceEquals(materialHost.Parent, primary));
-            Assert.True(ReferenceEquals(Named("HeroMica").Parent, materialHost));
-            Assert.Equal("False", (string?)Named("HeroMica").Attribute("IsHitTestVisible"));
+            // 2026-11-14 用户令「去掉订阅详情页的卡片」：头部不再有 HeroSurface / HeroMica 那层卡面。
+            Assert.True(ReferenceEquals(Named("HeroGrid").Parent, primary));
+            Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") is "HeroSurface" or "HeroMica" or "HeroFactColumn"));
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, Named("HeroContent")));
             Assert.True(ReferenceEquals(Named("HeroOverview").ElementsAfterSelf().First(), Named("DetailActions")));
-            Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, body));
-            Assert.True(ReferenceEquals(Named("HeroFacts").Parent, Named("HeroRow")));
-            Assert.True(ReferenceEquals(body.Parent, Named("BodyFlow")));
+            // 2026-11-14 用户令「评分卡片放到参考图片 发现更多 的那个位置」：资料卡与左列同住正文两列网格。
+            Assert.True(ReferenceEquals(Named("HeroFacts").Parent, body));
+            Assert.True(ReferenceEquals(Named("BodyFlow").Parent, body));
+            Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, Named("BodyFlow")));
             Assert.True(ReferenceEquals(Named("PeoplePanel").Parent, Named("BodyFlow")));
             Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") is "BodyLayout" or "SubscriptionFacts"));
             foreach (var name in new[] { "PeoplePanel", "RecommendationsPanel", "SimilarPanel" })
@@ -221,9 +221,17 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.Equal("Wrap", (string?)Named("RelatedTitle").Attribute("TextWrapping"));
             Assert.False(Named("RelatedTitle").Attributes().Any(attribute => attribute.Name.LocalName is "TextTrimming" or "MaxLines"));
             Assert.False(Named("HeroSection").Attributes().Any(attribute => attribute.Name.LocalName == "MinHeight"));
-            Assert.Equal("Top", (string?)Named("HeroSurface").Attribute("VerticalAlignment"));
             Assert.Equal("Top", (string?)Named("HeroOverview").Attribute("VerticalAlignment"));
             Assert.Equal("OnDetailViewChanged", (string?)Named("DetailScroll").Attribute("ViewChanged"));
+            // 2026-11-14 用户令「去掉顶部的主页 › 片名」：这一页也交回面包屑那一行，正文顶到标题栏下沿。
+            var shell = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
+            var chromeStart = shell.IndexOf("private void ApplyChrome", StringComparison.Ordinal);
+            var chromeEnd = shell.IndexOf("internal static Visibility BackVisibilityFor", StringComparison.Ordinal);
+            Assert.True(chromeStart >= 0 && chromeEnd > chromeStart, "找不到 ApplyChrome 或它的结束位置");
+            var chrome = shell[chromeStart..chromeEnd];
+            Assert.True(chrome.Contains("ContentFrame.Content is MoviePilotSubscriptionPage", StringComparison.Ordinal)
+                && chrome.Contains("!subscriptionDetail", StringComparison.Ordinal),
+                "订阅详情页仍占着顶部面包屑那一行");
             var seasons = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotMediaSeasonsView.xaml"));
             var seasonHeading = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SeasonsHeading");
             var groupHeading = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "EpisodeGroupsHeading");

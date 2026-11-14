@@ -117,18 +117,14 @@
     </Grid>
         <StackPanel>
             <!-- 简介排在操作排上方（2026-11-14 用户令「参考上图修改订阅页面的布局」：标题块底下依次是简介、
-                 操作，和微软商店条目页同一条次序）；右卡自然长高，下方季与相关列表保持全宽。 -->
+                 操作，和微软商店条目页同一条次序）。头部不再画卡面（2026-11-14 用户令「去掉订阅详情页的
+                 卡片」）：海报、片名与操作直接压在剧照上，评分与资料卡挪到正文右列，占商店条目页
+                 「发现更多」那一格。 -->
             <StackPanel x:Name="HeroSection">
             <StackPanel x:Name="HeroBlock" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}" Spacing="12"
                 SizeChanged="OnHeroContentSizeChanged">
-            <Grid x:Name="HeroRow" Margin="0,12,0,12" ColumnSpacing="12" RowSpacing="8">
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="288" /></Grid.ColumnDefinitions>
+            <Grid x:Name="HeroRow" Margin="0,12,0,12">
                 <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
-                <Grid>
-                <SystemBackdropElement x:Name="HeroMica" IsHitTestVisible="False"
-                    CornerRadius="{StaticResource EgCardCornerRadius}" />
-                <Border x:Name="HeroSurface" VerticalAlignment="Top" CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid x:Name="HeroGrid" MinHeight="340" ColumnSpacing="20" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -202,37 +198,7 @@
                         </local:WrapRow>
                     </StackPanel>
                 </Grid>
-                </Border>
-                </Grid>
                 </StackPanel>
-                <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Width="288" CornerRadius="{StaticResource EgCardCornerRadius}"
-                    BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <Border x:Name="SubscriptionRating" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1" Padding="14,16"
-                            Visibility="{x:Bind MediaViewModel.StarsVisibility, Mode=OneWay}">
-                            <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind MediaViewModel.Stars, Mode=OneWay}" HorizontalAlignment="Center">
-                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:MoviePilotRatingStar">
-                                        <Grid Width="16" Height="20">
-                                            <FontIcon Glyph="&#xE734;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" Opacity="0.23" />
-                                            <Grid>
-                                                <Grid.Clip><RectangleGeometry Rect="{x:Bind local:MoviePilotSubscriptionPage.StarClip(Fill), Mode=OneTime}" /></Grid.Clip>
-                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgWarningBrush}" />
-                                            </Grid>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                        </Border>
-                        <StackPanel x:Name="FactList" Grid.Row="1" Spacing="0">
-                            <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
             </Grid>
             <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
@@ -244,8 +210,19 @@
             <StackPanel x:Name="BodySheet" Background="{ThemeResource EgWindowBrush}"
                 Padding="{x:Bind MediaViewModel.BodySheetPadding, Mode=OneWay}"
                 Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
-            <StackPanel x:Name="BodyFlow" VerticalAlignment="Top" Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
-            <Grid x:Name="BodyRow" SizeChanged="OnBodyRowSizeChanged">
+            <!-- 正文分两列（2026-11-14 用户令「订阅页面右上角的评分卡片放到参考图片 发现更多 的那个位置」）：
+                 左列是季与三段货架，右列是评分与媒体资料卡；窄到并排不下时资料卡换到正文最上面，
+                 左列顺次下移（见 MoviePilotSubscriptionPage.ApplyBodyLayout）。 -->
+            <Grid x:Name="BodyRow" SizeChanged="OnBodyRowSizeChanged" ColumnSpacing="24" RowSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="FactsColumn" Width="288" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+            <StackPanel x:Name="BodyFlow" Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
             <StackPanel x:Name="SeasonPanel" Visibility="{x:Bind MediaViewModel.SeasonsVisibility, Mode=OneWay}"
                 Style="{StaticResource EgBodyPanelStyle}" VerticalAlignment="Top">
                 <Border x:Name="SeasonPanelHeader">
@@ -255,8 +232,6 @@
                     <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
                 </StackPanel>
             </StackPanel>
-
-            </Grid>
 
             <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
 
@@ -289,6 +264,35 @@
                 </StackPanel>
             </StackPanel>
             </StackPanel>
+            <Border x:Name="HeroFacts" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top"
+                Width="288" CornerRadius="{StaticResource EgCardCornerRadius}"
+                BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Border x:Name="SubscriptionRating" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1" Padding="14,16"
+                        Visibility="{x:Bind MediaViewModel.StarsVisibility, Mode=OneWay}">
+                        <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind MediaViewModel.Stars, Mode=OneWay}" HorizontalAlignment="Center">
+                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MoviePilotRatingStar">
+                                    <Grid Width="16" Height="20">
+                                        <FontIcon Glyph="&#xE734;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" Opacity="0.23" />
+                                        <Grid>
+                                            <Grid.Clip><RectangleGeometry Rect="{x:Bind local:MoviePilotSubscriptionPage.StarClip(Fill), Mode=OneTime}" /></Grid.Clip>
+                                            <FontIcon Glyph="&#xE735;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgWarningBrush}" />
+                                        </Grid>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </Border>
+                    <StackPanel x:Name="FactList" Grid.Row="1" Spacing="0">
+                        <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            </Grid>
             </StackPanel>
         </StackPanel>
         </Grid>
@@ -359,7 +363,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="288" />
                 </Grid.ColumnDefinitions>
                 <Border Width="140" Height="210" CornerRadius="{StaticResource EgPosterCornerRadius}"
                     Background="{ThemeResource EgSurfaceAltBrush}" />
@@ -389,25 +392,31 @@
                             Background="{ThemeResource EgSurfaceAltBrush}" />
                     </local:WrapRow>
                 </StackPanel>
-                <Border Grid.Column="2" Height="300" CornerRadius="{StaticResource EgCardCornerRadius}"
+            </Grid>
+            <Grid Grid.Row="1" ColumnSpacing="24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="288" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="12">
+                    <Border Height="56" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="120" Height="24" CornerRadius="6" HorizontalAlignment="Left"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                            Background="{ThemeResource EgSurfaceAltBrush}" />
+                    </StackPanel>
+                </StackPanel>
+                <Border Grid.Column="1" Height="300" CornerRadius="{StaticResource EgCardCornerRadius}"
                     Background="{ThemeResource EgSurfaceAltBrush}" />
             </Grid>
-            <StackPanel Grid.Row="1" Spacing="12">
-                <Border Height="56" CornerRadius="{StaticResource EgCardCornerRadius}"
-                    Background="{ThemeResource EgSurfaceAltBrush}" />
-                <Border Width="120" Height="24" CornerRadius="6" HorizontalAlignment="Left"
-                    Background="{ThemeResource EgSurfaceAltBrush}" />
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                </StackPanel>
-            </StackPanel>
             <local:Shimmer x:Name="DetailLoadingShimmer" Grid.RowSpan="2"
                 IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}" />
         </Grid>

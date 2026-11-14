@@ -395,7 +395,7 @@ internal sealed partial class ShellNavigationProbe
                         < heroOverview.TransformToVisual(page).TransformPoint(default).Y,
                     "评分没有排在简介上面");
                 RequireSubscriptionBodyLayout(page, width >= 1080);
-                // 一张卡：正文右栏那第二张（DetailFacts）已经取消，屏上只剩头部右侧这一张。
+                // 一张卡：正文右栏那第二张（DetailFacts）已经取消，屏上只剩资料卡这一张。
                 Require(Descendants(page).OfType<FrameworkElement>().All(element => element.Name != "DetailFacts"),
                     "页面上还立着第二张资料卡");
                 // 资料卡是半透明亚克力（压在固定的剧照上才透得出底下那张图）；简介那一块**不画底也不画外圈**
@@ -405,9 +405,12 @@ internal sealed partial class ShellNavigationProbe
                     && heroOverview.Background is not Microsoft.UI.Xaml.Media.AcrylicBrush
                     && (heroOverview.Background is not Microsoft.UI.Xaml.Media.SolidColorBrush fill || fill.Color.A == 0),
                     "简介那一块还画着底色或外圈");
+                // 2026-11-14 用户令「评分卡片放到参考图片 发现更多 的那个位置」：资料卡住正文右列；
+                // 窄窗换到正文最上面，左列顺次下移。
                 Require(width >= 1080
-                    ? Math.Abs(facts.ActualWidth - 288) < 1 && Grid.GetRow(facts) == 0 && ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow"))
-                    : facts.ActualWidth > 320 && Grid.GetRow(facts) == 1 && Grid.GetColumn(facts) == 0,
+                    ? Math.Abs(facts.ActualWidth - 288) < 1 && Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
+                        && ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyRow"))
+                    : facts.ActualWidth > 320 && Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 0,
                     $"资料卡在 {width} 宽下没有按预期并排或叠起来：宽 {facts.ActualWidth}，行 {Grid.GetRow(facts)}，列 {Grid.GetColumn(facts)}，页宽 {page.ActualWidth}");
                 // 这一页不画加载条（用户令 2026-10-12：「不要显示那个加载条」；此前是两份数据合并成的
                 // 一条进度，再往前是订阅与媒体详情各一条并排）。那条线落在「简介」与「演职员」之间那块
@@ -474,7 +477,7 @@ internal sealed partial class ShellNavigationProbe
                 // ShelfStrip（用的是 ScrollView），段里一个 ScrollViewer 都不许再有。
                 var media = page.MediaViewModel;
                 var body = Get<Grid>(page, "BodyRow");
-                var previousPanel = (FrameworkElement)body;
+                var previousPanel = (FrameworkElement)Get<StackPanel>(page, "SeasonPanel");
                 foreach (var name in new[] { "PeoplePanel", "RecommendationsPanel", "SimilarPanel" })
                 {
                     var nextPanel = Get<StackPanel>(page, name);
@@ -511,13 +514,17 @@ internal sealed partial class ShellNavigationProbe
                         $"{name} 那一段不是「板 + 卡头 + 卡身货架带」：子项 "
                             + string.Join("、", section.Children.OfType<FrameworkElement>().Select(part => part.GetType().Name)));
                     var panel = section;
+                    // 2026-11-14 用户令「评分卡片放到参考图片 发现更多 的那个位置」：资料卡在正文右列，
+                    // 季与三段货架在左列；窄窗资料卡换到正文最上面。
                     var factsBox = Get<Border>(page, "HeroFacts");
-                    var factsBottom = factsBox.TransformToVisual(page).TransformPoint(default).Y + factsBox.ActualHeight;
-                    var panelTop = panel.TransformToVisual(page).TransformPoint(default).Y;
-                    var overlaps = panelTop < factsBottom;
-                    var expectedWidth = Get<Grid>(page, "BodyRow").ActualWidth;
+                    var factsPosition = factsBox.TransformToVisual(page).TransformPoint(default);
+                    var factsBottom = factsPosition.Y + factsBox.ActualHeight;
+                    var panelPosition = panel.TransformToVisual(page).TransformPoint(default);
+                    var panelRight = panelPosition.X + panel.ActualWidth;
+                    var overlaps = media.WideLayout ? panelRight > factsPosition.X + 0.5 : panelPosition.Y < factsBottom;
+                    var expectedWidth = Get<StackPanel>(page, "BodyFlow").ActualWidth;
                     Require(!overlaps && Math.Abs(panel.ActualWidth - expectedWidth) < 1,
-                        $"{name} 应完整全宽且不与资料卡重叠：{panel.ActualWidth:0.0}/{expectedWidth:0.0}");
+                        $"{name} 应填满正文左列且不与资料卡重叠：{panel.ActualWidth:0.0}/{expectedWidth:0.0}");
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
                     // 商店档板底是主题实色表面（与媒体详情的分区卡同一套），沉浸档仍是半透明亚克力。

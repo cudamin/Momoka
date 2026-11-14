@@ -221,8 +221,6 @@ public sealed partial class MoviePilotSubscriptionPage
     private void ApplyPlainMica()
     {
         var plain = MediaViewModel.Plain;
-        // 顶部内容直接叠在渐隐背景上，不用局部云母卡面遮挡图片。
-        DetailMica.Apply(HeroMica, false);
         foreach (var panel in BodyPanels)
         {
             DetailSectionCard.Apply(panel, plain, MediaViewModel.BodyPanelPadding);
@@ -234,11 +232,6 @@ public sealed partial class MoviePilotSubscriptionPage
         SeasonPanel.Background = plain ? StoreCardMaterialSource.Background : CardMaterialSource.Background;
         SeasonPanel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
-    }
-
-    private void ReleasePlainMica()
-    {
-        HeroMica.SystemBackdrop = null;
     }
 
     private void SettleShowcase()

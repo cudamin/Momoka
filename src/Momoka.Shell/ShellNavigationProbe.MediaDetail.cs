@@ -16,21 +16,25 @@ internal sealed partial class ShellNavigationProbe
     {
         var hero = Get<StackPanel>(page, "HeroSection");
         var grid = Get<Grid>(page, "HeroGrid");
-        var surface = Get<Border>(page, "HeroSurface");
         var primary = Get<StackPanel>(page, "BodyPrimary");
         var overview = Get<StackPanel>(page, "HeroOverview");
+        var body = Get<Grid>(page, "BodyRow");
+        var flow = Get<StackPanel>(page, "BodyFlow");
         var season = Get<StackPanel>(page, "SeasonPanel");
         var facts = Get<FrameworkElement>(page, "HeroFacts");
         var content = Get<StackPanel>(page, "HeroContent");
         var actions = Get<WrapRow>(page, "DetailActions");
         var poster = Get<Border>(page, "DetailPoster");
         static double Top(FrameworkElement node, UIElement root) => node.TransformToVisual(root).TransformPoint(default).Y;
-        Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")) && Descendants(grid).Contains(overview)
-            && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
-            "资料卡位置或简介容器不对，或头部仍由背景图撑高");
-        Require(surface.Parent is Grid materialHost && primary.Children.Contains(materialHost)
-            && materialHost.Children.Contains(Get<SystemBackdropElement>(page, "HeroMica")) && content.Children.Contains(overview)
-            && overview.VerticalAlignment == VerticalAlignment.Top,
+        Require(ReferenceEquals(primary.Parent, Get<Grid>(page, "HeroRow")) && Descendants(grid).Contains(overview)
+            && hero.MinHeight <= 0.5,
+            "头部结构不对，或头部仍由背景图撑高");
+        // 2026-11-14 用户令「去掉订阅详情页的卡片」：海报、片名与操作直接压在剧照上，没有卡面与局部材质。
+        Require(ReferenceEquals(grid.Parent, primary)
+            && !Descendants(primary).OfType<SystemBackdropElement>().Any()
+            && !Descendants(primary).OfType<Border>().Any(border => border.Name == "HeroSurface"),
+            "头部仍垫着卡面或局部材质");
+        Require(content.Children.Contains(overview) && overview.VerticalAlignment == VerticalAlignment.Top,
             "简介没有放在按钮所在文字列");
         Require(Top(actions, page) - Top(overview, page) - overview.ActualHeight is >= 10 and <= 14
             && Math.Abs(actions.TransformToVisual(overview).TransformPoint(default).X) <= 1,
@@ -44,11 +48,16 @@ internal sealed partial class ShellNavigationProbe
             Require(poster.ActualWidth > 210 && poster.ActualHeight > 300
                 && content.TransformToVisual(poster).TransformPoint(default).X >= poster.ActualWidth + 18,
                 "宽版封面未放大，或挤住了文字列");
+        // 2026-11-14 用户令「评分卡片放到参考图片 发现更多 的那个位置」：评分与资料卡住正文右列，
+        // 左列是季与三段货架；窄窗资料卡换到正文最上面，左列顺次下移。
+        Require(ReferenceEquals(facts.Parent, body) && ReferenceEquals(flow.Parent, body),
+            "资料卡与正文左列不在同一张网格里");
+        Require(Top(body, page) - Top(hero, page) - hero.ActualHeight is >= 6 and <= 10,
+            "正文没有紧接完整头部");
         if (season.Visibility == Visibility.Visible)
         {
-            Require(Top(season, page) >= Math.Max(Top(primary, page) + primary.ActualHeight, Top(facts, page) + facts.ActualHeight)
-                && Top(season, page) - Top(hero, page) - hero.ActualHeight is >= 6 and <= 10,
-                "全宽季区没有紧接完整头部，或覆盖了简介/资料卡");
+            Require(Top(season, page) >= Top(body, page) && Top(season, page) >= Top(flow, page) - 0.5,
+                "季区没有落在正文左列");
             Require(page.MediaViewModel.Plain ? season.Background is SolidColorBrush { Color.A: 255 }
                 : season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
                 "季区域没有保留主题材质或高对比度实色回退");
@@ -56,23 +65,18 @@ internal sealed partial class ShellNavigationProbe
         Require(side
             ? Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
                 && Math.Abs(facts.ActualWidth - 288) < 1
-                && Top(facts, page) >= Top(surface, page) - 2
-            : Grid.GetColumn(facts) == 0 && Grid.GetRow(facts) == 1
-                && Top(facts, page) >= Top(primary, page) + primary.ActualHeight + 6,
-            "资料卡没有在头部右侧或窄窗下方自然排列");
-        var overviewPosition = overview.TransformToVisual(page).TransformPoint(default);
-        var factPosition = facts.TransformToVisual(page).TransformPoint(default);
-        Require(side ? overviewPosition.X + overview.ActualWidth <= factPosition.X
-            : overviewPosition.Y + overview.ActualHeight <= factPosition.Y,
-            "完整资料卡与简介发生重叠");
+                && Math.Abs(Top(facts, page) - Top(flow, page)) <= 1
+            : Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 0
+                && Top(facts, page) + facts.ActualHeight <= Top(flow, page) + 1,
+            side ? "资料卡没有并排在正文右列" : "上下堆叠时资料卡没有排在正文最上面");
         Require(double.IsNaN(facts.Height) && !Descendants(facts).OfType<ScrollViewer>().Any(),
-            "上方资料卡仍限制高度或裁掉完整字段");
+            "资料卡仍限制高度或裁掉完整字段");
         var factsPosition = facts.TransformToVisual(page).TransformPoint(default);
         foreach (var button in Get<WrapRow>(page, "DetailActions").Children.OfType<Button>().Where(button => button.Visibility == Visibility.Visible))
         {
             var position = button.TransformToVisual(page).TransformPoint(default);
             Require(position.X + button.ActualWidth <= factsPosition.X || position.Y + button.ActualHeight <= factsPosition.Y
-                || position.Y >= factsPosition.Y + facts.ActualHeight, "上移的资料卡盖住了操作按钮：" + button.Name);
+                || position.Y >= factsPosition.Y + facts.ActualHeight, "资料卡盖住了操作按钮：" + button.Name);
         }
     }
 
@@ -552,7 +556,6 @@ internal sealed partial class ShellNavigationProbe
             var image = Get<Border>(page, "DetailBackdropBand");
             var fade = Get<Border>(page, "DetailBackdropFade");
             var hero = Get<StackPanel>(page, "HeroSection");
-            var surface = Get<Border>(page, "HeroSurface");
             var panel = Get<StackPanel>(page, "PeoplePanel");
             var facts = Get<Border>(page, "HeroFacts");
             var overview = Get<StackPanel>(page, "HeroOverview");
@@ -576,12 +579,11 @@ internal sealed partial class ShellNavigationProbe
             Require(panel.Background is AcrylicBrush { Opacity: 0 }, "沉浸档的正文面板底没有淡到 0");
             Require(fade.Visibility == Visibility.Collapsed, "沉浸档图下沿的黑色渐变没有收起");
             Require(!media.ShowShelfLines, "沉浸档的货架标题仍然画着横线");
-            Require(surface.Background is null && surface.Padding == default(Thickness),
-                "沉浸档的头部卡面没有让开（底色或内边距还在）");
-            Require(surface.VerticalAlignment == VerticalAlignment.Top,
-                "沉浸档的头部没有按海报与操作内容收边");
+            // 2026-11-14 用户令「去掉订阅详情页的卡片」：头部这一叠直接落在剧照上。
+            Require(!Descendants(Get<StackPanel>(page, "BodyPrimary")).OfType<SystemBackdropElement>().Any(),
+                "沉浸档的头部仍挂着局部材质卡面");
             RequireSubscriptionBodyLayout(page, true);
-            Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")), "资料卡没有留在正文右列完整展示");
+            Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyRow")), "资料卡没有留在正文右列完整展示");
             foreach (var width in new[] { 600, 1024, 1240 })
             {
                 ResizeProbeClient(width, 1000);
@@ -602,7 +604,7 @@ internal sealed partial class ShellNavigationProbe
                 + $"纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、面板 {panel.Background.Opacity:0.##}");
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-1240.png");
 
-            // ---- 设置里改成简洁模式：当场收图、头部换成卡面 ----
+            // ---- 设置里改成简洁模式：当场收图、头部换成渐隐背景 ----
             settings.Ui.EnableImmersive = false;
             ShellPrefs.ApplyAppearance(settings.Ui);
             await UntilAsync(() => media.Plain && !media.Showcase);
@@ -613,14 +615,9 @@ internal sealed partial class ShellNavigationProbe
                 "MP 商店模式缺少顶部渐隐背景");
             Require(Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,
                 "MP 商店背景未启用透明渐隐");
-            Require(surface.Background is null && Get<SystemBackdropElement>(page, "HeroMica").SystemBackdrop is null,
+            Require(!Descendants(Get<StackPanel>(page, "BodyPrimary")).OfType<SystemBackdropElement>().Any(),
                 "商店顶部仍用局部 Mica 卡片覆盖背景");
-            Require(surface.Padding == default, "商店顶部仍有卡片内边距：" + surface.Padding);
-            Require(surface.VerticalAlignment == VerticalAlignment.Top,
-                "简洁模式的卡面没有按自己的内容收边");
             RequireSubscriptionBodyLayout(page, true);
-            Require(surface.BorderThickness == default,
-                "商店顶部仍保留卡片描边");
             Require(sheet.Background is SolidColorBrush { Color.A: 0 }, "简洁模式的正文纸挡住了窗口画布");
             // 2026-11-12 同媒体详情页：这一页也不许再挂页面级的局部材质，底就是外壳那块画布。
             Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
@@ -632,7 +629,7 @@ internal sealed partial class ShellNavigationProbe
             Require(hero.MinHeight <= 0.5, "简洁模式仍按背景图让开第一屏");
             Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介没有顶对齐");
             Require(strips.Count > 0 && strips[^1] == TitleStrip.PagePainted, "简洁模式的标题栏没有回到页面字色");
-            readings.Add($"简洁 1240：卡面内边距 {surface.Padding}、纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、"
+            readings.Add($"简洁 1240：纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、"
                 + $"面板 {panel.Background?.Opacity ?? 0:0.##}、资料卡 {facts.ActualWidth:0}");
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
@@ -667,7 +664,6 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => media.Immersive && !media.Showcase);
             await LayoutAsync(page);
             Require(backdrop.Visibility == Visibility.Visible, "窄窗沉浸模式没有背景图");
-            Require(surface.Background is null, "窄窗沉浸模式的头部仍扣着卡面");
             Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "窄窗沉浸模式的正文纸不是不透明");
             Require(overview.VerticalAlignment == VerticalAlignment.Top, "窄窗沉浸模式的简介没有顶对齐");
             RequireSubscriptionBodyLayout(page, false);
@@ -688,8 +684,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => media.WideLayout && media.Showcase);
             await LayoutAsync(page);
             Require(sheet.Background is SolidColorBrush { Color.A: 0 }
-                && panel.Background is AcrylicBrush { Opacity: 0 } && surface.Background is null,
-                "拉宽回沉浸档后纸面、面板或头部卡面没有跟着翻");
+                && panel.Background is AcrylicBrush { Opacity: 0 },
+                "拉宽回沉浸档后纸面或面板没有跟着翻");
             RequireSubscriptionBodyLayout(page, true);
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-wide.png");
             // 翻到长货架末尾再缩窗，第 0 项已虚拟化；翻页必须采用现存卡片的新尺寸。

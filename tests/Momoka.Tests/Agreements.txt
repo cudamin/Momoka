@@ -768,7 +768,6 @@ handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingShimmer
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingSkeleton
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroBlock
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroSection
-handle  Views/MoviePilotSubscriptionPage.xaml  HeroSurface
 handle  Views/MoviePilotResourceBrowser.xaml  ActiveFilters
 handle  Views/MoviePilotResourceBrowser.xaml  AdvancedFilters
 handle  Views/MoviePilotResourceBrowser.xaml  EditionFilter

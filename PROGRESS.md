@@ -1,3 +1,13 @@
+## 2026-11-14 订阅详情去掉头部卡面、收起面包屑、评分卡移到正文右列（本树，待合并）
+
+独立树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-subscription-layout-HGmn7f`，分支 `feat-subscription-layout-HGmn7f`，基点 master `df37a93`。用户三点：①「去掉上图订阅详情页的卡片」；②「去掉顶部的主页 › 生日快乐(2025)，下面的组件整体上移」；③「参考图二修改订阅页面的布局，订阅页面右上角的评分卡片放到参考图片 发现更多 的那个位置」。①经追问确认只去掉头部大卡片，下方季／演员阵容／相关推荐／相似作品的分区卡片保留。
+
+**布局。** `MoviePilotSubscriptionPage.xaml` 删掉 `HeroMica`、`HeroSurface` 与 `HeroRow` 的 288 右列，`HeroGrid` 直接待在 `BodyPrimary` 里：海报、片名、简介与操作直接压在剧照上。正文 `BodyRow` 改为两列网格——左列 `BodyFlow` 装季与三段货架，右列是挪下来的评分与资料卡 `HeroFacts`（288 DIP，对应参考图「发现更多」那一格）；`ApplyBodyLayout` 在窄于 960 DIP 时把资料卡换到正文最上面、左列顺次下移。`ApplyHeroSurface` 收成只量海报档位与头部留白的 `ApplyHeroSizing`，`Showcase.cs` 移除已删除的 `HeroMica` 材质接线与 `ReleasePlainMica`。`ShellPage.ApplyChrome` 对 `MoviePilotSubscriptionPage` 收起 `TrailBar`，正文顶到标题栏下沿（整行收起，不留 38 像素空带）。首次读取的骨架同步改为「头部无右卡、正文两列」。
+
+**同步测试。** `MoviePilotSubscriptionPageStateTests` 的 XAML 次序断言改为头部无 `HeroSurface`/`HeroMica`、`HeroFacts` 与 `BodyFlow` 同住 `BodyRow`，并新增 `ShellPage.ApplyChrome` 为本页收起面包屑的源码契约；`Agreements.txt` 删除 `HeroSurface` 句柄基线；`ShellNavigationProbe.MediaDetail.RequireSubscriptionBodyLayout` 与 `ShellNavigationProbe.Subscriptions` 的资料卡／分区断面断言改为「资料卡在正文右列、左列分区只与左列同宽且不与它重叠」，并删去不存在的 `HeroSurface`/`HeroMica` 读数。
+
+**验证。** Release Shell/x64 **0 警告 0 错误**；主测试 **5103/5103**（含句柄、字号、颜色、嵌套绑定与命令行约定）；`moviepilot-subscription-page-state-fixture <当前 Shell DLL> <树根>` **40/40**；`Momoka.PageContractTests` **274/274**；`Momoka.MoviePilotSubscribeSettingsTests` **77/77**；`git diff --check` 干净。原生 `--probe-shell --probe-section moviepilot` 尚未运行：当时有 6 个无主窗口的 Momoka 残留探针占着单实例锁，用户要求等它们结束再跑，因此订阅页宽窄几何、面包屑收起与实屏截图留待运行后补记，不冒充已通过。未连真实服务器、未播放、未写入；未覆盖高对比度、触摸、读屏与跨 DPI。
+
 ## 2026-11-14 删除已执行的旧 WinUI 重构计划
 
 用户明确旧计划已经做过，要求删除。独立树 `C:/Users/89400/.codex/worktrees/remove-old-winui-plan/Momoka`，分支 `codex/remove-old-winui-plan`，基点 `fe015d2`。删除 `docs/WinUI重构计划.md`，清理 CLAUDE、Shell 技能、开发文档、P1/P2/P3报告和项目注释中的现行入口；P1文档检查不再要求已删除文件，历史结果与证据校验保留。各阶段实施/验证报告和历史 PROGRESS 记录保留，明确不作为待执行清单。只做文档、链接、编码与受影响检查器验证，不构建、不运行应用或发布。

@@ -2192,9 +2192,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 两档箭头显隐归SyncTitleActions；这里仅按Frame栈同步可用性。
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
-        // right below, and a row left standing empty is a band of nothing 38 pixels tall.
+        // right below, and a row left standing empty is a band of nothing 38 pixels tall. The subscription
+        // detail page also gives the row up (2026-11-14 用户令「去掉顶部的主页 › 片名」): its hero already
+        // names the item, and the page is meant to start right under the title bar like a store entry.
         var storeDetail = ContentFrame.Content is DetailPage detail && detail.ViewModel.StoreMode;
-        TrailBar.Visibility = crumbs > 1 && !storeDetail ? Visibility.Visible : Visibility.Collapsed;
+        var subscriptionDetail = ContentFrame.Content is MoviePilotSubscriptionPage;
+        TrailBar.Visibility = crumbs > 1 && !storeDetail && !subscriptionDetail ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>
