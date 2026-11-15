@@ -77,6 +77,13 @@ public sealed partial class LibraryPage : Page, IShellContent
     internal int SectionBuilds { get; private set; }
     internal int HeaderApplies { get; private set; }
 
+    /// <summary>
+    /// 用户刚在布局/视图入口换了形状：下一个 <see cref="ApplyView"/> 落定后给整面墙补一段短淡入。
+    /// 首次导航、恢复已保存的视图和探针直接改视图也走 ApplyView，但没有这个标记；标记只属于一次
+    /// 真实的视图切换，ApplyView 读到就消费，不靠时序猜测。
+    /// </summary>
+    private bool _revealViewSwitch;
+
     // 五个面板都按首次使用创建：普通媒体库不该替 MoviePilot、AniBT、筛选和设置付构造与隐藏控件的价钱。
     private MoviePilotSearchPanel? _moviePilotPanel;
     private MoviePilotVersionsView? _moviePilotResources;
@@ -703,6 +710,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         _pendingScroll = null;
         _restoringAnchor = false;
         ViewModel.ReleaseSearchPosters();
+        // 整墙淡入也随离页立即落定，回来时看到的仍是不透明的那一档。
+        HomeMotion.Stop(CardWall);
         _filterPane?.Dismiss();
         // 离开这一页不播淡出：把两层的值复位，回来时看到的仍是原来那一档。
         _filterScrimMotion?.Collapse();
@@ -1315,6 +1324,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnJellyfinImageTypeItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is not LayoutEntry entry) return;
+        if (entry.View != ViewModel.View) _revealViewSwitch = true;
         ViewModel.ChooseJellyfinView(entry.View);
         // The web dialog stays open while the user changes image type and title; keep the ticks and the
         // title checkbox in step with the display that just landed.
@@ -1369,6 +1379,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnFnNasLayoutItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is not LayoutEntry entry) return;
+        if (entry.View != ViewModel.View) _revealViewSwitch = true;
         ViewModel.ChooseFnNasView(entry.View);
         FnNasLayoutMenu.Hide();
     }
@@ -1384,6 +1395,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnJellyfinLayoutItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is not LayoutEntry entry) return;
+        if (entry.View != ViewModel.View) _revealViewSwitch = true;
         ViewModel.ChooseJellyfinView(entry.View);
         JellyfinLayoutMenu.Hide();
     }
@@ -1949,7 +1961,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>
     /// 面板上改了一处。立刻生效，与网页端一致：视图模型重查一次，网格按新形状/新字段重建。
     /// </summary>
-    private void OnDisplayChanged(LibraryDisplay display) => ViewModel.ApplyDisplay(display);
+    private void OnDisplayChanged(LibraryDisplay display)
+    {
+        // 改图像大小、字段和分组也走这条通知；只有真的换了形状才值得补那一段整墙淡入。
+        if (display.View != ViewModel.View) _revealViewSwitch = true;
+        ViewModel.ApplyDisplay(display);
+    }
 
     /// <summary>
     /// The letter bar was clicked. The view model answers with the row to land on — a count the server
@@ -2047,6 +2064,15 @@ public sealed partial class LibraryPage : Page, IShellContent
         TableHeader.Visibility = ViewModel.View == LibraryView.Table ? Visibility.Visible : Visibility.Collapsed;
         if (ViewModel.View == LibraryView.Table) BuildTableHeader();
         ApplyTableWidth();
+
+        // 换模板/换版面会让 ItemsView 把整面墙重新实现一遍，屏幕上是瞬间跳变。只补一段很短的
+        // 整墙淡入掩盖它：标记只由用户的视图入口设置，首次导航、恢复保存的视图与探针都不设，
+        // 免得和浏览页淡入或几何量测叠在一起。关闭动画、离页、还没就绪都直接落定。
+        var revealSwitch = _revealViewSwitch;
+        _revealViewSwitch = false;
+        if (revealSwitch && !_attaching && !_released && IsLoaded && ViewModel.IsReady
+            && ViewModel.Cards.Count > 0 && CardWall.Visibility == Visibility.Visible)
+            HomeMotion.Reveal(CardWall, 0, 120, 6);
     }
 
 
