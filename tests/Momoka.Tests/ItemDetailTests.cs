@@ -215,7 +215,7 @@ internal static class ItemDetailTests
                 new EmbyItem { Name = "第一季", Type = EmbyItemType.Season, SeriesName = "葬送的芙莉莲" }).Count);
         });
 
-        // 评分那一条搬走了：显示哪个分、署谁的名字，规则和它的单测都在 ItemScore / EmbyTests 那边（「详情评分：…」
+        // 评分那一条搬走了：两个槽各画什么、怎么格式化，规则和它的单测都在 ItemScore / EmbyTests 那边（「详情评分：…」
         // 那一族）。这里从前那一条只问 CommunityRating 怎么格式化，行为一字不改地搬了过去。
     }
 

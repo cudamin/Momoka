@@ -94,12 +94,14 @@ internal static class AcrylicControlsTests
         Test("详情头图：分类和固定说明统一视频白色，主题链接与星标不变", () =>
         {
             var page = Read("Views/DetailPage.xaml");
-            foreach (var name in new[] { "ScoreSourceText", "HeroFacts", "Overview" })
+            foreach (var name in new[] { "HeroFacts", "Overview" })
                 Assert.Equal("{StaticResource EgOnScrimBrush}", (string?)Named(page, name).Attribute("Foreground"));
+            foreach (var name in new[] { "ScoreText", "CriticScoreText" })
+                Assert.Equal("{StaticResource EgOnScrimDataStrongStyle}", (string?)Named(page, name).Attribute("Style"));
             Assert.Contains("public Brush SublineBrush => Painted(\"EgOnScrimBrush\")", Source("ViewModels/DetailViewModel.cs"));
             var readMore = Named(page, "DetailReadMoreButton");
             Assert.Null(readMore.Attribute("Foreground"));
-            Assert.Equal("{ThemeResource EgAccentBrush}", (string?)Named(page, "ScoreStack")
+            Assert.Equal("{ThemeResource EgAccentBrush}", (string?)Named(page, "CommunityScoreRow")
                 .Elements(Xaml + "FontIcon").Single().Attribute("Foreground"));
         });
         Test("详情沉浸：卡片副行换成压图浅灰白，纸面档保持主题暗字", () =>

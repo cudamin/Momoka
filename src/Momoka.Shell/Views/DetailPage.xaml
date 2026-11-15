@@ -742,33 +742,55 @@
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{x:Bind ViewModel.SublineVisibility, Mode=OneWay}" />
 
-                            <!-- 评分先于类型；日期、时长、分级仍在类型下方。 -->
+                            <!-- 评分先于类型；日期、时长、分级仍在类型下方。
+                                 两个评分各一格（2026-11-15 用户令「两个评分不要文字，用图标表示平台」）：
+                                 星配大众分、番茄配影评指数，不再带「公众评分」「烂番茄」那两行字。哪一槽没分就
+                                 只收哪一格，两个都没有整块收起来（ScoreVisibility）。 -->
                             <StackPanel
                                 x:Name="ScoreStack"
                                 VerticalAlignment="Center"
                                 Orientation="Horizontal"
-                                Spacing="5"
+                                Spacing="14"
                                 Visibility="{x:Bind ViewModel.ScoreVisibility, Mode=OneWay}">
-                                <FontIcon
-                                    VerticalAlignment="Center"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource EgAccentBrush}"
-                                    Glyph="&#xE735;" />
-                                <Grid>
-                                <TextBlock
-                                    x:Name="ScoreText"
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource EgOnScrimDataStrongStyle}"
-                                    Text="{x:Bind ViewModel.Score, Mode=OneWay}" />
-                                </Grid>
-                                <Grid>
-                                <TextBlock
-                                    x:Name="ScoreSourceText"
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource EgOnScrimDataStyle}"
-                                    Foreground="{StaticResource EgOnScrimBrush}"
-                                    Text="{x:Bind ViewModel.ScoreLabel, Mode=OneWay}" />
-                                </Grid>
+                                <StackPanel
+                                    x:Name="CommunityScoreRow"
+                                    Orientation="Horizontal"
+                                    Spacing="5"
+                                    Visibility="{x:Bind ViewModel.CommunityVisibility, Mode=OneWay}">
+                                    <FontIcon
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource EgAccentBrush}"
+                                        Glyph="&#xE735;" />
+                                    <Grid>
+                                    <TextBlock
+                                        x:Name="ScoreText"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource EgOnScrimDataStrongStyle}"
+                                        Text="{x:Bind ViewModel.CommunityScore, Mode=OneWay}" />
+                                    </Grid>
+                                </StackPanel>
+                                <StackPanel
+                                    x:Name="CriticScoreRow"
+                                    Orientation="Horizontal"
+                                    Spacing="5"
+                                    Visibility="{x:Bind ViewModel.CriticVisibility, Mode=OneWay}">
+                                    <!-- 番茄走系统彩色的 emoji 字体：Fluent 图标里没有这一枚，而它在这里是平台记号，
+                                         不跟主题墨走（读屏跳过，分数自己会念）。 -->
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.AccessibilityView="Raw"
+                                        FontFamily="Segoe UI Emoji"
+                                        FontSize="{StaticResource EgBodyFontSize}"
+                                        Text="🍅" />
+                                    <Grid>
+                                    <TextBlock
+                                        x:Name="CriticScoreText"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource EgOnScrimDataStrongStyle}"
+                                        Text="{x:Bind ViewModel.CriticScore, Mode=OneWay}" />
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
 
                             <Grid Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}">
@@ -786,9 +808,9 @@
                                  画刷，一个 8.4 分没有任何危险。星是整个头部除播放键之外唯一一处颜色，所以它
                                  跟着主题走。
 
-                                 分数后面那一小格写着这个数是谁给的（「豆瓣」「烂番茄」「公众评分」），因为
-                                 「可在设置使用豆瓣、tmdb、烂番茄等平台的评分」之后，一个光秃秃的 8.4 说不清是哪家
-                                 的分。它走暗墨、跟事实那一行同一档层次，而分数走强墨 —— 读的是分，署名是注脚。 -->
+                                 2026-11-15 起评分画两格（用户令「两个评分不要文字，用图标表示平台」）：星配大众分、
+                                 番茄配影评指数，两格都不带文字，平台由图标自己说明。分数走强墨；两槽各画各的，
+                                 哪一槽没分就只收哪一格。 -->
                             <StackPanel x:Name="StoreRatingRow" Orientation="Horizontal" Spacing="14">
                                 <Grid>
                                 <TextBlock
