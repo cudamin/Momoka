@@ -15,13 +15,14 @@ internal enum StoreBackdropFadeShape
     /// <summary>剧照：左边、右边与下边渐隐，画面落在环境底上，右侧留出滚动条的空隙。</summary>
     Picture,
 
-    /// <summary>环境底：左端起坡、底部收边、右端也收在画布上，接窗口画布。</summary>
+    /// <summary>环境底：左端贴住内容区左沿（2026-11-15 起不再起坡，侧栏旁边不留暗带）、底部收边、右端收在画布上。</summary>
     Ambient
 }
 
 /// <summary>Gallery Controls/OpacityMaskView.xaml.cs, v2.9.3 / 14a4a1a2.
-/// 保留单次VisualSurface重定向；二维alpha图把左边与底部渐隐合在同一个遮罩里。
-/// 剧照与环境底各用一份，左右和底部平滑收到透明；环境底铺到信息区，剧照保留右侧清晰画面。
+/// 保留单次VisualSurface重定向；二维alpha图把剧照的左边、右边与底部渐隐合在同一个遮罩里，
+/// 环境底只收右边与底部（左端贴住内容区左沿，见 <see cref="StoreBackdropFadeShape.Ambient"/>）。
+/// 剧照与环境底各用一份；环境底铺到信息区，剧照保留右侧清晰画面。
 /// 微软商店闭源，截图仅作外观参考。沿用 Gallery 的重定向机制，不对其内部实现作推断。
 /// </summary>
 internal sealed class StoreBackdropFade

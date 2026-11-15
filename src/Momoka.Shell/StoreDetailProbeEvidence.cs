@@ -87,6 +87,15 @@ internal static class StoreDetailProbeEvidence
             throw new InvalidOperationException("商店实际遮罩未在左右和下方渐隐，或误加了顶部渐隐");
     }
 
+    /// <summary>环境底遮罩：左端贴住内容区左沿（不透明，2026-11-15「左边别留这个黑边」），只收右边与底部。</summary>
+    internal static void RequireAmbientMask(StoreFadeRead read)
+    {
+        if (read.Left < 245 || read.Right != 0 || read.Bottom != 0 || read.Core < 200
+            || read.NearRight <= 0 || read.NearRight >= read.Core || read.NearBottom <= 0 || read.NearBottom >= read.Core
+            || read.Top < read.Core - 2)
+            throw new InvalidOperationException("商店环境底未在左沿满色覆盖，或仍保留了左端渐隐");
+    }
+
     /// <summary>
     /// 以TextBlock独立渲染的首个汉字作字形参考，匹配同一实际桌面帧里的高覆盖率笔画。
     /// 参考图只定义应有笔画；通过必须来自实屏，左上半格单独计数以检测旧圆角缺角。
