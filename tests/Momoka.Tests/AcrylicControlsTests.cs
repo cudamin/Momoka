@@ -722,6 +722,12 @@ internal static class AcrylicControlsTests
             Assert.Contains("CheckRoles(theme);", source);
             Assert.Contains("detail.ViewModel.PlayTarget?.HasResumePosition == true", source);
             Assert.Contains("== 6,", source);
+            Assert.Contains("series.MediaType = \"Video\";", source);
+            Assert.Contains("path.EndsWith(\"/SpecialFeatures\", StringComparison.Ordinal)", source);
+            Assert.Contains("Id = \"material-extra\"", source);
+            Assert.Contains("ExtraType = \"BehindTheScenes\"", source);
+            Assert.Contains("await ResizeResponsiveAsync(detail, width, 700);", source);
+            Assert.Contains("await WaitDetailPageSizeAsync(detail, width, \"详情材料检查\");", source);
             Assert.Contains("详情操作排未在时限内出现", source);
             Assert.Contains("海报悬停按钮仍画底色或播放键未回到中性玻璃", source);
             Assert.Contains("封面播放键没有落在封面正中", source);

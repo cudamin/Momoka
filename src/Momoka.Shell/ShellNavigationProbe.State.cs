@@ -405,8 +405,8 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
-        // 前一条用例可能把窗口留在最大化上；最大化时 ResizeInspect 会被忽略，下面那组宽度就永远
-        // 到不了目标（要求 1280、实际是整块工作区）。和 DetailResponsive 开头同一句。
+        // 前一条用例可能把窗口留在最大化上；先恢复普通窗口，再按真实客户区 DIP 缩放，
+        // 避免要求 1280 却仍读到整块工作区。和 DetailResponsive 使用同一恢复流程。
         if (_window!.IsMaximized) _window.ToggleMaximize();
         await SettleAsync();
         var image = await FixtureImageAsync();
@@ -470,17 +470,13 @@ internal sealed partial class ShellNavigationProbe
                 if (all) vm.SelectedSubtitle = vm.SubtitleTracks[2];
                 foreach (var width in new[] { 760, 819, 820, 1064, 1280 })
                 {
-                    var scale = _root.XamlRoot.RasterizationScale;
-                    var pixels = (int)Math.Ceiling(width * scale);
-                    var height = (int)Math.Ceiling(900 * scale);
-                    ResizeInspect(pixels, height);
-                    await LayoutAsync(page);
-                    // ResizeInspect 接收外窗物理尺寸；补足窗框后才能真正命中页面断点。
-                    pixels += (int)Math.Round((width - vm.PageWidth) * scale);
-                    ResizeInspect(pixels, height);
+                    // 客户区目标先经过真实窗框差值换算；页、Body 和 VM 全部跟上后才读取文件选项布局。
+                    await ResizeResponsiveAsync(page, width, 900);
+                    await WaitDetailPageSizeAsync(page, width, $"文件选项布局/{(all ? "all" : "audio")}");
                     await LayoutAsync(page);
                     Require(Math.Abs(vm.PageWidth - width) < 0.6 && vm.IsCompact == (width < DetailHero.CompactFloor),
-                        $"没有到达指定页面宽度：要求 {width}，实际 {vm.PageWidth:0.00}");
+                        $"没有到达指定页面宽度：要求 {width}×900 DIP，实际 {vm.PageWidth:0.00}，"
+                        + $"紧凑 {vm.IsCompact}（要求 {width < DetailHero.CompactFloor}）");
                     var fit = page.PickerFit();
                     var label = all ? "all" : "audio";
                     readings.Add($"{label} {width} DIP：{fit.Ok}；{fit.Detail}");
@@ -558,7 +554,7 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
-        // 前一条用例可能把窗口留在最大化上；最大化时 ResizeInspect 会被忽略，下面那一档宽度就到不了。
+        // 前一条用例可能把窗口留在最大化上；先恢复普通窗口，再按真实客户区 DIP 缩放。
         if (_window!.IsMaximized) _window.ToggleMaximize();
         await SettleAsync();
         var image = await FixtureImageAsync();
@@ -598,10 +594,12 @@ internal sealed partial class ShellNavigationProbe
             var page = (DetailPage)frame.Content;
             var vm = page.ViewModel;
             await UntilAsync(() => page.IsReady && vm.AudioTracks.Count > 1 && vm.SubtitleTracks.Count > 2);
-            var scale = _root.XamlRoot.RasterizationScale;
-            ResizeInspect((int)Math.Ceiling(1280 * scale), (int)Math.Ceiling(900 * scale));
+            await ResizeResponsiveAsync(page, 1280, 900);
+            await WaitDetailPageSizeAsync(page, 1280, "文件选项竖距/初始宽窗");
             await LayoutAsync(page);
-            Require(!vm.IsCompact, "1280 DIP 上是紧凑版式，片名栏那一份文件选项没有画出来");
+            Require(Math.Abs(vm.PageWidth - 1280) < 0.6 && !vm.IsCompact,
+                $"1280×900 DIP 没有到达宽版式，片名栏那一份文件选项没有画出来："
+                + $"实际页宽 {vm.PageWidth:0.00}，紧凑 {vm.IsCompact}");
 
             // 电影页上「视频：…」是片名栏里独立的一份（DetailVideoText），不是 ColumnPickers 里那条
             // （那条只给集页的宽版式）。它和下面那排在独立文件组里，所以视频与音频之间的空隙
@@ -685,8 +683,12 @@ internal sealed partial class ShellNavigationProbe
             Rhythm("恢复紧凑间距");
             foreach (var width in new[] { 1064, 760 })
             {
-                ResizeInspect((int)Math.Ceiling(width * scale), (int)Math.Ceiling(900 * scale));
+                await ResizeResponsiveAsync(page, width, 900);
+                await WaitDetailPageSizeAsync(page, width, "文件选项竖距/切换宽度");
                 await LayoutAsync(page);
+                Require(Math.Abs(vm.PageWidth - width) < 0.6 && vm.IsCompact == (width < DetailHero.CompactFloor),
+                    $"文件选项竖距没有到达指定页面宽度：要求 {width}×900 DIP，实际 {vm.PageWidth:0.00}，"
+                    + $"紧凑 {vm.IsCompact}（要求 {width < DetailHero.CompactFloor}）");
                 var fit = page.PickerFit();
                 Require(fit.Ok, fit.Detail);
                 readings.Add($"{width} DIP：{fit.Detail}");

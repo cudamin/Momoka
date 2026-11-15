@@ -34,6 +34,8 @@ internal sealed partial class ShellNavigationProbe
         var picture = await FixtureImageAsync(400, 600);
         var backdrop = await FixtureImageAsync(1280, 720);
         var series = Series();
+        // 当前花絮入口先验证视频类型并读取非空内容；提供真实前件，保留六颗操作键的材料覆盖。
+        series.MediaType = "Video";
         series.ImageTags["Primary"] = "fixture";
         series.BackdropImageTags.Add("fixture");
         var episode = Episode("a");
@@ -68,6 +70,11 @@ internal sealed partial class ShellNavigationProbe
                 }
                 : path.EndsWith("/Items/show", StringComparison.Ordinal) ? Json(series)
                 : path.EndsWith("/Items/ep-a", StringComparison.Ordinal) ? Json(episode)
+                : path.EndsWith("/SpecialFeatures", StringComparison.Ordinal) ? Json(new[] { new EmbyItem
+                {
+                    Id = "material-extra", Name = "离线幕后花絮", Type = EmbyItemType.Video,
+                    MediaType = "Video", ExtraType = "BehindTheScenes"
+                } })
                 : path.EndsWith("/Episodes", StringComparison.Ordinal) ? Json(new { Items = new[] { episode } })
                 : path.EndsWith("/Notifications/Types", StringComparison.Ordinal) ? Json(new[] {
                     new NotificationCategoryInfo { Id = "playback", Name = "播放", Events = [
@@ -182,6 +189,11 @@ internal sealed partial class ShellNavigationProbe
                         ResizeProbeClient(width, stage == "mpcards" ? 920 : 700);
                         var page = stage is "shelf" or "mpcards" or "anibtcards"
                             ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
+                        if (stage == "detail")
+                        {
+                            await ResizeResponsiveAsync(detail, width, 700);
+                            await WaitDetailPageSizeAsync(detail, width, "详情材料检查");
+                        }
                         await LayoutAsync(page);
                         // 窗口尺寸变更由系统异步落实；等目标宽度到位再量，不把遮挡或渲染节流当成产品尺寸不同。
                         try
@@ -212,7 +224,11 @@ internal sealed partial class ShellNavigationProbe
                             await WaitForLayoutAsync(() => group.Visibility == Visibility.Visible
                                 && Descendants(group).OfType<Control>().Count(control =>
                                     (control is Button or ToggleButton) && control.Visibility == Visibility.Visible) == 6,
-                                "详情操作排未在时限内出现");
+                                $"详情操作排未在时限内出现：主题{theme.Id}、宽{width}/{detail.ActualWidth:0.##}/VM{detail.ViewModel.PageWidth:0.##}、"
+                                    + $"组{group.Name}/{group.Visibility}、花絮{detail.ViewModel.ExtraVisibility}、"
+                                    + string.Join(',', Descendants(group).OfType<Control>().Where(control =>
+                                        (control is Button or ToggleButton) && control.Visibility == Visibility.Visible)
+                                        .Select(control => AutomationProperties.GetAutomationId(control))));
                             var controls = Descendants(group).OfType<Control>().Where(control =>
                                 (control is Button or ToggleButton) && control.Visibility == Visibility.Visible).ToArray();
                             Require(controls.Length == 6, "详情操作排缺少按钮或连播");

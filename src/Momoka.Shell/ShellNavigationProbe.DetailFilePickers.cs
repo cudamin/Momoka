@@ -167,10 +167,35 @@ internal sealed partial class ShellNavigationProbe
             var reference = Get<Button>(page, "ColumnMoreButton");
             foreach (var picker in new[] { source, audio, subtitle })
                 await CheckPickerBackgroundAsync(picker, reference, reads);
+            // 真模板与同一测量入口必须拒绝错误画刷，不能只检查另一个浮层表面的反例。
+            var normalFill = (AcrylicBrush)source.Resources["ButtonBackground"];
+            var normalColor = normalFill.FallbackColor;
+            try
+            {
+                normalFill.FallbackColor = Microsoft.UI.Colors.Black;
+                var rejected = false;
+                try { await CheckPickerBackgroundAsync(source, reference); }
+                catch (InvalidOperationException) { rejected = true; }
+                Require(rejected, "选择栏背景测量没有拒绝错误常态底色");
+            }
+            finally { normalFill.FallbackColor = normalColor; }
+            await CheckPickerBackgroundAsync(source, reference);
             source.IsDropDownOpen = true;
             await UntilAsync(() => source.IsDropDownOpen && source.FlyoutContent.IsLoaded);
             await SettleAsync();
             await CheckPickerItemBackgroundsAsync(source, reads);
+            var selectedFill = (SolidColorBrush)source.ItemsList.Resources["ListViewItemBackgroundSelected"];
+            var selectedColor = selectedFill.Color;
+            try
+            {
+                selectedFill.Color = Microsoft.UI.Colors.Black;
+                var rejected = false;
+                try { await CheckPickerItemBackgroundsAsync(source); }
+                catch (InvalidOperationException) { rejected = true; }
+                Require(rejected, "列表六态背景测量没有拒绝错误选中画刷");
+            }
+            finally { selectedFill.Color = selectedColor; }
+            await CheckPickerItemBackgroundsAsync(source);
             var surface = (Border)source.FlyoutContent;
             var oldFill = surface.Background;
             try

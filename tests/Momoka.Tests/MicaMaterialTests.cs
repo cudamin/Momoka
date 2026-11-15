@@ -19,6 +19,20 @@ internal static class MicaMaterialTests
 
     public static void Register()
     {
+        Test("详情自定义材料探针：三种表面、系统回退与错误背景恢复", () =>
+        {
+            var probe = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellNavigationProbe.DetailCustomization.cs"));
+            Assert.Contains("page.ViewModel.StoreMode ? store", probe);
+            Assert.Contains("page.ViewModel.Showcase && panel.Name == \"InfoPanel\" ? null : fill", probe);
+            Assert.Contains("ReferenceEquals(panel.Background, expected)", probe);
+            Assert.Contains("SolidColorBrush expected => actual.AlwaysUseFallback && actual.FallbackColor == expected.Color", probe);
+            Assert.Contains("actual.TintLuminosityOpacity == expected.TintLuminosityOpacity", probe);
+            Assert.Contains("RequireDetailPanelMaterials(page, stage + \"错误背景反例\")", probe);
+            Assert.Contains("finally { info.Background = original; }", probe);
+            Assert.Contains("RequireDetailPanelMaterials(page, stage + \"反例恢复\")", probe);
+            Assert.False(probe.Contains("Require(panel.Background is AcrylicBrush", StringComparison.Ordinal));
+            Assert.False(probe.Contains("((AcrylicBrush)originalMaterial)", StringComparison.Ordinal));
+        });
         Test("卡片主题角色：别名与运行涂色登记一致，媒体副行保留压图层级", () =>
         {
             var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "ThemeHost.cs"));

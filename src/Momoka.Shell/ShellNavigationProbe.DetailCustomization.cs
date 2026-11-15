@@ -376,8 +376,7 @@ internal sealed partial class ShellNavigationProbe
                 }
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 var originalPanels = sheet.Children.OfType<StackPanel>().ToArray();
-                foreach (var panel in originalPanels)
-                    Require(panel.Background is AcrylicBrush, "详情卡片没有使用亚克力：" + panel.Name);
+                CheckDetailPanelMaterials(page, "初次呈现");
                 var materialSource = Get<Border>(page, "CardMaterialSource");
                 var originalMaterial = materialSource.Background;
                 var privateMaterial = Get<AcrylicBrush>(page, "_panelFill");
@@ -386,10 +385,12 @@ internal sealed partial class ShellNavigationProbe
                     materialSource.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
                     Require(privateMaterial.AlwaysUseFallback && privateMaterial.FallbackColor == Microsoft.UI.Colors.White,
                         "卡片没有随系统资源切换到实色");
+                    RequireDetailPanelSource(privateMaterial, materialSource.Background);
+                    RequireDetailPanelMaterials(page, "系统实色回退");
                 }
                 finally { materialSource.Background = originalMaterial; }
-                Require(!privateMaterial.AlwaysUseFallback && privateMaterial.TintColor == ((AcrylicBrush)originalMaterial).TintColor,
-                    "卡片资源恢复后仍锁在实色");
+                RequireDetailPanelSource(privateMaterial, originalMaterial);
+                RequireDetailPanelMaterials(page, "系统资源恢复");
                 var expected = DetailLayout.For(fixture.Settings.Ui, item.Type).Reverse()
                     .Select(card => new DetailCardSetting { Key = card.Key, Visible = card.Visible }).ToList();
                 // 信息卡置于中间，隐藏后用后继卡片的位置验证不占位，也覆盖电影页。
@@ -423,9 +424,10 @@ internal sealed partial class ShellNavigationProbe
 
                 foreach (var width in new[] { 1100, 760 })
                 {
-                    ResizeProbeClient(width, 820);
-                    await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
+                    await ResizeResponsiveAsync(page, width, 820);
+                    await WaitDetailPageSizeAsync(page, width, "自定义卡片缩放");
                     await LayoutAsync(page);
+                    CheckDetailPanelMaterials(page, "自定义卡片缩放");
                     RequireCardOrder(page, expected.Select(card => card.Key));
                     var info = Get<StackPanel>(page, "InfoPanel");
                     Require(info.Visibility == Visibility.Visible && info.ActualHeight > 0, "信息卡未呈现夹具内容");
@@ -462,8 +464,8 @@ internal sealed partial class ShellNavigationProbe
                     await ScrollProbeAsync(scroll, first.TransformToVisual(content).TransformPoint(default).Y);
                     await SaveProbeScreenAsync($"detail-customization-{item.Type}-{width}-restored.png");
                 }
-                ResizeProbeClient(1100, 1120);
-                await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
+                await ResizeResponsiveAsync(page, 1100, 1120);
+                await WaitDetailPageSizeAsync(page, 1100, "背景染色前");
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
                 // 背景固定亚克力：三项参数直接落到那支画笔上，不再有浓度档位，也不再另跑一遍 CPU 高斯。
                 fixture.Settings.Ui.EnableImmersive = true;
@@ -513,8 +515,8 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 // 染色参数只重画材质，不重新请求图片：三条滑块来回拖也不该多走一次网络。
                 Require(reads > 0 && page.ViewModel.HeroImage is not null, "染色参数改动丢了背景图");
-                ResizeProbeClient(1100, 1120);
-                await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
+                await ResizeResponsiveAsync(page, 1100, 1120);
+                await WaitDetailPageSizeAsync(page, 1100, "切换主题前");
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 foreach (var theme in UiThemes.All)
@@ -529,8 +531,8 @@ internal sealed partial class ShellNavigationProbe
                     if (item.Type == EmbyItemType.Movie)
                         await CheckDetailMenuAcrylicAsync(page, fixture, theme.Id);
                 }
-                ResizeProbeClient(760, 820);
-                await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
+                await ResizeResponsiveAsync(page, 760, 820);
+                await WaitDetailPageSizeAsync(page, 760, "窄窗自定义检查");
                 Require(!page.ViewModel.Showcase, "沉浸模式挤掉了窄窗紧凑布局");
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
@@ -552,6 +554,8 @@ internal sealed partial class ShellNavigationProbe
                 Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, seasons[0])), "季页导航失败");
                 var seasonPage = (DetailPage)frame.Content;
                 await UntilAsync(() => seasonPage.IsReady);
+                await ResizeResponsiveAsync(seasonPage, 1100, 1120);
+                await WaitDetailPageSizeAsync(seasonPage, 1100, "季页自定义检查");
                 RequireCardOrder(seasonPage, new[] { "episodes", "info", "seasons", "cast", "similar" });
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
@@ -603,7 +607,7 @@ internal sealed partial class ShellNavigationProbe
         {
             foreach (var width in new[] { 1200, 760 })
             {
-                ResizeProbeClient(width, 900);
+                await ResizeResponsiveAsync(page, width, 900);
                 await WaitDetailPageSizeAsync(page, width, "调整客户区后");
                 ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(ui);
@@ -620,6 +624,7 @@ internal sealed partial class ShellNavigationProbe
                 // 沉浸关掉之后卡片带回到主题那套墨、信息卡回到正文面板共享的那支画刷。
                 RequireCardInk(page, onScrim: false);
                 RequireStoreDetailCards(page, ["EpisodePanel", "InfoPanel", "SeasonPanel", "CastPanel", "SimilarPanel"]);
+                CheckDetailPanelMaterials(page, "关闭沉浸");
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 RequireDisabledStoreTail(page);
@@ -645,6 +650,7 @@ internal sealed partial class ShellNavigationProbe
                     "重新启用后背景显隐未跟随视图模型");
                 Require(panels.SequenceEqual(Get<StackPanel>(page, "BodySheet").Children), "外观切换重建或移动了正文实例");
                 if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
+                CheckDetailPanelMaterials(page, "重新启用沉浸");
                 if (subject?.Type == EmbyItemType.Episode) RequireEpisodeSubject(page, subject);
                 await WaitDetailPageSizeAsync(page, width, "开启沉浸截图前");
                 await SaveProbeScreenAsync($"detail-immersive-enabled-{page.ViewModel.ItemType}-{width}-screen.png");
@@ -655,6 +661,68 @@ internal sealed partial class ShellNavigationProbe
             ui.EnableImmersive = enabled;
             ShellPrefs.ApplyAppearance(ui);
         }
+    }
+
+    private static void RequireDetailPanelSource(AcrylicBrush actual, Brush source)
+    {
+        var matches = source switch
+        {
+            AcrylicBrush expected => actual.AlwaysUseFallback == expected.AlwaysUseFallback
+                && actual.TintColor == expected.TintColor && actual.FallbackColor == expected.FallbackColor
+                && actual.TintOpacity == expected.TintOpacity
+                && actual.TintLuminosityOpacity == expected.TintLuminosityOpacity,
+            SolidColorBrush expected => actual.AlwaysUseFallback && actual.FallbackColor == expected.Color,
+            _ => false
+        };
+        Require(matches, "卡片资源恢复后未同步原画刷的材质参数");
+    }
+
+    // 正式三种表面分别验收：简洁实色、沉浸信息卡无背景、普通纸面共享材料。
+    // 不以亚克力对象存在代替当前模式的实测背景归属。
+    private static void RequireDetailPanelMaterials(DetailPage page, string stage)
+    {
+        var panels = Get<StackPanel>(page, "BodySheet").Children.OfType<StackPanel>().ToArray();
+        var fill = Get<AcrylicBrush>(page, "_panelFill");
+        var line = Get<SolidColorBrush>(page, "_panelLine");
+        var store = Get<Border>(page, "StoreCardMaterialSource").Background;
+        foreach (var panel in panels)
+        {
+            var expected = page.ViewModel.StoreMode ? store
+                : page.ViewModel.Showcase && panel.Name == "InfoPanel" ? null : fill;
+            Require(ReferenceEquals(panel.Background, expected),
+                $"{stage}/{page.ViewModel.ItemType}/{panel.Name} 背景归属不符：简洁{page.ViewModel.StoreMode}、"
+                    + $"沉浸{page.ViewModel.Showcase}、紧凑{page.ViewModel.IsCompact}、宽{page.ActualWidth:0.##}/VM{page.ViewModel.PageWidth:0.##}、"
+                    + $"实际{panel.Background?.GetType().Name ?? "null"}、预期{expected?.GetType().Name ?? "null"}");
+        }
+        if (page.ViewModel.StoreMode)
+        {
+            Require(store is SolidColorBrush { Color.A: 255, Opacity: 1 }, "简洁卡片没有不透明实色源");
+            RequireStoreDetailCards(page, panels.Select(panel => panel.Name).ToArray());
+        }
+        else
+        {
+            var opacity = page.ViewModel.Showcase ? 0 : 1;
+            Require(fill.Opacity == opacity && line.Opacity == opacity,
+                $"{stage} 背景或描边未跟随模式：实际{fill.Opacity}/{line.Opacity}、预期{opacity}");
+            if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
+        }
+    }
+
+    private static void CheckDetailPanelMaterials(DetailPage page, string stage)
+    {
+        RequireDetailPanelMaterials(page, stage);
+        var info = Get<StackPanel>(page, "InfoPanel");
+        var original = info.Background;
+        try
+        {
+            info.Background = original is null ? new SolidColorBrush(Microsoft.UI.Colors.White) : null;
+            var rejected = false;
+            try { RequireDetailPanelMaterials(page, stage + "错误背景反例"); }
+            catch (InvalidOperationException) { rejected = true; }
+            Require(rejected, "详情卡片材料检查没有拒绝错误信息卡背景");
+        }
+        finally { info.Background = original; }
+        RequireDetailPanelMaterials(page, stage + "反例恢复");
     }
 
     private static void RequireImmersiveSurface(DetailPage page)
