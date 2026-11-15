@@ -41,6 +41,7 @@
                     "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Input;\n" +
                     "using Microsoft.UI.Xaml.Media;\nusing Momoka.Infrastructure;\nusing Windows.System;\n" +
                     "namespace Momoka.Shell.Views;\npublic sealed partial class ShelfFocusFixture\n{\n" +
+                    between("    private void OnGotFocus(", "    private void OnElementPrepared(") +
                     between("    private void OnNoFocusCandidateFound(", "    /// <summary>页面被移除时") +
                     between("    private void OnUnloaded(", "    /// <summary>\n    /// 当前焦点落到带内") +
                     between("    private void FocusItem(", "    /// <summary>\n    /// 指针进到带上") + "\n}\n";
