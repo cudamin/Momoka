@@ -1,3 +1,15 @@
+## 2026-11-15 详情竖滚性能：阅读色不再重画整页（已合入 master，待交付）
+
+用户反馈详情页经常卡、滚到最上面时右侧滚动条还在最下面、上方横幅也要等一会才收回。根因是 `DetailPage.OnBodyViewChanged` 每个滚动事件都调用 `PaintReadingColors`：它递归 `BodySheet` 的整棵视觉子树、逐个卡片清写前景。新加的匿名探针在同一个 300 帧折返滚动里量到这一段平均 **22.3ms/事件、单次最长 459ms**，整轮阅读色合计 4844ms，105 帧超过 33ms。阅读色只跟主题、系统对比度和新建出来的卡片有关，与滚到哪儿无关。
+
+**改了什么。** ①滚动回调只留随偏移变化的三件事（悬浮卡片、标题洗色、商店预告状态）；阅读色仍由 `ShelfStrip.ReadingChanged`（卡片建出来）与外观通知排队补。②`PaintReadingColors` 的换墨从整页递归改成四条带、季页单集竖列表 `EpisodeList` 里已实现的行，以及正文面板直接孩子里的分区标题；`PosterCard.ApplyBackdropInk` 记住上次写上去的墨，目标没变就不重复写本地前景。③`ScrollStoreTrailer` 在下滚越过阈值时只暂停一次，不再每个 `ViewChanged` 都调 `Pause` 并向 WebView2 发一条 `pause` 消息。新增 `--probe-section performance` 的「详情竖滚帧节奏、悬浮卡片当帧同步与分段耗时」：匿名详情页逐帧滚动再折返，记录 p50/p95/最大帧间隔、超 33/100ms 帧数、回顶收起耗时与悬浮卡片收放，p95 门槛 40ms；另加两条源码契约（滚动回调不得再调 `PaintReadingColors`；预告暂停前必须先看 `_storeTrailerScrollPaused`）。
+
+**验证。** 合并后全方案 Release **0 警告 0 错误**（`-p:PythonLauncher=C:\WINDOWS\py.exe`）；`dotnet format whitespace` 退出 0；主测试 **5157/5157**、`DetailStickyHeader` **89/89**、`PageContract` **312/312**、`AppearanceOpacity` **68/68**、`DetailImageArrival` **26/26**，均 0 失败 0 跳过。等待桌面空闲后跑 `--probe-shell --probe-section performance --screen 2`：修复前基线 p50 10.8ms、p95 54.0ms、105 帧超 33ms、8 帧超 100ms、单事件最长 459ms；合并后最终代码 p50 7.9ms、p95 15.2ms、2 帧超 33ms、0 帧超 100ms、单次最大 75.8ms，本用例通过。同一分区里「2000 集长剧键盘焦点」超时（已知窗口前台焦点问题；基线轮是库缓存用例超时），不归因本批。
+
+**整合。** 合并 master `355de8a`（自动合并）；master 的详情抢排新增 `SeedConnectedLayoutWidth`／`ForceConnectedLayout`，`Momoka.DetailImageArrivalTests` 的编译边界缺 `Frame`／`ViewModel` 等成员，已在 `4a5cf9a` 补齐测试替身。合并后的探针在 `OnNavigatedTo` 撞到 master 的商店键位换位：整页还没接树时 `Parent` 为 null 但键已在 `ColumnActionRow.Children` 里，`RestoreToActions` 又插一次抛 `E_ELEMENTALREADYATTACHED`（另一工作树同日记录也见到同一 COM 异常）；`58547ff` 把 `Detach`／放回改成按 `Children.Contains` 判断，并先清 `Trailing` 内容，键位顺序与显隐不变。
+
+**边界。** 探针是匿名沉浸详情页，不含真实服务器图片、商店模式 WebView2 预告与真实指针滚动；真实商店详情页的连续滚动、回顶后滚动条与横幅节奏仍须实机核对。未连真实服务器、未播放、未发布、未推远端。
+
 ## 2026-11-15 详情沉浸版式：右栏空隙摊开、其他信息卡加回卡片底（已合入，待交付）
 
 用户附一张剧详情页截图（沉浸宽版式，908×432 窗口），两点：①「播放按钮上面怎么留一大片空位，要自动补位」；②「给沉浸模式下的更多信息卡片加背景卡片」。①追问后用户选了「均匀撑开各行」。
