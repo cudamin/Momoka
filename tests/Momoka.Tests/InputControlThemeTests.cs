@@ -161,7 +161,7 @@ internal static class InputControlThemeTests
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
         });
-        Test("输入主题：详情文件选项与上方按钮同底，集列表牌子不再挂下拉", () =>
+        Test("输入主题：详情文件选项与操作按钮同底同圆角，集列表牌子不再挂下拉", () =>
         {
             var page = Read("src/Momoka.Shell/Views/DetailPage.xaml");
             foreach (var name in new[] { "ColumnPickers", "PickerPanel" })
@@ -182,7 +182,7 @@ internal static class InputControlThemeTests
                 foreach (var picker in pickers)
                 {
                     Assert.Equal("{ThemeResource ButtonBackground}", (string?)picker.Attribute("Background"));
-                    Assert.Equal("{StaticResource EgPickerCornerRadius}", (string?)picker.Attribute("CornerRadius"));
+                    Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)picker.Attribute("CornerRadius"));
                 }
             }
 
@@ -280,7 +280,7 @@ internal static class InputControlThemeTests
             foreach (var name in SettingsInputPages)
                 AssertSettingsInputImport(Read("src/Momoka.Shell/Views/" + name));
         });
-        Test("设置输入圆角：页面入口保留，详情选择框恢复12DIP", () =>
+        Test("设置输入圆角：页面入口保留，其他弹窗的选择圆角仍为12DIP", () =>
         {
             var allowed = SettingsInputPages.Select(name => "src/Momoka.Shell/Views/" + name)
                 .Append(SettingsInputDictionary).ToHashSet(StringComparer.Ordinal);
@@ -412,7 +412,7 @@ internal static class InputControlThemeTests
             Assert.Equal("Padding", (string?)padding.Attribute("Property"));
             Assert.Equal("10,0,6,0", (string?)padding.Attribute("Value"));
         });
-        Test("全站输入圆角：默认输入继承平台模板，详情选择框使用独立12DIP", () =>
+        Test("全站输入圆角：默认输入继承平台模板，专用选择圆角仍为12DIP", () =>
             AssertGlobalInputStyles(Read("src/Momoka.Shell/Theme/Styles.xaml")));
         Test("全站输入圆角：登录、弹窗、设置、播放器和显式样式没有旧值绕过", () =>
         {
@@ -539,7 +539,10 @@ internal static class InputControlThemeTests
             SettingsInputTypes.Contains(element.Name.LocalName, StringComparer.Ordinal) || element.Name.LocalName == "EgPicker"))
         {
             var radius = (string?)control.Attribute("CornerRadius");
-            Assert.True(radius is null || IsSharedRadius(radius), path + "/" + control.Name.LocalName + " 自设旧圆角");
+            var usesDetailCardRadius = path == "src/Momoka.Shell/Views/DetailPage.xaml"
+                && control.Name.LocalName == "EgPicker" && radius == "{StaticResource EgCardCornerRadius}";
+            Assert.True(radius is null || IsSharedRadius(radius) || usesDetailCardRadius,
+                path + "/" + control.Name.LocalName + " 自设旧圆角");
             var style = (string?)control.Attribute("Style");
             if (style is not null) Assert.True(StyleHasSharedRadius(style, document, shared, []), path + "/" + style);
         }

@@ -13838,3 +13838,9 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 工作树 `C:\Users\89400\Momoka`，从干净 master `bbe579a` 直接实施；子代理仅只读调查/审阅，无并行写入。用户明确新增系统主题，五套固定深色与默认不变，独立 daylight id仍不恢复。系统偏好保存为system，UISettings前景判断深浅，后台事件合并并在UI读取后重涂原画刷、登记根与窗口Changed；普通/独立下载弹窗样式登记根，播放信息复制当前深色局部角色以免全局浅色覆盖，HighContrast保持系统资源。固定Gallery稳定v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的SettingsPage、ThemeHelper、TitleBarHelper、WindowHelper及Learn主题指南已读，适配固定Application.Dark，无依赖升级。
 
 本轮主题/保存/输入角色58/58、完整生产源链接系统监听/ThemeHost/弹窗边界7/7、设置外观47/47，0失败0跳过；当前Release Core/Shell/主测试及专项编译0警告0错误。独立审阅已修复下载例外样式、播放信息全局重涂及契约空集通过问题。仅源链接测试中的平台替代，不是原生切换/Mica像素证据。待交付34记录系统两种实际状态、所有固定主题截图、UIA/键盘及旧探针预期适配（InputFocus/SettingsSearch/MaterialLifecycle等按Apply后的Current，不能按系统目录深色预览）。没有运行应用、改变Windows设置、发布或推送；桌面快捷方式仍是此前交付版本。
+
+## 2026-11-15 详情选择框圆角对齐操作卡片
+
+工作树 `C:/Users/89400/.codex/worktrees/34e4/Momoka`，基于 `ce55588`；详情页两种布局共六颗版本、音频、字幕选择框改用下方操作按钮的 `EgCardCornerRadius`（16 DIP），保留全局 `EgPickerCornerRadius`（12 DIP）供其他弹窗使用。既有输入样式回归只在详情页 EgPicker 允许卡片资源，保留其他输入与原生模板约束，更新旧圆角注释和测试名称。Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 `WinUIGallery/Samples/ComboBox/ComboBoxPage.xaml` 与 code-behind 已核对，无相同的局部圆角对齐样例；Learn Geometry 允许定制圆角，沿用本地原生模板和共享资源，不引入依赖或自定义模板。
+
+当前 Core/Tests/Shell Release 编译0警告0错误，`input-theme-fixture` 29/29、`acrylic-controls-fixture` 39/39，0失败0跳过。独立只读审阅通过，修改文件LF/无BOM/末尾换行与git diff空白检查通过。没有启动UI、真实播放、发布或推送；实屏外观与宽窄、主题检查留到用户要求交付时统一验收。主树同文件被另一活动聊天写入，待其释放写入后按局部差异合入并追加台账。
