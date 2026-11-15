@@ -10,6 +10,14 @@ internal static class Program
             MotionProbeEvidenceTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["system-theme-fixture"])
+        {
+            ThemeTests.Register();
+            SystemThemeSettingsTests.Register();
+            InputControlThemeTests.Register();
+            InputFocusThemeTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["local-media-layout-fixture"])
         {
             LocalMediaLayoutTests.Register();
@@ -710,6 +718,7 @@ internal static class Program
         StartupArgsTests.Register();
         MotionProbeEvidenceTests.Register();
         ThemeTests.Register();
+        SystemThemeSettingsTests.Register();
         MicaMaterialTests.Register();
         InputControlThemeTests.Register();
         AcrylicControlsTests.Register();

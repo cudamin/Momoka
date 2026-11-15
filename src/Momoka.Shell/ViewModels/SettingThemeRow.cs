@@ -25,10 +25,11 @@ public sealed partial class ThemeSwatch : ObservableObject
         Id = theme.Id;
         Name = theme.Name;
         Note = theme.Note;
-        Kind = theme.IsDark ? "深色" : "浅色";
+        Kind = theme.FollowsSystem ? "自动切换深浅" : theme.IsDark ? "深色" : "浅色";
 
         Window = Fixed(theme.Colors.Window);
-        Surface = Fixed(theme.Colors.Surface);
+        // 系统选项用深浅双色预览，固定色板仍各自显示原配色。
+        Surface = Fixed(theme.FollowsSystem ? UiThemes.System(false).Colors.Surface : theme.Colors.Surface);
         Accent = Fixed(theme.Colors.Accent);
         Ink = Fixed(theme.Colors.Text);
         InkDim = Fixed(theme.Colors.TextDim);

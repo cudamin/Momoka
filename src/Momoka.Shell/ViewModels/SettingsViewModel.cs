@@ -2953,7 +2953,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingThemeRow ThemeSwatches(UiSettings ui) =>
         new(
             "主题",
-            $"点中即生效，{UiThemes.All.Count} 套配色都过了正文对比度 4.5:1 的门槛。",
+            "点中即生效；跟随系统会随 Windows 的浅色或深色应用模式自动切换。",
             UiThemes.All,
             () => ui.Theme,
             value =>

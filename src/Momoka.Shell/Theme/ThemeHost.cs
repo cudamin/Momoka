@@ -23,6 +23,23 @@ namespace Momoka.Shell;
 /// </summary>
 public static class ThemeHost
 {
+    // ContentDialog lives in a separate Popup tree. Shared styles register it too, so native controls
+    // change with the palette while it is open. Playback-only surfaces can locally opt out.
+    public static readonly DependencyProperty FollowChangesProperty = DependencyProperty.RegisterAttached(
+        "FollowChanges", typeof(bool), typeof(ThemeHost), new PropertyMetadata(false, OnFollowChangesChanged));
+
+    public static void SetFollowChanges(DependencyObject target, bool value) => target.SetValue(FollowChangesProperty, value);
+
+    public static bool GetFollowChanges(DependencyObject target) => (bool)target.GetValue(FollowChangesProperty);
+
+    private static void OnFollowChangesChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
+    {
+        if (target is not FrameworkElement root) return;
+        if (args.NewValue is true) Register(root);
+        else
+            Roots.RemoveAll(reference => !reference.TryGetTarget(out var item) || ReferenceEquals(item, root));
+    }
+
     /// <summary>
     /// Palette.xaml 里那两份跟着主题走的字典。第三份 HighContrast 故意不在内。
     /// <para>
@@ -212,6 +229,8 @@ public static class ThemeHost
 
     private static readonly List<WeakReference<FrameworkElement>> Roots = [];
 
+    private static SystemThemeWatcher? _systemTheme;
+
     /// <summary>当前生效的那套。启动时 <see cref="Apply(string?)"/> 会按设置文件把它换掉。</summary>
     public static UiTheme Current { get; private set; } = UiThemes.Default;
 
@@ -229,6 +248,46 @@ public static class ThemeHost
     public static void Apply(UiTheme theme)
     {
         ArgumentNullException.ThrowIfNull(theme);
+        if (theme.FollowsSystem)
+        {
+            _systemTheme ??= new SystemThemeWatcher(UpdateSystemTheme);
+            theme = UiThemes.System(_systemTheme.IsDark);
+        }
+        else
+            StopSystemWatch();
+
+        ApplyResolved(theme);
+    }
+
+    public static void StopSystemWatch()
+    {
+        _systemTheme?.Dispose();
+        _systemTheme = null;
+    }
+
+    /// <summary>播放信息保留深色局部角色，不能只固定 ElementTheme 后仍引用被全局涂浅的画刷。</summary>
+    internal static void KeepDark(FrameworkElement root)
+    {
+        SetFollowChanges(root, false);
+        root.RequestedTheme = ElementTheme.Dark;
+        var theme = Current.IsDark ? Current : UiThemes.Default;
+        var entries = new ResourceDictionary();
+        foreach (var (key, pick) in Brushes)
+            entries[key] = new SolidColorBrush(ToColor(pick(theme)));
+        foreach (var (key, pick) in Colors)
+            entries[key] = ToColor(pick(theme));
+        // Only Dark is locally overridden; Windows HighContrast continues to resolve system resources.
+        root.Resources.ThemeDictionaries["Dark"] = entries;
+    }
+
+    private static void UpdateSystemTheme(bool dark)
+    {
+        if (Current.FollowsSystem && Current.IsDark != dark)
+            ApplyResolved(UiThemes.System(dark));
+    }
+
+    private static void ApplyResolved(UiTheme theme)
+    {
         Current = theme;
 
         foreach (var name in Painted)

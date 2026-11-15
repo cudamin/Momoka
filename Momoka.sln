@@ -167,6 +167,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ArtworkSearchDialogT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DetailStickyHeaderTests", "tests\Momoka.DetailStickyHeaderTests\Momoka.DetailStickyHeaderTests.csproj", "{68DDBE62-184D-487B-9FB2-7B8C93B6165A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SystemThemeTests", "tests\Momoka.SystemThemeTests\Momoka.SystemThemeTests.csproj", "{972B21AD-DA92-4C2F-A295-9E3E253F8746}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -493,8 +495,13 @@ Global
 		{68DDBE62-184D-487B-9FB2-7B8C93B6165A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68DDBE62-184D-487B-9FB2-7B8C93B6165A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68DDBE62-184D-487B-9FB2-7B8C93B6165A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{972B21AD-DA92-4C2F-A295-9E3E253F8746}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{972B21AD-DA92-4C2F-A295-9E3E253F8746}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{972B21AD-DA92-4C2F-A295-9E3E253F8746}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{972B21AD-DA92-4C2F-A295-9E3E253F8746}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{972B21AD-DA92-4C2F-A295-9E3E253F8746} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{78CE9C80-0B2C-4498-B6C5-BEB72A2112D4} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{661C1586-0DD8-47CF-8B1D-7075DF39AF80} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

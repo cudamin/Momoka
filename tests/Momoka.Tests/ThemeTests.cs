@@ -7,8 +7,7 @@ namespace Momoka.Tests;
 /// 「生成几套主题」，在没有窗口的地方压住。
 /// <para>
 /// 一套主题坏掉的样子不是崩溃，是某一行字看不见 —— 而这件事只有把整份角色表拿对比度量一遍才发现得了。
-/// 所以这里的主体不是「解析得对不对」，是五套主题乘每一条「谁压在谁上面」的组合，一条条量。手点着看五套
-/// 主题的每一页，是这份测试替掉的那件事。
+/// 覆盖五套固定主题及系统深浅两套的全部角色组合。这里只证明配色关系，真实界面仍需运行截图核对。
 /// </para>
 /// </summary>
 internal static class ThemeTests
@@ -74,15 +73,16 @@ internal static class ThemeTests
             }
         });
 
-        Test("主题目录：现在全是深色的", () =>
+        Test("主题目录：五套固定深色与一个系统选项，已删除的晴昼不恢复", () =>
         {
-            // 这一条从前是「深浅两边都有」。「晴昼」（唯一那套浅色）2026-09-05 按用户一句「删掉晴昼主题」删了，
-            // 所以它翻了过来。留着它不是为了断言「没有浅色」这件好事，是为了把「删掉的是数据、留下的是推导」
-            // 钉在这儿：Make 里那条 dark: false 的路现在一个人不走，而底下「深色主题里悬停更亮，浅色主题里更暗」
-            // 那条照旧按 IsDark 判 —— 哪天把浅色加回来，这一条会第一个红，提醒改的人先读 UiThemes 的类注释。
-            Assert.True(UiThemes.All.Any(theme => theme.IsDark), "没有深色主题");
-            Assert.True(UiThemes.All.All(theme => theme.IsDark),
-                "又有浅色主题了 —— 先读 UiThemes 的类注释，再决定这一条该怎么改");
+            Assert.Equal(5, UiThemes.All.Count(theme => !theme.FollowsSystem));
+            Assert.True(UiThemes.All.Where(theme => !theme.FollowsSystem).All(theme => theme.IsDark));
+            Assert.Equal(1, UiThemes.All.Count(theme => theme.FollowsSystem));
+            Assert.Equal(UiThemes.SystemId, UiThemes.System(true).Id);
+            Assert.Equal(UiThemes.SystemId, UiThemes.System(false).Id);
+            Assert.True(UiThemes.System(true).IsDark);
+            Assert.False(UiThemes.System(false).IsDark);
+            Assert.Null(UiThemes.Find("daylight"));
         });
 
         Test("主题目录：认不出来的 id 回落到默认那套", () =>
@@ -109,7 +109,7 @@ internal static class ThemeTests
     {
         Test("主题对比度：正文在窗口底和面上都够 4.5:1", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
                 Ratio(theme, "正文/窗口底", colors.Text, colors.Window, 4.5);
@@ -121,7 +121,7 @@ internal static class ThemeTests
 
         Test("主题对比度：暗字够 4.5:1，最淡的字够 3:1", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
 
@@ -137,7 +137,7 @@ internal static class ThemeTests
 
         Test("主题对比度：强调色上的字够 4.5:1，强调色自己够 3:1", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
 
@@ -157,7 +157,7 @@ internal static class ThemeTests
 
         Test("主题对比度：三个状态色在面上读得出来", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
                 Ratio(theme, "危险色/面", colors.Danger, colors.Surface, 3.0);
@@ -171,7 +171,7 @@ internal static class ThemeTests
     {
         Test("主题推导：每一层都真的和上一层分得开", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
 
@@ -188,7 +188,7 @@ internal static class ThemeTests
 
         Test("主题推导：深色主题里悬停更亮，浅色主题里更暗", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
                 var brighter = colors.SurfaceHover.Luminance > colors.SurfaceAlt.Luminance;
@@ -201,7 +201,7 @@ internal static class ThemeTests
 
         Test("主题推导：遮罩是半透明的，别的角色都不是", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in RenderedThemes())
             {
                 var colors = theme.Colors;
                 Assert.True(colors.Scrim.A < 0xFF, $"{theme.Id}：遮罩不透明，对话框背后会整片糊掉");
@@ -212,6 +212,8 @@ internal static class ThemeTests
             }
         });
     }
+
+    private static IEnumerable<UiTheme> RenderedThemes() => [.. UiThemes.All, UiThemes.System(false)];
 
     /// <summary>量一对颜色，不够就把是哪套主题、哪一对、差多少一起说出来。</summary>
     private static void Ratio(UiTheme theme, string what, ThemeColor front, ThemeColor back, double least)

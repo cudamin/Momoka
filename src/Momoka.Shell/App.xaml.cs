@@ -321,6 +321,7 @@ public partial class App : Application
 
     private void OnWindowClosed()
     {
+        ThemeHost.StopSystemWatch();
         _activation?.Dispose();
         _activation = null;
 

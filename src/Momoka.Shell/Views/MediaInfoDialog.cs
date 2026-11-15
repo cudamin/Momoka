@@ -16,30 +16,35 @@ namespace Momoka.Shell.Views;
 internal static class MediaInfoDialog
 {
     /// <summary>画一张播放信息对话框（正文 <paramref name="text"/>），挂在 <paramref name="root"/> 上。</summary>
-    internal static ContentDialog Create(XamlRoot root, string text) => new()
+    internal static ContentDialog Create(XamlRoot root, string text)
     {
-        XamlRoot = root,
-        Title = "播放信息",
-        Content = new ScrollViewer
+        var dialog = new ContentDialog
         {
-            MaxHeight = 420,
-            Content = new TextBlock
+            XamlRoot = root,
+            Title = "播放信息",
+            Content = new ScrollViewer
             {
-                Text = text,
-                TextWrapping = TextWrapping.Wrap,
-                IsTextSelectionEnabled = true,
+                MaxHeight = 420,
+                Content = new TextBlock
+                {
+                    Text = text,
+                    TextWrapping = TextWrapping.Wrap,
+                    IsTextSelectionEnabled = true,
 
-                // 等宽不是装饰：那一块里全是数字与路径，比例字体下每一行都会随字宽抖动。取在 Create
-                // 里而不是静态字段 —— 两个调用点都在界面线程，而 WinUI 类的静态初始化会落在首触线程上。
-                FontFamily = new FontFamily("Consolas,Cascadia Mono,Microsoft YaHei UI")
-            }
-        },
-        CloseButtonText = "关闭",
-        DefaultButton = ContentDialogButton.Close,
+                    // 等宽不是装饰：那一块里全是数字与路径，比例字体下每一行都会随字宽抖动。取在 Create
+                    // 里而不是静态字段 —— 两个调用点都在界面线程，而 WinUI 类的静态初始化会落在首触线程上。
+                    FontFamily = new FontFamily("Consolas,Cascadia Mono,Microsoft YaHei UI")
+                }
+            },
+            CloseButtonText = "关闭",
+            DefaultButton = ContentDialogButton.Close,
 
-        // Dark whatever the theme is, unlike ConfirmDialog's: this one only ever comes up over
-        // playback, and a white sheet dropped on top of a film is worse than a light-theme user
-        // meeting one dark dialog.
-        RequestedTheme = ElementTheme.Dark
-    };
+            // Dark whatever the theme is, unlike ConfirmDialog's: this one only ever comes up over
+            // playback, and a white sheet dropped on top of a film is worse than a light-theme user
+            // meeting one dark dialog.
+            RequestedTheme = ElementTheme.Dark
+        };
+        ThemeHost.KeepDark(dialog);
+        return dialog;
+    }
 }

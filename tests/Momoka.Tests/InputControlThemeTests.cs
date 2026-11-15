@@ -59,7 +59,7 @@ internal static class InputControlThemeTests
         });
         Test("输入主题：文本输入沿用侧边栏底色，选择框使用输入玻璃", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in UiThemes.All.Append(UiThemes.System(false)))
             {
                 foreach (var key in TextBackgroundKeys)
                     Assert.Equal(theme.Colors.Window, Pick(key, theme), $"{theme.Id}/{key}");
@@ -70,13 +70,13 @@ internal static class InputControlThemeTests
         });
         Test("输入主题：玻璃 tint 深色取悬停面、浅色取凹面", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in UiThemes.All.Append(UiThemes.System(false)))
                 Assert.Equal(theme.IsDark ? theme.Colors.SurfaceHover : theme.Colors.SurfaceAlt,
                     InputControlTheme.Glass(theme), theme.Id);
         });
         Test("输入主题：聚焦和悬停只加强中性边线，不使用强调色", () =>
         {
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in UiThemes.All.Append(UiThemes.System(false)))
             {
                 foreach (var key in StrongBorderKeys)
                 {

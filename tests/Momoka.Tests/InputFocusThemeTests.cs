@@ -31,7 +31,7 @@ internal static class InputFocusThemeTests
         Test("输入焦点：切换主题不会把全局焦点重新涂成强调色", () =>
         {
             var pick = PickBrush(FocusKey);
-            foreach (var theme in UiThemes.All)
+            foreach (var theme in UiThemes.All.Append(UiThemes.System(false)))
             {
                 Assert.Equal(theme.Colors.BorderStrong, pick(theme));
                 Assert.False(pick(theme) == theme.Colors.Accent);

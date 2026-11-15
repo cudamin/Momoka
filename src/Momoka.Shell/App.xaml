@@ -21,9 +21,9 @@
   SolidColorBrush objects of *both* painted ThemeDictionaries — Dark and Light — and sets ElementTheme on
   the registered roots to match, so the framework's own hundreds of unoverridden brushes flip with it.
   Writing both is what keeps those two app-scope readers agreeing with the trees they draw into: whatever
-  dictionary a lookup lands in, it holds the same theme. All five themes in UiThemes are dark today
-  (daylight was deleted 2026-09-05), so Light is currently painted and never selected — kept because
-  dropping it would take the light half of the derivation with it.
+  dictionary a lookup lands in, it holds the same theme. Five fixed palettes are dark; the system
+  option added 2026-11-15 selects Light or Dark from UISettings and repaints these same resources.
+  The deleted standalone daylight id remains retired.
 
   Palette.xaml is merged after XamlControlsResources so its keys shadow the framework's. Styles.xaml comes
   after Palette.xaml, and that order is load-bearing: Palette.xaml holds only colour now, Styles.xaml holds

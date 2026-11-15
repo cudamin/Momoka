@@ -15,7 +15,8 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Momoka.Shell.Views">
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:theme="using:Momoka.Shell">
 
     <!-- 详情媒体菜单使用轻透的系统亚克力，透明底让背景颜色透出。 -->
     <Style x:Key="EgDetailMenuPresenterStyle" TargetType="MenuFlyoutPresenter"
@@ -206,6 +207,7 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
         <Setter Property="local:DialogDismiss.ClosesOnOutsideClick" Value="True" />
+        <Setter Property="theme:ThemeHost.FollowChanges" Value="True" />
     </Style>
 
     <!-- 媒体库弹窗（2026-10-28）：只覆盖库管理相关类型，背景与设置侧栏使用同一个主题角色。
@@ -253,6 +255,7 @@
     <!-- 下载弹窗自己的表面写在它头上（见上一条），这里只给它「点外面就关」那一项：不接这一行，它是
          全项目唯一一张点了外面没反应的弹窗。 -->
     <Style TargetType="local:MoviePilotDownloadDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
+        <Setter Property="theme:ThemeHost.FollowChanges" Value="True" />
         <Setter Property="local:DialogDismiss.ClosesOnOutsideClick" Value="True" />
     </Style>
 

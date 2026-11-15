@@ -69,9 +69,8 @@ public sealed record UiPalette
 /// <param name="IsDark">
 /// 深色还是浅色。不只是给人看的：框架自己那几百个没被覆盖的刷子跟着元素树的
 /// <c>ElementTheme</c> 走，外壳就是按这个字段把树翻过去的。
-/// <para>
-/// 眼下每一套都是深色（唯一那套浅色「晴昼」2026-09-05 删了），但这个字段和它背后那条推导都留着 —— 理由写在
-/// <see cref="UiThemes"/> 的类注释里，别顺手清。
-/// </para>
 /// </param>
-public sealed record UiTheme(string Id, string Name, string Note, bool IsDark, UiPalette Colors);
+public sealed record UiTheme(string Id, string Name, string Note, bool IsDark, UiPalette Colors)
+{
+    public bool FollowsSystem => string.Equals(Id, UiThemes.SystemId, StringComparison.OrdinalIgnoreCase);
+}

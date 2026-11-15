@@ -13832,3 +13832,9 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 本任务只在独立树 `C:/Users/89400/.codex/worktrees/delivery-detail-probe/Momoka`、分支 `codex/delivery-detail-probe`、基点875dedb补诊断与相关PageContract测试；不改产品行为。新增detail-cards分区与检查台入口，复用正式详情页、匿名图片、长简介和预告控制占位，量实际1240/760/360/1240页宽与右沿16 DIP空隙、封面下操作间距、首卡避让、实测折行及透明面板圆角，读正式128像素遮罩左右下alpha，保留顶部不渐隐。首字判据以单独文字渲染定义笔画，在同一实际桌面帧中检查完整笔画及左上角；截图和读数共用同帧，空帧与缺角反例必须拒绝。始终禁止预告后端、正片播放和上报，保留原有六张卡片截图。
 
 独立树Shell Release编译0警告0错误（3分19.59秒）；PageContract当前282/282、失败0、跳过0，新增六组覆盖正确与错误读数以及正式分区/检查台/同帧接线；变更七个源文件的UTF-8/LF/BOM/末尾换行与git diff空白检查通过。此树未启动窗口、未跑原生探针、未发布、未推送、未接触真实服务。实际屏幕判据与页面尺寸仍须由主交付会话整合后，串行运行`--probe-shell --probe-section detail-cards --screen 1`，保存store-detail-backdrop.json和三个宽度的screen.png；分支编译/测试不能代替主树原生验收。本树libmpv原生载荷未齐，不能用作发布或运行交付。
+
+## 2026-11-15 新增跟随系统主题
+
+工作树 `C:\Users\89400\Momoka`，从干净 master `bbe579a` 直接实施；子代理仅只读调查/审阅，无并行写入。用户明确新增系统主题，五套固定深色与默认不变，独立 daylight id仍不恢复。系统偏好保存为system，UISettings前景判断深浅，后台事件合并并在UI读取后重涂原画刷、登记根与窗口Changed；普通/独立下载弹窗样式登记根，播放信息复制当前深色局部角色以免全局浅色覆盖，HighContrast保持系统资源。固定Gallery稳定v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的SettingsPage、ThemeHelper、TitleBarHelper、WindowHelper及Learn主题指南已读，适配固定Application.Dark，无依赖升级。
+
+本轮主题/保存/输入角色58/58、完整生产源链接系统监听/ThemeHost/弹窗边界7/7、设置外观47/47，0失败0跳过；当前Release Core/Shell/主测试及专项编译0警告0错误。独立审阅已修复下载例外样式、播放信息全局重涂及契约空集通过问题。仅源链接测试中的平台替代，不是原生切换/Mica像素证据。待交付34记录系统两种实际状态、所有固定主题截图、UIA/键盘及旧探针预期适配（InputFocus/SettingsSearch/MaterialLifecycle等按Apply后的Current，不能按系统目录深色预览）。没有运行应用、改变Windows设置、发布或推送；桌面快捷方式仍是此前交付版本。

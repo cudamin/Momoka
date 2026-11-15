@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../../src/Momoka.Shell/Theme/ThemeHost.cs" Link="Production/ThemeHost.cs" />
+    <Compile Include="../../src/Momoka.Shell/Theme/SystemThemeWatcher.cs" Link="Production/SystemThemeWatcher.cs" />
+    <Compile Include="../../src/Momoka.Shell/Theme/InputControlTheme.cs" Link="Production/InputControlTheme.cs" />
+    <Compile Include="../../src/Momoka.Shell/Theme/SystemManagedThemeRole.cs" Link="Production/SystemManagedThemeRole.cs" />
+  </ItemGroup>
+</Project>
