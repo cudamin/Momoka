@@ -1,3 +1,9 @@
+## 2026-11-15 本次交付统一检查结果与追加布局要求（在途）
+
+最终代码 9e3402d 的统一原生分区 library/detail-cards/settings/performance/materials/motion，报告 shell-probe-20261115-150143533-12688：95 项、88 通过、7 失败，未发布。红项为预告网页前台等待、深返滚动完成超时、详情竖滚 p95 43.9ms 超过40ms门槛、长剧最后项焦点、两项商店预告圆角判据把按钮宽档与1024预览断点混用、页面过渡候选超时。已取得36高/6间距文件选项、详情自定义电影/剧/集、沉浸信息卡、连续130次缩放、设置窗下一拍回前层与海报关联等通过证据；旧红保持不洗绿。
+
+用户追加商店四颗按钮移封面下方、无边框、无悬停也常驻，并撤回第46项均匀撑开，令右栏按正常小间距向上收紧。两项在独立树实现，根交付会话统一合入、重验相关范围与发布。原始批次及本轮红证据保留，不能用旧图销账。
+
 ## 2026-11-15 交付补验：网页预告字幕与播放通知（独立树完成，待主控原生运行）
 
 交付主控要求补齐本次新增的 YouTube 字幕控制运行证据，避免只看生成 HTML 就算通过。工作树 `C:/Users/89400/.codex/worktrees/delivery-youtube-captions/Momoka`，分支 `codex/delivery-youtube-captions`，基点 `4209de4`。只改 `ShellNavigationProbe.StoreTrailerWeb.cs`、`Momoka.PageContractTests` 的 source-link/事件边界与回归，未改 `StoreYouTubePreview`、`StoreTrailerDocument` 或用户可见界面。
