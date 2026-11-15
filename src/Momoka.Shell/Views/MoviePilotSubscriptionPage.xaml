@@ -115,12 +115,12 @@
                                 Stretch="UniformToFill" AlignmentX="Right" AlignmentY="Top" />
                 </Border.Background>
             </Border>
-            </Grid>
-        <Border x:Name="StoreBackdropMask" />
-    </Grid>
     <Grid x:Name="StoreBackdropAcrylic" HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
         <Border x:Name="StoreBackdropAcrylicFill" />
         <Border x:Name="StoreBackdropAcrylicBottom" Height="120" VerticalAlignment="Bottom" />
+    </Grid>
+            </Grid>
+        <Border x:Name="StoreBackdropMask" />
     </Grid>
         <StackPanel>
             <!-- 简介排在操作排上方（2026-11-14 用户令「参考上图修改订阅页面的布局」：标题块底下依次是简介、
@@ -158,7 +158,7 @@
                                 Foreground="{ThemeResource EgAccentBrush}" />
                         </Border>
                         <TextBlock x:Name="MediaTitle" Text="{x:Bind MediaViewModel.Title, Mode=OneWay}" Style="{StaticResource EgOnScrimPageTitleStyle}" TextWrapping="Wrap" />
-                        <TextBlock Text="{x:Bind MediaViewModel.Meta, Mode=OneWay}" Style="{StaticResource EgOnScrimDataStyle}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="MediaMeta" Text="{x:Bind MediaViewModel.Meta, Mode=OneWay}" Style="{StaticResource EgOnScrimDataStyle}" TextWrapping="Wrap" />
                         <TextBlock x:Name="MediaRating" Text="{x:Bind MediaViewModel.Rating, Mode=OneWay}"
                             Style="{StaticResource EgOnScrimDataStyle}" Foreground="{ThemeResource EgAccentBrush}" />
                         <TextBlock Text="{x:Bind ViewModel.DetailStatus, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"

@@ -79,8 +79,16 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(trailerHost.ActualWidth - TrailerPreview.BackgroundWidth(page.ViewModel.PageWidth)) < 1
                 && trailerHost.HorizontalAlignment == HorizontalAlignment.Right && trailerHost.ActualWidth < page.ViewModel.PageWidth,
                 "预告未限制在顶部右侧背景");
-            Require(Math.Abs(video.ActualHeight - trailerHost.ActualHeight) < 1 && trailerHost.Margin == new Thickness(0),
+            Require(Math.Abs(video.ActualHeight - trailerHost.ActualHeight) < 1 && trailerHost.Margin == new Thickness(0, 0, DetailHero.StorePreviewGap, 0),
                 "预告仍保留独立面板边距或控件占位");
+            var foundation = Get<Border>(page, "StoreTrailerFoundation");
+            var fade = Get<Border>(page, "StoreTrailerFade");
+            Require(foundation.Visibility == Visibility.Visible
+                && Math.Abs(foundation.ActualWidth - page.ViewModel.PageWidth) < 1
+                && Math.Abs(foundation.ActualHeight - trailerHost.ActualHeight - StoreBackdropBlend.FoundationTail) < 1
+                && foundation.Background is ImageBrush && fade.Background is ImageBrush
+                && Math.Abs(fade.ActualWidth - video.ActualWidth) < 1 && Math.Abs(fade.ActualHeight - video.ActualHeight) < 1,
+                "视频局部底层或叠图没有匹配实际视口");
             var audio = Get<AppBarButton>(page, "StoreTrailerAudio");
             var subtitle = Get<AppBarButton>(page, "StoreTrailerSubtitles");
             await UntilAsync(() => audio.Visibility == Visibility.Visible && subtitle.Visibility == Visibility.Visible);
@@ -99,13 +107,20 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync("store-trailer-decoded-screen.png");
             Call(page, "OnStoreTrailerPause", Get<AppBarButton>(page, "StoreTrailerPause"), new RoutedEventArgs());
             await UntilAsync(() => player.PlaybackSession.PlaybackState == MediaPlaybackState.Paused);
+            Field(page, "_storeTrailerScrollPaused", true);
+            Call(page, "OnStoreTrailerPause", Get<AppBarButton>(page, "StoreTrailerPause"), new RoutedEventArgs());
+            await Task.Delay(100);
+            Require(player.PlaybackSession.PlaybackState == MediaPlaybackState.Paused, "解除用户暂停绕过了离屏暂停");
+            Field(page, "_storeTrailerScrollPaused", false);
             Call(page, "OnStoreTrailerMute", Get<AppBarButton>(page, "StoreTrailerMute"), new RoutedEventArgs());
             Require(!player.IsMuted, "预告静音切换没有生效");
             player.IsMuted = true;
             await StoreTrailerWebAsync(page);
             Require(fixture.Actions.Plays == 0 && !fixture.Transport.Requests.Any(request => request.Contains("/Playing", StringComparison.Ordinal)), "预告调用了正片播放或上报");
             page.SetStorePreviewActive(false);
-            Require(trailerHost.Visibility == Visibility.Collapsed && Get<MediaPlayer?>(page, "_storeTrailerPlayer") is null, "主播放开始没有释放独立预告");
+            Require(trailerHost.Visibility == Visibility.Collapsed && Get<MediaPlayer?>(page, "_storeTrailerPlayer") is null
+                && foundation.Visibility == Visibility.Collapsed && foundation.Background is null && fade.Background is null,
+                "主播放开始没有释放独立预告或局部渐变");
             var rejected = false;
             try { Require(trailerHost.Visibility == Visibility.Visible, "负向对照：已释放预告不可见"); }
             catch (InvalidOperationException) { rejected = true; }
@@ -120,7 +135,7 @@ internal sealed partial class ShellNavigationProbe
     }
 
     // 明暗细条作为真实模糊对照，避免深色渐变让未生效的亚克力也看起来通过。
-    private static async Task<byte[]> StoreBackdropFixtureAsync()
+    private static async Task<byte[]> StoreBackdropFixtureAsync(bool ambient = false)
     {
         const int width = 1280;
         const int height = 720;
@@ -129,11 +144,21 @@ internal sealed partial class ShellNavigationProbe
             for (var x = 0; x < width; x++)
             {
                 var offset = (y * width + x) * 4;
-                var blue = x % 32 < 16;
+                var blue = ambient ? x < width / 2 : x % 32 < 16;
                 pixels[offset] = blue ? (byte)240 : (byte)20;
                 pixels[offset + 1] = blue ? (byte)130 : (byte)220;
                 pixels[offset + 2] = blue ? (byte)20 : (byte)240;
                 pixels[offset + 3] = 255;
+                if (ambient)
+                {
+                    // 匿名的蓝底与右侧红色光团，用连续色区检查扩散；硬切双色只用于Core的边界回归。
+                    var dx = (x / (double)width - 0.72) / 0.25;
+                    var dy = (y / (double)height - 0.36) / 0.5;
+                    var glow = Math.Exp(-0.5 * (dx * dx + dy * dy));
+                    pixels[offset] = (byte)Math.Round(242 - 136 * glow);
+                    pixels[offset + 1] = (byte)Math.Round(191 - 107 * glow);
+                    pixels[offset + 2] = (byte)Math.Round(66 + 181 * glow);
+                }
             }
         using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
         var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, stream);

@@ -114,6 +114,7 @@ internal static class Program
         DetailSectionCardTests.Register();
         StoreDetailLayoutTests.Register();
         StoreDetailProbeEvidenceTests.Register();
+        ArtworkAmbientTests.Register();
         return TestHarness.Run();
     }
 

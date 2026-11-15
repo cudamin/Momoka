@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
@@ -620,8 +621,8 @@ internal sealed partial class ShellNavigationProbe
             Require(ambient.Visibility == Visibility.Visible
                 && Math.Abs(ambient.Height - Get<Grid>(page, "StoreBackdrop").Height) < 1,
                 "MP 商店环境底没有跟随背景的高度与显隐");
-            Require(Get<Border>(page, "StoreBackdropSides").Background is SolidColorBrush { Color.A: 255 },
-                "MP 商店环境底没有按剧照取色");
+            Require(Get<Border>(page, "StoreBackdropSides").Background is ImageBrush { ImageSource: WriteableBitmap },
+                "MP 商店环境底没有按剧照生成柔和多色渐变");
             Require(Get<StoreBackdropFade>(page, "_storeAmbientFade").IsActive,
                 "MP 商店环境底未启用透明渐隐");
             // 2026-11-14 订阅详情去掉头部卡面后没有 HeroMica 可查：整个头部子树都不许再挂局部材质。

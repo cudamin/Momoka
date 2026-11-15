@@ -9,6 +9,8 @@
     <StartupObject>Momoka.Tests.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Momoka.Shell/Media/StoreAmbientPixels.cs" Link="Production/StoreAmbientPixels.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/StoreBackdropBlend.cs" Link="Production/StoreBackdropBlend.cs" />
     <Compile Include="../../src/Momoka.Shell/StoreDetailProbeEvidence.cs" Link="Production/StoreDetailProbeEvidence.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/HomeHeaderScrollState.cs" Link="Production/HomeHeaderScrollState.cs" />
     <Compile Include="../../src/Momoka.Shell/HomeHeaderChromeProbeReadings.cs" Link="Production/HomeHeaderChromeProbeReadings.cs" />

@@ -243,9 +243,11 @@ public sealed partial class DetailPage
         // 商店模式主播放键的强调面上，字和图标取实心强调键的对比色；高对比度仍让给系统前景。
         var onAccent = !contrast && !ViewModel.AppearanceSettings.EnableImmersive
             ? ((SolidColorBrush)Application.Current.Resources["EgTextOnAccentBrush"]).Color : (Color?)null;
+        var storeInk = ViewModel.StoreMode && !ThemeHost.Current.IsDark
+            ? ThemeHost.ToColor(ThemeHost.Current.Colors.Text) : (Color?)null;
         foreach (var backgrounds in _controlBackgrounds)
             backgrounds.ApplyDefaultForeground(
-                forced ?? (onAccent is { } accent && IsStorePlay(backgrounds) ? accent : null));
+                forced ?? (onAccent is { } accent && IsStorePlay(backgrounds) ? accent : storeInk));
         // 模板中显式指定过颜色的非强调图标/连播文字，跟同一颗按钮走。
         foreach (var backgrounds in _controlBackgrounds)
         {
@@ -286,6 +288,11 @@ public sealed partial class DetailPage
             var defaultColor = defaultBrush.Color;
             var color = forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B)
                 : ThemeColor.Rgb(defaultColor.R, defaultColor.G, defaultColor.B);
+            // 商店浅色的环境底随主题调亮，正文随之使用主题深墨；沉浸图上的浅墨保持原阅读保护。
+            if (forced is null && ViewModel.StoreMode && !ThemeHost.Current.IsDark)
+                color = text == DetailDirectorsText || text == GenreLine || text == ScoreSourceText
+                    ? ThemeHost.Current.Colors.Text.Mix(ThemeHost.Current.Colors.Window, 0.14)
+                    : ThemeHost.Current.Colors.Text;
             if (!_readingColors.TryGetValue(text, out var brush))
             {
                 brush = new SolidColorBrush();
@@ -311,7 +318,8 @@ public sealed partial class DetailPage
                     _readingColors.Add(text, brush);
                     text.Foreground = brush;
                 }
-                brush.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color;
+                brush.Color = forced ?? ResourceColor(ViewModel.StoreMode && !ThemeHost.Current.IsDark
+                    ? "EgTextBrush" : "EgOnScrimBrush");
             }
     }
 

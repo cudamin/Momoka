@@ -343,8 +343,8 @@ internal sealed partial class ShellNavigationProbe
         Require(ambient.Visibility == store.Visibility
             && Math.Abs(ambient.ActualHeight - view.StoreAmbientHeight) < 1,
             "商店环境底没有跟随背景的高度与显隐");
-        Require(Get<Border>(page, "StoreBackdropSides").Background is SolidColorBrush { Color.A: 255 },
-            "商店环境底没有按剧照取色");
+        Require(Get<Border>(page, "StoreBackdropSides").Background is ImageBrush { ImageSource: Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap },
+            "商店环境底没有按剧照生成柔和多色渐变");
         Require(Get<Border>(page, "StoreAmbientMask").Background is ImageBrush { ImageSource: Microsoft.UI.Xaml.Media.Imaging.WriteableBitmap },
             "商店环境底没有双轴透明遮罩");
         Require(Get<StoreBackdropFade>(page, "_storeAmbientFade").IsActive,

@@ -3,6 +3,22 @@ namespace Momoka.Shell;
 /// <summary>商店详情探针的实际布局、遮罩与首字屏幕读数判据；不产生界面或重写产品布局。</summary>
 internal static class StoreDetailProbeEvidence
 {
+    internal static bool PageSizeMatches(double target, double client, double page, double body, double viewModel) =>
+        new[] { client, page, body, viewModel }.All(value => double.IsFinite(value) && Math.Abs(value - target) < 1.5);
+
+    internal static void RequireAmbient(byte[] pixels, int width, int height)
+    {
+        if (width < 8 || height < 4 || (long)width * height * 4 != pixels.Length)
+            throw new InvalidOperationException("环境底像素尺寸不完整");
+        var left = (height / 2 * width + width / 8) * 4;
+        var right = (height / 2 * width + width * 7 / 8) * 4;
+        // 蓝底红光团融合后右边仍可含蓝；检查相对色差，而不是误要求整个右边变成纯红。
+        var leftWarmth = pixels[left + 2] - pixels[left];
+        var rightWarmth = pixels[right + 2] - pixels[right];
+        if (leftWarmth >= -20 || rightWarmth - leftWarmth < 35)
+            throw new InvalidOperationException("实际环境底没有保留蓝底与红光团的相对色差");
+    }
+
     internal static void Cleanup(params Action[] actions)
     {
         List<Exception>? failures = null;

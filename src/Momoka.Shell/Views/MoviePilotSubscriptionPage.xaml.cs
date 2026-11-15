@@ -562,6 +562,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 
     public void Release()
     {
+        _storeAmbientBrush.Clear();
+        _storeTint.Clear();
+        StoreBackdropSides.Background = null;
         _request?.SetTitleStrip?.Invoke(TitleStrip.Plain);
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
         ThemeHost.Changed -= OnShowcaseThemeChanged;

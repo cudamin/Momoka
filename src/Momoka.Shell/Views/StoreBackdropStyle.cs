@@ -14,38 +14,21 @@ internal static class StoreBackdropStyle
     {
         private HeroPictureLoader.HeroPixels? _pixels;
         private ThemeColor _color;
-        internal Color Resolve(HeroPictureLoader.HeroPixels? pixels, bool hasImage, ThemeColor fallback)
+        private ThemeColor _fallback;
+        internal void Clear() => _pixels = null;
+        internal Color Resolve(HeroPictureLoader.HeroPixels? pixels, bool hasImage, ThemeColor fallback, bool dark)
         {
             if (!hasImage || pixels is null) { _pixels = null; return ThemeHost.ToColor(fallback); }
-            if (!ReferenceEquals(_pixels, pixels))
+            // 窄窗的浅色亚克力用主题纸面，不能让旧的暗色取样盖在浅色正文下面。
+            if (!dark) { _pixels = null; return ThemeHost.ToColor(fallback); }
+            if (!ReferenceEquals(_pixels, pixels) || _fallback != fallback)
             {
                 _pixels = pixels;
+                _fallback = fallback;
                 _color = ArtworkShade.Sample(pixels.Pixels, pixels.Width, pixels.Height, fallback);
             }
             return ThemeHost.ToColor(_color);
         }
-    }
-
-    /// <summary>
-    /// 剧照后面那块环境底：2026-11-14 用户令「渐变参考图二改」之后，它不再往剧照上压一层染色，
-    /// 而是一块纯色铺在剧照下面，由 <see cref="StoreBackdropFade"/> 的 Ambient 遮罩把它的左端、右端与底部
-    /// 收到透明。剧照自己在同一块底上渐隐，屏幕上是「画面融进一块跟着剧照换色的暗底」，
-    /// 与微软商店条目页的顶图同一种做法（微软商店闭源，截图只作视觉参考）。
-    /// 2026-11-15 用户又令「下方和左右要加渐变」「最右边要留一点空隙」：右端一并收边，画面不再贴着滚动条。
-    /// </summary>
-    internal static void Apply(Border ambient, Color color)
-    {
-        if (ambient.Background is SolidColorBrush existing && existing.Color == color) return;
-        ambient.Background = new SolidColorBrush(color);
-    }
-
-    internal static void ApplyVideo(Border sides, Border bottom, Color color)
-    {
-        // 外部视频表面上实际绘制XAML渐变，端点与页面窗口色完全一致，文字区域保持可读。
-        sides.Background = Gradient(color, new Point(0, 0.5), new Point(1, 0.5),
-            [(0, 1), (0.18, 0.68), (0.38, 0.2), (0.65, 0.08), (0.9, 0.3), (1, 1)]);
-        bottom.Background = Gradient(color, new Point(0.5, 0), new Point(0.5, 1),
-            [(0, 0.08), (0.35, 0.08), (0.6, 0.22), (0.82, 0.72), (1, 1)]);
     }
 
     // Gallery Samples/Acrylic/AcrylicPage.xaml/.xaml.cs,
