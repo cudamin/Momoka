@@ -27,7 +27,7 @@
 
 **验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **312/312**（新增商店换位、容器与渐隐起点契约）；`local-media-layout-fixture` **21/21**（含 `Agreements` 句柄基线）；主测试 **5157 项，通过 5139、失败 18、跳过 0**，18 条全部是既有环境红：13 条自检隔离/共享桌面锁、1 条自检输出、2 条下载到设备 `C:\WINDOWS\TEMP`，无详情相关失败；`git diff --check` 与 `tools/scan-automation-ids.js` 通过（无新增无句柄交互控件）。
 
-**待办。** 原生 `--probe-shell --probe-section detail-cards --screen 1` 未跑：另一工作树 `fix-settings-page-behind-cQmlcU` 的探针持续占用共享桌面锁（PID 16696/26772），按规则未结束他人进程、未绕锁；用户当次选择「先合并，探针待交付」，须在交付时按主树最终代码补跑商店详情宽窄/三尺寸实屏、检查新位置、圆角与渐隐，并目视 `StoreCoverActions`/`StoreCoverBadges`/`Trailer` 圆角。未发布、未推远端。
+**待办。** 原生 `--probe-shell --probe-section detail-cards --screen 1` 未跑：另一工作树 `fix-settings-page-behind-cQmlcU` 的探针持续占用共享桌面锁（PID 16696/26772/30724），按规则未结束他人进程、未绕锁；用户当次选择「先合并，探针待交付」，须在交付时按主树最终代码补跑商店详情宽窄/三尺寸实屏、检查新位置、圆角与渐隐，并目视 `StoreCoverActions`/`StoreCoverBadges`/`Trailer` 圆角。主树合并后已重新编译 Shell（0 警告 0 错误）并运行 `Momoka.PageContractTests` 312/312；原生探针仍待交付时补跑。未发布、未推远端。
 
 ## 2026-11-15 详情文件选择栏恢复旧版下拉样式（交付）
 
