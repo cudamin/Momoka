@@ -13860,3 +13860,11 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 补充无障碍复核：固定WinUI FrameworkElementAutomationPeer/ ButtonAutomationPeer确认Opacity、命中和Tab不等于常规读屏隐藏，移走端增加AccessibilityView.Raw并保存/还原原值，两个位置及取消/离页均覆盖；不宣称Raw或缓存peer Invoke被拦截，不改播放命令/禁用模板。当前专项89/89、失败0、跳过0，Release专项编译0警告0错误，真实UIA/Narrator仍待交付。
 
 无障碍修正最终Shell/Core Release编译0警告0错误（3分8秒），专项89/89、0失败0跳过；首次无障碍编译因AccessibilityView实际在Automation.Peers而失败，已按包元数据纠正生产与测试边界命名空间后重编通过，失败日志保留。Raw仅退出按钮本体的普通视图，不保证整棵子树或缓存Invoke。
+
+## 2026-11-15 订阅墙更多菜单锚点修复
+
+工作树 `C:/Users/89400/.codex/worktrees/1f16/Momoka`，临时分支 `codex/subscription-menu-anchor`，基于e30ab44；子代理仅只读诊断/官方核对/审阅。用户截图是MoviePilot订阅墙的宽卡，旧OnCardMenu把340×150整卡传给ShowAt，实际右上CardMore为32×32。卡片新增MenuAnchor，墙视图改用该按钮定位，菜单factory的页面业务属主、动作、默认平台方向及点外关闭保持原样。固定Gallery `6de91feccadfbb0a796b71caedead5a2284f730e` 的MenuFlyoutPage XAML/codebehind已读，native菜单挂在触发按钮；Learn ShowAt和菜单设计指南支持此用法，无依赖或坐标自定义。
+
+新增两个PageContract源接线回归与真实MoviePilotSidebarAsync电影/电视剧菜单检查：UIA调用CardMore，经产品OnMore/OnCardMenu后量同XamlRoot下按钮与presenter距离，两轴≤12 DIP且一轴重叠，限定当前Popup的原生LightDismiss属性。探针在开菜单前置顶，截图期间不改变原生层级，异常收尾只关新增菜单且始终恢复TopMost。Shell/Core与PageContract Release编译0警告0错误，页面专项300/300、失败0、跳过0；最终原生单项Passed=true、正常退出0，程序化关闭不是物理点外输入证据。原生首次属性通过但截图受置顶干扰，第二次修正后菜单向上延伸出客户区，客户区PNG有截顶；最终完整桌面帧确认电视剧菜单全部可见并紧贴按钮。电影距离同样通过，完整帧有过渡期底卡不呈现，不能冒称电影全态视觉验收。失败/中间截图和最终报告保留在本树 `artifacts/subscription-menu-anchor`，只用匿名假HTTP，不读真实账号、不播放、不写服务器；主树最终代码、窄窗/边缘/跨DPI和主题仍待交付验证。
+
+本轮不发布/推送，桌面快捷方式仍是此前交付版本。提交后等待主树“复刻详情页渐变区域与效果”写入会话释放，再合入master并补台账；待合入不是已交付。

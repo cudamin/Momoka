@@ -1026,6 +1026,7 @@ internal sealed partial class ShellNavigationProbe
             Require(!wallFilter.Flyout.IsOpen, "选完状态，筛选面板没有收起");
             wall.ViewModel.SelectWallFilter(MoviePilotSubscriptionWallFilter.All);
             await LayoutAsync(wall);
+            await CheckSubscriptionWallMenuAnchorAsync(wall, "movie");
 
             SelectSidebarItem(series);
             await UntilAsync(() => shell.CurrentTag == HomeLayout.MoviePilotSeries);
@@ -1040,6 +1041,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<ShelfStrip>(seriesView, "SeriesSubscriptions").Visibility == Visibility.Visible
                 && Get<ShelfStrip>(seriesView, "MovieSubscriptions").Parent is FrameworkElement collapsed
                 && collapsed.Visibility == Visibility.Collapsed, "电视剧订阅页没有只画电视剧那一排");
+            await CheckSubscriptionWallMenuAnchorAsync(Get<MoviePilotSubscriptionWallView>(seriesPage, "Wall"), "series");
 
             // 断线：两条入口当场收起，那一条分区标题跟着收，这一页也退掉，返回历史里不留。
             fixture.Settings.MoviePilot.Enabled = false;

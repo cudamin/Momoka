@@ -124,6 +124,31 @@ namespace Momoka.Tests
                 Assert.True(title > year, "年份那一行必须排在片名之前");
                 Assert.True(text.Contains("Card.WallYear") && text.Contains("Card.WallTitle"), "年份／片名要读墙上的那一对读数");
             });
+            // 墙控件在本专项里是边界替身；这里守真实源码接线，实际弹出几何由下方原生探针量。
+            Test("订阅墙菜单：目标是更多按钮，弹窗业务属主仍是页面", () =>
+            {
+                var root = Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views");
+                var card = File.ReadAllText(Path.Combine(root, "MoviePilotSubscriptionWallCard.xaml.cs"));
+                var wall = File.ReadAllText(Path.Combine(root, "MoviePilotSubscriptionWallView.xaml.cs"));
+                Assert.Contains("internal FrameworkElement MenuAnchor => CardMore;", card);
+                Assert.Contains("MoviePilotSubscriptionMenu.Create(this, ViewModel, card, () => Open(card), _service).ShowAt(control.MenuAnchor);", wall);
+                Assert.False(wall.Contains(".ShowAt(control);"), "不能退回整张宽卡定位");
+                Assert.Contains("MenuRequested?.Invoke(this, EventArgs.Empty)", card);
+            });
+            Test("订阅墙菜单：电影和电视剧都运行真实点击及几何探针", () =>
+            {
+                var root = Path.Combine(FindRoot(), "src", "Momoka.Shell");
+                var sidebar = File.ReadAllText(Path.Combine(root, "ShellNavigationProbe.Sidebar.cs"));
+                var probe = File.ReadAllText(Path.Combine(root, "ShellNavigationProbe.SubscriptionMenu.cs"));
+                Assert.Contains("await CheckSubscriptionWallMenuAnchorAsync(wall, \"movie\");", sidebar);
+                Assert.Contains("await CheckSubscriptionWallMenuAnchorAsync(Get<MoviePilotSubscriptionWallView>(seriesPage, \"Wall\"), \"series\");", sidebar);
+                Assert.Contains("InvokeSubscriptionButton(button);", probe);
+                Assert.Contains("Bounds(button, _root)", probe);
+                Assert.Contains("Bounds(presenter!, _root)", probe);
+                Assert.Contains("horizontalGap <= 12 && verticalGap <= 12 && (horizontalGap == 0 || verticalGap == 0)", probe);
+                Assert.Contains("mp-wall-menu-{kind}-screen.png", probe);
+                Assert.Contains("popup.IsOpen = false", probe);
+            });
         }
 
         private static string FindRoot()

@@ -31,6 +31,12 @@ WinUI P4详情副行3项直接链接`PosterCard.Caption.cs`，真实CardItem驱�
 
 `CardPresentationTests` verifies the restored server titles, FnNas centered text and single-line card markup after the selective UI rollback.
 
+订阅墙菜单定位（2026-11-15）：`SubscriptionWallWiringTests` 守更多按钮锚点、页面业务属主和电影／电视剧探针接线。
+本专项不创建真实墙控件；原生检查台 `--probe-shell inspect --screen 1` 的 `InspectMoviePilotSidebar`
+通过实际 `CardMore` 的 UIA Click 打开两种菜单，量同一 XamlRoot 下的按钮与菜单距离、原生点外关闭属性，
+保存 `mp-wall-menu-{movie,series}-screen.png`。检查台先置顶再打开菜单，取屏时不改层级；结束用 `InspectDone`。
+截图须目视核对菜单与按钮同帧可见，属性或源契约通过不能替代视觉证据；程序化关闭不证明物理点外输入。
+
 The abandoned first-image case gates the actual shared download cancellation callback, rejects the
 old immediate HTTP-token assertion while propagation is pending, and waits for the transport token
 before delivering its late response. All original no-cache/no-decode/no-revival assertions remain;
