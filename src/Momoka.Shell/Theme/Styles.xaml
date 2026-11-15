@@ -119,9 +119,12 @@
     <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
     <CornerRadius x:Key="EgPickerCornerRadius">12</CornerRadius>
 
-    <!-- 详情文件选项的紧凑行高，纯文字与选择框共用。DetailPage 同步收紧选择框内边距及箭头的
-         ComboBoxMinHeight；保留 MinHeight 让长文字仍能换行。探针核对实际控件高度与两种音轨状态的间距。 -->
-    <x:Double x:Key="EgPickerRowHeight">28</x:Double>
+    <!-- 详情文件选项的行高，纯文字与选择框共用。DetailPage 同步选择框内边距及箭头的
+         ComboBoxMinHeight；保留 MinHeight 让长文字仍能换行。探针核对实际控件高度与两种音轨状态的间距。
+         2026-11-15 用户令「加高选择框的高度」，从 28 抬到 36：28 高配那一档 4/12 的圆角都挤在
+         一条窄边里，圆角读不出来；抬到 36 之后同页的 12 DIP 圆角才画得成圆角矩形而不是一条方槽。
+         四行（视频、媒体源、音频、字幕）一起抬，竖距仍是 6 —— 行高分开就换了一种节奏。 -->
+    <x:Double x:Key="EgPickerRowHeight">36</x:Double>
     <Style x:Key="EgTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>
