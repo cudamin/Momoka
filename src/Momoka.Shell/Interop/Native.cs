@@ -331,6 +331,12 @@ internal static partial class Native
     public static readonly IntPtr HwndNoTopMost = new(-2);
 
     /// <summary>
+    /// HWND_BOTTOM: the bottom of the z-order. The settings-opening probe uses it to put the settings window
+    /// behind the probe's own window without depending on which window was foreground a moment ago.
+    /// </summary>
+    public static readonly IntPtr HwndBottom = new(1);
+
+    /// <summary>
     /// HWND_MESSAGE: 挂在这里的窗口不上屏、不被枚举，自检拿它造一个「看得见前台、没有一寸像素」的哑窗口
     /// —— <see cref="HostWindow"/> 判断「要不要为前台窗口让出置顶」时最小化/隐藏那一分支的试验品。
     /// </summary>

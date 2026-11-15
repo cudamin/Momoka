@@ -62,6 +62,15 @@ Frame 创建」边界未变）；`git diff --check` 退出 0。匿名 `--probe-s
 
 **边界。** 只用匿名夹具与假传输，未登录、未播放、未写服务器、未推远端。动画是否在目标页 `Loaded` 前被平台接受，
 由 `Started` 回执与实屏间接支持；原生补间逐帧落点、其他 DPI 与窄窗（封面收起时仍走原普通回退）未单独验收。
+## 2026-11-15 点设置后设置窗口被主窗口压回后面（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-settings-page-behind-cQmlcU`，分支 `fix-settings-page-behind-cQmlcU`。用户报「点击设置按钮后设置页面会自动跑到 momoka 主窗口后」。上一批 `cede788` 的 `MoveInZOrderAtTop` 只在 `Show` 这一拍提了一次；`Show` 跑在主窗口设置按钮的 Click 处理器里，事件返回后 WinUI 把前台与键盘焦点交还主窗口的 XAML 岛（对岛设焦点会连顶层窗口一起激活），刚提上来的设置窗口又被压回主窗口后面。
+
+**改了什么。** `SettingsWindow.Show` 保留同步的 `Activate + AppWindow.MoveInZOrderAtTop`（窗口立刻可见），再在自己的 `DispatcherQueue` 下一拍重做同一对动作；`_open` 闸门让隐藏/关闭后排队的那一拍不再动窗口。`Native` 增加 `HwndBottom`，只给探针把设置窗口确定性地摆到主窗口后面。
+
+**验证。** Shell Release x64 **0 警告 0 错误**；`Momoka.SettingsLifetimeTests` **63/63、0 失败 0 跳过**（新增「收起后排队的那一拍不再激活设置窗口」，并把「设置窗口每次显现都提到主窗口前面」「悬停清理」两条改成同时钉住同步与下一拍两次）；`dotnet format whitespace` 两份工程与 `git diff --check` 退出 0。原生 `--probe-shell --probe-section settings --screen 2` **28/28、退出 0**（`shell-probe-20261115-130202389-21804`）：聚合设置窗用例新增「Show 之后同一拍把设置窗口摆到主窗口后面，下一拍设置窗回到最前」的层级回归，读数 `主窗口抢回前台后设置窗回到最前 1302 ms`，`settings-opening-times.txt` 保留。首轮 `--screen 1` 的 28/28 也有同一条读数（`shell-probe-20261115-120435728-26772`）；另两轮 `screen 1` 分别被用户 Chrome 遮挡（`Chrome_RenderWidgetHostHWND`）与焦点样式未落定打断，失败日志保留，按已知环境项处理，不当作产品通过或失败。探针使用匿名假服务与隔离目录，未登录真实服务器、未播放、未写入。
+
+**边界。** 本树未合并、未发布、未推远端；下一轮在主树合并后按台账补交付验证。
 
 ## 2026-11-15 详情文件选择栏小圆角矩形（交付）
 
