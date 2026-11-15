@@ -106,6 +106,9 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
 
         await ViewModel.SelectAsync(section);
         if (_released) return;
+        // 只有用户点分区、且分区确实变了才播这一次短入场；首次加载、刷新和探针直接调 SelectAsync 都不经过这里。
+        // 关动画或已离树时由 HomeMotion 立即落定，不阻塞分区切换。
+        HomeMotion.Reveal(MusicCatalog.UsesCoverWall(section) ? WallHost : TrackView, 0, 140, 6);
         MusicWall.ScrollView?.ScrollTo(0, 0,
             new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
     }
