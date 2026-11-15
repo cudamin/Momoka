@@ -223,20 +223,19 @@ internal sealed partial class ShellNavigationProbe
             $"商店模式连播／已观看图标不是绿色：{active.Color}");
         var cover = Get<Border>(page, "PosterStill");
         var overview = Get<StackPanel>(page, "OverviewPanel");
-        var stack = Get<StackPanel>(page, "HeroStack");
         var canvas = Get<Grid>(page, "StoreScrollContent");
         var left = cover.TransformToVisual(canvas).TransformPoint(default).X;
-        // 2026-11-14 第二令起简介在封面右边那一栏，左右缩进仍为零：它与片名、评分同一条左沿。
+        // 剧情移到封面下方，文字与封面、文件选项同一条左沿。
         Require(overview.Padding.Left == 0 && overview.Padding.Right == 0, "简介文字保留了额外左右缩进");
         if (overview.Visibility == Visibility.Visible)
             Require(Math.Abs(overview.TransformToVisual(canvas).TransformPoint(default).X
-                    - stack.TransformToVisual(canvas).TransformPoint(default).X) < 1,
-                "简介没有和封面右侧的片名栏同一条左沿");
+                    - left) < 1,
+                "简介没有和封面同一条左沿");
         if (page.ViewModel.PageWidth >= 600)
             Require(Get<StackPanel>(page, "FileOptions").ActualHeight > 0
                 && Get<EgPicker>(page, "ColumnSourcePicker").ActualWidth > 0,
                 "常规宽度没有呈现可测量的文件选项");
-        // 封面下方的详情块和下方的卡片仍与封面同一条左沿；简介不在这一组里。
+        // 封面下方的剧情、文件选项、操作与卡片保持同一条左沿。
         foreach (var name in new[] { "StoreHeroDetails", "FileOptions", "ColumnActions" })
         {
             var node = Get<FrameworkElement>(page, name);
@@ -244,22 +243,13 @@ internal sealed partial class ShellNavigationProbe
             Require(Math.Abs(node.TransformToVisual(canvas).TransformPoint(default).X - left) < 1,
                 name + " 未与封面、下方卡片外沿对齐");
         }
-        // 有足够高度时，简介底和导演那一行的底都压在封面下沿上。
         if (overview.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
         {
-            var coverBox = cover.TransformToVisual(canvas)
-                .TransformBounds(new(0, 0, cover.ActualWidth, cover.ActualHeight));
-            var overviewBox = overview.TransformToVisual(canvas)
-                .TransformBounds(new(0, 0, overview.ActualWidth, overview.ActualHeight));
-            if (coverBox.Bottom - overviewBox.Top > 70)
-            {
-                Require(Math.Abs(overviewBox.Bottom - coverBox.Bottom) < 1.5, "商店简介底没有和封面底齐平");
-                var director = Get<TextBlock>(page, "DetailDirectorsText");
-                if (director.Visibility == Visibility.Visible)
-                    Require(Math.Abs(director.TransformToVisual(canvas)
-                        .TransformBounds(new(0, 0, director.ActualWidth, director.ActualHeight)).Bottom
-                        - coverBox.Bottom) < 1.5, "商店导演行没有和封面底齐平");
-            }
+            var coverBox = Bounds(cover, canvas);
+            var overviewBox = Bounds(overview, canvas);
+            Require(overview.Parent == Get<StackPanel>(page, "StoreHeroDetails")
+                && overviewBox.Top >= coverBox.Bottom + 14,
+                "商店剧情没有排在封面下方并保留间距");
         }
     }
 

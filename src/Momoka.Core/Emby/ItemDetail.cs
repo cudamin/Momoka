@@ -259,18 +259,18 @@ public static class ItemDetail
         return item.Studios.FirstOrDefault(studio => !string.IsNullOrWhiteSpace(studio.Name))?.Name.Trim() ?? "";
     }
 
-    /// <summary>The dim segments right of the score badge: years, studio, runtime, rating, season count.</summary>
-    public static IEnumerable<string> FactParts(EmbyItem item)
+    /// <summary>Years, optional studio, runtime, rating and season count; detail headers omit the studio.</summary>
+    public static IEnumerable<string> FactParts(EmbyItem item, bool includeStudio = true)
     {
         if (Years(item) is { Length: > 0 } years) yield return years;
-        if (Studio(item) is { Length: > 0 } studio) yield return studio;
+        if (includeStudio && Studio(item) is { Length: > 0 } studio) yield return studio;
         if (item.RunTimeTicks is > 0) yield return TimeFormat.Duration(item.RunTimeTicks);
         if (item.OfficialRating is { Length: > 0 } rating) yield return rating;
         if (item.Type == EmbyItemType.Series && item.ChildCount is { } seasons and > 0) yield return $"共 {seasons} 季";
     }
 
     /// <summary>The same segments as one string; empty when the server knew none of them.</summary>
-    public static string Facts(EmbyItem item) => string.Join("  ·  ", FactParts(item));
+    public static string Facts(EmbyItem item, bool includeStudio = true) => string.Join("  ·  ", FactParts(item, includeStudio));
 
     /// <summary>
     /// 服务器给的那段简介，收拾成能排的样子：**一行里连着的空白并成一个、每行两头的空白去掉、连着的空行并成

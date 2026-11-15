@@ -359,23 +359,6 @@ public static class DetailHero
     }
 
     /// <summary>
-    /// 一段固定行高的正文在给定高度里能写几行 —— 简洁（商店）模式把简介撑满封面右栏、
-    /// 写不完的用省略号收尾（2026-11-14 用户令「填满剧情说明，写不完的自动折叠」）。
-    /// <para>
-    /// 至少一行：高度还没量到（0）、或者片名折行把那一栏挤得只剩几个像素时，给 0 行会让简介
-    /// 整块消失，而「写不完就折叠」要的是先站住一行再截。行高不成话时同样按一行答。
-    /// </para>
-    /// </summary>
-    /// <param name="room">除去内边距和底部导演行之后留给正文的高。</param>
-    /// <param name="lineHeight">正文的行高（页面上 TextBlock 自己那个 <c>LineHeight</c>）。</param>
-    public static int OverviewLines(double room, double lineHeight)
-    {
-        if (!(lineHeight > 0) || !double.IsFinite(room)) return 1;
-
-        return Math.Max(1, (int)Math.Floor(room / lineHeight));
-    }
-
-    /// <summary>
     /// 收口算到哪儿为止：让背景图下沿和剧情说明那一块之间还留这么多像素。留一点而不是贴着算，一是那一段
     /// 底下还有面板自己的内边距、贴着算读起来像被画面切了一刀；二是布局取整会让「正好为零」偶尔变成
     /// 半像素的溢出，留在外面一点点就不必靠自检放宽判定。

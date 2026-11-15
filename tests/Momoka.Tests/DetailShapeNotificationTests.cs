@@ -59,7 +59,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("商店剧情与剩余时间：固定两行截断，保留沉浸展开偏好与续播值", () =>
+        Test("商店剧情与剩余时间：两行摘要、展开收起，独立保留沉浸偏好与续播值", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);
             Await(f.Load());
@@ -68,7 +68,24 @@ internal static partial class DetailActionReadinessTests
             f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
             Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
             Assert.Equal("CharacterEllipsis", f.Get("OverviewTrimming")!.ToString());
+            f.Vm.GetType().GetProperty("Overview")!.SetValue(f.Vm, "长剧情");
+            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, true);
+            Assert.Equal("Visible", f.Get("ReadMoreVisibility")!.ToString());
+            var toggle = (System.Windows.Input.ICommand)f.Get("ToggleOverviewCommand")!;
+            toggle.Execute(null);
+            Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
+            Assert.Equal("None", f.Get("OverviewTrimming")!.ToString());
+            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, false);
+            Assert.Equal("收起", f.Get("ReadMoreText"));
+            Assert.Equal("Visible", f.Get("ReadMoreVisibility")!.ToString());
+            toggle.Execute(null);
+            Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
+            Assert.Equal("CharacterEllipsis", f.Get("OverviewTrimming")!.ToString());
+            Assert.Equal("阅读更多", f.Get("ReadMoreText"));
             Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString());
+            f.Vm.GetType().GetProperty("Overview")!.SetValue(f.Vm, "");
+            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, true);
+            Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString(), "空剧情不能受旧裁切状态影响");
             Assert.Equal("Collapsed", f.Get("RemainingTimeVisibility")!.ToString());
             f.Ui.EnableImmersive = true;
             f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
@@ -76,6 +93,26 @@ internal static partial class DetailActionReadinessTests
             Assert.Equal("None", f.Get("OverviewTrimming")!.ToString());
             Assert.Equal(f.Get("ResumeVisibility")!.ToString(), f.Get("RemainingTimeVisibility")!.ToString());
         });
+
+        foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            Test($"商店剧情 {shape}：换片重置展开，切换模式恢复各自偏好", () =>
+            {
+                using var f = new Fixture(assembly, root, shape);
+                f.Ui.EnableImmersive = false;
+                Await(f.Load());
+                Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
+                var toggle = (System.Windows.Input.ICommand)f.Get("ToggleOverviewCommand")!;
+                toggle.Execute(null);
+                Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
+                f.Ui.EnableImmersive = true;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                Assert.Equal(4, (int)f.Get("OverviewMaxLines")!);
+                f.Ui.EnableImmersive = false;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
+                Await(f.Load());
+                Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
+            });
 
         Test("P4 详情布局：请求在途跨真实断点，完整主体到达保留最新宽高和集合", () =>
         {
@@ -265,7 +302,8 @@ internal static partial class DetailActionReadinessTests
             Assert.Equal(260d, (double)f.Get("StillWidth")!);
             Assert.Equal(375d, (double)f.Get("StillHeight")!);
             Assert.Equal("Top", f.Get("CoverAlignment")!.ToString());
-            Assert.Equal("Bottom", f.Get("HeroContentAlignment")!.ToString());
+            // 单集沉浸沿用剧页布局，片名栏顶对齐，操作通过星号行落在封面下沿。
+            Assert.Equal("Top", f.Get("HeroContentAlignment")!.ToString());
             // 这一份夹具一张图都没有，所以角上那一格收着 —— 收的原因是「没有艺术图」，不是「沉浸档不摆它」
             // （2026-11-08 起两种模式都摆，判据在 DetailHero.ShowsCorner，页面上由 ShellNavigationProbe 量）。
             Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());

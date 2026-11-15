@@ -737,6 +737,35 @@
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{x:Bind ViewModel.SublineVisibility, Mode=OneWay}" />
 
+                            <!-- 评分先于类型；日期、时长、分级仍在类型下方。 -->
+                            <StackPanel
+                                x:Name="ScoreStack"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal"
+                                Spacing="5"
+                                Visibility="{x:Bind ViewModel.ScoreVisibility, Mode=OneWay}">
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource EgAccentBrush}"
+                                    Glyph="&#xE735;" />
+                                <Grid>
+                                <TextBlock
+                                    x:Name="ScoreText"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource EgOnScrimDataStrongStyle}"
+                                    Text="{x:Bind ViewModel.Score, Mode=OneWay}" />
+                                </Grid>
+                                <Grid>
+                                <TextBlock
+                                    x:Name="ScoreSourceText"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource EgOnScrimDataStyle}"
+                                    Foreground="{StaticResource EgOnScrimBrush}"
+                                    Text="{x:Bind ViewModel.ScoreLabel, Mode=OneWay}" />
+                                </Grid>
+                            </StackPanel>
+
                             <Grid Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}">
                             <TextBlock
                                 x:Name="GenreLine"
@@ -756,34 +785,6 @@
                                  「可在设置使用豆瓣、tmdb、烂番茄等平台的评分」之后，一个光秃秃的 8.4 说不清是哪家
                                  的分。它走暗墨、跟事实那一行同一档层次，而分数走强墨 —— 读的是分，署名是注脚。 -->
                             <StackPanel x:Name="StoreRatingRow" Orientation="Horizontal" Spacing="14">
-                                <StackPanel
-                                    x:Name="ScoreStack"
-                                    VerticalAlignment="Center"
-                                    Orientation="Horizontal"
-                                    Spacing="5"
-                                    Visibility="{x:Bind ViewModel.ScoreVisibility, Mode=OneWay}">
-                                    <FontIcon
-                                        VerticalAlignment="Center"
-                                        FontSize="12"
-                                        Foreground="{ThemeResource EgAccentBrush}"
-                                        Glyph="&#xE735;" />
-                                    <Grid>
-                                    <TextBlock
-                                        x:Name="ScoreText"
-                                        VerticalAlignment="Center"
-                                        Style="{StaticResource EgOnScrimDataStrongStyle}"
-                                        Text="{x:Bind ViewModel.Score, Mode=OneWay}" />
-                                    </Grid>
-                                    <Grid>
-                                    <TextBlock
-                                        x:Name="ScoreSourceText"
-                                        VerticalAlignment="Center"
-                                        Style="{StaticResource EgOnScrimDataStyle}"
-                                        Foreground="{StaticResource EgOnScrimBrush}"
-                                        Text="{x:Bind ViewModel.ScoreLabel, Mode=OneWay}" />
-                                    </Grid>
-                                </StackPanel>
-
                                 <Grid>
                                 <TextBlock
                                     x:Name="HeroFacts"
@@ -1106,8 +1107,7 @@
                         <!-- 商店模式封面下方的那一整块（2026-11-14 参考微软商店条目页重排）：由上到下是
                              文件选项（版本框）和操作那排键。两样都是既有实例，运行期由
                              DetailPage.Store.cs 的 PlaceStoreComponents 搬进来，退出商店模式时原样放回：
-                             文件选项和那排键回 HeroStack。剧情说明同日搬到封面右边的片名栏（见
-                             OverviewPanel 上那一段），不再属于这一块。这一叠只在商店模式显示，
+                             文件选项和那排键回 HeroStack。2026-11-15 剧情说明也搬回这一块，排在最前面。这一叠只在商店模式显示，
                              其他版式里它是空的、不占一个像素。 -->
                         <StackPanel x:Name="StoreHeroDetails" Grid.Row="1" Grid.ColumnSpan="2"
                                     Margin="0,16,0,0" Spacing="8" Visibility="Collapsed"
@@ -1542,14 +1542,12 @@
                             Padding="{x:Bind ViewModel.OverviewPanelPadding, Mode=OneWay}"
                             Spacing="0"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
-                            <!-- 2026-11-14 用户令「把下面的剧情说明移动到封面右边，导演那一行的底部要刚好和封面
-                                 底部持平，填满剧情说明，写不完的自动折叠」：简洁（商店）模式下这一块搬进片名那一栏，
-                                 并由页面把高度撑到封面下沿（DetailPage.Store.cs 的 SyncStoreOverviewFill）。星号行
-                                 吃掉「简介写到下面几行、导演钉在底」的差额；尾部、紧凑版式和沉浸版式里这一格仍是
-                                 内容高，星号行在无限测量下退化成内容高，版面与从前一致。 -->
-                            <Grid x:Name="OverviewBody" SizeChanged="OnOverviewBodySizeChanged">
+                            <!-- Gallery TextBlock/Expander samples at 6de91feccadfbb0a796b71caedead5a2284f730e
+                                 没有两行摘要组合；复用原生 MaxLines/IsTextTrimmed 与现有阅读更多按钮。
+                                 简洁模式移动到封面下方，用内容高度随展开增长，不再撑满右侧片名栏。 -->
+                            <Grid x:Name="OverviewBody">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid>
@@ -1566,22 +1564,15 @@
                                     Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
                                     TextTrimming="{x:Bind ViewModel.OverviewTrimming, Mode=OneWay}"
                                     TextWrapping="Wrap">
-                                    <!-- Gallery Styles/ItemTemplates.xaml, v2.9.3 / 14a4a1a2. -->
-                                    <ToolTipService.ToolTip>
-                                        <ToolTip Visibility="{x:Bind local:DetailPage.OverviewTipVisibility(ViewModel.StoreMode, ViewModel.OverviewTrimmed), Mode=OneWay}">
-                                            <TextBlock Text="{x:Bind ViewModel.Overview, Mode=OneWay}" TextWrapping="Wrap" MaxWidth="520" />
-                                        </ToolTip>
-                                    </ToolTipService.ToolTip>
                                 </TextBlock>
                                 </Grid>
                                 <StackPanel
                                     x:Name="OverviewFooter"
                                     Grid.Row="1"
                                     Margin="0,2,0,0"
-                                    SizeChanged="OnOverviewFooterSizeChanged"
                                     Spacing="2">
                                     <HyperlinkButton
-                                        AutomationProperties.AutomationId="DetailReadMoreButton"
+                                        x:Name="DetailReadMoreButton"
                                         Command="{x:Bind ViewModel.ToggleOverviewCommand}"
                                         Content="{x:Bind ViewModel.ReadMoreText, Mode=OneWay}"
                                         Padding="0,4,0,4"

@@ -18,17 +18,6 @@ internal static class DetailLayoutTests
             foreach (var width in new[] { DetailHero.StoreWideFloor, 1024d, 1072, 1240, 1840, 2560 }) Assert.Equal(96d, DetailHero.StorePageInset(width));
             Assert.Equal(1024d, DetailHero.StoreWideFloor);
         });
-        Test("商店简介折行：按封面右栏剩余高度给行数，量不到也至少一行", () =>
-        {
-            Assert.Equal(4, DetailHero.OverviewLines(4 * 24, 24));
-            Assert.Equal(1, DetailHero.OverviewLines(23.9, 24));
-            Assert.Equal(2, DetailHero.OverviewLines(48, 24));
-            Assert.Equal(1, DetailHero.OverviewLines(0, 24));
-            Assert.Equal(1, DetailHero.OverviewLines(-30, 24));
-            Assert.Equal(1, DetailHero.OverviewLines(double.NaN, 24));
-            Assert.Equal(1, DetailHero.OverviewLines(96, 0));
-        });
-
         Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
         {
             Assert.Equal(768d, TrailerPreview.BackgroundWidth(1280));

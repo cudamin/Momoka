@@ -13838,3 +13838,9 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 工作树 `C:\Users\89400\Momoka`，从干净 master `bbe579a` 直接实施；子代理仅只读调查/审阅，无并行写入。用户明确新增系统主题，五套固定深色与默认不变，独立 daylight id仍不恢复。系统偏好保存为system，UISettings前景判断深浅，后台事件合并并在UI读取后重涂原画刷、登记根与窗口Changed；普通/独立下载弹窗样式登记根，播放信息复制当前深色局部角色以免全局浅色覆盖，HighContrast保持系统资源。固定Gallery稳定v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的SettingsPage、ThemeHelper、TitleBarHelper、WindowHelper及Learn主题指南已读，适配固定Application.Dark，无依赖升级。
 
 本轮主题/保存/输入角色58/58、完整生产源链接系统监听/ThemeHost/弹窗边界7/7、设置外观47/47，0失败0跳过；当前Release Core/Shell/主测试及专项编译0警告0错误。独立审阅已修复下载例外样式、播放信息全局重涂及契约空集通过问题。仅源链接测试中的平台替代，不是原生切换/Mica像素证据。待交付34记录系统两种实际状态、所有固定主题截图、UIA/键盘及旧探针预期适配（InputFocus/SettingsSearch/MaterialLifecycle等按Apply后的Current，不能按系统目录深色预览）。没有运行应用、改变Windows设置、发布或推送；桌面快捷方式仍是此前交付版本。
+
+## 2026-11-15 详情评分、工作室与两行剧情
+
+工作树 `C:/Users/89400/.codex/worktrees/1c8d/Momoka`，临时分支 `codex/detail-summary-layout`，基点ce55588。头部仅去掉工作室，评分排在类型之前，日期、时长、分级在类型之后；主页轮播与其他信息的工作室保持既有语义。简洁模式剧情移动到封面下方详情块最前，默认两行；原生TextBlock省略与既有阅读更多命令支持全文展开/收起，用内容高度替代封面右栏强制撑高。简洁与沉浸展开状态独立，换片重置；既有自动化句柄以同名x:Name保留。Gallery固定6de91feccadfbb0a796b71caedead5a2284f730e的TextBlock、Expander、ControlExample源码及Learn文字指南/MaxLines API已核对，没有完整两行摘要组合，按原生TextBlock与现有命令本地组合；未加依赖。两名子代理只读核对与复核。
+
+本树Release Core/Shell/Tests/PageContract编译0警告0错误，页面契约299/299、详情VM93/93、详情自定义58/58、控件检查39/39，0失败0跳过。修正既有单集沉浸HeroContentAlignment测试的Bottom旧断言为当前Top；旧剩余高度自动行数纯函数和对应检查随新需求退役，保留两行/展开/收起/换片/模式往返覆盖。已更新DetailCards、DetailMica与StoreDetailBackdrop的位置和两行检查；StoreTrailer只移除已由StoreDetailBackdrop完整覆盖的旧提示折叠断言。文本编码与空白通过。当前待完成最终原生专项、主树整合；不发布、不推送，桌面仍为此前交付版本。运行结果继续追加。

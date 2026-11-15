@@ -89,12 +89,12 @@ internal static class StoreDetailProbeEvidenceTests
             Assert.Equal(33, read.Bottom);
             Reject(() => StoreDetailProbeEvidence.ReadMask(bytes[..^1], 4, 4));
         });
-        Test("商店运行判据：长简介必须按实测行高折叠并撤掉裁切圆角", () =>
+        Test("商店运行判据：长简介必须按指定行数折叠并撤掉裁切圆角", () =>
         {
-            StoreDetailProbeEvidence.RequireOverview(3, 3, true, true);
-            Reject(() => StoreDetailProbeEvidence.RequireOverview(2, 3, true, true));
-            Reject(() => StoreDetailProbeEvidence.RequireOverview(3, 3, false, true));
-            Reject(() => StoreDetailProbeEvidence.RequireOverview(3, 3, true, false));
+            StoreDetailProbeEvidence.RequireOverview(2, 2, true, true);
+            Reject(() => StoreDetailProbeEvidence.RequireOverview(3, 2, true, true));
+            Reject(() => StoreDetailProbeEvidence.RequireOverview(2, 2, false, true));
+            Reject(() => StoreDetailProbeEvidence.RequireOverview(2, 2, true, false));
         });
         Test("商店首字实屏：匹配完整笔画、拒绝左上缺角和空帧", () =>
         {

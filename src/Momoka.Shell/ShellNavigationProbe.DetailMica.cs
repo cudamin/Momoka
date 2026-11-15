@@ -278,13 +278,12 @@ internal sealed partial class ShellNavigationProbe
         var actions = Get<StackPanel>(page, "ColumnActions");
         var options = Get<StackPanel>(page, "FileOptions");
         var overview = Get<StackPanel>(page, "OverviewPanel");
-        var stack = Get<StackPanel>(page, "HeroStack");
-        // 2026-11-14 第二令：简介搬到封面右边那一栏的末尾，版本框和操作按钮仍留在封面下方。
-        Require(ReferenceEquals(overview.Parent, stack), "商店简介没有在封面右侧的片名栏里");
+        Require(ReferenceEquals(overview.Parent, details), "商店剧情没有在封面下方的详情块里");
         Require(ReferenceEquals(actions.Parent, details) && ReferenceEquals(options.Parent, details),
             "商店文件信息或操作没有在封面下方的详情块里");
-        Require(details.Children.IndexOf(options) < details.Children.IndexOf(actions),
-            "商店详情块的顺序不是文件信息、操作");
+        Require(details.Children.IndexOf(overview) < details.Children.IndexOf(options)
+            && details.Children.IndexOf(options) < details.Children.IndexOf(actions),
+            "商店详情块的顺序不是剧情、文件信息、操作");
         double Top(FrameworkElement element) => element.TransformToVisual(page).TransformPoint(default).Y;
         double Bottom(FrameworkElement element) => element.TransformToVisual(page)
             .TransformBounds(new(0, 0, element.ActualWidth, element.ActualHeight)).Bottom;
@@ -295,23 +294,8 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(options) >= Bottom(cover) - 1, "商店文件信息没有排在封面之后");
         if (actions.Visibility == Visibility.Visible && options.Visibility == Visibility.Visible)
             Require(Top(actions) >= Bottom(options) - 1, "商店操作没有排在文件信息之后");
-        // 简介在封面右边，底对齐封面下沿；导演那一行是这一块最后一行，所以它也落在同一条线上。
-        // 片名折行把这一栏撑得比封面还高时（很窄的窗口）没有「恰好齐平」可谈，只判它确实在右边。
         if (overview.Visibility == Visibility.Visible && cover.Visibility == Visibility.Visible)
-        {
-            var coverBox = cover.TransformToVisual(page)
-                .TransformBounds(new(0, 0, cover.ActualWidth, cover.ActualHeight));
-            var overviewBox = overview.TransformToVisual(page)
-                .TransformBounds(new(0, 0, overview.ActualWidth, overview.ActualHeight));
-            Require(overviewBox.Left >= coverBox.Right - 0.5, "商店简介没有在封面右边");
-            if (coverBox.Bottom - overviewBox.Top > 70)
-            {
-                Require(Math.Abs(Bottom(overview) - coverBox.Bottom) < 1.5, "商店简介底没有和封面底齐平");
-                var director = Get<TextBlock>(page, "DetailDirectorsText");
-                if (director.Visibility == Visibility.Visible)
-                    Require(Math.Abs(Bottom(director) - coverBox.Bottom) < 1.5, "商店导演行没有和封面底齐平");
-            }
-        }
+            Require(Top(overview) >= Bottom(cover) + 14, "商店剧情没有排在封面下方");
         var band = Get<Grid>(page, "HeroBand");
         // 紧凑版式的集页把文件选项交给尾部那一份（ColumnPickers 收起、源多于一个时视频行也收起），
         // 这一格收着时量不到位置，不拿它去判头部裁切。

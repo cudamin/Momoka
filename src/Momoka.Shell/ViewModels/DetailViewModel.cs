@@ -506,6 +506,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(OverviewMaxLines));
         OnPropertyChanged(nameof(OverviewTrimming));
+        OnPropertyChanged(nameof(ReadMoreText));
         OnPropertyChanged(nameof(ReadMoreVisibility));
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
@@ -1552,9 +1553,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
     /// <para>
-    /// 商店模式左右归零（2026-11-14）：这一块搬进封面右边的片名栏，左沿与片名、评分对齐，再留 24 会把简介
-    /// 推离那条竖线。上留 2；底下归零 —— 简介撑到封面下沿，导演那一行的底就是这一块的底
-    /// （见 <c>DetailPage.Store.cs</c> 的 <c>SyncStoreOverviewFill</c>），再留 6 就不再齐平。
+    /// 简洁模式在封面下方，左右归零以便与封面、文件选项对齐；用内容高度支持展开全文。
     /// </para>
     /// </summary>
     public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 0) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
@@ -2232,6 +2231,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
+    [NotifyPropertyChangedFor(nameof(ReadMoreVisibility))]
     public partial string? Overview { get; set; }
 
     /// <summary>
@@ -2255,16 +2255,17 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial bool OverviewTrimmed { get; set; }
 
     /// <summary>
-    /// 简介最多写几行。简洁（商店）模式下由页面按「封面右栏还剩多高」实测回来
-    /// （<see cref="StoreOverviewLines"/>，见 <c>DetailPage.Store.cs</c>），其余版式是四行或展开后的不限。
+    /// 简洁模式的摘要固定两行，其余版式四行；展开后交给原生 TextBlock 自动增高。
     /// </summary>
-    public int OverviewMaxLines => StoreMode ? StoreOverviewLines : Expanded ? 0 : CollapsedLines;
+    public int OverviewMaxLines => OverviewExpanded ? 0 : StoreMode ? 2 : CollapsedLines;
 
-    public TextTrimming OverviewTrimming => !StoreMode && Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
+    private bool OverviewExpanded => StoreMode ? StoreOverviewExpanded : Expanded;
 
-    public string ReadMoreText => Expanded ? "收起" : "阅读更多";
+    public TextTrimming OverviewTrimming => OverviewExpanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
 
-    public Visibility ReadMoreVisibility => Show(!StoreMode && (OverviewTrimmed || Expanded));
+    public string ReadMoreText => OverviewExpanded ? "收起" : "阅读更多";
+
+    public Visibility ReadMoreVisibility => Show(!string.IsNullOrWhiteSpace(Overview) && (OverviewTrimmed || OverviewExpanded));
 
     /// <summary>
     /// 简介那一块整块的显隐 —— 简介和导演两行都空的时候收起来。
@@ -2935,7 +2936,7 @@ public sealed partial class DetailViewModel : PageViewModel
         };
         SublineGenres = ItemDetail.SublineGenres(series);
         ApplyScore(series);
-        Facts = ItemDetail.Facts(series);
+        Facts = ItemDetail.Facts(series, includeStudio: false);
     }
 
     /// <summary>
@@ -3015,13 +3016,14 @@ public sealed partial class DetailViewModel : PageViewModel
         Seasons.Clear();
 
         Expanded = false;
+        StoreOverviewExpanded = false;
         OverviewTrimmed = false;
 
         ApplyHeading(item);
         // 「显示的评分」直接画服务器给的那个数（2026-10-16 起不再有「评分来源」可选）。规则在 Core（ItemScore）：
         // 取哪个槽、写谁的名字、这一槽没有就回落到哪儿，都是有唯一正确答案的判断，而错起来屏上只是一个看着挺正常的数。
         ApplyScore(item);
-        Facts = ItemDetail.Facts(item);
+        Facts = ItemDetail.Facts(item, includeStudio: false);
         Directors = ItemDetail.Directors(item);
         Overview = ItemDetail.Prose(item.Overview) is { Length: > 0 } prose ? prose : "暂无简介。";
 
@@ -4199,7 +4201,11 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void ToggleOverview() => Expanded = !Expanded;
+    private void ToggleOverview()
+    {
+        if (StoreMode) StoreOverviewExpanded = !StoreOverviewExpanded;
+        else Expanded = !Expanded;
+    }
 
     /// <summary>
     /// The headline on an episode page — 「99.9 刑事专业律师」 above 「S2:E7 - …」 — opens 那部剧自己的页面.

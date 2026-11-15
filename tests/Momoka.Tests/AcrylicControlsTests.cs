@@ -100,8 +100,7 @@ internal static class AcrylicControlsTests
             foreach (var name in new[] { "ScoreSourceText", "HeroFacts", "Overview" })
                 Assert.Equal("{StaticResource EgOnScrimBrush}", (string?)Named(page, name).Attribute("Foreground"));
             Assert.Contains("public Brush SublineBrush => Painted(\"EgOnScrimBrush\")", Source("ViewModels/DetailViewModel.cs"));
-            var readMore = page.Descendants(Xaml + "HyperlinkButton").Single(element =>
-                (string?)element.Attribute("AutomationProperties.AutomationId") == "DetailReadMoreButton");
+            var readMore = Named(page, "DetailReadMoreButton");
             Assert.Null(readMore.Attribute("Foreground"));
             Assert.Equal("{ThemeResource EgAccentBrush}", (string?)Named(page, "ScoreStack")
                 .Elements(Xaml + "FontIcon").Single().Attribute("Foreground"));

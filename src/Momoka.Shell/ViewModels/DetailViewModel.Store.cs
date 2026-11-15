@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.Emby;
 
@@ -46,20 +47,14 @@ public sealed partial class DetailViewModel
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;
 
     /// <summary>
-    /// 简洁（商店）模式里简介能写几行 —— 由页面按「封面右栏从简介顶到封面下沿还剩多高」实测回来。
-    /// 第一帧还没量到时按 2 行排，量到后由 <c>DetailPage.Store.cs</c> 的 <c>UpdateStoreOverviewLines</c> 写入；
-    /// 写不完的文字由 <see cref="OverviewTrimming"/> 那一支以省略号收尾。
+    /// 简洁模式独立保留展开状态，首次进入仍为两行，不继承沉浸模式的展开偏好。
     /// </summary>
-    private int _storeOverviewLines = 2;
-    internal int StoreOverviewLines
-    {
-        get => _storeOverviewLines;
-        set
-        {
-            if (!SetProperty(ref _storeOverviewLines, value)) return;
-            OnPropertyChanged(nameof(OverviewMaxLines));
-        }
-    }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OverviewMaxLines))]
+    [NotifyPropertyChangedFor(nameof(OverviewTrimming))]
+    [NotifyPropertyChangedFor(nameof(ReadMoreText))]
+    [NotifyPropertyChangedFor(nameof(ReadMoreVisibility))]
+    public partial bool StoreOverviewExpanded { get; set; }
 
     private double _storeDetailsRoom;
     internal double StoreDetailsRoom

@@ -49,7 +49,7 @@ internal static class StoreDetailProbeEvidence
     internal static void RequireOverview(int actualLines, int expectedLines, bool trimmed, bool squarePanels)
     {
         if (actualLines < 1 || actualLines != expectedLines || !trimmed || !squarePanels)
-            throw new InvalidOperationException("商店长简介未按实际空间折叠，或透明面板仍保留裁切圆角");
+            throw new InvalidOperationException("商店长简介未按指定行数折叠，或透明面板仍保留裁切圆角");
     }
 
     internal static StoreFadeRead ReadMask(byte[] bgra, int width, int height)

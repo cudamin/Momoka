@@ -27,7 +27,7 @@ internal sealed partial class ShellNavigationProbe
             Type = EmbyItemType.Movie,
             ImageTags = new() { ["Primary"] = "poster" },
             BackdropImageTags = ["backdrop"],
-            Overview = string.Concat(Enumerable.Repeat("两行剧情说明之外的全文通过原生提示阅读。", 8)),
+            Overview = string.Concat(Enumerable.Repeat("两行剧情说明之外的全文通过阅读更多展开。", 8)),
             MediaSources = [new() { Id = "movie", Container = "mkv" }]
         };
         fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal)
@@ -52,7 +52,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Math.Abs(Get<Grid>(page, "StoreBackdrop").ActualWidth - TrailerPreview.BackgroundWidth(1280)) < 1,
                 "静态背景未与预告共用右侧区域");
             await SaveProbeScreenAsync("store-backdrop-wide-screen.png");
-            Require(page.ViewModel.OverviewMaxLines == 2 && page.ViewModel.ReadMoreVisibility == Visibility.Collapsed, "商店剧情没有保留两行提示模式");
+            // 两行摘要与展开/收起由 StoreDetailBackdropAsync 在宽窄往返中完整核对。
             Call(page, "StopStoreTrailer");
             page.ViewModel.CurrentItem!.RemoteTrailers = [new() { Url = "https://youtu.be/Abc_123-xyz" }];
             Field(page, "_storeTrailerSubject", page.ViewModel.CurrentItem);
