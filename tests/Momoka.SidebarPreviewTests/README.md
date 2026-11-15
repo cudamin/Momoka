@@ -8,6 +8,8 @@
 
 WinUI 控件、鼠标系统读数、调度器、位图解码与 `PlayAsync` 是惰性边界。真实 Core 会话在内存中采用匿名身份，HTTP handler 只接受 `preview.invalid` 的匿名 GET 并返回内存数据，拒绝任何其他地址或写入操作。测试不登录服务器、不操作真实鼠标、不打开窗口、不加载媒体或上报播放记录。布局和动画替身不证明实际 WinUI 渲染；导航 invoke 测试覆盖调用的预览抑制方法，不证明平台事件投递。
 
+音乐封面回归按库作用域检查：`music` 的三种大小写均使用正方形和音符占位，覆盖普通封面与按钮两条路径；切回电影恢复 2:3，即使原图为正方形也维持影视海报规格。测试按现有「封面＋标题」单元遍历，继续核对旧按钮失效、图片释放和原生探针的按钮／标题反例。
+
 ```powershell
 & "$HOME/.dotnet/dotnet.exe" restore tests/Momoka.SidebarPreviewTests/Momoka.SidebarPreviewTests.csproj --disable-parallel
 & "$HOME/.dotnet/dotnet.exe" build tests/Momoka.SidebarPreviewTests/Momoka.SidebarPreviewTests.csproj -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false

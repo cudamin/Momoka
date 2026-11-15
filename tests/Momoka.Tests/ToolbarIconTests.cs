@@ -58,8 +58,8 @@ internal static class ToolbarIconTests
             var closedData = collapsed.Attribute("Data")!.Value;
             Assert.Equal(openData[..openData.LastIndexOf(" Z M ", StringComparison.Ordinal)],
                 closedData[..closedData.LastIndexOf(" Z M ", StringComparison.Ordinal)]);
-            Assert.Contains("H 10.45 V 18.7 H 8.75", openData);
-            Assert.Contains("V 15.8 A 0.85,0.85", closedData);
+            Assert.Contains("H 8.45 V 16.7 H 6.75", openData);
+            Assert.Contains("V 13.8 A 0.85,0.85", closedData);
             Assert.Equal("Collapsed", expanded.Attribute("Visibility")?.Value);
             Assert.True(collapsed.Attribute("Visibility") is null);
             // 2026-11-13 起字形居中、不再靠左：托盘 40 宽、字形 28，缩进 8，字形中线落在 28 ——
@@ -68,6 +68,17 @@ internal static class ToolbarIconTests
             var toggleBox = toggle.Descendants().Single(element => element.Name.LocalName == "Viewbox");
             Assert.Equal("20", toggleBox.Attribute("Width")?.Value);
             Assert.Equal("20", toggleBox.Attribute("Height")?.Value);
+            // 内容也用 20 字框，不能再让隐式 24 PathIcon 在 Viewbox 里缩小一档。
+            var panel = toggleBox.Elements().Single();
+            Assert.Equal("20", panel.Attribute("Width")?.Value);
+            Assert.Equal("20", panel.Attribute("Height")?.Value);
+            foreach (var icon in new[] { expanded, collapsed })
+            {
+                Assert.Equal("20", icon.Attribute("Width")?.Value);
+                Assert.Equal("20", icon.Attribute("Height")?.Value);
+                Assert.Contains("L 19.4,14.8", icon.Attribute("Data")!.Value);
+                Assert.Contains("L 0.6,5.2", icon.Attribute("Data")!.Value);
+            }
             var backBox = Named(Shell(), "BackButton").Descendants().Single(element => element.Name.LocalName == "Viewbox");
             Assert.Equal("20", backBox.Attribute("Width")?.Value);
             Assert.Equal("20", backBox.Attribute("Height")?.Value);

@@ -30,7 +30,7 @@
         const string clock = "Environment.TickCount64";
         if (!source.Contains(clock)) throw new InvalidOperationException("Missing production monotonic clock boundary");
         var probe = File.ReadAllText(ProbeFile).Replace("\r\n", "\n");
-        const string probeStart = "            var coverButtons = previewCovers.Children.OfType<Button>().ToArray();";
+        const string probeStart = "            var coverButtons = Descendants(previewCovers).OfType<Button>().ToArray();";
         const string probeEnd = "            await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));";
         var probeFirst = probe.IndexOf(probeStart, StringComparison.Ordinal);
         var probeLast = probe.IndexOf(probeEnd, StringComparison.Ordinal);
@@ -42,7 +42,7 @@
             source.Replace(clock, "PreviewClock.Now") +
             "\ninternal static class PreviewProbeContract\n{\ninternal static void Validate(Grid previewCovers)\n{\n" +
             probe.Substring(probeFirst, probeLast - probeFirst) +
-            "\n}\nprivate static void Require(bool condition, string message)\n{\nif (!condition) throw new InvalidOperationException(message);\n}\n}\n";
+            "\n}\nprivate static IEnumerable<UIElement> Descendants(UIElement root) => Momoka.Shell.Views.PreviewTree.Descendants(root);\nprivate static void Require(bool condition, string message)\n{\nif (!condition) throw new InvalidOperationException(message);\n}\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
             File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

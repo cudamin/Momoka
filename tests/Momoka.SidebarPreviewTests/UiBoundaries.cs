@@ -43,6 +43,8 @@ namespace Microsoft.UI.Dispatching
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+    public enum TextTrimming { CharacterEllipsis }
+    public enum TextWrapping { Wrap }
     public enum HorizontalAlignment { Left, Center, Stretch }
     public enum VerticalAlignment { Top, Center, Stretch }
     public readonly record struct CornerRadius(double Value);
@@ -107,6 +109,8 @@ namespace Microsoft.UI.Xaml
         {
             ["EgTitleFontSize"] = 20d,
             ["EgTextFaintBrush"] = new Media.Brush(),
+            ["EgTextBrush"] = new Media.Brush(),
+            ["EgCaptionStyle"] = new Style(),
             ["EgPosterCornerRadius"] = new CornerRadius(10),
             ["EgSurfaceAltBrush"] = new Media.Brush(),
             ["EgFrameStyle"] = new Style(),
@@ -119,6 +123,11 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class StackPanel : FrameworkElement
+    {
+        public List<UIElement> Children { get; } = [];
+        public double Spacing { get; set; }
+    }
     public sealed class NavigationViewItem : FrameworkElement
     {
         public object? Content { get; set; }
@@ -165,6 +174,11 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class TextBlock : FrameworkElement
     {
         public string Text { get; set; } = "";
+        public int FontWeight { get; set; }
+        public Media.Brush? Foreground { get; set; }
+        public int MaxLines { get; set; }
+        public TextTrimming TextTrimming { get; set; }
+        public TextWrapping TextWrapping { get; set; }
     }
     public sealed class ProgressRing : FrameworkElement
     {
@@ -173,6 +187,14 @@ namespace Microsoft.UI.Xaml.Controls
     public static class ToolTipService
     {
         public static void SetToolTip(FrameworkElement element, object tooltip) { }
+    }
+}
+
+namespace Microsoft.UI.Text
+{
+    public static class FontWeights
+    {
+        public static int SemiBold => 600;
     }
 }
 

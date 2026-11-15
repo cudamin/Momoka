@@ -13844,3 +13844,12 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 工作树 `C:/Users/89400/.codex/worktrees/34e4/Momoka`，基于 `ce55588`；详情页两种布局共六颗版本、音频、字幕选择框改用下方操作按钮的 `EgCardCornerRadius`（16 DIP），保留全局 `EgPickerCornerRadius`（12 DIP）供其他弹窗使用。既有输入样式回归只在详情页 EgPicker 允许卡片资源，保留其他输入与原生模板约束，更新旧圆角注释和测试名称。Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 `WinUIGallery/Samples/ComboBox/ComboBoxPage.xaml` 与 code-behind 已核对，无相同的局部圆角对齐样例；Learn Geometry 允许定制圆角，沿用本地原生模板和共享资源，不引入依赖或自定义模板。
 
 当前 Core/Tests/Shell Release 编译0警告0错误，`input-theme-fixture` 29/29、`acrylic-controls-fixture` 39/39，0失败0跳过。独立只读审阅通过，修改文件LF/无BOM/末尾换行与git diff空白检查通过。没有启动UI、真实播放、发布或推送；实屏外观与宽窄、主题检查留到用户要求交付时统一验收。主树同文件被另一活动聊天写入，待其释放写入后按局部差异合入并追加台账。
+## 2026-11-15 侧栏折叠尺寸、音乐图标与方形预览
+
+工作树 `C:/Users/89400/.codex/worktrees/b32f/Momoka`，临时分支 `codex/sidebar-icon-correction`，基点1ea0962。折叠按钮的Grid/PathIcon显式使用20字框，原24坐标整体平移至20字框，消除外层缩小；可见轮廓宽15.67→18.8（约20%），两档外框和中心一致，40按钮命中区保留。音乐库复用MusicCatalog.IsLibrary的大小写语义，空心使用Audio E8D6双音符，实心取SegoeIcons.ttf 1.56实际外轮廓去三个内孔、2048em转16字框，不误用不同形EC4F。侧栏音乐预览按库类型显示1:1，两个封面容器共用高度，音乐占位也换音符，影视维持2:3；查询、播放入口与异步归属保留。
+
+按项目Shell技能读固定Gallery 6de91feccadfbb0a796b71caedead5a2284f730e的IconElement/Iconography/NavigationView XAML与code-behind及引用资源、Button图片示例和GridView图片模板；Learn图标指南允许标准em字框。Gallery没有用户指定的双状态面板或同形音符填充配对，沿用现有原生PathIcon/FontIcon与Button组合，不升级依赖。两轮独立只读复核，音符路径41条命令与系统字体外轮廓完全一致。
+
+当前最终Shell Release/x64编译0警告0错误（2分45秒）；主测试、PageContract、SidebarPreview专项及Core均当前编译0警告0错误。sidebar-icons-fixture20/20、toolbar-icon-fixture15/15、SidebarPreviewTests34/34，全部0失败0跳过，套件不相加。预览测试补齐既有“封面+标题”的UI边界和精确探针提取起点，生成源与实际partial/探针逐字一致，保留原按钮/来源/取消/图像释放全部反例，并加标题缺失、音乐三种大小写、两容器和切回电影规格回归。首轮新增probe反例因在清空后取cell而失败，修正测试取值时序后完整重跑通过。10个修改文本的UTF-8/LF/BOM/末尾换行和git diff空白通过。
+
+本轮未启动UI、运行原生探针、连接真实服务、播放、发布或推送，实屏与DPI/主题/宽窄验收留到用户要求交付。产品及测试即将提交；主树有其他聊天详情渐变在途工作，合入前重新核对master、文件重叠和占用，保护现有改动。合入后补待交付台账；未合入不视为收尾。
