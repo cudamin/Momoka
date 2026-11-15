@@ -35,6 +35,32 @@ shelf 段因客户区停在 760×700、请求 1280 未落实而超时。合并�
 
 **边界。** 未跑 `--probe-section library` 的「文件选项三行的竖距」读数（它按 36 高 6 间距核对，属交付时的运行检查），也未单独截窄窗紧凑版式；用户桌面上有正在运行的旧版实例，未结束进程、未发布、未推远端。台账记为待交付第 43 项。
 
+## 2026-11-15 点击封面后关联动画起跑延迟（分支完成，待交付）
+
+用户：「点击封面后会卡一下才会触发动画，请修复」。根因是 `CardDetailTransition.Ticket.TryStart` 第一句要求目标页
+`Loaded`，而详情页第一次布局早于 `Loaded`：`PrepareToAnimate` 到 `TryStart` 之间平台把源海报冻结在原位，
+用户看到的是点击后约两百毫秒的静止，之后补间才开始（2026-11-15 上午匿名探针暖态 `PrepareToStartMs` 226～260ms，
+冷启 1521ms）。
+
+**改了什么。** `Attach` 里先 `SeedConnectedLayoutWidth`（把 `Frame.ActualWidth` 交给视图模型 —— 封面那一格
+显不显示、多大都问 `PageWidth`，平时它要等第一次布局量到 `Body` 才写），再 `ForceConnectedLayout` 强制一次布局，
+随后 `TryStartEarly` 在目标已排过版时直接 `TryStart`，不再等 `Loaded`。抢跑只在身份、图版本、源卡可见性都对得上时
+发出；任何一条不满足都只是这一趟不抢，判定与回退仍由 `Loaded`／`LayoutUpdated` 原路负责（新页创建期间不能把
+票据判死，保留 2026-11-13 的 Frame 创建打断回归边界）。`LayoutUpdated` 在页面尚未 `Loaded` 时也先抢跑，因此
+导航事务里的强制布局排不出来时仍能在第一次布局落定起跑。`VisibleImage` 拆成 `Loaded + ArrangedImage`；
+`WatchAnimationCompletion` 改为只挂一份监听，抢跑失败后 `Loaded` 重试不会重复订阅。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.ConnectedAnimationTests` **63/63**、0 失败 0 跳过
+（新增「已排过版时在新页 Loaded 前立即起跑」「第一次布局落定即可起跑」两项，原「新页未 Loaded 时图片更正不打断
+Frame 创建」边界未变）；`git diff --check` 退出 0。匿名 `--probe-shell --probe-section motion --screen 1`
+**5/5、退出 0**（`shell-probe-20261115-122315551-20780`）：海报前进/返回 Started+Completed、图版本回退、缺源回退
+均通过，前进实屏 `card-detail-connected-forward-screen.png` 目视封面落在详情左上、页面布局正常。该次前进
+`PrepareToStartMs` 483ms 为进程内首次导航的冷样本（含详情页构造与前一日不同负载），不与前一日的暖态数字直接
+相减；本轮未取得起跑前后的受控 A/B 帧证据。
+
+**边界。** 只用匿名夹具与假传输，未登录、未播放、未写服务器、未推远端。动画是否在目标页 `Loaded` 前被平台接受，
+由 `Started` 回执与实屏间接支持；原生补间逐帧落点、其他 DPI 与窄窗（封面收起时仍走原普通回退）未单独验收。
+
 ## 2026-11-15 详情文件选择栏小圆角矩形（交付）
 
 用户附详情页音频、字幕选择栏截图，令「不要胶囊形状，矩形加一点圆角」。产品提交 `85b7402`（master，基线 `789019c`）。
