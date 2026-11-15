@@ -18,6 +18,8 @@ public sealed partial class LibraryPage
     private CancellationTokenSource? _batchCancellation;
     private CancellationTokenSource? _batchConfirmation;
     private readonly HashSet<CardItem> _selectionCards = [];
+    // 批量工具栏进出只动不透明度与位移；释放走立即收起，不让 140ms 淡出拖住离页。
+    private SurfaceMotion? _batchSurfaceMotion;
 
     private void InitializeSelection()
     {
@@ -77,6 +79,7 @@ public sealed partial class LibraryPage
         CardWall.IsItemInvokedEnabled = false;
         CardWall.SelectionMode = ItemsViewSelectionMode.Multiple;
         LibraryBatchSurface.Visibility = Visibility.Visible;
+        (_batchSurfaceMotion ??= new SurfaceMotion(LibraryBatchSurface)).Enter(180, 10);
         ApplySelectingToCards();
         RefreshSelectionAvailability();
     }
@@ -105,7 +108,12 @@ public sealed partial class LibraryPage
 
     private void OnEndSelection(object sender, RoutedEventArgs e) => EndSelection();
 
-    private void EndSelection()
+    private void EndSelection() => EndSelection(animated: true);
+
+    /// <summary>页面释放用：不播淡出，立即收起工具栏，落定不依赖 140ms 的回调。</summary>
+    private void EndSelectionImmediately() => EndSelection(animated: false);
+
+    private void EndSelection(bool animated)
     {
         _batchConfirmation?.Cancel();
         _batchConfirmation = null;
@@ -129,6 +137,17 @@ public sealed partial class LibraryPage
         finally { _syncingSelection = false; }
         LibraryBatchMenu.Hide();
         LibraryBatchCommandBar.IsOpen = false;
+        if (animated)
+        {
+            // 先淡出再收起；重复退出或中途重新进入会由 SurfaceMotion 打断，旧的落定回调不会覆盖新状态。
+            (_batchSurfaceMotion ??= new SurfaceMotion(LibraryBatchSurface)).Exit(140, 8, () =>
+            {
+                LibraryBatchSurface.Visibility = Visibility.Collapsed;
+                PlaceBatchEmptyNotice();
+            });
+            return;
+        }
+        _batchSurfaceMotion?.Collapse();
         LibraryBatchSurface.Visibility = Visibility.Collapsed;
         PlaceBatchEmptyNotice();
     }
