@@ -36,7 +36,8 @@ internal static class DetailLayoutTests
         {
             var html = Momoka.Shell.Views.StoreTrailerDocument.Build("Abc_123-xyz");
             foreach (var setting in new[] { "controls=0", "disablekb=1", "fs=0", "loop=1", "playlist=Abc_123-xyz",
-                "pointer-events:none", "tabindex=\"-1\"", "p.pauseVideo()", "p.playVideo()", "p.mute()", "p.unMute()" })
+                "pointer-events:none", "tabindex=\"-1\"", "p.pauseVideo()", "p.playVideo()", "p.mute()", "p.unMute()",
+                "p.getOption('captions','tracklist')", "p.setOption('captions','track'", "onApiChange", "postMessage('paused')" })
                 Assert.Contains(setting, html);
             Assert.DoesNotContain("showinfo", html);
             foreach (var id in new[] { "short", "Abc_123-xy<", "Abc_123-xy\"" })
