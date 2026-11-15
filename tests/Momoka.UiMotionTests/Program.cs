@@ -323,6 +323,7 @@ internal static class Program
         });
 
         HomeEntranceTests.Register();
+        VisibilityRevealTests.Register();
         SubscriptionFailureTests.Register();
         ShelfFocusTests.Register();
         BannerPointerGlowTests.Register();

@@ -155,8 +155,32 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         _resourceActive = true;
         ResourceOverlay.Visibility = Visibility.Visible;
         (_resourceMotion ??= new SurfaceMotion(ResourceOverlay)).Enter(200, 12);
-        (_contentMotion ??= new SurfaceMotion(SearchContent)).Exit(120, 0, CollapseSearchContent);
-        (_resultsMotion ??= new SurfaceMotion(Results)).Exit(120, 0, CollapseResults);
+
+        // 这两块由绑定一直停在显示档，没走过 SurfaceMotion 的 Enter；先 Settle 到显示档，
+        // 否则 Exit 会把「本来就没显示」当成真，直接跑落定回调，看不到淡出。
+        var content = _contentMotion ??= new SurfaceMotion(SearchContent);
+        if (SearchContent.Visibility == Visibility.Visible)
+        {
+            content.Settle();
+            content.Exit(120, 0, CollapseSearchContent);
+        }
+        else
+        {
+            content.Collapse();
+            SearchContent.Visibility = Visibility.Collapsed;
+        }
+
+        var results = _resultsMotion ??= new SurfaceMotion(Results);
+        if (Results.Visibility == Visibility.Visible)
+        {
+            results.Settle();
+            results.Exit(120, 0, CollapseResults);
+        }
+        else
+        {
+            results.Collapse();
+            Results.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>返回结果：资源面板淡出落定后再收起并释放，搜索内容与结果重新显示并从下方轻推入场。</summary>

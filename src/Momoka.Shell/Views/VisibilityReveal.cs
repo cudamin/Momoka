@@ -28,16 +28,25 @@ public static class VisibilityReveal
         typeof(VisibilityReveal),
         new PropertyMetadata(false, OnIsEnabledChanged));
 
-    public static void SetIsEnabled(DependencyObject target, bool value) =>
+    public static void SetIsEnabled(DependencyObject target, bool value)
+    {
         target.SetValue(IsEnabledProperty, value);
+        // 生产环境里 DP 元数据回调也会走到 Apply；这里直接接一次，让测试替身不必实现元数据回调，
+        // Apply 本身按元素去重，重复调用不会多挂一个订阅。
+        if (target is FrameworkElement element) Apply(element, value);
+    }
 
     public static bool GetIsEnabled(DependencyObject target) =>
-        (bool)target.GetValue(IsEnabledProperty);
+        target.GetValue(IsEnabledProperty) is true;
 
     private static void OnIsEnabledChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
-        if (target is not FrameworkElement element) return;
-        if (args.NewValue is true)
+        if (target is FrameworkElement element) Apply(element, args.NewValue is true);
+    }
+
+    private static void Apply(FrameworkElement element, bool enabled)
+    {
+        if (enabled)
         {
             Watches.GetValue(element, static owner => new Watch(owner));
         }
