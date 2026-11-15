@@ -1,3 +1,9 @@
+## 2026-11-15 交付诊断：返回主页等待本次加载与滚动恢复
+
+独立树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka` 先合入主树44b7a8b（5347453，PROGRESS双方追加均保留，产品/测试与主树一致）。原生PID12060在用户激活/真实输入成功后仍仅history-return红：离开前主页1240、偏移300，LibraryPage正常；正式GoBack后client/Shell1240而Home0。源码核 `ShellPage.ActiveContentReady` 只取Home.IsReady；Home缓存重入先TryReactivate与排队 `_restoredScroll`，实际Loaded才消耗该字段并ScrollTo，旧偏移300与尚false的 `_restoringHeaderScroll` 可让旧探针立即通过。因此只改检查工具，不改产品恢复、依赖或Revealed期望。
+
+返回检查现守当前页身份、Home/ScrollView/ScrollPresenter Loaded、实际1240/760宽及非零高度/视口、恢复队列已消费、关联滚动已结束与原300偏移；随后完成页面布局及两帧，再按原生系统三键/亚克力/Revealed严格验收。新增 `home-header-chrome.json.returns` 写每次尝试和耗时及全部加载/尺寸/恢复读数，包括等待前瞬间与失败末态，持续Home0或恢复未完成仍超时报红。源链接实际等待器回归缓存旧偏移不可提前通过、Loaded仍待恢复需异步等待、错误页/模板/视口/宽度及80次超时，Hidden仍被Revealed拒绝。当前PageContract298/298、失败0、跳过0；Shell/Core Release0警告0错误（2分26.25秒），定向whitespace与三个文本LF/无BOM/末尾换行、git diff检查通过；Shell格式工具的workspace加载提示单独保留。没有启动UI、输入图片、发布或推送，父交付会话须在最终主树重新运行InspectHomeHeaderChrome并读取returns与完整宽窄结果。
+
 ## 2026-11-15 交付诊断：订阅双列精确边界与单集读数
 
 ## 2026-11-15 交付检查超时仍持有真实窗口

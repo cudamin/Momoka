@@ -64,6 +64,7 @@ internal sealed partial class ShellNavigationProbe
         var originalTheme = ThemeHost.Current;
         var snapshots = new List<object>();
         var layouts = new List<object>();
+        var returns = new List<object>();
         Exception? probeFailure = null;
         try
         {
@@ -149,16 +150,48 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is LibraryPage);
                 Read("other-page", HomeHeaderMode.Top);
                 Call(shell, "GoBack");
-                await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is HomePage returned
-                    && !Get<bool>(returned, "_restoringHeaderScroll")
-                    && Math.Abs(Get<ScrollView>(returned, "Scroller").VerticalOffset - preserved) <= 1);
+                await UntilAsync(() => shell.Pages.Content is HomePage);
                 home = (HomePage)shell.Pages.Content;
                 scroll = Get<ScrollView>(home, "Scroller");
+                var returnBegan = Environment.TickCount64;
+                var returnAttempts = 0;
+                ObserveReturn(ReturnReading());
+                // IsReady and the old offset survive warm-cache navigation. Loaded consumes _restoredScroll;
+                // only that visit's loaded/arranged page and completed restore may satisfy the probe.
+                await HomeHeaderChromeProbeReadings.WaitForReturnAsync(() =>
+                {
+                    shell.UpdateLayout();
+                    return ReturnReading();
+                }, ObserveReturn, () => Task.Delay(25));
+                await LayoutAsync(home);
+                await WaitForDiagnosticsFrameAsync();
+                ObserveReturn(ReturnReading());
+                Require(HomeHeaderChromeProbeReadings.ReturnReady(ReturnReading()),
+                    "正式返回主页的加载、布局或滚动恢复在读取前失效");
                 Read("history-return", HomeHeaderMode.Revealed);
                 Require(Math.Abs(scroll.VerticalOffset - preserved) <= 1, "正式返回主页没有恢复深处滚动位置");
                 await ScrollProbeAsync(scroll, 0);
                 Read("back-to-top", HomeHeaderMode.Top);
                 if (width == 760) await SaveProbeScreenAsync("home-header-chrome-top-760-screen.png");
+
+                HomeHeaderChromeReturnReading ReturnReading() => new(
+                    ReferenceEquals(shell.Pages.Content, home), shell.ActiveContentReady, home.IsLoaded, scroll.IsLoaded,
+                    scroll.ScrollPresenter?.IsLoaded == true, home.XamlRoot is not null,
+                    Get<double?>(home, "_restoredScroll") is not null, Get<bool>(home, "_restoringHeaderScroll"),
+                    width, home.ActualWidth, home.ActualHeight, scroll.ViewportHeight, scroll.ExtentHeight,
+                    preserved, scroll.VerticalOffset);
+
+                void ObserveReturn(HomeHeaderChromeReturnReading reading)
+                {
+                    returns.Add(new
+                    {
+                        width,
+                        attempt = returnAttempts++,
+                        elapsedMilliseconds = Environment.TickCount64 - returnBegan,
+                        ready = HomeHeaderChromeProbeReadings.ReturnReady(reading),
+                        reading
+                    });
+                }
 
                 void Read(string stage, HomeHeaderMode expected)
                 {
@@ -216,7 +249,7 @@ internal sealed partial class ShellNavigationProbe
             HomeHeaderChromeProbeCleanup.Run(
             [
                 () => File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "home-header-chrome.json"),
-                    JsonSerializer.Serialize(new { snapshots, layouts, plays = fixture.Actions.Plays, mediaLoaded = false, realNetwork = false },
+                    JsonSerializer.Serialize(new { snapshots, layouts, returns, plays = fixture.Actions.Plays, mediaLoaded = false, realNetwork = false },
                         new JsonSerializerOptions { WriteIndented = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals })),
                 () => Call(shell, "StopMoviePilotMonitoring"),
                 () => Call(shell, "ReleaseContent"),

@@ -14,8 +14,36 @@ internal sealed record HomeHeaderChromeLayoutReading(
     double RequestedWidth, bool ClientRectRead, int ClientWidthPixels,
     uint WindowDpi, double RasterizationScale, double ShellWidth, double? HomeWidth);
 
+internal sealed record HomeHeaderChromeReturnReading(
+    bool CurrentPage, bool ContentReady, bool HomeLoaded, bool ScrollLoaded, bool PresenterLoaded,
+    bool HasXamlRoot, bool RestorePending, bool Restoring,
+    double RequestedWidth, double HomeWidth, double HomeHeight, double ViewportHeight,
+    double ExtentHeight, double ExpectedOffset, double Offset);
+
 internal static class HomeHeaderChromeProbeReadings
 {
+    internal static bool ReturnReady(HomeHeaderChromeReturnReading actual) =>
+        actual.CurrentPage && actual.ContentReady && actual.HomeLoaded && actual.ScrollLoaded
+        && actual.PresenterLoaded && actual.HasXamlRoot && !actual.RestorePending && !actual.Restoring
+        && Finite(actual.RequestedWidth, actual.HomeWidth, actual.HomeHeight, actual.ViewportHeight,
+            actual.ExtentHeight, actual.ExpectedOffset, actual.Offset)
+        && actual.RequestedWidth > 0 && Math.Abs(actual.HomeWidth - actual.RequestedWidth) <= 1.5
+        && actual.HomeHeight > 0 && actual.ViewportHeight > 0 && actual.ExtentHeight >= actual.ViewportHeight
+        && actual.ExpectedOffset > 12 && Math.Abs(actual.Offset - actual.ExpectedOffset) <= 1;
+
+    internal static async Task WaitForReturnAsync(Func<HomeHeaderChromeReturnReading> read,
+        Action<HomeHeaderChromeReturnReading> observe, Func<Task> next)
+    {
+        for (var attempt = 0; attempt < 80; attempt++)
+        {
+            var actual = read();
+            observe(actual);
+            if (ReturnReady(actual)) return;
+            await next();
+        }
+        throw new TimeoutException("正式返回主页未完成当前页加载、布局或滚动恢复");
+    }
+
     internal static void Layout(HomeHeaderChromeLayoutReading actual, bool fullHome)
     {
         Check(Finite(actual.RequestedWidth, actual.RasterizationScale, actual.ShellWidth)

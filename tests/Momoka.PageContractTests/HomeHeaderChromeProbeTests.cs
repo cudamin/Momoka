@@ -12,9 +12,74 @@ internal static class HomeHeaderChromeProbeTests
     { BackgroundVisible = true, BackgroundHeight = 48, BackgroundWidth = 1240 };
     private static readonly HomeHeaderChromeReading Hidden = new(
         false, false, false, false, 0, 0, 1240, true, 0, 0, 0, 0, true, false, false, false);
+    private static readonly HomeHeaderChromeReturnReading Returned = new(
+        true, true, true, true, true, true, false, false, 1240, 1240, 760, 760, 2212, 300, 300);
 
     internal static void Register()
     {
+        Test("顶部返回等待：缓存就绪和旧偏移不得绕过本次Loaded、布局与恢复", () =>
+        {
+            var states = new[]
+            {
+                Returned with { HomeLoaded = false, HomeWidth = 0, RestorePending = true },
+                Returned with { HomeLoaded = true, HomeWidth = 0, RestorePending = true },
+                Returned with { HomeWidth = 1240, ScrollLoaded = false, RestorePending = true },
+                Returned with { RestorePending = false, Restoring = true, Offset = 118 },
+                Returned with { Restoring = false, Offset = 228 },
+                Returned
+            };
+            var phase = 0;
+            var observations = new List<HomeHeaderChromeReturnReading>();
+            var waiting = HomeHeaderChromeProbeReadings.WaitForReturnAsync(() => states[phase], observations.Add,
+                () => { phase++; return Task.CompletedTask; });
+            Assert.True(waiting.IsCompletedSuccessfully, waiting.Exception?.ToString() ?? "返回序列未完成");
+            Assert.Equal(states.Length - 1, phase);
+            Assert.Equal(states.Length, observations.Count);
+            Assert.Equal(Returned, observations[^1]);
+        });
+        Test("顶部返回等待：布局已到位但Loaded恢复仍待消费时保持异步等待", () =>
+        {
+            var current = Returned with { RestorePending = true };
+            var next = new TaskCompletionSource();
+            var observations = new List<HomeHeaderChromeReturnReading>();
+            var waiting = HomeHeaderChromeProbeReadings.WaitForReturnAsync(() => current,
+                observations.Add, () => next.Task);
+            Assert.False(waiting.IsCompleted);
+            current = Returned;
+            next.SetResult();
+            Assert.True(waiting.IsCompletedSuccessfully, waiting.Exception?.ToString() ?? "完成信号后仍在等待");
+            Assert.Equal(2, observations.Count);
+            Assert.True(HomeHeaderChromeProbeReadings.ReturnReady(observations[^1]));
+        });
+        Test("顶部返回等待：错误页、未加载模板、无视口和坏尺寸持续拒绝", () =>
+        {
+            foreach (var bad in new[]
+            {
+                Returned with { CurrentPage = false }, Returned with { ContentReady = false },
+                Returned with { HomeLoaded = false }, Returned with { ScrollLoaded = false },
+                Returned with { PresenterLoaded = false }, Returned with { HasXamlRoot = false },
+                Returned with { RestorePending = true }, Returned with { Restoring = true },
+                Returned with { HomeWidth = 0 }, Returned with { HomeWidth = 984 },
+                Returned with { RequestedWidth = double.NaN }, Returned with { RequestedWidth = 0 },
+                Returned with { HomeHeight = 0 }, Returned with { ViewportHeight = 0 },
+                Returned with { ExtentHeight = 759 }, Returned with { Offset = double.NaN },
+                Returned with { ExpectedOffset = 0 }, Returned with { Offset = 0 }
+            })
+                Assert.False(HomeHeaderChromeProbeReadings.ReturnReady(bad));
+            var delays = 0;
+            var readings = new List<HomeHeaderChromeReturnReading>();
+            var timedOut = HomeHeaderChromeProbeReadings.WaitForReturnAsync(
+                () => Returned with { HomeWidth = 0 }, readings.Add,
+                () => { delays++; return Task.CompletedTask; });
+            Assert.True(timedOut.IsFaulted);
+            Assert.Equal(1, timedOut.Exception!.InnerExceptions.Count);
+            Assert.True(timedOut.Exception.InnerExceptions[0] is TimeoutException);
+            Assert.Equal(80, delays);
+            Assert.Equal(80, readings.Count);
+            Assert.Equal(0.0, readings[^1].HomeWidth);
+            HomeHeaderChromeProbeReadings.State(HomeHeaderMode.Revealed, Revealed);
+            Assert.Throws<InvalidOperationException>(() => HomeHeaderChromeProbeReadings.State(HomeHeaderMode.Revealed, Hidden));
+        });
         Test("顶部运行宽度：客户区、缩放与实际主页均到达目标且容差最多1.5 DIP", () =>
         {
             HomeHeaderChromeProbeReadings.Layout(new(1240, true, 1240, 96, 1, 1240, 1240), true);
@@ -143,6 +208,13 @@ internal static class HomeHeaderChromeProbeTests
             Assert.Contains("await ScrollProbeAsync(scroll, 236)", caller);
             Assert.Contains("await ScrollProbeAsync(scroll, 228)", caller);
             Assert.Contains("Call(shell, \"GoBack\")", caller);
+            Assert.Contains("HomeHeaderChromeProbeReadings.WaitForReturnAsync", caller);
+            Assert.Contains("Get<double?>(home, \"_restoredScroll\") is not null", caller);
+            Assert.Contains("scroll.ScrollPresenter?.IsLoaded == true", caller);
+            Assert.Contains("Read(\"history-return\", HomeHeaderMode.Revealed)", caller);
+            Assert.True(caller.IndexOf("HomeHeaderChromeProbeReadings.WaitForReturnAsync", StringComparison.Ordinal)
+                < caller.IndexOf("Read(\"history-return\", HomeHeaderMode.Revealed)", StringComparison.Ordinal));
+            Assert.Contains("new { snapshots, layouts, returns,", caller);
             Assert.Contains("ShellPrefs.ApplyAppearance(fixture.Settings.Ui)", caller);
             Assert.Contains("source.GetRegionRects(kind)", caller);
             Assert.Contains("HomeHeaderChromeProbeReadings.State(expected, reading)", caller);
