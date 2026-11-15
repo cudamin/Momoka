@@ -17,6 +17,7 @@ public sealed partial class ShelfFocusFixture
     private int _focusGeneration;
     private int _focusScrollCorrelation = -1;
     private FrameworkElement? _focusReadyElement;
+    private UIElement? _focusBringElement;
     private readonly WatchBoundary _watch = new();
     private readonly Button Prev = new();
     private readonly Button Next = new();
@@ -35,7 +36,19 @@ public sealed partial class ShelfFocusFixture
     internal void Unload() => OnUnloaded(this, new());
     internal void FocusAt(int index) => FocusItem(index);
     internal void Layout() => ApplyPendingFocusedItem();
-    internal void CompleteScroll(int correlation) => OnFocusScrollCompleted(new(), new(correlation));
+    internal void CompleteScroll(int correlation)
+    {
+        if (correlation == _focusScrollCorrelation) Scroller.ScrollSettled = true;
+        OnFocusScrollCompleted(new(), new(correlation));
+    }
+    internal void BringFromElement(int correlation)
+    {
+        OnFocusBringingIntoView(new(), new(correlation) { RequestEventArgs = new() { TargetElement = _focusBringElement } });
+        var args = new BringIntoViewRequestedEventArgs();
+        OnFocusBringRequested(new UIElement(), args);
+        BringHandled = args.Handled;
+    }
+    internal bool BringHandled { get; private set; }
     internal void TakeOtherFocus(int index)
     {
         var element = Repeater.TryGetElement(index) ?? Repeater.GetOrCreateElement(index);
@@ -49,6 +62,7 @@ public sealed partial class ShelfFocusFixture
         _focusRetryQueued = false;
         _focusScrollCorrelation = -1;
         ClearFocusReadyElement();
+        _focusBringElement = null;
         _focusGeneration++;
     }
     internal bool Key(VirtualKey key)
@@ -64,10 +78,11 @@ public sealed partial class ShelfFocusFixture
         return args.Handled;
     }
     private double Measure() => 200;
+    internal void AssumeScrollSettled() => Scroller.ScrollSettled = true;
     private int BringFocusedElementIntoView(UIElement element)
     {
         Revealed.Add(element);
-        return Scroller.BeginRequest();
+        return Scroller.ScrollSettled ? -1 : Scroller.BeginRequest();
     }
     private void SetArrowAnimation(Button button, object? value) => ArrowStops.Add(value);
 
@@ -76,6 +91,7 @@ public sealed partial class ShelfFocusFixture
         internal double HorizontalOffset { get; set; }
         internal double ScrollableWidth { get; set; } = 1800;
         internal bool ReuseCurrentRequest { get; set; }
+        internal bool ScrollSettled { get; set; }
         internal int LastRequest { get; private set; }
         internal int BeginRequest() => ReuseCurrentRequest && LastRequest > 0 ? LastRequest : ++LastRequest;
     }

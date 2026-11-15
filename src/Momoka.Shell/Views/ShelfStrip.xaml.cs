@@ -139,6 +139,7 @@ public sealed partial class ShelfStrip : UserControl
     private int _focusGeneration;
     private int _focusScrollCorrelation = -1;
     private FrameworkElement? _focusReadyElement;
+    private UIElement? _focusBringElement;
 
     public ShelfStrip()
     {
@@ -154,6 +155,8 @@ public sealed partial class ShelfStrip : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         Scroller.ScrollCompleted += OnFocusScrollCompleted;
+        Scroller.BringingIntoView += OnFocusBringingIntoView;
+        Root.BringIntoViewRequested += OnFocusBringRequested;
     }
 
     public object? ItemsSource
@@ -505,6 +508,7 @@ public sealed partial class ShelfStrip : UserControl
         _focusScrollCorrelation = -1;
         _focusGeneration++;
         ClearFocusReadyElement();
+        _focusBringElement = null;
 
         BringFocusedElementIntoView(element);
     }
@@ -581,6 +585,7 @@ public sealed partial class ShelfStrip : UserControl
         _focusRetryQueued = false;
         _focusScrollCorrelation = -1;
         ClearFocusReadyElement();
+        _focusBringElement = null;
         _focusGeneration++;
 
         // 带自己离开了树，指针在不在它上面已经无所谓了 —— 留着的话十赫兹那一拍还会继续问一个量不到的矩形。
@@ -640,6 +645,7 @@ public sealed partial class ShelfStrip : UserControl
         _focusRetryQueued = false;
         _focusScrollCorrelation = -1;
         ClearFocusReadyElement();
+        _focusBringElement = null;
         TryFocusItem(index);
     }
 
@@ -648,6 +654,7 @@ public sealed partial class ShelfStrip : UserControl
         if (!_live || index < 0 || index >= ItemCount) return;
         var generation = _focusGeneration;
         _focusedIndex = index;
+        var unrealized = Repeater.TryGetElement(index) is null;
 
         UIElement? element;
         try
@@ -672,11 +679,30 @@ public sealed partial class ShelfStrip : UserControl
         if (element is FrameworkElement prepared) prepared.UpdateLayout();
         if (!_live || generation != _focusGeneration) return;
         _pendingFocusedIndex = -1;
+        if (unrealized)
+        {
+            // GetOrCreateElement 的临时锚点要经过正式 bring 协议才能保持实现范围；单独ScrollTo后立刻
+            // Focus(true)可能只给未Loaded的临时Button，下一布局回收它并把焦点挪到旧视口。
+            _pendingFocusedIndex = index;
+            WatchFocusReadyElement(element as FrameworkElement);
+            _focusBringElement = element;
+            element.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+            QueueFocusRetry(index);
+            return;
+        }
         _focusScrollCorrelation = BringFocusedElementIntoView(element);
+        if (element is FrameworkElement { IsLoaded: false } || _focusScrollCorrelation >= 0)
+        {
+            WatchFocusReadyElement(element as FrameworkElement);
+            QueueFocusRetry(index);
+            return;
+        }
 
         // Realised 元素通常可以立即接收焦点；若仍在布局中，下一次布局再试。Focus 返回 false 而不是抛异常，
         // 所以这里必须检查返回值。
-        if (!element.Focus(FocusState.Keyboard))
+        var focused = element.Focus(FocusState.Keyboard);
+        if (!_live || generation != _focusGeneration) return;
+        if (!focused)
         {
             WatchFocusReadyElement(element as FrameworkElement);
             QueueFocusRetry(index);
@@ -685,6 +711,7 @@ public sealed partial class ShelfStrip : UserControl
         {
             _focusScrollCorrelation = -1;
             ClearFocusReadyElement();
+            _focusBringElement = null;
         }
     }
 
@@ -764,6 +791,20 @@ public sealed partial class ShelfStrip : UserControl
         if (!_live || args.CorrelationId != _focusScrollCorrelation || _pendingFocusedIndex < 0) return;
         _focusScrollCorrelation = -1;
         QueueFocusRetry(_pendingFocusedIndex);
+    }
+
+    private void OnFocusBringingIntoView(ScrollView sender, ScrollingBringingIntoViewEventArgs args)
+    {
+        if (_focusBringElement is { } target && ReferenceEquals(args.RequestEventArgs.TargetElement, target))
+            _focusScrollCorrelation = args.CorrelationId;
+    }
+
+    private void OnFocusBringRequested(UIElement sender, BringIntoViewRequestedEventArgs args)
+    {
+        // Repeater/ScrollPresenter 先完成本条横带的bring；Root截住继续冒泡，主页和详情正文不跟着纵滚。
+        if (_focusBringElement is null) return;
+        args.Handled = true;
+        _focusBringElement = null;
     }
 
     private void WatchFocusReadyElement(FrameworkElement? element)
@@ -871,6 +912,7 @@ public sealed partial class ShelfStrip : UserControl
         strip._focusRetryQueued = false;
         strip._focusScrollCorrelation = -1;
         strip.ClearFocusReadyElement();
+        strip._focusBringElement = null;
         strip._focusGeneration++;
         // 换了一批卡，上一批的定位请求（尤其是换季的强制左对齐）不该落到新列表上。
         strip._focus = -1;

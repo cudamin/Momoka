@@ -1,3 +1,13 @@
+## 2026-11-16 虚拟目标焦点实证修复：先完成原生bring再交焦点（待主控复验）
+
+新原生 `shell-probe-20261115-165848368-11840` 的 `performance-long-series-focus-1999.json` 把失败路径明确拆开：before横偏移600400（第1900项 ×316）、目标1999未实现；requested已经给1999的Button键盘焦点但它仍未Loaded；下一layout目标回收，真实焦点被框架挪到1898。前一轮只修Focus返回false后重试不覆盖这条实际成功后回收路径，因此不宣称原生已通过。
+
+独立树已快进整合 `e2ca431`。保留固定Gallery的GetOrCreateElement → StartBringIntoView → Focus顺序：新虚拟目标必须走原生bring协议，让ItemsRepeater的临时锚点进入正式实现/视口保护；只在本次bring经过横向ScrollPresenter之后由Root截断向外冒泡，不推动页面纵滚。等待目标Loaded及横向完成再交Focus，已实现可见项仍立即聚焦。Focus同步回调之后先核代际，旧成功不能清掉回调里新请求的监听。新增Element/extent/viewport/scrollable/pitch/targetLeft读数便于核对最终真实视口，原1999/0焦点断言不变。
+
+UiMotion真实链接新增「未Loaded但Focus可成功也先bring」「Focus同步新请求归属」「异步bring边界回执」；原有限Low、错完成ID、取消/新焦点/离页守卫保留。测试边界记录原生bring及滚动完成，不另造焦点协调器。未运行UI/鼠标/播放或发布；主控合入后用LongSeries原生判据确认，不能用托管通过冒充实际虚拟化通过。
+
+本树Shell Release **0警告0错误**（1分23秒），UiMotion Release **0警告0错误**、**91/91，0失败0跳过**；UiMotion空白与六路径编码/空白检查通过。证据 `artifacts/captions-verification/focus-anchor-*`。原实现失败后的「后来布局」测试增加第二次真实待布局回调以符合虚拟目标先bring/后布局的新顺序，未删持续失败与有限队列断言；首次89/90失败日志保留。分支仍待主控合入重验与发布，不自行刷新桌面。
+
 ## 2026-11-16 悬停面板徽标与片名飞进详情页（已合入主树，待用户实机确认）
 
 用户令：「鼠标悬浮呼出悬停页面之后，再点击下方的缩略图进入详情页时，新增徽标和片名移进详情页的动画」，随后要求「做完了自动合并到主树」。工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-hover-detail-animation-7KmvBW`，分支 `feat-hover-detail-animation-7KmvBW`，基点 `9cb1b68`，产品提交 `5ee0279`、`2c78c50`。

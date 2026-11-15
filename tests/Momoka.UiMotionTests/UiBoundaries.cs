@@ -85,6 +85,15 @@ namespace Microsoft.UI.Xaml
     {
         public object? OriginalSource { get; set; }
     }
+    public sealed class BringIntoViewOptions
+    {
+        public bool AnimationDesired { get; set; }
+    }
+    public sealed class BringIntoViewRequestedEventArgs : EventArgs
+    {
+        public bool Handled { get; set; }
+        public UIElement? TargetElement { get; set; }
+    }
     public enum Visibility { Visible, Collapsed }
     public enum FocusState { Unfocused, Pointer, Keyboard, Programmatic }
     public enum FocusNavigationDirection { Next, Previous, Left, Right, Up, Down }
@@ -187,6 +196,9 @@ namespace Microsoft.UI.Xaml
         public bool IsHitTestVisible { get; set; } = true;
         public bool IsTabStop { get; set; } = true;
         public bool FocusAccepted { get; set; } = true;
+        public Action? OnFocus { get; set; }
+        public Action? OnStartBring { get; set; }
+        public int BringRequests { get; private set; }
         public int FocusCalls { get; private set; }
         public FocusState FocusState { get; private set; }
         public bool Focus(FocusState state)
@@ -194,7 +206,13 @@ namespace Microsoft.UI.Xaml
             FocusCalls++;
             if (!FocusAccepted) return false;
             FocusState = state;
+            OnFocus?.Invoke();
             return true;
+        }
+        public void StartBringIntoView(BringIntoViewOptions options)
+        {
+            BringRequests++;
+            OnStartBring?.Invoke();
         }
     }
 
@@ -276,6 +294,11 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ScrollingScrollCompletedEventArgs(int correlationId) : EventArgs
     {
         public int CorrelationId { get; } = correlationId;
+    }
+    public sealed class ScrollingBringingIntoViewEventArgs(int correlationId) : EventArgs
+    {
+        public int CorrelationId { get; } = correlationId;
+        public BringIntoViewRequestedEventArgs RequestEventArgs { get; set; } = new();
     }
     public sealed class ItemsSourceView(int count)
     {

@@ -30,6 +30,7 @@ internal static class ShelfFocusTests
             var shelf = new ShelfFocusFixture();
             shelf.ReplaceItems(10);
             shelf.Load();
+            shelf.AssumeScrollSettled();
             shelf.Repeater.ThrowOnCreate = true;
             shelf.FocusAt(8);
             shelf.DispatcherQueue.Drain();
@@ -37,6 +38,8 @@ internal static class ShelfFocusTests
             Assert.Equal(8, shelf.Pending);
             Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
             shelf.Repeater.ThrowOnCreate = false;
+            shelf.Layout();
+            shelf.DispatcherQueue.Drain();
             shelf.Layout();
             Assert.Equal(-1, shelf.Pending);
             Assert.Equal(FocusState.Keyboard, shelf.Repeater.TryGetElement(8)!.FocusState);
@@ -110,10 +113,11 @@ internal static class ShelfFocusTests
         Test("同尺寸卡片滚动完成后恢复失败焦点，不等待SizeChanged", () =>
         {
             var (shelf, target) = Create();
+            shelf.Scroller.ScrollSettled = false;
             target.FocusAccepted = false;
             shelf.FocusAt(2);
             shelf.DispatcherQueue.Drain();
-            Assert.Equal(2, target.FocusCalls);
+            Assert.Equal(0, target.FocusCalls);
             Assert.Equal(2, shelf.Pending);
             target.FocusAccepted = true;
             shelf.CompleteScroll(shelf.ScrollCorrelation);
@@ -125,6 +129,7 @@ internal static class ShelfFocusTests
         Test("旧滚动完成不重试当前目标，当前完成持续拒绝也不自排队", () =>
         {
             var (shelf, target) = Create();
+            shelf.Scroller.ScrollSettled = false;
             target.FocusAccepted = false;
             shelf.FocusAt(2);
             var previous = shelf.ScrollCorrelation;
@@ -134,7 +139,7 @@ internal static class ShelfFocusTests
             Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
             shelf.CompleteScroll(current);
             shelf.DispatcherQueue.Drain();
-            Assert.Equal(3, target.FocusCalls);
+            Assert.Equal(1, target.FocusCalls);
             Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
             Assert.Equal(2, shelf.Pending);
         });
@@ -173,7 +178,7 @@ internal static class ShelfFocusTests
                 target.RaiseLoaded();
                 shelf.CompleteScroll(correlation);
                 shelf.DispatcherQueue.Drain();
-                Assert.Equal(cancel == "none" ? 3 : 2, target.FocusCalls);
+                Assert.Equal(cancel == "none" ? 1 : 0, target.FocusCalls);
                 Assert.Equal(0, target.LayoutSubscriptionCount);
                 Assert.Equal(0, target.LoadedSubscriptionCount);
             }
@@ -193,7 +198,7 @@ internal static class ShelfFocusTests
             target.RaiseLoaded();
             shelf.CompleteScroll(previous);
             shelf.DispatcherQueue.Drain();
-            Assert.Equal(1, target.FocusCalls);
+            Assert.Equal(0, target.FocusCalls);
             Assert.Equal(4, shelf.Pending);
             current.FocusAccepted = true;
             shelf.CompleteScroll(shelf.ScrollCorrelation);
@@ -246,6 +251,55 @@ internal static class ShelfFocusTests
                 }
             throw new AssertionException("找不到本树Shelf源码");
         });
+        Test("未Loaded虚拟目标即使可Focus也先完成bring，防止临时焦点被回收", () =>
+        {
+            var shelf = new ShelfFocusFixture();
+            shelf.ReplaceItems(2000);
+            shelf.Load();
+            var target = new FrameworkElement { IsLoaded = false, FocusAccepted = true };
+            target.OnStartBring = () => shelf.BringFromElement(42);
+            shelf.Repeater.CreateElement = _ => target;
+            shelf.FocusAt(1999);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(0, target.FocusCalls);
+            Assert.Equal(1, target.BringRequests);
+            Assert.True(shelf.BringHandled, "虚拟目标bring没有在横带边界截住外层纵滚");
+            target.RaiseLoaded();
+            shelf.CompleteScroll(shelf.ScrollCorrelation);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, target.FocusState);
+            Assert.Equal(-1, shelf.Pending);
+        });
+        Test("Focus同步回调发起新目标时旧成功不能清掉新请求", () =>
+        {
+            var (shelf, target) = Create();
+            var next = new FrameworkElement { IsLoaded = false };
+            shelf.Repeater.Prepare(4, next);
+            target.OnFocus = () => shelf.FocusAt(4);
+            shelf.FocusAt(2);
+            Assert.Equal(4, shelf.Pending);
+            Assert.Equal(1, next.LoadedSubscriptionCount);
+            next.RaiseLoaded();
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, next.FocusState);
+            Assert.Equal(-1, shelf.Pending);
+        });
+        Test("虚拟目标bring异步到达边界时仍记录本次完成并阻断外层纵滚", () =>
+        {
+            var shelf = new ShelfFocusFixture();
+            shelf.ReplaceItems(2000);
+            shelf.Load();
+            var target = new FrameworkElement { IsLoaded = false };
+            shelf.Repeater.CreateElement = _ => target;
+            shelf.FocusAt(1999);
+            shelf.BringFromElement(91);
+            Assert.Equal(91, shelf.ScrollCorrelation);
+            Assert.True(shelf.BringHandled);
+            target.RaiseLoaded();
+            shelf.CompleteScroll(91);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, target.FocusState);
+        });
     }
 
     private static (ShelfFocusFixture Shelf, FrameworkElement Target) Create()
@@ -253,6 +307,7 @@ internal static class ShelfFocusTests
         var shelf = new ShelfFocusFixture();
         shelf.ReplaceItems(10);
         shelf.Load();
+        shelf.AssumeScrollSettled();
         var target = new FrameworkElement();
         shelf.Repeater.Prepare(2, target);
         return (shelf, target);
