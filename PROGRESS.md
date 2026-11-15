@@ -13845,6 +13845,17 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 
 当前 Core/Tests/Shell Release 编译0警告0错误，`input-theme-fixture` 29/29、`acrylic-controls-fixture` 39/39，0失败0跳过。独立只读审阅通过，修改文件LF/无BOM/末尾换行与git diff空白检查通过。没有启动UI、真实播放、发布或推送；实屏外观与宽窄、主题检查留到用户要求交付时统一验收。主树同文件被另一活动聊天写入，待其释放写入后按局部差异合入并追加台账。
 
+## 2026-11-15 侧栏折叠尺寸、音乐图标与方形预览
+
+工作树 `C:/Users/89400/.codex/worktrees/b32f/Momoka`，临时分支 `codex/sidebar-icon-correction`，基点1ea0962。折叠按钮的Grid/PathIcon显式使用20字框，原24坐标整体平移至20字框，消除外层缩小；可见轮廓宽15.67→18.8（约20%），两档外框和中心一致，40按钮命中区保留。音乐库复用MusicCatalog.IsLibrary的大小写语义，空心使用Audio E8D6双音符，实心取SegoeIcons.ttf 1.56实际外轮廓去三个内孔、2048em转16字框，不误用不同形EC4F。侧栏音乐预览按库类型显示1:1，两个封面容器共用高度，音乐占位也换音符，影视维持2:3；查询、播放入口与异步归属保留。
+
+按项目Shell技能读固定Gallery 6de91feccadfbb0a796b71caedead5a2284f730e的IconElement/Iconography/NavigationView XAML与code-behind及引用资源、Button图片示例和GridView图片模板；Learn图标指南允许标准em字框。Gallery没有用户指定的双状态面板或同形音符填充配对，沿用现有原生PathIcon/FontIcon与Button组合，不升级依赖。两轮独立只读复核，音符路径41条命令与系统字体外轮廓完全一致。
+
+当前最终Shell Release/x64编译0警告0错误（2分45秒）；主测试、PageContract、SidebarPreview专项及Core均当前编译0警告0错误。sidebar-icons-fixture20/20、toolbar-icon-fixture15/15、SidebarPreviewTests34/34，全部0失败0跳过，套件不相加。预览测试补齐既有“封面+标题”的UI边界和精确探针提取起点，生成源与实际partial/探针逐字一致，保留原按钮/来源/取消/图像释放全部反例，并加标题缺失、音乐三种大小写、两容器和切回电影规格回归。首轮新增probe反例因在清空后取cell而失败，修正测试取值时序后完整重跑通过。10个修改文本的UTF-8/LF/BOM/末尾换行和git diff空白通过。
+
+本轮未启动UI、运行原生探针、连接真实服务、播放、发布或推送，实屏与DPI/主题/宽窄验收留到用户要求交付。产品及测试即将提交；主树有其他聊天详情渐变在途工作，合入前重新核对master、文件重叠和占用，保护现有改动。合入后补待交付台账；未合入不视为收尾。
+
+
 ## 2026-11-15 详情顶部栏响应与播放按钮往返
 
 本轮在 `C:/Users/89400/.codex/worktrees/91f4/Momoka`、临时分支 `codex/detail-sticky-responsive`，从干净master `ce55588` 隔离实施，子代理仅只读调查/复核，无并行写入。用户先反馈顶部浮动栏开合迟钝，随后要求下滚按钮移入横幅、上滚移回，并明确仅播放按钮。保留三分之一裁切线、4 DIP/小按钮滞回及命令绑定；普通浮层显示120ms/隐藏80ms，位移与透明度同步。新增原生ConnectedAnimation同页Direct150ms往返，源占位不重排正文，完成后才透明源，返回Completed后才收源父层；关联期间横幅父Translation先落定，避免终点继续移动。关动画、断树、能力失效、离页、布局改变、500ms超时与启动失败取消落定；命中、Tab、原属性与有条件焦点交接保留，旧回调有代次守卫，直接回页顶同样返回。快速反向取消后按当前方向重新准备，不承诺中途像素连续。
@@ -13868,3 +13879,5 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 新增两个PageContract源接线回归与真实MoviePilotSidebarAsync电影/电视剧菜单检查：UIA调用CardMore，经产品OnMore/OnCardMenu后量同XamlRoot下按钮与presenter距离，两轴≤12 DIP且一轴重叠，限定当前Popup的原生LightDismiss属性。探针在开菜单前置顶，截图期间不改变原生层级，异常收尾只关新增菜单且始终恢复TopMost。Shell/Core与PageContract Release编译0警告0错误，页面专项300/300、失败0、跳过0；最终原生单项Passed=true、正常退出0，程序化关闭不是物理点外输入证据。原生首次属性通过但截图受置顶干扰，第二次修正后菜单向上延伸出客户区，客户区PNG有截顶；最终完整桌面帧确认电视剧菜单全部可见并紧贴按钮。电影距离同样通过，完整帧有过渡期底卡不呈现，不能冒称电影全态视觉验收。失败/中间截图和最终报告保留在本树 `artifacts/subscription-menu-anchor`，只用匿名假HTTP，不读真实账号、不播放、不写服务器；主树最终代码、窄窗/边缘/跨DPI和主题仍待交付验证。
 
 本轮不发布/推送，桌面快捷方式仍是此前交付版本。提交后等待主树“复刻详情页渐变区域与效果”写入会话释放，再合入master并补台账；待合入不是已交付。
+
+2026-11-15侧栏批次合入收尾：用户明确授权跨聊天协调，详情渐变聊天确认暂停主树写入后，master e30ab44快进至2382685（产品0924413）。只在PROGRESS追加时保留双方记录，28个其他已修改/未跟踪文件SHA256前后完全相同；台账新增37。没有主树构建、UI、发布、推送或快捷方式改动。临时分支完成后删除；当前聊天检出若受应用primary保护则保留干净detached，不绕过保护。

@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Music;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Media;
 using Windows.Foundation;
@@ -296,10 +297,11 @@ public sealed partial class ShellPage
 
         _previewImages ??= _services?.GetService<EmbyImageStore>();
         var coverWidth = PreviewCoverWidth();
+        var square = MusicCatalog.IsLibrary(request.CollectionType);
         for (var index = 0; index < picks.Length; index++)
         {
             var item = picks[index];
-            var (cell, picture, placeholder) = CreatePreviewCover(coverWidth, index, item, load);
+            var (cell, picture, placeholder) = CreatePreviewCover(coverWidth, index, item, load, square);
             LibraryPreviewCovers.Children.Add(cell);
             if (_previewImages is not null && PreviewImageType(item) is { } imageType)
                 _ = LoadPreviewCoverAsync(picture, placeholder, item, item.Source ?? scope, imageType,
@@ -338,11 +340,13 @@ public sealed partial class ShellPage
         [EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop];
 
     private (FrameworkElement Cell, Image Picture, FontIcon Placeholder) CreatePreviewCover(double width, int column,
-        EmbyItem item, CancellationTokenSource load)
+        EmbyItem item, CancellationTokenSource load, bool square = false)
     {
+        // 音乐预览沿用音乐页的方形唱片，影视预览保留 2:3 海报。
+        var height = square ? width : Math.Round(width * 1.5);
         var placeholder = new FontIcon
         {
-            Glyph = "\uE8B2",
+            Glyph = square ? "\uE8D6" : "\uE8B2",
             FontSize = (double)Application.Current.Resources["EgTitleFontSize"],
             Foreground = (Brush)Application.Current.Resources["EgTextFaintBrush"],
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -360,7 +364,7 @@ public sealed partial class ShellPage
             var button = new Button
             {
                 Width = width,
-                Height = Math.Round(width * 1.5),
+                Height = height,
                 Style = (Style)Application.Current.Resources["EgArtworkTileStyle"],
                 BorderThickness = new Thickness(0),
                 Content = content,
@@ -376,7 +380,7 @@ public sealed partial class ShellPage
             frame = new Border
             {
                 Width = width,
-                Height = Math.Round(width * 1.5),
+                Height = height,
                 CornerRadius = (CornerRadius)Application.Current.Resources["EgPosterCornerRadius"],
                 Background = (Brush)Application.Current.Resources["EgSurfaceAltBrush"],
                 Child = content
