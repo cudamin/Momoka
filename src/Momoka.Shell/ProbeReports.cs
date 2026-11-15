@@ -134,13 +134,24 @@ internal sealed class ShellProbeReport
             SaveScope();
             return;
         }
+        Task? running = null;
         try
         {
-            await run().WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
+            await (running = run()).WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
             _checks.Add(new Check(name, true, ""));
         }
         catch (Exception error) { _checks.Add(new Check(name, false, error.ToString())); }
-        Save();
+        try { Save(); }
+        finally
+        {
+            // 超时只结束等待，后台捕获与UI收尾仍持有窗口；先记红，再等真实任务退出。
+            // 自动分区和Inspect都不能提前开始下一项，即使报告写入本身失败也一样。
+            if (running is not null)
+            {
+                try { await running; }
+                catch { /* 首次异常或超时已记录，不能以迟到完成改成通过。 */ }
+            }
+        }
     }
 
     private void Save() => _writer(Path.Combine(_logDirectory, "shell-probe.json"),
