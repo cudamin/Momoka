@@ -113,6 +113,7 @@ internal static class Program
         PosterHoverDwellTests.Register();
         DetailSectionCardTests.Register();
         StoreDetailLayoutTests.Register();
+        StoreTrailerWebTests.Register();
         StoreDetailProbeEvidenceTests.Register();
         ArtworkAmbientTests.Register();
         return TestHarness.Run();

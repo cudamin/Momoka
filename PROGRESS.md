@@ -8,6 +8,35 @@
 
 验证：新增/更新PageContract资源归属、封面列顺序、无边框与可访问名称；主测试覆盖常驻行原生模板和实际VM四类宽窄显隐/通知恢复。原生DetailCards追加1023/1024/1025断点，封面下居中同排、44DIP命中、无边框、常驻属性、Normal/PointerOver/Pressed和清封面悬停后仍显示的检查；预告圆角单独按1024阈值与全局16DIP精确核对，错档/假圆角、错行/隐藏/小命中区/边框反例由链接同生产判据的离线测试覆盖。Shell Release 0警告0错误；PageContract315/315、主测试控件专项40/40、输入主题29/29、实际VM详情专项93/93，均0失败0跳过。首轮Shell因新探针漏using导致编译级联失败，补正确Automation命名空间后通过；新VM专项曾错误假定商店单集IsCompact=false，明确保留该背景判定并收起重复动作块后最终93/93。变更文件空白与编码检查通过。该树不启动UI/鼠标/探针，不发布、不推送；最终主树实屏由根交付会话串行完成。原生验证工具变动的真实成功路径仍待根执行，不能用离线反例冒充。
 
+## 2026-11-15 本次交付统一检查结果与追加布局要求（在途）
+
+最终代码 9e3402d 的统一原生分区 library/detail-cards/settings/performance/materials/motion，报告 shell-probe-20261115-150143533-12688：95 项、88 通过、7 失败，未发布。红项为预告网页前台等待、深返滚动完成超时、详情竖滚 p95 43.9ms 超过40ms门槛、长剧最后项焦点、两项商店预告圆角判据把按钮宽档与1024预览断点混用、页面过渡候选超时。已取得36高/6间距文件选项、详情自定义电影/剧/集、沉浸信息卡、连续130次缩放、设置窗下一拍回前层与海报关联等通过证据；旧红保持不洗绿。
+
+用户追加商店四颗按钮移封面下方、无边框、无悬停也常驻，并撤回第46项均匀撑开，令右栏按正常小间距向上收紧。两项在独立树实现，根交付会话统一合入、重验相关范围与发布。原始批次及本轮红证据保留，不能用旧图销账。
+## 2026-11-15 字幕补验修复：匿名网页响应声明 UTF-8（待主控原生复验）
+
+主树 `8a22c5f` 的原生检查 `shell-probe-20261115-153511466-3460` 已实际进入网页字幕断言：`CaptionsChanged`、两轨数量与播放状态通过，但两轨 `(Language, Name)` 严格比较失败。上一版没有记录实际名称，因此不把中文乱码写成已实证根因。只读核对本次落盘 `index.html` 全是 ASCII 字节且无 charset；新增中文名字位于 UTF-8 字节的匿名 API/Embed 响应，而 Content-Type 未声明字符集。生产 `StoreTrailerDocument` 和 `ReadCaptions` 原顺序读取、不排序，`displayName` 是夹具固定字符串。
+
+**修复。** 仅匿名 `WebResourceResponse` 的 JavaScript/HTML MIME 加 `charset=utf-8`，Embed 补 `<meta charset="utf-8">`；保留固定两轨与名称精确断言。在比较之前写出 `store-trailer-web-caption-reading.json`（匿名语言/名称、SelectedCaption、通知与请求计数），失败文字也带同一读数，下一轮直接定位实际值。生产播放器、文档、按钮位置和间距不改。
+
+**菜单关闭核对。** 只读微软 `microsoft-ui-xaml` 源码：`ToggleMenuFlyoutItemAutomationPeer::ToggleImpl` 调 owner 的 `Invoke`，`ToggleMenuFlyoutItem::Invoke` 换勾后调用父实现，`MenuFlyoutItem::Invoke` 触发 Click/Command 并在 `PreventDismissOnPointer` 为 false 时关闭 owningMenu。Radio 公开继承 MenuFlyoutItem、内部从 Toggle 基类实现，因此继续从实际元素 peer 取得 `IToggleProvider`，不直接构造 Toggle peer、不手工 Hide 掩盖未关闭。本机 NuGet 类型已编译确认；源码调用链不代替本轮 `Closed` 运行回执。
+
+**验证与边界。** 新增 PageContract 编码/失败前落盘契约，生产消息边界测试保留；本次匿名 API/Embed 的 `node --check` 通过。一次同时编译 Shell 与 PageContract 争用本树 Core obj，PageContract 报 CS2012；等待自己的 Shell 编译结束后串行重编，不杀编译器、不运行旧测试。原生/UI/鼠标仍只由交付主控串行运行，本子任务未运行；首轮失败报告保留，不当作已补齐。
+
+修复后本树 Shell Release **0警告0错误**（1分24秒），随后串行编译 PageContract **0警告0错误**并运行 **322/322、0失败0跳过**；PageContract 空白检查、本次三个变更路径的编码/空白检查均通过。日志在 `artifacts/captions-verification/*utf8*`；只有主控随后读取真实字幕值并跑过菜单选择/关闭才能将原生补验记通过。
+
+## 2026-11-15 交付补验：网页预告字幕与播放通知（独立树完成，待主控原生运行）
+
+交付主控要求补齐本次新增的 YouTube 字幕控制运行证据，避免只看生成 HTML 就算通过。工作树 `C:/Users/89400/.codex/worktrees/delivery-youtube-captions/Momoka`，分支 `codex/delivery-youtube-captions`，基点 `4209de4`。只改 `ShellNavigationProbe.StoreTrailerWeb.cs`、`Momoka.PageContractTests` 的 source-link/事件边界与回归，未改 `StoreYouTubePreview`、`StoreTrailerDocument` 或用户可见界面。
+
+**补了什么。** 匿名 IFrame API 提供中文/英语两条固定字幕，嵌入本地视频创建真实 `TextTrack`/`VTTCue`；生产文档的 `getOption`/`setOption` 与 `captions:` 消息仍原样执行。探针读生产 `CaptionsChanged`、`Captions`、`SelectedCaption`，从页面原生字幕菜单依次选中文、英语、关闭，等待 `Closed`、检查重开勾选、分别回读 API 选轨和视频文本轨。原生自动化从实际元素 peer 取得 `IToggleProvider`，保留原窗口/指针守卫、悬停和本地字幕检查。网页暂停/播放经实际视频事件回到生产 `PlaybackChanged`，再查原生按钮文字；另让视频自己暂停，确认下一次按钮继续播放。所有外站响应只由本地拦截提供，最后要求未知外站请求为 0；日志追加 `store-trailer-web-captions.txt`，截图 `store-trailer-web-captions-{zh,en,off}-screen.png`。
+
+**测试与验证。** `PageContractTests` 直接链接生产预告两类；边界只提供 WebView2 初始化、事件与发送队列，不另造字幕解析器。新增 8 项覆盖固定两轨、坏 JSON/超长消息、空语言/重复轨/缺名称、选轨与关闭消息、真实状态变化通知、错误来源/取消/释放、下载与新窗守卫，以及原生探针接线。用户级 SDK `10.0.400`，本树 Shell Release **0 警告 0 错误**；PageContract Release **0 警告 0 错误**、**320/320，0 失败 0 跳过**；PageContract 空白检查与匿名 API/Embed 的 `node --check` 通过。证据保留在本树 `artifacts/captions-verification/`。首次测试访问 `CoreWebView2` 触发 WUI4001，改从测试边界的 `TestCore` 读取后清零；一次错误把公开派生 `MenuFlyoutItem` 的 Radio 类型传给 Toggle peer 构造而编译失败，改为读取实际 peer 模式后通过，失败日志未删除。忽略的本地 libmpv 只复制主树当前文件供编译，SHA256 `FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`。
+
+**边界与收尾。** 本子任务未启动窗口、探针、浏览器或播放器，未移动鼠标、联网访问真实预告、读取用户设置/凭据、播放真实媒体或发布。消息测试是托管端点证据，匿名原生 WebView2/字幕菜单/画面和截图由主控合入最新 master 后串行运行 `InspectStoreTrailer`；只有这轮真实报告通过才算补齐原生覆盖。真实 YouTube 服务字幕版本、触摸/物理键盘与跨 DPI 不由匿名夹具证明。主控同时修了商店圆角读取 `9e3402d`，本分支提交后合入该修复再复验；分支不自行发布或推远端。
+
+**整合后复验。** 本轮测试/探针提交 `31fcc93`，合入 `9e3402d` 后为 `6a4cac5`；PROGRESS 顶部追加冲突保留双方记录。合并后 Shell Release **0 警告 0 错误**（1分10秒），PageContract Release **0 警告 0 错误**、**321/321，0失败0跳过**。两段 JavaScript 语法与本次六个变更路径的 LF/BOM/空白检查通过；Shell 单文件空白检查退出0，工作区加载警告单列保留，不冒称全方案门禁已执行。分支未自行运行原生探针或发布；后续由主控在最终主树编译、串行运行并记录结果。
+
 ## 2026-11-15 交付修复：商店预览圆角读取应用资源
 
 主树最终代码 4209de4 在本次统一原生检查 shell-probe-20261115-145703787-20292 中触发未处理 COM 异常：DetailPage.PlaceStoreComponents 直接查页面 Resources 的 EgCardCornerRadius，而该键只属于应用 Theme/Styles.xaml。改为 Application.Current.Resources；本页 EgRoundButtonStyle / EgPillButtonStyle 仍从局部字典读取，不加 IsLoaded 短路，保留封面关联动画在 Loaded 前抢排的路径。新增 PageContract 资源归属契约，拒绝复制全局键进页面掩盖错误。
