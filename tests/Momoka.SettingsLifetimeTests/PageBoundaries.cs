@@ -37,6 +37,7 @@ namespace Microsoft.UI.Xaml
     public sealed class Window
     {
         public Microsoft.UI.Windowing.AppWindow AppWindow { get; } = new();
+        public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
         public int Activations { get; private set; }
         public void Activate()
         {
@@ -316,6 +317,7 @@ namespace Momoka.Shell.Views
         }
         internal IntPtr Handle => (IntPtr)1;
         internal Microsoft.UI.Windowing.AppWindow BoundaryWindow => _window.AppWindow;
+        internal Microsoft.UI.Dispatching.DispatcherQueue BoundaryDispatcherQueue => _window.DispatcherQueue;
     }
 
     public sealed partial class FnNasPreferencesPage

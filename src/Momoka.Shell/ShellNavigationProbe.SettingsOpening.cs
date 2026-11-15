@@ -79,6 +79,21 @@ internal sealed partial class ShellNavigationProbe
         Require(SettingsWindowIsInFront(window), "主窗口在前时再按设置，设置窗口没有回到主窗口前面");
         timing.Add($"重按设置回到最前 {watch.ElapsedMilliseconds} ms");
 
+        // 2026-11-15 用户再报「点完设置自动跑到主窗口后面」：Show 跑在主窗口那颗设置按钮的 Click 里，
+        // 事件返回后主窗口的 XAML 岛把前台与键盘焦点收回去，刚提上来的设置窗口又被压到后面。这里按真实
+        // 顺序摆出「Show 之后同一拍主窗口抢回前台」，Show 排在下一拍的那一次「激活 + 提到最前」必须把
+        // 它重新拿回来。放到 HWND_BOTTOM 而不是把主窗口提到 HWND_TOP：后者的成败取决于当下谁在前台，
+        // 换一台机器就可能没摆成；「设置窗口在最底下」是确定的，这一条回归才有前提。
+        window.Show(new SettingsRequest(services, "界面"));
+        _window.Activate();
+        Native.SetWindowPos(window.Handle, Native.HwndBottom, 0, 0, 0, 0,
+            Native.SwpNoMove | Native.SwpNoSize | Native.SwpNoActivate);
+        Require(!SettingsWindowIsInFront(window), "设置窗口没能摆到主窗口后面，这条回归没有可量的前提");
+        await LayoutAsync(page);
+        await WaitForDiagnosticsFrameAsync();
+        Require(SettingsWindowIsInFront(window), "主窗口在设置窗显现后抢回前台，下一拍没有把设置窗口重新提到前面");
+        timing.Add($"主窗口抢回前台后设置窗回到最前 {watch.ElapsedMilliseconds} ms");
+
         var appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(window.Handle));
         var presenter = (OverlappedPresenter)appWindow.Presenter;
         var wasTopMost = presenter.IsAlwaysOnTop;

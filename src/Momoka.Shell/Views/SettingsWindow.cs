@@ -37,6 +37,12 @@ namespace Momoka.Shell.Views;
 /// 前面」）。因此每次 <see cref="Show"/> 都在 Activate 之后显式 <c>AppWindow.MoveInZOrderAtTop()</c>：
 /// 主窗口不在 topmost 带里（全屏时由 <c>HostWindow.StandAsideForOwnWindow</c> 先让开）就一定会露出来。
 /// </para>
+/// <para>
+/// 这一提还不够：Show 跑在主窗口那颗设置按钮的 Click 里，事件返回后 WinUI 会把前台与键盘焦点交还主窗口
+/// 的 XAML 岛（对岛设焦点会连它的顶层窗口一起激活），刚提上来的窗口又被压回主窗口后面（2026-11-15 用户
+/// 再报「点完设置自动跑到主窗口后面」）。所以 Show 还在下一拍派发一次同样的「激活 + 提到最前」，等这一下
+/// 输入处理彻底走完再提回去；窗口若已收起就不再动（见 <see cref="Show"/>）。
+/// </para>
 /// </summary>
 internal sealed partial class SettingsWindow
 {
@@ -227,6 +233,11 @@ internal sealed partial class SettingsWindow
     /// is a parameter change on a page that is already built — which is what keeps half-typed config text
     /// alive across trips to 设置, exactly as it did when the page lived in the main frame.
     /// </para>
+    /// <para>
+    /// 提到最前要做两次。第一次在这一拍里：窗口立刻可见、可点。第二次排到输入处理之后（<see cref="_open"/>
+    /// 闸门），因为这次 Show 多半是从主窗口按钮的 Click 里进来的，事件返回后主窗口会把前台收回去，把第一次
+    /// 提上来的窗口重新压到后面。两下都幂等，从别处（菜单、启动参数）开窗时第二次只是重复一次无害的激活。
+    /// </para>
     /// </summary>
     internal void Show(SettingsRequest request)
     {
@@ -245,13 +256,24 @@ internal sealed partial class SettingsWindow
             Native.SendMessage(Handle, Native.WmNcMouseMove, IntPtr.Zero, (IntPtr)coordinates);
         }
 
+        _open = true;
+
         // Activate 已执行 ShowWindow + UpdateWindow；避免在内容首帧前额外显窗。
         _window.Activate();
 
         // 已经看得见的窗口，Activate 只 SetActiveWindow、不动 z 序 —— 被主窗口盖住之后，再点设置
         // 仍然是盖住。每趟显现都把窗口提到 z 序最前，才与「按设置键就能拿回来」这句话对得上。
         _window.AppWindow.MoveInZOrderAtTop();
-        _open = true;
+
+        // 这一拍还在主窗口按钮的输入处理里：Click 返回后主窗口的岛把前台与键盘焦点收回去，刚提上来的
+        // 窗口会被重新压到后面。排到这一拍之后再提一次 —— 那时它才是真的在最前面。
+        _window.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!_open) return;
+            _window.Activate();
+            _window.AppWindow.MoveInZOrderAtTop();
+        });
+
         ResumeSystemAppearance();
     }
 
