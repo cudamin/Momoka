@@ -219,11 +219,25 @@ public sealed partial class PosterCard : UserControl
 
     private bool _previewOpen;
 
+    /// <summary>
+    /// 从悬停面板点进详情时，面板收起之前量到的徽标/片名位置。详情页在导航事务里把它取走
+    /// （<see cref="PreviewHeadingTransition"/>）；不带悬停面板的详情动作永远是 null。
+    /// </summary>
+    private PreviewHeadingCapture? _previewHeading;
+
     /// <summary>指针此刻在面板上。宽限到点时它也算「别收」—— 用户正读着那一块。</summary>
     private bool _previewHovered;
 
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
     internal Image ConnectedPoster => Poster;
+
+    /// <summary>取走悬停交接；一次点击只有一次详情导航，取走即清。</summary>
+    internal PreviewHeadingCapture? TakePreviewHeading()
+    {
+        var heading = _previewHeading;
+        _previewHeading = null;
+        return heading;
+    }
 
     /// <summary>平台下一帧才冻结来源；离页清空卡片图片时保留这张图，完成或取消后释放。</summary>
     internal Action RetainConnectedPoster()
@@ -1385,7 +1399,13 @@ public sealed partial class PosterCard : UserControl
     /// </summary>
     private void Raise(object sender, CardAction action)
     {
-        if (Card is null || Card.IsSelecting || sender is not FrameworkElement anchor) return;
+        if (Card is not { } card || card.IsSelecting || sender is not FrameworkElement anchor) return;
+
+        // 详情这一下是从悬停面板里出发的：面板收起之后，那枚徽标和片名要从原位飞进详情页。
+        // 位置只有在面板还开着时才量得到，所以先量，再让 SuppressHoverDwell 把它收掉。
+        _previewHeading = action == CardAction.Details && _previewOpen && _preview is not null && _previewHost is not null
+            ? _preview.CaptureHeading(_previewHost.HorizontalOffset, _previewHost.VerticalOffset, card.Item)
+            : null;
 
         // 面板上的播放键按下去之后，这块预览就该退场：接下来起播、换页，它没有留下来的理由。
         SuppressHoverDwell();

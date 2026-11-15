@@ -1,3 +1,15 @@
+## 2026-11-16 悬停面板徽标与片名飞进详情页（独立树，待用户实机确认）
+
+用户令：「鼠标悬浮呼出悬停页面之后，再点击下方的缩略图进入详情页时，新增徽标和片名移进详情页的动画」。工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-hover-detail-animation-7KmvBW`，分支 `feat-hover-detail-animation-7KmvBW`，基点 `9cb1b68`。
+
+实现：面板收起前由 `CardPreview` 量下徽标 `LogoImage` 与片名 `TitleText` 在窗口内容里的矩形（Popup 偏移加面板内位置）和片名实际字号，连同徽标已解好的 `BitmapImage` 与 `ArtworkRef` 交给 `PosterCard` 暂存；主页、媒体库、详情页三处 `CardAction.Details` 入口在导航前把交接交给 `PreviewHeadingTransition`（按 Frame 记账、700ms 超时、身份与账号 owner 核对）。详情页 `OnNavigatedTo` 在关联封面之后接住交接：先把面板手上的徽标图交给 `DetailViewModel.UseConnectedPlate`（身份核对，高清图之后照常替换），再 `SeedConnectedLayoutWidth` + `ForceConnectedLayout` 量准 `TitleText`/`TitlePlate` 落点，用 `CompositeTransform` 从面板矩形起跑（片名按字号比缩放、徽标按高度比缩放），320ms `CubicEase.EaseOut` 归位并淡入；完成、离页、超时、应用或系统关动画都立即落定，元素恢复原不透明度与无变换。
+
+范围与边界：只接悬停面板的 Details 动作，普通卡片导航不接；徽标无图、未解出或图版本不符时只飞片名；标题或徽标落点量不出就整段跳过，页面照常呈现，不为动效推迟导航；返回不反向播放。
+
+验证：Shell Release **0 警告 0 错误**；`hover-preview-fixture` **19/19**、`Momoka.PageContractTests` **325/325**、DetailImageArrival **26/26**、ConnectedAnimation **63/63**、Plex **85/85**、DetailStickyHeader **92/92**、ItemUserStateOrder **76/76**、KeyboardJourney **46/46**、BrowsePresentation **32/32**、UiMotion **80/80**，全部 0 失败 0 跳过；`dotnet format whitespace` 通过。全方案构建只有三个 Python 源抽取项目因本机 PATH 没有 `py` 失败，与本改动无关，其余项目均编译成功；`DetailDeleteCommandTests` 需构建证明 JSON，未单独运行。
+
+待办：用户选择保留正在运行的主树旧实例，未做真实悬停、点击缩略图与逐帧实屏检查；未合并 master、未交付、未上传。
+
 ## 2026-11-15 商店封面下方常驻无边框操作行（本次交付追加，独立树待整合）
 
 用户在交付中追加：商店模式按钮移到封面下方、不要边框、鼠标没移到封面也显示。工作树 `C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka`，分支 `codex/store-cover-action-row`，基点主树 `9e3402d`；本条取代第44批的播放/更多在封面右侧、收藏/已看在封面左上角旧位置。

@@ -174,6 +174,38 @@ internal static class HoverMotionTests
             foreach (var name in new[] { "Overview", "Genres", "CommunityRating", "ProductionYear", "PremiereDate" })
                 Assert.Contains(name, previewFields);
         });
+        Test("悬停详情：徽标与片名带着面板里的最后位置飞进详情页", () =>
+        {
+            var preview = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");
+            Assert.Contains("internal PreviewHeadingCapture? CaptureHeading(double offsetX, double offsetY, EmbyItem item)", preview);
+            Assert.Contains("element.TransformToVisual(Panel)", preview);
+            Assert.Contains("TitleText.FontSize", preview);
+            Assert.Contains("ItemArtwork.Plate(item)", preview);
+
+            var poster = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");
+            var raise = poster[poster.IndexOf("private void Raise(", StringComparison.Ordinal)..];
+            var capture = raise.IndexOf("CaptureHeading(", StringComparison.Ordinal);
+            Assert.True(capture >= 0 && capture < raise.IndexOf("SuppressHoverDwell();", StringComparison.Ordinal),
+                "位置只能在面板收起之前量");
+            Assert.Contains("internal PreviewHeadingCapture? TakePreviewHeading()", poster);
+
+            Assert.Contains("PreviewHeadingTransition.Prepare(Frame, poster);", Read("src/Momoka.Shell/Views/HomePage.xaml.cs"));
+            Assert.Contains("PreviewHeadingTransition.Prepare(Frame, poster);", Read("src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
+            var detail = Read("src/Momoka.Shell/Views/DetailPage.xaml.cs");
+            Assert.Contains("PreviewHeadingTransition.Attach(this, request.Item);", detail);
+            Assert.Contains("StopPreviewHeadingMotion();", detail);
+
+            var flight = Read("src/Momoka.Shell/Views/DetailPage.PreviewHeading.cs");
+            Assert.Contains("PreviewHeadingPlacement.Scale(capture.TitleFontSize, TitleText.FontSize)", flight);
+            Assert.Contains("SeedConnectedLayoutWidth();", flight);
+            Assert.Contains("ForceConnectedLayout();", flight);
+            Assert.Contains("HomeMotion.AnimationsEnabled", flight);
+            Assert.Contains("StopConnectedPlateArrival();", flight);
+
+            var transition = Read("src/Momoka.Shell/Views/PreviewHeadingTransition.cs");
+            Assert.Contains("ReferenceEquals(Item.Source?.UserStateOwner, other.Source?.UserStateOwner)", transition);
+            Assert.Contains("Capture.Matches(request.Item)", transition);
+        });
     }
 
     private static string Read(string relativePath)

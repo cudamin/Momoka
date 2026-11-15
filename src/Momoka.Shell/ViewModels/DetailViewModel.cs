@@ -3922,6 +3922,18 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
+    /// 剧名上方那枚徽标也接住悬停面板里已经解好的那一张（2026-11-16）：飞进来的徽标得在第一帧就有图，
+    /// 不能等详情页自己那一趟。身份对不上就不接，页面照常等自己的图。之后高清那张到了照常替换。
+    /// </summary>
+    internal bool UseConnectedPlate(EmbyItem item, BitmapImage picture)
+    {
+        if (!Attached || _detail is not { } current || current.IdentityKey != item.IdentityKey
+            || !ReferenceEquals(current.Source?.UserStateOwner, item.Source?.UserStateOwner)) return false;
+        PlateImage = picture;
+        return true;
+    }
+
+    /// <summary>
     /// 右上角那张艺术图到了：连它该画多大一起换上 —— 「放大集页面右侧的艺术图」（2026-09-12）。
     /// <para>
     /// 和剧照那一张同一套写法（<see cref="ShowStill"/>），只是量出来的高喂的是带子

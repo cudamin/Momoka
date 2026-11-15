@@ -10,6 +10,12 @@ public sealed partial class DetailPage
     internal void StopConnectedPosterArrival() => _artworkArrivals?[1].Suppress();
 
     /// <summary>
+    /// 徽标接住悬停面板那张图之后，别再让「图到了」的淡入把它从透明重新拉一遍：
+    /// 这次它是从面板原位飞进来的，透明度由 <see cref="DetailPage.BeginPreviewHeadingMotion"/> 自己管。
+    /// </summary>
+    internal void StopConnectedPlateArrival() => _artworkArrivals?[2].Suppress();
+
+    /// <summary>
     /// 关联动画抢跑前先把这一页的宽度交给视图模型。封面那一格显不显示、多大（<c>CoverShown</c> →
     /// <c>StillVisibility</c>／<c>StillWidth</c>）都由 <c>PageWidth</c> 算，而平时这个数要等第一次布局
     /// 由 <c>Body</c> 量出来（<see cref="OnBodySizeChanged"/>）。详情页与来源页同处一个窗口，

@@ -34,6 +34,7 @@ internal static class Program
         {
             CardPreviewTextTests.Register();
             CardPreviewPlacementTests.Register();
+            PreviewHeadingPlacementTests.Register();
             return TestHarness.Run();
         }
         if (args is ["plex-container-fixture"])
@@ -782,6 +783,7 @@ internal static class Program
         MusicTests.Register();
         CardPreviewPlacementTests.Register();
         CardPreviewTextTests.Register();
+        PreviewHeadingPlacementTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

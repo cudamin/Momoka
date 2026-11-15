@@ -475,6 +475,38 @@ public sealed partial class CardPreview : UserControl
         target.StartAnimation(property, expression);
     }
 
+    /// <summary>
+    /// 把屏上那枚徽标和片名的位置交出去，好让详情页从同一个地方把它们接过去（2026-11-16）。
+    /// 坐标是窗口内容坐标：面板在 Popup 里，偏移由调用方手里的两个数补上。只交真的画出来的那几样 ——
+    /// 徽标没图或还没解出来时只有片名飞。
+    /// </summary>
+    internal PreviewHeadingCapture? CaptureHeading(double offsetX, double offsetY, EmbyItem item)
+    {
+        if (!_shown || !Drawn(TitleText) || !double.IsFinite(offsetX) || !double.IsFinite(offsetY)) return null;
+        var title = Bounds(TitleText);
+        Rect? plate = null;
+        ArtworkRef? artwork = null;
+        BitmapImage? picture = null;
+        if (Drawn(LogoImage) && LogoImage.Source is BitmapImage source && ItemArtwork.Plate(item) is { } reference)
+        {
+            plate = Bounds(LogoImage);
+            artwork = reference;
+            picture = source;
+        }
+        return new PreviewHeadingCapture(item, title, TitleText.FontSize, plate, artwork, picture);
+
+        // 面板里的字不吃动画，实际尺寸就是最终尺寸；量的是它自己的版面框，不是整个面板。
+        static bool Drawn(FrameworkElement element) => element.XamlRoot is not null
+            && element.ActualWidth > 0 && element.ActualHeight > 0;
+
+        Rect Bounds(FrameworkElement element)
+        {
+            var bounds = element.TransformToVisual(Panel).TransformBounds(
+                new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+            return new Rect(bounds.X + offsetX, bounds.Y + offsetY, bounds.Width, bounds.Height);
+        }
+    }
+
     private void OnPlayClicked(object sender, RoutedEventArgs e) => PlayRequested?.Invoke(this, EventArgs.Empty);
     private void OnDetailsClicked(object sender, RoutedEventArgs e) => DetailsRequested?.Invoke(this, EventArgs.Empty);
     private static Visibility Shown(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
