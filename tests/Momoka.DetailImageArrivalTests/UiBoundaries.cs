@@ -84,6 +84,11 @@ namespace Microsoft.UI.Xaml.Media.Imaging
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class Frame : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public double ActualWidth { get; set; }
+    }
+
     public sealed class Image : Microsoft.UI.Xaml.FrameworkElement
     {
         public static Microsoft.UI.Xaml.DependencyProperty SourceProperty { get; } = new("Source");
