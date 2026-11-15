@@ -860,10 +860,6 @@
                                 </Grid>
                             </StackPanel>
 
-                            <!-- 2026-11-15 用户令「把播放按钮和更多按钮移到封面右边」：商店模式把这两颗既有实例搬到
-                                 片名栏末尾，横向排在封面右侧、更多在最右（见 DetailPage.Store.cs 的
-                                 PlaceStoreActionButtons）。其余模式这一格收着，两颗键留在 ColumnActions。 -->
-
                             <StackPanel
                                 x:Name="FileOptions"
                                 Spacing="6"
