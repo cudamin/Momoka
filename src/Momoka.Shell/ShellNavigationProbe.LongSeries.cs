@@ -174,15 +174,11 @@ internal sealed partial class ShellNavigationProbe
 
             // Home/End share this exact indexed focus entry. Exercise both endpoints through the real
             // ItemsRepeater; this is keyboard-focus control flow, not simulated physical key delivery.
-            Call(strip, "FocusItem", 1999);
-            await LayoutAsync(series);
-            await UntilAsync(() => FocusedLongIndex(series, repeater) == 1999);
+            await FocusLongItemAsync(1999);
             Require(repeater.TryGetElement(1999) is { } last
                 && Descendants(last).OfType<PosterCard>().Any(card => card.Card?.Item.Id == episodes[1999].Id),
                 "End对应正式焦点入口没有实现最后一集容器");
-            Call(strip, "FocusItem", 0);
-            await LayoutAsync(series);
-            await UntilAsync(() => FocusedLongIndex(series, repeater) == 0);
+            await FocusLongItemAsync(0);
             Require(repeater.TryGetElement(0) is { } first
                 && Descendants(first).OfType<PosterCard>().Any(card => card.Card?.Item.Id == episodes[0].Id),
                 "Home对应正式焦点入口没有实现第一集容器");
@@ -197,6 +193,57 @@ internal sealed partial class ShellNavigationProbe
                 indexedFocusEnds = true,
                 physicalKeys = false
             });
+
+            async Task FocusLongItemAsync(int index)
+            {
+                object Reading(string stage)
+                {
+                    var element = repeater.TryGetElement(index) as FrameworkElement;
+                    var focused = FocusManager.GetFocusedElement(series.XamlRoot);
+                    return new
+                    {
+                        stage,
+                        targetIndex = index,
+                        focusedIndex = FocusedLongIndex(series, repeater),
+                        pendingIndex = Get<int>(strip, "_pendingFocusedIndex"),
+                        requestedIndex = Get<int>(strip, "_focusedIndex"),
+                        scrollCorrelation = Get<int>(strip, "_focusScrollCorrelation"),
+                        horizontalOffset = scroller.HorizontalOffset,
+                        scrollableWidth = scroller.ScrollableWidth,
+                        viewportWidth = scroller.ViewportWidth,
+                        extentWidth = scroller.ExtentWidth,
+                        pitch = Get<double>(strip, "_pitch"),
+                        targetLeft = element?.TransformToVisual(repeater).TransformPoint(default).X,
+                        scrollState = scroller.State.ToString(),
+                        elementPresent = element is not null,
+                        elementLoaded = element?.IsLoaded,
+                        elementWidth = element?.ActualWidth,
+                        elementHeight = element?.ActualHeight,
+                        focusState = (element as Control)?.FocusState.ToString(),
+                        focusedType = focused?.GetType().FullName
+                    };
+                }
+
+                var trace = new List<object> { Reading("before") };
+                try
+                {
+                    Call(strip, "FocusItem", index);
+                    trace.Add(Reading("requested"));
+                    await LayoutAsync(series);
+                    trace.Add(Reading("layout"));
+                    await UntilAsync(() => FocusedLongIndex(series, repeater) == index);
+                    trace.Add(Reading("focused"));
+                }
+                catch
+                {
+                    trace.Add(Reading("failed"));
+                    throw;
+                }
+                finally
+                {
+                    await WritePerformanceEvidenceAsync($"performance-long-series-focus-{index}.json", trace);
+                }
+            }
             ResizeProbeClient(760, 900);
             await LayoutAsync(series);
             strip.JumpTo(1500);

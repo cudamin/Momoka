@@ -1,3 +1,36 @@
+## 2026-11-16 虚拟目标焦点实证修复：先完成原生bring再交焦点（待主控复验）
+
+新原生 `shell-probe-20261115-165848368-11840` 的 `performance-long-series-focus-1999.json` 把失败路径明确拆开：before横偏移600400（第1900项 ×316）、目标1999未实现；requested已经给1999的Button键盘焦点但它仍未Loaded；下一layout目标回收，真实焦点被框架挪到1898。前一轮只修Focus返回false后重试不覆盖这条实际成功后回收路径，因此不宣称原生已通过。
+
+独立树已快进整合 `e2ca431`。保留固定Gallery的GetOrCreateElement → StartBringIntoView → Focus顺序：新虚拟目标必须走原生bring协议，让ItemsRepeater的临时锚点进入正式实现/视口保护；只在本次bring经过横向ScrollPresenter之后由Root截断向外冒泡，不推动页面纵滚。等待目标Loaded及横向完成再交Focus，已实现可见项仍立即聚焦。Focus同步回调之后先核代际，旧成功不能清掉回调里新请求的监听。新增Element/extent/viewport/scrollable/pitch/targetLeft读数便于核对最终真实视口，原1999/0焦点断言不变。
+
+UiMotion真实链接新增「未Loaded但Focus可成功也先bring」「Focus同步新请求归属」「异步bring边界回执」；原有限Low、错完成ID、取消/新焦点/离页守卫保留。测试边界记录原生bring及滚动完成，不另造焦点协调器。未运行UI/鼠标/播放或发布；主控合入后用LongSeries原生判据确认，不能用托管通过冒充实际虚拟化通过。
+
+本树Shell Release **0警告0错误**（1分23秒），UiMotion Release **0警告0错误**、**91/91，0失败0跳过**；UiMotion空白与六路径编码/空白检查通过。证据 `artifacts/captions-verification/focus-anchor-*`。原实现失败后的「后来布局」测试增加第二次真实待布局回调以符合虚拟目标先bring/后布局的新顺序，未删持续失败与有限队列断言；首次89/90失败日志保留。分支仍待主控合入重验与发布，不自行刷新桌面。
+
+## 2026-11-16 悬停面板徽标与片名飞进详情页（已合入主树，待用户实机确认）
+
+用户令：「鼠标悬浮呼出悬停页面之后，再点击下方的缩略图进入详情页时，新增徽标和片名移进详情页的动画」，随后要求「做完了自动合并到主树」。工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-hover-detail-animation-7KmvBW`，分支 `feat-hover-detail-animation-7KmvBW`，基点 `9cb1b68`，产品提交 `5ee0279`、`2c78c50`。
+
+实现：面板收起前由 `CardPreview` 量下徽标 `LogoImage` 与片名 `TitleText` 在窗口内容里的矩形（Popup 偏移加面板内位置）和片名实际字号，连同徽标已解好的 `BitmapImage` 与 `ArtworkRef` 交给 `PosterCard` 暂存；主页、媒体库、详情页三处 `CardAction.Details` 入口在导航前把交接交给 `PreviewHeadingTransition`（按 Frame 记账、700ms 超时、身份与账号 owner 核对）。详情页 `OnNavigatedTo` 在关联封面之后接住交接：先把面板手上的徽标图交给 `DetailViewModel.UseConnectedPlate`（身份核对，高清图之后照常替换），再 `SeedConnectedLayoutWidth` + `ForceConnectedLayout` 量准 `TitleText`/`TitlePlate` 落点，用 `CompositeTransform` 从面板矩形起跑（片名按字号比缩放、徽标按高度比缩放），页面 Loaded 后走 320ms `CubicEase.EaseOut` 归位并淡入；完成、离页、超时、应用或系统关动画都立即落定，元素恢复原不透明度与无变换。
+
+范围与边界：只接悬停面板的 Details 动作，普通卡片导航不接；徽标无图、未解出或图版本不符时只飞片名；标题或徽标落点量不出就整段跳过，页面照常呈现，不为动效推迟导航；返回不反向播放。
+
+验证：Shell Release **0 警告 0 错误**；`hover-preview-fixture` **19/19**、`Momoka.PageContractTests` **325/325**、DetailImageArrival **26/26**、ConnectedAnimation **63/63**、Plex **85/85**、DetailStickyHeader **92/92**、ItemUserStateOrder **76/76**、KeyboardJourney **46/46**、BrowsePresentation **32/32**、UiMotion **80/80**，全部 0 失败 0 跳过；`dotnet format whitespace` 通过。全方案构建只有三个 Python 源抽取项目因本机 PATH 没有 `py` 失败，与本改动无关，其余项目均编译成功；`DetailDeleteCommandTests` 需构建证明 JSON，未单独运行。
+
+待办：已按用户要求合入 master（`4f1885b`），未交付、未上传；用户选择保留正在运行的主树旧实例，真实悬停、点击缩略图与逐帧实屏仍待用户确认。整合后主树 Shell Release **0 警告 0 错误**，PageContract **327/327**、hover-preview-fixture **19/19**，0 失败 0 跳过。
+## 2026-11-16 交付修复：横带虚拟化焦点等实际滚动完成（待主控原生复验）
+
+原生 `shell-probe-20261115-162628126-24820` 的「2000集长剧」在主树 `aa2514b`、窗口前台归属已核对后仍卡在 `FocusedLongIndex == 1999`。因此不再把这一轮笼统算成窗口焦点环境红。源码确认 `FocusItem` 创建虚拟项后立即滚动并聚焦，失败只排一轮 Low；Low仍失败就保留索引等 `Loaded/SizeChanged`，但同尺寸新卡滚动完成没有接重试。这是确定的代码缺口；旧运行没记录 Focus返回值/待索引，不能声称已经实证所有失败分支。
+
+工作树 `C:/Users/89400/.codex/worktrees/delivery-youtube-captions/Momoka`，分支 `codex/delivery-youtube-captions`，开工前已快进整合 `aa2514b`。固定 Gallery `v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 `ItemsRepeaterPage.xaml/.cs` 读取到 Home/End 走 `GetOrCreateElement → StartBringIntoView → Focus`；Learn 的 ItemsRepeater 恢复位置示例先 `UpdateLayout`。Gallery 没有当前项目的横带完成重试、来源取消与排队失效归属，不能整段套用其竖向冒泡滚动；本轮只在原横向滚动实现上补最小生命周期。
+
+**改了什么。** 新建目标先 `UpdateLayout` 后再交焦点；`Focus` 返回 false 继续保留待索引。记录本次 `ScrollTo` 的 CorrelationId，只有匹配的 `ScrollCompleted` 排一次 Low重试；不在每个 `ViewChanged` 抢焦点。目标未 Loaded 或实际尺寸仍0时临时监听它的 Loaded/LayoutUpdated，首次就绪排一次后撤监听。新请求、真实GotFocus、换源、离页清滚动ID/就绪监听并让旧队列代际失效；重试自身保持同代，持续失败不在Low中自排队。`LongSeries` 保留最后/第一项真实焦点严格判据，在失败finally写 `performance-long-series-focus-{1999,0}.json`，记录实际焦点类型/索引、待索引、请求索引、ScrollState/ID、offset和目标大小，不把内部请求索引当作焦点成功。
+
+**验证。** `Momoka.UiMotionTests` 原样提取真实 `FocusItem/TryFocusItem`、重试/就绪/滚动完成及 GotFocus控制流，不平行实现焦点规则；新增8项覆盖同尺寸滚动完成、错滚动ID、持续失败有限队列、零尺寸布局、迟到Loaded、旧来源/离页/新焦点取消、UpdateLayout重入代际与事件接线。先单独编译测试再Shell，用户级 SDK `10.0.400`；Shell Release **0警告0错误**（1分36秒），UiMotion Release **0警告0错误**、**88/88，0失败0跳过**；UiMotion空白检查通过。首次边界重定义既有ScrollView导致CS0101，定点删除重复替身后通过，失败日志保留。本树证据 `artifacts/captions-verification/focus-*`。
+
+**边界。** 本子任务未运行窗口、探针、鼠标或发布，未读真实设置/凭据、不联网真实服务器/播放。托管边界只证明实际控制流与有限队列，ItemsRepeater/WinRT实际焦点仍由主控合入后的匿名LongSeries与受影响定向探针确认。分支不自行刷新交付目录或推远端；未验证的原生结果不销账。
+
 ## 2026-11-16 交付性能定向入口（在途）
 
 检查台新增两个入口，直接调用原 PerformanceDetailScrollAsync 与 PerformanceLongSeriesAsync，保持原用例、匿名边界、60/90秒截止与p95<40ms阈值，便于保持窗口前台后定向补验。源契约新增1项；主树全方案Release0警告0错误、PageContract325/325，实际运行尚待本轮检查，不以定向入口替代全量通过。

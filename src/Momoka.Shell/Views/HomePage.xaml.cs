@@ -1597,7 +1597,9 @@ public sealed partial class HomePage : Page, IShellContent
     private void OnCardActionRequested(object? sender, CardActionEventArgs args)
     {
         if (sender is PosterCard { Card.IsNavigation: true }) return;
-        CardDetailTransition.Navigate(this, args.Action == CardAction.Details ? sender as PosterCard : null, () =>
+        var poster = args.Action == CardAction.Details ? sender as PosterCard : null;
+        PreviewHeadingTransition.Prepare(Frame, poster);
+        CardDetailTransition.Navigate(this, poster, () =>
             ItemCommands.Handle(_session, _actions, sender, args,
                 changed: CaptureCardReload(), removed: RemoveCard, watched: ViewModel.MarkedWatched));
     }
