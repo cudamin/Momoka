@@ -11,12 +11,13 @@ internal static class StoreBackdropBlend
     internal const double FoundationTail = 120;
     private static readonly (double Position, double Alpha)[] PictureAcross =
         [(0, 0), (0.18, 0.38), (0.42, 0.96), (0.7, 1), (1, 0)];
+    // 2026-11-15 用户令「加高右边封面图下方的渐变」：下方渐隐的起点从 0.42 提到 0.30，过渡带更长更缓。
     private static readonly (double Position, double Alpha)[] PictureDown =
-        [(0, 1), (0.42, 1), (0.72, 0.64), (1, 0)];
+        [(0, 1), (0.3, 1), (0.62, 0.7), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 0), (0.025, 0.7), (0.1, 1), (0.72, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =
-        [(0, 1), (0.55, 1), (0.78, 0.62), (1, 0)];
+        [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
     internal static double Alpha(double x, double y, bool ambient) => ambient
         ? Interpolate(x, AmbientAcross) * Interpolate(y, AmbientDown)

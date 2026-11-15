@@ -19,6 +19,15 @@
 **交付。** 2026-11-15 执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0：548 文件、289.6 MB；Momoka.exe SHA256 `CE235A7D5EAF300CEAC4A94A9EF49A602DF9C3F3C71952AA3111F3ADAA0CC480`，Momoka.dll SHA256 `49708B116A1F6D3BD4B701846CD5F95B2C7C0FE32075CEFAB46CAEADDF8C70D6`；桌面 `Momoka.lnk` 目标、WorkingDirectory 与图标已实际读取核对，指向本次 19:11 的 exe。未推远端。
 
 **边界。** 首次改完未提交时主树被外部 `git reset --hard` 清掉一次（reflog 19:00:44），已按同内容重做并以 `85b7402` 提交。截图取自真实保存账号与真实库的普通导航，不是离线夹具；未播放、未连接真实服务器做写入。
+## 2026-11-15 商店详情操作键换位、右侧预览圆角与加高下方渐变（本树，待合并）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-store-media-detail-GoXRMT`，分支 `feat-store-media-detail-GoXRMT`，产品提交 `737d0a5`。用户四句：①「播放按钮和更多按钮移到封面右边」；②「连播功能改到集列表卡片的右上角」；③「收藏和已看按钮移左上角的封面里」；④「给右边的背景图/预告片渐变加圆角，加高右边封面图下方的渐变」。追问确认播放与更多为横排、更多在最右；收藏与已看收成图标；「加高」指右侧剧照/预告的下方渐隐。
+
+**实现。** `DetailPage.Store.cs` 新增 `PlaceStoreActionButtons`：商店宽版式把 `ColumnPlayButton`、`ColumnMoreButton` 搬进片名栏末尾的 `StoreCoverActions`（封面右侧横排），`ColumnFavoriteButton`、`ColumnWatchedButton` 搬进封面左上角 `StoreCoverBadges`，`ColumnContinueButton` 挂到 `EpisodeHead.Trailing`（集列表卡片右上角）；退出商店或收成紧凑版式时按原次序放回 `ColumnActionRow`，同一批实例保留绑定、命令、焦点与外观画刷。已看键在封面里换成 `EgRoundButtonStyle`（44 见方），文字组由新 `ColumnWatchedLabelsVisibility` 收起。右侧剧照/预告的两个内容格在 `PageWidth >= StoreWideFloor` 时写入 `EgCardCornerRadius` 圆角；`StoreBackdropBlend` 的剧照/环境底下方渐隐起点从 0.42/0.55 提前到 0.30/0.42，渐变带更高。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **312/312**（新增商店换位、容器与渐隐起点契约）；`local-media-layout-fixture` **21/21**（含 `Agreements` 句柄基线）；主测试 **5157 项，通过 5139、失败 18、跳过 0**，18 条全部是既有环境红：13 条自检隔离/共享桌面锁、1 条自检输出、2 条下载到设备 `C:\WINDOWS\TEMP`，无详情相关失败；`git diff --check` 与 `tools/scan-automation-ids.js` 通过（无新增无句柄交互控件）。
+
+**待办。** 原生 `--probe-shell --probe-section detail-cards --screen 1` 未跑：另一工作树 `fix-settings-page-behind-cQmlcU` 的探针持续占用共享桌面锁（PID 16696/26772），按规则未结束他人进程、未绕锁；用户当次选择「先合并，探针待交付」，须在交付时按主树最终代码补跑商店详情宽窄/三尺寸实屏、检查新位置、圆角与渐隐，并目视 `StoreCoverActions`/`StoreCoverBadges`/`Trailer` 圆角。未发布、未推远端。
 
 ## 2026-11-15 详情文件选择栏恢复旧版下拉样式（交付）
 
