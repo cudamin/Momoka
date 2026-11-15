@@ -1,3 +1,13 @@
+## 2026-11-16 长剧焦点探针前件：等待同一横带实际Loaded（待主控复验）
+
+主树7e44554的原生 `shell-probe-20261115-171813311-4340` 四阶段都未发起Focus请求：requested/pending均-1、目标不存在，横偏移仍600400；真实extent631984、viewport1196、scrollable630788、pitch316已排除尾部可滚范围不足。FocusItem只在不活动/索引非法时入口返回；2000项来源与1999已被前面严格核对。旧报告没有_live/IsLoaded，不能再猜是环境或宣布生命周期根因。只读确认DetailPage.PlaceEpisodes只移同一EpisodePanel，XAML EpisodeStrip字段没有新建/替换；探针重排时已有ReferenceEquals断言，因此旧实例替换推测未获源码支持。
+
+独立树快进整合b393824后只改LongSeries与相关PageContract源契约：同实例先等实际帧，再有界等待IsLoaded、XamlRoot和_live都成立才Focus，不调用私有OnLoaded或写_live补假活动。记录before/ready/requested/layout/failed的sameStrip、stripLoaded/Live/root/Parent/Visibility、repeaterLoaded、sourceCount；待焦点与实际焦点、集合数量、1999/0终点判据完全保留。如果重挂后的活动状态一直不回来，失败会明确留存这些真实值，不能销账或跳过。
+
+产品Shelf生命周期与原生bring路径本轮未改；主控串行原生复验。子任务未运行UI/鼠标/播放、读取真实设置/凭据或发布。
+
+本树Shell Release **0警告0错误**（1分46秒），随后串行PageContract Release **0警告0错误**、**329/329，0失败0跳过**；三路径编码/空白检查通过，日志 `artifacts/captions-verification/long-ready-*`。原生Loaded前件与首尾焦点仍待主控运行，未通过前不销账。
+
 ## 2026-11-16 虚拟目标焦点实证修复：先完成原生bring再交焦点（待主控复验）
 
 新原生 `shell-probe-20261115-165848368-11840` 的 `performance-long-series-focus-1999.json` 把失败路径明确拆开：before横偏移600400（第1900项 ×316）、目标1999未实现；requested已经给1999的Button键盘焦点但它仍未Loaded；下一layout目标回收，真实焦点被框架挪到1898。前一轮只修Focus返回false后重试不覆盖这条实际成功后回收路径，因此不宣称原生已通过。

@@ -32,6 +32,18 @@ internal static class ConnectedProbeSourceTests
             Assert.Contains("AddCheck(\"InspectDetailScrollPerformance\", \"详情竖滚帧节奏\", PerformanceDetailScrollAsync, ShellProbeSections.Performance, timeoutSeconds: 60);", source);
             Assert.Contains("AddCheck(\"InspectLongSeries\", \"长剧季跳与首尾焦点\", PerformanceLongSeriesAsync, ShellProbeSections.Performance, timeoutSeconds: 90);", source);
         });
+        Test("长剧焦点探针：先等同一货架真实Loaded，失败保留活动与来源读数", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.LongSeries.cs"));
+            var ready = source.IndexOf("await UntilAsync(() => ReferenceEquals(Get<ShelfStrip>(series, \"EpisodeStrip\"), strip)", StringComparison.Ordinal);
+            var invoke = source.IndexOf("Call(strip, \"FocusItem\", index)", ready, StringComparison.Ordinal);
+            Assert.True(ready >= 0 && invoke > ready);
+            Assert.Contains("strip.IsLoaded && strip.XamlRoot is not null && Get<bool>(strip, \"_live\")", source);
+            foreach (var field in new[] { "stripLive =", "stripLoaded =", "stripParent =", "sameStrip =", "sourceCount =" }) Assert.Contains(field, source);
+            Assert.Contains("FocusedLongIndex(series, repeater) == index", source);
+            Assert.DoesNotContain("Call(strip, \"OnLoaded\"", source);
+            Assert.DoesNotContain("Field(strip, \"_live\"", source);
+        });
         Test("关联原生探针：现有XAML媒体库页正式导航并恢复原Page和原海报", () =>
         {
             var path = Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.ConnectedAnimation.cs");

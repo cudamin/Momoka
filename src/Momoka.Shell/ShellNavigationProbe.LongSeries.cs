@@ -204,6 +204,14 @@ internal sealed partial class ShellNavigationProbe
                     {
                         stage,
                         targetIndex = index,
+                        sameStrip = ReferenceEquals(Get<ShelfStrip>(series, "EpisodeStrip"), strip),
+                        stripLoaded = strip.IsLoaded,
+                        stripLive = Get<bool>(strip, "_live"),
+                        stripHasXamlRoot = strip.XamlRoot is not null,
+                        stripParent = VisualTreeHelper.GetParent(strip)?.GetType().FullName,
+                        stripVisibility = strip.Visibility.ToString(),
+                        repeaterLoaded = repeater.IsLoaded,
+                        sourceCount = repeater.ItemsSourceView?.Count,
                         focusedIndex = FocusedLongIndex(series, repeater),
                         pendingIndex = Get<int>(strip, "_pendingFocusedIndex"),
                         requestedIndex = Get<int>(strip, "_focusedIndex"),
@@ -227,6 +235,10 @@ internal sealed partial class ShellNavigationProbe
                 var trace = new List<object> { Reading("before") };
                 try
                 {
+                    await WaitForDiagnosticsFrameAsync();
+                    await UntilAsync(() => ReferenceEquals(Get<ShelfStrip>(series, "EpisodeStrip"), strip)
+                        && strip.IsLoaded && strip.XamlRoot is not null && Get<bool>(strip, "_live"));
+                    trace.Add(Reading("ready"));
                     Call(strip, "FocusItem", index);
                     trace.Add(Reading("requested"));
                     await LayoutAsync(series);
