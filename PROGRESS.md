@@ -1,3 +1,9 @@
+## 2026-11-15 主树交付与GitHub上传收尾
+
+用户要求交付后提交GitHub。master affa1d9已正式发布主树artifacts/publish/win-x64，548文件、303675712字节；Momoka.dll SHA256 28D7434D58FFAAF16C76EBADC262A426A744102C70B1B8C0D3CF2E536759B431。快捷方式目标和WorkingDirectory核对通过，正式匿名窗口22988启动实屏并正常关闭。主测试5155/5155、18专项1210/1210、动效44/44、收尾113/113，均0失败0跳过；最终主页与五项动效检查通过，候选保持retained。台账29～33、主页顶栏与标题搜索销账；13/14及系统/物理输入/真实播放补验保留，详见docs/2026-11-15-交付记录.md。GitHub按用户授权推送master，回执另存。
+
+本轮临时树内容已核对无master缺少部分：delivery-detail-probe顶e153540→231b540，delivery-heat-probe顶ae451da→9bc8222，delivery-home-chrome顶5f5db0a→affa1d9；相关忽略证据复制到artifacts/delivery-20261115，heat36文件84526100字节完整。归档工具对三树均返回Another active task still uses this worktree，暂留待应用占用释放，不绕过保护或动其他会话树。
+
 ## 2026-11-15 交付动效诊断：实际ROI采屏与迟到收尾异常
 
 独立树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka` 合入17a0c62后修本轮探针。PID2660的音乐Entrance：Rendering24.3474ms已发布ROI76..204/12..232，第7次仍整1000×720抓屏123.5573→410.008ms耗286.4507ms，首个可见454.3486ms的top109与最终108相差1仍按原±1视为落定，因此native-intermediate-not-observed保持证据不足。日志只量总捕获耗时，未证明是哪一个GDI调用；不改产品动画/判据、延長800ms、减少16ms或预热候选。
