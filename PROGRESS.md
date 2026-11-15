@@ -8,6 +8,8 @@
 
 **边界与收尾。** 本子任务未启动窗口、探针、浏览器或播放器，未移动鼠标、联网访问真实预告、读取用户设置/凭据、播放真实媒体或发布。消息测试是托管端点证据，匿名原生 WebView2/字幕菜单/画面和截图由主控合入最新 master 后串行运行 `InspectStoreTrailer`；只有这轮真实报告通过才算补齐原生覆盖。真实 YouTube 服务字幕版本、触摸/物理键盘与跨 DPI 不由匿名夹具证明。主控同时修了商店圆角读取 `9e3402d`，本分支提交后合入该修复再复验；分支不自行发布或推远端。
 
+**整合后复验。** 本轮测试/探针提交 `31fcc93`，合入 `9e3402d` 后为 `6a4cac5`；PROGRESS 顶部追加冲突保留双方记录。合并后 Shell Release **0 警告 0 错误**（1分10秒），PageContract Release **0 警告 0 错误**、**321/321，0失败0跳过**。两段 JavaScript 语法与本次六个变更路径的 LF/BOM/空白检查通过；Shell 单文件空白检查退出0，工作区加载警告单列保留，不冒称全方案门禁已执行。分支未自行运行原生探针或发布；后续由主控在最终主树编译、串行运行并记录结果。
+
 ## 2026-11-15 交付修复：商店预览圆角读取应用资源
 
 主树最终代码 4209de4 在本次统一原生检查 shell-probe-20261115-145703787-20292 中触发未处理 COM 异常：DetailPage.PlaceStoreComponents 直接查页面 Resources 的 EgCardCornerRadius，而该键只属于应用 Theme/Styles.xaml。改为 Application.Current.Resources；本页 EgRoundButtonStyle / EgPillButtonStyle 仍从局部字典读取，不加 IsLoaded 短路，保留封面关联动画在 Loaded 前抢排的路径。新增 PageContract 资源归属契约，拒绝复制全局键进页面掩盖错误。
