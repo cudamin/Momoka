@@ -540,8 +540,8 @@ internal sealed partial class ShellNavigationProbe
                         && facts.Contains("TV-14", StringComparison.Ordinal)
                         && facts.Contains("共 1 季", StringComparison.Ordinal),
                     "季页的事实行取错剧信息或仍带工作室：" + facts);
-                Require(view.Score == "7.2",
-                    $"季页的评分该取这部剧的 7.2，实际「{view.Score}」（{view.ScoreLabel}）");
+                Require(view.CommunityScore == "7.2",
+                    $"季页的评分该取这部剧的 7.2，实际「{view.CommunityScore}」（影评指数「{view.CriticScore}」）");
 
                 // ⑤ 季页的下拉也来自那条补取的路（LoadEpisodesAsync 挑播放落点）—— 用户就是在这一页看到
                 // 「自动（由 mpv 决定）」的，而同一集在集页面上写着具体语言。
@@ -567,7 +567,7 @@ internal sealed partial class ShellNavigationProbe
 
                 readings.Add($"季 1280：标题「{view.Title}」／第二行「{view.Subline}」／可点 {link?.Id}，"
                     + $"类型 {string.Join('、', view.SublineGenres)}（{genres.Detail}），"
-                    + $"评分 {view.Score} {view.ScoreLabel}，事实 {facts}，"
+                    + $"评分 {view.CommunityScore}／{view.CriticScore}，事实 {facts}，"
                     + $"信息卡 {infoPanel.Visibility}（媒体信息 {view.InfoRows.Count} 行）");
                 var body = Get<ScrollView>(page, "Body");
                 var at = page.TransformToVisual(_root).TransformPoint(default);

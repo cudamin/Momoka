@@ -119,6 +119,7 @@ handle  Views/DetailPage.xaml  ColumnPlayButton
 handle  Views/DetailPage.xaml  ColumnSourcePicker
 handle  Views/DetailPage.xaml  ColumnSubtitlePicker
 handle  Views/DetailPage.xaml  ColumnWatchedButton
+handle  Views/DetailPage.xaml  CommunityScoreRow
 handle  Views/DetailPage.xaml  CompactBlock
 handle  Views/DetailPage.xaml  CompactContinueButton
 handle  Views/DetailPage.xaml  CompactFavoriteButton
@@ -128,6 +129,7 @@ handle  Views/DetailPage.xaml  CompactResumeProgress
 handle  Views/DetailPage.xaml  CompactWatchedButton
 handle  Views/DetailPage.xaml  CornerArt
 handle  Views/DetailPage.xaml  CoverButton
+handle  Views/DetailPage.xaml  CriticScoreRow
 handle  Views/DetailPage.xaml  DetailReadMoreButton
 handle  Views/DetailPage.xaml  EpisodeHead
 handle  Views/DetailPage.xaml  EpisodeList
@@ -152,7 +154,6 @@ handle  Views/DetailPage.xaml  OverviewPanel
 handle  Views/DetailPage.xaml  PickerPanel
 handle  Views/DetailPage.xaml  PosterImage
 handle  Views/DetailPage.xaml  PosterStill
-handle  Views/DetailPage.xaml  ScoreSourceText
 handle  Views/DetailPage.xaml  ScoreStack
 handle  Views/DetailPage.xaml  ScoreText
 handle  Views/DetailPage.xaml  SeasonRow
