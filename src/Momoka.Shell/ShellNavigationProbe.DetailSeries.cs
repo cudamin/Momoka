@@ -702,10 +702,10 @@ internal sealed partial class ShellNavigationProbe
         // 「多跑一趟」靠这几个数说话。
         int Reads(string id) => itemReads.TryGetValue(id, out var count) ? count : 0;
 
-        // 季选择栏那颗 2026-11-02 已按用户令删掉：在视觉树里按名字/自动化 id 找控件，而不是 Get 一个不存在的
+        // 季选择栏那颗 2026-11-02 已按用户令删掉：在视觉树里按名字/自动化 id 找 EgPicker，而不是 Get 一个不存在的
         // 控件 —— Get 读的是页面上的私有字段，字段没了只会空引用，那和「控件被藏起来」分不出来。
         static bool HasSeasonPicker(DetailPage page) =>
-            Descendants(page).OfType<FrameworkElement>().Any(picker =>
+            Descendants(page).OfType<EgPicker>().Any(picker =>
                 picker.Name == "DetailSeasonPicker"
                 || AutomationProperties.GetAutomationId(picker) == "DetailSeasonPicker");
 

@@ -149,9 +149,6 @@ public sealed partial class DetailPage
     /// <summary>首次显示、模式切换和窄窗排版后统一应用纸面、卡面及尾部留白。</summary>
     private void SettleShowcase()
     {
-        var layout = (ViewModel.StoreMode, ViewModel.IsCompact);
-        if (_filePickerLayout != layout) CloseFilePickers();
-        _filePickerLayout = layout;
         PaintStoreBackdrop();
         PaintScrim();
         var showcase = ViewModel.Showcase;

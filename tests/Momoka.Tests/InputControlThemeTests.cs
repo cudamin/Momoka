@@ -17,9 +17,6 @@ internal static class InputControlThemeTests
     private const string SettingsComboStyle = "{StaticResource EgSettingsComboBoxStyle}";
     private const string SearchRadiusKey = "EgSearchCornerRadius";
     private const string SearchRadius = "{StaticResource EgSearchCornerRadius}";
-    private const string DetailPickerPage = "src/Momoka.Shell/Views/DetailPage.xaml";
-    private const string DetailPickerRadiusKey = "EgDetailFilePickerCornerRadius";
-    private const string DetailPickerRadius = "{StaticResource EgDetailFilePickerCornerRadius}";
     private static readonly (string Page, string Name)[] SearchTextInputs =
     [
         ("DanmakuPanel.xaml", "TitleBox"), ("FnNasMatchDialog.xaml", "KeywordBox"),
@@ -164,33 +161,30 @@ internal static class InputControlThemeTests
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
         });
-        Test("输入主题：详情文件选项同按钮底色、选择栏小圆角，集列表牌子不再挂下拉", () =>
+        Test("输入主题：详情文件选项与操作按钮同底同圆角，集列表牌子不再挂下拉", () =>
         {
-            var page = Read(DetailPickerPage);
-            AssertDetailPickerRadiusResource(page);
+            var page = Read("src/Momoka.Shell/Views/DetailPage.xaml");
             foreach (var name in new[] { "ColumnPickers", "PickerPanel" })
             {
                 var panel = page.Descendants(Xaml + "StackPanel")
                     .Single(element => (string?)element.Attribute(X + "Name") == name);
-                Assert.False(panel.Descendants().Any(element =>
-                    ((string?)element.Attribute(X + "Key"))?.StartsWith("ComboBox", StringComparison.Ordinal) == true),
-                    name + " 仍用旧 ComboBox 的局部模板资源");
-                var pickers = panel.Descendants().Where(element => element.Name.LocalName == "DetailFilePicker").ToArray();
+                var resources = panel.Element(Xaml + "StackPanel.Resources")!;
+                foreach (var key in ComboBackgroundKeys)
+                {
+                    var state = key["ComboBoxBackground".Length..];
+                    var target = "ButtonBackground" + (state is "Focused" or "Unfocused" ? "" : state);
+                    AssertAlias(resources, key, target);
+                }
+                Assert.False(resources.Elements().Any(element =>
+                    (string?)element.Attribute(X + "Key") == "ComboBoxDropDownBackground"), "弹层背景被局部覆盖");
+                var pickers = panel.Descendants().Where(element => element.Name.LocalName == "EgPicker").ToArray();
                 Assert.Equal(3, pickers.Length, name + " 的文件选项范围变了");
                 foreach (var picker in pickers)
                 {
                     Assert.Equal("{ThemeResource ButtonBackground}", (string?)picker.Attribute("Background"));
-                    Assert.Equal(DetailPickerRadius, (string?)picker.Attribute("CornerRadius"));
-                    Assert.Equal("Text", (string?)picker.Attribute("DisplayMemberPath"));
-                    Assert.True(!string.IsNullOrWhiteSpace((string?)picker.Attribute("Label")), name + " 缺少栏内标签");
-                    Assert.False(picker.Elements().Any(element => element.Name.LocalName.EndsWith(".Header", StringComparison.Ordinal)),
-                        name + " 标签仍在选择栏外面");
+                    Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)picker.Attribute("CornerRadius"));
                 }
             }
-            foreach (var name in new[] { "EgPillButtonStyle", "EgPlayButtonStyle", "EgPillToggleButtonStyle" })
-                Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)Resource(page.Root!.Element(Xaml + "Page.Resources")!, name).Elements(Xaml + "Setter")
-                    .Single(setter => (string?)setter.Attribute("Property") == "CornerRadius").Attribute("Value"),
-                    "选择栏的小圆角不能改动下方操作按钮");
 
             // 集列表牌子右端那颗季选择栏 2026-11-02 按用户令删了，连同它把六个全局下拉底钉回窗口色
             // （EgWindowBrush）的那套局部资源 —— 这一条现在盯着「别再长回来」：牌子上再有下拉，就得重新复核
@@ -198,7 +192,7 @@ internal static class InputControlThemeTests
             var shelf = page.Descendants()
                 .Single(element => (string?)element.Attribute(X + "Name") == "EpisodeHead");
             Assert.Null(shelf.Element(shelf.Name.Namespace + "ShelfHead.Resources"), "集列表牌子又有了局部下拉资源");
-            Assert.False(shelf.Descendants().Any(element => element.Name.LocalName is "EgPicker" or "ComboBox" or "DetailFilePicker" or "DropDownButton"),
+            Assert.False(shelf.Descendants().Any(element => element.Name.LocalName is "EgPicker" or "ComboBox"),
                 "集列表牌子的右端又长出了季选择栏");
 
             // 2026-11-08 用户令「不要这个季度列表菜单了」：牌子只剩季名 —— 没有折角（Glyph）、没有点击面
@@ -435,37 +429,6 @@ internal static class InputControlThemeTests
                 Assert.Equal(SearchRadius, (string?)button.Attribute("CornerRadius"), page + "/" + name);
             }
         });
-        Test("详情一体选择栏：拒绝胶囊、旧圆角与替换原生模板", () =>
-        {
-            var shared = Read("src/Momoka.Shell/Theme/Styles.xaml");
-            var original = Read(DetailPickerPage);
-            AssertProductInputRadii(DetailPickerPage, original, shared);
-            foreach (var value in new[] { "12", "16", "{StaticResource EgCardCornerRadius}", "{StaticResource EgPickerCornerRadius}" })
-            {
-                var oldRadius = new XDocument(original);
-                Named(oldRadius, "ColumnAudioPicker").SetAttributeValue("CornerRadius", value);
-                Assert.Throws<AssertionException>(() => AssertProductInputRadii(DetailPickerPage, oldRadius, shared));
-            }
-            foreach (var value in new[] { "12", "16" })
-            {
-                var oldResource = new XDocument(original);
-                Resource(oldResource.Root!.Element(Xaml + "Page.Resources")!, DetailPickerRadiusKey).Value = value;
-                Assert.Throws<AssertionException>(() => AssertProductInputRadii(DetailPickerPage, oldResource, shared));
-            }
-            var missingResource = new XDocument(original);
-            Resource(missingResource.Root!.Element(Xaml + "Page.Resources")!, DetailPickerRadiusKey).Remove();
-            Assert.Throws<AssertionException>(() => AssertProductInputRadii(DetailPickerPage, missingResource, shared));
-            foreach (var baseStyle in new[] { "EgComboBoxStyle", "DefaultButtonStyle", "DefaultDropDownButtonStyle" })
-            {
-                var oldTypeStyle = new XDocument(original);
-                ImplicitStyle(oldTypeStyle, "local:DetailFilePicker").SetAttributeValue("BasedOn", "{StaticResource " + baseStyle + "}");
-                Assert.Throws<AssertionException>(() => AssertProductInputRadii(DetailPickerPage, oldTypeStyle, shared));
-            }
-            var customTemplate = new XDocument(original);
-            ImplicitStyle(customTemplate, "local:DetailFilePicker").Add(new XElement(Xaml + "Setter",
-                new XAttribute("Property", "Template"), new XAttribute("Value", "{StaticResource CustomPickerTemplate}")));
-            Assert.Throws<AssertionException>(() => AssertProductInputRadii(DetailPickerPage, customTemplate, shared));
-        });
         Test("全站输入圆角：拒绝漏接数字框、登录旧值和显式下拉恢复平台样式", () =>
         {
             var shared = Read("src/Momoka.Shell/Theme/Styles.xaml");
@@ -572,33 +535,22 @@ internal static class InputControlThemeTests
 
     private static void AssertProductInputRadii(string path, XDocument document, XDocument shared)
     {
-        if (path == DetailPickerPage) AssertDetailPickerRadiusResource(document);
         foreach (var control in document.Descendants().Where(element =>
             SettingsInputTypes.Contains(element.Name.LocalName, StringComparer.Ordinal)
-                || element.Name.LocalName is "EgPicker" or "DetailFilePicker"))
+                || element.Name.LocalName is "EgPicker"))
         {
             var radius = (string?)control.Attribute("CornerRadius");
-            if (path == DetailPickerPage && control.Name.LocalName == "DetailFilePicker")
-                Assert.Equal(DetailPickerRadius, radius, "详情选择栏必须引用本页4DIP小圆角");
-            else
-                Assert.True(radius is null || IsSharedRadius(radius), path + "/" + control.Name.LocalName + " 自设旧圆角");
+            var usesDetailCardRadius = path == "src/Momoka.Shell/Views/DetailPage.xaml"
+                && control.Name.LocalName == "EgPicker" && radius == "{StaticResource EgCardCornerRadius}";
+            Assert.True(radius is null || IsSharedRadius(radius) || usesDetailCardRadius,
+                path + "/" + control.Name.LocalName + " 自设旧圆角");
             var style = (string?)control.Attribute("Style");
             if (style is not null) Assert.True(StyleHasSharedRadius(style, document, shared, []), path + "/" + style);
         }
         foreach (var style in document.Descendants(Xaml + "Style").Where(style =>
             SettingsInputTypes.Contains((string?)style.Attribute("TargetType") ?? "", StringComparer.Ordinal) ||
-            (string?)style.Attribute("TargetType") is "local:EgPicker" or "local:DetailFilePicker"))
+            (string?)style.Attribute("TargetType") == "local:EgPicker"))
         {
-            if (path == DetailPickerPage && (string?)style.Attribute("TargetType") == "local:DetailFilePicker")
-            {
-                Assert.Null(style.Attribute("BasedOn"), "平台主题样式提供 DropDownButton 模板，不能依赖应用层私有键或其它控件样式");
-                Assert.False(style.Elements(Xaml + "Setter").Any(setter => (string?)setter.Attribute("Property") == "Template"),
-                    "一体选择栏不能绕过原生按钮模板");
-                foreach (var setter in style.Elements(Xaml + "Setter").Where(setter =>
-                    (string?)setter.Attribute("Property") == "CornerRadius"))
-                    Assert.Equal(DetailPickerRadius, (string?)setter.Attribute("Value"));
-                continue;
-            }
             if (style.Attribute(X + "Key") is null && path != "src/Momoka.Shell/Theme/Styles.xaml" && path != SettingsInputDictionary)
             {
                 var radiusSetter = style.Elements(Xaml + "Setter").FirstOrDefault(setter =>
@@ -612,17 +564,6 @@ internal static class InputControlThemeTests
                 (string?)setter.Attribute("Property") == "CornerRadius"))
                 Assert.True(IsSharedRadius((string?)setter.Attribute("Value")), path + " 样式自设旧圆角");
         }
-    }
-
-    private static void AssertDetailPickerRadiusResource(XDocument document)
-    {
-        var radii = document.Descendants().Where(element => (string?)element.Attribute(X + "Key") == DetailPickerRadiusKey).ToArray();
-        Assert.Equal(1, radii.Length, "详情选择栏缺少唯一的本页小圆角资源");
-        var radius = radii.Single();
-        Assert.Equal(Xaml + "CornerRadius", radius.Name);
-        Assert.Equal("4", radius.Value, "详情选择栏又变成旧圆角或胶囊形状");
-        Assert.True(ReferenceEquals(radius.Parent, document.Root!.Element(Xaml + "Page.Resources")),
-            "详情选择栏圆角只能作用于本页");
     }
 
     private static bool StyleHasSharedRadius(string reference, XDocument local, XDocument shared, HashSet<string> seen)

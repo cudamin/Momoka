@@ -102,8 +102,7 @@ namespace Microsoft.UI.Xaml.Controls
     }
 
     public sealed class ComboBox : Control;
-    public class Button : Control;
-    public class DropDownButton : Button;
+    public sealed class Button : Control;
 }
 
 namespace Microsoft.UI.Xaml.Controls.Primitives
@@ -113,7 +112,6 @@ namespace Microsoft.UI.Xaml.Controls.Primitives
 
 namespace Momoka.Shell.Views
 {
-    public sealed class DetailFilePicker : Microsoft.UI.Xaml.Controls.DropDownButton;
     public static class HomeMotion
     {
         public static bool Enabled { get; private set; }

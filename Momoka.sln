@@ -153,8 +153,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsAppearanceTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PickerLifecycleTests", "tests\Momoka.PickerLifecycleTests\Momoka.PickerLifecycleTests.csproj", "{1ABA459D-F40E-4237-A41D-6B651C2C459F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DetailFilePickerTests", "tests\Momoka.DetailFilePickerTests\Momoka.DetailFilePickerTests.csproj", "{42A2C118-BAF5-4496-B946-07A4F4719303}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.NavigationStateTests", "tests\Momoka.NavigationStateTests\Momoka.NavigationStateTests.csproj", "{D22BE2F4-5BB8-4516-8A21-624DDFCF2E9E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MusicArtworkTests", "tests\Momoka.MusicArtworkTests\Momoka.MusicArtworkTests.csproj", "{661C1586-0DD8-47CF-8B1D-7075DF39AF80}"
@@ -180,10 +178,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{42A2C118-BAF5-4496-B946-07A4F4719303}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{42A2C118-BAF5-4496-B946-07A4F4719303}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{42A2C118-BAF5-4496-B946-07A4F4719303}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{42A2C118-BAF5-4496-B946-07A4F4719303}.Release|Any CPU.Build.0 = Release|Any CPU
 		{78CE9C80-0B2C-4498-B6C5-BEB72A2112D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{78CE9C80-0B2C-4498-B6C5-BEB72A2112D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78CE9C80-0B2C-4498-B6C5-BEB72A2112D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -507,7 +501,6 @@ Global
 		{972B21AD-DA92-4C2F-A295-9E3E253F8746}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{42A2C118-BAF5-4496-B946-07A4F4719303} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{972B21AD-DA92-4C2F-A295-9E3E253F8746} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{78CE9C80-0B2C-4498-B6C5-BEB72A2112D4} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

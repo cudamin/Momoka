@@ -265,24 +265,24 @@ internal sealed partial class ShellNavigationProbe
                                     ? "ColumnPlayButton" : "CompactPlayButton"));
                             var pickers = Get<StackPanel>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
                                 ? "ColumnPickers" : "PickerPanel");
-                            var visiblePickers = Descendants(pickers).OfType<DetailFilePicker>()
+                            var visiblePickers = Descendants(pickers).OfType<EgPicker>()
                                 .Where(picker => picker.Visibility == Visibility.Visible
                                     && (width != 1280 || ((FrameworkElement)picker.Parent).Visibility == Visibility.Visible)).ToArray();
                             Require(visiblePickers.Length == 3, "详情材质夹具没有显示版本、音频和字幕");
                             foreach (var picker in visiblePickers)
-                                await CheckPickerBackgroundAsync(picker, reference, reads);
+                                await CheckPickerBackgroundAsync(picker, reference);
                             var openPicker = visiblePickers[0];
                             try
                             {
                                 openPicker.IsDropDownOpen = true;
                                 await LayoutAsync(openPicker);
                                 var background = (ThemeColor)Call(detail, "ReadingBackground", openPicker)!;
-                                var foregroundFill = (AcrylicBrush)openPicker.Resources["ButtonBackground"];
+                                var foregroundFill = (AcrylicBrush)openPicker.Resources["ComboBoxBackground"];
                                 Require(openPicker.Foreground is SolidColorBrush defaultInk
                                     && defaultInk.Color == DefaultDetailForeground("EgDetailActionTextBrush"),
                                     "选择框文字没有保持默认前景");
-                                var glyph = Descendants(openPicker).OfType<IconElement>().Single(control => control.Name == "ChevronIcon");
-                                var glyphKeys = new[] { "DropDownButtonForegroundSecondary", "DropDownButtonForegroundSecondaryPointerOver", "DropDownButtonForegroundSecondaryPressed" };
+                                var glyph = Descendants(openPicker).OfType<IconElement>().Single(control => control.Name == "DropDownGlyph");
+                                var glyphKeys = new[] { "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" };
                                 var glyphResources = glyphKeys.Select(key => openPicker.Resources.TryGetValue(key, out var value) ? value as SolidColorBrush : null).ToArray();
                                 var states = Descendants(openPicker).OfType<FrameworkElement>().SelectMany(VisualStateManager.GetVisualStateGroups)
                                     .Select(group => group.Name + "=" + (group.CurrentState?.Name ?? "null"));
@@ -295,9 +295,8 @@ internal sealed partial class ShellNavigationProbe
                                 Require(glyph.Foreground is SolidColorBrush glyphInk
                                     && glyphInk.Color == DefaultDetailForeground("EgDetailActionTextBrush"),
                                     "选择框箭头没有保持默认前景：" + glyphReading);
-                                Require(openPicker.IsDropDownOpen && openPicker.FlyoutContent.IsLoaded,
-                                    "缺少选择横栏实际弹层");
-                                var popupRoot = openPicker.FlyoutContent;
+                                var popupRoot = openPicker.PopupPart?.Child
+                                    ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
                                     .First(border => border.Name == "PopupBorder");
                                 bool GlassPopup() => popup.Background is AcrylicBrush brush
@@ -313,7 +312,19 @@ internal sealed partial class ShellNavigationProbe
                                 }
                                 finally { popup.Background = popupFill; }
                                 Require(GlassPopup(), "展开面亚克力恢复失败");
-                                await CheckPickerItemBackgroundsAsync(openPicker, reads);
+                                var row = Descendants(popup).OfType<ComboBoxItem>().First();
+                                var rowSurface = Descendants(row).OfType<Grid>().First(part => part.Name == "LayoutRoot");
+                                foreach (var (state, alpha) in new[] { ("PointerOver", 15), ("Pressed", 10), ("Selected", 15),
+                                    ("SelectedUnfocused", 10), ("SelectedPointerOver", 10), ("SelectedPressed", 15) })
+                                {
+                                    await WaitForLayoutAsync(() =>
+                                    {
+                                        Require(VisualStateManager.GoToState(row, state, false), "下拉条目缺少状态：" + state);
+                                        row.UpdateLayout();
+                                        return rowSurface.Background is SolidColorBrush fill && fill.Color.A == alpha
+                                            && fill.Color.R == 255 && fill.Color.G == 255 && fill.Color.B == 255;
+                                    }, $"下拉条目未恢复平台薄白：{state}，实际 {rowSurface.Background}");
+                                }
                                 await SaveProbeScreenAsync($"detail-picker-open-{theme.Id}-{width}-screen.png");
                             }
                             finally { openPicker.IsDropDownOpen = false; }
@@ -346,12 +357,12 @@ internal sealed partial class ShellNavigationProbe
                                     await LayoutAsync(episodePage);
                                     var episodePlay = Descendants(Get<StackPanel>(episodePage, "ColumnActions")).OfType<Button>()
                                         .Single(button => AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
-                                    var episodePickers = Descendants(Get<StackPanel>(episodePage, "ColumnPickers")).OfType<DetailFilePicker>().ToArray();
-                                    Require(episodePickers.Length == 3, "集页文件选项没有保留版本、音频和字幕三颗横栏");
+                                    var episodePickers = Descendants(Get<StackPanel>(episodePage, "ColumnPickers")).OfType<EgPicker>().ToArray();
+                                    Require(episodePickers.Length == 3, "集页文件选项没有保留版本、音频和字幕三颗选择栏");
                                     foreach (var picker in episodePickers)
                                     {
                                         Require(picker.Visibility == Visibility.Visible, picker.Name + " 未在集页显示");
-                                        await CheckPickerBackgroundAsync(picker, episodePlay, reads);
+                                        await CheckPickerBackgroundAsync(picker, episodePlay);
                                     }
                                     await SaveProbeScreenAsync($"detail-column-selectors-{theme.Id}-screen.png");
                                 }
@@ -733,6 +744,42 @@ internal sealed partial class ShellNavigationProbe
                     && border.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"]) return border;
             throw new InvalidOperationException("未找到通知条目或接管卡的实际外层 Border");
         }
+        async Task CheckPickerBackgroundAsync(EgPicker picker, Button reference)
+        {
+            picker.ApplyTemplate();
+            var background = Descendants(picker).OfType<Border>().Single(border => border.Name == "Background");
+            var highlight = Descendants(picker).OfType<Border>().Single(border => border.Name == "HighlightBackground");
+            try
+            {
+                foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
+                {
+                    Require(VisualStateManager.GoToState(reference, state, false)
+                        && VisualStateManager.GoToState(picker, state, false), "按钮或选择框缺少状态：" + state);
+                    await LayoutAsync(picker);
+                    var key = "ComboBoxBackground" + (state == "Normal" ? "" : state);
+                    Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
+                        && ReferenceEquals(actual, picker.Resources[key]), $"{picker.Name}/{state} 未保持独立的选择框背景");
+                    var buttonFill = Descendants(reference).OfType<ContentPresenter>()
+                        .First(presenter => presenter.Name == "ContentPresenter").Background as AcrylicBrush;
+                    var pickerFill = (AcrylicBrush)background.Background;
+                    var alpha = (state == "Normal" ? 15d : state == "PointerOver" ? 21d : 8d) / 255;
+                    Require(buttonFill is { AlwaysUseFallback: true } && pickerFill.FallbackColor == buttonFill.FallbackColor
+                        && Math.Abs(pickerFill.Opacity - buttonFill.Opacity) < 0.001
+                        && pickerFill.FallbackColor.A == 255 && pickerFill.FallbackColor.R == 255
+                        && Math.Abs(pickerFill.Opacity - alpha) < 0.001,
+                        picker.Name + "/" + state + " 选择框与按钮未共用平台默认薄白");
+                    reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 保持选择框底色");
+                }
+                Require(picker.Background is AcrylicBrush { AlwaysUseFallback: true } resting
+                    && highlight.Background is AcrylicBrush { AlwaysUseFallback: true } focused
+                    && focused.FallbackColor == resting.FallbackColor, picker.Name + " 聚焦底色没有回到按钮常态");
+            }
+            finally
+            {
+                VisualStateManager.GoToState(reference, "Normal", false);
+                VisualStateManager.GoToState(picker, "Normal", false);
+            }
+        }
         async Task CheckRestoredActionAsync(Control control)
         {
             control.ApplyTemplate();
@@ -797,80 +844,6 @@ internal sealed partial class ShellNavigationProbe
             Brush? Fill() => circle
                 ? Descendants(control).OfType<Ellipse>().Single(shape => shape.Name == "Circle").Fill
                 : Descendants(control).OfType<ContentPresenter>().First(presenter => presenter.Name == "ContentPresenter").Background;
-        }
-    }
-
-    // 调用方先选择历史薄白叠层夹具：关闭控件亚克力、白色按钮底、15/255 常态浓度。
-    // 原材质全套与详情选择栏专项复用同一条模板测量，不以资源键存在代替实际背景。
-    private static async Task CheckPickerBackgroundAsync(DetailFilePicker picker, Button reference, List<string>? reads = null)
-    {
-        picker.ApplyTemplate();
-        var background = Descendants(picker).OfType<Grid>().Single(grid => grid.Name == "RootGrid");
-        try
-        {
-            foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
-            {
-                Require(VisualStateManager.GoToState(reference, state, false)
-                    && VisualStateManager.GoToState(picker, state, false), "按钮或选择框缺少状态：" + state);
-                await LayoutAsync(picker);
-                var key = "ButtonBackground" + (state == "Normal" ? "" : state);
-                Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
-                    && ReferenceEquals(actual, picker.Resources[key]), $"{picker.Name}/{state} 未保持独立的选择框背景");
-                var buttonFill = Descendants(reference).OfType<ContentPresenter>()
-                    .First(presenter => presenter.Name == "ContentPresenter").Background as AcrylicBrush;
-                var pickerFill = (AcrylicBrush)background.Background;
-                var alpha = (state == "Normal" ? 15d : state == "PointerOver" ? 21d : 8d) / 255;
-                Require(buttonFill is { AlwaysUseFallback: true } && pickerFill.FallbackColor == buttonFill.FallbackColor
-                    && Math.Abs(pickerFill.Opacity - buttonFill.Opacity) < 0.001
-                    && pickerFill.FallbackColor.A == 255 && pickerFill.FallbackColor.R == 255
-                    && Math.Abs(pickerFill.Opacity - alpha) < 0.001,
-                    picker.Name + "/" + state + " 选择框与按钮未共用平台默认薄白");
-                reads?.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 保持选择框底色");
-            }
-            Require(VisualStateManager.GoToState(picker, "Normal", false), picker.Name + " 缺少常态");
-            await LayoutAsync(picker);
-            Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } resting
-                && ReferenceEquals(resting, picker.Resources["ButtonBackground"]),
-                picker.Name + " 选择横栏底色没有回到按钮常态");
-        }
-        finally
-        {
-            VisualStateManager.GoToState(reference, "Normal", false);
-            VisualStateManager.GoToState(picker, "Normal", false);
-        }
-    }
-
-    // WinUI 2.3.9 的 generic.xaml / DefaultListViewItemStyle 使用原生 ListViewItemPresenter Root；
-    // 它没有 ComboBoxItem 的 LayoutRoot / SelectedUnfocused。这里读取真实 presenter 各状态的画刷，
-    // 同时核对资源链接；实际指针/键盘状态由交互专项验证，不把强制 VSM 调用冒充输入。
-    private static async Task CheckPickerItemBackgroundsAsync(DetailFilePicker picker, List<string>? reads = null)
-    {
-        Require(picker.IsDropDownOpen && picker.FlyoutContent.IsLoaded, "选择列表没有实际打开");
-        await LayoutAsync(picker.FlyoutContent);
-        var list = Descendants(picker.FlyoutContent).OfType<ListView>().Single();
-        var rows = Descendants(list).OfType<ListViewItem>().ToArray();
-        Require(rows.Length > 0, "展开列表没有实际条目，材质检查不能空跑");
-        foreach (var row in rows)
-        {
-            row.ApplyTemplate();
-            var presenter = Descendants(row).OfType<ListViewItemPresenter>().Single();
-            var backgrounds = new (string Suffix, Brush Fill, int Alpha)[]
-            {
-                ("PointerOver", presenter.PointerOverBackground, 15),
-                ("Pressed", presenter.PressedBackground, 10),
-                ("Selected", presenter.SelectedBackground, 15),
-                ("SelectedPointerOver", presenter.SelectedPointerOverBackground, 10),
-                ("SelectedPressed", presenter.SelectedPressedBackground, 15),
-                ("SelectedDisabled", presenter.SelectedDisabledBackground, 15)
-            };
-            foreach (var (suffix, fill, alpha) in backgrounds)
-            {
-                Require(fill is SolidColorBrush ink && ink.Color.A == alpha
-                    && ink.Color.R == 255 && ink.Color.G == 255 && ink.Color.B == 255
-                    && ReferenceEquals(fill, list.Resources["ListViewItemBackground" + suffix]),
-                    $"选择列表实际条目未使用平台薄白：{suffix}、{fill}");
-                reads?.Add($"{ThemeHost.Current.Id}/{picker.Name}/{suffix}: 条目画刷 {alpha}/255 薄白");
-            }
         }
     }
 }

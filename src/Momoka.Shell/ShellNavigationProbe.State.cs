@@ -276,13 +276,18 @@ internal sealed partial class ShellNavigationProbe
         element.TransformToVisual(null).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
 
     /// <summary>
-    /// 详情文件选项改为一体横栏和左侧浮层后，展开不改变闭合横栏宽度；浮层须有真实尺寸、容纳全部条目且不越根边界。
+    /// 电影／剧／季三页尾部那一份文件选项（<c>PickerPanel</c>）展开态的宽度与位置 —— 用户 2026-10-16
+    /// 两条令：「选择栏展开后会触发自动收缩导致选择栏与右侧的组件重叠」、「展开后自动调整选择框长度适配
+    /// 选择项中最长的那一条」。
     /// <para>
-    /// 左侧首选位置交由原生 Flyout 回退，不再要求弹层宽度等于按钮。快速开关不能让旧排队工作重新打开浮层；
-    /// 页面上的横栏仍由 <see cref="DetailPage.PickerFit"/> 检查，无尺寸的浮层必须失败。
+    /// 框架在弹层打开那一拍会把选中项的文本收掉（模板的 DropDownOpened 态把 <c>ContentPresenter</c> 置零），
+    /// 框的期望宽度随即塌回 <see cref="FrameworkElement.MinWidth"/>；而弹层是按<em>最宽</em>那条轨道名撑的。
+    /// 整排跟着重排，右边那一颗往左挪进弹层底下 —— 屏上就是那句「与右侧的组件重叠」。这一条钉的就是展开态
+    /// 那两个数：**框不许比闭合时窄**，**弹层不许探出框的右沿**（探出去多少就压住右邻多少）。宽版式那一档
+    /// 还要在这一排被撑宽之后仍然没人出界（<see cref="DetailPage.PickerFit"/> 那一条的老判据）。
     /// </para>
     /// <para>
-    /// 轨道名长短分明，覆盖短名与长名选中后展开仍保持横栏宽度；窗口取 1280 DIP
+    /// 三条轨道名长短分明，是为了让「塌回 MinWidth」和「按最宽那条撑开」在读数里分得开；窗口取 1280 DIP
     /// 那一档，尾部那一份在四种页面上都画得出来。读数落在 <c>detail-picker-open.txt</c>。
     /// </para>
     /// </summary>
@@ -337,55 +342,48 @@ internal sealed partial class ShellNavigationProbe
             var scale = _root.XamlRoot.RasterizationScale;
             ResizeInspect((int)Math.Ceiling(1280 * scale), (int)Math.Ceiling(900 * scale));
             await LayoutAsync(page);
-            var audio = Get<DetailFilePicker>(page, vm.IsCompact ? "AudioPicker" : "ColumnAudioPicker");
-            // 长名和短名各开一次，列表内容不能改变横栏占位。
+            var audio = Get<EgPicker>(page, vm.IsCompact ? "AudioPicker" : "ColumnAudioPicker");
+            // 第 0 条是最长的（它自己就比 MinWidth 宽）、第 5 条是最短的（闭合时正好贴在 MinWidth 上）——
+            // 用户那张实拍里塌下去的正是后一种。
             foreach (var index in new[] { 0, 5 })
             {
                 if (index >= vm.AudioTracks.Count) continue;
                 vm.SelectedAudio = vm.AudioTracks[index];
                 await SettleAsync();
                 var closed = Box(audio);
-                // 同一 UI 回合快速开关，旧排队工作不能重新打开已关闭的浮层。
+                // Close and reopen in the same dispatcher turn: the first queued sizing
+                // callback must not acquire the next dropdown's width/event ownership.
                 audio.IsDropDownOpen = true;
                 audio.IsDropDownOpen = false;
                 await SettleAsync();
-                Require(!audio.IsDropDownOpen && Math.Abs(Box(audio).Width - closed.Width) < 0.5,
-                    "快速开关后浮层未关闭或横栏宽度被旧回调改变");
+                Require(double.IsNaN(audio.Width), "快速开关后旧回调仍钉住闭合框宽度");
                 audio.IsDropDownOpen = true;
                 await SettleAsync();
                 await SettleAsync();
                 var open = Box(audio);
-                Require(audio.IsDropDownOpen && audio.FlyoutContent.IsLoaded, "音频选择浮层没有实际打开");
-                var list = Box(audio.FlyoutContent);
+                var list = audio.PopupPart?.Child is FrameworkElement panel ? Box(panel) : default;
                 var fit = page.PickerFit();
                 readings.Add($"选中 {index}：闭合 {closed.Left:0}–{closed.Right:0}"
                     + $" → 展开 {open.Left:0}–{open.Right:0}（宽 {open.Width:0}）"
                     + $"，弹层 {list.Left:0}–{list.Right:0}（上 {list.Top:0} 下 {list.Bottom:0}）"
                     + $"，根 {_root.XamlRoot.Size.Width:0}×{_root.XamlRoot.Size.Height:0}"
                     + $"，选中项 {vm.SelectedAudio?.Text}；{fit.Detail}");
-                Require(Math.Abs(open.Width - closed.Width) < 0.5,
-                    $"展开改变选择横栏宽度：{closed.Width:0} → {open.Width:0}");
-                Require(audio.PickerFlyout.ShouldConstrainToRootBounds && list.Width > 1 && list.Height > 1
-                    && list.Left >= -0.5 && list.Top >= -0.5
-                    && list.Right <= _root.XamlRoot.Size.Width + 0.5
-                    && list.Bottom <= _root.XamlRoot.Size.Height + 0.5,
-                    $"选择列表无尺寸或越出根边界：{list}");
-                var items = Descendants(audio.FlyoutContent).OfType<ListView>().Single();
-                Require(audio.HasItems && audio.Items.Count == vm.AudioTracks.Count && items.Items.Count == vm.AudioTracks.Count,
-                    "音频选择列表没有保留全部轨道");
+                Require(open.Width >= closed.Width - 0.5,
+                    $"展开后选择框反而窄了：{closed.Width:0} → {open.Width:0}");
+                Require(list.Right <= open.Right + 0.5,
+                    $"弹层探出选择框右沿 {list.Right - open.Right:0} 像素，压住了右边那一颗");
+                // 封顶不能把弹层收没了（2026-11-08 那条 MaxWidth 的第一版就是这样：读数 366–366，右沿那条
+                // 断言反而绿了）。框架保证弹层至少和框一样宽，这里就按那一条量。
+                Require(list.Width >= open.Width - 0.5,
+                    $"弹层比选择框还窄：{list.Width:0} 对 {open.Width:0}");
                 Require(fit.Ok, fit.Detail);
                 if (index == 0) await SaveProbeScreenAsync("detail-picker-open-screen.png");
                 audio.IsDropDownOpen = false;
-                audio.IsDropDownOpen = true;
-                await UntilAsync(() => audio.IsDropDownOpen && audio.PickerFlyout.IsOpen);
                 await SettleAsync();
-                Require(audio.IsDropDownOpen, "同回合关后重开被旧Closed清掉");
-                audio.IsDropDownOpen = false;
-                await SettleAsync();
-                // 收起之后横栏仍保持同一尺寸，列表选择不改变它的布局责任。
+                // 收起之后要回到内容撑出来的宽度：展开态那个数不许留在身上。
                 Require(Math.Abs(Box(audio).Width - closed.Width) < 0.5,
                     $"收起后选择框没有回到原来的宽度：{Box(audio).Width:0} 对 {closed.Width:0}");
-                Require(!audio.IsDropDownOpen, "关闭后音频列表仍开着");
+                Require(double.IsNaN(audio.Width), "关闭后仍保留展开态Width");
             }
             Require(fixture.Actions.Plays == 0, "文件选项展开检查意外请求播放");
         }
@@ -489,7 +487,7 @@ internal sealed partial class ShellNavigationProbe
                     await SaveProbeScreenAsync($"detail-pickers-{label}-{width}-screen.png");
                     if (all && width is 760 or 1280)
                     {
-                        var sourcePicker = Get<DetailFilePicker>(page, vm.ColumnPickersVisibility == Visibility.Visible
+                        var sourcePicker = Get<EgPicker>(page, vm.ColumnPickersVisibility == Visibility.Visible
                             ? "ColumnSourcePicker" : "SourcePicker");
                         Require(ReferenceEquals(sourcePicker.SelectedItem, vm.SelectedSource)
                             && Descendants(sourcePicker).OfType<TextBlock>().Any(text => text.Text == vm.SelectedSource?.Text),
@@ -499,15 +497,15 @@ internal sealed partial class ShellNavigationProbe
                         {
                             await SettleAsync();
                             await SettleAsync();
-                            Require(sourcePicker.IsDropDownOpen && sourcePicker.FlyoutContent.IsLoaded
-                                && vm.Sources.All(row => Descendants(sourcePicker.FlyoutContent).OfType<TextBlock>().Any(text => text.Text == row.Text)),
+                            Require(sourcePicker.PopupPart is { IsOpen: true, Child: FrameworkElement popup }
+                                && vm.Sources.All(row => Descendants(popup).OfType<TextBlock>().Any(text => text.Text == row.Text)),
                                 "展开态版本列表没有显示每版的体积与名称");
                             await SaveProbeScreenAsync($"detail-version-sizes-{width}-screen.png");
                         }
                         finally { sourcePicker.IsDropDownOpen = false; }
                     }
                     if (width != 1064) continue;
-                    var picker = Get<DetailFilePicker>(page, "ColumnAudioPicker");
+                    var picker = Get<EgPicker>(page, "ColumnAudioPicker");
                     try
                     {
                         picker.Width = vm.PageWidth + 400;
@@ -539,15 +537,18 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 文件选项那三行的竖距：视频行、音频横栏、字幕横栏保持 28 高和 6 间距。单音轨与多音轨都保留选择横栏，
-    /// 更换文件或选项数量不改变行高和节奏。
+    /// 文件选项那三行的竖距 —— 用户 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都
+    /// 一致」。同一部片子上，音轨只有一条时音频那一行仍保留选择栏，加两条音轨也是同一颗；
+    /// 三行的行高与行间空隙在两种状态下要是同一套数，否则换个文件就换一种节奏。
     /// <para>
-    /// 量的都是根坐标里的矩形，两个横栏的标签位于控件内，不再读取已退役的单音轨纯文字占位。
+    /// 量的都是根坐标里的矩形：视频那一行（纯文字）、音频那一行（外置标签 + 下拉）、字幕那一行（外置标签 + 下拉）。
+    /// 两处空隙要彼此相等、均为收紧后的 6 DIP，纯文字那一行的高要
+    /// 等于真下拉的高 —— <c>EgPickerRowHeight</c> 一旦和框架的 ComboBox 漂开，最后那一条就会红。
     /// </para>
     /// <para>
     /// 读数落在 <c>detail-picker-rhythm.txt</c>，两种状态各拍一张实屏
-    /// （<c>detail-picker-rhythm-text-screen.png</c>／<c>-picker-screen.png</c>）。窗口取 1280 DIP 那一档，
-    /// 紧凑版式另有 <see cref="DetailPickerLayoutAsync"/> 检查。
+    /// （<c>detail-picker-rhythm-text-screen.png</c>／<c>-picker-screen.png</c>）。宽版式那一份才在片名栏里，
+    /// 窗口取 1280 DIP 那一档；紧凑版式另有 <see cref="DetailPickerLayoutAsync"/> 检查。
     /// </para>
     /// </summary>
     private async Task PickerRowRhythmAsync()
@@ -604,27 +605,17 @@ internal sealed partial class ShellNavigationProbe
             // 电影页上「视频：…」是片名栏里独立的一份（DetailVideoText），不是 ColumnPickers 里那条
             // （那条只给集页的宽版式）。它和下面那排在独立文件组里，所以视频与音频之间的空隙
             // 由 FileOptions.Spacing 给、音频与字幕之间由 ColumnPickers.Spacing 给 —— 两处都得是同一个数。
-            // 单音轨和多音轨都保留一体选择横栏，两处空隙都得保持同一套数。
+            // 单音轨和多音轨都保留音频选择栏，两处空隙都得保持同一套数。
             var stack = Get<StackPanel>(page, "FileOptions");
             var panel = Get<StackPanel>(page, "ColumnPickers");
             var videoText = Get<TextBlock>(page, "DetailVideoText");
             Require(videoText.Visibility == Visibility.Visible && videoText.ActualHeight > 0,
                 "电影页上没有画「视频：…」那一行，量不到三行里的第一行");
             var video = (FrameworkElement)videoText.Parent;
-            var audioPicker = Get<DetailFilePicker>(page, "ColumnAudioPicker");
+            var audioPicker = Get<EgPicker>(page, "ColumnAudioPicker");
             var audio = (FrameworkElement)audioPicker.Parent;
-            var subtitle = (FrameworkElement)Get<DetailFilePicker>(page, "ColumnSubtitlePicker").Parent;
-            var box = Get<DetailFilePicker>(page, "ColumnSubtitlePicker");
-            foreach (var picker in new[] { audioPicker, box })
-            {
-                var label = Descendants(picker).OfType<TextBlock>().Single(text => text.Name == "PickerLabel");
-                var value = Descendants(picker).OfType<TextBlock>().Single(text => text.Name == "PickerValue");
-                var bounds = Box(picker);
-                Require(label.Text.Length > 0 && value.Text.Length > 0
-                    && Box(label).Left >= bounds.Left && Box(label).Right <= bounds.Right
-                    && Box(value).Left >= Box(label).Right && Box(value).Right <= bounds.Right,
-                    picker.Name + " 的标签与当前选项没有排在一体横栏内");
-            }
+            var subtitle = (FrameworkElement)Get<EgPicker>(page, "ColumnSubtitlePicker").Parent;
+            var box = Get<EgPicker>(page, "ColumnSubtitlePicker");
 
             void Rhythm(string state)
             {
@@ -650,10 +641,9 @@ internal sealed partial class ShellNavigationProbe
                     $"{state}：音频那一行 {a.Height:0.#} 高，选择框是 {height:0.#}");
             }
 
-            Require(vm.SingleAudioVisibility == Visibility.Collapsed && vm.AudioRowVisibility == Visibility.Visible
-                && audioPicker.Visibility == Visibility.Visible && audio.ActualHeight > 0,
-                "单音轨没有保留音频选择横栏");
-            Rhythm("单音轨（音频是横栏）");
+            Require(vm.AudioVisibility == Visibility.Visible && audioPicker.Visibility == Visibility.Visible
+                && audio.ActualHeight > 0, "单音轨没有保留音频选择栏");
+            Rhythm("单音轨（音频是选择栏）");
             await SaveProbeScreenAsync("detail-picker-rhythm-text-screen.png");
 
             source.MediaStreams.Add(new() { Index = 4, Type = "Audio", DisplayTitle = "国语 · AAC 2.0" });
@@ -664,7 +654,7 @@ internal sealed partial class ShellNavigationProbe
             Require(audioPicker.Visibility == Visibility.Visible && audioPicker.Items.Count == vm.AudioTracks.Count,
                 "加了音轨之后音频选择栏没有同步全部选项");
 
-            Rhythm("多音轨（音频是横栏）");
+            Rhythm("多音轨（音频是选择栏）");
             await SaveProbeScreenAsync("detail-picker-rhythm-picker-screen.png");
             var rejected = false;
             try

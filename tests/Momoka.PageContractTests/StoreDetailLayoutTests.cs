@@ -81,18 +81,6 @@ internal static class StoreDetailLayoutTests
             var order = page.Descendants().ToList();
             Assert.True(order.IndexOf(score) < order.IndexOf(genre) && order.IndexOf(genre) < order.IndexOf(facts),
                 "头部顺序不是评分、类型、日期时长分级");
-            foreach (var (name, label) in new[] { ("Source", "版本"), ("Audio", "音频"), ("Subtitle", "字幕") })
-            {
-                foreach (var prefix in new[] { "Column", "" })
-                {
-                    var picker = page.Descendants().Single(element =>
-                        (string?)element.Attribute(X + "Name") == prefix + name + "Picker");
-                    Assert.Equal("DetailFilePicker", picker.Name.LocalName);
-                    Assert.Equal(label, (string?)picker.Attribute("Label"));
-                    Assert.True(!picker.Descendants().Any(element => element.Name.LocalName.EndsWith(".Header", StringComparison.Ordinal)),
-                        "标签仍与选择框分开");
-                }
-            }
         });
 
         Test("详情头部：去掉工作室且日期时长分级没有丢失，轮播事实保持原格式", () =>

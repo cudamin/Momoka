@@ -51,23 +51,17 @@ internal static class AcrylicControlsTests
         Test("详情音视频行：文字与选择框统一正文字号", () =>
         {
             var page = Read("Views/DetailPage.xaml");
+            var audioLabel = Read("Strings/zh-Hans/Resources.resw").Descendants("data")
+                .Single(row => (string?)row.Attribute("name") == "DetailPage_TextBlock3.Text");
+            Assert.Equal("音频：", audioLabel.Element("value")?.Value);
             foreach (var name in new[] { "ColumnSourcePicker", "ColumnAudioPicker", "ColumnSubtitlePicker", "SourcePicker", "AudioPicker", "SubtitlePicker" })
-            {
-                var picker = Named(page, name);
-                Assert.Equal("DetailFilePicker", picker.Name.LocalName);
-                Assert.Equal("{StaticResource EgBodyFontSize}", (string?)picker.Attribute("FontSize"));
-                Assert.Equal(name.Contains("Audio", StringComparison.Ordinal) ? "音频"
-                    : name.Contains("Subtitle", StringComparison.Ordinal) ? "字幕" : "版本", (string?)picker.Attribute("Label"));
-                Assert.Equal(0, picker.Elements().Count(), "标签应在一体选择栏内部，不能再占外置 Header");
-            }
+                Assert.Equal("{StaticResource EgBodyFontSize}", (string?)Named(page, name).Attribute("FontSize"));
             Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, "DetailVideoText").Attribute("Style"));
-            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") is "ColumnAudioText" or "AudioText"),
-                "唯一音轨仍走独立文本，未使用统一选择栏");
         });
         // 用户 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都一致」。
         // 文件选项缩为 28 高、6 间距；文字与选择框仍须使用同一套行高，字在格里居中，
         // 行间就只剩外面那个 StackPanel 的 Spacing。真实像素与空隙由探针「文件选项三行的竖距」量。
-        Test("详情文件选项：一体选择栏保留三行行高与竖距", () =>
+        Test("详情文件选项：三行同一个行高，有没有选择框都不改竖距", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             const string RowHeight = "{StaticResource EgPickerRowHeight}";
@@ -79,22 +73,13 @@ internal static class AcrylicControlsTests
             var video = rows[0].Elements(Xaml + "TextBlock").Single();
             Assert.Equal("Center", (string?)video.Attribute("VerticalAlignment"));
             Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)video.Attribute("Style"));
-            foreach (var row in rows.Skip(1))
-            {
-                Assert.Equal(1, row.Elements().Count(), "选择栏行仍有外置标签或独立音轨文本");
-                Assert.Equal("DetailFilePicker", row.Elements().Single().Name.LocalName);
-            }
             // 电影、剧、季页上「视频：…」是片名栏里独立的那一份（集页宽版式才走上面那条），同一个行高。
             Assert.Equal(RowHeight, (string?)Named(page, "DetailVideoText").Parent!.Attribute("MinHeight"));
             Assert.Equal("Center", (string?)Named(page, "DetailVideoText").Attribute("VerticalAlignment"));
             Assert.Equal("28", Resource(Read("Theme/Styles.xaml").Root!, "EgPickerRowHeight").Value);
             var resources = page.Root!.Element(Xaml + "Page.Resources")!;
-            Assert.False(resources.Elements().Any(element => (string?)element.Attribute(X + "Key") == "ComboBoxMinHeight"),
-                "详情仍覆盖已退役的 ComboBox 模板尺寸");
-            var style = resources.Elements(Xaml + "Style").Single(row => (string?)row.Attribute("TargetType") == "local:DetailFilePicker");
-            Assert.Null(style.Attribute("BasedOn"), "平台 DropDownButton 模板由主题样式提供，不查应用层私有资源键");
-            Assert.False(style.Elements(Xaml + "Setter").Any(setter => (string?)setter.Attribute("Property") == "Template"),
-                "一体选择栏替换了原生箭头和交互模板");
+            Assert.Equal("28", Resource(resources, "ComboBoxMinHeight").Value);
+            var style = resources.Elements(Xaml + "Style").Single(row => (string?)row.Attribute("TargetType") == "local:EgPicker");
             Assert.Equal(RowHeight, Setter(style, "MinHeight"));
             Assert.Equal("10,3,0,3", Setter(style, "Padding"));
             var group = Named(page, "FileOptions");

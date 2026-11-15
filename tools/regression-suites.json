@@ -84,16 +84,6 @@
       "notes": "逐字链接真实EgPicker延迟撑宽与关闭/卸载/模板有效期，匿名WinUI边界和真实Core轨道；不创建窗口或读取账号。"
     },
     {
-      "id": "Momoka.DetailFilePickerTests",
-      "project": "tests/Momoka.DetailFilePickerTests/Momoka.DetailFilePickerTests.csproj",
-      "mode": "dotnet",
-      "requiresShell": false,
-      "arguments": [],
-      "wrapper": null,
-      "readme": "tests/Momoka.DetailFilePickerTests/README.md",
-      "notes": "逐字链接正式详情原生文件选择组合的选择、分组与生命周期；匿名WinUI/系统事件边界和真实Core对象，不证明原生UIA/焦点/布局，不创建窗口或读取账号。"
-    },
-    {
       "id": "Momoka.SystemThemeTests",
       "project": "tests/Momoka.SystemThemeTests/Momoka.SystemThemeTests.csproj",
       "mode": "dotnet",

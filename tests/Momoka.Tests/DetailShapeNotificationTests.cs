@@ -403,8 +403,6 @@ internal static partial class DetailActionReadinessTests
                     Assert.NotNull(f.Get("PlayTarget"));
                     Assert.Equal(count + 1, ((System.Collections.IList)f.Get("AudioTracks")!).Count);
                     Assert.Equal("Visible", f.Get("AudioVisibility")!.ToString());
-                    Assert.Equal("Visible", f.Get("AudioRowVisibility")!.ToString());
-                    Assert.Equal("Collapsed", f.Get("SingleAudioVisibility")!.ToString());
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
                     Assert.Equal("Visible", f.Get("ColumnPickersVisibility")!.ToString());
                     Assert.Equal("Collapsed", f.Get("PickersVisibility")!.ToString());

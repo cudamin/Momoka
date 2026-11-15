@@ -860,13 +860,4 @@
   <data name="MusicLibraryPage_LoadMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>加载更多音乐</value>
   </data>
-  <data name="DetailSourcePicker.Label" xml:space="preserve">
-    <value>版本</value>
-  </data>
-  <data name="DetailAudioPicker.Label" xml:space="preserve">
-    <value>音频</value>
-  </data>
-  <data name="DetailSubtitlePicker.Label" xml:space="preserve">
-    <value>字幕</value>
-  </data>
 </root>

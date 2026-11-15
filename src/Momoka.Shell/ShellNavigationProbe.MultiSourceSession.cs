@@ -306,16 +306,16 @@ internal sealed partial class ShellNavigationProbe
                 }), "版本选择应为体积、服务器名、原文件名；单服务器（含多账号）不显示服务器名或用户名");
                 if (source.Key == sources[0].Key)
                 {
-                    // 检查台此前滚过主页；新Flyout要求触发栏实际在视口内且可打开，不能只凭旧布局宽度。
+                    // 检查台此前滚过主页；选择栏要实际在视口内且可打开，不能只凭旧布局宽度。
                     await ScrollProbeAsync(Get<ScrollView>(detail, "Body"), 0);
                     await LayoutAsync(detail);
-                    var picker = Get<DetailFilePicker>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
+                    var picker = Get<EgPicker>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
                         ? "ColumnSourcePicker" : "SourcePicker");
                     Require(picker.ItemsSource == detail.ViewModel.Sources && picker.DisplayMemberPath == "Text",
                         "版本选择没有绑定带来源规则的文本");
                     Require(detail.PickerReady && picker.ActualWidth > 0, "版本选择栏尚未进入可打开布局");
                     picker.IsDropDownOpen = true;
-                    await UntilAsync(() => picker.IsDropDownOpen && picker.FlyoutContent.IsLoaded);
+                    await UntilAsync(() => picker.PopupPart?.IsOpen == true);
                     await Task.Delay(250);
                     await SaveProbeScreenAsync($"aggregate-version-{(showServer ? "multi-server" : sources.Length > 1 ? "same-server" : "single")}-screen.png");
                     picker.IsDropDownOpen = false;

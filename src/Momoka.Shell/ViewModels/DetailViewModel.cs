@@ -232,13 +232,7 @@ public sealed partial class DetailViewModel : PageViewModel
             OnPropertyChanged(nameof(VideoVisibility));
         };
 
-        AudioTracks.CollectionChanged += (_, _) =>
-        {
-            PickerChanged(nameof(AudioVisibility));
-            OnPropertyChanged(nameof(AudioRowVisibility));
-            OnPropertyChanged(nameof(SingleAudioVisibility));
-            OnPropertyChanged(nameof(SingleAudioText));
-        };
+        AudioTracks.CollectionChanged += (_, _) => PickerChanged(nameof(AudioVisibility));
         SubtitleTracks.CollectionChanged += (_, _) => PickerChanged(nameof(SubtitleVisibility));
 
         // 媒体信息 is the same problem and not a picker: its own visibility only, without the pickers row's.
@@ -2204,10 +2198,6 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>音频栏固定显示；唯一音轨与无音轨都由选择栏呈现，整组仍跟播放目标开合。</summary>
     public Visibility AudioVisibility => Visibility.Visible;
-
-    public Visibility AudioRowVisibility => AudioVisibility;
-    public Visibility SingleAudioVisibility => Visibility.Collapsed;
-    public string SingleAudioText => AudioTracks.Count == AutoRows + 1 ? AudioTracks[AutoRows].Text : "";
 
     /// <summary>Two rows are 自动 and 不使用字幕, which is not a choice either.</summary>
     public Visibility SubtitleVisibility => Show(SubtitleTracks.Count > AutoRows + 1);
