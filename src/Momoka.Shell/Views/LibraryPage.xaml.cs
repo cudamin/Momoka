@@ -661,7 +661,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     public void Release()
     {
         if (_released) return;
-        EndSelection();
+        EndSelectionImmediately();
         if (_session is { } batchSession)
         {
             batchSession.PermissionsChanged -= OnBatchPermissionsChanged;
