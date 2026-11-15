@@ -21,10 +21,11 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!-- 「开启连播 / 已观看」两颗图标共用的那支墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，
-             不跟主题强调色走 —— 用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，
-             并明确「这个按钮的修改包括沉浸模式」；只有高对比度由 ApplyAppearance 换回系统强调色。
-             用页面局部的一支画刷而不是替换 ToggleButton 里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
+        <!-- 「已观看」那颗图标的墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，不跟主题强调色走 ——
+             用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确「这个按钮的修改
+             包括沉浸模式」；当天稍后连播那颗改为跟主题色（见 DetailPage.Appearance 的 PaintContinueInk），
+             这支绿只剩「已观看」的实心圆用。只有高对比度由 ApplyAppearance 换回系统前景。
+             用页面局部的一支画刷而不是替换模板里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
         <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
         <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起长。仅作用于详情页。 -->
         <x:Double x:Key="ComboBoxMinHeight">36</x:Double>
@@ -68,10 +69,11 @@
         <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
              勾上时**只有图标换色**（2026-10-11，参考图里那颗回转图标是绿的、药丸和字原样不动）：
              底那三档按回不带勾时的那三支（常／悬／按，见两颗 ToggleButton 各自的 Resources），
-             字钉死在压在图上那支浅墨上，于是 Foreground 一路继承下来只剩那颗 FontIcon 跟着走。
-             勾上那三档指向页面局部的 EgActionActiveBrush：正常对比下它就是固定的绿（2026-11-15 用户令
-             「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确包括沉浸模式），
-             只有高对比度由 ApplyAppearance 换回系统强调色。 -->
+             字钉死在压在图上那支浅墨上。
+             勾上那支墨**不交给模板的勾选前景**：ToggleButton 的勾选态只换 ContentPresenter 的
+             Foreground，IconElement.Foreground 不跟视觉状态走，勾上以后那颗 FontIcon 仍是常态那支浅墨
+             （2026-11-15 用户报「点了连播图标没反应」）。所以这一颗由页面自己上墨：关着是浅墨，
+             开着取主题色，见 DetailPage.Appearance 的 PaintContinueInk。 -->
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
@@ -1040,21 +1042,17 @@
                                          地方读的是同一个值，谁开了屏上到处都认。 -->
                                     <ToggleButton
                                         x:Name="ColumnContinueButton"
+                                        Checked="OnContinueToggled"
+                                        Unchecked="OnContinueToggled"
                                         AutomationProperties.AutomationId="ColumnContinueButton"
                                         IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                         Style="{StaticResource EgPillToggleButtonStyle}"
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
-                                        <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取
-                                             EgActionActiveBrush 而字自己钉在浅墨上 —— 那支墨于是只落在没写
-                                             Foreground 的 FontIcon 上。
-                                             背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
-                                        <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgActionActiveBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgActionActiveBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgActionActiveBrush" />
-                                        </ToggleButton.Resources>
+                                        <!-- 勾上只换图标那一支色：字自己钉在浅墨上；图标由 PaintContinueInk 直接
+                                             上墨（FontIcon 不跟模板勾选态的前景走）。背景三态由 PrepareAppearance
+                                             一次添加局部画刷，不能在这里再声明别名。 -->
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon FontSize="14" Glyph="&#xE8EE;" />
+                                            <FontIcon x:Name="ColumnContinueGlyph" FontSize="14" Glyph="&#xE8EE;" />
                                             <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
                                         </StackPanel>
                                     </ToggleButton>
@@ -1073,7 +1071,7 @@
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center"
                                                     Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
-                                                <!-- 已观看：绿实心圆加白勾（2026-11-15 用户参考图），圆和连播那颗图标共用
+                                                <!-- 已观看：绿实心圆加白勾（2026-11-15 用户参考图），圆取固定的
                                                      EgActionActiveBrush，白勾仍是压在图上那支浅墨。 -->
                                                 <Grid Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}">
                                                     <Ellipse Fill="{StaticResource EgActionActiveBrush}" />
@@ -1465,20 +1463,17 @@
                                 <!-- 连播，和宽版式那两颗同一个开关同一句话；紧凑版式这颗也是**勾上只换图标色**
                                      （2026-10-11 起：底按回不带勾的三档，字钉在浅墨上，勾上那支墨只落在图标上；
                                      更早那两版是「勾上走强调色底」、再往前格子那一版是「图标取强调色、底按住不画」，
-                                     这回把两版的结论合起来——底不画，色只给图标。2026-11-15 起那支墨是固定的绿
-                                     （商店与沉浸两档都用，见 EgActionActiveBrush）。 -->
+                                     这回把两版的结论合起来——底不画，色只给图标。2026-11-15 起那支墨取主题色，
+                                     由 PaintContinueInk 直接画）。 -->
                                 <ToggleButton
+                                    Checked="OnContinueToggled"
+                                    Unchecked="OnContinueToggled"
                                     AutomationProperties.AutomationId="CompactContinueButton"
                                     IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
-                                    <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgActionActiveBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgActionActiveBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgActionActiveBrush" />
-                                    </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon FontSize="14" Glyph="&#xE8EE;" />
+                                        <FontIcon x:Name="CompactContinueGlyph" FontSize="14" Glyph="&#xE8EE;" />
                                         <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
                                     </StackPanel>
                                 </ToggleButton>

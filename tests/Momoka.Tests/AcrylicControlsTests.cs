@@ -340,12 +340,15 @@ internal static class AcrylicControlsTests
                     "详情页仍合入按钮亚克力字典");
             });
 
-        Test("详情操作：连播勾选保持同底，勾选图标走固定绿、文字仍白色", () =>
+        Test("详情操作：连播勾选保持同底，勾选图标由页面取主题色、文字仍白色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
+            // 「已观看」那颗实心圆仍是固定的绿。
             var active = page.Descendants(Xaml + "SolidColorBrush")
                 .Single(element => (string?)element.Attribute(X + "Key") == "EgActionActiveBrush");
             Assert.Equal("#FF52B54B", (string?)active.Attribute("Color"));
+            var glyphs = new[] { "ColumnContinueGlyph", "CompactContinueGlyph" };
+            var seen = 0;
             foreach (var button in page.Descendants(Xaml + "ToggleButton").Where(element =>
                 (string?)element.Attribute("Style") == "{StaticResource EgPillToggleButtonStyle}"))
             {
@@ -354,12 +357,25 @@ internal static class AcrylicControlsTests
                     // 背景现在由 ControlBackgroundBrushes 构造时提供，源链接专项覆盖三态与选中态共用副本。
                     // 本地 XAML 不能再声明别名，否则 WinUI 原地覆盖会按对象删错键。
                     Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundChecked" + States[index]));
-                    Assert.Equal("EgActionActiveBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
+                    // 勾选前景也不交给模板：ToggleButton 只换 ContentPresenter 的前景，
+                    // IconElement.Foreground 不跟视觉状态走（2026-11-15 用户报「点了连播图标没反应」）。
+                    Assert.Null(FindLocalResource(button, "ToggleButtonForegroundChecked" + States[index]));
                 }
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));
+                Assert.Equal("OnContinueToggled", (string?)button.Attribute("Checked"));
+                Assert.Equal("OnContinueToggled", (string?)button.Attribute("Unchecked"));
+                var glyph = button.Descendants(Xaml + "FontIcon").Single();
+                Assert.Equal(glyphs[seen++], (string?)glyph.Attribute(X + "Name"));
+                Assert.Null(glyph.Attribute("Foreground"));
                 var label = button.Descendants(Xaml + "TextBlock").Single();
                 Assert.Equal("{ThemeResource EgDetailActionTextBrush}", (string?)label.Attribute("Foreground"));
             }
+            Assert.Equal(glyphs.Length, seen, "详情页的连播开关数量变了");
+            // 勾上那支墨由页面画：关着是浅墨，开着取主题强调色；换主题时重取，不另写死颜色。
+            var code = Source("Views/DetailPage.Appearance.cs");
+            Assert.Contains("EgAccentBrush", code);
+            Assert.Contains("ColumnContinueGlyph.Foreground", code);
+            Assert.Contains("CompactContinueGlyph.Foreground", code);
             // 宽版式和紧凑版式那两颗「已观看」的绿实心圆也指向同一支绿。
             Assert.Equal(2, page.Descendants(Xaml + "Ellipse")
                 .Count(shape => (string?)shape.Attribute("Fill") == "{StaticResource EgActionActiveBrush}"));

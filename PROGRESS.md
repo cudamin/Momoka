@@ -1,3 +1,32 @@
+## 2026-11-15 详情连播图标改跟主题色（已合入 master）
+
+产品提交 `1cc7234`（基线 `0fce805`），最终整合 master `17ee853` 后随分支合入 master。
+
+用户附详情页「连播」按钮截图报「修复点了连播之后图标没反应不会自动切换为主题色的问题」。原实现把勾选色接在
+`ToggleButtonForegroundChecked*` 上：模板勾上时只把 `ContentPresenter.Foreground` 换成那支画刷，
+`IconElement.Foreground` 不跟视觉状态走，那颗 FontIcon 一直停在常态那支浅墨，点下去屏上没有任何变化。
+2026-11-15 凌晨那次把它接成固定绿时也是同一条失效路径，所以既没变绿也谈不上跟主题色。
+
+**改了什么。** 宽版式与紧凑版式两颗连播 FontIcon 加 `x:Name`（`ColumnContinueGlyph`／`CompactContinueGlyph`），
+两颗 ToggleButton 接 `Checked`／`Unchecked`；`DetailPage.Appearance.PaintContinueInk` 在每次外观重绘和勾选变化时
+直接给图标上墨：关着取 `EgDetailActionTextBrush`，开着取 `EgAccentBrush` 的当前色（ThemeHost 原地改色，
+换主题自动跟上），高对比度两档取系统前景。删掉两颗 ToggleButton 里接不到图标的
+`ToggleButtonForegroundChecked*` 别名；`PaintReadingColors` 的普通图标清理跳过这两颗。已观看的绿实心圆
+（`EgActionActiveBrush` #52B54B）按要求保留；文字仍钉在浅墨上。
+
+**验证。** Shell Release x64 **0 警告 0 错误**（含重新编译后的探针源码，以及合入 master `6a2c7f1` 后的整合构建）；
+`dotnet format whitespace` 退出 0。`Momoka.Tests` 完整套件 **5157 项、通过 5141、失败 16**：16 项全是
+`自检*` 隔离用例，报「已有当前用户的自检运行中；请等它退出，不会关闭用户程序」，来自另一工作树的诊断/测试
+占用同一把桌面自检互斥锁，与本改动无关；本批新增的「详情操作：连播勾选保持同底，勾选图标由页面取主题色、
+文字仍白色」在合入 master 前后各跑一次均通过。原生 `--probe-shell --probe-section materials --screen 1`
+（`shell-probe-20261115-120230386-23748`，合并前）的详情段逐主题逐宽通过：6 套主题 × 1280/760 的连播图标
+读数「关=#FFFFFFFF，开=各主题强调色 #FF6EE7C5／#FF4C8DF6／#FFE0A22B／#FFA97BF0」，截图已生成；同一用例随后在
+shelf 段因客户区停在 760×700、请求 1280 未落实而超时。合并后重跑（`shell-probe-20261115-124935527-27964`）
+被桌面上的真实 mpv 窗口遮挡（「像素探针窗口被遮挡或移到屏外」）并在详情导航时遇到一次 `0x800F1000` COM 异常，
+三项都未形成有效结果；整轮原生干净通过留待交付时在无其他窗口的桌面上串行补跑。本树未发布、未推远端。
+
+**边界。** 高对比度、触摸、读屏与跨 DPI 未实测；已观看的绿仍不跟主题色走（沿用当天前一条用户令）。
+
 ## 2026-11-15 详情文件选项加高到 36、圆角放大到 12（待交付）
 
 用户附详情页音频、字幕选择栏截图，令「圆角不够圆，加高选择框的高度」。此前一天那一版是 28 高配 4 DIP 圆角，4 在窄边上只剩一道方槽。产品提交 `a740630`，整合 master `ab134fa`，以 `--ff-only` 进入 master（基线 `c763ee8`）。
