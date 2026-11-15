@@ -342,7 +342,7 @@ internal sealed partial class ShellNavigationProbe
                 page.AttachWindow(_window);
                 await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null);
                 await LayoutAsync(page);
-                var readingNames = new[] { "ScoreText", "ScoreSourceText", "HeroFacts", "Overview", "DetailVideoText", "GenreLine" };
+                var readingNames = new[] { "ScoreText", "CriticScoreText", "HeroFacts", "Overview", "DetailVideoText", "GenreLine" };
                 try
                 {
                     await UntilAsync(() => DetailCustomizationProbeCases.Ready(Get<bool>(page, "_readingQueued"),
