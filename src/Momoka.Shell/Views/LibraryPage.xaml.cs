@@ -114,6 +114,9 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     /// <summary>组字回车补提交那一趟的取消源；离页、换来源与普通提交都收掉它。</summary>
     private CancellationTokenSource? _imeSubmit;
+
+    /// <summary>筛选、排序或分区切换已经把重查发出去：第一批结果落定时给整面墙补一段淡入。</summary>
+    private bool _wallResetPending;
     private readonly SolidColorBrush _tabSelected = new();
     private readonly SolidColorBrush _tabForeground = new();
 
@@ -141,6 +144,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         // Before the first load can raise it. The view model asks for one more page when it has just
         // added one; whether the window is full is the one thing only the view can answer.
         ViewModel.PageArrived += PumpIfShort;
+        // 筛选、排序、分区切换是「整面墙换了一批」；分页追加不发这个信号，也就不该重播淡入。
+        ViewModel.ResultsReset += () => _wallResetPending = true;
         ViewModel.WindowChanging += BeforeWindowChange;
         ViewModel.WindowChanged += AfterWindowChange;
         ViewModel.WindowAnchorRequested += () => RememberScrollAnchor();
@@ -673,6 +678,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             NavigationCacheMode = NavigationCacheMode.Disabled;
         _timing = null;
         _released = true;
+        _wallResetPending = false;
         if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
         _moviePilot = null;
         if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
@@ -1025,6 +1031,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         ViewModel.RowsArrived();
         SyncAlphaFromScroll();
+        RevealWallIfReset();
 
         if (!ViewModel.HasMore) return;
 
@@ -1041,6 +1048,19 @@ public sealed partial class LibraryPage : Page, IShellContent
             }
             else if (_scroll is { } scroll && scroll.ExtentHeight <= scroll.ViewportHeight + 1) ViewModel.LoadMore();
         });
+    }
+
+    /// <summary>
+    /// 筛选、排序或分区的重新查询落定：整面墙淡入一段。标记只由 <see cref="LibraryViewModel.ResultsReset"/>
+    /// 来，分页追加从不设置它；空结果、墙本身收着（推荐／收藏／分组搜索）以及离页之后都不播，值直接落定 ——
+    /// 可见性与空态由各自原来的绑定决定，这一手只碰不透明度与位移。
+    /// </summary>
+    private void RevealWallIfReset()
+    {
+        if (!_wallResetPending) return;
+        _wallResetPending = false;
+        if (_released || ViewModel.Cards.Count == 0 || CardWall.Visibility != Visibility.Visible) return;
+        HomeMotion.Reveal(CardWall, 0, 150, 6);
     }
 
     private void OnItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
