@@ -1145,7 +1145,8 @@
             Margin="24,72,24,0"
             Spacing="20"
             VerticalAlignment="Top"
-            Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
+            Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}"
+            local:VisibilityReveal.IsEnabled="True">
             <Border Width="72" Height="72" CornerRadius="24" Background="{ThemeResource EgSurfaceAltBrush}">
                 <FontIcon Glyph="&#xE721;" FontSize="28" Foreground="{ThemeResource EgAccentBrush}" />
             </Border>

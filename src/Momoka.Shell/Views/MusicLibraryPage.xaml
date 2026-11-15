@@ -427,7 +427,8 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Spacing="8"
-                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
+                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}"
+                local:VisibilityReveal.IsEnabled="True">
                 <FontIcon
                     FontSize="30"
                     Foreground="{ThemeResource EgTextFaintBrush}"
