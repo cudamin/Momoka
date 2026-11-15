@@ -8,6 +8,12 @@
 
 **边界与收尾。** 本子任务未启动窗口、探针、浏览器或播放器，未移动鼠标、联网访问真实预告、读取用户设置/凭据、播放真实媒体或发布。消息测试是托管端点证据，匿名原生 WebView2/字幕菜单/画面和截图由主控合入最新 master 后串行运行 `InspectStoreTrailer`；只有这轮真实报告通过才算补齐原生覆盖。真实 YouTube 服务字幕版本、触摸/物理键盘与跨 DPI 不由匿名夹具证明。主控同时修了商店圆角读取 `9e3402d`，本分支提交后合入该修复再复验；分支不自行发布或推远端。
 
+## 2026-11-15 交付修复：商店预览圆角读取应用资源
+
+主树最终代码 4209de4 在本次统一原生检查 shell-probe-20261115-145703787-20292 中触发未处理 COM 异常：DetailPage.PlaceStoreComponents 直接查页面 Resources 的 EgCardCornerRadius，而该键只属于应用 Theme/Styles.xaml。改为 Application.Current.Resources；本页 EgRoundButtonStyle / EgPillButtonStyle 仍从局部字典读取，不加 IsLoaded 短路，保留封面关联动画在 Loaded 前抢排的路径。新增 PageContract 资源归属契约，拒绝复制全局键进页面掩盖错误。
+
+修复后主树全方案 Release 0 警告 0 错误，PageContract 313/313、0 失败 0 跳过；首轮崩溃日志保留。原生宽窄、模式往返与统一交付检查正在重跑，通过前不发布、不销账。
+
 ## 2026-11-15 详情竖滚性能：阅读色不再重画整页（已合入 master，待交付）
 
 用户反馈详情页经常卡、滚到最上面时右侧滚动条还在最下面、上方横幅也要等一会才收回。根因是 `DetailPage.OnBodyViewChanged` 每个滚动事件都调用 `PaintReadingColors`：它递归 `BodySheet` 的整棵视觉子树、逐个卡片清写前景。新加的匿名探针在同一个 300 帧折返滚动里量到这一段平均 **22.3ms/事件、单次最长 459ms**，整轮阅读色合计 4844ms，105 帧超过 33ms。阅读色只跟主题、系统对比度和新建出来的卡片有关，与滚到哪儿无关。

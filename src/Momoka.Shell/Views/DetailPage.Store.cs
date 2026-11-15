@@ -114,8 +114,9 @@ public sealed partial class DetailPage
             PlaceStoreActionButtons(storeWide);
 
             // 右侧剧照／预告视口只在宽版式出现；圆角也只写给那一档（窄窗铺满整幅的那一版保持直角）。
+            // EgCardCornerRadius 在应用 Styles.xaml，直接查页面 Resources 不会向上搜索应用字典。
             var previewCorner = store && ViewModel.PageWidth >= DetailHero.StoreWideFloor
-                ? (CornerRadius)Resources["EgCardCornerRadius"] : default;
+                ? (CornerRadius)Application.Current.Resources["EgCardCornerRadius"] : default;
             StoreBackdropContent.CornerRadius = previewCorner;
             StoreTrailerContent.CornerRadius = previewCorner;
 
