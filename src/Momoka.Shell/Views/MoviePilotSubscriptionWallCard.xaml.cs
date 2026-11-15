@@ -29,6 +29,9 @@ public sealed partial class MoviePilotSubscriptionWallCard : UserControl
     /// <summary>容器换卡即发起：宿主据此加载海报、底图与订阅人头像。</summary>
     public event EventHandler? ImageRequested;
 
+    // 菜单定位跟着触发按钮，不能把整张宽卡当成目标。
+    internal FrameworkElement MenuAnchor => CardMore;
+
     private static void OnCardChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var card = (MoviePilotSubscriptionWallCard)sender;

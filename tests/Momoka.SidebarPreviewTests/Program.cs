@@ -18,6 +18,7 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("实际LibraryPreview完整partial与PosterHoverDwell；时间/指针/UI/播放为惰性边界，HTTP仅内存匿名响应");
         RegisterInputTests();
+        RegisterArtworkTests();
         RegisterPlaybackTests();
         RegisterOwnershipTests();
         RegisterProbeTests();
@@ -160,6 +161,46 @@ internal static class Program
         });
     }
 
+    private static void RegisterArtworkTests()
+    {
+        foreach (var collectionType in new[] { "music", "MUSIC", "Music" })
+            TestAsync("音乐预览两种封面容器均为正方形并在切库后恢复海报/" + collectionType, async () =>
+            {
+                using var f = new AnonymousFixture(); var s = f.Shell;
+                var music = s.AddLibrary(f.Source.Bind(new EmbyItem
+                {
+                    Id = "music", Name = "匿名音乐库", CollectionType = collectionType
+                }), 168);
+                f.Http.Items["music"] = [AnonymousFixture.Media("track", EmbyItemType.Audio),
+                    AnonymousFixture.Media("album", EmbyItemType.MusicAlbum),
+                    AnonymousFixture.Media("button-branch", EmbyItemType.Movie)];
+                f.Http.Items["movies"][0].PrimaryImageAspectRatio = 1;
+                s.At(music, 0);
+                await s.Show(music);
+                var cells = s.LibraryPreviewCovers.Children.OfType<StackPanel>().ToArray();
+                Assert.Equal(3, cells.Length);
+                Assert.True(cells[0].Children[0] is Border);
+                Assert.True(cells[2].Children[0] is Button);
+                foreach (var cell in cells)
+                {
+                    var frame = (FrameworkElement)cell.Children[0];
+                    Assert.Equal(frame.Width, frame.Height);
+                    Assert.Equal("\uE8D6", PreviewTree.Descendants(frame).OfType<FontIcon>().Single().Glyph);
+                    Assert.True(cell.Children.OfType<TextBlock>().Single().Text.Length > 0);
+                }
+                await s.Show(f.Anchors.Movies);
+                var movies = s.LibraryPreviewCovers.Children.OfType<StackPanel>().ToArray();
+                Assert.Equal(3, movies.Length);
+                foreach (var cell in movies)
+                {
+                    var frame = (FrameworkElement)cell.Children[0];
+                    Assert.Equal(Math.Round(frame.Width * 1.5), frame.Height);
+                    Assert.Equal("\uE8B2", PreviewTree.Descendants(frame).OfType<FontIcon>().Single().Glyph);
+                }
+                Assert.Equal(0, s.Played.Count);
+            });
+    }
+
     private static void RegisterPlaybackTests()
     {
         foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode, EmbyItemType.Video })
@@ -168,7 +209,7 @@ internal static class Program
                 using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
                 f.Http.Items["movies"] = [AnonymousFixture.Media("play", type)];
                 s.At(a, 0);
-                await s.Show(a); var button = (Button)s.LibraryPreviewCovers.Children.Single();
+                await s.Show(a); var button = CoverButtons(s.LibraryPreviewCovers).Single();
                 Assert.Equal("SidebarLibraryPreviewPlay_0", button.AutomationId);
                 Assert.Contains("播放：匿名媒体 play", button.AutomationName);
                 Assert.Equal(Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Control, button.AccessibilityView);
@@ -184,14 +225,15 @@ internal static class Program
             f.Http.Items["movies"] = [AnonymousFixture.Media("folder", EmbyItemType.Folder), AnonymousFixture.Media("person", EmbyItemType.Person), display];
             // IsDisplayOnly is local presentation state, not serialized by the server.
             await s.Show(a);
-            Assert.True(s.LibraryPreviewCovers.Children.Take(2).All(child => child is Border));
+            Assert.Equal(3, s.LibraryPreviewCovers.Children.OfType<StackPanel>().Count());
+            Assert.True(s.LibraryPreviewCovers.Children.OfType<StackPanel>().Take(2).All(cell => cell.Children.First() is Border));
             var frame = s.Create(display, s.CurrentLoad!).Frame; Assert.True(frame is Border);
             Assert.Equal(0, s.Played.Count);
         });
         TestAsync("切换默认来源后封面仍使用原账号，不回退当前账号", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
-            await s.Show(a); var button = (Button)s.LibraryPreviewCovers.Children.First();
+            await s.Show(a); var button = CoverButtons(s.LibraryPreviewCovers).First();
             var other = f.AddSource("source-b"); Assert.True(f.Session.SelectSource(other));
             Assert.True(f.Source.IsAvailable); button.Invoke();
             Assert.True(ReferenceEquals(s.Played.Single().Source?.UserStateOwner, f.Source.UserStateOwner));
@@ -199,7 +241,7 @@ internal static class Program
         TestAsync("失效来源Button禁止调用播放", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell;
-            await s.Show(f.Anchors.Movies); var button = (Button)s.LibraryPreviewCovers.Children.First();
+            await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
             f.Session.SignOut(); Assert.False(f.Source.IsAvailable); button.Invoke(); Assert.Equal(0, s.Played.Count);
         });
         TestAsync("关闭、替换库或移出Children后的旧Button不得播放", async () =>
@@ -207,10 +249,10 @@ internal static class Program
             foreach (var action in new[] { "hide", "replace", "remove", "rebuild" })
             {
                 using var f = new AnonymousFixture(); var s = f.Shell;
-                await s.Show(f.Anchors.Movies); var button = (Button)s.LibraryPreviewCovers.Children.First();
+                await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
                 if (action == "hide") s.Hide();
                 if (action == "replace") await s.Show(f.Anchors.Series);
-                if (action == "remove") s.LibraryPreviewCovers.Children.Remove(button);
+                if (action == "remove") ((StackPanel)s.LibraryPreviewCovers.Children.First()).Children.Remove(button);
                 if (action == "rebuild") s.RebuildBoundary();
                 button.Invoke(); Assert.Equal(0, s.Played.Count, action);
             }
@@ -242,12 +284,13 @@ internal static class Program
             f.Http.Override = null; await s.Show(f.Anchors.Series); Assert.True(oldLoad.IsCancellationRequested);
             reply.SetResult(f.Http.Reply(held!)); await old;
             Assert.Equal(f.Anchors.Series.Tag, s.DisplayedTag); Assert.Equal("匿名剧集库", s.LibraryPreviewTitle.Text);
-            Assert.True(s.LibraryPreviewCovers.Children.OfType<Button>().All(button => ((EmbyItem)button.Tag!).Id != "movie-a"));
+            Assert.Equal(3, CoverButtons(s.LibraryPreviewCovers).Count());
+            Assert.True(CoverButtons(s.LibraryPreviewCovers).All(button => ((EmbyItem)button.Tag!).Id != "movie-a"));
         });
         TestAsync("图片解码在飞时关闭取消且晚返不会填回已释放Image", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell;
-            await s.Show(f.Anchors.Movies); var button = (Button)s.LibraryPreviewCovers.Children.First();
+            await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
             var grid = (Grid)button.Content!; var picture = grid.Children.OfType<Image>().Single();
             var placeholder = grid.Children.OfType<FontIcon>().Single(); var item = (EmbyItem)button.Tag!;
             var decode = new TaskCompletionSource<Bitmap?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -261,7 +304,7 @@ internal static class Program
         TestAsync("未取消但已换属主的图片返回也不能填回旧Image", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell;
-            await s.Show(f.Anchors.Movies); var button = (Button)s.LibraryPreviewCovers.Children.First();
+            await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
             var grid = (Grid)button.Content!; var picture = grid.Children.OfType<Image>().Single();
             var placeholder = grid.Children.OfType<FontIcon>().Single(); var item = (EmbyItem)button.Tag!;
             var decode = new TaskCompletionSource<Bitmap?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -281,17 +324,20 @@ internal static class Program
     {
         TestAsync("实际探针检查原生封面按钮：正向通过且反例逐项拒绝", async () =>
         {
-            foreach (var defect in new[] { "valid", "zero", "two", "name", "id", "tag", "invoke" })
+            foreach (var defect in new[] { "valid", "zero", "two", "name", "id", "tag", "invoke", "title", "missing-title" })
             {
                 using var f = new AnonymousFixture(); var s = f.Shell;
                 await s.Show(f.Anchors.Movies); var grid = s.LibraryPreviewCovers;
-                var button = (Button)grid.Children.First();
+                var button = CoverButtons(grid).First();
+                var cell = (StackPanel)grid.Children.First();
                 if (defect == "zero") grid.Children.Clear();
                 if (defect == "two") grid.Children.RemoveAt(2);
                 if (defect == "name") button.AutomationName = "错误名称";
                 if (defect == "id") button.AutomationId = "WrongId";
                 if (defect == "tag") button.Tag = new object();
                 if (defect == "invoke") button.InvokeAvailable = false;
+                if (defect == "title") cell.Children.OfType<TextBlock>().Single().Text = "";
+                if (defect == "missing-title") cell.Children.Remove(cell.Children.OfType<TextBlock>().Single());
                 if (defect == "valid") PreviewProbeContract.Validate(grid);
                 else Assert.Throws<InvalidOperationException>(() => PreviewProbeContract.Validate(grid), defect);
             }
@@ -349,6 +395,8 @@ internal static class Program
             Assert.DoesNotContain("OnSidebarLibraryPointerExited", helper);
         });
     }
+
+    private static IEnumerable<Button> CoverButtons(Grid covers) => PreviewTree.Descendants(covers).OfType<Button>();
 
     private static string ReadSource(string relative)
     {

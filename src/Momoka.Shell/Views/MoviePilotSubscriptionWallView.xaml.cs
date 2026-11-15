@@ -254,7 +254,9 @@ public sealed partial class MoviePilotSubscriptionWallView : UserControl
         if (sender is not MoviePilotSubscriptionWallCard { Card: { } card } control) return;
         if (_service is { } service)
             ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
-        MoviePilotSubscriptionMenu.Create(this, ViewModel, card, () => Open(card), _service).ShowAt(control);
+        // Gallery 6de91feccadfbb0a796b71caedead5a2284f730e：
+        // WinUIGallery/Samples/MenuFlyout/MenuFlyoutPage.xaml 把菜单挂在触发按钮上；这里沿用动态菜单和页面属主。
+        MoviePilotSubscriptionMenu.Create(this, ViewModel, card, () => Open(card), _service).ShowAt(control.MenuAnchor);
     }
 
     private void OnWallDragCompleted(ListViewBase sender, DragItemsCompletedEventArgs args) => _ = ViewModel.SaveWallOrderAsync();

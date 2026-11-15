@@ -4,9 +4,11 @@ using System.Numerics;
 using System.Windows.Input;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
 
 namespace Windows.Foundation
 {
+    public delegate void TypedEventHandler<TSender, TResult>(TSender sender, TResult args);
     public readonly record struct Point(double X, double Y);
     public readonly record struct Size(double Width, double Height);
     public readonly record struct Rect(double X, double Y, double Width, double Height)
@@ -59,6 +61,20 @@ namespace Microsoft.UI.Dispatching
 
 namespace Microsoft.UI.Xaml
 {
+    public sealed class DispatcherTimer
+    {
+        public TimeSpan Interval { get; set; }
+        public bool IsEnabled { get; private set; }
+        public event EventHandler<object>? Tick;
+        public void Start() => IsEnabled = true;
+        public void Stop() => IsEnabled = false;
+        public Action LateTick()
+        {
+            var tick = Tick;
+            return () => tick?.Invoke(this, new());
+        }
+        public void Fire() { if (IsEnabled) Tick?.Invoke(this, new()); }
+    }
     public delegate void RoutedEventHandler(object sender, RoutedEventArgs args);
     public sealed class RoutedEventArgs : EventArgs;
     public sealed class SizeChangedEventArgs : EventArgs;
@@ -142,6 +158,7 @@ namespace Microsoft.UI.Xaml
         public void RaiseLoaded() { IsLoaded = true; _loaded?.Invoke(this, new()); }
         public void RaiseUnloaded() { IsLoaded = false; _unloaded?.Invoke(this, new()); }
         public void RaiseLayout() => _layoutUpdated?.Invoke(this, new());
+        public void UpdateLayout() { }
         public Microsoft.UI.Xaml.Media.GeneralTransform TransformToVisual(UIElement target)
         {
             TransformCalls++;
@@ -168,9 +185,69 @@ namespace Microsoft.UI.Xaml.Input
     }
 }
 
+namespace Microsoft.UI.Xaml.Automation
+{
+    public static class AutomationProperties
+    {
+        private static readonly Dictionary<UIElement, AccessibilityView> Views = [];
+        public static AccessibilityView GetAccessibilityView(UIElement element) =>
+            Views.GetValueOrDefault(element, AccessibilityView.Content);
+        public static void SetAccessibilityView(UIElement element, AccessibilityView value) => Views[element] = value;
+    }
+}
+
+namespace Microsoft.UI.Xaml.Automation.Peers
+{
+    public enum AccessibilityView { Raw, Control, Content }
+}
+
 namespace Microsoft.UI.Xaml.Media.Animation
 {
     public enum EasingMode { EaseIn, EaseOut, EaseInOut, Linear }
+    public sealed class DirectConnectedAnimationConfiguration;
+    public sealed class ConnectedAnimation(UIElement source)
+    {
+        public UIElement Source { get; } = source;
+        public UIElement? Target { get; private set; }
+        public object? Configuration { get; set; }
+        public bool Starts { get; set; } = true;
+        public bool ThrowOnStart { get; set; }
+        public bool ThrowOnCancel { get; set; }
+        public int Cancels { get; private set; }
+        public event Windows.Foundation.TypedEventHandler<ConnectedAnimation, object>? Completed;
+        public bool TryStart(UIElement target)
+        {
+            Target = target;
+            if (ThrowOnStart) throw new InvalidOperationException("Start rejected.");
+            return Starts;
+        }
+        public void Complete() => Completed?.Invoke(this, new());
+        public Action LateComplete()
+        {
+            var completed = Completed;
+            return () => completed?.Invoke(this, new());
+        }
+        public void Cancel()
+        {
+            Cancels++;
+            if (ThrowOnCancel) throw new InvalidOperationException("Cancel rejected.");
+        }
+    }
+    public sealed class ConnectedAnimationService
+    {
+        public static bool Enabled { get; set; }
+        public static bool Starts { get; set; } = true;
+        public static bool ThrowOnStart { get; set; }
+        public static List<ConnectedAnimation> Created { get; } = [];
+        public static ConnectedAnimationService GetForCurrentView() => new();
+        public ConnectedAnimation PrepareToAnimate(string key, UIElement source)
+        {
+            if (!Enabled) throw new InvalidOperationException("Source has no composition node.");
+            var animation = new ConnectedAnimation(source) { Starts = Starts, ThrowOnStart = ThrowOnStart };
+            Created.Add(animation);
+            return animation;
+        }
+    }
 }
 
 namespace Microsoft.UI.Xaml.Media

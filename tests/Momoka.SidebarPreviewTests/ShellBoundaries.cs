@@ -10,6 +10,26 @@ using Windows.Foundation;
 
 namespace Momoka.Shell.Views
 {
+    internal static class PreviewTree
+    {
+        internal static IEnumerable<UIElement> Descendants(UIElement root)
+        {
+            IEnumerable<UIElement> children = root switch
+            {
+                Grid grid => grid.Children,
+                StackPanel panel => panel.Children,
+                Border { Child: { } child } => [child],
+                Button { Content: UIElement content } => [content],
+                _ => []
+            };
+            foreach (var child in children)
+            {
+                yield return child;
+                foreach (var descendant in Descendants(child)) yield return descendant;
+            }
+        }
+    }
+
     internal static class PreviewClock
     {
         internal static long Now;
@@ -117,7 +137,10 @@ namespace Momoka.Shell.Views
         internal void ReplaceLoadBoundary(CancellationTokenSource load) => _previewLoad = load;
         internal void ClickHandler(Button button, EmbyItem item, CancellationTokenSource load) => OnLibraryPreviewCoverClicked(button, item, load);
         internal (FrameworkElement Frame, Image Picture, FontIcon Placeholder) Create(EmbyItem item, CancellationTokenSource load)
-            => CreatePreviewCover(100, 0, item, load);
+        {
+            var (cell, picture, placeholder) = CreatePreviewCover(100, 0, item, load);
+            return (((StackPanel)cell).Children.OfType<FrameworkElement>().First(), picture, placeholder);
+        }
         private Task PlayAsync(EmbyItem item)
         {
             PreviewWasClosedOnPlay = !Visible && LibraryPreviewCovers.Children.Count == 0;

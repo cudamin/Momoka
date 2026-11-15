@@ -54,13 +54,32 @@ internal static class SidebarIconTests
             var shows = shell.ContractPair(shell.ContractLibrary("tvshows"));
             Assert.Equal("\uE714", ((FontIcon)shows.Outline).Glyph);
             Assert.Equal("\uEA0C", ((FontIcon)shows.Filled).Glyph);
-            foreach (var type in new string?[] { "movies", "music", null })
+            foreach (var type in new string?[] { "movies", "unknown", null })
             {
                 var pair = shell.ContractPair(shell.ContractLibrary(type));
                 Assert.Equal("\uE8B2", ((FontIcon)pair.Outline).Glyph);
                 Assert.True(((PathIcon)pair.Filled).Data.StartsWith("F0 M 3.9375,15", StringComparison.Ordinal));
                 Assert.Equal(16d, ((PathIcon)pair.Filled).Width);
                 Assert.Equal(16d, ((PathIcon)pair.Filled).Height);
+            }
+        });
+        Test("侧栏音乐库使用双音符且选中与返回保留同形配对", () =>
+        {
+            var shell = new ShellPage();
+            foreach (var type in new[] { "music", "MUSIC", "Music" })
+            {
+                var music = shell.ContractLibrary(type);
+                var pair = shell.ContractPair(music);
+                Assert.Equal("\uE8D6", ((FontIcon)pair.Outline).Glyph);
+                var filled = (PathIcon)pair.Filled;
+                Assert.True(filled.Data.StartsWith("F0 M 14,0.859375", StringComparison.Ordinal));
+                Assert.Equal(16d, filled.Width);
+                Assert.Equal(16d, filled.Height);
+                Assert.Equal(1, filled.Data.Count(character => character == 'M'));
+                shell.ContractSelect(music);
+                Assert.True(ReferenceEquals(music.Icon, pair.Filled));
+                shell.ContractSelect(shell.ContractItems[0]);
+                Assert.True(ReferenceEquals(music.Icon, pair.Outline));
             }
         });
         Test("侧栏订阅填充图标移除内孔并保留独立对象", () =>

@@ -44,4 +44,6 @@ public sealed partial class DetailPage : Page
     public bool Shown => _headerShown;
     public bool Active => _headerActive;
     public bool Queued => _headerQueued;
+    public bool PlayMoving => _headerPlayAnimation is not null;
+    public DispatcherTimer? PlayTimeout => _headerPlayTimeout;
 }

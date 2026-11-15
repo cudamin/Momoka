@@ -3,9 +3,12 @@ using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using CommunityToolkit.WinUI.Animations;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Windows.UI.ViewManagement;
@@ -218,6 +221,41 @@ internal static class Program
             Assert.Equal(writes, visual.Properties.TranslationWrites);
             Assert.Equal(2, Implicit.StartedShows(f.Page.StickyHeader));
             Assert.Equal(1, Implicit.StartedHides(f.Page.StickyHeader));
+        });
+        Test("入场未完成便回滚，立即退场且接续当前帧", () =>
+        {
+            using var f = new Fixture();
+            f.Page.Scroll(120);
+            var visual = ElementCompositionPreview.GetElementVisual(f.Page.StickyHeader);
+            visual.Opacity = 0.35;
+            visual.Properties.InsertVector3("Translation", new(0, -16, 0));
+            var writes = visual.Properties.TranslationWrites;
+            f.Page.Scroll(108);
+            Assert.False(f.Page.Shown);
+            Assert.Equal(Visibility.Collapsed, f.Page.StickyHeader.Visibility);
+            Assert.False(f.Page.StickyHeader.IsHitTestVisible);
+            Assert.Equal(0.35, visual.Opacity);
+            Assert.Equal(new Vector3(0, -16, 0), visual.Properties.Translation);
+            Assert.Equal(writes, visual.Properties.TranslationWrites);
+            Assert.Equal(1, Implicit.StartedHides(f.Page.StickyHeader));
+        });
+        Test("布局回调还在排队时，滚动越线仍当场显示和收回", () =>
+        {
+            using var f = new Fixture();
+            f.Page.RaiseLayout();
+            Assert.True(f.Page.Queued);
+            f.Page.Scroll(120);
+            Assert.True(f.Page.Shown);
+            f.Page.Scroll(108);
+            Assert.False(f.Page.Shown);
+            Assert.False(f.Page.StickyHeader.IsHitTestVisible);
+            f.Page.Scroll(120);
+            Assert.True(f.Page.Shown);
+            Assert.Equal(2, Implicit.StartedShows(f.Page.StickyHeader));
+            Assert.Equal(1, Implicit.StartedHides(f.Page.StickyHeader));
+            f.Drain();
+            Assert.True(f.Page.Shown);
+            Assert.Equal(2, Implicit.StartedShows(f.Page.StickyHeader));
         });
         Test("附属读取Busy不会剥夺已经就绪的播放入口", () =>
         {
@@ -497,7 +535,7 @@ internal static class Program
             Assert.True(ReferenceEquals(show, Implicit.GetShowAnimations(f.Page.StickyHeader)));
             Assert.True(f.Page.Shown);
         });
-        Test("Gallery进退场参数可追踪且From留空支持反向连续", () =>
+        Test("滚动浮层120ms显示80ms退场，位移与透明度同步且From留空", () =>
         {
             using var f = new Fixture();
             f.Page.Scroll(120);
@@ -509,10 +547,12 @@ internal static class Program
             var enterOpacity = (OpacityAnimation)show[1];
             var exitTranslation = (TranslationAnimation)hide[0];
             var exitOpacity = (OpacityAnimation)hide[1];
-            Assert.Equal(TimeSpan.FromMilliseconds(400), enterTranslation.Duration);
-            Assert.Equal(TimeSpan.FromMilliseconds(200), enterOpacity.Duration);
-            Assert.Equal(TimeSpan.FromMilliseconds(200), exitTranslation.Duration);
-            Assert.Equal(TimeSpan.FromMilliseconds(100), exitOpacity.Duration);
+            Assert.Equal(TimeSpan.FromMilliseconds(120), enterTranslation.Duration);
+            Assert.Equal(enterTranslation.Duration, enterOpacity.Duration);
+            Assert.Equal(TimeSpan.FromMilliseconds(80), exitTranslation.Duration);
+            Assert.Equal(exitTranslation.Duration, exitOpacity.Duration);
+            foreach (var animation in show.Concat(hide))
+                Assert.Equal(EasingMode.EaseOut, animation.EasingMode);
             Assert.Null(enterTranslation.From);
             Assert.Null(exitTranslation.From);
             Assert.Null(enterOpacity.From);
@@ -540,6 +580,282 @@ internal static class Program
             Assert.Equal(Visibility.Visible, f.Page.StickyPoster.Visibility);
             Assert.Equal(Visibility.Visible, f.Page.StickyPlayText.Visibility);
         });
+        Test("下滚用Direct连接原播放与横幅，快照冻结前不清源透明度", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.Scroll(120);
+            var animation = ConnectedAnimationService.Created[^1];
+            Assert.True(ReferenceEquals(f.Page.ColumnPlayButton, animation.Source));
+            Assert.True(ReferenceEquals(f.Page.StickyPlayButton, animation.Target));
+            Assert.True(animation.Configuration is DirectConnectedAnimationConfiguration);
+            Assert.True(f.Page.PlayMoving);
+            Assert.Equal(1d, f.Page.ColumnPlayButton.Opacity);
+            Assert.False(f.Page.ColumnPlayButton.IsHitTestVisible);
+            Assert.False(f.Page.ColumnPlayButton.IsTabStop);
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(f.Page.ColumnPlayButton));
+            var visual = ElementCompositionPreview.GetElementVisual(f.Page.StickyHeader);
+            Assert.Equal(Vector3.Zero, visual.Properties.Translation);
+            Assert.Null(Implicit.GetShowAnimations(f.Page.StickyHeader));
+            animation.Complete();
+            Assert.False(f.Page.PlayMoving);
+            Assert.Equal(0d, f.Page.ColumnPlayButton.Opacity);
+            Assert.True(f.Page.StickyHeader.IsHitTestVisible);
+            Assert.Equal(Visibility.Visible, f.Page.ColumnPlayButton.Visibility);
+            Assert.Equal(40d, f.Page.ColumnPlayButton.ActualHeight);
+            Assert.Equal(0, f.Page.ViewModel.PlayCommand.Executions);
+        });
+        Test("上滚从横幅飞回原按钮，完成前保留快照父层但立即禁点击", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.Scroll(120);
+            ConnectedAnimationService.Created[^1].Complete();
+            f.Page.StickyPlayButton.Focus(FocusState.Keyboard);
+            f.Page.Scroll(108);
+            var animation = ConnectedAnimationService.Created[^1];
+            Assert.True(ReferenceEquals(f.Page.StickyPlayButton, animation.Source));
+            Assert.True(ReferenceEquals(f.Page.ColumnPlayButton, animation.Target));
+            Assert.False(f.Page.Shown);
+            Assert.Equal(Visibility.Visible, f.Page.StickyHeader.Visibility);
+            Assert.False(f.Page.StickyHeader.IsHitTestVisible);
+            Assert.False(f.Page.StickyPlayButton.IsTabStop);
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(f.Page.StickyPlayButton));
+            Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(f.Page.ColumnPlayButton));
+            Assert.Equal(1d, f.Page.ColumnPlayButton.Opacity);
+            Assert.True(f.Page.ColumnPlayButton.IsHitTestVisible);
+            Assert.True(ReferenceEquals(f.Page.ColumnPlayButton, f.Page.XamlRoot!.FocusedElement));
+            animation.Complete();
+            Assert.Equal(Visibility.Collapsed, f.Page.StickyHeader.Visibility);
+            Assert.False(f.Page.PlayMoving);
+            Assert.True(f.Page.StickyPlayButton.IsTabStop);
+            Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(f.Page.StickyPlayButton));
+        });
+        Test("原按钮焦点随移入交给横幅，其他操作焦点不抢", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.ColumnPlayButton.Focus(FocusState.Keyboard);
+            f.Page.Scroll(120);
+            Assert.True(ReferenceEquals(f.Page.StickyPlayButton, f.Page.XamlRoot!.FocusedElement));
+            f.Page.Scroll(108);
+            ConnectedAnimationService.Created[^1].Complete();
+            var other = new object();
+            f.Page.XamlRoot.FocusedElement = other;
+            f.Page.Scroll(120);
+            Assert.True(ReferenceEquals(other, f.Page.XamlRoot.FocusedElement));
+        });
+        foreach (var fallback in new[] { "源没有动画节点", "关闭动画" })
+            Test(fallback + "直接切换时焦点也交给横幅", () =>
+            {
+                using var f = new Fixture();
+                if (fallback == "关闭动画") HomeMotion.ApplyPreference(false);
+                f.Page.ColumnPlayButton.Focus(FocusState.Keyboard);
+                f.Page.Scroll(120);
+                Assert.True(ReferenceEquals(f.Page.StickyPlayButton, f.Page.XamlRoot!.FocusedElement));
+                Assert.Equal(0d, f.Page.ColumnPlayButton.Opacity);
+                Assert.False(f.Page.ColumnPlayButton.IsTabStop);
+                f.Page.Scroll(108);
+                Assert.True(ReferenceEquals(f.Page.ColumnPlayButton, f.Page.XamlRoot.FocusedElement));
+                Assert.Equal(1d, f.Page.ColumnPlayButton.Opacity);
+            });
+        Test("目标测量失败也取消动画落定并移交不可见源焦点", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.StickyPlayButton.ThrowOnTransform = true;
+            f.Page.ColumnPlayButton.Focus(FocusState.Keyboard);
+            f.Page.Scroll(120);
+            Assert.False(f.Page.PlayMoving);
+            Assert.Equal(1, ConnectedAnimationService.Created[^1].Cancels);
+            Assert.True(f.Page.Shown);
+            Assert.Equal(0d, f.Page.ColumnPlayButton.Opacity);
+            Assert.True(ReferenceEquals(f.Page.StickyPlayButton, f.Page.XamlRoot!.FocusedElement));
+        });
+        Test("快速反向取消旧关联动画，迟到完成与计时不收掉新横幅", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.Scroll(120);
+            var first = ConnectedAnimationService.Created[^1];
+            var lateFirst = first.LateComplete();
+            var lateTimer = f.Page.PlayTimeout!.LateTick();
+            f.Page.Scroll(108);
+            var returning = ConnectedAnimationService.Created[^1];
+            var lateReturn = returning.LateComplete();
+            f.Page.Scroll(120);
+            var current = ConnectedAnimationService.Created[^1];
+            Assert.Equal(1, first.Cancels);
+            Assert.Equal(1, returning.Cancels);
+            lateFirst();
+            lateTimer();
+            lateReturn();
+            Assert.True(f.Page.Shown);
+            Assert.True(f.Page.PlayMoving);
+            Assert.Equal(Visibility.Visible, f.Page.StickyHeader.Visibility);
+            current.Complete();
+            Assert.Equal(0d, f.Page.ColumnPlayButton.Opacity);
+        });
+        foreach (var failure in new[] { "拒绝启动", "启动异常", "超时" })
+            foreach (var returning in new[] { false, true })
+                Test($"关联{failure}时{(returning ? "返回" : "移入")}仍落定并恢复操作", () =>
+                {
+                    using var f = new Fixture(move: true);
+                    if (returning)
+                    {
+                        f.Page.Scroll(120);
+                        ConnectedAnimationService.Created[^1].Complete();
+                    }
+                    ConnectedAnimationService.Starts = failure != "拒绝启动";
+                    ConnectedAnimationService.ThrowOnStart = failure == "启动异常";
+                    f.Page.Scroll(returning ? 108 : 120);
+                    if (failure == "超时")
+                    {
+                        Assert.Equal(TimeSpan.FromMilliseconds(500), f.Page.PlayTimeout!.Interval);
+                        f.Page.PlayTimeout.Fire();
+                    }
+                    Assert.False(f.Page.PlayMoving);
+                    Assert.Equal(returning ? Visibility.Collapsed : Visibility.Visible, f.Page.StickyHeader.Visibility);
+                    Assert.Equal(returning ? 1d : 0d, f.Page.ColumnPlayButton.Opacity);
+                    Assert.Equal(returning, f.Page.ColumnPlayButton.IsHitTestVisible);
+                });
+        foreach (var stop in new[] { "离页", "关应用动画", "关系统动画", "播放失效", "改尺寸" })
+            Test("移入期间" + stop + "取消旧动画并落定", () =>
+            {
+                using var f = new Fixture(move: true);
+                f.Page.Scroll(120);
+                var animation = ConnectedAnimationService.Created[^1];
+                var late = animation.LateComplete();
+                switch (stop)
+                {
+                    case "离页": f.Page.ReleaseHeader(); break;
+                    case "关应用动画": HomeMotion.ApplyPreference(false); break;
+                    case "关系统动画": UISettings.SetAnimationsEnabled(false); f.Drain(); break;
+                    case "播放失效":
+                        f.Page.ViewModel.PlayCommand.Allowed = false;
+                        f.Page.ViewModel.PlayCommand.NotifyCanExecuteChanged();
+                        f.Drain();
+                        break;
+                    case "改尺寸": f.Page.Body.ActualWidth = 360; f.Page.UpdateHeader(); break;
+                }
+                late();
+                Assert.False(f.Page.PlayMoving);
+                Assert.Equal(1, animation.Cancels);
+                Assert.Equal(stop is "离页" or "播放失效" ? 1d : 0d, f.Page.ColumnPlayButton.Opacity);
+                Assert.Equal(stop is "离页" or "播放失效" ? Visibility.Collapsed : Visibility.Visible, f.Page.StickyHeader.Visibility);
+            });
+        Test("宽窄主按钮切换还原旧按钮，收回还原各自原属性", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.ColumnPlayButton.Opacity = 0.8;
+            f.Page.ColumnPlayButton.IsTabStop = false;
+            f.Page.CompactPlayButton.Opacity = 0.7;
+            f.Page.CompactPlayButton.IsHitTestVisible = false;
+            f.Page.Scroll(240);
+            ConnectedAnimationService.Created[^1].Complete();
+            f.Page.ViewModel.IsCompact = true;
+            f.Page.UpdateHeader();
+            Assert.Equal(0.8, f.Page.ColumnPlayButton.Opacity);
+            Assert.False(f.Page.ColumnPlayButton.IsTabStop);
+            Assert.Equal(0d, f.Page.CompactPlayButton.Opacity);
+            f.Page.Scroll(0);
+            Assert.Equal(0.7, f.Page.CompactPlayButton.Opacity);
+            Assert.False(f.Page.CompactPlayButton.IsHitTestVisible);
+        });
+        foreach (var stop in new[] { "离页", "关应用动画", "关系统动画", "播放失效", "改尺寸" })
+            Test("返回期间" + stop + "立即恢复正文并清旧快照父层", () =>
+            {
+                using var f = new Fixture(move: true);
+                f.Page.Scroll(120);
+                ConnectedAnimationService.Created[^1].Complete();
+                f.Page.Scroll(108);
+                var returning = ConnectedAnimationService.Created[^1];
+                var late = returning.LateComplete();
+                switch (stop)
+                {
+                    case "离页": f.Page.ReleaseHeader(); break;
+                    case "关应用动画": HomeMotion.ApplyPreference(false); break;
+                    case "关系统动画": UISettings.SetAnimationsEnabled(false); f.Drain(); break;
+                    case "播放失效":
+                        f.Page.ViewModel.PlayCommand.Allowed = false;
+                        f.Page.ViewModel.PlayCommand.NotifyCanExecuteChanged();
+                        f.Drain();
+                        break;
+                    case "改尺寸": f.Page.Body.ActualWidth = 360; f.Page.UpdateHeader(); break;
+                }
+                late();
+                Assert.False(f.Page.PlayMoving);
+                Assert.Equal(1, returning.Cancels);
+                Assert.Equal(1d, f.Page.ColumnPlayButton.Opacity);
+                Assert.True(f.Page.ColumnPlayButton.IsHitTestVisible);
+                Assert.True(f.Page.ColumnPlayButton.IsTabStop);
+                Assert.True(f.Page.StickyPlayButton.IsTabStop);
+                Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(f.Page.ColumnPlayButton));
+                Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(f.Page.StickyPlayButton));
+                Assert.Equal(Visibility.Collapsed, f.Page.StickyHeader.Visibility);
+            });
+        Test("移走按钮退出常规读屏视图，返回与离页还原原有无障碍视图", () =>
+        {
+            using var f = new Fixture(move: true);
+            AutomationProperties.SetAccessibilityView(f.Page.ColumnPlayButton, AccessibilityView.Control);
+            AutomationProperties.SetAccessibilityView(f.Page.StickyPlayButton, AccessibilityView.Control);
+            f.Page.Scroll(120);
+            ConnectedAnimationService.Created[^1].Complete();
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(f.Page.ColumnPlayButton));
+            Assert.Equal(AccessibilityView.Control, AutomationProperties.GetAccessibilityView(f.Page.StickyPlayButton));
+            f.Page.Scroll(108);
+            Assert.Equal(AccessibilityView.Control, AutomationProperties.GetAccessibilityView(f.Page.ColumnPlayButton));
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(f.Page.StickyPlayButton));
+            f.Page.ReleaseHeader();
+            Assert.Equal(AccessibilityView.Control, AutomationProperties.GetAccessibilityView(f.Page.ColumnPlayButton));
+            Assert.Equal(AccessibilityView.Control, AutomationProperties.GetAccessibilityView(f.Page.StickyPlayButton));
+        });
+        Test("直接回到页顶仍从横幅移回，初始页顶不准备动画", () =>
+        {
+            using var f = new Fixture(move: true);
+            var count = ConnectedAnimationService.Created.Count;
+            f.Page.Scroll(0);
+            Assert.Equal(count, ConnectedAnimationService.Created.Count);
+            f.Page.Scroll(120);
+            ConnectedAnimationService.Created[^1].Complete();
+            f.Page.Scroll(0);
+            var animation = ConnectedAnimationService.Created[^1];
+            Assert.True(ReferenceEquals(f.Page.StickyPlayButton, animation.Source));
+            Assert.True(ReferenceEquals(f.Page.ColumnPlayButton, animation.Target));
+            Assert.True(f.Page.PlayMoving);
+            animation.Complete();
+            Assert.Equal(Visibility.Collapsed, f.Page.StickyHeader.Visibility);
+            Assert.Equal(1d, f.Page.ColumnPlayButton.Opacity);
+        });
+        Test("回页顶时原按钮断树直接取消，不准备跨根返回动画或交焦点", () =>
+        {
+            using var f = new Fixture(move: true);
+            f.Page.Scroll(120);
+            ConnectedAnimationService.Created[^1].Complete();
+            var count = ConnectedAnimationService.Created.Count;
+            f.Page.ColumnPlayButton.XamlRoot = new();
+            f.Page.StickyPlayButton.Focus(FocusState.Keyboard);
+            f.Page.Scroll(0);
+            Assert.Equal(count, ConnectedAnimationService.Created.Count);
+            Assert.Equal(0, f.Page.ColumnPlayButton.FocusCalls);
+            Assert.Equal(Visibility.Collapsed, f.Page.StickyHeader.Visibility);
+            Assert.Equal(1d, f.Page.ColumnPlayButton.Opacity);
+        });
+        foreach (var changed in new[] { "原按钮换行", "横幅按钮移位" })
+            Test("飞行中" + changed + "取消旧落点，继续滚动不取消", () =>
+            {
+                using var f = new Fixture(move: true);
+                f.Page.Scroll(120);
+                var animation = ConnectedAnimationService.Created[^1];
+                f.Page.Scroll(140);
+                Assert.True(f.Page.PlayMoving);
+                f.Page.ColumnPlayButton.LayoutY += 0.01;
+                f.Page.UpdateHeader();
+                Assert.True(f.Page.PlayMoving, "坐标小数误差不打断继续滚动");
+                if (changed == "原按钮换行") f.Page.ColumnPlayButton.LayoutY += 20;
+                else f.Page.StickyPlayButton.LayoutX += 20;
+                f.Page.RaiseLayout();
+                f.Drain();
+                Assert.False(f.Page.PlayMoving);
+                Assert.Equal(1, animation.Cancels);
+                Assert.True(f.Page.Shown);
+                Assert.Equal(0d, f.Page.ColumnPlayButton.Opacity);
+            });
         Test("窄窗晚到封面通知不重新挤出标题，空图恢复也不留海报空白", () =>
         {
             using var f = new Fixture();
@@ -626,8 +942,11 @@ internal static class Program
     private sealed class Fixture : IDisposable
     {
         public DetailPage Page { get; }
-        public Fixture()
+        public Fixture(bool move = false)
         {
+            ConnectedAnimationService.Enabled = move;
+            ConnectedAnimationService.Starts = true;
+            ConnectedAnimationService.ThrowOnStart = false;
             HomeMotion.ApplyPreference(true);
             UISettings.SetAnimationsEnabled(true);
             Page = new();
@@ -657,6 +976,9 @@ internal static class Program
         {
             Page.ReleaseHeader();
             Drain();
+            ConnectedAnimationService.Enabled = false;
+            ConnectedAnimationService.Starts = true;
+            ConnectedAnimationService.ThrowOnStart = false;
         }
     }
 }
