@@ -326,6 +326,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial ImageSource? StillImage { get; set; }
 
@@ -346,6 +347,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial bool StillPending { get; set; }
 
@@ -425,6 +427,8 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
     [NotifyPropertyChangedFor(nameof(CompactVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverActionsVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -504,6 +508,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ReadMoreVisibility));
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
+        OnPropertyChanged(nameof(StoreCoverActionsVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
@@ -2535,6 +2542,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CoverShadeVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2769,6 +2777,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
+        OnPropertyChanged(nameof(StoreCoverActionsVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         AnnounceAffordances();
         // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。
         // 不能读 ItemType：它会回退到 seed，让存根首次 Apply 被误认为已经通知过。
