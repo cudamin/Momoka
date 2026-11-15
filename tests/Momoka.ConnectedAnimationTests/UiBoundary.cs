@@ -313,7 +313,11 @@ namespace Momoka.Shell.Views
         public Microsoft.UI.Xaml.Controls.Image ConnectedPoster { get; set; } = new();
         public DetailViewModel ViewModel { get; } = new();
         public int StoppedArrivals { get; private set; }
+        public int SeededWidths { get; private set; }
+        public int ForcedLayouts { get; private set; }
         public void StopConnectedPosterArrival() => StoppedArrivals++;
+        public void SeedConnectedLayoutWidth() => SeededWidths++;
+        public void ForceConnectedLayout() => ForcedLayouts++;
     }
     public static class HomeMotion
     {
