@@ -14,6 +14,23 @@ internal static class StoreDetailLayoutTests
 
     internal static void Register()
     {
+        Test("商店预览圆角：从应用资源读取全局键，页面样式仍取局部字典", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            var styles = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Theme", "Styles.xaml"));
+            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Key") == "EgCardCornerRadius"),
+                "全局圆角被复制进页面，掩盖了资源归属错误");
+            Assert.Equal("16", styles.Descendants().Single(element =>
+                (string?)element.Attribute(X + "Key") == "EgCardCornerRadius").Value);
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("? (CornerRadius)Application.Current.Resources[\"EgCardCornerRadius\"] : default;", store);
+            foreach (var key in new[] { "EgRoundButtonStyle", "EgPillButtonStyle" })
+            {
+                Assert.True(page.Descendants().Any(element => (string?)element.Attribute(X + "Key") == key),
+                    key + " 不在页面局部资源中");
+                Assert.Contains("(Style)Resources[\"" + key + "\"]", store);
+            }
+        });
         Test("商店渐变：窄窗材料与图片共用最终遮罩，离页清缓存，浅色前景同步", () =>
         {
             foreach (var name in new[] { "DetailPage", "MoviePilotSubscriptionPage" })
