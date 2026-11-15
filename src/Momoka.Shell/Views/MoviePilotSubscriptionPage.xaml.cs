@@ -40,6 +40,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private MoviePilotSubscriptionRequest? _request;
     private CancellationTokenSource? _pageLifetime;
     private bool _appearanceObserved;
+    private SurfaceMotion? _detailMotion;
+    private SurfaceMotion? _resourcesMotion;
+    private bool _resourcesOpen;
+
+    private SurfaceMotion DetailMotion => _detailMotion ??= new SurfaceMotion(DetailScroll);
+    private SurfaceMotion ResourcesMotion => _resourcesMotion ??= new SurfaceMotion(MediaResources);
 
     /// <summary>上一次算正文两列时 BodyRow 的宽；只按宽度重算，避免高度变化回灌成布局回路。</summary>
     private double _bodyLayoutWidth = double.NaN;
@@ -467,15 +473,27 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             return;
         }
         MediaResources.Open(request.Service, detail.Media with { Season = season }, launcher, new(area, episode, subtitles));
-        DetailScroll.Visibility = Visibility.Collapsed;
+        _resourcesOpen = true;
+        MediaResources.IsHitTestVisible = true;
         MediaResources.Visibility = Visibility.Visible;
+        ResourcesMotion.Enter(200, 12);
+        // Exit 对从未显示过的元素会立即落定；先 Settle 到显示档，淡出才有起始帧。
+        DetailMotion.Settle();
+        DetailMotion.Exit(120, 8, () => DetailScroll.Visibility = Visibility.Collapsed);
     }
 
     private void OnResourcesClosed(object? sender, EventArgs args)
     {
-        MediaResources.Release();
-        MediaResources.Visibility = Visibility.Collapsed;
+        _resourcesOpen = false;
+        MediaResources.IsHitTestVisible = false;
+        ResourcesMotion.Settle();
+        ResourcesMotion.Exit(120, 8, () =>
+        {
+            MediaResources.Visibility = Visibility.Collapsed;
+            MediaResources.Release();
+        });
         DetailScroll.Visibility = Visibility.Visible;
+        DetailMotion.Enter(160, 8);
     }
 
     private void OnChooseSeasons(object sender, RoutedEventArgs args) => _ = ChooseSeasonsAsync(null);
@@ -573,6 +591,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;
+        // 离页不播淡出：停掉进出动画并立即落定，按离开时所处的那一档写死可见性，最后状态不变。
+        _detailMotion?.Settle();
+        _resourcesMotion?.Collapse();
+        DetailScroll.Visibility = _resourcesOpen ? Visibility.Collapsed : Visibility.Visible;
+        MediaResources.Visibility = _resourcesOpen ? Visibility.Visible : Visibility.Collapsed;
+        MediaResources.IsHitTestVisible = true;
         _request = null; ViewModel.Cancel(); MediaViewModel.Cancel(); MediaResources.Release();
     }
     protected override void OnNavigatedFrom(NavigationEventArgs e) { Release(); base.OnNavigatedFrom(e); }
