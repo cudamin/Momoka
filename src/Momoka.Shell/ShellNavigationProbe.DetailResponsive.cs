@@ -181,7 +181,8 @@ internal sealed partial class ShellNavigationProbe
                         }
                         readings.Add($"{item.Type} {width}：模式={(compact ? "窄窗紧凑" : "宽窗沉浸")}，"
                             + $"带高={view.HeroHeight:0.##}、背景高={view.PictureHeight:0.##}、"
-                            + $"尾部间距={view.TailSpacing:0.##}、正文间距={view.SheetSpacing:0.##}");
+                            + $"尾部间距={view.TailSpacing:0.##}、正文间距={view.SheetSpacing:0.##}"
+                            + (compact ? "" : $"，{HeroGapReading(page)}"));
                         await SaveProbeScreenAsync($"detail-responsive-{item.Type}-{width}.png");
                     }
                     await ResponsiveModesAsync(page, fixture.Settings.Ui);
@@ -420,6 +421,11 @@ internal sealed partial class ShellNavigationProbe
     /// 操作那排键连同「剩余 x 分钟」贴在封面下沿，剧情说明紧接着那一行、只隔一小截空位
     /// （2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」与
     /// 「剧情说明要接在剩余 22 分钟下方，留点空位」）。
+    /// <para>
+    /// 2026-11-15 用户令「播放按钮上面怎么留一大片空位，要自动补位」之后，富余不再整段堆在操作块上方：
+    /// 这里同时核「那截高度真的摊到行距上了」—— 行距只许在常态 10 与上限 26 之间，且等于
+    /// （封面高 − 各行自己的高）÷ 缝数（撞上限时封顶）；摊得下的档位不许再往操作块头上堆。
+    /// </para>
     /// </summary>
     private static void RequireHeroColumn(DetailPage page)
     {
@@ -442,10 +448,51 @@ internal sealed partial class ShellNavigationProbe
             Require(Math.Abs(actionsBox.Bottom - coverBox.Bottom) < 2.5,
                 $"沉浸操作键没有贴到封面下沿：{actionsBox.Bottom:0.##} 对 {coverBox.Bottom:0.##}");
 
+        RequireHeroGaps(page, stack, actions, coverBox.Height);
+
         if (overview.Visibility != Visibility.Visible) return;
         var text = Get<TextBlock>(page, "Overview");
         var gap = Bounds(text, page).Top - actionsBox.Bottom;
         Require(gap is > 4 and < 40, $"剧情说明离「剩余 x 分钟」那一行不是一个空位：{gap:0.##}");
+    }
+
+    /// <summary>常态竖距，同 <c>DetailPage.HeroStackSpacing</c>。</summary>
+    private const double HeroGapBase = 10;
+
+    /// <summary>
+    /// 沉浸档那一栏的竖距与操作块上那段余量的读数 —— 也是「富余摊到行距上」那条规矩的判据。
+    /// 内容是各行自己的高加它们自己的上下边距。
+    /// </summary>
+    private static string HeroGapReading(DetailPage page)
+    {
+        var stack = Get<StackPanel>(page, "HeroStack");
+        var actions = Get<StackPanel>(page, "ColumnActions");
+        var rows = VisibleRows(stack);
+        var content = rows.Sum(row => row.ActualHeight + row.Margin.Top + row.Margin.Bottom);
+        return $"行={rows.Length}、行距={stack.Spacing:0.##}、操作上边距={actions.Margin.Top:0.##}、内容={content:0.##}";
+    }
+
+    private static FrameworkElement[] VisibleRows(StackPanel stack) =>
+        stack.Children.OfType<FrameworkElement>()
+            .Where(child => child.Visibility == Visibility.Visible)
+            .ToArray();
+
+    private static void RequireHeroGaps(DetailPage page, StackPanel stack, StackPanel actions, double columnHeight)
+    {
+        var rows = VisibleRows(stack);
+        var gaps = rows.Length - 1;
+        if (gaps <= 0) return;
+
+        var content = rows.Sum(row => row.ActualHeight + row.Margin.Top + row.Margin.Bottom);
+        var expected = Math.Max(HeroGapBase, (columnHeight - content) / gaps);
+        Require(stack.Spacing >= HeroGapBase - 0.01,
+            $"沉浸片名栏行距比常态还紧：{stack.Spacing:0.##}（{HeroGapReading(page)}）");
+        Require(Math.Abs(stack.Spacing - expected) < 1.5,
+            $"沉浸片名栏没有把富余摊到行距上：行距 {stack.Spacing:0.##}、按内容该是 {expected:0.##}"
+                + $"（{HeroGapReading(page)}）");
+        // 富余一律摊到行距上，不再堆成操作块头上那块空洞 —— 那正是「播放按钮上面留一大片空位」那副样子。
+        Require(actions.Margin.Top < 1,
+            $"沉浸富余仍堆在操作块上方：{actions.Margin.Top:0.##}（{HeroGapReading(page)}）");
     }
 
     /// <summary>够长、够跨四行的简介 —— 窄窗下「剧情说明快掉出画面」那一条要的是一段真会折满的文字。</summary>

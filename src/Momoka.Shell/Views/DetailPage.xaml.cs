@@ -109,7 +109,7 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel.PropertyChanged += OnTrailerStateChanged;
         ViewModel.PropertyChanged += OnExtraStateChanged;
 
-        // 那一栏撑满封面之后，操作那一块的空当靠上边距让出来（LayoutHeroColumn）。文字变短、宽度变大时
+        // 那一栏撑满封面之后，多出来的那一截走各行之间的间距（LayoutHeroColumn）。文字变短、宽度变大时
         // 那一栏自己的高不一定变（停在 MinHeight 上），SizeChanged 不会来，所以跟着每一次布局再排一次 ——
         // 里面的换算是幂等的，算出来还是同一个数就不再写。
         HeroStack.LayoutUpdated += (_, _) => LayoutHeroColumn();
@@ -2140,7 +2140,7 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         ViewModel.StackRoom = HeroStack.ActualHeight;
         MeasureCoverBottom();
-        // 沉浸宽版式：操作那一块贴到封面下沿（见 DetailPage.LayoutHeroColumn）。
+        // 沉浸宽版式：多出来那一截摊到各行间距上、操作那排键仍贴封面下沿（见 DetailPage.LayoutHeroColumn）。
         LayoutHeroColumn();
         QueueReadingColors();
     }
@@ -2152,36 +2152,60 @@ public sealed partial class DetailPage : Page, IShellContent
         QueueReadingColors();
     }
 
+    /// <summary>那一栏各行的常态竖距 —— 与 <c>HeroStack</c> 的 XAML、<c>PlaceStoreComponents</c> 共用同一个数。</summary>
+    private const double HeroStackSpacing = 10;
+
+    /// <summary>商店档那一栏的竖距比常态紧一档（那排键已经搬到封面下方，这一栏只剩片名与读数）。</summary>
+    private const double StoreHeroStackSpacing = 6;
+
     /// <summary>
     /// 沉浸宽版式：片名为首的那一栏撑满左边封面的高（<see cref="DetailViewModel.HeroColumnHeight"/>）——
     /// 徽标（没有徽标时是片名）顶在封面上沿，「操作那排键 + 剩余 x 分钟」贴到封面下沿
     /// （2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」）。
     /// <para>
-    /// 撑高由那一栏自己的 <c>MinHeight</c> 绑定给（<c>HeroStack</c>），这里只把多出来的那一截让给操作那一块的
-    /// 上边距：竖排 StackPanel 不会把最后一块推到底，给它一段上边距就是「剩下的全算在它头上」。
+    /// 撑高由那一栏自己的 <c>MinHeight</c> 绑定给（<c>HeroStack</c>），多出来的那一截 2026-11-15 起平均
+    /// 摊到各行之间的间距上（用户令「播放按钮上面怎么留一大片空位，要自动补位」，并选定「均匀撑开各行」）。
+    /// 从前整段让给操作那一块的上边距，屏上就是播放键上方一整块空洞；摊开之后每一道缝一样宽，两头的锚点
+    /// 一个都没动。
     /// </para>
     /// <para>
-    /// 量的是操作块现在的下沿，算的是「没有这段上边距时它会落在哪儿」（<c>bottom − margin.Top</c>）——
-    /// 那个数不随这段边距动，所以重算一次就收敛，不会出现「加边距 → 变高 → 再算」那种来回抖。
-    /// 商店档、纸面档和紧凑版式一律清零，那几个版面的一个像素都不动。
+    /// 量的是各行自己的高（<c>ActualHeight</c> 加它们自己的上下边距），不含这一段随时在变的间距 —— 那是这一支
+    /// 自己写下去的值，量进来就会「加间距 → 变高 → 再算」地来回抖。理想间距由「封面高减内容高」除以缝数
+    /// 直接算出来，所以下一趟算的还是同一个数、不再写。
+    /// </para>
+    /// <para>
+    /// 不设上限：内容少的条目（例如没有评分、类型和文件选项的页面）行距会拉得很开，但那正是「均匀撑开」的
+    /// 样子 —— 留一块空洞和把空洞摊开是两回事，用户要的是后者。商店档、纸面档和紧凑版式回到各档自己的常态
+    /// 间距（<see cref="StoreHeroStackSpacing"/>／<see cref="HeroStackSpacing"/>），那几个版面一个像素都不动。
     /// </para>
     /// </summary>
     private void LayoutHeroColumn()
     {
-        var extra = 0d;
+        // 商店档那一栏是另一套竖距（6），这里只回写「这一档的常态」，不是无条件写 10。
+        var baseSpacing = ViewModel.StoreMode ? StoreHeroStackSpacing : HeroStackSpacing;
+        var spacing = baseSpacing;
+
         if (!ViewModel.StoreMode && ViewModel.Showcase
             && ColumnActions.Visibility == Visibility.Visible
             && ViewModel.HeroColumnHeight > 0 && ColumnActions.ActualHeight > 0)
         {
-            var bottom = ColumnActions.TransformToVisual(HeroStack)
-                .TransformBounds(new Rect(0, 0, ColumnActions.ActualWidth, ColumnActions.ActualHeight)).Bottom;
-            extra = Math.Max(0, Math.Round(
-                ViewModel.HeroColumnHeight - (bottom - Math.Max(0, ColumnActions.Margin.Top))));
+            var rows = HeroStack.Children.OfType<FrameworkElement>()
+                .Where(child => child.Visibility == Visibility.Visible)
+                .ToArray();
+            var gaps = rows.Length - 1;
+            if (gaps > 0)
+            {
+                var content = rows.Sum(row => row.ActualHeight + row.Margin.Top + row.Margin.Bottom);
+                spacing = Math.Max(baseSpacing, (ViewModel.HeroColumnHeight - content) / gaps);
+            }
         }
 
+        if (Math.Abs(HeroStack.Spacing - spacing) > 0.5) HeroStack.Spacing = spacing;
+
+        // 2026-11-14 那一版把富余堆成操作块的上边距；这一支接手之后它必须回到零。
         var margin = ColumnActions.Margin;
-        if (Math.Abs(margin.Top - extra) > 0.5 || margin.Left != 0 || margin.Bottom != 0 || margin.Right != 0)
-            ColumnActions.Margin = new Thickness(0, extra, 0, 0);
+        if (margin.Left != 0 || margin.Top != 0 || margin.Bottom != 0 || margin.Right != 0)
+            ColumnActions.Margin = default;
     }
 
     /// <summary>

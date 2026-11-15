@@ -1,3 +1,15 @@
+## 2026-11-15 详情沉浸版式：右栏空隙摊开、其他信息卡加回卡片底（待交付）
+
+用户附一张剧详情页截图（沉浸宽版式，908×432 窗口），两点：①「播放按钮上面怎么留一大片空位，要自动补位」；②「给沉浸模式下的更多信息卡片加背景卡片」。①追问后用户选了「均匀撑开各行」。
+
+**改了什么。** ①`DetailPage.LayoutHeroColumn` 不再把右栏富余整段让给 `ColumnActions` 的上边距（2026-11-14 那一版，屏上就是播放键上方一整块空洞），改成摊到 `HeroStack.Spacing`：量各行自己的高（`ActualHeight` 加自己的上下边距，不含这一段间距与操作块上那段余量 —— 两者都是这一支写下去的值，量进来会「加间距→变高→再算」地抖），理想间距 =（封面高 − 内容高）÷ 缝数，每道缝一样宽、不设上限（内容少的条目行距会拉得很开，那正是「均匀撑开」的样子）；徽标顶封面上沿、那排键贴封面下沿两个锚点都还在，操作块上不再留边距；商店档（6）、纸面档与紧凑版式回到各档常态间距（新增 `HeroStackSpacing`／`StoreHeroStackSpacing` 两个常量，与 XAML、`PlaceStoreComponents` 同一个数）。②`PaintBackdropReading` 在沉浸档给 `InfoPanel` 铺回卡片底：新增本页私有的 `_infoCardFill`（材料参数与 `_panelFill` 一样从 `CardMaterialSource` 抄，换主题与高对比度都跟着走），其余四块正文板仍让开；描边照全站卡片不画，表里的字仍是压图那套浅墨。
+
+**同步的断言。** `RequireDetailPanelMaterials` 的沉浸档预期从 `null` 改成 `_infoCardFill`；`RequireImmersiveSurface` 改判「信息卡铺了自己那块底且不透明度是 1」；`DetailMica` 的顶部主题回调改成「不许换掉信息卡那块底」，并给系统实色回退补一条 `_infoCardFill`；`AcrylicControlsTests` 与 `MicaMaterialTests` 两条源契约跟着改口径。详情布局回归另加一条 `RequireHeroGaps`：量各行自己的高，要求 `HeroStack.Spacing` 等于「封面高 − 内容高」÷ 缝数（不低于常态 10），并要求操作块上边距为 0；读数写进 `detail-responsive.txt`（新增「行=／行距=／操作上边距=／内容=」四项）。
+
+**验证。** Shell Release **0 警告 0 错误**（重编数次）；`dotnet format whitespace --verify-no-changes` 退出 0；`acrylic-controls-fixture` **39/39**、`detail-customization-fixture` **59/59**，均 0 失败 0 跳过。原生 `--probe-shell --probe-section library --screen 2`（`shell-probe-20261115-122415029-32972`）**48 项、46 过、2 红**，红项都是超时且与本批无关：①「电影/剧/季页连续缩放跨断点后布局稳定」—— 用例自己的九组 130 次缩放全部跑完（`detail-resize.txt` 九行齐全、三张实屏齐全），是副屏只有 1080 宽、放不下用例要求的 1336 宽扫描，超出 120 秒预算；②「商店预告实帧、轨道菜单与离页关闭」—— 要真实指针注入与 WebView2 前台，这台机器上有别的会话在跑探针。同一跑里详情自定义三页、宽窗沉浸/窄窗紧凑、集页背景与尾部间距全过。这一跑用的是「每道缝最多再让 16」那一版；之后按「均匀撑开」去掉上限，用 `--probe-shell inspect --screen 2` 单跑 `InspectDetailResponsive` 通过（`shell-probe-20261115-131509320-20152`），读数 Movie/Series 1280「行=4、行距=56.67、操作上边距=0、内容=205」、1200「行距=38.67」、1100「41.67／38.67」，实屏 `detail-responsive-Series-1280.png` 目视：文件选项到那排键只剩一道与上面同样宽的缝，按钮底边仍与海报底齐平。信息卡卡片底在 `detail-immersive-enabled-Series-1200-screen.png` 上可见（压在剧照上的深色卡面、圆角、表内浅墨可读）。
+
+**边界。** 没有连真实服务器、没有播放；用户那张 908 宽的剧页与真实条目（评分/类型/文件选项 7 行）没有实屏，行距按公式应是约 18.6。上限去掉之后，内容极少的条目行距会拉得很开（夹具 1280 是 56.67）—— 这是「均匀撑开」的直接结果，用户看过不满再收。2 条环境红须在交付时按主树重跑。
+
 ## 2026-11-15 详情文件选择栏小圆角矩形（待交付）
 
 用户附详情页音频、字幕选择栏截图，令「不要胶囊形状，矩形加一点圆角」。产品提交 `85b7402`（master，基线 `789019c`）。

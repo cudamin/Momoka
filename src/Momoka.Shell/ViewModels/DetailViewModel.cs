@@ -1171,7 +1171,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 沉浸宽版式也靠上（2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」）：
     /// 那一档这一栏被撑到封面同高（<see cref="HeroColumnHeight"/>），徽标（没有徽标时是片名）从封面的上沿起排，
-    /// 操作那排键连同「剩余 x 分钟」仍贴在这一栏的下沿（页面把中间那一截空当让给 <c>ColumnActions</c> 的上边距）。
+    /// 操作那排键连同「剩余 x 分钟」仍贴在这一栏的下沿（中间那一截 2026-11-15 起平均摊到各行之间的间距上，
+    /// 见 <c>DetailPage.LayoutHeroColumn</c>）。
     /// </para>
     /// </summary>
     public VerticalAlignment HeroContentAlignment =>

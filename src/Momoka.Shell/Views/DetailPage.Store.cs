@@ -97,7 +97,7 @@ public sealed partial class DetailPage
             HeroContent.Width = store ? ViewModel.StoreContentWidth : double.NaN;
             HeroContent.HorizontalAlignment = store ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
             HeroStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-            HeroStack.Spacing = store ? 6 : 10;
+            HeroStack.Spacing = store ? StoreHeroStackSpacing : HeroStackSpacing;
             TitlePlate.MaxHeight = store ? 40 : 56;
             TitlePlate.Margin = new Thickness(0, 0, 0, store ? 0 : 6);
             TitleButton.Margin = new Thickness(-8, 0, 0, store ? 4 : 12);

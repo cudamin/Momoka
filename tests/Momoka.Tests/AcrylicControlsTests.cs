@@ -119,15 +119,19 @@ internal static class AcrylicControlsTests
                 Assert.Contains(strip, showcase);
             Assert.Contains("strip.OnScrim = showcase;", showcase);
         });
-        Test("详情沉浸：其他信息卡不再铺卡面，表里的字换成压图浅墨", () =>
+        Test("详情沉浸：其他信息卡自带一块卡片底，表里的字仍是压图浅墨", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
-            // 2026-11-14 用户令「改为去掉其他信息的背景卡片」：沉浸档让开卡面（此前那块深色亚克力是
-            // 2026-11-08 为了暗字压在剧照上还能读加的），纸面档仍是正文面板那一支。
+            // 2026-11-15 用户令「给沉浸模式下的更多信息卡片加背景卡片」：沉浸档这块重新铺上卡片底
+            // （2026-11-14 曾按「改为去掉其他信息的背景卡片」整块让开）。其余四块正文板仍让开。
             Assert.Contains("InfoPanel.Background = PlainMode ? StoreCardMaterialSource.Background", code);
-            Assert.Contains(": ViewModel.Showcase ? null : _panelFill;", code);
+            Assert.Contains(": ViewModel.Showcase ? _infoCardFill : _panelFill;", code);
+            // 卡面是这一块自己的那一支：跟其余四块共用的那支在沉浸档是 0。
+            var showcase = Source("Views/DetailPage.Showcase.cs");
+            Assert.Contains("private readonly AcrylicBrush _infoCardFill = new();", showcase);
+            Assert.Contains("foreach (var fill in new[] { _panelFill, _infoCardFill })", showcase);
+            // 卡面垫在底下，字照旧是压图那套浅墨；行是回收着建的，ElementPrepared 也要接住。
             Assert.Contains("PaintInfoInk();", code);
-            // 没有卡面垫着，标签和值就得自己换成压在图上那两支浅墨；行是回收着建的，ElementPrepared 也要接住。
             Assert.Contains("InfoTable.ElementPrepared += (_, args) => PaintInfoRowInk(args.Element);", code);
             Assert.Contains("EgOnScrimDimBrush", code);
             Assert.Contains("EgOnScrimBrush", code);
