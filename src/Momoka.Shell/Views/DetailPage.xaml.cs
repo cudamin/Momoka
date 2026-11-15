@@ -1915,12 +1915,12 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 评分那一格：屏上画的是不是规矩说的那个数和那个署名。
+    /// 评分那一格：屏上画的是不是规矩说的那两个数，两个槽各画各的。
     /// <para>
     /// 值得判红，而且两头都判。「有分的时候画对了」是这一格唯一的屏上出口，而它错起来是一个看着挺正常的数：
-    /// 烂番茄的 92 画成「92.0」、一个来路不明的分署上错的名字、或者署名那一格空着。而
-    /// 「没分的时候整块收起来」是我们自己的规矩（<c>ScoreVisibility</c> 盯着 <c>Score</c> 是不是空串），漏了它的
-    /// 样子是上一个条目留下的「★ 8.4 公众评分」挂在一个没有评分的条目上 —— 截图看不出来，没人会去比。
+    /// 烂番茄的 92 画成「92.0」、两个槽都有分却只画了大众分（2026-11-15 之前就是这样），或者没分的那一格
+    /// 还亮着。而「没分的时候整块收起来」是我们自己的规矩（<c>ScoreVisibility</c> 盯着两格分数是不是都空），
+    /// 漏了它的样子是上一个条目留下的「★ 8.4 🍅 89%」挂在一个没有评分的条目上 —— 截图看不出来，没人会去比。
     /// </para>
     /// <para>
     /// 服务器那一头有什么只报不判（那是服务器的事），可它是这一关最值得读的一句：这台服务器到底有没有影评指数，
@@ -1929,28 +1929,35 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     internal (bool Ok, string Detail) ScoreRead()
     {
-        var wanted = ViewModel.ScoreBadge;
+        var wantedCommunity = ViewModel.CommunityBadge;
+        var wantedCritic = ViewModel.CriticBadge;
         var facts = ViewModel.ScoreFacts;
 
-        if (!wanted.Any)
-            return (ScoreStack.Visibility == Visibility.Collapsed && ScoreText.Text.Length == 0,
+        if (!wantedCommunity.Any && !wantedCritic.Any)
+            return (ScoreStack.Visibility == Visibility.Collapsed
+                    && ScoreText.Text.Length == 0 && CriticScoreText.Text.Length == 0,
                 $"这一条目服务器上没有评分，那一格{(ScoreStack.Visibility == Visibility.Collapsed ? "整块收起来了" : "却还画着")}"
                     + $"（{facts}）");
 
         var drawn = ScoreStack.Visibility == Visibility.Visible;
-        var text = string.Equals(ScoreText.Text, wanted.Text, StringComparison.Ordinal);
-        var label = string.Equals(ScoreSourceText.Text, wanted.Label, StringComparison.Ordinal);
+        var text = string.Equals(ScoreText.Text, wantedCommunity.Text, StringComparison.Ordinal)
+            && string.Equals(CriticScoreText.Text, wantedCritic.Text, StringComparison.Ordinal);
 
-        // 那一行事实是紧挨着它排的，星和署名一多就往右推 —— 而评分那一组的宽有上限（三位数加两到四个字），出界
-        // 只可能是版面错了。事实那一行本身长短由服务器给的字决定，出界只报不判。
+        // 两格各自的显隐跟着自己那一槽有没有分走：只有大众分的条目不该挂着一枚空番茄。
+        var rows = CommunityScoreRow.Visibility == (wantedCommunity.Any ? Visibility.Visible : Visibility.Collapsed)
+            && CriticScoreRow.Visibility == (wantedCritic.Any ? Visibility.Visible : Visibility.Collapsed);
+
+        // 那一行事实是紧挨着它排的，两格评分一多就往右推 —— 而评分那一组的宽有上限，出界只可能是版面错了。
+        // 事实那一行本身长短由服务器给的字决定，出界只报不判。
         var room = HeroStack.ActualWidth;
         var score = ScoreStack.TransformToVisual(HeroStack).TransformPoint(new Point(ScoreStack.ActualWidth, 0)).X;
 
-        return (drawn && text && label && score <= room + 0.5,
-            $"规矩说画「{wanted.Text}」＋「{wanted.Label}」"
-                + $"；屏上是「{ScoreText.Text}」＋「{ScoreSourceText.Text}」"
+        return (drawn && text && rows && score <= room + 0.5,
+            $"规矩说画大众分「{wantedCommunity.Text}」＋影评指数「{wantedCritic.Text}」（星／番茄两枚图标，不带文字）"
+                + $"；屏上是「{ScoreText.Text}」＋「{CriticScoreText.Text}」"
                 + $"，占到 {score:F0}／可用 {room:F0}"
                 + (drawn ? "" : "，可那一格没画出来")
+                + (rows ? "" : "，两格的显隐和有没有分对不上")
                 + $"；服务器给的：{facts}");
     }
 

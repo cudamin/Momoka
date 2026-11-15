@@ -306,7 +306,7 @@ public sealed partial class DetailPage
         var resumeInk = (Brush)Application.Current.Resources["EgAccentBrush"];
         foreach (var (glyph, button) in new[] { (ColumnResumeGlyph, ColumnPlayButton), (CompactResumeGlyph, CompactPlayButton) })
             glyph.Foreground = onAccent is null ? resumeInk : button.Foreground;
-        foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, ScoreSourceText,
+        foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText,
             DetailVideoText, DetailDirectorsText })
         {
             var defaultBrush = text == GenreLine ? (SolidColorBrush)ViewModel.SublineBrush
@@ -316,7 +316,7 @@ public sealed partial class DetailPage
                 : ThemeColor.Rgb(defaultColor.R, defaultColor.G, defaultColor.B);
             // 商店浅色的环境底随主题调亮，正文随之使用主题深墨；沉浸图上的浅墨保持原阅读保护。
             if (forced is null && ViewModel.StoreMode && !ThemeHost.Current.IsDark)
-                color = text == DetailDirectorsText || text == GenreLine || text == ScoreSourceText
+                color = text == DetailDirectorsText || text == GenreLine
                     ? ThemeHost.Current.Colors.Text.Mix(ThemeHost.Current.Colors.Window, 0.14)
                     : ThemeHost.Current.Colors.Text;
             if (!_readingColors.TryGetValue(text, out var brush))

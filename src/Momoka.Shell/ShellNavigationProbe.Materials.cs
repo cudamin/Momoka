@@ -115,7 +115,8 @@ internal sealed partial class ShellNavigationProbe
             // Validate the current factory Acrylic branch before selecting the historical
             // thin-white overlay fixture used by the exact 15/21/8 assertions below.
             await LayoutAsync(detail);
-            var factoryPlay = Descendants(Get<StackPanel>(detail, "ColumnActions")).OfType<Button>()
+            // 商店宽版式里主播放键被搬到封面右侧（2026-11-15 用户令），不再位于 ColumnActions。
+            var factoryPlay = Descendants(detail).OfType<Button>()
                 .Single(button => AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
             var factoryFill = (AcrylicBrush)factoryPlay.Resources["ButtonBackground"];
             var factoryColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, fixture.Settings.Ui));

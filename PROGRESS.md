@@ -24,6 +24,16 @@ shelf 段因客户区停在 760×700、请求 1280 未落实而超时，运行�
 
 **边界。** 高对比度、触摸、读屏与跨 DPI 未实测；已观看的绿仍不跟主题色走（沿用当天前一条用户令）。
 
+## 2026-11-15 详情文件选项加高到 36、圆角放大到 12（待交付）
+
+用户附详情页音频、字幕选择栏截图，令「圆角不够圆，加高选择框的高度」。此前一天那一版是 28 高配 4 DIP 圆角，4 在窄边上只剩一道方槽。产品提交 `a740630`，整合 master `ab134fa`，以 `--ff-only` 进入 master（基线 `c763ee8`）。
+
+**改了什么。** `EgPickerRowHeight` 28 → 36，四行（视频、媒体源、音频、字幕）一起抬、间距仍是 6 —— 只抬选择框会让同一列换一种节奏，2026-11-08 那条「不管有没有选择框间距都一致」的判据会当场红。详情页局部 `ComboBoxMinHeight` 同步 36（模板里箭头另有最小高度，须与闭合框一起长），`EgDetailPickerCornerRadius` 4 → 12：半个高度是 18，12 还差 6 才到半圆，四角是圆的、腰身是直的。圆的只有本页六颗 `EgPicker`，下方操作按钮与全局 `EgPicker` 不动。
+
+**验证。** 分支与本树合并后 Shell、`Momoka.Tests` Release 均 0 警告 0 错误；`acrylic-controls-fixture` **39/39**、`input-theme-fixture` **29/29**，0 失败 0 跳过（行高、`ComboBoxMinHeight` 与本页圆角资源的断言同步改 36／12）。原生 `--probe-shell --probe-section detail-cards --screen 2` **2/2**（`shell-probe-20261115-113530217-16912`），实屏 `store-detail-cards-media-1240.png` 已目视并逐像素量过：框高 35–36 px（100% 缩放即 DIP），左上角从顶行到直边约 12 的过渡、随后腰身是直的，不是两端半圆的胶囊。
+
+**边界。** 未跑 `--probe-section library` 的「文件选项三行的竖距」读数（它按 36 高 6 间距核对，属交付时的运行检查），也未单独截窄窗紧凑版式；用户桌面上有正在运行的旧版实例，未结束进程、未发布、未推远端。台账记为待交付第 43 项。
+
 ## 2026-11-15 详情文件选择栏小圆角矩形（交付）
 
 用户附详情页音频、字幕选择栏截图，令「不要胶囊形状，矩形加一点圆角」。产品提交 `85b7402`（master，基线 `789019c`）。
@@ -35,6 +45,15 @@ shelf 段因客户区停在 760×700、请求 1280 未落实而超时，运行�
 **交付。** 2026-11-15 执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0：548 文件、289.6 MB；Momoka.exe SHA256 `CE235A7D5EAF300CEAC4A94A9EF49A602DF9C3F3C71952AA3111F3ADAA0CC480`，Momoka.dll SHA256 `49708B116A1F6D3BD4B701846CD5F95B2C7C0FE32075CEFAB46CAEADDF8C70D6`；桌面 `Momoka.lnk` 目标、WorkingDirectory 与图标已实际读取核对，指向本次 19:11 的 exe。未推远端。
 
 **边界。** 首次改完未提交时主树被外部 `git reset --hard` 清掉一次（reflog 19:00:44），已按同内容重做并以 `85b7402` 提交。截图取自真实保存账号与真实库的普通导航，不是离线夹具；未播放、未连接真实服务器做写入。
+## 2026-11-15 商店详情操作键换位、右侧预览圆角与加高下方渐变（已合入，待交付）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-store-media-detail-GoXRMT`，分支 `feat-store-media-detail-GoXRMT`，产品提交 `737d0a5`，记录 `e446591`，以 `--no-ff` 合入 master `ccb9bc9`（基线 `2d5dff0`）。用户四句：①「播放按钮和更多按钮移到封面右边」；②「连播功能改到集列表卡片的右上角」；③「收藏和已看按钮移左上角的封面里」；④「给右边的背景图/预告片渐变加圆角，加高右边封面图下方的渐变」。追问确认播放与更多为横排、更多在最右；收藏与已看收成图标；「加高」指右侧剧照/预告的下方渐隐。
+
+**实现。** `DetailPage.Store.cs` 新增 `PlaceStoreActionButtons`：商店宽版式把 `ColumnPlayButton`、`ColumnMoreButton` 搬进片名栏末尾的 `StoreCoverActions`（封面右侧横排），`ColumnFavoriteButton`、`ColumnWatchedButton` 搬进封面左上角 `StoreCoverBadges`，`ColumnContinueButton` 挂到 `EpisodeHead.Trailing`（集列表卡片右上角）；退出商店或收成紧凑版式时按原次序放回 `ColumnActionRow`，同一批实例保留绑定、命令、焦点与外观画刷。已看键在封面里换成 `EgRoundButtonStyle`（44 见方），文字组由新 `ColumnWatchedLabelsVisibility` 收起。右侧剧照/预告的两个内容格在 `PageWidth >= StoreWideFloor` 时写入 `EgCardCornerRadius` 圆角；`StoreBackdropBlend` 的剧照/环境底下方渐隐起点从 0.42/0.55 提前到 0.30/0.42，渐变带更高。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **312/312**（新增商店换位、容器与渐隐起点契约）；`local-media-layout-fixture` **21/21**（含 `Agreements` 句柄基线）；主测试 **5157 项，通过 5139、失败 18、跳过 0**，18 条全部是既有环境红：13 条自检隔离/共享桌面锁、1 条自检输出、2 条下载到设备 `C:\WINDOWS\TEMP`，无详情相关失败；`git diff --check` 与 `tools/scan-automation-ids.js` 通过（无新增无句柄交互控件）。
+
+**待办。** 原生 `--probe-shell --probe-section detail-cards --screen 1` 未跑：另一工作树 `fix-settings-page-behind-cQmlcU` 的探针持续占用共享桌面锁（PID 16696/26772/30724），按规则未结束他人进程、未绕锁；用户当次选择「先合并，探针待交付」，须在交付时按主树最终代码补跑商店详情宽窄/三尺寸实屏、检查新位置、圆角与渐隐，并目视 `StoreCoverActions`/`StoreCoverBadges`/`Trailer` 圆角。主树合并后已重新编译 Shell（0 警告 0 错误）并运行 `Momoka.PageContractTests` 312/312；原生探针仍待交付时补跑。未发布、未推远端。
 
 ## 2026-11-15 详情文件选择栏恢复旧版下拉样式（交付）
 

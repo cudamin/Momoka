@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Shell.Views;
@@ -269,6 +270,64 @@ internal sealed partial class ShellNavigationProbe
             Require(overview.Parent == Get<StackPanel>(page, "StoreHeroDetails")
                 && overviewBox.Top >= coverBox.Bottom + 14,
                 "商店剧情没有排在封面下方并保留间距");
+        }
+        // 2026-11-15 用户令：播放/更多在封面右侧，收藏/已看在封面左上角，连播在集列表卡片右上角；
+        // 收成紧凑版式时同一批实例回到 ColumnActions。
+        var play = Get<Button>(page, "ColumnPlayButton");
+        var more = Get<Button>(page, "ColumnMoreButton");
+        var favorite = Get<Button>(page, "ColumnFavoriteButton");
+        var watched = Get<Button>(page, "ColumnWatchedButton");
+        var continuePlay = Get<ToggleButton>(page, "ColumnContinueButton");
+        var actionRow = Get<WrapRow>(page, "ColumnActionRow");
+        var coverActions = Get<StackPanel>(page, "StoreCoverActions");
+        var coverBadges = Get<StackPanel>(page, "StoreCoverBadges");
+        var episodeHead = Get<ShelfHead>(page, "EpisodeHead");
+        if (page.ViewModel.StoreMode && !page.ViewModel.IsCompact)
+        {
+            Require(ReferenceEquals(play.Parent, coverActions) && ReferenceEquals(more.Parent, coverActions)
+                && ReferenceEquals(favorite.Parent, coverBadges) && ReferenceEquals(watched.Parent, coverBadges)
+                && ReferenceEquals(episodeHead.Trailing, continuePlay),
+                "商店宽版式没有把操作键搬到封面右侧、封面左上和集列表右上角");
+            var coverBox = Bounds(cover, canvas);
+            var playBox = Bounds(play, canvas);
+            var moreBox = Bounds(more, canvas);
+            if (play.Visibility == Visibility.Visible)
+                Require(playBox.Left >= coverBox.Right - 1, "播放键没有排在封面右侧");
+            if (more.Visibility == Visibility.Visible)
+                Require(moreBox.Left >= (play.Visibility == Visibility.Visible ? playBox.Right : coverBox.Right) - 1,
+                    "更多键没有排在播放键右边");
+            foreach (var badge in new FrameworkElement[] { favorite, watched }
+                .Where(element => element.Visibility == Visibility.Visible))
+            {
+                var box = Bounds(badge, canvas);
+                Require(box.Left >= coverBox.Left - 1 && box.Top >= coverBox.Top - 1
+                    && box.Right <= coverBox.Right + 1 && box.Bottom <= coverBox.Bottom + 1,
+                    "收藏/已看没有落在封面左上角范围内");
+            }
+            var panel = Get<StackPanel>(page, "EpisodePanel");
+            if (panel.Visibility == Visibility.Visible && continuePlay.Visibility == Visibility.Visible)
+            {
+                var panelBox = Bounds(panel, canvas);
+                var continueBox = Bounds(continuePlay, canvas);
+                Require(continueBox.Right <= panelBox.Right + 1 && continueBox.Top <= panelBox.Top + 72
+                    && continueBox.Left >= panelBox.Left + panelBox.Width / 2,
+                    "连播没有落在集列表卡片的右上角");
+            }
+            Require(Math.Abs(watched.ActualWidth - 44) < 1 && Math.Abs(watched.ActualHeight - 44) < 1,
+                "封面上的已看键没有收成图标尺寸");
+            Require(Get<Grid>(page, "StoreBackdropContent").CornerRadius != default
+                && Get<Grid>(page, "StoreTrailerContent").CornerRadius != default,
+                "商店宽版式的剧照/预告视口没有写圆角");
+        }
+        else
+        {
+            Require(ReferenceEquals(play.Parent, actionRow) && ReferenceEquals(more.Parent, actionRow)
+                && ReferenceEquals(favorite.Parent, actionRow) && ReferenceEquals(watched.Parent, actionRow)
+                && ReferenceEquals(continuePlay.Parent, actionRow) && episodeHead.Trailing is null,
+                "退出商店宽版式后操作键没有回到 ColumnActions");
+            Require(Get<Grid>(page, "StoreBackdropContent").CornerRadius == default
+                && Get<Grid>(page, "StoreTrailerContent").CornerRadius == default,
+                "窄窗全幅背景仍带着右侧视口的圆角");
         }
     }
 
