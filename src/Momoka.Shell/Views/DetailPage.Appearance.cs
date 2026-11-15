@@ -194,11 +194,13 @@ public sealed partial class DetailPage
 
     private void PaintBackdropReading()
     {
-        // 2026-11-14 用户令「改为去掉其他信息的背景卡片」：沉浸档这张卡和其余四块正文面板一样让开卡面，
-        // 表里的字改吃压在图上那套浅墨（PaintInfoInk）—— 此前那块深色亚克力正是为了让暗字压在剧照上还能读。
-        // 商店档仍用固定面色，纸面档仍用正文面板那支亚克力。
+        // 2026-11-15 用户令「给沉浸模式下的更多信息卡片加背景卡片」：沉浸档这张卡重新铺一块卡片底
+        // （2026-11-14 曾按「改为去掉其他信息的背景卡片」整块让开，字因此换成了压图浅墨）。
+        // 卡片底是它自己那一支 —— 其余四块共用的 _panelFill 在沉浸档是 0，正是让它们让开用的。
+        // 商店档仍是固定面色，纸面档仍是正文面板那一支亚克力。描边照全站卡片的规矩：不画
+        // （EgCardBorderThickness 是 0），一块面色加 16 的圆角就已经从剧照上浮起来了。
         InfoPanel.Background = PlainMode ? StoreCardMaterialSource.Background
-            : ViewModel.Showcase ? null : _panelFill;
+            : ViewModel.Showcase ? _infoCardFill : _panelFill;
         PaintInfoInk();
         PaintReadingColors();
     }

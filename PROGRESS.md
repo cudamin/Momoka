@@ -1,3 +1,15 @@
+## 2026-11-15 详情沉浸版式：右栏空隙摊开、其他信息卡加回卡片底（待交付）
+
+用户附一张剧详情页截图（沉浸宽版式，908×432 窗口），两点：①「播放按钮上面怎么留一大片空位，要自动补位」；②「给沉浸模式下的更多信息卡片加背景卡片」。①追问后用户选了「均匀撑开各行」。
+
+**改了什么。** ①`DetailPage.LayoutHeroColumn` 不再把右栏富余整段让给 `ColumnActions` 的上边距（2026-11-14 那一版，屏上就是播放键上方一整块空洞），改成摊到 `HeroStack.Spacing`：量各行自己的高（`ActualHeight` 加自己的上下边距，不含这一段间距与操作块上那段余量 —— 两者都是这一支写下去的值，量进来会「加间距→变高→再算」地抖），理想间距 =（封面高 − 内容高）÷ 缝数，每道缝一样宽、不设上限（内容少的条目行距会拉得很开，那正是「均匀撑开」的样子）；徽标顶封面上沿、那排键贴封面下沿两个锚点都还在，操作块上不再留边距；商店档（6）、纸面档与紧凑版式回到各档常态间距（新增 `HeroStackSpacing`／`StoreHeroStackSpacing` 两个常量，与 XAML、`PlaceStoreComponents` 同一个数）。②`PaintBackdropReading` 在沉浸档给 `InfoPanel` 铺回卡片底：新增本页私有的 `_infoCardFill`（材料参数与 `_panelFill` 一样从 `CardMaterialSource` 抄，换主题与高对比度都跟着走），其余四块正文板仍让开；描边照全站卡片不画，表里的字仍是压图那套浅墨。
+
+**同步的断言。** `RequireDetailPanelMaterials` 的沉浸档预期从 `null` 改成 `_infoCardFill`；`RequireImmersiveSurface` 改判「信息卡铺了自己那块底且不透明度是 1」；`DetailMica` 的顶部主题回调改成「不许换掉信息卡那块底」，并给系统实色回退补一条 `_infoCardFill`；`AcrylicControlsTests` 与 `MicaMaterialTests` 两条源契约跟着改口径。详情布局回归另加一条 `RequireHeroGaps`：量各行自己的高，要求 `HeroStack.Spacing` 等于「封面高 − 内容高」÷ 缝数（不低于常态 10），并要求操作块上边距为 0；读数写进 `detail-responsive.txt`（新增「行=／行距=／操作上边距=／内容=」四项）。
+
+**验证。** Shell Release **0 警告 0 错误**（重编数次）；`dotnet format whitespace --verify-no-changes` 退出 0；`acrylic-controls-fixture` **39/39**、`detail-customization-fixture` **59/59**，均 0 失败 0 跳过。原生 `--probe-shell --probe-section library --screen 2`（`shell-probe-20261115-122415029-32972`）**48 项、46 过、2 红**，红项都是超时且与本批无关：①「电影/剧/季页连续缩放跨断点后布局稳定」—— 用例自己的九组 130 次缩放全部跑完（`detail-resize.txt` 九行齐全、三张实屏齐全），是副屏只有 1080 宽、放不下用例要求的 1336 宽扫描，超出 120 秒预算；②「商店预告实帧、轨道菜单与离页关闭」—— 要真实指针注入与 WebView2 前台，这台机器上有别的会话在跑探针。同一跑里详情自定义三页、宽窗沉浸/窄窗紧凑、集页背景与尾部间距全过。这一跑用的是「每道缝最多再让 16」那一版；之后按「均匀撑开」去掉上限，用 `--probe-shell inspect --screen 2` 单跑 `InspectDetailResponsive` 通过（`shell-probe-20261115-131509320-20152`），读数 Movie/Series 1280「行=4、行距=56.67、操作上边距=0、内容=205」、1200「行距=38.67」、1100「41.67／38.67」，实屏 `detail-responsive-Series-1280.png` 目视：文件选项到那排键只剩一道与上面同样宽的缝，按钮底边仍与海报底齐平。信息卡卡片底在 `detail-immersive-enabled-Series-1200-screen.png` 上可见（压在剧照上的深色卡面、圆角、表内浅墨可读）。
+
+**边界。** 没有连真实服务器、没有播放；用户那张 908 宽的剧页与真实条目（评分/类型/文件选项 7 行）没有实屏，行距按公式应是约 18.6。上限去掉之后，内容极少的条目行距会拉得很开（夹具 1280 是 56.67）—— 这是「均匀撑开」的直接结果，用户看过不满再收。2 条环境红须在交付时按主树重跑。
+
 ## 2026-11-15 详情连播图标改跟主题色（已合入 master）
 
 产品提交 `1cc7234`（基线 `0fce805`），最终整合 master `17ee853` 后随分支合入 master。
@@ -3514,8 +3526,6 @@ R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64
 - 预告按day索引复用、引用前缀线性追加、成员集和numeric position差异回退；实际helper 10000+100仅10000次引用比较，真实同日/unknown分组仅100 Add且旧集合/day/卡identity不变；2000->1500删除反序4500次比较。极端重排仍付数组和数字位置位移成本，不声称最坏总时间线性，不用Clear抹identity；原始offset、source-qualified去重、query-load代次保持。
 - 诊断LogVisit弱持VM、访问期一唤醒、dirty/pending同gate补尾交接；拒绝/执行异常复位，Detach Stop及旧sink/同sink重入隔离。10000条=>1回调、消费后0待执行，保留SnapshotAfter追平后O(1)空结果事实。局部筛选/快照版本防重入重复和旧分类污染，不改Log.cs/播放等范围外生产文件。
 - 当前Release Shell/Core及独立套件0警告0错误；定向70/70（31本题/源码关联+39既有诊断专项，Core重叠不叠加），失败0跳过0。抽取缺方法/改query-source guard两负例实际拒绝且合法生成源不变；此前重排比较数和Remove筛选重入重复行用真实回归抓到修复，未放宽阈值。证据在本树work/perf-list-diagnostics/；入口/命令/计数与父UI字段见tests/Momoka.PageContractTests/PerfListDiagnostics/README.md。未跑父主套件/full selfcheck/真UI/最终发布；父代理串行收尾，临时树未交付用户。
-
-
 
 ## R012 ChangeBoundary：适配需求所有共享下载夹具（2026-10-30，待父挑拣）
 
@@ -8003,8 +8013,6 @@ Segoe Fluent Icons ≈ 0.875），逐颗对不齐，按平均算要乘 **0.75** 
 - **代价说在明处**：左上与右上自此不在一条基线上（差 4 像素）。这是复刻的必然结果，独占那边也一样 —— 「两模式同形」指的是**左上角这三块的内部关系**（玻璃 30、让 5、缝 1、第二行挂在返回键玻璃正下方），不是整条顶栏一刀切。
 - **照片那一路（`--show-osd pinned`）区分度极低**：浮层是半透明的、`--show-osd` 那一路 ViewModel 又是空的，新旧两张实拍在左上角只差 2.14% 像素（`work/shots/title-clone-{old,new}.png`、对照图 `work/title-clone-before-after.png`）。尺寸判据一律以自检读数为准（技能里同一条）。
 
-
-
 用户令一条（原话）：「把这个添加到元数据的前面」，随令附了一张「└」的字形截图。「└ 」正是参考项目 uosc 原版给**章节那一行**加的前缀（`TopBar.lua` 的 `prefix = left_aligned and '' or '└ '`，本项目的章节行已整段撤下）。
 
 - **`EMBYNIAN[topbar-subline-branch]`（`elements/TopBar.lua`）**：副标题渲染时前面缀 `'└ '`，照参考项目那个条件（`top_bar_controls='left'` 的老摆法不加）。**量字宽与画字都用带前缀的那一串**（`subline_text` 同时喂给 `text_width` 与 `ass:txt`），玻璃框宽因此跟着宽 13px；前缀画在玻璃里面（与参考项目同一个位置）。前缀吃整行同一个 `italic`，所以「└」也跟着斜。
@@ -8724,8 +8732,6 @@ Segoe Fluent Icons ≈ 0.875），逐颗对不齐，按平均算要乘 **0.75** 
 - **验证**：构建 **0 警 0 错**、单测 **1143/1143**、发布 **526 文件 / 300.3 MB / 11 GLSL**（sha256 `3E442463…` 与 build 一致），旧发布目录挪到 `EmbyNian-stale\publish-20260925-190411`。**闸门 4 仍跑不成**（同前几轮）。
 
 
-
-
 ## 四十报：整合发版 v0.0.19——下载监控排、通知改走 Emby、MoviePilot 手动整理/资源搜索等批次收拢（2026-09-25，四道闸门全过）
 
 **这一轮是整合发版会话**：把 v0.0.18（09-23）之后攒下的改动并成一个版本，升号 0.0.18 → 0.0.19（`Directory.Build.props` 三处），四道闸门全跑。这批收进去的：首页「正在下载」一排（下载监控、提前入库、封面实时推进度）、通知改走 Emby（通知设置页照网页端复刻、旧 Webhook 直发退役）、MoviePilot「手动整理…」表单与「搜索其他版本」窗口、资源搜索/下载、订阅 422 修复、媒体源排序（新入库在前）、拖字幕进画面自动挂载、「恢复默认」进「关于」卡＋配置备份/恢复、集成模式小窗口自动隐藏音量条与进度条实时刷新、跨季相邻单集选集（`EpisodeNavigation.ResolveAdjacentAsync`，《伪恋》判据转绿）、外部 mpv 凭据改走 IPC 命名管道。
@@ -8784,8 +8790,6 @@ Segoe Fluent Icons ≈ 0.875），逐颗对不齐，按平均算要乘 **0.75** 
 - **测试**：新增 `MoviePilotTransferTests` 25 条（路径判据、请求校验与正文形状、回执解析与 CanSubmit、服务层真路径往返含 storage/list 换不出就停、部分成功信封、收集器的电影/单集/一季三案、菜单两案）。**1131/1131 全过**。
 - **四道闸门**：①构建 0 警 0 错＋format 过；②1131 全过；③发布 526 文件 / 300.2 MB 已落到交付目录；④**红**——「屏幕像素」整片 #16181C「XAML 岛没有合成任何东西」（另有一趟「服务器页面」偶发同病后自愈）。**已证明与本批无关**：(a) 系统 23:59:35 Kernel-Power 566 显示器熄屏（会话 0→1），23:09 那趟基线绿在熄屏前；(b) 用 HEAD（13a0258，不含任何窗口的未提交改动）在隔离工作树另构建，正常启动同样整窗空白；(c) 离屏渲染（--dump-ui PNG）完好、其余 172 项全过——只有「岛→屏幕」的呈现随显示器熄掉而失效；SC_MONITORPOWER 与 ES_DISPLAY_REQUIRED 都没能救回。**基线未动，不洗绿**；待用户醒来（显示器亮着）重跑 `tools/selfcheck-diff.ps1` 应即回绿。
 - **没验证到（留用户手点）**：真机连你的 MoviePilot 点「更多→手动整理…」：看表单自动带出的存储/路径/编号对不对、预览清单、真整理一个不心疼的文件；「屏幕像素」那关也要显示器亮着重跑确认。
-
-
 
 用户令两句：「把同一个资源的不同版本排序，把最新入库的排前面」；随后「在设置中新增自定义选项，媒体源排序 默认/新入库在前」。说的是详情页那颗「媒体源」下拉的行序 —— 播放器「版本」菜单、默认选版、自动换源候选读的是同一张表，一起变。
 
@@ -10811,8 +10815,6 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 
 **改动保持未提交**（项目约定：未获要求不提交）。
 
-
-
 ## 窗口化时上下不再有黑边 —— 退全屏之后没按画面比例补整（2026-09-14，闸门一~三绿、闸门四这一轮跑不起来。未提交）
 
 **他一句：「窗口模式下调整窗口大小上下会出现黑边」（配一张《莫扎特传》的截图，画面上下两条黑带）。** 先把「黑边是谁加的」问清楚：**不是拖出来的，是拖也拖不掉** —— 窗口的形状被锁在了一个和画面不一致的比例上，mpv 只能在它里面上下加黑边。锁它的正是 `WM_SIZING` 里那发 `AspectLock.Apply`。
@@ -11322,8 +11324,6 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 
 **鼠标藏了一会又自己跑出来：唤醒改成「真走两格」，自检从此只在发版时跑（2026-09-12，闸门全绿——第四道自检是因为本批动了它，未提交）。** 他两句：「1.现在只在发布新版本的时候跑自检 2.鼠标隐藏了一会又会自动跑出来，请修复这个bug」。
 
-
-
 - **「一会又跑出来」的病根：藏完之后那一下「让框架重新念一遍」的催促本身是真输入，而它被读成了人动手。** 藏鼠标的最后一步是 `Native.NudgeCursorState` —— 一个物理像素出去、一个像素回来，走真实输入队列（只有它进得了 XAML 岛）。这条回音原来靠「距离 < 2 **且** 离催出去那一刻 200 毫秒内」滤掉（`NudgeEcho`），而**藏起来之后的规则本来是「任何一个像素都算人动手」**（当年怕的是向一只正伸过来的手要第二个像素）。两句一碰，藏这件事就成了二选一：不催 → 框架不念、箭头还在；催了 → 可能把自己叫醒 —— 而那条时间窗只在「回音按时到」时成立。他 07:05 那份真片子日志里两种都露了头：三次是藏好后 13～20 秒被叫醒，一次只隔 102 毫秒（那种间隔不可能是手）。
 - **改法：一个阈值（两像素）、两种状态（显示／藏起来）、两条路（XAML 事件与十赫兹轮询）一视同仁。** 这条判断下沉成 Core 的纯函数 `ChromeReveal.Travelled(dx, dy)`（`MovePixels = 2`），两条路都调它，单测钉着四条（一像素不算、两像素算、单轴同理、阈值必须留在催框架那一下的尺寸之上）。锚点仍然只在「算数」的那次移动上才前进，所以慢手会累积着跨过阈值 —— 「一动鼠标就回来」没有被拖慢，手真动的话第一个事件就是几十像素。
 - **回音那套时间窗整个删了。** 阈值一视同仁之后 `NudgeEcho`／`_nudgedAt` 都没有存在理由（句式上不可能再算成移动），`Nudge()` 少了两次记账。**09-05 那件里「距离 < 2 且 200 毫秒内」那半句作废**，那一节里已就地加订正。
@@ -11539,8 +11539,6 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 - **闸门**：Release 单节点 0 警告 0 错误；测试 788 项全过（删 `MatchIndex` 四条和 `RegisterRail` 四条，`UnmeasuredHeight`/16:9 那两条改写）；发布 474 文件 300.6 MB；`--self-check --dump-ui` 退出码 0、末行「全部通过」，token 0 次。
 - **动的文件**：Core —— `HomeCarousel.cs`；Shell —— `HomePage.xaml(.cs)`、`HomeBanner.xaml(.cs)`（注释与右沿渐变的理由重述）、`ShellPage.xaml(.cs)`、`ShellPage.SelfCheck.cs`、`PosterCard.xaml(.cs)`、`CardItem.cs`、`HomeViewModel.cs`、`SettingsViewModel.cs`（设置文案两处改口）、`ShellSelfCheck.cs/.Run.cs`、`App.xaml.cs`、`Program.cs`、`Theme/Palette.xaml`、`Theme/Styles.xaml`、`PageSlate.xaml`、`Resources.resw`、`EmbyNian.Shell.csproj`（WUI2010 压制的站点数二十→十七）；测试 —— `HomeCarouselTests.cs`；工具 —— `tools/line-icons.awk`（加 `house()`）；文档 —— `CLAUDE.md`（开关清单）、`PROGRESS.md`（本条）。
 - **截图**：见下方验证小节（五个主题各一张，副屏）。**没碰工作树里其它没提交的批次。**
-
-
 
 - **一、左侧分类加图标。** 分类还是一串字符串（`SelectedCategory`、`--show-settings` 跳转、自检十来处共用那份），没为了图标改成对象 —— 那要动 ~20 处、不值。给侧栏 `ListView` 加了 `ItemTemplate`（FontIcon＋TextBlock）＋新 `SettingsCategoryGlyphConverter`（分类名→Segoe 码点，认不出给齿轮兜底；码点用 `0xE768` 那套整数，同 PlayerViewModel）。图标和标题都不写 Foreground，跟着 ListViewItem 选中态一起点亮。
 - **二、快捷键判断全进 Core、单测钉。** 新 `ShortcutCatalog` ＋ `KeyStroke`（token 串，不碰 VirtualKey）：19 个动作各带 Id／中文名／默认键（默认 1:1 保留改造前那张 switch 表），纯函数 `Resolve`／`Lookup`／`Rebind`（**冲突就拦下、返回占用者、一个绑定都不改**）／`Clear`／`Serialize`／`Parse`／`Format`／`Clean`／`DefaultsAreUnique`。**存储只存改动**（缺键＝默认、空串＝显式解绑、否则一个 token）——装机空字典，日后加动作也不用迁移。**Esc、Y 两个固定键不参与重绑**：Esc 是全局「退出」＋重绑方框的取消键，Y 只在出现跳过提示时有效、名字还印在画面提示上（那句提示的测试在没提交的 `PlaybackTests` 里）——列为保留键、捕获时拒收、在卡里以只读 Fact 行显示让人看到全貌。
@@ -12289,8 +12287,6 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 - **一处如实记的不一致**：发布件 `ProductVersion` 是 `0.1.7+978b80c…`，即构建那一刻的 HEAD；变基之后发版提交成了 `885849e`，两者之间只差远端那三个 README 提交（不进二进制）。**功能不受影响** —— 更新检查读的是 `AppIdentity.Version`（`AssemblyVersion` 的三段，`0.1.7`），不是这个信息性后缀。0.1.5 那一轮变基后也是同样的情形。
 - **上架包（用户补一句「还有微软商店的包」，随后明确「直接给我不用上传」）**：`tools/publish.ps1 -Store -SkipPublish -NoArchive` 出 `artifacts/Momoka-0.1.7-win-x64-store.msix`（119 512 038 字节、546 个条目、**未签名** —— 商店自己重签，SHA-256 `1bc4f5c96fd736f1ee38395090a4f0f40ddc5d1f1efa7175b80b68ea51ffecec`）：清单身份 `Name=MOMOKA.Momoka`、`Publisher=CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`、`Version=0.1.7.0`、`ProcessorArchitecture=x64`，与 `tools/store-identity.json` 里 Partner Center 预留的那一组逐条对上；包内没有 `AppxSignature.p7x`（读包核对，不是只看脚本的话）。**这一件不上传 GitHub**（用户令），留在本地供 Partner Center 上传。
 - 未验证（如实说）：没有把安装包整份下回来重算哈希（用的是服务端 `digest`，等价但形式不同）；**安装包没有在本机安装运行过**；没有做代码签名，从网上下载的人第一次双击仍会看到 SmartScreen 提示。上架包同样只做了打包与身份核对，没在本机重装验证（0.1.5／0.1.6 两轮也是这个边界）。
-
-
 
 ## 2026-10-25 弹弹play官方接入与发送输入栏
 
@@ -13408,8 +13404,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 主树 Release/x64 全方案编译 0 警告 0 错误；完整 4207/4207、0 失败 0 跳过（`TEMP` 指向可写目录）；`Momoka.PlayerInputRecoveryTests` 17/17；`Momoka.AppearanceOpacityTests` 68/68。
 - 主树发布件 `--probe-player-motion`（副屏、本地彩条素材）自动断言通过。`--probe-shell --probe-section settings --screen 1` 串行三次：27/28、27/28、28/28；前两次红项都是「像素探针窗口被遮挡或移到屏外」（分别落在弹幕宽窗与自定义 mpv.conf 宽窗），同一用例在另一次运行或窄窗通过，按环境遮挡如实保留记录，最终一次全绿。
 - `publish -NoArchive -Shortcut` 更新主树 `artifacts/publish/win-x64`：546 文件 286.6 MB，批准 native／mpv UI／许可／PRI 校验通过。快捷方式重写被桌面写入拒绝（`UnauthorizedAccessException`）；现有 `Momoka.lnk` 的目标与工作目录经读文件核对仍是该发布目录，桌面启动的就是这一份。未上传、未 push。
-
-
 
 ## 2026-11-08 飞牛字幕标签与题材 ID（主树）
 

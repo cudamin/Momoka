@@ -23,7 +23,7 @@ internal static class MicaMaterialTests
         {
             var probe = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellNavigationProbe.DetailCustomization.cs"));
             Assert.Contains("page.ViewModel.StoreMode ? store", probe);
-            Assert.Contains("page.ViewModel.Showcase && panel.Name == \"InfoPanel\" ? null : fill", probe);
+            Assert.Contains("page.ViewModel.Showcase && panel.Name == \"InfoPanel\" ? infoFill : fill", probe);
             Assert.Contains("ReferenceEquals(panel.Background, expected)", probe);
             Assert.Contains("SolidColorBrush expected => actual.AlwaysUseFallback && actual.FallbackColor == expected.Color", probe);
             Assert.Contains("actual.TintLuminosityOpacity == expected.TintLuminosityOpacity", probe);
