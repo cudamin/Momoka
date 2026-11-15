@@ -21,7 +21,9 @@ internal sealed partial class ShellNavigationProbe
         item.Overview = string.Concat(Enumerable.Repeat("离线剧情说明在封面下面显示两行，悬停可以查看全文。", 12));
         var first = new MediaSource
         {
-            Id = "first", Name = "原始版本 · 1080p", Container = "mkv",
+            Id = "first",
+            Name = "原始版本 · 1080p",
+            Container = "mkv",
             MediaStreams =
             [
                 new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
@@ -114,9 +116,13 @@ internal sealed partial class ShellNavigationProbe
             // 页左沿按钮可触发平台回退；额外给同一原生控件足够左侧空间核对首选位置。
             var positioned = new DetailFilePicker
             {
-                Label = "版本", ItemsSource = vm.Sources, SelectedItem = vm.SelectedSource,
-                HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(700, 100, 0, 0), Width = 400
+                Label = "版本",
+                ItemsSource = vm.Sources,
+                SelectedItem = vm.SelectedSource,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(700, 100, 0, 0),
+                Width = 400
             };
             _root.Children.Add(positioned);
             try

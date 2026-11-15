@@ -434,7 +434,9 @@ internal static class Program
             await prepare.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(175, fixture.Read().Playback.SubtitleScalePercent);
             fixture.Document.Ui.EnableImmersive = true;
+            var stops = ThemeHost.StopSystemWatchCalls;
             app.Close();
+            Assert.Equal(stops + 1, ThemeHost.StopSystemWatchCalls);
             Assert.True(app.Remembered);
             Assert.True(app.Exited);
             Assert.True(app.ContainerBoundary.Disposed);

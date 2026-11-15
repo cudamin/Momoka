@@ -339,13 +339,34 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"mp-subscription-season-{width}-screen.png");
                 await UntilAsync(() => vm.Episodes[0].Artwork is not null);
-                var picture = Descendants(page).OfType<Border>().First(border => border.Name == "EpisodeArtwork");
-                var play = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.Visibility == Visibility.Visible);
-                Require(picture.Visibility == Visibility.Visible && Math.Abs(picture.ActualWidth - 144) < 1
-                    && Math.Abs(picture.ActualHeight - 81) < 1, "集封面没有使用紧凑的 144 × 81 横版缩略图");
+                // 展开季的表只在统计列表里；页面上另一份通用集列表被收起，它的封面同样叫 EpisodeArtwork，
+                // 从整页取第一个会量到收起行而不是眼前这一行。
+                var statistics = Descendants(host).OfType<ItemsRepeater>().First(repeater => repeater.Name == "EpisodeStatistics");
+                var episodeRow = (FrameworkElement)statistics.GetOrCreateElement(0);
+                await LayoutAsync(episodeRow);
+                var picture = Descendants(episodeRow).OfType<Border>().Single(border => border.Name == "EpisodeArtwork");
+                var pictureRow = (Grid)picture.Parent;
+                // 2026-11-14 起窄行按行宽三分之一收图（上限 144、保持 16:9），固定 144 只在宽行成立；
+                // 缩略图尺寸在下一拍才落定（防布局环），先等它到最终值再判。
+                try
+                {
+                    await UntilAsync(() =>
+                    {
+                        var expected = Math.Min(144, pictureRow.ActualWidth / 3);
+                        return picture.Visibility == Visibility.Visible && Math.Abs(picture.ActualWidth - expected) < 1
+                            && Math.Abs(picture.ActualHeight - expected * 9 / 16) < 1;
+                    });
+                }
+                catch (TimeoutException error)
+                {
+                    var expected = Math.Min(144, pictureRow.ActualWidth / 3);
+                    throw new InvalidOperationException(
+                        $"集封面没有使用紧凑的 {expected:0.#} × {expected * 9 / 16:0.#} 横版缩略图：row={pictureRow.ActualWidth:0.#}，picture={picture.ActualWidth:0.#}×{picture.ActualHeight:0.#}，size={picture.Width:0.#}×{picture.Height:0.#}，page={page.ActualWidth:0.#}，wide={page.MediaViewModel.WideLayout}", error);
+                }
+                var play = Descendants(episodeRow).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.Visibility == Visibility.Visible);
                 Require(play.Content is FontIcon && play.TransformToVisual(page).TransformPoint(default).X
                     > picture.TransformToVisual(page).TransformPoint(default).X + picture.ActualWidth, "播放图标不在封面和剧情右侧");
-                var search = Descendants(page).OfType<Button>()
+                var search = Descendants(episodeRow).OfType<Button>()
                     .First(button => button.Name == "SearchSubscriptionEpisode" && button.Visibility == Visibility.Visible);
                 Require(search.Content is FontIcon
                     && search.TransformToVisual(page).TransformPoint(default).Y >= play.TransformToVisual(page).TransformPoint(default).Y,

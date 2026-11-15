@@ -143,8 +143,12 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
         if (Math.Abs(picture.Width - width) < 0.5 && Math.Abs(picture.Height - height) < 0.5) return;
         grid.DispatcherQueue.TryEnqueue(() =>
         {
-            picture.Width = width;
-            picture.Height = height;
+            // 排队期间行宽可能已经变了（换布局模式、窗口缩放），按执行时的实际行宽算；
+            // 拿排队那一刻的旧宽度写回去，缩略图会永远停在小尺寸（2026-11-15 交付实跑 760 宽复现）。
+            var actual = Math.Min(144, Math.Max(0, grid.ActualWidth / 3));
+            if (Math.Abs(picture.Width - actual) < 0.5 && Math.Abs(picture.Height - actual * 9 / 16) < 0.5) return;
+            picture.Width = actual;
+            picture.Height = actual * 9 / 16;
         });
     }
 }

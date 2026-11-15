@@ -122,8 +122,23 @@ internal sealed partial class ShellNavigationProbe
                 await SaveSettledFrameAsync(page, $"mp-subscription-files-recovery-{width}.png");
                 Require(content.ActualWidth >= 200,
                     $"集名、日期和状态被固定海报挤窄：page={page.ActualWidth}, row={row.ActualWidth}, content={content.ActualWidth}, picture={picture.ActualWidth}, actions={actions.ActualWidth}, contentRow={Grid.GetRow(content)}");
-                Require(Grid.GetRow(content) == 0 && picture.Visibility == Visibility.Visible
-                    && Math.Abs(picture.ActualWidth - 144) < 1, "有图行没有保持紧凑的左右布局");
+                // 窄行按行宽三分之一收图（上限 144、保持 16:9），不再要求固定 144；尺寸在下一拍落定。
+                try
+                {
+                    await UntilAsync(() =>
+                    {
+                        var expected = Math.Min(144, row.ActualWidth / 3);
+                        return Grid.GetRow(content) == 0 && picture.Visibility == Visibility.Visible
+                            && Math.Abs(picture.ActualWidth - expected) < 1
+                            && Math.Abs(picture.ActualHeight - expected * 9 / 16) < 1;
+                    });
+                }
+                catch (TimeoutException error)
+                {
+                    var expected = Math.Min(144, row.ActualWidth / 3);
+                    throw new InvalidOperationException(
+                        $"有图行没有保持紧凑的左右布局：row={row.ActualWidth:0.#}，picture={picture.ActualWidth:0.#}×{picture.ActualHeight:0.#}，expected={expected:0.#}", error);
+                }
                 Require(actions.TransformToVisual(row).TransformPoint(default).X + actions.ActualWidth <= row.ActualWidth + 1, "播放或搜索按钮超出行宽");
             }
             vm.FilterIndex = 1;

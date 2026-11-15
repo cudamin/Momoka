@@ -99,8 +99,10 @@ internal static class StoreDetailLayoutTests
         {
             var item = new Momoka.Emby.EmbyItem
             {
-                Type = Momoka.Emby.EmbyItemType.Movie, ProductionYear = 2025,
-                RunTimeTicks = TimeSpan.FromMinutes(155).Ticks, OfficialRating = "PG-13",
+                Type = Momoka.Emby.EmbyItemType.Movie,
+                ProductionYear = 2025,
+                RunTimeTicks = TimeSpan.FromMinutes(155).Ticks,
+                OfficialRating = "PG-13",
                 Studios = [new() { Name = "Plan B Entertainment" }]
             };
             Assert.Equal("2025  ·  2 小时 35 分  ·  PG-13", Momoka.Emby.ItemDetail.Facts(item, includeStudio: false));

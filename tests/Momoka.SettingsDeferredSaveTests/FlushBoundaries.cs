@@ -23,6 +23,13 @@ namespace Momoka.Shell.Services
 
 namespace Momoka.Shell
 {
+    // 系统主题监听属于真实外壳；主窗口关闭时生产代码会停掉它（App.xaml.cs 的 OnWindowClosed）。
+    // 这个夹具没有真实监听，只记录调用，供关窗路径核对「关了就停」而不是留下后台观察。
+    internal static class ThemeHost
+    {
+        internal static int StopSystemWatchCalls { get; private set; }
+        internal static void StopSystemWatch() => StopSystemWatchCalls++;
+    }
     internal sealed class FlushContainer(ISettingsService settings) : IDisposable
     {
         internal ISettingsService Settings { get; } = settings;

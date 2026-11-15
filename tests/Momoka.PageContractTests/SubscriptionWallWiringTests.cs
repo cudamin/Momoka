@@ -149,6 +149,21 @@ namespace Momoka.Tests
                 Assert.Contains("mp-wall-menu-{kind}-screen.png", probe);
                 Assert.Contains("popup.IsOpen = false", probe);
             });
+            // 2026-11-14 布局环修复后，窄行的集封面按行宽三分之一收图（上限 144、保持 16:9）；固定 144×81
+            // 只在宽行成立。探针必须量展开统计列表里那一行；页面上已收起的通用集列表封面同名，不能抓错。
+            Test("订阅季集封面：窄行按行宽三分之一收图，探针只量展开统计行", () =>
+            {
+                var root = Path.Combine(FindRoot(), "src", "Momoka.Shell");
+                var view = File.ReadAllText(Path.Combine(root, "Views", "MoviePilotMediaSeasonsView.xaml.cs"));
+                Assert.Contains("var width = Math.Min(144, Math.Max(0, rowWidth / 3));", view);
+                Assert.Contains("var height = width * 9 / 16;", view);
+                Assert.Contains("var actual = Math.Min(144, Math.Max(0, grid.ActualWidth / 3));", view);
+                var detail = File.ReadAllText(Path.Combine(root, "ShellNavigationProbe.Subscriptions.cs"));
+                Assert.Contains("repeater.Name == \"EpisodeStatistics\"", detail);
+                Assert.Contains("Math.Min(144, pictureRow.ActualWidth / 3)", detail);
+                var recovery = File.ReadAllText(Path.Combine(root, "ShellNavigationProbe.SubscriptionRecovery.cs"));
+                Assert.Contains("Math.Min(144, row.ActualWidth / 3)", recovery);
+            });
         }
 
         private static string FindRoot()

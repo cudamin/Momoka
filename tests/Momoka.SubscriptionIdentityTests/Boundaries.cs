@@ -11,6 +11,8 @@ namespace Microsoft.UI.Xaml
         public object? Tag { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public double ActualWidth { get; set; }
+        public double ActualHeight { get; set; }
         public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
         public void StartBringIntoView() { }
     }
