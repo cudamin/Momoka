@@ -19,9 +19,9 @@
 **交付。** 2026-11-15 执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0：548 文件、289.6 MB；Momoka.exe SHA256 `CE235A7D5EAF300CEAC4A94A9EF49A602DF9C3F3C71952AA3111F3ADAA0CC480`，Momoka.dll SHA256 `49708B116A1F6D3BD4B701846CD5F95B2C7C0FE32075CEFAB46CAEADDF8C70D6`；桌面 `Momoka.lnk` 目标、WorkingDirectory 与图标已实际读取核对，指向本次 19:11 的 exe。未推远端。
 
 **边界。** 首次改完未提交时主树被外部 `git reset --hard` 清掉一次（reflog 19:00:44），已按同内容重做并以 `85b7402` 提交。截图取自真实保存账号与真实库的普通导航，不是离线夹具；未播放、未连接真实服务器做写入。
-## 2026-11-15 商店详情操作键换位、右侧预览圆角与加高下方渐变（本树，待合并）
+## 2026-11-15 商店详情操作键换位、右侧预览圆角与加高下方渐变（已合入，待交付）
 
-工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-store-media-detail-GoXRMT`，分支 `feat-store-media-detail-GoXRMT`，产品提交 `737d0a5`。用户四句：①「播放按钮和更多按钮移到封面右边」；②「连播功能改到集列表卡片的右上角」；③「收藏和已看按钮移左上角的封面里」；④「给右边的背景图/预告片渐变加圆角，加高右边封面图下方的渐变」。追问确认播放与更多为横排、更多在最右；收藏与已看收成图标；「加高」指右侧剧照/预告的下方渐隐。
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-store-media-detail-GoXRMT`，分支 `feat-store-media-detail-GoXRMT`，产品提交 `737d0a5`，记录 `e446591`，以 `--no-ff` 合入 master `ccb9bc9`（基线 `2d5dff0`）。用户四句：①「播放按钮和更多按钮移到封面右边」；②「连播功能改到集列表卡片的右上角」；③「收藏和已看按钮移左上角的封面里」；④「给右边的背景图/预告片渐变加圆角，加高右边封面图下方的渐变」。追问确认播放与更多为横排、更多在最右；收藏与已看收成图标；「加高」指右侧剧照/预告的下方渐隐。
 
 **实现。** `DetailPage.Store.cs` 新增 `PlaceStoreActionButtons`：商店宽版式把 `ColumnPlayButton`、`ColumnMoreButton` 搬进片名栏末尾的 `StoreCoverActions`（封面右侧横排），`ColumnFavoriteButton`、`ColumnWatchedButton` 搬进封面左上角 `StoreCoverBadges`，`ColumnContinueButton` 挂到 `EpisodeHead.Trailing`（集列表卡片右上角）；退出商店或收成紧凑版式时按原次序放回 `ColumnActionRow`，同一批实例保留绑定、命令、焦点与外观画刷。已看键在封面里换成 `EgRoundButtonStyle`（44 见方），文字组由新 `ColumnWatchedLabelsVisibility` 收起。右侧剧照/预告的两个内容格在 `PageWidth >= StoreWideFloor` 时写入 `EgCardCornerRadius` 圆角；`StoreBackdropBlend` 的剧照/环境底下方渐隐起点从 0.42/0.55 提前到 0.30/0.42，渐变带更高。
 
