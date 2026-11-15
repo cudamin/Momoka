@@ -854,7 +854,7 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgPickerCornerRadius}"
+                                            CornerRadius="{StaticResource EgCardCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                             MinWidth="0"
@@ -879,7 +879,7 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgPickerCornerRadius}"
+                                            CornerRadius="{StaticResource EgCardCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -913,7 +913,7 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgPickerCornerRadius}"
+                                            CornerRadius="{StaticResource EgCardCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -1255,8 +1255,8 @@
 
                              里面那一层是 WrapRow 而不是横排的 StackPanel：下拉的宽度按各自最长那条轨道名撑，
                              窄窗口下三个加起来能超过一行，横排会把最右边那个切在窗口右沿上。宽窗口下两者摆出来
-                             一模一样，见 WrapRow 的注释。三颗下拉的边角取 EgPickerCornerRadius 的 10，同集页
-                             宽版式那一份（「字幕、音频、视频的选择框边角弄圆一些」，2026-09-12）。
+                             一模一样，见 WrapRow 的注释。三颗下拉与下方操作按钮共用 EgCardCornerRadius，
+                             集页宽版式那一份也使用同一圆角资源。
                              三颗都是 local:EgPicker 而不是框架的 ComboBox —— 它是 ComboBox 的一点壳，只把弹层
                              从「开窗口」改回「同一棵树」，好让浮层那支应用内亚克力采得到底下这一页（用户
                              2026-09-27：「把音频和字幕的选择栏改成亚克力背景」；为什么这么改写在 EgPicker.cs）。
@@ -1286,7 +1286,7 @@
                                     x:Name="SourcePicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgPickerCornerRadius}"
+                                    CornerRadius="{StaticResource EgCardCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                     MinWidth="260"
@@ -1300,7 +1300,7 @@
                                     x:Name="AudioPicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgPickerCornerRadius}"
+                                    CornerRadius="{StaticResource EgCardCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                     MinWidth="200"
@@ -1328,7 +1328,7 @@
                                     x:Name="SubtitlePicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgPickerCornerRadius}"
+                                    CornerRadius="{StaticResource EgCardCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                     MinWidth="200"

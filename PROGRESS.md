@@ -13844,3 +13844,8 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 工作树 `C:/Users/89400/.codex/worktrees/1c8d/Momoka`，临时分支 `codex/detail-summary-layout`，基点ce55588。头部仅去掉工作室，评分排在类型之前，日期、时长、分级在类型之后；主页轮播与其他信息的工作室保持既有语义。简洁模式剧情移动到封面下方详情块最前，默认两行；原生TextBlock省略与既有阅读更多命令支持全文展开/收起，用内容高度替代封面右栏强制撑高。简洁与沉浸展开状态独立，换片重置；既有自动化句柄以同名x:Name保留。Gallery固定6de91feccadfbb0a796b71caedead5a2284f730e的TextBlock、Expander、ControlExample源码及Learn文字指南/MaxLines API已核对，没有完整两行摘要组合，按原生TextBlock与现有命令本地组合；未加依赖。两名子代理只读核对与复核。
 
 本树Release Core/Shell/Tests/PageContract编译0警告0错误，页面契约299/299、详情VM93/93、详情自定义58/58、控件检查39/39，0失败0跳过。修正既有单集沉浸HeroContentAlignment测试的Bottom旧断言为当前Top；旧剩余高度自动行数纯函数和对应检查随新需求退役，保留两行/展开/收起/换片/模式往返覆盖。已更新DetailCards、DetailMica与StoreDetailBackdrop的位置和两行检查；StoreTrailer只移除已由StoreDetailBackdrop完整覆盖的旧提示折叠断言。文本编码与空白通过。当前待完成最终原生专项、主树整合；不发布、不推送，桌面仍为此前交付版本。运行结果继续追加。
+## 2026-11-15 详情选择框圆角对齐操作卡片
+
+工作树 `C:/Users/89400/.codex/worktrees/34e4/Momoka`，基于 `ce55588`；详情页两种布局共六颗版本、音频、字幕选择框改用下方操作按钮的 `EgCardCornerRadius`（16 DIP），保留全局 `EgPickerCornerRadius`（12 DIP）供其他弹窗使用。既有输入样式回归只在详情页 EgPicker 允许卡片资源，保留其他输入与原生模板约束，更新旧圆角注释和测试名称。Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 `WinUIGallery/Samples/ComboBox/ComboBoxPage.xaml` 与 code-behind 已核对，无相同的局部圆角对齐样例；Learn Geometry 允许定制圆角，沿用本地原生模板和共享资源，不引入依赖或自定义模板。
+
+当前 Core/Tests/Shell Release 编译0警告0错误，`input-theme-fixture` 29/29、`acrylic-controls-fixture` 39/39，0失败0跳过。独立只读审阅通过，修改文件LF/无BOM/末尾换行与git diff空白检查通过。没有启动UI、真实播放、发布或推送；实屏外观与宽窄、主题检查留到用户要求交付时统一验收。主树同文件被另一活动聊天写入，待其释放写入后按局部差异合入并追加台账。
