@@ -236,6 +236,7 @@ public sealed partial class LibraryViewModel
         PlexFilterError = "";
         RememberPlexFilters();
         ShowPlexFilterState();
+        ResultsReset?.Invoke();
         await ReloadAsync().ConfigureAwait(true);
     }
 
@@ -260,6 +261,7 @@ public sealed partial class LibraryViewModel
             try { await LoadPlexRowsAsync(scope, request, _plexEpoch, lifetime.Token).ConfigureAwait(true); }
             catch (OperationCanceledException) { return; }
             catch (Exception error) { PlexFilterError = "读取筛选选项失败，可重试。"; Report("读取筛选选项失败", error); }
+        ResultsReset?.Invoke();
         await ReloadAsync().ConfigureAwait(true);
     }
     partial void OnPlexSelectedTypeChanged(PlexFilterChoice? value)
@@ -274,6 +276,7 @@ public sealed partial class LibraryViewModel
         PlexFilterError = "";
         RememberPlexFilters();
         await EnsurePlexCatalogAsync(refresh: true).ConfigureAwait(true);
+        ResultsReset?.Invoke();
         await ReloadAsync().ConfigureAwait(true);
     }
 

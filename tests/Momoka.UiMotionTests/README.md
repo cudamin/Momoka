@@ -35,6 +35,11 @@ P8可靠性检查补充注册/退订前后异常12项，当前46/46。三动效�
 原生像素入口为匿名检查台 `--probe-shell inspect --screen 1` 的 `InspectHomeGlow`，显式调用生产状态，
 核对1280/760 DIP增亮、移动、关闭恢复与零播放，仍不等于真实鼠标送达或真实系统设置回退。
 
+2026-11-16 界面动效补全：原样链接 `VisibilityReveal`，覆盖首次可见不播、收起再显示淡入、收起打断、
+关应用/系统动画、无 XamlRoot、元素自有 ScaleTransform 不抢占、关闭附加属性退订。
+媒体库、订阅墙、空态与详情剧集列表的接线依赖实际 XAML 绑定，仍需最终整合探针与截图；
+本专项只证明时间轴、值与订阅生命周期。当前 **98/98、0 失败、0 跳过**。
+
 ```powershell
 & "$HOME/.dotnet/dotnet.exe" restore ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj --disable-parallel -m:1 -p:BuildInParallel=false
 & "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false

@@ -30,6 +30,10 @@ public sealed partial class MoviePilotSearchPanel : UserControl
 
     private MoviePilotService? _service;
     private ISystemLauncher? _launcher;
+    private SurfaceMotion? _contentMotion;
+    private SurfaceMotion? _resourceMotion;
+    private SurfaceMotion? _resultsMotion;
+    private bool _resourceActive;
     private bool _active;
     private int _visit;
 
@@ -76,9 +80,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     {
         if (!_active) return Task.CompletedTask;
         ResourceOverlay.Release();
-        ResourceOverlay.Visibility = Visibility.Collapsed;
-        SearchContent.Visibility = Visibility.Visible;
-        Results.Visibility = Visibility.Visible;
+        ResetToSearch();
         return ViewModel.SearchAsync("");
     }
 
@@ -87,9 +89,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     {
         if (!_active) return Task.CompletedTask;
         ResourceOverlay.Release();
-        ResourceOverlay.Visibility = Visibility.Collapsed;
-        SearchContent.Visibility = Visibility.Visible;
-        Results.Visibility = Visibility.Visible;
+        ResetToSearch();
         return ViewModel.SearchAsync(term);
     }
 
@@ -99,9 +99,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         // 完成的查询令牌也拥有卡片动作；换来源只取消仍在飞的搜索。
         if (ViewModel.Busy) ViewModel.Cancel();
         ResourceOverlay.Release();
-        ResourceOverlay.Visibility = Visibility.Collapsed;
-        SearchContent.Visibility = Visibility.Visible;
-        Results.Visibility = Visibility.Visible;
+        ResetToSearch();
     }
 
     /// <summary>真正离页时退订单例事件、解除页面回调并释放结果；返回时由 Attach 重新接线。</summary>
@@ -114,9 +112,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         ViewModel.Release();
         if (visit != _visit) return;
         ResourceOverlay.Release();
-        ResourceOverlay.Visibility = Visibility.Collapsed;
-        SearchContent.Visibility = Visibility.Visible;
-        Results.Visibility = Visibility.Visible;
+        ResetToSearch();
     }
 
     /// <summary>点某条结果的「搜索资源」：把资源覆盖面板盖上来并开搜。</summary>
@@ -125,9 +121,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         if (!_active || _service is null || _launcher is null) return Task.CompletedTask;
 
         ResourceOverlay.Open(_service, media, _launcher);
-        SearchContent.Visibility = Visibility.Collapsed;
-        Results.Visibility = Visibility.Collapsed;
-        ResourceOverlay.Visibility = Visibility.Visible;
+        ShowResourceSurface();
         return Task.CompletedTask;
     }
 
@@ -144,9 +138,86 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     /// <summary>资源面板的返回键：收起它，回到片子列表。</summary>
     private void OnResourceClosed(object? sender, EventArgs e)
     {
+        (_resourceMotion ??= new SurfaceMotion(ResourceOverlay)).Exit(120, 8, () =>
+        {
+            ResourceOverlay.Visibility = Visibility.Collapsed;
+            ResourceOverlay.Release();
+            ShowSearchSurface();
+        });
+    }
+
+    /// <summary>
+    /// 进入资源：面板先可见再淡入上浮，搜索结果同时淡出，落定后收起。
+    /// 落定回调先核对 <see cref="_resourceActive"/>，快速返回时晚到的搜索区收尾不会把已经翻回来的列表再收起。
+    /// </summary>
+    private void ShowResourceSurface()
+    {
+        _resourceActive = true;
+        ResourceOverlay.Visibility = Visibility.Visible;
+        SearchContent.IsHitTestVisible = false;
+        Results.IsHitTestVisible = false;
+        (_resourceMotion ??= new SurfaceMotion(ResourceOverlay)).Enter(200, 12);
+
+        // 这两块由绑定一直停在显示档，没走过 SurfaceMotion 的 Enter；先 Settle 到显示档，
+        // 否则 Exit 会把「本来就没显示」当成真，直接跑落定回调，看不到淡出。
+        var content = _contentMotion ??= new SurfaceMotion(SearchContent);
+        if (SearchContent.Visibility == Visibility.Visible)
+        {
+            content.Settle();
+            content.Exit(120, 0, CollapseSearchContent);
+        }
+        else
+        {
+            content.Collapse();
+            SearchContent.Visibility = Visibility.Collapsed;
+        }
+
+        var results = _resultsMotion ??= new SurfaceMotion(Results);
+        if (Results.Visibility == Visibility.Visible)
+        {
+            results.Settle();
+            results.Exit(120, 0, CollapseResults);
+        }
+        else
+        {
+            results.Collapse();
+            Results.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>返回结果：资源面板淡出落定后再收起并释放，搜索内容与结果重新显示并从下方轻推入场。</summary>
+    private void ShowSearchSurface()
+    {
+        _resourceActive = false;
+        SearchContent.Visibility = Visibility.Visible;
+        Results.Visibility = Visibility.Visible;
+        SearchContent.IsHitTestVisible = true;
+        Results.IsHitTestVisible = true;
+        (_contentMotion ??= new SurfaceMotion(SearchContent)).Enter(160, 8);
+        (_resultsMotion ??= new SurfaceMotion(Results)).Enter(160, 8);
+    }
+
+    /// <summary>离页、换来源与取消：不播退出，立即落定回结果列表；旧动画的落定回调由 SurfaceMotion 作废。</summary>
+    private void ResetToSearch()
+    {
+        _resourceActive = false;
+        _resourceMotion?.Collapse();
+        _contentMotion?.Settle();
+        _resultsMotion?.Settle();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
-        ResourceOverlay.Release();
+        SearchContent.IsHitTestVisible = true;
+        Results.IsHitTestVisible = true;
+    }
+
+    private void CollapseSearchContent()
+    {
+        if (_resourceActive) SearchContent.Visibility = Visibility.Collapsed;
+    }
+
+    private void CollapseResults()
+    {
+        if (_resourceActive) Results.Visibility = Visibility.Collapsed;
     }
 }

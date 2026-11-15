@@ -11,6 +11,7 @@
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\SurfaceMotion.cs" Link="Production\SurfaceMotion.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\VisibilityReveal.cs" Link="Production\VisibilityReveal.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\GlyphPulse.cs" Link="Production\GlyphPulse.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\BannerPointerGlow.cs" Link="Production\BannerPointerGlow.cs" />

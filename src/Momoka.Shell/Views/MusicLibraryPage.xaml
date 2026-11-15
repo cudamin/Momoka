@@ -317,7 +317,7 @@
 
         <Grid Grid.Row="4" Margin="0,14,0,0">
             <!-- 曲目表。列头固定在表头上方，不跟着列表滚：滚到第 300 首时仍然读得到「曲目／时长」。 -->
-            <Grid Visibility="{x:Bind ViewModel.TrackViewVisibility, Mode=OneWay}">
+            <Grid x:Name="TrackView" Visibility="{x:Bind ViewModel.TrackViewVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -427,7 +427,8 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Spacing="8"
-                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
+                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}"
+                local:VisibilityReveal.IsEnabled="True">
                 <FontIcon
                     FontSize="30"
                     Foreground="{ThemeResource EgTextFaintBrush}"

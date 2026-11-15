@@ -1735,6 +1735,7 @@
                             <StackPanel x:Name="EpisodePanelContent">
                                 <ItemsRepeater
                                     x:Name="EpisodeList"
+                                    local:VisibilityReveal.IsEnabled="True"
                                     ItemTemplate="{StaticResource EpisodeRowTemplate}"
                                     ItemsSource="{x:Bind ViewModel.EpisodeShelf.Cards, Mode=OneWay}"
                                     Visibility="{x:Bind ViewModel.EpisodeListVisibility, Mode=OneWay}">

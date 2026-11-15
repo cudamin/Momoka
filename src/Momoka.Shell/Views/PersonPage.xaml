@@ -276,6 +276,7 @@
                         Style="{StaticResource EgSectionTitleStyle}"
                         Text="影视作品" />
                     <ItemsControl
+                        x:Name="CreditsList"
                         ItemTemplate="{StaticResource CreditGroupTemplate}"
                         ItemsSource="{x:Bind ViewModel.Filmography, Mode=OneWay}" />
                 </StackPanel>

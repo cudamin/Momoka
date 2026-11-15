@@ -115,6 +115,34 @@ namespace Microsoft.UI.Xaml
     public sealed record DependencyProperty(string Name, object? DefaultValue)
     {
         public static object UnsetValue { get; } = new();
+
+        public static DependencyProperty RegisterAttached(string name, Type propertyType, Type ownerType, PropertyMetadata metadata) =>
+            new(name, metadata.DefaultValue);
+
+        public static DependencyProperty Register(string name, Type propertyType, Type ownerType, PropertyMetadata metadata) =>
+            new(name, metadata.DefaultValue);
+    }
+
+    public delegate void PropertyChangedCallback(DependencyObject sender, DependencyPropertyChangedEventArgs args);
+
+    public sealed class DependencyPropertyChangedEventArgs(object? oldValue, object? newValue) : EventArgs
+    {
+        public object? OldValue { get; } = oldValue;
+        public object? NewValue { get; } = newValue;
+    }
+
+    public sealed class PropertyMetadata
+    {
+        public PropertyMetadata(object? defaultValue) => DefaultValue = defaultValue;
+
+        public PropertyMetadata(object? defaultValue, PropertyChangedCallback? propertyChangedCallback)
+        {
+            DefaultValue = defaultValue;
+            PropertyChangedCallback = propertyChangedCallback;
+        }
+
+        public object? DefaultValue { get; }
+        public PropertyChangedCallback? PropertyChangedCallback { get; }
     }
 
     public class DependencyObject

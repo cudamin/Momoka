@@ -217,6 +217,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal event Action? PageArrived;
 
+    /// <summary>
+    /// 筛选、排序或分区切换会把整面墙重查一遍：在旧行被清掉之前发一次，页面据此给第一批结果留一段
+    /// 整墙淡入。分页追加不走这里 —— 滚动加载更多只加行，不该整面重播。
+    /// </summary>
+    internal event Action? ResultsReset;
+
     public ObservableCollection<CardItem> Cards { get; } = [];
 
     /// <summary>
@@ -968,6 +974,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         RestoreFilters();
         RestoreDisplay();
         RefreshBrowseChrome();
+        ResultsReset?.Invoke();
         await ReloadAsync().ConfigureAwait(true);
     }
 
@@ -2594,6 +2601,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         SortKey = key;
         ShowSort(option.Label, option.DescendingByDefault);
         RememberSort();
+        ResultsReset?.Invoke();
         Requery();
 
         Log.Debug(Category, $"排序方式：{option.Label}（{key}）{(SortDescending ? "降序" : "升序")}");
@@ -2834,6 +2842,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         ShowFilterState();
         RememberFilters();
+        ResultsReset?.Invoke();
         Requery();
 
         Log.Debug(Category, _filters.IsEmpty ? "清除筛选" : $"筛选：{_filters.Describe()}");
@@ -2972,6 +2981,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
 
         ShowFilterState();
+        ResultsReset?.Invoke();
         Requery();
         Log.Debug(Category, _fnNasFilters.IsBlank
             ? "清除飞牛筛选"
@@ -3158,6 +3168,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
 
         RememberSort();
+        ResultsReset?.Invoke();
         Requery();
     }
 
