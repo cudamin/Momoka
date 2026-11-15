@@ -105,6 +105,16 @@ internal static class StoreTrailerWebTests
                 "v.addTextTrack('subtitles'", "o.events.onApiChange()", "o.events.onStateChange({data:2})", "probe-pause",
                 "captionChanges > previousChanges", "blockedUnknownRequests={blocked}" }) Assert.Contains(required, probe);
         });
+        Test("网页字幕夹具：UTF-8响应明确声明编码，失败前保留匿名实际轨道", () =>
+        {
+            var probe = Read("src/Momoka.Shell/ShellNavigationProbe.StoreTrailerWeb.cs");
+            Assert.Contains("Content-Type: application/javascript; charset=utf-8", probe);
+            Assert.Contains("Content-Type: text/html; charset=utf-8", probe);
+            Assert.Contains("<meta charset=\"utf-8\">", probe);
+            Assert.True(probe.IndexOf("store-trailer-web-caption-reading.json", StringComparison.Ordinal)
+                < probe.IndexOf("真实网页字幕消息未解析为固定两轨", StringComparison.Ordinal), "名称断言失败前没有写实际字幕读数");
+            Assert.Contains("new[] { (\"zh\", \"匿名中文\"), (\"en\", \"Anonymous English\") }", probe);
+        });
     }
 
     private static string Captions(string language) =>
