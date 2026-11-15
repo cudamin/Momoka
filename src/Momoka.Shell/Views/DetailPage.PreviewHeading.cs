@@ -168,6 +168,21 @@ public sealed partial class DetailPage
                 // 系统订阅失败仍按应用偏好播放；停的时候这类旧委托已经不可能挂上，不用假装退订成功。
             }
             _page.Unloaded += OnPageUnloaded;
+            _timeout.Start();
+            // 导航事务里页面可能还没 Loaded；先把起跑姿态摆着，等它真的上屏再让时钟走。
+            if (_page.IsLoaded) return BeginBoard();
+            _page.Loaded += OnPageLoaded;
+            return true;
+        }
+
+        private void OnPageLoaded(object sender, RoutedEventArgs args)
+        {
+            _page.Loaded -= OnPageLoaded;
+            if (!_done) BeginBoard();
+        }
+
+        private bool BeginBoard()
+        {
             try { _board.Begin(); }
             catch (Exception)
             {
@@ -175,7 +190,6 @@ public sealed partial class DetailPage
                 Stop();
                 return false;
             }
-            _timeout.Start();
             return true;
         }
 
@@ -190,6 +204,7 @@ public sealed partial class DetailPage
             HomeMotion.PreferenceChanged -= OnPreferenceChanged;
             try { _settings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
             catch (Exception) { /* 本地资格已撤；平台退订失败不挡住终值恢复。 */ }
+            _page.Loaded -= OnPageLoaded;
             _page.Unloaded -= OnPageUnloaded;
             try { _board.Stop(); }
             catch (Exception) { /* 停不下来也照常写回终值，不能让标题停在半透明。 */ }
