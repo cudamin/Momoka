@@ -63,7 +63,7 @@ internal sealed partial class ShellNavigationProbe
                 if (body.Length == 0) blocked++;
                 args.Response = core.Environment.CreateWebResourceResponse(new MemoryStream(Encoding.UTF8.GetBytes(body)).AsRandomAccessStream(),
                     body.Length > 0 ? 200 : 403, "Fixture", uri.AbsolutePath == "/iframe_api"
-                        ? "Content-Type: application/javascript" : "Content-Type: text/html");
+                        ? "Content-Type: application/javascript; charset=utf-8" : "Content-Type: text/html; charset=utf-8");
             };
             core.WebMessageReceived += (_, args) =>
             {
@@ -87,8 +87,17 @@ internal sealed partial class ShellNavigationProbe
         await UntilAsync(() => instrumentationReady);
         Require(apiRequests == 1 && embedRequests == 1, "网页夹具没有截获实际API和iframe请求");
         await UntilAsync(() => captionChanges > 0 && preview.Captions.Count == 2 && preview.IsPlaying);
+        var captionReading = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Tracks = preview.Captions.Select(track => new { track.Language, track.Name }).ToArray(),
+            preview.SelectedCaption,
+            CaptionChanges = captionChanges,
+            ApiRequests = apiRequests,
+            EmbedRequests = embedRequests
+        });
+        await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "store-trailer-web-caption-reading.json"), captionReading);
         Require(preview.Captions.Select(track => (track.Language, track.Name))
-            .SequenceEqual(new[] { ("zh", "匿名中文"), ("en", "Anonymous English") }), "真实网页字幕消息未解析为固定两轨");
+            .SequenceEqual(new[] { ("zh", "匿名中文"), ("en", "Anonymous English") }), "真实网页字幕消息未解析为固定两轨：" + captionReading);
         Require(preview.SelectedCaption is null, "网页预告字幕没有默认关闭");
         await RequireWebStateAsync(paused: false, muted: true);
         await RequireWebCaptionAsync(null);
@@ -311,7 +320,7 @@ internal sealed partial class ShellNavigationProbe
         }};onYouTubeIframeAPIReady();
         """;
     private const string Embed = """
-        <!doctype html><style>html,body,video{margin:0;width:100%;height:100%;overflow:hidden}video{object-fit:cover}.hover{display:none;position:absolute;top:0;background:red;color:white}body:hover .hover{display:block}</style>
+        <!doctype html><meta charset="utf-8"><style>html,body,video{margin:0;width:100%;height:100%;overflow:hidden}video{object-fit:cover}.hover{display:none;position:absolute;top:0;background:red;color:white}body:hover .hover{display:block}</style>
         <video muted loop playsinline src="https://momoka/store-trailer.mp4"></video><div class="hover">悬停控件不应出现</div>
         <script>let v=document.querySelector('video');const captions=[v.addTextTrack('subtitles','匿名中文','zh'),v.addTextTrack('subtitles','Anonymous English','en')];
         captions.forEach((t,i)=>{t.addCue(new VTTCue(0,2,i?'Anonymous English':'匿名中文字幕'));t.mode='disabled'});

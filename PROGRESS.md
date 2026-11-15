@@ -3,6 +3,17 @@
 最终代码 9e3402d 的统一原生分区 library/detail-cards/settings/performance/materials/motion，报告 shell-probe-20261115-150143533-12688：95 项、88 通过、7 失败，未发布。红项为预告网页前台等待、深返滚动完成超时、详情竖滚 p95 43.9ms 超过40ms门槛、长剧最后项焦点、两项商店预告圆角判据把按钮宽档与1024预览断点混用、页面过渡候选超时。已取得36高/6间距文件选项、详情自定义电影/剧/集、沉浸信息卡、连续130次缩放、设置窗下一拍回前层与海报关联等通过证据；旧红保持不洗绿。
 
 用户追加商店四颗按钮移封面下方、无边框、无悬停也常驻，并撤回第46项均匀撑开，令右栏按正常小间距向上收紧。两项在独立树实现，根交付会话统一合入、重验相关范围与发布。原始批次及本轮红证据保留，不能用旧图销账。
+## 2026-11-15 字幕补验修复：匿名网页响应声明 UTF-8（待主控原生复验）
+
+主树 `8a22c5f` 的原生检查 `shell-probe-20261115-153511466-3460` 已实际进入网页字幕断言：`CaptionsChanged`、两轨数量与播放状态通过，但两轨 `(Language, Name)` 严格比较失败。上一版没有记录实际名称，因此不把中文乱码写成已实证根因。只读核对本次落盘 `index.html` 全是 ASCII 字节且无 charset；新增中文名字位于 UTF-8 字节的匿名 API/Embed 响应，而 Content-Type 未声明字符集。生产 `StoreTrailerDocument` 和 `ReadCaptions` 原顺序读取、不排序，`displayName` 是夹具固定字符串。
+
+**修复。** 仅匿名 `WebResourceResponse` 的 JavaScript/HTML MIME 加 `charset=utf-8`，Embed 补 `<meta charset="utf-8">`；保留固定两轨与名称精确断言。在比较之前写出 `store-trailer-web-caption-reading.json`（匿名语言/名称、SelectedCaption、通知与请求计数），失败文字也带同一读数，下一轮直接定位实际值。生产播放器、文档、按钮位置和间距不改。
+
+**菜单关闭核对。** 只读微软 `microsoft-ui-xaml` 源码：`ToggleMenuFlyoutItemAutomationPeer::ToggleImpl` 调 owner 的 `Invoke`，`ToggleMenuFlyoutItem::Invoke` 换勾后调用父实现，`MenuFlyoutItem::Invoke` 触发 Click/Command 并在 `PreventDismissOnPointer` 为 false 时关闭 owningMenu。Radio 公开继承 MenuFlyoutItem、内部从 Toggle 基类实现，因此继续从实际元素 peer 取得 `IToggleProvider`，不直接构造 Toggle peer、不手工 Hide 掩盖未关闭。本机 NuGet 类型已编译确认；源码调用链不代替本轮 `Closed` 运行回执。
+
+**验证与边界。** 新增 PageContract 编码/失败前落盘契约，生产消息边界测试保留；本次匿名 API/Embed 的 `node --check` 通过。一次同时编译 Shell 与 PageContract 争用本树 Core obj，PageContract 报 CS2012；等待自己的 Shell 编译结束后串行重编，不杀编译器、不运行旧测试。原生/UI/鼠标仍只由交付主控串行运行，本子任务未运行；首轮失败报告保留，不当作已补齐。
+
+修复后本树 Shell Release **0警告0错误**（1分24秒），随后串行编译 PageContract **0警告0错误**并运行 **322/322、0失败0跳过**；PageContract 空白检查、本次三个变更路径的编码/空白检查均通过。日志在 `artifacts/captions-verification/*utf8*`；只有主控随后读取真实字幕值并跑过菜单选择/关闭才能将原生补验记通过。
 
 ## 2026-11-15 交付补验：网页预告字幕与播放通知（独立树完成，待主控原生运行）
 
