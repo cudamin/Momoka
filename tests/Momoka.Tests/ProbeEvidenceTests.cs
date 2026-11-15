@@ -217,6 +217,13 @@ internal struct ProbeEvidencePoint
     internal int Y;
 }
 
+internal struct ProbeEvidenceRect
+{
+    internal int Left, Top, Right, Bottom;
+    internal int Width => Right - Left;
+    internal int Height => Bottom - Top;
+}
+
 internal sealed class ProbeEvidenceWindow
 {
     internal IntPtr Handle => ProbeEvidenceState.Own;
@@ -250,6 +257,12 @@ internal sealed class ProbeEvidenceState
     internal int Captures;
     internal int CurrentOriginX = 1000;
     internal int CurrentOriginY = 200;
+    internal int ClientWidth = 1000;
+    internal int ClientHeight = 720;
+    internal bool ClientRectReadSucceeds = true;
+    internal bool OriginReadSucceeds = true;
+    internal Action? AfterScreenCopy;
+    internal List<(int X, int Y, int Width, int Height)> ScreenCopies { get; } = [];
 
     internal ProbeEvidenceFrame Capture(IntPtr handle)
     {
@@ -257,6 +270,15 @@ internal sealed class ProbeEvidenceState
         Captures++;
         if (CaptureFailure is { } error) throw error;
         return Frames.Dequeue();
+    }
+
+    internal ProbeEvidenceFrame CopyScreen(int x, int y, int width, int height)
+    {
+        ScreenCopies.Add((x, y, width, height));
+        if (CaptureFailure is { } error) throw error;
+        var frame = Frames.Dequeue();
+        AfterScreenCopy?.Invoke();
+        return frame;
     }
 
     internal Task Encode(byte[] bytes, string file)
@@ -287,7 +309,13 @@ internal static class ProbeEvidenceNative
     {
         point.X += State.CurrentOriginX;
         point.Y += State.CurrentOriginY;
-        return true;
+        return State.OriginReadSucceeds;
+    }
+    internal static bool GetClientRect(IntPtr handle, out ProbeEvidenceRect rect)
+    {
+        Assert.Equal(ProbeEvidenceState.Own, handle);
+        rect = new() { Right = State.ClientWidth, Bottom = State.ClientHeight };
+        return State.ClientRectReadSucceeds;
     }
     internal static int GetClassName(IntPtr handle, char[] name, int capacity)
     {

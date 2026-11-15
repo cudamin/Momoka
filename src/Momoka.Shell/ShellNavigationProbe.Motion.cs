@@ -169,8 +169,9 @@ internal sealed partial class ShellNavigationProbe
         Exception? captureError = null;
         Exception? layoutError = null;
         Exception? trialFailure = null;
-        CompositionPlaybackProbe.ResizeScreenFrame? evidence = null;
-        CompositionPlaybackProbe.ResizeScreenFrame? lastCaptured = null;
+        CompositionPlaybackProbe.MotionScreenFrame? evidence = null;
+        CompositionPlaybackProbe.MotionScreenFrame? lastCaptured = null;
+        var capturedRegions = new List<object>();
         using var samplingStop = new CancellationTokenSource();
         MotionCaptureRegion? captureRegion = null;
         Task? sampler = null;
@@ -236,8 +237,9 @@ internal sealed partial class ShellNavigationProbe
             timer.Start();
             // 专用线程只捕获这个HWND、读取不可变区域与字节；UI线程只发布区域和事件时间。
             // 与Rendered解耦后，即使页面加载阻塞UI仍能观察系统合成器正在呈现的动效。
-            sampler = MotionScreenSampler.RunAsync(() => CompositionPlaybackProbe.CaptureResizeFrame(hwnd,
-                Stopwatch.GetTimestamp()), OnCaptured, () => clock.Elapsed.TotalMilliseconds, 800, 16, samplingStop.Token);
+            sampler = MotionScreenSampler.RunAsync(() => CompositionPlaybackProbe.CaptureMotionFrame(hwnd,
+                Stopwatch.GetTimestamp(), Volatile.Read(ref captureRegion)), OnCaptured,
+                () => clock.Elapsed.TotalMilliseconds, 800, 16, samplingStop.Token);
             if (trial == "forward-disabled") frame.GoForward();
             else Require(frame.Navigate(pageType, request, trial == "suppress"
                 ? new SuppressNavigationTransitionInfo() : new EntranceNavigationTransitionInfo()), "动效候选目标导航失败");
@@ -298,6 +300,7 @@ internal sealed partial class ShellNavigationProbe
                         trial,
                         frames = samples,
                         captureTimings,
+                        capturedRegions,
                         uiFrames,
                         captureRegion = Volatile.Read(ref captureRegion),
                         disableDispatch = dispatchRead,
@@ -314,6 +317,10 @@ internal sealed partial class ShellNavigationProbe
                         finished,
                         retainedFailureScreen = trialFailure is not null && lastCaptured is not null,
                         nativeIntermediateScreenshot = evidence is not null,
+                        nativeIntermediateCrop = evidence?.Bounds,
+                        retainedFailureCrop = trialFailure is not null ? lastCaptured?.Bounds : null,
+                        actualScreenRoiCapture = true,
+                        markerCoordinates = "original client pixels; PNG is actual captured crop",
                         readAfterRendered = false,
                         backgroundContinuousCapture = true,
                         oneToOnePresentationFrameProved = false,
@@ -413,25 +420,35 @@ internal sealed partial class ShellNavigationProbe
             }
         }
 
-        void OnCaptured(CompositionPlaybackProbe.ResizeScreenFrame pixels, MotionCaptureTiming timing)
+        void OnCaptured(CompositionPlaybackProbe.MotionScreenFrame captured, MotionCaptureTiming timing)
         {
             captureTimings.Add(timing);
-            lastCaptured = pixels;
-            var region = Volatile.Read(ref captureRegion);
+            lastCaptured = captured;
+            capturedRegions.Add(new
+            {
+                timing.Index,
+                captured.Bounds,
+                captured.Pixels.Width,
+                captured.Pixels.Height,
+                captured.Pixels.Stable,
+                regionMeasuredAtMs = captured.Region?.MeasuredAtMs
+            });
+            var region = captured.Region;
             if (region is null) return; // 未完成真实布局时不从整页绿色噪声猜标记。
             disable.ThrowIfFailed();
             var applied = disable.Snapshot.AppliedAtMs;
             // 捕获跨过关闭动作的一帧仍算关闭前；下一次真正开始的捕获才计AfterDisable。
             var afterDisable = historyDisabled || applied is { } at && at <= timing.StartMs;
-            var read = MotionProbeEvidence.Read(pixels.Bytes, pixels.Width, pixels.Height, pixels.Stable,
-                timing.EndMs, afterDisable, region.Area);
+            var pixels = captured.Pixels;
+            var read = MotionProbeEvidence.ReadCrop(pixels.Bytes, pixels.Width, pixels.Height, pixels.Stable,
+                timing.EndMs, afterDisable, captured.Bounds);
             samples.Add(read);
             if (controlFinal is not null && read.Visible && !MotionProbeEvidence.SamePresentation(read, controlFinal))
             {
-                if (trial == "entrance" && evidence is null) evidence = pixels;
+                if (trial == "entrance" && evidence is null) evidence = captured;
                 if (trial == "disable-in-flight") disable.Request();
             }
-            else if (trial == "disable-in-flight" && afterDisable && evidence is null) evidence = pixels;
+            else if (trial == "disable-in-flight" && afterDisable && evidence is null) evidence = captured;
         }
     }
 }

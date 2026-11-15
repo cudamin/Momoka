@@ -135,13 +135,22 @@ internal sealed class ShellProbeReport
             return;
         }
         Task? running = null;
+        Exception? firstFailure = null;
+        var checkIndex = -1;
         try
         {
             await (running = run()).WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
+            checkIndex = _checks.Count;
             _checks.Add(new Check(name, true, ""));
         }
-        catch (Exception error) { _checks.Add(new Check(name, false, error.ToString())); }
-        try { Save(); }
+        catch (Exception error)
+        {
+            firstFailure = error;
+            checkIndex = _checks.Count;
+            _checks.Add(new Check(name, false, error.ToString()));
+        }
+        var saved = false;
+        try { Save(); saved = true; }
         finally
         {
             // 超时只结束等待，后台捕获与UI收尾仍持有窗口；先记红，再等真实任务退出。
@@ -149,7 +158,17 @@ internal sealed class ShellProbeReport
             if (running is not null)
             {
                 try { await running; }
-                catch { /* 首次异常或超时已记录，不能以迟到完成改成通过。 */ }
+                catch (Exception error)
+                {
+                    // A timeout and the later task/cleanup failure are distinct evidence. Keep one failed
+                    // case and the original timeout; an initial writer failure must still propagate intact.
+                    if (!ReferenceEquals(error, firstFailure))
+                    {
+                        var check = _checks[checkIndex];
+                        _checks[checkIndex] = check with { Detail = check.Detail + "\n迟到任务收尾异常：\n" + error };
+                        if (saved) Save();
+                    }
+                }
             }
         }
     }

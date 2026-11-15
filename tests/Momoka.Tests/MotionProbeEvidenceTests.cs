@@ -8,6 +8,46 @@ internal static class MotionProbeEvidenceTests
     public static void Register()
     {
         MotionScreenSamplerTests.Register();
+        MotionScreenCaptureTests.Register();
+        Test("动效裁切判据：与同帧整客户区读数一致，含屏幕负坐标和区域外噪声", () =>
+        {
+            var full = new byte[10 * 8 * 4];
+            var crop = new byte[5 * 5 * 4];
+            var bounds = MotionCaptureBounds.Create(-1200, -100, 10, 8, new(3, 2, 7, 6));
+            full[1] = 255;
+            for (var y = 3; y <= 4; y++)
+                for (var x = 4; x <= 6; x++)
+                {
+                    full[(y * 10 + x) * 4 + 1] = 240;
+                    crop[((y - 2) * 5 + x - 3) * 4 + 1] = 240;
+                }
+            var whole = MotionProbeEvidence.Read(full, 10, 8, true, 30, true, bounds.Area);
+            var cropped = MotionProbeEvidence.ReadCrop(crop, 5, 5, true, 30, true, bounds);
+            Assert.Equal(whole, cropped);
+            Assert.Equal(-1197, bounds.ScreenLeft);
+            Assert.Equal(-98, bounds.ScreenTop);
+            Assert.Equal(6, cropped.Pixels);
+            Assert.False(MotionProbeEvidence.SamePresentation(cropped with { Top = cropped.Top + 2 }, cropped));
+            Assert.True(MotionProbeEvidence.SamePresentation(cropped with { Top = cropped.Top + 1 }, cropped));
+        });
+        Test("动效裁切判据：端点为实际单像素，空帧保留全客户区哨兵，错裁切尺寸拒绝", () =>
+        {
+            var bounds = MotionCaptureBounds.Create(0, 0, 10, 8, new(9, 7, 9, 7));
+            var pixels = new byte[] { 0, 255, 0, 255 };
+            var read = MotionProbeEvidence.ReadCrop(pixels, 1, 1, true, 10, false, bounds);
+            Assert.Equal(9, read.Left);
+            Assert.Equal(7, read.Top);
+            Assert.Equal(9, read.Right);
+            Assert.Equal(7, read.Bottom);
+            pixels[1] = 0;
+            var empty = MotionProbeEvidence.ReadCrop(pixels, 1, 1, true, 11, false, bounds);
+            Assert.False(empty.Visible);
+            Assert.Equal(10, empty.Left);
+            Assert.Equal(8, empty.Top);
+            Assert.Equal(-1, empty.Right);
+            Assert.Throws<ArgumentException>(() => MotionProbeEvidence.ReadCrop(pixels, 2, 1, true, 10, false, bounds));
+            Assert.Throws<ArgumentException>(() => MotionProbeEvidence.ReadCrop(pixels, 1, 2, true, 10, false, bounds));
+        });
         Test("动效候选路由：全部成功按原顺序执行且通过", () =>
         {
             var attempted = new List<string>();

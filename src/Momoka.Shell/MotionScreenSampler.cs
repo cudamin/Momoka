@@ -5,6 +5,30 @@ internal readonly record struct MotionCaptureTiming(int Index, double StartMs, d
 
 internal sealed record MotionCaptureRegion(MotionMarkerRegion Area, double MeasuredAtMs);
 
+internal sealed record MotionCaptureBounds(int ClientLeft, int ClientTop, int ClientWidth, int ClientHeight,
+    MotionMarkerRegion Area)
+{
+    internal int Width => Area.Right - Area.Left + 1;
+    internal int Height => Area.Bottom - Area.Top + 1;
+    internal int ScreenLeft => checked(ClientLeft + Area.Left);
+    internal int ScreenTop => checked(ClientTop + Area.Top);
+
+    internal static MotionCaptureBounds Create(int clientLeft, int clientTop, int clientWidth, int clientHeight,
+        MotionMarkerRegion? region)
+    {
+        var area = region ?? new MotionMarkerRegion(0, 0, clientWidth - 1, clientHeight - 1);
+        if (clientWidth <= 0 || clientHeight <= 0 || area.Left < 0 || area.Top < 0
+            || area.Right >= clientWidth || area.Bottom >= clientHeight
+            || area.Right < area.Left || area.Bottom < area.Top)
+            throw new ArgumentException("动效实际采屏区域不在客户区内");
+        var bounds = new MotionCaptureBounds(clientLeft, clientTop, clientWidth, clientHeight, area);
+        _ = checked(bounds.Width * bounds.Height * 4);
+        _ = checked(clientLeft + area.Right);
+        _ = checked(clientTop + area.Bottom);
+        return bounds;
+    }
+}
+
 /// <summary>专用后台线程连续取实际屏幕；捕获与读数回调不得访问XAML，停止后先等本次捕获退出再清页面。</summary>
 internal static class MotionScreenSampler
 {

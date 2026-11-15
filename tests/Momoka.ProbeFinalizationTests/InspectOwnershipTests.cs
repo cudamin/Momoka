@@ -9,6 +9,100 @@ internal static partial class Program
     {
         foreach (var writerThrows in new[] { false, true })
         {
+            Test("automatic-case-late-failure-" + (writerThrows ? "preserves-writer-error" : "keeps-timeout-and-details"), async () =>
+            {
+                var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var wrote = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var cleanupFailure = new InvalidOperationException("late actual capture cleanup failed");
+                var writerFailure = new IOException("first timeout report write failed");
+                var attempts = 0;
+                var cleanupFinished = false;
+                var paths = Paths("automatic-case-late-failure-" + writerThrows);
+                paths.EnsureCreated();
+                var report = new ShellProbeReport(paths.LogDirectory, null, ShellProbeSections.All,
+                    (path, text, encoding) =>
+                    {
+                        attempts++;
+                        wrote.TrySetResult();
+                        if (writerThrows) throw writerFailure;
+                        File.WriteAllText(path, text, encoding);
+                    });
+                var running = report.CaseAsync("late cleanup case", async () =>
+                {
+                    try { await release.Task; }
+                    finally { cleanupFinished = true; }
+                    throw cleanupFailure;
+                }, 1, ShellProbeSections.Motion);
+                Exception? observed = null;
+                try
+                {
+                    await wrote.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                    Ensure(!running.IsCompleted && !cleanupFinished, "timeout/writer failure keeps the real owner");
+                    Ensure(report.Checks is [{ Passed: false }], "one initial failed case retained");
+                }
+                finally
+                {
+                    release.TrySetResult();
+                    try { await running; }
+                    catch (Exception error) { observed = error; }
+                }
+                Ensure(cleanupFinished, "late cleanup finished before Case returned");
+                Ensure(report.Checks is [{ Passed: false }], "late failure augments one failed case, never duplicates it");
+                var detail = report.Checks[0].Detail;
+                Ensure(detail.Contains(nameof(TimeoutException), StringComparison.Ordinal), "original timeout survives");
+                Ensure(detail.Contains(cleanupFailure.ToString(), StringComparison.Ordinal), "late exception with stack survives");
+                Equal(writerThrows ? 1 : 2, attempts, "only persist newly added late details after an initially successful write");
+                Ensure(writerThrows ? ReferenceEquals(writerFailure, observed) : observed is null,
+                    "initial writer exception propagates unchanged after recording the late failure");
+                if (!writerThrows)
+                    Ensure(File.ReadAllText(Path.Combine(paths.LogDirectory, "shell-probe.json"))
+                        .Contains("late actual capture cleanup failed", StringComparison.Ordinal), "late detail persisted in actual report");
+            });
+        }
+        Test("automatic-case-synchronous-failure-recorded-once", async () =>
+        {
+            var failure = new InvalidOperationException("synchronous run delegate failed");
+            var writes = 0;
+            var report = new ShellProbeReport(Paths("automatic-case-sync").LogDirectory, null, ShellProbeSections.All,
+                (_, _, _) => writes++);
+            await report.CaseAsync("synchronous case", () => throw failure, 1, ShellProbeSections.Motion);
+            Ensure(report.Checks is [{ Passed: false }], "synchronous failure recorded");
+            Equal(failure.ToString(), report.Checks[0].Detail, "original synchronous exception unchanged");
+            Equal(1, writes, "no running task or duplicate write invented");
+        });
+        Test("automatic-case-asynchronous-failure-not-duplicated", async () =>
+        {
+            var failure = new IOException("already completed task failure");
+            var writes = 0;
+            var report = new ShellProbeReport(Paths("automatic-case-async").LogDirectory, null, ShellProbeSections.All,
+                (_, _, _) => writes++);
+            await report.CaseAsync("completed failure case", () => Task.FromException(failure), 1, ShellProbeSections.Motion);
+            Ensure(report.Checks is [{ Passed: false }], "task failure recorded once");
+            Ensure(report.Checks[0].Detail.Contains("already completed task failure", StringComparison.Ordinal)
+                && !report.Checks[0].Detail.Contains("迟到任务收尾异常", StringComparison.Ordinal),
+                "draining the same exception does not duplicate details or replace the first recorded stack");
+            Equal(1, writes, "same failure does not trigger another write");
+        });
+        Test("automatic-case-late-failure-preserves-nested-check", async () =>
+        {
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var report = new ShellProbeReport(Paths("automatic-case-nested-late").LogDirectory, null, ShellProbeSections.All,
+                (_, _, _) => { });
+            var running = report.CaseAsync("outer timeout", async () =>
+            {
+                await report.CaseAsync("nested success", () => Task.CompletedTask, 1, ShellProbeSections.Motion);
+                await release.Task;
+                throw new IOException("outer late failure");
+            }, 0, ShellProbeSections.Motion);
+            Ensure(!running.IsCompleted, "outer timeout retains its real owner");
+            release.SetResult();
+            await running;
+            Ensure(report.Checks is [{ Name: "nested success", Passed: true, Detail: "" }, { Name: "outer timeout", Passed: false }],
+                "late details belong to the outer recorded check without corrupting a nested check");
+            Ensure(report.Checks[1].Detail.Contains("outer late failure", StringComparison.Ordinal), "outer failure retained");
+        });
+        foreach (var writerThrows in new[] { false, true })
+        {
             Test("automatic-case-" + (writerThrows ? "writer-failure-drains-owner" : "timeout-drains-owner"), async () =>
             {
                 var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

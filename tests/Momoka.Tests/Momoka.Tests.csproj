@@ -171,6 +171,10 @@
         var evidence = between(pixels, "    // Retained-frame edge evidence;", "\n    /// <summary>");
         var save = between(pixels, "    internal static Task SaveScreenAsync(HostWindow window, string file)", "    // Retained-frame edge evidence;");
         var frame = between(pixels, "    private sealed record ScreenPixels(", "\n    [StructLayout(");
+        var resizeFrame = between(pixels, "    internal sealed record ResizeScreenFrame(", "\n    // Motion screen ROI capture;");
+        var motionRegion = between(pixels, "    // Motion screen ROI capture;", "\n    // End motion screen ROI capture.");
+        var sameRect = between(pixels, "    private static bool SameRect(", "\n    internal static Task SaveScreenAsync(");
+        var guard = between(pixels, "    private static void GuardVisible(", "\n    private static ScreenPixels CopyScreen(");
         var line = between(composition, "    internal static string Line(", "\n    /// <summary>");
         var edge = between(composition, "    internal static string EdgeRead(", "\n    /// <summary>");
         var blank = between(composition, "    internal static bool HasBlank(", "\n    /// <summary>");
@@ -180,12 +184,15 @@
         var generated = "// Verbatim current probe methods; native/capture/encoder endpoints are test-only.\n#nullable enable\n" +
             "using System.Diagnostics;\nusing Momoka.Tests;\nusing Native = Momoka.Tests.ProbeEvidenceNative;\n" +
             "using NativePoint = Momoka.Tests.ProbeEvidencePoint;\nusing HostWindow = Momoka.Tests.ProbeEvidenceWindow;\n" +
+            "using NativeRect = Momoka.Tests.ProbeEvidenceRect;\n" +
             "namespace Momoka.Shell;\ninternal static class CursorVisibilityProbe\n{\n" + input +
             "    internal static Task PrepareForFixture(HostWindow window, NativePoint[] targets, Action<string> write, CancellationToken token, int timeout) => PrepareInputAsync(window, targets, write, token, timeout);\n" +
             "    internal static Task MoveForFixture(HostWindow window, int x, int y, Action<string> write, CancellationToken token) => MoveAsync(window, x, y, write, token);\n}\n" +
-            "internal static partial class CompositionPlaybackProbe\n{\n" + evidence + save + frame + line + edge + blank + colors +
+            "internal static partial class CompositionPlaybackProbe\n{\n" + evidence + save + frame + resizeFrame + motionRegion + sameRect
+            + guard + line + edge + blank + colors +
             "    private static ScreenPixels CapturePixels(HostWindow window) => CapturePixels(window.Handle);\n" +
             "    private static ScreenPixels CapturePixels(IntPtr handle)\n    {\n        var frame = ProbeEvidenceNative.State.Capture(handle);\n        return new ScreenPixels(frame.Width, frame.Height, frame.Bytes) { OriginX = frame.OriginX, OriginY = frame.OriginY };\n    }\n" +
+            "    private static ScreenPixels CopyScreen(int x, int y, int width, int height)\n    {\n        var frame = ProbeEvidenceNative.State.CopyScreen(x, y, width, height);\n        return new ScreenPixels(frame.Width, frame.Height, frame.Bytes) { OriginX = frame.OriginX, OriginY = frame.OriginY };\n    }\n" +
             "    private static Task EncodeAsync(ScreenPixels frame, string file) => ProbeEvidenceNative.State.Encode(frame.Bytes, file);\n}\n" +
             "internal static class RetainedEvidenceCaller\n{\n    internal static void Validate(string fixedRead, Action<string> Write)\n    {\n" +
             assertion + require + "    }\n}\n";

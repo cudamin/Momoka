@@ -63,6 +63,23 @@ internal static class MotionProbeEvidence
         return new(atMs, afterDisable, stable, left, top, right, bottom, pixels, pixels == 0 ? 0 : (double)green / pixels);
     }
 
+    internal static MotionMarkerFrame ReadCrop(byte[] bgra, int width, int height, bool stable, double atMs,
+        bool afterDisable, MotionCaptureBounds bounds)
+    {
+        if (width != bounds.Width || height != bounds.Height)
+            throw new ArgumentException("动效真实裁切帧与采屏区域尺寸不一致");
+        var read = Read(bgra, width, height, stable, atMs, afterDisable);
+        // PNG contains only the actual screen ROI. Compare every trial in original client pixels,
+        // including the full-client invisible sentinel, so cropping cannot relax the +/-1 judgement.
+        return read.Visible ? read with
+        {
+            Left = read.Left + bounds.Area.Left,
+            Top = read.Top + bounds.Area.Top,
+            Right = read.Right + bounds.Area.Left,
+            Bottom = read.Bottom + bounds.Area.Top
+        } : read with { Left = bounds.ClientWidth, Top = bounds.ClientHeight };
+    }
+
     internal static bool SamePresentation(MotionMarkerFrame sample, MotionMarkerFrame settled) =>
         sample.Stable && settled.Stable && sample.Visible && settled.Visible
         && Math.Abs(sample.Left - settled.Left) <= 1 && Math.Abs(sample.Top - settled.Top) <= 1

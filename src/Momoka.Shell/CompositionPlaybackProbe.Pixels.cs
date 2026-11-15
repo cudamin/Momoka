@@ -15,6 +15,48 @@ internal static partial class CompositionPlaybackProbe
         internal Task SaveAsync(string path) => EncodeAsync(new ScreenPixels(Width, Height, Bytes), path);
     }
 
+    // Motion screen ROI capture; source-linked tests replace only native bounds/BitBlt/encoder endpoints.
+    internal sealed record MotionScreenFrame(ResizeScreenFrame Pixels, MotionCaptureBounds Bounds, MotionCaptureRegion? Region)
+    {
+        internal Task SaveAsync(string path) => Pixels.SaveAsync(path);
+    }
+
+    internal static MotionScreenFrame CaptureMotionFrame(IntPtr handle, long at, MotionCaptureRegion? region)
+    {
+        var before = ReadScreenClientRect(handle);
+        var bounds = MotionCaptureBounds.Create(before.Left, before.Top, before.Width, before.Height, region?.Area);
+        // Retain whole-client ownership and additionally guard the actual sampled ROI.
+        GuardVisible(handle, before.Left, before.Top, before.Width, before.Height);
+        GuardVisible(handle, bounds.ScreenLeft, bounds.ScreenTop, bounds.Width, bounds.Height);
+        ScreenPixels screen;
+        try { screen = CopyScreen(bounds.ScreenLeft, bounds.ScreenTop, bounds.Width, bounds.Height); }
+        catch (InvalidOperationException) when (!SameRect(before, ReadScreenClientRect(handle)))
+        {
+            return new(new(bounds.Width, bounds.Height, [], false, at), bounds, region);
+        }
+        var after = ReadScreenClientRect(handle);
+        var stable = SameRect(before, after) && screen.OriginX == bounds.ScreenLeft && screen.OriginY == bounds.ScreenTop
+            && screen.Width == bounds.Width && screen.Height == bounds.Height;
+        return new(new(screen.Width, screen.Height, screen.Bytes, stable, at), bounds, region);
+    }
+
+    private static NativeRect ReadScreenClientRect(IntPtr handle)
+    {
+        if (!Native.GetClientRect(handle, out var client) || client.Width <= 0 || client.Height <= 0)
+            throw new InvalidOperationException("动效采屏无法读取实际客户区");
+        var origin = new NativePoint();
+        if (!Native.ClientToScreen(handle, ref origin))
+            throw new InvalidOperationException("动效采屏无法定位实际客户区");
+        return new NativeRect
+        {
+            Left = origin.X,
+            Top = origin.Y,
+            Right = checked(origin.X + client.Width),
+            Bottom = checked(origin.Y + client.Height)
+        };
+    }
+    // End motion screen ROI capture.
+
     internal static ResizeScreenFrame CaptureResizeFrame(IntPtr handle, long at)
     {
         var before = VideoFrameOverlay.ClientRect(handle);

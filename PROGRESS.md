@@ -1,3 +1,11 @@
+## 2026-11-15 交付动效诊断：实际ROI采屏与迟到收尾异常
+
+独立树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka` 合入17a0c62后修本轮探针。PID2660的音乐Entrance：Rendering24.3474ms已发布ROI76..204/12..232，第7次仍整1000×720抓屏123.5573→410.008ms耗286.4507ms，首个可见454.3486ms的top109与最终108相差1仍按原±1视为落定，因此native-intermediate-not-observed保持证据不足。日志只量总捕获耗时，未证明是哪一个GDI调用；不改产品动画/判据、延長800ms、减少16ms或预热候选。
+
+现在后台每次开始固定Rendering发布的不可变ROI，按实际含端点129×221区域直接BitBlt（28509/720000像素，3.96%）；未有ROI仍抓整客户区但不猜标记。全客户区与ROI遮挡均守卫，前后客户区原点/尺寸和实际拷贝尺寸一致才Stable；读数回到原客户区像素，PNG仅为真实裁切不合成整窗。逐帧capturedRegions含完整客户区/ROI/实际PNG尺寸/测量时间，nativeIntermediateCrop、retainedFailureCrop对应同byte[]截图。源链接完整CaptureMotionFrame/客户区读取/GuardVisible，只替换Win32矩形、BitBlt与编码端点；五项实际控制流回归与两项坐标判据覆盖噪声、负屏幕坐标、包含端点、空帧、错尺寸、移动/resize、遮挡、越界/溢出和同帧编码，motion-probe-fixture44/44。
+
+另补Case超时后迟到task/cleanup异常，追加到原失败条目并保留Timeout，不重复同一异常；首次writer失败不重写覆盖原writer异常，正常首次写后才持久新增详情；嵌套Case不改错属主。五项同步/异步/迟到失败实际回归，ProbeFinalization113/113、失败0、跳过0；首次112项中唯一红是同异常再次await改变StackTrace后测试误比较完整字符串，已改为核首次记录与无重复，失败记录保留。Tests/Core与专项编译0警告0错误，动效源与相关测试定向whitespace通过（Shell workspace加载提示单列），最终Shell/Core Release0警告0错误（1分22.97秒）；原生性能提升和完整候选结果仍须父交付会话在最终主树实际重跑，源链接不能当真实耗时。此树未启动UI、读取图片/真实凭据、发布或推送。证据在artifacts/delivery-motion-roi，清树前保存。
+
 ## 2026-11-15 交付诊断：返回主页等待本次加载与滚动恢复
 
 独立树 `C:/Users/89400/.codex/worktrees/delivery-home-chrome/Momoka` 先合入主树44b7a8b（5347453，PROGRESS双方追加均保留，产品/测试与主树一致）。原生PID12060在用户激活/真实输入成功后仍仅history-return红：离开前主页1240、偏移300，LibraryPage正常；正式GoBack后client/Shell1240而Home0。源码核 `ShellPage.ActiveContentReady` 只取Home.IsReady；Home缓存重入先TryReactivate与排队 `_restoredScroll`，实际Loaded才消耗该字段并ScrollTo，旧偏移300与尚false的 `_restoringHeaderScroll` 可让旧探针立即通过。因此只改检查工具，不改产品恢复、依赖或Revealed期望。
