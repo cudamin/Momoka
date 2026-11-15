@@ -77,6 +77,17 @@ public static class DetailHero
     /// </summary>
     public static double StorePageInset(double width) => width >= StoreWideFloor ? 96 : width >= 600 ? 56 : 32;
 
+    /// <summary>
+    /// 商店详情头部内容离内容区上沿的空白。2026-11-15 用户令「增加详情页/订阅详情页上方的空位」
+    /// （参考微软商店条目页：标题栏下先空一段，封面、片名和按钮才起排）。
+    /// <para>
+    /// 电影／剧／季／集详情页（<c>DetailViewModel.HeroInset</c> 的商店档）与 MoviePilot
+    /// 订阅详情页（<c>MoviePilotMediaViewModel.HeaderPadding</c> 的简洁档）读同一个数，两页顶线一致。
+    /// 沉浸档不读它：那一档压着铺满的背景图排，收进去反而把片名推离画面。
+    /// </para>
+    /// </summary>
+    public const double StoreHeroTop = 72;
+
     /// <summary>商店剧照与预告使用同一顶部右侧视口，原图在视口内等比裁切。</summary>
     public static double StorePictureWidth(double width, double ratio) => TrailerPreview.BackgroundWidth(width);
 

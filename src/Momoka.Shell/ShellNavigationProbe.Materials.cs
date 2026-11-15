@@ -115,7 +115,8 @@ internal sealed partial class ShellNavigationProbe
             // Validate the current factory Acrylic branch before selecting the historical
             // thin-white overlay fixture used by the exact 15/21/8 assertions below.
             await LayoutAsync(detail);
-            var factoryPlay = Descendants(Get<StackPanel>(detail, "ColumnActions")).OfType<Button>()
+            // 商店宽版式里主播放键被搬到封面右侧（2026-11-15 用户令），不再位于 ColumnActions。
+            var factoryPlay = Descendants(detail).OfType<Button>()
                 .Single(button => AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
             var factoryFill = (AcrylicBrush)factoryPlay.Resources["ButtonBackground"];
             var factoryColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, fixture.Settings.Ui));
@@ -260,6 +261,36 @@ internal sealed partial class ShellNavigationProbe
                             }
                             foreach (var control in controls)
                                 await CheckRestoredActionAsync(control);
+                            // 2026-11-15 用户报「点了连播之后图标没反应不会自动切换为主题色」：勾上那颗
+                            // FontIcon 必须实际换成主题色。ToggleButton 的勾选态只换 ContentPresenter 的
+                            // 前景，FontIcon 不跟它走，所以这里读的是那颗图标自己的实际前景。
+                            var continueToggle = controls.OfType<ToggleButton>().Single(control =>
+                                AutomationProperties.GetAutomationId(control) is "ColumnContinueButton" or "CompactContinueButton");
+                            var continueGlyph = Descendants(continueToggle).OfType<FontIcon>().Single();
+                            var continueBefore = detail.ViewModel.ContinuePlay;
+                            try
+                            {
+                                continueToggle.IsChecked = false;
+                                await LayoutAsync(detail);
+                                var continueOff = continueGlyph.Foreground as SolidColorBrush;
+                                Require(continueOff is not null
+                                    && continueOff.Color == DefaultDetailForeground("EgDetailActionTextBrush"),
+                                    $"{theme.Id}/{width} 连播关着时图标没有保持压在图上那支浅墨："
+                                        + $"{continueOff?.Color.ToString() ?? "null"}");
+                                continueToggle.IsChecked = true;
+                                await LayoutAsync(detail);
+                                var continueOn = continueGlyph.Foreground as SolidColorBrush;
+                                Require(continueOn is not null
+                                    && continueOn.Color == DefaultDetailForeground("EgAccentBrush"),
+                                    $"{theme.Id}/{width} 连播开着时图标没有换成主题色："
+                                        + $"{continueOn?.Color.ToString() ?? "null"}");
+                                reads.Add($"{theme.Id}/{width}/连播图标：关={continueOff!.Color}，开={continueOn!.Color}");
+                            }
+                            finally
+                            {
+                                continueToggle.IsChecked = continueBefore;
+                                await LayoutAsync(detail);
+                            }
                             var reference = controls.OfType<Button>().Single(control =>
                                 AutomationProperties.GetAutomationId(control) == (width == 1280
                                     ? "ColumnPlayButton" : "CompactPlayButton"));

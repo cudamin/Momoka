@@ -21,22 +21,26 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!-- 「开启连播 / 已观看」两颗图标共用的那支墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，
-             不跟主题强调色走 —— 用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，
-             并明确「这个按钮的修改包括沉浸模式」；只有高对比度由 ApplyAppearance 换回系统强调色。
-             用页面局部的一支画刷而不是替换 ToggleButton 里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
+        <!-- 「已观看」那颗图标的墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，不跟主题强调色走 ——
+             用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确「这个按钮的修改
+             包括沉浸模式」；当天稍后连播那颗改为跟主题色（见 DetailPage.Appearance 的 PaintContinueInk），
+             这支绿只剩「已观看」的实心圆用。只有高对比度由 ApplyAppearance 换回系统前景。
+             用页面局部的一支画刷而不是替换模板里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
         <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
-        <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起收紧。仅作用于详情页。 -->
-        <x:Double x:Key="ComboBoxMinHeight">28</x:Double>
+        <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起长。仅作用于详情页。 -->
+        <x:Double x:Key="ComboBoxMinHeight">36</x:Double>
         <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="MinHeight" Value="{StaticResource EgPickerRowHeight}" />
             <Setter Property="Padding" Value="10,3,0,3" />
         </Style>
-        <!-- 文件选项的六颗下拉保持小圆角矩形（2026-11-15 用户令「不要胶囊形状，矩形加一点圆角」）。
-             28 DIP 的行高最多画得出 14 DIP 的圆角，EgCardCornerRadius 的 16 写上去屏上就是两端半圆的
-             胶囊；4 DIP 是第 40 项确认过的那一档。只作用于本页六颗 EgPicker，下方操作按钮与全局
-             EgPicker 照旧。 -->
-        <CornerRadius x:Key="EgDetailPickerCornerRadius">4</CornerRadius>
+        <!-- 文件选项的六颗下拉：圆角矩形，不是胶囊（2026-11-15 用户令「不要胶囊形状，矩形加一点圆角」，
+             当天更晚又令「圆角不够圆，加高选择框的高度」）。
+             28 DIP 的行高下，EgCardCornerRadius 的 16 画出来是两端半圆的胶囊，于是先试过 4 —— 4 在同样
+             的窄边里又只剩一道方槽，圆角看不出来。现在行高抬到 36（EgPickerRowHeight）、圆角取 12：
+             半个高度是 18，12 还差 6 才到半圆，四角是圆的、腰身是直的，正是「矩形加圆角」那一档；
+             它同时和全站输入框的 10 DIP 是同一档语义（EgSearchCornerRadius 管设置与搜索的框）。
+             只作用于本页六颗 EgPicker，下方操作按钮与全局 EgPicker 照旧。 -->
+        <CornerRadius x:Key="EgDetailPickerCornerRadius">12</CornerRadius>
         <!-- 头图上那六颗键：带字的两颗一个高度，只有图标的四颗是同边长的方块。三个样式的高度、边长和
              圆角都取词表 —— 以前是写死的 38 配 19，19 是「一半高」也就是药丸，而这一版里圆角只有两档：
              图是 0，你会去按的东西是 8。两个都必须 BasedOn 框架自己的样式，否则连模板都拿不到。 -->
@@ -65,10 +69,11 @@
         <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
              勾上时**只有图标换色**（2026-10-11，参考图里那颗回转图标是绿的、药丸和字原样不动）：
              底那三档按回不带勾时的那三支（常／悬／按，见两颗 ToggleButton 各自的 Resources），
-             字钉死在压在图上那支浅墨上，于是 Foreground 一路继承下来只剩那颗 FontIcon 跟着走。
-             勾上那三档指向页面局部的 EgActionActiveBrush：正常对比下它就是固定的绿（2026-11-15 用户令
-             「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确包括沉浸模式），
-             只有高对比度由 ApplyAppearance 换回系统强调色。 -->
+             字钉死在压在图上那支浅墨上。
+             勾上那支墨**不交给模板的勾选前景**：ToggleButton 的勾选态只换 ContentPresenter 的
+             Foreground，IconElement.Foreground 不跟视觉状态走，勾上以后那颗 FontIcon 仍是常态那支浅墨
+             （2026-11-15 用户报「点了连播图标没反应」）。所以这一颗由页面自己上墨：关着是浅墨，
+             开着取主题色，见 DetailPage.Appearance 的 PaintContinueInk。 -->
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
@@ -303,7 +308,7 @@
             <Grid x:Name="StoreScrollContent">
         <!-- 商店模式：条目的横向剧照只装饰顶部，左右保护文字、底部渐隐，不改变卡面排版。
              2026-11-14 用户令「渐变参考图二改」：压在剧照上的那两道染色退役，换成一块从剧照取色的环境底
-             （StoreAmbient，铺满内容宽，左端与底部收到画布）；剧照自己在同一块底上按左、下两向渐隐。
+             （StoreAmbient，铺满内容宽，右端与底部收到画布，左端贴住内容区左沿）。剧照自己在同一块底上按左、下两向渐隐。
              2026-11-15 用户令「背景图/预告片下方和左右要加渐变」与「收窄窗口时候自动向右上角缩小，最右边
              要留一点空隙」：右端也收边，视口与右沿之间留 StorePreviewGap 的缝；窗口越窄，60% 宽的视口
              越往右上角收。两块各有一张二维 alpha 遮罩（StoreBackdropFade）。
@@ -325,6 +330,8 @@
               Width="{x:Bind ViewModel.StoreBackdropWidth, Mode=OneWay}" HorizontalAlignment="Right"
               Margin="{x:Bind ViewModel.StorePreviewMargin, Mode=OneWay}"
               VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed">
+            <!-- 右侧剧照/预告的圆角由 DetailPage.Store.cs 在宽版式里写进这两个内容格的 CornerRadius
+                 （2026-11-15 用户令「给右边的背景图/预告片渐变加圆角」）；窄窗铺满整幅时保持直角。 -->
             <Grid x:Name="StoreBackdropContent">
                 <Border x:Name="StoreBackdropPicture">
                     <Border.Background>
@@ -615,6 +622,18 @@
                                 </Button.RenderTransform>
                                 <FontIcon Glyph="&#xE768;" Style="{StaticResource EgPlayGlyphStyle}" />
                             </Button>
+
+                            <!-- 2026-11-15 用户令「收藏和已看按钮移到左上角的封面里」：商店模式把两颗既有实例搬进这一格，
+                                 图标收成 44 见方的圆角键，不压文字（见 DetailPage.Store.cs 的 PlaceStoreActionButtons）。
+                                 摆在封面按钮与悬停键之后，落在最上层；容器自己不接指针，空白处的点击仍落到下面那张封面。 -->
+                            <StackPanel
+                                x:Name="StoreCoverBadges"
+                                HorizontalAlignment="Left"
+                                Margin="8"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Top"
+                                Visibility="{x:Bind ViewModel.StoreCoverBadgesVisibility, Mode=OneWay}" />
                         </Grid>
 
                         <StackPanel
@@ -827,6 +846,15 @@
                                 </Grid>
                             </StackPanel>
 
+                            <!-- 2026-11-15 用户令「把播放按钮和更多按钮移到封面右边」：商店模式把这两颗既有实例搬到
+                                 片名栏末尾，横向排在封面右侧、更多在最右（见 DetailPage.Store.cs 的
+                                 PlaceStoreActionButtons）。其余模式这一格收着，两颗键留在 ColumnActions。 -->
+                            <StackPanel
+                                x:Name="StoreCoverActions"
+                                Orientation="Horizontal"
+                                Spacing="10"
+                                Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}" />
+
                             <StackPanel
                                 x:Name="FileOptions"
                                 Spacing="6"
@@ -956,7 +984,10 @@
                                  商店模式例外（2026-11-14 用户令「参考上图布局」）：这一叠被 DetailPage.Store.cs
                                  搬到封面下方的 StoreHeroDetails，排在剧情说明和文件选项之后，当那一块的收尾行 ——
                                  和微软商店条目页一样，标题块底下依次是简介、文件选项、操作按钮。同一个实例只换父级，
-                                 绑定、事件和焦点都不动。从前那颗「从头开始」不再单独占一颗键：它并进「更多」菜单，
+                                 绑定、事件和焦点都不动。2026-11-15 用户再令：商店宽版式里播放、更多搬去封面右侧，
+                                 收藏、已看搬进封面左上角，连播搬去集列表卡片右上角（DetailPage.Store.cs 的
+                                 PlaceStoreActionButtons）；这一排只留花絮与特典和断点进度。
+                                 从前那颗「从头开始」不再单独占一颗键：它并进「更多」菜单，
                                  只在有断点、原先那颗会露头的同一判据下出现（RestartVisibility）。
                                  七颗键同一批命令；AutomationId 前缀 Column，和紧凑版式那份（Compact*）
                                  同一个规矩 —— 一个 id 只说一颗键。 -->
@@ -964,7 +995,7 @@
                                 x:Name="ColumnActions"
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.ColumnActionsVisibility, Mode=OneWay}">
-                                <local:WrapRow RowSpacing="10" Spacing="10">
+                                <local:WrapRow x:Name="ColumnActionRow" RowSpacing="10" Spacing="10">
                                     <Button
                                         x:Name="ColumnPlayButton"
                                         AutomationProperties.AutomationId="ColumnPlayButton"
@@ -1010,26 +1041,24 @@
                                          也是它），不是这一页自己的状态：三处（宽版式两排、紧凑一块）和那两个
                                          地方读的是同一个值，谁开了屏上到处都认。 -->
                                     <ToggleButton
+                                        x:Name="ColumnContinueButton"
+                                        Checked="OnContinueToggled"
+                                        Unchecked="OnContinueToggled"
                                         AutomationProperties.AutomationId="ColumnContinueButton"
                                         IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                         Style="{StaticResource EgPillToggleButtonStyle}"
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
-                                        <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取
-                                             EgActionActiveBrush 而字自己钉在浅墨上 —— 那支墨于是只落在没写
-                                             Foreground 的 FontIcon 上。
-                                             背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
-                                        <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgActionActiveBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgActionActiveBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgActionActiveBrush" />
-                                        </ToggleButton.Resources>
+                                        <!-- 勾上只换图标那一支色：字自己钉在浅墨上；图标由 PaintContinueInk 直接
+                                             上墨（FontIcon 不跟模板勾选态的前景走）。背景三态由 PrepareAppearance
+                                             一次添加局部画刷，不能在这里再声明别名。 -->
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon FontSize="14" Glyph="&#xE8EE;" />
+                                            <FontIcon x:Name="ColumnContinueGlyph" FontSize="14" Glyph="&#xE8EE;" />
                                             <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
                                         </StackPanel>
                                     </ToggleButton>
 
                                     <Button x:Uid="DetailPage_ButtonA1"
+                                        x:Name="ColumnWatchedButton"
                                         AutomationProperties.AutomationId="ColumnWatchedButton"
                                         Click="OnColumnWatchedPulse"
                                         Command="{x:Bind ViewModel.ToggleWatchedCommand}"
@@ -1042,7 +1071,7 @@
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center"
                                                     Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
-                                                <!-- 已观看：绿实心圆加白勾（2026-11-15 用户参考图），圆和连播那颗图标共用
+                                                <!-- 已观看：绿实心圆加白勾（2026-11-15 用户参考图），圆取固定的
                                                      EgActionActiveBrush，白勾仍是压在图上那支浅墨。 -->
                                                 <Grid Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}">
                                                     <Ellipse Fill="{StaticResource EgActionActiveBrush}" />
@@ -1054,12 +1083,21 @@
                                                         VerticalAlignment="Center" />
                                                 </Grid>
                                             </Grid>
-                                            <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
-                                            <TextBlock x:Uid="DetailPage_WatchedOff" Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
+                                            <!-- 商店模式这颗键搬进封面左上角后收成图标（2026-11-15 用户令「收藏和已看按钮
+                                                 移到左上角的封面里」、「收成图标」）：文字仍保留在两个状态自己的显隐里，
+                                                 只是整组跟着 ColumnWatchedLabelsVisibility 一起收起。 -->
+                                            <StackPanel
+                                                x:Name="ColumnWatchedLabels"
+                                                Orientation="Horizontal"
+                                                Visibility="{x:Bind ViewModel.ColumnWatchedLabelsVisibility, Mode=OneWay}">
+                                                <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                                <TextBlock x:Uid="DetailPage_WatchedOff" Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
+                                            </StackPanel>
                                         </StackPanel>
                                     </Button>
 
                                     <Button x:Uid="DetailPage_ButtonA2"
+                                        x:Name="ColumnFavoriteButton"
                                         AutomationProperties.AutomationId="ColumnFavoriteButton"
                                         Click="OnColumnFavoritePulse"
                                         Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
@@ -1425,20 +1463,17 @@
                                 <!-- 连播，和宽版式那两颗同一个开关同一句话；紧凑版式这颗也是**勾上只换图标色**
                                      （2026-10-11 起：底按回不带勾的三档，字钉在浅墨上，勾上那支墨只落在图标上；
                                      更早那两版是「勾上走强调色底」、再往前格子那一版是「图标取强调色、底按住不画」，
-                                     这回把两版的结论合起来——底不画，色只给图标。2026-11-15 起那支墨是固定的绿
-                                     （商店与沉浸两档都用，见 EgActionActiveBrush）。 -->
+                                     这回把两版的结论合起来——底不画，色只给图标。2026-11-15 起那支墨取主题色，
+                                     由 PaintContinueInk 直接画）。 -->
                                 <ToggleButton
+                                    Checked="OnContinueToggled"
+                                    Unchecked="OnContinueToggled"
                                     AutomationProperties.AutomationId="CompactContinueButton"
                                     IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
-                                    <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgActionActiveBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgActionActiveBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgActionActiveBrush" />
-                                    </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon FontSize="14" Glyph="&#xE8EE;" />
+                                        <FontIcon x:Name="CompactContinueGlyph" FontSize="14" Glyph="&#xE8EE;" />
                                         <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
                                     </StackPanel>
                                 </ToggleButton>
@@ -1667,7 +1702,9 @@
                             <!-- 牌子右端那一格自 2026-11-02 起空着：用户令删掉集列表卡片右上角那颗季选择栏
                                  （牌子右端原来挂的就是它）。切季的能力没有跟着删 —— DetailViewModel.Seasons／
                                  SelectedSeason 照旧，自检和探针还在驱动它；只是这一页的屏上
-                                 不再有那颗下拉。这一带不报读数 —— 季名已经写在标题里了（「更多来自：第一季」，
+                                 不再有那颗下拉。2026-11-15 用户令「连播功能改到集列表卡片的右上角」，这一格
+                                 在商店宽版式里挂上连播开关（DetailPage.Store.cs 的 StoreActionButtons），
+                                 其余版式仍空着。这一带不报读数 —— 季名已经写在标题里了（「更多来自：第一季」，
                                  2026-11-03 用户令去掉了后面的集数与已看数）。 -->
                             <!-- 2026-11-03 那一版把切季挂在这块牌子上：点标题弹出「封面＋季名＋简介」的季列表。
                                  2026-11-08 用户令「不要这个季度列表菜单了」：折角（Glyph）、点击面（Offer）与

@@ -359,7 +359,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// <summary>所有模式使用同一套紧凑留白。</summary>
     public Thickness BodySheetPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left, 8,
         Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 8);
-    public Thickness HeaderPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left, 12,
+    /// <summary>商店档顶部也读 <see cref="DetailHero.StoreHeroTop"/>，和媒体详情页同一条顶线；沉浸档仍 12。</summary>
+    public Thickness HeaderPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left,
+        Plain ? DetailHero.StoreHeroTop : 12,
         Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 0);
     public double BodySheetSpacing => Plain ? 10 : 8;
     public Thickness BodyPanelPadding => new(12);

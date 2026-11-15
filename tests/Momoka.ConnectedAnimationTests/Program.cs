@@ -32,11 +32,17 @@ internal static class Program
             using var fixture = new Fixture();
             Assert.True(fixture.Prepare());
             var animation = ConnectedAnimationService.Created.Last();
+            // 目标还没排过版（宽高为 0）：抢跑这一趟什么都不做，等第一次布局。
             fixture.Target.ConnectedPoster.Source = null;
-            fixture.Target.ConnectedPoster.IsLoaded = false;
+            fixture.Target.ConnectedPoster.ActualWidth = 0;
+            fixture.Target.ConnectedPoster.ActualHeight = 0;
             CardDetailTransition.Attach(fixture.Target, fixture.Item);
             Assert.Equal(0, animation.StartCalls);
             Assert.True(ReferenceEquals(fixture.Source.ConnectedPoster.Source, fixture.Target.ConnectedPoster.Source));
+            Assert.Equal(1, fixture.Target.SeededWidths);
+            Assert.Equal(1, fixture.Target.ForcedLayouts);
+            fixture.Target.ConnectedPoster.ActualWidth = 200;
+            fixture.Target.ConnectedPoster.ActualHeight = 300;
             fixture.Target.ConnectedPoster.IsLoaded = true;
             fixture.Target.Layout();
             fixture.Target.Layout();
@@ -46,6 +52,35 @@ internal static class Program
             animation.Complete();
             Assert.Null(animation.Handlers);
             Assert.Null(HomeMotion.Handlers);
+        });
+        Test("目标已排过版时在新页Loaded前立即起跑", () =>
+        {
+            using var fixture = new Fixture();
+            Assert.True(fixture.Prepare());
+            var animation = ConnectedAnimationService.Created.Last();
+            fixture.Target.IsLoaded = false;
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.False(fixture.Target.IsLoaded);
+            Assert.Equal(1, animation.StartCalls);
+            Assert.True(CardDetailTransition.Started(fixture.Frame));
+            Assert.True(BrowsePresentation.Results.Any(result => result.Started));
+        });
+        Test("新页Loaded前第一次布局落定即可起跑", () =>
+        {
+            using var fixture = new Fixture();
+            Assert.True(fixture.Prepare());
+            var animation = ConnectedAnimationService.Created.Last();
+            fixture.Target.IsLoaded = false;
+            fixture.Target.ConnectedPoster.ActualWidth = 0;
+            fixture.Target.ConnectedPoster.ActualHeight = 0;
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.Equal(0, animation.StartCalls);
+            fixture.Target.ConnectedPoster.ActualWidth = 200;
+            fixture.Target.ConnectedPoster.ActualHeight = 300;
+            fixture.Target.Layout();
+            Assert.False(fixture.Target.IsLoaded);
+            Assert.Equal(1, animation.StartCalls);
+            Assert.True(BrowsePresentation.Results.Any(result => result.Started));
         });
         Test("原生TryStart拒绝或抛错恢复普通呈现", () =>
         {

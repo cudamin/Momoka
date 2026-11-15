@@ -329,6 +329,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial ImageSource? StillImage { get; set; }
 
@@ -349,6 +350,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial bool StillPending { get; set; }
 
@@ -428,6 +430,8 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
     [NotifyPropertyChangedFor(nameof(CompactVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverActionsVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -507,6 +511,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ReadMoreVisibility));
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
+        OnPropertyChanged(nameof(StoreCoverActionsVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
@@ -1174,7 +1181,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 沉浸宽版式也靠上（2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」）：
     /// 那一档这一栏被撑到封面同高（<see cref="HeroColumnHeight"/>），徽标（没有徽标时是片名）从封面的上沿起排，
-    /// 操作那排键连同「剩余 x 分钟」仍贴在这一栏的下沿（页面把中间那一截空当让给 <c>ColumnActions</c> 的上边距）。
+    /// 操作那排键连同「剩余 x 分钟」仍贴在这一栏的下沿（中间那一截 2026-11-15 起平均摊到各行之间的间距上，
+    /// 见 <c>DetailPage.LayoutHeroColumn</c>）。
     /// </para>
     /// </summary>
     public VerticalAlignment HeroContentAlignment =>
@@ -1396,7 +1404,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 往下推。说明的第一行由此落在下沿底下 <see cref="TailInset"/> 那点缝加它自己的内边距上。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 32, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
+    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), DetailHero.StoreHeroTop, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)
@@ -2543,6 +2551,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CoverShadeVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2777,6 +2786,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
+        OnPropertyChanged(nameof(StoreCoverActionsVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         AnnounceAffordances();
         // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。
         // 不能读 ItemType：它会回退到 seed，让存根首次 Apply 被误认为已经通知过。

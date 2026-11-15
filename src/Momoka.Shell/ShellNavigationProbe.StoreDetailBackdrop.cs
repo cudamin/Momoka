@@ -91,6 +91,10 @@ internal sealed partial class ShellNavigationProbe
                     "商店顶部检查没有取得目标实际页宽与客户区宽");
                 trailer.Visibility = Visibility.Collapsed;
                 var cover = Get<Border>(page, "PosterStill");
+                // 2026-11-15 用户令「增加详情页/订阅详情页上方的空位」：封面从内容区上沿往下 StoreHeroTop 起排。
+                var coverTop = Bounds(cover, canvas).Top;
+                Require(Math.Abs(coverTop - DetailHero.StoreHeroTop) < 1.5,
+                    $"商店详情封面没有按新的顶部留白起排：{coverTop:0.#} 对 {DetailHero.StoreHeroTop:0.#}");
                 var details = Get<StackPanel>(page, "StoreHeroDetails");
                 var firstCard = Get<StackPanel>(page, "EpisodePanel");
                 Require(firstCard.Visibility == Visibility.Visible && firstCard.ActualHeight > 0, "没有可量的正文首卡");
@@ -111,7 +115,7 @@ internal sealed partial class ShellNavigationProbe
                 var pictureMask = ReadStoreMask(page, "StoreBackdropMask");
                 var ambientMask = ReadStoreMask(page, "StoreAmbientMask");
                 StoreDetailProbeEvidence.RequireMask(pictureMask);
-                StoreDetailProbeEvidence.RequireMask(ambientMask);
+                StoreDetailProbeEvidence.RequireAmbientMask(ambientMask);
                 var ambientBrush = Get<Border>(page, "StoreBackdropSides").Background as ImageBrush;
                 Require(ambientBrush?.ImageSource is WriteableBitmap, "多色环境底未挂到实际页面");
                 var ambientBitmap = (WriteableBitmap)ambientBrush!.ImageSource;

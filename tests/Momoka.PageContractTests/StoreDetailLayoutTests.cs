@@ -49,6 +49,43 @@ internal static class StoreDetailLayoutTests
             Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
                 && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
         });
+        Test("商店详情：播放/更多在封面右侧，收藏/已看在封面左上，连播在集卡右上", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            XElement Named(string name) => page.Descendants()
+                .Single(element => (string?)element.Attribute(X + "Name") == name);
+
+            var coverActions = Named("StoreCoverActions");
+            Assert.Equal("HeroStack", (string?)coverActions.Parent!.Attribute(X + "Name"));
+            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}",
+                (string?)coverActions.Attribute("Visibility"));
+            var coverBadges = Named("StoreCoverBadges");
+            Assert.Equal("CoverSlot", (string?)coverBadges.Parent!.Attribute(X + "Name"));
+            Assert.Equal("{x:Bind ViewModel.StoreCoverBadgesVisibility, Mode=OneWay}",
+                (string?)coverBadges.Attribute("Visibility"));
+            Assert.Equal("ColumnActions", (string?)Named("ColumnActionRow").Parent!.Attribute(X + "Name"));
+            // 已看那颗键的文字组在商店模式整组收起（用户确认「收成图标」）。
+            Assert.Equal("{x:Bind ViewModel.ColumnWatchedLabelsVisibility, Mode=OneWay}",
+                (string?)Named("ColumnWatchedLabels").Attribute("Visibility"));
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("MoveToPanel(ColumnPlayButton, StoreCoverActions);", store);
+            Assert.Contains("MoveToPanel(ColumnMoreButton, StoreCoverActions);", store);
+            Assert.Contains("MoveToPanel(ColumnFavoriteButton, StoreCoverBadges);", store);
+            Assert.Contains("MoveToPanel(ColumnWatchedButton, StoreCoverBadges);", store);
+            Assert.Contains("EpisodeHead.Trailing = ColumnContinueButton;", store);
+            Assert.Contains("RestoreToActions(ColumnPlayButton, 0);", store);
+            Assert.Contains("RestoreToActions(ColumnContinueButton, IndexAfter(ColumnExtrasButton));", store);
+            Assert.Contains("StoreBackdropContent.CornerRadius = previewCorner;", store);
+            Assert.Contains("StoreTrailerContent.CornerRadius = previewCorner;", store);
+            // 加高下方渐变：同一列在 0.36 处已经离开满不透明。
+            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.Alpha(0.5, 0.36, ambient: false) < 0.999
+                && Momoka.Shell.Views.StoreBackdropBlend.Alpha(0.5, 0.36, ambient: false) > 0.7,
+                "右侧剧照的下方渐隐没有提前");
+            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.Alpha(0.5, 0.46, ambient: true) < 0.999,
+                "环境底的下方渐隐没有提前");
+            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.Alpha(0.5, 0.95, ambient: false) > 0,
+                "下方渐隐末端提前收成了全透明");
+        });
         Test("商店详情：剧情、文件选项和操作键排在封面下方", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

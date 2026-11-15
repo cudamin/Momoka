@@ -386,6 +386,10 @@ internal sealed partial class ShellNavigationProbe
                     Require(privateMaterial.AlwaysUseFallback && privateMaterial.FallbackColor == Microsoft.UI.Colors.White,
                         "卡片没有随系统资源切换到实色");
                     RequireDetailPanelSource(privateMaterial, materialSource.Background);
+                    // 信息卡自己那一支也跟着系统资源走 —— 2026-11-15 起它是沉浸档唯一还铺卡面的正文板。
+                    var infoMaterial = Get<AcrylicBrush>(page, "_infoCardFill");
+                    Require(infoMaterial.AlwaysUseFallback && infoMaterial.FallbackColor == Microsoft.UI.Colors.White,
+                        "信息卡的卡片底没有随系统资源切换到实色");
                     RequireDetailPanelMaterials(page, "系统实色回退");
                 }
                 finally { materialSource.Background = originalMaterial; }
@@ -677,18 +681,21 @@ internal sealed partial class ShellNavigationProbe
         Require(matches, "卡片资源恢复后未同步原画刷的材质参数");
     }
 
-    // 正式三种表面分别验收：简洁实色、沉浸信息卡无背景、普通纸面共享材料。
+    // 正式三种表面分别验收：简洁实色、沉浸信息卡自带卡片底、普通纸面共享材料。
     // 不以亚克力对象存在代替当前模式的实测背景归属。
     private static void RequireDetailPanelMaterials(DetailPage page, string stage)
     {
         var panels = Get<StackPanel>(page, "BodySheet").Children.OfType<StackPanel>().ToArray();
         var fill = Get<AcrylicBrush>(page, "_panelFill");
         var line = Get<SolidColorBrush>(page, "_panelLine");
+        var infoFill = Get<AcrylicBrush>(page, "_infoCardFill");
         var store = Get<Border>(page, "StoreCardMaterialSource").Background;
         foreach (var panel in panels)
         {
+            // 2026-11-15 用户令「给沉浸模式下的更多信息卡片加背景卡片」：沉浸档只有信息卡还带卡面，
+            // 用的是它自己那支 _infoCardFill（其余四块共用的那支在这一档是 0）。
             var expected = page.ViewModel.StoreMode ? store
-                : page.ViewModel.Showcase && panel.Name == "InfoPanel" ? null : fill;
+                : page.ViewModel.Showcase && panel.Name == "InfoPanel" ? infoFill : fill;
             Require(ReferenceEquals(panel.Background, expected),
                 $"{stage}/{page.ViewModel.ItemType}/{panel.Name} 背景归属不符：简洁{page.ViewModel.StoreMode}、"
                     + $"沉浸{page.ViewModel.Showcase}、紧凑{page.ViewModel.IsCompact}、宽{page.ActualWidth:0.##}/VM{page.ViewModel.PageWidth:0.##}、"
@@ -737,9 +744,13 @@ internal sealed partial class ShellNavigationProbe
             "沉浸正文仍保留卡片底色或描边");
         Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 },
             "沉浸正文纸面仍遮住固定背景");
-        // 2026-11-14 用户令「改为去掉其他信息的背景卡片」：四类页面的信息表都不再铺卡面（此前那块亚克力
-        // 是 2026-11-08 为了暗字压图可读加的）。字换成压图浅墨，由 PaintInfoInk 负责。
-        Require(Get<StackPanel>(page, "InfoPanel").Background is null, "沉浸信息表仍铺着卡面");
+        // 2026-11-15 用户令「给沉浸模式下的更多信息卡片加背景卡片」：这一块重新铺上卡片底
+        // （2026-11-14 曾按「改为去掉其他信息的背景卡片」整块让开；其余四块正文板仍让开）。
+        // 卡面垫在底下之后，表里的字照旧吃压图那套浅墨 —— 那支比主题暗字亮，压在深色卡上读得出来。
+        var info = Get<StackPanel>(page, "InfoPanel");
+        Require(ReferenceEquals(info.Background, Get<AcrylicBrush>(page, "_infoCardFill"))
+            && info.Background is AcrylicBrush { Opacity: 1 },
+            "沉浸信息卡没有铺自己那块卡片底，或那块底被淡掉了");
         RequireCardInk(page, onScrim: true);
         Require(!page.ViewModel.ShowShelfLines && page.ViewModel.TailMinHeight == 0
             && Get<Border>(page, "CardTailGap").ActualHeight < 0.01,
@@ -1021,10 +1032,13 @@ internal sealed partial class ShellNavigationProbe
     {
         if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast) return;
         var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
+            .Concat(Descendants(Get<StackPanel>(page, "StoreCoverActions")).OfType<Control>())
+            .Concat(Descendants(Get<StackPanel>(page, "StoreCoverBadges")).OfType<Control>())
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
             .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
         // 商店模式的主播放键自 2026-11-14 起吃主题色（用户令「播放按钮改成主题色」），其余按钮和选择框仍是固定面色。
+        // 2026-11-15 起这颗键在商店宽版式被搬到封面右侧（StoreCoverActions），上面已经把那两格一起收进来。
         var plays = controls.Where(control => control.Name is "ColumnPlayButton" or "CompactPlayButton").ToArray();
         var fixedControls = controls.Except(plays).ToArray();
         Require(fixedControls.Length > 0, "商店模式夹具没有操作按钮或选择框");

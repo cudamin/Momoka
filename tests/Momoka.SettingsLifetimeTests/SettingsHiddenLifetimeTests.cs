@@ -24,6 +24,7 @@ internal static class SettingsHiddenLifetimeTests
         TestHarness.Test("R-026 真Close也先释放订阅与目录活动期", RealClose);
         TestHarness.Test("设置窗显现前清理旧关闭悬停而不移动光标", CaptionPointerReset);
         TestHarness.Test("设置窗口每次显现都提到主窗口前面", ShowRaisesAboveMainWindow);
+        TestHarness.Test("收起后排队的那一拍不再激活设置窗口", HideCancelsQueuedRaise);
         foreach (var path in new[] { "Hide", "标题栏X", "离页", "Release", "Close" })
             TestHarness.Test($"设置颜色草稿在{path}时跨卡取消且不保存", () => CancelAppearance(path));
     }
@@ -65,12 +66,19 @@ internal static class SettingsHiddenLifetimeTests
         Assert.True(Momoka.Shell.Interop.Native.Events.SequenceEqual(
                 new[] { "move:160:0:2818035", "activate", "z-top" }),
             "显现前应以HTNOWHERE清旧悬停，随后激活并提到主窗口前面，且保留负数屏幕坐标的低16位");
+
+        // 这一拍之后还有一次同样的「激活 + 提到最前」：Click 返回时主窗口会把前台收回去，见 Show 的注释。
+        window.BoundaryDispatcherQueue.Drain();
+        Assert.True(Momoka.Shell.Interop.Native.Events.SequenceEqual(
+                new[] { "move:160:0:2818035", "activate", "z-top", "activate", "z-top" }),
+            "输入处理之后的下一拍没有再次把设置窗口提到主窗口前面");
     }
 
     /// <summary>
     /// 2026-11-14 用户报「点完设置会自动跑到主窗口后面，再点一次设置也不会跑到前面」。WinUI 3 的
     /// Window.Activate 对已经看得见的窗口只 SetActiveWindow、不改 z 序，所以每次 Show 都要自己把窗口
-    /// 提到最前 —— 首开、隐藏后重开、已经开着再点设置，三条路都得走到。
+    /// 提到最前 —— 首开、隐藏后重开、已经开着再点设置，三条路都得走到。2026-11-15 用户再报同一条：
+    /// 第一次提上去之后，Click 返回时主窗口又把前台收回去，所以每一趟 Show 都在下一拍再提一次。
     /// </summary>
     private static void ShowRaisesAboveMainWindow()
     {
@@ -81,14 +89,41 @@ internal static class SettingsHiddenLifetimeTests
 
         window.Show(new SettingsRequest(fixture.Services, "主页"));
         Assert.Equal(1, window.BoundaryWindow.MovedToTop, "首开没有把设置窗口提到主窗口前面");
+        window.BoundaryDispatcherQueue.Drain();
+        Assert.Equal(2, window.BoundaryWindow.MovedToTop, "首开在输入处理之后没有再次提到主窗口前面");
 
         window.Hide();
         window.Show(new SettingsRequest(fixture.Services, "主页"));
-        Assert.Equal(2, window.BoundaryWindow.MovedToTop, "隐藏后重开没有把设置窗口提到主窗口前面");
+        Assert.Equal(3, window.BoundaryWindow.MovedToTop, "隐藏后重开没有把设置窗口提到主窗口前面");
+        window.BoundaryDispatcherQueue.Drain();
+        Assert.Equal(4, window.BoundaryWindow.MovedToTop, "隐藏后重开在输入处理之后没有再次提到主窗口前面");
 
         // 窗口还开着的时候再按一次设置：Activate 对可见窗口不动 z 序，这一路只能靠显式提到最前。
         window.Show(new SettingsRequest(fixture.Services, "主页"));
-        Assert.Equal(3, window.BoundaryWindow.MovedToTop, "设置窗已开着时再按设置没有把它提到主窗口前面");
+        Assert.Equal(5, window.BoundaryWindow.MovedToTop, "设置窗已开着时再按设置没有把它提到主窗口前面");
+        window.BoundaryDispatcherQueue.Drain();
+        Assert.Equal(6, window.BoundaryWindow.MovedToTop, "设置窗已开着时再按设置在输入处理之后没有再次提到最前");
+
+        page.Release();
+    }
+
+    /// <summary>
+    /// 收起（X / Hide / Close）之后，排队那一拍不能再把窗口激活回来：那会让一个已经离屏的窗口抢前台，
+    /// 也会在退出登录的收尾里把焦点从主窗口夺走。
+    /// </summary>
+    private static void HideCancelsQueuedRaise()
+    {
+        using var context = new FixtureContext();
+        using var fixture = new LifetimeFixture();
+        var page = fixture.NewCachedPage("主页");
+        var window = new SettingsWindow(page);
+
+        window.Show(new SettingsRequest(fixture.Services, "主页"));
+        Momoka.Shell.Interop.Native.Events.Clear();
+        window.Hide();
+        window.BoundaryDispatcherQueue.Drain();
+        Assert.Equal(0, Momoka.Shell.Interop.Native.Events.Count, "收起后排队的那一拍仍然动了窗口");
+        Assert.Equal(1, window.BoundaryWindow.MovedToTop, "收起后排队的那一拍仍然把窗口提到最前");
 
         page.Release();
     }

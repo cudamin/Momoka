@@ -11,12 +11,16 @@ internal static class StoreBackdropBlend
     internal const double FoundationTail = 120;
     private static readonly (double Position, double Alpha)[] PictureAcross =
         [(0, 0), (0.18, 0.38), (0.42, 0.96), (0.7, 1), (1, 0)];
+    // 2026-11-15 用户令「加高右边封面图下方的渐变」：下方渐隐的起点从 0.42 提到 0.30，过渡带更长更缓。
     private static readonly (double Position, double Alpha)[] PictureDown =
-        [(0, 1), (0.42, 1), (0.72, 0.64), (1, 0)];
+        [(0, 1), (0.3, 1), (0.62, 0.7), (1, 0)];
+    // 2026-11-15 用户令「详情页/订阅详情页这个左边别留这个黑边」：环境底左端不再起坡，从内容区左沿
+    // （侧栏右沿）就是满色，右端照旧收在画布上。左端上坡的那一版在侧栏旁边留下一条从窗口底色升到
+    // 环境色的暗带，屏上读成一道黑边。
     private static readonly (double Position, double Alpha)[] AmbientAcross =
-        [(0, 0), (0.025, 0.7), (0.1, 1), (0.72, 1), (1, 0)];
+        [(0, 1), (0.72, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =
-        [(0, 1), (0.55, 1), (0.78, 0.62), (1, 0)];
+        [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
     internal static double Alpha(double x, double y, bool ambient) => ambient
         ? Interpolate(x, AmbientAcross) * Interpolate(y, AmbientDown)

@@ -44,7 +44,7 @@ public sealed partial class DetailPage
             panel.Background = plain ? StoreCardMaterialSource.Background : _panelFill;
             panel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
         }
-        // 资源回调的顺序不固定；信息卡那块的底（商店固定面色／纸面面板刷／沉浸无卡面）由那一支最后定。
+        // 资源回调的顺序不固定；信息卡那块的底（商店固定面色／纸面面板刷／沉浸卡片底）由那一支最后定。
         PaintBackdropReading();
     }
 
@@ -53,6 +53,17 @@ public sealed partial class DetailPage
 
     /// <summary>五块正文面板的描边，同 <see cref="_panelFill"/>。</summary>
     private readonly SolidColorBrush _panelLine = new();
+
+    /// <summary>
+    /// 「其他信息」那一块自己的卡片底（2026-11-15 用户令「给沉浸模式下的更多信息卡片加背景卡片」）。
+    /// <para>
+    /// 它是沉浸档唯一一块压在图上还带卡面的正文板，不能和其余四块共用 <see cref="_panelFill"/> ——
+    /// 那一支在沉浸档是 0，正是让它们让开用的。材料参数每一步都从 <c>CardMaterialSource</c> 那支系统
+    /// 画刷抄过来（同 <see cref="_panelFill"/>），换主题、高对比度都跟着走。卡片语言跟全站一致：
+    /// 只有面色与圆角，不描边（<c>EgCardBorderThickness</c> 是 0）。
+    /// </para>
+    /// </summary>
+    private readonly AcrylicBrush _infoCardFill = new();
 
     /// <summary>宽高批量写入期间，背景渲染结果等待同一次布局结算。</summary>
     private bool _sizing;
@@ -108,16 +119,22 @@ public sealed partial class DetailPage
     {
         if (CardMaterialSource.Background is AcrylicBrush template)
         {
-            _panelFill.AlwaysUseFallback = template.AlwaysUseFallback;
-            _panelFill.TintColor = template.TintColor;
-            _panelFill.FallbackColor = template.FallbackColor;
-            _panelFill.TintOpacity = template.TintOpacity;
-            _panelFill.TintLuminosityOpacity = template.TintLuminosityOpacity;
+            foreach (var fill in new[] { _panelFill, _infoCardFill })
+            {
+                fill.AlwaysUseFallback = template.AlwaysUseFallback;
+                fill.TintColor = template.TintColor;
+                fill.FallbackColor = template.FallbackColor;
+                fill.TintOpacity = template.TintOpacity;
+                fill.TintLuminosityOpacity = template.TintLuminosityOpacity;
+            }
         }
         else if (CardMaterialSource.Background is SolidColorBrush contrast)
         {
-            _panelFill.AlwaysUseFallback = true;
-            _panelFill.FallbackColor = contrast.Color;
+            foreach (var fill in new[] { _panelFill, _infoCardFill })
+            {
+                fill.AlwaysUseFallback = true;
+                fill.FallbackColor = contrast.Color;
+            }
         }
         _panelLine.Color = BrushColor("EgBorderBrush");
     }
@@ -166,8 +183,9 @@ public sealed partial class DetailPage
 
         HeroTail.MinHeight = ViewModel.TailMinHeight;
 
-        // 那一栏撑满封面的高之后，操作那一块要贴到封面下沿 —— 换模式时它自己的高度可能没变，
-        // SizeChanged 不会再来，所以在这里主动排一次（见 DetailPage.LayoutHeroColumn）。
+        // 那一栏撑满封面的高之后，多出来的那一截摊到各行之间的间距上、按钮仍贴封面下沿 ——
+        // 换模式时它自己的高度可能没变，SizeChanged 不会再来，所以在这里主动排一次
+        // （见 DetailPage.LayoutHeroColumn）。
         LayoutHeroColumn();
 
         PaintWash(force: true);
