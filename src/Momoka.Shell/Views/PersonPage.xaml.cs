@@ -28,12 +28,14 @@ public sealed partial class PersonPage : Page, IShellContent
     private IShellActions? _actions;
     private ISystemLauncher? _launcher;
     private bool _released;
+    private bool _creditsRevealed;
 
     public PersonViewModel ViewModel { get; } = new();
 
     public PersonPage()
     {
         InitializeComponent();
+        Loaded += (_, _) => RevealCreditsOnce();
     }
 
     public object? NavigationRequest => _request;
@@ -49,6 +51,7 @@ public sealed partial class PersonPage : Page, IShellContent
         }
 
         _released = false;
+        _creditsRevealed = false;
         _request = request;
         Tag = string.Empty;
 
@@ -90,6 +93,21 @@ public sealed partial class PersonPage : Page, IShellContent
     {
         if (args.PropertyName == nameof(PersonViewModel.OtherFacts))
             PaintOtherFacts();
+        else if (args.PropertyName == nameof(PersonViewModel.FilmographyVisibility))
+            RevealCreditsOnce();
+    }
+
+    /// <summary>
+    /// 影视作品第一次落到页面上时整块淡入一次。行集合是稳定对象（<see cref="PersonCreditGroup.Rows"/>
+    /// 只增不换），刷新、重试和增量都不重播；只在页面已加载、这块确实要显示时交给
+    /// <see cref="HomeMotion"/>，动画开关、离树与落定都由它兜住。
+    /// </summary>
+    private void RevealCreditsOnce()
+    {
+        if (_creditsRevealed || !IsLoaded || ViewModel.FilmographyVisibility != Visibility.Visible) return;
+
+        _creditsRevealed = true;
+        HomeMotion.Reveal(CreditsList, 0, 160, 6);
     }
 
     /// <summary>
