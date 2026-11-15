@@ -1,12 +1,14 @@
-## 2026-11-15 详情文件选择栏小圆角矩形（待交付）
+## 2026-11-15 详情文件选择栏小圆角矩形（交付）
 
 用户附详情页音频、字幕选择栏截图，令「不要胶囊形状，矩形加一点圆角」。产品提交 `85b7402`（master，基线 `789019c`）。
 
 **改了什么。** 详情页六颗文件选项下拉（宽版式三颗 + 尾部三颗 `EgPicker`）的闭合圆角从 `EgCardCornerRadius`（16 DIP）改成本页 `EgDetailPickerCornerRadius`（4 DIP）：28 DIP 行高最多画得出 14 DIP 的圆角，16 写上去就是两端半圆的胶囊。外置标签、按钮底色、展开浮层（`OverlayCornerRadius` 8）与下方操作按钮都不动；`InputControlThemeTests` 锁定本页 4 DIP 资源与六颗下拉的接线，产品输入圆角检查同步接受这一支。
 
-**验证。** Shell Release **0 警告 0 错误**（2 分 07 秒）；`Momoka.Tests` Release **0 警告 0 错误**；`input-theme-fixture` **29/29**，0 失败 0 跳过。未跑原生探针、未截图、未发布。
+**验证。** Shell Release **0 警告 0 错误**（2 分 07 秒）；`Momoka.Tests` Release **0 警告 0 错误**；`input-theme-fixture` **29/29**，0 失败 0 跳过。交付版实机截图（真实库只读导航，未播放）：`artifacts/delivery-20261115-detail-radius/detail-closed.png`、`detail-picker-open.png`（1535×1122，动画「青之箱」集页），闭合框目视为矩形小圆角、`picker-zoom.png` 四倍放大核对无胶囊端头；`--show-picker` 展开列表仍是透出底图的树内亚克力。未单独截窄窗紧凑版式。
 
-**边界。** 交付时按台账补详情页宽/紧凑版式截图，核对闭合框为矩形小圆角且弹层仍是亚克力；当前桌面快捷方式仍指向第 41 项发布的旧版。首次改完未提交时主树被外部 `git reset --hard` 清掉一次（reflog 19:00:44），已按同内容重做并以 `85b7402` 提交。
+**交付。** 2026-11-15 执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0：548 文件、289.6 MB；Momoka.exe SHA256 `CE235A7D5EAF300CEAC4A94A9EF49A602DF9C3F3C71952AA3111F3ADAA0CC480`，Momoka.dll SHA256 `49708B116A1F6D3BD4B701846CD5F95B2C7C0FE32075CEFAB46CAEADDF8C70D6`；桌面 `Momoka.lnk` 目标、WorkingDirectory 与图标已实际读取核对，指向本次 19:11 的 exe。未推远端。
+
+**边界。** 首次改完未提交时主树被外部 `git reset --hard` 清掉一次（reflog 19:00:44），已按同内容重做并以 `85b7402` 提交。截图取自真实保存账号与真实库的普通导航，不是离线夹具；未播放、未连接真实服务器做写入。
 
 ## 2026-11-15 详情文件选择栏恢复旧版下拉样式（交付）
 
