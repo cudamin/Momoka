@@ -107,6 +107,145 @@ internal static class ShelfFocusTests
             Assert.False(shelf.Key(VirtualKey.Enter));
             Assert.False(shelf.Key(VirtualKey.Escape));
         });
+        Test("同尺寸卡片滚动完成后恢复失败焦点，不等待SizeChanged", () =>
+        {
+            var (shelf, target) = Create();
+            target.FocusAccepted = false;
+            shelf.FocusAt(2);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(2, target.FocusCalls);
+            Assert.Equal(2, shelf.Pending);
+            target.FocusAccepted = true;
+            shelf.CompleteScroll(shelf.ScrollCorrelation);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, target.FocusState);
+            Assert.Equal(-1, shelf.Pending);
+            Assert.Equal(-1, shelf.ScrollCorrelation);
+        });
+        Test("旧滚动完成不重试当前目标，当前完成持续拒绝也不自排队", () =>
+        {
+            var (shelf, target) = Create();
+            target.FocusAccepted = false;
+            shelf.FocusAt(2);
+            var previous = shelf.ScrollCorrelation;
+            shelf.DispatcherQueue.Drain();
+            var current = shelf.ScrollCorrelation;
+            shelf.CompleteScroll(previous);
+            Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
+            shelf.CompleteScroll(current);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(3, target.FocusCalls);
+            Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
+            Assert.Equal(2, shelf.Pending);
+        });
+        Test("已Loaded但零尺寸目标布局完成一次重试并撤掉监听", () =>
+        {
+            var (shelf, target) = Create();
+            target.ActualWidth = 0;
+            target.FocusAccepted = false;
+            shelf.FocusAt(2);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(1, target.LayoutSubscriptionCount);
+            target.ActualWidth = 600;
+            target.FocusAccepted = true;
+            target.RaiseLayout();
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, target.FocusState);
+            Assert.Equal(0, target.LayoutSubscriptionCount);
+            Assert.Equal(0, target.LoadedSubscriptionCount);
+            target.RaiseLayout();
+            Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
+        });
+        Test("迟到Loaded恢复目标；离页换来源或新焦点取消目标监听与滚动", () =>
+        {
+            foreach (var cancel in new[] { "none", "unload", "replace", "focus" })
+            {
+                var (shelf, target) = Create();
+                target.IsLoaded = false;
+                target.FocusAccepted = false;
+                shelf.FocusAt(2);
+                shelf.DispatcherQueue.Drain();
+                var correlation = shelf.ScrollCorrelation;
+                if (cancel == "unload") shelf.Unload();
+                if (cancel == "replace") shelf.ReplaceItems(10);
+                if (cancel == "focus") shelf.TakeOtherFocus(4);
+                target.FocusAccepted = true;
+                target.RaiseLoaded();
+                shelf.CompleteScroll(correlation);
+                shelf.DispatcherQueue.Drain();
+                Assert.Equal(cancel == "none" ? 3 : 2, target.FocusCalls);
+                Assert.Equal(0, target.LayoutSubscriptionCount);
+                Assert.Equal(0, target.LoadedSubscriptionCount);
+            }
+        });
+        Test("新目标取消旧布局和滚动回调，重排时新请求不被旧调用覆盖", () =>
+        {
+            var (shelf, target) = Create();
+            target.IsLoaded = false;
+            target.FocusAccepted = false;
+            shelf.FocusAt(2);
+            var previous = shelf.ScrollCorrelation;
+            var current = new FrameworkElement { FocusAccepted = false };
+            shelf.Repeater.Prepare(4, current);
+            shelf.FocusAt(4);
+            Assert.Equal(0, target.LayoutSubscriptionCount);
+            target.FocusAccepted = true;
+            target.RaiseLoaded();
+            shelf.CompleteScroll(previous);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(1, target.FocusCalls);
+            Assert.Equal(4, shelf.Pending);
+            current.FocusAccepted = true;
+            shelf.CompleteScroll(shelf.ScrollCorrelation);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, current.FocusState);
+        });
+        Test("新建容器先取得实际布局再聚焦，布局重入新焦点使旧请求失效", () =>
+        {
+            foreach (var reentrant in new[] { false, true })
+            {
+                var (shelf, target) = Create();
+                target.FocusAccepted = false;
+                target.OnUpdateLayout = () =>
+                {
+                    target.FocusAccepted = true;
+                    if (reentrant) shelf.TakeOtherFocus(4);
+                };
+                shelf.FocusAt(2);
+                Assert.Equal(reentrant ? 0 : 1, target.FocusCalls);
+                Assert.Equal(reentrant ? 4 : 2, shelf.Focused);
+                Assert.Equal(-1, shelf.Pending);
+            }
+        });
+        Test("单次滚动完成持续拒绝且没有新滚动时不无限重试", () =>
+        {
+            var (shelf, target) = Create();
+            target.FocusAccepted = false;
+            shelf.Scroller.ReuseCurrentRequest = true;
+            shelf.FocusAt(2);
+            shelf.DispatcherQueue.Drain();
+            shelf.CompleteScroll(shelf.ScrollCorrelation);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(3, target.FocusCalls);
+            Assert.Equal(0, shelf.DispatcherQueue.PendingCount);
+        });
+        Test("待重试目标监听实际滚动完成且不会在每个ViewChanged抢焦点", () =>
+        {
+            var root = AppContext.BaseDirectory;
+            for (var directory = new DirectoryInfo(root); directory is not null; directory = directory.Parent)
+                if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+                {
+                    var source = File.ReadAllText(Path.Combine(directory.FullName, "src", "Momoka.Shell", "Views", "ShelfStrip.xaml.cs"));
+                    Assert.Contains("Scroller.ScrollCompleted += OnFocusScrollCompleted;", source);
+                    var first = source.IndexOf("    private void OnViewChanged(", StringComparison.Ordinal);
+                    var last = source.IndexOf("    private void RaiseLeading(", first, StringComparison.Ordinal);
+                    var view = source[first..last];
+                    Assert.False(view.Contains("FocusItem", StringComparison.Ordinal));
+                    Assert.False(view.Contains("ApplyPendingFocusedItem", StringComparison.Ordinal));
+                    return;
+                }
+            throw new AssertionException("找不到本树Shelf源码");
+        });
     }
 
     private static (ShelfFocusFixture Shelf, FrameworkElement Target) Create()

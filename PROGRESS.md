@@ -9,6 +9,17 @@
 验证：Shell Release **0 警告 0 错误**；`hover-preview-fixture` **19/19**、`Momoka.PageContractTests` **325/325**、DetailImageArrival **26/26**、ConnectedAnimation **63/63**、Plex **85/85**、DetailStickyHeader **92/92**、ItemUserStateOrder **76/76**、KeyboardJourney **46/46**、BrowsePresentation **32/32**、UiMotion **80/80**，全部 0 失败 0 跳过；`dotnet format whitespace` 通过。全方案构建只有三个 Python 源抽取项目因本机 PATH 没有 `py` 失败，与本改动无关，其余项目均编译成功；`DetailDeleteCommandTests` 需构建证明 JSON，未单独运行。
 
 待办：已按用户要求合入 master，未交付、未上传；用户选择保留正在运行的主树旧实例，真实悬停、点击缩略图与逐帧实屏仍待用户确认。
+## 2026-11-16 交付修复：横带虚拟化焦点等实际滚动完成（待主控原生复验）
+
+原生 `shell-probe-20261115-162628126-24820` 的「2000集长剧」在主树 `aa2514b`、窗口前台归属已核对后仍卡在 `FocusedLongIndex == 1999`。因此不再把这一轮笼统算成窗口焦点环境红。源码确认 `FocusItem` 创建虚拟项后立即滚动并聚焦，失败只排一轮 Low；Low仍失败就保留索引等 `Loaded/SizeChanged`，但同尺寸新卡滚动完成没有接重试。这是确定的代码缺口；旧运行没记录 Focus返回值/待索引，不能声称已经实证所有失败分支。
+
+工作树 `C:/Users/89400/.codex/worktrees/delivery-youtube-captions/Momoka`，分支 `codex/delivery-youtube-captions`，开工前已快进整合 `aa2514b`。固定 Gallery `v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 `ItemsRepeaterPage.xaml/.cs` 读取到 Home/End 走 `GetOrCreateElement → StartBringIntoView → Focus`；Learn 的 ItemsRepeater 恢复位置示例先 `UpdateLayout`。Gallery 没有当前项目的横带完成重试、来源取消与排队失效归属，不能整段套用其竖向冒泡滚动；本轮只在原横向滚动实现上补最小生命周期。
+
+**改了什么。** 新建目标先 `UpdateLayout` 后再交焦点；`Focus` 返回 false 继续保留待索引。记录本次 `ScrollTo` 的 CorrelationId，只有匹配的 `ScrollCompleted` 排一次 Low重试；不在每个 `ViewChanged` 抢焦点。目标未 Loaded 或实际尺寸仍0时临时监听它的 Loaded/LayoutUpdated，首次就绪排一次后撤监听。新请求、真实GotFocus、换源、离页清滚动ID/就绪监听并让旧队列代际失效；重试自身保持同代，持续失败不在Low中自排队。`LongSeries` 保留最后/第一项真实焦点严格判据，在失败finally写 `performance-long-series-focus-{1999,0}.json`，记录实际焦点类型/索引、待索引、请求索引、ScrollState/ID、offset和目标大小，不把内部请求索引当作焦点成功。
+
+**验证。** `Momoka.UiMotionTests` 原样提取真实 `FocusItem/TryFocusItem`、重试/就绪/滚动完成及 GotFocus控制流，不平行实现焦点规则；新增8项覆盖同尺寸滚动完成、错滚动ID、持续失败有限队列、零尺寸布局、迟到Loaded、旧来源/离页/新焦点取消、UpdateLayout重入代际与事件接线。先单独编译测试再Shell，用户级 SDK `10.0.400`；Shell Release **0警告0错误**（1分36秒），UiMotion Release **0警告0错误**、**88/88，0失败0跳过**；UiMotion空白检查通过。首次边界重定义既有ScrollView导致CS0101，定点删除重复替身后通过，失败日志保留。本树证据 `artifacts/captions-verification/focus-*`。
+
+**边界。** 本子任务未运行窗口、探针、鼠标或发布，未读真实设置/凭据、不联网真实服务器/播放。托管边界只证明实际控制流与有限队列，ItemsRepeater/WinRT实际焦点仍由主控合入后的匿名LongSeries与受影响定向探针确认。分支不自行刷新交付目录或推远端；未验证的原生结果不销账。
 
 ## 2026-11-16 交付性能定向入口（在途）
 

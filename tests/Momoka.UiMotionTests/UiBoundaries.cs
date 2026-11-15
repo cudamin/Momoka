@@ -81,7 +81,10 @@ namespace Microsoft.UI.Xaml
     public delegate void DependencyPropertyChangedCallback(DependencyObject sender, DependencyProperty property);
     public delegate void RoutedEventHandler(object sender, RoutedEventArgs args);
     public delegate void SizeChangedEventHandler(object sender, SizeChangedEventArgs args);
-    public sealed class RoutedEventArgs : EventArgs;
+    public sealed class RoutedEventArgs : EventArgs
+    {
+        public object? OriginalSource { get; set; }
+    }
     public enum Visibility { Visible, Collapsed }
     public enum FocusState { Unfocused, Pointer, Keyboard, Programmatic }
     public enum FocusNavigationDirection { Next, Previous, Left, Right, Up, Down }
@@ -270,6 +273,10 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class ScrollingScrollCompletedEventArgs(int correlationId) : EventArgs
+    {
+        public int CorrelationId { get; } = correlationId;
+    }
     public sealed class ItemsSourceView(int count)
     {
         public int Count { get; } = count;
