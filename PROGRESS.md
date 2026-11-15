@@ -13871,3 +13871,5 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 补充无障碍复核：固定WinUI FrameworkElementAutomationPeer/ ButtonAutomationPeer确认Opacity、命中和Tab不等于常规读屏隐藏，移走端增加AccessibilityView.Raw并保存/还原原值，两个位置及取消/离页均覆盖；不宣称Raw或缓存peer Invoke被拦截，不改播放命令/禁用模板。当前专项89/89、失败0、跳过0，Release专项编译0警告0错误，真实UIA/Narrator仍待交付。
 
 无障碍修正最终Shell/Core Release编译0警告0错误（3分8秒），专项89/89、0失败0跳过；首次无障碍编译因AccessibilityView实际在Automation.Peers而失败，已按包元数据纠正生产与测试边界命名空间后重编通过，失败日志保留。Raw仅退出按钮本体的普通视图，不保证整棵子树或缓存Invoke。
+
+2026-11-15侧栏批次合入收尾：用户明确授权跨聊天协调，详情渐变聊天确认暂停主树写入后，master e30ab44快进至2382685（产品0924413）。只在PROGRESS追加时保留双方记录，28个其他已修改/未跟踪文件SHA256前后完全相同；台账新增37。没有主树构建、UI、发布、推送或快捷方式改动。临时分支完成后删除；当前聊天检出若受应用primary保护则保留干净detached，不绕过保护。
