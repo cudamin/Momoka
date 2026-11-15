@@ -795,13 +795,14 @@
 
             <!-- 飞牛筛选：官网页端展开在工具栏下面的那一条，不是 Emby 那种盖住整页的浮层。
                  行和值都来自 /tag/list，题材、地区再经官方映射表换成中文。
-                 底色与设置卡片同一层低透明度亚克力，边线、圆角和展开行为不变。 -->
+                 底色与设置卡片同一层低透明度亚克力，边线与圆角不变；展开时短淡入上浮。 -->
             <Border x:Name="FnNasFilterPanel" Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
-                Visibility="{x:Bind ViewModel.FnNasFilterVisibility, Mode=OneWay}">
+                Visibility="{x:Bind ViewModel.FnNasFilterVisibility, Mode=OneWay}"
+                local:VisibilityReveal.IsEnabled="True">
                 <StackPanel Spacing="10">
                     <Grid>
                         <TextBlock Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
