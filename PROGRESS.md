@@ -1,3 +1,29 @@
+## 2026-11-15 详情连播图标改跟主题色（待合并）
+
+用户附详情页「连播」按钮截图报「修复点了连播之后图标没反应不会自动切换为主题色的问题」。原实现把勾选色接在
+`ToggleButtonForegroundChecked*` 上：模板勾上时只把 `ContentPresenter.Foreground` 换成那支画刷，
+`IconElement.Foreground` 不跟视觉状态走，那颗 FontIcon 一直停在常态那支浅墨，点下去屏上没有任何变化。
+2026-11-15 凌晨那次把它接成固定绿时也是同一条失效路径，所以既没变绿也谈不上跟主题色。
+
+**改了什么。** 宽版式与紧凑版式两颗连播 FontIcon 加 `x:Name`（`ColumnContinueGlyph`／`CompactContinueGlyph`），
+两颗 ToggleButton 接 `Checked`／`Unchecked`；`DetailPage.Appearance.PaintContinueInk` 在每次外观重绘和勾选变化时
+直接给图标上墨：关着取 `EgDetailActionTextBrush`，开着取 `EgAccentBrush` 的当前色（ThemeHost 原地改色，
+换主题自动跟上），高对比度两档取系统前景。删掉两颗 ToggleButton 里接不到图标的
+`ToggleButtonForegroundChecked*` 别名；`PaintReadingColors` 的普通图标清理跳过这两颗。已观看的绿实心圆
+（`EgActionActiveBrush` #52B54B）按要求保留；文字仍钉在浅墨上。
+
+**验证。** Shell Release x64 **0 警告 0 错误**（含重新编译后的探针源码）；`dotnet format whitespace` 退出 0。
+`Momoka.Tests` 完整套件 **5157 项、通过 5141、失败 16**：16 项全是 `自检*` 隔离用例，报
+「已有当前用户的自检运行中；请等它退出，不会关闭用户程序」，来自另一工作树的诊断/测试占用同一把桌面
+自检互斥锁，与本改动无关；本批新增的「详情操作：连播勾选保持同底，勾选图标由页面取主题色、文字仍白色」
+通过。原生 `--probe-shell --probe-section materials --screen 1`
+（`shell-probe-20261115-120230386-23748`）的详情段逐主题逐宽通过：6 套主题 × 1280/760 的连播图标读数
+「关=#FFFFFFFF，开=#FFFFFF6EE7C5/4C8DF6/E0A22B/A97BF0」（即各主题强调色），截图已生成；同一用例随后在
+shelf 段因客户区停在 760×700、请求 1280 未落实而超时，运行期间另一工作树同时在起诊断，重跑被那把桌面锁
+挡住，整个用例的干净通过留待交付时串行补跑。本树未发布、未推远端。
+
+**边界。** 高对比度、触摸、读屏与跨 DPI 未实测；已观看的绿仍不跟主题色走（沿用当天前一条用户令）。
+
 ## 2026-11-15 详情文件选择栏小圆角矩形（交付）
 
 用户附详情页音频、字幕选择栏截图，令「不要胶囊形状，矩形加一点圆角」。产品提交 `85b7402`（master，基线 `789019c`）。
