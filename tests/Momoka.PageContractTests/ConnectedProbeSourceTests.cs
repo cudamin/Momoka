@@ -6,6 +6,12 @@ internal static class ConnectedProbeSourceTests
 {
     internal static void Register()
     {
+        Test("性能检查台：定向入口运行原详情滚动与长剧用例并保留截止", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.Inspect.cs"));
+            Assert.Contains("AddCheck(\"InspectDetailScrollPerformance\", \"详情竖滚帧节奏\", PerformanceDetailScrollAsync, ShellProbeSections.Performance, timeoutSeconds: 60);", source);
+            Assert.Contains("AddCheck(\"InspectLongSeries\", \"长剧季跳与首尾焦点\", PerformanceLongSeriesAsync, ShellProbeSections.Performance, timeoutSeconds: 90);", source);
+        });
         Test("关联原生探针：现有XAML媒体库页正式导航并恢复原Page和原海报", () =>
         {
             var path = Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.ConnectedAnimation.cs");

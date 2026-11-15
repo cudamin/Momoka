@@ -145,6 +145,8 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);
         AddCheck("InspectLibraryDiscoveryFilters", "Plex筛选排序和字母", LibraryDiscoveryFiltersAsync);
         AddCheck("InspectDeepReturn", "媒体库深返回锚点", PerformanceDeepLibraryReturnAsync);
+        AddCheck("InspectDetailScrollPerformance", "详情竖滚帧节奏", PerformanceDetailScrollAsync, ShellProbeSections.Performance, timeoutSeconds: 60);
+        AddCheck("InspectLongSeries", "长剧季跳与首尾焦点", PerformanceLongSeriesAsync, ShellProbeSections.Performance, timeoutSeconds: 90);
         AddCheck("InspectBrowsePresentation", "首帧和晚图淡入", PerformanceBrowsePresentationAsync);
         Add("InspectDetailCustomization", "详情自定义", async () =>
         {

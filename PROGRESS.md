@@ -1,3 +1,7 @@
+## 2026-11-16 交付性能定向入口（在途）
+
+检查台新增两个入口，直接调用原 PerformanceDetailScrollAsync 与 PerformanceLongSeriesAsync，保持原用例、匿名边界、60/90秒截止与p95<40ms阈值，便于保持窗口前台后定向补验。源契约新增1项；主树全方案Release0警告0错误、PageContract325/325，实际运行尚待本轮检查，不以定向入口替代全量通过。
+
 ## 2026-11-15 商店封面下方常驻无边框操作行（本次交付追加，独立树待整合）
 
 用户在交付中追加：商店模式按钮移到封面下方、不要边框、鼠标没移到封面也显示。工作树 `C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka`，分支 `codex/store-cover-action-row`，基点主树 `9e3402d`；本条取代第44批的播放/更多在封面右侧、收藏/已看在封面左上角旧位置。
