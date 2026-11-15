@@ -1,3 +1,13 @@
+## 2026-11-15 第二批交付：原台账 34～40 项（发布后保留补验）
+
+用户要求交付；验证进行中用户改令「别跑了，先记着，先更新桌面快捷方式」。主树基线 `7091de0`，交付修复提交 `8b65737`。执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0，548 文件、303,746,984 字节；Momoka.exe SHA256 `8C25C71D9E5AC4A3C85B69899677CCDDBD673790B1B5A3D74D050E11290AE76F`；快捷方式目标、WorkingDirectory、图标核对通过；未推送远端。详见 [交付记录](docs/2026-11-15-交付记录-第34-40项.md)。
+
+已通过：全方案 Release 0 警告 0 错误与 whitespace 退出 0；主测试 5158/5158（本会话 TEMP=C:\WINDOWS\TEMP 不可枚举，首跑 2 红保留，改可写临时目录后全绿）；SystemTheme 7、SettingsAppearance 47、MaterialLifecycle 56、DetailStickyHeader 89、SidebarPreview 34、PageContract 311、MoviePilotSubscribe 77、DetailFilePicker 47、AppearanceOpacity 72、SettingsDeferredSave 24、SubscriptionIdentity 全部通过；夹具 system-theme 59、input-theme 30、acrylic-controls 39、detail-customization 59、toolbar-icon 15、trailer 11、sidebar-icons 20；原生 detail-cards 7/7、shell 17/17、motion 5/5、accounts 5/5、settings 28/28（首轮 26/28 为 Chrome 抢焦点与像素遮挡，失败日志保留）；检查台订阅材质 3/3、商店/MP 底材 2/2、本地预告/按钮材质/季订阅 3/3。
+
+本轮修复：`MoviePilotMediaSeasonsView` 缩略图排队回调改为按执行时行宽重算（760 实跑停在 108.7×61.1，修复后订阅材质通过）；探针固定 144 断言改为按行宽三分之一（上限 144、16:9）并只量展开统计行；补 PageContract 公式源契约与 SettingsDeferredSave 的 ThemeHost 替身；两处空白格式。Python 源提取需 `-p:PythonLauncher=C:\WINDOWS\py.exe`，`run-regressions.ps1` 用同名环境变量。
+
+待补验：检查台「详情自定义」4 项、真实 F1 官方预告、修复后 moviepilot 整段、发布版启动实屏、系统深浅真实切换（用户当次选择不改 Windows 设置）、高对比/跨 DPI/读屏/触摸/200% 文字。明细与失败记录见第二批交付记录。
+
 ## 2026-11-15 主树交付与GitHub上传收尾
 
 用户要求交付后提交GitHub。master affa1d9已正式发布主树artifacts/publish/win-x64，548文件、303675712字节；Momoka.dll SHA256 28D7434D58FFAAF16C76EBADC262A426A744102C70B1B8C0D3CF2E536759B431。快捷方式目标和WorkingDirectory核对通过，正式匿名窗口22988启动实屏并正常关闭。主测试5155/5155、18专项1210/1210、动效44/44、收尾113/113，均0失败0跳过；最终主页与五项动效检查通过，候选保持retained。台账29～33、主页顶栏与标题搜索销账；13/14及系统/物理输入/真实播放补验保留，详见docs/2026-11-15-交付记录.md。GitHub按用户授权推送master，回执另存。
