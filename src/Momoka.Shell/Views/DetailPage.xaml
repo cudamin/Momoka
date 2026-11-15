@@ -32,6 +32,11 @@
             <Setter Property="MinHeight" Value="{StaticResource EgPickerRowHeight}" />
             <Setter Property="Padding" Value="10,3,0,3" />
         </Style>
+        <!-- 文件选项的六颗下拉保持小圆角矩形（2026-11-15 用户令「不要胶囊形状，矩形加一点圆角」）。
+             28 DIP 的行高最多画得出 14 DIP 的圆角，EgCardCornerRadius 的 16 写上去屏上就是两端半圆的
+             胶囊；4 DIP 是第 40 项确认过的那一档。只作用于本页六颗 EgPicker，下方操作按钮与全局
+             EgPicker 照旧。 -->
+        <CornerRadius x:Key="EgDetailPickerCornerRadius">4</CornerRadius>
         <!-- 头图上那六颗键：带字的两颗一个高度，只有图标的四颗是同边长的方块。三个样式的高度、边长和
              圆角都取词表 —— 以前是写死的 38 配 19，19 是「一半高」也就是药丸，而这一版里圆角只有两档：
              图是 0，你会去按的东西是 8。两个都必须 BasedOn 框架自己的样式，否则连模板都拿不到。 -->
@@ -822,7 +827,7 @@
                                     Spacing="6"
                                     Visibility="{x:Bind ViewModel.ColumnPickersVisibility, Mode=OneWay}">
                                     <!-- 文件选项复用上方按钮的常态、悬停与按压背景；聚焦和失焦回常态。
-                                         圆角与弹层仍沿用选择框自己的资源。 -->
+                                         闭合框的圆角走本页的小圆角，弹层仍沿用选择框自己的资源。 -->
                                     <StackPanel.Resources>
                                         <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
                                         <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
@@ -859,7 +864,7 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgCardCornerRadius}"
+                                            CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                             MinWidth="0"
@@ -884,7 +889,7 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgCardCornerRadius}"
+                                            CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -909,7 +914,7 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgCardCornerRadius}"
+                                            CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -1251,8 +1256,8 @@
 
                              里面那一层是 WrapRow 而不是横排的 StackPanel：下拉的宽度按各自最长那条轨道名撑，
                              窄窗口下三个加起来能超过一行，横排会把最右边那个切在窗口右沿上。宽窗口下两者摆出来
-                             一模一样，见 WrapRow 的注释。三颗下拉与下方操作按钮共用 EgCardCornerRadius，
-                             集页宽版式那一份也使用同一圆角资源。
+                             一模一样，见 WrapRow 的注释。三颗下拉走本页的小圆角（EgDetailPickerCornerRadius），
+                             集页宽版式那一份也用这一支；下方操作按钮仍是 EgCardCornerRadius。
                              三颗都是 local:EgPicker 而不是框架的 ComboBox —— 它是 ComboBox 的一点壳，只把弹层
                              从「开窗口」改回「同一棵树」，好让浮层那支应用内亚克力采得到底下这一页（用户
                              2026-09-27：「把音频和字幕的选择栏改成亚克力背景」；为什么这么改写在 EgPicker.cs）。
@@ -1282,7 +1287,7 @@
                                     x:Name="SourcePicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                                    CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                     MinWidth="260"
@@ -1296,7 +1301,7 @@
                                     x:Name="AudioPicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                                    CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                     MinWidth="200"
@@ -1310,7 +1315,7 @@
                                     x:Name="SubtitlePicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                                    CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                     MinWidth="200"

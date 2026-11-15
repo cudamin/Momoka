@@ -17,6 +17,9 @@ internal static class InputControlThemeTests
     private const string SettingsComboStyle = "{StaticResource EgSettingsComboBoxStyle}";
     private const string SearchRadiusKey = "EgSearchCornerRadius";
     private const string SearchRadius = "{StaticResource EgSearchCornerRadius}";
+    private const string DetailPickerPage = "src/Momoka.Shell/Views/DetailPage.xaml";
+    private const string DetailPickerRadiusKey = "EgDetailPickerCornerRadius";
+    private const string DetailPickerRadius = "{StaticResource EgDetailPickerCornerRadius}";
     private static readonly (string Page, string Name)[] SearchTextInputs =
     [
         ("DanmakuPanel.xaml", "TitleBox"), ("FnNasMatchDialog.xaml", "KeywordBox"),
@@ -161,9 +164,10 @@ internal static class InputControlThemeTests
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
         });
-        Test("输入主题：详情文件选项与操作按钮同底同圆角，集列表牌子不再挂下拉", () =>
+        Test("输入主题：详情文件选项同按钮底色、下拉小圆角，集列表牌子不再挂下拉", () =>
         {
-            var page = Read("src/Momoka.Shell/Views/DetailPage.xaml");
+            var page = Read(DetailPickerPage);
+            AssertDetailPickerRadiusResource(page);
             foreach (var name in new[] { "ColumnPickers", "PickerPanel" })
             {
                 var panel = page.Descendants(Xaml + "StackPanel")
@@ -182,7 +186,7 @@ internal static class InputControlThemeTests
                 foreach (var picker in pickers)
                 {
                     Assert.Equal("{ThemeResource ButtonBackground}", (string?)picker.Attribute("Background"));
-                    Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)picker.Attribute("CornerRadius"));
+                    Assert.Equal(DetailPickerRadius, (string?)picker.Attribute("CornerRadius"));
                 }
             }
 
@@ -535,14 +539,15 @@ internal static class InputControlThemeTests
 
     private static void AssertProductInputRadii(string path, XDocument document, XDocument shared)
     {
+        if (path == DetailPickerPage) AssertDetailPickerRadiusResource(document);
         foreach (var control in document.Descendants().Where(element =>
             SettingsInputTypes.Contains(element.Name.LocalName, StringComparer.Ordinal)
                 || element.Name.LocalName is "EgPicker"))
         {
             var radius = (string?)control.Attribute("CornerRadius");
-            var usesDetailCardRadius = path == "src/Momoka.Shell/Views/DetailPage.xaml"
-                && control.Name.LocalName == "EgPicker" && radius == "{StaticResource EgCardCornerRadius}";
-            Assert.True(radius is null || IsSharedRadius(radius) || usesDetailCardRadius,
+            var usesDetailPickerRadius = path == DetailPickerPage
+                && control.Name.LocalName == "EgPicker" && radius == DetailPickerRadius;
+            Assert.True(radius is null || IsSharedRadius(radius) || usesDetailPickerRadius,
                 path + "/" + control.Name.LocalName + " 自设旧圆角");
             var style = (string?)control.Attribute("Style");
             if (style is not null) Assert.True(StyleHasSharedRadius(style, document, shared, []), path + "/" + style);
@@ -564,6 +569,18 @@ internal static class InputControlThemeTests
                 (string?)setter.Attribute("Property") == "CornerRadius"))
                 Assert.True(IsSharedRadius((string?)setter.Attribute("Value")), path + " 样式自设旧圆角");
         }
+    }
+
+    private static void AssertDetailPickerRadiusResource(XDocument document)
+    {
+        var radii = document.Descendants()
+            .Where(element => (string?)element.Attribute(X + "Key") == DetailPickerRadiusKey).ToArray();
+        Assert.Equal(1, radii.Length, "详情选择栏缺少唯一的本页小圆角资源");
+        var radius = radii.Single();
+        Assert.Equal(Xaml + "CornerRadius", radius.Name);
+        Assert.Equal("4", radius.Value, "详情选择栏又变成旧圆角或胶囊形状");
+        Assert.True(ReferenceEquals(radius.Parent, document.Root!.Element(Xaml + "Page.Resources")),
+            "详情选择栏圆角只能作用于本页");
     }
 
     private static bool StyleHasSharedRadius(string reference, XDocument local, XDocument shared, HashSet<string> seen)
