@@ -99,14 +99,23 @@ public sealed partial class DetailPage
             {
                 var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
                 if (id is null) return;
-                _storeYouTube = new StoreYouTubePreview();
+                var youTube = new StoreYouTubePreview();
+                _storeYouTube = youTube;
+                youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (generation == _storeTrailerGeneration && ReferenceEquals(_storeYouTube, youTube)) UpdateStoreTrailerControls();
+                });
+                youTube.CaptionsChanged += () => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (generation == _storeTrailerGeneration && ReferenceEquals(_storeYouTube, youTube)) UpdateStoreTrailerControls();
+                });
                 _storeTrailerScrollPaused = Body.VerticalOffset > StoreTrailerHost.Height * 0.5;
-                _storeYouTube.SetActive(!_storeTrailerScrollPaused);
-                StoreTrailerContent.Children.Add(_storeYouTube.Element);
+                youTube.SetActive(!_storeTrailerScrollPaused);
+                StoreTrailerContent.Children.Add(youTube.Element);
                 StoreTrailerHost.Visibility = Visibility.Visible;
                 StoreTrailerHost.Opacity = 0;
                 UpdateStoreTrailerControls();
-                await _storeYouTube.StartAsync(id, Path.Combine(_request!.Services.GetRequiredService<Momoka.Infrastructure.AppPaths>().LogDirectory,
+                await youTube.StartAsync(id, Path.Combine(_request!.Services.GetRequiredService<Momoka.Infrastructure.AppPaths>().LogDirectory,
                     "trailer-preview", Guid.NewGuid().ToString("N")), token, playing =>
                 {
                     if (token.IsCancellationRequested || generation != _storeTrailerGeneration || subject.Source?.IsAvailable != true) return;
@@ -243,7 +252,10 @@ public sealed partial class DetailPage
 
     private void OnStoreTrailerPause(object sender, RoutedEventArgs args)
     {
-        _storeTrailerUserPaused = !_storeTrailerUserPaused;
+        // 网页玩家会自己暂停（自动播放策略、缓冲或用户离开），按钮不能只按上一次内部状态取反，
+        // 否则画面上已经停住时再点一次仍然发的是暂停。按实际播放状态决定这一下是暂停还是继续。
+        var playing = _storeYouTube is { } youTube ? youTube.IsPlaying : !_storeTrailerUserPaused;
+        _storeTrailerUserPaused = playing;
         if (_storeTrailerUserPaused || _storeTrailerScrollPaused) _storeTrailerPlayer?.Pause();
         else _storeTrailerPlayer?.Play();
         _storeYouTube?.SetActive(!_storeTrailerUserPaused && !_storeTrailerScrollPaused);
@@ -259,12 +271,18 @@ public sealed partial class DetailPage
 
     private void UpdateStoreTrailerControls()
     {
-        ((FontIcon)StoreTrailerPause.Icon).Glyph = _storeTrailerUserPaused ? "\uE768" : "\uE769";
-        var muted = _storeYouTube is not null ? _storeYouTubeMuted : _storeTrailerPlayer?.IsMuted != false;
+        var youTube = _storeYouTube;
+        // 网页预告以播放器回报的状态为准：取消静音被浏览器拦下时画面会停住，按钮必须跟着变成「播放」。
+        var paused = youTube is not null
+            ? _storeTrailerOpened && !youTube.IsPlaying
+            : _storeTrailerUserPaused;
+        ((FontIcon)StoreTrailerPause.Icon).Glyph = paused ? "\uE768" : "\uE769";
+        var muted = youTube is not null ? _storeYouTubeMuted : _storeTrailerPlayer?.IsMuted != false;
         ((FontIcon)StoreTrailerMute.Icon).Glyph = muted ? "\uE74F" : "\uE767";
-        StoreTrailerSubtitles.Visibility = SubtitleTracks().Any() ? Visibility.Visible : Visibility.Collapsed;
+        StoreTrailerSubtitles.Visibility = SubtitleTracks().Any() || (youTube?.Captions.Count ?? 0) > 0
+            ? Visibility.Visible : Visibility.Collapsed;
         StoreTrailerAudio.Visibility = _storeTrailerItem?.AudioTracks.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        var pause = _storeTrailerUserPaused ? "播放预告片" : "暂停预告片";
+        var pause = paused ? "播放预告片" : "暂停预告片";
         var mute = muted ? "取消预告片静音" : "预告片静音";
         StoreTrailerPause.Label = pause;
         StoreTrailerMute.Label = mute;
@@ -307,6 +325,34 @@ public sealed partial class DetailPage
 
     private void OnStoreTrailerSubtitles(object sender, RoutedEventArgs args)
     {
+        // 官方网页预告的字幕由IFrame API的captions模块提供；音轨没有对应接口，所以只列字幕。
+        if (_storeYouTube is { Captions.Count: > 0 } youTube)
+        {
+            var web = new MenuFlyout();
+            var webGroup = Guid.NewGuid().ToString("N");
+            var none = new RadioMenuFlyoutItem
+            {
+                Text = "关闭字幕",
+                GroupName = webGroup,
+                IsChecked = string.IsNullOrEmpty(youTube.SelectedCaption)
+            };
+            none.Click += (_, _) => { if (ReferenceEquals(youTube, _storeYouTube)) youTube.SelectCaption(null); };
+            web.Items.Add(none);
+            foreach (var track in youTube.Captions)
+            {
+                var language = track.Language;
+                var entry = new RadioMenuFlyoutItem
+                {
+                    Text = track.Name,
+                    GroupName = webGroup,
+                    IsChecked = string.Equals(youTube.SelectedCaption, language, StringComparison.Ordinal)
+                };
+                entry.Click += (_, _) => { if (ReferenceEquals(youTube, _storeYouTube)) youTube.SelectCaption(language); };
+                web.Items.Add(entry);
+            }
+            ShowStoreTrackMenu(web, StoreTrailerSubtitles);
+            return;
+        }
         if (_storeTrailerItem is not { } item || !SubtitleTracks().Any()) return;
         var menu = new MenuFlyout();
         var group = Guid.NewGuid().ToString("N");
