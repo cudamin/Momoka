@@ -28,6 +28,9 @@ namespace Momoka.Shell.Views
         // 写成属性而不是字段：这份夹具从不为它赋值，字段会招来 CS0649，而「这里没有会话」正是要说的意思。
         private Momoka.Emby.EmbySession? _session => null;
         private void EndSelection() { }
+        private void EndSelectionImmediately() { }
+        // 这一份夹具不承载整墙动效；真实 Release 里的复位与淡入标记收在同名生产方法里。
+        private void ResetWallReveal() { }
         private void OnBatchPermissionsChanged(object? sender, Momoka.Emby.EmbySessionScope source) { }
         private void OnBatchSourcesChanged(object? sender, EventArgs args) { }
         // Search never owns a library window anchor; real Release still clears these inactive slots.

@@ -685,7 +685,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             NavigationCacheMode = NavigationCacheMode.Disabled;
         _timing = null;
         _released = true;
-        _wallResetPending = false;
+        ResetWallReveal();
         if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
         _moviePilot = null;
         if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
@@ -716,8 +716,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         _pendingScroll = null;
         _restoringAnchor = false;
         ViewModel.ReleaseSearchPosters();
-        // 整墙淡入也随离页立即落定，回来时看到的仍是不透明的那一档。
-        HomeMotion.Stop(CardWall);
         _filterPane?.Dismiss();
         // 离开这一页不播淡出：把两层的值复位，回来时看到的仍是原来那一档。
         _filterScrimMotion?.Collapse();
@@ -1070,6 +1068,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         _wallResetPending = false;
         if (_released || ViewModel.Cards.Count == 0 || CardWall.Visibility != Visibility.Visible) return;
         HomeMotion.Reveal(CardWall, 0, 150, 6);
+    }
+
+    /// <summary>离页或重新进入时把整墙淡入的标记与残留不透明度一起复位。</summary>
+    private void ResetWallReveal()
+    {
+        _wallResetPending = false;
+        HomeMotion.Stop(CardWall);
     }
 
     private void OnItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)

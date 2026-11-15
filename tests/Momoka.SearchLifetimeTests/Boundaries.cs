@@ -29,6 +29,7 @@ namespace Microsoft.UI.Xaml
     {
         public object? Tag { get; set; }
         public Visibility Visibility { get; set; }
+        public bool IsHitTestVisible { get; set; } = true;
         public XamlRoot? XamlRoot { get; set; } = new();
         public ElementTheme RequestedTheme { get; set; }
         public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();

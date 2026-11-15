@@ -21,8 +21,11 @@ internal sealed partial class ShellNavigationProbe
         await fixture.SelectAsync("preview-heading.invalid");
         var item = new EmbyItem
         {
-            Id = "heading-" + Guid.NewGuid().ToString("N"), Name = "匿名悬停徽标与片名交接",
-            Type = EmbyItemType.Movie, MediaType = "Video", Overview = "只验证预览标题与徽标的实际导航交接。",
+            Id = "heading-" + Guid.NewGuid().ToString("N"),
+            Name = "匿名悬停徽标与片名交接",
+            Type = EmbyItemType.Movie,
+            MediaType = "Video",
+            Overview = "只验证预览标题与徽标的实际导航交接。",
             ImageTags = new() { ["Primary"] = "poster", ["Logo"] = "logo", ["Thumb"] = "thumb" },
             BackdropImageTags = ["backdrop"]
         };
@@ -54,8 +57,11 @@ internal sealed partial class ShellNavigationProbe
             Require(HomeMotion.AnimationsEnabled, "系统关闭动画，标题飞行原生覆盖不可执行");
             Require(frame.Navigate(typeof(LibraryPage), new LibraryRequest
             {
-                Services = fixture.Services, Title = "匿名标题交接库", ParentId = "heading-library",
-                CollectionType = "movies", Source = fixture.Session.Capture()
+                Services = fixture.Services,
+                Title = "匿名标题交接库",
+                ParentId = "heading-library",
+                CollectionType = "movies",
+                Source = fixture.Session.Capture()
             }, new SuppressNavigationTransitionInfo()), "标题交接源库导航失败");
             var library = (LibraryPage)frame.Content;
             await UntilAsync(() => library.IsReady && !library.ViewModel.Busy && library.ViewModel.Cards.Count == 1);
@@ -127,8 +133,17 @@ internal sealed partial class ShellNavigationProbe
                     await UntilAsync(() => Get<object?>(target, "_previewHeadingFlight") is null);
                     RequireHeadingSettled(title, plate);
                     await SaveProbeScreenAsync("preview-heading-completed-screen.png");
-                    samples.Add(new { phase = "completed", capture!.Title, capture.Plate, capture.TitleFontSize,
-                        initial, middle, completed = true, freezeSampling = true });
+                    samples.Add(new
+                    {
+                        phase = "completed",
+                        capture!.Title,
+                        capture.Plate,
+                        capture.TitleFontSize,
+                        initial,
+                        middle,
+                        completed = true,
+                        freezeSampling = true
+                    });
                 }
                 else if (round == 1)
                 {
