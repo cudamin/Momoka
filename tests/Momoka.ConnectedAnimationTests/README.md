@@ -1,5 +1,10 @@
 # 海报到详情与演职人员到人物页的原生关联动画回归
 
+2026-11-15 起跑延迟修复：`Attach` 先 `SeedConnectedLayoutWidth` + `ForceConnectedLayout`，目标已排过版时
+`TryStartEarly` 在目标页 `Loaded` 之前直接启动；`LayoutUpdated` 在尚未 `Loaded` 时也先抢跑。新增「已排过版时
+在新页 Loaded 前立即起跑」「第一次布局落定即可起跑」两项，原「目标未排过版不抢跑」「新页未 Loaded 时图片更正
+不打断 Frame 创建」边界保留；当前专项 **63/63**、0 失败 0 跳过。
+
 2026-11-15 S1：当前专项 58/58，0 失败 0 跳过。原样链接两个生产票据、`ConnectedMotionReceipt.cs` 与 `NavigationTiming.cs`；新增十项覆盖准备成功后的单调计时、前进/返回独立起点、Prepare 调用耗时排除、实际成功 TryStart 返回时点、固定匿名失败阶段、每次唯一终态、人物 Completed/完成超时、快速导航和观察回执时重入。诊断 sink 抛错不影响普通导航，Prepare 守卫失败不建立虚假票据或额外 Timer。已启动后的取消/完成超时继续落定，不发送 `started=false` 页面回退。
 
 回执的 `PrepareToStartMs`：原生成功时从 `PrepareToAnimate` 返回到 `TryStart(true)` 返回；平台拒绝时记录到该次 TryStart 调用入口；完全没有尝试时为 null。`ElapsedMs` 从对应准备成功起点到该阶段，不混入点击耗时；700ms 是准备等待上限，1200ms 是生命周期保护。本专项只使用可控单调时钟与原生边界，不能证明实际 ≤250ms、GPU 补间或跨 DPI。

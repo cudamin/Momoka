@@ -268,25 +268,28 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(SublineBrush))]
     public partial string? Subline { get; set; }
 
+    /// <summary>
+    /// 大众分那一格：0–10 的数，屏上跟一枚星。旁边不再有「公众评分」那四个字 —— 图标自己说明这一格是谁给的
+    /// （2026-11-15 用户令「两个评分不要文字，用图标表示平台」）。
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ScoreVisibility))]
-    public partial string? Score { get; set; }
+    [NotifyPropertyChangedFor(nameof(CommunityVisibility))]
+    public partial string? CommunityScore { get; set; }
 
-    /// <summary>
-    /// 分数旁边那句「这是谁给的分」——「豆瓣」「TMDB」「烂番茄」或者「公众评分」。
-    /// <para>
-    /// 单独一格而不是拼进 <see cref="Score"/>：那四个字要走暗墨、跟着事实那一行的层次，而分数走强墨。而且它必须说
-    /// <b>实际取到的是哪一档</b>，不是设置里选的哪一档 —— 选了豆瓣而服务器认不出豆瓣，这里写的就是「公众评分」。
-    /// </para>
-    /// </summary>
+    /// <summary>影评指数那一格：百分数，屏上跟一枚番茄。两个槽各画各的，哪一槽没分就只收哪一格。</summary>
     [ObservableProperty]
-    public partial string? ScoreLabel { get; set; }
+    [NotifyPropertyChangedFor(nameof(ScoreVisibility))]
+    [NotifyPropertyChangedFor(nameof(CriticVisibility))]
+    public partial string? CriticScore { get; set; }
 
     /// <summary>
-    /// 自检用：规矩说这一格该画什么。屏上那两格由绑定填，而「该是什么」只有视图模型算得出来 —— 探针拿这一份和屏上
+    /// 自检用：规矩说这两格该画什么。屏上那两格由绑定填，而「该是什么」只有视图模型算得出来 —— 探针拿这一份和屏上
     /// 比，两边一致才算这一格真的接上了。
     /// </summary>
-    internal Emby.ScoreBadge ScoreBadge { get; private set; } = Emby.ScoreBadge.None;
+    internal Emby.ScoreBadge CommunityBadge { get; private set; } = Emby.ScoreBadge.None;
+
+    internal Emby.ScoreBadge CriticBadge { get; private set; } = Emby.ScoreBadge.None;
 
     /// <summary>
     /// 自检用：服务器在这个条目上到底给了什么评分字段。**只报不判** —— 有没有影评指数是服务器上装了哪些插件的
@@ -326,6 +329,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial ImageSource? StillImage { get; set; }
 
@@ -346,6 +350,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial bool StillPending { get; set; }
 
@@ -425,6 +430,8 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
     [NotifyPropertyChangedFor(nameof(CompactVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverActionsVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -504,6 +511,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ReadMoreVisibility));
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
+        OnPropertyChanged(nameof(StoreCoverActionsVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
@@ -1394,7 +1404,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 往下推。说明的第一行由此落在下沿底下 <see cref="TailInset"/> 那点缝加它自己的内边距上。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 32, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
+    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), DetailHero.StoreHeroTop, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)
@@ -1925,7 +1935,12 @@ public sealed partial class DetailViewModel : PageViewModel
     private static string Describe(float? value) =>
         value is { } number ? number.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "没给";
 
-    public Visibility ScoreVisibility => Show(!string.IsNullOrWhiteSpace(Score));
+    public Visibility ScoreVisibility =>
+        Show(!string.IsNullOrWhiteSpace(CommunityScore) || !string.IsNullOrWhiteSpace(CriticScore));
+
+    public Visibility CommunityVisibility => Show(!string.IsNullOrWhiteSpace(CommunityScore));
+
+    public Visibility CriticVisibility => Show(!string.IsNullOrWhiteSpace(CriticScore));
 
     /// <summary>
     /// 「视频：417.7 MB · 1080p · H264 · AAC · 制作组」这一行该不该有。两处用它：集页的宽版式里它是一枚 chips
@@ -2536,6 +2551,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CoverShadeVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2770,6 +2786,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
+        OnPropertyChanged(nameof(StoreCoverActionsVisibility));
+        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         AnnounceAffordances();
         // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。
         // 不能读 ItemType：它会回退到 seed，让存根首次 Apply 被误认为已经通知过。
@@ -2888,14 +2907,16 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 评分那三件（分数、署名、自检读数）都在这一处写 —— 条目回来时写自己，季页的剧集那一层回来后再写一遍。
+    /// 评分那几件（两格分数、自检读数）都在这一处写 —— 条目回来时写自己，季页的剧集那一层回来后再写一遍。
     /// </summary>
     private void ApplyScore(EmbyItem item)
     {
-        var badge = ItemScore.Resolve(item);
-        Score = badge.Text;
-        ScoreLabel = badge.Label;
-        ScoreBadge = badge;
+        var community = ItemScore.Community(item);
+        var critic = ItemScore.Critic(item);
+        CommunityScore = community.Text;
+        CriticScore = critic.Text;
+        CommunityBadge = community;
+        CriticBadge = critic;
         ScoreFacts = $"CommunityRating={Describe(item.CommunityRating)}"
             + $"，CriticRating={Describe(item.CriticRating)}"
             + $"，ProviderIds={(item.ProviderIds.Count == 0 ? "空" : string.Join('/', item.ProviderIds.Keys))}";
@@ -3006,8 +3027,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OverviewTrimmed = false;
 
         ApplyHeading(item);
-        // 「显示的评分」直接画服务器给的那个数（2026-10-16 起不再有「评分来源」可选）。规则在 Core（ItemScore）：
-        // 取哪个槽、写谁的名字、这一槽没有就回落到哪儿，都是有唯一正确答案的判断，而错起来屏上只是一个看着挺正常的数。
+        // 「显示的评分」直接画服务器给的那两个数（2026-10-16 起不再有「评分来源」可选）。规则在 Core（ItemScore）：
+        // 两槽各画各的、各自怎么格式化、哪一槽没有分收哪一格，都是有唯一正确答案的判断，而错起来屏上只是一个
+        // 看着挺正常的数。
         ApplyScore(item);
         Facts = ItemDetail.Facts(item, includeStudio: false);
         Directors = ItemDetail.Directors(item);

@@ -131,10 +131,20 @@ internal sealed partial class ShellNavigationProbe
                     && bar.Title.Contains("已保存", StringComparison.Ordinal)
                     && bar.Title.Contains("刷新", StringComparison.Ordinal), "详情没有显示已保存但刷新失败的真实 InfoBar");
                 Require(actions.WatchedReports == (played ? 1 : 0), "详情确认已看附带回调次数错误");
-                var labels = ((StackPanel)watchedButton.Content).Children.OfType<TextBlock>()
-                    .Where(label => label.Visibility == Visibility.Visible).ToArray();
-                Require(labels.Length == 1 && labels[0].Text == (played ? "已看" : "未看"),
-                    "详情已看按钮文字没有随确认状态更新：" + string.Join(" / ", labels.Select(label => label.Text)));
+                // 商店宽版式把已看键搬进封面左上角并收成图标（2026-11-15 用户令）：那一档只剩图标，
+                // 文字组整组收起；紧凑版式与沉浸宽版式仍是带字胶囊，照旧量文字状态。
+                if (width == 760 || !page.ViewModel.StoreMode)
+                {
+                    var labels = ((StackPanel)watchedButton.Content).Children.OfType<TextBlock>()
+                        .Where(label => label.Visibility == Visibility.Visible).ToArray();
+                    Require(labels.Length == 1 && labels[0].Text == (played ? "已看" : "未看"),
+                        "详情已看按钮文字没有随确认状态更新：" + string.Join(" / ", labels.Select(label => label.Text)));
+                }
+                else
+                {
+                    Require(Get<StackPanel>(page, "ColumnWatchedLabels").Visibility == Visibility.Collapsed,
+                        "封面上的已看键没有收成图标");
+                }
                 await SaveProbeScreenAsync($"plex-state-detail-{width}-{(int)status}-{played}-confirmed-screen.png");
                 await page.ScrollToEndAsync();
                 await LayoutAsync(page);

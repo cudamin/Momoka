@@ -544,6 +544,7 @@ internal sealed partial class ShellNavigationProbe
     /// 量的都是根坐标里的矩形：视频那一行（纯文字）、音频那一行（外置标签 + 下拉）、字幕那一行（外置标签 + 下拉）。
     /// 两处空隙要彼此相等、均为收紧后的 6 DIP，纯文字那一行的高要
     /// 等于真下拉的高 —— <c>EgPickerRowHeight</c> 一旦和框架的 ComboBox 漂开，最后那一条就会红。
+    /// 2026-11-15 用户令「加高选择框的高度」：行高从 28 到 36，间距仍是 6，四行一起抬。
     /// </para>
     /// <para>
     /// 读数落在 <c>detail-picker-rhythm.txt</c>，两种状态各拍一张实屏
@@ -629,8 +630,8 @@ internal sealed partial class ShellNavigationProbe
                     + $"空隙 {first:0.#}／{second:0.#}，选择框高 {height:0.#}，"
                     + $"Spacing {stack.Spacing:0.#}／{panel.Spacing:0.#}");
                 Require(Math.Abs(first - second) < 0.5, $"{state}：两处空隙不一样：{first:0.#} 对 {second:0.#}");
-                Require(Math.Abs(first - 6) < 0.5 && Math.Abs(height - 28) < 0.5,
-                    $"{state}：未收紧到 28 高、6 间距：高 {height:0.#}，间距 {first:0.#}");
+                Require(Math.Abs(first - 6) < 0.5 && Math.Abs(height - 36) < 0.5,
+                    $"{state}：不是 36 高、6 间距：高 {height:0.#}，间距 {first:0.#}");
                 Require(Math.Abs(first - stack.Spacing) < 0.5,
                     $"{state}：视频与音频之间 {first:0.#}，片名栏的 Spacing 是 {stack.Spacing:0.#}");
                 Require(Math.Abs(second - panel.Spacing) < 0.5,

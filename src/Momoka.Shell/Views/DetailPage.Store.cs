@@ -1,5 +1,6 @@
 using System;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
 using Momoka.Theming;
 
@@ -106,10 +107,91 @@ public sealed partial class DetailPage
             // 2026-11-15 用户令「下方的卡片别压在封面上」：版本框与那排键离封面再让开一点。
             StoreHeroDetails.Margin = new Thickness(0, store ? 16 : 8, 0, 0);
             HeroFacts.TextWrapping = store ? TextWrapping.Wrap : TextWrapping.NoWrap;
+
+            // 2026-11-15 用户令：播放／更多到封面右侧、收藏／已看到封面左上角、连播到集列表卡片右上角。
+            // 宽版式里搬同一批实例，退出商店或收成紧凑版式时按原次序放回 ColumnActions。
+            var storeWide = store && !ViewModel.IsCompact;
+            PlaceStoreActionButtons(storeWide);
+
+            // 右侧剧照／预告视口只在宽版式出现；圆角也只写给那一档（窄窗铺满整幅的那一版保持直角）。
+            var previewCorner = store && ViewModel.PageWidth >= DetailHero.StoreWideFloor
+                ? (CornerRadius)Resources["EgCardCornerRadius"] : default;
+            StoreBackdropContent.CornerRadius = previewCorner;
+            StoreTrailerContent.CornerRadius = previewCorner;
+
             ViewModel.StoreDetailsRoom = store ? StoreHeroDetails.ActualHeight + StoreHeroDetails.Margin.Top : 0;
             if (_actions is ShellPage shell) shell.RefreshDetailChrome();
         }
         finally { _placingStoreComponents = false; }
+    }
+
+    /// <summary>
+    /// 商店宽版式里那几颗键换位置（2026-11-15 用户令）：
+    /// 播放、更多搬进封面右侧的横排（更多在最右）；收藏、已看搬进封面左上角；
+    /// 连播挂到集列表卡片标题那一行的右端（<see cref="ShelfHead.Trailing"/>）。
+    /// <para>
+    /// 搬的是同一批实例，绑定、命令、焦点与外观画刷都不重接；退出商店模式或页面收窄到紧凑版式时
+    /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>。
+    /// 已看那颗键在封面里收成图标（用户确认「收成图标」）：文字组的显隐由
+    /// <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/> 收起，样式换成圆角方键。
+    /// </para>
+    /// </summary>
+    private void PlaceStoreActionButtons(bool storeWide)
+    {
+        if (storeWide)
+        {
+            MoveToPanel(ColumnPlayButton, StoreCoverActions);
+            MoveToPanel(ColumnMoreButton, StoreCoverActions);
+            MoveToPanel(ColumnFavoriteButton, StoreCoverBadges);
+            MoveToPanel(ColumnWatchedButton, StoreCoverBadges);
+
+            if (!ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton))
+            {
+                Detach(ColumnContinueButton);
+                EpisodeHead.Trailing = ColumnContinueButton;
+            }
+            if (!ReferenceEquals(ColumnWatchedButton.Style, Resources["EgRoundButtonStyle"]))
+                ColumnWatchedButton.Style = (Style)Resources["EgRoundButtonStyle"];
+            return;
+        }
+
+        if (ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton)) EpisodeHead.Trailing = null;
+        RestoreToActions(ColumnPlayButton, 0);
+        RestoreToActions(ColumnContinueButton, IndexAfter(ColumnExtrasButton));
+        RestoreToActions(ColumnWatchedButton, IndexAfter(ColumnContinueButton));
+        RestoreToActions(ColumnFavoriteButton, IndexAfter(ColumnWatchedButton));
+        RestoreToActions(ColumnMoreButton, ColumnActionRow.Children.Count);
+        if (!ReferenceEquals(ColumnWatchedButton.Style, Resources["EgPillButtonStyle"]))
+            ColumnWatchedButton.Style = (Style)Resources["EgPillButtonStyle"];
+    }
+
+    /// <summary>把一颗键从原来的父级摘下来，追加到目标那一格（已经在目标里就不动）。</summary>
+    private static void MoveToPanel(FrameworkElement element, Panel target)
+    {
+        if (ReferenceEquals(element.Parent, target)) return;
+        Detach(element);
+        target.Children.Add(element);
+    }
+
+    /// <summary>从当前父级摘下；只认 Panel，那一格里的键都是 Panel 的孩子。</summary>
+    private static void Detach(FrameworkElement element)
+    {
+        if (element.Parent is Panel parent) parent.Children.Remove(element);
+    }
+
+    /// <summary>按给定的下标把键放回那排操作里；已经到了就不动。</summary>
+    private void RestoreToActions(FrameworkElement element, int index)
+    {
+        if (ReferenceEquals(element.Parent, ColumnActionRow)) return;
+        Detach(element);
+        ColumnActionRow.Children.Insert(Math.Clamp(index, 0, ColumnActionRow.Children.Count), element);
+    }
+
+    /// <summary>某一颗键右边那一格；那颗不在这一排时给排尾。</summary>
+    private int IndexAfter(UIElement anchor)
+    {
+        var index = ColumnActionRow.Children.IndexOf(anchor);
+        return index < 0 ? ColumnActionRow.Children.Count : index + 1;
     }
 
     private void OnStoreHeroSizeChanged(object sender, SizeChangedEventArgs args)

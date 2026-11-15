@@ -98,9 +98,14 @@ internal sealed partial class ShellNavigationProbe
                         && Get<Border>(page, "PosterStill").ActualWidth > 0, "商店窄窗没有保留实际封面图");
                     // 简洁模式的按钮与闭合选择框吃那支固定面色（2026-11-11 用户令）：先核四态画笔，
                     // 再把按钮材质那几项改到另一个极端，证明它一个字节都不读。
+                    // 商店宽版式把播放/更多、收藏/已看搬出 ColumnActions（2026-11-15 用户令）；量按钮材质时
+                    // 要把那两个新位置一起收进来，否则主播放键的强调面会悄悄漏检。
                     var actions = new[] { Get<StackPanel>(page, "ColumnActions"), Get<StackPanel>(page, "CompactBlock") }
                         .SelectMany(group => group.Children).OfType<WrapRow>()
-                        .SelectMany(row => row.Children).OfType<Control>()
+                        .SelectMany(row => row.Children)
+                        .Concat(new[] { Get<StackPanel>(page, "StoreCoverActions"), Get<StackPanel>(page, "StoreCoverBadges") }
+                            .SelectMany(group => group.Children))
+                        .OfType<Control>()
                         .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
                         .ToArray();
                     // 主播放键 2026-11-14 起是主题色（用户令「播放按钮改成主题色」），其余按钮仍是固定面色。

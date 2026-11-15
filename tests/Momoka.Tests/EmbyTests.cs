@@ -2291,50 +2291,52 @@ internal static class EmbyTests
     // ---- 详情评分 --------------------------------------------------------------
     //
     // 「服务端给什么评分就用什么」（2026-10-16 起，设置里那一档「评分来源」整个删掉了）。这一族钉的全是屏上看着挺
-    // 正常的坏法：0 分被当成有分、烂番茄的 92 被当成十分制、小数点跟着机器的文化走，以及大众分没有时忘了退到影评
-    // 指数（服务器明明有一个分，那一格却整块收起来）。
+    // 正常的坏法：0 分被当成有分、烂番茄的 92 被当成十分制、小数点跟着机器的文化走，以及两个槽本该各画各的却
+    // 只画了一格（2026-11-15 用户令「两个评分不要文字，用图标表示平台」）。
 
     private static void RegisterScoreSource()
     {
-        Test("详情评分：公众评分照旧那样格式化，0 与缺失都当作没有", () =>
+        Test("详情评分：大众分照旧那样格式化，0 与缺失都当作没有", () =>
         {
-            // 这四条是从 ItemDetail.Score 那一条原样搬过来的，行为一字不改。
-            Assert.Equal("8.4", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.4f }).Text);
-            Assert.Equal("8", ItemScore.Resolve(new EmbyItem { CommunityRating = 8f }).Text);
-            Assert.Equal("8.4", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.44f }).Text);
-            Assert.False(ItemScore.Resolve(new EmbyItem { CommunityRating = 0 }).Any);
-            Assert.False(ItemScore.Resolve(new EmbyItem()).Any);
-            Assert.Equal("公众评分", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.4f }).Label);
+            Assert.Equal("8.4", ItemScore.Community(new EmbyItem { CommunityRating = 8.4f }).Text);
+            Assert.Equal("8", ItemScore.Community(new EmbyItem { CommunityRating = 8f }).Text);
+            Assert.Equal("8.4", ItemScore.Community(new EmbyItem { CommunityRating = 8.44f }).Text);
+            Assert.False(ItemScore.Community(new EmbyItem { CommunityRating = 0 }).Any);
+            Assert.False(ItemScore.Community(new EmbyItem()).Any);
+            Assert.False(ItemScore.Community(new EmbyItem { CriticRating = 92f }).Any, "两个槽各画各的，大众分不从影评指数借");
         });
 
         Test("详情评分：烂番茄是百分数，取整远离零", () =>
         {
-            var item = new EmbyItem { CriticRating = 92.4f };
-            var badge = ItemScore.Resolve(item);
+            var badge = ItemScore.Critic(new EmbyItem { CriticRating = 92.4f });
 
             Assert.Equal("92%", badge.Text, "0–100 和 0–10 是两种刻度，混了就是屏上一个「92.0 分」");
-            Assert.Equal("烂番茄", badge.Label);
 
-            Assert.Equal("93%", ItemScore.Resolve(new EmbyItem { CriticRating = 92.6f }).Text);
+            Assert.Equal("93%", ItemScore.Critic(new EmbyItem { CriticRating = 92.6f }).Text);
 
             // 默认的 Math.Round 是「取偶」，92.5 会答 92；这里要的是符合直觉的 93。
-            Assert.Equal("93%", ItemScore.Resolve(new EmbyItem { CriticRating = 92.5f }).Text);
+            Assert.Equal("93%", ItemScore.Critic(new EmbyItem { CriticRating = 92.5f }).Text);
         });
 
-        Test("详情评分：大众分在就画大众分，没有才退到影评指数", () =>
+        Test("详情评分：两个槽各画各的，没分的那个自己空着", () =>
         {
             var both = new EmbyItem { CommunityRating = 8.4f, CriticRating = 92f };
-            Assert.Equal("8.4", ItemScore.Resolve(both).Text, "两个槽都有时画大众分");
-            Assert.Equal("公众评分", ItemScore.Resolve(both).Label);
+            Assert.Equal("8.4", ItemScore.Community(both).Text);
+            Assert.Equal("92%", ItemScore.Critic(both).Text, "两个槽都有分时，烂番茄那一格不该被大众分顶掉");
 
-            // 缺的那一格屏上会莫名空掉：服务器明明有一个分，那一格却整块收起来。
+            // 缺的那一格屏上会莫名空掉：服务器明明有一个分，那一格却整块收起来。另一格不该跟着一起收。
             var criticOnly = new EmbyItem { CriticRating = 92f };
-            var badge = ItemScore.Resolve(criticOnly);
-            Assert.Equal("92%", badge.Text);
-            Assert.Equal("烂番茄", badge.Label, "标签说的是实际取到的那一槽");
+            Assert.False(ItemScore.Community(criticOnly).Any);
+            Assert.Equal("92%", ItemScore.Critic(criticOnly).Text);
 
-            Assert.False(ItemScore.Resolve(new EmbyItem()).Any);
-            Assert.False(ItemScore.Resolve(new EmbyItem { CommunityRating = 0, CriticRating = 0 }).Any);
+            var communityOnly = new EmbyItem { CommunityRating = 7.2f };
+            Assert.Equal("7.2", ItemScore.Community(communityOnly).Text);
+            Assert.False(ItemScore.Critic(communityOnly).Any);
+
+            Assert.False(ItemScore.Community(new EmbyItem()).Any);
+            Assert.False(ItemScore.Critic(new EmbyItem()).Any);
+            Assert.False(ItemScore.Community(new EmbyItem { CommunityRating = 0, CriticRating = 0 }).Any);
+            Assert.False(ItemScore.Critic(new EmbyItem { CommunityRating = 0, CriticRating = 0 }).Any);
         });
     }
 }

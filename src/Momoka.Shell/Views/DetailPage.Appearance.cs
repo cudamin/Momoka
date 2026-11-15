@@ -20,8 +20,11 @@ public sealed partial class DetailPage
     private readonly SolidColorBrush _infoValueInk = new();
     private readonly List<FontIcon> _plainActionIcons = [];
     private readonly Dictionary<FrameworkElement, Control> _explicitActionForegrounds = [];
-    /// <summary>「连播开着／已观看」的图标绿 —— 页面资源 <c>EgActionActiveBrush</c> 的初值。</summary>
+    /// <summary>「已观看」那颗图标绿 —— 页面资源 <c>EgActionActiveBrush</c> 的初值。</summary>
     private Color _actionActiveInk;
+    /// <summary>连播图标的两支墨：关着取压在图上那支浅墨，开着取主题色（见 <see cref="PaintContinueInk"/>）。</summary>
+    private readonly SolidColorBrush _continueOffInk = new();
+    private readonly SolidColorBrush _continueOnInk = new();
     private ControlBackgroundBrushes? _columnPlay;
     private ControlBackgroundBrushes? _compactPlay;
     private bool _readingQueued;
@@ -53,6 +56,7 @@ public sealed partial class DetailPage
             // 展开面与行背景留给 Palette 的亚克力及 WinUI 原状态，闭合态才与按钮共用薄白。
             _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(picker, lightSurface: true));
         }
+        PaintContinueInk();
     }
 
     private void QueueReadingColors()
@@ -125,6 +129,7 @@ public sealed partial class DetailPage
         // 是这一页唯一一块有颜色的键；其余按钮和闭合选择框仍是固定面色。
         var simple = !contrast && !ViewModel.AppearanceSettings.EnableImmersive;
         PaintActionActiveInk();
+        PaintContinueInk();
         foreach (var brushes in _controlBackgrounds)
         {
             if (simple)
@@ -144,13 +149,40 @@ public sealed partial class DetailPage
     }
 
     /// <summary>
-    /// 连播「开着」和「已观看」那两颗图标的墨：正常对比下固定用页面资源里的绿（2026-11-15 用户令
-    /// 「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确「这个按钮的修改包括沉浸模式」）；
-    /// 只有高对比度回到系统强调色，那颗图标原来就是 accent。
+    /// 「已观看」那颗图标的墨：正常对比下固定用页面资源里的绿（2026-11-15 用户令
+    /// 「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确「这个按钮的修改包括沉浸模式」；
+    /// 连播那颗当天稍后改为跟主题色，见 <see cref="PaintContinueInk"/>）；
+    /// 只有高对比度回到系统前景，那颗图标原来就取系统色。
     /// </summary>
     internal void PaintActionActiveInk() =>
         ((SolidColorBrush)Resources["EgActionActiveBrush"]).Color =
             _actionAccessibility.HighContrast ? ResourceColor("EgAccentBrush") : _actionActiveInk;
+
+    /// <summary>
+    /// 连播那颗图标的墨：关着取压在图上那支浅墨，开着取主题色（2026-11-15 用户令「点了连播之后
+    /// 图标要自动切换为主题色」）。高对比度两档都让给系统前景。
+    /// <para>
+    /// 这一颗不能交给 ToggleButton 的勾选前景：模板勾上时只把 <c>ContentPresenter.Foreground</c>
+    /// 换成 <c>ToggleButtonForegroundChecked</c>，而 <see cref="IconElement"/> 的 Foreground 不跟
+    /// 视觉状态走，那颗 FontIcon 会一直停在常态那支浅墨上 —— 用户看到的「点了图标没反应」就是这一步。
+    /// 所以由页面直接上墨：两支页面画刷定住对象，只在每次外观重绘时取 <c>EgAccentBrush</c> 的当前色
+    /// （ThemeHost 原地改色，换主题自动跟上），不重建控件。
+    /// </para>
+    /// </summary>
+    private void PaintContinueInk()
+    {
+        var forced = _actionAccessibility.HighContrast
+            ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+            : (Color?)null;
+        _continueOnInk.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgAccentBrush"]).Color;
+        _continueOffInk.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color;
+        var ink = ViewModel.ContinuePlay ? _continueOnInk : _continueOffInk;
+        ColumnContinueGlyph.Foreground = ink;
+        CompactContinueGlyph.Foreground = ink;
+    }
+
+    /// <summary>连播被点了一下：勾选变了，把那颗图标重画一次。</summary>
+    private void OnContinueToggled(object sender, RoutedEventArgs e) => PaintContinueInk();
 
     private void OnBackdropImageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
@@ -256,7 +288,10 @@ public sealed partial class DetailPage
                         _explicitActionForegrounds.Add(text, backgrounds.Control);
                     }
                 }
-                else if (child is FontIcon icon)
+                // 连播那两颗由 PaintContinueInk 自己管：这里再按「普通图标」清一次，
+                // 勾上后刚画上的主题色会被下一轮外观重绘抹掉。
+                else if (child is FontIcon icon
+                    && !ReferenceEquals(icon, ColumnContinueGlyph) && !ReferenceEquals(icon, CompactContinueGlyph))
                 {
                     if (!_plainActionIcons.Contains(icon) && icon.Foreground is SolidColorBrush ink
                         && ink.Color == ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color)
@@ -273,7 +308,7 @@ public sealed partial class DetailPage
         var resumeInk = (Brush)Application.Current.Resources["EgAccentBrush"];
         foreach (var (glyph, button) in new[] { (ColumnResumeGlyph, ColumnPlayButton), (CompactResumeGlyph, CompactPlayButton) })
             glyph.Foreground = onAccent is null ? resumeInk : button.Foreground;
-        foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, ScoreSourceText,
+        foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText,
             DetailVideoText, DetailDirectorsText })
         {
             var defaultBrush = text == GenreLine ? (SolidColorBrush)ViewModel.SublineBrush
@@ -283,7 +318,7 @@ public sealed partial class DetailPage
                 : ThemeColor.Rgb(defaultColor.R, defaultColor.G, defaultColor.B);
             // 商店浅色的环境底随主题调亮，正文随之使用主题深墨；沉浸图上的浅墨保持原阅读保护。
             if (forced is null && ViewModel.StoreMode && !ThemeHost.Current.IsDark)
-                color = text == DetailDirectorsText || text == GenreLine || text == ScoreSourceText
+                color = text == DetailDirectorsText || text == GenreLine
                     ? ThemeHost.Current.Colors.Text.Mix(ThemeHost.Current.Colors.Window, 0.14)
                     : ThemeHost.Current.Colors.Text;
             if (!_readingColors.TryGetValue(text, out var brush))
@@ -314,6 +349,7 @@ public sealed partial class DetailPage
                 brush.Color = forced ?? ResourceColor(ViewModel.StoreMode && !ThemeHost.Current.IsDark
                     ? "EgTextBrush" : "EgOnScrimBrush");
             }
+        PaintContinueInk();
     }
 
     /// <summary>主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。</summary>

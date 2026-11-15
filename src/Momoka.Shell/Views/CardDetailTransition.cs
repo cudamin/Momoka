@@ -160,9 +160,17 @@ internal static class CardDetailTransition
     internal static ArtworkRef? PrimaryArtwork(EmbyItem item) => EmbyImageStore.TagFor(item, EmbyImageStore.Primary) is { } tag
         ? new(EmbyImageStore.ImageItemId(item, EmbyImageStore.Primary), EmbyImageStore.Primary, tag) : null;
 
-    internal static bool VisibleImage(Image image)
+    internal static bool VisibleImage(Image image) => image.IsLoaded && ArrangedImage(image);
+
+    /// <summary>
+    /// 已经排过版、画得出画面的目标图 —— 与 <see cref="VisibleImage"/> 只差「Loaded」那一位。
+    /// Gallery 的样例在目标页 OnNavigatedTo 里就 TryStart，那时目标还没 Loaded 但已经在树里；
+    /// 详情页在 <see cref="DetailPage.ForceConnectedLayout"/> 里先排过一遍，位置与尺寸是真的，
+    /// 于是这里读到的是真实的落点，而不是一个还没量过的 0×0。
+    /// </summary>
+    internal static bool ArrangedImage(Image image)
     {
-        if (image.Source is not BitmapSource { PixelWidth: > 0, PixelHeight: > 0 } || image.XamlRoot?.Content is not UIElement root || !image.IsLoaded
+        if (image.Source is not BitmapSource { PixelWidth: > 0, PixelHeight: > 0 } || image.XamlRoot?.Content is not UIElement root
             || image.ActualWidth <= 0 || image.ActualHeight <= 0) return false;
         for (DependencyObject? current = image; current is not null; current = VisualTreeHelper.GetParent(current))
             if (current is UIElement { Visibility: Visibility.Collapsed }) return false;
@@ -252,22 +260,73 @@ internal static class CardDetailTransition
         internal void Attach(DetailPage page)
         {
             _target = page;
+            // 先订阅再抢排：强制布局这一趟若自己抬起 LayoutUpdated，抢跑不会漏掉。
+            page.Loaded += OnLayout;
+            page.Unloaded += OnTargetUnloaded;
+            page.LayoutUpdated += OnLayoutUpdated;
+
             if (PrimaryArtwork(_item) == _artwork && page.ViewModel.CurrentItem is { } current
                 && Matches(current) && PrimaryArtwork(current) == _artwork && _picture is { } picture)
             {
                 page.StopConnectedPosterArrival();
+                // 封面那一格显不显示、多大，问的是视图模型的 PageWidth；平时它要等第一次布局量到
+                // Body 才写。这一句先把这个数交过去，好让下面那次抢排把目标排对。
+                page.SeedConnectedLayoutWidth();
                 // x:Bind更新可能晚于Loaded；此处同步供平台生成目标快照。
                 if (page.ViewModel.StillImage is not BitmapSource { PixelWidth: > 0, PixelHeight: > 0 }
                     && page.ViewModel.UseConnectedPoster(_item, picture)) page.ConnectedPoster.Source = picture;
+                page.ForceConnectedLayout();
             }
-            page.Loaded += OnLayout;
-            page.Unloaded += OnTargetUnloaded;
-            page.LayoutUpdated += OnLayoutUpdated;
+
+            // 抢在 Loaded 之前起跑：平台的补间由合成器画，这一页接下来那点构造/提交不挡它。
+            // 排不出来或身份对不上时这一句什么都不做，判定仍留给下面的 TryStart 与 Loaded／LayoutUpdated。
+            TryStartEarly();
             TryStart();
         }
 
+        /// <summary>
+        /// Loaded 之前抢跑一次。Gallery 的样例就是在目标页的 OnNavigatedTo 里 TryStart 的，本项目的
+        /// 详情页却一直等到 Loaded 才启动 —— 点击到动画起跑之间因此空着约两百毫秒，用户读作
+        /// 「点击封面后会卡一下才会触发动画」（2026-11-15）。
+        /// <para>
+        /// 抢跑只在「目标已经排过版、图就在手上、身份与图版本都对得上」时发出去；任何一条不满足都只是
+        /// 这一趟不抢 —— 判定与回退仍留给 Loaded／LayoutUpdated，新页还在创建时不能把票据判死
+        /// （2026-11-13 的 Frame 创建打断回归）。
+        /// </para>
+        /// </summary>
+        private void TryStartEarly()
+        {
+            if (_disposed || _resolved || _target is not { } target || target.IsLoaded) return;
+            if (!HomeMotion.AnimationsEnabled) return;
+            if (_item.Source?.IsCurrent != true) return;
+            if (target.ViewModel.CurrentItem is not { } current || !Matches(current)) return;
+            if (PrimaryArtwork(current) != _artwork) return;
+            if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return;
+            if (!Matches(card.Item) || PrimaryArtwork(card.Item) != _artwork) return;
+            if (!ArrangedImage(target.ConnectedPoster)) return;
+
+            target.StopConnectedPosterArrival();
+            var started = false;
+            try
+            {
+                WatchAnimationCompletion();
+                _lifecycle.StartAttempt();
+                started = _animation?.TryStart(target.ConnectedPoster) == true;
+                if (started) _lifecycle.StartSucceeded();
+            }
+            catch (Exception) { }
+            if (started) Resolve(true, ConnectedMotionReason.None);
+        }
+
         private void OnLayout(object sender, RoutedEventArgs args) => TryStart();
-        private void OnLayoutUpdated(object? sender, object args) => TryStart();
+
+        private void OnLayoutUpdated(object? sender, object args)
+        {
+            // 第一次布局落定时页面往往还没 Loaded：这一拍目标已经有真实位置，可以按 Gallery 的顺序
+            // 抢跑；等 Loaded 才启动会白等一百多毫秒（见 TryStartEarly）。
+            if (_target is { IsLoaded: false }) TryStartEarly();
+            else TryStart();
+        }
         private void OnTargetUnloaded(object sender, RoutedEventArgs args) => Cancel(_frame, ConnectedMotionReason.TargetUnavailable);
 
         private void TryStart()
@@ -439,7 +498,8 @@ internal static class CardDetailTransition
 
         private void WatchAnimationCompletion()
         {
-            if (_animation is not { } animation) return;
+            // 抢跑失败后 Loaded 还会再试一次；监听只挂一份，免得同一个动画上留一串重复回调。
+            if (_animation is not { } animation || _completed is not null) return;
             var generation = _generation;
             _completed = (_, _) =>
             {

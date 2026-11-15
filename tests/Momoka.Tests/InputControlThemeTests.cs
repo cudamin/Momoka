@@ -575,10 +575,12 @@ internal static class InputControlThemeTests
     {
         var radii = document.Descendants()
             .Where(element => (string?)element.Attribute(X + "Key") == DetailPickerRadiusKey).ToArray();
-        Assert.Equal(1, radii.Length, "详情选择栏缺少唯一的本页小圆角资源");
+        Assert.Equal(1, radii.Length, "详情选择栏缺少唯一的本页圆角资源");
         var radius = radii.Single();
         Assert.Equal(Xaml + "CornerRadius", radius.Name);
-        Assert.Equal("4", radius.Value, "详情选择栏又变成旧圆角或胶囊形状");
+        // 2026-11-15 用户令「圆角不够圆，加高选择框的高度」：行高 36（EgPickerRowHeight）、圆角 12。
+        // 半个高度是 18，12 差 6 到半圆，既不是 4 那种方槽，也不是 16 那种两端半圆的胶囊。
+        Assert.Equal("12", radius.Value, "详情选择栏圆角不是 36 高配 12 的那一档");
         Assert.True(ReferenceEquals(radius.Parent, document.Root!.Element(Xaml + "Page.Resources")),
             "详情选择栏圆角只能作用于本页");
     }

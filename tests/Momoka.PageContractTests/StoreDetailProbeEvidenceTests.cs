@@ -72,13 +72,19 @@ internal static class StoreDetailProbeEvidenceTests
             Reject(() => StoreDetailProbeEvidence.RequireClearance(270, 286, 350, 418, 0, 417, 16));
             Reject(() => StoreDetailProbeEvidence.RequireClearance(270, 286, 350, 418, 490, 434, 16));
         });
-        Test("商店运行判据：保留三向渐隐，缺右侧与误加顶部必须失败", () =>
+        Test("商店运行判据：剧照保留三向渐隐，环境底左沿满色只收右底", () =>
         {
             var valid = new StoreFadeRead(128, 128, 0, 0, 0, 240, 120, 100, 240);
             StoreDetailProbeEvidence.RequireMask(valid);
             Reject(() => StoreDetailProbeEvidence.RequireMask(valid with { Right = 255 }));
             Reject(() => StoreDetailProbeEvidence.RequireMask(valid with { NearRight = 240 }));
             Reject(() => StoreDetailProbeEvidence.RequireMask(valid with { Top = 0 }));
+            var ambient = new StoreFadeRead(128, 128, 255, 0, 0, 240, 120, 100, 240);
+            StoreDetailProbeEvidence.RequireAmbientMask(ambient);
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Left = 0 }));
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Right = 255 }));
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { NearBottom = 0 }));
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Top = 0 }));
             var bytes = new byte[4 * 4 * 4];
             bytes[(1 * 4 + 0) * 4 + 3] = 11;
             bytes[(1 * 4 + 3) * 4 + 3] = 22;
