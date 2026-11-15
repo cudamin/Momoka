@@ -21,14 +21,15 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起收紧。仅作用于详情页。 -->
-        <x:Double x:Key="ComboBoxMinHeight">28</x:Double>
         <!-- 「开启连播 / 已观看」两颗图标共用的那支墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，
              不跟主题强调色走 —— 用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，
              并明确「这个按钮的修改包括沉浸模式」；只有高对比度由 ApplyAppearance 换回系统强调色。
              用页面局部的一支画刷而不是替换 ToggleButton 里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
         <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
-        <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
+        <!-- 只设置本页尺寸，模板由 DropDownButton 的平台主题样式提供。内部默认样式键不能在应用层查找。 -->
+        <!-- 文件选择栏保持小圆角矩形，28DIP行高不使用操作按钮的16DIP圆角。 -->
+        <CornerRadius x:Key="EgDetailFilePickerCornerRadius">4</CornerRadius>
+        <Style TargetType="local:DetailFilePicker">
             <Setter Property="MinHeight" Value="{StaticResource EgPickerRowHeight}" />
             <Setter Property="Padding" Value="10,3,0,3" />
         </Style>
@@ -816,16 +817,6 @@
                                     x:Name="ColumnPickers"
                                     Spacing="6"
                                     Visibility="{x:Bind ViewModel.ColumnPickersVisibility, Mode=OneWay}">
-                                    <!-- 文件选项复用上方按钮的常态、悬停与按压背景；聚焦和失焦回常态。
-                                         圆角与弹层仍沿用选择框自己的资源。 -->
-                                    <StackPanel.Resources>
-                                        <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
-                                        <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
-                                        <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
-                                        <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
-                                        <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
-                                        <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
-                                    </StackPanel.Resources>
                                     <Grid
                                         MinHeight="{StaticResource EgPickerRowHeight}"
                                         Visibility="{x:Bind ViewModel.ColumnVideoVisibility, Mode=OneWay}">
@@ -834,27 +825,17 @@
                                             Style="{StaticResource EgOnScrimBodyStyle}"
                                             Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}" />
                                     </Grid>
-                                    <!-- Auto 标签 + 剩余宽度：长名称不能把选择框撑出片名栏。 -->
                                     <Grid
                                         MinHeight="{StaticResource EgPickerRowHeight}"
-                                        ColumnSpacing="10"
                                         Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock
-                                            x:Uid="DetailPage_TextBlock2"
-                                            Style="{StaticResource EgOnScrimBodyStyle}"
-                                            VerticalAlignment="Center"
-                                            Foreground="{StaticResource EgOnScrimBrush}" />
-                                        <local:EgPicker
+                                        <local:DetailFilePicker
                                             x:Name="ColumnSourcePicker"
+                                            x:Uid="DetailSourcePicker"
+                                            Label="版本"
                                             FontSize="{StaticResource EgBodyFontSize}"
                                             Background="{ThemeResource ButtonBackground}"
-                                            Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgCardCornerRadius}"
+                                            CornerRadius="{StaticResource EgDetailFilePickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                             MinWidth="0"
@@ -862,58 +843,31 @@
                                     </Grid>
                                     <Grid
                                         MinHeight="{StaticResource EgPickerRowHeight}"
-                                        ColumnSpacing="10"
-                                        Visibility="{x:Bind ViewModel.AudioRowVisibility, Mode=OneWay}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock
-                                            x:Uid="DetailPage_TextBlock3"
-                                            Style="{StaticResource EgOnScrimBodyStyle}"
-                                            VerticalAlignment="Center"
-                                            Foreground="{StaticResource EgOnScrimBrush}" />
-                                        <local:EgPicker
+                                        Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
+                                        <local:DetailFilePicker
                                             x:Name="ColumnAudioPicker"
+                                            x:Uid="DetailAudioPicker"
+                                            Label="音频"
                                             FontSize="{StaticResource EgBodyFontSize}"
                                             Background="{ThemeResource ButtonBackground}"
-                                            Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgCardCornerRadius}"
+                                            CornerRadius="{StaticResource EgDetailFilePickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                             MinWidth="0"
-                                            Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}"
                                             SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}" />
-                                        <TextBlock
-                                            x:Name="ColumnAudioText"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource EgOnScrimBodyStyle}"
-                                            Text="{x:Bind ViewModel.SingleAudioText, Mode=OneWay}"
-                                            TextWrapping="Wrap"
-                                            Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}" />
                                     </Grid>
                                     <Grid
                                         MinHeight="{StaticResource EgPickerRowHeight}"
-                                        ColumnSpacing="10"
                                         Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock
-                                            x:Uid="DetailPage_TextBlock4"
-                                            Style="{StaticResource EgOnScrimBodyStyle}"
-                                            VerticalAlignment="Center"
-                                            Foreground="{StaticResource EgOnScrimBrush}" />
-                                        <local:EgPicker
+                                        <local:DetailFilePicker
                                             x:Name="ColumnSubtitlePicker"
+                                            x:Uid="DetailSubtitlePicker"
+                                            Label="字幕"
                                             FontSize="{StaticResource EgBodyFontSize}"
                                             Background="{ThemeResource ButtonBackground}"
-                                            Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgCardCornerRadius}"
+                                            CornerRadius="{StaticResource EgDetailFilePickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -1249,21 +1203,9 @@
                              每一块描一圈发丝线就成了一层套一层。样式还留着，只借它的内边距 —— 这一块的字因此和
                              纸上几块卡里的字落在同一条竖线上。三个下拉自己那圈框还在，读的时候一眼能看出哪儿能点
                              —— 用户要去掉的是围着这三个下拉的那一圈，不是下拉自己。
-                             Header 那三行字压在图上，所以取固定的浅墨（EgOnScrim*，主题自己的墨在这一段的黑底
-                             上，三套浅色主题会看不见）；自检拿这一块的名字读它是不是真的没框没底（BodySeal
-                             里的 Rings）。
-
-                             里面那一层是 WrapRow 而不是横排的 StackPanel：下拉的宽度按各自最长那条轨道名撑，
-                             窄窗口下三个加起来能超过一行，横排会把最右边那个切在窗口右沿上。宽窗口下两者摆出来
-                             一模一样，见 WrapRow 的注释。三颗下拉与下方操作按钮共用 EgCardCornerRadius，
-                             集页宽版式那一份也使用同一圆角资源。
-                             三颗都是 local:EgPicker 而不是框架的 ComboBox —— 它是 ComboBox 的一点壳，只把弹层
-                             从「开窗口」改回「同一棵树」，好让浮层那支应用内亚克力采得到底下这一页（用户
-                             2026-09-27：「把音频和字幕的选择栏改成亚克力背景」；为什么这么改写在 EgPicker.cs）。
-                             同一页上另有集页宽版式那三颗，一共六颗，别处（设置页等）照旧。
-
-                             闭合表面与头图上方按钮共用背景三态，电影、剧、季、集和紧凑布局保持一致。
-                             展开列表继续使用全局亚克力，边线与圆角沿用选择框样式。 -->
+                             三颗选择栏采用原生 DropDownButton + Flyout，标签与当前值连成一行。
+                             同一页宽版式另有三颗，共六颗；窄窗由 WrapRow 换行、限制宽度。
+                             浮层优先开在左侧并约束在页面根内，空间不足由 WinUI 自动回退。 -->
                         <StackPanel
                             x:Name="PickerPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
@@ -1272,72 +1214,43 @@
                             CornerRadius="0"
                             Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.PickersVisibility, Mode=OneWay}">
-                            <StackPanel.Resources>
-                                <!-- 同集页宽版式：闭合表面与上方按钮同底，弹层继续用全局亚克力。 -->
-                                <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
-                                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
-                                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
-                                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
-                                <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
-                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
-                            </StackPanel.Resources>
                             <local:WrapRow RowSpacing="10" Spacing="14">
-                                <local:EgPicker
+                                <local:DetailFilePicker
                                     x:Name="SourcePicker"
+                                    x:Uid="DetailSourcePicker"
+                                    Label="版本"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                                    CornerRadius="{StaticResource EgDetailFilePickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                     MinWidth="260"
                                     SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}"
-                                    Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}">
-                                    <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock2" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
-                                    </local:EgPicker.Header>
-                                </local:EgPicker>
-                                <local:EgPicker
+                                    Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}" />
+                                <local:DetailFilePicker
                                     x:Name="AudioPicker"
+                                    x:Uid="DetailAudioPicker"
+                                    Label="音频"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                                    CornerRadius="{StaticResource EgDetailFilePickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                     MinWidth="200"
                                     SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}"
-                                    Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
-                                    <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
-                                    </local:EgPicker.Header>
-                                </local:EgPicker>
-                                <!-- 音轨只有一条时这一格是一句话、不是下拉；下面那格仍按 EgPickerRowHeight 撑住，
-                                     免得换行那一排里这一列比旁边两颗下拉矮一截（同宽版式那三行，2026-11-08）。 -->
-                                <StackPanel Spacing="8" MinWidth="200"
-                                            Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}">
-                                    <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
-                                    <Grid MinHeight="{StaticResource EgPickerRowHeight}">
-                                        <TextBlock
-                                            x:Name="AudioText"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource EgOnScrimBodyStyle}"
-                                            Text="{x:Bind ViewModel.SingleAudioText, Mode=OneWay}"
-                                            TextWrapping="Wrap" />
-                                    </Grid>
-                                </StackPanel>
-                                <local:EgPicker
+                                    Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}" />
+                                <local:DetailFilePicker
                                     x:Name="SubtitlePicker"
+                                    x:Uid="DetailSubtitlePicker"
+                                    Label="字幕"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                                    CornerRadius="{StaticResource EgDetailFilePickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                     MinWidth="200"
                                     SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}"
-                                    Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
-                                    <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock4" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
-                                    </local:EgPicker.Header>
-                                </local:EgPicker>
+                                    Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}" />
                             </local:WrapRow>
                         </StackPanel>
 
@@ -1543,8 +1456,8 @@
                             Spacing="0"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
                             <!-- Gallery TextBlock/Expander samples at 6de91feccadfbb0a796b71caedead5a2284f730e
-                                 没有两行摘要组合；复用原生 MaxLines/IsTextTrimmed 与现有阅读更多按钮。
-                                 简洁模式移动到封面下方，用内容高度随展开增长，不再撑满右侧片名栏。 -->
+                                 没有两行摘要组合；复用原生 MaxLines/IsTextTrimmed 与全文提示；沉浸保留现有阅读更多按钮。
+                                 简洁模式移动到封面下方并固定两行，不再撑满右侧片名栏。 -->
                             <Grid x:Name="OverviewBody">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -1564,6 +1477,12 @@
                                     Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
                                     TextTrimming="{x:Bind ViewModel.OverviewTrimming, Mode=OneWay}"
                                     TextWrapping="Wrap">
+                                    <!-- Gallery Styles/ItemTemplates.xaml, v2.9.3 / 14a4a1a2. -->
+                                    <ToolTipService.ToolTip>
+                                        <ToolTip Visibility="{x:Bind local:DetailPage.OverviewTipVisibility(ViewModel.StoreMode, ViewModel.OverviewTrimmed), Mode=OneWay}">
+                                            <TextBlock Text="{x:Bind ViewModel.Overview, Mode=OneWay}" TextWrapping="Wrap" MaxWidth="520" />
+                                        </ToolTip>
+                                    </ToolTipService.ToolTip>
                                 </TextBlock>
                                 </Grid>
                                 <StackPanel

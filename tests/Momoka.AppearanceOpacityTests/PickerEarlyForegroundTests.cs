@@ -73,6 +73,33 @@ internal static class PickerEarlyForegroundTests
             if (picker.Resources.ContainsKey("ComboBoxDropDownForeground") || picker.Resources.ContainsKey("ComboBoxItemForeground"))
                 throw new InvalidOperationException("闭合前景修改了展开列表");
         });
+        check("一体选择栏在模板前准备箭头三态并同步默认和系统前景", () =>
+        {
+            var picker = new DetailFilePicker();
+            var backgrounds = ControlBackgroundBrushes.ForDetail(picker, lightSurface: true);
+            var keys = new[] { "DropDownButtonForegroundSecondary", "DropDownButtonForegroundSecondaryPointerOver", "DropDownButtonForegroundSecondaryPressed" };
+            var captured = keys.Select(key => (SolidColorBrush)picker.Resources[key]).ToArray();
+            foreach (var forced in new Windows.UI.Color?[] { null, 0xFF123456u })
+            {
+                backgrounds.ApplyDefaultForeground(forced);
+                var expected = ((SolidColorBrush)picker.Foreground!).Color;
+                if (captured.Any(brush => brush.Color != expected)) throw new InvalidOperationException("正文与箭头默认前景不同");
+                backgrounds.Apply(37);
+                backgrounds.ApplyForeground(ThemeColor.Rgb(255, 255, 255), false, forced);
+                foreach (var (key, index) in keys.Select((key, index) => (key, index)))
+                {
+                    var suffix = index == 0 ? "" : index == 1 ? "PointerOver" : "Pressed";
+                    if (!ReferenceEquals(picker.Resources[key], captured[index])
+                        || captured[index].Color != ((SolidColorBrush)picker.Resources["ButtonForeground" + suffix]).Color)
+                        throw new InvalidOperationException("箭头三态没有跟正文保留同一画刷更新");
+                }
+            }
+            var original = captured[0];
+            picker.Resources[keys[0]] = new SolidColorBrush { Color = 0xFFFFFFFFu };
+            backgrounds.ApplyDefaultForeground(0xFF123456u);
+            if (((SolidColorBrush)picker.Resources[keys[0]]).Color == original.Color)
+                throw new InvalidOperationException("探针未拒绝模板画刷被替换的反例");
+        });
         check("晚到前景键旧边界使模板仍握旧刷必须拒绝", () =>
         {
             var picker = new ComboBox { Foreground = new SolidColorBrush { Color = 0xFFFFFFFFu } };

@@ -13849,3 +13849,25 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 工作树 `C:/Users/89400/.codex/worktrees/34e4/Momoka`，基于 `ce55588`；详情页两种布局共六颗版本、音频、字幕选择框改用下方操作按钮的 `EgCardCornerRadius`（16 DIP），保留全局 `EgPickerCornerRadius`（12 DIP）供其他弹窗使用。既有输入样式回归只在详情页 EgPicker 允许卡片资源，保留其他输入与原生模板约束，更新旧圆角注释和测试名称。Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 `WinUIGallery/Samples/ComboBox/ComboBoxPage.xaml` 与 code-behind 已核对，无相同的局部圆角对齐样例；Learn Geometry 允许定制圆角，沿用本地原生模板和共享资源，不引入依赖或自定义模板。
 
 当前 Core/Tests/Shell Release 编译0警告0错误，`input-theme-fixture` 29/29、`acrylic-controls-fixture` 39/39，0失败0跳过。独立只读审阅通过，修改文件LF/无BOM/末尾换行与git diff空白检查通过。没有启动UI、真实播放、发布或推送；实屏外观与宽窄、主题检查留到用户要求交付时统一验收。主树同文件被另一活动聊天写入，待其释放写入后按局部差异合入并追加台账。
+
+## 2026-11-15 详情选择栏统一与剧情交互回退
+
+本批继续在 `C:/Users/89400/.codex/worktrees/1c8d/Momoka`、`codex/detail-summary-layout` 工作。用户撤回阅读更多：简洁模式在封面下固定两行省略，恢复原生全文 ToolTip；沉浸模式保留原展开偏好。六颗版本、音频、字幕统一成标签与当前值连成一行的原生 DropDownButton + Flyout；当前项、其他项分组，左侧顶部对齐为首选，空间不足由平台回退。原 EgPicker 和其他页面的输入样式不改。音频固定显示，唯一音轨保留选择，无真实音轨显示空态；整组选项仍要求播放目标。简洁详情顶部留白16→32 DIP，整体内容下移，背景/预告位置不跟着移动。
+
+Gallery固定6de91feccadfbb0a796b71caedead5a2284f730e与稳定v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的DropDownButton/Flyout/MenuFlyout/ListView源码与helper、Learn控件与Flyout定位指南已核对；没有完整商店一体选择栏和左侧分组列表样例，按原生组合做必要适配。WinUI2.3.9实际模板RootGrid/ChevronIcon/ListViewItemPresenter及六态画刷已核，不复制全局模板、未引入依赖。列表提交保留SourceRow/TrackRow原对象；集合换代/隐藏/卸载/Release关闭并拒绝旧提交，原生UIA单选与键盘不丢失。分组标题与轨道只显示实际数据，不复刻参考图中的价格/图像。
+
+当前PageContract299/299、详情VM92/92、输入主题30/30、控件39/39、详情自定义58/58、外观透明度72/72通过，无失败/跳过，Core/Tests/PageContract及首版控件Shell编译0警告0错误。新控件生命周期与最终原生专项尚在补齐，前一份shell-probe-20261115-050146378-25312的2/2只证明旧版可展开剧情，不作为最终行为证据。当前已扩展detail-cards分区覆盖选择栏原对象提交、固定音频/空态、窄窗/左侧回退、快速开关、超宽/间距/材质反例和模式恢复，待最终代码编译后运行；主树渐变聊天仍写入重叠详情文件，待其提交并释放后安全合入，不覆盖其工作。不发布、不上传、不改快捷方式。
+
+选择栏补充验证：新控件正式source-link47/47通过，原对象提交、源集合原地变化、延迟Closed与原生Click快速重开、无音轨/禁用条目、系统颜色及卸载均覆盖。标准回归清单发现已有SystemThemeTests漏登记，补README及清单后DetailFilePicker标准入口45/45（随后定点新增2例为47/47）、SystemTheme7/7；匿名回归工具22/22成功/失败/缺清单反例通过，未改系统主题产品代码。首实际窗口shell-probe-20261115-054818989-22260报告COM资源查找失败，DefaultDropDownButtonStyle在控件generic.xaml而不在XamlControlsResources所加载的themeresources.xaml，编译/源码检查没有验证该运行查找。按框架固定2a732746的XamlControlsResources.cpp、DropDownButton.cpp和DefaultStyles.cpp核对，改为构造DefaultStyleKey=typeof(DropDownButton)，页面样式只叠尺寸。首隐藏启动3832因宿主实际不可见而失败；后续窗口启动均显式可见，这是原生诊断窗口，非后台服务。以上两份失败日志保留，不算最终通过。
+
+第二次原生shell-probe-20261115-055957270-5024越过模板查找后在AccessibilitySettings.HighContrastChanged挂事件抛0x80070490，报告为失败。采用页面现有1秒系统观察统一刷新六选择栏，撤掉各控件新增系统事件与计时责任；opening仍刷新六态画刷，高对比颜色原位更新。不是禁用高对比或修改Windows偏好。其余运行证据须按最终代码重新验证。
+
+原生可见窗口shell-probe-20261115-060621727-26584在最终系统刷新代码上完成7项，6通过、1失败：首项1280/360分组、顶部32、左侧首选及边界通过，失败在错误读取可视容器peer的SelectionItem。核对框架固定2a732746的dxaml/xcp/dxaml/lib/ItemsControlAutomationPeer_Partial.cpp（GetItemsControlChildrenChildren/GetModernItemsControlChildrenChildrenHelper）、SelectorItemAutomationPeer_Partial.cpp和WinUI2.3.9元数据：选择由列表父peer生成的原对象data peer负责，容器EventsSource指向它；已改为先GetChildren、核Item引用，再真实SelectionItem.Select，未绕过到SelectedItem赋值。原失败保留，待最终重跑。
+
+用户随后明确不要胶囊：六颗选择栏从操作按钮16DIP圆角改为本页EgDetailFilePickerCornerRadius=4的小圆角矩形，下方操作按钮及全局EgPicker保持原圆角。源码契约补数字12/16、旧资源、删改局部半径、错误BasedOn/Template反例；原生核控件和RootGrid实际4DIP，随最终构建重跑。
+
+Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与稳定14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7的WinUIGallery/Samples/{DropDownButton,Flyout,MenuFlyout,ListView}对应Page.xaml/.xaml.cs、Styles/ItemTemplates.xaml、Controls/ControlExample.xaml/.cs、Helpers/UIHelper.cs和standalone.props。UIHelper只读可访问性证据，生产未引入；旧样例2.6.6-experimental、稳定样例WindowsAppSdkPackageVersion2.0.1，本地WinUI2.3.9/Runtime2.5.1不跟随升级。
+
+最终小圆角版本本树Release/x64 Shell与Tests编译0警告0错误；input-theme30/30、acrylic-controls39/39、当前Shell详情VM92/92、PageContract299/299均0失败0跳过。新控件正式source-link最终47/47沿用同一控件SHA256 1D31D26E0858FEE18D94B45BC2BB891050E7E6689EA759647221A270F2FE4D33（此次只改页面半径及测试读取）。可见匿名detail-cards运行shell-probe-20261115-061553768-18824最终7/7通过，正常退出：真实平台data peer原对象提交，固定无音轨空态/不打开空浮层，32DIP顶部与4DIP实际RootGrid圆角，1280/360与760/819/820/1064/1280边界，足空间左侧首选、快速关开、模式/集合/离页关闭及材质/超宽/间距反例均覆盖；两行省略、无阅读更多、全文ToolTip与首字实屏检查通过。版本1280、无音轨及前轮左側/360代表截图已目视。仅受影响分区，不代表全量、真实媒体服务播放、系统高对比切换或跨DPI通过。
+
+截至当前主树44efe81仍有渐变预告会话未提交的重叠详情文件，先保存本批产品提交，待其提交并释放后在本树逐块合并，不覆盖主树。原生StoreTrailer旧零边距误判会随其已修16DIP断言合入；剧情两行/ToolTip覆盖主树旧动态行数期望。未发布、未上传、未修改桌面快捷方式。

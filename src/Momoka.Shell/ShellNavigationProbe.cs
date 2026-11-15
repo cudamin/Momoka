@@ -54,6 +54,11 @@ internal sealed partial class ShellNavigationProbe
             await InitializeProbeWindowAsync();
             if (_options.ProbeSections is { Count: 1 } cardOnly && cardOnly.Contains(ShellProbeSections.DetailCards))
             {
+                await CaseAsync("详情一体文件选择栏左侧分组、原对象提交与固定音频", DetailFilePickersAsync, 90, section: ShellProbeSections.DetailCards);
+                await CaseAsync("选择栏快速开关与浮层边界", PickerDropDownAsync, 30, section: ShellProbeSections.DetailCards);
+                await CaseAsync("文件选择栏显隐、宽窄与超宽拒绝", DetailPickerLayoutAsync, 60, section: ShellProbeSections.DetailCards);
+                await CaseAsync("文件选择栏单多音轨竖距与反例", PickerRowRhythmAsync, 60, section: ShellProbeSections.DetailCards);
+                await CaseAsync("详情选择栏宽窄模式与单音轨恢复", () => DetailResponsiveAsync([EmbyItemType.Movie, EmbyItemType.Episode], [760, 1280]), 120, section: ShellProbeSections.DetailCards);
                 await CaseAsync("商店媒体与订阅详情卡片、留白和恢复", StoreDetailCardsAsync, 90, section: ShellProbeSections.DetailCards);
                 await CaseAsync("商店详情左右下渐隐、右沿空隙、首卡避让与首字实屏", StoreDetailBackdropAsync, 90, section: ShellProbeSections.DetailCards);
                 return;

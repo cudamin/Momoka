@@ -10,10 +10,12 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>
-    /// 四页宽窗沉浸与窄窗紧凑布局、播放前文件选项、单音轨文字和开关恢复。
+    /// 四页宽窗沉浸与窄窗紧凑布局、播放前文件选项、单音轨选择横栏和开关恢复。
     /// 缩放、最大化与还原只改变排版，不在宽窗中切换背景模式；只使用匿名假传输。
     /// </summary>
-    private async Task DetailResponsiveAsync()
+    private Task DetailResponsiveAsync() => DetailResponsiveAsync(null, null);
+
+    private async Task DetailResponsiveAsync(IEnumerable<string>? itemTypes, int[]? selectedWidths)
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
@@ -97,10 +99,14 @@ internal sealed partial class ShellNavigationProbe
         var readings = new List<string>();
         fixture.Settings.Ui.EnableImmersive = true;
         // 819／820 是紧凑版式断点（DetailHero.CompactFloor = 819.2）两侧各一档。
-        var widths = new[] { 1280, 1200, 1100, 820, 819, 760 };
+        var widths = selectedWidths ?? [1280, 1200, 1100, 820, 819, 760];
+        Require(widths.Length > 0 && widths.All(width => width > 0), "响应式检查缺少有效窗口宽度");
+        var items = new[] { movie, series, season, episode }
+            .Where(item => itemTypes is null || itemTypes.Contains(item.Type)).ToArray();
+        Require(items.Length > 0, "响应式检查没有选中任何详情类型");
         try
         {
-            foreach (var item in new[] { movie, series, season, episode })
+            foreach (var item in items)
             {
                 var host = new Grid { Margin = new Thickness(0, 68, 0, 0) };
                 var frame = new Frame();
@@ -147,10 +153,10 @@ internal sealed partial class ShellNavigationProbe
                         var actionsTop = actions.TransformToVisual(content).TransformPoint(default).Y;
                         Require(options.Visibility == Visibility.Visible && optionsBottom <= actionsTop + 1,
                             $"{item.Type} {width} 文件选项没有排在播放前：{optionsBottom:0.#}/{actionsTop:0.#}");
-                        Require(Get<ComboBox>(page, compact ? "AudioPicker" : "ColumnAudioPicker").Visibility == Visibility.Collapsed
+                        Require(Get<DetailFilePicker>(page, compact ? "AudioPicker" : "ColumnAudioPicker").Visibility == Visibility.Visible
                             && page.ViewModel.SingleAudioVisibility == Visibility.Collapsed
-                            && page.ViewModel.AudioRowVisibility == Visibility.Collapsed,
-                            $"{item.Type} {width} 唯一音轨未收起整行");
+                            && page.ViewModel.AudioRowVisibility == Visibility.Visible,
+                            $"{item.Type} {width} 唯一音轨没有保留音频选择栏");
                         Require(Get<Border>(page, "PosterStill").Visibility == view.StillVisibility,
                             $"{item.Type} {width} 封面显隐没有跟随宽窄排版");
                         // 右上角那张艺术图：电影、剧、集三页在沉浸档也画（2026-11-08「沉浸模式下在右上角显示

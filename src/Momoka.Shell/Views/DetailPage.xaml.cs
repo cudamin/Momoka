@@ -918,7 +918,7 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <summary>
     /// 宽版式使用片名栏内的文件选项，紧凑版式使用尾部播放操作之前的一份。
     /// </summary>
-    private (FrameworkElement Panel, Thickness Padding, ComboBox Source, ComboBox Audio, ComboBox Subtitle) PickerSet =>
+    private (FrameworkElement Panel, Thickness Padding, DetailFilePicker Source, DetailFilePicker Audio, DetailFilePicker Subtitle) PickerSet =>
         !ViewModel.IsCompact
             ? (ColumnPickers, default, ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker)
             : (PickerPanel, PickerPanel.Padding, SourcePicker, AudioPicker, SubtitlePicker);
@@ -952,13 +952,13 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 屏上那两颗明明都在。判据与 <see cref="PickerReady"/> 共用这一处，别在两处各写一遍。
     /// </para>
     /// </summary>
-    private ComboBox? PickerToOpen
+    private DetailFilePicker? PickerToOpen
     {
         get
         {
             var (_, _, source, audio, subtitle) = PickerSet;
             foreach (var picker in new[] { subtitle, audio, source })
-                if (picker.Visibility == Visibility.Visible && picker.Items.Count > 0
+                if (picker.Visibility == Visibility.Visible && picker.HasItems
                     && (ViewModel.IsCompact || ((FrameworkElement)picker.Parent).Visibility == Visibility.Visible))
                     return picker;
 
@@ -979,77 +979,23 @@ public sealed partial class DetailPage : Page, IShellContent
     internal bool PickerReady => PickerToOpen is not null;
 
     /// <summary>
-    /// 自检：这一行那几颗下拉的浮层开在<em>同一棵树</em>里没有 —— 详情页那六颗是 <see cref="EgPicker"/>，
-    /// 它整个存在的理由就是这一件事。
-    /// <para>
-    /// 为什么要钉：框架的 ComboBox 把弹层设成窗口化的（<c>ShouldConstrainToRootBounds=false</c>），浮层于是开在
-    /// 自己那个窗口里；而调色板给浮层那支是<em>应用内</em>亚克力，只采得到同一个窗口里画在它后面的东西 ——
-    /// 采不到就退回 <c>FallbackColor</c>，屏上是一块不透明的实心色（用户两轮都指过「不像亚克力」，2026-09-27
-    /// 那张截图量出来浮层是 <c>#20262D</c>，底下压着的剧照一像素都没透上来）。这一条读的是那件事的开关：
-    /// 属性还在，浮层就还是实心的，而照片之外的每一条读数都不会响。
-    /// </para>
-    /// <para>
-    /// 只读屏上那一份三颗（同 <see cref="PickerFit"/> 的理由）。季那一颗原来也是第七颗 EgPicker，2026-11-02 随
-    /// 集列表牌子右端的季选择栏一起删了（用户令），所以这一页现在只剩集页宽版式那三颗和尾部这一组三颗。
-    /// </para>
+    /// 自检：六颗文件选择栏使用约束在页面根内的原生左侧 Flyout。
     /// </summary>
     internal (bool Ok, string Detail) PickerGlass()
     {
         var (_, _, source, audio, subtitle) = PickerSet;
         var read = new List<string>();
-        var strayed = 0;
-        var onScreen = 0;
-
-        foreach (var (name, picker) in new (string Name, ComboBox Picker)[]
-                 {
-                     ("媒体源", source), ("音频", audio), ("字幕", subtitle)
-                 })
+        var ok = true;
+        foreach (var picker in new[] { source, audio, subtitle })
         {
-            // 收着的那一颗不读：这一行讲的是「同一个文件里挑哪条轨道」，媒体源只有一条时那一颗就收着，
-            // 而**收起来的控件框架根本不套模板**（收着的元素不进测量），弹层部件当然不存在 —— 读它是假红。
-            // 2026-09-27 闸门 4 第一趟红的就是这一句：那一页只有一个媒体源，报「媒体源 的弹层还没上树」，
-            // 而音频和字幕两颗都好好地报「在树内」。宽度那一位一并看：模板是量的时候套上的，量过才算真在屏上。
             if (picker.Visibility != Visibility.Visible || picker.ActualWidth <= 0)
-            {
-                read.Add($"{name} 这一页收着");
                 continue;
-            }
-
-            onScreen++;
-
-            if (picker is not EgPicker shell)
-            {
-                strayed++;
-                read.Add($"{name} 是框架的 {picker.GetType().Name}");
-                continue;
-            }
-
-            if (shell.PopupPart is not { } popup)
-            {
-                strayed++;
-                read.Add($"{name} 的弹层还没上树");
-                continue;
-            }
-
-            if (!popup.ShouldConstrainToRootBounds)
-            {
-                strayed++;
-                read.Add($"{name} 的浮层还是窗口化的");
-                continue;
-            }
-
-            read.Add($"{name} 在树内");
+            var constrained = picker.PickerFlyout.ShouldConstrainToRootBounds
+                && picker.PickerFlyout.Placement == Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.LeftEdgeAlignedTop;
+            ok &= constrained;
+            read.Add($"{picker.Label}：{(constrained ? "左侧树内浮层" : "浮层配置不符")}");
         }
-
-        // 三颗全收着＝这一页没有可挑的文件选项，和 PickerFit 那一边同一条理：没得读不算坏。
-        if (onScreen == 0)
-        {
-            return (true, $"{string.Join("、", read)} —— 这一页没有文件选项，浮层没得读");
-        }
-
-        return strayed == 0
-            ? (true, $"{string.Join("、", read)} —— 浮层与页面同树，应用内亚克力采得到底下那一页")
-            : (false, $"{string.Join("；", read)}（浮层回到了另一个窗口里，亚克力会退回实心色）");
+        return (ok, read.Count == 0 ? "这一页没有文件选项" : string.Join("、", read));
     }
 
     /// <summary>
@@ -2003,6 +1949,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        CloseFilePickers();
         StopStoreTrailer();
         StopStickyHeader();
         StopScrollReveal();
@@ -2266,8 +2213,19 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 能把看得见的那一段填满。Only a laid-out <c>ScrollView</c> knows its own viewport; what to do with the
     /// number is <see cref="DetailHero.BodyHeight"/>'s business, not this handler's.
     /// </summary>
+    private (bool Store, bool Compact)? _filePickerLayout;
+
+    private void CloseFilePickers()
+    {
+        foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
+                     SourcePicker, AudioPicker, SubtitlePicker })
+            picker.IsDropDownOpen = false;
+    }
+
     private void OnBodySizeChanged(object sender, SizeChangedEventArgs e)
     {
+        // 旧布局父容器会先收起；浮层不能留在已经隐藏的选择栏旁边。
+        CloseFilePickers();
         // 这两个数是「窗口在变形态」的证据：宽高都写完之后由 DetailPage.Showcase.cs 一次结算。
         // 写的过程中 Showcase 的通知先压住，免得拿写到一半的数去翻面。
         _sizing = true;

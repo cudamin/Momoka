@@ -32,7 +32,7 @@ internal sealed partial class ShellNavigationProbe
     /// <para>
     /// ③ 再开一页季页，验同日的另外两条：「把季页面的剧名和季度的字体大小还有位置互换」＋「给季页面
     /// 补上图三哪些」—— 大标题是剧名（点得回剧页面）、第二行是季名、第三行是这部剧的类型（一个一个点得动），
-    /// 评分和事实那一行（年份区间、工作室、时长、分级、共几季）也说这部剧；以及「季页面不要媒体信息」——
+    /// 评分和事实那一行（年份区间、时长、分级、共几季）也说这部剧，头部不再显示工作室；以及「季页面不要媒体信息」——
     /// 媒体信息表零行，整块「其他信息」卡收起。剧的季数按夹具自己的季数给（单季 1、多季 2），
     /// 事实那一行的「共 N 季」才对得上。
     /// </para>
@@ -242,7 +242,7 @@ internal sealed partial class ShellNavigationProbe
                 RequireNoSpecialRow(page);
                 Require(infoPanel.Visibility == Visibility.Visible && infoPanel.ActualHeight > 0, "多季剧页没有其他信息卡");
 
-                // 季选择栏 2026-11-02 随用户令一起删了：这一页按名字找不到那颗 EgPicker。
+                // 季选择栏 2026-11-02 随用户令一起删了：这一页按名字找不到那颗控件。
                 Require(!HasSeasonPicker(page), "剧页上还有季选择栏");
 
                 // 2026-11-08 用户令「不要这个季度列表菜单了」：牌子只剩季名 —— 折角与点击面都收着，
@@ -532,14 +532,14 @@ internal sealed partial class ShellNavigationProbe
                         && view.SublineGenres.Contains("奇幻", StringComparer.Ordinal),
                     $"季页的类型那一行不是这部剧的：{string.Join('、', view.SublineGenres)}");
 
-                // 事实那一行：年份区间、工作室、时长、分级、共几季，五个都说这部剧。
+                // 事实那一行取这部剧的年份区间、时长、分级、共几季；工作室按最新用户要求去掉。
                 var facts = view.Facts ?? "";
                 Require(facts.Contains("2014", StringComparison.Ordinal)
-                        && facts.Contains("Wit Studio", StringComparison.Ordinal)
+                        && !facts.Contains("Wit Studio", StringComparison.Ordinal)
                         && facts.Contains("24 分钟", StringComparison.Ordinal)
                         && facts.Contains("TV-14", StringComparison.Ordinal)
                         && facts.Contains("共 1 季", StringComparison.Ordinal),
-                    "季页的事实那一行不是这部剧的：" + facts);
+                    "季页的事实行取错剧信息或仍带工作室：" + facts);
                 Require(view.Score == "7.2",
                     $"季页的评分该取这部剧的 7.2，实际「{view.Score}」（{view.ScoreLabel}）");
 
@@ -702,10 +702,10 @@ internal sealed partial class ShellNavigationProbe
         // 「多跑一趟」靠这几个数说话。
         int Reads(string id) => itemReads.TryGetValue(id, out var count) ? count : 0;
 
-        // 季选择栏那颗 2026-11-02 已按用户令删掉：在视觉树里按名字/自动化 id 找 EgPicker，而不是 Get 一个不存在的
+        // 季选择栏那颗 2026-11-02 已按用户令删掉：在视觉树里按名字/自动化 id 找控件，而不是 Get 一个不存在的
         // 控件 —— Get 读的是页面上的私有字段，字段没了只会空引用，那和「控件被藏起来」分不出来。
         static bool HasSeasonPicker(DetailPage page) =>
-            Descendants(page).OfType<EgPicker>().Any(picker =>
+            Descendants(page).OfType<FrameworkElement>().Any(picker =>
                 picker.Name == "DetailSeasonPicker"
                 || AutomationProperties.GetAutomationId(picker) == "DetailSeasonPicker");
 
@@ -761,7 +761,8 @@ internal sealed partial class ShellNavigationProbe
             ["Imdb"] = "tt35324004",
             ["Tvdb"] = "465020"
         },
-        // 事实那一行：2014 – 2015 · 工作室 · 24 分钟 · TV-14 · 共 N 季。日期取年中，公历换当地时时区差不会跨年。
+        // 事实那一行：2014 – 2015 · 24 分钟 · TV-14 · 共 N 季。工作室仅保留在资料卡。
+        // 日期取年中，公历换当地时时区差不会跨年。
         ProductionYear = 2014,
         EndDate = new DateTimeOffset(2015, 6, 30, 0, 0, 0, TimeSpan.FromHours(8)),
         RunTimeTicks = TimeSpan.FromMinutes(24).Ticks,

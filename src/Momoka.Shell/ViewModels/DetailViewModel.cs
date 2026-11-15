@@ -1399,7 +1399,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 往下推。说明的第一行由此落在下沿底下 <see cref="TailInset"/> 那点缝加它自己的内边距上。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 16, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
+    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 32, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)
@@ -1553,7 +1553,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
     /// <para>
-    /// 简洁模式在封面下方，左右归零以便与封面、文件选项对齐；用内容高度支持展开全文。
+    /// 简洁模式在封面下方，左右归零以便与封面、文件选项对齐；采用两行摘要的内容高度。
     /// </para>
     /// </summary>
     public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 0) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
@@ -2202,8 +2202,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility SourceVisibility => Show(Sources.Count > 1);
 
-    /// <summary>自动不算实际音轨；至少两条实际音轨才提供选择。</summary>
-    public Visibility AudioVisibility => Show(AudioTracks.Count > AutoRows + 1);
+    /// <summary>音频栏固定显示；唯一音轨与无音轨都由选择栏呈现，整组仍跟播放目标开合。</summary>
+    public Visibility AudioVisibility => Visibility.Visible;
 
     public Visibility AudioRowVisibility => AudioVisibility;
     public Visibility SingleAudioVisibility => Visibility.Collapsed;
@@ -2216,12 +2216,10 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility PickersVisibility => Show(IsCompact && Pickable);
 
     /// <summary>宽版式四种详情页共用片名栏内的选择框，紧邻播放操作上方。</summary>
-    public Visibility ColumnPickersVisibility => Show(!IsCompact && (Pickable || HeroCard && VideoShown));
+    public Visibility ColumnPickersVisibility => Show(!IsCompact && Pickable);
 
-    /// <summary>有播放目标及版本、音频信息或字幕选项时显示文件栏。</summary>
-    private bool Pickable =>
-        PlayTarget is not null
-        && (Sources.Count > 1 || AudioTracks.Count > AutoRows + 1 || SubtitleTracks.Count > AutoRows + 1);
+    /// <summary>有播放目标就显示文件栏，音轨数量不能把固定的音频栏一起收起。</summary>
+    private bool Pickable => PlayTarget is not null;
 
     /// <summary>The 自动 row every track picker carries whether the file has tracks or not.</summary>
     private const int AutoRows = 1;
@@ -2255,17 +2253,15 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial bool OverviewTrimmed { get; set; }
 
     /// <summary>
-    /// 简洁模式的摘要固定两行，其余版式四行；展开后交给原生 TextBlock 自动增高。
+    /// 简洁模式固定两行并通过原生提示阅读全文；其余版式四行或展开后的不限行数。
     /// </summary>
-    public int OverviewMaxLines => OverviewExpanded ? 0 : StoreMode ? 2 : CollapsedLines;
+    public int OverviewMaxLines => StoreMode ? 2 : Expanded ? 0 : CollapsedLines;
 
-    private bool OverviewExpanded => StoreMode ? StoreOverviewExpanded : Expanded;
+    public TextTrimming OverviewTrimming => !StoreMode && Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
 
-    public TextTrimming OverviewTrimming => OverviewExpanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
+    public string ReadMoreText => Expanded ? "收起" : "阅读更多";
 
-    public string ReadMoreText => OverviewExpanded ? "收起" : "阅读更多";
-
-    public Visibility ReadMoreVisibility => Show(!string.IsNullOrWhiteSpace(Overview) && (OverviewTrimmed || OverviewExpanded));
+    public Visibility ReadMoreVisibility => Show(!StoreMode && !string.IsNullOrWhiteSpace(Overview) && (OverviewTrimmed || Expanded));
 
     /// <summary>
     /// 简介那一块整块的显隐 —— 简介和导演两行都空的时候收起来。
@@ -3016,7 +3012,6 @@ public sealed partial class DetailViewModel : PageViewModel
         Seasons.Clear();
 
         Expanded = false;
-        StoreOverviewExpanded = false;
         OverviewTrimmed = false;
 
         ApplyHeading(item);
@@ -4201,11 +4196,7 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void ToggleOverview()
-    {
-        if (StoreMode) StoreOverviewExpanded = !StoreOverviewExpanded;
-        else Expanded = !Expanded;
-    }
+    private void ToggleOverview() => Expanded = !Expanded;
 
     /// <summary>
     /// The headline on an episode page — 「99.9 刑事专业律师」 above 「S2:E7 - …」 — opens 那部剧自己的页面.

@@ -29,6 +29,9 @@ public sealed partial class DetailPage
         UpdateStoreTrailer();
     }
 
+    public static Visibility OverviewTipVisibility(bool store, bool trimmed) =>
+        store && trimmed ? Visibility.Visible : Visibility.Collapsed;
+
     // Gallery Samples/Grid/GridPage.xaml, v2.9.3 / 14a4a1a2: Auto行与原生Grid定位。
     // Gallery没有影视封面下操作样例；移动同一份控件，保留绑定、事件和焦点。
     private bool _placingStoreComponents;
@@ -40,7 +43,7 @@ public sealed partial class DetailPage
         {
             var store = ViewModel.StoreMode;
 
-            // 2026-11-15：剧情放到封面下方，默认两行并可展开；同一实例保留绑定、焦点与事件。
+            // 2026-11-15：剧情放到封面下方，固定两行并通过原生提示阅读全文；同一实例保留绑定、焦点与事件。
             // 文件选项和操作继续排在剧情后面。退出简洁模式时，剧情回尾部，其余两块回片名栏。
             if (store)
             {

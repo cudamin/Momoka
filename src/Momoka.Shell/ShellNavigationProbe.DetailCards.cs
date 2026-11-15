@@ -233,7 +233,7 @@ internal sealed partial class ShellNavigationProbe
                 "简介没有和封面同一条左沿");
         if (page.ViewModel.PageWidth >= 600)
             Require(Get<StackPanel>(page, "FileOptions").ActualHeight > 0
-                && Get<EgPicker>(page, "ColumnSourcePicker").ActualWidth > 0,
+                && Get<DetailFilePicker>(page, "ColumnSourcePicker").ActualWidth > 0,
                 "常规宽度没有呈现可测量的文件选项");
         // 封面下方的剧情、文件选项、操作与卡片保持同一条左沿。
         foreach (var name in new[] { "StoreHeroDetails", "FileOptions", "ColumnActions" })

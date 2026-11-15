@@ -101,21 +101,11 @@ internal sealed partial class ShellNavigationProbe
                     new[] { "OverviewPanel", "PickerPanel", "CompactBlock" }
                         .All(name => Get<StackPanel>(page, name).CornerRadius == default));
                 var more = Get<HyperlinkButton>(page, "DetailReadMoreButton");
-                Require(more.Visibility == Visibility.Visible, "长剧情没有阅读更多入口");
-                var collapsedHeight = Get<StackPanel>(page, "OverviewPanel").ActualHeight;
-                var collapsedCardTop = Bounds(firstCard, canvas).Top;
-                page.ViewModel.ToggleOverviewCommand.Execute(null);
-                await LayoutAsync(page);
-                Require(overview.MaxLines == 0 && overview.TextTrimming == TextTrimming.None
-                    && more.Visibility == Visibility.Visible && page.ViewModel.ReadMoreText == "收起"
-                    && Get<StackPanel>(page, "OverviewPanel").ActualHeight > collapsedHeight,
-                    "剧情展开后没有自动增高或丢失收起入口");
-                Require(Bounds(firstCard, canvas).Top > collapsedCardTop
-                    && Bounds(firstCard, canvas).Top >= Bounds(details, canvas).Bottom,
-                    "剧情展开后下方首卡没有随内容下移");
-                page.ViewModel.ToggleOverviewCommand.Execute(null);
-                await LayoutAsync(page);
-                Require(overview.MaxLines == 2 && overview.IsTextTrimmed, "剧情收起后没有恢复两行");
+                Require(more.Visibility == Visibility.Collapsed, "简洁模式仍有阅读更多按钮");
+                var tip = ToolTipService.GetToolTip(overview) as ToolTip;
+                Require(tip is { Visibility: Visibility.Visible, Content: TextBlock text }
+                    && text.Text == overview.Text && text.TextWrapping == TextWrapping.Wrap,
+                    "折叠剧情没有保留原生全文提示");
                 Require(overview.Text.StartsWith("首字完整。", StringComparison.Ordinal)
                     && overview.TextTrimming == TextTrimming.CharacterEllipsis, "匿名长简介没有保留首字或省略语义");
                 var pictureMask = ReadStoreMask(page, "StoreBackdropMask");

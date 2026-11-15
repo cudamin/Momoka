@@ -20,7 +20,7 @@ internal static class StoreDetailLayoutTests
             var details = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreHeroDetails");
             Assert.Equal("1", (string?)details.Attribute("Grid.Row"));
             Assert.Equal("2", (string?)details.Attribute("Grid.ColumnSpan"));
-            // 正文与导演用内容高度；展开时不得残留固定高度裁切全文。
+            // 正文与导演用内容高度；不得按封面剩余空间撑高。
             var overview = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "OverviewPanel");
             Assert.True(overview.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "OverviewBody"),
                 "简介没有拆出可撑满的正文容器 OverviewBody");
@@ -40,15 +40,27 @@ internal static class StoreDetailLayoutTests
                 .All(element => (string?)element.Attribute("Height") == "Auto"), "剧情内部仍用固定剩余高度");
             var more = overview.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "DetailReadMoreButton");
             Assert.Equal("{x:Bind ViewModel.ToggleOverviewCommand}", (string?)more.Attribute("Command"));
+            var text = overview.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "Overview");
+            Assert.True(text.Descendants().Any(element => element.Name.LocalName == "ToolTip"), "原生全文提示没有恢复");
+            Assert.Contains("Show(!StoreMode &&", Source("ViewModels/DetailViewModel.cs"));
             var score = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "ScoreStack");
             var genre = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "GenreLine");
             var facts = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "HeroFacts");
             var order = page.Descendants().ToList();
             Assert.True(order.IndexOf(score) < order.IndexOf(genre) && order.IndexOf(genre) < order.IndexOf(facts),
                 "头部顺序不是评分、类型、日期时长分级");
-            // 文件选项保持各页通用的行样式（标签在外、选择框自己一颗），不再排成商店「版本」框。
-            Assert.False(store.Contains("PlaceStorePickerBoxes", StringComparison.Ordinal),
-                "商店文件选项又排成了版本框");
+            foreach (var (name, label) in new[] { ("Source", "版本"), ("Audio", "音频"), ("Subtitle", "字幕") })
+            {
+                foreach (var prefix in new[] { "Column", "" })
+                {
+                    var picker = page.Descendants().Single(element =>
+                        (string?)element.Attribute(X + "Name") == prefix + name + "Picker");
+                    Assert.Equal("DetailFilePicker", picker.Name.LocalName);
+                    Assert.Equal(label, (string?)picker.Attribute("Label"));
+                    Assert.True(!picker.Descendants().Any(element => element.Name.LocalName.EndsWith(".Header", StringComparison.Ordinal)),
+                        "标签仍与选择框分开");
+                }
+            }
         });
 
         Test("详情头部：去掉工作室且日期时长分级没有丢失，轮播事实保持原格式", () =>

@@ -817,7 +817,7 @@ internal sealed partial class ShellNavigationProbe
         var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
             .Where(control => (control is Button or ToggleButton) && control.Visibility == Visibility.Visible
                 && control.ActualWidth > 0 && control.ActualHeight > 0).ToArray();
-        var pickers = Descendants(page).OfType<EgPicker>()
+        var pickers = Descendants(page).OfType<DetailFilePicker>()
             .Where(picker => picker.ActualWidth > 0 && picker.ActualHeight > 0).ToArray();
         Require(controls.Length > 0 && pickers.Length > 0, "外观夹具没有操作按钮或选择框");
         // 出厂材质 2026-11-08 19:26 起是亚克力（a9e2418「把当前的系统设置设为默认」）。这一段前半量的是
@@ -853,7 +853,7 @@ internal sealed partial class ShellNavigationProbe
                     var opacity = zero!.Opacity;
                     var baseline = opacity * color.A / 255d;
                     var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
-                    if (controls.Contains(control) || control is EgPicker)
+                    if (controls.Contains(control) || control is DetailFilePicker)
                     {
                         var expectedOpacity = state.Contains("Pressed", StringComparison.Ordinal) ? 8d / 255 : feedback ? 21d / 255 : 0;
                         Require(color == expectedInk && Math.Abs(opacity - expectedOpacity) < 0.001,
@@ -912,15 +912,15 @@ internal sealed partial class ShellNavigationProbe
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
                         "材质切换改变文字或整个按钮的不透明度");
 
-                    double ExpectedStrength() => controls.Contains(control) || control is EgPicker
+                    double ExpectedStrength() => controls.Contains(control) || control is DetailFilePicker
                         ? !feedback ? 0.37 : baseline + (1 - baseline) * (0.37 - 15d / 255) / (1 - 15d / 255)
                         : Math.Min(1, 0.37 + baseline);
                 }
             }
             finally { VisualStateManager.GoToState(control, restore, false); }
 
-            Brush? Fill() => control is EgPicker
-                ? Descendants(control).OfType<Border>().Single(border => border.Name == "Background").Background
+            Brush? Fill() => control is DetailFilePicker
+                ? Descendants(control).OfType<Grid>().Single(grid => grid.Name == "RootGrid").Background
                 : Descendants(control).OfType<ContentPresenter>().Single(presenter => presenter.Name == "ContentPresenter").Background;
         }
     }
@@ -935,7 +935,7 @@ internal sealed partial class ShellNavigationProbe
         if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast) return;
         var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
-            .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
+            .Concat(Descendants(page).OfType<DetailFilePicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
         // 商店模式的主播放键自 2026-11-14 起吃主题色（用户令「播放按钮改成主题色」），其余按钮和选择框仍是固定面色。
         var plays = controls.Where(control => control.Name is "ColumnPlayButton" or "CompactPlayButton").ToArray();

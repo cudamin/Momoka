@@ -59,60 +59,35 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("商店剧情与剩余时间：两行摘要、展开收起，独立保留沉浸偏好与续播值", () =>
+        Test("商店剧情与剩余时间：固定两行提示，保留沉浸展开偏好与续播值", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);
             Await(f.Load());
             f.Vm.GetType().GetProperty("Expanded")!.SetValue(f.Vm, true);
+            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, true);
             f.Ui.EnableImmersive = false;
             f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
             Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
             Assert.Equal("CharacterEllipsis", f.Get("OverviewTrimming")!.ToString());
-            f.Vm.GetType().GetProperty("Overview")!.SetValue(f.Vm, "长剧情");
-            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, true);
-            Assert.Equal("Visible", f.Get("ReadMoreVisibility")!.ToString());
-            var toggle = (System.Windows.Input.ICommand)f.Get("ToggleOverviewCommand")!;
-            toggle.Execute(null);
-            Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
-            Assert.Equal("None", f.Get("OverviewTrimming")!.ToString());
-            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, false);
-            Assert.Equal("收起", f.Get("ReadMoreText"));
-            Assert.Equal("Visible", f.Get("ReadMoreVisibility")!.ToString());
-            toggle.Execute(null);
-            Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
-            Assert.Equal("CharacterEllipsis", f.Get("OverviewTrimming")!.ToString());
-            Assert.Equal("阅读更多", f.Get("ReadMoreText"));
             Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString());
-            f.Vm.GetType().GetProperty("Overview")!.SetValue(f.Vm, "");
-            f.Vm.GetType().GetProperty("OverviewTrimmed")!.SetValue(f.Vm, true);
-            Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString(), "空剧情不能受旧裁切状态影响");
             Assert.Equal("Collapsed", f.Get("RemainingTimeVisibility")!.ToString());
+            foreach (var width in new[] { 1240d, 760d, 360d, 1240d })
+            {
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
+                Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString());
+            }
             f.Ui.EnableImmersive = true;
             f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
             Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
             Assert.Equal("None", f.Get("OverviewTrimming")!.ToString());
+            Assert.Equal("Visible", f.Get("ReadMoreVisibility")!.ToString());
             Assert.Equal(f.Get("ResumeVisibility")!.ToString(), f.Get("RemainingTimeVisibility")!.ToString());
+            ((System.Windows.Input.ICommand)f.Get("ToggleOverviewCommand")!).Execute(null);
+            Assert.Equal(4, (int)f.Get("OverviewMaxLines")!);
+            f.Vm.GetType().GetProperty("Overview")!.SetValue(f.Vm, "");
+            Assert.Equal("Collapsed", f.Get("ReadMoreVisibility")!.ToString(), "空剧情不受旧裁切状态影响");
         });
-
-        foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
-            Test($"商店剧情 {shape}：换片重置展开，切换模式恢复各自偏好", () =>
-            {
-                using var f = new Fixture(assembly, root, shape);
-                f.Ui.EnableImmersive = false;
-                Await(f.Load());
-                Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
-                var toggle = (System.Windows.Input.ICommand)f.Get("ToggleOverviewCommand")!;
-                toggle.Execute(null);
-                Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
-                f.Ui.EnableImmersive = true;
-                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
-                Assert.Equal(4, (int)f.Get("OverviewMaxLines")!);
-                f.Ui.EnableImmersive = false;
-                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
-                Assert.Equal(0, (int)f.Get("OverviewMaxLines")!);
-                Await(f.Load());
-                Assert.Equal(2, (int)f.Get("OverviewMaxLines")!);
-            });
 
         Test("P4 详情布局：请求在途跨真实断点，完整主体到达保留最新宽高和集合", () =>
         {
@@ -373,7 +348,33 @@ internal static partial class DetailActionReadinessTests
                 f.Vm.GetType().GetProperty("HeroArt")!.SetValue(f.Vm, true);
                 Assert.True((bool)f.Get("Showcase")!, "开启后普通宽窗也固定沉浸");
             });
-        Test("单集唯一音轨隐藏仍保留视频读数", () =>
+        Test("简洁详情顶部留白：四种页面下移，切回沉浸保留原边距", () =>
+        {
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                foreach (var item in f.Transport.Catalog.Values) item.BackdropImageTags.Add("fixture");
+                Await(f.Load());
+                double Top()
+                {
+                    var inset = f.Get("HeroInset")!;
+                    return (double)inset.GetType().GetProperty("Top")!.GetValue(inset)!;
+                }
+                void Refresh() => f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                foreach (var (width, immersiveTop) in new[] { (1200d, 30d), (360d, 20d) })
+                {
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                    Assert.Equal(immersiveTop, Top());
+                    f.Ui.EnableImmersive = false;
+                    Refresh();
+                    Assert.Equal(32d, Top(), shape + " 简洁详情没有给顶部留空隙");
+                    f.Ui.EnableImmersive = true;
+                    Refresh();
+                    Assert.Equal(immersiveTop, Top(), shape + " 沉浸顶部边距被简洁布局改动");
+                }
+            }
+        });
+        Test("单集唯一音轨固定显示并保留视频读数", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Episode);
             var source = f.Transport.Catalog["episode"].MediaSources[0];
@@ -381,36 +382,73 @@ internal static partial class DetailActionReadinessTests
             source.Container = "mkv";
             Await(f.Load());
             f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
-            Assert.Equal("Collapsed", f.Get("AudioVisibility")!.ToString());
+            Assert.Equal("Visible", f.Get("AudioVisibility")!.ToString());
             Assert.Equal("Visible", f.Get("ColumnPickersVisibility")!.ToString());
             Assert.Equal("Visible", f.Get("ColumnVideoVisibility")!.ToString());
         });
 
 
 
-        foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
-            Test($"详情 {shape} 唯一音轨整行隐藏、增加音轨恢复下拉，宽窄选择框在播放前", () =>
+        foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            Test($"详情 {shape} 零条、唯一与多条音轨固定显示，宽窄文件栏跟播放目标", () =>
             {
                 using var f = new Fixture(assembly, root, shape);
                 Await(f.Load());
                 var source = f.Transport.Catalog[shape == Shape.Movie ? "movie" : "episode"].MediaSources[0];
-                source.MediaStreams = [new() { Type = "Audio", Index = 1, Codec = "aac" }];
-                Await(f.Load());
-                Assert.Equal("Collapsed", f.Get("AudioVisibility")!.ToString());
-                Assert.Equal("Collapsed", f.Get("AudioRowVisibility")!.ToString());
-                Assert.Equal("Collapsed", f.Get("SingleAudioVisibility")!.ToString());
-                Assert.True(!string.IsNullOrWhiteSpace((string)f.Get("SingleAudioText")!));
-                source.MediaStreams.Add(new() { Type = "Audio", Index = 2, Codec = "aac" });
-                Await(f.Load());
-                Assert.Equal("Visible", f.Get("AudioVisibility")!.ToString());
-                Assert.Equal("Collapsed", f.Get("SingleAudioVisibility")!.ToString());
-                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
-                Assert.Equal("Visible", f.Get("ColumnPickersVisibility")!.ToString());
-                Assert.Equal("Collapsed", f.Get("PickersVisibility")!.ToString());
-                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 760d);
-                Assert.Equal("Collapsed", f.Get("ColumnPickersVisibility")!.ToString());
-                Assert.Equal("Visible", f.Get("PickersVisibility")!.ToString());
+                foreach (var count in new[] { 0, 1, 2, 0 })
+                {
+                    source.MediaStreams = Enumerable.Range(1, count).Select(index =>
+                        new MediaStream { Type = "Audio", Index = index, Codec = "aac" }).ToList();
+                    Await(f.Load());
+                    Assert.NotNull(f.Get("PlayTarget"));
+                    Assert.Equal(count + 1, ((System.Collections.IList)f.Get("AudioTracks")!).Count);
+                    Assert.Equal("Visible", f.Get("AudioVisibility")!.ToString());
+                    Assert.Equal("Visible", f.Get("AudioRowVisibility")!.ToString());
+                    Assert.Equal("Collapsed", f.Get("SingleAudioVisibility")!.ToString());
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+                    Assert.Equal("Visible", f.Get("ColumnPickersVisibility")!.ToString());
+                    Assert.Equal("Collapsed", f.Get("PickersVisibility")!.ToString());
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 760d);
+                    Assert.Equal("Collapsed", f.Get("ColumnPickersVisibility")!.ToString());
+                    Assert.Equal("Visible", f.Get("PickersVisibility")!.ToString());
+                    f.Ui.EnableImmersive = false;
+                    f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                    var compact = (bool)f.Get("IsCompact")!;
+                    Assert.Equal(compact ? "Collapsed" : "Visible", f.Get("ColumnPickersVisibility")!.ToString());
+                    Assert.Equal(compact ? "Visible" : "Collapsed", f.Get("PickersVisibility")!.ToString());
+                    Assert.Equal("Visible", f.Get("AudioVisibility")!.ToString());
+                    f.Ui.EnableImmersive = true;
+                    f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                }
+                f.Vm.GetType().GetProperty("PlayTarget")!.SetValue(f.Vm, null);
+                f.Vm.GetType().GetProperty("VideoLine")!.SetValue(f.Vm, "视频：1080p");
+                foreach (var width in new[] { 1200d, 760d })
+                {
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                    Assert.Equal("Collapsed", f.Get("ColumnPickersVisibility")!.ToString());
+                    Assert.Equal("Collapsed", f.Get("PickersVisibility")!.ToString(), "无播放目标时文件栏仍有入口");
+                    f.Ui.EnableImmersive = false;
+                    f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                    Assert.Equal("Collapsed", f.Get("ColumnPickersVisibility")!.ToString(), "简洁模式残留视频读数不能复活音频入口");
+                    f.Ui.EnableImmersive = true;
+                    f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                }
             });
+
+        Test("人物详情不因固定音频栏显示文件选择入口", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            f.Seed.Type = EmbyItemType.Person;
+            f.Seed.MediaSources.Clear();
+            Await(f.Load());
+            Assert.Null(f.Get("PlayTarget"));
+            foreach (var width in new[] { 1200d, 760d })
+            {
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                Assert.Equal("Collapsed", f.Get("ColumnPickersVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("PickersVisibility")!.ToString());
+            }
+        });
 
         foreach (var shape in new[] { Shape.Movie, Shape.Episode, Shape.Series, Shape.Season })
             Test($"P1 {shape}预览与完整主体同类型只通知一次版式", () =>

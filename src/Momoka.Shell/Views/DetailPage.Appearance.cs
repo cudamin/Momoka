@@ -93,6 +93,7 @@ public sealed partial class DetailPage
     {
         var contrast = _actionAccessibility.HighContrast;
         var effects = _actionUiSettings.AdvancedEffectsEnabled;
+        if (_appearanceObserved && contrast) RefreshFilePickerSystemAppearance();
         if (!_appearanceObserved || contrast == _lastContrast && effects == _lastEffects) return;
         _lastContrast = contrast;
         _lastEffects = effects;
@@ -114,8 +115,16 @@ public sealed partial class DetailPage
         });
     }
 
+    private void RefreshFilePickerSystemAppearance()
+    {
+        foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
+                     SourcePicker, AudioPicker, SubtitlePicker })
+            picker.RefreshSystemAppearance();
+    }
+
     private void ApplyAppearance()
     {
+        RefreshFilePickerSystemAppearance();
         var contrast = _actionAccessibility.HighContrast;
         var tint = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
             : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ViewModel.AppearanceSettings));
@@ -270,7 +279,7 @@ public sealed partial class DetailPage
         foreach (var (glyph, button) in new[] { (ColumnResumeGlyph, ColumnPlayButton), (CompactResumeGlyph, CompactPlayButton) })
             glyph.Foreground = onAccent is null ? resumeInk : button.Foreground;
         foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, ScoreSourceText,
-            DetailVideoText, DetailDirectorsText, ColumnAudioText, AudioText })
+            DetailVideoText, DetailDirectorsText })
         {
             var defaultBrush = text == GenreLine ? (SolidColorBrush)ViewModel.SublineBrush
                 : (SolidColorBrush)Application.Current.Resources[text == DetailDirectorsText ? "EgOnScrimDimBrush" : "EgOnScrimBrush"];
@@ -313,7 +322,8 @@ public sealed partial class DetailPage
     private static bool IsPickerContent(DependencyObject node)
     {
         for (var parent = VisualTreeHelper.GetParent(node); parent is not null; parent = VisualTreeHelper.GetParent(parent))
-            if (parent is ComboBox picker)
+            if (parent is DetailFilePicker) return true;
+            else if (parent is ComboBox picker)
                 return picker.Header is not FrameworkElement header || !ReferenceEquals(header, node);
         return false;
     }

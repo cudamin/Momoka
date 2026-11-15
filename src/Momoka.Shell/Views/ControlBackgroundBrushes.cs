@@ -56,6 +56,8 @@ internal sealed class ControlBackgroundBrushes
             var surface = background.Mix(ThemeColor.Rgb(color.R, color.G, color.B), amount);
             ink.Color = forced ?? ToColor(BackdropReading.Foreground(surface));
             if (suffix.Length == 0) Control.Foreground = ink;
+            if (Control is DetailFilePicker)
+                ForegroundBrush("DropDownButtonForegroundSecondary" + suffix).Color = ink.Color;
         }
         if (Control is ComboBox)
         {
@@ -108,6 +110,11 @@ internal sealed class ControlBackgroundBrushes
                 "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" })
                 ForegroundBrush(key);
         }
+        // WinUI 2.3.9 DefaultDropDownButtonStyle 的 ChevronIcon 独立读取次要前景。
+        // 模板套用前准备对象，之后与每个 ButtonForeground 状态同步改色。
+        if (control is DetailFilePicker)
+            foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
+                ForegroundBrush("DropDownButtonForegroundSecondary" + suffix);
         if (control is ToggleButton)
         {
             resources[prefix + "BackgroundChecked"] = rest;

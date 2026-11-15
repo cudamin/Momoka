@@ -1,4 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.Emby;
 
@@ -45,16 +44,6 @@ public sealed partial class DetailViewModel
         ? Math.Max(0, StoreContentWidth - StillWidth - ColumnSpacing) : double.PositiveInfinity;
     public Visibility RemainingTimeVisibility => StoreMode ? Visibility.Collapsed : ResumeVisibility;
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;
-
-    /// <summary>
-    /// 简洁模式独立保留展开状态，首次进入仍为两行，不继承沉浸模式的展开偏好。
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(OverviewMaxLines))]
-    [NotifyPropertyChangedFor(nameof(OverviewTrimming))]
-    [NotifyPropertyChangedFor(nameof(ReadMoreText))]
-    [NotifyPropertyChangedFor(nameof(ReadMoreVisibility))]
-    public partial bool StoreOverviewExpanded { get; set; }
 
     private double _storeDetailsRoom;
     internal double StoreDetailsRoom

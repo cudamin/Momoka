@@ -306,13 +306,13 @@ internal sealed partial class ShellNavigationProbe
                 }), "版本选择应为体积、服务器名、原文件名；单服务器（含多账号）不显示服务器名或用户名");
                 if (source.Key == sources[0].Key)
                 {
-                    var picker = Get<EgPicker>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
+                    var picker = Get<DetailFilePicker>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
                         ? "ColumnSourcePicker" : "SourcePicker");
                     await LayoutAsync(detail);
                     Require(picker.ItemsSource == detail.ViewModel.Sources && picker.DisplayMemberPath == "Text",
                         "版本选择没有绑定带来源规则的文本");
                     picker.IsDropDownOpen = true;
-                    await UntilAsync(() => picker.PopupPart?.IsOpen == true);
+                    await UntilAsync(() => picker.IsDropDownOpen && picker.FlyoutContent.IsLoaded);
                     await Task.Delay(250);
                     await SaveProbeScreenAsync($"aggregate-version-{(showServer ? "multi-server" : sources.Length > 1 ? "same-server" : "single")}-screen.png");
                     picker.IsDropDownOpen = false;
