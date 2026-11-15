@@ -166,24 +166,32 @@ public sealed partial class DetailPage
     }
 
     /// <summary>把一颗键从原来的父级摘下来，追加到目标那一格（已经在目标里就不动）。</summary>
-    private static void MoveToPanel(FrameworkElement element, Panel target)
+    private void MoveToPanel(FrameworkElement element, Panel target)
     {
-        if (ReferenceEquals(element.Parent, target)) return;
+        if (target.Children.Contains(element)) return;
         Detach(element);
+        if (target.Children.Contains(element)) return;
         target.Children.Add(element);
     }
 
-    /// <summary>从当前父级摘下；只认 Panel，那一格里的键都是 Panel 的孩子。</summary>
-    private static void Detach(FrameworkElement element)
+    /// <summary>
+    /// 从当前那一格摘下。判据用「集合里有没有」而不是 <c>Parent</c>：整页还在 <c>OnNavigatedTo</c> 里、
+    /// 没有接上树时，键已经在 Children 里而 Parent 仍是 null，靠 Parent 认不出它，接着 Insert 就会抛
+    /// E_ELEMENTALREADYATTACHED。挂件那一格是 ContentPresenter，先清掉 <see cref="ShelfHead.Trailing"/>。
+    /// </summary>
+    private void Detach(FrameworkElement element)
     {
-        if (element.Parent is Panel parent) parent.Children.Remove(element);
+        if (ReferenceEquals(EpisodeHead.Trailing, element)) EpisodeHead.Trailing = null;
+        foreach (var panel in new Panel[] { ColumnActionRow, StoreCoverActions, StoreCoverBadges })
+            if (panel.Children.Contains(element)) panel.Children.Remove(element);
     }
 
     /// <summary>按给定的下标把键放回那排操作里；已经到了就不动。</summary>
     private void RestoreToActions(FrameworkElement element, int index)
     {
-        if (ReferenceEquals(element.Parent, ColumnActionRow)) return;
+        if (ColumnActionRow.Children.Contains(element)) return;
         Detach(element);
+        if (ColumnActionRow.Children.Contains(element)) return;
         ColumnActionRow.Children.Insert(Math.Clamp(index, 0, ColumnActionRow.Children.Count), element);
     }
 
