@@ -8,7 +8,7 @@
 
 验证：Shell Release **0 警告 0 错误**；`hover-preview-fixture` **19/19**、`Momoka.PageContractTests` **325/325**、DetailImageArrival **26/26**、ConnectedAnimation **63/63**、Plex **85/85**、DetailStickyHeader **92/92**、ItemUserStateOrder **76/76**、KeyboardJourney **46/46**、BrowsePresentation **32/32**、UiMotion **80/80**，全部 0 失败 0 跳过；`dotnet format whitespace` 通过。全方案构建只有三个 Python 源抽取项目因本机 PATH 没有 `py` 失败，与本改动无关，其余项目均编译成功；`DetailDeleteCommandTests` 需构建证明 JSON，未单独运行。
 
-待办：已按用户要求合入 master，未交付、未上传；用户选择保留正在运行的主树旧实例，真实悬停、点击缩略图与逐帧实屏仍待用户确认。
+待办：已按用户要求合入 master（`4f1885b`），未交付、未上传；用户选择保留正在运行的主树旧实例，真实悬停、点击缩略图与逐帧实屏仍待用户确认。整合后主树 Shell Release **0 警告 0 错误**，PageContract **327/327**、hover-preview-fixture **19/19**，0 失败 0 跳过。
 ## 2026-11-16 交付修复：横带虚拟化焦点等实际滚动完成（待主控原生复验）
 
 原生 `shell-probe-20261115-162628126-24820` 的「2000集长剧」在主树 `aa2514b`、窗口前台归属已核对后仍卡在 `FocusedLongIndex == 1999`。因此不再把这一轮笼统算成窗口焦点环境红。源码确认 `FocusItem` 创建虚拟项后立即滚动并聚焦，失败只排一轮 Low；Low仍失败就保留索引等 `Loaded/SizeChanged`，但同尺寸新卡滚动完成没有接重试。这是确定的代码缺口；旧运行没记录 Focus返回值/待索引，不能声称已经实证所有失败分支。
