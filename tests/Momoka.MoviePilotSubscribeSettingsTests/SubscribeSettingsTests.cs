@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -896,6 +897,18 @@ internal static class SubscribeSettingsTests
                 "订阅页又画了那条细进度条");
             Check.False(subscriptionPage.Descendants().Any(item => item.Name.LocalName == "ProgressRing"),
                 "订阅页又用转圈当加载动画");
+            return Task.CompletedTask;
+        });
+        Test("订阅商店档顶部留白与媒体详情同一条顶线，沉浸档保留 12", () =>
+        {
+            // 2026-11-15 用户令「增加详情页/订阅详情页上方的空位」：两页读同一个 StoreHeroTop。
+            using var vm = new MoviePilotMediaViewModel { PageWidth = 1200 };
+            vm.Immersive = false;
+            Check.Equal(DetailHero.StoreHeroTop, vm.HeaderPadding.Top);
+            Check.Equal(DetailHero.StorePageInset(1200), vm.HeaderPadding.Left);
+            Check.Equal(DetailHero.StorePageInset(1200), vm.HeaderPadding.Right);
+            vm.Immersive = true;
+            Check.Equal(12d, vm.HeaderPadding.Top);
             return Task.CompletedTask;
         });
     }

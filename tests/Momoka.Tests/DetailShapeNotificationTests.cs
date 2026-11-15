@@ -367,7 +367,7 @@ internal static partial class DetailActionReadinessTests
                     Assert.Equal(immersiveTop, Top());
                     f.Ui.EnableImmersive = false;
                     Refresh();
-                    Assert.Equal(32d, Top(), shape + " 简洁详情没有给顶部留空隙");
+                    Assert.Equal(DetailHero.StoreHeroTop, Top(), shape + " 简洁详情没有给顶部留空隙");
                     f.Ui.EnableImmersive = true;
                     Refresh();
                     Assert.Equal(immersiveTop, Top(), shape + " 沉浸顶部边距被简洁布局改动");

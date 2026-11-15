@@ -1403,7 +1403,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 往下推。说明的第一行由此落在下沿底下 <see cref="TailInset"/> 那点缝加它自己的内边距上。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), 32, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
+    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), DetailHero.StoreHeroTop, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)
