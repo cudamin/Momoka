@@ -183,8 +183,8 @@ public sealed partial class DetailPage
 
         HeroTail.MinHeight = ViewModel.TailMinHeight;
 
-        // 那一栏撑满封面的高之后，多出来的那一截摊到各行之间的间距上、按钮仍贴封面下沿 ——
-        // 换模式时它自己的高度可能没变，SizeChanged 不会再来，所以在这里主动排一次
+        // 切换模式时恢复各档常态小间距，清掉旧版为补满封面写过的行距和操作块上边距。
+        // 自己的高度可能没变，SizeChanged 不会再来，所以在这里主动排一次
         // （见 DetailPage.LayoutHeroColumn）。
         LayoutHeroColumn();
 

@@ -1,3 +1,11 @@
+## 2026-11-15 详情右栏取消均摊，字幕与操作向上收紧（待主控整合交付）
+
+本任务独立树 C:/Users/89400/.codex/worktrees/detail-tight-hero-gap/Momoka，基点9e3402d，分支codex/detail-tight-hero-gap。交付中用户先报「这间距怎么还是这么大，不要留太大的间距」，随后明确「不要均摊间距，向上收紧」；这次明确撤回当天早前的「均匀撑开各行」决策。
+
+LayoutHeroColumn删掉（封面高−内容高）÷缝数，恢复HeroStack常态10 DIP，商店仍6 DIP；操作块Margin清零，内容少、多或重布局都不再撑开字幕与按钮。保留原Top对齐和HeroStack.MinHeight，空白只在整组下方，剧情仍从封面/文字组較低的下沿之后起排；InfoPanel卡片背景、字号、点击区、海报尺寸和其它版式常态不改。Gallery固定v2.9.3/14a4a1a2的GridPage.xaml/.xaml.cs和Styles/ItemTemplates.xaml已读，使用原生固定间距/Top组合；没有影视余量分配的完整样例，无新依赖。Learn StackPanel.Spacing合同已核。
+
+原生RequireHeroColumn撤回按钮底齐封面判据，RequireHeroGaps核固定10 DIP、操作上边距0及文件选项到操作的实空间距；剧情按max(封面/按钮)下沿核对。Sticky测试编译时逐字提取生产LayoutHeroColumn与原生RequireHeroGaps，覆盖少/多内容、760/820/1280宽、不同封面高度、商店往返和大间距/外边距/伪属性读数反例；92/92、0失败0跳过，当前Tests编译0警告0错误，acrylic39/39、detail-customization59/59。Shell本树首编0警告0错误，合入主控最新master之后再重编；UI/真实指针/实际图片及主树发布由交付主控统一运行，本子任务未启动窗口、联网真实服务器、播放或发布。
+
 ## 2026-11-15 交付修复：商店预览圆角读取应用资源
 
 主树最终代码 4209de4 在本次统一原生检查 shell-probe-20261115-145703787-20292 中触发未处理 COM 异常：DetailPage.PlaceStoreComponents 直接查页面 Resources 的 EgCardCornerRadius，而该键只属于应用 Theme/Styles.xaml。改为 Application.Current.Resources；本页 EgRoundButtonStyle / EgPillButtonStyle 仍从局部字典读取，不加 IsLoaded 短路，保留封面关联动画在 Loaded 前抢排的路径。新增 PageContract 资源归属契约，拒绝复制全局键进页面掩盖错误。

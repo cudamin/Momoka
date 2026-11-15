@@ -11,4 +11,58 @@
         <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.StickyHeader.cs" Link="Production\DetailPage.StickyHeader.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.StickyPlayMotion.cs" Link="Production\DetailPage.StickyPlayMotion.cs" />
     </ItemGroup>
+    <UsingTask TaskName="ExtractHeroColumnLayout" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Source ParameterType="System.String" Required="true" />
+            <ProbeSource ParameterType="System.String" Required="true" />
+            <OutputSource ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Using Namespace="System.Text.RegularExpressions" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+                var begin = source.IndexOf("    private void LayoutHeroColumn()", StringComparison.Ordinal);
+                var endMarker = "\n    /// <summary>\n    /// 左侧封面的下沿量给视图模型";
+                var end = source.IndexOf(endMarker, StringComparison.Ordinal);
+                if (begin < 0 || source.IndexOf("    private void LayoutHeroColumn()", begin + 1, StringComparison.Ordinal) >= 0
+                    || end <= begin || source.IndexOf(endMarker, end + 1, StringComparison.Ordinal) >= 0)
+                    throw new InvalidOperationException("Missing or ambiguous production hero-column layout method");
+                var constants = "";
+                foreach (var name in new[] { "HeroStackSpacing", "StoreHeroStackSpacing" })
+                {
+                    var matches = Regex.Matches(source, @"    private const double " + name + @"\s*=\s*[^;]+;");
+                    if (matches.Count != 1) throw new InvalidOperationException("Missing or ambiguous production spacing constant: " + name);
+                    constants += matches[0].Value + "\n";
+                }
+                var probe = File.ReadAllText(ProbeSource).Replace("\r\n", "\n");
+                var probeBegin = probe.IndexOf("    private const double HeroGapBase =", StringComparison.Ordinal);
+                var probeEndMarker = "\n    /// <summary>够长、够跨四行的简介";
+                var probeEnd = probe.IndexOf(probeEndMarker, StringComparison.Ordinal);
+                if (probeBegin < 0 || probe.IndexOf("    private const double HeroGapBase =", probeBegin + 1, StringComparison.Ordinal) >= 0
+                    || probeEnd <= probeBegin || probe.IndexOf(probeEndMarker, probeEnd + 1, StringComparison.Ordinal) >= 0)
+                    throw new InvalidOperationException("Missing or ambiguous production hero-gap probe readings");
+                var generated = "// Production layout and probe methods extracted verbatim; XAML value boundaries only.\n#nullable enable\n"
+                    + "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Momoka.Shell.Views;\n"
+                    + "namespace Momoka.Shell.Views\n{\npublic sealed partial class DetailPage\n{\n" + constants
+                    + source.Substring(begin, end - begin) + "\n}\n}\n"
+                    + "namespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n"
+                    + probe.Substring(probeBegin, probeEnd - probeBegin) + "\n}\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+                    File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateHeroColumnLayout" BeforeTargets="CoreCompile">
+        <ExtractHeroColumnLayout Source="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\DetailPage.xaml.cs"
+                                 ProbeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.DetailResponsive.cs"
+                                 OutputSource="$(IntermediateOutputPath)HeroColumnLayout.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)HeroColumnLayout.g.cs" />
+        </ItemGroup>
+    </Target>
 </Project>

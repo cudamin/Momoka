@@ -15,6 +15,8 @@ public sealed partial class DetailPage : Page
     public Button ColumnPlayButton { get; } = new();
     public Button CompactPlayButton { get; } = new();
     public ScrollView Body { get; } = new() { ActualHeight = 700 };
+    public StackPanel HeroStack { get; } = new();
+    public StackPanel ColumnActions { get; } = new();
 
     public DetailPage()
     {
@@ -40,6 +42,7 @@ public sealed partial class DetailPage : Page
     public void ReleaseHeader() => StopStickyHeader();
     public void ResetHeader() => ResetStickyHeader();
     public void UpdateHeader() => UpdateStickyHeader();
+    public void LayoutColumn() => LayoutHeroColumn();
     public void Scroll(double offset) { Body.VerticalOffset = offset; UpdateStickyHeader(); }
     public bool Shown => _headerShown;
     public bool Active => _headerActive;
