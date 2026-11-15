@@ -228,8 +228,9 @@ internal sealed partial class ShellNavigationProbe
             var resources = Get<MoviePilotResourcePanel>(page, "MediaResources");
             var search = Descendants(page).OfType<Button>().First(button => button.Name == "SearchMediaEpisode");
             InvokeSubscriptionButton(search);
-            Require(resources.Visibility == Visibility.Visible && Get<ScrollViewer>(page, "DetailScroll").Visibility == Visibility.Collapsed,
-                "集搜索没有打开真实资源面板或底层页面仍可交互");
+            Require(resources.Visibility == Visibility.Visible && !Get<ScrollViewer>(page, "DetailScroll").IsHitTestVisible,
+                "集搜索没有打开真实资源面板或在淡出期间底层仍可交互");
+            await UntilAsync(() => Get<ScrollViewer>(page, "DetailScroll").Visibility == Visibility.Collapsed);
             Require(server.Writes.Count == 0, "打开资源面板触发订阅或下载");
         }
         finally { page.Release(); _root.Children.Remove(page); ResizeInspect(1420, 980); }

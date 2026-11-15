@@ -474,6 +474,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         }
         MediaResources.Open(request.Service, detail.Media with { Season = season }, launcher, new(area, episode, subtitles));
         _resourcesOpen = true;
+        // 资源面板淡入的这 120ms 里底层详情仍画着，但不能接输入。
+        DetailScroll.IsHitTestVisible = false;
         MediaResources.IsHitTestVisible = true;
         MediaResources.Visibility = Visibility.Visible;
         ResourcesMotion.Enter(200, 12);
@@ -486,6 +488,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         _resourcesOpen = false;
         MediaResources.IsHitTestVisible = false;
+        DetailScroll.IsHitTestVisible = true;
         ResourcesMotion.Settle();
         ResourcesMotion.Exit(120, 8, () =>
         {
@@ -597,6 +600,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         DetailScroll.Visibility = _resourcesOpen ? Visibility.Collapsed : Visibility.Visible;
         MediaResources.Visibility = _resourcesOpen ? Visibility.Visible : Visibility.Collapsed;
         MediaResources.IsHitTestVisible = true;
+        DetailScroll.IsHitTestVisible = true;
         _request = null; ViewModel.Cancel(); MediaViewModel.Cancel(); MediaResources.Release();
     }
     protected override void OnNavigatedFrom(NavigationEventArgs e) { Release(); base.OnNavigatedFrom(e); }

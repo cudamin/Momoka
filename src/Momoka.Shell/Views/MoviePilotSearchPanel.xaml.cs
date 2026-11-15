@@ -154,6 +154,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     {
         _resourceActive = true;
         ResourceOverlay.Visibility = Visibility.Visible;
+        SearchContent.IsHitTestVisible = false;
+        Results.IsHitTestVisible = false;
         (_resourceMotion ??= new SurfaceMotion(ResourceOverlay)).Enter(200, 12);
 
         // 这两块由绑定一直停在显示档，没走过 SurfaceMotion 的 Enter；先 Settle 到显示档，
@@ -189,6 +191,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         _resourceActive = false;
         SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
+        SearchContent.IsHitTestVisible = true;
+        Results.IsHitTestVisible = true;
         (_contentMotion ??= new SurfaceMotion(SearchContent)).Enter(160, 8);
         (_resultsMotion ??= new SurfaceMotion(Results)).Enter(160, 8);
     }
@@ -203,6 +207,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
+        SearchContent.IsHitTestVisible = true;
+        Results.IsHitTestVisible = true;
     }
 
     private void CollapseSearchContent()
