@@ -292,13 +292,19 @@ public sealed partial class DetailPage
             }
             brush.Color = ThemeHost.ToColor(color);
         }
-        foreach (var child in AppearanceChildren(BodySheet))
-        {
-            var systemInk = forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B) : (ThemeColor?)null;
-            if (child is ShelfHead head) head.ApplyBackdropInk(systemInk);
-            else if (child is PosterCard card)
-                card.ApplyBackdropInk(systemInk is { } ink ? _ => ink : null);
-        }
+        // 正文里换墨的只有四条带的卡和几块分区标题。以前这里递归整页视觉树：每建出一张卡都会排队来一遍，
+        // 一次要走过页面上所有控件（实测一个 ViewChanged 里能占 20ms 以上）。带自己只过已实现的那几张，
+        // 标题按正文面板的直接孩子取，成本回到与在屏卡片数成正比。
+        var systemInk = forced is { } forcedColor ? ThemeColor.Rgb(forcedColor.R, forcedColor.G, forcedColor.B) : (ThemeColor?)null;
+        foreach (var strip in BodyStrips) strip.ForEachRealizedCard(card => card.ApplyBackdropInk(systemInk));
+        // 季页的单集是一行一集的竖列表（EpisodeList），行模板里也有一张 PosterCard；只过视口里建出来的那几行。
+        PaintRepeaterCards(EpisodeList, systemInk);
+        foreach (var panel in BodySheet.Children.OfType<Panel>())
+            foreach (var child in panel.Children)
+            {
+                if (child is ShelfHead head) head.ApplyBackdropInk(systemInk);
+                else if (child is Border { Child: ShelfHead nested }) nested.ApplyBackdropInk(systemInk);
+            }
         foreach (var group in new[] { ColumnPickers, PickerPanel })
             foreach (var text in AppearanceChildren(group).OfType<TextBlock>())
             {
@@ -317,6 +323,15 @@ public sealed partial class DetailPage
     /// <summary>主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。</summary>
     private bool IsStorePlay(ControlBackgroundBrushes brushes) =>
         ReferenceEquals(brushes, _columnPlay) || ReferenceEquals(brushes, _compactPlay);
+
+    /// <summary>一条竖列表里已经建出来的行，行模板里的卡片换一次墨。见 <see cref="ShelfStrip.ForEachRealizedCard"/>。</summary>
+    private static void PaintRepeaterCards(ItemsRepeater repeater, ThemeColor? ink)
+    {
+        var count = repeater.ItemsSourceView?.Count ?? 0;
+        for (var index = 0; index < count; index++)
+            if (repeater.TryGetElement(index) is { } container)
+                foreach (var card in ShelfStrip.CardsIn(container)) card.ApplyBackdropInk(ink);
+    }
 
     private static bool IsPickerContent(DependencyObject node)
     {

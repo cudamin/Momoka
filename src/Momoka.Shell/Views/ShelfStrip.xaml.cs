@@ -218,13 +218,25 @@ public sealed partial class ShelfStrip : UserControl
         foreach (var card in CardsIn(container)) card.OnScrim = OnScrim;
     }
 
-    private static IEnumerable<PosterCard> CardsIn(DependencyObject node)
+    internal static IEnumerable<PosterCard> CardsIn(DependencyObject node)
     {
         if (node is PosterCard card) { yield return card; yield break; }
         if (node is ContentControl { Content: DependencyObject content })
             foreach (var inside in CardsIn(content)) yield return inside;
         for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
             foreach (var child in CardsIn(VisualTreeHelper.GetChild(node, index))) yield return child;
+    }
+
+    /// <summary>
+    /// 过一遍这条带里已经建出来的卡。详情页高对比度换墨用这一支：整页视觉树递归每天会被滚动里每建出来
+    /// 一张卡触发一次，走的却是页面上所有控件；带子自己知道哪些容器真的在。
+    /// </summary>
+    internal void ForEachRealizedCard(Action<PosterCard> apply)
+    {
+        var count = ItemCount;
+        for (var index = 0; index < count; index++)
+            if (Repeater.TryGetElement(index) is { } container && CardIn(container) is { } card)
+                apply(card);
     }
 
     /// <summary>

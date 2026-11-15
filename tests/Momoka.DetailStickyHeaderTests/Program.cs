@@ -914,7 +914,12 @@ internal static class Program
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "DetailPage.xaml.cs"));
             Assert.Contains("PrepareStickyHeader();", Section(code, "    public DetailPage()", "    private void OnThemeChanged"));
             Assert.Contains("StopStickyHeader();", Section(code, "    public void Release()", "    private void PaintOtherInfo()"));
-            Assert.Contains("UpdateStickyHeader();", Section(code, "    private void OnBodyViewChanged", "    private void PaintWash"));
+            var scroll = Section(code, "    private void OnBodyViewChanged", "    private void PaintWash");
+            Assert.Contains("UpdateStickyHeader();", scroll);
+            // 阅读色只随主题、对比度和新建卡片变，跟滚动偏移无关：滚动这一路重画整页树的视觉子树
+            // 是早期卡顿的来源之一，卡片建出来时另有 ShelfStrip.ReadingChanged 排队补。
+            Assert.False(scroll.Contains("PaintReadingColors", StringComparison.Ordinal),
+                "滚动回调仍在重画整页阅读色");
         });
         return Run();
     }

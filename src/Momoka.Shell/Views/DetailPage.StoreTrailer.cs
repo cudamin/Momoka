@@ -354,6 +354,9 @@ public sealed partial class DetailPage
         if (_storeTrailerPlayer is null && _storeYouTube is null) return;
         if (Body.VerticalOffset > StoreTrailerContent.ActualHeight * 0.5 + StoreTrailerHost.Margin.Top)
         {
+            // 每一次 ViewChanged 都调一遍 Pause／PostWebMessageAsString 是白费：暂停只在下滚越过阈值的那一次
+            // 有意义，之后每一帧再发一次就是往播放器和 WebView2 上各塞一条不看结果的消息，滚动越连续塞得越多。
+            if (_storeTrailerScrollPaused) return;
             _storeTrailerScrollPaused = true;
             _storeTrailerPlayer?.Pause();
             _storeYouTube?.SetActive(false);

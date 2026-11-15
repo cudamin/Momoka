@@ -2350,10 +2350,11 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <summary>滚到哪儿了 —— 标题栏先接图上的黑底，再跟随正文纸面。</summary>
     private void OnBodyViewChanged(ScrollView sender, object args)
     {
+        // 阅读色只跟主题、系统对比度和新建出来的卡片有关，跟滚到哪儿无关：滚动这一路只做真正随偏移变的
+        // 三件事。卡片建出来时由 ShelfStrip.ReadingChanged 排一次（见 QueueReadingColors），不靠这里补。
         ScrollStoreTrailer();
         UpdateStickyHeader();
         PaintWash();
-        PaintReadingColors();
     }
 
     /// <summary>

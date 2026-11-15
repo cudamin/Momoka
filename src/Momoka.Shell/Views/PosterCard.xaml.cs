@@ -357,11 +357,24 @@ public sealed partial class PosterCard : UserControl
 
     private readonly Dictionary<TextBlock, SolidColorBrush> _backdropInk = [];
 
-    internal void ApplyBackdropInk(Func<FrameworkElement, Momoka.Theming.ThemeColor>? read)
+    /// <summary>上一次真正写上去的强制墨；null 表示那一次清掉了本地前景。只为下面的去重记账。</summary>
+    private Momoka.Theming.ThemeColor? _backdropInkValue;
+    private bool _backdropInkApplied;
+
+    /// <summary>
+    /// 高对比度时把卡片的两行字换成系统前景。卡片是回收着建的，详情页每次卡片建出来都会重过一遍
+    /// （见 <c>DetailPage.PaintReadingColors</c>）：目标墨没变就不必再写同一条本地前景。
+    /// </summary>
+    internal void ApplyBackdropInk(Momoka.Theming.ThemeColor? ink)
     {
+        if (!_backdropInkApplied && ink is null) return;
+        if (_backdropInkApplied && _backdropInkValue == ink) return;
+        _backdropInkApplied = ink is not null;
+        _backdropInkValue = ink;
+
         foreach (var text in new[] { TitleLine, SubLine, SourceLine, NoteLine })
         {
-            if (read is null)
+            if (ink is not { } color)
             {
                 text.ClearValue(TextBlock.ForegroundProperty);
                 continue;
@@ -371,7 +384,7 @@ public sealed partial class PosterCard : UserControl
                 brush = new SolidColorBrush();
                 _backdropInk.Add(text, brush);
             }
-            brush.Color = ThemeHost.ToColor(read(text));
+            brush.Color = ThemeHost.ToColor(color);
             text.Foreground = brush;
         }
     }

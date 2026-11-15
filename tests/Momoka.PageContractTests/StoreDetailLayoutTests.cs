@@ -38,6 +38,9 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("StoreTrailerFoundation.Background = null;", trailer);
             Assert.Contains("StoreTrailerFoundation.Visibility = Visibility.Collapsed;", trailer);
             Assert.Contains("_storeTrailerUserPaused || _storeTrailerScrollPaused", trailer);
+            // 滚过阈值的那一帧只暂停一次：每来一个 ViewChanged 就往播放器/WebView2 塞一条暂停消息，
+            // 在商店页连续滚动时会变成每帧一条。
+            Assert.Contains("if (_storeTrailerScrollPaused) return;", trailer);
             Assert.Contains("nameof(DetailViewModel.StoreAmbientHeight)", Source("Views/DetailPage.Trailers.cs"));
             var detail = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
             Assert.Equal("1", (string?)detail.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreTrailerFade").Attribute("Canvas.ZIndex"));
