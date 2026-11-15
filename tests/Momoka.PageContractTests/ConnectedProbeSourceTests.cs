@@ -6,6 +6,26 @@ internal static class ConnectedProbeSourceTests
 {
     internal static void Register()
     {
+        Test("悬停标题原生补验：真实预览点击与生产媒体库交接，不绕Prepare或Frame导航", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.PreviewHeading.cs"));
+            Assert.Contains("frame.Navigate(typeof(LibraryPage)", source);
+            Assert.Contains("source.ShowPreviewForShot()", source);
+            Assert.Contains("CaptureHeading(popup.HorizontalOffset, popup.VerticalOffset", source);
+            Assert.Contains("source!.TakePreviewHeading() is null", source);
+            Assert.Contains("fixture.Actions.CaptureOpen = opened =>", source);
+            Assert.Contains("frame.Navigate(typeof(DetailPage)", source);
+            Assert.Contains("new ButtonAutomationPeer(Get<Button>(preview, \"DetailsButton\"))", source);
+            Assert.DoesNotContain("PreviewHeadingTransition.Prepare(", source);
+            Assert.DoesNotContain("BeginPreviewHeadingMotion(", source);
+            Assert.Contains("board.SeekAlignedToLastTick(TimeSpan.Zero)", source);
+            Assert.Contains("TimeSpan.FromMilliseconds(160)", source);
+            Assert.Contains("RequireHeadingSettled(title, plate)", source);
+            Assert.Contains("HomeMotion.ApplyPreference(false)", source);
+            Assert.Contains("fixture.Actions.Plays == 0", source);
+            var inspect = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.Inspect.cs"));
+            Assert.Contains("\"InspectPreviewHeadingMotion\"", inspect);
+        });
         Test("性能检查台：定向入口运行原详情滚动与长剧用例并保留截止", () =>
         {
             var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.Inspect.cs"));

@@ -356,6 +356,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectStoreDetailCards", "商店媒体订阅卡片与恢复", StoreDetailCardsAsync, ShellProbeSections.DetailCards);
         AddCheck("InspectMoviePilotMica", "MP 商店背景与底材验证", MoviePilotSubscriptionShowcaseAsync);
         AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);
+        AddCheck("InspectPreviewHeadingMotion", "悬停片名与徽标实际导航交接", PreviewHeadingMotionAsync, ShellProbeSections.Motion);
         AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
         AddCheck("InspectStoreTrailer", "商店预告实帧与独立控制", StoreTrailerAsync);
