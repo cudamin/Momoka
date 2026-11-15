@@ -1,3 +1,9 @@
+## 2026-11-16 交付探针修正：商店单集操作不沿用旧紧凑动作块
+
+根主树 `9cb1b68` 已完成全方案0警告0错误、主测试5158/5158、PageContract324/324、Sticky92/92，原生商店detail-cards2/2与新四图标实屏通过。随后检查台详情布局回归 `shell-probe-20261115-161303375-32456` 在 `ResponsiveModesAsync` 报「简洁模式仍切换到窄窗操作」：旧断言将商店单集的IsCompact背景判定同时用于CompactBlock/ColumnActions，但本轮用户四图标常驻封面下方的新规则已明确商店隐藏重复CompactBlock并保留ColumnActions剩余花絮/进度。不是产品布局错误，原失败保留。
+
+本树 `C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka` 仅改探针与测试：商店/非商店两档统一核真实CompactBlock、ColumnActions和封面行显隐，商店还必须保留同一批四颗按钮与常驻无边框状态；恢复沉浸后同样核原宽窄动作组。新纯读数判据拒绝旧重复动作、封面行隐藏、按钮身份丢失和非商店错组，不改IsCompact、背景、产品控件或阈值。材料探针的六颗操作只属于沉浸夹具，显式设前件并要求非StoreMode，不删原六颗/平台材质检查；DetailCustomization/Mica已有Subtle分组与恢复非商店Parent检查仍有效。Shell当前Release编译0警告0错误；PageContract325/325、Sticky92/92，0失败0跳过，实际模式判据的反例运行通过。最终原生复跑由根统一执行，子树不启动UI、鼠标、播放或发布。
+
 ## 2026-11-15 商店封面下方常驻无边框操作行（本次交付追加，独立树待整合）
 
 用户在交付中追加：商店模式按钮移到封面下方、不要边框、鼠标没移到封面也显示。工作树 `C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka`，分支 `codex/store-cover-action-row`，基点主树 `9e3402d`；本条取代第44批的播放/更多在封面右侧、收藏/已看在封面左上角旧位置。

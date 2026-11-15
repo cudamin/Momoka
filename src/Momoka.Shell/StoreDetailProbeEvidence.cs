@@ -3,6 +3,14 @@ namespace Momoka.Shell;
 /// <summary>商店详情探针的实际布局、遮罩与首字屏幕读数判据；不产生界面或重写产品布局。</summary>
 internal static class StoreDetailProbeEvidence
 {
+    internal static void RequireActionMode(bool store, bool compact, bool compactActions, bool columnActions,
+        bool coverActions, bool sameFourButtons)
+    {
+        if (compactActions != (compact && !store) || columnActions != (store || !compact)
+            || coverActions != store || store && !sameFourButtons)
+            throw new InvalidOperationException("详情操作没有按商店常驻四图标与非商店宽窄组恢复，或出现重复操作");
+    }
+
     internal static void RequirePreviewCorners(bool store, double pageWidth, double wideFloor,
         double expected, double[] picture, double[] trailer)
     {

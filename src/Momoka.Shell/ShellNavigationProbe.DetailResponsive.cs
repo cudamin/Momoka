@@ -280,9 +280,8 @@ internal sealed partial class ShellNavigationProbe
                     == (view.ItemType == EmbyItemType.Episode && cover.Visibility == Visibility.Visible
                         ? Visibility.Visible : Visibility.Collapsed),
                 "悬停遮罩没有按页面类型显隐");
-            Require((Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Visible) == oldEpisodeCompact
-                && (Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible) == !oldEpisodeCompact,
-                "简洁模式仍切换到窄窗操作");
+            // 单集的IsCompact仍管背景与文件选项；商店操作四图标在封面下常驻，不沿用旧紧凑重复动作块。
+            RequireDetailActionMode(page);
             var corner = Get<Image>(page, "CornerArt");
             var hasCorner = !view.StoreMode && DetailHero.ShowsCorner(view.CornerImage is not null, view.IsCompact,
                 view.CornerMaxWidth, view.ItemType);
@@ -324,6 +323,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(page.ViewModel.BackdropShown && page.ViewModel.Showcase == (width >= DetailHero.CompactFloor)
                 && !page.ViewModel.HeroCardShown, "恢复沉浸没有恢复宽窄排版与背景图");
+            RequireDetailActionMode(page);
             // 2026-11-08 起沉浸档也摆这一角（「沉浸模式下在右上角显示艺术图」），所以这里问的是「跟没跟上」，
             // 不再是「有没有收起来」—— 宽版式上电影、剧、集三页都该在，窄窗那一档照旧收起。上面那一份读数
             // 是简洁模式的（那一档电影、剧不是紧凑版式），所以这里重问一遍。
@@ -449,8 +449,23 @@ internal sealed partial class ShellNavigationProbe
         Require(gap is > 4 and < 40, $"剧情说明离封面或右栏内容下沿不是一个空位：{gap:0.##}");
     }
 
+    private static void RequireDetailActionMode(DetailPage page)
+    {
+        var row = Get<StackPanel>(page, "StoreCoverActions");
+        var buttons = new[] { "ColumnPlayButton", "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" }
+            .Select(name => Get<Button>(page, name)).ToArray();
+        StoreDetailProbeEvidence.RequireActionMode(page.ViewModel.StoreMode, page.ViewModel.IsCompact,
+            Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Visible,
+            Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible,
+            row.Visibility == Visibility.Visible,
+            buttons.SequenceEqual(row.Children.OfType<Button>()));
+        if (page.ViewModel.StoreMode) RequireStoreCoverActionAppearance(page);
+    }
+
+
     /// <summary>常态竖距，同 <c>DetailPage.HeroStackSpacing</c>。</summary>
     private const double HeroGapBase = 10;
+
 
     /// <summary>
     /// 沉浸档那一栏的竖距与操作块上边距读数，核对「不要均摊，向上收紧」。

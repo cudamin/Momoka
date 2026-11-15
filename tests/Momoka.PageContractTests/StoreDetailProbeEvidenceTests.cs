@@ -7,6 +7,23 @@ internal static class StoreDetailProbeEvidenceTests
 {
     internal static void Register()
     {
+        Test("详情操作模式判据：商店单集紧凑背景不复活重复操作，非商店宽窄正常恢复", () =>
+        {
+            StoreDetailProbeEvidence.RequireActionMode(true, true, false, true, true, true);
+            StoreDetailProbeEvidence.RequireActionMode(true, false, false, true, true, true);
+            StoreDetailProbeEvidence.RequireActionMode(false, true, true, false, false, false);
+            StoreDetailProbeEvidence.RequireActionMode(false, false, false, true, false, false);
+            Reject(() => StoreDetailProbeEvidence.RequireActionMode(true, true, true, false, true, true));
+            Reject(() => StoreDetailProbeEvidence.RequireActionMode(true, true, false, true, false, true));
+            Reject(() => StoreDetailProbeEvidence.RequireActionMode(true, true, false, true, true, false));
+            Reject(() => StoreDetailProbeEvidence.RequireActionMode(false, true, false, true, false, false));
+            var responsive = Read("ShellNavigationProbe.DetailResponsive.cs");
+            Assert.DoesNotContain("Visibility.Visible) == oldEpisodeCompact", responsive);
+            Assert.Contains("RequireDetailActionMode(page);", responsive);
+            Assert.Contains("buttons.SequenceEqual(row.Children.OfType<Button>())", responsive);
+            var material = Read("ShellNavigationProbe.Materials.cs");
+            Assert.Contains("Require(!detail.ViewModel.StoreMode", material);
+        });
         Test("商店圆角运行判据：1024预告断点独立于操作行，拒绝错档与假圆角", () =>
         {
             foreach (var width in new[] { 760d, 1023d, 1024d, 1025d })
