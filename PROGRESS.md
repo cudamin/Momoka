@@ -1,3 +1,15 @@
+## 2026-11-15 详情文件选择栏恢复旧版下拉样式（交付）
+
+用户附详情页音频、字幕选择栏截图，要求「改回之前的样式」，确认范围是选择栏的闭合与展开都回到旧样，且「音频不隐藏」。产品提交 `bae3e17`（master，基线 `82d412a`）。
+
+**改了什么。** 六颗选择栏从第 40 项的一体式 DropDownButton 横栏（栏内标签、4 DIP 小圆角、左侧分组浮层）恢复为外置标签 + `local:EgPicker`（`EgComboBoxStyle`、`EgCardCornerRadius` 16 DIP 圆角、树内亚克力弹层）：宽版式保留 Header 标签，紧凑版式保留左侧标签；`ComboBoxMinHeight=28` 与本页 `EgPicker` 局部样式一起恢复。第 40 项确认过的行为保留：音频栏由 `AudioVisibility` 固定显示（单/零音轨都不整行隐藏），简洁剧情仍固定两行 + 原生全文提示，顶部内容 32 DIP 留白不变。删除 `Views/DetailFilePicker.cs`、`PickerEarlyForegroundTests`、`Momoka.DetailFilePickerTests` 工程及 `tools/regression-suites.json` 条目，探针 `ShellNavigationProbe.DetailFilePickers.cs` 一并移除，其余选择栏探针恢复到 ComboBox/EgPicker 判据（弹层 `PopupPart`、`ComboBoxBackground` 三态、`ComboBoxItem` 状态）。
+
+**验证。** 全方案 Release **0 警告 0 错误**（`artifacts/build-revert-picker4.log`）；主测试 **5157/5157**、`Momoka.PageContractTests` **311/311**、`Momoka.AppearanceOpacityTests` **68/68**，均 0 失败 0 跳过；`dotnet format whitespace` 退出 0（工作区加载警告单列）。主测试首跑 2 项下载夹具因 `C:\WINDOWS\TEMP` 不可枚举而红，按既有记录改用本树可写临时目录后全绿，失败日志保留。按用户当次指示不跑原生探针；应用占用交付目录时先等待释放，未结束进程。
+
+**交付。** 2026-11-15 执行 `tools/publish.ps1 -Shortcut`，退出 0：548 文件、303,701,848 字节；Momoka.exe SHA256 `75FE6FDE2DF3E8AFA5CF1B042E655DBAB3F661322A1B967E2DDB079E1553A4FA`，Momoka.dll SHA256 `68CCB715BEF273DB75534799DF1059A0853DA8ECF11310A137D508B8185CD008`；桌面 `Momoka.lnk` 目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`、WorkingDirectory 与图标已实际读取核对。未推远端。
+
+**边界。** 构建期间有另一会话在主树并行构建，曾出现 XAML 编译器文件锁与 `WMC1509` 级联错误；等待其进程退出后重跑得到 0 警告 0 错误，失败日志保留。本次未做详情页真实截图、未连接真实服务器、未播放、未推远端。
+
 ## 2026-11-15 第二批交付：原台账 34～40 项（发布后保留补验）
 
 用户要求交付；验证进行中用户改令「别跑了，先记着，先更新桌面快捷方式」。主树基线 `7091de0`，交付修复提交 `8b65737`。执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0，548 文件、303,746,984 字节；Momoka.exe SHA256 `8C25C71D9E5AC4A3C85B69899677CCDDBD673790B1B5A3D74D050E11290AE76F`；快捷方式目标、WorkingDirectory、图标核对通过；未推送远端。详见 [交付记录](docs/2026-11-15-交付记录-第34-40项.md)。
