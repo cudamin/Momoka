@@ -20,6 +20,65 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("右栏原生行距判据：10DIP和实际小空位通过，均摊/操作外边距/假行距读数拒绝", () =>
+        {
+            var page = new DetailPage();
+            var options = new Microsoft.UI.Xaml.Controls.StackPanel { ActualHeight = 36, LayoutY = 100 };
+            page.HeroStack.Children.Add(options);
+            page.HeroStack.Children.Add(page.ColumnActions);
+            page.HeroStack.Spacing = 10;
+            page.ColumnActions.LayoutY = 146;
+            Momoka.Shell.ShellNavigationProbe.ValidateHeroGap(page);
+            page.HeroStack.Spacing = 48.67;
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.ShellNavigationProbe.ValidateHeroGap(page));
+            page.HeroStack.Spacing = 10;
+            page.ColumnActions.Margin = new(0, 28, 0, 0);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.ShellNavigationProbe.ValidateHeroGap(page));
+            page.ColumnActions.Margin = default;
+            page.ColumnActions.LayoutY = 180;
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.ShellNavigationProbe.ValidateHeroGap(page));
+            page.ColumnActions.LayoutY = 146;
+            Momoka.Shell.ShellNavigationProbe.ValidateHeroGap(page);
+        });
+        Test("详情右栏：内容少或多、不同宽度都恢复10DIP，不均摊封面余量", () =>
+        {
+            foreach (var width in new[] { 760d, 820d, 1280d })
+                foreach (var height in new[] { 0d, 405d, 900d })
+                    foreach (var rows in new[] { 0, 2, 7 })
+                    {
+                        var page = new DetailPage();
+                        page.ViewModel.PageWidth = width;
+                        page.ViewModel.HeroColumnHeight = height;
+                        page.ViewModel.Showcase = true;
+                        page.HeroStack.Spacing = 56.67;
+                        page.HeroStack.Children.AddRange(Enumerable.Range(0, rows).Select(index =>
+                            new Microsoft.UI.Xaml.Controls.TextBlock { ActualHeight = 36 + index * 14 }));
+                        page.ColumnActions.Margin = new(0, 160, 0, 0);
+                        page.LayoutColumn();
+                        Assert.Equal(10d, page.HeroStack.Spacing);
+                        Assert.Equal(default(Thickness), page.ColumnActions.Margin);
+                        page.LayoutColumn();
+                        Assert.Equal(10d, page.HeroStack.Spacing);
+                    }
+        });
+        Test("详情右栏：商店6DIP与沉浸/纸面10DIP往返，隐藏操作也清旧空位", () =>
+        {
+            var page = new DetailPage();
+            page.ColumnActions.Visibility = Visibility.Collapsed;
+            foreach (var mode in new[] { true, false, true, false })
+            {
+                page.ViewModel.StoreMode = mode;
+                page.ViewModel.Showcase = !mode;
+                page.HeroStack.Spacing = 48.67;
+                page.ColumnActions.Margin = new(12, 80, 16, 24);
+                page.LayoutColumn();
+                Assert.Equal(mode ? 6d : 10d, page.HeroStack.Spacing);
+                Assert.Equal(default(Thickness), page.ColumnActions.Margin);
+            }
+            page.ViewModel.Showcase = false;
+            page.LayoutColumn();
+            Assert.Equal(10d, page.HeroStack.Spacing);
+        });
         Test("平台边界拒绝停止从未注册的Translation属性", () =>
         {
             var visual = ElementCompositionPreview.GetElementVisual(new Microsoft.UI.Xaml.Controls.Border());

@@ -2166,50 +2166,25 @@ public sealed partial class DetailPage : Page, IShellContent
     private const double StoreHeroStackSpacing = 6;
 
     /// <summary>
-    /// 沉浸宽版式：片名为首的那一栏撑满左边封面的高（<see cref="DetailViewModel.HeroColumnHeight"/>）——
-    /// 徽标（没有徽标时是片名）顶在封面上沿，「操作那排键 + 剩余 x 分钟」贴到封面下沿
-    /// （2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」）。
+    /// 片名为首的右栏从封面上沿按常态竖距排列，不用封面的剩余高度撑开行距。
     /// <para>
-    /// 撑高由那一栏自己的 <c>MinHeight</c> 绑定给（<c>HeroStack</c>），多出来的那一截 2026-11-15 起平均
-    /// 摊到各行之间的间距上（用户令「播放按钮上面怎么留一大片空位，要自动补位」，并选定「均匀撑开各行」）。
-    /// 从前整段让给操作那一块的上边距，屏上就是播放键上方一整块空洞；摊开之后每一道缝一样宽，两头的锚点
-    /// 一个都没动。
+    /// 2026-11-15 用户撤回「均匀撑开各行」并要求「不要均摊间距，向上收紧」：字幕与操作键之间只留常态
+    /// <see cref="HeroStackSpacing"/>，内容少也不放大，不再把操作键推到封面下沿。
     /// </para>
     /// <para>
-    /// 量的是各行自己的高（<c>ActualHeight</c> 加它们自己的上下边距），不含这一段随时在变的间距 —— 那是这一支
-    /// 自己写下去的值，量进来就会「加间距 → 变高 → 再算」地来回抖。理想间距由「封面高减内容高」除以缝数
-    /// 直接算出来，所以下一趟算的还是同一个数、不再写。
+    /// 保留 <c>HeroStack.MinHeight</c>，只让空白留在整组内容下方，剧情仍从封面下沿之后起排。商店档保留
+    /// <see cref="StoreHeroStackSpacing"/>，纸面档和紧凑版式也维持原有常态竖距。
     /// </para>
-    /// <para>
-    /// 不设上限：内容少的条目（例如没有评分、类型和文件选项的页面）行距会拉得很开，但那正是「均匀撑开」的
-    /// 样子 —— 留一块空洞和把空洞摊开是两回事，用户要的是后者。商店档、纸面档和紧凑版式回到各档自己的常态
-    /// 间距（<see cref="StoreHeroStackSpacing"/>／<see cref="HeroStackSpacing"/>），那几个版面一个像素都不动。
-    /// </para>
+    /// Gallery Samples/Grid/GridPage.xaml 与 Styles/ItemTemplates.xaml，v2.9.3 / 14a4a1a2：原生常态间距与上对齐组合。
     /// </summary>
     private void LayoutHeroColumn()
     {
         // 商店档那一栏是另一套竖距（6），这里只回写「这一档的常态」，不是无条件写 10。
-        var baseSpacing = ViewModel.StoreMode ? StoreHeroStackSpacing : HeroStackSpacing;
-        var spacing = baseSpacing;
-
-        if (!ViewModel.StoreMode && ViewModel.Showcase
-            && ColumnActions.Visibility == Visibility.Visible
-            && ViewModel.HeroColumnHeight > 0 && ColumnActions.ActualHeight > 0)
-        {
-            var rows = HeroStack.Children.OfType<FrameworkElement>()
-                .Where(child => child.Visibility == Visibility.Visible)
-                .ToArray();
-            var gaps = rows.Length - 1;
-            if (gaps > 0)
-            {
-                var content = rows.Sum(row => row.ActualHeight + row.Margin.Top + row.Margin.Bottom);
-                spacing = Math.Max(baseSpacing, (ViewModel.HeroColumnHeight - content) / gaps);
-            }
-        }
+        var spacing = ViewModel.StoreMode ? StoreHeroStackSpacing : HeroStackSpacing;
 
         if (Math.Abs(HeroStack.Spacing - spacing) > 0.5) HeroStack.Spacing = spacing;
 
-        // 2026-11-14 那一版把富余堆成操作块的上边距；这一支接手之后它必须回到零。
+        // 旧版曾把富余堆成操作块的上边距；恢复小间距时也不能留下那块空洞。
         var margin = ColumnActions.Margin;
         if (margin.Left != 0 || margin.Top != 0 || margin.Bottom != 0 || margin.Right != 0)
             ColumnActions.Margin = default;

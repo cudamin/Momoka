@@ -268,6 +268,11 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public double ColumnSpacing { get; set; }
     }
+    public class StackPanel : FrameworkElement
+    {
+        public double Spacing { get; set; }
+        public List<FrameworkElement> Children { get; } = [];
+    }
     public class Button : FrameworkElement
     {
         public ICommand? Command { get; set; }
@@ -310,6 +315,9 @@ namespace Momoka.Shell.ViewModels
         public bool Busy { get; set; }
         public bool IsReady { get; set; } = true;
         public double PageWidth { get; set; } = 600;
+        public bool StoreMode { get; set; }
+        public bool Showcase { get; set; }
+        public double HeroColumnHeight { get; set; }
         public Visibility PlayVisibility { get; set; } = Visibility.Visible;
         public Microsoft.UI.Xaml.Media.ImageSource? StillImage { get; set; } = new();
         public string? Subline { get; set; } = "测试副标题";

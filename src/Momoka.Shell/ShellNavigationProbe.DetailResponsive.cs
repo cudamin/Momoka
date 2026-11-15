@@ -418,13 +418,12 @@ internal sealed partial class ShellNavigationProbe
 
     /// <summary>
     /// 沉浸宽版式：片名为首的那一栏撑到封面同高 —— 徽标（没有徽标时是片名）的顶与封面同一条线，
-    /// 操作那排键连同「剩余 x 分钟」贴在封面下沿，剧情说明紧接着那一行、只隔一小截空位
+    /// 右栏内容向上按常态小间距排列，剧情说明在封面与右栏中较低的一端之后起排
     /// （2026-11-14 用户令「右侧的徽标要和封面图一样高，没有徽标的时候片名要和封面一样高」与
     /// 「剧情说明要接在剩余 22 分钟下方，留点空位」）。
     /// <para>
-    /// 2026-11-15 用户令「播放按钮上面怎么留一大片空位，要自动补位」之后，富余不再整段堆在操作块上方：
-    /// 这里同时核「那截高度真的摊到行距上了」—— 行距只许在常态 10 与上限 26 之间，且等于
-    /// （封面高 − 各行自己的高）÷ 缝数（撞上限时封顶）；摊得下的档位不许再往操作块头上堆。
+    /// 2026-11-15 用户随后撤回均摊，要求「不要均摊间距，向上收紧」：固定常态 10，
+    /// 操作块上边距为零，不再要求按钮底边贴到封面下沿。
     /// </para>
     /// </summary>
     private static void RequireHeroColumn(DetailPage page)
@@ -442,25 +441,19 @@ internal sealed partial class ShellNavigationProbe
             $"沉浸片名栏没有和封面对齐顶部：栏 {stackBox.Top:0.##} 对封面 {coverBox.Top:0.##}");
         Require(stackBox.Bottom >= coverBox.Bottom - 1.5,
             $"沉浸片名栏没有撑到封面同高：栏下沿 {stackBox.Bottom:0.##} 对封面 {coverBox.Bottom:0.##}");
-        // 内容比封面还高的那一档由带子自己长高（片名折行、文件选项多），那排键落在内容下沿，
-        // 不再强求和封面下沿齐平；只有装得下的时候才要求它真的被推到封面下沿。
-        if (stackBox.Height <= coverBox.Height + 1.5)
-            Require(Math.Abs(actionsBox.Bottom - coverBox.Bottom) < 2.5,
-                $"沉浸操作键没有贴到封面下沿：{actionsBox.Bottom:0.##} 对 {coverBox.Bottom:0.##}");
-
-        RequireHeroGaps(page, stack, actions, coverBox.Height);
+        RequireHeroGaps(page, stack, actions);
 
         if (overview.Visibility != Visibility.Visible) return;
         var text = Get<TextBlock>(page, "Overview");
-        var gap = Bounds(text, page).Top - actionsBox.Bottom;
-        Require(gap is > 4 and < 40, $"剧情说明离「剩余 x 分钟」那一行不是一个空位：{gap:0.##}");
+        var gap = Bounds(text, page).Top - Math.Max(coverBox.Bottom, actionsBox.Bottom);
+        Require(gap is > 4 and < 40, $"剧情说明离封面或右栏内容下沿不是一个空位：{gap:0.##}");
     }
 
     /// <summary>常态竖距，同 <c>DetailPage.HeroStackSpacing</c>。</summary>
     private const double HeroGapBase = 10;
 
     /// <summary>
-    /// 沉浸档那一栏的竖距与操作块上那段余量的读数 —— 也是「富余摊到行距上」那条规矩的判据。
+    /// 沉浸档那一栏的竖距与操作块上边距读数，核对「不要均摊，向上收紧」。
     /// 内容是各行自己的高加它们自己的上下边距。
     /// </summary>
     private static string HeroGapReading(DetailPage page)
@@ -477,22 +470,19 @@ internal sealed partial class ShellNavigationProbe
             .Where(child => child.Visibility == Visibility.Visible)
             .ToArray();
 
-    private static void RequireHeroGaps(DetailPage page, StackPanel stack, StackPanel actions, double columnHeight)
+    private static void RequireHeroGaps(DetailPage page, StackPanel stack, StackPanel actions)
     {
+        Require(Math.Abs(stack.Spacing - HeroGapBase) < 0.01,
+            $"沉浸片名栏仍扩大常态行距：{stack.Spacing:0.##}（{HeroGapReading(page)}）");
+        Require(Math.Abs(actions.Margin.Top) < 0.01,
+            $"沉浸操作块上方仍有额外空位：{actions.Margin.Top:0.##}（{HeroGapReading(page)}）");
         var rows = VisibleRows(stack);
-        var gaps = rows.Length - 1;
-        if (gaps <= 0) return;
-
-        var content = rows.Sum(row => row.ActualHeight + row.Margin.Top + row.Margin.Bottom);
-        var expected = Math.Max(HeroGapBase, (columnHeight - content) / gaps);
-        Require(stack.Spacing >= HeroGapBase - 0.01,
-            $"沉浸片名栏行距比常态还紧：{stack.Spacing:0.##}（{HeroGapReading(page)}）");
-        Require(Math.Abs(stack.Spacing - expected) < 1.5,
-            $"沉浸片名栏没有把富余摊到行距上：行距 {stack.Spacing:0.##}、按内容该是 {expected:0.##}"
-                + $"（{HeroGapReading(page)}）");
-        // 富余一律摊到行距上，不再堆成操作块头上那块空洞 —— 那正是「播放按钮上面留一大片空位」那副样子。
-        Require(actions.Margin.Top < 1,
-            $"沉浸富余仍堆在操作块上方：{actions.Margin.Top:0.##}（{HeroGapReading(page)}）");
+        var index = Array.IndexOf(rows, actions);
+        if (index <= 0) return;
+        var previous = rows[index - 1];
+        var gap = Bounds(actions, page).Top - Bounds(previous, page).Bottom - previous.Margin.Bottom;
+        Require(Math.Abs(gap - HeroGapBase) < 1.5,
+            $"字幕/文件选项与操作键之间仍有额外空位：{gap:0.##}（{HeroGapReading(page)}）");
     }
 
     /// <summary>够长、够跨四行的简介 —— 窄窗下「剧情说明快掉出画面」那一条要的是一段真会折满的文字。</summary>

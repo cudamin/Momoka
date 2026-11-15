@@ -8,6 +8,15 @@
 
 验证：新增/更新PageContract资源归属、封面列顺序、无边框与可访问名称；主测试覆盖常驻行原生模板和实际VM四类宽窄显隐/通知恢复。原生DetailCards追加1023/1024/1025断点，封面下居中同排、44DIP命中、无边框、常驻属性、Normal/PointerOver/Pressed和清封面悬停后仍显示的检查；预告圆角单独按1024阈值与全局16DIP精确核对，错档/假圆角、错行/隐藏/小命中区/边框反例由链接同生产判据的离线测试覆盖。Shell Release 0警告0错误；PageContract315/315、主测试控件专项40/40、输入主题29/29、实际VM详情专项93/93，均0失败0跳过。首轮Shell因新探针漏using导致编译级联失败，补正确Automation命名空间后通过；新VM专项曾错误假定商店单集IsCompact=false，明确保留该背景判定并收起重复动作块后最终93/93。变更文件空白与编码检查通过。该树不启动UI/鼠标/探针，不发布、不推送；最终主树实屏由根交付会话串行完成。原生验证工具变动的真实成功路径仍待根执行，不能用离线反例冒充。
 
+## 2026-11-15 详情右栏取消均摊，字幕与操作向上收紧（待主控整合交付）
+
+本任务独立树 C:/Users/89400/.codex/worktrees/detail-tight-hero-gap/Momoka，基点9e3402d，分支codex/detail-tight-hero-gap。交付中用户先报「这间距怎么还是这么大，不要留太大的间距」，随后明确「不要均摊间距，向上收紧」；这次明确撤回当天早前的「均匀撑开各行」决策。
+
+LayoutHeroColumn删掉（封面高−内容高）÷缝数，恢复HeroStack常态10 DIP，商店仍6 DIP；操作块Margin清零，内容少、多或重布局都不再撑开字幕与按钮。保留原Top对齐和HeroStack.MinHeight，空白只在整组下方，剧情仍从封面/文字组较低的下沿之后起排；InfoPanel卡片背景、字号、点击区、海报尺寸和其它版式常态不改。Gallery固定v2.9.3/14a4a1a2的GridPage.xaml/.xaml.cs和Styles/ItemTemplates.xaml已读，使用原生固定间距/Top组合；没有影视余量分配的完整样例，无新依赖。Learn StackPanel.Spacing合同已核。
+
+原生RequireHeroColumn撤回按钮底齐封面判据，RequireHeroGaps核固定10 DIP、操作上边距0及文件选项到操作的实空间距；剧情按max(封面/按钮)下沿核对。Sticky测试编译时逐字提取生产LayoutHeroColumn与原生RequireHeroGaps，覆盖少/多内容、760/820/1280宽、不同封面高度、商店往返和大间距/外边距/伪属性读数反例；92/92、0失败0跳过，当前Tests编译0警告0错误，acrylic39/39、detail-customization59/59。Shell本树首编0警告0错误，合入主控最新master之后再重编；UI/真实指针/实际图片及主树发布由交付主控统一运行，本子任务未启动窗口、联网真实服务器、播放或发布。
+**整合后验证。** 产品b8f2a77合入主控master5ea407b为99553c3，只有PROGRESS顶部追加冲突，双方历史完整保留。整合后Shell Release 0警告0错误（1分24秒）；PageContract 322/322、Sticky 92/92、主Tests重编0警告0错误，acrylic39/39、detail-customization59/59，全部0失败0跳过；Sticky空白检查与本次13路径LF/编码/差异检查通过。新生成的HeroColumnLayout.g.cs同时逐字包含生产方法与原生行距判据，错误行距/外边距/实际空位反例已拒绝。未运行UI或发布，主控须在最终主树编译并定向InspectDetailResponsive，核实际10DIP与截图，旧均摊结果不作最终证据。
+
 ## 2026-11-15 本次交付统一检查结果与追加布局要求（在途）
 
 最终代码 9e3402d 的统一原生分区 library/detail-cards/settings/performance/materials/motion，报告 shell-probe-20261115-150143533-12688：95 项、88 通过、7 失败，未发布。红项为预告网页前台等待、深返滚动完成超时、详情竖滚 p95 43.9ms 超过40ms门槛、长剧最后项焦点、两项商店预告圆角判据把按钮宽档与1024预览断点混用、页面过渡候选超时。已取得36高/6间距文件选项、详情自定义电影/剧/集、沉浸信息卡、连续130次缩放、设置窗下一拍回前层与海报关联等通过证据；旧红保持不洗绿。
