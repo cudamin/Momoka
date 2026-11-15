@@ -1,3 +1,9 @@
+## 2026-11-16 交付补验：悬停片名与徽标生产Frame交接（独立树待整合）
+
+复用本任务managed树 `C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka`，基点主树 `e2ca431`。新增产品 `4f1885b` 尚未交付，现有InspectHoverPreview只处理假Actions不能证明新PreviewHeadingTransition/Flight；本轮只增匿名原生检查与源契约，不改15个产品文件。
+
+检查复用正式LibraryPage/PosterCard/Popup：显式展示已解码Logo的CardPreview，真实UIA Details走PosterCard关闭前capture，LibraryPage生产事件先Prepare取走，FakeActions.OpenItem再驱动Frame.Navigate，DetailPage自然Attach。Loaded后冻结同一生产Storyboard，0/160ms读真实TitleText/TitlePlate变换与透明度和初中实屏，然后Resume核完成；另核应用关动画、GoBack离页后的transform=null与opacity恢复。照片四张/JSON均由根在最终主树串行生成。Pause/SeekAlignedToLastTick API已核Microsoft Learn，不把冻结中间帧当自然流畅性。匿名GET与假身份，不读真实设置、起播、移鼠标或网络访问。台账补48，命令说明同步；Shell Release0警告0错误、PageContract328/328，0失败0跳过。首轮仅capture空值编译告警已在已验证非空取样处修复并重编清零。该树未运行UI，原生Passed与四张实屏仍由最终根主树产生。
+
 ## 2026-11-16 悬停面板徽标与片名飞进详情页（已合入主树，待用户实机确认）
 
 用户令：「鼠标悬浮呼出悬停页面之后，再点击下方的缩略图进入详情页时，新增徽标和片名移进详情页的动画」，随后要求「做完了自动合并到主树」。工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-hover-detail-animation-7KmvBW`，分支 `feat-hover-detail-animation-7KmvBW`，基点 `9cb1b68`，产品提交 `5ee0279`、`2c78c50`。
