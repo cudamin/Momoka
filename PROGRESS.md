@@ -13844,6 +13844,7 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 工作树 `C:/Users/89400/.codex/worktrees/34e4/Momoka`，基于 `ce55588`；详情页两种布局共六颗版本、音频、字幕选择框改用下方操作按钮的 `EgCardCornerRadius`（16 DIP），保留全局 `EgPickerCornerRadius`（12 DIP）供其他弹窗使用。既有输入样式回归只在详情页 EgPicker 允许卡片资源，保留其他输入与原生模板约束，更新旧圆角注释和测试名称。Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 `WinUIGallery/Samples/ComboBox/ComboBoxPage.xaml` 与 code-behind 已核对，无相同的局部圆角对齐样例；Learn Geometry 允许定制圆角，沿用本地原生模板和共享资源，不引入依赖或自定义模板。
 
 当前 Core/Tests/Shell Release 编译0警告0错误，`input-theme-fixture` 29/29、`acrylic-controls-fixture` 39/39，0失败0跳过。独立只读审阅通过，修改文件LF/无BOM/末尾换行与git diff空白检查通过。没有启动UI、真实播放、发布或推送；实屏外观与宽窄、主题检查留到用户要求交付时统一验收。主树同文件被另一活动聊天写入，待其释放写入后按局部差异合入并追加台账。
+
 ## 2026-11-15 侧栏折叠尺寸、音乐图标与方形预览
 
 工作树 `C:/Users/89400/.codex/worktrees/b32f/Momoka`，临时分支 `codex/sidebar-icon-correction`，基点1ea0962。折叠按钮的Grid/PathIcon显式使用20字框，原24坐标整体平移至20字框，消除外层缩小；可见轮廓宽15.67→18.8（约20%），两档外框和中心一致，40按钮命中区保留。音乐库复用MusicCatalog.IsLibrary的大小写语义，空心使用Audio E8D6双音符，实心取SegoeIcons.ttf 1.56实际外轮廓去三个内孔、2048em转16字框，不误用不同形EC4F。侧栏音乐预览按库类型显示1:1，两个封面容器共用高度，音乐占位也换音符，影视维持2:3；查询、播放入口与异步归属保留。
@@ -13853,3 +13854,20 @@ ed02清理核对：12份产品/测试/专项说明逐文件blob与主树相同�
 当前最终Shell Release/x64编译0警告0错误（2分45秒）；主测试、PageContract、SidebarPreview专项及Core均当前编译0警告0错误。sidebar-icons-fixture20/20、toolbar-icon-fixture15/15、SidebarPreviewTests34/34，全部0失败0跳过，套件不相加。预览测试补齐既有“封面+标题”的UI边界和精确探针提取起点，生成源与实际partial/探针逐字一致，保留原按钮/来源/取消/图像释放全部反例，并加标题缺失、音乐三种大小写、两容器和切回电影规格回归。首轮新增probe反例因在清空后取cell而失败，修正测试取值时序后完整重跑通过。10个修改文本的UTF-8/LF/BOM/末尾换行和git diff空白通过。
 
 本轮未启动UI、运行原生探针、连接真实服务、播放、发布或推送，实屏与DPI/主题/宽窄验收留到用户要求交付。产品及测试即将提交；主树有其他聊天详情渐变在途工作，合入前重新核对master、文件重叠和占用，保护现有改动。合入后补待交付台账；未合入不视为收尾。
+
+
+## 2026-11-15 详情顶部栏响应与播放按钮往返
+
+本轮在 `C:/Users/89400/.codex/worktrees/91f4/Momoka`、临时分支 `codex/detail-sticky-responsive`，从干净master `ce55588` 隔离实施，子代理仅只读调查/复核，无并行写入。用户先反馈顶部浮动栏开合迟钝，随后要求下滚按钮移入横幅、上滚移回，并明确仅播放按钮。保留三分之一裁切线、4 DIP/小按钮滞回及命令绑定；普通浮层显示120ms/隐藏80ms，位移与透明度同步。新增原生ConnectedAnimation同页Direct150ms往返，源占位不重排正文，完成后才透明源，返回Completed后才收源父层；关联期间横幅父Translation先落定，避免终点继续移动。关动画、断树、能力失效、离页、布局改变、500ms超时与启动失败取消落定；命中、Tab、原属性与有条件焦点交接保留，旧回调有代次守卫，直接回页顶同样返回。快速反向取消后按当前方向重新准备，不承诺中途像素连续。
+
+已重新读取固定Gallery v2.9.3 / `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的ControlExample、ItemsView、ConnectedAnimationPage、CardPage XAML/codebehind。没有按钮裁切浮层整套样例；沿现有implicit接线并按CardPage同页Prepare/目标显示/TryStart/返回完成后收父层做必要按钮及生命周期适配。Learn Motion/ConnectedAnimation与固定WinUI `9402930972f25cfcad82abc9f82ecab29936f404` ConnectedAnimation.cpp、HWCompNodeWinRT.cpp已读，明确快照晚一提交、TryStart受理不代表冻结、Direct固定150ms。未升级依赖。
+
+当前正式两partial源链接专项88/88、失败0、跳过0；新时长测试先在旧实现59/60，仅400ms旧值被拒，修改后通过，后续往返/延后快照/两个方向失败与取消/回顶/布局/焦点/旧回调均通过。受影响专项Release编译0警告0错误。独立只读审阅发现并修复回退焦点、布局容差、直接回顶和跨root归还问题；变更编码/LF/BOM/末尾换行、diff空白与文档/源链接检查通过。统一regression runner预检因已有SystemThemeTests未登记而拒绝，未绕过清单守卫或改清单；按专项README独立restore/build/run完成此次专项，清单问题属于现有主题批次。证据本树 `artifacts/sticky-header-responsive`。
+
+没有启动GUI、执行原生探针/截图、真实服务/播放、修改Windows设置、发布或推送；本轮按规则只合并。交付时在最终master核对1000/760/360 DIP真实ScrollView轨迹、部分裁切快照、继续滚动/快速反向、键盘焦点与回顶、禁动画/离页/宽窄与截图，不能用边界单测冒称像素验证。主树另有“复刻详情页渐变区域与效果”活动写入会话，完成本树提交后等待其释放再整合，保护其修改。
+
+最终代码受影响Shell/Core Release重编0警告0错误（2分31秒），当前专项88/88、0失败0跳过；静态与独立审阅通过。
+
+补充无障碍复核：固定WinUI FrameworkElementAutomationPeer/ ButtonAutomationPeer确认Opacity、命中和Tab不等于常规读屏隐藏，移走端增加AccessibilityView.Raw并保存/还原原值，两个位置及取消/离页均覆盖；不宣称Raw或缓存peer Invoke被拦截，不改播放命令/禁用模板。当前专项89/89、失败0、跳过0，Release专项编译0警告0错误，真实UIA/Narrator仍待交付。
+
+无障碍修正最终Shell/Core Release编译0警告0错误（3分8秒），专项89/89、0失败0跳过；首次无障碍编译因AccessibilityView实际在Automation.Peers而失败，已按包元数据纠正生产与测试边界命名空间后重编通过，失败日志保留。Raw仅退出按钮本体的普通视图，不保证整棵子树或缓存Invoke。
