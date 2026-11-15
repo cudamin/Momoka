@@ -132,6 +132,7 @@ public sealed partial class DetailPage
         PaintContinueInk();
         foreach (var brushes in _controlBackgrounds)
         {
+            if (IsStoreCoverAction(brushes.Control)) continue;
             if (simple)
             {
                 if (IsStorePlay(brushes)) brushes.ApplyAccentSurface();
@@ -307,7 +308,7 @@ public sealed partial class DetailPage
         // 对比色；其余模式还原成主题色图标（那一档按钮还是半透明底，强调色本来只落在图标上）。
         var resumeInk = (Brush)Application.Current.Resources["EgAccentBrush"];
         foreach (var (glyph, button) in new[] { (ColumnResumeGlyph, ColumnPlayButton), (CompactResumeGlyph, CompactPlayButton) })
-            glyph.Foreground = onAccent is null ? resumeInk : button.Foreground;
+            glyph.Foreground = onAccent is null || IsStoreCoverAction(button) ? resumeInk : button.Foreground;
         foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText,
             DetailVideoText, DetailDirectorsText })
         {
@@ -360,7 +361,11 @@ public sealed partial class DetailPage
 
     /// <summary>主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。</summary>
     private bool IsStorePlay(ControlBackgroundBrushes brushes) =>
-        ReferenceEquals(brushes, _columnPlay) || ReferenceEquals(brushes, _compactPlay);
+        ReferenceEquals(brushes, _compactPlay) || ReferenceEquals(brushes, _columnPlay) && !ViewModel.StoreMode;
+
+    internal bool IsStoreCoverAction(Control control) => ViewModel.StoreMode
+        && (ReferenceEquals(control, ColumnPlayButton) || ReferenceEquals(control, ColumnWatchedButton)
+            || ReferenceEquals(control, ColumnFavoriteButton) || ReferenceEquals(control, ColumnMoreButton));
 
     /// <summary>一条竖列表里已经建出来的行，行模板里的卡片换一次墨。见 <see cref="ShelfStrip.ForEachRealizedCard"/>。</summary>
     private static void PaintRepeaterCards(ItemsRepeater repeater, ThemeColor? ink)

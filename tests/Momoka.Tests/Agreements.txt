@@ -159,6 +159,9 @@ handle  Views/DetailPage.xaml  ScoreText
 handle  Views/DetailPage.xaml  SeasonRow
 handle  Views/DetailPage.xaml  SimilarRow
 handle  Views/DetailPage.xaml  SourcePicker
+# StoreCoverBadges旧空容器按2026-11-15用户新要求退役，四颗原按钮句柄保留，常驻封面下方。
+handle  Views/DetailPage.xaml  StoreCoverActions
+handle  Views/DetailPage.xaml  StoreCoverColumn
 handle  Views/DetailPage.xaml  SubtitlePicker
 handle  Views/DetailPage.xaml  TailContent
 handle  Views/DetailPage.xaml  TitleButton

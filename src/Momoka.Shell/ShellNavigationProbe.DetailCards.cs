@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
@@ -99,7 +100,7 @@ internal sealed partial class ShellNavigationProbe
             page.AttachWindow(_window);
             await UntilAsync(() => page.IsReady && page.ViewModel.StillImage is not null && Get<bool>(page, "_appearanceObserved"));
             var names = new[] { "EpisodePanel", "InfoPanel", "SeasonPanel", "CastPanel", "SimilarPanel" };
-            foreach (var width in new[] { 1240, 760, 360, 1240 })
+            foreach (var width in new[] { 1240, 1025, 1024, 1023, 760, 360, 1240 })
             {
                 ResizeProbeClient(width, 900);
                 await WaitDetailPageSizeAsync(page, width, "媒体卡片缩放");
@@ -113,6 +114,7 @@ internal sealed partial class ShellNavigationProbe
                 panels.First(panel => panel.Visibility == Visibility.Visible).StartBringIntoView();
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"store-detail-cards-media-{width}.png");
+                await SaveProbeScreenAsync($"store-cover-actions-{width}-screen.png");
                 reads.Add($"媒体 {width}: 左沿 {panels[0].TransformToVisual(page).TransformPoint(default).X:0.##}, 卡头48、内容24、两侧对称");
             }
             var info = Get<StackPanel>(page, "InfoPanel");
@@ -271,8 +273,6 @@ internal sealed partial class ShellNavigationProbe
                 && overviewBox.Top >= coverBox.Bottom + 14,
                 "商店剧情没有排在封面下方并保留间距");
         }
-        // 2026-11-15 用户令：播放/更多在封面右侧，收藏/已看在封面左上角，连播在集列表卡片右上角；
-        // 收成紧凑版式时同一批实例回到 ColumnActions。
         var play = Get<Button>(page, "ColumnPlayButton");
         var more = Get<Button>(page, "ColumnMoreButton");
         var favorite = Get<Button>(page, "ColumnFavoriteButton");
@@ -280,30 +280,25 @@ internal sealed partial class ShellNavigationProbe
         var continuePlay = Get<ToggleButton>(page, "ColumnContinueButton");
         var actionRow = Get<WrapRow>(page, "ColumnActionRow");
         var coverActions = Get<StackPanel>(page, "StoreCoverActions");
-        var coverBadges = Get<StackPanel>(page, "StoreCoverBadges");
         var episodeHead = Get<ShelfHead>(page, "EpisodeHead");
-        if (page.ViewModel.StoreMode && !page.ViewModel.IsCompact)
+        if (page.ViewModel.StoreMode)
         {
-            Require(ReferenceEquals(play.Parent, coverActions) && ReferenceEquals(more.Parent, coverActions)
-                && ReferenceEquals(favorite.Parent, coverBadges) && ReferenceEquals(watched.Parent, coverBadges)
+            Require(new[] { play, watched, favorite, more }.All(button => ReferenceEquals(button.Parent, coverActions))
                 && ReferenceEquals(episodeHead.Trailing, continuePlay),
-                "商店宽版式没有把操作键搬到封面右侧、封面左上和集列表右上角");
-            var coverBox = Bounds(cover, canvas);
-            var playBox = Bounds(play, canvas);
-            var moreBox = Bounds(more, canvas);
-            if (play.Visibility == Visibility.Visible)
-                Require(playBox.Left >= coverBox.Right - 1, "播放键没有排在封面右侧");
-            if (more.Visibility == Visibility.Visible)
-                Require(moreBox.Left >= (play.Visibility == Visibility.Visible ? playBox.Right : coverBox.Right) - 1,
-                    "更多键没有排在播放键右边");
-            foreach (var badge in new FrameworkElement[] { favorite, watched }
-                .Where(element => element.Visibility == Visibility.Visible))
-            {
-                var box = Bounds(badge, canvas);
-                Require(box.Left >= coverBox.Left - 1 && box.Top >= coverBox.Top - 1
-                    && box.Right <= coverBox.Right + 1 && box.Bottom <= coverBox.Bottom + 1,
-                    "收藏/已看没有落在封面左上角范围内");
-            }
+                "商店四颗操作键未在封面下方同一行，或连播离开了集卡右上角");
+            RequireStoreCoverActionAppearance(page);
+            var coverColumn = Bounds(Get<StackPanel>(page, "StoreCoverColumn"), canvas);
+            var row = Bounds(coverActions, canvas);
+            var buttons = new[] { play, watched, favorite, more };
+            var boxes = buttons.Select(button => Bounds(button, canvas)).ToArray();
+            var coverBottom = cover.Visibility == Visibility.Visible && cover.ActualHeight > 0
+                ? Bounds(cover, canvas).Bottom : row.Top - 8;
+            StoreDetailProbeEvidence.RequireCoverActions(coverColumn.Left, coverColumn.Right, coverBottom,
+                row.Left, row.Right, row.Top, boxes.Select(box => box.Top).ToArray(),
+                buttons.Select(button => button.ActualWidth).ToArray(), buttons.Select(button => button.ActualHeight).ToArray(),
+                buttons.Select(button => button.Opacity).ToArray(), buttons.SelectMany(button =>
+                    new[] { button.BorderThickness.Left, button.BorderThickness.Top, button.BorderThickness.Right, button.BorderThickness.Bottom }).ToArray());
+            Require(buttons.SequenceEqual(coverActions.Children.OfType<Button>()), "封面下按钮次序不是播放、已看、收藏、更多");
             var panel = Get<StackPanel>(page, "EpisodePanel");
             if (panel.Visibility == Visibility.Visible && continuePlay.Visibility == Visibility.Visible)
             {
@@ -313,22 +308,53 @@ internal sealed partial class ShellNavigationProbe
                     && continueBox.Left >= panelBox.Left + panelBox.Width / 2,
                     "连播没有落在集列表卡片的右上角");
             }
-            Require(Math.Abs(watched.ActualWidth - 44) < 1 && Math.Abs(watched.ActualHeight - 44) < 1,
-                "封面上的已看键没有收成图标尺寸");
-            Require(Get<Grid>(page, "StoreBackdropContent").CornerRadius != default
-                && Get<Grid>(page, "StoreTrailerContent").CornerRadius != default,
-                "商店宽版式的剧照/预告视口没有写圆角");
         }
         else
         {
             Require(ReferenceEquals(play.Parent, actionRow) && ReferenceEquals(more.Parent, actionRow)
                 && ReferenceEquals(favorite.Parent, actionRow) && ReferenceEquals(watched.Parent, actionRow)
                 && ReferenceEquals(continuePlay.Parent, actionRow) && episodeHead.Trailing is null,
-                "退出商店宽版式后操作键没有回到 ColumnActions");
-            Require(Get<Grid>(page, "StoreBackdropContent").CornerRadius == default
-                && Get<Grid>(page, "StoreTrailerContent").CornerRadius == default,
-                "窄窗全幅背景仍带着右侧视口的圆角");
+                "退出商店模式后操作键没有回到ColumnActions");
         }
+        // 操作行宽窄与右侧预告的1024断点相互独立，不用IsCompact冒充预告宽窗条件。
+        var pictureCorner = Get<Grid>(page, "StoreBackdropContent").CornerRadius;
+        var trailerCorner = Get<Grid>(page, "StoreTrailerContent").CornerRadius;
+        var expectedCorner = (CornerRadius)Application.Current.Resources["EgCardCornerRadius"];
+        StoreDetailProbeEvidence.RequirePreviewCorners(page.ViewModel.StoreMode, page.ViewModel.PageWidth,
+            DetailHero.StoreWideFloor, expectedCorner.TopLeft,
+            CornerValues(pictureCorner), CornerValues(trailerCorner));
+    }
+
+    private static double[] CornerValues(CornerRadius corner) =>
+        [corner.TopLeft, corner.TopRight, corner.BottomRight, corner.BottomLeft];
+
+    private static void RequireStoreCoverActionAppearance(DetailPage page)
+    {
+        if (!page.ViewModel.StoreMode) return;
+        var row = Get<StackPanel>(page, "StoreCoverActions");
+        Require(row.Visibility == Visibility.Visible && row.Opacity == 1 && row.IsHitTestVisible,
+            "封面下操作行不是常驻可命中状态");
+        foreach (var button in row.Children.OfType<Button>())
+        {
+            Require(button.Style == (Style)page.Resources["EgStoreCoverActionButtonStyle"]
+                && button.BorderThickness == default && button.Opacity == 1 && button.IsTabStop,
+                "封面下按钮丢失平台轻量样式、无边框、常驻或键盘入口");
+            Require(!string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))
+                && ToolTipService.GetToolTip(button) is not null, "封面下图标按钮缺少名称或提示");
+            button.ApplyTemplate();
+            if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
+                Require(button.Background is SolidColorBrush { Color.A: 0 }, "封面下图标键常态仍铺了材质背景");
+            foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
+            {
+                Require(VisualStateManager.GoToState(button, state, false), "封面下按钮缺少平台状态 " + state);
+                Require(button.Opacity == 1 && row.Opacity == 1, "封面下按钮仍被悬停状态隐藏");
+            }
+            VisualStateManager.GoToState(button, "Normal", false);
+        }
+        // 不移动用户鼠标，显式清封面悬停入口后仍须全部显示。
+        Call(page, "HideCoverHover");
+        Require(row.Opacity == 1 && row.Children.OfType<Button>().All(button => button.Opacity == 1),
+            "离开封面后操作行被隐藏");
     }
 
     private static void CheckEdges(FrameworkElement cover, IEnumerable<StackPanel> panels, FrameworkElement canvas)

@@ -3,6 +3,31 @@ namespace Momoka.Shell;
 /// <summary>商店详情探针的实际布局、遮罩与首字屏幕读数判据；不产生界面或重写产品布局。</summary>
 internal static class StoreDetailProbeEvidence
 {
+    internal static void RequirePreviewCorners(bool store, double pageWidth, double wideFloor,
+        double expected, double[] picture, double[] trailer)
+    {
+        var values = picture.Concat(trailer).Append(pageWidth).Append(wideFloor).Append(expected);
+        var corner = store && pageWidth >= wideFloor ? expected : 0;
+        if (picture.Length != 4 || trailer.Length != 4 || values.Any(value => !double.IsFinite(value))
+            || wideFloor <= 0 || expected <= 0 || picture.Concat(trailer).Any(value => Math.Abs(value - corner) > 0.01))
+            throw new InvalidOperationException("商店预告圆角没有按自己的宽窗断点恢复全局圆角或窄窗直角");
+    }
+
+    internal static void RequireCoverActions(double coverLeft, double coverRight, double coverBottom,
+        double rowLeft, double rowRight, double rowTop, double[] tops, double[] widths, double[] heights,
+        double[] opacity, double[] borders)
+    {
+        var cells = new[] { tops, widths, heights, opacity };
+        var values = cells.SelectMany(cell => cell).Concat(borders)
+            .Concat(new[] { coverLeft, coverRight, coverBottom, rowLeft, rowRight, rowTop });
+        if (cells.Any(cell => cell.Length != 4) || borders.Length != 16 || values.Any(value => !double.IsFinite(value))
+            || coverRight <= coverLeft || rowRight <= rowLeft || rowTop < coverBottom + 7
+            || Math.Abs((rowLeft + rowRight) - (coverLeft + coverRight)) > 2
+            || tops.Any(top => Math.Abs(top - rowTop) > 1) || widths.Concat(heights).Any(size => size < 43.5)
+            || opacity.Any(value => Math.Abs(value - 1) > 0.01) || borders.Any(value => value != 0))
+            throw new InvalidOperationException("封面下方四颗操作键没有同排居中常驻、44DIP命中区或无边框");
+    }
+
     internal static bool PageSizeMatches(double target, double client, double page, double body, double viewModel) =>
         new[] { client, page, body, viewModel }.All(value => double.IsFinite(value) && Math.Abs(value - target) < 1.5);
 

@@ -1033,17 +1033,17 @@ internal sealed partial class ShellNavigationProbe
         if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast) return;
         var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
             .Concat(Descendants(Get<StackPanel>(page, "StoreCoverActions")).OfType<Control>())
-            .Concat(Descendants(Get<StackPanel>(page, "StoreCoverBadges")).OfType<Control>())
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
             .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
-        // 商店模式的主播放键自 2026-11-14 起吃主题色（用户令「播放按钮改成主题色」），其余按钮和选择框仍是固定面色。
-        // 2026-11-15 起这颗键在商店宽版式被搬到封面右侧（StoreCoverActions），上面已经把那两格一起收进来。
-        var plays = controls.Where(control => control.Name is "ColumnPlayButton" or "CompactPlayButton").ToArray();
-        var fixedControls = controls.Except(plays).ToArray();
+        // 用户新要求的封面下四颗键采用平台Subtle样式；其余操作与闭合选择框保持原固定面色。
+        var coverControls = controls.Where(page.IsStoreCoverAction).ToArray();
+        var plays = controls.Where(control => !page.IsStoreCoverAction(control) && (control.Name is "ColumnPlayButton" or "CompactPlayButton")).ToArray();
+        var fixedControls = controls.Except(plays).Except(coverControls).ToArray();
         Require(fixedControls.Length > 0, "商店模式夹具没有操作按钮或选择框");
         RequireFixedSurface(fixedControls);
         RequireAccentSurface(plays);
+        RequireStoreCoverActionAppearance(page);
         var snapshot = (ui.UseAcrylicControls, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity,
             ui.ControlBackgroundOpacity, ui.ControlBackgroundColor);
         try
@@ -1055,6 +1055,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             RequireFixedSurface(fixedControls);
             RequireAccentSurface(plays);
+            RequireStoreCoverActionAppearance(page);
             ui.UseAcrylicControls = true;
             ui.ControlTintOpacity = 88;
             ui.ControlTintLuminosityOpacity = 12;
@@ -1063,6 +1064,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             RequireFixedSurface(fixedControls);
             RequireAccentSurface(plays);
+            RequireStoreCoverActionAppearance(page);
         }
         finally
         {

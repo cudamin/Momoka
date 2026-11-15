@@ -7,6 +7,34 @@ internal static class StoreDetailProbeEvidenceTests
 {
     internal static void Register()
     {
+        Test("商店圆角运行判据：1024预告断点独立于操作行，拒绝错档与假圆角", () =>
+        {
+            foreach (var width in new[] { 760d, 1023d, 1024d, 1025d })
+            {
+                var corner = width >= 1024 ? 16d : 0d;
+                StoreDetailProbeEvidence.RequirePreviewCorners(true, width, 1024, 16,
+                    [corner, corner, corner, corner], [corner, corner, corner, corner]);
+            }
+            StoreDetailProbeEvidence.RequirePreviewCorners(false, 1240, 1024, 16, [0, 0, 0, 0], [0, 0, 0, 0]);
+            Reject(() => StoreDetailProbeEvidence.RequirePreviewCorners(true, 1023, 1024, 16, [16, 16, 16, 16], [16, 16, 16, 16]));
+            Reject(() => StoreDetailProbeEvidence.RequirePreviewCorners(true, 1024, 1024, 16, [1, 1, 1, 1], [16, 16, 16, 16]));
+            Reject(() => StoreDetailProbeEvidence.RequirePreviewCorners(false, 1240, 1024, 16, [16, 16, 16, 16], [0, 0, 0, 0]));
+        });
+        Test("商店封面操作行：拒绝封面覆盖、错行、隐藏与边框，保留44DIP命中区", () =>
+        {
+            void Check(double rowTop = 278, double[]? tops = null, double[]? widths = null,
+                double[]? opacity = null, double[]? borders = null) =>
+                StoreDetailProbeEvidence.RequireCoverActions(96, 276, 270, 98, 274, rowTop,
+                    tops ?? [278, 278, 278, 278], widths ?? [44, 44, 44, 44], [44, 44, 44, 44],
+                    opacity ?? [1, 1, 1, 1], borders ?? new double[16]);
+            Check();
+            Reject(() => Check(rowTop: 260));
+            Reject(() => Check(tops: [278, 322, 278, 278]));
+            Reject(() => Check(widths: [20, 44, 44, 44]));
+            Reject(() => Check(opacity: [0, 1, 1, 1]));
+            var border = new double[16]; border[0] = 1;
+            Reject(() => Check(borders: border));
+        });
         Test("商店订阅卡片：右资料列与窄窗堆叠仍核两侧边界", () =>
         {
             StoreDetailProbeEvidence.RequireSubscriptionColumns(1240, 96, 96, 96, 832, 856, 1144, 24, true);

@@ -24,11 +24,11 @@ internal static class StoreDetailLayoutTests
                 (string?)element.Attribute(X + "Key") == "EgCardCornerRadius").Value);
             var store = Source("Views/DetailPage.Store.cs");
             Assert.Contains("? (CornerRadius)Application.Current.Resources[\"EgCardCornerRadius\"] : default;", store);
-            foreach (var key in new[] { "EgRoundButtonStyle", "EgPillButtonStyle" })
+            foreach (var key in new[] { "EgRoundButtonStyle", "EgPillButtonStyle", "EgStoreCoverActionButtonStyle" })
             {
                 Assert.True(page.Descendants().Any(element => (string?)element.Attribute(X + "Key") == key),
                     key + " 不在页面局部资源中");
-                Assert.Contains("(Style)Resources[\"" + key + "\"]", store);
+                Assert.Contains("\"" + key + "\"", store);
             }
         });
         Test("商店渐变：窄窗材料与图片共用最终遮罩，离页清缓存，浅色前景同步", () =>
@@ -66,20 +66,25 @@ internal static class StoreDetailLayoutTests
             Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
                 && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
         });
-        Test("商店详情：播放/更多在封面右侧，收藏/已看在封面左上，连播在集卡右上", () =>
+        Test("商店详情：四颗无边框图标常驻封面下方，连播保留集卡右上", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
             XElement Named(string name) => page.Descendants()
                 .Single(element => (string?)element.Attribute(X + "Name") == name);
 
             var coverActions = Named("StoreCoverActions");
-            Assert.Equal("HeroStack", (string?)coverActions.Parent!.Attribute(X + "Name"));
+            Assert.Equal("StoreCoverColumn", (string?)coverActions.Parent!.Attribute(X + "Name"));
             Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}",
                 (string?)coverActions.Attribute("Visibility"));
-            var coverBadges = Named("StoreCoverBadges");
-            Assert.Equal("CoverSlot", (string?)coverBadges.Parent!.Attribute(X + "Name"));
-            Assert.Equal("{x:Bind ViewModel.StoreCoverBadgesVisibility, Mode=OneWay}",
-                (string?)coverBadges.Attribute("Visibility"));
+            Assert.Equal("CoverSlot", (string?)coverActions.ElementsBeforeSelf().Last().Attribute(X + "Name"));
+            Assert.Equal("Center", (string?)coverActions.Attribute("HorizontalAlignment"));
+            Assert.Equal("1", (string?)coverActions.Attribute("Opacity"));
+            Assert.Equal("True", (string?)coverActions.Attribute("IsHitTestVisible"));
+            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "StoreCoverBadges"));
+            var subtle = page.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgStoreCoverActionButtonStyle");
+            Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)subtle.Attribute("BasedOn"));
+            Assert.Equal("0", (string?)subtle.Elements().Single(element => (string?)element.Attribute("Property") == "BorderThickness").Attribute("Value"));
+            Assert.False(subtle.Descendants().Any(element => element.Name.LocalName == "ControlTemplate"));
             Assert.Equal("ColumnActions", (string?)Named("ColumnActionRow").Parent!.Attribute(X + "Name"));
             // 已看那颗键的文字组在商店模式整组收起（用户确认「收成图标」）。
             Assert.Equal("{x:Bind ViewModel.ColumnWatchedLabelsVisibility, Mode=OneWay}",
@@ -87,8 +92,12 @@ internal static class StoreDetailLayoutTests
             var store = Source("Views/DetailPage.Store.cs");
             Assert.Contains("MoveToPanel(ColumnPlayButton, StoreCoverActions);", store);
             Assert.Contains("MoveToPanel(ColumnMoreButton, StoreCoverActions);", store);
-            Assert.Contains("MoveToPanel(ColumnFavoriteButton, StoreCoverBadges);", store);
-            Assert.Contains("MoveToPanel(ColumnWatchedButton, StoreCoverBadges);", store);
+            Assert.Contains("MoveToPanel(ColumnFavoriteButton, StoreCoverActions);", store);
+            Assert.Contains("MoveToPanel(ColumnWatchedButton, StoreCoverActions);", store);
+            Assert.Contains("PlaceStoreActionButtons(store);", store);
+            Assert.Contains("button.ClearValue(Control.BackgroundProperty);", store);
+            foreach (var name in new[] { "ColumnPlayButton", "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" })
+                Assert.NotNull(Named(name).Attribute("AutomationProperties.Name"));
             Assert.Contains("EpisodeHead.Trailing = ColumnContinueButton;", store);
             Assert.Contains("RestoreToActions(ColumnPlayButton, 0);", store);
             Assert.Contains("RestoreToActions(ColumnContinueButton, IndexAfter(ColumnExtrasButton));", store);

@@ -15,6 +15,24 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
+        Test("商店封面操作：四颗图标常驻下方，原生轻量样式无边框，悬停只控制封面浮层", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            var row = Named(page, "StoreCoverActions");
+            Assert.Equal("StoreCoverColumn", (string?)row.Parent!.Attribute(X + "Name"));
+            Assert.Equal("1", (string?)row.Attribute("Opacity"));
+            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}", (string?)row.Attribute("Visibility"));
+            var style = Resource(page.Root!.Element(Xaml + "Page.Resources")!, "EgStoreCoverActionButtonStyle");
+            Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)style.Attribute("BasedOn"));
+            Assert.Equal("0", Setter(style, "BorderThickness"));
+            foreach (var dimension in new[] { "Width", "Height", "MinWidth", "MinHeight" })
+                Assert.Equal("{StaticResource EgActionHeight}", Setter(style, dimension));
+            var hover = Source("Views/DetailPage.CoverPlay.cs");
+            Assert.DoesNotContain("StoreCoverActions", hover);
+            var appearance = Source("Views/DetailPage.Appearance.cs");
+            Assert.Contains("if (IsStoreCoverAction(brushes.Control)) continue;", appearance);
+            Assert.Contains("IsStoreCoverAction(button)", appearance);
+        });
         Test("亚克力探针：先验当前出厂参数，再显式构造旧薄白夹具", () =>
         {
             var probe = Source("ShellNavigationProbe.Materials.cs");

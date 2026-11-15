@@ -34,6 +34,9 @@ public sealed partial class DetailPage
     public static Visibility OverviewTipVisibility(bool store, bool trimmed) =>
         store && trimmed ? Visibility.Visible : Visibility.Collapsed;
 
+    /// <summary>四个44DIP命中格共176DIP，商店封面列至少保留180DIP；无图时按钮仍可操作。</summary>
+    public static double StoreCoverColumnWidth(bool store) => store ? 180 : 0;
+
     // Gallery Samples/Grid/GridPage.xaml, v2.9.3 / 14a4a1a2: Auto行与原生Grid定位。
     // Gallery没有影视封面下操作样例；移动同一份控件，保留绑定、事件和焦点。
     private bool _placingStoreComponents;
@@ -49,17 +52,17 @@ public sealed partial class DetailPage
             // 文件选项和操作继续排在剧情后面。退出简洁模式时，剧情回尾部，其余两块回片名栏。
             if (store)
             {
-                if (OverviewPanel.Parent == TailContent)
+                if (TailContent.Children.Contains(OverviewPanel))
                 {
                     TailContent.Children.Remove(OverviewPanel);
                     StoreHeroDetails.Children.Insert(0, OverviewPanel);
                 }
-                if (FileOptions.Parent == HeroStack)
+                if (HeroStack.Children.Contains(FileOptions))
                 {
                     HeroStack.Children.Remove(FileOptions);
                     StoreHeroDetails.Children.Add(FileOptions);
                 }
-                if (ColumnActions.Parent == HeroStack)
+                if (HeroStack.Children.Contains(ColumnActions))
                 {
                     HeroStack.Children.Remove(ColumnActions);
                     StoreHeroDetails.Children.Add(ColumnActions);
@@ -67,17 +70,17 @@ public sealed partial class DetailPage
             }
             else
             {
-                if (ColumnActions.Parent == StoreHeroDetails)
+                if (StoreHeroDetails.Children.Contains(ColumnActions))
                 {
                     StoreHeroDetails.Children.Remove(ColumnActions);
                     HeroStack.Children.Add(ColumnActions);
                 }
-                if (FileOptions.Parent == StoreHeroDetails)
+                if (StoreHeroDetails.Children.Contains(FileOptions))
                 {
                     StoreHeroDetails.Children.Remove(FileOptions);
                     HeroStack.Children.Insert(HeroStack.Children.IndexOf(ColumnActions), FileOptions);
                 }
-                if (OverviewPanel.Parent == StoreHeroDetails)
+                if (StoreHeroDetails.Children.Contains(OverviewPanel))
                 {
                     StoreHeroDetails.Children.Remove(OverviewPanel);
                     OverviewPanel.ClearValue(FrameworkElement.HeightProperty);
@@ -108,10 +111,8 @@ public sealed partial class DetailPage
             StoreHeroDetails.Margin = new Thickness(0, store ? 16 : 8, 0, 0);
             HeroFacts.TextWrapping = store ? TextWrapping.Wrap : TextWrapping.NoWrap;
 
-            // 2026-11-15 用户令：播放／更多到封面右侧、收藏／已看到封面左上角、连播到集列表卡片右上角。
-            // 宽版式里搬同一批实例，退出商店或收成紧凑版式时按原次序放回 ColumnActions。
-            var storeWide = store && !ViewModel.IsCompact;
-            PlaceStoreActionButtons(storeWide);
+            // 2026-11-15 用户新要求：四颗操作键常驻封面下方，无边框。商店宽窄同一位置，退出商店才还原。
+            PlaceStoreActionButtons(store);
 
             // 右侧剧照／预告视口只在宽版式出现；圆角也只写给那一档（窄窗铺满整幅的那一版保持直角）。
             // EgCardCornerRadius 在应用 Styles.xaml，直接查页面 Resources 不会向上搜索应用字典。
@@ -127,32 +128,37 @@ public sealed partial class DetailPage
     }
 
     /// <summary>
-    /// 商店宽版式里那几颗键换位置（2026-11-15 用户令）：
-    /// 播放、更多搬进封面右侧的横排（更多在最右）；收藏、已看搬进封面左上角；
-    /// 连播挂到集列表卡片标题那一行的右端（<see cref="ShelfHead.Trailing"/>）。
+    /// 商店模式四颗键常驻封面下方（2026-11-15 用户新要求，取代封面右侧与左上角旧位置）。
+    /// 四个图标保留原控件、命令、自动化名称与状态；连播仍挂在集列表卡片右上角。
     /// <para>
-    /// 搬的是同一批实例，绑定、命令、焦点与外观画刷都不重接；退出商店模式或页面收窄到紧凑版式时
+    /// 搬的是同一批实例，绑定、命令、焦点不重接；退出商店模式时
     /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>。
-    /// 已看那颗键在封面里收成图标（用户确认「收成图标」）：文字组的显隐由
-    /// <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/> 收起，样式换成圆角方键。
+    /// 已看那颗键收成图标：文字组的显隐由 <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/>
+    /// 收起，四颗共用平台轻量按钮样式。
     /// </para>
     /// </summary>
-    private void PlaceStoreActionButtons(bool storeWide)
+    private void PlaceStoreActionButtons(bool store)
     {
-        if (storeWide)
+        if (store)
         {
             MoveToPanel(ColumnPlayButton, StoreCoverActions);
+            MoveToPanel(ColumnWatchedButton, StoreCoverActions);
+            MoveToPanel(ColumnFavoriteButton, StoreCoverActions);
             MoveToPanel(ColumnMoreButton, StoreCoverActions);
-            MoveToPanel(ColumnFavoriteButton, StoreCoverBadges);
-            MoveToPanel(ColumnWatchedButton, StoreCoverBadges);
 
             if (!ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton))
             {
                 Detach(ColumnContinueButton);
                 EpisodeHead.Trailing = ColumnContinueButton;
             }
-            if (!ReferenceEquals(ColumnWatchedButton.Style, Resources["EgRoundButtonStyle"]))
-                ColumnWatchedButton.Style = (Style)Resources["EgRoundButtonStyle"];
+            var subtle = (Style)Resources["EgStoreCoverActionButtonStyle"];
+            foreach (var button in new[] { ColumnPlayButton, ColumnWatchedButton, ColumnFavoriteButton, ColumnMoreButton })
+            {
+                if (!ReferenceEquals(button.Style, subtle)) button.Style = subtle;
+                // 构造时的材质Background是局部值，清掉才会真正使用SubtleButtonStyle的透明常态和平台三态。
+                button.ClearValue(Control.BackgroundProperty);
+                button.Opacity = 1;
+            }
             return;
         }
 
@@ -162,8 +168,17 @@ public sealed partial class DetailPage
         RestoreToActions(ColumnWatchedButton, IndexAfter(ColumnContinueButton));
         RestoreToActions(ColumnFavoriteButton, IndexAfter(ColumnWatchedButton));
         RestoreToActions(ColumnMoreButton, ColumnActionRow.Children.Count);
-        if (!ReferenceEquals(ColumnWatchedButton.Style, Resources["EgPillButtonStyle"]))
-            ColumnWatchedButton.Style = (Style)Resources["EgPillButtonStyle"];
+        foreach (var (button, style) in new[]
+        {
+            (ColumnPlayButton, "EgPlayButtonStyle"), (ColumnWatchedButton, "EgPillButtonStyle"),
+            (ColumnFavoriteButton, "EgRoundButtonStyle"), (ColumnMoreButton, "EgRoundButtonStyle")
+        })
+        {
+            if (!ReferenceEquals(button.Style, Resources[style])) button.Style = (Style)Resources[style];
+            // InitializeComponent 的首轮尺寸事件可能早于 PrepareAppearance；尚未种入的材质键不能索引。
+            if (button.Resources.ContainsKey("ButtonBackground"))
+                button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources["ButtonBackground"];
+        }
     }
 
     /// <summary>把一颗键从原来的父级摘下来，追加到目标那一格（已经在目标里就不动）。</summary>
@@ -183,7 +198,7 @@ public sealed partial class DetailPage
     private void Detach(FrameworkElement element)
     {
         if (ReferenceEquals(EpisodeHead.Trailing, element)) EpisodeHead.Trailing = null;
-        foreach (var panel in new Panel[] { ColumnActionRow, StoreCoverActions, StoreCoverBadges })
+        foreach (var panel in new Panel[] { ColumnActionRow, StoreCoverActions })
             if (panel.Children.Contains(element)) panel.Children.Remove(element);
     }
 

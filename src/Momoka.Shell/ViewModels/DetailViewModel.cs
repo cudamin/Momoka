@@ -329,7 +329,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
-    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial ImageSource? StillImage { get; set; }
 
@@ -350,7 +349,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
-    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial bool StillPending { get; set; }
 
@@ -431,7 +429,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
     [NotifyPropertyChangedFor(nameof(CompactVisibility))]
     [NotifyPropertyChangedFor(nameof(StoreCoverActionsVisibility))]
-    [NotifyPropertyChangedFor(nameof(StoreCoverBadgesVisibility))]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -512,8 +509,10 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
-        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnPlayLabelsVisibility));
         OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
+        OnPropertyChanged(nameof(CompactVisibility));
+        OnPropertyChanged(nameof(ColumnActionsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
@@ -1006,7 +1005,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public double HeroContent =>
-        StoreMode ? Math.Max(StackRoom, StillHeight) + StoreDetailsRoom
+        // 封面下常驻行44高加8间距也属于首行，不能仍只按海报高量而让剧情覆盖图标行。
+        StoreMode ? Math.Max(StackRoom, StillHeight + 52) + StoreDetailsRoom
             : Math.Max(Math.Max(StackRoom, StillHeight), CornerShown ? CornerHeight : 0);
 
     /// <summary>
@@ -2041,8 +2041,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility ScrimVisibility => Show(!HeroCard && !BackdropShown);
 
-    /// <summary>紧凑版式里才画的那一块（全宽播放键、断点进度、带字的一排操作）显不显 —— <see cref="IsCompact"/>。</summary>
-    public Visibility CompactVisibility => Show(IsCompact);
+    /// <summary>非商店紧凑版式的动作块；商店窄窗仍使用封面下方同一批操作，避免重复四颗键。</summary>
+    public Visibility CompactVisibility => Show(IsCompact && !StoreMode);
 
     /// <summary>
     /// 片名那一叠里那排键（<c>DetailPage</c> 标记里的 <c>ColumnActions</c>）显不显 —— 宽版式上它是唯一
@@ -2050,7 +2050,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 那一截），2026-09-13 电影、剧、季也搬了进来（「排列在封面右边」），带子底下那一行退役。紧凑版式里
     /// 它收着，活交给画面底下那一块（<see cref="CompactVisibility"/>）。
     /// </summary>
-    public Visibility ColumnActionsVisibility => Show(!IsCompact);
+    public Visibility ColumnActionsVisibility => Show(StoreMode || !IsCompact);
 
     /// <summary>
     /// 剧名上方那一枚徽标画不画 —— 只问一句：图解出来了没有。
@@ -2551,7 +2551,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CoverShadeVisibility));
-        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnPlayLabelsVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2787,7 +2787,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
-        OnPropertyChanged(nameof(StoreCoverBadgesVisibility));
+        OnPropertyChanged(nameof(ColumnPlayLabelsVisibility));
         OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         AnnounceAffordances();
         // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。

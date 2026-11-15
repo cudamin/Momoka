@@ -41,26 +41,20 @@ public sealed partial class DetailViewModel
     public double StoreContentWidth => Math.Max(0, PageWidth - 2 * DetailHero.StorePageInset(PageWidth)
         - (StoreMode && PageWidth >= DetailHero.StoreWideFloor ? StorePreviewWidth + 28 : 0));
     public double StoreTextWidth => StoreMode
-        ? Math.Max(0, StoreContentWidth - StillWidth - ColumnSpacing) : double.PositiveInfinity;
+        ? Math.Max(0, StoreContentWidth - Math.Max(180, StillWidth) - ColumnSpacing) : double.PositiveInfinity;
     public Visibility RemainingTimeVisibility => StoreMode ? Visibility.Collapsed : ResumeVisibility;
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;
 
     /// <summary>
-    /// 商店宽版式里封面右侧那一排（播放、更多）的显隐 —— 两颗键由页面在运行时搬进这一格
-    /// （2026-11-15 用户令「把播放按钮和更多按钮移到封面右边」）。窄档没有封面，这一排跟着收；
-    /// 画面本身不看封面有没有解出来，那一头由 <see cref="StoreCoverBadgesVisibility"/> 管。
+    /// 商店封面下方常驻的四颗图标键。宽窄和图片是否到达都不隐藏整行，按钮自己的权限与可用性照旧判断。
+    /// 2026-11-15 用户新要求取代封面右侧/左上角旧位置，不依赖指针悬停。
     /// </summary>
-    public Visibility StoreCoverActionsVisibility => Show(StoreMode && !IsCompact);
+    public Visibility StoreCoverActionsVisibility => Show(StoreMode);
+
+    public Visibility ColumnPlayLabelsVisibility => Show(!StoreMode);
 
     /// <summary>
-    /// 封面左上角那一排（收藏、已看）的显隐（2026-11-15 用户令「收藏和已看按钮移到左上角的封面里」）。
-    /// 与上面那一排同一档，另加「封面真的画出来」—— 没有图时那一格宽高归零，两枚键会落在一片空气上。
-    /// </summary>
-    public Visibility StoreCoverBadgesVisibility =>
-        Show(StoreMode && !IsCompact && StillVisibility == Visibility.Visible);
-
-    /// <summary>
-    /// 已看那颗键的文字要不要画。商店模式把它搬进封面左上角并收成图标（2026-11-15 用户确认「收成图标」），
+    /// 已看那颗键的文字要不要画。商店模式在封面下方收成图标（2026-11-15 用户要求常驻无边框图标行），
     /// 图标的两个状态照旧由 <see cref="WatchedVisibility"/>／<see cref="NotWatchedVisibility"/> 切。
     /// </summary>
     public Visibility ColumnWatchedLabelsVisibility => Show(!StoreMode);

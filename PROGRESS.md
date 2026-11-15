@@ -1,3 +1,13 @@
+## 2026-11-15 商店封面下方常驻无边框操作行（本次交付追加，独立树待整合）
+
+用户在交付中追加：商店模式按钮移到封面下方、不要边框、鼠标没移到封面也显示。工作树 `C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka`，分支 `codex/store-cover-action-row`，基点主树 `9e3402d`；本条取代第44批的播放/更多在封面右侧、收藏/已看在封面左上角旧位置。
+
+实现：保留 ColumnPlay/Watched/Favorite/More 四颗原按钮及命令、提示、可访问名称、点击脉冲与状态图标，搬进封面列下方居中的常驻行；四个44DIP图标命中格共176DIP，封面列至少180DIP，保留8DIP上下间距。仅该四颗改为原生 SubtleButtonStyle 派生的无边框样式，常态透明、悬停/按下/键盘焦点仍走原生模板；不依赖 HoverWatch 或浮层Opacity。退出商店时四颗还原原次序、样式和材质。连播仍在集卡右上角。商店单集760/360仍保留原IsCompact与背景规则，只收起重复的CompactBlock操作并保留ColumnActions剩余花絮/进度，窄窗PickerPanel不动。首行计算补封面下44+8的52DIP，防止剧情覆盖按钮行；无图时按钮仍能操作。
+
+官方依据：已读固定 Gallery `v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 Button、ToggleButton、CommandBar XAML及code-behind，以及WinUI2.3.9真实Subtle模板。Button页原生Subtle样式及水平图标按钮保留平台模板；CommandBar只接受ICommandBarElement，现有Button直接移入会改控件类型与绑定，所以沿用既有原生Button与StackPanel作局部适配，不引入依赖。源码与Learn按钮指南副本在本树 `artifacts/store-cover-action-source`。
+
+验证：新增/更新PageContract资源归属、封面列顺序、无边框与可访问名称；主测试覆盖常驻行原生模板和实际VM四类宽窄显隐/通知恢复。原生DetailCards追加1023/1024/1025断点，封面下居中同排、44DIP命中、无边框、常驻属性、Normal/PointerOver/Pressed和清封面悬停后仍显示的检查；预告圆角单独按1024阈值与全局16DIP精确核对，错档/假圆角、错行/隐藏/小命中区/边框反例由链接同生产判据的离线测试覆盖。Shell Release 0警告0错误；PageContract315/315、主测试控件专项40/40、输入主题29/29、实际VM详情专项93/93，均0失败0跳过。首轮Shell因新探针漏using导致编译级联失败，补正确Automation命名空间后通过；新VM专项曾错误假定商店单集IsCompact=false，明确保留该背景判定并收起重复动作块后最终93/93。变更文件空白与编码检查通过。该树不启动UI/鼠标/探针，不发布、不推送；最终主树实屏由根交付会话串行完成。原生验证工具变动的真实成功路径仍待根执行，不能用离线反例冒充。
+
 ## 2026-11-15 交付修复：商店预览圆角读取应用资源
 
 主树最终代码 4209de4 在本次统一原生检查 shell-probe-20261115-145703787-20292 中触发未处理 COM 异常：DetailPage.PlaceStoreComponents 直接查页面 Resources 的 EgCardCornerRadius，而该键只属于应用 Theme/Styles.xaml。改为 Application.Current.Resources；本页 EgRoundButtonStyle / EgPillButtonStyle 仍从局部字典读取，不加 IsLoaded 短路，保留封面关联动画在 Loaded 前抢排的路径。新增 PageContract 资源归属契约，拒绝复制全局键进页面掩盖错误。

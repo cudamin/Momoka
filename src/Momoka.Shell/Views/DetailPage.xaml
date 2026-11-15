@@ -88,6 +88,18 @@
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
+        <!-- Gallery Samples/Button/ButtonPage.xaml 的 SubtleButtonStyle，固定 v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。
+             使用平台模板和悬停/按下/焦点反馈；仅封面下方四颗既有按钮使用这支无边框样式。 -->
+        <Style x:Key="EgStoreCoverActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
+            <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
+            <Setter Property="MinWidth" Value="{StaticResource EgActionHeight}" />
+            <Setter Property="MinHeight" Value="{StaticResource EgActionHeight}" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
 
         <!-- 卡片带的标题现在是 local:ShelfHead（标题、读数、挂件位、通栏线），不再是这儿的一个
              EgShelfHeadingStyle TextBlock —— 那个样式只设了字号和字重，漏了标题字体，于是四条带子的
@@ -525,6 +537,9 @@
                              接到；集页上这颗播放键收着（CoverPlayVisibility 只管电影和剧），封面照旧
                              点进剧页，悬停那一层遮罩（CoverShade）就在这颗按钮和播放键中间。
                              VerticalAlignment 从按钮挪到这一层，版面一个像素不动。 -->
+                        <StackPanel x:Name="StoreCoverColumn" Orientation="Vertical" Spacing="8"
+                            MinWidth="{x:Bind local:DetailPage.StoreCoverColumnWidth(ViewModel.StoreMode), Mode=OneWay}"
+                            VerticalAlignment="{x:Bind ViewModel.CoverAlignment, Mode=OneWay}">
                         <Grid
                             x:Name="CoverSlot"
                             Background="Transparent"
@@ -623,18 +638,17 @@
                                 <FontIcon Glyph="&#xE768;" Style="{StaticResource EgPlayGlyphStyle}" />
                             </Button>
 
-                            <!-- 2026-11-15 用户令「收藏和已看按钮移到左上角的封面里」：商店模式把两颗既有实例搬进这一格，
-                                 图标收成 44 见方的圆角键，不压文字（见 DetailPage.Store.cs 的 PlaceStoreActionButtons）。
-                                 摆在封面按钮与悬停键之后，落在最上层；容器自己不接指针，空白处的点击仍落到下面那张封面。 -->
-                            <StackPanel
-                                x:Name="StoreCoverBadges"
-                                HorizontalAlignment="Left"
-                                Margin="8"
-                                Orientation="Horizontal"
-                                Spacing="8"
-                                VerticalAlignment="Top"
-                                Visibility="{x:Bind ViewModel.StoreCoverBadgesVisibility, Mode=OneWay}" />
                         </Grid>
+                        <!-- 四颗既有按钮移到封面下方，常驻，不进入封面的HoverWatch或透明浮层。 -->
+                        <StackPanel
+                            x:Name="StoreCoverActions"
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="0"
+                            Opacity="1"
+                            IsHitTestVisible="True"
+                            Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}" />
+                        </StackPanel>
 
                         <StackPanel
                             x:Name="HeroStack"
@@ -849,11 +863,6 @@
                             <!-- 2026-11-15 用户令「把播放按钮和更多按钮移到封面右边」：商店模式把这两颗既有实例搬到
                                  片名栏末尾，横向排在封面右侧、更多在最右（见 DetailPage.Store.cs 的
                                  PlaceStoreActionButtons）。其余模式这一格收着，两颗键留在 ColumnActions。 -->
-                            <StackPanel
-                                x:Name="StoreCoverActions"
-                                Orientation="Horizontal"
-                                Spacing="10"
-                                Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}" />
 
                             <StackPanel
                                 x:Name="FileOptions"
@@ -984,9 +993,9 @@
                                  商店模式例外（2026-11-14 用户令「参考上图布局」）：这一叠被 DetailPage.Store.cs
                                  搬到封面下方的 StoreHeroDetails，排在剧情说明和文件选项之后，当那一块的收尾行 ——
                                  和微软商店条目页一样，标题块底下依次是简介、文件选项、操作按钮。同一个实例只换父级，
-                                 绑定、事件和焦点都不动。2026-11-15 用户再令：商店宽版式里播放、更多搬去封面右侧，
-                                 收藏、已看搬进封面左上角，连播搬去集列表卡片右上角（DetailPage.Store.cs 的
-                                 PlaceStoreActionButtons）；这一排只留花絮与特典和断点进度。
+                                 绑定、事件和焦点都不动。2026-11-15 用户最终要求：播放、已看、收藏、更多常驻封面下方
+                                 无边框的一行，连播仍在集列表卡片右上角（DetailPage.Store.cs 的 PlaceStoreActionButtons）；
+                                 这一排只留花絮与特典和断点进度。
                                  从前那颗「从头开始」不再单独占一颗键：它并进「更多」菜单，
                                  只在有断点、原先那颗会露头的同一判据下出现（RestartVisibility）。
                                  七颗键同一批命令；AutomationId 前缀 Column，和紧凑版式那份（Compact*）
@@ -999,6 +1008,8 @@
                                     <Button
                                         x:Name="ColumnPlayButton"
                                         AutomationProperties.AutomationId="ColumnPlayButton"
+                                        AutomationProperties.Name="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.PlayText, Mode=OneWay}"
                                         Command="{x:Bind ViewModel.PlayCommand}"
                                         Style="{StaticResource EgPlayButtonStyle}"
                                         Visibility="{x:Bind ViewModel.PlayVisibility, Mode=OneWay}">
@@ -1018,7 +1029,8 @@
                                                 Glyph="&#xE768;"
                                                 Foreground="{StaticResource EgAccentBrush}"
                                                 Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
-                                            <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
+                                            <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                                                Visibility="{x:Bind ViewModel.ColumnPlayLabelsVisibility, Mode=OneWay}" />
                                         </StackPanel>
                                     </Button>
 
@@ -1060,6 +1072,8 @@
                                     <Button x:Uid="DetailPage_ButtonA1"
                                         x:Name="ColumnWatchedButton"
                                         AutomationProperties.AutomationId="ColumnWatchedButton"
+                                        AutomationProperties.Name="标记已看 / 未看"
+                                        ToolTipService.ToolTip="标记已看 / 未看"
                                         Click="OnColumnWatchedPulse"
                                         Command="{x:Bind ViewModel.ToggleWatchedCommand}"
                                         Style="{StaticResource EgPillButtonStyle}">
@@ -1083,8 +1097,8 @@
                                                         VerticalAlignment="Center" />
                                                 </Grid>
                                             </Grid>
-                                            <!-- 商店模式这颗键搬进封面左上角后收成图标（2026-11-15 用户令「收藏和已看按钮
-                                                 移到左上角的封面里」、「收成图标」）：文字仍保留在两个状态自己的显隐里，
+                                            <!-- 商店模式这颗键在封面下方收成图标（2026-11-15 用户要求常驻无边框图标行）：
+                                                 文字仍保留在两个状态自己的显隐里，
                                                  只是整组跟着 ColumnWatchedLabelsVisibility 一起收起。 -->
                                             <StackPanel
                                                 x:Name="ColumnWatchedLabels"
@@ -1098,6 +1112,7 @@
 
                                     <Button x:Uid="DetailPage_ButtonA2"
                                         x:Name="ColumnFavoriteButton"
+                                        AutomationProperties.Name="收藏"
                                         AutomationProperties.AutomationId="ColumnFavoriteButton"
                                         Click="OnColumnFavoritePulse"
                                         Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
@@ -1119,6 +1134,7 @@
                                     <Button
                                         x:Name="ColumnMoreButton"
                                         x:Uid="DetailPage_MoreButton"
+                                        AutomationProperties.Name="更多"
                                         Click="OnMoreClicked"
                                         Style="{StaticResource EgRoundButtonStyle}">
                                         <FontIcon FontSize="15" Glyph="&#xE712;" />
