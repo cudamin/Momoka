@@ -1,3 +1,13 @@
+## 2026-11-15 交付补验：网页预告字幕与播放通知（独立树完成，待主控原生运行）
+
+交付主控要求补齐本次新增的 YouTube 字幕控制运行证据，避免只看生成 HTML 就算通过。工作树 `C:/Users/89400/.codex/worktrees/delivery-youtube-captions/Momoka`，分支 `codex/delivery-youtube-captions`，基点 `4209de4`。只改 `ShellNavigationProbe.StoreTrailerWeb.cs`、`Momoka.PageContractTests` 的 source-link/事件边界与回归，未改 `StoreYouTubePreview`、`StoreTrailerDocument` 或用户可见界面。
+
+**补了什么。** 匿名 IFrame API 提供中文/英语两条固定字幕，嵌入本地视频创建真实 `TextTrack`/`VTTCue`；生产文档的 `getOption`/`setOption` 与 `captions:` 消息仍原样执行。探针读生产 `CaptionsChanged`、`Captions`、`SelectedCaption`，从页面原生字幕菜单依次选中文、英语、关闭，等待 `Closed`、检查重开勾选、分别回读 API 选轨和视频文本轨。原生自动化从实际元素 peer 取得 `IToggleProvider`，保留原窗口/指针守卫、悬停和本地字幕检查。网页暂停/播放经实际视频事件回到生产 `PlaybackChanged`，再查原生按钮文字；另让视频自己暂停，确认下一次按钮继续播放。所有外站响应只由本地拦截提供，最后要求未知外站请求为 0；日志追加 `store-trailer-web-captions.txt`，截图 `store-trailer-web-captions-{zh,en,off}-screen.png`。
+
+**测试与验证。** `PageContractTests` 直接链接生产预告两类；边界只提供 WebView2 初始化、事件与发送队列，不另造字幕解析器。新增 8 项覆盖固定两轨、坏 JSON/超长消息、空语言/重复轨/缺名称、选轨与关闭消息、真实状态变化通知、错误来源/取消/释放、下载与新窗守卫，以及原生探针接线。用户级 SDK `10.0.400`，本树 Shell Release **0 警告 0 错误**；PageContract Release **0 警告 0 错误**、**320/320，0 失败 0 跳过**；PageContract 空白检查与匿名 API/Embed 的 `node --check` 通过。证据保留在本树 `artifacts/captions-verification/`。首次测试访问 `CoreWebView2` 触发 WUI4001，改从测试边界的 `TestCore` 读取后清零；一次错误把公开派生 `MenuFlyoutItem` 的 Radio 类型传给 Toggle peer 构造而编译失败，改为读取实际 peer 模式后通过，失败日志未删除。忽略的本地 libmpv 只复制主树当前文件供编译，SHA256 `FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`。
+
+**边界与收尾。** 本子任务未启动窗口、探针、浏览器或播放器，未移动鼠标、联网访问真实预告、读取用户设置/凭据、播放真实媒体或发布。消息测试是托管端点证据，匿名原生 WebView2/字幕菜单/画面和截图由主控合入最新 master 后串行运行 `InspectStoreTrailer`；只有这轮真实报告通过才算补齐原生覆盖。真实 YouTube 服务字幕版本、触摸/物理键盘与跨 DPI 不由匿名夹具证明。主控同时修了商店圆角读取 `9e3402d`，本分支提交后合入该修复再复验；分支不自行发布或推远端。
+
 ## 2026-11-15 详情竖滚性能：阅读色不再重画整页（已合入 master，待交付）
 
 用户反馈详情页经常卡、滚到最上面时右侧滚动条还在最下面、上方横幅也要等一会才收回。根因是 `DetailPage.OnBodyViewChanged` 每个滚动事件都调用 `PaintReadingColors`：它递归 `BodySheet` 的整棵视觉子树、逐个卡片清写前景。新加的匿名探针在同一个 300 帧折返滚动里量到这一段平均 **22.3ms/事件、单次最长 459ms**，整轮阅读色合计 4844ms，105 帧超过 33ms。阅读色只跟主题、系统对比度和新建出来的卡片有关，与滚到哪儿无关。
