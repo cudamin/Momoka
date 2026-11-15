@@ -14,6 +14,38 @@ internal static class StoreDetailLayoutTests
 
     internal static void Register()
     {
+        Test("商店渐变：窄窗材料与图片共用最终遮罩，离页清缓存，浅色前景同步", () =>
+        {
+            foreach (var name in new[] { "DetailPage", "MoviePilotSubscriptionPage" })
+            {
+                var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", name + ".xaml"));
+                var acrylic = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreBackdropAcrylic");
+                Assert.Equal("StoreBackdropContent", (string?)acrylic.Parent!.Attribute(X + "Name"));
+                Assert.Null(acrylic.Attribute("Margin"));
+                var source = Source("Views/" + name + ".xaml.cs");
+                Assert.Contains("_storeAmbientBrush.Clear();", source);
+                Assert.Contains("_storeTint.Clear();", source);
+            }
+            var reading = Source("Views/DetailPage.Appearance.cs");
+            Assert.Contains("ViewModel.StoreMode && !ThemeHost.Current.IsDark", reading);
+            Assert.Contains("? accent : storeInk", reading);
+            var mp = Source("Views/MoviePilotSubscriptionPage.Showcase.cs");
+            Assert.Contains("MediaViewModel.Plain && !ThemeHost.Current.IsDark", mp);
+            Assert.Contains("MediaMeta.Foreground = new SolidColorBrush(heroInk);", mp);
+            var trailer = Source("Views/DetailPage.StoreTrailer.cs");
+            Assert.Contains("_storeAmbientBrush.Frame", trailer);
+            Assert.Contains("_storeVideoBrush.Clear();", trailer);
+            Assert.Contains("StoreTrailerFoundation.Background = null;", trailer);
+            Assert.Contains("StoreTrailerFoundation.Visibility = Visibility.Collapsed;", trailer);
+            Assert.Contains("_storeTrailerUserPaused || _storeTrailerScrollPaused", trailer);
+            Assert.Contains("nameof(DetailViewModel.StoreAmbientHeight)", Source("Views/DetailPage.Trailers.cs"));
+            var detail = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            Assert.Equal("1", (string?)detail.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreTrailerFade").Attribute("Canvas.ZIndex"));
+            var content = detail.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreScrollContent");
+            var layers = content.Elements().Select(element => (string?)element.Attribute(X + "Name")).ToArray();
+            Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
+                && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
+        });
         Test("商店详情：简介撑满封面右栏，文件选项和操作键排在封面下方", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

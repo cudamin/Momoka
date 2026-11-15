@@ -2003,6 +2003,9 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        _storeAmbientBrush.Clear();
+        _storeTint.Clear();
+        StoreBackdropSides.Background = null;
         StopStoreTrailer();
         StopStickyHeader();
         StopScrollReveal();

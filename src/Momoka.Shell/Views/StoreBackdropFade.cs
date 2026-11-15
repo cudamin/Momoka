@@ -21,10 +21,8 @@ internal enum StoreBackdropFadeShape
 
 /// <summary>Gallery Controls/OpacityMaskView.xaml.cs, v2.9.3 / 14a4a1a2.
 /// 保留单次VisualSurface重定向；二维alpha图把左边与底部渐隐合在同一个遮罩里。
-/// <para>
-/// 2026-11-14 用户令「渐变参考图二改」后，剧照与环境底各用一份：剧照那一份右边不再收（微软商店的图是铺到右沿的），
-/// 环境底那一份左端起坡更早结束、底部收边，两块叠起来就是「画面融进一块跟着剧照换色的暗底」。
-/// </para>
+/// 剧照与环境底各用一份，左右和底部平滑收到透明；环境底铺到信息区，剧照保留右侧清晰画面。
+/// 微软商店闭源，截图仅作外观参考。沿用 Gallery 的重定向机制，不对其内部实现作推断。
 /// </summary>
 internal sealed class StoreBackdropFade
 {
@@ -41,37 +39,15 @@ internal sealed class StoreBackdropFade
 
     // 2026-11-15 用户令「背景图/预告片下方和左右要加渐变」：左右两端都收到环境底，画面不再有一条贴着
     // 滚动条的硬边；右端留的那道空隙（StorePreviewGap）与这段渐隐一起把视口收进页面。
-    private static readonly (double Position, double Alpha)[] PictureAcross =
-        [(0, 0), (0.12, 0.5), (0.32, 0.92), (0.9, 1), (1, 0)];
-    private static readonly (double Position, double Alpha)[] PictureDown =
-        [(0, 1), (0.7, 1), (0.86, 0.5), (1, 0)];
-    private static readonly (double Position, double Alpha)[] AmbientAcross =
-        [(0, 0), (0.05, 0.5), (0.16, 0.92), (0.9, 1), (1, 0)];
-    private static readonly (double Position, double Alpha)[] AmbientDown =
-        [(0, 1), (0.72, 1), (0.88, 0.55), (1, 0)];
-
     internal StoreBackdropFade(FrameworkElement content, FrameworkElement host, Border maskElement,
         StoreBackdropFadeShape shape = StoreBackdropFadeShape.Picture)
     {
         _content = content;
         _host = host;
         _maskElement = maskElement;
-        const int side = 128;
+        const int side = StoreBackdropBlend.Side;
         var bitmap = new WriteableBitmap(side, side);
-        var pixels = new byte[side * side * 4];
-        var acrossStops = shape == StoreBackdropFadeShape.Ambient ? AmbientAcross : PictureAcross;
-        var downStops = shape == StoreBackdropFadeShape.Ambient ? AmbientDown : PictureDown;
-        for (var y = 0; y < side; y++)
-        {
-            var down = Interpolate((double)y / (side - 1), downStops);
-            for (var x = 0; x < side; x++)
-            {
-                var across = Interpolate((double)x / (side - 1), acrossStops);
-                var alpha = (byte)Math.Round(255 * down * across);
-                var offset = (y * side + x) * 4;
-                pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = pixels[offset + 3] = alpha;
-            }
-        }
+        var pixels = StoreBackdropBlend.Mask(shape == StoreBackdropFadeShape.Ambient);
         using (var stream = bitmap.PixelBuffer.AsStream()) stream.Write(pixels);
         bitmap.Invalidate();
         maskElement.Background = new ImageBrush { ImageSource = bitmap, Stretch = Stretch.Fill };
@@ -83,18 +59,6 @@ internal sealed class StoreBackdropFade
             if (host.Visibility == Visibility.Visible && host.IsLoaded) Connect();
             else Disconnect();
         });
-    }
-
-    private static double Interpolate(double position, (double Position, double Alpha)[] stops)
-    {
-        for (var i = 1; i < stops.Length; i++)
-        {
-            if (position > stops[i].Position) continue;
-            var previous = stops[i - 1];
-            var next = stops[i];
-            return previous.Alpha + (next.Alpha - previous.Alpha) * (position - previous.Position) / (next.Position - previous.Position);
-        }
-        return stops[^1].Alpha;
     }
 
     private void Connect()

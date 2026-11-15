@@ -101,7 +101,7 @@ internal sealed partial class ShellNavigationProbe
             foreach (var width in new[] { 1240, 760, 360, 1240 })
             {
                 ResizeProbeClient(width, 900);
-                await UntilAsync(() => Math.Abs(page.ActualWidth - width) < 2);
+                await WaitDetailPageSizeAsync(page, width, "媒体卡片缩放");
                 await LayoutAsync(page);
                 RequireStoreDetailCards(page, names);
                 var cover = Get<Border>(page, "PosterStill");
@@ -182,7 +182,24 @@ internal sealed partial class ShellNavigationProbe
             foreach (var width in new[] { 1240, 760, 360, 1240 })
             {
                 ResizeProbeClient(width, 900);
-                await UntilAsync(() => Math.Abs(mp.ActualWidth - width) < 2);
+                try
+                {
+                    await UntilAsync(() =>
+                    {
+                        mp.UpdateLayout();
+                        return StoreDetailProbeEvidence.PageSizeMatches(width,
+                            _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale, mp.ActualWidth,
+                            Get<ScrollViewer>(mp, "DetailScroll").ActualWidth, mp.MediaViewModel.PageWidth);
+                    });
+                }
+                catch (TimeoutException error)
+                {
+                    var scroll = Get<ScrollViewer>(mp, "DetailScroll");
+                    var content = Get<Grid>(mp, "StoreScrollContent");
+                    throw new TimeoutException($"订阅缩放：目标{width}、客户区{_window!.ClientSize.Width}、页{mp.ActualWidth:0.##}、"
+                        + $"Scroll{scroll.ActualWidth:0.##}/视口{scroll.ViewportWidth:0.##}、VM{mp.MediaViewModel.PageWidth:0.##}、"
+                        + $"内容{content.ActualWidth:0.##}/Width{content.Width:0.##}、缩放{_root.XamlRoot.RasterizationScale:0.##}", error);
+                }
                 await LayoutAsync(mp);
                 RequireStoreDetailCards(mp, mpNames);
                 CheckSubscriptionEdges(mp, mpNames);

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.Web.WebView2.Core;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
+using Momoka.Emby;
 using Windows.Foundation;
 
 namespace Momoka.Shell;
@@ -62,6 +63,7 @@ internal sealed partial class ShellNavigationProbe
         {
             Require(playing, "匿名网页预告播放失败");
             Field(page, "_storeTrailerOpened", true);
+            Get<Border>(page, "StoreTrailerFoundation").Visibility = Visibility.Visible;
             host.Opacity = 1;
             Get<CommandBar>(page, "StoreTrailerControls").Visibility = Visibility.Visible;
             Call(page, "UpdateStoreTrailerControls");
@@ -163,21 +165,29 @@ internal sealed partial class ShellNavigationProbe
         await Task.Delay(300);
         await SaveProbeScreenAsync("store-backdrop-narrow-fallback-screen.png");
         acrylicFill.AlwaysUseFallback = false;
-        foreach (var width in new[] { 1099, 1100, 1101, 760, 360, 1280 })
+        foreach (var width in new[] { 1023, 1024, 1025, 760, 360, 1280 })
         {
             await ResizeResponsiveAsync(page, width, 900);
             Require(page.ViewModel.StillVisibility == Visibility.Visible && Get<Border>(page, "PosterStill").ActualWidth > 0,
                 "宽窄往返隐藏了商店封面");
-            Require((acrylic.Visibility == Visibility.Visible) == (width < 1100), "亚克力未按1100断点切换");
+            Require((acrylic.Visibility == Visibility.Visible) == (width < DetailHero.StoreWideFloor), "亚克力未按商店宽窄断点切换");
         }
         if (Native.VirtualScreen().Width / _root.XamlRoot.RasterizationScale > 2060)
         {
             ResizeProbeClient(2000, 900);
-            await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - 1840) < 1);
+            await UntilAsync(() =>
+            {
+                page.UpdateLayout();
+                return StoreDetailProbeEvidence.PageSizeMatches(2000,
+                    _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale,
+                    page.ActualWidth, Get<ScrollView>(page, "Body").ActualWidth, page.ActualWidth)
+                    && Math.Abs(page.ViewModel.PageWidth - 1840) < 1;
+            });
+            await LayoutAsync(page);
             var content = Get<Grid>(page, "StoreScrollContent");
             var left = content.TransformToVisual(_root).TransformPoint(default).X;
             Require(Math.Abs(content.ActualWidth - 1840) < 1 && Math.Abs(left - 80) < 2,
-                "超宽窗口的右侧空隙不是内容区居中产生");
+                $"超宽窗口的右侧空隙不是内容区居中产生：页{page.ActualWidth:0.##}、内容{content.ActualWidth:0.##}、左{left:0.##}");
             await SaveProbeScreenAsync("store-backdrop-centered-2000-screen.png");
             await ResizeResponsiveAsync(page, 1280, 900);
         }

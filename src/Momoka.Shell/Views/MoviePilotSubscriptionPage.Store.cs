@@ -9,6 +9,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private StoreBackdropFade? _storeBackdropFade;
     private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
+    private readonly StoreAmbientBrush _storeAmbientBrush = new();
 
     private void PaintStoreBackdrop()
     {
@@ -24,14 +25,14 @@ public sealed partial class MoviePilotSubscriptionPage
         // 环境底跟剧照背景同进同退，高度取同一档。
         StoreAmbient.Height = StoreBackdrop.Height;
         StoreAmbient.Visibility = StoreBackdrop.Visibility;
-        StoreBackdropStyle.Apply(StoreBackdropSides,
-            _storeTint.Resolve(MediaViewModel.BackdropPixels, MediaViewModel.Backdrop is not null, ThemeHost.Current.Colors.Window));
+        StoreBackdropSides.Background = _storeAmbientBrush.Resolve(MediaViewModel.BackdropPixels,
+            StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Width = StoreBackdrop.Width;
         StoreBackdropAcrylic.Height = StoreBackdrop.Height;
         StoreBackdropAcrylic.Visibility = MediaViewModel.Plain && width is > 0 and < DetailHero.StoreWideFloor
             && MediaViewModel.Backdrop is not null && !_accessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;
         StoreBackdropStyle.ApplyAcrylic(StoreBackdropAcrylicFill, StoreBackdropAcrylicBottom,
-            _storeTint.Resolve(MediaViewModel.BackdropPixels, MediaViewModel.Backdrop is not null, ThemeHost.Current.Colors.Window),
+            _storeTint.Resolve(MediaViewModel.BackdropPixels, MediaViewModel.Backdrop is not null, ThemeHost.Current.Colors.Window, ThemeHost.Current.IsDark),
             ThemeHost.ToColor(ThemeHost.Current.Colors.Window));
     }
 

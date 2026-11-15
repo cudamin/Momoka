@@ -22,6 +22,7 @@ public sealed partial class DetailPage
     private StoreBackdropFade? _storeBackdropFade;
     private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
+    private readonly StoreAmbientBrush _storeAmbientBrush = new();
 
     private void PaintStoreBackdrop()
     {
@@ -31,12 +32,12 @@ public sealed partial class DetailPage
             ? Visibility.Collapsed : ViewModel.StoreBackdropVisibility;
         // 环境底跟剧照背景同进同退：缺图、高对比度、退出商店模式都不单独留一块色。
         StoreAmbient.Visibility = StoreBackdrop.Visibility;
-        StoreBackdropStyle.Apply(StoreBackdropSides,
-            _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window));
+        StoreBackdropSides.Background = _storeAmbientBrush.Resolve(ViewModel.BackdropPixels,
+            StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < DetailHero.StoreWideFloor
             && ViewModel.HeroImage is not null && !_actionAccessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;
         StoreBackdropStyle.ApplyAcrylic(StoreBackdropAcrylicFill, StoreBackdropAcrylicBottom,
-            _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window),
+            _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window, ThemeHost.Current.IsDark),
             ThemeHost.ToColor(ThemeHost.Current.Colors.Window));
         UpdateStoreTrailer();
     }

@@ -19,6 +19,23 @@ namespace Momoka.Shell;
 
 internal sealed partial class ShellNavigationProbe
 {
+    private async Task WaitDetailPageSizeAsync(DetailPage page, int width, string stage)
+    {
+        var body = Get<ScrollView>(page, "Body");
+        for (var attempt = 0; attempt < 80; attempt++)
+        {
+            page.UpdateLayout();
+            var clientWidth = _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale;
+            if (StoreDetailProbeEvidence.PageSizeMatches(width, clientWidth, page.ActualWidth, body.ActualWidth, page.ViewModel.PageWidth))
+                return;
+            await Task.Delay(25);
+        }
+        var content = Get<Grid>(page, "StoreScrollContent");
+        throw new TimeoutException($"{stage}：目标{width}，客户区{_window!.ClientSize.Width}，页{page.ActualWidth:0.##}，"
+            + $"Body{body.ActualWidth:0.##}/视口{body.ViewportWidth:0.##}，VM{page.ViewModel.PageWidth:0.##}，"
+            + $"内容{content.ActualWidth:0.##}/Width{content.Width:0.##}，商店{page.ViewModel.StoreMode}，缩放{_root.XamlRoot.RasterizationScale:0.##}");
+    }
+
     /// <summary>真实设置模板的排序、显隐、两阶段提交及重入；仅操作本次隔离夹具。</summary>
     private async Task DetailCustomizationSettingsAsync()
     {
@@ -587,7 +604,7 @@ internal sealed partial class ShellNavigationProbe
             foreach (var width in new[] { 1200, 760 })
             {
                 ResizeProbeClient(width, 900);
-                await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
+                await WaitDetailPageSizeAsync(page, width, "调整客户区后");
                 ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(page);
@@ -611,11 +628,12 @@ internal sealed partial class ShellNavigationProbe
                     && ReferenceEquals(subject, page.ViewModel.CurrentItem), "外观切换改变详情主体或标题");
                 if (wide) await CheckSimpleControlMaterialAsync(page, ui);
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
+                await WaitDetailPageSizeAsync(page, width, "关闭沉浸截图前");
                 await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
                 ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(ui);
-                // 商店头部的文件选项可能让滚动内容保留上一拍宽度；切换后先等当前客户区宽落地。
-                await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
+                // 不能仅凭VM上一拍的宽度放行，实际客户区、页面和ScrollView必须同时匹配。
+                await WaitDetailPageSizeAsync(page, width, "开启沉浸后");
                 await LayoutAsync(page);
                 Require(page.ViewModel.HeroCardShown == (wide && subject?.Type == EmbyItemType.Episode && !page.ViewModel.BackdropShown),
                     "重新启用后有图沉浸或无图卡面没有恢复");
@@ -628,6 +646,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(panels.SequenceEqual(Get<StackPanel>(page, "BodySheet").Children), "外观切换重建或移动了正文实例");
                 if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
                 if (subject?.Type == EmbyItemType.Episode) RequireEpisodeSubject(page, subject);
+                await WaitDetailPageSizeAsync(page, width, "开启沉浸截图前");
                 await SaveProbeScreenAsync($"detail-immersive-enabled-{page.ViewModel.ItemType}-{width}-screen.png");
             }
         }

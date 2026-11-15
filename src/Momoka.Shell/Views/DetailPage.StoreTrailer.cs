@@ -29,6 +29,7 @@ public sealed partial class DetailPage
     private CancellationTokenRegistration _storeTrailerCancellation;
     private StoreYouTubePreview? _storeYouTube;
     private bool _storeYouTubeMuted = true;
+    private readonly StoreVideoBrush _storeVideoBrush = new();
 
     internal void SetStorePreviewActive(bool active)
     {
@@ -56,6 +57,7 @@ public sealed partial class DetailPage
         }
         if (ReferenceEquals(subject, _storeTrailerFailed)) return;
         StopStoreTrailer();
+        LayoutStoreTrailer();
         _storeTrailerSubject = subject;
         var generation = _storeTrailerGeneration;
         _storeTrailerLoad = CancellationTokenSource.CreateLinkedTokenSource(subject.Source.Lifetime);
@@ -75,8 +77,12 @@ public sealed partial class DetailPage
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
         StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(ViewModel.PageWidth);
         StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, 48, 0);
-        StoreBackdropStyle.ApplyVideo(StoreTrailerSides, StoreTrailerBottom,
-            ThemeHost.ToColor(ThemeHost.Current.Colors.Window));
+        StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
+        StoreTrailerFoundation.Background = _storeVideoBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
+            ViewModel.PageWidth, StoreTrailerHost.Width, StoreTrailerHost.Height, StoreTrailerHost.Margin.Right);
+        StoreTrailerFade.Background = _storeVideoBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
+            ViewModel.PageWidth, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height,
+            StoreTrailerHost.Margin.Right);
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
@@ -87,6 +93,8 @@ public sealed partial class DetailPage
             preview = await StoreTrailerPreview.CreateAsync(subject, token);
             if (token.IsCancellationRequested || generation != _storeTrailerGeneration
                 || !ReferenceEquals(ViewModel.CurrentItem, subject) || !ViewModel.StoreMode || !IsLoaded) return;
+            // 元数据/媒体准备期间文字列可能完成实测，首帧使用当前环境底坐标。
+            LayoutStoreTrailer();
             if (preview is null)
             {
                 var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
@@ -103,7 +111,9 @@ public sealed partial class DetailPage
                 {
                     if (token.IsCancellationRequested || generation != _storeTrailerGeneration || subject.Source?.IsAvailable != true) return;
                     if (!playing) { _storeTrailerFailed = subject; StopStoreTrailer(); return; }
+                    LayoutStoreTrailer();
                     _storeTrailerOpened = true;
+                    StoreTrailerFoundation.Visibility = Visibility.Visible;
                     StoreTrailerHost.Opacity = 1;
                     StoreTrailerControls.Visibility = Visibility.Visible;
                     StoreBackdrop.Visibility = Visibility.Collapsed;
@@ -134,7 +144,9 @@ public sealed partial class DetailPage
         {
             if (generation == _storeTrailerGeneration && IsLoaded && ViewModel.StoreMode)
             {
+                LayoutStoreTrailer();
                 _storeTrailerOpened = true;
+                StoreTrailerFoundation.Visibility = Visibility.Visible;
                 StoreTrailerHost.Opacity = 1;
                 StoreTrailerHost.Visibility = Visibility.Visible;
                 StoreTrailerControls.Visibility = Visibility.Visible;
@@ -196,7 +208,11 @@ public sealed partial class DetailPage
         _storeYouTube?.Dispose();
         _storeYouTube = null;
         StoreTrailerHost.Visibility = Visibility.Collapsed;
+        StoreTrailerFoundation.Visibility = Visibility.Collapsed;
+        StoreTrailerFoundation.Background = null;
         StoreTrailerControls.Visibility = Visibility.Collapsed;
+        _storeVideoBrush.Clear();
+        StoreTrailerFade.Background = null;
         var player = _storeTrailerPlayer;
         var element = _storeTrailerElement;
         var source = _storeTrailerSource;
@@ -228,7 +244,7 @@ public sealed partial class DetailPage
     private void OnStoreTrailerPause(object sender, RoutedEventArgs args)
     {
         _storeTrailerUserPaused = !_storeTrailerUserPaused;
-        if (_storeTrailerUserPaused) _storeTrailerPlayer?.Pause();
+        if (_storeTrailerUserPaused || _storeTrailerScrollPaused) _storeTrailerPlayer?.Pause();
         else _storeTrailerPlayer?.Play();
         _storeYouTube?.SetActive(!_storeTrailerUserPaused && !_storeTrailerScrollPaused);
         UpdateStoreTrailerControls();

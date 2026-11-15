@@ -55,6 +55,13 @@ public sealed partial class MoviePilotSubscriptionPage
     private void ApplyMaterialAppearance()
     {
         PaintStoreBackdrop();
+        var heroInk = _accessibility.HighContrast
+            ? _systemAppearance.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+            : MediaViewModel.Plain && !ThemeHost.Current.IsDark
+                ? ThemeHost.ToColor(ThemeHost.Current.Colors.Text)
+                : BrushColor("EgOnScrimBrush");
+        MediaTitle.Foreground = new SolidColorBrush(heroInk);
+        MediaMeta.Foreground = new SolidColorBrush(heroInk);
         var ui = _appearanceSettings;
         var contrast = _accessibility.HighContrast;
         var tint = contrast ? _systemAppearance.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)

@@ -27,7 +27,7 @@ internal sealed partial class ShellNavigationProbe
         {
             HomeMotion.ApplyPreference(false);
             var poster = await FixtureImageAsync(400, 600);
-            var backdrop = await StoreBackdropFixtureAsync();
+            var backdrop = await StoreBackdropFixtureAsync(ambient: true);
             var series = Series();
             series.Name = "商店详情";
             series.Overview = "首字完整。" + string.Concat(Enumerable.Repeat(ResponsiveOverview, 8));
@@ -82,7 +82,7 @@ internal sealed partial class ShellNavigationProbe
                 var pictureGap = canvas.ActualWidth - pictureBox.Right;
                 var trailerGap = canvas.ActualWidth - Bounds(trailer, canvas).Right;
                 var acrylicGap = acrylic.Visibility == Visibility.Visible
-                    ? canvas.ActualWidth - Bounds(acrylic, canvas).Right : acrylic.Margin.Right;
+                    ? canvas.ActualWidth - Bounds(acrylic, canvas).Right : pictureGap;
                 StoreDetailProbeEvidence.RequireViewport(page.ActualWidth, page.ViewModel.PageWidth,
                     DetailHero.StoreBackdropWidth(page.ActualWidth), picture.ActualWidth,
                     pictureGap, acrylicGap, trailerGap, DetailHero.StorePreviewGap);
@@ -110,6 +110,11 @@ internal sealed partial class ShellNavigationProbe
                 var ambientMask = ReadStoreMask(page, "StoreAmbientMask");
                 StoreDetailProbeEvidence.RequireMask(pictureMask);
                 StoreDetailProbeEvidence.RequireMask(ambientMask);
+                var ambientBrush = Get<Border>(page, "StoreBackdropSides").Background as ImageBrush;
+                Require(ambientBrush?.ImageSource is WriteableBitmap, "多色环境底未挂到实际页面");
+                var ambientBitmap = (WriteableBitmap)ambientBrush!.ImageSource;
+                var ambientPixels = ambientBitmap.PixelBuffer.ToArray();
+                StoreDetailProbeEvidence.RequireAmbient(ambientPixels, ambientBitmap.PixelWidth, ambientBitmap.PixelHeight);
                 var reference = new RenderTargetBitmap();
                 await reference.RenderAsync(overview);
                 var referencePixels = (await reference.GetPixelsAsync()).ToArray();
@@ -157,6 +162,18 @@ internal sealed partial class ShellNavigationProbe
             RequireStoreHeroAlignment(page);
             Require(Get<Grid>(page, "StoreBackdrop").Visibility == Visibility.Visible
                 && Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive, "回到商店模式没有恢复背景");
+            foreach (var light in new[] { true, false })
+            {
+                // 只注入有效配色，不改Windows应用模式；真实系统通知验证留在系统主题批次。
+                typeof(ThemeHost).GetMethod("ApplyResolved", System.Reflection.BindingFlags.NonPublic
+                    | System.Reflection.BindingFlags.Static)!.Invoke(null, [UiThemes.System(!light)]);
+                await LayoutAsync(page);
+                await CaptureStoreDetailFrameAsync(light ? 1241 : 1242);
+                if (light)
+                    Require(overview.Foreground is SolidColorBrush ink && ink.Color == ThemeHost.ToColor(ThemeHost.Current.Colors.Text)
+                        && Get<Button>(page, "ColumnMoreButton").Foreground is SolidColorBrush buttonInk
+                        && buttonInk.Color == ThemeHost.ToColor(ThemeHost.Current.Colors.Text), "浅色商店正文或按钮仍使用白墨");
+            }
             Require(fixture.Actions.Plays == 0 && !fixture.Transport.Requests.Any(request => request.Contains("/Playing", StringComparison.Ordinal)),
                 "商店顶部布局检查意外播放或上报");
             Require(Get<Windows.Media.Playback.MediaPlayer?>(page, "_storeTrailerPlayer") is null
