@@ -108,6 +108,8 @@ internal sealed partial class ShellNavigationProbe
         ThemeHost.Register(holder);
         try
         {
+            // 这里量出厂可调亚克力与沉浸宽窄六颗操作，商店四图标的新轻量样式由DetailCards独立核对。
+            fixture.Settings.Ui.EnableImmersive = true;
             Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, series)), "详情页导航失败");
             var detail = (DetailPage)frame.Content;
             await UntilAsync(() => detail.IsReady && detail.ViewModel.HeroImage is not null
@@ -115,7 +117,7 @@ internal sealed partial class ShellNavigationProbe
             // Validate the current factory Acrylic branch before selecting the historical
             // thin-white overlay fixture used by the exact 15/21/8 assertions below.
             await LayoutAsync(detail);
-            // 商店宽版式里主播放键被搬到封面右侧（2026-11-15 用户令），不再位于 ColumnActions。
+            Require(!detail.ViewModel.StoreMode, "出厂材质夹具未进入沉浸模式");
             var factoryPlay = Descendants(detail).OfType<Button>()
                 .Single(button => AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
             var factoryFill = (AcrylicBrush)factoryPlay.Resources["ButtonBackground"];
