@@ -156,6 +156,12 @@ namespace Momoka.Shell.Views
         internal static Task WaitForImagesAsync(object owner) => Task.CompletedTask;
     }
 
+    // 这一套夹具没有悬停面板，也就没有徽标/片名的交接；这一句什么也不接。
+    internal static class PreviewHeadingTransition
+    {
+        internal static bool Attach(object page, Momoka.Emby.EmbyItem item) => false;
+    }
+
     public sealed class PosterCard : FrameworkElement
     {
         public CardItem? Card { get; set; }

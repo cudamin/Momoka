@@ -1129,7 +1129,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
 
         ViewModel.PrepareCollectionMembers();
-        CardDetailTransition.Navigate(this, args.Action == CardAction.Details ? sender as PosterCard : null, () =>
+        var poster = args.Action == CardAction.Details ? sender as PosterCard : null;
+        PreviewHeadingTransition.Prepare(Frame, poster);
+        CardDetailTransition.Navigate(this, poster, () =>
             ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched,
                 select: SelectionCallback()));
     }

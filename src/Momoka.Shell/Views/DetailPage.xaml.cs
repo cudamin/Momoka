@@ -1841,6 +1841,8 @@ public sealed partial class DetailPage : Page, IShellContent
         _ = ViewModel.ReloadAsync();
         // Reload同步建立条目预览后接住原图，不能被Preview的尺寸初始化覆盖。
         CardDetailTransition.Attach(this, request.Item);
+        // 从悬停预览点进来时，徽标与片名从面板原位飞进这一页（2026-11-16）。
+        PreviewHeadingTransition.Attach(this, request.Item);
     }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
@@ -2017,6 +2019,7 @@ public sealed partial class DetailPage : Page, IShellContent
         StopStickyHeader();
         StopScrollReveal();
         CardDetailTransition.Release(this);
+        StopPreviewHeadingMotion();
         _trailerMenu?.Hide();
         _extraMenu?.Hide();
         StopArtworkArrival();
@@ -2575,7 +2578,9 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         var card = sender switch { PosterCard { Card: { } poster } => poster, EpisodeRow { Card: { } row } => row, _ => null };
         if (card is null) return;
-        CardDetailTransition.Navigate(this, args.Action == CardAction.Details ? sender as PosterCard : null, () =>
+        var source = args.Action == CardAction.Details ? sender as PosterCard : null;
+        PreviewHeadingTransition.Prepare(Frame, source);
+        CardDetailTransition.Navigate(this, source, () =>
             ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.CaptureCardReload(card.Item), ViewModel.CaptureRemoval(),
                 presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]));
     }

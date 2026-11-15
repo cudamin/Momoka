@@ -1,3 +1,15 @@
+## 2026-11-16 悬停面板徽标与片名飞进详情页（已合入主树，待用户实机确认）
+
+用户令：「鼠标悬浮呼出悬停页面之后，再点击下方的缩略图进入详情页时，新增徽标和片名移进详情页的动画」，随后要求「做完了自动合并到主树」。工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-hover-detail-animation-7KmvBW`，分支 `feat-hover-detail-animation-7KmvBW`，基点 `9cb1b68`，产品提交 `5ee0279`、`2c78c50`。
+
+实现：面板收起前由 `CardPreview` 量下徽标 `LogoImage` 与片名 `TitleText` 在窗口内容里的矩形（Popup 偏移加面板内位置）和片名实际字号，连同徽标已解好的 `BitmapImage` 与 `ArtworkRef` 交给 `PosterCard` 暂存；主页、媒体库、详情页三处 `CardAction.Details` 入口在导航前把交接交给 `PreviewHeadingTransition`（按 Frame 记账、700ms 超时、身份与账号 owner 核对）。详情页 `OnNavigatedTo` 在关联封面之后接住交接：先把面板手上的徽标图交给 `DetailViewModel.UseConnectedPlate`（身份核对，高清图之后照常替换），再 `SeedConnectedLayoutWidth` + `ForceConnectedLayout` 量准 `TitleText`/`TitlePlate` 落点，用 `CompositeTransform` 从面板矩形起跑（片名按字号比缩放、徽标按高度比缩放），页面 Loaded 后走 320ms `CubicEase.EaseOut` 归位并淡入；完成、离页、超时、应用或系统关动画都立即落定，元素恢复原不透明度与无变换。
+
+范围与边界：只接悬停面板的 Details 动作，普通卡片导航不接；徽标无图、未解出或图版本不符时只飞片名；标题或徽标落点量不出就整段跳过，页面照常呈现，不为动效推迟导航；返回不反向播放。
+
+验证：Shell Release **0 警告 0 错误**；`hover-preview-fixture` **19/19**、`Momoka.PageContractTests` **325/325**、DetailImageArrival **26/26**、ConnectedAnimation **63/63**、Plex **85/85**、DetailStickyHeader **92/92**、ItemUserStateOrder **76/76**、KeyboardJourney **46/46**、BrowsePresentation **32/32**、UiMotion **80/80**，全部 0 失败 0 跳过；`dotnet format whitespace` 通过。全方案构建只有三个 Python 源抽取项目因本机 PATH 没有 `py` 失败，与本改动无关，其余项目均编译成功；`DetailDeleteCommandTests` 需构建证明 JSON，未单独运行。
+
+待办：已按用户要求合入 master，未交付、未上传；用户选择保留正在运行的主树旧实例，真实悬停、点击缩略图与逐帧实屏仍待用户确认。
+
 ## 2026-11-16 交付性能定向入口（在途）
 
 检查台新增两个入口，直接调用原 PerformanceDetailScrollAsync 与 PerformanceLongSeriesAsync，保持原用例、匿名边界、60/90秒截止与p95<40ms阈值，便于保持窗口前台后定向补验。源契约新增1项；主树全方案Release0警告0错误、PageContract325/325，实际运行尚待本轮检查，不以定向入口替代全量通过。
