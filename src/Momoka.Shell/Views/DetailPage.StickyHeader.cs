@@ -67,6 +67,7 @@ public sealed partial class DetailPage
     private void ResetStickyHeader()
     {
         _headerShown = false;
+        ClearHeaderPlayMove();
         StickyHeader.IsHitTestVisible = false;
         ClearHeaderMotion();
         StickyHeader.Visibility = Visibility.Collapsed;
@@ -100,24 +101,26 @@ public sealed partial class DetailPage
     private void UpdateStickyHeader()
     {
         if (!_headerActive) return;
+        if (HeaderPlayLayoutChanged()) SettleHeaderPlayPosition();
         UpdateHeaderSize();
         var anchor = HeaderAnchor;
-        if (XamlRoot is null || Body.VerticalOffset <= 0 || Body.ActualHeight <= 0
+        if (XamlRoot is null || Body.VerticalOffset < 0 || Body.ActualHeight <= 0
+            || !ReferenceEquals(anchor.XamlRoot, XamlRoot)
             || ViewModel.PlayVisibility != Visibility.Visible || !ViewModel.PlayCommand.CanExecute(null)
             || anchor.Visibility != Visibility.Visible || anchor.ActualWidth <= 0 || anchor.ActualHeight <= 0)
         {
             HideStickyHeader(anchor, immediate: true);
             return;
         }
+        if (Body.VerticalOffset == 0)
+        {
+            HideStickyHeader(anchor, immediate: false);
+            return;
+        }
 
         Rect box;
         try
         {
-            if (!ReferenceEquals(anchor.XamlRoot, XamlRoot))
-            {
-                HideStickyHeader(anchor, immediate: true);
-                return;
-            }
             box = anchor.TransformToVisual(Body)
                 .TransformBounds(new Rect(0, 0, anchor.ActualWidth, anchor.ActualHeight));
         }
@@ -154,9 +157,17 @@ public sealed partial class DetailPage
     private void ShowStickyHeader()
     {
         if (_headerShown) return;
+        ClearHeaderPlayMove();
+        var anchor = HeaderAnchor;
+        var move = PrepareHeaderPlayMove(anchor);
         _headerShown = true;
         SyncHeaderMotion();
-        if (HeaderAnimationsEnabled)
+        if (move is not null)
+        {
+            // 关联按钮的落点不能跟随父卡片的Translation继续移动。
+            ClearHeaderMotion();
+        }
+        else if (HeaderAnimationsEnabled)
         {
             var visual = ElementCompositionPreview.GetElementVisual(StickyHeader);
             // 仅首次入场播起点；已在隐式退场中的反转由Composition接续当前帧。
@@ -170,16 +181,27 @@ public sealed partial class DetailPage
         }
         StickyHeader.IsHitTestVisible = true;
         StickyHeader.Visibility = Visibility.Visible;
+        if (move is not null) StickyHeader.UpdateLayout();
+        BeginHeaderPlayMove(move, anchor, returning: false);
     }
 
     private void HideStickyHeader(Button anchor, bool immediate)
     {
         if (!_headerShown && !immediate) return;
         _headerShown = false;
+        ClearHeaderPlayMove();
+        var move = immediate ? null : PrepareHeaderPlayMove(StickyPlayButton);
         if (XamlRoot is { } root && ReferenceEquals(FocusManager.GetFocusedElement(root), StickyPlayButton)
+            && ReferenceEquals(anchor.XamlRoot, root)
             && anchor.Visibility == Visibility.Visible && anchor.IsEnabled)
             anchor.Focus(FocusState.Keyboard);
         StickyHeader.IsHitTestVisible = false;
+        if (move is not null)
+        {
+            ClearHeaderMotion();
+            BeginHeaderPlayMove(move, anchor, returning: true);
+            return;
+        }
         if (immediate) ClearHeaderMotion();
         StickyHeader.Visibility = Visibility.Collapsed;
     }
@@ -201,22 +223,26 @@ public sealed partial class DetailPage
     {
         if (!_headerActive || !HeaderAnimationsEnabled)
         {
+            SettleHeaderPlayPosition();
             ClearHeaderMotion();
             return;
         }
+        if (_headerPlayAnimation is not null) return;
 
-        // WinUI Gallery 2.10.0（桌面exe，7b4314a）的ControlExample.xaml显示/隐藏参数。
+        // WinUI Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7
+        // Controls/ControlExample.xaml及.xaml.cs的implicit显示/隐藏接线，与原桌面2.10.0一致。
         // MIT，Copyright (c) Microsoft Corporation，许可见docs/详情悬浮卡片.md。
         // 用Translation替代样例Offset以保留XAML布局位置；去掉From让快速反向从当前帧继续。
+        // 2026-11-15用户要求开合更灵敏：显示120ms、隐藏80ms，位移与透明度一起落定，避免拖尾。
         _headerShow ??=
         [
-            new TranslationAnimation { To = "0", Duration = TimeSpan.FromMilliseconds(400), EasingMode = EasingMode.EaseOut },
-            new OpacityAnimation { To = 1, Duration = TimeSpan.FromMilliseconds(200), EasingMode = EasingMode.EaseOut },
+            new TranslationAnimation { To = "0", Duration = TimeSpan.FromMilliseconds(120), EasingMode = EasingMode.EaseOut },
+            new OpacityAnimation { To = 1, Duration = TimeSpan.FromMilliseconds(120), EasingMode = EasingMode.EaseOut },
         ];
         _headerHide ??=
         [
-            new TranslationAnimation { To = "0,-24,0", Duration = TimeSpan.FromMilliseconds(200), EasingMode = EasingMode.EaseOut },
-            new OpacityAnimation { To = 0, Duration = TimeSpan.FromMilliseconds(100), EasingMode = EasingMode.EaseOut },
+            new TranslationAnimation { To = "0,-24,0", Duration = TimeSpan.FromMilliseconds(80), EasingMode = EasingMode.EaseOut },
+            new OpacityAnimation { To = 0, Duration = TimeSpan.FromMilliseconds(80), EasingMode = EasingMode.EaseOut },
         ];
         Implicit.SetShowAnimations(StickyHeader, _headerShow);
         Implicit.SetHideAnimations(StickyHeader, _headerHide);

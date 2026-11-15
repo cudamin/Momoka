@@ -9,5 +9,6 @@
     <ItemGroup>
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.StickyHeader.cs" Link="Production\DetailPage.StickyHeader.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.StickyPlayMotion.cs" Link="Production\DetailPage.StickyPlayMotion.cs" />
     </ItemGroup>
 </Project>
