@@ -48,10 +48,12 @@
       ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="GenerateSettingsFlushSources" BeforeTargets="CoreCompile">
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)SettingsFlush.g.cs" />
+  </ItemGroup>
+  <Target Name="GenerateSettingsFlushSources" BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\App.xaml.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsWindow.cs"
+          Outputs="$(IntermediateOutputPath)SettingsFlush.g.cs">
     <ExtractSettingsFlushBoundaries Root="$(MSBuildProjectDirectory)\..\.." Output="$(IntermediateOutputPath)SettingsFlush.g.cs" />
-    <ItemGroup>
-      <Compile Include="$(IntermediateOutputPath)SettingsFlush.g.cs" />
-    </ItemGroup>
   </Target>
 </Project>

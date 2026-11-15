@@ -24,8 +24,14 @@
       ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="GeneratePlayerExitHandoff" BeforeTargets="CoreCompile">
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)PlayerExit.g.cs" />
+  </ItemGroup>
+  <!-- 生成目标带 Inputs/Outputs：源文件没变就跳过，不再每次构建都重写 .g.cs 并连带重编整个工程。
+       Compile 项移到目标外，跳过生成时文件仍在编译列表里。 -->
+  <Target Name="GeneratePlayerExitHandoff" BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PlayerPage.Transition.cs"
+          Outputs="$(IntermediateOutputPath)PlayerExit.g.cs">
     <ExtractPlayerExitHandoff Source="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PlayerPage.Transition.cs" Output="$(IntermediateOutputPath)PlayerExit.g.cs" />
-    <ItemGroup><Compile Include="$(IntermediateOutputPath)PlayerExit.g.cs" /></ItemGroup>
   </Target>
 </Project>

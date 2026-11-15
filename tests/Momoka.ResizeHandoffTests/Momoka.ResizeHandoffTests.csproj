@@ -42,8 +42,12 @@
       ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="ExtractHandoff" BeforeTargets="CoreCompile">
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)ResizeHandoff.g.cs" />
+  </ItemGroup>
+  <Target Name="ExtractHandoff" BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/PlayerPage.ClientRect.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Windowing/HostWindow.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Interop/Native.cs"
+          Outputs="$(IntermediateOutputPath)ResizeHandoff.g.cs">
     <ExtractResizeHandoff Root="$(SourceRoot)" Output="$(IntermediateOutputPath)ResizeHandoff.g.cs" />
-    <ItemGroup><Compile Include="$(IntermediateOutputPath)ResizeHandoff.g.cs" /></ItemGroup>
   </Target>
 </Project>

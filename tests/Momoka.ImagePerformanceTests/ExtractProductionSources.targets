@@ -54,11 +54,14 @@
             ]]></Code>
         </Task>
     </UsingTask>
-    <Target Name="GenerateImageProductionSources" BeforeTargets="CoreCompile">
+    <ItemGroup>
+        <Compile Include="$(IntermediateOutputPath)PerfImages\PlayerViewModel.g.cs" />
+        <Compile Include="$(IntermediateOutputPath)PerfImages\ProductionPins.g.cs" />
+    </ItemGroup>
+    <!-- 源文件与钉住的八个文件都没变时跳过生成，避免每次构建重写 .g.cs 再重编整个工程。 -->
+    <Target Name="GenerateImageProductionSources" BeforeTargets="CoreCompile"
+            Inputs="$(MSBuildThisFileFullPath);$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\PlayerViewModel.Events.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\CoverBackdropImage.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\CoverBackdropSize.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Media\HeroPictureLoader.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Media\DetailHeroCache.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Emby\EmbyImageStore.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Infrastructure\SharedWork.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Infrastructure\SharedWorkBudget.cs"
+            Outputs="$(IntermediateOutputPath)PerfImages\PlayerViewModel.g.cs;$(IntermediateOutputPath)PerfImages\ProductionPins.g.cs">
         <ExtractImageProduction Root="$(MSBuildProjectDirectory)\..\.." OutputDirectory="$(IntermediateOutputPath)PerfImages" />
-        <ItemGroup>
-            <Compile Include="$(IntermediateOutputPath)PerfImages\PlayerViewModel.g.cs" />
-            <Compile Include="$(IntermediateOutputPath)PerfImages\ProductionPins.g.cs" />
-        </ItemGroup>
     </Target>
 </Project>

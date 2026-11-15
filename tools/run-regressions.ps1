@@ -154,7 +154,8 @@ try {
         throw '输出必须是所属工作树 artifacts 下的新目录，不覆盖已有证据。'
     }
     [IO.Directory]::CreateDirectory($output) | Out-Null
-    $buildFlags = @('-m:1', '-p:BuildInParallel=false', '-p:UseSharedCompilation=false', '-p:MSBuildNodeReuse=false')
+    # 2026-11-15：改为默认并行与共享编译（全方案重编实测 7 分 22 秒 → 2 分 33 秒）。
+    $buildFlags = @()
     $hostExe = (Get-Process -Id $PID).Path
     $results = [Collections.Generic.List[object]]::new()
     $savedEnvironment = @{}

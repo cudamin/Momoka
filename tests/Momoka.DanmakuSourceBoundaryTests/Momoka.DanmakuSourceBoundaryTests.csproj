@@ -14,7 +14,9 @@
     <Compile Include="$(IntermediateOutputPath)SendProbe.g.cs" />
     <Compile Include="../../src/Momoka.Shell/ProbeReports.cs" Link="Production/ProbeReports.cs" />
   </ItemGroup>
-  <Target Name="ExtractDanmakuBoundaries" BeforeTargets="BeforeCompile">
+  <Target Name="ExtractDanmakuBoundaries" BeforeTargets="BeforeCompile"
+          Inputs="$(MSBuildThisFileDirectory)extract.py;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/DanmakuPanel.xaml.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/PlayerViewModel.DanmakuSend.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ShellNavigationProbe.DanmakuSend.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ShellNavigationProbe.cs"
+          Outputs="$(IntermediateOutputPath)Panel.g.cs;$(IntermediateOutputPath)Host.g.cs;$(IntermediateOutputPath)Settings.g.cs;$(IntermediateOutputPath)SendProbe.g.cs">
     <Exec Command="&quot;$(PythonLauncher)&quot; &quot;$(MSBuildThisFileDirectory)extract.py&quot; --output &quot;$(MSBuildProjectDirectory)/$(IntermediateOutputPath).&quot;" />
   </Target>
 </Project>

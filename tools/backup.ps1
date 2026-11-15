@@ -62,7 +62,7 @@ git：HEAD $head，工作树里有 $dirty 个文件与 HEAD 不同（这棵树�
 文件数：$($files.Count)，原始大小 $("{0:N1}" -f ($bytes / 1MB)) MB
 
 还原：把这个 zip 解压覆盖回 $root，然后
-    "%USERPROFILE%\.dotnet\dotnet.exe" build Momoka.sln -c Release -m:1
+    "%USERPROFILE%\.dotnet\dotnet.exe" build Momoka.sln -c Release
     powershell -NoProfile -ExecutionPolicy Bypass -File tools/publish.ps1
 "@
 

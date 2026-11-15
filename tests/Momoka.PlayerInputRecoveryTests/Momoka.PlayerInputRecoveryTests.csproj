@@ -34,8 +34,12 @@
       ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="ExtractRecovery" BeforeTargets="CoreCompile">
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)Recovery.g.cs" />
+  </ItemGroup>
+  <Target Name="ExtractRecovery" BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/PlayerPage.ClientRect.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/PlayerPage.Input.cs"
+          Outputs="$(IntermediateOutputPath)Recovery.g.cs">
     <ExtractInputRecovery Root="$(MSBuildProjectDirectory)/../.." Output="$(IntermediateOutputPath)Recovery.g.cs" />
-    <ItemGroup><Compile Include="$(IntermediateOutputPath)Recovery.g.cs" /></ItemGroup>
   </Target>
 </Project>

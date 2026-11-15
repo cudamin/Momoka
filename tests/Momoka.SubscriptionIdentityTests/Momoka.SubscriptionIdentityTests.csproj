@@ -14,7 +14,9 @@
     <Compile Include="$(IntermediateOutputPath)MediaRows.g.cs" />
     <Compile Include="$(IntermediateOutputPath)SubscriptionSync.g.cs" />
   </ItemGroup>
-  <Target Name="ExtractSeasonRows" BeforeTargets="BeforeCompile">
+  <Target Name="ExtractSeasonRows" BeforeTargets="BeforeCompile"
+          Inputs="$(MSBuildThisFileDirectory)extract.py;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/MoviePilotMediaViewModel.cs;$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml.cs"
+          Outputs="$(IntermediateOutputPath)MediaRows.g.cs;$(IntermediateOutputPath)SubscriptionSync.g.cs">
     <Exec Command="&quot;$(PythonLauncher)&quot; &quot;$(MSBuildThisFileDirectory)extract.py&quot; --output &quot;$(MSBuildProjectDirectory)/$(IntermediateOutputPath).&quot;" />
   </Target>
 </Project>

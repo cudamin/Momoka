@@ -50,12 +50,14 @@
     Microsoft.WindowsAppSDK.Analyzers, wired in by hand.
 
     The analyzer ships inside the winui-dev-workflow skill and is normally injected by that skill's
-    BuildAndRun.ps1 wrapper, which drives `winapp run`. This project cannot use the wrapper: gate 1 has
-    to pass -m:1 (this machine's Windows SDK workload resolver makes parallel builds fail with no
-    output at all) and `winapp run` only forwards MSBuild *properties*, not switches. winui-code-review
-    names this exact situation and gives the way out — 「to enable it outside the wrapper, add the
-    <Analyzer Include> and <Import Project> entries to the project's own Directory.Build.props」 — so
-    that is what these two lines are.
+    BuildAndRun.ps1 wrapper, which drives `winapp run`. This project cannot use the wrapper: `winapp run`
+    only forwards MSBuild *properties*, not switches, so the analyzer has to be wired here instead.
+    (This paragraph used to say gate 1 had to pass -m:1 because parallel builds failed with no output
+    on this machine; 2026-11-15 re-tested that and parallel builds now pass — standard commands use
+    the SDK defaults. That is unrelated to this hand-wiring, which is about the wrapper, not parallelism.)
+    winui-code-review names this exact situation and gives the way out — 「to enable it outside the
+    wrapper, add the <Analyzer Include> and <Import Project> entries to the project's own
+    Directory.Build.props」 — so that is what these two lines are.
 
     The payload is copied into tools/analyzers rather than referenced where the skill keeps it: a
     plugin update replaces that folder, and a build that depends on a file outside the repository is a
@@ -69,6 +71,15 @@
   -->
   <PropertyGroup>
     <MomokaAnalyzerDir>$(MSBuildThisFileDirectory)tools\analyzers\</MomokaAnalyzerDir>
+    <!--
+      2026-11-15：三个分析器只进生产工程（src 下的 Core 与 Shell），不再进 tests 下的 82 个
+      测试工程。下面那段注释从引入时起写的就是「只进 Core 与 Shell，Tests 排除」，但条件只按
+      工程名排除了 Momoka.Tests，其余测试工程每个都还在重复装载三套分析器；共享编译关闭时
+      每次构建都要为它们重新加载一遍，是空构建慢的一大块。测试工程里编译的生产源码在
+      Shell 工程本身已经带着同一批分析器编译过，这里撤掉不丢检查范围；测试自己的同步等待
+      写法本来就是分析器规则里的噪声（见下方说明）。
+    -->
+    <MomokaProjectIsTest>$([System.String]::Copy('$(MSBuildProjectDirectory)\').StartsWith('$(MSBuildThisFileDirectory)tests\', System.StringComparison.OrdinalIgnoreCase))</MomokaProjectIsTest>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('$(MomokaAnalyzerDir)Microsoft.WindowsAppSDK.Analyzers.dll')">
@@ -103,7 +114,7 @@
     版本是 2026-09-29 查的 nuget.org 最新稳定版；升级按 CLAUDE.md「依赖与分析器升级」
     一节：不进 preview，独立成轮，先 restore 再验。
   -->
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Momoka.Tests'">
+  <ItemGroup Condition="'$(MomokaProjectIsTest)' != 'true'">
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.7.23" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
     <!-- Roslynator 5.0.0：先实测后采纳（主包不含格式规则，格式辖区仍是闸门 1 的 dotnet format）。

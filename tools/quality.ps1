@@ -64,8 +64,9 @@ try {
     if (-not $SkipBuild) {
         Invoke-Step '编译（Release，0 警告 0 错误）' {
             $log = Join-Path $evidence 'build.log'
-            $buildArgs = @('build', './Momoka.sln', '-c', 'Release', '--no-restore', '-m:1',
-                '-p:BuildInParallel=false', '-p:UseSharedCompilation=false', '-p:MSBuildNodeReuse=false')
+            # 2026-11-15：不再传 -m:1 / BuildInParallel=false / UseSharedCompilation=false /
+            # MSBuildNodeReuse=false。实测全方案重编 7 分 22 秒 → 2 分 33 秒，0 警告 0 错误。
+            $buildArgs = @('build', './Momoka.sln', '-c', 'Release', '--no-restore')
             Write-Output "正在编译（Release，日志 $log）……"
             # 原生命令写到 stderr 的一行不能在 Stop 模式下变成异常；成败只看退出码与告警计数。
             $savedEa = $ErrorActionPreference

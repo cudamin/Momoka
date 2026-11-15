@@ -52,9 +52,9 @@ await Task.Delay(TimeSpan.FromSeconds(45));
 return 0;
 '@, $utf8)
 $projectFile = Join-Path $project 'SmokeFixture.csproj'
-& $dotnet restore $projectFile --disable-parallel -m:1 -p:BuildInParallel=false *> (Join-Path $root 'fixture-restore.log')
+& $dotnet restore $projectFile *> (Join-Path $root 'fixture-restore.log')
 if ($LASTEXITCODE -ne 0) { throw "隔离夹具还原失败，见 $root。" }
-& $dotnet build $projectFile -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false *> (Join-Path $root 'fixture-build.log')
+& $dotnet build $projectFile -c Release --no-restore *> (Join-Path $root 'fixture-build.log')
 if ($LASTEXITCODE -ne 0) { throw "隔离夹具构建失败，见 $root。" }
 $exe = Join-Path $project 'bin\Release\net10.0\SmokeFixture.exe'
 Check (Test-Path -LiteralPath $exe -PathType Leaf) '当前 .NET 10 隔离夹具已成功编译'

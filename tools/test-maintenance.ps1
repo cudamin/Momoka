@@ -78,7 +78,7 @@ $result = Run-Script $publish @('-NoArchive', '-DotnetPath', $fakeDotnet)
 Check ($result.ExitCode -eq 0) '发布脚本可通过隔离 SDK 夹具执行'
 $arguments = Get-Content -LiteralPath (Join-Path $fixture 'publish-args.json') -Raw | ConvertFrom-Json
 foreach ($flag in @('-m:1', '-p:BuildInParallel=false', '-p:UseSharedCompilation=false', '-p:MSBuildNodeReuse=false')) {
-    Check ($arguments -contains $flag) "发布向 SDK 传递 $flag"
+    Check ($arguments -notcontains $flag) "发布不再传递串行 $flag（2026-11-15 改默认并行）"
 }
 
 $guard = Join-Path $fixture 'guard.ps1'
