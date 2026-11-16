@@ -175,6 +175,12 @@ internal static class StoreDetailLayoutTests
                     "渐变没有用 #0C0E11 那一族墨色");
             }
             Assert.Contains("StoreShade.Visibility = StoreBackdrop.Visibility;", Source("Views/DetailPage.Store.cs"));
+            // 2026-11-16 用户令「渐变要填满左右两边」：装饰带越过 1840 内容列，用负边距铺到窗口两边。
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("var bleed = store && Body.ActualWidth > columnWidth", store);
+            Assert.Contains("? (Body.ActualWidth - columnWidth) / 2 : 0;", store);
+            Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
+            Assert.Contains("StoreShade.Margin = bleedMargin;", store);
         });
         Test("商店详情：剧情、文件选项和操作键排在封面下方", () =>
         {

@@ -369,7 +369,9 @@
                  高取环境底与视口里大的那个（MinHeight），窗口比内容高时也铺满整屏。
                  压在静图那一层上、预告片那两块之前：视频与它那排控制键不该跟着变暗。
                  颜色取固定的 #0C0E11 一家（同 HeroScrim 与主页大图），高对比度那本词典里只有画刷没有
-                 颜色键，渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。 -->
+                 颜色键，渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。
+                 2026-11-16 用户令「渐变要填满左右两边」：这一层与环境底在 DetailPage.Store.cs 里一起用
+                 负边距越过 1840 内容列，窗口再宽也横铺到两侧，不在内容列边缘截断。 -->
             <Grid x:Name="StoreShade"
                   Height="{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}"
                   MinHeight="{x:Bind ViewModel.Viewport, Mode=OneWay}"
