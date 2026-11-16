@@ -4,7 +4,9 @@
 
 **检查。** Shell Release/x64 **0 警告 0 错误**；`acrylic-controls-fixture` **40/40**、`input-theme-fixture` **29/29**；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 65 条。
 
-**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/feat-flatten-select-box-U94tr6`，分支 `feat-flatten-select-box-U94tr6`，产品与测试提交 `aaadbac`；未合并 master，未推远端。
+**发布。** 2026-11-16 22:17 执行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-flatten-select-box-U94tr6`，退出 0：548 文件、289.9 MB，发布验证通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；桌面分支快捷方式 `Momoka-feat-flatten-select-box-U94tr6.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`。本工作树根目录原缺 `libmpv-2.dll`，从主树复制同名运行时后通过；共享主树未改。
+
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/feat-flatten-select-box-U94tr6`，分支 `feat-flatten-select-box-U94tr6`，产品与测试提交 `aaadbac`，记录提交 `bf3111e`；未合并 master，未推远端。
 
 ## 2026-11-16 商店详情头部：左栏保底宽度压在剧照上、片名单行、徽标统一上限（已合并 master，未发布）
 
