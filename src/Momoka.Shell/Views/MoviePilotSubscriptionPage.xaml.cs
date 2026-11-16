@@ -20,7 +20,8 @@ internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, 
     EmbySessionScope? PlaybackScope = null, Func<MoviePilotPlaybackTarget, Task>? Play = null, Action<string>? SearchVersions = null,
     ISystemLauncher? Launcher = null, Action<MoviePilotMedia>? OpenMedia = null, MoviePilotMedia? Media = null,
     Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null,
-    Action<MoviePilotMedia>? Subscribed = null, ISettingsService? Settings = null);
+    Action<MoviePilotMedia>? Subscribed = null, ISettingsService? Settings = null,
+    Func<EmbyItem, Task>? PlayTrailer = null);
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
@@ -87,40 +88,47 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 图下沿那道黑色渐变（用户令 2026-10-13「下方组件背景也参考电影页面做下滑遮罩」）—— 同电影详情页
-    /// <c>DetailPage.BackdropFade</c> 那一支：先爬后收，最后一段压到满墨，藏住画面被截断的那条硬边。
+    /// 图下沿那道渐变 —— 与媒体详情页 <c>DetailPage.PaintBackdropFade</c> 的 <c>BackdropEdgeFade</c> 同一支：
+    /// 整张图从上面透明，最后 20% 用 smoothstep 收到主题窗口色，末色与正文纸面同色，图被视口或纸面截断时
+    /// 不再留下一条硬边。
     /// <para>
-    /// 在构造里画而不是在标记里写四个色值：这一页此前一处硬编码颜色都没有，写进去会往「Shell XAML 里的
-    /// 硬编码颜色只减不增」那条基线上加四行。停点与电影页逐档相同，色由 Core 那支墨给
-    /// （<see cref="DetailHero.ScrimInk"/>），所以两页的渐变是同一个色。
-    /// </para>
-    /// <para>
-    /// 不跟主题走：它压的是一张剧照，剧照不会因为用户挑了浅色主题就变亮（同电影页那一支，理由写在
-    /// <c>DetailHero.ScrimInk</c> 上）。
+    /// 在代码里画而不是在标记里写停点：这一页此前一处硬编码颜色都没有，写三十几个色值会往「Shell XAML 里的
+    /// 硬编码颜色只减不增」那条基线上加一大串。颜色跟主题与高对比度走（同媒体详情页）。
     /// </para>
     /// </summary>
     private void PaintBackdropFade()
     {
-        var ink = DetailHero.ScrimInk;
+        var color = _accessibility.HighContrast
+            ? _systemAppearance.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
+            : ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
         BackdropFadeBrush.GradientStops.Clear();
-        foreach (var (along, alpha) in BackdropFadeStops)
+        BackdropFadeBrush.GradientStops.Add(new GradientStop { Offset = 0, Color = Color.FromArgb(0, color.R, color.G, color.B) });
+        for (var step = 0; step <= 32; step++)
+        {
+            var t = step / 32d;
+            var alpha = (byte)Math.Round(255 * t * t * (3 - 2 * t));
             BackdropFadeBrush.GradientStops.Add(new GradientStop
             {
-                Offset = along,
-                Color = Color.FromArgb(alpha, ink.R, ink.G, ink.B)
+                Offset = 0.8 + 0.2 * t,
+                Color = Color.FromArgb(alpha, color.R, color.G, color.B)
             });
+        }
     }
-
-    /// <summary>图下沿那道渐变的停点，与 <c>DetailPage.xaml</c> 里 BackdropFade 那一支逐档相同。</summary>
-    private static readonly (double Along, byte Alpha)[] BackdropFadeStops =
-        [(0, 0x00), (0.42, 0xA6), (0.78, 0xE8), (1, 0xFF)];
 
     public object? NavigationRequest => _request is { Subscription: { } subscription } request
         ? request with { Subscription = ViewModel.Deleted ? null : ViewModel.Selected?.Subscription ?? subscription, Media = subscription.Media }
         : _request;
 
-    private void OnDetailLoaded(object sender, RoutedEventArgs args) => LiftBackdrop();
-    private void OnDetailSizeChanged(object sender, SizeChangedEventArgs args) => LiftBackdrop();
+    private void OnDetailLoaded(object sender, RoutedEventArgs args)
+    {
+        LiftBackdrop();
+        UpdateStoreTrailer();
+    }
+    private void OnDetailSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        LiftBackdrop();
+        UpdateStoreTrailer();
+    }
 
     /// <summary>
     /// 这一页看得见的那一段有多宽、多高 —— 背景那张画多高（<c>MoviePilotMediaViewModel.BackdropHeight</c>）
@@ -309,6 +317,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, request.Service)));
         MediaViewModel.Attach(request.Service, media, request.Subscription?.EpisodeGroup ?? "",
             search: (season, episode) => OpenResources(season, episode), subscribe: season => _ = ChooseSeasonsAsync(season));
+        MediaViewModel.AttachPlayback(request.PlaybackScope);
         // 只有订阅详情才接这一颗；从搜索/推荐打开的纯媒体页没有订阅，也没有可交给 AniBT 的那条路。
         MediaViewModel.AniBtSearch = request.Subscription is not null && request.SearchAniBt is not null;
         MediaViewModel.OpenMedia = request.OpenMedia;
@@ -583,6 +592,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 
     public void Release()
     {
+        _trailerMenu?.Hide();
+        StopStoreTrailer();
+        _trailerFailed = null;
         _storeAmbientBrush.Clear();
         _storeTint.Clear();
         StoreBackdropSides.Background = null;

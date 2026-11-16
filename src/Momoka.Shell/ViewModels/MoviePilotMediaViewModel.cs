@@ -145,6 +145,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 {
     private MoviePilotService? _service;
     private MoviePilotMedia? _media;
+    private EmbySessionScope? _playbackScope;
+    private EmbyItem? _trailerSubject;
+    private CancellationTokenSource? _trailerLookup;
     private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private CancellationTokenSource? _lifetime;
     private CancellationTokenSource? _groupLoad;
@@ -216,8 +219,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropVisibility))]
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreTailHeight))]
     public partial BitmapImage? Backdrop { get; set; }
     internal HeroPictureLoader.HeroPixels? BackdropPixels { get; private set; }
     public Visibility PosterEmptyVisibility => Show(Poster is null);
@@ -238,7 +243,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     public partial double BackdropRatio { get; set; } = 9d / 16;
 
@@ -249,16 +253,21 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     [NotifyPropertyChangedFor(nameof(BodySheetPadding))]
     [NotifyPropertyChangedFor(nameof(HeaderPadding))]
+    [NotifyPropertyChangedFor(nameof(StorePageWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreWide))]
+    [NotifyPropertyChangedFor(nameof(TrailerControlsRoom))]
+    [NotifyPropertyChangedFor(nameof(StoreTailHeight))]
     public partial double PageWidth { get; set; }
 
     /// <inheritdoc cref="PageWidth"/>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     public partial double Viewport { get; set; }
 
@@ -274,8 +283,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreTailHeight))]
     public partial double HeroBandHeight { get; set; }
 
     /// <summary>
@@ -301,14 +312,64 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         ? DetailHero.ImmersivePictureHeight(Viewport, HeaderLift)
         : DetailHero.PictureHeight(PageWidth, BackdropRatio, Viewport, HeroBandHeight);
 
-    /// <summary>
-    /// 图下沿那道黑色渐变摆多高 —— 盒子的下沿减去渐变自己的高，渐变钉在画面的下沿上、不钉在视口上：往下滚它
-    /// 跟着那条边待在原地，纸面盖过来把它收走（同电影详情页 <c>DetailViewModel.PictureFadeMargin</c>）。
-    /// </summary>
-    public Thickness BackdropFadeMargin => new(0, Math.Max(0, BackdropHeight - FadeHeight), 0, 0);
-
     /// <summary>头部按内容量高，背景图不会给正文增加首屏占位。</summary>
     public double HeroMinHeight => 0;
+
+    /// <summary>
+    /// 商店档的内容宽：与媒体详情页一致，超宽页面最多按 1840 排（<c>DetailPage.Store.cs</c> 同一档）。
+    /// </summary>
+    public double StorePageWidth => Plain ? Math.Min(1840, PageWidth) : PageWidth;
+
+    /// <summary>右侧剧照盒的宽 —— 同媒体详情页 <c>DetailHero.StoreBackdropWidth</c>。</summary>
+    public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(StorePageWidth);
+
+    /// <summary>右侧剧照盒的高 —— 同媒体详情页 <see cref="DetailHero.StoreBackdropHeight"/>。</summary>
+    public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(StorePageWidth, HeroBandHeight);
+
+    /// <summary>环境底取剧照盒与头部内容里更高的一个，图下沿和头部换行都不露边。</summary>
+    public double StoreAmbientHeight => Math.Max(StoreBackdropHeight, HeroBandHeight);
+
+    /// <summary>剧照、预告与亚克力视口共用的右边距，给滚动条让出 <see cref="DetailHero.StorePreviewGap"/>。</summary>
+    public Thickness StorePreviewMargin => Plain ? new(0, 0, DetailHero.StorePreviewGap, 0) : default;
+
+    /// <summary>商店宽版式：页面宽过 <see cref="DetailHero.StoreWideFloor"/> 才在右上角摆剧照／预告视口。</summary>
+    public bool StoreWide => Plain && PageWidth >= DetailHero.StoreWideFloor;
+
+    /// <summary>
+    /// 商店模式下头部尾部至少要补多高，右侧剧照／预告才不会压到下面那些卡片。
+    /// 同媒体详情页 <c>DetailViewModel.TailMinHeight</c>：内容已经高过画面时返回 0。
+    /// </summary>
+    public double StoreTailHeight => Plain && Backdrop is not null
+        ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, TrailerControlsRoom, DetailHero.StorePreviewGap)
+        : 0;
+
+    /// <summary>预告片控制排要从视口下沿再往下占的高；没有预告片或不在宽版式时为 0。</summary>
+    public double TrailerControlsRoom => TrailerSubject is not null && StoreWide
+        ? DetailHero.StoreTrailerControlsRoom : 0;
+
+    /// <summary>
+    /// 预告片那颗键只在沉浸档出现（同媒体详情页 <c>DetailViewModel.TrailerButtonVisibility</c>）：
+    /// 商店宽版式里预告片直接铺在右上角自动播放，不再给第二颗键。
+    /// </summary>
+    public Visibility TrailerButtonVisibility => Show(!Plain && TrailerSubject is not null);
+
+    /// <summary>
+    /// 订阅媒体在当前 Emby／Jellyfin 里找到的那一条（电影是电影条目、电视剧是剧条目），
+    /// 预告片从这里读；没有登录身份、来源没有可对上的提供者 ID 或库里没有这一条时为 null。
+    /// </summary>
+    public EmbyItem? TrailerSubject
+    {
+        get => _trailerSubject;
+        private set
+        {
+            if (ReferenceEquals(_trailerSubject, value)) return;
+            _trailerSubject = value;
+            OnPropertyChanged(nameof(TrailerSubject));
+            OnPropertyChanged(nameof(TrailerButtonVisibility));
+            OnPropertyChanged(nameof(TrailerControlsRoom));
+            OnPropertyChanged(nameof(StoreTailHeight));
+        }
+    }
 
     /// <summary>
     /// 设置里那条「显示模式」—— 2026-11-09 用户令「给 MP 订阅也新增沉浸模式还有简洁模式」：这一页从此和
@@ -376,7 +437,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(Plain));
         OnPropertyChanged(nameof(BackdropVisibility));
         OnPropertyChanged(nameof(BackdropHeight));
-        OnPropertyChanged(nameof(BackdropFadeMargin));
         OnPropertyChanged(nameof(HeroMinHeight));
         OnPropertyChanged(nameof(BackdropOpacity));
         OnPropertyChanged(nameof(BackdropFadeVisibility));
@@ -385,6 +445,15 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(BodySheetSpacing));
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));
+        OnPropertyChanged(nameof(StorePageWidth));
+        OnPropertyChanged(nameof(StoreBackdropWidth));
+        OnPropertyChanged(nameof(StoreBackdropHeight));
+        OnPropertyChanged(nameof(StoreAmbientHeight));
+        OnPropertyChanged(nameof(StorePreviewMargin));
+        OnPropertyChanged(nameof(StoreWide));
+        OnPropertyChanged(nameof(TrailerControlsRoom));
+        OnPropertyChanged(nameof(StoreTailHeight));
+        OnPropertyChanged(nameof(TrailerButtonVisibility));
     }
 
     /// <summary>页面内边距（<c>EgPageMargin</c>）—— 页面标记与这里读同一个资源，不在两处各写一套数。</summary>
@@ -392,9 +461,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         && app.Resources.TryGetValue("EgPageMargin", out var value) && value is Thickness margin
         ? margin
         : new(32, 28, 32, 28);
-
-    /// <summary>图下沿那道黑色渐变的高度 —— 同电影详情页 <c>DetailViewModel.PictureFadeHeight</c>。</summary>
-    private const double FadeHeight = 64;
 
     /// <summary>解出来的那张图的高宽比上屏（同电影详情页 <c>DetailViewModel.ShowHero</c> 那一手）。量不成话
     /// （0 或负）就不动兜底的那 0.5625。</summary>
@@ -488,6 +554,12 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         AniBtSearch = false;
     }
 
+    /// <summary>
+    /// 订阅详情把当前登录的 Emby／Jellyfin 身份交给这一页：预告片只从这条身份能看到的库里找，
+    /// 不跨账号、不借 MoviePilot 的连接去猜播放条目。
+    /// </summary>
+    internal void AttachPlayback(EmbySessionScope? scope) => _playbackScope = scope;
+
     internal void SyncSubscriptionIdentity(MoviePilotSubscription subscription)
     {
         if (!Live || _media is null || !MoviePilotSubscriptionPlan.SameMedia(_media, subscription.Media)
@@ -514,6 +586,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         var load = BeginLoad();
         if (!ReferenceEquals(lifetime, _lifetime) || !IsCurrent(load)) return;
         DetailError = "";
+        TrailerSubject = null;
         _firstDetailLoad = Detail is null;
         Detail = null;
         AnnounceInitialLoading();
@@ -523,6 +596,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
         _detailImages?.Cancel(); _detailImages?.Dispose();
+        _trailerLookup?.Cancel(); _trailerLookup?.Dispose(); _trailerLookup = null;
         // 图像任务晚于 Reload 完成，不能借用结束时会 Dispose 的 linked 取消链。
         _detailImages = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
         var imageToken = _detailImages.Token;
@@ -531,6 +605,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             var detail = await _service.MediaDetailAsync(_media, linked.Token);
             if (!Live || !IsCurrent(load)) return;
             Detail = detail;
+            _ = LoadTrailerSubjectAsync(detail, imageToken);
             IReadOnlyList<MoviePilotSubscription> subscriptions = [];
             try
             {
@@ -622,6 +697,41 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             catch (Exception) { }
         }
         await Task.WhenAll(LoadAsync(detail.Media.PosterUrl, false), LoadAsync(detail.Media.BackdropUrl, true));
+    }
+
+    /// <summary>
+    /// 在当前 Emby／Jellyfin 身份下按提供者 ID 找这条媒体自己的条目，供右上角预告片与沉浸档的「预告片」键使用。
+    /// <para>
+    /// MoviePilot 的媒体详情接口不带预告片数据（上游 TMDB 详情只追加 images／credits 等，没有 videos），
+    /// 所以预告片只能从媒体库这一条取：电影取电影条目、电视剧取剧条目，按提供者 ID 与类型核对。
+    /// 库里没有这一条、来源没有可对上的 ID 或身份不可用时就是 null —— 不猜一条同名条目充数。
+    /// </para>
+    /// </summary>
+    private async Task LoadTrailerSubjectAsync(MoviePilotMediaDetail detail, CancellationToken token)
+    {
+        _trailerLookup?.Cancel(); _trailerLookup?.Dispose();
+        _trailerLookup = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var lookup = _trailerLookup;
+        try
+        {
+            if (_playbackScope is not { IsCurrent: true } scope
+                || !ItemTrailers.Supports(scope.Connection.ServerKind)
+                || MoviePilotLibraryPlayback.Provider(detail.Media) is not { } provider
+                || string.IsNullOrWhiteSpace(detail.Media.MediaId)) return;
+            var series = detail.Media.Type == "电视剧";
+            var matches = await scope.ExecuteAsync((client, cancellationToken) =>
+                client.FindByProviderAsync(provider, detail.Media.MediaId!, series, cancellationToken), lookup.Token);
+            if (lookup.IsCancellationRequested || token.IsCancellationRequested
+                || !ReferenceEquals(detail, Detail) || !Live || !scope.IsCurrent) return;
+            var subject = matches.Items.FirstOrDefault(item =>
+                item.Type == (series ? EmbyItemType.Series : EmbyItemType.Movie)
+                && item.ProviderIds.Any(pair => pair.Key.Equals(provider, StringComparison.OrdinalIgnoreCase)
+                    && pair.Value == detail.Media.MediaId)
+                && ItemTrailers.HasAny(item, scope.Connection.ServerKind));
+            if (ReferenceEquals(lookup, _trailerLookup)) TrailerSubject = subject;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { if (ReferenceEquals(lookup, _trailerLookup)) TrailerSubject = null; }
     }
 
     private void FillGroups(IEnumerable<MoviePilotEpisodeGroup> groups)
@@ -947,6 +1057,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public override void Cancel()
     {
         if (_service is not null) _service.AniBtAvailabilityChanged -= OnAniBtAvailabilityChanged;
+        _trailerLookup?.Cancel(); _trailerLookup?.Dispose(); _trailerLookup = null;
+        _playbackScope = null;
+        TrailerSubject = null;
         _detailImages?.Cancel(); _detailImages?.Dispose(); _detailImages = null;
         _seasonImages?.Cancel(); _seasonImages?.Dispose(); _seasonImages = null;
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;

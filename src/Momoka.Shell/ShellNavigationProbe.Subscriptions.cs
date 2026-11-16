@@ -447,11 +447,13 @@ internal sealed partial class ShellNavigationProbe
                     .Single(row => Descendants(row).OfType<Button>().Any(button => button.Name == "MoreActions"));
                 var rowButtons = Descendants(actions).OfType<Button>().ToArray();
                 Require(rowButtons.Select(button => button.Name).SequenceEqual(
-                        new[] { "SearchSubscription", "SearchAniBt", "SearchMediaSubtitles", "ChooseSubscribeSeasons", "PlayMediaLibraryItem", "EditSubscription", "MoreActions" }),
-                    "操作排不是「搜索资源 + AniBT + 搜索字幕 + 播放 + 编辑 + 更多」：" + string.Join("、", rowButtons.Select(button => button.Name)));
+                        new[] { "SearchSubscription", "SearchAniBt", "SearchMediaSubtitles", "ChooseSubscribeSeasons", "PlayMediaLibraryItem", "PlaySubscriptionTrailer", "EditSubscription", "MoreActions" }),
+                    "操作排不是「搜索资源 + AniBT + 搜索字幕 + 播放 + 预告片 + 编辑 + 更多」：" + string.Join("、", rowButtons.Select(button => button.Name)));
                 Require(rowButtons.Select(button => button.Content as string).SequenceEqual(
-                        new[] { "搜索资源", "在 AniBT 中搜索", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "编辑订阅", null }),
+                        new[] { "搜索资源", "在 AniBT 中搜索", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "预告片", "编辑订阅", null }),
                     "操作排上的文案不对：" + string.Join("、", rowButtons.Select(button => button.Content?.ToString() ?? "（图标）")));
+                Require(Get<Button>(page, "PlaySubscriptionTrailer").Visibility == Visibility.Collapsed,
+                    "夹具没有可用的库内预告片，预告片按钮却出现了");
                 Require(Get<Button>(page, "SearchAniBt").Visibility == Visibility.Collapsed,
                     "非日本动画的订阅显示了「在 AniBT 中搜索」");
                 // 这一条同时钉住「没有片源时隐藏播放键」的另一半：夹具里有已入库且能播的集，这颗键该在。

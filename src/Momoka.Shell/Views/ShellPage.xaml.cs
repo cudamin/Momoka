@@ -974,6 +974,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     internal void ShowPlayer(bool playing)
     {
         (ContentFrame.Content as DetailPage)?.SetStorePreviewActive(!playing);
+        (ContentFrame.Content as MoviePilotSubscriptionPage)?.SetStorePreviewActive(!playing);
         _sidebarPlaying = playing;
         if (playing)
         {
@@ -1614,7 +1615,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
             SetTitleStrip: SetTitleStrip,
             SearchAniBt: SearchAniBtVersions,
             Subscribed: subscribed,
-            Settings: _services.GetRequiredService<ISettingsService>()), BrowseTransition());
+            Settings: _services.GetRequiredService<ISettingsService>(),
+            PlayTrailer: item => ((IShellActions)this).PlayAsync(item,
+                choice: new PlaybackChoice(null, null, null, false, 0) { ExactStart = true })), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();

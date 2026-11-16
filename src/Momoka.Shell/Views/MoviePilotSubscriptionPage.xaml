@@ -19,6 +19,15 @@
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
+        <!-- 预告片控制排：同媒体详情页那颗 40×40 的圆形底色键（Gallery CommandBar 样例同一档尺寸）。 -->
+        <Style x:Key="EgPreviewButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
+        </Style>
         <DataTemplate x:Key="SubscriptionFactTemplate" x:DataType="mp:MoviePilotMediaFact">
             <Border BorderThickness="{x:Bind local:MoviePilotSubscriptionPage.FactBorder(Last), Mode=OneTime}" BorderBrush="{ThemeResource EgBorderBrush}" Padding="14,8">
                 <Grid ColumnSpacing="{StaticResource EgSpaceM}">
@@ -88,8 +97,10 @@
         <Border x:Name="DetailBackdropScrim" VerticalAlignment="Top"
             Height="{x:Bind MediaViewModel.BackdropHeight, Mode=OneWay}"
             Background="{ThemeResource EgScrimBrush}" />
-        <Border x:Name="DetailBackdropFade" Height="64" VerticalAlignment="Top" IsHitTestVisible="False"
-            Margin="{x:Bind MediaViewModel.BackdropFadeMargin, Mode=OneWay}"
+        <!-- 图下沿那道渐变与媒体详情页同一条曲线：盖住整张图，只在最后 20% 由 smoothstep 收到主题窗口色，
+             末色和正文纸面同色。按 64 像素一条写死的那一版在窄窗沉浸档里收得太急，图底是一条看得见的横边。 -->
+        <Border x:Name="DetailBackdropFade" VerticalAlignment="Top" IsHitTestVisible="False"
+            Height="{x:Bind MediaViewModel.BackdropHeight, Mode=OneWay}"
             Visibility="{x:Bind MediaViewModel.BackdropFadeVisibility, Mode=OneWay}">
             <Border.Background>
                 <LinearGradientBrush x:Name="BackdropFadeBrush" StartPoint="0.5,0" EndPoint="0.5,1" />
@@ -100,6 +111,10 @@
         <Grid x:Name="StoreScrollContent">
     <!-- 商店模式的环境底与剧照分开：底是一块随剧照取色的色面（右端与底部收到画布，左端贴住内容区左沿），剧照在它上面渐隐。
          两块各有一张二维 alpha 遮罩，见 StoreBackdropFade。 -->
+    <!-- 预告片与右侧剧照共用同一个视口：视频不能经过静态图片的 VisualSurface 重定向（外部输出桥），
+         所以单独一块；底下的局部底色把这排画面与页面色接住。 -->
+    <Border x:Name="StoreTrailerFoundation" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+            IsHitTestVisible="False" Visibility="Collapsed" />
     <Grid x:Name="StoreAmbient" HorizontalAlignment="Stretch" VerticalAlignment="Top"
           IsHitTestVisible="False" Visibility="Collapsed">
         <Grid x:Name="StoreAmbientContent">
@@ -122,6 +137,22 @@
             </Grid>
         <Border x:Name="StoreBackdropMask" />
     </Grid>
+    <Grid x:Name="StoreTrailerHost" HorizontalAlignment="Right" VerticalAlignment="Top"
+          IsHitTestVisible="False" Visibility="Collapsed">
+        <Grid x:Name="StoreTrailerContent" IsHitTestVisible="False" />
+        <Border x:Name="StoreTrailerFade" Canvas.ZIndex="1" IsHitTestVisible="False" />
+    </Grid>
+    <StackPanel x:Name="StoreTrailerControls" Orientation="Horizontal" Spacing="8"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed">
+        <Button x:Name="StoreTrailerPause" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerPause"
+                AutomationProperties.Name="暂停预告片" ToolTipService.ToolTip="暂停预告片">
+            <FontIcon Glyph="&#xE769;" FontSize="{StaticResource EgBodyFontSize}" />
+        </Button>
+        <Button x:Name="StoreTrailerMute" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerMute"
+                AutomationProperties.Name="预告片静音" ToolTipService.ToolTip="预告片静音">
+            <FontIcon Glyph="&#xE74F;" FontSize="{StaticResource EgBodyFontSize}" />
+        </Button>
+    </StackPanel>
         <StackPanel>
             <!-- 简介排在操作排上方（2026-11-14 用户令「参考上图修改订阅页面的布局」：标题块底下依次是简介、
                  操作，和微软商店条目页同一条次序）。头部不再画卡面（2026-11-14 用户令「去掉订阅详情页的
@@ -196,6 +227,8 @@
                                 IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnChooseSeasons" />
                             <Button x:Name="PlayMediaLibraryItem" Content="播放已入库" Style="{StaticResource EgActionButtonStyle}"
                                 Visibility="{x:Bind ViewModel.PlayFirstVisibility, Mode=OneWay}" Command="{x:Bind ViewModel.PlayFirstCommand}" />
+                            <Button x:Name="PlaySubscriptionTrailer" Content="预告片" Style="{StaticResource EgActionButtonStyle}"
+                                Visibility="{x:Bind MediaViewModel.TrailerButtonVisibility, Mode=OneWay}" Click="OnTrailerButtonClick" />
                             <Button x:Name="EditSubscription" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" Content="编辑订阅" Style="{StaticResource EgActionButtonStyle}"
                                 IsEnabled="{x:Bind ViewModel.CanWriteSelected, Mode=OneWay}" Click="OnEdit" />
                             <Button x:Name="MoreActions" Style="{StaticResource EgRoundButtonStyle}" Click="OnMoreActions"
@@ -213,6 +246,9 @@
             <InfoBar Visibility="{x:Bind MediaViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind MediaViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind MediaViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind MediaViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind MediaViewModel.NoticeMessage, Mode=OneWay}" />
             </StackPanel>
+            <!-- 商店档的尾部留白：右侧剧照／预告比头部那一叠高时，正文纸面从画面、控制排和右沿空隙
+                 下面才开始（同媒体详情页 HeroTail.MinHeight）。沉浸档与无图时为 0，卡片照旧浮在图上。 -->
+            <Border x:Name="StoreTail" Height="{x:Bind MediaViewModel.StoreTailHeight, Mode=OneWay}" />
             </StackPanel>
             <StackPanel x:Name="BodySheet" Background="{ThemeResource EgWindowBrush}"
                 Padding="{x:Bind MediaViewModel.BodySheetPadding, Mode=OneWay}"

@@ -113,6 +113,7 @@ internal static class Program
         PosterHoverDwellTests.Register();
         DetailSectionCardTests.Register();
         StoreDetailLayoutTests.Register();
+        SubscriptionTrailerLayoutTests.Register();
         StoreTrailerWebTests.Register();
         StoreDetailProbeEvidenceTests.Register();
         ArtworkAmbientTests.Register();

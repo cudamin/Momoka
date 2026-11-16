@@ -48,6 +48,7 @@ public sealed partial class MoviePilotSubscriptionPage
         if (!_appearanceObserved || contrast == _lastHighContrast && effects == _lastAdvancedEffects) return;
         _lastHighContrast = contrast;
         _lastAdvancedEffects = effects;
+        PaintBackdropFade();
         ApplyMaterialAppearance();
     }
 
@@ -107,6 +108,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private void OnDetailViewChanged(object sender, ScrollViewerViewChangedEventArgs args)
     {
         RefreshActionInk();
+        ScrollStoreTrailer();
     }
 
     // 滚动改变按钮背后的固定画面，只重算文字颜色，不重建或重置材质。
@@ -176,6 +178,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private void OnShowcaseThemeChanged(Momoka.Theming.UiTheme theme)
     {
         RefreshPanelBrushes();
+        PaintBackdropFade();
         if (!MediaViewModel.Showcase) _sheetBrush.Color = MediaViewModel.Plain ? Microsoft.UI.Colors.Transparent : PaperColor;
         ApplyMaterialAppearance();
         ApplyPlainMica();
@@ -225,6 +228,8 @@ public sealed partial class MoviePilotSubscriptionPage
             SettleShowcase();
             ApplyMaterialAppearance();
         }
+        if (args.PropertyName is nameof(MoviePilotMediaViewModel.TrailerSubject))
+            UpdateStoreTrailer();
     }
 
     private void ApplyPlainMica()
