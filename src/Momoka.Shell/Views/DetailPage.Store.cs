@@ -16,7 +16,7 @@ public sealed partial class DetailPage
     private void PaintStoreBackdrop()
     {
         PlaceStoreComponents();
-        Overview.MaxWidth = ViewModel.StoreMode ? Math.Min(520, ViewModel.StoreContentWidth) : (double)Application.Current.Resources["EgProseWidth"];
+        Overview.MaxWidth = ViewModel.StoreMode ? Math.Min(520, ViewModel.StoreHeroWidth) : (double)Application.Current.Resources["EgProseWidth"];
         StoreBackdrop.Visibility = _actionAccessibility.HighContrast
             ? Visibility.Collapsed : ViewModel.StoreBackdropVisibility;
         // 环境底跟剧照背景同进同退：缺图、高对比度、退出商店模式都不单独留一块色。
@@ -36,8 +36,8 @@ public sealed partial class DetailPage
     public static Visibility OverviewTipVisibility(bool store, bool trimmed) =>
         store && trimmed ? Visibility.Visible : Visibility.Collapsed;
 
-    /// <summary>四个44DIP命中格共176DIP，商店封面列至少保留180DIP；无图时按钮仍可操作。</summary>
-    public static double StoreCoverColumnWidth(bool store) => store ? 180 : 0;
+    /// <summary>四个44DIP命中格共176DIP，商店封面列至少保留180DIP；无图时按钮仍可操作。片名栏的保底宽度读同一个数。</summary>
+    public static double StoreCoverColumnWidth(bool store) => store ? DetailHero.StoreCoverColumn : 0;
 
     // Gallery Samples/Grid/GridPage.xaml, v2.9.3 / 14a4a1a2: Auto行与原生Grid定位。
     // Gallery没有影视封面下操作样例；移动同一份控件，保留绑定、事件和焦点。
@@ -108,11 +108,13 @@ public sealed partial class DetailPage
             StoreShade.Margin = bleedMargin;
             StoreHeroDetails.Visibility = store ? Visibility.Visible : Visibility.Collapsed;
             StoreHeroDetails.Spacing = store ? 14 : 8;
-            HeroContent.Width = store ? ViewModel.StoreContentWidth : double.NaN;
+            // 2026-11-16 用户令「位置不够时不要裁切，直接压在背景图上」：片名栏撑到保底宽度时，
+            // 这一行跟着往右长，多出来的那一截压在右侧剧照上，不再把片名、徽标和播放键挤到被切。
+            HeroContent.Width = store ? ViewModel.StoreHeroWidth : double.NaN;
             HeroContent.HorizontalAlignment = store ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
             HeroStack.HorizontalAlignment = HorizontalAlignment.Stretch;
             HeroStack.Spacing = store ? StoreHeroStackSpacing : HeroStackSpacing;
-            TitlePlate.MaxHeight = store ? 40 : 56;
+            // 2026-11-16 用户令「徽标不要自动缩小」：商店档不再单独压到 40，与其余页面同一个 280×56 上限。
             TitlePlate.Margin = new Thickness(0, 0, 0, store ? 0 : 6);
             TitleButton.Margin = new Thickness(-8, 0, 0, store ? 4 : 12);
             StoreRatingRow.Orientation = store ? Microsoft.UI.Xaml.Controls.Orientation.Vertical : Microsoft.UI.Xaml.Controls.Orientation.Horizontal;
