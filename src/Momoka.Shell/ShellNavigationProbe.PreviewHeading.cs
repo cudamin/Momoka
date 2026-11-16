@@ -85,19 +85,29 @@ internal sealed partial class ShellNavigationProbe
             fixture.Actions.CaptureOpen = opened =>
             {
                 openCallback = true;
-                navigationSamples.Add(new { phase = "before-navigate", opened = fixture.Actions.Opened,
-                    sourceCurrent = source!.Card?.IsCurrent, frameLoaded = frame.IsLoaded,
-                    previewCapturePresent = Get<PreviewHeadingCapture?>(source, "_previewHeading") is not null });
+                navigationSamples.Add(new
+                {
+                    phase = "before-navigate",
+                    opened = fixture.Actions.Opened,
+                    sourceCurrent = source!.Card?.IsCurrent,
+                    frameLoaded = frame.IsLoaded,
+                    previewCapturePresent = Get<PreviewHeadingCapture?>(source, "_previewHeading") is not null
+                });
                 try
                 {
                     Require(source!.TakePreviewHeading() is null, "生产媒体库事件没有取走悬停交接");
                     Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, opened),
                         new SuppressNavigationTransitionInfo()), "悬停详情正式导航失败");
                     target = (DetailPage)frame.Content;
-                    navigationSamples.Add(new { phase = "after-navigate", targetLoaded = target.IsLoaded,
-                        targetRoot = target.XamlRoot is not null, flight = Get<object?>(target, "_previewHeadingFlight") is not null,
+                    navigationSamples.Add(new
+                    {
+                        phase = "after-navigate",
+                        targetLoaded = target.IsLoaded,
+                        targetRoot = target.XamlRoot is not null,
+                        flight = Get<object?>(target, "_previewHeadingFlight") is not null,
                         titleWidth = Get<TextBlock>(target, "TitleText").ActualWidth,
-                        plateSource = Get<Image>(target, "TitlePlate").Source is not null });
+                        plateSource = Get<Image>(target, "TitlePlate").Source is not null
+                    });
                     if (target.IsLoaded) Freeze(target);
                     else target.Loaded += FreezeLoaded;
                 }
@@ -135,11 +145,24 @@ internal sealed partial class ShellNavigationProbe
                 }
                 catch (TimeoutException error)
                 {
-                    var state = new { round, openedBefore = opened, openedAfter = fixture.Actions.Opened, openCallback,
-                        freezeCalled, target = target is not null, targetLoaded = target?.IsLoaded,
-                        targetRoot = target?.XamlRoot is not null, flight = target is not null && Get<object?>(target, "_previewHeadingFlight") is not null,
-                        board = board is not null, popupOpen = popup.IsOpen, sourceCurrent = source.Card?.IsCurrent,
-                        sourceCapture = capture is not null, navigationError, navigationSamples };
+                    var state = new
+                    {
+                        round,
+                        openedBefore = opened,
+                        openedAfter = fixture.Actions.Opened,
+                        openCallback,
+                        freezeCalled,
+                        target = target is not null,
+                        targetLoaded = target?.IsLoaded,
+                        targetRoot = target?.XamlRoot is not null,
+                        flight = target is not null && Get<object?>(target, "_previewHeadingFlight") is not null,
+                        board = board is not null,
+                        popupOpen = popup.IsOpen,
+                        sourceCurrent = source.Card?.IsCurrent,
+                        sourceCapture = capture is not null,
+                        navigationError,
+                        navigationSamples
+                    };
                     await WritePerformanceEvidenceAsync("preview-heading-navigation-failed.json", state);
                     throw new TimeoutException($"标题交接未完成：Opened={opened}→{fixture.Actions.Opened}，回调={openCallback}，"
                         + $"目标={target is not null}，Loaded={target?.IsLoaded}，Root={target?.XamlRoot is not null}，"
@@ -224,9 +247,15 @@ internal sealed partial class ShellNavigationProbe
         {
             var flight = Get<object?>(page, "_previewHeadingFlight");
             freezeCalled = true;
-            navigationSamples.Add(new { phase = "freeze", loaded = page.IsLoaded, root = page.XamlRoot is not null,
-                flight = flight is not null, titleWidth = Get<TextBlock>(page, "TitleText").ActualWidth,
-                plateWidth = Get<Image>(page, "TitlePlate").ActualWidth });
+            navigationSamples.Add(new
+            {
+                phase = "freeze",
+                loaded = page.IsLoaded,
+                root = page.XamlRoot is not null,
+                flight = flight is not null,
+                titleWidth = Get<TextBlock>(page, "TitleText").ActualWidth,
+                plateWidth = Get<Image>(page, "TitlePlate").ActualWidth
+            });
             if (flight is null) return;
             board = Get<Storyboard>(flight, "_board");
             board.Pause();
