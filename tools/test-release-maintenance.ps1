@@ -153,6 +153,12 @@ Check ($code -eq 0 -and $capturedShortcut.Name -eq 'Momoka-test' -and $capturedS
 $code = Invoke-Fixture 'shortcut-name-rejects-path' $packageDriver @('-Shortcut','-ShortcutName','bad/name')
 Check ($code -ne 0) 'shortcut name rejects path separators'
 
+# 已退出但内核进程对象未回收的残留不能挡住发布；真正活着或无法确认路径的进程仍须拦下。
+$publishSource = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'publish.ps1'))
+$processGuard = [regex]::Match($publishSource, '(?s)Get-Process -Name ''Momoka''.*?throw').Value
+Check ($processGuard -match '(?s)Where-Object\s*\{\s*-not\s+\$_\.HasExited\s*\}') 'exited process remnants do not block publishing'
+Check ($processGuard -match '-not \$running\.Path') 'unidentifiable live process still blocks publishing'
+
 $compose = [IO.File]::ReadAllText((Join-Path $repo 'website/docker-compose.yml'))
 foreach ($binding in @('./nginx.conf:/etc/nginx/conf.d/default.conf:ro', './dist:/usr/share/nginx/html:ro')) {
     Check ($compose.Contains($binding)) ("Compose uses uploaded project: $binding")

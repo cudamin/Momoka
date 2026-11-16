@@ -150,7 +150,9 @@ $stageRoot = Join-Path $outputRootResolved "msix-stage\$Runtime"
 
 if (-not $SkipPublish) {
     $targetExe = Join-Path $publishRoot 'Momoka.exe'
-    foreach ($running in @(Get-Process -Name 'Momoka' -ErrorAction SilentlyContinue)) {
+    # 已退出但内核进程对象还没被回收的残留不挡发布（2026-11-16：无窗口、无线程的崩溃残影
+    # 让发布一直误判“仍在运行”）。真正活着的进程照旧拦下。
+    foreach ($running in @(Get-Process -Name 'Momoka' -ErrorAction SilentlyContinue | Where-Object { -not $_.HasExited })) {
         if (-not $running.Path -or [string]::Equals($running.Path, $targetExe, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw '交付程序仍在运行或无法确认它的路径。等待占用释放后重新核对并发布；原发布目录尚未清理。'
         }
