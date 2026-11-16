@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -16,10 +17,15 @@ public sealed partial class ShellPage
     private readonly Dictionary<string, NavigationViewItem> _sidebarLibraries = new(StringComparer.Ordinal);
     private CompositeTransform? _sidebarPaneClip;
     private bool _sidebarMode;
-    private bool _sidebarWide;
     private bool _sidebarPlaying;
     private bool _sidebarTitleLayoutPending;
     private bool _syncingSidebar;
+
+    /// <summary>进侧边栏模式时还没量到宽度（Loaded 那一刻 ActualWidth 是 0），初值等窗宽稳定再定。</summary>
+    private bool _sidebarPanePending;
+
+    /// <summary>等窗宽稳定的那一拍：启动时外壳会先按上一位宽排一次，随后才收到真正的窗口尺寸。</summary>
+    private DispatcherQueueTimer? _sidebarPaneTimer;
 
     /// <summary>侧栏右沿拖动条那一趟的起点；<see cref="_resizingSidebar"/> 为假时都不看。</summary>
     private bool _resizingSidebar;
@@ -36,6 +42,10 @@ public sealed partial class ShellPage
     {
         InitializeSidebarIcons();
         Sidebar.RegisterPropertyChangedCallback(NavigationView.IsPaneOpenProperty, (_, _) => ApplySidebarLayout());
+        _sidebarPaneTimer = DispatcherQueue.CreateTimer();
+        _sidebarPaneTimer.Interval = TimeSpan.FromMilliseconds(120);
+        _sidebarPaneTimer.IsRepeating = false;
+        _sidebarPaneTimer.Tick += (_, _) => ResolvePendingSidebarMode();
         SizeChanged += (_, _) => UpdateSidebarWidth();
         SidebarResizeGrip.PointerEntered += OnSidebarResizePointerEntered;
         SidebarResizeGrip.PointerExited += OnSidebarResizePointerExited;
@@ -67,6 +77,7 @@ public sealed partial class ShellPage
         {
             ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
             DetachSidebarMotion();
+            _sidebarPaneTimer?.Stop();
             // 拖动到一半离树：不写回设置，只把状态和光标收干净（离树后框架也不会再送指针事件）。
             EndSidebarResize(persist: false);
             _sidebarResizePointerOver = false;
@@ -90,24 +101,52 @@ public sealed partial class ShellPage
             return;
         }
         _sidebarMode = !ui.EnableImmersive;
-        _sidebarWide = ActualWidth >= SidebarWideThreshold;
-        if (_sidebarMode) Sidebar.IsPaneOpen = _sidebarWide;
+        // 进入侧边栏模式时按当时的窗宽定一次初值；之后窗宽怎么变都不再改写开合
+        // （2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」）。
+        _sidebarPanePending = false;
+        _sidebarPaneTimer?.Stop();
+        if (_sidebarMode)
+        {
+            // Loaded 那一刻 ActualWidth 还是 0：初值等窗宽跳停之后再定，见 ScheduleSidebarPaneDecision。
+            if (double.IsFinite(ActualWidth) && ActualWidth > 0)
+                Sidebar.IsPaneOpen = ActualWidth >= SidebarWideThreshold;
+            else
+                _sidebarPanePending = true;
+        }
         SyncSidebar();
     }
 
+    /// <summary>
+    /// 窗宽变了只重排，不碰开合（2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」）：
+    /// 展开与收成图标栏只归标题栏那颗折叠键，窗口拉宽拉窄都把用户选的那一档原样留着。
+    /// </summary>
     private void UpdateSidebarWidth()
     {
-        var wide = ActualWidth >= SidebarWideThreshold;
-        if (_sidebarWide != wide)
-        {
-            _sidebarWide = wide;
-            Sidebar.IsPaneOpen = wide;
-        }
+        if (_sidebarPanePending) ScheduleSidebarPaneDecision();
         // 窗宽变了，能放下多宽的栏也变了：按当前窗宽重夹一次，再排按钮那一排。
         // 只动屏上的宽度，不写设置 —— 窗口拉回来时用户原来的宽度跟着回来。
         ApplyPreferredSidebarWidth();
         SyncTitleSearch();
         ApplySidebarLayout();
+    }
+
+    /// <summary>
+    /// 进侧边栏模式那一刻宽度还没量出来（启动时 Loaded 的 ActualWidth 是 0）：等窗宽跳停 120ms
+    /// 再按那时的真实窗宽定这一次初值，定完就清账。它是模式入口的初值，不是「窗口尺寸变就跟着换档」的钩子。
+    /// 启动时外壳会先按上一位宽排一次（1404／760 之类的中间值），所以不能在第一下 SizeChanged 上就吃账。
+    /// </summary>
+    private void ScheduleSidebarPaneDecision()
+    {
+        if (_sidebarPaneTimer is not { } timer) return;
+        timer.Stop();
+        timer.Start();
+    }
+
+    private void ResolvePendingSidebarMode()
+    {
+        if (!_sidebarPanePending || !double.IsFinite(ActualWidth) || ActualWidth <= 0) return;
+        _sidebarPanePending = false;
+        Sidebar.IsPaneOpen = ActualWidth >= SidebarWideThreshold;
     }
 
     /// <summary>设置里存下来的展开宽度。还没拿到设置文档（构造到 Attach 之间）时就是标记里的出厂值。</summary>
@@ -396,6 +435,9 @@ public sealed partial class ShellPage
     private void OnNavToggleClicked(object sender, RoutedEventArgs e)
     {
         if (!SidebarShown) return;
+        // 用户自己按了开关：还没落定的启动初值作废，免得那一拍回来把用户刚选的档改掉。
+        _sidebarPanePending = false;
+        _sidebarPaneTimer?.Stop();
         Sidebar.IsPaneOpen = !Sidebar.IsPaneOpen;
     }
 
