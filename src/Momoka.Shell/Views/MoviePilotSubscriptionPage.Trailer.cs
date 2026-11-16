@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -44,11 +45,32 @@ public sealed partial class MoviePilotSubscriptionPage
         if (active) UpdateStoreTrailer(); else StopStoreTrailer();
     }
 
-    /// <summary>商店档、宽版式、有图有预告、不是高对比度时才铺预览；其它情况一律收干净。</summary>
+    /// <summary>
+    /// 设置页「界面 → 预告片 → 详情页自动播放」改完当场生效：这一页若还开着，收掉或重新接上右上角那支预告。
+    /// </summary>
+    private void WatchTrailerPreferences()
+    {
+        Loaded += (_, _) =>
+        {
+            ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+            ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
+        };
+        Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+    }
+
+    private void OnTrailerPreferencesChanged(TrailerSettings preferences)
+    {
+        if (!IsLoaded) return;
+        if (DispatcherQueue.HasThreadAccess) UpdateStoreTrailer();
+        else DispatcherQueue.TryEnqueue(UpdateStoreTrailer);
+    }
+
+    /// <summary>商店档、宽版式、有图有预告、自动播放开着且不是高对比度时才铺预览；其它情况一律收干净。</summary>
     internal void UpdateStoreTrailer()
     {
         var subject = MediaViewModel.TrailerSubject;
         if (_trailerSuspended || !IsLoaded || !MediaViewModel.Plain || !MediaViewModel.StoreWide
+            || !ShellPrefs.Trailers.DetailAutoplay
             || _accessibility.HighContrast || subject is null || subject.Source?.IsAvailable != true)
         {
             StopStoreTrailer();

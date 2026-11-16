@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Shell.Media;
 using Windows.Media.Playback;
@@ -37,11 +38,33 @@ public sealed partial class DetailPage
         if (active) UpdateStoreTrailer(); else StopStoreTrailer();
     }
 
+    /// <summary>
+    /// 设置页「界面 → 预告片 → 详情页自动播放」改完当场生效：这一页在设置窗口底下若还开着，收掉或重新接上
+    /// 右上角那支预告，不用退出重进。订阅详情页走同一根线、同一个判据。
+    /// </summary>
+    private void PrepareStoreTrailerPreferences()
+    {
+        Loaded += (_, _) =>
+        {
+            ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+            ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
+        };
+        Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+    }
+
+    private void OnTrailerPreferencesChanged(TrailerSettings preferences)
+    {
+        if (!IsLoaded) return;
+        if (DispatcherQueue.HasThreadAccess) UpdateStoreTrailer();
+        else DispatcherQueue.TryEnqueue(UpdateStoreTrailer);
+    }
+
     private void UpdateStoreTrailer()
     {
         var subject = ViewModel.CurrentItem;
         var wide = ViewModel.PageWidth >= DetailHero.StoreWideFloor;
         if (_storeTrailerSuspended || !IsLoaded || !ViewModel.StoreMode || !wide || _actionAccessibility.HighContrast
+            || !ShellPrefs.Trailers.DetailAutoplay
             || subject is null || !ItemTrailers.HasAny(subject, subject.Source?.Connection.ServerKind ?? default)
             || subject.Source?.IsAvailable != true)
         {

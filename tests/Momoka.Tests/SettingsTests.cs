@@ -50,6 +50,7 @@ internal static partial class SettingsTests
         RegisterMigration();
         RegisterReviewMigration();
         RegisterNormalize();
+        RegisterTrailerSettings();
         RegisterReset();
         RegisterBackup();
         RegisterVault();
@@ -1574,6 +1575,48 @@ internal static partial class SettingsTests
     }
 
     /// <summary>
+    /// 预告片设置（2026-11-16「在设置中新增跟预告片有关的设置」）：四项出厂都开着，缺键或显式 null
+    /// 都读成出厂值，关掉之后保存重读仍是关的。
+    /// </summary>
+    private static void RegisterTrailerSettings()
+    {
+        Test("预告片设置：四项出厂开着，缺键与显式 null 读成出厂值", () =>
+        {
+            foreach (var json in new[] { "{}", """{"Trailer":null}""", """{"Trailer":{}}""" })
+            {
+                var trailer = SettingsMigration.FromJson(json, Protector).Trailer;
+                Assert.True(trailer.HoverAutoplay, $"{json}：封面悬停自动播放应出厂开着");
+                Assert.True(trailer.HoverMuted, $"{json}：悬停预告应出厂静音");
+                Assert.True(trailer.HoverLoop, $"{json}：悬停预告应出厂循环");
+                Assert.True(trailer.DetailAutoplay, $"{json}：详情页自动播放应出厂开着");
+            }
+        });
+
+        Test("预告片设置：关掉四项后保存重读保持关闭", () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-trailer-settings").FullName;
+            try
+            {
+                var paths = new AppPaths(directory);
+                var store = new SettingsStore(paths, Protector);
+                var settings = store.Load();
+                settings.Trailer.HoverAutoplay = false;
+                settings.Trailer.HoverMuted = false;
+                settings.Trailer.HoverLoop = false;
+                settings.Trailer.DetailAutoplay = false;
+                store.Save(settings);
+
+                var restored = new SettingsStore(paths, Protector).Load().Trailer;
+                Assert.False(restored.HoverAutoplay);
+                Assert.False(restored.HoverMuted);
+                Assert.False(restored.HoverLoop);
+                Assert.False(restored.DetailAutoplay);
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        });
+    }
+
+    /// <summary>
     /// 恢复默认设置。四条钉的是同一件事的四个角：该回默认的一项不漏、不该动的一项不碰、身份那一摊一个字不动，
     /// 以及子对象还是原来那几个。
     /// <para>
@@ -1616,6 +1659,11 @@ internal static partial class SettingsTests
             ui.ImageCacheMegabytes = ImageCachePolicy.MaxMegabytes;
             ui.HomeRows = [new HomeRowSetting { Key = "library:1", Title = "改过", Visible = false }];
 
+            settings.Trailer.HoverAutoplay = false;
+            settings.Trailer.HoverMuted = false;
+            settings.Trailer.HoverLoop = false;
+            settings.Trailer.DetailAutoplay = false;
+
             // 快捷键那一组只有一张字典，MutateAll 跳过字典（见它的注释），所以上面那趟反射改不到它 ——
             // 这里手动塞一条改动，好让下面「回默认＝清空」那一句不是空话（同 HomeRows 的手法）。
             settings.Shortcuts.Bindings["toggle-pause"] = "F";
@@ -1627,6 +1675,7 @@ internal static partial class SettingsTests
             AssertDefaults(settings.Video, new VideoSettings());
             AssertDefaults(settings.Audio, new AudioSettings { Volume = keptVolume });
             AssertDefaults(settings.Shaders, new ShaderAutomationSettings());
+            AssertDefaults(settings.Trailer, new TrailerSettings());
             Assert.False(settings.Shaders.Enabled, "「恢复默认」之后着色器要是关的 —— 用户 2026-09-05 定的");
 
             var fresh = new UiSettings();
@@ -1716,8 +1765,8 @@ internal static partial class SettingsTests
             // ShaderGroupResolver，AudioDeviceCatalogue 闭包着 AppSettings.Mpv，设置页每一行捕获的也是子对象
             // 本身。换成新对象的话，屏上每一行都显示成默认值，而真去放片子时一个都没变。
             var settings = SettingsMigration.NewDefaults();
-            var (mpv, playback, video, audio, shaders, ui) =
-                (settings.Mpv, settings.Playback, settings.Video, settings.Audio, settings.Shaders, settings.Ui);
+            var (mpv, playback, video, audio, shaders, trailer, ui) =
+                (settings.Mpv, settings.Playback, settings.Video, settings.Audio, settings.Shaders, settings.Trailer, settings.Ui);
 
             settings.Video.Renderer = "gpu";
             SettingsReset.Restore(settings);
@@ -1727,6 +1776,7 @@ internal static partial class SettingsTests
             Assert.True(ReferenceEquals(video, settings.Video), "Video 必须是就地改的");
             Assert.True(ReferenceEquals(audio, settings.Audio), "Audio 必须是就地改的");
             Assert.True(ReferenceEquals(shaders, settings.Shaders), "Shaders 必须是就地改的");
+            Assert.True(ReferenceEquals(trailer, settings.Trailer), "Trailer 必须是就地改的");
             Assert.True(ReferenceEquals(ui, settings.Ui), "Ui 必须是就地改的");
             Assert.Equal(new VideoSettings().Renderer, video.Renderer, "而且那个原来的对象里真的换成了默认值");
         });
@@ -1755,6 +1805,10 @@ internal static partial class SettingsTests
                 source.Ui.PageSize = 37;
                 source.Ui.AnimationsEnabled = false;
                 source.Ui.EnableImmersive = false;
+                source.Trailer.HoverAutoplay = false;
+                source.Trailer.HoverMuted = false;
+                source.Trailer.HoverLoop = false;
+                source.Trailer.DetailAutoplay = false;
                 source.Shortcuts.Bindings["toggle-pause"] = "F";
                 source.Audio.ExclusiveMode = true;
                 source.Audio.DelayMilliseconds = 250;
@@ -1784,6 +1838,7 @@ internal static partial class SettingsTests
                 Assert.Equal(37, target.Ui.PageSize);
                 Assert.False(target.Ui.AnimationsEnabled, "UI 动画偏好随备份恢复");
                 Assert.False(target.Ui.EnableImmersive, "商店模式随备份恢复并决定侧边栏");
+                AssertDefaults(target.Trailer, loaded.Trailer);
                 Assert.Equal("F", target.Shortcuts.Bindings["toggle-pause"]);
                 Assert.True(target.Audio.ExclusiveMode, "音频独占是偏好，跟着备份走");
                 Assert.Equal(250, target.Audio.DelayMilliseconds, "音频延迟是偏好，跟着备份走");
