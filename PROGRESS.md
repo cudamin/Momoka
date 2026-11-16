@@ -1,4 +1,4 @@
-﻿## 2026-11-16 商店详情三颗图标键改用音频/字幕选择框的材质底与圆角（临时分支 `branch-QKmCsQ`，已刷新分支快捷方式，待统一验证）
+﻿## 2026-11-16 商店详情三颗图标键改用音频/字幕选择框的材质底与圆角（已合并 master，待统一验证）
 
 用户（附图）：商店模式媒体详情页里「这几个按钮」加背景，用下方音频/字幕选择框一样的材质背景还有圆角。图上是片名下方那排的已看、收藏、更多三颗图标。
 
@@ -6,7 +6,7 @@
 
 **检查。** Shell Release/x64 **0 警告 0 错误**；`acrylic-controls-fixture` **40/40**、`Momoka.PageContractTests` **349/349**、`detail-action-readiness-fixture` **94/94**，均 0 失败 0 跳过；改动 C# 文件 `dotnet format whitespace --verify-no-changes` 退出 0。`acrylic-controls-fixture` 里「详情按钮不跟着翻页键换材质」一条原先按整段字面拒绝 `EgBannerPage`，被轮播商店版式的 `EgBannerPageRoundStyle` 误伤（在本批之前已是红），现按原意改成只钉 `OpenButton.Style` 不被改写，覆盖不变。
 
-**分支与快捷方式。** 产品与测试提交 `950f05c`；`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-branch-QKmCsQ` 退出 0，548 文件、289.8 MB，桌面 `Momoka-branch-QKmCsQ.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（18:40）。未合并 master，等用户要求。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图；待跑项记入[待交付批次](docs/待交付批次.md)第 55 条。
+**分支与快捷方式。** 产品与测试提交 `950f05c`、记录提交 `55ebe3b`；临时分支 `branch-QKmCsQ` 在本树验证通过后发布并刷新过分支快捷方式（548 文件、289.8 MB）。用户要求合并后以 `--ff-only` 合入 `master`（`a38e6d4` → `55ebe3b`），合并本身未跑全量验证与探针；随后删除桌面 `Momoka-branch-QKmCsQ.lnk`、该分支工作树与临时分支，本地只留 `master`；主树已按同一份最终代码重新发布（548 文件、289.8 MB）并刷新桌面 `Momoka.lnk`（18:46）。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图；待跑项记入[待交付批次](docs/待交付批次.md)第 55 条。
 
 ## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
 
