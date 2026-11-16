@@ -21,6 +21,10 @@ public sealed class EmbySessionScope
     public string ServerProfileId => IdentityState.Server.Id;
     public string AccountProfileId => IdentityState.Account.Id;
     public string ServerName => IdentityState.Server.Name;
+
+    /// <summary>这个来源的登录用户名；多账号主页与侧边栏用它标来源（用户令 2026-11-16）。</summary>
+    public string UserName => IdentityState.Account.Username is { Length: > 0 } name ? name : Connection.UserName;
+
     public string DisplayName => $"{ServerName} · {IdentityState.Account.Username}";
     public bool IsCurrent => _session.IsCurrent(this);
     public bool IsAvailable => _session.IsAvailable(this);

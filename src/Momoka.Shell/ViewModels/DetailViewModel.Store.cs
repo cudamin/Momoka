@@ -40,8 +40,26 @@ public sealed partial class DetailViewModel
     /// </summary>
     public double StoreContentWidth => Math.Max(0, PageWidth - 2 * DetailHero.StorePageInset(PageWidth)
         - (StoreMode && PageWidth >= DetailHero.StoreWideFloor ? StorePreviewWidth + 28 : 0));
+
+    /// <summary>
+    /// 片名那一栏这一次能有多宽（<c>HeroStack.MaxWidth</c>）。
+    /// <para>
+    /// 2026-11-16 用户令「位置不够时不要裁切，直接压在背景图上」：让位给右侧剧照之后放不下内容时，
+    /// 不再把这一栏压到一百来像素（片名折行、徽标缩小、播放键被切），而是撑到
+    /// <see cref="DetailHero.StoreTextFloor"/>，多出来的那一截压在剧照上。上限是整幅内容宽，
+    /// 窗口窄到连保底都放不下时收到页边为止（见 <see cref="DetailHero.StoreTextColumn"/>）。
+    /// </para>
+    /// </summary>
     public double StoreTextWidth => StoreMode
-        ? Math.Max(0, StoreContentWidth - Math.Max(180, StillWidth) - ColumnSpacing) : double.PositiveInfinity;
+        ? DetailHero.StoreTextColumn(PageWidth, StoreContentWidth, StillWidth, ColumnSpacing) : double.PositiveInfinity;
+
+    /// <summary>
+    /// 商店档头图那一行（封面 + 片名栏）这一次占多宽（<c>HeroContent.Width</c>）—— 片名栏撑到保底宽度时
+    /// 这一行跟着往右长，压在右侧剧照上；其余档仍是让位之后的内容宽。
+    /// </summary>
+    public double StoreHeroWidth => StoreMode
+        ? DetailHero.StoreHeroColumn(PageWidth, StoreContentWidth, StillWidth, ColumnSpacing) : 0;
+
     public Visibility RemainingTimeVisibility => StoreMode ? Visibility.Collapsed : ResumeVisibility;
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;
 

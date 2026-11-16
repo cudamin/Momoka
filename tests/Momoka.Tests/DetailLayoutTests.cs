@@ -18,6 +18,29 @@ internal static class DetailLayoutTests
             foreach (var width in new[] { DetailHero.StoreWideFloor, 1024d, 1072, 1240, 1840, 2560 }) Assert.Equal(96d, DetailHero.StorePageInset(width));
             Assert.Equal(1024d, DetailHero.StoreWideFloor);
         });
+        Test("商店片名栏：让位放不下时撑到保底宽度并压在剧照上，窗口再窄只收到页边", () =>
+        {
+            Assert.Equal(300d, DetailHero.StoreTextFloor);
+            Assert.Equal(180d, DetailHero.StoreCoverColumn);
+            static double Content(double width) => Math.Max(0, width - (2 * DetailHero.StorePageInset(width))
+                - (width >= DetailHero.StoreWideFloor ? Math.Min(640, width * 0.46) + 28 : 0));
+
+            // 1240：让位之后片名栏只剩两百四十来像素，撑到 300；头图那一行跟着长到 502，多出来的压在右侧剧照上。
+            Assert.Equal(300d, DetailHero.StoreTextColumn(1240, Content(1240), 180, 22));
+            Assert.Equal(502d, DetailHero.StoreHeroColumn(1240, Content(1240), 180, 22));
+            // 2400：右侧剧照封顶 640 之后放得下，片名栏不再撑到保底，头图那一行仍是让位后的内容宽。
+            Assert.Equal(1338d, DetailHero.StoreTextColumn(2400, Content(2400), 180, 22));
+            Assert.Equal(1540d, DetailHero.StoreHeroColumn(2400, Content(2400), 180, 22));
+            // 1024：断点刚过线时内容宽只剩三百出头，保底宽度顶出去 —— 但不超过整幅内容宽。
+            Assert.Equal(300d, DetailHero.StoreTextColumn(1024, Content(1024), 180, 22));
+            Assert.Equal(502d, DetailHero.StoreHeroColumn(1024, Content(1024), 180, 22));
+            // 窄档本来就把整幅宽度给内容：一个数都不动。
+            Assert.Equal(446d, DetailHero.StoreTextColumn(760, Content(760), 180, 22));
+            Assert.Equal(648d, DetailHero.StoreHeroColumn(760, Content(760), 180, 22));
+            // 更窄时连保底都放不下：收到页边为止，不顶出页面。
+            Assert.Equal(94d, DetailHero.StoreTextColumn(360, Content(360), 180, 22));
+            Assert.Equal(296d, DetailHero.StoreHeroColumn(360, Content(360), 180, 22));
+        });
         Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
         {
             Assert.Equal(768d, TrailerPreview.BackgroundWidth(1280));

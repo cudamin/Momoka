@@ -1,4 +1,28 @@
-﻿## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
+## 2026-11-16 商店详情头部：左栏保底宽度压在剧照上、片名单行、徽标统一上限（已合并 master，未发布）
+
+用户先附图（商店模式单集详情页）一句「位置不够时不要裁切，直接压在背景图上」，追问后选定「左栏保底宽度，超出压图」；随后两句「片名不要自动换行，徽标不要自动缩小」，徽标选定「回到统一上限 280×56」。截图里刚过 1024 断点的窗口上，宽版式给右侧剧照让位之后片名栏只剩一百来像素：片名折行、头上那枚徽标被压小、三颗图标和绿色播放键在栏的右沿被硬切。
+
+**宽度账。** Core 新增 `DetailHero.StoreCoverColumn`（180，`DetailPage.StoreCoverColumnWidth` 改为读它）、`StoreTextFloor`（300）与两个纯函数：`StoreTextColumn` 按「让位后的内容宽 − 封面 − 栏距」给片名栏，窄过保底就撑到 300，上限是整幅内容宽（不扣剧照视口），窗口再窄只收到页边；`StoreHeroColumn` 让头图那一行（封面 + 片名栏）跟着长，最多到「页宽 − 两侧留白」。视图模型新增 `StoreHeroWidth`，`StoreTextWidth` 改走纯函数，页宽与封面宽变化都通知它；`DetailPage.Store.cs` 的 `HeroContent.Width` 从 `StoreContentWidth` 换成 `StoreHeroWidth`，多出来的那一截压在右侧剧照上。商店简介的 `MaxWidth` 也从 `StoreContentWidth` 换成 `StoreHeroWidth`（仍封顶 520），免得正文比头上那一行还窄。
+
+**片名与徽标。** `TitleText` 的 `MaxLines` 2 → 1（仍 `Wrap` + `CharacterEllipsis`，放不下时一行省略号收尾，不折两行）；删除商店档单独的 `TitlePlate.MaxHeight = 40`，回到 XAML 的 280×56 上限 —— 片名栏保底 300 之后徽标不再随栏缩小，也就不需要另给尺寸。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`episode-display-fixture`（含 `DetailLayoutTests`）**33/33**，新增「商店片名栏：让位放不下时撑到保底宽度并压在剧照上，窗口再窄只收到页边」覆盖 1240／2400／1024／760／360 五档；`detail-action-readiness-fixture` **94/94**（商店模式宽度用例改按 `StoreTextColumn`／`StoreHeroColumn` 核对，并断言 `StoreHeroWidth` 有通知）；`Momoka.PageContractTests` **350/350**（新增「详情头部：片名单行不折、徽标不随商店档缩小、片名栏保底宽度压在剧照上」）；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 62 条。
+
+**分支与快捷方式。** 产品与测试提交 `871a2e7`、记录 `89a418e`／`1b6e596`；分支 `feat-no-crop-overlay-1Oz1rR`（工作树 `fix-play-button-mismatch-XgFUII/feat-no-crop-overlay-1Oz1rR`）。2026-11-16 用户要求合并，以合并提交 `e7f80f0` 并入 `master`（与主树第 59～61 项整合，冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边，本批编号顺延为 62）；合并后删除分支快捷方式 `Momoka-feat-no-crop-overlay-1Oz1rR.lnk`、临时分支与工作树。主树未重新发布，`Momoka.lnk` 仍指旧构建；合并本身未跑全量验证与探针；未推远端。
+
+## 2026-11-16 聚合模式主页与侧边栏来源改标账号用户名（待合并 master）
+
+用户令（附截图）：「开启聚合模式时 主页的标题改为 用户名·最近添加·电视节目 侧边栏为 用户名·电视界面」。追问确认：前缀取账号用户名；主页三处（货架标题、媒体库卡片、继续观看卡第三行）一起换；侧边栏每个库项写「用户名 · 库名」；媒体库悬停预览不再单独显示服务器名副标题。
+
+**改了什么。** Core 的 `EmbySessionScope` 新增 `UserName`（账号登录名，空时回退连接的 `UserName`）；`SourceCaption.Prefix` 从服务器名改为账号用户名，`Append` 仍写服务器名，版本选择规则不变。`HomeViewModel.ShowServerNames` 改名 `ShowAccountNames`，两个及以上在线账号时主页三处与飞牛目录更新使用同一份前缀。侧边栏 `RebuildSidebarLibraries` 的库项文字、读屏名和悬停预览标题改用「用户名 · 库名」；预览副标题（服务器名）收起。单账号仍不写前缀。`docs/多服务器与多账号.md` 同步。
+
+**检查。** Shell Release/x64 0 警告 0 错误；主测试 5184 项 5183 通过、1 红为既有「本地监控：回环网络共享上的新建文件自动改名」（与本次改动无关）；`Momoka.SidebarPreviewTests` 34/34；`Momoka.PageContractTests` 349/349（分支基点）；`Momoka.HomeOrderProbeTests` 21/21；改动文件 `dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。日常 UI 批次未跑原生探针与实屏。
+
+**分支与快捷方式。** 产品与测试提交 `e2ff6f3`、记录 `14949f1`；分支 `feat-aggregate-mode-ui-GzuirD`，工作树 `c:/Users/89400/.trae-cn/worktrees/fix-play-button-mismatch-XgFUII/feat-aggregate-mode-ui-GzuirD`。未发布、未推远端；分支快捷方式未建。
+
+**边界。** 未在真实多账号服务器上实屏核对；待交付项记入[待交付批次](docs/待交付批次.md)第 61 条。
+
+## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
 
 用户一句：「拉动窗口的时候侧边栏不要自动展开或者收起」。此前窗口宽度跨过 1008 DIP 会把栏在「展开 256」与「图标栏 56」之间自动换档；现在窗口拉宽拉窄只重排（重夹栏宽、标题搜索框、内容区让位），开合只归标题栏那颗折叠键。
 
@@ -14355,8 +14379,8 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 工作树 `feat-modify-settings-autostart-about-iyVap2`，分支同名。用户令两条：「参考上图修改新增设置中的相关功能」「设置中的开机自启移动到关于中」。图是 Windows 个性化页的三行；经询问确认选择「三项都新增、保留现有色板」「浅色用现有系统浅色配色」「关于下新建启动卡」。产品改动：`UiSettings` 新增 `AppearanceMode`（dark/light/system，默认 dark，缺键旧文件保持原样）、`AccentColor`（#RRGGBB，空＝跟随系统主题色）、`TransparencyEffects`（默认开）；`UiThemes.Compose` 在五套固定深色＋跟随系统之上合成实际深浅与强调色（空值时用 Windows 个性化里的 `UIColorType.Accent`），`SystemThemeWatcher` 同时读系统主题色并在 `ColorValuesChanged` 后重算，浅色档复用 `System(false)`，`WithAccent` 按原推导重算悬停/按下/浅底/字色；`SettingsMigration.Normalize` 收口三格，旧文件缺 `AppearanceMode` 且色板是「跟随系统」时补成 system（否则升级后会从跟随系统变成固定深色），显式写下的值不再改写。`ThemeHost` 新增按 `UiSettings` 应用、模式或主题色跟随系统时观察 Windows、透明效果关掉时整窗画布与侧栏 alpha 255、亚克力 `AlwaysUseFallback`；主窗口 `HostWindow` 与设置窗口在 `ThemeHost.Changed` 里重挂/撤除 Mica，DWM 非客户区同步 `DWMSBT_NONE`。设置界面卡新增「选择模式」「透明效果」；主题色做成色板最后一格（不再是单独一行），五套固定色板保留，原「跟随系统」格撤掉（选择模式负责）。「开机自启」从界面卡搬进关于分类新卡「启动」，自检、settings 探针与源码提取门控同步改到关于分类。
 
-本轮已跑 Shell Release 0 警告 0 错误；`Momoka.Tests` x64 Release 0 警告 0 错误，默认套件 5178 项 5174 通过、4 红：两项 `C:\WINDOWS\TEMP` 下载环境拒绝、一项 MoviePilot 图片夹具监听器取消的 SocketException、一项 `主页轮播：详情按钮不跟着翻页键换材质` 源码红（HomeBanner 的 `EgBannerPageRoundStyle`，本批未触碰该文件，属既有红）；新增 `规整：选择模式与主题色只留认得的值`、`设置：旧文件选跟随系统主题时补成跟随系统模式`、`选择模式：…`、`主题色：覆盖强调色一族` 全绿（`settings-storage-fixture` 186/186）。`settings-page-state-fixture` 59/59、`startup-state-contract-fixture` 61/61、`Momoka.SystemThemeTests` 9/9（新增透明效果画布/侧栏/回退与系统主题色跟随断言）、`Momoka.SettingsLifetimeTests` 63/63、`Momoka.SettingsAppearanceTests` 47/47、`Momoka.SettingsPersistenceTests` 42/42、`Momoka.SettingsProbeContractTests` 36/36、`Momoka.PageContractTests`、`Momoka.ArchitectureTests`、`Momoka.AppearanceOpacityTests` 均通过；改动文件 `dotnet format whitespace` 与 `scan-automation-ids.js` 退出 0。按日常界面规则未跑原生探针与验收截图；深浅模式、主题色与透明效果的真实屏幕观感、设置页/主页/详情各表面、Mica 撤除后的 DWM 边框、跟随系统切换与高对比度均待统一验证。台账新增第61项。
+本轮已跑 Shell Release 0 警告 0 错误；`Momoka.Tests` x64 Release 0 警告 0 错误，默认套件 5178 项 5174 通过、4 红：两项 `C:\WINDOWS\TEMP` 下载环境拒绝、一项 MoviePilot 图片夹具监听器取消的 SocketException、一项 `主页轮播：详情按钮不跟着翻页键换材质` 源码红（HomeBanner 的 `EgBannerPageRoundStyle`，本批未触碰该文件，属既有红）；新增 `规整：选择模式与主题色只留认得的值`、`设置：旧文件选跟随系统主题时补成跟随系统模式`、`选择模式：…`、`主题色：覆盖强调色一族` 全绿（`settings-storage-fixture` 186/186）。`settings-page-state-fixture` 59/59、`startup-state-contract-fixture` 61/61、`Momoka.SystemThemeTests` 9/9（新增透明效果画布/侧栏/回退与系统主题色跟随断言）、`Momoka.SettingsLifetimeTests` 63/63、`Momoka.SettingsAppearanceTests` 47/47、`Momoka.SettingsPersistenceTests` 42/42、`Momoka.SettingsProbeContractTests` 36/36、`Momoka.PageContractTests`、`Momoka.ArchitectureTests`、`Momoka.AppearanceOpacityTests` 均通过；改动文件 `dotnet format whitespace` 与 `scan-automation-ids.js` 退出 0。按日常界面规则未跑原生探针与验收截图；深浅模式、主题色与透明效果的真实屏幕观感、设置页/主页/详情各表面、Mica 撤除后的 DWM 边框、跟随系统切换与高对比度均待统一验证。台账新增第63项。
 
 改好收尾已运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-modify-settings-autostart-about-iyVap2`：发布 548 文件 / 289.8 MB 到本树 `artifacts/publish/win-x64`，桌面快捷方式 `Momoka-feat-modify-settings-autostart-about-iyVap2.lnk` 指向该 exe（19:11 生成）；这不是统一验证或销账。补记：第二次默认套件重跑时另一工作树 `fix-sidebar-resize-toggle-Kmw8SH` 的 Momoka 进程正持有自检锁，16 项自检用例报「已有当前用户的自检运行中」而红；未结束他人进程，不把这次环境占用当作产品通过或失败，也未以放宽基线洗绿。
 
-同日追加（用户令「感觉这个有点重复了，把图二的卡片改为主题色选择功能」「改为跟随系统主题色」）：主题那一行只保留五套固定色板，「跟随系统」格撤掉（选择模式已经有），最后一格改为主题色按钮 —— 底色直接用主题角色 `EgAccentBrush`、字用 `EgTextOnAccentBrush`，点开是 HTML 拾色器，清除即跟随系统主题色；界面卡里原先单独的主题色行随之撤掉，避免两个入口。`SettingThemeRow` 增加 `ThemeAccentSwatch.Tiles` 与 `ThemeTileSelector`，旧文件 `Theme=system` 时色板角标不落（由选择模式表示跟随）。`settings-page-state-fixture` 59/59（新增「主题色格：选色写回一次并保存，清除后显示跟随系统」），`system-theme-fixture` 62/62（新增「主题色：未自定义时跟随系统主题色，自定义优先」），`Momoka.SystemThemeTests` 9/9（新增系统色变化重算与自定义优先），Shell Release 0 警告 0 错误；此追加尚未跑原生探针与截图，已并入第61项交付范围。
+同日追加（用户令「感觉这个有点重复了，把图二的卡片改为主题色选择功能」「改为跟随系统主题色」）：主题那一行只保留五套固定色板，「跟随系统」格撤掉（选择模式已经有），最后一格改为主题色按钮 —— 底色直接用主题角色 `EgAccentBrush`、字用 `EgTextOnAccentBrush`，点开是 HTML 拾色器，清除即跟随系统主题色；界面卡里原先单独的主题色行随之撤掉，避免两个入口。`SettingThemeRow` 增加 `ThemeAccentSwatch.Tiles` 与 `ThemeTileSelector`，旧文件 `Theme=system` 时色板角标不落（由选择模式表示跟随）。`settings-page-state-fixture` 59/59（新增「主题色格：选色写回一次并保存，清除后显示跟随系统」），`system-theme-fixture` 62/62（新增「主题色：未自定义时跟随系统主题色，自定义优先」），`Momoka.SystemThemeTests` 9/9（新增系统色变化重算与自定义优先），Shell Release 0 警告 0 错误；此追加尚未跑原生探针与截图，已并入第63项交付范围。

@@ -481,6 +481,12 @@ public sealed partial class ShellPage
     }
 
     /// <summary>
+    /// 两个及以上在线账号时，栏里的库项要写账号用户名（用户令 2026-11-16：聚合模式下侧边栏为
+    /// 「用户名 · 库名」）。只有一个账号时不写 —— 多出来的用户名不区分任何东西。
+    /// </summary>
+    private bool ShowsAccountNames => _session is { IsSignedIn: true } session && session.Sources.Count > 1;
+
+    /// <summary>
     /// 把当前账号的媒体库那几项填进栏里。**插在「媒体库」那条分区标题之后**，不是往栏尾加 ——
     /// 栏尾自 2026-10-13 起站着「订阅」那一段（两条 MoviePilot 入口），往尾上添会把媒体库塞进订阅段里，
     /// 而用户要的是两段各归各的（见 ShellPage.xaml 里那两条标题上方的注释）。声明顺序本来就是
@@ -499,9 +505,10 @@ public sealed partial class ShellPage
         var at = Sidebar.MenuItems.IndexOf(SidebarLibrariesHeader) + 1;
         foreach (var (tag, library) in _libraries)
         {
+            var label = SourceCaption.Prefix(library.Title, library.Source, ShowsAccountNames);
             var item = new NavigationViewItem
             {
-                Content = library.Title,
+                Content = label,
                 Tag = tag
             };
             RegisterSidebarLibraryIcon(item, library.CollectionType);
@@ -516,7 +523,7 @@ public sealed partial class ShellPage
                 Padding = new Thickness(0)
             });
             AutomationProperties.SetAutomationId(item, "SidebarLibrary_" + library.ParentId);
-            AutomationProperties.SetName(item, library.Title);
+            AutomationProperties.SetName(item, label);
             item.PointerEntered += OnSidebarLibraryPointerEntered;
             item.PointerExited += OnSidebarLibraryPointerExited;
             item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);

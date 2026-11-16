@@ -193,6 +193,28 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
         });
+        Test("详情头部：片名单行不折、徽标不随商店档缩小、片名栏保底宽度压在剧照上", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            XElement Named(string name) => page.Descendants()
+                .Single(element => (string?)element.Attribute(X + "Name") == name);
+
+            // 2026-11-16 用户令「片名不要自动换行」：一行到底，放不下时省略号收尾。
+            var title = Named("TitleText");
+            Assert.Equal("1", (string?)title.Attribute("MaxLines"));
+            Assert.Equal("CharacterEllipsis", (string?)title.Attribute("TextTrimming"));
+            // 2026-11-16 用户令「徽标不要自动缩小」：与其余页面同一个 280×56 上限，商店档不再单独压到 40。
+            var plate = Named("TitlePlate");
+            Assert.Equal("56", (string?)plate.Attribute("MaxHeight"));
+            Assert.Equal("280", (string?)plate.Attribute("MaxWidth"));
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.False(store.Contains("TitlePlate.MaxHeight = store ? 40 : 56", StringComparison.Ordinal),
+                "商店档仍把徽标单独压到 40");
+            // 2026-11-16「位置不够时不要裁切，直接压在背景图上」：头图那一行按保底宽度的片名栏重算。
+            Assert.Contains("HeroContent.Width = store ? ViewModel.StoreHeroWidth : double.NaN;", store);
+            Assert.Contains("Math.Min(520, ViewModel.StoreHeroWidth)", store);
+            Assert.Contains("{x:Bind ViewModel.StoreTextWidth, Mode=OneWay}", (string?)Named("HeroStack").Attribute("MaxWidth"));
+        });
         Test("商店详情：剧情、文件选项和操作键排在封面下方", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

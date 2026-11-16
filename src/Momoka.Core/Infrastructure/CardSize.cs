@@ -79,7 +79,7 @@ public static class CardSize
     public const int Chrome = 59;
 
     /// <summary>
-    /// 第三行来源文字的额外高度。多账号主页的继续观看卡在季集那一行下面再写一行服务器名，这一排的
+    /// 第三行来源文字的额外高度。多账号主页的继续观看卡在季集那一行下面再写一行账号用户名，这一排的
     /// <c>RowHeight</c> 要把它算进去，否则末行会被下一排压掉。
     /// </summary>
     public const int SourceLine = 18;

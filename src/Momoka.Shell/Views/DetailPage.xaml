@@ -787,11 +787,13 @@
                                          轮播那一支（52，和轮播上那个片名同一个键）：长片名折两行时，Bahnschrift 的行距
                                          装不下雅黑的字，两行直接叠在一起（见 Styles.xaml 上那个键）。 -->
                                     <Grid>
+                                    <!-- 2026-11-16 用户令「片名不要自动换行」：一行到底，放不下时省略号收尾 ——
+                                         从前 MaxLines=2，商店档左栏被挤窄时片名折成两行，和下面几行读成一团。 -->
                                     <TextBlock
                                         x:Name="TitleText"
                                         Style="{StaticResource EgHeroTitleStyle}"
                                         Margin="0,2,0,-14"
-                                    MaxLines="2"
+                                    MaxLines="1"
                                     Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                                     TextTrimming="CharacterEllipsis"
                                     TextWrapping="Wrap" />
