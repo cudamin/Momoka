@@ -1,4 +1,14 @@
-﻿## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
+﻿## 2026-11-16 商店详情三颗图标键改用音频/字幕选择框的材质底与圆角（临时分支 `branch-QKmCsQ`，已刷新分支快捷方式，待统一验证）
+
+用户（附图）：商店模式媒体详情页里「这几个按钮」加背景，用下方音频/字幕选择框一样的材质背景还有圆角。图上是片名下方那排的已看、收藏、更多三颗图标。
+
+**外观。** `EgStoreCoverActionButtonStyle` 从平台 `SubtleButtonStyle`（透明常态）改回 `DefaultButtonStyle`：常态与悬停／按压读 `ControlBackgroundBrushes` 构造时种进按钮局部资源的 `ButtonBackground*`，与下方六颗闭合选择框共用同一支固定面色（`EgStoreControlBrush` 的 12%／20%／8%／5% 四档，商店档由 `ApplyAppearance` 涂上）；`ApplyAppearance` 不再跳过这三颗（`IsStoreCoverAction` 只留给探针分组与断点图标墨色判断）。圆角取 `EgDetailPickerCornerRadius`（12），与选择框同一档；三颗仍是 44 DIP 无边框方形命中格，平台模板保留悬停、按下、焦点与键盘入口。退出商店模式仍按原次序回到 `ColumnActionRow`，样式与材质画刷一并还原。`DetailPage.Store.cs` 在商店档把种下的 `ButtonBackground` 重新挂回常态，不再 `ClearValue`。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`acrylic-controls-fixture` **40/40**、`Momoka.PageContractTests` **349/349**、`detail-action-readiness-fixture` **94/94**，均 0 失败 0 跳过；改动 C# 文件 `dotnet format whitespace --verify-no-changes` 退出 0。`acrylic-controls-fixture` 里「详情按钮不跟着翻页键换材质」一条原先按整段字面拒绝 `EgBannerPage`，被轮播商店版式的 `EgBannerPageRoundStyle` 误伤（在本批之前已是红），现按原意改成只钉 `OpenButton.Style` 不被改写，覆盖不变。
+
+**分支与快捷方式。** 产品与测试提交 `950f05c`；`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-branch-QKmCsQ` 退出 0，548 文件、289.8 MB，桌面 `Momoka-branch-QKmCsQ.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（18:40）。未合并 master，等用户要求。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图；待跑项记入[待交付批次](docs/待交付批次.md)第 55 条。
+
+## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
 
 用户两句：截图（商店模式单集详情页）上「左边和左上角再叠一层淡淡的深色渐变，跟随窗口大小拉长」；「媒体详情页下方的卡片往上移，但是不要压在背景图上」，随后两句「参考订阅详情页的间距进行修改」「卡片接在背景图下方，留一点点空隙即可」。
 
