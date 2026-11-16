@@ -1,3 +1,15 @@
+## 2026-11-16 聚合模式主页与侧边栏来源改标账号用户名（待合并 master）
+
+用户令（附截图）：「开启聚合模式时 主页的标题改为 用户名·最近添加·电视节目 侧边栏为 用户名·电视界面」。追问确认：前缀取账号用户名；主页三处（货架标题、媒体库卡片、继续观看卡第三行）一起换；侧边栏每个库项写「用户名 · 库名」；媒体库悬停预览不再单独显示服务器名副标题。
+
+**改了什么。** Core 的 `EmbySessionScope` 新增 `UserName`（账号登录名，空时回退连接的 `UserName`）；`SourceCaption.Prefix` 从服务器名改为账号用户名，`Append` 仍写服务器名，版本选择规则不变。`HomeViewModel.ShowServerNames` 改名 `ShowAccountNames`，两个及以上在线账号时主页三处与飞牛目录更新使用同一份前缀。侧边栏 `RebuildSidebarLibraries` 的库项文字、读屏名和悬停预览标题改用「用户名 · 库名」；预览副标题（服务器名）收起。单账号仍不写前缀。`docs/多服务器与多账号.md` 同步。
+
+**检查。** Shell Release/x64 0 警告 0 错误；主测试 5184 项 5183 通过、1 红为既有「本地监控：回环网络共享上的新建文件自动改名」（与本次改动无关）；`Momoka.SidebarPreviewTests` 34/34；`Momoka.PageContractTests` 349/349（分支基点）；`Momoka.HomeOrderProbeTests` 21/21；改动文件 `dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。日常 UI 批次未跑原生探针与实屏。
+
+**分支与快捷方式。** 产品与测试提交 `e2ff6f3`；分支 `feat-aggregate-mode-ui-GzuirD`，工作树 `c:/Users/89400/.trae-cn/worktrees/fix-play-button-mismatch-XgFUII/feat-aggregate-mode-ui-GzuirD`。未发布、未推远端；分支快捷方式未建。
+
+**边界。** 未在真实多账号服务器上实屏核对；待交付项记入[待交付批次](docs/待交付批次.md)第 61 条。
+
 ## 2026-11-16 详情悬浮栏：播放键与正文统一、补资料行、留白跟随卡片（待合并 master）
 
 用户三句：「修复悬浮上的播放按钮与实际播放按钮不同的问题」（追问确认「实际」指详情页主播放键，要求整套外观统一）；「另外收窄一点悬浮栏，然后再给悬浮栏上点东西，评分、类型、播出日期、时长啥的」（追问确认资料合并进副标题行）；先按最大宽度 1040 收窄被否（「你这也太窄了，改回去吧」），随后定稿「改成比商店模式下面卡片稍窄的样式，沉浸模式同步」。
