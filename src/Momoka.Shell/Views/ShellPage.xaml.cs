@@ -694,6 +694,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             {
                 case DetailPage detail: detail.AttachWindow(window); break;
             }
+            // 主页底部是一条空带，栏下面没有内容要压：胶囊底去掉，只留控件；其余页面仍是一块压在内容上的玻璃。
+            MusicBar.ShowSurface(ContentFrame.Content is not HomePage);
             // 进出音乐页要重算播放栏的让位方式：音乐页滚动区自留避让，其余页面外壳预留。
             PlaceMusicBar();
         };

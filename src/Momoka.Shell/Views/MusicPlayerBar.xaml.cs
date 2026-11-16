@@ -31,6 +31,8 @@ public sealed partial class MusicPlayerBar : UserControl
         SeekSlider.KeyUp += async (_, _) => { if (_attached) await ViewModel.SeekAsync(SeekSlider.Value); };
     }
     public static string FavoriteLabel(bool value) => value ? "取消收藏" : "收藏歌曲";
+    /// <summary>主页底部那一条是空底：栏只留控件，不铺胶囊；压在封面上的页面仍用玻璃。</summary>
+    internal void ShowSurface(bool show) => SurfaceGlass.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
     public Geometry ShuffleGeometry => IconGeometry("ShuffleData");
     public Geometry FavoriteGeometry(bool value) => IconGeometry(value ? "HeartFilledData" : "HeartData");
     public Geometry RepeatGeometry(string label) => IconGeometry(label == "单曲循环" ? "RepeatOneData" : "RepeatData");
@@ -85,9 +87,12 @@ public sealed partial class MusicPlayerBar : UserControl
         CoverFrame.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
         ClockPanel.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         BarGrid.ColumnSpacing = narrow ? 4 : 12;
-        Surface.Padding = new Thickness(narrow ? 6 : 12, 8, narrow ? 6 : 12, 8);
+        // 第二行只在窄窗用。宽窗它空着，间距却照算，整排键因此被顶到胶囊中线之上 4 —— 空行不该留间距。
+        BarGrid.RowSpacing = narrow ? 8 : 0;
+        BarGrid.Margin = new Thickness(narrow ? 6 : 12, 8, narrow ? 6 : 12, 8);
         // 正常窗宽两端保持半圆；两行窄窗用24圆角，避免切掉边缘按钮。
         Surface.CornerRadius = new CornerRadius(narrow ? 24 : args.NewSize.Height / 2);
+        SurfaceGlass.CornerRadius = Surface.CornerRadius;
         Grid.SetColumn(TrackInfo, narrow ? 0 : 2);
         Grid.SetColumnSpan(TrackInfo, narrow ? 4 : 1);
         Grid.SetRow(TrackInfo, 0);
