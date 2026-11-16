@@ -10,7 +10,7 @@
 
 **分支与快捷方式。** 产品与测试提交 `871a2e7`、记录 `89a418e`／`1b6e596`；分支 `feat-no-crop-overlay-1Oz1rR`（工作树 `fix-play-button-mismatch-XgFUII/feat-no-crop-overlay-1Oz1rR`）。2026-11-16 用户要求合并，以合并提交 `e7f80f0` 并入 `master`（与主树第 59～61 项整合，冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边，本批编号顺延为 62）；合并后删除分支快捷方式 `Momoka-feat-no-crop-overlay-1Oz1rR.lnk`、临时分支与工作树。主树未重新发布，`Momoka.lnk` 仍指旧构建；合并本身未跑全量验证与探针；未推远端。
 
-## 2026-11-16 聚合模式主页与侧边栏来源改标账号用户名（待合并 master）
+## 2026-11-16 聚合模式主页与侧边栏来源改标账号用户名（已合并 master，未发布）
 
 用户令（附截图）：「开启聚合模式时 主页的标题改为 用户名·最近添加·电视节目 侧边栏为 用户名·电视界面」。追问确认：前缀取账号用户名；主页三处（货架标题、媒体库卡片、继续观看卡第三行）一起换；侧边栏每个库项写「用户名 · 库名」；媒体库悬停预览不再单独显示服务器名副标题。
 
@@ -18,7 +18,7 @@
 
 **检查。** Shell Release/x64 0 警告 0 错误；主测试 5184 项 5183 通过、1 红为既有「本地监控：回环网络共享上的新建文件自动改名」（与本次改动无关）；`Momoka.SidebarPreviewTests` 34/34；`Momoka.PageContractTests` 349/349（分支基点）；`Momoka.HomeOrderProbeTests` 21/21；改动文件 `dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。日常 UI 批次未跑原生探针与实屏。
 
-**分支与快捷方式。** 产品与测试提交 `e2ff6f3`、记录 `14949f1`；分支 `feat-aggregate-mode-ui-GzuirD`，工作树 `c:/Users/89400/.trae-cn/worktrees/fix-play-button-mismatch-XgFUII/feat-aggregate-mode-ui-GzuirD`。未发布、未推远端；分支快捷方式未建。
+**分支与快捷方式。** 产品与测试提交 `e2ff6f3`、记录 `14949f1`；分支 `feat-aggregate-mode-ui-GzuirD`，工作树 `c:/Users/89400/.trae-cn/worktrees/fix-play-button-mismatch-XgFUII/feat-aggregate-mode-ui-GzuirD`。2026-11-16 用户要求合并，以合并提交 `83bb10a` 并入 `master`，冲突只在 PROGRESS 与本台账顶部条目（按编号保留第 61 项在 60 之前，随后并入的第 62 项排在更前）。合并后主树编译 Shell Release/x64 **0 警告 0 错误**，主测试 **5187/5187**、`Momoka.PageContractTests` **352/352**、`Momoka.SidebarPreviewTests` **34/34**。主树未重新发布，`Momoka.lnk` 仍指旧构建；未推远端；分支与工作树待清理。
 
 **边界。** 未在真实多账号服务器上实屏核对；待交付项记入[待交付批次](docs/待交付批次.md)第 61 条。
 
