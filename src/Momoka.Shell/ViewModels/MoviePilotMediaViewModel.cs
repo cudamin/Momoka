@@ -715,23 +715,37 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         try
         {
             if (_playbackScope is not { IsCurrent: true } scope
-                || !ItemTrailers.Supports(scope.Connection.ServerKind)
-                || MoviePilotLibraryPlayback.Provider(detail.Media) is not { } provider
-                || string.IsNullOrWhiteSpace(detail.Media.MediaId)) return;
+                || !ItemTrailers.Supports(scope.Connection.ServerKind)) return;
             var series = detail.Media.Type == "电视剧";
-            var matches = await scope.ExecuteAsync((client, cancellationToken) =>
-                client.FindByProviderAsync(provider, detail.Media.MediaId!, series, cancellationToken), lookup.Token);
+            var primary = MoviePilotLibraryPlayback.Provider(detail.Media);
+            var subject = await FindTrailerSubjectAsync(scope, primary, detail.Media.MediaId, series, lookup.Token);
+            if (subject is null && detail.Text("tmdb_id") is { Length: > 0 } tmdb && tmdb.All(char.IsAsciiDigit)
+                && (primary != "Tmdb" || detail.Media.MediaId != tmdb))
+                subject = await FindTrailerSubjectAsync(scope, "Tmdb", tmdb, series, lookup.Token);
             if (lookup.IsCancellationRequested || token.IsCancellationRequested
                 || !ReferenceEquals(detail, Detail) || !Live || !scope.IsCurrent) return;
-            var subject = matches.Items.FirstOrDefault(item =>
-                item.Type == (series ? EmbyItemType.Series : EmbyItemType.Movie)
-                && item.ProviderIds.Any(pair => pair.Key.Equals(provider, StringComparison.OrdinalIgnoreCase)
-                    && pair.Value == detail.Media.MediaId)
-                && ItemTrailers.HasAny(item, scope.Connection.ServerKind));
             if (ReferenceEquals(lookup, _trailerLookup)) TrailerSubject = subject;
         }
         catch (OperationCanceledException) { }
         catch (Exception) { if (ReferenceEquals(lookup, _trailerLookup)) TrailerSubject = null; }
+    }
+
+    /// <summary>
+    /// 按一个提供者 ID 在当前库里找同类型的媒体条目；主来源对不上时调用方会拿详情附带的 TMDB ID 再试一次。
+    /// 仍然要求提供者键值相等且有预告片，不按标题猜。
+    /// </summary>
+    private static async Task<EmbyItem?> FindTrailerSubjectAsync(EmbySessionScope scope, string? provider,
+        string? mediaId, bool series, CancellationToken token)
+    {
+        if (provider is null || string.IsNullOrWhiteSpace(mediaId)) return null;
+        var matches = await scope.ExecuteAsync((client, cancellationToken) =>
+            client.FindByProviderAsync(provider, mediaId, series, cancellationToken), token);
+        token.ThrowIfCancellationRequested();
+        return matches.Items.FirstOrDefault(item =>
+            item.Type == (series ? EmbyItemType.Series : EmbyItemType.Movie)
+            && item.ProviderIds.Any(pair => pair.Key.Equals(provider, StringComparison.OrdinalIgnoreCase)
+                && pair.Value == mediaId)
+            && ItemTrailers.HasAny(item, scope.Connection.ServerKind));
     }
 
     private void FillGroups(IEnumerable<MoviePilotEpisodeGroup> groups)

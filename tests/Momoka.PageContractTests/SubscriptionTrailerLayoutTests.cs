@@ -77,7 +77,10 @@ internal static class SubscriptionTrailerLayoutTests
 
             var viewModel = Source("ViewModels/MoviePilotMediaViewModel.cs");
             Assert.Contains("internal void AttachPlayback(EmbySessionScope? scope)", viewModel);
-            Assert.Contains("client.FindByProviderAsync(provider, detail.Media.MediaId!, series, cancellationToken)", viewModel);
+            Assert.Contains("FindTrailerSubjectAsync(scope, primary, detail.Media.MediaId, series, lookup.Token)", viewModel);
+            Assert.Contains("detail.Text(\"tmdb_id\")", viewModel);
+            Assert.Contains("FindTrailerSubjectAsync(scope, \"Tmdb\", tmdb, series, lookup.Token)", viewModel);
+            Assert.Contains("client.FindByProviderAsync(provider, mediaId, series, cancellationToken)", viewModel);
             Assert.Contains("ItemTrailers.HasAny(item, scope.Connection.ServerKind)", viewModel);
             Assert.Contains("public Visibility TrailerButtonVisibility => Show(!Plain && TrailerSubject is not null);", viewModel);
 
