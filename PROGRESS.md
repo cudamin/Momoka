@@ -14195,3 +14195,10 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 2026-11-15本批主树合入：渐变聊天已完成并释放写入，确认主树无未提交改动后从69088b3快进到b7fa869，未覆盖任何在途内容。台账追加40，明确第35项16DIP圆角按用户最新“不胶囊”被4DIP小圆角取代；分支产品72fe21d与初版0d37a11内容全部进master。用户随后授权正常关闭并行聊天留下的开发预览以补验；只关闭确认身份的33644，正式探针仍取得自身锁。尚未发布/推送/修改快捷方式。
 
 2026-11-15选择栏最终合入及清理：master从16f81ae快进至9606835（探针修复9e09369），合入前后主树干净，双方产品文件相同且保留渐变。临时分支内容逐文件与master完全一致后已删除；应用archive拒绝移除当前primary checkout（The task's primary checkout cannot be removed.），尊重保护，保留干净detached在9606835，不绕过工具删除。28份ignored本地构建/测试日志和检查台驱动保存到本聊天visualizations/detail-picker-verification目录；原生日志仍在本次隔离运行目录。未发布、推送或改快捷方式。
+# 2026-11-16 第47项交付补验：匿名WebView2连续滚动与回顶（待根原生复验）
+
+独立树 `C:/Users/89400/.codex/worktrees/delivery-store-scroll/Momoka`，基线 `2138274502f95238c150b9542d56736fc08b0bf0`。原商店预告用例只验证本地MediaPlayer与WebView2实帧、字幕和真实悬停，另一个详情滚动性能用例是无预告的沉浸页面，不能据此证明WebView2连续滚动和回顶。本次只补工具、夹具和测试，产品页面、布局、播放管线及60秒用例限时未变；不改其他代理占用的Inspect/ConnectedProbe文件。
+
+在原真实指针finally退出后、原暂停/静音回归前，用当前真实 `ScrollView.ScrollTo` 与已有关联号完成等待经过生产 `Body.ViewChanged -> ScrollStoreTrailer`。匿名GET详情新增14个带头像演员与14个实际Similar条目撑长页面，无人为Height。网页实际Api计数 `playVideo`/`pauseVideo` 的每次调用，iframe仍回读真实video.paused；10阶段覆盖阈值下连续滚零暂停、首次越界恰一次暂停、同侧连续滚无新增、回顶恰一次继续、用户暂停往返回顶不发继续，最后用正式按钮恢复原回归的初态。原始JSONL与每阶段JSON先保存再判断，失败仍保留读数；反例从本轮实际回读构造重复pause与越过用户暂停的play，并由同一判据拒绝。测回顶ScrollView Idle与StickyHeader收起耗时，沿用现有60帧/p95<40ms和ScrollTo 5秒/UntilAsync 2秒完成预算，耗时只报告不造门槛。短轮次两段各36帧；物理滚轮未验证且报告中明确为false。
+
+已完成本树Shell Release及PageContract Release编译，均0警告0错误；PageContract **335/335，0失败0跳过**（本次6项含JSON计数缺失/非法、重复暂停、无ViewChanged、错误偏移、用户暂停回顶和既有性能预算的反例）。`node tools/test-store-trailer-scroll.mjs`执行从当前源提取的实际匿名Api/Embed和生产StoreTrailerDocument宿主脚本，成功路径及3个预期失败对照均通过；HTMLvideo/消息队列是明确替身，证明API计数不会被重复pause无事件掩盖，不证明真实WebView2。工具读取当前源码并输出SHA与回读JSON。证据在本树 `artifacts/captions-verification/store-scroll/`；首轮Shell空白检查发现同排初始化格式，定点改后复验，无放宽规则。最终主树原生StoreTrailer成功/失败路径与运行截图统一由根生成，本树不运行UI、不移鼠标、不读取真实设置、不真实网络/播放/写服务器、不发布，不以离线测试销账。
