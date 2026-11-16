@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Media;
@@ -67,6 +68,7 @@ public sealed partial class CardPreview : UserControl
         if (_watchingMotion) return;
         _watchingMotion = true;
         HomeMotion.PreferenceChanged += OnMotionPreferenceChanged;
+        ShellPrefs.TrailerChanged += OnTrailerPreferenceChanged;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
@@ -74,6 +76,7 @@ public sealed partial class CardPreview : UserControl
         // Popup 快速关闭后重开也会迟到投递 Unloaded；仍在活动树上的新预览不能被旧事件清空。
         if (XamlRoot is not null) return;
         if (_watchingMotion) HomeMotion.PreferenceChanged -= OnMotionPreferenceChanged;
+        ShellPrefs.TrailerChanged -= OnTrailerPreferenceChanged;
         _watchingMotion = false;
         Reset();
     }
@@ -191,13 +194,14 @@ public sealed partial class CardPreview : UserControl
     internal void SetLogo(BitmapImage? logo) => LogoImage.Source = logo;
 
     /// <summary>
-    /// 服务器内有预告时把它接到面板的媒体视口里：静音、循环、自动播放，不显示传输控件，也不接指针。
-    /// 流由调用方准备好并交出所有权；停止时这一层藏起来，静态宽图仍在下面。
+    /// 服务器内有本地预告时把它接到面板的媒体视口里：静音、循环、自动播放都按设置页「界面 → 预告片」
+    /// 那三项来，不显示传输控件，也不接指针。流由调用方准备好并交出所有权；停止时这一层藏起来，静态宽图仍在下面。
     /// </summary>
     internal void PlayTrailer(StoreTrailerPreview preview)
     {
         StopTrailer();
-        if (!_shown)
+        var preferences = ShellPrefs.Trailers;
+        if (!_shown || !preferences.HoverAutoplay)
         {
             _ = DisposeTrailerAsync(preview);
             return;
@@ -205,7 +209,12 @@ public sealed partial class CardPreview : UserControl
 
         var generation = ++_trailerGeneration;
         _trailerPreview = preview;
-        var player = new MediaPlayer { IsMuted = true, IsLoopingEnabled = true, AutoPlay = true };
+        var player = new MediaPlayer
+        {
+            IsMuted = preferences.HoverMuted,
+            IsLoopingEnabled = preferences.HoverLoop,
+            AutoPlay = true
+        };
         player.CommandManager.IsEnabled = false;
         var source = MediaSource.CreateFromUri(preview.Source);
         var element = new MediaPlayerElement
@@ -432,6 +441,19 @@ public sealed partial class CardPreview : UserControl
         _card = null;
         Panel.Visibility = Visibility.Collapsed;
         PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;
+    }
+
+    /// <summary>设置页改了预告片那三项：已经在播的面板当场换静音/循环，总开关关掉就收掉视频层。</summary>
+    private void OnTrailerPreferenceChanged(TrailerSettings preferences)
+    {
+        if (!preferences.HoverAutoplay)
+        {
+            StopTrailer();
+            return;
+        }
+        if (_trailerPlayer is not { } player) return;
+        player.IsMuted = preferences.HoverMuted;
+        player.IsLoopingEnabled = preferences.HoverLoop;
     }
 
     private void OnMotionPreferenceChanged()

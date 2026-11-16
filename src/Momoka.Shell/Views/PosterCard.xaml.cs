@@ -996,6 +996,7 @@ public sealed partial class PosterCard : UserControl
 
     private void LoadPreviewTrailer()
     {
+        if (!ShellPrefs.Trailers.HoverAutoplay) return;
         if (Card is not { } card || _preview is not { } preview) return;
         _previewTrailer?.Cancel();
         var cts = new CancellationTokenSource();
@@ -1013,11 +1014,16 @@ public sealed partial class PosterCard : UserControl
         try
         {
             var subject = await EnsurePreviewDetailsAsync(card, cts.Token).ConfigureAwait(true);
-            if (cts.IsCancellationRequested || !_previewOpen
+            if (!ShellPrefs.Trailers.HoverAutoplay || cts.IsCancellationRequested || !_previewOpen
                 || !ReferenceEquals(Card, card) || !ReferenceEquals(_preview, preview)) return;
 
             trailer = await StoreTrailerPreview.CreateAsync(subject, cts.Token).ConfigureAwait(true);
-            if (trailer is null || cts.IsCancellationRequested || !_previewOpen
+            if (trailer is null)
+            {
+                Log.Debug("封面预览", $"无本地预告（{card.Title}），保持静态宽图");
+                return;
+            }
+            if (cts.IsCancellationRequested || !_previewOpen
                 || !ReferenceEquals(Card, card) || !ReferenceEquals(_preview, preview)) return;
 
             preview.PlayTrailer(trailer);
