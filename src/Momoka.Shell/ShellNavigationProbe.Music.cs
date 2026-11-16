@@ -142,7 +142,9 @@ internal sealed partial class ShellNavigationProbe
                     Place();
                     await LayoutAsync(shell);
                     var surface = Get<Border>(bar, "Surface");
-                    Require(surface.Background is AcrylicBrush, "音乐栏不是亚克力画刷");
+                    var glass = Get<Border>(bar, "SurfaceGlass");
+                    Require(glass.Background is AcrylicBrush && glass.Visibility == Visibility.Visible,
+                        "音乐栏不是亚克力画刷（或压在封面上的那几页把胶囊底收起来了）");
                     Require(surface.BorderThickness == new Thickness(0), "音乐栏恢复了厚重描边");
                     Require(bar.TransformToVisual(page).TransformPoint(new()).Y < page.ActualHeight - 8,
                         $"{width} 窗口下播放栏没有压在页面内容上");

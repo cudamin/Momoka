@@ -81,9 +81,9 @@ internal static class MusicTests
                 Assert.True(names.Contains(name), name);
             XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
             var surface = Named("Surface");
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", (string?)surface.Attribute("Background"));
             Assert.Equal("Center", (string?)surface.Attribute("HorizontalAlignment"));
             Assert.True(surface.Attribute("BorderBrush") is null && surface.Attribute("BorderThickness") is null, "播放栏不应叠加卡片描边");
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", (string?)Named("SurfaceGlass").Attribute("Background"));
             var grid = Named("BarGrid");
             Assert.True(new[] { "Auto", "Auto", "*", "Auto" }.SequenceEqual(grid.Elements()
                 .Single(element => element.Name.LocalName == "Grid.ColumnDefinitions").Elements()
