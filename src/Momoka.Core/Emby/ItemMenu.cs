@@ -226,13 +226,13 @@ public static class ItemMenu
         bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
         ItemMenuPermissions permissions = default, bool aniBtEnabled = true, bool allowResumeRemoval = true,
         CollectionMembership? collectionMembership = null, bool self = false) => fnNas
-        ? Join(Opening(item, false, self), FnNasUserState(item, allowResumeRemoval), FnNasManagement(item, permissions),
+        ? Join(Opening(item, false, self, libraryPlayback: false, shuffle: false), FnNasUserState(item, allowResumeRemoval), FnNasManagement(item, permissions),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
-        ? Join(Opening(item, false, self), UserState(item, true, favorites: false),
+        ? Join(Opening(item, false, self, libraryPlayback: false, shuffle: false), UserState(item, true, favorites: false),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         : Join(
@@ -343,6 +343,8 @@ public static class ItemMenu
     /// <summary>
     /// 这一张媒体库卡片展开得出一列能播的视频。混合内容库没有 <c>CollectionType</c>；
     /// 音乐、合集、播放列表、直播和图书那一类库不在其中 —— 本客户端没有把它们当视频队列播的入口。
+    /// 音乐视频库（<c>musicvideos</c>）也在这里收起：外壳不入库、不进媒体库列表（见 ShellPage 的目录策略），
+    /// 库卡本身不出现，页面上只剩「打开」也没有去处。
     /// </summary>
     private static bool IsVideoLibrary(EmbyItem item) => item.Type == EmbyItemType.CollectionFolder
         && item.CollectionType is null or "" or "movies" or "tvshows" or "homevideos" or "mixed";
@@ -358,11 +360,13 @@ public static class ItemMenu
     private static bool CanRefreshLibrary(EmbyItem item) => item.CollectionType is not ("livetv" or "boxsets");
 
     /// <summary>
-    /// 加入播放列表：Emby 会把剧、季、文件夹和视频库整个展开，电影单集也直接收；Jellyfin 那一侧只收单个视频。
-    /// 音乐库不进视频播放列表，那几句在这一层收起。
+    /// 加入播放列表：Emby 会把剧、季、文件夹和视频库整个展开，电影单集也直接收；合集库本身也能收进去
+    /// （网页端 <c>canAddToPlaylist</c> 只排直播库和播放列表库）。Jellyfin 那一侧同样收文件夹，
+    /// 但本客户端只在视频库上摆这一条 —— 音乐库归音乐页，不进视频播放列表。
     /// </summary>
     private static bool CanAddToPlaylist(EmbyItem item, bool jellyfin) => item.Type == EmbyItemType.CollectionFolder
-        ? !jellyfin && IsVideoLibrary(item) && ServerPlaylistItems.CanAddContainer(item)
+        ? (IsVideoLibrary(item) || !jellyfin && item.CollectionType == "boxsets")
+            && ServerPlaylistItems.CanAddContainer(item)
         : ServerPlaylistItems.CanAddVideo(item) || !jellyfin && ServerPlaylistItems.CanAddContainer(item);
 
     /// <summary>
@@ -374,19 +378,22 @@ public static class ItemMenu
     public static bool IsEpisodeSet(EmbyItem item) =>
         item.Type is EmbyItemType.Series or EmbyItemType.Season;
 
-    private static List<ItemMenuEntry> Opening(EmbyItem item, bool jellyfin, bool self = false)
+    private static List<ItemMenuEntry> Opening(EmbyItem item, bool jellyfin, bool self = false,
+        bool libraryPlayback = true, bool shuffle = true)
     {
         if (self) return [];
 
         // 媒体库卡片照网页端那三点菜单排：先把整个库展开成播放队列，再是「打开」——本客户端进库页的入口。
         // 音乐、合集、播放列表和直播那一类库展开不出视频队列，这两条不摆（见 IsVideoLibrary）。
+        // Emby 与 Jellyfin 网页端都放行整库播放；飞牛和 Plex 的批量收集只收单个可播条目，
+        // 库卡上没有接线（见 ItemBatchPlayback.CanCollect），所以连「播放」也不摆。
         if (item.Type == EmbyItemType.CollectionFolder)
         {
             var rows = new List<ItemMenuEntry>(3);
-            if (!jellyfin && IsVideoLibrary(item))
+            if (libraryPlayback && IsVideoLibrary(item))
             {
                 rows.Add(new(ItemCommand.Play, "播放"));
-                rows.Add(new(ItemCommand.Shuffle, "随机播放"));
+                if (shuffle) rows.Add(new(ItemCommand.Shuffle, "随机播放"));
             }
             rows.Add(new(ItemCommand.Open, "打开"));
             return rows;
@@ -535,18 +542,21 @@ public static class ItemMenu
     /// </summary>
     private static List<ItemMenuEntry> Metadata(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions)
     {
-        // 编辑元数据对媒体库自己和人物都成立（人物有名字、简介和照片），所以它不看 IsCatalogue。
+        // 编辑元数据对媒体库自己成立与否按服务器分：Emby 的 canEditInternal 把 CollectionFolder 列为
+        // 不可编辑，网页端库卡上只有「编辑图像」；Jellyfin 的 canEdit 不排它，库卡上有「编辑元数据」。
+        // 人物两边都成立（有名字、简介和照片），所以它不看 IsCatalogue。
         var rows = new List<ItemMenuEntry>(6);
-        if (CanEdit(permissions)) rows.Add(new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据…"));
+        var person = item.Type == EmbyItemType.Person;
+        var library = item.Type == EmbyItemType.CollectionFolder;
+        if (CanEdit(permissions) && (!library || jellyfin))
+            rows.Add(new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据…"));
 
         // 人物不是「目录里的条目」，但它的照片、识别和刷新都作用在人物自己身上：从前和合集、删除、
         // 扫库一起被 IsCatalogue 收掉，是因为手上只有一张演职人员存根。现在人物页按 id 读回了完整条目，
         // 这三条才跟着放出来（Emby 网页端的人物菜单也有它们）。
-        // 媒体库自己那张卡也一样：网页端有「编辑图像」「刷新元数据」，它们作用在这个库身上。
-        // 只对 Emby 生效 —— Jellyfin 的库卡菜单保持原样，服务器分治见项目规则。
-        var person = item.Type == EmbyItemType.Person;
-        var library = item.Type == EmbyItemType.CollectionFolder;
-        if (IsCatalogue(item) || person || library && !jellyfin)
+        // 媒体库自己那张卡也一样：Emby 与 Jellyfin 网页端都有「编辑图像／修改图片」「刷新元数据」，
+        // 它们作用在这个库身上；单库扫描仍只有 Emby 有独立的「扫描媒体库文件」。
+        if (IsCatalogue(item) || person || library)
         {
             if (CanEdit(permissions))
                 rows.Add(new(ItemCommand.ChangeCover, person

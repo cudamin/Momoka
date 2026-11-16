@@ -52,10 +52,11 @@ internal static class ItemMenuTests
             for (var index = 1; index < menu.Count; index++) Assert.False(menu[index - 1].IsRule && menu[index].IsRule);
         });
 
-        Test("Jellyfin 更多菜单：媒体库卡片保持原样，不借 Emby 的库卡入口", () =>
+        Test("Jellyfin 更多菜单：媒体库卡片照 Jellyfin Web 给出播放、列表与管理入口", () =>
         {
-            // 影视媒体库界面按服务器分治：Jellyfin 的库卡本次不动，播放、转换、单库扫描这些
-            // Emby 网页端的入口不出现在 Jellyfin 上。
+            // Jellyfin Web 10.10.7 的 itemContextMenu：CollectionFolder 有播放、随机播放、加入播放列表、
+            // 编辑元数据、修改图片和刷新元数据（对库走扫描模式）。canMarkPlayed 不含 CollectionFolder，
+            // 所以没有标记已看；单库扫描仍是 Emby 的独立命令，Jellyfin 保留整机的「重新扫描媒体库」。
             var labels = JellyfinLabels(new EmbyItem
             {
                 Id = "lib1",
@@ -63,7 +64,21 @@ internal static class ItemMenuTests
                 CollectionType = "movies"
             });
 
-            Assert.Equal("打开 | 编辑元数据 | 重新扫描媒体库", labels);
+            Assert.Equal(
+                "播放 | 随机播放 | 打开 | 加入播放列表… | 编辑元数据 | 修改图片 | 刷新元数据 | 重新扫描媒体库",
+                labels);
+        });
+
+        Test("Jellyfin 更多菜单：直播库不摆播放、随机播放、播放列表和刷新", () =>
+        {
+            var labels = JellyfinLabels(new EmbyItem
+            {
+                Id = "lib-live",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "livetv"
+            });
+
+            Assert.Equal("打开 | 编辑元数据 | 修改图片 | 重新扫描媒体库", labels);
         });
 
         Test("Jellyfin 更多菜单：词条照 Jellyfin Web 的中文", () =>
@@ -326,7 +341,10 @@ internal static class ItemMenuTests
             Assert.DoesNotContain("识别", labels);
             Assert.DoesNotContain("添加到合集", labels);
             Assert.Contains("打开", labels);
-            Assert.Contains("编辑元数据…", labels);
+
+            // Emby 的 canEditInternal 把 CollectionFolder 列为不可编辑；网页端库卡只有「编辑图像」。
+            Assert.DoesNotContain("编辑元数据", labels);
+            Assert.Contains("修改封面图…", labels);
 
             // 媒体库卡片扫的是这一个库（网页端的「扫描媒体库文件」），不是整台服务器。
             Assert.Contains("扫描媒体库文件", labels);
@@ -353,17 +371,18 @@ internal static class ItemMenuTests
                 "标记为已观看",
                 "加入播放列表…",
                 "转换…",
-                "编辑元数据…",
                 "修改封面图…",
                 "刷新元数据",
                 "扫描媒体库文件"])
                 Assert.Contains(wanted, labels);
+            Assert.DoesNotContain("编辑元数据", labels);
         });
 
         Test("更多菜单：音乐、合集、播放列表和直播库不摆视频队列与标记已看", () =>
         {
             // 网页端的 canPlay/canMarkPlayed/canConvert/canRefreshMetadata 对这些 CollectionType 各有排除项；
             // 本客户端没有把音乐库当视频队列播的入口，合集／播放列表库也不转换、不刷新、不扫。
+            // 音乐视频库由外壳的目录策略整库跳过（ShellPage），库卡不出现，这里仍按非视频库收着。
             foreach (var collection in (string[])["music", "musicvideos", "boxsets", "playlists", "livetv", "books", "games"])
             {
                 var item = new EmbyItem
@@ -372,26 +391,71 @@ internal static class ItemMenuTests
                     Type = EmbyItemType.CollectionFolder,
                     CollectionType = collection
                 };
-                var labels = Labels(item);
+                var rows = ItemMenu.For(item).Where(row => !row.IsRule).Select(row => row.Label).ToArray();
 
-                Assert.Contains("打开", labels);
-                Assert.DoesNotContain("播放", labels);
-                Assert.DoesNotContain("随机播放", labels);
-                Assert.DoesNotContain("标记为已观看", labels);
-                Assert.DoesNotContain("加入播放列表", labels);
-                Assert.DoesNotContain("转换", labels);
+                Assert.True(rows.Contains("打开"));
+                Assert.False(rows.Contains("播放"));
+                Assert.False(rows.Contains("随机播放"));
+                Assert.False(rows.Contains("标记为已观看"));
+                Assert.False(rows.Contains("转换…"));
             }
 
             foreach (var collection in (string[])["boxsets", "livetv"])
             {
-                var labels = Labels(new EmbyItem
+                var rows = ItemMenu.For(new EmbyItem
                 {
                     Id = "lib-" + collection,
                     Type = EmbyItemType.CollectionFolder,
                     CollectionType = collection
-                });
-                Assert.DoesNotContain("刷新元数据", labels);
-                Assert.DoesNotContain("扫描媒体库文件", labels);
+                }).Where(row => !row.IsRule).Select(row => row.Label).ToArray();
+                Assert.False(rows.Contains("刷新元数据"));
+                Assert.False(rows.Contains("扫描媒体库文件"));
+            }
+        });
+
+        Test("更多菜单：合集库能进播放列表，但不摆播放、标记、转换和扫库", () =>
+        {
+            // 网页端 canAddToPlaylist 对 CollectionFolder 只排直播库和播放列表库；canPlay/canMarkPlayed/
+            // canConvert/canRefreshMetadata 都把 boxsets 排掉。
+            var rows = ItemMenu.For(new EmbyItem
+            {
+                Id = "lib-boxsets",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "boxsets"
+            }).Where(row => !row.IsRule).Select(row => row.Label).ToArray();
+
+            Assert.True(rows.Contains("打开"));
+            Assert.True(rows.Contains("加入播放列表…"));
+            Assert.True(rows.Contains("修改封面图…"));
+            Assert.False(rows.Contains("编辑元数据…"));
+            Assert.False(rows.Contains("播放"));
+            Assert.False(rows.Contains("随机播放"));
+            Assert.False(rows.Contains("标记为已观看"));
+            Assert.False(rows.Contains("转换…"));
+            Assert.False(rows.Contains("刷新元数据"));
+            Assert.False(rows.Contains("扫描媒体库文件"));
+        });
+
+        Test("更多菜单：飞牛和 Plex 的库卡不摆没有接线的整库播放和随机播放", () =>
+        {
+            // ItemBatchPlayback.CanCollect 只给 Emby/Jellyfin 收库；两家库卡上摆「播放」只会点了报错，
+            // 而两家的 Supports 白名单也都没有 Shuffle。
+            var library = new EmbyItem
+            {
+                Id = "lib1",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "movies"
+            };
+
+            foreach (var rows in new[]
+            {
+                ItemMenu.For(library, fnNas: true).Where(row => !row.IsRule).Select(row => row.Label).ToArray(),
+                ItemMenu.For(library, plex: true).Where(row => !row.IsRule).Select(row => row.Label).ToArray()
+            })
+            {
+                Assert.True(rows.Contains("打开"));
+                Assert.False(rows.Contains("播放"));
+                Assert.False(rows.Contains("随机播放"));
             }
         });
 
