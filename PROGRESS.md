@@ -1,4 +1,4 @@
-## 2026-11-16 详情文件选项改扁（36 到 32 高、本页圆角 12 到 10，未合并）
+## 2026-11-16 详情文件选项改扁（36 到 32 高、本页圆角 12 到 10，已合并 master）
 
 用户附音频选择框截图一句「这个选择框弄扁一点」。「改扁」理解为降高度：`Theme/Styles.xaml` 的 `EgPickerRowHeight` 36 → 32，四行（视频、媒体源、音频、字幕）一起降，行距仍是 6；`DetailPage.xaml` 的页面局部 `ComboBoxMinHeight` 同步 32（模板箭头另有最小高度，须与闭合框一起长），`EgDetailPickerCornerRadius` 12 → 10 —— 半个高度 16 减 10 仍留 6 的直腰，既不回到 4 的方槽，也不会滑成 16 的两端半圆胶囊，同时回到全站输入框的 10 DIP 那一档。商店模式三颗图标键借用同一个圆角资源，跟着一起收；下方操作按钮与全局 `EgPicker`（设置页等）不动。同步改 `ShellNavigationProbe.State` 的竖距断言（32 高、6 间距）与 `AcrylicControlsTests`／`InputControlThemeTests` 的行高、本页圆角期望。
 
@@ -6,7 +6,7 @@
 
 **发布。** 2026-11-16 22:17 执行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-flatten-select-box-U94tr6`，退出 0：548 文件、289.9 MB，发布验证通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；桌面分支快捷方式 `Momoka-feat-flatten-select-box-U94tr6.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`。本工作树根目录原缺 `libmpv-2.dll`，从主树复制同名运行时后通过；共享主树未改。
 
-**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/feat-flatten-select-box-U94tr6`，分支 `feat-flatten-select-box-U94tr6`，产品与测试提交 `aaadbac`，记录提交 `bf3111e`；未合并 master，未推远端。
+**分支与合并。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/feat-flatten-select-box-U94tr6`，分支 `feat-flatten-select-box-U94tr6`，产品与测试提交 `aaadbac`，记录提交 `bf3111e`、`8a3ed77`；2026-11-16 用户要求合并，以合并提交 `a49c36b` 并入 `master`（与主树商店音频字幕并排批次 `6ad0987` 整合；重叠的 `DetailPage.xaml`、`ShellNavigationProbe.State.cs`、`AcrylicControlsTests.cs` 由 Git 自动合并，无冲突）。合并后编译 Shell Release/x64 **0 警告 0 错误**、Tests Release 0 警告 0 错误，`acrylic-controls-fixture` **40/40**、`input-theme-fixture` **29/29**；合并本身未跑探针与截图。随后删除分支快捷方式 `Momoka-feat-flatten-select-box-U94tr6.lnk`、临时分支与工作树。主树未重新发布，`Momoka.lnk` 仍指旧构建；未推远端。
 
 ## 2026-11-16 商店详情头部：左栏保底宽度压在剧照上、片名单行、徽标统一上限（已合并 master，未发布）
 
