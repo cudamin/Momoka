@@ -59,10 +59,13 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
     public string TokenStatus => HasToken ? "已保存 TMDB 读取令牌；输入新值可替换。" : "填写 TMDB 帐号 API 设置中的 API Read Access Token。";
     public string MethodNote => MethodIndex switch
     {
-        1 => "软链接保留源文件，源移动或删除后链接会失效；Windows 可能需要开发者模式或创建链接权限。",
+        1 => "软链接保留源文件，源移动或删除后链接会失效；Windows 可能需要开发者模式或创建链接权限，网络共享还可能要求管理员权限。",
         2 => "直接在原目录更改视频和同名字幕的文件名；确认前请核对每个新路径。",
+        _ when NetworkDirectory => "网络目录不支持硬链接：硬链接只能建立在同一本地卷。请选择软链接或直接改源文件名。",
         _ => "硬链接要求源和目标位于同一卷，不额外复制视频；两处共享内容，编辑任一处的视频会影响另一处。"
     };
+    private bool NetworkDirectory => LocalMediaOrganizer.IsNetworkPath(SourceDirectory)
+        || NeedsTarget && LocalMediaOrganizer.IsNetworkPath(TargetDirectory);
     public string ApplyLabel => $"确认整理选中项（{Rows.Count(row => row.Ready && row.Selected)}）";
 
     internal void Attach(ISettingsService settings, ISecretProtector protector, MoviePilotService moviePilot)

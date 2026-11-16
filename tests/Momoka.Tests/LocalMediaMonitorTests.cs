@@ -143,6 +143,52 @@ public static class LocalMediaMonitorTests
             Assert.False(Directory.Exists(files.Target));
         }));
 
+        Test("本地监控：网络目录硬链接在启动前拒绝", () => Run(async () =>
+        {
+            using var files = new Files();
+            await using var monitor = new LocalMediaMonitor(new(files.Index), (_, _) => Task.FromResult(Movie()), Image);
+            var error = Assert.Catch<IOException>(() => monitor.StartAsync(
+                new("one", @"\\server\share\source", @"\\server\share\target", LocalMediaLinkMode.HardLink)).GetAwaiter().GetResult());
+            Assert.Contains("网络目录不支持硬链接", error.Message);
+            Assert.False(Directory.Exists(files.Target));
+        }));
+
+        Test("本地监控：回环网络共享上的新建文件自动改名", () => Run(async () =>
+        {
+            var share = LoopbackShare(Path.GetTempPath());
+            if (share is null)
+            {
+                Skip("本地监控：回环网络共享上的新建文件自动改名", "本机没有可访问的回环 SMB 管理共享");
+                return;
+            }
+            var root = Path.Combine(share, "momoka-unc-monitor-" + Guid.NewGuid().ToString("N"));
+            var index = Path.Combine(Path.GetTempPath(), "momoka-unc-index-" + Guid.NewGuid().ToString("N") + ".json");
+            try
+            {
+                var sourceRoot = Path.Combine(root, "source");
+                Directory.CreateDirectory(sourceRoot);
+                var library = new LocalMediaLibrary(index);
+                await using var monitor = new LocalMediaMonitor(library, (_, _) => Task.FromResult(Movie()), Image);
+                await monitor.StartAsync(new("one", sourceRoot, "", LocalMediaLinkMode.Rename)
+                {
+                    IncludeExisting = false,
+                    SettleTime = TimeSpan.FromMilliseconds(150),
+                    PollInterval = TimeSpan.FromMilliseconds(100),
+                    RescanInterval = TimeSpan.FromSeconds(1)
+                });
+                File.WriteAllText(Path.Combine(sourceRoot, "incoming.mkv"), "network-video");
+                await Until(() => library.Entries.Count == 1);
+                Assert.True(library.Entries.Single().IsInLibrary);
+                Assert.True(library.Entries.Single().TargetPath.StartsWith(@"\\localhost\", StringComparison.OrdinalIgnoreCase));
+                Assert.True(File.Exists(library.Entries.Single().TargetPath));
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+                if (File.Exists(index)) File.Delete(index);
+            }
+        }));
+
         Test("本地监控：配置切换等待旧识别退出且不向旧目标写", () => Run(async () =>
         {
             using var files = new Files();

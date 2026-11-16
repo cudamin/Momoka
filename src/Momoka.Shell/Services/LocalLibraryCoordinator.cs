@@ -278,7 +278,10 @@ public sealed class LocalLibraryCoordinator : IDisposable
         if (string.IsNullOrWhiteSpace(configuration.Id) || configuration.Method is not ("hardlink" or "symboliclink" or "rename")
             || configuration.Provider is not ("momoka" or "moviepilot")) throw new InvalidOperationException("媒体库规则无效，请重新选择。");
         var root = Path.GetFullPath(configuration.SourceDirectory);
-        if (!Directory.Exists(root)) throw new DirectoryNotFoundException("源目录不存在。");
+        if (configuration.Method == "hardlink"
+            && (LocalMediaOrganizer.IsNetworkPath(root) || LocalMediaOrganizer.IsNetworkPath(configuration.TargetDirectory)))
+            throw new InvalidOperationException("网络目录不支持硬链接，请选择软链接或直接改名。");
+        if (!Directory.Exists(root)) throw new DirectoryNotFoundException("源目录不存在或当前无法访问。");
         if (configuration.Method != "rename" && string.IsNullOrWhiteSpace(configuration.TargetDirectory))
             throw new InvalidOperationException("链接方式需要目标目录。");
         foreach (var other in Libraries.Where(value => value.Id != configuration.Id && !string.IsNullOrWhiteSpace(value.SourceDirectory)))

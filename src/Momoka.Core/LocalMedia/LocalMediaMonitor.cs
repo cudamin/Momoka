@@ -213,6 +213,8 @@ public sealed class LocalMediaMonitor(LocalMediaLibrary library,
             throw new ArgumentException("目录监控方式或等待时间无效");
         var source = LocalMediaFiles.FullPath(options.SourceRoot);
         var target = options.Mode == LocalMediaLinkMode.Rename ? "" : LocalMediaFiles.FullPath(options.TargetRoot);
+        if (options.Mode == LocalMediaLinkMode.HardLink && (LocalMediaFiles.IsNetwork(source) || LocalMediaFiles.IsNetwork(target)))
+            throw new IOException("网络目录不支持硬链接，请选择软链接或直接改名");
         if (target.Length > 0 && (target.Equals(source, StringComparison.OrdinalIgnoreCase) || target.StartsWith(source + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
             throw new IOException("监控目标不能位于源目录内");
         return options with { SourceRoot = source, TargetRoot = target };

@@ -7,6 +7,9 @@ public sealed record LocalMediaSource(string Path, long Length, DateTime LastWri
 
 public static partial class LocalMediaOrganizer
 {
+    /// <summary>UNC 共享或映射的网络盘。网络目录不支持硬链接，用于界面提示和保存校验。</summary>
+    public static bool IsNetworkPath(string path) => LocalMediaFiles.IsNetwork(path);
+
     public static LocalMediaPlan Prepare(LocalMediaSource source, string targetRoot, LocalMediaMetadata metadata,
         LocalMediaLinkMode mode, CancellationToken cancellationToken = default)
     {
@@ -20,6 +23,8 @@ public static partial class LocalMediaOrganizer
         if (!Inside(path, sourceRoot)) throw new IOException("源文件不属于扫描目录");
         var rename = mode == LocalMediaLinkMode.Rename;
         targetRoot = rename ? Path.GetDirectoryName(path)! : LocalMediaFiles.FullPath(targetRoot);
+        if (mode == LocalMediaLinkMode.HardLink && (LocalMediaFiles.IsNetwork(path) || LocalMediaFiles.IsNetwork(targetRoot)))
+            throw new IOException("网络目录不支持硬链接，请选择软链接或直接改名");
         if (!rename && Inside(targetRoot, sourceRoot)) throw new IOException("目标目录不能位于源扫描目录内");
         using var leases = new LocalMediaFiles();
         leases.Directories(sourceRoot, create: false);

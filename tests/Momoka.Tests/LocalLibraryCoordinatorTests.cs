@@ -60,6 +60,19 @@ internal static class LocalLibraryCoordinatorTests
             await Task.Delay(200);
             Assert.Equal(1, fixture.Entries("a"));
         });
+        Test("多库协调：网络目录硬链接在保存前拒绝且不改配置", async () =>
+        {
+            using var fixture = new Fixture(coordinatorType, dispatcherType, root);
+            var configuration = fixture.Configuration("net");
+            configuration.SourceDirectory = @"\\server\share\source";
+            configuration.TargetDirectory = @"\\server\share\output";
+            configuration.Method = "hardlink";
+            var rejected = false;
+            try { await fixture.SaveAsync(configuration); }
+            catch (InvalidOperationException error) { rejected = error.Message.Contains("网络目录不支持硬链接", StringComparison.Ordinal); }
+            Assert.True(rejected);
+            Assert.Equal(0, fixture.Settings.Settings.LocalMedia.Libraries.Count);
+        });
         Test("多库协调：保存等待期间取消，不保存或启用规则", async () =>
         {
             using var fixture = new Fixture(coordinatorType, dispatcherType, root);

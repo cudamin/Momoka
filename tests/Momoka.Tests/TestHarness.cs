@@ -15,6 +15,16 @@ internal static partial class TestHarness
 
     public static void Test(string name, Action run) => Cases.Add((name, run));
 
+    /// <summary>把本机临时目录映射到回环管理共享；没有可用共享时返回 null，由调用方登记跳过。</summary>
+    public static string? LoopbackShare(string localPath)
+    {
+        var root = Path.GetPathRoot(localPath);
+        if (root is not { Length: 3 } || !char.IsAsciiLetter(root[0]) || root[1] != ':') return null;
+        var unc = @"\\localhost\" + char.ToUpperInvariant(root[0]) + "$" + localPath[2..];
+        try { return Directory.Exists(unc) ? unc : null; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
+    }
+
     /// <summary>登记前记录独立跳过项；运行中归属当前用例，不把一次用例同时算作通过和跳过。</summary>
     public static void Skip(string name, string reason)
     {
