@@ -93,7 +93,7 @@ public sealed partial class LocalMediaPage : Page, IShellContent
             var picker = new Microsoft.Windows.Storage.Pickers.FolderPicker(id) { Title = title };
             return (await picker.PickSingleFolderAsync())?.Path;
         }
-        catch (Exception) { ViewModel.Notice = "无法打开文件夹选择器，也可以直接填写本机目录路径。"; return null; }
+        catch (Exception) { ViewModel.Notice = "无法打开文件夹选择器，也可以直接填写目录路径（支持本机盘符与 \\\\服务器\\共享）。"; return null; }
     }
     private async Task<bool> ConfirmAsync(string message)
     {

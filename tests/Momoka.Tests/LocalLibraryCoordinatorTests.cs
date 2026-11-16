@@ -60,6 +60,28 @@ internal static class LocalLibraryCoordinatorTests
             await Task.Delay(200);
             Assert.Equal(1, fixture.Entries("a"));
         });
+        Test("多库协调：启动时源目录暂不可用仍启动监控等待恢复", async () =>
+        {
+            using var fixture = new Fixture(coordinatorType, dispatcherType, root);
+            await fixture.SaveAsync(fixture.Configuration("offline", monitor: true));
+            Directory.Delete(fixture.Source("offline"), recursive: true);
+            await fixture.CallAsync("StartAsync");
+            Assert.Contains("不可用", fixture.Status("offline"));
+            Assert.Equal(1, fixture.Settings.Settings.LocalMedia.Libraries.Count);
+        });
+        Test("多库协调：网络目录硬链接在保存前拒绝且不改配置", async () =>
+        {
+            using var fixture = new Fixture(coordinatorType, dispatcherType, root);
+            var configuration = fixture.Configuration("net");
+            configuration.SourceDirectory = @"\\server\share\source";
+            configuration.TargetDirectory = @"\\server\share\output";
+            configuration.Method = "hardlink";
+            var rejected = false;
+            try { await fixture.SaveAsync(configuration); }
+            catch (InvalidOperationException error) { rejected = error.Message.Contains("网络目录不支持硬链接", StringComparison.Ordinal); }
+            Assert.True(rejected);
+            Assert.Equal(0, fixture.Settings.Settings.LocalMedia.Libraries.Count);
+        });
         Test("多库协调：保存等待期间取消，不保存或启用规则", async () =>
         {
             using var fixture = new Fixture(coordinatorType, dispatcherType, root);
@@ -122,6 +144,7 @@ internal static class LocalLibraryCoordinatorTests
         public Task SaveAsync(LocalMediaLibrarySettings value) => CallAsync("SaveAsync", value, CancellationToken.None);
         public Task CallAsync(string name, params object?[] args) => (Task)_type.GetMethod(name)!.Invoke(_coordinator, args)!;
         public int Entries(string id) => ((System.Collections.IEnumerable)_type.GetMethod("EntriesFor")!.Invoke(_coordinator, [id])!).Cast<object>().Count();
+        public string Status(string id) => (string)_type.GetMethod("StatusFor")!.Invoke(_coordinator, [id])!;
         public void Dispose()
         {
             CallAsync("StopAsync").GetAwaiter().GetResult();

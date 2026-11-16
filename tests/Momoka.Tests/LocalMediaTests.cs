@@ -10,6 +10,63 @@ public static class LocalMediaTests
 {
     public static void Register()
     {
+        Test("本机整理路径：接受网络共享绝对路径，拒绝设备、相对与上级跳转", () =>
+        {
+            Assert.Equal(@"\\server\share\movies", LocalMediaFiles.FullPath(@"\\server\share\movies\"));
+            Assert.Equal(@"\\server\share\movies", LocalMediaFiles.FullPath(@"//server/share/movies"));
+            Assert.Equal(@"\\server\share", LocalMediaFiles.FullPath(@"\\server\share"));
+            Assert.Equal(@"\\localhost\C$\Temp", LocalMediaFiles.FullPath(@"\\localhost\C$\Temp"));
+            foreach (var path in new[] { @"\\server", @"\\server\", @"\\\share\dir", @"\\server\\dir", @"\\?\UNC\server\share\dir",
+                @"\\.\C:\dir", @"\??\C:\dir", @"\\server\share\..\dir", @"\\server\share\dir\file.mkv:stream", @"C:relative", @"C:\dir\..\other", "relative", "" })
+                Assert.Throws<IOException>(() => LocalMediaFiles.FullPath(path), path);
+            Assert.True(LocalMediaOrganizer.IsNetworkPath(@"\\server\share"));
+            Assert.True(LocalMediaOrganizer.IsNetworkPath(@"//server/share"));
+            Assert.False(LocalMediaOrganizer.IsNetworkPath(@"C:\"));
+            Assert.False(LocalMediaOrganizer.IsNetworkPath(@"\\.\C:\"));
+        });
+
+        Test("本机整理路径：UNC 改名使用扩展前缀", () =>
+        {
+            Assert.Equal(@"\\?\UNC\server\share\dir\file.mkv", LocalMediaFiles.ExtendedPath(@"\\server\share\dir\file.mkv"));
+            Assert.Equal(@"\\?\C:\dir\file.mkv", LocalMediaFiles.ExtendedPath(@"C:\dir\file.mkv"));
+        });
+
+        Test("本机整理规划：网络目标上的硬链接在读取前拒绝", () =>
+        {
+            using var fixture = Video();
+            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
+            Assert.Throws<IOException>(() => LocalMediaOrganizer.Prepare(source, @"\\server\share\movies", Movie(), LocalMediaLinkMode.HardLink));
+        });
+
+        Test("本机整理：回环网络共享上的扫描、预览、直接改名与附属文件", () =>
+        {
+            var share = LoopbackShare(Path.GetTempPath());
+            if (share is null)
+            {
+                Skip("本机整理：回环网络共享上的扫描、预览、直接改名与附属文件", "本机没有可访问的回环 SMB 管理共享");
+                return;
+            }
+            var root = Path.Combine(share, "momoka-unc-" + Guid.NewGuid().ToString("N"));
+            var sourceRoot = Path.Combine(root, "source");
+            try
+            {
+                Directory.CreateDirectory(sourceRoot);
+                File.WriteAllText(Path.Combine(sourceRoot, "original.mkv"), "network-video");
+                var source = LocalMediaOrganizer.Scan(sourceRoot, true, CancellationToken.None).Single();
+                Assert.True(source.Path.StartsWith(@"\\localhost\", StringComparison.OrdinalIgnoreCase), "扫描结果应保持网络路径");
+                var plan = LocalMediaOrganizer.Prepare(source, "", Movie(), LocalMediaLinkMode.Rename);
+                var result = Execute(plan);
+                Assert.True(result.Success, result.Summary + string.Join(";", result.Items.Select(item => item.Message)));
+                Assert.Equal("network-video", File.ReadAllText(plan.TargetPath));
+                Assert.False(File.Exists(source.Path));
+                Assert.True(File.Exists(Path.Combine(sourceRoot, "Film (2026).nfo")));
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        });
+
         Test("本机链接扫描：只列具体视频且递归选项生效", () =>
         {
             using var fixture = new MediaFiles();

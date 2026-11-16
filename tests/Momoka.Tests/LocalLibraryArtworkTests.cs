@@ -7,13 +7,38 @@ internal static class LocalLibraryArtworkTests
 {
     public static void Register()
     {
-        Test("本地媒体库图片：仅接受本机绝对图片路径，拒绝 URL、网络和备用数据流", () =>
+        Test("本地媒体库图片：接受本机与网络共享图片路径，拒绝 URL、设备路径和备用数据流", () =>
         {
             foreach (var path in new[] { "poster.jpg", "https://example.invalid/poster.jpg", "file:///C:/poster.jpg",
-                "\\\\server\\share\\poster.jpg", "C:\\poster.exe", "C:\\poster.jpg:hidden.jpg" })
+                "\\\\?\\UNC\\server\\share\\poster.jpg", "\\\\.\\C:\\poster.jpg", "\\\\server\\share\\poster.jpg:hidden.jpg",
+                "C:\\poster.exe", "C:\\poster.jpg:hidden.jpg" })
                 Assert.Equal("", LocalLibraryArtwork.NormalizePath(path), path);
             var local = Path.Combine(Path.GetTempPath(), "momoka-local-poster.JPG");
             Assert.Equal(Path.GetFullPath(local), LocalLibraryArtwork.NormalizePath(local));
+            Assert.Equal(@"\\server\share\poster.jpg", LocalLibraryArtwork.NormalizePath(@"\\server\share\poster.jpg"));
+            Assert.Equal(@"\\server\share\poster.jpg", LocalLibraryArtwork.StampFor(@"\\server\share\poster.jpg"));
+        });
+        Test("本地媒体库图片：回环网络共享上的海报读取", () =>
+        {
+            var share = LoopbackShare(Path.GetTempPath());
+            if (share is null)
+            {
+                Skip("本地媒体库图片：回环网络共享上的海报读取", "本机没有可访问的回环 SMB 管理共享");
+                return;
+            }
+            var root = Path.Combine(share, "momoka-artwork-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(root);
+                var file = Path.Combine(root, "poster.png");
+                File.WriteAllBytes(file, [1, 2, 3, 4]);
+                Assert.Equal(Path.GetFullPath(file), LocalLibraryArtwork.NormalizePath(file));
+                Assert.True(new byte[] { 1, 2, 3, 4 }.SequenceEqual(Read(file)));
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
         });
         Test("本地媒体库图片：真实文件读取保留字节并拒绝超过12MiB的文件", () =>
         {

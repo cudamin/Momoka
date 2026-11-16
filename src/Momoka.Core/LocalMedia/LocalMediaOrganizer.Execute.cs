@@ -106,7 +106,7 @@ public static partial class LocalMediaOrganizer
         {
             try { File.CreateSymbolicLink(target, source); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-            { throw new IOException("软链接创建失败，请开启 Windows 开发者模式或使用具有创建软链接权限的账号；没有改用硬链接或复制。" + error.Message, error); }
+            { throw new IOException("软链接创建失败，请开启 Windows 开发者模式或使用具有创建软链接权限的账号；网络共享可能还要求管理员权限。没有改用硬链接或复制。" + error.Message, error); }
         }
     }
 

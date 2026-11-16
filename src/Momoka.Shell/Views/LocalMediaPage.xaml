@@ -41,7 +41,7 @@
             <StackPanel x:Name="LocalMediaBody" Spacing="16" Padding="0,0,20,28" MaxWidth="1200" HorizontalAlignment="Stretch">
                 <StackPanel Spacing="8">
                     <TextBlock Text="本机整理" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                    <TextBlock Text="识别本机影视文件，预览后改名或创建链接，并写入 NFO、海报与背景图。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock Text="识别本机或网络共享中的影视文件，预览后改名或创建链接，并写入 NFO、海报与背景图。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                 </StackPanel>
                 <Grid x:Name="LocalLibraryCard" Style="{StaticResource LocalMediaCardStyle}" AutomationProperties.Name="媒体库">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -108,6 +108,7 @@
                             <Button x:Name="LocalMediaPickTarget" Grid.Column="1" Content="选择…" VerticalAlignment="Bottom" Click="OnPickTarget" AutomationProperties.Name="选择目标目录" />
                         </Grid>
                         <CheckBox x:Name="LocalMediaRecursive" Content="包含子文件夹" IsChecked="{x:Bind ViewModel.Recursive, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
+                        <TextBlock Text="源目录和目标目录可以是本机盘符（C:\媒体）或网络共享（\\服务器\共享\媒体）；网络共享使用当前 Windows 账号访问。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                     </StackPanel>
                 </Grid>
                 <Grid x:Name="LocalLibraryAutomationCard" Style="{StaticResource LocalMediaCardStyle}" AutomationProperties.Name="自动入库">

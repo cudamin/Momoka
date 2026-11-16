@@ -5,25 +5,61 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Momoka.LocalMedia;
 
-/// <summary>保持读取对象和目录句柄；拒绝已检测的重解析路径，不宣称抵御恶意进程的原地重解析竞争。</summary>
+/// <summary>
+/// 保持读取对象和目录句柄；拒绝已检测的重解析路径，不宣称抵御恶意进程的原地重解析竞争。
+/// 目录可以是本机盘符或 UNC 共享；网络共享不支持硬链接，由规划与监控入口提前拒绝。
+/// </summary>
 internal sealed class LocalMediaFiles : IDisposable
 {
+    private const string PathChoice = "请选择 Windows 绝对路径：本机盘符（如 C:\\媒体）或网络共享（如 \\\\服务器\\共享\\媒体）；不能使用设备路径、相对路径或上级跳转";
     private readonly List<IDisposable> _leases = [];
     private readonly HashSet<string> _directories = new(StringComparer.OrdinalIgnoreCase);
 
     internal static string FullPath(string path)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("本机整理仅支持 Windows");
-        if (string.IsNullOrWhiteSpace(path) || path.Length < 3 || !char.IsAsciiLetter(path[0]) || path[1] != ':' ||
-            path[2] is not ('\\' or '/') || path[2..].Contains(':') || path.Any(char.IsControl) ||
-            path.Split(['\\', '/']).Any(part => part is "." or ".."))
-            throw new IOException("请选择 Windows 本机绝对路径，不能使用网络盘、设备路径或上级跳转");
-        var full = Path.GetFullPath(path);
-        var drive = new DriveInfo(Path.GetPathRoot(full)!);
-        if (drive.DriveType is not (DriveType.Fixed or DriveType.Removable))
-            throw new IOException("请选择 Windows 本机磁盘目录");
+        if (!HasSupportedShape(path)) throw new IOException(PathChoice);
+        string full;
+        try { full = Path.GetFullPath(path); }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException)
+        { throw new IOException(PathChoice, error); }
+        if (!IsUnc(full) && new DriveInfo(Path.GetPathRoot(full)!).DriveType is not (DriveType.Fixed or DriveType.Removable or DriveType.Network))
+            throw new IOException("请选择本机磁盘或网络共享目录");
         return Path.TrimEndingDirectorySeparator(full);
     }
+
+    /// <summary>UNC 共享或映射的网络盘。路径无效时返回 false，只用于能力判断，不代替 <see cref="FullPath"/> 校验。</summary>
+    internal static bool IsNetwork(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || IsDevicePath(path)) return false;
+        if (IsUnc(path)) return true;
+        try
+        {
+            var full = Path.GetFullPath(path);
+            if (IsUnc(full)) return true;
+            var root = Path.GetPathRoot(full);
+            return root is { Length: > 0 } && new DriveInfo(root).DriveType == DriveType.Network;
+        }
+        catch (Exception error) when (error is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+        { return false; }
+    }
+
+    private static bool HasSupportedShape(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || path.Any(char.IsControl) || IsDevicePath(path)) return false;
+        var parts = path.Split(['\\', '/']);
+        if (parts.Any(part => part is "." or "..")) return false;
+        if (parts.Length > 2 && parts[0].Length == 0 && parts[1].Length == 0)
+            return parts.Length >= 4 && parts[2].Length > 0 && parts[3].Length > 0
+                && !parts.Skip(2).Any(part => part.Contains(':'));
+        return path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] is ('\\' or '/')
+            && !path[2..].Contains(':');
+    }
+
+    private static bool IsUnc(string path) => path.StartsWith(@"\\", StringComparison.Ordinal) && !IsDevicePath(path);
+    private static bool IsDevicePath(string path) =>
+        path.StartsWith(@"\\?\", StringComparison.Ordinal) || path.StartsWith(@"\\.\", StringComparison.Ordinal)
+        || path.StartsWith(@"\??\", StringComparison.Ordinal);
 
     internal void Directories(string directory, bool create)
     {
@@ -121,12 +157,16 @@ internal sealed class LocalMediaFiles : IDisposable
         }
     }
 
+    /// <summary>Win32 长路径前缀；UNC 目标必须写成 <c>\\?\UNC\服务器\共享\...</c>，不能直接拼 <c>\\?\</c>。</summary>
+    internal static string ExtendedPath(string path) =>
+        path.StartsWith(@"\\", StringComparison.Ordinal) ? @"\\?\UNC\" + path[2..] : @"\\?\" + path;
+
     internal static void Rename(SafeFileHandle handle, string target)
     {
         var rootOffset = IntPtr.Size == 8 ? 8 : 4;
         var lengthOffset = rootOffset + IntPtr.Size;
         var nameOffset = lengthOffset + sizeof(int);
-        var chars = ("\\\\?\\" + target).ToCharArray();
+        var chars = ExtendedPath(target).ToCharArray();
         var bytes = checked(chars.Length * sizeof(char));
         var size = checked(nameOffset + bytes + sizeof(char));
         var buffer = Marshal.AllocHGlobal(size);
