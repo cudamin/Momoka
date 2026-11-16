@@ -6,7 +6,7 @@ Core 新增 `Emby.CarouselLayout`（Full=0 缺键即现有版，Store=1）与 `H
 
 界面：`HomeBanner` 在主卡外新增右栏两列（主卡 + 空当 + 右栏），`Resize` 按当前宽度与张数拨列宽；右栏上大下二小，图片和标题由 `SyncRail` 从台上那张后三张取并随翻页更新，点击打开对应详情；右栏三张与台上/前后张一起预取，收起时退订并释放。商店版式用底部分页圆点（可按张数直达、非 Tab 停靠位、高对比度用系统前景），整宽版式保留右下读数与进度条；矮窗媒体库压上轮播时圆点上移避让。`HomePage` 把版式接到 Attach 与 `ShellPrefs` 变更，并把轮播上的媒体库视口收在主卡列内。
 
-验证：Shell/Core Release/x64 **0 警告 0 错误**；主测试 5165 项 **5163 通过、2 失败**，两条都是既有 `C:\WINDOWS\TEMP` 拒绝访问的下载环境红（未改那段代码）；`home-carousel-fixture` **40/40**、`settings-page-state-fixture` **57/57**、`settings-storage-fixture` **184/184**、`acrylic-controls-fixture` **40/40**、`PageContractTests` **329/329**、`HomeDirectoryTests` **82/82**、`SettingsProbeContractTests` **36/36**；`scan-automation-ids.js` 通过。未运行应用、未做真实窗口截图（商店版式宽／窄两档、右栏随翻页、圆点、矮窗避让均待交付时实屏复核），未连真实服务器或播放。
+验证：整合 master `8a1e6e8` 后在本树重验，Shell/Core Release/x64 **0 警告 0 错误**；主测试 **5167 项、5165 通过、2 失败**，两条都是既有 `C:\WINDOWS\TEMP` 拒绝访问的下载环境红（未改那段代码）；`home-carousel-fixture` **40/40**、`settings-page-state-fixture` **57/57**、`settings-storage-fixture` **184/184**、`acrylic-controls-fixture` **40/40**、`PageContractTests` **336/336**、`HomeDirectoryTests` **82/82**、`SettingsProbeContractTests` **36/36**；`scan-automation-ids.js` 通过。合并提交 `4e7dc96` 已以 `--ff-only` 进入 master；主树原有的未提交文档删除与详情改动属其他会话遗留，本次未触碰。未运行应用、未做真实窗口截图（商店版式宽／窄两档、右栏随翻页、圆点、矮窗避让均待交付时实屏复核），未连真实服务器或播放。
 
 ## 2026-11-16 统一交付（43～50，已发布到桌面；原生检查按用户指示转待补验）
 
