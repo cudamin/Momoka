@@ -88,10 +88,11 @@ public static class UiThemes
     /// 把「色板 + 选择模式 + 主题色」合成这一次真正要画的那一套。
     /// <para>
     /// 深色用选中的色板（色板本身是跟随系统时用系统深色档）；浅色一律用系统浅色配色；
-    /// 跟随系统在 Windows 深色档用选中的色板、浅色档用系统浅色配色。「主题色」最后覆盖强调色一族。
+    /// 跟随系统在 Windows 深色档用选中的色板、浅色档用系统浅色配色。主题色留空时用
+    /// <paramref name="systemAccent"/>（Windows 个性化里的主题色），没有系统色时才回落到色板自带的强调色。
     /// </para>
     /// </summary>
-    public static UiTheme Compose(string? themeId, string? mode, string? accentColor, bool systemDark)
+    public static UiTheme Compose(string? themeId, string? mode, string? accentColor, bool systemDark, ThemeColor? systemAccent = null)
     {
         var palette = Resolve(themeId);
         var resolved = NormalizeMode(mode) switch
@@ -102,12 +103,14 @@ public static class UiThemes
                 : System(false),
             _ => palette.FollowsSystem ? System(true) : palette
         };
-        return WithAccent(resolved, accentColor);
+
+        if (!string.IsNullOrWhiteSpace(accentColor)) return WithAccent(resolved, accentColor);
+        return systemAccent is { } accent ? WithAccent(resolved, accent) : resolved;
     }
 
     /// <summary>
     /// 主题色覆盖：只换强调色一族，悬停、按下、浅底和压在强调色上的字按原来那套推导一起重算。
-    /// 空串或认不出来的值原样返回 —— 「不设置」就是跟随当前主题。
+    /// 空串或认不出来的值原样返回 —— 「不设置」时由 <see cref="Compose"/> 决定跟随系统主题色。
     /// </summary>
     public static UiTheme WithAccent(UiTheme theme, string? accentColor)
     {
@@ -115,7 +118,12 @@ public static class UiThemes
             return theme;
 
         var (r, g, b) = HtmlColor.Rgb(packed);
-        var accent = ThemeColor.Rgb(r, g, b);
+        return WithAccent(theme, ThemeColor.Rgb(r, g, b));
+    }
+
+    /// <summary>主题色覆盖的颜色版本：语法糖之外的推导只有这一份。</summary>
+    public static UiTheme WithAccent(UiTheme theme, ThemeColor accent)
+    {
         if (accent == theme.Colors.Accent) return theme;
 
         var dark = theme.IsDark;

@@ -1378,7 +1378,7 @@ public sealed class UiSettings
     public string AppearanceMode { get; set; } = Theming.UiThemes.ModeDark;
 
     /// <summary>
-    /// 主题色（强调色）覆盖：<c>#RRGGBB</c>；空串表示跟随当前主题自带的强调色。
+    /// 主题色（强调色）覆盖：<c>#RRGGBB</c>；空串表示跟随系统主题色（Windows 个性化里的强调色）。
     /// 按钮、开关、滑块和选中标记都读强调色一族，覆盖时悬停、按下、浅底和上面的字一起重算。
     /// </summary>
     public string AccentColor { get; set; } = "";

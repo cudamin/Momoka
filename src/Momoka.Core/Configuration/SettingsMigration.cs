@@ -543,7 +543,7 @@ public static class SettingsMigration
         settings.Ui.Theme = Theming.UiThemes.Resolve(settings.Ui.Theme).Id;
 
         // 选择模式与主题色（2026-11-16）：模式只认三个值，认不出来回深色（缺键旧文件的默认档）；
-        // 主题色只留合法的六位 HEX，认不出来按「不设置＝跟随主题」处理 —— 不把坏值交给 ThemeHost。
+        // 主题色只留合法的六位 HEX，认不出来按「不设置＝跟随系统主题色」处理 —— 不把坏值交给 ThemeHost。
         settings.Ui.AppearanceMode = Theming.UiThemes.NormalizeMode(settings.Ui.AppearanceMode);
         settings.Ui.AccentColor = string.IsNullOrWhiteSpace(settings.Ui.AccentColor)
             ? ""

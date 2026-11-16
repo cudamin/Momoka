@@ -56,7 +56,7 @@ internal static partial class ShellSelfCheck
             string.Join("、", UiThemes.All.Select(one => $"{one.Name}（{one.Id}，{(one.IsDark ? "深" : "浅")}）")));
         report.AppendLine(
             $"[信息] 外观 — 模式 {ModeName(UiThemes.NormalizeMode(ui.AppearanceMode))}，"
-            + $"主题色 {(string.IsNullOrWhiteSpace(ui.AccentColor) ? "跟随主题" : ui.AccentColor)}，"
+            + $"主题色 {(string.IsNullOrWhiteSpace(ui.AccentColor) ? "跟随系统" : ui.AccentColor)}，"
             + $"透明效果 {(ui.TransparencyEffects ? "开" : "关")}");
 
         if (asked is not null)

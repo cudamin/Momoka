@@ -3020,7 +3020,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingThemeRow ThemeSwatches(UiSettings ui) =>
         new(
             "主题",
-            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；跟随系统请在「选择模式」里选。最后一格是主题色，点开可挑强调色。",
+            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；跟随系统请在「选择模式」里选。最后一格是主题色，点开可挑强调色；不设置时跟随系统主题色。",
             [.. UiThemes.All.Where(theme => !theme.FollowsSystem)],
             () => ui.Theme,
             value =>

@@ -218,14 +218,14 @@ internal static class SettingsPageStateTests
             Assert.Contains("if (_startup is { Available: true }) rows.Add(StartupRow());", fixture.AboutSource);
             Assert.Contains(".. StartupSections()", fixture.ViewModelSource);
         });
-        TestHarness.Test("主题色格：选色写回一次并保存，清除后显示跟随主题", () =>
+        TestHarness.Test("主题色格：选色写回一次并保存，清除后显示跟随系统", () =>
         {
             var writes = new List<string>();
             var saves = 0;
             var row = fixture.NewRow("ThemeAccentSwatch", "",
                 (Action<string>)(value => writes.Add(value)), (Action)(() => saves++));
 
-            Assert.Equal("跟随主题", fixture.Get<string>(row, "Kind"));
+            Assert.Equal("跟随系统", fixture.Get<string>(row, "Kind"));
             fixture.Set(row, "Color", "#FF3B30");
             Assert.True(writes.SequenceEqual(new[] { "#FF3B30" }));
             Assert.Equal(1, saves);
@@ -234,7 +234,7 @@ internal static class SettingsPageStateTests
             fixture.Set(row, "Color", "");
             Assert.Equal("", writes[^1]);
             Assert.Equal(2, saves);
-            Assert.Equal("跟随主题", fixture.Get<string>(row, "Kind"));
+            Assert.Equal("跟随系统", fixture.Get<string>(row, "Kind"));
         });
         TestHarness.Test("详情页内容：隐藏没有封面的演职人员默认关，拨一下写回设置", () =>
         {

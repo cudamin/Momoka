@@ -223,7 +223,7 @@
             <Button
                 AutomationProperties.Name="{x:Bind Label}"
                 Style="{StaticResource EgSwatchStyle}"
-                ToolTipService.ToolTip="点击挑选主题色（强调色）；清除则跟随当前主题">
+                ToolTipService.ToolTip="点击挑选主题色（强调色）；清除则跟随系统主题色">
                 <Button.Resources>
                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
                     <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />

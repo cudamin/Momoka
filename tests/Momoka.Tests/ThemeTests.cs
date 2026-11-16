@@ -142,6 +142,20 @@ internal static class ThemeTests
             Assert.Equal(UiThemes.ModeSystem, UiThemes.NormalizeMode("System"));
         });
 
+        Test("主题色：未自定义时跟随系统主题色，自定义优先", () =>
+        {
+            var systemAccent = ThemeColor.Rgb(0x00, 0x78, 0xD4);
+            var follows = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "", systemDark: true, systemAccent);
+            Assert.Equal(systemAccent, follows.Colors.Accent);
+
+            var custom = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "#FF3B30", systemDark: true, systemAccent);
+            Assert.Equal("#FFFF3B30", custom.Colors.Accent.ToHex());
+
+            // 没有系统色可读时退回色板自带的强调色，不把「跟随系统」变成无颜色。
+            var none = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "", systemDark: true);
+            Assert.Equal(UiThemes.Default.Colors.Accent, none.Colors.Accent);
+        });
+
         Test("主题色：覆盖强调色一族，悬停/按下/浅底与字色一起重算", () =>
         {
             var theme = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "#FF3B30", systemDark: true);

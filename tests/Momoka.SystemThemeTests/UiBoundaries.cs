@@ -84,11 +84,12 @@ namespace Microsoft.UI.Dispatching
 
 namespace Windows.UI.ViewManagement
 {
-    public enum UIColorType { Foreground }
+    public enum UIColorType { Foreground, Accent }
     public sealed class UISettings
     {
         public static readonly List<UISettings> Instances = [];
         public static Windows.UI.Color Foreground { get; set; } = Windows.UI.Color.FromArgb(255, 255, 255, 255);
+        public Windows.UI.Color Accent { get; set; } = Windows.UI.Color.FromArgb(255, 0x00, 0x78, 0xD4);
         public static bool FailRead { get; set; }
         public static bool FailSubscribe { get; set; }
         public static int Reads { get; set; }
@@ -108,7 +109,7 @@ namespace Windows.UI.ViewManagement
         {
             Reads++;
             if (FailRead) throw new InvalidOperationException("read fixture failure");
-            return Foreground;
+            return type == UIColorType.Accent ? Accent : Foreground;
         }
         public static void Notify() { foreach (var instance in Instances.ToArray()) instance._changed?.Invoke(instance, new object()); }
     }

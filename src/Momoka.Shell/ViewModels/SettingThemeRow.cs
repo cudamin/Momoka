@@ -81,7 +81,7 @@ public sealed partial class ThemeSwatch : ObservableObject
 /// 跟随系统已经由「选择模式」那一行负责，这一格改成一个大的颜色按钮，点开是 HTML 颜色选择器。
 /// <para>
 /// 底色用主题角色 <c>EgAccentBrush</c>，字用 <c>EgTextOnAccentBrush</c> —— 强调色一改，ThemeHost 会把这两支
-/// 就地换色，这一格和全界面同一拍变；「不设置」仍表示跟随当前主题。
+/// 就地换色，这一格和全界面同一拍变；「不设置」表示跟随系统主题色。
 /// </para>
 /// </summary>
 public sealed partial class ThemeAccentSwatch : ObservableObject
@@ -100,9 +100,9 @@ public sealed partial class ThemeAccentSwatch : ObservableObject
 
     public string Label => "主题色";
 
-    public string Kind => string.IsNullOrWhiteSpace(Color) ? "跟随主题" : "手动";
+    public string Kind => string.IsNullOrWhiteSpace(Color) ? "跟随系统" : "手动";
 
-    /// <summary><c>#RRGGBB</c>, or the empty string for 「不设置，跟随当前主题」.</summary>
+    /// <summary><c>#RRGGBB</c>, or the empty string for 「不设置，跟随系统主题色」.</summary>
     [ObservableProperty]
     public partial string Color { get; set; }
 
@@ -116,7 +116,7 @@ public sealed partial class ThemeAccentSwatch : ObservableObject
     }
 
     /// <summary>自检/说明用：这一格现在选的是什么。</summary>
-    internal string Describe() => string.IsNullOrWhiteSpace(Color) ? "跟随主题" : Color.ToUpperInvariant();
+    internal string Describe() => string.IsNullOrWhiteSpace(Color) ? "跟随系统" : Color.ToUpperInvariant();
 }
 
 /// <summary>主题色板那一排里的两种格子：五套固定色板与最后一格「主题色」。</summary>

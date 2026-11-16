@@ -277,7 +277,7 @@ public static class ThemeHost
 
     /// <summary>
     /// 设置文件里的整份外观：色板、选择模式、主题色与透明效果一起合成。
-    /// 模式为跟随系统时才建立系统观察；固定深色/浅色档一律停掉它。
+    /// 模式或主题色有一项跟随系统时就建立系统观察；两项都固定时才停掉它。
     /// </summary>
     public static void Apply(UiSettings ui)
     {
@@ -285,18 +285,26 @@ public static class ThemeHost
         _appearance = ui;
 
         var mode = UiThemes.NormalizeMode(ui.AppearanceMode);
-        var followsSystem = string.Equals(mode, UiThemes.ModeSystem, StringComparison.Ordinal);
+        var followsSystemMode = string.Equals(mode, UiThemes.ModeSystem, StringComparison.Ordinal);
+        var followsSystemAccent = string.IsNullOrWhiteSpace(ui.AccentColor);
+        var watchSystem = followsSystemMode || followsSystemAccent;
+
         var systemDark = true;
-        if (followsSystem)
-            systemDark = (_systemTheme ??= new SystemThemeWatcher(UpdateSystemTheme)).IsDark;
+        ThemeColor? systemAccent = null;
+        if (watchSystem)
+        {
+            _systemTheme ??= new SystemThemeWatcher(UpdateSystemTheme);
+            systemDark = _systemTheme.IsDark;
+            if (followsSystemAccent) systemAccent = _systemTheme.Accent;
+        }
 
         TransparencyEnabled = ui.TransparencyEffects;
-        ApplyCore(UiThemes.Compose(ui.Theme, mode, ui.AccentColor, systemDark), followsSystem);
+        ApplyCore(UiThemes.Compose(ui.Theme, mode, ui.AccentColor, systemDark, systemAccent), watchSystem);
     }
 
-    private static void ApplyCore(UiTheme theme, bool followSystem)
+    private static void ApplyCore(UiTheme theme, bool watchSystem)
     {
-        if (followSystem)
+        if (watchSystem)
         {
             _systemTheme ??= new SystemThemeWatcher(UpdateSystemTheme);
             // 目录里的「跟随系统」只是一份深色预览；真正要画的深浅在观察器里读。
@@ -320,9 +328,11 @@ public static class ThemeHost
     {
         SetFollowChanges(root, false);
         root.RequestedTheme = ElementTheme.Dark;
+        var accent = _appearance?.AccentColor;
+        var systemAccent = string.IsNullOrWhiteSpace(accent) ? _systemTheme?.Accent : null;
         var theme = Current.IsDark
             ? Current
-            : UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, _appearance?.AccentColor, true);
+            : UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, accent, true, systemAccent);
         var entries = new ResourceDictionary();
         foreach (var (key, pick) in Brushes)
             entries[key] = new SolidColorBrush(ToColor(pick(theme)));
@@ -334,11 +344,16 @@ public static class ThemeHost
 
     private static void UpdateSystemTheme(bool dark)
     {
-        if (_appearance is { } ui
-            && string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), UiThemes.ModeSystem, StringComparison.Ordinal))
+        if (_appearance is { } ui)
         {
-            ApplyResolved(UiThemes.Compose(ui.Theme, UiThemes.ModeSystem, ui.AccentColor, dark));
-            return;
+            var mode = UiThemes.NormalizeMode(ui.AppearanceMode);
+            var followsAccent = string.IsNullOrWhiteSpace(ui.AccentColor);
+            if (string.Equals(mode, UiThemes.ModeSystem, StringComparison.Ordinal) || followsAccent)
+            {
+                var systemAccent = followsAccent ? _systemTheme?.Accent : null;
+                ApplyResolved(UiThemes.Compose(ui.Theme, mode, ui.AccentColor, dark, systemAccent));
+                return;
+            }
         }
 
         if (Current.FollowsSystem && Current.IsDark != dark)
