@@ -1,3 +1,13 @@
+## 2026-11-16 订阅墙卡片宽度跟着窗口走（已合入 master，待交付）
+
+用户报「订阅媒体库怎么不会跟媒体库一样自动调整封面大小」，截图是 800 宽窗口上的「订阅·电影」：一张 340 宽的宽背景卡片，右侧空出三百多像素。原因是这一页有两处写死的尺寸 —— `ItemsWrapGrid` 的 `ItemWidth="352"` 与卡片根格的 `Width="340"`，窗口拖宽只多出空档，拖窄则把卡片横着裁掉一截（这一页的横向滚动是关着的）。媒体库那边 2026-10-18 起就是「封面随窗口大小变化」（`LibraryCardMetrics.Fit`：按最小宽定列数、剩下的宽度平摊给这几列），订阅墙没跟上。
+
+改法：Core 新增 `MoviePilotWallMetrics`，与媒体库同一条算术，最小卡片宽 240 取网页端 `grid-subscribe-card` 的 `minmax(15rem, 1fr)`，格子宽含它右边那条 12 的缝（卡片容器 `Margin="0,0,12,12"`），所以先把这条缝让出去再摊，n 格才整行放得下；卡片高度仍是网页端 `SubscribeCard` 的 `min-height` 150，不跟着宽度变 —— 宽出来的是铺满整卡的背景图，卡里那张 72×108 的海报、年份／片名与底部进度／状态都按 150 摆。墙视图在 `Loaded`／`SizeChanged`／第一格容器三个入口量出 `ItemWidth`（幂等，宽度没变就退出；设完显式 `InvalidateMeasure`），卡片去掉 `Width="340"` 改横向撑满自己的格子。网页端订阅页本来就是这种排法（`common.scss` 的 `repeat(auto-fill, minmax(15rem, 1fr))`），所以这一改同时把「按格摊开」对齐回上游。
+
+验证：Shell Release **0 警告 0 错误**；主测试 **5162/5162、0 失败 0 跳过**（新增「订阅墙格宽：按可用宽度定列数，剩下的宽度平摊给这几列」与「订阅墙格宽：每一档都铺得下整行，列数只增不减」两条，含量不到宽度时给最小宽一列、整行比最小宽还窄时才允许卡片缩到 240 以下的边界）；`Momoka.PageContractTests` **336/336**（新增「订阅墙卡片：宽度跟着格子走，不再钉死 340」，只认卡片根格那个开始标签里的属性，注释里的旧数字不算）；原生 `--probe-shell --probe-section moviepilot --screen 2` **37/37、退出 0**（`shell-probe-20261116-032231980-23380`），新增的 `CheckSubscriptionWallSizingAsync` 在 760／1240 两档都核「格子宽 = 按墙宽算出来的数」「卡片宽 = 格子 − 12」「窗口变宽多排一列」，实屏 `mp-wall-sizing-760-screen.png` 目视两列铺满整行；改动文件 `format whitespace --verify-no-changes` 退出 0、行尾与 BOM 干净。
+
+未覆盖与边界：1240 那一档的窗口比这块屏还宽，截图右 168 像素落在屏外（`mp-wall-sizing-1240-screen.png` 右侧是黑的），最右那张卡片的右沿只能靠读数（三列 × 306 ≤ 920、卡片宽 = 格子 − 12）核对，不是目视；探针用的是匿名假 MoviePilot 与假封面，不是真实服务器与真实海报；卡片高度没跟着宽度变（长度可到 3.4:1 的横幅样）是按网页端 min-height 定的产品选择，用户看过实屏后要改只需把高度也接进 `MoviePilotWallMetrics`。本次未发布、未推远端。
+
 ## 2026-11-16 悬停标题交接：新详情挂树后再起跑（待主控原生复验）
 
 施工树 C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka，codex/store-cover-action-row，整合主树2138274后修复；主树原生shell-probe-20261116-021554917-22960的导航失败JSON实证：Opened0→1、生产回调与身份正常、Popup已收起；OnNavigatedTo后的目标Loaded/Root/flight均false，随后Loaded=true、Root=true、标题宽396及徽标宽267.826但flight仍false。原Attach立即消费票，Begin遇空Root返回false，后续没有生产重试，原失败与探针要求保留。
