@@ -579,8 +579,9 @@ internal static class InputControlThemeTests
         var radius = radii.Single();
         Assert.Equal(Xaml + "CornerRadius", radius.Name);
         // 2026-11-15 用户令「圆角不够圆，加高选择框的高度」：行高 36（EgPickerRowHeight）、圆角 12。
-        // 半个高度是 18，12 差 6 到半圆，既不是 4 那种方槽，也不是 16 那种两端半圆的胶囊。
-        Assert.Equal("12", radius.Value, "详情选择栏圆角不是 36 高配 12 的那一档");
+        // 2026-11-16 用户令「这个选择框弄扁一点」：行高 32、圆角 10，半个高度 16 减 10 仍留 6 的直腰 ——
+        // 既不是 4 那种方槽，也不是 16 那种两端半圆的胶囊。
+        Assert.Equal("10", radius.Value, "详情选择栏圆角不是 32 高配 10 的那一档");
         Assert.True(ReferenceEquals(radius.Parent, document.Root!.Element(Xaml + "Page.Resources")),
             "详情选择栏圆角只能作用于本页");
     }

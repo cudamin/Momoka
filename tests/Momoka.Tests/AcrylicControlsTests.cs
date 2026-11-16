@@ -90,7 +90,8 @@ internal static class AcrylicControlsTests
             Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, "DetailVideoText").Attribute("Style"));
         });
         // 用户 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都一致」。
-        // 文件选项 28 高、6 间距起步；2026-11-15 用户令「加高选择框的高度」后行高到 36，间距仍是 6。
+        // 文件选项 28 高、6 间距起步；2026-11-15 用户令「加高选择框的高度」后行高到 36，间距仍是 6；
+        // 2026-11-16 用户令「这个选择框弄扁一点」，行高收到 32，间距与四行一致的口径不变。
         // 文字与选择框仍须使用同一套行高，字在格里居中，行间就只剩外面那个 StackPanel 的 Spacing。
         // 真实像素与空隙由探针「文件选项三行的竖距」量。
         Test("详情文件选项：三行同一个行高，有没有选择框都不改竖距", () =>
@@ -110,9 +111,9 @@ internal static class AcrylicControlsTests
             // 电影、剧、季页上「视频：…」是片名栏里独立的那一份（集页宽版式才走上面那条），同一个行高。
             Assert.Equal(RowHeight, (string?)Named(page, "DetailVideoText").Parent!.Attribute("MinHeight"));
             Assert.Equal("Center", (string?)Named(page, "DetailVideoText").Attribute("VerticalAlignment"));
-            Assert.Equal("36", Resource(Read("Theme/Styles.xaml").Root!, "EgPickerRowHeight").Value);
+            Assert.Equal("32", Resource(Read("Theme/Styles.xaml").Root!, "EgPickerRowHeight").Value);
             var resources = page.Root!.Element(Xaml + "Page.Resources")!;
-            Assert.Equal("36", Resource(resources, "ComboBoxMinHeight").Value);
+            Assert.Equal("32", Resource(resources, "ComboBoxMinHeight").Value);
             var style = resources.Elements(Xaml + "Style").Single(row => (string?)row.Attribute("TargetType") == "local:EgPicker");
             Assert.Equal(RowHeight, Setter(style, "MinHeight"));
             Assert.Equal("10,3,0,3", Setter(style, "Padding"));

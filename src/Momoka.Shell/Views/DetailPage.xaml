@@ -27,8 +27,8 @@
              这支绿只剩「已观看」的实心圆用。只有高对比度由 ApplyAppearance 换回系统前景。
              用页面局部的一支画刷而不是替换模板里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
         <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
-        <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起长。仅作用于详情页。 -->
-        <x:Double x:Key="ComboBoxMinHeight">36</x:Double>
+        <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起长（行高 EgPickerRowHeight）。仅作用于详情页。 -->
+        <x:Double x:Key="ComboBoxMinHeight">32</x:Double>
         <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="MinHeight" Value="{StaticResource EgPickerRowHeight}" />
             <Setter Property="Padding" Value="10,3,0,3" />
@@ -36,11 +36,12 @@
         <!-- 文件选项的六颗下拉：圆角矩形，不是胶囊（2026-11-15 用户令「不要胶囊形状，矩形加一点圆角」，
              当天更晚又令「圆角不够圆，加高选择框的高度」）。
              28 DIP 的行高下，EgCardCornerRadius 的 16 画出来是两端半圆的胶囊，于是先试过 4 —— 4 在同样
-             的窄边里又只剩一道方槽，圆角看不出来。现在行高抬到 36（EgPickerRowHeight）、圆角取 12：
-             半个高度是 18，12 还差 6 才到半圆，四角是圆的、腰身是直的，正是「矩形加圆角」那一档；
-             它同时和全站输入框的 10 DIP 是同一档语义（EgSearchCornerRadius 管设置与搜索的框）。
+             的窄边里又只剩一道方槽，圆角看不出来。36 高配 12 圆角那一版四角是圆的、腰身是直的；
+             2026-11-16 用户令「这个选择框弄扁一点」把行高收到 32，圆角按同一比例收到 10：
+             半个高度是 16，10 还差 6 才到半圆，仍是「矩形加圆角」那一档，也回到全站输入框的
+             10 DIP 语义（EgSearchCornerRadius 管设置与搜索的框）。
              只作用于本页六颗 EgPicker，下方操作按钮与全局 EgPicker 照旧。 -->
-        <CornerRadius x:Key="EgDetailPickerCornerRadius">12</CornerRadius>
+        <CornerRadius x:Key="EgDetailPickerCornerRadius">10</CornerRadius>
         <!-- 头图上那六颗键：带字的两颗一个高度，只有图标的四颗是同边长的方块。三个样式的高度、边长和
              圆角都取词表 —— 以前是写死的 38 配 19，19 是「一半高」也就是药丸，而这一版里圆角只有两档：
              图是 0，你会去按的东西是 8。两个都必须 BasedOn 框架自己的样式，否则连模板都拿不到。 -->

@@ -123,8 +123,10 @@
          ComboBoxMinHeight；保留 MinHeight 让长文字仍能换行。探针核对实际控件高度与两种音轨状态的间距。
          2026-11-15 用户令「加高选择框的高度」，从 28 抬到 36：28 高配那一档 4/12 的圆角都挤在
          一条窄边里，圆角读不出来；抬到 36 之后同页的 12 DIP 圆角才画得成圆角矩形而不是一条方槽。
-         四行（视频、媒体源、音频、字幕）一起抬，竖距仍是 6 —— 行高分开就换了一种节奏。 -->
-    <x:Double x:Key="EgPickerRowHeight">36</x:Double>
+         四行（视频、媒体源、音频、字幕）一起抬，竖距仍是 6 —— 行高分开就换了一种节奏。
+         2026-11-16 用户令「这个选择框弄扁一点」：36 收到 32，四行一起降；同页圆角按同一比例
+         收到 10，半个高度 16 减去 10 仍是 6 的直腰，既不回到方槽，也不会滑成两端半圆的胶囊。 -->
+    <x:Double x:Key="EgPickerRowHeight">32</x:Double>
     <Style x:Key="EgTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>
