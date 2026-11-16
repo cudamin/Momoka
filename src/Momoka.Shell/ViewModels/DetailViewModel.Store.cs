@@ -29,9 +29,10 @@ public sealed partial class DetailViewModel
     /// 只按内容画，超宽窗口上图的下半段又会渐隐到窗口画布而不是色底上。取大之后两头都不露边。
     /// </para>
     /// <para>
-    /// 2026-11-16 用户报「深/浅窗口底色的那层区域固定、不跟窗口缩放」：这一层至少铺满第一屏，
-    /// 窗口拉高时跟着变长；剧照盒跟着窗口宽变化时，收边位置由
-    /// <see cref="Views.StoreBackdropBlend.AmbientAlpha"/> 按图盒几何重算 —— 图右边和下面不再提前淡成窗口色。
+    /// 2026-11-16 用户报「深/浅窗口底色的那层区域固定、不跟窗口缩放」，并附微软商店条目页参考：
+    /// 这一层保留铺满第一屏的画布，但图色只按
+    /// <see cref="Views.StoreBackdropBlend.AmbientAlpha"/> 在图盒外走一小段，余下透明处露出固定的主题底色。
+    /// 窗口缩放时剧照盒变化，收边跟着重算 —— 图右边和下面不再提前淡成窗口色，也不会把图色拖到窗口底。
     /// </para>
     /// </summary>
     public double StoreAmbientHeight => Math.Max(Math.Max(StoreBackdropHeight, HeroHeight), Viewport);

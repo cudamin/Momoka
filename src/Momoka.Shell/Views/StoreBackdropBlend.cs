@@ -29,13 +29,22 @@ internal static class StoreBackdropBlend
     /// <summary>环境底在图右沿前这一段开始起坡，坡道尽头接窗口画布。</summary>
     internal const double AmbientEdge = 24;
 
+    /// <summary>环境底越过剧照下沿后还要走多长才交回主题底色；按图盒高走，夹在 96～240 DIP。</summary>
+    internal const double AmbientTailRatio = 0.25;
+    internal const double AmbientTailMin = 96;
+    internal const double AmbientTailMax = 240;
+
+    internal static double AmbientTail(double pictureBottom) => Math.Clamp(
+        pictureBottom * AmbientTailRatio, AmbientTailMin, AmbientTailMax);
+
     /// <summary>
-    /// 环境底的遮罩（2026-11-16 用户报「右边和下面只有深色渐变、只有左边是图色渐变」）：
-    /// 剧照盒范围内保持满色，越过剧照右沿与下沿才渐隐 —— 剧照自己左、右、下三端渐隐时，
-    /// 底下露出的都是同一块取色环境底，而不是提前淡掉的窗口底色。
+    /// 环境底的遮罩（2026-11-16 用户报「右边和下面只有深色渐变、只有左边是图色渐变」，
+    /// 并附微软商店条目页参考）：剧照盒范围内保持满色，越过剧照右沿与下沿才渐隐 ——
+    /// 剧照自己左、右、下三端渐隐时，底下露出的都是同一块取色环境底。
     /// <para>
-    /// 图盒参数由页面按实测几何交进来；窗口拉宽拉高时剧照盒变化，这张遮罩跟着重算
-    /// （<see cref="StoreBackdropFade.UpdateAmbient"/>）。参数不成话时退回按自身尺寸起坡的旧形状。
+    /// 下沿只走 <see cref="AmbientTail"/> 这一段就交回主题底色：图盒外仍然是图色过渡，
+    /// 但图色不会一路拖到窗口底，窗口下半段留给固定的深/浅主题底。窗口缩放时剧照盒变化，
+    /// 这张遮罩跟着重算（<see cref="StoreBackdropFade.UpdateAmbient"/>）。
     /// </para>
     /// </summary>
     internal static double AmbientAlpha(double x, double y, double width, double height,
@@ -44,7 +53,8 @@ internal static class StoreBackdropBlend
         if (!(width > 0) || !(height > 0)) return 0;
         var right = Math.Clamp(pictureRight, 0, width);
         var bottom = Math.Clamp(pictureBottom, 0, height);
-        return (1 - Ramp(x, right - AmbientEdge, width)) * (1 - Ramp(y, bottom, height));
+        var fadeEnd = Math.Min(height, bottom + AmbientTail(bottom));
+        return (1 - Ramp(x, right - AmbientEdge, width)) * (1 - Ramp(y, bottom, fadeEnd));
     }
 
     internal static byte[] Mask(bool ambient)
@@ -60,11 +70,10 @@ internal static class StoreBackdropBlend
         return pixels;
     }
 
-    /// <summary>环境底按剧照盒收边的 alpha 图；几何无效时退回 <see cref="Mask(bool)"/> 的旧形状。</summary>
+    /// <summary>环境底按剧照盒收边的 alpha 图；只有几何不成话时才退回 <see cref="Mask(bool)"/> 的旧形状。</summary>
     internal static byte[] AmbientMask(double width, double height, double pictureRight, double pictureBottom)
     {
-        if (!(width > 0) || !(height > 0) || !(pictureRight > 0) || !(pictureBottom > 0)
-            || pictureRight >= width - 0.5 || pictureBottom >= height - 0.5)
+        if (!(width > 0) || !(height > 0) || !(pictureRight > 0) || !(pictureBottom > 0))
             return Mask(ambient: true);
         var pixels = new byte[Side * Side * 4];
         for (var y = 0; y < Side; y++)

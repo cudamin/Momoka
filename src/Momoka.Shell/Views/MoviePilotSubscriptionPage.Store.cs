@@ -25,7 +25,7 @@ public sealed partial class MoviePilotSubscriptionPage
         // 环境底跟剧照背景同进同退，并且至少铺满第一屏（2026-11-16：深/浅窗口底色那一层必须随窗口缩放）。
         StoreAmbient.Height = Math.Max(StoreBackdrop.Height, MediaViewModel.Viewport);
         StoreAmbient.Visibility = StoreBackdrop.Visibility;
-        // 图盒内保持满色，越过剧照右沿与下沿才渐隐到窗口画布（同媒体详情页）。
+        // 图盒内保持满色，越过剧照右沿与下沿后只走一小段就交回主题底色（同媒体详情页，参考微软商店条目页）。
         _storeAmbientFade?.UpdateAmbient(width, StoreAmbient.Height, width, StoreBackdrop.Height);
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(MediaViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
