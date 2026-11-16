@@ -138,7 +138,8 @@ public sealed partial class DetailPage
     /// 搬的是同一批实例，绑定、命令、焦点不重接；退出商店模式时
     /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>。
     /// 已看那颗键收成图标：文字组的显隐由 <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/>
-    /// 收起，三颗图标共用平台轻量按钮样式。
+    /// 收起。三颗图标与下方音频/字幕选择框共用同一支固定面色和小圆角（2026-11-16 用户令），
+    /// 底色仍由 <see cref="ControlBackgroundBrushes"/> 种进控件局部资源的 ButtonBackground* 承担。
     /// </para>
     /// </summary>
     private void PlaceStoreActionButtons(bool store)
@@ -164,12 +165,14 @@ public sealed partial class DetailPage
                 Detach(ColumnContinueButton);
                 EpisodeHead.Trailing = ColumnContinueButton;
             }
-            var subtle = (Style)Resources["EgStoreCoverActionButtonStyle"];
+            var storeStyle = (Style)Resources["EgStoreCoverActionButtonStyle"];
             foreach (var button in icons)
             {
-                if (!ReferenceEquals(button.Style, subtle)) button.Style = subtle;
-                // 构造时的材质Background是局部值，清掉才会真正使用SubtleButtonStyle的透明常态和平台三态。
-                button.ClearValue(Control.BackgroundProperty);
+                if (!ReferenceEquals(button.Style, storeStyle)) button.Style = storeStyle;
+                // 底色是 PrepareAppearance 种下的那组材质画刷（和闭合选择框同一支固定面色）；
+                // 商店档不另铺一块，也不用透明常态把它清掉。
+                if (button.Resources.ContainsKey("ButtonBackground"))
+                    button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources["ButtonBackground"];
                 button.Opacity = 1;
             }
             // 主播放键走回带字的药丸键：底色是 PrepareAppearance 种下的那组画刷，

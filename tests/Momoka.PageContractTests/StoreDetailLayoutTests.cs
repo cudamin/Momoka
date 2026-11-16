@@ -99,10 +99,10 @@ internal static class StoreDetailLayoutTests
             Assert.False(page.Descendants().Any(element => element.Name.LocalName == "TranslateTransform"
                 && (string?)element.Parent!.Parent!.Attribute(X + "Name") == "StorePlaySlot"));
             Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "StoreCoverBadges"));
-            var subtle = page.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgStoreCoverActionButtonStyle");
-            Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)subtle.Attribute("BasedOn"));
-            Assert.Equal("0", (string?)subtle.Elements().Single(element => (string?)element.Attribute("Property") == "BorderThickness").Attribute("Value"));
-            Assert.False(subtle.Descendants().Any(element => element.Name.LocalName == "ControlTemplate"));
+            var storeButton = page.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgStoreCoverActionButtonStyle");
+            Assert.Equal("{StaticResource DefaultButtonStyle}", (string?)storeButton.Attribute("BasedOn"));
+            Assert.Equal("0", (string?)storeButton.Elements().Single(element => (string?)element.Attribute("Property") == "BorderThickness").Attribute("Value"));
+            Assert.False(storeButton.Descendants().Any(element => element.Name.LocalName == "ControlTemplate"));
             Assert.Equal("ColumnActions", (string?)Named("ColumnActionRow").Parent!.Attribute(X + "Name"));
             // 主播放键回到带字的药丸样式：标签不再跟商店模式收起来。
             var play = Named("ColumnPlayButton");
@@ -120,7 +120,7 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("Grid.SetColumn(icons[index], index);", store);
             Assert.Contains("StoreCoverActions.Width = StorePlaySlot.ActualWidth;", store);
             Assert.Contains("PlaceStoreActionButtons(store);", store);
-            Assert.Contains("button.ClearValue(Control.BackgroundProperty);", store);
+            Assert.Contains("button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources[\"ButtonBackground\"];", store);
             Assert.Contains("\"EgPlayButtonStyle\"", store);
             foreach (var name in new[] { "ColumnPlayButton", "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" })
                 Assert.NotNull(Named(name).Attribute("AutomationProperties.Name"));

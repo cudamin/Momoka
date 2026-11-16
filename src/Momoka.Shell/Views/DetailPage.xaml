@@ -88,15 +88,21 @@
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
-        <!-- Gallery Samples/Button/ButtonPage.xaml 的 SubtleButtonStyle，固定 v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。
-             使用平台模板和悬停/按下/焦点反馈；仅封面下方四颗既有按钮使用这支无边框样式。 -->
-        <Style x:Key="EgStoreCoverActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+        <!-- 商店模式片名下方那三颗图标键（已看、收藏、更多）。2026-11-16 用户令「用下方音频/字幕
+             选择框一样的材质背景还有圆角」：底色不再交给 SubtleButtonStyle 的透明常态，改回平台默认
+             按钮模板 —— 常态与三态读的是 ControlBackgroundBrushes 构造时种进按钮局部资源的
+             ButtonBackground* 画刷，和下方六颗闭合选择框共用同一支固定面色（EgStoreControlBrush
+             的四档浓度，商店档由 ApplyAppearance 涂上）。圆角取那一档选择框的小圆角
+             （EgDetailPickerCornerRadius），不再是胶囊或直角；仍是 44 的方形命中格、无边框，
+             悬停、按下与焦点反馈仍由平台模板给。 -->
+        <Style x:Key="EgStoreCoverActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinHeight" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgDetailPickerCornerRadius}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -888,7 +894,8 @@
                                  长度（宽）与上面三颗那一行相同；离日期只留正常的行距，不留大空隙。
                                  四颗都是既有实例，由 DetailPage.Store.cs 搬进来，退出商店模式时原样放回。
                                  图标行三列等分，列宽由 StorePlaySlot 的实测宽回写（OnStorePlaySlotSizeChanged），
-                                 所以播放键多长、这一行就多长；每颗仍是 44 的命中格、无边框。 -->
+                                 所以播放键多长、这一行就多长；每颗仍是 44 的命中格、无边框，底色与圆角
+                                 跟下方音频/字幕选择框同一档（2026-11-16 用户令）。 -->
                             <StackPanel
                                 x:Name="StoreActionBlock"
                                 HorizontalAlignment="Left"

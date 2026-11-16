@@ -132,7 +132,6 @@ public sealed partial class DetailPage
         PaintContinueInk();
         foreach (var brushes in _controlBackgrounds)
         {
-            if (IsStoreCoverAction(brushes.Control)) continue;
             if (simple)
             {
                 if (IsStorePlay(brushes)) brushes.ApplyAccentSurface();
@@ -366,7 +365,11 @@ public sealed partial class DetailPage
     private bool IsStorePlay(ControlBackgroundBrushes brushes) =>
         ReferenceEquals(brushes, _compactPlay) || ReferenceEquals(brushes, _columnPlay);
 
-    /// <summary>商店模式下那三颗无边框图标键（已看、收藏、更多）；主播放键不在此列。</summary>
+    /// <summary>
+    /// 商店模式下那三颗图标键（已看、收藏、更多）；主播放键不在此列。
+    /// 2026-11-16 起它们和下方音频/字幕选择框共用同一支固定面色与小圆角（ApplyAppearance 不再
+    /// 跳过它们），这里只留给探针按「三颗图标」这一组单独核对，以及断点图标的墨色判断。
+    /// </summary>
     internal bool IsStoreCoverAction(Control control) => ViewModel.StoreMode
         && (ReferenceEquals(control, ColumnWatchedButton) || ReferenceEquals(control, ColumnFavoriteButton)
             || ReferenceEquals(control, ColumnMoreButton));

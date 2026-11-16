@@ -348,12 +348,18 @@ internal sealed partial class ShellNavigationProbe
         {
             Require(button.Style == (Style)page.Resources["EgStoreCoverActionButtonStyle"]
                 && button.BorderThickness == default && button.Opacity == 1 && button.IsTabStop,
-                "图标按钮丢失平台轻量样式、无边框、常驻或键盘入口");
+                "图标按钮丢失平台按钮样式、无边框、常驻或键盘入口");
             Require(!string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))
                 && ToolTipService.GetToolTip(button) is not null, "图标按钮缺少名称或提示");
             button.ApplyTemplate();
             if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
-                Require(button.Background is SolidColorBrush { Color.A: 0 }, "图标键常态仍铺了材质背景");
+            {
+                // 2026-11-16 用户令「用下方音频/字幕选择框一样的材质背景还有圆角」：常态与三态
+                // 都是商店档那支固定面色，圆角和闭合选择框同一档。
+                RequireFixedSurface([button]);
+                Require(button.CornerRadius == (CornerRadius)page.Resources["EgDetailPickerCornerRadius"],
+                    "图标键圆角没有跟下方选择框同一档");
+            }
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
             {
                 Require(VisualStateManager.GoToState(button, state, false), "图标按钮缺少平台状态 " + state);
