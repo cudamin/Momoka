@@ -1,3 +1,15 @@
+## 2026-11-16 统一交付（43～50，已发布到桌面；原生检查按用户指示转待补验）
+
+用户先令「交付」，随后令「先更新桌面快捷方式」，并在 library 原生检查前确认「先记到交付里，以后再跑」，最后选择剩余原生检查全部转待补验。最终代码 `553fc1e`（商店主播放键移到封面右下角外侧），发布在 14:01 完成。
+
+**本轮已在最终代码上通过。** 闸门 1：全方案 Release **0 警告 0 错误**（2 分 55 秒）、`dotnet format whitespace` 退出 0、`check-scripts.ps1` 63 个脚本通过。闸门 2：主测试 **5162/5162**；`PageContract` **336/336**、`DetailStickyHeader` **92/92**、`UiMotion` **101/101**、`SettingsLifetime` **63/63**、`AppearanceOpacity` **68/68**、`DetailImageArrival` **26/26**；`acrylic-controls-fixture` **40/40**、`input-theme-fixture` **29/29**、`detail-customization-fixture` **59/59**、`local-media-layout-fixture` **21/21**、`hover-preview-fixture` **19/19**，均 0 失败 0 跳过。原生：detail-cards **2/2**（`shell-probe-20261116-054749364-7996`），逐张目视 `store-cover-actions-{1240,1023,360}-screen.png` 与 `store-detail-backdrop-1240-screen.png`：播放键在封面右下角外侧、44DIP 命中，已看/收藏/更多三颗在封面下方，连播在集卡右上角，右侧预览圆角与渐隐正常。
+
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut` 成功，548 文件、289.8 MB；Momoka.exe SHA256 `C2A560ECE1D69F351426EBDD4E74F5F2C2370B7B4BE750A89DFEE02ACE60895C`，Momoka.dll SHA256 `E902930AF898486CC67BA9A1EE33E71683149E995A5539B06484EA68CE1191D6`；桌面快捷方式目标与 WorkingDirectory 已核对为主树 `artifacts/publish/win-x64`。台账已把 43～50 销账并迁入「已发布，待补验」。
+
+**待补验（如实保留，不得记作全绿）。** library 分区（43 竖距/窄窗紧凑、46 详情自定义与电影·剧·集实屏、48 悬停预览、49 库动效）；settings 原生层级回归与真实点击设置；performance 竖滚 p95 与长剧焦点；moviepilot 订阅墙 760/1240 实屏（宽窗整窗可见）；music/person/motion 分区；`InspectPreviewHeadingMotion` 与四张实屏；闸门 4 自检与基线比较。以上均未在最终代码复跑；05:27 的 12/14 与各分支证据不冒充本轮结果。
+
+**工作区遗留。** 12 个已跟踪文档（`docs/媒体库第三批-*`、`docs/媒体库第四批-*`、`docs/媒体库第五批-*`、`docs/实服验证-飞牛与Jellyfin-2026-10-26.md`）处于未提交删除状态，不是本会话所做；未恢复、未提交，等用户确认是保留删除还是撤回。日志与报告在 `artifacts/delivery-20261116/final-*`。
+
 ## 2026-11-16 订阅墙卡片宽度跟着窗口走（已合入 master，待交付）
 
 用户报「订阅媒体库怎么不会跟媒体库一样自动调整封面大小」，截图是 800 宽窗口上的「订阅·电影」：一张 340 宽的宽背景卡片，右侧空出三百多像素。原因是这一页有两处写死的尺寸 —— `ItemsWrapGrid` 的 `ItemWidth="352"` 与卡片根格的 `Width="340"`，窗口拖宽只多出空档，拖窄则把卡片横着裁掉一截（这一页的横向滚动是关着的）。媒体库那边 2026-10-18 起就是「封面随窗口大小变化」（`LibraryCardMetrics.Fit`：按最小宽定列数、剩下的宽度平摊给这几列），订阅墙没跟上。
