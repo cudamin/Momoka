@@ -1,10 +1,12 @@
-## 2026-11-16 商店详情：渐变铺满窗口左右两边（分支 fix-gradient-fill-sides-GTvBkE，未合并，待统一验证）
+## 2026-11-16 商店详情：渐变铺满窗口左右两边（分支 fix-gradient-fill-sides-GTvBkE，已刷新快捷方式，待统一验证）
 
 用户一句（附图，商店模式单集详情页）：「渐变要填满左右两边」。截图里窗口宽过 1840，商店档的环境底与左上角淡墨跟着 1840 的内容列居中，窗口两侧各留一条几百像素的原生画布；装饰带在内容列边缘直接截断，右边剧照视口之外也是一条平直暗带。
 
 **改了什么。** `DetailPage.Store.cs` 的 `PlaceStoreComponents` 在排完居中内容列之后算出左右让出的那两截 `bleed = (Body.ActualWidth - columnWidth) / 2`，把 `StoreAmbient`（环境底，剧照取色）与 `StoreShade`（左/左上角淡墨）一起用等量负边距横向铺到窗口两侧；窗口不超过 1840 时 `bleed` 为 0，观感与改动前一致。退出商店模式边距归零。两块仍只随背景图显隐、仍在预告片与正文之下；1840 的内容列、96 的页面内缩、右侧剧照视口与 16 的空隙都没有动，订阅详情页本来就没有 1840 上限，不在本次范围。`DetailPage.xaml` 的 `StoreShade` 注释补了这一句。
 
-**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **349/349**（「商店渐变：左边与左上角的淡墨层夹在装饰背景与正文之间，随窗口拉伸」追加负边距接线断言）；改动文件 `dotnet format whitespace` 退出 0。按 2026-11-16 规则，日常改界面不跑探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 55 条。
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **349/349**（「商店渐变：左边与左上角的淡墨层夹在装饰背景与正文之间，随窗口拉伸」追加负边距接线断言）；改动文件 `dotnet format whitespace` 与 `check-diff.ps1` 通过。按 2026-11-16 规则，日常改界面不跑探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 55 条。
+
+**发布。** 2026-11-16 18:32 执行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-gradient-fill-sides-GTvBkE`，退出 0：548 文件、289.8 MB，发布验证通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；桌面分支快捷方式 `Momoka-fix-gradient-fill-sides-GTvBkE.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`。首次发布被本工作树根目录缺 `libmpv-2.dll` 拦下，从主树复制同名运行时后通过；共享主树未改。
 
 ## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
 
