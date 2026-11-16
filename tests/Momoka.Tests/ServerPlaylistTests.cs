@@ -459,6 +459,30 @@ internal static class ServerPlaylistTests
                 Assert.False(ItemMenu.Allows(ItemCommand.AddToPlaylist, default, MediaServerKind.Jellyfin, item));
             });
 
+        foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Episode, EmbyItemType.Series, EmbyItemType.Season,
+            EmbyItemType.Folder, EmbyItemType.BoxSet, EmbyItemType.Playlist, EmbyItemType.CollectionFolder })
+            Test($"Emby播放列表收单个视频与可展开容器[{type}]", () =>
+            {
+                var item = new EmbyItem { Id = FirstId, Type = type };
+                Assert.True(ServerPlaylistItems.CanAddContainer(item));
+                Assert.True(ItemMenu.Allows(ItemCommand.AddToPlaylist, default, MediaServerKind.Emby, item));
+            });
+
+        Test("Emby播放列表拒绝直播库、游戏与展示存根", () =>
+        {
+            foreach (var item in (EmbyItem[])[
+                new() { Id = FirstId, Type = EmbyItemType.CollectionFolder, CollectionType = "livetv" },
+                new() { Id = FirstId, Type = EmbyItemType.CollectionFolder, CollectionType = "playlists" },
+                new() { Id = FirstId, Type = EmbyItemType.CollectionFolder, MediaType = "Game" },
+                new() { Id = FirstId, Type = EmbyItemType.Movie, MediaType = "Game" },
+                new() { Id = "", Type = EmbyItemType.Movie },
+                new() { Id = FirstId, Type = EmbyItemType.Movie, IsDisplayOnly = true }])
+            {
+                Assert.False(ServerPlaylistItems.CanAddContainer(item));
+                Assert.False(ItemMenu.Allows(ItemCommand.AddToPlaylist, default, MediaServerKind.Emby, item));
+            }
+        });
+
         foreach (var kind in new[] { MediaServerKind.Plex, MediaServerKind.FnNas, MediaServerKind.FnMusic })
             Test($"服务器清单[{kind}]不借Emby接口", () => Run(async () =>
             {
