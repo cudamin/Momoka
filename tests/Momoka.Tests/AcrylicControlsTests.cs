@@ -15,13 +15,17 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
-        Test("商店封面操作：四颗图标常驻下方，原生轻量样式无边框，悬停只控制封面浮层", () =>
+        Test("商店封面操作：主播放键贴封面右下外侧、其余三颗常驻下方，原生轻量样式无边框", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var row = Named(page, "StoreCoverActions");
             Assert.Equal("StoreCoverColumn", (string?)row.Parent!.Attribute(X + "Name"));
             Assert.Equal("1", (string?)row.Attribute("Opacity"));
             Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}", (string?)row.Attribute("Visibility"));
+            var slot = Named(page, "StorePlaySlot");
+            Assert.Equal("CoverSlot", (string?)slot.Parent!.Attribute(X + "Name"));
+            Assert.Equal("Right", (string?)slot.Attribute("HorizontalAlignment"));
+            Assert.Equal("Bottom", (string?)slot.Attribute("VerticalAlignment"));
             var style = Resource(page.Root!.Element(Xaml + "Page.Resources")!, "EgStoreCoverActionButtonStyle");
             Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)style.Attribute("BasedOn"));
             Assert.Equal("0", Setter(style, "BorderThickness"));

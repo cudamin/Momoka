@@ -128,7 +128,8 @@ public sealed partial class DetailPage
     }
 
     /// <summary>
-    /// 商店模式四颗键常驻封面下方（2026-11-15 用户新要求，取代封面右侧与左上角旧位置）。
+    /// 商店模式的操作键：主播放键贴在封面右下角外侧（2026-11-16 用户令「播放按钮放封面外面右边」），
+    /// 已看、收藏、更多三颗仍常驻封面下方（2026-11-15 用户新要求，取代封面右侧与左上角旧位置）。
     /// 四个图标保留原控件、命令、自动化名称与状态；连播仍挂在集列表卡片右上角。
     /// <para>
     /// 搬的是同一批实例，绑定、命令、焦点不重接；退出商店模式时
@@ -141,7 +142,7 @@ public sealed partial class DetailPage
     {
         if (store)
         {
-            MoveToPanel(ColumnPlayButton, StoreCoverActions);
+            MoveToPanel(ColumnPlayButton, StorePlaySlot);
             MoveToPanel(ColumnWatchedButton, StoreCoverActions);
             MoveToPanel(ColumnFavoriteButton, StoreCoverActions);
             MoveToPanel(ColumnMoreButton, StoreCoverActions);
@@ -198,7 +199,7 @@ public sealed partial class DetailPage
     private void Detach(FrameworkElement element)
     {
         if (ReferenceEquals(EpisodeHead.Trailing, element)) EpisodeHead.Trailing = null;
-        foreach (var panel in new Panel[] { ColumnActionRow, StoreCoverActions })
+        foreach (var panel in new Panel[] { ColumnActionRow, StoreCoverActions, StorePlaySlot })
             if (panel.Children.Contains(element)) panel.Children.Remove(element);
     }
 

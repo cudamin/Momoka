@@ -1033,6 +1033,7 @@ internal sealed partial class ShellNavigationProbe
         if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast) return;
         var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
             .Concat(Descendants(Get<StackPanel>(page, "StoreCoverActions")).OfType<Control>())
+            .Concat(Descendants(Get<Grid>(page, "StorePlaySlot")).OfType<Control>())
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
             .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
