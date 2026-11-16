@@ -1004,8 +1004,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public double HeroContent =>
-        // 封面下常驻行44高加8间距也属于首行，不能仍只按海报高量而让剧情覆盖图标行。
-        StoreMode ? Math.Max(StackRoom, StillHeight + 52) + StoreDetailsRoom
+        // 商店档按两栏里高的那一个加封面下方那一叠：三颗图标与播放键 2026-11-16 起搬进了片名那一栏，
+        // 它们已经在 StackRoom 里量到；从前为「封面下常驻行」留的 52 因此在带子底下只剩一截空气，
+        // 下方卡片被推低一截（用户 2026-11-16「下方的卡片往上移」）。带高回到内容本身。
+        StoreMode ? Math.Max(StackRoom, StillHeight) + StoreDetailsRoom
             : Math.Max(Math.Max(StackRoom, StillHeight), CornerShown ? CornerHeight : 0);
 
     /// <summary>
@@ -1571,8 +1573,15 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 沉浸档把上下收到 10 / 14：那一档没有纸，28 只是把第一块货架从剧情说明底下推开。
     /// </para>
+    /// <para>
+    /// 商店档上沿收到 14（2026-11-16 用户令「媒体详情页下方的卡片往上移，参考订阅详情页的间距」，
+    /// 随后补一句「卡片接在背景图下方，留一点点空隙即可」）：尾部那一段自己的上留白还有 2
+    /// （<see cref="TailInset"/>），两者合起来正是 <c>StorePreviewGap</c> 那 16 —— 首卡离头部最后一行
+    /// （音频下拉）以及右侧剧照下沿都只隔这一道缝，不再多一截空气。原 28 是纸面档给剧情说明留的，
+    /// 商店档那条缝由尾部自己（StoreTailHeight）让出来了。左右不动：两边对齐仍走 <c>StorePageInset</c>。
+    /// </para>
     /// </summary>
-    public Thickness SheetPadding => StoreMode ? new(DetailHero.StorePageInset(PageWidth) - 10, 28, DetailHero.StorePageInset(PageWidth) - 10, 28)
+    public Thickness SheetPadding => StoreMode ? new(DetailHero.StorePageInset(PageWidth) - 10, 14, DetailHero.StorePageInset(PageWidth) - 10, 28)
         : IsCompact ? new(28, 18, 28, 18)
         : HeroCard ? new(28)
         : Showcase ? new(8, DetailHero.ShowcaseSheetTop, 8, DetailHero.ShowcaseSheetBottom)

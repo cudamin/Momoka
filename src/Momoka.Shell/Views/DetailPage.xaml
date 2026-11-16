@@ -362,6 +362,38 @@
             </Grid>
             <Border x:Name="StoreBackdropMask" />
         </Grid>
+            <!-- 2026-11-16 用户令「左边和左上角再叠一层淡淡的深色渐变，跟随窗口大小拉长」：
+                 商店档的环境底是跟剧照取的色，左边那一列字有时落在一块亮色上。这一层夹在装饰背景与正文
+                 之间：左边一道横着的（左沿最浓、往右散尽），上面再叠一道竖着的（顶边最浓、往下散尽），
+                 左上角两道相交因而最深。两道都用比例停点，元素跟着窗口拉高拉长时整道渐变一起拉伸；
+                 高取环境底与视口里大的那个（MinHeight），窗口比内容高时也铺满整屏。
+                 压在静图那一层上、预告片那两块之前：视频与它那排控制键不该跟着变暗。
+                 颜色取固定的 #0C0E11 一家（同 HeroScrim 与主页大图），高对比度那本词典里只有画刷没有
+                 颜色键，渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。 -->
+            <Grid x:Name="StoreShade"
+                  Height="{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}"
+                  MinHeight="{x:Bind ViewModel.Viewport, Mode=OneWay}"
+                  HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                  IsHitTestVisible="False" Visibility="Collapsed">
+                <Border>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                            <GradientStop Offset="0" Color="#400C0E11" />
+                            <GradientStop Offset="0.3" Color="#240C0E11" />
+                            <GradientStop Offset="0.58" Color="#000C0E11" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <Border>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                            <GradientStop Offset="0" Color="#300C0E11" />
+                            <GradientStop Offset="0.35" Color="#100C0E11" />
+                            <GradientStop Offset="1" Color="#000C0E11" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+            </Grid>
                 <!-- 视频直接呈现，不能经过静态图片的VisualSurface重定向：WebView2和媒体使用外部输出桥。
                      顶部右侧画面与页面色渐隐衔接；输入只交给上层原生按钮。 -->
                 <Grid x:Name="StoreTrailerHost" HorizontalAlignment="Right" IsHitTestVisible="False"

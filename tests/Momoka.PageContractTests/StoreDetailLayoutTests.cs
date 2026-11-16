@@ -138,6 +138,44 @@ internal static class StoreDetailLayoutTests
             Assert.True(Momoka.Shell.Views.StoreBackdropBlend.Alpha(0.5, 0.95, ambient: false) > 0,
                 "下方渐隐末端提前收成了全透明");
         });
+        Test("商店渐变：左边与左上角的淡墨层夹在装饰背景与正文之间，随窗口拉伸", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            XElement Named(string name) => page.Descendants()
+                .Single(element => (string?)element.Attribute(X + "Name") == name);
+
+            var shade = Named("StoreShade");
+            Assert.Equal("StoreScrollContent", (string?)shade.Parent!.Attribute(X + "Name"));
+            Assert.Equal("{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}", (string?)shade.Attribute("Height"));
+            Assert.Equal("{x:Bind ViewModel.Viewport, Mode=OneWay}", (string?)shade.Attribute("MinHeight"));
+            Assert.Equal("Collapsed", (string?)shade.Attribute("Visibility"));
+            Assert.Equal("False", (string?)shade.Attribute("IsHitTestVisible"));
+            // 顺序：静图与环境底之后、预告片与正文之前 —— 压图不压视频、控制键和文字。
+            var before = shade.ElementsBeforeSelf().Select(element => (string?)element.Attribute(X + "Name")).ToArray();
+            Assert.True(before.Contains("StoreBackdrop") && before.Contains("StoreAmbient"),
+                "淡墨层没有压在装饰背景之上");
+            var after = shade.ElementsAfterSelf().ToArray();
+            Assert.Equal("StackPanel", after[^1].Name.LocalName);
+            Assert.True(after.Any(element => (string?)element.Attribute(X + "Name") == "StoreTrailerHost")
+                && after.Any(element => (string?)element.Attribute(X + "Name") == "StoreTrailerControls"),
+                "淡墨层盖到了预告片或控制键上");
+            // 两道线性渐变：左边一道横向、顶上那道竖向，末端都收成透明。
+            var brushes = shade.Descendants().Where(element => element.Name.LocalName == "LinearGradientBrush").ToArray();
+            Assert.Equal(2, brushes.Length);
+            Assert.Equal("0,0.5", (string?)brushes[0].Attribute("StartPoint"));
+            Assert.Equal("1,0.5", (string?)brushes[0].Attribute("EndPoint"));
+            Assert.Equal("0.5,0", (string?)brushes[1].Attribute("StartPoint"));
+            Assert.Equal("0.5,1", (string?)brushes[1].Attribute("EndPoint"));
+            foreach (var brush in brushes)
+            {
+                var stops = brush.Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
+                Assert.True(stops.Length >= 3 && stops[^1].Attribute("Color")?.Value == "#000C0E11",
+                    "渐变末端没有收成透明");
+                Assert.True(stops.All(stop => stop.Attribute("Color")!.Value.EndsWith("0C0E11", StringComparison.Ordinal)),
+                    "渐变没有用 #0C0E11 那一族墨色");
+            }
+            Assert.Contains("StoreShade.Visibility = StoreBackdrop.Visibility;", Source("Views/DetailPage.Store.cs"));
+        });
         Test("商店详情：剧情、文件选项和操作键排在封面下方", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

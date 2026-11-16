@@ -21,6 +21,8 @@ public sealed partial class DetailPage
             ? Visibility.Collapsed : ViewModel.StoreBackdropVisibility;
         // 环境底跟剧照背景同进同退：缺图、高对比度、退出商店模式都不单独留一块色。
         StoreAmbient.Visibility = StoreBackdrop.Visibility;
+        // 左上角那道淡墨也一样：压在装饰背景上，背景不在时它没有东西可压。
+        StoreShade.Visibility = StoreBackdrop.Visibility;
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(ViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < DetailHero.StoreWideFloor

@@ -88,6 +88,26 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
+        Test("商店间距：带高回到内容本身，首卡离头部末沿只留 StorePreviewGap", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Episode);
+            Await(f.Load());
+            f.Ui.EnableImmersive = false;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1240d);
+            f.Vm.GetType().GetProperty("StackRoom")!.SetValue(f.Vm, 200d);
+            f.Vm.GetType().GetProperty("StoreDetailsRoom", Members)!.SetValue(f.Vm, 160d);
+            // 没有封面图时商店档按 180×270 的兜底尺寸摆着；带高取两栏里高的那个，不多留「封面下常驻行」的 52。
+            var still = (double)f.Get("StillHeight")!;
+            Assert.Equal(270d, still);
+            Assert.Equal(Math.Max(200d, still) + 160d, (double)f.Get("HeroContent")!);
+            var padding = f.Get("SheetPadding")!;
+            var top = (double)padding.GetType().GetProperty("Top")!.GetValue(padding)!;
+            var left = (double)padding.GetType().GetProperty("Left")!.GetValue(padding)!;
+            // 尾部的 TailInset 上留白还有 2，两者合起来是 StorePreviewGap 那 16。
+            Assert.Equal(DetailHero.StorePreviewGap - 2, top);
+            Assert.Equal(DetailHero.StorePageInset(1240d) - 10, left);
+        });
         Test("商店剧情与剩余时间：固定两行提示，保留沉浸展开偏好与续播值", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);
