@@ -200,6 +200,31 @@ internal static partial class SettingsTests
             Assert.False(SettingsMigration.FromJson(saved, Protector).Ui.AnimationsEnabled);
         });
 
+        Test("设置：旧文件选跟随系统主题时补成跟随系统模式，其余保持深色", () =>
+        {
+            // 新键缺省 dark 对应「一直深色」的旧用户；旧文件里「跟随系统」色板说过的话必须继续成立。
+            // v1 扁平结构里还没有主题这一格，所以这里用当前结构、只缺 AppearanceMode 的文件来验升级路。
+            var follows = SettingsMigration.FromJson(
+                JsonSerializer.Serialize(new { SchemaVersion = AppSettings.CurrentSchemaVersion, Ui = new { Theme = "system" } }),
+                Protector);
+            Assert.Equal(Momoka.Theming.UiThemes.ModeSystem, follows.Ui.AppearanceMode);
+
+            var dark = SettingsMigration.FromJson(
+                JsonSerializer.Serialize(new { SchemaVersion = AppSettings.CurrentSchemaVersion, Ui = new { Theme = "midnight" } }),
+                Protector);
+            Assert.Equal(Momoka.Theming.UiThemes.ModeDark, dark.Ui.AppearanceMode);
+
+            // 显式写下的选择不再被迁移改写。
+            var explicitDark = SettingsMigration.FromJson(
+                JsonSerializer.Serialize(new
+                {
+                    SchemaVersion = AppSettings.CurrentSchemaVersion,
+                    Ui = new { Theme = "system", AppearanceMode = "dark" }
+                }),
+                Protector);
+            Assert.Equal(Momoka.Theming.UiThemes.ModeDark, explicitDark.Ui.AppearanceMode);
+        });
+
         Test("设置：服务器页排序偏好默认手动，保存读回一致", () =>
         {
             var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);

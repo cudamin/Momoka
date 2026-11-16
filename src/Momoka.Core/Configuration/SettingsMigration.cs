@@ -37,6 +37,16 @@ public static class SettingsMigration
         // holding a JSON null for one of them deserializes to a real null there.
         var settings = Repair(version >= 2 ? ReadCurrent(json) : ReadLegacy(root, protector));
 
+        // 2026-11-16 新增「选择模式」。旧文件没有这个键：在它出现之前，只有选「跟随系统」色板的人在跟随
+        // Windows，其余人一直是深色。新键的缺省是 dark，对后者正好；对前者要补成 system，否则升级后会被
+        // 固定在深色 —— 那正是旧文件里「跟随系统」四个字承诺过的事。显式写下的 AppearanceMode 一律尊重。
+        if (root.TryGetProperty("Ui", out var uiSection) && uiSection.ValueKind == JsonValueKind.Object
+            && !uiSection.TryGetProperty("AppearanceMode", out _)
+            && Theming.UiThemes.Resolve(settings.Ui.Theme).FollowsSystem)
+        {
+            settings.Ui.AppearanceMode = Theming.UiThemes.ModeSystem;
+        }
+
         if (root.TryGetProperty("Video", out var videoSection) && videoSection.ValueKind == JsonValueKind.Object
             && !videoSection.TryGetProperty("DeinterlaceMode", out _)
             && videoSection.TryGetProperty("Deinterlace", out var deinterlace))
