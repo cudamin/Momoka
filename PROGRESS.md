@@ -22,7 +22,7 @@
 
 **检查。** 本机用 `\\localhost\C$` 回环管理共享跑了真实 SMB 通路：`local-media-fixture` **186/186**、0 失败 0 跳过，其中新增网络路径校验与 UNC 前缀、网络硬链接拒绝、回环共享上的扫描/预览/直接改名/NFO 写入、自动监控新建文件改名、海报读取；`local-media-vm-fixture` **7/7**、`local-library-coordinator-fixture` **7/7**（含启动时源目录不可用仍启动监控）、`local-media-layout-fixture` **21/21**、`Momoka.LocalLibraryPageTests` **17/17**。Core/Tests 与 Shell Release/x64 均 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1` 通过。回环共享不能替代真实 NAS：共享凭据、DFS、服务器端符号链接权限、延迟和变更通知仍未核对；网络共享上创建软链接在本机因权限失败，未验证 NAS 是否允许。待交付项记在[待交付批次](docs/待交付批次.md)第 57 条。
 
-**分支与快捷方式。** 产品与测试提交 `9f5f001`、`782e2da`，记录提交自 `999a28a` 起；分支 `feat-network-dir-support-1VC0Sb`（顶端 `dc47cf2`）已按用户要求并入 `master`。本树曾发布并刷新分支快捷方式 `Momoka-feat-network-dir-support-1VC0Sb.lnk`；合并本身未跑全量验证与探针。
+**合并。** 2026-11-16 用户要求合并。产品与测试提交 `9f5f001`、`782e2da`，记录提交自 `999a28a` 起；分支顶端 `dc47cf2` 以合并提交 `b1e2ab0` 并入 `master`，冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边条目，本批编号顺延为 57。合并后在主树当时 HEAD `6268967` 编译 Shell Release/x64 **0 警告 0 错误**，`local-media-fixture` **186/186**、`local-library-coordinator-fixture` **7/7**、`local-media-vm-fixture` **7/7**。分支快捷方式 `Momoka-feat-network-dir-support-1VC0Sb.lnk`、临时分支与工作树已清理，本地只留 `master`。主树发布被正在运行的 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe` 拦下，未杀进程；`Momoka.lnk` 仍指合并前旧构建，关闭该程序后需重新发布刷新。合并本身未跑全量验证与探针。
 
 ## 2026-11-16 商店详情：左上角也按右侧收边（已合并 master，待统一验证）
 
