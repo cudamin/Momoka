@@ -2,9 +2,11 @@
 <!--
   主页通栏轮播：背景铺到窗口顶边和两侧，字幕和操作浮在图上，下沿渐变接回首页内容。
   BannerPictureLoader 在解码时读取原图左侧颜色，向左延长原图宽度的 15%；高斯只处理延长区，并在其中淡出，
-  与原图合成同一张位图。两层 ImageBrush 保持 UniformToFill，整体等比例覆盖画框，切换和慢镜头一起运行。
+  与原图合成同一张位图。**商店版式不用这一套**（2026-11-16 用户实屏「没必要加高斯模糊」）：那张原图站在
+  圆角卡片里、由 UniformToFill 自己裁，扩边与过渡高斯都关掉（见 BannerSlide.SetLeftExtension）。
+  两层 ImageBrush 保持 UniformToFill，整体等比例覆盖画框，切换和慢镜头一起运行。
   图片、延长区不会分开加载，也不使用镜像场景或固定黑色填充。原图每个像素及比例保持不变。
-  轮播内容先取继续观看，不够再取最近添加；带高由 HomeCarousel.Height 按窗口宽度计算。
+  轮播内容先取继续观看，不够再取最近添加；带高按版式走 HomeCarousel.BandHeight（整宽版式照旧，商店版式另两档）。
 -->
 <UserControl
     x:Class="Momoka.Shell.Views.HomeBanner"
@@ -191,6 +193,13 @@
                 <Setter Property="Padding" Value="0" />
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="MinHeight" Value="0" />
+                <!--
+                  **这两条拉伸不能省**（2026-11-16 实屏）：按钮不写 HorizontalAlignment / VerticalAlignment 时，
+                  在 Grid 格子里按内容宽度和高度站住 —— 右栏三张卡只剩标题那么宽、一张大卡也只有渐变底那么高，
+                  整列看着像三块缩在左上角的小牌子。显式 Stretch 之后卡面才铺满自己的格子（大卡 2 份、小卡 1 份）。
+                -->
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="VerticalAlignment" Value="Stretch" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="VerticalContentAlignment" Value="Stretch" />
                 <Setter Property="Background" Value="{StaticResource EgBannerBaseBrush}" />

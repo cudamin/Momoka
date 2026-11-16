@@ -49,8 +49,12 @@ internal static class BannerBackdropCache
     /// <summary>
     /// 一张轮播背景的键。请求宽度先按 <see cref="EmbyImageStore.RequestWidth"/> 归到步进档，和磁盘缓存
     /// 用的是同一个数；解码尺寸由同一份字节和同一条规则唯一决定，条目的实际像素尺寸只用于预算。
+    /// <para>
+    /// <paramref name="extendLeft"/> 也进键（2026-11-16）：整宽版式是「原图 + 左侧 15% 采色扩边」，
+    /// 商店版式是原图本身，两张图不能互相命中 —— 否则从商店切回整宽时会把没有扩边的那张交给通栏。
+    /// </para>
     /// </summary>
-    public static string Key(EmbyConnection connection, ArtworkRef artwork, int requestedWidth) =>
+    public static string Key(EmbyConnection connection, ArtworkRef artwork, int requestedWidth, bool extendLeft = true) =>
         EmbyImageStore.CacheKey(
             connection,
             artwork.ItemId,
@@ -58,7 +62,9 @@ internal static class BannerBackdropCache
             artwork.Tag,
             EmbyImageStore.RequestWidth(requestedWidth))
         + "|" + Rule
-        + "|" + CarouselBackdrop.LeftExtensionShare.ToString("0.###", CultureInfo.InvariantCulture);
+        + "|" + (extendLeft
+            ? CarouselBackdrop.LeftExtensionShare.ToString("0.###", CultureInfo.InvariantCulture)
+            : "none");
 
     public static bool TryGet(string key, [MaybeNullWhen(false)] out BitmapImage bitmap) => TryGet(key, false, out bitmap);
 

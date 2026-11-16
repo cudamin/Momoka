@@ -8,13 +8,19 @@ namespace Momoka.Shell.Media;
 /// <summary>将采色延长区和轮播原图一起解码，交叉淡入时两部分始终属于同一张图。</summary>
 internal static class BannerPictureLoader
 {
-    public static async Task<BitmapImage?> DecodeAsync(byte[] bytes, int maxWidth, CancellationToken token)
+    public static async Task<BitmapImage?> DecodeAsync(byte[] bytes, int maxWidth, bool extendLeft, CancellationToken token)
     {
-        var pixels = await DecodePixelsAsync(bytes, maxWidth, token).ConfigureAwait(true);
+        var pixels = await DecodePixelsAsync(bytes, maxWidth, extendLeft, token).ConfigureAwait(true);
         return pixels is null ? null : await RenderAsync(pixels, false, token).ConfigureAwait(true);
     }
 
-    public static async Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, CancellationToken token)
+    /// <summary>
+    /// 解码一张轮播背景。<paramref name="extendLeft"/> 是整宽版式的「左侧采色延长＋过渡高斯」；
+    /// 商店版式传 <see langword="false"/> —— 那张图站在圆角卡片里、由 UniformToFill 自己裁，参考图也没有
+    /// 左边那条模糊带（2026-11-16 用户实屏指出「没必要加高斯模糊」）。
+    /// </summary>
+    public static async Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth,
+        bool extendLeft, CancellationToken token)
     {
         if (bytes.Length == 0) return null;
         token.ThrowIfCancellationRequested();
@@ -54,7 +60,8 @@ internal static class BannerPictureLoader
         using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(pixels);
 
         // 像素采样离开 UI 线程，拖动窗口和快速翻页不必等这段循环完成。
-        var extended = await Task.Run(() => CarouselBackdrop.ExtendLeft(pixels, width, height, token), token);
+        if (!extendLeft) return new HeroPictureLoader.HeroPixels(pixels, width, height);
+        var extended = await Task.Run(() => CarouselBackdrop.ExtendLeft(pixels, width, height, token), token).ConfigureAwait(true);
         token.ThrowIfCancellationRequested();
         return new HeroPictureLoader.HeroPixels(extended.Pixels, extended.Width, height);
     }

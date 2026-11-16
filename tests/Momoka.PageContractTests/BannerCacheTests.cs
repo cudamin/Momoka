@@ -147,7 +147,30 @@ internal static class BannerCacheTests
             // 640 逻辑宽和 1280 逻辑宽都会被 RequestWidth 归到 1280 这一档，共用同一份下载是应有行为；
             // 320 才会落到 640 那一档，用来证明宽度确实进了键。
             Assert.True(baseline != BannerBackdropCache.Key(connection, artwork, 320), "换请求宽度不能串图");
+            // 2026-11-16：商店版式用原图、整宽版式左侧扩边，两种处理结果不能互相命中。
+            Assert.True(baseline != BannerBackdropCache.Key(connection, artwork, 1280, extendLeft: false),
+                "扩边模式不能共用缓存键");
             return Task.CompletedTask;
+        });
+
+        Case("轮播缓存：商店版式按原图解码，整宽版式仍走左侧扩边", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            BannerPictureLoader.Reset();
+
+            var store = fixture.Slide("banner-tag");
+            store.SetLeftExtension(false);
+            await store.EnsureAsync();
+            Assert.NotNull(store.Picture);
+            Assert.True(BannerPictureLoader.Extensions.Count > 0 && !BannerPictureLoader.Extensions[^1],
+                "商店版式必须按不扩边解码");
+
+            var wide = fixture.Slide("banner-tag");
+            await wide.EnsureAsync();
+            Assert.True(BannerPictureLoader.Extensions.Count > 1 && BannerPictureLoader.Extensions[^1],
+                "整宽版式仍要左侧采色扩边");
+            Assert.False(ReferenceEquals(store.Picture, wide.Picture), "两种扩边模式不能共用同一张成品图");
         });
 
         Case("轮播缓存：预算按解码像素成本记账", async () =>

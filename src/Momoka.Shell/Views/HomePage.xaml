@@ -209,15 +209,42 @@
             -->
             <!--
               轮播大图（2026-11-12 晚「四边留白 + 圆角 + 四周染色」；2026-11-13 按用户令「删除轮播图外面那一圈
-              卡片」去掉外圈）：商店保留四边留白、圆角的大图本身，外面没有光晕或卡片圈。沉浸由代码恢复零留白/圆角和贴顶。商店让标题栏
+              卡片」去掉外圈卡片；2026-11-16 按「背景图外面光晕效果能不能做？」只把一圈从剧照取色的柔光接回来，
+              没有卡片边和发丝线）：商店保留四边留白、圆角的大图本身。沉浸由代码恢复零留白/圆角和贴顶。商店让标题栏
               回到页面顶上（墨色走主题那支，见 SyncTitleStrip），剧照也不会被窗口上沿切掉一条。
 
-              两个孩子：
+              三个孩子：
+              · BannerGlow —— 卡片外沿那圈从剧照取色的柔光（2026-11-16 接回，见下面那一段）。
               · BannerCard —— 圆角剪裁层，把带子裁进圆角里（Border 的 CornerRadius 会裁孩子）。它不画底，
-                也不再有外圈；用户要的就是「图不再像被装在一张卡里」。
+                也不再有外圈卡片；用户要的就是「图不再像被装在一张卡里」。
               · LibraryOverlay —— 矮窗档压在左下角的那一排，跟着卡片一起被裁。
             -->
             <Grid x:Name="BannerZone" Margin="36,20,13,0">
+                <!--
+                  卡片外沿那圈光晕（2026-11-16 用户令「背景图外面光晕效果能不能做？」重新接回；2026-11-13 那一版
+                  按「删除轮播图外面那一圈卡片」整组拆掉过，这次要的是卡片外面一层从剧照取色的柔光，不是外框）：
+                  比卡片大 20，底色是四档径向渐变，颜色由 HomePage.PaintBannerGlow 按台上那张的代表色写。
+                  它站在 BannerCard 后面、只从卡片外面那一圈露出来；沉浸通栏没有卡片，HomePage 会整层收起。
+                -->
+                <Border
+                    x:Name="BannerGlow"
+                    Margin="-20"
+                    CornerRadius="24"
+                    IsHitTestVisible="False"
+                    AutomationProperties.AccessibilityView="Raw">
+                    <Border.Background>
+                        <!-- 四个停点不给颜色（默认全透明），由 PaintBannerGlow 按当前剧照写。
+                             停点位置是「卡片边沿」算出来的：卡片边沿落在归一化半径 0.5 上，所以 0.52 那一档
+                             是紧贴卡片外沿的最浓处，往外 0.82、1 两档散尽。 -->
+                        <RadialGradientBrush x:Name="BannerGlowBrush" Center="0.5,0.5" RadiusX="1" RadiusY="1">
+                            <GradientStop Offset="0" />
+                            <GradientStop Offset="0.52" />
+                            <GradientStop Offset="0.82" />
+                            <GradientStop Offset="1" />
+                        </RadialGradientBrush>
+                    </Border.Background>
+                </Border>
+
                 <Border
                     x:Name="BannerCard"
                     Background="Transparent"

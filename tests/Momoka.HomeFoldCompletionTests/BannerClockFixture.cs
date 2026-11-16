@@ -11,6 +11,7 @@ internal sealed partial class BannerClockFixture
     private int _index;
     private bool _second;
     private bool _active = true;
+    private CarouselLayout _layout = CarouselLayout.Full;
     // No host means no measured width; Apply then takes the status-only branch.
     private double ActualWidth => 0;
     private long _cycleStarted;
@@ -37,6 +38,8 @@ internal sealed partial class BannerClockFixture
     // Layout and per-slide status belong to the XAML host; the fixture only proves the list and clock rules.
     private void Resize(double width) { }
     private void SyncSlideStatus() { }
+    private void PaintFadeInk() { }
+    private void PublishAmbient() { }
     private void Show(int index, bool animate = true) { _index = index; _ = _second; }
     private void OnPictureUnavailable(object? sender, EventArgs args) { }
     private static Layer Brush(Layer layer) => layer;
@@ -89,5 +92,6 @@ internal sealed class BannerSlide(string id)
     internal event EventHandler? PictureUnavailable;
     internal void Release() { }
     internal void SetGaussianBackdrop(bool value) { }
+    internal void SetLeftExtension(bool value) { }
     internal void Fail() => PictureUnavailable?.Invoke(this, EventArgs.Empty);
 }

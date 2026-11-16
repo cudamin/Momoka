@@ -41,8 +41,15 @@ public sealed class BannerSlide : INotifyPropertyChanged
 
     /// <summary>
     /// 这张背景在内存缓存里的键。来源在构造时就不可用时留空 —— 不可用的来源既不该命中旧图，也不该写入。
+    /// 扩边模式变化时按新规则重算（见 <see cref="SetLeftExtension"/>）。
     /// </summary>
-    private readonly string? _backdropKey;
+    private string? _backdropKey;
+
+    /// <summary>
+    /// 解码时要不要走整宽版式的「左侧 15% 采色延长＋过渡高斯」。商店版式是原图本身（2026-11-16 用户令
+    /// 「没必要加高斯模糊」）；两种模式在内存缓存里各占一把键。
+    /// </summary>
+    private bool _extendLeft = true;
 
     private CancellationTokenSource? _loading;
     private bool _asked;
@@ -51,6 +58,24 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private readonly EmbySessionScope? _scope;
     private HeroPictureLoader.HeroPixels? _backdropPixels;
     internal HeroPictureLoader.HeroPixels? BackdropPixels => _backdropPixels;
+
+    /// <summary>
+    /// 这张剧照的代表色（卡片四周光晕与左侧渐变用它，2026-11-16）。第一次问的时候从已经解好的像素里算一遍，
+    /// 之后缓存 —— 换张回来不会重算。像素还没到（或者这张压根没有图）时是 <see cref="CarouselInk.None"/>。
+    /// </summary>
+    internal CarouselInk Ambient
+    {
+        get
+        {
+            if (_ambient is { } cached) return cached;
+            if (_backdropPixels is not { } pixels) return CarouselInk.None;
+
+            _ambient = CarouselAmbient.Sample(pixels.Pixels, pixels.Width, pixels.Height);
+            return _ambient.Value;
+        }
+    }
+
+    private CarouselInk? _ambient;
 
     private bool _useGaussian;
     private bool _renderedGaussian;
@@ -72,7 +97,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
         // 不经过属性通知：构造期间还没有人订阅，而页面第一次 Show 会读到这张图并立即上屏。
         if (_picture is { } picture && _scope is { IsAvailable: true } scope)
         {
-            _backdropKey = BannerBackdropCache.Key(scope.Connection, picture, PictureWidth);
+            _backdropKey = BannerBackdropCache.Key(scope.Connection, picture, PictureWidth, _extendLeft);
             if (BannerBackdropCache.TryGet(_backdropKey, out var cached))
             {
                 _pictureImage = cached;
@@ -80,6 +105,55 @@ public sealed class BannerSlide : INotifyPropertyChanged
             }
             if (BannerBackdropCache.TryGetPixels(_backdropKey, out var pixels)) _backdropPixels = pixels;
         }
+    }
+
+    /// <summary>
+    /// 按当前扩边模式重算缓存键。来源不可用时留空。
+    /// </summary>
+    private void RefreshBackdropKey()
+    {
+        _backdropKey = _picture is { } picture && _scope is { IsAvailable: true } scope
+            ? BannerBackdropCache.Key(scope.Connection, picture, PictureWidth, _extendLeft)
+            : null;
+    }
+
+    /// <summary>
+    /// 切版式时告诉这张背景：整宽版式要左侧采色扩边，商店版式要原图（2026-11-16 用户令「没必要加高斯模糊」）。
+    /// <para>
+    /// 两种模式的像素和成品图不同，缓存键也不同。新模式已经缓存过就直接换过去；没有就把旧的放掉、标回未请求，
+    /// 由下一趟 <see cref="EnsureAsync"/> 按新模式重读 —— 不拿旧模式的图冒充新模式。
+    /// </para>
+    /// </summary>
+    internal void SetLeftExtension(bool enabled)
+    {
+        if (_extendLeft == enabled) return;
+
+        _extendLeft = enabled;
+        _effectGeneration++;
+        _effect?.Cancel();
+        _ambient = null;
+        if (_scope?.IsAvailable != true) { Release(); return; }
+
+        RefreshBackdropKey();
+        if (_backdropKey is { } key && BannerBackdropCache.TryGet(key, _useGaussian, out var cached))
+        {
+            _renderedGaussian = _useGaussian;
+            _backdropPixels = BannerBackdropCache.TryGetPixels(key, out var pixels) ? pixels : null;
+            _pictureImage = cached;
+            Raise(nameof(Picture));
+            return;
+        }
+
+        if (!_asked) return;
+
+        // 旧模式解出来的图和像素都不能交给新模式。取消并清空当前加载，让下一趟从新模式重新开始；
+        // 旧任务回来时 _loading 已经不是它，StillWanted 会拒绝它写回。
+        _loading?.Cancel();
+        _loading = null;
+        _asked = false;
+        _backdropPixels = null;
+        _pictureImage = null;
+        Raise(nameof(Picture));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -201,7 +275,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
                     var pixels = _picture is { } reference && _scope is { IsAvailable: true } scope
                         ? await _images.GetDecodedAsync(scope, reference.ItemId, reference.ImageType, reference.Tag,
                             EmbyImageStore.RequestWidth(PictureWidth),
-                            bytes => BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, cts.Token), cts.Token).ConfigureAwait(true)
+                            bytes => BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, _extendLeft, cts.Token), cts.Token).ConfigureAwait(true)
                         : null;
                     if (!StillWanted(cts)) return;
                     if (pixels is not null)

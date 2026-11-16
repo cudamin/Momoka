@@ -177,6 +177,14 @@ public sealed partial class HomePage : Page, IShellContent
         Banner.SizeChanged += (_, _) => SyncCarouselLayout();
         Banner.SlideChanged += (_, _) => SyncCarouselLayout();
 
+        // 卡片外沿那圈光晕跟着台上那张的代表色走（2026-11-16）：HomeBanner 从像素里算色，
+        // 这里只负责把它铺到卡片外面那一圈；沉浸通栏或高对比度时 HomeBanner 报透明、整层收起。
+        Banner.AmbientChanged += color =>
+        {
+            _ambientInk = color;
+            PaintBannerGlow();
+        };
+
         // 带子摘掉一张取不到图的幻灯片时，视图模型这份清单也要少这一件（「没有背景图就不要放到轮播列表里」，
         // 2026-11-02）；只摘带子自己那一份的话，下一次整页重读又会把它带回来。
         Banner.SlideDropped += (_, slide) => ViewModel.DropSlide(slide.Item);
@@ -351,8 +359,33 @@ public sealed partial class HomePage : Page, IShellContent
                 + $"；DataContext 是 {head.DataContext?.GetType().FullName ?? "空"}");
     }
 
+    /// <summary>台上那张的代表色，见 <see cref="PaintBannerGlow"/>；透明表示这一张没有可借的颜色。</summary>
+    private Windows.UI.Color _ambientInk = Microsoft.UI.Colors.Transparent;
+
     /// <summary>
-    /// 自检：商店轮播四边留白圆角，沉浸轮播贴顶通栏，两档都不带外圈卡片或光晕。
+    /// 卡片外沿那圈光晕（2026-11-16 用户令「背景图外面光晕效果能不能做？」）；色值由
+    /// <see cref="HomeBanner.AmbientChanged"/> 从剧照像素里算出来。沉浸通栏没有卡片可绕，整层收起；
+    /// 卡片还没上屏或那一张没有可借的颜色时也一样。四档 alpha 压得低：它压在深色画布上，
+    /// 浓了就是一圈发光的边，而参考图只是「四周有一点这张图的颜色」。
+    /// </summary>
+    private void PaintBannerGlow()
+    {
+        var color = !BannerImmersive && BannerShown ? _ambientInk : Microsoft.UI.Colors.Transparent;
+        var stops = BannerGlowBrush.GradientStops;
+        stops[0].Color = Fade(color, 0x50);
+        stops[1].Color = Fade(color, 0x3C);
+        stops[2].Color = Fade(color, 0x10);
+        stops[3].Color = Microsoft.UI.Colors.Transparent;
+        var visibility = color.A == 0 ? Visibility.Collapsed : Visibility.Visible;
+        if (BannerGlow.Visibility != visibility) BannerGlow.Visibility = visibility;
+
+        static Windows.UI.Color Fade(Windows.UI.Color ink, byte alpha) =>
+            ink.A == 0 ? Microsoft.UI.Colors.Transparent : Windows.UI.Color.FromArgb(alpha, ink.R, ink.G, ink.B);
+    }
+
+    /// <summary>
+    /// 自检：商店轮播四边留白圆角，沉浸轮播贴顶通栏；外圈卡片没有，2026-11-16 起商店档另有一圈从剧照
+    /// 取色的柔光（BannerGlow），沉浸档收起。
     /// <para>
     /// 2026-11-12 晚按用户令「参考上图给轮播图添加圆角，和四周染色的效果」改：左沿让出页脊线（36）、
     /// 右沿让出滚动条那条车道（13）、上沿落在标题栏底下（≥ 40，也就是页面自己的第 0 行再加 20 的那一口气），

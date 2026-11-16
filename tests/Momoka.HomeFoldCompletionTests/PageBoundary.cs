@@ -133,6 +133,8 @@ namespace Momoka.Shell.Views
         internal void ApplyCarousel() => SyncCarouselLayout();
         internal void NotifyAppearance(Momoka.Configuration.UiSettings ui) => OnAppearanceChanged(ui);
         private void PlaceScrollBar() { }
+        // Glow painting is a XAML surface outside these fold/mode rules.
+        private void PaintBannerGlow() { }
         internal FrameworkElement LibraryOverlay { get; } = new()
         {
             RenderTransform = new TranslateTransform(),

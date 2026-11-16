@@ -14,17 +14,19 @@ namespace Momoka.Shell.Media
     {
         public static int Decodes { get; private set; }
         public static List<(string Bytes, int MaxWidth)> Requests { get; } = [];
+        public static List<bool> Extensions { get; } = [];
         public static TaskCompletionSource<bool>? HoldRender { get; set; }
         public static Func<bool, Task>? HoldByMode { get; set; }
         public static bool RenderFails { get; set; }
         public static Func<string, Exception?>? DecodeError { get; set; }
         public static int Renders { get; private set; }
 
-        public static Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, CancellationToken token)
+        public static Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, bool extendLeft, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             Decodes++;
             Requests.Add((Encoding.UTF8.GetString(bytes), maxWidth));
+            Extensions.Add(extendLeft);
             if (DecodeError?.Invoke(Encoding.UTF8.GetString(bytes)) is { } error) throw error;
             return Task.FromResult<HeroPictureLoader.HeroPixels?>(new(bytes, maxWidth, Math.Max(1, maxWidth * 9 / 16)));
         }

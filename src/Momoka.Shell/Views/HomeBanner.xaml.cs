@@ -458,8 +458,22 @@ public sealed partial class HomeBanner : UserControl
         if (_layout == layout) return;
 
         _layout = layout;
+
+        // 商店版式的背景是原图本身（2026-11-16 用户实屏：「没必要加高斯模糊」）；整宽版式保留左侧采色扩边。
+        foreach (var slide in _slides) slide.SetLeftExtension(layout != CarouselLayout.Store);
+
         if (ActualWidth > 0) Resize(ActualWidth);
         else SyncSlideStatus();
+
+        if (_slides.Count > 0)
+        {
+            // 扩边模式变了，台上那张的图可能刚被放掉：先按空图/已缓存图重画一次，预取再按新模式补上。
+            Show(_index, animate: false);
+            Prefetch();
+        }
+
+        PaintFadeInk();
+        PublishAmbient();
     }
 
     /// <summary>这一刻摆没摆右栏。页面那头据此决定轮播上的媒体库视口要不要收窄。</summary>
@@ -551,6 +565,9 @@ public sealed partial class HomeBanner : UserControl
         // 全图高斯仅供详情沉浸布局；首页保留原图及左侧扩边过渡。
         foreach (var slide in _slides) slide.SetGaussianBackdrop(false);
         PaintBackdropShade();
+        // 高对比度开关会改变左侧渐变与光晕取色（那一档一律用固定深墨/透明），换主题时当场重画。
+        PaintFadeInk();
+        PublishAmbient();
     }
 
     internal bool GaussianBackdropApplied => Current?.GaussianBackdropApplied == true;
@@ -622,6 +639,13 @@ public sealed partial class HomeBanner : UserControl
     /// </para>
     /// </summary>
     public event EventHandler<BannerSlide?>? SlideChanged;
+
+    /// <summary>
+    /// 台上那张的代表色（2026-11-16）：换人时、以及那一张的像素迟到时各报一次。页面拿它在圆角卡片外沿
+    /// 画一圈光晕 —— 颜色本身是 Core 里 <see cref="CarouselAmbient"/> 从像素算出来的，这条带子只负责
+    /// 「此刻台上是谁」。传 <c>Transparent</c> 表示没有可借的颜色（没有图、整张近黑、或高对比度）。
+    /// </summary>
+    internal event Action<Windows.UI.Color>? AmbientChanged;
 
     /// <summary>
     /// 一张幻灯片取不到宽图、被从这一批里摘掉了（见 <see cref="BannerSlide.PictureUnavailable"/>）。页面据此把
@@ -698,6 +722,8 @@ public sealed partial class HomeBanner : UserControl
 
         _slides = next;
         foreach (var slide in _slides) slide.SetGaussianBackdrop(false);
+        // 新建的幻灯片默认按整宽版式带左侧扩边；商店版式要原图，先在这里把模式定下来再发起解码。
+        foreach (var slide in _slides) slide.SetLeftExtension(_layout != CarouselLayout.Store);
         Visibility = _slides.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         // 张数变了可能改变右栏的取舍（少于四张就收起来）。先照新清单重算几何，Show 随后再落字；
@@ -717,6 +743,8 @@ public sealed partial class HomeBanner : UserControl
             LogoImage.Source = null;
             LogoRow.Visibility = Visibility.Collapsed;
             SlideChanged?.Invoke(this, null);
+            PaintFadeInk();
+            PublishAmbient();
             SyncArrows();
             SyncTimer();
             return;
@@ -796,6 +824,49 @@ public sealed partial class HomeBanner : UserControl
 
         // 最后一句：上面那几件都是这条带自己的事，这一声是给外面的听者的。
         SlideChanged?.Invoke(this, slide);
+        PaintFadeInk();
+        PublishAmbient();
+    }
+
+    /// <summary>
+    /// 左侧渐变幕的颜色（2026-11-16 用户令「左边的渐变能不能根据不同的背景图颜色自动切换」）：商店版式跟着
+    /// 台上那张的代表色走，颜色压到暗部（峰值 52）再铺回原来的四档 alpha —— 既要看得出来这张图是什么颜色，
+    /// 又不能让白字压在亮色上读不出来。整宽版式和高对比度仍用固定的深墨。
+    /// </summary>
+    private void PaintFadeInk()
+    {
+        var ink = FadeDefaultInk;
+        var ambient = Current?.Ambient ?? CarouselInk.None;
+        if (_layout == CarouselLayout.Store && !_colorAccessibility.HighContrast && !ambient.IsNone)
+        {
+            var peak = Math.Max(ambient.R, Math.Max(ambient.G, ambient.B));
+            var scale = peak <= 0 ? 0 : 52d / peak;
+            ink = Windows.UI.Color.FromArgb(0xFF,
+                (byte)Math.Clamp(Math.Round(ambient.R * scale), 0, 255),
+                (byte)Math.Clamp(Math.Round(ambient.G * scale), 0, 255),
+                (byte)Math.Clamp(Math.Round(ambient.B * scale), 0, 255));
+        }
+
+        var stops = ((LinearGradientBrush)Fade.Background).GradientStops;
+        for (var i = 0; i < stops.Count && i < FadeAlphas.Length; i++)
+            stops[i].Color = Windows.UI.Color.FromArgb(FadeAlphas[i], ink.R, ink.G, ink.B);
+    }
+
+    /// <summary>整宽版式左侧渐变幕的固定深墨，也是高对比度/没有取色时的退路。</summary>
+    private static readonly Windows.UI.Color FadeDefaultInk = Windows.UI.Color.FromArgb(0xFF, 0x10, 0x12, 0x17);
+
+    /// <summary>左侧渐变幕四档 alpha（左沿近实心、往图里散尽），取自标记里的原值。</summary>
+    private static readonly byte[] FadeAlphas = [0xF0, 0xC2, 0x66, 0x00];
+
+    /// <summary>
+    /// 把台上那张的代表色报给页面（见 <see cref="AmbientChanged"/>）。没有可借的颜色或高对比度时报透明。
+    /// </summary>
+    private void PublishAmbient()
+    {
+        var ambient = _colorAccessibility.HighContrast ? CarouselInk.None : Current?.Ambient ?? CarouselInk.None;
+        AmbientChanged?.Invoke(ambient.IsNone
+            ? Microsoft.UI.Colors.Transparent
+            : Windows.UI.Color.FromArgb(0xFF, ambient.R, ambient.G, ambient.B));
     }
 
     /// <summary>台上那张的订阅撤掉。换人和离开树都走这里。</summary>
@@ -1317,6 +1388,9 @@ public sealed partial class HomeBanner : UserControl
         if (e.PropertyName == nameof(BannerSlide.Picture))
         {
             Paint(slide.Picture);
+            // 图到了，像素也就在了：左侧渐变的颜色和卡片四周的光晕此刻才算得出来。
+            PaintFadeInk();
+            PublishAmbient();
         }
         else if (e.PropertyName == nameof(BannerSlide.Logo)) PaintLogo(slide);
     }
@@ -1374,6 +1448,8 @@ public sealed partial class HomeBanner : UserControl
                 SyncSlideStatus();
             }
             SlideChanged?.Invoke(this, null);
+            PaintFadeInk();
+            PublishAmbient();
             SyncArrows();
             SyncTimer();
             SlideDropped?.Invoke(this, failed);
@@ -1919,7 +1995,7 @@ public sealed partial class HomeBanner : UserControl
             var spare = (height - Info.ActualHeight) / 2;
             var bandShape = Band.ActualHeight > 0 ? Band.ActualWidth / Band.ActualHeight : 0;
 
-            return $"带高 {height:0}、剧照左侧采色延长 {CarouselBackdrop.LeftExtensionShare:0%} 后铺满整条带{Describe(FrontPicture as BitmapImage, bandShape)}"
+            return $"带高 {height:0}、剧照{(_layout == CarouselLayout.Store ? "原图铺满卡片（商店版式不扩边）" : $"左侧采色延长 {CarouselBackdrop.LeftExtensionShare:0%} 后铺满整条带")}{Describe(FrontPicture as BitmapImage, bandShape)}"
                 + $"（渐变幕 {fade:0} 宽）、字块宽 {Info.MaxWidth:0}、"
                 + $"字块高 {Info.ActualHeight:0} 竖向居中（上下各 {spare:0}）、"
                 + $"带 {bandShape:0.00}:1"
@@ -2015,7 +2091,11 @@ public sealed partial class HomeBanner : UserControl
         return (covers && oneAxis,
             $"剧照铺满整条带 {drawn.Width:0}×{drawn.Height:0}（画刷那层就是整格，左 {left:0.#}、上 {at.Y:0.#}）"
                 + (sourceShape > 0
-                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色扩边，全扩边高斯经原图左8%平滑恢复清晰，图片静止）"
+                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（"
+                        + (_layout == CarouselLayout.Store
+                            ? "商店版式用原图，不扩边、不做过渡高斯"
+                            : $"左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色扩边，全扩边高斯经原图左8%平滑恢复清晰，图片静止")
+                        + "）"
                         + (cropX > 0
                             ? $" 比带子宽，左右各裁 {cropX:P0}"
                             : cropY > 0 ? $" 比带子窄，上下各裁 {cropY:P0}" : " 和带子同形，一个像素都不裁")

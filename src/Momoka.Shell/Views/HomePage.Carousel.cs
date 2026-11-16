@@ -50,6 +50,7 @@ public sealed partial class HomePage
         var top = immersive && BannerShown ? -ChromeHeight : 0;
         var margin = Scroller.Margin;
         if (margin.Top != top) Scroller.Margin = new Thickness(margin.Left, top, margin.Right, margin.Bottom);
+        PaintBannerGlow();
         PlaceLibraryOverlay();
         PaintInk();
         PlaceScrollBar();

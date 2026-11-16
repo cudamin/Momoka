@@ -204,6 +204,7 @@ internal static class Program
         if (args is ["home-carousel-fixture"])
         {
             HomeCarouselTests.Register();
+            CarouselAmbientTests.Register();
             GaussianBackdropTests.Register();
             return TestHarness.Run();
         }
@@ -694,6 +695,7 @@ internal static class Program
         ItemBatchPlaybackTests.Register();
         DownloadCollisionTests.Register();
         HomeCarouselTests.Register();
+        CarouselAmbientTests.Register();
         HomeChromeTests.Register();
         ShellChromeTests.Register();
         HomeFoldTests.Register();
