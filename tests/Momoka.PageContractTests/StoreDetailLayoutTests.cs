@@ -66,22 +66,17 @@ internal static class StoreDetailLayoutTests
             Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
                 && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
         });
-        Test("商店环境底：图盒内保持图色，越过剧照右沿与下沿一小段就交回主题底色", () =>
+        Test("商店环境底：图盒内保持图色，越过剧照右沿与下沿才渐隐，高度铺满第一屏", () =>
         {
-            // 2026-11-16 用户报「图右边和下面只有深色渐变」，并附微软商店条目页参考：环境底在图盒内满色，
-            // 图盒外只走一小段图色（约图盒高四分之一），再往下交回固定的深/浅主题底色，不拖到窗口底。
+            // 2026-11-16 用户报「图右边和下面只有深色渐变」：环境底原先按自身高度整体上坡，
+            // 剧照自己渐隐时底下已经淡成窗口色。现在只在图盒外收边，并且至少铺满第一屏。
             Assert.Equal(1.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 200, 1200, 900, 1100, 450));
             Assert.Equal(1.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 440, 1200, 900, 1100, 450));
             Assert.True(Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(1190, 200, 1200, 900, 1100, 450) is > 0 and < 0.6,
                 "环境底没有在剧照右沿之外收边");
-            var tailMid = 450 + Momoka.Shell.Views.StoreBackdropBlend.AmbientTail(450) / 2;
-            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, tailMid, 1200, 900, 1100, 450) is > 0.05 and < 0.95,
-                "环境底没有在剧照下沿之外那一小段里渐隐");
-            Assert.Equal(0.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 800, 1200, 900, 1100, 450));
+            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 800, 1200, 900, 1100, 450) is > 0 and < 0.4,
+                "环境底没有在剧照下沿之后渐隐");
             Assert.Equal(0.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(1200, 900, 1200, 900, 1100, 450));
-            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.AmbientTail(900)
-                > Momoka.Shell.Views.StoreBackdropBlend.AmbientTail(450),
-                "环境底下沿过渡带没有跟图盒大小走");
             var vm = Source("ViewModels/DetailViewModel.Store.cs");
             Assert.Contains("Math.Max(Math.Max(StoreBackdropHeight, HeroHeight), Viewport)", vm);
             Assert.Contains("_storeAmbientFade?.UpdateAmbient(", Source("Views/DetailPage.Store.cs"));

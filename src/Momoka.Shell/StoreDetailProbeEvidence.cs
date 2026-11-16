@@ -108,12 +108,7 @@ internal static class StoreDetailProbeEvidence
             throw new InvalidOperationException("商店长简介未按指定行数折叠，或透明面板仍保留裁切圆角");
     }
 
-    /// <param name="nearBottom">
-    /// 下沿坡度带里的取样位置（0～1，按遮罩自身高度算）。环境底只在下沿外走一小段
-    /// （<see cref="Views.StoreBackdropBlend.AmbientTail"/>），固定 0.9 会落到已经交回主题底色的透明区，
-    /// 所以环境底那一张由调用方按图盒几何传入坡度带中点；剧照遮罩仍用默认的 0.9。
-    /// </param>
-    internal static StoreFadeRead ReadMask(byte[] bgra, int width, int height, double nearBottom = 0.9)
+    internal static StoreFadeRead ReadMask(byte[] bgra, int width, int height)
     {
         ArgumentNullException.ThrowIfNull(bgra);
         if (width < 4 || height < 4 || (long)width * height * 4 != bgra.Length)
@@ -123,7 +118,7 @@ internal static class StoreDetailProbeEvidence
         // 右沿取样取 0.985（2026-11-16）：环境底改成图盒内满色、只在图右沿前 40 DIP 起坡，
         // 0.95 处仍在图盒里；剧照那张遮罩在这个位置也还有非零 alpha。
         return new(width, height, Alpha(0, 0.35), Alpha(1, 0.35), Alpha(0.5, 1),
-            Alpha(0.5, 0.35), Alpha(0.985, 0.35), Alpha(0.5, nearBottom), Alpha(0.5, 0));
+            Alpha(0.5, 0.35), Alpha(0.985, 0.35), Alpha(0.5, 0.9), Alpha(0.5, 0));
     }
 
     internal static void RequireMask(StoreFadeRead read)

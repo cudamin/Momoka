@@ -113,13 +113,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(overview.Text.StartsWith("首字完整。", StringComparison.Ordinal)
                     && overview.TextTrimming == TextTrimming.CharacterEllipsis, "匿名长简介没有保留首字或省略语义");
                 var pictureMask = ReadStoreMask(page, "StoreBackdropMask");
-                // 环境底只在图盒下沿外走一小段；下沿取样落在这一段的中点上，才测得到坡度。
-                var ambientHeight = page.ViewModel.StoreAmbientHeight;
-                var pictureBottom = page.ViewModel.StoreBackdropHeight;
-                var ambientNearBottom = ambientHeight > 0
-                    ? Math.Clamp((pictureBottom + StoreBackdropBlend.AmbientTail(pictureBottom) / 2) / ambientHeight, 0.01, 0.99)
-                    : 0.9;
-                var ambientMask = ReadStoreMask(page, "StoreAmbientMask", ambientNearBottom);
+                var ambientMask = ReadStoreMask(page, "StoreAmbientMask");
                 StoreDetailProbeEvidence.RequireMask(pictureMask);
                 StoreDetailProbeEvidence.RequireAmbientMask(ambientMask);
                 var ambientBrush = Get<Border>(page, "StoreBackdropSides").Background as ImageBrush;
@@ -206,13 +200,12 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private static StoreFadeRead ReadStoreMask(DetailPage page, string name, double nearBottom = 0.9)
+    private static StoreFadeRead ReadStoreMask(DetailPage page, string name)
     {
         var brush = Get<Border>(page, name).Background as ImageBrush;
         Require(brush?.ImageSource is WriteableBitmap, "商店实际遮罩没有位图");
         var bitmap = (WriteableBitmap)brush!.ImageSource;
-        return StoreDetailProbeEvidence.ReadMask(bitmap.PixelBuffer.ToArray(), bitmap.PixelWidth, bitmap.PixelHeight,
-            nearBottom);
+        return StoreDetailProbeEvidence.ReadMask(bitmap.PixelBuffer.ToArray(), bitmap.PixelWidth, bitmap.PixelHeight);
     }
 
     private async Task<CompositionPlaybackProbe.ResizeScreenFrame> CaptureStoreDetailFrameAsync(int width)

@@ -67,9 +67,8 @@ internal sealed class StoreBackdropFade
     }
 
     /// <summary>
-    /// 环境底的收边跟着剧照盒走（2026-11-16 用户报「图右边和下面只剩深色渐变」，参考微软商店条目页）：
-    /// 图盒内保持满色，越过剧照右沿与下沿才渐隐；下沿只走一小段（<see cref="StoreBackdropBlend.AmbientTail"/>）
-    /// 就交回主题底色，图色不拖到窗口底。窗口缩放或内容高变化时重建这张 128×128 的 alpha 图；
+    /// 环境底的收边跟着剧照盒走（2026-11-16 用户报「图右边和下面只剩深色渐变」）：图盒内保持满色，
+    /// 越过剧照右沿与下沿才渐隐到窗口画布。窗口缩放或内容高变化时重建这张 128×128 的 alpha 图；
     /// 同一组几何不重复生成。只对环境底实例生效。
     /// </summary>
     internal void UpdateAmbient(double width, double height, double pictureRight, double pictureBottom)
