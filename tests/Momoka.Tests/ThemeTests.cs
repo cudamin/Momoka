@@ -16,6 +16,7 @@ internal static class ThemeTests
     {
         RegisterColor();
         RegisterCatalog();
+        RegisterAppearance();
         RegisterContrast();
         RegisterDerivation();
     }
@@ -102,6 +103,58 @@ internal static class ThemeTests
             // 启动就会闪一下颜色。窗口底色和强调色是最看得出来的两个，所以钉住它们。
             Assert.Equal("#FF0C1116", UiThemes.Default.Colors.Window.ToHex());
             Assert.Equal("#FF6EE7C5", UiThemes.Default.Colors.Accent.ToHex());
+        });
+    }
+
+    private static void RegisterAppearance()
+    {
+        Test("选择模式：深色用色板、浅色用系统浅色、跟随系统随 Windows 深浅", () =>
+        {
+            var dark = UiThemes.Compose("midnight", UiThemes.ModeDark, null, systemDark: false);
+            Assert.Equal("midnight", dark.Id);
+            Assert.True(dark.IsDark);
+
+            var light = UiThemes.Compose("midnight", UiThemes.ModeLight, null, systemDark: true);
+            Assert.Equal(UiThemes.SystemId, light.Id);
+            Assert.False(light.IsDark);
+            Assert.Equal(UiThemes.System(false).Colors.Accent, light.Colors.Accent);
+
+            var systemLight = UiThemes.Compose("midnight", UiThemes.ModeSystem, null, systemDark: false);
+            Assert.Equal(UiThemes.SystemId, systemLight.Id);
+            Assert.False(systemLight.IsDark);
+
+            var systemDark = UiThemes.Compose("midnight", UiThemes.ModeSystem, null, systemDark: true);
+            Assert.Equal("midnight", systemDark.Id);
+            Assert.True(systemDark.IsDark);
+
+            // 色板本身就是「跟随系统」时，深色档用系统深色配色，不再落到默认那套。
+            var follows = UiThemes.Compose(UiThemes.SystemId, UiThemes.ModeDark, null, systemDark: false);
+            Assert.Equal(UiThemes.SystemId, follows.Id);
+            Assert.True(follows.IsDark);
+        });
+
+        Test("选择模式：认不出来的值、缺键与大小写都回深色", () =>
+        {
+            Assert.Equal(UiThemes.ModeDark, UiThemes.NormalizeMode(null));
+            Assert.Equal(UiThemes.ModeDark, UiThemes.NormalizeMode(""));
+            Assert.Equal(UiThemes.ModeDark, UiThemes.NormalizeMode("浅色"));
+            Assert.Equal(UiThemes.ModeLight, UiThemes.NormalizeMode(" LIGHT "));
+            Assert.Equal(UiThemes.ModeSystem, UiThemes.NormalizeMode("System"));
+        });
+
+        Test("主题色：覆盖强调色一族，悬停/按下/浅底与字色一起重算", () =>
+        {
+            var theme = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "#FF3B30", systemDark: true);
+            Assert.Equal("#FFFF3B30", theme.Colors.Accent.ToHex());
+            Assert.True(theme.Colors.AccentHover != theme.Colors.Accent, "悬停档没有跟着重算");
+            Assert.True(theme.Colors.AccentPressed != theme.Colors.Accent, "按下档没有跟着重算");
+            Assert.True(ThemeColor.Contrast(theme.Colors.TextOnAccent, theme.Colors.Accent) >= 4.5,
+                "压在强调色上的字须够 4.5:1");
+
+            // 空串、坏值＝跟随主题：强调色一族与原来那套完全一致。
+            var baseTheme = UiThemes.Resolve(UiThemes.DefaultId);
+            foreach (var none in new[] { null, "", "   ", "不是颜色" })
+                Assert.Equal(baseTheme.Colors, UiThemes.WithAccent(baseTheme, none).Colors);
         });
     }
 

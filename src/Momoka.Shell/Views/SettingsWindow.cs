@@ -75,10 +75,16 @@ internal sealed partial class SettingsWindow
         _window = window;
         _frame = frame;
         _canvas = canvas;
-        _mica = mica;
+        _mica = false;
+        _micaSupported = mica;
 
         // 自绘空白标题栏和系统关闭按钮一起随主题更新；画布的颜色也在同一趟里改。
-        _repaint = _ => InvalidateSystemAppearance();
+        _repaint = _ =>
+        {
+            // 「透明效果」关掉时把 Mica 摘掉，再按新的系统状态重画画布。
+            ApplyBackdrop();
+            InvalidateSystemAppearance();
+        };
         ThemeHost.Changed += _repaint;
 
         window.AppWindow.Closing += OnClosing;
@@ -101,6 +107,11 @@ internal sealed partial class SettingsWindow
     /// Mica 的支持检查/属性赋值是否成功。不是 controller Active 状态；系统回退不等于赋值失败。
     /// </summary>
     private bool _mica;
+
+    /// <summary>
+    /// 这台机器上支不支持 Mica，与「这一档要不要用」分开：设置页的「透明效果」关掉时支持仍在、底材不挂。
+    /// </summary>
+    private readonly bool _micaSupported;
 
     /// <summary>
     /// Whether the window is on screen. Tracked rather than asked of the OS, because 「shown」 and
@@ -155,8 +166,10 @@ internal sealed partial class SettingsWindow
         {
             // 这扇窗和主窗口一样上 Mica（Base）。主窗口是在 HWND 上直接问 DWM，这里走框架的窗口级
             // SystemBackdrop：两者的档位与画布浓度必须成对，见 ApplyBackdrop 与 Palette 的 EgCanvasBrush。
+            // 设置页的「透明效果」关掉时不挂底材，画布直接落成不透明窗口色。
             var mica = MicaController.IsSupported();
-            var canvas = new SolidColorBrush(mica ? CanvasColor(ThemeHost.Current) : WindowColor(ThemeHost.Current));
+            var useMica = mica && ThemeHost.TransparencyEnabled;
+            var canvas = new SolidColorBrush(useMica ? CanvasColor(ThemeHost.Current) : WindowColor(ThemeHost.Current));
 
             // 画布挂在根 Grid 上，Frame 让空：两层都画就是 60% 叠 60%，Mica 白开。
             var frame = new Frame
@@ -189,7 +202,7 @@ internal sealed partial class SettingsWindow
             // changed the canvas/assignment result; failed repaint must leave the cache invalid.
             created.InvalidateSystemAppearance();
 
-            Log.Info(Category, $"设置窗口已创建（底材：{(mica ? "Mica" : "纯色")}）");
+            Log.Info(Category, $"设置窗口已创建（底材：{(useMica ? "Mica" : "纯色")}）");
             return created;
         }
         catch (Exception error)
@@ -373,13 +386,25 @@ internal sealed partial class SettingsWindow
     /// </summary>
     private void ApplyBackdrop()
     {
-        if (!_mica) return;
+        // 不支持 Mica、或者设置页把「透明效果」关掉了：撤掉底材，画布落成不透明窗口色。
+        if (!_micaSupported || !ThemeHost.TransparencyEnabled)
+        {
+            try { _window.SystemBackdrop = null; }
+            catch (Exception error) { Log.Warn(Category, "撤除设置窗口 Mica 失败", error); }
+            _mica = false;
+            _canvas.Color = WindowColor(ThemeHost.Current);
+            _lastSystemAppearance = null;
+            return;
+        }
+
+        if (_mica) return;
 
         _lastSystemAppearance = null;
 
         try
         {
             _window.SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
+            _mica = true;
         }
         catch (Exception error)
         {

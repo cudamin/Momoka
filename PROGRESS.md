@@ -1,4 +1,4 @@
-﻿## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
+## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
 
 用户两句：截图（商店模式单集详情页）上「左边和左上角再叠一层淡淡的深色渐变，跟随窗口大小拉长」；「媒体详情页下方的卡片往上移，但是不要压在背景图上」，随后两句「参考订阅详情页的间距进行修改」「卡片接在背景图下方，留一点点空隙即可」。
 
@@ -14280,3 +14280,9 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 主树提交 `186d018`（后续修正 `8ee63b9`／`d5c66d2`）。用户要求参考媒体详情页的背景渐变修改订阅详情页，并确认预告片支持与下方卡片避让。产品改动：订阅详情图下沿渐变改为与 `DetailPage.PaintBackdropFade` 同一支 smoothstep（整图铺开、最后 20% 收到主题窗口色），移除 64 像素黑色横带；商店档右侧剧照／预告统一读 `StorePageWidth`、16 右沿空隙、宽版式 16 圆角与环境底取高，新增 `StoreTailHeight` 绑定到头部末尾的 `StoreTail`，正文纸面从剧照、预告控制排和空隙下面开始。MoviePilot 上游媒体详情只追加 images／credits 等、不含 videos，因此预告片改从当前 Emby／Jellyfin 身份按提供者 ID 找到的电影／剧条目取；商店宽版式自动静音循环并带暂停／静音，沉浸档新增「预告片」键列本地预告与远程链接，进播放与离页收干净。
 
 本批已跑 Shell/Core Release 0 警告 0 错误；`Momoka.PageContractTests` 341/341；主测试 5167/5167（默认 TEMP 两项下载环境红，可写 TEMP 全绿）；重复代码 65 段 / 0.48%；`check-diff.ps1`、`dotnet format whitespace`、`scan-automation-ids.js` 通过。未跑原生探针与截图（按用户 2026-11-16 日常界面规则）；预告 fixture 尚未带本地／远程字段，真实预告自动播放、滚动暂停与下方首卡避让待统一验证。台账新增第53项。
+
+# 2026-11-16 设置新增选择模式／透明效果／主题色，开机自启移入关于「启动」（待统一验证）
+
+工作树 `feat-modify-settings-autostart-about-iyVap2`，分支同名。用户令两条：「参考上图修改新增设置中的相关功能」「设置中的开机自启移动到关于中」。图是 Windows 个性化页的三行；经询问确认选择「三项都新增、保留现有色板」「浅色用现有系统浅色配色」「关于下新建启动卡」。产品改动：`UiSettings` 新增 `AppearanceMode`（dark/light/system，默认 dark，缺键旧文件保持原样）、`AccentColor`（#RRGGBB，空＝跟随主题）、`TransparencyEffects`（默认开）；`UiThemes.Compose` 在五套固定深色＋跟随系统之上合成实际深浅与强调色，浅色档复用 `System(false)`，`WithAccent` 按原推导重算悬停/按下/浅底/字色；`SettingsMigration.Normalize` 收口三格。`ThemeHost` 新增按 `UiSettings` 应用、模式为 system 时观察 Windows、透明效果关掉时整窗画布与侧栏 alpha 255、亚克力 `AlwaysUseFallback`；主窗口 `HostWindow` 与设置窗口在 `ThemeHost.Changed` 里重挂/撤除 Mica，DWM 非客户区同步 `DWMSBT_NONE`。设置界面卡依次新增「选择模式」「透明效果」「主题色」，现有六块色板保留；点色板会同步选择模式（固定色板回深色、跟随系统回 system）。「开机自启」从界面卡搬进关于分类新卡「启动」，自检、settings 探针与源码提取门控同步改到关于分类。
+
+本轮已跑 Shell Release 0 警告 0 错误；`Momoka.Tests` x64 Release 0 警告 0 错误，默认套件 5178 项 5174 通过、4 红：两项 `C:\WINDOWS\TEMP` 下载环境拒绝、一项 MoviePilot 图片夹具监听器取消的 SocketException、一项 `主页轮播：详情按钮不跟着翻页键换材质` 源码红（HomeBanner 的 `EgBannerPageRoundStyle`，本批未触碰该文件，属既有红）；新增 `规整：选择模式与主题色只留认得的值`、`选择模式：…`、`主题色：覆盖强调色一族` 全绿。`settings-page-state-fixture` 58/58、`startup-state-contract-fixture` 61/61、`Momoka.SystemThemeTests` 8/8（新增透明效果画布/侧栏/回退断言）、`Momoka.SettingsLifetimeTests` 63/63、`Momoka.SettingsAppearanceTests` 47/47、`Momoka.SettingsPersistenceTests` 42/42、`Momoka.SettingsProbeContractTests` 36/36、`Momoka.PageContractTests`、`Momoka.ArchitectureTests`、`Momoka.AppearanceOpacityTests` 均通过；改动文件 `dotnet format whitespace` 与 `scan-automation-ids.js` 退出 0。按日常界面规则未跑原生探针与验收截图；深浅模式、主题色与透明效果的真实屏幕观感、设置页/主页/详情各表面、Mica 撤除后的 DWM 边框、跟随系统切换与高对比度均待统一验证。台账新增第55项。

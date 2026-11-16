@@ -189,6 +189,33 @@ internal static class SettingsPageStateTests
 
             List<string> Labels() => rows.Cast<object>().Select(row => fixture.Get<string>(row, "Label")).ToList();
         });
+        TestHarness.Test("界面卡：选择模式／透明效果／主题色在列，开机自启已搬进关于「启动」卡（源码接线）", () =>
+        {
+            // 2026-11-16 用户令「参考上图修改新增设置中的相关功能」「设置中的开机自启移动到关于中」。
+            // 界面卡会创建主题画刷，测试不执行它；这里钉住建卡源码里的行与门控归属，屏上的行由 settings 探针量。
+            var source = fixture.ViewModelSource;
+            var cardStart = source.IndexOf("private SettingSection InterfaceCard()", StringComparison.Ordinal);
+            var cardEnd = source.IndexOf("private SettingChoiceRow AppearanceModeRow(", cardStart, StringComparison.Ordinal);
+            Assert.True(cardStart >= 0 && cardEnd > cardStart, "找不到界面卡建卡入口");
+            var card = source[cardStart..cardEnd];
+
+            Assert.Contains("AppearanceModeRow(ui)", card);
+            Assert.Contains("TransparencyRow(ui)", card);
+            Assert.Contains("AccentColorRow(ui)", card);
+            Assert.Contains("ThemeSwatches(ui)", card);
+            Assert.DoesNotContain("StartupRow()", card);
+
+            Assert.Contains("(\"深色\", UiThemes.ModeDark)", source);
+            Assert.Contains("(\"浅色\", UiThemes.ModeLight)", source);
+            Assert.Contains("(\"跟随系统\", UiThemes.ModeSystem)", source);
+            Assert.Contains("after: () => ThemeHost.Apply(ui)", source);
+            Assert.Contains("ui.AccentColor = value;", source);
+            Assert.Contains("ui.TransparencyEffects = value", source);
+
+            Assert.Contains("new SettingSection(\"关于\", \"启动\"", fixture.AboutSource);
+            Assert.Contains("if (_startup is { Available: true }) rows.Add(StartupRow());", fixture.AboutSource);
+            Assert.Contains(".. StartupSections()", fixture.ViewModelSource);
+        });
         TestHarness.Test("详情页内容：隐藏没有封面的演职人员默认关，拨一下写回设置", () =>
         {
             var settings = new FakeSettings();
@@ -392,7 +419,7 @@ internal static class SettingsPageStateTests
                 ("播放行为", "播放行为"), ("播放行为", "跳转与步长"), ("播放行为", "音轨"),
                 ("音频输出", "输出设备"), ("音频输出", "响度"), ("音频输出", "直通"),
                 ("字幕", "字幕"), ("字幕", "字幕外观"), ("字幕", "编码与画面"),
-                ("关于", "关于"), ("关于", "更新"), ("关于", "文件与缓存"), ("关于", "备份与恢复")
+                ("关于", "关于"), ("关于", "启动"), ("关于", "更新"), ("关于", "文件与缓存"), ("关于", "备份与恢复")
             })
             {
                 Assert.True(fixture.ViewModelSource.Contains($"new SettingSection(\"{category}\", \"{title}\"", StringComparison.Ordinal),
@@ -535,7 +562,8 @@ internal static class SettingsPageStateTests
         var launcher = fixture.NewLauncher(error);
         var vm = fixture.NewViewModel();
         fixture.Attach(vm, settings, launcher);
-        // 关于 2026-10-27 拆成四张卡：建卡入口返回一份列表，目录行都在「文件与缓存」那张里。
+        // 关于 2026-10-27 拆成四张卡，2026-11-16 新增第五张「启动」；建卡入口返回一份列表，目录行都在
+        // 「文件与缓存」那张里。
         var aboutCards = ((IEnumerable)fixture.Invoke(vm, "AboutSections")!).Cast<object>().ToArray();
         var row = aboutCards.SelectMany(card => fixture.List(card, "Rows").Cast<object>())
             .Single(row => fixture.Get<string>(row, "Label") == label);
@@ -658,7 +686,8 @@ internal static class SettingsPageStateTests
             _shell = AssemblyLoadContext.Default.LoadFromAssemblyPath(shellPath);
             _viewModel = _shell.GetType("Momoka.Shell.ViewModels.SettingsViewModel", throwOnError: true)!;
             ViewModelSource = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
-            // 2026-10-27 起关于卡拆成四张，建卡入口改名 AboutSections()；取的是这一整段（四张卡都在里面）。
+            // 2026-10-27 起关于卡拆成四张，2026-11-16 又新增「启动」卡（开机自启从界面卡搬来）；建卡入口叫
+            // AboutSections()；取的是这一整段（五张卡都在里面）。
             var aboutStart = ViewModelSource.IndexOf("private IReadOnlyList<SettingSection> AboutSections()", StringComparison.Ordinal);
             var aboutEnd = ViewModelSource.IndexOf("private async Task MeasureImageCacheAsync()", aboutStart, StringComparison.Ordinal);
             AboutSource = ViewModelSource[aboutStart..aboutEnd];

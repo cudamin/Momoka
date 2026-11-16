@@ -41,7 +41,8 @@ internal sealed partial class HostWindow
         if (_source is null) return;
         try
         {
-            if (!_useBackdrop)
+            // 播放页撤材质与设置页的「透明效果」关掉走同一条：不挂任何系统底材，画布自己落成实色。
+            if (!_useBackdrop || !ThemeHost.TransparencyEnabled)
             {
                 _source.SystemBackdrop = null;
                 return;

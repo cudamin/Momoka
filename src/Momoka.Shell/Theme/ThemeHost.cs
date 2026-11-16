@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Theming;
 using Windows.UI;
 
@@ -231,8 +232,20 @@ public static class ThemeHost
 
     private static SystemThemeWatcher? _systemTheme;
 
+    /// <summary>
+    /// 最近一次按设置文件应用的那一份外观。只有它非空时，跟随系统才算「模式跟着系统」——
+    /// 探针与 <c>--theme</c> 那种临时换一套色板的调用会把它清空，退出时不该继续替用户跟随。
+    /// </summary>
+    private static UiSettings? _appearance;
+
     /// <summary>当前生效的那套。启动时 <see cref="Apply(string?)"/> 会按设置文件把它换掉。</summary>
     public static UiTheme Current { get; private set; } = UiThemes.Default;
+
+    /// <summary>
+    /// 透明效果当前是否开着。关掉时整窗画布与侧栏落成实色、亚克力表面走回退色，窗口的 Mica 也一并撤掉。
+    /// 窗口那头在 <see cref="Changed"/> 里读这一位重新决定要不要挂底材。
+    /// </summary>
+    public static bool TransparencyEnabled { get; private set; } = true;
 
     /// <summary>
     /// 换主题时通知一次。给两个窗口的标题栏用：那两处的颜色是 Win32 的非客户区，画刷改不到它们，
@@ -245,13 +258,50 @@ public static class ThemeHost
     /// </summary>
     public static void Apply(string? id) => Apply(UiThemes.Resolve(id));
 
-    public static void Apply(UiTheme theme)
+    /// <summary>
+    /// 一套固定的主题（探针、<c>--theme</c>、按 id 恢复）：透明效果沿用当前这一档。
+    /// </summary>
+    public static void Apply(UiTheme theme) => Apply(theme, TransparencyEnabled);
+
+    /// <summary>
+    /// 一套固定的主题，并指定这一次的透明效果（<c>--theme</c> 启动时跟着设置走）。
+    /// 会清掉「按设置文件应用」的那一份 —— 临时换肤不该留下继续跟随系统的尾巴。
+    /// </summary>
+    public static void Apply(UiTheme theme, bool transparencyEnabled)
     {
         ArgumentNullException.ThrowIfNull(theme);
-        if (theme.FollowsSystem)
+        _appearance = null;
+        TransparencyEnabled = transparencyEnabled;
+        ApplyCore(theme, theme.FollowsSystem);
+    }
+
+    /// <summary>
+    /// 设置文件里的整份外观：色板、选择模式、主题色与透明效果一起合成。
+    /// 模式为跟随系统时才建立系统观察；固定深色/浅色档一律停掉它。
+    /// </summary>
+    public static void Apply(UiSettings ui)
+    {
+        ArgumentNullException.ThrowIfNull(ui);
+        _appearance = ui;
+
+        var mode = UiThemes.NormalizeMode(ui.AppearanceMode);
+        var followsSystem = string.Equals(mode, UiThemes.ModeSystem, StringComparison.Ordinal);
+        var systemDark = true;
+        if (followsSystem)
+            systemDark = (_systemTheme ??= new SystemThemeWatcher(UpdateSystemTheme)).IsDark;
+
+        TransparencyEnabled = ui.TransparencyEffects;
+        ApplyCore(UiThemes.Compose(ui.Theme, mode, ui.AccentColor, systemDark), followsSystem);
+    }
+
+    private static void ApplyCore(UiTheme theme, bool followSystem)
+    {
+        if (followSystem)
         {
             _systemTheme ??= new SystemThemeWatcher(UpdateSystemTheme);
-            theme = UiThemes.System(_systemTheme.IsDark);
+            // 目录里的「跟随系统」只是一份深色预览；真正要画的深浅在观察器里读。
+            if (theme.FollowsSystem)
+                theme = UiThemes.System(_systemTheme.IsDark);
         }
         else
             StopSystemWatch();
@@ -270,7 +320,9 @@ public static class ThemeHost
     {
         SetFollowChanges(root, false);
         root.RequestedTheme = ElementTheme.Dark;
-        var theme = Current.IsDark ? Current : UiThemes.Default;
+        var theme = Current.IsDark
+            ? Current
+            : UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, _appearance?.AccentColor, true);
         var entries = new ResourceDictionary();
         foreach (var (key, pick) in Brushes)
             entries[key] = new SolidColorBrush(ToColor(pick(theme)));
@@ -282,6 +334,13 @@ public static class ThemeHost
 
     private static void UpdateSystemTheme(bool dark)
     {
+        if (_appearance is { } ui
+            && string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), UiThemes.ModeSystem, StringComparison.Ordinal))
+        {
+            ApplyResolved(UiThemes.Compose(ui.Theme, UiThemes.ModeSystem, ui.AccentColor, dark));
+            return;
+        }
+
         if (Current.FollowsSystem && Current.IsDark != dark)
             ApplyResolved(UiThemes.System(dark));
     }
@@ -302,15 +361,21 @@ public static class ThemeHost
                 switch (found)
                 {
                     case SolidColorBrush brush:
-                        brush.Color = ToColor(pick(theme));
+                        var color = pick(theme);
+                        // 透明效果关掉时，整窗画布、侧栏与框架那层栏底直接落成实色；浓度仍写在上面那张表里。
+                        if (!TransparencyEnabled && key is "EgCanvasBrush" or "EgSidebarBrush" or "LayerFillColorAltBrush")
+                            color = color.WithAlpha(0xFF);
+                        brush.Color = ToColor(color);
                         break;
 
                     // 亚克力（EgFrostBrush）：改的是它的两个颜色，两个 Opacity 留给调色板 —— 那两个数是
                     // 「透多少」，按深浅分两档写在两份字典里，和这套主题是哪个色相无关。FallbackColor 也得
                     // 改：关掉透明效果时屏上就剩它，停在上一套主题的窗口底色上会是一整块不合的颜色。
+                    // AlwaysUseFallback 跟着设置页的「透明效果」走：关掉时每一支亚克力都直接画回退色。
                     case AcrylicBrush acrylic:
                         acrylic.TintColor = ToColor(pick(theme));
                         acrylic.FallbackColor = ToColor(pick(theme));
+                        acrylic.AlwaysUseFallback = !TransparencyEnabled;
                         break;
                 }
             }

@@ -595,6 +595,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     internal SettingThemeRow? Themes { get; private set; }
 
     /// <summary>
+    /// 「选择模式」那一行。点色板时要把模式跟着拨到深色或跟随系统，下拉本身不重建也得当场换到新选项。
+    /// </summary>
+    private SettingChoiceRow? _appearanceMode;
+
+    /// <summary>
     /// How many row containers the cards would put on the visual tree between them; the self-check
     /// compares this to what really rendered.
     /// </summary>
@@ -1141,7 +1146,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：主页两张（轮播图 /
         // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出四张（基础输出 /
         // 画质与着色器 / HDR / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
-        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于四张。视频输出按用户指定次序：着色器在 HDR 上方，补帧在最后。
+        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于五张。视频输出按用户指定次序：着色器在 HDR 上方，补帧在最后。
         _playerToolsPickerVersion++;
         DetailCards.Clear();
         Sections.Clear();
@@ -2201,10 +2206,17 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingSection InterfaceCard()
     {
         var ui = Settings.Ui;
+        var mode = AppearanceModeRow(ui);
+        _appearanceMode = mode;
         Themes = ThemeSwatches(ui);
 
         var rows = new List<SettingRow>
         {
+            // 「参考上图修改新增设置中的相关功能」（2026-11-16）：选择模式、透明效果、主题色三行照 Windows
+            // 的个性化页排在这里，现有色板留在它们下面 —— 模式决定深浅，色板决定深色档长什么样。
+            mode,
+            TransparencyRow(ui),
+            AccentColorRow(ui),
             Themes,
 
             Toggle("UI 动画", "页面切换、卡片悬停等界面动效，改完立即生效；开启时仍遵循 Windows 动画设置",
@@ -2212,14 +2224,10 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value => ui.AnimationsEnabled = value,
                 after: () => ShellPrefs.Apply(ui)),
 
-            // 「在设置中新增开机自启的功能」。打包安装（MSIX）之后这一条办不到（见 IStartupRegistration），
-            // 那时整行不显示 —— 按项目规则，当前配置下不会生效的功能整个收起，不是置灰。
-        };
+            // 「在设置中新增开机自启的功能」原来在这里。2026-11-16 按用户令「设置中的开机自启移动到关于中」
+            // 搬进关于分类新开的「启动」卡，见 StartupSections —— 它写的是机器上的启动项，和「关于」那一摊
+            // 这台机器的痕迹更近。
 
-        if (_startup is { Available: true }) rows.Add(StartupRow());
-
-        rows.AddRange(
-        [
             // 「主页媒体库位置」原来在这一段里（2026-10-12 起，叫「首页媒体库位置」），2026-10-16 按用户令改名并挪
             // 进主页卡 —— 它和主页那张版面表（勾哪几排、什么次序）说的是同一件事：主页第一屏长什么样。
 
@@ -2259,12 +2267,48 @@ public sealed partial class SettingsViewModel : PageViewModel
                     SettingRow.NotesHidden = ui.CompactMode;
                     RefreshNoteVisibility();
                 })
-        ]);
+        };
 
         return new SettingSection("界面", "界面",
-            "配色主题、UI 动画、开机自启、隐藏功能下方说明和媒体库分页。",
+            "选择模式、透明效果、主题色、UI 动画、隐藏功能下方说明和媒体库分页。",
             rows);
     }
+
+    /// <summary>
+    /// 「选择模式」：深色用当前选中的主题色板，浅色用系统浅色配色，跟随系统随 Windows 的浅色或深色应用模式。
+    /// 三档只在 <see cref="UiThemes"/> 里认，存进设置文件的也是那三个值。
+    /// </summary>
+    private SettingChoiceRow AppearanceModeRow(UiSettings ui) =>
+        Choice("选择模式",
+            new[] { ("深色", UiThemes.ModeDark), ("浅色", UiThemes.ModeLight), ("跟随系统", UiThemes.ModeSystem) },
+            () => UiThemes.NormalizeMode(ui.AppearanceMode),
+            value => ui.AppearanceMode = value,
+            "深色使用下面选中的主题色板；浅色使用系统浅色配色；跟随系统会随 Windows 的浅色或深色应用模式自动切换。",
+            after: () => ThemeHost.Apply(ui));
+
+    /// <summary>
+    /// 「透明效果」：窗口、卡片和输入框等表面的半透明总开关。关掉时窗口的 Mica 与亚克力表面一起落成实色。
+    /// </summary>
+    private SettingToggleRow TransparencyRow(UiSettings ui) =>
+        Toggle("透明效果",
+            "窗口、卡片和输入框显示半透明；关掉后这些表面全部落成实色，窗口的 Mica 也一并撤掉。改完立即生效。",
+            () => ui.TransparencyEffects,
+            value => ui.TransparencyEffects = value,
+            after: () => ThemeHost.Apply(ui));
+
+    /// <summary>
+    /// 「主题色」：强调色覆盖。空值显示成「不设置」，也就是跟随当前主题；选完颜色当场换肤，不等保存。
+    /// </summary>
+    private SettingColorRow AccentColorRow(UiSettings ui) =>
+        new("主题色",
+            "按钮、开关、滑块和选中标记的强调色；不设置时跟随当前主题。点开色块挑颜色，选完立即生效。",
+            ui.AccentColor,
+            value =>
+            {
+                ui.AccentColor = value;
+                ThemeHost.Apply(ui);
+            },
+            Save);
 
     /// <summary>
     /// 「在设置中新增开机自启的功能」。这一行和这一页别的行都不一样：它写进去的不是设置文件，而是机器上的启动项
@@ -2678,17 +2722,34 @@ public sealed partial class SettingsViewModel : PageViewModel
         };
 
         // 2026-10-27 拆卡（用户令「其他页也拆一下」）：关于原来一张卡十六行，版本号、检查更新、磁盘位置、
-        // 备份恢复四件事混在一起。现在四张卡，破坏性的「恢复默认设置」仍在最后一行的最后。
+        // 备份恢复四件事混在一起。现在五张卡（2026-11-16 按「设置中的开机自启移动到关于中」新增「启动」），
+        // 破坏性的「恢复默认设置」仍在最后一行的最后。「启动」紧挨着「更新」：两件都是启动时的行为。
         return
         [
             new SettingSection("关于", "关于",
                 "这份程序是哪一版、拿哪个内核在放，以及弹幕数据从哪来。", infoRows),
+            .. StartupSections(),
             new SettingSection("关于", "更新",
                 "启动时要不要顺路问一句有没有新版本，以及现在就想知道结果时按这里。", updateRows),
             new SettingSection("关于", "文件与缓存",
                 "设置、日志、缓存和截图在这台机器上的位置，以及海报缓存占了多少地方。", fileRows),
             new SettingSection("关于", "备份与恢复",
                 "把偏好设置导出带走，或者从备份里读回来；恢复默认只动设置页管的那些项。", backupRows)
+        ];
+    }
+
+    /// <summary>
+    /// 关于分类里的「启动」卡（用户令 2026-11-16：「设置中的开机自启移动到关于中」）。
+    /// 这一行写的不是设置文件，而是机器上的启动项；打包安装（MSIX）办不到这一条，整张卡随那一行一起收起。
+    /// </summary>
+    private IReadOnlyList<SettingSection> StartupSections()
+    {
+        var rows = new List<SettingRow>();
+        if (_startup is { Available: true }) rows.Add(StartupRow());
+        return
+        [
+            new SettingSection("关于", "启动",
+                "登录 Windows 之后要不要自动打开 Momoka。这一项改的是机器上的启动项，不进设置文件。", rows)
         ];
     }
 
@@ -2924,7 +2985,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private async Task ReapplyAndReloadAsync(string notice)
     {
         var ui = Settings.Ui;
-        ThemeHost.Apply(ui.Theme);
+        ThemeHost.Apply(ui);
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
@@ -2973,15 +3034,34 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingThemeRow ThemeSwatches(UiSettings ui) =>
         new(
             "主题",
-            "点中即生效；跟随系统会随 Windows 的浅色或深色应用模式自动切换。",
+            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；跟随系统时随 Windows 的深浅切换。",
             UiThemes.All,
             () => ui.Theme,
             value =>
             {
                 ui.Theme = value;
-                ThemeHost.Apply(value);
+
+                // 点「跟随系统」＝把选择模式拨到跟随系统；点一套固定色板时拨回深色 —— 否则在浅色档下
+                // 选完色板，屏上一点变化都没有，而那一块偏偏还亮起了角标。模式下拉没有重建，就地换选项。
+                var mode = string.Equals(value, UiThemes.SystemId, StringComparison.OrdinalIgnoreCase)
+                    ? UiThemes.ModeSystem
+                    : UiThemes.ModeDark;
+                if (!string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), mode, StringComparison.Ordinal))
+                {
+                    ui.AppearanceMode = mode;
+                    _appearanceMode?.ReseedSelection(ModeLabel(mode));
+                }
+
+                ThemeHost.Apply(ui);
             },
             Save);
+
+    private static string ModeLabel(string mode) => UiThemes.NormalizeMode(mode) switch
+    {
+        UiThemes.ModeLight => "浅色",
+        UiThemes.ModeSystem => "跟随系统",
+        _ => "深色"
+    };
 
     // ── Row factories ────────────────────────────────────────────────────────────────────────────────
 

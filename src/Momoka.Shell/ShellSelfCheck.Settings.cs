@@ -366,14 +366,16 @@ internal static partial class ShellSelfCheck
         var compact = SettingRow.ProbeCompactMode();
         check("隐藏功能下方说明收放", compact.Ok, compact.Detail);
 
-        // 「在设置中新增开机自启的功能」（2026-10-13）。这一行写的不是设置文件，而是机器上的启动项，所以它坏掉的
-        // 样子几乎全在屏外：整行没建出来（办得到的时候本该在）、说明没写明这一项不进设置文件（用户会以为它跟着
-        // 备份和「恢复默认」走）、以及初值不是问机器而是写死一个「关」（机器上开着、屏上却是关的，用户以为没开）。
+        // 「在设置中新增开机自启的功能」（2026-10-13）。2026-11-16 按用户令从「界面」搬进关于分类的「启动」卡。
+        // 这一行写的不是设置文件，而是机器上的启动项，所以它坏掉的样子几乎全在屏外：整行没建出来（办得到的时候
+        // 本该在）、说明没写明这一项不进设置文件（用户会以为它跟着备份和「恢复默认」走）、以及初值不是问机器
+        // 而是写死一个「关」（机器上开着、屏上却是关的，用户以为没开）。
         // <b>这里只读不写</b>：自检不能真去改用户机器上的启动项。拨开关那两条路（写下去、写不成时拨回去）由离线
-        // 探针用假实现驱动，见「界面卡上的开机自启开关」那条用例。
-        var interfaceRows = page.ViewModel.Sections
-            .FirstOrDefault(section => section.Category == "界面")?.Rows ?? [];
-        var startupRow = interfaceRows.OfType<SettingToggleRow>().FirstOrDefault(row => row.Label == "开机自启");
+        // 探针用假实现驱动，见「关于启动卡上的开机自启开关」那条用例。
+        var aboutCategoryRows = page.ViewModel.Sections
+            .Where(section => section.Category == "关于")
+            .SelectMany(section => section.Rows);
+        var startupRow = aboutCategoryRows.OfType<SettingToggleRow>().FirstOrDefault(row => row.Label == "开机自启");
         var startupApplicable = startup.Available;
         var startupNoteOk = startupRow is not null
             && startupRow.Note.Contains("启动项", StringComparison.Ordinal)
@@ -399,7 +401,7 @@ internal static partial class ShellSelfCheck
                 ? $"读取开机自启状态失败：{startupReadFailure}；无法确认当前状态"
                 : startupRow is null
                     ? (startupApplicable
-                        ? "界面卡上没有这一行 —— 办得到的时候它本该在"
+                        ? "关于分类里没有这一行 —— 办得到的时候它本该在"
                         : "这一档下按设计整个不显示（打包安装，启动项归包管理）")
                     : $"这一行在，读到{(startupRow.IsOn ? "开" : "关")}、机器上是{(startupEnabled == true ? "开" : "关")}；"
                         + $"说明{(startupNoteOk ? "写明" : "没写明")}这一项改的是机器上的启动项、不进设置文件");

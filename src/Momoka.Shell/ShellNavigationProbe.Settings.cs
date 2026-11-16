@@ -123,7 +123,7 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => scroll.VerticalOffset < 1);
                 var visible = Descendants(page).OfType<FrameworkElement>()
                     .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible).ToArray();
-                // 关于 2026-10-27 拆成四张卡：这一页该把四张都画出来，不能只认一张。
+                // 关于 2026-10-27 拆成四张卡、2026-11-16 再加「启动」一张：这一页该把当前可见的卡都画出来，不能只认一张。
                 var aboutCards = page.ViewModel.Sections.Count(section => section.IsVisible);
                 Require(visible.Length == aboutCards && visible.All(element => element.ActualHeight > 0),
                     $"长页切短页没有实现目标分组：可见 {visible.Length} / 应有 {aboutCards}");
@@ -315,10 +315,10 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 设置 → 界面 → 「开机自启」：这一行和这一页别的行都不一样 —— 它写进去的不是设置文件，而是机器上的启动项
-    /// （HKCU 的 Run），所以它坏掉的样子几乎全在屏外：开关拨了没写下去（屏上照样亮着、机器上什么都没变）、写不
-    /// 下去时开关不肯拨回去（用户以为改成了）、初值不是问机器而是写死一个「关」（机器上开着，屏上却是关的），以及
-    /// 打包安装那一档下这一行本该整个不显示却还在。
+    /// 设置 → 关于 → 「启动」→「开机自启」（2026-11-16 从界面卡搬来）：这一行和这一页别的行都不一样 ——
+    /// 它写进去的不是设置文件，而是机器上的启动项（HKCU 的 Run），所以它坏掉的样子几乎全在屏外：开关拨了没
+    /// 写下去（屏上照样亮着、机器上什么都没变）、写不下去时开关不肯拨回去（用户以为改成了）、初值不是问机器
+    /// 而是写死一个「关」（机器上开着，屏上却是关的），以及打包安装那一档下这一行本该整个不显示却还在。
     /// <para>
     /// 驱动的是真控件、真那一行，接的却是假实现：探针绝不能真写 HKCU 里那条启动项 —— 那会在跑探针这台机器上
     /// 留下一条真的开机自启，而那是用户机器上的登记，不是探针该动的东西。
@@ -349,14 +349,14 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             BeginSettingsFixtureVisit(page);
-            page.SelectedCategory = "界面";
+            page.SelectedCategory = "关于";
             await SettleAsync();
 
             ToggleSwitch Control() => Descendants(page).OfType<ToggleSwitch>()
                 .Single(control => AutomationProperties.GetName(control) == label);
 
             SettingToggleRow Row() => page.ViewModel.Sections
-                .Where(section => section.Category == "界面")
+                .Where(section => section.Category == "关于")
                 .SelectMany(section => section.Rows)
                 .OfType<SettingToggleRow>()
                 .Single(candidate => candidate.Label == label);
@@ -396,7 +396,7 @@ internal sealed partial class ShellNavigationProbe
             // 打包安装那一档：这一条办不到，整行不显示（按项目规则整个收起，不是置灰）。
             fixture.Startup.Available = false;
             await page.ViewModel.ReloadAsync();
-            page.SelectedCategory = "界面";
+            page.SelectedCategory = "关于";
             await SettleAsync();
             Require(!Rows().Any(row => row.Label == label), "打包安装那一档下这一行的数据行还在");
             Require(!Descendants(page).OfType<Control>().Any(control => AutomationProperties.GetName(control) == label)
@@ -406,7 +406,7 @@ internal sealed partial class ShellNavigationProbe
             // 装回来，并留一张宽窄两档的实屏。
             fixture.Startup.Available = true;
             await page.ViewModel.ReloadAsync();
-            page.SelectedCategory = "界面";
+            page.SelectedCategory = "关于";
             await SettleAsync();
             Require(Rows().Any(row => row.Label == label), "办得到的时候这一行没有装回来");
 
@@ -416,11 +416,11 @@ internal sealed partial class ShellNavigationProbe
                 await SettleAsync();
                 Control().StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.5 });
                 await LayoutAsync(page);
-                await SaveProbeScreenAsync($"settings-interface-startup-{width}-screen.png");
+                await SaveProbeScreenAsync($"settings-about-startup-{width}-screen.png");
             }
 
             IReadOnlyList<SettingRow> Rows() => [.. page.ViewModel.Sections
-                .Where(section => section.Category == "界面")
+                .Where(section => section.Category == "关于")
                 .SelectMany(section => section.Rows)];
 
             async Task SettleAsync()

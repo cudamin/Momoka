@@ -41,16 +41,23 @@ internal static partial class ShellSelfCheck
         Action<string, bool, string> check)
     {
         var theme = ThemeHost.Current;
-        var stored = services.GetRequiredService<ISettingsService>().Settings.Ui.Theme;
+        var ui = services.GetRequiredService<ISettingsService>().Settings.Ui;
+        var stored = ui.Theme;
 
         // 这一次该生效的是哪一套。--theme 只压住这一次运行看到的颜色，设置文件一个字不动，所以那个开关在的
         // 时候要跟它比 —— 并且把「存的那个还是原来那个」也报出来，那正是这个开关唯一容易出错的地方。
-        var asked = options.Theme is { Length: > 0 } flag ? UiThemes.Resolve(flag).Id : null;
-        var effective = asked ?? stored;
+        // 平常按整份外观合成：选择模式可能把实际生效的深浅换成系统浅色档，主题色会换掉强调色一族。
+        var askedTheme = options.Theme is { Length: > 0 } flag ? UiThemes.Resolve(flag) : null;
+        var asked = askedTheme?.Id;
+        var expectedTheme = askedTheme ?? UiThemes.Compose(stored, ui.AppearanceMode, ui.AccentColor, theme.IsDark);
 
         report.AppendLine(
             $"[信息] 主题目录 — 共 {UiThemes.All.Count} 套：" +
             string.Join("、", UiThemes.All.Select(one => $"{one.Name}（{one.Id}，{(one.IsDark ? "深" : "浅")}）")));
+        report.AppendLine(
+            $"[信息] 外观 — 模式 {ModeName(UiThemes.NormalizeMode(ui.AppearanceMode))}，"
+            + $"主题色 {(string.IsNullOrWhiteSpace(ui.AccentColor) ? "跟随主题" : ui.AccentColor)}，"
+            + $"透明效果 {(ui.TransparencyEffects ? "开" : "关")}");
 
         if (asked is not null)
             report.AppendLine(
@@ -65,11 +72,15 @@ internal static partial class ShellSelfCheck
             $"[信息] 主题正文对比度 — {theme.Name}：{ThemeColor.Contrast(theme.Colors.Text, theme.Colors.Window):0.00}:1");
 
         var wanted = theme.IsDark ? ElementTheme.Dark : ElementTheme.Light;
-        var sameId = string.Equals(theme.Id, effective, StringComparison.OrdinalIgnoreCase);
+        // --theme system 要的是「跟随系统」，它解析出哪一档由运行时的 Windows 决定；这里只核 id，不再把
+        // 目录里那份深色预览的深浅当成期望值。
+        var sameId = string.Equals(theme.Id, expectedTheme.Id, StringComparison.OrdinalIgnoreCase)
+            && (askedTheme?.FollowsSystem == true || theme.IsDark == expectedTheme.IsDark);
         var sameTree = shell.RequestedTheme == wanted;
         check("主题已生效", sameId && sameTree,
             !sameId
-                ? $"{(asked is null ? "设置文件里" : "--theme 要的")}是 {effective}，生效的却是 {theme.Id}"
+                ? $"{(asked is null ? "设置文件里" : "--theme 要的")}是 {expectedTheme.Id}（{(expectedTheme.IsDark ? "深" : "浅")}），"
+                  + $"生效的却是 {theme.Id}（{(theme.IsDark ? "深" : "浅")}）"
                   + $" — ThemeHost.Apply 没按{(asked is null ? "设置" : "命令行")}跑"
                 : sameTree
                     ? $"{theme.Name}（{theme.Id}{(asked is null ? "" : "，来自命令行")}），外壳那棵树是 {shell.RequestedTheme}"
@@ -131,6 +142,13 @@ internal static partial class ShellSelfCheck
                   $"窗口底 {Format(ThemeHost.ToColor(theme.Colors.Window))}、强调色 {Format(ThemeHost.ToColor(theme.Colors.Accent))}"
                 : string.Join("；", wrong));
     }
+
+    private static string ModeName(string mode) => mode switch
+    {
+        UiThemes.ModeLight => "浅色",
+        UiThemes.ModeSystem => "跟随系统",
+        _ => "深色"
+    };
 
     /// <summary>
     /// That <c>Theme/Styles.xaml</c> really merged, and that the two faces it names really resolved.

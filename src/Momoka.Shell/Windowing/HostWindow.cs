@@ -2522,7 +2522,8 @@ internal sealed partial class HostWindow : IDisposable
 
         // Ignored with a non-zero HRESULT on Win10, where the attribute does not exist. Nothing to
         // handle: the caption is then the flat dark fill immersive dark mode already gave it.
-        var backdrop = Native.DwmBackdropMica;
+        // 设置页的「透明效果」关掉时，非客户区也不挂 Mica —— 窗口化成一块实心窗口色。
+        var backdrop = ThemeHost.TransparencyEnabled ? Native.DwmBackdropMica : Native.DwmBackdropNone;
         Native.DwmSetWindowAttribute(Handle, Native.DwmSystemBackdropType, ref backdrop, sizeof(int));
     }
 
@@ -2565,6 +2566,8 @@ internal sealed partial class HostWindow : IDisposable
                 // EgWindowBrush 的颜色改掉，客户区当场跟着变，这一条不会，只能收到通知后自己再设一遍。
                 _repaint = _ =>
                 {
+                    // 设置页的「透明效果」也走这一条：关掉时 ApplyBackdrop 会把系统底材摘掉。
+                    ApplyBackdrop();
                     ApplyWindowsChrome();
                     PaintCaption(titleBar);
                     // 云母的深浅只认配置里的 Theme：画刷换了它不知道，这一句得自己补。

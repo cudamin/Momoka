@@ -11,7 +11,7 @@ SettingsViewModel／SettingToggleRow 来自**当前工作树明确指定的 fres
 计数，不做配置／账号／服务器 IO；其他依赖不附加，不调用整页 Reload、字体、设备枚举、native、播放或应用入口。
 初值、回拨、通知都是实际 VM／行属性证据，不是 WinUI 控件、像素、键盘或导航验证。
 
-界面卡的 Available 门控和自检的单条启动状态判断在构建时按明确边界提取原样源码，缺失或歧义拒绝构建。
+关于分类「启动」卡的 Available 门控和自检的单条启动状态判断在构建时按明确边界提取原样源码，缺失或歧义拒绝构建。
 只替换无窗口行值和报告端点；不执行真正 InterfaceCard（会创建主题画刷）或真正 selfcheck，不占用户 UI／selfcheck mutex。
 `StartupEntryTests` 的四项纯规则在专项里重跑，属于既有覆盖，不可与主 Core 套件重复计数。
 

@@ -1164,6 +1164,9 @@ internal static partial class Native
     /// </summary>
     public const int DwmCornerDoNotRound = 1;
 
+    /// <summary>DWMSBT_NONE — 不挂 Mica。设置页关掉「透明效果」时用它把窗口化回实色。</summary>
+    public const int DwmBackdropNone = 1;
+
     /// <summary>DWMSBT_MAINWINDOW, i.e. Mica.</summary>
     public const int DwmBackdropMica = 2;
 

@@ -18,9 +18,28 @@ internal static class Program
             palette.ThemeDictionaries[name] = new ResourceDictionary
             {
                 ["EgWindowBrush"] = new SolidColorBrush(Color.FromArgb(255, 1, 2, 3)),
+                // 「透明效果」关掉时这两支要落成实色；首帧浓度与 ThemeHost 的常量成对。
+                ["EgCanvasBrush"] = new SolidColorBrush(Color.FromArgb(0x99, 1, 2, 3)),
+                ["EgSidebarBrush"] = new SolidColorBrush(Color.FromArgb(0xD9, 1, 2, 3)),
                 ["EgFrostBrush"] = new AcrylicBrush()
             };
         Application.Current.Resources.MergedDictionaries.Add(palette);
+        Test("透明效果：关掉时画布与侧栏落成实色、亚克力走回退；重新打开恢复浓度", () =>
+        {
+            Reset(true);
+            var dark = (ResourceDictionary)palette.ThemeDictionaries["Dark"];
+            var frosted = (AcrylicBrush)dark["EgFrostBrush"];
+
+            ThemeHost.Apply(new Momoka.Configuration.UiSettings { TransparencyEffects = false });
+            Assert.Equal(255, ThemeHost.ColorOf("Dark", "EgCanvasBrush")!.Value.A);
+            Assert.Equal(255, ThemeHost.ColorOf("Dark", "EgSidebarBrush")!.Value.A);
+            Assert.True(frosted.AlwaysUseFallback, "亚克力没有走回退色");
+
+            ThemeHost.Apply(new Momoka.Configuration.UiSettings());
+            Assert.Equal(0x99, ThemeHost.ColorOf("Dark", "EgCanvasBrush")!.Value.A);
+            Assert.Equal(0xD9, ThemeHost.ColorOf("Dark", "EgSidebarBrush")!.Value.A);
+            Assert.False(frosted.AlwaysUseFallback, "透明效果重新打开后亚克力仍停回退色");
+        });
         Test("系统主题：启动读取当前模式，稳定ID同步所有根与两份角色，高对比度不覆盖", () =>
         {
             Reset(false);

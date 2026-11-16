@@ -284,9 +284,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("从属设置显隐动画与偏好恢复（窄窗）", () => SettingsConditionalRowsAsync(760), 75, section: ShellProbeSections.Settings);
             // 主页卡新增一行「主页媒体库位置」（2026-10-16 从界面卡挪来、同时改名），宽窄两帧截图 + 三档写回。
             await CaseAsync("主页卡上的主页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
-            // 设置 → 界面新增一行「开机自启」：拨开关写的是机器上的启动项（假实现），办不到时整行不显示，
+            // 设置 → 关于的「启动」卡新增一行「开机自启」：拨开关写的是机器上的启动项（假实现），办不到时整行不显示，
             // 另留宽窄两帧截图。
-            await CaseAsync("界面卡上的开机自启开关", SettingsStartupRegistrationAsync, 30);
+            await CaseAsync("关于启动卡上的开机自启开关", SettingsStartupRegistrationAsync, 30);
             // 每档包含多轮真实控件切换与截图，单独计时，原有用例仍保持 12 秒超时。
             await CaseAsync("视频基础输出显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100), 45, section: ShellProbeSections.Settings);
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45, section: ShellProbeSections.Settings);

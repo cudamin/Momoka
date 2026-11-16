@@ -1,9 +1,16 @@
+using Momoka.Infrastructure;
+
 namespace Momoka.Theming;
 
 /// <summary>
 /// 五套固定深色主题与「跟随系统」，共用五个基础色推导出的角色表。
 /// 系统选项始终保留 system id，深浅由外壳读取 Windows 应用模式决定，不能把一次解析的结果保存成固定主题。
 /// 2026-09-05 删除的独立 daylight 主题仍不在目录，旧 id 继续回落到默认主题。
+/// <para>
+/// 2026-11-16 起设置页另有「选择模式」「主题色」「透明效果」三项（用户令「参考上图修改新增设置中的相关功能」）：
+/// 色板仍是这五套固定深色加跟随系统，深浅与强调色由 <see cref="Compose"/> 在这份目录之上合成 ——
+/// 浅色一律用现有的系统浅色配色（用户当次选择），不另造五套浅色主题。
+/// </para>
 /// </summary>
 public static class UiThemes
 {
@@ -11,6 +18,15 @@ public static class UiThemes
     public const string DefaultId = "emby-dark";
 
     public const string SystemId = "system";
+
+    /// <summary>「选择模式」的深色档，也是缺键旧设置文件的默认档。</summary>
+    public const string ModeDark = "dark";
+
+    /// <summary>「选择模式」的浅色档：使用系统浅色配色。</summary>
+    public const string ModeLight = "light";
+
+    /// <summary>「选择模式」的跟随系统档。</summary>
+    public const string ModeSystem = "system";
 
     private static readonly UiTheme SystemDark = Make(SystemId, "跟随系统", "随 Windows 的浅色或深色应用模式自动切换。", dark: true,
         window: "#0C1116", surface: "#141B22", surfaceAlt: "#1C252E", text: "#F2F6FA", accent: "#6EE7C5");
@@ -56,6 +72,68 @@ public static class UiThemes
 
     public static UiTheme? Find(string? id) =>
         id is null ? null : All.FirstOrDefault(theme => string.Equals(theme.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// 认不出来的模式回深色：缺键的旧设置文件读出来就是这一档，与一直以来的样子一致；手改文件写坏也一样。
+    /// </summary>
+    public static string NormalizeMode(string? mode) =>
+        mode?.Trim().ToLowerInvariant() switch
+        {
+            ModeLight => ModeLight,
+            ModeSystem => ModeSystem,
+            _ => ModeDark
+        };
+
+    /// <summary>
+    /// 把「色板 + 选择模式 + 主题色」合成这一次真正要画的那一套。
+    /// <para>
+    /// 深色用选中的色板（色板本身是跟随系统时用系统深色档）；浅色一律用系统浅色配色；
+    /// 跟随系统在 Windows 深色档用选中的色板、浅色档用系统浅色配色。「主题色」最后覆盖强调色一族。
+    /// </para>
+    /// </summary>
+    public static UiTheme Compose(string? themeId, string? mode, string? accentColor, bool systemDark)
+    {
+        var palette = Resolve(themeId);
+        var resolved = NormalizeMode(mode) switch
+        {
+            ModeLight => System(false),
+            ModeSystem => systemDark
+                ? (palette.FollowsSystem ? System(true) : palette)
+                : System(false),
+            _ => palette.FollowsSystem ? System(true) : palette
+        };
+        return WithAccent(resolved, accentColor);
+    }
+
+    /// <summary>
+    /// 主题色覆盖：只换强调色一族，悬停、按下、浅底和压在强调色上的字按原来那套推导一起重算。
+    /// 空串或认不出来的值原样返回 —— 「不设置」就是跟随当前主题。
+    /// </summary>
+    public static UiTheme WithAccent(UiTheme theme, string? accentColor)
+    {
+        if (string.IsNullOrWhiteSpace(accentColor) || !HtmlColor.TryParse(accentColor, out var packed))
+            return theme;
+
+        var (r, g, b) = HtmlColor.Rgb(packed);
+        var accent = ThemeColor.Rgb(r, g, b);
+        if (accent == theme.Colors.Accent) return theme;
+
+        var dark = theme.IsDark;
+        var white = ThemeColor.Rgb(0xFF, 0xFF, 0xFF);
+        var black = ThemeColor.Rgb(0, 0, 0);
+        return theme with
+        {
+            Colors = theme.Colors with
+            {
+                Accent = accent,
+                AccentHover = dark ? accent.Mix(white, 0.14) : accent.Mix(black, 0.14),
+                AccentPressed = accent.Mix(black, dark ? 0.14 : 0.28),
+                AccentSoft = theme.Colors.Window.Mix(accent, dark ? 0.16 : 0.12),
+                AccentMuted = accent.WithAlpha(dark ? (byte)0x33 : (byte)0x2B),
+                TextOnAccent = OnAccent(accent)
+            }
+        };
+    }
 
     /// <summary>
     /// 五个色值 → 二十个角色。

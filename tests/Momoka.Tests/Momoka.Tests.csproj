@@ -61,11 +61,9 @@
       <Using Namespace="System.Text.RegularExpressions" />
       <Code Type="Fragment" Language="cs"><![CDATA[
         var source = File.ReadAllText(Source).Replace("\r\n", "\n");
-        var start = source.IndexOf("private SettingSection InterfaceCard()", StringComparison.Ordinal);
-        var end = source.IndexOf("private SettingToggleRow StartupRow()", StringComparison.Ordinal);
-        if (start < 0 || end <= start)
-            throw new InvalidOperationException("Missing startup card/row production boundaries");
-        var gates = Regex.Matches(source.Substring(start, end - start),
+        // 2026-11-16 起这一行住在关于分类的「启动」卡（StartupSections）里，不再是界面卡的一个可选项。
+        // 门控只有一处，按全文找；缺失或出现第二次都拒绝构建。
+        var gates = Regex.Matches(source,
             @"^\s*if \(_startup is \{ Available: true \}\) rows\.Add\(StartupRow\(\)\);$", RegexOptions.Multiline);
         if (gates.Count != 1)
             throw new InvalidOperationException("Missing or ambiguous production startup availability gate");
@@ -115,7 +113,7 @@
             "    private Task ReloadAsync()\n    {\n" + reload +
             "        fixture.ReloadRow();\n        return fixture.ReloadFinish;\n    }\n" +
             "    private Task ReapplyPlaybackPreferencesAsync(string notice, string? startupReadFailure = null) => fixture.Push(notice, startupReadFailure);\n" +
-            "    private static class ThemeHost { internal static void Apply(string theme) { } }\n" +
+            "    private static class ThemeHost { internal static void Apply(UiSettings ui) { } }\n" +
             "    private static class ShellPrefs { internal static void Apply(UiSettings ui) { } internal static void ApplyShortcuts() { } internal static void ApplyDanmaku() { } internal static void ApplySubtitleTranslation() { } }\n" +
             reapply + "\n    internal Task Run(string notice) => ReapplyAndReloadAsync(notice);\n" +
             "    internal Task ReloadOnly() => ReloadAsync();\n}\n";

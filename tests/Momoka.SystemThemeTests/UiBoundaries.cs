@@ -57,6 +57,7 @@ namespace Microsoft.UI.Xaml.Media
     {
         public Windows.UI.Color TintColor { get; set; }
         public Windows.UI.Color FallbackColor { get; set; }
+        public bool AlwaysUseFallback { get; set; }
     }
 }
 

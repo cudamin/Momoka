@@ -1368,6 +1368,27 @@ public sealed class UiSettings
     /// </summary>
     public string Theme { get; set; } = Theming.UiThemes.DefaultId;
 
+    /// <summary>
+    /// 选择模式：<c>dark</c> / <c>light</c> / <c>system</c>，见 <see cref="Theming.UiThemes"/>。
+    /// <para>
+    /// 与 <see cref="Theme"/> 分开存：色板回答「深色长什么样」，这一格回答「这一次要深色还是浅色」。
+    /// 默认深色不是新发明 —— 它等于缺键旧设置文件一直以来的样子；浅色使用系统浅色配色（2026-11-16 用户选择）。
+    /// </para>
+    /// </summary>
+    public string AppearanceMode { get; set; } = Theming.UiThemes.ModeDark;
+
+    /// <summary>
+    /// 主题色（强调色）覆盖：<c>#RRGGBB</c>；空串表示跟随当前主题自带的强调色。
+    /// 按钮、开关、滑块和选中标记都读强调色一族，覆盖时悬停、按下、浅底和上面的字一起重算。
+    /// </summary>
+    public string AccentColor { get; set; } = "";
+
+    /// <summary>
+    /// 透明效果：窗口和表面显示半透明。关掉时窗口的 Mica、整窗画布与侧栏落成实色，亚克力表面走各自的回退色。
+    /// 默认开，与 Windows 的「透明效果」默认状态一致。
+    /// </summary>
+    public bool TransparencyEffects { get; set; } = true;
+
     /// <summary>界面动效开关；默认保留现有动画，关闭时直接显示最终状态。仍遵循 Windows 的动画设置。</summary>
     public bool AnimationsEnabled { get; set; } = true;
 

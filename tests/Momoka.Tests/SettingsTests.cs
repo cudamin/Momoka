@@ -859,6 +859,28 @@ internal static partial class SettingsTests
             Assert.Equal("midnight", settings.Ui.Theme);
         });
 
+        Test("规整：选择模式与主题色只留认得的值，透明效果默认开", () =>
+        {
+            var settings = SettingsMigration.NewDefaults();
+            Assert.Equal(Momoka.Theming.UiThemes.ModeDark, settings.Ui.AppearanceMode);
+            Assert.Equal("", settings.Ui.AccentColor);
+            Assert.True(settings.Ui.TransparencyEffects);
+
+            settings.Ui.AppearanceMode = "浅色";
+            settings.Ui.AccentColor = "red";
+            settings.Ui.TransparencyEffects = false;
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(Momoka.Theming.UiThemes.ModeDark, settings.Ui.AppearanceMode, "认不出来的模式回深色");
+            Assert.Equal("", settings.Ui.AccentColor, "坏色值按「不设置」处理");
+            Assert.False(settings.Ui.TransparencyEffects, "透明效果的关档必须保留");
+
+            settings.Ui.AppearanceMode = "LIGHT";
+            settings.Ui.AccentColor = "#ff3b30";
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(Momoka.Theming.UiThemes.ModeLight, settings.Ui.AppearanceMode, "开关值不分大小写");
+            Assert.Equal("#FF3B30", settings.Ui.AccentColor, "合法六位统一写成大写");
+        });
+
         Test("规整：记住的账户与记住的服务器必须对得上", () =>
         {
             var settings = SettingsMigration.NewDefaults();

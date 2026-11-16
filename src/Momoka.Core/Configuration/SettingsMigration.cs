@@ -532,6 +532,15 @@ public static class SettingsMigration
         // 而且设置里那个下拉框会显示成空的。这里换掉，用户下次保存就落盘成一个真的 id。
         settings.Ui.Theme = Theming.UiThemes.Resolve(settings.Ui.Theme).Id;
 
+        // 选择模式与主题色（2026-11-16）：模式只认三个值，认不出来回深色（缺键旧文件的默认档）；
+        // 主题色只留合法的六位 HEX，认不出来按「不设置＝跟随主题」处理 —— 不把坏值交给 ThemeHost。
+        settings.Ui.AppearanceMode = Theming.UiThemes.NormalizeMode(settings.Ui.AppearanceMode);
+        settings.Ui.AccentColor = string.IsNullOrWhiteSpace(settings.Ui.AccentColor)
+            ? ""
+            : HtmlColor.TryParse(settings.Ui.AccentColor, out var accent)
+                ? HtmlColor.Format(accent)
+                : "";
+
         // 记下来的窗口尺寸只做「不是垃圾数字」这一道校验，摆到哪块屏、要不要缩进工作区由
         // ScreenPlacement.Restore 在开窗那一刻定 —— 只有那时候才知道现在接着几块屏、各自多大。0 是
         // 「还没记过」，必须原样留着：夹成 400×300 就等于替用户宣布他拉过一个 400 宽的窗口。
