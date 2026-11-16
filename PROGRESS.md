@@ -4,9 +4,9 @@
 
 **路径与文件操作。** `FullPath` 增加 UNC 形态校验（服务器与共享名都不能为空，拒绝设备命名空间、相对路径、上级跳转和备用数据流），盘符路径允许 `DriveType.Network`；`SetFileInformationByHandle` 的改名对 UNC 改用 `\\?\UNC\服务器\共享\...` 长路径前缀。网络共享协议不支持硬链接，规划（`Prepare`）、监控启动（`Normalize`）和保存媒体库规则（`LocalLibraryCoordinator.Validate`）三处都提前拒绝，不回退为复制；界面整理方式说明和目录卡片提示同步说明网络目录只能软链接或直接改名。网络共享上的软链接创建失败时提示还可能缺管理员权限。
 
-**监控与本地库图片。** 自动监控沿用扫描、稳定等待和重新扫描恢复，网络共享断开时按 `RescanInterval` 重试；海报 `NormalizePath` 接受 UNC 与映射网络盘，`StampFor` 对网络路径不再在 UI 同步路径上查属性，`ReadAsync` 把属性查询、打开和读取放到线程池，避免离线共享卡住首页。
+**监控与本地库图片。** 自动监控沿用扫描、稳定等待和重新扫描恢复，网络共享断开时按 `RescanInterval` 重试；启动时源目录不可用不再拒绝启动监控，而是先跑起来等共享恢复。海报 `NormalizePath` 接受 UNC 与映射网络盘，`StampFor` 对网络路径不再在 UI 同步路径上查属性，`ReadAsync` 把属性查询、打开和读取放到线程池，避免离线共享卡住首页。
 
-**检查。** 本机用 `\\localhost\C$` 回环管理共享跑了真实 SMB 通路：`local-media-fixture` **186/186**、0 失败 0 跳过，其中新增网络路径校验与 UNC 前缀、网络硬链接拒绝、回环共享上的扫描/预览/直接改名/NFO 写入、自动监控新建文件改名、海报读取；`local-media-vm-fixture` **7/7**、`local-library-coordinator-fixture` **6/6**、`local-media-layout-fixture` **21/21**、`Momoka.LocalLibraryPageTests` **17/17**。Core/Tests 与 Shell Release/x64 均 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1` 通过。回环共享不能替代真实 NAS：共享凭据、DFS、服务器端符号链接权限、延迟和变更通知仍未核对；网络共享上创建软链接在本机因权限失败，未验证 NAS 是否允许。待交付项记在[待交付批次](docs/待交付批次.md)第 56 条。
+**检查。** 本机用 `\\localhost\C$` 回环管理共享跑了真实 SMB 通路：`local-media-fixture` **186/186**、0 失败 0 跳过，其中新增网络路径校验与 UNC 前缀、网络硬链接拒绝、回环共享上的扫描/预览/直接改名/NFO 写入、自动监控新建文件改名、海报读取；`local-media-vm-fixture` **7/7**、`local-library-coordinator-fixture` **7/7**（含启动时源目录不可用仍启动监控）、`local-media-layout-fixture` **21/21**、`Momoka.LocalLibraryPageTests` **17/17**。Core/Tests 与 Shell Release/x64 均 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1` 通过。回环共享不能替代真实 NAS：共享凭据、DFS、服务器端符号链接权限、延迟和变更通知仍未核对；网络共享上创建软链接在本机因权限失败，未验证 NAS 是否允许。待交付项记在[待交付批次](docs/待交付批次.md)第 56 条。
 
 **分支与快捷方式。** 产品与测试提交 `9f5f001`，记录提交 `999a28a`；改动只留在当前临时分支与工作树，未合入 master。改好后已发布本树 `artifacts/publish/win-x64`（548 文件、289.8 MB，发布校验通过），桌面 `Momoka-feat-network-dir-support-1VC0Sb.lnk` 已读回指向本树，主树 `Momoka.lnk` 仍指向 `C:\Users\89400\Momoka`，两条互不覆盖。合并与统一验证等用户要求。
 
