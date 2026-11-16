@@ -30,15 +30,12 @@ internal sealed class StoreBackdropFade
     private readonly FrameworkElement _content;
     private readonly FrameworkElement _host;
     private readonly Border _maskElement;
-    private readonly StoreBackdropFadeShape _shape;
     private CompositionVisualSurface? _surface;
     private CompositionSurfaceBrush? _source;
     private CompositionVisualSurface? _maskSurface;
     private CompositionSurfaceBrush? _maskSource;
     private CompositionMaskBrush? _mask;
     private SpriteVisual? _output;
-    private (double Width, double Height, double Right, double Bottom) _ambientLayout;
-    private bool _ambientLaid;
     internal bool IsActive => _output is not null;
 
     // 2026-11-15 用户令「背景图/预告片下方和左右要加渐变」：左右两端都收到环境底，画面不再有一条贴着
@@ -49,7 +46,6 @@ internal sealed class StoreBackdropFade
         _content = content;
         _host = host;
         _maskElement = maskElement;
-        _shape = shape;
         const int side = StoreBackdropBlend.Side;
         var bitmap = new WriteableBitmap(side, side);
         var pixels = StoreBackdropBlend.Mask(shape == StoreBackdropFadeShape.Ambient);
@@ -64,26 +60,6 @@ internal sealed class StoreBackdropFade
             if (host.Visibility == Visibility.Visible && host.IsLoaded) Connect();
             else Disconnect();
         });
-    }
-
-    /// <summary>
-    /// 环境底的收边跟着剧照盒走（2026-11-16 用户报「图右边和下面只剩深色渐变」）：图盒内保持满色，
-    /// 越过剧照右沿与下沿才渐隐到窗口画布。窗口缩放或内容高变化时重建这张 128×128 的 alpha 图；
-    /// 同一组几何不重复生成。只对环境底实例生效。
-    /// </summary>
-    internal void UpdateAmbient(double width, double height, double pictureRight, double pictureBottom)
-    {
-        if (_shape != StoreBackdropFadeShape.Ambient) return;
-        var layout = (width, height, pictureRight, pictureBottom);
-        if (_ambientLaid && _ambientLayout == layout) return;
-        _ambientLayout = layout;
-        _ambientLaid = true;
-        const int side = StoreBackdropBlend.Side;
-        var bitmap = new WriteableBitmap(side, side);
-        using (var stream = bitmap.PixelBuffer.AsStream())
-            stream.Write(StoreBackdropBlend.AmbientMask(width, height, pictureRight, pictureBottom));
-        bitmap.Invalidate();
-        _maskElement.Background = new ImageBrush { ImageSource = bitmap, Stretch = Stretch.Fill };
     }
 
     private void Connect()

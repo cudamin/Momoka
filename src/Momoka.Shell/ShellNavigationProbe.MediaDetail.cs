@@ -618,12 +618,10 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<StoreBackdropFade>(page, "_storeBackdropFade").IsActive,
                 "MP 商店背景未启用透明渐隐");
             // 2026-11-14 同媒体详情页：剧照不再被染色，改在一层随剧照取色的环境底上渐隐。
-            // 2026-11-16：环境底至少铺满第一屏，深/浅窗口底色那一层跟着窗口缩放。
             var ambient = Get<Grid>(page, "StoreAmbient");
-            var storePictureHeight = Get<Grid>(page, "StoreBackdrop").Height;
             Require(ambient.Visibility == Visibility.Visible
-                && Math.Abs(ambient.Height - Math.Max(storePictureHeight, media.Viewport)) < 1,
-                "MP 商店环境底没有跟随背景与第一屏的高度与显隐");
+                && Math.Abs(ambient.Height - Get<Grid>(page, "StoreBackdrop").Height) < 1,
+                "MP 商店环境底没有跟随背景的高度与显隐");
             Require(Get<Border>(page, "StoreBackdropSides").Background is ImageBrush { ImageSource: WriteableBitmap },
                 "MP 商店环境底没有按剧照生成柔和多色渐变");
             Require(Get<StoreBackdropFade>(page, "_storeAmbientFade").IsActive,
