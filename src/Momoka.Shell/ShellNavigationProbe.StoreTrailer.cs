@@ -28,6 +28,15 @@ internal sealed partial class ShellNavigationProbe
             ImageTags = new() { ["Primary"] = "poster" },
             BackdropImageTags = ["backdrop"],
             Overview = string.Concat(Enumerable.Repeat("两行剧情说明之外的全文通过原生提示阅读。", 8)),
+            // 真实匿名演职人员与类似作品撑出可滚范围，不给ScrollView或内容伪造Height。
+            People = Enumerable.Range(0, 14).Select(index => new EmbyPerson
+            {
+                Id = "preview-person-" + index,
+                Name = "匿名演职人员 " + index,
+                Role = "角色 " + index,
+                Type = "Actor",
+                PrimaryImageTag = "face-" + index
+            }).ToList(),
             MediaSources = [new() { Id = "movie", Container = "mkv" }]
         };
         fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal)
@@ -37,7 +46,9 @@ internal sealed partial class ShellNavigationProbe
                 request.RequestUri.AbsolutePath.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop)
             })
             : request.RequestUri!.AbsolutePath.EndsWith("/Items/preview-movie", StringComparison.Ordinal)
-            ? Task.FromResult(Json(movie)) : Task.FromResult(FakeTransport.Standard(request));
+            ? Task.FromResult(Json(movie))
+            : request.RequestUri!.AbsolutePath.EndsWith("/Similar", StringComparison.Ordinal)
+            ? Task.FromResult(Items(14, 14, "preview-similar-")) : Task.FromResult(FakeTransport.Standard(request));
         var host = new Grid { Margin = new Thickness(0, 48, 0, 0) };
         var frame = new Frame();
         host.Children.Add(frame);

@@ -55,6 +55,7 @@ internal static class MoviePilotSubscriptionWallTests
         WallClassifyAndFilter();
         WallSort();
         WallOptionsAndLabels();
+        WallCardMetrics();
     }
 
     private static void StageAndLabel()
@@ -445,6 +446,56 @@ internal static class MoviePilotSubscriptionWallTests
             Assert.Equal("最后更新时间", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.LastUpdate));
             Assert.Equal("添加时间", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.AddTime));
             Assert.Equal("缺失集数", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.LackEpisode));
+        });
+    }
+
+    /// <summary>
+    /// 2026-11-16 用户令「订阅媒体库怎么不会跟媒体库一样自动调整封面大小」：格子宽度按这一页的可用宽度摊，
+    /// 卡片横向撑满格子；高度仍是网页端那张卡的 150，不跟着宽度走。
+    /// </summary>
+    private static void WallCardMetrics()
+    {
+        Test("订阅墙格宽：按可用宽度定列数，剩下的宽度平摊给这几列", () =>
+        {
+            // 688 就是 760 宽窗口收起侧栏、去掉页面左右 32 边距之后剩下那一行：两张各 332 宽、各带一条 12 的缝。
+            var pair = MoviePilotWallMetrics.Fit(688);
+            Assert.Equal(2, pair.Columns);
+            Assert.Equal(344, pair.ItemWidth);
+            Assert.Equal(688, pair.Columns * pair.ItemWidth);
+            // 一列放得下的时候格子就是整行；塞得下第三列时又退回最小宽附近。
+            Assert.Equal(1, MoviePilotWallMetrics.Fit(500).Columns);
+            Assert.Equal(500, MoviePilotWallMetrics.Fit(500).ItemWidth);
+            var triple = MoviePilotWallMetrics.Fit(920);
+            Assert.Equal(3, triple.Columns);
+            Assert.Equal(306, triple.ItemWidth);
+            // 高度是卡内那几件摆得下的 150（网页端 SubscribeCard 的 min-height），不随宽度变。
+            Assert.Equal(150, MoviePilotWallMetrics.CardHeight);
+            Assert.Equal(240, MoviePilotWallMetrics.MinCardWidth);
+        });
+        Test("订阅墙格宽：每一档都铺得下整行，列数只增不减", () =>
+        {
+            // 量不到宽度时给最小宽一列 —— 页面第一帧就是这个数，量到之后会再算一次。
+            foreach (var broken in new[] { 0d, -1d, double.NaN, double.PositiveInfinity })
+            {
+                var (columns, itemWidth) = MoviePilotWallMetrics.Fit(broken);
+                Assert.Equal(1, columns, $"宽度 {broken} 应当按一列最小宽起手");
+                Assert.Equal(MoviePilotWallMetrics.MinCardWidth + (int)MoviePilotWallMetrics.Spacing, itemWidth);
+            }
+
+            var previous = 0;
+            for (var available = 300d; available <= 2000; available += 4)
+            {
+                var (columns, itemWidth) = MoviePilotWallMetrics.Fit(available);
+                Assert.True(columns >= previous, $"可用宽 {available:0} 上列数从 {previous} 掉回 {columns}");
+                previous = columns;
+                // 一格自带右下外边距，n 格连同每格那条缝必须整行放得下：多出一条缝，版面就只肯排 n−1 列。
+                Assert.True(columns * itemWidth <= available,
+                    $"可用宽 {available:0} 上排 {columns} 列 × {itemWidth} 放不下这一行");
+                // 只有整行比最小宽还窄时才允许卡片缩到最小宽以下（宁可卡片小一点，也不横向裁掉一截）。
+                if (available >= MoviePilotWallMetrics.MinCardWidth + (int)MoviePilotWallMetrics.Spacing * 2)
+                    Assert.True(itemWidth - (int)MoviePilotWallMetrics.Spacing >= MoviePilotWallMetrics.MinCardWidth,
+                        $"可用宽 {available:0} 上卡片宽 {itemWidth - (int)MoviePilotWallMetrics.Spacing} 比网页端最小宽还窄");
+            }
         });
     }
 }

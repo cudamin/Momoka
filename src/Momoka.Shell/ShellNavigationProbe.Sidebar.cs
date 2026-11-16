@@ -1026,6 +1026,8 @@ internal sealed partial class ShellNavigationProbe
             Require(!wallFilter.Flyout.IsOpen, "选完状态，筛选面板没有收起");
             wall.ViewModel.SelectWallFilter(MoviePilotSubscriptionWallFilter.All);
             await LayoutAsync(wall);
+            // 2026-11-16 用户令：墙上的卡片宽度要跟媒体库一样跟着窗口走（从前钉死 340／352）。
+            await CheckSubscriptionWallSizingAsync(wall);
             await CheckSubscriptionWallMenuAnchorAsync(wall, "movie");
 
             SelectSidebarItem(series);

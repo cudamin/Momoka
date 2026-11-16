@@ -7,6 +7,7 @@ internal static class StoreTrailerWebTests
 {
     internal static void Register()
     {
+        StoreTrailerScrollProbeTests.Register();
         Test("网页字幕：生产消息解析保留两轨名称、选轨和通知", () =>
         {
             using var fixture = new Fixture();

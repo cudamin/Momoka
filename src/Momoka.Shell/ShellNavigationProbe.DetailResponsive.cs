@@ -452,13 +452,15 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireDetailActionMode(DetailPage page)
     {
         var row = Get<StackPanel>(page, "StoreCoverActions");
-        var buttons = new[] { "ColumnPlayButton", "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" }
+        var slot = Get<Grid>(page, "StorePlaySlot");
+        var play = Get<Button>(page, "ColumnPlayButton");
+        var rest = new[] { "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" }
             .Select(name => Get<Button>(page, name)).ToArray();
         StoreDetailProbeEvidence.RequireActionMode(page.ViewModel.StoreMode, page.ViewModel.IsCompact,
             Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Visible,
             Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible,
-            row.Visibility == Visibility.Visible,
-            buttons.SequenceEqual(row.Children.OfType<Button>()));
+            row.Visibility == Visibility.Visible && slot.Visibility == Visibility.Visible,
+            ReferenceEquals(play.Parent, slot) && rest.SequenceEqual(row.Children.OfType<Button>()));
         if (page.ViewModel.StoreMode) RequireStoreCoverActionAppearance(page);
     }
 

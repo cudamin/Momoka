@@ -28,12 +28,12 @@ internal static class StoreDetailProbeEvidence
         var cells = new[] { tops, widths, heights, opacity };
         var values = cells.SelectMany(cell => cell).Concat(borders)
             .Concat(new[] { coverLeft, coverRight, coverBottom, rowLeft, rowRight, rowTop });
-        if (cells.Any(cell => cell.Length != 4) || borders.Length != 16 || values.Any(value => !double.IsFinite(value))
+        if (cells.Any(cell => cell.Length != 3) || borders.Length != 12 || values.Any(value => !double.IsFinite(value))
             || coverRight <= coverLeft || rowRight <= rowLeft || rowTop < coverBottom + 7
             || Math.Abs((rowLeft + rowRight) - (coverLeft + coverRight)) > 2
             || tops.Any(top => Math.Abs(top - rowTop) > 1) || widths.Concat(heights).Any(size => size < 43.5)
             || opacity.Any(value => Math.Abs(value - 1) > 0.01) || borders.Any(value => value != 0))
-            throw new InvalidOperationException("封面下方四颗操作键没有同排居中常驻、44DIP命中区或无边框");
+            throw new InvalidOperationException("封面下方三颗操作键没有同排居中常驻、44DIP命中区或无边框");
     }
 
     internal static bool PageSizeMatches(double target, double client, double page, double body, double viewModel) =>

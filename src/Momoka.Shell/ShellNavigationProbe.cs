@@ -466,10 +466,20 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             Record("Before");
-            correlation = scroll.ScrollTo(0, target, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
-            if (correlation != -1 && !seen.Contains(correlation))
-                await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            scroll.UpdateLayout();
+            // 元素刚由收起变可见、入场短动画还在跑时，WinUI 会把这紧接着的一次 ScrollTo 吞掉：
+            // 关联号照给、Completed 也到，偏移却一步不动（2026-11-16 实测 276 回不到 0，等动画落定后同一请求即成功）。
+            // 这不是产品滚动失效，也不能靠固定延时蒙混：没到目标就再请一次，最终偏移仍按目标严格核对。
+            for (var attempt = 0; attempt < 4; attempt++)
+            {
+                correlation = scroll.ScrollTo(0, target, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+                if (correlation != -1 && !seen.Contains(correlation))
+                    await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                scroll.UpdateLayout();
+                if (Math.Abs(scroll.VerticalOffset - target) < 1) break;
+                // 同一关联号不会重来；下一轮换一支等待对象，迟到的旧回执由 ID 比对挡掉。
+                completed = Pending<bool>();
+                await Task.Delay(120);
+            }
             Require(Math.Abs(scroll.VerticalOffset - target) < 1,
                 $"滚动请求未到达目标：id={correlation} loaded={scroll.IsLoaded} visibility={scroll.Visibility} "
                 + $"offset={scroll.VerticalOffset:0.0} target={target:0.0}/{scroll.ScrollableHeight:0.0} "

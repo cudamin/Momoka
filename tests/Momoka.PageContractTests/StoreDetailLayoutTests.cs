@@ -66,7 +66,7 @@ internal static class StoreDetailLayoutTests
             Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
                 && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
         });
-        Test("商店详情：四颗无边框图标常驻封面下方，连播保留集卡右上", () =>
+        Test("商店详情：主播放键贴封面右下外侧、其余三颗常驻封面下方，连播保留集卡右上", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
             XElement Named(string name) => page.Descendants()
@@ -80,6 +80,14 @@ internal static class StoreDetailLayoutTests
             Assert.Equal("Center", (string?)coverActions.Attribute("HorizontalAlignment"));
             Assert.Equal("1", (string?)coverActions.Attribute("Opacity"));
             Assert.Equal("True", (string?)coverActions.Attribute("IsHitTestVisible"));
+            // 主播放键那一格贴在封面右下角外侧：只有按钮大小，靠 RenderTransform 挪出封面列。
+            var playSlot = Named("StorePlaySlot");
+            Assert.Equal("CoverSlot", (string?)playSlot.Parent!.Attribute(X + "Name"));
+            Assert.Equal("Right", (string?)playSlot.Attribute("HorizontalAlignment"));
+            Assert.Equal("Bottom", (string?)playSlot.Attribute("VerticalAlignment"));
+            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}",
+                (string?)playSlot.Attribute("Visibility"));
+            Assert.Equal("52", (string?)playSlot.Descendants().Single(element => element.Name.LocalName == "TranslateTransform").Attribute("X"));
             Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "StoreCoverBadges"));
             var subtle = page.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgStoreCoverActionButtonStyle");
             Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)subtle.Attribute("BasedOn"));
@@ -90,7 +98,7 @@ internal static class StoreDetailLayoutTests
             Assert.Equal("{x:Bind ViewModel.ColumnWatchedLabelsVisibility, Mode=OneWay}",
                 (string?)Named("ColumnWatchedLabels").Attribute("Visibility"));
             var store = Source("Views/DetailPage.Store.cs");
-            Assert.Contains("MoveToPanel(ColumnPlayButton, StoreCoverActions);", store);
+            Assert.Contains("MoveToPanel(ColumnPlayButton, StorePlaySlot);", store);
             Assert.Contains("MoveToPanel(ColumnMoreButton, StoreCoverActions);", store);
             Assert.Contains("MoveToPanel(ColumnFavoriteButton, StoreCoverActions);", store);
             Assert.Contains("MoveToPanel(ColumnWatchedButton, StoreCoverActions);", store);

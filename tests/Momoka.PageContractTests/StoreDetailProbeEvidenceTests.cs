@@ -20,7 +20,7 @@ internal static class StoreDetailProbeEvidenceTests
             var responsive = Read("ShellNavigationProbe.DetailResponsive.cs");
             Assert.DoesNotContain("Visibility.Visible) == oldEpisodeCompact", responsive);
             Assert.Contains("RequireDetailActionMode(page);", responsive);
-            Assert.Contains("buttons.SequenceEqual(row.Children.OfType<Button>())", responsive);
+            Assert.Contains("rest.SequenceEqual(row.Children.OfType<Button>())", responsive);
             var material = Read("ShellNavigationProbe.Materials.cs");
             Assert.Contains("Require(!detail.ViewModel.StoreMode", material);
         });
@@ -39,17 +39,18 @@ internal static class StoreDetailProbeEvidenceTests
         });
         Test("商店封面操作行：拒绝封面覆盖、错行、隐藏与边框，保留44DIP命中区", () =>
         {
+            // 主播放键已挪到封面右下角外侧，下方这一排只剩已看／收藏／更多三颗（132 宽，居中于 96–276 的封面列）。
             void Check(double rowTop = 278, double[]? tops = null, double[]? widths = null,
                 double[]? opacity = null, double[]? borders = null) =>
-                StoreDetailProbeEvidence.RequireCoverActions(96, 276, 270, 98, 274, rowTop,
-                    tops ?? [278, 278, 278, 278], widths ?? [44, 44, 44, 44], [44, 44, 44, 44],
-                    opacity ?? [1, 1, 1, 1], borders ?? new double[16]);
+                StoreDetailProbeEvidence.RequireCoverActions(96, 276, 270, 120, 252, rowTop,
+                    tops ?? [278, 278, 278], widths ?? [44, 44, 44], [44, 44, 44],
+                    opacity ?? [1, 1, 1], borders ?? new double[12]);
             Check();
             Reject(() => Check(rowTop: 260));
-            Reject(() => Check(tops: [278, 322, 278, 278]));
-            Reject(() => Check(widths: [20, 44, 44, 44]));
-            Reject(() => Check(opacity: [0, 1, 1, 1]));
-            var border = new double[16]; border[0] = 1;
+            Reject(() => Check(tops: [278, 322, 278]));
+            Reject(() => Check(widths: [20, 44, 44]));
+            Reject(() => Check(opacity: [0, 1, 1]));
+            var border = new double[12]; border[0] = 1;
             Reject(() => Check(borders: border));
         });
         Test("商店订阅卡片：右资料列与窄窗堆叠仍核两侧边界", () =>

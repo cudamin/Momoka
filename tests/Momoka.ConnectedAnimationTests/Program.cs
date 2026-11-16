@@ -1037,6 +1037,7 @@ internal static class Program
             PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
             Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
         });
+        PreviewHeadingTransitionTests.Register();
         return Run();
     }
 

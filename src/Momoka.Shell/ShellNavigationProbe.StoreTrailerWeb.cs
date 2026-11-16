@@ -169,6 +169,7 @@ internal sealed partial class ShellNavigationProbe
             }
         }
         finally { _root.RemoveHandler(UIElement.PointerMovedEvent, moved); Native.SetCursorPos(original.X, original.Y); }
+        await StoreTrailerWebScrollAsync(page, preview, ReadWebStateAsync, RequirePlaybackNotificationAsync);
         Call(page, "OnStoreTrailerPause", Get<AppBarButton>(page, "StoreTrailerPause"), new RoutedEventArgs());
         Require(Get<bool>(page, "_storeTrailerUserPaused"), "网页预告暂停按钮没有切换");
         await RequireWebStateAsync(paused: true, muted: true);
@@ -237,6 +238,15 @@ internal sealed partial class ShellNavigationProbe
             await ResizeResponsiveAsync(page, 1280, 900);
         }
         Require(blocked == 0, "匿名网页字幕探针请求了夹具之外的外站资源");
+
+        async Task<StoreTrailerWebRead> ReadWebStateAsync()
+        {
+            webState = null;
+            preview.Element.CoreWebView2.PostWebMessageAsString("probe-state");
+            await UntilAsync(() => webState is not null);
+            await File.AppendAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "store-trailer-web-state-readings.jsonl"), webState + "\n");
+            return StoreTrailerScrollProbeEvidence.ReadWeb(webState!);
+        }
 
         async Task RequireWebStateAsync(bool paused, bool muted)
         {
@@ -307,13 +317,13 @@ internal sealed partial class ShellNavigationProbe
     private const string Api = """
         document.addEventListener('pointermove',()=>chrome.webview.postMessage('probe-pointer'));chrome.webview.postMessage('probe-ready');
         chrome.webview.addEventListener('message',e=>{if(e.data==='probe-state'||e.data==='probe-pause')document.getElementById('video').contentWindow.postMessage(e.data,'*')});
-        window.YT={Player:function(id,o){const frame=document.getElementById(id);let ready=false,caption='';const tracks=[{languageCode:'zh',displayName:'匿名中文'},{languageCode:'en',displayName:'Anonymous English'}];
+        window.YT={Player:function(id,o){const frame=document.getElementById(id);let ready=false,caption='',playCalls=0,pauseCalls=0;const tracks=[{languageCode:'zh',displayName:'匿名中文'},{languageCode:'en',displayName:'Anonymous English'}];
         const poll=setInterval(()=>frame.contentWindow.postMessage('probe-ready','*'),100);
         addEventListener('message',e=>{if(e.source!==frame.contentWindow)return;if(e.data==='decoded')o.events.onStateChange({data:1});
         if(e.data==='paused')o.events.onStateChange({data:2});if(e.data&&e.data.captionApplied!==undefined){caption=e.data.captionApplied;o.events.onApiChange()}
         if(e.data==='embed-ready'&&!ready){ready=true;clearInterval(poll);o.events.onReady()}if(e.data==='probe-pointer')chrome.webview.postMessage(e.data);
-        if(String(e.data).startsWith('state:')){const state=JSON.parse(e.data.substring(6));state.apiCaption=this.getOption('captions','track').languageCode||'';chrome.webview.postMessage('state:'+JSON.stringify(state))}});this.playVideo=()=>frame.contentWindow.postMessage('play','*');
-        this.pauseVideo=()=>frame.contentWindow.postMessage('pause','*');this.mute=()=>frame.contentWindow.postMessage('mute','*');this.unMute=()=>frame.contentWindow.postMessage('unmute','*');
+        if(String(e.data).startsWith('state:')){const state=JSON.parse(e.data.substring(6));state.apiCaption=this.getOption('captions','track').languageCode||'';state.playCalls=playCalls;state.pauseCalls=pauseCalls;chrome.webview.postMessage('state:'+JSON.stringify(state))}});this.playVideo=()=>{playCalls++;frame.contentWindow.postMessage('play','*')};
+        this.pauseVideo=()=>{pauseCalls++;frame.contentWindow.postMessage('pause','*')};this.mute=()=>frame.contentWindow.postMessage('mute','*');this.unMute=()=>frame.contentWindow.postMessage('unmute','*');
         this.loadModule=name=>{if(name==='captions')queueMicrotask(()=>o.events.onApiChange())};
         this.getOption=(module,name)=>module==='captions'?(name==='tracklist'?tracks:{languageCode:caption}):null;
         this.setOption=(module,name,value)=>{if(module==='captions'&&name==='track')frame.contentWindow.postMessage({caption:value.languageCode||''},'*')};

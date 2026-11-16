@@ -280,16 +280,18 @@ internal sealed partial class ShellNavigationProbe
         var continuePlay = Get<ToggleButton>(page, "ColumnContinueButton");
         var actionRow = Get<WrapRow>(page, "ColumnActionRow");
         var coverActions = Get<StackPanel>(page, "StoreCoverActions");
+        var playSlot = Get<Grid>(page, "StorePlaySlot");
         var episodeHead = Get<ShelfHead>(page, "EpisodeHead");
         if (page.ViewModel.StoreMode)
         {
-            Require(new[] { play, watched, favorite, more }.All(button => ReferenceEquals(button.Parent, coverActions))
+            Require(ReferenceEquals(play.Parent, playSlot)
+                && new[] { watched, favorite, more }.All(button => ReferenceEquals(button.Parent, coverActions))
                 && ReferenceEquals(episodeHead.Trailing, continuePlay),
-                "商店四颗操作键未在封面下方同一行，或连播离开了集卡右上角");
+                "商店主播放键未在封面外右侧、其余三颗未在封面下方同一行，或连播离开了集卡右上角");
             RequireStoreCoverActionAppearance(page);
             var coverColumn = Bounds(Get<StackPanel>(page, "StoreCoverColumn"), canvas);
             var row = Bounds(coverActions, canvas);
-            var buttons = new[] { play, watched, favorite, more };
+            var buttons = new[] { watched, favorite, more };
             var boxes = buttons.Select(button => Bounds(button, canvas)).ToArray();
             var coverBottom = cover.Visibility == Visibility.Visible && cover.ActualHeight > 0
                 ? Bounds(cover, canvas).Bottom : row.Top - 8;
@@ -298,7 +300,15 @@ internal sealed partial class ShellNavigationProbe
                 buttons.Select(button => button.ActualWidth).ToArray(), buttons.Select(button => button.ActualHeight).ToArray(),
                 buttons.Select(button => button.Opacity).ToArray(), buttons.SelectMany(button =>
                     new[] { button.BorderThickness.Left, button.BorderThickness.Top, button.BorderThickness.Right, button.BorderThickness.Bottom }).ToArray());
-            Require(buttons.SequenceEqual(coverActions.Children.OfType<Button>()), "封面下按钮次序不是播放、已看、收藏、更多");
+            Require(buttons.SequenceEqual(coverActions.Children.OfType<Button>()), "封面下按钮次序不是已看、收藏、更多");
+            // 主播放键：贴着封面右下角外侧、与封面同底，44DIP 命中格、无边框、常驻。
+            var coverBox = Bounds(cover, canvas);
+            var playBox = Bounds(play, canvas);
+            Require(playBox.Left >= coverBox.Right + 4 && Math.Abs(playBox.Bottom - coverBox.Bottom) < 1.5
+                && playBox.Width >= 43.5 && playBox.Height >= 43.5
+                && play.Opacity == 1 && play.IsHitTestVisible && play.BorderThickness == default,
+                $"主播放键没有贴封面右下角外侧（键 {playBox.Left:0.##},{playBox.Top:0.##} {playBox.Width:0.##}×{playBox.Height:0.##}，"
+                + $"封面右 {coverBox.Right:0.##} 底 {coverBox.Bottom:0.##}）");
             var panel = Get<StackPanel>(page, "EpisodePanel");
             if (panel.Visibility == Visibility.Visible && continuePlay.Visibility == Visibility.Visible)
             {
@@ -332,28 +342,32 @@ internal sealed partial class ShellNavigationProbe
     {
         if (!page.ViewModel.StoreMode) return;
         var row = Get<StackPanel>(page, "StoreCoverActions");
-        Require(row.Visibility == Visibility.Visible && row.Opacity == 1 && row.IsHitTestVisible,
-            "封面下操作行不是常驻可命中状态");
-        foreach (var button in row.Children.OfType<Button>())
+        var slot = Get<Grid>(page, "StorePlaySlot");
+        Require(row.Visibility == Visibility.Visible && row.Opacity == 1 && row.IsHitTestVisible
+            && slot.Visibility == Visibility.Visible && slot.Opacity == 1 && slot.IsHitTestVisible,
+            "封面下操作行或封面外主播放键不是常驻可命中状态");
+        var covered = row.Children.OfType<Button>().Concat(slot.Children.OfType<Button>()).ToArray();
+        Require(covered.Length == 4, "商店模式不是四颗封面操作键");
+        foreach (var button in covered)
         {
             Require(button.Style == (Style)page.Resources["EgStoreCoverActionButtonStyle"]
                 && button.BorderThickness == default && button.Opacity == 1 && button.IsTabStop,
-                "封面下按钮丢失平台轻量样式、无边框、常驻或键盘入口");
+                "封面操作按钮丢失平台轻量样式、无边框、常驻或键盘入口");
             Require(!string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))
-                && ToolTipService.GetToolTip(button) is not null, "封面下图标按钮缺少名称或提示");
+                && ToolTipService.GetToolTip(button) is not null, "封面图标按钮缺少名称或提示");
             button.ApplyTemplate();
             if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
-                Require(button.Background is SolidColorBrush { Color.A: 0 }, "封面下图标键常态仍铺了材质背景");
+                Require(button.Background is SolidColorBrush { Color.A: 0 }, "封面图标键常态仍铺了材质背景");
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
             {
-                Require(VisualStateManager.GoToState(button, state, false), "封面下按钮缺少平台状态 " + state);
-                Require(button.Opacity == 1 && row.Opacity == 1, "封面下按钮仍被悬停状态隐藏");
+                Require(VisualStateManager.GoToState(button, state, false), "封面按钮缺少平台状态 " + state);
+                Require(button.Opacity == 1 && row.Opacity == 1, "封面按钮仍被悬停状态隐藏");
             }
             VisualStateManager.GoToState(button, "Normal", false);
         }
         // 不移动用户鼠标，显式清封面悬停入口后仍须全部显示。
         Call(page, "HideCoverHover");
-        Require(row.Opacity == 1 && row.Children.OfType<Button>().All(button => button.Opacity == 1),
+        Require(row.Opacity == 1 && covered.All(button => button.Opacity == 1),
             "离开封面后操作行被隐藏");
     }
 

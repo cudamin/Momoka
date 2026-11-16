@@ -638,8 +638,21 @@
                                 <FontIcon Glyph="&#xE768;" Style="{StaticResource EgPlayGlyphStyle}" />
                             </Button>
 
+                            <!-- 2026-11-16 用户令：商店模式的主播放键放到封面外面右边 —— 贴着封面右下角、
+                                 不压在图上，也不挤占正文那一列。52 = 44 的命中格加 8 的缝；格子只有按钮大小，
+                                 挪出去靠 RenderTransform，不参与封面列的排版。 -->
+                            <Grid
+                                x:Name="StorePlaySlot"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}">
+                                <Grid.RenderTransform>
+                                    <TranslateTransform X="52" />
+                                </Grid.RenderTransform>
+                            </Grid>
+
                         </Grid>
-                        <!-- 四颗既有按钮移到封面下方，常驻，不进入封面的HoverWatch或透明浮层。 -->
+                        <!-- 其余三颗按钮留在封面下方，常驻，不进入封面的HoverWatch或透明浮层。 -->
                         <StackPanel
                             x:Name="StoreCoverActions"
                             HorizontalAlignment="Center"

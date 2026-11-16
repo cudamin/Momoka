@@ -103,6 +103,7 @@ internal sealed partial class ShellNavigationProbe
                         .SelectMany(group => group.Children).OfType<WrapRow>()
                         .SelectMany(row => row.Children)
                         .Concat(Get<StackPanel>(page, "StoreCoverActions").Children)
+                        .Concat(Get<Grid>(page, "StorePlaySlot").Children)
                         .OfType<Control>()
                         .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
                         .ToArray();
