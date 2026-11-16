@@ -1,3 +1,11 @@
+## 2026-11-16 详情文件选项改扁（36 到 32 高、本页圆角 12 到 10，未合并）
+
+用户附音频选择框截图一句「这个选择框弄扁一点」。「改扁」理解为降高度：`Theme/Styles.xaml` 的 `EgPickerRowHeight` 36 → 32，四行（视频、媒体源、音频、字幕）一起降，行距仍是 6；`DetailPage.xaml` 的页面局部 `ComboBoxMinHeight` 同步 32（模板箭头另有最小高度，须与闭合框一起长），`EgDetailPickerCornerRadius` 12 → 10 —— 半个高度 16 减 10 仍留 6 的直腰，既不回到 4 的方槽，也不会滑成 16 的两端半圆胶囊，同时回到全站输入框的 10 DIP 那一档。商店模式三颗图标键借用同一个圆角资源，跟着一起收；下方操作按钮与全局 `EgPicker`（设置页等）不动。同步改 `ShellNavigationProbe.State` 的竖距断言（32 高、6 间距）与 `AcrylicControlsTests`／`InputControlThemeTests` 的行高、本页圆角期望。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`acrylic-controls-fixture` **40/40**、`input-theme-fixture` **29/29**；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 65 条。
+
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/feat-flatten-select-box-U94tr6`，分支 `feat-flatten-select-box-U94tr6`，产品与测试提交 `aaadbac`；未合并 master，未推远端。
+
 ## 2026-11-16 商店详情头部：左栏保底宽度压在剧照上、片名单行、徽标统一上限（已合并 master，未发布）
 
 用户先附图（商店模式单集详情页）一句「位置不够时不要裁切，直接压在背景图上」，追问后选定「左栏保底宽度，超出压图」；随后两句「片名不要自动换行，徽标不要自动缩小」，徽标选定「回到统一上限 280×56」。截图里刚过 1024 断点的窗口上，宽版式给右侧剧照让位之后片名栏只剩一百来像素：片名折行、头上那枚徽标被压小、三颗图标和绿色播放键在栏的右沿被硬切。
