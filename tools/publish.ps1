@@ -44,6 +44,11 @@ param(
     # not. Pass it on the machine that actually runs the app.
     [switch]$Shortcut,
 
+    # Master uses "Momoka"; a temporary branch should pass "Momoka-<branch>" so the branch build and the
+    # master build can coexist on the desktop. Same validation as shortcut.ps1: no path separators.
+    [ValidatePattern('^[\p{L}\p{N}._-]+$')]
+    [string]$ShortcutName = 'Momoka',
+
     # Both of these default to 「work it out below」 rather than to an expression, because Windows
     # PowerShell evaluates a param block's defaults before it populates $PSScriptRoot when the script
     # carries [CmdletBinding()] — an $OutputRoot computed here came out empty and the script died on its
@@ -230,7 +235,7 @@ if ($NoArchive) {
 }
 
 if ($Shortcut) {
-    & $shortcutScript -Exe (Join-Path $publishRoot 'Momoka.exe')
+    & $shortcutScript -Exe (Join-Path $publishRoot 'Momoka.exe') -Name $ShortcutName
 }
 
 if ($Msix) {

@@ -17,12 +17,13 @@ For documentation-only skill changes, check routing, links, source assertions an
 
 ## Change batches and delivery
 
-Verification runs per change batch, not per small edit. Merging closes a batch; publishing happens only on an explicit delivery request.
+Verification runs per change batch, not per small edit. A completed change refreshes the desktop shortcut automatically; merging and unified verification happen only on an explicit user request.
 
-- Intermediate edits need a compile of the affected projects/tests and the tests covering that change.
-- Merging into `master` runs no full suite and no publish. Handle integration differences, record what stays unverified in [the pending-delivery ledger](../../../docs/待交付批次.md), and leave the delivered build at the previous version. Say so in the report.
-- When the user asks for delivery, merge the ledger's pending entries into one verification scope and run it against the final integrated master tree: gate 2, the affected runtime checks/probes and screenshots, then gate 3 and the shortcut check. Do not reuse branch-only reports. For `--probe-shell`, select the affected areas with `--probe-section`; a partial run is not a full-probe pass.
-- For temporary-branch integration, follow [CLAUDE.md's main-tree rules](../../../CLAUDE.md#git-与协作) and [delivery verification](../../../CLAUDE.md#四道闸门与日常交付). An explicit request to defer merging keeps that pending item open; it is not permission to merge or publish.
+- Intermediate edits need a compile of the affected projects/tests and the unit tests covering that change. Daily UI edits run no probes, native run checks or acceptance screenshots; record the probes to run in [the pending-delivery ledger](../../../docs/待交付批次.md).
+- When a batch is done, publish the current tree and refresh the desktop shortcut automatically: `Momoka` for master, `Momoka-<branch>` for a temporary branch. Branch shortcuts point at their own tree and do not overwrite each other. That refresh is not delivery: it runs no ledger probes or screenshots and closes no entry. Report which tree/branch the shortcut points to.
+- Branches are not merged automatically. Merge only on an explicit user request; merging runs no full suite, probes or publish. Keep the branch and record its pending checks in the ledger. After the merge lands, delete that branch's shortcut, branch and worktree automatically; report any leftover that could not be removed.
+- When the user asks for unified verification/delivery, merge the ledger's open entries into one verification scope and run it against the final integrated master tree by default, or the final code the user designated: gate 2, the affected runtime checks/probes and screenshots, then publish and close the entries. Do not reuse branch-only reports. For `--probe-shell`, select the affected areas with `--probe-section`; a partial run is not a full-probe pass.
+- For temporary-branch integration, follow [CLAUDE.md's main-tree rules](../../../CLAUDE.md#git-与协作) and [delivery verification](../../../CLAUDE.md#四道闸门与日常交付). An explicit request to merge is the only merge trigger; the automatic shortcut refresh is not permission to merge or to call it delivery.
 - Documentation and progress-record commits do not trigger a build, probe or publish.
 - A user request to deliver closes the pending ledger entries at the requested commit; later edits start a new batch.
 - A result is evidence only for the code it ran against. If later code changes a probed path, rerun the affected check; do not recycle earlier logs, screenshots or publish hashes.

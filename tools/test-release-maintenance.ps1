@@ -119,9 +119,14 @@ param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Captured)
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'captured.json'), (ConvertTo-Json -InputObject @($Captured)))
 $global:LASTEXITCODE = 0
 '@
+Save (Join-Path $packageRoot 'tools/shortcut.ps1') @'
+param([string]$Exe, [string]$Name)
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'shortcut-captured.json'), (ConvertTo-Json -InputObject ([ordered]@{ Exe=$Exe; Name=$Name })))
+$global:LASTEXITCODE = 0
+'@
 $packageDriver = Join-Path $packageRoot 'invoke.ps1'
 Save $packageDriver @'
-param([switch]$WithSign, [switch]$Store)
+param([switch]$WithSign, [switch]$Store, [switch]$Shortcut, [string]$ShortcutName)
 $ErrorActionPreference = 'Stop'
 function Get-Command {
     param([string]$Name, [string]$ErrorAction)
@@ -130,6 +135,8 @@ function Get-Command {
     throw 'Unexpected command lookup'
 }
 $options = @{ SkipPublish=$true; NoArchive=$true; Msix=$true; DotnetPath=(Join-Path $PSScriptRoot 'fake-dotnet.ps1'); CertPath=(Join-Path $PSScriptRoot 'requested.pfx'); OutputRoot=(Join-Path $PSScriptRoot 'artifacts'); Sign=$WithSign; Store=$Store }
+if ($Shortcut) { $options.Shortcut = $true }
+if ($ShortcutName) { $options.ShortcutName = $ShortcutName }
 & (Join-Path $PSScriptRoot 'tools/publish.ps1') @options
 '@
 foreach ($explicit in @($false, $true)) {
@@ -140,6 +147,11 @@ foreach ($explicit in @($false, $true)) {
 }
 $code = Invoke-Fixture 'store-certificate-rejected' $packageDriver @('-Store')
 Check ($code -ne 0) 'Store rejects certificate before packaging'
+$code = Invoke-Fixture 'shortcut-name-delivered' $packageDriver @('-Shortcut','-ShortcutName','Momoka-test')
+$capturedShortcut = Get-Content -LiteralPath (Join-Path $packageRoot 'tools/shortcut-captured.json') -Raw | ConvertFrom-Json
+Check ($code -eq 0 -and $capturedShortcut.Name -eq 'Momoka-test' -and $capturedShortcut.Exe -like '*Momoka.exe') "shortcut name delivered (exit=$code)"
+$code = Invoke-Fixture 'shortcut-name-rejects-path' $packageDriver @('-Shortcut','-ShortcutName','bad/name')
+Check ($code -ne 0) 'shortcut name rejects path separators'
 
 $compose = [IO.File]::ReadAllText((Join-Path $repo 'website/docker-compose.yml'))
 foreach ($binding in @('./nginx.conf:/etc/nginx/conf.d/default.conf:ro', './dist:/usr/share/nginx/html:ro')) {

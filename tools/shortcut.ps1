@@ -7,11 +7,13 @@
 #
 #   .\tools\shortcut.ps1                     指向 artifacts\publish\win-x64\Momoka.exe
 #   .\tools\shortcut.ps1 -Exe <路径>         指向别的 exe（比如调试输出）
-#   .\tools\shortcut.ps1 -Remove             删掉桌面上那个快捷方式
+#   .\tools\shortcut.ps1 -Name Momoka-xxx    给临时分支单独建一条，不覆盖主树的 Momoka
+#   .\tools\shortcut.ps1 -Remove -Name Momoka-xxx  分支合并后删掉它
 [CmdletBinding()]
 param(
     [string]$Exe,
 
+    [ValidatePattern('^[\p{L}\p{N}._-]+$')]
     [string]$Name = 'Momoka',
 
     [switch]$Remove
