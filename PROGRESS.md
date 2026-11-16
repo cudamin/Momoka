@@ -1,3 +1,17 @@
+## 2026-11-16 详情悬浮栏：播放键与正文统一、补资料行、留白跟随卡片（待合并 master）
+
+用户三句：「修复悬浮上的播放按钮与实际播放按钮不同的问题」（追问确认「实际」指详情页主播放键，要求整套外观统一）；「另外收窄一点悬浮栏，然后再给悬浮栏上点东西，评分、类型、播出日期、时长啥的」（追问确认资料合并进副标题行）；先按最大宽度 1040 收窄被否（「你这也太窄了，改回去吧」），随后定稿「改成比商店模式下面卡片稍窄的样式，沉浸模式同步」。
+
+**播放键。** 顶部悬浮栏的 `StickyPlayButton` 改用正文主播放键的 `EgPlayButtonStyle`（44 高、16 圆角、同一套内边距与浅墨），内容与 `ColumnPlayButton` 同构：有断点时图标取 `EgAccentBrush`、无断点跟字走。`DetailPage.Appearance` 把它并入 `_controlBackgrounds`，材质底与三态墨色跟主键同一份；商店模式的强调色额头（`IsStorePlay`）也把它算进去，三处同一副外观。
+
+**资料行。** Core 新增 `ItemDetail.HeaderFacts`：单集先写「S1:E7 - 集名」、季页写季名，随后评分、类型（最多三个）、首播日期（剧写年份区间）与时长，缺哪段跳哪段；ViewModel 新增 `HeaderFacts`，在 `ApplyHeading` 与季页的 `ApplySeasonSeries` 写入。悬浮栏副标题由 `Subline` 换成它，不新增行，高度不变。
+
+**留白。** 悬浮栏两侧不再写死 32：取 `BodySheet.Margin.Left + SheetPadding.Left + 12` —— 商店档卡片贴在 `StorePageInset` 上、悬浮栏每侧比它窄 12（1280 窗约 108），沉浸与纸面档同为 18 + 12；<520 的窄窗仍是 12。收进量是一个常量 `StickyHeaderCardInset`，卡片留白随模式变时悬浮栏跟着重算。
+
+**检查。** Shell Release/x64 0 警告 0 错误；`DetailStickyHeaderTests` 93/93（新增「商店 108 / 沉浸 30」宽度契约，520 档边距断言同步）；`Momoka.PageContractTests` 349/349；主测试 5177 项、5175 通过、2 红均为既有 `C:\WINDOWS\TEMP` 下载环境红；`ItemDetailTests` 新增资料行三条；改动 C# 文件 `dotnet format whitespace --verify-no-changes` 通过。按当日用户令，日常 UI 未跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 58 条。
+
+**分支与快捷方式。** 产品与测试提交 `dff2c68`，分支 `fix-play-button-mismatch-XgFUII`；本树发布并刷新过分支快捷方式 `Momoka-fix-play-button-mismatch-XgFUII.lnk`（合并后删除）。
+
 ## 2026-11-16 本机整理支持网络目录（已合并 master，待统一验证）
 
 用户问本机整理是否支持网络目录，不支持就做。原实现 `LocalMediaFiles.FullPath` 只接受固定盘/可移动盘并明确拒绝网络盘，`LocalLibraryArtwork` 也拒绝 UNC，改名路径只拼 `\\?\`。现在源目录和目标目录都可以是本机盘符、UNC（`\\服务器\共享\...`）或映射网络盘；网络共享使用当前 Windows 账号访问，不保存共享凭据。
