@@ -189,9 +189,10 @@ internal static class SettingsPageStateTests
 
             List<string> Labels() => rows.Cast<object>().Select(row => fixture.Get<string>(row, "Label")).ToList();
         });
-        TestHarness.Test("界面卡：选择模式／透明效果在列，主题色进色板最后一格，开机自启已搬进关于「启动」卡（源码接线）", () =>
+        TestHarness.Test("界面卡：选择模式／透明效果在列，色板末格是跟随系统，开机自启已搬进关于「启动」卡（源码接线）", () =>
         {
-            // 2026-11-16 用户令「参考上图修改新增设置中的相关功能」「设置中的开机自启移动到关于中」。
+            // 2026-11-16 用户令「参考上图修改新增设置中的相关功能」「设置中的开机自启移动到关于中」；
+            // 当晚又令「右下角的主题色改为跟随当前系统设置，不要自己自选」，自选主题色那一格撤掉。
             // 界面卡会创建主题画刷，测试不执行它；这里钉住建卡源码里的行与门控归属，屏上的行由 settings 探针量。
             var source = fixture.ViewModelSource;
             var cardStart = source.IndexOf("private SettingSection InterfaceCard()", StringComparison.Ordinal);
@@ -209,32 +210,13 @@ internal static class SettingsPageStateTests
             Assert.Contains("(\"浅色\", UiThemes.ModeLight)", source);
             Assert.Contains("(\"跟随系统\", UiThemes.ModeSystem)", source);
             Assert.Contains("after: () => ThemeHost.Apply(ui)", source);
-            Assert.Contains("() => ui.AccentColor", source);
-            Assert.Contains("ui.AccentColor = value;", source);
-            Assert.Contains("UiThemes.All.Where(theme => !theme.FollowsSystem)", source);
+            Assert.Contains("UiThemes.All,", source);
+            Assert.DoesNotContain("ui.AccentColor", source);
             Assert.Contains("ui.TransparencyEffects = value", source);
 
             Assert.Contains("new SettingSection(\"关于\", \"启动\"", fixture.AboutSource);
             Assert.Contains("if (_startup is { Available: true }) rows.Add(StartupRow());", fixture.AboutSource);
             Assert.Contains(".. StartupSections()", fixture.ViewModelSource);
-        });
-        TestHarness.Test("主题色格：选色写回一次并保存，清除后显示跟随系统", () =>
-        {
-            var writes = new List<string>();
-            var saves = 0;
-            var row = fixture.NewRow("ThemeAccentSwatch", "",
-                (Action<string>)(value => writes.Add(value)), (Action)(() => saves++));
-
-            Assert.Equal("跟随系统", fixture.Get<string>(row, "Kind"));
-            fixture.Set(row, "Color", "#FF3B30");
-            Assert.True(writes.SequenceEqual(new[] { "#FF3B30" }));
-            Assert.Equal(1, saves);
-            Assert.Equal("手动", fixture.Get<string>(row, "Kind"));
-
-            fixture.Set(row, "Color", "");
-            Assert.Equal("", writes[^1]);
-            Assert.Equal(2, saves);
-            Assert.Equal("跟随系统", fixture.Get<string>(row, "Kind"));
         });
         TestHarness.Test("详情页内容：隐藏没有封面的演职人员默认关，拨一下写回设置", () =>
         {

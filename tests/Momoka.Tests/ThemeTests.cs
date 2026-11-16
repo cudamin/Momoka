@@ -110,25 +110,25 @@ internal static class ThemeTests
     {
         Test("选择模式：深色用色板、浅色用系统浅色、跟随系统随 Windows 深浅", () =>
         {
-            var dark = UiThemes.Compose("midnight", UiThemes.ModeDark, null, systemDark: false);
+            var dark = UiThemes.Compose("midnight", UiThemes.ModeDark, systemDark: false);
             Assert.Equal("midnight", dark.Id);
             Assert.True(dark.IsDark);
 
-            var light = UiThemes.Compose("midnight", UiThemes.ModeLight, null, systemDark: true);
+            var light = UiThemes.Compose("midnight", UiThemes.ModeLight, systemDark: true);
             Assert.Equal(UiThemes.SystemId, light.Id);
             Assert.False(light.IsDark);
             Assert.Equal(UiThemes.System(false).Colors.Accent, light.Colors.Accent);
 
-            var systemLight = UiThemes.Compose("midnight", UiThemes.ModeSystem, null, systemDark: false);
+            var systemLight = UiThemes.Compose("midnight", UiThemes.ModeSystem, systemDark: false);
             Assert.Equal(UiThemes.SystemId, systemLight.Id);
             Assert.False(systemLight.IsDark);
 
-            var systemDark = UiThemes.Compose("midnight", UiThemes.ModeSystem, null, systemDark: true);
+            var systemDark = UiThemes.Compose("midnight", UiThemes.ModeSystem, systemDark: true);
             Assert.Equal("midnight", systemDark.Id);
             Assert.True(systemDark.IsDark);
 
             // 色板本身就是「跟随系统」时，深色档用系统深色配色，不再落到默认那套。
-            var follows = UiThemes.Compose(UiThemes.SystemId, UiThemes.ModeDark, null, systemDark: false);
+            var follows = UiThemes.Compose(UiThemes.SystemId, UiThemes.ModeDark, systemDark: false);
             Assert.Equal(UiThemes.SystemId, follows.Id);
             Assert.True(follows.IsDark);
         });
@@ -142,33 +142,18 @@ internal static class ThemeTests
             Assert.Equal(UiThemes.ModeSystem, UiThemes.NormalizeMode("System"));
         });
 
-        Test("主题色：未自定义时跟随系统主题色，自定义优先", () =>
+        Test("主题：强调色始终取所选色板自带，不被 Windows 主题色顶掉", () =>
         {
-            var systemAccent = ThemeColor.Rgb(0x00, 0x78, 0xD4);
-            var follows = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "", systemDark: true, systemAccent);
-            Assert.Equal(systemAccent, follows.Colors.Accent);
+            // 2026-11-16 晚用户报「薄荷影院不生效」：底色没问题，是强调色被 Windows 个性化里的灰色盖掉了。
+            // 合成之后每套色板都该保住自己的签名色。
+            var mint = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, systemDark: true);
+            Assert.Equal("#FF6EE7C5", mint.Colors.Accent.ToHex());
 
-            var custom = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "#FF3B30", systemDark: true, systemAccent);
-            Assert.Equal("#FFFF3B30", custom.Colors.Accent.ToHex());
+            var midnight = UiThemes.Compose("midnight", UiThemes.ModeDark, systemDark: true);
+            Assert.Equal("#FF4C8DF6", midnight.Colors.Accent.ToHex());
 
-            // 没有系统色可读时退回色板自带的强调色，不把「跟随系统」变成无颜色。
-            var none = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "", systemDark: true);
-            Assert.Equal(UiThemes.Default.Colors.Accent, none.Colors.Accent);
-        });
-
-        Test("主题色：覆盖强调色一族，悬停/按下/浅底与字色一起重算", () =>
-        {
-            var theme = UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, "#FF3B30", systemDark: true);
-            Assert.Equal("#FFFF3B30", theme.Colors.Accent.ToHex());
-            Assert.True(theme.Colors.AccentHover != theme.Colors.Accent, "悬停档没有跟着重算");
-            Assert.True(theme.Colors.AccentPressed != theme.Colors.Accent, "按下档没有跟着重算");
-            Assert.True(ThemeColor.Contrast(theme.Colors.TextOnAccent, theme.Colors.Accent) >= 4.5,
-                "压在强调色上的字须够 4.5:1");
-
-            // 空串、坏值＝跟随主题：强调色一族与原来那套完全一致。
-            var baseTheme = UiThemes.Resolve(UiThemes.DefaultId);
-            foreach (var none in new[] { null, "", "   ", "不是颜色" })
-                Assert.Equal(baseTheme.Colors, UiThemes.WithAccent(baseTheme, none).Colors);
+            var light = UiThemes.Compose("midnight", UiThemes.ModeLight, systemDark: true);
+            Assert.Equal(UiThemes.System(false).Colors.Accent, light.Colors.Accent);
         });
     }
 

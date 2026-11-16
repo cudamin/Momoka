@@ -46,17 +46,17 @@ internal static partial class ShellSelfCheck
 
         // 这一次该生效的是哪一套。--theme 只压住这一次运行看到的颜色，设置文件一个字不动，所以那个开关在的
         // 时候要跟它比 —— 并且把「存的那个还是原来那个」也报出来，那正是这个开关唯一容易出错的地方。
-        // 平常按整份外观合成：选择模式可能把实际生效的深浅换成系统浅色档，主题色会换掉强调色一族。
+        // 平常按整份外观合成：选择模式可能把实际生效的深浅换成系统浅色档。
         var askedTheme = options.Theme is { Length: > 0 } flag ? UiThemes.Resolve(flag) : null;
         var asked = askedTheme?.Id;
-        var expectedTheme = askedTheme ?? UiThemes.Compose(stored, ui.AppearanceMode, ui.AccentColor, theme.IsDark);
+        var expectedTheme = askedTheme ?? UiThemes.Compose(stored, ui.AppearanceMode, theme.IsDark);
 
         report.AppendLine(
             $"[信息] 主题目录 — 共 {UiThemes.All.Count} 套：" +
             string.Join("、", UiThemes.All.Select(one => $"{one.Name}（{one.Id}，{(one.IsDark ? "深" : "浅")}）")));
         report.AppendLine(
             $"[信息] 外观 — 模式 {ModeName(UiThemes.NormalizeMode(ui.AppearanceMode))}，"
-            + $"主题色 {(string.IsNullOrWhiteSpace(ui.AccentColor) ? "跟随系统" : ui.AccentColor)}，"
+            + $"强调色 {theme.Colors.Accent.ToHex()}（取所选色板），"
             + $"透明效果 {(ui.TransparencyEffects ? "开" : "关")}");
 
         if (asked is not null)

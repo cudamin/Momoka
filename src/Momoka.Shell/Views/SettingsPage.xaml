@@ -159,10 +159,10 @@
         </Style>
 
         <!--
-          主题那一排的两种格子（2026-11-16 用户令「把图二的卡片改为主题色选择功能」）：五套固定色板，
-          最后一格是主题色。原来那一格「跟随系统」与「选择模式」重复，已经撤掉。
+          主题那一排的格子（2026-11-16 晚用户令「右下角的主题色改为跟随当前系统设置，不要自己自选」）：
+          五套固定色板，最后一格是「跟随系统」，不再有自选主题色那一格。
           每一块色板都是那一套主题的一个缩影：顶上一面色好比标题栏，底下一整片窗色，左边一道强调色，
-          名字和深浅两行字用它自己的墨。主题色那一格直接用当前强调色铺满，字按对比度取深墨或浅纸。
+          名字和深浅两行字用它自己的墨。
         -->
         <DataTemplate x:Key="EgThemeTile" x:DataType="vm:ThemeSwatch">
             <Button
@@ -218,62 +218,6 @@
                 </Grid>
             </Button>
         </DataTemplate>
-
-        <DataTemplate x:Key="EgAccentTile" x:DataType="vm:ThemeAccentSwatch">
-            <Button
-                AutomationProperties.Name="{x:Bind Label}"
-                Style="{StaticResource EgSwatchStyle}"
-                ToolTipService.ToolTip="点击挑选主题色（强调色）；清除则跟随系统主题色">
-                <Button.Resources>
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
-                    <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
-                    <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
-                </Button.Resources>
-                <Button.Flyout>
-                    <Flyout Placement="Bottom">
-                        <Flyout.FlyoutPresenterStyle>
-                            <Style TargetType="FlyoutPresenter">
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
-                                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-                            </Style>
-                        </Flyout.FlyoutPresenterStyle>
-                        <local:HtmlColorPicker Margin="16" Color="{x:Bind Color, Mode=TwoWay}" />
-                    </Flyout>
-                </Button.Flyout>
-                <Grid Background="{ThemeResource EgAccentBrush}">
-                    <StackPanel Margin="16,0,12,0" VerticalAlignment="Center">
-                        <TextBlock
-                            FontFamily="{StaticResource EgUiFontFamily}"
-                            FontSize="{StaticResource EgSubheadFontSize}"
-                            FontWeight="SemiBold"
-                            Foreground="{ThemeResource EgTextOnAccentBrush}"
-                            Text="{x:Bind Label}" />
-                        <TextBlock
-                            FontFamily="{StaticResource EgDataFontFamily}"
-                            FontSize="{StaticResource EgEyebrowFontSize}"
-                            Foreground="{ThemeResource EgTextOnAccentBrush}"
-                            Opacity="0.7"
-                            Text="{x:Bind Kind, Mode=OneWay}" />
-                    </StackPanel>
-                    <FontIcon
-                        Margin="0,10,12,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                        FontSize="14"
-                        Foreground="{ThemeResource EgTextOnAccentBrush}"
-                        Glyph="&#xE790;"
-                        Opacity="0.7" />
-                </Grid>
-            </Button>
-        </DataTemplate>
-
-        <vm:ThemeTileSelector
-            x:Key="ThemeTiles"
-            AccentTemplate="{StaticResource EgAccentTile}"
-            ThemeTemplate="{StaticResource EgThemeTile}" />
 
         <!--
           换次序那两颗箭头。小、透明、只占一个字符宽：它们要塞进一行 40 像素里，还不能把标题那一列挤窄
@@ -581,12 +525,12 @@
                             Text="{x:Bind Note}"
                             Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         <ItemsControl
-                            ItemTemplateSelector="{StaticResource ThemeTiles}"
-                            ItemsSource="{x:Bind Tiles}">
+                            ItemTemplate="{StaticResource EgThemeTile}"
+                            ItemsSource="{x:Bind Swatches}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <!-- 一格 236×112，块本身 224×100（见 EgSwatchStyle），差出来的就是块与块之间
-                                         那道缝。卡片里放得下三块，所以五套色板加一格主题色正好是整齐的两行三列；
+                                         那道缝。卡片里放得下三块，所以五套色板加一格跟随系统正好是整齐的两行三列；
                                          窗口窄了就折成两块一行，因为它到底还是个折行的网格。 -->
                                     <VariableSizedWrapGrid
                                         ItemHeight="112"

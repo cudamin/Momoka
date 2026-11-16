@@ -1,11 +1,10 @@
 using Microsoft.UI.Dispatching;
 using Momoka.Diagnostics;
-using Momoka.Theming;
 using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell;
 
-/// <summary>系统模式或主题色跟随系统时存活。Windows 通知可以来自后台线程，读色和换肤统一回到 UI 队列。</summary>
+/// <summary>「选择模式」跟随系统时存活。Windows 通知可以来自后台线程，读色和换肤统一回到 UI 队列。</summary>
 internal sealed class SystemThemeWatcher : IDisposable
 {
     private const string Category = "主题";
@@ -14,7 +13,6 @@ internal sealed class SystemThemeWatcher : IDisposable
     private readonly Action<bool> _changed;
     private bool _observed;
     private bool _lastDark = true;
-    private ThemeColor _lastAccent = UiThemes.Default.Colors.Accent;
     private int _queued;
     private int _stopped;
 
@@ -45,24 +43,6 @@ internal sealed class SystemThemeWatcher : IDisposable
             }
             catch (Exception error) { Log.Warn(Category, "读取系统主题失败，保留当前配色", error); }
             return _lastDark;
-        }
-    }
-
-    /// <summary>
-    /// Windows 个性化里的主题色（强调色）。设置页里的「主题色」不选具体颜色时，全应用就跟随它；
-    /// 读不到时保留最近一次，第一次失败则用默认主题的薄荷绿。
-    /// </summary>
-    internal ThemeColor Accent
-    {
-        get
-        {
-            try
-            {
-                var color = _settings.GetColorValue(UIColorType.Accent);
-                _lastAccent = new ThemeColor(color.A, color.R, color.G, color.B);
-            }
-            catch (Exception error) { Log.Warn(Category, "读取系统主题色失败，保留当前配色", error); }
-            return _lastAccent;
         }
     }
 

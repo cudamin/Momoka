@@ -40,24 +40,6 @@ internal static class Program
             Assert.Equal(0xD9, ThemeHost.ColorOf("Dark", "EgSidebarBrush")!.Value.A);
             Assert.False(frosted.AlwaysUseFallback, "透明效果重新打开后亚克力仍停回退色");
         });
-        Test("主题色：空值跟随系统主题色，系统色变化后重算，自定义优先", () =>
-        {
-            Reset(true);
-            var ui = new Momoka.Configuration.UiSettings();
-            ThemeHost.Apply(ui);
-            var systemAccent = Windows.UI.Color.FromArgb(255, 0x00, 0x78, 0xD4);
-            var settings = UISettings.Instances.Last();
-            settings.Accent = systemAccent;
-            UISettings.Notify();
-            DispatcherQueue.Current.Drain();
-            Assert.Equal(new ThemeColor(systemAccent.A, systemAccent.R, systemAccent.G, systemAccent.B),
-                ThemeHost.Current.Colors.Accent);
-
-            ui.AccentColor = "#FF3B30";
-            ThemeHost.Apply(ui);
-            Assert.Equal("#FFFF3B30", ThemeHost.Current.Colors.Accent.ToHex());
-            Assert.Equal(0, UISettings.Instances.Sum(instance => instance.Subscribers));
-        });
         Test("系统主题：启动读取当前模式，稳定ID同步所有根与两份角色，高对比度不覆盖", () =>
         {
             Reset(false);
