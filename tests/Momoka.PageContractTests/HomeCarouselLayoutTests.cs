@@ -111,24 +111,16 @@ internal static class HomeCarouselLayoutTests
             Assert.Contains("internal void SetCardCornerRadius(CornerRadius radius)", slide);
         });
 
-        Test("商店版式取色：左侧渐变与卡片光晕接同一条剧照代表色", () =>
+        Test("商店版式左侧渐变接剧照代表色，卡片外不再有光晕", () =>
         {
             var banner = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
             Assert.Contains("private void PaintFadeInk()", banner);
-            Assert.Contains("private void PublishAmbient()", banner);
-            Assert.Contains("internal event Action<Windows.UI.Color>? AmbientChanged;", banner);
             Assert.Contains("Current?.Ambient", banner);
+            Assert.Contains("52d / peak", banner);
 
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomePage.xaml"));
-            Assert.True(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BannerGlow"),
-                "商店版式的卡片光晕不在页面里");
-            Assert.True(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BannerGlowBrush"),
-                "光晕的径向画刷不在页面里");
-
-            var pageCode = Source("Momoka.Shell/Views/HomePage.xaml.cs");
-            Assert.Contains("Banner.AmbientChanged +=", pageCode);
-            Assert.Contains("private void PaintBannerGlow()", pageCode);
-            Assert.Contains("BannerGlowBrush.GradientStops", pageCode);
+            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BannerGlow"),
+                "光晕已按用户令撤掉，不该再出现在页面里");
         });
 
         Test("轮播圆点墨：只从应用主题色取，不再引用控件私有的 EgBannerDotBrush", () =>

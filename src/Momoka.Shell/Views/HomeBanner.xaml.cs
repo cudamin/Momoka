@@ -483,7 +483,6 @@ public sealed partial class HomeBanner : UserControl
         }
 
         PaintFadeInk();
-        PublishAmbient();
     }
 
     /// <summary>这一刻摆没摆右栏。页面那头据此决定轮播上的媒体库视口要不要收窄。</summary>
@@ -577,7 +576,6 @@ public sealed partial class HomeBanner : UserControl
         PaintBackdropShade();
         // 高对比度开关会改变左侧渐变与光晕取色（那一档一律用固定深墨/透明），换主题时当场重画。
         PaintFadeInk();
-        PublishAmbient();
     }
 
     internal bool GaussianBackdropApplied => Current?.GaussianBackdropApplied == true;
@@ -649,13 +647,6 @@ public sealed partial class HomeBanner : UserControl
     /// </para>
     /// </summary>
     public event EventHandler<BannerSlide?>? SlideChanged;
-
-    /// <summary>
-    /// 台上那张的代表色（2026-11-16）：换人时、以及那一张的像素迟到时各报一次。页面拿它在圆角卡片外沿
-    /// 画一圈光晕 —— 颜色本身是 Core 里 <see cref="CarouselAmbient"/> 从像素算出来的，这条带子只负责
-    /// 「此刻台上是谁」。传 <c>Transparent</c> 表示没有可借的颜色（没有图、整张近黑、或高对比度）。
-    /// </summary>
-    internal event Action<Windows.UI.Color>? AmbientChanged;
 
     /// <summary>
     /// 一张幻灯片取不到宽图、被从这一批里摘掉了（见 <see cref="BannerSlide.PictureUnavailable"/>）。页面据此把
@@ -754,7 +745,6 @@ public sealed partial class HomeBanner : UserControl
             LogoRow.Visibility = Visibility.Collapsed;
             SlideChanged?.Invoke(this, null);
             PaintFadeInk();
-            PublishAmbient();
             SyncArrows();
             SyncTimer();
             return;
@@ -835,7 +825,6 @@ public sealed partial class HomeBanner : UserControl
         // 最后一句：上面那几件都是这条带自己的事，这一声是给外面的听者的。
         SlideChanged?.Invoke(this, slide);
         PaintFadeInk();
-        PublishAmbient();
     }
 
     /// <summary>
@@ -867,17 +856,6 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>左侧渐变幕四档 alpha（左沿近实心、往图里散尽），取自标记里的原值。</summary>
     private static readonly byte[] FadeAlphas = [0xF0, 0xC2, 0x66, 0x00];
-
-    /// <summary>
-    /// 把台上那张的代表色报给页面（见 <see cref="AmbientChanged"/>）。没有可借的颜色或高对比度时报透明。
-    /// </summary>
-    private void PublishAmbient()
-    {
-        var ambient = _colorAccessibility.HighContrast ? CarouselInk.None : Current?.Ambient ?? CarouselInk.None;
-        AmbientChanged?.Invoke(ambient.IsNone
-            ? Microsoft.UI.Colors.Transparent
-            : Windows.UI.Color.FromArgb(0xFF, ambient.R, ambient.G, ambient.B));
-    }
 
     /// <summary>台上那张的订阅撤掉。换人和离开树都走这里。</summary>
     private void Unwatch()
@@ -1400,7 +1378,6 @@ public sealed partial class HomeBanner : UserControl
             Paint(slide.Picture);
             // 图到了，像素也就在了：左侧渐变的颜色和卡片四周的光晕此刻才算得出来。
             PaintFadeInk();
-            PublishAmbient();
         }
         else if (e.PropertyName == nameof(BannerSlide.Logo)) PaintLogo(slide);
     }
@@ -1459,7 +1436,6 @@ public sealed partial class HomeBanner : UserControl
             }
             SlideChanged?.Invoke(this, null);
             PaintFadeInk();
-            PublishAmbient();
             SyncArrows();
             SyncTimer();
             SlideDropped?.Invoke(this, failed);

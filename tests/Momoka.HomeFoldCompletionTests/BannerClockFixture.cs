@@ -39,7 +39,6 @@ internal sealed partial class BannerClockFixture
     private void Resize(double width) { }
     private void SyncSlideStatus() { }
     private void PaintFadeInk() { }
-    private void PublishAmbient() { }
     private void Show(int index, bool animate = true) { _index = index; _ = _second; }
     private void OnPictureUnavailable(object? sender, EventArgs args) { }
     private static Layer Brush(Layer layer) => layer;
