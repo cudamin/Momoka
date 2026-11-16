@@ -23,13 +23,18 @@ public sealed partial class DetailViewModel
         ? new(0, 0, DetailHero.StorePreviewGap, 0) : default;
 
     /// <summary>
-    /// 商店背景那块环境底的高度：取「剧照盒」与「这一格内容」里更高的一个。
+    /// 商店背景那块环境底的高度：取「剧照盒」「顶部内容」与「第一屏视口」里最高的一个。
     /// <para>
     /// 剧照是 16:9，按钮那一排可能比它矮、也可能比它高：只按剧照盒画，底会在按钮上方截断；
     /// 只按内容画，超宽窗口上图的下半段又会渐隐到窗口画布而不是色底上。取大之后两头都不露边。
     /// </para>
+    /// <para>
+    /// 2026-11-16 用户报「深/浅窗口底色的那层区域固定、不跟窗口缩放」：这一层至少铺满第一屏，
+    /// 窗口拉高时跟着变长；剧照盒跟着窗口宽变化时，收边位置由
+    /// <see cref="Views.StoreBackdropBlend.AmbientAlpha"/> 按图盒几何重算 —— 图右边和下面不再提前淡成窗口色。
+    /// </para>
     /// </summary>
-    public double StoreAmbientHeight => Math.Max(StoreBackdropHeight, HeroHeight);
+    public double StoreAmbientHeight => Math.Max(Math.Max(StoreBackdropHeight, HeroHeight), Viewport);
 
     public double StorePreviewWidth => Math.Min(640, PageWidth * 0.46);
 

@@ -22,9 +22,11 @@ public sealed partial class MoviePilotSubscriptionPage
         var width = MediaViewModel.Plain ? Math.Min(1840, MediaViewModel.PageWidth) : MediaViewModel.PageWidth;
         StoreBackdrop.Height = DetailHero.StoreBackdropHeight(width, MediaViewModel.HeroBandHeight);
         StoreBackdrop.Width = DetailHero.StoreBackdropWidth(width);
-        // 环境底跟剧照背景同进同退，高度取同一档。
-        StoreAmbient.Height = StoreBackdrop.Height;
+        // 环境底跟剧照背景同进同退，并且至少铺满第一屏（2026-11-16：深/浅窗口底色那一层必须随窗口缩放）。
+        StoreAmbient.Height = Math.Max(StoreBackdrop.Height, MediaViewModel.Viewport);
         StoreAmbient.Visibility = StoreBackdrop.Visibility;
+        // 图盒内保持满色，越过剧照右沿与下沿才渐隐到窗口画布（同媒体详情页）。
+        _storeAmbientFade?.UpdateAmbient(width, StoreAmbient.Height, width, StoreBackdrop.Height);
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(MediaViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Width = StoreBackdrop.Width;

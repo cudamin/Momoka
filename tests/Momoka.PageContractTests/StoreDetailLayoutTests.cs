@@ -66,6 +66,24 @@ internal static class StoreDetailLayoutTests
             Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
                 && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
         });
+        Test("商店环境底：图盒内保持图色，越过剧照右沿与下沿才渐隐，高度铺满第一屏", () =>
+        {
+            // 2026-11-16 用户报「图右边和下面只有深色渐变」：环境底原先按自身高度整体上坡，
+            // 剧照自己渐隐时底下已经淡成窗口色。现在只在图盒外收边，并且至少铺满第一屏。
+            Assert.Equal(1.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 200, 1200, 900, 1100, 450));
+            Assert.Equal(1.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 440, 1200, 900, 1100, 450));
+            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(1190, 200, 1200, 900, 1100, 450) is > 0 and < 0.6,
+                "环境底没有在剧照右沿之外收边");
+            Assert.True(Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(400, 800, 1200, 900, 1100, 450) is > 0 and < 0.4,
+                "环境底没有在剧照下沿之后渐隐");
+            Assert.Equal(0.0, Momoka.Shell.Views.StoreBackdropBlend.AmbientAlpha(1200, 900, 1200, 900, 1100, 450));
+            var vm = Source("ViewModels/DetailViewModel.Store.cs");
+            Assert.Contains("Math.Max(Math.Max(StoreBackdropHeight, HeroHeight), Viewport)", vm);
+            Assert.Contains("_storeAmbientFade?.UpdateAmbient(", Source("Views/DetailPage.Store.cs"));
+            Assert.Contains("_storeAmbientFade?.UpdateAmbient(", Source("Views/MoviePilotSubscriptionPage.Store.cs"));
+            Assert.Contains("Math.Max(StoreBackdrop.Height, MediaViewModel.Viewport)",
+                Source("Views/MoviePilotSubscriptionPage.Store.cs"));
+        });
         Test("商店详情：四颗键全在日期行下方，三颗图标在上、播放键在下且同宽，连播保留集卡右上", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

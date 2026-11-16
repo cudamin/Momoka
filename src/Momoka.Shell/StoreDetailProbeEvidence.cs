@@ -115,8 +115,10 @@ internal static class StoreDetailProbeEvidence
             throw new ArgumentException("商店遮罩像素或尺寸不完整");
         int Alpha(double x, double y) => bgra[((int)Math.Round(y * (height - 1)) * width
             + (int)Math.Round(x * (width - 1))) * 4 + 3];
+        // 右沿取样取 0.985（2026-11-16）：环境底改成图盒内满色、只在图右沿前 40 DIP 起坡，
+        // 0.95 处仍在图盒里；剧照那张遮罩在这个位置也还有非零 alpha。
         return new(width, height, Alpha(0, 0.35), Alpha(1, 0.35), Alpha(0.5, 1),
-            Alpha(0.5, 0.35), Alpha(0.95, 0.35), Alpha(0.5, 0.9), Alpha(0.5, 0));
+            Alpha(0.5, 0.35), Alpha(0.985, 0.35), Alpha(0.5, 0.9), Alpha(0.5, 0));
     }
 
     internal static void RequireMask(StoreFadeRead read)

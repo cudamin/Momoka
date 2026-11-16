@@ -25,6 +25,10 @@ public sealed partial class DetailPage
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < DetailHero.StoreWideFloor
             && ViewModel.HeroImage is not null && !_actionAccessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;
+        // 2026-11-16 用户报「图右边和下面只剩下深色渐变」：环境底不再按自身高度整体上坡，改为图盒内满色、
+        // 越过剧照右沿与下沿才收边 —— 剧照自己的左、右、下三端渐隐时底下都是同色环境底。
+        _storeAmbientFade?.UpdateAmbient(ViewModel.PageWidth, ViewModel.StoreAmbientHeight,
+            ViewModel.PageWidth - DetailHero.StorePreviewGap, ViewModel.StoreBackdropHeight);
         StoreBackdropStyle.ApplyAcrylic(StoreBackdropAcrylicFill, StoreBackdropAcrylicBottom,
             _storeTint.Resolve(ViewModel.BackdropPixels, ViewModel.HeroImage is not null, ThemeHost.Current.Colors.Window, ThemeHost.Current.IsDark),
             ThemeHost.ToColor(ThemeHost.Current.Colors.Window));

@@ -26,6 +26,27 @@ internal static class StoreBackdropBlend
         ? Interpolate(x, AmbientAcross) * Interpolate(y, AmbientDown)
         : Interpolate(x, PictureAcross) * Interpolate(y, PictureDown);
 
+    /// <summary>环境底在图右沿前这一段开始起坡，坡道尽头接窗口画布。</summary>
+    internal const double AmbientEdge = 24;
+
+    /// <summary>
+    /// 环境底的遮罩（2026-11-16 用户报「右边和下面只有深色渐变、只有左边是图色渐变」）：
+    /// 剧照盒范围内保持满色，越过剧照右沿与下沿才渐隐 —— 剧照自己左、右、下三端渐隐时，
+    /// 底下露出的都是同一块取色环境底，而不是提前淡掉的窗口底色。
+    /// <para>
+    /// 图盒参数由页面按实测几何交进来；窗口拉宽拉高时剧照盒变化，这张遮罩跟着重算
+    /// （<see cref="StoreBackdropFade.UpdateAmbient"/>）。参数不成话时退回按自身尺寸起坡的旧形状。
+    /// </para>
+    /// </summary>
+    internal static double AmbientAlpha(double x, double y, double width, double height,
+        double pictureRight, double pictureBottom)
+    {
+        if (!(width > 0) || !(height > 0)) return 0;
+        var right = Math.Clamp(pictureRight, 0, width);
+        var bottom = Math.Clamp(pictureBottom, 0, height);
+        return (1 - Ramp(x, right - AmbientEdge, width)) * (1 - Ramp(y, bottom, height));
+    }
+
     internal static byte[] Mask(bool ambient)
     {
         var pixels = new byte[Side * Side * 4];
@@ -33,6 +54,25 @@ internal static class StoreBackdropBlend
             for (var x = 0; x < Side; x++)
             {
                 var alpha = Channel(255 * Alpha(x / (double)(Side - 1), y / (double)(Side - 1), ambient));
+                var at = (y * Side + x) * 4;
+                pixels[at] = pixels[at + 1] = pixels[at + 2] = pixels[at + 3] = alpha;
+            }
+        return pixels;
+    }
+
+    /// <summary>环境底按剧照盒收边的 alpha 图；几何无效时退回 <see cref="Mask(bool)"/> 的旧形状。</summary>
+    internal static byte[] AmbientMask(double width, double height, double pictureRight, double pictureBottom)
+    {
+        if (!(width > 0) || !(height > 0) || !(pictureRight > 0) || !(pictureBottom > 0)
+            || pictureRight >= width - 0.5 || pictureBottom >= height - 0.5)
+            return Mask(ambient: true);
+        var pixels = new byte[Side * Side * 4];
+        for (var y = 0; y < Side; y++)
+            for (var x = 0; x < Side; x++)
+            {
+                var alpha = Channel(255 * AmbientAlpha(
+                    x / (double)(Side - 1) * width, y / (double)(Side - 1) * height,
+                    width, height, pictureRight, pictureBottom));
                 var at = (y * Side + x) * 4;
                 pixels[at] = pixels[at + 1] = pixels[at + 2] = pixels[at + 3] = alpha;
             }
