@@ -12,7 +12,7 @@
 
 **边界。** 未连真实 Emby 服务器验证播放、标记已看、转换任务与扫描的实际结果；未跑原生探针与验收截图（日常 UI 按 2026-11-16 用户令留到交付）。飞牛／Plex 的整库播放与随机播放没有接线，本轮按能力隐藏而不是补执行层；Jellyfin 库卡的「刷新元数据」沿用现有刷新表，没有照网页端对库切到扫描模式。
 
-**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`、`a669e86`、`b18511c`，记录提交 `7d46920`、`19670ed`；未合并 master。本树已用仓库根目录临时放入的 `libmpv-2.dll` 发布（548 文件、289.8 MB，发布验证通过），桌面 `Momoka-fix-emby-library-menu-IDnzLR.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（21:06）。
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`、`a669e86`、`b18511c`，记录提交 `7d46920`、`19670ed`、`a30838d`；未合并 master。本树已用仓库根目录临时放入的 `libmpv-2.dll` 发布（548 文件、289.8 MB，发布验证通过），桌面 `Momoka-fix-emby-library-menu-IDnzLR.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（21:37，含第二轮改动）。
 
 ## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
 
