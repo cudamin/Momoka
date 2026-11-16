@@ -1587,6 +1587,21 @@ public sealed class UiSettings
     public bool ShowHomeBanner { get; set; } = true;
 
     /// <summary>
+    /// 主页轮播用哪一版 —— 「参考上图在设置中再添加一版轮播图」（用户的话，2026-11-16，附图是商店轮播在不同
+    /// 窗口大小下的状态）。两档见 <see cref="Emby.CarouselLayout"/>：整宽大图（默认，也是缺键的旧设置文件读出来
+    /// 的那一档）和商店版式（宽窗口左侧大图、右边一列接下三张，窄窗口自动回到整宽大图）。
+    /// <para>
+    /// 枚举存整数（同 <see cref="CarouselSource"/> 那条规矩），<c>Full</c> 必须是 0：从旧版本升上来的人一个像素
+    /// 都不变。认不出来的数字由 <c>SettingsMigration.Normalize</c> 拨回。
+    /// </para>
+    /// <para>
+    /// 改完当场生效：设置页写完喊一声 <c>ShellPrefs</c>，主页那一头把新档交给 <c>HomeBanner</c> 重摆，
+    /// 不等回到主页、不用重启。
+    /// </para>
+    /// </summary>
+    public Emby.CarouselLayout CarouselLayout { get; set; } = Emby.CarouselLayout.Full;
+
+    /// <summary>
     /// 主页第一屏上媒体库那一排摆在哪 —— 「主页媒体库位置」（用户 2026-10-12 时叫「首页媒体库位置」，
     /// 2026-10-16 按用户令改名并挪进主页卡）。三档见
     /// <see cref="Emby.HomeLibraryPlacement"/>：随窗口高度变换（默认，2026-09-13 起一直有的那一档）、固定在轮播

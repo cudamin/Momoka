@@ -43,6 +43,9 @@ public sealed partial class HomePage : Page, IShellContent
 {
     private const string Category = "主页";
 
+    /// <summary>轮播上那一排媒体库的原有宽度：三张 208 的库卡加两段 18 的间距（同 HomePage.xaml 里的 660）。</summary>
+    private const double LibraryOverlayBaseWidth = 660;
+
     private HomeRequest? _request;
     private NavigationTimingRun? _timing;
 
@@ -781,10 +784,26 @@ public sealed partial class HomePage : Page, IShellContent
         var margin = LibraryOverlay.Margin;
         var left = BannerOverlayLeftInset;
         var right = Banner.LibraryOverlayRightInset;
-        if (Math.Abs(margin.Left - left) <= 0.5 && Math.Abs(margin.Right - right) <= 0.5) return false;
 
-        LibraryOverlay.Margin = new Thickness(left, margin.Top, right, margin.Bottom);
-        return true;
+        // 商店版式摆右栏时，轮播上的媒体库只能待在左边主卡里；不摆右栏时仍是原来那三张卡的宽（660）。
+        var width = Banner.RailShown && Banner.MainColumnWidth > 0
+            ? Math.Max(0, Banner.MainColumnWidth - left - 12)
+            : LibraryOverlayBaseWidth;
+
+        var changed = false;
+        if (Math.Abs(margin.Left - left) > 0.5 || Math.Abs(margin.Right - right) > 0.5)
+        {
+            LibraryOverlay.Margin = new Thickness(left, margin.Top, right, margin.Bottom);
+            changed = true;
+        }
+
+        if (Math.Abs(LibraryOverlay.MaxWidth - width) > 0.5)
+        {
+            LibraryOverlay.MaxWidth = width;
+            changed = true;
+        }
+
+        return changed;
     }
 
     /// <summary>
@@ -1439,6 +1458,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
         Banner.ApplyDwell(settings.Settings.Ui.CarouselSeconds);
+        Banner.ApplyLayout(settings.Settings.Ui.CarouselLayout);
         Banner.ApplyAppearance(settings.Settings.Ui);
         SyncCarouselLayout();
         NavigationTiming.Mark("attach-end");
@@ -1510,6 +1530,8 @@ public sealed partial class HomePage : Page, IShellContent
     {
         if (_released) return;
         Banner.ApplyDwell(ui.CarouselSeconds);
+        // 「轮播图版式」（2026-11-16）和秒数一样当场生效：换档后列宽变了，轮播上的媒体库视口也要重摆一次。
+        Banner.ApplyLayout(ui.CarouselLayout);
         RefreshHomeRows();
         UpdateLibraryOverlay();
         _ = ViewModel.ApplyLayoutAsync();

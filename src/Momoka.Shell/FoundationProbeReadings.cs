@@ -3,7 +3,8 @@ namespace Momoka.Shell;
 // Anonymous probe readings only. These guards do not decide product behavior.
 internal static class FoundationProbeReadings
 {
-    internal static readonly string[] CarouselLabels = ["轮播图用什么媒体", "轮播图条目来源", "轮播图张数", "封面轮换秒数"];
+    internal static readonly string[] CarouselLabels =
+        ["轮播图版式", "轮播图用什么媒体", "轮播图条目来源", "轮播图张数", "封面轮换秒数"];
 
     internal static void Search(string expected, string input, string request, int source, bool current,
         IEnumerable<string> cards, IEnumerable<string> expectedCards)
@@ -29,7 +30,7 @@ internal static class FoundationProbeReadings
     internal static void Carousel(bool enabled, IEnumerable<string> actualLabels)
     {
         string[] expected = enabled ? ["显示主页轮播大图", .. CarouselLabels] : ["显示主页轮播大图"];
-        Check(actualLabels.SequenceEqual(expected, StringComparer.Ordinal), "轮播开关未收起或恢复完整四个从属行");
+        Check(actualLabels.SequenceEqual(expected, StringComparer.Ordinal), "轮播开关未收起或恢复完整五个从属行");
     }
 
     internal static void Dwell(long started, long actualStarted, long now, bool samePicture, double progress, long dwellMilliseconds)

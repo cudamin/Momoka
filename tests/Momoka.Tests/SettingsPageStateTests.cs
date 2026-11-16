@@ -57,7 +57,7 @@ internal static class SettingsPageStateTests
             Assert.Equal(1, rows.Count);
             var toggle = rows[0]!;
             fixture.Set(toggle, "IsOn", true);
-            Assert.Equal(5, rows.Count);
+            Assert.Equal(6, rows.Count);
             Assert.True(ReferenceEquals(toggle, rows[0]));
             var layoutRow = fixture.List(sections[1], "Rows").Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "媒体库顺序");
             Assert.True(ReferenceEquals(layoutRow, fixture.Get<object>(vm, "HomeRows")), "轮播显隐不能把主页排序行的所有者换掉");

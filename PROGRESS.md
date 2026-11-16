@@ -1,3 +1,13 @@
+## 2026-11-16 主页轮播新增「商店版式」：左大图 + 右栏接下三张（本树待合并）
+
+用户四张商店轮播截图加一句「参考上图在设置中再添加一版轮播图」；追问确认：截图是同一版式在不同窗口宽度下的状态，设置里「轮播图版式」二选一、现有整宽版仍为默认，右栏轮流展示轮播清单里台上那张后面的三张。
+
+Core 新增 `Emby.CarouselLayout`（Full=0 缺键即现有版，Store=1）与 `HomeCarousel` 的右栏纯函数：900 DIP 起摆、右栏占 34% 夹 300–460、大图让出 12 DIP 空当、`RailIndices` 从下一张起绕回、少于四张不摆。`UiSettings.CarouselLayout` 缺键读 Full，`SettingsMigration.Normalize` 把未知整数拨回 Full；恢复默认与备份沿用同一组界面偏好。设置页「主页/轮播图」新增一行（全宽大图／商店版式），关掉轮播时随其余从属行一起收起；`FoundationProbeReadings.CarouselLabels` 同步为六行。
+
+界面：`HomeBanner` 在主卡外新增右栏两列（主卡 + 空当 + 右栏），`Resize` 按当前宽度与张数拨列宽；右栏上大下二小，图片和标题由 `SyncRail` 从台上那张后三张取并随翻页更新，点击打开对应详情；右栏三张与台上/前后张一起预取，收起时退订并释放。商店版式用底部分页圆点（可按张数直达、非 Tab 停靠位、高对比度用系统前景），整宽版式保留右下读数与进度条；矮窗媒体库压上轮播时圆点上移避让。`HomePage` 把版式接到 Attach 与 `ShellPrefs` 变更，并把轮播上的媒体库视口收在主卡列内。
+
+验证：Shell/Core Release/x64 **0 警告 0 错误**；主测试 5165 项 **5163 通过、2 失败**，两条都是既有 `C:\WINDOWS\TEMP` 拒绝访问的下载环境红（未改那段代码）；`home-carousel-fixture` **40/40**、`settings-page-state-fixture` **57/57**、`settings-storage-fixture` **184/184**、`acrylic-controls-fixture` **40/40**、`PageContractTests` **329/329**、`HomeDirectoryTests` **82/82**、`SettingsProbeContractTests` **36/36**；`scan-automation-ids.js` 通过。未运行应用、未做真实窗口截图（商店版式宽／窄两档、右栏随翻页、圆点、矮窗避让均待交付时实屏复核），未连真实服务器或播放。
+
 ## 2026-11-16 长剧焦点探针前件：等待同一横带实际Loaded（待主控复验）
 
 主树7e44554的原生 `shell-probe-20261115-171813311-4340` 四阶段都未发起Focus请求：requested/pending均-1、目标不存在，横偏移仍600400；真实extent631984、viewport1196、scrollable630788、pitch316已排除尾部可滚范围不足。FocusItem只在不活动/索引非法时入口返回；2000项来源与1999已被前面严格核对。旧报告没有_live/IsLoaded，不能再猜是环境或宣布生命周期根因。只读确认DetailPage.PlaceEpisodes只移同一EpisodePanel，XAML EpisodeStrip字段没有新建/替换；探针重排时已有ReferenceEquals断言，因此旧实例替换推测未获源码支持。

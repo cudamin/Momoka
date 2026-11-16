@@ -102,6 +102,22 @@ public sealed partial class HomeBanner : UserControl
 
     private List<BannerSlide> _slides = [];
 
+    /// <summary>设置 → 主页 → 「轮播图版式」（2026-11-16）。缺省是现有的整宽大图。</summary>
+    private CarouselLayout _layout = CarouselLayout.Full;
+
+    /// <summary>这一刻摆没摆右栏，由 <see cref="Resize"/> 按 <see cref="HomeCarousel.ShowsRail"/> 拨。</summary>
+    private bool _railShown;
+
+    /// <summary>主卡那一列这一刻的宽（摆右栏时是整条宽减右栏和空当）；页面那头用它限制轮播上的媒体库视口。</summary>
+    private double _mainWidth;
+
+    /// <summary>右栏三格各自订着的幻灯片，次序和参考图一致：0 是大卡，1、2 是下面并排两张。</summary>
+    private readonly BannerSlide?[] _railSlides = new BannerSlide?[HomeCarousel.RailSlots];
+
+    /// <summary>底部分页圆点的按钮与点本身（商店版式；点数跟着幻灯片张数走）。</summary>
+    private readonly List<Button> _dots = [];
+    private readonly List<Border> _dotMarks = [];
+
     /// <summary>台上那张的下标。<see cref="_slides"/> 空的时候是 0，也就是「没有」。</summary>
     private int _index;
 
@@ -155,18 +171,196 @@ public sealed partial class HomeBanner : UserControl
     /// 矮窗档开、关（页面量完几何后拨，排高一起递进来）。三个开关各回各位：字块让位（<see cref="PlaceInfo"/>）、
     /// 右下读数（<see cref="SyncSlideStatus"/>）、简介的高度线（<see cref="SynopsisVisibility"/>）。
     /// </summary>
-    private void PlaceInfo() =>
+    private void PlaceInfo()
+    {
         Info.Margin = new Thickness(InfoInset, 0, 0, _slim ? _slimShelfHeight : 0);
+
+        // 底部分页圆点也站在主卡下沿：矮窗档媒体库压上来时把它们抬到那一排上方，
+        // 否则一排库卡正好盖住屏幕中间那几颗。整宽版式的右下读数不归这里管（它和媒体库分处左右）。
+        var bottom = _slim ? Math.Max(0, _slimShelfHeight) + 12 : 12;
+        if (Math.Abs(PageDots.Margin.Bottom - bottom) > 0.5)
+            PageDots.Margin = new Thickness(0, 0, 0, bottom);
+    }
 
     /// <summary>
     /// 右下的张数读数：多张、带够宽。**矮窗档照常显示**（2026-09-13「媒体库压在轮播图上的时候不用隐藏图二
     /// 轮播图右下角的那个」）。页面按 <see cref="LibraryOverlayRightInset"/> 限制左下媒体库的视口；以前它跟着底边那排分页横条
     /// 一起收起，那天他点了名要它留下来。（倒计时条跟着它一起，见标记里 SlideStatus 那一段。）
     /// </summary>
-    private void SyncSlideStatus() =>
-        SlideStatus.Visibility = _slides.Count > 1 && ActualWidth >= 800
+    private void SyncSlideStatus()
+    {
+        // 整宽版式保留右下角的张数读数与进度条；商店版式改用底部分页圆点（参考截图里两种宽度下都是圆点）。
+        SlideStatus.Visibility = _layout == CarouselLayout.Full && _slides.Count > 1 && ActualWidth >= 800
             ? Visibility.Visible
             : Visibility.Collapsed;
+        SyncPageDots();
+    }
+
+    /// <summary>
+    /// 底部分页圆点（商店版式）。张数变了就重建成一排；没变只把当前那颗拉长、换墨，不重排。
+    /// 圆点只做指针直达 —— 键盘仍由整条带的方向键负责，所以它们不占 Tab 停靠位。
+    /// </summary>
+    private void SyncPageDots()
+    {
+        var shown = _layout == CarouselLayout.Store && _slides.Count > 1;
+        PageDots.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        if (!shown) return;
+
+        if (_dots.Count != _slides.Count) RebuildDots();
+
+        for (var index = 0; index < _dots.Count; index++)
+        {
+            var active = index == _index;
+            var mark = _dotMarks[index];
+            var width = active ? 18d : 6d;
+            if (Math.Abs(mark.Width - width) > 0.01) mark.Width = width;
+            mark.Background = PageDotBrush(active);
+            AutomationProperties.SetName(_dots[index], HomeCarousel.Position(index, _slides.Count));
+        }
+    }
+
+    /// <summary>
+    /// 分页圆点的墨：常态取带子上那两支浅墨；高对比度下换回系统前景（暗一点的是非当前颗）——
+    /// 半透明白在系统黑底上读不出来。和翻页箭头的 HC 处理同一条路，见标记里那本词典。
+    /// </summary>
+    private Brush PageDotBrush(bool active)
+    {
+        if (_colorAccessibility.HighContrast)
+        {
+            var color = _uiSettings.GetColorValue(UIColorType.Foreground);
+            if (!active) color.A = 0x99;
+            return new SolidColorBrush(color);
+        }
+
+        return (Brush)Application.Current.Resources[active ? "EgOnScrimBrush" : "EgBannerDotBrush"];
+    }
+
+    private void RebuildDots()
+    {
+        foreach (var dot in _dots) dot.Click -= OnDotClicked;
+        _dots.Clear();
+        _dotMarks.Clear();
+        PageDots.Children.Clear();
+
+        var style = (Style)Resources["EgBannerDotButtonStyle"];
+        for (var index = 0; index < _slides.Count; index++)
+        {
+            var mark = new Border
+            {
+                Width = 6,
+                Height = 6,
+                CornerRadius = new CornerRadius(3),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var dot = new Button
+            {
+                Style = style,
+                Content = mark,
+                IsTabStop = false
+            };
+            AutomationProperties.SetAutomationId(dot, $"BannerPageDot{index + 1}");
+            dot.Click += OnDotClicked;
+            PageDots.Children.Add(dot);
+            _dots.Add(dot);
+            _dotMarks.Add(mark);
+        }
+    }
+
+    private void OnDotClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button dot) return;
+        var at = _dots.IndexOf(dot);
+        if (at < 0 || at == _index) return;
+
+        Show(at);
+        SyncTimer();
+    }
+
+    /// <summary>
+    /// 商店版式的右栏：跟着台上那张换成接下来的三张（<see cref="HomeCarousel.RailIndices"/>）。
+    /// 摆右栏时主卡让出的宽度由 <see cref="Resize"/> 拨列宽，这里只管那三格画谁。
+    /// </summary>
+    private void SyncRail()
+    {
+        if (!_railShown)
+        {
+            HideRail();
+            return;
+        }
+
+        Rail.Visibility = Visibility.Visible;
+        var indices = HomeCarousel.RailIndices(_index, _slides.Count);
+        for (var slot = 0; slot < _railSlides.Length; slot++)
+        {
+            var slide = slot < indices.Count ? _slides[indices[slot]] : null;
+            if (ReferenceEquals(_railSlides[slot], slide)) continue;
+
+            if (_railSlides[slot] is { } previous) previous.PropertyChanged -= OnRailSlideChanged;
+            _railSlides[slot] = slide;
+            if (slide is not null) slide.PropertyChanged += OnRailSlideChanged;
+            PaintRailCard(slot, slide);
+        }
+    }
+
+    /// <summary>收右栏时把它订着的幻灯片退掉、图也放掉 —— 收起来的右栏不该继续扣着三张解码好的剧照。</summary>
+    private void HideRail()
+    {
+        Rail.Visibility = Visibility.Collapsed;
+        if (_railSlides.All(slide => slide is null)) return;
+
+        for (var slot = 0; slot < _railSlides.Length; slot++)
+        {
+            if (_railSlides[slot] is { } slide) slide.PropertyChanged -= OnRailSlideChanged;
+            _railSlides[slot] = null;
+            PaintRailCard(slot, null);
+        }
+    }
+
+    /// <summary>三格卡片里的一格：图片铺满、标题压在左下角；没有图时退回带子底色，不留上一张的图。</summary>
+    private void PaintRailCard(int slot, BannerSlide? slide)
+    {
+        var (surface, title, button) = slot switch
+        {
+            0 => (RailBigSurface, RailBigTitle, (Button)RailBigCard),
+            1 => (RailSmallSurfaceA, RailSmallTitleA, (Button)RailSmallCardA),
+            _ => (RailSmallSurfaceB, RailSmallTitleB, (Button)RailSmallCardB)
+        };
+
+        title.Text = slide?.Title ?? "";
+        AutomationProperties.SetName(button, slide?.OpenTip ?? "");
+
+        if (slide?.Picture is not { } picture)
+        {
+            if (surface.Background is not SolidColorBrush)
+                surface.Background = (Brush)Application.Current.Resources["EgBannerBaseBrush"];
+            return;
+        }
+
+        if (surface.Background is ImageBrush { } existing && ReferenceEquals(existing.ImageSource, picture)) return;
+        surface.Background = new ImageBrush { ImageSource = picture, Stretch = Stretch.UniformToFill };
+    }
+
+    /// <summary>
+    /// 右栏那张的图解码好了。和台上那张一样认一下是不是这一格此刻要的那张 —— 换页快的时候上一张的解码
+    /// 会晚到，那张图不该盖在现在这张的标题上面。
+    /// </summary>
+    private void OnRailSlideChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(BannerSlide.Picture) || sender is not BannerSlide slide) return;
+
+        for (var slot = 0; slot < _railSlides.Length; slot++)
+        {
+            if (ReferenceEquals(_railSlides[slot], slide)) PaintRailCard(slot, slide);
+        }
+    }
+
+    private void OnRailCardClicked(object sender, RoutedEventArgs e)
+    {
+        var slot = ReferenceEquals(sender, RailBigCard) ? 0
+            : ReferenceEquals(sender, RailSmallCardA) ? 1
+            : ReferenceEquals(sender, RailSmallCardB) ? 2 : -1;
+        if (slot >= 0 && _railSlides[slot] is { } slide) OpenRequested?.Invoke(this, slide);
+    }
 
     /// <summary>
     /// 左下媒体库需要留出的右边距：读数和进度条的宽、现有右边距，再加一格间隔。
@@ -220,6 +414,26 @@ public sealed partial class HomeBanner : UserControl
         SyncTimer();
     }
 
+    /// <summary>
+    /// 设置里那行「轮播图版式」改了（或者页面刚接上设置）：整宽大图和商店版式之间换一档。
+    /// 宽度已经量到就照新档重摆（列宽、右栏、底部分页一起换）；还没量到的那一帧只换可见性，
+    /// 下一次 <c>SizeChanged</c> 会补上几何。
+    /// </summary>
+    internal void ApplyLayout(CarouselLayout layout)
+    {
+        if (_layout == layout) return;
+
+        _layout = layout;
+        if (ActualWidth > 0) Resize(ActualWidth);
+        else SyncSlideStatus();
+    }
+
+    /// <summary>这一刻摆没摆右栏。页面那头据此决定轮播上的媒体库视口要不要收窄。</summary>
+    internal bool RailShown => _railShown;
+
+    /// <summary>主卡那一列此刻的宽（DIP）。还没量到宽时退回控件自己的宽。</summary>
+    internal double MainColumnWidth => _mainWidth > 0 ? _mainWidth : ActualWidth;
+
     public HomeBanner()
     {
         InitializeComponent();
@@ -272,6 +486,7 @@ public sealed partial class HomeBanner : UserControl
         _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls,
             contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)));
         PaintOpenButtonInk();
+        SyncPageDots();
         // 轮播那两张图本来就按满不透明铺着（详情页那道浓度滑块不归这里管），2026-11-07 起更彻底：
         // 设置里只剩详情页的亚克力参数，首页这两层不再跟着任何浓度走。
         Brush(LayerA).Opacity = 1;
@@ -428,6 +643,11 @@ public sealed partial class HomeBanner : UserControl
         foreach (var slide in _slides) slide.SetGaussianBackdrop(false);
         Visibility = _slides.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        // 张数变了可能改变右栏的取舍（少于四张就收起来）。先照新清单重算几何，Show 随后再落字；
+        // 宽度还没量到的那一帧只同步可见性，SizeChanged 会补列宽。
+        if (ActualWidth > 0) Resize(ActualWidth);
+        else SyncSlideStatus();
+
         if (_slides.Count == 0)
         {
             _index = 0;
@@ -514,6 +734,7 @@ public sealed partial class HomeBanner : UserControl
         }
         Paint(slide.Picture);
         PaintLogo(slide);
+        SyncRail();
         Prefetch();
 
         // 最后一句：上面那几件都是这条带自己的事，这一声是给外面的听者的。
@@ -789,9 +1010,14 @@ public sealed partial class HomeBanner : UserControl
         var back = HomeCarousel.Step(_index, -1, _slides.Count);
         var next = HomeCarousel.Step(_index, 1, _slides.Count);
 
+        // 右栏那三张也要解码：它们是「接下来」的推荐，图没到就是三块深色矩形。
+        var wanted = new HashSet<int> { _index, back, next };
+        if (_railShown)
+            foreach (var index in HomeCarousel.RailIndices(_index, _slides.Count)) wanted.Add(index);
+
         for (var i = 0; i < _slides.Count; i++)
         {
-            if (i == _index || i == back || i == next) _ = _slides[i].EnsureAsync(presentation);
+            if (wanted.Contains(i)) _ = _slides[i].EnsureAsync(presentation);
             else _slides[i].Release();
         }
     }
@@ -883,9 +1109,24 @@ public sealed partial class HomeBanner : UserControl
         var viewport = XamlRoot?.Size ?? default;
         var height = HomeCarousel.Height(viewport.Height, width);
 
+        // 商店版式：整条够宽才把大图收到左列、右边摆三张推荐；窄窗回整宽（右栏两列宽 0）。
+        // 列宽和主卡的宽都从 Core 那几个纯函数来，标记里不写数（见 HomeCarousel.ShowsRail）。
+        var rail = HomeCarousel.ShowsRail(_layout, width, _slides.Count);
+        var main = HomeCarousel.MainWidth(width, rail);
+        var railChanged = _railShown != rail;
+        RailGapColumn.Width = new GridLength(rail ? HomeCarousel.RailGap : 0);
+        RailColumn.Width = new GridLength(rail ? HomeCarousel.RailWidth(width) : 0);
+        _railShown = rail;
+        _mainWidth = main;
+        SyncRail();
+
+        // 摆进／收起右栏那一刻要重挑「谁该解码」：收起那几档刚被 Prefetch 放掉，摆回来得重新要。
+        // 换幻灯片引起的张数变化在 Apply 里另走一遍 Show，两条路都汇到同一个 Prefetch。
+        if (railChanged && ActualWidth > 0) Prefetch();
+
         // 还没量过时高度是 NaN，而 NaN 参与的比较全是假 —— 少了这一句，第一次布局就设不上高度。
         if (double.IsNaN(Root.Height) || Math.Abs(Root.Height - height) > 0.5) Root.Height = height;
-        Frame.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, Math.Max(0, width), height) };
+        Frame.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, Math.Max(0, main), height) };
 
         // 两层剧照不在这里给尺寸：空 Grid 由对齐撑满 Band 的内沿，图在背景那支 ImageBrush 里按 UniformToFill
         // 铺满它。**别把尺寸或 Image 控件加回来** —— 2026-09-11 第一趟试过 <c>Image Stretch="UniformToFill"</c>
@@ -895,17 +1136,18 @@ public sealed partial class HomeBanner : UserControl
         // 几何这一层 2026-09-11 简化过一道：框成卡片那一版这里要按 Frame 那圈发丝线的内沿算（差一圈就是图左沿
         // 那道两像素的亮缝），现在 Frame 又是个没有线、没有留白的 Grid，内沿就是控件自己的宽，那一整段连同
         // 「按内沿算」的说法一起删了。
-        Info.MaxWidth = Math.Min(Math.Max(0, width - InfoInset - 28), Math.Clamp(width * 0.48, 280, 620));
+        Info.MaxWidth = Math.Min(Math.Max(0, main - InfoInset - 28), Math.Clamp(main * 0.48, 280, 620));
         // 固定简介这行的宽度，避免按文字内容测量时只改 MaxWidth 却没有实际收缩；其他行仍按原规则排版。
         SynopsisRow.Width = Info.MaxWidth * 0.75;
         Info.Spacing = height < 360 ? 8 : 12;
         LogoImage.MaxHeight = height < 360 ? 32 : 44;
-        TitleText.MaxLines = height >= 440 ? 2 : 1;
+        // 商店版式的大图窄一截、通常是两行片名；现有整宽版式仍按原来的高度线走。
+        TitleText.MaxLines = _layout == CarouselLayout.Store || height >= 440 ? 2 : 1;
         SynopsisRow.Visibility = SynopsisVisibility(Current?.SynopsisVisibility ?? Visibility.Collapsed);
         SyncSlideStatus();
 
         Fade.Margin = new Thickness(0, 0, 0, 0);
-        Fade.Width = Math.Min(width, InfoInset + Info.MaxWidth + ScrimBreath);
+        Fade.Width = Math.Min(main, InfoInset + Info.MaxWidth + ScrimBreath);
 
         PlaceInfo();
     }
@@ -1052,6 +1294,13 @@ public sealed partial class HomeBanner : UserControl
             LogoImage.Source = null;
             LogoRow.Visibility = Visibility.Collapsed;
             Visibility = Visibility.Collapsed;
+            _railShown = false;
+            if (ActualWidth > 0) Resize(ActualWidth);
+            else
+            {
+                HideRail();
+                SyncSlideStatus();
+            }
             SlideChanged?.Invoke(this, null);
             SyncArrows();
             SyncTimer();
@@ -1076,6 +1325,14 @@ public sealed partial class HomeBanner : UserControl
             // 倒计时没有理由回退。
             SyncSlideStatus();
             if (_slides.Count <= 1) SyncTimer();
+        }
+
+        // 摘掉一张可能让右栏不再成立（掉到三张及以下就收起来），圆点也要少一颗；几何按新清单重算一遍。
+        if (ActualWidth > 0) Resize(ActualWidth);
+        else
+        {
+            HideRail();
+            SyncSlideStatus();
         }
 
         SyncArrows();
@@ -1227,6 +1484,9 @@ public sealed partial class HomeBanner : UserControl
 
         UnwatchViewport(_viewport);
         _viewport = null;
+
+        // 右栏三格退订并把图放掉：主页不在屏上时它们不该继续扣着三张解码好的剧照。
+        HideRail();
 
         foreach (var slide in _slides) slide.Release();
         Brush(LayerA).ImageSource = null;

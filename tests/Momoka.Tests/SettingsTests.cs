@@ -1609,6 +1609,7 @@ internal static partial class SettingsTests
             ui.Theme = "midnight";
             ui.PageSize = 37;
             ui.ShowHomeBanner = false;
+            ui.CarouselLayout = CarouselLayout.Store;
             ui.CompactMode = true;
             ui.AnimationsEnabled = false;
             ui.EnableImmersive = true;
@@ -1632,6 +1633,7 @@ internal static partial class SettingsTests
             Assert.Equal(fresh.Theme, ui.Theme, "主题回默认那一套");
             Assert.Equal(fresh.PageSize, ui.PageSize);
             Assert.Equal(fresh.ShowHomeBanner, ui.ShowHomeBanner, "「恢复默认」之后主页轮播大图要是开的");
+            Assert.Equal(fresh.CarouselLayout, ui.CarouselLayout, "「恢复默认」之后轮播版式回到整宽大图");
             Assert.Equal(fresh.CompactMode, ui.CompactMode, "「恢复默认」之后精简模式要是关的（说明全部放回来）");
             Assert.True(ui.AnimationsEnabled, "恢复默认重新开启 UI 动画");
             Assert.False(ui.EnableImmersive, "恢复默认回到商店模式并开启侧边栏");

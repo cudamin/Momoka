@@ -34,6 +34,28 @@ public enum CarouselMediaType
 }
 
 /// <summary>
+/// 主页轮播的版式 —— 2026-11-16 用户令「参考上图在设置中再添加一版轮播图」，设置 → 主页 → 轮播图里二选一。
+/// <para>
+/// <see cref="Full"/> 是 2026-09-13 起一直有的整宽大图，也是装机默认：缺键的旧设置文件读出来的整数 0 就是它，
+/// 从旧版本升上来的人一个像素都不变。枚举存整数（同 <see cref="CarouselSource"/> 的规矩），认不出来的数字由
+/// <c>SettingsMigration.Normalize</c> 拨回。
+/// </para>
+/// <para>
+/// <see cref="Store"/> 按参考的商店轮播：宽窗口把大图收到左侧、右边一列跟着翻页显示接下来的三张；窗口窄到
+/// 放不下右栏时自动回到整宽大图，两种宽度下都用底部分页圆点代替右下角的读数与进度条。右栏的阈值、宽度和
+/// 「接着哪三张」都在这一类的纯函数里（<see cref="ShowsRail"/> 等），屏上那部分交给 <c>HomeBanner</c>。
+/// </para>
+/// </summary>
+public enum CarouselLayout
+{
+    /// <summary>整宽大图，右下角是张数读数与进度条（现有版式，缺键的旧设置文件读出来就是它）。</summary>
+    Full = 0,
+
+    /// <summary>商店版式：宽窗口左侧大图、右侧三张推荐；窄窗口回到整宽大图，底部用分页圆点。</summary>
+    Store = 1
+}
+
+/// <summary>
 /// 主页轮播 —— 「参考主页轮播大图版-misty-4.9.css 给主页轮播功能」: which of the home page's items become the
 /// big picture at the top of it, how far one press moves, how tall that band is, and what one slide says.
 /// <para>
@@ -91,6 +113,70 @@ public static class HomeCarousel
 
     /// <summary>设置里那行张数落到这一档：手改文件越界的、行范围没对齐的，都在这里归位。</summary>
     public static int ClampSlots(int slots) => Math.Clamp(slots, MinSlots, MaxSlots);
+
+    /// <summary>
+    /// 商店版式右栏摆几张。参考的三张是「上面一张大卡、下面并排两张小卡」；轮播本身不够三张额外条目时
+    /// （总数不到四张）右栏没有意义 —— 翻过来翻过去都是台上那张和它的重复，所以整列收起。
+    /// </summary>
+    public const int RailSlots = 3;
+
+    /// <summary>大图和右栏之间的空当（DIP）。右栏自己不带左边距，这个数由 <see cref="MainWidth"/> 从大图那一侧让出来。</summary>
+    public const double RailGap = 12;
+
+    /// <summary>
+    /// 右栏的宽度占整条轮播宽度的比例。参考截图里右栏约占三分之一；上下限 <see cref="RailMinWidth"/>／
+    /// <see cref="RailMaxWidth"/> 兜住窄窗和超宽屏 —— 太窄放不下两行标题，太宽会把大图挤成竖条。
+    /// </summary>
+    public const double RailWidthShare = 0.34;
+
+    /// <summary>右栏最窄一档（DIP）。再窄，下面两张卡片的标题就没法读了。</summary>
+    public const double RailMinWidth = 300;
+
+    /// <summary>右栏最宽一档（DIP）。超宽屏上右栏不再跟着变宽，多出来的宽度留给大图。</summary>
+    public const double RailMaxWidth = 460;
+
+    /// <summary>
+    /// 整条轮播至少多宽才摆右栏（DIP）。窗口窄到放不下「大图 + 右栏」时回到整宽大图 —— 参考截图里
+    /// 两种宽度下看到的就是这两档（2026-11-16 用户说明「截图里是轮播图不同窗口大小下的状态」）。
+    /// 「整条轮播的宽」是 <c>HomeBanner</c> 自己的宽（页面里那块卡片的内沿），不是窗口宽。
+    /// </summary>
+    public const double RailBasisWidth = 900;
+
+    /// <summary>
+    /// 商店版式这一档要不要摆右栏：版式是商店版、轮播条目多过右栏的三张（否则会重复台上的那张）、
+    /// 而且宽度够放得下两栏。三个条件缺一个都回到整宽大图。
+    /// </summary>
+    public static bool ShowsRail(CarouselLayout layout, double width, int slots) =>
+        layout == CarouselLayout.Store && slots > RailSlots && width >= RailBasisWidth;
+
+    /// <summary>右栏那一列的宽（DIP）：整条轮播宽度的 <see cref="RailWidthShare"/>，夹在上下限之间，取整到像素。</summary>
+    public static double RailWidth(double width) =>
+        Math.Round(Math.Clamp(width * RailWidthShare, RailMinWidth, RailMaxWidth));
+
+    /// <summary>
+    /// 大图那一列的宽（DIP）。摆右栏时让出右栏和两栏之间的空当；不摆右栏时整条都归大图。
+    /// 两个数都取整，右栏列的边界落在整像素上，和大图那边一样。
+    /// </summary>
+    public static double MainWidth(double width, bool rail) =>
+        Math.Max(0, rail ? width - RailWidth(width) - RailGap : width);
+
+    /// <summary>
+    /// 右栏跟着台上那张走：从下一张起，依次取三张，到末尾绕回第一张。条目不够三张时只给现有的几张
+    /// （调用方按 <see cref="ShowsRail"/> 判断整列摆不摆）；一张都没有时是空表。
+    /// <para>
+    /// 台上那张永远不在右栏里 —— 它不是「接下来」的那一张，而且同一张图在左右两处同时出现只会让人
+    /// 以为轮播卡住了。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<int> RailIndices(int current, int count)
+    {
+        if (count <= 0) return [];
+
+        var take = Math.Min(RailSlots, count - 1);
+        var indices = new List<int>(take);
+        for (var step = 1; step <= take; step++) indices.Add(Step(current, step, count));
+        return indices;
+    }
 
     /// <summary>
     /// 最矮的封面仍留出标题和操作键的空间。窄窗口由 HomeBanner 收起简介，

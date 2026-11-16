@@ -161,6 +161,84 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
+            <!--
+              商店版式右栏那三张推荐卡（2026-11-16「参考上图在设置中再添加一版轮播图」）：一张图铺满、左下角一行标题。
+              图由代码按当前台上那张换成接下来的三张；这里只负责剪裁和悬停反馈。圆角剪在内容那层 Border 上，
+              和主页那张主卡用同一档 EgCardCornerRadius。悬停／按下用轮播「详情」键那两支薄光，不另造颜色。
+            -->
+            <Style x:Key="EgBannerRailCardStyle" TargetType="Button">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="Background" Value="{StaticResource EgBannerBaseBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="Transparent">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="HoverLayer.Opacity" Value="1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="PressLayer.Opacity" Value="1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch" />
+                                <Border
+                                    x:Name="HoverLayer"
+                                    Background="{StaticResource EgBannerGhostHoverBrush}"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    IsHitTestVisible="False"
+                                    Opacity="0" />
+                                <Border
+                                    x:Name="PressLayer"
+                                    Background="{StaticResource EgBannerGhostPressBrush}"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    IsHitTestVisible="False"
+                                    Opacity="0" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 底部分页圆点（商店版式）：命中区比点本身大一圈，点由代码按当前张数建。
+                 点不是 Tab 停靠位 —— 方向键仍由整条带接管，十来颗圆点不该把 Tab 队列撑长。 -->
+            <Style x:Key="EgBannerDotButtonStyle" TargetType="Button">
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="5" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter
+                                Content="{TemplateBinding Content}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -183,6 +261,18 @@
         KeyDown="OnKeyDown">
 
         <!--
+          商店版式（2026-11-16 用户令「参考上图在设置中再添加一版轮播图」）把这一块分成两列：左边主卡照旧是
+          整条带，右边一列跟着台上那张展示接下来的三张。窄窗口（放不下右栏时）回整宽，右栏两列的宽都收成 0，
+          主卡因此仍是原来那一整块。列宽由 HomeBanner.Resize 按 HomeCarousel.ShowsRail 拨，标记里不写数。
+        -->
+        <Grid x:Name="Stage">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="MainColumn" Width="*" />
+                <ColumnDefinition x:Name="RailGapColumn" Width="0" />
+                <ColumnDefinition x:Name="RailColumn" Width="0" />
+            </Grid.ColumnDefinitions>
+
+        <!--
           **框没有了**（「占满窗口的上半部分（包括窗口标题），下方使用渐变衔接」，2026-09-11）。2026-09-10 到
           09-11 之间这里是一个 <c>Border</c>，圆角、整圈发丝线、卡片底色三样齐全 —— 那时「弄个框把轮播图框起来
           （圆角）」被落定成「四边各留 24 的卡片」。现在带子要铺到窗口的三条边（上、左、右），贴着窗口的边画
@@ -194,7 +284,7 @@
           解码到的那一瞬和整条带收起来之前的那一帧。它不跟主题走（Palette 里那一段写着理由：带上的字走
           <c>EgOnScrim</c> 那套浅墨，底色跟着主题变成近白就是白底白字）。
         -->
-        <Grid x:Name="Frame" Background="{StaticResource EgBannerBaseBrush}">
+        <Grid x:Name="Frame" Grid.Column="0" Background="{StaticResource EgBannerBaseBrush}">
             <!-- 台上那张剧照还没到的那一瞬（开场第一张，或者换到一张还没解码的）：整条带扫一道光。
                  **摆在 Band 外面**：那一层自己的规矩是「只有两层剧照，别的什么都不铺」（下面那一段长注释），
                  而这一层不是画，是「这儿马上有图」的说明 —— 图一到就整个停掉（见 HomeBanner.Paint）。
@@ -538,6 +628,145 @@
                         </Border>
                     </Border>
                 </StackPanel>
+
+                <!-- 商店版式的底部分页圆点（2026-11-16）。点由代码按张数建，这里只摆位置：主卡下沿居中，
+                     和参考截图一致；整宽档和右栏档都在主卡这一格里，所以跟着主卡居中。 -->
+                <StackPanel
+                    x:Name="PageDots"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,12"
+                    Spacing="2"
+                    Visibility="Collapsed" />
+            </Grid>
+        </Grid>
+
+            <!--
+              商店版式的右栏（2026-11-16）：上面一张大卡、下面并排两张小卡，图片和标题由 HomeBanner.SyncRail
+              从台上那张后面三张里取。整列跟着主卡的圆角卡片一起被 BannerCard 剪裁；各卡自己的圆角剪在内容
+              那层 Border 上。窄窗口时这一列宽 0、整列收起（见 Resize），不占位置。
+            -->
+            <Grid x:Name="Rail" Grid.Column="2" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Button
+                    x:Name="RailBigCard"
+                    Grid.Row="0"
+                    Style="{StaticResource EgBannerRailCardStyle}"
+                    AutomationProperties.AutomationId="BannerRailCard1"
+                    Click="OnRailCardClicked">
+                    <Border
+                        x:Name="RailBigSurface"
+                        Background="{StaticResource EgBannerBaseBrush}"
+                        CornerRadius="{StaticResource EgCardCornerRadius}">
+                        <Grid>
+                            <Border
+                                Height="132"
+                                Opacity="0.86"
+                                VerticalAlignment="Bottom"
+                                IsHitTestVisible="False">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0" Color="Transparent" />
+                                        <GradientStop Offset="1" Color="{StaticResource EgBannerPageColor}" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                            <TextBlock
+                                x:Name="RailBigTitle"
+                                Margin="16,0,16,14"
+                                MaxLines="2"
+                                Style="{StaticResource EgOnScrimSectionTitleStyle}"
+                                TextTrimming="CharacterEllipsis"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Bottom" />
+                        </Grid>
+                    </Border>
+                </Button>
+
+                <Grid Grid.Row="2" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button
+                        x:Name="RailSmallCardA"
+                        Grid.Column="0"
+                        Style="{StaticResource EgBannerRailCardStyle}"
+                        AutomationProperties.AutomationId="BannerRailCard2"
+                        Click="OnRailCardClicked">
+                        <Border
+                            x:Name="RailSmallSurfaceA"
+                            Background="{StaticResource EgBannerBaseBrush}"
+                            CornerRadius="{StaticResource EgCardCornerRadius}">
+                            <Grid>
+                                <Border
+                                    Height="76"
+                                    Opacity="0.86"
+                                    VerticalAlignment="Bottom"
+                                    IsHitTestVisible="False">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                            <GradientStop Offset="0" Color="Transparent" />
+                                            <GradientStop Offset="1" Color="{StaticResource EgBannerPageColor}" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <TextBlock
+                                    x:Name="RailSmallTitleA"
+                                    Margin="12,0,12,10"
+                                    FontWeight="SemiBold"
+                                    MaxLines="2"
+                                    Style="{StaticResource EgOnScrimBodyStyle}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="Wrap"
+                                    VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Border>
+                    </Button>
+
+                    <Button
+                        x:Name="RailSmallCardB"
+                        Grid.Column="1"
+                        Style="{StaticResource EgBannerRailCardStyle}"
+                        AutomationProperties.AutomationId="BannerRailCard3"
+                        Click="OnRailCardClicked">
+                        <Border
+                            x:Name="RailSmallSurfaceB"
+                            Background="{StaticResource EgBannerBaseBrush}"
+                            CornerRadius="{StaticResource EgCardCornerRadius}">
+                            <Grid>
+                                <Border
+                                    Height="76"
+                                    Opacity="0.86"
+                                    VerticalAlignment="Bottom"
+                                    IsHitTestVisible="False">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                            <GradientStop Offset="0" Color="Transparent" />
+                                            <GradientStop Offset="1" Color="{StaticResource EgBannerPageColor}" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <TextBlock
+                                    x:Name="RailSmallTitleB"
+                                    Margin="12,0,12,10"
+                                    FontWeight="SemiBold"
+                                    MaxLines="2"
+                                    Style="{StaticResource EgOnScrimBodyStyle}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="Wrap"
+                                    VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Border>
+                    </Button>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>

@@ -519,6 +519,9 @@ public static class SettingsMigration
             settings.Ui.CarouselSeconds, Emby.HomeCarousel.MinDwellSeconds, Emby.HomeCarousel.MaxDwellSeconds);
         if (!Enum.IsDefined(settings.Ui.CarouselSource)) settings.Ui.CarouselSource = Emby.CarouselSource.Recent;
         if (!Enum.IsDefined(settings.Ui.CarouselMedia)) settings.Ui.CarouselMedia = Emby.CarouselMediaType.All;
+        // 轮播版式（2026-11-16「参考上图在设置中再添加一版轮播图」）。存整数，认不出来的值拨回 Full ——
+        // 那是 2026-09-13 起一直有的整宽版式，也是缺键的旧设置文件读出来的那一档。
+        if (!Enum.IsDefined(settings.Ui.CarouselLayout)) settings.Ui.CarouselLayout = Emby.CarouselLayout.Full;
 
         // 主页媒体库位置（设置 → 主页，2026-10-12 进设置、2026-10-16 挪进主页卡）。同样是存整数的枚举：认不出来的
         // 值拨回 Auto（装机默认，也是缺键的旧设置文件读出来的那一个），留着它屏上按哪一档走谁也说不清。

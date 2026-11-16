@@ -22,6 +22,56 @@ internal static class HomeCarouselTests
         RegisterText();
         RegisterBackdrop();
         RegisterPreferences();
+        RegisterLayout();
+    }
+
+    /// <summary>
+    /// 「参考上图在设置中再添加一版轮播图」（用户 2026-11-16，附图是商店轮播在不同窗口大小下的样子）：
+    /// 商店版式在宽窗口把大图收到左侧、右边一列摆接下来的三张，窄窗口自动回到整宽大图。这一组钉的是
+    /// 屏上那部分之外能算的东西 —— 多宽才摆右栏、右栏多宽、大图剩下多宽、右栏接着哪三张。
+    /// </summary>
+    private static void RegisterLayout()
+    {
+        Test("轮播版式：缺键读出来是现有整宽版式，右栏只在商店版式里出现", () =>
+        {
+            Assert.Equal(0, (int)CarouselLayout.Full);
+            Assert.Equal(1, (int)CarouselLayout.Store);
+            Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Full, 1600, 10));
+            Assert.True(HomeCarousel.ShowsRail(CarouselLayout.Store, 1600, 10));
+        });
+
+        Test("轮播版式：窗口够宽才摆右栏，窄一像素就回整宽", () =>
+        {
+            Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, HomeCarousel.RailBasisWidth - 1, 10));
+            Assert.True(HomeCarousel.ShowsRail(CarouselLayout.Store, HomeCarousel.RailBasisWidth, 10));
+            Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, double.NaN, 10));
+        });
+
+        Test("轮播版式：条目不够右栏三张加台上那张时整列收起，避免重复主角", () =>
+        {
+            Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, 1600, HomeCarousel.RailSlots));
+            Assert.True(HomeCarousel.ShowsRail(CarouselLayout.Store, 1600, HomeCarousel.RailSlots + 1));
+        });
+
+        Test("轮播版式：右栏宽度随整条宽度走，夹在上下限之间，大图让出空当", () =>
+        {
+            Assert.Equal(306d, HomeCarousel.RailWidth(HomeCarousel.RailBasisWidth));
+            Assert.Equal(HomeCarousel.RailMaxWidth, HomeCarousel.RailWidth(2400));
+            Assert.Equal(408d, HomeCarousel.RailWidth(1200));
+            Assert.Equal(1200d - 408d - HomeCarousel.RailGap, HomeCarousel.MainWidth(1200, true));
+            Assert.Equal(1200d, HomeCarousel.MainWidth(1200, false));
+            Assert.Equal(0d, HomeCarousel.MainWidth(0, true));
+        });
+
+        Test("轮播版式：右栏接着台上那张的后面三张，到末尾绕回开头", () =>
+        {
+            Assert.True(HomeCarousel.RailIndices(0, 10).SequenceEqual([1, 2, 3]));
+            Assert.True(HomeCarousel.RailIndices(8, 10).SequenceEqual([9, 0, 1]));
+            Assert.True(HomeCarousel.RailIndices(0, 4).SequenceEqual([1, 2, 3]));
+            Assert.True(HomeCarousel.RailIndices(0, 3).SequenceEqual([1, 2]));
+            Assert.True(HomeCarousel.RailIndices(0, 1).Count == 0);
+            Assert.True(HomeCarousel.RailIndices(0, 0).Count == 0);
+        });
     }
 
     /// <summary>

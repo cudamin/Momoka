@@ -1961,11 +1961,21 @@ public sealed partial class SettingsViewModel : PageViewModel
             ("随机挑选", Emby.CarouselSource.Random)
         ];
 
-        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：轮播图那五行自己一张，主页版面（媒体库那一排摆在哪、
+        // 「参考上图在设置中再添加一版轮播图」（用户的话，2026-11-16；附图是商店轮播在不同窗口大小下的状态）。
+        // 两档：现有的整宽大图仍是默认，商店版式把大图收到左侧、右边一列显示接下来的三张，窗口窄到放不下
+        // 右栏时自动回到整宽。改完当场生效（ShellPrefs），主页那一头照新档重摆。
+        (string Label, Emby.CarouselLayout Value)[] carouselLayout =
+        [
+            ("全宽大图", Emby.CarouselLayout.Full),
+            ("商店版式", Emby.CarouselLayout.Store)
+        ];
+
+        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：轮播图那几行自己一张，主页版面（媒体库那一排摆在哪、
         // 各排什么次序）一张。原来七行挤在一张卡里，两种问题（大图怎么走 / 版面怎么排）各读一半。
+        // 2026-11-16 起这张卡多一行「轮播图版式」，总共六行。
         var carouselRows = new List<SettingRow>
         {
-            // 「在设置中新增关闭轮播图的功能」（用户的话，2026-09-05）。摆在四行轮播设置和拖拽表上面，
+            // 「在设置中新增关闭轮播图的功能」（用户的话，2026-09-05）。摆在其余轮播设置和拖拽表上面，
             // 因为它管的是整个第一屏：关掉之后顶上那张大图整个没有，那张表里的每一排照旧横着排在各自的
             // 位置上。改完当场喊一声（ShellPrefs），主页那一头照新的重排 —— 和下面几行走同一条路。
             Toggle("显示主页轮播大图",
@@ -1982,6 +1992,16 @@ public sealed partial class SettingsViewModel : PageViewModel
                     RefreshHomeCarouselRows();
                     ShellPrefs.Apply(ui);
                 }),
+
+            Choice("轮播图版式", carouselLayout,
+                () => ui.CarouselLayout,
+                value =>
+                {
+                    ui.CarouselLayout = value;
+                    ShellPrefs.Apply(ui);
+                },
+                "全宽大图是现在的样子；商店版式把大图放在左侧、右边一列跟着翻页显示接下来的三张，"
+                    + "窗口窄到放不下右栏时自动回到整宽大图"),
 
             Choice("轮播图用什么媒体", carouselMedia,
                 () => ui.CarouselMedia,
@@ -2048,7 +2068,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("主页", "轮播图",
-                "主页最上面那条会自己走的大图：摆不摆、放哪一类、几张、一张站几秒。",
+                "主页最上面那条会自己走的大图：摆不摆、哪一版、放哪一类、几张、一张站几秒。",
                 ui.ShowHomeBanner ? carouselRows : carouselRows.Take(1).ToArray()),
             new SettingSection("主页", "主页版面",
                 "媒体库那一排摆在第一屏的哪儿，以及主页上那几排的次序和显示与否，包括每个媒体库自己那一排。",
