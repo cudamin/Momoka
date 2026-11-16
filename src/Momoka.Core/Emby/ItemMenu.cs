@@ -543,9 +543,10 @@ public static class ItemMenu
         // 扫库一起被 IsCatalogue 收掉，是因为手上只有一张演职人员存根。现在人物页按 id 读回了完整条目，
         // 这三条才跟着放出来（Emby 网页端的人物菜单也有它们）。
         // 媒体库自己那张卡也一样：网页端有「编辑图像」「刷新元数据」，它们作用在这个库身上。
+        // 只对 Emby 生效 —— Jellyfin 的库卡菜单保持原样，服务器分治见项目规则。
         var person = item.Type == EmbyItemType.Person;
         var library = item.Type == EmbyItemType.CollectionFolder;
-        if (IsCatalogue(item) || person || library)
+        if (IsCatalogue(item) || person || library && !jellyfin)
         {
             if (CanEdit(permissions))
                 rows.Add(new(ItemCommand.ChangeCover, person
@@ -561,7 +562,7 @@ public static class ItemMenu
 
         // 扫库：媒体库卡片扫的是这一个库（网页端的「扫描媒体库文件」），其余条目仍是整台服务器的
         // 「重新扫描媒体库」；演职人员不是库里的东西。
-        if (library)
+        if (library && !jellyfin)
         {
             if (IsAdministrator(permissions) && CanRefreshLibrary(item))
                 rows.Add(new(ItemCommand.ScanLibraryFiles, "扫描媒体库文件"));

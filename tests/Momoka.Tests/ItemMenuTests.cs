@@ -52,6 +52,20 @@ internal static class ItemMenuTests
             for (var index = 1; index < menu.Count; index++) Assert.False(menu[index - 1].IsRule && menu[index].IsRule);
         });
 
+        Test("Jellyfin 更多菜单：媒体库卡片保持原样，不借 Emby 的库卡入口", () =>
+        {
+            // 影视媒体库界面按服务器分治：Jellyfin 的库卡本次不动，播放、转换、单库扫描这些
+            // Emby 网页端的入口不出现在 Jellyfin 上。
+            var labels = JellyfinLabels(new EmbyItem
+            {
+                Id = "lib1",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "movies"
+            });
+
+            Assert.Equal("打开 | 编辑元数据 | 重新扫描媒体库", labels);
+        });
+
         Test("Jellyfin 更多菜单：词条照 Jellyfin Web 的中文", () =>
         {
             var movie = new EmbyItem
