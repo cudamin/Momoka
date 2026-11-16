@@ -98,16 +98,17 @@ internal sealed partial class ShellNavigationProbe
                         && Get<Border>(page, "PosterStill").ActualWidth > 0, "商店窄窗没有保留实际封面图");
                     // 简洁模式的按钮与闭合选择框吃那支固定面色（2026-11-11 用户令）：先核四态画笔，
                     // 再把按钮材质那几项改到另一个极端，证明它一个字节都不读。
-                    // 商店模式四颗按钮常驻封面下方；平台Subtle样式与仍使用固定面色的操作分开核对。
+                    // 商店模式四颗操作键常驻片名下方；三颗图标走平台Subtle样式，主播放键走主题色面，
+                    // 其余仍使用固定面色的操作分开核对。
                     var actions = new[] { Get<StackPanel>(page, "ColumnActions"), Get<StackPanel>(page, "CompactBlock") }
                         .SelectMany(group => group.Children).OfType<WrapRow>()
                         .SelectMany(row => row.Children)
-                        .Concat(Get<StackPanel>(page, "StoreCoverActions").Children)
+                        .Concat(Get<Grid>(page, "StoreCoverActions").Children)
                         .Concat(Get<Grid>(page, "StorePlaySlot").Children)
                         .OfType<Control>()
                         .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
                         .ToArray();
-                    // 用户新要求的四颗封面图标键无边框，其他按钮仍是固定面色。
+                    // 用户新要求的三颗图标键无边框，其他按钮仍是固定面色。
                     var coverActions = actions.Where(page.IsStoreCoverAction).ToArray();
                     var plays = actions.Where(control => !page.IsStoreCoverAction(control) && (control.Name is "ColumnPlayButton" or "CompactPlayButton")).ToArray();
                     var fixedActions = actions.Except(plays).Except(coverActions).ToArray();

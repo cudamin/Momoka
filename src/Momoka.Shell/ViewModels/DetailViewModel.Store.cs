@@ -46,15 +46,14 @@ public sealed partial class DetailViewModel
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;
 
     /// <summary>
-    /// 商店封面下方常驻的四颗图标键。宽窄和图片是否到达都不隐藏整行，按钮自己的权限与可用性照旧判断。
-    /// 2026-11-15 用户新要求取代封面右侧/左上角旧位置，不依赖指针悬停。
+    /// 商店模式片名下方那一块操作键（2026-11-16 用户令：全放在「播放日期」那一行下面）：
+    /// 已看、收藏、更多收成图标排一行，主播放键带文字排在它们下面。
+    /// 宽窄和图片是否到达都不隐藏整块，按钮自己的权限与可用性照旧判断。
     /// </summary>
     public Visibility StoreCoverActionsVisibility => Show(StoreMode);
 
-    public Visibility ColumnPlayLabelsVisibility => Show(!StoreMode);
-
     /// <summary>
-    /// 已看那颗键的文字要不要画。商店模式在封面下方收成图标（2026-11-15 用户要求常驻无边框图标行），
+    /// 已看那颗键的文字要不要画。商店模式在片名下方的操作块里收成图标（2026-11-16 用户令），
     /// 图标的两个状态照旧由 <see cref="WatchedVisibility"/>／<see cref="NotWatchedVisibility"/> 切。
     /// </summary>
     public Visibility ColumnWatchedLabelsVisibility => Show(!StoreMode);

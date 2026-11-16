@@ -638,29 +638,7 @@
                                 <FontIcon Glyph="&#xE768;" Style="{StaticResource EgPlayGlyphStyle}" />
                             </Button>
 
-                            <!-- 2026-11-16 用户令：商店模式的主播放键放到封面外面右边 —— 贴着封面右下角、
-                                 不压在图上，也不挤占正文那一列。52 = 44 的命中格加 8 的缝；格子只有按钮大小，
-                                 挪出去靠 RenderTransform，不参与封面列的排版。 -->
-                            <Grid
-                                x:Name="StorePlaySlot"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                                Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}">
-                                <Grid.RenderTransform>
-                                    <TranslateTransform X="52" />
-                                </Grid.RenderTransform>
-                            </Grid>
-
                         </Grid>
-                        <!-- 其余三颗按钮留在封面下方，常驻，不进入封面的HoverWatch或透明浮层。 -->
-                        <StackPanel
-                            x:Name="StoreCoverActions"
-                            HorizontalAlignment="Center"
-                            Orientation="Horizontal"
-                            Spacing="0"
-                            Opacity="1"
-                            IsHitTestVisible="True"
-                            Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}" />
                         </StackPanel>
 
                         <StackPanel
@@ -873,6 +851,31 @@
                                 </Grid>
                             </StackPanel>
 
+                            <!-- 2026-11-16 用户令：商店模式的按钮全放在这一行「播放日期」下面 ——
+                                 已看、收藏、更多三颗收成图标排在上面一行，主播放键放在它们下面、
+                                 长度（宽）与上面三颗那一行相同；离日期只留正常的行距，不留大空隙。
+                                 四颗都是既有实例，由 DetailPage.Store.cs 搬进来，退出商店模式时原样放回。
+                                 图标行三列等分，列宽由 StorePlaySlot 的实测宽回写（OnStorePlaySlotSizeChanged），
+                                 所以播放键多长、这一行就多长；每颗仍是 44 的命中格、无边框。 -->
+                            <StackPanel
+                                x:Name="StoreActionBlock"
+                                HorizontalAlignment="Left"
+                                Orientation="Horizontal"
+                                Visibility="{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}">
+                                <!-- 横向那一层只为把这一块按内容测宽（竖向 StackPanel 会拿整列的可用宽去分列）；
+                                     真正排上下的是里面这一叠。 -->
+                                <StackPanel x:Name="StoreActionStack" Orientation="Vertical" Spacing="8">
+                                    <Grid x:Name="StoreCoverActions" Width="132">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                    </Grid>
+                                    <Grid x:Name="StorePlaySlot" SizeChanged="OnStorePlaySlotSizeChanged" />
+                                </StackPanel>
+                            </StackPanel>
+
                             <StackPanel
                                 x:Name="FileOptions"
                                 Spacing="6"
@@ -1002,9 +1005,9 @@
                                  商店模式例外（2026-11-14 用户令「参考上图布局」）：这一叠被 DetailPage.Store.cs
                                  搬到封面下方的 StoreHeroDetails，排在剧情说明和文件选项之后，当那一块的收尾行 ——
                                  和微软商店条目页一样，标题块底下依次是简介、文件选项、操作按钮。同一个实例只换父级，
-                                 绑定、事件和焦点都不动。2026-11-15 用户最终要求：播放、已看、收藏、更多常驻封面下方
-                                 无边框的一行，连播仍在集列表卡片右上角（DetailPage.Store.cs 的 PlaceStoreActionButtons）；
-                                 这一排只留花絮与特典和断点进度。
+                                 绑定、事件和焦点都不动。2026-11-16 用户令：播放、已看、收藏、更多四颗全搬到片名
+                                 下面那行日期下方（StoreActionBlock），连播仍在集列表卡片右上角
+                                 （DetailPage.Store.cs 的 PlaceStoreActionButtons）；这一排只留花絮与特典和断点进度。
                                  从前那颗「从头开始」不再单独占一颗键：它并进「更多」菜单，
                                  只在有断点、原先那颗会露头的同一判据下出现（RestartVisibility）。
                                  七颗键同一批命令；AutomationId 前缀 Column，和紧凑版式那份（Compact*）
@@ -1038,8 +1041,7 @@
                                                 Glyph="&#xE768;"
                                                 Foreground="{StaticResource EgAccentBrush}"
                                                 Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
-                                            <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}"
-                                                Visibility="{x:Bind ViewModel.ColumnPlayLabelsVisibility, Mode=OneWay}" />
+                                            <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                         </StackPanel>
                                     </Button>
 

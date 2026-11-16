@@ -37,19 +37,24 @@ internal static class StoreDetailProbeEvidenceTests
             Reject(() => StoreDetailProbeEvidence.RequirePreviewCorners(true, 1024, 1024, 16, [1, 1, 1, 1], [16, 16, 16, 16]));
             Reject(() => StoreDetailProbeEvidence.RequirePreviewCorners(false, 1240, 1024, 16, [16, 16, 16, 16], [0, 0, 0, 0]));
         });
-        Test("商店封面操作行：拒绝封面覆盖、错行、隐藏与边框，保留44DIP命中区", () =>
+        Test("商店操作块：三颗图标在上同排、播放键在下且同宽，离日期行不留大空隙", () =>
         {
-            // 主播放键已挪到封面右下角外侧，下方这一排只剩已看／收藏／更多三颗（132 宽，居中于 96–276 的封面列）。
-            void Check(double rowTop = 278, double[]? tops = null, double[]? widths = null,
-                double[]? opacity = null, double[]? borders = null) =>
-                StoreDetailProbeEvidence.RequireCoverActions(96, 276, 270, 120, 252, rowTop,
-                    tops ?? [278, 278, 278], widths ?? [44, 44, 44], [44, 44, 44],
-                    opacity ?? [1, 1, 1], borders ?? new double[12]);
+            // 日期行底 250；操作块顶 256（商店档行距 6）；图标行 132 宽，播放键在下面 308 起、同样 132 宽。
+            void Check(double factsBottom = 250, double rowTop = 256, double rowLeft = 96, double rowRight = 228,
+                double[]? tops = null, double[]? widths = null, double[]? opacity = null, double[]? borders = null,
+                double playLeft = 96, double playTop = 308, double playWidth = 132, double playHeight = 44) =>
+                StoreDetailProbeEvidence.RequireActionStack(factsBottom, rowLeft, rowRight, rowTop,
+                    tops ?? [256, 256, 256], widths ?? [44, 44, 44], [44, 44, 44],
+                    opacity ?? [1, 1, 1], borders ?? new double[12],
+                    playLeft, playTop, playWidth, playHeight);
             Check();
-            Reject(() => Check(rowTop: 260));
-            Reject(() => Check(tops: [278, 322, 278]));
+            Reject(() => Check(rowTop: 280));
+            Reject(() => Check(tops: [256, 300, 256]));
             Reject(() => Check(widths: [20, 44, 44]));
             Reject(() => Check(opacity: [0, 1, 1]));
+            Reject(() => Check(playTop: 260));
+            Reject(() => Check(playWidth: 180));
+            Reject(() => Check(playLeft: 120));
             var border = new double[12]; border[0] = 1;
             Reject(() => Check(borders: border));
         });

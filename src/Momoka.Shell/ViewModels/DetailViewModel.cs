@@ -509,7 +509,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
-        OnPropertyChanged(nameof(ColumnPlayLabelsVisibility));
         OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         OnPropertyChanged(nameof(ColumnActionsVisibility));
@@ -2041,7 +2040,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility ScrimVisibility => Show(!HeroCard && !BackdropShown);
 
-    /// <summary>非商店紧凑版式的动作块；商店窄窗仍使用封面下方同一批操作，避免重复四颗键。</summary>
+    /// <summary>非商店紧凑版式的动作块；商店窄窗仍使用片名下方同一批操作，避免重复四颗键。</summary>
     public Visibility CompactVisibility => Show(IsCompact && !StoreMode);
 
     /// <summary>
@@ -2551,7 +2550,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CoverShadeVisibility));
-        OnPropertyChanged(nameof(ColumnPlayLabelsVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2787,7 +2785,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
-        OnPropertyChanged(nameof(ColumnPlayLabelsVisibility));
         OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         AnnounceAffordances();
         // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。

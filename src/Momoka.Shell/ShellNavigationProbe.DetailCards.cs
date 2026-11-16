@@ -279,36 +279,32 @@ internal sealed partial class ShellNavigationProbe
         var watched = Get<Button>(page, "ColumnWatchedButton");
         var continuePlay = Get<ToggleButton>(page, "ColumnContinueButton");
         var actionRow = Get<WrapRow>(page, "ColumnActionRow");
-        var coverActions = Get<StackPanel>(page, "StoreCoverActions");
+        var coverActions = Get<Grid>(page, "StoreCoverActions");
         var playSlot = Get<Grid>(page, "StorePlaySlot");
+        var actionBlock = Get<StackPanel>(page, "StoreActionBlock");
+        var factsRow = Get<StackPanel>(page, "StoreRatingRow");
         var episodeHead = Get<ShelfHead>(page, "EpisodeHead");
         if (page.ViewModel.StoreMode)
         {
             Require(ReferenceEquals(play.Parent, playSlot)
                 && new[] { watched, favorite, more }.All(button => ReferenceEquals(button.Parent, coverActions))
                 && ReferenceEquals(episodeHead.Trailing, continuePlay),
-                "商店主播放键未在封面外右侧、其余三颗未在封面下方同一行，或连播离开了集卡右上角");
+                "商店主播放键未在三颗图标下方、三颗未排在同一行，或连播离开了集卡右上角");
+            Require(ReferenceEquals(actionBlock.Parent, Get<StackPanel>(page, "HeroStack")),
+                "商店操作块没有排在片名那一栏里");
             RequireStoreCoverActionAppearance(page);
-            var coverColumn = Bounds(Get<StackPanel>(page, "StoreCoverColumn"), canvas);
+            var facts = Bounds(factsRow, canvas);
             var row = Bounds(coverActions, canvas);
             var buttons = new[] { watched, favorite, more };
             var boxes = buttons.Select(button => Bounds(button, canvas)).ToArray();
-            var coverBottom = cover.Visibility == Visibility.Visible && cover.ActualHeight > 0
-                ? Bounds(cover, canvas).Bottom : row.Top - 8;
-            StoreDetailProbeEvidence.RequireCoverActions(coverColumn.Left, coverColumn.Right, coverBottom,
-                row.Left, row.Right, row.Top, boxes.Select(box => box.Top).ToArray(),
+            var playBox = Bounds(play, canvas);
+            StoreDetailProbeEvidence.RequireActionStack(facts.Bottom, row.Left, row.Right, row.Top,
+                boxes.Select(box => box.Top).ToArray(),
                 buttons.Select(button => button.ActualWidth).ToArray(), buttons.Select(button => button.ActualHeight).ToArray(),
                 buttons.Select(button => button.Opacity).ToArray(), buttons.SelectMany(button =>
-                    new[] { button.BorderThickness.Left, button.BorderThickness.Top, button.BorderThickness.Right, button.BorderThickness.Bottom }).ToArray());
-            Require(buttons.SequenceEqual(coverActions.Children.OfType<Button>()), "封面下按钮次序不是已看、收藏、更多");
-            // 主播放键：贴着封面右下角外侧、与封面同底，44DIP 命中格、无边框、常驻。
-            var coverBox = Bounds(cover, canvas);
-            var playBox = Bounds(play, canvas);
-            Require(playBox.Left >= coverBox.Right + 4 && Math.Abs(playBox.Bottom - coverBox.Bottom) < 1.5
-                && playBox.Width >= 43.5 && playBox.Height >= 43.5
-                && play.Opacity == 1 && play.IsHitTestVisible && play.BorderThickness == default,
-                $"主播放键没有贴封面右下角外侧（键 {playBox.Left:0.##},{playBox.Top:0.##} {playBox.Width:0.##}×{playBox.Height:0.##}，"
-                + $"封面右 {coverBox.Right:0.##} 底 {coverBox.Bottom:0.##}）");
+                    new[] { button.BorderThickness.Left, button.BorderThickness.Top, button.BorderThickness.Right, button.BorderThickness.Bottom }).ToArray(),
+                playBox.Left, playBox.Top, playBox.Width, playBox.Height);
+            Require(buttons.SequenceEqual(coverActions.Children.OfType<Button>()), "操作行按钮次序不是已看、收藏、更多");
             var panel = Get<StackPanel>(page, "EpisodePanel");
             if (panel.Visibility == Visibility.Visible && continuePlay.Visibility == Visibility.Visible)
             {
@@ -341,34 +337,53 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireStoreCoverActionAppearance(DetailPage page)
     {
         if (!page.ViewModel.StoreMode) return;
-        var row = Get<StackPanel>(page, "StoreCoverActions");
+        var row = Get<Grid>(page, "StoreCoverActions");
         var slot = Get<Grid>(page, "StorePlaySlot");
         Require(row.Visibility == Visibility.Visible && row.Opacity == 1 && row.IsHitTestVisible
             && slot.Visibility == Visibility.Visible && slot.Opacity == 1 && slot.IsHitTestVisible,
-            "封面下操作行或封面外主播放键不是常驻可命中状态");
-        var covered = row.Children.OfType<Button>().Concat(slot.Children.OfType<Button>()).ToArray();
-        Require(covered.Length == 4, "商店模式不是四颗封面操作键");
-        foreach (var button in covered)
+            "商店操作块不是常驻可命中状态");
+        var icons = row.Children.OfType<Button>().ToArray();
+        Require(icons.Length == 3, "商店图标键不是三颗");
+        foreach (var button in icons)
         {
             Require(button.Style == (Style)page.Resources["EgStoreCoverActionButtonStyle"]
                 && button.BorderThickness == default && button.Opacity == 1 && button.IsTabStop,
-                "封面操作按钮丢失平台轻量样式、无边框、常驻或键盘入口");
+                "图标按钮丢失平台轻量样式、无边框、常驻或键盘入口");
             Require(!string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))
-                && ToolTipService.GetToolTip(button) is not null, "封面图标按钮缺少名称或提示");
+                && ToolTipService.GetToolTip(button) is not null, "图标按钮缺少名称或提示");
             button.ApplyTemplate();
             if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
-                Require(button.Background is SolidColorBrush { Color.A: 0 }, "封面图标键常态仍铺了材质背景");
+                Require(button.Background is SolidColorBrush { Color.A: 0 }, "图标键常态仍铺了材质背景");
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
             {
-                Require(VisualStateManager.GoToState(button, state, false), "封面按钮缺少平台状态 " + state);
-                Require(button.Opacity == 1 && row.Opacity == 1, "封面按钮仍被悬停状态隐藏");
+                Require(VisualStateManager.GoToState(button, state, false), "图标按钮缺少平台状态 " + state);
+                Require(button.Opacity == 1 && row.Opacity == 1, "图标按钮仍被悬停状态隐藏");
             }
             VisualStateManager.GoToState(button, "Normal", false);
         }
+        // 主播放键回到带字的主题色药丸（2026-11-16 用户令「还原成之前的样式」）。
+        var play = slot.Children.OfType<Button>().Single();
+        var accent = ((SolidColorBrush)Application.Current.Resources["EgAccentBrush"]).Color;
+        // 滚过阈值后顶部悬浮栏会接手主播放键：原键按设计收成透明、不可命中，顶栏那颗顶上。
+        // 这时核顶栏那颗可用；页面在顶时仍核原键常驻。
+        var stickyHolding = !play.IsHitTestVisible && Get<bool>(page, "_headerShown");
+        Require(play.Style == (Style)page.Resources["EgPlayButtonStyle"]
+            && (stickyHolding ? Math.Abs(play.Opacity) < 0.01 && !play.IsTabStop : play.Opacity == 1 && play.IsHitTestVisible),
+            $"主播放键没有回到带字的药丸样式或常驻状态（样式 {(ReferenceEquals(play.Style, page.Resources["EgPlayButtonStyle"]) ? "药丸" : play.Style is null ? "空" : "其他")}、"
+            + $"透明度 {play.Opacity:0.##}、命中 {play.IsHitTestVisible}、顶栏接手 {stickyHolding}）");
+        if (stickyHolding)
+        {
+            var sticky = Get<Button>(page, "StickyPlayButton");
+            Require(sticky.Visibility == Visibility.Visible && sticky.IsHitTestVisible && sticky.IsEnabled,
+                "主播放键被顶栏接手后，顶栏那颗播放键不可用");
+        }
+        Require(play.Background is AcrylicBrush { AlwaysUseFallback: true } fill
+            && fill.FallbackColor == accent && Math.Abs(fill.Opacity - 1) < 0.000001,
+            "主播放键没有涂上主题色面");
         // 不移动用户鼠标，显式清封面悬停入口后仍须全部显示。
         Call(page, "HideCoverHover");
-        Require(row.Opacity == 1 && covered.All(button => button.Opacity == 1),
-            "离开封面后操作行被隐藏");
+        Require(row.Opacity == 1 && icons.All(button => button.Opacity == 1),
+            "离开封面后操作块被隐藏");
     }
 
     private static void CheckEdges(FrameworkElement cover, IEnumerable<StackPanel> panels, FrameworkElement canvas)

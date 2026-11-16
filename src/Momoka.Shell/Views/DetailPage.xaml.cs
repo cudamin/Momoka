@@ -2165,7 +2165,7 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <summary>那一栏各行的常态竖距 —— 与 <c>HeroStack</c> 的 XAML、<c>PlaceStoreComponents</c> 共用同一个数。</summary>
     private const double HeroStackSpacing = 10;
 
-    /// <summary>商店档那一栏的竖距比常态紧一档（那排键已经搬到封面下方，这一栏只剩片名与读数）。</summary>
+    /// <summary>商店档那一栏的竖距比常态紧一档（操作键全排在日期行下面，这一栏只剩片名、读数与那一块）。</summary>
     private const double StoreHeroStackSpacing = 6;
 
     /// <summary>

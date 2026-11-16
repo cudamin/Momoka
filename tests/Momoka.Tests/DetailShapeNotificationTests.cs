@@ -9,7 +9,7 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
-        Test("商店封面操作行：四类页面宽窄常驻，离开商店恢复文字且通知真实绑定", () =>
+        Test("商店操作块：四类页面宽窄常驻，离开商店恢复已看文字且通知真实绑定", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
             {
@@ -22,7 +22,6 @@ internal static partial class DetailActionReadinessTests
                 {
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
                     Assert.Equal("Visible", f.Get("StoreCoverActionsVisibility")!.ToString());
-                    Assert.Equal("Collapsed", f.Get("ColumnPlayLabelsVisibility")!.ToString());
                     Assert.Equal("Collapsed", f.Get("ColumnWatchedLabelsVisibility")!.ToString());
                     Assert.Equal("Collapsed", f.Get("CompactVisibility")!.ToString());
                     Assert.Equal("Visible", f.Get("ColumnActionsVisibility")!.ToString());
@@ -34,9 +33,8 @@ internal static partial class DetailActionReadinessTests
                 f.Ui.EnableImmersive = true;
                 refresh.Invoke(f.Vm, null);
                 Assert.Equal("Collapsed", f.Get("StoreCoverActionsVisibility")!.ToString());
-                Assert.Equal("Visible", f.Get("ColumnPlayLabelsVisibility")!.ToString());
                 Assert.Equal("Visible", f.Get("ColumnWatchedLabelsVisibility")!.ToString());
-                foreach (var name in new[] { "StoreCoverActionsVisibility", "ColumnPlayLabelsVisibility", "ColumnWatchedLabelsVisibility" })
+                foreach (var name in new[] { "StoreCoverActionsVisibility", "ColumnWatchedLabelsVisibility" })
                     Assert.True(notices.Contains(name), "模式恢复未通知 " + name);
             }
         });

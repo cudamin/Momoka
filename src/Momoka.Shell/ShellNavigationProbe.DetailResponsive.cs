@@ -451,7 +451,7 @@ internal sealed partial class ShellNavigationProbe
 
     private static void RequireDetailActionMode(DetailPage page)
     {
-        var row = Get<StackPanel>(page, "StoreCoverActions");
+        var row = Get<Grid>(page, "StoreCoverActions");
         var slot = Get<Grid>(page, "StorePlaySlot");
         var play = Get<Button>(page, "ColumnPlayButton");
         var rest = new[] { "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" }

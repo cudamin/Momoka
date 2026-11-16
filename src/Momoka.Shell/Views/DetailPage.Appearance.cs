@@ -359,13 +359,17 @@ public sealed partial class DetailPage
         PaintContinueInk();
     }
 
-    /// <summary>主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。</summary>
+    /// <summary>
+    /// 主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。
+    /// 2026-11-16 起商店档的主播放键回到带字药丸，不再是无边框图标，所以宽版式那一颗也要换。
+    /// </summary>
     private bool IsStorePlay(ControlBackgroundBrushes brushes) =>
-        ReferenceEquals(brushes, _compactPlay) || ReferenceEquals(brushes, _columnPlay) && !ViewModel.StoreMode;
+        ReferenceEquals(brushes, _compactPlay) || ReferenceEquals(brushes, _columnPlay);
 
+    /// <summary>商店模式下那三颗无边框图标键（已看、收藏、更多）；主播放键不在此列。</summary>
     internal bool IsStoreCoverAction(Control control) => ViewModel.StoreMode
-        && (ReferenceEquals(control, ColumnPlayButton) || ReferenceEquals(control, ColumnWatchedButton)
-            || ReferenceEquals(control, ColumnFavoriteButton) || ReferenceEquals(control, ColumnMoreButton));
+        && (ReferenceEquals(control, ColumnWatchedButton) || ReferenceEquals(control, ColumnFavoriteButton)
+            || ReferenceEquals(control, ColumnMoreButton));
 
     /// <summary>一条竖列表里已经建出来的行，行模板里的卡片换一次墨。见 <see cref="ShelfStrip.ForEachRealizedCard"/>。</summary>
     private static void PaintRepeaterCards(ItemsRepeater repeater, ThemeColor? ink)

@@ -111,7 +111,7 @@ public sealed partial class DetailPage
             StoreHeroDetails.Margin = new Thickness(0, store ? 16 : 8, 0, 0);
             HeroFacts.TextWrapping = store ? TextWrapping.Wrap : TextWrapping.NoWrap;
 
-            // 2026-11-15 用户新要求：四颗操作键常驻封面下方，无边框。商店宽窄同一位置，退出商店才还原。
+            // 2026-11-16 用户令：四颗操作键全放在片名下方那行日期下面，商店宽窄同一位置，退出商店才还原。
             PlaceStoreActionButtons(store);
 
             // 右侧剧照／预告视口只在宽版式出现；圆角也只写给那一档（窄窗铺满整幅的那一版保持直角）。
@@ -128,24 +128,34 @@ public sealed partial class DetailPage
     }
 
     /// <summary>
-    /// 商店模式的操作键：主播放键贴在封面右下角外侧（2026-11-16 用户令「播放按钮放封面外面右边」），
-    /// 已看、收藏、更多三颗仍常驻封面下方（2026-11-15 用户新要求，取代封面右侧与左上角旧位置）。
-    /// 四个图标保留原控件、命令、自动化名称与状态；连播仍挂在集列表卡片右上角。
+    /// 商店模式的操作键（2026-11-16 用户令：四颗键全放在片名下面那行「播放日期」的下方）：
+    /// 已看、收藏、更多三颗收成图标排成一行，主播放键放在它们下面，宽度与上面那一行相同；
+    /// 播放键回到 2026-11-14 的主题色药丸样式（用户令「还原成之前的样式」），带「播放」文字。
+    /// 四颗保留原控件、命令、自动化名称与状态；连播仍挂在集列表卡片右上角。
     /// <para>
     /// 搬的是同一批实例，绑定、命令、焦点不重接；退出商店模式时
     /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>。
     /// 已看那颗键收成图标：文字组的显隐由 <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/>
-    /// 收起，四颗共用平台轻量按钮样式。
+    /// 收起，三颗图标共用平台轻量按钮样式。
     /// </para>
     /// </summary>
     private void PlaceStoreActionButtons(bool store)
     {
         if (store)
         {
-            MoveToPanel(ColumnPlayButton, StorePlaySlot);
             MoveToPanel(ColumnWatchedButton, StoreCoverActions);
             MoveToPanel(ColumnFavoriteButton, StoreCoverActions);
             MoveToPanel(ColumnMoreButton, StoreCoverActions);
+            var icons = new[] { ColumnWatchedButton, ColumnFavoriteButton, ColumnMoreButton };
+            for (var index = 0; index < icons.Length; index++)
+            {
+                Grid.SetColumn(icons[index], index);
+                icons[index].HorizontalAlignment = HorizontalAlignment.Center;
+                icons[index].VerticalAlignment = VerticalAlignment.Center;
+            }
+
+            MoveToPanel(ColumnPlayButton, StorePlaySlot);
+            ColumnPlayButton.HorizontalAlignment = HorizontalAlignment.Stretch;
 
             if (!ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton))
             {
@@ -153,18 +163,26 @@ public sealed partial class DetailPage
                 EpisodeHead.Trailing = ColumnContinueButton;
             }
             var subtle = (Style)Resources["EgStoreCoverActionButtonStyle"];
-            foreach (var button in new[] { ColumnPlayButton, ColumnWatchedButton, ColumnFavoriteButton, ColumnMoreButton })
+            foreach (var button in icons)
             {
                 if (!ReferenceEquals(button.Style, subtle)) button.Style = subtle;
                 // 构造时的材质Background是局部值，清掉才会真正使用SubtleButtonStyle的透明常态和平台三态。
                 button.ClearValue(Control.BackgroundProperty);
                 button.Opacity = 1;
             }
+            // 主播放键走回带字的药丸键：底色是 PrepareAppearance 种下的那组画刷，
+            // 由 ApplyAppearance 在商店档涂成强调色面（见 IsStorePlay）。
+            if (!ReferenceEquals(ColumnPlayButton.Style, Resources["EgPlayButtonStyle"]))
+                ColumnPlayButton.Style = (Style)Resources["EgPlayButtonStyle"];
+            if (ColumnPlayButton.Resources.ContainsKey("ButtonBackground"))
+                ColumnPlayButton.Background = (Microsoft.UI.Xaml.Media.Brush)ColumnPlayButton.Resources["ButtonBackground"];
+            SyncStoreActionWidth();
             return;
         }
 
         if (ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton)) EpisodeHead.Trailing = null;
         RestoreToActions(ColumnPlayButton, 0);
+        ColumnPlayButton.ClearValue(FrameworkElement.HorizontalAlignmentProperty);
         RestoreToActions(ColumnContinueButton, IndexAfter(ColumnExtrasButton));
         RestoreToActions(ColumnWatchedButton, IndexAfter(ColumnContinueButton));
         RestoreToActions(ColumnFavoriteButton, IndexAfter(ColumnWatchedButton));
@@ -219,10 +237,23 @@ public sealed partial class DetailPage
         return index < 0 ? ColumnActionRow.Children.Count : index + 1;
     }
 
+    /// <summary>
+    /// 三颗图标那一行跟着主播放键的实测宽走（2026-11-16 用户令「播放按钮的长度等于上面三个按钮的长度」）：
+    /// 播放键的内容（「继续播放 20:34」这类文字）决定药丸多长，上面那行三列等分同一个宽度。
+    /// </summary>
+    private void SyncStoreActionWidth()
+    {
+        if (!ViewModel.StoreMode || StorePlaySlot.ActualWidth <= 0) return;
+        StoreCoverActions.Width = StorePlaySlot.ActualWidth;
+    }
+
+    private void OnStorePlaySlotSizeChanged(object sender, SizeChangedEventArgs args) => SyncStoreActionWidth();
+
     private void OnStoreHeroSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (!ViewModel.StoreMode) return;
 
+        SyncStoreActionWidth();
         ViewModel.StoreDetailsRoom = StoreHeroDetails.ActualHeight + StoreHeroDetails.Margin.Top;
     }
 }

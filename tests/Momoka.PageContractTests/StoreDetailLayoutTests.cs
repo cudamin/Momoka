@@ -66,34 +66,49 @@ internal static class StoreDetailLayoutTests
             Assert.True(Array.IndexOf(layers, "StoreTrailerFoundation") < Array.IndexOf(layers, "StoreAmbient")
                 && Array.IndexOf(layers, "StoreAmbient") < Array.IndexOf(layers, "StoreTrailerHost"), "视频局部底层遮住了环境图或视频");
         });
-        Test("商店详情：主播放键贴封面右下外侧、其余三颗常驻封面下方，连播保留集卡右上", () =>
+        Test("商店详情：四颗键全在日期行下方，三颗图标在上、播放键在下且同宽，连播保留集卡右上", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
             XElement Named(string name) => page.Descendants()
                 .Single(element => (string?)element.Attribute(X + "Name") == name);
 
+            // 整块操作键跟在日期行（StoreRatingRow）后面，排在片名那一栏里。
+            var block = Named("StoreActionBlock");
+            Assert.Equal("HeroStack", (string?)block.Parent!.Attribute(X + "Name"));
+            Assert.Equal("StoreRatingRow", (string?)block.ElementsBeforeSelf().Last().Attribute(X + "Name"));
+            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}",
+                (string?)block.Attribute("Visibility"));
+            Assert.Equal("Left", (string?)block.Attribute("HorizontalAlignment"));
+            var stack = Named("StoreActionStack");
+            Assert.Equal("StoreActionBlock", (string?)stack.Parent!.Attribute(X + "Name"));
+            Assert.Equal("Vertical", (string?)stack.Attribute("Orientation"));
+            Assert.Equal("8", (string?)stack.Attribute("Spacing"));
+            // 三颗图标一行在上，三列等分；宽度由播放键实测宽回写（初值 3×44）。
             var coverActions = Named("StoreCoverActions");
-            Assert.Equal("StoreCoverColumn", (string?)coverActions.Parent!.Attribute(X + "Name"));
-            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}",
-                (string?)coverActions.Attribute("Visibility"));
-            Assert.Equal("CoverSlot", (string?)coverActions.ElementsBeforeSelf().Last().Attribute(X + "Name"));
-            Assert.Equal("Center", (string?)coverActions.Attribute("HorizontalAlignment"));
-            Assert.Equal("1", (string?)coverActions.Attribute("Opacity"));
-            Assert.Equal("True", (string?)coverActions.Attribute("IsHitTestVisible"));
-            // 主播放键那一格贴在封面右下角外侧：只有按钮大小，靠 RenderTransform 挪出封面列。
+            Assert.Equal("StoreActionStack", (string?)coverActions.Parent!.Attribute(X + "Name"));
+            Assert.Equal("132", (string?)coverActions.Attribute("Width"));
+            var columns = coverActions.Elements()
+                .Single(element => element.Name.LocalName == "Grid.ColumnDefinitions").Elements().ToArray();
+            Assert.Equal(3, columns.Length);
+            foreach (var column in columns)
+                Assert.Equal("*", (string?)column.Attribute("Width"));
+            // 主播放键在它们下面，占满整行宽度。
             var playSlot = Named("StorePlaySlot");
-            Assert.Equal("CoverSlot", (string?)playSlot.Parent!.Attribute(X + "Name"));
-            Assert.Equal("Right", (string?)playSlot.Attribute("HorizontalAlignment"));
-            Assert.Equal("Bottom", (string?)playSlot.Attribute("VerticalAlignment"));
-            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}",
-                (string?)playSlot.Attribute("Visibility"));
-            Assert.Equal("52", (string?)playSlot.Descendants().Single(element => element.Name.LocalName == "TranslateTransform").Attribute("X"));
+            Assert.Equal("StoreActionStack", (string?)playSlot.Parent!.Attribute(X + "Name"));
+            Assert.Equal("OnStorePlaySlotSizeChanged", (string?)playSlot.Attribute("SizeChanged"));
+            Assert.False(page.Descendants().Any(element => element.Name.LocalName == "TranslateTransform"
+                && (string?)element.Parent!.Parent!.Attribute(X + "Name") == "StorePlaySlot"));
             Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "StoreCoverBadges"));
             var subtle = page.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgStoreCoverActionButtonStyle");
             Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)subtle.Attribute("BasedOn"));
             Assert.Equal("0", (string?)subtle.Elements().Single(element => (string?)element.Attribute("Property") == "BorderThickness").Attribute("Value"));
             Assert.False(subtle.Descendants().Any(element => element.Name.LocalName == "ControlTemplate"));
             Assert.Equal("ColumnActions", (string?)Named("ColumnActionRow").Parent!.Attribute(X + "Name"));
+            // 主播放键回到带字的药丸样式：标签不再跟商店模式收起来。
+            var play = Named("ColumnPlayButton");
+            Assert.Equal("{StaticResource EgPlayButtonStyle}", (string?)play.Attribute("Style"));
+            Assert.False(play.Descendants().Any(element => (string?)element.Attribute("Visibility")
+                == "{x:Bind ViewModel.ColumnPlayLabelsVisibility, Mode=OneWay}"));
             // 已看那颗键的文字组在商店模式整组收起（用户确认「收成图标」）。
             Assert.Equal("{x:Bind ViewModel.ColumnWatchedLabelsVisibility, Mode=OneWay}",
                 (string?)Named("ColumnWatchedLabels").Attribute("Visibility"));
@@ -102,8 +117,11 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("MoveToPanel(ColumnMoreButton, StoreCoverActions);", store);
             Assert.Contains("MoveToPanel(ColumnFavoriteButton, StoreCoverActions);", store);
             Assert.Contains("MoveToPanel(ColumnWatchedButton, StoreCoverActions);", store);
+            Assert.Contains("Grid.SetColumn(icons[index], index);", store);
+            Assert.Contains("StoreCoverActions.Width = StorePlaySlot.ActualWidth;", store);
             Assert.Contains("PlaceStoreActionButtons(store);", store);
             Assert.Contains("button.ClearValue(Control.BackgroundProperty);", store);
+            Assert.Contains("\"EgPlayButtonStyle\"", store);
             foreach (var name in new[] { "ColumnPlayButton", "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" })
                 Assert.NotNull(Named(name).Attribute("AutomationProperties.Name"));
             Assert.Contains("EpisodeHead.Trailing = ColumnContinueButton;", store);

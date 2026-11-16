@@ -21,19 +21,26 @@ internal static class StoreDetailProbeEvidence
             throw new InvalidOperationException("商店预告圆角没有按自己的宽窗断点恢复全局圆角或窄窗直角");
     }
 
-    internal static void RequireCoverActions(double coverLeft, double coverRight, double coverBottom,
-        double rowLeft, double rowRight, double rowTop, double[] tops, double[] widths, double[] heights,
-        double[] opacity, double[] borders)
+    /// <summary>
+    /// 商店操作块（2026-11-16 用户令「按钮全放在播放日期下方」「播放按钮的长度等于上面三个按钮的长度」）：
+    /// 三颗图标在上一行同排、主播放键在下面，播放键的左沿和宽跟着上面那一行；离日期行只留正常行距。
+    /// </summary>
+    internal static void RequireActionStack(double factsBottom, double rowLeft, double rowRight, double rowTop,
+        double[] tops, double[] widths, double[] heights, double[] opacity, double[] borders,
+        double playLeft, double playTop, double playWidth, double playHeight)
     {
         var cells = new[] { tops, widths, heights, opacity };
         var values = cells.SelectMany(cell => cell).Concat(borders)
-            .Concat(new[] { coverLeft, coverRight, coverBottom, rowLeft, rowRight, rowTop });
+            .Concat(new[] { factsBottom, rowLeft, rowRight, rowTop, playLeft, playTop, playWidth, playHeight });
+        var rowBottom = rowTop + (heights.Length == 0 ? 0 : heights.Max());
         if (cells.Any(cell => cell.Length != 3) || borders.Length != 12 || values.Any(value => !double.IsFinite(value))
-            || coverRight <= coverLeft || rowRight <= rowLeft || rowTop < coverBottom + 7
-            || Math.Abs((rowLeft + rowRight) - (coverLeft + coverRight)) > 2
+            || rowRight <= rowLeft || playWidth <= 0 || playHeight < 43.5
+            || rowTop < factsBottom - 1 || rowTop > factsBottom + 16
             || tops.Any(top => Math.Abs(top - rowTop) > 1) || widths.Concat(heights).Any(size => size < 43.5)
+            || playTop < rowBottom - 1 || Math.Abs(playWidth - (rowRight - rowLeft)) > 2
+            || Math.Abs(playLeft - rowLeft) > 2
             || opacity.Any(value => Math.Abs(value - 1) > 0.01) || borders.Any(value => value != 0))
-            throw new InvalidOperationException("封面下方三颗操作键没有同排居中常驻、44DIP命中区或无边框");
+            throw new InvalidOperationException("商店操作键没有按三颗图标在上、播放键在下的同宽排布常驻");
     }
 
     internal static bool PageSizeMatches(double target, double client, double page, double body, double viewModel) =>

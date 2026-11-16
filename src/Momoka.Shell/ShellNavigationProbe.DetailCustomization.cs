@@ -1032,12 +1032,12 @@ internal sealed partial class ShellNavigationProbe
     {
         if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast) return;
         var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
-            .Concat(Descendants(Get<StackPanel>(page, "StoreCoverActions")).OfType<Control>())
+            .Concat(Descendants(Get<Grid>(page, "StoreCoverActions")).OfType<Control>())
             .Concat(Descendants(Get<Grid>(page, "StorePlaySlot")).OfType<Control>())
             .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
             .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
             .ToArray();
-        // 用户新要求的封面下四颗键采用平台Subtle样式；其余操作与闭合选择框保持原固定面色。
+        // 用户新要求的三颗图标键采用平台Subtle样式，主播放键走主题色面；其余操作与闭合选择框保持原固定面色。
         var coverControls = controls.Where(page.IsStoreCoverAction).ToArray();
         var plays = controls.Where(control => !page.IsStoreCoverAction(control) && (control.Name is "ColumnPlayButton" or "CompactPlayButton")).ToArray();
         var fixedControls = controls.Except(plays).Except(coverControls).ToArray();

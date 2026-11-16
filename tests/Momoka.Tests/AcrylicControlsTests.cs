@@ -15,17 +15,19 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
-        Test("商店封面操作：主播放键贴封面右下外侧、其余三颗常驻下方，原生轻量样式无边框", () =>
+        Test("商店操作块：三颗图标走原生轻量样式，播放键在下方且同宽，全部无边框", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var row = Named(page, "StoreCoverActions");
-            Assert.Equal("StoreCoverColumn", (string?)row.Parent!.Attribute(X + "Name"));
-            Assert.Equal("1", (string?)row.Attribute("Opacity"));
-            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}", (string?)row.Attribute("Visibility"));
+            Assert.Equal("StoreActionStack", (string?)row.Parent!.Attribute(X + "Name"));
+            Assert.Equal("132", (string?)row.Attribute("Width"));
+            var block = Named(page, "StoreActionBlock");
+            Assert.Equal("HeroStack", (string?)block.Parent!.Attribute(X + "Name"));
+            Assert.Equal("Left", (string?)block.Attribute("HorizontalAlignment"));
+            Assert.Equal("{x:Bind ViewModel.StoreCoverActionsVisibility, Mode=OneWay}", (string?)block.Attribute("Visibility"));
             var slot = Named(page, "StorePlaySlot");
-            Assert.Equal("CoverSlot", (string?)slot.Parent!.Attribute(X + "Name"));
-            Assert.Equal("Right", (string?)slot.Attribute("HorizontalAlignment"));
-            Assert.Equal("Bottom", (string?)slot.Attribute("VerticalAlignment"));
+            Assert.Equal("StoreActionStack", (string?)slot.Parent!.Attribute(X + "Name"));
+            Assert.Equal("OnStorePlaySlotSizeChanged", (string?)slot.Attribute("SizeChanged"));
             var style = Resource(page.Root!.Element(Xaml + "Page.Resources")!, "EgStoreCoverActionButtonStyle");
             Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)style.Attribute("BasedOn"));
             Assert.Equal("0", Setter(style, "BorderThickness"));
