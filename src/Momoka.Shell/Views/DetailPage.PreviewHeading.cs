@@ -15,6 +15,7 @@ public sealed partial class DetailPage
     private const int PreviewHeadingFlightMs = 320;
 
     private PreviewHeadingFlight? _previewHeadingFlight;
+    private int _previewHeadingGeneration;
 
     /// <summary>
     /// 悬停预览里那枚徽标和片名移进这一页（2026-11-16 用户令）。源面板点击时就收起了，所以这里不搬元素：
@@ -28,13 +29,14 @@ public sealed partial class DetailPage
     /// </summary>
     internal bool BeginPreviewHeadingMotion(PreviewHeadingCapture capture)
     {
-        StopPreviewHeadingMotion();
+        _previewHeadingFlight?.Stop();
+        var generation = _previewHeadingGeneration;
         if (ViewModel.CurrentItem is not { } current || !capture.Matches(current)) return false;
 
         // 徽标图与面板手上那张是同一版才接；接不上的那一版照旧等这一页自己的图。
         var currentPlate = capture.PlateArtwork is { } artwork && ItemArtwork.Plate(current) == artwork;
-        if (currentPlate && capture.PlatePicture is { } picture && ViewModel.PlateImage is null)
-            ViewModel.UseConnectedPlate(capture.Item, picture);
+        if (currentPlate && capture.PlatePicture is { } picture && ViewModel.PlateImage is null
+            && ViewModel.UseConnectedPlate(capture.Item, picture)) TitlePlate.Source = picture;
 
         if (!HomeMotion.AnimationsEnabled) return false;
         if (XamlRoot?.Content is not UIElement root) return false;
@@ -42,6 +44,8 @@ public sealed partial class DetailPage
         // 详情页平时要等第一次布局才量得到标题落点；这一趟和关联封面一样，先在导航事务里把它排出来。
         SeedConnectedLayoutWidth();
         ForceConnectedLayout();
+        if (generation != _previewHeadingGeneration || !HomeMotion.AnimationsEnabled
+            || ViewModel.CurrentItem is not { } arranged || !capture.Matches(arranged)) return false;
         if (!HeadingBounds(TitleText, root, out var titleTarget)) return false;
 
         var board = new Storyboard();
@@ -106,7 +110,12 @@ public sealed partial class DetailPage
     }
 
     /// <summary>离开这一页时落定：标题和徽标回到不透明、无变换的静止样子。</summary>
-    internal void StopPreviewHeadingMotion() => _previewHeadingFlight?.Stop();
+    internal void StopPreviewHeadingMotion()
+    {
+        _previewHeadingGeneration++;
+        PreviewHeadingTransition.Release(this);
+        _previewHeadingFlight?.Stop();
+    }
 
     /// <summary>
     /// 目标元素此刻在窗口内容里的矩形；没排过版、被祖先收起或量不出面积都不算落点。

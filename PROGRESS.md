@@ -1,3 +1,12 @@
+## 2026-11-16 悬停标题交接：新详情挂树后再起跑（待主控原生复验）
+
+施工树 C:/Users/89400/.codex/worktrees/store-cover-action-row/Momoka，codex/store-cover-action-row，整合主树2138274后修复；主树原生shell-probe-20261116-021554917-22960的导航失败JSON实证：Opened0→1、生产回调与身份正常、Popup已收起；OnNavigatedTo后的目标Loaded/Root/flight均false，随后Loaded=true、Root=true、标题宽396及徽标宽267.826但flight仍false。原Attach立即消费票，Begin遇空Root返回false，后续没有生产重试，原失败与探针要求保留。
+
+票据登记当前目标，先订Loaded/LayoutUpdated/身份通知再尝试；目标尚未挂树时保留原700ms截止，Loaded后只在本Frame当前页、当前固定身份/owner/来源资格匹配时调用原标题飞行。一次成功即清票并解绑；替票、离页/Release、导航取消/失败、超时、关动画均统一撤销，旧回调不能清新票。Begin只停旧flight，避免统一Stop自取消自身；强制布局前后核页面标题代际与身份。接同版Logo时直接同步控件Source，仍先Suppress图片到达淡入再记录终值，已有高清不覆盖；320ms时长与同一Storyboard两元素补间保持原样。
+
+已读固定Gallery 6de91feccadfbb0a796b71caedead5a2284f730e的ItemsRepeaterCollectionPage与DetailedInfoPage完整XAML/code-behind及SamplePage2；Gallery先填目标再TryStart，没有已关闭Popup的矩形交接生命周期，采用本项目关联封面已用的Loaded/LayoutUpdated等待，不引依赖或自定义调度。官方FrameworkElement.Loaded合同由主控核对MicrosoftDocs/winapps-winrt-api的microsoft.ui.xaml/frameworkelement.loaded.md。
+
+本树Release Shell/Core编译0警告0错误（1:42.34）；关联专项原样链接生产票据、整份DetailPage.PreviewHeading与Placement，82/82、失败0跳过0（原63+新增19），含Loaded先于后订观察者、布局重试、迟到Loaded/Timer/系统通知、固定身份/Frame当前目标、同版Logo同步与10条320ms动画、完成/取消两元素终值、强制布局中身份变更与Release。该同步身份反例首轮81/82失败，补强制布局后票据归属再核对后82/82；没有改探针容差或截止。PageContract当前编译0警告0错误、329/329。证据在本树artifacts-preview-heading-lifetime-{shell-build,build,tests,page-build,page-tests}.log。未运行桌面/探针/真实服务器/播放、未合并主树或发布；待主控整合后原InspectPreviewHeadingMotion完整复验，控制流与终值测试不冒称真实GPU、帧率或屏幕连续性通过。
 ## 2026-11-16 长剧焦点探针前件：等待同一横带实际Loaded（待主控复验）
 
 主树7e44554的原生 `shell-probe-20261115-171813311-4340` 四阶段都未发起Focus请求：requested/pending均-1、目标不存在，横偏移仍600400；真实extent631984、viewport1196、scrollable630788、pitch316已排除尾部可滚范围不足。FocusItem只在不活动/索引非法时入口返回；2000项来源与1999已被前面严格核对。旧报告没有_live/IsLoaded，不能再猜是环境或宣布生命周期根因。只读确认DetailPage.PlaceEpisodes只移同一EpisodePanel，XAML EpisodeStrip字段没有新建/替换；探针重排时已有ReferenceEquals断言，因此旧实例替换推测未获源码支持。

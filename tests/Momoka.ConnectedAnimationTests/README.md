@@ -1,5 +1,13 @@
 # 海报到详情与演职人员到人物页的原生关联动画回归
 
+2026-11-16 悬停标题交接等待：原样链接 `PreviewHeadingTransition.cs`、整份 `DetailPage.PreviewHeading.cs` 和
+`PreviewHeadingPlacement.cs`，只替换Frame／布局／Storyboard／位图与系统事件边界。新增19项，当前 **82/82**、
+0失败0跳过：新目标未挂树时保留原700ms票据，生产Loaded先于后订观察者起跑；同页一次、布局重试、替票与迟到
+Loaded／Timer／系统事件、Frame当前目标／身份／owner／来源资格、离页与动画关闭均清理。真实标题与徽标同步接同版图、
+共用320ms时钟，高清不被源图覆盖，完成／取消还原两个元素；强制布局中同步换身份或Release不得遗留旧等待。
+这些是生产控制流和终值测试，不能证明实际WinUI事件顺序、GPU补间、冻结中间帧或屏幕连续性；主树仍须运行原
+`InspectPreviewHeadingMotion`，不延长探针、放宽断言或替换原失败结果。
+
 2026-11-15 起跑延迟修复：`Attach` 先 `SeedConnectedLayoutWidth` + `ForceConnectedLayout`，目标已排过版时
 `TryStartEarly` 在目标页 `Loaded` 之前直接启动；`LayoutUpdated` 在尚未 `Loaded` 时也先抢跑。新增「已排过版时
 在新页 Loaded 前立即起跑」「第一次布局落定即可起跑」两项，原「目标未排过版不抢跑」「新页未 Loaded 时图片更正
