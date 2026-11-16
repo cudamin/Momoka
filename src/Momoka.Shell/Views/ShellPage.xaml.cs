@@ -1617,7 +1617,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Subscribed: subscribed,
             Settings: _services.GetRequiredService<ISettingsService>(),
             PlayTrailer: item => ((IShellActions)this).PlayAsync(item,
-                choice: new PlaybackChoice(null, null, null, false, 0) { ExactStart = true })), BrowseTransition());
+                choice: new PlaybackChoice(null, null, null, false, 0) { ExactStart = true }),
+            Paths: _services.GetRequiredService<AppPaths>()), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();

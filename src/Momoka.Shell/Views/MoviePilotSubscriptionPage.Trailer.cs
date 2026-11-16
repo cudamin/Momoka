@@ -118,8 +118,8 @@ public sealed partial class MoviePilotSubscriptionPage
                 StoreTrailerHost.Visibility = Visibility.Visible;
                 StoreTrailerHost.Opacity = 0;
                 UpdateStoreTrailerControls();
-                await youTube.StartAsync(id, Path.Combine(AppPaths.Default.LogDirectory, "trailer-preview",
-                    Guid.NewGuid().ToString("N")), token, playing =>
+                await youTube.StartAsync(id, Path.Combine((_request?.Paths ?? AppPaths.Default).LogDirectory,
+                    "trailer-preview", Guid.NewGuid().ToString("N")), token, playing =>
                 {
                     if (token.IsCancellationRequested || generation != _trailerGeneration
                         || subject.Source?.IsAvailable != true) return;
