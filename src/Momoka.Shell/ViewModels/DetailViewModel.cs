@@ -232,7 +232,13 @@ public sealed partial class DetailViewModel : PageViewModel
             OnPropertyChanged(nameof(VideoVisibility));
         };
 
-        AudioTracks.CollectionChanged += (_, _) => PickerChanged(nameof(AudioVisibility));
+        AudioTracks.CollectionChanged += (_, _) =>
+        {
+            PickerChanged(nameof(AudioVisibility));
+            OnPropertyChanged(nameof(AudioPickerVisibility));
+            OnPropertyChanged(nameof(AudioTextVisibility));
+            OnPropertyChanged(nameof(AudioText));
+        };
         SubtitleTracks.CollectionChanged += (_, _) => PickerChanged(nameof(SubtitleVisibility));
 
         // 媒体信息 is the same problem and not a picker: its own visibility only, without the pickers row's.
@@ -2231,8 +2237,23 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility SourceVisibility => Show(Sources.Count > 1);
 
-    /// <summary>音频栏固定显示；唯一音轨与无音轨都由选择栏呈现，整组仍跟播放目标开合。</summary>
+    /// <summary>音频栏固定显示；唯一音轨收成一行文字（见 <see cref="AudioPickerVisibility"/>），整组仍跟播放目标开合。</summary>
     public Visibility AudioVisibility => Visibility.Visible;
+
+    /// <summary>
+    /// 音频选择框：只有一条音轨（自动那一行之外没有可选的）时不摆选择框，只把那条轨道当文字显示
+    /// （2026-11-16 用户令「只有一个能选你弄什么选择栏，直接显示就好」）；沉浸和商店同一套。
+    /// </summary>
+    public Visibility AudioPickerVisibility =>
+        AudioTracks.Count <= AutoRows + 1 ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>跟 <see cref="AudioPickerVisibility"/> 同一句判据的另一半：单音轨时那一行文字露头。</summary>
+    public Visibility AudioTextVisibility =>
+        AudioTracks.Count <= AutoRows + 1 ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>单音轨时那一行文字：自动那一条指向的完整轨道名（不带「自动 · 」前缀）。</summary>
+    public string AudioText =>
+        AudioTracks.Count is > 0 and <= AutoRows + 1 ? AudioTracks[0].ShortText : "";
 
     /// <summary>Two rows are 自动 and 不使用字幕, which is not a choice either.</summary>
     public Visibility SubtitleVisibility => Show(SubtitleTracks.Count > AutoRows + 1);

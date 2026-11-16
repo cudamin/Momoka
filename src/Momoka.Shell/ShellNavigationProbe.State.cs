@@ -541,6 +541,10 @@ internal sealed partial class ShellNavigationProbe
     /// 一致」。同一部片子上，音轨只有一条时音频那一行仍保留选择栏，加两条音轨也是同一颗；
     /// 三行的行高与行间空隙在两种状态下要是同一套数，否则换个文件就换一种节奏。
     /// <para>
+    /// 量的是沉浸版式（<c>EnableImmersive = true</c>，运行时先打开再导航）：商店模式 2026-11-16 起只有一条
+    /// 音轨时整行收起（用户令「只有一条音轨你弄什么选择栏」），单音轨那一半读数在那边不再成立。
+    /// </para>
+    /// <para>
     /// 量的都是根坐标里的矩形：视频那一行（纯文字）、音频那一行（外置标签 + 下拉）、字幕那一行（外置标签 + 下拉）。
     /// 两处空隙要彼此相等、均为收紧后的 6 DIP，纯文字那一行的高要
     /// 等于真下拉的高 —— <c>EgPickerRowHeight</c> 一旦和框架的 ComboBox 漂开，最后那一条就会红。
@@ -555,6 +559,8 @@ internal sealed partial class ShellNavigationProbe
     private async Task PickerRowRhythmAsync()
     {
         using var fixture = CreateFixture();
+        // 这一条量的是沉浸版式那三行的竖距；商店档单音轨会收起音频行，不在这条用例的范围里。
+        fixture.Settings.Ui.EnableImmersive = true;
         await fixture.SelectAsync();
         // 前一条用例可能把窗口留在最大化上；先恢复普通窗口，再按真实客户区 DIP 缩放。
         if (_window!.IsMaximized) _window.ToggleMaximize();
@@ -642,9 +648,12 @@ internal sealed partial class ShellNavigationProbe
                     $"{state}：音频那一行 {a.Height:0.#} 高，选择框是 {height:0.#}");
             }
 
-            Require(vm.AudioVisibility == Visibility.Visible && audioPicker.Visibility == Visibility.Visible
-                && audio.ActualHeight > 0, "单音轨没有保留音频选择栏");
-            Rhythm("单音轨（音频是选择栏）");
+            // 2026-11-16 用户令「只有一个能选你弄什么选择栏，直接显示就好」：单音轨这一行不再摆选择框，
+            // 行本身和它的高（EgPickerRowHeight）还在，改由 ColumnAudioText 读出完整轨道名。
+            Require(vm.AudioVisibility == Visibility.Visible && audioPicker.Visibility == Visibility.Collapsed
+                && Get<TextBlock>(page, "ColumnAudioText").Visibility == Visibility.Visible
+                && audio.ActualHeight > 0, "单音轨没有收成一行文字");
+            Rhythm("单音轨（音频是文字）");
             await SaveProbeScreenAsync("detail-picker-rhythm-text-screen.png");
 
             source.MediaStreams.Add(new() { Index = 4, Type = "Audio", DisplayTitle = "国语 · AAC 2.0" });

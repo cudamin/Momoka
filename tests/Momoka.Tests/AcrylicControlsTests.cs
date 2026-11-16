@@ -97,7 +97,9 @@ internal static class AcrylicControlsTests
         {
             var page = Read("Views/DetailPage.xaml");
             const string RowHeight = "{StaticResource EgPickerRowHeight}";
-            var rows = Named(page, "ColumnPickers").Elements(Xaml + "Grid").ToList();
+            // 商店模式那两列并排壳（StoreTrackRow）只是运行期接住音频和字幕两行，不带行高，不算进这四行。
+            var rows = Named(page, "ColumnPickers").Elements(Xaml + "Grid")
+                .Where(row => (string?)row.Attribute(X + "Name") != "StoreTrackRow").ToList();
             Assert.Equal(4, rows.Count, "片名栏那一份文件选项不是四行（视频、媒体源、音频、字幕）");
             foreach (var row in rows)
                 Assert.Equal(RowHeight, (string?)row.Attribute("MinHeight"));

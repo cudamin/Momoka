@@ -17,6 +17,13 @@ namespace Momoka.Emby;
 public sealed record TrackRow(string Text, MediaStream? Stream, bool Disable)
 {
     public bool IsAvailable { get; init; } = true;
+
+    /// <summary>
+    /// 商店模式那一行收起时显示的字（2026-11-16 用户令「该回去原来怎么显示的就怎么显示，去掉前面的自动」）：
+    /// 仍是原来的完整轨道名（编码、声道、「默认」都在），只是不带「自动 · 」那截前缀 —— 展开列表照旧带前缀
+    /// 说明这一行是自动选择。没有明确轨道时（由 mpv 决定、不使用字幕）原样用 <see cref="Text"/>。
+    /// </summary>
+    public string ShortText { get; init; } = Text;
 }
 
 /// <summary>
@@ -524,8 +531,12 @@ public static class ItemDetail
     public static IReadOnlyList<TrackRow> AudioRows(PlaybackSettings settings, MediaSource source)
     {
         var auto = TrackSelection.Resolve(settings, source);
+        var autoText = AutoLabel(auto.Audio?.ToDisplayLabel());
 
-        var rows = new List<TrackRow> { new(AutoLabel(auto.Audio?.ToDisplayLabel()), null, false) };
+        var rows = new List<TrackRow>
+        {
+            new(autoText, null, false) { ShortText = ShortAutoLabel(auto.Audio, autoText) }
+        };
         var map = MpvTrackMap.Build(source);
         rows.AddRange(source.AudioStreams.Select(stream => TrackPickerRow(stream, map)));
         return rows;
@@ -550,7 +561,10 @@ public static class ItemDetail
 
         var rows = new List<TrackRow>
         {
-            new(automatic, null, false),
+            new(automatic, null, false)
+            {
+                ShortText = subtitle.Disabled ? automatic : ShortAutoLabel(subtitle.Stream, automatic)
+            },
             new("不使用字幕", null, true)
         };
 
@@ -569,6 +583,12 @@ public static class ItemDetail
             IsAvailable = available
         };
     }
+
+    /// <summary>
+    /// 自动那一行的收起态：有具体轨道就用它的完整名（去掉「自动 · 」前缀），没有就照旧说由谁决定。
+    /// </summary>
+    private static string ShortAutoLabel(MediaStream? picked, string text) =>
+        picked?.ToDisplayLabel() is { Length: > 0 } label ? label : text;
 
     /// <summary>The 自动 row's text: what the settings would pick, or who decides when nothing does.</summary>
     public static string AutoLabel(string? picked) =>

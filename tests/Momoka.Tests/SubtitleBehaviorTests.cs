@@ -106,6 +106,31 @@ internal static class SubtitleBehaviorTests
             Assert.Equal(3, ItemDetail.SubtitleRows(settings, source)[2].Stream?.Index);
         });
 
+        // 2026-11-16 用户令「该回去原来怎么显示的就怎么显示，去掉前面的自动」：商店那一行收起时
+        // 仍是原来的完整轨道名，只是不带「自动 · 」前缀；展开列表里那一截还在。
+        Test("商店收起态：完整轨道名去掉自动前缀，其余照旧", () =>
+        {
+            var source = Source(Audio(1, "jpn"), Subtitle(2, "chi"));
+            source.MediaStreams[0].DisplayLanguage = "Japanese";
+            source.MediaStreams[0].DisplayTitle = "Japanese AAC stereo (默认)";
+            source.MediaStreams[1].DisplayLanguage = "Chinese Simplified";
+            source.MediaStreams[1].DisplayTitle = "Chinese Simplified (默认 SUBRIP)";
+            var settings = new PlaybackSettings();
+
+            var audio = ItemDetail.AudioRows(settings, source)[0];
+            Assert.Equal("自动 · Japanese AAC stereo (默认)", audio.Text);
+            Assert.Equal("Japanese AAC stereo (默认)", audio.ShortText);
+
+            var subtitle = ItemDetail.SubtitleRows(settings, source)[0];
+            Assert.Equal("自动 · Chinese Simplified (默认 SUBRIP)", subtitle.Text);
+            Assert.Equal("Chinese Simplified (默认 SUBRIP)", subtitle.ShortText);
+
+            // 显式轨道和不使用字幕本来就没有前缀，收起态与列表同一份字。
+            Assert.Equal("Japanese AAC stereo (默认)", ItemDetail.AudioRows(settings, source)[1].ShortText);
+            Assert.Equal("Chinese Simplified (默认 SUBRIP)", ItemDetail.SubtitleRows(settings, source)[2].ShortText);
+            Assert.Equal("不使用字幕", ItemDetail.SubtitleRows(settings, source)[1].ShortText);
+        });
+
         Test("字幕可用性：自动跳过外挂图形轨，详情下拉隐藏不可加载候选", () =>
         {
             var external = Subtitle(1, "chi");
