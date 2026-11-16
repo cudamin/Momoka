@@ -78,6 +78,56 @@ public static class DetailHero
     public static double StorePageInset(double width) => width >= StoreWideFloor ? 96 : width >= 600 ? 56 : 32;
 
     /// <summary>
+    /// 商店档左栏里封面那一栏至少占多宽 —— 四颗 44 的命中格共 176，加两侧一点余量就是 180
+    /// （同 <c>DetailPage.StoreCoverColumnWidth</c>）。
+    /// </summary>
+    public const double StoreCoverColumn = 180;
+
+    /// <summary>
+    /// 商店档片名栏（封面右边那一栏）的保底宽度。
+    /// <para>
+    /// 2026-11-16 用户令「位置不够时不要裁切，直接压在背景图上」：宽版式给右侧剧照让位之后，片名栏在
+    /// 刚过 1024 断点的那一段窗口上只剩一百来像素（1024 时几乎为零）—— 片名折行、片名头上那枚徽标跟着缩小、
+    /// 三颗图标和主播放键在栏的右沿被切掉。撑到 300 之后，徽标按 280×56 的上限整枚画得下，播放键那句
+    /// 「继续播放 1:05:33」也放得下；多出来的那一截压在右侧剧照上 —— 画面是装饰，字和键不该为它让到读不清。
+    /// </para>
+    /// </summary>
+    public const double StoreTextFloor = 300;
+
+    /// <summary>
+    /// 商店档片名栏这一次的宽。<paramref name="contentWidth"/> 是让位给右侧剧照之后剩下的内容宽
+    /// （<c>DetailViewModel.StoreContentWidth</c>），减掉封面与栏距就是原本留给字的那一截；它比
+    /// <see cref="StoreTextFloor"/> 还窄时撑到保底宽度，上限是整幅内容宽 —— 窗口窄到连保底都放不下时
+    /// 只收到页边，不顶出页面。
+    /// </summary>
+    /// <param name="pageWidth">这一页这一次的宽（<c>DetailViewModel.PageWidth</c>）。</param>
+    /// <param name="contentWidth">让位给右侧剧照之后剩下的内容宽。</param>
+    /// <param name="stillWidth">封面这一次画多宽；商店档按 180×270 的盒子收窄。</param>
+    /// <param name="columnSpacing">封面与片名栏之间那一格（<c>DetailViewModel.ColumnSpacing</c>）。</param>
+    public static double StoreTextColumn(double pageWidth, double contentWidth, double stillWidth, double columnSpacing)
+    {
+        var cover = Math.Max(StoreCoverColumn, stillWidth);
+        var full = Math.Max(0, pageWidth - (2 * StorePageInset(pageWidth)) - cover - columnSpacing);
+        return Math.Min(Math.Max(contentWidth - cover - columnSpacing, StoreTextFloor), full);
+    }
+
+    /// <summary>
+    /// 商店档头图那一行（封面 + 片名栏）这一次占多宽 —— 片名栏撑到保底宽度时这一行跟着往右长，
+    /// 多出来的那一截压在右侧剧照上；上限是整幅内容宽（页宽减两侧留白）。
+    /// </summary>
+    /// <param name="pageWidth">同 <see cref="StoreTextColumn"/>。</param>
+    /// <param name="contentWidth">同 <see cref="StoreTextColumn"/>。</param>
+    /// <param name="stillWidth">同 <see cref="StoreTextColumn"/>。</param>
+    /// <param name="columnSpacing">同 <see cref="StoreTextColumn"/>。</param>
+    public static double StoreHeroColumn(double pageWidth, double contentWidth, double stillWidth, double columnSpacing)
+    {
+        var cover = Math.Max(StoreCoverColumn, stillWidth);
+        var full = Math.Max(0, pageWidth - (2 * StorePageInset(pageWidth)));
+        var room = cover + columnSpacing + StoreTextColumn(pageWidth, contentWidth, stillWidth, columnSpacing);
+        return Math.Min(full, Math.Max(contentWidth, room));
+    }
+
+    /// <summary>
     /// 商店详情头部内容离内容区上沿的空白。2026-11-15 用户令「增加详情页/订阅详情页上方的空位」
     /// （参考微软商店条目页：标题栏下先空一段，封面、片名和按钮才起排）。
     /// <para>

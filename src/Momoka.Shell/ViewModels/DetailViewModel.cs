@@ -459,6 +459,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
     [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     public partial double PageWidth { get; set; }
 
@@ -525,6 +526,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StoreBackdropWidth));
         OnPropertyChanged(nameof(StoreTextWidth));
+        OnPropertyChanged(nameof(StoreHeroWidth));
         OnPropertyChanged(nameof(StoreContentWidth));
         OnPropertyChanged(nameof(StorePreviewMargin));
         OnPropertyChanged(nameof(TailMinHeight));
@@ -779,6 +781,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     public partial double StillWidth { get; set; }
 
     [ObservableProperty]
@@ -2801,6 +2804,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
+        OnPropertyChanged(nameof(StoreHeroWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
         OnPropertyChanged(nameof(ColumnWatchedLabelsVisibility));
         AnnounceAffordances();

@@ -59,7 +59,7 @@ internal static partial class DetailActionReadinessTests
                 Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());
                 Assert.Equal(0d, (double)f.Get("TailMinHeight")!);
                 Assert.Equal(0d, (double)f.Get("PaperMinHeight")!);
-                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "CornerVisibility", "HeroContent" })
+                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "StoreHeroWidth", "CornerVisibility", "HeroContent" })
                     Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
                 foreach (var width in new[] { 360d, 760d, 1023d, 1024d, 1025d, 1072d, 1200d, 2400d, 760d })
                 {
@@ -73,8 +73,13 @@ internal static partial class DetailActionReadinessTests
                     Assert.True(notices.Contains("StoreBackdropHeight"));
                     var previewWidth = Math.Min(640, width * 0.46);
                     var leftWidth = Math.Max(0, width - 2 * DetailHero.StorePageInset(width) - (width >= DetailHero.StoreWideFloor ? previewWidth + 28 : 0));
-                    Assert.Equal(Math.Max(0, leftWidth - (double)f.Get("StillWidth")! - 22), (double)f.Get("StoreTextWidth")!);
+                    var stillWidth = (double)f.Get("StillWidth")!;
+                    // 2026-11-16「位置不够时不要裁切，直接压在背景图上」：让位之后放不下内容时，
+                    // 片名栏撑到 StoreTextFloor，头图那一行跟着长；超出部分压在右侧剧照上。
+                    Assert.Equal(DetailHero.StoreTextColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreTextWidth")!);
+                    Assert.Equal(DetailHero.StoreHeroColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreHeroWidth")!);
                     Assert.True(notices.Contains("StoreContentWidth"));
+                    Assert.True(notices.Contains("StoreHeroWidth"));
                 }
                 notices.Clear();
                 f.Vm.GetType().GetProperty("StoreDetailsRoom", Members)!.SetValue(f.Vm, 700d);
