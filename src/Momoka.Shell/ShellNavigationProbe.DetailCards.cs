@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -110,6 +111,8 @@ internal sealed partial class ShellNavigationProbe
                 var panels = names.Select(name => Get<StackPanel>(page, name)).ToArray();
                 CheckEdges(cover, panels, Get<Grid>(page, "StoreScrollContent"));
                 RequireStoreHeroAlignment(page);
+                if (width is 1240 or 760 or 360 && page.ViewModel.StoreMode)
+                    await CheckStoreContinueAsync(page, reads);
                 RequireCardOrder(page, fixture.Settings.Ui.SeriesCards.Select(card => card.Key));
                 panels.First(panel => panel.Visibility == Visibility.Visible).StartBringIntoView();
                 await LayoutAsync(page);
@@ -236,6 +239,77 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    /// <summary>
+    /// 2026-11-16 用户参考图「把商店页面的连播开关改为这种」：商店档这颗是开关（<c>StoreContinueSwitch</c>），
+    /// 挂在集卡右上角。先按指针路径确认它点得到，再核对开/关两档写回，并确认开态的轨道真的画成主题色。
+    /// </summary>
+    private async Task CheckStoreContinueAsync(DetailPage page, List<string> reads)
+    {
+        var toggle = Get<ToggleSwitch>(page, "StoreContinueSwitch");
+        Require(toggle.Visibility == Visibility.Visible && toggle.IsEnabled
+            && toggle.ActualWidth > 20 && toggle.ActualHeight > 20, "商店连播开关不可见或不可点");
+        toggle.StartBringIntoView();
+        await LayoutAsync(page);
+        var centre = toggle.TransformToVisual(_root)
+            .TransformPoint(new(toggle.ActualWidth / 2, toggle.ActualHeight / 2));
+        var hits = VisualTreeHelper.FindElementsInHostCoordinates(centre, _root).ToList();
+        Require(hits.Contains(toggle),
+            $"商店连播开关点不到（中心 {centre.X:0.#},{centre.Y:0.#}）：{HitChain(hits)}");
+        var accent = ((SolidColorBrush)Application.Current.Resources["EgAccentBrush"]).Color;
+        var before = page.ViewModel.ContinuePlay;
+        try
+        {
+            toggle.IsOn = false;
+            await LayoutAsync(page);
+            Require(!page.ViewModel.ContinuePlay, "商店连播开关关着时没有写回视图模型");
+            toggle.IsOn = true;
+            await LayoutAsync(page);
+            Require(page.ViewModel.ContinuePlay, "商店连播开关打开后没有写回视图模型");
+            // 属性对了不算数：把这颗开关自己渲染进位图，数实际画出来的主题色像素。
+            var (accentPixels, white, total) = await CountPixelsAsync(toggle, accent);
+            reads.Add($"商店连播开关：命中链 {HitChain(hits)}，开态主题色 {accent} 像素 {accentPixels}/{total}（白 {white}）");
+            Require(accentPixels > 0,
+                $"商店连播开关开着时轨道没有画出主题色（{accentPixels}/{total} 像素，主题色 {accent}）");
+        }
+        finally
+        {
+            toggle.IsOn = before;
+            await LayoutAsync(page);
+        }
+        reads.Add($"商店连播开关：命中链 {HitChain(hits)}，按钮在 {centre.X:0.#},{centre.Y:0.#}；开/关写回通过");
+    }
+
+    private static string HitChain(IEnumerable<DependencyObject> hits) => string.Join(" > ", hits.Take(5).Select(node =>
+        node is FrameworkElement element && element.Name.Length > 0
+            ? node.GetType().Name + "/" + element.Name
+            : node.GetType().Name));
+
+    /// <summary>
+    /// 把一个控件渲染进自己的位图，数目标色/白像素。预乘 BGRA：不透明像素的分量就是原值。
+    /// </summary>
+    private async Task<(int Target, int White, int Total)> CountPixelsAsync(
+        FrameworkElement element, Windows.UI.Color want)
+    {
+        var bitmap = new Microsoft.UI.Xaml.Media.Imaging.RenderTargetBitmap();
+        await bitmap.RenderAsync(element);
+        var pixels = (await bitmap.GetPixelsAsync()).ToArray();
+        var hits = 0;
+        var white = 0;
+        for (var at = 0; at + 3 < pixels.Length; at += 4)
+        {
+            var blue = pixels[at];
+            var greenChannel = pixels[at + 1];
+            var red = pixels[at + 2];
+            var alpha = pixels[at + 3];
+            if (alpha < 160) continue;
+            if (Math.Abs(red - want.R) <= 30 && Math.Abs(greenChannel - want.G) <= 30 && Math.Abs(blue - want.B) <= 30)
+                hits++;
+            else if (red > 225 && greenChannel > 225 && blue > 225)
+                white++;
+        }
+        return (hits, white, pixels.Length / 4);
+    }
+
     private static void RequireStoreHeroAlignment(DetailPage page)
     {
         // 2026-11-15 用户令：商店模式里「已观看」那颗图标是固定的绿，不跟主题强调色走
@@ -278,6 +352,7 @@ internal sealed partial class ShellNavigationProbe
         var favorite = Get<Button>(page, "ColumnFavoriteButton");
         var watched = Get<Button>(page, "ColumnWatchedButton");
         var continuePlay = Get<ToggleButton>(page, "ColumnContinueButton");
+        var continueEntry = Get<StackPanel>(page, "StoreContinueEntry");
         var actionRow = Get<WrapRow>(page, "ColumnActionRow");
         var coverActions = Get<Grid>(page, "StoreCoverActions");
         var playSlot = Get<Grid>(page, "StorePlaySlot");
@@ -288,8 +363,11 @@ internal sealed partial class ShellNavigationProbe
         {
             Require(ReferenceEquals(play.Parent, playSlot)
                 && new[] { watched, favorite, more }.All(button => ReferenceEquals(button.Parent, coverActions))
-                && ReferenceEquals(episodeHead.Trailing, continuePlay),
-                "商店主播放键未在三颗图标下方、三颗未排在同一行，或连播离开了集卡右上角");
+                && ReferenceEquals(episodeHead.Trailing, continueEntry),
+                "商店主播放键未在三颗图标下方、三颗未排在同一行，或连播开关离开了集卡右上角");
+            Require(continueEntry.Children.OfType<TextBlock>().Any(text => text.Text == "连播")
+                && continueEntry.Children.OfType<ToggleSwitch>().Count() == 1,
+                "商店连播开关缺少左边的「连播」标签或开关本身");
             Require(ReferenceEquals(actionBlock.Parent, Get<StackPanel>(page, "HeroStack")),
                 "商店操作块没有排在片名那一栏里");
             RequireStoreCoverActionAppearance(page);
@@ -306,21 +384,22 @@ internal sealed partial class ShellNavigationProbe
                 playBox.Left, playBox.Top, playBox.Width, playBox.Height);
             Require(buttons.SequenceEqual(coverActions.Children.OfType<Button>()), "操作行按钮次序不是已看、收藏、更多");
             var panel = Get<StackPanel>(page, "EpisodePanel");
-            if (panel.Visibility == Visibility.Visible && continuePlay.Visibility == Visibility.Visible)
+            if (panel.Visibility == Visibility.Visible && continueEntry.Visibility == Visibility.Visible)
             {
                 var panelBox = Bounds(panel, canvas);
-                var continueBox = Bounds(continuePlay, canvas);
+                var continueBox = Bounds(continueEntry, canvas);
                 Require(continueBox.Right <= panelBox.Right + 1 && continueBox.Top <= panelBox.Top + 72
                     && continueBox.Left >= panelBox.Left + panelBox.Width / 2,
-                    "连播没有落在集列表卡片的右上角");
+                    "连播开关没有落在集列表卡片的右上角");
             }
         }
         else
         {
             Require(ReferenceEquals(play.Parent, actionRow) && ReferenceEquals(more.Parent, actionRow)
                 && ReferenceEquals(favorite.Parent, actionRow) && ReferenceEquals(watched.Parent, actionRow)
-                && ReferenceEquals(continuePlay.Parent, actionRow) && episodeHead.Trailing is null,
-                "退出商店模式后操作键没有回到ColumnActions");
+                && ReferenceEquals(continuePlay.Parent, actionRow) && episodeHead.Trailing is null
+                && continueEntry.Visibility == Visibility.Collapsed,
+                "退出商店模式后操作键没有回到ColumnActions，或连播开关没有收起");
         }
         // 操作行宽窄与右侧预告的1024断点相互独立，不用IsCompact冒充预告宽窗条件。
         var pictureCorner = Get<Grid>(page, "StoreBackdropContent").CornerRadius;

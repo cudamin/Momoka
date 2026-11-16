@@ -146,10 +146,11 @@ public sealed partial class DetailPage
     /// 商店模式的操作键（2026-11-16 用户令：四颗键全放在片名下面那行「播放日期」的下方）：
     /// 已看、收藏、更多三颗收成图标排成一行，主播放键放在它们下面，宽度与上面那一行相同；
     /// 播放键回到 2026-11-14 的主题色药丸样式（用户令「还原成之前的样式」），带「播放」文字。
-    /// 四颗保留原控件、命令、自动化名称与状态；连播仍挂在集列表卡片右上角。
+    /// 四颗保留原控件、命令、自动化名称与状态；连播在商店档是集列表卡片右上角那颗开关
+    /// （<c>StoreContinueSwitch</c>，2026-11-16 用户令），沉浸档的药丸留在操作排里。
     /// <para>
     /// 搬的是同一批实例，绑定、命令、焦点不重接；退出商店模式时
-    /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>。
+    /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>，开关回到排尾收起。
     /// 已看那颗键收成图标：文字组的显隐由 <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/>
     /// 收起。三颗图标与下方音频/字幕选择框共用同一支固定面色和小圆角（2026-11-16 用户令），
     /// 底色仍由 <see cref="ControlBackgroundBrushes"/> 种进控件局部资源的 ButtonBackground* 承担。
@@ -173,10 +174,12 @@ public sealed partial class DetailPage
             MoveToPanel(ColumnPlayButton, StorePlaySlot);
             ColumnPlayButton.HorizontalAlignment = HorizontalAlignment.Stretch;
 
-            if (!ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton))
+            // 连播在商店档是集卡右上角那颗开关（2026-11-16 用户参考图「把商店页面的连播开关改为这种」，
+            // 左边带「连播」标签）；沉浸档那颗药丸此时由 ColumnContinueVisibility 收起，留在操作排里不占位。
+            if (!ReferenceEquals(EpisodeHead.Trailing, StoreContinueEntry))
             {
-                Detach(ColumnContinueButton);
-                EpisodeHead.Trailing = ColumnContinueButton;
+                Detach(StoreContinueEntry);
+                EpisodeHead.Trailing = StoreContinueEntry;
             }
             var storeStyle = (Style)Resources["EgStoreCoverActionButtonStyle"];
             foreach (var button in icons)
@@ -198,10 +201,11 @@ public sealed partial class DetailPage
             return;
         }
 
-        if (ReferenceEquals(EpisodeHead.Trailing, ColumnContinueButton)) EpisodeHead.Trailing = null;
+        if (ReferenceEquals(EpisodeHead.Trailing, StoreContinueEntry)) EpisodeHead.Trailing = null;
+        // 开关那一整条回到操作排末尾（自己收起，不占位）；沉浸档的连播药丸一直在原位，不用搬。
+        RestoreToActions(StoreContinueEntry, ColumnActionRow.Children.Count);
         RestoreToActions(ColumnPlayButton, 0);
         ColumnPlayButton.ClearValue(FrameworkElement.HorizontalAlignmentProperty);
-        RestoreToActions(ColumnContinueButton, IndexAfter(ColumnExtrasButton));
         RestoreToActions(ColumnWatchedButton, IndexAfter(ColumnContinueButton));
         RestoreToActions(ColumnFavoriteButton, IndexAfter(ColumnWatchedButton));
         RestoreToActions(ColumnMoreButton, ColumnActionRow.Children.Count);
