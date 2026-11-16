@@ -315,6 +315,8 @@ namespace Momoka.Shell.ViewModels
         public bool Busy { get; set; }
         public bool IsReady { get; set; } = true;
         public double PageWidth { get; set; } = 600;
+        /// <summary>正文那排卡片的内边距（<c>BodySheet.Padding</c> 的绑定来源）；悬浮栏的留白由它加 BodySheet.Margin 推出来。</summary>
+        public Thickness SheetPadding { get; set; } = new(8, 28, 8, 28);
         public bool StoreMode { get; set; }
         public bool Showcase { get; set; }
         public double HeroColumnHeight { get; set; }

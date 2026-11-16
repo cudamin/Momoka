@@ -632,12 +632,28 @@ internal static class Program
             f.Page.Body.ActualWidth = 519.999;
             f.Page.UpdateHeader();
             Assert.Equal(Visibility.Collapsed, f.Page.StickyPoster.Visibility);
+            // 2026-11-16 用户令「比商店模式下面卡片稍窄，沉浸模式同步」：过了 520 之后两侧留白不再写死 32，
+            // 而是跟着正文卡片那排（BodySheet.Margin 10 + SheetPadding）每侧再收进 12。这一档夹具的
+            // 纸面内边距是 8，所以 10 + 8 + 12 = 30。
             f.Page.Body.ActualWidth = 520;
             f.Page.UpdateHeader();
-            Assert.Equal(new Thickness(32, 12, 32, 0), f.Page.StickyHeader.Margin);
+            Assert.Equal(new Thickness(30, 12, 30, 0), f.Page.StickyHeader.Margin);
             Assert.Equal(16d, f.Page.StickyHeaderContent.ColumnSpacing);
             Assert.Equal(Visibility.Visible, f.Page.StickyPoster.Visibility);
             Assert.Equal(Visibility.Visible, f.Page.StickyPlayText.Visibility);
+        });
+        Test("悬浮栏两侧比正文卡片每侧再收进12，商店与沉浸同一套算法", () =>
+        {
+            using var f = new Fixture();
+            f.Page.Body.ActualWidth = 1280;
+            // 商店档：卡片贴在 StorePageInset 上（BodySheet.Margin 10 加纸面内边距 86 = 96）。
+            f.Page.ViewModel.SheetPadding = new Thickness(86, 14, 86, 28);
+            f.Page.UpdateHeader();
+            Assert.Equal(new Thickness(108, 12, 108, 0), f.Page.StickyHeader.Margin);
+            // 沉浸档：卡片左沿是 18（10 + 8），差的那一档仍是 12。
+            f.Page.ViewModel.SheetPadding = new Thickness(8, 0, 8, 0);
+            f.Page.UpdateHeader();
+            Assert.Equal(new Thickness(30, 12, 30, 0), f.Page.StickyHeader.Margin);
         });
         Test("下滚用Direct连接原播放与横幅，快照冻结前不清源透明度", () =>
         {
@@ -954,7 +970,8 @@ internal static class Program
             Assert.Equal("{x:Bind ViewModel.StillImage, Mode=OneWay}", Named(xaml, "StickyPoster").Attribute("Source")?.Value);
             var header = Named(xaml, "StickyHeader");
             Assert.True(header.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind ViewModel.Title, Mode=OneWay}"));
-            Assert.True(header.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind ViewModel.Subline, Mode=OneWay}"
+            // 副标题那一行自 2026-11-16 起是悬浮栏自己的资料行（评分／类型／日期／时长），不再是正文的副标题。
+            Assert.True(header.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind ViewModel.HeaderFacts, Mode=OneWay}"
                 && element.Attribute("Visibility")?.Value.Contains("HeaderSubtitleVisibility", StringComparison.Ordinal) == true));
             foreach (var name in new[] { "ColumnPlayButton", "CompactPlayButton", "StickyPlayButton" })
                 Assert.Equal("{x:Bind ViewModel.PlayCommand}", Named(xaml, name).Attribute("Command")?.Value);
@@ -967,6 +984,10 @@ internal static class Program
             Assert.Equal("{x:Bind ViewModel.PlayText, Mode=OneWay}", play.Attribute("AutomationProperties.Name")?.Value);
             Assert.Equal("{x:Bind ViewModel.PlayText, Mode=OneWay}", play.Attribute("ToolTipService.ToolTip")?.Value);
             Assert.Equal("{x:Bind ViewModel.PlayVisibility, Mode=OneWay}", play.Attribute("Visibility")?.Value);
+            // 2026-11-16 用户令「悬浮上的播放按钮和实际播放按钮一样」：同一支药丸样式与断点图标，
+            // 尺寸、圆角、材质底都交给正文主播放键那一份，不再自己写一份。
+            Assert.Equal("{StaticResource EgPlayButtonStyle}", play.Attribute("Style")?.Value);
+            Assert.NotNull(Named(xaml, "StickyResumeGlyph"));
         });
         Test("页面入口实际接入初始化释放和滚动更新", () =>
         {

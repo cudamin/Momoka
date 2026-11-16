@@ -24,6 +24,7 @@ internal static class ItemDetailTests
     {
         RegisterHeadings();
         RegisterFacts();
+        RegisterHeaderFacts();
         RegisterSources();
         RegisterCast();
         RegisterEpisodes();
@@ -217,6 +218,63 @@ internal static class ItemDetailTests
 
         // 评分那一条搬走了：两个槽各画什么、怎么格式化，规则和它的单测都在 ItemScore / EmbyTests 那边（「详情评分：…」
         // 那一族）。这里从前那一条只问 CommunityRating 怎么格式化，行为一字不改地搬了过去。
+    }
+
+    /// <summary>
+    /// 顶部悬浮栏副标题那一行（2026-11-16 用户令「评分、类型、播出日期、时长」）：顺序照用户点名的四样，
+    /// 单集／季在前面带上集号或季名，电影和剧不重复片名，缺哪一段就跳哪一段。
+    /// </summary>
+    private static void RegisterHeaderFacts()
+    {
+        Test("悬浮栏：单集带集号，随后是评分、类型、首播日期与时长", () =>
+        {
+            var premiere = new DateTimeOffset(2016, 4, 17, 0, 0, 0, TimeSpan.FromHours(9));
+            var episode = new EmbyItem
+            {
+                Name = "旅途的终点",
+                Type = EmbyItemType.Episode,
+                ParentIndexNumber = 1,
+                IndexNumber = 2,
+                CommunityRating = 8.44f,
+                Genres = ["动画", "奇幻", "冒险", "剧情"],
+                PremiereDate = premiere,
+                RunTimeTicks = 46 * Minute
+            };
+
+            var parts = ItemDetail.HeaderFacts(episode).Split("  ·  ");
+            Assert.Equal(5, parts.Length);
+            Assert.Equal("S1:E2 - 旅途的终点", parts[0]);
+            Assert.Equal("8.4 分", parts[1]);
+            Assert.Equal("动画 / 奇幻 / 冒险", parts[2]);
+            Assert.Equal(premiere.ToLocalTime().ToString("yyyy/M/d", CultureInfo.InvariantCulture), parts[3]);
+            Assert.Equal("46 分钟", parts[4]);
+        });
+
+        Test("悬浮栏：电影与剧不重复片名，缺的段直接跳过", () =>
+        {
+            var movie = new EmbyItem { Type = EmbyItemType.Movie, ProductionYear = 2016, Genres = ["动画"] };
+            Assert.Equal("动画  ·  2016", ItemDetail.HeaderFacts(movie));
+
+            var yearOnly = new EmbyItem { Type = EmbyItemType.Movie, ProductionYear = 2016 };
+            Assert.Equal("2016", ItemDetail.HeaderFacts(yearOnly));
+
+            Assert.Equal("", ItemDetail.HeaderFacts(new EmbyItem { Type = EmbyItemType.Movie, Name = "无信息" }));
+        });
+
+        Test("悬浮栏：季页前一段是季名，评分、类型、日期与时长取那部剧的", () =>
+        {
+            var series = new EmbyItem
+            {
+                Type = EmbyItemType.Series,
+                ProductionYear = 2020,
+                CommunityRating = 9,
+                Genres = ["动画", "奇幻"],
+                RunTimeTicks = 24 * Minute
+            };
+
+            Assert.Equal("第二季  ·  9 分  ·  动画 / 奇幻  ·  2020  ·  24 分钟",
+                ItemDetail.HeaderFacts(series, "第二季"));
+        });
     }
 
     private static void RegisterFacts()

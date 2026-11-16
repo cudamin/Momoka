@@ -303,6 +303,14 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial string? Facts { get; set; }
 
     /// <summary>
+    /// 顶部悬浮栏副标题那一行：集号／季名、评分、类型、首播日期、时长（2026-11-16 用户令
+    /// 「给悬浮栏上点东西」）。取值规则在 <see cref="ItemDetail.HeaderFacts"/>，季页在剧集那一层
+    /// 回来后由 <see cref="ApplySeasonSeries"/> 再写一遍 —— 与 <see cref="Facts"/> 同一处时机。
+    /// </summary>
+    [ObservableProperty]
+    public partial string? HeaderFacts { get; set; }
+
+    /// <summary>
     /// 导演, the prose line under 简介. Empty for an item with no director credited, which collapses
     /// the line — same convention as every other string on this page.
     /// </summary>
@@ -2910,6 +2918,7 @@ public sealed partial class DetailViewModel : PageViewModel
         TitleLink = ItemDetail.TitleTarget(item);
         Subline = item.Type == EmbyItemType.Season ? item.Name : ItemDetail.Subline(item);
         SublineGenres = ItemDetail.SublineGenres(item);
+        HeaderFacts = ItemDetail.HeaderFacts(item);
     }
 
     /// <summary>
@@ -2951,6 +2960,8 @@ public sealed partial class DetailViewModel : PageViewModel
         SublineGenres = ItemDetail.SublineGenres(series);
         ApplyScore(series);
         Facts = ItemDetail.Facts(series, includeStudio: false);
+        // 悬浮栏那一行的前一段仍是季名（Subline），其余四样换用这部剧的 —— 季自己的类型、评分、年份常常是空的。
+        HeaderFacts = ItemDetail.HeaderFacts(series, Subline);
     }
 
     /// <summary>

@@ -16,6 +16,12 @@ namespace Momoka.Shell.Views;
 
 public sealed partial class DetailPage
 {
+    /// <summary>
+    /// 悬浮栏每侧比正文那排卡片再收进的宽度（2026-11-16 用户令「比商店模式下面卡片稍窄，沉浸模式同步」）。
+    /// 一个数管两种模式：卡片自己的留白变了，悬浮栏跟着变，相对这一档始终只是「稍窄」。
+    /// </summary>
+    private const double StickyHeaderCardInset = 12;
+
     private readonly UISettings _headerSystemSettings = new();
     private ImplicitAnimationSet? _headerShow;
     private ImplicitAnimationSet? _headerHide;
@@ -145,11 +151,18 @@ public sealed partial class DetailPage
         if (_headerCompact != compact)
         {
             _headerCompact = compact;
-            StickyHeader.Margin = new Thickness(compact ? 12 : 32, 12, compact ? 12 : 32, 0);
             StickyHeader.Padding = new Thickness(compact ? 12 : 16, 12, compact ? 12 : 16, 12);
             StickyHeaderContent.ColumnSpacing = compact ? 8 : 16;
             StickyPlayText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         }
+        // 两侧留白跟着正文那排卡片走（2026-11-16 用户令「比商店模式下面卡片稍窄，沉浸模式同步」）：
+        // 卡片左沿 = BodySheet.Margin 加纸面内边距 —— 商店档正是 StorePageInset(PageWidth)，沉浸与纸面档
+        // 是 18 —— 悬浮栏每侧再收进 12，读成浮在卡片上面的一条，而不是又一层通栏。宽度随模式与窗口走，
+        // 所以每次布局都重算；相等时不写，免得 Margin 的赋值再引出一轮布局。
+        var cardInset = BodySheet.Margin.Left + ViewModel.SheetPadding.Left;
+        var inset = compact ? 12 : cardInset + StickyHeaderCardInset;
+        var margin = new Thickness(inset, 12, inset, 0);
+        if (StickyHeader.Margin != margin) StickyHeader.Margin = margin;
         // 属性通知与x:Bind的回填顺序不固定；每次最终布局后重算，窄窗不会被晚到的封面挤掉片名。
         StickyPoster.Visibility = compact ? Visibility.Collapsed : HeaderPosterVisibility(ViewModel.StillImage);
     }
