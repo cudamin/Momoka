@@ -1,4 +1,14 @@
-﻿## 2026-11-16 商店操作键全排到播放日期下方、主播放键恢复主题色药丸（本树，待交付）
+﻿## 2026-11-16 更新桌面快捷方式：商店操作键新键位发布（按用户指示带红发布）
+
+用户令「更新桌面快捷方式」，并在全方案构建报红后明确「直接更新快捷方式，检查 探针什么的记到交付里」。最终代码 `c6b25c6`（产品与测试 `6ed077c`）。
+
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut` 退出 0，548 文件、289.8 MB；Momoka.exe SHA256 `FE83513A3AE90DAEFD84023E7585B3B3CBA283807144F0EA81B483F8F18F0057`，Momoka.dll SHA256 `1BEC24C8580A27B489199974ABD4EFF4452A428289674DBAF79001692DEBAEF0`；桌面 `Momoka.lnk` 的目标与 WorkingDirectory 已读回为主树 `artifacts/publish/win-x64`，发布件 exe 写于 14:52。
+
+**已在最终代码上通过。** Shell/Core Release 0 警告 0 错误；主测试 5167 项 5165 通过（2 红均为既有 `C:\WINDOWS\TEMP` 下载环境红）；`Momoka.PageContractTests` 336/336；`detail-action-readiness-fixture` 93/93；原生 detail-cards 2/2（`shell-probe-20261116-063952703-2372`），1240/760 实屏已目视新键位（三颗图标一行、下面同宽主题色播放药丸、紧跟类型／日期行）；改动文件 `format whitespace` 退出 0、`scan-automation-ids.js` 退出 0。
+
+**红与待补验（如实保留，不记全绿）。** 全方案 Release 构建 11 错，全部在 `Momoka.HomeFoldCompletionTests` 的源码提取生成文件（`HomeFoldPage.g.cs` 的 `TestBanner` 还缺 `RailShown`／`MainColumnWidth`，`LibraryOverlay.MaxWidth` 与 `Resize`／`SyncSlideStatus` 等不存在，来自轮播批次 51 合入后 `HomeBanner` 结构变化），与本次按钮改动无关；按用户指示先发布，留待修正。本最终代码上未重跑：`home-carousel`／`settings-page-state`／`settings-storage`／`acrylic-controls`／`SettingsProbeContract` 夹具、轮播商店版式宽窄实屏、settings 原生层级与真实点击、library 及其余 43～50 待补验项、闸门 4 自检与基线比较。360 压力尺寸（常规最小 600）下操作块最小宽 132 超出片名栏，右侧被裁一截，按现状保留。
+
+## 2026-11-16 商店操作键全排到播放日期下方、主播放键恢复主题色药丸（已发布，待补验）
 
 用户先两句（附图）：「把这三个按钮移压到封面上」「把播放按钮还原成之前的样式」；追问时选了「封面底部居中」与「主题色播放按钮」，随后改令「算了，把那三个按钮移到播放按钮的下方，播放按钮一个按钮的长度等于下面三个按钮的长度」，最后定稿「按钮全放在播放日期下方」。按最终口径实施，中间两版没有落盘。
 
