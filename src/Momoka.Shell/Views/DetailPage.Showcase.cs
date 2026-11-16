@@ -80,7 +80,7 @@ public sealed partial class DetailPage
     {
         _storeBackdropFade = new StoreBackdropFade(StoreBackdropContent, StoreBackdrop, StoreBackdropMask);
         _storeAmbientFade = new StoreBackdropFade(StoreAmbientContent, StoreAmbient, StoreAmbientMask,
-            StoreBackdropFadeShape.Ambient);
+            StoreBackdropFadeShape.AmbientSymmetric);
         _sheetBrush.Color = PaperColor;
         BodyPaper.Background = _sheetBrush;
         BodySheet.Background = null;

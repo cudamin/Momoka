@@ -123,16 +123,18 @@ internal static class StoreDetailProbeEvidenceTests
             Reject(() => StoreDetailProbeEvidence.RequireClearance(270, 286, 350, 418, 0, 417, 16));
             Reject(() => StoreDetailProbeEvidence.RequireClearance(270, 286, 350, 418, 490, 434, 16));
         });
-        Test("商店运行判据：剧照保留三向渐隐，环境底左沿满色只收右底", () =>
+        Test("商店运行判据：剧照与环境底都在左右下渐隐", () =>
         {
-            var valid = new StoreFadeRead(128, 128, 0, 0, 0, 240, 120, 100, 240);
+            var valid = new StoreFadeRead(128, 128, 0, 0, 0, 240, 0, 120, 100, 240);
             StoreDetailProbeEvidence.RequireMask(valid);
             Reject(() => StoreDetailProbeEvidence.RequireMask(valid with { Right = 255 }));
             Reject(() => StoreDetailProbeEvidence.RequireMask(valid with { NearRight = 240 }));
             Reject(() => StoreDetailProbeEvidence.RequireMask(valid with { Top = 0 }));
-            var ambient = new StoreFadeRead(128, 128, 255, 0, 0, 240, 120, 100, 240);
+            var ambient = new StoreFadeRead(128, 128, 0, 0, 0, 240, 60, 120, 100, 240);
             StoreDetailProbeEvidence.RequireAmbientMask(ambient);
-            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Left = 0 }));
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Left = 255 }));
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { NearLeft = 0 }));
+            Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { NearLeft = 240 }));
             Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Right = 255 }));
             Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { NearBottom = 0 }));
             Reject(() => StoreDetailProbeEvidence.RequireAmbientMask(ambient with { Top = 0 }));
@@ -142,6 +144,7 @@ internal static class StoreDetailProbeEvidenceTests
             bytes[(3 * 4 + 2) * 4 + 3] = 33;
             var read = StoreDetailProbeEvidence.ReadMask(bytes, 4, 4);
             Assert.Equal(11, read.Left);
+            Assert.Equal(11, read.NearLeft);
             Assert.Equal(22, read.Right);
             Assert.Equal(33, read.Bottom);
             Reject(() => StoreDetailProbeEvidence.ReadMask(bytes[..^1], 4, 4));

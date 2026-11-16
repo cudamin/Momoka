@@ -1,3 +1,13 @@
+## 2026-11-16 商店详情：左上角也按右侧收边（分支 fix-gradient-fill-sides-GTvBkE，已刷新快捷方式，待统一验证）
+
+用户一句（附图，商店模式单集详情页）：「在左上角加一层跟右侧一样的渐变」。追问时选定「左上角也渐隐收边（环境底与淡墨在窗口左沿像右沿一样渐隐到窗口底色，左右对称）」。
+
+**改了什么。** 右侧那条收边在 `StoreBackdropBlend.AmbientAcross` 的 `(1, 0)`；新的 `AmbientSymmetricAcross` 把同一条 28% 曲线镜像到左沿：`[(0,0),(0.28,1),(0.72,1),(1,0)]`。`Mask` 多一个 `symmetric` 开关，`StoreBackdropFadeShape` 新增 `AmbientSymmetric`，只有媒体详情页（`DetailPage.Showcase.cs`）用它；订阅详情页仍是左沿满色的 `Ambient`，不跟着变。`DetailPage.xaml` 那道横向淡墨的左端从 #40 改成透明（30% 处仍 #24，末端仍是透明），和环境底同一个收边方向，左上角不再是一道硬边。
+
+**探针与契约跟着改。** `StoreFadeRead` 新增 `NearLeft`（0.08 处取样）；`RequireAmbientMask` 从「左沿满色」改为「左右两端与底部渐隐、顶部满色」，近左侧必须是一道渐隐而不是直接切掉。`StoreDetailProbeEvidenceTests` 的用例改名并翻转左右期望；`StoreDetailLayoutTests` 追加环境底左端遮罩采样（0 处 0、0.1 处介于 0 与 255、0.5 处满色）、详情页用 `AmbientSymmetric` 而订阅页仍用 `Ambient`、以及横向淡墨首停点透明。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **349/349**；改动文件 `dotnet format whitespace` 与 `check-diff.ps1` 通过。因为改到探针判据本身，按规则当轮跑了 `--probe-shell --probe-section detail-cards --screen 1`：首次启动只记了第一条用例就退出（同一命令重跑正常），重跑 **2/2 通过、退出 0**（`shell-probe-20261116-105324749-1620`），读数里环境底遮罩 `Left=0 / NearLeft=49 / Core=255 / Right=0 / NearRight=19 / Bottom=0 / Top=255`，`store-detail-backdrop-1240-screen.png` 已目视左上角是平滑收边、首字与正文仍清楚。
+
 ## 2026-11-16 商店详情：渐变铺满窗口左右两边（分支 fix-gradient-fill-sides-GTvBkE，已刷新快捷方式，待统一验证）
 
 用户一句（附图，商店模式单集详情页）：「渐变要填满左右两边」。截图里窗口宽过 1840，商店档的环境底与左上角淡墨跟着 1840 的内容列居中，窗口两侧各留一条几百像素的原生画布；装饰带在内容列边缘直接截断，右边剧照视口之外也是一条平直暗带。
