@@ -2212,11 +2212,11 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         var rows = new List<SettingRow>
         {
-            // 「参考上图修改新增设置中的相关功能」（2026-11-16）：选择模式、透明效果、主题色三行照 Windows
-            // 的个性化页排在这里，现有色板留在它们下面 —— 模式决定深浅，色板决定深色档长什么样。
+            // 「参考上图修改新增设置中的相关功能」（2026-11-16）：选择模式、透明效果排在这里，主题那一行
+            // 保留五套固定色板，并把它原来的「跟随系统」一格换成「主题色」选择（用户令「把图二的卡片改为
+            // 主题色选择功能」）—— 跟随系统已经由选择模式负责，色板只决定深色档长什么样。
             mode,
             TransparencyRow(ui),
-            AccentColorRow(ui),
             Themes,
 
             Toggle("UI 动画", "页面切换、卡片悬停等界面动效，改完立即生效；开启时仍遵循 Windows 动画设置",
@@ -2295,20 +2295,6 @@ public sealed partial class SettingsViewModel : PageViewModel
             () => ui.TransparencyEffects,
             value => ui.TransparencyEffects = value,
             after: () => ThemeHost.Apply(ui));
-
-    /// <summary>
-    /// 「主题色」：强调色覆盖。空值显示成「不设置」，也就是跟随当前主题；选完颜色当场换肤，不等保存。
-    /// </summary>
-    private SettingColorRow AccentColorRow(UiSettings ui) =>
-        new("主题色",
-            "按钮、开关、滑块和选中标记的强调色；不设置时跟随当前主题。点开色块挑颜色，选完立即生效。",
-            ui.AccentColor,
-            value =>
-            {
-                ui.AccentColor = value;
-                ThemeHost.Apply(ui);
-            },
-            Save);
 
     /// <summary>
     /// 「在设置中新增开机自启的功能」。这一行和这一页别的行都不一样：它写进去的不是设置文件，而是机器上的启动项
@@ -3034,27 +3020,29 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingThemeRow ThemeSwatches(UiSettings ui) =>
         new(
             "主题",
-            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；跟随系统时随 Windows 的深浅切换。",
-            UiThemes.All,
+            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；跟随系统请在「选择模式」里选。最后一格是主题色，点开可挑强调色。",
+            [.. UiThemes.All.Where(theme => !theme.FollowsSystem)],
             () => ui.Theme,
             value =>
             {
                 ui.Theme = value;
 
-                // 点「跟随系统」＝把选择模式拨到跟随系统；点一套固定色板时拨回深色 —— 否则在浅色档下
-                // 选完色板，屏上一点变化都没有，而那一块偏偏还亮起了角标。模式下拉没有重建，就地换选项。
-                var mode = string.Equals(value, UiThemes.SystemId, StringComparison.OrdinalIgnoreCase)
-                    ? UiThemes.ModeSystem
-                    : UiThemes.ModeDark;
-                if (!string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), mode, StringComparison.Ordinal))
+                // 色板只覆盖深色档：点一块固定色板时把模式拨回深色，否则浅色档下选完屏上不会有变化。
+                if (!string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), UiThemes.ModeDark, StringComparison.Ordinal))
                 {
-                    ui.AppearanceMode = mode;
-                    _appearanceMode?.ReseedSelection(ModeLabel(mode));
+                    ui.AppearanceMode = UiThemes.ModeDark;
+                    _appearanceMode?.ReseedSelection(ModeLabel(UiThemes.ModeDark));
                 }
 
                 ThemeHost.Apply(ui);
             },
-            Save);
+            Save,
+            () => ui.AccentColor,
+            value =>
+            {
+                ui.AccentColor = value;
+                ThemeHost.Apply(ui);
+            });
 
     private static string ModeLabel(string mode) => UiThemes.NormalizeMode(mode) switch
     {

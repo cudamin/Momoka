@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Theming;
 
@@ -76,6 +77,63 @@ public sealed partial class ThemeSwatch : ObservableObject
 }
 
 /// <summary>
+/// 主题色那一格（2026-11-16 用户令「把图二的卡片改为主题色选择功能」）。它占原来「跟随系统」色板的位置：
+/// 跟随系统已经由「选择模式」那一行负责，这一格改成一个大的颜色按钮，点开是 HTML 颜色选择器。
+/// <para>
+/// 底色用主题角色 <c>EgAccentBrush</c>，字用 <c>EgTextOnAccentBrush</c> —— 强调色一改，ThemeHost 会把这两支
+/// 就地换色，这一格和全界面同一拍变；「不设置」仍表示跟随当前主题。
+/// </para>
+/// </summary>
+public sealed partial class ThemeAccentSwatch : ObservableObject
+{
+    private readonly Action<string> _write;
+    private readonly Action _save;
+    private readonly bool _seeded;
+
+    internal ThemeAccentSwatch(string color, Action<string> write, Action save)
+    {
+        Color = color;
+        _write = write;
+        _save = save;
+        _seeded = true;
+    }
+
+    public string Label => "主题色";
+
+    public string Kind => string.IsNullOrWhiteSpace(Color) ? "跟随主题" : "手动";
+
+    /// <summary><c>#RRGGBB</c>, or the empty string for 「不设置，跟随当前主题」.</summary>
+    [ObservableProperty]
+    public partial string Color { get; set; }
+
+    partial void OnColorChanged(string value)
+    {
+        if (!_seeded) return;
+
+        OnPropertyChanged(nameof(Kind));
+        _write(value);
+        _save();
+    }
+
+    /// <summary>自检/说明用：这一格现在选的是什么。</summary>
+    internal string Describe() => string.IsNullOrWhiteSpace(Color) ? "跟随主题" : Color.ToUpperInvariant();
+}
+
+/// <summary>主题色板那一排里的两种格子：五套固定色板与最后一格「主题色」。</summary>
+public sealed class ThemeTileSelector : DataTemplateSelector
+{
+    public DataTemplate? ThemeTemplate { get; set; }
+
+    public DataTemplate? AccentTemplate { get; set; }
+
+    protected override DataTemplate SelectTemplateCore(object item) =>
+        item is ThemeAccentSwatch ? AccentTemplate! : ThemeTemplate!;
+
+    protected override DataTemplate SelectTemplateCore(object item, DependencyObject container) =>
+        SelectTemplateCore(item);
+}
+
+/// <summary>
 /// 主题那一行：几块色板，点哪块是哪块。
 /// <para>
 /// 这里原先是个下拉框。一套主题该让人看见它的颜色，而不是读它的名字 ——「石墨」和「午夜」写在一行里
@@ -88,6 +146,7 @@ public sealed class SettingThemeRow : SettingRow
     private readonly Func<string> _read;
     private readonly Action<string> _write;
     private readonly Action _save;
+    private readonly IReadOnlyList<UiTheme> _themes;
 
     internal SettingThemeRow(
         string heading,
@@ -95,18 +154,32 @@ public sealed class SettingThemeRow : SettingRow
         IReadOnlyList<UiTheme> themes,
         Func<string> read,
         Action<string> write,
-        Action save)
+        Action save,
+        Func<string>? accentRead = null,
+        Action<string>? accentWrite = null)
         : base(heading, note)
     {
         _read = read;
         _write = write;
         _save = save;
+        _themes = themes;
 
         Swatches = [.. themes.Select(theme => new ThemeSwatch(theme, Choose))];
+        Accent = accentRead is null ? null : new ThemeAccentSwatch(accentRead(), accentWrite ?? (_ => { }), save);
+
+        var tiles = new List<object>(Swatches);
+        if (Accent is not null) tiles.Add(Accent);
+        Tiles = tiles;
         Sync();
     }
 
     public IReadOnlyList<ThemeSwatch> Swatches { get; }
+
+    /// <summary>色板之后那一格「主题色」；没有接线时（测试路径）为 null。</summary>
+    public ThemeAccentSwatch? Accent { get; }
+
+    /// <summary>色板那一排真正绑到屏上的项：五套固定色板，最后加一格主题色。</summary>
+    public IReadOnlyList<object> Tiles { get; }
 
     private void Choose(ThemeSwatch swatch)
     {
@@ -139,13 +212,17 @@ public sealed class SettingThemeRow : SettingRow
         var stored = UiThemes.Resolve(_read());
         var distinct = Swatches.Select(swatch => swatch.Roles).Distinct(StringComparer.OrdinalIgnoreCase).Count();
 
-        var ok = Swatches.Count == UiThemes.All.Count
-            && picked is [{ } one]
-            && string.Equals(one.Id, stored.Id, StringComparison.OrdinalIgnoreCase)
+        var ok = Swatches.Count == _themes.Count
+            && (stored.FollowsSystem
+                ? picked.Length == 0
+                : picked.Length == 1 && string.Equals(picked[0].Id, stored.Id, StringComparison.OrdinalIgnoreCase))
             && distinct == Swatches.Count;
 
-        return (ok, $"{Swatches.Count} 块（主题表 {UiThemes.All.Count} 套）、{distinct} 种配色，"
-            + $"角标在 {(picked is [{ } marked] ? marked.Name : $"{picked.Length} 块上")}"
+        return (ok, $"{Swatches.Count} 块色板（色板表 {_themes.Count} 套）、{distinct} 种配色，"
+            + $"主题色 {Accent?.Describe() ?? "未接线"}，"
+            + (stored.FollowsSystem
+                ? "色板未选中（选择模式是跟随系统）"
+                : $"角标在 {(picked is [{ } marked] ? marked.Name : $"{picked.Length} 块上")}")
             + $"，设置里存的是 {stored.Name}（{stored.Id}）");
     }
 }

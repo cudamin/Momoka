@@ -208,10 +208,13 @@ public sealed partial class SettingsPage : Page, IShellContent
         if (ViewModel.Themes is not { } row) return null;
 
         var drawn = 0;
-        CountSwatches(this, ref drawn);
+        var accents = 0;
+        CountSwatches(this, ref drawn, ref accents);
 
         var probe = row.Measure();
-        return (probe.Ok && drawn == row.Swatches.Count, $"{probe.Detail}；屏上 {drawn} 块");
+        var accentOk = row.Accent is null ? accents == 0 : accents == 1;
+        return (probe.Ok && drawn == row.Swatches.Count && accentOk,
+            $"{probe.Detail}；屏上 {drawn} 块色板、{accents} 块主题色");
     }
 
     /// <summary>
@@ -931,14 +934,15 @@ public sealed partial class SettingsPage : Page, IShellContent
             Count(VisualTreeHelper.GetChild(node, index), ref rows);
     }
 
-    /// <summary>Same walk, for the theme row's swatches. See <see cref="MeasureThemeSwatches"/>.</summary>
-    private static void CountSwatches(DependencyObject node, ref int swatches)
+    /// <summary>Same walk, for the theme row's swatches and the accent tile. See <see cref="MeasureThemeSwatches"/>.</summary>
+    private static void CountSwatches(DependencyObject node, ref int swatches, ref int accents)
     {
         if (node is ContentPresenter { Content: ThemeSwatch }) swatches++;
+        else if (node is ContentPresenter { Content: ThemeAccentSwatch }) accents++;
 
         var children = VisualTreeHelper.GetChildrenCount(node);
         for (var index = 0; index < children; index++)
-            CountSwatches(VisualTreeHelper.GetChild(node, index), ref swatches);
+            CountSwatches(VisualTreeHelper.GetChild(node, index), ref swatches, ref accents);
     }
 
     /// <summary>同上，数主页版面那张表画出来的行。见 <see cref="MeasureHomeRows"/>。</summary>
