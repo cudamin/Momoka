@@ -300,6 +300,50 @@ internal static class ShelfFocusTests
             shelf.DispatcherQueue.Drain();
             Assert.Equal(FocusState.Keyboard, target.FocusState);
         });
+        Test("同一货架重挂后的迟到Unloaded保留活动与待焦点，没有下一Loaded也能继续", () =>
+        {
+            var (shelf, target) = Create();
+            target.IsLoaded = false;
+            shelf.FocusAt(2);
+            shelf.ReparentUnloaded();
+            Assert.True(shelf.Live);
+            Assert.Equal(2, shelf.Pending);
+            Assert.Equal(1, target.LoadedSubscriptionCount);
+            Assert.Equal(0, shelf.ArrowStops.Count);
+            target.RaiseLoaded();
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(FocusState.Keyboard, target.FocusState);
+            Assert.Equal(-1, shelf.Pending);
+        });
+        Test("真正离树依旧清监听与待焦点，旧完成和队列不能恢复活动", () =>
+        {
+            var (shelf, target) = Create();
+            target.IsLoaded = false;
+            shelf.FocusAt(2);
+            var correlation = shelf.ScrollCorrelation;
+            shelf.Unload();
+            Assert.False(shelf.Live);
+            Assert.Equal(-1, shelf.Pending);
+            Assert.Equal(0, target.LoadedSubscriptionCount);
+            Assert.Equal(0, target.LayoutSubscriptionCount);
+            Assert.Equal(2, shelf.ArrowStops.Count);
+            target.RaiseLoaded();
+            shelf.CompleteScroll(correlation);
+            shelf.DispatcherQueue.Drain();
+            Assert.Equal(0, target.FocusCalls);
+            Assert.False(shelf.Live);
+        });
+        Test("旧活动位已关闭但实际重新挂树，迟到卸载按当前根恢复活动", () =>
+        {
+            var (shelf, _) = Create();
+            shelf.Unload();
+            Assert.False(shelf.Live);
+            shelf.XamlRoot = new();
+            shelf.ReparentUnloaded();
+            Assert.True(shelf.Live);
+            shelf.FocusAt(2);
+            Assert.Equal(2, shelf.Focused);
+        });
     }
 
     private static (ShelfFocusFixture Shelf, FrameworkElement Target) Create()

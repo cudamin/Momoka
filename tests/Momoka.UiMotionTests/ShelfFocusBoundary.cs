@@ -18,6 +18,8 @@ public sealed partial class ShelfFocusFixture
     private int _focusScrollCorrelation = -1;
     private FrameworkElement? _focusReadyElement;
     private UIElement? _focusBringElement;
+    internal XamlRoot? XamlRoot { get; set; } = new();
+    internal bool Live => _live;
     private readonly WatchBoundary _watch = new();
     private readonly Button Prev = new();
     private readonly Button Next = new();
@@ -33,7 +35,12 @@ public sealed partial class ShelfFocusFixture
     internal List<object?> ArrowStops { get; } = [];
 
     internal void Load() => OnLoaded(this, new());
-    internal void Unload() => OnUnloaded(this, new());
+    internal void Unload()
+    {
+        XamlRoot = null;
+        OnUnloaded(this, new());
+    }
+    internal void ReparentUnloaded() => OnUnloaded(this, new());
     internal void FocusAt(int index) => FocusItem(index);
     internal void Layout() => ApplyPendingFocusedItem();
     internal void CompleteScroll(int correlation)

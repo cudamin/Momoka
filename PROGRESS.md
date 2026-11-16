@@ -8,6 +8,16 @@
 
 本树Shell Release **0警告0错误**（1分46秒），随后串行PageContract Release **0警告0错误**、**329/329，0失败0跳过**；三路径编码/空白检查通过，日志 `artifacts/captions-verification/long-ready-*`。原生Loaded前件与首尾焦点仍待主控运行，未通过前不销账。
 
+## 2026-11-16 交付焦点修复：仍在树上的横带忽略迟到Unloaded
+
+原生 `shell-probe-20261115-173704435-5144` 已明确活动位错配：同一EpisodeStrip，IsLoaded=true、XamlRoot存在、Parent为StackPanel、Visible、Repeater已Loaded且Count2000，_live却始终false，before/failed都一样；焦点入口未执行。该轮不能继续记为前台环境红或旧实例探针。只读源码证实DetailPage重排只移动原Panel，没有新建Shelf。
+
+独立树快进至89bbb4c后，沿用当前同仓 `PosterCard.OnUnloaded`、`CardArtwork.OnUnloaded`、`CardPreview.OnUnloaded` 的已记录实机判据：Unloaded到达时重新读实际XamlRoot；仍挂树的同一实例保持/恢复_live，直接返回，不清在途焦点或监听；真实根已断开才执行原焦点/低优先级队列/代际/目标监听/悬停动画清理。本次产品只改ShelfStrip这一个入口，没有伪造Loaded、改私有状态来让探针通过，原Focus1999/0和物化数量断言不变。
+
+UiMotion原样提取真实OnUnloaded，新增三项：Loaded后迟到Unloaded仍挂树保留待焦点、真实离树清监听与旧完成无效、旧_live已关但重新实际挂树可按根恢复。测试挂树/XamlRoot是明确框架边界；不声称代替WinRT真实生命周期。另聊天同期新增VisibilityReveal七项一并来自master，不归本修复。本次无UI/鼠标/播放/发布，主控合入后原生复验。
+
+本树Shell Release **0警告0错误**（1分12秒），随后串行UiMotion Release **0警告0错误**、**101/101，0失败0跳过**；UiMotion空白校验、四路径编码/差异检查通过，日志 `artifacts/captions-verification/shelf-live-*`。测试覆盖三个生命周期回归，但原生LongSeries首尾焦点仍须由主控在最终主树确认，未通过前不销账。
+
 ## 2026-11-16 虚拟目标焦点实证修复：先完成原生bring再交焦点（待主控复验）
 
 新原生 `shell-probe-20261115-165848368-11840` 的 `performance-long-series-focus-1999.json` 把失败路径明确拆开：before横偏移600400（第1900项 ×316）、目标1999未实现；requested已经给1999的Button键盘焦点但它仍未Loaded；下一layout目标回收，真实焦点被框架挪到1898。前一轮只修Focus返回false后重试不覆盖这条实际成功后回收路径，因此不宣称原生已通过。

@@ -579,7 +579,10 @@ public sealed partial class ShelfStrip : UserControl
     /// <summary>页面被移除时清掉虚拟化容器引用，避免下一次挂回页面时把焦点送回旧数据。</summary>
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        _live = false;
+        // 和 PosterCard/CardArtwork 一样：同一详情面板移位会迟到投递 Unloaded，Loaded未必再来。
+        // 当前仍有XamlRoot就是重挂后的活动实例，不清掉真实焦点请求或监听；真离树才执行收尾。
+        _live = XamlRoot is not null;
+        if (_live) return;
         _focusedIndex = -1;
         _pendingFocusedIndex = -1;
         _focusRetryQueued = false;
