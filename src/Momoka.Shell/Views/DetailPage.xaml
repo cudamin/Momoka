@@ -1166,8 +1166,7 @@
                                         Visibility="{x:Bind ViewModel.StoreContinueVisibility, Mode=OneWay}">
                                         <TextBlock
                                             VerticalAlignment="Center"
-                                            FontSize="14"
-                                            Foreground="{ThemeResource EgTextDimBrush}"
+                                            Style="{StaticResource EgCaptionStyle}"
                                             Text="连播" />
                                         <ToggleSwitch
                                             x:Name="StoreContinueSwitch"
