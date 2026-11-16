@@ -116,7 +116,7 @@ internal static class StoreDetailProbeEvidence
         int Alpha(double x, double y) => bgra[((int)Math.Round(y * (height - 1)) * width
             + (int)Math.Round(x * (width - 1))) * 4 + 3];
         return new(width, height, Alpha(0, 0.35), Alpha(1, 0.35), Alpha(0.5, 1),
-            Alpha(0.5, 0.35), Alpha(0.95, 0.35), Alpha(0.5, 0.9), Alpha(0.5, 0));
+            Alpha(0.5, 0.35), Alpha(0.08, 0.35), Alpha(0.95, 0.35), Alpha(0.5, 0.9), Alpha(0.5, 0));
     }
 
     internal static void RequireMask(StoreFadeRead read)
@@ -127,13 +127,17 @@ internal static class StoreDetailProbeEvidence
             throw new InvalidOperationException("商店实际遮罩未在左右和下方渐隐，或误加了顶部渐隐");
     }
 
-    /// <summary>环境底遮罩：左端贴住内容区左沿（不透明，2026-11-15「左边别留这个黑边」），只收右边与底部。</summary>
+    /// <summary>
+    /// 环境底遮罩：左右两端都收边、底部渐隐（2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」），
+    /// 顶部保持满色；<see cref="StoreFadeRead.NearLeft"/> 证明左端是一道渐隐而不是直接切掉。
+    /// </summary>
     internal static void RequireAmbientMask(StoreFadeRead read)
     {
-        if (read.Left < 245 || read.Right != 0 || read.Bottom != 0 || read.Core < 200
+        if (read.Left != 0 || read.Right != 0 || read.Bottom != 0 || read.Core < 200
+            || read.NearLeft <= 0 || read.NearLeft >= read.Core
             || read.NearRight <= 0 || read.NearRight >= read.Core || read.NearBottom <= 0 || read.NearBottom >= read.Core
             || read.Top < read.Core - 2)
-            throw new InvalidOperationException("商店环境底未在左沿满色覆盖，或仍保留了左端渐隐");
+            throw new InvalidOperationException("商店环境底未在左右两端与下方渐隐，或误加了顶部渐隐");
     }
 
     /// <summary>
@@ -181,6 +185,6 @@ internal static class StoreDetailProbeEvidence
 }
 
 internal sealed record StoreFadeRead(int Width, int Height, int Left, int Right, int Bottom,
-    int Core, int NearRight, int NearBottom, int Top);
+    int Core, int NearLeft, int NearRight, int NearBottom, int Top);
 
 internal sealed record StoreGlyphRead(int Expected, int Matched, int UpperLeftExpected, int UpperLeftMatched);

@@ -174,7 +174,24 @@ internal static class StoreDetailLayoutTests
                 Assert.True(stops.All(stop => stop.Attribute("Color")!.Value.EndsWith("0C0E11", StringComparison.Ordinal)),
                     "渐变没有用 #0C0E11 那一族墨色");
             }
+            // 横着那道左沿透明起坡，和右侧「左上角跟右侧一样的渐变」一致。
+            var horizontalStops = brushes[0].Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
+            Assert.Equal("#000C0E11", horizontalStops[0].Attribute("Color")?.Value);
             Assert.Contains("StoreShade.Visibility = StoreBackdrop.Visibility;", Source("Views/DetailPage.Store.cs"));
+            // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：环境底遮罩左端也起坡，订阅页保持满色。
+            Assert.Contains("StoreBackdropFadeShape.AmbientSymmetric", Source("Views/DetailPage.Showcase.cs"));
+            Assert.Contains("StoreBackdropFadeShape.Ambient);", Source("Views/MoviePilotSubscriptionPage.Showcase.cs"));
+            var mask = Momoka.Shell.Views.StoreBackdropBlend.Mask(ambient: true, symmetric: true);
+            byte AmbientAlpha(double x) => mask[((int)Math.Round(0.35 * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
+            Assert.Equal(0, AmbientAlpha(0));
+            Assert.True(AmbientAlpha(0.1) is > 0 and < 255, "环境底左端没有渐隐");
+            Assert.Equal(255, AmbientAlpha(0.5));
+            // 2026-11-16 用户令「渐变要填满左右两边」：装饰带越过 1840 内容列，用负边距铺到窗口两边。
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("var bleed = store && Body.ActualWidth > columnWidth", store);
+            Assert.Contains("? (Body.ActualWidth - columnWidth) / 2 : 0;", store);
+            Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
+            Assert.Contains("StoreShade.Margin = bleedMargin;", store);
         });
         Test("商店详情：剧情、文件选项和操作键排在封面下方", () =>
         {
