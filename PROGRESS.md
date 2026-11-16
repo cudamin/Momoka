@@ -8,9 +8,11 @@
 
 **检查。** Core/Tests 与 Shell Release/x64 均 **0 警告 0 错误**；`item-batch-fixture` **72/72**；`server-playlist-fixture` **147/147**；主测试 **5199 项，通过 5197**，2 红均为既有 `C:\WINDOWS\TEMP` 下载环境问题；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1`（7 个变更文件）通过。新增／更新菜单测试：媒体库卡片十条入口、各 `CollectionType` 收起项、权限收起、扫库标签替换、Jellyfin 库卡保持原样；`ServerPlaylistTests` 覆盖容器放行与直播／游戏／存根拒绝。
 
-**边界。** 未连真实 Emby 服务器验证播放、标记已看、转换任务与扫描的实际结果；未跑原生探针与验收截图（日常 UI 按 2026-11-16 用户令留到交付）。Jellyfin／FnNas／Plex 的库卡菜单按既有服务器分治保持不变。
+**第二轮：其他库核对（同一分支，提交 `b18511c`）。** 按同一份网页端源码逐库型复核后修了四处：① Emby 的 `canEditInternal` 把 `CollectionFolder` 列为不可编辑，库卡上只有「编辑图像」，所以撤掉上一轮误加的「编辑元数据…」（Jellyfin 的 `canEdit` 不排库，保留）；② Emby `canAddToPlaylist` 只排直播库和播放列表库，合集库（`boxsets`）补「加入播放列表…」；③ Jellyfin 10.10.7 的 `itemHelper`／`itemContextMenu`：库卡有播放、随机播放、加入播放列表（`supportsAddingToPlaylist` 对文件夹放行）、编辑元数据、修改图片、刷新元数据（非直播库），`canMarkPlayed` 与 `canRate` 排 `CollectionFolder`，所以不给标记已看和收藏；单库扫描仍只有 Emby 的 `ScanLibraryFiles`，Jellyfin 保留整机「重新扫描媒体库」；④ 飞牛 0.9.8 的媒体库行只有删除／编辑／扫描（设置页），`ItemBatchPlayback.CanCollect` 也只给 Emby／Jellyfin 收库，飞牛与 Plex 库卡上的「播放」「随机播放」点了会报错，现收起只留「打开」与既有的标记已看。音乐视频库继续由 `ShellPage` 的目录策略整库跳过，未按网页端放开。测试补了合集库、Jellyfin 库卡与直播库、飞牛／Plex 库卡四条；主测试 **5202 项，通过 5200**，2 红同上；Shell Release/x64 0 警告 0 错误，空白与 `check-diff.ps1` 通过。
 
-**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`、`a669e86`，记录提交 `7d46920`、`19670ed`；未合并 master。本树已用仓库根目录临时放入的 `libmpv-2.dll` 发布（548 文件、289.8 MB，发布验证通过），桌面 `Momoka-fix-emby-library-menu-IDnzLR.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（21:06）。
+**边界。** 未连真实 Emby 服务器验证播放、标记已看、转换任务与扫描的实际结果；未跑原生探针与验收截图（日常 UI 按 2026-11-16 用户令留到交付）。飞牛／Plex 的整库播放与随机播放没有接线，本轮按能力隐藏而不是补执行层；Jellyfin 库卡的「刷新元数据」沿用现有刷新表，没有照网页端对库切到扫描模式。
+
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`、`a669e86`、`b18511c`，记录提交 `7d46920`、`19670ed`；未合并 master。本树已用仓库根目录临时放入的 `libmpv-2.dll` 发布（548 文件、289.8 MB，发布验证通过），桌面 `Momoka-fix-emby-library-menu-IDnzLR.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（21:06）。
 
 ## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
 
