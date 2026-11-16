@@ -1,3 +1,13 @@
+## 2026-11-16 详情连播：图标上墨修复，商店档改为主题色开关（已合并 master，未发布）
+
+用户先报「点了没反应，箭头没变绿」，之后附开关截图令「把商店页面的连播开关改为这种」，并确认轨道浅青绿就是主题色、不必特意设置，又令「左边加个连播」。根因有两个：FontIcon 放在 ToggleButton 的内容里时 Foreground 不参与绘制（把它临时改成红色、离屏渲染出来仍是白箭头），以及商店档原先只有一颗药丸键、没有开关这一形。
+
+**改了什么。** 两颗连播图标由 FontIcon 换成同一字形 E8EE 的 TextBlock（`FontFamily=SymbolThemeFontFamily`），`PaintContinueInk` 的前景才真正落屏。商店档新增 `StoreContinueEntry`（「连播」标签 + `StoreContinueSwitch`），`PlaceStoreActionButtons` 在商店模式把它挂到集卡右上角、退出时摘回操作排末尾；开关的 `IsOn` 双绑连播设置，轨道三态直接指向 `EgAccentBrush`／`EgAccentHoverBrush`／`EgAccentPressedBrush`，开/关文字与滑块交给平台。沉浸档两颗药丸仍在，靠新增的 `ColumnContinueVisibility`（非商店档）与 `StoreContinueVisibility`（商店档）轮流出现。标签走 `EgCaptionStyle`，不新增内联字号。
+
+**检查。** 工作树 Shell Release/x64 0 警告 0 错误；`Momoka.Tests` 5210 项 5207 通过（3 红：2 个本机 `C:\WINDOWS\TEMP` 权限拒绝的下载用例，1 个 master 既有的 `SettingsPage.xaml` 内联字号 10→11，与本次无关，合并前就红）；`Momoka.PageContractTests` 352/352；探针 `detail-cards` 2/2（商店开关指针命中、开/关写回、开态轨道离屏渲染出主题色像素 557/2640）、`materials` 3/3（沉浸档全主题全宽窄，图标开态渲染出绿色像素）；改动文件 `dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。
+
+**分支与合并。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/feat-autoplay-button-animation-TAXqgZ`，分支 `feat-autoplay-button-animation-TAXqgZ`，产品与测试提交 `a7a88d7`；2026-11-16 用户要求合并，以合并提交 `5d7edb6` 并入 `master`（自动合并无冲突），随后 `c398b69` 把「连播」标签改成 `EgCaptionStyle`。合并后主树 Shell Release/x64 0 警告 0 错误、`Momoka.PageContractTests` 352/352。随后删除分支快捷方式 `Momoka-feat-autoplay-button-animation-TAXqgZ.lnk`、临时分支与工作树。主树未重新发布，`Momoka.lnk` 仍指旧构建；未推远端。
+
 ## 2026-11-16 详情文件选项改扁（36 到 32 高、本页圆角 12 到 10，已合并 master）
 
 用户附音频选择框截图一句「这个选择框弄扁一点」。「改扁」理解为降高度：`Theme/Styles.xaml` 的 `EgPickerRowHeight` 36 → 32，四行（视频、媒体源、音频、字幕）一起降，行距仍是 6；`DetailPage.xaml` 的页面局部 `ComboBoxMinHeight` 同步 32（模板箭头另有最小高度，须与闭合框一起长），`EgDetailPickerCornerRadius` 12 → 10 —— 半个高度 16 减 10 仍留 6 的直腰，既不回到 4 的方槽，也不会滑成 16 的两端半圆胶囊，同时回到全站输入框的 10 DIP 那一档。商店模式三颗图标键借用同一个圆角资源，跟着一起收；下方操作按钮与全局 `EgPicker`（设置页等）不动。同步改 `ShellNavigationProbe.State` 的竖距断言（32 高、6 间距）与 `AcrylicControlsTests`／`InputControlThemeTests` 的行高、本页圆角期望。
