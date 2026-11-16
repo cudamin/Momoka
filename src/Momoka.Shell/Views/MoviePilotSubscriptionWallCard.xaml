@@ -9,8 +9,13 @@
       左侧小海报、右侧年份／标题，底部一行左进度右状态。批量模式右上角画选择勾选、收起更多键；
       普通模式右上角是更多键。整张卡的点击（打开／选择）由宿主 ListView 的 ItemClick 统一接，
       这里只负责更多键与图片请求两件事，避免卡内按钮和列表点击互相抢那一下。
+
+      **宽度由外面的格子给，不在这里写死**（2026-11-16 用户令「订阅媒体库怎么不会跟媒体库一样自动调整
+      封面大小」）：从前这里写着 Width="340"，窗口拖宽只多出空档、拖窄会把卡片裁掉一截。现在整卡横向撑满
+      ListViewItem（那个容器的宽由 WallGrid 的 ItemsWrapGrid.ItemWidth 按页面可用宽度算出来，见
+      MoviePilotWallMetrics），高度仍是 150 —— 网页端这张卡也是 min-height="150"，宽出来的算背景图。
     -->
-    <Grid x:Name="Root" Width="340" Height="150" Background="Transparent">
+    <Grid x:Name="Root" HorizontalAlignment="Stretch" Height="150" Background="Transparent">
         <!-- 背景图铺满：缺图时退到卡片底色（EgSurfaceAltBrush），标题与操作照旧可读。 -->
         <Border CornerRadius="{StaticResource EgCardCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
             <Grid>

@@ -221,6 +221,8 @@
              内层滚动关掉，整页由宿主 ScrollViewer 统一滚（避免两层滚动条抢拖拽）。 -->
         <ListView x:Name="WallGrid" ItemsSource="{x:Bind ViewModel.Wall, Mode=OneWay}"
             SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnWallItemClick"
+            Loaded="OnWallGridLoaded" SizeChanged="OnWallGridSizeChanged"
+            ContainerContentChanging="OnWallContainerChanging"
             CanReorderItems="{x:Bind ViewModel.CanWallDrag, Mode=OneWay}"
             CanDragItems="{x:Bind ViewModel.CanWallDrag, Mode=OneWay}"
             AllowDrop="{x:Bind ViewModel.CanWallDrag, Mode=OneWay}"
@@ -230,6 +232,9 @@
             ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
+                    <!-- ItemWidth 只是第一帧的起手值：量到这一页的可用宽度后由 ResizeWall 按
+                         MoviePilotWallMetrics 换成「可用宽 ÷ 列数」（2026-11-16 用户令「跟媒体库一样自动
+                         调整封面大小」）。ItemHeight 不跟着变 —— 卡片高度是 150 + 容器下边距 12。 -->
                     <ItemsWrapGrid Orientation="Horizontal" ItemWidth="352" ItemHeight="162" />
                 </ItemsPanelTemplate>
             </ListView.ItemsPanel>

@@ -233,6 +233,42 @@ public sealed partial class MoviePilotSubscriptionWallView : UserControl
 
     // ── 卡片网格 ──────────────────────────────────────────────────────────────────────────────────────
 
+    private void OnWallGridLoaded(object sender, RoutedEventArgs e) => ResizeWall();
+
+    private void OnWallGridSizeChanged(object sender, SizeChangedEventArgs e) => ResizeWall();
+
+    /// <summary>
+    /// 版面还没立起来时（清单是空的、或者面板正在换）<c>ItemsPanelRoot</c> 是 null，量不到就没法算；
+    /// 第一格容器准备好时再算一次 —— 那时面板一定在，而且这是「卡片已经上屏」最早的一拍。
+    /// </summary>
+    private void OnWallContainerChanging(ListViewBase sender, ContainerContentChangingEventArgs args) => ResizeWall();
+
+    /// <summary>
+    /// 一格铺多宽按这一页的可用宽度算（<see cref="MoviePilotWallMetrics"/>，与媒体库同一条算术）。
+    /// <para>
+    /// 卡片本身写死过 340、格子写死过 352：窗口拖宽只多出空档，拖窄把卡片裁掉一截（横向滚动是关着的）。
+    /// 2026-11-16 用户令「订阅媒体库怎么不会跟媒体库一样自动调整封面大小」之后改成跟着窗口走 —— 卡片横向
+    /// 撑满格子（见 WallCard 的 Root），这里只负责把格子的宽交出去。
+    /// </para>
+    /// <para>
+    /// 三个入口都走到这里（Loaded／SizeChanged／第一格容器），所以要幂等：宽度没变就退出，别在拖窗口的
+    /// 每一拍都让版面重排一次。设完 <c>ItemWidth</c> 自己会失效重排；显式再敲一下 measure，是因为这个属性
+    /// 不经过子元素的尺寸变化，某些一拍里面板不会自己重算（探针量到过「格宽换了、卡片还是上一档」）。
+    /// </para>
+    /// </summary>
+    private void ResizeWall()
+    {
+        if (WallGrid.ItemsPanelRoot is not ItemsWrapGrid panel) return;
+        var available = WallGrid.ActualWidth;
+        if (!(available > 0) || !double.IsFinite(available)) return;
+
+        var (_, itemWidth) = MoviePilotWallMetrics.Fit(available);
+        if (Math.Abs(panel.ItemWidth - itemWidth) < 0.5) return;
+
+        panel.ItemWidth = itemWidth;
+        panel.InvalidateMeasure();
+    }
+
     private void OnWallItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is not MoviePilotSubscriptionCard card) return;

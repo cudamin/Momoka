@@ -124,6 +124,28 @@ namespace Momoka.Tests
                 Assert.True(title > year, "年份那一行必须排在片名之前");
                 Assert.True(text.Contains("Card.WallYear") && text.Contains("Card.WallTitle"), "年份／片名要读墙上的那一对读数");
             });
+            // 2026-11-16 用户令「订阅媒体库怎么不会跟媒体库一样自动调整封面大小」：卡片的宽度从前是写死的
+            // 340（格子 352），窗口拖宽只多出空档、拖窄把卡片裁掉一截。现在格子宽度按这一页的可用宽度摊
+            // （MoviePilotWallMetrics，与媒体库同一条算术），卡片横向撑满格子，高度仍是网页端那张卡的 150。
+            Test("订阅墙卡片：宽度跟着格子走，不再钉死 340", () =>
+            {
+                var root = Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views");
+                var card = File.ReadAllText(Path.Combine(root, "MoviePilotSubscriptionWallCard.xaml"));
+                // 只认 Root 那一个开始标签里的属性：注释里留着旧数字当来由，不能拿整份文件找字符串。
+                var start = card.IndexOf("<Grid x:Name=\"Root\"", StringComparison.Ordinal);
+                Assert.True(start > 0, "找不到卡片根格");
+                var tag = card.Substring(start, card.IndexOf('>', start) - start + 1);
+                Assert.False(tag.Contains("Width=\""), "卡片根格又写死了宽度，窗口变化它不会跟着变：" + tag);
+                Assert.True(tag.Contains("HorizontalAlignment=\"Stretch\""), "卡片要横向撑满自己的格子：" + tag);
+                Assert.True(tag.Contains("Height=\"150\""), "卡片高度仍是网页端 SubscribeCard 的 150：" + tag);
+                var wall = File.ReadAllText(Path.Combine(root, "MoviePilotSubscriptionWallView.xaml"));
+                Assert.True(wall.Contains("SizeChanged=\"OnWallGridSizeChanged\"")
+                    && wall.Contains("ContainerContentChanging=\"OnWallContainerChanging\""),
+                    "网格没有接上「量到可用宽度就重算格宽」的入口");
+                var code = File.ReadAllText(Path.Combine(root, "MoviePilotSubscriptionWallView.xaml.cs"));
+                Assert.Contains("MoviePilotWallMetrics.Fit(available)", code);
+                Assert.Contains("panel.ItemWidth = itemWidth;", code);
+            });
             // 墙控件在本专项里是边界替身；这里守真实源码接线，实际弹出几何由下方原生探针量。
             Test("订阅墙菜单：目标是更多按钮，弹窗业务属主仍是页面", () =>
             {
