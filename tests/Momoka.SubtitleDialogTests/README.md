@@ -4,7 +4,7 @@
 
 2026-11-07 提取边界兼容：当前正式入口50项。新增原样提取完整 `RequirePermission`、`OnSubjectStateChanged`，边界只提供权限值和主体事件，不复制业务方法。新增权限撤销后零写、来源固定、草稿可恢复，以及实际状态处理器生效且 Cancel 退订后不再更新的回归；当前 Release/x64 零警告错误、50/50通过。以下36／37／48项是各阶段历史证据。
 
-R04-004 增补11项 Jellyfin 回执用例，当前注册48项。固定10.10.7/12.4控制器在字幕插件失败后仍可返回204，成功写入也另行排队更新轨道；无关联候选ID的回读不能宣称所选字幕已添加。对话框保留未确认状态和只读恢复，将已读轨道及刷新义务交回原详情，不自动重发下载。匿名 Jellyfin 详情夹具同时提供实际父加载所需的空媒体段结果，不掩盖未知请求；全部仍是离线源码夹具。修复与完整红绿证据见 [Subtitle-Receipt-Fixes.md](../../docs/superpowers/reviews/2026-11-05-full-code-review/Subtitle-Receipt-Fixes.md)。
+R04-004 增补11项 Jellyfin 回执用例，当前注册48项。固定10.10.7/12.4控制器在字幕插件失败后仍可返回204，成功写入也另行排队更新轨道；无关联候选ID的回读不能宣称所选字幕已添加。对话框保留未确认状态和只读恢复，将已读轨道及刷新义务交回原详情，不自动重发下载。匿名 Jellyfin 详情夹具同时提供实际父加载所需的空媒体段结果，不掩盖未知请求；全部仍是离线源码夹具。修复与完整红绿证据见历史提交记录。
 
 2026-11-07 的 FINAL-T02 修复在 `ParentBoundaries` 补上电影夹具的无重糊任务边界 `_blurCancel = null`，保留每次构建原样提取的完整生产 `Cancel()`。正式 Release/x64 构建和当前全部37项已复验；这只核对父页加载期和字幕交接，不证明图片重糊取消、真实 WinUI 或服务器写入。R04-001 多版本目标另由主 runner 的 `subtitle-target-fixture` 覆盖。
 
@@ -105,4 +105,4 @@ if ($LASTEXITCODE -ne 0) { throw '差异空白失败' }
 
 来源树 `r056-subtitle-refresh-obligation/Momoka` 在基点 `dab7d3c7bf807fc49fdd2999b71d27c6e67a7e65` 上保留上述 `artifacts/r056` 配对红绿。主整合树将提取边界适配为 R-025 后的完整 Reload block，仅补未用版本／目标值边界，不改父页生产代码。当前主树 `artifacts/staged-repair/batch05/r056-final-build.log` 零警告错误、`r056-final-tests.log` **36过／0失败／0跳过／退出0**，`r056-integrated-shell-build.log` 当前x64 Shell Release零警告错误，`r056-final-whitespace.log` 9份C#题内格式0修改／退出0且无加载失败。以上是主树当前实测，不把来源输出搬来当主树结果。
 
-证据目录是各树 ignored 产物，不是干净检出的依赖。源码／写集／链接／UTF-8 LF与主树整合结果见 [增量记录](../../docs/代码审查-分阶段修复-2026-10-23.md) 的 R-056 段。主树只限定整合本次文件，针对当前 DetailViewModel／DetailPage 与原样提取边界重新验证；不搬来源 bin／obj／包缓存／历史报告。未覆盖真实 UI、布局、字幕服务器处理顺序、账号权限或配置运行；不等于完整产品交付，快捷方式仍旧版。
+证据目录是各树 ignored 产物，不是干净检出的依赖。源码／写集／链接／UTF-8 LF与主树整合结果见该批修复提交的 R-056 段。主树只限定整合本次文件，针对当前 DetailViewModel／DetailPage 与原样提取边界重新验证；不搬来源 bin／obj／包缓存／历史报告。未覆盖真实 UI、布局、字幕服务器处理顺序、账号权限或配置运行；不等于完整产品交付，快捷方式仍旧版。

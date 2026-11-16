@@ -48,7 +48,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/Momoka.ShaderCommandGe
 
 ## 证据与边界
 
-本轮未修生产的精确基点为 d82ad11bd3593c1ee01c02fe7c2a03d0ac52e4e7。先保持真实 Service/Backend 不变并用同夹具得红；最终夹具还以精确 Git blob 作为单独编译输入配对，绝不覆盖工作区。来源红证据和编译/格式失败保留于来源树 `work/r051/logs/`，主树本轮结果保留于 `work/r051/runner-*` 与 `artifacts/staged-repair/batch05/r051/`，最终结果与来源在 [本题 PROGRESS](../../PROGRESS.md) 与 [修复增量](../../docs/代码审查-分阶段修复-2026-10-23.md)。
+本轮未修生产的精确基点为 d82ad11bd3593c1ee01c02fe7c2a03d0ac52e4e7。先保持真实 Service/Backend 不变并用同夹具得红；最终夹具还以精确 Git blob 作为单独编译输入配对，绝不覆盖工作区。来源红证据和编译/格式失败保留于来源树 `work/r051/logs/`，主树本轮结果保留于 `work/r051/runner-*` 与 `artifacts/staged-repair/batch05/r051/`，最终结果与来源在 [本题 PROGRESS](../../PROGRESS.md) 与该批修复提交。
 
 所有 native 返回值均为**合成端点响应**，不表示真实 mpv 接受了设置，更不表示 GLSL 编译或实际画面正确。这里只证明执行点的 handle/file 所有权、参数 marshalling 和托管事务控制流；没有 DLL resolver/初始化/事件线程/真实媒体/真实 native 调用。
 匿名身份只装在内存中；拒绝所有 HTTP、凭据/DPAPI、配置 IO 和登录/恢复/重认证。原样 UI 边界不代表真实 WinUI/窗口/指针/布局；外部契约不代表真实 mpv.exe/IPC。完整 Core/SelfCheck、用户 mutex、播放探针、真实服务器、发布/推送由主树会话另行串行验收，本项目不代跑。
