@@ -47,6 +47,8 @@ public sealed partial class HomePage
         if (BannerZone.Margin != zone) BannerZone.Margin = zone;
         var corners = immersive ? new CornerRadius(0) : (CornerRadius)Application.Current.Resources["EgCardCornerRadius"];
         if (BannerCard.CornerRadius != corners) BannerCard.CornerRadius = corners;
+        // 大图自己也是一张卡片：圆点在卡片下面之后，外圈的 BannerCard 只剪最外沿，大图的另外两角在内部。
+        Banner.SetCardCornerRadius(corners);
         var top = immersive && BannerShown ? -ChromeHeight : 0;
         var margin = Scroller.Margin;
         if (margin.Top != top) Scroller.Margin = new Thickness(margin.Left, top, margin.Right, margin.Bottom);

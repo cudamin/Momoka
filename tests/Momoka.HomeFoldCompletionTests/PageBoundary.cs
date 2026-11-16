@@ -44,6 +44,8 @@ namespace Momoka.Shell.Views
         internal bool RailShown { get; set; }
         internal double MainColumnWidth { get; set; } = 660;
         internal double NaturalBandHeight { get; set; } = 400;
+        internal CornerRadius CardCornerRadius { get; private set; }
+        internal void SetCardCornerRadius(CornerRadius radius) => CardCornerRadius = radius;
         internal bool OverlayOn { get; private set; }
         internal double OverlayHeight { get; private set; }
         internal int SetLibraryOverlayCalls { get; private set; }

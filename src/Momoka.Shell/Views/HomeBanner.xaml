@@ -321,7 +321,17 @@
           解码到的那一瞬和整条带收起来之前的那一帧。它不跟主题走（Palette 里那一段写着理由：带上的字走
           <c>EgOnScrim</c> 那套浅墨，底色跟着主题变成近白就是白底白字）。
         -->
-        <Grid x:Name="Frame" Grid.Column="0" Background="{StaticResource EgBannerBaseBrush}">
+        <!--
+          商店版式的大图自己是**一张圆角卡片**（2026-11-16 用户指出「怎么有些地方不是圆角」）：圆点在卡片下面
+          之后，BannerCard 的圆角只在整条轮播最外圈，大图的右两角和下两角落在内部，会露出直角。所以这一层
+          单独剪四边圆角，半径由 HomePage.SyncCarouselLayout 按显示模式拨（商店 16、沉浸 0）。
+        -->
+        <Border
+            x:Name="HeroClip"
+            Grid.Column="0"
+            Background="{StaticResource EgBannerBaseBrush}"
+            CornerRadius="{StaticResource EgCardCornerRadius}">
+        <Grid x:Name="Frame" Background="{StaticResource EgBannerBaseBrush}">
             <!-- 台上那张剧照还没到的那一瞬（开场第一张，或者换到一张还没解码的）：整条带扫一道光。
                  **摆在 Band 外面**：那一层自己的规矩是「只有两层剧照，别的什么都不铺」（下面那一段长注释），
                  而这一层不是画，是「这儿马上有图」的说明 —— 图一到就整个停掉（见 HomeBanner.Paint）。
@@ -667,6 +677,7 @@
                 </StackPanel>
             </Grid>
         </Grid>
+        </Border>
 
             <!--
               商店版式的右栏（2026-11-16 重做）：上面一张大卡、下面并排两张小卡，图片和标题由 HomeBanner.SyncRail

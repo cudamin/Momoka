@@ -167,6 +167,16 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
+    /// 大图自己那层圆角剪裁（2026-11-16 用户指出「怎么有些地方不是圆角」）。商店版式是 16，沉浸通栏是 0；
+    /// 半径由页面按显示模式拨，不能只靠外面 BannerCard 那一圈 —— 圆点移到卡片下面之后，大图的右两角和
+    /// 下两角落在整条轮播内部，没有这一层就会露出直角。
+    /// </summary>
+    internal void SetCardCornerRadius(CornerRadius radius)
+    {
+        if (HeroClip.CornerRadius != radius) HeroClip.CornerRadius = radius;
+    }
+
+    /// <summary>
     /// 带子里那块字（左边站着的标题、读数、简介、按钮那一整块）。矮窗档翻档时页面要在它身上补一趟位移
     /// （见 <see cref="HomeFoldMotion"/>）：它让位那一下是把底边距整段换掉（<see cref="PlaceInfo"/>），
     /// 一像素不差地硬切；而压上来的那一排是滑上来的，两头差着两百来像素，不同时走就是「字先跳、排后到」。

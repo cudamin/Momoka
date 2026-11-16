@@ -26,10 +26,12 @@ internal static class HomeCarouselLayoutTests
                 Assert.True(names.Contains(name), name + " 不在轮播标记里");
 
             var stage = Single(banner, "Stage");
-            Assert.True(stage.Elements().Any(element => (string?)element.Attribute(X + "Name") == "Frame"),
+            Assert.True(stage.Elements().Any(element => (string?)element.Attribute(X + "Name") == "HeroClip"),
                 "大图不在 Stage 里");
             Assert.True(stage.Elements().Any(element => (string?)element.Attribute(X + "Name") == "Rail"),
                 "右栏不在 Stage 里（会整块压在大图上）");
+            Assert.False(stage.Elements().Any(element => (string?)element.Attribute(X + "Name") == "Frame"),
+                "大图应该由自己的圆角层包着，而不是直接站在 Stage 里");
             Assert.False(stage.Descendants().Any(element => (string?)element.Attribute(X + "Name") is "DotsHost" or "PageDots"),
                 "圆点又回到了卡片里面");
 
@@ -92,6 +94,21 @@ internal static class HomeCarouselLayoutTests
             var cache = Source("Momoka.Shell/Media/BannerBackdropCache.cs");
             Assert.Contains("int requestedWidth, bool extendLeft = true", cache);
             Assert.Contains("? CarouselBackdrop.LeftExtensionShare", cache);
+        });
+
+        Test("商店版式大图自己剪四边圆角，沉浸档由页面拨成 0", () =>
+        {
+            var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
+            var clip = banner.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "HeroClip");
+            Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)clip.Attribute("CornerRadius"));
+            Assert.NotNull(clip.Attribute("Background"));
+            Assert.True(clip.Elements().Any(element => (string?)element.Attribute(X + "Name") == "Frame"),
+                "大图没有被自己的圆角层包住");
+
+            var page = Source("Momoka.Shell/Views/HomePage.Carousel.cs");
+            Assert.Contains("Banner.SetCardCornerRadius(corners);", page);
+            var slide = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            Assert.Contains("internal void SetCardCornerRadius(CornerRadius radius)", slide);
         });
 
         Test("商店版式取色：左侧渐变与卡片光晕接同一条剧照代表色", () =>
