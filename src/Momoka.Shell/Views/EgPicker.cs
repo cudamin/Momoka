@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -73,6 +74,36 @@ public sealed class EgPicker : ComboBox
     private int _dropDownVersion;
     private bool _widthPinned;
 
+    /// <summary>模板里的闭合正文（ContentPresenter），收起态短名往它身上写。</summary>
+    private ContentPresenter? _selectionPresenter;
+    private int _selectionTextVersion;
+
+    /// <summary>成员名的反射查表，键是（条目类型，成员名）；同一批轨道行反复选来选去时不必每回再问一次。</summary>
+    private static readonly Dictionary<(Type Type, string Path), PropertyInfo?> MemberLookup = [];
+
+    /// <summary>
+    /// 收起态显示选中项的哪个成员（2026-11-16 用户令「没展开的时候这样显示」）。非空时，闭合框的正文取
+    /// <see cref="Selector.SelectedItem"/> 的这个成员，展开列表和 <see cref="Selector.DisplayMemberPath"/> 都不动。
+    /// 商店那一行用它把音频/字幕的闭合态换成 <c>TrackRow.ShortText</c>（完整轨道名去掉「自动」前缀），
+    /// 列表里仍是带自动说明的那一份。空串（默认）时收起态照框架的 DisplayMemberPath 显示，其它页面的选择框完全不受影响。
+    /// </summary>
+    public static readonly DependencyProperty SelectionTextMemberPathProperty = DependencyProperty.Register(
+        nameof(SelectionTextMemberPath), typeof(string), typeof(EgPicker),
+        new PropertyMetadata(null, OnSelectionTextMemberPathChanged));
+
+    public string? SelectionTextMemberPath
+    {
+        get => (string?)GetValue(SelectionTextMemberPathProperty);
+        set => SetValue(SelectionTextMemberPathProperty, value);
+    }
+
+    private static void OnSelectionTextMemberPathChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var picker = (EgPicker)sender;
+        if (string.IsNullOrEmpty(args.NewValue as string)) picker.RestoreSelectionText();
+        else picker.QueueApplySelectionText();
+    }
+
     public EgPicker()
     {
         SizeChanged += (_, e) =>
@@ -82,8 +113,14 @@ public sealed class EgPicker : ComboBox
         // 列表那一份的宽度要等它自己布完才量得到，所以撑宽这一步排在下一个 UI 回合。
         DropDownOpened += (_, _) => QueueWidenToDropDown();
         DropDownClosed += (_, _) => RestoreDropDownWidths();
-        Loaded += (_, _) => { if (IsDropDownOpen) QueueWidenToDropDown(); };
+        Loaded += (_, _) =>
+        {
+            if (IsDropDownOpen) QueueWidenToDropDown();
+            QueueApplySelectionText();
+        };
         Unloaded += (_, _) => { if (!IsLoaded) RestoreDropDownWidths(); };
+        // 框架每次换选中项都会把 ContentPresenter 的正文重写一遍，撑宽与换短名都排到它之后。
+        SelectionChanged += (_, _) => QueueApplySelectionText();
     }
 
     /// <summary>
@@ -104,9 +141,12 @@ public sealed class EgPicker : ComboBox
         // End the old popup's sizing ownership before the base replaces its template parts.
         RestoreDropDownWidths();
         PopupPart = null;
+        _selectionPresenter = null;
         base.OnApplyTemplate();
 
         PopupPart = GetTemplateChild("Popup") as Popup;
+        _selectionPresenter = GetTemplateChild("ContentPresenter") as ContentPresenter;
+        QueueApplySelectionText();
         if (PopupPart is null) return;
 
         PopupPart.ShouldConstrainToRootBounds = true;
@@ -200,6 +240,61 @@ public sealed class EgPicker : ComboBox
         list.SizeChanged -= OnDropDownSizeChanged;
         list.ClearValue(FrameworkElement.MaxWidthProperty);
         _dropDown = null;
+    }
+
+    /// <summary>
+    /// 把闭合正文换成 <see cref="SelectionTextMemberPath"/> 指的那一份。框架换选中项时先自己写一遍
+    /// <c>ContentPresenter.Content</c>，所以这一步排到下一个 UI 回合；没设短名的选择框直接不动。
+    /// </summary>
+    private void QueueApplySelectionText()
+    {
+        if (string.IsNullOrEmpty(SelectionTextMemberPath)) return;
+
+        var version = ++_selectionTextVersion;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (version != _selectionTextVersion) return;
+            ApplySelectionText();
+        });
+    }
+
+    private void ApplySelectionText()
+    {
+        if (_selectionPresenter is not { } presenter || string.IsNullOrEmpty(SelectionTextMemberPath)) return;
+
+        presenter.Content = SelectedItem is { } item ? MemberText(item, SelectionTextMemberPath!) : null;
+        presenter.ContentTemplate = null;
+        presenter.ContentTemplateSelector = null;
+    }
+
+    /// <summary>
+    /// 关掉短名时把闭合正文交回框架：控件只在选中项变化时自己重写，所以这里按 DisplayMemberPath 先写回一份，
+    /// 否则收起框会停在上一次写进去的短名上。
+    /// </summary>
+    private void RestoreSelectionText()
+    {
+        if (_selectionPresenter is not { } presenter) return;
+
+        if (SelectedItem is { } item && !string.IsNullOrEmpty(DisplayMemberPath))
+        {
+            presenter.Content = MemberText(item, DisplayMemberPath);
+            presenter.ContentTemplate = null;
+            presenter.ContentTemplateSelector = null;
+            return;
+        }
+
+        presenter.ClearValue(ContentPresenter.ContentProperty);
+        presenter.ClearValue(ContentPresenter.ContentTemplateProperty);
+        presenter.ClearValue(ContentPresenter.ContentTemplateSelectorProperty);
+    }
+
+    /// <summary>读条目上某个公开成员的字；成员不在或值为空时退回条目自己的 ToString。</summary>
+    private static string? MemberText(object item, string path)
+    {
+        var key = (item.GetType(), path);
+        if (!MemberLookup.TryGetValue(key, out var property))
+            MemberLookup[key] = property = item.GetType().GetProperty(path);
+        return property?.GetValue(item)?.ToString() ?? item.ToString();
     }
 
     /// <summary>这一颗在它的父级里还剩多少横向地方；父级量不出来时不给上限（<c>WrapRow</c> 自己会换行）。</summary>

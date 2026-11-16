@@ -984,7 +984,15 @@
                                             MinWidth="0"
                                             SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}" />
                                     </Grid>
+                                    <!-- 商店模式下音频与字幕并排在同一行（2026-11-16 用户令）：两颗行 Grid 仍是既有实例，
+                                         由 DetailPage.Store.cs 的 PlaceStoreTrackRow 搬进这一层，退出商店模式时按原次序
+                                         放回下面的 ColumnPickers。用 Canvas 而不是 StackPanel：面板会把宽过自己的子内容
+                                         裁掉（2026-11-16 用户令「不要省略，直接压在背景图上」），Canvas 不裁，两颗都按
+                                         内容撑到自然宽，字幕的 Left 由 SyncStoreTrackColumns 贴在音频右边。 -->
+                                    <Canvas x:Name="StoreTrackRow" Height="{StaticResource EgPickerRowHeight}"
+                                            Visibility="Collapsed" />
                                     <Grid
+                                        x:Name="AudioPickerRow"
                                         MinHeight="{StaticResource EgPickerRowHeight}"
                                         ColumnSpacing="10"
                                         Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
@@ -1007,9 +1015,21 @@
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                             MinWidth="0"
-                                            SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}" />
+                                            SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}"
+                                            Visibility="{x:Bind ViewModel.AudioPickerVisibility, Mode=OneWay}" />
+                                        <!-- 单音轨那一档读的就是这一行字：原来的轨道名，没有选择框。 -->
+                                        <TextBlock
+                                            x:Name="ColumnAudioText"
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource EgOnScrimBodyStyle}"
+                                            Foreground="{StaticResource EgOnScrimBrush}"
+                                            Text="{x:Bind ViewModel.AudioText, Mode=OneWay}"
+                                            TextTrimming="CharacterEllipsis"
+                                            Visibility="{x:Bind ViewModel.AudioTextVisibility, Mode=OneWay}" />
                                     </Grid>
                                     <Grid
+                                        x:Name="SubtitlePickerRow"
                                         MinHeight="{StaticResource EgPickerRowHeight}"
                                         ColumnSpacing="10"
                                         Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">

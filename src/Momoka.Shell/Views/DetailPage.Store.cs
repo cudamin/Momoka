@@ -124,6 +124,9 @@ public sealed partial class DetailPage
             // 2026-11-16 用户令：四颗操作键全放在片名下方那行日期下面，商店宽窄同一位置，退出商店才还原。
             PlaceStoreActionButtons(store);
 
+            // 2026-11-16 用户令「商店模式的字幕和音频放到同一行」。
+            PlaceStoreTrackRow(store);
+
             // 右侧剧照／预告视口只在宽版式出现；圆角也只写给那一档（窄窗铺满整幅的那一版保持直角）。
             // EgCardCornerRadius 在应用 Styles.xaml，直接查页面 Resources 不会向上搜索应用字典。
             var previewCorner = store && ViewModel.PageWidth >= DetailHero.StoreWideFloor
@@ -211,6 +214,91 @@ public sealed partial class DetailPage
             if (button.Resources.ContainsKey("ButtonBackground"))
                 button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources["ButtonBackground"];
         }
+    }
+
+    /// <summary>
+    /// 商店模式把音频与字幕并排在同一行（2026-11-16 用户令「商店模式的字幕和音频放到同一行」）：
+    /// 两行 Grid 连同里面的标签、选择框都是既有实例，搬进横排的 <c>StoreTrackRow</c>，
+    /// 绑定、命令、焦点和行高都不动；退出商店模式时按「音频、字幕」的原次序放回 <c>ColumnPickers</c>，
+    /// 排在那颗收起的空行后面 —— 非商店版式仍是一行一颗。
+    /// <para>
+    /// 2026-11-16 用户令「该回去原来怎么显示的就怎么显示，去掉前面的自动」：商店档只把两颗下拉的<b>收起态</b>
+    /// 换成 <see cref="Momoka.Emby.TrackRow.ShortText"/> —— 仍是原来的完整轨道名，只是不带「自动 · 」前缀；
+    /// 展开列表照旧带前缀，沉浸版式和 <c>DisplayMemberPath</c> 都不动
+    /// （见 <see cref="EgPicker.SelectionTextMemberPath"/>）。
+    /// </para>
+    /// <para>
+    /// 同一句令还带出两条：只有一条音轨时音频不摆选择框、这一行直接显示轨道名
+    /// （<see cref="ViewModels.DetailViewModel.AudioPickerVisibility"/>，「只有一个能选你弄什么选择栏，直接显示就好」）；
+    /// 字幕紧贴在音频右边（2026-11-16 用户令「固定在音频右边，别跟着窗口往右移动」「不要省略，直接压在背景图上」），
+    /// 两颗都按内容撑到自然宽，超出的那截压在右侧背景图上，不摊到窗口宽度里。
+    /// </para>
+    /// </summary>
+    private void PlaceStoreTrackRow(bool store)
+    {
+        var member = store ? nameof(Momoka.Emby.TrackRow.ShortText) : null;
+        ColumnAudioPicker.SelectionTextMemberPath = member;
+        ColumnSubtitlePicker.SelectionTextMemberPath = member;
+
+        if (store)
+        {
+            HookStoreTrackColumns();
+            ColumnPickers.Children.Remove(AudioPickerRow);
+            ColumnPickers.Children.Remove(SubtitlePickerRow);
+            if (!StoreTrackRow.Children.Contains(AudioPickerRow))
+            {
+                StoreTrackRow.Children.Add(AudioPickerRow);
+                Canvas.SetLeft(AudioPickerRow, 0);
+                Canvas.SetTop(AudioPickerRow, 0);
+            }
+            if (!StoreTrackRow.Children.Contains(SubtitlePickerRow))
+            {
+                StoreTrackRow.Children.Add(SubtitlePickerRow);
+                Canvas.SetTop(SubtitlePickerRow, 0);
+            }
+            SyncStoreTrackColumns();
+            return;
+        }
+
+        StoreTrackRow.Children.Remove(AudioPickerRow);
+        StoreTrackRow.Children.Remove(SubtitlePickerRow);
+        StoreTrackRow.Visibility = Visibility.Collapsed;
+        var index = ColumnPickers.Children.IndexOf(StoreTrackRow);
+        index = index < 0 ? ColumnPickers.Children.Count : index + 1;
+        if (!ColumnPickers.Children.Contains(AudioPickerRow))
+            ColumnPickers.Children.Insert(Math.Min(index, ColumnPickers.Children.Count), AudioPickerRow);
+        if (!ColumnPickers.Children.Contains(SubtitlePickerRow))
+            ColumnPickers.Children.Insert(Math.Min(index + 1, ColumnPickers.Children.Count), SubtitlePickerRow);
+    }
+
+    private bool _storeTrackColumnsHooked;
+
+    /// <summary>音频那一行的宽一变，字幕的 Left 要跟着挪；回调只挂一次。</summary>
+    private void HookStoreTrackColumns()
+    {
+        if (_storeTrackColumnsHooked) return;
+        _storeTrackColumnsHooked = true;
+        ColumnAudioPicker.RegisterPropertyChangedCallback(UIElement.VisibilityProperty,
+            (_, _) => SyncStoreTrackColumns());
+        SubtitlePickerRow.RegisterPropertyChangedCallback(UIElement.VisibilityProperty,
+            (_, _) => SyncStoreTrackColumns());
+        AudioPickerRow.SizeChanged += (_, _) => SyncStoreTrackColumns();
+    }
+
+    /// <summary>
+    /// Canvas 里那一排的位置：音频始终在左，字幕按音频的实测宽贴在它右边（间距 14，和原来两列时一致）。
+    /// Canvas 不裁子内容，字幕长过详情栏时直接压在右侧背景图上，不省略、也不跟着窗口漂。
+    /// 两颗都收起时整排一个像素都不留。
+    /// </summary>
+    private void SyncStoreTrackColumns()
+    {
+        if (!ViewModel.StoreMode) return;
+
+        var audio = AudioPickerRow.Visibility == Visibility.Visible;
+        var subtitle = SubtitlePickerRow.Visibility == Visibility.Visible;
+        Canvas.SetLeft(AudioPickerRow, 0);
+        Canvas.SetLeft(SubtitlePickerRow, audio ? AudioPickerRow.ActualWidth + 14 : 0);
+        StoreTrackRow.Visibility = audio || subtitle ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>把一颗键从原来的父级摘下来，追加到目标那一格（已经在目标里就不动）。</summary>

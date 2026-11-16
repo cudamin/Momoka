@@ -147,8 +147,20 @@ internal sealed partial class ShellNavigationProbe
                         var actionsTop = actions.TransformToVisual(content).TransformPoint(default).Y;
                         Require(options.Visibility == Visibility.Visible && optionsBottom <= actionsTop + 1,
                             $"{item.Type} {width} 文件选项没有排在播放前：{optionsBottom:0.#}/{actionsTop:0.#}");
-                        Require(Get<EgPicker>(page, compact ? "AudioPicker" : "ColumnAudioPicker").Visibility == Visibility.Visible,
-                            $"{item.Type} {width} 唯一音轨没有保留音频选择栏");
+                        var audioPicker = Get<EgPicker>(page, compact ? "AudioPicker" : "ColumnAudioPicker");
+                        if (compact)
+                        {
+                            Require(audioPicker.Visibility == Visibility.Visible,
+                                $"{item.Type} {width} 紧凑版唯一音轨没有保留音频选择栏");
+                        }
+                        else
+                        {
+                            // 2026-11-16 用户令「只有一个能选你弄什么选择栏，直接显示就好」：
+                            // 宽版式单音轨不摆选择框，改为一行完整轨道名。
+                            Require(audioPicker.Visibility == Visibility.Collapsed
+                                && Get<TextBlock>(page, "ColumnAudioText").Visibility == Visibility.Visible,
+                                $"{item.Type} {width} 唯一音轨没有收成一行文字");
+                        }
                         Require(Get<Border>(page, "PosterStill").Visibility == view.StillVisibility,
                             $"{item.Type} {width} 封面显隐没有跟随宽窄排版");
                         // 右上角那张艺术图：电影、剧、集三页在沉浸档也画（2026-11-08「沉浸模式下在右上角显示
