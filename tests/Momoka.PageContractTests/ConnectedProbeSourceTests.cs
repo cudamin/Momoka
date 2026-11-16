@@ -24,7 +24,10 @@ internal static class ConnectedProbeSourceTests
             Assert.Contains("HomeMotion.ApplyPreference(false)", source);
             Assert.Contains("fixture.Actions.Plays == 0", source);
             Assert.Contains("preview-heading-navigation-failed.json", source);
-            Assert.Contains("openedBefore = opened, openedAfter = fixture.Actions.Opened", source);
+            // 匿名对象的成员各占一行（editorconfig 的默认换行规则，dotnet format whitespace 会改），
+            // 所以这里先把空白压平再核对两个字段的取值来源，不把排版当成契约的一部分。
+            var flattened = System.Text.RegularExpressions.Regex.Replace(source, @"\s+", " ");
+            Assert.Contains("openedBefore = opened, openedAfter = fixture.Actions.Opened", flattened);
             Assert.Contains("targetRoot = target?.XamlRoot is not null", source);
             Assert.Contains("phase = \"after-navigate\"", source);
             Assert.Contains("phase = \"freeze\"", source);
