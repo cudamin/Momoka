@@ -8,6 +8,8 @@
 
 **检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **349/349**；改动文件 `dotnet format whitespace` 与 `check-diff.ps1` 通过。因为改到探针判据本身，按规则当轮跑了 `--probe-shell --probe-section detail-cards --screen 1`：首次启动只记了第一条用例就退出（同一命令重跑正常），重跑 **2/2 通过、退出 0**（`shell-probe-20261116-105324749-1620`），读数里环境底遮罩 `Left=0 / NearLeft=49 / Core=255 / Right=0 / NearRight=19 / Bottom=0 / Top=255`，`store-detail-backdrop-1240-screen.png` 已目视左上角是平滑收边、首字与正文仍清楚。
 
+**合并。** 2026-11-16 用户要求合并。分支 `fix-gradient-fill-sides-GTvBkE`（顶端 `6bbf545`）与主干上的 `950f05c`（商店图标键材质底）整合，以合并提交 `ac0bcd9` 并入 `master`；冲突只在 PROGRESS 与本台账顶部条目——按时间保留本分支两条在前、主树图标键一条在后，本批编号顺延为第 56 条。`DetailPage.Store.cs`／`DetailPage.xaml`／`StoreDetailLayoutTests.cs` 自动合并，两边的改动并存。合并本身未跑全量验证与探针；合并后在主树编译 Shell Release **0 警告 0 错误**、`Momoka.PageContractTests` **349/349**。随后删除桌面分支快捷方式 `Momoka-fix-gradient-fill-sides-GTvBkE.lnk`、临时分支与其工作树，本地只留 `master`；主树已按同一份最终代码发布（548 文件、289.8 MB）并刷新桌面 `Momoka.lnk`（19:11）。
+
 ## 2026-11-16 商店详情：渐变铺满窗口左右两边（已合并 master，待统一验证）
 
 用户一句（附图，商店模式单集详情页）：「渐变要填满左右两边」。截图里窗口宽过 1840，商店档的环境底与左上角淡墨跟着 1840 的内容列居中，窗口两侧各留一条几百像素的原生画布；装饰带在内容列边缘直接截断，右边剧照视口之外也是一条平直暗带。
