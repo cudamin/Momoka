@@ -1,3 +1,15 @@
+## 2026-11-17 恢复主题自带强调色，色板末格改回跟随系统（已合并 master，已发布主树）
+
+用户附主题设置截图报「这个薄荷影院怎么不生效了」，随后令「右下角的主题色改为跟随当前系统设置，不要自己自选」。根因是 2026-11-16 晚的「主题色默认跟随 Windows 主题色」把强调色一族交给 `UIColorType.Accent`；本机系统强调色是 `#3F3F3F` 灰，薄荷影院的窗口与面色仍是薄荷底色，但按钮、选中项、角标与主题色格全部变灰，看起来像整套主题没生效。
+
+**改了什么。** 撤掉 `UiSettings.AccentColor`、`SettingsMigration` 的色值规整、`SystemThemeWatcher.Accent` 与 `UiThemes.WithAccent`；`UiThemes.Compose` 只按「色板 + 选择模式」合成，强调色回到各套色板自带（薄荷影院 `#6EE7C5`、午夜 `#4C8DF6`、紫夜 `#A97BF0` 等）。设置主题行删掉自选主题色那一格与拾色器，末格恢复为「跟随系统」色板（六格两行三列）；点它同时把选择模式拨到跟随系统，点回固定色板则拨回深色。自检、主题迁移说明与 `ThemeAccentSwatch`／`ThemeTileSelector` 相关测试同步删除或改写。
+
+**检查。** 工作树 Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` 5209 项通过 5207（2 红均为既有 `C:\WINDOWS\TEMP` 权限拒绝的下载用例）；`Momoka.SystemThemeTests` 8/8、`Momoka.SettingsAppearanceTests` 47/47、`Momoka.SettingsPersistenceTests` 42/42、`Momoka.SettingsLifetimeTests` 63/63、`Momoka.SettingsProbeContractTests` 36/36、`Momoka.ArchitectureTests` 7/7、`Momoka.AppearanceOpacityTests` 68/68；改动文件 `dotnet format whitespace` 退出 0。按主题颜色的日常口径未拍实屏截图，待跑项记入[待交付批次](docs/待交付批次.md)第 66 条。
+
+**分支与合并。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-mint-cinema-theme-OhPQXO`，分支 `fix-mint-cinema-theme-OhPQXO`，基点 `e8bcb9a`，产品与测试提交 `1085748`；2026-11-17 用户要求合并，以合并提交 `c8a9622` 并入 `master`（自动合并无冲突）。合并本身未跑全量验证与探针。
+
+**发布。** 2026-11-17 00:13 在主树执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出 0：548 文件、289.9 MB，发布验证通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；桌面 `Momoka.lnk` 已刷到 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`（生成于 00:13）。未推远端；分支与工作树清理待办。
+
 ## 2026-11-16 详情连播：图标上墨修复，商店档改为主题色开关（已合并 master，未发布）
 
 用户先报「点了没反应，箭头没变绿」，之后附开关截图令「把商店页面的连播开关改为这种」，并确认轨道浅青绿就是主题色、不必特意设置，又令「左边加个连播」。根因有两个：FontIcon 放在 ToggleButton 的内容里时 Foreground 不参与绘制（把它临时改成红色、离屏渲染出来仍是白箭头），以及商店档原先只有一颗药丸键、没有开关这一形。
