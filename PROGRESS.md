@@ -36,7 +36,7 @@
 
 **边界。** 未连真实 Emby 服务器验证播放、标记已看、转换任务与扫描的实际结果；未跑原生探针与验收截图（日常 UI 按 2026-11-16 用户令留到交付）。飞牛／Plex 的整库播放与随机播放没有接线，本轮按能力隐藏而不是补执行层；Jellyfin 库卡的「刷新元数据」沿用现有刷新表，没有照网页端对库切到扫描模式。
 
-**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`、`a669e86`、`b18511c`，记录提交 `7d46920`、`19670ed`、`a30838d`；2026-11-16 用户要求合并，以合并提交并入 `master`（与主树第 61～63 项整合，本批编号顺延为 64），冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边。合并后删除分支快捷方式 `Momoka-fix-emby-library-menu-IDnzLR.lnk`、临时分支与工作树。分支上发布过本树（548 文件、289.8 MB，21:37）；主树未重新发布，`Momoka.lnk` 仍指旧构建。合并本身未跑全量验证与探针；未推远端。
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`、`a669e86`、`b18511c`，记录提交 `7d46920`、`19670ed`、`a30838d`；2026-11-16 用户要求合并，以合并提交 `d61d89d` 并入 `master`（与主树第 61～63 项整合，本批编号顺延为 64），冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边。合并后删除分支快捷方式 `Momoka-fix-emby-library-menu-IDnzLR.lnk`、临时分支与工作树；合并后主树编译 Shell Release/x64 与 Tests Release 均 **0 警告 0 错误**。分支上发布过本树（548 文件、289.8 MB，21:37）；主树未重新发布，`Momoka.lnk` 仍指旧构建。合并本身未跑全量验证与探针；未推远端。
 
 ## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
 
