@@ -8,7 +8,7 @@
 
 **检查。** Shell Release/x64 **0 警告 0 错误**；`episode-display-fixture`（含 `DetailLayoutTests`）**33/33**，新增「商店片名栏：让位放不下时撑到保底宽度并压在剧照上，窗口再窄只收到页边」覆盖 1240／2400／1024／760／360 五档；`detail-action-readiness-fixture` **94/94**（商店模式宽度用例改按 `StoreTextColumn`／`StoreHeroColumn` 核对，并断言 `StoreHeroWidth` 有通知）；`Momoka.PageContractTests` **350/350**（新增「详情头部：片名单行不折、徽标不随商店档缩小、片名栏保底宽度压在剧照上」）；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 62 条。
 
-**分支与快捷方式。** 产品与测试提交 `871a2e7`、记录 `89a418e`／`1b6e596`；分支 `feat-no-crop-overlay-1Oz1rR`（工作树 `fix-play-button-mismatch-XgFUII/feat-no-crop-overlay-1Oz1rR`）。2026-11-16 用户要求合并，已以合并提交并入 `master`（与主树第 59～61 项整合，冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边，本批编号顺延为 62）；合并后删除分支快捷方式 `Momoka-feat-no-crop-overlay-1Oz1rR.lnk`、临时分支与工作树。主树未重新发布，`Momoka.lnk` 仍指旧构建；合并本身未跑全量验证与探针；未推远端。
+**分支与快捷方式。** 产品与测试提交 `871a2e7`、记录 `89a418e`／`1b6e596`；分支 `feat-no-crop-overlay-1Oz1rR`（工作树 `fix-play-button-mismatch-XgFUII/feat-no-crop-overlay-1Oz1rR`）。2026-11-16 用户要求合并，以合并提交 `e7f80f0` 并入 `master`（与主树第 59～61 项整合，冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边，本批编号顺延为 62）；合并后删除分支快捷方式 `Momoka-feat-no-crop-overlay-1Oz1rR.lnk`、临时分支与工作树。主树未重新发布，`Momoka.lnk` 仍指旧构建；合并本身未跑全量验证与探针；未推远端。
 
 ## 2026-11-16 聚合模式主页与侧边栏来源改标账号用户名（待合并 master）
 
