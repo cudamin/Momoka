@@ -17,7 +17,7 @@ public static class LocalMediaTests
             Assert.Equal(@"\\server\share", LocalMediaFiles.FullPath(@"\\server\share"));
             Assert.Equal(@"\\localhost\C$\Temp", LocalMediaFiles.FullPath(@"\\localhost\C$\Temp"));
             foreach (var path in new[] { @"\\server", @"\\server\", @"\\\share\dir", @"\\server\\dir", @"\\?\UNC\server\share\dir",
-                @"\\.\C:\dir", @"\??\C:\dir", @"\\server\share\..\dir", @"C:relative", @"C:\dir\..\other", "relative", "" })
+                @"\\.\C:\dir", @"\??\C:\dir", @"\\server\share\..\dir", @"\\server\share\dir\file.mkv:stream", @"C:relative", @"C:\dir\..\other", "relative", "" })
                 Assert.Throws<IOException>(() => LocalMediaFiles.FullPath(path), path);
             Assert.True(LocalMediaOrganizer.IsNetworkPath(@"\\server\share"));
             Assert.True(LocalMediaOrganizer.IsNetworkPath(@"//server/share"));

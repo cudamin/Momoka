@@ -51,7 +51,7 @@ internal sealed class LocalMediaFiles : IDisposable
         if (parts.Any(part => part is "." or "..")) return false;
         if (parts.Length > 2 && parts[0].Length == 0 && parts[1].Length == 0)
             return parts.Length >= 4 && parts[2].Length > 0 && parts[3].Length > 0
-                && !parts[2].Contains(':') && !parts[3].Contains(':');
+                && !parts.Skip(2).Any(part => part.Contains(':'));
         return path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] is ('\\' or '/')
             && !path[2..].Contains(':');
     }
