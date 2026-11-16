@@ -222,7 +222,7 @@ internal static class AggregateQueryTests
             Assert.DoesNotContain("other", rows[1].Title);
         });
 
-        Test("来源文字：只追加服务器名称，隐藏、空内容与无来源不留下分隔符", () =>
+        Test("来源文字：前缀写账号用户名，追加仍写服务器名称，隐藏与空内容不留下分隔符", () =>
         {
             var source = Scope("家庭库", "账号甲");
             Assert.Equal("2024 · 100 分钟 · 家庭库", SourceCaption.Append("2024 · 100 分钟", source));
@@ -234,10 +234,10 @@ internal static class AggregateQueryTests
             Assert.Equal("", SourceCaption.Append(null, null));
             Assert.Equal("家庭库 · 账号甲", source.DisplayName, "内容显示不改变账号管理身份");
 
-            Assert.Equal("家庭库 · 电影", SourceCaption.Prefix("电影", source));
+            Assert.Equal("账号甲 · 电影", SourceCaption.Prefix("电影", source));
             Assert.Equal("最近添加 · 电影", SourceCaption.Prefix("最近添加 · 电影", source, showSource: false));
             Assert.Equal("电影", SourceCaption.Prefix("电影", null));
-            Assert.Equal("家庭库", SourceCaption.Prefix("", source));
+            Assert.Equal("账号甲", SourceCaption.Prefix("", source));
             Assert.Equal("", SourceCaption.Prefix(null, source, showSource: false));
         });
 

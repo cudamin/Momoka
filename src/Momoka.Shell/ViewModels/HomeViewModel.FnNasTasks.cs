@@ -98,12 +98,12 @@ public sealed partial class HomeViewModel
             {
                 var library = _libraryViews.FirstOrDefault(item => HomeLayout.LibraryKey(item) == row.Key);
                 var shelf = old.TryGetValue(row.Key, out var retained) ? retained.Shelf
-                    : new CardShelf(SourceCaption.Prefix(row.Title, library?.Source, ShowServerNames), _images!,
+                    : new CardShelf(SourceCaption.Prefix(row.Title, library?.Source, ShowAccountNames), _images!,
                         CardSize.PosterWidth, false, libraryId: HomeLayout.LibraryId(row.Key), target: HomeLayout.TargetOf(row.Key))
                     { HomeKey = row.Key, Source = library?.Source };
                 next.Add((row, shelf));
                 if (library?.Source?.Key != sourceKey) continue;
-                shelf.Title = SourceCaption.Prefix(row.Title, scope, ShowServerNames);
+                shelf.Title = SourceCaption.Prefix(row.Title, scope, ShowAccountNames);
                 if (library.RecursiveItemCount == 0)
                 {
                     shelf.Clear();

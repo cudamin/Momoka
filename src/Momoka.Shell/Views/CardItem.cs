@@ -102,7 +102,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>搜索结果的单集卡画另一档框线，与影片、节目分开（见 <see cref="EpisodeFrame"/>）。</summary>
     private readonly bool _episodeFrame;
 
-    /// <summary>这一张卡在季集信息下面再写一行服务器名（多账号主页的继续观看）。</summary>
+    /// <summary>这一张卡在季集信息下面再写一行账号用户名（多账号主页的继续观看）。</summary>
     private readonly bool _sourceLine;
 
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
@@ -662,10 +662,10 @@ public sealed class CardItem : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 第三行：这一项属于哪台服务器。空串时整行收起。只有多账号主页的继续观看卡会传
+    /// 第三行：这一项属于哪个账号。空串时整行收起。只有多账号主页的继续观看卡会传
     /// <c>sourceLine: true</c>；浏览、搜索和详情货架一律空着。
     /// </summary>
-    public string SourceLine => _sourceLine ? _item.Source?.ServerName ?? "" : "";
+    public string SourceLine => _sourceLine ? _item.Source?.UserName ?? "" : "";
 
     public Visibility SourceLineVisibility => Show(SourceLine.Length > 0);
 

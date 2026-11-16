@@ -1157,6 +1157,7 @@ internal sealed partial class ShellNavigationProbe
         var preview = Get<Border>(shell, "LibraryPreviewPanel");
         var previewCovers = Get<Grid>(shell, "LibraryPreviewCovers");
         var previewTitle = Get<TextBlock>(shell, "LibraryPreviewTitle");
+        var previewMeta = Get<TextBlock>(shell, "LibraryPreviewMeta");
         var previewMore = Get<Button>(shell, "LibraryPreviewMore");
         var previewItem = nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag);
         var aggregate = fixture.Settings.AggregateMode;
@@ -1170,6 +1171,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Left(preview, shell) >= host.ActualWidth + 7 && Top(preview, shell) >= HomePage.ChromeHeight - 1,
                 $"媒体库悬停预览压住侧栏或跑出内容区：left={Left(preview, shell):0} rail={host.ActualWidth:0} top={Top(preview, shell):0}");
             Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
+            Require(previewMeta.Visibility == Visibility.Collapsed, "媒体库悬停预览仍显示服务器名副标题");
             Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
             // 一颗封面现在是一格「图 + 片名」的竖排（2026-11-14 用户令「给封面下方加上片名」），
             // 按钮在格子里，不再是预览网格的直接孩子。

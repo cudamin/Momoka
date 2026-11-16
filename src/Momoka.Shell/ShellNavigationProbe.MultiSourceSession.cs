@@ -218,6 +218,13 @@ internal sealed partial class ShellNavigationProbe
             var libraries = Get<Dictionary<string, LibraryRequest>>(shell, "_libraries").Values.ToArray();
             Require(libraries.Length == sources.Length && libraries.All(library => library.Source is not null
                 && library.Title == "电影"), "媒体库导航标题不应显示服务器名称或用户名");
+            // 聚合模式（两个及以上在线账号）时侧栏库项写「用户名 · 库名」；单账号时就是库名。
+            var sidebarLibraries = Get<NavigationView>(shell, "Sidebar").MenuItems.OfType<NavigationViewItem>()
+                .Where(item => item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)).ToArray();
+            Require(sidebarLibraries.Length == libraries.Length && libraries.All(library =>
+                    sidebarLibraries.Any(item => item.Tag as string == library.Tag
+                        && item.Content as string == SourceCaption.Prefix(library.Title, library.Source, sources.Length > 1))),
+                "侧边栏库项没有按账号用户名标来源");
             foreach (var width in new[] { 1280, 760 })
             {
                 ResizeProbeClient(width, 1000);
@@ -251,7 +258,7 @@ internal sealed partial class ShellNavigationProbe
                 AssertAggregateLabels(home, sources);
                 await SaveProbeScreenAsync($"aggregate-home-{stage}-{width}-screen.png");
 
-                // 多账号时再往下滚一屏：媒体库卡片名称和「最近添加」货架标题的服务器名前缀要留下实屏证据。
+                // 多账号时再往下滚一屏：媒体库卡片名称和「最近添加」货架标题的账号用户名前缀要留下实屏证据。
                 if (sources.Length > 1 && width == 1280)
                 {
                     var scroller = Get<ScrollView>(home, "Scroller");
