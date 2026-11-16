@@ -2213,9 +2213,9 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         var rows = new List<SettingRow>
         {
-            // 「参考上图修改新增设置中的相关功能」（2026-11-16）：选择模式、透明效果排在这里，主题那一行
-            // 保留五套固定色板，并把它原来的「跟随系统」一格换成「主题色」选择（用户令「把图二的卡片改为
-            // 主题色选择功能」）—— 跟随系统已经由选择模式负责，色板只决定深色档长什么样。
+            // 「参考上图修改新增设置中的相关功能」（2026-11-16）：选择模式、透明效果排在这里。主题那一行
+            // 保留五套固定色板加「跟随系统」—— 2026-11-16 晚用户令「右下角的主题色改为跟随当前系统设置，
+            // 不要自己自选」，原先那格自选主题色撤掉，强调色回到所选色板自带。
             mode,
             TransparencyRow(ui),
             Themes,
@@ -3080,29 +3080,25 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingThemeRow ThemeSwatches(UiSettings ui) =>
         new(
             "主题",
-            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；跟随系统请在「选择模式」里选。最后一格是主题色，点开可挑强调色；不设置时跟随系统主题色。",
-            [.. UiThemes.All.Where(theme => !theme.FollowsSystem)],
+            "点中即生效。浅色模式下改用系统浅色配色，色板供深色模式使用；「跟随系统」随 Windows 的浅色或深色应用模式自动切换。强调色跟着所选色板走。",
+            UiThemes.All,
             () => ui.Theme,
             value =>
             {
                 ui.Theme = value;
 
                 // 色板只覆盖深色档：点一块固定色板时把模式拨回深色，否则浅色档下选完屏上不会有变化。
-                if (!string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), UiThemes.ModeDark, StringComparison.Ordinal))
+                // 点「跟随系统」则把模式一起拨到跟随系统，那一格承诺的就是这件事。
+                var mode = UiThemes.Resolve(value).FollowsSystem ? UiThemes.ModeSystem : UiThemes.ModeDark;
+                if (!string.Equals(UiThemes.NormalizeMode(ui.AppearanceMode), mode, StringComparison.Ordinal))
                 {
-                    ui.AppearanceMode = UiThemes.ModeDark;
-                    _appearanceMode?.ReseedSelection(ModeLabel(UiThemes.ModeDark));
+                    ui.AppearanceMode = mode;
+                    _appearanceMode?.ReseedSelection(ModeLabel(mode));
                 }
 
                 ThemeHost.Apply(ui);
             },
-            Save,
-            () => ui.AccentColor,
-            value =>
-            {
-                ui.AccentColor = value;
-                ThemeHost.Apply(ui);
-            });
+            Save);
 
     private static string ModeLabel(string mode) => UiThemes.NormalizeMode(mode) switch
     {

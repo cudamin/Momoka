@@ -1381,12 +1381,6 @@ public sealed class UiSettings
     public string AppearanceMode { get; set; } = Theming.UiThemes.ModeDark;
 
     /// <summary>
-    /// 主题色（强调色）覆盖：<c>#RRGGBB</c>；空串表示跟随系统主题色（Windows 个性化里的强调色）。
-    /// 按钮、开关、滑块和选中标记都读强调色一族，覆盖时悬停、按下、浅底和上面的字一起重算。
-    /// </summary>
-    public string AccentColor { get; set; } = "";
-
-    /// <summary>
     /// 透明效果：窗口和表面显示半透明。关掉时窗口的 Mica、整窗画布与侧栏落成实色，亚克力表面走各自的回退色。
     /// 默认开，与 Windows 的「透明效果」默认状态一致。
     /// </summary>

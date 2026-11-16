@@ -1,5 +1,3 @@
-using Momoka.Infrastructure;
-
 namespace Momoka.Theming;
 
 /// <summary>
@@ -7,9 +5,11 @@ namespace Momoka.Theming;
 /// 系统选项始终保留 system id，深浅由外壳读取 Windows 应用模式决定，不能把一次解析的结果保存成固定主题。
 /// 2026-09-05 删除的独立 daylight 主题仍不在目录，旧 id 继续回落到默认主题。
 /// <para>
-/// 2026-11-16 起设置页另有「选择模式」「主题色」「透明效果」三项（用户令「参考上图修改新增设置中的相关功能」）：
-/// 色板仍是这五套固定深色加跟随系统，深浅与强调色由 <see cref="Compose"/> 在这份目录之上合成 ——
+/// 2026-11-16 起设置页另有「选择模式」「透明效果」两项（用户令「参考上图修改新增设置中的相关功能」）：
+/// 色板仍是这五套固定深色加跟随系统，深浅由 <see cref="Compose"/> 在这份目录之上合成 ——
 /// 浅色一律用现有的系统浅色配色（用户当次选择），不另造五套浅色主题。
+/// 强调色始终取所选那套色板自己的：2026-11-16 晚按用户令「恢复主题自带强调色」，不再拿 Windows
+/// 个性化里的主题色去覆盖它 —— 薄荷影院的薄荷绿、午夜的亮蓝、紫夜的淡紫都该是这套主题的样子。
 /// </para>
 /// </summary>
 public static class UiThemes
@@ -85,61 +85,23 @@ public static class UiThemes
         };
 
     /// <summary>
-    /// 把「色板 + 选择模式 + 主题色」合成这一次真正要画的那一套。
+    /// 把「色板 + 选择模式」合成这一次真正要画的那一套。
     /// <para>
     /// 深色用选中的色板（色板本身是跟随系统时用系统深色档）；浅色一律用系统浅色配色；
-    /// 跟随系统在 Windows 深色档用选中的色板、浅色档用系统浅色配色。主题色留空时用
-    /// <paramref name="systemAccent"/>（Windows 个性化里的主题色），没有系统色时才回落到色板自带的强调色。
+    /// 跟随系统在 Windows 深色档用选中的色板、浅色档用系统浅色配色。强调色一族跟着选中的色板走，
+    /// 不读 Windows 个性化的主题色 —— 那会让每套主题都丢掉自己的签名色（薄荷影院正是这样失效的）。
     /// </para>
     /// </summary>
-    public static UiTheme Compose(string? themeId, string? mode, string? accentColor, bool systemDark, ThemeColor? systemAccent = null)
+    public static UiTheme Compose(string? themeId, string? mode, bool systemDark)
     {
         var palette = Resolve(themeId);
-        var resolved = NormalizeMode(mode) switch
+        return NormalizeMode(mode) switch
         {
             ModeLight => System(false),
             ModeSystem => systemDark
                 ? (palette.FollowsSystem ? System(true) : palette)
                 : System(false),
             _ => palette.FollowsSystem ? System(true) : palette
-        };
-
-        if (!string.IsNullOrWhiteSpace(accentColor)) return WithAccent(resolved, accentColor);
-        return systemAccent is { } accent ? WithAccent(resolved, accent) : resolved;
-    }
-
-    /// <summary>
-    /// 主题色覆盖：只换强调色一族，悬停、按下、浅底和压在强调色上的字按原来那套推导一起重算。
-    /// 空串或认不出来的值原样返回 —— 「不设置」时由 <see cref="Compose"/> 决定跟随系统主题色。
-    /// </summary>
-    public static UiTheme WithAccent(UiTheme theme, string? accentColor)
-    {
-        if (string.IsNullOrWhiteSpace(accentColor) || !HtmlColor.TryParse(accentColor, out var packed))
-            return theme;
-
-        var (r, g, b) = HtmlColor.Rgb(packed);
-        return WithAccent(theme, ThemeColor.Rgb(r, g, b));
-    }
-
-    /// <summary>主题色覆盖的颜色版本：语法糖之外的推导只有这一份。</summary>
-    public static UiTheme WithAccent(UiTheme theme, ThemeColor accent)
-    {
-        if (accent == theme.Colors.Accent) return theme;
-
-        var dark = theme.IsDark;
-        var white = ThemeColor.Rgb(0xFF, 0xFF, 0xFF);
-        var black = ThemeColor.Rgb(0, 0, 0);
-        return theme with
-        {
-            Colors = theme.Colors with
-            {
-                Accent = accent,
-                AccentHover = dark ? accent.Mix(white, 0.14) : accent.Mix(black, 0.14),
-                AccentPressed = accent.Mix(black, dark ? 0.14 : 0.28),
-                AccentSoft = theme.Colors.Window.Mix(accent, dark ? 0.16 : 0.12),
-                AccentMuted = accent.WithAlpha(dark ? (byte)0x33 : (byte)0x2B),
-                TextOnAccent = OnAccent(accent)
-            }
         };
     }
 
