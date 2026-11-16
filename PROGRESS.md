@@ -14267,6 +14267,6 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 # 2026-11-16 订阅详情背景渐变、卡片避让与库内预告片（待统一验证）
 
-主树提交 `186d018`。用户要求参考媒体详情页的背景渐变修改订阅详情页，并确认预告片支持与下方卡片避让。产品改动：订阅详情图下沿渐变改为与 `DetailPage.PaintBackdropFade` 同一支 smoothstep（整图铺开、最后 20% 收到主题窗口色），移除 64 像素黑色横带；商店档右侧剧照／预告统一读 `StorePageWidth`、16 右沿空隙、宽版式 16 圆角与环境底取高，新增 `StoreTailHeight` 绑定到头部末尾的 `StoreTail`，正文纸面从剧照、预告控制排和空隙下面开始。MoviePilot 上游媒体详情只追加 images／credits 等、不含 videos，因此预告片改从当前 Emby／Jellyfin 身份按提供者 ID 找到的电影／剧条目取；商店宽版式自动静音循环并带暂停／静音，沉浸档新增「预告片」键列本地预告与远程链接，进播放与离页收干净。
+主树提交 `186d018`（后续修正 `8ee63b9`／`d5c66d2`）。用户要求参考媒体详情页的背景渐变修改订阅详情页，并确认预告片支持与下方卡片避让。产品改动：订阅详情图下沿渐变改为与 `DetailPage.PaintBackdropFade` 同一支 smoothstep（整图铺开、最后 20% 收到主题窗口色），移除 64 像素黑色横带；商店档右侧剧照／预告统一读 `StorePageWidth`、16 右沿空隙、宽版式 16 圆角与环境底取高，新增 `StoreTailHeight` 绑定到头部末尾的 `StoreTail`，正文纸面从剧照、预告控制排和空隙下面开始。MoviePilot 上游媒体详情只追加 images／credits 等、不含 videos，因此预告片改从当前 Emby／Jellyfin 身份按提供者 ID 找到的电影／剧条目取；商店宽版式自动静音循环并带暂停／静音，沉浸档新增「预告片」键列本地预告与远程链接，进播放与离页收干净。
 
 本批已跑 Shell/Core Release 0 警告 0 错误；`Momoka.PageContractTests` 341/341；主测试 5167/5167（默认 TEMP 两项下载环境红，可写 TEMP 全绿）；重复代码 65 段 / 0.48%；`check-diff.ps1`、`dotnet format whitespace`、`scan-automation-ids.js` 通过。未跑原生探针与截图（按用户 2026-11-16 日常界面规则）；预告 fixture 尚未带本地／远程字段，真实预告自动播放、滚动暂停与下方首卡避让待统一验证。台账新增第53项。
