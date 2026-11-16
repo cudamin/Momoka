@@ -273,6 +273,34 @@ public static class ItemDetail
     public static string Facts(EmbyItem item, bool includeStudio = true) => string.Join("  ·  ", FactParts(item, includeStudio));
 
     /// <summary>
+    /// 详情页顶部悬浮栏副标题那一行（2026-11-16 用户令「给悬浮栏上点东西，评分、类型、播出日期、时长」）。
+    /// <para>
+    /// 顺序照用户点名的四样：评分、类型、首播日期、时长；单集在最前面再带上「S1:E7 - 集名」，季页带季名 ——
+    /// 电影和剧的片名已经是大标题，这里不再重复它。每一段都只在服务器给得出来时才写，全空就是空串，
+    /// 与这一页其余各行同一条「空串就收起」的规矩。
+    /// </para>
+    /// <para>
+    /// 与 <see cref="Facts"/> 的分工：那一行回答「哪一年、多长、什么分级、几季」（头图下那一行），
+    /// 这一行是缩略版，补的是悬浮栏里没有的类型与评分；日期仍走 <see cref="Years"/>（剧写年份区间、
+    /// 其余写首播日），时长仍走 <c>TimeFormat.Duration</c>，不另立一套写法。
+    /// </para>
+    /// </summary>
+    public static string HeaderFacts(EmbyItem item, string? lead = null)
+    {
+        var parts = new List<string>(5);
+        var head = lead ?? (item.Type == EmbyItemType.Episode ? EpisodeLabel(item)
+            : item.Type == EmbyItemType.Season ? item.Name : "");
+        if (!string.IsNullOrWhiteSpace(head)) parts.Add(head);
+
+        if (ItemScore.Community(item) is { Any: true } score) parts.Add($"{score.Text} 分");
+        if (item.Genres.Count > 0) parts.Add(string.Join(" / ", item.Genres.Take(3)));
+        if (Years(item) is { Length: > 0 } years) parts.Add(years);
+        if (TimeFormat.Duration(item.RunTimeTicks) is { Length: > 0 } duration) parts.Add(duration);
+
+        return string.Join("  ·  ", parts);
+    }
+
+    /// <summary>
     /// 服务器给的那段简介，收拾成能排的样子：**一行里连着的空白并成一个、每行两头的空白去掉、连着的空行并成
     /// 一个**，而段落之间的换行照原样留着。
     /// <para>

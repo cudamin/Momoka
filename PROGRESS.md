@@ -1,3 +1,73 @@
+﻿## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
+
+用户一句：「拉动窗口的时候侧边栏不要自动展开或者收起」。此前窗口宽度跨过 1008 DIP 会把栏在「展开 256」与「图标栏 56」之间自动换档；现在窗口拉宽拉窄只重排（重夹栏宽、标题搜索框、内容区让位），开合只归标题栏那颗折叠键。
+
+**改了什么。** `ShellPage.Sidebar.cs` 删除 `_sidebarWide` 与 `UpdateSidebarWidth` 里的阈值换档。开合只剩两处：进侧边栏模式时按当时窗宽定一次初值，以及标题栏折叠键；显示模式切换沿用原口径。启动时 `Loaded` 的 `ActualWidth` 是 0，且外壳会先按上一位宽（760／1404 等中间值）排一次，所以初值改由 120ms 防抖计时器等窗宽跳停后再定；用户按折叠键会作废还没落定的初值。探针同步补了「拉窄仍展开」「收起后拉宽仍收起」「折叠键展开／收回」「启动时按宽展开」四条断言，并把两处失败信息补上实际读数。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **350/350**（新增「侧边栏开合不随窗口尺寸变化」：`UpdateSidebarWidth` 本体不含 `IsPaneOpen`，模式入口与折叠键两处仍在）；`Momoka.SidebarPreviewTests` **34/34**；`--probe-shell --probe-section shell --screen 1` **17/17、退出 0**（`shell-probe-20261116-114317876-8796`），侧栏宽窄、预览、隐藏与启动各用例全过。探针保存的 `sidebar-*-screen.png` 本轮未逐张目视。
+
+**边界。** 未用物理鼠标拖窗口边缘（探针走 `SetWindowPos` 真实改窗 + UIA 按折叠键）；未推远端；未连真实服务器、未播放。待跑项记入[待交付批次](docs/待交付批次.md)第 60 条。
+
+**分支与快捷方式。** 产品与测试提交 `fcb0a70`、记录 `0e7e2bf`；本树验证通过后发布并刷新过桌面 `Momoka-fix-sidebar-resize-toggle-Kmw8SH.lnk`（548 文件、289.8 MB，19:50）。2026-11-16 用户要求合并，以合并提交 `4925218` 并入 `master`，冲突只在 PROGRESS 与本台账顶部条目（按时间保留两边，本批编号顺延为 60）；合并后删除分支快捷方式、临时分支与工作树；合并后在主树编译 Shell Release/x64 **0 警告 0 错误**、`Momoka.PageContractTests` **351/351**。主树未重新发布，`Momoka.lnk` 仍指旧构建；未推远端。
+
+## 2026-11-16 详情悬浮栏：播放键与正文统一、补资料行、留白跟随卡片（已合并 master，未发布）
+
+用户三句：「修复悬浮上的播放按钮与实际播放按钮不同的问题」（追问确认「实际」指详情页主播放键，要求整套外观统一）；「另外收窄一点悬浮栏，然后再给悬浮栏上点东西，评分、类型、播出日期、时长啥的」（追问确认资料合并进副标题行）；先按最大宽度 1040 收窄被否（「你这也太窄了，改回去吧」），随后定稿「改成比商店模式下面卡片稍窄的样式，沉浸模式同步」。
+
+**播放键。** 顶部悬浮栏的 `StickyPlayButton` 改用正文主播放键的 `EgPlayButtonStyle`（44 高、16 圆角、同一套内边距与浅墨），内容与 `ColumnPlayButton` 同构：有断点时图标取 `EgAccentBrush`、无断点跟字走。`DetailPage.Appearance` 把它并入 `_controlBackgrounds`，材质底与三态墨色跟主键同一份；商店模式的强调色额头（`IsStorePlay`）也把它算进去，三处同一副外观。
+
+**资料行。** Core 新增 `ItemDetail.HeaderFacts`：单集先写「S1:E7 - 集名」、季页写季名，随后评分、类型（最多三个）、首播日期（剧写年份区间）与时长，缺哪段跳哪段；ViewModel 新增 `HeaderFacts`，在 `ApplyHeading` 与季页的 `ApplySeasonSeries` 写入。悬浮栏副标题由 `Subline` 换成它，不新增行，高度不变。
+
+**留白。** 悬浮栏两侧不再写死 32：取 `BodySheet.Margin.Left + SheetPadding.Left + 12` —— 商店档卡片贴在 `StorePageInset` 上、悬浮栏每侧比它窄 12（1280 窗约 108），沉浸与纸面档同为 18 + 12；<520 的窄窗仍是 12。收进量是一个常量 `StickyHeaderCardInset`，卡片留白随模式变时悬浮栏跟着重算。
+
+**检查。** Shell Release/x64 0 警告 0 错误；`DetailStickyHeaderTests` 93/93（新增「商店 108 / 沉浸 30」宽度契约，520 档边距断言同步）；`Momoka.PageContractTests` 349/349；主测试 5177 项、5175 通过、2 红均为既有 `C:\WINDOWS\TEMP` 下载环境红；`ItemDetailTests` 新增资料行三条；改动 C# 文件 `dotnet format whitespace --verify-no-changes` 通过。按当日用户令，日常 UI 未跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 58 条。
+
+**分支与快捷方式。** 产品与测试提交 `dff2c68`、记录 `6268967`；2026-11-16 用户要求合并，以 `--ff-only` 并入 `master`（`b1e2ab0` → `6268967`）。用户当次明确「只合并不发布」：主树未重新发布，桌面 `Momoka.lnk` 仍指旧构建；本树发布并刷新过的分支快捷方式 `Momoka-fix-play-button-mismatch-XgFUII.lnk` 随分支清理。
+
+## 2026-11-16 本机整理支持网络目录（已合并 master，待统一验证）
+
+用户问本机整理是否支持网络目录，不支持就做。原实现 `LocalMediaFiles.FullPath` 只接受固定盘/可移动盘并明确拒绝网络盘，`LocalLibraryArtwork` 也拒绝 UNC，改名路径只拼 `\\?\`。现在源目录和目标目录都可以是本机盘符、UNC（`\\服务器\共享\...`）或映射网络盘；网络共享使用当前 Windows 账号访问，不保存共享凭据。
+
+**路径与文件操作。** `FullPath` 增加 UNC 形态校验（服务器与共享名都不能为空，拒绝设备命名空间、相对路径、上级跳转和备用数据流），盘符路径允许 `DriveType.Network`；`SetFileInformationByHandle` 的改名对 UNC 改用 `\\?\UNC\服务器\共享\...` 长路径前缀。网络共享协议不支持硬链接，规划（`Prepare`）、监控启动（`Normalize`）和保存媒体库规则（`LocalLibraryCoordinator.Validate`）三处都提前拒绝，不回退为复制；界面整理方式说明和目录卡片提示同步说明网络目录只能软链接或直接改名。网络共享上的软链接创建失败时提示还可能缺管理员权限。
+
+**监控与本地库图片。** 自动监控沿用扫描、稳定等待和重新扫描恢复，网络共享断开时按 `RescanInterval` 重试；启动时源目录不可用不再拒绝启动监控，而是先跑起来等共享恢复。海报 `NormalizePath` 接受 UNC 与映射网络盘，`StampFor` 对网络路径不再在 UI 同步路径上查属性，`ReadAsync` 把属性查询、打开和读取放到线程池，避免离线共享卡住首页。
+
+**检查。** 本机用 `\\localhost\C$` 回环管理共享跑了真实 SMB 通路：`local-media-fixture` **186/186**、0 失败 0 跳过，其中新增网络路径校验与 UNC 前缀、网络硬链接拒绝、回环共享上的扫描/预览/直接改名/NFO 写入、自动监控新建文件改名、海报读取；`local-media-vm-fixture` **7/7**、`local-library-coordinator-fixture` **7/7**（含启动时源目录不可用仍启动监控）、`local-media-layout-fixture` **21/21**、`Momoka.LocalLibraryPageTests` **17/17**。Core/Tests 与 Shell Release/x64 均 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1` 通过。回环共享不能替代真实 NAS：共享凭据、DFS、服务器端符号链接权限、延迟和变更通知仍未核对；网络共享上创建软链接在本机因权限失败，未验证 NAS 是否允许。待交付项记在[待交付批次](docs/待交付批次.md)第 57 条。
+
+**合并。** 2026-11-16 用户要求合并。产品与测试提交 `9f5f001`、`782e2da`，记录提交自 `999a28a` 起；分支顶端 `dc47cf2` 以合并提交 `b1e2ab0` 并入 `master`，冲突只在 PROGRESS 与本台账顶部条目，按时间保留两边条目，本批编号顺延为 57。合并后在主树当时 HEAD `6268967` 编译 Shell Release/x64 **0 警告 0 错误**，`local-media-fixture` **186/186**、`local-library-coordinator-fixture` **7/7**、`local-media-vm-fixture` **7/7**。分支快捷方式 `Momoka-feat-network-dir-support-1VC0Sb.lnk`、临时分支与工作树已清理，本地只留 `master`。主树发布被正在运行的 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe` 拦下，未杀进程；`Momoka.lnk` 仍指合并前旧构建，关闭该程序后需重新发布刷新。合并本身未跑全量验证与探针。
+
+## 2026-11-16 商店详情：左上角也按右侧收边（已合并 master，待统一验证）
+
+用户一句（附图，商店模式单集详情页）：「在左上角加一层跟右侧一样的渐变」。追问时选定「左上角也渐隐收边（环境底与淡墨在窗口左沿像右沿一样渐隐到窗口底色，左右对称）」。
+
+**改了什么。** 右侧那条收边在 `StoreBackdropBlend.AmbientAcross` 的 `(1, 0)`；新的 `AmbientSymmetricAcross` 把同一条 28% 曲线镜像到左沿：`[(0,0),(0.28,1),(0.72,1),(1,0)]`。`Mask` 多一个 `symmetric` 开关，`StoreBackdropFadeShape` 新增 `AmbientSymmetric`，只有媒体详情页（`DetailPage.Showcase.cs`）用它；订阅详情页仍是左沿满色的 `Ambient`，不跟着变。`DetailPage.xaml` 那道横向淡墨的左端从 #40 改成透明（30% 处仍 #24，末端仍是透明），和环境底同一个收边方向，左上角不再是一道硬边。
+
+**探针与契约跟着改。** `StoreFadeRead` 新增 `NearLeft`（0.08 处取样）；`RequireAmbientMask` 从「左沿满色」改为「左右两端与底部渐隐、顶部满色」，近左侧必须是一道渐隐而不是直接切掉。`StoreDetailProbeEvidenceTests` 的用例改名并翻转左右期望；`StoreDetailLayoutTests` 追加环境底左端遮罩采样（0 处 0、0.1 处介于 0 与 255、0.5 处满色）、详情页用 `AmbientSymmetric` 而订阅页仍用 `Ambient`、以及横向淡墨首停点透明。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **349/349**；改动文件 `dotnet format whitespace` 与 `check-diff.ps1` 通过。因为改到探针判据本身，按规则当轮跑了 `--probe-shell --probe-section detail-cards --screen 1`：首次启动只记了第一条用例就退出（同一命令重跑正常），重跑 **2/2 通过、退出 0**（`shell-probe-20261116-105324749-1620`），读数里环境底遮罩 `Left=0 / NearLeft=49 / Core=255 / Right=0 / NearRight=19 / Bottom=0 / Top=255`，`store-detail-backdrop-1240-screen.png` 已目视左上角是平滑收边、首字与正文仍清楚。
+
+**合并。** 2026-11-16 用户要求合并。分支 `fix-gradient-fill-sides-GTvBkE`（顶端 `6bbf545`）与主干上的 `950f05c`（商店图标键材质底）整合，以合并提交 `ac0bcd9` 并入 `master`；冲突只在 PROGRESS 与本台账顶部条目——按时间保留本分支两条在前、主树图标键一条在后，本批编号顺延为第 56 条。`DetailPage.Store.cs`／`DetailPage.xaml`／`StoreDetailLayoutTests.cs` 自动合并，两边的改动并存。合并本身未跑全量验证与探针；合并后在主树编译 Shell Release **0 警告 0 错误**、`Momoka.PageContractTests` **349/349**。随后删除桌面分支快捷方式 `Momoka-fix-gradient-fill-sides-GTvBkE.lnk`、临时分支与其工作树，本地只留 `master`；主树已按同一份最终代码发布（548 文件、289.8 MB）并刷新桌面 `Momoka.lnk`（19:11）。
+
+## 2026-11-16 商店详情：渐变铺满窗口左右两边（已合并 master，待统一验证）
+
+用户一句（附图，商店模式单集详情页）：「渐变要填满左右两边」。截图里窗口宽过 1840，商店档的环境底与左上角淡墨跟着 1840 的内容列居中，窗口两侧各留一条几百像素的原生画布；装饰带在内容列边缘直接截断，右边剧照视口之外也是一条平直暗带。
+
+**改了什么。** `DetailPage.Store.cs` 的 `PlaceStoreComponents` 在排完居中内容列之后算出左右让出的那两截 `bleed = (Body.ActualWidth - columnWidth) / 2`，把 `StoreAmbient`（环境底，剧照取色）与 `StoreShade`（左/左上角淡墨）一起用等量负边距横向铺到窗口两侧；窗口不超过 1840 时 `bleed` 为 0，观感与改动前一致。退出商店模式边距归零。两块仍只随背景图显隐、仍在预告片与正文之下；1840 的内容列、96 的页面内缩、右侧剧照视口与 16 的空隙都没有动，订阅详情页本来就没有 1840 上限，不在本次范围。`DetailPage.xaml` 的 `StoreShade` 注释补了这一句。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **349/349**（「商店渐变：左边与左上角的淡墨层夹在装饰背景与正文之间，随窗口拉伸」追加负边距接线断言）；改动文件 `dotnet format whitespace` 与 `check-diff.ps1` 通过。按 2026-11-16 规则，日常改界面不跑探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 56 条。
+
+**发布。** 2026-11-16 18:32 执行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-gradient-fill-sides-GTvBkE`，退出 0：548 文件、289.8 MB，发布验证通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；桌面分支快捷方式 `Momoka-fix-gradient-fill-sides-GTvBkE.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`。首次发布被本工作树根目录缺 `libmpv-2.dll` 拦下，从主树复制同名运行时后通过；共享主树未改。
+
+## 2026-11-16 商店详情三颗图标键改用音频/字幕选择框的材质底与圆角（已合并 master，待统一验证）
+
+用户（附图）：商店模式媒体详情页里「这几个按钮」加背景，用下方音频/字幕选择框一样的材质背景还有圆角。图上是片名下方那排的已看、收藏、更多三颗图标。
+
+**外观。** `EgStoreCoverActionButtonStyle` 从平台 `SubtleButtonStyle`（透明常态）改回 `DefaultButtonStyle`：常态与悬停／按压读 `ControlBackgroundBrushes` 构造时种进按钮局部资源的 `ButtonBackground*`，与下方六颗闭合选择框共用同一支固定面色（`EgStoreControlBrush` 的 12%／20%／8%／5% 四档，商店档由 `ApplyAppearance` 涂上）；`ApplyAppearance` 不再跳过这三颗（`IsStoreCoverAction` 只留给探针分组与断点图标墨色判断）。圆角取 `EgDetailPickerCornerRadius`（12），与选择框同一档；三颗仍是 44 DIP 无边框方形命中格，平台模板保留悬停、按下、焦点与键盘入口。退出商店模式仍按原次序回到 `ColumnActionRow`，样式与材质画刷一并还原。`DetailPage.Store.cs` 在商店档把种下的 `ButtonBackground` 重新挂回常态，不再 `ClearValue`。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`acrylic-controls-fixture` **40/40**、`Momoka.PageContractTests` **349/349**、`detail-action-readiness-fixture` **94/94**，均 0 失败 0 跳过；改动 C# 文件 `dotnet format whitespace --verify-no-changes` 退出 0。`acrylic-controls-fixture` 里「详情按钮不跟着翻页键换材质」一条原先按整段字面拒绝 `EgBannerPage`，被轮播商店版式的 `EgBannerPageRoundStyle` 误伤（在本批之前已是红），现按原意改成只钉 `OpenButton.Style` 不被改写，覆盖不变。
+
+**分支与快捷方式。** 产品与测试提交 `950f05c`、记录提交 `55ebe3b`；临时分支 `branch-QKmCsQ` 在本树验证通过后发布并刷新过分支快捷方式（548 文件、289.8 MB）。用户要求合并后以 `--ff-only` 合入 `master`（`a38e6d4` → `55ebe3b`），合并本身未跑全量验证与探针；随后删除桌面 `Momoka-branch-QKmCsQ.lnk`、该分支工作树与临时分支，本地只留 `master`；主树已按同一份最终代码重新发布（548 文件、289.8 MB）并刷新桌面 `Momoka.lnk`（18:46）。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图；待跑项记入[待交付批次](docs/待交付批次.md)第 55 条。
+
 ## 2026-11-16 商店详情：左/左上角淡墨渐变、首卡贴到背景图下方（已刷新快捷方式，待统一验证）
 
 用户两句：截图（商店模式单集详情页）上「左边和左上角再叠一层淡淡的深色渐变，跟随窗口大小拉长」；「媒体详情页下方的卡片往上移，但是不要压在背景图上」，随后两句「参考订阅详情页的间距进行修改」「卡片接在背景图下方，留一点点空隙即可」。
@@ -14285,8 +14355,8 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 工作树 `feat-modify-settings-autostart-about-iyVap2`，分支同名。用户令两条：「参考上图修改新增设置中的相关功能」「设置中的开机自启移动到关于中」。图是 Windows 个性化页的三行；经询问确认选择「三项都新增、保留现有色板」「浅色用现有系统浅色配色」「关于下新建启动卡」。产品改动：`UiSettings` 新增 `AppearanceMode`（dark/light/system，默认 dark，缺键旧文件保持原样）、`AccentColor`（#RRGGBB，空＝跟随系统主题色）、`TransparencyEffects`（默认开）；`UiThemes.Compose` 在五套固定深色＋跟随系统之上合成实际深浅与强调色（空值时用 Windows 个性化里的 `UIColorType.Accent`），`SystemThemeWatcher` 同时读系统主题色并在 `ColorValuesChanged` 后重算，浅色档复用 `System(false)`，`WithAccent` 按原推导重算悬停/按下/浅底/字色；`SettingsMigration.Normalize` 收口三格，旧文件缺 `AppearanceMode` 且色板是「跟随系统」时补成 system（否则升级后会从跟随系统变成固定深色），显式写下的值不再改写。`ThemeHost` 新增按 `UiSettings` 应用、模式或主题色跟随系统时观察 Windows、透明效果关掉时整窗画布与侧栏 alpha 255、亚克力 `AlwaysUseFallback`；主窗口 `HostWindow` 与设置窗口在 `ThemeHost.Changed` 里重挂/撤除 Mica，DWM 非客户区同步 `DWMSBT_NONE`。设置界面卡新增「选择模式」「透明效果」；主题色做成色板最后一格（不再是单独一行），五套固定色板保留，原「跟随系统」格撤掉（选择模式负责）。「开机自启」从界面卡搬进关于分类新卡「启动」，自检、settings 探针与源码提取门控同步改到关于分类。
 
-本轮已跑 Shell Release 0 警告 0 错误；`Momoka.Tests` x64 Release 0 警告 0 错误，默认套件 5178 项 5174 通过、4 红：两项 `C:\WINDOWS\TEMP` 下载环境拒绝、一项 MoviePilot 图片夹具监听器取消的 SocketException、一项 `主页轮播：详情按钮不跟着翻页键换材质` 源码红（HomeBanner 的 `EgBannerPageRoundStyle`，本批未触碰该文件，属既有红）；新增 `规整：选择模式与主题色只留认得的值`、`设置：旧文件选跟随系统主题时补成跟随系统模式`、`选择模式：…`、`主题色：覆盖强调色一族` 全绿（`settings-storage-fixture` 186/186）。`settings-page-state-fixture` 59/59、`startup-state-contract-fixture` 61/61、`Momoka.SystemThemeTests` 9/9（新增透明效果画布/侧栏/回退与系统主题色跟随断言）、`Momoka.SettingsLifetimeTests` 63/63、`Momoka.SettingsAppearanceTests` 47/47、`Momoka.SettingsPersistenceTests` 42/42、`Momoka.SettingsProbeContractTests` 36/36、`Momoka.PageContractTests`、`Momoka.ArchitectureTests`、`Momoka.AppearanceOpacityTests` 均通过；改动文件 `dotnet format whitespace` 与 `scan-automation-ids.js` 退出 0。按日常界面规则未跑原生探针与验收截图；深浅模式、主题色与透明效果的真实屏幕观感、设置页/主页/详情各表面、Mica 撤除后的 DWM 边框、跟随系统切换与高对比度均待统一验证。台账新增第55项。
+本轮已跑 Shell Release 0 警告 0 错误；`Momoka.Tests` x64 Release 0 警告 0 错误，默认套件 5178 项 5174 通过、4 红：两项 `C:\WINDOWS\TEMP` 下载环境拒绝、一项 MoviePilot 图片夹具监听器取消的 SocketException、一项 `主页轮播：详情按钮不跟着翻页键换材质` 源码红（HomeBanner 的 `EgBannerPageRoundStyle`，本批未触碰该文件，属既有红）；新增 `规整：选择模式与主题色只留认得的值`、`设置：旧文件选跟随系统主题时补成跟随系统模式`、`选择模式：…`、`主题色：覆盖强调色一族` 全绿（`settings-storage-fixture` 186/186）。`settings-page-state-fixture` 59/59、`startup-state-contract-fixture` 61/61、`Momoka.SystemThemeTests` 9/9（新增透明效果画布/侧栏/回退与系统主题色跟随断言）、`Momoka.SettingsLifetimeTests` 63/63、`Momoka.SettingsAppearanceTests` 47/47、`Momoka.SettingsPersistenceTests` 42/42、`Momoka.SettingsProbeContractTests` 36/36、`Momoka.PageContractTests`、`Momoka.ArchitectureTests`、`Momoka.AppearanceOpacityTests` 均通过；改动文件 `dotnet format whitespace` 与 `scan-automation-ids.js` 退出 0。按日常界面规则未跑原生探针与验收截图；深浅模式、主题色与透明效果的真实屏幕观感、设置页/主页/详情各表面、Mica 撤除后的 DWM 边框、跟随系统切换与高对比度均待统一验证。台账新增第61项。
 
 改好收尾已运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-modify-settings-autostart-about-iyVap2`：发布 548 文件 / 289.8 MB 到本树 `artifacts/publish/win-x64`，桌面快捷方式 `Momoka-feat-modify-settings-autostart-about-iyVap2.lnk` 指向该 exe（19:11 生成）；这不是统一验证或销账。补记：第二次默认套件重跑时另一工作树 `fix-sidebar-resize-toggle-Kmw8SH` 的 Momoka 进程正持有自检锁，16 项自检用例报「已有当前用户的自检运行中」而红；未结束他人进程，不把这次环境占用当作产品通过或失败，也未以放宽基线洗绿。
 
-同日追加（用户令「感觉这个有点重复了，把图二的卡片改为主题色选择功能」「改为跟随系统主题色」）：主题那一行只保留五套固定色板，「跟随系统」格撤掉（选择模式已经有），最后一格改为主题色按钮 —— 底色直接用主题角色 `EgAccentBrush`、字用 `EgTextOnAccentBrush`，点开是 HTML 拾色器，清除即跟随系统主题色；界面卡里原先单独的主题色行随之撤掉，避免两个入口。`SettingThemeRow` 增加 `ThemeAccentSwatch.Tiles` 与 `ThemeTileSelector`，旧文件 `Theme=system` 时色板角标不落（由选择模式表示跟随）。`settings-page-state-fixture` 59/59（新增「主题色格：选色写回一次并保存，清除后显示跟随系统」），`system-theme-fixture` 62/62（新增「主题色：未自定义时跟随系统主题色，自定义优先」），`Momoka.SystemThemeTests` 9/9（新增系统色变化重算与自定义优先），Shell Release 0 警告 0 错误；此追加尚未跑原生探针与截图，已并入第55项交付范围。
+同日追加（用户令「感觉这个有点重复了，把图二的卡片改为主题色选择功能」「改为跟随系统主题色」）：主题那一行只保留五套固定色板，「跟随系统」格撤掉（选择模式已经有），最后一格改为主题色按钮 —— 底色直接用主题角色 `EgAccentBrush`、字用 `EgTextOnAccentBrush`，点开是 HTML 拾色器，清除即跟随系统主题色；界面卡里原先单独的主题色行随之撤掉，避免两个入口。`SettingThemeRow` 增加 `ThemeAccentSwatch.Tiles` 与 `ThemeTileSelector`，旧文件 `Theme=system` 时色板角标不落（由选择模式表示跟随）。`settings-page-state-fixture` 59/59（新增「主题色格：选色写回一次并保存，清除后显示跟随系统」），`system-theme-fixture` 62/62（新增「主题色：未自定义时跟随系统主题色，自定义优先」），`Momoka.SystemThemeTests` 9/9（新增系统色变化重算与自定义优先），Shell Release 0 警告 0 错误；此追加尚未跑原生探针与截图，已并入第61项交付范围。

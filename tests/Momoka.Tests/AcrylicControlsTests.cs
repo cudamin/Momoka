@@ -15,7 +15,7 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
-        Test("商店操作块：三颗图标走原生轻量样式，播放键在下方且同宽，全部无边框", () =>
+        Test("商店操作块：三颗图标与下方选择框同底同圆角，播放键在下方且同宽", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var row = Named(page, "StoreCoverActions");
@@ -29,15 +29,22 @@ internal static class AcrylicControlsTests
             Assert.Equal("StoreActionStack", (string?)slot.Parent!.Attribute(X + "Name"));
             Assert.Equal("OnStorePlaySlotSizeChanged", (string?)slot.Attribute("SizeChanged"));
             var style = Resource(page.Root!.Element(Xaml + "Page.Resources")!, "EgStoreCoverActionButtonStyle");
-            Assert.Equal("{StaticResource SubtleButtonStyle}", (string?)style.Attribute("BasedOn"));
+            Assert.Equal("{StaticResource DefaultButtonStyle}", (string?)style.Attribute("BasedOn"));
             Assert.Equal("0", Setter(style, "BorderThickness"));
             foreach (var dimension in new[] { "Width", "Height", "MinWidth", "MinHeight" })
                 Assert.Equal("{StaticResource EgActionHeight}", Setter(style, dimension));
+            // 2026-11-16 用户令「用下方音频/字幕选择框一样的材质背景还有圆角」：圆角取闭合选择框
+            // 那一档，底色仍是 ControlBackgroundBrushes 种进按钮局部资源的 ButtonBackground*。
+            Assert.Equal("{StaticResource EgDetailPickerCornerRadius}", Setter(style, "CornerRadius"));
+            Assert.Null(Setter(style, "Background"));
             var hover = Source("Views/DetailPage.CoverPlay.cs");
             Assert.DoesNotContain("StoreCoverActions", hover);
             var appearance = Source("Views/DetailPage.Appearance.cs");
-            Assert.Contains("if (IsStoreCoverAction(brushes.Control)) continue;", appearance);
+            Assert.DoesNotContain("if (IsStoreCoverAction(brushes.Control)) continue;", appearance);
             Assert.Contains("IsStoreCoverAction(button)", appearance);
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources[\"ButtonBackground\"];", store);
+            Assert.DoesNotContain("button.ClearValue(Control.BackgroundProperty);", store);
         });
         Test("亚克力探针：先验当前出厂参数，再显式构造旧薄白夹具", () =>
         {
@@ -646,7 +653,9 @@ internal static class AcrylicControlsTests
             var page = Resource(dictionary, "EgBannerPageButtonStyle");
             Assert.Equal("{StaticResource EgBannerPageInkBrush}", Setter(page, "Foreground"));
             Assert.Contains("ControlBackgroundBrushes.ForBanner(OpenButton, Resources)", Source("Views/HomeBanner.xaml.cs"));
-            Assert.False(Source("Views/HomeBanner.xaml.cs").Contains("EgBannerPage", StringComparison.Ordinal),
+            // 翻页箭头会在商店版式与整宽版式之间换样式（2026-11-16 轮播商店版式），所以不能再用
+            // 「代码里不出现 EgBannerPage」整段字面判断；这里按那条检查本来的意思，只钉「详情键不换样式」。
+            Assert.False(Source("Views/HomeBanner.xaml.cs").Contains("OpenButton.Style", StringComparison.Ordinal),
                 "详情按钮不该接翻页键那套玻璃");
         });
 

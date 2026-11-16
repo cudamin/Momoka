@@ -17,6 +17,18 @@ internal static class LocalMediaViewModelTests
         var loader = new SettingsPageStateTests.ShellFixture(shell, root);
         var assembly = AssemblyLoadContext.Default.Assemblies.Single(item => item.GetName().Name == "Momoka");
         var type = assembly.GetType("Momoka.Shell.ViewModels.LocalMediaViewModel", true)!;
+        Test("本机整理 VM：网络目录提示硬链接不可用", () =>
+        {
+            using var fixture = new Fixture(type, loader, root);
+            fixture.Set("MethodIndex", 0);
+            fixture.Set("SourceDirectory", @"\\server\share\source");
+            Assert.Contains("网络目录不支持硬链接", fixture.Get<string>(fixture.Vm, "MethodNote"));
+            fixture.Set("MethodIndex", 1);
+            Assert.DoesNotContain("网络目录不支持硬链接", fixture.Get<string>(fixture.Vm, "MethodNote"));
+            fixture.Set("MethodIndex", 0);
+            fixture.Set("SourceDirectory", Path.GetDirectoryName(fixture.Source)!);
+            Assert.DoesNotContain("网络目录不支持硬链接", fixture.Get<string>(fixture.Vm, "MethodNote"));
+        });
         Test("本机整理 VM：修改校正季集立即撤销旧预览", () =>
         {
             using var fixture = new Fixture(type, loader, root);

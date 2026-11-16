@@ -88,15 +88,21 @@
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
-        <!-- Gallery Samples/Button/ButtonPage.xaml 的 SubtleButtonStyle，固定 v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。
-             使用平台模板和悬停/按下/焦点反馈；仅封面下方四颗既有按钮使用这支无边框样式。 -->
-        <Style x:Key="EgStoreCoverActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+        <!-- 商店模式片名下方那三颗图标键（已看、收藏、更多）。2026-11-16 用户令「用下方音频/字幕
+             选择框一样的材质背景还有圆角」：底色不再交给 SubtleButtonStyle 的透明常态，改回平台默认
+             按钮模板 —— 常态与三态读的是 ControlBackgroundBrushes 构造时种进按钮局部资源的
+             ButtonBackground* 画刷，和下方六颗闭合选择框共用同一支固定面色（EgStoreControlBrush
+             的四档浓度，商店档由 ApplyAppearance 涂上）。圆角取那一档选择框的小圆角
+             （EgDetailPickerCornerRadius），不再是胶囊或直角；仍是 44 的方形命中格、无边框，
+             悬停、按下与焦点反馈仍由平台模板给。 -->
+        <Style x:Key="EgStoreCoverActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinHeight" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgDetailPickerCornerRadius}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -364,12 +370,16 @@
         </Grid>
             <!-- 2026-11-16 用户令「左边和左上角再叠一层淡淡的深色渐变，跟随窗口大小拉长」：
                  商店档的环境底是跟剧照取的色，左边那一列字有时落在一块亮色上。这一层夹在装饰背景与正文
-                 之间：左边一道横着的（左沿最浓、往右散尽），上面再叠一道竖着的（顶边最浓、往下散尽），
-                 左上角两道相交因而最深。两道都用比例停点，元素跟着窗口拉高拉长时整道渐变一起拉伸；
+                 之间：左边一道横着的（往右散尽），上面再叠一道竖着的（顶边最浓、往下散尽）。
+                 两道都用比例停点，元素跟着窗口拉高拉长时整道渐变一起拉伸；
                  高取环境底与视口里大的那个（MinHeight），窗口比内容高时也铺满整屏。
                  压在静图那一层上、预告片那两块之前：视频与它那排控制键不该跟着变暗。
                  颜色取固定的 #0C0E11 一家（同 HeroScrim 与主页大图），高对比度那本词典里只有画刷没有
-                 颜色键，渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。 -->
+                 颜色键，渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。
+                 2026-11-16 用户令「渐变要填满左右两边」：这一层与环境底在 DetailPage.Store.cs 里一起用
+                 负边距越过 1840 内容列，窗口再宽也横铺到两侧，不在内容列边缘截断。
+                 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：左沿从透明升到 30% 那一档，
+                 与环境底同一个收边方向；左上角不再是一道硬边。 -->
             <Grid x:Name="StoreShade"
                   Height="{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}"
                   MinHeight="{x:Bind ViewModel.Viewport, Mode=OneWay}"
@@ -378,7 +388,7 @@
                 <Border>
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
-                            <GradientStop Offset="0" Color="#400C0E11" />
+                            <GradientStop Offset="0" Color="#000C0E11" />
                             <GradientStop Offset="0.3" Color="#240C0E11" />
                             <GradientStop Offset="0.58" Color="#000C0E11" />
                         </LinearGradientBrush>
@@ -888,7 +898,8 @@
                                  长度（宽）与上面三颗那一行相同；离日期只留正常的行距，不留大空隙。
                                  四颗都是既有实例，由 DetailPage.Store.cs 搬进来，退出商店模式时原样放回。
                                  图标行三列等分，列宽由 StorePlaySlot 的实测宽回写（OnStorePlaySlotSizeChanged），
-                                 所以播放键多长、这一行就多长；每颗仍是 44 的命中格、无边框。 -->
+                                 所以播放键多长、这一行就多长；每颗仍是 44 的命中格、无边框，底色与圆角
+                                 跟下方音频/字幕选择框同一档（2026-11-16 用户令）。 -->
                             <StackPanel
                                 x:Name="StoreActionBlock"
                                 HorizontalAlignment="Left"
@@ -1998,8 +2009,8 @@
                         TextTrimming="CharacterEllipsis" />
                     <TextBlock
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="{x:Bind ViewModel.Subline, Mode=OneWay}"
-                        Visibility="{x:Bind local:DetailPage.HeaderSubtitleVisibility(ViewModel.Subline), Mode=OneWay}"
+                        Text="{x:Bind ViewModel.HeaderFacts, Mode=OneWay}"
+                        Visibility="{x:Bind local:DetailPage.HeaderSubtitleVisibility(ViewModel.HeaderFacts), Mode=OneWay}"
                         TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <Button
@@ -2009,13 +2020,24 @@
                     AutomationProperties.Name="{x:Bind ViewModel.PlayText, Mode=OneWay}"
                     Command="{x:Bind ViewModel.PlayCommand}"
                     MaxWidth="220"
-                    MinHeight="40"
-                    Padding="16,8"
+                    Style="{StaticResource EgPlayButtonStyle}"
                     ToolTipService.ToolTip="{x:Bind ViewModel.PlayText, Mode=OneWay}"
                     VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.PlayVisibility, Mode=OneWay}">
+                    <!-- 与正文主播放键同一副内容（2026-11-16 用户令「和实际播放按钮一样」）：有断点时图标取主题色，
+                         没有断点跟着字走；尺寸、圆角、材质底由 EgPlayButtonStyle 与外观那一支统一上。 -->
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon FontSize="14" Glyph="&#xE768;" />
+                        <FontIcon
+                            FontSize="14"
+                            Glyph="&#xE768;"
+                            Foreground="{StaticResource EgDetailActionTextBrush}"
+                            Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
+                        <FontIcon
+                            x:Name="StickyResumeGlyph"
+                            FontSize="14"
+                            Glyph="&#xE768;"
+                            Foreground="{StaticResource EgAccentBrush}"
+                            Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                         <TextBlock
                             x:Name="StickyPlayText"
                             Text="{x:Bind ViewModel.PlayText, Mode=OneWay}"

@@ -160,9 +160,12 @@ internal static class HoverMotionTests
             Assert.Contains("StoreTrailerPreview.CreateAsync(subject, cts.Token)", poster);
             Assert.Contains("preview.PlayTrailer(trailer);", poster);
 
+            Assert.Contains("if (!ShellPrefs.Trailers.HoverAutoplay) return;", poster);
             var preview = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");
             Assert.Contains("internal void PlayTrailer(StoreTrailerPreview preview)", preview);
-            Assert.Contains("IsMuted = true, IsLoopingEnabled = true, AutoPlay = true", preview);
+            Assert.Contains("IsMuted = preferences.HoverMuted,", preview);
+            Assert.Contains("IsLoopingEnabled = preferences.HoverLoop,", preview);
+            Assert.Contains("AutoPlay = true", preview);
             Assert.Contains("AreTransportControlsEnabled = false", preview);
             Assert.Contains("internal void StopTrailer()", preview);
             Assert.Contains("StopTrailer();", preview[preview.IndexOf("internal void Reset(", StringComparison.Ordinal)..]);
@@ -173,6 +176,38 @@ internal static class HoverMotionTests
             var previewFields = fields[start..end];
             foreach (var name in new[] { "Overview", "Genres", "CommunityRating", "ProductionYear", "PremiereDate" })
                 Assert.Contains(name, previewFields);
+        });
+        Test("悬停预告：设置页「界面 → 预告片」四项与当场生效的接线", () =>
+        {
+            var settings = Read("src/Momoka.Shell/ViewModels/SettingsViewModel.cs");
+            Assert.Contains("Sections.Add(TrailerCard());", settings);
+            Assert.Contains("private SettingSection TrailerCard()", settings);
+            Assert.Contains("new SettingSection(\"界面\", \"预告片\"", settings);
+            foreach (var label in new[] { "封面悬停自动播放", "悬停预告片静音", "悬停预告片循环", "详情页自动播放" })
+                Assert.Contains($"Toggle(\"{label}\"", settings);
+            Assert.Contains("ShellPrefs.ApplyTrailers(Settings.Trailer);", settings);
+            Assert.Contains("rows.RemoveAll(row => row.Label is \"悬停预告片静音\" or \"悬停预告片循环\");", settings);
+
+            var prefs = Read("src/Momoka.Shell/ShellPrefs.cs");
+            Assert.Contains("public static TrailerSettings Trailers { get; private set; } = new();", prefs);
+            Assert.Contains("public static void ApplyTrailers(TrailerSettings trailer)", prefs);
+            Assert.Contains("TrailerChanged?.Invoke(Trailers);", prefs);
+
+            var app = Read("src/Momoka.Shell/App.xaml.cs");
+            Assert.Contains("ShellPrefs.ApplyTrailers(settings.Settings.Trailer);", app);
+
+            var preview = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");
+            Assert.Contains("ShellPrefs.TrailerChanged += OnTrailerPreferenceChanged;", preview);
+            Assert.Contains("if (!preferences.HoverAutoplay)", preview);
+            Assert.Contains("player.IsMuted = preferences.HoverMuted;", preview);
+            Assert.Contains("player.IsLoopingEnabled = preferences.HoverLoop;", preview);
+
+            var detail = Read("src/Momoka.Shell/Views/DetailPage.StoreTrailer.cs");
+            Assert.Contains("!ShellPrefs.Trailers.DetailAutoplay", detail);
+            Assert.Contains("ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;", detail);
+            var subscription = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionPage.Trailer.cs");
+            Assert.Contains("!ShellPrefs.Trailers.DetailAutoplay", subscription);
+            Assert.Contains("ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;", subscription);
         });
         Test("悬停详情：徽标与片名带着面板里的最后位置飞进详情页", () =>
         {

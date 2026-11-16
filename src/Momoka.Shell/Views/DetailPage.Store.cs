@@ -93,11 +93,19 @@ public sealed partial class DetailPage
 
             StoreScrollContent.MaxWidth = store ? 1840 : double.PositiveInfinity;
             StoreScrollContent.HorizontalAlignment = store ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
+            var columnWidth = store ? Math.Min(1840, Body.ActualWidth) : Body.ActualWidth;
             if (Body.ActualWidth > 0)
             {
-                StoreScrollContent.Width = store ? Math.Min(1840, Body.ActualWidth) : double.NaN;
-                ViewModel.PageWidth = store ? Math.Min(1840, Body.ActualWidth) : Body.ActualWidth;
+                StoreScrollContent.Width = store ? columnWidth : double.NaN;
+                ViewModel.PageWidth = columnWidth;
             }
+            // 2026-11-16 用户令「渐变要填满左右两边」：商店档的装饰带（环境底与淡墨）跟着整扇窗口走，
+            // 不再被 1840 的内容列截在中间；左右多出来的那两截用负边距让出去，透过来的就是同一块
+            // 环境色与同一道渐变。内容是居中的，两边让出的等宽，窗口不超过 1840 时这一项为 0。
+            var bleed = store && Body.ActualWidth > columnWidth ? (Body.ActualWidth - columnWidth) / 2 : 0;
+            var bleedMargin = new Thickness(-bleed, 0, -bleed, 0);
+            StoreAmbient.Margin = bleedMargin;
+            StoreShade.Margin = bleedMargin;
             StoreHeroDetails.Visibility = store ? Visibility.Visible : Visibility.Collapsed;
             StoreHeroDetails.Spacing = store ? 14 : 8;
             HeroContent.Width = store ? ViewModel.StoreContentWidth : double.NaN;
@@ -138,7 +146,8 @@ public sealed partial class DetailPage
     /// 搬的是同一批实例，绑定、命令、焦点不重接；退出商店模式时
     /// 按「播放、预告、花絮、连播、已看、收藏、更多」的原次序放回 <c>ColumnActionRow</c>。
     /// 已看那颗键收成图标：文字组的显隐由 <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/>
-    /// 收起，三颗图标共用平台轻量按钮样式。
+    /// 收起。三颗图标与下方音频/字幕选择框共用同一支固定面色和小圆角（2026-11-16 用户令），
+    /// 底色仍由 <see cref="ControlBackgroundBrushes"/> 种进控件局部资源的 ButtonBackground* 承担。
     /// </para>
     /// </summary>
     private void PlaceStoreActionButtons(bool store)
@@ -164,12 +173,14 @@ public sealed partial class DetailPage
                 Detach(ColumnContinueButton);
                 EpisodeHead.Trailing = ColumnContinueButton;
             }
-            var subtle = (Style)Resources["EgStoreCoverActionButtonStyle"];
+            var storeStyle = (Style)Resources["EgStoreCoverActionButtonStyle"];
             foreach (var button in icons)
             {
-                if (!ReferenceEquals(button.Style, subtle)) button.Style = subtle;
-                // 构造时的材质Background是局部值，清掉才会真正使用SubtleButtonStyle的透明常态和平台三态。
-                button.ClearValue(Control.BackgroundProperty);
+                if (!ReferenceEquals(button.Style, storeStyle)) button.Style = storeStyle;
+                // 底色是 PrepareAppearance 种下的那组材质画刷（和闭合选择框同一支固定面色）；
+                // 商店档不另铺一块，也不用透明常态把它清掉。
+                if (button.Resources.ContainsKey("ButtonBackground"))
+                    button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources["ButtonBackground"];
                 button.Opacity = 1;
             }
             // 主播放键走回带字的药丸键：底色是 PrepareAppearance 种下的那组画刷，

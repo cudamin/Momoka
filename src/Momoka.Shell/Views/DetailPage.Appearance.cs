@@ -27,6 +27,8 @@ public sealed partial class DetailPage
     private readonly SolidColorBrush _continueOnInk = new();
     private ControlBackgroundBrushes? _columnPlay;
     private ControlBackgroundBrushes? _compactPlay;
+    /// <summary>顶部悬浮栏那颗播放键 —— 正文主播放键的第二个落点，材质与墨色跟同一份走。</summary>
+    private ControlBackgroundBrushes? _stickyPlay;
     private bool _readingQueued;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _appearanceSystemTimer;
     private bool _lastContrast;
@@ -49,6 +51,11 @@ public sealed partial class DetailPage
                     if (ReferenceEquals(control, ColumnPlayButton)) _columnPlay = brushes;
                     else if (ReferenceEquals(control, CompactPlayButton)) _compactPlay = brushes;
                 }
+
+        // 悬浮栏那颗播放键不在那两排里，但它是同一颗键的第二个落点（2026-11-16 用户令
+        // 「悬浮上的播放按钮和实际播放按钮一样」）：同一支材质底、同一套三态墨色，一起进这份名单。
+        _stickyPlay = ControlBackgroundBrushes.ForDetail(StickyPlayButton, lightSurface: true);
+        _controlBackgrounds.Add(_stickyPlay);
 
         foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
             SourcePicker, AudioPicker, SubtitlePicker })
@@ -132,7 +139,6 @@ public sealed partial class DetailPage
         PaintContinueInk();
         foreach (var brushes in _controlBackgrounds)
         {
-            if (IsStoreCoverAction(brushes.Control)) continue;
             if (simple)
             {
                 if (IsStorePlay(brushes)) brushes.ApplyAccentSurface();
@@ -306,8 +312,14 @@ public sealed partial class DetailPage
         }
         // 商店模式的播放键是强调色面：断点那颗图标原先是强调色，压在强调面上等于消失，改成和字同一支
         // 对比色；其余模式还原成主题色图标（那一档按钮还是半透明底，强调色本来只落在图标上）。
+        // 悬浮栏那颗是主播放键的第二个落点，三处一起换。
         var resumeInk = (Brush)Application.Current.Resources["EgAccentBrush"];
-        foreach (var (glyph, button) in new[] { (ColumnResumeGlyph, ColumnPlayButton), (CompactResumeGlyph, CompactPlayButton) })
+        foreach (var (glyph, button) in new[]
+        {
+            (ColumnResumeGlyph, ColumnPlayButton),
+            (CompactResumeGlyph, CompactPlayButton),
+            (StickyResumeGlyph, StickyPlayButton)
+        })
             glyph.Foreground = onAccent is null || IsStoreCoverAction(button) ? resumeInk : button.Foreground;
         foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText,
             DetailVideoText, DetailDirectorsText })
@@ -360,13 +372,19 @@ public sealed partial class DetailPage
     }
 
     /// <summary>
-    /// 主播放键那两份画刷（宽版式一颗、紧凑版式一颗）—— 商店模式只给它们换强调色面。
-    /// 2026-11-16 起商店档的主播放键回到带字药丸，不再是无边框图标，所以宽版式那一颗也要换。
+    /// 主播放键那三份画刷（宽版式一颗、紧凑版式一颗、悬浮栏一颗）—— 商店模式只给它们换强调色面。
+    /// 2026-11-16 起商店档的主播放键回到带字药丸，不再是无边框图标，所以宽版式那一颗也要换；
+    /// 同一天悬浮栏那颗也并进来，三处同一副外观。
     /// </summary>
     private bool IsStorePlay(ControlBackgroundBrushes brushes) =>
-        ReferenceEquals(brushes, _compactPlay) || ReferenceEquals(brushes, _columnPlay);
+        ReferenceEquals(brushes, _compactPlay) || ReferenceEquals(brushes, _columnPlay)
+        || ReferenceEquals(brushes, _stickyPlay);
 
-    /// <summary>商店模式下那三颗无边框图标键（已看、收藏、更多）；主播放键不在此列。</summary>
+    /// <summary>
+    /// 商店模式下那三颗图标键（已看、收藏、更多）；主播放键不在此列。
+    /// 2026-11-16 起它们和下方音频/字幕选择框共用同一支固定面色与小圆角（ApplyAppearance 不再
+    /// 跳过它们），这里只留给探针按「三颗图标」这一组单独核对，以及断点图标的墨色判断。
+    /// </summary>
     internal bool IsStoreCoverAction(Control control) => ViewModel.StoreMode
         && (ReferenceEquals(control, ColumnWatchedButton) || ReferenceEquals(control, ColumnFavoriteButton)
             || ReferenceEquals(control, ColumnMoreButton));

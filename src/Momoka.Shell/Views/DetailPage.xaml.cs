@@ -98,6 +98,7 @@ public sealed partial class DetailPage : Page, IShellContent
             if (_appearanceObserved) ApplyAppearance();
         });
         PrepareShowcase();
+        PrepareStoreTrailerPreferences();
         PrepareCardLayout();
         PrepareCoverHover();
         PrepareStickyHeader();

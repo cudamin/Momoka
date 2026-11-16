@@ -69,15 +69,16 @@ public static class SettingsPreferences
     }
 
     /// <summary>
-    /// 偏好部分就地覆盖：五组整组抄，音频除音量、界面除「记下来的那几项」，身份与 MoviePilot 一概不碰。见类注释。
+    /// 偏好部分就地覆盖：几组整组抄，音频除音量、界面除「记下来的那几项」，身份与 MoviePilot 一概不碰。见类注释。
     /// </summary>
     private static void CopyInto(AppSettings destination, AppSettings source)
     {
-        // 这五组整组都是设置页上的行，没有例外要留。快捷键整组回默认 ＝ 把用户改过的绑定清成空字典。
+        // 这几组整组都是设置页上的行，没有例外要留。快捷键整组回默认 ＝ 把用户改过的绑定清成空字典。
         Overwrite(destination.Mpv, source.Mpv);
         Overwrite(destination.Playback, source.Playback);
         Overwrite(destination.Video, source.Video);
         Overwrite(destination.Shaders, source.Shaders);
+        Overwrite(destination.Trailer, source.Trailer);
         Overwrite(destination.Shortcuts, source.Shortcuts);
 
         // 可执行文件与输出目录是本机配置，不从可分享的备份导入另一个程序。

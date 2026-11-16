@@ -16,12 +16,19 @@ internal enum StoreBackdropFadeShape
     Picture,
 
     /// <summary>环境底：左端贴住内容区左沿（2026-11-15 起不再起坡，侧栏旁边不留暗带）、底部收边、右端收在画布上。</summary>
-    Ambient
+    Ambient,
+
+    /// <summary>
+    /// 媒体详情页的环境底：铺满窗口后左右两端都收边（左端按右端同一条曲线），底部照旧。
+    /// 订阅详情页仍用 <see cref="Ambient"/>，不在那一页加左端渐隐。
+    /// </summary>
+    AmbientSymmetric
 }
 
 /// <summary>Gallery Controls/OpacityMaskView.xaml.cs, v2.9.3 / 14a4a1a2.
 /// 保留单次VisualSurface重定向；二维alpha图把剧照的左边、右边与底部渐隐合在同一个遮罩里，
-/// 环境底只收右边与底部（左端贴住内容区左沿，见 <see cref="StoreBackdropFadeShape.Ambient"/>）。
+/// 环境底只收右边与底部（左端贴住内容区左沿，见 <see cref="StoreBackdropFadeShape.Ambient"/>；
+/// 媒体详情页铺满窗口后用 <see cref="StoreBackdropFadeShape.AmbientSymmetric"/>，左端也收）。
 /// 剧照与环境底各用一份；环境底铺到信息区，剧照保留右侧清晰画面。
 /// 微软商店闭源，截图仅作外观参考。沿用 Gallery 的重定向机制，不对其内部实现作推断。
 /// </summary>
@@ -48,7 +55,8 @@ internal sealed class StoreBackdropFade
         _maskElement = maskElement;
         const int side = StoreBackdropBlend.Side;
         var bitmap = new WriteableBitmap(side, side);
-        var pixels = StoreBackdropBlend.Mask(shape == StoreBackdropFadeShape.Ambient);
+        var pixels = StoreBackdropBlend.Mask(shape != StoreBackdropFadeShape.Picture,
+            symmetric: shape == StoreBackdropFadeShape.AmbientSymmetric);
         using (var stream = bitmap.PixelBuffer.AsStream()) stream.Write(pixels);
         bitmap.Invalidate();
         maskElement.Background = new ImageBrush { ImageSource = bitmap, Stretch = Stretch.Fill };

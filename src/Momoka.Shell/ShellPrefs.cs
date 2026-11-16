@@ -104,6 +104,20 @@ public static class ShellPrefs
 
     public static void ApplySubtitleTranslation() => SubtitleTranslationChanged?.Invoke();
 
+    /// <summary>
+    /// 预告片那一组设置改完当场生效的那一根线。封面悬停面板与详情页没有设置服务，读的是这里保存的当前
+    /// 那一份；启动、设置页改值、恢复默认和恢复配置三处都喊 <see cref="ApplyTrailers"/>。
+    /// </summary>
+    public static event Action<TrailerSettings>? TrailerChanged;
+
+    public static TrailerSettings Trailers { get; private set; } = new();
+
+    public static void ApplyTrailers(TrailerSettings trailer)
+    {
+        Trailers = trailer ?? new TrailerSettings();
+        TrailerChanged?.Invoke(Trailers);
+    }
+
     /// <summary>由设置页那一头喊：这一份刚改过，请各位跟上。</summary>
     public static void Apply(UiSettings ui)
     {

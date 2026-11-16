@@ -71,6 +71,34 @@ internal static class SettingsApplicabilityTests
             Assert.Contains("Sections.Add(ApplicableHdrCard());", shell.Source);
             Assert.Contains("RefreshSettingsApplicability();", shell.Source);
         });
+        TestHarness.Test("预告片设置：四项与悬停总开关收起从属行，恢复后保留原值", () =>
+        {
+            var state = shell.Create();
+            Assert.Equal(4, state.Labels("预告片").Length);
+            Assert.True(state.Labels("预告片").Contains("封面悬停自动播放"));
+            Assert.True(state.Labels("预告片").Contains("悬停预告片静音"));
+            Assert.True(state.Labels("预告片").Contains("悬停预告片循环"));
+            Assert.True(state.Labels("预告片").Contains("详情页自动播放"));
+
+            state.Toggle("预告片", "悬停预告片静音", false);
+            state.Toggle("预告片", "封面悬停自动播放", false);
+            Assert.False(state.Settings.Settings.Trailer.HoverAutoplay);
+            Assert.False(state.Settings.Settings.Trailer.HoverMuted);
+
+            var hidden = state.Labels("预告片");
+            Assert.True(hidden.Contains("封面悬停自动播放"));
+            Assert.True(hidden.Contains("详情页自动播放"));
+            Assert.False(hidden.Contains("悬停预告片静音"), "总开关关着时静音行没有作用，应一起收起");
+            Assert.False(hidden.Contains("悬停预告片循环"), "总开关关着时循环行没有作用，应一起收起");
+
+            state.Toggle("预告片", "封面悬停自动播放", true);
+            var restored = state.Labels("预告片");
+            Assert.True(restored.Contains("悬停预告片静音"));
+            Assert.True(restored.Contains("悬停预告片循环"));
+            Assert.False(state.Get<bool>(state.Row("预告片", "悬停预告片静音"), "IsOn"),
+                "关掉总开关不清偏好，重新打开仍是关闭前的值");
+        });
+
         TestHarness.Test("R12-001 同目录重入保留HDR映射行与选项，真实选择仍写正确值", () =>
         {
             var state = shell.Create();
@@ -589,7 +617,7 @@ internal static class SettingsApplicabilityTests
             sections.Clear();
             // 修前用原真实卡，修后使用 Reload 已接入的适用性卡；静态接线测试另外核对正式调用。
             foreach (var method in new[] { "VideoCard", _shell.Builder("ApplicableShaderCard", "ShaderCard"),
-                _shell.Builder("ApplicableHdrCard", "HdrCard"), "FrameInterpolationCard" })
+                _shell.Builder("ApplicableHdrCard", "HdrCard"), "FrameInterpolationCard", "TrailerCard" })
                 sections.Add(_shell.Invoke(Vm, method)!);
             // 字幕 2026-10-27 拆成三张卡，建卡入口返回一份列表，逐张加。
             foreach (var section in (IEnumerable)_shell.Invoke(Vm, "SubtitleSections")!) sections.Add(section);

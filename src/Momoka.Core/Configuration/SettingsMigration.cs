@@ -365,6 +365,7 @@ public static class SettingsMigration
         if (settings.Audio is null) settings.Audio = new AudioSettings();
         if (settings.Shaders is null) settings.Shaders = new ShaderAutomationSettings();
         if (settings.Ui is null) settings.Ui = new UiSettings();
+        if (settings.Trailer is null) settings.Trailer = new TrailerSettings();
         if (settings.Shortcuts is null) settings.Shortcuts = new ShortcutSettings();
         if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
         if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();

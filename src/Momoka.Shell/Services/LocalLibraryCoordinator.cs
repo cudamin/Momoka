@@ -186,7 +186,8 @@ public sealed class LocalLibraryCoordinator : IDisposable
             foreach (var id in _running.Keys.ToArray()) await StopLibraryAsync(id);
             foreach (var configuration in configurations)
             {
-                try { Validate(configuration); await StartLibraryAsync(configuration); }
+                // 启动时共享可能暂时离线：让监控先跑起来按重新扫描间隔等待恢复，不把规则卡在错误里。
+                try { Validate(configuration, requireSource: false); await StartLibraryAsync(configuration); }
                 catch (Exception error) { _notices[configuration.Id] = SafeError(error); }
             }
         }
@@ -271,14 +272,17 @@ public sealed class LocalLibraryCoordinator : IDisposable
         running.Tmdb?.Dispose();
     }
 
-    private void Validate(LocalMediaLibrarySettings configuration)
+    private void Validate(LocalMediaLibrarySettings configuration, bool requireSource = true)
     {
         if (string.IsNullOrWhiteSpace(configuration.Name) || string.IsNullOrWhiteSpace(configuration.SourceDirectory))
             throw new InvalidOperationException("请填写媒体库名称和源目录。");
         if (string.IsNullOrWhiteSpace(configuration.Id) || configuration.Method is not ("hardlink" or "symboliclink" or "rename")
             || configuration.Provider is not ("momoka" or "moviepilot")) throw new InvalidOperationException("媒体库规则无效，请重新选择。");
         var root = Path.GetFullPath(configuration.SourceDirectory);
-        if (!Directory.Exists(root)) throw new DirectoryNotFoundException("源目录不存在。");
+        if (configuration.Method == "hardlink"
+            && (LocalMediaOrganizer.IsNetworkPath(root) || LocalMediaOrganizer.IsNetworkPath(configuration.TargetDirectory)))
+            throw new InvalidOperationException("网络目录不支持硬链接，请选择软链接或直接改名。");
+        if (requireSource && !Directory.Exists(root)) throw new DirectoryNotFoundException("源目录不存在或当前无法访问。");
         if (configuration.Method != "rename" && string.IsNullOrWhiteSpace(configuration.TargetDirectory))
             throw new InvalidOperationException("链接方式需要目标目录。");
         foreach (var other in Libraries.Where(value => value.Id != configuration.Id && !string.IsNullOrWhiteSpace(value.SourceDirectory)))

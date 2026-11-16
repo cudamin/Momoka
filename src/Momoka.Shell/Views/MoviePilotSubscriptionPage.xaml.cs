@@ -70,6 +70,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         PaintBackdropFade();
         PrepareShowcase();
         PrepareActionAppearance();
+        WatchTrailerPreferences();
         WatchShowcaseTheme();
         WatchAppearance();
         ViewModel.PropertyChanged += (_, args) =>

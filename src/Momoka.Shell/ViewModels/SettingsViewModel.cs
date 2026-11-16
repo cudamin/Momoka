@@ -1152,6 +1152,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Clear();
         AddCards(HomeSections());
         Sections.Add(InterfaceCard());
+        Sections.Add(TrailerCard());
         Sections.Add(DetailAppearanceCard());
         Sections.Add(DetailContentCard());
         AddCards(DetailLayoutCards());
@@ -2297,6 +2298,64 @@ public sealed partial class SettingsViewModel : PageViewModel
             after: () => ThemeHost.Apply(ui));
 
     /// <summary>
+    /// 「界面 → 预告片」那一张卡（2026-11-16 用户令「在界面中新增预告片卡片」）：封面悬停面板的自动播放、
+    /// 静音与循环，以及商店宽版式详情页的自动播放。悬停只认服务器本地预告，远程 YouTube 预告不进悬停面板。
+    /// <para>
+    /// 悬停总开关关着时，静音与循环两行没有作用，按项目规则一起收起；关掉不清偏好，重新打开仍读原值。
+    /// 每一行改完都喊一声 <see cref="ShellPrefs.ApplyTrailers"/>，已经在屏上的悬停面板与详情页当场跟上。
+    /// </para>
+    /// </summary>
+    private SettingSection TrailerCard()
+    {
+        var trailer = Settings.Trailer;
+        var rows = new List<SettingRow>
+        {
+            Toggle("封面悬停自动播放",
+                "指针在封面上停稳、面板撑开后，如果服务器里这条条目有本地预告片，就自动播放它；"
+                    + "只有远程 YouTube 预告时保持静态宽图。",
+                () => trailer.HoverAutoplay,
+                value => trailer.HoverAutoplay = value,
+                after: () =>
+                {
+                    ShellPrefs.ApplyTrailers(Settings.Trailer);
+                    RefreshTrailerApplicability();
+                }),
+
+            Toggle("悬停预告片静音",
+                "悬停面板里的预告片默认不出声；关掉后按服务器音轨播放。",
+                () => trailer.HoverMuted,
+                value => trailer.HoverMuted = value,
+                after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)),
+
+            Toggle("悬停预告片循环",
+                "播完从头循环，直到指针离开悬停面板。",
+                () => trailer.HoverLoop,
+                value => trailer.HoverLoop = value,
+                after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)),
+
+            Toggle("详情页自动播放",
+                "商店宽版式的详情页右上角自动播放预告片（本地或远程）；关掉后只显示背景图，"
+                    + "预告片按钮仍然可用。",
+                () => trailer.DetailAutoplay,
+                value => trailer.DetailAutoplay = value,
+                after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)),
+        };
+
+        if (!trailer.HoverAutoplay)
+            rows.RemoveAll(row => row.Label is "悬停预告片静音" or "悬停预告片循环");
+
+        return new SettingSection("界面", "预告片",
+            "封面悬停与详情页里的预告片播放方式。悬停只播放服务器本地预告片。", rows);
+    }
+
+    private void RefreshTrailerApplicability()
+    {
+        if (_settings is null) return;
+        var section = Sections.FirstOrDefault(card => card.Title == "预告片");
+        section?.UpdateRows(TrailerCard().Rows);
+    }
+
+    /// <summary>
     /// 「在设置中新增开机自启的功能」。这一行和这一页别的行都不一样：它写进去的不是设置文件，而是机器上的启动项
     /// （HKCU 里 <see cref="StartupEntry"/> 说的那两格），所以它没有存档值 —— 读的是注册表当下的事实，拨一下当场
     /// 写下去。
@@ -2973,6 +3032,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var ui = Settings.Ui;
         ThemeHost.Apply(ui);
         ShellPrefs.Apply(ui);
+        ShellPrefs.ApplyTrailers(Settings.Trailer);
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
         ShellPrefs.ApplySubtitleTranslation();

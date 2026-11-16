@@ -9,6 +9,7 @@ public sealed partial class DetailPage : Page
     internal DetailViewModel ViewModel { get; } = new();
     public Border StickyHeader { get; } = new() { Visibility = Visibility.Collapsed, IsHitTestVisible = false };
     public Grid StickyHeaderContent { get; } = new() { ColumnSpacing = 16 };
+    public StackPanel BodySheet { get; } = new() { Margin = new(10, 0, 10, 0) };
     public Image StickyPoster { get; } = new();
     public Button StickyPlayButton { get; } = new();
     public TextBlock StickyPlayText { get; } = new();
@@ -25,7 +26,7 @@ public sealed partial class DetailPage : Page
         ColumnPlayButton.Parent = Body;
         CompactPlayButton.Parent = Body;
         foreach (var element in new FrameworkElement[] { StickyHeader, StickyHeaderContent, StickyPoster,
-            StickyPlayButton, StickyPlayText, ColumnPlayButton, CompactPlayButton, Body })
+            StickyPlayButton, StickyPlayText, ColumnPlayButton, CompactPlayButton, Body, BodySheet })
         {
             element.XamlRoot = XamlRoot;
             element.DispatcherQueue = DispatcherQueue;

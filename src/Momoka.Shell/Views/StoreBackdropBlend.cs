@@ -19,6 +19,10 @@ internal static class StoreBackdropBlend
     // 环境色的暗带，屏上读成一道黑边。
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 1), (0.72, 1), (1, 0)];
+    // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：媒体详情页的环境底铺满窗口后，左沿也按
+    // 右沿同一条曲线收边（左右各 28%）。订阅详情页仍用上面那条左沿满色的；那里不要左端渐隐。
+    private static readonly (double Position, double Alpha)[] AmbientSymmetricAcross =
+        [(0, 0), (0.28, 1), (0.72, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =
         [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
@@ -26,13 +30,18 @@ internal static class StoreBackdropBlend
         ? Interpolate(x, AmbientAcross) * Interpolate(y, AmbientDown)
         : Interpolate(x, PictureAcross) * Interpolate(y, PictureDown);
 
-    internal static byte[] Mask(bool ambient)
+    internal static byte[] Mask(bool ambient, bool symmetric = false)
     {
+        var across = ambient
+            ? symmetric ? AmbientSymmetricAcross : AmbientAcross
+            : PictureAcross;
+        var down = ambient ? AmbientDown : PictureDown;
         var pixels = new byte[Side * Side * 4];
         for (var y = 0; y < Side; y++)
             for (var x = 0; x < Side; x++)
             {
-                var alpha = Channel(255 * Alpha(x / (double)(Side - 1), y / (double)(Side - 1), ambient));
+                var alpha = Channel(255 * Interpolate(x / (double)(Side - 1), across)
+                    * Interpolate(y / (double)(Side - 1), down));
                 var at = (y * Side + x) * 4;
                 pixels[at] = pixels[at + 1] = pixels[at + 2] = pixels[at + 3] = alpha;
             }

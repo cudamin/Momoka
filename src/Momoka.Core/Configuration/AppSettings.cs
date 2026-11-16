@@ -44,6 +44,9 @@ public sealed class AppSettings
 
     public UiSettings Ui { get; set; } = new();
 
+    /// <summary>封面悬停与详情页的预告片播放方式；设置页「界面 → 预告片」那一张卡。</summary>
+    public TrailerSettings Trailer { get; set; } = new();
+
     public ShortcutSettings Shortcuts { get; set; } = new();
 
     public DanmakuSettings Danmaku { get; set; } = new();
@@ -1801,6 +1804,28 @@ public sealed class UiSettings
     public string HomeRowsIdentity { get; set; } = "";
 
     public Dictionary<string, List<HomeRowSetting>> HomeRowsByIdentity { get; set; } = new(StringComparer.Ordinal);
+}
+
+/// <summary>
+/// 封面悬停与详情页的预告片播放方式，全部住在设置 → 界面 → 预告片。
+/// <para>
+/// 悬停那一组只管服务器里的本地预告片：远程预告（YouTube 链接）不进悬停面板，没有本地预告时保持静态宽图。
+/// 详情页那一项管商店宽版式右上角的自动播放，本地与远程预告都算；关掉后只显示背景图，预告片入口仍在。
+/// </para>
+/// </summary>
+public sealed class TrailerSettings
+{
+    /// <summary>指针停稳、悬停面板撑开后，自动播放服务器本地预告片。出厂开着。</summary>
+    public bool HoverAutoplay { get; set; } = true;
+
+    /// <summary>悬停预告静音播放。出厂开着，避免浏览封面时突然出声。</summary>
+    public bool HoverMuted { get; set; } = true;
+
+    /// <summary>悬停预告播完从头循环，直到指针离开面板。出厂开着。</summary>
+    public bool HoverLoop { get; set; } = true;
+
+    /// <summary>商店宽版式详情页右上角自动播放预告片。出厂开着。</summary>
+    public bool DetailAutoplay { get; set; } = true;
 }
 
 /// <summary>
