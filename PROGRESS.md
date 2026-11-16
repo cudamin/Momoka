@@ -1,4 +1,16 @@
-﻿## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
+## 2026-11-16 聚合模式主页与侧边栏来源改标账号用户名（待合并 master）
+
+用户令（附截图）：「开启聚合模式时 主页的标题改为 用户名·最近添加·电视节目 侧边栏为 用户名·电视界面」。追问确认：前缀取账号用户名；主页三处（货架标题、媒体库卡片、继续观看卡第三行）一起换；侧边栏每个库项写「用户名 · 库名」；媒体库悬停预览不再单独显示服务器名副标题。
+
+**改了什么。** Core 的 `EmbySessionScope` 新增 `UserName`（账号登录名，空时回退连接的 `UserName`）；`SourceCaption.Prefix` 从服务器名改为账号用户名，`Append` 仍写服务器名，版本选择规则不变。`HomeViewModel.ShowServerNames` 改名 `ShowAccountNames`，两个及以上在线账号时主页三处与飞牛目录更新使用同一份前缀。侧边栏 `RebuildSidebarLibraries` 的库项文字、读屏名和悬停预览标题改用「用户名 · 库名」；预览副标题（服务器名）收起。单账号仍不写前缀。`docs/多服务器与多账号.md` 同步。
+
+**检查。** Shell Release/x64 0 警告 0 错误；主测试 5184 项 5183 通过、1 红为既有「本地监控：回环网络共享上的新建文件自动改名」（与本次改动无关）；`Momoka.SidebarPreviewTests` 34/34；`Momoka.PageContractTests` 349/349（分支基点）；`Momoka.HomeOrderProbeTests` 21/21；改动文件 `dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。日常 UI 批次未跑原生探针与实屏。
+
+**分支与快捷方式。** 产品与测试提交 `e2ff6f3`、记录 `14949f1`；分支 `feat-aggregate-mode-ui-GzuirD`，工作树 `c:/Users/89400/.trae-cn/worktrees/fix-play-button-mismatch-XgFUII/feat-aggregate-mode-ui-GzuirD`。未发布、未推远端；分支快捷方式未建。
+
+**边界。** 未在真实多账号服务器上实屏核对；待交付项记入[待交付批次](docs/待交付批次.md)第 61 条。
+
+## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
 
 用户一句：「拉动窗口的时候侧边栏不要自动展开或者收起」。此前窗口宽度跨过 1008 DIP 会把栏在「展开 256」与「图标栏 56」之间自动换档；现在窗口拉宽拉窄只重排（重夹栏宽、标题搜索框、内容区让位），开合只归标题栏那颗折叠键。
 

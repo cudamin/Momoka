@@ -217,13 +217,14 @@ public sealed partial class ShellPage
             _previewLoad = null;
 
             ResetPreviewCovers();
-            LibraryPreviewTitle.Text = request.Title;
-            LibraryPreviewMeta.Text = PreviewMeta(tag);
-            LibraryPreviewMeta.Visibility = LibraryPreviewMeta.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            // 预览标题照栏里那一项写：聚合模式（两个及以上在线账号）时它是「用户名 · 库名」，单账号时就是库名。
+            // 副标题（服务器名）2026-11-16 按用户令去掉，来源已经写在同一行里。
+            var label = anchor.Content as string ?? request.Title;
+            LibraryPreviewTitle.Text = label;
             LibraryPreviewMore.Visibility = Settings.AggregateMode ? Visibility.Visible : Visibility.Collapsed;
             LibraryPreviewEmpty.Visibility = Visibility.Collapsed;
             LibraryPreviewLoading.IsActive = false;
-            AutomationProperties.SetName(LibraryPreviewPanel, $"媒体库预览：{request.Title}");
+            AutomationProperties.SetName(LibraryPreviewPanel, $"媒体库预览：{label}");
 
             LibraryPreviewPanel.Visibility = Visibility.Visible;
             PlaceLibraryPreview();
@@ -241,13 +242,6 @@ public sealed partial class ShellPage
             if (load is not null && IsCurrentPreview(load)) ShowPreviewEmpty("预览读取失败，稍后再试");
             Log.Debug("媒体库预览", $"读取预览失败（{request.Title}）：{error.Message}");
         }
-    }
-
-    /// <summary>库名下面那一行：多账号（聚合）时写来源服务器，其余时候留空藏起来。</summary>
-    private string PreviewMeta(string tag)
-    {
-        if (_session is not { } session || session.Sources.Count <= 1) return "";
-        return _libraryViews.FirstOrDefault(view => HomeLayout.LibraryKey(view) == tag)?.Source?.ServerName ?? "";
     }
 
     private async Task FillLibraryPreviewAsync(LibraryRequest request, string tag, CancellationTokenSource load)

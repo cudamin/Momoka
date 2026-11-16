@@ -401,7 +401,7 @@
                     TextAlignment="{x:Bind Card.TitleAlignment, Mode=OneWay}"
                     ToolTipService.ToolTip="{x:Bind Card.Subtitle, Mode=OneWay}"
                     TextTrimming="CharacterEllipsis" />
-                <!-- 第三行：多账号主页的继续观看卡在季集下面写服务器名；别的卡片整行收起。 -->
+                <!-- 第三行：多账号主页的继续观看卡在季集下面写账号用户名；别的卡片整行收起。 -->
                 <TextBlock
                     x:Name="SourceLine"
                     MaxLines="1"

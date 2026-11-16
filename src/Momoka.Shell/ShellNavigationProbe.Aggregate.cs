@@ -214,7 +214,7 @@ internal sealed partial class ShellNavigationProbe
 
     private static void AssertAggregateLabels(FrameworkElement page, params EmbySessionScope[] sources)
     {
-        var showServer = sources.Length > 1;
+        var showAccount = sources.Length > 1;
         var home = page as HomePage;
         var resume = home?.ViewModel.Shelves.FirstOrDefault(shelf => shelf.HomeKey == HomeLayout.Resume);
         var cards = Descendants(page).OfType<PosterCard>().Where(card => card.Card is not null && VisibleArea(card, page) > 0).ToArray();
@@ -238,42 +238,42 @@ internal sealed partial class ShellNavigationProbe
                 if (expected.Length > 0)
                     Require(subtitle.Visibility == Visibility.Visible && subtitle.ActualHeight > 0, "卡片原有文字没有呈现出来");
 
-                // 继续观看那一排：多账号时季集下面多一行服务器名，单账号时整行收起。
-                var expectedSource = showServer && resume is not null && resume.Cards.Contains(item)
-                    ? item.Item.Source?.ServerName ?? "" : "";
+                // 继续观看那一排：多账号时季集下面多一行账号用户名，单账号时整行收起。
+                var expectedSource = showAccount && resume is not null && resume.Cards.Contains(item)
+                    ? item.Item.Source?.UserName ?? "" : "";
                 var sourceLine = Get<TextBlock>(card, "SourceLine");
                 Require(sourceLine.Text == expectedSource,
-                    expectedSource.Length > 0 ? "继续观看卡没有写服务器名" : "非继续观看卡不应追加服务器名");
+                    expectedSource.Length > 0 ? "继续观看卡没有写账号用户名" : "非继续观看卡不应追加账号用户名");
                 Require(sourceLine.Visibility == (expectedSource.Length > 0 ? Visibility.Visible : Visibility.Collapsed),
-                    "继续观看卡的服务器名行显隐不对");
+                    "继续观看卡的账号用户名行显隐不对");
             }
         }
 
         if (home is null) return;
 
-        // 媒体库那一排：多账号时每张卡的标题是「服务器名 · 库名」。
+        // 媒体库那一排：多账号时每张卡的标题是「用户名 · 库名」。
         if (home.ViewModel.LibraryShelf is { } libraryShelf)
         {
             foreach (var card in libraryShelf.Cards)
             {
-                var expected = SourceCaption.Prefix(card.Item.Name, card.Item.Source, showServer);
+                var expected = SourceCaption.Prefix(card.Item.Name, card.Item.Source, showAccount);
                 Require(card.Title == expected, expected != card.Item.Name
-                    ? "多账号主页媒体库名称前没有服务器名" : "单账号主页媒体库名称不应带服务器名");
+                    ? "多账号主页媒体库名称前没有账号用户名" : "单账号主页媒体库名称不应带账号用户名");
             }
             foreach (var card in cards.Where(card => libraryShelf.Cards.Contains(card.Card!)))
                 Require(Get<TextBlock>(card, "TitleLine").Text == card.Card!.Title,
-                    "媒体库卡片的标题绑定没有跟随服务器名前缀");
+                    "媒体库卡片的标题绑定没有跟随账号用户名前缀");
         }
 
         foreach (var shelf in home.ViewModel.Shelves.Where(shelf => shelf.Source is not null))
         {
             var library = home.ViewModel.LibraryShelf!.Cards.Single(card => HomeLayout.LibraryKey(card.Item) == shelf.HomeKey);
-            var expected = SourceCaption.Prefix(HomeLayout.LibraryTitle(library.Item.Name), shelf.Source, showServer);
-            Require(shelf.Title == expected, showServer
-                ? "多账号主页最近添加标题前没有服务器名"
-                : "单账号主页最近添加标题不应带服务器名");
+            var expected = SourceCaption.Prefix(HomeLayout.LibraryTitle(library.Item.Name), shelf.Source, showAccount);
+            Require(shelf.Title == expected, showAccount
+                ? "多账号主页最近添加标题前没有账号用户名"
+                : "单账号主页最近添加标题不应带账号用户名");
             foreach (var head in Descendants(home).OfType<ShelfHead>().Where(head => ReferenceEquals(head.Tag, shelf)))
-                Require(head.Title == expected, "主页货架标题绑定没有跟随多账号服务器名");
+                Require(head.Title == expected, "主页货架标题绑定没有跟随多账号用户名");
         }
         foreach (var slide in home.ViewModel.Slides)
             Require(slide.Caption == HomeCarousel.Caption(slide.Item), "轮播不应追加来源文字");
