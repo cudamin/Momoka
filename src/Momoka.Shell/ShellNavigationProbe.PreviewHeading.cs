@@ -50,6 +50,10 @@ internal sealed partial class ShellNavigationProbe
         PosterCard? source = null;
         Storyboard? board = null;
         var samples = new List<object>();
+        var navigationSamples = new List<object>();
+        var openCallback = false;
+        var freezeCalled = false;
+        string? navigationError = null;
         try
         {
             ResizeProbeClient(1280, 850);
@@ -80,18 +84,36 @@ internal sealed partial class ShellNavigationProbe
             // 不直接Prepare/Attach/Begin，不另造导航事件。
             fixture.Actions.CaptureOpen = opened =>
             {
-                Require(source!.TakePreviewHeading() is null, "生产媒体库事件没有取走悬停交接");
-                Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, opened),
-                    new SuppressNavigationTransitionInfo()), "悬停详情正式导航失败");
-                target = (DetailPage)frame.Content;
-                if (target.IsLoaded) Freeze(target);
-                else target.Loaded += FreezeLoaded;
+                openCallback = true;
+                navigationSamples.Add(new { phase = "before-navigate", opened = fixture.Actions.Opened,
+                    sourceCurrent = source!.Card?.IsCurrent, frameLoaded = frame.IsLoaded,
+                    previewCapturePresent = Get<PreviewHeadingCapture?>(source, "_previewHeading") is not null });
+                try
+                {
+                    Require(source!.TakePreviewHeading() is null, "生产媒体库事件没有取走悬停交接");
+                    Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, opened),
+                        new SuppressNavigationTransitionInfo()), "悬停详情正式导航失败");
+                    target = (DetailPage)frame.Content;
+                    navigationSamples.Add(new { phase = "after-navigate", targetLoaded = target.IsLoaded,
+                        targetRoot = target.XamlRoot is not null, flight = Get<object?>(target, "_previewHeadingFlight") is not null,
+                        titleWidth = Get<TextBlock>(target, "TitleText").ActualWidth,
+                        plateSource = Get<Image>(target, "TitlePlate").Source is not null });
+                    if (target.IsLoaded) Freeze(target);
+                    else target.Loaded += FreezeLoaded;
+                }
+                catch (Exception error)
+                {
+                    navigationError = error.GetType().Name + ": " + error.Message;
+                    throw;
+                }
             };
             for (var round = 0; round < 3; round++)
             {
                 HomeMotion.ApplyPreference(true);
                 target = null;
                 board = null;
+                openCallback = freezeCalled = false;
+                navigationError = null;
                 Require(source.ShowPreviewForShot() is not null, "真实PosterCard预览没有打开");
                 var preview = Get<CardPreview>(source, "_preview");
                 var popup = Get<Popup>(source, "_previewHost");
@@ -106,8 +128,23 @@ internal sealed partial class ShellNavigationProbe
                 var opened = fixture.Actions.Opened;
                 ((IInvokeProvider)new ButtonAutomationPeer(Get<Button>(preview, "DetailsButton"))
                     .GetPattern(PatternInterface.Invoke)).Invoke();
-                await UntilAsync(() => target is not null && target.IsLoaded && board is not null
-                    && fixture.Actions.Opened == opened + 1 && !popup.IsOpen);
+                try
+                {
+                    await UntilAsync(() => target is not null && target.IsLoaded && board is not null
+                        && fixture.Actions.Opened == opened + 1 && !popup.IsOpen);
+                }
+                catch (TimeoutException error)
+                {
+                    var state = new { round, openedBefore = opened, openedAfter = fixture.Actions.Opened, openCallback,
+                        freezeCalled, target = target is not null, targetLoaded = target?.IsLoaded,
+                        targetRoot = target?.XamlRoot is not null, flight = target is not null && Get<object?>(target, "_previewHeadingFlight") is not null,
+                        board = board is not null, popupOpen = popup.IsOpen, sourceCurrent = source.Card?.IsCurrent,
+                        sourceCapture = capture is not null, navigationError, navigationSamples };
+                    await WritePerformanceEvidenceAsync("preview-heading-navigation-failed.json", state);
+                    throw new TimeoutException($"标题交接未完成：Opened={opened}→{fixture.Actions.Opened}，回调={openCallback}，"
+                        + $"目标={target is not null}，Loaded={target?.IsLoaded}，Root={target?.XamlRoot is not null}，"
+                        + $"Freeze={freezeCalled}，Board={board is not null}，Popup={popup.IsOpen}，错误={navigationError}", error);
+                }
                 Require(Get<object?>(target!, "_previewHeadingFlight") is not null, "生产Attach没有启动标题徽标交接");
                 var title = Get<TextBlock>(target!, "TitleText");
                 var plate = Get<Image>(target!, "TitlePlate");
@@ -186,6 +223,10 @@ internal sealed partial class ShellNavigationProbe
         void Freeze(DetailPage page)
         {
             var flight = Get<object?>(page, "_previewHeadingFlight");
+            freezeCalled = true;
+            navigationSamples.Add(new { phase = "freeze", loaded = page.IsLoaded, root = page.XamlRoot is not null,
+                flight = flight is not null, titleWidth = Get<TextBlock>(page, "TitleText").ActualWidth,
+                plateWidth = Get<Image>(page, "TitlePlate").ActualWidth });
             if (flight is null) return;
             board = Get<Storyboard>(flight, "_board");
             board.Pause();

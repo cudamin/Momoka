@@ -23,6 +23,12 @@ internal static class ConnectedProbeSourceTests
             Assert.Contains("RequireHeadingSettled(title, plate)", source);
             Assert.Contains("HomeMotion.ApplyPreference(false)", source);
             Assert.Contains("fixture.Actions.Plays == 0", source);
+            Assert.Contains("preview-heading-navigation-failed.json", source);
+            Assert.Contains("openedBefore = opened, openedAfter = fixture.Actions.Opened", source);
+            Assert.Contains("targetRoot = target?.XamlRoot is not null", source);
+            Assert.Contains("phase = \"after-navigate\"", source);
+            Assert.Contains("phase = \"freeze\"", source);
+            Assert.Contains("throw new TimeoutException", source);
             var inspect = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.Inspect.cs"));
             Assert.Contains("\"InspectPreviewHeadingMotion\"", inspect);
         });
