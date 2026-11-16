@@ -1,3 +1,15 @@
+## 2026-11-16 商店详情头部：左栏保底宽度压在剧照上、片名单行、徽标统一上限（分支 `feat-no-crop-overlay-1Oz1rR`，未合并）
+
+用户先附图（商店模式单集详情页）一句「位置不够时不要裁切，直接压在背景图上」，追问后选定「左栏保底宽度，超出压图」；随后两句「片名不要自动换行，徽标不要自动缩小」，徽标选定「回到统一上限 280×56」。截图里 1024～1330 这一段窗口上，宽版式给右侧剧照让位之后片名栏只剩一百来像素：片名折行、头上那枚徽标被压小、三颗图标和绿色播放键在栏的右沿被硬切。
+
+**宽度账。** Core 新增 `DetailHero.StoreCoverColumn`（180，`DetailPage.StoreCoverColumnWidth` 改为读它）、`StoreTextFloor`（300）与两个纯函数：`StoreTextColumn` 按「让位后的内容宽 − 封面 − 栏距」给片名栏，窄过保底就撑到 300，上限是整幅内容宽（不扣剧照视口），窗口再窄只收到页边；`StoreHeroColumn` 让头图那一行（封面 + 片名栏）跟着长，最多到「页宽 − 两侧留白」。视图模型新增 `StoreHeroWidth`，`StoreTextWidth` 改走纯函数，页宽与封面宽变化都通知它；`DetailPage.Store.cs` 的 `HeroContent.Width` 从 `StoreContentWidth` 换成 `StoreHeroWidth`，多出来的那一截压在右侧剧照上。商店简介的 `MaxWidth` 也从 `StoreContentWidth` 换成 `StoreHeroWidth`（仍封顶 520），免得正文比头上那一行还窄。
+
+**片名与徽标。** `TitleText` 的 `MaxLines` 2 → 1（仍 `Wrap` + `CharacterEllipsis`，放不下时一行省略号收尾，不折两行）；删除商店档单独的 `TitlePlate.MaxHeight = 40`，回到 XAML 的 280×56 上限 —— 片名栏保底 300 之后徽标不再随栏缩小，也就不需要另给尺寸。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`episode-display-fixture`（含 `DetailLayoutTests`）**33/33**，新增「商店片名栏：让位放不下时撑到保底宽度并压在剧照上，窗口再窄只收到页边」覆盖 1240／2400／1024／760／360 五档；`detail-action-readiness-fixture` **94/94**（商店模式宽度用例改按 `StoreTextColumn`／`StoreHeroColumn` 核对，并断言 `StoreHeroWidth` 有通知）；`Momoka.PageContractTests` **350/350**（新增「详情头部：片名单行不折、徽标不随商店档缩小、片名栏保底宽度压在剧照上」）；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 59 条。
+
+**分支。** 产品与测试提交 `871a2e7`；分支 `feat-no-crop-overlay-1Oz1rR`（工作树 `fix-play-button-mismatch-XgFUII/feat-no-crop-overlay-1Oz1rR`），未合并，等用户要求。改好收尾按规则发布本树并刷新分支快捷方式 `Momoka-feat-no-crop-overlay-1Oz1rR.lnk`，不销账、不自动合并。
+
 ## 2026-11-16 详情悬浮栏：播放键与正文统一、补资料行、留白跟随卡片（已合并 master，未发布）
 
 用户三句：「修复悬浮上的播放按钮与实际播放按钮不同的问题」（追问确认「实际」指详情页主播放键，要求整套外观统一）；「另外收窄一点悬浮栏，然后再给悬浮栏上点东西，评分、类型、播出日期、时长啥的」（追问确认资料合并进副标题行）；先按最大宽度 1040 收窄被否（「你这也太窄了，改回去吧」），随后定稿「改成比商店模式下面卡片稍窄的样式，沉浸模式同步」。
