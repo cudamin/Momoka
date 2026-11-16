@@ -196,6 +196,11 @@ namespace Momoka.Shell.Views
         private static Task RefreshAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card) => throw Unrelated();
         private static Task MissingEpisodesAsync(EmbySessionScope scope, IShellActions shell, CardItem card) => throw Unrelated();
         private static Task DeleteAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed, Action<CardItem>? removed) => throw Unrelated();
+        // 媒体库卡片整库播放、转换与单库扫描同样属于别的批次的执行层（ItemCommands.Library.cs），
+        // 这几份只验卡片命令的夹具不复制那条收集／对话框／扫描链路，真被调到就是越界。
+        private static Task PlayLibraryAsync(EmbySessionScope scope, IShellActions shell, CardItem card, bool shuffle) => throw Unrelated();
+        private static Task ConvertLibraryAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card) => throw Unrelated();
+        private static Task ScanLibraryFilesAsync(EmbySessionScope scope, IShellActions shell, CardItem card) => throw Unrelated();
     }
 }
 #endif

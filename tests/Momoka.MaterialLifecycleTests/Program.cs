@@ -127,6 +127,18 @@ internal static class Program
             host.DisposeForTest(); host.DisposeForTest();
             Assert.Equal(1, second.DisposeCalls); Assert.Null(host.SourceForTest.SystemBackdrop);
         });
+        Case("主岛：透明效果关闭时不挂系统底材，重新打开同值启用可重连", () =>
+        {
+            ThemeHost.SetTransparency(false);
+            using var host = new HostWindow();
+            host.InitializeForTest();
+            Assert.True(host.UseBackdrop); Assert.False(host.BackdropConnected);
+            Assert.Null(host.SourceForTest.SystemBackdrop);
+            Assert.Equal(0, MaterialFaults.Controllers.Count);
+            ThemeHost.SetTransparency(true);
+            host.UseBackdrop = true;
+            Assert.True(host.BackdropConnected);
+        });
         Case("主岛：Remove异常仍Dispose且重复关闭不再清理", () =>
         {
             using var host = new HostWindow(); host.InitializeForTest();

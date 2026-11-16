@@ -25,14 +25,29 @@ namespace Microsoft.UI.Dispatching
 
 namespace Microsoft.UI.Xaml
 {
-    public sealed record DependencyProperty(string Name, double DefaultValue);
+    public sealed record DependencyProperty(string Name, object? DefaultValue)
+    {
+        public static DependencyProperty Register(string name, Type type, Type owner, PropertyMetadata metadata) => new(name, metadata.DefaultValue);
+    }
+    public sealed class PropertyMetadata(object? defaultValue, PropertyChangedCallback? changed = null)
+    {
+        public object? DefaultValue { get; } = defaultValue;
+        public PropertyChangedCallback? Changed { get; } = changed;
+    }
+    public delegate void PropertyChangedCallback(DependencyObject sender, DependencyPropertyChangedEventArgs args);
+    public sealed class DependencyPropertyChangedEventArgs(object? oldValue, object? newValue)
+    {
+        public object? OldValue { get; } = oldValue;
+        public object? NewValue { get; } = newValue;
+    }
     public class DependencyObject
     {
-        private readonly Dictionary<DependencyProperty, object> _values = [];
+        private readonly Dictionary<DependencyProperty, object?> _values = [];
         public int WidthWrites { get; private set; }
         public int MaxWidthWrites { get; private set; }
-        public object GetValue(DependencyProperty property) => _values.GetValueOrDefault(property, property.DefaultValue);
-        public void SetValue(DependencyProperty property, object value)
+        public object GetValue(DependencyProperty property) =>
+            _values.TryGetValue(property, out var value) && value is not null ? value : property.DefaultValue!;
+        public void SetValue(DependencyProperty property, object? value)
         {
             _values[property] = value;
             Count(property);
@@ -49,6 +64,8 @@ namespace Microsoft.UI.Xaml
         }
     }
     public sealed class RoutedEventArgs : EventArgs;
+    public sealed class SelectionChangedEventArgs : EventArgs;
+    public delegate void SelectionChangedEventHandler(object sender, SelectionChangedEventArgs args);
     public sealed class SizeChangedEventArgs(Windows.Foundation.Size size) : EventArgs
     {
         public Windows.Foundation.Size NewSize { get; } = size;
@@ -107,12 +124,36 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public bool IsEnabled { get; set; } = true;
     }
+    public sealed class ContentPresenter : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public static readonly Microsoft.UI.Xaml.DependencyProperty ContentProperty = new("Content", null);
+        public static readonly Microsoft.UI.Xaml.DependencyProperty ContentTemplateProperty = new("ContentTemplate", null);
+        public static readonly Microsoft.UI.Xaml.DependencyProperty ContentTemplateSelectorProperty = new("ContentTemplateSelector", null);
+        public object? Content
+        {
+            get => GetValue(ContentProperty);
+            set => SetValue(ContentProperty, value!);
+        }
+        public object? ContentTemplate
+        {
+            get => GetValue(ContentTemplateProperty);
+            set => SetValue(ContentTemplateProperty, value!);
+        }
+        public object? ContentTemplateSelector
+        {
+            get => GetValue(ContentTemplateSelectorProperty);
+            set => SetValue(ContentTemplateSelectorProperty, value!);
+        }
+    }
     public class ComboBox : Microsoft.UI.Xaml.FrameworkElement
     {
         private bool _open;
         private Primitives.Popup? _templatePopup;
         public event Microsoft.UI.Xaml.RoutedEventHandler? DropDownOpened;
         public event Microsoft.UI.Xaml.RoutedEventHandler? DropDownClosed;
+        public event Microsoft.UI.Xaml.SelectionChangedEventHandler? SelectionChanged;
+        public object? SelectedItem { get; set; }
+        public string? DisplayMemberPath { get; set; }
         public bool IsDropDownOpen
         {
             get => _open;
@@ -131,6 +172,7 @@ namespace Microsoft.UI.Xaml.Controls
             OnApplyTemplate();
         }
         public void NotifyOpened() => DropDownOpened?.Invoke(this, new());
+        public void NotifySelectionChanged() => SelectionChanged?.Invoke(this, new());
         public void Prepare(Microsoft.UI.Xaml.DependencyObject container, object item) => PrepareContainerForItemOverride(container, item);
         protected virtual void OnApplyTemplate()
         {

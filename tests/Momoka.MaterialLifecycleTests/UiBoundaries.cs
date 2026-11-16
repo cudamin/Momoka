@@ -364,6 +364,7 @@ namespace Momoka.Shell
     {
         private static Action<UiTheme>? _changed;
         public static UiTheme Current { get; private set; } = Palette(0);
+        public static bool TransparencyEnabled { get; private set; } = true;
         public static int Subscribers => _changed?.GetInvocationList().Length ?? 0;
         public static int AddCalls { get; private set; }
         public static int RemoveCalls { get; private set; }
@@ -376,7 +377,8 @@ namespace Momoka.Shell
         public static UiTheme Palette(int index, bool isDark = true, byte alpha = 255) =>
             new("fixture-" + index, isDark, new(new((byte)(20 + index * 5), (byte)(40 + index * 3), (byte)(60 + index * 2), alpha)));
         public static void Apply(UiTheme theme) { Current = theme; _changed?.Invoke(theme); }
-        public static void ResetForTest() { _changed = null; AddCalls = RemoveCalls = 0; Current = Palette(0); }
+        public static void SetTransparency(bool enabled) => TransparencyEnabled = enabled;
+        public static void ResetForTest() { _changed = null; AddCalls = RemoveCalls = 0; Current = Palette(0); TransparencyEnabled = true; }
     }
 }
 namespace Momoka.Diagnostics
