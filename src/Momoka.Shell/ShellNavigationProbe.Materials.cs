@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
@@ -264,11 +266,30 @@ internal sealed partial class ShellNavigationProbe
                             foreach (var control in controls)
                                 await CheckRestoredActionAsync(control);
                             // 2026-11-15 用户报「点了连播之后图标没反应不会自动切换为主题色」：勾上那颗
-                            // FontIcon 必须实际换成主题色。ToggleButton 的勾选态只换 ContentPresenter 的
+                            // FontIcon 必须实际换成绿色。ToggleButton 的勾选态只换 ContentPresenter 的
                             // 前景，FontIcon 不跟它走，所以这里读的是那颗图标自己的实际前景。
                             var continueToggle = controls.OfType<ToggleButton>().Single(control =>
                                 AutomationProperties.GetAutomationId(control) is "ColumnContinueButton" or "CompactContinueButton");
-                            var continueGlyph = Descendants(continueToggle).OfType<FontIcon>().Single();
+                            var continueGlyph = Descendants(continueToggle).OfType<TextBlock>()
+                                .Single(text => text.Name.Length > 0);
+                            // 同一颗开关在沉浸档也要点得到：用户点的那一下走指针命中，
+                            // 和下面 UIA 开关模式不是同一条路（有东西盖住时 UIA 仍能开）。
+                            continueToggle.StartBringIntoView();
+                            await LayoutAsync(detail);
+                            var continueCentre = continueToggle.TransformToVisual(_root)
+                                .TransformPoint(new(continueToggle.ActualWidth / 2, continueToggle.ActualHeight / 2));
+                            var continueHits = VisualTreeHelper.FindElementsInHostCoordinates(continueCentre, _root).ToList();
+                            Require(continueHits.Contains(continueToggle),
+                                $"{theme.Id}/{width} 连播按钮点不到（中心 {continueCentre.X:0.#},{continueCentre.Y:0.#}）："
+                                    + string.Join(" > ", continueHits.Take(5).Select(node =>
+                                        node is FrameworkElement element && element.Name.Length > 0
+                                            ? node.GetType().Name + "/" + element.Name
+                                            : node.GetType().Name)));
+                            // 2026-11-16 用户报「点了没反应，箭头没变绿」：这里走 ToggleButton 的 UIA 开关模式，
+                            // 和用户点一下的路径一致（勾选事件先于 TwoWay 写回视图模型）。
+                            var continuePattern = new ToggleButtonAutomationPeer(continueToggle)
+                                .GetPattern(PatternInterface.Toggle) as IToggleProvider;
+                            Require(continuePattern is not null, $"{theme.Id}/{width} 连播开关没有 Toggle 模式");
                             var continueBefore = detail.ViewModel.ContinuePlay;
                             try
                             {
@@ -279,14 +300,25 @@ internal sealed partial class ShellNavigationProbe
                                     && continueOff.Color == DefaultDetailForeground("EgDetailActionTextBrush"),
                                     $"{theme.Id}/{width} 连播关着时图标没有保持压在图上那支浅墨："
                                         + $"{continueOff?.Color.ToString() ?? "null"}");
-                                continueToggle.IsChecked = true;
+                                continuePattern!.Toggle();
                                 await LayoutAsync(detail);
+                                Require(detail.ViewModel.ContinuePlay, $"{theme.Id}/{width} 连播点一下没有打开");
                                 var continueOn = continueGlyph.Foreground as SolidColorBrush;
-                                Require(continueOn is not null
-                                    && continueOn.Color == DefaultDetailForeground("EgAccentBrush"),
-                                    $"{theme.Id}/{width} 连播开着时图标没有换成主题色："
+                                Require(continueOn is not null && continueOn.Color == ActiveDetailInk(),
+                                    $"{theme.Id}/{width} 连播开着时图标没有换成绿色："
                                         + $"{continueOn?.Color.ToString() ?? "null"}");
-                                reads.Add($"{theme.Id}/{width}/连播图标：关={continueOff!.Color}，开={continueOn!.Color}");
+                                // 属性绿不算数：实际渲染里必须真的画出绿色像素（2026-11-16 FontIcon 的教训）。
+                                var (continueGreen, _, continuePixels) =
+                                    await CountPixelsAsync(continueToggle, ActiveDetailInk());
+                                Require(continueGreen > 0,
+                                    $"{theme.Id}/{width} 连播开着时实际渲染没有绿色（{continueGreen}/{continuePixels} 像素）");
+                                continuePattern.Toggle();
+                                await LayoutAsync(detail);
+                                Require(!detail.ViewModel.ContinuePlay, $"{theme.Id}/{width} 连播再点一下没有关掉");
+                                Require((continueGlyph.Foreground as SolidColorBrush)?.Color
+                                        == DefaultDetailForeground("EgDetailActionTextBrush"),
+                                    $"{theme.Id}/{width} 连播关掉后图标没有退回浅墨");
+                                reads.Add($"{theme.Id}/{width}/连播图标：关={continueOff!.Color}，开={continueOn!.Color}（UIA 点击）");
                             }
                             finally
                             {

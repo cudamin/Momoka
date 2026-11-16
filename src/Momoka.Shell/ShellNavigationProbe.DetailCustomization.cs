@@ -867,6 +867,12 @@ internal sealed partial class ShellNavigationProbe
             ? new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
             : ((SolidColorBrush)Application.Current.Resources[key]).Color;
 
+    /// <summary>「连播 / 已观看」那支固定的绿（#52B54B）；高对比度让给系统前景。</summary>
+    private static Windows.UI.Color ActiveDetailInk() =>
+        new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
+            ? new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+            : Windows.UI.Color.FromArgb(0xFF, 0x52, 0xB5, 0x4B);
+
     /// <summary>
     /// 屏上实际阅读遮罩的 alpha；有图详情读取整块背景遮罩，无图时尾部读数为 0。
     /// </summary>

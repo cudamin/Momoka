@@ -124,9 +124,46 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("\"EgPlayButtonStyle\"", store);
             foreach (var name in new[] { "ColumnPlayButton", "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" })
                 Assert.NotNull(Named(name).Attribute("AutomationProperties.Name"));
-            Assert.Contains("EpisodeHead.Trailing = ColumnContinueButton;", store);
+            Assert.Contains("EpisodeHead.Trailing = StoreContinueEntry;", store);
             Assert.Contains("RestoreToActions(ColumnPlayButton, 0);", store);
-            Assert.Contains("RestoreToActions(ColumnContinueButton, IndexAfter(ColumnExtrasButton));", store);
+            Assert.Contains("RestoreToActions(StoreContinueEntry, ColumnActionRow.Children.Count);", store);
+            // 连播在商店档是开关（2026-11-16 用户参考图）：左边带「连播」标签，
+            // 轨道直接用主题强调色三态，不写死颜色值。
+            var continueEntry = Named("StoreContinueEntry");
+            Assert.Equal("StackPanel", continueEntry.Name.LocalName);
+            Assert.Equal("Horizontal", (string?)continueEntry.Attribute("Orientation"));
+            Assert.Equal("8", (string?)continueEntry.Attribute("Spacing"));
+            Assert.Equal("{x:Bind ViewModel.StoreContinueVisibility, Mode=OneWay}",
+                (string?)continueEntry.Attribute("Visibility"));
+            var continueLabel = continueEntry.Elements().Single(element => element.Name.LocalName == "TextBlock");
+            Assert.Equal("连播", (string?)continueLabel.Attribute("Text"));
+            var continueSwitch = Named("StoreContinueSwitch");
+            Assert.Equal("ToggleSwitch", continueSwitch.Name.LocalName);
+            Assert.Equal("StoreContinueEntry", (string?)continueSwitch.Parent!.Attribute(X + "Name"));
+            Assert.Equal("{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}", (string?)continueSwitch.Attribute("IsOn"));
+            Assert.Equal("开", (string?)continueSwitch.Attribute("OnContent"));
+            Assert.Equal("关", (string?)continueSwitch.Attribute("OffContent"));
+            var switchResources = continueSwitch.Elements().Single(element => element.Name.LocalName == "ToggleSwitch.Resources")
+                .Elements().ToArray();
+            Assert.Equal(3, switchResources.Length);
+            foreach (var resource in switchResources)
+            {
+                var key = (string?)resource.Attribute(X + "Key");
+                var resourceKey = (string?)resource.Attribute("ResourceKey");
+                Assert.Equal("StaticResource", resource.Name.LocalName);
+                Assert.NotNull(key);
+                Assert.NotNull(resourceKey);
+                Assert.True(key!.StartsWith("ToggleSwitchFillOn", StringComparison.Ordinal),
+                    "连播开关的轨道别名不是三态前缀：" + key);
+                Assert.True(resourceKey!.EndsWith("Brush", StringComparison.Ordinal),
+                    "连播开关的轨道别名不是主题画刷：" + resourceKey);
+            }
+            Assert.False(continueSwitch.Descendants().Any(element =>
+                element.Name.LocalName == "SolidColorBrush" || element.Attribute("Color") is not null),
+                "连播开关写死了颜色，没有走主题强调色");
+            // 沉浸档那颗药丸在商店模式让位给开关。
+            Assert.Equal("{x:Bind ViewModel.ColumnContinueVisibility, Mode=OneWay}",
+                (string?)Named("ColumnContinueButton").Attribute("Visibility"));
             Assert.Contains("StoreBackdropContent.CornerRadius = previewCorner;", store);
             Assert.Contains("StoreTrailerContent.CornerRadius = previewCorner;", store);
             // 加高下方渐变：同一列在 0.36 处已经离开满不透明。

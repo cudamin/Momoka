@@ -23,8 +23,8 @@
     <Page.Resources>
         <!-- 「已观看」那颗图标的墨：固定的绿（#52B54B）。商店模式与沉浸模式都取它，不跟主题强调色走 ——
              用户 2026-11-15 令「开启连播还有已观看时，按钮中心的图标要切换为绿色」，并明确「这个按钮的修改
-             包括沉浸模式」；当天稍后连播那颗改为跟主题色（见 DetailPage.Appearance 的 PaintContinueInk），
-             这支绿只剩「已观看」的实心圆用。只有高对比度由 ApplyAppearance 换回系统前景。
+             包括沉浸模式」；2026-11-16 用户再次确认「激活时图二要切换为绿色」，连播那颗也从主题色回到这支绿，
+             见 DetailPage.Appearance 的 PaintContinueInk。只有高对比度由 ApplyAppearance 换回系统前景。
              用页面局部的一支画刷而不是替换模板里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
         <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
         <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起长。仅作用于详情页。 -->
@@ -73,7 +73,7 @@
              勾上那支墨**不交给模板的勾选前景**：ToggleButton 的勾选态只换 ContentPresenter 的
              Foreground，IconElement.Foreground 不跟视觉状态走，勾上以后那颗 FontIcon 仍是常态那支浅墨
              （2026-11-15 用户报「点了连播图标没反应」）。所以这一颗由页面自己上墨：关着是浅墨，
-             开着取主题色，见 DetailPage.Appearance 的 PaintContinueInk。 -->
+             开着取固定的绿，见 DetailPage.Appearance 的 PaintContinueInk。 -->
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
@@ -1113,15 +1113,54 @@
                                         AutomationProperties.AutomationId="ColumnContinueButton"
                                         IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                         Style="{StaticResource EgPillToggleButtonStyle}"
-                                        Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
+                                        Visibility="{x:Bind ViewModel.ColumnContinueVisibility, Mode=OneWay}">
                                         <!-- 勾上只换图标那一支色：字自己钉在浅墨上；图标由 PaintContinueInk 直接
-                                             上墨（FontIcon 不跟模板勾选态的前景走）。背景三态由 PrepareAppearance
-                                             一次添加局部画刷，不能在这里再声明别名。 -->
+                                             上墨。2026-11-16 实测：FontIcon 在 ToggleButton 的内容里不跟
+                                             Foreground 走（把它的 Foreground 改成红色、离屏渲染出来仍是白箭头），
+                                             所以图标改用同一字形（E8EE）的 TextBlock —— 前景是真的画笔。
+                                             2026-11-16 用户令「激活的时候参考图二，箭头改成绿的就行」：图标只换色，
+                                             不带旋转或描边动画。 -->
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon x:Name="ColumnContinueGlyph" FontSize="14" Glyph="&#xE8EE;" />
-                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
+                                            <TextBlock
+                                                x:Name="ColumnContinueGlyph"
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                FontSize="14"
+                                                Text="&#xE8EE;"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </ToggleButton>
+
+                                    <!-- 商店档的连播开关（2026-11-16 用户参考图「把商店页面的连播开关改为这种」）：
+                                         开启时轨道就是主题强调色（EgAccentBrush 三态），滑块与开关文字交给平台；
+                                         左边那行「连播」是标签（用户令「左边加个连播，开什么？」）。
+                                         商店模式把这整条挂到集卡右上角，沉浸档仍用上面那颗药丸。 -->
+                                    <StackPanel
+                                        x:Name="StoreContinueEntry"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal"
+                                        Spacing="8"
+                                        Visibility="{x:Bind ViewModel.StoreContinueVisibility, Mode=OneWay}">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            Foreground="{ThemeResource EgTextDimBrush}"
+                                            Text="连播" />
+                                        <ToggleSwitch
+                                            x:Name="StoreContinueSwitch"
+                                            MinWidth="0"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.Name="连播"
+                                            IsOn="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
+                                            OffContent="关"
+                                            OnContent="开">
+                                            <ToggleSwitch.Resources>
+                                                <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
+                                            </ToggleSwitch.Resources>
+                                        </ToggleSwitch>
+                                    </StackPanel>
 
                                     <Button x:Uid="DetailPage_ButtonA1"
                                         x:Name="ColumnWatchedButton"
@@ -1543,8 +1582,15 @@
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon x:Name="CompactContinueGlyph" FontSize="14" Glyph="&#xE8EE;" />
-                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
+                                        <!-- 紧凑版式这一颗和宽版式那颗同一份上墨（见 ColumnContinueGlyph）；
+                                             图标用 TextBlock 而不是 FontIcon 的原因见那一颗上面的注释。 -->
+                                        <TextBlock
+                                            x:Name="CompactContinueGlyph"
+                                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                            FontSize="14"
+                                            Text="&#xE8EE;"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </ToggleButton>
 

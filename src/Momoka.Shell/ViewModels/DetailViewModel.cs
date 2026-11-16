@@ -502,6 +502,9 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void RefreshAppearance()
     {
         OnPropertyChanged(nameof(StoreMode));
+        // 商店档那颗连播开关与沉浸档的药丸轮流出现，跟着模式一起换。
+        OnPropertyChanged(nameof(StoreContinueVisibility));
+        OnPropertyChanged(nameof(ColumnContinueVisibility));
         OnPropertyChanged(nameof(OverviewMaxLines));
         OnPropertyChanged(nameof(OverviewTrimming));
         OnPropertyChanged(nameof(ReadMoreText));
@@ -1809,6 +1812,15 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility ContinueVisibility => Show(_detail?.Type != EmbyItemType.Movie);
 
     /// <summary>
+    /// 商店档那颗连播开关（开关样，2026-11-16 用户参考图「把商店页面的连播开关改为这种」）显不显：
+    /// 和药丸那颗同一个判据（电影不画），另加「商店模式」—— 沉浸档仍用药丸按钮。
+    /// </summary>
+    public Visibility StoreContinueVisibility => Show(StoreMode && _detail?.Type != EmbyItemType.Movie);
+
+    /// <summary>宽版式那颗药丸连播：商店档让位给开关，只在沉浸档出现（见 <see cref="StoreContinueVisibility"/>）。</summary>
+    public Visibility ColumnContinueVisibility => Show(!StoreMode && _detail?.Type != EmbyItemType.Movie);
+
+    /// <summary>
     /// 副标题那一行画的是一行字还是一排点得动的类型：有类型就是后者（见 <see cref="SublineGenres"/>），
     /// 单集页和只剩剧名的季页还是前者。
     /// </summary>
@@ -2874,8 +2886,10 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(PickersVisibility));
 
         // 连播那颗跟着页面的种类收放（电影不画，见 ContinueVisibility）：从一部电影翻到一部剧时别的通知
-        // 一次都不会来，这里不喊它就停在上一颗的状态。
+        // 一次都不会来，这里不喊它就停在上一颗的状态。商店开关与沉浸药丸各自那一份同理。
         OnPropertyChanged(nameof(ContinueVisibility));
+        OnPropertyChanged(nameof(StoreContinueVisibility));
+        OnPropertyChanged(nameof(ColumnContinueVisibility));
 
         // 页尾那张横幅只摆在三种页面上（电影、剧、集，见 FooterVisibility），也就是跟着页面的种类走。图本身可能
         // 还是上一个条目那张，那边的通知一次不会来。

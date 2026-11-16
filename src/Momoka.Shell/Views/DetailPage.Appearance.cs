@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Theming;
@@ -22,7 +23,7 @@ public sealed partial class DetailPage
     private readonly Dictionary<FrameworkElement, Control> _explicitActionForegrounds = [];
     /// <summary>「已观看」那颗图标绿 —— 页面资源 <c>EgActionActiveBrush</c> 的初值。</summary>
     private Color _actionActiveInk;
-    /// <summary>连播图标的两支墨：关着取压在图上那支浅墨，开着取主题色（见 <see cref="PaintContinueInk"/>）。</summary>
+    /// <summary>连播图标的两支墨：关着取压在图上那支浅墨，开着取固定的绿（见 <see cref="PaintContinueInk"/>）。</summary>
     private readonly SolidColorBrush _continueOffInk = new();
     private readonly SolidColorBrush _continueOnInk = new();
     private ControlBackgroundBrushes? _columnPlay;
@@ -159,14 +160,12 @@ public sealed partial class DetailPage
             _actionAccessibility.HighContrast ? ResourceColor("EgAccentBrush") : _actionActiveInk;
 
     /// <summary>
-    /// 连播那颗图标的墨：关着取压在图上那支浅墨，开着取主题色（2026-11-15 用户令「点了连播之后
-    /// 图标要自动切换为主题色」）。高对比度两档都让给系统前景。
+    /// 连播那颗图标的墨：关着取压在图上那支浅墨，开着取固定的绿（与「已观看」同一支，6 位十六进制
+    /// #52B54B；2026-11-16 用户令「激活时图二要切换为绿色」）。高对比度两档都让给系统前景。
     /// <para>
-    /// 这一颗不能交给 ToggleButton 的勾选前景：模板勾上时只把 <c>ContentPresenter.Foreground</c>
-    /// 换成 <c>ToggleButtonForegroundChecked</c>，而 <see cref="IconElement"/> 的 Foreground 不跟
-    /// 视觉状态走，那颗 FontIcon 会一直停在常态那支浅墨上 —— 用户看到的「点了图标没反应」就是这一步。
-    /// 所以由页面直接上墨：两支页面画刷定住对象，只在每次外观重绘时取 <c>EgAccentBrush</c> 的当前色
-    /// （ThemeHost 原地改色，换主题自动跟上），不重建控件。
+    /// 这一颗在 XAML 里是 <see cref="TextBlock"/> 而不是 <see cref="FontIcon"/>：2026-11-16 实测
+    /// FontIcon 放在 ToggleButton 的内容里时 Foreground 不参与绘制（把它临时改成红色、离屏渲染出来
+    /// 仍是白箭头），所以换成同一字形的 TextBlock，前景才是真的画笔。
     /// </para>
     /// </summary>
     private void PaintContinueInk()
@@ -174,15 +173,28 @@ public sealed partial class DetailPage
         var forced = _actionAccessibility.HighContrast
             ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
             : (Color?)null;
-        _continueOnInk.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgAccentBrush"]).Color;
+        _continueOnInk.Color = forced ?? _actionActiveInk;
         _continueOffInk.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color;
         var ink = ViewModel.ContinuePlay ? _continueOnInk : _continueOffInk;
         ColumnContinueGlyph.Foreground = ink;
         CompactContinueGlyph.Foreground = ink;
     }
 
-    /// <summary>连播被点了一下：勾选变了，把那颗图标重画一次。</summary>
-    private void OnContinueToggled(object sender, RoutedEventArgs e) => PaintContinueInk();
+    /// <summary>
+    /// 连播被点了一下：勾选变了，把那颗图标重画一次（只换色，不带旋转或描边动画）。
+    /// <para>
+    /// 勾选事件发生在 x:Bind 的 TwoWay 写回之前，这里直接读 <see cref="ViewModels.DetailViewModel.ContinuePlay"/>
+    /// 会拿到上一拍的值 —— 用户报「点了没反应，箭头没变绿」就是这一步。所以先按被点这颗自己的
+    /// <c>IsChecked</c> 上墨，再排一拍按视图模型校准（设置没写回时颜色跟着退回去）。
+    /// </para>
+    /// </summary>
+    private void OnContinueToggled(object sender, RoutedEventArgs e)
+    {
+        var ink = sender is ToggleButton { IsChecked: true } ? _continueOnInk : _continueOffInk;
+        ColumnContinueGlyph.Foreground = ink;
+        CompactContinueGlyph.Foreground = ink;
+        DispatcherQueue.TryEnqueue(PaintContinueInk);
+    }
 
     private void OnBackdropImageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
@@ -288,10 +300,9 @@ public sealed partial class DetailPage
                         _explicitActionForegrounds.Add(text, backgrounds.Control);
                     }
                 }
-                // 连播那两颗由 PaintContinueInk 自己管：这里再按「普通图标」清一次，
-                // 勾上后刚画上的主题色会被下一轮外观重绘抹掉。
-                else if (child is FontIcon icon
-                    && !ReferenceEquals(icon, ColumnContinueGlyph) && !ReferenceEquals(icon, CompactContinueGlyph))
+                // 连播那两颗图标（TextBlock，带名字）由 PaintContinueInk 自己管：上面的分支只收
+                // 没有名字的普通文字，这一支只收 FontIcon，两者都不会碰它们勾上后画的主题色。
+                else if (child is FontIcon icon)
                 {
                     if (!_plainActionIcons.Contains(icon) && icon.Foreground is SolidColorBrush ink
                         && ink.Color == ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color)

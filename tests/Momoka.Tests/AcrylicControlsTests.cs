@@ -375,7 +375,7 @@ internal static class AcrylicControlsTests
                     "详情页仍合入按钮亚克力字典");
             });
 
-        Test("详情操作：连播勾选保持同底，勾选图标由页面取主题色、文字仍白色", () =>
+        Test("详情操作：连播勾选保持同底，勾选图标取绿、文字仍白色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             // 「已观看」那颗实心圆仍是固定的绿。
@@ -399,18 +399,60 @@ internal static class AcrylicControlsTests
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));
                 Assert.Equal("OnContinueToggled", (string?)button.Attribute("Checked"));
                 Assert.Equal("OnContinueToggled", (string?)button.Attribute("Unchecked"));
-                var glyph = button.Descendants(Xaml + "FontIcon").Single();
-                Assert.Equal(glyphs[seen++], (string?)glyph.Attribute(X + "Name"));
+                var glyph = button.Descendants(Xaml + "TextBlock")
+                    .Single(text => (string?)text.Attribute(X + "Name") == glyphs[seen]);
+                // 2026-11-16 实测：FontIcon 放在这颗开关的内容里时 Foreground 不参与绘制
+                // （临时改成红色、离屏渲染出来仍是白箭头），图标因此换成同一字形的 TextBlock。
+                Assert.Equal("{ThemeResource SymbolThemeFontFamily}", (string?)glyph.Attribute("FontFamily"));
+                Assert.Equal("\uE8EE", (string?)glyph.Attribute("Text"));
                 Assert.Null(glyph.Attribute("Foreground"));
-                var label = button.Descendants(Xaml + "TextBlock").Single();
+                // 2026-11-16 用户令「激活的时候参考图二，箭头改成绿的就行」：图标只换色，
+                // 不带 RenderTransform，也没有第二条动画描边。
+                Assert.Null(glyph.Attribute("RenderTransform"));
+                Assert.Null(glyph.Attribute("RenderTransformOrigin"));
+                Assert.False(button.Descendants(Xaml + "Ellipse").Any(), "连播键里仍有动画描边");
+                seen++;
+                var label = button.Descendants(Xaml + "TextBlock")
+                    .Single(text => text.Attribute(X + "Name") is null);
                 Assert.Equal("{ThemeResource EgDetailActionTextBrush}", (string?)label.Attribute("Foreground"));
             }
             Assert.Equal(glyphs.Length, seen, "详情页的连播开关数量变了");
-            // 勾上那支墨由页面画：关着是浅墨，开着取主题强调色；换主题时重取，不另写死颜色。
+            // 2026-11-16 用户参考图「把商店页面的连播开关改为这种」，并令「左边加个连播」：
+            // 整条是「连播 + 开关」，商店档出现；轨道直接用主题强调色三态（不写死颜色值）。
+            var storeEntry = page.Descendants(Xaml + "StackPanel").Single(panel =>
+                (string?)panel.Attribute(X + "Name") == "StoreContinueEntry");
+            Assert.Equal("{x:Bind ViewModel.StoreContinueVisibility, Mode=OneWay}",
+                (string?)storeEntry.Attribute("Visibility"));
+            Assert.Equal("连播", (string?)storeEntry.Elements()
+                .Single(element => element.Name.LocalName == "TextBlock").Attribute("Text"));
+            var storeSwitch = page.Descendants(Xaml + "ToggleSwitch").Single();
+            Assert.Equal("{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}", (string?)storeSwitch.Attribute("IsOn"));
+            Assert.Equal("开", (string?)storeSwitch.Attribute("OnContent"));
+            Assert.Equal("关", (string?)storeSwitch.Attribute("OffContent"));
+            var switchAliases = storeSwitch.Elements()
+                .Single(element => element.Name.LocalName == "ToggleSwitch.Resources").Elements().ToArray();
+            Assert.Equal(3, switchAliases.Length);
+            Assert.Equal("EgAccentBrush", (string?)switchAliases[0].Attribute("ResourceKey"));
+            Assert.Equal("EgAccentHoverBrush", (string?)switchAliases[1].Attribute("ResourceKey"));
+            Assert.Equal("EgAccentPressedBrush", (string?)switchAliases[2].Attribute("ResourceKey"));
+            Assert.False(storeSwitch.Descendants().Any(element => element.Name.LocalName == "SolidColorBrush"),
+                "连播开关写死了颜色，没有走主题强调色");
+            Assert.Equal("{x:Bind ViewModel.ColumnContinueVisibility, Mode=OneWay}",
+                (string?)page.Descendants(Xaml + "ToggleButton").Single(element =>
+                    (string?)element.Attribute(X + "Name") == "ColumnContinueButton").Attribute("Visibility"));
+            // 勾上那支墨由页面画：关着是浅墨，开着取与「已观看」同一支固定的绿（2026-11-16 用户令
+            // 「激活时图二要切换为绿色」，随后确认「箭头改成绿的就行」）。高对比度两档都让给系统前景。
             var code = Source("Views/DetailPage.Appearance.cs");
-            Assert.Contains("EgAccentBrush", code);
+            Assert.Contains("_continueOnInk.Color = forced ?? _actionActiveInk;", code);
             Assert.Contains("ColumnContinueGlyph.Foreground", code);
             Assert.Contains("CompactContinueGlyph.Foreground", code);
+            // 勾选事件早于 TwoWay 写回：上墨先读被点这颗自己的 IsChecked，再排一拍按视图模型校准。
+            Assert.Contains("sender is ToggleButton { IsChecked: true }", code);
+            Assert.Contains("DispatcherQueue.TryEnqueue(PaintContinueInk);", code);
+            // 只换色：不挂任何旋转或描边动画。
+            Assert.DoesNotContain("RotateTransform", code);
+            Assert.DoesNotContain("StrokeDashOffset", code);
+            Assert.DoesNotContain("Storyboard", code);
             // 宽版式和紧凑版式那两颗「已观看」的绿实心圆也指向同一支绿。
             Assert.Equal(2, page.Descendants(Xaml + "Ellipse")
                 .Count(shape => (string?)shape.Attribute("Fill") == "{StaticResource EgActionActiveBrush}"));
