@@ -1,4 +1,18 @@
-﻿## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
+﻿## 2026-11-16 补全 Emby 媒体库卡片菜单（临时分支，未合并）
+
+用户附两张截图：本客户端媒体库卡片「更多」只有「打开／编辑元数据…／重新扫描媒体库」，Emby 网页端同一张卡有播放、随机播放、添加到播放列表、标记为已播放、多选、转换、编辑图像、刷新元数据、扫描媒体库文件。要求补全，并检查其他库。
+
+**网页依据。** 读 `work/媒体库网页端源码/emby-4.10.1.0`：`modules/common/itemmanager/itemmanager.js` 把命令交给 `baseitemcontroller.getCommands`；其中 CollectionFolder 的 `canPlay` 排除 boxsets／playlists／games，`canMarkPlayed` 排除 boxsets／playlists／music，`canConvert` 排除 livetv／playlists／boxsets 与音频等，`canRefreshMetadata` 排除 livetv／boxsets，`canScanLibraryFiles` 要求 `canRefreshMetadata && IsFolder`，`canEditImages` 对 CollectionFolder 要求管理员，`canAddToPlaylist` 对文件夹放行但排除 livetv／playlists 与游戏。
+
+**改了什么。** Core `ItemMenu`：媒体库卡片按网页端补上「播放／随机播放／打开」「标记为已观看／未观看」「加入播放列表…」「转换…」「修改封面图…」「刷新元数据」；扫库由整台服务器的「重新扫描媒体库」换成只扫该库的「扫描媒体库文件」。`IsVideoLibrary` 只放行 movies／tvshows／homevideos／mixed 与无 `CollectionType` 的混合库，音乐、合集、播放列表、直播等按网页端条件收起。`ServerPlaylistItems.CanAddContainer` 收口 Emby 容器加入播放列表的判据（原来在 `ItemBatch` 里私有的一份），并拒绝 Game。Shell 新增 `ItemCommands.Library.cs`：播放／随机播放用 `ItemBatchPlayback.CollectAsync` 先收齐这个库再交给播放器；转换复用 `LibraryBatchDialogs`；扫描调用 `Items/{id}/Refresh`。标记已观看不再给媒体库补发 playback.stop。「多选」仍由库页提供，主页库排没有批量选择入口，因此不显示。
+
+**检查。** Core/Tests 与 Shell Release/x64 均 **0 警告 0 错误**；`item-batch-fixture` **72/72**；`server-playlist-fixture` **146/146**；主测试 **5198 项，通过 5196**，2 红均为既有 `C:\WINDOWS\TEMP` 下载环境问题；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1`（7 个变更文件）通过。新增／更新菜单测试：媒体库卡片十条入口、各 `CollectionType` 收起项、权限收起、扫库标签替换；`ServerPlaylistTests` 覆盖容器放行与直播／游戏／存根拒绝。
+
+**边界。** 未连真实 Emby 服务器验证播放、标记已看、转换任务与扫描的实际结果；未跑原生探针与验收截图（日常 UI 按 2026-11-16 用户令留到交付）。Jellyfin／FnNas／Plex 的库卡菜单按既有服务器分治保持不变。
+
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-emby-library-menu-IDnzLR`，分支 `fix-emby-library-menu-IDnzLR`，产品与测试提交 `a8c4680`；未合并 master。
+
+## 2026-11-16 拉动窗口不再自动展开或收起侧边栏（已合并 master，待统一验证）
 
 用户一句：「拉动窗口的时候侧边栏不要自动展开或者收起」。此前窗口宽度跨过 1008 DIP 会把栏在「展开 256」与「图标栏 56」之间自动换档；现在窗口拉宽拉窄只重排（重夹栏宽、标题搜索框、内容区让位），开合只归标题栏那颗折叠键。
 
