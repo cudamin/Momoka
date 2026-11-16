@@ -132,7 +132,10 @@ internal sealed partial class ShellNavigationProbe
             Require(host.Visibility == Visibility.Visible && nav.IsPaneOpen && Math.Abs(host.ActualWidth - 256) < 1,
                 $"宽窗侧栏未展开：shown={host.Visibility} pane={nav.IsPaneOpen} host={host.ActualWidth:0.0}/{host.Width:0.0} shell={shell.ActualWidth:0.0} immersive={fixture.Settings.Ui.EnableImmersive} live={fixture.Session.IsSignedIn} loaded={shell.IsLoaded}");
             Require(ReferenceEquals(home, frame.Content) && shelves.SequenceEqual(home.ViewModel.Shelves)
-                && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
+                && DataRequests() == requests,
+                $"切换侧栏重建主页货架或重新请求了数据：page={ReferenceEquals(home, frame.Content)} "
+                + $"shelves={shelves.Length}/{home.ViewModel.Shelves.Count} same={shelves.SequenceEqual(home.ViewModel.Shelves)} "
+                + $"requests={requests}/{DataRequests()} width={shell.ActualWidth:0} pane={nav.IsPaneOpen}");
             Require(shell.LibraryViews.Count == 3 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>
                 item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 3, "媒体库数量或音乐入口错误");
             Require(home.BannerCardRead().Ok, "侧栏模式轮播不是四边留白的圆角大图：" + home.BannerCardRead().Detail);
@@ -336,6 +339,10 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(760, 650);
             await LayoutAsync(shell);
             await LayoutAsync(libraryPage);
+            // 2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」：从 1240 拉窄到 760，
+            // 栏仍是用户选的那一档（展开），开合只归标题栏那颗折叠键。
+            Require(nav.IsPaneOpen && Math.Abs(host.ActualWidth - nav.OpenPaneLength) < 1,
+                $"拉窄窗口把展开的侧栏自动收起了：pane={nav.IsPaneOpen} host={host.ActualWidth:0.#}/{nav.OpenPaneLength:0.#}");
             var wall = Get<ItemsView>(libraryPage, "CardWall");
             wall.ApplyTemplate();
             await UntilAsync(() =>
@@ -357,7 +364,23 @@ internal sealed partial class ShellNavigationProbe
                 $"开关侧栏丢失页面、返回记录或滚动位置：page={ReferenceEquals(libraryPage, frame.Content)} "
                 + $"history={history}/{frame.BackStack.Count} forward={forward}/{frame.ForwardStack.Count} "
                 + $"offset={offset:R}/{scroll.VerticalOffset:R} extent={scroll.ExtentHeight:R} viewport={scroll.ViewportHeight:R}");
-            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "窄窗未自动收成图标栏");
+            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "窄窗进商店模式没有收成图标栏");
+            // 2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」：收着的时候把窗口拉宽
+            // 也不许自己展开，拉回来也不许自己变档；开合只归标题栏那颗折叠键。
+            ResizeProbeClient(1240, 650);
+            await LayoutAsync(shell);
+            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "拉宽窗口把收起的侧栏自动展开了");
+            ResizeProbeClient(760, 650);
+            await LayoutAsync(shell);
+            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "宽窄往返改写了侧栏开合");
+            var paneToggle = Get<Button>(shell, "NavToggleButton");
+            Require(paneToggle.Visibility == Visibility.Visible, "侧栏在屏上时导航开关没出现");
+            ((IInvokeProvider)new ButtonAutomationPeer(paneToggle).GetPattern(PatternInterface.Invoke)).Invoke();
+            await LayoutAsync(shell);
+            Require(nav.IsPaneOpen && Math.Abs(host.ActualWidth - nav.OpenPaneLength) < 1, "折叠键没有把侧栏展开");
+            ((IInvokeProvider)new ButtonAutomationPeer(paneToggle).GetPattern(PatternInterface.Invoke)).Invoke();
+            await LayoutAsync(shell);
+            Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "折叠键没有把侧栏收回去");
             Require(resizeGrip.Visibility == Visibility.Collapsed, "收起档仍露出侧栏拖动条（只有展开时才支持调整）");
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "760 compact");
@@ -542,7 +565,7 @@ internal sealed partial class ShellNavigationProbe
     /// 启动时侧边栏模式已经开着（2026-11-13 用户：「侧边栏模式怎么只有标题没有侧边栏」）。
     /// <para>
     /// 与「运行中切换显示模式」不是同一条路：那一档设置文件里存着 EnableImmersive=false，<c>Loaded</c> 那一刻外壳还没量到宽度
-    /// （ActualWidth 是 0），宽窄档与栏的宽都要等第一次 SizeChanged 才落定。这一条要证明的就是 —— 等它落定之后
+    /// （ActualWidth 是 0），栏的宽要等第一次 SizeChanged 才落定。这一条要证明的就是 —— 等它落定之后
     /// 屏上是「栏 + 页面」，而不是只剩页面、栏被裁到看不见。
     /// </para>
     /// </summary>

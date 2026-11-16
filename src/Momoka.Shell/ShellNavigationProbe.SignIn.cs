@@ -60,7 +60,7 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 720);
                 await LayoutAsync(page);
                 Require(art.Visibility == (width >= 1000 ? Visibility.Visible : Visibility.Collapsed),
-                    "跨断点后银幕显隐没有恢复");
+                    $"跨断点后银幕显隐没有恢复：width={width} art={art.Visibility} page={page.ActualWidth:0}");
                 if (width < 1000)
                 {
                     var icon = mark.TransformToVisual(page).TransformPoint(new Point());

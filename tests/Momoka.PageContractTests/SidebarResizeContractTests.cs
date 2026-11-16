@@ -53,6 +53,19 @@ internal static class SidebarResizeContractTests
                 "规整没有把存下来的侧栏宽度夹回拖动范围");
         });
 
+        Test("侧边栏开合不随窗口尺寸变化", () =>
+        {
+            // 2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」：尺寸路径只重排，
+            // 开合只剩两处 —— 进侧边栏模式时按当时窗宽定初值，以及标题栏那颗折叠键。
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.Sidebar.cs"));
+            var body = MethodBody(source, "private void UpdateSidebarWidth()");
+            Assert.DoesNotContain("IsPaneOpen", body, "窗口尺寸路径仍在改侧边栏开合");
+            Assert.Contains("ApplyPreferredSidebarWidth();", body);
+            Assert.Contains("Sidebar.IsPaneOpen = ActualWidth >= SidebarWideThreshold;", source);
+            Assert.Contains("Sidebar.IsPaneOpen = !Sidebar.IsPaneOpen;", source);
+            Assert.DoesNotContain("_sidebarWide", source);
+        });
+
         Test("侧边栏拖动条：ProtectedCursor 只能从派生类型拿到", () =>
         {
             var source = File.ReadAllText(
@@ -64,6 +77,22 @@ internal static class SidebarResizeContractTests
 
     private static XElement Named(XDocument document, string name) =>
         document.Descendants().Single(element => (string?)element.Attribute(Xaml + "Name") == name);
+
+    /// <summary>取一个方法的本体：签名之后第一个「{」到配对的「}」，免得把下面相邻的方法也算进来。</summary>
+    private static string MethodBody(string source, string signature)
+    {
+        var start = source.IndexOf(signature, StringComparison.Ordinal);
+        if (start < 0) throw new AssertionException("找不到方法：" + signature);
+        var open = source.IndexOf('{', start);
+        if (open < 0) throw new AssertionException("方法没有本体：" + signature);
+        var depth = 0;
+        for (var index = open; index < source.Length; index++)
+        {
+            if (source[index] == '{') depth++;
+            else if (source[index] == '}' && --depth == 0) return source[(open + 1)..index];
+        }
+        throw new AssertionException("方法没有收尾：" + signature);
+    }
 
     private static string Root()
     {
