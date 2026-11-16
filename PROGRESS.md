@@ -14264,3 +14264,9 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 在原真实指针finally退出后、原暂停/静音回归前，用当前真实 `ScrollView.ScrollTo` 与已有关联号完成等待经过生产 `Body.ViewChanged -> ScrollStoreTrailer`。匿名GET详情新增14个带头像演员与14个实际Similar条目撑长页面，无人为Height。网页实际Api计数 `playVideo`/`pauseVideo` 的每次调用，iframe仍回读真实video.paused；10阶段覆盖阈值下连续滚零暂停、首次越界恰一次暂停、同侧连续滚无新增、回顶恰一次继续、用户暂停往返回顶不发继续，最后用正式按钮恢复原回归的初态。原始JSONL与每阶段JSON先保存再判断，失败仍保留读数；反例从本轮实际回读构造重复pause与越过用户暂停的play，并由同一判据拒绝。测回顶ScrollView Idle与StickyHeader收起耗时，沿用现有60帧/p95<40ms和ScrollTo 5秒/UntilAsync 2秒完成预算，耗时只报告不造门槛。短轮次两段各36帧；物理滚轮未验证且报告中明确为false。
 
 已完成本树Shell Release及PageContract Release编译，均0警告0错误；PageContract **335/335，0失败0跳过**（本次6项含JSON计数缺失/非法、重复暂停、无ViewChanged、错误偏移、用户暂停回顶和既有性能预算的反例）。`node tools/test-store-trailer-scroll.mjs`执行从当前源提取的实际匿名Api/Embed和生产StoreTrailerDocument宿主脚本，成功路径及3个预期失败对照均通过；HTMLvideo/消息队列是明确替身，证明API计数不会被重复pause无事件掩盖，不证明真实WebView2。工具读取当前源码并输出SHA与回读JSON。证据在本树 `artifacts/captions-verification/store-scroll/`；首轮Shell空白检查发现同排初始化格式，定点改后复验，无放宽规则。最终主树原生StoreTrailer成功/失败路径与运行截图统一由根生成，本树不运行UI、不移鼠标、不读取真实设置、不真实网络/播放/写服务器、不发布，不以离线测试销账。
+
+# 2026-11-16 订阅详情背景渐变、卡片避让与库内预告片（待统一验证）
+
+主树提交 `186d018`。用户要求参考媒体详情页的背景渐变修改订阅详情页，并确认预告片支持与下方卡片避让。产品改动：订阅详情图下沿渐变改为与 `DetailPage.PaintBackdropFade` 同一支 smoothstep（整图铺开、最后 20% 收到主题窗口色），移除 64 像素黑色横带；商店档右侧剧照／预告统一读 `StorePageWidth`、16 右沿空隙、宽版式 16 圆角与环境底取高，新增 `StoreTailHeight` 绑定到头部末尾的 `StoreTail`，正文纸面从剧照、预告控制排和空隙下面开始。MoviePilot 上游媒体详情只追加 images／credits 等、不含 videos，因此预告片改从当前 Emby／Jellyfin 身份按提供者 ID 找到的电影／剧条目取；商店宽版式自动静音循环并带暂停／静音，沉浸档新增「预告片」键列本地预告与远程链接，进播放与离页收干净。
+
+本批已跑 Shell/Core Release 0 警告 0 错误；`Momoka.PageContractTests` 341/341；主测试 5167/5167（默认 TEMP 两项下载环境红，可写 TEMP 全绿）；重复代码 65 段 / 0.48%；`check-diff.ps1`、`dotnet format whitespace`、`scan-automation-ids.js` 通过。未跑原生探针与截图（按用户 2026-11-16 日常界面规则）；预告 fixture 尚未带本地／远程字段，真实预告自动播放、滚动暂停与下方首卡避让待统一验证。台账新增第53项。
