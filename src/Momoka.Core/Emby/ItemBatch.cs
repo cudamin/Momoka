@@ -52,7 +52,7 @@ public static class ItemBatch
             ItemCommand.RemoveFromCollection => entry.Membership?.Matches(item) == true
                 && ItemCollections.CanManage(kind, permissions, item),
             ItemCommand.Play or ItemCommand.PlayFromBeginning or ItemCommand.Shuffle => kind == MediaServerKind.Emby && CanCollect(item),
-            ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby ? CanAddToPlaylist(item)
+            ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby ? ServerPlaylistItems.CanAddContainer(item)
                 : ServerPlaylistItems.CanAddVideo(item),
             ItemCommand.Convert => kind == MediaServerKind.Emby && CanConvert(item) && permissions.CanConvertMedia != false,
             ItemCommand.Delete => kind == MediaServerKind.Emby && CanDelete(item, permissions),
@@ -69,10 +69,6 @@ public static class ItemBatch
     // Kept identical to ItemBatchPlayback.CanCollect until its independent implementation is integrated.
     private static bool CanCollect(EmbyItem item) => item.IsPlayable || item.Type is EmbyItemType.Series or EmbyItemType.Season
         or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist or EmbyItemType.CollectionFolder;
-
-    private static bool CanAddToPlaylist(EmbyItem item) => item.CollectionType is not ("livetv" or "playlists")
-        && item.MediaType != "Game" && (item.IsPlayable || item.Type is EmbyItemType.Series or EmbyItemType.Season
-            or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist or EmbyItemType.CollectionFolder);
 
     private static bool CanConvert(EmbyItem item) => item.CollectionType is not ("livetv" or "playlists" or "boxsets")
         && item.MediaType is not ("Book" or "Photo" or "Game" or "Audio")

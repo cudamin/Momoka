@@ -481,6 +481,15 @@ internal static partial class ItemCommands
 
         switch (command)
         {
+            // 媒体库卡片上的播放要先把这个库展开成一列视频；其余条目的播放仍交给播放器自己。
+            case ItemCommand.Play when item.Type == EmbyItemType.CollectionFolder:
+                _ = PlayLibraryAsync(scope, shell, card, shuffle: false);
+                break;
+
+            case ItemCommand.Shuffle:
+                _ = PlayLibraryAsync(scope, shell, card, shuffle: true);
+                break;
+
             case ItemCommand.Play:
                 _ = shell.PlayAsync(item, episodes: siblings);
                 break;
@@ -567,6 +576,14 @@ internal static partial class ItemCommands
 
             case ItemCommand.ScanLibrary:
                 ScanLibrary(scope, shell);
+                break;
+
+            case ItemCommand.ScanLibraryFiles:
+                _ = ScanLibraryFilesAsync(scope, shell, card);
+                break;
+
+            case ItemCommand.Convert:
+                _ = ConvertLibraryAsync(scope, shell, owner, card);
                 break;
 
             case ItemCommand.OpenSeries:
@@ -689,7 +706,8 @@ internal static partial class ItemCommands
                 {
                     // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
                     // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
-                    shell.ReportMarkedWatched(item);
+                    // 媒体库不是一集视频，没有「播放停止」可报 —— 那一趟照发只会把一个库的 id 但当集上报。
+                    if (item.Type != EmbyItemType.CollectionFolder) shell.ReportMarkedWatched(item);
 
                     // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
                     watched?.Invoke(card);
@@ -880,6 +898,9 @@ internal static partial class ItemCommands
             ItemCommand.FnNasUnmatch => 0xE8D9,
             ItemCommand.RefreshMetadata => 0xE72C,
             ItemCommand.ScanLibrary => 0xE895,
+            ItemCommand.ScanLibraryFiles => 0xE895,
+            ItemCommand.Shuffle => 0xE8B1,
+            ItemCommand.Convert => 0xE895,
             ItemCommand.OpenSeries => 0xE7F4,
             ItemCommand.ViewMissingEpisodes => 0xE8FD,
             ItemCommand.MoviePilotVersions => 0xE721,
