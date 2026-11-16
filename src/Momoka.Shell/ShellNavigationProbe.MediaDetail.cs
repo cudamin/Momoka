@@ -444,9 +444,15 @@ internal sealed partial class ShellNavigationProbe
                 + $"页面 {page.ActualWidth:0}×{page.ActualHeight:0}、该是 {expected:0}");
             Require(Math.Abs(scrimBox.Top - imageBox.Top) < 1.5 && Math.Abs(scrimBox.Height - imageBox.Height) < 1.5,
                 $"罩子没有正好盖住图那一屏：罩子 {scrimBox.Top:0}–{scrimBox.Bottom:0}、图 {imageBox.Top:0}–{imageBox.Bottom:0}");
+            // 2026-11-16 用户令「不要再是一条 64 像素黑带」：这条渐变与媒体详情页同一支 smoothstep，
+            // 整张图从透明开始、最后 20% 收到主题窗口色（1 个透明起点 + 33 个 smoothstep 停点，共 34 个）。
             Require(fadeBox.Height > 0 && Math.Abs(fadeBox.Bottom - imageBox.Bottom) < 1.5
-                && fade.Background is LinearGradientBrush { GradientStops.Count: 4 },
-                $"图下沿那道下滑遮罩没钉在画面的下沿上：渐变 {fadeBox.Top:0}–{fadeBox.Bottom:0}、图下沿 {imageBox.Bottom:0}");
+                && fade.Background is LinearGradientBrush { GradientStops.Count: 34 } curve
+                && curve.GradientStops[0].Offset == 0 && curve.GradientStops[0].Color.A == 0
+                && curve.GradientStops[^1].Offset == 1 && curve.GradientStops[^1].Color.A == 255
+                && Math.Abs(curve.GradientStops[1].Offset - 0.8) < 0.001,
+                $"图下沿那道下滑遮罩没钉在画面的下沿上，或不再是整图 smoothstep：渐变 {fadeBox.Top:0}–{fadeBox.Bottom:0}、"
+                + $"图下沿 {imageBox.Bottom:0}、停点 {(fade.Background as LinearGradientBrush)?.GradientStops.Count}");
             Require(sheet.Background is SolidColorBrush { Color.A: 255 }
                 && Math.Abs(sheet.ActualWidth - page.ActualWidth) < 2
                 && Math.Abs(sheetBox.Top - heroBox.Bottom) < 1.5

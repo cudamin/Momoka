@@ -468,11 +468,22 @@ internal sealed partial class ShellNavigationProbe
         var play = Get<Button>(page, "ColumnPlayButton");
         var rest = new[] { "ColumnWatchedButton", "ColumnFavoriteButton", "ColumnMoreButton" }
             .Select(name => Get<Button>(page, name)).ToArray();
+        var context = $"page={page.ViewModel.ItemType} width={page.ViewModel.PageWidth:0.#} "
+            + $"block={Get<StackPanel>(page, "StoreActionBlock").Visibility} row={row.Visibility} slot={slot.Visibility} "
+            + $"playParent={(play.Parent as FrameworkElement)?.Name ?? play.Parent?.GetType().Name ?? "null"} "
+            + $"rowChildren=[{string.Join(",", row.Children.OfType<FrameworkElement>().Select(child => child.Name + ":" + child.Visibility))}] "
+            + $"column=[{string.Join(",", (Get<FrameworkElement>(page, "ColumnActionRow") as Panel)?.Children.OfType<FrameworkElement>()
+                .Select(child => child.Name + ":" + child.Visibility) ?? [])}]";
+        // 商店那四颗装在一块由 StoreMode 控制的容器里；退出商店时只收容器，内层两格自己的
+        // Visibility 仍是 Visible。判「商店动作在不在」必须读容器，不能读内层局部值。
+        var actionBlock = Get<StackPanel>(page, "StoreActionBlock");
         StoreDetailProbeEvidence.RequireActionMode(page.ViewModel.StoreMode, page.ViewModel.IsCompact,
             Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Visible,
             Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible,
-            row.Visibility == Visibility.Visible && slot.Visibility == Visibility.Visible,
-            ReferenceEquals(play.Parent, slot) && rest.SequenceEqual(row.Children.OfType<Button>()));
+            actionBlock.Visibility == Visibility.Visible
+                && row.Visibility == Visibility.Visible && slot.Visibility == Visibility.Visible,
+            ReferenceEquals(play.Parent, slot) && rest.SequenceEqual(row.Children.OfType<Button>()),
+            context);
         if (page.ViewModel.StoreMode) RequireStoreCoverActionAppearance(page);
     }
 

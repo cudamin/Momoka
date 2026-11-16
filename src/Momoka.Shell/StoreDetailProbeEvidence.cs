@@ -4,11 +4,14 @@ namespace Momoka.Shell;
 internal static class StoreDetailProbeEvidence
 {
     internal static void RequireActionMode(bool store, bool compact, bool compactActions, bool columnActions,
-        bool coverActions, bool sameFourButtons)
+        bool coverActions, bool sameFourButtons, string? context = null)
     {
         if (compactActions != (compact && !store) || columnActions != (store || !compact)
             || coverActions != store || store && !sameFourButtons)
-            throw new InvalidOperationException("详情操作没有按商店常驻四图标与非商店宽窄组恢复，或出现重复操作");
+            throw new InvalidOperationException(
+                $"详情操作没有按商店常驻四图标与非商店宽窄组恢复，或出现重复操作：store={store} compact={compact} "
+                + $"compactActions={compactActions} columnActions={columnActions} coverActions={coverActions} "
+                + $"sameFourButtons={sameFourButtons}" + (context is null ? "" : "；" + context));
     }
 
     internal static void RequirePreviewCorners(bool store, double pageWidth, double wideFloor,
