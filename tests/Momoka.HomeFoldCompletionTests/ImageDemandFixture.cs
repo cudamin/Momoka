@@ -19,6 +19,7 @@ internal sealed partial class BannerDemandFixture
 {
     private readonly List<BannerSlide> _slides = [new("first"), new("second")];
     private readonly int _index = 0;
+    private readonly bool _railShown = false;
     internal object? XamlRoot { get; set; }
     internal IReadOnlyList<BannerSlide> Slides => _slides;
     internal void Request() => Prefetch();

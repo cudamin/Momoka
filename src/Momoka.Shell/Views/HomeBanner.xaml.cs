@@ -111,6 +111,12 @@ public sealed partial class HomeBanner : UserControl
     /// <summary>主卡那一列这一刻的宽（摆右栏时是整条宽减右栏和空当）；页面那头用它限制轮播上的媒体库视口。</summary>
     private double _mainWidth;
 
+    /// <summary>
+    /// 上面那两列卡片（Stage）这一刻的高。下沿的圆点行不归它管，Root 的总高是它加上圆点那一行
+    /// （见 <see cref="UpdateRootHeight"/>）。
+    /// </summary>
+    private double _bandHeight;
+
     /// <summary>右栏三格各自订着的幻灯片，次序和参考图一致：0 是大卡，1、2 是下面并排两张。</summary>
     private readonly BannerSlide?[] _railSlides = new BannerSlide?[HomeCarousel.RailSlots];
 
@@ -174,12 +180,6 @@ public sealed partial class HomeBanner : UserControl
     private void PlaceInfo()
     {
         Info.Margin = new Thickness(InfoInset, 0, 0, _slim ? _slimShelfHeight : 0);
-
-        // 底部分页圆点也站在主卡下沿：矮窗档媒体库压上来时把它们抬到那一排上方，
-        // 否则一排库卡正好盖住屏幕中间那几颗。整宽版式的右下读数不归这里管（它和媒体库分处左右）。
-        var bottom = _slim ? Math.Max(0, _slimShelfHeight) + 12 : 12;
-        if (Math.Abs(PageDots.Margin.Bottom - bottom) > 0.5)
-            PageDots.Margin = new Thickness(0, 0, 0, bottom);
     }
 
     /// <summary>
@@ -197,14 +197,23 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 底部分页圆点（商店版式）。张数变了就重建成一排；没变只把当前那颗拉长、换墨，不重排。
+    /// 底部分页圆点（商店版式）。张数变了就重建成一排；没变只把当前那颗放大、换墨，不重排。
     /// 圆点只做指针直达 —— 键盘仍由整条带的方向键负责，所以它们不占 Tab 停靠位。
+    /// <para>
+    /// 2026-11-16 重做：圆点在两张卡片<em>下面</em>的页面底上（参考图两种宽度都这样），行高由
+    /// <see cref="UpdateRootHeight"/> 折进 Root，收起时整行不占位置；当前那颗比其余大一号而不是拉成长条。
+    /// </para>
     /// </summary>
     private void SyncPageDots()
     {
         var shown = _layout == CarouselLayout.Store && _slides.Count > 1;
         PageDots.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        if (!shown) return;
+        DotsHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        if (!shown)
+        {
+            UpdateRootHeight();
+            return;
+        }
 
         if (_dots.Count != _slides.Count) RebuildDots();
 
@@ -212,16 +221,40 @@ public sealed partial class HomeBanner : UserControl
         {
             var active = index == _index;
             var mark = _dotMarks[index];
-            var width = active ? 18d : 6d;
-            if (Math.Abs(mark.Width - width) > 0.01) mark.Width = width;
+            var size = active ? 6d : 5d;
+            if (Math.Abs(mark.Width - size) > 0.01)
+            {
+                mark.Width = size;
+                mark.Height = size;
+                mark.CornerRadius = new CornerRadius(size / 2);
+            }
             mark.Background = PageDotBrush(active);
             AutomationProperties.SetName(_dots[index], HomeCarousel.Position(index, _slides.Count));
         }
+
+        UpdateRootHeight();
     }
 
     /// <summary>
-    /// 分页圆点的墨：常态取带子上那两支浅墨；高对比度下换回系统前景（暗一点的是非当前颗）——
-    /// 半透明白在系统黑底上读不出来。和翻页箭头的 HC 处理同一条路，见标记里那本词典。
+    /// 圆点那一行占不占位置：占就按 <see cref="HomeCarousel.DotsHeight"/> 加进 Root 的高，收起时归零；
+    /// 同时把这一行的宽拨成主卡那一列，圆点因此在主卡下方居中。
+    /// </summary>
+    private void UpdateRootHeight()
+    {
+        var dots = PageDots.Visibility == Visibility.Visible ? HomeCarousel.DotsHeight : 0;
+        var total = _bandHeight + dots;
+        if (double.IsNaN(Root.Height) || Math.Abs(Root.Height - total) > 0.5) Root.Height = total;
+
+        var width = _mainWidth > 0 ? _mainWidth : ActualWidth;
+        if (double.IsNaN(DotsHost.Width) || Math.Abs(DotsHost.Width - width) > 0.5) DotsHost.Width = width;
+    }
+
+    /// <summary>
+    /// 分页圆点的墨：落在页面底上，跟主题文字色走 —— **不是**带子上那两支固定的浅墨。
+    /// 从前这里从 <c>Application.Current.Resources</c> 找 <c>EgBannerDotBrush</c>，而那一支只写在
+    /// <c>HomeBanner.xaml</c> 自己的字典里，窗口一拖动（Resize → SyncPageDots）就抛
+    /// 「Cannot find a resource with the given key」把应用打掉 —— 2026-11-16 的崩溃卡死就是这一句。
+    /// 现在两支都从应用主题色里取，本控件不再自带圆点画刷。
     /// </summary>
     private Brush PageDotBrush(bool active)
     {
@@ -232,7 +265,7 @@ public sealed partial class HomeBanner : UserControl
             return new SolidColorBrush(color);
         }
 
-        return (Brush)Application.Current.Resources[active ? "EgOnScrimBrush" : "EgBannerDotBrush"];
+        return (Brush)Application.Current.Resources[active ? "EgTextBrush" : "EgTextFaintBrush"];
     }
 
     private void RebuildDots()
@@ -247,9 +280,9 @@ public sealed partial class HomeBanner : UserControl
         {
             var mark = new Border
             {
-                Width = 6,
-                Height = 6,
-                CornerRadius = new CornerRadius(3),
+                Width = 5,
+                Height = 5,
+                CornerRadius = new CornerRadius(2.5),
                 VerticalAlignment = VerticalAlignment.Center
             };
             var dot = new Button
@@ -374,11 +407,12 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>
     /// 简介收不收的那条高度线。矮窗档里字块实分到的高是带高减去压上来的那一排 —— 还按带高整根量，
-    /// 带子矮的那几档简介会伸进排子里。
+    /// 带子矮的那几档简介会伸进排子里。**量的是卡片那一截（<see cref="_bandHeight"/>），不是 Root**：
+    /// 2026-11-16 起 Root 底下还挂着圆点那一行，把它算进「字块有多少地方站」会让矮带多显示一行不该出现的简介。
     /// </summary>
     private Visibility SynopsisVisibility(Visibility wanted)
     {
-        var textHeight = Root.Height - (_slim ? _slimShelfHeight : 0);
+        var textHeight = _bandHeight - (_slim ? _slimShelfHeight : 0);
 
         return textHeight < 340 ? Visibility.Collapsed : wanted;
     }
@@ -433,6 +467,29 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>主卡那一列此刻的宽（DIP）。还没量到宽时退回控件自己的宽。</summary>
     internal double MainColumnWidth => _mainWidth > 0 ? _mainWidth : ActualWidth;
+
+    /// <summary>当前轮播版式；页面按它算翻档界线与自检的预期带高。</summary>
+    internal CarouselLayout Layout => _layout;
+
+    /// <summary>
+    /// 这条带这一刻应有的总高：卡片那一截按版式从 Core 现算，商店版式再多留圆点那一行。页面自检拿它
+    /// 对账 —— 这里重新走一遍 <see cref="HomeCarousel.BandHeight"/>，不是把 Resize 写下的数读回来，
+    /// 所以「Resize 算错了」这件事仍然量得出来。
+    /// </summary>
+    internal double ExpectedHeight
+    {
+        get
+        {
+            var width = ActualWidth;
+            var rail = HomeCarousel.ShowsRail(_layout, width, _slides.Count);
+            var band = HomeCarousel.BandHeight(_layout, XamlRoot?.Size.Height ?? 0, width, rail);
+            var dots = _layout == CarouselLayout.Store && _slides.Count > 1 ? HomeCarousel.DotsHeight : 0;
+            return band + dots;
+        }
+    }
+
+    /// <summary>按设计形状、不被一屏封住的带高（矮窗档界线读它）。</summary>
+    internal double NaturalBandHeight => HomeCarousel.NaturalBandHeight(_layout, ActualWidth, _railShown);
 
     public HomeBanner()
     {
@@ -713,7 +770,7 @@ public sealed partial class HomeBanner : UserControl
         CaptionText.Text = slide.Caption;
         CaptionRow.Visibility = slide.CaptionVisibility;
         SynopsisText.Text = slide.Synopsis;
-        SynopsisRow.Visibility = Root.Height < 340 ? Visibility.Collapsed : slide.SynopsisVisibility;
+        SynopsisRow.Visibility = _bandHeight < 340 ? Visibility.Collapsed : slide.SynopsisVisibility;
         PlayText.Text = slide.PlayText;
         SlideCounter.Text = $"{_index + 1:00}  /  {_slides.Count:00}";
         SyncSlideStatus();
@@ -1067,8 +1124,9 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 带多高、渐变幕站在哪儿、字块多宽。带高走 <see cref="HomeCarousel.Height"/>：带宽按 16:9 算出来的高的六成
-    /// （「把轮播图弄扁一些」，2026-09-09），也就是带子自己的形状 2.96:1；**剧照的几何这里一句都不写** ——
+    /// 带多高、渐变幕站在哪儿、字块多宽。带高按版式走 <see cref="HomeCarousel.BandHeight"/>：整宽版式照旧是
+    /// 带宽按 16:9 算出来的高的 76%（2026-09-09「把轮播图弄扁一些」）；商店版式有右栏时约 3:1、窄档回 16:9
+    /// （2026-11-16 重做，按参考图）。**剧照的几何这里一句都不写** ——
     /// 两层是 <c>Stretch="UniformToFill"</c>、对齐没有写（默认 Stretch），它们自己撑满 Band 的内沿、图按自己
     /// 的比例放大到盖住整格。
     /// <para>
@@ -1107,7 +1165,7 @@ public sealed partial class HomeBanner : UserControl
     internal void Resize(double width)
     {
         var viewport = XamlRoot?.Size ?? default;
-        var height = HomeCarousel.Height(viewport.Height, width);
+        var store = _layout == CarouselLayout.Store;
 
         // 商店版式：整条够宽才把大图收到左列、右边摆三张推荐；窄窗回整宽（右栏两列宽 0）。
         // 列宽和主卡的宽都从 Core 那几个纯函数来，标记里不写数（见 HomeCarousel.ShowsRail）。
@@ -1124,8 +1182,12 @@ public sealed partial class HomeBanner : UserControl
         // 换幻灯片引起的张数变化在 Apply 里另走一遍 Show，两条路都汇到同一个 Prefetch。
         if (railChanged && ActualWidth > 0) Prefetch();
 
-        // 还没量过时高度是 NaN，而 NaN 参与的比较全是假 —— 少了这一句，第一次布局就设不上高度。
-        if (double.IsNaN(Root.Height) || Math.Abs(Root.Height - height) > 0.5) Root.Height = height;
+        // 带高按版式分两副形状（HomeCarousel.BandHeight）：整宽版式照旧；商店版式有右栏时约 3:1、
+        // 放不下右栏的窄档回 16:9。Stage 只拿卡片那一截，Root 底下还给圆点那一行留位置
+        // （见 UpdateRootHeight）。
+        var height = HomeCarousel.BandHeight(_layout, viewport.Height, width, rail);
+        _bandHeight = height;
+        if (double.IsNaN(Stage.Height) || Math.Abs(Stage.Height - height) > 0.5) Stage.Height = height;
         Frame.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, Math.Max(0, main), height) };
 
         // 两层剧照不在这里给尺寸：空 Grid 由对齐撑满 Band 的内沿，图在背景那支 ImageBrush 里按 UniformToFill
@@ -1141,8 +1203,18 @@ public sealed partial class HomeBanner : UserControl
         SynopsisRow.Width = Info.MaxWidth * 0.75;
         Info.Spacing = height < 360 ? 8 : 12;
         LogoImage.MaxHeight = height < 360 ? 32 : 44;
-        // 商店版式的大图窄一截、通常是两行片名；现有整宽版式仍按原来的高度线走。
-        TitleText.MaxLines = _layout == CarouselLayout.Store || height >= 440 ? 2 : 1;
+
+        // 商店版式的大图窄一截、片名改走详情页头图那一档（36，可折两行）；整宽版式仍按原来的高度线走。
+        // 翻页箭头同理：商店版式换成参考图那两颗小圆键，整宽版式保留 44DIP 的方键。
+        TitleText.Style = (Style)Resources[store ? "EgBannerStoreTitleStyle" : "EgBannerDisplayTitleStyle"];
+        TitleText.MaxLines = store || height >= 440 ? 2 : 1;
+        var pageStyle = (Style)Resources[store ? "EgBannerPageRoundStyle" : "EgBannerPageButtonStyle"];
+        if (!ReferenceEquals(PrevButton.Style, pageStyle))
+        {
+            PrevButton.Style = pageStyle;
+            NextButton.Style = pageStyle;
+        }
+
         SynopsisRow.Visibility = SynopsisVisibility(Current?.SynopsisVisibility ?? Visibility.Collapsed);
         SyncSlideStatus();
 
@@ -1661,8 +1733,21 @@ public sealed partial class HomeBanner : UserControl
         banner.Rise();
         var risen = banner.TitleRow.Opacity == 1 && banner.TitleShift.Y == 0 && banner.ActionsShift.Y == 0;
 
+        // 商店版式换档（2026-11-16 重做）：没有幻灯片时摆不了右栏，走的是窄档 16:9；带高落在 Stage 上，
+        // Root 不带圆点那一行；片名换成详情头图那一档。圆点的墨从应用主题色取得到 —— 2026-11-16 的崩溃
+        // 正是从控件自己的字典里找不到那支固定浅墨（EgBannerDotBrush 已经删掉）。
+        banner.ApplyLayout(CarouselLayout.Store);
+        banner.Resize(1200);
+        var storeBand = HomeCarousel.StoreHeight(0, 1200, false);
+        var store = banner.Layout == CarouselLayout.Store
+            && Math.Abs(banner.Stage.Height - storeBand) < 0.01
+            && Math.Abs(banner.Root.Height - storeBand) < 0.01
+            && banner.PageDots.Visibility == Visibility.Collapsed
+            && ReferenceEquals(banner.TitleText.Style, banner.Resources["EgBannerStoreTitleStyle"]);
+        var dotInk = DotInk(banner, false) is not null && DotInk(banner, true) is not null;
+
         var ok = quiet && tall && framed && filled && corners && inked
-            && placed && bare && layered && risen && apart;
+            && placed && bare && layered && risen && apart && store && dotInk;
 
         return (ok,
             $"没有幻灯片时{(quiet ? "整条带收起、钟不走" : "带还在屏上或钟在走")}；"
@@ -1698,7 +1783,29 @@ public sealed partial class HomeBanner : UserControl
                 + $"两层剧照{(layered ? "轮着上，同一张不重来" : "没换过位置")}；"
                 + $"五行错 {Stagger.TotalMilliseconds:0} 毫秒、{Lift.TotalMilliseconds:0} 毫秒抬起 {TextDrop:0} 像素"
                 + $"{(risen ? "后落定" : "但没落定")}，换图 {CrossFade.TotalMilliseconds:0} 毫秒；"
-                + $"没人碰时每 {banner._dwell.TotalSeconds:0} 秒走一张（设置 → 主页 → 封面轮换秒数），最多 {HomeCarousel.MaxSlots} 张");
+                + $"没人碰时每 {banner._dwell.TotalSeconds:0} 秒走一张（设置 → 主页 → 封面轮换秒数），最多 {HomeCarousel.MaxSlots} 张"
+                + "；"
+                + (store
+                    ? $"商店版式换档后窄档带高 {storeBand:0}（16:9）、片名走 36 号档、没有多张时圆点不占位"
+                    : "商店版式换档没落对（带高、片名样式或圆点可见性不对）")
+                + $"；圆点的墨{(dotInk ? "从应用主题色取得到（不再找控件里那支已删的固定浅墨）" : "取不到，会当场抛")}");
+    }
+
+    /// <summary>
+    /// 自检用：圆点的墨画得出来。这一句专门盯 2026-11-16 那次「Cannot find a resource with the given key:
+    /// EgBannerDotBrush」—— 那一版从 <c>Application.Current.Resources</c> 找一支只写在控件字典里的画刷，
+    /// 窗口一拖就抛。现在两支都来自应用主题色，取不到就会在这里红，而不是等用户去拉窗口。
+    /// </summary>
+    private static Brush? DotInk(HomeBanner banner, bool active)
+    {
+        try
+        {
+            return banner.PageDotBrush(active);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -1806,7 +1913,7 @@ public sealed partial class HomeBanner : UserControl
         {
             if (_slides.Count == 0) return "收起";
 
-            var height = double.IsNaN(Root.Height) ? 0 : Root.Height;
+            var height = _bandHeight;
             var viewport = _viewport?.Size.Height ?? 0;
             var fade = double.IsNaN(Fade.Width) ? 0 : Fade.Width;
             var spare = (height - Info.ActualHeight) / 2;

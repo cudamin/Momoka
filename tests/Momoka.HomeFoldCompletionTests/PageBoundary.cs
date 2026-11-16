@@ -41,6 +41,9 @@ namespace Momoka.Shell.Views
     {
         internal FrameworkElement InfoBlock { get; } = new() { RenderTransform = new TranslateTransform(), TestTop = 100 };
         internal double LibraryOverlayRightInset { get; set; } = 36;
+        internal bool RailShown { get; set; }
+        internal double MainColumnWidth { get; set; } = 660;
+        internal double NaturalBandHeight { get; set; } = 400;
         internal bool OverlayOn { get; private set; }
         internal double OverlayHeight { get; private set; }
         internal int SetLibraryOverlayCalls { get; private set; }
@@ -108,6 +111,7 @@ namespace Momoka.Shell.Views
     public sealed partial class HomePage
     {
         private const string Category = "主页";
+        private const double LibraryOverlayBaseWidth = 660;
         private Momoka.Diagnostics.NavigationTimingRun? _timing;
         private readonly DispatcherQueueTimer _watch = new();
         private TestWindow? _window = new();

@@ -490,6 +490,15 @@
     </Style>
 
     <!--
+      压在剧照上的次一级标题（2026-11-16 主页轮播商店版式右栏下面那两张小卡）：字号与字重取 EgSubheadStyle
+      （16、SemiBold），只把墨换成剧照上的浅色。两行片名是常态，所以不另写字号 —— 小卡上再大一档就会挤成
+      三行，再小一档又认不出是标题。
+    -->
+    <Style x:Key="EgOnScrimSubheadStyle" TargetType="TextBlock" BasedOn="{StaticResource EgSubheadStyle}">
+        <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
+    </Style>
+
+    <!--
       场记板压在剧照上的那一份：主页的大图铺到窗口顶边之后，页眉就站在图上了（见 PageSlate.OnScrim）。
       只换颜色，字体字号一档不改 —— 同一块场记板换个底，不该顺手换成另一个字号。
     -->

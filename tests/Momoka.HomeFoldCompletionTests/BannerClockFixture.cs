@@ -11,6 +11,8 @@ internal sealed partial class BannerClockFixture
     private int _index;
     private bool _second;
     private bool _active = true;
+    // No host means no measured width; Apply then takes the status-only branch.
+    private double ActualWidth => 0;
     private long _cycleStarted;
     private readonly Clock _timer = new();
     private readonly Layer LayerA = new();
@@ -32,6 +34,9 @@ internal sealed partial class BannerClockFixture
     private void StopMotions() { }
     private void Unwatch() { }
     private void SyncArrows() { }
+    // Layout and per-slide status belong to the XAML host; the fixture only proves the list and clock rules.
+    private void Resize(double width) { }
+    private void SyncSlideStatus() { }
     private void Show(int index, bool animate = true) { _index = index; _ = _second; }
     private void OnPictureUnavailable(object? sender, EventArgs args) { }
     private static Layer Brush(Layer layer) => layer;

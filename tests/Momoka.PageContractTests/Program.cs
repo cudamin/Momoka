@@ -107,6 +107,7 @@ internal static class Program
         HomeSubscriptionRefreshTests.Register();
         HomeHeaderScrollTests.Register();
         HomeHeaderChromeProbeTests.Register();
+        HomeCarouselLayoutTests.Register();
         SubscriptionWallWiringTests.Register();
         SelectionInputTests.Register();
         HoverMotionTests.Register();

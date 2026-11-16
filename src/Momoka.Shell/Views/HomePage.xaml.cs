@@ -656,7 +656,7 @@ public sealed partial class HomePage : Page, IShellContent
 
         // 带子的设计形状有多高（不被一屏封住的那一份，<see cref="HomeCarousel.NaturalHeight"/>）：视口够不到
         // 它，带子就被压矮、剧照上下裁切超出默认档 —— 那是回默认的线（2026-09-13「轮播图上下裁切过多时隐藏」）。
-        var bandNatural = HomeCarousel.NaturalHeight(Banner.ActualWidth);
+        var bandNatural = Banner.NaturalBandHeight;
 
         var decided = hasNext && HomeFold.LibraryOnBanner(placement, viewport, nextRowLine, bandNatural);
 
@@ -1100,9 +1100,10 @@ public sealed partial class HomePage : Page, IShellContent
         var viewport = root.Size.Height;
 
         // 这条带的高度就是那条规则算出来的：带宽是它自己量到的宽（通栏之后就是整幅页宽），一张幻灯片都没有时
-        // 整条带收起，那一档不判。
+        // 整条带收起，那一档不判。商店版式的带高与圆点那一行由 HomeBanner 按版式现算（ExpectedHeight），
+        // 页面这里不重抄那两副形状。
         var heroBottom = Top(Banner) + Banner.ActualHeight;
-        var wanted = HomeCarousel.Height(viewport, Banner.ActualWidth);
+        var wanted = Banner.ExpectedHeight;
         var shaped = Banner.Visibility != Visibility.Visible
             || (Math.Abs(Banner.ActualHeight - wanted) <= 1.5 && heroBottom <= viewport + 0.5);
 

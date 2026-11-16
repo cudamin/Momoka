@@ -88,6 +88,26 @@
                 <Setter Property="Visibility" Value="Collapsed" />
             </Style>
 
+            <!--
+              商店版式的翻页箭头（2026-11-16 重做）：参考图里是两颗小小的圆形键，站在大图中线的左右沿上。
+              只覆盖尺寸与圆角，三态画刷、字形墨和「指针在带上才浮出」都沿用上面那一支。
+            -->
+            <Style x:Key="EgBannerPageRoundStyle" TargetType="Button" BasedOn="{StaticResource EgBannerPageButtonStyle}">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="CornerRadius" Value="15" />
+                <Setter Property="Margin" Value="10,0,10,0" />
+                <Setter Property="FontSize" Value="11" />
+            </Style>
+
+            <!--
+              轮播片名（2026-11-16 重做）：整宽版式仍用整条带最大的一档（52），商店版式改用详情页头图那一档
+              （36、可折两行）—— 参考图的商店大图只占左侧一列，52 号的片名在那里会把字块撑得比按钮还高。
+              两支都以现有样式为底，只在这里换个名字，代码按版式换 Style。
+            -->
+            <Style x:Key="EgBannerDisplayTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource EgDisplayTitleStyle}" />
+            <Style x:Key="EgBannerStoreTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource EgHeroTitleStyle}" />
+
             <Style x:Key="EgBannerPlayStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
                 <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
                 <Setter Property="MinWidth" Value="142" />
@@ -220,11 +240,13 @@
             </Style>
 
             <!-- 底部分页圆点（商店版式）：命中区比点本身大一圈，点由代码按当前张数建。
-                 点不是 Tab 停靠位 —— 方向键仍由整条带接管，十来颗圆点不该把 Tab 队列撑长。 -->
+                 点不是 Tab 停靠位 —— 方向键仍由整条带接管，十来颗圆点不该把 Tab 队列撑长。
+                 Padding 4 与下面圆点的 6 号直径合起来 14，加上圆点那一行上下各 10／4 的呼吸正好是
+                 HomeCarousel.DotsHeight（28）。 -->
             <Style x:Key="EgBannerDotButtonStyle" TargetType="Button">
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="MinHeight" Value="0" />
-                <Setter Property="Padding" Value="5" />
+                <Setter Property="Padding" Value="4" />
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="IsTabStop" Value="False" />
@@ -260,12 +282,18 @@
         LostFocus="OnBannerLostFocus"
         KeyDown="OnKeyDown">
 
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
         <!--
           商店版式（2026-11-16 用户令「参考上图在设置中再添加一版轮播图」）把这一块分成两列：左边主卡照旧是
           整条带，右边一列跟着台上那张展示接下来的三张。窄窗口（放不下右栏时）回整宽，右栏两列的宽都收成 0，
           主卡因此仍是原来那一整块。列宽由 HomeBanner.Resize 按 HomeCarousel.ShowsRail 拨，标记里不写数。
+          第二行的圆点在两张卡片外面（见下面 DotsHost），Stage 拿第一行。
         -->
-        <Grid x:Name="Stage">
+        <Grid x:Name="Stage" Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="MainColumn" Width="*" />
                 <ColumnDefinition x:Name="RailGapColumn" Width="0" />
@@ -498,7 +526,7 @@
                         <Border x:Name="TitleInk" IsHitTestVisible="False" />
                         <TextBlock
                             x:Name="TitleText"
-                            Style="{StaticResource EgDisplayTitleStyle}"
+                            Style="{StaticResource EgBannerDisplayTitleStyle}"
                             MaxLines="1"
                             TextTrimming="CharacterEllipsis" />
                     </Grid>
@@ -628,28 +656,20 @@
                         </Border>
                     </Border>
                 </StackPanel>
-
-                <!-- 商店版式的底部分页圆点（2026-11-16）。点由代码按张数建，这里只摆位置：主卡下沿居中，
-                     和参考截图一致；整宽档和右栏档都在主卡这一格里，所以跟着主卡居中。 -->
-                <StackPanel
-                    x:Name="PageDots"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    Margin="0,0,0,12"
-                    Spacing="2"
-                    Visibility="Collapsed" />
             </Grid>
         </Grid>
 
             <!--
-              商店版式的右栏（2026-11-16）：上面一张大卡、下面并排两张小卡，图片和标题由 HomeBanner.SyncRail
+              商店版式的右栏（2026-11-16 重做）：上面一张大卡、下面并排两张小卡，图片和标题由 HomeBanner.SyncRail
               从台上那张后面三张里取。整列跟着主卡的圆角卡片一起被 BannerCard 剪裁；各卡自己的圆角剪在内容
               那层 Border 上。窄窗口时这一列宽 0、整列收起（见 Resize），不占位置。
+              **上下的行高是 2:1**（2026-11-16 重做）：参考图里上面那张大卡高约下面两张小卡的两倍，从前上下
+              各一半，三张看起来是同一级；2:1 之后「一张主推带两张陪衬」的关系才出来。与
+              HomeCarousel.RailRows 的算法同源，自检拿量到的两条边对账。
             -->
             <Grid x:Name="Rail" Grid.Column="2" Visibility="Collapsed">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="2*" />
                     <RowDefinition Height="8" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
@@ -721,9 +741,8 @@
                                 <TextBlock
                                     x:Name="RailSmallTitleA"
                                     Margin="12,0,12,10"
-                                    FontWeight="SemiBold"
                                     MaxLines="2"
-                                    Style="{StaticResource EgOnScrimBodyStyle}"
+                                    Style="{StaticResource EgOnScrimSubheadStyle}"
                                     TextTrimming="CharacterEllipsis"
                                     TextWrapping="Wrap"
                                     VerticalAlignment="Bottom" />
@@ -757,9 +776,8 @@
                                 <TextBlock
                                     x:Name="RailSmallTitleB"
                                     Margin="12,0,12,10"
-                                    FontWeight="SemiBold"
                                     MaxLines="2"
-                                    Style="{StaticResource EgOnScrimBodyStyle}"
+                                    Style="{StaticResource EgOnScrimSubheadStyle}"
                                     TextTrimming="CharacterEllipsis"
                                     TextWrapping="Wrap"
                                     VerticalAlignment="Bottom" />
@@ -768,6 +786,26 @@
                     </Button>
                 </Grid>
             </Grid>
+        </Grid>
+
+        <!--
+          商店版式的分页圆点（2026-11-16 重做）：**在两张卡片下面的页面底上**，不是压在剧照里 —— 参考图两种
+          窗口宽度下都是这样，深度 12 的版本会和主卡右下读数打架。这一行的宽由 Resize 拨成主卡那一列，圆点
+          因此在主卡下方居中（参考图也是对齐大图而不是整条轮播）。
+          点由代码按张数建；没有第二张、或不是商店版式时整行收起，不占高度（Root.Height 跟着重算）。
+        -->
+        <Grid
+            x:Name="DotsHost"
+            Grid.Row="1"
+            HorizontalAlignment="Left"
+            Visibility="Collapsed">
+            <StackPanel
+                x:Name="PageDots"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Margin="0,10,0,4"
+                Spacing="0"
+                Visibility="Collapsed" />
         </Grid>
     </Grid>
 </UserControl>

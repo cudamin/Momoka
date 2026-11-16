@@ -51,7 +51,10 @@ public enum CarouselLayout
     /// <summary>整宽大图，右下角是张数读数与进度条（现有版式，缺键的旧设置文件读出来就是它）。</summary>
     Full = 0,
 
-    /// <summary>商店版式：宽窗口左侧大图、右侧三张推荐；窄窗口回到整宽大图，底部用分页圆点。</summary>
+    /// <summary>
+    /// 商店版式：宽窗口左侧大图、右侧三张推荐（上大下二小）；窄窗口回到整宽大图。两种宽度下都用大图
+    /// <em>下面</em>那一排分页圆点代替右下角的读数与进度条（2026-11-16 重做，按用户给的商店参考图）。
+    /// </summary>
     Store = 1
 }
 
@@ -121,13 +124,13 @@ public static class HomeCarousel
     public const int RailSlots = 3;
 
     /// <summary>大图和右栏之间的空当（DIP）。右栏自己不带左边距，这个数由 <see cref="MainWidth"/> 从大图那一侧让出来。</summary>
-    public const double RailGap = 12;
+    public const double RailGap = 8;
 
     /// <summary>
-    /// 右栏的宽度占整条轮播宽度的比例。参考截图里右栏约占三分之一；上下限 <see cref="RailMinWidth"/>／
+    /// 右栏的宽度占整条轮播宽度的比例。参考截图里右栏约占四成；上下限 <see cref="RailMinWidth"/>／
     /// <see cref="RailMaxWidth"/> 兜住窄窗和超宽屏 —— 太窄放不下两行标题，太宽会把大图挤成竖条。
     /// </summary>
-    public const double RailWidthShare = 0.34;
+    public const double RailWidthShare = 0.39;
 
     /// <summary>右栏最窄一档（DIP）。再窄，下面两张卡片的标题就没法读了。</summary>
     public const double RailMinWidth = 300;
@@ -176,6 +179,18 @@ public static class HomeCarousel
         var indices = new List<int>(take);
         for (var step = 1; step <= take; step++) indices.Add(Step(current, step, count));
         return indices;
+    }
+
+    /// <summary>
+    /// 右栏上下两段怎么分（2026-11-16 重做）：上面一张大卡占两份、下面并排两张小卡占一份，中间让出
+    /// <see cref="RailGap"/>。参考图里大卡高约小卡的两倍；从前那一版是上下各一半，所以右栏看着是「三张同辈」，
+    /// 不像参考图里「一张主推带两张陪衬」。标记里的行高写 2＊／1＊，两边算出来的数一致，自检据此对账。
+    /// </summary>
+    public static (double Big, double Small) RailRows(double height)
+    {
+        var usable = Math.Max(0, height - RailGap);
+        var big = Math.Round(usable * 2 / 3);
+        return (big, Math.Max(0, usable - big));
     }
 
     /// <summary>
@@ -277,6 +292,49 @@ public static class HomeCarousel
     /// 这一份，带子就被压矮，剧照上下多裁出一截。
     /// </summary>
     public static double NaturalHeight(double width) => Height(0, width);
+
+    /// <summary>
+    /// 商店版式有右栏那一档的带高占整条轮播宽度的比例（2026-11-16 重做）。参考图里宽窗的大图加右栏
+    /// 合起来约 3:1，右栏的大卡与两张小卡都在这个高度里排；从前照整宽版式的 2.34:1 算，商店版式会比
+    /// 参考图高出一大截。
+    /// </summary>
+    public const double StoreWideHeightShare = 0.335;
+
+    /// <summary>
+    /// 底部分页圆点那一行占的高度（DIP，2026-11-16 重做）。商店版式的圆点在两张卡片<em>下面</em>的页面
+    /// 底上，不是压在剧照里（参考图两种宽度都是这样）；这一行连上下的呼吸一共 28。
+    /// </summary>
+    public const double DotsHeight = 28;
+
+    /// <summary>
+    /// 商店版式的带高（2026-11-16 重做）。两种宽度两副形状，都从参考图量出来的：
+    /// <list type="bullet">
+    /// <item>摆右栏：整条宽度 × <see cref="StoreWideHeightShare"/>，约 3:1，右栏的 2:1 上下分段才有意义。</item>
+    /// <item>放不下右栏（整宽大图）：回到 16:9，就是参考图窄窗那一张的比例；此时大图是页面里唯一一张。</item>
+    /// </list>
+    /// 上限仍是一屏、下限仍是 <see cref="MinHeight"/>，与整宽版式同一道闸；<paramref name="width"/> 是整条
+    /// 轮播的宽（不是大图那一列的宽），右栏和空当都算在里面。
+    /// </summary>
+    public static double StoreHeight(double viewport, double width, bool rail)
+    {
+        if (width <= 0) return UnmeasuredHeight;
+
+        var band = Math.Round(rail ? width * StoreWideHeightShare : width / WindowAspect);
+        var ceiling = viewport > 0 ? Math.Max(MinHeight, Math.Round(viewport)) : double.MaxValue;
+
+        return Math.Clamp(band, MinHeight, ceiling);
+    }
+
+    /// <summary>商店版式按设计形状的带高，不被一屏封住；同 <see cref="NaturalHeight"/> 的差事。</summary>
+    public static double NaturalStoreHeight(double width, bool rail) => StoreHeight(0, width, rail);
+
+    /// <summary>按版式取带高：整宽版式走 <see cref="Height"/>，商店版式走 <see cref="StoreHeight"/>。</summary>
+    public static double BandHeight(CarouselLayout layout, double viewport, double width, bool rail) =>
+        layout == CarouselLayout.Store ? StoreHeight(viewport, width, rail) : Height(viewport, width);
+
+    /// <summary>按版式取「不被一屏封住」的设计带高。</summary>
+    public static double NaturalBandHeight(CarouselLayout layout, double width, bool rail) =>
+        layout == CarouselLayout.Store ? NaturalStoreHeight(width, rail) : NaturalHeight(width);
 
     /// <summary>
     /// Which items get to be slides. 来源是设置里那两行的事（最近添加还是随机、什么媒体 —— 2026-09-13「新增

@@ -101,6 +101,7 @@ namespace Microsoft.UI.Xaml
     public class FrameworkElement : UIElement
     {
         public Thickness Margin { get; set; }
+        public double MaxWidth { get; set; } = double.PositiveInfinity;
         public double ActualWidth { get; set; }
         public double ActualHeight { get; set; }
         public double Opacity { get; set; } = 1;
