@@ -339,7 +339,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 商店模式下头部尾部至少要补多高，右侧剧照／预告才不会压到下面那些卡片。
     /// 同媒体详情页 <c>DetailViewModel.TailMinHeight</c>：内容已经高过画面时返回 0。
     /// </summary>
-    public double StoreTailHeight => Plain && Backdrop is not null
+    public double StoreTailHeight => Plain && (Backdrop is not null || TrailerSubject is not null)
         ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, TrailerControlsRoom, DetailHero.StorePreviewGap)
         : 0;
 

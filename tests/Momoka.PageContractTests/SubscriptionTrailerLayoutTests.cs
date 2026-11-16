@@ -27,7 +27,7 @@ internal static class SubscriptionTrailerLayoutTests
             Assert.True(order.IndexOf(tail) < order.IndexOf(Named("BodySheet")), "尾部没有排在正文纸面之前");
 
             var viewModel = Source("ViewModels/MoviePilotMediaViewModel.cs");
-            Assert.Contains("public double StoreTailHeight => Plain && Backdrop is not null", viewModel);
+            Assert.Contains("public double StoreTailHeight => Plain && (Backdrop is not null || TrailerSubject is not null)", viewModel);
             Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, TrailerControlsRoom, DetailHero.StorePreviewGap)", viewModel);
             Assert.Contains("OnPropertyChanged(nameof(StoreTailHeight));", viewModel);
         });
