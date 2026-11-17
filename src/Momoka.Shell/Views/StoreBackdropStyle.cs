@@ -83,9 +83,12 @@ internal static class StoreBackdropStyle
             var color = ArtworkShade.Sample(pixels.Pixels, pixels.Width, pixels.Height, theme.Colors.Window);
             if (!theme.IsDark) color = theme.Colors.Window.Mix(color, 0.35);
             var brush = new LinearGradientBrush { StartPoint = new Point(0.5, 0), EndPoint = new Point(0.5, 1) };
-            // 上面大半保持实色，只在下沿收进卡片上方那一段淡出（用户令「面积不够大」：颜色要一直铺到卡上沿）。
+            // 2026-11-17 用户令「过度要平滑啊，上面从浓到淡」：从顶部的实色一路匀到透明，中间用几档
+            // 递减的 alpha 把曲线拉平，不再是一大段实色之后突然收掉。
             brush.GradientStops.Add(new GradientStop { Offset = 0, Color = ThemeHost.ToColor(color) });
-            brush.GradientStops.Add(new GradientStop { Offset = 0.7, Color = ThemeHost.ToColor(color.WithAlpha(210)) });
+            brush.GradientStops.Add(new GradientStop { Offset = 0.25, Color = ThemeHost.ToColor(color.WithAlpha(215)) });
+            brush.GradientStops.Add(new GradientStop { Offset = 0.5, Color = ThemeHost.ToColor(color.WithAlpha(155)) });
+            brush.GradientStops.Add(new GradientStop { Offset = 0.75, Color = ThemeHost.ToColor(color.WithAlpha(75)) });
             brush.GradientStops.Add(new GradientStop { Offset = 1, Color = ThemeHost.ToColor(color.WithAlpha(0)) });
             _pixels = pixels;
             _window = theme.Colors.Window;

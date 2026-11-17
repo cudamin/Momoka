@@ -248,7 +248,10 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("ArtworkShade.Sample(pixels.Pixels, pixels.Width, pixels.Height, theme.Colors.Window)", style);
             Assert.Contains("new LinearGradientBrush { StartPoint = new Point(0.5, 0), EndPoint = new Point(0.5, 1) }", style);
             Assert.Contains("theme.Colors.Window.Mix(color, 0.35)", style);
-            Assert.Contains("Offset = 0.7, Color = ThemeHost.ToColor(color.WithAlpha(210))", style);
+            // 2026-11-17 用户令「过度要平滑啊，上面从浓到淡」：多档递减 alpha，不再是一段实色后突然收掉。
+            Assert.Contains("Offset = 0.25, Color = ThemeHost.ToColor(color.WithAlpha(215))", style);
+            Assert.Contains("Offset = 0.5, Color = ThemeHost.ToColor(color.WithAlpha(155))", style);
+            Assert.Contains("Offset = 0.75, Color = ThemeHost.ToColor(color.WithAlpha(75))", style);
             var vm = Source("ViewModels/DetailViewModel.cs");
             Assert.Contains("private const int StillColorDecodeWidth = 64;", vm);
             Assert.Contains("private HeroPictureLoader.HeroPixels? _stillColorPixels;", vm);
