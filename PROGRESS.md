@@ -14609,6 +14609,6 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 本轮已跑：Shell Release/x64 **0 警告 0 错误**（4 分 53 秒）；全量 `Momoka.Tests` **5225/5225**、`Momoka.PageContractTests` **354/354**，0 失败 0 跳过（TEMP 指本树 `artifacts/delivery-tmp`，避开 `C:\WINDOWS\TEMP` 那两条既有环境红）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 12 个变更路径通过。已按改好收尾发布：548 文件、289.9 MB，桌面快捷方式 `Momoka-feat-subscription-card-info-VwlfEa.lnk` 指向本树发布目录（20:11）。已看 `mp-subscription-header-1240.png`、`mp-subscription-detail-1240.png` 与商店档 `mp-subscription-mode-plain-1240.png`：新字段与「订阅」小标题按序上屏，国家/公司/平台逐行，左上角渐变与左右铺满可见。
 
-探针 `--probe-shell --probe-section moviepilot --screen 1` 首轮 **39/40**（`shell-probe-20261117-121816017-7408`）：与本批相关的「订阅详情、入库缺集与编辑」「订阅详情沉浸与简洁模式切换」「背景按页宽等比、下滑遮罩与纸面」全部通过；唯一红项「资源卡片、季集筛选和下载选项」为 `TimeoutException`，落在未改动的资源窗口路径。复跑第二轮时另一会话同时在跑探针，桌面被两边互相遮挡（其报告里的像素守卫明确指向本树探针窗口），该轮不作证据，也不据此判红或判绿；交付前需在独占桌面时确认该超时是否复现。
+探针 `--probe-shell --probe-section moviepilot --screen 1` 首轮 **39/40**（`shell-probe-20261117-121816017-7408`）：与本批相关的「订阅详情、入库缺集与编辑」「订阅详情沉浸与简洁模式切换」「背景按页宽等比、下滑遮罩与纸面」全部通过；唯一红项「资源卡片、季集筛选和下载选项」为 `TimeoutException`，落在未改动的资源窗口路径。复跑第二轮时其他会话的 Momoka 探针也在占用桌面（另一份探针报告显示其窗口被 pid 12700 遮挡并触发像素守卫），本树这一轮没有产出报告；该轮不作证据，也不据此判红或判绿；交付前需在独占桌面时确认该超时是否复现。
 
 未合并 master；分支快捷方式已刷新，不等于交付。
