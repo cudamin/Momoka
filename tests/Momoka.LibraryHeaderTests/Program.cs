@@ -149,12 +149,13 @@ internal static class Program
             page.Apply();
             Assert.Equal(0, page.HeaderApplies);
         });
-        Test("详情音频标签保留中文冒号", () =>
+        Test("详情音频与字幕标签保留中文冒号", () =>
         {
             var document = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
-            var value = document.Root!.Elements("data")
-                .Single(element => (string?)element.Attribute("name") == "DetailPage_TextBlock3.Text").Element("value")!.Value;
-            Assert.Equal("音频：", value);
+            string Value(string name) => document.Root!.Elements("data")
+                .Single(element => (string?)element.Attribute("name") == name).Element("value")!.Value;
+            Assert.Equal("音频：", Value("DetailPage_TextBlock3.Text"));
+            Assert.Equal("字幕：", Value("DetailPage_TextBlock4.Text"));
         });
         AgreementsTests.Register();
         return Run();
