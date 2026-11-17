@@ -6,11 +6,13 @@
 
 **测了什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` 新增纯函数用例（空隙 16 起点、22.48／40.48／62.08、封顶 96、视口仍是 920；margin 与 bleed 换算），`Momoka.PageContractTests` 新增媒体详情页与订阅详情页两条源码契约（画面不放大、空隙接线、局部底铺满、控制排跟随）；全量 `Momoka.Tests` **5224/5224**、`Momoka.PageContractTests` **355/355**，0 失败 0 跳过。按日常界面口径未跑原生探针与验收截图。
 
-**发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-store-window-spacing-px4o5I` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `89572286458AC457976B19B21B314F8A7037F44242942E4D5E4A80E123733E0D`，`Momoka.dll` SHA256 `2F4C18CD5FC1FB9DA73D725BC4AB2CFFAC18BA9255703BBDBDD7B469A29B358B`；桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk` 指向本树 `artifacts/publish/win-x64`。
+**补的 bug（20:5x）。** 用户报「长窗口的时候点进去还是原来的间距，要调整一下窗口才会闪现到正确的间距」：进入页面时 `PlaceStoreComponents` 把 `PageWidth` 从窗口宽收进 1840 内容列，但 `PageWidth` 的通知列表里没有 `StorePreviewMargin` —— 绑定停在初值 16，直到拖窗口写 `WindowWidth` 才重算。补上这条通知，契约测试同时钉住 `PageWidth` 与 `WindowWidth` 都会通知右边距。订阅详情页没有这条路径：那边 `StorePageWidth` 是派生属性、`PaintStoreBackdrop` 每次布局都直接重算并赋 `Margin`，进入时就是正确的；本轮已改的三处（ViewModel 右边距、环境底与视频局部底铺满、预告坐标与渐隐）确实在 `61892b1` 里。
+
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-store-window-spacing-px4o5I` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `CB743AFCC3E16B35A208BD93D8E983C0482C9CA18A3FBE5B87B0EFC3B2FFE8C3`，`Momoka.dll` SHA256 `56C387741C04886369B41C27AB528228E9419B84E1A8489F9A134BF2486CE4FC`；桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk` 指向本树 `artifacts/publish/win-x64`。
 
 **未验证。** 宽窗与常规窗口下空隙的实际观感（16→22.5→62 的增幅与封顶是否合适）、预告片在演时位置与渐隐、五套固定深色与跟随系统深浅；统一验证时按台账第 77 条跑。
 
-**提交。** 产品与测试 `61892b1`；此前误按「放大视口」方向的提交 `2fe8781` 已由本轮改动覆盖，不单独 revert。未合入 master、未推远端。
+**提交。** 产品与测试 `61892b1`、`a6bcc3c`；此前误按「放大视口」方向的提交 `2fe8781` 已由本轮改动覆盖，不单独 revert。未合入 master、未推远端。
 
 ## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
