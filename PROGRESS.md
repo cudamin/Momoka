@@ -14617,4 +14617,6 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 同日三追加（用户贴实屏问「你看这是只留了左上角一个三角形的暗吗」）：那一版把左上角压成一整块没有边界的暗面，确实不是三角。红线那版的三角原本是自然形成的 —— 环境底左右各 28% 的对称渐隐与两道比例停点线性渐变相乘，左上角本来就收成楔形，不需要另加角上层。已整体回退提交 `51b6820`（撤掉 `StoreShadeCorner`/`StoreShadeWide` 与 `Store.cs` 里的 1400/1840 两档，`StoreShade` 回到两道线性渐变，`SubscriptionTrailerLayoutTests` 的三角断言同步撤掉）。Shell Release/x64 **0 警告 0 错误**（2 分 20 秒）；全量 `Momoka.Tests` **5225/5225**、`Momoka.PageContractTests` **354/354**，0 失败 0 跳过（TEMP 指本树 `artifacts/delivery-tmp`）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 3 个变更路径通过。已复发布并刷新同一快捷方式（22:08）；回退后探针 `--probe-shell --probe-section moviepilot --screen 1` **37/37**（`shell-probe-20261117-140925794-6888`），截图 `mp-subscription-mode-plain-760/1240.png` 左上角重新是三角楔形。
 
+同日四追加（用户贴实屏并画红线：「思路错了，背景图渐变应该蔓延到我画红线的地方」，问要哪一种答「暖色渐变铺到红线」）：红线里那块平灰是 `AmbientSymmetric` 左坡 28% 留下的 —— 从背景图取色的环境底要到页宽 28% 才满，红线附近只剩窗口底色。`StoreBackdropBlend.AmbientSymmetricAcross` 的左坡从 28% 收到 12%，右沿不动，暖色一路淡到内容区左沿附近、红线以左才收成窗口底色；两页共用这张遮罩，媒体详情页同步。验证：Shell Release/x64 **0 警告 0 错误**（2 分 01 秒）；`Momoka.PageContractTests` **354/354**、全量 `Momoka.Tests` **5225/5225**，0 失败 0 跳过；format 与 check-diff 通过；已复发布并刷新同一快捷方式（22:34）；探针 `shell-probe-20261117-143453262-17908` **37/37**，1240 宽商店档截图 x=110 处的环境色由旧 (9,23,31) 提到 (21,52,45)，红线位置已是暖色而不是平灰。
+
 未合并 master；分支快捷方式已刷新，不等于交付。
