@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
@@ -60,6 +61,7 @@ internal sealed class StoreYouTubePreview(Func<CancellationToken, Task<CoreWebVi
         core.Settings.IsStatusBarEnabled = false;
         // 先读登录状态再起播：YouTube 的登录卡片用 150 报错，页面要靠这一位区分「去登录」和「视频不让嵌」。
         _signedIn = await HasSessionAsync(core);
+        Log.Info("预告", $"YouTube 预览 id={id} 登录={_signedIn}");
         core.SetVirtualHostNameToFolderMapping("momoka", folder, CoreWebView2HostResourceAccessKind.DenyCors);
         core.NewWindowRequested += (_, args) => args.Handled = true;
         core.DownloadStarting += (_, args) => args.Cancel = true;
@@ -76,31 +78,23 @@ internal sealed class StoreYouTubePreview(Func<CancellationToken, Task<CoreWebVi
             else if (message.StartsWith("error", StringComparison.Ordinal))
             {
                 NeedsLogin = ErrorNeedsSignIn(message) && !_signedIn;
+                Log.Info("预告", $"YouTube 预告 id={id} 报错 {message}，登录={_signedIn}，提示登录={NeedsLogin}");
                 _playingCompleted?.TrySetException(new IOException("预告片播放失败"));
                 state(false);
             }
         };
         core.Navigate(Origin + "/index.html");
-        // 登录卡片有时不触发 onError，一直停在未起播；超时前读一次播放器自己的 errorCode，别把
-        // 「要登录」拖成一次无声的 20 秒等待。
-        var finished = await Task.WhenAny(_playingCompleted.Task, Task.Delay(TimeSpan.FromSeconds(15), token));
+        // 登录卡片有时不触发 onError，也不一定把 errorCode 写成 auth；只要未登录且 10 秒内没有起播，
+        // 就按「需要登录」处理。宁可对慢网多提示一次，也不再把登录卡片无声地回退成静态图。
+        var finished = await Task.WhenAny(_playingCompleted.Task, Task.Delay(TimeSpan.FromSeconds(10), token));
         if (finished != _playingCompleted.Task)
         {
-            NeedsLogin = !_signedIn && await HasAuthErrorAsync(core);
+            NeedsLogin = !_signedIn;
+            Log.Info("预告", $"YouTube 预告 id={id} 10 秒内未起播，登录={_signedIn}，提示登录={NeedsLogin}");
             throw new IOException("预告片播放超时");
         }
         await _playingCompleted.Task;
         token.ThrowIfCancellationRequested();
-    }
-
-    private static async Task<bool> HasAuthErrorAsync(CoreWebView2 core)
-    {
-        try
-        {
-            var data = await core.ExecuteScriptAsync("typeof p!=='undefined'?JSON.stringify(p.getVideoData()):''");
-            return data.Contains("\"errorCode\":\"auth\"", StringComparison.Ordinal);
-        }
-        catch (Exception error) when (error is InvalidOperationException or ObjectDisposedException) { return false; }
     }
 
     private static async Task<bool> HasSessionAsync(CoreWebView2 core)

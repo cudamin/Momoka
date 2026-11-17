@@ -36,10 +36,19 @@ public static class TrailerPreview
         string? id = null;
         if (uri.Host == "youtu.be" && uri.AbsolutePath.Count(character => character == '/') == 1)
             id = uri.AbsolutePath[1..];
-        else if (uri.Host is "youtube.com" or "www.youtube.com" or "m.youtube.com" && uri.AbsolutePath == "/watch")
+        else if (uri.Host is "youtube.com" or "www.youtube.com" or "m.youtube.com")
         {
-            var values = uri.Query.TrimStart('?').Split('&').Where(part => part.StartsWith("v=", StringComparison.Ordinal)).ToArray();
-            if (values.Length == 1) id = values[0][2..];
+            if (uri.AbsolutePath == "/watch")
+            {
+                var values = uri.Query.TrimStart('?').Split('&').Where(part => part.StartsWith("v=", StringComparison.Ordinal)).ToArray();
+                if (values.Length == 1) id = values[0][2..];
+            }
+            else if (uri.AbsolutePath.StartsWith("/embed/", StringComparison.Ordinal)
+                || uri.AbsolutePath.StartsWith("/shorts/", StringComparison.Ordinal))
+            {
+                var segment = uri.AbsolutePath[(uri.AbsolutePath.LastIndexOf('/') + 1)..];
+                if (segment.Length > 0) id = segment;
+            }
         }
         return id is { Length: 11 } && id.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_') ? id : null;
     }

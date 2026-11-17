@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Shell.Media;
 using Windows.Media.Playback;
@@ -154,6 +155,7 @@ public sealed partial class DetailPage
             if (preview is null)
             {
                 var id = TrailerPreview.YouTubeId(subject);
+                Log.Info("预告", $"《{subject.Name}》商店预告：本地预告未命中，YouTubeId={id ?? "-"}");
                 if (id is null) return;
                 var session = _youTubeSession ??= _request!.Services.GetRequiredService<YouTubeSession>();
                 youTube = new StoreYouTubePreview(session.GetEnvironmentAsync);
@@ -182,7 +184,12 @@ public sealed partial class DetailPage
                         // StopStoreTrailer 会把这支预览连同 WebView 一起收掉，登录判定要先读出来。
                         var needsLogin = youTube.NeedsLogin;
                         StopStoreTrailer();
-                        if (needsLogin) ViewModel.NotifyYouTubeLoginRequired();
+                        if (needsLogin)
+                        {
+                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告需要登录，已提示");
+                            ViewModel.NotifyYouTubeLoginRequired();
+                        }
+                        else Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，未判定为登录问题");
                         return;
                     }
                     LayoutStoreTrailer();
@@ -207,10 +214,23 @@ public sealed partial class DetailPage
             if (generation == _storeTrailerGeneration)
             {
                 // 播放器超时/失败时，错误回调不一定跑过；预览还在树上且判定需要登录的，在这里补一次提示。
-                var needsLogin = youTube is not null && ReferenceEquals(_storeYouTube, youTube) && youTube.NeedsLogin;
-                _storeTrailerFailed = subject;
-                StopStoreTrailer();
-                if (needsLogin) ViewModel.NotifyYouTubeLoginRequired();
+                if (youTube is not null && ReferenceEquals(_storeYouTube, youTube))
+                {
+                    var needsLogin = youTube.NeedsLogin;
+                    _storeTrailerFailed = subject;
+                    StopStoreTrailer();
+                    if (needsLogin)
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败且需要登录，已提示");
+                        ViewModel.NotifyYouTubeLoginRequired();
+                    }
+                    else Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，未判定为登录问题");
+                }
+                else
+                {
+                    _storeTrailerFailed = subject;
+                    StopStoreTrailer();
+                }
             }
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }

@@ -1331,6 +1331,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private async void ShowYouTubeTrailer(string id, string title)
     {
         if (_services?.GetService(typeof(Media.YouTubeSession)) is not Media.YouTubeSession session) return;
+        Log.Info("预告", $"打开 YouTube 播放窗 id={id}《{title}》");
         try
         {
             if (await YouTubePlayerDialog.ShowAsync(this, session, id, title))
