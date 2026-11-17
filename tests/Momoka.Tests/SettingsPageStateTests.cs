@@ -213,15 +213,29 @@ internal static class SettingsPageStateTests
             fixture.Set(row, "Selected", choices[1]!);
             Assert.True(settings.Settings.Ui.StoreCornerArt, "选艺术图没有写回设置");
             Assert.Equal(1, appearances);
+            // 2026-11-17 用户令「选艺术图的时候自动隐藏相关选项」：预告片卡里「详情页自动播放」整行收起。
+            var trailer = fixture.Invoke(vm, "TrailerCard")!;
+            Assert.DoesNotContain("详情页自动播放", TrailerLabels());
+            Assert.Contains("封面悬停自动播放", TrailerLabels());
             fixture.Set(row, "Selected", choices[0]!);
             Assert.False(settings.Settings.Ui.StoreCornerArt, "切回背景图/预告没有写回设置");
             Assert.Equal(2, appearances);
+            Assert.Contains("详情页自动播放", TrailerLabels());
+
+            // 2026-11-17 用户令「预告片卡片放详情页外观下面」：ReloadAsync 的加卡次序钉在这里。
+            Assert.True(fixture.ViewModelSource.IndexOf("Sections.Add(DetailAppearanceCard());", StringComparison.Ordinal)
+                < fixture.ViewModelSource.IndexOf("Sections.Add(TrailerCard());", StringComparison.Ordinal),
+                "预告片卡片没有排在详情页外观下面");
 
             // 沉浸模式没有右上角这一档，整行随商店模式一起收起。
             settings.Settings.Ui.EnableImmersive = true;
             var immersiveRows = fixture.List(fixture.Invoke(vm, "DetailAppearanceCard")!, "Rows");
             Assert.DoesNotContain("右上角显示",
                 string.Join('|', immersiveRows.Cast<object>().Select(item => fixture.Get<string>(item, "Label"))));
+
+            string TrailerLabels() => string.Join('|',
+                fixture.List(fixture.Invoke(vm, "TrailerCard")!, "Rows").Cast<object>()
+                    .Select(item => fixture.Get<string>(item, "Label")));
         });
         TestHarness.Test("界面卡：选择模式／透明效果在列，色板末格是跟随系统，开机自启已搬进关于「启动」卡（源码接线）", () =>
         {

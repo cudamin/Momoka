@@ -79,6 +79,16 @@ internal static partial class DetailActionReadinessTests
                     // 片名栏撑到 StoreTextFloor，头图那一行跟着长；超出部分压在右侧剧照上。
                     Assert.Equal(DetailHero.StoreTextColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreTextWidth")!);
                     Assert.Equal(DetailHero.StoreHeroColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreHeroWidth")!);
+                    // 2026-11-17 用户令「高度要和左边的封面一样高，右边边缘不能超过下面的卡片」：艺术图
+                    // 高跟封面一致、宽按图自己的比例（夹具没有图，按 16:9 兜底），上沿与封面同线、右沿贴内容右沿。
+                    Assert.Equal(stillWidth > 0 ? (double)f.Get("StillHeight")! : 0d, (double)f.Get("StoreArtHeight")!);
+                    Assert.Equal(480d, (double)f.Get("StoreArtWidth")!);
+                    var storeArtMargin = f.Get("StoreArtMargin")!;
+                    var marginType = storeArtMargin.GetType();
+                    Assert.Equal(DetailHero.StoreHeroInsetTop(width),
+                        (double)marginType.GetProperty("Top")!.GetValue(storeArtMargin)!);
+                    Assert.Equal(DetailHero.StorePageInset(width),
+                        (double)marginType.GetProperty("Right")!.GetValue(storeArtMargin)!);
                     Assert.True(notices.Contains("StoreContentWidth"));
                     Assert.True(notices.Contains("StoreHeroWidth"));
                 }

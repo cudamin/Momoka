@@ -388,6 +388,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWidth))]
     [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
@@ -469,6 +470,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -534,6 +536,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ColumnActionsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreCornerArtVisibility));
+        OnPropertyChanged(nameof(StoreArtHeight));
+        OnPropertyChanged(nameof(StoreArtWidth));
+        OnPropertyChanged(nameof(StoreArtMargin));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StoreBackdropWidth));
@@ -814,6 +819,8 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(StoreArtHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWidth))]
     public partial double StillHeight { get; set; }
 
     /// <summary>
@@ -2864,6 +2871,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
         OnPropertyChanged(nameof(StoreCornerArtVisibility));
+        OnPropertyChanged(nameof(StoreArtHeight));
+        OnPropertyChanged(nameof(StoreArtWidth));
+        OnPropertyChanged(nameof(StoreArtMargin));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreHeroWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));

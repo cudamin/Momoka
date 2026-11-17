@@ -29,6 +29,32 @@ public sealed partial class DetailViewModel
     public Visibility StoreCornerArtVisibility => Show(DetailHero.StoreCornerArtShown(
         StoreMode, StoreArtSelected, PageWidth >= DetailHero.StoreWideFloor, CornerImage is not null));
 
+    /// <summary>
+    /// 商店宽版式右上角艺术图这一次画多高 —— 与左边封面同高（2026-11-17 用户令「高度要和左边的封面一样高」）。
+    /// <para>
+    /// 封面在商店档是 <see cref="StillHeight"/>（宽 180、高 270 那一格按图自己的比例收窄），艺术图跟着它走：
+    /// 图自己的比例保持不变，宽由高乘出来，不再套沉浸档那个 360×202.5 的上限盒。
+    /// </para>
+    /// </summary>
+    public double StoreArtHeight => StoreMode ? StillHeight : 0;
+
+    /// <summary>
+    /// 上面那张艺术图的宽：按这张位图自己的宽高比从 <see cref="StoreArtHeight"/> 乘出来（还没解出像素时按
+    /// 16:9 兜底）。图的比例是几就是几，不裁也不拉。
+    /// </summary>
+    public double StoreArtWidth => StoreArtHeight <= 0 ? 0 : Math.Round(StoreArtHeight *
+        (_cornerPixels is { Width: > 0, Height: > 0 } pixels
+            ? pixels.Width / (double)pixels.Height
+            : DetailHero.CornerWidth / DetailHero.CornerHeight));
+
+    /// <summary>
+    /// 商店宽版式右上角艺术图的位置（2026-11-17 用户令「右边边缘不能超过下面的卡片」）：上沿与左边的封面
+    /// 同一条线（<see cref="HeroInset"/> 的上留白），右沿贴住正文卡片的内容右沿（<see cref="DetailHero.StorePageInset"/>），
+    /// 不再像剧照预览那样几乎贴着窗口边。窄窗不摆这一角，这一份边距用不上。
+    /// </summary>
+    public Thickness StoreArtMargin => StoreMode
+        ? new Thickness(0, HeroInset.Top, DetailHero.StorePageInset(PageWidth), 0) : default;
+
     /// <summary>顶部背景随页宽缩放，并限制高度；不参与内容布局。</summary>
     public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(PageWidth, HeroHeight);
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
