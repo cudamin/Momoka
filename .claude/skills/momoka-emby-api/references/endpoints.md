@@ -10,7 +10,7 @@
 
 补充来源为固定官方 SDK f8499bd9（4.10.2.0）及 Web 4.10.1.0，主表的历史规格基准未更换。目录 GET Users/{UserId}/Items 读取 Playlist/Recursive/SortName；成员沿官方 Web 的同用户 Items?ParentId=&SortBy=ListItemOrder。服务端 `CanEditItems=true` 才成为可写目标，写前重新读相同账号/ID/Playlist DTO。
 
-创建 POST Playlists（Name/Ids/UserId/MediaType=Video），添加 POST Playlists/{id}/Items（Ids/UserId/SkipDuplicates JSON），移除 POST Playlists/{id}/Items/Delete?EntryIds，排序 POST Playlists/{id}/Items/{entryId}/Move/{newIndex}。EntryIds 来自成员 PlaylistItemId，不是媒体 Id；不触碰 DeleteItem。2xx头确认与可选创建ID正文分开，缺回执为独立未知写，不自动重发。固定源码文件、hash、Web byte偏移和未实服边界见 [第五批协议报告](../../../../docs/媒体库第五批-Emby与Jellyfin播放列表.md)。
+创建 POST Playlists（Name/Ids/UserId/MediaType=Video），添加 POST Playlists/{id}/Items（Ids/UserId/SkipDuplicates JSON），移除 POST Playlists/{id}/Items/Delete?EntryIds，排序 POST Playlists/{id}/Items/{entryId}/Move/{newIndex}。EntryIds 来自成员 PlaylistItemId，不是媒体 Id；不触碰 DeleteItem。2xx头确认与可选创建ID正文分开，缺回执为独立未知写，不自动重发。固定源码文件、hash、Web byte偏移和未实服边界见本节上文。
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
@@ -48,7 +48,7 @@
 
 `EmbyClient.Extras.cs` 调用 `GET Users/{UserId}/Items/{Id}/SpecialFeatures?Fields=MediaSources,Path`，响应是独立媒体裸数组。官方 4.10.1.0 `modules/common/itemhelper.js` 的 `supportsExtras` 只接受 `!IsFolder`、非 `TvChannel/Program` 且 `MediaType == Video`，不依赖 `SpecialFeatureCount`；`item/item.js` 经 `getSpecialFeatures` 读数组再做前端分页。当前菜单只需要文件字段，复用正式播放链，附加媒体从零开始。
 
-空结果隐藏入口，重新读取详情恢复尝试；错误保留重试。`extras-fixture`、真实详情 VM 和待执行的 `InspectDetailExtras` 各有独立覆盖层，不能据此声称真实服务器播放成功。固定来源、哈希和 `AdditionalParts` 区别见 [第四批附加内容](../../../../docs/媒体库第四批-附加内容.md)。
+空结果隐藏入口，重新读取详情恢复尝试；错误保留重试。`extras-fixture`、真实详情 VM 和待执行的 `InspectDetailExtras` 各有独立覆盖层，不能据此声称真实服务器播放成功。固定来源、哈希和 `AdditionalParts` 区别见本节上文。
 
 ## 图片
 

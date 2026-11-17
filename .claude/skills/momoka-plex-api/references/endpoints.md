@@ -32,7 +32,7 @@ The password is never placed in the query string. The URI is built inside `PlexH
 | Item detail | `GET /library/metadata/{ratingKey}` | `Metadata[]`; carries `Media[].Part[].Stream[]`. |
 | Children (seasons, episodes) | `GET /library/metadata/{ratingKey}/children` | One route serves both; the parent's type decides which. |
 | Similar | `GET /library/metadata/{ratingKey}/similar` | |
-| Person/genre relation | `GET /library/sections/{section}/all` | Runtime `PlexBrowseRelation` fixes section, movie/show type and one native `actor/director/writer/genre` id. Missing identity stays readable static content. See [batch evidence](../../../../docs/媒体库第二批.md); no live PMS coverage. |
+| Person/genre relation | `GET /library/sections/{section}/all` | Runtime `PlexBrowseRelation` fixes section, movie/show type and one native `actor/director/writer/genre` id. Missing identity stays readable static content. No live PMS coverage. |
 | Image | `GET {path}` | The `thumb` / `art` path the item itself carried, plus `?width=`. |
 
 Query keys used on a section listing:
@@ -65,7 +65,7 @@ VerificationError and read-only list state. This is a read at the account servic
 
 ## Ordinary video lists
 
-The fixed official Web 4.163.0 source, permissions and intentional limits are in [batch 5](../../../../docs/媒体库第五批-Plex清单.md). These calls remain offline protocol coverage without real PMS verification.
+The fixed official Web 4.163.0 source, permissions and intentional limits are recorded in this file. These calls remain offline protocol coverage without real PMS verification.
 
 | Purpose | Call | Notes |
 | --- | --- | --- |

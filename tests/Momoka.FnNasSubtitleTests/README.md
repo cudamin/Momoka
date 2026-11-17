@@ -13,6 +13,6 @@
 
 首次使用先按项目规则 restore。统一入口为 `tools/run-regressions.ps1 -Suite Momoka.FnNasSubtitleTests`，自动串行还原、当前编译和运行。
 
-原生 `--probe-shell --probe-section fnnas-subtitles --screen 1` 使用真实匿名对话/ComboBox/Button、假 HTTP 与假文件选择器，1280/760 DIP 截图、UIA Invoke、权限隐藏恢复和写中关闭保护由主控串行运行。单测里的控件边界不能证明 WinUI 渲染、键盘/指针投递、真实点外取消、系统文件选择器或服务端处理。详情见 [第四批报告](../../docs/媒体库第四批-飞牛字幕.md)。
+原生 `--probe-shell --probe-section fnnas-subtitles --screen 1` 使用真实匿名对话/ComboBox/Button、假 HTTP 与假文件选择器，1280/760 DIP 截图、UIA Invoke、权限隐藏恢复和写中关闭保护由主控串行运行。单测里的控件边界不能证明 WinUI 渲染、键盘/指针投递、真实点外取消、系统文件选择器或服务端处理。详情见本工程 `fnnas-subtitles` 探针的报告与截图。
 
 正式caller线程回归将假 XamlRoot/DispatcherQueue限制为本测试UI线程，后台读取立即抛。用同套件换入0d43374旧caller Git blob，86通过/2失败（RPC_E_WRONG_THREAD），恢复当前caller后全绿；不覆盖产品文件。DL下载经真实PlaybackHttpTransport/PlayerToolDownload和匿名handler核每URI即时签名、HEAD、同源重签/跨源永久去认证。

@@ -53,30 +53,37 @@ class SupportDocsTests(unittest.TestCase):
         support.check(ROOT)
 
     def test_management_not_promoted(self):
-        self.mutation(support.REPORT, "管理写入未验证", "管理写入全部通过", "管理写入未验证")
+        self.mutation("docs/Jellyfin支持.md", "管理写入未验证", "管理写入全部通过", "管理写入未验证")
 
     def test_date_and_pipeline_required(self):
-        self.mutation(support.REPORT, "独占管线", "未注明管线", "backend/pipeline")
+        self.mutation("docs/飞牛影视.md", "独占管线", "未注明管线", "backend/pipeline")
+
+    def test_unverified_scope_required(self):
+        self.mutation("docs/Jellyfin支持.md", "集成管线实播", "集成管线已实播", "unverified playback/version scope")
 
     def test_real_ui_gap_not_hidden(self):
-        self.mutation(support.REPORT, "真实界面截图出现空白", "真实界面已经通过", "UI evidence")
+        self.mutation("docs/Jellyfin支持.md", "真实界面截图出现空白", "真实界面已经通过", "UI evidence")
 
     def test_jellyfin_header_only(self):
         self.mutation("docs/Jellyfin支持.md", "/socket?deviceId=", "/socket?api_key=", "credentials in URL")
 
     def test_private_address_rejected(self):
         root = self.fixture()
-        path = root / support.REPORT
+        path = root / "docs/飞牛影视.md"
         path.write_text(path.read_text(encoding="utf-8") + "\nhttp://192.168.1.1:8096\n", encoding="utf-8", newline="\n")
         with self.assertRaisesRegex(ValueError, "private server address"):
             support.check(root)
 
     def test_crlf_rejected(self):
         root = self.fixture()
-        path = root / support.REPORT
+        path = root / "docs/Jellyfin支持.md"
         path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
         with self.assertRaisesRegex(ValueError, "non-LF"):
             support.check(root)
+
+    def test_dangling_local_link_rejected(self):
+        self.mutation("README.md", "边界见 [Jellyfin 支持](docs/Jellyfin支持.md)",
+                      "边界见 [Jellyfin 支持](docs/不存在的记录.md)", "missing local documentation link")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 """Offline guardrails for the dated real-server support documentation.
 
 This checks reviewed copy, local links and support boundaries, not live server behavior.
+The dated 2026-10-26 evidence document was deleted on 2026-11-17; the same boundary now
+lives in the two support documents below, so they are the files this guard reads.
 """
 from __future__ import annotations
 
@@ -8,12 +10,15 @@ import argparse
 from pathlib import Path
 import re
 
-REPORT = "docs/实服验证-飞牛与Jellyfin-2026-10-26.md"
 FILES = (
-    "README.md", "docs/Jellyfin支持.md", "docs/飞牛影视.md", "docs/开发与验证.md", REPORT,
+    "README.md", "docs/Jellyfin支持.md", "docs/飞牛影视.md", "docs/开发与验证.md",
     ".claude/skills/momoka-jellyfin-api/SKILL.md",
     ".claude/skills/momoka-fnnas-media-api/SKILL.md",
 )
+# 对外承诺实测范围的三份文档：私网地址与凭据字段只在这三份里守。
+SUPPORT = ("README.md", "docs/Jellyfin支持.md", "docs/飞牛影视.md")
+PRIVATE = r"(?:https?://)?(?:192\.168\.|10\.(?:\d+\.){2}|172\.(?:1[6-9]|2\d|3[01])\.)"
+CREDENTIALS = ("ProtectedAccessToken", "ProtectedPassword", "authx=", "api_key=")
 
 
 def check(root: Path) -> None:
@@ -24,19 +29,26 @@ def check(root: Path) -> None:
         if b"\r" in data:
             raise ValueError(f"non-LF support document: {relative}")
         texts[relative] = data.decode("utf-8")
-    readme, jellyfin, fnnas, report = (texts[p] for p in FILES[:3] + (REPORT,))
-    for version, document in (("10.10.7", jellyfin), ("0.9.8", fnnas), ("0.8.43", fnnas)):
-        if version not in document or version not in report:
-            raise ValueError(f"missing measured server version: {version}")
-    for relative in ("README.md", "docs/Jellyfin支持.md", "docs/飞牛影视.md", REPORT):
-        text = texts[relative]
+    readme, jellyfin, fnnas = (texts[p] for p in SUPPORT)
+
+    for version, document, name in (("10.10.7", jellyfin, "Jellyfin"), ("0.9.8", fnnas, "飞牛"), ("0.8.43", fnnas, "飞牛")):
+        if version not in document:
+            raise ValueError(f"missing measured server version {version}: {name}")
+    for relative in SUPPORT:
         for claim in ("管理写入未验证", "续播"):
-            if claim not in text:
+            if claim not in texts[relative]:
                 raise ValueError(f"missing support boundary {claim}: {relative}")
-    if "2026-10-26" not in report or "独占管线" not in report or "内置 libmpv" not in report:
-        raise ValueError("missing dated backend/pipeline coverage")
-    if "集成管线实播" not in report or "外部 mpv" not in report or "Jellyfin 12" not in report:
-        raise ValueError("missing unverified playback/version scope")
+    for relative, document in (("docs/Jellyfin支持.md", jellyfin), ("docs/飞牛影视.md", fnnas)):
+        for claim in ("内置 libmpv", "独占管线"):
+            if claim not in document:
+                raise ValueError(f"missing backend/pipeline coverage: {relative}")
+    for claim in ("Jellyfin 12", "外部 mpv", "集成管线实播"):
+        if claim not in jellyfin:
+            raise ValueError(f"missing unverified playback/version scope: {claim}")
+    if "外部 mpv" not in fnnas:
+        raise ValueError("missing unverified playback scope: 外部 mpv")
+    if "真实界面截图出现空白" not in jellyfin:
+        raise ValueError("missing inconclusive real UI evidence")
     for stale in ("Jellyfin（实服播放与写入未验证）", "飞牛影视（实播未验证）", "当前原画适配的实播未验证"):
         if stale in readme:
             raise ValueError("stale public playback verification claim")
@@ -44,12 +56,12 @@ def check(root: Path) -> None:
         raise ValueError("Plex must remain unverified")
     if "/socket?api_key=" in jellyfin:
         raise ValueError("Jellyfin websocket documentation puts credentials in URL")
-    if "真实界面截图出现空白" not in report:
-        raise ValueError("missing inconclusive real UI evidence")
-    if re.search(r"(?:https?://)?(?:192\.168\.|10\.(?:\d+\.){2}|172\.(?:1[6-9]|2\d|3[01])\.)", report):
-        raise ValueError("private server address in public evidence")
-    if any(name in report for name in ("ProtectedAccessToken", "ProtectedPassword", "authx=", "api_key=")):
-        raise ValueError("credential field in public evidence")
+    for relative in SUPPORT:
+        text = texts[relative]
+        if re.search(PRIVATE, text):
+            raise ValueError(f"private server address in public support copy: {relative}")
+        if any(name in text for name in CREDENTIALS):
+            raise ValueError(f"credential field in public support copy: {relative}")
     for relative, text in texts.items():
         for target in re.findall(r"\]\(([^)]+)\)", text):
             if re.match(r"[a-z][a-z0-9+.-]*:", target, re.I) or target.startswith("#"):
