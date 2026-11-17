@@ -25,8 +25,8 @@ public sealed partial class DetailPage
     {
         if (Frame is not { ActualWidth: > 0 } frame) return;
         ViewModel.PageWidth = frame.ActualWidth;
-        // 商店档之后会把 PageWidth 收进 1840 内容列；窗口真实宽另记一份，右侧视口与窗口右边缘的
-        // 空隙靠它随窗口加大。
+        // 2026-11-17 起商店档的内容列也按窗口宽排（整列内容的收窄由视图模型的留白负责）；窗口真实宽
+        // 另记一份，右侧视口与窗口右边缘的空隙靠它随窗口加大。
         ViewModel.WindowWidth = frame.ActualWidth;
     }
 

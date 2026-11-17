@@ -500,11 +500,16 @@ internal sealed partial class ShellNavigationProbe
     private static void CheckEdges(FrameworkElement cover, IEnumerable<StackPanel> panels, FrameworkElement canvas)
     {
         var coverLeft = cover.TransformToVisual(canvas).TransformPoint(default).X;
+        // 2026-11-17 卡片与窗口间距那条规则：窗口宽过 1500 之后卡片外沿取目标间距，未到断点仍是页边留白。
+        // 2026-11-18 补「窗口最宽时 300」：按整扇窗口（含侧栏）判，2K 最大化 2560 时正好 300。
+        var windowWidth = canvas.XamlRoot?.Size.Width ?? canvas.ActualWidth;
+        var gap = DetailHero.CardWindowGap(windowWidth);
+        var inset = gap > 0 ? gap : DetailHero.StorePageInset(canvas.ActualWidth);
         foreach (var panel in panels.Where(panel => panel.Visibility == Visibility.Visible && panel.ActualHeight > 0))
         {
             var left = panel.TransformToVisual(canvas).TransformPoint(default).X;
             var right = canvas.ActualWidth - left - panel.ActualWidth;
-            Require(Math.Abs(left - DetailHero.StorePageInset(canvas.ActualWidth)) < 1
+            Require(Math.Abs(left - inset) < 1
                 && Math.Abs(left - right) < 1 && Math.Abs(left - coverLeft) < 1,
                 $"{panel.Name} 两侧留白或封面对齐错误：左 {left:0.##} 右 {right:0.##} 封面 {coverLeft:0.##}");
         }
@@ -519,7 +524,8 @@ internal sealed partial class ShellNavigationProbe
         var facts = Get<Border>(page, "HeroFacts");
         var flowBox = Bounds(flow, canvas);
         var factsBox = Bounds(facts, canvas);
-        var inset = DetailHero.StorePageInset(canvas.ActualWidth);
+        var cardGap = DetailHero.CardWindowGap(canvas.XamlRoot?.Size.Width ?? canvas.ActualWidth);
+        var inset = cardGap > 0 ? cardGap : DetailHero.StorePageInset(canvas.ActualWidth);
         var side = Grid.GetColumn(facts) == 1;
         Require(side == (row.ActualWidth >= 960), "订阅正文列没有按实际宽度切换并排与堆叠");
         StoreDetailProbeEvidence.RequireSubscriptionColumns(canvas.ActualWidth, inset, cover.Left,

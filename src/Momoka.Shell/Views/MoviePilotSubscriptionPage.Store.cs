@@ -13,10 +13,11 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void PaintStoreBackdrop()
     {
-        StoreScrollContent.MaxWidth = MediaViewModel.Plain ? 1840 : double.PositiveInfinity;
-        StoreScrollContent.HorizontalAlignment = MediaViewModel.Plain ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
-        StoreScrollContent.Width = MediaViewModel.Plain && DetailScroll.ActualWidth > 0
-            ? Math.Min(1840, DetailScroll.ActualWidth) : double.NaN;
+        // 2026-11-17 卡片与窗口间距那条规则：内容列不再收进 1840 居中，改为铺满窗口，由视图模型的头部／
+        // 正文留白把整列内容按「1500 之后 170、2250 以上随窗口等比」收窄。
+        StoreScrollContent.MaxWidth = double.PositiveInfinity;
+        StoreScrollContent.HorizontalAlignment = HorizontalAlignment.Stretch;
+        StoreScrollContent.Width = double.NaN;
         var storeShown = MediaViewModel.Plain && MediaViewModel.Backdrop is not null && !_accessibility.HighContrast;
         // 预告片占着视口时只收起剧照，环境底继续垫在视频下面。
         StoreBackdrop.Visibility = storeShown && !_trailerOpened ? Visibility.Visible : Visibility.Collapsed;
@@ -27,10 +28,9 @@ public sealed partial class MoviePilotSubscriptionPage
         // 环境底跟剧照背景同进同退；它还要垫住比剧照更高的头部内容。
         StoreAmbient.Height = MediaViewModel.StoreAmbientHeight;
         StoreAmbient.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;
-        // 2026-11-17 用户令「订阅详情页和媒体详情页一起改」：视口跟着窗口宽继续变宽、右沿收回窗口边，
-        // 装饰带（环境底与视频局部底）就用等量负边距铺满窗口两侧，右边不再短一截；不超过 1840 时这一项为 0。
-        var bleed = MediaViewModel.Plain && DetailScroll.ActualWidth > width && width > 0
-            ? (DetailScroll.ActualWidth - width) / 2 : 0;
+        // 2026-11-17 用户令「订阅详情页和媒体详情页一起改」：视口跟着窗口宽继续变宽、右沿收回窗口边；
+        // 装饰带本来就铺满窗口，不再需要负边距越过 1840 内容列，bleed 因此是 0。
+        var bleed = 0d;
         var bleedMargin = new Thickness(-bleed, 0, -bleed, 0);
         StoreAmbient.Margin = bleedMargin;
         StoreTrailerFoundation.Margin = bleedMargin;

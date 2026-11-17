@@ -228,13 +228,19 @@ internal sealed partial class ShellNavigationProbe
                 return StoreDetailProbeEvidence.PageSizeMatches(2000,
                     _window!.ClientSize.Width / _root.XamlRoot.RasterizationScale,
                     page.ActualWidth, Get<ScrollView>(page, "Body").ActualWidth, page.ActualWidth)
-                    && Math.Abs(page.ViewModel.PageWidth - 1840) < 1;
+                    && Math.Abs(page.ViewModel.PageWidth - 2000) < 1;
             });
             await LayoutAsync(page);
             var content = Get<Grid>(page, "StoreScrollContent");
             var left = content.TransformToVisual(_root).TransformPoint(default).X;
-            Require(Math.Abs(content.ActualWidth - 1840) < 1 && Math.Abs(left - 80) < 2,
-                $"超宽窗口的右侧空隙不是内容区居中产生：页{page.ActualWidth:0.##}、内容{content.ActualWidth:0.##}、左{left:0.##}");
+            // 2026-11-17 卡片与窗口间距那条规则：超宽窗口不再把内容列收进 1840 居中，而是铺满窗口，
+            // 由头／尾／纸面留白把整列内容按目标间距收窄。2026-11-18「窗口最宽时 300」按整扇窗口算。
+            var gap = DetailHero.CardWindowGap(page.ViewModel.FullWindowWidth > 0
+                ? page.ViewModel.FullWindowWidth : page.ViewModel.PageWidth);
+            Require(Math.Abs(content.ActualWidth - 2000) < 1 && Math.Abs(left) < 2,
+                $"超宽窗口的内容列没有铺满窗口：页{page.ActualWidth:0.##}、内容{content.ActualWidth:0.##}、左{left:0.##}");
+            Require(Math.Abs(page.ViewModel.SheetPadding.Left + 10 - gap) < 1,
+                $"超宽窗口的卡片与窗口间距不是 {gap:0.##}：纸面 {page.ViewModel.SheetPadding.Left:0.##}");
             await SaveProbeScreenAsync("store-backdrop-centered-2000-screen.png");
             await ResizeResponsiveAsync(page, 1280, 900);
         }

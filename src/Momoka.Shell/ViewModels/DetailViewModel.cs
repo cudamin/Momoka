@@ -481,19 +481,52 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
     [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroCardTopMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroCardBottomMargin))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
-    /// 这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。与 <see cref="PageWidth"/> 不同：后者在商店档
-    /// 被 1840 内容列封顶，这个数保留窗口真实宽 —— 右侧剧照／预告与<em>窗口右边缘</em>之间的空隙据此
-    /// 随窗口不断加大（2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」）。
+    /// 这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。与 <see cref="PageWidth"/> 不同：后者是排版用的
+    /// 宽，商店档仍按窗口宽排（2026-11-17 起不再收进 1840 内容列，改由 <see cref="ContentGutterWidth"/> 把整列
+    /// 内容收窄），这个数保留窗口真实宽 —— 右侧剧照／预告与<em>窗口右边缘</em>之间的空隙据此随窗口不断加大
+    /// （2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」）。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
     [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
+    [NotifyPropertyChangedFor(nameof(ContentGutterWidth))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(HeroCardTopMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroCardBottomMargin))]
+    [NotifyPropertyChangedFor(nameof(StoreContentWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
     public partial double WindowWidth { get; set; }
+
+    /// <summary>
+    /// 整扇窗口的宽（<c>XamlRoot.Size.Width</c>，含左侧栏）—— 卡片与侧边栏／窗口边的间距按它判「窗口最宽」：
+    /// 2K 屏最大化 2560 时左右各 300；侧栏拖宽只收窄内容列，不改变这个判定。0 表示还没量，退回内容区宽。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ContentGutterWidth))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(HeroCardTopMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroCardBottomMargin))]
+    [NotifyPropertyChangedFor(nameof(StoreContentWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
+    public partial double FullWindowWidth { get; set; }
 
     /// <summary>
     /// 这一页这次走哪套版式 —— 页面窄过 <see cref="DetailHero.CompactFloor"/> 就换成单列的紧凑版式：封面按
@@ -595,6 +628,8 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(HeroRoom));
         OnPropertyChanged(nameof(HeroInset));
         OnPropertyChanged(nameof(TailInset));
+        OnPropertyChanged(nameof(HeroCardTopMargin));
+        OnPropertyChanged(nameof(HeroCardBottomMargin));
         OnPropertyChanged(nameof(TailMargin));
         OnPropertyChanged(nameof(CardTailGapHeight));
         OnPropertyChanged(nameof(HeroLayoutHeight));
@@ -642,7 +677,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 头图和尾部的内容按多宽排 —— 页面本身的宽。从前是「至少 1280、窄了由 Viewbox 整体缩下去」：那一版换行的
     /// 落点钉在 1280 上不动，窗口窄了只会整体变小（「组件又小又松」）。现在内容按真实页宽排，行装不下就地换行
-    /// （按键行、文件选项那几块 chips）。版面里吃窗口宽的只剩一样，也在 Core：角图的让位
+    /// （按键行、文件选项那几块 chips），左右再按 <see cref="ContentGutterWidth"/> 收窄（2026-11-17 卡片与
+    /// 窗口间距那条规则）。版面里吃窗口宽的只剩一样，也在 Core：角图的让位
     /// （<see cref="DetailHero.CornerBoxWidth"/>）—— 封面那一格两个数都是定值，而且只画在宽版式上
     /// （<see cref="DetailHero.ShowsStill"/>）。0 是「还没量」（第一次布局之前）。
     /// </summary>
@@ -935,6 +971,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
     [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
+    [NotifyPropertyChangedFor(nameof(HeroCardTopMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroCardBottomMargin))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
     public partial bool HeroArt { get; set; }
 
     /// <summary>
@@ -1292,7 +1331,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// （<see cref="ShowCorner"/> → <see cref="FitCorner"/>）读的也是它，两处不会分叉。
     /// 谁的手换了它的输入，谁负责喊它：<see cref="FitCorner"/>（页面宽和封面的宽都在它那儿汇齐）。
     /// </summary>
-    public double CornerMaxWidth => DetailHero.CornerBoxWidth(PageWidth, StillWidth, _cornerScale);
+    public double CornerMaxWidth => DetailHero.CornerBoxWidth(PageWidth - (2 * ContentGutterWidth), StillWidth, _cornerScale);
 
     /// <inheritdoc cref="CornerMaxWidth"/>
     public double CornerMaxHeight => CornerMaxWidth * DetailHero.CornerHeight / DetailHero.CornerWidth;
@@ -1490,17 +1529,26 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 那一道空位。
     /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), DetailHero.StoreHeroInsetTop(PageWidth), DetailHero.StorePageInset(PageWidth), 0) : IsCompact
-        ? new(20, 20, 20, 16)
-        : HeroCard
-            ? new(58, 28, 58, 0)
-            : IsEpisodePage && !Showcase
-                ? new(60, 28, 60, 16)
-                : new(
-                    TailInset.Left + OverviewPanelPadding.Left,
-                    DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
-                    88,
-                    Showcase ? 0 : DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
+    public Thickness HeroInset
+    {
+        get
+        {
+            var gutter = ContentGutterWidth;
+            if (StoreMode)
+            {
+                var inset = DetailHero.StorePageInset(PageWidth) + gutter;
+                return new(inset, DetailHero.StoreHeroInsetTop(PageWidth), inset, 0);
+            }
+            if (IsCompact) return new(20 + gutter, 20, 20 + gutter, 16);
+            if (HeroCard) return new(58 + gutter, 28, 58 + gutter, 0);
+            if (IsEpisodePage && !Showcase) return new(60 + gutter, 28, 60 + gutter, 16);
+            return new(
+                TailInset.Left + OverviewPanelPadding.Left,
+                DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
+                88 + gutter,
+                Showcase ? 0 : DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
+        }
+    }
 
     /// <summary>
     /// 带子底下那一段的内边距。同 <see cref="HeroInset"/>：集页把上面那道收到 12，那一叠键和「音频」
@@ -1528,17 +1576,27 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 截图里那几行就是这么对齐的（「按键布局参考上方截图」，2026-09-12）。
     /// </para>
     /// </summary>
-    public Thickness TailInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth) - 24, 2, DetailHero.StorePageInset(PageWidth) - 24, 0) : IsCompact
-        ? new(2, 12, 2, 8)
-        : HeroCard
-            ? new(StackLeft, 12, PlainDetail ? 58 : StackLeft, 0)
-            : new(
-                18,
+    public Thickness TailInset
+    {
+        get
+        {
+            var gutter = ContentGutterWidth;
+            if (StoreMode)
+            {
+                var inset = DetailHero.StorePageInset(PageWidth) - 24 + gutter;
+                return new(inset, 2, inset, 0);
+            }
+            if (IsCompact) return new(2 + gutter, 12, 2 + gutter, 8);
+            if (HeroCard) return new(StackLeft, 12, PlainDetail ? 58 + gutter : StackLeft, 0);
+            return new(
+                18 + gutter,
                 IsEpisodePage && !Showcase
                     ? 12
                     : DetailHero.Between(DetailHero.TailTopRoom, DetailHero.TailTopTight, Squeeze),
-                22,
+                22 + gutter,
                 4);
+        }
+    }
 
     /// <summary>
     /// 集页宽版式：剧情说明那一块的顶要落在「剩余 x 分钟」底下 —— 尾部那一段（<c>TailContent</c>）的负上边距；
@@ -1650,6 +1708,31 @@ public sealed partial class DetailViewModel : PageViewModel
     public Thickness OverviewPanelPadding => StoreMode ? new(0, 2, 0, 0) : HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
 
     /// <summary>
+    /// 正文卡片这一次离窗口左右边还要再收窄多少（<c>HeroInset</c>／<c>TailInset</c>／<c>SheetPadding</c>
+    /// 共用这一份）。2026-11-17 用户令「订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口
+    /// 的间距自动切换为 170，窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」，2026-11-18
+    /// 再补「窗口最宽时卡片和侧边栏的间距为 300」：目标间距由 <see cref="DetailHero.CardWindowGap"/> 给
+    /// （2K 屏最大化 2560 宽时 300），减掉卡片原来的页边留白（<see cref="BaseCardEdge"/>）就是这一份；
+    /// 三处一起加，头部、尾部与卡片的列内对齐因此不变。窗口宽取整扇（<see cref="FullWindowWidth"/>，含侧栏）。
+    /// </summary>
+    public double ContentGutterWidth => DetailHero.CardWindowGutter(
+        FullWindowWidth > 0 ? FullWindowWidth : StoreWindowWidth, BaseCardEdge);
+
+    /// <summary>
+    /// 收窄之前卡片外沿离内容列边缘的距离：商店档是 <c>StorePageInset</c>，沉浸／纸面档是纸面那 10 加
+    /// 内边距 8，集页那块板与紧凑档是 10 加 28。只给 <see cref="ContentGutterWidth"/> 做减法用。
+    /// </summary>
+    private double BaseCardEdge => StoreMode
+        ? DetailHero.StorePageInset(PageWidth)
+        : IsCompact || HeroCard ? 38 : 18;
+
+    /// <summary>集页那块板的上半截（<c>HeroCardTop</c>）—— 左右仍比正文卡片多 20，整块跟着同一份收窄走。</summary>
+    public Thickness HeroCardTopMargin => new(38 + ContentGutterWidth, 8, 38 + ContentGutterWidth, 0);
+
+    /// <summary>集页那块板的下半截（<c>HeroCardBottom</c>）—— 同 <see cref="HeroCardTopMargin"/>。</summary>
+    public Thickness HeroCardBottomMargin => new(38 + ContentGutterWidth, 0, 38 + ContentGutterWidth, 0);
+
+    /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 默认宽详情左8加面板24，内容与封面左沿32对齐。
     /// <para>
     /// 纸面上沿紧跟着尾部最后一块（剧情说明），28 加上底下第一块自己的 24 就是「简介到 更多来自 之间那一大段
@@ -1663,14 +1746,26 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 随后补一句「卡片接在背景图下方，留一点点空隙即可」）：尾部那一段自己的上留白还有 2
     /// （<see cref="TailInset"/>），两者合起来正是 <c>StorePreviewGap</c> 那 16 —— 首卡离头部最后一行
     /// （音频下拉）以及右侧剧照下沿都只隔这一道缝，不再多一截空气。原 28 是纸面档给剧情说明留的，
-    /// 商店档那条缝由尾部自己（StoreTailHeight）让出来了。左右不动：两边对齐仍走 <c>StorePageInset</c>。
+    /// 商店档那条缝由尾部自己（StoreTailHeight）让出来了。左右在 <c>StorePageInset</c> 之外再收
+    /// <see cref="ContentGutterWidth"/>（2026-11-17 卡片与窗口间距那条规则），两边仍对称。
     /// </para>
     /// </summary>
-    public Thickness SheetPadding => StoreMode ? new(DetailHero.StorePageInset(PageWidth) - 10, 14, DetailHero.StorePageInset(PageWidth) - 10, 28)
-        : IsCompact ? new(28, 18, 28, 18)
-        : HeroCard ? new(28)
-        : Showcase ? new(8, DetailHero.ShowcaseSheetTop, 8, DetailHero.ShowcaseSheetBottom)
-        : new(8, 28, 8, 28);
+    public Thickness SheetPadding
+    {
+        get
+        {
+            var gutter = ContentGutterWidth;
+            if (StoreMode)
+            {
+                var inset = DetailHero.StorePageInset(PageWidth) - 10 + gutter;
+                return new(inset, 14, inset, 28);
+            }
+            if (IsCompact) return new(28 + gutter, 18, 28 + gutter, 18);
+            if (HeroCard) return new(28 + gutter, 28, 28 + gutter, 28);
+            if (Showcase) return new(8 + gutter, DetailHero.ShowcaseSheetTop, 8 + gutter, DetailHero.ShowcaseSheetBottom);
+            return new(8 + gutter, 28, 8 + gutter, 28);
+        }
+    }
 
     /// <summary>
     /// 纸面上那几块（单集、媒体信息、剧季、相似、演职人员）之间的竖距（<c>BodySheet.Spacing</c>）——
@@ -2982,6 +3077,8 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(PictureHeight));
         OnPropertyChanged(nameof(HeroInset));
         OnPropertyChanged(nameof(TailInset));
+        OnPropertyChanged(nameof(HeroCardTopMargin));
+        OnPropertyChanged(nameof(HeroCardBottomMargin));
         OnPropertyChanged(nameof(TailMargin));
         OnPropertyChanged(nameof(OverviewPanelPadding));
         OnPropertyChanged(nameof(CardTailGapHeight));
