@@ -14613,4 +14613,6 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 同日追加（用户看实屏问「订阅详情页左上角怎么没有跟媒体详情页一样的渐变」）：订阅页的环境底从 `StoreBackdropFadeShape.Ambient`（左沿满色）改为 `AmbientSymmetric`（左右各 28% 收到画布），与 `DetailPage` 同一张遮罩；`StoreBackdropBlend` 的注释同步。Shell Release/x64 **0 警告 0 错误**（3 分 17 秒），`Momoka.PageContractTests` **354/354**；已复发布并刷新同一分支快捷方式（21:01）。提交 `276c8d7`。修后探针 `shell-probe-20261117-130400512-22920` **36/37**：订阅详情、模式切换与背景相关用例通过，`mp-subscription-mode-plain-1240.png` 左沿已是暗色起坡（左沿采样 R28/G28/B29，向 x≈200 过渡到环境色）；唯一红项换成未改动的「订阅同号季隔离、播放恢复与最窄布局」`TimeoutException`，而上一轮红的「资源卡片、季集筛选和下载选项」本轮通过 —— 两轮红项不同且都在未改动路径，按环境或用例不稳定记录，交付前独占桌面复跑确认。
 
+同日再追加（用户看实屏并用红线标出左上角三角形，答「三角形是指定效果」）：商店档深色渐变改为两段交接的层 —— `StoreShadeCorner` 是中心在左上角的径向渐变，半径按页宽约 22% 收放（160–360 DIP），正常窗口只画这一层；原整条渐变包进 `StoreShadeWide`，页宽 1400 起按 smoothstep 淡入、1400–1840 之间角上层同步淡出，1840 起回到原来的整条状态。Shell Release/x64 **0 警告 0 错误**（2 分 23 秒）；`Momoka.PageContractTests` **354/354**；已复发布并刷新同一快捷方式（21:46）。修后探针（`shell-probe-20261117-133056777-16552`）截图 `mp-subscription-mode-plain-760/1240.png` 已只留左上角三角；该轮 36/37，红项为「订阅详情、入库缺集与编辑」里 `RequireSubscriptionBodyLayout` 的堆叠判据（同一判据在 21:09 那轮通过，按读数时序记录，交付前复跑确认）。提交 `51b6820`。
+
 未合并 master；分支快捷方式已刷新，不等于交付。
