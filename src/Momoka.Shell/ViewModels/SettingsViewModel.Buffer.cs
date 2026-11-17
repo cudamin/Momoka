@@ -11,7 +11,7 @@ namespace Momoka.Shell.ViewModels;
 /// </para>
 /// <para>
 /// 说明里的「当前」由行自己改：数字框改完写进设置、重新读回之后，那一行把自己的说明重述一遍
-/// （<see cref="SettingRow.Restate"/>，和「视频同步」那一行同一个用法）。不这么做的话，拖完/填完，说明还
+/// （<see cref="SettingRow.Restate"/>，和「视频同步」那一行同一个用法）。不这么做的话，填完/回车后，说明还
 /// 停在上一个数上 —— 那正是这张卡要治的那种骗人。
 /// </para>
 /// </summary>
