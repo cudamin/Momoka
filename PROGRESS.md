@@ -6,7 +6,7 @@
 
 **测了什么。** `PlayerInteractionTests` 新增两条：①`PlayerPage.xaml` 里 `PulseBadge` 下面那颗 Viewbox 存在、`Stretch=Uniform`、宽高初值＝`PulseArt.Box`，里面仍是那颗 136 的 Canvas；②`PlayerPage.Chrome.cs` 的两档常量与接线（含 `DoesNotContain("PulseScale.ScaleX = box")`，挡的是有人把档位摆回动画属性）。自检 `ProbePulse` 追加第三读：直接摆两档、各量一次实框，再按当前窗口形态放回 —— 那颗徽标只在点画面那一秒露面，照片和截图都等不到它。
 
-**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 21 秒）；全量 `Momoka.Tests` **5217/5217**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 10 个变更路径通过。主测试的 TEMP 指仓库内时三条回环共享用例在 `finally` 的删除上被沙箱拒（断言已过），改用用户临时目录即全绿，与产品无关。按日常界面规则未跑原生探针与验收截图。
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 21 秒）；全量 `Momoka.Tests` **5217/5217**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 10 个变更路径通过。自检按「改了自检代码就得当轮跑受影响路径」在隔离数据目录跑了一遍：**164 项 0 失败**，改动那一关的读数是「暂停播放角标 — …；方框：全屏档 177、窗口档 136（要 176.8 / 136）」（隔离目录没有账号，登录相关的那批检查没有发生，不算整套自检通过）。主测试的 TEMP 指仓库内时三条回环共享用例在 `finally` 的删除上被沙箱拒（断言已过），改用用户临时目录即全绿，与产品无关。按日常界面规则未跑原生探针与验收截图。
 
 **没动的。** 独占模式那一颗是 uosc 的 `PauseIndicator.lua`（按画面短边 15% 走、不读 `state.scale`），本批未改。
 
