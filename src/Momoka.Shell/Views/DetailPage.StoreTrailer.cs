@@ -98,15 +98,19 @@ public sealed partial class DetailPage
 
     private void LayoutStoreTrailer()
     {
+        // 画面大小仍按内容列（2026-11-17 用户明确「不是放大背景图」）；变的只有它与窗口右边缘之间的距离：
+        // 视频局部底已经铺满窗口（见 PlaceStoreComponents 的 bleed），所以这里的坐标系就是窗口宽，
+        // 右侧那道缝取 StorePreviewEdgeGap —— 窗口越宽留得越多。
+        var window = ViewModel.WindowWidth > 0 ? ViewModel.WindowWidth : ViewModel.PageWidth;
+        var gap = DetailHero.StorePreviewEdgeGap(window);
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
         StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(ViewModel.PageWidth);
-        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, 48, 0);
+        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, ViewModel.StorePreviewMargin.Right + 32, 0);
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _storeVideoBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
-            ViewModel.PageWidth, StoreTrailerHost.Width, StoreTrailerHost.Height, StoreTrailerHost.Margin.Right);
+            window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
         StoreTrailerFade.Background = _storeVideoBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
-            ViewModel.PageWidth, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height,
-            StoreTrailerHost.Margin.Right);
+            window, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)

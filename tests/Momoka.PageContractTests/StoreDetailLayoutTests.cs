@@ -356,6 +356,36 @@ internal static class StoreDetailLayoutTests
                 "旧按钮的本地化字串没有退役");
         });
 
+        Test("商店视口右沿：空隙随窗口变宽而加大，画面本身仍按内容列、不放大", () =>
+        {
+            // 2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」：
+            // 画面尺寸仍读内容列那两支，窗口真实宽只用来算右边缘那道缝与居中内容列的换算。
+            var vm = Source("ViewModels/DetailViewModel.Store.cs");
+            Assert.Contains("DetailHero.StoreBackdropWidth(PageWidth)", vm);
+            Assert.Contains("DetailHero.StoreBackdropHeight(PageWidth, HeroHeight)", vm);
+            Assert.Contains("DetailHero.StorePreviewRightMargin(StoreWindowWidth, PageWidth)", vm);
+            // 进入页面那一刻 PageWidth 会从窗口宽收进 1840 内容列；右边距必须跟着这次变化重算，
+            // 否则绑定停在初值 16，要拖动一次窗口才刷新（2026-11-17 用户报的 bug）。
+            var detailVm = Source("ViewModels/DetailViewModel.cs");
+            Assert.True(Regex.Matches(detailVm,
+                    @"\[NotifyPropertyChangedFor\(nameof\(StorePreviewMargin\)\)\]").Count >= 2,
+                "PageWidth 或 WindowWidth 变化没有通知商店右边距");
+
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("ViewModel.WindowWidth = Body.ActualWidth;", store);
+            // 视频底下那块局部色跟着装饰带一起铺满窗口，视口右移后右边不留一截短底。
+            Assert.Contains("StoreTrailerFoundation.Margin = bleedMargin;", store);
+
+            var page = Source("Views/DetailPage.xaml.cs");
+            Assert.Contains("ViewModel.WindowWidth = Body.ActualWidth;", page);
+
+            var trailer = Source("Views/DetailPage.StoreTrailer.cs");
+            Assert.Contains("TrailerPreview.BackgroundWidth(ViewModel.PageWidth)", trailer);
+            Assert.Contains("TrailerPreview.BackgroundHeight(ViewModel.PageWidth)", trailer);
+            Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
+            Assert.Contains("ViewModel.StorePreviewMargin.Right + 32", trailer);
+        });
+
         Test("商店尾部：预告控制条没上屏时不再预留那 72 的空档", () =>
         {
             var viewModel = Source("ViewModels/DetailViewModel.cs");

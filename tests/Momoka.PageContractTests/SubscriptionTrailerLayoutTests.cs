@@ -42,8 +42,22 @@ internal static class SubscriptionTrailerLayoutTests
             Assert.Contains("StoreTrailerContent.CornerRadius = previewCorner;", store);
 
             var viewModel = Source("ViewModels/MoviePilotMediaViewModel.cs");
-            Assert.Contains("public Thickness StorePreviewMargin => Plain ? new(0, 0, DetailHero.StorePreviewGap, 0) : default;", viewModel);
+            // 2026-11-17 用户令「订阅详情页用到是跟媒体详情页一样的逻辑，记得一起改」：画面尺寸仍按内容列，
+            // 右边缘那道缝随窗口变宽而加大，margin 按居中内容列让出的 bleed 换算。
+            Assert.Contains("public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(StorePageWidth);", viewModel);
+            Assert.Contains("public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(StorePageWidth, HeroBandHeight);", viewModel);
+            Assert.Contains("DetailHero.StorePreviewRightMargin(PageWidth, StorePageWidth)", viewModel);
             Assert.Contains("public double StoreAmbientHeight => Math.Max(StoreBackdropHeight, HeroBandHeight);", viewModel);
+
+            var storeCode = Source("Views/MoviePilotSubscriptionPage.Store.cs");
+            Assert.Contains("StoreAmbient.Margin = bleedMargin;", storeCode);
+            Assert.Contains("StoreTrailerFoundation.Margin = bleedMargin;", storeCode);
+
+            var trailer = Source("Views/MoviePilotSubscriptionPage.Trailer.cs");
+            Assert.Contains("TrailerPreview.BackgroundWidth(MediaViewModel.StorePageWidth)", trailer);
+            Assert.Contains("TrailerPreview.BackgroundHeight(MediaViewModel.StorePageWidth)", trailer);
+            Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
+            Assert.Contains("MediaViewModel.StorePreviewMargin.Right + 32", trailer);
 
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             var backdropElement = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreBackdrop");

@@ -90,7 +90,7 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(trailerHost.ActualWidth - TrailerPreview.BackgroundWidth(page.ViewModel.PageWidth)) < 1
                 && trailerHost.HorizontalAlignment == HorizontalAlignment.Right && trailerHost.ActualWidth < page.ViewModel.PageWidth,
                 "预告未限制在顶部右侧背景");
-            Require(Math.Abs(video.ActualHeight - trailerHost.ActualHeight) < 1 && trailerHost.Margin == new Thickness(0, 0, DetailHero.StorePreviewGap, 0),
+            Require(Math.Abs(video.ActualHeight - trailerHost.ActualHeight) < 1 && trailerHost.Margin == new Thickness(0, 0, DetailHero.StorePreviewEdgeGap(page.ActualWidth), 0),
                 "预告仍保留独立面板边距或控件占位");
             var foundation = Get<Border>(page, "StoreTrailerFoundation");
             var fade = Get<Border>(page, "StoreTrailerFade");
