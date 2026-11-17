@@ -577,7 +577,7 @@ internal sealed partial class ShellNavigationProbe
                 RequireCardOrder(reopened, new[] { "episodes", "info", "seasons", "cast", "similar" });
                 reopened.Release();
                 _root.Children.Remove(frame);
-                await CheckHomeBackgroundOpacityAsync(fixture, movie, () => reads);
+                await CheckHomeAppearanceIsolationAsync(fixture, movie, () => reads);
             }
             Require(fixture.Actions.Plays == 0, "详情自定义探针意外请求播放");
 
@@ -1217,7 +1217,7 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task CheckHomeBackgroundOpacityAsync(Fixture fixture, EmbyItem item, Func<int> requestCount)
+    private async Task CheckHomeAppearanceIsolationAsync(Fixture fixture, EmbyItem item, Func<int> requestCount)
     {
         fixture.Session.Capture().Bind(item);
         var banner = new HomeBanner();
@@ -1228,80 +1228,19 @@ internal sealed partial class ShellNavigationProbe
             banner.Apply([new BannerSlide(item, fixture.Images)]);
             await UntilAsync(() => banner.FrontPicture is not null);
             await LayoutAsync(banner);
-            // 同 CheckControlBackgroundOpacityAsync：出厂材质已是亚克力，这一段量的是半透明叠层那条路
-            // （浓度就是整支画笔的不透明度），所以显式切回叠层。
-            ui.UseAcrylicControls = false;
-            ShellPrefs.ApplyAppearance(ui);
-            var button = Get<Button>(banner, "OpenButton");
             var baselineReads = requestCount();
-            foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
-            {
-                ui.ControlBackgroundOpacity = 0;
-                ShellPrefs.ApplyAppearance(ui);
-                Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮缺少状态：" + state);
-                await LayoutAsync(banner);
-                var presenter = Descendants(button).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter");
-                var surface = Descendants(button).OfType<Microsoft.UI.Xaml.Shapes.Rectangle>().Single(part => part.Name == "Surface");
-                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true }, "首页详情按钮没有实际底色");
-                var baseline = (AcrylicBrush)surface.Fill;
-                var color = baseline.FallbackColor;
-                var opacity = baseline.Opacity;
-                var foreground = presenter.Foreground;
-                ui.ControlBackgroundOpacity = 37;
-                ShellPrefs.ApplyAppearance(ui);
-                Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮外观调整后丢失状态：" + state);
-                await LayoutAsync(banner);
-                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } adjusted
-                        && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d
-                            - Math.Max(0.37, opacity * color.A / 255d)) < 0.001,
-                    "首页详情按钮底色浓度不是滑块读数");
-                Require(button.Opacity == 1 && ReferenceEquals(presenter.Foreground, foreground), "首页详情文字跟着底色变透明");
-                foreach (var layer in new[] { Get<Grid>(banner, "LayerA"), Get<Grid>(banner, "LayerB") })
-                    Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 1) < 0.001,
-                        "主页原本不透明的背景图变淡，或改动了淡入淡出层");
-                ui.ControlBackgroundOpacity = 100;
-                ShellPrefs.ApplyAppearance(ui);
-                Require(VisualStateManager.GoToState(button, state, false), "首页实底状态切换失败");
-                await LayoutAsync(banner);
-                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1
-                    && presenter.Foreground is SolidColorBrush ink
-                    && ThemeColor.Contrast(ThemeColor.Rgb(ink.Color.R, ink.Color.G, ink.Color.B),
-                        ThemeColor.Rgb(opaque.FallbackColor.R, opaque.FallbackColor.G, opaque.FallbackColor.B)) >= 4.5,
-                    "主页详情按钮的100档底色没有完全不透明，或文字对比不足");
-                var owned = surface.Fill;
-                ui.ControlBackgroundOpacity = 37;
-                ui.UseAcrylicControls = true;
-                ShellPrefs.ApplyAppearance(ui);
-                await LayoutAsync(banner);
-                Require(ReferenceEquals(owned, surface.Fill)
-                    && surface.Fill is AcrylicBrush { AlwaysUseFallback: false, Opacity: 1 },
-                    "主页详情按钮没有即时切换亚克力");
-                ui.ControlBackgroundOpacity = 0;
-                ShellPrefs.ApplyAppearance(ui);
-                await LayoutAsync(banner);
-                Require(ReferenceEquals(owned, surface.Fill)
-                    && surface.Fill is AcrylicBrush { AlwaysUseFallback: true } clear
-                    && (state == "Normal" ? clear.Opacity == 0 : clear.Opacity * clear.FallbackColor.A / 255d > 0),
-                    "主页亚克力零档没有关闭常态底色或丢失反馈");
-                Require(ReferenceEquals(presenter.Foreground, foreground), "主页材质切换修改了文字");
-                ui.ControlBackgroundOpacity = 100;
-                ShellPrefs.ApplyAppearance(ui);
-                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true, Opacity: 1, FallbackColor.A: 255 },
-                    "主页亚克力100档未回到实底");
-                ui.UseAcrylicControls = false;
-                ShellPrefs.ApplyAppearance(ui);
-            }
-            Require(requestCount() == baselineReads, "仅修改首页外观重新请求了图片或媒体");
-            VisualStateManager.GoToState(button, "Normal", false);
-            await SaveProbeScreenAsync("home-detail-opacity-screen.png");
-            ui.ControlBackgroundOpacity = 0;
-            ui.UseAcrylicControls = true;
             var homePicture = banner.FrontPicture;
-            // 详情那三项染色参数不归首页管：改了它们，轮播的图与那三道遮罩都不该跟着动。
+            // 「详情」键 2026-11-17 退役：首页不再跟控制底色浓度／亚克力走。详情那两项染色参数也不归首页管：
+            // 改了它们，轮播的图与那三道遮罩都不该跟着动。
+            ui.ControlBackgroundOpacity = 37;
+            ui.UseAcrylicControls = true;
             ui.BackdropTintOpacity = 12;
             ui.BackdropTintLuminosityOpacity = 78;
             ShellPrefs.ApplyAppearance(ui);
             Require(ReferenceEquals(homePicture, banner.FrontPicture), "背景染色参数改动了首页轮播图片");
+            foreach (var layer in new[] { Get<Grid>(banner, "LayerA"), Get<Grid>(banner, "LayerB") })
+                Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 1) < 0.001,
+                    "主页原本不透明的背景图变淡，或改动了淡入淡出层");
             foreach (var theme in UiThemes.All)
             {
                 ThemeHost.Apply(theme);

@@ -43,31 +43,6 @@ internal static class PickerForegroundProbeTests
             Require(!ShellNavigationProbe.PickerForegroundMatches(new SolidColorBrush { Color = 0xFFFFFFFFu },
                 background, fill, true, system), "强制系统色时仍放行固定白色");
         });
-        check("主页材质探针以非零验亚克力再逐态核对零档", () =>
-        {
-            var button = new Button();
-            var resources = new Microsoft.UI.Xaml.ResourceDictionary
-            {
-                ["EgBannerGhostRestBrush"] = new SolidColorBrush { Color = 0x0FFFFFFFu },
-                ["EgBannerGhostHoverBrush"] = new SolidColorBrush { Color = 0x15FFFFFFu },
-                ["EgBannerGhostPressBrush"] = new SolidColorBrush { Color = 0x08FFFFFFu }
-            };
-            var backgrounds = ControlBackgroundBrushes.ForBanner(button, resources);
-            backgrounds.Apply(37, true);
-            foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
-            {
-                var fill = (AcrylicBrush)button.Resources["ButtonBackground" + suffix];
-                Require(!fill.AlwaysUseFallback && fill.Opacity == 1, "非零材质未开启");
-            }
-            backgrounds.Apply(0, true);
-            foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
-            {
-                var fill = (AcrylicBrush)button.Resources["ButtonBackground" + suffix];
-                Require(fill.AlwaysUseFallback && (suffix.Length == 0 ? fill.Opacity == 0
-                    : fill.Opacity * fill.FallbackColor.A / 255d > 0), "零档没有关闭常态或保留反馈");
-                Require(!(fill is { AlwaysUseFallback: false, Opacity: 1 }), "旧零档启用亚克力判据仍被满足");
-            }
-        });
         check("高斯诊断保留实际代次半径与布局变化而不判成通过", () =>
         {
             var before = new GaussianProbeReading(11, 7, true, false, 1100, false, true, true, true);

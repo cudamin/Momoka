@@ -1,8 +1,6 @@
 using System.Net;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation.Peers;
-using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -90,24 +88,12 @@ internal sealed partial class ShellNavigationProbe
             banner.Apply(slides);
             await WaitAsync(() => slides.All(slide => slide.Picture is not null), 8000);
             await LayoutAsync(banner);
-            var open = Get<Button>(banner, "OpenButton");
-            Require(open.Content is string { Length: > 0 } text && text == "详情"
-                && open.ActualWidth > open.Padding.Left + open.Padding.Right + 2
-                && Descendants(open).OfType<TextBlock>().Any(block => block.Text == "详情" && block.ActualWidth > 0),
-                "首页详情按钮没有呈现文字");
-            foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
-            {
-                Require(VisualStateManager.GoToState(open, state, false), "详情按钮缺少状态：" + state);
-                await LayoutAsync(banner);
-                var presenter = Descendants(open).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter");
-                Require(presenter.Foreground is SolidColorBrush ink && ink.Color.A == byte.MaxValue,
-                    "详情按钮文字在 " + state + " 变透明");
-            }
-            VisualStateManager.GoToState(open, "Normal", false);
-            ((IInvokeProvider)new ButtonAutomationPeer(open).GetPattern(PatternInterface.Invoke)).Invoke();
+            // 2026-11-17「详情」键退役：整条带自己就是详情入口（Tap 与回车都汇到 OpenCurrent），
+            // 这里验的是那一份导航语义，不再有按钮文字与三态要核对。
+            banner.OpenCurrent();
             await SettleAsync();
             Require(ReferenceEquals(opened, slides[0]) && fixture.Actions.Plays == 0,
-                "首页详情按钮没有交给当前条目，或意外请求播放");
+                "首页轮播没有把当前条目交给详情，或意外请求播放");
             await SaveProbeScreenAsync("home-banner-clock-screen.png");
 
             var scale = Get<ScaleTransform>(banner, "CountdownScale");

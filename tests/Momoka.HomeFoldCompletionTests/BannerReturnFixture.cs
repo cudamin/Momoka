@@ -52,7 +52,6 @@ namespace Momoka.Shell.Views
             DuringShow?.Invoke();
         }
         private void PaintBackdropShade() { }
-        private void PaintOpenButtonInk() { }
         private void StopMotion(string channel) { }
         private void Play(Storyboard board, Action settle, string channel)
         {

@@ -33,10 +33,10 @@ namespace Momoka.Tests
             Test("R17-004-local-report-write-does-not-skip-cleanup", () =>
             {
                 var blocked = Path.Combine(_output, "blocked-local-report");
-                Directory.CreateDirectory(Path.Combine(blocked, "home-button-edges.txt"));
-                var fixture = new ButtonFinalizerFixture(blocked);
+                Directory.CreateDirectory(Path.Combine(blocked, "home-banner-clock.txt"));
+                var fixture = new LocalReportFinalizerFixture(blocked);
                 try { fixture.Run(); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
-                Ensure(fixture.Removed && !fixture.TopMost, "local report failure cannot retain page or topmost state");
+                Ensure(fixture.Removed && fixture.Resized, "local report failure cannot retain page or skip layout restore");
                 return Task.CompletedTask;
             });
         }
@@ -46,18 +46,17 @@ namespace Momoka.Tests
 
 namespace Momoka.Shell
 {
-    internal sealed partial class ButtonFinalizerFixture(string directory)
+    internal sealed partial class LocalReportFinalizerFixture(string directory)
     {
-        private readonly ButtonOptions _options = new(directory);
-        private readonly ButtonRoot _root = new();
-        private readonly ButtonWindow _window = new();
+        private readonly LocalReportOptions _options = new(directory);
+        private readonly LocalReportRoot _root = new();
         internal bool Removed => _root.Children.Removed;
-        internal bool TopMost => _window.TopMost;
-        private sealed record ButtonOptions(ButtonPaths Paths) { internal ButtonOptions(string directory) : this(new ButtonPaths(directory)) { } }
-        private sealed record ButtonPaths(string LogDirectory);
-        private sealed class ButtonRoot { internal ButtonChildren Children { get; } = new(); }
-        private sealed class ButtonChildren { internal bool Removed; internal void Remove(object holder) => Removed = true; }
-        private sealed class ButtonWindow { internal bool TopMost { get; set; } = true; }
+        internal bool Resized { get; private set; }
+        private void ResizeProbeClient(int width, int height) => Resized = true;
+        private sealed record LocalReportOptions(LocalReportPaths Paths) { internal LocalReportOptions(string directory) : this(new LocalReportPaths(directory)) { } }
+        private sealed record LocalReportPaths(string LogDirectory);
+        private sealed class LocalReportRoot { internal LocalReportChildren Children { get; } = new(); }
+        private sealed class LocalReportChildren { internal bool Removed; internal void Remove(object holder) => Removed = true; }
     }
     internal static class ThemeHost { internal static void Apply(object theme) { } }
     internal sealed partial class MotionFinalizerFixture

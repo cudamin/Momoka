@@ -270,8 +270,8 @@ Check("XAML 不再声明代码负责的背景键", () =>
     foreach (var toggle in detail.Descendants().Where(element => element.Name.LocalName == "ToggleButton"))
         if (toggle.Descendants().Any(element => ((string?)element.Attribute(x + "Key"))?.StartsWith("ToggleButtonBackground", StringComparison.Ordinal) == true))
             throw new InvalidOperationException("连播仍保留延迟背景别名");
-    var open = banner.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "OpenButton");
-    if (open.Descendants().Any(element => ((string?)element.Attribute(x + "Key"))?.StartsWith("ButtonBackground", StringComparison.Ordinal) == true))
+    var open = banner.Descendants().SingleOrDefault(element => (string?)element.Attribute(x + "Name") == "OpenButton");
+    if (open is not null && open.Descendants().Any(element => ((string?)element.Attribute(x + "Key"))?.StartsWith("ButtonBackground", StringComparison.Ordinal) == true))
         throw new InvalidOperationException("主页详情仍保留延迟背景别名");
 });
 foreach (var (control, prefix) in new (Control, string)[]
@@ -376,27 +376,6 @@ Check("连播选中态保留三态浓度", () =>
             control.Resources["ToggleButtonBackgroundChecked" + suffix]))
             throw new InvalidOperationException("连播选中态漏用局部底色");
 });
-Check("主页详情按钮单独复制三态底色", () =>
-{
-    var bannerResources = new ResourceDictionary
-    {
-        ["EgBannerGhostRestBrush"] = new SolidColorBrush { Color = 0x20F3F5F8 },
-        ["EgBannerGhostHoverBrush"] = new SolidColorBrush { Color = 0x38F3F5F8 },
-        ["EgBannerGhostPressBrush"] = new SolidColorBrush { Color = 0x50F3F5F8 }
-    };
-    var control = new Button();
-    var brushes = ControlBackgroundBrushes.ForBanner(control, bannerResources);
-    brushes.Apply(30);
-    Increased((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"], (AcrylicBrush)control.Background!, 30, TargetFor(""));
-    Increased((SolidColorBrush)bannerResources["EgBannerGhostHoverBrush"],
-        (AcrylicBrush)control.Resources["ButtonBackgroundPointerOver"], 30, TargetFor("PointerOver"));
-    Increased((SolidColorBrush)bannerResources["EgBannerGhostPressBrush"],
-        (AcrylicBrush)control.Resources["ButtonBackgroundPressed"], 30, TargetFor("Pressed"));
-    Equal(1, ((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"]).Opacity);
-    brushes.Apply(100);
-    Equal(1, control.Background!.Opacity);
-    Equal(255, ((AcrylicBrush)control.Background).FallbackColor.A);
-});
 Check("按钮全程单调增加且100档消除颜色和画刷双重透明", () =>
 {
     var control = new Button();
@@ -417,55 +396,6 @@ Check("按钮全程单调增加且100档消除颜色和画刷双重透明", () =
     Equal(0, zero.Opacity);
     if (zero.FallbackColor.A != 0)
         throw new InvalidOperationException("非法值没有回到零档：零档不该有底色");
-});
-Check("R16-001主页详情按钮零档不绘制亚克力或系统回退实底", () =>
-{
-    var resources = new ResourceDictionary
-    {
-        ["EgBannerGhostRestBrush"] = new SolidColorBrush { Color = 0x20F3F5F8 },
-        ["EgBannerGhostHoverBrush"] = new SolidColorBrush { Color = 0x38F3F5F8 },
-        ["EgBannerGhostPressBrush"] = new SolidColorBrush { Color = 0x50F3F5F8 }
-    };
-    var control = new Button();
-    var backgrounds = ControlBackgroundBrushes.ForBanner(control, resources);
-    foreach (var value in new[] { 0d, 50d, 100d, 0d })
-    {
-        backgrounds.Apply(value, useAcrylic: true);
-        var rest = (AcrylicBrush)control.Resources["ButtonBackground"];
-        if (value == 0)
-        {
-            Equal(0, rest.Opacity);
-            if (!rest.AlwaysUseFallback) throw new InvalidOperationException("zero still composes acrylic");
-        }
-    }
-});
-Check("薄白背景增强到100仍为深色且三态保持差别", () =>
-{
-    var bannerResources = new ResourceDictionary
-    {
-        ["EgBannerGhostRestBrush"] = new SolidColorBrush { Color = 0x20F3F5F8 },
-        ["EgBannerGhostHoverBrush"] = new SolidColorBrush { Color = 0x38F3F5F8 },
-        ["EgBannerGhostPressBrush"] = new SolidColorBrush { Color = 0x50F3F5F8 }
-    };
-    var control = new Button();
-    var brushes = ControlBackgroundBrushes.ForBanner(control, bannerResources);
-    brushes.Apply(100);
-    var colors = new List<Windows.UI.Color>();
-    foreach (var (suffix, sourceKey) in new[] { ("", "EgBannerGhostRestBrush"),
-        ("PointerOver", "EgBannerGhostHoverBrush"), ("Pressed", "EgBannerGhostPressBrush") })
-    {
-        var copy = (AcrylicBrush)control.Resources["ButtonBackground" + suffix];
-        Equal(1, copy.Opacity);
-        Equal(255, copy.FallbackColor.A);
-        if (copy.FallbackColor.R >= 128 || copy.FallbackColor.G >= 128 || copy.FallbackColor.B >= 128)
-            throw new InvalidOperationException(suffix + " 增强到100出现白块，白字无法保持可读");
-        Increased((SolidColorBrush)bannerResources[sourceKey], copy, 100, TargetFor(suffix));
-        colors.Add(copy.FallbackColor);
-    }
-    if (colors.Distinct().Count() != 3) throw new InvalidOperationException("增强到100丢失了三态底色差别");
-    brushes.Apply(0);
-    if (((AcrylicBrush)control.Background!).FallbackColor.A != 0 || control.Background!.Opacity != 0)
-        throw new InvalidOperationException("混色后零档还留着底色");
 });
 Check("增强中的底色跟随主题目标变化", () =>
 {

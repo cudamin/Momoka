@@ -23,8 +23,7 @@
                     <SolidColorBrush x:Key="EgBannerPageRestBrush" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="EgBannerPageHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
                     <SolidColorBrush x:Key="EgBannerPagePressBrush" Color="{ThemeResource SystemColorHighlightColor}" />
-                    <!-- 只换翻页箭头自己的那支墨，不碰 EgOnScrimBrush：「详情」键和带上的字仍走原来那一支
-                         （2026-11-08 用户令「轮播图的详情按钮不改」）。 -->
+                    <!-- 只换翻页箭头自己的那支墨，不碰 EgOnScrimBrush：带上的片名、读数、简介仍走原来那一支。 -->
                     <SolidColorBrush x:Key="EgBannerPageInkBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
@@ -34,8 +33,7 @@
                  tint 固定在这支压图用的深色上（不取窗口底色 —— 浅色主题那支接近白，白字形会看不见），
                  三态靠染色浓度分档：静止半透、悬停与按下一档比一档实。箭头只在指针停在带上时浮出。 -->
             <Color x:Key="EgBannerPageColor">#FF0C0E11</Color>
-            <!-- 箭头自己的字形墨：常态与带上的字同一支浅墨，高对比度单独换系统字色。
-                 单列一支是为了不碰「详情」键 —— 那颗键的墨走 EgOnScrimBrush，用户 2026-11-08 明确不改它。 -->
+            <!-- 箭头自己的字形墨：常态与带上的字同一支浅墨，高对比度单独换系统字色。 -->
             <StaticResource x:Key="EgBannerPageInkBrush" ResourceKey="EgOnScrimBrush" />
             <AcrylicBrush
                 x:Key="EgBannerPageRestBrush"
@@ -56,7 +54,7 @@
                 TintLuminosityOpacity="0.3"
                 TintOpacity="0.88" />
 
-            <!-- 右下张数读数那条底条和「详情」键的边框用这一支；代码里按 Resources 取键，键少一个会在自检里就抛出来。 -->
+            <!-- 右下张数读数那条底条用这一支；代码里按 Resources 取键，键少一个会在自检里就抛出来。 -->
             <SolidColorBrush x:Key="EgBannerDotBrush" Color="#59F3F5F8" />
 
             <!-- 带子自己的底在 Theme/Palette.xaml 里（EgBannerBaseBrush）：图还没解码到的那一瞬、整条带收起来之前的
@@ -66,11 +64,12 @@
             <!-- 播放键原来是一块写死的白底黑字，四支画刷四个态。改成跟主题走的强调色之后那四支全没用了 ——
                  详情页头图上的播放键本来就是强调色，同一个产品两个最大的画面上，最主要的那颗键不该一个白
                  一个绿。 -->
-            <SolidColorBrush x:Key="EgBannerGhostRestBrush" Color="#20F3F5F8" />
+            <!-- 「详情」键 2026-11-17 退役（用户令「去掉轮播图上的详情按钮，改为点击轮播图直接进入详情页面」）；
+                 这两支悬停／按下薄光留给商店版式右栏的推荐卡。 -->
             <SolidColorBrush x:Key="EgBannerGhostHoverBrush" Color="#38F3F5F8" />
             <SolidColorBrush x:Key="EgBannerGhostPressBrush" Color="#50F3F5F8" />
 
-            <!-- 三个键的高度和圆角都取词表，跟详情页头图上那六颗一样：38 高、圆角 8。BasedOn 是必须的，见
+            <!-- 播放键与翻页箭头的高度和圆角都取词表，跟详情页头图上那六颗一样：38 高、圆角 8。BasedOn 是必须的，见
                  ShelfStrip 里同一处注释：隐式样式只在没设过 Style 时生效。
                  左右边距 8（原来 14）：这两颗贴着带的边沿走，「按钮旁边移动一些」—— 它们各占的那一段（8 到 46）是
                  留给箭头的两条窄栏，而字块站在左上区域、左边距比左边那条窄栏更宽（见下面 Info 的 Margin），两边不同
@@ -117,77 +116,10 @@
                 <Setter Property="Padding" Value="24,0,24,2" />
             </Style>
 
-            <Style x:Key="EgBannerGhostStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-                <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
-                <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-                <Setter Property="Padding" Value="22,0,22,2" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="BorderBrush" Value="{StaticResource EgBannerDotBrush}" />
-                <Setter Property="Background" Value="{StaticResource EgBannerGhostRestBrush}" />
-                <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
-                <!-- 同货架圆钮，用同一条矢量轮廓画底色和边线，避免亚克力圆角背景与边线分别裁剪。
-                     16 DIP 圆角和 1 DIP 线宽与上方样式一致；内容仍保留原边线占位与按钮语义。 -->
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Grid Background="Transparent">
-                                <VisualStateManager.VisualStateGroups>
-                                    <VisualStateGroup x:Name="CommonStates">
-                                        <VisualState x:Name="Normal" />
-                                        <VisualState x:Name="PointerOver">
-                                            <VisualState.Setters>
-                                                <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPointerOver}" />
-                                                <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPointerOver}" />
-                                                <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="Pressed">
-                                            <VisualState.Setters>
-                                                <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPressed}" />
-                                                <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPressed}" />
-                                                <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="Disabled">
-                                            <VisualState.Setters>
-                                                <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundDisabled}" />
-                                                <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushDisabled}" />
-                                                <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                </VisualStateManager.VisualStateGroups>
-                                <Rectangle
-                                    x:Name="Surface"
-                                    Fill="{TemplateBinding Background}"
-                                    Stroke="{TemplateBinding BorderBrush}"
-                                    StrokeThickness="1"
-                                    RadiusX="16"
-                                    RadiusY="16"
-                                    Stretch="Fill"
-                                    IsHitTestVisible="False"
-                                    UseLayoutRounding="False" />
-                                <ContentPresenter
-                                    x:Name="ContentPresenter"
-                                    Content="{TemplateBinding Content}"
-                                    ContentTemplate="{TemplateBinding ContentTemplate}"
-                                    ContentTransitions="{TemplateBinding ContentTransitions}"
-                                    Foreground="{TemplateBinding Foreground}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    Padding="{TemplateBinding Padding}"
-                                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                    AutomationProperties.AccessibilityView="Raw" />
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
             <!--
               商店版式右栏那三张推荐卡（2026-11-16「参考上图在设置中再添加一版轮播图」）：一张图铺满、左下角一行标题。
               图由代码按当前台上那张换成接下来的三张；这里只负责剪裁和悬停反馈。圆角剪在内容那层 Border 上，
-              和主页那张主卡用同一档 EgCardCornerRadius。悬停／按下用轮播「详情」键那两支薄光，不另造颜色。
+              和主页那张主卡用同一档 EgCardCornerRadius。悬停／按下沿用原本给「详情」键准备的两支薄光，不另造颜色。
             -->
             <Style x:Key="EgBannerRailCardStyle" TargetType="Button">
                 <Setter Property="Padding" Value="0" />
@@ -342,7 +274,7 @@
               保留单位 ScaleTransform 与定位名称；图片停留与换张均不再自动缩放。
               位图与高斯过渡始终共用同一层布局，尺寸变化只调整裁切，不重放背景动画。
             -->
-            <Grid x:Name="Band" RenderTransformOrigin="0.5,0.5">
+            <Grid x:Name="Band" RenderTransformOrigin="0.5,0.5" Tapped="OnBannerTapped">
                 <Grid.RenderTransform>
                     <ScaleTransform x:Name="BandScale" />
                 </Grid.RenderTransform>
@@ -613,7 +545,9 @@
                         </StackPanel.RenderTransform>
 
                         <!-- 强调色键，四个态全交给 AccentButtonStyle：Palette 那三份词典连 AccentFillColor* 一起
-                             改，ThemeHost 换主题时也一起重涂，所以这颗键跟着主题走（同详情页头图上那一颗）。 -->
+                             改，ThemeHost 换主题时也一起重涂，所以这颗键跟着主题走（同详情页头图上那一颗）。
+                             「详情」键 2026-11-17 退役：点带子的其它地方直接进详情（OnBannerTapped），
+                             这颗播放键仍是「现在就看」那一条路。 -->
                         <Button x:Name="PlayButton" Style="{StaticResource EgBannerPlayStyle}" Click="OnPlayClicked">
                             <StackPanel Orientation="Horizontal" Spacing="9">
                                 <FontIcon
@@ -623,13 +557,6 @@
                                 <TextBlock x:Name="PlayText" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-
-                        <Button
-                            x:Name="OpenButton"
-                            x:Uid="HomeBanner_OpenButton"
-                            Content="详情"
-                            Style="{StaticResource EgBannerGhostStyle}"
-                            Click="OnOpenClicked" />
                     </StackPanel>
                 </StackPanel>
 

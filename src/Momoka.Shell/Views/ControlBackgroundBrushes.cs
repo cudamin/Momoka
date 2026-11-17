@@ -128,11 +128,6 @@ internal sealed class ControlBackgroundBrushes
             Resource(source + "BackgroundDisabled"), preserveDefault, lightSurface);
     }
 
-    public static ControlBackgroundBrushes ForBanner(Button button, ResourceDictionary resources) =>
-        new(button, "Button", (SolidColorBrush)resources["EgBannerGhostRestBrush"],
-            (SolidColorBrush)resources["EgBannerGhostHoverBrush"], (SolidColorBrush)resources["EgBannerGhostPressBrush"],
-            Resource("ButtonBackgroundDisabled"));
-
     /// <summary>
     /// 按当前设置重画三态（外加选中／禁用）的底色。<paramref name="percent"/> 是半透明叠层的底色不透明度；
     /// <paramref name="tintOpacity"/> 与 <paramref name="luminosityOpacity"/> 是亚克力的两项浓度（0–1），

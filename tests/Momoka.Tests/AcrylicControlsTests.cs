@@ -259,40 +259,19 @@ internal static class AcrylicControlsTests
             Assert.False(shades.Any(row => (string?)row.Attribute("VerticalAlignment") == "Bottom"));
             Assert.Equal(3, shades.Count);
         });
-        Test("主页轮播：详情按钮有默认文字并保留本地化与导航", () =>
+        Test("主页轮播：整块点击进入详情，不再有单独的详情按钮", () =>
         {
-            var button = Named(Read("Views/HomeBanner.xaml"), "OpenButton");
-            Assert.Equal("详情", (string?)button.Attribute("Content"));
-            Assert.Equal("HomeBanner_OpenButton", (string?)button.Attribute(X + "Uid"));
-            Assert.Equal("OnOpenClicked", (string?)button.Attribute("Click"));
-        });
-        Test("主页轮播：详情圆角底色与边线共用矢量轮廓，内容不再绘制圆角背景", () =>
-        {
-            var page = Read("Views/HomeBanner.xaml");
-            // 2026-11-08 起资源外面包了一层显式 ResourceDictionary（高对比度要一份 ThemeDictionaries）。
-            var resources = page.Root!.Element(Xaml + "UserControl.Resources")!.Element(Xaml + "ResourceDictionary")!;
-            var style = Resource(resources, "EgBannerGhostStyle");
-            var surface = style.Descendants(Xaml + "Rectangle").Single();
-            Assert.Equal("{TemplateBinding Background}", (string?)surface.Attribute("Fill"));
-            Assert.Equal("{TemplateBinding BorderBrush}", (string?)surface.Attribute("Stroke"));
-            Assert.Equal(Setter(style, "BorderThickness"), (string?)surface.Attribute("StrokeThickness"));
-            var radius = Resource(Read("Theme/Styles.xaml").Root!, "EgCardCornerRadius").Value.Trim();
-            Assert.Equal(radius, (string?)surface.Attribute("RadiusX"));
-            Assert.Equal(radius, (string?)surface.Attribute("RadiusY"));
-            Assert.Equal("False", (string?)surface.Attribute("UseLayoutRounding"));
-            Assert.Equal("False", (string?)surface.Attribute("IsHitTestVisible"));
-            var presenter = style.Descendants(Xaml + "ContentPresenter").Single();
-            Assert.Null(presenter.Attribute("Background"));
-            Assert.Null(presenter.Attribute("BorderBrush"));
-            Assert.Null(presenter.Attribute("CornerRadius"));
-            Assert.Equal("{TemplateBinding BorderThickness}", (string?)presenter.Attribute("BorderThickness"));
-            foreach (var state in new[] { "PointerOver", "Pressed", "Disabled" })
-            {
-                var visual = style.Descendants(Xaml + "VisualState").Single(element => (string?)element.Attribute(X + "Name") == state);
-                Assert.True(visual.Descendants(Xaml + "Setter").Any(element =>
-                    (string?)element.Attribute("Target") == "Surface.Fill"
-                    && (string?)element.Attribute("Value") == "{ThemeResource ButtonBackground" + state + "}"));
-            }
+            // 2026-11-17 用户令「去掉轮播图上的详情按钮，改为点击轮播图直接进入详情页面」。
+            var banner = Read("Views/HomeBanner.xaml");
+            Assert.False(banner.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "OpenButton"),
+                "详情按钮没有从轮播标记里退役");
+            Assert.Equal("OnBannerTapped", (string?)Named(banner, "Band").Attribute("Tapped"));
+
+            var code = Source("Views/HomeBanner.xaml.cs");
+            Assert.Contains("private void OnBannerTapped(object sender, TappedRoutedEventArgs e)", code);
+            Assert.Contains("if (InsideButton(e.OriginalSource)) return;", code);
+            Assert.Contains("internal void OpenCurrent()", code);
+            Assert.Contains("case VirtualKey.Enter:", code);
         });
         foreach (var theme in new[] { "Dark", "Light" })
             Test($"按钮亚克力：{theme} 首帧三态有主题 tint 和不透明回退", () =>
@@ -684,24 +663,6 @@ internal static class AcrylicControlsTests
             var contrast = themes.Elements().Single(element => (string?)element.Attribute(X + "Key") == "HighContrast");
             foreach (var key in new[] { "EgBannerPageRestBrush", "EgBannerPageHoverBrush", "EgBannerPagePressBrush" })
                 Assert.Equal("SolidColorBrush", Resource(contrast, key).Name.LocalName, key);
-        });
-
-        Test("主页轮播：详情按钮不跟着翻页键换材质", () =>
-        {
-            // 2026-11-08 用户令「轮播图的详情按钮不改」：翻页键换成玻璃，那颗「详情」键仍走原来的
-            // 半透明叠层画刷与 EgOnScrim 墨；两者只共用「不跟主题走」这一条。
-            var banner = Read("Views/HomeBanner.xaml");
-            var dictionary = banner.Root!.Element(Xaml + "UserControl.Resources")!.Element(Xaml + "ResourceDictionary")!;
-            var ghost = Resource(dictionary, "EgBannerGhostStyle");
-            Assert.Equal("{StaticResource EgBannerGhostRestBrush}", Setter(ghost, "Background"));
-            Assert.Equal("{StaticResource EgOnScrimBrush}", Setter(ghost, "Foreground"));
-            var page = Resource(dictionary, "EgBannerPageButtonStyle");
-            Assert.Equal("{StaticResource EgBannerPageInkBrush}", Setter(page, "Foreground"));
-            Assert.Contains("ControlBackgroundBrushes.ForBanner(OpenButton, Resources)", Source("Views/HomeBanner.xaml.cs"));
-            // 翻页箭头会在商店版式与整宽版式之间换样式（2026-11-16 轮播商店版式），所以不能再用
-            // 「代码里不出现 EgBannerPage」整段字面判断；这里按那条检查本来的意思，只钉「详情键不换样式」。
-            Assert.False(Source("Views/HomeBanner.xaml.cs").Contains("OpenButton.Style", StringComparison.Ordinal),
-                "详情按钮不该接翻页键那套玻璃");
         });
 
         Test("翻页按钮亚克力：货架圆钮三态透得出背后的封面", () =>
