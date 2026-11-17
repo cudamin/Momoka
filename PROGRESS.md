@@ -1,3 +1,15 @@
+## 2026-11-17 飞牛音乐媒体库卡补封面（分支，待合并）
+
+用户一句：「飞牛音乐库怎么没封面」。实服只读核对（飞牛音乐 1.1.19）：`track/list`、`album/list`、`artist/list` 都带 `coverId`，`static/cover?coverId=&size=600` 带 `music-token` Cookie 返回 `image/jpeg`；20:53 日志只有一条「卡片: 没有可用的图片候选（音乐）」，同一时段 160 宽曲目封面已进缓存。缺的是虚拟「音乐」库条目本身没有任何图像标签，所以主页和侧栏的库卡是空白。
+
+**改了什么。** `FnMusicMediaAdapter.GetViewsAsync` 读 `album/list?page=1&size=3`，按 `coverId` 去重取最多三张：三张时写入 `PosterPaths`，走飞牛影视库卡同款三格拼墙；同时把第一张写进 `ImageTags["Primary"]`，不足三张只给单张主图。专辑读取失败（非身份过期）只记 `fnmusic` 警告，媒体库照常返回；身份过期继续抛给会话恢复。
+
+**测了什么。** Release Core/Tests 编译 **0 警告 0 错误**；`fnmusic-fixture` **20/20，0 失败 0 跳过**（新增「库卡用专辑封面拼三格，不足三张时用单张」「库封面读取失败不挡媒体库，身份过期仍上报」）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。
+
+**没验证的。** 未在真实 WinUI 窗口目视库卡拼墙。诊断时为核对接口重新登录取得只读令牌，未播放、未收藏、未上报历史、未写库。
+
+**分支。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-feiniu-music-cover-ztPLhJ`，分支 `fix-feiniu-music-cover-ztPLhJ`，基点 `a8152cf`，产品与测试提交 `bde932f`；未合并 master、未发布、未推送。
+
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
 用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。
