@@ -1298,7 +1298,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// Which category to open on, or the empty string for the first card. 服务器 and 诊断 come in this way,
     /// which is what makes them 「in the settings」 rather than pages of their own.
     /// </param>
-    internal void ShowSettings(string category = "", bool youTubeLogin = false)
+    internal void ShowSettings(string category = "")
     {
         if (_services is null) return;
 
@@ -1308,7 +1308,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             // The frame keeps 设置 reachable, but not 服务器 or 诊断 as separate pages: they are cards in the
             // settings page now, so the fallback opens the settings page on the category that was asked for.
-            Open(typeof(SettingsPage), new SettingsRequest(_services, category, youTubeLogin), "设置", "settings");
+            Open(typeof(SettingsPage), new SettingsRequest(_services, category), "设置", "settings");
             return;
         }
 
@@ -1321,22 +1321,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 订阅者，收摊时那句「拿回来」也就跑几遍。
         _settingsWindow.Hidden -= OnSettingsWindowHidden;
         _settingsWindow.Hidden += OnSettingsWindowHidden;
-        _settingsWindow.Show(new SettingsRequest(_services, category, youTubeLogin));
+        _settingsWindow.Show(new SettingsRequest(_services, category));
     }
 
     /// <summary>
-    /// 详情页里点开一支 YouTube 预告（Trailer channel 的条目或远程链接）：在 Momoka 内用官方嵌入页播放，
-    /// 登录态与设置页共用。窗口里那颗「登录 YouTube」只负责关窗并落到设置页的登录窗。
+    /// 详情页里点开一支 YouTube 预告（Trailer channel 的条目或远程链接）：在 Momoka 内打开正常 watch 页；
+    /// 窗口里可以把链接交给系统浏览器。不再有 YouTube 登录，禁止嵌入的视频直接在 watch 页看。
     /// </summary>
     private async void ShowYouTubeTrailer(string id, string title)
     {
-        if (_services?.GetService(typeof(Media.YouTubeSession)) is not Media.YouTubeSession session) return;
         Log.Info("预告", $"打开 YouTube 播放窗 id={id}《{title}》");
         try
         {
-            var result = await YouTubePlayerDialog.ShowAsync(this, session, id, title);
-            if (result.Login) ShowSettings(SettingsViewModel.AppearanceCategory, youTubeLogin: true);
-            else if (result.Browser)
+            if (await YouTubePlayerDialog.ShowAsync(this, id, title))
             {
                 try { _services!.GetRequiredService<Platform.ISystemLauncher>().OpenUrl($"https://www.youtube.com/watch?v={id}"); }
                 catch (Exception error) { Log.Warn("YouTube 预告", "打不开系统浏览器", error); }
@@ -1644,9 +1641,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Settings: _services.GetRequiredService<ISettingsService>(),
             PlayTrailer: item => ((IShellActions)this).PlayAsync(item,
                 choice: new PlaybackChoice(null, null, null, false, 0) { ExactStart = true }),
-            Paths: _services.GetRequiredService<AppPaths>(),
-            YouTube: _services.GetRequiredService<Media.YouTubeSession>(),
-            YouTubeLogin: () => ShowSettings(SettingsViewModel.AppearanceCategory, youTubeLogin: true)), BrowseTransition());
+            Paths: _services.GetRequiredService<AppPaths>()), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();
@@ -1661,9 +1656,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, null,
             Launcher: _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMedia: OpenMoviePilotMedia, Media: media,
             SetTitleStrip: SetTitleStrip, Subscribed: OpenMoviePilotSubscriptionsAfterSubscribe,
-            Settings: _services.GetRequiredService<ISettingsService>(),
-            YouTube: _services.GetRequiredService<Media.YouTubeSession>(),
-            YouTubeLogin: () => ShowSettings(SettingsViewModel.AppearanceCategory, youTubeLogin: true)), BrowseTransition());
+            Settings: _services.GetRequiredService<ISettingsService>()), BrowseTransition());
         _trail.Add(new Crumb(media.Display, string.Empty));
         _current = null;
         SyncChrome();
@@ -1713,10 +1706,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     void IShellActions.OpenItem(EmbyItem item) => OpenItem(item);
-
-    void IShellActions.OpenSettings(string category) => ShowSettings(category);
-
-    void IShellActions.OpenYouTubeLogin() => ShowSettings(SettingsViewModel.AppearanceCategory, youTubeLogin: true);
 
     void IShellActions.OpenYouTubeTrailer(string id, string title) => ShowYouTubeTrailer(id, title);
 

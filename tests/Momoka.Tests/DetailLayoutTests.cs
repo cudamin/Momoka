@@ -124,13 +124,6 @@ internal static class DetailLayoutTests
                 Type = EmbyItemType.Movie,
                 RemoteTrailers = [new MediaTrailerUrl { Url = "https://youtu.be/dQw4w9WgXcQ" }]
             }));
-            Assert.True(YouTubeTrailer.NeedsSignIn(101));
-            Assert.True(YouTubeTrailer.NeedsSignIn(150));
-            Assert.False(YouTubeTrailer.NeedsSignIn(100));
-            Assert.True(YouTubeTrailer.HasSession(["SAPISID"]));
-            Assert.True(YouTubeTrailer.HasSession(["__Secure-1PSID"]));
-            Assert.True(YouTubeTrailer.HasSession(["LOGIN_INFO"]));
-            Assert.False(YouTubeTrailer.HasSession(["VISITOR_INFO1_LIVE", "YSC"]));
         });
         Test("商店背景：剧照与预告共用右侧视口，不随原图比例或窗口高度撑开", () =>
         {

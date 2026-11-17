@@ -95,10 +95,6 @@ public sealed partial class DetailViewModel
         return selection;
     }
 
-    /// <summary>详情页右上角的 YouTube 预告要求登录：提示用户去设置页登录，不把登录态做进播放器。</summary>
-    internal void NotifyYouTubeLoginRequired() =>
-        NotifyYouTubeLoginRequired(() => _actions?.OpenYouTubeLogin());
-
     internal async Task OpenTrailerAsync(TrailerSelection selection, TrailerOption option)
     {
         if (!OwnsTrailers(selection) || !selection.Options.Contains(option) || _actions is null) return;

@@ -16,6 +16,8 @@
 
 **登录成功仍 `error:150` 的处理。** 用户登录后日志变为 `登录=True`、仍 `报错 error:150`，说明该视频发布方关闭了嵌入播放，不是登录问题。`YouTubePlayerDialog` 从 `/embed/` 改为 `https://www.youtube.com/watch?v=`，让预告播放窗走正常播放页（并保留「在浏览器打开」）；右上角背景预览仍用嵌入页，所以禁止嵌入的视频会显示「预告加载失败」，这是 YouTube 的嵌入限制。Shell Release/x64 **0 警告 0 错误**，分支重新发布（01:14）并刷新分支快捷方式。
 
+**按用户要求删除 YouTube 登录。** 用户确认登录对禁止嵌入的视频无用，要求删除相关功能：删除 `YouTubeSession`、`YouTubeLoginDialog`、`YouTubeTrailer`、设置页「YouTube 登录」行、登录提示与 `IShellActions.OpenYouTubeLogin`/`OpenSettings`，`SettingsRequest` 与 `MoviePilotSubscriptionRequest` 的登录字段、详情页对登录态的重试订阅一并移除；预览恢复匿名一次性 WebView2 配置。保留：预告未起播/超时时的「预告加载失败 + 关闭预告」提示、控制排「关闭预告」按钮、Trailers 库 `watch?v=` 条目预览与 `YouTubePlayerDialog` 的 watch 页/在浏览器打开。Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **356/356**、`episode-display-fixture` **37/37**。分支待重新发布。
+
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
 用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。

@@ -237,16 +237,7 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
         NoticeOpen = true;
     }
 
-    /// <summary>
-    /// YouTube 预告要登录时的固定说法与去处。两个详情页共用，免得同一个故障在两处写出两种口径；
-    /// 动作由页面交给外壳，视图模型不知道设置页怎么开。
-    /// </summary>
-    internal void NotifyYouTubeLoginRequired(Action? openLogin) =>
-        Notify("此预告需要登录 YouTube",
-            "登录一次后，YouTube 预告会直接在 Momoka 里播放；登录状态只保存在这台电脑上。",
-            InfoBarSeverity.Informational, "登录 YouTube", openLogin);
-
-    /// <summary>预告没能加载/起播（不一定是登录问题）时的通用提示；关闭由页面收起预览并清掉这条提示。</summary>
+    /// <summary>预告没能加载/起播时的通用提示；关闭由页面收起预览并清掉这条提示。</summary>
     internal void NotifyTrailerLoadFailed(Action? close) =>
         Notify("预告加载失败",
             "这支预告暂时没有加载出来，可以先关掉它，稍后再进详情页试。",

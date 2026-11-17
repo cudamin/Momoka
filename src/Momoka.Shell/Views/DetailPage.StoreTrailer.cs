@@ -30,7 +30,6 @@ public sealed partial class DetailPage
     private bool _storeTrailerScrollPaused;
     private CancellationTokenRegistration _storeTrailerCancellation;
     private StoreYouTubePreview? _storeYouTube;
-    private YouTubeSession? _youTubeSession;
     private bool _storeYouTubeMuted = true;
     private readonly StoreVideoBrush _storeVideoBrush = new();
 
@@ -50,33 +49,8 @@ public sealed partial class DetailPage
         {
             ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
-            // 设置页登录/退出 YouTube 之后，已经收起的失败预览要能当场重试一次，不必退出详情页再进。
-            if (_request?.Services.GetService(typeof(YouTubeSession)) is YouTubeSession session
-                && !ReferenceEquals(_youTubeSession, session))
-            {
-                if (_youTubeSession is not null) _youTubeSession.Changed -= OnYouTubeSessionChanged;
-                _youTubeSession = session;
-                session.Changed += OnYouTubeSessionChanged;
-            }
         };
-        Unloaded += (_, _) =>
-        {
-            ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
-            if (_youTubeSession is not null) _youTubeSession.Changed -= OnYouTubeSessionChanged;
-        };
-    }
-
-    private void OnYouTubeSessionChanged()
-    {
-        if (!IsLoaded) return;
-        if (DispatcherQueue.HasThreadAccess) RetryStoreTrailer();
-        else DispatcherQueue.TryEnqueue(RetryStoreTrailer);
-    }
-
-    private void RetryStoreTrailer()
-    {
-        _storeTrailerFailed = null;
-        UpdateStoreTrailer();
+        Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
     }
 
     /// <summary>用户关掉预告：标记这个条目不再自动重开，收起画面和控制排，并把「加载失败」提示一起收掉。</summary>
@@ -167,8 +141,7 @@ public sealed partial class DetailPage
                 var id = TrailerPreview.YouTubeId(subject);
                 Log.Info("预告", $"《{subject.Name}》商店预告：本地预告未命中，YouTubeId={id ?? "-"}");
                 if (id is null) return;
-                var session = _youTubeSession ??= _request!.Services.GetRequiredService<YouTubeSession>();
-                youTube = new StoreYouTubePreview(session.GetEnvironmentAsync);
+                youTube = new StoreYouTubePreview();
                 _storeYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -191,19 +164,9 @@ public sealed partial class DetailPage
                     if (!playing)
                     {
                         _storeTrailerFailed = subject;
-                        // StopStoreTrailer 会把这支预览连同 WebView 一起收掉，登录判定要先读出来。
-                        var needsLogin = youTube.NeedsLogin;
                         StopStoreTrailer();
-                        if (needsLogin)
-                        {
-                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告需要登录，已提示");
-                            ViewModel.NotifyYouTubeLoginRequired();
-                        }
-                        else
-                        {
-                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，已提示加载失败");
-                            ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
-                        }
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，已提示加载失败");
+                        ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
                         return;
                     }
                     LayoutStoreTrailer();
@@ -227,22 +190,13 @@ public sealed partial class DetailPage
         {
             if (generation == _storeTrailerGeneration)
             {
-                // 播放器超时/失败时，错误回调不一定跑过；预览还在树上且判定需要登录的，在这里补一次提示。
+                // 播放器超时/失败时，错误回调不一定跑过；预览还在树上就在收起前补一次提示。
                 if (youTube is not null && ReferenceEquals(_storeYouTube, youTube))
                 {
-                    var needsLogin = youTube.NeedsLogin;
                     _storeTrailerFailed = subject;
                     StopStoreTrailer();
-                    if (needsLogin)
-                    {
-                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败且需要登录，已提示");
-                        ViewModel.NotifyYouTubeLoginRequired();
-                    }
-                    else
-                    {
-                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，已提示加载失败");
-                        ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
-                    }
+                    Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，已提示加载失败");
+                    ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
                 }
                 else
                 {

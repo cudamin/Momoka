@@ -2,7 +2,6 @@ using System.Text.Json;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using Momoka.Diagnostics;
-using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
 
@@ -12,26 +11,22 @@ internal sealed record TrailerCaptionTrack(string Language, string Name);
 /// <summary>Gallery Samples/WebView2/WebView2Page.xaml/.xaml.cs，
 /// v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7 原生宿主；背景不接受输入。
 /// </summary>
-internal sealed class StoreYouTubePreview(Func<CancellationToken, Task<CoreWebView2Environment>> environment) : IDisposable
+internal sealed class StoreYouTubePreview : IDisposable
 {
     private const string Origin = "https://momoka";
     private const string CaptionPrefix = "captions:";
-    private const string ErrorPrefix = "error:";
     private readonly WebView2 _web = new() { IsHitTestVisible = false, IsTabStop = false };
     private readonly List<TrailerCaptionTrack> _captions = [];
     private bool _disposed;
     private bool _active;
     private bool _muted = true;
     private bool _playing;
-    private bool _signedIn;
     private string? _caption;
     private TaskCompletionSource? _playingCompleted;
     internal WebView2 Element => _web;
     internal IReadOnlyList<TrailerCaptionTrack> Captions => _captions;
     internal string? SelectedCaption => _caption;
     internal bool IsPlaying => _playing;
-    /// <summary>这一次失败是不是 YouTube 要求登录；页面据此决定提示去设置登录还是安静地回退静态图。</summary>
-    internal bool NeedsLogin { get; private set; }
     internal event Action? PlaybackChanged;
     internal event Action? CaptionsChanged;
 
@@ -47,11 +42,15 @@ internal sealed class StoreYouTubePreview(Func<CancellationToken, Task<CoreWebVi
         // 背景预告的播放/暂停由原生按钮驱动，没有网页内的用户手势。默认策略会把「取消静音」当成
         // 无手势的带声音播放并把视频暂停，表现为点一下静音键画面就停住；这条只作用于这支隔离的
         // 预告网页，且页面自身仍以 autoplay=0、controls=0 固定加载。
-        // 配置与设置页的 YouTube 登录共用，登录后的 Cookie 才会带进这支预告。
-        var web = await environment(token);
+        // 匿名配置：不登录 YouTube，也不把任何账号 Cookie 带进这支预告。
+        var options = new CoreWebView2EnvironmentOptions
+        {
+            AdditionalBrowserArguments = "--autoplay-policy=no-user-gesture-required"
+        };
+        var environment = await CoreWebView2Environment.CreateWithOptionsAsync("", Path.Combine(folder, "profile"), options);
         token.ThrowIfCancellationRequested();
         if (_disposed) return;
-        await _web.EnsureCoreWebView2Async(web);
+        await _web.EnsureCoreWebView2Async(environment);
         token.ThrowIfCancellationRequested();
         if (_disposed) return;
         var core = _web.CoreWebView2;
@@ -59,9 +58,6 @@ internal sealed class StoreYouTubePreview(Func<CancellationToken, Task<CoreWebVi
         core.Settings.AreDefaultContextMenusEnabled = false;
         core.Settings.AreDevToolsEnabled = false;
         core.Settings.IsStatusBarEnabled = false;
-        // 先读登录状态再起播：YouTube 的登录卡片用 150 报错，页面要靠这一位区分「去登录」和「视频不让嵌」。
-        _signedIn = await HasSessionAsync(core);
-        Log.Info("预告", $"YouTube 预览 id={id} 登录={_signedIn}");
         core.SetVirtualHostNameToFolderMapping("momoka", folder, CoreWebView2HostResourceAccessKind.DenyCors);
         core.NewWindowRequested += (_, args) => args.Handled = true;
         core.DownloadStarting += (_, args) => args.Cancel = true;
@@ -77,37 +73,22 @@ internal sealed class StoreYouTubePreview(Func<CancellationToken, Task<CoreWebVi
             else if (message.StartsWith(CaptionPrefix, StringComparison.Ordinal)) ReadCaptions(message[CaptionPrefix.Length..]);
             else if (message.StartsWith("error", StringComparison.Ordinal))
             {
-                NeedsLogin = ErrorNeedsSignIn(message) && !_signedIn;
-                Log.Info("预告", $"YouTube 预告 id={id} 报错 {message}，登录={_signedIn}，提示登录={NeedsLogin}");
+                Log.Info("预告", $"YouTube 预告 id={id} 报错 {message}");
                 _playingCompleted?.TrySetException(new IOException("预告片播放失败"));
                 state(false);
             }
         };
         core.Navigate(Origin + "/index.html");
-        // 登录卡片有时不触发 onError，也不一定把 errorCode 写成 auth；只要未登录且 10 秒内没有起播，
-        // 就按「需要登录」处理。宁可对慢网多提示一次，也不再把登录卡片无声地回退成静态图。
+        // 登录卡片有时不触发 onError，只停在未起播；10 秒内没有起播就按失败收尾，让详情页明确提示。
         var finished = await Task.WhenAny(_playingCompleted.Task, Task.Delay(TimeSpan.FromSeconds(10), token));
         if (finished != _playingCompleted.Task)
         {
-            NeedsLogin = !_signedIn;
-            Log.Info("预告", $"YouTube 预告 id={id} 10 秒内未起播，登录={_signedIn}，提示登录={NeedsLogin}");
+            Log.Info("预告", $"YouTube 预告 id={id} 10 秒内未起播");
             throw new IOException("预告片播放超时");
         }
         await _playingCompleted.Task;
         token.ThrowIfCancellationRequested();
     }
-
-    private static async Task<bool> HasSessionAsync(CoreWebView2 core)
-    {
-        var cookies = await core.CookieManager.GetCookiesAsync("https://www.youtube.com");
-        return YouTubeTrailer.HasSession(cookies.Select(cookie => cookie.Name));
-    }
-
-    /// <summary>只认带错误码的 101／150；<c>error</c> 这种加载失败不能当成「去登录」。</summary>
-    private static bool ErrorNeedsSignIn(string message) =>
-        message.StartsWith(ErrorPrefix, StringComparison.Ordinal)
-        && int.TryParse(message[ErrorPrefix.Length..], out var code)
-        && YouTubeTrailer.NeedsSignIn(code);
 
     private void SetPlayback(bool playing)
     {

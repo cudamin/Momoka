@@ -235,10 +235,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private SettingFactRow? _updateRow;
 
-    /// <summary>「预告片」卡上「YouTube 登录」那一行的动作与状态文字；由设置页在导航时交进来。</summary>
-    private Action? _youTubeLogin;
-    private Func<string>? _youTubeStatus;
-
     /// <summary>
     /// 手动检查正在跑。这一趟有网络、要几秒，挡掉连点：不挡的话按第二下会再发一个请求，而两颗按钮长得一样、
     /// 第一趟还没回来时看不出哪个是哪个。
@@ -578,9 +574,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 播放器换成了主页 —— 没有指名分类的打开就落在主页上。）
     /// </summary>
     internal static string FirstCardCategory => CardCategories[0];
-
-    /// <summary>「界面」卡所在的分类；预告片卡（含 YouTube 登录）在这张卡下面。</summary>
-    internal const string AppearanceCategory = "界面";
 
     /// <summary>
     /// 最后一张卡（关于）。管理员才看得见的「通知」「网页控制台」就插在它前面 —— 探针拿它认那两个入口的落点，
@@ -2361,31 +2354,18 @@ public sealed partial class SettingsViewModel : PageViewModel
                 after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)));
         }
 
-        // YouTube 预告的登录不是设置文件里的一项，所以走读数行：状态文字由设置页在登录窗关闭后填，
-        // 动作交给设置页摆弹窗（见 SettingsPage.OpenYouTubeLoginAsync）。
-        rows.Add(Fact("YouTube 登录",
-            "有些 YouTube 预告要求登录后才能播放。登录一次，详情页右上角的预告与预告片窗口都会直接使用；"
-                + "登录状态只保存在这台电脑上。",
-            _youTubeStatus?.Invoke() ?? "",
-            "登录 YouTube",
-            () => _youTubeLogin?.Invoke()));
+        // YouTube 预告的登录已经移除：发布方禁止嵌入时登录也放不了，改为详情页提示加载失败，
+        // 播放键走 watch 页/系统浏览器。
 
         return new SettingSection("界面", "预告片",
             "封面悬停与详情页里的预告片播放方式。悬停只播放服务器本地预告片。", rows);
     }
 
-    internal void RefreshTrailerApplicability()
+    private void RefreshTrailerApplicability()
     {
         if (_settings is null) return;
         var section = Sections.FirstOrDefault(card => card.Title == "预告片");
         section?.UpdateRows(TrailerCard().Rows);
-    }
-
-    /// <summary>设置页把登录窗动作与状态文字交给「预告片」卡；状态在每次重建行表时重新读。</summary>
-    internal void UseYouTubeLogin(Action login, Func<string> status)
-    {
-        _youTubeLogin = login;
-        _youTubeStatus = status;
     }
 
     /// <summary>

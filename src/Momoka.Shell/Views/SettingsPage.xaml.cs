@@ -29,7 +29,7 @@ namespace Momoka.Shell.Views;
 /// last reading is the reason it is.
 /// </para>
 /// </summary>
-internal sealed record SettingsRequest(IServiceProvider Services, string Category = "", bool YouTubeLogin = false);
+internal sealed record SettingsRequest(IServiceProvider Services, string Category = "");
 
 /// <summary>
 /// 设置页。左侧分类，右侧卡片，播放、字幕、视频输出、音频和着色器的修改会立即写入设置文件。
@@ -67,9 +67,6 @@ public sealed partial class SettingsPage : Page, IShellContent
     private readonly HashSet<SettingsCategoryGroup> _observedGroups = [];
     private SettingsRequest? _request;
     private EmbySession? _session;
-    private Media.YouTubeSession? _youTubeSession;
-    private string _youTubeStatus = "";
-    private bool _youTubeLoginOpen;
     private readonly LoadGeneration _activity = new();
     private CancellationToken _activityToken;
 
@@ -444,9 +441,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         _activityToken = _activity.Begin();
         ViewModel.Activate();
         _request = request;
-        // YouTube 登录与详情页预览共用一份配置；这一页只负责把登录窗摆出来，状态由弹窗里读 Cookie 后回报。
-        _youTubeSession = request.Services.GetRequiredService<Media.YouTubeSession>();
-        ViewModel.UseYouTubeLogin(() => _ = OpenYouTubeLoginAsync(), () => _youTubeStatus);
         // Hide 后 XAML 仍可保持 Loaded；重开不能只等另一次 Loaded 才恢复动效偏好通知。
         HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
         HomeMotion.PreferenceChanged += ApplySettingsMotionPreference;
@@ -534,42 +528,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 同服换账号的同步刷新可能已经重建原生页；这一趟不能紧接着再重建、再起一次 GET。
         if (!Select(request.Category) && ReferenceEquals(hostedBeforeRefresh, HostedFrame.Content)) ShowHosted();
         QueueSettingsEntrance();
-        // 详情页的「登录 YouTube」提示直接落到这一扇登录窗；页面还没 Loaded 时等它上屏再摆，
-        // 否则 XamlRoot 还没挂上，弹窗只能静默失败。
-        if (request.YouTubeLogin) _ = OpenYouTubeLoginWhenLoadedAsync();
-    }
-
-    /// <summary>
-    /// 「界面 → 预告片 → YouTube 登录」和详情页提示共用的入口。同一时间只摆一扇登录窗；登录成功只更新这一页
-    /// 的状态文字，真正让详情页重试的是 <see cref="Media.YouTubeSession.Changed"/>。
-    /// </summary>
-    private async Task OpenYouTubeLoginAsync()
-    {
-        if (_youTubeLoginOpen || _youTubeSession is null) return;
-        _youTubeLoginOpen = true;
-        try
-        {
-            var signedIn = await YouTubeLoginDialog.ShowAsync(this, _youTubeSession);
-            if (signedIn) _youTubeStatus = "已登录";
-            ViewModel.RefreshTrailerApplicability();
-        }
-        finally { _youTubeLoginOpen = false; }
-    }
-
-    private async Task OpenYouTubeLoginWhenLoadedAsync()
-    {
-        if (!IsLoaded)
-        {
-            var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            void OnLoaded(object? sender, RoutedEventArgs e)
-            {
-                Loaded -= OnLoaded;
-                loaded.TrySetResult();
-            }
-            Loaded += OnLoaded;
-            await loaded.Task;
-        }
-        await OpenYouTubeLoginAsync();
     }
 
     /// <summary>

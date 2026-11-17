@@ -30,7 +30,6 @@ public sealed partial class MoviePilotSubscriptionPage
     private MediaPlayerElement? _trailerElement;
     private MediaSource? _trailerSource;
     private StoreYouTubePreview? _trailerYouTube;
-    private Momoka.Shell.Media.YouTubeSession? _trailerYouTubeSession;
     private int _trailerGeneration;
     private bool _trailerOpened;
     private bool _trailerSuspended;
@@ -55,35 +54,10 @@ public sealed partial class MoviePilotSubscriptionPage
         {
             ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
-            // 设置页登录/退出 YouTube 之后，已经收起的失败预览要能当场重试一次。
-            if (_request?.YouTube is { } session && !ReferenceEquals(_trailerYouTubeSession, session))
-            {
-                if (_trailerYouTubeSession is not null) _trailerYouTubeSession.Changed -= OnYouTubeSessionChanged;
-                _trailerYouTubeSession = session;
-                session.Changed += OnYouTubeSessionChanged;
-            }
         };
-        Unloaded += (_, _) =>
-        {
-            ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
-            if (_trailerYouTubeSession is not null) _trailerYouTubeSession.Changed -= OnYouTubeSessionChanged;
-        };
+        Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
     }
 
-    private void OnYouTubeSessionChanged()
-    {
-        if (!IsLoaded) return;
-        if (DispatcherQueue.HasThreadAccess) RetryStoreTrailer();
-        else DispatcherQueue.TryEnqueue(RetryStoreTrailer);
-    }
-
-    private void RetryStoreTrailer()
-    {
-        _trailerFailed = null;
-        UpdateStoreTrailer();
-    }
-
-    /// <summary>用户关掉预告：标记这个条目不再自动重开，收起画面和控制排，并把「加载失败」提示一起收掉。</summary>
     private void CloseStoreTrailer()
     {
         _trailerFailed = MediaViewModel.TrailerSubject;
@@ -167,8 +141,7 @@ public sealed partial class MoviePilotSubscriptionPage
             {
                 var id = TrailerPreview.YouTubeId(subject);
                 if (id is null) { _trailerFailed = subject; StopStoreTrailer(); return; }
-                if (_request?.YouTube is not { } session) { _trailerFailed = subject; StopStoreTrailer(); return; }
-                youTube = new StoreYouTubePreview(session.GetEnvironmentAsync);
+                youTube = new StoreYouTubePreview();
                 _trailerYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -192,11 +165,8 @@ public sealed partial class MoviePilotSubscriptionPage
                     if (!playing)
                     {
                         _trailerFailed = subject;
-                        // 收预览会连 WebView 一起释放，登录判定先读出来。
-                        var needsLogin = youTube.NeedsLogin;
                         StopStoreTrailer();
-                        if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
-                        else MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                        MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
                         return;
                     }
                     LayoutStoreTrailer();
@@ -218,14 +188,12 @@ public sealed partial class MoviePilotSubscriptionPage
         {
             if (generation == _trailerGeneration)
             {
-                // 错误回调不一定跑过；预览还在树上时，在这里补一次提示。
+                // 错误回调不一定跑过；预览还在树上就在收起前补一次提示。
                 if (youTube is not null && ReferenceEquals(_trailerYouTube, youTube))
                 {
-                    var needsLogin = youTube.NeedsLogin;
                     _trailerFailed = subject;
                     StopStoreTrailer();
-                    if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
-                    else MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                    MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
                 }
                 else
                 {
