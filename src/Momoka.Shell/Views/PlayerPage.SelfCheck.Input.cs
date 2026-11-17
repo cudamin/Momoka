@@ -253,6 +253,12 @@ public sealed partial class PlayerPage
     /// measure its children, so a Width or Height dropped from the markup measures the whole badge as 0×0 —
     /// nothing on screen at all, with every other reading here still perfectly correct.
     /// </para>
+    /// <para>
+    /// 2026-11-17 adds the third reading — the two tier boxes (「全屏时要放大 1.3 倍」). It is here rather than in
+    /// the window probe because the badge only exists for a fifth of a second and this probe is the one that
+    /// already lays it out; the tier itself is written by <c>ApplyPulseScale</c>, which every fullscreen path
+    /// reaches through <c>ApplyTitleScale</c>.
+    /// </para>
     /// </summary>
     internal (bool Ok, string Detail) ProbePulse()
     {
@@ -331,6 +337,25 @@ public sealed partial class PlayerPage
 
         Beat("暂停", paused: true, _pauseArt);
         Beat("恢复", paused: false, _playArt);
+
+        // 两档方框（用户令 2026-11-17「集成模式点击屏幕暂停/开始时出现的图标全屏时要放大 1.3 倍」）：
+        // 几何是写死的 136 方框，大档落在外面那层 Viewbox 上（ApplyPulseScale）。这里直接把两档摆上去、
+        // 各量一次实框，再按窗口**这一刻**的形态放回 —— 崩法是「全屏时那一档忘了摆」，而那颗徽标只在点
+        // 画面那一秒露面，照片、截图和一次真实全屏播放都等不到它。
+        PulseBadge.Visibility = Visibility.Visible;
+        ApplyPulseScale(true);
+        UpdateLayout();
+        var bigBox = PulseZoomBox.ActualWidth;
+        ApplyPulseScale(false);
+        UpdateLayout();
+        var smallBox = PulseZoomBox.ActualWidth;
+        ApplyPulseScale(BigChrome);
+        UpdateLayout();
+
+        seen.Add($"方框：全屏档 {bigBox:0.#}、窗口档 {smallBox:0.#}"
+                 + $"（要 {FullscreenPulseBox:0.#} / {WindowPulseBox:0.#}）");
+        if (Math.Abs(bigBox - FullscreenPulseBox) > 0.5) wrong.Add($"全屏档方框 {bigBox:0.#}");
+        if (Math.Abs(smallBox - WindowPulseBox) > 0.5) wrong.Add($"窗口档方框 {smallBox:0.#}");
 
         // Back to how a player nobody has paused looks: no clock in flight, and nothing drawn over whatever
         // page the shell is really on.

@@ -1,3 +1,15 @@
+## 2026-11-17 集成模式暂停/播放徽标全屏档 ×1.3（主树 master，待统一验证）
+
+用户一句话：「集成模式点击屏幕暂停/开始时出现的图标全屏时要何集成模式一样放大1.3倍」——「何」按「和」读。
+
+**改了什么。** 集成播放页正中那颗白色暂停/播放徽标是整条浮层里最后一件不跟档的东西：标题簇、时间轴、按钮行、音量条、跳过按钮、右上四颗从 2026-09-28 起按 `BigChrome`（全屏**或最大化**）走两档，它一直写死 136 DIP，全屏时相对四周反而变小。`PlayerPage.xaml` 给 `PulseArtBox` 外套一层 `PulseZoomBox`（Viewbox，初值 136、`Stretch=Uniform`）；`PlayerPage.Chrome.cs` 新增 `WindowPulseBox`／`FullscreenPulseBox`（＝`PulseArt.Box`×1.3＝176.8）与 `ApplyPulseScale(bool)`，由 `ApplyTitleScale` 与其余五处一起摆。倍率**不放在 `PulseScale` 上**：那是 `PulseStoryboard` 的动画属性（0.86→1→1.06），摆上去第一帧就被抹掉 —— 与置顶那颗图钉「1.3 只能交给外面那层 Viewbox」同一个理由。
+
+**测了什么。** `PlayerInteractionTests` 新增两条：①`PlayerPage.xaml` 里 `PulseBadge` 下面那颗 Viewbox 存在、`Stretch=Uniform`、宽高初值＝`PulseArt.Box`，里面仍是那颗 136 的 Canvas；②`PlayerPage.Chrome.cs` 的两档常量与接线（含 `DoesNotContain("PulseScale.ScaleX = box")`，挡的是有人把档位摆回动画属性）。自检 `ProbePulse` 追加第三读：直接摆两档、各量一次实框，再按当前窗口形态放回 —— 那颗徽标只在点画面那一秒露面，照片和截图都等不到它。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 21 秒）；全量 `Momoka.Tests` **5217/5217**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 10 个变更路径通过。主测试的 TEMP 指仓库内时三条回环共享用例在 `finally` 的删除上被沙箱拒（断言已过），改用用户临时目录即全绿，与产品无关。按日常界面规则未跑原生探针与验收截图。
+
+**没动的。** 独占模式那一颗是 uosc 的 `PauseIndicator.lua`（按画面短边 15% 走、不读 `state.scale`），本批未改。
+
 ## 2026-11-17 发版 0.2.8：版本号、GitHub Release 与微软商店包（探针按用户指令跳过，未销账）
 
 用户令「交付，更新版本号，提交代码到github，更新版本打包发布到GitHub生成一个微软商店商店安装包」；过程中明确两条：「跳过这一轮探针」「zip就不必了github上只需要上传.exe就可以」。因此本轮按用户指令发布，但**没有把原生探针与验收截图记作通过，也不销账**。

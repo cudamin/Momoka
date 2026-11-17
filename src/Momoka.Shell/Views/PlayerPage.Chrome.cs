@@ -404,6 +404,25 @@ public sealed partial class PlayerPage
     private const double FullscreenSkipCorner = 2.6;
 
     /// <summary>
+    /// 暂停/播放徽标的**两档方框**（用户令 2026-11-17「集成模式点击屏幕暂停/开始时出现的图标全屏时要放大
+    /// 1.3 倍」）。这颗徽标是整条浮层里最后一件不跟档的东西：其余控件从 2026-09-28 起全按
+    /// <see cref="BigChrome"/> 走两档，它一直写死 136，于是全屏时相对四周反而变小了。
+    /// <para>
+    /// 窗口档 136 ＝ <see cref="PulseArt.Box"/>，也就是用户认过的那一档分量（形状换过两代，这个数一次没动，
+    /// PlaybackTests 钉着）；全屏/最大化档照同一条策略 ×1.3 ＝ <b>176.8</b>。
+    /// </para>
+    /// <para>
+    /// 摆的是外面那层 <c>PulseZoomBox</c>（Viewbox）—— <see cref="PulseArt"/> 的坐标是写死的 136 方框、
+    /// 不吃字号，1.3 只能由框做（与 <see cref="WindowPinGlyph"/> 那颗图钉同一个理由）。<b>不摆在
+    /// <c>PulseScale</c> 上</b>：那是 <c>PulseStoryboard</c> 的动画属性（0.86 → 1 → 1.06），摆上去一帧就被抹掉。
+    /// </para>
+    /// </summary>
+    private const double WindowPulseBox = PulseArt.Box;
+
+    /// <inheritdoc cref="WindowPulseBox"/>
+    private const double FullscreenPulseBox = PulseArt.Box * 1.3;
+
+    /// <summary>
     /// 返回键玻璃右缘与标题玻璃左缘之间那条缝（独占的 <c>title_spacing</c>＝<c>round(1 * scale)</c>，
     /// 两档都是 1）。它在这里是标题框的左边距 —— 0 号列（Auto）的宽度正是返回键那一格（玻璃＋左内缩），
     /// 所以「格子宽＋这个数」就是标题玻璃的左缘。
@@ -458,15 +477,17 @@ public sealed partial class PlayerPage
         // 记下这一档：SyncChromeScale 拿它比「档位变了没有」。
         _chromeBig = fullscreen;
 
-        // 与标题簇同一批的还有四处（2026-09-28 起逐批并档，更晚「复刻独占模式的控件放大策略到集成模式」
-        // 收齐）：进度条上面那一行（图标＋按钮格，ApplyTransportScale）、右上四颗（ApplyWindowGlyphScale）、
-        // 右缘音量条（ApplyRailScale）、跳过按钮（ApplySkipScale）。进出全屏与进页面这几条路都只调
-        // 这一个方法，五处一起摆 —— 分开写迟早会漏掉一条。
+        // 与标题簇同一批的还有五处（2026-09-28 起逐批并档，更晚「复刻独占模式的控件放大策略到集成模式」
+        // 收齐，2026-11-17 补上暂停/播放徽标）：进度条上面那一行（图标＋按钮格，ApplyTransportScale）、
+        // 右上四颗（ApplyWindowGlyphScale）、右缘音量条（ApplyRailScale）、跳过按钮（ApplySkipScale）、
+        // 暂停/播放徽标（ApplyPulseScale）。进出全屏与进页面这几条路都只调这一个方法，六处一起摆 ——
+        // 分开写迟早会漏掉一条。
         // 先摆图标：它们只是字号，不动布局；标题那五个数里有几项会改行高。
         ApplyTransportScale(fullscreen);
         ApplyWindowGlyphScale(fullscreen);
         ApplyRailScale(fullscreen);
         ApplySkipScale(fullscreen);
+        ApplyPulseScale(fullscreen);
         ArrangeDanmakuInput();
 
         // 宽度分档与高度公式那两处（倍速条宽度档、音量轨上限）按新档重算一遍：形态变了但 Root 尺寸
@@ -664,6 +685,22 @@ public sealed partial class PlayerPage
         SkipRow.Spacing = fullscreen ? FullscreenSkipGap : WindowSkipGap;
         SkipGlyph.FontSize = fullscreen ? FullscreenSkipGlyph : WindowSkipGlyph;
         SkipText.FontSize = fullscreen ? FullscreenSkipCaption : WindowSkipCaption;
+    }
+
+    /// <summary>
+    /// 暂停/播放徽标的**两档**（用户令 2026-11-17「集成模式点击屏幕暂停/开始时出现的图标全屏时要放大 1.3 倍」，
+    /// 数与理由见 <see cref="WindowPulseBox"/>）：只摆外面那层 Viewbox 的宽高。
+    /// <para>
+    /// 判据与浮层其余控件同一处（<see cref="BigChrome"/>：全屏**或最大化**），由
+    /// <see cref="ApplyTitleScale"/> 一次带齐 —— 这颗徽标只在点画面那一秒露面，漏摆一档没有任何截图看得见，
+    /// 所以另有一条自检（<c>PlayerPage.SelfCheck.Input.cs</c> 的 <c>ProbePulse</c>）把两档的实框各量一次。
+    /// </para>
+    /// </summary>
+    private void ApplyPulseScale(bool fullscreen)
+    {
+        var box = fullscreen ? FullscreenPulseBox : WindowPulseBox;
+        PulseZoomBox.Width = box;
+        PulseZoomBox.Height = box;
     }
 
     /// <summary>

@@ -114,6 +114,53 @@ internal static class PlayerInteractionTests
             Assert.Contains("SpeedStrip.Visibility = Visibility.Collapsed", code);
         });
 
+        TestHarness.Test("暂停/播放徽标：136 的方框外面套着两档用的 Viewbox", () =>
+        {
+            // 用户令 2026-11-17「点击屏幕暂停/开始时出现的图标全屏时要放大 1.3 倍」。形状是 PulseArt 里写死的
+            // 136 坐标，不吃字号，所以大档只能落在外面那层框上（与置顶那颗图钉的 PinGlyphBox 同一个手法）。
+            // 崩起来是静默的：Viewbox 被谁去掉、或者 Canvas 的宽高跟着被挪走，屏上那颗徽标就永远是窗口档那一档
+            // 大小，编译、单测与自检以外的任何一条路都看不出来。
+            var document = XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.xaml"));
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+            var badge = document.Descendants()
+                .Single(element => element.Name.LocalName == "Border" && element.Attribute(xaml + "Name")?.Value == "PulseBadge");
+
+            // 属性元素（Border.RenderTransform）也是 XML 的子元素，所以按名字挑那颗 Viewbox。
+            var box = badge.Elements().Single(element => element.Name.LocalName == "Viewbox");
+            Assert.Equal("PulseZoomBox", box.Attribute(xaml + "Name")?.Value);
+            Assert.Equal("Uniform", box.Attribute("Stretch")?.Value);
+
+            // 宽高就是这一档的方框，初值必须是窗口档 —— 只 build 不经过 ApplyPulseScale 的那几条路（探针、
+            // --show-osd）也还是对的。
+            Assert.Equal(PulseArt.Box.ToString(), box.Attribute("Width")?.Value);
+            Assert.Equal(PulseArt.Box.ToString(), box.Attribute("Height")?.Value);
+
+            var canvas = box.Elements().Single(element => element.Name.LocalName == "Canvas");
+            Assert.Equal("PulseArtBox", canvas.Attribute(xaml + "Name")?.Value);
+            Assert.Equal(PulseArt.Box.ToString(), canvas.Attribute("Width")?.Value);
+            Assert.Equal(PulseArt.Box.ToString(), canvas.Attribute("Height")?.Value);
+            Assert.Equal("Path", canvas.Elements().Single().Name.LocalName);
+        });
+
+        TestHarness.Test("暂停/播放徽标：全屏/最大化档挂在 ApplyTitleScale 上，倍率就是那 1.3", () =>
+        {
+            var root = RepositoryRoot();
+            var code = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "PlayerPage.Chrome.cs"));
+
+            // 两档的方框：窗口档就是 PulseArt 认过的那一档，大档乘 1.3 —— 与浮层其余控件同一把尺。
+            Assert.Contains("private const double WindowPulseBox = PulseArt.Box;", code);
+            Assert.Contains("private const double FullscreenPulseBox = PulseArt.Box * 1.3;", code);
+
+            // 摆的是 Viewbox，不是 PulseScale（那是 PulseStoryboard 的动画属性，摆上去一帧就被抹掉）。
+            Assert.Contains("PulseZoomBox.Width = box;", code);
+            Assert.Contains("PulseZoomBox.Height = box;", code);
+            Assert.DoesNotContain("PulseScale.ScaleX = box", code);
+
+            // 进出全屏与进页面只有 ApplyTitleScale 一条路 —— 它不带这一档，全屏时徽标就不跟着长。
+            Assert.Contains("ApplyPulseScale(fullscreen);", code);
+        });
+
         TestHarness.Test("独占快捷键：默认动作完整且清除旧键与新增键同时下发", () =>
         {
             var defaults = VideoWindowShortcuts.Bindings(new Dictionary<string, string>());
