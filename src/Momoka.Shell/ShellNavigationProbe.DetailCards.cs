@@ -433,9 +433,10 @@ internal sealed partial class ShellNavigationProbe
             button.ApplyTemplate();
             if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
             {
-                // 2026-11-16 用户令「用下方音频/字幕选择框一样的材质背景还有圆角」：常态与三态
-                // 都是商店档那支固定面色，圆角和闭合选择框同一档。
-                RequireFixedSurface([button]);
+                // 2026-11-17 用户令「这三个按钮的框改为鼠标移到按钮上的时候才显示」：常态不铺框，
+                // 指针移上去之后才由 PointerOver／Pressed 读那支固定面色；圆角和闭合选择框同一档。
+                Require(button.Background is SolidColorBrush { Color.A: 0 }, "图标键常态仍然铺着框");
+                RequireFixedSurface([button], restHidden: true);
                 Require(button.CornerRadius == (CornerRadius)page.Resources["EgDetailPickerCornerRadius"],
                     "图标键圆角没有跟下方选择框同一档");
             }
