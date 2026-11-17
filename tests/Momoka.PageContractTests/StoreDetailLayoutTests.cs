@@ -328,6 +328,30 @@ internal static class StoreDetailLayoutTests
                 "旧按钮的本地化字串没有退役");
         });
 
+        Test("商店视口：窗口宽过 1840 内容列后继续变宽，右沿仍离窗口边 StorePreviewGap", () =>
+        {
+            // 2026-11-17 用户令「加宽拉长窗口时候商店模式下，视口继续随窗口变宽」：视口几何改读窗口真实宽
+            // （Body.ActualWidth，另存为 DetailViewModel.WindowWidth），右沿靠负边距收回窗口边。
+            var vm = Source("ViewModels/DetailViewModel.Store.cs");
+            Assert.Contains("DetailHero.StoreWindowPreviewWidth(StoreWindowWidth)", vm);
+            Assert.Contains("DetailHero.StoreWindowPreviewHeight(StoreWindowWidth, HeroHeight)", vm);
+            Assert.Contains("DetailHero.StorePreviewRightMargin(StoreWindowWidth, PageWidth)", vm);
+
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("ViewModel.WindowWidth = Body.ActualWidth;", store);
+            // 视频底下那块局部色跟着装饰带一起铺满窗口，视口右移后右边不留一截短底。
+            Assert.Contains("StoreTrailerFoundation.Margin = bleedMargin;", store);
+
+            var page = Source("Views/DetailPage.xaml.cs");
+            Assert.Contains("ViewModel.WindowWidth = Body.ActualWidth;", page);
+
+            var trailer = Source("Views/DetailPage.StoreTrailer.cs");
+            Assert.Contains("DetailHero.StoreWindowPreviewWidth(window)", trailer);
+            Assert.Contains("DetailHero.StoreWindowPreviewHeight(window, ViewModel.HeroHeight)", trailer);
+            Assert.Contains("ViewModel.StorePreviewMargin.Right + 32", trailer);
+            Assert.Contains("DetailHero.StorePreviewGap);", trailer);
+        });
+
         Test("商店尾部：预告控制条没上屏时不再预留那 72 的空档", () =>
         {
             var viewModel = Source("ViewModels/DetailViewModel.cs");

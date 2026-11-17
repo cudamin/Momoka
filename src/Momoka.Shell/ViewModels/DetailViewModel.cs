@@ -470,6 +470,18 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial double PageWidth { get; set; }
 
     /// <summary>
+    /// 这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。与 <see cref="PageWidth"/> 不同：后者在商店档
+    /// 被 1840 内容列封顶，这个数保留窗口真实宽 —— 右侧剧照／预告视口据此继续随窗口变宽
+    /// （2026-11-17 用户令「加宽窗口时候视口继续随窗口变宽」）。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
+    [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
+    public partial double WindowWidth { get; set; }
+
+    /// <summary>
     /// 这一页这次走哪套版式 —— 页面窄过 <see cref="DetailHero.CompactFloor"/> 就换成单列的紧凑版式：封面按
     /// <see cref="DetailHero.ShowsStill"/> 让位（紧凑版式下四种页面都不画，2026-10-13「窄窗口下不要封面」），
     /// 播放和那排操作挪到画面底下

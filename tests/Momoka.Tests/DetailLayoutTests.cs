@@ -116,6 +116,31 @@ internal static class DetailLayoutTests
             }
         });
 
+        Test("商店视口：窗口宽过内容列后继续随窗口变宽，右沿仍留 StorePreviewGap", () =>
+        {
+            // 2026-11-17 用户令「加宽拉长窗口时候商店模式下，视口继续随窗口变宽」：60% 的自变量从
+            // 1840 内容列换成窗口真实宽，920 的上限退役；窄档仍整幅铺开。
+            Assert.Equal(744d, DetailHero.StoreWindowPreviewWidth(1240));
+            Assert.Equal(1104d, DetailHero.StoreWindowPreviewWidth(1840));
+            Assert.Equal(1536d, DetailHero.StoreWindowPreviewWidth(2560));
+            Assert.Equal(768d, DetailHero.StoreWindowPreviewWidth(0));
+            Assert.Equal(768d, DetailHero.StoreWindowPreviewWidth(double.NaN));
+            foreach (var width in new[] { 360d, 760d, 1023d })
+            {
+                Assert.Equal(DetailHero.StoreBackdropWidth(width), DetailHero.StoreWindowPreviewWidth(width));
+                Assert.Equal(DetailHero.StoreBackdropHeight(width, 700), DetailHero.StoreWindowPreviewHeight(width, 700));
+            }
+            // 高按 16:9 跟着宽走，与窗口高矮无关。
+            Assert.Equal(864d, DetailHero.StoreWindowPreviewHeight(2560, 300));
+            Assert.Equal(864d, DetailHero.StoreWindowPreviewHeight(2560, 1200));
+            // 右沿：窗口不超过内容列时就是那道 16；超宽时减掉右半边 bleed，负边距把视口带回窗口边。
+            Assert.Equal(16d, DetailHero.StorePreviewRightMargin(1240, 1240));
+            Assert.Equal(16d, DetailHero.StorePreviewRightMargin(1840, 1840));
+            Assert.Equal(-344d, DetailHero.StorePreviewRightMargin(2560, 1840));
+            Assert.Equal(16d, DetailHero.StorePreviewRightMargin(0, 0));
+            Assert.Equal(16d, DetailHero.StorePreviewRightMargin(double.NaN, 1840));
+        });
+
         Test("商店尾部下限：下方卡片排在剧照、预告控制与右沿空隙之后", () =>
         {
             // 内容高过画面：一个像素都不多占。

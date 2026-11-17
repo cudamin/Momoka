@@ -171,6 +171,41 @@ public static class DetailHero
         ? Math.Max(420, double.IsFinite(heroHeight) ? heroHeight : 0) : StorePictureHeight(width, 9d / 16);
 
     /// <summary>
+    /// 商店宽版式右侧剧照／预告视口的宽 —— 2026-11-17 用户令「加宽窗口时候视口继续随窗口变宽」：
+    /// 宽版式按这一页<em>看得见的宽</em>（窗口内容区，<c>Body.ActualWidth</c>）的 60% 走，不再按 1840
+    /// 内容列的 60%、也不封在 920。窗口越过内容列之后视口继续变宽，右沿由
+    /// <see cref="StorePreviewRightMargin"/> 收到窗口边、仍留 <see cref="StorePreviewGap"/>。
+    /// <para>
+    /// 与 <see cref="StoreBackdropWidth"/> 的差别只在宽版式的自变量：那一支仍在 1840 内容列上封 920，
+    /// 订阅详情页等旧布局继续读它；媒体详情页的商店档读这一支。窄档（整幅铺开）两支同值。
+    /// </para>
+    /// </summary>
+    /// <param name="windowWidth">这一页看得见的宽；还没量到（0／NaN）时按 1280 兜底，同
+    /// <see cref="TrailerPreview.BackgroundWidth"/>。</param>
+    public static double StoreWindowPreviewWidth(double windowWidth) => windowWidth is > 0 and < StoreWideFloor
+        ? windowWidth
+        : (double.IsFinite(windowWidth) && windowWidth > 0 ? windowWidth : 1280) * 0.60;
+
+    /// <inheritdoc cref="StoreWindowPreviewWidth"/>
+    /// <param name="heroHeight">窄档里至少垫住头部内容的高（同 <see cref="StoreBackdropHeight"/>）。</param>
+    public static double StoreWindowPreviewHeight(double windowWidth, double heroHeight) =>
+        windowWidth is > 0 and < StoreWideFloor
+            ? Math.Max(420, double.IsFinite(heroHeight) ? heroHeight : 0)
+            : StoreWindowPreviewWidth(windowWidth) * 9 / 16;
+
+    /// <summary>
+    /// 商店视口这回的右边距（<c>Margin.Right</c>，相对居中内容列的右沿）。内容列封顶 1840 并居中，
+    /// 窗口比它宽时两侧各让出等宽的 bleed；视口右沿要离<em>窗口</em>右边
+    /// <see cref="StorePreviewGap"/>，所以这里要把右边那一段减掉 —— 窗口不超过内容列时就是 16。
+    /// </summary>
+    /// <param name="windowWidth">这一页看得见的宽（<c>DetailViewModel.WindowWidth</c>）。</param>
+    /// <param name="contentWidth">居中内容列的宽（<c>DetailViewModel.PageWidth</c>）。</param>
+    public static double StorePreviewRightMargin(double windowWidth, double contentWidth) =>
+        windowWidth > 0 && contentWidth > 0 && windowWidth > contentWidth
+            ? StorePreviewGap - ((windowWidth - contentWidth) / 2)
+            : StorePreviewGap;
+
+    /// <summary>
     /// 没有剧照的条目上这一格有多高：一格底色加一层罩子，垫住海报、片名和那排键。
     /// <para>
     /// 和 <see cref="ArtHeight"/> 同值（<see cref="Height"/> 上面那段说明为什么留着两个名字）。

@@ -98,14 +98,19 @@ public sealed partial class DetailPage
             {
                 StoreScrollContent.Width = store ? columnWidth : double.NaN;
                 ViewModel.PageWidth = columnWidth;
+                // 窗口真实宽另存一份：内容列封顶 1840 之后，右侧剧照／预告仍跟着窗口变宽
+                // （2026-11-17 用户令），视口右沿再按它收回窗口边上。
+                ViewModel.WindowWidth = Body.ActualWidth;
             }
             // 2026-11-16 用户令「渐变要填满左右两边」：商店档的装饰带（环境底与淡墨）跟着整扇窗口走，
             // 不再被 1840 的内容列截在中间；左右多出来的那两截用负边距让出去，透过来的就是同一块
             // 环境色与同一道渐变。内容是居中的，两边让出的等宽，窗口不超过 1840 时这一项为 0。
+            // 2026-11-17 起视频底下那块局部色也跟着铺满：视口本身已跟着窗口变宽，它右边不该再短一截。
             var bleed = store && Body.ActualWidth > columnWidth ? (Body.ActualWidth - columnWidth) / 2 : 0;
             var bleedMargin = new Thickness(-bleed, 0, -bleed, 0);
             StoreAmbient.Margin = bleedMargin;
             StoreShade.Margin = bleedMargin;
+            StoreTrailerFoundation.Margin = bleedMargin;
             StoreHeroDetails.Visibility = store ? Visibility.Visible : Visibility.Collapsed;
             StoreHeroDetails.Spacing = store ? 14 : 8;
             // 2026-11-16 用户令「位置不够时不要裁切，直接压在背景图上」：片名栏撑到保底宽度时，
