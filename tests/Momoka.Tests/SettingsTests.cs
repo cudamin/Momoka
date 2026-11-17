@@ -1443,7 +1443,6 @@ internal static partial class SettingsTests
             settings.Playback.SeekBackwardLongSeconds = 9000;
             settings.Playback.ResumeRewindSeconds = -5;
             settings.Audio.DelayMilliseconds = 99999;
-            settings.Video.NetworkCacheMegabytes = -1;
 
             SettingsMigration.Normalize(settings);
 
@@ -1453,7 +1452,70 @@ internal static partial class SettingsTests
             Assert.Equal(600, settings.Playback.SeekBackwardLongSeconds);
             Assert.Equal(0, settings.Playback.ResumeRewindSeconds);
             Assert.Equal(5000, settings.Audio.DelayMilliseconds);
-            Assert.Equal(0, settings.Video.NetworkCacheMegabytes);
+        });
+
+        // v29 把「网络缓冲（MB）」一行拆成内网、外网两组（大小 + 时长）。0 是那一行的出厂值、不是选择，
+        // 手改出来的越界值读盘时夹回范围 —— 设置页上不存在 0，屏上永远读得到一个真的数。
+        Test("规整：缓冲两组四个数夹回范围，0 不是「跟随默认」", () =>
+        {
+            var settings = SettingsMigration.NewDefaults();
+            settings.Buffer.LanMegabytes = 0;
+            settings.Buffer.LanSeconds = -3;
+            settings.Buffer.WanMegabytes = 99999;
+            settings.Buffer.WanSeconds = 99999;
+
+            SettingsMigration.Normalize(settings);
+
+            Assert.Equal(BufferSettings.MinimumMegabytes, settings.Buffer.LanMegabytes);
+            Assert.Equal(BufferSettings.MinimumSeconds, settings.Buffer.LanSeconds);
+            Assert.Equal(BufferSettings.MaximumMegabytes, settings.Buffer.WanMegabytes);
+            Assert.Equal(BufferSettings.MaximumSeconds, settings.Buffer.WanSeconds);
+        });
+
+        Test("迁移：旧的网络缓冲（MB）照抄到内网与外网两组，0 走装机默认", () =>
+        {
+            var carried = SettingsMigration.FromJson(
+                """{"SchemaVersion":28,"Video":{"NetworkCacheMegabytes":200}}""", Protector);
+            Assert.Equal(200, carried.Buffer.LanMegabytes, "用户当年手调的那个量级要原样保留");
+            Assert.Equal(200, carried.Buffer.WanMegabytes);
+            Assert.Equal(BufferSettings.DefaultSeconds, carried.Buffer.LanSeconds, "旧文件没有时长这一项，走装机默认");
+            Assert.Equal(BufferSettings.DefaultSeconds, carried.Buffer.WanSeconds);
+
+            var untouched = SettingsMigration.FromJson(
+                """{"SchemaVersion":28,"Video":{"NetworkCacheMegabytes":0}}""", Protector);
+            Assert.Equal(BufferSettings.DefaultMegabytes, untouched.Buffer.LanMegabytes, "0 是没填过，不是选择");
+            Assert.Equal(BufferSettings.DefaultMegabytes, untouched.Buffer.WanMegabytes);
+
+            var missing = SettingsMigration.FromJson("""{"SchemaVersion":28}""", Protector);
+            Assert.Equal(BufferSettings.DefaultMegabytes, missing.Buffer.LanMegabytes);
+            Assert.Equal(BufferSettings.DefaultSeconds, missing.Buffer.WanSeconds);
+
+            // 越界的手改值也走同一道夹取：mpv 对超范围的值是拒绝起播，不是忽略。
+            var silly = SettingsMigration.FromJson(
+                """{"SchemaVersion":28,"Video":{"NetworkCacheMegabytes":99999}}""", Protector);
+            Assert.Equal(BufferSettings.MaximumMegabytes, silly.Buffer.LanMegabytes);
+        });
+
+        // 缓冲是设置页上的四行，和别的偏好一样：备份要带上，恢复默认要拨回装机值。漏了这一组，
+        // 新设置就会悄悄不在备份里、恢复默认也动不了它 —— SettingsPreferences 的类注释提醒的正是这种漏。
+        Test("偏好：缓冲两组跟着备份与恢复默认走", () =>
+        {
+            var live = new AppSettings();
+            live.Buffer.LanMegabytes = 512;
+            live.Buffer.LanSeconds = 60;
+            live.Buffer.WanMegabytes = 1024;
+            live.Buffer.WanSeconds = 120;
+
+            var backup = SettingsPreferences.ToBackupDocument(live);
+            Assert.Equal(512, backup.Buffer.LanMegabytes);
+            Assert.Equal(1024, backup.Buffer.WanMegabytes);
+            Assert.Equal(120, backup.Buffer.WanSeconds);
+
+            SettingsPreferences.Apply(live, new AppSettings());
+            Assert.Equal(BufferSettings.DefaultMegabytes, live.Buffer.LanMegabytes);
+            Assert.Equal(BufferSettings.DefaultSeconds, live.Buffer.LanSeconds);
+            Assert.Equal(BufferSettings.DefaultMegabytes, live.Buffer.WanMegabytes);
+            Assert.Equal(BufferSettings.DefaultSeconds, live.Buffer.WanSeconds);
         });
 
         Test("规整：音量默认 100，越界夹回 0–130", () =>

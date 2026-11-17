@@ -74,9 +74,12 @@ public static class SettingsPreferences
     private static void CopyInto(AppSettings destination, AppSettings source)
     {
         // 这几组整组都是设置页上的行，没有例外要留。快捷键整组回默认 ＝ 把用户改过的绑定清成空字典。
+        // 缓冲（2026-11-17 拆成内网/外网两组）也是设置页上的四行，恢复默认与备份/恢复配置都要带上它 ——
+        // 漏一组的坏法正是这类注释反复提醒的：新加的设置悄悄不在备份里，恢复默认也拨不动它。
         Overwrite(destination.Mpv, source.Mpv);
         Overwrite(destination.Playback, source.Playback);
         Overwrite(destination.Video, source.Video);
+        Overwrite(destination.Buffer, source.Buffer);
         Overwrite(destination.Shaders, source.Shaders);
         Overwrite(destination.Trailer, source.Trailer);
         Overwrite(destination.Shortcuts, source.Shortcuts);

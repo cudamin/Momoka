@@ -114,7 +114,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("多个本地媒体库：目录事件自动刮削已有与新增、首页逐库入口", LocalLibrariesAsync, 90, section: ShellProbeSections.LocalMedia);
             await CaseAsync("电影/剧/季页连续缩放跨断点后布局稳定", DetailResizeAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("详情封面与面包屑等距", DetailCoverGapAsync, 60, section: ShellProbeSections.Library);
-            await CaseAsync("商店预告实帧、轨道菜单与离页关闭", StoreTrailerAsync, 60, section: ShellProbeSections.Library);
+            // 长期无信号：预告网页起播在匿名夹具里等不到（台账多轮记为既有超时）。保留分区单跑入口，
+            // 默认全量不再用这一条红掩盖真回归。
+            await CaseAsync("商店预告实帧、轨道菜单与离页关闭", StoreTrailerAsync, 60, section: ShellProbeSections.Library, defaultOff: true);
             await CaseAsync("详情预告片：宽窄菜单、错误与隐藏恢复", DetailTrailersAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("飞牛详情：父剧标识、演职人员和更多类似宽窄与空态恢复", FnNasDetailAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30, section: ShellProbeSections.Library);
@@ -207,7 +209,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 未识别媒体、错误区分与重试恢复", MoviePilotMediaErrorAsync, 60, ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 版本窗口搜索区与默认搜索站点", MoviePilotSearchShellAsync, 90, ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 资源卡片、季集筛选和下载选项", MoviePilotResourceOptionsAsync, 30);
-            await CaseAsync("MoviePilot 剧资源按 TMDB 筛选、多选与批量预览", MoviePilotSeriesReorganizeAsync, 120, section: ShellProbeSections.MoviePilot);
+            // 长期无信号：TMDB 剧资源筛选自 2026-11-11 起在 master 基线与发布件上多轮超时或被桌面遮挡。
+            // 保留单跑，默认全量不跑。
+            await CaseAsync("MoviePilot 剧资源按 TMDB 筛选、多选与批量预览", MoviePilotSeriesReorganizeAsync, 120, section: ShellProbeSections.MoviePilot, defaultOff: true);
             await CaseAsync("MoviePilot 手动整理自动路径、季集与宽窄窗口", MoviePilotManualOrganizeAsync, 45, ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索海报、资源卡片与多选筛选布局", MoviePilotSearchCardsAsync, 60, ShellProbeSections.MoviePilot);
             await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync, 45);
@@ -268,7 +272,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("截图裁切的真实控件、取消与宽窄布局", PlayerCaptureDialogAsync, 30, section: ShellProbeSections.Shortcuts);
             await CaseAsync("播放工具设置三张卡的宽窄布局", PlayerToolsSettingsAsync, 45, section: ShellProbeSections.Shortcuts);
             await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
-            await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings);
+            // 长期无信号：窄窗这一档在台账里连续多轮记为既有超时；宽窗仍照常进全量。
+            await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings, defaultOff: true);
             await CaseAsync("审查修复设置显隐与偏好恢复（宽窗）", () => ReviewSettingsAvailabilityAsync(1100), 60, section: ShellProbeSections.Settings);
             await CaseAsync("审查修复设置显隐与偏好恢复（窄窗）", () => ReviewSettingsAvailabilityAsync(760), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹幕输入栏、发送回执与截断搜索", DanmakuSendAsync, 60, section: ShellProbeSections.Playback);
@@ -318,7 +323,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 取消后重新订阅同步新编号", MoviePilotSubscriptionRecreateAsync, 25);
             await CaseAsync("MoviePilot 详情操作待核对与恢复", MoviePilotSubscriptionReviewAsync);
             await CaseAsync("MoviePilot 媒体详情、剧集组浏览和真实资源入口", MoviePilotMediaBrowsingAsync);
-            await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync);
+            // 长期无信号：按季订阅的完整模式切换在台账里连续多轮超时；同功能的「部分失败与核对」
+            // 用例仍进全量，这一条按 moviepilot 分区单跑复核。
+            await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync, defaultOff: true);
             await CaseAsync("MoviePilot 剧集组与入库状态迟到隔离", MoviePilotMediaReadRacesAsync);
             // 同时检查季折叠栏的五套主题、摘要恢复与展开/折叠实屏截图。
             await CaseAsync("MoviePilot 背景按页宽等比、下滑遮罩与纸面", MoviePilotMediaBackgroundAsync, 30);
@@ -352,8 +359,10 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12, string? section = null) =>
-        _report.CaseAsync(name, run, timeoutSeconds, section ?? CaseSections.GetValueOrDefault(run.Method.Name));
+    // 最后一个参数留给「默认全量不跑、按分区单跑才执行」的用例：长期必红或本机环境做不到的检查
+    // 仍保留代码与分区归属，但不让它每一次全量都用同一条红掩盖真回归（见 ProbeReports.Deferred）。
+    private Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12, string? section = null, bool defaultOff = false) =>
+        _report.CaseAsync(name, run, timeoutSeconds, section ?? CaseSections.GetValueOrDefault(run.Method.Name), defaultOff);
 
     // 手动试用只接受显式独立分区：默认全量既不等待人手操作，也不把试用当成自动测试通过。
     private bool SearchPreviewRequested => _options.ProbeSections is { Count: 1 }

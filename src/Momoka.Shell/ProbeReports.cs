@@ -99,6 +99,7 @@ internal sealed class ShellProbeReport
     private readonly Action<string, string, Encoding> _writer;
     private readonly List<Check> _checks = [];
     private readonly List<Skipped> _skipped = [];
+    private readonly List<Deferred> _deferred = [];
     private readonly HashSet<string>? _sections;
     private readonly IReadOnlyList<string> _allSections;
 
@@ -115,12 +116,18 @@ internal sealed class ShellProbeReport
     internal sealed record Check(string Name, bool Passed, string Detail);
     private sealed record Skipped(string Section, string Name);
 
+    /// <summary>
+    /// 默认全量不跑、只在显式选中它所属分区时才跑的用例。用于长期无信号（必红／超时／本机环境
+    /// 做不到）的检查：它们仍留在这里，按分区单跑可以复核；但不能在每一轮全量里用同一条红把真回归埋掉。
+    /// </summary>
+    private sealed record Deferred(string Section, string Name);
+
     internal Task RunAsync(Func<Task> run, bool inspect, Action dispose, Action exit, Action<int> setExitCode) =>
         ProbeFinalization.RunAsync(run, () => (inspect || _checks.Count > 0) && _checks.All(check => check.Passed),
             Save, error => _checks.Add(new Check("探针宿主", false, error.ToString())),
             dispose, exit, setExitCode, SaveScope);
 
-    internal async Task CaseAsync(string name, Func<Task> run, int timeoutSeconds, string? section)
+    internal async Task CaseAsync(string name, Func<Task> run, int timeoutSeconds, string? section, bool defaultOff = false)
     {
         if (section is null)
         {
@@ -131,6 +138,13 @@ internal sealed class ShellProbeReport
         if (_sections is not null && !_sections.Contains(section))
         {
             _skipped.Add(new Skipped(section, name));
+            SaveScope();
+            return;
+        }
+        // 全量（没选分区）才默认不跑；显式 --probe-section 选到它时照常执行，便于单独复核。
+        if (_sections is null && defaultOff)
+        {
+            _deferred.Add(new Deferred(section, name));
             SaveScope();
             return;
         }
@@ -188,7 +202,13 @@ internal sealed class ShellProbeReport
             $"执行区域：{selected}",
             $"未执行区域：{unselected}",
             $"未执行检查：{_skipped.Count}",
+            $"默认不跑：{_deferred.Count}",
         };
+        foreach (var group in _deferred.GroupBy(item => item.Section, StringComparer.Ordinal).OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            lines.Add($"[{group.Key}] 默认不跑（显式选该分区时仍执行）");
+            lines.AddRange(group.Select(item => "- " + item.Name));
+        }
         foreach (var group in _skipped.GroupBy(item => item.Section, StringComparer.Ordinal).OrderBy(group => group.Key, StringComparer.Ordinal))
         {
             lines.Add($"[{group.Key}]");
