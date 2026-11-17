@@ -1,3 +1,19 @@
+## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（分支 feat-store-cover-align-0FZQCI，未合并）
+
+用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。
+
+**改了什么。** 商店档左上角封面的高不再固定 270：`DetailHero.StoreStillBox` 按右栏「徽标上沿到主播放键下沿」的实测高（`DetailViewModel.StoreCoverRoom`）给封面，宽按这张位图自己的比例乘出来、最宽收到 260（`StoreStillMaxWidth`），没量到、播放键收起或这一档没有播放键时退回原来的 180×270 兜底；比例特别宽或特别竖的图仍由宽或高收住，不会被拉成通栏。封面与片名那一栏同从 `HeroContent` 上沿起排，所以上沿本来就与徽标同线，这次只把下沿长到播放键下沿。`DetailPage.MeasureStoreCover` 在 `HeroContent` 坐标系里量 `StoreCoverColumn` 上沿到 `StorePlaySlot` 下沿的距离，片名栏实测高变化（`OnHeroStackSizeChanged`）和播放键那一格换了几何（`OnStorePlaySlotSizeChanged`）都重报一次；离开商店模式、播放键收起或还没布出来时交 0，封面回到兜底盒。`StillWidth`／`StillHeight` 原有通知链把片名栏宽、带高与右上角艺术图一起带过去，没有新增绑定。
+
+**探针。** 原先写死的 180×270 期望同步改掉：`DetailResponsive` 改判「画的就是视图模型那一格且不小于兜底」，`EpisodeBand`／`FnNasDetail` 改用 `StoreStillBox(400, 600, view.StoreCoverRoom)` 与剧海报比例核对；`DetailCards` 的商店检查新增「封面与徽标同一条上沿、下沿与主播放键下沿平行」，并给那一份商店夹具补上徽标、评分、年份与时长，右栏才高过兜底盒、这两句在原生探针里才真的被量到。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（最终重编 2 分 18 秒）；`detail-action-readiness-fixture` **95/95**（含新增「商店封面：按右栏徽标到播放键下沿实测放大，离开商店恢复 260×375 盒」）；全量 `Momoka.Tests` **5225 项、通过 5209、失败 16**，16 条全部是自检夹具在 `SelfCheckRun.Create` 上撞到「已有当前用户的自检运行中」——同时有别的会话的 Momoka 进程占着共享桌面的自检 mutex，与本批代码无关，如实保留未洗绿；新增的 Core 用例「商店封面：高跟右栏徽标到播放键下沿，宽按图比例且不超过 260，没量到时仍是 180×270」通过。`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 的 11 个变更路径通过。改完探针后按「改探针当轮跑受影响路径」实跑 `Momoka.exe --probe-shell --probe-section detail-cards --screen 1`：**2/2 通过**（`%LOCALAPPDATA%\Momoka\logs\shell-probe-20261117-131129490-19408`），已目视 `store-detail-cards-media-1240.png`，封面顶到徽标上沿、下沿与蓝色播放键下沿齐平。
+
+**没动的。** 商店档之外的沉浸／纸面／紧凑版式仍走原来的 260×375 上限盒（`FitStill` 的非商店分支）；封面高度变大会把右上角艺术图一起带高（`StoreArtHeight = StillHeight`，沿用 2026-11-17 早先「和左边封面一样高」的要求）。360 这类压力尺寸上右栏正文折行把实测高撑得比 260 宽上限允许的封面还高，探针的下沿对齐断言按「宽上限先到」跳过，不作失败也不作对齐证据。
+
+**发布。** 按改好收尾复制主树的 `libmpv-2.dll` 后发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-store-cover-align-0FZQCI`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-feat-store-cover-align-0FZQCI.lnk` 的目标与工作目录回读为本树 `artifacts/publish/win-x64`，21:14 生成；主树 `Momoka.lnk` 未动。
+
+**提交。** 产品与测试 `f592a21`；本条记录随文档提交。
+
 ## 2026-11-17 商店详情三颗图标键的框改为悬停才显示（已合并 master，待统一验证）
 
 用户一句话：「这三个按钮的框改为鼠标移到按钮上的时候才显示」——指商店模式详情页片名下方那三颗图标键（已看、收藏、更多）。
