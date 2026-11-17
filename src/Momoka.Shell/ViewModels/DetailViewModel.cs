@@ -478,6 +478,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
     [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -546,6 +547,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreArtHeight));
         OnPropertyChanged(nameof(StoreArtWidth));
         OnPropertyChanged(nameof(StoreArtMargin));
+        OnPropertyChanged(nameof(StoreArtWashHeight));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StoreBackdropWidth));
@@ -843,6 +845,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     [NotifyPropertyChangedFor(nameof(StoreArtHeight))]
     [NotifyPropertyChangedFor(nameof(StoreArtWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     public partial double StillHeight { get; set; }
 
     /// <summary>
@@ -999,6 +1002,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     public partial double StackRoom { get; set; }
 
     /// <summary>
@@ -2896,6 +2900,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreArtHeight));
         OnPropertyChanged(nameof(StoreArtWidth));
         OnPropertyChanged(nameof(StoreArtMargin));
+        OnPropertyChanged(nameof(StoreArtWashHeight));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreHeroWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));

@@ -39,6 +39,13 @@ public sealed partial class DetailViewModel
     public double StoreArtHeight => StoreMode ? StillHeight : 0;
 
     /// <summary>
+    /// 艺术图那一档的纯色底铺多高（2026-11-17 用户令「面积不够大，要到卡片上方」）：头图那一格，加上尾部
+    /// 那道 2 与正文纸面的 14 上留白 —— 正好到正文第一张卡的上沿；不跟右侧剧照视口的高度走。
+    /// </summary>
+    public double StoreArtWashHeight => StoreMode
+        ? HeroHeight + TailInset.Top + SheetPadding.Top : 0;
+
+    /// <summary>
     /// 上面那张艺术图的宽：按这张位图自己的宽高比从 <see cref="StoreArtHeight"/> 乘出来（还没解出像素时按
     /// 16:9 兜底）。图的比例是几就是几，不裁也不拉。
     /// </summary>
@@ -133,6 +140,7 @@ public sealed partial class DetailViewModel
         OnPropertyChanged(nameof(HeroLayoutHeight));
         OnPropertyChanged(nameof(HeroHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
+        OnPropertyChanged(nameof(StoreArtWashHeight));
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(ScrimHeight));
         OnPropertyChanged(nameof(PictureHeight));

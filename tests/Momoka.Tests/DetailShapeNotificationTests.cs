@@ -89,12 +89,20 @@ internal static partial class DetailActionReadinessTests
                         (double)marginType.GetProperty("Top")!.GetValue(storeArtMargin)!);
                     Assert.Equal(DetailHero.StorePageInset(width),
                         (double)marginType.GetProperty("Right")!.GetValue(storeArtMargin)!);
+                    // 2026-11-17 用户令「面积不够大，要到卡片上方」：纯色底高＝头图 + 尾部那道 2 + 纸面 14 上留白。
+                    var tailInset = f.Get("TailInset")!;
+                    var sheetPadding = f.Get("SheetPadding")!;
+                    Assert.Equal((double)f.Get("HeroHeight")!
+                            + (double)tailInset.GetType().GetProperty("Top")!.GetValue(tailInset)!
+                            + (double)sheetPadding.GetType().GetProperty("Top")!.GetValue(sheetPadding)!,
+                        (double)f.Get("StoreArtWashHeight")!);
                     Assert.True(notices.Contains("StoreContentWidth"));
                     Assert.True(notices.Contains("StoreHeroWidth"));
                 }
                 notices.Clear();
                 f.Vm.GetType().GetProperty("StoreDetailsRoom", Members)!.SetValue(f.Vm, 700d);
                 Assert.True(notices.Contains("StoreBackdropHeight"), "详情晚到变高没有通知亚克力区域");
+                Assert.True(notices.Contains("StoreArtWashHeight"), "详情晚到变高没有通知纯色底");
                 Assert.Equal((double)f.Get("HeroHeight")!, (double)f.Get("StoreBackdropHeight")!);
                 // 2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能」：设置那一格
                 // 翻了之后，两格显隐都要重算并通知 —— 这一份夹具没有图，两格都收着。
