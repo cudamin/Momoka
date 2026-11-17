@@ -14472,3 +14472,20 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 同日追加（用户令「感觉这个有点重复了，把图二的卡片改为主题色选择功能」「改为跟随系统主题色」）：主题那一行只保留五套固定色板，「跟随系统」格撤掉（选择模式已经有），最后一格改为主题色按钮 —— 底色直接用主题角色 `EgAccentBrush`、字用 `EgTextOnAccentBrush`，点开是 HTML 拾色器，清除即跟随系统主题色；界面卡里原先单独的主题色行随之撤掉，避免两个入口。`SettingThemeRow` 增加 `ThemeAccentSwatch.Tiles` 与 `ThemeTileSelector`，旧文件 `Theme=system` 时色板角标不落（由选择模式表示跟随）。`settings-page-state-fixture` 59/59（新增「主题色格：选色写回一次并保存，清除后显示跟随系统」），`system-theme-fixture` 62/62（新增「主题色：未自定义时跟随系统主题色，自定义优先」），`Momoka.SystemThemeTests` 9/9（新增系统色变化重算与自定义优先），Shell Release 0 警告 0 错误；此追加尚未跑原生探针与截图，已并入第63项交付范围。
 
 **合并。** 2026-11-16 用户要求合并。本分支先与当时 master（`d0d9e91`）合并一次（`7fb8ae3`），随后主树推进到 `7add828`（第 62 项商店详情头部、第 61 项聚合模式来源用户名），再合并一次（`e99b559`），最后并入第 61 项记录提交 `2ed0fe1`（`38ab996`）。冲突只在 `PROGRESS.md`、`docs/待交付批次.md` 与 `tests/Momoka.Tests/Momoka.Tests.csproj`：按时间保留两边台账（本批编号顺延为 63），`StartupAvailability` 生成代码同时保留 `ThemeHost.Apply(UiSettings)` 与 `ShellPrefs.ApplyTrailers`。合并后 Shell Release/x64 0 警告 0 错误；`settings-page-state-fixture` 59/59、`system-theme-fixture` 62/62、`settings-storage-fixture` 188/188、`startup-state-contract-fixture` 61/61、`Momoka.SystemThemeTests` 9/9。主树未重新发布，桌面 `Momoka.lnk` 仍指旧构建；合并本身未跑全量验证与探针。
+
+# 2026-11-17 详情悬浮栏：字回到本应用的两支排版字，播放三角不再换色（待统一验证）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-font-hover-triangle-mlSsLc`，分支 `fix-font-hover-triangle-mlSsLc`，基点 `da697ac`。用户两句话配两张实屏：「这个字体怎么怪怪的，还有按钮移到横幅上的时候三角形怎么变色了」。看截图与源码，两处都在详情页顶部那条悬浮栏上：
+
+- **字（`DetailPage.xaml`）。** 片名那一行原先借框架的 `BodyStrongTextBlockStyle` 再盖 18 号，副标题借 TextBlock 出厂值（14、比例字），于是这一条浮在页面上的栏是整套界面里唯一拿「更大的正文」当标题、拿比例字当读数的地方 —— 同一串「集号 · 类型 · 日期 · 时长」在头图上是 `EgOnScrimDataStyle` 的等宽字，在栏里换成另一种。新增页面局部样式 `EgStickyTitleStyle`（BasedOn `EgPageTitleStyle`：Bahnschrift SemiCondensed、汉字落雅黑，字号仍 18，栏高与行距不变），副标题改 `EgDataStyle`（等宽 12、`EgTextDimBrush`，与原先那支 `TextFillColorSecondaryBrush` 同色）。
+- **三角（`DetailPage.Appearance.cs`）。** 主播放键有两枚三角（有断点取强调色、没有断点跟字走），三颗键一共六枚；有断点那三枚一直在 `PaintReadingColors` 里按「强调面 / 半透明药丸」显式上墨，没有断点那三枚只靠清掉 XAML 的白墨、继承按钮前景。悬浮栏收起时按钮模板还没建出来，视觉树走不到它，第一次从 Collapsed 上屏时白墨仍留在图标上 —— 正文里已上过墨的深色三角飞进栏里变回白色，就是用户看到的那次变色。三枚补上名字（`ColumnPlayGlyph`／`CompactPlayGlyph`／`StickyPlayGlyph`）并与断点那三枚同一循环里写 `button.Foreground`，移入移出都不再换色；沉浸档仍是白墨、商店强调面仍是深墨，高对比度仍让给系统前景。
+
+本轮已跑：Shell Release/x64 0 警告 0 错误（2 分 17 秒）；`Momoka.DetailStickyHeaderTests` 93/93、`Momoka.PageContractTests` 353/353、`acrylic-controls-fixture` 40/40，0 失败 0 跳过。按日常界面规则未跑原生探针与验收截图；`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-font-hover-triangle-mlSsLc` 已发布本树（548 文件、289.9 MB）并刷新分支快捷方式，这不是统一验证或销账。改动尚未提交，未合并 master，待交付台账新增第 70 项。
+
+**同日追加：字体审计（用户问「统一界面的字体会不会更好看」，选定「保持三支字，做一次审计」）。** 结论先写在前面：这套界面已经是「每支字管一个角色」——中文全站雅黑，Bahnschrift 只画标题里的西文，等宽只画读数；真正显得不统一的是零星几处借了角色之外的字。本轮只做归位，不改角色本身：
+
+- **标题**：控制台、通知、服务器三页的页抬头一直是内联 26 号半粗、没写字体（和主页/详情那套 36 号页标题不是一个角色）——`Styles.xaml` 新增 `EgSubpageTitleStyle`（BasedOn `EgSectionTitleStyle`，字号仍 26、行高不动），三处换用。通知页两张卡片标题与「聚合报告」标题改 `EgSubheadStyle`（16 半粗）、通知与服务页的空态大标题改 `EgSectionTitleStyle`（20）、卡片悬停预览的片名从 `EgBodyStyle` 盖 20 改成 `EgSectionTitleStyle`——尺寸与字重全部不变，只换族与角色。
+- **读数**：海报卡时长/评分/分辨率三颗角标从正文字改 `EgDataStyle`／`EgDataStrongStyle`，和卡片副行、集号、码率同一支等宽；播放页悬停时间的内联 `Consolas,Cascadia Mono,Segoe UI` 改 `EgDataFontFamily`；`MediaInfoDialog` 原先自己写了一份反序的等宽列表，改读 `EgDataFontFamily` 资源。
+- **不动**：图标字形（`Segoe UI Symbol` 的竖三点、`Segoe Fluent Icons` 的跳过图标、🍅 emoji）按原注释保留；设置页主题预览格里的 `EgUiFontFamily` 是那张迷你窗口的模拟字，不是应用文字；播放页的控件字体本就显式用 `EgUiFontFamily`，只有悬停时间这一处漏网。
+
+审计后复跑：Shell Release/x64 0 警告 0 错误（1 分 47 秒）；全量 `Momoka.Tests` **5210/5210**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过（TEMP 指本树可写目录，避开 `C:\WINDOWS\TEMP` 那两条既有环境红）；两个改动 `.cs`（本轮的 `MediaInfoDialog.cs` 与上一轮的 `DetailPage.Appearance.cs`）`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 12 个变更路径行尾、BOM、末尾换行与空白检查通过。同样未跑探针与实屏；下一次改好收尾会再刷新一次快捷方式。
