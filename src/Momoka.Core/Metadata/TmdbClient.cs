@@ -18,12 +18,13 @@ public sealed class TmdbClient : IDisposable
     private readonly HttpClient _http;
     private readonly string _token;
 
-    public TmdbClient(string readAccessToken, HttpMessageHandler? handler = null)
+    public TmdbClient(string readAccessToken, HttpMessageHandler? handler = null, IWebProxy? proxy = null)
     {
         if (string.IsNullOrWhiteSpace(readAccessToken) || readAccessToken.Any(character => character <= ' ' || character >= 127))
             throw new TmdbException("请提供有效的TMDB API Read Access Token。");
         _token = readAccessToken;
-        handler ??= new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false };
+        // proxy 为 null 时保持 HttpClientHandler 的默认行为：跟随系统代理 —— 与这一行出现之前一样。
+        handler ??= new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, Proxy = proxy };
         // 实际HTTP传输也不追随重定向；测试注入的匿名handler只替代网络边界。
         if (handler is HttpClientHandler network) { network.AllowAutoRedirect = false; network.UseCookies = false; }
         if (handler is SocketsHttpHandler sockets) { sockets.AllowAutoRedirect = false; sockets.UseCookies = false; }

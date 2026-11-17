@@ -380,6 +380,7 @@ public static class SettingsMigration
         if (settings.Shaders is null) settings.Shaders = new ShaderAutomationSettings();
         if (settings.Ui is null) settings.Ui = new UiSettings();
         if (settings.Trailer is null) settings.Trailer = new TrailerSettings();
+        if (settings.Network is null) settings.Network = new NetworkSettings();
         if (settings.Shortcuts is null) settings.Shortcuts = new ShortcutSettings();
         if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
         if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();
@@ -559,6 +560,11 @@ public static class SettingsMigration
 
         // 选择模式（2026-11-16）：只认三个值，认不出来回深色（缺键旧文件的默认档）。
         settings.Ui.AppearanceMode = Theming.UiThemes.NormalizeMode(settings.Ui.AppearanceMode);
+
+        // 代理服务器（设置 → 关于 → 网络，2026-11-18）：认得出的地址归一成 scheme://host:port，认不出的
+        // 原样去空白留着 —— 两个消费者都先过 ProxyEndpoint.TryParse，认不出的值不会被拿去用，也不会被这里
+        // 悄悄清掉。缺键的旧文件读出来是空串，两个消费者都不拿代理，行为一个字节都不变。
+        settings.Network.ProxyServer = ProxyEndpoint.Normalize(settings.Network.ProxyServer);
 
         // 记下来的窗口尺寸只做「不是垃圾数字」这一道校验，摆到哪块屏、要不要缩进工作区由
         // ScreenPlacement.Restore 在开窗那一刻定 —— 只有那时候才知道现在接着几块屏、各自多大。0 是

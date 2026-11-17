@@ -35,6 +35,9 @@ public sealed class LocalLibraryCoordinator : IDisposable
         _library = new(Path.Combine(paths.Root, "local-library.json"));
         _library.Changed += OnLibraryChanged;
         _moviePilot.AvailabilityChanged += OnAvailabilityChanged;
+        // 代理改了：重开各库监控，让每一份 TmdbClient 拿到新的 HttpClient。设置页在另一个窗口，
+        // 这根静态线就是它唯一能碰到这里的方式（同 ShellPrefs 的其它信号）。
+        ShellPrefs.ProxyChanged += OnProxyChanged;
     }
 
     public IReadOnlyList<LocalMediaLibrarySettings> Libraries => _settings.Settings.LocalMedia.Libraries.Select(value => value.Copy()).ToArray();
@@ -222,7 +225,8 @@ public sealed class LocalLibraryCoordinator : IDisposable
             try { credential = _protector.Unprotect(_settings.Settings.LocalMedia.ProtectedTmdbToken); }
             catch (Exception) { credential = ""; }
             if (string.IsNullOrWhiteSpace(credential)) { _notices[configuration.Id] = "请先保存 TMDB 读取令牌"; return; }
-            tmdb = new(credential);
+            // 代理在每次重建监控时读一次：设置页改完会喊 ShellPrefs.ApplyProxy，这里重开监控就换上新代理。
+            tmdb = new(credential, proxy: ProxyEndpoint.CreateWebProxy(_settings.Settings.Network.ProxyServer));
             var client = tmdb;
             images = client.FetchImageAsync;
             recognize = async (source, token) =>
@@ -300,6 +304,14 @@ public sealed class LocalLibraryCoordinator : IDisposable
     }
 
     internal static LocalMediaLinkMode Mode(string mode) => mode switch { "rename" => LocalMediaLinkMode.Rename, "symboliclink" => LocalMediaLinkMode.SymbolicLink, _ => LocalMediaLinkMode.HardLink };
+
+    /// <summary>代理改了：重开所有监控，每一份 TmdbClient 都按新代理重建。不重开的话后台刮削会一直用旧连接。</summary>
+    private void OnProxyChanged(NetworkSettings network)
+    {
+        if (!_started || _disposed) return;
+        _ = RecognitionChangedAsync();
+    }
+
     private static bool SamePath(string first, string second) => string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)), StringComparison.OrdinalIgnoreCase);
     private static bool Overlap(string first, string second)
     {
@@ -341,6 +353,7 @@ public sealed class LocalLibraryCoordinator : IDisposable
         _disposed = true; _started = false;
         _moviePilot.AvailabilityChanged -= OnAvailabilityChanged;
         _library.Changed -= OnLibraryChanged;
+        ShellPrefs.ProxyChanged -= OnProxyChanged;
         foreach (var operation in _manual.Values) operation.Cancellation.Cancel();
         foreach (var running in _running.Values)
         {

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Momoka.Configuration;
+using Momoka.Infrastructure;
 using Momoka.LocalMedia;
 using Momoka.Metadata;
 using Momoka.MoviePilot;
@@ -22,6 +23,7 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
     private int _revision;
     private bool _attached;
     private bool _loadingCorrection;
+    private bool _proxyChangedWhileBusy;
 
     public ObservableCollection<LocalMediaRow> Rows { get; } = [];
     public ObservableCollection<LocalMediaCandidate> Candidates { get; } = [];
@@ -81,6 +83,7 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
         Recursive = saved.Recursive;
         MpAvailable = moviePilot.Available;
         OpenTmdb();
+        if (!_attached) ShellPrefs.ProxyChanged += OnProxyChanged;
         _attached = true;
         Changed();
     }
@@ -119,9 +122,19 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
         HasToken = !string.IsNullOrWhiteSpace(token);
         if (HasToken)
         {
-            try { _tmdb = new(token); }
+            try { _tmdb = new(token, proxy: ProxyEndpoint.CreateWebProxy(_settings?.Settings.Network.ProxyServer)); }
             catch (Exception) { HasToken = false; Notice = "已保存的 TMDB 读取令牌无效，请重新填写。"; }
         }
+    }
+
+    /// <summary>
+    /// 设置页改了代理：换一个新的 TMDB 客户端，下一次搜索/扫描就走新代理。正在扫描时不打断它，
+    /// 等这一轮收尾（<see cref="End"/>）再换 —— 中途 Dispose 正在用的 HttpClient 会让那一轮直接失败。
+    /// </summary>
+    private void OnProxyChanged(NetworkSettings network)
+    {
+        if (Busy) { _proxyChangedWhileBusy = true; return; }
+        OpenTmdb();
     }
 
     public async Task ScanAsync()
@@ -315,6 +328,11 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
     {
         if (ReferenceEquals(_operation, source)) _operation = null;
         Busy = false;
+        if (_proxyChangedWhileBusy)
+        {
+            _proxyChangedWhileBusy = false;
+            OpenTmdb();
+        }
         Changed();
     }
     public void Stop() => _operation?.Cancel();
@@ -406,6 +424,7 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
         _attached = false;
         _revision++;
         Stop();
+        ShellPrefs.ProxyChanged -= OnProxyChanged;
         _tmdb?.Dispose();
         if (_coordinator is not null) _coordinator.Changed -= LibrariesChanged;
         foreach (var row in Rows) { row.Plan = null; row.Ready = false; row.PropertyChanged -= RowChanged; }

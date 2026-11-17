@@ -1,3 +1,13 @@
+## 2026-11-18 关于 → 网络：刮削与 YouTube 预告的代理服务器（分支 `feat-add-proxy-settings-6z2QPB`，待合并）
+
+用户令「参考上图在设置关于中新增代理服务器，用于刮削和播放油管视频，做好了使用 http://127.0.0.1:8686 验证，完了自动合并到主树」。
+
+**改了什么。** 新增 `NetworkSettings.ProxyServer`（`AppSettings.Network`）与设置 → 关于 → 「网络」卡上的「代理服务器」一行，说明文字照参考图（支持 http(s)、socks5、socks5h，留空跟随系统）。地址解析只在 Core 的 `ProxyEndpoint` 一处：不写 scheme 的 `host:port` 按 http；带账号、路径、查询串、空白或控制字符的值不认（它会被拼进 WebView2 的浏览器启动参数，换行能把一条拆成两条）；socks5h 对 Chromium 换算成 socks5。两个消费者：`TmdbClient`（本机整理的刮削，`LocalLibraryCoordinator` 后台监控与 `LocalMediaViewModel` 手动页各一处）拿到 `IWebProxy`；`YouTubeSession` 在 WebView2 环境参数里加 `--proxy-server=`，并按「建环境时用的代理」记住，设置改了下一次建环境重建（已经打开的预告窗保留旧会话继续播）。设置页改完喊 `ShellPrefs.ApplyProxy`：后台监控重开、本机整理页换掉手里的客户端（正在扫描时等本轮收尾再换）。这一行跟着偏好备份/恢复默认走（`SettingsPreferences`），因为它没有凭据、也不是另一台机器的连接。
+
+**本轮已跑。** Core 与 Shell Release/x64 **0 警告 0 错误**；`proxy-fixture` **5/5**（解析与归一、设置迁移、备份/恢复默认、以及回环假代理收到 TMDB 请求的 `CONNECT api.themoviedb.org:443`）；全量 `Momoka.Tests` **5248/5248**（`TEMP` 指到可写目录；默认 `C:\WINDOWS\TEMP` 下两条既有下载用例报环境红，与改动无关）；`settings-page-state-fixture` **59/59**（关于卡名单补「网络」）；`settings-search-fixture` **14/14**；`settings-applicability-fixture` **36/36**；`local-media-vm-fixture` **7/7**。
+
+**待做。** 用 `http://127.0.0.1:8686` 实机核对 YouTube 预告（读 WebView2 浏览器进程命令行里的 `--proxy-server` 与真实起播）；按用户要求合并主树，合并后在最终 master 上复编、跑测试并发布/刷新快捷方式。未推远端。
+
 ## 2026-11-18 YouTube 预告真机可播：共享登录 + `www.youtube.com/embed`（已合并 master，待统一验证）
 
 用户要求「验收时候真实服务器能播放」，不再接受只提示加载失败。

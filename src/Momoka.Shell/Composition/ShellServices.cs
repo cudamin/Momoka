@@ -49,7 +49,10 @@ internal static class ShellServices
 
         // ---- the ground floor: where files live and how secrets are protected -------------------------
         services.AddSingleton(paths);
-        services.AddSingleton(_ => new YouTubeSession(Path.Combine(paths.WebViewDirectory, "youtube")));
+        // 代理地址每次建 WebView2 环境时从设置里现读：设置页改了代理，下一次打开的预告就用新地址。
+        services.AddSingleton(provider => new YouTubeSession(
+            Path.Combine(paths.WebViewDirectory, "youtube"),
+            () => provider.GetRequiredService<AppSettings>().Network.ProxyServer));
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
