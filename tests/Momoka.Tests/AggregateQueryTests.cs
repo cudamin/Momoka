@@ -241,6 +241,17 @@ internal static class AggregateQueryTests
             Assert.Equal("", SourceCaption.Prefix(null, source, showSource: false));
         });
 
+        Test("主页账号用户名：只有一个影视来源时，飞牛音乐不触发行前缀", () =>
+        {
+            var video = Scope("a", "user");
+            Assert.False(SourceCaption.ShowsAccountNames([video]), "单来源主页不应写账号用户名");
+            Assert.False(SourceCaption.ShowsAccountNames([video, MusicScope("m", "listener")]),
+                "飞牛音乐只有「音乐」一格，不该让单影视来源的首页库名带账号用户名");
+            Assert.False(SourceCaption.ShowsAccountNames([video, MusicScope("m", "listener"), MusicScope("n", "other")]));
+            Assert.True(SourceCaption.ShowsAccountNames([video, Scope("b", "other")]),
+                "两个影视来源在线时主页仍要写账号用户名");
+        });
+
         Test("聚合主页：移除来源文字仍保留独立货架、排列和勾选", () =>
         {
             var first = Scope("a", "user").Bind(new EmbyItem { Id = "same", Name = "电影" });
@@ -300,6 +311,16 @@ internal static class AggregateQueryTests
     {
         var connection = new EmbyConnection(new Uri($"https://{server}.invalid/"), "fixture", account, account,
             server, DeviceIdentity.Create("aggregate-fixture", "test"));
+        return AnonymousScopeFixture.DetachedIdentity(connection,
+            new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account });
+    }
+
+    /// <summary>飞牛音乐只交出「音乐」一格；首页改标判据按来源类型分开数。</summary>
+    private static EmbySessionScope MusicScope(string server, string account)
+    {
+        var connection = new EmbyConnection(new Uri($"https://{server}.invalid/"), "fixture", account, account,
+            server, DeviceIdentity.Create("aggregate-fixture", "test"))
+        { ServerKind = MediaServerKind.FnMusic };
         return AnonymousScopeFixture.DetachedIdentity(connection,
             new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account });
     }

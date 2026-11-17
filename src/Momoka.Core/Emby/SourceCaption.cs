@@ -14,4 +14,13 @@ public static class SourceCaption
     public static string Prefix(string? content, EmbySessionScope? source, bool showSource = true) =>
         string.Join(" · ", new[] { showSource ? source?.UserName : null, content }
             .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    /// <summary>
+    /// 主页该不该在库名前面写账号用户名。只数会带来影视库的来源：飞牛音乐只交出「音乐」这一格，
+    /// 不跟影视库撞名 —— 用户令 2026-11-17「只登录了一个库+飞牛音乐的情况下，不需要给首页的库改名」，
+    /// 用户名在那里只会变成噪声。两个及以上其余在线来源才写（用户令 2026-11-16）；一个来源时多出来的
+    /// 用户名不区分任何东西。
+    /// </summary>
+    public static bool ShowsAccountNames(IEnumerable<EmbySessionScope> sources) =>
+        sources.Count(source => !source.Connection.IsFnMusic) > 1;
 }

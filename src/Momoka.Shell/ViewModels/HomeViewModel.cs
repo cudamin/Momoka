@@ -155,8 +155,10 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>
     /// 两个及以上在线账号时，主页那三处要写账号用户名：继续观看卡季集下面的第三行、每个库「最近添加」的货架
     /// 标题、媒体库那一排的卡片名称。只有一个账号时一律不写 —— 多出来的用户名不区分任何东西。
+    /// 飞牛音乐不算一个会带来影视库的来源（用户令 2026-11-17「只登录了一个库+飞牛音乐的情况下，不需要给首页的
+    /// 库改名」）：它只交出「音乐」这一格，不跟影视库撞名，用户名在那里只会变成噪声。
     /// </summary>
-    private bool ShowAccountNames => _sources.Count > 1;
+    private bool ShowAccountNames => SourceCaption.ShowsAccountNames(_sources);
 
     /// <summary>
     /// 这一页上有没有东西会因为「服务器新入库」而换掉（<see cref="HomeLayout.CanRefresh"/>）：轮播开着，或者
