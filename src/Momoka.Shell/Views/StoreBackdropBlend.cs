@@ -24,10 +24,10 @@ internal static class StoreBackdropBlend
     /// 暗角以左上角为圆心径向展开 —— 角上最浓（窗口底色），沿椭圆弧向外平滑变淡，到画布宽的
     /// <see cref="AmbientFanX"/>、高的 <see cref="AmbientFanY"/> 处完全交给环境底。两轴按画布比例给，
     /// 窗口拉宽拉高时这团暗角等比铺开；左沿不再另加竖直的坡（用户令「左边还是有一条90度的黑色」），
-    /// 右沿另有一道收边。
+    /// 右沿另有一道收边。2026-11-18 用户令「右边少扩散一点，下面多扩散」：横向收到 0.12、纵向放到 0.90。
     /// </summary>
-    internal const double AmbientFanX = 0.18;
-    internal const double AmbientFanY = 0.60;
+    internal const double AmbientFanX = 0.12;
+    internal const double AmbientFanY = 0.90;
 
     /// <summary>径向那团的坡：0 = 角上最浓，1 = 完全交给环境底（smoothstep 由 Interpolate 给）。</summary>
     private static readonly (double Position, double Alpha)[] AmbientFan =
