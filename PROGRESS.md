@@ -32,7 +32,7 @@
 
 **合并（`976a113`）。** 用户令「合并」。在内容确认全部进入 master、分支工作树干净后，以 `--no-ff` 合入 master，无冲突；随后按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB）并刷新桌面 `Momoka.lnk`（20:17），仅体验刷新、不销账。合并期间另一会话的 `feat-store-art-selector-6Gj3y5` 也在同一主树合入（`e5e635f`）：先出现 `PROGRESS.md` 与台账两处文档冲突，待对方合并落库后按最终 master 的文件内容改本批记录，未触碰对方代码与验证范围。分支快捷方式、分支与工作树按内容确认全部进入 master 后删除；台账第 77 项保留，最终 master 的统一验证与销账另做。
 
-## 2026-11-17 商店详情：背景图/预告片与窗口右边缘的间距随窗口加宽（分支 fix-store-window-spacing-px4o5I，待统一验证）
+## 2026-11-17 商店详情：背景图/预告片与窗口右边缘的间距随窗口加宽（已合并 master，待统一验证）
 
 用户先一句「加宽拉长窗口时候商店模式下，背景图/预告片和窗口右边的间距」，中途按选项试过「视口随窗口变宽」，随即纠正「谁让你放大背景图了，我说的是加大背景图和右边窗口边缘之间的间距」，并定「跟随窗口不断变宽，数值我也（不）说，你看着调先」。
 
@@ -44,9 +44,11 @@
 
 **发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-store-window-spacing-px4o5I` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `001E8C59C225A122790916F38369EF9DAC990701812412906D55CC6CCF7EBDC9`，`Momoka.dll` SHA256 `3A95D43FE7D0C83CB2D05FD1C49270A9AD1C9D6BDCC39F7CBF91641FCB082A6F`；桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk` 指向本树 `artifacts/publish/win-x64`。
 
-**未验证。** 宽窗与常规窗口下空隙的实际观感（16→43→365、封顶 395 的增幅是否合适）、全屏 2560／3840 实屏、订阅详情页实屏、预告片在演时位置与渐隐、五套固定深色与跟随系统深浅；统一验证时按台账第 77 条跑。
+**未验证。** 宽窗与常规窗口下空隙的实际观感（16→43→365、封顶 395 的增幅是否合适）、全屏 2560／3840 实屏、订阅详情页实屏、预告片在演时位置与渐隐、五套固定深色与跟随系统深浅；统一验证时按台账第 80 条跑。
 
-**提交。** 产品与测试 `61892b1`、`a6bcc3c`、`a9d39e4`、`029256a`、`27bc8b3`、`2c62280`；此前误按「放大视口」方向的提交 `2fe8781` 已由本轮改动覆盖，不单独 revert。未合入 master、未推远端。
+**提交。** 产品与测试 `61892b1`、`a6bcc3c`、`a9d39e4`、`029256a`、`27bc8b3`、`2c62280`；此前误按「放大视口」方向的提交 `2fe8781` 已由本轮改动覆盖，不单独 revert。
+
+**合并（`a3f6da3`）。** 用户令「合并」。主树先行状态干净，在 master `23a6a5e` 上以 `--no-ff` 合入，冲突五处按两边保留解决：`DetailHero` 的商店艺术图选择与本次右边缘空隙函数并存、`DetailViewModel` 的 `PageWidth` 通知列表合并、`DetailPage.Store` 的 `StoreArtWash` 与 `StoreTrailerFoundation` 负边距并存、`PROGRESS` 与台账按编号将本批排为第 80 条。合并后的最终代码上重跑：主树 Shell Release/x64 **0 警告 0 错误**、全量 `Momoka.Tests` **5224/5224**、`Momoka.PageContractTests` **356/356**，0 失败 0 跳过；按改好收尾发布主树（548 文件、289.9 MB，22:13）并刷新桌面 `Momoka.lnk`，`Momoka.exe` SHA256 `C23A54D9333F512652899A478487645CD007AC7FE1676968584899A679BD7ABD`，`Momoka.dll` SHA256 `785E877762A1DD8523F93D9DE3431121F37E23751C3FF0C5851AF5A3C8B58978`。分支内容已确认全部进入 master、工作树干净后，删除桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk`、分支与工作树（Git 工作树删除撞到 Windows 长路径，用 `\\?\` 前缀清理剩余目录后完成）；未推远端。
 
 ## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
