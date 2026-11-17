@@ -371,21 +371,42 @@
                   「上下各裁 5%」（09-10「轮播图上下各裁切百分之五」）和它那个常数 `KeptShare` 随这一改删了：
                   上下各 5% 是把图放进一个只差一成的格子里才说得通的数，现在裁多少是算出来的。
                 -->
-                <Grid x:Name="LayerA" Opacity="0" RenderTransformOrigin="0.5,0.5">
-                    <Grid.RenderTransform>
-                        <ScaleTransform x:Name="PictureScaleA" />
-                    </Grid.RenderTransform>
-                    <Grid.Background>
-                        <ImageBrush Stretch="UniformToFill" />
-                    </Grid.Background>
-                </Grid>
-                <Grid x:Name="LayerB" Opacity="0" RenderTransformOrigin="0.5,0.5">
-                    <Grid.RenderTransform>
-                        <ScaleTransform x:Name="PictureScaleB" />
-                    </Grid.RenderTransform>
-                    <Grid.Background>
-                        <ImageBrush Stretch="UniformToFill" />
-                    </Grid.Background>
+                <!--
+                  两层剧照外面再套一层自己的圆角（2026-11-17 用户报「轮播图左上和左下圆角处有一条 1 像素亮边」）：
+                  商店版式的大图是 16 圆角（HeroClip 那一层），剧照被圆角裁掉时最外一圈像素是「原图边缘色 ×
+                  部分覆盖」—— 原图在那一段偏亮的时候，弧线上就留下一条比两侧都亮的细线，颜色跟着这张剧照走。
+                  **光靠 HeroClip 剪不掉**：被裁的就是剧照自己。所以这里再收进一层比卡片小 1 的圆角（15）并让开
+                  1 像素底色（EgBannerBaseBrush）：弧线上不再有剧照的像素，那条亮边也就没有了。
+                  两处数值都由 HomeBanner.SetCardCornerRadius 按显示模式拨 —— 沉浸通栏是 0 圆角、0 缩进，
+                  图照旧铺到窗口的三条边上（那里没有圆角，也就没有这条亮边）。
+                  外面那层 Grid 是给自检留的结构：Band 的直接孩子里仍然只有三道遮罩（Top／Fade／RightShade），
+                  PictureRead 量的也仍是整条带的尺寸（两层照样撑满 Band 内沿，图上让开的那一圈在这一层剪）。
+                -->
+                <Grid x:Name="PictureHost">
+                    <Border
+                        x:Name="PictureClip"
+                        Margin="1"
+                        Background="{StaticResource EgBannerBaseBrush}"
+                        CornerRadius="15">
+                        <Grid>
+                            <Grid x:Name="LayerA" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="PictureScaleA" />
+                                </Grid.RenderTransform>
+                                <Grid.Background>
+                                    <ImageBrush Stretch="UniformToFill" />
+                                </Grid.Background>
+                            </Grid>
+                            <Grid x:Name="LayerB" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="PictureScaleB" />
+                                </Grid.RenderTransform>
+                                <Grid.Background>
+                                    <ImageBrush Stretch="UniformToFill" />
+                                </Grid.Background>
+                            </Grid>
+                        </Grid>
+                    </Border>
                 </Grid>
 
                 <!-- Gallery Samples/RadialGradientBrush/RadialGradientBrushPage.xaml/.xaml.cs,

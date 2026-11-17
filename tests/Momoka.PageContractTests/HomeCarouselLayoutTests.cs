@@ -111,6 +111,24 @@ internal static class HomeCarouselLayoutTests
             Assert.Contains("internal void SetCardCornerRadius(CornerRadius radius)", slide);
         });
 
+        Test("剧照自己让开一格圆角，弧线上不再留剧照的亮边", () =>
+        {
+            var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
+            var host = banner.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "PictureHost");
+            var clip = host.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "PictureClip");
+            Assert.Equal("1", (string?)clip.Attribute("Margin"));
+            Assert.Equal("15", (string?)clip.Attribute("CornerRadius"));
+            Assert.NotNull(clip.Attribute("Background"));
+            foreach (var layer in new[] { "LayerA", "LayerB" })
+                Assert.True(clip.Descendants().Any(element => (string?)element.Attribute(X + "Name") == layer),
+                    layer + " 不在剧照自己的圆角层里");
+
+            var code = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            Assert.Contains("PictureClip.CornerRadius = inner", code);
+            Assert.Contains("PictureClip.Margin = inset", code);
+            Assert.Contains("var inset = PictureClip.Margin.Left;", code);
+        });
+
         Test("商店版式左侧渐变接剧照代表色，卡片外不再有光晕", () =>
         {
             var banner = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
