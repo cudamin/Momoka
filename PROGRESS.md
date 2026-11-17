@@ -14595,3 +14595,20 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 审计后复跑：Shell Release/x64 0 警告 0 错误（1 分 47 秒）；全量 `Momoka.Tests` **5210/5210**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过（TEMP 指本树可写目录，避开 `C:\WINDOWS\TEMP` 那两条既有环境红）；两个改动 `.cs`（本轮的 `MediaInfoDialog.cs` 与上一轮的 `DetailPage.Appearance.cs`）`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 12 个变更路径行尾、BOM、末尾换行与空白检查通过。同样未跑探针与实屏；下一次改好收尾会再刷新一次快捷方式。
 
 **合并（2026-11-17，用户令「合并」）。** 产品提交 `2b80bba`、记录提交 `3eb7128` 先与当时 master（`63e6068`，探针竞态修复）合并一次，合并提交 `a726b8c`：两边只在 `PROGRESS.md` 与 `docs/待交付批次.md` 各追加一段，Git 自动合并、无冲突。合并后的最终代码复编 Shell Release/x64 **0 警告 0 错误**（3 分 24 秒），随后以快进方式把 `master` 推进到本分支末提交。按规则合并本身不跑全量验证、单测与探针，台账第 70 项的验证列仍需在统一验证时按最终代码重跑；主树未重新发布，桌面 `Momoka.lnk` 仍指旧构建，本批的实屏通过 `Momoka-fix-font-hover-triangle-mlSsLc.lnk` 体验。
+
+# 2026-11-17 订阅资料卡补充媒体与订阅信息，商店档复刻详情页渐变（待统一验证）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-subscription-card-info-VwlfEa`，分支同名，基点 `5867c5d`，产品与测试提交 `63c400c`。用户两句话：「给订阅详情页的卡片添加更多信息」「复刻订阅详情页的背景图渐变效到订阅详情页」。第二句两处都写「订阅详情页」，经询问确认源页面是媒体详情页的商店档；字段范围经询问选定作品规格、评分与热度、播出信息、订阅侧数据四组。
+
+- **媒体字段（Core）。** `MoviePilotMediaDetail.Facts` 在网页资料卡原有字段之后补：`片长`（电影 `runtime`；电视剧优先 `runtime`，否则 `episode_run_time` 首个有效值，数字与字符串都认，电视剧带「/集」）、`类型`（`genres`）、`季数`/`集数`（`number_of_seasons`/`number_of_episodes`，仅电视剧）、`评分人数`（`vote_count`，千分位）、`热度`（`popularity`，一位小数）、`最近播出`（电视剧 `last_air_date`）、`播出平台`（电视剧 `networks`，逐行）。豆瓣与番剧来源只在回话给出对应字段时补类型、片长、评分人数、热度，空值不造行。
+- **上游源码核对。** 只读检查本机快照 `work/mp-frontend-v3.2.2`（提交 `bc938a9`，版本 3.2.2）的 `src/views/discover/MediaDetailView.vue` 与 `src/api/types.ts`：网页资料卡本身只有 ID、原始标题、状态、上映日期、数字/实体发行、原始语言、国家、公司与十星评分；片长与类型在网页头部那一行，季集、评分人数、热度、播出平台是本次按用户要求新增的本地字段，字段名与形状按 TMDB/MP 回话（`episode_run_time` 在类型里是字符串数组，回话也可能是数字，两种都认）。
+- **订阅摘要（Core + VM）。** `MoviePilotSubscriptionFacts.Summary` 纯函数产出五行：订阅状态、订阅季数、订阅进度、入库情况、上次更新；取消订阅后只留「已取消订阅」、入库情况与上次更新，纯媒体详情返回空表。`MoviePilotSubscriptionsViewModel.DetailSummaryFacts/DetailSummaryVisibility` 供卡片绑定；`SubscribedSeasons` 由页面在 `MediaViewModel.Busy` 落下的那一刻从 `MoviePilotMediaViewModel.SubscriptionSeasonCount` 同步（订阅状态未读到时为 0，不拿上一部作品的旧计数）。
+- **资料卡（XAML）。** 媒体事实之后加一道分隔线与「订阅」小标题，再接 `SubscriptionFacts` 列表；两段用同一行高与分隔线。纯媒体详情没有订阅时整段收起，不画小标题也不留空行。
+- **商店档渐变（XAML + Store.cs）。** 复刻 `DetailPage.xaml` 的 `StoreShade`：左边横向、顶上竖向两道 `#0C0E11` 渐变，高取 `StoreAmbientHeight`、`MinHeight` 取视口，夹在环境底/剧照与预告片之间；`MoviePilotSubscriptionPage.Store.cs` 按媒体详情页同一算法把环境底与淡墨用负边距越过 1840 内容列铺到窗口两边。颜色沿用 `DetailPage` 的固定值：高对比度那本词典里只有画刷没有颜色键，渐变停点写 ThemeResource 会在运行时抛。
+- **探针与基线。** 订阅详情探针夹具补 `episode_run_time`/`last_air_date`/`number_of_seasons`/`number_of_episodes`/`vote_count`/`popularity`/`networks` 与普通类型；断言改为要求资料卡同时有媒体新字段与订阅摘要，并新增 `StoreShade` 页面契约。`Agreements.txt` 把 `MoviePilotSubscriptionPage.xaml` 的颜色计数 0→6（与 DetailPage 同一组字面色，理由写进基线注释），补 `StoreShade`/`SubscriptionFacts` 句柄。
+
+本轮已跑：Shell Release/x64 **0 警告 0 错误**（4 分 53 秒）；全量 `Momoka.Tests` **5225/5225**、`Momoka.PageContractTests` **354/354**，0 失败 0 跳过（TEMP 指本树 `artifacts/delivery-tmp`，避开 `C:\WINDOWS\TEMP` 那两条既有环境红）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 12 个变更路径通过。已按改好收尾发布：548 文件、289.9 MB，桌面快捷方式 `Momoka-feat-subscription-card-info-VwlfEa.lnk` 指向本树发布目录（20:11）。已看 `mp-subscription-header-1240.png`、`mp-subscription-detail-1240.png` 与商店档 `mp-subscription-mode-plain-1240.png`：新字段与「订阅」小标题按序上屏，国家/公司/平台逐行，左上角渐变与左右铺满可见。
+
+探针 `--probe-shell --probe-section moviepilot --screen 1` 首轮 **39/40**（`shell-probe-20261117-121816017-7408`）：与本批相关的「订阅详情、入库缺集与编辑」「订阅详情沉浸与简洁模式切换」「背景按页宽等比、下滑遮罩与纸面」全部通过；唯一红项「资源卡片、季集筛选和下载选项」为 `TimeoutException`，落在未改动的资源窗口路径。复跑第二轮时另一会话同时在跑探针，桌面被两边互相遮挡（其报告里的像素守卫明确指向本树探针窗口），该轮不作证据，也不据此判红或判绿；交付前需在独占桌面时确认该超时是否复现。
+
+未合并 master；分支快捷方式已刷新，不等于交付。
