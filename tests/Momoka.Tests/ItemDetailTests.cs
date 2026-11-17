@@ -2297,6 +2297,27 @@ internal static class ItemDetailTests
             Assert.True(DetailHero.CornerHeight < DetailHero.ArtHeight);
         });
 
+        // 商店右上角的两档（2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能。
+        // 做个选择框，选择背景图/预告 或者 艺术图」）：默认铺剧照；选艺术图之后剧照整块让开，艺术图只在
+        // 商店宽版式且图到手时摆出来。
+        Test("商店右上角：默认铺剧照，选艺术图才摆艺术图且只在宽版式", () =>
+        {
+            // 默认那一档：商店模式 + 有剧照，背景图/预告那一块在；选艺术图之后它让开。
+            Assert.True(DetailHero.StoreBackdropShown(store: true, artwork: false, backdrop: true));
+            Assert.False(DetailHero.StoreBackdropShown(store: true, artwork: true, backdrop: true));
+
+            // 没有剧照就没有背景那一块，两种选择一个答案；沉浸档也不归这一句管。
+            Assert.False(DetailHero.StoreBackdropShown(store: true, artwork: false, backdrop: false));
+            Assert.False(DetailHero.StoreBackdropShown(store: false, artwork: false, backdrop: true));
+
+            // 艺术图：商店 + 选艺术图 + 宽版式 + 图到手，少一样都不摆。
+            Assert.True(DetailHero.StoreCornerArtShown(store: true, artwork: true, wide: true, art: true));
+            Assert.False(DetailHero.StoreCornerArtShown(store: true, artwork: false, wide: true, art: true));
+            Assert.False(DetailHero.StoreCornerArtShown(store: true, artwork: true, wide: false, art: true));
+            Assert.False(DetailHero.StoreCornerArtShown(store: true, artwork: true, wide: true, art: false));
+            Assert.False(DetailHero.StoreCornerArtShown(store: false, artwork: true, wide: true, art: true));
+        });
+
         // 带子收窄之后那道罩子得跟着收：罩子比带子还高就从带子的上沿溢出去，而标题条上那层洗按收完的那一块算。
         Test("头图罩子：跟着带子收，最高还是那一档", () =>
         {

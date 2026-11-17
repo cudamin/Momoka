@@ -48,6 +48,55 @@ internal static class StoreBackdropStyle
         };
     }
 
+    /// <summary>
+    /// 商店艺术图那一档的纯色底（2026-11-17 用户令「要纯色，铺满左上角和右上角」）：从封面取<em>一个</em>
+    /// 颜色、纵向淡到透明，左右不再收边，两个上角都是一整片同色。
+    /// <para>
+    /// 颜色仍走 <see cref="ArtworkShade.Sample"/>（深色主题压到阅读上限）；浅色主题再把它混进窗口色，
+    /// 深墨字压上去仍然读得清。像素、窗口色或深浅翻了才重搭画笔，拖窗口不重建。
+    /// </para>
+    /// </summary>
+    internal sealed class Wash
+    {
+        private static readonly SolidColorBrush Empty = new(Microsoft.UI.Colors.Transparent);
+        private HeroPictureLoader.HeroPixels? _pixels;
+        private ThemeColor _window;
+        private bool _dark;
+        private Brush? _brush;
+
+        internal void Clear()
+        {
+            _pixels = null;
+            _brush = null;
+        }
+
+        internal Brush Resolve(HeroPictureLoader.HeroPixels? pixels, UiTheme theme)
+        {
+            if (pixels is null)
+            {
+                Clear();
+                return Empty;
+            }
+            if (ReferenceEquals(_pixels, pixels) && _window == theme.Colors.Window
+                && _dark == theme.IsDark && _brush is not null) return _brush;
+
+            var color = ArtworkShade.Sample(pixels.Pixels, pixels.Width, pixels.Height, theme.Colors.Window);
+            if (!theme.IsDark) color = theme.Colors.Window.Mix(color, 0.35);
+            var brush = new LinearGradientBrush { StartPoint = new Point(0.5, 0), EndPoint = new Point(0.5, 1) };
+            // 2026-11-17 用户令「过度要平滑啊，上面从浓到淡」：从顶部的实色一路匀到透明，中间用几档
+            // 递减的 alpha 把曲线拉平，不再是一大段实色之后突然收掉。
+            brush.GradientStops.Add(new GradientStop { Offset = 0, Color = ThemeHost.ToColor(color) });
+            brush.GradientStops.Add(new GradientStop { Offset = 0.25, Color = ThemeHost.ToColor(color.WithAlpha(215)) });
+            brush.GradientStops.Add(new GradientStop { Offset = 0.5, Color = ThemeHost.ToColor(color.WithAlpha(155)) });
+            brush.GradientStops.Add(new GradientStop { Offset = 0.75, Color = ThemeHost.ToColor(color.WithAlpha(75)) });
+            brush.GradientStops.Add(new GradientStop { Offset = 1, Color = ThemeHost.ToColor(color.WithAlpha(0)) });
+            _pixels = pixels;
+            _window = theme.Colors.Window;
+            _dark = theme.IsDark;
+            return _brush = brush;
+        }
+    }
+
     private static LinearGradientBrush Gradient(Color color, Point start, Point end,
         (double Offset, double Opacity)[] stops)
     {

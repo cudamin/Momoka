@@ -21,6 +21,7 @@ public sealed partial class DetailPage
     private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
     private readonly StoreAmbientBrush _storeAmbientBrush = new();
+    private readonly StoreBackdropStyle.Wash _storeArtWash = new();
 
     private void PaintStoreBackdrop()
     {
@@ -34,6 +35,19 @@ public sealed partial class DetailPage
         StoreShade.Visibility = StoreBackdrop.Visibility;
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(ViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
+        // 艺术图那一档没有剧照可铺，顶部换成封面取色的纯色底（2026-11-17 用户令「要纯色，铺满左上角和
+        // 右上角」）：一整片同色、纵向淡出，左右不收边，两个上角都铺满；背景图/预告那一档不画。
+        var artShown = ViewModel.StoreMode && ViewModel.StoreArtSelected && !_actionAccessibility.HighContrast;
+        StoreArtWash.Visibility = artShown ? Visibility.Visible : Visibility.Collapsed;
+        if (artShown)
+        {
+            StoreArtWash.Background = _storeArtWash.Resolve(ViewModel.StillColorPixels, ThemeHost.Current);
+        }
+        else
+        {
+            StoreArtWash.Background = null;
+            _storeArtWash.Clear();
+        }
         StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < DetailHero.StoreWideFloor
             && ViewModel.HeroImage is not null && !_actionAccessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;
         StoreBackdropStyle.ApplyAcrylic(StoreBackdropAcrylicFill, StoreBackdropAcrylicBottom,
@@ -115,6 +129,8 @@ public sealed partial class DetailPage
             var bleedMargin = new Thickness(-bleed, 0, -bleed, 0);
             StoreAmbient.Margin = bleedMargin;
             StoreShade.Margin = bleedMargin;
+            // 艺术图那一档的纯色底也铺到窗口两侧：用户令「铺满左上角和右上角」。
+            StoreArtWash.Margin = bleedMargin;
             StoreHeroDetails.Visibility = store ? Visibility.Visible : Visibility.Collapsed;
             StoreHeroDetails.Spacing = store ? 14 : 8;
             // 2026-11-16 用户令「位置不够时不要裁切，直接压在背景图上」：片名栏撑到保底宽度时，

@@ -205,6 +205,12 @@ public sealed partial class DetailPage
 
     private void OnBackdropImageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
+        // 封面的取色像素到了：艺术图那一档的顶部环境底要按它重画一遍。
+        if (args.PropertyName == nameof(ViewModels.DetailViewModel.StillColorPixels))
+        {
+            PaintStoreBackdrop();
+            return;
+        }
         if (args.PropertyName != nameof(ViewModels.DetailViewModel.HeroImage)) return;
         PaintStoreBackdrop();
         PaintReadingColors();

@@ -56,10 +56,11 @@ internal static partial class DetailActionReadinessTests
                 Assert.Equal(270d, (double)f.Get("StillHeight")!);
                 Assert.False((bool)f.Get("BackdropShown")!);
                 Assert.Equal("Collapsed", f.Get("StoreBackdropVisibility")!.ToString(), "无图时不得留下背景层");
+                Assert.Equal("Collapsed", f.Get("StoreCornerArtVisibility")!.ToString(), "没选艺术图／没有艺术图时那一角收着");
                 Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());
                 Assert.Equal(0d, (double)f.Get("TailMinHeight")!);
                 Assert.Equal(0d, (double)f.Get("PaperMinHeight")!);
-                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "StoreHeroWidth", "CornerVisibility", "HeroContent" })
+                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreCornerArtVisibility", "StoreBackdropHeight", "StoreTextWidth", "StoreHeroWidth", "CornerVisibility", "HeroContent" })
                     Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
                 foreach (var width in new[] { 360d, 760d, 1023d, 1024d, 1025d, 1072d, 1200d, 2400d, 760d })
                 {
@@ -78,13 +79,42 @@ internal static partial class DetailActionReadinessTests
                     // 片名栏撑到 StoreTextFloor，头图那一行跟着长；超出部分压在右侧剧照上。
                     Assert.Equal(DetailHero.StoreTextColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreTextWidth")!);
                     Assert.Equal(DetailHero.StoreHeroColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreHeroWidth")!);
+                    // 2026-11-17 用户令「高度要和左边的封面一样高，右边边缘不能超过下面的卡片」：艺术图
+                    // 高跟封面一致、宽按图自己的比例（夹具没有图，按 16:9 兜底），上沿与封面同线、右沿贴内容右沿。
+                    Assert.Equal(stillWidth > 0 ? (double)f.Get("StillHeight")! : 0d, (double)f.Get("StoreArtHeight")!);
+                    Assert.Equal(480d, (double)f.Get("StoreArtWidth")!);
+                    var storeArtMargin = f.Get("StoreArtMargin")!;
+                    var marginType = storeArtMargin.GetType();
+                    Assert.Equal(DetailHero.StoreHeroInsetTop(width),
+                        (double)marginType.GetProperty("Top")!.GetValue(storeArtMargin)!);
+                    Assert.Equal(DetailHero.StorePageInset(width),
+                        (double)marginType.GetProperty("Right")!.GetValue(storeArtMargin)!);
+                    // 2026-11-17 用户令「面积不够大，要到卡片上方」：纯色底高＝头图 + 尾部那道 2 + 纸面 14 上留白。
+                    var tailInset = f.Get("TailInset")!;
+                    var sheetPadding = f.Get("SheetPadding")!;
+                    Assert.Equal((double)f.Get("HeroHeight")!
+                            + (double)tailInset.GetType().GetProperty("Top")!.GetValue(tailInset)!
+                            + (double)sheetPadding.GetType().GetProperty("Top")!.GetValue(sheetPadding)!,
+                        (double)f.Get("StoreArtWashHeight")!);
                     Assert.True(notices.Contains("StoreContentWidth"));
                     Assert.True(notices.Contains("StoreHeroWidth"));
                 }
                 notices.Clear();
                 f.Vm.GetType().GetProperty("StoreDetailsRoom", Members)!.SetValue(f.Vm, 700d);
                 Assert.True(notices.Contains("StoreBackdropHeight"), "详情晚到变高没有通知亚克力区域");
+                Assert.True(notices.Contains("StoreArtWashHeight"), "详情晚到变高没有通知纯色底");
                 Assert.Equal((double)f.Get("HeroHeight")!, (double)f.Get("StoreBackdropHeight")!);
+                // 2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能」：设置那一格
+                // 翻了之后，两格显隐都要重算并通知 —— 这一份夹具没有图，两格都收着。
+                notices.Clear();
+                f.Ui.StoreCornerArt = true;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                Assert.Equal("Collapsed", f.Get("StoreBackdropVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("StoreCornerArtVisibility")!.ToString());
+                Assert.True(notices.Contains("StoreBackdropVisibility"), "选艺术图没有通知背景层重算");
+                Assert.True(notices.Contains("StoreCornerArtVisibility"), "选艺术图没有通知艺术图那一角重算");
+                f.Ui.StoreCornerArt = false;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
                 f.Ui.EnableImmersive = true;
                 f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
                 Assert.False((bool)f.Get("StoreMode")!);

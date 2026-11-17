@@ -64,6 +64,7 @@ public sealed partial class DetailPage
         var subject = ViewModel.CurrentItem;
         var wide = ViewModel.PageWidth >= DetailHero.StoreWideFloor;
         if (_storeTrailerSuspended || !IsLoaded || !ViewModel.StoreMode || !wide || _actionAccessibility.HighContrast
+            || ViewModel.StoreArtSelected
             || !ShellPrefs.Trailers.DetailAutoplay
             || subject is null || !ItemTrailers.HasAny(subject, subject.Source?.Connection.ServerKind ?? default)
             || subject.Source?.IsAvailable != true)
