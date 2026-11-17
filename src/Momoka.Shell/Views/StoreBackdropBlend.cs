@@ -19,14 +19,21 @@ internal static class StoreBackdropBlend
     // 环境色的暗带，屏上读成一道黑边。
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 1), (0.72, 1), (1, 0)];
-    // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：媒体详情页的环境底铺满窗口后，左沿也按
-    // 右沿同一条曲线收边。2026-11-17 用户令「订阅详情页左上角也要跟媒体详情页一样的渐变」：订阅详情页
-    // 也改用这一条对称遮罩，两页的左沿不再一处满色、一处起坡。
-    // 2026-11-17 用户令「背景图渐变应该蔓延到我画红线的地方」「红线右边铺满环境底」：左沿那道暖色
-    // （从背景图取色的环境底）要在内容区左沿附近就收到满色，陡坡只留在红线以左那几像素里 ——
-    // 左坡从 28% 一路收到 4%，右沿不动（那边收在画布上）。
-    private static readonly (double Position, double Alpha)[] AmbientSymmetricAcross =
-        [(0, 0), (0.04, 1), (0.72, 1), (1, 0)];
+    /// <summary>
+    /// 2026-11-17 用户令「我要斜的，不要90度的」：对称环境底的左沿不是一条竖着的 90 度边，而是照用户
+    /// 红线那样从右上斜到左下 —— 顶边那一行的边界落在画布宽的这个比例处，越往下越靠左，到底边收到
+    /// 内容区左沿；边界右侧是满色环境底，左侧渐隐回窗口底色。左右两段各有一条坡，右沿照旧收在画布上。
+    /// </summary>
+    internal const double AmbientSlant = 0.10;
+
+    /// <summary>对称环境底的左坡：边界以左到窗口底色，以右满色。</summary>
+    private static readonly (double Position, double Alpha)[] AmbientLeft =
+        [(0, 0), (0.04, 1)];
+
+    /// <summary>对称环境底的右坡：照旧在画布右侧收边。</summary>
+    private static readonly (double Position, double Alpha)[] AmbientRight =
+        [(0, 1), (0.72, 1), (1, 0)];
+
     private static readonly (double Position, double Alpha)[] AmbientDown =
         [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
@@ -36,19 +43,26 @@ internal static class StoreBackdropBlend
 
     internal static byte[] Mask(bool ambient, bool symmetric = false)
     {
-        var across = ambient
-            ? symmetric ? AmbientSymmetricAcross : AmbientAcross
-            : PictureAcross;
+        var across = ambient ? AmbientAcross : PictureAcross;
         var down = ambient ? AmbientDown : PictureDown;
         var pixels = new byte[Side * Side * 4];
         for (var y = 0; y < Side; y++)
+        {
+            var ny = y / (double)(Side - 1);
+            var vertical = Interpolate(ny, down);
+            // 左沿那条斜边：顶边最靠右，越往下越靠左，到底边归零（见 AmbientSlant）。
+            var slant = symmetric ? AmbientSlant * (1 - ny) : 0;
             for (var x = 0; x < Side; x++)
             {
-                var alpha = Channel(255 * Interpolate(x / (double)(Side - 1), across)
-                    * Interpolate(y / (double)(Side - 1), down));
+                var nx = x / (double)(Side - 1);
+                var horizontal = symmetric
+                    ? Interpolate(nx - slant, AmbientLeft) * Interpolate(nx, AmbientRight)
+                    : Interpolate(nx, across);
+                var alpha = Channel(255 * horizontal * vertical);
                 var at = (y * Side + x) * 4;
                 pixels[at] = pixels[at + 1] = pixels[at + 2] = pixels[at + 3] = alpha;
             }
+        }
         return pixels;
     }
 
