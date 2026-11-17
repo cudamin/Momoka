@@ -161,7 +161,9 @@ internal sealed partial class ShellNavigationProbe
             Require(button.IsLoaded && button.ActualWidth > 0 && button.ActualHeight > 0, "菜单按钮未完成布局");
             InvokeSeriesButton(picker, buttonName);
             var menu = Get<MenuFlyout>(picker, menuName);
-            await UntilAsync(() => menu.IsOpen);
+            // 菜单由 UIA 调用后异步展开：刚拍过整页截图的机器上，两秒的上限会把「还没展开」判成超时。
+            // 仍以实际展开为验收，等不到照样报红，只把上限放宽到 6 秒。
+            await UntilAsync(() => menu.IsOpen, attempts: 240);
             var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                 .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Single();
             await LayoutAsync(presenter);

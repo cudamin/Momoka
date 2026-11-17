@@ -63,11 +63,20 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => DialogsFor(_root.XamlRoot).Length == 1);
                 var dialog = DialogsFor(_root.XamlRoot)[0];
                 Require(DialogDismiss.GetClosesOnOutsideClick(dialog), "播放队列选择框未继承点外取消");
-                var term = Descendants(dialog).OfType<TextBox>().Single(element => element.Name == "VideoQueueSearchTerm");
-                term.Text = "下一部";
-                new ButtonAutomationPeer(Descendants(dialog).OfType<Button>().Single(element => element.Name == "VideoQueueSearch")).Invoke();
-                await UntilAsync(() => Descendants(dialog).OfType<ListView>().Single(element => element.Name == "VideoQueueSearchResults").Items.Count > 0);
-                Descendants(dialog).OfType<ListView>().Single(element => element.Name == "VideoQueueSearchResults").SelectedIndex = 0;
+                // Popup 里出现 ContentDialog 不等于模板已展开：等搜索框长进视觉树，超时仍如实报缺控件。
+                TextBox? term = null;
+                await UntilAsync(() => (term = Descendants(dialog).OfType<TextBox>()
+                    .FirstOrDefault(element => element.Name == "VideoQueueSearchTerm")) is not null);
+                term!.Text = "下一部";
+                Button? search = null;
+                await UntilAsync(() => (search = Descendants(dialog).OfType<Button>()
+                    .FirstOrDefault(element => element.Name == "VideoQueueSearch")) is not null);
+                new ButtonAutomationPeer(search!).Invoke();
+                ListView? results = null;
+                await UntilAsync(() => (results = Descendants(dialog).OfType<ListView>()
+                    .FirstOrDefault(element => element.Name == "VideoQueueSearchResults")) is not null);
+                await UntilAsync(() => results!.Items.Count > 0);
+                results!.SelectedIndex = 0;
                 await LayoutAsync(dialog);
                 await SaveProbeScreenAsync($"video-queue-picker-{width}-screen.png");
                 new ButtonAutomationPeer(Descendants(dialog).OfType<Button>().Single(element => element.Name == "PrimaryButton")).Invoke();

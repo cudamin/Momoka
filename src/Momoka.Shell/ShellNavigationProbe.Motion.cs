@@ -243,7 +243,9 @@ internal sealed partial class ShellNavigationProbe
             if (trial == "forward-disabled") frame.GoForward();
             else Require(frame.Navigate(pageType, request, trial == "suppress"
                 ? new SuppressNavigationTransitionInfo() : new EntranceNavigationTransitionInfo()), "动效候选目标导航失败");
-            await sampler.WaitAsync(TimeSpan.FromSeconds(4));
+            // 采样器在专用线程逐帧抓这个 HWND：50 帧的本机窗口截取在繁忙或高分辨率桌面上可能超过 4 秒，
+            // 那不是动效失败而是采样没跑完。上限放宽到 12 秒，帧数与时间戳仍按实际抓到的样本核对。
+            await sampler.WaitAsync(TimeSpan.FromSeconds(12));
             if (layoutError is not null) throw new InvalidOperationException("动效实际标记区域测量失败", layoutError);
             finished = true;
             disable.ThrowIfFailed();
