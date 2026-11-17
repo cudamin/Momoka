@@ -6,6 +6,8 @@
 
 **检查。** Shell Release/x64 **0 警告 0 错误**（2 分 6 秒）；`Momoka.LibraryHeaderTests` **21/21**，0 失败 0 跳过。按日常 UI 口径未跑探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 72 条。产品与测试提交 `1de9219`。
 
+**发布。** 旧版实例开着，等它退出后按改好收尾发布：`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `54013ECA8D400DAEA89C460194EC03D3966CE1ACC2DF972735CC62D49DB1FF5D`，`Momoka.dll` SHA256 `78AD4C618890F6678CA38D422BE168234DFBC711E7959B88A288E7675A41F992`；桌面 `Momoka.lnk` 指向主树 `artifacts/publish/win-x64`（生成于 13:29）。未推远端。
+
 ## 2026-11-17 侧边栏开合持久化（主树 master）
 
 用户令「持久化保存侧边栏为展开或者折叠，不要每次打开都默认展开」。此前侧栏只在进入商店模式那一刻按窗宽定一次初值（1008 DIP），之后按折叠键改了也不落盘，所以每次启动都回到同一个默认档。
