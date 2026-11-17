@@ -52,6 +52,7 @@ UI 的切链与画面菜单按提交次序共用任务队列，不静默丢掉�
 - 抖动算法与 dither-depth 独立；继承 profile 可能得到 dither=no，不等于强制关闭全部抖动。
 - hdeband 由高度≤576的老片源轴决定，要求 `deband=no`。运行期菜单同样要尊重 `ShaderChainRules.ConflictsWith`，不能让开关打破互斥。
 - 插值和同步由 `ResolveSync` 一处决定；音频同步下显式抑制插值，高帧率/高刷新率回退要用实际起播输入。
+- 网络缓冲按服务器地址选内网或外网那一组（`NetworkScopeRule`：本机/私有地址/链路本地/CGNAT/`localhost`/`.local`/不带点主机名算内网，其余算外网），四条一起下发：`cache=yes`、`demuxer-max-bytes`、后向为其一半的 `demuxer-max-back-bytes`、`cache-secs`；两组各带装机默认（256MB／30 秒），没有「0 = 跟随内核默认」这一档。设置页改完只影响下一次起播；同窗换片按新计划的选项重发。
 - 独占先 Detach 播放页，显示器尺寸/刷新率委托仍属于宿主窗口，不能随页面一起清空。外部独立视频窗口跨显示器的读数覆盖需另验，主窗显示器不是原生视频窗的实测值。
 
 ## 五层验证

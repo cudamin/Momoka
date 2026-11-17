@@ -128,7 +128,8 @@ public sealed class PlaybackPlanner(
             ShaderDecision = decision,
             ShaderReason = decision.Reason,
             ShaderOptionCount = chainOptions.Count,
-            PlayerOptions = BuildPlayerOptions(DescribeSource(source), decision, chainOptions, ticket.DisplayRefreshHz, audioDevice),
+            PlayerOptions = BuildPlayerOptions(DescribeSource(source), decision, chainOptions, ticket.DisplayRefreshHz,
+                NetworkBuffer.For(settings.Buffer, connection.ApiBase), audioDevice),
             RunTimeTicks = runTimeTicks,
             ItemId = item.Id,
             IsDonghua = donghua,
@@ -192,12 +193,18 @@ public sealed class PlaybackPlanner(
     /// has to agree with what the shader rules decided the item was, or one video could be 动画 for the
     /// shader chain and live action for the deband setting.
     /// </para>
+    /// <para>
+    /// <paramref name="buffer"/> 是按服务器地址选好的那一组网络缓冲（<see cref="NetworkBuffer.For(BufferSettings, Uri)"/>）。
+    /// 在这里传进去而不是让 <see cref="MpvOutputOptions"/> 自己读设置：选哪一组取决于这次连的是哪台服务器，
+    /// 只有计划层手上有地址。
+    /// </para>
     /// </summary>
     private IReadOnlyList<KeyValuePair<string, string>> BuildPlayerOptions(
         SourceProfile? source,
         ShaderDecision decision,
         IReadOnlyList<KeyValuePair<string, string>> chainOptions,
         double displayRefreshHz,
+        NetworkBuffer buffer,
         string? audioDevice = null)
     {
         var options = new List<KeyValuePair<string, string>>(48);
@@ -208,7 +215,8 @@ public sealed class PlaybackPlanner(
             shaderCacheDirectory, ScreenshotDirectory, fontsDirectory));
         options.AddRange(MpvOutputOptions.Build(
             settings.Video, settings.Audio, settings.Playback, source, decision.Animated, displayRefreshHz, audioDevice,
-            MpvSvp.IsEnabled(settings.Mpv), settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || settings.Video.Renderer != "gpu"));
+            MpvSvp.IsEnabled(settings.Mpv), settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || settings.Video.Renderer != "gpu",
+            buffer));
         options.AddRange(chainOptions);
 
         // 「设置里开着的东西这次没生效」 has to be visible somewhere other than the settings page, which is not open

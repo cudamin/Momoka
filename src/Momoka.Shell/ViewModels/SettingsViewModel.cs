@@ -1144,9 +1144,10 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些
         // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：主页两张（轮播图 /
-        // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出四张（基础输出 /
-        // 画质与着色器 / HDR / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
-        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于五张。视频输出按用户指定次序：着色器在 HDR 上方，补帧在最后。
+        // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出五张（基础输出 /
+        // 画质与着色器 / HDR / 缓冲 / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
+        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于五张。视频输出按用户指定次序：着色器在 HDR 上方，缓冲在补帧
+        // 上方（2026-11-17 用户令「缓冲设置单独一个卡片，放补帧上面」），补帧在最后。
         _playerToolsPickerVersion++;
         DetailCards.Clear();
         Sections.Clear();
@@ -1165,6 +1166,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(VideoCard());
         Sections.Add(ApplicableShaderCard());
         Sections.Add(ApplicableHdrCard());
+        Sections.Add(BufferCard());
         Sections.Add(FrameInterpolationCard());
         AddCards(AudioSections());
         AddCards(SubtitleSections());

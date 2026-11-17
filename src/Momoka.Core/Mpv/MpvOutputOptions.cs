@@ -1,6 +1,7 @@
 using System.Globalization;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
+using Momoka.Playback;
 
 namespace Momoka.Mpv;
 
@@ -450,6 +451,10 @@ public static class MpvOutputOptions
     /// 高帧率回退 rule (<see cref="Configuration.VideoSettings.HighRefreshRateLimitHz"/>).
     /// 0 means 「nobody could say」 and switches that rule off, which is what a test and the settings page get.
     /// </param>
+    /// <param name="buffer">
+    /// 网络缓冲：已经按服务器地址从设置里挑好的一组大小与时长（<see cref="NetworkBuffer"/>）。null 不下发
+    /// 任何缓冲选项 —— 那是测试与设置页预览要的「别碰」，起播那条路总是给一组（设置里的装机默认也是具体数）。
+    /// </param>
     public static IReadOnlyList<KeyValuePair<string, string>> Build(
         VideoSettings video,
         AudioSettings audio,
@@ -459,7 +464,8 @@ public static class MpvOutputOptions
         double displayRefreshHz = 0,
         string? audioDevice = null,
         bool svp = false,
-        bool? gpuNext = null)
+        bool? gpuNext = null,
+        NetworkBuffer? buffer = null)
     {
         var options = new List<KeyValuePair<string, string>>(32);
 
@@ -519,15 +525,9 @@ public static class MpvOutputOptions
         if (video.IccProfileAuto && !HdrOptions.OwnsColorSpace(video, source))
             Add(options, "icc-profile-auto", "yes");
 
-        if (video.NetworkCacheMegabytes > 0)
-        {
-            var bytes = (long)video.NetworkCacheMegabytes * 1024 * 1024;
-            Add(options, "cache", "yes");
-            Add(options, "demuxer-max-bytes", bytes.ToString(CultureInfo.InvariantCulture));
-
-            // Half as much again behind the play position, so a short seek back does not re-download.
-            Add(options, "demuxer-max-back-bytes", (bytes / 2).ToString(CultureInfo.InvariantCulture));
-        }
+        // 网络缓冲：一组四条，由起播那一刻按服务器地址从内网／外网两组里选好（见 NetworkBuffer）。null 是
+        // 「别碰缓存选项」，只有测试与设置页预览会那样传 —— 起播那条路总给一组，装机默认也是具体数。
+        if (buffer is { } cache) AddNetworkBuffer(options, cache);
 
         options.AddRange(BuildAudio(audio, audioDevice));
 
@@ -868,6 +868,23 @@ public static class MpvOutputOptions
         if (!HtmlColor.TryParse(hex, out var packed)) return null;
         var alpha = (int)Math.Round(Math.Clamp(opacityPercent, 0, 100) * 255.0 / 100);
         return $"#{alpha:X2}{packed:X6}";
+    }
+
+    /// <summary>
+    /// 网络缓冲落到 mpv 的四条选项。字节与秒同时给：mpv 的读前瞻取二者里先到的那个上限
+    /// （<c>demuxer-max-bytes</c> 管字节，<c>cache-secs</c> 管秒），高码率片源先撞字节、低码率先撞秒。
+    /// <para>
+    /// 后向固定取前向的一半，与从前那一行同一个比例：短距离回跳不重下，内存账也不用再问一次用户。
+    /// <c>cache=yes</c> 显式打开：mpv 自己的默认是 <c>auto</c>，只在流上开缓存 —— 这里每一部片子都是从服务器
+    /// 取的 HTTP 流，但显式写下来比依赖「auto 恰好也算流」清楚。
+    /// </para>
+    /// </summary>
+    private static void AddNetworkBuffer(List<KeyValuePair<string, string>> options, NetworkBuffer buffer)
+    {
+        Add(options, "cache", "yes");
+        Add(options, "demuxer-max-bytes", buffer.Bytes.ToString(CultureInfo.InvariantCulture));
+        Add(options, "demuxer-max-back-bytes", buffer.BackBytes.ToString(CultureInfo.InvariantCulture));
+        Add(options, "cache-secs", buffer.Seconds.ToString(CultureInfo.InvariantCulture));
     }
 
     private static void Add(List<KeyValuePair<string, string>> options, string name, string? value)
