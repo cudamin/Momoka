@@ -12,7 +12,7 @@
 
 **未执行。** 真实服务器与真实播放（未授权）、物理鼠标拖边、高对比度、跨 DPI、Narrator／触摸／200% 文字、真实 NAS 共享、系统深浅真实切换。
 
-## 2026-11-17 商店详情：预告控制条没上屏时不再预留那 72 的空档（临时分支，未合并）
+## 2026-11-17 商店详情：预告控制条没上屏时不再预留那 72 的空档（已合并 master）
 
 用户附剧详情页截图（商店版式，1614×814）一句「不够紧凑，下方留了太多空位」，指出信息区（音频/字幕那行）与「更多来自」卡片之间那一条空带。追问收紧方式时用户答「卡片位置固定在背景图最大时的下方，不再自动调整」。
 
@@ -22,9 +22,9 @@
 
 **探针同步。** `ShellNavigationProbe.StoreDetailBackdrop` 的 clearance 用例原来只把控制键设为可见就要求尾部让位；现在先把 `StoreTrailerControlsShown` 置 true，并按「背景高 + 72 + 16 − 带高」核对 `TailMinHeight`，收尾再置 false 并布局一次。
 
-**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **353/353**（新增「商店尾部：预告控制条没上屏时不再预留那 72 的空档」，钉住新判据与两处 true／一处 false 的接线）；`detail-action-readiness-fixture` **94/94**；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 67 条。
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **353/353**（新增「商店尾部：预告控制条没上屏时不再预留那 72 的空档」，钉住新判据与两处 true／一处 false 的接线）；`detail-action-readiness-fixture` **94/94**；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 68 条。
 
-**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-reduce-bottom-space-mDe8Vm`，分支 `fix-reduce-bottom-space-mDe8Vm`，基点 `aa01a4a`；改动未提交，未合并、未推远端。
+**分支与合并。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-reduce-bottom-space-mDe8Vm`，分支 `fix-reduce-bottom-space-mDe8Vm`，基点 `aa01a4a`，产品与测试提交 `ed8a63e`、记录提交 `ca0a28d`；2026-11-17 用户要求合并，以合并提交 `a173728` 并入 `master`（与主树「统一验证与带红发布」批次整合，冲突只在 `PROGRESS.md` 与本台账顶部条目，两边按时间保留，本批编号顺延为 68）。合并本身未跑全量验证与探针；随后删除分支快捷方式 `Momoka-fix-reduce-bottom-space-mDe8Vm.lnk`、临时分支与工作树。
 
 ## 2026-11-17 恢复主题自带强调色，色板末格改回跟随系统（已合并 master，已发布主树）
 
