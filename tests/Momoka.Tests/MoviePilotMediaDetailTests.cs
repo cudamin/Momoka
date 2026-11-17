@@ -34,12 +34,39 @@ internal static class MoviePilotMediaDetailTests
 
     internal static void Register()
     {
-        Test("MP 网页资料卡：只显示来源字段，国家公司逐行，不混入时长", () =>
+        Test("MP 资料卡：网页来源字段之外补规格、季集、评分人数、热度与播出平台，国家公司逐行", () =>
         {
-            var detail = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧","original_name":"Example","status":"Returning Series","first_air_date":"2026-10-01","original_language":"ja","runtime":24,"production_countries":[{"name":"Japan"},{"name":"France"}],"production_companies":[{"name":"Studio A"},{"name":"Studio B"}]}"""), Media);
-            Assert.Equal("ID|原始标题|状态|上映日期|原始语言|出品国家|制作公司", string.Join('|', detail.Facts.Select(fact => fact.Label)));
+            var detail = MoviePilotMediaDetail.Parse(Json("""
+                {"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧",
+                 "original_name":"Example","status":"Returning Series","first_air_date":"2026-10-01","last_air_date":"2026-11-08",
+                 "original_language":"ja","runtime":24,"episode_run_time":[25],"genres":[{"name":"动画"}],
+                 "number_of_seasons":3,"number_of_episodes":36,"vote_count":12345,"popularity":88.5,
+                 "networks":["富士电视台","TOKYO MX"],
+                 "production_countries":[{"name":"Japan"},{"name":"France"}],
+                 "production_companies":[{"name":"Studio A"},{"name":"Studio B"}]}
+                """), Media);
+            Assert.Equal("ID|原始标题|状态|上映日期|最近播出|片长|类型|季数|集数|评分人数|热度|原始语言|出品国家|制作公司|播出平台",
+                string.Join('|', detail.Facts.Select(fact => fact.Label)));
+            Assert.Equal("2026-11-08", detail.Facts.Single(fact => fact.Label == "最近播出").Value);
+            Assert.Equal("24 分钟/集", detail.Facts.Single(fact => fact.Label == "片长").Value);
+            Assert.Equal("动画", detail.Facts.Single(fact => fact.Label == "类型").Value);
+            Assert.Equal("3 季", detail.Facts.Single(fact => fact.Label == "季数").Value);
+            Assert.Equal("36 集", detail.Facts.Single(fact => fact.Label == "集数").Value);
+            Assert.Equal("12,345 人", detail.Facts.Single(fact => fact.Label == "评分人数").Value);
+            Assert.Equal("88.5", detail.Facts.Single(fact => fact.Label == "热度").Value);
+            Assert.Equal("富士电视台\nTOKYO MX", detail.Facts.Single(fact => fact.Label == "播出平台").Value);
             Assert.Equal("Japan\nFrance", detail.Facts.Single(fact => fact.Label == "出品国家").Value);
             Assert.Equal("Studio A\nStudio B", detail.Facts.Single(fact => fact.Label == "制作公司").Value);
+            Assert.True(detail.Facts[^1].Last);
+        });
+        Test("MP 资料卡：电视剧缺 runtime 时片长取 episode_run_time，字符串与数字都认", () =>
+        {
+            var numeric = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧","episode_run_time":[24]}"""), Media);
+            Assert.Equal("24 分钟/集", numeric.Facts.Single(fact => fact.Label == "片长").Value);
+            var text = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧","episode_run_time":["23"]}"""), Media);
+            Assert.Equal("23 分钟/集", text.Facts.Single(fact => fact.Label == "片长").Value);
+            var missing = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧","episode_run_time":[]}"""), Media);
+            Assert.False(missing.Facts.Any(fact => fact.Label == "片长"));
         });
         Test("MP 网页资料卡：辅助 TMDB 优先而订阅主身份不变，豆瓣不加 TMDB 字段", () =>
         {
@@ -54,7 +81,8 @@ internal static class MoviePilotMediaDetailTests
         Test("MP 网页资料卡：电影发行日期取对应类型最早有效值，最后字段无分隔线", () =>
         {
             var movie = Media with { Type = "电影" };
-            var detail = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电影","release_dates":[{"type":4,"date":"2026-11-10T00:00:00Z","iso_code":"US"},{"type":4,"date":"2026-11-01T00:00:00Z","iso_code":"JP"},{"type":5,"date":"2026-12-01T00:00:00Z","iso_code":"DE"},{"type":4,"date":"invalid","iso_code":"FR"}]}"""), movie);
+            var detail = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电影","runtime":132,"release_dates":[{"type":4,"date":"2026-11-10T00:00:00Z","iso_code":"US"},{"type":4,"date":"2026-11-01T00:00:00Z","iso_code":"JP"},{"type":5,"date":"2026-12-01T00:00:00Z","iso_code":"DE"},{"type":4,"date":"invalid","iso_code":"FR"}]}"""), movie);
+            Assert.Equal("132 分钟", detail.Facts.Single(fact => fact.Label == "片长").Value);
             Assert.Equal("2026-11-01", detail.Facts.Single(fact => fact.Label == "数字发行").Value);
             Assert.Equal("JP", detail.Facts.Single(fact => fact.Label == "数字发行").ReleaseCountry);
             Assert.Equal("2026-12-01", detail.Facts.Single(fact => fact.Label == "实体发行").Value);

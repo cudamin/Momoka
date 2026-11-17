@@ -128,6 +128,56 @@ internal static class SubscriptionTrailerLayoutTests
             Assert.Contains("if (_trailerScrollPaused) return;", trailer);
             Assert.Contains("_trailerUserPaused || _trailerScrollPaused", trailer);
         });
+        Test("订阅详情：资料卡补订阅摘要，商店档复刻媒体详情页的左上角淡墨与左右铺满", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
+            XElement Named(string name) => page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == name);
+
+            // 订阅摘要接在媒体字段下面：同一张卡、同一列，纯媒体详情时整段收起。
+            var summary = Named("SubscriptionFacts");
+            Assert.Equal("ItemsRepeater", summary.Name.LocalName);
+            Assert.Equal("{x:Bind ViewModel.DetailSummaryFacts, Mode=OneWay}", (string?)summary.Attribute("ItemsSource"));
+            Assert.Equal("{x:Bind ViewModel.DetailSummaryVisibility, Mode=OneWay}", (string?)summary.Attribute("Visibility"));
+            Assert.Equal("{StaticResource SubscriptionSummaryFactTemplate}", (string?)summary.Attribute("ItemTemplate"));
+            var list = summary.Parent!;
+            Assert.Equal("FactList", (string?)list.Attribute(X + "Name"));
+            Assert.Equal("MediaFacts", (string?)list.Elements().First().Attribute(X + "Name"));
+            Assert.Equal("SubscriptionSummaryFactTemplate", (string?)page.Descendants()
+                .Single(element => (string?)element.Attribute(X + "Key") == "SubscriptionSummaryFactTemplate").Attribute(X + "Key"));
+
+            // 商店档的淡墨层与媒体详情页同一支：两道渐变、固定 #0C0E11 一族、夹在装饰背景与预告片之间。
+            var shade = Named("StoreShade");
+            Assert.Equal("{x:Bind MediaViewModel.StoreAmbientHeight, Mode=OneWay}", (string?)shade.Attribute("Height"));
+            Assert.Equal("{x:Bind MediaViewModel.Viewport, Mode=OneWay}", (string?)shade.Attribute("MinHeight"));
+            Assert.Equal("Collapsed", (string?)shade.Attribute("Visibility"));
+            Assert.Equal("False", (string?)shade.Attribute("IsHitTestVisible"));
+            var before = shade.ElementsBeforeSelf().Select(element => (string?)element.Attribute(X + "Name")).ToArray();
+            Assert.True(before.Contains("StoreBackdrop") && before.Contains("StoreAmbient"), "淡墨层没有压在装饰背景之上");
+            Assert.True(shade.ElementsAfterSelf().Any(element => (string?)element.Attribute(X + "Name") == "StoreTrailerHost"),
+                "淡墨层盖到了预告片上");
+            var brushes = shade.Descendants().Where(element => element.Name.LocalName == "LinearGradientBrush").ToArray();
+            Assert.Equal(2, brushes.Length);
+            Assert.Equal("0,0.5", (string?)brushes[0].Attribute("StartPoint"));
+            Assert.Equal("1,0.5", (string?)brushes[0].Attribute("EndPoint"));
+            Assert.Equal("0.5,0", (string?)brushes[1].Attribute("StartPoint"));
+            Assert.Equal("0.5,1", (string?)brushes[1].Attribute("EndPoint"));
+            foreach (var brush in brushes)
+            {
+                var stops = brush.Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
+                Assert.True(stops.Length >= 3 && stops[^1].Attribute("Color")?.Value == "#000C0E11",
+                    "渐变末端没有收成透明");
+                Assert.True(stops.All(stop => stop.Attribute("Color")!.Value.EndsWith("0C0E11", StringComparison.Ordinal)),
+                    "渐变没有用 #0C0E11 那一族墨色");
+            }
+
+            var store = Source("Views/MoviePilotSubscriptionPage.Store.cs");
+            Assert.Contains("StoreShade.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;", store);
+            Assert.Contains("var bleed = MediaViewModel.Plain && DetailScroll.ActualWidth > width", store);
+            Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
+            Assert.Contains("StoreShade.Margin = bleedMargin;", store);
+            Assert.Contains("MoviePilotSubscriptionFacts.Summary(Selected?.Subscription, SubscribedSeasons, LibraryBadge, Deleted)",
+                Source("ViewModels/MoviePilotSubscriptionsViewModel.cs"));
+        });
     }
 
     private static string Source(string relative) => File.ReadAllText(Path.Combine(

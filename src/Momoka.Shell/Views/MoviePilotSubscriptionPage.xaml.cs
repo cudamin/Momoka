@@ -85,6 +85,10 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             if (args.PropertyName is nameof(MediaViewModel.Backdrop) or nameof(MediaViewModel.DetailErrorVisibility)
                 or nameof(MediaViewModel.Immersive))
                 SyncTitleStrip();
+            // 资料卡的「订阅季数」跟媒体详情一起读回来（见 MoviePilotMediaViewModel.SubscriptionSeasonCount）；
+            // 只认读取结束那一刻，读取开始时那一拍还拿着上一部作品的计数。
+            if (args.PropertyName == nameof(MediaViewModel.Busy) && !MediaViewModel.Busy)
+                ViewModel.SubscribedSeasons = MediaViewModel.SubscriptionSeasonCount;
         };
     }
 
@@ -322,6 +326,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         MediaViewModel.Attach(request.Service, media, request.Subscription?.EpisodeGroup ?? "",
             search: (season, episode) => OpenResources(season, episode), subscribe: season => _ = ChooseSeasonsAsync(season));
         MediaViewModel.AttachPlayback(request.PlaybackScope);
+        // 换到另一条订阅时先收起上一部作品的季数，读完这一部的订阅列表再写回（见构造函数里的 Busy 监听）。
+        ViewModel.SubscribedSeasons = 0;
         // 只有订阅详情才接这一颗；从搜索/推荐打开的纯媒体页没有订阅，也没有可交给 AniBT 的那条路。
         MediaViewModel.AniBtSearch = request.Subscription is not null && request.SearchAniBt is not null;
         MediaViewModel.OpenMedia = request.OpenMedia;

@@ -21,6 +21,8 @@ public sealed partial class MoviePilotSubscriptionPage
         var storeShown = MediaViewModel.Plain && MediaViewModel.Backdrop is not null && !_accessibility.HighContrast;
         // 预告片占着视口时只收起剧照，环境底继续垫在视频下面。
         StoreBackdrop.Visibility = storeShown && !_trailerOpened ? Visibility.Visible : Visibility.Collapsed;
+        // 左上角那道淡墨跟着装饰背景同进同退（复刻媒体详情页商店档，2026-11-17）：背景不在时它没有东西可压。
+        StoreShade.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;
         var width = MediaViewModel.StorePageWidth;
         StoreBackdrop.Height = MediaViewModel.StoreBackdropHeight;
         StoreBackdrop.Width = MediaViewModel.StoreBackdropWidth;
@@ -33,6 +35,8 @@ public sealed partial class MoviePilotSubscriptionPage
         var bleed = 0d;
         var bleedMargin = new Thickness(-bleed, 0, -bleed, 0);
         StoreAmbient.Margin = bleedMargin;
+        // 左上角那道淡墨（2026-11-17「复刻媒体详情页商店档的背景图渐变效果」）与环境底同一份边距。
+        StoreShade.Margin = bleedMargin;
         StoreTrailerFoundation.Margin = bleedMargin;
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(MediaViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);

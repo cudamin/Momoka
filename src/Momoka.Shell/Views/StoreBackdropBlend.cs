@@ -19,8 +19,10 @@ internal static class StoreBackdropBlend
     // 环境色的暗带，屏上读成一道黑边。
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 1), (0.72, 1), (1, 0)];
-    // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：媒体详情页的环境底铺满窗口后，左沿也按
-    // 右沿同一条曲线收边（左右各 28%）。订阅详情页仍用上面那条左沿满色的；那里不要左端渐隐。
+    // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：环境底铺满窗口后，左沿也按右沿同一条曲线
+    // 收边（左右各 28%），左上角因此是一道从窗口底色平滑升上来的坡。2026-11-18 用户令「改回主树的
+    // 渐变样式」：左上方那团暗角退回这条左右对称的直线坡 —— 径向暗角那套铺得太散、浓淡也不再是
+    // 媒体详情页的样子。订阅详情页同样用这一支。
     private static readonly (double Position, double Alpha)[] AmbientSymmetricAcross =
         [(0, 0), (0.28, 1), (0.72, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =

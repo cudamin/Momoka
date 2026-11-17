@@ -155,6 +155,12 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private CancellationTokenSource? _seasonImages;
     private readonly HashSet<MoviePilotMediaSeasonRow> _loadingEpisodes = [];
     private IReadOnlyList<MoviePilotSubscription> _subscriptions = [];
+
+    /// <summary>
+    /// 这部作品在当前连接上已订阅的季数（电影是 0 或 1）—— 订阅资料卡「订阅季数」那一行读它。
+    /// 订阅状态还没读到时给 0：那一行由「有没有值」决定画不画，不拿上一部作品的旧计数冒充。
+    /// </summary>
+    internal int SubscriptionSeasonCount => _subscriptionStateKnown ? _subscriptions.Count : 0;
     private IReadOnlyDictionary<int, IReadOnlySet<int>>? _existing;
     private Action<int?, int?>? _search;
     private Action<int?>? _subscribe;

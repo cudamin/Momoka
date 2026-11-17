@@ -54,6 +54,21 @@
                 </Grid>
             </Border>
         </DataTemplate>
+        <!-- 资料卡下半段那几行订阅摘要（2026-11-17 用户令「给订阅详情页的卡片添加更多信息」）：
+             与上面那张媒体字段同一个行高、同一道分隔线，只是没有云图标与国家角标。 -->
+        <DataTemplate x:Key="SubscriptionSummaryFactTemplate" x:DataType="mp:MoviePilotSubscriptionFact">
+            <Border BorderThickness="{x:Bind local:MoviePilotSubscriptionPage.FactBorder(Last), Mode=OneTime}" BorderBrush="{ThemeResource EgBorderBrush}" Padding="14,8">
+                <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind Value}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold"
+                        HorizontalAlignment="Stretch" TextAlignment="Right" TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+        </DataTemplate>
         <DataTemplate x:Key="MediaRelatedCardTemplate" x:DataType="vm:MoviePilotRelatedCard">
             <Button x:Name="OpenRelatedMedia" Command="{x:Bind OpenCommand}" Style="{StaticResource EgArtworkTileStyle}" Width="128"
                 Background="Transparent" BorderThickness="0" AutomationProperties.Name="{x:Bind Title}">
@@ -136,6 +151,36 @@
     </Grid>
             </Grid>
         <Border x:Name="StoreBackdropMask" />
+    </Grid>
+    <!-- 2026-11-17 用户令「复刻媒体详情页商店档的背景图渐变效果到订阅详情页」：左边一道横着的深色渐变
+         （往右散尽），上面再叠一道竖着的（顶边最浓、往下散尽）。与 DetailPage.xaml 的 StoreShade 同一支：
+         两道都用比例停点，元素跟着窗口拉高拉长时整道渐变一起拉伸；高取环境底与视口里大的那个（MinHeight）。
+         压在静图与环境底上、预告片那块之前：视频与它那排控制键不该跟着变暗。
+         颜色取固定的 0C0E11 一家（同主页大图与详情页）：高对比度那本词典里只有画刷没有颜色键，
+         渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。 -->
+    <Grid x:Name="StoreShade"
+          Height="{x:Bind MediaViewModel.StoreAmbientHeight, Mode=OneWay}"
+          MinHeight="{x:Bind MediaViewModel.Viewport, Mode=OneWay}"
+          HorizontalAlignment="Stretch" VerticalAlignment="Top"
+          IsHitTestVisible="False" Visibility="Collapsed">
+        <Border>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                    <GradientStop Offset="0" Color="#000C0E11" />
+                    <GradientStop Offset="0.3" Color="#240C0E11" />
+                    <GradientStop Offset="0.58" Color="#000C0E11" />
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+        <Border>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                    <GradientStop Offset="0" Color="#300C0E11" />
+                    <GradientStop Offset="0.35" Color="#100C0E11" />
+                    <GradientStop Offset="1" Color="#000C0E11" />
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
     </Grid>
     <Grid x:Name="StoreTrailerHost" HorizontalAlignment="Right" VerticalAlignment="Top"
           IsHitTestVisible="False" Visibility="Collapsed">
@@ -332,6 +377,15 @@
                     </Border>
                     <StackPanel x:Name="FactList" Grid.Row="1" Spacing="0">
                         <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                        <!-- 媒体字段之后是订阅摘要（用户令 2026-11-17「给订阅详情页的卡片添加更多信息」）：
+                             纯媒体详情没有订阅时整段收起，不画小标题也不留空行。 -->
+                        <Border BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" Padding="14,12,14,2"
+                            Visibility="{x:Bind ViewModel.DetailSummaryVisibility, Mode=OneWay}">
+                            <TextBlock Text="订阅" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+                        </Border>
+                        <ItemsRepeater x:Name="SubscriptionFacts" ItemsSource="{x:Bind ViewModel.DetailSummaryFacts, Mode=OneWay}"
+                            ItemTemplate="{StaticResource SubscriptionSummaryFactTemplate}"
+                            Visibility="{x:Bind ViewModel.DetailSummaryVisibility, Mode=OneWay}" />
                     </StackPanel>
                 </Grid>
             </Border>

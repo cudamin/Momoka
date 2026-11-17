@@ -81,9 +81,16 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
                 Add("状态", Text("status"));
                 Add("上映日期", Text("release_date", "first_air_date"), cloud: true);
                 if (Media.Type == "电影") { Release("数字发行", 4); Release("实体发行", 5); }
+                else Add("最近播出", Text("last_air_date"));
+                Add("片长", Runtime());
+                Add("类型", Genres);
+                if (Media.Type == "电视剧") { Count("季数", "number_of_seasons", "季"); Count("集数", "number_of_episodes", "集"); }
+                Votes();
+                Add("热度", Popularity());
                 Add("原始语言", OriginalLanguage);
                 Add("出品国家", Names(MoviePilotSubscription.Member(Data, "production_countries"), "\n"));
                 Add("制作公司", Names(MoviePilotSubscription.Member(Data, "production_companies"), "\n"));
+                if (Media.Type == "电视剧") Add("播出平台", Names(MoviePilotSubscription.Member(Data, "networks"), "\n"));
             }
             else if (Text("douban_id").Length > 0 || Media.MediaSource == "douban")
             {
@@ -91,6 +98,11 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
                 Add("原始标题", Text("original_title"));
                 Add("上映日期", Text("release_date"));
                 Add("出品国家", Names(MoviePilotSubscription.Member(Data, "production_countries"), "\n"));
+                // 豆瓣来源也可能带类型、时长与评分人数；有就显示，没有不造行。
+                Add("类型", Genres);
+                Add("片长", Runtime());
+                Votes();
+                Add("热度", Popularity());
             }
             else if (Text("bangumi_id", "anilist_id").Length > 0 || Media.MediaSource is "bangumi" or "anilist")
             {
@@ -99,6 +111,9 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
                 if (facts.Count == 0) Add("ID", Media.MediaId ?? "");
                 Add("原始标题", Text("original_title"));
                 Add("上映日期", Text("release_date"));
+                Add("类型", Genres);
+                Add("片长", Runtime());
+                Votes();
             }
             if (facts.Count > 0) facts[^1] = facts[^1] with { Last = true };
             return facts;
@@ -106,6 +121,37 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
             {
                 if (value.Length > 0) facts.Add(new(label, value, cloud, country));
             }
+            void Count(string label, string key, string unit)
+            {
+                if (MoviePilotSubscription.Number(Data, key) is > 0 and var value)
+                    Add(label, value.ToString(CultureInfo.InvariantCulture) + " " + unit);
+            }
+            void Votes()
+            {
+                if (MoviePilotSubscription.Number(Data, "vote_count") is > 0 and var value)
+                    Add("评分人数", value.ToString("N0", CultureInfo.InvariantCulture) + " 人");
+            }
+            // 片长：电影取 runtime，电视剧取 episode_run_time 的第一个有效值（TMDB 的类型里它被写成
+            // 字符串数组，回话也可能是数字），两处都缺就不出现这一行。电视剧后面带「/集」，与网页端头部那行一致。
+            string Runtime()
+            {
+                var minutes = MoviePilotSubscription.Number(Data, "runtime");
+                if (minutes is not > 0) minutes = EpisodeRunTime();
+                return minutes is > 0 and var value ? $"{value} 分钟" + (Media.Type == "电视剧" ? "/集" : "") : "";
+            }
+            int? EpisodeRunTime()
+            {
+                if (MoviePilotSubscription.Member(Data, "episode_run_time") is not { ValueKind: JsonValueKind.Array } times) return null;
+                foreach (var item in times.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var number) && number > 0) return number;
+                    if (item.ValueKind == JsonValueKind.String
+                        && int.TryParse(item.GetString(), CultureInfo.InvariantCulture, out var parsed) && parsed > 0) return parsed;
+                }
+                return null;
+            }
+            string Popularity() => MoviePilotSubscription.Real(Data, "popularity") is > 0 and var value
+                ? value.ToString("0.0", CultureInfo.InvariantCulture) : "";
             void Release(string label, int type)
             {
                 var releases = MoviePilotSubscription.Member(Data, "release_dates");
