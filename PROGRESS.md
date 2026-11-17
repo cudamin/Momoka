@@ -14631,4 +14631,6 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 同日十追加（用户：「扩散的面积大一点，然后弄淡 更透」）：椭圆两轴放到横向 0.22、纵向 1.00（铺满整个高），并给角上加 `AmbientFanFloor = 0.35` 的底子 —— 左上角不再压成实心黑，环境色从第一像素起就透出来，整团暗角更淡更透。验证：Shell Release/x64 **0 警告 0 错误**（2 分 41 秒）；`Momoka.PageContractTests` **354/354**（角上下限改成「大于 0 且小于一半」的断言）、全量 `Momoka.Tests` **5225/5225**，0 失败 0 跳过；已复发布并刷新同一快捷方式（01:01）；探针 `shell-probe-20261117-170227134-18108` **36/37**，红项为「长货架夹具没有虚拟化首项」（夹具时序，未涉及环境底）；1240 宽商店档截图左上角由 (3,13,25) 提到 (27,41,36)。
 
+同日十一追加（用户：「改回主树的渐变样式吧」）：径向暗角这一支整体退回主树 —— `AmbientSymmetricAcross` 恢复成 `[(0,0),(0.28,1),(0.72,1),(1,0)]`（左右各 28% 的对称直线坡），`AmbientFanX/Y/Floor`、`AmbientFan`、`AmbientRight` 与 `Mask` 里的椭圆半径计算全部删掉，`Mask` 回到主树那次简单的横向 × 纵向 smoothstep。订阅详情页仍选 `AmbientSymmetric`，与主树媒体详情页同一张遮罩：左上角是一道从窗口底色平滑升上来的坡，不再是径向暗角。`StoreDetailLayoutTests` 的环境底契约同步改回主树的采样（0 处 0、0.1 处中间值、0.5 处满色）。验证：Shell Release/x64 **0 警告 0 错误**（2 分 24 秒）；`Momoka.PageContractTests` **354/354**、全量 `Momoka.Tests` **5225/5225**（默认 TEMP 下两项 `C:\WINDOWS\TEMP` 下载环境红，指 `artifacts/delivery-tmp` 后全绿），0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0；已复发布并刷新同一快捷方式（01:26）。探针未跑：发布后桌面上已有本树实例在运行（pid 26620，01:26:43），未强杀用户正在看的窗口，交付前独占桌面时一并复跑。
+
 未合并 master；分支快捷方式已刷新，不等于交付。

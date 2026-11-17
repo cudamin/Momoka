@@ -19,31 +19,12 @@ internal static class StoreBackdropBlend
     // 环境色的暗带，屏上读成一道黑边。
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 1), (0.72, 1), (1, 0)];
-    /// <summary>
-    /// 2026-11-17 用户令「左上角的那个渐变要以左上为起点扩散，从浓变淡，过度平滑」：环境底左上角那团
-    /// 暗角以左上角为圆心径向展开 —— 角上最浓（窗口底色），沿椭圆弧向外平滑变淡，到画布宽的
-    /// <see cref="AmbientFanX"/>、高的 <see cref="AmbientFanY"/> 处完全交给环境底。两轴按画布比例给，
-    /// 窗口拉宽拉高时这团暗角等比铺开；左沿不再另加竖直的坡（用户令「左边还是有一条90度的黑色」），
-    /// 右沿另有一道收边。2026-11-18 用户令「右边少扩散一点，下面多扩散」，随后又令「扩散的面积大一点，
-    /// 然后弄淡 更透」：横向 0.22、纵向铺满整个高；角上也不再压到全黑，底子留 <see cref="AmbientFanFloor"/>。
-    /// </summary>
-    internal const double AmbientFanX = 0.22;
-    internal const double AmbientFanY = 1.00;
-
-    /// <summary>
-    /// 角上那一点的透明度下限（0–1）：不给 0，左上角就不会是一块实心黑，环境色从第一像素起就透出来，
-    /// 整团暗角读起来更淡更透（2026-11-18 用户令「弄淡 更透」）。
-    /// </summary>
-    internal const double AmbientFanFloor = 0.35;
-
-    /// <summary>径向那团的坡：角上下限见 <see cref="AmbientFanFloor"/>，1 = 完全交给环境底（smoothstep 由 Interpolate 给）。</summary>
-    private static readonly (double Position, double Alpha)[] AmbientFan =
-        [(0, AmbientFanFloor), (1, 1)];
-
-    /// <summary>对称环境底的右坡：照旧在画布右侧收边。</summary>
-    private static readonly (double Position, double Alpha)[] AmbientRight =
-        [(0, 1), (0.72, 1), (1, 0)];
-
+    // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：环境底铺满窗口后，左沿也按右沿同一条曲线
+    // 收边（左右各 28%），左上角因此是一道从窗口底色平滑升上来的坡。2026-11-18 用户令「改回主树的
+    // 渐变样式」：左上方那团暗角退回这条左右对称的直线坡 —— 径向暗角那套铺得太散、浓淡也不再是
+    // 媒体详情页的样子。订阅详情页同样用这一支。
+    private static readonly (double Position, double Alpha)[] AmbientSymmetricAcross =
+        [(0, 0), (0.28, 1), (0.72, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =
         [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
@@ -53,29 +34,19 @@ internal static class StoreBackdropBlend
 
     internal static byte[] Mask(bool ambient, bool symmetric = false)
     {
-        var across = ambient ? AmbientAcross : PictureAcross;
+        var across = ambient
+            ? symmetric ? AmbientSymmetricAcross : AmbientAcross
+            : PictureAcross;
         var down = ambient ? AmbientDown : PictureDown;
         var pixels = new byte[Side * Side * 4];
         for (var y = 0; y < Side; y++)
-        {
-            var ny = y / (double)(Side - 1);
-            var vertical = Interpolate(ny, down);
             for (var x = 0; x < Side; x++)
             {
-                var nx = x / (double)(Side - 1);
-                // 左上角那团暗角：以角为圆心的椭圆半径，越往外越淡（见 AmbientFanX/Y）。
-                var fan = Math.Sqrt(nx * nx / (AmbientFanX * AmbientFanX)
-                    + ny * ny / (AmbientFanY * AmbientFanY));
-                // 2026-11-17 用户令「左边还是有一条90度的黑色」：左沿不再另加竖直的窄坡 ——
-                // 暗角只由上面那团径向给，左边沿离开角就交给满色环境底，不会有一条竖着的黑带。
-                var horizontal = symmetric
-                    ? Interpolate(Math.Min(1, fan), AmbientFan) * Interpolate(nx, AmbientRight)
-                    : Interpolate(nx, across);
-                var alpha = Channel(255 * horizontal * vertical);
+                var alpha = Channel(255 * Interpolate(x / (double)(Side - 1), across)
+                    * Interpolate(y / (double)(Side - 1), down));
                 var at = (y * Side + x) * 4;
                 pixels[at] = pixels[at + 1] = pixels[at + 2] = pixels[at + 3] = alpha;
             }
-        }
         return pixels;
     }
 

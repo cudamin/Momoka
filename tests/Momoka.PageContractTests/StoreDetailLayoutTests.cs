@@ -220,20 +220,13 @@ internal static class StoreDetailLayoutTests
             // 详情页：两页的环境底遮罩左端都起坡，左上角不再有一块从内容区左沿就满色的环境色。
             Assert.Contains("StoreBackdropFadeShape.AmbientSymmetric", Source("Views/DetailPage.Showcase.cs"));
             Assert.Contains("StoreBackdropFadeShape.AmbientSymmetric", Source("Views/MoviePilotSubscriptionPage.Showcase.cs"));
+            // 2026-11-18 用户令「改回主树的渐变样式」：左上方那块退回主树媒体详情页的左右对称直线坡
+            // （左右各 28%）—— 左上角从透明起坡、平滑升到满色，不再是径向暗角。
             var mask = Momoka.Shell.Views.StoreBackdropBlend.Mask(ambient: true, symmetric: true);
-            byte AmbientAlpha(double x, double y) =>
-                mask[((int)Math.Round(y * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
-            // 2026-11-17 用户令「左上角的那个渐变要以左上为起点扩散，从浓变淡，过度平滑」：
-            // 左上角那团暗角以角为圆心径向展开，沿弧向外平滑变淡，不再是竖边也不是直线斜边。
-            // 2026-11-18 用户令「弄淡 更透」：角上留一道底子，左上角不是实心黑。
-            Assert.True(AmbientAlpha(0, 0) is > 0 and < 128, "左上角还是实心的黑，没有透出环境色");
-            Assert.True(AmbientAlpha(0.06, 0.05) is > 0 and < 255, "环境底左上角没有径向渐隐");
-            Assert.True(AmbientAlpha(0.06, 0.05) < AmbientAlpha(0.06, 0.30), "环境底暗角没有沿弧向外变淡");
-            Assert.Equal(255, AmbientAlpha(0.30, 0.10));
-            // 2026-11-17 用户令「怎么这左边还是有一条90度的黑色」：左边沿不再是一条竖直暗带 ——
-            // 同一个 x 上越往下越亮，离开角就交给环境底。
-            Assert.True(AmbientAlpha(0, 0.05) < AmbientAlpha(0, 0.55), "左边沿还是一条竖直的暗带");
-            Assert.Equal(0, AmbientAlpha(1, 0.5));
+            byte AmbientAlpha(double x) => mask[((int)Math.Round(0.35 * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
+            Assert.Equal(0, AmbientAlpha(0));
+            Assert.True(AmbientAlpha(0.1) is > 0 and < 255, "环境底左端没有渐隐");
+            Assert.Equal(255, AmbientAlpha(0.5));
             // 2026-11-16 用户令「渐变要填满左右两边」：装饰带越过 1840 内容列，用负边距铺到窗口两边。
             var store = Source("Views/DetailPage.Store.cs");
             Assert.Contains("var bleed = store && Body.ActualWidth > columnWidth", store);
