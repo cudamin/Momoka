@@ -1,3 +1,15 @@
+## 2026-11-17 主页「最近添加」标记已看后自动隐藏；确认商店模式为出厂默认（主树 master）
+
+用户两条：①「把商店模式设为默认」——核对后设置 → 界面 → 显示模式的出厂值 `UiSettings.EnableImmersive` 已经是 `false`（商店模式），`SettingsTests` 的「默认商店模式」与侧栏探针「出厂显示模式应为商店模式」都钉着它，保存里的这一格也是 false，因此无需改产品代码。②「在主页的最近添加 点击标记为已观看之后，要自动隐藏」。
+
+**改了什么。** Core 新增 `HiddenWatchedMedia`：按「来源 + Id」记本次运行里在主页「最近添加」上手动标成已看的条目，只在内存、重启清空；与删除用的 `RemovedMedia` 分开，不挡媒体库、搜索、详情页。`HomeViewModel.AfterWatchedAsync` 在任何一排标记已看成功后先走 `HideFromRecent`：把同一件从每个媒体库的「最近添加」排撤下（释放海报、重算排与装载数），并把身份记进这本账；随后照旧处理继续观看换下一集或撤格。`ItemsOf` 与暖缓存恢复共用的 `Visible(rowKey, items)` 在媒体库排上再滤一次这本账，所以重读、暖缓存和页面重建后本次运行内不会把它带回来。`HomePage` 从容器取同一个单例，DI 与探针注册同步；继续观看、接下来看与轮播不读这本账。
+
+**检查。** Shell Release/x64 0 警告 0 错误；`browse-identity-fixture` 61/61（新增 4 条：重复记住、只认这一件不动季与单集、跨服务器同号不牵连、无 Id 不进账）；`home-performance-fixture` 60/60（新增「标记已看后当场撤下、重读与重建主页都不再带回来」）；`library-resume-paging-fixture` 52/52；`Momoka.PageContractTests` 353/353；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。
+
+**未验证。** 按日常口径未跑原生探针、未拍实屏；「最近添加」右键菜单与悬浮层两条入口的实际点击、五套主题下的排版、重启后已看条目恢复显示留给统一验证，记入[待交付批次](docs/待交付批次.md)第 73 条。
+
+**提交与发布。** 产品与测试提交 `e557d6c`。按改好收尾自动发布：`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `EE7A2EBC4D1A53102088AF4B453595FE0E7E83E01248C1B20283BFEB5EE68007`，`Momoka.dll` SHA256 `93380E3DA02C1B1548C5802FBF26F31229551E90AE0F380DC64E039B6FE287A6`；桌面 `Momoka.lnk` 指向主树 `artifacts/publish/win-x64`（生成于 13:49）。未推远端。
+
 ## 2026-11-17 详情字幕选择框标签补上中文冒号（主树 master）
 
 用户附详情页文件选择行截图问「字幕后面的：呢」。同一排三行标签里「音频：」带全角冒号、「字幕」没有，读起来两行不一致。
