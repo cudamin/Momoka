@@ -172,7 +172,9 @@ internal static class SubscriptionTrailerLayoutTests
 
             var store = Source("Views/MoviePilotSubscriptionPage.Store.cs");
             Assert.Contains("StoreShade.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;", store);
-            Assert.Contains("var bleed = MediaViewModel.Plain && DetailScroll.ActualWidth > width", store);
+            // 2026-11-17 卡片与窗口间距那条规则（master）把内容列改成铺满窗口，订阅页的装饰带与窗口同宽，
+            // bleed 因此是 0；淡墨与环境底仍从同一处写边距（本批新增 StoreShade 的接线）。
+            Assert.Contains("var bleed = 0d;", store);
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
             Assert.Contains("MoviePilotSubscriptionFacts.Summary(Selected?.Subscription, SubscribedSeasons, LibraryBadge, Deleted)",
