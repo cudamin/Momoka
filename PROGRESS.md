@@ -1,3 +1,17 @@
+## 2026-11-17 商店详情：宽窗视口继续随窗口变宽，右沿仍留 16（分支 fix-store-window-spacing-px4o5I，待统一验证）
+
+用户一句「加宽拉长窗口时候商店模式下，背景图/预告片和窗口右边的间距」，追问后选定「视口继续随窗口变宽」。
+
+**改了什么。** 商店档右侧剧照／预告视口原来按 1840 内容列的 60% 算、还封在 920：窗口一宽过 1840，内容列居中不动，视口就停在原处，右边空出一大段环境色（2026-11-16「渐变铺满左右两边」之后更显眼）。现在视口几何改读窗口真实宽：`DetailViewModel` 新增 `WindowWidth`（`Body.ActualWidth`，由 `OnBodySizeChanged`、`PlaceStoreComponents` 与 `SeedConnectedLayoutWidth` 三处写入）；Core 新增纯函数 `DetailHero.StoreWindowPreviewWidth`／`StoreWindowPreviewHeight`，宽版式按窗口宽 0.6、16:9 给宽高（920 上限退役，窄档仍整幅铺开），`StorePreviewRightMargin` 把内容列居中让出的右半边 bleed 从 16 里减掉 —— 视口右沿继续离窗口右边 16。视频底下那块局部色（`StoreTrailerFoundation`）跟环境底、淡墨一起用负边距铺满窗口，预告坐标、渐隐采样与暂停／静音控制排都按窗口宽和同一个右边距摆，视频不再比视口短一截、控制排也不再留在内容列里。订阅详情页仍读 `StoreBackdropWidth`／`TrailerPreview.BackgroundWidth` 那两支，本轮未动。
+
+**测了什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` 新增纯函数用例（1240→744、1840→1104、2560→1536，0／NaN→768，高 864，右 margin 16／−344／容错），`Momoka.PageContractTests` 新增一条源码契约（窗口宽三处接线、局部底铺满、控制排跟随）；全量 `Momoka.Tests` **5224/5224**、`Momoka.PageContractTests` **355/355**，0 失败 0 跳过。按日常界面口径未跑原生探针与验收截图。
+
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-store-window-spacing-px4o5I` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `010F26AEF0A9882683710BC41C9967FD415DA7E6C14B71D73782551E8E215461`，`Momoka.dll` SHA256 `B6440A0671617C907FA88F04C26D9212FF6728CD976A7D9D5626C1D3D0CE702E`；桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk` 指向本树 `artifacts/publish/win-x64`。首次发布被本树根目录缺 `libmpv-2.dll` 拦下，从主树复制同名运行时后通过。
+
+**未验证。** 宽窗（宽过 1840）实屏观感、视口与内容列文字的重叠程度、宽窗下预告片位置与渐隐、五套固定深色与跟随系统深浅；统一验证时按台账第 77 条跑。
+
+**提交。** 产品与测试 `2fe8781`；本记录与台账随文档提交入库。未合入 master、未推远端。
+
 ## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
 用户三句：「缓冲设置单独一个卡片，放补帧上面，参考上图修改缓冲设置，新增内网缓冲设置和外网缓冲设置」「默认值是多少要写清除不要写0」（「清除」按「清楚」读）；附 mpv.net 的「缓冲大小／缓冲时长」截图。问过两件事，用户当次定：默认值取**内网 256MB／30s、外网 256MB／30s**；内网/外网**按服务器地址自动判定**。
