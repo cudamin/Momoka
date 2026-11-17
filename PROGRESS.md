@@ -14,6 +14,8 @@
 
 **边界。** 1500 处是有意的跳档（用户要的「自动切换」）；2250 到 2560 线性放大，2560 以上封顶 300 —— 2K 屏最大化（整窗 2560、展开侧栏 256 时内容区 2304）左右各 300，内容列宽 1704。宽度按整扇窗口（含侧栏）判，侧栏拖宽只收窄内容列、不再改变「窗口最宽」那一刻的间距；4K 或更宽的窗口同样封顶 300。窄窗、紧凑档与 1500 以下各档的版面数值一个没动。
 
+**分支与合并。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-card-responsive-gap-F0pAes`，分支 `feat-card-responsive-gap-F0pAes`，基点 `a8152cf`，产品与测试提交 `7a64d33`、记录 `922b25f`；2026-11-18 用户令「合并」，在主树 `master` 的 `7059d02` 上以 `--no-ff` 合入 `652a499`（两处文档冲突按两边保留：本批与飞牛音乐库卡批次各占一条，本批台账编号顺延为 82）。合并后在最终 master 上重编 Shell 与三个测试项目 Release/x64 均 **0 警告 0 错误**，`detail-action-readiness-fixture` **96/96**、`Momoka.PageContractTests` **357/357**、`Momoka.MoviePilotSubscribeSettingsTests` **79/79**；按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB，00:36）并刷新桌面 `Momoka.lnk`。未推远端。
+
 ## 2026-11-17 飞牛音乐媒体库卡补封面（已合并 master，待统一验证）
 
 用户先问「飞牛音乐库怎么没封面」，看过三格拼墙后又要求「弄好看点」。实服只读核对（飞牛音乐 1.1.19）：`track/list`、`album/list`、`artist/list` 都带 `coverId`，`static/cover?coverId=&size=600` 带 `music-token` Cookie 返回 `image/jpeg`；20:53 日志只有一条「卡片: 没有可用的图片候选（音乐）」，同一时段 160 宽曲目封面已进缓存。缺的是虚拟「音乐」库条目本身没有任何图像标签，所以主页和侧栏的库卡是空白。
