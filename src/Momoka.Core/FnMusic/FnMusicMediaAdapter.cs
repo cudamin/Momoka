@@ -89,27 +89,25 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
             CollectionType = "music",
             PrimaryImageAspectRatio = 1
         };
-        // 官方没有库封面接口：取第一页专辑封面拼成库卡，与飞牛影视库卡的 posters 墙同一画法。
-        var covers = await LibraryCoversAsync(ct).ConfigureAwait(false);
-        if (covers.Count > 0) view.ImageTags["Primary"] = covers[0];
-        if (covers.Count >= 3) view.PosterPaths = [.. covers];
+        // 官方没有库封面接口：取第一张有封面的专辑，库卡用“压暗封面铺底、方形封面居中”的画法。
+        if (await LibraryCoverAsync(ct).ConfigureAwait(false) is { Length: > 0 } cover)
+            view.ImageTags["Primary"] = cover;
         return [view];
     }
 
-    /// <summary>库卡拼图只取三张；读不到只是库卡少封面，媒体库本身照常返回，身份过期仍向上报告。</summary>
-    private async Task<List<string>> LibraryCoversAsync(CancellationToken ct)
+    /// <summary>库卡只取第一张有封面的专辑；读不到只是库卡没图，媒体库本身照常返回，身份过期仍向上报告。</summary>
+    private async Task<string?> LibraryCoverAsync(CancellationToken ct)
     {
         try
         {
             var data = await client.GetAsync(connection, "album/list", ct, ("page", "1"), ("size", "3")).ConfigureAwait(false);
-            return Rows(data).Select(value => Text(value, "coverId"))
-                .Where(cover => cover.Length > 0).Distinct(StringComparer.Ordinal).Take(3).ToList();
+            return Rows(data).Select(value => Text(value, "coverId")).FirstOrDefault(cover => cover.Length > 0);
         }
         catch (EmbyTokenExpiredException) { throw; }
         catch (EmbyApiException error) when (!ct.IsCancellationRequested)
         {
             Log.Warn("fnmusic", "album/list 库封面不可用，库卡不带封面", error);
-            return [];
+            return null;
         }
     }
 

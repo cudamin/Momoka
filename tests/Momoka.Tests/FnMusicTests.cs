@@ -123,21 +123,21 @@ internal static class FnMusicTests
             Assert.Contains("size=600", fixture.Transport.Requests[^1].Query);
             Assert.True(fixture.Transport.Requests.All(request => request.Host == "fixture.invalid"));
         });
-        Test("飞牛音乐：库卡用专辑封面拼三格，不足三张时用单张", () =>
+        Test("飞牛音乐：库卡取第一张有封面的专辑，不再拼竖条", () =>
         {
             using var fixture = new Fixture(); var client = fixture.Client();
-            fixture.Transport.AlbumCovers = ["cover_a", "cover_b", "cover_a", "cover_c"];
+            fixture.Transport.AlbumCovers = ["", "cover_a", "cover_b"];
             var view = client.GetViewsAsync(default).GetAwaiter().GetResult().Single();
-            Assert.Equal("cover_a,cover_b,cover_c", string.Join(',', view.PosterPaths));
             Assert.Equal("cover_a", view.ImageTags["Primary"]);
+            Assert.Equal(0, view.PosterPaths.Count);
             Assert.True(fixture.Transport.Requests[^1].Path.EndsWith("album/list", StringComparison.Ordinal));
             Assert.Contains("page=1", fixture.Transport.Requests[^1].Query);
             Assert.Contains("size=3", fixture.Transport.Requests[^1].Query);
 
             fixture.Transport.AlbumCovers = ["cover_only"];
             var single = client.GetViewsAsync(default).GetAwaiter().GetResult().Single();
-            Assert.Equal(0, single.PosterPaths.Count);
             Assert.Equal("cover_only", single.ImageTags["Primary"]);
+            Assert.Equal(0, single.PosterPaths.Count);
         });
         Test("飞牛音乐：库封面读取失败不挡媒体库，身份过期仍上报", () =>
         {

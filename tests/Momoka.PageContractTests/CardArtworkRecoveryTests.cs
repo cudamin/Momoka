@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Shell.Media;
@@ -89,5 +91,33 @@ internal static class CardArtworkRecoveryTests
                         Assert.Equal(1, fixture.Handler.Count);
                     }
                 }));
+        Test("R16-005：飞牛音乐库横卡压暗铺底、方形封面居中", () => CardImageContext.Run(async () =>
+        {
+            await using var fixture = new CardImageFixture(kind: MediaServerKind.FnMusic);
+            var music = fixture.Scope.Bind(new EmbyItem
+            {
+                Id = "music",
+                Name = "音乐",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "music",
+                PrimaryImageAspectRatio = 1,
+                ImageTags = new() { [EmbyImageStore.Primary] = "cover" }
+            });
+            var card = new CardItem(music, fixture.Images, 208, wide: true);
+            Assert.Equal(Stretch.Uniform, card.PosterStretch);
+            Assert.Equal(Visibility.Visible, card.FnNasWideVisibility);
+
+            var movies = fixture.Scope.Bind(new EmbyItem
+            {
+                Id = "movies",
+                Name = "电影",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "movies",
+                ImageTags = new() { [EmbyImageStore.Primary] = "poster" }
+            });
+            var ordinary = new CardItem(movies, fixture.Images, 208, wide: true);
+            Assert.Equal(Stretch.UniformToFill, ordinary.PosterStretch);
+            Assert.Equal(Visibility.Collapsed, ordinary.FnNasWideVisibility);
+        }));
     }
 }

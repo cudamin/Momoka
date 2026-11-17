@@ -357,10 +357,10 @@ public sealed class CardItem : INotifyPropertyChanged
         CenteredText = upcoming || centeredText;
         FolderFrame = folderFrame;
         _aspect = aspect;
-        _fnNasWide = fnNasWide;
+        _fnNasWide = fnNasWide || MusicLibraryWideCover(item);
         _cardLayout = cardLayout;
         _episodeFrame = episodeFrame && item.Type == EmbyItemType.Episode;
-        PosterStretch = PosterStretchFor(item, aspect, wide, containArtwork, fnNasWide);
+        PosterStretch = PosterStretchFor(item, aspect, wide, containArtwork, _fnNasWide);
         _note = note;
         _indicators = indicators;
         _sourceLine = sourceLine;
@@ -501,6 +501,14 @@ public sealed class CardItem : INotifyPropertyChanged
     public BitmapImage? LibraryTile0 => _collageTiles[0];
     public BitmapImage? LibraryTile1 => _collageTiles[1];
     public BitmapImage? LibraryTile2 => _collageTiles[2];
+
+    /// <summary>
+    /// 飞牛音乐库根条目：宽卡没有库封面接口，用同一张专辑封面压暗铺底、方形封面居中，
+    /// 与飞牛影视横卡共用 <see cref="FnNasWideVisibility"/> 那一层画法。
+    /// </summary>
+    private static bool MusicLibraryWideCover(EmbyItem item) =>
+        item.Type == EmbyItemType.CollectionFolder && item.CollectionType == "music"
+        && item.Source?.Connection.IsFnMusic == true && item.PrimaryImageTag is { Length: > 0 };
 
     /// <summary>
     /// 官方列表卡片的 object-cover 判据（前端 <c>aB</c>）：1:1 不裁；图片宽高比在卡片比例的
