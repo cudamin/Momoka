@@ -96,7 +96,6 @@ public sealed partial class HomeBanner : UserControl
     private bool _focusWithin;
     private bool _active;
 
-    private readonly ControlBackgroundBrushes _openBackground;
     private UiSettings? _appearanceSettings;
     private int _appearanceLifetime;
 
@@ -533,7 +532,6 @@ public sealed partial class HomeBanner : UserControl
     public HomeBanner()
     {
         InitializeComponent();
-        _openBackground = ControlBackgroundBrushes.ForBanner(OpenButton, Resources);
         _pointerGlow = new BannerPointerGlow(PointerGlow, PointerGlowBrush, Root);
         PaintPointerGlowInk();
 
@@ -570,7 +568,7 @@ public sealed partial class HomeBanner : UserControl
         Unloaded += OnUnloaded;
     }
 
-    /// <summary>外观只重画底色和两支图片画刷，翻页动画继续独占图片层的 Opacity。</summary>
+    /// <summary>外观只重画圆点墨与两支图片画刷，翻页动画继续独占图片层的 Opacity。</summary>
     internal void ApplyAppearance(UiSettings ui)
     {
         _appearanceSettings = ui;
@@ -579,9 +577,6 @@ public sealed partial class HomeBanner : UserControl
         _lastColorEffects = _uiSettings.AdvancedEffectsEnabled;
         PaintPointerGlowInk();
         _pointerGlow.SetEnabled(_active && !contrast && _lastColorEffects);
-        _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls,
-            contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)));
-        PaintOpenButtonInk();
         SyncPageDots();
         // 轮播那两张图本来就按满不透明铺着（详情页那道浓度滑块不归这里管），2026-11-07 起更彻底：
         // 设置里只剩详情页的亚克力参数，首页这两层不再跟着任何浓度走。
@@ -596,26 +591,6 @@ public sealed partial class HomeBanner : UserControl
 
     internal bool GaussianBackdropApplied => Current?.GaussianBackdropApplied == true;
     internal bool GaussianBackdropReady => Current?.GaussianBackdropReady == true;
-
-    private void PaintOpenButtonInk()
-    {
-        var sample = BackdropInk.Sample(OpenButton, FrontLayer, Current?.BackdropPixels, false, ThemeHost.Current.Colors.Window);
-        var along = 0d;
-        try
-        {
-            var position = OpenButton.TransformToVisual(Fade).TransformPoint(new Windows.Foundation.Point(OpenButton.ActualWidth / 2, OpenButton.ActualHeight / 2));
-            along = Fade.ActualWidth > 0 ? Math.Clamp(position.X / Fade.ActualWidth, 0, 1) : 0;
-        }
-        catch (ArgumentException) { }
-        var stops = ((LinearGradientBrush)Fade.Background).GradientStops;
-        var left = stops.Last(stop => stop.Offset <= along);
-        var right = stops.First(stop => stop.Offset >= along);
-        var alpha = left.Offset == right.Offset ? left.Color.A / 255d
-            : (left.Color.A + (right.Color.A - left.Color.A) * (along - left.Offset) / (right.Offset - left.Offset)) / 255d;
-        var background = sample.Mix(ThemeColor.Rgb(left.Color.R, left.Color.G, left.Color.B), alpha);
-        _openBackground.ApplyForeground(background, !_uiSettings.AdvancedEffectsEnabled,
-            _colorAccessibility.HighContrast ? _uiSettings.GetColorValue(UIColorType.Foreground) : null);
-    }
 
     private void PaintBackdropShade()
     {
@@ -648,7 +623,7 @@ public sealed partial class HomeBanner : UserControl
     /// <summary>按下播放键的那张幻灯片。</summary>
     public event EventHandler<BannerSlide>? PlayRequested;
 
-    /// <summary>按下详情键（或按回车）的那张幻灯片。</summary>
+    /// <summary>点在带上、或者按回车时打开的那张幻灯片。</summary>
     public event EventHandler<BannerSlide>? OpenRequested;
 
     /// <summary>
@@ -822,7 +797,6 @@ public sealed partial class HomeBanner : UserControl
         // 念给读屏的人听：这条带上的字全压在剧照上，光念标题听不出这是第几张。
         AutomationProperties.SetName(Root, $"主页轮播，{HomeCarousel.Position(_index, _slides.Count)}，{slide.Title}");
         AutomationProperties.SetName(PlayButton, $"{slide.PlayText} {slide.Title}");
-        AutomationProperties.SetName(OpenButton, slide.OpenTip);
 
         Unwatch();
         _current = slide;
@@ -894,7 +868,6 @@ public sealed partial class HomeBanner : UserControl
     private void Paint(BitmapImage? picture)
     {
         PaintBackdropShade();
-        PaintOpenButtonInk();
 
         // 台上没有图 = 「这一张还在取」：整条带底下扫一道光。这一句要摆在下面那个「同一张就不动」之前 ——
         // 开场第一趟传进来的正是 null，而那一刻台上的也是 null，提前返回的话这道光永远等不到人点亮。
@@ -1316,9 +1289,40 @@ public sealed partial class HomeBanner : UserControl
         if (Current is { } slide) PlayRequested?.Invoke(this, slide);
     }
 
-    private void OnOpenClicked(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 点在带上的那一块剧照或字上（2026-11-17 用户令「去掉轮播图上的详情按钮，改为点击轮播图直接进入详情页面」）。
+    /// 「详情」键退役之后，整条带自己就是详情入口；播放键、翻页箭头和右栏卡片仍各自做自己的事 ——
+    /// 它们的 Tapped 会顺着路由冒到这里，所以先从原对象往上认一遍，撞见按键就交给按键。
+    /// </summary>
+    private void OnBannerTapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (InsideButton(e.OriginalSource)) return;
+
+        OpenCurrent();
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// 把台上这张交给详情页。指针点带子、键盘回车（<see cref="OnKeyDown"/>）和自检都走这一处，
+    /// 「现在该打开哪一张」只有一个答案。
+    /// </summary>
+    internal void OpenCurrent()
     {
         if (Current is { } slide) OpenRequested?.Invoke(this, slide);
+    }
+
+    /// <summary>
+    /// 这一下（或者这一记回车）是不是落在某颗键里（播放键、翻页箭头或右栏卡片）。从原对象往上走：
+    /// 先撞见按钮就是键的，点空白、剧照或字就是整条带的。按钮自己的 Click 已经把事做完了，这里不能再打开详情。
+    /// </summary>
+    private static bool InsideButton(object? source)
+    {
+        for (var node = source as DependencyObject; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is Button) return true;
+        }
+
+        return false;
     }
 
     private void OnPrevClicked(object sender, RoutedEventArgs e) => Advance(-1);
@@ -1377,6 +1381,12 @@ public sealed partial class HomeBanner : UserControl
                 e.Handled = true;
                 Show(_slides.Count - 1);
                 SyncTimer();
+                break;
+            case VirtualKey.Enter:
+                // 「详情」键退役之后，键盘用户的详情入口是这里：带子自己是 Tab 停靠位，回车就是「打开当前这张」。
+                // 焦点在某颗键上时交给那颗键（它的 Click 在 KeyDown 里已经处理），别把播放或翻页又叠成一次详情。
+                e.Handled = true;
+                if (!InsideButton(e.OriginalSource)) OpenCurrent();
                 break;
         }
     }
@@ -1550,7 +1560,6 @@ public sealed partial class HomeBanner : UserControl
     private void OnResized(object sender, SizeChangedEventArgs e)
     {
         Resize(e.NewSize.Width);
-        PaintOpenButtonInk();
     }
 
     /// <summary>
@@ -2113,7 +2122,7 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 自检：带上那三行字真解析到的字体和字号，以及三颗键真拿到的高度。
+    /// 自检：带上那三行字真解析到的字体和字号，以及两颗键真拿到的高度。
     /// <para>
     /// 和详情页头图上那条（<c>DetailPage.HeroType</c>）是同一件事，值得两处各查一遍：这两块是整个界面上最
     /// 大的两个画面，而它们的版式来自两份互不相干的标记。这一版之前带上的片名写死了 40 和 Bold 却没写字
@@ -2121,8 +2130,8 @@ public sealed partial class HomeBanner : UserControl
     /// </para>
     /// <para>
     /// 比的是元素真解析到的族名和它该有的那个键，所以 Bahnschrift 装没装都不影响判断 —— 那件事由 字体已解析
-    /// 那条管。键高一起量，是因为「整套界面只有一个按键高度」这句话在这条带上要兑现三次：播放、详情、翻页
-    /// 箭头，以前它们是 40、40、44。
+    /// 那条管。键高一起量，是因为「整套界面只有一个按键高度」这句话在这条带上要兑现两次：播放、翻页
+    /// 箭头，以前它们是 40、44。（「详情」键 2026-11-17 退役，随按钮一起退出这一读。）
     /// </para>
     /// </summary>
     internal (bool Ok, string Detail) TypeRead()
@@ -2138,14 +2147,13 @@ public sealed partial class HomeBanner : UserControl
             && CaptionText.FontFamily.Source == data
             && SynopsisText.FontFamily.Source == ui
             && Same(PlayButton.Height, height)
-            && Same(OpenButton.Height, height)
             && Same(NextButton.Height, height);
 
         return (ok,
             $"片名 {TitleText.FontFamily.Source} {TitleText.FontSize:0}、"
                 + $"读数 {CaptionText.FontFamily.Source} {CaptionText.FontSize:0}、"
                 + $"简介 {SynopsisText.FontFamily.Source} {SynopsisText.FontSize:0}、"
-                + $"键高 {PlayButton.Height:0}/{OpenButton.Height:0}/{NextButton.Height:0}"
+                + $"键高 {PlayButton.Height:0}/{NextButton.Height:0}"
                 + (ok
                     ? ""
                     : $" —— 要的是片名「{display}」{size:0}、读数「{data}」、简介「{ui}」、键高 {height:0}"));

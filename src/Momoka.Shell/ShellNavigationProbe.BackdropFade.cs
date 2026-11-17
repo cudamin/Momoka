@@ -202,7 +202,7 @@ internal sealed partial class ShellNavigationProbe
             }
             item.Type = EmbyItemType.Movie;
             _root.Children.Remove(frame);
-            await CheckHomeBackgroundOpacityAsync(fixture, item, () => reads);
+            await CheckHomeAppearanceIsolationAsync(fixture, item, () => reads);
             Require(fixture.Actions.Plays == 0, "渐变检查意外请求播放");
         }
         finally

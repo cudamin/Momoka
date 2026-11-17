@@ -247,14 +247,11 @@
   <data name="HomeBanner_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>下一张</value>
   </data>
-  <data name="HomeBanner_OpenButton.Content" xml:space="preserve">
-    <value>详情</value>
-  </data>
   <data name="HomeBanner_PrevButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>上一张</value>
   </data>
   <data name="HomeBanner_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
-    <value>按左右方向键切换幻灯片</value>
+    <value>按左右方向键切换幻灯片，按回车打开详情</value>
   </data>
   <data name="HomeBanner_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>主页轮播</value>

@@ -217,7 +217,6 @@ handle  Views/HomeBanner.xaml  LogoInk
 handle  Views/HomeBanner.xaml  LogoRow
 handle  Views/HomeBanner.xaml  LogoShift
 handle  Views/HomeBanner.xaml  NextButton
-handle  Views/HomeBanner.xaml  OpenButton
 handle  Views/HomeBanner.xaml  PictureScaleA
 handle  Views/HomeBanner.xaml  PictureScaleB
 handle  Views/HomeBanner.xaml  PlayButton

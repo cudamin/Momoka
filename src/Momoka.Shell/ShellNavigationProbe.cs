@@ -89,7 +89,6 @@ internal sealed partial class ShellNavigationProbe
                 await SearchPreviewAsync();
                 return;
             }
-            await CaseAsync("首页详情按钮圆角轮廓、三态与旧模板实屏对照", HomeButtonEdgesAsync, 120, section: ShellProbeSections.Materials);
             await CaseAsync("Plex 观看写后确认、真实卡片与宽窄详情刷新失败", PlexUserStateAsync, 90, section: ShellProbeSections.PlexState);
             await CaseAsync("播放画面本次队列搜索、确认与取消", PlayerQueueAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("媒体库搜索人物、合集、播放列表与实际导航", LibraryDiscoverySearchAsync, 90, section: ShellProbeSections.Search);

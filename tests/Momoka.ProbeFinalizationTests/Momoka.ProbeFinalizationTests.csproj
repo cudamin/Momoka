@@ -32,7 +32,7 @@
             <PerformanceSource ParameterType="System.String" Required="true" />
             <CompositionSource ParameterType="System.String" Required="true" />
             <MotionSource ParameterType="System.String" Required="true" />
-            <ButtonEdgesSource ParameterType="System.String" Required="true" />
+            <BannerClockSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -134,10 +134,11 @@
                 generated += "\ninternal sealed partial class MotionFinalizerFixture\n{\n" +
                     "    internal async Task RunAsync()\n    {\n        var handle = Handle;\n        var shell = Shell;\n        var window = Window;\n        var services = Services;\n        var stopping = Stopping;\n        try { ExitCode = 0; Write(\"success\"); }\n" + motionTail +
                     "\n        void Write(string message) => Report.Write(message);\n    }\n}\n";
-                var buttonEdges = File.ReadAllText(ButtonEdgesSource).Replace("\r\n", "\n");
-                var buttonTail = between(buttonEdges, "        finally\n        {\n", "\n        }\n    }\n}");
-                generated += "\ninternal sealed partial class ButtonFinalizerFixture\n{\n" +
-                    "    internal void Run()\n    {\n        var reads = new[] { \"anonymous evidence\" };\n        var holder = new object();\n        var savedTheme = new object();\n        var savedTopMost = false;\n        try { }\n" + buttonTail + "\n        }\n    }\n}\n";
+                var bannerClock = File.ReadAllText(BannerClockSource).Replace("\r\n", "\n");
+                var bannerClockTail = between(bannerClock, "        finally\n        {\n",
+                    "\n        }\n    }\n\n    private static async Task<byte[]> ReadBannerRegionAsync");
+                generated += "\ninternal sealed partial class LocalReportFinalizerFixture\n{\n" +
+                    "    internal void Run()\n    {\n        var banner = new object();\n        var readings = Array.Empty<string>();\n        try { }\n" + bannerClockTail + "\n        }\n    }\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -159,7 +160,7 @@
             PerformanceSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.Performance.cs"
             CompositionSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\CompositionPlaybackProbe.cs"
             MotionSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\PlayerMotionProbe.cs"
-            ButtonEdgesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.ButtonEdges.cs"
+            BannerClockSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.HomeBannerClock.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
