@@ -1,3 +1,19 @@
+## 2026-11-17 发版 0.2.8：版本号、GitHub Release 与微软商店包（探针按用户指令跳过，未销账）
+
+用户令「交付，更新版本号，提交代码到github，更新版本打包发布到GitHub生成一个微软商店商店安装包」；过程中明确两条：「跳过这一轮探针」「zip就不必了github上只需要上传.exe就可以」。因此本轮按用户指令发布，但**没有把原生探针与验收截图记作通过，也不销账**。
+
+**版本与夹具修复。** `Directory.Build.props` 升到 `0.2.8`／`0.2.8.0`（`cae64ea`）。全方案构建暴露的是测试工具漂移，不是产品回归：探针 `UntilAsync` 增加 `attempts` 后，`FrameInterpolationTests`、`HomeOrderProbeTests` 的源码锚点与 `PerfListDiagnosticsTests` 的边界桩仍停在旧签名；`PlayerViewModel` 构造函数新增 `playerTools`／`playerCapture`／`playerCapabilities` 三项可选依赖后，`PlayerConstructorBoundary` 仍只认八项。前者修三处锚点／桩（`25d8bfe`），后者按当前签名核对七项必需与四项可选依赖（`b8cefe0`，Shell 侧类型按完整名核对，避免纯夹具工程引用 Shell）。产品代码未改。
+
+**闸门 1～4。** 闸门 1：全方案 Release **0 警告 0 错误**（`artifacts/quality/20261117-144014`），`dotnet format whitespace --verify-no-changes` 退出 0，63 个 PowerShell 脚本检查通过，架构 7/7，重复代码 66 段／1200／246657 行＝0.49%（预算 ≤70 段、≤1%），`check-diff` 退出 0。构建需给验证进程精简 PATH 并传 `-p:PythonLauncher=C:\Windows\py.exe`；原长 PATH 会让 `py` 与 `npx` 在 MSBuild 子进程里找不到。闸门 2：主测试 **5215/5215、0 失败 0 跳过**；`run-regressions.ps1 -All` 的 82 套中 81 套通过（含 `Momoka.ShaderMonitorPolicyTests` 修好构造边界后重跑 **32/32**），`Momoka.ServerSettingsTabs.Tests` 按清单声明为 external、需要显式 Node／Playwright／Chromium，本轮未运行。闸门 3：`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `260149C6D791F6BC635DC811472B8098B1B83697914F2B2161CB97124E2E7650`，`Momoka.dll` SHA256 `96A2D08D5E16B66903CB769BFDB31E690E9BD1B447A10E08544384BDFD2BB9AD`；桌面 `Momoka.lnk` 指向主树 `artifacts/publish/win-x64`。闸门 4：`selfcheck-diff.ps1` **190 项、失败 0、消失 0、降级 0、新增 0**（`artifacts/selfcheck/run-97b3c4efa2704805b041f7a015eadabe`）。
+
+**探针（用户令跳过）。** 全量 `--probe-shell --screen 1` 在停止前跑到 103 项、4 红：①Plex 详情已看按钮——判据仍在按钮内容的直接子级找 `TextBlock`，而商店改动后文字收进了 `ColumnWatchedLabels` 嵌套组，属验证工具漂移；②library「筛选多选下拉」截图被外部 mpv 窗口（pid 16380，非本程序进程）遮挡；③shell「沉浸主页顶部滚动」等诊断帧超时；④library「商店预告实帧」等 WebView2 状态超时。用户随即要求跳过本轮探针，进程已停止，未重跑、未补截图、未改探针，以上红项**不作通过证据**。
+
+**产物。** 安装包 `artifacts/Momoka_windows-x64_0.2.8.exe`（84,899,100 字节，SHA256 `428C3C2714FE10C8168293F7120CA51FDBA9D0162810F32E04EEAD0FB55C0F60`）；微软商店上架包 `artifacts/Momoka-0.2.8-win-x64-store.msix`（122,036,285 字节，SHA256 `136BCE49BDFE03010DDEBA8D024E51FC4EB48C44ECC7F5D6D7EF0379553A04CB`，554 条目，身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.2.8.0`／x64，未签名）。按用户指令删掉 ZIP，GitHub Release 只上传 `.exe`；商店包只留在本地由用户在 Partner Center 上传。
+
+**GitHub。** `master` 已推送到 `a9106b1`，标签 `v0.2.8` 已推送；Release `v0.2.8` 已创建（pre-release）并上传 `Momoka_windows-x64_0.2.8.exe`，远端 digest `sha256:428c3c2714fe10c8168293f7120ca51fdba9d0162810f32e04eead0fb55c0f60` 与本地一致：https://github.com/cudamin/Momoka/releases/tag/v0.2.8。
+
+**未验证。** 探针与验收截图（用户跳过）、真实服务器与真实播放、高对比度、跨 DPI、Narrator／触摸／200% 文字、系统深浅真实切换、商店包安装与认证。相关待交付条目全部保留，不销账。
+
 ## 2026-11-17 主页「最近添加」标记已看后自动隐藏；确认商店模式为出厂默认（主树 master）
 
 用户两条：①「把商店模式设为默认」——核对后设置 → 界面 → 显示模式的出厂值 `UiSettings.EnableImmersive` 已经是 `false`（商店模式），`SettingsTests` 的「默认商店模式」与侧栏探针「出厂显示模式应为商店模式」都钉着它，保存里的这一格也是 false，因此无需改产品代码。②「在主页的最近添加 点击标记为已观看之后，要自动隐藏」。
