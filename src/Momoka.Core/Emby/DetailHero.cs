@@ -172,10 +172,10 @@ public static class DetailHero
 
     /// <summary>
     /// 商店宽版式右侧剧照／预告视口与<em>窗口右边缘</em>之间的空隙 —— 2026-11-17 用户令「加大背景图和
-    /// 右边窗口边缘之间的间距，跟随窗口不断变宽」，随后「再加，全屏应再向左移动 200」。
+    /// 右边窗口边缘之间的间距，跟随窗口不断变宽」，随后「全屏应再向左移动 200」「全屏挡再加 50」。
     /// <para>
-    /// 窄档保持原来的 16；宽版式先按窗口宽的 3.5% 增长，再从 1920 到 2560 再让出 200 —— 全屏
-    /// （2560／3840 一类窗口）比只按比例那一版再往左 200；封顶 <see cref="StorePreviewEdgeGapLimit"/>。
+    /// 窄档保持原来的 16；宽版式先按窗口宽的 3.5% 增长，再从 1920 到 2560 再让出 250 —— 全屏
+    /// （2560／3840 一类窗口）比只按比例那一版再往左 250；封顶 <see cref="StorePreviewEdgeGapLimit"/>。
     /// 视口自身的大小不参与：它仍按内容列的 60% 走，变的只有画面与窗口边之间的距离。
     /// </para>
     /// </summary>
@@ -201,10 +201,10 @@ public static class DetailHero
     public const double StorePreviewEdgeGapRampTo = 2560;
 
     /// <inheritdoc cref="StorePreviewEdgeGapRampFrom"/>
-    public const double StorePreviewEdgeGapRampExtra = 200;
+    public const double StorePreviewEdgeGapRampExtra = 250;
 
     /// <inheritdoc cref="StorePreviewEdgeGap"/>
-    public const double StorePreviewEdgeGapLimit = 320;
+    public const double StorePreviewEdgeGapLimit = 370;
 
     /// <summary>
     /// 商店视口这回的右边距（<c>Margin.Right</c>，相对居中内容列的右沿）。内容列封顶 1840 并居中，

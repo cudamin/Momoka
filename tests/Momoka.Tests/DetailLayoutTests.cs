@@ -119,25 +119,25 @@ internal static class DetailLayoutTests
         Test("商店视口右沿：与窗口右边缘的空隙随窗口变宽而加大，画面本身不放大", () =>
         {
             // 2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」，
-            // 随后「再加，全屏应再向左移动 200」：窄档保持 16；宽版式按窗口宽 3.5%，
-            // 1920→2560 再让出 200，封顶 320；画面尺寸仍按内容列那两支。
+            // 随后「全屏应再向左移动 200」「全屏挡再加 50」：窄档保持 16；宽版式按窗口宽 3.5%，
+            // 1920→2560 再让出 250，封顶 370；画面尺寸仍按内容列那两支。
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(0));
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(double.NaN));
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(1023));
             Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1240) - 43.4) < 1e-6);
             Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1840) - 64.4) < 1e-6);
             Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1920) - 67.2) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2240) - 178.4) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2560) - 289.6) < 1e-6);
-            // 2560 之后额外那 200 已经给满；再宽只涨比例部分，封顶 320。
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(3840) - 320) < 1e-6);
-            Assert.Equal(320d, DetailHero.StorePreviewEdgeGap(6000));
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2240) - 203.4) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2560) - 339.6) < 1e-6);
+            // 2560 之后额外那 250 已经给满；再宽只涨比例部分，封顶 370。
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(3840) - 370) < 1e-6);
+            Assert.Equal(370d, DetailHero.StorePreviewEdgeGap(6000));
             // 画面还是按内容列的 60%、封顶 920 —— 不跟着窗口放大。
             Assert.Equal(920d, DetailHero.StoreBackdropWidth(2560));
             Assert.Equal(TrailerPreview.BackgroundWidth(1240), DetailHero.StoreBackdropWidth(1240));
             // 相对内容列右沿的 margin：不超宽时就是那道缝；超宽时减掉右半边 bleed。
             Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(1240, 1240) - 43.4) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(2560, 1840) - (289.6 - 360)) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(2560, 1840) - (339.6 - 360)) < 1e-6);
             Assert.Equal(16d, DetailHero.StorePreviewRightMargin(0, 0));
         });
 
