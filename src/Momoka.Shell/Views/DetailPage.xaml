@@ -67,6 +67,17 @@
             <Setter Property="Foreground" Value="{ThemeResource EgDetailActionTextBrush}" />
         </Style>
 
+        <!--
+          顶部悬浮栏的片名（2026-11-17 用户报「这个字体怎么怪怪的」）：栏里复述的是详情页头图上的那片名，
+          字体得还是头图那一支（EgPageTitleStyle 的 Bahnschrift SemiCondensed，汉字落雅黑）。
+          从前这一行借框架的 BodyStrongTextBlockStyle，于是整套界面里只有这条浮在页面上的栏拿「更大的正文」
+          当标题 —— 同一个片名在头图上是排版字、在栏里是正文字，两边一眼看得出不是一回事。
+          字号保留 18（栏高、行距都按它排的），只换族与角色。
+        -->
+        <Style x:Key="EgStickyTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource EgPageTitleStyle}">
+            <Setter Property="FontSize" Value="18" />
+        </Style>
+
         <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
              勾上时**只有图标换色**（2026-10-11，参考图里那颗回转图标是绿的、药丸和字原样不动）：
              底那三档按回不带勾时的那三支（常／悬／按，见两颗 ToggleButton 各自的 Resources），
@@ -1097,6 +1108,7 @@
                                                  是压在图上那支浅墨。底两边都在 —— 半透明药丸，所以 accent
                                                  这一次是落在图标上，不是像从前那样把整个面涂绿。 -->
                                             <FontIcon
+                                                x:Name="ColumnPlayGlyph"
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
                                                 Foreground="{StaticResource EgDetailActionTextBrush}"
@@ -1563,6 +1575,7 @@
                                         <!-- 与宽版式那颗同一条规矩：有断点时图标亮成 accent，没有断点时跟字同色、
                                              都是压在图上那支浅墨（见上面那颗的注释；底色半透明，和连播一致）。 -->
                                         <FontIcon
+                                            x:Name="CompactPlayGlyph"
                                             FontSize="14"
                                             Glyph="&#xE768;"
                                             Foreground="{StaticResource EgDetailActionTextBrush}"
@@ -2071,12 +2084,13 @@
                 <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
                     <TextBlock
                         AutomationProperties.AutomationId="DetailStickyTitle"
-                        Style="{StaticResource BodyStrongTextBlockStyle}"
-                        FontSize="18"
+                        Style="{StaticResource EgStickyTitleStyle}"
                         Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                         TextTrimming="CharacterEllipsis" />
+                    <!-- 副标题与头图那一行读数同一种字（EgDataStyle 的等宽字）：同一串「集号 · 类型 · 日期 ·
+                         时长」在头图上就是等宽读数，到这里换成比例字会像另一套界面（2026-11-17 用户报字体怪）。 -->
                     <TextBlock
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource EgDataStyle}"
                         Text="{x:Bind ViewModel.HeaderFacts, Mode=OneWay}"
                         Visibility="{x:Bind local:DetailPage.HeaderSubtitleVisibility(ViewModel.HeaderFacts), Mode=OneWay}"
                         TextTrimming="CharacterEllipsis" />
@@ -2096,6 +2110,7 @@
                          没有断点跟着字走；尺寸、圆角、材质底由 EgPlayButtonStyle 与外观那一支统一上。 -->
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon
+                            x:Name="StickyPlayGlyph"
                             FontSize="14"
                             Glyph="&#xE768;"
                             Foreground="{StaticResource EgDetailActionTextBrush}"

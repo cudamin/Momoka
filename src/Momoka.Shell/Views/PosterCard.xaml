@@ -202,21 +202,21 @@
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
                     Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">
-                    <TextBlock Text="{x:Bind Card.DurationText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                    <TextBlock Text="{x:Bind Card.DurationText, Mode=OneWay}" Style="{StaticResource EgDataStyle}"
                         Foreground="{ThemeResource EgOnScrimBrush}" />
                 </Border>
                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="5"
                     Margin="8" Padding="7,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.RatingVisibility, Mode=OneWay}">
                     <TextBlock Text="{x:Bind Card.RatingText, Mode=OneWay}" FontWeight="SemiBold"
-                        FontSize="{StaticResource EgCaptionFontSize}"
+                        Style="{StaticResource EgDataStrongStyle}"
                         Foreground="{ThemeResource EgWarningBrush}" />
                 </Border>
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="5"
                     Margin="8" Padding="7,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.ResolutionVisibility, Mode=OneWay}">
                     <TextBlock Text="{x:Bind Card.ResolutionText, Mode=OneWay}" FontWeight="SemiBold"
-                        FontSize="{StaticResource EgCaptionFontSize}"
+                        Style="{StaticResource EgDataStrongStyle}"
                         Foreground="{ThemeResource EgOnScrimBrush}" />
                 </Border>
                 <Border

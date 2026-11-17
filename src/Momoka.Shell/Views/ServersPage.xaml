@@ -272,7 +272,7 @@
                 <FontIcon Glyph="&#xE968;" Foreground="{ThemeResource EgAccentBrush}" FontSize="24" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock x:Uid="ServersPage_Heading" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock x:Uid="ServersPage_Heading" Style="{StaticResource EgSubpageTitleStyle}" />
                 <TextBlock Text="{x:Bind ViewModel.Subheading, Mode=OneWay}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
             </StackPanel>
         </Grid>
@@ -479,7 +479,7 @@
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="400">
                         <FontIcon Glyph="&#xE774;" FontSize="40" Foreground="{ThemeResource EgAccentBrush}" />
-                        <TextBlock x:Uid="ServersPage_EmptyHeading" FontSize="20" FontWeight="SemiBold" TextAlignment="Center" />
+                        <TextBlock x:Uid="ServersPage_EmptyHeading" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
                         <TextBlock x:Uid="ServersPage_TextBlock8" Foreground="{ThemeResource EgTextDimBrush}"
                             TextWrapping="Wrap" TextAlignment="Center" />
                     </StackPanel>

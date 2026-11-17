@@ -31,9 +31,13 @@ internal static class MediaInfoDialog
                     TextWrapping = TextWrapping.Wrap,
                     IsTextSelectionEnabled = true,
 
-                    // 等宽不是装饰：那一块里全是数字与路径，比例字体下每一行都会随字宽抖动。取在 Create
-                    // 里而不是静态字段 —— 两个调用点都在界面线程，而 WinUI 类的静态初始化会落在首触线程上。
-                    FontFamily = new FontFamily("Consolas,Cascadia Mono,Microsoft YaHei UI")
+                    // 等宽不是装饰：那一块里全是数字与路径，比例字体下每一行都会随字宽抖动。族名取应用那支
+                    // 读数资源（时长、码率、集号同一支），不再自己写一份反序的列表 —— 两份迟早各走各的。
+                    // 取在 Create 里而不是静态字段 —— 两个调用点都在界面线程，而 WinUI 类的静态初始化会落在首触线程上。
+                    FontFamily = Application.Current.Resources.TryGetValue("EgDataFontFamily", out var dataFont)
+                        && dataFont is FontFamily family
+                        ? family
+                        : new FontFamily("Cascadia Mono, Consolas, Microsoft YaHei UI")
                 }
             },
             CloseButtonText = "关闭",

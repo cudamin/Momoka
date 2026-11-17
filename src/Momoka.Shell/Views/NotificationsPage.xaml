@@ -32,7 +32,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Spacing="4" VerticalAlignment="Center">
-                        <TextBlock FontSize="{StaticResource EgSubheadFontSize}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="{x:Bind DisplayName}" />
+                        <TextBlock Style="{StaticResource EgSubheadStyle}" TextTrimming="CharacterEllipsis" Text="{x:Bind DisplayName}" />
                         <TextBlock
                             FontSize="{StaticResource EgCaptionFontSize}"
                             Foreground="{ThemeResource EgTextDimBrush}"
@@ -90,7 +90,7 @@
                 <FontIcon Glyph="&#xE7E7;" Foreground="{ThemeResource EgAccentBrush}" FontSize="24" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock x:Uid="NotificationsPage_Heading" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock x:Uid="NotificationsPage_Heading" Style="{StaticResource EgSubpageTitleStyle}" />
                 <TextBlock Text="{x:Bind ViewModel.Subheading, Mode=OneWay}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
             </StackPanel>
             <CommandBar Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
@@ -138,8 +138,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="4" VerticalAlignment="Center">
                             <TextBlock x:Uid="NotificationsPage_StopReportHeading"
-                                FontSize="{StaticResource EgSubheadFontSize}"
-                                FontWeight="SemiBold"
+                                Style="{StaticResource EgSubheadStyle}"
                                 TextWrapping="Wrap" />
                             <!-- 说明那行跟「隐藏功能下方说明」（设置 → 界面）走：开着就收起来，只留标题与开关。
                                  这张卡片是手写的，不经过设置行的模板，所以这一条得自己绑（2026-09-30 用户报它没跟上）。 -->
@@ -162,7 +161,7 @@
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="420">
                         <FontIcon Glyph="&#xE7E7;" FontSize="40" Foreground="{ThemeResource EgAccentBrush}" />
-                        <TextBlock x:Uid="NotificationsPage_EmptyHeading" FontSize="{StaticResource EgTitleFontSize}" FontWeight="SemiBold" TextAlignment="Center" />
+                        <TextBlock x:Uid="NotificationsPage_EmptyHeading" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
                         <TextBlock x:Uid="NotificationsPage_TextBlock8" Foreground="{ThemeResource EgTextDimBrush}"
                             TextWrapping="Wrap" TextAlignment="Center" />
                     </StackPanel>

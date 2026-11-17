@@ -324,14 +324,21 @@ public sealed partial class DetailPage
         // 商店模式的播放键是强调色面：断点那颗图标原先是强调色，压在强调面上等于消失，改成和字同一支
         // 对比色；其余模式还原成主题色图标（那一档按钮还是半透明底，强调色本来只落在图标上）。
         // 悬浮栏那颗是主播放键的第二个落点，三处一起换。
+        // **没有断点的那颗也要在这里上墨**（2026-11-17 用户报「按钮移到横幅上三角形变色」）：
+        // 它原先只靠清掉 XAML 那支白墨、继承按钮前景，而这一步走的是视觉树 —— 悬浮栏收起时模板还没
+        // 建出来，第一次从 Collapsed 上屏时白墨仍留在图标上，于是正文里已上过墨的深色三角飞进栏里
+        // 变回白色。两颗显式写同一支墨，移入移出都不再换色。
         var resumeInk = (Brush)Application.Current.Resources["EgAccentBrush"];
-        foreach (var (glyph, button) in new[]
+        foreach (var (resume, plain, button) in new[]
         {
-            (ColumnResumeGlyph, ColumnPlayButton),
-            (CompactResumeGlyph, CompactPlayButton),
-            (StickyResumeGlyph, StickyPlayButton)
+            (ColumnResumeGlyph, ColumnPlayGlyph, ColumnPlayButton),
+            (CompactResumeGlyph, CompactPlayGlyph, CompactPlayButton),
+            (StickyResumeGlyph, StickyPlayGlyph, StickyPlayButton)
         })
-            glyph.Foreground = onAccent is null || IsStoreCoverAction(button) ? resumeInk : button.Foreground;
+        {
+            resume.Foreground = onAccent is null || IsStoreCoverAction(button) ? resumeInk : button.Foreground;
+            plain.Foreground = button.Foreground;
+        }
         foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText,
             DetailVideoText, DetailDirectorsText })
         {

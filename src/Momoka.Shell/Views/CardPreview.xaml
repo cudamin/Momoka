@@ -34,8 +34,7 @@
                             <Image x:Name="LogoImage" Stretch="Uniform" HorizontalAlignment="Left" MaxWidth="220" />
                         </Grid>
                         <TextBlock x:Name="TitleText"
-                            FontSize="{StaticResource EgTitleFontSize}" FontWeight="SemiBold"
-                            MaxLines="2" Style="{StaticResource EgBodyStyle}"
+                            MaxLines="2" Style="{StaticResource EgSectionTitleStyle}"
                             TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
                     </StackPanel>
                     <Grid x:Name="FactsBlock">

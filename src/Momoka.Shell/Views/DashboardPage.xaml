@@ -37,7 +37,7 @@
                 <FontIcon Glyph="&#xE774;" Foreground="{ThemeResource EgAccentBrush}" FontSize="24" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock x:Uid="DashboardPage_Heading" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock x:Uid="DashboardPage_Heading" Style="{StaticResource EgSubpageTitleStyle}" />
                 <!-- Address and lifecycle remain selectable text, without exposing the session token. -->
                 <TextBlock x:Name="Readout" Foreground="{ThemeResource EgTextDimBrush}"
                     FontSize="13" IsTextSelectionEnabled="True" TextTrimming="CharacterEllipsis" />
