@@ -16,7 +16,7 @@
 
 **发布。** 新工作树缺 `libmpv-2.dll`，从主树根目录复制同一份（101,242,880 字节，未入库）后按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-music-player-page-XnHyo3`，548 文件、290.0 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-feat-music-player-page-XnHyo3.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（00:55 生成）。仅体验刷新、不销账；主树 `Momoka.lnk` 未动；已合入 master、未推远端。
 
-**合并（`ce7da87`）。** 2026-11-18 用户令「合并」。主树先行状态干净（`fdaa16f`），以 `--no-ff` 合入；冲突只在 `PROGRESS.md` 与本台账，按两边保留：本批置顶、台账编号顺延为 84；代码无冲突（主树自 `a8152cf` 以来只动过文档）。合并后在最终代码上重编 Shell 与 Tests Release/x64 均 **0 警告 0 错误**，`music-fixture` **18/18**、`Momoka.MusicViewModelTests` **42/42**、`Momoka.UiMotionTests` **102/102**；合并本身未跑全量测试与探针，真实播放/实屏仍留统一验证。未推远端。
+**合并（`ce7da87`）。** 2026-11-18 用户令「合并」。主树先行状态干净（`fdaa16f`），以 `--no-ff` 合入；冲突只在 `PROGRESS.md` 与本台账，按两边保留：本批置顶、台账编号顺延为 84；代码无冲突（主树自 `a8152cf` 以来只动过文档）。合并后在最终代码上重编 Shell 与 Tests Release/x64 均 **0 警告 0 错误**，`music-fixture` **18/18**、`Momoka.MusicViewModelTests` **42/42**、`Momoka.UiMotionTests` **102/102**；合并本身未跑全量测试与探针，真实播放/实屏仍留统一验证。未推远端。内容确认全部进入 master、工作树干净后，已删除桌面 `Momoka-feat-music-player-page-XnHyo3.lnk`、分支与工作树（Git 删工作树先报 `Filename too long`，用 `\\?\` 前缀删除剩余目录后完成）。
 
 ## 2026-11-17／18 详情页整列内容与窗口的间距：1500 之后 170，2K 最大化 2560 时 300（已合并 master，待统一验证）
 
