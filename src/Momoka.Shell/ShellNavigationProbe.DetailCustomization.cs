@@ -1085,8 +1085,12 @@ internal sealed partial class ShellNavigationProbe
     /// <summary>
     /// 这组控件的四态底色是不是那支浅色固定面 —— 比画笔自己的读数：颜色取 <c>EgStoreControlBrush</c> 的白，
     /// 浓度取 <see cref="ControlBackgroundBrushes"/> 上那四个定值。
+    /// <para>
+    /// <paramref name="restHidden"/> 给商店档那三颗图标键用（2026-11-17 用户令「这三个按钮的框改为
+    /// 鼠标移到按钮上的时候才显示」）：常态不画框，所以从 PointerOver 那一档开始比。
+    /// </para>
     /// </summary>
-    private static void RequireFixedSurface(IEnumerable<Control> controls)
+    private static void RequireFixedSurface(IEnumerable<Control> controls, bool restHidden = false)
     {
         var surface = ((SolidColorBrush)Application.Current.Resources["EgStoreControlBrush"]).Color;
         var levels = new[]
@@ -1097,7 +1101,7 @@ internal sealed partial class ShellNavigationProbe
         foreach (var control in controls)
         {
             var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";
-            for (var index = 0; index < 4; index++)
+            for (var index = restHidden ? 1 : 0; index < 4; index++)
             {
                 var suffix = new[] { "", "PointerOver", "Pressed", "Disabled" }[index];
                 Require(control.Resources[prefix + "Background" + suffix] is AcrylicBrush { AlwaysUseFallback: true } copy

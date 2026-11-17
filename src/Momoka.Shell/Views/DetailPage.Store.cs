@@ -1,6 +1,7 @@
 using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Theming;
 
@@ -8,6 +9,14 @@ namespace Momoka.Shell.Views;
 
 public sealed partial class DetailPage
 {
+    /// <summary>
+    /// 商店档三颗图标键（已看、收藏、更多）常态的「框」：透明。
+    /// 2026-11-17 用户令「这三个按钮的框改为鼠标移到按钮上的时候才显示」——
+    /// 指针移上去之后由按钮模板的 PointerOver／Pressed 读局部 <c>ButtonBackground*</c> 画刷，
+    /// 仍是与下方选择框同一支固定面色（见 <see cref="ControlBackgroundBrushes"/>）。
+    /// </summary>
+    private static readonly SolidColorBrush StoreActionRestFrame = new(Microsoft.UI.Colors.Transparent);
+
     private StoreBackdropFade? _storeBackdropFade;
     private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
@@ -154,6 +163,8 @@ public sealed partial class DetailPage
     /// 已看那颗键收成图标：文字组的显隐由 <see cref="ViewModels.DetailViewModel.ColumnWatchedLabelsVisibility"/>
     /// 收起。三颗图标与下方音频/字幕选择框共用同一支固定面色和小圆角（2026-11-16 用户令），
     /// 底色仍由 <see cref="ControlBackgroundBrushes"/> 种进控件局部资源的 ButtonBackground* 承担。
+    /// 2026-11-17 用户令「这三个按钮的框改为鼠标移到按钮上的时候才显示」：常态改成透明，
+    /// 悬停与按下才由模板读那组画刷画出框（见 <see cref="StoreActionRestFrame"/>）。
     /// </para>
     /// </summary>
     private void PlaceStoreActionButtons(bool store)
@@ -185,10 +196,10 @@ public sealed partial class DetailPage
             foreach (var button in icons)
             {
                 if (!ReferenceEquals(button.Style, storeStyle)) button.Style = storeStyle;
-                // 底色是 PrepareAppearance 种下的那组材质画刷（和闭合选择框同一支固定面色）；
-                // 商店档不另铺一块，也不用透明常态把它清掉。
-                if (button.Resources.ContainsKey("ButtonBackground"))
-                    button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources["ButtonBackground"];
+                // 2026-11-17 用户令「这三个按钮的框改为鼠标移到按钮上的时候才显示」：常态不铺框，
+                // 指针移上去才由模板的 PointerOver／Pressed 读那组固定面色画刷（与下方选择框同一档）。
+                // 退出商店模式时下面那段照原样把 ButtonBackground 铺回去。
+                button.Background = StoreActionRestFrame;
                 button.Opacity = 1;
             }
             // 主播放键走回带字的药丸键：底色是 PrepareAppearance 种下的那组画刷，
