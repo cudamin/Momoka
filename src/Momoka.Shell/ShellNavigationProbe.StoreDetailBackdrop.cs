@@ -235,8 +235,14 @@ internal sealed partial class ShellNavigationProbe
             Call(page.ViewModel, "NotifyStoreRoom");
             Call(page, "LayoutStoreTrailer");
             controls.Visibility = Visibility.Visible;
+            // 控制键这一刻在屏上：尾部替它让出的 72 才算进去（2026-11-17 起判据从「条目有预告」改成控制键显隐）。
+            page.ViewModel.StoreTrailerControlsShown = true;
             await LayoutAsync(page);
-            Require(page.ViewModel.TrailerVisibility == Visibility.Visible, "匿名预告元数据未进入正式尾部判据");
+            var roomedTail = Math.Max(0, Math.Round(page.ViewModel.StoreBackdropHeight
+                + DetailHero.StoreTrailerControlsRoom + DetailHero.StorePreviewGap - page.ViewModel.HeroHeight));
+            Require(page.ViewModel.TrailerVisibility == Visibility.Visible
+                && Math.Abs(page.ViewModel.TailMinHeight - roomedTail) < 0.5,
+                "预告控制键上屏后尾部没有替它让出那 72");
             var cover = Get<Border>(page, "PosterStill");
             var details = Get<StackPanel>(page, "StoreHeroDetails");
             var picture = Get<Grid>(page, "StoreBackdrop");
@@ -250,6 +256,7 @@ internal sealed partial class ShellNavigationProbe
         {
             subject.LocalTrailerCount = previous;
             controls.Visibility = Visibility.Collapsed;
+            page.ViewModel.StoreTrailerControlsShown = false;
             Call(page.ViewModel, "NotifyStoreRoom");
             await LayoutAsync(page);
         }

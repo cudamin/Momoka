@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using static Momoka.Tests.TestHarness;
 
@@ -325,6 +326,19 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("DetailRestartMenuItem", commands);
             Assert.False(Source("Strings/zh-Hans/Resources.resw").Contains("DetailPage_TextBlock1.Text", StringComparison.Ordinal),
                 "旧按钮的本地化字串没有退役");
+        });
+
+        Test("商店尾部：预告控制条没上屏时不再预留那 72 的空档", () =>
+        {
+            var viewModel = Source("ViewModels/DetailViewModel.cs");
+            Assert.Contains("StoreTrailerControlsShown && PageWidth >= DetailHero.StoreWideFloor", viewModel);
+            Assert.DoesNotContain("TrailerVisibility == Visibility.Visible && PageWidth >= DetailHero.StoreWideFloor",
+                viewModel);
+            var trailer = Source("Views/DetailPage.StoreTrailer.cs");
+            // 控制键真正露头的两处（本地 MediaOpened 与网页预告起播）各接一次；StopStoreTrailer 统一收回。
+            Assert.Equal(2, Regex.Matches(trailer,
+                @"StoreTrailerControls\.Visibility = Visibility\.Visible;\r?\n\s*ViewModel\.StoreTrailerControlsShown = true;").Count);
+            Assert.Contains("ViewModel.StoreTrailerControlsShown = false;", trailer);
         });
     }
 

@@ -148,6 +148,7 @@ public sealed partial class DetailPage
                     StoreTrailerFoundation.Visibility = Visibility.Visible;
                     StoreTrailerHost.Opacity = 1;
                     StoreTrailerControls.Visibility = Visibility.Visible;
+                    ViewModel.StoreTrailerControlsShown = true;
                     StoreBackdrop.Visibility = Visibility.Collapsed;
                     ScrollStoreTrailer();
                 });
@@ -182,6 +183,7 @@ public sealed partial class DetailPage
                 StoreTrailerHost.Opacity = 1;
                 StoreTrailerHost.Visibility = Visibility.Visible;
                 StoreTrailerControls.Visibility = Visibility.Visible;
+                ViewModel.StoreTrailerControlsShown = true;
                 StoreBackdrop.Visibility = Visibility.Collapsed;
                 ScrollStoreTrailer();
             }
@@ -243,6 +245,7 @@ public sealed partial class DetailPage
         StoreTrailerFoundation.Visibility = Visibility.Collapsed;
         StoreTrailerFoundation.Background = null;
         StoreTrailerControls.Visibility = Visibility.Collapsed;
+        ViewModel.StoreTrailerControlsShown = false;
         _storeVideoBrush.Clear();
         StoreTrailerFade.Background = null;
         var player = _storeTrailerPlayer;
