@@ -103,7 +103,7 @@
                 <views:Shimmer
                     CornerRadius="{StaticResource EgPosterCornerRadius}"
                     IsActive="{x:Bind Card.ImagePending, Mode=OneWay}" />
-                <!-- 飞牛横卡的底：同一张海报放大、压暗，竖版封面摆在正中（见 CardItem.FnNasWide）。 -->
+                <!-- 飞牛横卡与飞牛音乐库卡的底：同一张封面放大、压暗，方形封面摆在正中（见 CardItem.FnNasWide）。 -->
                 <Grid Visibility="{x:Bind Card.FnNasWideVisibility, Mode=OneWay}">
                     <Image
                         x:Name="FnNasPosterBackground"
