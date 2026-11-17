@@ -154,15 +154,16 @@
         </Button>
     </StackPanel>
         <StackPanel>
-            <!-- 简介排在操作排上方（2026-11-14 用户令「参考上图修改订阅页面的布局」：标题块底下依次是简介、
-                 操作，和微软商店条目页同一条次序）。头部不再画卡面（2026-11-14 用户令「去掉订阅详情页的
-                 卡片」）：海报、片名与操作直接压在剧照上，评分与资料卡挪到正文右列，占商店条目页
+            <!-- 剧情说明与操作排挪到封面下方、贴着内容左沿（2026-11-17 用户令「去简介两个字，剧情说明
+                 tmdb、imdb、下方的按钮移动到封面下方，向左对齐」），资料站链接跟在标语下面（同日用户令
+                 「TMDB IMDb 移到 一场生日，两个世界。 下面」）。头部不再画卡面（2026-11-14 用户令「去掉
+                 订阅详情页的卡片」）：海报与片名直接压在剧照上，评分与资料卡挪到正文右列，占商店条目页
                  「发现更多」那一格。 -->
             <StackPanel x:Name="HeroSection">
             <StackPanel x:Name="HeroBlock" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}" Spacing="12"
                 SizeChanged="OnHeroContentSizeChanged">
             <Grid x:Name="HeroRow" Margin="0,12,0,12">
-                <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
+                <StackPanel x:Name="BodyPrimary" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Top">
                 <Grid x:Name="HeroGrid" MinHeight="340" ColumnSpacing="20" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -194,50 +195,49 @@
                             Style="{StaticResource EgOnScrimDataStyle}" Foreground="{ThemeResource EgAccentBrush}" />
                         <TextBlock Text="{x:Bind ViewModel.DetailStatus, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
                             Foreground="{ThemeResource EgAccentBrush}" />
-                        <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
-                            Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
-                            Padding="0" Spacing="{StaticResource EgSpaceS}">
-                            <TextBlock x:Name="MediaTagline" Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}"
-                                Visibility="{x:Bind local:MoviePilotSubscriptionPage.TextVisibility(MediaViewModel.Tagline), Mode=OneWay}"
-                                Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
-                            <TextBlock Text="简介" Style="{StaticResource EgSectionTitleStyle}" />
-                            <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
-                                TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
-                            <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
-                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
-                                    <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
-                                </DataTemplate></ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                        </StackPanel>
-                        <local:WrapRow x:Name="DetailActions" Spacing="10" RowSpacing="10">
-                            <Button x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgActionButtonStyle}"
-                                IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}">
-                                <Button.Flyout><MenuFlyout>
-                                    <MenuFlyoutItem x:Name="SearchMediaTitle" Text="按标题搜索" Click="OnSearch" />
-                                    <MenuFlyoutItem x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
-                                </MenuFlyout></Button.Flyout>
-                            </Button>
-                            <Button x:Name="SearchAniBt" Content="在 AniBT 中搜索" Style="{StaticResource EgActionButtonStyle}"
-                                Visibility="{x:Bind MediaViewModel.AniBtVisibility, Mode=OneWay}"
-                                IsEnabled="{x:Bind MediaViewModel.CanSearchAniBt, Mode=OneWay}" Click="OnSearchAniBt" />
-                            <Button x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgActionButtonStyle}"
-                                IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnSearchSubtitles" />
-                            <Button x:Name="ChooseSubscribeSeasons" Content="{x:Bind MediaViewModel.SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgActionButtonStyle}"
-                                IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnChooseSeasons" />
-                            <Button x:Name="PlayMediaLibraryItem" Content="播放已入库" Style="{StaticResource EgActionButtonStyle}"
-                                Visibility="{x:Bind ViewModel.PlayFirstVisibility, Mode=OneWay}" Command="{x:Bind ViewModel.PlayFirstCommand}" />
-                            <Button x:Name="PlaySubscriptionTrailer" Content="预告片" Style="{StaticResource EgActionButtonStyle}"
-                                Visibility="{x:Bind MediaViewModel.TrailerButtonVisibility, Mode=OneWay}" Click="OnTrailerButtonClick" />
-                            <Button x:Name="EditSubscription" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" Content="编辑订阅" Style="{StaticResource EgActionButtonStyle}"
-                                IsEnabled="{x:Bind ViewModel.CanWriteSelected, Mode=OneWay}" Click="OnEdit" />
-                            <Button x:Name="MoreActions" Style="{StaticResource EgRoundButtonStyle}" Click="OnMoreActions"
-                                ToolTipService.ToolTip="更多" AutomationProperties.Name="更多">
-                                <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE712;" />
-                            </Button>
-                        </local:WrapRow>
+                        <TextBlock x:Name="MediaTagline" Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}"
+                            Visibility="{x:Bind local:MoviePilotSubscriptionPage.TextVisibility(MediaViewModel.Tagline), Mode=OneWay}"
+                            Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
+                        <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
+                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
+                                <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
+                            </DataTemplate></ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
                     </StackPanel>
                 </Grid>
+                <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
+                    Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
+                    Padding="0" Spacing="{StaticResource EgSpaceS}">
+                    <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                        TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
+                </StackPanel>
+                <local:WrapRow x:Name="DetailActions" Spacing="10" RowSpacing="10">
+                    <Button x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgActionButtonStyle}"
+                        IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}">
+                        <Button.Flyout><MenuFlyout>
+                            <MenuFlyoutItem x:Name="SearchMediaTitle" Text="按标题搜索" Click="OnSearch" />
+                            <MenuFlyoutItem x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
+                        </MenuFlyout></Button.Flyout>
+                    </Button>
+                    <Button x:Name="SearchAniBt" Content="在 AniBT 中搜索" Style="{StaticResource EgActionButtonStyle}"
+                        Visibility="{x:Bind MediaViewModel.AniBtVisibility, Mode=OneWay}"
+                        IsEnabled="{x:Bind MediaViewModel.CanSearchAniBt, Mode=OneWay}" Click="OnSearchAniBt" />
+                    <Button x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgActionButtonStyle}"
+                        IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnSearchSubtitles" />
+                    <Button x:Name="ChooseSubscribeSeasons" Content="{x:Bind MediaViewModel.SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgActionButtonStyle}"
+                        IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnChooseSeasons" />
+                    <Button x:Name="PlayMediaLibraryItem" Content="播放已入库" Style="{StaticResource EgActionButtonStyle}"
+                        Visibility="{x:Bind ViewModel.PlayFirstVisibility, Mode=OneWay}" Command="{x:Bind ViewModel.PlayFirstCommand}" />
+                    <Button x:Name="PlaySubscriptionTrailer" Content="预告片" Style="{StaticResource EgActionButtonStyle}"
+                        Visibility="{x:Bind MediaViewModel.TrailerButtonVisibility, Mode=OneWay}" Click="OnTrailerButtonClick" />
+                    <Button x:Name="EditSubscription" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" Content="编辑订阅" Style="{StaticResource EgActionButtonStyle}"
+                        IsEnabled="{x:Bind ViewModel.CanWriteSelected, Mode=OneWay}" Click="OnEdit" />
+                    <Button x:Name="MoreActions" Style="{StaticResource EgRoundButtonStyle}" Click="OnMoreActions"
+                        ToolTipService.ToolTip="更多" AutomationProperties.Name="更多">
+                        <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE712;" />
+                    </Button>
+                </local:WrapRow>
                 </StackPanel>
             </Grid>
             <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"

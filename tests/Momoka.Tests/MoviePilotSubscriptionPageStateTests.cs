@@ -188,7 +188,7 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：简介在操作文字列上方，头部无卡片，资料卡在正文右列，季与相关列表在正文左列", () =>
+        Test("MP 详情布局：剧情说明与操作排在封面下方左对齐，头部无卡片，资料卡在正文右列，季与相关列表在正文左列", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -199,8 +199,15 @@ internal static class MoviePilotSubscriptionPageStateTests
             // 2026-11-14 用户令「去掉订阅详情页的卡片」：头部不再有 HeroSurface / HeroMica 那层卡面。
             Assert.True(ReferenceEquals(Named("HeroGrid").Parent, primary));
             Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") is "HeroSurface" or "HeroMica" or "HeroFactColumn"));
-            Assert.True(ReferenceEquals(Named("HeroOverview").Parent, Named("HeroContent")));
+            // 2026-11-17 用户令「去简介两个字，剧情说明 tmdb、imdb、下方的按钮移动到封面下方，向左对齐」。
+            Assert.False(document.Descendants().Any(element => element.Name.LocalName == "TextBlock"
+                && (string?)element.Attribute("Text") == "简介"), "「简介」两个字还在页面上");
+            Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
+            Assert.True(ReferenceEquals(Named("HeroOverview").ElementsBeforeSelf().Last(), Named("HeroGrid")));
             Assert.True(ReferenceEquals(Named("HeroOverview").ElementsAfterSelf().First(), Named("DetailActions")));
+            // 同日用户令「TMDB IMDb 移到 一场生日，两个世界。 下面」。
+            Assert.True(ReferenceEquals(Named("MediaSourceLinks").Parent, Named("HeroContent")));
+            Assert.True(ReferenceEquals(Named("MediaSourceLinks").ElementsBeforeSelf().Last(), Named("MediaTagline")));
             // 2026-11-14 用户令「评分卡片放到参考图片 发现更多 的那个位置」：资料卡与左列同住正文两列网格。
             Assert.True(ReferenceEquals(Named("HeroFacts").Parent, body));
             Assert.True(ReferenceEquals(Named("BodyFlow").Parent, body));

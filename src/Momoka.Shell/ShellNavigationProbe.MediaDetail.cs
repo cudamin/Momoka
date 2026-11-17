@@ -27,7 +27,7 @@ internal sealed partial class ShellNavigationProbe
         var actions = Get<WrapRow>(page, "DetailActions");
         var poster = Get<Border>(page, "DetailPoster");
         static double Top(FrameworkElement node, UIElement root) => node.TransformToVisual(root).TransformPoint(default).Y;
-        Require(ReferenceEquals(primary.Parent, Get<Grid>(page, "HeroRow")) && Descendants(grid).Contains(overview)
+        Require(ReferenceEquals(primary.Parent, Get<Grid>(page, "HeroRow")) && ReferenceEquals(overview.Parent, primary)
             && hero.MinHeight <= 0.5,
             "头部结构不对，或头部仍由背景图撑高");
         // 2026-11-14 用户令「去掉订阅详情页的卡片」：海报、片名与操作直接压在剧照上，没有卡面与局部材质。
@@ -35,11 +35,15 @@ internal sealed partial class ShellNavigationProbe
             && !Descendants(primary).OfType<SystemBackdropElement>().Any()
             && !Descendants(primary).OfType<Border>().Any(border => border.Name == "HeroSurface"),
             "头部仍垫着卡面或局部材质");
-        Require(content.Children.Contains(overview) && overview.VerticalAlignment == VerticalAlignment.Top,
-            "简介没有放在按钮所在文字列");
+        // 2026-11-17 用户令「去简介两个字，剧情说明 tmdb、imdb、下方的按钮移动到封面下方，向左对齐」：
+        // 剧情说明与操作排是封面那一行下面的兄弟，左沿与封面同一条。
+        Require(!content.Children.Contains(overview) && overview.VerticalAlignment == VerticalAlignment.Top
+            && Top(overview, page) >= Top(grid, page) + grid.ActualHeight - 0.5
+            && Math.Abs(overview.TransformToVisual(poster).TransformPoint(default).X) <= 1,
+            "剧情说明没有挪到封面下方并与封面左对齐");
         Require(Top(actions, page) - Top(overview, page) - overview.ActualHeight is >= 10 and <= 14
             && Math.Abs(actions.TransformToVisual(overview).TransformPoint(default).X) <= 1,
-            "操作排没有紧随简介或与简介左对齐");
+            "操作排没有紧随剧情说明或与剧情说明左对齐");
         Require(page.MediaViewModel.Plain
             ? Math.Abs(poster.ActualWidth - 140) < 1 && Math.Abs(poster.ActualHeight - 210) < 1
             : poster.ActualWidth >= 154 && poster.ActualHeight >= 220

@@ -399,7 +399,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(card.Count == 2 && Descendants(card[0]).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionStars")
                     && card[1] is StackPanel { Spacing: 0 } list && list.Children.Count == 1,
                     "资料卡不是评分和一列媒体字段");
-                // 评分留在头部；简介与季在正文左列，资料卡在正文右列。
+                // 评分留在头部；剧情说明排在封面下方，季在正文左列，资料卡在正文右列。
                 var rating = Get<TextBlock>(page, "MediaRating");
                 var heroOverview = Get<StackPanel>(page, "HeroOverview");
                 var heroGrid = Get<Grid>(page, "HeroGrid");
@@ -407,14 +407,18 @@ internal sealed partial class ShellNavigationProbe
                     "头部没有按媒体详情显示评分：" + rating.Text);
                 Require(!Descendants(facts).OfType<TextBlock>().Any(text => text.Text == rating.Text),
                     "资料卡里还留着第二份评分");
-                Require(Descendants(heroOverview).OfType<TextBlock>().Count(text => text.Text == "简介") == 1
-                    && Descendants(page).OfType<TextBlock>().Count(text => text.Text == "简介") == 1,
-                    "简介缺失，或屏上出现了两份简介");
-                Require(Descendants(heroOverview).OfType<FrameworkElement>().Any(element => element.Name == "MediaSourceLinks"),
-                    "资料站链接没有跟着简介显示");
+                Require(!Descendants(heroOverview).OfType<TextBlock>().Any(text => text.Text == "简介")
+                    && Descendants(page).OfType<TextBlock>().All(text => text.Text != "简介"),
+                    "「简介」两个字还在页面上");
+                // 2026-11-17 用户令「TMDB IMDb 移到 一场生日，两个世界。 下面」：链接跟标语同住头部文字列。
+                var tagline = Get<TextBlock>(page, "MediaTagline");
+                var sourceLinks = Get<ItemsRepeater>(page, "MediaSourceLinks");
+                Require(Descendants(Get<StackPanel>(page, "HeroContent")).Contains(sourceLinks)
+                    && sourceLinks.TransformToVisual(tagline).TransformPoint(default).Y >= tagline.ActualHeight - 0.5,
+                    "资料站链接没有排在标语下面");
                 Require(rating.TransformToVisual(page).TransformPoint(default).Y
                         < heroOverview.TransformToVisual(page).TransformPoint(default).Y,
-                    "评分没有排在简介上面");
+                    "评分没有排在剧情说明上面");
                 RequireSubscriptionBodyLayout(page, width >= 1080);
                 // 一张卡：正文右栏那第二张（DetailFacts）已经取消，屏上只剩资料卡这一张。
                 Require(Descendants(page).OfType<FrameworkElement>().All(element => element.Name != "DetailFacts"),
