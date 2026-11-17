@@ -20,14 +20,17 @@ internal sealed partial class ShellNavigationProbe
         Call(page, "StopStoreTrailer");
         Field(page, "_storeTrailerSubject", page.ViewModel.CurrentItem);
         Call(page, "LayoutStoreTrailer");
-        using var preview = new StoreYouTubePreview();
+        var folder = Path.Combine(_options.Paths.LogDirectory, "trailer-web-fixture", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        // 匿名探针用自己的一次性配置，不读写用户的 YouTube 数据。
+        var environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, Path.Combine(folder, "profile"),
+            new CoreWebView2EnvironmentOptions());
+        using var preview = new StoreYouTubePreview(environment);
         Field(page, "_storeYouTube", preview);
         var host = Get<Grid>(page, "StoreTrailerHost");
         host.Visibility = Visibility.Visible;
         host.Opacity = 0;
         Get<Grid>(page, "StoreTrailerContent").Children.Add(preview.Element);
-        var folder = Path.Combine(_options.Paths.LogDirectory, "trailer-web-fixture", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
         File.Copy(Path.Combine(AppContext.BaseDirectory, "ProbeAssets", "store-trailer.mp4"), Path.Combine(folder, "store-trailer.mp4"));
         var blocked = 0;
         var apiRequests = 0;
@@ -57,7 +60,7 @@ internal sealed partial class ShellNavigationProbe
                 var uri = new Uri(args.Request.Uri);
                 if (uri.Host == "momoka") return;
                 var body = uri.Host == "www.youtube.com" && uri.AbsolutePath == "/iframe_api" ? Api
-                    : uri.Host == "www.youtube-nocookie.com" && uri.AbsolutePath == "/embed/Abc_123-xyz" ? Embed : "";
+                    : uri.Host == "www.youtube.com" && uri.AbsolutePath == "/embed/Abc_123-xyz" ? Embed : "";
                 if (body == Api) apiRequests++;
                 if (body == Embed) embedRequests++;
                 if (body.Length == 0) blocked++;

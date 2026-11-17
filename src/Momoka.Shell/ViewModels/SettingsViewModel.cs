@@ -2354,6 +2354,9 @@ public sealed partial class SettingsViewModel : PageViewModel
                 after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)));
         }
 
+        // YouTube 预告的登录已经移除：发布方禁止嵌入时登录也放不了，改为详情页提示加载失败，
+        // 播放键走 watch 页/系统浏览器。
+
         return new SettingSection("界面", "预告片",
             "封面悬停与详情页里的预告片播放方式。悬停只播放服务器本地预告片。", rows);
     }

@@ -8,6 +8,19 @@ internal static class StoreTrailerWebTests
     internal static void Register()
     {
         StoreTrailerScrollProbeTests.Register();
+        Test("网页预告：嵌入走 www.youtube.com，登录 Cookie 才会随嵌入带上", () =>
+        {
+            var html = StoreTrailerDocument.Build("Abc_123-xyz");
+            Assert.Contains("https://www.youtube.com/embed/Abc_123-xyz", html);
+            Assert.DoesNotContain("youtube-nocookie.com", html);
+        });
+        Test("网页预告：共享配置的登录态只按 Google 会话 Cookie 名字判定", () =>
+        {
+            using var anonymous = new Fixture();
+            Assert.False(anonymous.Preview.HasSession);
+            using var signedIn = new Fixture(signedIn: true);
+            Assert.True(signedIn.Preview.HasSession);
+        });
         Test("网页字幕：生产消息解析保留两轨名称、选轨和通知", () =>
         {
             using var fixture = new Fixture();
@@ -130,12 +143,14 @@ internal static class StoreTrailerWebTests
 
     private sealed class Fixture : IDisposable
     {
-        internal StoreYouTubePreview Preview { get; } = new();
+        internal StoreYouTubePreview Preview { get; }
         internal CancellationTokenSource Cancel { get; } = new();
         internal Microsoft.Web.WebView2.Core.CoreWebView2 Core => Preview.Element.TestCore;
 
-        internal Fixture()
+        internal Fixture(bool signedIn = false)
         {
+            Preview = new(new Microsoft.Web.WebView2.Core.CoreWebView2Environment());
+            if (signedIn) Preview.Element.TestCore.CookieManager.Cookies.Add(new() { Name = "__Secure-3PSID" });
             var folder = Path.Combine(AppContext.BaseDirectory, "trailer-web-boundary", Guid.NewGuid().ToString("N"));
             Preview.StartAsync("Abc_123-xyz", folder, Cancel.Token, _ => { }).GetAwaiter().GetResult();
         }

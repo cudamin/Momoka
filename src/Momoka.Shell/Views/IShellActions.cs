@@ -85,6 +85,9 @@ internal interface IShellActions
 
     void OpenSignIn(ServerProfile? server = null, bool newAccount = false);
 
+    /// <summary>用 Momoka 内的 YouTube 窗口播放一支预告；窗口里可交给系统浏览器。</summary>
+    void OpenYouTubeTrailer(string id, string title) { }
+
     Task SwitchProfileAsync(ServerProfile server, AccountProfile? account);
 
     /// <summary>

@@ -84,7 +84,11 @@ internal static class SubscriptionTrailerLayoutTests
         {
             var trailer = Source("Views/MoviePilotSubscriptionPage.Trailer.cs");
             Assert.Contains("StoreTrailerPreview.CreateAsync(subject, token)", trailer);
-            Assert.Contains("TrailerPreview.YouTubeId(ItemTrailers.Remote(subject))", trailer);
+            Assert.Contains("TrailerPreview.YouTubeId(subject)", trailer);
+            Assert.Contains("new StoreYouTubePreview(environment)", trailer);
+            Assert.Contains("MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer)", trailer);
+            Assert.Contains("MediaViewModel.NotifyTrailerSignInRequired(", trailer);
+            Assert.Contains("YouTubeLoginDialog.ShowAsync(this, session)", trailer);
             Assert.Contains("internal void SetStorePreviewActive(bool active)", trailer);
             Assert.Contains("MediaViewModel.StoreWide", trailer);
             Assert.Contains("ScrollStoreTrailer();", trailer);

@@ -58,6 +58,27 @@ public sealed partial class MoviePilotSubscriptionPage
         Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
     }
 
+    private void CloseStoreTrailer()
+    {
+        _trailerFailed = MediaViewModel.TrailerSubject;
+        StopStoreTrailer();
+        MediaViewModel.DismissNotice();
+    }
+
+    private void OnStoreTrailerClose(object sender, RoutedEventArgs args) => CloseStoreTrailer();
+
+    /// <summary>提示条上的「登录 YouTube」：登录后清掉失败标记，原地重试这支预告。</summary>
+    private async Task SignInYouTubeAsync(EmbyItem subject)
+    {
+        if (_request?.YouTube is not { } session) return;
+        if (!await YouTubeLoginDialog.ShowAsync(this, session)) return;
+        if (!IsLoaded || !ReferenceEquals(MediaViewModel.TrailerSubject, subject)) return;
+        MediaViewModel.DismissNotice();
+        _trailerFailed = null;
+        Log.Info("预告", $"《{subject.Name}》已登录 YouTube，重试预告");
+        UpdateStoreTrailer();
+    }
+
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
     {
         if (!IsLoaded) return;
@@ -71,7 +92,8 @@ public sealed partial class MoviePilotSubscriptionPage
         var subject = MediaViewModel.TrailerSubject;
         if (_trailerSuspended || !IsLoaded || !MediaViewModel.Plain || !MediaViewModel.StoreWide
             || !ShellPrefs.Trailers.DetailAutoplay
-            || _accessibility.HighContrast || subject is null || subject.Source?.IsAvailable != true)
+            || _accessibility.HighContrast || subject is null || subject.Source?.IsAvailable != true
+            || (subject.LocalTrailerCount is not > 0 && TrailerPreview.YouTubeId(subject) is null))
         {
             StopStoreTrailer();
             return;
@@ -120,6 +142,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
     {
         StoreTrailerPreview? preview = null;
+        StoreYouTubePreview? youTube = null;
         try
         {
             preview = await StoreTrailerPreview.CreateAsync(subject, token);
@@ -128,11 +151,24 @@ public sealed partial class MoviePilotSubscriptionPage
             LayoutStoreTrailer();
             if (preview is null)
             {
-                var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
+                var id = TrailerPreview.YouTubeId(subject);
                 if (id is null) { _trailerFailed = subject; StopStoreTrailer(); return; }
-                var youTube = new StoreYouTubePreview();
+                if (_request?.YouTube is not { } session)
+                {
+                    _trailerFailed = subject;
+                    StopStoreTrailer();
+                    return;
+                }
+                var environment = await session.GetEnvironmentAsync(token);
+                token.ThrowIfCancellationRequested();
+                if (generation != _trailerGeneration || !ReferenceEquals(MediaViewModel.TrailerSubject, subject)) return;
+                youTube = new StoreYouTubePreview(environment);
                 _trailerYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (generation == _trailerGeneration && ReferenceEquals(_trailerYouTube, youTube)) UpdateStoreTrailerControls();
+                });
+                youTube.CaptionsChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
                     if (generation == _trailerGeneration && ReferenceEquals(_trailerYouTube, youTube)) UpdateStoreTrailerControls();
                 });
@@ -147,7 +183,21 @@ public sealed partial class MoviePilotSubscriptionPage
                 {
                     if (token.IsCancellationRequested || generation != _trailerGeneration
                         || subject.Source?.IsAvailable != true) return;
-                    if (!playing) { _trailerFailed = subject; StopStoreTrailer(); return; }
+                    if (!playing)
+                    {
+                        var signedIn = youTube.HasSession;
+                        _trailerFailed = subject;
+                        StopStoreTrailer();
+                        if (!signedIn)
+                        {
+                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播：未登录 YouTube，已提示登录");
+                            MediaViewModel.NotifyTrailerSignInRequired(() => _ = SignInYouTubeAsync(subject));
+                            return;
+                        }
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，已提示加载失败");
+                        MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                        return;
+                    }
                     LayoutStoreTrailer();
                     _trailerOpened = true;
                     StoreTrailerFoundation.Visibility = Visibility.Visible;
@@ -165,7 +215,31 @@ public sealed partial class MoviePilotSubscriptionPage
         catch (OperationCanceledException) { }
         catch
         {
-            if (generation == _trailerGeneration) { _trailerFailed = subject; StopStoreTrailer(); }
+            if (generation == _trailerGeneration)
+            {
+                // 错误回调不一定跑过；预览还在树上就在收起前补一次提示。
+                if (youTube is not null && ReferenceEquals(_trailerYouTube, youTube))
+                {
+                    var signedIn = youTube.HasSession;
+                    _trailerFailed = subject;
+                    StopStoreTrailer();
+                    if (!signedIn)
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败：未登录 YouTube，已提示登录");
+                        MediaViewModel.NotifyTrailerSignInRequired(() => _ = SignInYouTubeAsync(subject));
+                    }
+                    else
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，已提示加载失败");
+                        MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                    }
+                }
+                else
+                {
+                    _trailerFailed = subject;
+                    StopStoreTrailer();
+                }
+            }
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }
     }
@@ -191,7 +265,12 @@ public sealed partial class MoviePilotSubscriptionPage
         });
         _trailerPlayer.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
         {
-            if (generation == _trailerGeneration) { _trailerFailed = _trailerSubject; StopStoreTrailer(); }
+            if (generation == _trailerGeneration)
+            {
+                _trailerFailed = _trailerSubject;
+                StopStoreTrailer();
+                MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+            }
         });
         _trailerElement = new MediaPlayerElement
         {
@@ -307,6 +386,8 @@ public sealed partial class MoviePilotSubscriptionPage
             if (!_trailerUserPaused) { _trailerPlayer?.Play(); _trailerYouTube?.SetActive(true); }
         }
     }
+
+    private void OnMediaNoticeActionClick(object sender, RoutedEventArgs e) => MediaViewModel.InvokeNoticeAction();
 
     private void OnTrailerButtonClick(object sender, RoutedEventArgs args)
     {

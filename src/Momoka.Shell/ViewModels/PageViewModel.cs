@@ -83,6 +83,21 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
     public partial InfoBarSeverity NoticeSeverity { get; set; }
 
     /// <summary>
+    /// 提示条上那颗可选的动作键（目前只有「YouTube 预告需要登录」用）。为 null 时整颗收起；
+    /// 文案与动作分开存放，InfoBar 的 XAML 只绑文案和可见性。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NoticeActionVisibility))]
+    public partial string? NoticeActionLabel { get; set; }
+
+    /// <summary>动作本体不进绑定，避免把委托放进可视树；由页面的点击处理转进来。</summary>
+    private Action? _noticeAction;
+
+    public Visibility NoticeActionVisibility => Show(!string.IsNullOrEmpty(NoticeActionLabel));
+
+    internal void InvokeNoticeAction() => _noticeAction?.Invoke();
+
+    /// <summary>
     /// Visibility rather than a bool plus a converter, which is the choice
     /// <see cref="Views.CardItem"/> already made and for the same reason: a converter per flag is a
     /// file per flag, and <c>[NotifyPropertyChangedFor]</c> is what makes the derived form safe —
@@ -167,6 +182,8 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
         if (!IsCurrent(token)) return token;
         IsReady = false;
         if (!IsCurrent(token)) return token;
+        NoticeActionLabel = null;
+        _noticeAction = null;
         NoticeOpen = false;
 
         return token;
@@ -209,15 +226,38 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
     /// Null where the message is already a whole sentence addressed to the user, which is how an
     /// <c>InfoBar</c> with no <c>Title</c> has always read.
     /// </param>
-    protected void Notify(string? title, string? message, InfoBarSeverity severity)
+    protected void Notify(string? title, string? message, InfoBarSeverity severity,
+        string? actionLabel = null, Action? action = null)
     {
         NoticeSeverity = severity;
         NoticeTitle = title;
         NoticeMessage = message;
+        NoticeActionLabel = actionLabel;
+        _noticeAction = action;
         NoticeOpen = true;
     }
 
-    protected void ClearNotice() => NoticeOpen = false;
+    /// <summary>需要登录才能播的 YouTube 预告：提示条上的动作直接打开登录窗，登录成功后页面原地重试。</summary>
+    internal void NotifyTrailerSignInRequired(Action? login) =>
+        Notify("YouTube 预告需要登录",
+            "YouTube 要求先登录才能播放这支预告。登录一次，之后的预告会直接在 Momoka 里播放。",
+            InfoBarSeverity.Warning, "登录 YouTube", login);
+
+    /// <summary>预告没能加载/起播时的通用提示；关闭由页面收起预览并清掉这条提示。</summary>
+    internal void NotifyTrailerLoadFailed(Action? close) =>
+        Notify("预告加载失败",
+            "这支预告暂时没有加载出来，可以先关掉它，稍后再进详情页试。",
+            InfoBarSeverity.Warning, "关闭预告", close);
+
+    /// <summary>页面自己收起提示条（关闭预告时一起收）。</summary>
+    internal void DismissNotice() => ClearNotice();
+
+    protected void ClearNotice()
+    {
+        NoticeActionLabel = null;
+        _noticeAction = null;
+        NoticeOpen = false;
+    }
 
     public virtual void Dispose()
     {

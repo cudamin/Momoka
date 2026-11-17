@@ -47,9 +47,21 @@ namespace Microsoft.Web.WebView2.Core
         internal string Source { get; } = source;
         internal string TryGetWebMessageAsString() => message;
     }
+    internal sealed class CoreWebView2Cookie
+    {
+        internal string Name { get; set; } = "";
+    }
+    internal sealed class CoreWebView2CookieManager
+    {
+        internal List<CoreWebView2Cookie> Cookies { get; } = [];
+        internal Task<IReadOnlyList<CoreWebView2Cookie>> GetCookiesAsync(string uri) =>
+            Task.FromResult<IReadOnlyList<CoreWebView2Cookie>>(Cookies.ToArray());
+        internal void DeleteAllCookies() => Cookies.Clear();
+    }
     internal sealed class CoreWebView2
     {
         internal CoreWebView2Settings Settings { get; } = new();
+        internal CoreWebView2CookieManager CookieManager { get; } = new();
         internal bool IsMuted { get; set; }
         internal List<string> Commands { get; } = [];
         internal event EventHandler<CoreWebView2NewWindowRequestedEventArgs>? NewWindowRequested;
@@ -59,6 +71,7 @@ namespace Microsoft.Web.WebView2.Core
         internal event EventHandler<CoreWebView2WebMessageReceivedEventArgs>? WebMessageReceived;
         internal void SetVirtualHostNameToFolderMapping(string _, string folder, CoreWebView2HostResourceAccessKind access) { }
         internal void PostWebMessageAsString(string command) => Commands.Add(command);
+        internal Task<string> ExecuteScriptAsync(string script) => Task.FromResult("null");
         internal void Navigate(string uri)
         {
             var starting = new CoreWebView2NavigationStartingEventArgs(uri);

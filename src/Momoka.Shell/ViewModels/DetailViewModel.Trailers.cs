@@ -36,7 +36,7 @@ public sealed partial class DetailViewModel
         public EmbyItem? Item { get; } = item;
         public string? Url { get; } = url;
         public string? ItemId { get; } = item?.Id;
-        public string Destination => Item is null ? "在浏览器打开" : "在 Momoka 播放";
+        public string Destination => Item is not null || TrailerPreview.YouTubeId(Url) is not null ? "在 Momoka 播放" : "在浏览器打开";
     }
 
     internal sealed class TrailerSelection(EmbyItem subject, EmbySessionScope source, CancellationToken token)
@@ -115,6 +115,13 @@ public sealed partial class DetailViewModel
                     RemoteTrailers = [new() { Url = option.Url, Name = option.Title }]
                 });
                 if (checkedLinks.Count != 1) return;
+                // YouTube 远程预告走 Momoka 内的官方播放窗：和设置页登录共用一份 Cookie，
+                // 不再把用户丢进系统浏览器（那里没有 Momoka 的登录态）。
+                if (TrailerPreview.YouTubeId(checkedLinks[0].Url) is { } youTubeId)
+                {
+                    _actions.OpenYouTubeTrailer(youTubeId, option.Title);
+                    return;
+                }
                 if (_trailerLauncher is null) throw new InvalidOperationException("浏览器启动服务不可用");
                 _trailerLauncher.OpenUrl(checkedLinks[0].Url!);
             }

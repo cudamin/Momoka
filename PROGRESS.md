@@ -1,3 +1,39 @@
+## 2026-11-18 YouTube 预告真机可播：共享登录 + `www.youtube.com/embed`（已合并 master，待统一验证）
+
+用户要求「验收时候真实服务器能播放」，不再接受只提示加载失败。
+
+**根因。** 真实服务器日志是《F1：狂飙飞车》`YouTubeId=CT2_P2DZBR0`、`报错 error:150`。查 YouTube `playabilityStatus` 得 `"playableInEmbed":true`，说明不是发布方禁止嵌入；同一台机器用已登录配置加载 `www.youtube.com/embed` 实测能播（CDP 读到 `STATE1`、播放到 3.0 秒），匿名配置则被要求登录。之前「登录了也没用」是因为内嵌页用的是 `youtube-nocookie.com`：登录窗写在 `.youtube.com` 的会话 Cookie 带不到 `youtube-nocookie.com`，所以登录态从来没有作用到预览上。
+
+**改了什么。** 恢复 `Media/YouTubeSession`（`webview2\youtube\` 一份共享 WebView2 配置）与 `YouTubeLoginDialog`，恢复 `YouTubeTrailer.HasSession`（只按 `SAPISID`／`__Secure-1PSID`／`__Secure-3PSID`／`LOGIN_INFO` 的 Cookie 名字判断，不读值）；`StoreYouTubePreview` 改用共享配置、把嵌入地址从 `www.youtube-nocookie.com/embed` 改为 `www.youtube.com/embed`，起播前读一次登录态并暴露 `HasSession`，未起播超时从 10 秒放宽到 20 秒（慢代理首帧可能接近十秒）。详情页与订阅详情页的失败分支先看 `HasSession`：未登录时 `InfoBar` 显示「YouTube 预告需要登录」并给「登录 YouTube」动作，登录成功清掉失败标记原地重试；已登录仍失败才落到「预告加载失败 + 关闭预告」。`YouTubePlayerDialog` 也改用共享配置，watch 页与预览共用同一份登录态。登录入口只放在失败提示里，设置页不再恢复登录行。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **358/358、0 失败 0 跳过**（新增嵌入域名与登录态 Cookie 名字用例）；全量 `Momoka.Tests` **5226/5226**（须把 `TEMP` 指到可写目录；默认 `C:\WINDOWS\TEMP` 会让两条既有下载用例报环境红）。真实网络证据：把本机 `webview2\youtube\EBWebView` 拷到临时目录，用 Edge + `www.youtube.com/embed/CT2_P2DZBR0` 加载，IFrame API 报 `STATE1`、`getCurrentTime()=3.0`；`youtube-nocookie.com` 同配置不带头像的匿名请求仍被要求登录。
+
+**真机确认。** 发布分支构建后用 `--show-detail` 打开第一个媒体库，UIA 选中侧栏「电影」并触发《F1：狂飙飞车》卡片；日志 01:56:04 `YouTubeId=CT2_P2DZBR0`、01:56:05 `登录态=True`，此后 20 秒内没有「未起播」「报错」「加载失败」，用户复测回「可以正常播放了现在」。这说明真实服务器条目 + 已登录配置下，右上角嵌入预告已经能正常播放。
+
+**未做／边界。** 订阅详情的同一套入口还没有在这次真机里逐点复测；登录态过期后仍要靠同一条提示重新登录；真正禁止嵌入的视频在登录后仍会落到「预告加载失败」，可在播放窗的 watch 页看。
+
+**合并。** 2026-11-18 用户令「合并」。主树先行状态干净（`04e8cee`），以 `--no-ff` 合入本批提交 `edb08c7`；冲突只在 `PROGRESS.md` 与本台账，按两边保留：本批置顶、台账编号顺延为 86；代码无冲突。合并后在最终 master 上复核编译、测试并发布主树，结果记在本节末尾。未推远端。
+
+## 2026-11-18 YouTube 预告登录与共享会话（分支 `fix-youtube-trailer-login-C1QUcL`，待合并）
+
+用户一句：「登录吧，在详情页提示，然后去设置页面登录」。
+
+**改了什么。** 新增 `Media/YouTubeSession`：一份只含 Google／YouTube Cookie 的 WebView2 配置（`webview2\youtube\`），设置页登录窗与详情页右上角预览共用；它不写设置文件、不读日志，退出登录用 `DeleteAllCookies`。设置 → 界面 → 预告片新增「YouTube 登录」读数行，`SettingsPage` 摆一扇 `YouTubeLoginDialog`（可交互 WebView2，加载 Google 自己的登录页，按 Cookie 名 `SAPISID`／`__Secure-1PSID`／`__Secure-3PSID`／`LOGIN_INFO` 判断登录，只读名字不读值）。详情页与订阅详情页的 YouTube 预览改用这份配置；`StoreYouTubePreview` 现在把 IFrame API 的错误码带出来（`error:150`），未登录时把 101／150 判定为「需要登录」，页面用既有 `InfoBar` 显示「此预告需要登录 YouTube」并带一颗「登录 YouTube」动作键，直达设置页登录窗；登录成功/退出通过 `YouTubeSession.Changed` 让已收起的预览当场重试。`TrailerPreview.YouTubeId` 增加条目自身媒体地址识别（Emby Trailer channel 的 `watch?v=` 直接地址），详情页预览与播放键都能用；播放键与远程 YouTube 菜单项改走 `YouTubePlayerDialog`（官方嵌入页 + 原生「登录 YouTube」入口），不再把用户丢进没有 Momoka 登录态的系统浏览器。`PageViewModel` 的提示条增加可选动作键，两个详情页共用同一句提示。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **357/357、0 失败 0 跳过**（新增「未登录 150 判定要登录、已登录与无码错误不误报」）；`episode-display-fixture` **37/37**（含新增 YouTube 地址/登录判定用例）；全量 `Momoka.Tests` **5226 项、通过 5224、失败 2**，两条均为既有 `C:\WINDOWS\TEMP` 下载环境红，与本批无关；本树已 `publish.ps1 -NoArchive` 发布（548 文件、289.9 MB）并写桌面分支快捷方式 `Momoka-fix-youtube-trailer-login-C1QUcL.lnk`，`Momoka.lnk` 已还原到主树。界面核对：实际启动分支构建 `--show-settings 界面`，UIA 找到并触发「登录 YouTube」，截图中 Google 登录表单（「登录／继续使用 YouTube」）在 Momoka 的登录窗内正常显示。
+
+**未做／边界。** 没有真实 Google 账号密码可用于登录，未验证「登录后年龄限制视频真的能播」；没有在真实年龄限制条目上目视到详情页提示条（Trailers 库的文件夹卡片在两次 UIA 尝试中未稳定点到，只作导航未完成记录）；YouTube 的服务端机器人/年龄判定不因登录窗本身消失，已登录仍报 150 的视频按「不可嵌入」安静回退。未推远端，未合并 master，主树未重新发布。
+
+**用户复测「不提示」后的补丁（`3e26ced`）。** 原先只在 `error:150`／`error:101` 时判需要登录，登录卡片不报码时不会提示；现在未登录且 10 秒内没有起播一律判为需要登录，并补 `预告` 诊断日志（YouTube id、登录状态、错误消息、超时）。`TrailerPreview.YouTubeId` 同时识别 `/embed/` 与 `/shorts/`。Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **357/357**、`episode-display-fixture` **37/37**；分支重新发布（548 文件、289.9 MB）并刷新 `Momoka-fix-youtube-trailer-login-C1QUcL.lnk`。仍未真实登录，10 秒阈值对慢网的误提示与登录后实际可播性待用户复测。
+
+**用户复测日志与「加载失败/关闭预告」补丁。** 用户日志显示《F1：狂飙飞车》`YouTubeId=CT2_P2DZBR0`、`登录=False`，随后 `报错 error`（没有错误码）——这是 `www.youtube.com/iframe_api` 脚本加载失败，不是登录卡片；同一时刻本机用 PowerShell 请求该地址也失败，`youtube-nocookie.com/iframe_api` 返回 404，说明问题在代理/网络对 `www.youtube.com` 的拦截，而不是登录态。按用户要求：预告没能起播时详情页显示「预告加载失败」提示，动作是「关闭预告」（不再提供重试）；媒体详情与订阅详情的预告控制排新增「关闭预告」按钮（关掉后该条目不再自动重开，并收掉提示）。Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **357/357**；分支重新发布（548 文件、289.9 MB，00:53）并刷新分支快捷方式。**仍未解决播放本身**：`iframe_api` 被代理拦截时 YouTube 预览无法起播，登录也救不了；后续可选方案是改用 iframe 的 postMessage 内置协议（不依赖 `iframe_api`），需另开一轮验证。
+
+**登录窗太窄的补丁。** 用户截图显示 Google 登录页右侧被裁，邮箱框和「下一步」看不到：ContentDialog 模板按 `ContentDialogMaxWidth` 资源取宽（默认约 548），只设 `MaxWidth` 不生效。登录窗把该资源改为 1000（最小 560），YouTube 播放窗改为 1100（最小 640），内容宽度仍按窗口尺寸收；Shell Release/x64 **0 警告 0 错误**，分支重新发布（01:02）并刷新分支快捷方式。
+
+**登录成功仍 `error:150` 的处理。** 用户登录后日志变为 `登录=True`、仍 `报错 error:150`，说明该视频发布方关闭了嵌入播放，不是登录问题。`YouTubePlayerDialog` 从 `/embed/` 改为 `https://www.youtube.com/watch?v=`，让预告播放窗走正常播放页（并保留「在浏览器打开」）；右上角背景预览仍用嵌入页，所以禁止嵌入的视频会显示「预告加载失败」，这是 YouTube 的嵌入限制。Shell Release/x64 **0 警告 0 错误**，分支重新发布（01:14）并刷新分支快捷方式。
+
+**按用户要求删除 YouTube 登录。** 用户确认登录对禁止嵌入的视频无用，要求删除相关功能：删除 `YouTubeSession`、`YouTubeLoginDialog`、`YouTubeTrailer`、设置页「YouTube 登录」行、登录提示与 `IShellActions.OpenYouTubeLogin`/`OpenSettings`，`SettingsRequest` 与 `MoviePilotSubscriptionRequest` 的登录字段、详情页对登录态的重试订阅一并移除；预览恢复匿名一次性 WebView2 配置。保留：预告未起播/超时时的「预告加载失败 + 关闭预告」提示、控制排「关闭预告」按钮、Trailers 库 `watch?v=` 条目预览与 `YouTubePlayerDialog` 的 watch 页/在浏览器打开。Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **356/356**、`episode-display-fixture` **37/37**。分支待重新发布。
+
 ## 2026-11-17／18 整窗音乐播放页与内嵌歌词（已合并 master，待统一验证）
 
 用户令：「参考这些文件新增音乐播放页」，附飞牛音乐全屏播放页截图与保存的 HTML（`飞牛音乐.html` 与 `飞牛音乐_files`）。问过两件事，用户当次定：歌词栏**读取内嵌歌词**；入口**点播放栏封面/歌名**。

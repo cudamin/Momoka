@@ -4409,6 +4409,15 @@ public sealed partial class DetailViewModel : PageViewModel
         target = version?.Item ?? target;
         var sameSource = target.Source?.Key == _scope?.Key;
 
+        // Emby 的 Trailer channel 把整支预告存成 YouTube 地址；播放键走 Momoka 内的官方播放窗，
+        // 走 mpv 只会拿到 YouTube 的网页字节。登录态与详情页右上角的预览共用。
+        if (target.Type is EmbyItemType.Trailer or EmbyItemType.Video
+            && TrailerPreview.YouTubeId(target.DefaultMediaSource?.Path) is { } youTubeId)
+        {
+            _actions.OpenYouTubeTrailer(youTubeId, string.IsNullOrWhiteSpace(target.Name) ? "YouTube 预告" : target.Name);
+            return;
+        }
+
         var parent = version?.Parent ?? (sameSource && target.Type == EmbyItemType.Episode
             && _detail is { Type: EmbyItemType.Series or EmbyItemType.Season }
             ? _detail

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Shell.Media;
 using Windows.Media.Playback;
@@ -52,6 +53,28 @@ public sealed partial class DetailPage
         Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
     }
 
+    /// <summary>用户关掉预告：标记这个条目不再自动重开，收起画面和控制排，并把「加载失败」提示一起收掉。</summary>
+    private void CloseStoreTrailer()
+    {
+        _storeTrailerFailed = ViewModel.CurrentItem;
+        StopStoreTrailer();
+        ViewModel.DismissNotice();
+    }
+
+    private void OnStoreTrailerClose(object sender, RoutedEventArgs args) => CloseStoreTrailer();
+
+    /// <summary>提示条上的「登录 YouTube」：登录窗写进共享配置，回来后清掉失败标记并原地重试这支预告。</summary>
+    private async Task SignInYouTubeAsync(EmbyItem subject)
+    {
+        if (_request?.Services.GetService<YouTubeSession>() is not { } session) return;
+        if (!await YouTubeLoginDialog.ShowAsync(this, session)) return;
+        if (!IsLoaded || !ReferenceEquals(ViewModel.CurrentItem, subject)) return;
+        ViewModel.DismissNotice();
+        _storeTrailerFailed = null;
+        Log.Info("预告", $"《{subject.Name}》已登录 YouTube，重试预告");
+        UpdateStoreTrailer();
+    }
+
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
     {
         if (!IsLoaded) return;
@@ -66,8 +89,9 @@ public sealed partial class DetailPage
         if (_storeTrailerSuspended || !IsLoaded || !ViewModel.StoreMode || !wide || _actionAccessibility.HighContrast
             || ViewModel.StoreArtSelected
             || !ShellPrefs.Trailers.DetailAutoplay
-            || subject is null || !ItemTrailers.HasAny(subject, subject.Source?.Connection.ServerKind ?? default)
-            || subject.Source?.IsAvailable != true)
+            || subject is null || subject.Source?.IsAvailable != true
+            || !(ItemTrailers.HasAny(subject, subject.Source.Connection.ServerKind)
+                || TrailerPreview.YouTubeId(subject) is not null))
         {
             StopStoreTrailer();
             return;
@@ -116,6 +140,7 @@ public sealed partial class DetailPage
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
     {
         StoreTrailerPreview? preview = null;
+        StoreYouTubePreview? youTube = null;
         try
         {
             preview = await StoreTrailerPreview.CreateAsync(subject, token);
@@ -125,9 +150,13 @@ public sealed partial class DetailPage
             LayoutStoreTrailer();
             if (preview is null)
             {
-                var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
+                var id = TrailerPreview.YouTubeId(subject);
+                Log.Info("预告", $"《{subject.Name}》商店预告：本地预告未命中，YouTubeId={id ?? "-"}");
                 if (id is null) return;
-                var youTube = new StoreYouTubePreview();
+                var environment = await _request!.Services.GetRequiredService<YouTubeSession>().GetEnvironmentAsync(token);
+                token.ThrowIfCancellationRequested();
+                if (generation != _storeTrailerGeneration || !ReferenceEquals(ViewModel.CurrentItem, subject)) return;
+                youTube = new StoreYouTubePreview(environment);
                 _storeYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -147,7 +176,21 @@ public sealed partial class DetailPage
                     "trailer-preview", Guid.NewGuid().ToString("N")), token, playing =>
                 {
                     if (token.IsCancellationRequested || generation != _storeTrailerGeneration || subject.Source?.IsAvailable != true) return;
-                    if (!playing) { _storeTrailerFailed = subject; StopStoreTrailer(); return; }
+                    if (!playing)
+                    {
+                        var signedIn = youTube.HasSession;
+                        _storeTrailerFailed = subject;
+                        StopStoreTrailer();
+                        if (!signedIn)
+                        {
+                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播：未登录 YouTube，已提示登录");
+                            ViewModel.NotifyTrailerSignInRequired(() => _ = SignInYouTubeAsync(subject));
+                            return;
+                        }
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，已提示加载失败");
+                        ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                        return;
+                    }
                     LayoutStoreTrailer();
                     _storeTrailerOpened = true;
                     StoreTrailerFoundation.Visibility = Visibility.Visible;
@@ -167,7 +210,31 @@ public sealed partial class DetailPage
         catch (OperationCanceledException) { }
         catch
         {
-            if (generation == _storeTrailerGeneration) { _storeTrailerFailed = subject; StopStoreTrailer(); }
+            if (generation == _storeTrailerGeneration)
+            {
+                // 播放器超时/失败时，错误回调不一定跑过；预览还在树上就在收起前补一次提示。
+                if (youTube is not null && ReferenceEquals(_storeYouTube, youTube))
+                {
+                    var signedIn = youTube.HasSession;
+                    _storeTrailerFailed = subject;
+                    StopStoreTrailer();
+                    if (!signedIn)
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败：未登录 YouTube，已提示登录");
+                        ViewModel.NotifyTrailerSignInRequired(() => _ = SignInYouTubeAsync(subject));
+                    }
+                    else
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，已提示加载失败");
+                        ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                    }
+                }
+                else
+                {
+                    _storeTrailerFailed = subject;
+                    StopStoreTrailer();
+                }
+            }
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }
     }
@@ -195,7 +262,13 @@ public sealed partial class DetailPage
         });
         _storeTrailerPlayer.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
         {
-            if (generation == _storeTrailerGeneration) { _storeTrailerFailed = _storeTrailerSubject; StopStoreTrailer(); }
+            if (generation == _storeTrailerGeneration)
+            {
+                Log.Info("预告", $"《{_storeTrailerSubject?.Name}》的本地预告加载失败，已提示");
+                _storeTrailerFailed = _storeTrailerSubject;
+                StopStoreTrailer();
+                ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+            }
         });
         _storeTrailerElement = new MediaPlayerElement
         {

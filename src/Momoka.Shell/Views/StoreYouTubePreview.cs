@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using Momoka.Diagnostics;
+using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
 
@@ -10,10 +12,11 @@ internal sealed record TrailerCaptionTrack(string Language, string Name);
 /// <summary>Gallery Samples/WebView2/WebView2Page.xaml/.xaml.cs，
 /// v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7 原生宿主；背景不接受输入。
 /// </summary>
-internal sealed class StoreYouTubePreview : IDisposable
+internal sealed class StoreYouTubePreview(CoreWebView2Environment environment) : IDisposable
 {
     private const string Origin = "https://momoka";
     private const string CaptionPrefix = "captions:";
+    private readonly CoreWebView2Environment _environment = environment;
     private readonly WebView2 _web = new() { IsHitTestVisible = false, IsTabStop = false };
     private readonly List<TrailerCaptionTrack> _captions = [];
     private bool _disposed;
@@ -26,6 +29,9 @@ internal sealed class StoreYouTubePreview : IDisposable
     internal IReadOnlyList<TrailerCaptionTrack> Captions => _captions;
     internal string? SelectedCaption => _caption;
     internal bool IsPlaying => _playing;
+
+    /// <summary>这次起播时共享配置里有没有 YouTube 登录态；失败时页面据此决定提示登录还是一般失败。</summary>
+    internal bool HasSession { get; private set; }
     internal event Action? PlaybackChanged;
     internal event Action? CaptionsChanged;
 
@@ -41,17 +47,22 @@ internal sealed class StoreYouTubePreview : IDisposable
         // 背景预告的播放/暂停由原生按钮驱动，没有网页内的用户手势。默认策略会把「取消静音」当成
         // 无手势的带声音播放并把视频暂停，表现为点一下静音键画面就停住；这条只作用于这支隔离的
         // 预告网页，且页面自身仍以 autoplay=0、controls=0 固定加载。
-        var options = new CoreWebView2EnvironmentOptions
-        {
-            AdditionalBrowserArguments = "--autoplay-policy=no-user-gesture-required"
-        };
-        var environment = await CoreWebView2Environment.CreateWithOptionsAsync("", Path.Combine(folder, "profile"), options);
-        token.ThrowIfCancellationRequested();
-        if (_disposed) return;
-        await _web.EnsureCoreWebView2Async(environment);
+        // 共享配置：登录窗写下的 YouTube Cookie 会随 www.youtube.com/embed 一起带上，需要登录的
+        // 网络不再因为匿名嵌入报 150。
+        await _web.EnsureCoreWebView2Async(_environment);
         token.ThrowIfCancellationRequested();
         if (_disposed) return;
         var core = _web.CoreWebView2;
+        try
+        {
+            var cookies = await core.CookieManager.GetCookiesAsync("https://www.youtube.com");
+            HasSession = YouTubeTrailer.HasSession(cookies.Select(cookie => cookie.Name));
+        }
+        catch (Exception error) when (error is InvalidOperationException or ObjectDisposedException)
+        {
+            HasSession = false;
+        }
+        Log.Info("预告", $"YouTube 预告 id={id} 登录态={HasSession}");
         core.IsMuted = _muted;
         core.Settings.AreDefaultContextMenusEnabled = false;
         core.Settings.AreDevToolsEnabled = false;
@@ -69,10 +80,23 @@ internal sealed class StoreYouTubePreview : IDisposable
             else if (message == "playing") { _playingCompleted?.TrySetResult(); SetPlayback(true); state(true); }
             else if (message == "paused" || message == "blocked") SetPlayback(false);
             else if (message.StartsWith(CaptionPrefix, StringComparison.Ordinal)) ReadCaptions(message[CaptionPrefix.Length..]);
-            else if (message == "error") { _playingCompleted?.TrySetException(new IOException("预告片播放失败")); state(false); }
+            else if (message.StartsWith("error", StringComparison.Ordinal))
+            {
+                Log.Info("预告", $"YouTube 预告 id={id} 报错 {message}");
+                _playingCompleted?.TrySetException(new IOException("预告片播放失败"));
+                state(false);
+            }
         };
         core.Navigate(Origin + "/index.html");
-        await _playingCompleted.Task.WaitAsync(TimeSpan.FromSeconds(20), token);
+        // 需要登录的网络上，播放器会停在登录卡片而不触发 onError；20 秒内没有起播就按失败收尾，
+        // 让详情页明确提示。代理慢时首帧可能接近十秒，留足余量，别把真的在加载误判成失败。
+        var finished = await Task.WhenAny(_playingCompleted.Task, Task.Delay(TimeSpan.FromSeconds(20), token));
+        if (finished != _playingCompleted.Task)
+        {
+            Log.Info("预告", $"YouTube 预告 id={id} 20 秒内未起播（登录态={HasSession}）");
+            throw new IOException("预告片播放超时");
+        }
+        await _playingCompleted.Task;
         token.ThrowIfCancellationRequested();
     }
 
