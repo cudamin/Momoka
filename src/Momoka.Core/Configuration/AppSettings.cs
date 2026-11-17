@@ -1524,13 +1524,13 @@ public sealed class UiSettings
     /// 都默认展开」）。只在用户自己按标题栏那颗折叠键时写，启动和重新进入商店模式都照它还原。
     /// <para>
     /// 三档：<c>null</c> 是「还没选过」—— 缺这个键的旧设置文件读出来就是它，启动仍按当时的窗宽定一次初值
-    /// （宽过 1008 展开、窄了收成图标栏，见 ShellPage.Sidebar.cs 的 SidebarWideThreshold），所以从旧版本升上来
+    /// （窗宽不少于 1008 DIP 时展开、窄了收成图标栏，见 ShellPage.Sidebar.cs 的 SidebarWideThreshold），所以从旧版本升上来
     /// 的行为一个像素都不变；<c>true</c>／<c>false</c> 是用户最后一次选的档，窗宽怎么变都不改写它
     /// （同 2026-11-16「拉动窗口的时候侧边栏不要自动展开或者收起」那条）。
     /// </para>
     /// <para>
     /// 与 <see cref="SidebarWidth"/> 各存各的：宽度管展开时多宽，这一格管开不开。恢复默认（<see cref="SettingsPreferences"/>）
-    /// 和备份恢复按界面组的默认口径处理它，回到「还没选过」。
+    /// 把它抄回 <c>null</c>（还没选过）；备份导出与恢复配置跟别的界面偏好一样整组抄，不单列例外。
     /// </para>
     /// </summary>
     public bool? SidebarExpanded { get; set; }

@@ -1,3 +1,17 @@
+## 2026-11-17 侧边栏开合持久化（主树 master）
+
+用户令「持久化保存侧边栏为展开或者折叠，不要每次打开都默认展开」。此前侧栏只在进入商店模式那一刻按窗宽定一次初值（1008 DIP），之后按折叠键改了也不落盘，所以每次启动都回到同一个默认档。
+
+**改了什么。** `UiSettings` 新增 `SidebarExpanded`（`bool?`）：`null` 是「还没选过」，缺键的旧设置文件读出来就是它，启动仍按当时窗宽定初值，升级行为一个像素不变；`true`／`false` 是用户最后一次按标题栏折叠键的结果。`ShellPage.OnSidebarPreferencesChanged` 先读这一档，存过就直接还原、不再等窗宽；没存过才走原来的 120ms 窗宽决策。`OnNavToggleClicked` 翻转后调 `PersistSidebarExpanded` 写回并保存；程序自己按窗宽定的初值不写，窗宽变化仍不改写开合。恢复默认把它抄回 `null`；导出与恢复配置和别的界面偏好一样整组抄。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **353/353**（侧栏开合契约改钉「先读 `SidebarExpanded`、折叠键写回、窗宽兜底且窗宽决策不写设置」）；`settings-storage-fixture` **189/189**（新增三档 JSON 往返，`null` 规整后仍是未选择）；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按日常 UI 口径未跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 71 条。
+
+**顺手修的两处旧钉（提交 `7683db3`）。** 探针 `UntilAsync` 在 `63e6068` 加了 `attempts` 参数后，`Momoka.Tests` 的源码提取锚点与整理菜单契约的调用串停在旧签名：前者让主测试工程编译直接失败，后者报整理菜单一条红。按当前签名修两处钉，断言本意不变；主测试因此重新可以编译，设置专项才跑得起来。
+
+**提交与发布。** 产品与测试提交 `439b700`（记录提交见本文件后续改动）。按改好收尾自动发布：`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `5E32D1F6E77F610FDB98035DCD00D879F75BF57E8611AFE64A75AE74E883A04F`，`Momoka.dll` SHA256 `B8FFF3F6A7720E1BBAE57CD3E00D6F05E7BAC925A18F3D1DB285EFB13AFAEA57`；桌面 `Momoka.lnk` 指向主树 `artifacts/publish/win-x64`（生成于 12:37）。未推远端。
+
+**未验证。** 折叠 → 退出 → 重开仍折叠、展开 → 重开仍展开、缺键旧文件仍按窗宽定初值这三条重启行为未做实屏核对；侧栏两种宽度下的观感未截图。均留给统一验证。
+
 ## 2026-11-17 红项复查：修探针竞态并重跑（未销账）
 
 用户问「有红你不修什么意思？还是说这个不用修」。上一轮 36 条红里，滚动类在 2026-11-08 就记过同一桌面签名，我没有改产品去洗绿；这次逐类重跑，并修掉重跑暴露出的探针自身竞态。
