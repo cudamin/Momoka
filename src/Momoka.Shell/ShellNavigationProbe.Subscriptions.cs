@@ -378,11 +378,13 @@ internal sealed partial class ShellNavigationProbe
                 // 评分来自订阅快照。资料卡全页只有一张（用户令 2026-10-12「怎么变成两个卡片了」），
                 // 卡上不再分「媒体信息」「订阅信息」两个小标题 —— 照网页端那张卡：评分星在最上面，下面一列
                 // 「标签 / 值」（用户令 2026-10-12「为什么你弄了一个媒体信息一个订阅信息，只需要留这个」）。
+                // 2026-11-17 用户令「给订阅详情页的卡片添加更多信息」：媒体字段之后补一小组订阅摘要。
                 var facts = Get<Border>(page, "HeroFacts");
                 Require(Get<Border>(page, "LibraryBadge").Visibility == Visibility.Visible && vm.LibraryBadge == "部分入库",
                     "入库徽标没有按文件统计显示");
-                Require(!Descendants(facts).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionFacts"),
-                    "网页资料卡还混入订阅字段");
+                Require(Get<ItemsRepeater>(page, "SubscriptionFacts").ItemsSource is IReadOnlyList<MoviePilotSubscriptionFact> { Count: > 0 } summary
+                    && summary.Any(fact => fact.Label == "订阅状态") && summary.Any(fact => fact.Label == "入库情况"),
+                    "资料卡没有补上订阅摘要");
                 // 「订阅规则」那块卡已按用户令（2026-10-12「电影订阅界面去掉订阅规则板块」）整块删掉：
                 // 页面上不该再有这块标题，也不该再有它的列表或那句「沿用 MoviePilot 当前配置」的说明。
                 Require(!Descendants(page).OfType<TextBlock>().Any(text => text.Text == "订阅规则")
@@ -391,14 +393,18 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<ItemsRepeater>(page, "SubscriptionStars").ItemsSource is IReadOnlyList<MoviePilotRatingStar> { Count: 10 } stars
                     && stars.Count(star => star.Fill == 1) == 8 && stars.Count(star => star.Fill == 0.5) == 1,
                     "十星评分没有使用媒体详情的半星值");
-                Require(Get<ItemsRepeater>(page, "MediaFacts").ItemsSource is IReadOnlyList<MoviePilotMediaFact> { Count: > 0 },
-                    "网页媒体字段没有内容");
-                Require(!Descendants(facts).OfType<TextBlock>().Any(text => text.Text is "媒体信息" or "订阅信息" or "订阅编号" or "时长"),
-                    "资料卡还保留网页没有的字段");
+                Require(Get<ItemsRepeater>(page, "MediaFacts").ItemsSource is IReadOnlyList<MoviePilotMediaFact> { Count: > 0 } mediaFacts
+                    && mediaFacts.Any(fact => fact.Label == "片长") && mediaFacts.Any(fact => fact.Label == "评分人数")
+                    && mediaFacts.Any(fact => fact.Label == "热度") && mediaFacts.Any(fact => fact.Label == "类型"),
+                    "网页媒体字段没有补上规格、评分人数与热度");
+                Require(!Descendants(facts).OfType<TextBlock>().Any(text => text.Text is "媒体信息" or "订阅信息" or "订阅编号"),
+                    "资料卡还保留网页没有的小标题");
                 var card = ((Grid)facts.Child).Children.OfType<FrameworkElement>().ToList();
                 Require(card.Count == 2 && Descendants(card[0]).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionStars")
-                    && card[1] is StackPanel { Spacing: 0 } list && list.Children.Count == 1,
-                    "资料卡不是评分和一列媒体字段");
+                    && card[1] is StackPanel { Spacing: 0 } list && list.Children.Count == 3
+                    && list.Children[0] is ItemsRepeater { Name: "MediaFacts" }
+                    && list.Children[2] is ItemsRepeater { Name: "SubscriptionFacts" },
+                    "资料卡不是评分、媒体字段与订阅摘要的次序");
                 // 评分留在头部；简介与季在正文左列，资料卡在正文右列。
                 var rating = Get<TextBlock>(page, "MediaRating");
                 var heroOverview = Get<StackPanel>(page, "HeroOverview");
@@ -1077,13 +1083,21 @@ internal sealed partial class ShellNavigationProbe
                     original_name = "The Long Journey",
                     status = "Returning Series",
                     first_air_date = "2026-01-01",
+                    last_air_date = "2027-01-08",
                     original_language = "ja",
                     vote_average = 8.5,
+                    vote_count = 1234,
+                    popularity = 88.5,
+                    episode_run_time = new[] { 24 },
+                    number_of_seasons = 2,
+                    number_of_episodes = 8,
+                    networks = new[] { "富士电视台", "TOKYO MX" },
                     poster_path = "https://poster.invalid/4.png",
                     backdrop_path = "https://poster.invalid/backdrop-4.png",
                     overview = "一段关于相遇、离别与重逢的故事。",
                     tagline = "下一次相遇，在旅途的尽头。",
-                    genres = Anime ? new[] { new { name = "动画" } } : Array.Empty<object>(),
+                    // 2026-11-17 资料卡补类型一行；非动画夹具给一个普通类型，AniBT 判定仍只认动画。
+                    genres = Anime ? new[] { new { name = "动画" } } : new[] { new { name = "剧情" } },
                     production_countries = new[] { new { name = "日本" } },
                     production_companies = new[] { new { name = "Passione" }, new { name = "KADOKAWA" }, new { name = "Docomo Anime Store" }, new { name = "AT-X" }, new { name = "D-techno" }, new { name = "Crunchyroll" }, new { name = "armabianca" }, new { name = "BS11" }, new { name = "Kansai Television" } },
                     season_info = new[] { new { season_number = 1, episode_count = 4, air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" }, new { season_number = 2, episode_count = 4, air_date = "2027-01-01", poster_path = "https://poster.invalid/4.png" } }
@@ -1104,7 +1118,10 @@ internal sealed partial class ShellNavigationProbe
                 release_date = "2026-05-01",
                 original_language = "en",
                 vote_average = 8.5,
+                vote_count = 4321,
+                popularity = 66.5,
                 runtime = 132,
+                genres = new[] { new { name = "科幻" } },
                 poster_path = "https://poster.invalid/1.png",
                 backdrop_path = "https://poster.invalid/backdrop-1.png",
                 overview = "一艘船、一群人，和一段没有回程的航程。",

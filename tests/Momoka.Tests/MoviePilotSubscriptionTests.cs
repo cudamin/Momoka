@@ -263,6 +263,26 @@ internal static class MoviePilotSubscriptionTests
             Assert.Equal("", MoviePilotSubscription.Stamp(""));
             Assert.Equal("未识别的时间", MoviePilotSubscription.Stamp("未识别的时间"));
         });
+        Test("MP 资料卡订阅摘要：状态、季数、进度、入库与上次更新逐行，取消后只留状态和入库", () =>
+        {
+            var rich = MoviePilotSubscription.Parse(Json("""
+                {"id":12,"name":"示例剧","year":"2026","type":"电视剧","media_source":"douban","media_id":"42",
+                 "season":2,"total_episode":4,"lack_episode":1,"state":"R","last_update":"2026-07-27 11:30:00"}
+                """))!;
+            var summary = MoviePilotSubscriptionFacts.Summary(rich, 2, "部分入库");
+            Assert.Equal("订阅状态|订阅季数|订阅进度|入库情况|上次更新",
+                string.Join('|', summary.Select(fact => fact.Label)));
+            Assert.Equal("订阅中", summary.Single(fact => fact.Label == "订阅状态").Value);
+            Assert.Equal("2 季", summary.Single(fact => fact.Label == "订阅季数").Value);
+            Assert.Equal("3 / 4 集", summary.Single(fact => fact.Label == "订阅进度").Value);
+            Assert.Equal("部分入库", summary.Single(fact => fact.Label == "入库情况").Value);
+            Assert.Equal("2026-07-27 11:30", summary.Single(fact => fact.Label == "上次更新").Value);
+            Assert.True(summary[^1].Last);
+            var deleted = MoviePilotSubscriptionFacts.Summary(rich, 2, "已入库", deleted: true);
+            Assert.Equal("订阅状态|入库情况|上次更新", string.Join('|', deleted.Select(fact => fact.Label)));
+            Assert.Equal("已取消订阅", deleted[0].Value);
+            Assert.Equal(0, MoviePilotSubscriptionFacts.Summary(null, 2, "已入库").Count);
+        });
         Test("MoviePilot 播出日期解析：空日期、缺集号、负集号与非数组都跳过", () =>
         {
             Assert.Equal(0, MoviePilotEpisodeAirDates.Parse(Json("{}")).Count);

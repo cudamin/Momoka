@@ -126,7 +126,7 @@ public sealed record MoviePilotSubscription
 }
 
 /// <summary>订阅详情里的一行：左边标签、右边值。空值不进列表 —— 见 <see cref="MoviePilotSubscriptionFacts"/>。</summary>
-public sealed record MoviePilotSubscriptionFact(string Label, string Value);
+public sealed record MoviePilotSubscriptionFact(string Label, string Value, bool Last = false);
 
 /// <summary>
 /// 订阅详情两栏的投影，纯函数：一份订阅快照进，两串「标签 / 值」出。放在 Core 而不是页面里，是因为
@@ -184,6 +184,38 @@ public static class MoviePilotSubscriptionFacts
         Add(facts, "特效规则", subscription.Effect);
         Add(facts, "过滤规则", subscription.Filter);
         Add(facts, "自定义识别词", subscription.CustomWords);
+        return facts;
+    }
+
+    /// <summary>
+    /// 详情资料卡在那列媒体字段下面补的「订阅摘要」（用户令 2026-11-17「给订阅详情页的卡片添加更多信息」）：
+    /// 只放一眼能读完的几行 —— 订阅状态、订阅季数、订阅进度、入库情况与上次更新，不把
+    /// <see cref="Info"/> 那十六行进卡片。纯视频详情（没有订阅）返回空表，卡片那一段整块不画。
+    /// <para>
+    /// 取消订阅之后订阅快照仍在（页面要靠它显示「已取消订阅」），此时只保留状态、入库情况与上次更新；
+    /// 进度与季数已经没有意义，不再写。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<MoviePilotSubscriptionFact> Summary(
+        MoviePilotSubscription? subscription, int subscribedSeasons, string libraryBadge, bool deleted = false)
+    {
+        var facts = new List<MoviePilotSubscriptionFact>();
+        if (subscription is null) return facts;
+        if (deleted)
+        {
+            Add(facts, "订阅状态", "已取消订阅");
+            Add(facts, "入库情况", libraryBadge);
+            Add(facts, "上次更新", MoviePilotSubscription.Stamp(subscription.LastUpdate));
+        }
+        else
+        {
+            Add(facts, "订阅状态", subscription.StateLabel);
+            if (subscription.IsSeries && subscribedSeasons > 0) Add(facts, "订阅季数", $"{subscribedSeasons} 季");
+            Add(facts, "订阅进度", subscription.ProgressCount);
+            Add(facts, "入库情况", libraryBadge);
+            Add(facts, "上次更新", MoviePilotSubscription.Stamp(subscription.LastUpdate));
+        }
+        if (facts.Count > 0) facts[^1] = facts[^1] with { Last = true };
         return facts;
     }
 

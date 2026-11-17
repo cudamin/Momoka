@@ -28,6 +28,10 @@
 # —— 两处句柄都还在，ShellChromeTests 改钉宿主那一处。
 # 2026-11-15（商店模式按钮浅色高透明底）：Palette.xaml 新增 EgStoreControlBrush（白，四态浓度由
 # ControlBackgroundBrushes 的定值分档），颜色计数 90→91；它是角色色按字面值写，与同一字典里的层色一致。
+# 2026-11-17（订阅资料卡补信息、商店档复刻媒体详情页渐变）：MoviePilotSubscriptionPage.xaml 新增
+# StoreShade 两道渐变，颜色计数 0→6——与 DetailPage.xaml 同一组 #0C0E11 字面色；高对比度那本词典里
+# 只有画刷没有颜色键，渐变停点写 ThemeResource 会在运行时抛，故沿用固定值。新增句柄 StoreShade 与
+# SubscriptionFacts（订阅摘要列表），UIA 脚本据后者读资料卡下半段。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -49,6 +53,7 @@ color  Theme/Palette.xaml  91
 color  Views/DetailPage.xaml  18
 color  Views/HomeBanner.xaml  18
 color  Views/HtmlColorPicker.xaml  11
+color  Views/MoviePilotSubscriptionPage.xaml  6
 color  Views/PlayerPage.xaml  2
 font-size  Theme/Styles.xaml  2
 font-size  Views/CoverDialog.xaml  6
@@ -780,6 +785,8 @@ handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingShimmer
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingSkeleton
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroBlock
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroSection
+handle  Views/MoviePilotSubscriptionPage.xaml  StoreShade
+handle  Views/MoviePilotSubscriptionPage.xaml  SubscriptionFacts
 handle  Views/MoviePilotResourceBrowser.xaml  ActiveFilters
 handle  Views/MoviePilotResourceBrowser.xaml  AdvancedFilters
 handle  Views/MoviePilotResourceBrowser.xaml  EditionFilter

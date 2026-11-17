@@ -253,6 +253,22 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public Visibility DetailPosterEmptyVisibility => Show(Selected?.Poster is null);
     public Visibility DetailBackdropVisibility => Show(Selected?.Backdrop is not null);
     public IReadOnlyList<MoviePilotSubscriptionFact> DetailInfoFacts => Selected?.InfoFacts ?? [];
+
+    /// <summary>
+    /// 资料卡下半段的订阅摘要（2026-11-17 用户令「给订阅详情页的卡片添加更多信息」）：投影在 Core 的
+    /// <see cref="MoviePilotSubscriptionFacts.Summary"/>，只取状态、季数、进度、入库与上次更新这几行。
+    /// 纯媒体详情（没有订阅）时为空，卡片那一段整块收起。
+    /// </summary>
+    public IReadOnlyList<MoviePilotSubscriptionFact> DetailSummaryFacts =>
+        MoviePilotSubscriptionFacts.Summary(Selected?.Subscription, SubscribedSeasons, LibraryBadge, Deleted);
+    public Visibility DetailSummaryVisibility => Show(DetailSummaryFacts.Count > 0);
+
+    /// <summary>这部作品在服务器上已订阅的季数（由页面从媒体视图模型同步过来），只用来写「订阅季数」一行。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DetailSummaryFacts))]
+    [NotifyPropertyChangedFor(nameof(DetailSummaryVisibility))]
+    public partial int SubscribedSeasons { get; set; }
+
     public string DetailRatingText => Selected?.RatingText ?? "";
     public IReadOnlyList<string> DetailStars => Selected?.Stars ?? [];
     public bool DetailPaused => Selected?.Subscription.Paused == true;
@@ -264,6 +280,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LibraryBadgeVisibility))]
+    [NotifyPropertyChangedFor(nameof(DetailSummaryFacts))]
+    [NotifyPropertyChangedFor(nameof(DetailSummaryVisibility))]
     public partial string LibraryBadge { get; set; } = "";
     public Visibility LibraryBadgeVisibility => Show(LibraryBadge.Length > 0);
 
@@ -280,6 +298,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         OnPropertyChanged(nameof(DetailOverview)); OnPropertyChanged(nameof(DetailPoster)); OnPropertyChanged(nameof(DetailBackdrop));
         OnPropertyChanged(nameof(DetailPosterEmptyVisibility)); OnPropertyChanged(nameof(DetailBackdropVisibility));
         OnPropertyChanged(nameof(DetailInfoFacts));
+        OnPropertyChanged(nameof(DetailSummaryFacts)); OnPropertyChanged(nameof(DetailSummaryVisibility));
         OnPropertyChanged(nameof(DetailRatingText)); OnPropertyChanged(nameof(DetailStars));
         OnPropertyChanged(nameof(DetailPaused)); OnPropertyChanged(nameof(DetailPauseLabel));
     }
@@ -291,6 +310,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CanManage))]
     [NotifyPropertyChangedFor(nameof(CanWriteSelected))]
     [NotifyPropertyChangedFor(nameof(DetailStatus))]
+    [NotifyPropertyChangedFor(nameof(DetailSummaryFacts))]
+    [NotifyPropertyChangedFor(nameof(DetailSummaryVisibility))]
     public partial bool Deleted { get; set; }
     [ObservableProperty]
     public partial string FileSummary { get; set; } = "正在读取文件统计…";
