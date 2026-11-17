@@ -1,3 +1,21 @@
+## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（工作树 workbuddy/master-e2a93eb8，待统一验证）
+
+用户三句：「缓冲设置单独一个卡片，放补帧上面，参考上图修改缓冲设置，新增内网缓冲设置和外网缓冲设置」「默认值是多少要写清除不要写0」（「清除」按「清楚」读）；附 mpv.net 的「缓冲大小／缓冲时长」截图。问过两件事，用户当次定：默认值取**内网 256MB／30s、外网 256MB／30s**；内网/外网**按服务器地址自动判定**。
+
+**改了什么。** 设置 → 视频输出新增「缓冲」卡，位置在「HDR 与杜比视界」与「补帧」之间（`SettingsViewModel.Buffer.cs`，四行：内网/外网 × 缓冲大小（MB）/ 缓冲时长（秒））。每行说明开头写「当前：256MB（默认 256MB）」这种写法，改完由行自己重述（`SettingRow.Restate`，与「视频同步」同一用法），不会停在上一个数上；范围 16–4096MB、5–600 秒，数字框的下限就是 16，屏上不存在 0。「基础输出」里旧的「网络缓冲（MB）」一行退役 —— 那一行写的是「0 使用默认值」，正是这次要治的「读不出此刻缓冲多少」。Core 侧 `AppSettings.Buffer`（`BufferSettings`）取代 `VideoSettings.NetworkCacheMegabytes`，SchemaVersion 升到 29；`NetworkScopeRule` 按服务器地址判内网/外网（本机与回环、10/8、172.16/12、192.168/16、169.254/16、100.64/10、IPv6 回环/链路本地/ULA、`localhost`、`.local` 等后缀与不带点的主机名算内网，其余与判不出地址算外网）；`NetworkBuffer` 把选中的一组夹好交给 `MpvOutputOptions.Build`，四条一起发：`cache=yes`、`demuxer-max-bytes`、后向取其一半的 `demuxer-max-back-bytes`、`cache-secs`。`PlaybackPlanner` 用 `connection.ApiBase` 选组，所以同一台服务器在家里走内网那组、在外网走外网那组，不用用户记着去拨。迁移：v29 之前文件里的 `Video.NetworkCacheMegabytes`（>0）照抄到两组大小（用户当年手调的量级保留），0 走装机默认；旧键已从模型上删掉，反序列化时忽略。
+
+**测了什么。** `PlaybackTests` 新增三条：四条选项按选中的那一组下发（后向＝一半）、装机默认 256MB／30 秒、十三条内网与六条外网地址的判定；原来那条缓存断言改到新入口。`SettingsTests` 新增缓冲夹取（0 夹到 16／5、越界夹到 4096／600）、v28→v29 迁移（200 照抄两组、0 与缺键走默认、99999 夹回 4096）与偏好备份/恢复默认（备份带上两组、恢复默认拨回装机值）。自检「视频输出包含 HDR 与着色器」的判据从四张卡扩到五张，并要求缓冲卡四行说明都带「当前：」与「默认」——改回一句静态介绍就当场红；SVP 探针的视频输出卡次序断言加上「缓冲」。`momoka-video-output` 技能补了一条缓冲下发与判定的说明。
+
+**补的一处（提交 `2613275`）。** 收尾复查「新设置会不会漏出备份」时发现 `SettingsPreferences.CopyInto` 整组覆盖的清单里没有 Buffer：恢复默认拨不动这四行，备份与恢复配置也不带它们。补上 `Overwrite(destination.Buffer, source.Buffer)`，并给 `SettingsMigration.Repair` 补 Buffer 段的 null 修复（手改成 `"Buffer": null` 的文件不再 NRE）；`SettingsTests` 加一条钉住备份与恢复默认。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（1 分 34 秒，最终代码上重编）；全量 `Momoka.Tests` **5223/5223**、0 失败 0 跳过（TEMP 指用户临时目录；指仓库内时三条回环共享用例在 `finally` 的删除上被沙箱拒，断言已过，与产品无关）；改动文件 `dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的变更路径（13 个 + 补的 3 个）通过。按日常界面口径未跑原生探针与验收截图。
+
+**没动的。** 播放中的实时推送：缓冲只在起播那一刻按新计划下发（同窗换片会带上新的一组），设置页改完写着「下次播放生效」。直播流没有单独一组（本客户端不播直播）。音乐（AudioOnly）不走 `MpvOutputOptions.Build`，仍按 mpv 自己的缓存默认。
+
+**发布。** 按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-workbuddy-master-e2a93eb8`，548 文件、289.9 MB；桌面 `Momoka-workbuddy-master-e2a93eb8.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（`shortcut.ps1` 复跑一次退出 0 并核对目标）。主树 `Momoka.lnk` 未动。
+
+**提交。** 产品与测试 `9b50e79`、`2613275`；记录 `9860b90` 与本条。
+
 ## 2026-11-17 集成模式暂停/播放徽标全屏档 ×1.3（主树 master，待统一验证）
 
 用户一句话：「集成模式点击屏幕暂停/开始时出现的图标全屏时要何集成模式一样放大1.3倍」——「何」按「和」读。

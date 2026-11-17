@@ -124,8 +124,6 @@ public sealed partial class SettingsViewModel
         [
             Toggle("宽于 16:9 的片源裁切填充", "放大宽银幕画面以减少黑边，部分画面和贴边字幕可能被裁掉。播放时也可在菜单中临时调整。",
                 () => video.FillWideSources, value => video.FillWideSources = value, "panscan"),
-            Slider("网络缓冲（MB）", 0, 4096, 64, () => video.NetworkCacheMegabytes, value => video.NetworkCacheMegabytes = (int)value,
-                "前向缓存上限，另保留约一半用于向后跳转。0 使用默认值；调高会增加内存占用，不能提高网速。", "demuxer-max-bytes"),
             Mpv("抖动", MpvOutputOptions.Dithers, () => video.Dither, value => video.Dither = value,
                 "dither、dither-depth", "在输出时加入细微噪点，减少位深转换产生的色带。继承预设时，是否启用由预设决定。", RefreshVideoBackend)
         ]);

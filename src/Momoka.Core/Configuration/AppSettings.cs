@@ -12,7 +12,7 @@ namespace Momoka.Configuration;
 /// </summary>
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 28;
+    public const int CurrentSchemaVersion = 29;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -37,6 +37,12 @@ public sealed class AppSettings
     public PlaybackSettings Playback { get; set; } = new();
 
     public VideoSettings Video { get; set; } = new();
+
+    /// <summary>
+    /// 网络缓冲：内网与外网各一组「大小 + 时长」。住在 <see cref="VideoSettings"/> 外面是因为它管的是传输，
+    /// 不是画面 —— 播放器内核的 <c>demuxer-max-bytes</c>／<c>cache-secs</c> 与任何一项画质设置都不共用判据。
+    /// </summary>
+    public BufferSettings Buffer { get; set; } = new();
 
     public AudioSettings Audio { get; set; } = new();
 
@@ -928,9 +934,6 @@ public sealed class VideoSettings
     /// </summary>
     public int HighRefreshRateLimitHz { get; set; } = DefaultHighRefreshRateLimitHz;
 
-    /// <summary>Demuxer cache in MiB; 0 leaves mpv's own default alone.</summary>
-    public int NetworkCacheMegabytes { get; set; }
-
     /// <summary>
     /// 宽于 16:9 的片源默认裁切填充 — mpv's <c>panscan=1.0</c>, applied only to a source wider than
     /// <see cref="Mpv.MpvOutputOptions.WideAspect"/>. Off by default, and it crops: a 2.35:1 film fills a 16:9
@@ -950,6 +953,58 @@ public sealed class VideoSettings
     /// </para>
     /// </summary>
     public bool FillWideSources { get; set; }
+}
+
+/// <summary>
+/// 网络缓冲的两组数：服务器在本机／局域网时用「内网」那一组，其余地址用「外网」那一组。
+/// <para>
+/// 一组是「大小 + 时长」两半，照播放器自己的两条上限：<c>demuxer-max-bytes</c>（前向字节上限，后向取其一半）
+/// 与 <c>cache-secs</c>（按秒的上限）。两者同时在，实际缓冲就是二者里先到的那个 —— 高码率片源先撞字节上限，
+/// 低码率片源先撞时长。
+/// </para>
+/// <para>
+/// <b>没有「0 = 跟随内核默认」这一档。</b>从前那一行把 0 当作「不动 mpv 自己的 150MB」，设置页上也真的写着
+/// 「0 使用默认值」—— 屏上读不出此刻到底缓冲多少。现在两组都带装机默认（256MB／30 秒），设置页那两行各自
+/// 写明「当前：…（默认 …）」，播放时按服务器地址选一组发出去，0 只是手改文件留下的越界值，读盘时被夹回下限。
+/// </para>
+/// </summary>
+public sealed class BufferSettings
+{
+    /// <summary>缓冲大小下限（MB）。mpv 自己的下限是 32KB，那对放电影没有意义。</summary>
+    public const int MinimumMegabytes = 16;
+
+    /// <summary>缓冲大小上限（MB）。与从前那一行同一个天花板。</summary>
+    public const int MaximumMegabytes = 4096;
+
+    /// <summary>缓冲大小装机默认（MB）。内网与外网出厂同值，用户可各自调开。</summary>
+    public const int DefaultMegabytes = 256;
+
+    /// <summary>缓冲时长下限（秒）。</summary>
+    public const int MinimumSeconds = 5;
+
+    /// <summary>缓冲时长上限（秒）。</summary>
+    public const int MaximumSeconds = 600;
+
+    /// <summary>缓冲时长装机默认（秒）。</summary>
+    public const int DefaultSeconds = 30;
+
+    /// <summary>内网缓冲大小（MB，前向上限，后向取其一半）。</summary>
+    public int LanMegabytes { get; set; } = DefaultMegabytes;
+
+    /// <summary>内网缓冲时长（秒，<c>cache-secs</c>）。</summary>
+    public int LanSeconds { get; set; } = DefaultSeconds;
+
+    /// <summary>外网缓冲大小（MB，前向上限，后向取其一半）。</summary>
+    public int WanMegabytes { get; set; } = DefaultMegabytes;
+
+    /// <summary>外网缓冲时长（秒，<c>cache-secs</c>）。</summary>
+    public int WanSeconds { get; set; } = DefaultSeconds;
+
+    /// <summary>存储端与下发端共用的夹取：手改文件写出的越界值到不了 mpv（它会对超范围的值拒绝起播）。</summary>
+    public static int ClampMegabytes(int value) => Math.Clamp(value, MinimumMegabytes, MaximumMegabytes);
+
+    /// <inheritdoc cref="ClampMegabytes"/>
+    public static int ClampSeconds(int value) => Math.Clamp(value, MinimumSeconds, MaximumSeconds);
 }
 
 /// <summary>Audio-output options handed to mpv per launch; same opt-in rule as <see cref="VideoSettings"/>.</summary>

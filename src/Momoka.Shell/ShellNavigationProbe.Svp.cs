@@ -118,7 +118,8 @@ internal sealed partial class ShellNavigationProbe
             await page.ViewModel.ReloadAsync();
             page.SelectedCategory = "视频输出";
             var videoCards = page.ViewModel.Sections.Where(section => section.Category == "视频输出").Select(section => section.Title);
-            Require(string.Join("|", videoCards) == "基础输出|画质与着色器|HDR 与杜比视界|补帧", "视频输出卡片没有遵循用户指定顺序");
+            // 2026-11-17 用户令「缓冲设置单独一个卡片，放补帧上面」：缓冲卡插在 HDR 与补帧之间。
+            Require(string.Join("|", videoCards) == "基础输出|画质与着色器|HDR 与杜比视界|缓冲|补帧", "视频输出卡片没有遵循用户指定顺序");
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
         }

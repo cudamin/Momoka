@@ -2822,8 +2822,7 @@ internal static class PlaybackTests
                 GpuApi = "d3d11",
                 HardwareDecoding = "d3d11va",
                 OutputLevels = "limited",
-                DeinterlaceMode = "yes",
-                NetworkCacheMegabytes = 200
+                DeinterlaceMode = "yes"
             };
 
             var options = Options(MpvOutputOptions.Build(video, new AudioSettings()));
@@ -2833,8 +2832,75 @@ internal static class PlaybackTests
             Assert.Equal("d3d11va", options["hwdec"]);
             Assert.Equal("limited", options["video-output-levels"]);
             Assert.Equal("yes", options["deinterlace"]);
-            Assert.Equal("yes", options["cache"]);
-            Assert.Equal((200L * 1024 * 1024).ToString(), options["demuxer-max-bytes"]);
+        });
+
+        // 2026-11-17「缓冲设置单独一个卡片……新增内网缓冲设置和外网缓冲设置」：从前那一行只在填了数才发
+        // 缓存选项，屏上写着「0 使用默认值」；现在两组各带装机默认，起播按服务器地址挑一组、四条选项一起发。
+        Test("输出：缓冲四条选项按选中的那一组下发，后向取一半", () =>
+        {
+            var buffer = new BufferSettings
+            {
+                LanMegabytes = 128,
+                LanSeconds = 20,
+                WanMegabytes = 512,
+                WanSeconds = 60
+            };
+
+            var lan = Options(MpvOutputOptions.Build(new VideoSettings(), new AudioSettings(),
+                buffer: NetworkBuffer.For(buffer, NetworkScope.Lan)));
+            Assert.Equal("yes", lan["cache"]);
+            Assert.Equal((128L * 1024 * 1024).ToString(), lan["demuxer-max-bytes"]);
+            Assert.Equal((64L * 1024 * 1024).ToString(), lan["demuxer-max-back-bytes"], "后向是前向的一半");
+            Assert.Equal("20", lan["cache-secs"]);
+
+            var wan = Options(MpvOutputOptions.Build(new VideoSettings(), new AudioSettings(),
+                buffer: NetworkBuffer.For(buffer, NetworkScope.Wan)));
+            Assert.Equal((512L * 1024 * 1024).ToString(), wan["demuxer-max-bytes"]);
+            Assert.Equal((256L * 1024 * 1024).ToString(), wan["demuxer-max-back-bytes"]);
+            Assert.Equal("60", wan["cache-secs"]);
+
+            var none = Options(MpvOutputOptions.Build(new VideoSettings(), new AudioSettings()));
+            Assert.False(none.ContainsKey("cache"), "不给缓冲就不碰缓存选项（设置页预览与测试要的「别碰」）");
+        });
+
+        // 「默认值是多少要写清楚不要写0」在播放这一头的对偶：没人动过设置时也要发一组真的数，而不是不发。
+        Test("输出：缓冲装机默认是 256MB／30 秒，内网外网同值", () =>
+        {
+            Assert.Equal(256, new BufferSettings().LanMegabytes);
+            Assert.Equal(256, new BufferSettings().WanMegabytes);
+            Assert.Equal(30, new BufferSettings().LanSeconds);
+            Assert.Equal(30, new BufferSettings().WanSeconds);
+
+            var options = Options(MpvOutputOptions.Build(new VideoSettings(), new AudioSettings(),
+                buffer: NetworkBuffer.For(new BufferSettings(), new Uri("http://192.168.1.20:8096"))));
+            Assert.Equal((256L * 1024 * 1024).ToString(), options["demuxer-max-bytes"]);
+            Assert.Equal("30", options["cache-secs"]);
+        });
+
+        // 内网／外网按服务器地址判：这一条钉的是判据本身，起播那条路只是照着它取一组。
+        Test("缓冲：服务器地址判定内网与外网", () =>
+        {
+            foreach (var lan in new[]
+            {
+                "http://localhost:8096", "http://127.0.0.1:8096", "http://10.0.0.5:8096",
+                "http://172.16.3.4:8096", "http://172.31.255.1:8096", "http://192.168.1.20:8096",
+                "http://169.254.10.10:8096", "http://100.100.1.1:8096", "http://nas:8096",
+                "http://emby.local:8096", "http://[::1]:8096", "http://[fe80::1]:8096", "http://[fd00::1]:8096"
+            })
+            {
+                Assert.Equal(NetworkScope.Lan, NetworkScopeRule.Classify(new Uri(lan)), lan + " 应判为内网");
+            }
+
+            foreach (var wan in new[]
+            {
+                "https://emby.example.com", "http://8.8.8.8:8096", "http://172.32.0.1:8096",
+                "http://203.0.113.9:8096", "http://[2001:db8::1]:8096", "http://172.15.0.1:8096"
+            })
+            {
+                Assert.Equal(NetworkScope.Wan, NetworkScopeRule.Classify(new Uri(wan)), wan + " 应判为外网");
+            }
+
+            Assert.Equal(NetworkScope.Wan, NetworkScopeRule.Classify(null), "判不出地址按外网（宁可多缓冲）");
         });
 
         Test("输出：开插值必须同时打开显示同步", () =>

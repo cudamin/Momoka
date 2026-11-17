@@ -304,6 +304,19 @@ public static class SettingsMigration
         // 反序列化时无声忽略（同 ShowWatchedIndicators 那条），没有需要换算的值。v27 曾经把旧增量换算成直接
         // 读数的那一段，随它服务的字段一起退役，不再执行。新增的四项染色参数（按钮与背景各两项）缺键读出来
         // 就是出厂 55%。
+
+        // v29 把「网络缓冲（MB）」一行拆成「缓冲」卡上的内网、外网两组（大小 + 时长）。旧文件里那一个数是
+        // 用户当年手调过的前向上限，照抄到两组 —— 他选的那个量级原样保留，只是从此内网、外网各能单独调。
+        // 0 是「没填过」（那一行的出厂值），不是选择：留 0 等于让两组落到装机默认 256MB／30 秒，与任何新键
+        // 一样走属性的初始值，这里不用写一行。旧键本身已从 VideoSettings 上删掉，反序列化时无声忽略。
+        if (version < 29 && root.TryGetProperty("Video", out var legacyVideo) && legacyVideo.ValueKind == JsonValueKind.Object
+            && ReadInt(legacyVideo, "NetworkCacheMegabytes") is { } legacyCache && legacyCache > 0)
+        {
+            var megabytes = BufferSettings.ClampMegabytes(legacyCache);
+            settings.Buffer.LanMegabytes = megabytes;
+            settings.Buffer.WanMegabytes = megabytes;
+        }
+
         settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
         return Normalize(settings);
     }
@@ -362,6 +375,7 @@ public static class SettingsMigration
         if (settings.Mpv is null) settings.Mpv = new MpvSettings();
         if (settings.Playback is null) settings.Playback = new PlaybackSettings();
         if (settings.Video is null) settings.Video = new VideoSettings();
+        if (settings.Buffer is null) settings.Buffer = new BufferSettings();
         if (settings.Audio is null) settings.Audio = new AudioSettings();
         if (settings.Shaders is null) settings.Shaders = new ShaderAutomationSettings();
         if (settings.Ui is null) settings.Ui = new UiSettings();
@@ -583,7 +597,12 @@ public static class SettingsMigration
         // The same rule the settings row applies as it is typed — see PlaybackSettings.ClampFontSize.
         settings.Playback.SubtitleFontSize = PlaybackSettings.ClampFontSize(settings.Playback.SubtitleFontSize);
         // 字幕加粗 is a bool now (v20) — nothing to clamp.
-        settings.Video.NetworkCacheMegabytes = Math.Clamp(settings.Video.NetworkCacheMegabytes, 0, 4096);
+        // 网络缓冲两组四个数（v29）。范围常量与设置页那四行、下发端 NetworkBuffer 是同一套；0 或负数只是手改
+        // 文件留下的越界值，夹回下限 —— 设置页上不存在 0，mpv 那一头也不需要「0 = 跟随默认」这个第三态。
+        settings.Buffer.LanMegabytes = BufferSettings.ClampMegabytes(settings.Buffer.LanMegabytes);
+        settings.Buffer.LanSeconds = BufferSettings.ClampSeconds(settings.Buffer.LanSeconds);
+        settings.Buffer.WanMegabytes = BufferSettings.ClampMegabytes(settings.Buffer.WanMegabytes);
+        settings.Buffer.WanSeconds = BufferSettings.ClampSeconds(settings.Buffer.WanSeconds);
         settings.Audio.DelayMilliseconds = Math.Clamp(settings.Audio.DelayMilliseconds, -5000, 5000);
         settings.Audio.Volume = Math.Clamp(settings.Audio.Volume, 0, AudioSettings.MaxVolume);
 

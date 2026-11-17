@@ -329,18 +329,29 @@ internal static partial class ShellSelfCheck
         check("视频同步那一行说的是下次播放的值", restate.Ok && liveNote.Contains("下次播放"),
             $"{restate.Detail}；屏上那一行写着「{liveNote}」");
 
-        // 视频输出四张分区卡：基础输出、补帧、HDR 与杜比视界、画质与着色器。数卡数是为了让「某张卡被顺手
+        // 视频输出五张分区卡：基础输出、补帧、HDR 与杜比视界、画质与着色器，外加 2026-11-17 从基础输出里
+        // 拆出来的「缓冲」（用户令「缓冲设置单独一个卡片，放补帧上面」）。数卡数是为了让「某张卡被顺手
         // 挪进/挪出这个分类」留下读数；补帧卡 2026-10-26 并入，插在基础输出之后。
+        //
+        // 缓冲卡那四行的说明各写一句「当前：…（默认 …）」—— 从前那一行写的是「0 使用默认值」，屏上读不出
+        // 此刻缓冲多少、也读不出默认是多少。用户令「默认值是多少要写清楚不要写0」，这句判据钉住它：四行都在、
+        // 每行都带当前值与默认值。改坏的样子是说明退回一句静态介绍，别的读数一个都不动。
         var videoSections = page.ViewModel.Sections.Where(section => section.Category == "视频输出").ToList();
         var optionalNumbers = videoSections.SelectMany(section => section.Rows).OfType<SettingOptionalNumberRow>().ToList();
         var optionalProbe = SettingOptionalNumberRow.Probe();
         var hdrMode = videoSections.SelectMany(section => section.Rows).OfType<SettingChoiceRow>()
             .SingleOrDefault(row => row.Label == "HDR 处理");
         var tonemap = hdrMode?.Selected?.Label == Momoka.Mpv.MpvOutputOptions.Describe(Momoka.Mpv.MpvOutputOptions.HdrModes, "tonemap");
-        check("视频输出包含 HDR 与着色器", videoSections.Count == 4 && !page.Categories.Contains("着色器")
+        var bufferCard = videoSections.FirstOrDefault(section => section.Title == "缓冲");
+        var bufferNotes = bufferCard?.Rows.Select(row => row.Note).ToArray() ?? [];
+        var bufferOk = bufferCard is not null && bufferCard.Rows.Count == 4
+            && bufferNotes.All(note => note.Contains("当前：", StringComparison.Ordinal)
+                && note.Contains("默认", StringComparison.Ordinal));
+        check("视频输出包含 HDR 与着色器", videoSections.Count == 5 && !page.Categories.Contains("着色器")
             && hdrMode?.Selected is not null && SelfCheckLayoutRules.HdrNumbers(optionalNumbers.Select(row => row.Label).ToArray(), tonemap)
-            && optionalProbe.Ok,
-            $"视频输出 {videoSections.Count} 个分区、{optionalNumbers.Count} 个自动/手动数值；{optionalProbe.Detail}");
+            && optionalProbe.Ok && bufferOk,
+            $"视频输出 {videoSections.Count} 个分区、{optionalNumbers.Count} 个自动/手动数值、"
+                + $"缓冲卡 {(bufferOk ? "四行都写明当前值与默认值" : "缺行或说明没写当前值/默认值")}；{optionalProbe.Detail}");
 
         // 「动态范围压缩」下发的是 ad-lavc-ac3drc，那是 AC-3 解码器的选项 —— DTS / TrueHD / AAC / FLAC 轨一律
         // 没有反应。而那一行读起来像是通用的「让对白清楚一点」，所以说明里必须写着适用范围，否则它就是在骗人。
