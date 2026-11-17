@@ -387,6 +387,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
@@ -467,6 +468,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
     [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -531,6 +533,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(CompactVisibility));
         OnPropertyChanged(nameof(ColumnActionsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
+        OnPropertyChanged(nameof(StoreCornerArtVisibility));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StoreBackdropWidth));
@@ -2860,6 +2863,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
+        OnPropertyChanged(nameof(StoreCornerArtVisibility));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreHeroWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));

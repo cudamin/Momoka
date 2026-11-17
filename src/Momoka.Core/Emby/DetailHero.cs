@@ -171,6 +171,35 @@ public static class DetailHero
         ? Math.Max(420, double.IsFinite(heroHeight) ? heroHeight : 0) : StorePictureHeight(width, 9d / 16);
 
     /// <summary>
+    /// 商店宽版式右上角这一次摆不摆剧照（2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示
+    /// 艺术图的功能。做个选择框，选择背景图/预告 或者 艺术图」）。
+    /// <para>
+    /// 默认那一档铺剧照；选了艺术图之后整块让开 —— 剧照、环境色、渐变和预告片都跟着这一句收起，右上角改由
+    /// <see cref="StoreCornerArtShown"/> 那一张占着。背景图有没有是另一句（调用方传 <c>HeroImage</c> 在不在）。
+    /// </para>
+    /// </summary>
+    /// <param name="store">这一页是不是商店模式。</param>
+    /// <param name="artwork">设置里选的是不是「艺术图」。</param>
+    /// <param name="backdrop">这条目有没有那张剧照。</param>
+    public static bool StoreBackdropShown(bool store, bool artwork, bool backdrop) =>
+        store && !artwork && backdrop;
+
+    /// <summary>
+    /// 商店宽版式右上角的艺术图摆不摆（同上的用户令）：选了艺术图、窗口还在宽版式、而且这一条目的艺术图
+    /// （<see cref="ItemArtwork.Corner"/>，集页可能借剧集那一层）已经解出来了。
+    /// <para>
+    /// 窄窗不在里头：那一档本来就没有右上角这一格，两种选择在那一档都是没有装饰背景的光板，和用户确认的
+    /// 「只在宽版式显示」一致。季页没有艺术图可画 —— 取图那一头不为季问它，这一句自然也是否。
+    /// </para>
+    /// </summary>
+    /// <param name="store">这一页是不是商店模式。</param>
+    /// <param name="artwork">设置里选的是不是「艺术图」。</param>
+    /// <param name="wide">窗口是否还在宽版式（<see cref="StoreWideFloor"/> 及以上）。</param>
+    /// <param name="art">这一条目的艺术图解出来没有。</param>
+    public static bool StoreCornerArtShown(bool store, bool artwork, bool wide, bool art) =>
+        store && artwork && wide && art;
+
+    /// <summary>
     /// 没有剧照的条目上这一格有多高：一格底色加一层罩子，垫住海报、片名和那排键。
     /// <para>
     /// 和 <see cref="ArtHeight"/> 同值（<see cref="Height"/> 上面那段说明为什么留着两个名字）。

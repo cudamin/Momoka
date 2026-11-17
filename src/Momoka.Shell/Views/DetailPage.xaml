@@ -416,6 +416,27 @@
                     </Border.Background>
                 </Border>
             </Grid>
+                <!-- 商店宽版式右上角的艺术图（2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示
+                     艺术图的功能。做个选择框，选择背景图/预告 或者 艺术图」）：选艺术图时上面那一块剧照、
+                     环境色与渐变整块让开，预告片也不起播，这一张顶在同一个右上角。尺寸沿用沉浸档那张角图
+                     （DetailHero.CornerWidth／CornerHeight，窗口超过 1280 后放大到 540×303.75）；
+                     窄窗没有这一角，显隐与尺寸都由视图模型给（StoreCornerArtVisibility／CornerMax*）。
+                     读屏跳过它：这是装饰。 -->
+                <Border x:Name="StoreArt"
+                        Width="{x:Bind ViewModel.CornerMaxWidth, Mode=OneWay}"
+                        Height="{x:Bind ViewModel.CornerMaxHeight, Mode=OneWay}"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="{x:Bind ViewModel.StorePreviewMargin, Mode=OneWay}"
+                        CornerRadius="{StaticResource EgCardCornerRadius}"
+                        Visibility="{x:Bind ViewModel.StoreCornerArtVisibility, Mode=OneWay}"
+                        IsHitTestVisible="False"
+                        AutomationProperties.AccessibilityView="Raw">
+                    <Border.Background>
+                        <ImageBrush x:Name="StoreArtImageBrush"
+                                    ImageSource="{x:Bind ViewModel.CornerImage, Mode=OneWay}"
+                                    AlignmentX="Center" AlignmentY="Center" Stretch="Uniform" />
+                    </Border.Background>
+                </Border>
                 <!-- 视频直接呈现，不能经过静态图片的VisualSurface重定向：WebView2和媒体使用外部输出桥。
                      顶部右侧画面与页面色渐隐衔接；输入只交给上层原生按钮。 -->
                 <Grid x:Name="StoreTrailerHost" HorizontalAlignment="Right" IsHitTestVisible="False"

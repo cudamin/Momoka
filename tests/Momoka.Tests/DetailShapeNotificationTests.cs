@@ -56,10 +56,11 @@ internal static partial class DetailActionReadinessTests
                 Assert.Equal(270d, (double)f.Get("StillHeight")!);
                 Assert.False((bool)f.Get("BackdropShown")!);
                 Assert.Equal("Collapsed", f.Get("StoreBackdropVisibility")!.ToString(), "无图时不得留下背景层");
+                Assert.Equal("Collapsed", f.Get("StoreCornerArtVisibility")!.ToString(), "没选艺术图／没有艺术图时那一角收着");
                 Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());
                 Assert.Equal(0d, (double)f.Get("TailMinHeight")!);
                 Assert.Equal(0d, (double)f.Get("PaperMinHeight")!);
-                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreBackdropHeight", "StoreTextWidth", "StoreHeroWidth", "CornerVisibility", "HeroContent" })
+                foreach (var name in new[] { "StoreMode", "StoreBackdropVisibility", "StoreCornerArtVisibility", "StoreBackdropHeight", "StoreTextWidth", "StoreHeroWidth", "CornerVisibility", "HeroContent" })
                     Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
                 foreach (var width in new[] { 360d, 760d, 1023d, 1024d, 1025d, 1072d, 1200d, 2400d, 760d })
                 {
@@ -85,6 +86,17 @@ internal static partial class DetailActionReadinessTests
                 f.Vm.GetType().GetProperty("StoreDetailsRoom", Members)!.SetValue(f.Vm, 700d);
                 Assert.True(notices.Contains("StoreBackdropHeight"), "详情晚到变高没有通知亚克力区域");
                 Assert.Equal((double)f.Get("HeroHeight")!, (double)f.Get("StoreBackdropHeight")!);
+                // 2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能」：设置那一格
+                // 翻了之后，两格显隐都要重算并通知 —— 这一份夹具没有图，两格都收着。
+                notices.Clear();
+                f.Ui.StoreCornerArt = true;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                Assert.Equal("Collapsed", f.Get("StoreBackdropVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("StoreCornerArtVisibility")!.ToString());
+                Assert.True(notices.Contains("StoreBackdropVisibility"), "选艺术图没有通知背景层重算");
+                Assert.True(notices.Contains("StoreCornerArtVisibility"), "选艺术图没有通知艺术图那一角重算");
+                f.Ui.StoreCornerArt = false;
+                f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
                 f.Ui.EnableImmersive = true;
                 f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
                 Assert.False((bool)f.Get("StoreMode")!);

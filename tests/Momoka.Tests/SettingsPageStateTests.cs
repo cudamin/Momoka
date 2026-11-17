@@ -159,8 +159,9 @@ internal static class SettingsPageStateTests
             Assert.False(settings.Settings.Ui.EnableImmersive);
             Assert.True(notifications.SequenceEqual(new[] { "sidebar:False", "appearance:False" }),
                 "商店切换须同步侧栏和详情，不能重查主页：" + string.Join('|', notifications));
-            // 商店模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效，整张卡只剩显示模式。
-            Assert.True(Labels().SequenceEqual(new[] { "显示模式" }),
+            // 商店模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效；整张卡只剩显示模式与
+            // 2026-11-17 新增的「右上角显示」那一行。
+            Assert.True(Labels().SequenceEqual(new[] { "显示模式", "右上角显示" }),
                 "商店模式没有收起按钮与背景两组：" + string.Join('|', Labels()));
             Assert.Equal("#654321", settings.Settings.Ui.ControlBackgroundColor);
             Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
@@ -188,6 +189,39 @@ internal static class SettingsPageStateTests
                 "叠层模式仍显示按钮染色参数：" + string.Join('|', Labels()));
 
             List<string> Labels() => rows.Cast<object>().Select(row => fixture.Get<string>(row, "Label")).ToList();
+        });
+        TestHarness.Test("商店右上角：默认背景图/预告，选艺术图写回设置并当场通知详情", () =>
+        {
+            // 2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能。做个选择框，
+            // 选择背景图/预告 或者 艺术图」。
+            var settings = new FakeSettings();
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var section = fixture.Invoke(vm, "DetailAppearanceCard")!;
+            fixture.List(vm, "Sections").Add(section);
+            var rows = fixture.List(section, "Rows");
+            var row = rows.Cast<object>().Single(item => fixture.Get<string>(item, "Label") == "右上角显示");
+            Assert.Equal("SettingChoiceRow", row.GetType().Name);
+            var choices = fixture.List(row, "Choices");
+            Assert.True(choices.Cast<object>().Select(choice => fixture.Get<string>(choice, "Label"))
+                .SequenceEqual(new[] { "背景图/预告", "艺术图" }));
+            Assert.True(ReferenceEquals(choices[0], fixture.Get<object>(row, "Selected")), "默认该是背景图/预告");
+            Assert.False(settings.Settings.Ui.StoreCornerArt);
+
+            var appearances = 0;
+            using var appearance = fixture.SubscribeShellPreference("AppearanceChanged", _ => appearances++);
+            fixture.Set(row, "Selected", choices[1]!);
+            Assert.True(settings.Settings.Ui.StoreCornerArt, "选艺术图没有写回设置");
+            Assert.Equal(1, appearances);
+            fixture.Set(row, "Selected", choices[0]!);
+            Assert.False(settings.Settings.Ui.StoreCornerArt, "切回背景图/预告没有写回设置");
+            Assert.Equal(2, appearances);
+
+            // 沉浸模式没有右上角这一档，整行随商店模式一起收起。
+            settings.Settings.Ui.EnableImmersive = true;
+            var immersiveRows = fixture.List(fixture.Invoke(vm, "DetailAppearanceCard")!, "Rows");
+            Assert.DoesNotContain("右上角显示",
+                string.Join('|', immersiveRows.Cast<object>().Select(item => fixture.Get<string>(item, "Label"))));
         });
         TestHarness.Test("界面卡：选择模式／透明效果在列，色板末格是跟随系统，开机自启已搬进关于「启动」卡（源码接线）", () =>
         {

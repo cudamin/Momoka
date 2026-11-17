@@ -9,7 +9,25 @@ public sealed partial class DetailViewModel
     public bool StoreMode => !ImmersiveEnabled
         && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
-    public Visibility StoreBackdropVisibility => Show(StoreMode && HeroImage is not null);
+    /// <summary>
+    /// 设置里商店详情页右上角选的是不是「艺术图」（2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为
+    /// 显示艺术图的功能。做个选择框，选择背景图/预告 或者 艺术图」）。
+    /// <para>
+    /// 只回答设置那一格；「这一档摆不摆得出来」另外看模式、页宽和艺术图有没有解出来
+    /// （<see cref="StoreBackdropVisibility"/>／<see cref="StoreCornerArtVisibility"/>）。
+    /// </para>
+    /// </summary>
+    internal bool StoreArtSelected => _settings?.Settings.Ui.StoreCornerArt == true;
+
+    public Visibility StoreBackdropVisibility => Show(
+        DetailHero.StoreBackdropShown(StoreMode, StoreArtSelected, HeroImage is not null));
+
+    /// <summary>
+    /// 商店宽版式右上角的艺术图显不显 —— 选了艺术图、宽版式、且这张条目的艺术图已经解出来
+    /// （<see cref="CornerImage"/>；季页没有这一张，自然收着）。窄窗没有这一角，只在宽版式出现。
+    /// </summary>
+    public Visibility StoreCornerArtVisibility => Show(DetailHero.StoreCornerArtShown(
+        StoreMode, StoreArtSelected, PageWidth >= DetailHero.StoreWideFloor, CornerImage is not null));
 
     /// <summary>顶部背景随页宽缩放，并限制高度；不参与内容布局。</summary>
     public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(PageWidth, HeroHeight);

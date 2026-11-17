@@ -77,6 +77,16 @@ public sealed partial class SettingsViewModel
                     after: () => ShellPrefs.ApplyAppearance(ui))
             ]);
         }
+        else
+        {
+            // 2026-11-17 用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能。做个选择框，选择
+            // 背景图/预告 或者 艺术图」：只在商店模式那一档出现，它说的就是右上角那一格摆什么。
+            rows.Add(Choice("右上角显示", new[] { ("背景图/预告", false), ("艺术图", true) },
+                () => ui.StoreCornerArt, value => ui.StoreCornerArt = value,
+                "商店宽版式的媒体详情页右上角：背景图/预告铺这条目的剧照、环境色与渐变，有预告片时自动播放；"
+                    + "艺术图去掉背景图与渐变，只显示该条目的艺术图（电影、剧、集有效，窄窗口没有这一角）。",
+                after: () => ShellPrefs.ApplyAppearance(ui)));
+        }
         return new SettingSection("界面", "详情页外观",
             "调整媒体库详情页的显示模式、按钮材质与背景图亚克力。", rows);
     }

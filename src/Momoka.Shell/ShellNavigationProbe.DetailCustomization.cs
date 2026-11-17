@@ -215,7 +215,9 @@ internal sealed partial class ShellNavigationProbe
             var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
             Require(ReferenceEquals(appearance.Rows[0], modeRow), "显示模式没有排在详情页外观的第一行");
             modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "商店模式");
-            Require(appearance.Rows.Count == 1 && appearance.Rows[0].Label == "显示模式"
+            // 2026-11-17 商店档多了一行「右上角显示」（背景图/预告 或 艺术图），按钮与背景两组照旧收起。
+            Require(appearance.Rows.Count == 2 && appearance.Rows[0].Label == "显示模式"
+                && appearance.Rows[1].Label == "右上角显示"
                 && appearance.Rows[0] is SettingChoiceRow { Selected.Label: "商店模式" },
                 "商店模式没有收起按钮与背景两组：" + string.Join('|', appearance.Rows.Select(row => row.Label)));
             Require(appearance.Rows.All(row => row.Label is not ("按钮与选择框背景" or "按钮与选择框颜色"
