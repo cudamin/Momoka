@@ -1,4 +1,4 @@
-## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（分支 feat-store-cover-align-0FZQCI，未合并）
+## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
 用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。
 
@@ -12,7 +12,9 @@
 
 **发布。** 按改好收尾复制主树的 `libmpv-2.dll` 后发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-store-cover-align-0FZQCI`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-feat-store-cover-align-0FZQCI.lnk` 的目标与工作目录回读为本树 `artifacts/publish/win-x64`，21:14 生成；主树 `Momoka.lnk` 未动。
 
-**提交。** 产品与测试 `f592a21`；本条记录随文档提交。
+**提交。** 产品与测试 `f592a21`；记录 `bd05b33`、`4906aa8`。
+
+**合并（`caacaa3`）。** 用户令「合并」。主树先行状态干净，在 master `eb2320b` 上以 `--no-ff` 合入，无冲突（`PROGRESS.md` 与待交付台账自动合并）。合并后在最终代码上重编 Shell 与 Tests Release/x64 均 **0 警告 0 错误**，`detail-action-readiness-fixture` **95/95**；按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB，21:23）并刷新桌面 `Momoka.lnk`，目标与工作目录回读正确，仅体验刷新、不销账。合并本身未跑全量测试与探针；分支上的全量测试证据与红项仍按正文保留。分支快捷方式、分支与工作树按内容确认全部进入 master 后删除。
 
 ## 2026-11-17 商店详情三颗图标键的框改为悬停才显示（已合并 master，待统一验证）
 
