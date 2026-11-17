@@ -155,6 +155,13 @@ internal static class FnMusicTests
             Assert.True(fixture.Transport.Requests.Where(request => request.Path.EndsWith("sys/config", StringComparison.Ordinal)
                 || request.Path.EndsWith("password-login", StringComparison.Ordinal)).All(request => request.Cookie is null));
         });
+        Test("飞牛音乐：媒体库名写「飞牛音乐」", () =>
+        {
+            using var fixture = new Fixture();
+            var library = fixture.Client().GetViewsAsync(default).GetAwaiter().GetResult().Single();
+            Assert.Equal("飞牛音乐", library.Name, "飞牛音乐库不该只叫「音乐」，和别家的音乐库分不出来");
+            Assert.Equal("music", library.CollectionType);
+        });
         Test("飞牛音乐：曲目列表分页跨页且映射毫秒与音频规格", () =>
         {
             using var fixture = new Fixture();

@@ -79,7 +79,8 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
     public async Task<List<EmbyItem>> GetViewsAsync(CancellationToken ct)
     {
         _ = await GetCurrentUserAsync(ct).ConfigureAwait(false);
-        return [new() { Id = LibraryId, Name = "音乐", Type = EmbyItemType.CollectionFolder, IsFolder = true, CollectionType = "music", PrimaryImageAspectRatio = 1 }];
+        // 库名用户令 2026-11-18「飞牛音乐库要叫飞牛音乐」；此前叫「音乐」，和 Emby／Jellyfin 的音乐库混在一起分不出是哪一家。
+        return [new() { Id = LibraryId, Name = "飞牛音乐", Type = EmbyItemType.CollectionFolder, IsFolder = true, CollectionType = "music", PrimaryImageAspectRatio = 1 }];
     }
 
     public async Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken ct)
