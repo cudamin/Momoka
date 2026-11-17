@@ -123,6 +123,34 @@ internal static class FnMusicTests
             Assert.Contains("size=600", fixture.Transport.Requests[^1].Query);
             Assert.True(fixture.Transport.Requests.All(request => request.Host == "fixture.invalid"));
         });
+        Test("飞牛音乐：库卡用专辑封面拼三格，不足三张时用单张", () =>
+        {
+            using var fixture = new Fixture(); var client = fixture.Client();
+            fixture.Transport.AlbumCovers = ["cover_a", "cover_b", "cover_a", "cover_c"];
+            var view = client.GetViewsAsync(default).GetAwaiter().GetResult().Single();
+            Assert.Equal("cover_a,cover_b,cover_c", string.Join(',', view.PosterPaths));
+            Assert.Equal("cover_a", view.ImageTags["Primary"]);
+            Assert.True(fixture.Transport.Requests[^1].Path.EndsWith("album/list", StringComparison.Ordinal));
+            Assert.Contains("page=1", fixture.Transport.Requests[^1].Query);
+            Assert.Contains("size=3", fixture.Transport.Requests[^1].Query);
+
+            fixture.Transport.AlbumCovers = ["cover_only"];
+            var single = client.GetViewsAsync(default).GetAwaiter().GetResult().Single();
+            Assert.Equal(0, single.PosterPaths.Count);
+            Assert.Equal("cover_only", single.ImageTags["Primary"]);
+        });
+        Test("飞牛音乐：库封面读取失败不挡媒体库，身份过期仍上报", () =>
+        {
+            using var fixture = new Fixture(); var client = fixture.Client();
+            fixture.Transport.AlbumListFailure = 100004;
+            var bare = client.GetViewsAsync(default).GetAwaiter().GetResult().Single();
+            Assert.Equal("音乐", bare.Name);
+            Assert.Equal(0, bare.PosterPaths.Count);
+            Assert.False(bare.ImageTags.ContainsKey("Primary"));
+
+            fixture.Transport.AlbumListFailure = 120001;
+            Assert.Throws<EmbyTokenExpiredException>(() => client.GetViewsAsync(default).GetAwaiter().GetResult());
+        });
         Test("飞牛音乐：网页及 API 地址收敛独立 music 入口", () =>
         {
             Assert.Equal("FnMusic", Kind.ToString());
@@ -248,6 +276,8 @@ internal static class FnMusicTests
         internal bool Cue { get; set; }
         internal int AccessStatus { get; set; }
         internal bool RedirectCover { get; set; }
+        internal string[] AlbumCovers { get; set; } = [];
+        internal int AlbumListFailure { get; set; }
         internal bool ExpireOnce { get; set; }
         internal int Logins { get; private set; }
         internal bool OffersVideo { get; set; }
@@ -276,6 +306,8 @@ internal static class FnMusicTests
             else if (Failure != 0) { code = Failure; data = null; }
             else if (ExpireOnce) { ExpireOnce = false; code = 120001; data = null; }
             else if (route == "static/cover" && RedirectCover) { var redirect = new HttpResponseMessage(HttpStatusCode.Found); redirect.Headers.Location = new Uri("https://external.invalid/cover"); return redirect; }
+            else if (route == "album/list" && AlbumListFailure != 0) { code = AlbumListFailure; data = null; }
+            else if (route == "album/list" && AlbumCovers.Length > 0) data = Albums();
             else if (route.StartsWith("favorite-track/", StringComparison.Ordinal) && request.Method == HttpMethod.Post) data = null;
             else if (route == "track/metadata") data = new JsonObject { ["track"] = Track("track0"), ["audioSpec"] = Spec() };
             else if (route.EndsWith("/detail", StringComparison.Ordinal)) data = new JsonObject { ["guid"] = "album", ["name"] = "专辑", ["trackCount"] = 6 };
@@ -291,6 +323,16 @@ internal static class FnMusicTests
             return new(HttpStatusCode.OK) { Content = new StringContent(new JsonObject { ["code"] = code, ["msg"] = "", ["data"] = data }.ToJsonString(), Encoding.UTF8, "application/json") };
         }
         private JsonObject User() => new() { ["guid"] = MusicUserId, ["name"] = "listener", ["role"] = "member" };
+        private JsonObject Albums() => new()
+        {
+            ["list"] = new JsonArray(AlbumCovers.Select((cover, index) => (JsonNode?)new JsonObject
+            {
+                ["guid"] = "album" + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["name"] = "专辑",
+                ["coverId"] = cover
+            }).ToArray()),
+            ["total"] = AlbumCovers.Length
+        };
         private static JsonObject Spec() => new() { ["path"] = "/library/song.flac", ["codec"] = "flac", ["format"] = "flac", ["channel"] = 2, ["duration"] = 12300, ["sampleRate"] = 48000, ["bitDepth"] = 24, ["bitrate"] = 800000, ["size"] = 2000000 };
         private JsonObject Track(string id) => new() { ["guid"] = id, ["title"] = "歌曲", ["name"] = "容器", ["duration"] = 12300, ["audioSpec"] = Spec(), ["artists"] = new JsonArray(new JsonObject { ["guid"] = "artist", ["name"] = "歌手" }), ["album"] = new JsonObject { ["guid"] = "album", ["name"] = "专辑" }, ["coverId"] = "track_cover", ["isFavorite"] = true, ["isCue"] = Cue, ["accessStatus"] = AccessStatus };
     }
