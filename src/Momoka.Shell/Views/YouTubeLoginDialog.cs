@@ -64,6 +64,10 @@ internal static class YouTubeLoginDialog
             DefaultButton = ContentDialogButton.Close,
             MaxWidth = 980
         };
+        // ContentDialog 模板用的是这两个主题资源而不是上面那个 MaxWidth；不覆盖的话内容会被默认 548 裁掉，
+        // Google 登录页的邮箱框和「下一步」正好在裁掉的那一半里。
+        dialog.Resources["ContentDialogMaxWidth"] = 1000d;
+        dialog.Resources["ContentDialogMinWidth"] = 560d;
 
         var lifetime = new CancellationTokenSource();
         var signedIn = false;

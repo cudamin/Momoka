@@ -56,6 +56,9 @@ internal static class YouTubePlayerDialog
             DefaultButton = ContentDialogButton.Close,
             MaxWidth = 1080
         };
+        // 同上：模板按资源键取宽，默认 548 会把 16:9 画面裁掉两边。
+        dialog.Resources["ContentDialogMaxWidth"] = 1100d;
+        dialog.Resources["ContentDialogMinWidth"] = 640d;
 
         var loginRequested = false;
         var lifetime = new CancellationTokenSource();
