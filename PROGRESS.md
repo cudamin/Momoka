@@ -1,4 +1,4 @@
-## 2026-11-17 商店详情三颗图标键的框改为悬停才显示（分支 feat-button-border-hover-AR1pI3，未合并）
+## 2026-11-17 商店详情三颗图标键的框改为悬停才显示（已合并 master，待统一验证）
 
 用户一句话：「这三个按钮的框改为鼠标移到按钮上的时候才显示」——指商店模式详情页片名下方那三颗图标键（已看、收藏、更多）。
 
@@ -10,7 +10,9 @@
 
 **发布。** 新工作树缺 `libmpv-2.dll`，从主树根目录复制同一份（101,242,880 字节）后按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-button-border-hover-AR1pI3`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 着色器校验通过；桌面 `Momoka-feat-button-border-hover-AR1pI3.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（19:59 生成）。主树 `Momoka.lnk` 未动。
 
-**提交。** 产品与测试 `9c851d4`；记录见下一条提交。分支未合并 master，台账第 77 项保留，统一验证与销账另做。
+**提交。** 产品与测试 `9c851d4`；记录 `3e9639f`、`a6af7c3`。
+
+**合并（`976a113`）。** 用户令「合并」。在内容确认全部进入 master、分支工作树干净后，以 `--no-ff` 合入 master，无冲突；随后按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB）并刷新桌面 `Momoka.lnk`（20:17），仅体验刷新、不销账。合并期间另一会话的 `feat-store-art-selector-6Gj3y5` 也在同一主树合入（`e5e635f`）：先出现 `PROGRESS.md` 与台账两处文档冲突，待对方合并落库后按最终 master 的文件内容改本批记录，未触碰对方代码与验证范围。分支快捷方式、分支与工作树按内容确认全部进入 master 后删除；台账第 77 项保留，最终 master 的统一验证与销账另做。
 
 ## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
