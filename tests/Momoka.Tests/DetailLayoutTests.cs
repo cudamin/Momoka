@@ -53,19 +53,24 @@ internal static class DetailLayoutTests
             Assert.Equal(94d, DetailHero.StoreTextColumn(360, Content(360), 180, 22));
             Assert.Equal(296d, DetailHero.StoreHeroColumn(360, Content(360), 180, 22));
         });
-        Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
+        Test("商店预告背景：1240 以上保持最大 16:9 视口，更窄才随窗口收，异常尺寸回退", () =>
         {
-            Assert.Equal(768d, TrailerPreview.BackgroundWidth(1280));
-            Assert.Equal(432d, TrailerPreview.BackgroundHeight(1280));
+            // 2026-11-17 用户令「窗口更窄的时候才开始缩放」：1240 DIP 及以上一律 920×517.5。
+            Assert.Equal(920d, TrailerPreview.BackgroundWidth(1240));
+            Assert.Equal(920d, TrailerPreview.BackgroundWidth(1280));
             Assert.Equal(920d, TrailerPreview.BackgroundWidth(2400));
+            Assert.Equal(517.5d, TrailerPreview.BackgroundHeight(1280));
             Assert.Equal(517.5d, TrailerPreview.BackgroundHeight(2400));
+            // 再窄才按「页宽 − 320」收：视口左沿停在片名栏左沿（96 + 180 + 22 = 298）右边一点。
+            Assert.Equal(919d, TrailerPreview.BackgroundWidth(1239));
+            Assert.Equal(704d, TrailerPreview.BackgroundWidth(1024));
             foreach (var width in new[] { 360d, 760d, 1280d, 2400d })
             {
                 Assert.True(TrailerPreview.BackgroundWidth(width) < width);
                 Assert.Equal(9d / 16, TrailerPreview.BackgroundHeight(width) / TrailerPreview.BackgroundWidth(width));
             }
             foreach (var width in new[] { 0d, -1, double.NaN, double.PositiveInfinity })
-                Assert.Equal(432d, TrailerPreview.BackgroundHeight(width));
+                Assert.Equal(517.5d, TrailerPreview.BackgroundHeight(width));
         });
         Test("商店预告网页：拒绝HTML注入，关闭嵌入控件和键盘，单视频循环并保留宿主消息", () =>
         {
@@ -95,9 +100,9 @@ internal static class DetailLayoutTests
                 Assert.Equal(TrailerPreview.BackgroundHeight(width), height);
                 Assert.Equal(height, DetailHero.StorePictureHeight(width, 1.5));
             }
-            Assert.Equal(432d, DetailHero.StorePictureHeight(0, 9d / 16));
-            Assert.Equal(432d, DetailHero.StorePictureHeight(double.NaN, 1));
-            Assert.Equal(337.5d, DetailHero.StorePictureHeight(1000, 0));
+            Assert.Equal(517.5d, DetailHero.StorePictureHeight(0, 9d / 16));
+            Assert.Equal(517.5d, DetailHero.StorePictureHeight(double.NaN, 1));
+            Assert.Equal(382.5d, DetailHero.StorePictureHeight(1000, 0));
         });
 
         Test("商店窄窗背景：1024断点切换，亚克力区域覆盖晚到内容且不依赖原图比例", () =>
