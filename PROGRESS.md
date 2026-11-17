@@ -14651,3 +14651,13 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 审计后复跑：Shell Release/x64 0 警告 0 错误（1 分 47 秒）；全量 `Momoka.Tests` **5210/5210**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过（TEMP 指本树可写目录，避开 `C:\WINDOWS\TEMP` 那两条既有环境红）；两个改动 `.cs`（本轮的 `MediaInfoDialog.cs` 与上一轮的 `DetailPage.Appearance.cs`）`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 12 个变更路径行尾、BOM、末尾换行与空白检查通过。同样未跑探针与实屏；下一次改好收尾会再刷新一次快捷方式。
 
 **合并（2026-11-17，用户令「合并」）。** 产品提交 `2b80bba`、记录提交 `3eb7128` 先与当时 master（`63e6068`，探针竞态修复）合并一次，合并提交 `a726b8c`：两边只在 `PROGRESS.md` 与 `docs/待交付批次.md` 各追加一段，Git 自动合并、无冲突。合并后的最终代码复编 Shell Release/x64 **0 警告 0 错误**（3 分 24 秒），随后以快进方式把 `master` 推进到本分支末提交。按规则合并本身不跑全量验证、单测与探针，台账第 70 项的验证列仍需在统一验证时按最终代码重跑；主树未重新发布，桌面 `Momoka.lnk` 仍指旧构建，本批的实屏通过 `Momoka-fix-font-hover-triangle-mlSsLc.lnk` 体验。
+
+# 2026-11-17 商店模式导演行移入演职人员第一位（待统一验证）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/fix-store-window-spacing-px4o5I/feat-director-cast-first-oPnzkX`，分支 `feat-director-cast-first-oPnzkX`，基点 `23a6a5e`。用户令「去掉商店模式导演哪一行，把导演添加到演职人员列表里，排第一个」，随后纠正「我不说去商店模式的，你把沉浸模式也一起去了干什么」——导演说明行只从商店模式撤掉，沉浸模式保持原样。
+
+产品改动：`ItemDetail.Cast` 用稳定排序把 `Director` 署名提到最前（多个导演之间、其余人员之间仍是服务器次序），商店模式与沉浸模式的演职人员列表都据此把导演排第一；`DetailViewModel.DirectorsVisibility` 改为 `!StoreMode && 有导演`，`OverviewVisibility` 在商店模式只按简介判、沉浸模式仍把导演行算进板块高度，模式切换时补发 `DirectorsVisibility`／`OverviewVisibility` 通知；`DetailPage.xaml` 的导演行元素保留给沉浸模式，商店模式收起；`ItemDetail.Directors` 与导演行的换墨逻辑保持原样。
+
+验证：Shell Release/x64 0 警告 0 错误；全量 `Momoka.Tests` **5224/5224**；`Momoka.PageContractTests` **355/355**；`Momoka.PlexAffordanceTests` **85/85** + agreements **7/7**；修改文件 `dotnet format whitespace --verify-no-changes` 通过。按日常界面规则未跑原生探针与实屏截图。
+
+改好收尾已运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-director-cast-first-oPnzkX`：发布 548 文件 / 289.9 MB 到本树 `artifacts/publish/win-x64`，桌面快捷方式 `Momoka-feat-director-cast-first-oPnzkX.lnk` 指向该 exe。这不是统一验证或销账，尚未合并 master。
