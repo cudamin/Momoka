@@ -18,6 +18,28 @@ internal static class DetailLayoutTests
             foreach (var width in new[] { DetailHero.StoreWideFloor, 1024d, 1072, 1240, 1840, 2560 }) Assert.Equal(96d, DetailHero.StorePageInset(width));
             Assert.Equal(1024d, DetailHero.StoreWideFloor);
         });
+        Test("详情卡片与窗口的间距：1500 之后 170，2250 到 2K 最大化放大到 300，再宽保持 300", () =>
+        {
+            // 2026-11-17 用户令「订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距
+            // 自动切换为 170，窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」；
+            // 2026-11-18 补「窗口最宽时卡片和侧边栏的间距为 300」，落点是 2K 最大化 2560。
+            foreach (var width in new[] { double.NaN, 0, 360, 760, 1024, 1240, 1500 })
+                Assert.Equal(0d, DetailHero.CardWindowGap(width));
+            Assert.Equal(170d, DetailHero.CardWindowGap(1500.5));
+            Assert.Equal(170d, DetailHero.CardWindowGap(1800));
+            Assert.Equal(170d, DetailHero.CardWindowGap(2250));
+            Assert.True(Math.Abs(DetailHero.CardWindowGap(2320)
+                - (170d + (130d * 70 / 310))) < 1e-6);
+            Assert.Equal(300d, DetailHero.CardWindowGap(2560));
+            Assert.Equal(300d, DetailHero.CardWindowGap(3840));
+            // 收窄量 = 目标间距 - 卡片原有页边留白；没到断点或原有留白更大时不动。
+            Assert.Equal(0d, DetailHero.CardWindowGutter(1500, 96));
+            Assert.Equal(0d, DetailHero.CardWindowGutter(1800, 200));
+            Assert.Equal(74d, DetailHero.CardWindowGutter(1800, 96));
+            Assert.Equal(152d, DetailHero.CardWindowGutter(1800, 18));
+            Assert.Equal(204d, DetailHero.CardWindowGutter(2560, 96));
+            Assert.Equal(204d, DetailHero.CardWindowGutter(3840, 96));
+        });
         Test("商店头部上留白：窄档（亚克力）与左右留白相等，宽版式仍是 StoreHeroTop", () =>
         {
             // 2026-11-17 用户令「窄窗口出现亚克力背景时候组件整体向上移一点，左边跟上面的间距要一致」。

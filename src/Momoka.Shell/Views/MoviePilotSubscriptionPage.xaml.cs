@@ -145,6 +145,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         // 宽高各自写回视图模型，派生值（背景盒高、头部下限）跟着它们自己重算。正文两列的宽高由
         // BodyRow 自己的 SizeChanged 处理（见 OnBodyRowSizeChanged），这里不再顺手调版面。
         if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
+        // 卡片与侧边栏／窗口边的间距按整扇窗口（含侧栏）判「窗口最宽」：2K 最大化 2560 时左右各 300。
+        var fullWidth = XamlRoot?.Size.Width ?? 0;
+        if (fullWidth > 0) MediaViewModel.FullWindowWidth = fullWidth;
         ApplyMaterialAppearance();
         if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
     }

@@ -66,6 +66,8 @@ internal static partial class DetailActionReadinessTests
                 {
                     notices.Clear();
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                    // 间距按整扇窗口（含侧栏）判；夹具没有侧栏，整窗宽与内容区宽取同一个数。
+                    f.Vm.GetType().GetProperty("FullWindowWidth")!.SetValue(f.Vm, width);
                     var height = (double)f.Get("StoreBackdropHeight")!;
                     Assert.Equal(DetailHero.StoreBackdropHeight(width, (double)f.Get("HeroHeight")!), height);
                     Assert.Equal(DetailHero.StoreBackdropWidth(width), (double)f.Get("StoreBackdropWidth")!);
@@ -73,12 +75,17 @@ internal static partial class DetailActionReadinessTests
                         "商店窄窗仍把封面尺寸归零：" + shape);
                     Assert.True(notices.Contains("StoreBackdropHeight"));
                     var previewWidth = Math.Min(640, width * 0.46);
-                    var leftWidth = Math.Max(0, width - 2 * DetailHero.StorePageInset(width) - (width >= DetailHero.StoreWideFloor ? previewWidth + 28 : 0));
+                    // 2026-11-17 用户令「窗口宽度大于 1500 时卡片和窗口的间距自动切换为 170，窗口大于 2250
+                    // 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」：内容列再按目标间距收窄一份。
+                    var gutter = DetailHero.CardWindowGutter(width, DetailHero.StorePageInset(width));
+                    var contentWidth = width - (2 * gutter);
+                    var leftWidth = Math.Max(0, width - 2 * (DetailHero.StorePageInset(width) + gutter)
+                        - (width >= DetailHero.StoreWideFloor ? previewWidth + 28 : 0));
                     var stillWidth = (double)f.Get("StillWidth")!;
                     // 2026-11-16「位置不够时不要裁切，直接压在背景图上」：让位之后放不下内容时，
                     // 片名栏撑到 StoreTextFloor，头图那一行跟着长；超出部分压在右侧剧照上。
-                    Assert.Equal(DetailHero.StoreTextColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreTextWidth")!);
-                    Assert.Equal(DetailHero.StoreHeroColumn(width, leftWidth, stillWidth, 22), (double)f.Get("StoreHeroWidth")!);
+                    Assert.Equal(DetailHero.StoreTextColumn(contentWidth, leftWidth, stillWidth, 22), (double)f.Get("StoreTextWidth")!);
+                    Assert.Equal(DetailHero.StoreHeroColumn(contentWidth, leftWidth, stillWidth, 22), (double)f.Get("StoreHeroWidth")!);
                     // 2026-11-17 用户令「高度要和左边的封面一样高，右边边缘不能超过下面的卡片」：艺术图
                     // 高跟封面一致、宽按图自己的比例（夹具没有图，按 16:9 兜底），上沿与封面同线、右沿贴内容右沿。
                     Assert.Equal(stillWidth > 0 ? (double)f.Get("StillHeight")! : 0d, (double)f.Get("StoreArtHeight")!);
@@ -87,7 +94,7 @@ internal static partial class DetailActionReadinessTests
                     var marginType = storeArtMargin.GetType();
                     Assert.Equal(DetailHero.StoreHeroInsetTop(width),
                         (double)marginType.GetProperty("Top")!.GetValue(storeArtMargin)!);
-                    Assert.Equal(DetailHero.StorePageInset(width),
+                    Assert.Equal(DetailHero.StorePageInset(width) + gutter,
                         (double)marginType.GetProperty("Right")!.GetValue(storeArtMargin)!);
                     // 2026-11-17 用户令「面积不够大，要到卡片上方」：纯色底高＝头图 + 尾部那道 2 + 纸面 14 上留白。
                     var tailInset = f.Get("TailInset")!;
@@ -123,6 +130,48 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
+        Test("详情整列收窄：窗口过 1500 后 170，2K 最大化 2560 时 300", () =>
+        {
+            // 2026-11-17 用户令「订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距
+            // 自动切换为 170，窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」；
+            // 2026-11-18 补「窗口最宽时卡片和侧边栏的间距为 300」。
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            double Left(string name)
+            {
+                var inset = f.Get(name)!;
+                return (double)inset.GetType().GetProperty("Left")!.GetValue(inset)!;
+            }
+            void Resize(double width)
+            {
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                f.Vm.GetType().GetProperty("WindowWidth")!.SetValue(f.Vm, width);
+                // 夹具没有侧栏：整窗宽与内容区宽取同一个数。
+                f.Vm.GetType().GetProperty("FullWindowWidth")!.SetValue(f.Vm, width);
+            }
+            void Refresh() => f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+
+            f.Ui.EnableImmersive = false;
+            Refresh();
+            Resize(1240d);
+            Assert.Equal(DetailHero.StorePageInset(1240d), Left("HeroInset"));
+            Assert.Equal(DetailHero.StorePageInset(1240d), Left("SheetPadding") + 10);
+            Resize(1600d);
+            Assert.Equal(170d, Left("HeroInset"));
+            Assert.Equal(170d, Left("SheetPadding") + 10);
+            Assert.True(Math.Abs(Left("TailInset") + 24 - 170d) < 1e-6, "尾部没有跟头部、卡片一起收窄");
+            Resize(2560d);
+            Assert.Equal(300d, DetailHero.CardWindowGap(2560d));
+            var gap = DetailHero.CardWindowGap(2560d);
+            Assert.True(Math.Abs(Left("HeroInset") - gap) < 1e-6);
+            Assert.True(Math.Abs(Left("SheetPadding") + 10 - gap) < 1e-6);
+
+            // 沉浸档：正文卡片外沿也落在同一条目标间距上（头部既有的 24 内缩关系保持不变）。
+            f.Ui.EnableImmersive = true;
+            Refresh();
+            Resize(1600d);
+            Assert.True(Math.Abs(Left("SheetPadding") + 10 - 170d) < 1e-6);
+        });
         Test("商店封面：按右栏徽标到播放键下沿实测放大，离开商店恢复 260×375 盒", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Movie);

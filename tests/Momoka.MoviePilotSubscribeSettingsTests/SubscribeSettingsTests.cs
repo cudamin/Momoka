@@ -921,6 +921,33 @@ internal static class SubscribeSettingsTests
             Check.Equal(12d, vm.HeaderPadding.Top);
             return Task.CompletedTask;
         });
+        Test("订阅详情整列收窄：窗口过 1500 后 170，2K 最大化 2560 时 300", () =>
+        {
+            // 2026-11-17 用户令「订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距
+            // 自动切换为 170，窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」；
+            // 2026-11-18 补「窗口最宽时卡片和侧边栏的间距为 300」。
+            using var vm = new MoviePilotMediaViewModel { PageWidth = 1200, FullWindowWidth = 1200 };
+            vm.Immersive = false;
+            Check.Equal(DetailHero.StorePageInset(1200), vm.HeaderPadding.Left);
+            Check.Equal(DetailHero.StorePageInset(1200), vm.BodySheetPadding.Left);
+            vm.PageWidth = 1600;
+            vm.FullWindowWidth = 1600;
+            Check.Equal(170d, vm.HeaderPadding.Left);
+            Check.Equal(170d, vm.HeaderPadding.Right);
+            Check.Equal(170d, vm.BodySheetPadding.Left);
+            Check.Equal(170d, vm.BodySheetPadding.Right);
+            vm.PageWidth = 2560;
+            vm.FullWindowWidth = 2560;
+            var gap = DetailHero.CardWindowGap(2560);
+            Check.Equal(300d, gap);
+            Check.True(System.Math.Abs(vm.HeaderPadding.Left - gap) < 1e-6);
+            Check.True(System.Math.Abs(vm.BodySheetPadding.Right - gap) < 1e-6);
+            // 沉浸档同一份收窄：卡片外沿也落在同一条目标间距上。
+            vm.Immersive = true;
+            Check.True(System.Math.Abs(vm.HeaderPadding.Left - gap) < 1e-6);
+            Check.True(System.Math.Abs(vm.BodySheetPadding.Left - gap) < 1e-6);
+            return Task.CompletedTask;
+        });
     }
     private static MoviePilotMediaViewModel Picker(SubscriptionFixture f)
     {

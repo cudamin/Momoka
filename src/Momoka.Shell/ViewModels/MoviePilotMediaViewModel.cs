@@ -256,6 +256,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     [NotifyPropertyChangedFor(nameof(BodySheetPadding))]
     [NotifyPropertyChangedFor(nameof(HeaderPadding))]
+    [NotifyPropertyChangedFor(nameof(ContentGutterWidth))]
     [NotifyPropertyChangedFor(nameof(StorePageWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
@@ -265,6 +266,16 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TrailerControlsRoom))]
     [NotifyPropertyChangedFor(nameof(StoreTailHeight))]
     public partial double PageWidth { get; set; }
+
+    /// <summary>
+    /// 整扇窗口的宽（<c>XamlRoot.Size.Width</c>，含左侧栏）—— 卡片与侧边栏／窗口边的间距按它判「窗口最宽」：
+    /// 2K 屏最大化 2560 时左右各 300；侧栏拖宽只收窄内容列，不改变这个判定。0 表示还没量，退回内容区宽。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BodySheetPadding))]
+    [NotifyPropertyChangedFor(nameof(HeaderPadding))]
+    [NotifyPropertyChangedFor(nameof(ContentGutterWidth))]
+    public partial double FullWindowWidth { get; set; }
 
     /// <inheritdoc cref="PageWidth"/>
     [ObservableProperty]
@@ -317,7 +328,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public double HeroMinHeight => 0;
 
     /// <summary>
-    /// 商店档的内容宽：与媒体详情页一致，超宽页面最多按 1840 排（<c>DetailPage.Store.cs</c> 同一档）。
+    /// 商店档装饰背景与右侧剧照／预告的取宽基准：与媒体详情页同一档，最多按 1840 算（2026-11-17 起内容列
+    /// 本身已经铺满窗口，收窄由 <see cref="ContentGutterWidth"/> 管，这个数只留给装饰画面的大小）。
     /// </summary>
     public double StorePageWidth => Plain ? Math.Min(1840, PageWidth) : PageWidth;
 
@@ -332,12 +344,12 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     /// <summary>
     /// 剧照、预告与亚克力视口共用的右边距。2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，
-    /// 跟随窗口不断变宽」：画面大小仍按内容列，右沿那道缝由 <see cref="DetailHero.StorePreviewEdgeGap"/>
-    /// 按窗口宽给；窗口宽过 1840 内容列后视口跟着窗口右移，居中让出的那一段由
-    /// <see cref="DetailHero.StorePreviewRightMargin"/> 减掉。
+    /// 跟随窗口不断变宽」：画面大小仍按 1840 的内容基准，右沿那道缝由
+    /// <see cref="DetailHero.StorePreviewEdgeGap"/> 按窗口宽给。内容列与窗口同宽（2026-11-17 起不再收进
+    /// 1840 居中），所以这一份就是相对窗口右沿的距离。
     /// </summary>
     public Thickness StorePreviewMargin => Plain
-        ? new(0, 0, DetailHero.StorePreviewRightMargin(PageWidth, StorePageWidth), 0) : default;
+        ? new(0, 0, DetailHero.StorePreviewRightMargin(PageWidth, PageWidth), 0) : default;
 
     /// <summary>商店宽版式：页面宽过 <see cref="DetailHero.StoreWideFloor"/> 才在右上角摆剧照／预告视口。</summary>
     public bool StoreWide => Plain && PageWidth >= DetailHero.StoreWideFloor;
@@ -424,17 +436,42 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     public Visibility BackdropFadeVisibility => Show(Backdrop is not null && Immersive && !Showcase);
 
-    /// <summary>所有模式使用同一套紧凑留白。</summary>
-    public Thickness BodySheetPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left, 8,
-        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 8);
+    /// <summary>
+    /// 这一页整列内容（头部与正文卡片）还要再向左右各收窄多少 —— 2026-11-17 用户令「订阅详情页的卡片和
+    /// 媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距自动切换为 170，窗口大于 2250 时拉宽窗口不直接
+    /// 切换间距，而是跟随窗口大小调整」，2026-11-18 再补「窗口最宽时卡片和侧边栏的间距为 300」。目标间距由
+    /// <see cref="DetailHero.CardWindowGap"/> 给（2K 屏最大化 2560 宽时 300），减掉卡片原来的页边留白
+    /// （商店 96、沉浸 32）就是这一份；头部与正文共用，列内对齐不变。窗口宽取整扇（含侧栏）。
+    /// </summary>
+    public double ContentGutterWidth => DetailHero.CardWindowGutter(
+        FullWindowWidth > 0 ? FullWindowWidth : PageWidth,
+        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left);
+
+    /// <summary>所有模式使用同一套紧凑留白；2026-11-17 起左右再叠加 <see cref="ContentGutterWidth"/>。</summary>
+    public Thickness BodySheetPadding
+    {
+        get
+        {
+            var gutter = ContentGutterWidth;
+            return new(Plain ? DetailHero.StorePageInset(PageWidth) + gutter : PageMargin.Left + gutter, 8,
+                Plain ? DetailHero.StorePageInset(PageWidth) + gutter : PageMargin.Right + gutter, 8);
+        }
+    }
     /// <summary>
     /// 商店档顶部读 <see cref="DetailHero.StoreHeroInsetTop"/>，和媒体详情页同一条顶线：宽版式是
     /// <see cref="DetailHero.StoreHeroTop"/> 那一道空位，窄档顶部铺亚克力时收成与左右留白同值
     /// （2026-11-17 用户令「左边跟上面的间距要一致」）；沉浸档仍 12。
     /// </summary>
-    public Thickness HeaderPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left,
-        Plain ? DetailHero.StoreHeroInsetTop(PageWidth) : 12,
-        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 0);
+    public Thickness HeaderPadding
+    {
+        get
+        {
+            var gutter = ContentGutterWidth;
+            return new(Plain ? DetailHero.StorePageInset(PageWidth) + gutter : PageMargin.Left + gutter,
+                Plain ? DetailHero.StoreHeroInsetTop(PageWidth) : 12,
+                Plain ? DetailHero.StorePageInset(PageWidth) + gutter : PageMargin.Right + gutter, 0);
+        }
+    }
     public double BodySheetSpacing => Plain ? 10 : 8;
     public Thickness BodyPanelPadding => new(12);
 
@@ -453,6 +490,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(BackdropFadeVisibility));
         OnPropertyChanged(nameof(BodySheetPadding));
         OnPropertyChanged(nameof(HeaderPadding));
+        OnPropertyChanged(nameof(ContentGutterWidth));
         OnPropertyChanged(nameof(BodySheetSpacing));
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));

@@ -1,3 +1,19 @@
+## 2026-11-17／18 详情页整列内容与窗口的间距：1500 之后 170，2K 最大化 2560 时 300（已合并 master，待统一验证）
+
+用户先一句：「2k屏下（其他分辨率你看着调吧），订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距自动切换为 170，窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」。追问确认两件事：范围是「整列内容一起收窄」，2250 以上「按窗口宽等比例放大」。2026-11-18 用户补一句：「窗口最宽时卡片和侧边栏的间距为 300」；两问确认落点是「2K 最大化时 300」、且「左右两侧都留 300」。
+
+**改了什么。** Core 新增 `DetailHero.CardWindowGap`：1500 及以下返回 0（沿用各档原留白），1500～2250 固定 170，2250 到 2560（2K 屏最大化）之间线性放大 170 → 300，2560 及以上保持 300（不再按等比无限变宽）；`CardWindowGutter` 把目标间距减掉卡片原来的页边留白，得到「在现有留白之外再收窄多少」。宽度口径改为<em>整扇窗口</em>（含左侧栏，`XamlRoot.Size.Width`）：侧栏拖宽只收窄内容列，不改变「窗口最宽」这一刻的判定；原先按内容区宽判会让侧栏拖宽后最大化也到不了 300。`DetailViewModel`／`MoviePilotMediaViewModel` 各新增 `FullWindowWidth`（0 时退回原内容区宽），两页在 `OnBodySizeChanged`／`OnDetailScrollSizeChanged` 写入。媒体详情页把这一份同时加到 `HeroInset`、`TailInset`、`SheetPadding` 与集页板 `HeroCardTop/Bottom` 的左右，头部、尾部、正文卡片与那块板因此一起向内、列内对齐不变；`StoreContentWidth`、`StoreTextWidth`、`StoreHeroWidth`、`CornerMaxWidth`、`StoreArtMargin` 按收窄后的宽重算。订阅详情页加到 `HeaderPadding` 与 `BodySheetPadding`。两页商店档不再把内容列收进 1840 居中：内容列铺满窗口（装饰层的 bleed 因此为 0），右侧剧照／预告的右沿改为直接相对窗口右沿（订阅页 `StorePreviewMargin` 用 `StorePreviewRightMargin(PageWidth, PageWidth)`）。这样窗口超过 1840 以后卡片仍能落在目标间距上。
+
+**测试。** `DetailLayoutTests` 新增间距纯函数的边界（NaN／0／360／760／1024／1240／1500 不动，1500.5／1800／2250 为 170，2320 按 2250→2560 的线性插值，2560／3840 为 300）与收窄量；`DetailShapeNotificationTests` 新增媒体详情「头部＋尾部＋卡片」三处同沿的 1240／1600／2560 断言，并把原有 2400 宽的片名栏、角图右沿预期改为按新间距重算；`SubscribeSettingsTests` 新增订阅页商店／沉浸两档的 1600／2560 断言。契约测试 `SubscriptionTrailerLayoutTests` 的右边距字符串同步为新的两参写法。
+
+**本轮已跑。** Shell 与三个测试项目 Release/x64 均 **0 警告 0 错误**；`Momoka.Tests` 全量 **5226 项，通过 5208，失败 18**——16 条是 `SelfCheckRun.Create` 的「已有当前用户的自检运行中」（别的会话的 Momoka 占着共享桌面自检 mutex），另 2 条是沙箱把 TEMP 指到 `C:\WINDOWS\TEMP` 后 `Directory.GetFiles` 被拒，均与产品无关，未洗绿；`detail-action-readiness-fixture` **96/96**（含「详情整列收窄」）；`Momoka.PageContractTests` **356/356**；`Momoka.MoviePilotSubscribeSettingsTests` **79/79**（含「订阅详情整列收窄」）；`dotnet format whitespace --verify-no-changes` 退出 0。
+
+**发布。** 已按改好收尾发布本树 `artifacts/publish/win-x64`（548 个文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过），并刷新桌面快捷方式 `Momoka-feat-card-responsive-gap-F0pAes.lnk`（目标为本树 `artifacts/publish/win-x64/Momoka.exe`，00:22），主树 `Momoka.lnk` 当时未动；仅体验刷新，不销账。
+
+**待跑。** 改探针当轮尝试 `--probe-shell --probe-section detail-cards --screen 1`，被共享桌面锁挡下（「另一个实例正在使用桌面」），按规则未抢桌面、未结束其它实例；它与 `store-trailer-web` 的 2000 宽档、以及 1600／2250／2560／最大化实屏一起留到统一验证。
+
+**边界。** 1500 处是有意的跳档（用户要的「自动切换」）；2250 到 2560 线性放大，2560 以上封顶 300 —— 2K 屏最大化（整窗 2560、展开侧栏 256 时内容区 2304）左右各 300，内容列宽 1704。宽度按整扇窗口（含侧栏）判，侧栏拖宽只收窄内容列、不再改变「窗口最宽」那一刻的间距；4K 或更宽的窗口同样封顶 300。窄窗、紧凑档与 1500 以下各档的版面数值一个没动。
+
 ## 2026-11-17 飞牛音乐媒体库卡补封面（已合并 master，待统一验证）
 
 用户先问「飞牛音乐库怎么没封面」，看过三格拼墙后又要求「弄好看点」。实服只读核对（飞牛音乐 1.1.19）：`track/list`、`album/list`、`artist/list` 都带 `coverId`，`static/cover?coverId=&size=600` 带 `music-token` Cookie 返回 `image/jpeg`；20:53 日志只有一条「卡片: 没有可用的图片候选（音乐）」，同一时段 160 宽曲目封面已进缓存。缺的是虚拟「音乐」库条目本身没有任何图像标签，所以主页和侧栏的库卡是空白。

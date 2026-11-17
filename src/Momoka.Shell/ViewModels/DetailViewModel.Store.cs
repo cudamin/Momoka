@@ -58,18 +58,19 @@ public sealed partial class DetailViewModel
 
     /// <summary>
     /// 商店宽版式右上角艺术图的位置（2026-11-17 用户令「右边边缘不能超过下面的卡片」）：上沿与左边的封面
-    /// 同一条线（<see cref="HeroInset"/> 的上留白），右沿贴住正文卡片的内容右沿（<see cref="DetailHero.StorePageInset"/>），
-    /// 不再像剧照预览那样几乎贴着窗口边。窄窗不摆这一角，这一份边距用不上。
+    /// 同一条线（<see cref="HeroInset"/> 的上留白），右沿贴住正文卡片的内容右沿
+    /// （<see cref="DetailHero.StorePageInset"/> 加 <see cref="ContentGutterWidth"/>），不再像剧照预览那样
+    /// 几乎贴着窗口边。窄窗不摆这一角，这一份边距用不上。
     /// </summary>
     public Thickness StoreArtMargin => StoreMode
-        ? new Thickness(0, HeroInset.Top, DetailHero.StorePageInset(PageWidth), 0) : default;
+        ? new Thickness(0, HeroInset.Top, DetailHero.StorePageInset(PageWidth) + ContentGutterWidth, 0) : default;
 
     /// <summary>顶部背景随页宽缩放，并限制高度；不参与内容布局。</summary>
     public double StoreBackdropHeight => DetailHero.StoreBackdropHeight(PageWidth, HeroHeight);
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     /// <summary>
-    /// 视口几何用的宽：优先取窗口真实宽，还没量到时退回内容列宽（两者在不超过 1840 时相同）。
+    /// 视口几何用的宽：优先取窗口真实宽，还没量到时退回内容列宽（2026-11-17 起内容列铺满窗口，两者相同）。
     /// 画面大小不读它 —— 它只决定视口离<em>窗口右边缘</em>留多宽（见 <see cref="StorePreviewMargin"/>）。
     /// </summary>
     private double StoreWindowWidth => WindowWidth > 0 ? WindowWidth : PageWidth;
@@ -79,8 +80,8 @@ public sealed partial class DetailViewModel
     /// 三个视口共用同一个边距，屏上才是同一块画面在移动；窗口收窄到窄档时那道空隙照留。
     /// <para>
     /// 2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」：空隙由
-    /// <see cref="DetailHero.StorePreviewEdgeGap"/> 按窗口宽给，窗口越宽留得越多；内容列居中让出的
-    /// 右边一段由 <see cref="DetailHero.StorePreviewRightMargin"/> 减掉，视口右沿始终落在窗口边上那一道缝内。
+    /// <see cref="DetailHero.StorePreviewEdgeGap"/> 按窗口宽给，窗口越宽留得越多；内容列与窗口同宽之后
+    /// 这一份就是相对窗口右沿的距离。
     /// </para>
     /// </summary>
     public Thickness StorePreviewMargin => StoreMode
@@ -101,8 +102,13 @@ public sealed partial class DetailViewModel
     /// 商店模式左边那一列内容能有多宽。宽版式（<see cref="DetailHero.StoreWideFloor"/> 及以上）要让开
     /// 顶部右侧的剧照／预告视口，窄档才把整幅宽度都给内容 —— 两条判据同一个断点，屏上不会出现
     /// 「背景已经变成右侧视口、内容却还按整幅排」的半档。
+    /// <para>
+    /// 2026-11-17 起两侧还各收 <see cref="ContentGutterWidth"/>（卡片与窗口间距那条规则），头图那一行与
+    /// 尾部、正文卡片因此一起向内；片名栏那两支收到的也是收窄后的宽。
+    /// </para>
     /// </summary>
-    public double StoreContentWidth => Math.Max(0, PageWidth - 2 * DetailHero.StorePageInset(PageWidth)
+    public double StoreContentWidth => Math.Max(0, PageWidth
+        - 2 * (DetailHero.StorePageInset(PageWidth) + ContentGutterWidth)
         - (StoreMode && PageWidth >= DetailHero.StoreWideFloor ? StorePreviewWidth + 28 : 0));
 
     /// <summary>
@@ -115,14 +121,15 @@ public sealed partial class DetailViewModel
     /// </para>
     /// </summary>
     public double StoreTextWidth => StoreMode
-        ? DetailHero.StoreTextColumn(PageWidth, StoreContentWidth, StillWidth, ColumnSpacing) : double.PositiveInfinity;
+        ? DetailHero.StoreTextColumn(PageWidth - (2 * ContentGutterWidth), StoreContentWidth, StillWidth, ColumnSpacing)
+        : double.PositiveInfinity;
 
     /// <summary>
     /// 商店档头图那一行（封面 + 片名栏）这一次占多宽（<c>HeroContent.Width</c>）—— 片名栏撑到保底宽度时
     /// 这一行跟着往右长，压在右侧剧照上；其余档仍是让位之后的内容宽。
     /// </summary>
     public double StoreHeroWidth => StoreMode
-        ? DetailHero.StoreHeroColumn(PageWidth, StoreContentWidth, StillWidth, ColumnSpacing) : 0;
+        ? DetailHero.StoreHeroColumn(PageWidth - (2 * ContentGutterWidth), StoreContentWidth, StillWidth, ColumnSpacing) : 0;
 
     public Visibility RemainingTimeVisibility => StoreMode ? Visibility.Collapsed : ResumeVisibility;
     public Visibility TrailerButtonVisibility => StoreMode ? Visibility.Collapsed : TrailerVisibility;

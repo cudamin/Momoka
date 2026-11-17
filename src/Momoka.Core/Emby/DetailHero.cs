@@ -78,6 +78,59 @@ public static class DetailHero
     public static double StorePageInset(double width) => width >= StoreWideFloor ? 96 : width >= 600 ? 56 : 32;
 
     /// <summary>
+    /// 详情页整列内容（头部与正文卡片）与窗口左右边缘的间距 —— 2026-11-17 用户令「2k屏下（其他分辨率你
+    /// 看着调吧），订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距自动切换为 170，
+    /// 窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」。
+    /// <para>
+    /// 2026-11-18 用户补「窗口最宽时卡片和侧边栏的间距为 300」：2250 到 2560（2K 屏最大化）之间线性放大
+    /// 170 → 300，2560 及以上保持 300，不再无限变宽。宽度按<em>整扇窗口</em>（含左侧栏）算 —— 侧栏拖宽只
+    /// 收窄内容列，不改变「窗口最宽」这一刻的判定。
+    /// </para>
+    /// <para>
+    /// 1500 及以下交 0，表示沿用各档原有留白（商店 96、沉浸／纸面 18、集页板 38）；刚过 1500 到 2250 之间
+    /// 固定 170。返回的是<em>卡片外沿</em>到窗口左右边（左侧即侧边栏右沿）的目标距离，两页的头部、尾部与
+    /// 卡片共用这一份。
+    /// </para>
+    /// </summary>
+    /// <param name="windowWidth">整扇窗口的宽（含左侧栏，<c>XamlRoot.Size.Width</c>）。</param>
+    public static double CardWindowGap(double windowWidth)
+    {
+        if (!(windowWidth > CardWindowGapFrom) || !double.IsFinite(windowWidth)) return 0;
+        if (windowWidth <= CardWindowGapScaleFrom) return CardWindowGapValue;
+        if (windowWidth >= CardWindowGapWidest) return CardWindowGapMax;
+        var share = (windowWidth - CardWindowGapScaleFrom)
+            / (CardWindowGapWidest - CardWindowGapScaleFrom);
+        return CardWindowGapValue + ((CardWindowGapMax - CardWindowGapValue) * share);
+    }
+
+    /// <summary>
+    /// 在现有页边留白之外还要再向左右各收窄多少 —— 目标间距（<see cref="CardWindowGap"/>）减掉卡片原本
+    /// 离内容列边缘的距离。1500 及以下、或原有留白已经大过目标时交 0，版面一个像素不动。
+    /// </summary>
+    /// <param name="windowWidth">同 <see cref="CardWindowGap"/>。</param>
+    /// <param name="cardEdgeInset">卡片外沿原本离内容列边缘的距离。</param>
+    public static double CardWindowGutter(double windowWidth, double cardEdgeInset)
+    {
+        var gap = CardWindowGap(windowWidth);
+        return gap <= 0 ? 0 : Math.Max(0, gap - Math.Max(0, cardEdgeInset));
+    }
+
+    /// <summary>间距从这一档窗口宽之后启用（1500 本身仍沿用原有留白）。</summary>
+    public const double CardWindowGapFrom = 1500;
+
+    /// <summary>1500～2250 之间卡片与窗口边的间距。</summary>
+    public const double CardWindowGapValue = 170;
+
+    /// <summary>超过这一档窗口宽之后，间距从 170 开始向 <see cref="CardWindowGapMax"/> 放大。</summary>
+    public const double CardWindowGapScaleFrom = 2250;
+
+    /// <summary>2K 屏最大化时整扇窗口的宽（工作区 2560）；到这一档间距正好是 <see cref="CardWindowGapMax"/>。</summary>
+    public const double CardWindowGapWidest = 2560;
+
+    /// <summary>窗口最宽时卡片与侧边栏／窗口边的间距；再宽也保持这一档。</summary>
+    public const double CardWindowGapMax = 300;
+
+    /// <summary>
     /// 商店档左栏里封面那一栏至少占多宽 —— 四颗 44 的命中格共 176，加两侧一点余量就是 180
     /// （同 <c>DetailPage.StoreCoverColumnWidth</c>）。
     /// </summary>

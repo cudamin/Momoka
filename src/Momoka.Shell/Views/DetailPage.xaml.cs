@@ -2294,10 +2294,14 @@ public sealed partial class DetailPage : Page, IShellContent
 
             // 同一趟量的另一个数：这一页有多宽。紧凑版式换不换（DetailHero.IsCompact）、背景那一张画多高
             // （DetailViewModel.PictureHeight）都问它 —— 「多宽」只有布好的版面知道。窗口真实宽另记一份：
-            // 商店档的内容列封顶 1840，右侧剧照／预告与窗口右边缘之间的空隙还要跟着窗口加大
-            // （见 DetailViewModel.WindowWidth）。
+            // 右侧剧照／预告与窗口右边缘之间的空隙要跟着窗口加大（见 DetailViewModel.WindowWidth），
+            // 2026-11-17 起内容列也按这个宽排、由整列留白收窄。
             ViewModel.PageWidth = Body.ActualWidth;
             ViewModel.WindowWidth = Body.ActualWidth;
+            // 卡片与侧边栏／窗口边的间距要看整扇窗口（含侧栏）：「窗口最宽时 300」按 2K 最大化 2560 判，
+            // 侧栏拖宽只收窄内容列，不该让这个判定跟着缩水。
+            var fullWidth = XamlRoot?.Size.Width ?? 0;
+            if (fullWidth > 0) ViewModel.FullWindowWidth = fullWidth;
         }
         finally
         {

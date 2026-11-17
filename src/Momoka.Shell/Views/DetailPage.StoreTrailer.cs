@@ -99,8 +99,8 @@ public sealed partial class DetailPage
     private void LayoutStoreTrailer()
     {
         // 画面大小仍按内容列（2026-11-17 用户明确「不是放大背景图」）；变的只有它与窗口右边缘之间的距离：
-        // 视频局部底已经铺满窗口（见 PlaceStoreComponents 的 bleed），所以这里的坐标系就是窗口宽，
-        // 右侧那道缝取 StorePreviewEdgeGap —— 窗口越宽留得越多。
+        // 视频局部底随内容列铺满窗口（2026-11-17 起内容列与窗口同宽，见 PlaceStoreComponents 的 bleed），
+        // 所以这里的坐标系就是窗口宽，右侧那道缝取 StorePreviewEdgeGap —— 窗口越宽留得越多。
         var window = ViewModel.WindowWidth > 0 ? ViewModel.WindowWidth : ViewModel.PageWidth;
         var gap = DetailHero.StorePreviewEdgeGap(window);
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
