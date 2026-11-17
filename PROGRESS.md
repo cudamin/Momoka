@@ -1,14 +1,14 @@
-## 2026-11-17 飞牛音乐媒体库卡补封面（分支，待合并）
+## 2026-11-17 飞牛音乐媒体库卡补封面（已合并 master，待统一验证）
 
 用户先问「飞牛音乐库怎么没封面」，看过三格拼墙后又要求「弄好看点」。实服只读核对（飞牛音乐 1.1.19）：`track/list`、`album/list`、`artist/list` 都带 `coverId`，`static/cover?coverId=&size=600` 带 `music-token` Cookie 返回 `image/jpeg`；20:53 日志只有一条「卡片: 没有可用的图片候选（音乐）」，同一时段 160 宽曲目封面已进缓存。缺的是虚拟「音乐」库条目本身没有任何图像标签，所以主页和侧栏的库卡是空白。
 
 **改了什么。** `FnMusicMediaAdapter.GetViewsAsync` 读 `album/list?page=1&size=3`，取第一张有封面的专辑写进 `ImageTags["Primary"]`，不再用 `PosterPaths` 拼竖条。`CardItem` 对飞牛音乐库根条目复用飞牛横卡的画法：同一张专辑封面放大压暗铺底、方形封面居中（`MusicLibraryWideCover` → `FnNasWideVisibility`）；其他服务器和其他库型不变。专辑读取失败（非身份过期）只记 `fnmusic` 警告，媒体库照常返回；身份过期继续抛给会话恢复。
 
-**测了什么。** Release Core/Tests 编译 **0 警告 0 错误**；`fnmusic-fixture` **20/20，0 失败 0 跳过**（新增「库卡取第一张有封面的专辑，不再拼竖条」「库封面读取失败不挡媒体库，身份过期仍上报」）；`Momoka.PageContractTests` **357/357，0 失败 0 跳过**（新增「R16-005：飞牛音乐库横卡压暗铺底、方形封面居中」）；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1` 与 `git diff --check` 通过。
+**测了什么。** 分支与合并后 master 上均 Release Core/Tests 编译 **0 警告 0 错误**；`fnmusic-fixture` **20/20，0 失败 0 跳过**（新增「库卡取第一张有封面的专辑，不再拼竖条」「库封面读取失败不挡媒体库，身份过期仍上报」）；`Momoka.PageContractTests` **357/357，0 失败 0 跳过**（新增「R16-005：飞牛音乐库横卡压暗铺底、方形封面居中」）；`dotnet format whitespace --verify-no-changes`、`tools/check-diff.ps1` 与 `git diff --check` 通过。
 
 **没验证的。** 未在真实 WinUI 窗口目视新版库卡。诊断时为核对接口重新登录取得只读令牌，未播放、未收藏、未上报历史、未写库。
 
-**分支。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-feiniu-music-cover-ztPLhJ`，分支 `fix-feiniu-music-cover-ztPLhJ`，基点 `a8152cf`，产品与测试提交 `bde932f`、`90a737e`；未合并 master、未推送。已按改好收尾发布本树（548 文件、289.9 MB，00:11）并刷新桌面 `Momoka-fix-feiniu-music-cover-ztPLhJ.lnk`，仅体验刷新、不销账。
+**分支与合并。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-feiniu-music-cover-ztPLhJ`，分支 `fix-feiniu-music-cover-ztPLhJ`，基点 `a8152cf`，产品与测试提交 `bde932f`、`90a737e`；2026-11-18 用户令「合并」，在主树 `master` 的 `a8152cf` 上以 `--no-ff` 合入 `895bfa9`（无冲突）。合并后按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB，00:23）并刷新桌面 `Momoka.lnk`；未推远端。
 
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
