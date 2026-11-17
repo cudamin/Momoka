@@ -53,6 +53,27 @@ internal static class DetailLayoutTests
             Assert.Equal(94d, DetailHero.StoreTextColumn(360, Content(360), 180, 22));
             Assert.Equal(296d, DetailHero.StoreHeroColumn(360, Content(360), 180, 22));
         });
+        Test("商店封面：高跟右栏徽标到播放键下沿，宽按图比例且不超过 260，没量到时仍是 180×270", () =>
+        {
+            // 2026-11-17 用户令「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，
+            // 下方和播放按钮下方平行」：高由视图实测的 coverRoom 给，兜底是原来的 180×270。
+            Assert.Equal(180d, DetailHero.StoreStillWidth);
+            Assert.Equal(270d, DetailHero.StoreStillHeight);
+            Assert.Equal(260d, DetailHero.StoreStillMaxWidth);
+
+            // 还没量到、或者播放键下沿比兜底还高：不缩，仍是 180×270。
+            foreach (var room in new[] { 0d, 200, 270, double.NaN, double.PositiveInfinity, -1 })
+                Assert.Equal((180d, 270d), DetailHero.StoreStillBox(1000, 1500, room));
+
+            // 没图时按 180:270 的同形空框，量到多少就长到多少。
+            Assert.Equal((205d, 307d), DetailHero.StoreStillBox(0, 0, 307));
+
+            // 2:3 海报由高收住、宽随比例；横图按 260 的宽收住，不会被这一段高拉成通栏。
+            Assert.Equal((205d, 307d), DetailHero.StoreStillBox(1000, 1500, 307));
+            Assert.Equal((260d, 146d), DetailHero.StoreStillBox(1920, 1080, 307));
+            // 竖长图（1:2）仍由高收住。
+            Assert.Equal((154d, 307d), DetailHero.StoreStillBox(500, 1000, 307));
+        });
         Test("商店预告背景：只占顶部右侧，保持16:9且异常尺寸回退", () =>
         {
             Assert.Equal(768d, TrailerPreview.BackgroundWidth(1280));

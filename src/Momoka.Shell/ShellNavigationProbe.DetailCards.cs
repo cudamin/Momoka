@@ -53,6 +53,12 @@ internal sealed partial class ShellNavigationProbe
         series.Name = "商店分区卡片";
         series.Overview = "相同的标题栏、分隔线与内容留白。";
         series.Genres = ["动画"];
+        // 2026-11-17 商店封面按右栏「徽标上沿到主播放键下沿」放大：夹具补上徽标、评分与日期/时长，
+        // 右栏才高过 180×270 的兜底，封面放大与上/下沿对齐这两句在原生探针里才真的被量到。
+        series.ImageTags["Logo"] = "fixture";
+        series.CommunityRating = 8.4f;
+        series.ProductionYear = 2024;
+        series.RunTimeTicks = TimeSpan.FromMinutes(118).Ticks;
         series.People = [new() { Id = "card-person", Name = "示例演员", Type = "Actor", PrimaryImageTag = "fixture" }];
         series.ImageTags["Primary"] = "fixture";
         series.BackdropImageTags.Add("fixture");
@@ -371,6 +377,25 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(actionBlock.Parent, Get<StackPanel>(page, "HeroStack")),
                 "商店操作块没有排在片名那一栏里");
             RequireStoreCoverActionAppearance(page);
+            // 2026-11-17 用户令「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，
+            // 下方和播放按钮下方平行」：封面盖住右栏从徽标上沿到主播放键下沿这一段。这一页的封面是 400×600
+            // 的 2:3 海报，只在「高由实测给、没有被 260 的宽上限收短」的那几档才把下沿对齐写死；
+            // 360 这类压力尺寸上正文折行把右栏撑得很高，宽上限先到，封面就不追那一段了。
+            var coverRoom = page.ViewModel.StoreCoverRoom;
+            var coverFit = DetailHero.StoreStillBox(400, 600, coverRoom);
+            if (cover.Visibility == Visibility.Visible && play.Visibility == Visibility.Visible
+                && playSlot.ActualHeight > 0 && coverRoom >= DetailHero.StoreStillHeight
+                && Math.Abs(coverFit.Height - coverRoom) < 1.5)
+            {
+                var coverBox = Bounds(cover, canvas);
+                var plateRow = Get<Grid>(page, "DetailPlateRow");
+                if (plateRow.Visibility == Visibility.Visible)
+                    Require(Math.Abs(coverBox.Top - Bounds(plateRow, canvas).Top) < 1.5,
+                        $"商店封面没有和徽标同一条上沿：封面 {coverBox.Top:0.##}、徽标 {Bounds(plateRow, canvas).Top:0.##}");
+                var playBottom = Bounds(play, canvas).Bottom;
+                Require(Math.Abs(coverBox.Bottom - playBottom) < 1.5,
+                    $"商店封面下沿没有和主播放键下沿平行：封面 {coverBox.Bottom:0.##}、播放键 {playBottom:0.##}");
+            }
             var facts = Bounds(factsRow, canvas);
             var row = Bounds(coverActions, canvas);
             var buttons = new[] { watched, favorite, more };

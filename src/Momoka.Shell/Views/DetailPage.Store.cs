@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Theming;
+using Windows.Foundation;
 
 namespace Momoka.Shell.Views;
 
@@ -381,7 +382,39 @@ public sealed partial class DetailPage
         StoreCoverActions.Width = StorePlaySlot.ActualWidth;
     }
 
-    private void OnStorePlaySlotSizeChanged(object sender, SizeChangedEventArgs args) => SyncStoreActionWidth();
+    private void OnStorePlaySlotSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        SyncStoreActionWidth();
+        MeasureStoreCover();
+    }
+
+    /// <summary>
+    /// 商店档封面该长到哪儿：右栏从徽标上沿到主播放键下沿的那一段实测高（2026-11-17 用户令「把商店模式下
+    /// 媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」）。
+    /// <para>
+    /// 封面与片名那一栏同一行、都从 <c>HeroContent</c> 的上沿起排，所以量 <c>StoreCoverColumn</c> 的上沿与
+    /// <c>StorePlaySlot</c> 的下沿之差，就是这一格该长的高。量变换后的边界而不是直接读 <c>ActualHeight</c>：
+    /// 这一栏里将来多一样东西、或者先把别的行加进来，封面照样只跟到播放键下沿。
+    /// </para>
+    /// <para>
+    /// 主播放键收起或者还没布出来时交 0，视图模型退回 180×270 的兜底盒。片名那一栏的实测高变了
+    /// （<c>OnHeroStackSizeChanged</c>）和这一格换了几何时（搬进商店档、播放文字变了）都来这里重报一次。
+    /// </para>
+    /// </summary>
+    private void MeasureStoreCover()
+    {
+        if (!ViewModel.StoreMode || ColumnPlayButton.Visibility != Visibility.Visible
+            || StorePlaySlot.ActualHeight <= 0 || HeroContent.XamlRoot is null)
+        {
+            ViewModel.StoreCoverRoom = 0;
+            return;
+        }
+
+        var top = StoreCoverColumn.TransformToVisual(HeroContent).TransformPoint(new Point(0, 0)).Y;
+        var bottom = StorePlaySlot.TransformToVisual(HeroContent)
+            .TransformBounds(new Rect(0, 0, StorePlaySlot.ActualWidth, StorePlaySlot.ActualHeight)).Bottom;
+        ViewModel.StoreCoverRoom = Math.Max(0, Math.Round(bottom - top));
+    }
 
     private void OnStoreHeroSizeChanged(object sender, SizeChangedEventArgs args)
     {

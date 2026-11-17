@@ -160,12 +160,13 @@ internal sealed partial class ShellNavigationProbe
                 var backdropLayer = Get<Grid>(page, "Backdrop");
                 var picture = Get<Border>(page, "BackdropPicture");
 
-                // 期望值走 Core 那一支：400×600 的竖图装进封面那一格。商店档（默认）用 180×270 的上限，
-                // 沉浸档仍是 260×375。这张 400×600 是**剧集那一层**的海报；本集自己那张 16:9 的剧照
+                // 期望值走 Core 那一支：400×600 的竖图装进封面那一格。商店档（默认）高跟右栏「徽标上沿到
+                // 主播放键下沿」的实测（StoreCoverRoom），宽按图比例、最宽 260；沉浸档仍是 260×375。这张
+                // 400×600 是**剧集那一层**的海报；本集自己那张 16:9 的剧照
                 // （640×360）装进来会得到另一组数 —— 所以下面这条断言同时也是「集页用的是剧封面，不是集封面」
                 // （2026-11-09 用户令）的判据。
                 var fit = view.StoreMode
-                    ? DetailHero.StillBox(400, 600, 180, 270) ?? default
+                    ? DetailHero.StoreStillBox(400, 600, view.StoreCoverRoom)
                     : DetailHero.StillBox(400, 600, 260, 375) ?? default;
 
                 // 封面：宽版式画（「固定集页面封面的大小，拉窄窗口时不要缩小」——1280 和 820 上是同一个数），

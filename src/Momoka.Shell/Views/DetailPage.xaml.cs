@@ -2153,6 +2153,8 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         ViewModel.StackRoom = HeroStack.ActualHeight;
         MeasureCoverBottom();
+        // 商店档封面跟到主播放键下沿：这一栏的实测高变了，封面那一段的终点也可能变了（见 MeasureStoreCover）。
+        MeasureStoreCover();
         // 沉浸宽版式：多出来那一截摊到各行间距上、操作那排键仍贴封面下沿（见 DetailPage.LayoutHeroColumn）。
         LayoutHeroColumn();
         QueueReadingColors();

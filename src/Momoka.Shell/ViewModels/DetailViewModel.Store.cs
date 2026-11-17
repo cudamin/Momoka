@@ -1,3 +1,4 @@
+using System;
 using Microsoft.UI.Xaml;
 using Momoka.Emby;
 
@@ -32,8 +33,9 @@ public sealed partial class DetailViewModel
     /// <summary>
     /// 商店宽版式右上角艺术图这一次画多高 —— 与左边封面同高（2026-11-17 用户令「高度要和左边的封面一样高」）。
     /// <para>
-    /// 封面在商店档是 <see cref="StillHeight"/>（宽 180、高 270 那一格按图自己的比例收窄），艺术图跟着它走：
-    /// 图自己的比例保持不变，宽由高乘出来，不再套沉浸档那个 360×202.5 的上限盒。
+    /// 封面在商店档是 <see cref="StillHeight"/>（高跟右栏「徽标上沿到主播放键下沿」那一段实测、宽按图比例
+    /// 收在 260 以内，见 <see cref="DetailHero.StoreStillBox"/>），艺术图跟着它走：图自己的比例保持不变，
+    /// 宽由高乘出来，不再套沉浸档那个 360×202.5 的上限盒。
     /// </para>
     /// </summary>
     public double StoreArtHeight => StoreMode ? StillHeight : 0;
@@ -133,6 +135,30 @@ public sealed partial class DetailViewModel
         get => _storeDetailsRoom;
         set { if (SetProperty(ref _storeDetailsRoom, value)) NotifyStoreRoom(); }
     }
+
+    private double _storeCoverRoom;
+
+    /// <summary>
+    /// 商店档左边那张封面该长到多高 —— 右栏从徽标上沿到主播放键下沿的那一段，由视图实测
+    /// （<c>DetailPage.MeasureStoreCover</c>）。2026-11-17 用户令「把商店模式下媒体详情页左上角的封面放大一点，
+    /// 让它上方和徽标上方平行，下方和播放按钮下方平行」。
+    /// <para>
+    /// 0 表示还没量到、或者这一档没有主播放键（离开商店模式、播放键收起）：那一档退回 180×270 的兜底盒。
+    /// 写进来之后重排封面（<see cref="FitStill"/>），<see cref="StillWidth"/> 与 <see cref="StillHeight"/>
+    /// 自己的通知再把片名栏宽度、带高和右上角艺术图带过去。
+    /// </para>
+    /// </summary>
+    internal double StoreCoverRoom
+    {
+        get => _storeCoverRoom;
+        set
+        {
+            if (Math.Abs(_storeCoverRoom - value) < 0.5) return;
+            _storeCoverRoom = value;
+            if (StoreMode) FitStill();
+        }
+    }
+
     private void NotifyStoreRoom()
     {
         OnPropertyChanged(nameof(HeroContent));

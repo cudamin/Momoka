@@ -123,6 +123,35 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
+        Test("商店封面：按右栏徽标到播放键下沿实测放大，离开商店恢复 260×375 盒", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            f.Ui.EnableImmersive = false;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1240d);
+
+            // 还没量到：仍是原来的 180×270 兜底盒。
+            Assert.Equal(180d, (double)f.Get("StillWidth")!);
+            Assert.Equal(270d, (double)f.Get("StillHeight")!);
+
+            // 视图量到「徽标上沿到主播放键下沿」307：封面跟着长，没图时按 180:270 同形。
+            var room = f.Vm.GetType().GetProperty("StoreCoverRoom", Members)!;
+            room.SetValue(f.Vm, 307d);
+            Assert.Equal(307d, (double)f.Get("StillHeight")!);
+            Assert.Equal(205d, (double)f.Get("StillWidth")!);
+
+            // 不足兜底的高不缩，仍是 180×270。
+            room.SetValue(f.Vm, 200d);
+            Assert.Equal(270d, (double)f.Get("StillHeight")!);
+            Assert.Equal(180d, (double)f.Get("StillWidth")!);
+
+            // 离开商店模式：回到其余详情页的 260×375 上限盒（夹具没有图）。
+            f.Ui.EnableImmersive = true;
+            f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+            Assert.Equal(260d, (double)f.Get("StillWidth")!);
+            Assert.Equal(375d, (double)f.Get("StillHeight")!);
+        });
         Test("商店间距：带高回到内容本身，首卡离头部末沿只留 StorePreviewGap", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Episode);
