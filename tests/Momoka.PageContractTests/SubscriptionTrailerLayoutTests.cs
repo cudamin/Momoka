@@ -155,9 +155,22 @@ internal static class SubscriptionTrailerLayoutTests
                 Assert.True(stops.All(stop => stop.Attribute("Color")!.Value.EndsWith("0C0E11", StringComparison.Ordinal)),
                     "渐变没有用 #0C0E11 那一族墨色");
             }
+            // 2026-11-17 用户令：正常窗口只留左上角三角，拉宽再慢慢放开成整条。
+            // 角上那层是中心在左上角的径向渐变；整条那层包在 StoreShadeWide 里，由页宽淡入淡出。
+            var corner = Named("StoreShadeCorner");
+            Assert.True(corner.Descendants().Any(element => element.Name.LocalName == "RadialGradientBrush"),
+                "左上角三角形不是径向渐变");
+            var wide = Named("StoreShadeWide");
+            Assert.Equal(2, wide.Elements().Count(element => element.Name.LocalName == "Border"));
 
             var store = Source("Views/MoviePilotSubscriptionPage.Store.cs");
             Assert.Contains("StoreShade.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;", store);
+            Assert.Contains("StoreShadeWide.Opacity = shadeSmooth;", store);
+            Assert.Contains("StoreShadeCorner.Opacity = 1 - shadeSmooth;", store);
+            Assert.Contains("Math.Clamp(MediaViewModel.PageWidth * 0.22, 160, 360)", store);
+            Assert.Contains("StoreShadeCornerBrush.RadiusX = cornerRadius;", store);
+            Assert.Contains("private const double StoreShadeCornerFloor = 1400;", store);
+            Assert.Contains("private const double StoreShadeCornerCeiling = 1840;", store);
             Assert.Contains("var bleed = MediaViewModel.Plain && DetailScroll.ActualWidth > width", store);
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
