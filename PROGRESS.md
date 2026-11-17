@@ -1,3 +1,21 @@
+## 2026-11-17／18 整窗音乐播放页与内嵌歌词（已合并 master，待统一验证）
+
+用户令：「参考这些文件新增音乐播放页」，附飞牛音乐全屏播放页截图与保存的 HTML（`飞牛音乐.html` 与 `飞牛音乐_files`）。问过两件事，用户当次定：歌词栏**读取内嵌歌词**；入口**点播放栏封面/歌名**。
+
+**改了什么。** 新增 `MusicPlayerPage`（`Views/MusicPlayerPage.xaml`＋`.xaml.cs`），外壳把它挂在 `Canvas.ZIndex=9`：压在内容区、侧栏和播放栏之上，留在标题栏那排按钮之下。左栏是大封面、曲名、艺术家/专辑、进度与时间、格式角标、上一首/播放/下一首/随机/音量；右栏是歌词；右下角是播放队列；页头左收起、右全屏（`HostWindow.Fullscreen`，从页面进的全屏在收起时退出）。背景是同一张封面的 40 DIP 解码图铺满整窗，再压应用内亚克力与主题暗罩；封面另走 560 DIP 解码，关闭页面时两张都不下载。页面 `RequestedTheme="Dark"`（与视频播放页同一档），打开期间 `Chrome`／`AccountCluster` 临时切成深色，收起恢复 `ElementTheme.Default`；内容区、侧栏与登录卡同时收起，Tab/读屏不会跑进被盖住的那一页。`MusicPlayerLayout` 放 Core：宽窗（>=860×320）两栏，封面 320～480 跟随宽高，歌词 420～520，缝 48～64；窄窗收起歌词，封面按 42% 宽/剩余高度重排，控制排留 210。`MusicLyrics` 也在 Core：LRC 时间戳（含一句多戳、`[offset:]`、`[mm:ss:xx]`）、纯文本、排序与二分定位；歌词行自己实现 INPC，正在唱的那一句整亮。
+
+**歌词来源。** 不新增服务端接口：`PlaybackService.GetStringListAsync("display-tags")` 找标签名里含 lyric 的那一个，再读 `metadata/by-key/<key>`，读不到按 `Lyrics`/`LYRICS`/`UNSYNCEDLYRICS` 等常见名兜底。带时间轴时随 `Position` 高亮并 `ScrollIntoView`；用户滚过歌词后 8 秒内不抢回滚动位；纯文本静态列出并写明不支持自动滚动；没有标签显示「暂无内嵌歌词」。读取失败按「没有歌词」处理，不弹通知。`MusicPlaybackViewModel` 新增当前曲目、格式角标、大封面/氛围图与歌词状态，换曲/停止/转视频按 `_trackVersion` 与播放代次拒绝迟到回填。
+
+**入口与外壳。** 播放栏封面与歌名各包一层原生 Button（`CoverButton`/`TitleButton`，`Click="OnExpand"`），保留 42 的封面与 `TrackInfo` 原列位；外壳收 `ExpandRequested` 打开页面，收 `CollapseRequested` 收起并把焦点还给封面（窄窗退到歌名）。整页播放时播放栏收起、内容避让归还；导航、停止、放完、转去放视频都会收起页面。Escape 收起；全屏键图标随窗口形态换 E740/E73F。
+
+**测了什么。** Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5235/5235**，0 失败 0 跳过（新增歌词解析/定位/标签/行通知、格式角标、布局断点、播放页源码契约，并更新播放栏入口与原有布局断言）；`Momoka.MusicViewModelTests` **42/42**（新增「装好后读标签、进度高亮、停止清空」，夹具补 `display-tags`/`metadata`）；`Momoka.UiMotionTests` **102/102**（新增「整页播放时播放栏收起并归还避让，收起页面后恢复」）。`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 22 个变更路径通过；`node tools/scan-automation-ids.js` 除既有 PersonPage 三处外无新增裸控件（播放页四个 MenuFlyoutItem 已补 `x:Name`）。全量测试首跑有 16 条自检隔离用例报「已有当前用户的自检运行中」，是别的 Momoka 实例占着共享桌面的自检 mutex；等它退出后同代码复跑全绿，与本批无关。
+
+**没验证的。** 没有真实服务器播放（按三档授权边界未执行），因此播放页没有实屏：宽窄两档、收起/全屏、歌词真实滚动与「不抢滚动位」、五套固定深色与跟随系统浅色下标题栏深色覆盖、高对比度、200% 文字、触摸与 Narrator 都留到统一验证。内嵌歌词是否可读取决于文件格式与标签，当前只用夹具覆盖，真实 FLAC/MP3 未验。封面/控制排的 210 高度与 320 下限是按参考图与控件尺寸估的，实屏可能还要调。
+
+**提交。** 产品与测试 `8c15b16`；转视频守卫 `ec90a0e`；记录 `41b5759`、`9675d71`。
+
+**发布。** 新工作树缺 `libmpv-2.dll`，从主树根目录复制同一份（101,242,880 字节，未入库）后按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-music-player-page-XnHyo3`，548 文件、290.0 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-feat-music-player-page-XnHyo3.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（00:55 生成）。仅体验刷新、不销账；主树 `Momoka.lnk` 未动；已合入 master、未推远端。
+
 ## 2026-11-17／18 详情页整列内容与窗口的间距：1500 之后 170，2K 最大化 2560 时 300（已合并 master，待统一验证）
 
 用户先一句：「2k屏下（其他分辨率你看着调吧），订阅详情页的卡片和媒体详情页的卡片：窗口宽度大于 1500 时卡片和窗口的间距自动切换为 170，窗口大于 2250 时拉宽窗口不直接切换间距，而是跟随窗口大小调整」。追问确认两件事：范围是「整列内容一起收窄」，2250 以上「按窗口宽等比例放大」。2026-11-18 用户补一句：「窗口最宽时卡片和侧边栏的间距为 300」；两问确认落点是「2K 最大化时 300」、且「左右两侧都留 300」。

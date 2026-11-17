@@ -14,6 +14,7 @@ internal sealed partial class MusicBarMotionFixture
     private readonly MusicVisibility _music = new();
     private SurfaceMotion? _musicBarMotion;
     private bool _musicBarShown;
+    private bool _musicPageOpen;
     private FrameworkElement MusicBar { get; } = new() { NaturalHeight = 70, Visibility = Visibility.Collapsed };
     private FrameworkElement ContentHost { get; } = new() { Margin = new Thickness(240, 0, 0, 0) };
     private ContentFrameBoundary ContentFrame { get; } = new();
@@ -28,6 +29,11 @@ internal sealed partial class MusicBarMotionFixture
     internal void Show(bool visible)
     {
         _music.Visible = visible;
+        PlaceMusicBar();
+    }
+    internal void ShowPage(bool open)
+    {
+        _musicPageOpen = open;
         PlaceMusicBar();
     }
     internal void SizeChanged(double height)

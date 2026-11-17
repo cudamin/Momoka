@@ -14,6 +14,10 @@ public sealed partial class MusicPlayerBar : UserControl
     private bool _attached;
     private bool _seeking;
     private (long Intent, long Track, long Generation) _scrubOwner;
+
+    /// <summary>点封面或歌名要展开整页。由外壳决定页面开合与焦点，栏自己只报这一声。</summary>
+    internal event Action? ExpandRequested;
+
     public MusicPlayerBar() => InitializeComponent();
     internal void Attach(MusicPlaybackViewModel viewModel)
     {
@@ -33,6 +37,12 @@ public sealed partial class MusicPlayerBar : UserControl
     public static string FavoriteLabel(bool value) => value ? "取消收藏" : "收藏歌曲";
     /// <summary>主页底部那一条是空底：栏只留控件，不铺胶囊；压在封面上的页面仍用玻璃。</summary>
     internal void ShowSurface(bool show) => SurfaceGlass.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    /// <summary>播放页收起后把焦点还给入口，键盘用户不会掉到窗口里。窄窗封面收起时退到歌名。</summary>
+    internal void FocusCover()
+    {
+        if (CoverButton.Visibility == Visibility.Visible) CoverButton.Focus(FocusState.Programmatic);
+        else TitleButton.Focus(FocusState.Programmatic);
+    }
     public Geometry ShuffleGeometry => IconGeometry("ShuffleData");
     public Geometry FavoriteGeometry(bool value) => IconGeometry(value ? "HeartFilledData" : "HeartData");
     public Geometry RepeatGeometry(string label) => IconGeometry(label == "单曲循环" ? "RepeatOneData" : "RepeatData");
@@ -46,6 +56,7 @@ public sealed partial class MusicPlayerBar : UserControl
     }
     public static string VolumeGlyph(bool value) => char.ConvertFromUtf32(value ? 0xE74F : 0xE767);
     private async void OnPrevious(object sender, RoutedEventArgs args) { if (_attached) await ViewModel.PreviousAsync(); }
+    private void OnExpand(object sender, RoutedEventArgs args) { if (_attached) ExpandRequested?.Invoke(); }
     private async void OnPause(object sender, RoutedEventArgs args) { if (_attached) await ViewModel.TogglePauseAsync(); }
     private async void OnStop(object sender, RoutedEventArgs args) { if (_attached) { QueueFlyout.Hide(); await ViewModel.StopAsync(); } }
     private async void OnNext(object sender, RoutedEventArgs args) { if (_attached) await ViewModel.NextAsync(); }
@@ -84,7 +95,7 @@ public sealed partial class MusicPlayerBar : UserControl
         var compact = args.NewSize.Width < 760;
         var narrow = args.NewSize.Width < 480;
         ShuffleButton.Visibility = RepeatButton.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        CoverFrame.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
+        CoverButton.Visibility = CoverFrame.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
         ClockPanel.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         BarGrid.ColumnSpacing = narrow ? 4 : 12;
         // 第二行只在窄窗用。宽窗它空着，间距却照算，整排键因此被顶到胶囊中线之上 4 —— 空行不该留间距。

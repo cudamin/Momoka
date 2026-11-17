@@ -95,4 +95,18 @@ public static class MusicCatalog
 
     /// <summary>页头那一行读数，例如「492 首」。</summary>
     public static string CountLabel(MusicSection section, int total) => $"{total} {CountUnit(section)}";
+
+    /// <summary>
+    /// 播放页进度条中间那枚格式角标。容器（<c>flac</c>、<c>mp3</c>…）优先，没有就退到音轨编码；
+    /// 两样都没有时返回空串，页面把角标收起 —— 不拿文件名后缀去猜。
+    /// </summary>
+    public static string FormatLabel(EmbyItem item)
+    {
+        var source = item.DefaultMediaSource;
+        var container = source?.Container?.Trim();
+        if (!string.IsNullOrEmpty(container)) return container.ToUpperInvariant();
+        var codec = source?.MediaStreams
+            .FirstOrDefault(stream => string.Equals(stream.Type, "Audio", StringComparison.OrdinalIgnoreCase))?.Codec?.Trim();
+        return string.IsNullOrEmpty(codec) ? "" : codec.ToUpperInvariant();
+    }
 }

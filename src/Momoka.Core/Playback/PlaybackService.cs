@@ -490,6 +490,24 @@ public sealed partial class PlaybackService(
         catch (Exception error) { Log.Warn(Category, $"读取 mpv 属性 {name} 失败", error); return null; }
     }
 
+    /// <summary>
+    /// 一条字符串列表属性（<c>display-tags</c> 这类）。音乐播放页用它找出文件自己带的歌词标签名，
+    /// 再按名去读 <c>metadata/by-key/…</c>。读不到、没有控制通道或已经换代都返回 null，
+    /// 调用方按「没有这条属性」处理，不把空表当成确证。
+    /// </summary>
+    public async Task<IReadOnlyList<string>?> GetStringListAsync(string name)
+    {
+        var handle = _current;
+        if (handle is null) return null;
+        var generation = Generation;
+        try
+        {
+            var values = await handle.GetStringListAsync(name, CancellationToken.None).ConfigureAwait(false);
+            return IsCurrent(handle, generation) ? values : null;
+        }
+        catch (Exception error) { Log.Warn(Category, $"读取 mpv 属性 {name} 失败", error); return null; }
+    }
+
     public async Task<bool> CommandAsync(params string[] arguments)
     {
         if (arguments.Length > 0 && (arguments[0] is "sub-add" or "sub-remove"

@@ -69,6 +69,24 @@ internal static class MusicBarMotionTests
             Assert.Equal(122d, fixture.Page!.PlayerClearance);
             Assert.True(fixture.Bar.IsHitTestVisible);
         }));
+        Test("整页播放时播放栏收起并归还避让，收起页面后恢复", () => With(fixture =>
+        {
+            fixture.UseMusicPage();
+            fixture.Show(true);
+            Storyboard.Advance(SurfaceMotion.EnterMilliseconds);
+            Assert.Equal(Visibility.Visible, fixture.Bar.Visibility);
+            Assert.Equal(102d, fixture.Page!.PlayerClearance);
+
+            fixture.ShowPage(true);
+            Assert.Equal(Visibility.Collapsed, fixture.Bar.Visibility);
+            Assert.False(fixture.Bar.IsHitTestVisible);
+            Assert.Equal(0d, fixture.Page.PlayerClearance);
+
+            fixture.ShowPage(false);
+            Assert.Equal(Visibility.Visible, fixture.Bar.Visibility);
+            Assert.True(fixture.Bar.IsHitTestVisible);
+            Assert.Equal(102d, fixture.Page.PlayerClearance);
+        }));
         Test("音乐栏原生动画启动拒绝仍兑现显示与退出避让", () => With(fixture =>
         {
             fixture.UseMusicPage();
