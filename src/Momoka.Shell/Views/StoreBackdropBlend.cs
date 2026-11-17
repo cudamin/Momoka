@@ -24,14 +24,21 @@ internal static class StoreBackdropBlend
     /// 暗角以左上角为圆心径向展开 —— 角上最浓（窗口底色），沿椭圆弧向外平滑变淡，到画布宽的
     /// <see cref="AmbientFanX"/>、高的 <see cref="AmbientFanY"/> 处完全交给环境底。两轴按画布比例给，
     /// 窗口拉宽拉高时这团暗角等比铺开；左沿不再另加竖直的坡（用户令「左边还是有一条90度的黑色」），
-    /// 右沿另有一道收边。2026-11-18 用户令「右边少扩散一点，下面多扩散」：横向收到 0.12、纵向放到 0.90。
+    /// 右沿另有一道收边。2026-11-18 用户令「右边少扩散一点，下面多扩散」，随后又令「扩散的面积大一点，
+    /// 然后弄淡 更透」：横向 0.22、纵向铺满整个高；角上也不再压到全黑，底子留 <see cref="AmbientFanFloor"/>。
     /// </summary>
-    internal const double AmbientFanX = 0.12;
-    internal const double AmbientFanY = 0.90;
+    internal const double AmbientFanX = 0.22;
+    internal const double AmbientFanY = 1.00;
 
-    /// <summary>径向那团的坡：0 = 角上最浓，1 = 完全交给环境底（smoothstep 由 Interpolate 给）。</summary>
+    /// <summary>
+    /// 角上那一点的透明度下限（0–1）：不给 0，左上角就不会是一块实心黑，环境色从第一像素起就透出来，
+    /// 整团暗角读起来更淡更透（2026-11-18 用户令「弄淡 更透」）。
+    /// </summary>
+    internal const double AmbientFanFloor = 0.35;
+
+    /// <summary>径向那团的坡：角上下限见 <see cref="AmbientFanFloor"/>，1 = 完全交给环境底（smoothstep 由 Interpolate 给）。</summary>
     private static readonly (double Position, double Alpha)[] AmbientFan =
-        [(0, 0), (1, 1)];
+        [(0, AmbientFanFloor), (1, 1)];
 
     /// <summary>对称环境底的右坡：照旧在画布右侧收边。</summary>
     private static readonly (double Position, double Alpha)[] AmbientRight =

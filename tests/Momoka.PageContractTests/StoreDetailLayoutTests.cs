@@ -225,7 +225,8 @@ internal static class StoreDetailLayoutTests
                 mask[((int)Math.Round(y * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
             // 2026-11-17 用户令「左上角的那个渐变要以左上为起点扩散，从浓变淡，过度平滑」：
             // 左上角那团暗角以角为圆心径向展开，沿弧向外平滑变淡，不再是竖边也不是直线斜边。
-            Assert.Equal(0, AmbientAlpha(0, 0));
+            // 2026-11-18 用户令「弄淡 更透」：角上留一道底子，左上角不是实心黑。
+            Assert.True(AmbientAlpha(0, 0) is > 0 and < 128, "左上角还是实心的黑，没有透出环境色");
             Assert.True(AmbientAlpha(0.06, 0.05) is > 0 and < 255, "环境底左上角没有径向渐隐");
             Assert.True(AmbientAlpha(0.06, 0.05) < AmbientAlpha(0.06, 0.30), "环境底暗角没有沿弧向外变淡");
             Assert.Equal(255, AmbientAlpha(0.30, 0.10));
