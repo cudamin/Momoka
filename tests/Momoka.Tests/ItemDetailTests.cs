@@ -819,7 +819,7 @@ internal static class ItemDetailTests
 
     private static void RegisterCast()
     {
-        Test("演职人员：一人只出一张卡，取第一个署名", () =>
+        Test("演职人员：导演排第一，一人只出一张卡，取第一个署名", () =>
         {
             var item = new EmbyItem
             {
@@ -835,8 +835,26 @@ internal static class ItemDetailTests
 
             var cast = ItemDetail.Cast(item);
             Assert.Equal(2, cast.Count);
-            Assert.Equal("芙莉莲", cast[0].Credit);
-            Assert.Equal("导演", cast[1].Credit, "没有角色名时用职务的中文");
+            Assert.Equal("斋藤圭一郎", cast[0].Card.Name, "导演要排在这一排的第一个");
+            Assert.Equal("导演", cast[0].Credit, "没有角色名时用职务的中文");
+            Assert.Equal("芙莉莲", cast[1].Credit);
+        });
+
+        Test("演职人员：多个导演保持服务器次序，仍排在所有人前面", () =>
+        {
+            var item = new EmbyItem
+            {
+                People =
+                [
+                    new EmbyPerson { Id = "p1", Name = "演员甲", Type = "Actor" },
+                    new EmbyPerson { Id = "p2", Name = "导演甲", Type = "Director" },
+                    new EmbyPerson { Id = "p3", Name = "导演乙", Type = "Director" },
+                    new EmbyPerson { Id = "p4", Name = "编剧甲", Type = "Writer" }
+                ]
+            };
+
+            Assert.Equal("导演甲,导演乙,演员甲,编剧甲",
+                string.Join(',', ItemDetail.Cast(item).Select(credit => credit.Card.Name)));
         });
 
         Test("演职人员：卡片是人物类型，所以不会长出播放角标", () =>

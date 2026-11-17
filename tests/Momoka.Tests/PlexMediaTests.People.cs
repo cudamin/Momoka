@@ -37,7 +37,7 @@ internal static partial class PlexMediaTests
             Assert.Equal("/library/metadata/41/thumb", item.People[0].PrimaryImageTag);
             var cast = ItemDetail.Cast(item);
             Assert.Equal(4, cast.Count);
-            Assert.Equal("同名演员,同名演员,导演甲,编剧甲", string.Join(',', cast.Select(credit => credit.Card.Name)));
+            Assert.Equal("导演甲,同名演员,同名演员,编剧甲", string.Join(',', cast.Select(credit => credit.Card.Name)));
         });
         Test("Plex 人物：没有服务器身份仍显示署名，既有后端无身份仍过滤", () =>
         {

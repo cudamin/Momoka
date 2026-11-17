@@ -89,13 +89,13 @@ internal static partial class PlexAffordanceTests
                 Assert.Equal(4, cast.Count);
                 var shelf = ShellAssembly.Get<object>(vm, "CastShelf");
                 var cards = ((System.Collections.IEnumerable)ShellAssembly.Get<object>(shelf, "Cards")).Cast<object>().ToArray();
-                var card = cards[0];
+                var card = cards[1];
                 ShellAssembly.Invoke(vm, "OpenCard", card);
                 Assert.Equal(new PlexBrowseRelation("3", 1, "actor", "42"), actions.ItemsNavigation.Single().PlexRelation);
-                var display = f.Card(cast[1].Card);
+                var display = f.Card(cast[2].Card);
                 Assert.Equal("Collapsed", display.PersonNavigationVisibility.ToString());
                 Assert.Equal("Visible", display.PersonDisplayVisibility.ToString());
-                ShellAssembly.Invoke(vm, "OpenCard", cards[1]);
+                ShellAssembly.Invoke(vm, "OpenCard", cards[2]);
                 Assert.Equal(1, actions.ItemsNavigation.Count);
                 _shell.Attach(vm, f, f.Item("emby"), actions);
                 ShellAssembly.Invoke(vm, "OpenCard", card);

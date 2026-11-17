@@ -799,6 +799,11 @@ public static class ItemDetail
     /// The credited people, deduplicated and capped, each already wrapped in the item a poster shelf
     /// can draw.
     /// <para>
+    /// 导演排在最前（2026-11-17 用户令「把导演添加到演职人员列表里，排第一个」）：这一排回答的是
+    /// 「这部片子是谁做的」，导演是第一个该出现的名字。稳定排序，多个导演之间、其余署名之间的先后
+    /// 仍是服务器给的那一份。
+    /// </para>
+    /// <para>
     /// Emby lists someone once per credit, so a director who also wrote the episode arrives twice. The
     /// first credit is the billed one and a second card for the same face is noise, so the first wins
     /// and the duplicate is dropped rather than merged — 「导演、编剧」 under one portrait would be a
@@ -821,7 +826,7 @@ public static class ItemDetail
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var cast = new List<CastCredit>();
 
-        foreach (var person in item.People)
+        foreach (var person in item.People.OrderByDescending(person => person.Type == "Director"))
         {
             if (person.Name.Length == 0 || person.Id.Length == 0 && !person.DisplayWithoutIdentity) continue;
 

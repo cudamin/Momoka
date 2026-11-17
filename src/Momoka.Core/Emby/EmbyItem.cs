@@ -687,7 +687,7 @@ public sealed class EmbyPerson
     public string Credit => Role is { Length: > 0 } role ? role.Trim() : CreditName(Type);
 
     /// <summary>
-    /// 一种署名的中文说法。演职人员那一排、人物页的影视作品分组和详情页的导演行读的都是这一份 ——
+    /// 一种署名的中文说法。演职人员那一排、人物页的影视作品分组和沉浸模式的详情页导演行读的都是这一份 ——
     /// 三处各写一套的结果是同一个人在三处叫三个名字。
     /// </summary>
     public static string CreditName(string? type) => type switch

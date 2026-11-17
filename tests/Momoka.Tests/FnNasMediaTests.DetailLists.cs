@@ -60,9 +60,9 @@ internal static partial class FnNasMediaTests
             using var fixture = DetailListsFixture();
             var movie = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
             var cast = ItemDetail.Cast(movie);
-            Assert.Equal("演员甲,导演乙,编剧丙", string.Join(',', cast.Select(credit => credit.Card.Name)));
-            Assert.Equal("主角,导演,编剧", string.Join(',', cast.Select(credit => credit.Credit)));
-            Assert.Equal("/portrait/a.webp", cast[0].Card.ImageTags["Primary"]);
+            Assert.Equal("导演乙,演员甲,编剧丙", string.Join(',', cast.Select(credit => credit.Card.Name)));
+            Assert.Equal("导演,主角,编剧", string.Join(',', cast.Select(credit => credit.Credit)));
+            Assert.Equal("/portrait/a.webp", cast[1].Card.ImageTags["Primary"]);
             var body = fixture.Transport.Bodies.Last();
             Assert.Equal(1, body["page"]!.GetValue<int>());
             Assert.Equal(200, body["page_size"]!.GetValue<int>());

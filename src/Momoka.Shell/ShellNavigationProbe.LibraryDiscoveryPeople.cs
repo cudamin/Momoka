@@ -41,6 +41,8 @@ internal sealed partial class ShellNavigationProbe
                     Require(!page.ViewModel.NoticeOpen && cast?.Cards.Count == 4, "Plex 详情没有显示演员、导演、编剧和无标识署名");
                     Require(page.ViewModel.Directors?.Contains("导演乙", StringComparison.Ordinal) == true,
                         "Plex 导演说明没有映射");
+                    Require(cast?.Cards.FirstOrDefault()?.Item.Name == "导演乙",
+                        "Plex 导演没有排在演职人员第一位");
                     var castPanel = Get<StackPanel>(page, "CastPanel");
                     Require(castPanel.Visibility == Visibility.Visible, "Plex 人物区域仍被隐藏");
                     await ScrollFnNasDetailPanelAsync(page, shell, castPanel);

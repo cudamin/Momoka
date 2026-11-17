@@ -287,12 +287,17 @@ internal static class StoreDetailLayoutTests
             var details = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreHeroDetails");
             Assert.Equal("1", (string?)details.Attribute("Grid.Row"));
             Assert.Equal("2", (string?)details.Attribute("Grid.ColumnSpan"));
-            // 正文与导演用内容高度；不得按封面剩余空间撑高。
+            // 正文与导演用内容高度；不得按封面剩余空间撑高。商店模式的导演行收起（导演只在演职人员
+            // 第一位出面），沉浸模式照旧显示，所以这里保留元素并核显隐判据。
             var overview = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "OverviewPanel");
             Assert.True(overview.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "OverviewBody"),
                 "简介没有拆出可撑满的正文容器 OverviewBody");
             Assert.True(overview.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "OverviewFooter"),
                 "简介没有拆出底部导演行 OverviewFooter");
+            var directors = overview.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "DetailDirectorsText");
+            Assert.Equal("{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}", (string?)directors.Attribute("Visibility"));
+            Assert.Contains("Show(!StoreMode && !string.IsNullOrWhiteSpace(Directors))",
+                Source("ViewModels/DetailViewModel.cs"));
             // 商店简介的左内边距是 0，而 EgBodyPanelStyle 带 16 的圆角；圆角留着会把第一个字的左上角剪掉
             // （2026-11-15 用户报「剧情说明第一个字的左上角少了一点」）。这块本来就不画底和框，圆角归零。
             Assert.Equal("0", (string?)overview.Attribute("CornerRadius"));

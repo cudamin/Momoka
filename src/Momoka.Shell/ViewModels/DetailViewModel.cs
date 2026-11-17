@@ -325,7 +325,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 导演, the prose line under 简介. Empty for an item with no director credited, which collapses
-    /// the line — same convention as every other string on this page.
+    /// the line — same convention as every other string on this page. 商店模式不摆这一行（2026-11-17
+    /// 用户令「去掉商店模式导演哪一行，把导演添加到演职人员列表里，排第一个」），沉浸模式照旧。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DirectorsVisibility))]
@@ -534,8 +535,10 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ColumnContinueVisibility));
         OnPropertyChanged(nameof(OverviewMaxLines));
         OnPropertyChanged(nameof(OverviewTrimming));
+        OnPropertyChanged(nameof(OverviewVisibility));
         OnPropertyChanged(nameof(ReadMoreText));
         OnPropertyChanged(nameof(ReadMoreVisibility));
+        OnPropertyChanged(nameof(DirectorsVisibility));
         OnPropertyChanged(nameof(RemainingTimeVisibility));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
@@ -2393,11 +2396,13 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 这一条是「正文那几块坐上亚克力」带出来的：这一块以前是版面里一段没有底的文字，简介为空就是零高，
     /// 屏上看不出来；现在它自己是一块玻璃板，空的一块玻璃是一条 37 高的空板，得自己收起来。判据里带上
-    /// 导演那一行，因为它也长在这一块里 —— 有导演没简介的条目照样得有块板。
+    /// 导演那一行，因为它也长在这一块里 —— 有导演没简介的条目照样得有块板；商店模式不摆导演行，
+    /// 只按简介判。
     /// </para>
     /// </summary>
     public Visibility OverviewVisibility => Show(
-        !string.IsNullOrWhiteSpace(Overview) || !string.IsNullOrWhiteSpace(Directors));
+        !string.IsNullOrWhiteSpace(Overview)
+        || !StoreMode && !string.IsNullOrWhiteSpace(Directors));
 
     // ---------------------------------------------------------------- 单集列表、三条卡片带与媒体信息
 
@@ -2517,7 +2522,11 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility SimilarVisibility => Show(CardVisible("similar") && SimilarShelf is { Cards.Count: > 0 });
 
-    public Visibility DirectorsVisibility => Show(!string.IsNullOrWhiteSpace(Directors));
+    /// <summary>
+    /// 导演说明行只属于沉浸模式（2026-11-17 用户令「去掉商店模式导演哪一行」）；商店模式里导演
+    /// 只在演职人员那一排出面，且排第一。
+    /// </summary>
+    public Visibility DirectorsVisibility => Show(!StoreMode && !string.IsNullOrWhiteSpace(Directors));
 
     /// <summary>
     /// 其他信息那一块板画不画。表和那一行只要有一样有内容就画：电影、剧、集三页都是表加那一行（剧页的表

@@ -1745,7 +1745,8 @@
                              四行够不够，只有量过之后的元素知道。
 
                              这一块原来不判显隐：一段空简介占的高是零，屏上看不出来。有了内边距之后空的一块也占
-                             37 的高，所以显隐得问视图模型 —— 简介和导演两行都空才收起来（OverviewVisibility）。
+                             37 的高，所以显隐得问视图模型 —— 简介为空就收起来，沉浸模式还要看导演行
+                             （OverviewVisibility）。
 
                              外圈和底色同 PickerPanel：都不画（「移除音频和剧情说明那两个栏的框」）。
                              这是压在图上的最后一块：用户画的那条红线就在它的下沿，往下才换成主题的纸色。所以它的
@@ -1806,7 +1807,9 @@
                                         Content="{x:Bind ViewModel.ReadMoreText, Mode=OneWay}"
                                         Padding="0,4,0,4"
                                         Visibility="{x:Bind ViewModel.ReadMoreVisibility, Mode=OneWay}" />
-                                    <!-- 导演 prose 行，Emby 的详情页把导演放在简介底下而不是只埋在演职人员里。 -->
+                                    <!-- 导演 prose 行只属于沉浸模式：商店模式收起（2026-11-17 用户令「去掉商店模式
+                                         导演哪一行，把导演添加到演职人员列表里，排第一个」），那一档导演由演职人员
+                                         列表第一位出面；这里保留 Emby 详情页原本放在简介底下的读法。 -->
                                     <Grid Margin="0,6,0,0" Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}">
                                     <TextBlock
                                         x:Name="DetailDirectorsText"
