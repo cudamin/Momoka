@@ -85,6 +85,13 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private static int StillDecodeWidth => PosterStillWidth;
 
+    /// <summary>
+    /// 封面取色的解码宽度（2026-11-17 用户令「参考上图使用封面颜色加个渐变」）：艺术图那一档的环境底只
+    /// 需要这张封面的大致颜色，64 宽足以让 <see cref="ArtworkAmbient"/> 分出几个色区，解码也几乎不花时间。
+    /// 取图字节仍走封面那一档的宽度，命中同一条缓存，不额外下载一张图。
+    /// </summary>
+    private const int StillColorDecodeWidth = 64;
+
     /// <summary>How many lines of 简介 are shown before 阅读更多 appears.</summary>
     private const int CollapsedLines = 4;
 
@@ -387,6 +394,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWidth))]
     [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
@@ -467,6 +476,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
     [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
+    [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -531,6 +543,11 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(CompactVisibility));
         OnPropertyChanged(nameof(ColumnActionsVisibility));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
+        OnPropertyChanged(nameof(StoreCornerArtVisibility));
+        OnPropertyChanged(nameof(StoreArtHeight));
+        OnPropertyChanged(nameof(StoreArtWidth));
+        OnPropertyChanged(nameof(StoreArtMargin));
+        OnPropertyChanged(nameof(StoreArtWashHeight));
         OnPropertyChanged(nameof(StoreBackdropHeight));
         OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StoreBackdropWidth));
@@ -675,6 +692,21 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>解好的角图原图像素，同 <see cref="_stillPixels"/>（<see cref="FitCorner"/> 的原料）。</summary>
     private (int Width, int Height)? _cornerPixels;
 
+    /// <summary>
+    /// 封面取色用的原图像素 —— 艺术图那一档的顶部环境底从封面取色（2026-11-17 用户令「参考上图使用封面
+    /// 颜色加个渐变」）。它只喂 <c>StoreAmbient</c> 的颜色场，不上屏；换条目、换图、换封面时作废。
+    /// </summary>
+    private HeroPictureLoader.HeroPixels? _stillColorPixels;
+
+    internal HeroPictureLoader.HeroPixels? StillColorPixels => _stillColorPixels;
+
+    /// <summary>封面取色像素到了：告诉页面把艺术图那一档的环境底重画一遍。</summary>
+    private void RememberStillColor(HeroPictureLoader.HeroPixels pixels)
+    {
+        _stillColorPixels = pixels;
+        OnPropertyChanged(nameof(StillColorPixels));
+    }
+
     /// <summary>上一次渲染用的模糊档位；-1 是「还没出过图」。</summary>
     private int _heroBlurRadius = -1;
 
@@ -811,6 +843,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(StoreArtHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     public partial double StillHeight { get; set; }
 
     /// <summary>
@@ -967,6 +1002,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
     public partial double StackRoom { get; set; }
 
     /// <summary>
@@ -2860,6 +2896,11 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(StoreMode));
         OnPropertyChanged(nameof(StoreBackdropVisibility));
+        OnPropertyChanged(nameof(StoreCornerArtVisibility));
+        OnPropertyChanged(nameof(StoreArtHeight));
+        OnPropertyChanged(nameof(StoreArtWidth));
+        OnPropertyChanged(nameof(StoreArtMargin));
+        OnPropertyChanged(nameof(StoreArtWashHeight));
         OnPropertyChanged(nameof(StoreTextWidth));
         OnPropertyChanged(nameof(StoreHeroWidth));
         OnPropertyChanged(nameof(StoreCoverActionsVisibility));
@@ -3125,6 +3166,8 @@ public sealed partial class DetailViewModel : PageViewModel
         {
             _stillPixels = null;
             _cornerPixels = null;
+            _stillColorPixels = null;
+            OnPropertyChanged(nameof(StillColorPixels));
             RefitArtwork();
         }
 
@@ -3818,7 +3861,8 @@ public sealed partial class DetailViewModel : PageViewModel
                     HeroAsync(item, art.Token),
                     Paint(CornerAsync(item, show, art.Token), ShowCorner),
                     Paint(FooterAsync(item, show, art.Token), picture => FooterImage = picture),
-                    Paint(StillAsync(item, show, art.Token), ShowStill))
+                    Paint(StillAsync(item, show, art.Token), ShowStill),
+                    PaintStillColor(StillColorAsync(item, show, art.Token)))
                 .ConfigureAwait(true);
         }
         catch (OperationCanceledException)
@@ -3843,6 +3887,26 @@ public sealed partial class DetailViewModel : PageViewModel
                 assign(picture);
                 NavigationTiming.Mark("image-assign");
             }
+        }
+
+        // 封面取色那一趟（2026-11-17 用户令「参考上图使用封面颜色加个渐变」）：解成像素后交给页面做
+        // 艺术图那一档的环境底。和上面四张图同一套归属检查 —— 旧的一趟回来不许盖新的一页。
+        async Task PaintStillColor(Task<HeroPictureLoader.HeroPixels?> decode)
+        {
+            var pixels = await decode.ConfigureAwait(true);
+            if (Attached && Fresh(art, item) && pixels is not null) RememberStillColor(pixels);
+        }
+
+        // 封面这一次的取图来源和 StillAsync 完全同一条：集页取剧集那一层的 Primary，其余页面取自己的；
+        // 没有 Primary 再退 Thumb。只是这里要的是像素，不是位图。
+        async Task<HeroPictureLoader.HeroPixels?> StillColorAsync(
+            EmbyItem page, Task<EmbyItem?> show, CancellationToken token)
+        {
+            var owner = page.Type == EmbyItemType.Episode ? await show.ConfigureAwait(true) : page;
+            return owner is null
+                ? null
+                : await DecodeFirstPixelsAsync(owner, [EmbyImageStore.Primary, EmbyImageStore.Thumb], token)
+                    .ConfigureAwait(true);
         }
 
         // 电影和剧的头图：解到像素存起来（_heroPixels —— 裁切模糊的原料），按当前的模糊档位渲染上屏，自己
@@ -4058,6 +4122,30 @@ public sealed partial class DetailViewModel : PageViewModel
             if (tag is null || _images!.CaptureScope(item) is not { } scope) return null;
             return await _images.GetDecodedAsync(scope, EmbyImageStore.ImageItemId(item, type), type, tag,
                 EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), candidateToken)
+                .ConfigureAwait(true);
+        }, token).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// 同 <see cref="DecodeFirstAsync(EmbyItem, IReadOnlyList{string}, int, CancellationToken)"/>，只是解成像素
+    /// 而不是位图 —— 只服务封面取色（2026-11-17 用户令「参考上图使用封面颜色加个渐变」）。
+    /// <para>
+    /// 字节仍按封面那一档的宽度取（<see cref="StillDecodeWidth"/>）：和封面本身同一条缓存键，不会为取色再下载
+    /// 一张图；像素宽度封到 <see cref="StillColorDecodeWidth"/>，解出来的只是几个色区，省下的是解码时间。
+    /// </para>
+    /// </summary>
+    private async Task<HeroPictureLoader.HeroPixels?> DecodeFirstPixelsAsync(
+        EmbyItem item, IReadOnlyList<string> types, CancellationToken token)
+    {
+        if (!Attached) return null;
+
+        return await ArtworkCandidates.FirstAsync<string, HeroPictureLoader.HeroPixels>(types, async (type, candidateToken) =>
+        {
+            var tag = EmbyImageStore.TagFor(item, type);
+            if (tag is null || _images!.CaptureScope(item) is not { } scope) return null;
+            return await _images.GetDecodedAsync(scope, EmbyImageStore.ImageItemId(item, type), type, tag,
+                EmbyImageStore.RequestWidth(StillDecodeWidth),
+                bytes => HeroPictureLoader.DecodePixelsAsync(bytes, StillColorDecodeWidth, candidateToken), candidateToken)
                 .ConfigureAwait(true);
         }, token).ConfigureAwait(true);
     }

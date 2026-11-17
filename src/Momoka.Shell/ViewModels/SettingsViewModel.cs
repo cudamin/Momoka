@@ -1153,8 +1153,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Clear();
         AddCards(HomeSections());
         Sections.Add(InterfaceCard());
-        Sections.Add(TrailerCard());
         Sections.Add(DetailAppearanceCard());
+        // 2026-11-17 用户令「预告片卡片放详情页外观下面」：它讲的是详情页右上角与封面悬停的播放方式，
+        // 排在决定详情页长相的那张卡后面。
+        Sections.Add(TrailerCard());
         Sections.Add(DetailContentCard());
         AddCards(DetailLayoutCards());
         Sections.Add(PlayerCard());
@@ -2310,6 +2312,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingSection TrailerCard()
     {
         var trailer = Settings.Trailer;
+        var ui = Settings.Ui;
         var rows = new List<SettingRow>
         {
             Toggle("封面悬停自动播放",
@@ -2334,17 +2337,22 @@ public sealed partial class SettingsViewModel : PageViewModel
                 () => trailer.HoverLoop,
                 value => trailer.HoverLoop = value,
                 after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)),
-
-            Toggle("详情页自动播放",
-                "商店宽版式的详情页右上角自动播放预告片（本地或远程）；关掉后只显示背景图，"
-                    + "预告片按钮仍然可用。",
-                () => trailer.DetailAutoplay,
-                value => trailer.DetailAutoplay = value,
-                after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)),
         };
 
         if (!trailer.HoverAutoplay)
             rows.RemoveAll(row => row.Label is "悬停预告片静音" or "悬停预告片循环");
+
+        // 2026-11-17 用户令「选艺术图的时候自动隐藏相关选项」：艺术图那一档详情页右上角没有预告视口，
+        // 「详情页自动播放」这一行整行收起；悬停那几行管的是封面，照旧显示。切回背景图/预告或沉浸模式时回来。
+        if (ui.EnableImmersive || !ui.StoreCornerArt)
+        {
+            rows.Add(Toggle("详情页自动播放",
+                "商店宽版式的详情页右上角自动播放预告片（本地或远程）；关掉后只显示背景图，"
+                    + "预告片按钮仍然可用。",
+                () => trailer.DetailAutoplay,
+                value => trailer.DetailAutoplay = value,
+                after: () => ShellPrefs.ApplyTrailers(Settings.Trailer)));
+        }
 
         return new SettingSection("界面", "预告片",
             "封面悬停与详情页里的预告片播放方式。悬停只播放服务器本地预告片。", rows);

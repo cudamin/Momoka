@@ -231,6 +231,34 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
         });
+        Test("商店艺术图：顶部换成封面取色的纯色底，铺满左右上角", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            var wash = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreArtWash");
+            Assert.Equal("{x:Bind ViewModel.StoreArtWashHeight, Mode=OneWay}", (string?)wash.Attribute("Height"));
+            Assert.Equal("Stretch", (string?)wash.Attribute("HorizontalAlignment"));
+            Assert.Equal("Collapsed", (string?)wash.Attribute("Visibility"));
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("ViewModel.StoreMode && ViewModel.StoreArtSelected", store);
+            Assert.Contains("StoreArtWash.Margin = bleedMargin;", store);
+            Assert.Contains("StoreArtWash.Visibility = artShown ? Visibility.Visible : Visibility.Collapsed;", store);
+            Assert.Contains("_storeArtWash.Resolve(ViewModel.StillColorPixels, ThemeHost.Current)", store);
+            var style = Source("Views/StoreBackdropStyle.cs");
+            Assert.Contains("internal sealed class Wash", style);
+            Assert.Contains("ArtworkShade.Sample(pixels.Pixels, pixels.Width, pixels.Height, theme.Colors.Window)", style);
+            Assert.Contains("new LinearGradientBrush { StartPoint = new Point(0.5, 0), EndPoint = new Point(0.5, 1) }", style);
+            Assert.Contains("theme.Colors.Window.Mix(color, 0.35)", style);
+            // 2026-11-17 用户令「过度要平滑啊，上面从浓到淡」：多档递减 alpha，不再是一段实色后突然收掉。
+            Assert.Contains("Offset = 0.25, Color = ThemeHost.ToColor(color.WithAlpha(215))", style);
+            Assert.Contains("Offset = 0.5, Color = ThemeHost.ToColor(color.WithAlpha(155))", style);
+            Assert.Contains("Offset = 0.75, Color = ThemeHost.ToColor(color.WithAlpha(75))", style);
+            var vm = Source("ViewModels/DetailViewModel.cs");
+            Assert.Contains("private const int StillColorDecodeWidth = 64;", vm);
+            Assert.Contains("private HeroPictureLoader.HeroPixels? _stillColorPixels;", vm);
+            Assert.Contains("DecodeFirstPixelsAsync(owner, [EmbyImageStore.Primary, EmbyImageStore.Thumb], token)", vm);
+            Assert.Contains("RememberStillColor(pixels)", vm);
+            Assert.Contains("nameof(ViewModels.DetailViewModel.StillColorPixels)", Source("Views/DetailPage.Appearance.cs"));
+        });
         Test("详情头部：片名单行不折、徽标不随商店档缩小、片名栏保底宽度压在剧照上", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

@@ -32,6 +32,26 @@
 
 **合并（`337401f`）。** 用户令「合并，完了清理」。主树里另一会话留下的未提交探针改动与规则审查报告先按用户选择单独提交为 `260d545`，随后 `--no-ff` 合入 master，无冲突。合并后在最终代码上重跑：Shell Release/x64 **0 警告 0 错误**；`Momoka.ProbeFinalizationTests` **115/115**；全量 `Momoka.Tests` **5223/5223**、0 失败 0 跳过（首轮两条「下载到设备」因本会话 `TEMP` 指向 `C:\WINDOWS\TEMP` 被拒，改用用户临时目录后全绿，与产品无关）。按改好收尾发布主树（548 文件、289.9 MB）并刷新桌面 `Momoka.lnk`，仅体验刷新、不销账。合并提交与本次记录待下一批推送。分支工作树、分支与桌面快捷方式已按内容确认全部进入 master 后删除；台账第 76 项保留，统一验证与销账另做。
 
+## 2026-11-17 商店详情右上角可选背景图/预告或艺术图（分支 feat-store-art-selector-6Gj3y5，已合并 master，待统一验证）
+
+用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能。做个选择框，选择背景图/预告 或者 艺术图」。追问确认三件事：选择框放设置 → 界面 → 详情页外观；艺术图先按沉浸档右上角那张的尺寸（360×202.5，窗口超过 1280 后到 540×303.75）；窄窗口（页宽不足 1024）不摆这一角。随后用户实拍指出尺寸/落点不对，艺术图改为与左边封面同高、右沿不越过下方卡片（见下面的同日追加）。
+
+**改了什么。** `UiSettings` 新增 `StoreCornerArt`（默认 false，旧设置文件读出来就是现在的样子）。详情页外观卡在商店模式下多一行「右上角显示」：`背景图/预告`（false）与 `艺术图`（true），选完喊 `ShellPrefs.ApplyAppearance`，已打开的详情页当场重排。Core 的 `DetailHero` 新增两条纯函数：`StoreBackdropShown`（商店 + 没选艺术图 + 有剧照）与 `StoreCornerArtShown`（商店 + 选艺术图 + 宽版式 + 艺术图已解出来），季页没有艺术图，这一句自然为否。`DetailViewModel` 的 `StoreBackdropVisibility` 改问前者 —— 它一面管着右上角那块剧照，一面管着环境色、左上角淡墨、窄窗亚克力与尾部让位，选艺术图时这些整块一起收起；新增 `StoreCornerArtVisibility` 与 `RefreshAppearance`／`AnnounceShape`／`PageWidth`／`CornerImage` 的通知。`DetailPage.xaml` 在装饰背景之后新增 `StoreArt`：`ImageBrush` 按 Uniform 画 `CornerImage`（与沉浸档 `CornerArt` 同一张图），圆角沿用 `EgCardCornerRadius`。`UpdateStoreTrailer` 在选艺术图时直接走 `StopStoreTrailer`，预告不起播、控制键与视频底层一起收掉；切回背景图/预告时照旧重新接上。
+
+**同日追加（用户附实拍两句话：「你这艺术图位置不对把，高度要和左边的封面一样高，右边边缘不能超过下面的卡片」与「预告片卡片放详情页外观下面，选艺术图的时候自动隐藏相关选项」）。** ①艺术图尺寸与落点改由封面和内容右沿决定：高＝`StillHeight`（左边封面实际画多高就多高），宽按这张位图自己的宽高比乘出来（`StoreArtWidth`，没解出像素时按 16:9 兜底），上沿与封面同一条线（`StoreArtMargin.Top = HeroInset.Top`），右沿贴住下方正文卡片的内容右沿（`StorePageInset`），不再像剧照预览那样贴着窗口边只留 16。XAML 的宽高与边距改绑 `StoreArtWidth`／`StoreArtHeight`／`StoreArtMargin`，并在 `StillHeight`／`PageWidth`／`CornerImage` 的生成通知表与 `RefreshAppearance`／`AnnounceShape` 里补齐。②`ReloadAsync` 的加卡次序改成「详情页外观」在前、「预告片」在后；`TrailerCard()` 在「商店模式 + 选艺术图」时不再加「详情页自动播放」这一行（悬停那几行照旧），`DetailAppearanceCard` 的显示模式行与「右上角显示」行的 `after` 都补 `RefreshTrailerApplicability`，切档当场重算。
+
+**同日再追加（用户令「可以，再参考上图使用封面颜色加个渐变」，随后再令「要纯色，铺满左上角和右上角」）。** 艺术图那一档把顶部的装饰交还给一块按封面颜色生成的底：`DetailViewModel` 多一趟封面取色解码 `DecodeFirstPixelsAsync`（集页取剧集那一层的封面，其余页面取自己的，先 Primary 再 Thumb；字节宽度与封面同一条缓存键，像素封到 `StillColorDecodeWidth = 64`），像素经 `RememberStillColor` 交给页面。第一版用多色环境底，用户看过后要求「纯色、铺满左上角和右上角」：改成 `StoreArtWash` 专用层 —— `StoreBackdropStyle.Wash` 用 `ArtworkShade.Sample` 只取<em>一个</em>颜色，纵向从实色淡到透明，左右不设遮罩、两侧用 bleed 负边距铺到窗口边，两个上角都是同一片颜色；浅色主题把取色混进窗口色（`Mix(color, 0.35)`），深墨字仍读得清。背景图/预告那一档仍用剧照的环境底，两种档位互不串色；封面取不到像素时这一层透明，等于不画。`Release()` 里和其余商店画刷一起清掉。
+
+**同日再改（用户令「面积不够大，要到卡片上方」，随后再令「你这过度要平滑啊，上面从浓到淡」）。** 纯色底的高度不再跟右侧剧照视口/环境底取大，改成头图那一格加尾部那道缝与纸面上留白 —— `StoreArtWashHeight = HeroHeight + TailInset.Top + SheetPadding.Top`（2 + 14 = 16），正好铺到正文第一张卡的上沿；`StillHeight`／`StackRoom`／`PageWidth`／`StoreDetailsRoom` 与 `RefreshAppearance`／`AnnounceShape` 都补了这一句的通知。渐变按「上面从浓到淡」改成五档匀降：0 实色、0.25 处 alpha 215、0.5 处 155、0.75 处 75、1 处透明，不再是一段实色之后突然收掉。`DetailShapeNotificationTests` 在每档页宽上核对高度公式并核详情晚到的通知；`StoreDetailLayoutTests` 的高度绑定与三档 alpha 同步。
+
+**再追加的测试。** `Momoka.DetailImageArrivalTests`（源码提取）新增封面取色的请求数与交付断言，门控前取消、旧批次身份变更都不发起也不交付取色；`StoreDetailLayoutTests` 新增契约：`StoreArtWash` 通栏、按艺术图档开合、`StoreBackdropStyle.Wash` 只取一个颜色并纵向淡出、浅色主题混窗口色、`StillColorDecodeWidth = 64` 与 `StillColorPixels` 通知接线。
+
+**测了什么。** `ItemDetailTests` 新增商店右上角两条纯函数真值表（默认铺剧照、选艺术图才摆且必须宽版式加图到手）；`SettingsPageStateTests` 新增「右上角显示」两档选项、默认选中背景图/预告、选择写回设置并通知 `AppearanceChanged`、选艺术图时「详情页自动播放」整行收起、沉浸模式整行收起、预告片卡在详情页外观之后的次序，并把商店模式的行集合改为 `显示模式｜右上角显示`；`DetailShapeNotificationTests` 补 `StoreCornerArtVisibility` 的默认收起与选艺术图后的重算通知，并在各档页宽上钉住「艺术图高＝封面高、宽按 16:9 兜底、上沿与右沿跟着 `HeroInset`／`StorePageInset` 走」；`ShellNavigationProbe.DetailCustomization` 的商店行数预期同步为两行（探针当轮未跑，留给统一验证）。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（初版 2 分 17.83 秒、落点修订 2 分 52.41 秒、封面渐变 2 分 01.92 秒、纯色底 2 分 16.22 秒、铺到卡上沿 2 分 57.43 秒、平滑淡出 3 分 10.74 秒）；全量 `Momoka.Tests` **5218/5218、0 失败 0 跳过**（平滑淡出这一轮首跑 5217/5218、1 项未留日志的失败，同代码复跑全绿；另首跑两条下载用例因 TEMP 指向 `C:\WINDOWS\TEMP` 被沙箱拒，改用用户临时目录重跑即全绿，与产品无关）；`Momoka.PageContractTests` **354/354**；`Momoka.DetailImageArrivalTests` **26/26**；`settings-page-state-fixture` **59/59**、`detail-action-readiness-fixture` **94/94**；`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 通过。按改好收尾发布本树并刷新桌面快捷方式 `Momoka-feat-store-art-selector-6Gj3y5.lnk`（指向本树 `artifacts/publish/win-x64`，平滑淡出后在 20:13 重发）。
+
+**未验证。** 按日常界面规则未跑原生探针与验收截图；实屏上的艺术图与封面同高同线、右沿与下方卡片对齐、顶部纯色底的颜色与纵向淡出、纯色底下沿是否正好压到首张卡上沿、左上/右上两个角是否铺满、切换行时预告是否停住、没有艺术图的条目与季页这一角是否空着、预告片卡的新次序与「详情页自动播放」的收起、浅色主题与高对比度，留给统一验证，记入[待交付批次](docs/待交付批次.md)第 78 条。分支已合并 master，未推远端。
+
 ## 2026-11-17 集成模式暂停/播放徽标全屏档 ×1.3（主树 master，待统一验证）
 
 用户一句话：「集成模式点击屏幕暂停/开始时出现的图标全屏时要何集成模式一样放大1.3倍」——「何」按「和」读。
