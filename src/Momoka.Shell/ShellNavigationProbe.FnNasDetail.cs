@@ -67,10 +67,12 @@ internal sealed partial class ShellNavigationProbe
                     // 集页面左上角统一使用剧封面，不要用集封面」）。这条夹具的单集故意没有 tv_guid（列表上的飞牛
                     // 单集就是这样），剧是详情那一趟才补回来的 —— 所以它同时钉住「剧问出来之后封面要重取」
                     // （ItemArtwork.SameCoverSource）：本集自己那张 1280×720 的剧照装进同一格会得到另一组数，
-                    // 只有 400×600 的剧海报才量与这一格一致。商店档（默认）上限 180×270，沉浸档 260×375。
+                    // 只有 400×600 的剧海报才量与这一格一致。商店档（默认）高跟右栏「徽标上沿到主播放键下沿」
+                    // 的实测（StoreCoverRoom），宽按图比例、最宽 260；沉浸档 260×375。
                     await UntilAsync(() => page.ViewModel.StillImage is not null);
+                    await LayoutAsync(page);
                     var poster = page.ViewModel.StoreMode
-                        ? DetailHero.StillBox(400, 600, 180, 270) ?? default
+                        ? DetailHero.StoreStillBox(400, 600, page.ViewModel.StoreCoverRoom)
                         : DetailHero.StillBox(400, 600, 260, 375) ?? default;
                     Require(Math.Abs(page.ViewModel.StillWidth - poster.Width) < 0.6
                         && Math.Abs(page.ViewModel.StillHeight - poster.Height) < 0.6,

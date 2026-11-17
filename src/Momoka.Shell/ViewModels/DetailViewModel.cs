@@ -74,7 +74,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private const int FooterDecodeWidth = 760;
 
-    /// <summary>四种详情封面统一使用集页的 260×375 上限，按原图比例显示。</summary>
+    /// <summary>其余档的详情封面统一使用集页的 260×375 上限，按原图比例显示（商店档另有自己的实测盒）。</summary>
     private const int PosterStillWidth = 260;
 
     private const int PosterStillHeight = 375;
@@ -1155,7 +1155,8 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 封面按图片原始比例装入统一的 260×375 上限盒（<see cref="PosterStillWidth"/>），
+    /// 封面按图片原始比例装入上限盒：其余页面是统一的 260×375（<see cref="PosterStillWidth"/>），商店档是
+    /// 右栏「徽标上沿到主播放键下沿」那一段实测高、宽不超过 260（<see cref="DetailHero.StoreStillBox"/>）。
     /// 尺寸不随窗口宽走：简洁模式始终显示封面，其他模式只在宽版式显示。
     /// （<see cref="CoverShown"/> —— 紧凑版式下四种页面都不画，2026-10-13「窄窗口下不要封面」），而宽版式的组件
     /// 本来就不跟着窗口缩（「固定集页面封面的大小，拉窄窗口时不要缩小」，同一天的第一句）。不画的档先把宽高归零，
@@ -1178,18 +1179,24 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var maxW = StoreMode ? 180d : PosterStillWidth;
-        var maxH = StoreMode ? 270d : PosterStillHeight;
+        if (StoreMode)
+        {
+            // 2026-11-17 用户令「封面放大一点，上方和徽标上方平行，下方和播放按钮下方平行」：
+            // 高取右栏那一段实测（StoreCoverRoom），宽按图自己的比例、收在 260 以内。
+            (StillWidth, StillHeight) = DetailHero.StoreStillBox(
+                _stillPixels?.Width ?? 0, _stillPixels?.Height ?? 0, StoreCoverRoom);
+            return;
+        }
 
         if (_stillPixels is { } pixels
-            && DetailHero.StillBox(pixels.Width, pixels.Height, maxW, maxH) is { } fit)
+            && DetailHero.StillBox(pixels.Width, pixels.Height, PosterStillWidth, PosterStillHeight) is { } fit)
         {
             (StillWidth, StillHeight) = fit;
         }
         else
         {
-            StillWidth = Math.Round(maxW);
-            StillHeight = Math.Round(maxH);
+            StillWidth = PosterStillWidth;
+            StillHeight = PosterStillHeight;
         }
     }
 

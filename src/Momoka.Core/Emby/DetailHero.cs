@@ -84,6 +84,20 @@ public static class DetailHero
     public const double StoreCoverColumn = 180;
 
     /// <summary>
+    /// 商店档封面还没有实测高、或者这一档没有主播放键时的兜底盒：180×270，和其余详情页的封面同形、小一号。
+    /// </summary>
+    public const double StoreStillWidth = 180;
+
+    /// <inheritdoc cref="StoreStillWidth"/>
+    public const double StoreStillHeight = 270;
+
+    /// <summary>
+    /// 商店档封面放大之后最宽到多少 —— 其余详情页那一档封面的 260。比这更宽的图按宽收住，
+    /// 不会被「徽标到播放键下沿」那一段高拉成一条通栏。
+    /// </summary>
+    public const double StoreStillMaxWidth = 260;
+
+    /// <summary>
     /// 商店档片名栏（封面右边那一栏）的保底宽度。
     /// <para>
     /// 2026-11-16 用户令「位置不够时不要裁切，直接压在背景图上」：宽版式给右侧剧照让位之后，片名栏在
@@ -686,6 +700,29 @@ public static class DetailHero
             Math.Min(Math.Round(pixelHeight * scale), maxHeight));
 
         static bool Sane(double value) => double.IsFinite(value) && value > 0;
+    }
+
+    /// <summary>
+    /// 商店档封面这一次画多大（2026-11-17 用户令「把商店模式下媒体详情页左上角的封面放大一点，让它上方和
+    /// 徽标上方平行，下方和播放按钮下方平行」）。
+    /// <para>
+    /// 高取右栏「徽标上沿到主播放键下沿」的实测（<paramref name="coverRoom"/>，由视图量给），比兜底 270 还小时
+    /// 不再缩 —— 用户要的是放大，没长到 270 的版面不该被这一句压小。宽按这张位图自己的比例乘出来，最宽收到
+    /// <see cref="StoreStillMaxWidth"/>（其余详情页那一档的 260）；横图由宽度收住，不会因为这一段高变成通栏。
+    /// 像素还没到、或者这一档没有图时，按 180×270 那个比例给一个同形的空框。
+    /// </para>
+    /// </summary>
+    /// <param name="pixelWidth">解出来那张位图的像素宽。</param>
+    /// <param name="pixelHeight">同上，像素高。</param>
+    /// <param name="coverRoom">封面这一格要长到的高（右栏徽标上沿到主播放键下沿）；0 或无效值表示还没量到。</param>
+    public static (double Width, double Height) StoreStillBox(
+        double pixelWidth, double pixelHeight, double coverRoom)
+    {
+        var height = Math.Max(StoreStillHeight,
+            double.IsFinite(coverRoom) ? Math.Max(0, coverRoom) : 0);
+
+        return StillBox(pixelWidth, pixelHeight, StoreStillMaxWidth, height)
+            ?? (Math.Round(height * StoreStillWidth / StoreStillHeight), Math.Round(height));
     }
 
     /// <summary>
