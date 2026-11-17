@@ -1,3 +1,13 @@
+## 2026-11-17 商店窄档亚克力：头部上留白与左右同值（未合并）
+
+用户附商店模式单集详情截图一句「窄窗口出现亚克力背景时候组件整体向上移到一点，左边跟上面的间距要一致」。截图量得亚克力层的左沿在内容区最左边，封面左距 56、上距 72 —— 正是商店档 `HeroInset` 的左右 `StorePageInset` 与 `StoreHeroTop`，两者在窄档不相等。
+
+**改了什么。** Core 新增 `DetailHero.StoreHeroInsetTop(width)`：页宽窄过 `StoreWideFloor`（与 `StoreBackdropAcrylic` 出现的判据同一档）时返回 `StorePageInset(width)`，宽版式仍返回 `StoreHeroTop`（72），页宽未量到（0／NaN）按宽版式给。媒体详情页商店档 `HeroInset.Top` 与 MoviePilot 订阅详情页 `HeaderPadding.Top` 改读它，窄档顶部留白因此与左右同为 56（600～1023）／32（600 以下），组件整体上移 16；宽版式不动。带高由 `HeroInset` 相加，`HeroContent` 与亚克力高度跟着少 16。
+
+**检查。** Shell Release/x64 0 警告 0 错误；`episode-display-fixture` 34/34（`DetailLayoutTests` 新增窄档五档与宽版式三档纯函数断言）；`detail-action-readiness-fixture` 94/94（`DetailShapeNotificationTests` 的 1200／360 两档改为按 `StoreHeroInsetTop` 断言，并补窄档与左右同值）；`Momoka.MoviePilotSubscribeSettingsTests` 78/78（补 360／760 两档）；`Momoka.PageContractTests` 352/352。商店顶部探针 `ShellNavigationProbe.StoreDetailBackdrop` 的封面顶距改按 `StoreHeroInsetTop(page.ViewModel.PageWidth)` 对表，不再固定 72。未跑原生探针与实屏，未发布、未合并；待跑项记入[待交付批次](docs/待交付批次.md)第 67 条。
+
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-narrow-acrylic-gap-wEnXzC`，分支 `fix-narrow-acrylic-gap-wEnXzC`，基点 `aa01a4a`。
+
 ## 2026-11-17 恢复主题自带强调色，色板末格改回跟随系统（已合并 master，已发布主树）
 
 用户附主题设置截图报「这个薄荷影院怎么不生效了」，随后令「右下角的主题色改为跟随当前系统设置，不要自己自选」。根因是 2026-11-16 晚的「主题色默认跟随 Windows 主题色」把强调色一族交给 `UIColorType.Accent`；本机系统强调色是 `#3F3F3F` 灰，薄荷影院的窗口与面色仍是薄荷底色，但按钮、选中项、角标与主题色格全部变灰，看起来像整套主题没生效。
