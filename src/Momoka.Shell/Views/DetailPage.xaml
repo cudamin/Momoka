@@ -356,6 +356,12 @@
             </Grid>
             <Border x:Name="StoreAmbientMask" />
         </Grid>
+        <!-- 艺术图那一档的纯色底（2026-11-17 用户令「要纯色，铺满左上角和右上角」）：从封面取一个颜色，
+             纵向淡到透明，左右不收边，两个上角是一整片同色。边距由 DetailPage.Store.cs 的 bleed 写，
+             超宽窗口也铺到两侧；剧照/环境底那一档收起。 -->
+        <Border x:Name="StoreArtWash" Height="{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                IsHitTestVisible="False" Visibility="Collapsed" />
         <Grid x:Name="StoreBackdrop" Height="{x:Bind ViewModel.StoreBackdropHeight, Mode=OneWay}"
               Width="{x:Bind ViewModel.StoreBackdropWidth, Mode=OneWay}" HorizontalAlignment="Right"
               Margin="{x:Bind ViewModel.StorePreviewMargin, Mode=OneWay}"

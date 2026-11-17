@@ -231,12 +231,23 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
         });
-        Test("商店艺术图：顶部环境底改用封面取色，跟随艺术图档开合", () =>
+        Test("商店艺术图：顶部换成封面取色的纯色底，铺满左右上角", () =>
         {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            var wash = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreArtWash");
+            Assert.Equal("{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}", (string?)wash.Attribute("Height"));
+            Assert.Equal("Stretch", (string?)wash.Attribute("HorizontalAlignment"));
+            Assert.Equal("Collapsed", (string?)wash.Attribute("Visibility"));
             var store = Source("Views/DetailPage.Store.cs");
             Assert.Contains("ViewModel.StoreMode && ViewModel.StoreArtSelected", store);
-            Assert.Contains("StoreAmbient.Visibility = artShown ? Visibility.Visible : StoreBackdrop.Visibility;", store);
-            Assert.Contains("artShown ? ViewModel.StillColorPixels : ViewModel.BackdropPixels", store);
+            Assert.Contains("StoreArtWash.Margin = bleedMargin;", store);
+            Assert.Contains("StoreArtWash.Visibility = artShown ? Visibility.Visible : Visibility.Collapsed;", store);
+            Assert.Contains("_storeArtWash.Resolve(ViewModel.StillColorPixels, ThemeHost.Current)", store);
+            var style = Source("Views/StoreBackdropStyle.cs");
+            Assert.Contains("internal sealed class Wash", style);
+            Assert.Contains("ArtworkShade.Sample(pixels.Pixels, pixels.Width, pixels.Height, theme.Colors.Window)", style);
+            Assert.Contains("new LinearGradientBrush { StartPoint = new Point(0.5, 0), EndPoint = new Point(0.5, 1) }", style);
+            Assert.Contains("theme.Colors.Window.Mix(color, 0.35)", style);
             var vm = Source("ViewModels/DetailViewModel.cs");
             Assert.Contains("private const int StillColorDecodeWidth = 64;", vm);
             Assert.Contains("private HeroPictureLoader.HeroPixels? _stillColorPixels;", vm);
