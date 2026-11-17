@@ -351,6 +351,12 @@ internal static class Program
             SettingsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["proxy-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ProxySettingsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["device-header-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -629,6 +635,7 @@ internal static class Program
         SelfCheckOutputIsolationTests.Register();
         SettingsTests.Register();
         SettingsLayoutTests.Register();
+        ProxySettingsTests.Register();
         LocalMediaLayoutTests.Register();
         ToolbarIconTests.Register();
         StartupEntryTests.Register();

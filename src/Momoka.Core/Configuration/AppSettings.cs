@@ -53,6 +53,9 @@ public sealed class AppSettings
     /// <summary>封面悬停与详情页的预告片播放方式；设置页「界面 → 预告片」那一张卡。</summary>
     public TrailerSettings Trailer { get; set; } = new();
 
+    /// <summary>设置页「关于 → 网络」那一张卡：刮削与 YouTube 预告用的代理服务器。</summary>
+    public NetworkSettings Network { get; set; } = new();
+
     public ShortcutSettings Shortcuts { get; set; } = new();
 
     public DanmakuSettings Danmaku { get; set; } = new();

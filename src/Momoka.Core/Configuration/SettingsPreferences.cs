@@ -82,6 +82,9 @@ public static class SettingsPreferences
         Overwrite(destination.Buffer, source.Buffer);
         Overwrite(destination.Shaders, source.Shaders);
         Overwrite(destination.Trailer, source.Trailer);
+        // 代理服务器（2026-11-18，设置 → 关于 → 网络）也是设置页上的一行：备份带它、恢复默认把它清空。
+        // 它没有凭据，也不指向任何账号，所以不是 MoviePilot / 弹幕那种「本机连接」的例外。
+        Overwrite(destination.Network, source.Network);
         Overwrite(destination.Shortcuts, source.Shortcuts);
 
         // 可执行文件与输出目录是本机配置，不从可分享的备份导入另一个程序。

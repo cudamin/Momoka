@@ -469,7 +469,7 @@ internal static class SettingsPageStateTests
                 ("播放行为", "播放行为"), ("播放行为", "跳转与步长"), ("播放行为", "音轨"),
                 ("音频输出", "输出设备"), ("音频输出", "响度"), ("音频输出", "直通"),
                 ("字幕", "字幕"), ("字幕", "字幕外观"), ("字幕", "编码与画面"),
-                ("关于", "关于"), ("关于", "启动"), ("关于", "更新"), ("关于", "文件与缓存"), ("关于", "备份与恢复")
+                ("关于", "关于"), ("关于", "启动"), ("关于", "更新"), ("关于", "网络"), ("关于", "文件与缓存"), ("关于", "备份与恢复")
             })
             {
                 Assert.True(fixture.ViewModelSource.Contains($"new SettingSection(\"{category}\", \"{title}\"", StringComparison.Ordinal),
@@ -736,8 +736,8 @@ internal static class SettingsPageStateTests
             _shell = AssemblyLoadContext.Default.LoadFromAssemblyPath(shellPath);
             _viewModel = _shell.GetType("Momoka.Shell.ViewModels.SettingsViewModel", throwOnError: true)!;
             ViewModelSource = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
-            // 2026-10-27 起关于卡拆成四张，2026-11-16 又新增「启动」卡（开机自启从界面卡搬来）；建卡入口叫
-            // AboutSections()；取的是这一整段（五张卡都在里面）。
+            // 2026-10-27 起关于卡拆成四张，2026-11-16 又新增「启动」卡（开机自启从界面卡搬来），
+            // 2026-11-18 新增「网络」卡（代理服务器）；建卡入口叫 AboutSections()；取的是这一整段。
             var aboutStart = ViewModelSource.IndexOf("private IReadOnlyList<SettingSection> AboutSections()", StringComparison.Ordinal);
             var aboutEnd = ViewModelSource.IndexOf("private async Task MeasureImageCacheAsync()", aboutStart, StringComparison.Ordinal);
             AboutSource = ViewModelSource[aboutStart..aboutEnd];

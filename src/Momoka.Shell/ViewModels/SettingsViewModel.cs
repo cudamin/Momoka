@@ -2780,8 +2780,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         };
 
         // 2026-10-27 拆卡（用户令「其他页也拆一下」）：关于原来一张卡十六行，版本号、检查更新、磁盘位置、
-        // 备份恢复四件事混在一起。现在五张卡（2026-11-16 按「设置中的开机自启移动到关于中」新增「启动」），
-        // 破坏性的「恢复默认设置」仍在最后一行的最后。「启动」紧挨着「更新」：两件都是启动时的行为。
+        // 备份恢复四件事混在一起。现在六张卡（2026-11-16 按「设置中的开机自启移动到关于中」新增「启动」，
+        // 2026-11-18 按「在设置关于中新增代理服务器」新增「网络」），破坏性的「恢复默认设置」仍在最后一行的最后。
+        // 「启动」紧挨着「更新」：两件都是启动时的行为；「网络」在「更新」后面 —— 两件都是出门的事。
         return
         [
             new SettingSection("关于", "关于",
@@ -2789,10 +2790,49 @@ public sealed partial class SettingsViewModel : PageViewModel
             .. StartupSections(),
             new SettingSection("关于", "更新",
                 "启动时要不要顺路问一句有没有新版本，以及现在就想知道结果时按这里。", updateRows),
+            .. NetworkSections(),
             new SettingSection("关于", "文件与缓存",
                 "设置、日志、缓存和截图在这台机器上的位置，以及海报缓存占了多少地方。", fileRows),
             new SettingSection("关于", "备份与恢复",
                 "把偏好设置导出带走，或者从备份里读回来；恢复默认只动设置页管的那些项。", backupRows)
+        ];
+    }
+
+    /// <summary>
+    /// 关于分类里的「网络」卡（2026-11-18 用户令「在设置关于中新增代理服务器，用于刮削和播放油管视频」）。
+    /// <para>
+    /// 这一行管的是本机直接连外网的两处：本机整理的 TMDB 刮削（<c>TmdbClient</c>）与详情页的 YouTube 预告
+    /// （共享的 WebView2 配置）。Emby／Jellyfin／飞牛／Plex／MoviePilot 的连接是用户自己那几台服务器，
+    /// 不经过这一行 —— 把内网地址也塞进代理只会把它们弄坏。
+    /// </para>
+    /// <para>
+    /// 改完当场生效：TMDB 那头重开媒体库监控、本机整理页换掉手里的客户端；YouTube 那头在下一次建 WebView2
+    /// 环境时读新值。归一化在 <see cref="ProxyEndpoint.Normalize"/>，认得出的地址整理成
+    /// <c>scheme://host:port</c>，认不出的原样留着但不生效。
+    /// </para>
+    /// </summary>
+    private IReadOnlyList<SettingSection> NetworkSections()
+    {
+        var network = Settings.Network;
+        return
+        [
+            new SettingSection("关于", "网络",
+                "Momoka 直接连外网的两处 —— 本机整理的 TMDB 刮削、详情页的 YouTube 预告 —— 走这里的代理；"
+                    + "你自己那几台媒体服务器和 MoviePilot 的连接不经过它。",
+                [
+                    new SettingTextRow("代理服务器",
+                        "设置代理服务器地址，支持：http(s)、socks5、socks5h 等协议；留空则跟随系统代理。",
+                        "http://127.0.0.1:8686",
+                        network.ProxyServer,
+                        typed =>
+                        {
+                            var value = ProxyEndpoint.Normalize(typed);
+                            network.ProxyServer = value;
+                            return value;
+                        },
+                        Save,
+                        () => ShellPrefs.ApplyProxy(network))
+                ])
         ];
     }
 
@@ -3046,6 +3086,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         ThemeHost.Apply(ui);
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyTrailers(Settings.Trailer);
+        ShellPrefs.ApplyProxy(Settings.Network);
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
         ShellPrefs.ApplySubtitleTranslation();
