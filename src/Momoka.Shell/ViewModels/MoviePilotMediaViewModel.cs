@@ -420,9 +420,13 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// <summary>所有模式使用同一套紧凑留白。</summary>
     public Thickness BodySheetPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left, 8,
         Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 8);
-    /// <summary>商店档顶部也读 <see cref="DetailHero.StoreHeroTop"/>，和媒体详情页同一条顶线；沉浸档仍 12。</summary>
+    /// <summary>
+    /// 商店档顶部读 <see cref="DetailHero.StoreHeroInsetTop"/>，和媒体详情页同一条顶线：宽版式是
+    /// <see cref="DetailHero.StoreHeroTop"/> 那一道空位，窄档顶部铺亚克力时收成与左右留白同值
+    /// （2026-11-17 用户令「左边跟上面的间距要一致」）；沉浸档仍 12。
+    /// </summary>
     public Thickness HeaderPadding => new(Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left,
-        Plain ? DetailHero.StoreHeroTop : 12,
+        Plain ? DetailHero.StoreHeroInsetTop(PageWidth) : 12,
         Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Right, 0);
     public double BodySheetSpacing => Plain ? 10 : 8;
     public Thickness BodyPanelPadding => new(12);

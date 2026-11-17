@@ -1424,8 +1424,14 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 封面（<see cref="HeroColumnHeight"/>），「剩余 x 分钟」就贴在封面下沿上；带子底下再留 24 只是把剧情说明
     /// 往下推。说明的第一行由此落在下沿底下 <see cref="TailInset"/> 那点缝加它自己的内边距上。
     /// </para>
+    /// <para>
+    /// 商店档（<see cref="StoreMode"/>）分两段：窄档顶部是整幅剧照加亚克力，上留白取
+    /// <see cref="DetailHero.StoreHeroInsetTop"/> —— 那一档正好等于左右留白，封面、片名与左沿、上沿
+    /// 同距（2026-11-17 用户令「左边跟上面的间距要一致」）；宽版式仍是 <see cref="DetailHero.StoreHeroTop"/>
+    /// 那一道空位。
+    /// </para>
     /// </summary>
-    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), DetailHero.StoreHeroTop, DetailHero.StorePageInset(PageWidth), 0) : IsCompact
+    public Thickness HeroInset => StoreMode ? new(DetailHero.StorePageInset(PageWidth), DetailHero.StoreHeroInsetTop(PageWidth), DetailHero.StorePageInset(PageWidth), 0) : IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(58, 28, 58, 0)

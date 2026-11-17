@@ -91,10 +91,13 @@ internal sealed partial class ShellNavigationProbe
                     "商店顶部检查没有取得目标实际页宽与客户区宽");
                 trailer.Visibility = Visibility.Collapsed;
                 var cover = Get<Border>(page, "PosterStill");
-                // 2026-11-15 用户令「增加详情页/订阅详情页上方的空位」：封面从内容区上沿往下 StoreHeroTop 起排。
+                // 2026-11-15 用户令「增加详情页/订阅详情页上方的空位」：封面从内容区上沿往下起排。
+                // 2026-11-17 用户令「窄窗口出现亚克力背景时候组件整体向上移一点，左边跟上面的间距要一致」：
+                // 宽版式仍是 StoreHeroTop，窄档（亚克力那一档）与左右留白同值。
                 var coverTop = Bounds(cover, canvas).Top;
-                Require(Math.Abs(coverTop - DetailHero.StoreHeroTop) < 1.5,
-                    $"商店详情封面没有按新的顶部留白起排：{coverTop:0.#} 对 {DetailHero.StoreHeroTop:0.#}");
+                var coverTopExpect = DetailHero.StoreHeroInsetTop(page.ViewModel.PageWidth);
+                Require(Math.Abs(coverTop - coverTopExpect) < 1.5,
+                    $"商店详情封面没有按当前档次的上留白起排：{coverTop:0.#} 对 {coverTopExpect:0.#}");
                 var details = Get<StackPanel>(page, "StoreHeroDetails");
                 var firstCard = Get<StackPanel>(page, "EpisodePanel");
                 Require(firstCard.Visibility == Visibility.Visible && firstCard.ActualHeight > 0, "没有可量的正文首卡");

@@ -135,8 +135,27 @@ public static class DetailHero
     /// 订阅详情页（<c>MoviePilotMediaViewModel.HeaderPadding</c> 的简洁档）读同一个数，两页顶线一致。
     /// 沉浸档不读它：那一档压着铺满的背景图排，收进去反而把片名推离画面。
     /// </para>
+    /// <para>
+    /// 窄档（亚克力那一档）不直接读这个常量，读 <see cref="StoreHeroInsetTop"/>：那里上留白收成与
+    /// 左右留白同值；本常量是宽版式的那一道空位。
+    /// </para>
     /// </summary>
     public const double StoreHeroTop = 72;
+
+    /// <summary>
+    /// 商店详情头部内容这一次的上留白。2026-11-17 用户令「窄窗口出现亚克力背景时候组件整体向上移
+    /// 一点，左边跟上面的间距要一致」：窄档（<see cref="StoreWideFloor"/> 以下，顶部铺满剧照并由
+    /// 页面内亚克力压住）里封面、片名那一叠与左沿、上沿的距离相同，上留白因此跟着
+    /// <see cref="StorePageInset"/> 走；宽版式仍是 <see cref="StoreHeroTop"/> 那一道空位 ——
+    /// 那一档右侧要给剧照／预告视口让位，顶线不跟左沿挂钩。
+    /// <para>
+    /// 判据与亚克力本身同一档：<c>StoreBackdropAcrylic</c> 只在页宽窄过 <see cref="StoreWideFloor"/>
+    /// 时出现，两句话说的是同一段窗口。页宽还没量到（0／NaN）时按宽版式给，和亚克力不画对上。
+    /// </para>
+    /// </summary>
+    /// <param name="width">这一页这一次的宽（<c>DetailViewModel.PageWidth</c>）。</param>
+    public static double StoreHeroInsetTop(double width) =>
+        width is > 0 and < StoreWideFloor ? StorePageInset(width) : StoreHeroTop;
 
     /// <summary>商店剧照与预告使用同一顶部右侧视口，原图在视口内等比裁切。</summary>
     public static double StorePictureWidth(double width, double ratio) => TrailerPreview.BackgroundWidth(width);
