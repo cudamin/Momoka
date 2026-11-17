@@ -731,6 +731,11 @@
 
         <local:SignInPage x:Name="SignIn" />
 
+        <!-- 全屏音乐播放页：压在内容区、侧栏和底部播放栏之上，但留在标题栏那排按钮之下（ZIndex 9 < Chrome 10）。
+             这样用户仍能从标题栏回主页/搜索，窗口的最小化与关闭也照旧；页面自己的收起键只负责回播放栏。
+             标题栏与账号那一颗在页面打开时切成深色主题，见 ShellPage.Music.cs。 -->
+        <local:MusicPlayerPage x:Name="MusicPlayer" Canvas.ZIndex="9" Visibility="Collapsed" />
+
         <local:MusicPlayerBar x:Name="MusicBar" Canvas.ZIndex="12" Visibility="Collapsed"
             VerticalAlignment="Bottom" Margin="20,0,20,16" MaxWidth="1120" />
 

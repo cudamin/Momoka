@@ -26,7 +26,8 @@ internal static class Program
             ("分区决定曲目表与封面墙，读数与第二行跟着换", SectionShapeAsync),
             ("专辑容器里的曲目第二行不再重复专辑名", AlbumRowSubtitleAsync),
             ("正在播放的那一行跟着播放栏标记，重新载入仍保留", PlayingMarkAsync),
-            ("正在播放的身份键跟着曲目走，停止后清空", CurrentKeyAsync)
+            ("正在播放的身份键跟着曲目走，停止后清空", CurrentKeyAsync),
+            ("内嵌歌词：装好后读标签、进度高亮、停止清空", LyricsAsync)
         }.Concat(MusicPagingTests.Cases()).ToArray();
         var failures = 0;
         foreach (var (name, run) in cases)
@@ -410,6 +411,29 @@ internal static class Program
         Require(fixture.Music.CurrentKey.Length == 0, "停止后仍留着正在播放的身份键");
     }
 
+    private static async Task LyricsAsync()
+    {
+        await using var fixture = new Fixture();
+        var play = fixture.Music.PlayAsync(fixture.Track("lyrics"));
+        await UntilAsync(() => fixture.Backend.Handles.Length == 1);
+        var handle = fixture.Backend.Handles[0];
+        handle.DisplayTags.Add("Lyrics");
+        handle.Metadata["Lyrics"] = "[00:01.00]第一句\n[00:05.00]第二句";
+        handle.Publish(0);
+        await UntilUiAsync(fixture, () => fixture.Music.HasLyrics);
+        Require(fixture.Music.Lyrics.Count == 2 && fixture.Music.LyricsSynced, "内嵌歌词没有按时间轴装进列表");
+        Require(fixture.Music.LyricsListVisibility == Visibility.Visible, "有歌词时列表仍收起");
+
+        handle.Publish(6);
+        await UntilUiAsync(fixture, () => ReferenceEquals(fixture.Music.ActiveLyric, fixture.Music.Lyrics[1]));
+        Require(fixture.Music.Lyrics[0].ActiveOpacity < 1 && Math.Abs(fixture.Music.Lyrics[1].ActiveOpacity - 1) < 0.01,
+            "高亮没有跟着播放进度走");
+
+        await fixture.Music.StopAsync();
+        await play;
+        Require(!fixture.Music.HasLyrics && fixture.Music.Lyrics.Count == 0, "停止后仍留着上一首的歌词");
+    }
+
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
     private static async Task UntilAsync(Func<bool> condition)
@@ -417,5 +441,17 @@ internal static class Program
         for (var attempt = 0; attempt < 500; attempt++)
         { if (condition()) return; await Task.Delay(5); }
         throw new TimeoutException("未收到预期的真实控制流事件");
+    }
+
+    /// <summary>状态与歌词回填都排在 UI 队列里；等到条件成立前每轮把队列跑掉。</summary>
+    private static async Task UntilUiAsync(Fixture fixture, Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 500; attempt++)
+        {
+            fixture.Ui.Drain();
+            if (condition()) return;
+            await Task.Delay(5);
+        }
+        throw new TimeoutException("未收到预期的界面回填");
     }
 }

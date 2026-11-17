@@ -690,6 +690,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 而不是 OpenDetail 里：后退/前进重建的详情页实例不走 OpenDetail，却一样要从外壳领窗口。
         ContentFrame.Navigated += (_, _) =>
         {
+            // 标题栏仍在播放页上方：用户从那里回主页、搜索或前进后退时，整页播放先收掉，不把新页面盖在底下。
+            CloseMusicPageCore(focusBar: false);
             switch (ContentFrame.Content)
             {
                 case DetailPage detail: detail.AttachWindow(window); break;

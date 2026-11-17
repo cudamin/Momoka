@@ -17,6 +17,15 @@ namespace Momoka.Shell.ViewModels;
 /// <summary>Owns music intent independently of the page; the shared playback service owns native lifetime.</summary>
 public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposable
 {
+    /// <summary>播放页封面要的那一档宽度（DIP）。飞牛网页版封面最大 480，这里留一档余量给高 DPI。</summary>
+    private const int CoverArtWidth = 560;
+
+    /// <summary>
+    /// 氛围底图另要一张很小的解码结果：铺满整窗时放大本身就是一层柔化，再压一层应用内亚克力，
+    /// 比把 560 的封面放大再糊一遍省内存，也不会和封面抢同一份解码缓存。
+    /// </summary>
+    private const int AmbientArtWidth = 40;
+
     private readonly PlaybackService _playback;
     private readonly EmbySession _session;
     private readonly EmbyImageStore _images;
@@ -33,6 +42,9 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     private bool _favoriteBusy;
     private bool _scrubbing;
     private bool _loadingQueue;
+    private MusicLyrics? _lyrics;
+    private long _lyricsTrack = -1;
+    private int _activeLyricIndex = -1;
 
     public MusicPlaybackViewModel(PlaybackService playback, EmbySession session, EmbyImageStore images, IUiDispatcher ui, ISettingsService settings)
     {
@@ -61,6 +73,44 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     [ObservableProperty] public partial string Title { get; set; } = "";
     [ObservableProperty] public partial string Subtitle { get; set; } = "";
     [ObservableProperty] public partial CardItem? Artwork { get; set; }
+
+    /// <summary>播放页那张大封面。播放栏收起时页面不在树上，图片不会真的下载。</summary>
+    [ObservableProperty] public partial CardItem? CoverArtwork { get; set; }
+
+    /// <summary>铺满窗口的氛围底图，只要一张很小的解码结果。</summary>
+    [ObservableProperty] public partial CardItem? AmbientArtwork { get; set; }
+
+    /// <summary>此刻在放的那首歌本身；播放页要点它才能拿到专辑、封面和格式。</summary>
+    [ObservableProperty] public partial EmbyItem? CurrentItem { get; set; }
+
+    /// <summary>进度条中间那枚格式角标（FLAC、MP3…）。服务器没给就收起，不猜。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FormatVisibility))]
+    public partial string FormatLabel { get; set; } = "";
+
+    /// <summary>歌词行。稳定集合：换曲只清空重填，页面控件不重建。</summary>
+    public ObservableCollection<MusicLyricLine> Lyrics { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LyricsListVisibility))]
+    [NotifyPropertyChangedFor(nameof(LyricsEmptyVisibility))]
+    public partial bool HasLyrics { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LyricsNoteVisibility))]
+    public partial bool LyricsSynced { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LyricsLoadingVisibility))]
+    [NotifyPropertyChangedFor(nameof(LyricsListVisibility))]
+    [NotifyPropertyChangedFor(nameof(LyricsEmptyVisibility))]
+    public partial bool LyricsLoading { get; set; }
+
+    [ObservableProperty] public partial string LyricsEmptyText { get; set; } = "暂无内嵌歌词";
+
+    /// <summary>刚唱到的那一句；播放页据它把列表滚进视野。纯文本歌词一直是 null。</summary>
+    [ObservableProperty] public partial MusicLyricLine? ActiveLyric { get; set; }
+
     [ObservableProperty] public partial double Position { get; set; }
     [ObservableProperty] public partial double Duration { get; set; } = 1;
     [ObservableProperty] public partial string PositionClock { get; set; } = "0:00";
@@ -83,6 +133,11 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     [ObservableProperty] public partial string CurrentKey { get; set; } = "";
 
     public Visibility BarVisibility => Visible ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility FormatVisibility => FormatLabel.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LyricsListVisibility => HasLyrics && !LyricsLoading ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LyricsEmptyVisibility => !HasLyrics && !LyricsLoading ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LyricsLoadingVisibility => LyricsLoading ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LyricsNoteVisibility => HasLyrics && !LyricsSynced ? Visibility.Visible : Visibility.Collapsed;
     public string PlayGlyph => char.ConvertFromUtf32(Paused ? 0xE768 : 0xE769);
     public string PlayLabel => Paused ? "播放" : "暂停";
     public bool HasIntent => _intent is not null;
@@ -157,6 +212,8 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
                 scope.ThrowIfUnavailable();
                 QueueIndex = _queue.Index;
                 CurrentKey = item.IdentityKey;
+                CurrentItem = item;
+                FormatLabel = MusicCatalog.FormatLabel(item);
                 Title = item.Name;
                 Subtitle = MusicCatalog.Subtitle(item);
                 Favorite = item.UserData?.IsFavorite == true;
@@ -166,6 +223,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
                 Position = 0;
                 PositionClock = "0:00";
                 Visible = true;
+                ResetLyrics();
                 SetArtwork(item);
                 var detail = await scope.ExecuteAsync((client, cancellation) => client.GetItemAsync(item.Id, cancellation), token);
                 if (!Current() || !scope.IsAvailable) return;
@@ -285,7 +343,113 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
             DurationClock = status.DurationClock;
             if (status.VolumeKnown) Volume = status.Volume;
             Muted = status.Muted;
+
+            // 文件装载完成之后标签才读得到；每首只问一次，换曲由 ResetLyrics 把闸门打开。
+            if (status.Loaded) BeginLyricsRead(_trackVersion);
+            UpdateActiveLyric(status.Position);
         });
+    }
+
+    /// <summary>
+    /// 读到文件标签里的歌词。走 mpv 自己的 <c>metadata/by-key</c>，不新增任何服务端接口：
+    /// 标签名先从 <c>display-tags</c> 里找像歌词的那一个，读不到再按几个常见名兜底。
+    /// <para>
+    /// 这里只读属性，不碰播放生命周期；换曲、停止、转视频和换代都在回填时按版本核对，
+    /// 迟到的歌词不会贴到下一首上。
+    /// </para>
+    /// </summary>
+    private void BeginLyricsRead(long trackVersion)
+    {
+        if (_lyricsTrack == trackVersion || !HasIntent || !_playback.IsAudioOnly) return;
+        _lyricsTrack = trackVersion;
+        _ = ReadLyricsAsync(trackVersion);
+    }
+
+    private async Task ReadLyricsAsync(long trackVersion)
+    {
+        string? raw = null;
+        try
+        {
+            var tags = await _playback.GetStringListAsync("display-tags").ConfigureAwait(false);
+            if (MusicLyrics.FindTag(tags) is { } key)
+                raw = await _playback.GetTextAsync($"metadata/by-key/{key}").ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                foreach (var fallback in MusicLyrics.FallbackTags)
+                {
+                    raw = await _playback.GetTextAsync($"metadata/by-key/{fallback}").ConfigureAwait(false);
+                    if (!string.IsNullOrWhiteSpace(raw)) break;
+                }
+            }
+        }
+        catch (Exception error)
+        {
+            // 读取失败与「文件没有歌词」在屏上是同一件事，不弹通知打扰正在听歌的人。
+            Log.Debug("音乐", $"读取内嵌歌词失败：{error.Message}");
+        }
+
+        _ui.Run(() =>
+        {
+            if (_disposed || trackVersion != _trackVersion || !HasIntent || !_playback.IsAudioOnly) return;
+            ApplyLyrics(raw);
+        });
+    }
+
+    /// <summary>把读到的原文换成行。没有内容时停在空态，不把上一首的歌词留在屏上。</summary>
+    private void ApplyLyrics(string? raw)
+    {
+        LyricsLoading = false;
+        foreach (var line in Lyrics) line.IsActive = false;
+        Lyrics.Clear();
+        _lyrics = MusicLyrics.Parse(raw);
+        _activeLyricIndex = -1;
+        ActiveLyric = null;
+        if (_lyrics.IsEmpty)
+        {
+            HasLyrics = false;
+            LyricsSynced = false;
+            LyricsEmptyText = "暂无内嵌歌词";
+            return;
+        }
+
+        foreach (var line in _lyrics.Lines) Lyrics.Add(line);
+        HasLyrics = true;
+        LyricsSynced = _lyrics.Synced;
+        UpdateActiveLyric(Position);
+    }
+
+    /// <summary>播放进度跨过一句时只改这两行，其余行不动；纯文本歌词没有「正在唱」。</summary>
+    private void UpdateActiveLyric(double position)
+    {
+        if (_lyrics is not { Synced: true } lyrics || Lyrics.Count == 0) return;
+        var index = lyrics.ActiveIndex(position);
+        if (index == _activeLyricIndex) return;
+        if (_activeLyricIndex >= 0 && _activeLyricIndex < Lyrics.Count) Lyrics[_activeLyricIndex].IsActive = false;
+        _activeLyricIndex = index;
+        if (index >= 0 && index < Lyrics.Count)
+        {
+            Lyrics[index].IsActive = true;
+            ActiveLyric = Lyrics[index];
+        }
+        else
+        {
+            ActiveLyric = null;
+        }
+    }
+
+    /// <summary>换曲或停止时把歌词栏清回「正在读取」；新的一首装好后再读。</summary>
+    private void ResetLyrics()
+    {
+        _lyrics = null;
+        _lyricsTrack = -1;
+        _activeLyricIndex = -1;
+        ActiveLyric = null;
+        HasLyrics = false;
+        LyricsSynced = false;
+        LyricsLoading = true;
+        LyricsEmptyText = "";
+        foreach (var line in Lyrics) line.IsActive = false;
+        Lyrics.Clear();
     }
     private void OnPlaying(PlaybackUpdate<EmbyItem?> update)
     {
@@ -313,6 +477,13 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         Artwork = new CardItem(item, _images, 48, aspect: 1, indicators: false);
         Artwork.ClaimCard(this);
         _ = Artwork.EnsurePosterAsync(Task.CompletedTask);
+
+        // 播放页那两张只在页面真的在树上时才会被 Image 领取并下载（见 CardArtwork）。
+        // 这里只把卡片造出来，收起播放页时它们不占解码内存，也不发请求。
+        CoverArtwork?.AbandonPoster();
+        CoverArtwork = new CardItem(item, _images, CoverArtWidth, aspect: 1, indicators: false);
+        AmbientArtwork?.AbandonPoster();
+        AmbientArtwork = new CardItem(item, _images, AmbientArtWidth, aspect: 1, indicators: false);
     }
     private void CancelIntent()
     {
@@ -327,8 +498,17 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         Visible = false;
         Preparing = false;
         CurrentKey = "";
+        CurrentItem = null;
+        FormatLabel = "";
         Artwork?.AbandonPoster();
         Artwork = null;
+        CoverArtwork?.AbandonPoster();
+        CoverArtwork = null;
+        AmbientArtwork?.AbandonPoster();
+        AmbientArtwork = null;
+        ResetLyrics();
+        LyricsLoading = false;
+        LyricsEmptyText = "暂无内嵌歌词";
     }
     public void Dispose()
     {

@@ -36,6 +36,27 @@
             <Setter Property="Background" Value="{ThemeResource SubtleButtonBackground}" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
+        <!-- 封面与歌名是播放页的入口（与飞牛一致：点迷你播放栏的封面/曲名展开整页）。
+             两块都保留原位置与尺寸，只换成原生 Button，键盘 Enter 和 UIA 定位因此照常可用。 -->
+        <Style x:Key="MusicCoverButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="MusicTitleButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
         <Style TargetType="FontIcon">
             <Setter Property="FontSize" Value="18" />
             <Setter Property="HorizontalAlignment" Value="Center" />
@@ -63,12 +84,18 @@
                     </Button>
                     <Button x:Name="NextButton" Click="OnNext" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="下一曲" ToolTipService.ToolTip="下一曲"><FontIcon Glyph="&#xE893;" /></Button>
                 </StackPanel>
-                <Border x:Name="CoverFrame" Grid.Column="1" Width="42" Height="42" CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}" VerticalAlignment="Center" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
-                    <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
-                </Border>
+                <Button x:Name="CoverButton" Grid.Column="1" Click="OnExpand" Style="{StaticResource MusicCoverButtonStyle}"
+                    VerticalAlignment="Center" AutomationProperties.Name="展开音乐播放页" ToolTipService.ToolTip="打开播放页">
+                    <Border x:Name="CoverFrame" Width="42" Height="42" CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
+                        <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
+                    </Border>
+                </Button>
                 <Grid x:Name="TrackInfo" Grid.Column="2" MaxWidth="360" RowSpacing="2" VerticalAlignment="Center" SizeChanged="OnTrackInfoSizeChanged">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <Button x:Name="TitleButton" Click="OnExpand" Style="{StaticResource MusicTitleButtonStyle}"
+                        AutomationProperties.Name="展开音乐播放页" ToolTipService.ToolTip="打开播放页">
+                        <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    </Button>
                     <Grid Grid.Row="1" ColumnSpacing="8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <Grid>

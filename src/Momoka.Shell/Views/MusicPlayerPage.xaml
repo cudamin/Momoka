@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  音乐播放页（2026-11-17）。参考飞牛音乐网页版的全屏播放页，落在 WinUI 的原生控件与主题角色上：
+
+    · 左栏是这张唱片本身：大封面、曲名、艺术家/专辑、进度、上一首/播放/下一首与随机、循环、音量。
+    · 右栏是歌词。歌词来自音频文件自己的标签（mpv 的 metadata/by-key），带时间轴时随播放高亮；
+      纯文本按原文静态列出，没有歌词时停在一句空态。
+    · 背景是同一张封面的一张极小解码图，铺满整窗后压一层应用内亚克力与暗罩；换曲换图，
+      不靠取色算法另拼一套色板。
+
+  固定 Dark 与播放器同一档：这是压在媒体上的沉浸表面，浅色主题下也让封面颜色自己说话。
+  入口在底部播放栏的封面与歌名上；收起键与 Escape 回到播放栏，窗口本身的最小化/关闭仍归标题栏。
+-->
+<UserControl
+    x:Class="Momoka.Shell.Views.MusicPlayerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:emby="using:Momoka.Emby"
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:music="using:Momoka.Music"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    RequestedTheme="Dark"
+    FontFamily="{StaticResource EgUiFontFamily}"
+    FontSize="{StaticResource EgBodyFontSize}"
+    IsTabStop="True"
+    Visibility="Collapsed"
+    SizeChanged="OnPageSizeChanged">
+
+    <UserControl.KeyboardAccelerators>
+        <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
+    </UserControl.KeyboardAccelerators>
+
+    <UserControl.Resources>
+        <!-- 与播放栏同一组 Fluent 图标（见 MusicPlayerBar.xaml 的来源说明）；每个控件独占几何。 -->
+        <x:String x:Key="ShuffleData">F1 M15.8536 4.14645C15.6583 3.95118 15.3417 3.95118 15.1464 4.14645C14.9512 4.34171 14.9512 4.65829 15.1464 4.85355L16.2952 6.00226C12.9727 6.07467 11.0127 7.90416 9.19076 9.60472L9.15884 9.63451C7.27692 11.391 5.53295 13 2.5 13C2.22386 13 2 13.2239 2 13.5C2 13.7762 2.22386 14 2.5 14C5.94732 14 7.95019 12.1306 9.80924 10.3954L9.84116 10.3656C11.6793 8.64999 13.3858 7.07501 16.2903 7.00264L15.1464 8.14653C14.9512 8.34179 14.9512 8.65837 15.1464 8.85364C15.3417 9.0489 15.6583 9.0489 15.8536 8.85364L17.8536 6.85359C18.0489 6.65833 18.0489 6.34175 17.8536 6.14649L15.8536 4.14645ZM2.5 6C5.31073 6 7.16122 7.24277 8.75645 8.64228L8.47652 8.9035C8.32169 9.04801 8.16962 9.18957 8.01948 9.32769C6.51689 8.02283 4.91812 7 2.5 7C2.22386 7 2 6.77614 2 6.5C2 6.22386 2.22386 6 2.5 6ZM16.2952 13.9978C13.5988 13.939 11.7998 12.723 10.2436 11.3578L10.5235 11.0967C10.6783 10.9521 10.8304 10.8105 10.9806 10.6724C12.4393 11.9391 13.9887 12.9401 16.2903 12.9974L15.1464 11.8535C14.9512 11.6583 14.9512 11.3417 15.1464 11.1464C15.3417 10.9511 15.6583 10.9511 15.8536 11.1464L17.8536 13.1464C18.0489 13.3417 18.0489 13.6583 17.8536 13.8536L15.8536 15.8536C15.6583 16.0489 15.3417 16.0489 15.1464 15.8536C14.9512 15.6583 14.9512 15.3418 15.1464 15.1465L16.2952 13.9978Z</x:String>
+        <x:String x:Key="RepeatData">F1 M16.5 6.67122C16.6163 6.67122 16.7233 6.71092 16.8082 6.77751L16.8755 6.84057L16.8918 6.86057C17.5849 7.71877 18 8.81091 18 10C18 12.6888 15.8777 14.8818 13.2169 14.9954L13 15H7C6.89826 15 6.79724 14.997 6.697 14.991L8.35355 16.6464C8.52712 16.82 8.5464 17.0894 8.41141 17.2843L8.35355 17.3536C8.17999 17.5271 7.91056 17.5464 7.71569 17.4114L7.64645 17.3536L5.14645 14.8536C4.97288 14.68 4.9536 14.4106 5.08859 14.2157L5.14645 14.1464L7.64645 11.6464C7.84171 11.4512 8.15829 11.4512 8.35355 11.6464C8.52712 11.82 8.5464 12.0894 8.41141 12.2843L8.35355 12.3536L6.71699 13.9901L6.85787 13.9975L7 14H13C15.2091 14 17 12.2091 17 10C17 9.04652 16.6664 8.17096 16.1095 7.48367C16.0414 7.39911 16 7.29 16 7.17122C16 6.89508 16.2239 6.67122 16.5 6.67122ZM11.6464 2.64645C11.82 2.47288 12.0894 2.4536 12.2843 2.58859L12.3536 2.64645L14.8536 5.14645L14.9114 5.21569C15.0295 5.3862 15.0295 5.6138 14.9114 5.78431L14.8536 5.85355L12.3536 8.35355L12.2843 8.41141C12.1138 8.52953 11.8862 8.52953 11.7157 8.41141L11.6464 8.35355L11.5886 8.28431C11.4705 8.1138 11.4705 7.8862 11.5886 7.71569L11.6464 7.64645L13.283 6.00986L13.1421 6.00248L13 6H7C4.79086 6 3 7.79086 3 10C3 10.9563 3.33557 11.8342 3.89537 12.5224C3.95954 12.606 4 12.7139 4 12.8313C4 13.1074 3.77614 13.3313 3.5 13.3313C3.333 13.3313 3.18512 13.2494 3.09432 13.1236C2.40993 12.2676 2 11.1817 2 10C2 7.31125 4.12231 5.11818 6.78311 5.00462L7 5H13C13.1017 5 13.2028 5.00304 13.303 5.00903L11.6464 3.35355L11.5886 3.28431C11.4536 3.08944 11.4729 2.82001 11.6464 2.64645Z</x:String>
+        <x:String x:Key="RepeatOneData">F1 M16.5 6.67122C16.6163 6.67122 16.7233 6.71092 16.8082 6.77751L16.8755 6.84057L16.8918 6.86057C17.5849 7.71877 18 8.81091 18 10C18 10.1971 17.9886 10.3915 17.9664 10.5827C17.658 10.4277 17.333 10.3009 16.9948 10.2056C16.9983 10.1375 17 10.0689 17 10C17 9.04652 16.6664 8.17096 16.1095 7.48367C16.0414 7.39911 16 7.29 16 7.17122C16 6.89508 16.2239 6.67122 16.5 6.67122ZM10.207 14C10.1159 14.3223 10.0534 14.6566 10.0224 15H7C6.89826 15 6.79724 14.997 6.697 14.991L8.35355 16.6464C8.52712 16.82 8.5464 17.0894 8.41141 17.2843L8.35355 17.3536C8.17999 17.5271 7.91056 17.5464 7.71569 17.4114L7.64645 17.3536L5.14645 14.8536C4.97288 14.68 4.9536 14.4106 5.08859 14.2157L5.14645 14.1464L7.64645 11.6464C7.84171 11.4512 8.15829 11.4512 8.35355 11.6464C8.52712 11.82 8.5464 12.0894 8.41141 12.2843L8.35355 12.3536L6.71699 13.9901L6.85787 13.9975L7 14H10.207ZM11.6464 2.64645C11.82 2.47288 12.0894 2.4536 12.2843 2.58859L12.3536 2.64645L14.8536 5.14645L14.9114 5.21569C15.0295 5.3862 15.0295 5.6138 14.9114 5.78431L14.8536 5.85355L12.3536 8.35355L12.2843 8.41141C12.1138 8.52953 11.8862 8.52953 11.7157 8.41141L11.6464 8.35355L11.5886 8.28431C11.4705 8.1138 11.4705 7.8862 11.5886 7.71569L11.6464 7.64645L13.283 6.00986L13.1421 6.00248L13 6H7C4.79086 6 3 7.79086 3 10C3 10.9563 3.33557 11.8342 3.89537 12.5224C3.95954 12.606 4 12.7139 4 12.8313C4 13.1074 3.77614 13.3313 3.5 13.3313C3.333 13.3313 3.18512 13.2494 3.09432 13.1236C2.40993 12.2676 2 11.1817 2 10C2 7.31124 4.12231 5.11818 6.78311 5.00462L7 5H13C13.1017 5 13.2028 5.00304 13.303 5.00903L11.6464 3.35355L11.5886 3.28431C11.4536 3.08944 11.4729 2.82001 11.6464 2.64645ZM20 15.5C20 17.9853 17.9853 20 15.5 20C13.0147 20 11 17.9853 11 15.5C11 13.0147 13.0147 11 15.5 11C17.9853 11 20 13.0147 20 15.5ZM16.0477 12.8386C15.8633 12.7864 15.5572 12.8034 15.3683 13.0719C15.1551 13.3751 14.7871 13.7975 14.2764 14.0528C14.0294 14.1763 13.9293 14.4766 14.0528 14.7236C14.1763 14.9706 14.4766 15.0707 14.7236 14.9472C15.0229 14.7976 15.2814 14.6114 15.5 14.4182V17.5C15.5 17.7761 15.7239 18 16 18C16.2761 18 16.5 17.7761 16.5 17.5V13.4236C16.5 13.0752 16.2327 12.891 16.0477 12.8386Z</x:String>
+        <x:String x:Key="HeartData">F1 M10.4965 16.8028L16.7408 10.4994C18.4252 8.78856 18.4199 6.02549 16.7239 4.31249C15.0611 2.63292 12.3961 2.5895 10.6978 4.19086C10.6612 4.22539 10.6251 4.26068 10.5894 4.29673L9.99299 4.90026L9.38843 4.28963C9.35529 4.25616 9.32175 4.22333 9.28783 4.19116C7.58595 2.57726 4.91654 2.60193 3.26122 4.2739C1.5729 5.9792 1.58114 8.75004 3.27679 10.4627L9.55368 16.8028C9.81404 17.0657 10.2362 17.0657 10.4965 16.8028ZM11.3 5.00029C12.5964 3.69135 14.7025 3.69204 16.0133 5.01604C17.3253 6.34123 17.3272 8.47734 16.0292 9.79681L16.0282 9.79783L10.0252 15.8577L3.98743 9.75919C2.67408 8.43263 2.67286 6.28953 3.97185 4.97746C5.26525 3.67106 7.36984 3.67208 8.6778 4.99319L9.63801 5.96306C9.8338 6.16082 10.1534 6.16067 10.349 5.96272L11.3 5.00029Z</x:String>
+        <x:String x:Key="HeartFilledData">F1 M9.38843 4.28963C7.69278 2.57693 4.94954 2.5686 3.26122 4.2739C1.5729 5.9792 1.58114 8.75004 3.27679 10.4627L9.55368 16.8028C9.81404 17.0657 10.2362 17.0657 10.4965 16.8028L16.7408 10.4994C18.4252 8.78856 18.4199 6.02549 16.7239 4.31249C15.0252 2.59671 12.2807 2.58838 10.5894 4.29673L9.99299 4.90026L9.38843 4.28963Z</x:String>
+
+        <SolidColorBrush x:Key="MusicPageBaseBrush" Color="{ThemeResource EgWindowColor}" />
+        <!-- 铺满整窗的一层应用内亚克力：它压在氛围图上，把极小解码图放大后的块感抹平；
+             关掉透明效果时回退成同一支窗口实底。颜色全走主题角色，页面固定 Dark。 -->
+        <AcrylicBrush x:Key="MusicPageGlassBrush"
+                      FallbackColor="{ThemeResource EgWindowColor}"
+                      TintColor="{ThemeResource EgWindowColor}"
+                      TintLuminosityOpacity="0.45"
+                      TintOpacity="0.55" />
+        <LinearGradientBrush x:Key="MusicPageScrimBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="Transparent" Offset="0" />
+            <GradientStop Color="{ThemeResource EgScrimColor}" Offset="0.55" />
+            <GradientStop Color="{ThemeResource EgWindowColor}" Offset="1" />
+        </LinearGradientBrush>
+
+        <Style x:Key="MusicGlyphStyle" TargetType="FontIcon">
+            <Setter Property="FontSize" Value="{StaticResource EgSubheadFontSize}" />
+        </Style>
+        <Style x:Key="MusicTransportGlyphStyle" TargetType="FontIcon" BasedOn="{StaticResource MusicGlyphStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgTitleFontSize}" />
+        </Style>
+        <Style x:Key="MusicPlayGlyphStyle" TargetType="FontIcon" BasedOn="{StaticResource MusicGlyphStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgHeaderFontSize}" />
+        </Style>
+        <Style x:Key="MusicCoverGlyphStyle" TargetType="FontIcon" BasedOn="{StaticResource MusicGlyphStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgDisplayFontSize}" />
+        </Style>
+        <Style x:Key="MusicEmptyGlyphStyle" TargetType="FontIcon" BasedOn="{StaticResource MusicGlyphStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgHeaderFontSize}" />
+        </Style>
+
+        <Style x:Key="MusicPageGlassButtonStyle" TargetType="Button" BasedOn="{StaticResource EgIconButtonStyle}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+        </Style>
+        <Style x:Key="MusicTransportButtonStyle" TargetType="Button" BasedOn="{StaticResource EgIconButtonStyle}">
+            <Setter Property="Width" Value="56" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="CornerRadius" Value="28" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style x:Key="MusicPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource MusicTransportButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+        </Style>
+        <Style x:Key="MusicSmallButtonStyle" TargetType="Button" BasedOn="{StaticResource EgIconButtonStyle}">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <!-- 歌词：与播放页的标题簇同一支正文族，字号取项目 20 的刻度，不另造一档。 -->
+        <Style x:Key="MusicLyricStyle" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgTitleFontSize}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="LineHeight" Value="38" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextLineBounds" Value="Tight" />
+        </Style>
+        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <SolidColorBrush x:Key="MusicPageTransparentBrush" Color="Transparent" />
+        <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="MusicPageTransparentBrush" />
+        <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="MusicPageTransparentBrush" />
+    </UserControl.Resources>
+
+    <Grid x:Name="Root">
+        <Grid Background="{StaticResource MusicPageBaseBrush}" />
+
+        <!-- 氛围图与封面是两张不同宽度的解码结果，见 MusicPlaybackViewModel 的 ART 常量。 -->
+        <Image
+            x:Name="Ambient"
+            local:CardArtwork.Item="{x:Bind ViewModel.AmbientArtwork, Mode=OneWay}"
+            Stretch="UniformToFill" />
+        <Border Background="{StaticResource MusicPageGlassBrush}" />
+        <Border Background="{StaticResource MusicPageScrimBrush}" />
+
+        <Grid Padding="28,48,28,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="56" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Button
+                    x:Name="CollapseButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="收起播放页"
+                    Click="OnCollapse"
+                    Style="{StaticResource MusicPageGlassButtonStyle}"
+                    ToolTipService.ToolTip="收起播放页（Esc）">
+                    <FontIcon Style="{StaticResource MusicGlyphStyle}" Glyph="&#xE70E;" />
+                </Button>
+                <Button
+                    x:Name="FullscreenButton"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="全屏显示"
+                    Click="OnFullscreen"
+                    Style="{StaticResource MusicPageGlassButtonStyle}"
+                    ToolTipService.ToolTip="全屏显示">
+                    <FontIcon x:Name="FullscreenIcon" Style="{StaticResource MusicGlyphStyle}" Glyph="&#xE740;" />
+                </Button>
+            </Grid>
+
+            <Grid x:Name="Stage" Grid.Row="1" MaxWidth="1120" HorizontalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="0" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel x:Name="NowPlaying" Grid.Column="0" Spacing="22" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                    <Border
+                        x:Name="CoverFrame"
+                        Background="{ThemeResource EgSurfaceAltBrush}"
+                        CornerRadius="24">
+                        <Grid>
+                            <FontIcon Style="{StaticResource MusicCoverGlyphStyle}" Foreground="{ThemeResource EgTextFaintBrush}" Glyph="&#xE8D6;" />
+                            <Image local:CardArtwork.Item="{x:Bind ViewModel.CoverArtwork, Mode=OneWay}" Stretch="UniformToFill" />
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Spacing="4">
+                        <Grid ColumnSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                x:Name="TrackTitle"
+                                Style="{StaticResource EgPageTitleStyle}"
+                                MaxLines="1"
+                                Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                TextTrimming="CharacterEllipsis"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                VerticalAlignment="Center" />
+                            <Button
+                                x:Name="FavoriteButton"
+                                Grid.Column="1"
+                                AutomationProperties.Name="{x:Bind local:MusicPlayerPage.FavoriteLabel(ViewModel.Favorite), Mode=OneWay}"
+                                Click="OnFavorite"
+                                Style="{StaticResource MusicSmallButtonStyle}"
+                                ToolTipService.ToolTip="{x:Bind local:MusicPlayerPage.FavoriteLabel(ViewModel.Favorite), Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}">
+                                <PathIcon x:Name="FavoriteIcon" Data="{x:Bind FavoriteGeometry(ViewModel.Favorite), Mode=OneWay}" />
+                            </Button>
+                            <Button
+                                x:Name="MoreButton"
+                                Grid.Column="2"
+                                AutomationProperties.Name="更多操作"
+                                Style="{StaticResource MusicSmallButtonStyle}"
+                                ToolTipService.ToolTip="更多操作">
+                                <FontIcon Style="{StaticResource MusicGlyphStyle}" Glyph="&#xE712;" />
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem x:Name="PauseMenuItem" Click="OnTogglePause" Text="播放 / 暂停" />
+                                        <MenuFlyoutItem x:Name="RepeatMenuItem" Click="OnRepeat" Text="{x:Bind local:MusicPlayerPage.RepeatMenuLabel(ViewModel.RepeatLabel), Mode=OneWay}" />
+                                        <MenuFlyoutItem x:Name="QueueMenuItem" Click="OnQueue" Text="播放队列" />
+                                        <MenuFlyoutItem x:Name="StopMenuItem" Click="OnStop" Text="停止播放" />
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                        <TextBlock
+                            x:Name="TrackSubtitle"
+                            Style="{StaticResource EgCaptionStyle}"
+                            MaxLines="1"
+                            Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.Subtitle, Mode=OneWay}" />
+
+                        <Grid RowSpacing="2" Margin="0,6,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Slider
+                                x:Name="SeekSlider"
+                                Minimum="0"
+                                Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
+                                Value="{x:Bind ViewModel.Position, Mode=OneWay}"
+                                ValueChanged="OnSeek"
+                                AutomationProperties.Name="音乐进度"
+                                HorizontalAlignment="Stretch">
+                                <Slider.Resources>
+                                    <x:Double x:Key="SliderHorizontalHeight">12</x:Double>
+                                    <x:Double x:Key="SliderPreContentMargin">4</x:Double>
+                                    <x:Double x:Key="SliderPostContentMargin">4</x:Double>
+                                    <x:Double x:Key="SliderHorizontalThumbWidth">12</x:Double>
+                                    <x:Double x:Key="SliderHorizontalThumbHeight">12</x:Double>
+                                    <x:Double x:Key="SliderInnerThumbWidth">8</x:Double>
+                                    <x:Double x:Key="SliderInnerThumbHeight">8</x:Double>
+                                    <CornerRadius x:Key="SliderThumbCornerRadius">6</CornerRadius>
+                                </Slider.Resources>
+                            </Slider>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource EgDataStyle}" Text="{x:Bind ViewModel.PositionClock, Mode=OneWay}" />
+                                <Border
+                                    Grid.Column="1"
+                                    Background="{ThemeResource EgSurfaceAltBrush}"
+                                    CornerRadius="4"
+                                    HorizontalAlignment="Center"
+                                    Padding="6,0"
+                                    Visibility="{x:Bind ViewModel.FormatVisibility, Mode=OneWay}">
+                                    <TextBlock Style="{StaticResource EgDataStyle}" Text="{x:Bind ViewModel.FormatLabel, Mode=OneWay}" />
+                                </Border>
+                                <TextBlock Grid.Column="2" Style="{StaticResource EgDataStyle}" Text="{x:Bind ViewModel.DurationClock, Mode=OneWay}" />
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+
+                    <Grid x:Name="TransportRow">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            x:Name="ShuffleButton"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="随机播放"
+                            Click="OnShuffle"
+                            Style="{StaticResource MusicSmallButtonStyle}"
+                            ToolTipService.ToolTip="随机播放">
+                            <PathIcon Data="{x:Bind ShuffleGeometry}" />
+                        </Button>
+                        <Button
+                            x:Name="PreviousButton"
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="上一曲"
+                            Click="OnPrevious"
+                            Style="{StaticResource MusicTransportButtonStyle}"
+                            ToolTipService.ToolTip="上一曲">
+                            <FontIcon Style="{StaticResource MusicTransportGlyphStyle}" Glyph="&#xE892;" />
+                        </Button>
+                        <Button
+                            x:Name="PlayButton"
+                            Grid.Column="2"
+                            AutomationProperties.Name="{x:Bind ViewModel.PlayLabel, Mode=OneWay}"
+                            Click="OnPlay"
+                            Style="{StaticResource MusicPlayButtonStyle}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.PlayLabel, Mode=OneWay}">
+                            <FontIcon Style="{StaticResource MusicPlayGlyphStyle}" Glyph="{x:Bind ViewModel.PlayGlyph, Mode=OneWay}" />
+                        </Button>
+                        <Button
+                            x:Name="NextButton"
+                            Grid.Column="3"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="下一曲"
+                            Click="OnNext"
+                            Style="{StaticResource MusicTransportButtonStyle}"
+                            ToolTipService.ToolTip="下一曲">
+                            <FontIcon Style="{StaticResource MusicTransportGlyphStyle}" Glyph="&#xE893;" />
+                        </Button>
+                        <Button
+                            x:Name="VolumeButton"
+                            Grid.Column="4"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="音量"
+                            Style="{StaticResource MusicSmallButtonStyle}"
+                            ToolTipService.ToolTip="音量">
+                            <FontIcon Style="{StaticResource MusicTransportGlyphStyle}" Glyph="{x:Bind local:MusicPlayerPage.VolumeGlyph(ViewModel.Muted), Mode=OneWay}" />
+                            <Button.Flyout>
+                                <Flyout Placement="Top">
+                                    <StackPanel Width="190" Spacing="8">
+                                        <TextBlock Style="{StaticResource EgBodyStyle}" Text="音量" />
+                                        <Slider
+                                            x:Name="VolumeSlider"
+                                            Minimum="0"
+                                            Maximum="100"
+                                            Value="{x:Bind ViewModel.Volume, Mode=OneWay}"
+                                            ValueChanged="OnVolume"
+                                            AutomationProperties.Name="音乐音量" />
+                                        <Button x:Name="MuteButton" Click="OnMute" Content="静音 / 取消静音" />
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <Grid x:Name="LyricsHost" Grid.Column="2" VerticalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock
+                        x:Name="LyricsNote"
+                        Margin="0,0,0,10"
+                        Style="{StaticResource EgCaptionStyle}"
+                        Text="纯文本歌词不支持自动滚动"
+                        Visibility="{x:Bind ViewModel.LyricsNoteVisibility, Mode=OneWay}" />
+                    <Grid Grid.Row="1">
+                        <ListView
+                            x:Name="LyricsList"
+                            AutomationProperties.Name="歌词"
+                            IsItemClickEnabled="False"
+                            IsTabStop="False"
+                            ItemsSource="{x:Bind ViewModel.Lyrics, Mode=OneWay}"
+                            Padding="0,24,16,160"
+                            SelectionMode="None"
+                            ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                            Visibility="{x:Bind ViewModel.LyricsListVisibility, Mode=OneWay}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="music:MusicLyricLine">
+                                    <TextBlock
+                                        Margin="0,6"
+                                        Opacity="{x:Bind ActiveOpacity, Mode=OneWay}"
+                                        Style="{StaticResource MusicLyricStyle}"
+                                        Text="{x:Bind Text}" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <!-- 底部渐隐：WinUI 3 没有 UIElement.OpacityMask，用一层不吃指针的渐变盖住末几行。 -->
+                        <Border
+                            Height="120"
+                            VerticalAlignment="Bottom"
+                            IsHitTestVisible="False"
+                            Visibility="{x:Bind ViewModel.LyricsListVisibility, Mode=OneWay}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="Transparent" Offset="0" />
+                                    <GradientStop Color="{ThemeResource EgScrimColor}" Offset="0.55" />
+                                    <GradientStop Color="{ThemeResource EgWindowColor}" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="8"
+                            Visibility="{x:Bind ViewModel.LyricsEmptyVisibility, Mode=OneWay}">
+                            <FontIcon Style="{StaticResource MusicEmptyGlyphStyle}" Foreground="{ThemeResource EgTextFaintBrush}" Glyph="&#xE8D6;" HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind ViewModel.LyricsEmptyText, Mode=OneWay}" HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="音乐文件没有携带歌词标签" HorizontalAlignment="Center" />
+                        </StackPanel>
+                        <ProgressBar
+                            Height="2"
+                            IsIndeterminate="True"
+                            VerticalAlignment="Top"
+                            Visibility="{x:Bind ViewModel.LyricsLoadingVisibility, Mode=OneWay}" />
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Button
+                    x:Name="QueueButton"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="播放队列"
+                    Style="{StaticResource MusicPageGlassButtonStyle}"
+                    ToolTipService.ToolTip="播放队列">
+                    <FontIcon Style="{StaticResource MusicTransportGlyphStyle}" Glyph="&#xE8FD;" />
+                    <Button.Flyout>
+                        <Flyout Placement="Top">
+                            <StackPanel Width="360" Spacing="12">
+                                <TextBlock Style="{StaticResource EgBodyStyle}" Text="播放队列" />
+                                <ListView
+                                    x:Name="QueueList"
+                                    MaxHeight="420"
+                                    IsItemClickEnabled="True"
+                                    ItemClick="OnQueueItem"
+                                    ItemsSource="{x:Bind ViewModel.Queue, Mode=OneWay}"
+                                    SelectedIndex="{x:Bind ViewModel.QueueIndex, Mode=OneWay}"
+                                    SelectionMode="Single">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="emby:EmbyItem">
+                                            <Grid ColumnSpacing="12" Padding="0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource EgBodyStyle}" Text="{x:Bind Name, Mode=OneTime}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Style="{StaticResource EgDataStyle}" Text="{x:Bind local:MusicPlayerPage.QueueDuration(RunTimeTicks), Mode=OneTime}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -77,9 +77,15 @@ internal static class MusicTests
             var document = XDocument.Load(path);
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var names = document.Descendants().Select(element => (string?)element.Attribute(x + "Name")).ToHashSet();
-            foreach (var name in new[] { "PreviousButton", "PauseButton", "StopButton", "NextButton", "QueueButton", "VolumeSlider", "SeekSlider" })
+            foreach (var name in new[] { "PreviousButton", "PauseButton", "StopButton", "NextButton", "QueueButton", "VolumeSlider", "SeekSlider", "CoverButton", "TitleButton" })
                 Assert.True(names.Contains(name), name);
             XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+            foreach (var name in new[] { "CoverButton", "TitleButton" })
+            {
+                Assert.Equal("Button", Named(name).Name.LocalName);
+                Assert.Equal("OnExpand", (string?)Named(name).Attribute("Click"));
+            }
+            Assert.Equal("Button", Named("CoverFrame").Parent!.Name.LocalName);
             var surface = Named("Surface");
             Assert.Equal("Center", (string?)surface.Attribute("HorizontalAlignment"));
             Assert.True(surface.Attribute("BorderBrush") is null && surface.Attribute("BorderThickness") is null, "播放栏不应叠加卡片描边");
@@ -155,6 +161,49 @@ internal static class MusicTests
                 "封面墙没有换行网格");
             Assert.False(document.Descendants().Any(element => element.Name.LocalName == "RadioButton"),
                 "分区仍在使用单选圆点");
+        });
+        Test("音乐播放页：封面/歌名入口、整页控件与歌词状态接线", () =>
+        {
+            var root = FindRoot();
+            var pagePath = Path.Combine(root, "src", "Momoka.Shell", "Views", "MusicPlayerPage.xaml");
+            Assert.True(File.Exists(pagePath), "音乐播放页尚未实现");
+            var page = XDocument.Load(pagePath);
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var names = page.Descendants().Select(element => (string?)element.Attribute(x + "Name")).ToHashSet();
+            foreach (var name in new[]
+            {
+                "CollapseButton", "FullscreenButton", "CoverFrame", "SeekSlider", "PlayButton", "PreviousButton",
+                "NextButton", "ShuffleButton", "FavoriteButton", "VolumeButton", "QueueButton", "LyricsList"
+            })
+                Assert.True(names.Contains(name), name);
+
+            var userControl = page.Root!;
+            Assert.Equal("Dark", (string?)userControl.Attribute("RequestedTheme"));
+            Assert.True(page.Descendants().Any(element => element.Name.LocalName == "KeyboardAccelerator"
+                && (string?)element.Attribute("Key") == "Escape"), "播放页没有 Escape 收起");
+
+            // 封面与氛围图必须各自绑到播放页的大图/小图，不能拿播放栏那张 48 的卡冒充。
+            var artwork = page.Descendants()
+                .Where(element => element.Name.LocalName == "Image")
+                .Select(element => (string?)element.Attribute(XName.Get("CardArtwork.Item", "using:Momoka.Shell.Views")))
+                .Where(value => value is not null).ToArray();
+            Assert.True(artwork.Any(value => value!.Contains("CoverArtwork", StringComparison.Ordinal)), "缺少大封面接线");
+            Assert.True(artwork.Any(value => value!.Contains("AmbientArtwork", StringComparison.Ordinal)), "缺少氛围底图接线");
+            Assert.True(page.Descendants().Any(element => element.Name.LocalName == "ListView"
+                && (string?)element.Attribute("ItemsSource") == "{x:Bind ViewModel.Lyrics, Mode=OneWay}"), "歌词列表没有接线");
+
+            var code = File.ReadAllText(Path.ChangeExtension(pagePath, ".xaml.cs"));
+            Assert.True(code.Contains("CollapseRequested", StringComparison.Ordinal), "播放页没有收起事件");
+            Assert.True(code.Contains("BeginScrub", StringComparison.Ordinal), "播放页没有拖动进度");
+            Assert.True(code.Contains("ScrollIntoView", StringComparison.Ordinal), "歌词没有随播放滚动");
+            Assert.True(code.Contains("Fullscreen = !_window.Fullscreen", StringComparison.Ordinal), "全屏键没有接窗口");
+            Assert.True(code.Contains("Environment.TickCount64", StringComparison.Ordinal), "用户滚动后没有暂停自动跟随");
+
+            var shell = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ShellPage.xaml"));
+            Assert.True(shell.Contains("<local:MusicPlayerPage x:Name=\"MusicPlayer\"", StringComparison.Ordinal), "外壳没有挂播放页");
+            var shellMusic = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ShellPage.Music.cs"));
+            Assert.True(shellMusic.Contains("ExpandRequested += OpenMusicPage", StringComparison.Ordinal), "播放栏入口没有接线");
+            Assert.True(shellMusic.Contains("CloseMusicPageCore(focusBar: false)", StringComparison.Ordinal), "导航时没有收起播放页");
         });
     }
 

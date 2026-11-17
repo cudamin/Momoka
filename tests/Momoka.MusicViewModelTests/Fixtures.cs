@@ -212,7 +212,15 @@ internal sealed class Handle : IPlaybackHandle, IPlayerControl
     public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
     public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(name == "volume" ? Status.Volume : null);
-    public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+    public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) =>
+        Task.FromResult(name.StartsWith("metadata/by-key/", StringComparison.Ordinal)
+            && Metadata.TryGetValue(name["metadata/by-key/".Length..], out var value) ? value : null);
+    public Task<IReadOnlyList<string>?> GetStringListAsync(string name, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<string>?>(name == "display-tags" ? DisplayTags : null);
+
+    /// <summary>匿名夹具里的文件标签：测试自己填，不读真实文件。</summary>
+    public List<string> DisplayTags { get; } = [];
+    public Dictionary<string, string> Metadata { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

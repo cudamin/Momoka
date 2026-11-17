@@ -13,6 +13,7 @@ public sealed partial class ShellPage
     private MusicPlaybackViewModel? _music;
     private SurfaceMotion? _musicBarMotion;
     private bool _musicBarShown;
+    private bool _musicPageOpen;
     private MusicPlaybackViewModel Music => _music ??= _services!.GetRequiredService<MusicPlaybackViewModel>();
 
     internal Task PlayMusicAsync(EmbyItem item, IReadOnlyList<EmbyItem> items,
@@ -26,6 +27,9 @@ public sealed partial class ShellPage
     private void AttachMusic()
     {
         MusicBar.Attach(Music);
+        MusicBar.ExpandRequested += OpenMusicPage;
+        MusicPlayer.Attach(Music, _window!);
+        MusicPlayer.CollapseRequested += CloseMusicPage;
         Music.BeforeStart = () => Player.ViewModel.StopAsync();
         Music.Noticed += Notify;
         Music.PropertyChanged += OnMusicChanged;
@@ -35,12 +39,58 @@ public sealed partial class ShellPage
 
     private void OnMusicChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(MusicPlaybackViewModel.Visible)) PlaceMusicBar();
+        if (args.PropertyName != nameof(MusicPlaybackViewModel.Visible)) return;
+        // 停止、放完或转去放视频：播放页跟着收；栏的焦点不用还，它自己也要收起。
+        if (!Music.Visible && _musicPageOpen) CloseMusicPageCore(focusBar: false);
+        PlaceMusicBar();
+    }
+
+    private void OpenMusicPage()
+    {
+        if (_services is null || _music is null || !_music.Visible || _musicPageOpen) return;
+        _musicPageOpen = true;
+        // 标题栏还留在页面上方，浅色主题的深墨压在封面暗底上读不出，所以打开期间把这一排和账号切成深色；
+        // 收起时恢复跟随主题（ElementTheme.Default）。播放栏同时收起，它的控制已在页面里。
+        Chrome.RequestedTheme = ElementTheme.Dark;
+        AccountCluster.RequestedTheme = ElementTheme.Dark;
+        // 页面是盖在内容上的整层；把内容与侧栏收起，Tab 与读屏不会跑进被盖住的那一页。
+        ContentHost.Visibility = Visibility.Collapsed;
+        SidebarHost.Visibility = Visibility.Collapsed;
+        SignIn.Visibility = Visibility.Collapsed;
+        MusicPlayer.Open();
+        PlaceMusicBar();
+    }
+
+    private void CloseMusicPage() => CloseMusicPageCore(focusBar: true);
+
+    private void CloseMusicPageCore(bool focusBar)
+    {
+        if (!_musicPageOpen) return;
+        _musicPageOpen = false;
+        MusicPlayer.Close();
+        Chrome.RequestedTheme = ElementTheme.Default;
+        AccountCluster.RequestedTheme = ElementTheme.Default;
+        // 与 ShowPlayer 同一条恢复口径：令牌可能在整页播放期间失效，那时回来的是登录卡而不是浏览页。
+        if (_session is { IsSignedIn: true }) ContentHost.Visibility = Visibility.Visible;
+        else SignIn.Visibility = Visibility.Visible;
+        SyncSidebar();
+        PlaceMusicBar();
+        if (focusBar && Music.Visible) MusicBar.FocusCover();
     }
 
     private void PlaceMusicBar()
     {
         if (_music is null) return;
+        // 整页播放时播放栏没有位置：页里的控制是同一份，栏再浮在下面就成了重复的一排。
+        if (_musicPageOpen)
+        {
+            _musicBarMotion?.Collapse();
+            _musicBarShown = false;
+            MusicBar.Visibility = Visibility.Collapsed;
+            MusicBar.IsHitTestVisible = false;
+            PlaceMusicBarMargins(false);
+            return;
+        }
         var visible = _music.Visible;
         var changed = visible != _musicBarShown;
         _musicBarShown = visible;

@@ -45,6 +45,7 @@ internal static class Program
         if (args is ["music-fixture"])
         {
             MusicTests.Register();
+            MusicLyricsTests.Register();
             return TestHarness.Run();
         }
         if (args is ["fnmusic-fixture"])
@@ -785,6 +786,7 @@ internal static class Program
         PerformanceProbeRulesTests.Register();
         PlayerToolDownloadTests.Register();
         MusicTests.Register();
+        MusicLyricsTests.Register();
         CardPreviewPlacementTests.Register();
         CardPreviewTextTests.Register();
         PreviewHeadingPlacementTests.Register();
