@@ -223,7 +223,9 @@ internal static class StoreDetailLayoutTests
             var mask = Momoka.Shell.Views.StoreBackdropBlend.Mask(ambient: true, symmetric: true);
             byte AmbientAlpha(double x) => mask[((int)Math.Round(0.35 * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
             Assert.Equal(0, AmbientAlpha(0));
-            Assert.True(AmbientAlpha(0.1) is > 0 and < 255, "环境底左端没有渐隐");
+            // 2026-11-17 用户令「红线右边铺满环境底」：左坡只剩 4%，0.1 起已经是满色，渐隐只在最左那一小段。
+            Assert.True(AmbientAlpha(0.02) is > 0 and < 255, "环境底左端没有渐隐");
+            Assert.Equal(255, AmbientAlpha(0.1));
             Assert.Equal(255, AmbientAlpha(0.5));
             // 2026-11-16 用户令「渐变要填满左右两边」：装饰带越过 1840 内容列，用负边距铺到窗口两边。
             var store = Source("Views/DetailPage.Store.cs");
