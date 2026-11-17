@@ -89,6 +89,9 @@ internal static class ShellServices
         // 本次运行里删掉媒体库文件的条目。服务器元数据要等下一次扫描才消失，这一份让主页在那之前不再展示它们；
         // 它是单例、只有内存，程序关掉就没了（用户令 2026-11-03：隐藏状态不要持久化）。
         services.AddSingleton<RemovedMedia>();
+        // 主页「最近添加」上手动标成已看的条目，本次运行里不再出现（2026-11-17 用户令）。同样是单例、只在内存，
+        // 但它只挡主页那几排，不参与删除，也不影响媒体库与详情页。
+        services.AddSingleton<HiddenWatchedMedia>();
         services.AddSingleton<Momoka.Shell.Services.FnNasLibraryRemovalService>();
 
         // The disk budget comes from the settings document rather than from a literal here: it is a row on the

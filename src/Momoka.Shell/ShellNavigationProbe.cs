@@ -608,6 +608,7 @@ internal sealed partial class ShellNavigationProbe
                 .AddSingleton<BrowseSnapshotStore>()
                 .AddSingleton(_ => new Media.DetailHeroCache(Session))
                 .AddSingleton<RemovedMedia>()
+                .AddSingleton<HiddenWatchedMedia>()
                 .AddSingleton<Momoka.Shell.Services.FnNasLibraryRemovalService>()
                 .AddSingleton<ISecretProtector>(PassthroughSecretProtector.Instance)
                 .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).AddSingleton<IStartupRegistration>(Startup)

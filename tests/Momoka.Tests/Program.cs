@@ -62,6 +62,7 @@ internal static class Program
             AggregateQueryTests.Register();
             HomeLayoutTests.Register();
             RemovedMediaTests.Register();
+            HiddenWatchedMediaTests.Register();
             EpisodeRemovalTests.Register();
             return TestHarness.Run();
         }
@@ -704,6 +705,7 @@ internal static class Program
         HomeLayoutTests.Register();
         DetailLayoutTests.Register();
         RemovedMediaTests.Register();
+        HiddenWatchedMediaTests.Register();
         HomeLatestTests.Register();
         LibraryTotalTests.Register();
         HomeResumeTextTests.Register();

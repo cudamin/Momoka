@@ -507,6 +507,53 @@ internal static class HomePerformanceTests
             static EmbyItem ItemOf(object card) =>
                 (EmbyItem)card.GetType().GetProperty("Item")!.GetValue(card)!;
         });
+        Case("主页最近添加：标记已看后当场撤下，重读与重建主页都不再带回来", async () =>
+        {
+            using var fixture = new Fixture(shell, 2);
+            fixture.Transport.HomeLatestCount = 2;
+            var hidden = new HiddenWatchedMedia();
+            var home = fixture.CreateLoadingHome();
+            shell.Invoke(home, "UseWatchedHidden", hidden);
+            try
+            {
+                await fixture.LoadHome(home);
+                await Supplement(home);
+                const string title = "最近添加 · 电影";
+                Assert.True(HasRow(fixture, home, title), "夹具没有媒体库那一排最近添加");
+                var cards = RowCards(fixture, home, title);
+                var target = cards.First(card => ItemOf(card).Id == "a-latest-0");
+
+                // 用户从右键菜单或悬浮层按「标记为已观看」：先按服务器结果发布，再喊主页这一声。
+                fixture.ConfirmWatched(target, true);
+                await fixture.HomeWatch(home, target);
+
+                Assert.False(RowIds(fixture, home, title).Contains("a-latest-0"), "标记已看后那一张没有撤下");
+                Assert.True(RowIds(fixture, home, title).Contains("a-latest-1"), "同排别的卡被误伤");
+                Assert.True(RowIds(fixture, home, "继续观看").Length > 0, "继续观看那一排被误清");
+
+                // 服务器仍会把它发回来：重读一次，本次运行里它仍不该出现。
+                await fixture.LoadHome(home);
+                await Supplement(home);
+                Assert.False(RowIds(fixture, home, title).Contains("a-latest-0"), "重读把标成已看的条目又带回了最近添加");
+                Assert.True(RowIds(fixture, home, title).Contains("a-latest-1"), "重读误伤了同排别的卡");
+
+                // 页面被缓存回收后重建：同一份会话账本交给新视图模型，结果不变。
+                var rebuilt = fixture.CreateLoadingHome();
+                shell.Invoke(rebuilt, "UseWatchedHidden", hidden);
+                try
+                {
+                    await fixture.LoadHome(rebuilt);
+                    await Supplement(rebuilt);
+                    Assert.False(RowIds(fixture, rebuilt, title).Contains("a-latest-0"), "重建主页后隐藏失效");
+                    Assert.True(RowIds(fixture, rebuilt, title).Contains("a-latest-1"), "重建主页误伤了同排别的卡");
+                }
+                finally { await Supplement(rebuilt); ((IDisposable)rebuilt).Dispose(); }
+            }
+            finally { await Supplement(home); ((IDisposable)home).Dispose(); }
+
+            static EmbyItem ItemOf(object card) =>
+                (EmbyItem)card.GetType().GetProperty("Item")!.GetValue(card)!;
+        });
         return TestHarness.Run();
 
         IEnumerable<object> Rows(object home) => ((IEnumerable)shell.Get<object>(home, "Shelves")).Cast<object>();
@@ -516,6 +563,8 @@ internal static class HomePerformanceTests
         string[] RowIds(Fixture fixture, object home, string title) =>
             ((IEnumerable)shell.Get<object>(fixture.HomeShelf(home, title), "Cards")).Cast<object>()
                 .Select(card => shell.Get<EmbyItem>(card, "Item").Id).ToArray();
+        object[] RowCards(Fixture fixture, object home, string title) =>
+            ((IEnumerable)shell.Get<object>(fixture.HomeShelf(home, title), "Cards")).Cast<object>().ToArray();
         IEnumerable<object> Slides(object home) =>
             ((IEnumerable)shell.Get<object>(home, "Slides")).Cast<object>();
         EmbyItem ResumeItem(string id) => new()

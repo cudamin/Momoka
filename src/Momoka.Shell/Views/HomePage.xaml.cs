@@ -1438,6 +1438,8 @@ public sealed partial class HomePage : Page, IShellContent
         ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
         // 删掉媒体库文件的条目在本次运行里不再显示（服务器元数据要等下一次扫描才消失）。
         ViewModel.UseRemovedMedia(services.GetRequiredService<RemovedMedia>());
+        // 「最近添加」上手动标成已看的条目同理：本次运行里不再出现，页面重建也照这一份。
+        ViewModel.UseWatchedHidden(services.GetRequiredService<HiddenWatchedMedia>());
         var images = services.GetRequiredService<EmbyImageStore>();
         var dispatcher = services.GetRequiredService<IUiDispatcher>();
         ViewModel.UseLibraryDirectory(request.LibraryDirectoryUpdated);

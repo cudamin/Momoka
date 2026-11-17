@@ -65,6 +65,12 @@ public sealed partial class HomeViewModel : PageViewModel
     private RemovedMedia? _removed;
 
     /// <summary>
+    /// 本次运行里在主页「最近添加」上手动标成已看的条目。服务器仍会把这些条目发回来，所以重读与暖缓存
+    /// 在这一层滤掉（见 <see cref="HiddenWatchedMedia"/>）；它只挡这几排，不参与删除。
+    /// </summary>
+    private HiddenWatchedMedia? _watchedHidden;
+
+    /// <summary>
     /// 每个库排右端读数用的库总数，按版面钥匙记。读不出来时这里没有那一格，读数退回「这一排装了多少张」。
     /// <para>
     /// 从前只有飞牛拿得到库总数（<c>mediadb/sum</c>），Emby／Jellyfin 的牌子上于是写着货架的张数 —— 上限 24，
@@ -460,6 +466,12 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>由页面在 <see cref="Attach"/> 前交给本页：这一趟运行里已经删掉、不该再显示的那些条目。</summary>
     internal void UseRemovedMedia(RemovedMedia removed) => _removed = removed;
 
+    /// <summary>
+    /// 由页面在 <see cref="Attach"/> 前交给本页：这一趟运行里在「最近添加」上标成已看、不该再显示的条目。
+    /// 页面被缓存回收后重建时，换进来的仍是同一个单例，隐藏状态因此跟着整个运行走。
+    /// </summary>
+    internal void UseWatchedHidden(HiddenWatchedMedia hidden) => _watchedHidden = hidden;
+
     /// <summary>这一页是先从快照上屏的；页面据此决定首读还是后台核对。</summary>
     internal bool RestoredFromCache => _restoredFromCache;
 
@@ -593,7 +605,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 continue;
             }
 
-            shelf.Apply(Shown(cached.Items), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
+            shelf.Apply(Visible(row.Key, cached.Items), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
             shelf.NoteOverride = cached.Note;
         }
         timing?.Mark("home-cards-end", _all.Sum(entry => entry.Shelf.Cards.Count));
@@ -760,8 +772,9 @@ public sealed partial class HomeViewModel : PageViewModel
     /// 或者是电影标记已看后要移出继续观看」）。
     /// </summary>
     /// <remarks>
-    /// 只认「继续观看」那一排：别的排上的卡标记已看只是它自己那个对勾的事，条目还在那一排里（服务器那条 Resume
-    /// 接口才管得着「这一项该不该留在继续观看」）。
+    /// 两件事分开办：「继续观看」那一排里这一件换成下一集或撤掉；「最近添加」那几排（每个媒体库自己那一排）
+    /// 把这一件撤下并记住，本次运行里不再回来（后者见 <see cref="HideFromRecent"/>）。接下来看、媒体库与轮播
+    /// 不跟着动。
     /// <para>
     /// 不重读整排、也不走整页重读：服务器那条 Resume 接口只认「有没有播放进度」，标记已看之后那一集从清单里消失
     /// 是对的，可下一集没有播放进度、它不会给 —— 「切换为下一集」得自己问（<see cref="ResumeSlot"/>，服务器那条
@@ -773,8 +786,12 @@ public sealed partial class HomeViewModel : PageViewModel
     private async Task AfterWatchedAsync(CardItem card)
     {
         if (!Live || card.Scope is not { IsAvailable: true } scope) return;
+        if (!card.IsCurrent || !card.Watched) return;
+
+        // 最近添加那几排：先撤下这一件，重读时也不再带回来。它和继续观看那一格是两回事，两条路都走。
+        HideFromRecent(card);
+
         if (ResumeShelf() is not { } shelf) return;
-        if (!card.IsCurrent) return;
         // The command may come from another shelf's DTO for this same item. Its confirmed state
         // has already been published; the resume representation owns the slot to update.
         var resumeCard = shelf.Cards.FirstOrDefault(candidate => candidate.IsCurrent
@@ -802,6 +819,36 @@ public sealed partial class HomeViewModel : PageViewModel
             ? $"「{watched.Name}」标记已看，从继续观看撤下"
             : $"「{watched.Name}」标记已看，那一格换成「{slot.Name}」");
 
+        ReconcileRows();
+    }
+
+    /// <summary>
+    /// 「最近添加」那几排（每个媒体库自己那一排）：一条被手动标成已看之后，从每一排撤下同一件，并记进
+    /// <see cref="HiddenWatchedMedia"/>，之后这次运行里的重读与暖缓存也不再把它带回来（用户令 2026-11-17
+    /// 「在主页的最近添加 点击标记为已观看之后，要自动隐藏」）。
+    /// <para>
+    /// 只认这一件本身（来源 + Id），不动它的季或单集：这里说的是「这张卡标了已看」，不是删除。继续观看、
+    /// 接下来看与轮播不归这一条管 —— 继续观看那一格由 <see cref="AfterWatchedAsync"/> 的下一集逻辑处理。
+    /// </para>
+    /// </summary>
+    private void HideFromRecent(CardItem card)
+    {
+        _watchedHidden?.Remember(card.Item);
+        var identity = card.Item.IdentityKey;
+        var removed = false;
+        foreach (var (row, shelf) in _all)
+        {
+            if (HomeLayout.LibraryId(row.Key) is null) continue;
+            foreach (var candidate in shelf.Cards
+                .Where(held => string.Equals(held.Item.IdentityKey, identity, StringComparison.Ordinal)).ToArray())
+            {
+                candidate.AbandonPoster();
+                shelf.Cards.Remove(candidate);
+                removed = true;
+            }
+        }
+        if (!removed) return;
+        Log.Info(Category, $"「{card.Item.Name}」标记已看，从最近添加撤下");
         ReconcileRows();
     }
 
@@ -1100,7 +1147,7 @@ public sealed partial class HomeViewModel : PageViewModel
         // 这一趟运行里已经删掉的条目不进屏：服务器元数据要等下一次扫描才消失，重读仍会带回来（见 RemovedMedia）。
         // 逐片回填也走这里，所以删掉一件之后，任何一片迟到的结果都不会把它重新摆回货架。
         IReadOnlyList<EmbyItem> ItemsOf(RowRead load) =>
-            load.Row.Key == HomeLayout.Libraries ? _libraryViews : WithoutMusic(Shown(MergeParts(load.Parts)));
+            load.Row.Key == HomeLayout.Libraries ? _libraryViews : WithoutMusic(Visible(load.Row.Key, MergeParts(load.Parts)));
 
         IReadOnlyList<EmbyItem> Items(string key) =>
             loadsByKey.TryGetValue(key, out var load) ? ItemsOf(load) : [];
@@ -1535,6 +1582,18 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private List<EmbyItem> Shown(IEnumerable<EmbyItem> items) =>
         _removed is null ? [.. items] : items.Where(item => !_removed.Hides(item)).ToList();
+
+    /// <summary>
+    /// 某一排实际能上屏的条目：已删的照旧滤掉；媒体库那几排「最近添加」还要再挡掉本次运行里手动标成
+    /// 已看的（用户令 2026-11-17「在主页的最近添加 点击标记为已观看之后，要自动隐藏」）。继续观看、
+    /// 接下来看与轮播不读这一条 —— 那里显示的是一件事的另一面，不跟着消失。
+    /// </summary>
+    private List<EmbyItem> Visible(string rowKey, IEnumerable<EmbyItem> items)
+    {
+        var shown = Shown(items);
+        if (HomeLayout.LibraryId(rowKey) is null || _watchedHidden is null) return shown;
+        return shown.Where(item => !_watchedHidden.Hides(item)).ToList();
+    }
 
     /// <summary>这一趟失败是否意味着当前身份已经读不到内容，而不是服务器暂时抽风。</summary>
     private static bool FailureDropsContent(Exception error) =>
