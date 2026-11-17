@@ -6,7 +6,7 @@
 
 **测了什么。** `AcrylicControlsTests` 的商店操作块用例新增一条源码契约：进商店模式必须把 `Background` 赋成 `StoreActionRestFrame`，退出路径仍赋 `ButtonBackground`，且不允许用 `ClearValue` 清底层（旧回归点保留）。原生探针 `RequireStoreCoverActionAppearance` 改成核「常态 `Background` 的 alpha 为 0」，`RequireFixedSurface` 增加可选参数 `restHidden`，从 `PointerOver` 档起核固定面色——常态若又铺回框会当场红。
 
-**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（4 分 43 秒）；`acrylic-controls-fixture` **40/40**；`Momoka.PageContractTests` **354/354**，均 0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 的 4 个变更路径通过。按日常界面规则未跑原生探针与验收截图。
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（4 分 43 秒）；`acrylic-controls-fixture` **40/40**；`Momoka.PageContractTests` **354/354**，均 0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 的 4 个变更路径通过。因改了探针，在无沙箱下实跑 `Momoka.exe --probe-shell --probe-section detail-cards --screen 1`：**2/2 通过**（`%LOCALAPPDATA%\Momoka\logs\shell-probe-20261117-120512231-19308`），媒体 1240／1025／1024／1023／760／360 与订阅 1240／760／360 全过，`store-detail-cards.txt` 记录「媒体旧模式检查：…操作材质均通过」；已目视 `store-detail-cards-media-1240.png` 与 `-760.png`，三颗图标常态无框，播放键与下方选择框的材质未变。沙箱内直接启动该 GUI 会以退出码 1 立即结束，未产生探针输出；无沙箱重跑才拿到证据。
 
 **发布。** 新工作树缺 `libmpv-2.dll`，从主树根目录复制同一份（101,242,880 字节）后按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-button-border-hover-AR1pI3`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 着色器校验通过；桌面 `Momoka-feat-button-border-hover-AR1pI3.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（19:59 生成）。主树 `Momoka.lnk` 未动。
 
