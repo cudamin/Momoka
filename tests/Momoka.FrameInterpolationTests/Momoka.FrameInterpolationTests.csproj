@@ -91,7 +91,7 @@
             "namespace Momoka.Shell;\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(svp, "    private static async Task CommitSvpPathAsync(", "\n}") +
             between(shared, "    private static void Require(bool condition, string message)", "\n    private static object? Call") +
-            between(shared, "    private static async Task UntilAsync(Func<bool> ready)", "\n    private static async Task LayoutAsync") +
+            between(shared, "    private static async Task UntilAsync(Func<bool> ready, int attempts = 80)", "\n    private static async Task LayoutAsync") +
             "\n    internal static Task CommitSvpForFixture(TextBox editor, ToggleSwitch next, string typed, Func<Task> verify, Action<string> record) => CommitSvpPathAsync(editor, next, typed, verify, record);\n" +
             "    internal const string SvpHash = \"" + hash(svpPath) + "\";\n" +
             "    internal const string SharedHash = \"" + hash(sharedPath) + "\";\n}\n";

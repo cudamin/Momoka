@@ -66,7 +66,8 @@ namespace Momoka.Shell
         internal Task PageCompletionForFixture(ScrollView scroll, Func<bool> arrived) => TriggerPerformancePageAsync(scroll, arrived);
         internal Task SeasonCompletionForFixture(Views.DetailPage page, Momoka.Emby.EmbyItem season) => SelectPerformanceSeasonAsync(page, season, page.Strip);
         private static Task WaitForDiagnosticsFrameAsync() => Task.CompletedTask;
-        private static Task UntilAsync(Func<bool> condition)
+        // attempts 与生产探针同签名；测试边界里状态是同步可读的，只有在当场不满足时才失败。
+        private static Task UntilAsync(Func<bool> condition, int attempts = 80)
         {
             if (!condition()) throw new InvalidOperationException("fixture condition was not fulfilled");
             return Task.CompletedTask;
