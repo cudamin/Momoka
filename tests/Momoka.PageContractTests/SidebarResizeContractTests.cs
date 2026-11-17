@@ -53,15 +53,26 @@ internal static class SidebarResizeContractTests
                 "规整没有把存下来的侧栏宽度夹回拖动范围");
         });
 
-        Test("侧边栏开合不随窗口尺寸变化", () =>
+        Test("侧边栏开合不随窗口尺寸变化，并记住用户上次选的那一档", () =>
         {
-            // 2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」：尺寸路径只重排，
-            // 开合只剩两处 —— 进侧边栏模式时按当时窗宽定初值，以及标题栏那颗折叠键。
+            // 2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」：尺寸路径只重排，开合只归模式入口
+            // 与标题栏那颗折叠键。2026-11-17 用户令「持久化保存侧边栏为展开或者折叠，不要每次打开都默认展开」：
+            // 模式入口先读存下的选择，只有还没选过的那一档才按窗宽定初值；折叠键按一下把选择写回设置。
             var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.Sidebar.cs"));
             var body = MethodBody(source, "private void UpdateSidebarWidth()");
             Assert.DoesNotContain("IsPaneOpen", body, "窗口尺寸路径仍在改侧边栏开合");
             Assert.Contains("ApplyPreferredSidebarWidth();", body);
-            Assert.Contains("Sidebar.IsPaneOpen = ActualWidth >= SidebarWideThreshold;", source);
+            var preferences = MethodBody(source, "private void OnSidebarPreferencesChanged(UiSettings ui)");
+            Assert.Contains("if (ui.SidebarExpanded is { } expanded)", preferences, "模式入口没有先读存下的开合选择");
+            Assert.Contains("Sidebar.IsPaneOpen = expanded;", preferences);
+            Assert.Contains("Sidebar.IsPaneOpen = ActualWidth >= SidebarWideThreshold;", preferences,
+                "还没选过的那一档仍按窗宽定初值");
+            Assert.DoesNotContain("SidebarExpanded", MethodBody(source, "private void ResolvePendingSidebarMode()"),
+                "程序自己按窗宽定的初值不能写进设置");
+            var toggle = MethodBody(source, "private void OnNavToggleClicked(object sender, RoutedEventArgs e)");
+            Assert.Contains("PersistSidebarExpanded();", toggle, "折叠键没有把用户的选择写回设置");
+            Assert.Contains("Settings.Ui.SidebarExpanded = Sidebar.IsPaneOpen;", source);
+            Assert.Contains("_settings.Save();", source);
             Assert.Contains("Sidebar.IsPaneOpen = !Sidebar.IsPaneOpen;", source);
             Assert.DoesNotContain("_sidebarWide", source);
         });

@@ -21,7 +21,10 @@ public sealed partial class ShellPage
     private bool _sidebarTitleLayoutPending;
     private bool _syncingSidebar;
 
-    /// <summary>进侧边栏模式时还没量到宽度（Loaded 那一刻 ActualWidth 是 0），初值等窗宽稳定再定。</summary>
+    /// <summary>
+    /// 进侧边栏模式时还没量到宽度（<c>Loaded</c> 那一刻 ActualWidth 是 0），而且用户还没有存过开合选择时，
+    /// 初值等窗宽稳定再定；存过的那一档直接还原，不走这一拍。
+    /// </summary>
     private bool _sidebarPanePending;
 
     /// <summary>等窗宽稳定的那一拍：启动时外壳会先按上一位宽排一次，随后才收到真正的窗口尺寸。</summary>
@@ -101,17 +104,27 @@ public sealed partial class ShellPage
             return;
         }
         _sidebarMode = !ui.EnableImmersive;
-        // 进入侧边栏模式时按当时的窗宽定一次初值；之后窗宽怎么变都不再改写开合
-        // （2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」）。
+        // 进侧边栏模式时还原用户上次选的那一档；还没选过（缺键的旧设置文件）才按当时的窗宽定一次初值。
+        // 之后窗宽怎么变都不再改写开合（2026-11-16 用户令「拉动窗口的时候侧边栏不要自动展开或者收起」）。
         _sidebarPanePending = false;
         _sidebarPaneTimer?.Stop();
         if (_sidebarMode)
         {
+            if (ui.SidebarExpanded is { } expanded)
+            {
+                // 2026-11-17 用户令「持久化保存侧边栏为展开或者折叠，不要每次打开都默认展开」：
+                // 存着哪一档就还原哪一档，不等窗宽，也不按这一跑的窗宽改写它。
+                Sidebar.IsPaneOpen = expanded;
+            }
             // Loaded 那一刻 ActualWidth 还是 0：初值等窗宽跳停之后再定，见 ScheduleSidebarPaneDecision。
-            if (double.IsFinite(ActualWidth) && ActualWidth > 0)
+            else if (double.IsFinite(ActualWidth) && ActualWidth > 0)
+            {
                 Sidebar.IsPaneOpen = ActualWidth >= SidebarWideThreshold;
+            }
             else
+            {
                 _sidebarPanePending = true;
+            }
         }
         SyncSidebar();
     }
@@ -439,6 +452,19 @@ public sealed partial class ShellPage
         _sidebarPanePending = false;
         _sidebarPaneTimer?.Stop();
         Sidebar.IsPaneOpen = !Sidebar.IsPaneOpen;
+        PersistSidebarExpanded();
+    }
+
+    /// <summary>
+    /// 用户自己按折叠键选了新的一档：写回设置文件，下次启动照这一档还原
+    /// （2026-11-17 用户令「持久化保存侧边栏为展开或者折叠，不要每次打开都默认展开」）。
+    /// 程序自己定初值的那几条路不写 —— 只有用户的选择才算数。
+    /// </summary>
+    private void PersistSidebarExpanded()
+    {
+        if (_settings is null || Settings.Ui.SidebarExpanded == Sidebar.IsPaneOpen) return;
+        Settings.Ui.SidebarExpanded = Sidebar.IsPaneOpen;
+        _settings.Save();
     }
 
     /// <summary>

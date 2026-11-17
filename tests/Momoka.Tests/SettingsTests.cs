@@ -863,6 +863,25 @@ internal static partial class SettingsTests
             Assert.Equal(320, settings.Ui.SidebarWidth, "范围内的宽度原样保留");
         });
 
+        Test("设置：侧边栏开合记住用户上次那一档，缺键仍是未选择", () =>
+        {
+            // 2026-11-17 用户令「持久化保存侧边栏为展开或者折叠，不要每次打开都默认展开」：三档都要原样穿过
+            // 设置文件。null 是「还没选过」—— 缺键的旧文件读出来就是它，启动仍按窗宽定初值，升级行为不变；
+            // true／false 是用户最后一次按折叠键的结果，重启后照这一档还原。
+            var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);
+            Assert.Null(settings.Ui.SidebarExpanded);
+            SettingsMigration.Normalize(settings);
+            Assert.Null(settings.Ui.SidebarExpanded, "规整不能替用户编一个选择出来");
+
+            foreach (var expanded in new bool?[] { true, false })
+            {
+                settings.Ui.SidebarExpanded = expanded;
+                SettingsMigration.Normalize(settings);
+                var saved = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+                Assert.Equal(expanded, SettingsMigration.FromJson(saved, Protector).Ui.SidebarExpanded);
+            }
+        });
+
         Test("规整：认不出来的主题 id 被写回默认那套", () =>
         {
             var settings = SettingsMigration.NewDefaults();
