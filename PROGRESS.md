@@ -8,7 +8,7 @@
 
 **没验证的。** 未在真实 WinUI 窗口目视库卡拼墙。诊断时为核对接口重新登录取得只读令牌，未播放、未收藏、未上报历史、未写库。
 
-**分支。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-feiniu-music-cover-ztPLhJ`，分支 `fix-feiniu-music-cover-ztPLhJ`，基点 `a8152cf`，产品与测试提交 `bde932f`；未合并 master、未发布、未推送。
+**分支。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-feiniu-music-cover-ztPLhJ`，分支 `fix-feiniu-music-cover-ztPLhJ`，基点 `a8152cf`，产品与测试提交 `bde932f`；未合并 master、未推送。已按改好收尾发布本树（548 文件、289.9 MB，23:52）并刷新桌面 `Momoka-fix-feiniu-music-cover-ztPLhJ.lnk`，仅体验刷新、不销账。
 
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
