@@ -487,6 +487,32 @@ internal static partial class Program
             Ensure(File.ReadAllText(run.ScopePath).Contains("未执行检查：1", StringComparison.Ordinal), "partial scope explicitly retained");
             Ensure(!File.ReadAllText(run.ScopePath).Contains("未执行区域：无", StringComparison.Ordinal), "not mislabeled as full probe");
         });
+        Test("shell-default-off-skipped-in-full-run", async () =>
+        {
+            var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-default-off-full"));
+            var ran = false;
+            await run.ExecuteAsync(async () =>
+            {
+                await run.RecordAsync(true);
+                await run.RecordDefaultOffAsync(() => { ran = true; return Task.CompletedTask; });
+            });
+            run.Verify(0);
+            Ensure(!ran, "default-off case body must not run in a full probe");
+            Equal(1, run.ShellChecks.Count, "default-off case is not counted as a passed check");
+            var scope = File.ReadAllText(run.ScopePath);
+            Ensure(scope.Contains("默认不跑：1", StringComparison.Ordinal), "default-off case reported in scope");
+            Ensure(scope.Contains("deferred case", StringComparison.Ordinal), "default-off case named in scope");
+        });
+        Test("shell-default-off-runs-when-its-section-is-selected", async () =>
+        {
+            var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-default-off-section"), sections: [ShellProbeSections.Settings]);
+            var ran = false;
+            await run.ExecuteAsync(() => run.RecordDefaultOffAsync(() => { ran = true; return Task.CompletedTask; }));
+            run.Verify(0);
+            Ensure(ran, "explicit section still executes the default-off case");
+            Equal(1, run.ShellChecks.Count, "explicit section records the deferred case as a real check");
+            Ensure(File.ReadAllText(run.ScopePath).Contains("默认不跑：0", StringComparison.Ordinal), "nothing deferred when its section is selected");
+        });
         Test("shell-inspect-success", async () =>
         {
             var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-inspect-success"));
@@ -670,6 +696,8 @@ internal static partial class Program
         }
 
         internal Task RecordSectionAsync(string? section) => _shell!.CaseAsync("section case", () => Task.CompletedTask, 1, section);
+        internal Task RecordDefaultOffAsync(Func<Task>? run = null) =>
+            _shell!.CaseAsync("deferred case", run ?? (() => Task.CompletedTask), 1, ShellProbeSections.Settings, defaultOff: true);
         internal Task RecordTimedAsync(Func<Task> run, int seconds) =>
             _shell!.CaseAsync("timed case", run, seconds, ShellProbeSections.Library);
 

@@ -10,6 +10,14 @@
 
 **没动的。** 独占模式那一颗是 uosc 的 `PauseIndicator.lua`（按画面短边 15% 走、不读 `state.scale`），本批未改。
 
+## 2026-11-17 探针全量默认跳过长期无信号用例（主树 master，未验证）
+
+用户问「项目里的探针都是有用的吗」，核对后令「去掉没有价值的」，并选定「移出默认全量」。
+
+**改了什么。** `ShellProbeReport.CaseAsync` 新增 `defaultOff`：不带 `--probe-section` 的全量跳过这些用例，`shell-probe-scope.txt` 增加「默认不跑：N」一节逐条列出分区与用例名；显式选中该分区时照常执行，代码与断言不删。先登记四条长期拿不到有效信号的：商店预告实帧（网页起播等不到）、MoviePilot 剧资源 TMDB 筛选（多轮超时或被桌面遮挡）、弹弹play 窄窗、MoviePilot 按季订阅。`--probe-cursor`／`--probe-resize`／`--probe-resize-manual` 本来就是显式入口，不在全量里，未改。`Momoka.ProbeFinalizationTests` 新增两条回归：全量不执行默认不跑用例（scope 记 1）、显式选分区仍照常执行。
+
+**未验证（阻塞）。** 本会话的 Bash／PowerShell 工具在 15:0x 后不可用：内置 PortableGit 的 `bash.exe` 缺失，PowerShell 通道缺 WorkBuddy 的 `lazy-lite-wb` CLI 模块。因此本轮没有构建、没有跑单测、没有跑探针、没有提交。另有一条现场：15:20 起从旧发布件跑的全量 `--probe-shell --screen 1`（pid 25940）仍在逐项推进，截至记录时它跑到通知页一带；它的前 70 项里 `Plex 观看写后确认`、`筛选多选下拉`、`沉浸主页顶部滚动收放`、`商店预告实帧`、`MoviePilot 剧资源 TMDB` 五项为红，其中后四项是遮挡／超时，第一项是「详情已看按钮文字没有随确认状态更新」，可能是真回归，未修。
+
 ## 2026-11-17 发版 0.2.8：版本号、GitHub Release 与微软商店包（探针按用户指令跳过，未销账）
 
 用户令「交付，更新版本号，提交代码到github，更新版本打包发布到GitHub生成一个微软商店商店安装包」；过程中明确两条：「跳过这一轮探针」「zip就不必了github上只需要上传.exe就可以」。因此本轮按用户指令发布，但**没有把原生探针与验收截图记作通过，也不销账**。
