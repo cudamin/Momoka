@@ -1,3 +1,17 @@
+## 2026-11-17 商店详情：预告控制条没上屏时不再预留那 72 的空档（临时分支，未合并）
+
+用户附剧详情页截图（商店版式，1614×814）一句「不够紧凑，下方留了太多空位」，指出信息区（音频/字幕那行）与「更多来自」卡片之间那一条空带。追问收紧方式时用户答「卡片位置固定在背景图最大时的下方，不再自动调整」。
+
+**病根。** 量截图：最后一行（音频行）下沿约 564，卡片上沿约 673；右侧背景图盒 920×517.5、下沿约 517，商店档尾部本来只把首卡推到「背景图下沿 + `StorePreviewGap` 16」。真正多出来的是 `DetailViewModel.TailMinHeight` 商店分支里那段 `StoreTrailerControlsRoom`（72）：判据是 `TrailerVisibility`（**条目有没有预告片**），只要服务器给了预告元数据就提前占位，跟这支预告这刻有没有真的打开、自动播放有没有关、加载有没有失败全都无关。截图那一刻没有预告画面与控制键，这 72 就成了一条死空。517.5 + 72 + 16 − 带高（约 535）≈ 70，正好对上量到的空档。
+
+**改了什么。** `DetailViewModel` 新增 observable `StoreTrailerControlsShown`，`TailMinHeight` 的商店分支改看它（`StoreTrailerControlsShown && PageWidth >= DetailHero.StoreWideFloor` 才加 72）。视图在控制键真正露头的两处写 true —— 本地 `MediaOpened` 与网页预告起播那两句 `StoreTrailerControls.Visibility = Visible` 之后；`StopStoreTrailer` 写 false，失败、取消、换条目、退出商店、离页都走那一处。滚动暂停（`_storeTrailerScrollPaused`）只暂停播放器、不走 `StopStoreTrailer`，那 72 留着，卡片不跟着滚动一上一下。商店详情不带预告时首卡上移 72、紧跟信息区；预告片真的开播时仍替控制键让出 72，`CommandBar` 不会被后面不透明的卡片盖住。
+
+**探针同步。** `ShellNavigationProbe.StoreDetailBackdrop` 的 clearance 用例原来只把控制键设为可见就要求尾部让位；现在先把 `StoreTrailerControlsShown` 置 true，并按「背景高 + 72 + 16 − 带高」核对 `TailMinHeight`，收尾再置 false 并布局一次。
+
+**检查。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **353/353**（新增「商店尾部：预告控制条没上屏时不再预留那 72 的空档」，钉住新判据与两处 true／一处 false 的接线）；`detail-action-readiness-fixture` **94/94**；改动文件 `dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1` 通过。按 2026-11-16 用户令，日常改界面不跑原生探针与验收截图，待跑项记入[待交付批次](docs/待交付批次.md)第 67 条。
+
+**分支。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-reduce-bottom-space-mDe8Vm`，分支 `fix-reduce-bottom-space-mDe8Vm`，基点 `aa01a4a`；改动未提交，未合并、未推远端。
+
 ## 2026-11-17 恢复主题自带强调色，色板末格改回跟随系统（已合并 master，已发布主树）
 
 用户附主题设置截图报「这个薄荷影院怎么不生效了」，随后令「右下角的主题色改为跟随当前系统设置，不要自己自选」。根因是 2026-11-16 晚的「主题色默认跟随 Windows 主题色」把强调色一族交给 `UIColorType.Accent`；本机系统强调色是 `#3F3F3F` 灰，薄荷影院的窗口与面色仍是薄荷底色，但按钮、选中项、角标与主题色格全部变灰，看起来像整套主题没生效。
