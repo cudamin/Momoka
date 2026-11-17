@@ -1,3 +1,17 @@
+## 2026-11-17 商店详情三颗图标键的框改为悬停才显示（分支 feat-button-border-hover-AR1pI3，未合并）
+
+用户一句话：「这三个按钮的框改为鼠标移到按钮上的时候才显示」——指商店模式详情页片名下方那三颗图标键（已看、收藏、更多）。
+
+**改了什么。** 2026-11-16 第 55 项给这三颗键加的常态材质底（与下方媒体源／音频／字幕选择框同一支固定面色、同一档 10 圆角）现在只在指针移上去时出现：`DetailPage.Store.cs` 新增页面级的透明画刷 `StoreActionRestFrame`，`PlaceStoreActionButtons` 进商店模式时把三颗键的 `Background` 换成它；指针移上去后仍由平台默认按钮模板的 `PointerOver`／`Pressed` 读 `ControlBackgroundBrushes` 种进按钮局部资源的 `ButtonBackgroundPointerOver`／`ButtonBackgroundPressed`，所以悬停与按下的框仍是原来那支固定面色和圆角，按钮仍是 0 边框、44 DIP 命中格。退出商店模式时原路径不动：照旧把 `ButtonBackground` 铺回三颗药丸／圆钮。高对比度、键盘焦点环与既有可访问名称都不改。
+
+**测了什么。** `AcrylicControlsTests` 的商店操作块用例新增一条源码契约：进商店模式必须把 `Background` 赋成 `StoreActionRestFrame`，退出路径仍赋 `ButtonBackground`，且不允许用 `ClearValue` 清底层（旧回归点保留）。原生探针 `RequireStoreCoverActionAppearance` 改成核「常态 `Background` 的 alpha 为 0」，`RequireFixedSurface` 增加可选参数 `restHidden`，从 `PointerOver` 档起核固定面色——常态若又铺回框会当场红。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（4 分 43 秒）；`acrylic-controls-fixture` **40/40**；`Momoka.PageContractTests` **354/354**，均 0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 的 4 个变更路径通过。因改了探针，在无沙箱下实跑 `Momoka.exe --probe-shell --probe-section detail-cards --screen 1`：**2/2 通过**（`%LOCALAPPDATA%\Momoka\logs\shell-probe-20261117-120512231-19308`），媒体 1240／1025／1024／1023／760／360 与订阅 1240／760／360 全过，`store-detail-cards.txt` 记录「媒体旧模式检查：…操作材质均通过」；已目视 `store-detail-cards-media-1240.png` 与 `-760.png`，三颗图标常态无框，播放键与下方选择框的材质未变。沙箱内直接启动该 GUI 会以退出码 1 立即结束，未产生探针输出；无沙箱重跑才拿到证据。
+
+**发布。** 新工作树缺 `libmpv-2.dll`，从主树根目录复制同一份（101,242,880 字节）后按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-button-border-hover-AR1pI3`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 着色器校验通过；桌面 `Momoka-feat-button-border-hover-AR1pI3.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（19:59 生成）。主树 `Momoka.lnk` 未动。
+
+**提交。** 产品与测试 `9c851d4`；记录见下一条提交。分支未合并 master，台账第 77 项保留，统一验证与销账另做。
+
 ## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
 用户三句：「缓冲设置单独一个卡片，放补帧上面，参考上图修改缓冲设置，新增内网缓冲设置和外网缓冲设置」「默认值是多少要写清除不要写0」（「清除」按「清楚」读）；附 mpv.net 的「缓冲大小／缓冲时长」截图。问过两件事，用户当次定：默认值取**内网 256MB／30s、外网 256MB／30s**；内网/外网**按服务器地址自动判定**。

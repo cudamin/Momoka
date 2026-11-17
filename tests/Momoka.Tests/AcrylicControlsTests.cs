@@ -43,6 +43,9 @@ internal static class AcrylicControlsTests
             Assert.DoesNotContain("if (IsStoreCoverAction(brushes.Control)) continue;", appearance);
             Assert.Contains("IsStoreCoverAction(button)", appearance);
             var store = Source("Views/DetailPage.Store.cs");
+            // 2026-11-17 用户令「这三个按钮的框改为鼠标移到按钮上的时候才显示」：进商店模式常态给透明面，
+            // 悬停与按下仍由局部 ButtonBackground* 画刷出框；退出商店时照原样把材质底铺回去。
+            Assert.Contains("button.Background = StoreActionRestFrame;", store);
             Assert.Contains("button.Background = (Microsoft.UI.Xaml.Media.Brush)button.Resources[\"ButtonBackground\"];", store);
             Assert.DoesNotContain("button.ClearValue(Control.BackgroundProperty);", store);
         });
