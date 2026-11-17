@@ -6,7 +6,9 @@
 
 **本轮已跑。** Core 与 Shell Release/x64 **0 警告 0 错误**；`proxy-fixture` **5/5**（解析与归一、设置迁移、备份/恢复默认、以及回环假代理收到 TMDB 请求的 `CONNECT api.themoviedb.org:443`）；全量 `Momoka.Tests` **5248/5248**（`TEMP` 指到可写目录；默认 `C:\WINDOWS\TEMP` 下两条既有下载用例报环境红，与改动无关）；`settings-page-state-fixture` **59/59**（关于卡名单补「网络」）；`settings-search-fixture` **14/14**；`settings-applicability-fixture` **36/36**；`local-media-vm-fixture` **7/7**。
 
-**待做。** 用 `http://127.0.0.1:8686` 实机核对 YouTube 预告（读 WebView2 浏览器进程命令行里的 `--proxy-server` 与真实起播）；按用户要求合并主树，合并后在最终 master 上复编、跑测试并发布/刷新快捷方式。未推远端。
+**真机验证（`http://127.0.0.1:8686`）。** 发布本树后在设置 → 关于 → 网络把代理填成 `http://127.0.0.1:8686`，`settings.json` 当场落成 `"Network":{"ProxyServer":"http://127.0.0.1:8686"}`；随后从媒体库打开《F1：狂飙飞车》，日志 02:32:04 `商店预告：本地预告未命中，YouTubeId=CT2_P2DZBR0`、02:32:04 `登录态=True`，20 秒内没有「未起播」「报错」「加载失败」。`msedgewebview2.exe`（pid 25708，用户数据目录 `Momoka\webview2\youtube\EBWebView`）的命令行带 `--proxy-server=http://127.0.0.1:8686`，实屏右上角预告已出画面。这证明设置值确实传到了 WebView2，YouTube 预告经该代理起播。**未做：** 清空代理后的负向实机（单元测试已覆盖参数不追加的分支）；真实 TMDB 令牌与媒体目录下的刮削全链（只有回环假代理的 `CONNECT` 证据）。
+
+**合并。** 2026-11-18 用户令「完了自动合并到主树」。主树 `master` 在 `c9c351b`（已含主页 1860 宽度批次），以 `--no-ff` 合入本批提交；冲突只在 `PROGRESS.md`、`docs/待交付批次.md` 与 `docs/开发与验证.md`，按两边保留（本批置顶、台账编号顺延）。合并后在最终 master 上复编、跑受影响测试并发布主树；未推远端。
 
 ## 2026-11-18 YouTube 预告真机可播：共享登录 + `www.youtube.com/embed`（已合并 master，待统一验证）
 
