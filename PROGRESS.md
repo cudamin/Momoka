@@ -1,3 +1,15 @@
+## 2026-11-17 商店详情右上角可选背景图/预告或艺术图（分支 feat-store-art-selector-6Gj3y5，待统一验证）
+
+用户令「商店模式新增去掉背景图、渐变，右上角改为显示艺术图的功能。做个选择框，选择背景图/预告 或者 艺术图」。追问确认三件事：选择框放设置 → 界面 → 详情页外观；艺术图沿用沉浸档右上角那张的尺寸（360×202.5，窗口超过 1280 后到 540×303.75）；窄窗口（页宽不足 1024）不摆这一角。
+
+**改了什么。** `UiSettings` 新增 `StoreCornerArt`（默认 false，旧设置文件读出来就是现在的样子）。详情页外观卡在商店模式下多一行「右上角显示」：`背景图/预告`（false）与 `艺术图`（true），选完喊 `ShellPrefs.ApplyAppearance`，已打开的详情页当场重排。Core 的 `DetailHero` 新增两条纯函数：`StoreBackdropShown`（商店 + 没选艺术图 + 有剧照）与 `StoreCornerArtShown`（商店 + 选艺术图 + 宽版式 + 艺术图已解出来），季页没有艺术图，这一句自然为否。`DetailViewModel` 的 `StoreBackdropVisibility` 改问前者 —— 它一面管着右上角那块剧照，一面管着环境色、左上角淡墨、窄窗亚克力与尾部让位，选艺术图时这些整块一起收起；新增 `StoreCornerArtVisibility` 与 `RefreshAppearance`／`AnnounceShape`／`PageWidth`／`CornerImage` 的通知。`DetailPage.xaml` 在装饰背景之后新增 `StoreArt`：同一个右上角、同一条 16 的右边距、`EgCardCornerRadius` 圆角，宽高读 `CornerMaxWidth`／`CornerMaxHeight`，`ImageBrush` 按 Uniform 画 `CornerImage`（与沉浸档 `CornerArt` 同一张图、同一组上限；解码宽 540 已够）。`UpdateStoreTrailer` 在选艺术图时直接走 `StopStoreTrailer`，预告不起播、控制键与视频底层一起收掉；切回背景图/预告时照旧重新接上。
+
+**测了什么。** `ItemDetailTests` 新增商店右上角两条纯函数真值表（默认铺剧照、选艺术图才摆且必须宽版式加图到手）；`SettingsPageStateTests` 新增「右上角显示」两档选项、默认选中背景图/预告、选择写回设置并通知 `AppearanceChanged`、沉浸模式整行收起，并把商店模式的行集合改为 `显示模式｜右上角显示`；`DetailShapeNotificationTests` 补 `StoreCornerArtVisibility` 的默认收起与选艺术图后的重算通知；`ShellNavigationProbe.DetailCustomization` 的商店行数预期同步为两行（探针当轮未跑，留给统一验证）。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 17.83 秒）；全量 `Momoka.Tests` **5218/5218、0 失败 0 跳过**（首跑两条下载用例因 TEMP 指向 `C:\WINDOWS\TEMP` 被沙箱拒，改用用户临时目录重跑即全绿，与产品无关）；`Momoka.PageContractTests` **353/353**；`settings-page-state-fixture` **59/59**、`detail-action-readiness-fixture` **94/94**；`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 11 个变更路径通过。按改好收尾发布本树：548 文件、289.9 MB；桌面快捷方式 `Momoka-feat-store-art-selector-6Gj3y5.lnk` 指向本树 `artifacts/publish/win-x64`（18:36）。
+
+**未验证。** 按日常界面规则未跑原生探针与验收截图；实屏上的艺术图尺寸/圆角、切换行时预告是否停住、没有艺术图的条目与季页这一角是否空着、浅色主题与高对比度，留给统一验证，记入[待交付批次](docs/待交付批次.md)第 76 条。分支未合并、未推远端。
+
 ## 2026-11-17 集成模式暂停/播放徽标全屏档 ×1.3（主树 master，待统一验证）
 
 用户一句话：「集成模式点击屏幕暂停/开始时出现的图标全屏时要何集成模式一样放大1.3倍」——「何」按「和」读。
