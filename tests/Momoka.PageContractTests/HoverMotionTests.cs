@@ -123,7 +123,7 @@ internal static class HoverMotionTests
             var source = Read("src/Momoka.Shell/ShellNavigationProbe.SeriesResourceBrowser.cs");
             Assert.DoesNotContain("UntilAsync(() => Native.GetForegroundWindow() == handle)", source);
             Assert.Contains("mp-series-menu-activation.txt", source);
-            Assert.Contains("UntilAsync(() => menu.IsOpen)", source);
+            Assert.Contains("UntilAsync(() => menu.IsOpen", source);
             Assert.Contains("整理清单菜单超出窗口可用边界", source);
             Assert.Contains("菜单缺少运行时UIA句柄或名称", source);
         });
