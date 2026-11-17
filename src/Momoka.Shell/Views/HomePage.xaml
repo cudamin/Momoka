@@ -217,6 +217,10 @@
               · BannerCard —— 圆角剪裁层，把带子裁进圆角里（Border 的 CornerRadius 会裁孩子）。它不画底，
                 也不再有外圈卡片；用户要的就是「图不再像被装在一张卡里」。
               · LibraryOverlay —— 矮窗档压在左下角的那一排，跟着卡片一起被裁。
+
+              左右留白由 HomePage.SyncCarouselLayout 现算（2026-11-18 用户令「轮播图的宽度还有下方媒体库的
+              最大宽度锁定为1860」）：窗口放得下 1860 时两侧平分多出来的宽度，轮播与下方货架一起停在 1860
+              并居中；放不下时仍是左脊线 36、右侧滚动条车道 13。这里写的是窄窗那一档的初值。
             -->
             <Grid x:Name="BannerZone" Margin="36,20,13,0">
                 <Border
@@ -282,7 +286,11 @@
 
                  2026-09-14 主页那两排卡片缩了一档（继续观看 300→256、媒体库 240→208，见 CardSize），这四个数
                  一个没动：上沿贴的是轮播的下沿、下沿贴的是窗口底，都跟卡片高矮无关，跟着缩反而会让内容贴到边
-                 上。行与行的间隔见下面 StackLayout 那一句。 -->
+                 上。行与行的间隔见下面 StackLayout 那一句。
+
+                 **左右两个数 2026-11-18 起也由 HomePage.SyncCarouselLayout 现算**（同一句「下方媒体库的最大
+                 宽度锁定为1860」）：宽窗时与轮播一样停在 1860、平分两侧留白；窄窗回到这里的 36／13。
+                 标记里这一份是窄窗那一档的初值。 -->
             <Grid x:Name="Overlay" Background="Transparent" Padding="36,16,13,28">
                 <StackPanel>
                     <!-- TwoWay on IsOpen, so dismissing the bar is recorded rather than only drawn: the next

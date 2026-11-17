@@ -130,6 +130,7 @@ namespace Momoka.Shell.Views
         internal TestBanner Banner { get; } = new() { ActualWidth = 1280, ActualHeight = 400 };
         internal FrameworkElement BannerZone { get; } = new();
         internal Border BannerCard { get; } = new();
+        internal FrameworkElement Overlay { get; } = new();
         internal Momoka.Configuration.UiSettings Ui => _homeSettings!.Settings.Ui;
         internal TitleStrip CurrentTitle => _actions!.Current;
         internal void ApplyCarousel() => SyncCarouselLayout();

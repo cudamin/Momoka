@@ -186,7 +186,9 @@ public sealed partial class HomePage : Page, IShellContent
         // 所以集合一变先排一拍再查，不在事件里当场动。
         // 尺寸和幻灯片变化合并到一拍里再判：拉窗口时每一下 SizeChanged 都直接量一次，等于一帧里反复
         // 强制布局；幻灯片换人、带子高度跟着变，也会连着响两三次。合并后这些只留最后一趟。
-        SizeChanged += (_, _) => ScheduleOverlay();
+        // 商店宽窗的 1860 上限让带子自己不再随窗口变宽（Banner.SizeChanged 因此不响），左右留白得在
+        // 页面这一层跟着窗口重算，所以这里先走一趟轮播那一圈的版式同步。
+        SizeChanged += (_, _) => SyncCarouselLayout();
         Banner.SizeChanged += (_, _) => ScheduleOverlay();
         Banner.SlideChanged += (_, _) => ScheduleOverlay();
         // 但**翻档自己搬那一排也会响这条事件**（HomeViewModel.ApplyLibraryOverlay）：那不是「货架集合变了」，
@@ -364,6 +366,8 @@ public sealed partial class HomePage : Page, IShellContent
     /// <para>
     /// 沉浸模式按商店改造前171a1e6的通栏判据：左、上、右三条都贴到0，没有外围圆角。
     /// 商店模式继续按上面的留白判据；模式互相串用时检查失败。
+    /// 2026-11-18 起商店宽窗轮播与下方货架一起锁在 <see cref="StoreContentMaxWidth"/>(1860)，
+    /// 左右留白由 <see cref="StoreContentInsets"/> 平分多出来的宽度，所以这里按那一份期望值核对。
     /// </para>
     /// </summary>
     internal (bool Ok, string Detail) BannerCardRead()
@@ -378,11 +382,12 @@ public sealed partial class HomePage : Page, IShellContent
             && BannerCard.CornerRadius.TopLeft == BannerCard.CornerRadius.BottomRight;
 
         var immersive = BannerImmersive;
+        var (storeLeft, storeRight) = StoreContentInsets(ActualWidth);
         var ok = Banner.ActualWidth > 0 && window > 0
             && (immersive
                 ? Math.Abs(left) <= 0.5 && Math.Abs(right) <= 0.5 && Math.Abs(at.Y) <= 0.5
                     && Math.Abs(viewportTop) <= 0.5 && BannerCard.CornerRadius == new CornerRadius(0)
-                : Math.Abs(left - 36) <= 0.5 && Math.Abs(right - 13) <= 0.5
+                : Math.Abs(left - storeLeft) <= 0.5 && Math.Abs(right - storeRight) <= 0.5
                     && at.Y >= ChromeHeight + 12 && Math.Abs(viewportTop - ChromeHeight) <= 0.5 && rounded);
 
         return (ok,
