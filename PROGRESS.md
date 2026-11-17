@@ -1,4 +1,4 @@
-## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（工作树 workbuddy/master-e2a93eb8，待统一验证）
+## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
 用户三句：「缓冲设置单独一个卡片，放补帧上面，参考上图修改缓冲设置，新增内网缓冲设置和外网缓冲设置」「默认值是多少要写清除不要写0」（「清除」按「清楚」读）；附 mpv.net 的「缓冲大小／缓冲时长」截图。问过两件事，用户当次定：默认值取**内网 256MB／30s、外网 256MB／30s**；内网/外网**按服务器地址自动判定**。
 
@@ -15,6 +15,8 @@
 **发布。** 按改好收尾发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-workbuddy-master-e2a93eb8`，548 文件、289.9 MB；桌面 `Momoka-workbuddy-master-e2a93eb8.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（`shortcut.ps1` 复跑一次退出 0 并核对目标）。主树 `Momoka.lnk` 未动。
 
 **提交。** 产品与测试 `9b50e79`、`2613275`；记录 `9860b90` 与本条。
+
+**合并（`337401f`）。** 用户令「合并，完了清理」。主树里另一会话留下的未提交探针改动与规则审查报告先按用户选择单独提交为 `260d545`，随后 `--no-ff` 合入 master，无冲突。合并后在最终代码上重跑：Shell Release/x64 **0 警告 0 错误**；`Momoka.ProbeFinalizationTests` **115/115**；全量 `Momoka.Tests` **5223/5223**、0 失败 0 跳过（首轮两条「下载到设备」因本会话 `TEMP` 指向 `C:\WINDOWS\TEMP` 被拒，改用用户临时目录后全绿，与产品无关）。合并提交与本次记录待下一批推送。分支工作树、分支与桌面快捷方式已按内容确认全部进入 master 后删除；台账第 76 项保留，统一验证与销账另做。
 
 ## 2026-11-17 集成模式暂停/播放徽标全屏档 ×1.3（主树 master，待统一验证）
 
@@ -35,6 +37,8 @@
 **改了什么。** `ShellProbeReport.CaseAsync` 新增 `defaultOff`：不带 `--probe-section` 的全量跳过这些用例，`shell-probe-scope.txt` 增加「默认不跑：N」一节逐条列出分区与用例名；显式选中该分区时照常执行，代码与断言不删。先登记四条长期拿不到有效信号的：商店预告实帧（网页起播等不到）、MoviePilot 剧资源 TMDB 筛选（多轮超时或被桌面遮挡）、弹弹play 窄窗、MoviePilot 按季订阅。`--probe-cursor`／`--probe-resize`／`--probe-resize-manual` 本来就是显式入口，不在全量里，未改。`Momoka.ProbeFinalizationTests` 新增两条回归：全量不执行默认不跑用例（scope 记 1）、显式选分区仍照常执行。
 
 **未验证（阻塞）。** 本会话的 Bash／PowerShell 工具在 15:0x 后不可用：内置 PortableGit 的 `bash.exe` 缺失，PowerShell 通道缺 WorkBuddy 的 `lazy-lite-wb` CLI 模块。因此本轮没有构建、没有跑单测、没有跑探针、没有提交。另有一条现场：15:20 起从旧发布件跑的全量 `--probe-shell --screen 1`（pid 25940）仍在逐项推进，截至记录时它跑到通知页一带；它的前 70 项里 `Plex 观看写后确认`、`筛选多选下拉`、`沉浸主页顶部滚动收放`、`商店预告实帧`、`MoviePilot 剧资源 TMDB` 五项为红，其中后四项是遮挡／超时，第一项是「详情已看按钮文字没有随确认状态更新」，可能是真回归，未修。
+
+**补记（合并时）。** 这批改动由合并会话原样提交为 `260d545`；合并后的最终代码上 `Momoka.ProbeFinalizationTests` **115/115** 通过（含新增两条默认不跑回归），`Momoka.Tests` 全量 **5223/5223**。原生探针仍未跑，本批仍不销账。
 
 ## 2026-11-17 发版 0.2.8：版本号、GitHub Release 与微软商店包（探针按用户指令跳过，未销账）
 
