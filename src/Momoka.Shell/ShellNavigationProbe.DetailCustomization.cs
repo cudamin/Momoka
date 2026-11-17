@@ -1151,10 +1151,27 @@ internal sealed partial class ShellNavigationProbe
             _window.Activate();
             fixture.Actions.MoviePilotEnabled = true;
             var anchor = Get<Button>(page, "ColumnMoreButton");
-            Call(page, "OnMoreClicked", anchor, new RoutedEventArgs());
-            await LayoutAsync(page);
-            var presenters = Presenters();
-            Require(presenters.Length == 1, "详情更多菜单没有打开");
+            // 菜单是 Flyout：前台被别的窗口抢走、或能力重排把它收起时，浮层会连同模板实例一起消失，
+            // 这时再找子菜单只会等到超时（2026-11-17 实测五套主题里第三套被收起）。最多重开三次，
+            // 真缺子菜单仍然报红，不把「没长出来」和「没有这一项」混成同一句。
+            MenuFlyoutPresenter[] presenters = [];
+            MenuFlyoutSubItem? submenu = null;
+            for (var attempt = 0; attempt < 3 && submenu is null; attempt++)
+            {
+                if (Presenters().Length == 0)
+                {
+                    Call(page, "OnMoreClicked", anchor, new RoutedEventArgs());
+                    await LayoutAsync(page);
+                }
+                presenters = Presenters();
+                if (presenters.Length != 1) continue;
+                submenu = await WaitSubmenuAsync(presenters[0]);
+                if (submenu is not null) break;
+                foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(page.XamlRoot).ToArray()) popup.IsOpen = false;
+                await Task.Delay(150);
+            }
+            presenters = Presenters();
+            Require(presenters.Length == 1 && submenu is not null, "详情更多菜单被收起或没有子菜单");
             Check(presenters[0]);
             var material = (DetailMenuBackdrop)presenters[0].SystemBackdrop;
             // 自动走查可能在用户操作其他窗口时运行。记录实际状态，并核对回退仍为卡片色；
@@ -1163,9 +1180,7 @@ internal sealed partial class ShellNavigationProbe
             File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-menu-material.txt"),
                 $"{theme}: {material.MaterialState}\n");
             await SaveProbeScreenAsync($"detail-menu-acrylic-{theme}-screen.png");
-            // 菜单项是模板实例化出来的，弹层对象先到、子菜单项晚一拍；先等它真的进树再做展开。
-            await UntilAsync(() => Descendants(presenters[0]).OfType<MenuFlyoutSubItem>().Any());
-            var submenu = Descendants(presenters[0]).OfType<MenuFlyoutSubItem>().First();
+            // 菜单项是模板实例化出来的，弹层对象先到、子菜单项晚一拍；上面已经等到它真的进树。
             ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(submenu)
                 .GetPattern(PatternInterface.ExpandCollapse)).Expand();
             await UntilAsync(() => Presenters().Length == 2);
@@ -1177,6 +1192,17 @@ internal sealed partial class ShellNavigationProbe
             foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(page.XamlRoot).ToArray()) popup.IsOpen = false;
             fixture.Actions.MoviePilotEnabled = enabled;
             _window.TopMost = originalTopMost;
+        }
+
+        async Task<MenuFlyoutSubItem?> WaitSubmenuAsync(MenuFlyoutPresenter presenter)
+        {
+            for (var attempt = 0; attempt < 160; attempt++)
+            {
+                var found = Descendants(presenter).OfType<MenuFlyoutSubItem>().FirstOrDefault();
+                if (found is not null) return found;
+                await Task.Delay(25);
+            }
+            return null;
         }
 
         MenuFlyoutPresenter[] Presenters() => VisualTreeHelper.GetOpenPopupsForXamlRoot(page.XamlRoot)

@@ -57,12 +57,12 @@ internal sealed partial class ShellNavigationProbe
             page.SelectEpisodeSeason(season);
             Record("requested");
             await LayoutAsync(page);
-            if (scroll.State != ScrollingInteractionState.Idle
-                || Math.Abs(scroll.HorizontalOffset - Get<double>(strip, "_requested")) >= 1)
-                await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            // 换季是一次可能跨几十万像素的虚拟化跳转。ScrollCompleted 可能先于偏移落位上报，
+            // 2026-11-17 实测 600400 的回执到达时 offset 仍是 0、下一拍才到目标；以前在这里等 5 秒
+            // 回执会先超时，滚动其实随后就完成了。这里直接按最终状态等，并把上限放宽到大跳所需的 12 秒。
             await UntilAsync(() => scroll.State == ScrollingInteractionState.Idle
                 && Math.Abs(scroll.HorizontalOffset - Get<double>(strip, "_requested")) < 1
-                && page.ViewModel.SelectedSeason?.Id == season.Id);
+                && page.ViewModel.SelectedSeason?.Id == season.Id, attempts: 480);
             Record("settled");
         }
         catch (Exception error)

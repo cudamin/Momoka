@@ -75,8 +75,19 @@ internal sealed partial class ShellNavigationProbe
                 "主页订阅分类卡不是两张纯导航卡");
             var card = navigation.Single(item => item.Item.Id == HomeLayout.MoviePilotMovies);
             await card.EnsurePosterAsync(Task.CompletedTask);
-            Require(card.Poster is not null, "订阅入口没有合成封面");
+            // 订阅图集要等订阅行与图片 fetcher 都就位才会挂上；那之前生成的卡没有 fetchPoster，
+            // 行到位后货架会整张换掉它（见 HomeViewModel.MoviePilotLibrary）。这里等货架里那张卡
+            // 真的有了封面（最多 8 秒），再核像素；一直不来仍报红，并把最后那张卡的现场一并带出。
+            if (card.Poster is null)
+                await UntilAsync(() => MovieCard().Poster is not null, attempts: 320);
+            card = MovieCard();
+            var fetchPoster = Get<Func<CancellationToken, Task<byte[]>>?>(card, "_fetchPoster");
+            var failedAt = Get<DateTime>(card, "_failedAt");
+            Require(card.Poster is not null,
+                $"订阅入口没有合成封面（fetchPoster={(fetchPoster is null ? "空" : "有")}、failedAt={failedAt:O}）");
             await CheckLibraryCoverPixelsAsync(card.Poster!, 3);
+            CardItem MovieCard() => home.ViewModel.LibraryShelf!.Cards
+                .Single(item => item.IsNavigation && item.Item.Id == HomeLayout.MoviePilotMovies);
             await CheckLibraryCoverLoaderAsync(server);
             var cardRemovals = 0;
             home.ViewModel.LibraryShelf.Cards.CollectionChanged += (_, args) =>

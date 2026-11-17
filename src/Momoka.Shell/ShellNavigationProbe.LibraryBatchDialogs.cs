@@ -39,10 +39,11 @@ internal sealed partial class ShellNavigationProbe
 
             await OpenAsync(ItemCommand.AddToPlaylist);
             var playlist = await DialogAsync();
-            Find<TextBox>(playlist, "BatchPlaylistName").Text = "新列表";
-            await UntilAsync(() => Find<CheckBox>(playlist, "BatchPlaylistSkipDuplicates").Visibility == Visibility.Collapsed);
-            Find<ComboBox>(playlist, "BatchPlaylist").SelectedIndex = 0;
-            await UntilAsync(() => Find<CheckBox>(playlist, "BatchPlaylistSkipDuplicates").Visibility == Visibility.Visible);
+            (await FindAsync<TextBox>(playlist, "BatchPlaylistName")).Text = "新列表";
+            var skipDuplicates = await FindAsync<CheckBox>(playlist, "BatchPlaylistSkipDuplicates");
+            await UntilAsync(() => skipDuplicates.Visibility == Visibility.Collapsed);
+            (await FindAsync<ComboBox>(playlist, "BatchPlaylist")).SelectedIndex = 0;
+            await UntilAsync(() => skipDuplicates.Visibility == Visibility.Visible);
             await LayoutAsync(playlist);
             Require(playlist.IsPrimaryButtonEnabled, "选择播放列表后不能提交");
             await SaveProbeScreenAsync($"library-batch-playlist-{width}-screen.png");
@@ -55,15 +56,17 @@ internal sealed partial class ShellNavigationProbe
             await OpenAsync(ItemCommand.Convert);
             var conversion = await DialogAsync();
             await UntilAsync(() => conversion.IsPrimaryButtonEnabled);
-            Find<ComboBox>(conversion, "BatchConversionProfile").SelectedIndex = 1;
-            Find<ComboBox>(conversion, "BatchConversionQuality").SelectedIndex = 1;
+            var profile = await FindAsync<ComboBox>(conversion, "BatchConversionProfile");
+            var quality = await FindAsync<ComboBox>(conversion, "BatchConversionQuality");
+            profile.SelectedIndex = 1;
+            quality.SelectedIndex = 1;
             await LayoutAsync(conversion);
-            Require(Find<NumberBox>(conversion, "BatchConversionBitrate").Visibility == Visibility.Visible,
+            Require((await FindAsync<NumberBox>(conversion, "BatchConversionBitrate")).Visibility == Visibility.Visible,
                 "自定义转换质量没有显示码率");
-            Find<ComboBox>(conversion, "BatchConversionQuality").SelectedIndex = 0;
-            Require(Find<NumberBox>(conversion, "BatchConversionBitrate").Visibility == Visibility.Collapsed,
+            quality.SelectedIndex = 0;
+            Require((await FindAsync<NumberBox>(conversion, "BatchConversionBitrate")).Visibility == Visibility.Collapsed,
                 "固定转换质量仍显示自定义码率");
-            Find<ComboBox>(conversion, "BatchConversionQuality").SelectedIndex = 1;
+            quality.SelectedIndex = 1;
             await SaveProbeScreenAsync($"library-batch-convert-{width}-screen.png");
             var conversionScroll = Descendants(conversion).OfType<ScrollViewer>().Single(element => element.Content is StackPanel);
             conversionScroll.ChangeView(null, conversionScroll.ScrollableHeight, null, disableAnimation: true);
@@ -168,8 +171,16 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => Dialogs().Length == 1);
             return Dialogs().Single();
         }
-        static T Find<T>(ContentDialog dialog, string name) where T : FrameworkElement =>
-            Descendants(dialog).OfType<T>().Single(element => element.Name == name || AutomationProperties.GetAutomationId(element) == name);
+        static T? FindOrNull<T>(ContentDialog dialog, string name) where T : FrameworkElement =>
+            Descendants(dialog).OfType<T>().FirstOrDefault(element => element.Name == name || AutomationProperties.GetAutomationId(element) == name);
+        // 弹窗挂进 Popup 与模板展开不是同一拍：DialogAsync 只等到 Popup 里出现 ContentDialog，
+        // 子控件可能还没长进视觉树（2026-11-17 实测同一用例另一轮通过）。等它出现，仍在超时后如实报缺控件。
+        static async Task<T> FindAsync<T>(ContentDialog dialog, string name) where T : FrameworkElement
+        {
+            T? found = null;
+            await UntilAsync(() => (found = FindOrNull<T>(dialog, name)) is not null);
+            return found!;
+        }
         static void Primary(ContentDialog dialog)
         {
             Require(dialog.IsPrimaryButtonEnabled, "批量参数未验证通过");

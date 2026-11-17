@@ -370,9 +370,9 @@ internal sealed partial class ShellNavigationProbe
     private static T Get<T>(object target, string name) =>
         (T)target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(target)!;
     private static async Task SettleAsync() => await Task.Delay(80);
-    private static async Task UntilAsync(Func<bool> ready)
+    private static async Task UntilAsync(Func<bool> ready, int attempts = 80)
     {
-        for (var attempt = 0; attempt < 80; attempt++)
+        for (var attempt = 0; attempt < attempts; attempt++)
         {
             if (ready()) return;
             await Task.Delay(25);

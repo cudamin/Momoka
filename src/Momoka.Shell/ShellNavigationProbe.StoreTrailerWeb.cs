@@ -122,7 +122,8 @@ internal sealed partial class ShellNavigationProbe
         {
             _window!.Activate();
             // 激活是异步的：先等前台真的落到探针窗口，别在第一下 Guard 上把「还没切过来」当成外国窗口。
-            await UntilAsync(() => Native.GetForegroundWindow() == _window.Handle);
+            // 桌面被别的窗口占着时，这里等到 6 秒仍不进来就如实报红；不绕过前台守卫去注入指针。
+            await UntilAsync(() => Native.GetForegroundWindow() == _window.Handle, attempts: 240);
             var origin = new NativePoint();
             Require(Native.ClientToScreen(_window.Handle, ref origin), "预告悬停无法读取屏幕原点");
             var scale = _root.XamlRoot.RasterizationScale;
