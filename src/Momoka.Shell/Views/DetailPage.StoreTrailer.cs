@@ -79,6 +79,16 @@ public sealed partial class DetailPage
         UpdateStoreTrailer();
     }
 
+    /// <summary>用户关掉预告：标记这个条目不再自动重开，收起画面和控制排，并把「加载失败」提示一起收掉。</summary>
+    private void CloseStoreTrailer()
+    {
+        _storeTrailerFailed = ViewModel.CurrentItem;
+        StopStoreTrailer();
+        ViewModel.DismissNotice();
+    }
+
+    private void OnStoreTrailerClose(object sender, RoutedEventArgs args) => CloseStoreTrailer();
+
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
     {
         if (!IsLoaded) return;
@@ -189,7 +199,11 @@ public sealed partial class DetailPage
                             Log.Info("预告", $"《{subject.Name}》的 YouTube 预告需要登录，已提示");
                             ViewModel.NotifyYouTubeLoginRequired();
                         }
-                        else Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，未判定为登录问题");
+                        else
+                        {
+                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，已提示加载失败");
+                            ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                        }
                         return;
                     }
                     LayoutStoreTrailer();
@@ -224,7 +238,11 @@ public sealed partial class DetailPage
                         Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败且需要登录，已提示");
                         ViewModel.NotifyYouTubeLoginRequired();
                     }
-                    else Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，未判定为登录问题");
+                    else
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，已提示加载失败");
+                        ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                    }
                 }
                 else
                 {
@@ -259,7 +277,13 @@ public sealed partial class DetailPage
         });
         _storeTrailerPlayer.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
         {
-            if (generation == _storeTrailerGeneration) { _storeTrailerFailed = _storeTrailerSubject; StopStoreTrailer(); }
+            if (generation == _storeTrailerGeneration)
+            {
+                Log.Info("预告", $"《{_storeTrailerSubject?.Name}》的本地预告加载失败，已提示");
+                _storeTrailerFailed = _storeTrailerSubject;
+                StopStoreTrailer();
+                ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+            }
         });
         _storeTrailerElement = new MediaPlayerElement
         {

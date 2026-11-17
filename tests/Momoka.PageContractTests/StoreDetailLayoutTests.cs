@@ -402,6 +402,10 @@ internal static class StoreDetailLayoutTests
             Assert.Equal(2, Regex.Matches(trailer,
                 @"StoreTrailerControls\.Visibility = Visibility\.Visible;\r?\n\s*ViewModel\.StoreTrailerControlsShown = true;").Count);
             Assert.Contains("ViewModel.StoreTrailerControlsShown = false;", trailer);
+            var xaml = Source("Views/DetailPage.xaml");
+            Assert.Contains("x:Name=\"StoreTrailerClose\"", xaml);
+            Assert.Contains("Click=\"OnStoreTrailerClose\"", xaml);
+            Assert.Contains("ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);", trailer);
         });
     }
 

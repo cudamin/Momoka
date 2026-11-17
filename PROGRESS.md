@@ -10,6 +10,8 @@
 
 **用户复测「不提示」后的补丁（`3e26ced`）。** 原先只在 `error:150`／`error:101` 时判需要登录，登录卡片不报码时不会提示；现在未登录且 10 秒内没有起播一律判为需要登录，并补 `预告` 诊断日志（YouTube id、登录状态、错误消息、超时）。`TrailerPreview.YouTubeId` 同时识别 `/embed/` 与 `/shorts/`。Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **357/357**、`episode-display-fixture` **37/37**；分支重新发布（548 文件、289.9 MB）并刷新 `Momoka-fix-youtube-trailer-login-C1QUcL.lnk`。仍未真实登录，10 秒阈值对慢网的误提示与登录后实际可播性待用户复测。
 
+**用户复测日志与「加载失败/关闭预告」补丁。** 用户日志显示《F1：狂飙飞车》`YouTubeId=CT2_P2DZBR0`、`登录=False`，随后 `报错 error`（没有错误码）——这是 `www.youtube.com/iframe_api` 脚本加载失败，不是登录卡片；同一时刻本机用 PowerShell 请求该地址也失败，`youtube-nocookie.com/iframe_api` 返回 404，说明问题在代理/网络对 `www.youtube.com` 的拦截，而不是登录态。按用户要求：预告没能起播时详情页显示「预告加载失败」提示，动作是「关闭预告」（不再提供重试）；媒体详情与订阅详情的预告控制排新增「关闭预告」按钮（关掉后该条目不再自动重开，并收掉提示）。Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **357/357**；分支重新发布（548 文件、289.9 MB，00:53）并刷新分支快捷方式。**仍未解决播放本身**：`iframe_api` 被代理拦截时 YouTube 预览无法起播，登录也救不了；后续可选方案是改用 iframe 的 postMessage 内置协议（不依赖 `iframe_api`），需另开一轮验证。
+
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
 用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。

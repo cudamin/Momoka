@@ -83,6 +83,16 @@ public sealed partial class MoviePilotSubscriptionPage
         UpdateStoreTrailer();
     }
 
+    /// <summary>用户关掉预告：标记这个条目不再自动重开，收起画面和控制排，并把「加载失败」提示一起收掉。</summary>
+    private void CloseStoreTrailer()
+    {
+        _trailerFailed = MediaViewModel.TrailerSubject;
+        StopStoreTrailer();
+        MediaViewModel.DismissNotice();
+    }
+
+    private void OnStoreTrailerClose(object sender, RoutedEventArgs args) => CloseStoreTrailer();
+
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
     {
         if (!IsLoaded) return;
@@ -186,6 +196,7 @@ public sealed partial class MoviePilotSubscriptionPage
                         var needsLogin = youTube.NeedsLogin;
                         StopStoreTrailer();
                         if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
+                        else MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
                         return;
                     }
                     LayoutStoreTrailer();
@@ -207,11 +218,20 @@ public sealed partial class MoviePilotSubscriptionPage
         {
             if (generation == _trailerGeneration)
             {
-                // 错误回调不一定跑过；预览还在树上且判定需要登录的，在这里补一次提示。
-                var needsLogin = youTube is not null && ReferenceEquals(_trailerYouTube, youTube) && youTube.NeedsLogin;
-                _trailerFailed = subject;
-                StopStoreTrailer();
-                if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
+                // 错误回调不一定跑过；预览还在树上时，在这里补一次提示。
+                if (youTube is not null && ReferenceEquals(_trailerYouTube, youTube))
+                {
+                    var needsLogin = youTube.NeedsLogin;
+                    _trailerFailed = subject;
+                    StopStoreTrailer();
+                    if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
+                    else MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                }
+                else
+                {
+                    _trailerFailed = subject;
+                    StopStoreTrailer();
+                }
             }
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }
@@ -238,7 +258,12 @@ public sealed partial class MoviePilotSubscriptionPage
         });
         _trailerPlayer.MediaFailed += (_, _) => DispatcherQueue.TryEnqueue(() =>
         {
-            if (generation == _trailerGeneration) { _trailerFailed = _trailerSubject; StopStoreTrailer(); }
+            if (generation == _trailerGeneration)
+            {
+                _trailerFailed = _trailerSubject;
+                StopStoreTrailer();
+                MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+            }
         });
         _trailerElement = new MediaPlayerElement
         {

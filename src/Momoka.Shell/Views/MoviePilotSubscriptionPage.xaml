@@ -152,6 +152,10 @@
                 AutomationProperties.Name="预告片静音" ToolTipService.ToolTip="预告片静音">
             <FontIcon Glyph="&#xE74F;" FontSize="{StaticResource EgBodyFontSize}" />
         </Button>
+        <Button x:Name="StoreTrailerClose" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerClose"
+                AutomationProperties.Name="关闭预告" ToolTipService.ToolTip="关闭预告">
+            <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgBodyFontSize}" />
+        </Button>
     </StackPanel>
         <StackPanel>
             <!-- 剧情说明与操作排挪到封面下方、贴着内容左沿（2026-11-17 用户令「去简介两个字，剧情说明

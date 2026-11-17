@@ -481,6 +481,10 @@
                                       AutomationProperties.AutomationId="StoreTrailerAudio" Visibility="Collapsed">
                             <AppBarButton.Icon><FontIcon Glyph="&#xE8D6;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
+                        <AppBarButton x:Name="StoreTrailerClose" Click="OnStoreTrailerClose" Label="关闭预告"
+                                      AutomationProperties.AutomationId="StoreTrailerClose">
+                            <AppBarButton.Icon><FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
+                        </AppBarButton>
                     </CommandBar>
             <StackPanel>
 
