@@ -10,9 +10,11 @@
 
 **没动的。** 未在真实「一个库 + 飞牛音乐」环境实屏核对；侧边栏与标题栏的计数规则保持 2026-11-16 原样。
 
-**发布。** 按改好收尾从主树根目录复制 `libmpv-2.dll` 后发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-home-library-rename-1UTKdp`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-fix-home-library-rename-1UTKdp.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（00:14 生成）。主树 `Momoka.lnk` 未动，仅体验刷新、不销账。
+**同日追加：飞牛音乐库改名。** 用户又一句「飞牛音乐库要叫飞牛音乐」：`FnMusicMediaAdapter.GetViewsAsync` 交出的虚拟媒体库名由「音乐」改成「飞牛音乐」，主页媒体库卡、侧栏库项与音乐页标题都读这一份；`fnmusic-fixture` 新增「媒体库名写「飞牛音乐」」钉住库名与音乐类型。Core/Tests/Shell Release 均 **0 警告 0 错误**；`fnmusic-fixture` **19/19**；全量 `Momoka.Tests` **5227/5227**、0 失败 0 跳过；改动文件格式化与 `tools/check-diff.ps1` 通过。
 
-**提交。** 产品与测试 `1926c8c`；记录 `10cec63`。
+**发布。** 按改好收尾从主树根目录复制 `libmpv-2.dll` 后发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-home-library-rename-1UTKdp`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-fix-home-library-rename-1UTKdp.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（00:14 生成）。追加改完后重发同一目录并刷新同一快捷方式（00:33）。主树 `Momoka.lnk` 未动，仅体验刷新、不销账。
+
+**提交。** 产品与测试 `1926c8c`、`d171f5c`；记录 `10cec63`。
 
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
