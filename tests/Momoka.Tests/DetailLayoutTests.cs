@@ -119,20 +119,20 @@ internal static class DetailLayoutTests
         Test("商店视口右沿：与窗口右边缘的空隙随窗口变宽而加大，画面本身不放大", () =>
         {
             // 2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」：
-            // 16 是起点，从 1024 断点起每宽 1 DIP 加 0.03，封顶 96；画面尺寸仍按内容列那两支走。
+            // 窄档保持 16；宽版式按窗口宽的 3.5% 走，封顶 120；画面尺寸仍按内容列那两支。
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(0));
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(double.NaN));
-            Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(DetailHero.StoreWideFloor));
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1240) - 22.48) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1840) - 40.48) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2560) - 62.08) < 1e-6);
-            Assert.Equal(96d, DetailHero.StorePreviewEdgeGap(6000));
+            Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(1023));
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1240) - 43.4) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1840) - 64.4) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2560) - 89.6) < 1e-6);
+            Assert.Equal(120d, DetailHero.StorePreviewEdgeGap(6000));
             // 画面还是按内容列的 60%、封顶 920 —— 不跟着窗口放大。
             Assert.Equal(920d, DetailHero.StoreBackdropWidth(2560));
             Assert.Equal(TrailerPreview.BackgroundWidth(1240), DetailHero.StoreBackdropWidth(1240));
             // 相对内容列右沿的 margin：不超宽时就是那道缝；超宽时减掉右半边 bleed。
-            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(1240, 1240) - 22.48) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(2560, 1840) - (62.08 - 360)) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(1240, 1240) - 43.4) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(2560, 1840) - (89.6 - 360)) < 1e-6);
             Assert.Equal(16d, DetailHero.StorePreviewRightMargin(0, 0));
         });
 
