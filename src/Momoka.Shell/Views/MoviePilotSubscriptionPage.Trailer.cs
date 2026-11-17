@@ -67,6 +67,18 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void OnStoreTrailerClose(object sender, RoutedEventArgs args) => CloseStoreTrailer();
 
+    /// <summary>提示条上的「登录 YouTube」：登录后清掉失败标记，原地重试这支预告。</summary>
+    private async Task SignInYouTubeAsync(EmbyItem subject)
+    {
+        if (_request?.YouTube is not { } session) return;
+        if (!await YouTubeLoginDialog.ShowAsync(this, session)) return;
+        if (!IsLoaded || !ReferenceEquals(MediaViewModel.TrailerSubject, subject)) return;
+        MediaViewModel.DismissNotice();
+        _trailerFailed = null;
+        Log.Info("预告", $"《{subject.Name}》已登录 YouTube，重试预告");
+        UpdateStoreTrailer();
+    }
+
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
     {
         if (!IsLoaded) return;
@@ -141,7 +153,16 @@ public sealed partial class MoviePilotSubscriptionPage
             {
                 var id = TrailerPreview.YouTubeId(subject);
                 if (id is null) { _trailerFailed = subject; StopStoreTrailer(); return; }
-                youTube = new StoreYouTubePreview();
+                if (_request?.YouTube is not { } session)
+                {
+                    _trailerFailed = subject;
+                    StopStoreTrailer();
+                    return;
+                }
+                var environment = await session.GetEnvironmentAsync(token);
+                token.ThrowIfCancellationRequested();
+                if (generation != _trailerGeneration || !ReferenceEquals(MediaViewModel.TrailerSubject, subject)) return;
+                youTube = new StoreYouTubePreview(environment);
                 _trailerYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -164,8 +185,16 @@ public sealed partial class MoviePilotSubscriptionPage
                         || subject.Source?.IsAvailable != true) return;
                     if (!playing)
                     {
+                        var signedIn = youTube.HasSession;
                         _trailerFailed = subject;
                         StopStoreTrailer();
+                        if (!signedIn)
+                        {
+                            Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播：未登录 YouTube，已提示登录");
+                            MediaViewModel.NotifyTrailerSignInRequired(() => _ = SignInYouTubeAsync(subject));
+                            return;
+                        }
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告未起播，已提示加载失败");
                         MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
                         return;
                     }
@@ -191,9 +220,19 @@ public sealed partial class MoviePilotSubscriptionPage
                 // 错误回调不一定跑过；预览还在树上就在收起前补一次提示。
                 if (youTube is not null && ReferenceEquals(_trailerYouTube, youTube))
                 {
+                    var signedIn = youTube.HasSession;
                     _trailerFailed = subject;
                     StopStoreTrailer();
-                    MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                    if (!signedIn)
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败：未登录 YouTube，已提示登录");
+                        MediaViewModel.NotifyTrailerSignInRequired(() => _ = SignInYouTubeAsync(subject));
+                    }
+                    else
+                    {
+                        Log.Info("预告", $"《{subject.Name}》的 YouTube 预告超时/失败，已提示加载失败");
+                        MediaViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);
+                    }
                 }
                 else
                 {

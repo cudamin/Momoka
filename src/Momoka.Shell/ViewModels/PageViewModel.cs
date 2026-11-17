@@ -237,6 +237,12 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
         NoticeOpen = true;
     }
 
+    /// <summary>需要登录才能播的 YouTube 预告：提示条上的动作直接打开登录窗，登录成功后页面原地重试。</summary>
+    internal void NotifyTrailerSignInRequired(Action? login) =>
+        Notify("YouTube 预告需要登录",
+            "YouTube 要求先登录才能播放这支预告。登录一次，之后的预告会直接在 Momoka 里播放。",
+            InfoBarSeverity.Warning, "登录 YouTube", login);
+
     /// <summary>预告没能加载/起播时的通用提示；关闭由页面收起预览并清掉这条提示。</summary>
     internal void NotifyTrailerLoadFailed(Action? close) =>
         Notify("预告加载失败",

@@ -23,7 +23,9 @@ internal sealed partial class ShellNavigationProbe
         var folder = Path.Combine(_options.Paths.LogDirectory, "trailer-web-fixture", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         // 匿名探针用自己的一次性配置，不读写用户的 YouTube 数据。
-        using var preview = new StoreYouTubePreview();
+        var environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, Path.Combine(folder, "profile"),
+            new CoreWebView2EnvironmentOptions());
+        using var preview = new StoreYouTubePreview(environment);
         Field(page, "_storeYouTube", preview);
         var host = Get<Grid>(page, "StoreTrailerHost");
         host.Visibility = Visibility.Visible;
@@ -58,7 +60,7 @@ internal sealed partial class ShellNavigationProbe
                 var uri = new Uri(args.Request.Uri);
                 if (uri.Host == "momoka") return;
                 var body = uri.Host == "www.youtube.com" && uri.AbsolutePath == "/iframe_api" ? Api
-                    : uri.Host == "www.youtube-nocookie.com" && uri.AbsolutePath == "/embed/Abc_123-xyz" ? Embed : "";
+                    : uri.Host == "www.youtube.com" && uri.AbsolutePath == "/embed/Abc_123-xyz" ? Embed : "";
                 if (body == Api) apiRequests++;
                 if (body == Embed) embedRequests++;
                 if (body.Length == 0) blocked++;

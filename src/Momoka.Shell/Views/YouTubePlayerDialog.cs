@@ -2,21 +2,22 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using Momoka.Diagnostics;
+using Momoka.Shell.Media;
 using Momoka.Theming;
 
 namespace Momoka.Shell.Views;
 
 /// <summary>
 /// 详情页里点开一支 YouTube 预告时用的播放窗：加载正常 watch 页，保留 YouTube 自己的播放控件。
-/// 发布方关闭「允许嵌入」时嵌入页会报 150，但 watch 页通常仍可看；窗口底部可以把链接交给系统浏览器。
-/// 不做 YouTube 登录。
+/// 与详情页预览共用 <see cref="YouTubeSession"/> 的登录配置，需要登录的网络上也能用同一份会话；
+/// 窗口底部可以把链接交给系统浏览器。
 /// </summary>
 internal static class YouTubePlayerDialog
 {
     private const string Category = "YouTube 预告";
 
     /// <summary>返回 true 表示用户要去系统浏览器打开。</summary>
-    internal static async Task<bool> ShowAsync(FrameworkElement owner, string id, string title)
+    internal static async Task<bool> ShowAsync(FrameworkElement owner, string id, string title, YouTubeSession session)
     {
         if (owner.XamlRoot is not { } root) return false;
         if (id.Length != 11 || !id.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_')) return false;
@@ -60,10 +61,8 @@ internal static class YouTubePlayerDialog
         var lifetime = new CancellationTokenSource();
         try
         {
-            // 一次性的匿名配置：不登录、不残留账号 Cookie。
-            var profile = Path.Combine(Path.GetTempPath(), "Momoka", "youtube-player", Guid.NewGuid().ToString("N"));
-            var environment = await CoreWebView2Environment.CreateWithOptionsAsync("", profile,
-                new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = "--autoplay-policy=no-user-gesture-required" });
+            // 与详情页预览共用一份配置：这里登录过的账号，右上角的嵌入预告也会直接用上。
+            var environment = await session.GetEnvironmentAsync(lifetime.Token);
             await web.EnsureCoreWebView2Async(environment);
             var core = web.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;

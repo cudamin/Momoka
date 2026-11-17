@@ -16,6 +16,7 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Media;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Windowing;
 using Momoka.Updates;
@@ -1326,14 +1327,16 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     /// <summary>
     /// 详情页里点开一支 YouTube 预告（Trailer channel 的条目或远程链接）：在 Momoka 内打开正常 watch 页；
-    /// 窗口里可以把链接交给系统浏览器。不再有 YouTube 登录，禁止嵌入的视频直接在 watch 页看。
+    /// 窗口里可以把链接交给系统浏览器。与详情页预览共用 <see cref="YouTubeSession"/> 的登录态，
+    /// 在需要登录的网络上也能落到已登录的会话。
     /// </summary>
     private async void ShowYouTubeTrailer(string id, string title)
     {
         Log.Info("预告", $"打开 YouTube 播放窗 id={id}《{title}》");
         try
         {
-            if (await YouTubePlayerDialog.ShowAsync(this, id, title))
+            if (_services?.GetService<YouTubeSession>() is not { } session) return;
+            if (await YouTubePlayerDialog.ShowAsync(this, id, title, session))
             {
                 try { _services!.GetRequiredService<Platform.ISystemLauncher>().OpenUrl($"https://www.youtube.com/watch?v={id}"); }
                 catch (Exception error) { Log.Warn("YouTube 预告", "打不开系统浏览器", error); }
@@ -1641,7 +1644,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Settings: _services.GetRequiredService<ISettingsService>(),
             PlayTrailer: item => ((IShellActions)this).PlayAsync(item,
                 choice: new PlaybackChoice(null, null, null, false, 0) { ExactStart = true }),
-            Paths: _services.GetRequiredService<AppPaths>()), BrowseTransition());
+            Paths: _services.GetRequiredService<AppPaths>(),
+            YouTube: _services.GetRequiredService<YouTubeSession>()), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();
@@ -1656,7 +1660,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
         ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, null,
             Launcher: _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMedia: OpenMoviePilotMedia, Media: media,
             SetTitleStrip: SetTitleStrip, Subscribed: OpenMoviePilotSubscriptionsAfterSubscribe,
-            Settings: _services.GetRequiredService<ISettingsService>()), BrowseTransition());
+            Settings: _services.GetRequiredService<ISettingsService>(),
+            YouTube: _services.GetRequiredService<YouTubeSession>()), BrowseTransition());
         _trail.Add(new Crumb(media.Display, string.Empty));
         _current = null;
         SyncChrome();

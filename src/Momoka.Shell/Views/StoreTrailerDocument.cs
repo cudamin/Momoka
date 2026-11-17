@@ -1,6 +1,8 @@
 namespace Momoka.Shell.Views;
 
-/// <summary>YouTube官方IFrame API的固定背景文档；不接受服务器URL或凭据。</summary>
+/// <summary>YouTube官方IFrame API的固定背景文档；不接受服务器URL或凭据。
+/// 用 <c>www.youtube.com/embed</c> 而不是 <c>youtube-nocookie.com</c>：登录窗写在 <c>.youtube.com</c>
+/// 的会话 Cookie 只对前者生效，否则需要登录的网络上匿名嵌入只会报 150。</summary>
 internal static class StoreTrailerDocument
 {
     internal static string Build(string id)
@@ -12,7 +14,7 @@ internal static class StoreTrailerDocument
             <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
             iframe{position:absolute;left:50%;top:50%;width:100vw;height:100vh;transform:translate(-50%,-50%);border:0;pointer-events:none}
             @media(min-aspect-ratio:16/9){iframe{height:56.25vw}}@media(max-aspect-ratio:16/9){iframe{width:177.777778vh}}</style></head>
-            <body><iframe id="video" tabindex="-1" aria-hidden="true" src="https://www.youtube-nocookie.com/embed/{{{{id}}}}?enablejsapi=1&amp;origin=https%3A%2F%2Fmomoka&amp;playsinline=1&amp;autoplay=0&amp;controls=0&amp;disablekb=1&amp;fs=0&amp;loop=1&amp;playlist={{{{id}}}}"
+            <body><iframe id="video" tabindex="-1" aria-hidden="true" src="https://www.youtube.com/embed/{{{{id}}}}?enablejsapi=1&amp;origin=https%3A%2F%2Fmomoka&amp;playsinline=1&amp;autoplay=0&amp;controls=0&amp;disablekb=1&amp;fs=0&amp;loop=1&amp;playlist={{{{id}}}}"
             allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>
             <script>let p,active=false,muted=true,captionReady=false,captionLanguage='';
             function captions(){if(!p||typeof p.getOption!=='function')return;

@@ -97,6 +97,8 @@ internal static class DetailLayoutTests
                 "postMessage('error:'+e.data)" })
                 Assert.Contains(setting, html);
             Assert.DoesNotContain("showinfo", html);
+            Assert.Contains("https://www.youtube.com/embed/Abc_123-xyz", html);
+            Assert.DoesNotContain("youtube-nocookie.com", html);
             foreach (var id in new[] { "short", "Abc_123-xy<", "Abc_123-xy\"" })
             {
                 var rejected = false;
@@ -124,6 +126,10 @@ internal static class DetailLayoutTests
                 Type = EmbyItemType.Movie,
                 RemoteTrailers = [new MediaTrailerUrl { Url = "https://youtu.be/dQw4w9WgXcQ" }]
             }));
+            Assert.True(YouTubeTrailer.HasSession(["__Secure-3PSID"]));
+            Assert.True(YouTubeTrailer.HasSession(["SAPISID", "PREF"]));
+            Assert.False(YouTubeTrailer.HasSession(["PREF", "VISITOR_INFO1_LIVE"]));
+            Assert.False(YouTubeTrailer.HasSession([]));
         });
         Test("商店背景：剧照与预告共用右侧视口，不随原图比例或窗口高度撑开", () =>
         {

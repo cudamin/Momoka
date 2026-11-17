@@ -406,6 +406,9 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("x:Name=\"StoreTrailerClose\"", xaml);
             Assert.Contains("Click=\"OnStoreTrailerClose\"", xaml);
             Assert.Contains("ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);", trailer);
+            Assert.Contains("ViewModel.NotifyTrailerSignInRequired(", trailer);
+            Assert.Contains("YouTubeLoginDialog.ShowAsync(this, session)", trailer);
+            Assert.Contains("new StoreYouTubePreview(environment)", trailer);
         });
     }
 

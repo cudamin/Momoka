@@ -1,3 +1,17 @@
+## 2026-11-18 YouTube 预告真机可播：共享登录 + `www.youtube.com/embed`（分支 `fix-youtube-trailer-login-C1QUcL`，待合并）
+
+用户要求「验收时候真实服务器能播放」，不再接受只提示加载失败。
+
+**根因。** 真实服务器日志是《F1：狂飙飞车》`YouTubeId=CT2_P2DZBR0`、`报错 error:150`。查 YouTube `playabilityStatus` 得 `"playableInEmbed":true`，说明不是发布方禁止嵌入；同一台机器用已登录配置加载 `www.youtube.com/embed` 实测能播（CDP 读到 `STATE1`、播放到 3.0 秒），匿名配置则被要求登录。之前「登录了也没用」是因为内嵌页用的是 `youtube-nocookie.com`：登录窗写在 `.youtube.com` 的会话 Cookie 带不到 `youtube-nocookie.com`，所以登录态从来没有作用到预览上。
+
+**改了什么。** 恢复 `Media/YouTubeSession`（`webview2\youtube\` 一份共享 WebView2 配置）与 `YouTubeLoginDialog`，恢复 `YouTubeTrailer.HasSession`（只按 `SAPISID`／`__Secure-1PSID`／`__Secure-3PSID`／`LOGIN_INFO` 的 Cookie 名字判断，不读值）；`StoreYouTubePreview` 改用共享配置、把嵌入地址从 `www.youtube-nocookie.com/embed` 改为 `www.youtube.com/embed`，起播前读一次登录态并暴露 `HasSession`，未起播超时从 10 秒放宽到 20 秒（慢代理首帧可能接近十秒）。详情页与订阅详情页的失败分支先看 `HasSession`：未登录时 `InfoBar` 显示「YouTube 预告需要登录」并给「登录 YouTube」动作，登录成功清掉失败标记原地重试；已登录仍失败才落到「预告加载失败 + 关闭预告」。`YouTubePlayerDialog` 也改用共享配置，watch 页与预览共用同一份登录态。登录入口只放在失败提示里，设置页不再恢复登录行。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **358/358、0 失败 0 跳过**（新增嵌入域名与登录态 Cookie 名字用例）；全量 `Momoka.Tests` **5226/5226**（须把 `TEMP` 指到可写目录；默认 `C:\WINDOWS\TEMP` 会让两条既有下载用例报环境红）。真实网络证据：把本机 `webview2\youtube\EBWebView` 拷到临时目录，用 Edge + `www.youtube.com/embed/CT2_P2DZBR0` 加载，IFrame API 报 `STATE1`、`getCurrentTime()=3.0`；`youtube-nocookie.com` 同配置不带头像的匿名请求仍被要求登录。
+
+**真机确认。** 发布分支构建后用 `--show-detail` 打开第一个媒体库，UIA 选中侧栏「电影」并触发《F1：狂飙飞车》卡片；日志 01:56:04 `YouTubeId=CT2_P2DZBR0`、01:56:05 `登录态=True`，此后 20 秒内没有「未起播」「报错」「加载失败」，用户复测回「可以正常播放了现在」。这说明真实服务器条目 + 已登录配置下，右上角嵌入预告已经能正常播放。
+
+**未做／边界。** 订阅详情的同一套入口还没有在这次真机里逐点复测；登录态过期后仍要靠同一条提示重新登录；真正禁止嵌入的视频在登录后仍会落到「预告加载失败」，可在播放窗的 watch 页看。未推远端，未合并 master。
+
 ## 2026-11-18 YouTube 预告登录与共享会话（分支 `fix-youtube-trailer-login-C1QUcL`，待合并）
 
 用户一句：「登录吧，在详情页提示，然后去设置页面登录」。
