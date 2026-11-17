@@ -27,6 +27,13 @@ public sealed partial class MoviePilotSubscriptionPage
         // 环境底跟剧照背景同进同退；它还要垫住比剧照更高的头部内容。
         StoreAmbient.Height = MediaViewModel.StoreAmbientHeight;
         StoreAmbient.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;
+        // 2026-11-17 用户令「订阅详情页和媒体详情页一起改」：视口跟着窗口宽继续变宽、右沿收回窗口边，
+        // 装饰带（环境底与视频局部底）就用等量负边距铺满窗口两侧，右边不再短一截；不超过 1840 时这一项为 0。
+        var bleed = MediaViewModel.Plain && DetailScroll.ActualWidth > width && width > 0
+            ? (DetailScroll.ActualWidth - width) / 2 : 0;
+        var bleedMargin = new Thickness(-bleed, 0, -bleed, 0);
+        StoreAmbient.Margin = bleedMargin;
+        StoreTrailerFoundation.Margin = bleedMargin;
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(MediaViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Width = StoreBackdrop.Width;

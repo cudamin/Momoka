@@ -2293,8 +2293,11 @@ public sealed partial class DetailPage : Page, IShellContent
             ViewModel.Viewport = Body.ActualHeight;
 
             // 同一趟量的另一个数：这一页有多宽。紧凑版式换不换（DetailHero.IsCompact）、背景那一张画多高
-            // （DetailViewModel.PictureHeight）都问它 —— 「多宽」只有布好的版面知道。
+            // （DetailViewModel.PictureHeight）都问它 —— 「多宽」只有布好的版面知道。窗口真实宽另记一份：
+            // 商店档的内容列封顶 1840，右侧剧照／预告与窗口右边缘之间的空隙还要跟着窗口加大
+            // （见 DetailViewModel.WindowWidth）。
             ViewModel.PageWidth = Body.ActualWidth;
+            ViewModel.WindowWidth = Body.ActualWidth;
         }
         finally
         {

@@ -85,7 +85,7 @@ internal sealed partial class ShellNavigationProbe
                     ? canvas.ActualWidth - Bounds(acrylic, canvas).Right : pictureGap;
                 StoreDetailProbeEvidence.RequireViewport(page.ActualWidth, page.ViewModel.PageWidth,
                     DetailHero.StoreBackdropWidth(page.ActualWidth), picture.ActualWidth,
-                    pictureGap, acrylicGap, trailerGap, DetailHero.StorePreviewGap);
+                    pictureGap, acrylicGap, trailerGap, DetailHero.StorePreviewEdgeGap(page.ActualWidth));
                 Require(Math.Abs(page.ActualWidth - width) < 1.5
                     && Math.Abs(_window!.ClientSize.Width / _root.XamlRoot.RasterizationScale - width) < 1.5,
                     "商店顶部检查没有取得目标实际页宽与客户区宽");

@@ -69,11 +69,22 @@ public sealed partial class DetailViewModel
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(PageWidth);
 
     /// <summary>
+    /// 视口几何用的宽：优先取窗口真实宽，还没量到时退回内容列宽（两者在不超过 1840 时相同）。
+    /// 画面大小不读它 —— 它只决定视口离<em>窗口右边缘</em>留多宽（见 <see cref="StorePreviewMargin"/>）。
+    /// </summary>
+    private double StoreWindowWidth => WindowWidth > 0 ? WindowWidth : PageWidth;
+
+    /// <summary>
     /// 剧照、预告与亚克力视口贴右站，但给右侧滚动条留一道空隙（2026-11-15 用户令「最右边要留一点空隙」）。
     /// 三个视口共用同一个边距，屏上才是同一块画面在移动；窗口收窄到窄档时那道空隙照留。
+    /// <para>
+    /// 2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」：空隙由
+    /// <see cref="DetailHero.StorePreviewEdgeGap"/> 按窗口宽给，窗口越宽留得越多；内容列居中让出的
+    /// 右边一段由 <see cref="DetailHero.StorePreviewRightMargin"/> 减掉，视口右沿始终落在窗口边上那一道缝内。
+    /// </para>
     /// </summary>
     public Thickness StorePreviewMargin => StoreMode
-        ? new(0, 0, DetailHero.StorePreviewGap, 0) : default;
+        ? new(0, 0, DetailHero.StorePreviewRightMargin(StoreWindowWidth, PageWidth), 0) : default;
 
     /// <summary>
     /// 商店背景那块环境底的高度：取「剧照盒」与「这一格内容」里更高的一个。

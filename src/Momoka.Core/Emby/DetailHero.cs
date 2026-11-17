@@ -214,6 +214,57 @@ public static class DetailHero
         store && artwork && wide && art;
 
     /// <summary>
+    /// 商店宽版式右侧剧照／预告视口与<em>窗口右边缘</em>之间的空隙 —— 2026-11-17 用户令「加大背景图和
+    /// 右边窗口边缘之间的间距，跟随窗口不断变宽」，随后「全屏应再向左移动 200」「全屏挡再加 50」「再加 25」。
+    /// <para>
+    /// 窄档保持原来的 16；宽版式先按窗口宽的 3.5% 增长，再从 1920 到 2560 再让出 275 —— 全屏
+    /// （2560／3840 一类窗口）比只按比例那一版再往左 275；封顶 <see cref="StorePreviewEdgeGapLimit"/>。
+    /// 视口自身的大小不参与：它仍按内容列的 60% 走，变的只有画面与窗口边之间的距离。
+    /// </para>
+    /// </summary>
+    /// <param name="windowWidth">这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。</param>
+    public static double StorePreviewEdgeGap(double windowWidth)
+    {
+        if (!(windowWidth > 0) || !double.IsFinite(windowWidth)) return StorePreviewGap;
+        if (windowWidth < StoreWideFloor) return StorePreviewGap;
+
+        var ramp = Math.Clamp(
+            (windowWidth - StorePreviewEdgeGapRampFrom) / (StorePreviewEdgeGapRampTo - StorePreviewEdgeGapRampFrom),
+            0, 1) * StorePreviewEdgeGapRampExtra;
+        return Math.Min(StorePreviewEdgeGapLimit, (windowWidth * StorePreviewEdgeGapShare) + ramp);
+    }
+
+    /// <inheritdoc cref="StorePreviewEdgeGap"/>
+    public const double StorePreviewEdgeGapShare = 0.035;
+
+    /// <summary>全屏那一段额外让出的起点、终点与量（2026-11-17 用户令「全屏应再向左移动 200」）。</summary>
+    public const double StorePreviewEdgeGapRampFrom = 1920;
+
+    /// <inheritdoc cref="StorePreviewEdgeGapRampFrom"/>
+    public const double StorePreviewEdgeGapRampTo = 2560;
+
+    /// <inheritdoc cref="StorePreviewEdgeGapRampFrom"/>
+    public const double StorePreviewEdgeGapRampExtra = 275;
+
+    /// <inheritdoc cref="StorePreviewEdgeGap"/>
+    public const double StorePreviewEdgeGapLimit = 395;
+
+    /// <summary>
+    /// 商店视口这回的右边距（<c>Margin.Right</c>，相对居中内容列的右沿）。内容列封顶 1840 并居中，
+    /// 窗口比它宽时两侧各让出等宽的 bleed；视口右沿要离<em>窗口</em>右边
+    /// <see cref="StorePreviewEdgeGap"/>，所以这里要把右边那一段减掉 —— 窗口不超过内容列时就是那道空隙本身。
+    /// </summary>
+    /// <param name="windowWidth">这一页看得见的宽（<c>DetailViewModel.WindowWidth</c>）。</param>
+    /// <param name="contentWidth">居中内容列的宽（<c>DetailViewModel.PageWidth</c>）。</param>
+    public static double StorePreviewRightMargin(double windowWidth, double contentWidth)
+    {
+        var gap = StorePreviewEdgeGap(windowWidth);
+        return windowWidth > 0 && contentWidth > 0 && windowWidth > contentWidth
+            ? gap - ((windowWidth - contentWidth) / 2)
+            : gap;
+    }
+
+    /// <summary>
     /// 没有剧照的条目上这一格有多高：一格底色加一层罩子，垫住海报、片名和那排键。
     /// <para>
     /// 和 <see cref="ArtHeight"/> 同值（<see cref="Height"/> 上面那段说明为什么留着两个名字）。

@@ -480,7 +480,20 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreCornerArtVisibility))]
     [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
     [NotifyPropertyChangedFor(nameof(StoreArtWashHeight))]
+    [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
     public partial double PageWidth { get; set; }
+
+    /// <summary>
+    /// 这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。与 <see cref="PageWidth"/> 不同：后者在商店档
+    /// 被 1840 内容列封顶，这个数保留窗口真实宽 —— 右侧剧照／预告与<em>窗口右边缘</em>之间的空隙据此
+    /// 随窗口不断加大（2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」）。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
+    [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
+    [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
+    public partial double WindowWidth { get; set; }
 
     /// <summary>
     /// 这一页这次走哪套版式 —— 页面窄过 <see cref="DetailHero.CompactFloor"/> 就换成单列的紧凑版式：封面按

@@ -102,17 +102,19 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void LayoutStoreTrailer()
     {
-        var width = MediaViewModel.StorePageWidth;
-        StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(width);
-        StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(width);
+        // 同媒体详情页（2026-11-17 用户令「订阅详情页一起改」）：画面大小仍按内容列，右边那道缝按窗口宽给；
+        // 视频局部底已铺满窗口，所以这里的坐标系就是窗口宽。
+        var window = MediaViewModel.PageWidth > 0 ? MediaViewModel.PageWidth : MediaViewModel.StorePageWidth;
+        var gap = DetailHero.StorePreviewEdgeGap(window);
+        StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(MediaViewModel.StorePageWidth);
+        StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(MediaViewModel.StorePageWidth);
         StoreTrailerHost.Margin = MediaViewModel.StorePreviewMargin;
-        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, 48, 0);
+        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, MediaViewModel.StorePreviewMargin.Right + 32, 0);
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _trailerBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
-            width, StoreTrailerHost.Width, StoreTrailerHost.Height, StoreTrailerHost.Margin.Right);
+            window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
         StoreTrailerFade.Background = _trailerBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
-            width, MediaViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height,
-            StoreTrailerHost.Margin.Right);
+            window, MediaViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
