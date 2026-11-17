@@ -71,9 +71,14 @@ public sealed partial class ShellPage
         Chrome.RequestedTheme = ElementTheme.Default;
         AccountCluster.RequestedTheme = ElementTheme.Default;
         // 与 ShowPlayer 同一条恢复口径：令牌可能在整页播放期间失效，那时回来的是登录卡而不是浏览页。
-        if (_session is { IsSignedIn: true }) ContentHost.Visibility = Visibility.Visible;
-        else SignIn.Visibility = Visibility.Visible;
-        SyncSidebar();
+        // 但如果这次收起是让位给视频（播放器已上屏），内容区必须继续收起：那块 XAML 会画在 mpv 子窗口
+        // 该透出来的区域上，ShowPlayer 特意把它藏起来。
+        if (Player.Visibility != Visibility.Visible)
+        {
+            if (_session is { IsSignedIn: true }) ContentHost.Visibility = Visibility.Visible;
+            else SignIn.Visibility = Visibility.Visible;
+            SyncSidebar();
+        }
         PlaceMusicBar();
         if (focusBar && Music.Visible) MusicBar.FocusCover();
     }

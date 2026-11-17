@@ -204,6 +204,8 @@ internal static class MusicTests
             var shellMusic = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ShellPage.Music.cs"));
             Assert.True(shellMusic.Contains("ExpandRequested += OpenMusicPage", StringComparison.Ordinal), "播放栏入口没有接线");
             Assert.True(shellMusic.Contains("CloseMusicPageCore(focusBar: false)", StringComparison.Ordinal), "导航时没有收起播放页");
+            Assert.True(shellMusic.Contains("Player.Visibility != Visibility.Visible", StringComparison.Ordinal),
+                "收起播放页时没有给视频播放让位（内容区会在 mpv 子窗口上重画）");
         });
     }
 
