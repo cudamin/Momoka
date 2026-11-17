@@ -8,7 +8,7 @@
 
 **真机验证（`http://127.0.0.1:8686`）。** 发布本树后在设置 → 关于 → 网络把代理填成 `http://127.0.0.1:8686`，`settings.json` 当场落成 `"Network":{"ProxyServer":"http://127.0.0.1:8686"}`；随后从媒体库打开《F1：狂飙飞车》，日志 02:32:04 `商店预告：本地预告未命中，YouTubeId=CT2_P2DZBR0`、02:32:04 `登录态=True`，20 秒内没有「未起播」「报错」「加载失败」。`msedgewebview2.exe`（pid 25708，用户数据目录 `Momoka\webview2\youtube\EBWebView`）的命令行带 `--proxy-server=http://127.0.0.1:8686`，实屏右上角预告已出画面。这证明设置值确实传到了 WebView2，YouTube 预告经该代理起播。**未做：** 清空代理后的负向实机（单元测试已覆盖参数不追加的分支）；真实 TMDB 令牌与媒体目录下的刮削全链（只有回环假代理的 `CONNECT` 证据）。
 
-**合并。** 2026-11-18 用户令「完了自动合并到主树」。主树 `master` 在 `c9c351b`（已含主页 1860 宽度批次），以 `--no-ff` 合入本批提交；冲突只在 `PROGRESS.md`、`docs/待交付批次.md` 与 `docs/开发与验证.md`，按两边保留（本批置顶、台账编号顺延）。合并后在最终 master 上复编、跑受影响测试并发布主树；未推远端。
+**合并。** 2026-11-18 用户令「完了自动合并到主树」。主树 `master` 在 `c9c351b`（已含主页 1860 宽度批次），以 `--no-ff` 合入本批提交（合并提交 `4314d9f`）；冲突只在 `PROGRESS.md`、`docs/待交付批次.md` 与 `docs/开发与验证.md`，按两边保留（本批置顶、台账编号顺延为 88）。**合并后在最终 master 上复验：** Shell/Core Release/x64 **0 警告 0 错误**；`proxy-fixture` **5/5**、`settings-page-state-fixture` **59/59**、`settings-search-fixture` **14/14**、`local-media-vm-fixture` **7/7**；全量 `Momoka.Tests` **5248/5248**、0 失败 0 跳过（`TEMP` 指到可写目录）。**master 构建真机复核：** 发布出来的 `0.2.8+4314d9f` 打开《F1：狂飙飞车》后日志 02:42:14 `YouTubeId=CT2_P2DZBR0`、`登录态=True`，`msedgewebview2.exe`（pid 30556）命令行带 `--proxy-server=http://127.0.0.1:8686`，20 秒内无失败。主树已按改好收尾发布 `artifacts/publish/win-x64`（548 文件、290.0 MB，02:41）并刷新桌面 `Momoka.lnk`，目标与工作目录回读为 `C:\Users\89400\Momoka\artifacts\publish\win-x64`。未推远端。
 
 ## 2026-11-18 YouTube 预告真机可播：共享登录 + `www.youtube.com/embed`（已合并 master，待统一验证）
 
