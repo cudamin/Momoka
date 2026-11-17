@@ -260,6 +260,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropHeight))]
     [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
+    [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
     [NotifyPropertyChangedFor(nameof(StoreWide))]
     [NotifyPropertyChangedFor(nameof(TrailerControlsRoom))]
     [NotifyPropertyChangedFor(nameof(StoreTailHeight))]
@@ -320,7 +321,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     public double StorePageWidth => Plain ? Math.Min(1840, PageWidth) : PageWidth;
 
-    /// <summary>右侧剧照盒的宽 —— 同媒体详情页 <c>DetailHero.StoreBackdropWidth</c>。</summary>
+    /// <summary>右侧剧照盒的宽 —— 同媒体详情页 <c>DetailViewModel.StoreBackdropWidth</c>。</summary>
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(StorePageWidth);
 
     /// <summary>右侧剧照盒的高 —— 同媒体详情页 <see cref="DetailHero.StoreBackdropHeight"/>。</summary>
@@ -329,8 +330,14 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// <summary>环境底取剧照盒与头部内容里更高的一个，图下沿和头部换行都不露边。</summary>
     public double StoreAmbientHeight => Math.Max(StoreBackdropHeight, HeroBandHeight);
 
-    /// <summary>剧照、预告与亚克力视口共用的右边距，给滚动条让出 <see cref="DetailHero.StorePreviewGap"/>。</summary>
-    public Thickness StorePreviewMargin => Plain ? new(0, 0, DetailHero.StorePreviewGap, 0) : default;
+    /// <summary>
+    /// 剧照、预告与亚克力视口共用的右边距。2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，
+    /// 跟随窗口不断变宽」：画面大小仍按内容列，右沿那道缝由 <see cref="DetailHero.StorePreviewEdgeGap"/>
+    /// 按窗口宽给；窗口宽过 1840 内容列后视口跟着窗口右移，居中让出的那一段由
+    /// <see cref="DetailHero.StorePreviewRightMargin"/> 减掉。
+    /// </summary>
+    public Thickness StorePreviewMargin => Plain
+        ? new(0, 0, DetailHero.StorePreviewRightMargin(PageWidth, StorePageWidth), 0) : default;
 
     /// <summary>商店宽版式：页面宽过 <see cref="DetailHero.StoreWideFloor"/> 才在右上角摆剧照／预告视口。</summary>
     public bool StoreWide => Plain && PageWidth >= DetailHero.StoreWideFloor;

@@ -471,8 +471,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。与 <see cref="PageWidth"/> 不同：后者在商店档
-    /// 被 1840 内容列封顶，这个数保留窗口真实宽 —— 右侧剧照／预告视口据此继续随窗口变宽
-    /// （2026-11-17 用户令「加宽窗口时候视口继续随窗口变宽」）。
+    /// 被 1840 内容列封顶，这个数保留窗口真实宽 —— 右侧剧照／预告与<em>窗口右边缘</em>之间的空隙据此
+    /// 随窗口不断加大（2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」）。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]

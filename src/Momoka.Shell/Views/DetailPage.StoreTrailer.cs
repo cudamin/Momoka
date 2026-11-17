@@ -97,19 +97,19 @@ public sealed partial class DetailPage
 
     private void LayoutStoreTrailer()
     {
-        // 视口跟着窗口真实宽走（2026-11-17 用户令），不是封顶 1840 的内容列；视频局部底已经铺满窗口
-        // （见 PlaceStoreComponents 的 bleed），所以这里的坐标系就是窗口宽，右侧那道缝仍是 StorePreviewGap。
+        // 画面大小仍按内容列（2026-11-17 用户明确「不是放大背景图」）；变的只有它与窗口右边缘之间的距离：
+        // 视频局部底已经铺满窗口（见 PlaceStoreComponents 的 bleed），所以这里的坐标系就是窗口宽，
+        // 右侧那道缝取 StorePreviewEdgeGap —— 窗口越宽留得越多。
         var window = ViewModel.WindowWidth > 0 ? ViewModel.WindowWidth : ViewModel.PageWidth;
-        var width = DetailHero.StoreWindowPreviewWidth(window);
-        var height = DetailHero.StoreWindowPreviewHeight(window, ViewModel.HeroHeight);
-        StoreTrailerHost.Width = width;
-        StoreTrailerHost.Height = height;
-        StoreTrailerControls.Margin = new Thickness(0, height + 32, ViewModel.StorePreviewMargin.Right + 32, 0);
-        StoreTrailerFoundation.Height = height + StoreBackdropBlend.FoundationTail;
+        var gap = DetailHero.StorePreviewEdgeGap(window);
+        StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
+        StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(ViewModel.PageWidth);
+        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, ViewModel.StorePreviewMargin.Right + 32, 0);
+        StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _storeVideoBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
-            window, width, height, DetailHero.StorePreviewGap);
+            window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
         StoreTrailerFade.Background = _storeVideoBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
-            window, ViewModel.StoreAmbientHeight, width, height, DetailHero.StorePreviewGap);
+            window, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
