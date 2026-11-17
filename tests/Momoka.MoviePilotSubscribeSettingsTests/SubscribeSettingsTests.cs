@@ -899,7 +899,7 @@ internal static class SubscribeSettingsTests
                 "订阅页又用转圈当加载动画");
             return Task.CompletedTask;
         });
-        Test("订阅商店档顶部留白与媒体详情同一条顶线，沉浸档保留 12", () =>
+        Test("订阅商店档顶部留白与媒体详情同一条顶线，窄档与左右同值，沉浸档保留 12", () =>
         {
             // 2026-11-15 用户令「增加详情页/订阅详情页上方的空位」：两页读同一个 StoreHeroTop。
             using var vm = new MoviePilotMediaViewModel { PageWidth = 1200 };
@@ -907,6 +907,16 @@ internal static class SubscribeSettingsTests
             Check.Equal(DetailHero.StoreHeroTop, vm.HeaderPadding.Top);
             Check.Equal(DetailHero.StorePageInset(1200), vm.HeaderPadding.Left);
             Check.Equal(DetailHero.StorePageInset(1200), vm.HeaderPadding.Right);
+            // 2026-11-17 用户令「窄窗口出现亚克力背景时候组件整体向上移一点，左边跟上面的间距要一致」：
+            // 窄档顶部读 StoreHeroInsetTop，和左右留白同值；宽窄两档仍和媒体详情页同一条顶线。
+            foreach (var width in new[] { 360d, 760d })
+            {
+                vm.PageWidth = width;
+                Check.Equal(DetailHero.StorePageInset(width), vm.HeaderPadding.Top);
+                Check.Equal(vm.HeaderPadding.Left, vm.HeaderPadding.Top);
+                Check.Equal(DetailHero.StoreHeroInsetTop(width), vm.HeaderPadding.Top);
+            }
+            vm.PageWidth = 1200;
             vm.Immersive = true;
             Check.Equal(12d, vm.HeaderPadding.Top);
             return Task.CompletedTask;

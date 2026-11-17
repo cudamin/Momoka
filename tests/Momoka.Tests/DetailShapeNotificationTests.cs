@@ -402,7 +402,7 @@ internal static partial class DetailActionReadinessTests
                 f.Vm.GetType().GetProperty("HeroArt")!.SetValue(f.Vm, true);
                 Assert.True((bool)f.Get("Showcase")!, "开启后普通宽窗也固定沉浸");
             });
-        Test("简洁详情顶部留白：四种页面下移，切回沉浸保留原边距", () =>
+        Test("简洁详情顶部留白：四种页面下移，窄档与左右留白同值，切回沉浸保留原边距", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
             {
@@ -415,13 +415,21 @@ internal static partial class DetailActionReadinessTests
                     return (double)inset.GetType().GetProperty("Top")!.GetValue(inset)!;
                 }
                 void Refresh() => f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                // 2026-11-17 用户令「窄窗口出现亚克力背景时候左边跟上面的间距要一致」：宽版式仍是
+                // StoreHeroTop，窄档（亚克力那一档）等于 StorePageInset。
                 foreach (var (width, immersiveTop) in new[] { (1200d, 30d), (360d, 20d) })
                 {
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
                     Assert.Equal(immersiveTop, Top());
                     f.Ui.EnableImmersive = false;
                     Refresh();
-                    Assert.Equal(DetailHero.StoreHeroTop, Top(), shape + " 简洁详情没有给顶部留空隙");
+                    Assert.Equal(DetailHero.StoreHeroInsetTop(width), Top(),
+                        shape + " 简洁详情顶部留白不对");
+                    if (width < DetailHero.StoreWideFloor)
+                        Assert.Equal(DetailHero.StorePageInset(width), Top(),
+                            shape + " 窄档顶部留白没有和左右留白同值");
+                    else
+                        Assert.Equal(DetailHero.StoreHeroTop, Top(), shape + " 宽版式顶部留白被窄档改动");
                     f.Ui.EnableImmersive = true;
                     Refresh();
                     Assert.Equal(immersiveTop, Top(), shape + " 沉浸顶部边距被简洁布局改动");

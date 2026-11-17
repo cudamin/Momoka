@@ -18,6 +18,18 @@ internal static class DetailLayoutTests
             foreach (var width in new[] { DetailHero.StoreWideFloor, 1024d, 1072, 1240, 1840, 2560 }) Assert.Equal(96d, DetailHero.StorePageInset(width));
             Assert.Equal(1024d, DetailHero.StoreWideFloor);
         });
+        Test("商店头部上留白：窄档（亚克力）与左右留白相等，宽版式仍是 StoreHeroTop", () =>
+        {
+            // 2026-11-17 用户令「窄窗口出现亚克力背景时候组件整体向上移一点，左边跟上面的间距要一致」。
+            foreach (var width in new[] { 360d, 599, 600, 760, 1023 })
+            {
+                Assert.Equal(DetailHero.StorePageInset(width), DetailHero.StoreHeroInsetTop(width));
+                Assert.True(DetailHero.StoreHeroInsetTop(width) < DetailHero.StoreHeroTop,
+                    "窄档上留白没有收到左右留白那一档");
+            }
+            foreach (var width in new[] { double.NaN, 0, DetailHero.StoreWideFloor, 1200d, 2400 })
+                Assert.Equal(DetailHero.StoreHeroTop, DetailHero.StoreHeroInsetTop(width));
+        });
         Test("商店片名栏：让位放不下时撑到保底宽度并压在剧照上，窗口再窄只收到页边", () =>
         {
             Assert.Equal(300d, DetailHero.StoreTextFloor);
