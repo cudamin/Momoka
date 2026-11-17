@@ -20,7 +20,8 @@ internal static class StoreBackdropBlend
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 1), (0.72, 1), (1, 0)];
     // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：媒体详情页的环境底铺满窗口后，左沿也按
-    // 右沿同一条曲线收边（左右各 28%）。订阅详情页仍用上面那条左沿满色的；那里不要左端渐隐。
+    // 右沿同一条曲线收边（左右各 28%）。2026-11-17 用户令「订阅详情页左上角也要跟媒体详情页一样的渐变」：
+    // 订阅详情页也改用这一条对称遮罩，两页的左沿不再一处满色、一处起坡。
     private static readonly (double Position, double Alpha)[] AmbientSymmetricAcross =
         [(0, 0), (0.28, 1), (0.72, 1), (1, 0)];
     private static readonly (double Position, double Alpha)[] AmbientDown =

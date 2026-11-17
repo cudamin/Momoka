@@ -147,8 +147,11 @@ public sealed partial class MoviePilotSubscriptionPage
     private void PrepareShowcase()
     {
         _storeBackdropFade = new StoreBackdropFade(StoreBackdropContent, StoreBackdrop, StoreBackdropMask);
+        // 2026-11-17 用户令「订阅详情页左上角也要跟媒体详情页一样的渐变」：环境底与媒体详情页同一张
+        // 左右对称遮罩，左沿按右沿同一条曲线收到画布上，左上角才有一条从窗口底色升起来的渐变，
+        // 而不是一整块从内容区左沿就满色的环境色。
         _storeAmbientFade = new StoreBackdropFade(StoreAmbientContent, StoreAmbient, StoreAmbientMask,
-            StoreBackdropFadeShape.Ambient);
+            StoreBackdropFadeShape.AmbientSymmetric);
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
         DetailBackdropBand.Opacity = DetailHero.BackdropOpacity;

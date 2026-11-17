@@ -216,9 +216,10 @@ internal static class StoreDetailLayoutTests
             var horizontalStops = brushes[0].Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
             Assert.Equal("#000C0E11", horizontalStops[0].Attribute("Color")?.Value);
             Assert.Contains("StoreShade.Visibility = StoreBackdrop.Visibility;", Source("Views/DetailPage.Store.cs"));
-            // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：环境底遮罩左端也起坡，订阅页保持满色。
+            // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」；2026-11-17 用户令订阅详情页也照媒体
+            // 详情页：两页的环境底遮罩左端都起坡，左上角不再有一块从内容区左沿就满色的环境色。
             Assert.Contains("StoreBackdropFadeShape.AmbientSymmetric", Source("Views/DetailPage.Showcase.cs"));
-            Assert.Contains("StoreBackdropFadeShape.Ambient);", Source("Views/MoviePilotSubscriptionPage.Showcase.cs"));
+            Assert.Contains("StoreBackdropFadeShape.AmbientSymmetric", Source("Views/MoviePilotSubscriptionPage.Showcase.cs"));
             var mask = Momoka.Shell.Views.StoreBackdropBlend.Mask(ambient: true, symmetric: true);
             byte AmbientAlpha(double x) => mask[((int)Math.Round(0.35 * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
             Assert.Equal(0, AmbientAlpha(0));
