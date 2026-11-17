@@ -58,6 +58,8 @@ public sealed partial class DetailPage
             menu.Items.Add(new MenuFlyoutItem { Text = "服务器未返回可用的预告片", IsEnabled = false });
     }
 
+    private void OnNoticeActionClick(object sender, RoutedEventArgs e) => ViewModel.InvokeNoticeAction();
+
     private void OnTrailerStateChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(DetailViewModel.TrailerVisibility)) UpdateStoreTrailer();

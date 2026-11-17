@@ -244,7 +244,13 @@
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
 
             <InfoBar Visibility="{x:Bind MediaViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind MediaViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind MediaViewModel.NoticeSeverity, Mode=OneWay}"
-                Title="{x:Bind MediaViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind MediaViewModel.NoticeMessage, Mode=OneWay}" />
+                Title="{x:Bind MediaViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind MediaViewModel.NoticeMessage, Mode=OneWay}">
+                <InfoBar.ActionButton>
+                    <Button Content="{x:Bind MediaViewModel.NoticeActionLabel, Mode=OneWay}"
+                            Visibility="{x:Bind MediaViewModel.NoticeActionVisibility, Mode=OneWay}"
+                            Click="OnMediaNoticeActionClick" />
+                </InfoBar.ActionButton>
+            </InfoBar>
             </StackPanel>
             <!-- 商店档的尾部留白：右侧剧照／预告比头部那一叠高时，正文纸面从画面、控制排和右沿空隙
                  下面才开始（同媒体详情页 HeroTail.MinHeight）。沉浸档与无图时为 0，卡片照旧浮在图上。 -->

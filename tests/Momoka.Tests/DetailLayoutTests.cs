@@ -93,7 +93,8 @@ internal static class DetailLayoutTests
             var html = Momoka.Shell.Views.StoreTrailerDocument.Build("Abc_123-xyz");
             foreach (var setting in new[] { "controls=0", "disablekb=1", "fs=0", "loop=1", "playlist=Abc_123-xyz",
                 "pointer-events:none", "tabindex=\"-1\"", "p.pauseVideo()", "p.playVideo()", "p.mute()", "p.unMute()",
-                "p.getOption('captions','tracklist')", "p.setOption('captions','track'", "onApiChange", "postMessage('paused')" })
+                "p.getOption('captions','tracklist')", "p.setOption('captions','track'", "onApiChange", "postMessage('paused')",
+                "postMessage('error:'+e.data)" })
                 Assert.Contains(setting, html);
             Assert.DoesNotContain("showinfo", html);
             foreach (var id in new[] { "short", "Abc_123-xy<", "Abc_123-xy\"" })
@@ -103,6 +104,33 @@ internal static class DetailLayoutTests
                 catch (ArgumentException) { rejected = true; }
                 Assert.True(rejected, "预告网页接受了未验证ID");
             }
+        });
+        Test("YouTube 预告：条目自身媒体地址、远程链接与登录判定", () =>
+        {
+            var direct = new EmbyItem
+            {
+                Type = EmbyItemType.Trailer,
+                MediaSources = [new MediaSource { Path = "https://www.youtube.com/watch?v=Ysd138zfJoM" }]
+            };
+            Assert.Equal("Ysd138zfJoM", TrailerPreview.YouTubeId(direct));
+            Assert.Equal("Ysd138zfJoM", TrailerPreview.YouTubeId(direct.DefaultMediaSource?.Path));
+            Assert.Null(TrailerPreview.YouTubeId(new EmbyItem
+            {
+                Type = EmbyItemType.Movie,
+                MediaSources = [new MediaSource { Path = "https://www.youtube.com/watch?v=Ysd138zfJoM" }]
+            }));
+            Assert.Equal("dQw4w9WgXcQ", TrailerPreview.YouTubeId(new EmbyItem
+            {
+                Type = EmbyItemType.Movie,
+                RemoteTrailers = [new MediaTrailerUrl { Url = "https://youtu.be/dQw4w9WgXcQ" }]
+            }));
+            Assert.True(YouTubeTrailer.NeedsSignIn(101));
+            Assert.True(YouTubeTrailer.NeedsSignIn(150));
+            Assert.False(YouTubeTrailer.NeedsSignIn(100));
+            Assert.True(YouTubeTrailer.HasSession(["SAPISID"]));
+            Assert.True(YouTubeTrailer.HasSession(["__Secure-1PSID"]));
+            Assert.True(YouTubeTrailer.HasSession(["LOGIN_INFO"]));
+            Assert.False(YouTubeTrailer.HasSession(["VISITOR_INFO1_LIVE", "YSC"]));
         });
         Test("商店背景：剧照与预告共用右侧视口，不随原图比例或窗口高度撑开", () =>
         {

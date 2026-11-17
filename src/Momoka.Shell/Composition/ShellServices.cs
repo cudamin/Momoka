@@ -49,6 +49,8 @@ internal static class ShellServices
 
         // ---- the ground floor: where files live and how secrets are protected -------------------------
         services.AddSingleton(paths);
+        // YouTube 登录与详情页预告预览共用的一份 WebView2 配置；不放进设置文件，也不与内嵌控制台混用。
+        services.AddSingleton(_ => new YouTubeSession(Path.Combine(paths.WebViewDirectory, "youtube")));
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());

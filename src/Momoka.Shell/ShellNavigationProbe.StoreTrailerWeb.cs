@@ -20,14 +20,16 @@ internal sealed partial class ShellNavigationProbe
         Call(page, "StopStoreTrailer");
         Field(page, "_storeTrailerSubject", page.ViewModel.CurrentItem);
         Call(page, "LayoutStoreTrailer");
-        using var preview = new StoreYouTubePreview();
+        var folder = Path.Combine(_options.Paths.LogDirectory, "trailer-web-fixture", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        // 匿名探针用自己的一次性配置，不读写用户的 YouTube 登录；生产路径由 YouTubeSession 单例提供。
+        var fixtureSession = new Momoka.Shell.Media.YouTubeSession(Path.Combine(folder, "profile"));
+        using var preview = new StoreYouTubePreview(fixtureSession.GetEnvironmentAsync);
         Field(page, "_storeYouTube", preview);
         var host = Get<Grid>(page, "StoreTrailerHost");
         host.Visibility = Visibility.Visible;
         host.Opacity = 0;
         Get<Grid>(page, "StoreTrailerContent").Children.Add(preview.Element);
-        var folder = Path.Combine(_options.Paths.LogDirectory, "trailer-web-fixture", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
         File.Copy(Path.Combine(AppContext.BaseDirectory, "ProbeAssets", "store-trailer.mp4"), Path.Combine(folder, "store-trailer.mp4"));
         var blocked = 0;
         var apiRequests = 0;

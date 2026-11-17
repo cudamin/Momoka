@@ -34,6 +34,7 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 | 截图 | `screenshots\`（可在设置里改到别处） | 你在播放时主动截的图 |
 | 下载的媒体文件 | 系统「视频」文件夹中的 Momoka 子目录 | 你主动发起的下载；目前没有自选下载目录入口 |
 | 网页控制台页的浏览数据 | `webview2\` | 内嵌 WebView2 打开你服务器自己的网页控制台时产生 |
+| YouTube 登录与预告页数据 | `webview2\youtube\` | 仅在你主动登录 YouTube 或播放 YouTube 预告时产生；Google／YouTube 的 Cookie 只保存在本机，不写入设置文件或日志 |
 
 应用还会读取本机已安装字体列表（用于字幕字体选择），仅在本机显示，不外传。
 
@@ -52,6 +53,8 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 7. **Momoka 内置弹幕凭据端点**（只在启用弹弹play时连接）—— 应用先向 Momoka 官网部署的端点 `https://yuanshenqidon.dpdns.org/api/danmaku/credential` 发一次 GET，应用只主动加上 `Momoka/版本` 的 User-Agent，HTTP 栈可能附带标准的 Accept／编码头；端点返回 AES-GCM 加密的弹弹play 应用凭据，客户端解密后在本机缓存。该端点不接收作品名称、集数、媒体服务器地址、账号、访问令牌或弹幕内容。Cloudflare 作为托管方可能按其政策记录网络层信息（IP、时间）。
 
 8. **你自己部署的 danmu_api**（可选、默认关闭）—— 选择该来源或合并来源后，应用向你填写的服务地址发送作品查询、条目编号与弹幕读取请求。可选访问令牌按该服务协议放在 URL 路径中，不能当作弹弹play 的 AppId 或 AppSecret；该服务及其代理可能看到路径令牌，应只使用专用令牌。Momoka 不提供公共 danmu_api 服务；合并来源会同时请求弹弹play 和 danmu_api。发送弹幕仅走弹弹play，不向 danmu_api 写入。
+
+9. **YouTube／Google（只有你主动登录或播放 YouTube 预告时）** —— 详情页右上角的 YouTube 预告、「登录 YouTube」窗口与预告播放窗会加载 `youtube.com`、`youtube-nocookie.com` 和 `accounts.google.com`。登录页由 Google 自己提供，账号与密码只提交给 Google，Momoka 不读取、不记录；登录后的 Cookie 保存在本机 `webview2\youtube\`，只用于让需要登录的 YouTube 预告在本机播放。不登录也可以正常使用其它功能，只是这类预告会提示你去设置页登录。
 
 发往媒体服务器的请求带有这些标识：客户端名 `Momoka`、**本机计算机名**、随机生成并保存在本机的设备 ID、应用版本号，以及你的访问令牌。这些只发给**你自己的服务器**，用途是让服务器认出「这是哪台设备」。
 

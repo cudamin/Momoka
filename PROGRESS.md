@@ -1,3 +1,13 @@
+## 2026-11-18 YouTube 预告登录与共享会话（分支 `fix-youtube-trailer-login-C1QUcL`，待合并）
+
+用户一句：「登录吧，在详情页提示，然后去设置页面登录」。
+
+**改了什么。** 新增 `Media/YouTubeSession`：一份只含 Google／YouTube Cookie 的 WebView2 配置（`webview2\youtube\`），设置页登录窗与详情页右上角预览共用；它不写设置文件、不读日志，退出登录用 `DeleteAllCookies`。设置 → 界面 → 预告片新增「YouTube 登录」读数行，`SettingsPage` 摆一扇 `YouTubeLoginDialog`（可交互 WebView2，加载 Google 自己的登录页，按 Cookie 名 `SAPISID`／`__Secure-1PSID`／`__Secure-3PSID`／`LOGIN_INFO` 判断登录，只读名字不读值）。详情页与订阅详情页的 YouTube 预览改用这份配置；`StoreYouTubePreview` 现在把 IFrame API 的错误码带出来（`error:150`），未登录时把 101／150 判定为「需要登录」，页面用既有 `InfoBar` 显示「此预告需要登录 YouTube」并带一颗「登录 YouTube」动作键，直达设置页登录窗；登录成功/退出通过 `YouTubeSession.Changed` 让已收起的预览当场重试。`TrailerPreview.YouTubeId` 增加条目自身媒体地址识别（Emby Trailer channel 的 `watch?v=` 直接地址），详情页预览与播放键都能用；播放键与远程 YouTube 菜单项改走 `YouTubePlayerDialog`（官方嵌入页 + 原生「登录 YouTube」入口），不再把用户丢进没有 Momoka 登录态的系统浏览器。`PageViewModel` 的提示条增加可选动作键，两个详情页共用同一句提示。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**；`Momoka.PageContractTests` **357/357、0 失败 0 跳过**（新增「未登录 150 判定要登录、已登录与无码错误不误报」）；`episode-display-fixture` **37/37**（含新增 YouTube 地址/登录判定用例）；全量 `Momoka.Tests` **5226 项、通过 5224、失败 2**，两条均为既有 `C:\WINDOWS\TEMP` 下载环境红，与本批无关；本树已 `publish.ps1 -NoArchive` 发布（548 文件、289.9 MB）并写桌面分支快捷方式 `Momoka-fix-youtube-trailer-login-C1QUcL.lnk`，`Momoka.lnk` 已还原到主树。界面核对：实际启动分支构建 `--show-settings 界面`，UIA 找到并触发「登录 YouTube」，截图中 Google 登录表单（「登录／继续使用 YouTube」）在 Momoka 的登录窗内正常显示。
+
+**未做／边界。** 没有真实 Google 账号密码可用于登录，未验证「登录后年龄限制视频真的能播」；没有在真实年龄限制条目上目视到详情页提示条（Trailers 库的文件夹卡片在两次 UIA 尝试中未稳定点到，只作导航未完成记录）；YouTube 的服务端机器人/年龄判定不因登录窗本身消失，已登录仍报 150 的视频按「不可嵌入」安静回退。未推远端，未合并 master，主树未重新发布。
+
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
 用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。

@@ -21,7 +21,8 @@ internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, 
     ISystemLauncher? Launcher = null, Action<MoviePilotMedia>? OpenMedia = null, MoviePilotMedia? Media = null,
     Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null,
     Action<MoviePilotMedia>? Subscribed = null, ISettingsService? Settings = null,
-    Func<EmbyItem, Task>? PlayTrailer = null, Momoka.Infrastructure.AppPaths? Paths = null);
+    Func<EmbyItem, Task>? PlayTrailer = null, Momoka.Infrastructure.AppPaths? Paths = null,
+    Momoka.Shell.Media.YouTubeSession? YouTube = null, Action? YouTubeLogin = null);
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {

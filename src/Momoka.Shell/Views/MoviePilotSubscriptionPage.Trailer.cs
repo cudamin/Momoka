@@ -30,6 +30,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private MediaPlayerElement? _trailerElement;
     private MediaSource? _trailerSource;
     private StoreYouTubePreview? _trailerYouTube;
+    private Momoka.Shell.Media.YouTubeSession? _trailerYouTubeSession;
     private int _trailerGeneration;
     private bool _trailerOpened;
     private bool _trailerSuspended;
@@ -54,8 +55,32 @@ public sealed partial class MoviePilotSubscriptionPage
         {
             ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
+            // 设置页登录/退出 YouTube 之后，已经收起的失败预览要能当场重试一次。
+            if (_request?.YouTube is { } session && !ReferenceEquals(_trailerYouTubeSession, session))
+            {
+                if (_trailerYouTubeSession is not null) _trailerYouTubeSession.Changed -= OnYouTubeSessionChanged;
+                _trailerYouTubeSession = session;
+                session.Changed += OnYouTubeSessionChanged;
+            }
         };
-        Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+        Unloaded += (_, _) =>
+        {
+            ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+            if (_trailerYouTubeSession is not null) _trailerYouTubeSession.Changed -= OnYouTubeSessionChanged;
+        };
+    }
+
+    private void OnYouTubeSessionChanged()
+    {
+        if (!IsLoaded) return;
+        if (DispatcherQueue.HasThreadAccess) RetryStoreTrailer();
+        else DispatcherQueue.TryEnqueue(RetryStoreTrailer);
+    }
+
+    private void RetryStoreTrailer()
+    {
+        _trailerFailed = null;
+        UpdateStoreTrailer();
     }
 
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
@@ -71,7 +96,8 @@ public sealed partial class MoviePilotSubscriptionPage
         var subject = MediaViewModel.TrailerSubject;
         if (_trailerSuspended || !IsLoaded || !MediaViewModel.Plain || !MediaViewModel.StoreWide
             || !ShellPrefs.Trailers.DetailAutoplay
-            || _accessibility.HighContrast || subject is null || subject.Source?.IsAvailable != true)
+            || _accessibility.HighContrast || subject is null || subject.Source?.IsAvailable != true
+            || (subject.LocalTrailerCount is not > 0 && TrailerPreview.YouTubeId(subject) is null))
         {
             StopStoreTrailer();
             return;
@@ -120,6 +146,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
     {
         StoreTrailerPreview? preview = null;
+        StoreYouTubePreview? youTube = null;
         try
         {
             preview = await StoreTrailerPreview.CreateAsync(subject, token);
@@ -128,11 +155,16 @@ public sealed partial class MoviePilotSubscriptionPage
             LayoutStoreTrailer();
             if (preview is null)
             {
-                var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
+                var id = TrailerPreview.YouTubeId(subject);
                 if (id is null) { _trailerFailed = subject; StopStoreTrailer(); return; }
-                var youTube = new StoreYouTubePreview();
+                if (_request?.YouTube is not { } session) { _trailerFailed = subject; StopStoreTrailer(); return; }
+                youTube = new StoreYouTubePreview(session.GetEnvironmentAsync);
                 _trailerYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (generation == _trailerGeneration && ReferenceEquals(_trailerYouTube, youTube)) UpdateStoreTrailerControls();
+                });
+                youTube.CaptionsChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
                     if (generation == _trailerGeneration && ReferenceEquals(_trailerYouTube, youTube)) UpdateStoreTrailerControls();
                 });
@@ -147,7 +179,15 @@ public sealed partial class MoviePilotSubscriptionPage
                 {
                     if (token.IsCancellationRequested || generation != _trailerGeneration
                         || subject.Source?.IsAvailable != true) return;
-                    if (!playing) { _trailerFailed = subject; StopStoreTrailer(); return; }
+                    if (!playing)
+                    {
+                        _trailerFailed = subject;
+                        // 收预览会连 WebView 一起释放，登录判定先读出来。
+                        var needsLogin = youTube.NeedsLogin;
+                        StopStoreTrailer();
+                        if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
+                        return;
+                    }
                     LayoutStoreTrailer();
                     _trailerOpened = true;
                     StoreTrailerFoundation.Visibility = Visibility.Visible;
@@ -165,7 +205,14 @@ public sealed partial class MoviePilotSubscriptionPage
         catch (OperationCanceledException) { }
         catch
         {
-            if (generation == _trailerGeneration) { _trailerFailed = subject; StopStoreTrailer(); }
+            if (generation == _trailerGeneration)
+            {
+                // 错误回调不一定跑过；预览还在树上且判定需要登录的，在这里补一次提示。
+                var needsLogin = youTube is not null && ReferenceEquals(_trailerYouTube, youTube) && youTube.NeedsLogin;
+                _trailerFailed = subject;
+                StopStoreTrailer();
+                if (needsLogin) MediaViewModel.NotifyYouTubeLoginRequired(_request?.YouTubeLogin);
+            }
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }
     }
@@ -307,6 +354,8 @@ public sealed partial class MoviePilotSubscriptionPage
             if (!_trailerUserPaused) { _trailerPlayer?.Play(); _trailerYouTube?.SetActive(true); }
         }
     }
+
+    private void OnMediaNoticeActionClick(object sender, RoutedEventArgs e) => MediaViewModel.InvokeNoticeAction();
 
     private void OnTrailerButtonClick(object sender, RoutedEventArgs args)
     {

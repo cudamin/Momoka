@@ -2184,7 +2184,14 @@
                 IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
-                Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
+                Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}">
+                <!-- YouTube 预告要求登录时的去处；其它提示不带动作，整颗收起。 -->
+                <InfoBar.ActionButton>
+                    <Button Content="{x:Bind ViewModel.NoticeActionLabel, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.NoticeActionVisibility, Mode=OneWay}"
+                            Click="OnNoticeActionClick" />
+                </InfoBar.ActionButton>
+            </InfoBar>
         </StackPanel>
     </Grid>
 </Page>

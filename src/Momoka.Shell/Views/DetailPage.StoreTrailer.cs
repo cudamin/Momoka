@@ -29,6 +29,7 @@ public sealed partial class DetailPage
     private bool _storeTrailerScrollPaused;
     private CancellationTokenRegistration _storeTrailerCancellation;
     private StoreYouTubePreview? _storeYouTube;
+    private YouTubeSession? _youTubeSession;
     private bool _storeYouTubeMuted = true;
     private readonly StoreVideoBrush _storeVideoBrush = new();
 
@@ -48,8 +49,33 @@ public sealed partial class DetailPage
         {
             ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
+            // 设置页登录/退出 YouTube 之后，已经收起的失败预览要能当场重试一次，不必退出详情页再进。
+            if (_request?.Services.GetService(typeof(YouTubeSession)) is YouTubeSession session
+                && !ReferenceEquals(_youTubeSession, session))
+            {
+                if (_youTubeSession is not null) _youTubeSession.Changed -= OnYouTubeSessionChanged;
+                _youTubeSession = session;
+                session.Changed += OnYouTubeSessionChanged;
+            }
         };
-        Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+        Unloaded += (_, _) =>
+        {
+            ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+            if (_youTubeSession is not null) _youTubeSession.Changed -= OnYouTubeSessionChanged;
+        };
+    }
+
+    private void OnYouTubeSessionChanged()
+    {
+        if (!IsLoaded) return;
+        if (DispatcherQueue.HasThreadAccess) RetryStoreTrailer();
+        else DispatcherQueue.TryEnqueue(RetryStoreTrailer);
+    }
+
+    private void RetryStoreTrailer()
+    {
+        _storeTrailerFailed = null;
+        UpdateStoreTrailer();
     }
 
     private void OnTrailerPreferencesChanged(TrailerSettings preferences)
@@ -66,8 +92,9 @@ public sealed partial class DetailPage
         if (_storeTrailerSuspended || !IsLoaded || !ViewModel.StoreMode || !wide || _actionAccessibility.HighContrast
             || ViewModel.StoreArtSelected
             || !ShellPrefs.Trailers.DetailAutoplay
-            || subject is null || !ItemTrailers.HasAny(subject, subject.Source?.Connection.ServerKind ?? default)
-            || subject.Source?.IsAvailable != true)
+            || subject is null || subject.Source?.IsAvailable != true
+            || !(ItemTrailers.HasAny(subject, subject.Source.Connection.ServerKind)
+                || TrailerPreview.YouTubeId(subject) is not null))
         {
             StopStoreTrailer();
             return;
@@ -116,6 +143,7 @@ public sealed partial class DetailPage
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
     {
         StoreTrailerPreview? preview = null;
+        StoreYouTubePreview? youTube = null;
         try
         {
             preview = await StoreTrailerPreview.CreateAsync(subject, token);
@@ -125,9 +153,10 @@ public sealed partial class DetailPage
             LayoutStoreTrailer();
             if (preview is null)
             {
-                var id = TrailerPreview.YouTubeId(ItemTrailers.Remote(subject));
+                var id = TrailerPreview.YouTubeId(subject);
                 if (id is null) return;
-                var youTube = new StoreYouTubePreview();
+                var session = _youTubeSession ??= _request!.Services.GetRequiredService<YouTubeSession>();
+                youTube = new StoreYouTubePreview(session.GetEnvironmentAsync);
                 _storeYouTube = youTube;
                 youTube.PlaybackChanged += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -147,7 +176,15 @@ public sealed partial class DetailPage
                     "trailer-preview", Guid.NewGuid().ToString("N")), token, playing =>
                 {
                     if (token.IsCancellationRequested || generation != _storeTrailerGeneration || subject.Source?.IsAvailable != true) return;
-                    if (!playing) { _storeTrailerFailed = subject; StopStoreTrailer(); return; }
+                    if (!playing)
+                    {
+                        _storeTrailerFailed = subject;
+                        // StopStoreTrailer 会把这支预览连同 WebView 一起收掉，登录判定要先读出来。
+                        var needsLogin = youTube.NeedsLogin;
+                        StopStoreTrailer();
+                        if (needsLogin) ViewModel.NotifyYouTubeLoginRequired();
+                        return;
+                    }
                     LayoutStoreTrailer();
                     _storeTrailerOpened = true;
                     StoreTrailerFoundation.Visibility = Visibility.Visible;
@@ -167,7 +204,14 @@ public sealed partial class DetailPage
         catch (OperationCanceledException) { }
         catch
         {
-            if (generation == _storeTrailerGeneration) { _storeTrailerFailed = subject; StopStoreTrailer(); }
+            if (generation == _storeTrailerGeneration)
+            {
+                // 播放器超时/失败时，错误回调不一定跑过；预览还在树上且判定需要登录的，在这里补一次提示。
+                var needsLogin = youTube is not null && ReferenceEquals(_storeYouTube, youTube) && youTube.NeedsLogin;
+                _storeTrailerFailed = subject;
+                StopStoreTrailer();
+                if (needsLogin) ViewModel.NotifyYouTubeLoginRequired();
+            }
         }
         finally { if (preview is not null) await preview.DisposeAsync(); }
     }

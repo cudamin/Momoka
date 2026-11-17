@@ -24,7 +24,7 @@ internal static class StoreTrailerDocument
             if(p.loadModule)p.loadModule('captions');captions()},
             onStateChange:e=>{if(e.data===1)chrome.webview.postMessage('playing');else if(e.data===2)chrome.webview.postMessage('paused')},
             onApiChange:()=>{if(!captionReady&&p&&typeof p.setOption==='function'){captionReady=true;captionLanguage='';
-            try{p.setOption('captions','track',{})}catch(_){}}captions()},onError:()=>chrome.webview.postMessage('error'),
+            try{p.setOption('captions','track',{})}catch(_){}}captions()},onError:e=>chrome.webview.postMessage('error:'+e.data),
             onAutoplayBlocked:()=>chrome.webview.postMessage('blocked')}})};
             chrome.webview.addEventListener('message',e=>{if(typeof e.data!=='string')return;
             if(e.data==='play')active=true;if(e.data==='pause')active=false;if(e.data==='mute')muted=true;if(e.data==='unmute')muted=false;

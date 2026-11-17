@@ -98,6 +98,24 @@ internal static class StoreTrailerWebTests
             Assert.False(fixture.Core.TryOpenWindow());
             Assert.False(fixture.Core.TryDownload());
         });
+        Test("网页预告：未登录时 150 判定需要登录，已登录与无码错误不误报", () =>
+        {
+            using (var anonymous = new Fixture())
+            {
+                anonymous.Core.RaiseMessage("error:150");
+                Assert.True(anonymous.Preview.NeedsLogin, "未登录的 150 没有判定去登录");
+            }
+            using (var signedIn = new Fixture(signedIn: true))
+            {
+                signedIn.Core.RaiseMessage("error:150");
+                Assert.False(signedIn.Preview.NeedsLogin, "已登录仍把 150 报成要登录");
+            }
+            using (var noCode = new Fixture())
+            {
+                noCode.Core.RaiseMessage("error");
+                Assert.False(noCode.Preview.NeedsLogin, "无错误码的加载失败被当成要登录");
+            }
+        });
         Test("网页字幕探针：实际解析通知、原生菜单和独立文本轨回读仍接线", () =>
         {
             var probe = Read("src/Momoka.Shell/ShellNavigationProbe.StoreTrailerWeb.cs");
@@ -130,12 +148,17 @@ internal static class StoreTrailerWebTests
 
     private sealed class Fixture : IDisposable
     {
-        internal StoreYouTubePreview Preview { get; } = new();
+        internal StoreYouTubePreview Preview { get; }
         internal CancellationTokenSource Cancel { get; } = new();
         internal Microsoft.Web.WebView2.Core.CoreWebView2 Core => Preview.Element.TestCore;
 
-        internal Fixture()
+        internal Fixture(bool signedIn = false)
         {
+            Preview = new(_ =>
+                Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateWithOptionsAsync("",
+                    Path.Combine(AppContext.BaseDirectory, "trailer-web-boundary-env"),
+                    new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions()));
+            if (signedIn) Core.CookieManager.Cookies.Add(new() { Name = "SAPISID" });
             var folder = Path.Combine(AppContext.BaseDirectory, "trailer-web-boundary", Guid.NewGuid().ToString("N"));
             Preview.StartAsync("Abc_123-xyz", folder, Cancel.Token, _ => { }).GetAwaiter().GetResult();
         }

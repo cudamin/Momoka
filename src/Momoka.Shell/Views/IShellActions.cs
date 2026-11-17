@@ -85,6 +85,15 @@ internal interface IShellActions
 
     void OpenSignIn(ServerProfile? server = null, bool newAccount = false);
 
+    /// <summary>打开设置窗口并落到指定分类；默认空实现，测试替身不必为它再写一遍。</summary>
+    void OpenSettings(string category) { }
+
+    /// <summary>直接从详情页的提示去 YouTube 登录：打开设置窗口并弹出登录窗。</summary>
+    void OpenYouTubeLogin() { }
+
+    /// <summary>用 Momoka 内的 YouTube 窗口播放一支预告；YouTube 登录态与详情页预览共用。</summary>
+    void OpenYouTubeTrailer(string id, string title) { }
+
     Task SwitchProfileAsync(ServerProfile server, AccountProfile? account);
 
     /// <summary>
