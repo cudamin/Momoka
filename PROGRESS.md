@@ -6,7 +6,7 @@
 
 **检查。** Shell Release/x64 0 警告 0 错误；`episode-display-fixture` 34/34（`DetailLayoutTests` 新增窄档五档与宽版式三档纯函数断言）；`detail-action-readiness-fixture` 94/94（`DetailShapeNotificationTests` 的 1200／360 两档改为按 `StoreHeroInsetTop` 断言，并补窄档与左右同值）；`Momoka.MoviePilotSubscribeSettingsTests` 78/78（补 360／760 两档）；`Momoka.PageContractTests` 352/352。商店顶部探针 `ShellNavigationProbe.StoreDetailBackdrop` 的封面顶距改按 `StoreHeroInsetTop(page.ViewModel.PageWidth)` 对表，不再固定 72。未跑原生探针与实屏，未发布；待跑项记入[待交付批次](docs/待交付批次.md)第 69 条。
 
-**分支与合并。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-narrow-acrylic-gap-wEnXzC`，分支 `fix-narrow-acrylic-gap-wEnXzC`，基点 `aa01a4a`，产品与测试提交 `ec900fb`、记录提交 `6b2dece`；2026-11-17 用户要求合并，以合并提交并入 `master`（与主树「统一验证与带红发布」及第 68 项整合，冲突只在 `PROGRESS.md` 与本台账顶部条目，两边按时间保留，本批编号顺延为 69）。合并本身未跑全量验证与探针。
+**分支与合并。** 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-narrow-acrylic-gap-wEnXzC`，分支 `fix-narrow-acrylic-gap-wEnXzC`，基点 `aa01a4a`，产品与测试提交 `ec900fb`、记录提交 `6b2dece`；2026-11-17 用户要求合并，以合并提交 `3028d7b` 并入 `master`（与主树「统一验证与带红发布」及第 68 项整合，冲突只在 `PROGRESS.md` 与本台账顶部条目，两边按时间保留，本批编号顺延为 69）。合并本身未跑全量验证与探针。
 
 ## 2026-11-17 统一验证与带红发布（用户令「交付」，未销账）
 
