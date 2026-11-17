@@ -2,17 +2,17 @@
 
 用户先一句「加宽拉长窗口时候商店模式下，背景图/预告片和窗口右边的间距」，中途按选项试过「视口随窗口变宽」，随即纠正「谁让你放大背景图了，我说的是加大背景图和右边窗口边缘之间的间距」，并定「跟随窗口不断变宽，数值我也（不）说，你看着调先」。
 
-**改了什么。** 画面本身的尺寸退回原样：剧照／预告仍按 1840 内容列的 60%、封顶 920（`DetailHero.StoreBackdropWidth`／`StoreBackdropHeight` 不变）。变的只有画面与<em>窗口右边缘</em>之间的空隙：Core 新增 `DetailHero.StorePreviewEdgeGap`，起点仍是 16，从宽版式断点 1024 起每宽 1 DIP 加 0.03、封顶 96（1240→22.5、1840→40.5、2560→62.1）；`StorePreviewRightMargin` 把它换算成相对居中内容列的 `Margin.Right`（窗口宽过 1840 时减掉右半边 bleed，负值把视口带回窗口边）。媒体详情页新增 `DetailViewModel.WindowWidth`（`Body.ActualWidth`，`OnBodySizeChanged`／`PlaceStoreComponents`／`SeedConnectedLayoutWidth` 三处写）专门喂这个空隙；`PlaceStoreComponents` 让视频局部底（`StoreTrailerFoundation`）跟环境底、淡墨一起铺满窗口，预告坐标、渐隐采样与暂停／静音控制排按窗口宽和同一个缝隙摆。订阅详情页用同一套：`MoviePilotMediaViewModel.StorePreviewMargin` 改读 `StorePreviewRightMargin(PageWidth, StorePageWidth)`，环境底与视频局部底同样铺满窗口，预告重排同参数。
+**改了什么。** 画面本身的尺寸退回原样：剧照／预告仍按 1840 内容列的 60%、封顶 920（`DetailHero.StoreBackdropWidth`／`StoreBackdropHeight` 不变）。变的只有画面与<em>窗口右边缘</em>之间的空隙：Core 新增 `DetailHero.StorePreviewEdgeGap`，窄档保持 16；宽版式按窗口宽的 3.5% 走、封顶 120（1240→43、1840→64、2560→90），窗口越宽留得越多；`StorePreviewRightMargin` 把它换算成相对居中内容列的 `Margin.Right`（窗口宽过 1840 时减掉右半边 bleed，负值把视口带回窗口边）。媒体详情页新增 `DetailViewModel.WindowWidth`（`Body.ActualWidth`，`OnBodySizeChanged`／`PlaceStoreComponents`／`SeedConnectedLayoutWidth` 三处写）专门喂这个空隙；`PlaceStoreComponents` 让视频局部底（`StoreTrailerFoundation`）跟环境底、淡墨一起铺满窗口，预告坐标、渐隐采样与暂停／静音控制排按窗口宽和同一个缝隙摆。订阅详情页用同一套：`MoviePilotMediaViewModel.StorePreviewMargin` 改读 `StorePreviewRightMargin(PageWidth, StorePageWidth)`，环境底与视频局部底同样铺满窗口，预告重排同参数。
 
-**测了什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` 新增纯函数用例（空隙 16 起点、22.48／40.48／62.08、封顶 96、视口仍是 920；margin 与 bleed 换算），`Momoka.PageContractTests` 新增媒体详情页与订阅详情页两条源码契约（画面不放大、空隙接线、局部底铺满、控制排跟随）；全量 `Momoka.Tests` **5224/5224**、`Momoka.PageContractTests` **355/355**，0 失败 0 跳过。按日常界面口径未跑原生探针与验收截图。
+**测了什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` 新增纯函数用例（窄档 16、1240→43.4、1840→64.4、2560→89.6、封顶 120、视口仍是 920；margin 与 bleed 换算），`Momoka.PageContractTests` 新增媒体详情页与订阅详情页两条源码契约（画面不放大、空隙接线、局部底铺满、控制排跟随）。全量 `Momoka.Tests` **5224/5224**、`Momoka.PageContractTests` **355/355**，0 失败 0 跳过。主测试有一轮 16 红全部落在自检隔离用例，报「已有当前用户的自检运行中」——当时另一个 Momoka 实例占着自检互斥锁；等它退出后重跑全绿，与本轮改动无关。按「改了探针判据就得当轮跑」跑了 `--probe-shell --probe-section detail-cards --screen 1`：**2/2 通过**，读数 1240 宽三处右沿空隙都是 **43**、760／360 仍是 **16**，进入页面直接测量（没有拖窗口），同时证明「进入即正确」的修复生效。
 
 **补的 bug（20:5x）。** 用户报「长窗口的时候点进去还是原来的间距，要调整一下窗口才会闪现到正确的间距」：进入页面时 `PlaceStoreComponents` 把 `PageWidth` 从窗口宽收进 1840 内容列，但 `PageWidth` 的通知列表里没有 `StorePreviewMargin` —— 绑定停在初值 16，直到拖窗口写 `WindowWidth` 才重算。补上这条通知，契约测试同时钉住 `PageWidth` 与 `WindowWidth` 都会通知右边距。订阅详情页没有这条路径：那边 `StorePageWidth` 是派生属性、`PaintStoreBackdrop` 每次布局都直接重算并赋 `Margin`，进入时就是正确的；本轮已改的三处（ViewModel 右边距、环境底与视频局部底铺满、预告坐标与渐隐）确实在 `61892b1` 里。
 
-**发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-store-window-spacing-px4o5I` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `CB743AFCC3E16B35A208BD93D8E983C0482C9CA18A3FBE5B87B0EFC3B2FFE8C3`，`Momoka.dll` SHA256 `56C387741C04886369B41C27AB528228E9419B84E1A8489F9A134BF2486CE4FC`；桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk` 指向本树 `artifacts/publish/win-x64`。
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-store-window-spacing-px4o5I` 退出 0，548 文件、289.9 MB；`Momoka.exe` SHA256 `78664334C1C0A2416EBB245DB4912B1F5BB20402CA74B369E1E3D9E13744B2AC`，`Momoka.dll` SHA256 `12EC2B4254E9E2541E282496E9D71A6B036C08F3B350FD83A68F515ADB0CE3C4`；桌面 `Momoka-fix-store-window-spacing-px4o5I.lnk` 指向本树 `artifacts/publish/win-x64`。
 
-**未验证。** 宽窗与常规窗口下空隙的实际观感（16→22.5→62 的增幅与封顶是否合适）、预告片在演时位置与渐隐、五套固定深色与跟随系统深浅；统一验证时按台账第 77 条跑。
+**未验证。** 宽窗与常规窗口下空隙的实际观感（16→43→90 的增幅与封顶是否合适）、订阅详情页实屏、预告片在演时位置与渐隐、五套固定深色与跟随系统深浅；统一验证时按台账第 77 条跑。
 
-**提交。** 产品与测试 `61892b1`、`a6bcc3c`；此前误按「放大视口」方向的提交 `2fe8781` 已由本轮改动覆盖，不单独 revert。未合入 master、未推远端。
+**提交。** 产品与测试 `61892b1`、`a6bcc3c`、`a9d39e4`；此前误按「放大视口」方向的提交 `2fe8781` 已由本轮改动覆盖，不单独 revert。未合入 master、未推远端。
 
 ## 2026-11-17 缓冲设置拆成独立卡片：内网/外网两组（已合并 master，待统一验证）
 
