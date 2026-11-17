@@ -14499,3 +14499,5 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 - **不动**：图标字形（`Segoe UI Symbol` 的竖三点、`Segoe Fluent Icons` 的跳过图标、🍅 emoji）按原注释保留；设置页主题预览格里的 `EgUiFontFamily` 是那张迷你窗口的模拟字，不是应用文字；播放页的控件字体本就显式用 `EgUiFontFamily`，只有悬停时间这一处漏网。
 
 审计后复跑：Shell Release/x64 0 警告 0 错误（1 分 47 秒）；全量 `Momoka.Tests` **5210/5210**、`Momoka.PageContractTests` **353/353**，0 失败 0 跳过（TEMP 指本树可写目录，避开 `C:\WINDOWS\TEMP` 那两条既有环境红）；两个改动 `.cs`（本轮的 `MediaInfoDialog.cs` 与上一轮的 `DetailPage.Appearance.cs`）`dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 的 12 个变更路径行尾、BOM、末尾换行与空白检查通过。同样未跑探针与实屏；下一次改好收尾会再刷新一次快捷方式。
+
+**合并（2026-11-17，用户令「合并」）。** 产品提交 `2b80bba`、记录提交 `3eb7128` 先与当时 master（`63e6068`，探针竞态修复）合并一次，合并提交 `a726b8c`：两边只在 `PROGRESS.md` 与 `docs/待交付批次.md` 各追加一段，Git 自动合并、无冲突。合并后的最终代码复编 Shell Release/x64 **0 警告 0 错误**（3 分 24 秒），随后以快进方式把 `master` 推进到本分支末提交。按规则合并本身不跑全量验证、单测与探针，台账第 70 项的验证列仍需在统一验证时按最终代码重跑；主树未重新发布，桌面 `Momoka.lnk` 仍指旧构建，本批的实屏通过 `Momoka-fix-font-hover-triangle-mlSsLc.lnk` 体验。
