@@ -46,7 +46,7 @@
 
 **提交。** 产品与测试 `1926c8c`、`d171f5c`；记录 `10cec63`。
 
-**合并（`a746de4`）。** 用户令「合并」。主树先行状态干净（另一会话的台账改动已由其提交 `f25c97d` 落库），在 master `f25c97d` 上以 `--no-ff` 合入；三处冲突按两边保留解决：`PROGRESS.md` 与待交付台账各留两条（本批台账编号顺延为 83）；`FnMusicMediaAdapter.GetViewsAsync` 保留 master 的专辑封面读取，只把库名改成「飞牛音乐」；`FnMusicTests` 里 master 那条「库封面读取失败不挡媒体库」对库名的旧期望「音乐」同步改为「飞牛音乐」。合并后在最终代码上重编 Core／Shell／Tests Release/x64 均 **0 警告 0 错误**，`browse-identity-fixture` **62/62**、`fnmusic-fixture` **21/21**，全量 `Momoka.Tests` **5230/5230**、0 失败 0 跳过（首跑 16 红全是自检夹具撞上别的会话 Momoka 占用的共享桌面 mutex，该实例退出后同代码复跑全绿）。按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB，00:53）并刷新桌面 `Momoka.lnk`，仅体验刷新、不销账。合并本身未跑探针；分支快捷方式、分支与工作树在内容确认后清理。
+**合并（`a746de4`）。** 用户令「合并」。主树先行状态干净（另一会话的台账改动已由其提交 `f25c97d` 落库），在 master `f25c97d` 上以 `--no-ff` 合入；三处冲突按两边保留解决：`PROGRESS.md` 与待交付台账各留两条（本批台账编号顺延为 83）；`FnMusicMediaAdapter.GetViewsAsync` 保留 master 的专辑封面读取，只把库名改成「飞牛音乐」；`FnMusicTests` 里 master 那条「库封面读取失败不挡媒体库」对库名的旧期望「音乐」同步改为「飞牛音乐」。合并后在最终代码上重编 Core／Shell／Tests Release/x64 均 **0 警告 0 错误**，`browse-identity-fixture` **62/62**、`fnmusic-fixture` **21/21**，全量 `Momoka.Tests` **5230/5230**、0 失败 0 跳过（首跑 16 红全是自检夹具撞上别的会话 Momoka 占用的共享桌面 mutex，该实例退出后同代码复跑全绿）。按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB，00:53）并刷新桌面 `Momoka.lnk`，仅体验刷新、不销账。合并本身未跑探针；内容确认全部进入 master、工作树干净后，已删除桌面 `Momoka-fix-home-library-rename-1UTKdp.lnk`、分支与工作树（Git 删工作树撞到 Windows 长路径，用 `\\?\` 前缀清理剩余构建产物后完成）。
 
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
