@@ -163,20 +163,6 @@
           MinHeight="{x:Bind MediaViewModel.Viewport, Mode=OneWay}"
           HorizontalAlignment="Stretch" VerticalAlignment="Top"
           IsHitTestVisible="False" Visibility="Collapsed">
-        <!-- 2026-11-17 用户令：正常窗口下这层深色渐变只留左上角一个三角形，窗口拉宽再慢慢展开成
-             整条。角上那层是中心在左上角的径向渐变，正常宽度只画这一层；页宽过 1400 后按
-             smoothstep 把整条那层淡入、角上那层淡出，到 1840 只剩整条（与不加遮罩的当前状态一致）。 -->
-        <Border x:Name="StoreShadeCorner">
-            <Border.Background>
-                <RadialGradientBrush x:Name="StoreShadeCornerBrush" MappingMode="Absolute" Center="0,0" GradientOrigin="0,0"
-                    RadiusX="300" RadiusY="240">
-                    <GradientStop Offset="0" Color="#3A0C0E11" />
-                    <GradientStop Offset="0.42" Color="#280C0E11" />
-                    <GradientStop Offset="1" Color="#000C0E11" />
-                </RadialGradientBrush>
-            </Border.Background>
-        </Border>
-        <Grid x:Name="StoreShadeWide">
         <Border>
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
@@ -195,7 +181,6 @@
                 </LinearGradientBrush>
             </Border.Background>
         </Border>
-        </Grid>
     </Grid>
     <Grid x:Name="StoreTrailerHost" HorizontalAlignment="Right" VerticalAlignment="Top"
           IsHitTestVisible="False" Visibility="Collapsed">

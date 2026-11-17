@@ -14615,4 +14615,6 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 
 同日再追加（用户看实屏并用红线标出左上角三角形，答「三角形是指定效果」）：商店档深色渐变改为两段交接的层 —— `StoreShadeCorner` 是中心在左上角的径向渐变，半径按页宽约 22% 收放（160–360 DIP），正常窗口只画这一层；原整条渐变包进 `StoreShadeWide`，页宽 1400 起按 smoothstep 淡入、1400–1840 之间角上层同步淡出，1840 起回到原来的整条状态。Shell Release/x64 **0 警告 0 错误**（2 分 23 秒）；`Momoka.PageContractTests` **354/354**；已复发布并刷新同一快捷方式（21:46）。修后探针（`shell-probe-20261117-133056777-16552`）截图 `mp-subscription-mode-plain-760/1240.png` 已只留左上角三角；该轮 36/37，红项为「订阅详情、入库缺集与编辑」里 `RequireSubscriptionBodyLayout` 的堆叠判据（同一判据在 21:09 那轮通过，按读数时序记录，交付前复跑确认）。提交 `51b6820`。
 
+同日三追加（用户贴实屏问「你看这是只留了左上角一个三角形的暗吗」）：那一版把左上角压成一整块没有边界的暗面，确实不是三角。红线那版的三角原本是自然形成的 —— 环境底左右各 28% 的对称渐隐与两道比例停点线性渐变相乘，左上角本来就收成楔形，不需要另加角上层。已整体回退提交 `51b6820`（撤掉 `StoreShadeCorner`/`StoreShadeWide` 与 `Store.cs` 里的 1400/1840 两档，`StoreShade` 回到两道线性渐变，`SubscriptionTrailerLayoutTests` 的三角断言同步撤掉）。Shell Release/x64 **0 警告 0 错误**（2 分 20 秒）；全量 `Momoka.Tests` **5225/5225**、`Momoka.PageContractTests` **354/354**，0 失败 0 跳过（TEMP 指本树 `artifacts/delivery-tmp`）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 3 个变更路径通过。已复发布并刷新同一快捷方式（22:08）；回退后探针 `--probe-shell --probe-section moviepilot --screen 1` **37/37**（`shell-probe-20261117-140925794-6888`），截图 `mp-subscription-mode-plain-760/1240.png` 左上角重新是三角楔形。
+
 未合并 master；分支快捷方式已刷新，不等于交付。
