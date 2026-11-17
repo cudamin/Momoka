@@ -375,6 +375,7 @@ public static class SettingsMigration
         if (settings.Mpv is null) settings.Mpv = new MpvSettings();
         if (settings.Playback is null) settings.Playback = new PlaybackSettings();
         if (settings.Video is null) settings.Video = new VideoSettings();
+        if (settings.Buffer is null) settings.Buffer = new BufferSettings();
         if (settings.Audio is null) settings.Audio = new AudioSettings();
         if (settings.Shaders is null) settings.Shaders = new ShaderAutomationSettings();
         if (settings.Ui is null) settings.Ui = new UiSettings();

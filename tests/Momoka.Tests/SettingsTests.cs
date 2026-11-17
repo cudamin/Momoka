@@ -1496,6 +1496,28 @@ internal static partial class SettingsTests
             Assert.Equal(BufferSettings.MaximumMegabytes, silly.Buffer.LanMegabytes);
         });
 
+        // 缓冲是设置页上的四行，和别的偏好一样：备份要带上，恢复默认要拨回装机值。漏了这一组，
+        // 新设置就会悄悄不在备份里、恢复默认也动不了它 —— SettingsPreferences 的类注释提醒的正是这种漏。
+        Test("偏好：缓冲两组跟着备份与恢复默认走", () =>
+        {
+            var live = new AppSettings();
+            live.Buffer.LanMegabytes = 512;
+            live.Buffer.LanSeconds = 60;
+            live.Buffer.WanMegabytes = 1024;
+            live.Buffer.WanSeconds = 120;
+
+            var backup = SettingsPreferences.ToBackupDocument(live);
+            Assert.Equal(512, backup.Buffer.LanMegabytes);
+            Assert.Equal(1024, backup.Buffer.WanMegabytes);
+            Assert.Equal(120, backup.Buffer.WanSeconds);
+
+            SettingsPreferences.Apply(live, new AppSettings());
+            Assert.Equal(BufferSettings.DefaultMegabytes, live.Buffer.LanMegabytes);
+            Assert.Equal(BufferSettings.DefaultSeconds, live.Buffer.LanSeconds);
+            Assert.Equal(BufferSettings.DefaultMegabytes, live.Buffer.WanMegabytes);
+            Assert.Equal(BufferSettings.DefaultSeconds, live.Buffer.WanSeconds);
+        });
+
         Test("规整：音量默认 100，越界夹回 0–130", () =>
         {
             Assert.Equal(100, SettingsMigration.NewDefaults().Audio.Volume, "没人调过音量就是满的");
