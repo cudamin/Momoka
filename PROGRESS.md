@@ -12,7 +12,7 @@
 
 **发布。** 按改好收尾从主树根目录复制 `libmpv-2.dll` 后发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-home-library-rename-1UTKdp`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-fix-home-library-rename-1UTKdp.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（00:14 生成）。主树 `Momoka.lnk` 未动，仅体验刷新、不销账。
 
-**提交。** 产品与测试 `1926c8c`；记录本提交。
+**提交。** 产品与测试 `1926c8c`；记录 `10cec63`。
 
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
