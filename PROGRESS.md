@@ -14679,3 +14679,5 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 验证：Shell Release/x64 0 警告 0 错误；全量 `Momoka.Tests` **5224/5224**；`Momoka.PageContractTests` **355/355**；`Momoka.PlexAffordanceTests` **85/85** + agreements **7/7**；修改文件 `dotnet format whitespace --verify-no-changes` 通过。按日常界面规则未跑原生探针与实屏截图。
 
 改好收尾已运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-director-cast-first-oPnzkX`：发布 548 文件 / 289.9 MB 到本树 `artifacts/publish/win-x64`，桌面快捷方式 `Momoka-feat-director-cast-first-oPnzkX.lnk` 指向该 exe。这不是统一验证或销账，尚未合并 master。
+
+**合并（2026-11-17，用户令「合并」）。** 分支先与当时 master（`30244d8`，商店右边缘间距批次）合并，合并提交 `20efb9a`：`PROGRESS.md`、`DetailViewModel.cs`、`StoreDetailLayoutTests.cs` 均自动合并、无冲突。合并后的最终代码复编 Shell Release/x64 **0 警告 0 错误**，随后全量 `Momoka.Tests` **5225/5225**、`Momoka.PageContractTests` **356/356**、`Momoka.PlexAffordanceTests` **85/85**，0 失败 0 跳过；随后以快进方式把 `master` 推进到本分支末提交。按规则合并本身不是统一验证，本批仍未销账；主树未重新发布，桌面 `Momoka.lnk` 仍指旧构建。合并后已删除分支快捷方式 `Momoka-feat-director-cast-first-oPnzkX.lnk`；工作树与分支因当前会话仍在使用，登记待清理。
