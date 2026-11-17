@@ -23,7 +23,8 @@ internal static class StoreBackdropBlend
     /// 2026-11-17 用户令「左上角的那个渐变要以左上为起点扩散，从浓变淡，过度平滑」：环境底左上角那团
     /// 暗角以左上角为圆心径向展开 —— 角上最浓（窗口底色），沿椭圆弧向外平滑变淡，到画布宽的
     /// <see cref="AmbientFanX"/>、高的 <see cref="AmbientFanY"/> 处完全交给环境底。两轴按画布比例给，
-    /// 窗口拉宽拉高时这团暗角等比铺开；左沿另留一道窄坡、右沿另有一道收边，见下两行。
+    /// 窗口拉宽拉高时这团暗角等比铺开；左沿不再另加竖直的坡（用户令「左边还是有一条90度的黑色」），
+    /// 右沿另有一道收边。
     /// </summary>
     internal const double AmbientFanX = 0.18;
     internal const double AmbientFanY = 0.60;
@@ -31,10 +32,6 @@ internal static class StoreBackdropBlend
     /// <summary>径向那团的坡：0 = 角上最浓，1 = 完全交给环境底（smoothstep 由 Interpolate 给）。</summary>
     private static readonly (double Position, double Alpha)[] AmbientFan =
         [(0, 0), (1, 1)];
-
-    /// <summary>对称环境底最外侧那道窄坡：画布左沿几像素内收到窗口底色，免得贴边出现硬切口。</summary>
-    private static readonly (double Position, double Alpha)[] AmbientLeft =
-        [(0, 0), (0.04, 1)];
 
     /// <summary>对称环境底的右坡：照旧在画布右侧收边。</summary>
     private static readonly (double Position, double Alpha)[] AmbientRight =
@@ -62,9 +59,10 @@ internal static class StoreBackdropBlend
                 // 左上角那团暗角：以角为圆心的椭圆半径，越往外越淡（见 AmbientFanX/Y）。
                 var fan = Math.Sqrt(nx * nx / (AmbientFanX * AmbientFanX)
                     + ny * ny / (AmbientFanY * AmbientFanY));
+                // 2026-11-17 用户令「左边还是有一条90度的黑色」：左沿不再另加竖直的窄坡 ——
+                // 暗角只由上面那团径向给，左边沿离开角就交给满色环境底，不会有一条竖着的黑带。
                 var horizontal = symmetric
-                    ? Interpolate(Math.Min(1, fan), AmbientFan)
-                        * Interpolate(nx, AmbientLeft) * Interpolate(nx, AmbientRight)
+                    ? Interpolate(Math.Min(1, fan), AmbientFan) * Interpolate(nx, AmbientRight)
                     : Interpolate(nx, across);
                 var alpha = Channel(255 * horizontal * vertical);
                 var at = (y * Side + x) * 4;

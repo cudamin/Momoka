@@ -229,6 +229,9 @@ internal static class StoreDetailLayoutTests
             Assert.True(AmbientAlpha(0.06, 0.05) is > 0 and < 255, "环境底左上角没有径向渐隐");
             Assert.True(AmbientAlpha(0.06, 0.05) < AmbientAlpha(0.06, 0.30), "环境底暗角没有沿弧向外变淡");
             Assert.Equal(255, AmbientAlpha(0.30, 0.10));
+            // 2026-11-17 用户令「怎么这左边还是有一条90度的黑色」：左边沿不再是一条竖直暗带 ——
+            // 同一个 x 上越往下越亮，离开角就交给环境底。
+            Assert.True(AmbientAlpha(0, 0.05) < AmbientAlpha(0, 0.55), "左边沿还是一条竖直的暗带");
             Assert.Equal(0, AmbientAlpha(1, 0.5));
             // 2026-11-16 用户令「渐变要填满左右两边」：装饰带越过 1840 内容列，用负边距铺到窗口两边。
             var store = Source("Views/DetailPage.Store.cs");
