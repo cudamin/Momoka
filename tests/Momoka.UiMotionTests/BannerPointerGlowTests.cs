@@ -200,7 +200,11 @@ internal static class BannerPointerGlowTests
             Assert.Equal((string?)brush.Attribute("RadiusX"), (string?)brush.Attribute("RadiusY"));
             var siblings = glow.Parent!.Elements().ToArray();
             int Position(string name) => Array.FindIndex(siblings, node => (string?)node.Attribute(names + "Name") == name);
-            Assert.True(Position("LayerB") < Position("PointerGlow") && Position("PointerGlow") < Position("Top"));
+            // 2026-11-17：两层剧照收进了 PictureHost / PictureClip（见标记里那一段），仍排在柔光下面。
+            var host = siblings.FirstOrDefault(node => (string?)node.Attribute(names + "Name") == "PictureHost");
+            Assert.True(host is not null
+                && host.Descendants().Any(node => (string?)node.Attribute(names + "Name") == "LayerB")
+                && Position("PictureHost") < Position("PointerGlow") && Position("PointerGlow") < Position("Top"));
             var source = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/HomeBanner.xaml.cs"));
             Assert.True(source.Contains("Microsoft.UI.Input.PointerDeviceType.Mouse", StringComparison.Ordinal));
             Assert.True(source.Contains("if (!up) _pointerGlow.Leave();", StringComparison.Ordinal));

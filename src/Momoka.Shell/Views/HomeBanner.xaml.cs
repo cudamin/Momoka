@@ -170,10 +170,26 @@ public sealed partial class HomeBanner : UserControl
     /// 大图自己那层圆角剪裁（2026-11-16 用户指出「怎么有些地方不是圆角」）。商店版式是 16，沉浸通栏是 0；
     /// 半径由页面按显示模式拨，不能只靠外面 BannerCard 那一圈 —— 圆点移到卡片下面之后，大图的右两角和
     /// 下两角落在整条轮播内部，没有这一层就会露出直角。
+    /// <para>
+    /// 2026-11-17 再加一层「比卡片小 1 的圆角 + 1 像素底色」（<c>PictureClip</c>，见标记里那一段）：
+    /// 剧照被圆角裁掉时最外一圈像素是原图边缘色乘部分覆盖，图偏亮时弧线上就留一条 1 像素亮边。
+    /// 让剧照自己退 1 像素，弧线上只剩带子底色，那条亮边就没有了。沉浸通栏（圆角 0）两样都归零，
+    /// 图仍旧铺到窗口的三条边上。
+    /// </para>
     /// </summary>
     internal void SetCardCornerRadius(CornerRadius radius)
     {
         if (HeroClip.CornerRadius != radius) HeroClip.CornerRadius = radius;
+
+        var rounded = radius.TopLeft > 0;
+        var inner = rounded
+            ? new CornerRadius(
+                Math.Max(0, radius.TopLeft - 1), Math.Max(0, radius.TopRight - 1),
+                Math.Max(0, radius.BottomRight - 1), Math.Max(0, radius.BottomLeft - 1))
+            : default;
+        if (PictureClip.CornerRadius != inner) PictureClip.CornerRadius = inner;
+        var inset = rounded ? new Thickness(1) : default;
+        if (PictureClip.Margin != inset) PictureClip.Margin = inset;
     }
 
     /// <summary>
@@ -2058,11 +2074,14 @@ public sealed partial class HomeBanner : UserControl
         var paintedHeight = drawn.Height * (scale?.ScaleY ?? 1);
         var right = band.Width - (at.X + paintedWidth);
 
-        // 图片保持单位缩放；布局格子与画框一致，不留底色边缘。
-        var covers = Math.Abs(drawn.Width - band.Width) <= 1.5
-            && Math.Abs(drawn.Height - band.Height) <= 1.5
-            && left <= 1.5 && right <= 1.5
-            && at.Y <= 1.5 && at.Y + paintedHeight >= band.Height - 1.5;
+        // 图片保持单位缩放；布局格子与画框一致，只让开 PictureClip 那一圈（商店版式 1 像素、沉浸 0），
+        // 不留别的底色边缘 —— 那 1 像素是拿来盖掉圆角弧线上的亮边的，见标记里 PictureClip 那一段。
+        var inset = PictureClip.Margin.Left;
+        var covers = Math.Abs(drawn.Width - (band.Width - 2 * inset)) <= 1.5
+            && Math.Abs(drawn.Height - (band.Height - 2 * inset)) <= 1.5
+            && Math.Abs(left - inset) <= 1.5 && Math.Abs(right - inset) <= 1.5
+            && Math.Abs(at.Y - inset) <= 1.5
+            && Math.Abs(at.Y + paintedHeight - (band.Height - inset)) <= 1.5;
 
         var source = picture as BitmapImage;
         var sourceShape = source is { PixelWidth: > 0, PixelHeight: > 0 }
