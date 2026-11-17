@@ -19,29 +19,35 @@ internal static class YouTubePlayerDialog
 {
     private const string Category = "YouTube 预告";
 
-    /// <summary>返回 true 表示用户要去设置页登录。</summary>
-    internal static async Task<bool> ShowAsync(FrameworkElement owner, YouTubeSession session, string id, string title)
+    /// <summary>返回用户选的下一步：去设置登录，或交给系统浏览器。</summary>
+    internal readonly record struct Result(bool Login, bool Browser);
+
+    internal static async Task<Result> ShowAsync(FrameworkElement owner, YouTubeSession session, string id, string title)
     {
-        if (owner.XamlRoot is not { } root) return false;
-        if (id.Length != 11 || !id.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_')) return false;
+        if (owner.XamlRoot is not { } root) return default;
+        if (id.Length != 11 || !id.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_')) return default;
 
         var width = Math.Min(1000, Math.Max(640, root.Size.Width - 160));
         var height = Math.Min(width * 9 / 16, Math.Max(320, root.Size.Height - 240));
         var web = new WebView2 { Width = width, Height = height, HorizontalAlignment = HorizontalAlignment.Left };
         var hint = new TextBlock
         {
-            Text = "如果画面停在登录提示上，先登录 YouTube；登录后这支预告会直接播放。",
+            Text = "如果画面停在登录提示上，可以在这里登录 YouTube；也可以交给系统浏览器打开。",
             TextWrapping = TextWrapping.Wrap,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 8, 16, 0)
         };
-        var login = new Button { Content = "登录 YouTube", HorizontalAlignment = HorizontalAlignment.Right };
+        var browser = new Button { Content = "在浏览器打开" };
+        var login = new Button { Content = "登录 YouTube" };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        actions.Children.Add(browser);
+        actions.Children.Add(login);
         var footer = new Grid { Width = width };
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         footer.Children.Add(hint);
-        Grid.SetColumn(login, 1);
-        footer.Children.Add(login);
+        Grid.SetColumn(actions, 1);
+        footer.Children.Add(actions);
         var panel = new StackPanel { Width = width, Spacing = 8 };
         panel.Children.Add(web);
         panel.Children.Add(footer);
@@ -61,6 +67,7 @@ internal static class YouTubePlayerDialog
         dialog.Resources["ContentDialogMinWidth"] = 640d;
 
         var loginRequested = false;
+        var browserRequested = false;
         var lifetime = new CancellationTokenSource();
         try
         {
@@ -80,7 +87,10 @@ internal static class YouTubePlayerDialog
             };
             core.DownloadStarting += (_, args) => args.Cancel = true;
             login.Click += (_, _) => { loginRequested = true; dialog.Hide(); };
-            core.Navigate($"https://www.youtube.com/embed/{id}?autoplay=1&rel=0&playsinline=1");
+            browser.Click += (_, _) => { browserRequested = true; dialog.Hide(); };
+            // 用 watch 页而不是 /embed：发布方若关闭了「允许嵌入」，嵌入播放器会报 150，
+            // 但正常播放页仍然可看；登录态由共享配置带进来。
+            core.Navigate($"https://www.youtube.com/watch?v={id}");
             await dialog.ShowAsync();
         }
         catch (Exception error)
@@ -93,6 +103,6 @@ internal static class YouTubePlayerDialog
             try { web.Close(); } catch (Exception error) when (error is InvalidOperationException or ObjectDisposedException) { }
             lifetime.Dispose();
         }
-        return loginRequested;
+        return new Result(loginRequested, browserRequested);
     }
 }

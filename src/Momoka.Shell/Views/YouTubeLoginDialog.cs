@@ -31,7 +31,7 @@ internal static class YouTubeLoginDialog
         var web = new WebView2 { Width = width, Height = height, HorizontalAlignment = HorizontalAlignment.Left };
         var status = new TextBlock
         {
-            Text = "正在打开 Google 登录…",
+            Text = "要影响 Momoka 内嵌预告，需要在这个窗口登录；系统浏览器里的登录不会同步过来。",
             TextWrapping = TextWrapping.Wrap,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 8, 16, 0)

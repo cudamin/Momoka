@@ -1334,8 +1334,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Log.Info("预告", $"打开 YouTube 播放窗 id={id}《{title}》");
         try
         {
-            if (await YouTubePlayerDialog.ShowAsync(this, session, id, title))
-                ShowSettings(SettingsViewModel.AppearanceCategory, youTubeLogin: true);
+            var result = await YouTubePlayerDialog.ShowAsync(this, session, id, title);
+            if (result.Login) ShowSettings(SettingsViewModel.AppearanceCategory, youTubeLogin: true);
+            else if (result.Browser)
+            {
+                try { _services!.GetRequiredService<Platform.ISystemLauncher>().OpenUrl($"https://www.youtube.com/watch?v={id}"); }
+                catch (Exception error) { Log.Warn("YouTube 预告", "打不开系统浏览器", error); }
+            }
         }
         catch (Exception error)
         {
