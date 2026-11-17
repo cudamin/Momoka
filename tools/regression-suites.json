@@ -575,9 +575,9 @@
       "mode": "external",
       "requiresShell": false,
       "arguments": [],
-      "wrapper": null,
+      "wrapper": "tests/Momoka.ServerSettingsTabs.Tests/Run-Fixture.ps1",
       "readme": "tests/Momoka.ServerSettingsTabs.Tests/README.md",
-      "notes": "完整 DOM 专项需要显式 Node、Playwright 目录与 Chromium。请按 README 调用 Run-Fixture.ps1；不以 contracts 子集冒充整套。"
+      "notes": "完整 DOM 专项需要显式 Node、Playwright 目录与 Chromium。默认离线汇总记为 deferred；用 -IncludeExternal 并同时提供 -ExternalNode、-ExternalNodeModules、-ExternalBrowser 运行 Run-Fixture.ps1，不以 contracts 子集冒充整套。"
     },
     {
       "id": "Momoka.SettingsDeferredSaveTests",

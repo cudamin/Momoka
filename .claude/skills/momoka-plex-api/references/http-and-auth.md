@@ -13,8 +13,9 @@ socket for it, and no caller may build a request URI by hand.
 | `Accept: application/json` | Always | Plex defaults to XML; JSON is what this client parses. |
 
 `MediaServerHeaders.Create(device, token, MediaServerKind.Plex)` returns the token and the client
-identifier for **playback** — that list becomes mpv's `--http-header-fields`, so the file is fetched with
-the same credentials and no query string.
+identifier for **playback** — that list is attached only by `PlaybackHttpTransport` to its upstream
+request. mpv/libmpv and `mpv.exe` receive anonymous random-port loopback URLs and no native headers or
+proxy; the file is fetched with the same credentials and no query string.
 
 The transport sends a token only when one is given. `GET /identity` is called with `PlexCall.Anonymous`,
 and the test suite pins that no token reaches it.

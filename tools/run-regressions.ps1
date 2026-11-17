@@ -3,6 +3,10 @@ param(
     [switch]$List,
     [string[]]$Suite,
     [switch]$All,
+    [switch]$IncludeExternal,
+    [string]$ExternalNode,
+    [string]$ExternalNodeModules,
+    [string]$ExternalBrowser,
     [string]$Dotnet = (Join-Path $HOME '.dotnet/dotnet.exe'),
     [string]$Packages = (Join-Path $HOME '.nuget/packages'),
     [string]$OutputDirectory
@@ -116,7 +120,7 @@ try {
         $null = Resolve-TreePath $entry.project
         $null = Resolve-TreePath $entry.readme
         if ($entry.mode -notin @('dotnet', 'wrapper', 'external')) { throw "未知执行方式：$($entry.id)" }
-        if ($entry.mode -eq 'wrapper') { $null = Resolve-TreePath $entry.wrapper }
+        if ($entry.mode -in @('wrapper', 'external')) { $null = Resolve-TreePath $entry.wrapper }
         if ([string]::IsNullOrWhiteSpace($entry.notes)) { throw "专项缺少范围说明：$($entry.id)" }
         foreach ($argument in @($entry.arguments)) {
             if ([string]$argument -match '\{(?!root\}|shell\}|output\}|dotnet\}|packages\})[^}]+\}') {
@@ -168,11 +172,35 @@ try {
     }
     Push-Location -LiteralPath $root
     try {
-        # Match global.json before running a suite. Restore uses only the supplied local cache.
+        # Match global.json's rollForward policy rather than an exact patch string: latestMinor may
+        # resolve to a newer installed 10.x SDK, and that is not a reason to refuse the suites.
         $sdk = (& $dotnetPath --version).Trim()
         if ($LASTEXITCODE -ne 0) { throw '读取 SDK 版本失败。' }
-        $expectedSdk = (Get-Content -LiteralPath (Join-Path $root 'global.json') -Raw | ConvertFrom-Json).sdk.version
-        if ($sdk -ne $expectedSdk) { throw "SDK 为 $sdk，仓库固定版本为 $expectedSdk。" }
+        $sdkSpec = (Get-Content -LiteralPath (Join-Path $root 'global.json') -Raw | ConvertFrom-Json).sdk
+        $expectedSdk = [version]'0.0'
+        $actualSdk = [version]'0.0'
+        if (-not [version]::TryParse([string]$sdkSpec.version, [ref]$expectedSdk)) { throw "global.json 的 SDK 版本无效：$($sdkSpec.version)" }
+        if (-not [version]::TryParse($sdk, [ref]$actualSdk)) { throw "无法解析 SDK 版本：$sdk" }
+        $rollForward = if ($sdkSpec.PSObject.Properties.Name -contains 'rollForward') { [string]$sdkSpec.rollForward } else { '' }
+        $withinPolicy = $actualSdk.Major -eq $expectedSdk.Major -and
+            ($actualSdk.Minor -gt $expectedSdk.Minor -or
+                ($actualSdk.Minor -eq $expectedSdk.Minor -and $actualSdk.Build -ge $expectedSdk.Build))
+        if (-not $withinPolicy) {
+            throw "SDK 为 $sdk，不符合 global.json 固定版本 $($sdkSpec.version)（rollForward=$rollForward）。"
+        }
+        # External entries are not part of the offline green path. A selection that explicitly asks
+        # for one still fails when its prerequisites were not supplied; -All just records them as
+        # deferred so the offline summary can be green without pretending the DOM suite ran.
+        $externalEntries = @($selected | Where-Object { $_.mode -eq 'external' })
+        $requiredExternalDeferred = $false
+        if ($IncludeExternal -and $externalEntries.Count -gt 0) {
+            foreach ($path in @($ExternalNode, $ExternalNodeModules, $ExternalBrowser)) {
+                if ([string]::IsNullOrWhiteSpace($path)) { throw '运行外部专项需要同时提供 -ExternalNode、-ExternalNodeModules 和 -ExternalBrowser。' }
+            }
+            if (-not (Test-Path -LiteralPath $ExternalNode -PathType Leaf)) { throw "外部 Node 不存在：$ExternalNode" }
+            if (-not (Test-Path -LiteralPath $ExternalNodeModules -PathType Container)) { throw "外部 NodeModules 目录不存在：$ExternalNodeModules" }
+            if (-not (Test-Path -LiteralPath $ExternalBrowser -PathType Leaf)) { throw "外部浏览器不存在：$ExternalBrowser" }
+        }
         $shellBuilt = $false
         foreach ($entry in $selected) {
             $evidence = Join-Path $output $entry.id
@@ -181,14 +209,22 @@ try {
                 notes = $entry.notes; evidence = $evidence; error = $null }
             try {
                 Write-Host "正在执行 $($entry.id)"
-                if ($entry.mode -eq 'external') {
-                    $result.status = 'skipped'
-                    $result.error = $entry.notes
+                if ($entry.mode -eq 'external' -and -not $IncludeExternal) {
+                    $result.status = 'deferred'
+                    $result.error = "$($entry.notes) 外部前置未提供；本次离线汇总不计为通过。"
+                    if (-not $All) { $requiredExternalDeferred = $true }
                     continue
                 }
                 $runArguments = @(Expand-Arguments $entry $evidence)
                 $runLog = Join-Path $evidence 'run.log'
-                if ($entry.mode -eq 'wrapper') {
+                if ($entry.mode -eq 'external') {
+                    $result.phase = 'external'
+                    Invoke-Logged $hostExe (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Resolve-TreePath $entry.wrapper),
+                        '-Dotnet', $dotnetPath, '-Node', [IO.Path]::GetFullPath($ExternalNode),
+                        '-NodeModules', [IO.Path]::GetFullPath($ExternalNodeModules),
+                        '-Browser', [IO.Path]::GetFullPath($ExternalBrowser),
+                        '-OutputRoot', (Join-Path $evidence 'external')) + $runArguments) $runLog
+                } elseif ($entry.mode -eq 'wrapper') {
                     $result.phase = 'wrapper'
                     Invoke-Logged $hostExe (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Resolve-TreePath $entry.wrapper)) + $runArguments) $runLog
                 } else {
@@ -218,6 +254,8 @@ try {
                 $results.Add([pscustomobject]$result)
                 $report = [ordered]@{ root = $root; head = (Get-TreeHead $root); sdk = $sdk;
                     manifestSha256 = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Algorithm SHA256).Hash;
+                    includeExternal = [bool]$IncludeExternal;
+                    deferredExternal = @($results | Where-Object { $_.status -eq 'deferred' } | ForEach-Object { $_.suite });
                     selected = @($selected | ForEach-Object { $_.id }); suites = @($results.ToArray()) }
                 [IO.File]::WriteAllText((Join-Path $output 'summary.json'), ($report | ConvertTo-Json -Depth 8) + "`n", $utf8)
             }
@@ -228,8 +266,15 @@ try {
         [Console]::OutputEncoding = $previousOutputEncoding
     }
     $results | Select-Object suite, status, phase, error | Format-Table -AutoSize -Wrap
+    $failedCount = @($results | Where-Object { $_.status -in @('failed', 'incomplete') }).Count
+    $deferredCount = @($results | Where-Object { $_.status -eq 'deferred' }).Count
+    if ($deferredCount -gt 0) {
+        Write-Output "外部专项 deferred（$deferredCount 套）：本次离线汇总不算外部通过；用 -IncludeExternal 同时提供 -ExternalNode、-ExternalNodeModules、-ExternalBrowser 运行。"
+    } elseif ($failedCount -eq 0) {
+        Write-Output '本次选择的专项全部通过。'
+    }
     Write-Output "报告：$(Join-Path $output 'summary.json')。各套覆盖可能重叠，不合计用例数。"
-    if (@($results | Where-Object { $_.status -ne 'passed' }).Count -gt 0) { exit 1 }
+    if ($failedCount -gt 0 -or $requiredExternalDeferred) { exit 1 }
     exit 0
 } catch {
     Write-Error $_ -ErrorAction Continue

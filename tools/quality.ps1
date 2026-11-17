@@ -18,10 +18,11 @@ if (-not $Repo) { $Repo = Join-Path $PSScriptRoot '..' }
 # 一个入口跑完这套质量工具。它不发明新规则，只是把仓库既有的闸门与新增的检查串起来：
 #   编译 + 空白        —— 闸门 1 的两条，参数与 docs/开发与验证.md 完全一致
 #   脚本检查           —— tools/check-scripts.ps1（BOM、LF、语法）
+#   文档链接           —— tools/check-docs.py（相对路径与锚点）
 #   架构依赖           —— tests/Momoka.ArchitectureTests（NetArchTest）
 #   重复代码           —— tools/check-duplication.ps1（jscpd，预算制）
 #   Git 变更检查       —— tools/check-diff.ps1（CRLF、末尾换行、BOM、空白）
-#   单元测试（可选）    —— tools/run-regressions.ps1 -All（全部专项，慢）
+#   单元测试（可选）    —— tools/run-regressions.ps1 -All（离线专项；外部 DOM 记为 deferred）
 #
 # 单独跑某一项时直接用对应脚本或 dotnet 命令；这里不复制它们的参数表。
 
@@ -98,6 +99,17 @@ try {
 
     Invoke-ChildScript 'PowerShell 脚本检查' 'tools/check-scripts.ps1' @()
 
+    Invoke-Step '文档链接检查（相对路径与锚点）' {
+        $log = Join-Path $evidence 'docs-links.log'
+        $savedEa = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { & py (Join-Path $root 'tools/check-docs.py') *> $log } finally { $ErrorActionPreference = $savedEa }
+        if ($LASTEXITCODE -ne 0) {
+            Get-Content -LiteralPath $log -Tail 20 | ForEach-Object { Write-Output $_ }
+            throw "文档链接检查失败，日志 $log"
+        }
+    }
+
     if (-not $SkipBuild -and -not $buildPassed) {
         $results.Add([pscustomobject]@{ Name = '架构依赖（NetArchTest）'; Ok = $false; Detail = '未执行：当前产品构建未通过。' })
         Write-Output '[未执行] 架构依赖：当前产品构建未通过，不能使用旧 DLL。'
@@ -118,7 +130,7 @@ try {
     Invoke-ChildScript 'Git 变更检查' 'tools/check-diff.ps1' @()
 
     if ($Tests) {
-        Invoke-ChildScript '单元测试（全部专项）' 'tools/run-regressions.ps1' @('-All', '-OutputDirectory', (Join-Path $evidence 'regressions'))
+        Invoke-ChildScript '离线专项（外部 DOM 记为 deferred）' 'tools/run-regressions.ps1' @('-All', '-OutputDirectory', (Join-Path $evidence 'regressions'))
     }
 } finally {
     Pop-Location

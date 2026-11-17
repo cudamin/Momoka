@@ -25,8 +25,9 @@ public static class EmbyUrl
 
     /// <summary>
     /// The original file, remuxed by nothing. Deliberately carries no api_key: the token
-    /// travels in an <c>X-Emby-Token</c> header that mpv sends via --http-header-fields,
-    /// so it stays out of proxy and server access logs.
+    /// travels in an <c>X-Emby-Token</c> header on the upstream request made by
+    /// <see cref="Momoka.Playback.PlaybackHttpTransport"/>; native players receive only an anonymous
+    /// loopback URL, so it stays out of proxy and server access logs.
     /// </summary>
     public static Uri Stream(Uri apiBase, string itemId, string? mediaSourceId, string? container) =>
         Stream(apiBase, itemId, mediaSourceId, container, audioOnly: false);

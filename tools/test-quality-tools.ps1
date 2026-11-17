@@ -139,6 +139,21 @@ $missing = Join-Path $dupDirectory 'missing.json'
 $result = Run-Script $dupChecker @('-ExistingReport', $missing)
 Check ($result.ExitCode -ne 0) 'check-duplication 拒绝不存在的报告'
 
+# ---- check-docs.py ---------------------------------------------------------------------------
+$savedPreference = $ErrorActionPreference
+$savedEncoding = [Console]::OutputEncoding
+$ErrorActionPreference = 'Continue'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+try {
+    $docOutput = @(& py (Join-Path $PSScriptRoot 'check-docs.py') --self-test 2>&1)
+    $docExit = $LASTEXITCODE
+} finally {
+    [Console]::OutputEncoding = $savedEncoding
+    $ErrorActionPreference = $savedPreference
+}
+Check ($docExit -eq 0) 'check-docs 自测通过：有效链接、外部链接、代码块与坏链接'
+Write-Output ($docOutput | Out-String)
+
 Write-Output ''
 Write-Output ''
 Write-Output "共 $passed 项，全部通过。"

@@ -43,7 +43,7 @@ The existing Momoka request body is JSON; the official form uses jQuery form dat
 
 ### 2. The token lives in `X-Plex-Token` and nowhere else
 
-Same rule as the Emby token, for the same reason. `PlexHttp` adds it as a request header; `MediaServerHeaders.Create` returns it for mpv's `--http-header-fields`; `PlexEndpoint` never builds a URL carrying it. A media address that arrives with its own query, fragment or userinfo is refused by `PlexPlaybackSelection.MediaUrl` rather than handed to mpv.
+Same rule as the Emby token, for the same reason. `PlexHttp` adds it as a request header; `MediaServerHeaders.Create` produces the upstream header list consumed only by `PlaybackHttpTransport`; `PlexEndpoint` never builds a URL carrying it. Both backends receive only anonymous random-port loopback capability URLs and clear native `http-header-fields` and `http-proxy`. A media address that arrives with its own query, fragment or userinfo is refused by `PlexPlaybackSelection.MediaUrl` rather than handed to mpv.
 
 `/identity` is the one endpoint that answers without a token — that is what makes it usable for the automatic product probe. Do not "simplify" detection into `GET /`; that one needs the token and would turn detection into a login.
 

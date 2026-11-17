@@ -1,8 +1,15 @@
-# AniBT 整理回执专项（R-038）
+# Momoka.Tests 主套件
+
+本目录是 Momoka 的离线控制台测试宿主：项目引用仅有 Core，另选择性编译无 WinUI 依赖的 Shell 源文件；`dotnet run` 就是 runner。默认无参数运行全部已登记用例，定向入口用夹具名。平台探针、自检、真实服务器与播放验证不在这里，边界见 [开发与验证](../../docs/开发与验证.md) 与 [验证技能](../../.claude/skills/momoka-verification/SKILL.md)。
+
+本页其余部分保留 AniBT 整理回执专项的详细说明；其他专项各自有 README。
+
+
+## AniBT 整理回执专项（R-038）
 
 本页只说明 [AniBtReceiptStateTests.cs](AniBtReceiptStateTests.cs) 的定向离线测试，不是全 Core、自检或产品交付步骤。入口在 [Program.cs](Program.cs)，生产接线在 [AniBtService.cs](../../src/Momoka.Core/AniBt/AniBtService.cs)。其他订阅页夹具见 [原说明](README.MoviePilotSubscriptionPageState.md)。
 
-## 验证的是真实调用，不是复制算法
+### 验证的是真实调用，不是复制算法
 
 40 个正式注册用例执行实际 `AniBtService.SubmitAsync`、`MoviePilotService.TransferPreviewAsync` / `TransferSubmitAsync`、正式 `MoviePilotTransfer.CompleteReceipt` 和 `EmbyClient.ScanLibraryAsync`。沿用 [StubTransport.cs](StubTransport.cs) 记录的真实请求方法、路径、正文、顺序和次数；`preview:true` 是只读预览，`preview:false` 才计实际整理写入。整批每份预览都必须先于第一个写请求。
 
@@ -13,13 +20,13 @@
 - 一批只请求一次扫描，只给确有旧路径影响的文件附上原因。扫描成功仅表示「已请求，收录新路径和移除旧条目由服务器决定」；扫描失败、取消或身份改变仍保留已完成整理、手动恢复和勿重复整理提示。
 - 可取消/身份拒绝、最后一份预览失败、实际请求丢失回执、原计划重交和新计划重新预览覆盖防重边界。扫描失败不解除 history/file 的实际发送账本。
 
-## 安全边界
+### 安全边界
 
 夹具设置、历史、FileItem、候选都只在内存。反射预置 MoviePilot 同身份的匿名 `CachedSession` 和 `_availableIdentity`，不调用测试连接或登录；保护器两方法一经访问即失败。假失联撤销 Available 时，仅为防重回归重新安装同身份匿名内存会话，**不清空账本**。静态完成助手来自 [MoviePilotTransferSubmissionTests.cs](MoviePilotTransferSubmissionTests.cs)，不注册或运行该文件的其他测试。
 
 两个 HTTP 客户端都只用正式假 handler；保留路径白名单和请求断言，AniBT 假 handler 请求数必须为 0。`192.0.2.10` 是占位地址，不发生实际网络。媒体路径只是 JSON 字符串，不创建/移动/删除真实文件。零真实配置/凭据/DPAPI、账号登录、服务器、native、WinUI、App、播放或 UI 操作。不重试 R001/003/005/031 受限链，不跑 `AniBtIntegrationTests` 中的登录/跨重定向/凭据用例，不跑全 Core 或 self-check mutex。
 
-## 在当前独立树复验
+### 在当前独立树复验
 
 在当前工作树根运行；本机 SDK 固定为 `C:\Users\89400\.dotnet\dotnet.exe`（版本见 [global.json](../../global.json)）。只从现有固定 NuGet 缓存读取，包解压、CLI home、临时文件和日志全部留在本树。缺包直接失败，不更换网络源或升级包。`NuGetAudit=false` **仅用于这一次离线 restore**，不写入仓库配置，不作为永久安全基线。
 
@@ -64,19 +71,19 @@ if ($LASTEXITCODE -ne 0) { throw '测试定向空白检查失败' }
 
 同时核对 UTF-8/LF/末尾换行、`git diff --check`、文档本地链接、代码块语法与命令/正式注册一致，确认 `PrepareEmbyIdentifyAsync` 及其后的识别链相对指定基点字节未变。日志存本树 ignored `artifacts/r038/`，不是干净检出的前置依赖；不输出占位会话令牌或秘密内容。
 
-## 本轮证据与取舍
+### 本轮证据与取舍
 
 修前正式红：37 项，通过 5、失败 32、跳过 0、退出 1；`red-build-03.log` / `red-tests-02.log`。第一次新夹具构建有 7 个类型名笔误错误（`red-build.log`），立即停止且未跑旧产物；修正后只读红测还发现假失联撤销 Available，修正夹具内存恢复后重新记录正式红。首修 36 过 1 败（`green-build-01.log` / `green-tests-01.log`）暴露扫描前取消仍触及 handler；补发送前取消守卫后 37 全过（`green-build-02.log` / `green-tests-02.log`）。复核实际请求的存储影响时追加 3 个用例，先红 40 项 38 过 2 败（`storage-red-build.log` / `storage-red-tests.log`），修正远程新目标仍可能清理本地旧目标的遗漏后，来源最终 40 全过、0 失败/0 跳过/退出 0。最终证据以本树 `final-build.log`、`final-tests.log`、`format-core.log`、`format-tests.log` 和 `scope-doc-lf.log` 为准。
 
 只把已提交请求与成功旧历史和明确回执作为影响证据，不通过额外文件读写、登录或真实服务器校验追认完成；目标存储与路径一起判断，不能只按相同路径字符串省略旧目标核对。未核对服务器不同版本的清理实现、索引最终收录/移除、实际文件变化或 WinUI 展示；没有最终回执时不自动轮询/解锁/重发。主线程只限定整合题内文件，再在整合后的当前树重验；本分支本地提交不等于已发布，桌面快捷方式仍旧版。
 
-## 主树整合补充（2026-10-24）
+### 主树整合补充（2026-10-24）
 
 原40项证据属于 `C:/Users/89400/.codex/worktrees/r038-anibt-receipt-state/Momoka`，不等同主整合树。独立只读复核发现远程存储的对象路径可为相对值，却被本地绝对路径条件提前挡住，漏掉成功历史旧本地目标的清理判断。主树追加3项：远程相对对象路径＋成功旧目标需扫描、同路径无成功历史不扩扫描、本地完成目标仍要求绝对路径。补修前43项42过1败；修后43全过。目标明确非本地时只要求非空回执路径，本地继续按原绝对路径规则；不新增真实远程存储操作。
 
 主树当前日志 `artifacts/staged-repair/batch05/r038-review-red-*.log`、`r038-fixed-*.log`，完整Core2549项通过（含43，不相加），三份C#定向Release/x64空白零修改，无工作区加载失败。来源40与主树43不累计；实际服务器文件清理／索引结果仍未验。
 
-## 2026-10-25：纯合并基线的旧测试兼容
+### 2026-10-25：纯合并基线的旧测试兼容
 本轮验证树为 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，基点
 `4afca26672297aedd7725d675706d7f2b923519c`，产品只来自父树
 `mp-translation-interpolation/Momoka` 已 resolved/staged 的 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795`
@@ -108,7 +115,7 @@ settings-applicability 29、settings-screenshot-restore 14 均全过，互不相
 整方案首轮 0 警告/2 错误仅 natural caller 缺两个新旁支端点；未以部分项目成功冒充整方案绿。
 没有启动 App/WinUI/UI、真实账号/服务器/media/libmpv、读取真实配置/密钥、发布或推送。
 
-## 2026-10-25：第二轮纯合并基线测试兼容
+### 2026-10-25：第二轮纯合并基线测试兼容
 本轮仍在 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，产品固定为
 `4afca26672297aedd7725d675706d7f2b923519c`＋父 resolved/staged 的
 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 合并快照。629 份产品源均与上一轮清单一致；

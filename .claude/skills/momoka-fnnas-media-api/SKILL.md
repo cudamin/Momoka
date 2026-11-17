@@ -5,7 +5,7 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 # Momoka — 飞牛影视媒体协议
 
-项目规则以 [CLAUDE.md](../../../CLAUDE.md) 为准。这里只管理飞牛影视媒体服务（`trim.media` / `trimemedia`），不包含 fnOS 的系统用户、文件管理和 WebSocket 管理接口。
+项目规则以 [CLAUDE.md](../../../CLAUDE.md) 为准。这里只管理飞牛影视媒体服务（`trim.media` / `trimemedia`），不包含 fnOS 的系统用户、文件管理和 WebSocket 管理接口。飞牛音乐库的独立协议证据见 [飞牛音乐协议](../../../docs/飞牛音乐协议.md)，音乐界面与底部播放栏仍按统一音乐库处理。
 
 ## 证据与版本
 

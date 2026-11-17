@@ -20,6 +20,17 @@ function Write-Fixture([string]$Relative, [string]$Text) {
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run-regressions.ps1') -Destination (Join-Path $fixture 'tools/run-regressions.ps1')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Destination (Join-Path $fixture 'tools/regression-suites.json')
 Copy-Item -LiteralPath (Join-Path $root 'global.json') -Destination (Join-Path $fixture 'global.json')
+# External suites run their own wrapper; this anonymous stand-in proves the runner forwards the
+# required prerequisites without touching Node, Playwright or a real browser.
+Write-Fixture 'tests/Momoka.ServerSettingsTabs.Tests/Run-Fixture.ps1' @'
+param([string]$Dotnet, [string]$Node, [string]$NodeModules, [string]$Browser, [string]$OutputRoot, [string]$EmbyManager)
+if (-not $Dotnet -or -not $Node -or -not $NodeModules -or -not $Browser -or -not $OutputRoot) { throw 'external prerequisites were not forwarded' }
+Write-Output '共 2 项，通过 2，失败 0，跳过 0'
+'@
+$fakeNode = Join-Path $fixture 'fake-node.exe'
+$fakeBrowser = Join-Path $fixture 'fake-browser.exe'
+[IO.File]::WriteAllText($fakeNode, '', $utf8)
+[IO.File]::WriteAllText($fakeBrowser, '', $utf8)
 $manifest = [IO.File]::ReadAllText((Join-Path $fixture 'tools/regression-suites.json')) | ConvertFrom-Json
 foreach ($entry in $manifest.suites) {
     Write-Fixture $entry.project '<Project />'
@@ -34,7 +45,12 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $command = if ($args.Count) { [string]$args[0] } else { '' }
 [IO.File]::AppendAllText((Join-Path $root 'calls.log'), ((ConvertTo-Json -InputObject @($args) -Compress) + "`n"))
-if ($command -eq '--version') { (Get-Content (Join-Path $root 'global.json') -Raw -Encoding UTF8 | ConvertFrom-Json).sdk.version; exit 0 }
+if ($command -eq '--version') {
+    $override = Join-Path $root 'sdk-version.txt'
+    if (Test-Path -LiteralPath $override -PathType Leaf) { Get-Content -LiteralPath $override -Raw }
+    else { (Get-Content (Join-Path $root 'global.json') -Raw -Encoding UTF8 | ConvertFrom-Json).sdk.version }
+    exit 0
+}
 $mode = [IO.File]::ReadAllText((Join-Path $root 'mode.txt'))
 if ($mode -eq $command + '-fail') { Write-Output ('synthetic ' + $command + ' failure'); exit 17 }
 if ($command -eq 'build') {
@@ -80,7 +96,8 @@ function Invoke-Case([string]$Name, [string]$Mode, [string[]]$Selection, [int]$E
     } else { $null }
     if ($Mode -eq 'skip') { Check ($report.suites[0].counts.skipped -eq 1 -and $report.suites[0].status -eq 'incomplete') '用例 skip 未记录为不完整。' }
     if ($Mode -eq 'build-fail') { Check ($report.suites[0].phase -eq 'build' -and $report.suites[0].status -eq 'failed') '编译失败阶段未记录。' }
-    if ($Name -eq 'external') { Check ($report.suites[0].status -eq 'skipped') '外部依赖未记 skip。' }
+    if ($Name -eq 'external-deferred') { Check ($report.suites[0].status -eq 'deferred') '外部依赖未记 deferred。' }
+    if ($Name -eq 'external-included') { Check ($report.suites[0].status -eq 'passed') '外部专项实际运行未记通过。' }
     if ($Name -like 'native-stderr-*') {
         $runText = [IO.File]::ReadAllText((Join-Path $evidence "$suite/run.log"))
         Check ($runText.Contains('synthetic expected native stderr')) '原生 stderr 证据丢失。'
@@ -99,6 +116,13 @@ function Invoke-Case([string]$Name, [string]$Mode, [string[]]$Selection, [int]$E
 Invoke-Case 'list' 'ok' @('-List') 0 @()
 Invoke-Case 'default-list' 'ok' @() 0 @()
 Invoke-Case 'success' 'ok' @('-Suite', $suite) 0 @('--version', 'restore', 'build', 'run')
+Write-Fixture 'sdk-version.txt' '10.0.500'
+Invoke-Case 'sdk-rollforward' 'ok' @('-Suite', $suite) 0 @('--version', 'restore', 'build', 'run')
+Write-Fixture 'sdk-version.txt' '10.0.300'
+Invoke-Case 'sdk-older-patch' 'ok' @('-Suite', $suite) 1 @('--version')
+Write-Fixture 'sdk-version.txt' '11.0.100'
+Invoke-Case 'sdk-wrong-major' 'ok' @('-Suite', $suite) 1 @('--version')
+Remove-Item -LiteralPath (Join-Path $fixture 'sdk-version.txt') -Force
 Invoke-Case 'site-dialog-flow' 'ok' @('-Suite', 'Momoka.SiteDialogFlowTests') 0 @('--version', 'restore', 'build', 'run')
 Invoke-Case 'architecture-current-products' 'ok' @('-Suite', 'Momoka.ArchitectureTests') 0 @('--version', 'restore', 'build', 'restore', 'build', 'run')
 $architectureCalls = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') -Encoding UTF8 | Where-Object { $_ })
@@ -134,7 +158,9 @@ Check ($null -ne $invokeFunction -and $invokeErrors.Count -eq 0) '无法定位�
 }
 $cases.Add([pscustomobject]@{ name = 'missing-exit-code'; passed = $true })
 Invoke-Case 'unknown' 'ok' @('-Suite', 'Momoka.DoesNotExist') 1 @()
-Invoke-Case 'external' 'ok' @('-Suite', 'Momoka.ServerSettingsTabs.Tests') 1 @('--version')
+Invoke-Case 'external-deferred' 'ok' @('-Suite', 'Momoka.ServerSettingsTabs.Tests') 1 @('--version')
+Invoke-Case 'external-included' 'ok' @('-Suite', 'Momoka.ServerSettingsTabs.Tests', '-IncludeExternal',
+    '-ExternalNode', $fakeNode, '-ExternalNodeModules', (Join-Path $fixture 'packages'), '-ExternalBrowser', $fakeBrowser) 0 @('--version')
 Invoke-Case 'wrapper-failure' 'ok' @('-Suite', 'Momoka.DetailDeleteCommandTests') 1 @('--version')
 $deleteSource = [IO.File]::ReadAllText((Join-Path $root 'tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1')).TrimStart([char]0xFEFF)
 $deleteBoundary = '$commands = [Collections.Generic.List[string]]::new()'

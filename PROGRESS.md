@@ -1620,7 +1620,7 @@ tools/publish.ps1 -NoArchive -Shortcut 发布验证通过547文件/288.3MB；快
 
 ## 2026-11-12 媒体库第四批 Jellyfin 上传（独立树待整合）
 
-`library-batch4-jellyfin` 基点52f8449，原生ContentDialog/ComboBox/FileOpenPicker，本地原字节上传、固定各版本、当前EnableSubtitleManagement独立授权、204与未知只读恢复、Page/picker/迟到读归属；保Emby及下载未确认/删除全快照/父刷新。Core上传55/55、目标207/207、身份115/115、HTTP45/45，Dialog/picker89/89，最终Shell零警告错误、42文件编码空白及句柄缺失0，见 [报告](docs/媒体库第四批-Jellyfin字幕上传.md)。原生jellyfin-upload探针交主控串行运行，SourcePins Session/Scope交主控逐项核，待合主树重验/发布；子树无桌面、实服写、推送或发布。
+`library-batch4-jellyfin` 基点52f8449，原生ContentDialog/ComboBox/FileOpenPicker，本地原字节上传、固定各版本、当前EnableSubtitleManagement独立授权、204与未知只读恢复、Page/picker/迟到读归属；保Emby及下载未确认/删除全快照/父刷新。Core上传55/55、目标207/207、身份115/115、HTTP45/45，Dialog/picker89/89，最终Shell零警告错误、42文件编码空白及句柄缺失0，见 报告（docs/媒体库第四批-Jellyfin字幕上传.md）。原生jellyfin-upload探针交主控串行运行，SourcePins Session/Scope交主控逐项核，待合主树重验/发布；子树无桌面、实服写、推送或发布。
 
 ## 2026-11-11 媒体库第三批飞牛仅移出与恢复（独立树待整合）
 
@@ -4531,7 +4531,7 @@ R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64
 - **当前源码统一验证：** 39项目Release零警告/零错误；Core **2885通过、0失败、0跳过**；55离线入口全部退出0、失败0、跳过0，覆盖重叠不相加。Atomic **35生产契约＋4独立对照**全过，四组固定预算12544次提交、两组跨提交读者各128次提交/1280次完整读取，以及发布/回滚真实锁故障、只读/非Delete共享、原始UTF-16/设备路径全过；原红报告保持。Release空白检查1851文件0修改且无工作区加载失败，47脚本BOM/LF/语法通过。最终源码/测试/资源/工具1162份哈希未变。
 - **最终发布件运行验证：** composition两轮首位置/Resize/全屏往返/暂停恢复/停止退出0，真实彩条screen已目检；完整本地motion退出0；Shell仅settings区域 **17/17**，其他84项未执行，不冒称全量101；官方自检 **186、失败0、消失0、降级0**，基线未改。相关设置隐藏/恢复与播放screen已目检，生产和旧profile六份主备字节未变。探针均本地匿名素材/隔离目录，未真实服务器播放；普通自检可能登录并只读真实库，不称离线。
 - **已实际交付桌面入口：** [Momoka.lnk](C:/Users/89400/Desktop/Momoka.lnk)于本轮回读确认目标 `C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka/artifacts/publish/win-x64/Momoka.exe`、工作目录同发布目录、无额外参数；版本 `0.1.7+7e6e0d709b8331b0101765652c4c95585be49d6b`，540文件/283.5MB，固定native/依赖载荷通过。**不生成ZIP、不push、不启动用户应用**，旧shortcut及发布件保留，未归档/清理仍被桌面使用的树。
-- 证据：[最终55入口摘要](artifacts/staged-repair/batch09/final-7e6e0d7-complete-offline-v2/summary.json)、[原生composition回执](artifacts/staged-repair/batch09/final-7e6e0d7-composition/acceptance.json)、[完整motion回执](artifacts/staged-repair/batch09/final-7e6e0d7-motion-complete-fixture/process.json)、[settings范围](artifacts/staged-repair/batch09/final-7e6e0d7-settings/shell-probe-scope.txt)、[官方自检](artifacts/staged-repair/batch09/final-7e6e0d7-selfcheck.log)、[实际桌面交付回执](artifacts/staged-repair/batch09/final-desktop-delivery-receipt.json)。原Hidden遮挡、空闲显示blank/超时、缺PNG侧车、helper/编译失败均保留；明确修复实现或验证前件后闭环，未放宽原断言/保险/基线或重复求绿。
+- 证据：最终55入口摘要（artifacts/staged-repair/batch09/final-7e6e0d7-complete-offline-v2/summary.json）、原生composition回执（artifacts/staged-repair/batch09/final-7e6e0d7-composition/acceptance.json）、完整motion回执（artifacts/staged-repair/batch09/final-7e6e0d7-motion-complete-fixture/process.json）、settings范围（artifacts/staged-repair/batch09/final-7e6e0d7-settings/shell-probe-scope.txt）、官方自检（artifacts/staged-repair/batch09/final-7e6e0d7-selfcheck.log）、实际桌面交付回执（artifacts/staged-repair/batch09/final-desktop-delivery-receipt.json）。原Hidden遮挡、空闲显示blank/超时、缺PNG侧车、helper/编译失败均保留；明确修复实现或验证前件后闭环，未放宽原断言/保险/基线或重复求绿。
 - **两边未互相干扰，桌面已释放。** 本窗口全部子代理关闭、自己运行的产品/探针自然结束，无自动续跑；只在本树记录文档。已向“优化订阅交互并新增字幕翻译与补帧”窗口交接三条增量及证据，该窗口的独立功能树负责保留两边历史、最终功能验收和单一发布/shortcut更新。本窗口不改其树或master，不沿用对方上传授权执行本批上传。后续功能版可按其授权交付；本修复版的完成记录不代表新功能已完成。
 ## 第九组合成探针单帧采样与实际显示前件（2026-10-25，在途）
 
@@ -4595,7 +4595,7 @@ R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64
 - 当前源码的38项目Release构建零警告／零错误；Core **2880通过、0失败、0跳过**，51离线入口全部退出0／失败0／跳过0，重叠测试数不相加。实际自包含发布与载荷校验退出0，540文件、283.5MB；新原生运行库与批准值一致。验证证据在 `artifacts/staged-repair/batch07/final-current-03b5d10/`，不把中间输出当当前证据。
 - **按用户要求交付，不宣称最终全部运行门禁通过。** 上一代码版b5bce71已实际通过Shell全量101／字幕11／本地motion／标准自检186，范围和失败历史保留；当前03b5d10的首位置就绪修复已有9项离线正反例，尚未完成该修复后的原生composition复验。旧composition失败日志仍是失败，不因交付或单测通过改绿。用户新指令后未再次启动应用／探针，不改自检基线或真实设置。
 - 明确留待后续用户另行指示：① **AtomicFile**在额外匿名压力验证中出现覆盖文件访问拒绝，串行也可复现，底层原因未闭环，未采用吞错／泛化重试；② 当前首位置就绪修复后的**原生composition复验缺口**；③ **R-043**仅展示建议仍未实施（72/73稳定号已本地实现或既有覆盖）。真实TLS／代理、Plex实际JSON登录接受度及2FA/PIN、生产DPAPI／Registry ACL、独占窗口／外部mpv／真实服务器媒体播放等覆盖仍不冒称完成。
-- 交付与未完成项已写入增量记录，[实际交付回执](artifacts/staged-repair/delivery08/user-direct-delivery-receipt.json)含目标、版本和文件SHA256。全部子代理已关闭，提交、工作树和证据保留，无后台修复、自动续跑或待处理运行进程。本次只改交付文档，内容／链接／回执一致性核对后单独提交，不重新构建或发布。
+- 交付与未完成项已写入增量记录，实际交付回执（artifacts/staged-repair/delivery08/user-direct-delivery-receipt.json）含目标、版本和文件SHA256。全部子代理已关闭，提交、工作树和证据保留，无后台修复、自动续跑或待处理运行进程。本次只改交付文档，内容／链接／回执一致性核对后单独提交，不重新构建或发布。
 
 ## 第八组合成起播首位置就绪（2026-10-24，在途）
 
@@ -9303,8 +9303,8 @@ Segoe Fluent Icons ≈ 0.875），逐颗对不齐，按平均算要乘 **0.75** 
 闸门 4 唯一稳定的红，此前几批都挂着它含糊报「既有、非本次改动」。用户点它「闸门红的你不修？」，这一轮把根挖清、记成一件待单独修的事，**不并进设置/MoviePilot 的在途交付，也不动基线洗绿**。
 
 - **确是既有、早于当前所有在途工作。** 这条 `跨季相邻单集` 和 `详情页季切换` 同出 `ShellSelfCheck.Pages.cs` 的 `ReportSeasons`，而后者要先跑完前面那句 `check("跨季相邻单集", …)` 才轮得到。基线里 `详情页季切换` 是**通过**（第 114 行）、`跨季相邻单集` **压根没登记**——探针明明跑到了后一关，前一关却缺席，只有一种可能：**上次定基线那一趟它就是失败**（失败行不写进基线）。所以红在定基线时就红了，与设置、MoviePilot 这些新改动无关，那个文件也没动过。
-- **不是数据噪声，是真的产品不一致。** 这条探针走的正是「跨季点下一集」的真实产品路径。跨季那一步 `PlayerViewModel.ResolveAdjacentEpisodeAsync`（[Transport.cs:602](src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs)）**先拉整部剧的单集列表**（`GetEpisodesAsync(seriesId, null)`），再用 `EpisodeNavigation.Step` 按 `SeasonId` 在本地筛出目标季当选集；而其他所有取选集的地方——季详情页 `DetailViewModel.LoadEpisodesAsync`（[DetailViewModel.cs:1995](src/EmbyNian.Shell/ViewModels/DetailViewModel.cs)）、季内上一集/下一集——都是**直接问服务器要这一季**（`GetEpisodesAsync(seriesId, seasonId)`）。伪恋带 S00 特典：服务器按季返回时会把「排在这一季里播出」的特典（air-order 元数据）并进来 = **23** 集，本地按 `SeasonId` 筛整剧列表却把特典算在 S00、筛掉了 = **20** 集。于是：进伪恋第一季详情页选集是 23，从特典 S00E04 点「下一集」跨进第一季，播放器选集只剩 20——**同一季，两条路给的选集对不上**。（次一集/上一集本身是对的，只有选集这份列表不一致。）
-- **修法（已落地 2026-09-24）**：跨季落地的「选集」改按落点那一季问服务器要，与季详情页一致。抽了 Core 纯函数 `EpisodeNavigation.ResolveAdjacentAsync(seriesEpisodes, currentItemId, offset, fetchSeasonEpisodes)`——`Step` 只定下一集是谁，再 `fetchSeasonEpisodes(目标季 SeasonId)`（＝`GetEpisodesAsync(seriesId, seasonId)`）取整季当 `Siblings`；服务器那份为空、或没带上落点时退回 `Step` 本地筛的那份，越界照 `Step` 返回 null、压根不问服务器。产品的 `ResolveAdjacentEpisodeAsync`（[Transport.cs:603](src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs)）与自检探针 `ProbeSeasonsAsync`（[ShellSelfCheck.Reads.cs:555](src/EmbyNian.Shell/ShellSelfCheck.Reads.cs)）都改走这**同一段**——自检核对的正是产品行为、合法转绿（不是改探针判据洗绿）。`PlaybackTests` 加了《伪恋》23 vs 20 与越界返回 null 的单测钉住。
+- **不是数据噪声，是真的产品不一致。** 这条探针走的正是「跨季点下一集」的真实产品路径。跨季那一步 `PlayerViewModel.ResolveAdjacentEpisodeAsync`（Transport.cs:602（src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs））**先拉整部剧的单集列表**（`GetEpisodesAsync(seriesId, null)`），再用 `EpisodeNavigation.Step` 按 `SeasonId` 在本地筛出目标季当选集；而其他所有取选集的地方——季详情页 `DetailViewModel.LoadEpisodesAsync`（DetailViewModel.cs:1995（src/EmbyNian.Shell/ViewModels/DetailViewModel.cs））、季内上一集/下一集——都是**直接问服务器要这一季**（`GetEpisodesAsync(seriesId, seasonId)`）。伪恋带 S00 特典：服务器按季返回时会把「排在这一季里播出」的特典（air-order 元数据）并进来 = **23** 集，本地按 `SeasonId` 筛整剧列表却把特典算在 S00、筛掉了 = **20** 集。于是：进伪恋第一季详情页选集是 23，从特典 S00E04 点「下一集」跨进第一季，播放器选集只剩 20——**同一季，两条路给的选集对不上**。（次一集/上一集本身是对的，只有选集这份列表不一致。）
+- **修法（已落地 2026-09-24）**：跨季落地的「选集」改按落点那一季问服务器要，与季详情页一致。抽了 Core 纯函数 `EpisodeNavigation.ResolveAdjacentAsync(seriesEpisodes, currentItemId, offset, fetchSeasonEpisodes)`——`Step` 只定下一集是谁，再 `fetchSeasonEpisodes(目标季 SeasonId)`（＝`GetEpisodesAsync(seriesId, seasonId)`）取整季当 `Siblings`；服务器那份为空、或没带上落点时退回 `Step` 本地筛的那份，越界照 `Step` 返回 null、压根不问服务器。产品的 `ResolveAdjacentEpisodeAsync`（Transport.cs:603（src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs））与自检探针 `ProbeSeasonsAsync`（ShellSelfCheck.Reads.cs:555（src/EmbyNian.Shell/ShellSelfCheck.Reads.cs））都改走这**同一段**——自检核对的正是产品行为、合法转绿（不是改探针判据洗绿）。`PlaybackTests` 加了《伪恋》23 vs 20 与越界返回 null 的单测钉住。
 - **待验（并入上方总账）**：**属可见的选集行为改动＋播放子系统**，按三档走播放档；这条只读真库（拉单集列表、不起播、无副作用），自检那一趟就能证——但探针落到哪部剧看库里顺序、不是每次都撞上伪恋，基线 `跨季相邻单集` 转绿要确认那趟确实走到了季边界。真机跨季点「下一集」看选集 23 集、和季详情页一致那一眼还没点。本会话只读代码确认改动在，没重跑闸门。
 - **基线**：`docs/selfcheck-baseline.txt` 现已登记 `跨季相邻单集 通过`（此前它失败、失败行不进基线，见上一条）；设置与各批 MoviePilot 改动各自的四道闸门是绿的。
 
@@ -12110,7 +12110,7 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 - **截图一张**：`artifacts/shots/settings-reset-topright.png`（设置窗口 1086×753，界面那一类）—— 绿色的「恢复默认」在页头右上角、通栏线之上，左边名单以「关于」收尾、下面直接是服务器 / 诊断 / 服务器控制台。**一处颜色都没动**（按钮走的还是 `AccentButtonStyle`），没按主题逐套拍。
 - **「内嵌页面上那颗按钮还在不在」没做成开关**：服务器 / 诊断 / 控制台三个页面显示时，页头和这颗按钮照旧在屏上 —— 它是这一页自己的动作，不是某张卡的；要藏的话得再接一根 `CardsVisibility` 那样的线，买不来什么。
 
-**装第三方技能（2026-09-05，不算一件代码活，所以上面那条「最新一件…上一件…」的编号链没动）。** 照 [`artifacts/技能安装-2026-09-05.md`](artifacts/技能安装-2026-09-05.md) 那份说明书做完了四件事：两个 Claude Code 插件装在用户级（`winui@win-dev-skills` 0.3.0，八个技能；`watch@claude-video` 0.2.0），`damionrashford/media-os` 里只拷了三个文件夹进 `%USERPROFILE%\.claude\skills`（`ffmpeg-hdr-color`、`ffmpeg-probe`、`hdr-dovi-tool`，它那个 109 技能的插件没装），winget 装了 WinApp CLI 0.6.1 和 yt-dlp（ffmpeg 跟着一起来，这次 PATH 里加的是 bin 目录、没踩那个已知的坑）。
+**装第三方技能（2026-09-05，不算一件代码活，所以上面那条「最新一件…上一件…」的编号链没动）。** 照 `artifacts/技能安装-2026-09-05.md`（artifacts/技能安装-2026-09-05.md） 那份说明书做完了四件事：两个 Claude Code 插件装在用户级（`winui@win-dev-skills` 0.3.0，八个技能；`watch@claude-video` 0.2.0），`damionrashford/media-os` 里只拷了三个文件夹进 `%USERPROFILE%\.claude\skills`（`ffmpeg-hdr-color`、`ffmpeg-probe`、`hdr-dovi-tool`，它那个 109 技能的插件没装），winget 装了 WinApp CLI 0.6.1 和 yt-dlp（ffmpeg 跟着一起来，这次 PATH 里加的是 bin 目录、没踩那个已知的坑）。
 
 - **那份说明书里的 `装技能.ps1` 没跑，是拆开一件一件做的。** 它有几处 `Read-Host` 在没人应答的时候会默认同意往机器上装东西，从这里跑就等于替他答了「装」。脚本原样留着，要重来跑它无害。
 - **工作树里因此多了一处改动：`CLAUDE.md` 的 Skills 节末尾多一段封条**（未提交）。拦的是微软那套技能里会误导的几处：`winapp run` 代替不了发布和自检那两道闸门、`winapp ui` 跟 `winui-ui-testing` 一样不许点卡片中间（那是播放键）、不打包是他的决定而不是 `winui-packaging` 该修的缺陷、`winui-wpf-migration` 不要。**这一段当天下午按他的第二句话整体重写了，见下面那件。**
@@ -12542,7 +12542,7 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 
 新的在前。归档里那一节的标题以这里的说法起头（后面可能多一句「复核第几条」），搜前半句就能落到原文 —— 先搜九月那份，找不到再搜八月那份。
 
-- 2026-09-04 · 音视频输出补齐四批（[`音视频输出补齐-任务书.md`](音视频输出补齐-任务书.md)）：①音量天花板 100 → 130（mpv 自己的 `volume-max` 默认值，六处引用同一个常量）、动态范围压缩补上适用范围、新增音量均衡三档与 5.1 下混归一化；②截图从「完全不做」到菜单三行加「关于」卡上一行落点，模板由 C# 拼（mpv 的 `%F` 会得出 GUID、`%p` 里的冒号在 Windows 上非法）；③音频输出设备可选，临时开一个 libmpv 句柄枚举，播放信息与诊断页都写「本次实际用的」；④音轨语言从单选变成优先级列表（schema v10、`AudioTrackMode` 删掉）、上报音量与静音填上、新增宽片裁切填充（`856c215`）
+- 2026-09-04 · 音视频输出补齐四批（`音视频输出补齐-任务书.md`（音视频输出补齐-任务书.md））：①音量天花板 100 → 130（mpv 自己的 `volume-max` 默认值，六处引用同一个常量）、动态范围压缩补上适用范围、新增音量均衡三档与 5.1 下混归一化；②截图从「完全不做」到菜单三行加「关于」卡上一行落点，模板由 C# 拼（mpv 的 `%F` 会得出 GUID、`%p` 里的冒号在 Windows 上非法）；③音频输出设备可选，临时开一个 libmpv 句柄枚举，播放信息与诊断页都写「本次实际用的」；④音轨语言从单选变成优先级列表（schema v10、`AudioTrackMode` 删掉）、上报音量与静音填上、新增宽片裁切填充（`856c215`）
 - 2026-09-04 · 设置里新增「恢复默认设置」：判据是「设置页上有没有这一行」——用户挑的那类回默认，程序替他记的（窗口尺寸、上次看哪个库、各库排序筛选、播放器音量）和身份那一摊（设备 id、服务器、账号、令牌）一个字不动；四组整组用反射逐个属性抄，混着两类的两组反过来「列出要留的」；一定要往原来那几个子对象里覆盖而不是换新对象（容器和几个闭包攥着它们，换了就是屏上全默认、行为照旧），一条按引用相等的单测钉着（`856c215`）
 - 2026-09-04 · 播放器三件（用户看片时报的）：跳过片头后自动暂停的病根是那一下点击被读了两遍（按钮自己收起来，同一次松手随后的 `Tapped` 落到画面上），修法是命中判断多问一句「这一下落在哪个元素上」；音量条补回上方的数字（天花板抬到 130 之后滑杆位置说不出是不是 100 以上）、滚轮步长改成 mpv 自己的 2 并让十赫兹轮询在跟手时让开、滑杆 240 → 300 高；暂停后进全屏画面留在左上角，改成 `Fill()` 连 mpv 那个子窗口一起改尺寸（`856c215`）
 - 2026-09-04 · 服务器控制台的主题跟随外壳深浅：直接写 `light` 走不通（`skinmanager.js` 对非默认主题要过 Emby Premiere 注册检查，本机那个缓存键是 `false`），走得通的是 `auto` —— 它是 Emby 给「跟随系统深浅」留的免费口子，当场把 `requiresRegistration` 置为 false；两个键都是本机浏览器配置，一个字节不写到服务器的用户偏好上，强调色故意不跟（`856c215`）
