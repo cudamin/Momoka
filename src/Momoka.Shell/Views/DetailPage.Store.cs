@@ -20,10 +20,14 @@ public sealed partial class DetailPage
         StoreBackdrop.Visibility = _actionAccessibility.HighContrast
             ? Visibility.Collapsed : ViewModel.StoreBackdropVisibility;
         // 环境底跟剧照背景同进同退：缺图、高对比度、退出商店模式都不单独留一块色。
-        StoreAmbient.Visibility = StoreBackdrop.Visibility;
+        // 艺术图那一档没有剧照可铺，顶部改由封面的颜色铺一块柔和的环境底（2026-11-17 用户令
+        // 「参考上图使用封面颜色加个渐变」）：它自己开合，宽窄都画，和右上角那张艺术图无关。
+        var artShown = ViewModel.StoreMode && ViewModel.StoreArtSelected && !_actionAccessibility.HighContrast;
+        StoreAmbient.Visibility = artShown ? Visibility.Visible : StoreBackdrop.Visibility;
         // 左上角那道淡墨也一样：压在装饰背景上，背景不在时它没有东西可压。
         StoreShade.Visibility = StoreBackdrop.Visibility;
-        StoreBackdropSides.Background = _storeAmbientBrush.Resolve(ViewModel.BackdropPixels,
+        StoreBackdropSides.Background = _storeAmbientBrush.Resolve(
+            artShown ? ViewModel.StillColorPixels : ViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         StoreBackdropAcrylic.Visibility = ViewModel.StoreMode && ViewModel.PageWidth is > 0 and < DetailHero.StoreWideFloor
             && ViewModel.HeroImage is not null && !_actionAccessibility.HighContrast ? Visibility.Visible : Visibility.Collapsed;

@@ -79,6 +79,17 @@ namespace Momoka.Shell.ViewModels
         private Task<BitmapImage?> DecodeFirstAsync(EmbyItem item, IReadOnlyList<string> types, int width, CancellationToken token) => Decode(token);
         private Task<BitmapImage?> DecodeFirstAsync(IReadOnlyList<ArtworkRef> refs, int width, CancellationToken token)
             => refs.Count == 0 ? Task.FromResult<BitmapImage?>(null) : Decode(token);
+        /// <summary>封面取色那一趟（2026-11-17）：只验归属与交付，像素内容不进这一套。</summary>
+        private Task<HeroPictureLoader.HeroPixels?> DecodeFirstPixelsAsync(EmbyItem item, IReadOnlyList<string> types,
+            CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            StillColorRequests++;
+            return Task.FromResult<HeroPictureLoader.HeroPixels?>(new HeroPictureLoader.HeroPixels());
+        }
+        private void RememberStillColor(HeroPictureLoader.HeroPixels pixels) => StillColorPixels = pixels;
+        public int StillColorRequests { get; private set; }
+        public HeroPictureLoader.HeroPixels? StillColorPixels { get; private set; }
         private Task<BitmapImage?> Decode(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();

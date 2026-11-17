@@ -231,6 +231,19 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
         });
+        Test("商店艺术图：顶部环境底改用封面取色，跟随艺术图档开合", () =>
+        {
+            var store = Source("Views/DetailPage.Store.cs");
+            Assert.Contains("ViewModel.StoreMode && ViewModel.StoreArtSelected", store);
+            Assert.Contains("StoreAmbient.Visibility = artShown ? Visibility.Visible : StoreBackdrop.Visibility;", store);
+            Assert.Contains("artShown ? ViewModel.StillColorPixels : ViewModel.BackdropPixels", store);
+            var vm = Source("ViewModels/DetailViewModel.cs");
+            Assert.Contains("private const int StillColorDecodeWidth = 64;", vm);
+            Assert.Contains("private HeroPictureLoader.HeroPixels? _stillColorPixels;", vm);
+            Assert.Contains("DecodeFirstPixelsAsync(owner, [EmbyImageStore.Primary, EmbyImageStore.Thumb], token)", vm);
+            Assert.Contains("RememberStillColor(pixels)", vm);
+            Assert.Contains("nameof(ViewModels.DetailViewModel.StillColorPixels)", Source("Views/DetailPage.Appearance.cs"));
+        });
         Test("详情头部：片名单行不折、徽标不随商店档缩小、片名栏保底宽度压在剧照上", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

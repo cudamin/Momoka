@@ -35,6 +35,9 @@ internal static class Program
             Await(load);
             Assert.True(vm.DecodeRequests > 0);
             Assert.NotNull(vm.StillImage);
+            // 2026-11-17 封面取色：同一趟门控之后才起，像素交回视图模型做艺术图那一档的环境底。
+            Assert.True(vm.StillColorRequests > 0);
+            Assert.NotNull(vm.StillColorPixels);
         });
         Test("门控前快速离页取消不启动图片请求", () =>
         {
@@ -48,6 +51,8 @@ internal static class Program
             Assert.Equal(0, vm.ShowRequests);
             Assert.Equal(0, vm.DecodeRequests);
             Assert.Null(vm.StillImage);
+            Assert.Equal(0, vm.StillColorRequests);
+            Assert.Null(vm.StillColorPixels);
         });
         Test("门控放行时旧图片批次身份已变不发起请求", () =>
         {
@@ -60,6 +65,8 @@ internal static class Program
             Await(load);
             Assert.Equal(0, vm.ShowRequests);
             Assert.Equal(0, vm.DecodeRequests);
+            Assert.Equal(0, vm.StillColorRequests);
+            Assert.Null(vm.StillColorPixels);
         });
         Test("首帧门控前取消也把封面空框收掉", () =>
         {
