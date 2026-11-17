@@ -467,6 +467,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreTextWidth))]
     [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
+    [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
     public partial double PageWidth { get; set; }
 
     /// <summary>

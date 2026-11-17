@@ -336,6 +336,12 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("DetailHero.StoreBackdropWidth(PageWidth)", vm);
             Assert.Contains("DetailHero.StoreBackdropHeight(PageWidth, HeroHeight)", vm);
             Assert.Contains("DetailHero.StorePreviewRightMargin(StoreWindowWidth, PageWidth)", vm);
+            // 进入页面那一刻 PageWidth 会从窗口宽收进 1840 内容列；右边距必须跟着这次变化重算，
+            // 否则绑定停在初值 16，要拖动一次窗口才刷新（2026-11-17 用户报的 bug）。
+            var detailVm = Source("ViewModels/DetailViewModel.cs");
+            Assert.True(Regex.Matches(detailVm,
+                    @"\[NotifyPropertyChangedFor\(nameof\(StorePreviewMargin\)\)\]").Count >= 2,
+                "PageWidth 或 WindowWidth 变化没有通知商店右边距");
 
             var store = Source("Views/DetailPage.Store.cs");
             Assert.Contains("ViewModel.WindowWidth = Body.ActualWidth;", store);
