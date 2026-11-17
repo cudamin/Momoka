@@ -83,7 +83,8 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
         var view = new EmbyItem
         {
             Id = LibraryId,
-            Name = "音乐",
+            // 库名用户令 2026-11-18「飞牛音乐库要叫飞牛音乐」；此前叫「音乐」，和 Emby／Jellyfin 的音乐库混在一起分不出是哪一家。
+            Name = "飞牛音乐",
             Type = EmbyItemType.CollectionFolder,
             IsFolder = true,
             CollectionType = "music",

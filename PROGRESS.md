@@ -28,6 +28,24 @@
 
 **分支与合并。** 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-feiniu-music-cover-ztPLhJ`，分支 `fix-feiniu-music-cover-ztPLhJ`，基点 `a8152cf`，产品与测试提交 `bde932f`、`90a737e`；2026-11-18 用户令「合并」，在主树 `master` 的 `a8152cf` 上以 `--no-ff` 合入 `895bfa9`（无冲突）。合并后按改好收尾发布主树 `artifacts/publish/win-x64`（548 文件、289.9 MB，00:23）并刷新桌面 `Momoka.lnk`；未推远端。
 
+## 2026-11-18 只登录一个库加飞牛音乐时主页库名不带账号用户名（分支 fix-home-library-rename-1UTKdp，未合并）
+
+用户一句话：「只登录了一个库+飞牛音乐的情况下，不需要给首页的库改名」。
+
+**改了什么。** 主页三处账号用户名前缀 —— 继续观看卡季集下面的第三行、每个库「最近添加 · …」货架标题、媒体库那一排的卡片名称 —— 的判据从「在线来源超过一个」改成「**会带来影视库**的在线来源超过一个」：Core 新增 `SourceCaption.ShowsAccountNames`，只数非飞牛音乐的来源；`HomeViewModel.ShowAccountNames` 改读它，构建货架、媒体库卡片标题与飞牛库目录刷新三处共用同一份判断。飞牛音乐只交出「音乐」这一格，不跟影视库撞名，所以「一个库 + 飞牛音乐」时主页回到普通库名。侧边栏库项（`ShellPage.Sidebar.ShowsAccountNames`）与标题栏「N 个账号在线」仍按全部在线来源计数，本次未动。
+
+**测了什么。** Core/Tests/Shell Release/x64 均 **0 警告 0 错误**（Shell 重编 2 分 31 秒）；`browse-identity-fixture` **62/62**，新增「主页账号用户名：只有一个影视来源时，飞牛音乐不触发行前缀」覆盖单影视来源、再加一个或两个飞牛音乐都不写，两个影视来源仍写；全量 `Momoka.Tests` **5226/5226**、0 失败 0 跳过（首轮两条「下载到设备」因 TEMP 指向 `C:\WINDOWS\TEMP` 被沙箱拒，改用用户临时目录后全绿，与本批无关）；改动文件 `dotnet format whitespace --verify-no-changes` 退出 0，`tools/check-diff.ps1` 4 个变更路径通过。
+
+**整方案构建的既有红项（与本批无关，未改）。** 在 master 基点 `a8152cf` 上整方案 Release 构建另有几处红：`Momoka.NaturalContinuationCallerTests` 的源固定值对不上（`src/Momoka.Core/Emby/EmbyItem.cs` 在 `28326c9` 已改，`SourcePins.json` 未更新）、`Momoka.DetailImageArrivalTests` 提取出来的 `DetailViewModel` 不含 `WindowWidth` 而真实的 `DetailPage.ArtworkArrival.cs` 仍在用它、三个测试项目的提取脚本找不到 `py`。本批只动了 `SourceCaption`、`HomeViewModel`、`AggregateQueryTests` 与两份文档，未触碰这些路径，未洗绿。
+
+**没动的。** 未在真实「一个库 + 飞牛音乐」环境实屏核对；侧边栏与标题栏的计数规则保持 2026-11-16 原样。
+
+**同日追加：飞牛音乐库改名。** 用户又一句「飞牛音乐库要叫飞牛音乐」：`FnMusicMediaAdapter.GetViewsAsync` 交出的虚拟媒体库名由「音乐」改成「飞牛音乐」，主页媒体库卡、侧栏库项与音乐页标题都读这一份；`fnmusic-fixture` 新增「媒体库名写「飞牛音乐」」钉住库名与音乐类型。Core/Tests/Shell Release 均 **0 警告 0 错误**；`fnmusic-fixture` **19/19**；全量 `Momoka.Tests` **5227/5227**、0 失败 0 跳过；改动文件格式化与 `tools/check-diff.ps1` 通过。
+
+**发布。** 按改好收尾从主树根目录复制 `libmpv-2.dll` 后发布本树：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-home-library-rename-1UTKdp`，548 文件、289.9 MB，14 个 GLSL／4 个 HOOK 校验通过；桌面 `Momoka-fix-home-library-rename-1UTKdp.lnk` 指向本树 `artifacts/publish/win-x64/Momoka.exe`（00:14 生成）。追加改完后重发同一目录并刷新同一快捷方式（00:33）。主树 `Momoka.lnk` 未动，仅体验刷新、不销账。
+
+**提交。** 产品与测试 `1926c8c`、`d171f5c`；记录 `10cec63`。
+
 ## 2026-11-17 商店详情封面放大到徽标上沿与播放键下沿（已合并 master，待统一验证）
 
 用户一句：「把商店模式下媒体详情页左上角的封面放大一点，让它上方和徽标上方平行，下方和播放按钮下方平行」。
