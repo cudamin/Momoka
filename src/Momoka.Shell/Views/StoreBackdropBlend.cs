@@ -20,13 +20,19 @@ internal static class StoreBackdropBlend
     private static readonly (double Position, double Alpha)[] AmbientAcross =
         [(0, 1), (0.72, 1), (1, 0)];
     /// <summary>
-    /// 2026-11-17 用户令「我要斜的，不要90度的」：对称环境底的左沿不是一条竖着的 90 度边，而是照用户
-    /// 红线那样从右上斜到左下 —— 顶边那一行的边界落在画布宽的这个比例处，越往下越靠左，到底边收到
-    /// 内容区左沿；边界右侧是满色环境底，左侧渐隐回窗口底色。左右两段各有一条坡，右沿照旧收在画布上。
+    /// 2026-11-17 用户令「左上角的那个渐变要以左上为起点扩散，从浓变淡，过度平滑」：环境底左上角那团
+    /// 暗角以左上角为圆心径向展开 —— 角上最浓（窗口底色），沿椭圆弧向外平滑变淡，到画布宽的
+    /// <see cref="AmbientFanX"/>、高的 <see cref="AmbientFanY"/> 处完全交给环境底。两轴按画布比例给，
+    /// 窗口拉宽拉高时这团暗角等比铺开；左沿另留一道窄坡、右沿另有一道收边，见下两行。
     /// </summary>
-    internal const double AmbientSlant = 0.10;
+    internal const double AmbientFanX = 0.18;
+    internal const double AmbientFanY = 0.60;
 
-    /// <summary>对称环境底的左坡：边界以左到窗口底色，以右满色。</summary>
+    /// <summary>径向那团的坡：0 = 角上最浓，1 = 完全交给环境底（smoothstep 由 Interpolate 给）。</summary>
+    private static readonly (double Position, double Alpha)[] AmbientFan =
+        [(0, 0), (1, 1)];
+
+    /// <summary>对称环境底最外侧那道窄坡：画布左沿几像素内收到窗口底色，免得贴边出现硬切口。</summary>
     private static readonly (double Position, double Alpha)[] AmbientLeft =
         [(0, 0), (0.04, 1)];
 
@@ -50,13 +56,15 @@ internal static class StoreBackdropBlend
         {
             var ny = y / (double)(Side - 1);
             var vertical = Interpolate(ny, down);
-            // 左沿那条斜边：顶边最靠右，越往下越靠左，到底边归零（见 AmbientSlant）。
-            var slant = symmetric ? AmbientSlant * (1 - ny) : 0;
             for (var x = 0; x < Side; x++)
             {
                 var nx = x / (double)(Side - 1);
+                // 左上角那团暗角：以角为圆心的椭圆半径，越往外越淡（见 AmbientFanX/Y）。
+                var fan = Math.Sqrt(nx * nx / (AmbientFanX * AmbientFanX)
+                    + ny * ny / (AmbientFanY * AmbientFanY));
                 var horizontal = symmetric
-                    ? Interpolate(nx - slant, AmbientLeft) * Interpolate(nx, AmbientRight)
+                    ? Interpolate(Math.Min(1, fan), AmbientFan)
+                        * Interpolate(nx, AmbientLeft) * Interpolate(nx, AmbientRight)
                     : Interpolate(nx, across);
                 var alpha = Channel(255 * horizontal * vertical);
                 var at = (y * Side + x) * 4;

@@ -223,13 +223,12 @@ internal static class StoreDetailLayoutTests
             var mask = Momoka.Shell.Views.StoreBackdropBlend.Mask(ambient: true, symmetric: true);
             byte AmbientAlpha(double x, double y) =>
                 mask[((int)Math.Round(y * 127) * 128 + (int)Math.Round(x * 127)) * 4 + 3];
-            // 2026-11-17 用户令「我要斜的，不要90度的」：环境底左沿照用户红线斜下来 —— 顶部边界更靠右，
-            // 越往下越靠左，边界右边是满色，左边渐隐回窗口底色；右沿照旧收在画布上。
-            Assert.Equal(0, AmbientAlpha(0, 0.05));
-            Assert.True(AmbientAlpha(0.12, 0.05) is > 0 and < 255, "环境底顶部左沿没有渐隐");
-            Assert.True(AmbientAlpha(0.12, 0.05) < AmbientAlpha(0.12, 0.4), "环境底左沿没有斜下来");
-            Assert.Equal(255, AmbientAlpha(0.25, 0.05));
-            Assert.Equal(255, AmbientAlpha(0.25, 0.4));
+            // 2026-11-17 用户令「左上角的那个渐变要以左上为起点扩散，从浓变淡，过度平滑」：
+            // 左上角那团暗角以角为圆心径向展开，沿弧向外平滑变淡，不再是竖边也不是直线斜边。
+            Assert.Equal(0, AmbientAlpha(0, 0));
+            Assert.True(AmbientAlpha(0.06, 0.05) is > 0 and < 255, "环境底左上角没有径向渐隐");
+            Assert.True(AmbientAlpha(0.06, 0.05) < AmbientAlpha(0.06, 0.30), "环境底暗角没有沿弧向外变淡");
+            Assert.Equal(255, AmbientAlpha(0.30, 0.10));
             Assert.Equal(0, AmbientAlpha(1, 0.5));
             // 2026-11-16 用户令「渐变要填满左右两边」：装饰带越过 1840 内容列，用负边距铺到窗口两边。
             var store = Source("Views/DetailPage.Store.cs");
