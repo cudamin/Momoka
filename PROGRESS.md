@@ -1,4 +1,4 @@
-## 2026-11-18 侧边栏去掉「订阅」分区，订阅按「媒体库顺序」排列（临时分支，待合并）
+## 2026-11-18 侧边栏去掉「订阅」分区，订阅按「媒体库顺序」排列（已合并 master，待统一验证）
 
 用户附侧边栏截图一句：「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」。
 
@@ -10,9 +10,11 @@
 
 **没验证的。** 没有真实多库 + MoviePilot 同时在线的实屏：探针夹具不接媒体服务器，截图只有两条订阅入口；库项与订阅真正混排的那一屏留给交付检查（台账第 96 条）。真实服务器上拖排序后栏是否当场跟随，也只在离线夹具里按偏好通知走过一次。
 
-**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `6496404`；未合并 master、未推远端。
+**分支与合并。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `6496404`；2026-11-18 用户令「合并到主树」，在主树 `master` 的 `7b04397` 上以 `--no-ff` 合入（合并提交 `0654bdd`，无冲突；主树原有 3 个未提交的测试夹具改动保持原样，未纳入本批）。分支工作树干净、内容全部进入 master；未推远端。
 
-## 2026-11-18 聚合模式「媒体库顺序」表在库名前写账号用户名（临时分支，待合并）
+**合并后主树复验（2026-11-18 晚）。** 主树 Core／`Momoka.Tests`／Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5256/5256**、`browse-identity-fixture` **64/64**、`startup-reapply-notice-fixture` **34/34**、`sidebar-icons-fixture` **21/21**、`Momoka.HomeOrderProbeTests` **22/22**，0 失败 0 跳过；主树发布件 `--probe-shell --probe-section moviepilot --screen 2` **37 项、36 过、1 红**，本批用例通过，唯一红是既有的 `YouTubeSession` 未注册（与本批无交集）。已发布主树 `artifacts/publish/win-x64`（548 文件、290.0 MB，18:28）；`Momoka.lnk` 未重写（沙箱拒写桌面），但指向同一 exe 路径，双击即当前版本。
+
+## 2026-11-18 聚合模式「媒体库顺序」表在库名前写账号用户名（已合并 master，待统一验证）
 
 用户附设置页「媒体库顺序」截图一句：「开启聚合模式时这个地方的前面也要显示用户名」。
 
@@ -26,7 +28,9 @@
 
 **没验证的。** 没在真实多账号服务器上实屏看这张表；待交付台账第 95 条列了交付时要看的几档：两个账号库名各带用户名、固定排不写、一个影视来源加飞牛音乐不写、设置页开着时拨聚合开关当场换字、拖拽或勾选后重开表不叠前缀、深色浅色与宽窄两档。
 
-**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `ca6f1fd`、`a3788d5`，记录 `3e8e58e`、`89c8ac1`；未合并 master、未推远端。
+**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `ca6f1fd`、`a3788d5`，记录 `3e8e58e`、`89c8ac1`。
+
+**合并与主树复验。** 2026-11-18 与「侧边栏订阅按媒体库顺序」同批合入主树（合并提交 `0654bdd`，无冲突）；合并后主树全量 `Momoka.Tests` **5256/5256**、`browse-identity-fixture` **64/64**、`Momoka.HomeOrderProbeTests` **22/22** 通过，编译 **0 警告 0 错误**。未推远端。
 
 ## 2026-11-18 聚合模式主页「最近添加」滚不到底：竖向货架改非虚拟化（已合并 master）
 
