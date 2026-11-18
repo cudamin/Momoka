@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Momoka.Configuration;
 using Momoka.Emby;
+using Momoka.MoviePilot;
 using Momoka.Shell.Interop;
 using Microsoft.UI.Input;
 using Windows.Foundation;
@@ -51,6 +52,14 @@ namespace Momoka.Shell.Views
         internal bool SidebarShown { get; set; } = true;
         internal NavigationView Sidebar { get; } = new();
         internal FrameworkElement SidebarHost { get; } = new() { ActualWidth = 56 };
+        // 订阅入口：接线与预览面板与库项共用，这里只给两项让浮层认得出 Tag 与标题。
+        internal NavigationViewItem SidebarMoviePilotMovies { get; } = new()
+            { Content = "订阅·电影", Tag = HomeLayout.MoviePilotMovies, XamlRoot = new() };
+        internal NavigationViewItem SidebarMoviePilotSeries { get; } = new()
+            { Content = "订阅·电视剧", Tag = HomeLayout.MoviePilotSeries, XamlRoot = new() };
+        private readonly MoviePilotService? _moviePilotService = null;
+        internal List<MoviePilotSubscription> OpenedSubscriptions { get; } = [];
+        private void OpenSubscription(MoviePilotSubscription subscription) => OpenedSubscriptions.Add(subscription);
         internal Border LibraryPreviewPanel { get; } = new() { Width = 360, Visibility = Visibility.Collapsed };
         internal Grid LibraryPreviewCovers { get; } = new();
         internal TextBlock LibraryPreviewTitle { get; } = new();

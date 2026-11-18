@@ -54,12 +54,25 @@ namespace Microsoft.UI.Xaml
     }
     public sealed class Style;
     public sealed class RoutedEventArgs : EventArgs;
-    public delegate void PointerEventHandler(object sender, Input.PointerRoutedEventArgs args);
     public class UIElement
     {
         public static object PointerPressedEvent { get; } = new();
-        private readonly List<PointerEventHandler> _pointerPressed = [];
-        public void AddHandler(object routedEvent, PointerEventHandler handler, bool handledEventsToo) => _pointerPressed.Add(handler);
+        public static object PointerMovedEvent { get; } = new();
+        // 生产代码只负责接线；真实事件的触发由夹具的内部方法直接调处理函数，这里只把订阅记下来。
+        private readonly List<Input.PointerEventHandler> _entered = [];
+        private readonly List<Input.PointerEventHandler> _exited = [];
+        public event Input.PointerEventHandler PointerEntered
+        {
+            add => _entered.Add(value);
+            remove => _entered.Remove(value);
+        }
+        public event Input.PointerEventHandler PointerExited
+        {
+            add => _exited.Add(value);
+            remove => _exited.Remove(value);
+        }
+        private readonly List<Input.PointerEventHandler> _pointerPressed = [];
+        public void AddHandler(object routedEvent, Input.PointerEventHandler handler, bool handledEventsToo) => _pointerPressed.Add(handler);
         internal void Press(Input.PointerRoutedEventArgs args)
         {
             foreach (var handler in _pointerPressed) handler(this, args);
@@ -89,7 +102,10 @@ namespace Microsoft.UI.Xaml
         public Dictionary<string, object> Resources { get; } = [];
         public Windows.Foundation.Point Origin { get; set; }
         public Windows.Foundation.Size DesiredSize { get; private set; } = new(360, 232);
-        public void Measure(Windows.Foundation.Size size) => DesiredSize = new(size.Width, 232);
+        // WinUI 的 DesiredSize 含 Margin（WPF 不含）：摆位代码依赖这条语义，边界也要照它建模，
+        // 否则「上一次的 top 被算进这次量到的高度」这一类回归在离线夹具里看不出来。
+        public void Measure(Windows.Foundation.Size size) => DesiredSize = new(
+            size.Width + Margin.Left + Margin.Right, 232 + Margin.Top + Margin.Bottom);
         public Media.GeneralTransform TransformToVisual(UIElement target) => new(new Windows.Foundation.Point(Origin.X + Margin.Left, Origin.Y + Margin.Top));
     }
     public sealed class XamlRoot
@@ -188,6 +204,12 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public static void SetToolTip(FrameworkElement element, object tooltip) { }
     }
+    public sealed class ToolTip
+    {
+        public Media.Brush? Background { get; set; }
+        public Thickness BorderThickness { get; set; }
+        public Thickness Padding { get; set; }
+    }
 }
 
 namespace Microsoft.UI.Text
@@ -228,6 +250,7 @@ namespace Microsoft.UI.Xaml.Automation.Provider
 
 namespace Microsoft.UI.Xaml.Input
 {
+    public delegate void PointerEventHandler(object sender, PointerRoutedEventArgs args);
     public sealed class Pointer
     {
         public Microsoft.UI.Input.PointerDeviceType PointerDeviceType { get; set; } = Microsoft.UI.Input.PointerDeviceType.Mouse;

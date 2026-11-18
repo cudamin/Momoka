@@ -18,6 +18,7 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("实际LibraryPreview完整partial与PosterHoverDwell；时间/指针/UI/播放为惰性边界，HTTP仅内存匿名响应");
         RegisterInputTests();
+        RegisterPlacementTests();
         RegisterArtworkTests();
         RegisterPlaybackTests();
         RegisterOwnershipTests();
@@ -158,6 +159,24 @@ internal static class Program
             using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
             s.At(a, 0); s.Enter(a); s.Hide(); s.At(a, 500); s.OpenTimer.Fire(); Assert.False(s.Visible);
             s.At(a, 600); s.Enter(a); s.RebuildBoundary(); s.At(a, 1100); s.OpenTimer.Fire(); Assert.False(s.Visible);
+        });
+    }
+
+    private static void RegisterPlacementTests()
+    {
+        TestAsync("第二次摆位不把上一次的顶边算进面板高度（栏底库项仍与预览同高）", async () =>
+        {
+            using var f = new AnonymousFixture(); var s = f.Shell;
+            // 栏底那一项：top 520，面板 232 高，窗口 650 —— 上限 = 650 − 232 − 8 = 410。
+            // 修好之前第二次摆位量到 232 + 410，上限塌到 56，面板跳到内容区最上面。
+            var low = s.AddLibrary(f.Source.Bind(new EmbyItem
+            {
+                Id = "low", Name = "栏底库", CollectionType = "movies"
+            }), 520);
+            f.Http.Items["low"] = [AnonymousFixture.Media("low-a", EmbyItemType.Movie)];
+            await s.Show(low);
+            Assert.Equal(64d, s.LibraryPreviewPanel.Margin.Left);
+            Assert.Equal(410d, s.LibraryPreviewPanel.Margin.Top);
         });
     }
 
@@ -351,15 +370,26 @@ internal static class Program
             var preview = ReadSource("Views/ShellPage.LibraryPreview.cs");
             var initialize = Between(preview, "    private void InitializeLibraryPreview()", "    private void OnSidebarLibraryPointerEntered(");
             Assert.Contains("Sidebar.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSidebarPreviewPointerPressed), true);", initialize);
+            // 库项与两条订阅入口共用同一套接线（提示占位 + 三只指针事件），订阅项在初始化时也登记进计时表。
+            var attach = Between(preview, "    private void AttachSidebarPreviewItem(", "    private void TrackPreviewItem(");
+            Assert.Contains("item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);", attach);
+            Assert.Contains("item.PointerEntered += OnSidebarLibraryPointerEntered;", attach);
+            Assert.Contains("item.PointerExited += OnSidebarLibraryPointerExited;", attach);
+            Assert.Contains("ToolTipService.SetToolTip(item", attach);
+            Assert.Contains("AttachSidebarPreviewItem(item);", initialize);
+            Assert.Contains("TrackPreviewItem(item);", initialize);
             var sidebar = ReadSource("Views/ShellPage.Sidebar.cs");
             var rebuild = Between(sidebar, "    private void RebuildSidebarLibraries()", "    private void OnSidebarItemInvoked(");
-            Assert.Contains("item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);", rebuild);
-            Assert.Contains("_previewDwells.Add(item, new PosterHoverDwell());", rebuild);
-            Assert.Contains("item.PointerEntered += OnSidebarLibraryPointerEntered;", rebuild);
-            Assert.Contains("item.PointerExited += OnSidebarLibraryPointerExited;", rebuild);
+            Assert.Contains("AttachSidebarPreviewItem(item);", rebuild);
+            Assert.Contains("TrackPreviewItem(item);", rebuild);
             Assert.True(rebuild.IndexOf("HideLibraryPreview();", StringComparison.Ordinal)
                 < rebuild.IndexOf("_previewDwells.Clear();", StringComparison.Ordinal));
-            Assert.True(rebuild.IndexOf("_previewDwells.Add(item, new PosterHoverDwell());", StringComparison.Ordinal)
+            // 订阅项不重建，清空计时表之后必须登记回来，否则它们从此不再响应悬停。
+            Assert.True(rebuild.IndexOf("_previewDwells.Clear();", StringComparison.Ordinal)
+                < rebuild.IndexOf("TrackPreviewItem(SidebarMoviePilotMovies);", StringComparison.Ordinal));
+            Assert.True(rebuild.IndexOf("TrackPreviewItem(SidebarMoviePilotSeries);", StringComparison.Ordinal)
+                < rebuild.IndexOf("foreach (var item in _sidebarLibraries.Values)", StringComparison.Ordinal));
+            Assert.True(rebuild.IndexOf("TrackPreviewItem(item);", StringComparison.Ordinal)
                 < rebuild.IndexOf("Sidebar.MenuItems.Insert(at++, item);", StringComparison.Ordinal));
         });
         Test("导航Invoke和SelectionChanged将实际目标交给点击抑制且早于GoTo", () =>

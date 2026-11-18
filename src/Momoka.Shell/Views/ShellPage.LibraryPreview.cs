@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.MoviePilot;
 using Momoka.Music;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Media;
@@ -21,7 +22,9 @@ namespace Momoka.Shell.Views;
 
 /// <summary>
 /// 折叠侧栏的媒体库悬停预览：指针停在图标栏里某个库的图标上时，从栏右边滑出一块小面板，显示库名和几张
-/// 媒体封面；聚合模式下多一颗「查看更多」，点它进这个库的完整页面。
+/// 媒体封面；聚合模式下多一颗「查看更多」，点它进这个库的完整页面。侧栏那两条 MoviePilot 订阅入口
+/// （订阅·电影 / 订阅·电视剧）用的是同一块面板：三张订阅海报，点海报进那条订阅的详情页
+/// （2026-11-18 用户令「给侧边栏的订阅也加悬浮」）。
 /// <para>
 /// 只在<b>图标栏</b>（<c>Sidebar.IsPaneOpen == false</c>）这一档发生，因为展开时库名本来就写在栏里，再弹一块
 /// 同名浮层只是重复。面板左沿由代码钉在栏右边，永远不压住那 56 宽的一列 —— 这是用户点名要的
@@ -70,6 +73,41 @@ public sealed partial class ShellPage
             _previewCloseTimer?.Stop();
             HideLibraryPreview();
         };
+
+        // 订阅那两条是 XAML 里的常驻项，接线只做一次；库项每次重建栏时重新接（见 RebuildSidebarLibraries）。
+        foreach (var item in new[] { SidebarMoviePilotMovies, SidebarMoviePilotSeries })
+        {
+            AttachSidebarPreviewItem(item);
+            TrackPreviewItem(item);
+        }
+    }
+
+    /// <summary>
+    /// 图标栏里一项要接的那套悬停接线：占住框架自带的那颗「库名」提示（半秒后弹出的预览面板标题写的就是
+    /// 同一个名字，两颗一起出现就是用户 2026-11-14 报的「显示了两个 电影」），再接三只指针事件。
+    /// <para>
+    /// 提示之所以挂一颗零尺寸、透明的空提示：NavigationViewItem 只在条目还没有自定义提示时才把 Content
+    /// 塞进 ToolTip（WinUI 的 UpdateNavigationViewItemToolTip）。订阅那两项以前会弹「订阅·电视剧」那颗
+    /// 提示，现在和库项一样让位给预览面板。
+    /// </para>
+    /// </summary>
+    private void AttachSidebarPreviewItem(NavigationViewItem item)
+    {
+        ToolTipService.SetToolTip(item, new ToolTip
+        {
+            Background = null,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0)
+        });
+        item.PointerEntered += OnSidebarLibraryPointerEntered;
+        item.PointerExited += OnSidebarLibraryPointerExited;
+        item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);
+    }
+
+    /// <summary>每项一份静止计时；重建栏清空表之后由库项与订阅项各自登记回来。</summary>
+    private void TrackPreviewItem(NavigationViewItem item)
+    {
+        if (!_previewDwells.ContainsKey(item)) _previewDwells.Add(item, new PosterHoverDwell());
     }
 
     private void OnSidebarLibraryPointerEntered(object sender, PointerRoutedEventArgs e)
@@ -205,33 +243,20 @@ public sealed partial class ShellPage
 
     private async Task ShowLibraryPreviewAsync(NavigationViewItem anchor, string tag)
     {
-        if (!CanPreviewLibrary || !_libraries.TryGetValue(tag, out var request)) return;
+        if (!CanPreviewLibrary) return;
+        if (HomeLayout.IsMoviePilot(tag))
+        {
+            await ShowSubscriptionPreviewAsync(anchor, tag);
+            return;
+        }
+        if (!_libraries.TryGetValue(tag, out var request)) return;
 
         CancellationTokenSource? load = null;
         try
         {
-            _previewAnchor = anchor;
-            _previewTag = tag;
-            _previewLoad?.Cancel();
-            _previewLoad?.Dispose();
-            _previewLoad = null;
-
-            ResetPreviewCovers();
             // 预览标题照栏里那一项写：聚合模式（两个及以上在线账号）时它是「用户名 · 库名」，单账号时就是库名。
             // 副标题（服务器名）2026-11-16 按用户令去掉，来源已经写在同一行里。
-            var label = anchor.Content as string ?? request.Title;
-            LibraryPreviewTitle.Text = label;
-            LibraryPreviewMore.Visibility = Settings.AggregateMode ? Visibility.Visible : Visibility.Collapsed;
-            LibraryPreviewEmpty.Visibility = Visibility.Collapsed;
-            LibraryPreviewLoading.IsActive = false;
-            AutomationProperties.SetName(LibraryPreviewPanel, $"媒体库预览：{label}");
-
-            LibraryPreviewPanel.Visibility = Visibility.Visible;
-            PlaceLibraryPreview();
-            StartPreviewMotion();
-
-            load = new CancellationTokenSource();
-            _previewLoad = load;
+            load = PresentLibraryPreview(anchor, tag, anchor.Content as string ?? request.Title);
             await FillLibraryPreviewAsync(request, tag, load).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
@@ -241,6 +266,199 @@ public sealed partial class ShellPage
         {
             if (load is not null && IsCurrentPreview(load)) ShowPreviewEmpty("预览读取失败，稍后再试");
             Log.Debug("媒体库预览", $"读取预览失败（{request.Title}）：{error.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 把面板摆出来、立起这一趟的取消边界并返回它；两个数据源（媒体库与订阅）共用这一段。
+    /// </summary>
+    private CancellationTokenSource PresentLibraryPreview(NavigationViewItem anchor, string tag, string label)
+    {
+        _previewAnchor = anchor;
+        _previewTag = tag;
+        _previewLoad?.Cancel();
+        _previewLoad?.Dispose();
+        _previewLoad = null;
+
+        ResetPreviewCovers();
+        LibraryPreviewTitle.Text = label;
+        LibraryPreviewMore.Visibility = Settings.AggregateMode ? Visibility.Visible : Visibility.Collapsed;
+        LibraryPreviewEmpty.Visibility = Visibility.Collapsed;
+        LibraryPreviewLoading.IsActive = false;
+        AutomationProperties.SetName(LibraryPreviewPanel, $"媒体库预览：{label}");
+
+        LibraryPreviewPanel.Visibility = Visibility.Visible;
+        PlaceLibraryPreview();
+        StartPreviewMotion();
+
+        var load = new CancellationTokenSource();
+        _previewLoad = load;
+        return load;
+    }
+
+    /// <summary>
+    /// 侧栏两条订阅入口的预览（2026-11-18 用户令「给侧边栏的订阅也加悬浮」）：三张订阅海报，点海报进那条
+    /// 订阅的详情页；「查看更多」与其他库项同一条规则（聚合模式才出现），点它进订阅列表。
+    /// </summary>
+    private async Task ShowSubscriptionPreviewAsync(NavigationViewItem anchor, string tag)
+    {
+        if (_moviePilotService is not { Available: true }) return;
+        var label = anchor.Content as string
+            ?? (tag == HomeLayout.MoviePilotSeries ? "订阅·电视剧" : "订阅·电影");
+        CancellationTokenSource? load = null;
+        try
+        {
+            load = PresentLibraryPreview(anchor, tag, label);
+            await FillSubscriptionPreviewAsync(tag, load).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            if (load is not null && IsCurrentPreview(load)) ShowPreviewEmpty("预览读取失败，稍后再试");
+            Log.Debug("订阅预览", $"读取订阅预览失败（{label}）：{error.Message}");
+        }
+    }
+
+    private async Task FillSubscriptionPreviewAsync(string tag, CancellationTokenSource load)
+    {
+        if (_moviePilotService is not { Available: true } service)
+        {
+            ShowPreviewEmpty("暂时读不到订阅");
+            return;
+        }
+
+        LibraryPreviewLoading.IsActive = true;
+        IReadOnlyList<MoviePilotSubscription> subscriptions;
+        try
+        {
+            subscriptions = await service.SubscriptionsAsync(load.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception error)
+        {
+            if (IsCurrentPreview(load)) ShowPreviewEmpty("预览读取失败，稍后再试");
+            Log.Debug("订阅预览", $"读取订阅列表失败：{error.Message}");
+            return;
+        }
+
+        if (!IsCurrentPreview(load)) return;
+
+        var series = tag == HomeLayout.MoviePilotSeries;
+        var picks = subscriptions
+            .Where(item => item.IsSeries == series && SubscriptionPoster(item) is not null)
+            .Take(PreviewCoverCount)
+            .ToArray();
+        if (picks.Length == 0)
+        {
+            LibraryPreviewLoading.IsActive = false;
+            ShowPreviewEmpty(series ? "还没有电视剧订阅" : "还没有电影订阅");
+            return;
+        }
+
+        // 图片走 MoviePilot 自己的图片代理（服务器够得着图源，客户端不一定），失败只留占位。
+        var fetch = service.CaptureImageFetcher();
+        var coverWidth = PreviewCoverWidth();
+        for (var index = 0; index < picks.Length; index++)
+        {
+            var subscription = picks[index];
+            var (cell, picture, placeholder) = CreateSubscriptionCover(coverWidth, index, subscription, load);
+            LibraryPreviewCovers.Children.Add(cell);
+            _ = LoadSubscriptionCoverAsync(fetch, picture, placeholder, subscription,
+                Math.Max(56, (int)Math.Round(coverWidth)), load);
+        }
+
+        LibraryPreviewLoading.IsActive = false;
+        PlaceLibraryPreview();
+    }
+
+    /// <summary>订阅海报的地址：只认绝对的 http(s) 地址，其余按缺图处理。</summary>
+    private static string? SubscriptionPoster(MoviePilotSubscription subscription)
+        => Uri.TryCreate(subscription.Media.PosterUrl, UriKind.Absolute, out var url) && url.Scheme is "http" or "https"
+            ? url.AbsoluteUri
+            : null;
+
+    private (FrameworkElement Cell, Image Picture, FontIcon Placeholder) CreateSubscriptionCover(double width, int column,
+        MoviePilotSubscription subscription, CancellationTokenSource load)
+    {
+        // 订阅海报沿用影视封面那一档 2:3；点它是打开订阅详情，不是播放。
+        var height = Math.Round(width * 1.5);
+        var placeholder = new FontIcon
+        {
+            Glyph = "\uE8B2",
+            FontSize = (double)Application.Current.Resources["EgTitleFontSize"],
+            Foreground = (Brush)Application.Current.Resources["EgTextFaintBrush"],
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var picture = new Image { Stretch = Stretch.UniformToFill, Visibility = Visibility.Collapsed };
+        var content = new Grid();
+        content.Children.Add(placeholder);
+        content.Children.Add(picture);
+        var button = new Button
+        {
+            Width = width,
+            Height = height,
+            Style = (Style)Application.Current.Resources["EgArtworkTileStyle"],
+            BorderThickness = new Thickness(0),
+            Content = content,
+            Tag = subscription
+        };
+        AutomationProperties.SetAutomationId(button, "SidebarSubscriptionPreviewOpen_" + column);
+        AutomationProperties.SetName(button, $"打开订阅：{subscription.Title}");
+        button.Click += (_, _) => OnSubscriptionPreviewCoverClicked(button, subscription, load);
+
+        var title = new TextBlock
+        {
+            Text = subscription.Title,
+            Style = (Style)Application.Current.Resources["EgCaptionStyle"],
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)Application.Current.Resources["EgTextBrush"],
+            MaxLines = 2,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.Wrap
+        };
+        ToolTipService.SetToolTip(title, subscription.Title);
+
+        var cell = new StackPanel { Width = width, Spacing = 6 };
+        cell.Children.Add(button);
+        cell.Children.Add(title);
+        Grid.SetColumn(cell, column);
+        return (cell, picture, placeholder);
+    }
+
+    private void OnSubscriptionPreviewCoverClicked(Button button, MoviePilotSubscription subscription, CancellationTokenSource load)
+    {
+        if (!IsCurrentPreview(load)
+            || !LibraryPreviewCovers.Children.OfType<StackPanel>().Any(cell => cell.Children.Contains(button))) return;
+        SuppressLibraryPreview();
+        OpenSubscription(subscription);
+    }
+
+    private async Task LoadSubscriptionCoverAsync(Func<string, CancellationToken, Task<byte[]>> fetch,
+        Image picture, FontIcon placeholder, MoviePilotSubscription subscription, int width, CancellationTokenSource load)
+    {
+        try
+        {
+            if (SubscriptionPoster(subscription) is not { } poster) return;
+            var bytes = await fetch(poster, load.Token).ConfigureAwait(true);
+            var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
+            if (bitmap is null || !IsCurrentPreview(load)) return;
+
+            picture.Source = bitmap;
+            picture.Visibility = Visibility.Visible;
+            placeholder.Visibility = Visibility.Collapsed;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            Log.Debug("订阅预览", $"海报读取失败（{subscription.Title}）：{error.Message}");
         }
     }
 
@@ -487,6 +705,10 @@ public sealed partial class ShellPage
             // 图标还没进视图树：用标题栏下沿，下一次布局后由进入事件重新摆。
         }
 
+        // 量之前先清掉上一次摆位留下的 Margin：WinUI 的 DesiredSize 含 Margin（WPF 不含），
+        // 上一次的 top 会把这次量到的高度抬高一整个顶边距 —— 上限因此塌到标题栏下沿，第二次摆位
+        // （封面读完那一次）就把面板从鼠标所在那一项甩到内容区最上面。
+        LibraryPreviewPanel.Margin = default;
         LibraryPreviewPanel.Measure(new Size(width, double.PositiveInfinity));
         var height = Math.Min(LibraryPreviewPanel.DesiredSize.Height, LibraryPreviewPanel.MaxHeight);
         var top = Math.Clamp(anchorTop - 8, HomePage.ChromeHeight + 8,

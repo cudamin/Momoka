@@ -1128,7 +1128,7 @@ internal sealed partial class ShellNavigationProbe
     private async Task SidebarLibraryPreviewAsync()
     {
         var motion = HomeMotion.PreferenceEnabled;
-        using var fixture = CreateFixture();
+        using var fixture = CreateFixture(new SubscriptionProbeServer { Poster = await FixtureImageAsync(400, 600) });
         fixture.Settings.Ui.EnableImmersive = false;
         fixture.Settings.Ui.AnimationsEnabled = false;
         var picture = await FixtureImageAsync(400, 600);
@@ -1148,11 +1148,8 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Views", StringComparison.Ordinal))
                 return Task.FromResult(Json(new
                 {
-                    Items = new[] { new EmbyItem
-                {
-                    Id = "preview-movies", Name = "预览电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
-                } },
-                    TotalRecordCount = 1
+                    Items = PreviewLibraries(),
+                    TotalRecordCount = 14
                 }));
             if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(movies));
             if (path.EndsWith("/Items", StringComparison.Ordinal) || path.EndsWith("/Items/Resume", StringComparison.Ordinal))
@@ -1160,6 +1157,7 @@ internal sealed partial class ShellNavigationProbe
             return Task.FromResult(FakeTransport.Standard(request));
         };
         await fixture.SelectAsync();
+        await ConnectMoviePilotAsync(fixture);
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
         Field(shell, "_window", _window);
@@ -1168,14 +1166,26 @@ internal sealed partial class ShellNavigationProbe
         {
             HomeMotion.ApplyPreference(false);
             await (Task)Call(shell, "EnterShellAsync")!;
-            await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 1);
-            var tag = HomeLayout.LibraryKey(shell.LibraryViews.Single());
+            await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 14);
             foreach (var width in new[] { 760, 600 })
             {
                 ResizeProbeClient(width, 650);
-                Get<NavigationView>(shell, "Sidebar").IsPaneOpen = false;
+                var navView = Get<NavigationView>(shell, "Sidebar");
+                navView.IsPaneOpen = false;
                 await LayoutAsync(shell);
+                // 图标栏条目多到要滚动：这正是用户报「悬浮框跑到最上面」的那一档 —— 预览跟的库项在栏底。
+                var scrollers = Descendants(navView).OfType<ScrollViewer>().ToArray();
+                foreach (var scroller in scrollers)
+                {
+                    scroller.ChangeView(null, scroller.ScrollableHeight, null, true);
+                }
+                await Task.Delay(250);
+                await LayoutAsync(shell);
+                var tag = (string)navView.MenuItems.OfType<NavigationViewItem>()
+                    .Last(item => item.Visibility == Visibility.Visible && item.Tag is string key
+                        && shell.LibraryViews.Any(view => HomeLayout.LibraryKey(view) == key)).Tag!;
                 await InspectLibraryPreviewAsync(shell, fixture, tag, width);
+                await InspectSubscriptionPreviewAsync(shell, width);
             }
             Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(request => request.StartsWith("GET ", StringComparison.Ordinal)),
                 "预览界面验证触发播放或服务器写入");
@@ -1194,6 +1204,57 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1420, 980);
         }
     }
+
+    /// <summary>
+    /// 侧栏两条订阅入口的悬停预览（2026-11-18 用户令「给侧边栏的订阅也加悬浮」）：与库项同一块面板、
+    /// 同一条摆位与动效；三张订阅海报，点海报进那条订阅的详情页（这里只验布局与按钮语义，不点）。
+    /// </summary>
+    private async Task InspectSubscriptionPreviewAsync(ShellPage shell, int width)
+    {
+        var preview = Get<Border>(shell, "LibraryPreviewPanel");
+        var previewCovers = Get<Grid>(shell, "LibraryPreviewCovers");
+        var previewTitle = Get<TextBlock>(shell, "LibraryPreviewTitle");
+        var previewMore = Get<Button>(shell, "LibraryPreviewMore");
+        var item = Get<NavigationViewItem>(shell, "SidebarMoviePilotMovies");
+        Require(item.Visibility == Visibility.Visible, "MoviePilot 可用时侧栏没有订阅入口");
+        try
+        {
+            await (Task)Call(shell, "ShowLibraryPreviewAsync", item, HomeLayout.MoviePilotMovies)!;
+            await UntilAsync(() => preview.Visibility == Visibility.Visible && previewCovers.Children.Count == 3);
+            await LayoutAsync(preview);
+            Require(previewTitle.Text == "订阅·电影", $"订阅悬停预览的标题不对：{previewTitle.Text}");
+            Require(previewMore.Visibility == Visibility.Visible, "聚合模式下订阅预览没有「查看更多」");
+            var buttons = Descendants(previewCovers).OfType<Button>().ToArray();
+            Require(buttons.Length == 3
+                && buttons.All(button => button.Tag is MoviePilotSubscription)
+                && buttons.All(button => AutomationProperties.GetName(button).StartsWith("打开订阅：", StringComparison.Ordinal))
+                && buttons.All(button => AutomationProperties.GetAutomationId(button).StartsWith("SidebarSubscriptionPreviewOpen_", StringComparison.Ordinal)),
+                "订阅悬停预览没有三颗打开订阅的封面按钮");
+            var titles = previewCovers.Children.OfType<StackPanel>()
+                .Select(cell => cell.Children.OfType<TextBlock>().LastOrDefault()?.Text).ToArray();
+            Require(titles.Length == 3 && titles.All(title => !string.IsNullOrEmpty(title)), "订阅悬停预览的封面下没有片名");
+            await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(picture => picture.Source is not null));
+            await SaveProbeScreenAsync($"sidebar-subscription-preview-{width}-screen.png");
+        }
+        finally
+        {
+            Call(shell, "HideLibraryPreview");
+            await UntilAsync(() => preview.Visibility == Visibility.Collapsed);
+        }
+    }
+
+    /// <summary>
+    /// 图标栏条目多到装不下：末尾那一项因此落在栏底，第二次摆位（封面读完）若把上一次的 top 算进
+    /// 面板高度，预览就会从那一项跳到内容区最上面（2026-11-18 用户截图）。
+    /// </summary>
+    private static EmbyItem[] PreviewLibraries() => Enumerable.Range(0, 14)
+        .Select(index => new EmbyItem
+        {
+            Id = "preview-library-" + index,
+            Name = index == 13 ? "预览音乐库" : "预览电影库 " + (index + 1),
+            Type = EmbyItemType.CollectionFolder,
+            CollectionType = index == 13 ? "music" : "movies"
+        }).ToArray();
 
     private async Task InspectLibraryPreviewAsync(ShellPage shell, Fixture fixture, string moviesTag, int width)
     {
@@ -1217,6 +1278,12 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(preview);
             Require(Left(preview, shell) >= host.ActualWidth + 7 && Top(preview, shell) >= HomePage.ChromeHeight - 1,
                 $"媒体库悬停预览压住侧栏或跑出内容区：left={Left(preview, shell):0} rail={host.ActualWidth:0} top={Top(preview, shell):0}");
+            // 摆位跟住被悬停的库项：顶边 = 项顶 − 8，只在会掉出窗口底时上移。第二次摆位（封面读完）也算过。
+            var expectedTop = Math.Clamp(Top(previewItem, shell) - 8, HomePage.ChromeHeight + 8,
+                Math.Max(HomePage.ChromeHeight + 8, shell.ActualHeight - preview.ActualHeight - 8));
+            Require(Math.Abs(Top(preview, shell) - expectedTop) <= 1.5,
+                $"媒体库悬停预览没有跟住库项：top={Top(preview, shell):0.#}，应为 {expectedTop:0.#}"
+                + $"（项 {Top(previewItem, shell):0.#}、面板高 {preview.ActualHeight:0.#}、窗口高 {shell.ActualHeight:0.#}）");
             Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
             Require(previewMeta.Visibility == Visibility.Collapsed, "媒体库悬停预览仍显示服务器名副标题");
             Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
