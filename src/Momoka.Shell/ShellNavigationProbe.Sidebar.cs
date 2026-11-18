@@ -928,9 +928,9 @@ internal sealed partial class ShellNavigationProbe
                 "MoviePilot 没连上时侧栏仍显示订阅入口");
 
             // **先把栏展开，再连 MoviePilot** —— 应用里那条路就是这个顺序（窗宽那一拍先把栏开起来、
-            // MoviePilot 的可用性随后才到），而分区标题的内容可见性是 NavigationView 按面板模式在实现
-            // 那一刻算的：标题在栏收着的时候翻成 Visible，之后展开也不回头补（标题占着位置、一个字不画，
-            // 2026-10-13 晚实测；「媒体库」那条标题同一个脾气）。这一档顺带就是这一帧截图要的画面。
+            // MoviePilot 的可用性随后才到）；「媒体库」那条分区标题的内容可见性是 NavigationView 按面板
+            // 模式在实现那一刻算的，标题在栏收着的时候翻成 Visible，之后展开也不回头补（2026-10-13 晚实测）。
+            // 这一档顺带就是这一帧截图要的画面。
             var nav = Get<NavigationView>(shell, "Sidebar");
             var host = Get<Grid>(shell, "SidebarHost");
             nav.IsPaneOpen = true;
@@ -942,20 +942,6 @@ internal sealed partial class ShellNavigationProbe
             Require(movies.Content as string == HomeLayout.FixedTitle(HomeLayout.MoviePilotMovies)
                 && series.Content as string == HomeLayout.FixedTitle(HomeLayout.MoviePilotSeries),
                 "侧栏订阅入口的文案不是主页那两排的名字");
-            // 两条入口 2026-10-13 晚起有了自己的一段：「订阅」那条分区标题必须和它们同进同退，而且站在
-            // 「媒体库」那一段**下面**（用户：「侧边栏展开时新增订阅分区，放在媒体库下面」）。媒体库那几项是
-            // 运行时插在两条标题之间的，所以只比标题的先后就够。
-            var section = Get<NavigationViewItemHeader>(shell, "SidebarSubscriptionsHeader");
-            Require(section.Visibility == Visibility.Visible && section.Content as string == "订阅",
-                "订阅分区标题没有跟着两条入口一起出现");
-            Require(nav.MenuItems.IndexOf(section) > nav.MenuItems.IndexOf(Get<NavigationViewItemHeader>(shell, "SidebarLibrariesHeader")),
-                "订阅分区没有排在媒体库那一段下面");
-            // 标题得真有高度 —— 「Visibility 是 Visible 可是没画出高度」在截图上只是「少了一行字」，
-            // 只看 Visibility 会放过它。
-            // 可用性刚从异步登录回到 UI，Visible 不代表新标题已经跑过这一帧布局。
-            // 等实际标题有尺寸后仍按原高度与图标裁切守卫检查，不放宽判定。
-            await LayoutAsync(section);
-            Require(section.ActualHeight > 0, $"订阅分区标题没有画出高度：{section.ActualHeight:0.#}");
             // 图标是照 MoviePilot 网页端复刻的两条 16×16 路径（场记板／带底座的电视）。这里量的是
             // 「PathIcon 在栏里真占了地方、也没被栏裁掉」—— 路径画错或尺寸不对时图标会是空的或只露出一角，
             // 而截图上一眼看不出来的是「它到底画没画出来」。
@@ -970,6 +956,42 @@ internal sealed partial class ShellNavigationProbe
                     && VisibleArea(icon, host) >= bounds.Width * bounds.Height - 0.5,
                     $"订阅入口「{entry}」的图标被裁到栏外：{bounds}");
             }
+            // 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：栏里不再有「订阅」那条
+            // 分区标题，只剩「媒体库」一条；两条订阅入口与库项排在同一个列表里，位置由设置 → 主页版面 →
+            // 「媒体库顺序」决定（见 ShellPage.Sidebar.cs 的 RebuildSidebarLibraries）。
+            Require(nav.MenuItems.OfType<NavigationViewItemHeader>().All(header => (string?)header.Content != "订阅"),
+                "侧栏仍留着「订阅」分区标题");
+            var librariesHeader = Get<NavigationViewItemHeader>(shell, "SidebarLibrariesHeader");
+            // 这个夹具不接媒体服务器，栏里可能一座库都没有；那时「媒体库」标题按规则收着，订阅项仍排在
+            // 它的位置上（标题在集合里，只是不画字）。有库时标题必须露面 —— 订阅就跟在同一段里。
+            Require(librariesHeader.Visibility == (shell.LibraryViews.Count > 0 ? Visibility.Visible : Visibility.Collapsed),
+                "媒体库分区标题的显隐和库列表对不上");
+            NavigationViewItem[] EntryItems() => [.. nav.MenuItems.OfType<NavigationViewItem>()
+                .Where(item => item.Tag is string tag
+                    && (tag.StartsWith("library:", StringComparison.Ordinal)
+                        || tag.StartsWith("moviepilot:", StringComparison.Ordinal)))];
+            var stacked = EntryItems();
+            Require(stacked.Length == shell.LibraryViews.Count + 2
+                && stacked.All(item => nav.MenuItems.IndexOf(item) > nav.MenuItems.IndexOf(librariesHeader)),
+                $"订阅入口没有和库项排在同一段：{string.Join('、', stacked.Select(item => item.Tag))}");
+            // 出厂次序把两条订阅补在名单末尾（见 HomeLayout.Plan）；没有单独的分区标题把它们和库项隔开。
+            Require(stacked[^2].Tag as string == HomeLayout.MoviePilotMovies
+                && stacked[^1].Tag as string == HomeLayout.MoviePilotSeries,
+                "出厂次序里两条订阅没有被排到名单末尾");
+
+            // 把「订阅·电影」拖到第一位：照设置页写回设置的那条路改 HomeRows，再喊一声偏好变化，
+            // 外壳应当按新次序重排 —— 从前它写死在栏尾，这一档改不动。
+            var plan = HomeLayout.Plan(fixture.Settings.Ui.HomeRows, shell.LibraryViews).ToList();
+            var movieRow = plan.Single(row => row.Key == HomeLayout.MoviePilotMovies);
+            plan.Remove(movieRow);
+            plan.Insert(0, movieRow);
+            fixture.Settings.Ui.HomeRows = HomeLayout.Save(plan);
+            ShellPrefs.ApplySidebar(fixture.Settings.Ui);
+            await LayoutAsync(shell);
+            Require(EntryItems()[0].Tag as string == HomeLayout.MoviePilotMovies,
+                "订阅没有按「媒体库顺序」排到媒体库标题后的第一行");
+            Require(nav.MenuItems.IndexOf(EntryItems()[0]) == nav.MenuItems.IndexOf(librariesHeader) + 1,
+                "排到第一位的订阅没有紧跟媒体库分区标题");
             await SaveProbeScreenAsync("sidebar-moviepilot-1240-screen.png");
 
             // 读取中的转圈（2026-10-20）：先把列表那一趟扣在手里再点入口 —— 屏上这时该是一颗转圈加
@@ -1068,10 +1090,12 @@ internal sealed partial class ShellNavigationProbe
                 && collapsed.Visibility == Visibility.Collapsed, "电视剧订阅页没有只画电视剧那一排");
             await CheckSubscriptionWallMenuAnchorAsync(Get<MoviePilotSubscriptionWallView>(seriesPage, "Wall"), "series");
 
-            // 断线：两条入口当场收起，那一条分区标题跟着收，这一页也退掉，返回历史里不留。
+            // 断线：两条入口当场收起，这一页也退掉，返回历史里不留。栏里没有「订阅」分区标题要跟着收 ——
+            // 它们本来就跟库项同排（2026-11-18 起），收起来只是少两行入口。
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => movies.Visibility == Visibility.Collapsed && series.Visibility == Visibility.Collapsed);
-            Require(section.Visibility == Visibility.Collapsed, "两条入口收起后「订阅」分区标题还留在栏里");
+            Require(nav.MenuItems.OfType<NavigationViewItemHeader>().All(header => (string?)header.Content != "订阅"),
+                "断线后栏里又冒出一条「订阅」分区标题");
             await UntilAsync(() => shell.Pages.Content is not MoviePilotSubscriptionsPage);
             Require(shell.Pages.BackStack.All(entry => entry.SourcePageType != typeof(MoviePilotSubscriptionsPage))
                 && shell.Pages.ForwardStack.All(entry => entry.SourcePageType != typeof(MoviePilotSubscriptionsPage)),

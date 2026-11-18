@@ -23,6 +23,8 @@ internal sealed class HomeOrderFixture : IDisposable
     public MoviePilotService Service { get; }
     public EmbySession Session { get; }
     public EmbySessionScope Source { get; }
+    /// <summary>聚合模式那一档多出来的一条在线来源；默认夹具只有一条。</summary>
+    public EmbySessionScope? SecondSource { get; }
     public ServerCapabilities Capabilities { get; }
     public object Vm { get; }
     public object Table { get; }
@@ -32,7 +34,7 @@ internal sealed class HomeOrderFixture : IDisposable
     public IReadOnlyList<HomeRowSetting> Saved { get; }
     public static ShellRuntime Runtime => ShellRuntime.Current;
 
-    public HomeOrderFixture()
+    public HomeOrderFixture(bool secondSource = false)
     {
         Settings.Settings.MoviePilot.Url = "https://homeorder-fixture.invalid:3001";
         Settings.Settings.MoviePilot.Username = "anonymous-fixture";
@@ -45,17 +47,23 @@ internal sealed class HomeOrderFixture : IDisposable
             [Settings.Settings, new SettingsStore(paths, protector), new CredentialVault(protector),
                 new DeviceIdentity("homeorder-fixture", "offline", "offline", "1"), _rejectMedia], null)!;
         var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(Session)!;
-        var connection = new EmbyConnection(new Uri("https://homeorder-media.invalid/emby/"), "",
-            "anonymous-user", "anonymous-user", "anonymous-server", DeviceIdentity.Create("homeorder", "1"));
-        var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
-        var identity = Activator.CreateInstance(identityType, Members, null,
-            [new EmbyClient(http, connection), new ServerProfile { Id = "homeorder" }, new AccountProfile { Id = "anonymous" }], null)!;
-        Source = (EmbySessionScope)Activator.CreateInstance(typeof(EmbySessionScope), Members, null, [Session, identity], null)!;
-        ((Dictionary<string, EmbySessionScope>)typeof(EmbySession).GetField("_sources", Members)!.GetValue(Session)!).Add(Source.Key, Source);
+        Source = CreateScope(http, "homeorder", "anonymous", "anonymous-user");
+        var sources = (Dictionary<string, EmbySessionScope>)typeof(EmbySession).GetField("_sources", Members)!.GetValue(Session)!;
+        sources.Add(Source.Key, Source);
+        if (secondSource)
+        {
+            SecondSource = CreateScope(http, "homeorder2", "second", "second-user");
+            sources.Add(SecondSource.Key, SecondSource);
+        }
         typeof(EmbySession).GetField("_current", Members)!.SetValue(Session, Source);
         Capabilities = new ServerCapabilities(Session);
-        var library = Source.Bind(new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder });
-        var plan = HomeLayout.Plan(null, [library]).ToList();
+        var libraries = new List<EmbyItem>
+        {
+            Source.Bind(new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder })
+        };
+        if (SecondSource is not null)
+            libraries.Add(SecondSource.Bind(new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder }));
+        var plan = HomeLayout.Plan(null, libraries).ToList();
         var series = plan.Single(row => row.Key == HomeLayout.MoviePilotSeries);
         plan.Remove(series);
         plan.Insert(0, series with { Visible = false });
@@ -113,6 +121,17 @@ internal sealed class HomeOrderFixture : IDisposable
         Assert.True(ReferenceEquals(Sections, Runtime.List(Vm, "Sections")), "缓存分类集合不能重建");
         Assert.True(HomeLayout.Same(Saved, HomeLayout.Plan(Settings.Settings.Ui.HomeRows, null)), "显隐不能删除或改写原次序/勾选");
         Assert.Equal(0, Settings.Writes, "装表/显隐/重入均不得保存设置");
+    }
+
+    /// <summary>一条匿名在线来源：连接、身份与来源键都齐，HTTP 仍由 <see cref="RejectReads"/> 拒绝。</summary>
+    private EmbySessionScope CreateScope(EmbyHttp http, string serverId, string accountId, string userName)
+    {
+        var connection = new EmbyConnection(new Uri($"https://{serverId}-media.invalid/emby/"), "",
+            userName, userName, $"{serverId}-server", DeviceIdentity.Create(serverId, "1"));
+        var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
+        var identity = Activator.CreateInstance(identityType, Members, null,
+            [new EmbyClient(http, connection), new ServerProfile { Id = serverId }, new AccountProfile { Id = accountId }], null)!;
+        return (EmbySessionScope)Activator.CreateInstance(typeof(EmbySessionScope), Members, null, [Session, identity], null)!;
     }
 
     public void Dispose()

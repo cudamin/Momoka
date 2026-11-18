@@ -252,6 +252,65 @@ internal static class AggregateQueryTests
                 "两个影视来源在线时主页仍要写账号用户名");
         });
 
+        Test("媒体库顺序表：聚合多账号时库排前面写账号用户名，固定排与存档标题不动", () =>
+        {
+            var first = Scope("a", "user");
+            var second = Scope("b", "other");
+            var music = MusicScope("m", "listener");
+            var firstKey = HomeLayout.LibraryKey(first.Bind(new EmbyItem { Id = "same", Name = "电影" }));
+            var secondKey = HomeLayout.LibraryKey(second.Bind(new EmbyItem { Id = "same", Name = "电影" }));
+            var awayKey = HomeLayout.LibraryKey(Scope("c", "away").Bind(new EmbyItem { Id = "same", Name = "电影" }));
+
+            Assert.Equal("user · 最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first, second]));
+            Assert.Equal("other · 最近添加 · 电影", HomeLayout.Caption(secondKey, "最近添加 · 电影", [first, second]));
+
+            // 一个影视来源不写；外加几座飞牛音乐也不写（与主页同一判据）。
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first, music]));
+
+            // 固定排没有来源；不在线的来源、旧版无来源钥匙和空来源表都原样交回标题。
+            Assert.Equal("继续观看", HomeLayout.Caption(HomeLayout.Resume, "继续观看", [first, second]));
+            Assert.Equal("媒体库", HomeLayout.Caption(HomeLayout.Libraries, "媒体库", [first, second]));
+            Assert.Equal("订阅·电影", HomeLayout.Caption(HomeLayout.MoviePilotMovies, "订阅·电影", [first, second]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(awayKey, "最近添加 · 电影", [first, second]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption("library:same", "最近添加 · 电影", [first, second]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", null));
+
+            // 前缀只在屏上：调用方存回设置的仍是传进来的原句，钥匙本身也没有被改写。
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first, second]).Split(" · ", 2)[1]);
+            Assert.Equal(HomeLayout.LibraryKey(first.Bind(new EmbyItem { Id = "same", Name = "电影" })), firstKey);
+        });
+
+        Test("侧栏顺序：固定排不进栏，订阅与库排同一份次序、勾选不影响入口", () =>
+        {
+            var first = Scope("a", "user").Bind(new EmbyItem { Id = "movies", Name = "电影" });
+            var second = Scope("b", "other").Bind(new EmbyItem { Id = "shows", Name = "电视剧" });
+            var firstKey = HomeLayout.LibraryKey(first);
+            var secondKey = HomeLayout.LibraryKey(second);
+            var plan = HomeLayout.Plan(null, [first, second]).ToList();
+            var order = HomeLayout.SidebarOrder(plan, [firstKey, secondKey]);
+
+            // 继续观看、媒体库、接下来看是主页的货架，不进栏；两条订阅在出厂次序里补在库后面。
+            Assert.Equal($"{firstKey},{secondKey},{HomeLayout.MoviePilotMovies},{HomeLayout.MoviePilotSeries}",
+                string.Join(',', order));
+
+            // 用户把「订阅·电影」拖到最前、把电影库勾掉：栏里订阅排第一，勾掉的库仍有入口 ——
+            // 那一列管的是主页显不显示，侧栏不该跟着少一行。
+            var movie = plan.Single(row => row.Key == HomeLayout.MoviePilotMovies);
+            plan.Remove(movie);
+            plan.Insert(0, movie);
+            plan = [.. plan.Select(row => row.Key == firstKey ? row with { Visible = false } : row)];
+            order = HomeLayout.SidebarOrder(plan, [firstKey, secondKey]);
+            Assert.Equal($"{HomeLayout.MoviePilotMovies},{firstKey},{secondKey},{HomeLayout.MoviePilotSeries}",
+                string.Join(',', order));
+
+            // 版面里没有的库（这一跑刚读出来、设置文件还没写回去）补在末尾，入口不会悄悄消失。
+            var thirdKey = HomeLayout.LibraryKey(Scope("c", "third").Bind(new EmbyItem { Id = "music", Name = "音乐" }));
+            order = HomeLayout.SidebarOrder(plan, [firstKey, secondKey, thirdKey]);
+            Assert.Equal(5, order.Count);
+            Assert.Equal(thirdKey, order[^1]);
+        });
+
         Test("聚合主页：移除来源文字仍保留独立货架、排列和勾选", () =>
         {
             var first = Scope("a", "user").Bind(new EmbyItem { Id = "same", Name = "电影" });

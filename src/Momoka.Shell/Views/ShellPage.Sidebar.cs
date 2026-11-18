@@ -98,6 +98,9 @@ public sealed partial class ShellPage
         // 宽度偏好也可能单独改过（导入设置）。先钉回 NavigationView；真变了才重排，没变就让原来的路径收尾。
         var before = Sidebar.OpenPaneLength;
         ApplyPreferredSidebarWidth();
+        // 主页版面（媒体库顺序）也决定栏里那一段的次序（2026-11-18 用户令「订阅按照媒体库顺序排序」）：
+        // 设置页拖完一行，栏跟着重排。次序没变时 Rebuild 自己会退出来，不会白闪一下。
+        RebuildSidebarLibraries();
         if (_sidebarMode == !ui.EnableImmersive)
         {
             if (Math.Abs(before - Sidebar.OpenPaneLength) > 0.01) ApplySidebarLayout();
@@ -292,18 +295,11 @@ public sealed partial class ShellPage
 
         // MoviePilot 的两条订阅入口跟着服务可用性走：开关已开且本进程真的连得上才算可用。收起只收入口，
         // 不删订阅也不解除防重状态；条件恢复后它们照原样回来（同 momoka-moviepilot 的入口显隐）。
-        // 那条「订阅」分区标题跟两条入口同进同退 —— 段里一条都不剩时留着一条光标题就是空带子。
-        //
-        // 它和「媒体库」那条标题用的是同一套机制（翻 Visibility），所以也带着同一个框架脾气：分区标题的
-        // 内容可见性是 NavigationView 按面板模式在**实现那一刻**算的，标题在栏收着（56 宽）的时候翻成
-        // Visible，之后把栏展开也不回头补 —— 标题占着位置、一个字不画（2026-10-13 晚实测）。应用里那条
-        // 路是「窗宽那一拍先把栏开起来、MoviePilot 的可用性随后才到」，所以不踩；**窄窗启动（栏收着）
-        // 再拉宽**那一档会踩，而「媒体库」那条标题自始就是这个脾气（它的内容一样是框架按模式收放的）。
-        // 这一档记在 PROGRESS 里，没有为它单独加一层「展开时把标题重新实现一遍」的机制。
+        // 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：订阅不再单独成段，两条入口
+        // 跟库项排在同一张名单里（见 RebuildSidebarLibraries），这里只翻它们自己的显隐 —— 没有分区标题要跟着收。
         var moviePilot = _moviePilotService?.Available == true;
         SidebarMoviePilotMovies.Visibility = moviePilot ? Visibility.Visible : Visibility.Collapsed;
         SidebarMoviePilotSeries.Visibility = moviePilot ? Visibility.Visible : Visibility.Collapsed;
-        SidebarSubscriptionsHeader.Visibility = moviePilot ? Visibility.Visible : Visibility.Collapsed;
 
         // 账号那一组现在是 Root 的孩子（它要能落在左下角，也要能回标题栏右上角），播放时 Chrome 收着而它
         // 不会跟着收 —— 所以这里按外壳在不在屏上把它一起收掉。
@@ -513,13 +509,23 @@ public sealed partial class ShellPage
     private bool ShowsAccountNames => _session is { IsSignedIn: true } session && session.Sources.Count > 1;
 
     /// <summary>
-    /// 把当前账号的媒体库那几项填进栏里。**插在「媒体库」那条分区标题之后**，不是往栏尾加 ——
-    /// 栏尾自 2026-10-13 起站着「订阅」那一段（两条 MoviePilot 入口），往尾上添会把媒体库塞进订阅段里，
-    /// 而用户要的是两段各归各的（见 ShellPage.xaml 里那两条标题上方的注释）。声明顺序本来就是
-    /// 「媒体库标题 → 订阅标题 → 两条订阅入口」，所以插在标题后一位、按库的次序往后排即可。
+    /// 把媒体库那几项和两条订阅填进栏里，**插在「媒体库」那条分区标题之后**。次序取
+    /// <see cref="SidebarRowOrder"/> —— 就是设置 → 主页版面 →「媒体库顺序」那一份。
+    /// <para>
+    /// 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：从前订阅两条是栏尾单独一段，
+    /// 栏里因此有「媒体库 → 订阅」两条标题；现在只有库项与订阅同排的一张名单，订阅在哪一行由 <c>HomeRows</c>
+    /// 的顺序说了算。两条订阅控件仍是 XAML 里那两颗，这里每次先摘下来再跟着库项插回去，图标、AutomationId 与
+    /// 选中高亮都不必重建。
+    /// </para>
     /// </summary>
     private void RebuildSidebarLibraries()
     {
+        var order = SidebarRowOrder();
+
+        // 名单、次序和屏上那句库名都没变时不动：设置页拖一下排序也会走到这里，而重插是一记 Remove/Insert，
+        // 正看着的那一项会闪一下。
+        if (SidebarRowsMatch(order)) return;
+
         HideLibraryPreview();
         _previewDwells.Clear();
         foreach (var item in _sidebarLibraries.Values)
@@ -528,14 +534,25 @@ public sealed partial class ShellPage
             _sidebarIcons.Remove(item);
         }
         _sidebarLibraries.Clear();
+        Sidebar.MenuItems.Remove(SidebarMoviePilotMovies);
+        Sidebar.MenuItems.Remove(SidebarMoviePilotSeries);
+
         var at = Sidebar.MenuItems.IndexOf(SidebarLibrariesHeader) + 1;
-        foreach (var (tag, library) in _libraries)
+        foreach (var key in order)
         {
-            var label = SourceCaption.Prefix(library.Title, library.Source, ShowsAccountNames);
+            if (HomeLayout.IsMoviePilot(key))
+            {
+                Sidebar.MenuItems.Insert(at++, key == HomeLayout.MoviePilotMovies
+                    ? SidebarMoviePilotMovies : SidebarMoviePilotSeries);
+                continue;
+            }
+            if (!_libraries.TryGetValue(key, out var library)) continue;
+
+            var label = SidebarLibraryLabel(library);
             var item = new NavigationViewItem
             {
                 Content = label,
-                Tag = tag
+                Tag = key
             };
             RegisterSidebarLibraryIcon(item, library.CollectionType);
             // 图标栏这一档不再让框架自己弹一颗「库名」提示：指针停半秒后展开的预览面板标题写的就是同一个名字，
@@ -555,10 +572,42 @@ public sealed partial class ShellPage
             item.AddHandler(PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnSidebarLibraryPointerMoved), true);
             _previewDwells.Add(item, new PosterHoverDwell());
             Sidebar.MenuItems.Insert(at++, item);
-            _sidebarLibraries.Add(tag, item);
+            _sidebarLibraries.Add(key, item);
         }
         SidebarLibrariesHeader.Visibility = _sidebarLibraries.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         SyncSidebar();
+    }
+
+    /// <summary>
+    /// 栏里「媒体库 + 订阅」这一段的次序（见 <see cref="HomeLayout.SidebarOrder"/>）：与设置 → 主页版面 →
+    /// 「媒体库顺序」同一份名单，新库照旧补在末尾。
+    /// </summary>
+    private IReadOnlyList<string> SidebarRowOrder() => HomeLayout.SidebarOrder(
+        HomeLayout.Plan(_settings?.Settings.Ui.HomeRows, _libraryViews),
+        _libraries.Keys);
+
+    /// <summary>栏里那一行库写什么字：聚合多账号时带账号用户名（见 <see cref="SourceCaption.Prefix"/>）。</summary>
+    private string SidebarLibraryLabel(LibraryRequest library) =>
+        SourceCaption.Prefix(library.Title, library.Source, ShowsAccountNames);
+
+    /// <summary>
+    /// 栏里那一段此刻是不是已经是 <paramref name="order"/> 这个样子 —— 连屏上那句库名一起比。
+    /// 是就不重插，省掉看得见的一闪（见 <see cref="RebuildSidebarLibraries"/>）。
+    /// </summary>
+    private bool SidebarRowsMatch(IReadOnlyList<string> order)
+    {
+        var existing = Sidebar.MenuItems.OfType<NavigationViewItem>()
+            .Where(item => item.Tag is string tag && (HomeLayout.IsMoviePilot(tag) || _libraries.ContainsKey(tag)))
+            .ToArray();
+        if (existing.Length != order.Count || _sidebarLibraries.Count != _libraries.Count) return false;
+
+        for (var index = 0; index < order.Count; index++)
+        {
+            if (!string.Equals(existing[index].Tag as string, order[index], StringComparison.Ordinal)) return false;
+            if (_libraries.TryGetValue(order[index], out var library)
+                && !Equals(existing[index].Content, SidebarLibraryLabel(library))) return false;
+        }
+        return true;
     }
 
     private void OnSidebarItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)

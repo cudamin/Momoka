@@ -1935,12 +1935,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IReadOnlyList<SettingSection> HomeSections()
     {
         var ui = Settings.Ui;
-        var plan = CurrentHomeRows();
 
         HomeRows = new SettingHomeLayoutRow(
             "媒体库顺序",
             HomeRowsNote(ui),
-            plan.Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible, IsPinnedHomeRow(ui, row.Key))),
+            CurrentHomeChoices(),
             rows =>
             {
                 // 来源切换与刷新之间，旧列表也可能交来一次编辑；只接收此刻仍适用的键。
@@ -1951,6 +1950,10 @@ public sealed partial class SettingsViewModel : PageViewModel
                         .Select(row => new Emby.HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray()));
 
                 Save();
+                // 侧边栏里「媒体库 + 订阅」那一段也照这张表排（2026-11-18 用户令「订阅按照媒体库顺序排序」）：
+                // 单独喊一声 SidebarChanged，让外壳按新次序重排栏里的条目。Apply 那一根是给主页重新查询的，
+                // 外壳不订阅它，搭不上这趟车。
+                ShellPrefs.ApplySidebar(ui);
                 ShellPrefs.Apply(ui);
             });
 
@@ -2116,6 +2119,25 @@ public sealed partial class SettingsViewModel : PageViewModel
         _moviePilot?.Available == true,
         aggregateMode: Settings.AggregateMode);
 
+    /// <summary>
+    /// 排序表这一份：哪几排、什么标题、勾没勾、钉没钉。屏上那句另存一份 <see cref="HomeRowChoice.Caption"/> ——
+    /// 聚合模式多账号时库排前面写账号用户名（<see cref="Emby.HomeLayout.Caption"/>），拖拽与勾选写回设置文件的
+    /// 仍是不带前缀的库名。两处造表（首次建卡与来源变化后重填）共用这一份，判定不会各说各话。
+    /// </summary>
+    private IReadOnlyList<HomeRowChoice> CurrentHomeChoices()
+    {
+        // 与主页 ShowAccountNames 取同一份来源（会话里的全部在线来源）：这里按 IsAvailable 先筛一遍，
+        // 撤销中的来源会让「主页写用户名、设置表不写」在同一刻出现两种字。
+        var sources = _capabilities?.Sources.Select(source => source.Scope).ToArray() ?? [];
+
+        return [.. CurrentHomeRows().Select(row => new HomeRowChoice(
+            row.Key,
+            row.Title,
+            row.Visible,
+            IsPinnedHomeRow(Settings.Ui, row.Key),
+            Emby.HomeLayout.Caption(row.Key, row.Title, sources)))];
+    }
+
     internal void RefreshHomeRows()
     {
         if (_settings is null || HomeRows is null) return;
@@ -2126,16 +2148,16 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 把这一页摆到前面时会再喊一次。
         if (!string.Equals(SelectedCategory, FirstCardCategory, StringComparison.Ordinal)) return;
 
-        var wanted = CurrentHomeRows()
-            .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible, IsPinnedHomeRow(Settings.Ui, row.Key)))
-            .ToList();
+        var wanted = CurrentHomeChoices().ToList();
 
         // 名单没变就别重填。重填是一记 Reset，会把这一页上正看着的容器整批拆了重建 —— 而「切回主页」这一次
         // 调用绝大多数时候名单就是一个没变（见 ShowCategory），白拆一遍只会把切分类那点动效搅乱。固定项也算
-        // 「名单变了」：轮播开关一拨，那一排的箭头和把手要跟着锁上或放开。
+        // 「名单变了」：轮播开关一拨，那一排的箭头和把手要跟着锁上或放开；账号名也算 —— 聚合开关一拨，
+        // 那几排的库名前面要添上或去掉用户名，不重建就还是上一份的字。
         if (HomeRows.Rows.Count == wanted.Count
             && HomeRows.Rows.Zip(wanted).All(pair => pair.First.Key == pair.Second.Key
                 && pair.First.Title == pair.Second.Title
+                && pair.First.Caption == pair.Second.Caption
                 && pair.First.Visible == pair.Second.Visible
                 && pair.First.Pinned == pair.Second.Pinned))
         {
@@ -2205,7 +2227,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         return (ok, $"表里 {keys.Count} 排、当前可用 {saved.Count} 排"
             + $"：{(keys.Count == 0 ? "无" : string.Join('、', row.Rows.Select(choice =>
-                $"{choice.Title}{(choice.Visible ? "✓" : "✗")}")))}");
+                $"{choice.Caption}{(choice.Visible ? "✓" : "✗")}")))}");
     }
 
     private SettingSection InterfaceCard()
@@ -3084,6 +3106,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         var ui = Settings.Ui;
         ThemeHost.Apply(ui);
+        // 侧边栏「媒体库 + 订阅」那一段的次序也来自这份设置：导入或恢复默认之后要让外壳重排一次。
+        ShellPrefs.ApplySidebar(ui);
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyTrailers(Settings.Trailer);
         ShellPrefs.ApplyProxy(Settings.Network);

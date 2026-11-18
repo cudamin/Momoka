@@ -1114,13 +1114,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <CheckBox
-                                            AutomationProperties.Name="{x:Bind Title}"
+                                            AutomationProperties.Name="{x:Bind Caption}"
                                             IsChecked="{x:Bind Visible, Mode=TwoWay}"
                                             MinWidth="0" />
 
                                         <TextBlock
                                             Grid.Column="1"
-                                            Text="{x:Bind Title}"
+                                            Text="{x:Bind Caption}"
                                             VerticalAlignment="Center" />
 
                                         <!-- 换次序那两颗。到顶的「上移」和到底的「下移」置灰（CanUp/CanDown）：

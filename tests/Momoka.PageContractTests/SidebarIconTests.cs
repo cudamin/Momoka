@@ -129,6 +129,25 @@ internal static class SidebarIconTests
             Assert.Contains("forwardGlyph.Width == (_sidebarMode ? 20 : 26)", selfCheck);
             Assert.Contains("NavToggleButton.Content is Viewbox { Width: 20, Height: 20 }", selfCheck);
         });
+        Test("侧栏订阅与库项同排，没有单独的分区标题", () =>
+        {
+            // 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：XAML 里只剩「媒体库」
+            // 一条分区标题，两条订阅由 RebuildSidebarLibraries 按 HomeLayout.SidebarOrder 插回去。
+            var page = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml"));
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var names = page.Descendants().Select(element => (string?)element.Attribute(xaml + "Name")).ToArray();
+            Assert.True(names.Contains("SidebarLibrariesHeader"), "媒体库分区标题不见了");
+            Assert.False(names.Contains("SidebarSubscriptionsHeader"), "侧栏仍有订阅分区标题");
+            var headers = page.Descendants().Where(element => element.Name.LocalName == "NavigationViewItemHeader")
+                .Select(element => (string?)element.Attribute("Content")).ToArray();
+            Assert.Equal("媒体库", string.Join(',', headers));
+
+            var source = Read("ShellPage.Sidebar.cs");
+            Assert.Contains("HomeLayout.SidebarOrder(", source);
+            Assert.Contains("Sidebar.MenuItems.Remove(SidebarMoviePilotMovies);", source);
+            Assert.Contains("Sidebar.MenuItems.Insert(at++, key == HomeLayout.MoviePilotMovies", source);
+            Assert.DoesNotContain("SidebarSubscriptionsHeader", source);
+        });
     }
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", file));

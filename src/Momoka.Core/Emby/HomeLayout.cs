@@ -61,7 +61,12 @@ public static class HomeLayout
         ? $"{ScopedLibraryPrefix}{Uri.EscapeDataString(source.Key)}:{Uri.EscapeDataString(library.Id)}"
         : LibraryKey(library.Id);
 
-    private static string? LibrarySourceKey(string key) => key.StartsWith(ScopedLibraryPrefix, StringComparison.Ordinal)
+    /// <summary>
+    /// 这把库钥匙属于哪个来源（<see cref="EmbySessionScope.Key"/>）；不是带来源的库钥匙就是 <see langword="null"/>。
+    /// 设置表的账号名前缀与 <see cref="Plan"/> 的来源迁移共用这一份拆法。
+    /// </summary>
+    public static string? LibrarySourceKey(string? key) => key is not null
+        && key.StartsWith(ScopedLibraryPrefix, StringComparison.Ordinal)
         && key.LastIndexOf(':') > ScopedLibraryPrefix.Length
             ? Uri.UnescapeDataString(key[ScopedLibraryPrefix.Length..key.LastIndexOf(':')]) : null;
 
@@ -148,6 +153,25 @@ public static class HomeLayout
 
     /// <summary>这一排的标题带不带「最近添加」—— 飞牛不带，其余服务器带（见 <see cref="LibraryTitle"/>）。</summary>
     public static bool ShowsRecentPrefix(EmbyItem library) => library.Source?.Connection.IsFnNas != true;
+
+    /// <summary>
+    /// 设置 → 主页版面 →「媒体库顺序」表里这一排此刻该写什么。聚合模式多账号时库排的标题前面要跟主页一样
+    /// 写账号用户名（2026-11-18 用户令「开启聚合模式时这个地方的前面也要显示用户名」）：两个账号都有「电影」
+    /// 库时，光看两行「最近添加 · 电影」分不出哪个是哪个，而这张表正是给它们排次序和开关的地方。
+    /// <para>
+    /// 判定与主页共用 <see cref="SourceCaption.ShowsAccountNames"/>：一个影视来源（哪怕还连着飞牛音乐）时
+    /// 仍只写库名。盘上的标题不带头缀 —— 前缀只是屏上的字，拖拽和勾选写回设置的仍是 <paramref name="title"/>。
+    /// </para>
+    /// </summary>
+    public static string Caption(string key, string title, IReadOnlyList<EmbySessionScope>? sources)
+    {
+        if (sources is null || !SourceCaption.ShowsAccountNames(sources)) return title;
+
+        var source = LibrarySourceKey(key) is { } sourceKey
+            ? sources.FirstOrDefault(candidate => string.Equals(candidate.Key, sourceKey, StringComparison.Ordinal))
+            : null;
+        return SourceCaption.Prefix(title, source);
+    }
 
     /// <summary>
     /// 这一次主页该排哪几排。存档里那份顺序说了算，剩下的按默认次序补在后面。
@@ -270,6 +294,28 @@ public static class HomeLayout
             && (LibraryId(row.Key) is null
                 || sources.Count > 0 && (LibrarySourceKey(row.Key) is not { } source || sources.Contains(source))))
             .ToArray();
+    }
+
+    /// <summary>
+    /// 侧边栏「媒体库 + 订阅」那一段的次序（2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」）：
+    /// 取主页版面那一份名单，只留下库排与两条订阅 —— 继续观看、媒体库、接下来看是主页的货架，不是栏里的入口。
+    /// 勾没勾不影响这里：那一列管的是主页显不显示，栏里的入口一直都在。
+    /// <para>
+    /// 版面里没有的库（这一跑读出目录、设置文件还没写回去）按 <paramref name="libraryKeys"/> 的次序补在末尾，
+    /// 和 <see cref="Plan"/> 对「服务器上新加的库」的处置一致：入口不该悄悄消失。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> SidebarOrder(IEnumerable<HomeRowPlan> plan, IEnumerable<string> libraryKeys)
+    {
+        var libraries = libraryKeys.ToHashSet(StringComparer.Ordinal);
+        var order = new List<string>(libraries.Count + 2);
+        foreach (var row in plan)
+            if (IsMoviePilot(row.Key) || libraries.Contains(row.Key)) order.Add(row.Key);
+
+        foreach (var key in libraries)
+            if (!order.Contains(key)) order.Add(key);
+
+        return order;
     }
 
     /// <summary>只替换本次编辑的行；暂时不可用的订阅和其它来源的媒体库保留原位置和勾选状态。</summary>

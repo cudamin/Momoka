@@ -1,3 +1,33 @@
+## 2026-11-18 侧边栏去掉「订阅」分区，订阅按「媒体库顺序」排列（临时分支，待合并）
+
+用户附侧边栏截图一句：「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」。
+
+**改了什么。** 栏里那条「订阅」分区标题删掉，两条 MoviePilot 订阅入口不再单独成段：它们跟各媒体库项排进同一张名单，次序就是设置 → 主页版面 →「媒体库顺序」那一份。Core 新增 `HomeLayout.SidebarOrder`（纯函数）：取主页版面，只留库排与两条订阅，固定排（继续观看、媒体库、接下来看）不进栏；版面里没有的库按目录次序补在末尾。勾没勾不影响栏 —— 那一列管的是主页显不显示，入口一直都在。`RebuildSidebarLibraries` 每次先把两条订阅从 `MenuItems` 摘下来，再按这份次序和库项一起插回「媒体库」标题之后；控件仍是 XAML 里那两颗，图标、AutomationId、选中高亮都不用重建。名单、次序和屏上那句库名都没变时直接返回，不白闪。设置页拖完一行会喊一声 `SidebarChanged`（`ShellPrefs.ApplySidebar`），外壳当场重排；导入/恢复默认也补了这一声。
+
+**测了什么。** Core／`Momoka.Tests`／Shell Release/x64 均 **0 警告 0 错误**；全量 `Momoka.Tests` **5256/5256**、0 失败 0 跳过（新增「侧栏顺序：固定排不进栏，订阅与库排同一份次序、勾选不影响入口」；`Agreements.txt` 按有意退役删掉 `SidebarSubscriptionsHeader` 那一行，`MoviePilotMediaManagementTests` 里盯着「订阅标题真有高度」的旧断言换成新的同段判据）；`browse-identity-fixture` **64/64**；`sidebar-icons-fixture` **21/21**（新增「侧栏订阅与库项同排，没有单独的分区标题」）；`startup-reapply-notice-fixture` **34/34**（顺手修好测试夹具反射 `Notify` 少传两个可选参数导致的既有 2 红，否则这项永远是 32/34）。`--probe-shell --probe-section moviepilot --screen 2` **37 项、34 过、3 红**：本批用例「侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页」**通过**（栏里没有「订阅」标题；把「订阅·电影」拖到第一位后量到它紧跟「媒体库」标题；断线只收两条入口），3 红是像素探针被 Chrome 窗口遮挡（环境）、订阅详情沉浸切换超时（文档记过的既有红）与 `YouTubeSession` 未注册（既有服务注册，和侧栏无交集）。`--probe-shell --probe-section shell --screen 2` **17 项、14 过、3 红**，3 红全是文档记过的 `ScrollView offset=0 / State=Idle` 桌面签名（登录页、侧栏、主页）。`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 干净；`tools/check-diff.ps1` 14 个文本文件通过。
+
+**发布。** 已发布本树 `artifacts/publish/win-x64`（548 文件、290.0 MB，17:59），但桌面 `Momoka-workbuddy-master-f2dbaad8.lnk` 写不进去（`UnauthorizedAccessException`，单独跑 `tools/shortcut.ps1` 同样被拒，沙箱在拦桌面写入）；lnk 仍指向同一个 exe 路径，产物已更新，双击即当前版本，只是链接文件本身没重写。仅体验刷新、不销账。
+
+**没验证的。** 没有真实多库 + MoviePilot 同时在线的实屏：探针夹具不接媒体服务器，截图只有两条订阅入口；库项与订阅真正混排的那一屏留给交付检查（台账第 96 条）。真实服务器上拖排序后栏是否当场跟随，也只在离线夹具里按偏好通知走过一次。
+
+**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `6496404`；未合并 master、未推远端。
+
+## 2026-11-18 聚合模式「媒体库顺序」表在库名前写账号用户名（临时分支，待合并）
+
+用户附设置页「媒体库顺序」截图一句：「开启聚合模式时这个地方的前面也要显示用户名」。
+
+**改了什么。** 设置 → 主页版面 →「媒体库顺序」那一张表在聚合多账号时，库排标题跟主页货架一样写成「用户名 · 最近添加 · 库名」；固定排（媒体库、继续观看、订阅·电影／电视剧）没有来源，照旧只写原名。判定复用 Core 新增的 `HomeLayout.Caption`：两个及以上会带来影视库的在线来源才写（`SourceCaption.ShowsAccountNames`），一个影视来源加飞牛音乐不写，和主页同一条规矩。来源键从库钥匙里拆（`HomeLayout.LibrarySourceKey` 由私有转公开），再按当前在线来源找账号用户名；取来源与主页一样用会话里的全部来源，不先按可用性筛，撤销中的来源不会让两边显示不一致。`docs/多服务器与多账号.md` 同步这一条判据。
+
+**前缀只在屏上。** `HomeRowChoice` 新增 `Caption`，屏上文字与读屏名都读它；拖拽和勾选写回设置文件的仍是 `Title` —— 前缀跟着存档走会在关掉聚合模式后留在标题里、再开时叠一层。`RefreshHomeRows` 的「名单没变就别重填」比较也算上 `Caption`：聚合开关或账号增减时那几排当场换字；自检 `MeasureHomeRows` 报的也是屏上那一句。
+
+**测了什么。** Core／`Momoka.Tests`／Shell Release/x64 均 **0 警告 0 错误**；`browse-identity-fixture` **63/63**（新增「媒体库顺序表：聚合多账号时库排前面写账号用户名，固定排与存档标题不动」：两账号同名库各写自己的用户名、单来源与加飞牛音乐都不写、固定排与离线来源原样交回）；`Momoka.HomeOrderProbeTests` **22/22**（新增「聚合多账号时媒体库顺序表写账号用户名，勾选保存的仍是库名」，夹具可加第二条匿名在线来源；勾选写盘后 `HomeRows` 的标题仍无前缀）；`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 干净。日常界面批次按规矩未跑原生探针与验收截图。
+
+**发布。** 按改好收尾发布本树 `artifacts/publish/win-x64`（548 文件、290.0 MB，17:22），写桌面 `Momoka-workbuddy-master-f2dbaad8.lnk`；本树根缺 `libmpv-2.dll`，发布前从主树复制（未入库）。仅体验刷新、不销账。
+
+**没验证的。** 没在真实多账号服务器上实屏看这张表；待交付台账第 95 条列了交付时要看的几档：两个账号库名各带用户名、固定排不写、一个影视来源加飞牛音乐不写、设置页开着时拨聚合开关当场换字、拖拽或勾选后重开表不叠前缀、深色浅色与宽窄两档。
+
+**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `ca6f1fd`、`a3788d5`，记录 `3e8e58e`、`89c8ac1`；未合并 master、未推远端。
+
 ## 2026-11-18 聚合模式主页「最近添加」滚不到底：竖向货架改非虚拟化（已合并 master）
 
 用户一句「修复聚合模式下主页的最近添加显示不全的问题」，附主页截图：几排卡之后整页空白。

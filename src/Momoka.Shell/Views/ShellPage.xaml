@@ -651,21 +651,19 @@
                     <NavigationViewItem x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
                         <NavigationViewItem.Icon><FontIcon Glyph="&#xEB51;" /></NavigationViewItem.Icon>
                     </NavigationViewItem>
-                    <!-- 两个分区标题（2026-10-13 晚）：媒体库那几项和 MoviePilot 那两条订阅各归一段，订阅段
-                         排在媒体库段下面（用户：「侧边栏展开时新增订阅分区，放在媒体库下面」）。媒体库那几项
-                         是运行时插进来的（见 ShellPage.Sidebar.cs 的 RebuildSidebarLibraries），插在
-                         SidebarLibrariesHeader 之后、SidebarSubscriptionsHeader 之前 —— 所以这两条标题
-                         的先后就是两段的先后，别把订阅标题挪到媒体库标题上面去。
+                    <!-- 分区标题（2026-10-13 晚加、2026-11-18 只留这一条）：媒体库那几项运行时插在它后面
+                         （见 ShellPage.Sidebar.cs 的 RebuildSidebarLibraries）。「订阅」那条标题同日按用户令
+                         「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」删掉 —— 两条订阅入口不再单独成段，
+                         由 RebuildSidebarLibraries 跟库项一起按设置 → 主页版面 →「媒体库顺序」插在下面。
 
-                         分区标题只有栏展开时才画得出字（收成 56 宽的图标栏时框架把标题整条收掉），这正是
-                         「侧边栏展开时新增订阅分区」那一句要的样子。「订阅」这条的可见性跟两条订阅入口
-                         同进同退，见 ShellPage.Sidebar.cs 的 SyncSidebar。 -->
+                         分区标题只有栏展开时才画得出字（收成 56 宽的图标栏时框架把标题整条收掉）。 -->
                     <NavigationViewItemHeader x:Name="SidebarLibrariesHeader" Content="媒体库" Visibility="Collapsed" />
-                    <NavigationViewItemHeader x:Name="SidebarSubscriptionsHeader" Content="订阅" Visibility="Collapsed" />
 
                     <!-- MoviePilot 的两条订阅入口（2026-10-13）：开关没开或连不上时整条收起，判据是
                          MoviePilotService.Available（见 ShellPage.Sidebar.cs 的 SyncSidebar）。Tag 直接
                          用 HomeLayout 那两把钥匙 —— 主页那两排订阅用的是同一对，改名时一处生效。
+                         位置 2026-11-18 起不写死在栏尾：RebuildSidebarLibraries 每次把它们从栏里摘下来，
+                         按「媒体库顺序」跟库项一起插回去（用户令「订阅按照媒体库顺序排序」）。
 
                          图标 2026-10-13 晚照 MoviePilot 网页端复刻：网页端主导航里这两条用的是 Material
                          Design Icons 的 movie-open-outline（场记板）和 television（带底座的电视），见

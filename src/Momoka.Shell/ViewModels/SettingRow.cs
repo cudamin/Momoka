@@ -1156,10 +1156,11 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
 /// </summary>
 public sealed partial class HomeRowChoice : ObservableObject
 {
-    internal HomeRowChoice(string key, string title, bool visible, bool pinned = false)
+    internal HomeRowChoice(string key, string title, bool visible, bool pinned = false, string? caption = null)
     {
         Key = key;
         Title = title;
+        Caption = caption ?? title;
         Pinned = pinned;
 
         // 直接写属性：这一刻 Changed 还是空的（造完才由那一行挂上），所以不会把「装表」当成「用户点了勾」。
@@ -1170,6 +1171,13 @@ public sealed partial class HomeRowChoice : ObservableObject
     public string Key { get; }
 
     public string Title { get; }
+
+    /// <summary>
+    /// 屏上那一句。聚合模式多账号时，库排前面写着账号用户名（<see cref="Momoka.Emby.HomeLayout.Caption"/>）；
+    /// 换次序和勾选写回设置文件的仍是 <see cref="Title"/> —— 前缀只是这一页上的字，不能跟着拖拽写进存档，
+    /// 否则关掉聚合模式后它会留在标题里、再开时还叠一层。
+    /// </summary>
+    public string Caption { get; }
 
     /// <summary>
     /// 固定在第一位：轮播图开着时「媒体库」那一排（2026-10-31 用户令）。它那排摆在第一屏的哪儿由「主页媒体库
