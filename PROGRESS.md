@@ -1,4 +1,4 @@
-## 2026-11-18 音乐歌词：飞牛音乐 lyric/list 与文件标签两条来源（日常批，待统一验证）
+## 2026-11-18 音乐歌词：飞牛音乐 lyric/list 与文件标签两条来源（已合并 master，待统一验证）
 
 用户报「飞牛音乐那边有歌词的，momoka没读取到」，附两窗对比截图：左边飞牛音乐播放页歌词随唱随滚，右边 Momoka 显示「暂无内嵌歌词」。本机 `settings.json` 的 `LastServerId` 指向飞牛音乐账号，确认对比的就是同一台音乐服务器。
 
@@ -8,9 +8,11 @@
 
 **跑过什么。** Core、Shell、`Momoka.Tests`、`Momoka.MusicViewModelTests` Release/x64 均 **0 警告 0 错误**；`fnmusic-fixture` **23/23**（新增来源优先级＋服务端偏移、`preferred`／纯文本兜底／坏时间轴跳过两条）；`music-fixture` **19/19**（新增服务端偏移叠加与负时间夹零）；`Momoka.MusicViewModelTests` **43/43**（新增飞牛音乐连接下先请求 `lyric/list`、随进度高亮、停止清空），均 0 失败 0 跳过。
 
-**未验证。** 协议来自官方 1.1.19 前端产物（`5e884898…` 的 `/lyric/list` 路由、`fd1fcd61…` 的 `I.lyric.list({trackGUID})`、`016b06…` 的 source 枚举与优先级），没有读到真实服务器的歌词内容：保存的会话令牌已过期，临时登录的探测会话被正在运行的飞牛网页会话挤掉。真实曲目能否出歌词要等用户用桌面分支快捷方式复测；本批未播放真实媒体。
+**未验证。** 协议来自官方 1.1.19 前端产物（`5e884898…` 的 `/lyric/list` 路由、`fd1fcd61…` 的 `I.lyric.list({trackGUID})`、`016b06…` 的 source 枚举与优先级），没有读到真实服务器的歌词内容：保存的会话令牌已过期，临时登录的探测会话被正在运行的飞牛网页会话挤掉。真实曲目能否出歌词要等用户用主树 `Momoka.lnk` 复测；本批未播放真实媒体。
 
-**发布。** 已按改好收尾发布 `artifacts\publish\win-x64`（548 文件、290.0 MB，13:42），桌面 `Momoka-fix-momoka-lyric-read-g3pc0d.lnk` 指向本树发布目录；发布脚本同时写出的 `Momoka.lnk` 已还原到主树发布目录。日常批不跑探针、不拍验收截图，待交付项记在台账。
+**发布。** 分支树先按改好收尾发布 `artifacts\publish\win-x64`（548 文件、290.0 MB，13:42）并写 `Momoka-fix-momoka-lyric-read-g3pc0d.lnk`；发布脚本同时写出的 `Momoka.lnk` 已还原到主树发布目录。
+
+**合并。** 2026-11-18 用户令「合并」，在主树 `master` 的 `8144dff` 上以 `--no-ff` 合入本批提交（合并提交 `8f434e8`，无冲突；主树另有 3 个未提交的测试夹具改动，保持原样未纳入）。合并后在最终 master 上复编 Core/Shell 与两个测试项目 Release/x64 **0 警告 0 错误**；`fnmusic-fixture` **23/23**、`music-fixture` **19/19**、`Momoka.MusicViewModelTests` **43/43**，均 0 失败 0 跳过；主树已按改好收尾发布 `artifacts\publish\win-x64`（548 文件、290.0 MB，13:55）并刷新桌面 `Momoka.lnk`，目标与工作目录回读为主树发布目录。日常批不跑探针、不拍验收截图，待交付项记在台账。
 
 ## 2026-11-18 详情页封面返回主页：等目标排好版再起跑（日常批，待统一验证）
 
