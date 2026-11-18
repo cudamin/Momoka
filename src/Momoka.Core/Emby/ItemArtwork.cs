@@ -48,14 +48,15 @@ public readonly record struct ArtworkKind(string ImageType, string Name, double 
 /// <list type="bullet">
 /// <item>徽标 <c>Logo</c> and 横幅图 <c>Banner</c> are name plates — a picture of the title. 「统一改为在剧名
 /// 上方显示徽标」 puts one just above the text title on every detail page (<see cref="Plate"/>).</item>
-/// <item>艺术图 <c>Art</c> is wide artwork with no title on it; it is the hero's second choice
-/// (<see cref="HeroOrder"/>). It stands in the top-right corner of the 电影、剧、集 pages (<see cref="Corner"/>,
-/// 2026-09-12 「给集页面右上角添加艺术图」; 2026-11-07 the 电影 and 剧 pages got it back in 简洁模式,
-/// 2026-11-08 in 沉浸模式 too).</item>
+/// <item>艺术图 <c>Art</c> 是 16:9 的透明片名图（Emby 的 clearart：片名与角色抠图，底是透明的）。
+/// 它摆在详情页右上角那一格（<see cref="Corner"/>，2026-09-12 「给集页面右上角添加艺术图」；
+/// 2026-11-07 电影、剧两页在简洁模式回补，2026-11-08 沉浸档也摆），也是头图的第二档备选
+/// （<see cref="HeroOrder"/>）；但它**不是**轮播的底图 —— 见 <see cref="BannerOrder"/>。</item>
 /// <item>背景图 <c>Backdrop</c> is what the hero wants first; 缩略图 <c>Thumb</c> is what a 16:9 card wants
 /// first (<c>CardItem.PreferWide</c>) and the hero's third choice.</item>
-/// <item>The home page's carousel is the same three wide kinds and nothing else
-/// (<see cref="BannerOrder"/>): it is the full width of the window, which is no place for a poster.</item>
+/// <item>The home page's carousel stands on a scene: 背景图 then 缩略图 and nothing else
+/// (<see cref="BannerOrder"/>). It is the full width of the window, which is no place for a poster, and
+/// no place for 艺术图 either — that one is a transparent title plate.</item>
 /// </list>
 /// <para>
 /// 一个位置一样图 —— 「统一改为在剧名上方显示徽标」定下的规矩。从前那一版把徽标和艺术图合成一个角的两档
@@ -100,17 +101,26 @@ public static class ItemArtwork
         [EmbyImageStore.Backdrop, EmbyImageStore.Art, EmbyImageStore.Thumb, EmbyImageStore.Primary];
 
     /// <summary>
-    /// What the home page's carousel stands on, in preference order: 背景图, then 艺术图, then 缩略图.
+    /// What the home page's carousel stands on, in preference order: 背景图, then 缩略图.
     /// <para>
-    /// The three wide kinds and no 海报 — not even as a last resort, which is the one place this differs from
-    /// <see cref="HeroOrder"/>. The hero's band is a rounded card a third of a page tall, where a 2:3 poster
-    /// cropped to fill still shows the middle of the poster; the carousel is the full width of the window,
-    /// where the same crop is a band across somebody's chin. An item with none of the three does not become
-    /// a slide at all (<see cref="HomeCarousel.Slides"/>), which is a better outcome than a stretched poster.
+    /// 艺术图不在这张单子上，虽然它也是 16:9 的宽图（2026-11-18 用户看着主页问「艺术图怎么跑轮播图上了」）：
+    /// Emby 的 <c>Art</c> 是 clearart —— 一张底透明的片名图，上面印着片方自己的字、旁边是角色抠图，本来就是
+    /// 拿来压在背景图上的。轮播那条带是整窗宽、`UniformToFill` 铺满的，透明底解码成黑色之后，屏上就是
+    /// 一条黑带加一行巨大的英文片名，正压在带子自己的中文标题和简介上（`BannerPictureLoader` 用
+    /// <c>BitmapAlphaMode.Ignore</c>，透明像素直接变黑）。它的位置是详情页右上角那一格
+    /// （<see cref="Corner"/>），不是这里。
+    /// </para>
+    /// <para>
+    /// The two scene-like wide kinds and no 海报 — not even as a last resort, which is the one place this
+    /// differs from <see cref="HeroOrder"/>. The hero's band is a rounded card a third of a page tall, where a
+    /// 2:3 poster cropped to fill still shows the middle of the poster; the carousel is the full width of the
+    /// window, where the same crop is a band across somebody's chin. An item with neither does not become
+    /// a slide at all (<see cref="HomeCarousel.Slides"/>), which is a better outcome than a stretched poster
+    /// or a title plate stretched into one.
     /// </para>
     /// </summary>
     public static readonly IReadOnlyList<string> BannerOrder =
-        [EmbyImageStore.Backdrop, EmbyImageStore.Art, EmbyImageStore.Thumb];
+        [EmbyImageStore.Backdrop, EmbyImageStore.Thumb];
 
     /// <summary>
     /// 剧名上方那一枚徽标（横幅图是它的备选），服务器两种都没有就是 null —— 那一格空着，片名那一行照旧把名字

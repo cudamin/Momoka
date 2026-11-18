@@ -117,9 +117,11 @@ internal static partial class ItemArtworkTests
                 "同一种图不能同时当名牌和背景");
 
             // 主页轮播 is the same band again — the 徽标 sits on top of the picture — so the same must hold
-            // there. 海报 absent is the whole difference from HeroOrder, and it is the point of the list.
+            // there. 海报 absent is half the difference from HeroOrder; 艺术图 absent is the other half —
+            // it is a transparent title plate, and stretching it across the band paints a black bar with a
+            // giant logo over the band's own title and synopsis (2026-11-18).
             Assert.Equal(
-                $"{EmbyImageStore.Backdrop},{EmbyImageStore.Art},{EmbyImageStore.Thumb}",
+                $"{EmbyImageStore.Backdrop},{EmbyImageStore.Thumb}",
                 string.Join(',', ItemArtwork.BannerOrder));
 
             Assert.False(ItemArtwork.PlateOrder.Intersect(ItemArtwork.BannerOrder).Any(),
@@ -368,13 +370,19 @@ internal static partial class ItemArtworkTests
             Assert.Equal("bd", banner.Value.Tag);
         });
 
-        Test("图片：没有背景图时轮播用艺术图，再退到缩略图", () =>
+        Test("图片：没有背景图时轮播退到缩略图，艺术图不当底图", () =>
         {
-            var art = Item("film3", (EmbyImageStore.Art, "a"), (EmbyImageStore.Thumb, "t"));
-            Assert.Equal(EmbyImageStore.Art, ItemArtwork.Banner(art)!.Value.ImageType);
+            // 艺术图是透明片名图：铺到整窗宽的轮播带上就是一条黑带加一行巨大的片名，压着带子自己的
+            // 标题和简介（2026-11-18 用户报「艺术图怎么跑轮播图上了」）。它只归详情页右上角。
+            var artOnly = Item("film3", (EmbyImageStore.Art, "a"));
+            Assert.Null(ItemArtwork.Banner(artOnly));
 
             var thumb = Item("film4", (EmbyImageStore.Thumb, "t"));
             Assert.Equal(EmbyImageStore.Thumb, ItemArtwork.Banner(thumb)!.Value.ImageType);
+
+            // 两样都有时也不拿艺术图顶上去。
+            var both = Item("film3b", (EmbyImageStore.Art, "a"), (EmbyImageStore.Thumb, "t"));
+            Assert.Equal(EmbyImageStore.Thumb, ItemArtwork.Banner(both)!.Value.ImageType);
         });
 
         Test("图片：只有海报的条目上不了轮播", () =>
