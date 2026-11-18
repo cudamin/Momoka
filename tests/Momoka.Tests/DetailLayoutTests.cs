@@ -211,19 +211,19 @@ internal static class DetailLayoutTests
             Assert.Equal(16d, DetailHero.StorePreviewRightMargin(0, 0));
         });
 
-        Test("商店尾部下限：下方卡片排在剧照、预告控制与右沿空隙之后", () =>
+        Test("商店尾部下限：下方卡片排在剧照与右沿空隙之后，不再替预告控制排让位", () =>
         {
             // 内容高过画面：一个像素都不多占。
-            Assert.Equal(0d, DetailHero.StoreTailHeight(418, 520, 0, 16));
+            Assert.Equal(0d, DetailHero.StoreTailHeight(418, 520, 16));
             // 内容比画面矮：差额补在尾部，卡片从画面和 16 的空隙下面开始。
-            Assert.Equal(34d, DetailHero.StoreTailHeight(418, 400, 0, 16));
-            // 有预告片时把暂停/静音那排 72 也让出来。
-            Assert.Equal(106d, DetailHero.StoreTailHeight(418, 400, 72, 16));
+            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位」：控制排进了画框，尾部只剩画面与空隙两项 ——
+            // 从前「预告在播」还要再加 72，现在这一支根本没有那个输入，同一组数不会再被预告推下去。
+            Assert.Equal(34d, DetailHero.StoreTailHeight(418, 400, 16));
             // 没有画面、尺寸还没量到或坏数：不撑。
-            Assert.Equal(0d, DetailHero.StoreTailHeight(0, 400, 0, 16));
-            Assert.Equal(0d, DetailHero.StoreTailHeight(double.NaN, 400, 0, 16));
+            Assert.Equal(0d, DetailHero.StoreTailHeight(0, 400, 16));
+            Assert.Equal(0d, DetailHero.StoreTailHeight(double.NaN, 400, 16));
             // 头图比画面还高时也不会是负数。
-            Assert.Equal(0d, DetailHero.StoreTailHeight(300, 900, 0, 16));
+            Assert.Equal(0d, DetailHero.StoreTailHeight(300, 900, 16));
         });
 
         Test("商店环境底：随红蓝剧照取色、亮图收到阅读上限，坏图与纯黑回退，原像素不变", () =>

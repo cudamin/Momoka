@@ -3,6 +3,10 @@ using Momoka.Emby;
 namespace Momoka.Shell;
 
 /// <summary>商店关闭沉浸后的尾部下限与实际首卡读数；不产生布局、不修改产品计算。</summary>
+/// <remarks>
+/// 2026-11-18 起没有「预告控制排让位」那一档：那排键挪进了画框，尾部只剩画面与内容两项。
+/// <c>WideTrailer</c> 留着只作读数（那排键这一刻在不在宽版式上），不参与尾部高度。
+/// </remarks>
 internal readonly record struct StoreDetailTailRead(bool ReserveBackdrop, bool WideTrailer,
     double PictureHeight, double HeroHeight, double ModelMinimum, double ActualMinimum,
     double ContentHeight, double ActualHeight, double? CoverBottom, double? DetailsBottom,
@@ -21,8 +25,7 @@ internal static class StoreDetailTailProbeEvidence
             throw new InvalidOperationException("商店尾部尺寸或实际卡片边界无效");
 
         var expected = read.ReserveBackdrop
-            ? DetailHero.StoreTailHeight(read.PictureHeight, read.HeroHeight,
-                read.WideTrailer ? DetailHero.StoreTrailerControlsRoom : 0, DetailHero.StorePreviewGap)
+            ? DetailHero.StoreTailHeight(read.PictureHeight, read.HeroHeight, DetailHero.StorePreviewGap)
             : 0;
         var actualHeight = Math.Max(read.ContentHeight, expected);
         if (read.ModelMinimum != expected || Math.Abs(read.ActualMinimum - expected) > 0.1

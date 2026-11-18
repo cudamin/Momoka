@@ -1,3 +1,17 @@
+## 2026-11-18 商店档预告控制排挪进画框，播放预告不再把卡片推下去（分支 `workbuddy/master-85d70cea`，待合并）
+
+用户附商店档详情页截图（《F1：狂飙飞车》，预告在播）一句「放预告片的时候下面会出现大片空位，请修复」。
+
+**根因。** 那排暂停／静音／字幕／关闭原来挂在画面下沿再往下 32 处（`StoreTrailerControlsRoom = 72` 的由来），为了让后面不透明的卡片不压住它，`TailMinHeight` 在「预告真的开播」时替它多留 72 —— 于是播放那一刻卡片整体往下跳一块，画面下沿到首卡之间就是那片空。2026-11-17 那轮只把判据从「条目有没有预告」改成「控制键在不在屏上」，播起来照样跳。
+
+**改法（用户选「控制键挪进画面」）。** `DetailHero.StoreTrailerControlsRoom` 退役，换成 `StoreTrailerControlsInset = 12`；`StoreTailHeight` 只剩「画面 + 空隙 − 带高」三项，跟预告开没开播无关。控制排挂到画框左下角（`Margin` 的顶边 = 画面高 − 键高 − 内缩，`HorizontalAlignment` 改 Left；YouTube 自带的分享／稍后看图标在右下角，让开它们），键高由 `ActualHeight` 量，量到后经 `SizeChanged` 再摆一次。`DetailViewModel.StoreTrailerControlsShown` 与订阅页的 `TrailerControlsRoom` 一起退役。
+
+**改到的验证面。** `StoreDetailTailProbeEvidence` 的期望尾部去掉了 72 那一档（`WideTrailer` 只剩读数）；`ShellNavigationProbe.StoreDetailBackdrop` 的 clearance 用例改成「尾部不多留 + 控制排真的落在画框左下角」；`DetailLayoutTests`、`StoreDetailTailProbeEvidenceTests`、`StoreDetailLayoutTests`、`SubscriptionTrailerLayoutTests` 各按新形状重钉。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 30 秒）；`Momoka.PageContractTests` **361/361**、全量 `Momoka.Tests` **5248/5248**，0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`）。实屏：静图那一态（飞牛条目、没有预告）首卡紧跟在画面与信息区之后，画面下沿到「演职人员」之间只剩常规留白。
+
+**没验证的。** 这一版没拍到「预告在播」的实屏——13:20 起这台机器的来源切到了飞牛那条账号（`donxuelian · 电影`），那条库没有预告，控制排不会露头；播起来那一态要靠 `--probe-section library` 的 clearance 用例（它把控制排真显出来、量它在画框里的位置）与用户手上的 Emby 条目复核。五套主题、窄窗、订阅详情页同一处同样留给统一验证。
+
 ## 2026-11-18 商店档预告片左沿那道竖线：叠图补上压在视频下面的淡墨（分支 `workbuddy/master-85d70cea`，待合并）
 
 用户一句：「预告片这左边的边缘没遮住」，附详情页截图（《F1：狂飙飞车》，商店档，右上角 YouTube 预告在播）。

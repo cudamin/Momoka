@@ -56,6 +56,8 @@ public sealed partial class MoviePilotSubscriptionPage
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
         };
         Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+        // 控制排挂在画框左下角，它自己的高要排过一遍才知道；量到新高度后重摆一次位置。
+        StoreTrailerControls.SizeChanged += (_, _) => LayoutStoreTrailer();
     }
 
     private void CloseStoreTrailer()
@@ -131,7 +133,15 @@ public sealed partial class MoviePilotSubscriptionPage
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(MediaViewModel.StorePageWidth);
         StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(MediaViewModel.StorePageWidth);
         StoreTrailerHost.Margin = MediaViewModel.StorePreviewMargin;
-        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, MediaViewModel.StorePreviewMargin.Right + 32, 0);
+        // 2026-11-18 同媒体详情页：控制排挪进画框左下角，尾部不再替它让位（卡片位置跟预告开没开播无关）。
+        // 它自己的高要等排过一遍才知道，没量到时按按钮那一档兜底，量到后由 SizeChanged 再摆一次。
+        // 横向从整幅内容列起算（跟画面同一格），所以要把画面左沿算出来再加内缩。
+        var controls = StoreTrailerControls.ActualHeight > 0
+            ? StoreTrailerControls.ActualHeight : DetailHero.StoreTrailerControlsInset + 40;
+        var controlsLeft = Math.Max(0, window - MediaViewModel.StorePreviewMargin.Right
+            - StoreTrailerHost.Width + DetailHero.StoreTrailerControlsInset);
+        StoreTrailerControls.Margin = new Thickness(controlsLeft,
+            Math.Max(0, StoreTrailerHost.Height - controls - DetailHero.StoreTrailerControlsInset), 0, 0);
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _trailerBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
             window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);

@@ -10,15 +10,9 @@ internal static class StoreDetailTailProbeEvidenceTests
         Test("商店尾部探针：短内容、有预告、窄窗与内容更高的准确补高均通过", () =>
         {
             StoreDetailTailProbeEvidence.Require(Reading());
-            StoreDetailTailProbeEvidence.Require(Reading() with
-            {
-                WideTrailer = true,
-                ModelMinimum = 106,
-                ActualMinimum = 106,
-                ActualHeight = 106,
-                ControlsBottom = 490,
-                FirstCardTop = 534
-            });
+            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位」：控制排进了画框，预告在播也不再补那 72 ——
+            // 同一份读数把 WideTrailer 打开，期望值一个数都不变。
+            StoreDetailTailProbeEvidence.Require(Reading() with { WideTrailer = true });
             // 窄商店背景至少420；不是零尾部，亦不要求在紧凑单集读到隐藏的大卡框。
             StoreDetailTailProbeEvidence.Require(Reading() with
             {
@@ -49,7 +43,8 @@ internal static class StoreDetailTailProbeEvidenceTests
                 Reading() with { ModelMinimum = 50, ActualMinimum = 50, ActualHeight = 50 },
                 Reading() with { ActualHeight = 36 },
                 Reading() with { ContentHeight = 80 },
-                Reading() with { WideTrailer = true }
+                // 多补那 72（预告控制排那一档的老算法）必须被拒绝。
+                Reading() with { ModelMinimum = 106, ActualMinimum = 106, ActualHeight = 106 }
             }) Assert.Throws<InvalidOperationException>(() => StoreDetailTailProbeEvidence.Require(broken));
         });
         Test("商店尾部探针：实际剧照与操作下沿决定首卡避让，不从模型高度猜", () =>

@@ -432,27 +432,43 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("TrailerPreview.BackgroundWidth(ViewModel.PageWidth)", trailer);
             Assert.Contains("TrailerPreview.BackgroundHeight(ViewModel.PageWidth)", trailer);
             Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
-            Assert.Contains("ViewModel.StorePreviewMargin.Right + 32", trailer);
+            // 2026-11-18 起控制排挂在画框里，紧挨左下角，不再贴着窗口右沿。
+            Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
         });
 
-        Test("商店尾部：预告控制条没上屏时不再预留那 72 的空档", () =>
+        Test("商店尾部：预告控制排进画框，卡片不再替它让位", () =>
         {
+            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：那排键从画面下沿外侧挪进画框左下角，
+            // 尾部只剩「画面 + 空隙 − 带高」，卡片的位置跟这支预告开没开播无关。
             var viewModel = Source("ViewModels/DetailViewModel.cs");
-            Assert.Contains("StoreTrailerControlsShown && PageWidth >= DetailHero.StoreWideFloor", viewModel);
-            Assert.DoesNotContain("TrailerVisibility == Visibility.Visible && PageWidth >= DetailHero.StoreWideFloor",
-                viewModel);
-            var trailer = Source("Views/DetailPage.StoreTrailer.cs");
-            // 控制键真正露头的两处（本地 MediaOpened 与网页预告起播）各接一次；StopStoreTrailer 统一收回。
-            Assert.Equal(2, Regex.Matches(trailer,
-                @"StoreTrailerControls\.Visibility = Visibility\.Visible;\r?\n\s*ViewModel\.StoreTrailerControlsShown = true;").Count);
-            Assert.Contains("ViewModel.StoreTrailerControlsShown = false;", trailer);
-            var xaml = Source("Views/DetailPage.xaml");
-            Assert.Contains("x:Name=\"StoreTrailerClose\"", xaml);
-            Assert.Contains("Click=\"OnStoreTrailerClose\"", xaml);
-            Assert.Contains("ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);", trailer);
-            Assert.Contains("ViewModel.NotifyTrailerSignInRequired(", trailer);
-            Assert.Contains("YouTubeLoginDialog.ShowAsync(this, session)", trailer);
-            Assert.Contains("new StoreYouTubePreview(environment)", trailer);
+            Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroHeight, DetailHero.StorePreviewGap)", viewModel);
+            Assert.DoesNotContain("StoreTrailerControlsShown", viewModel);
+            var media = Source("ViewModels/MoviePilotMediaViewModel.cs");
+            Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, DetailHero.StorePreviewGap)", media);
+            Assert.DoesNotContain("TrailerControlsRoom", media);
+            // 两页都把控制排的顶边摆在「画面下沿 − 键高 − 内缩」，左右对齐靠 XAML 的 Left。
+            foreach (var page in new[] { "Views/DetailPage.StoreTrailer.cs", "Views/MoviePilotSubscriptionPage.Trailer.cs" })
+            {
+                var trailer = Source(page);
+                Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
+                Assert.Contains("Math.Max(0, StoreTrailerHost.Height - controls - DetailHero.StoreTrailerControlsInset)", trailer);
+                Assert.DoesNotContain("StoreTrailerHost.Height + 32", trailer);
+            }
+            foreach (var name in new[] { "Views/DetailPage.xaml", "Views/MoviePilotSubscriptionPage.xaml" })
+            {
+                var xaml = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", name));
+                var controls = xaml.Descendants().Single(element =>
+                    (string?)element.Attribute(X + "Name") == "StoreTrailerControls");
+                Assert.Equal("Left", (string?)controls.Attribute("HorizontalAlignment"));
+                Assert.Equal("Top", (string?)controls.Attribute("VerticalAlignment"));
+            }
+            var trailerCode = Source("Views/DetailPage.StoreTrailer.cs");
+            Assert.Contains("x:Name=\"StoreTrailerClose\"", Source("Views/DetailPage.xaml"));
+            Assert.Contains("Click=\"OnStoreTrailerClose\"", Source("Views/DetailPage.xaml"));
+            Assert.Contains("ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);", trailerCode);
+            Assert.Contains("ViewModel.NotifyTrailerSignInRequired(", trailerCode);
+            Assert.Contains("YouTubeLoginDialog.ShowAsync(this, session)", trailerCode);
+            Assert.Contains("new StoreYouTubePreview(environment)", trailerCode);
         });
     }
 

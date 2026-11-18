@@ -238,28 +238,33 @@ internal sealed partial class ShellNavigationProbe
             Call(page.ViewModel, "NotifyStoreRoom");
             Call(page, "LayoutStoreTrailer");
             controls.Visibility = Visibility.Visible;
-            // 控制键这一刻在屏上：尾部替它让出的 72 才算进去（2026-11-17 起判据从「条目有预告」改成控制键显隐）。
-            page.ViewModel.StoreTrailerControlsShown = true;
+            // 控制排自己的高要露头之后才量得到，量到会自己再摆一次（SizeChanged）；这里等两拍再读。
             await LayoutAsync(page);
-            var roomedTail = Math.Max(0, Math.Round(page.ViewModel.StoreBackdropHeight
-                + DetailHero.StoreTrailerControlsRoom + DetailHero.StorePreviewGap - page.ViewModel.HeroHeight));
-            Require(page.ViewModel.TrailerVisibility == Visibility.Visible
-                && Math.Abs(page.ViewModel.TailMinHeight - roomedTail) < 0.5,
-                "预告控制键上屏后尾部没有替它让出那 72");
+            await LayoutAsync(page);
+            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位」：那排键在画框里面，尾部不再替它让位，
+            // 卡片的位置与这支预告开没开播无关。
+            var flatTail = Math.Max(0, Math.Round(page.ViewModel.StoreBackdropHeight
+                + DetailHero.StorePreviewGap - page.ViewModel.HeroHeight));
+            Require(Math.Abs(page.ViewModel.TailMinHeight - flatTail) < 0.5,
+                $"预告控制键上屏后尾部多留了一段：{page.ViewModel.TailMinHeight:0.##} 对 {flatTail:0.##}");
             var cover = Get<Border>(page, "PosterStill");
             var details = Get<StackPanel>(page, "StoreHeroDetails");
             var picture = Get<Grid>(page, "StoreBackdrop");
             var controlsBox = Bounds(controls, canvas);
+            var pictureBox = Bounds(picture, canvas);
+            Require(controlsBox.Left >= pictureBox.Left + DetailHero.StoreTrailerControlsInset - 1
+                && controlsBox.Top >= pictureBox.Top
+                && controlsBox.Bottom <= pictureBox.Bottom - DetailHero.StoreTrailerControlsInset + 1,
+                $"预告控制排没有落在画框左下角：键 {controlsBox}、画面 {pictureBox}");
             StoreDetailProbeEvidence.RequireClearance(Bounds(cover, canvas).Bottom, Bounds(details, canvas).Top,
-                Bounds(details, canvas).Bottom, Bounds(picture, canvas).Bottom, controlsBox.Bottom,
+                Bounds(details, canvas).Bottom, pictureBox.Bottom, controlsBox.Bottom,
                 Bounds(firstCard, canvas).Top, DetailHero.StorePreviewGap);
-            reads.Add(new { trailerControlsOnly = true, controlsBox, firstCard = Bounds(firstCard, canvas), page.ViewModel.TailMinHeight });
+            reads.Add(new { trailerControlsOnly = true, controlsBox, pictureBox, firstCard = Bounds(firstCard, canvas), page.ViewModel.TailMinHeight });
         }
         finally
         {
             subject.LocalTrailerCount = previous;
             controls.Visibility = Visibility.Collapsed;
-            page.ViewModel.StoreTrailerControlsShown = false;
             Call(page.ViewModel, "NotifyStoreRoom");
             await LayoutAsync(page);
         }
