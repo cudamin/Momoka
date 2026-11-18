@@ -16,7 +16,9 @@
 
 **测试与构建夹具修复（产品行为未改）。** ①`Momoka.NaturalContinuationCallerTests` 的 `PlayerViewModel.Events.cs` 源 hash 跟上 `4ec83c8` 的「弹幕设置」菜单改名（只改这一份 pin，其余 19 份逐份核对未动）。②`Momoka.SidebarPreviewTests` 补上音乐库预览的 `Users/{id}/Items?IncludeItemTypes=MusicAlbum` 路由，断言改为「音乐预览只列专辑」（`35/35`）。③`Momoka.ShaderMonitorPolicyTests` 钉 x64，Core 引用以 `AdditionalProperties="Platform=x64"` 与被加载 Shell 同平台；解决方案映射同步为 x64；`run-regressions.ps1` 构建 Shell 时传 `-p:Platform=x64`，否则 Shell 旁的 Core 与专项 Core 会一份 x64、一份 AnyCPU，按字节核对来源时随机红（`32/32`，运行器自测 **26/26**）。④版本号 `Directory.Build.props` 升到 `0.2.9`／`0.2.9.0`。
 
-**未验证。** 真实服务器实屏与真实播放（未授权）；探针未覆盖的商店／沉浸五主题逐张目视、高对比度、跨 DPI、Narrator／触摸／200% 文字；微软商店包安装与认证；GitHub Release 与商店包的远端结果见下一段。
+**产物与远端。** 安装包 `artifacts/Momoka_windows-x64_0.2.9.exe`（84,944,426 字节，SHA256 `E36DF82E12009ED6798CC3BE7C9C03E8FB815DC85EBBEF581DE26BF697077315`）；微软商店上架包 `artifacts/Momoka-0.2.9-win-x64-store.msix`（122,093,558 字节，SHA256 `F5712458AB766DF2177F403980BBA54E15B4528BDFF32804B4E345671F8A3BEA`，身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.2.9.0`／x64，未签名，只留本地由用户在 Partner Center 上传）。`master` 已推送到 `5b10398`，标签 `v0.2.9` 已推送；Release `v0.2.9` 已创建（pre-release）并上传 `Momoka_windows-x64_0.2.9.exe`，远端 digest `sha256:e36df82e12009ed6798cc3be7c9c03e8fb815dc85ebbef581de26bf697077315` 与本地一致：https://github.com/cudamin/Momoka/releases/tag/v0.2.9。本次用户令「先交付…完了再提交」，因此发布件在提交前构建；此后只有测试夹具、探针与文档提交，产品代码未变。
+
+**未验证。** 真实服务器实屏与真实播放（未授权）；探针未覆盖的商店／沉浸五主题逐张目视、高对比度、跨 DPI、Narrator／触摸／200% 文字；微软商店包安装与认证。
 
 ## 2026-11-18 艺术图不再当轮播/头图底图，只留给显式的「艺术图」档（待统一验证）
 
