@@ -196,10 +196,10 @@ internal static class Program
                 f.Http.Items["movies"][0].PrimaryImageAspectRatio = 1;
                 s.At(music, 0);
                 await s.Show(music);
+                // 音乐预览按 HomeLatest.MusicQuery 只列专辑：同一库里混着的音频与电影不得出现。
                 var cells = s.LibraryPreviewCovers.Children.OfType<StackPanel>().ToArray();
-                Assert.Equal(3, cells.Length);
+                Assert.Equal(1, cells.Length);
                 Assert.True(cells[0].Children[0] is Border);
-                Assert.True(cells[2].Children[0] is Button);
                 foreach (var cell in cells)
                 {
                     var frame = (FrameworkElement)cell.Children[0];

@@ -70,10 +70,10 @@ function Invoke-Logged([string]$Executable, [string[]]$Arguments, [string]$Log) 
     if ($code -ne 0) { throw "退出码 $code；日志 $Log" }
 }
 
-function Build-Current([string]$Project, [string]$Evidence, [string]$Prefix) {
+function Build-Current([string]$Project, [string]$Evidence, [string]$Prefix, [string[]]$Properties = @()) {
     Invoke-Logged $dotnetPath (@('restore', $Project, '--source', $packagesPath, '--disable-parallel',
-        '-p:NuGetAudit=false') + $buildFlags) (Join-Path $Evidence "$Prefix-restore.log")
-    Invoke-Logged $dotnetPath (@('build', $Project, '-c', 'Release', '--no-restore') + $buildFlags) (Join-Path $Evidence "$Prefix-build.log")
+        '-p:NuGetAudit=false') + $buildFlags + $Properties) (Join-Path $Evidence "$Prefix-restore.log")
+    Invoke-Logged $dotnetPath (@('build', $Project, '-c', 'Release', '--no-restore') + $buildFlags + $Properties) (Join-Path $Evidence "$Prefix-build.log")
     $buildLog = Get-Content -LiteralPath (Join-Path $Evidence "$Prefix-build.log") -Raw
     if ($buildLog -notmatch '(?m)^\s*0 (个警告|Warning\(s\))\s*$' -or $buildLog -notmatch '(?m)^\s*0 (个错误|Error\(s\))\s*$') {
         throw "当前 Release 构建未确认零警告零错误；不运行旧产物。日志：$Prefix-build.log"
@@ -230,7 +230,10 @@ try {
                 } else {
                     if ($entry.requiresShell -and -not $shellBuilt) {
                         $result.phase = 'shell-build'
-                        Build-Current $shellProject $evidence 'shell'
+                        # 清单里的 Shell 路径固定在 bin\x64：Platform 必须作为全局属性传下去，
+                        # 否则引用的 Core 会按 AnyCPU 再编一次（PE 头与 PDB 路径都不同），
+                        # 与按 x64 核对来源的夹具（R052）对不上。
+                        Build-Current $shellProject $evidence 'shell' @('-p:Platform=x64')
                         if (-not (Test-Path -LiteralPath $shell -PathType Leaf)) { throw '当前构建未产生清单指定的 Shell DLL。' }
                         $shellBuilt = $true
                     }

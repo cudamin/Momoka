@@ -93,11 +93,32 @@ internal sealed class AnonymousHttp : HttpMessageHandler
             return new(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3, 4]) };
         var query = request.RequestUri.Query.TrimStart('?').Split('&')
             .Select(part => part.Split('=', 2)).ToDictionary(parts => parts[0], parts => parts.Length == 2 ? Uri.UnescapeDataString(parts[1]) : "");
-        if (!path.EndsWith("/Items/Latest", StringComparison.Ordinal) || !query.TryGetValue("ParentId", out var parent))
+        if (!query.TryGetValue("ParentId", out var parent))
             throw new InvalidOperationException("Unexpected anonymous fixture route");
-        return new(HttpStatusCode.OK)
+        if (path.EndsWith("/Items/Latest", StringComparison.Ordinal))
+            return new(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(Items.GetValueOrDefault(parent) ?? []), Encoding.UTF8, "application/json")
+            };
+        // 音乐库预览走 HomeLatest.MusicQuery（Users/{id}/Items?IncludeItemTypes=MusicAlbum）：按请求里的
+        // 条目类型与上限筛，和服务器一样只交回专辑；音频、电影不混进音乐预览。
+        if (path.EndsWith("/Items", StringComparison.Ordinal))
         {
-            Content = new StringContent(JsonSerializer.Serialize(Items.GetValueOrDefault(parent) ?? []), Encoding.UTF8, "application/json")
-        };
+            IEnumerable<EmbyItem> items = Items.GetValueOrDefault(parent) ?? [];
+            if (query.TryGetValue("IncludeItemTypes", out var types) && types.Length > 0)
+            {
+                var allowed = types.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                items = items.Where(item => allowed.Contains(item.Type, StringComparer.OrdinalIgnoreCase));
+            }
+            if (query.TryGetValue("Limit", out var limitText) && int.TryParse(limitText, out var limit) && limit > 0)
+                items = items.Take(limit);
+            var page = items.ToArray();
+            return new(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new { Items = page, TotalRecordCount = page.Length }),
+                    Encoding.UTF8, "application/json")
+            };
+        }
+        throw new InvalidOperationException("Unexpected anonymous fixture route");
     }
 }

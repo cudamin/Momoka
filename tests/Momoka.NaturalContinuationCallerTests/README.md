@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-18：播放菜单「弹幕设置」改名后的来源同步
+
+`4ec83c8` 把画面菜单里那一项 `弹幕 · 弹弹play…` 改名为 `弹幕设置…`，只动 `BuildPictureMenuItems` 的菜单文字；自然接续抽取的 `StartPlaybackAsync`、`NowPlaying` 与 lease／取消控制流未动，其余 pin 逐份核对一致。只定点更新 `src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs` 的 SHA256（`1dcb904…` → `e67cfef…`），不改基点、提取器和失败条件。
+
 ## 2026-11-13：人物页 EmbyItem 字段与署名标签来源同步
 
 `EmbyItem.cs` 新增 `ProductionLocations`（人物出生地）并把 `EmbyPerson.DescribeCredit` 公开为 `CreditName`（人物页影视作品分组与演职人员共用同一份中文职务）；自然接续提取的成员、来源 identity/id、自动接集与 lease 控制流一字未动。其余 18 份 pin 逐份核对一致，只定点更新 `src/Momoka.Core/Emby/EmbyItem.cs` 的 SHA256（`4b53a80…` → `5729dc6…`），不改基点、提取器和失败条件。同步后 `Run-Caller.ps1` **81/81、0 失败 0 跳过**；`Test-SourceExtraction.ps1` **10 个反例均按预期退出 1**，当前源重新零警告零错误构建并回归 **81/81**。

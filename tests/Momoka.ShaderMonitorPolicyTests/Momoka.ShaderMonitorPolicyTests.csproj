@@ -2,13 +2,19 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- 夹具加载的是 x64 Release Shell，并与它旁边的 Core 逐字节核对；平台跟着钉在 x64，
+         直接构建（专项清单的 dotnet build）与解决方案构建都产出与 Shell 相同的 Core。 -->
+    <Platforms>x64</Platforms>
+    <Platform>x64</Platform>
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>Momoka.ShaderMonitorPolicyTests</AssemblyName>
     <RootNamespace>Momoka.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <!-- 与被加载的 x64 Release Shell 用同一份 x64 Core：Platform 必须作为全局属性传给引用项目，
+         否则 Core 会按 AnyCPU 再编一次（PE 头与 PDB 路径都不同），R052 的逐字节来源核对会红。 -->
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" AdditionalProperties="Platform=x64" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="..\Momoka.Tests\PlayerConstructorBoundary.cs" Link="PlayerConstructorBoundary.cs" />
     <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
