@@ -260,6 +260,12 @@ public sealed partial class ShellPage
         {
             items = await scope.ExecuteAsync(async (client, token) =>
             {
+                // 音乐库（含飞牛音乐）列专辑：Items/Latest 对飞牛音乐直接回空，预览于是永远说「没有封面」。
+                if (HomeLatest.UsesMusicQuery(library))
+                {
+                    var page = await client.GetItemsAsync(HomeLatest.MusicQuery(library.Id, 12), token).ConfigureAwait(false);
+                    return page.Items;
+                }
                 if (HomeLatest.UsesSeriesQuery(library))
                 {
                     var page = await client.GetItemsAsync(HomeLatest.SeriesQuery(library.Id, 12), token).ConfigureAwait(false);

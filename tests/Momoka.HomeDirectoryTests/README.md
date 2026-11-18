@@ -2,7 +2,7 @@
 
 本项目在每次构建时按唯一标记原样提取真实 ShellPage 的 EnterShellAsync／LoadLibrariesAsync／GoTo／Open／ReleaseContent／RetryLibrariesAsync，并提取真实 HomeRequest；调用当前 Core 的 SourceLibraries／EmbySessionScope／EmbyClient／HomeLayout。Frame 只是无窗口导航与请求值边界，不复制目录或导航业务算法。
 
-覆盖 Emby／Jellyfin 目录挂起→提前主页→合法结果后当前新请求持相同目录、未选页正常进入、已经转其它页不抢导航、访问／来源撤销拒绝旧结果、成功空目录、部分来源失败保提示、返回当前主页。FnNas／Plex 两项只使用真实 SourceLibraries 的已恢复内存目录＋另一来源挂起，覆盖聚合拓扑，不冒称它们实际 REST 协议验证。音乐库随视频库一起交接到目录及 HomeRequest，HomeLayout 不为音乐生成影视最近添加排；真实 GoTo 向 Frame 发送 MusicLibraryPage 类型及原来源、section 标识。
+覆盖 Emby／Jellyfin 目录挂起→提前主页→合法结果后当前新请求持相同目录、未选页正常进入、已经转其它页不抢导航、访问／来源撤销拒绝旧结果、成功空目录、部分来源失败保提示、返回当前主页。FnNas／Plex 两项只使用真实 SourceLibraries 的已恢复内存目录＋另一来源挂起，覆盖聚合拓扑，不冒称它们实际 REST 协议验证。音乐库随视频库一起交接到目录及 HomeRequest，HomeLayout 2026-11-18 起也为音乐库生成一排「最近添加」（那一排装的是专辑，见 HomeLatest.UsesMusicQuery）；真实 GoTo 向 Frame 发送 MusicLibraryPage 类型及原来源、section 标识。
 
 没有执行真实 HomePage.Attach／HomeViewModel 完整加载、页面渲染／Frame历史／滚动／焦点或UIA；快照到库／最近添加排的下游实际布局与HTTP加载属于运行覆盖缺口。
 

@@ -1,4 +1,5 @@
 using Momoka.FnNas;
+using Momoka.Music;
 
 namespace Momoka.Emby;
 
@@ -9,6 +10,11 @@ namespace Momoka.Emby;
 /// <para>
 /// 剧集库改走通用条目查询：直接列剧集、按最近有新内容入库倒序（<c>DateLastContentAdded</c>，与推荐页
 /// 「最新剧集」同一口径）。原来的 <c>Items/Latest</c> 按剧合并时也是这个次序，换查询不改先后。
+/// </para>
+/// <para>
+/// 音乐库（2026-11-18 用户令「在主页媒体库排序中新增 最近添加·音乐」「最近添加·飞牛音乐」）也走条目查询：
+/// 按入库时间倒序列专辑。飞牛音乐的 <c>Items/Latest</c> 直接回空表，而 Emby／Jellyfin 的 Latest 还会滤掉
+/// 已播放过的专辑；条目查询这一条三家（含 Plex 的 artist 库）都说得通。
 /// </para>
 /// </summary>
 public static class HomeLatest
@@ -25,6 +31,31 @@ public static class HomeLatest
         Recursive = true,
         IncludeItemTypes = [EmbyItemType.Series],
         SortBy = "DateLastContentAdded,SortName",
+        Descending = true,
+        Limit = limit
+    };
+
+    /// <summary>
+    /// 这个库的那一排装的是最近入库的专辑，而不是视频条目。音乐库不再被主页跳过（见
+    /// <see cref="HomeLayout.Plan"/>），取数换成 <see cref="MusicQuery"/>。
+    /// </summary>
+    public static bool UsesMusicQuery(EmbyItem library) => MusicCatalog.IsLibrary(library.CollectionType);
+
+    /// <summary>
+    /// 音乐库的「最近添加」：按入库时间倒序列专辑。用条目查询而不是 <c>Items/Latest</c> ——
+    /// 飞牛音乐没有后者（<c>GetLatestAsync</c> 直接回空），而且 Latest 会把已播放过的专辑滤掉。
+    /// <para>
+    /// <c>ParentItemType</c> 是给 Plex 的路由提示（它的 section 和条目 id 都是数字），Emby／Jellyfin 不会发出。
+    /// 卡片是方形专辑封面，尺寸由主页那一头按 1:1 造。
+    /// </para>
+    /// </summary>
+    public static ItemQuery MusicQuery(string parentId, int limit) => new()
+    {
+        ParentId = parentId,
+        ParentItemType = EmbyItemType.CollectionFolder,
+        Recursive = true,
+        IncludeItemTypes = [EmbyItemType.MusicAlbum],
+        SortBy = EmbySortBy.DateAdded,
         Descending = true,
         Limit = limit
     };

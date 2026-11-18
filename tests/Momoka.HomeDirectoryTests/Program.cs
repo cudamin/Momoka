@@ -254,8 +254,8 @@ internal static class Program
         Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[0])));
         Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[1])));
         if (f.Shell.HomeSnapshot.Count == 3)
-            Assert.False(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[2])),
-                "音乐目录不生成视频最近添加排；type=" + f.Shell.HomeSnapshot[2].CollectionType
+            Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[2])),
+                "音乐目录也有自己的最近添加排；type=" + f.Shell.HomeSnapshot[2].CollectionType
                 + "；keys=" + string.Join(',', plan.Select(row => row.Key)));
         Assert.Equal(0, f.Transport.Writes);
     }

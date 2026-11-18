@@ -1,7 +1,6 @@
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.FnNas;
-using Momoka.Infrastructure;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -97,10 +96,7 @@ public sealed partial class HomeViewModel
             foreach (var row in plan)
             {
                 var library = _libraryViews.FirstOrDefault(item => HomeLayout.LibraryKey(item) == row.Key);
-                var shelf = old.TryGetValue(row.Key, out var retained) ? retained.Shelf
-                    : new CardShelf(SourceCaption.Prefix(row.Title, library?.Source, ShowAccountNames), _images!,
-                        CardSize.PosterWidth, false, libraryId: HomeLayout.LibraryId(row.Key), target: HomeLayout.TargetOf(row.Key))
-                    { HomeKey = row.Key, Source = library?.Source };
+                var shelf = old.TryGetValue(row.Key, out var retained) ? retained.Shelf : NewShelf(row, _images!);
                 next.Add((row, shelf));
                 if (library?.Source?.Key != sourceKey) continue;
                 shelf.Title = SourceCaption.Prefix(row.Title, scope, ShowAccountNames);

@@ -1185,7 +1185,7 @@ internal static class LibraryResumePagingTests
             var home = Activator.CreateInstance(type)!;
             var shelfType = assembly.GetType("Momoka.Shell.ViewModels.CardShelf", true)!;
             var shelf = Activator.CreateInstance(shelfType, BindingFlags.Instance | BindingFlags.NonPublic,
-                null, ["继续观看", _images, 170, true, true, null, HomeLayout.HomeRowTarget.Resume, false, false], null)!;
+                null, ["继续观看", _images, 170, true, true, null, HomeLayout.HomeRowTarget.Resume, false, false, null], null)!;
             ((System.Collections.IList)_shell.Get<object>(shelf, "Cards")).Add(card);
             // Only inject the already-loaded presentation state. Calling Attach would start the
             // real-time channel; the actual AfterWatched/ResumeSlot/CardShelf methods remain intact.

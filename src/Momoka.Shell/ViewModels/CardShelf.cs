@@ -36,6 +36,12 @@ public sealed partial class CardShelf : ObservableObject
     private readonly bool _indicators;
     private readonly bool _sourceLine;
 
+    /// <summary>
+    /// 这一排卡片自己的高宽比（高 ÷ 宽），null 就是按宽卡那一档走 16:9 或 2:3。
+    /// 音乐库那一排是方形的专辑封面（1:1），和音乐墙同一形状；那两档里没有 1 这个值。
+    /// </summary>
+    private readonly double? _aspect;
+
     /// <summary>这一排的宽卡先要剧集那一层的缩略图；见 <see cref="Views.CardItem"/> 的同名参数。</summary>
     private readonly bool _preferShowThumb;
     private Func<EmbyItem, string?>? _cardSubtitle;
@@ -48,7 +54,7 @@ public sealed partial class CardShelf : ObservableObject
     /// <param name="indicators">
     /// 这一排的卡片画不画角标（已看、收藏、未看集数），转给 <see cref="CardItem"/>。**默认画**：2026-10-16
     /// 之后它不再是一个用户开关，只有「这一排本来就没有状态可言」的几处调用点说不画 —— 主页的媒体库那一排、
-    /// 演职人员。
+    /// 演职人员、主页音乐库那一排（和音乐墙同一份画法）。
     /// </param>
     /// <param name="libraryId">
     /// 这一排代表哪个媒体库，「最近添加 · 电影」那一排才有值（主页媒体库那几排各自是
@@ -66,9 +72,13 @@ public sealed partial class CardShelf : ObservableObject
     /// line's height in <see cref="RowHeight"/>. Only the home page's 继续观看 row sets it, and only
     /// while more than one account is online.
     /// </param>
+    /// <param name="aspect">
+    /// 这一排卡片自己的高宽比（高 ÷ 宽），null 就是 <paramref name="wide"/> 那两档。主页音乐库那一排给 1
+    /// —— 专辑封面是方的，2:3 的框会把上下裁掉；行高和每张卡的高都从它算，两处必须用同一个数。
+    /// </param>
     internal CardShelf(string title, EmbyImageStore images, int width, bool wide, bool indicators = true,
         string? libraryId = null, HomeLayout.HomeRowTarget target = HomeLayout.HomeRowTarget.None,
-        bool sourceLine = false, bool preferShowThumb = false)
+        bool sourceLine = false, bool preferShowThumb = false, double? aspect = null)
     {
         Title = title;
         _images = images;
@@ -77,11 +87,12 @@ public sealed partial class CardShelf : ObservableObject
         _indicators = indicators;
         _sourceLine = sourceLine;
         _preferShowThumb = preferShowThumb;
+        _aspect = aspect;
         LibraryId = libraryId;
         Target = target;
 
-        RowHeight = CardSize.HeightFor(width, wide) + CardSize.Chrome
-            + (sourceLine ? CardSize.SourceLine : 0);
+        var picture = aspect is { } ratio ? Math.Round(width * ratio) : CardSize.HeightFor(width, wide);
+        RowHeight = picture + CardSize.Chrome + (sourceLine ? CardSize.SourceLine : 0);
 
         // 读数跟着内容走。挂在集合的事件上而不是在 Clear/Fill/FillRows 里各喊一遍：那三个方法之外还有
         // 别人往 Cards 里加东西（详情页换季就是），漏喊一处的症状是牌子右端那个数字停在上一季。
@@ -195,7 +206,7 @@ public sealed partial class CardShelf : ObservableObject
         _cardTitle = null;
         Cards.ResetDeferred(items, item => new CardItem(item, _images, _width, _wide,
             subtitle?.Invoke(item), _indicators, page is not null && ItemDetail.IsCurrentEpisode(item, page),
-            sourceLine: _sourceLine, preferShowThumb: _preferShowThumb));
+            sourceLine: _sourceLine, aspect: _aspect, preferShowThumb: _preferShowThumb));
     }
 
     /// <summary>
@@ -285,7 +296,7 @@ public sealed partial class CardShelf : ObservableObject
 
         foreach (var (item, subtitle) in items)
             Cards.Add(new CardItem(item, _images, _width, _wide, subtitle, _indicators,
-                sourceLine: _sourceLine, preferShowThumb: _preferShowThumb));
+                sourceLine: _sourceLine, aspect: _aspect, preferShowThumb: _preferShowThumb));
     }
 
     /// <summary>
@@ -295,7 +306,8 @@ public sealed partial class CardShelf : ObservableObject
     /// </summary>
     internal CardItem NewCard(EmbyItem item) =>
         new(item, _images, _width, _wide, _cardSubtitle?.Invoke(item), _indicators,
-            title: _cardTitle?.Invoke(item), sourceLine: _sourceLine, preferShowThumb: _preferShowThumb);
+            title: _cardTitle?.Invoke(item), sourceLine: _sourceLine, aspect: _aspect,
+            preferShowThumb: _preferShowThumb);
 
     /// <summary>
     /// The same, for a shelf drawn as 列表 rows rather than as cards — 详情页's 单集 list. Its own path
