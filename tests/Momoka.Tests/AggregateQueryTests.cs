@@ -252,6 +252,35 @@ internal static class AggregateQueryTests
                 "两个影视来源在线时主页仍要写账号用户名");
         });
 
+        Test("媒体库顺序表：聚合多账号时库排前面写账号用户名，固定排与存档标题不动", () =>
+        {
+            var first = Scope("a", "user");
+            var second = Scope("b", "other");
+            var music = MusicScope("m", "listener");
+            var firstKey = HomeLayout.LibraryKey(first.Bind(new EmbyItem { Id = "same", Name = "电影" }));
+            var secondKey = HomeLayout.LibraryKey(second.Bind(new EmbyItem { Id = "same", Name = "电影" }));
+            var awayKey = HomeLayout.LibraryKey(Scope("c", "away").Bind(new EmbyItem { Id = "same", Name = "电影" }));
+
+            Assert.Equal("user · 最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first, second]));
+            Assert.Equal("other · 最近添加 · 电影", HomeLayout.Caption(secondKey, "最近添加 · 电影", [first, second]));
+
+            // 一个影视来源不写；外加几座飞牛音乐也不写（与主页同一判据）。
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first, music]));
+
+            // 固定排没有来源；不在线的来源、旧版无来源钥匙和空来源表都原样交回标题。
+            Assert.Equal("继续观看", HomeLayout.Caption(HomeLayout.Resume, "继续观看", [first, second]));
+            Assert.Equal("媒体库", HomeLayout.Caption(HomeLayout.Libraries, "媒体库", [first, second]));
+            Assert.Equal("订阅·电影", HomeLayout.Caption(HomeLayout.MoviePilotMovies, "订阅·电影", [first, second]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(awayKey, "最近添加 · 电影", [first, second]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption("library:same", "最近添加 · 电影", [first, second]));
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", null));
+
+            // 前缀只在屏上：调用方存回设置的仍是传进来的原句，钥匙本身也没有被改写。
+            Assert.Equal("最近添加 · 电影", HomeLayout.Caption(firstKey, "最近添加 · 电影", [first, second]).Split(" · ", 2)[1]);
+            Assert.Equal(HomeLayout.LibraryKey(first.Bind(new EmbyItem { Id = "same", Name = "电影" })), firstKey);
+        });
+
         Test("聚合主页：移除来源文字仍保留独立货架、排列和勾选", () =>
         {
             var first = Scope("a", "user").Bind(new EmbyItem { Id = "same", Name = "电影" });

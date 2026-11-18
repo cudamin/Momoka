@@ -240,6 +240,30 @@ internal static class Program
                 Assert.False(HomeOrderFixture.Runtime.Get<bool>(row, "Visible"));
             f.Stable();
         });
+        Test("HomeOrder 聚合多账号时媒体库顺序表写账号用户名，勾选保存的仍是库名", () =>
+        {
+            using var f = new HomeOrderFixture(secondSource: true);
+            Assert.Equal(2, f.Capabilities.Sources.Count);
+            Assert.Equal(5, f.Rows.Count);
+
+            var libraryRows = f.Rows.Cast<object>()
+                .Where(row => HomeLayout.LibraryId(HomeOrderFixture.Runtime.Get<string>(row, "Key")) is not null)
+                .ToArray();
+            Assert.Equal(2, libraryRows.Length);
+            Assert.Equal("anonymous-user · 最近添加 · 离线电影库",
+                HomeOrderFixture.Runtime.Get<string>(libraryRows[0], "Caption"));
+            Assert.Equal("second-user · 最近添加 · 离线电影库",
+                HomeOrderFixture.Runtime.Get<string>(libraryRows[1], "Caption"));
+            Assert.True(libraryRows.All(row => HomeOrderFixture.Runtime.Get<string>(row, "Title") == "最近添加 · 离线电影库"),
+                "存档标题不能带账号用户名");
+
+            // 勾一下会写盘：写出去的仍是干净库名，前缀只在屏上，关掉聚合模式后不会留下或叠一层。
+            var writes = f.Settings.Writes;
+            HomeOrderFixture.Runtime.Set(libraryRows[0], "Visible", false);
+            Assert.Equal(writes + 1, f.Settings.Writes);
+            Assert.True(f.Settings.Settings.Ui.HomeRows.Where(row => HomeLayout.LibraryId(row.Key) is not null)
+                .All(row => row.Title == "最近添加 · 离线电影库"), "保存不能带上屏上的账号用户名");
+        });
         Test("HomeOrder 轮播开着时媒体库固定第一位，关掉放开再开回来", () =>
         {
             using var f = new HomeOrderFixture();
