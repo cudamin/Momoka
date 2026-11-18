@@ -10,11 +10,13 @@
 
 **测了什么。** Core／Momoka.Tests Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5258 项，通过 5255、失败 3、跳过 0**。3 条红全是回环 SMB 临时目录的 `finally` 清理（`Directory.Delete` 走 `\\localhost\C$` 被沙箱拒绝），断言本体已过，与本批无关。取图/筛选断言全过：两条优先序都不再含艺术图、只有艺术图时 `Banner` 为空、艺术图与缩略图都有时取缩略图、只有艺术图的条目上不了轮播；头图只按背景图/缩略图退，艺术图与海报都不算；艺术图不再铺整页但 `Corner` 与名牌照旧；遗漏集仍能用海报兜底。
 
-**发布。** 发布前先撞到一条与本批无关的既有红：`4ec83c8` 把控制条提示「弹幕 · 弹弹play」改成「弹幕设置」，`Controls.lua` 少 8 字节，`approved-payload.json` 没同步，`publish.ps1` 停在载荷核对。逐条比对 58 个载荷文件只有这一处不一致，按该提交的实际字节与 SHA256 更新清单（单独提交 `6fee5d5`），`verify-publish.ps1` 通过。本树两次发布，最终 `artifacts/publish/win-x64` 为 **548 文件、290.0 MB，22:48**，`verify-publish.ps1` 通过；桌面 `Momoka-workbuddy-master-10af8c14.lnk` 这一次写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），但 lnk 还指着同一个 exe 路径，产物已是当前版本。仅体验刷新、不销账。
+**发布。** 发布前先撞到一条与本批无关的既有红：`4ec83c8` 把控制条提示「弹幕 · 弹弹play」改成「弹幕设置」，`Controls.lua` 少 8 字节，`approved-payload.json` 没同步，`publish.ps1` 停在载荷核对。逐条比对 58 个载荷文件只有这一处不一致，按该提交的实际字节与 SHA256 更新清单（单独提交 `6fee5d5`），`verify-publish.ps1` 通过。分支树两次发布，最终 `artifacts/publish/win-x64` 为 **548 文件、290.0 MB，22:48**，`verify-publish.ps1` 通过；桌面 `Momoka-workbuddy-master-10af8c14.lnk` 这一次写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），但 lnk 还指着同一个 exe 路径，产物已是当前版本。仅体验刷新、不销账。
+
+**合并与主树复验。** 用户令「改好了直接合并到主树」；2026-11-18 在主树 `master` 的 `073546b` 上以 `--no-ff` 合入（合并提交 `a08c0c1`，无冲突）。合并后主树 Core／`Momoka.Tests`／Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5258 项、5255 过、3 红**（同上，3 条回环 SMB 临时目录清理环境红，与本批无关）；主树已发布 `artifacts/publish/win-x64`（548 文件、290.0 MB，22:56），`verify-publish.ps1` 通过。桌面 `Momoka.lnk` 本次写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），但目标回读为 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，产物已是当前版本。仅体验刷新、不销账。
 
 **没验证的。** 没连真实服务器：商店详情里选「背景图/预告」时，只有艺术图的条目现在右上角是空的（有缩略图就画缩略图）；选「艺术图」仍应看到那一张。沉浸档只有艺术图或海报的条目不会再铺黑底背景。轮播里截图那一部的最终形态也要等实屏。日常界面批次按规矩没跑探针与验收截图，待交付台账第 97 条记了要看的几档。
 
-**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-10af8c14`，分支 `workbuddy/master-10af8c14`，基点 `073546b`，产品与测试提交 `43c2238`、`c77ef4b`，载荷清单提交 `6fee5d5`；未推远端。
+**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-10af8c14`，分支 `workbuddy/master-10af8c14`，基点 `073546b`，产品与测试提交 `43c2238`、`c77ef4b`，载荷清单提交 `6fee5d5`；已合并 master（合并提交 `a08c0c1`），未推远端。分支快捷方式 `Momoka-workbuddy-master-10af8c14.lnk` 与工作树登记待清理：当前会话占用工作树，桌面写入被沙箱拒绝。
 
 ## 2026-11-18 侧边栏去掉「订阅」分区，订阅按「媒体库顺序」排列（已合并 master，待统一验证）
 
