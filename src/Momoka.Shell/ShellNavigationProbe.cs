@@ -190,6 +190,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("主页排序只列当前来源、聚合切换与偏好恢复", HomeSourcesAsync, 60,
                 section: ShellProbeSections.Settings);
             await CaseAsync("所有账号的媒体库与最近添加、聚合搜索分页与详情来源", AggregateBrowsingAsync, 45);
+            await CaseAsync("聚合主页多库滚到底，最后一排最近添加仍在", AggregateHomeRowsScrollAsync, 60,
+                section: ShellProbeSections.Accounts);
             await CaseAsync("主页多账号标账号用户名、浏览不标且版本仅多服务器显示", SourceCaptionTransitionsAsync, 45);
             await CaseAsync("指定账号登录、添加账号与取消返回", MultiSourceSignInAsync, 30);
             await CaseAsync("顶部账号菜单聚合开关、下线与紧凑布局", AccountAggregateMenuAsync, 60, section: ShellProbeSections.Accounts);

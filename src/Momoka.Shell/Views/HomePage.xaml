@@ -312,7 +312,14 @@
                         ItemTemplate="{StaticResource HomeRowTemplates}"
                         ItemsSource="{x:Bind HomeRows, Mode=OneWay}">
                         <ItemsRepeater.Layout>
-                            <!-- 排与排之间：2026-09-13 从 36 收到 24（「首页组件的上下间距弄紧凑一些」）；
+                            <!-- 排与排之间这一格是 4。**布局 2026-11-18 从 StackLayout 换成 HomeRowsLayout
+                                 （不虚拟化）**：用户报「聚合模式下主页的最近添加显示不全」—— StackLayout 只实现
+                                 视口里的行、总高按实现了的行估，而主页的宽卡排（继续观看、媒体库）比海报排矮一截，
+                                 十来排一起排时总高会短，最后几排滚不到也长不出来。原因与取舍见那个类型自己的注释；
+                                 每排卡片仍由 ShelfStrip 横向虚拟化，这里只管竖着摞。
+
+                                 下面是这一格间距的来历，换布局没有动这个数。2026-09-13 从 36 收到 24（「首页组件的
+                                 上下间距弄紧凑一些」）；
                                  2026-09-14 再从 24 收到 22 —— 卡片那一档缩过之后（继续观看 300→256、媒体库
                                  240→208，见 CardSize），排高矮了 18~25，这一格按老样子留着，两排之间的空当
                                  读起来就比卡片本身还宽。收两像素是让「空当比卡片矮」这层关系跟着回来。
@@ -334,7 +341,7 @@
                                  （Styles.xaml 刻度允许的最小一格）。**这一档到头了**：再往下就是 0，那两排会贴成
                                  一块，牌子直接顶在上一排卡底那两行字上。真要更近，就只能动卡底那段文字带
                                  （CardSize.Chrome 那 59），而那不在「缩间距」的范围内。 -->
-                            <StackLayout Orientation="Vertical" Spacing="4" />
+                            <local:HomeRowsLayout Spacing="4" />
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
 
