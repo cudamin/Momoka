@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.Music;
 using Momoka.Services;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
@@ -517,36 +518,55 @@ public sealed partial class HomeViewModel : PageViewModel
         // **继续观看 2026-11-13 起先要剧集那一层的缩略图**（用户令「主页继续观看那一列改用缩略图」）：那一排
         // 全是单集，而单集自己只有一张从视频里截的剧照，缩略图挂在剧那一层（判据在 HomeLayout.WantsShowThumb，
         // 卡片怎么接在 CardItem.preferShowThumb）。接下来看不动。
-        _all = [.. plan.Select(row =>
-        {
-            var (wide, width) = row.Key switch
-            {
-                HomeLayout.Libraries => (true, CardSize.LibraryWidth),
-                HomeLayout.Resume or HomeLayout.NextUp => (true, CardSize.HomeWideWidth),
-                _ => (false, CardSize.PosterWidth)
-            };
-            var badges = row.Key != HomeLayout.Libraries;
-
-            // 多账号时这一排属于哪个账号要写在标题前面；媒体库那几排各自带着自己的来源。固定排没有来源，
-            // Prefix 原样交回标题。
-            var source = _libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key)?.Source;
-            var title = SourceCaption.Prefix(row.Title, source, ShowAccountNames);
-
-            // 这一排点进哪儿由版面说了算（HomeLayout.TargetOf）：库那几排认库，继续观看 / 接下来看各有
-            // 自己的一页，详情页造出来的那些排是 None —— 牌子右端跟不跟大于号就看它。2026-09-14 之前这里
-            // 只递一个库 id，于是那两排没有 id、牌子一直是死的。
-            return (row, new CardShelf(
-                title, images, width, wide, badges,
-                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key),
-                sourceLine: row.Key == HomeLayout.Resume && ShowAccountNames,
-                preferShowThumb: HomeLayout.WantsShowThumb(row.Key))
-            {
-                HomeKey = row.Key,
-                Source = source
-            });
-        })];
+        // **音乐库那一排 2026-11-18 起是方形专辑卡**（用户令「在主页新增 最近添加·音乐 / 最近添加·飞牛音乐
+        // 媒体库列表」）：专辑封面是 1:1，和音乐墙同一形状，套进 2:3 会上下裁掉。判据与行高都在 NewShelf 里。
+        _all = [.. plan.Select(row => (row, NewShelf(row, images)))];
         RefreshSnapshotKey();
     }
+
+    /// <summary>
+    /// 按版面造一排货架。形状、角标、标题前缀和去处都在这里定 —— 主页初次装货（<see cref="BuildShelves"/>）
+    /// 与飞牛的目录重读（<see cref="RefreshFnNasDirectoryAsync"/>）共用同一份，两处各写一套就会出现
+    /// 「目录刷新之后音乐那一排变回竖卡」。
+    /// </summary>
+    private CardShelf NewShelf(HomeRowPlan row, EmbyImageStore images)
+    {
+        var library = _libraryViews.FirstOrDefault(candidate => HomeLayout.LibraryKey(candidate) == row.Key);
+        var music = IsMusicRow(row.Key);
+        var (wide, width) = row.Key switch
+        {
+            HomeLayout.Libraries => (true, CardSize.LibraryWidth),
+            HomeLayout.Resume or HomeLayout.NextUp => (true, CardSize.HomeWideWidth),
+            _ => (false, CardSize.PosterWidth)
+        };
+        var badges = row.Key != HomeLayout.Libraries && !music;
+
+        // 多账号时这一排属于哪个账号要写在标题前面；媒体库那几排各自带着自己的来源。固定排没有来源，
+        // Prefix 原样交回标题。
+        var source = library?.Source;
+
+        // 这一排点进哪儿由版面说了算（HomeLayout.TargetOf）：库那几排认库，继续观看 / 接下来看各有
+        // 自己的一页，详情页造出来的那些排是 None —— 牌子右端跟不跟大于号就看它。2026-09-14 之前这里
+        // 只递一个库 id，于是那两排没有 id、牌子一直是死的。
+        return new CardShelf(
+            SourceCaption.Prefix(row.Title, source, ShowAccountNames), images, width, wide, badges,
+            HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key),
+            sourceLine: row.Key == HomeLayout.Resume && ShowAccountNames,
+            preferShowThumb: HomeLayout.WantsShowThumb(row.Key),
+            aspect: music ? 1 : null)
+        {
+            HomeKey = row.Key,
+            Source = source
+        };
+    }
+
+    /// <summary>
+    /// 这一排是不是音乐库的「最近添加」。音乐库 2026-11-18 起排进主页（见 <see cref="HomeLayout.Plan"/>）：
+    /// 卡片是方形专辑封面，取数走 <see cref="HomeLatest.MusicQuery"/>，不再过 <see cref="WithoutMusic"/> 那道滤网。
+    /// </summary>
+    private bool IsMusicRow(string key) =>
+        _libraryViews.Any(library => HomeLayout.LibraryKey(library) == key
+            && MusicCatalog.IsLibrary(library.CollectionType));
 
     private void RefreshSnapshotKey()
     {
@@ -675,7 +695,8 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         HomeLayout.Libraries => _ => "",
         HomeLayout.Resume => HomeResumeText.Subtitle,
-        _ => null
+        // 专辑卡的第二行和音乐墙一样写艺术家；专辑名已经在标题那一行。
+        _ => IsMusicRow(key) ? (Func<EmbyItem, string?>)(item => MusicCatalog.WallSubtitle(item)) : null
     };
 
     private Func<EmbyItem, string?>? ShelfTitle(string key) => key switch
@@ -1148,8 +1169,11 @@ public sealed partial class HomeViewModel : PageViewModel
         // 轮播不在这张表里：它认的是 latest 那一次请求，跟这几排谁勾谁不勾、拖成什么次序都没有关系。
         // 这一趟运行里已经删掉的条目不进屏：服务器元数据要等下一次扫描才消失，重读仍会带回来（见 RemovedMedia）。
         // 逐片回填也走这里，所以删掉一件之后，任何一片迟到的结果都不会把它重新摆回货架。
+        // 音乐库那一排不过 WithoutMusic：它装的本来就是专辑（查询侧已经限定 MusicAlbum）。
         IReadOnlyList<EmbyItem> ItemsOf(RowRead load) =>
-            load.Row.Key == HomeLayout.Libraries ? _libraryViews : WithoutMusic(Visible(load.Row.Key, MergeParts(load.Parts)));
+            load.Row.Key == HomeLayout.Libraries ? _libraryViews
+            : IsMusicRow(load.Row.Key) ? Visible(load.Row.Key, MergeParts(load.Parts))
+            : WithoutMusic(Visible(load.Row.Key, MergeParts(load.Parts)));
 
         IReadOnlyList<EmbyItem> Items(string key) =>
             loadsByKey.TryGetValue(key, out var load) ? ItemsOf(load) : [];
@@ -1334,12 +1358,19 @@ public sealed partial class HomeViewModel : PageViewModel
             var libraryLoad = Track(row, shelf, source is null ? 0 : 1);
             if (source is not null)
             {
-                pending.Add(HomeLatest.UsesSeriesQuery(library)
-                    ? ReadRowSourceAsync(libraryLoad, 0, title, async (client, ct) =>
-                        (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items,
-                        source)
-                    : ReadRowSourceAsync(libraryLoad, 0, title,
-                        (client, ct) => client.GetLatestAsync(id, LatestSize, ct, types), source));
+                // 音乐库列专辑（飞牛音乐的 Items/Latest 直接回空），Jellyfin 剧集库列剧集，其余照旧问 Latest。
+                Func<EmbyClient, CancellationToken, Task<List<EmbyItem>>>? read = null;
+                if (HomeLatest.UsesMusicQuery(library))
+                    read = async (client, ct) =>
+                        (await client.GetItemsAsync(HomeLatest.MusicQuery(id, LatestSize), ct).ConfigureAwait(true)).Items;
+                else if (HomeLatest.UsesSeriesQuery(library))
+                    read = async (client, ct) =>
+                        (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items;
+
+                pending.Add(read is null
+                    ? ReadRowSourceAsync(libraryLoad, 0, title,
+                        (client, ct) => client.GetLatestAsync(id, LatestSize, ct, types), source)
+                    : ReadRowSourceAsync(libraryLoad, 0, title, read, source));
             }
 
             // 牌子右端的读数：库一共有多少项，不是这一排装了多少张（见 _libraryTotals）。
@@ -1572,8 +1603,8 @@ public sealed partial class HomeViewModel : PageViewModel
             && string.Equals(entry.Shelf.Title, title, StringComparison.Ordinal));
 
     /// <summary>
-    /// The same rows without the music ones; see <see cref="EmbyItemType.IsMusic"/> for why they are
-    /// hidden rather than shown and left to disappoint.
+    /// 视频那几排里不带音乐类条目（继续观看、接下来看、视频库那一排、轮播）。音乐库自己那一排不走这里 ——
+    /// 它装的就是专辑，见 <see cref="IsMusicRow"/> 与 <see cref="EmbyItemType.IsMusic"/>。
     /// </summary>
     private static List<EmbyItem> WithoutMusic(List<EmbyItem> items) =>
         items.Where(item => !EmbyItemType.IsMusic(item.Type)).ToList();

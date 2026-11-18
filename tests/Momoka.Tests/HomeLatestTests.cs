@@ -39,6 +39,33 @@ internal static class HomeLatestTests
             Assert.Null(query.IsPlayed);
         });
 
+        // 2026-11-18 用户令「在主页新增 最近添加·音乐 / 最近添加·飞牛音乐 媒体库列表」：音乐库那两排装的是
+        // 最近入库的专辑。飞牛音乐的 Items/Latest 直接回空，Emby／Jellyfin 的 Latest 又会滤掉已播放过的专辑，
+        // 所以三家都改走条目查询。
+        Test("主页最近添加：音乐库改走专辑条目查询", () =>
+        {
+            Assert.True(HomeLatest.UsesMusicQuery(Library(MediaServerKind.Emby, "music")), "Emby 音乐库要列专辑");
+            Assert.True(HomeLatest.UsesMusicQuery(Library(MediaServerKind.Jellyfin, "music")));
+            Assert.True(HomeLatest.UsesMusicQuery(Library(MediaServerKind.FnMusic, "music")), "飞牛音乐没有 Items/Latest");
+            Assert.True(HomeLatest.UsesMusicQuery(Library(MediaServerKind.Plex, "music")));
+            Assert.False(HomeLatest.UsesMusicQuery(Library(MediaServerKind.Emby, "tvshows")), "剧集库不列专辑");
+            Assert.False(HomeLatest.UsesMusicQuery(new EmbyItem { Id = "7", CollectionType = null }), "没有集合类型时不猜");
+        });
+
+        Test("主页最近添加：音乐库按入库时间倒序列专辑", () =>
+        {
+            var query = HomeLatest.MusicQuery("music", 24);
+
+            Assert.Equal("music", query.ParentId);
+            Assert.Equal(EmbyItemType.CollectionFolder, query.ParentItemType, "Plex 靠它区分 section 与条目 id");
+            Assert.True(query.Recursive, "要递归到库内专辑");
+            Assert.Equal(EmbyItemType.MusicAlbum, query.IncludeItemTypes.Single());
+            Assert.Equal(EmbySortBy.DateAdded, query.SortBy);
+            Assert.True(query.Descending, "最近添加要新的在前");
+            Assert.Equal(24, query.Limit);
+            Assert.Null(query.IsPlayed);
+        });
+
         // 2026-10-25 用户令「飞牛影视库不要再显示单集封面」：飞牛的 item/list 没有 GroupItems，不带类型时
         // 会把剧集和单集一起发回来，货架上于是并排摆着剧和它自己的某一集。
         Test("主页最近添加：飞牛货架按库的类型问，其余服务器不加类型", () =>

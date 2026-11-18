@@ -16,13 +16,25 @@ internal static class HomeLayoutTests
 {
     public static void Register()
     {
-        Test("主页版面：保留媒体库入口但不为音乐建立影视最近添加", () =>
+        Test("主页版面：音乐库也排「最近添加」一排，标题按库名走", () =>
         {
+            // 2026-11-18 用户令「在主页媒体库排序中新增 最近添加·音乐」「添加 最近添加·飞牛音乐」：
+            // 音乐库不再被版面跳过，它和其余库一样是一排「这个库的最近添加」。
             var music = new EmbyItem { Id = "music", Name = "音乐", CollectionType = "music" };
             var plan = HomeLayout.Plan(null, [music, Library("movies", "电影")]);
             Assert.True(plan.Any(row => row.Key == HomeLayout.Libraries));
-            Assert.False(plan.Any(row => row.Key == HomeLayout.LibraryKey(music)));
+            Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(music)), "音乐库那一排要排进版面");
+            Assert.Equal("最近添加 · 音乐",
+                plan.Single(row => row.Key == HomeLayout.LibraryKey(music)).Title);
             Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(Library("movies", "电影"))));
+
+            // 飞牛音乐是独立来源，虚拟库名「飞牛音乐」；它同样带「最近添加」前缀（飞牛影视才去掉）。
+            var fnMusic = ScopedLibrary("fnmusic", "user", "music", "飞牛音乐", MediaServerKind.FnMusic);
+            var withFn = HomeLayout.Plan(null, [music, fnMusic]);
+            Assert.Equal("最近添加 · 飞牛音乐",
+                withFn.Single(row => row.Key == HomeLayout.LibraryKey(fnMusic)).Title);
+            Assert.Equal("最近添加 · 音乐",
+                withFn.Single(row => row.Key == HomeLayout.LibraryKey(music)).Title);
         });
         Test("主页版面：没有存档时按默认次序，媒体库排在后面", () =>
         {

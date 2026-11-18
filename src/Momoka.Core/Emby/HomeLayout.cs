@@ -163,7 +163,8 @@ public static class HomeLayout
     /// </summary>
     /// <param name="saved">设置文件里那一份，可以是空的。</param>
     /// <param name="libraries">
-    /// 这个账号现在有哪几个媒体库，已经滤掉音乐库（外壳那一头滤的）。一个都没有（<see langword="null"/> 或者空）
+    /// 这个账号现在有哪几个媒体库，音乐库也在内（音乐库那一排装的是最近入库的专辑，见
+    /// <see cref="HomeLatest.UsesMusicQuery"/>）。一个都没有（<see langword="null"/> 或者空）
     /// 是「这一头不知道」，不是「一个库都没有」：设置窗口不连服务器，而主窗口读库列表失败时也是空手。那种时候
     /// 媒体库那几排照存档里记着的标题排 —— 见 <c>HomeRowSetting.Title</c>。
     /// </param>
@@ -180,9 +181,10 @@ public static class HomeLayout
         var names = new Dictionary<string, string>(StringComparer.Ordinal);
         var order = new List<string>();
 
+        // 音乐库 2026-11-18 起也排进主页（用户令「在主页媒体库排序中新增 最近添加·音乐」「最近添加·飞牛音乐」）：
+        // 那一排装的是最近入库的专辑，和其余库排一样是一次「这个库的最近添加」，取数差别见 HomeLatest。
         foreach (var library in libraries ?? [])
         {
-            if (Momoka.Music.MusicCatalog.IsLibrary(library.CollectionType)) continue;
             if (library.Id is not { Length: > 0 } id) continue;
 
             var key = LibraryKey(library);
