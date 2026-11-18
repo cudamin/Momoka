@@ -66,7 +66,8 @@ internal static class ArtworkAmbientTests
         {
             var ambient = ArtworkAmbient.Render(Split(), 40, 24, UiThemes.Default.Colors.Window, true);
             var window = UiThemes.Default.Colors.Window;
-            var pixels = Momoka.Shell.Views.StoreBackdropBlend.Video(ambient, window, 1240, 520, 744, 418.5, 16);
+            // 淡墨那一格取 520 高（与 StoreAmbientHeight／Viewport 里大的那个同义）。
+            var pixels = Momoka.Shell.Views.StoreBackdropBlend.Video(ambient, window, 1240, 520, 744, 418.5, 16, 1240, 520);
             var side = Momoka.Shell.Views.StoreBackdropBlend.Side;
             int At(int x, int y) => (y * side + x) * 4;
             Assert.Equal((byte)255, pixels[At(0, 30) + 3]);
@@ -77,13 +78,68 @@ internal static class ArtworkAmbientTests
             for (var at = 0; at < pixels.Length; at += 4)
                 Assert.True(pixels[at] <= pixels[at + 3] && pixels[at + 1] <= pixels[at + 3] && pixels[at + 2] <= pixels[at + 3]);
             var lightWindow = UiThemes.System(false).Colors.Window;
-            var light = Momoka.Shell.Views.StoreBackdropBlend.Video(null, lightWindow, 1240, 520, 744, 418.5, 16);
-            Assert.Equal(lightWindow.B, light[At(0, 30)]);
-            Assert.Equal(lightWindow.R, light[At(0, 30) + 2]);
+            var light = Momoka.Shell.Views.StoreBackdropBlend.Video(null, lightWindow, 1240, 520, 744, 418.5, 16, 1240, 520);
+            // 没有环境底时端点就是窗口色，再叠上淡墨（淡墨压在视频下面，叠图自己得补上）。
+            var lightInk = lightWindow.Mix(Momoka.Shell.Views.StoreBackdropBlend.ShadeInk,
+                Momoka.Shell.Views.StoreBackdropBlend.Shade(1240 - 16 - 744, 30 / 127d * 418.5, 1240, 520));
+            Assert.Equal(lightInk.B, light[At(0, 30)]);
+            Assert.Equal(lightInk.R, light[At(0, 30) + 2]);
             var mask = Momoka.Shell.Views.StoreBackdropBlend.Mask(ambient: false);
             for (var at = 3; at < mask.Length; at += 4) Assert.Equal(255, mask[at] + pixels[at]);
-            var taller = Momoka.Shell.Views.StoreBackdropBlend.Video(ambient, window, 1240, 800, 744, 418.5, 16);
+            var taller = Momoka.Shell.Views.StoreBackdropBlend.Video(ambient, window, 1240, 800, 744, 418.5, 16, 1240, 520);
             Assert.False(taller.AsSpan().SequenceEqual(pixels), "环境底晚到高度未改变对应颜色");
+        });
+        Test("视频渐变：边沿补上压在下面的淡墨，端点色接得住环境底", () =>
+        {
+            var ambient = ArtworkAmbient.Render(Split(), 40, 24, UiThemes.Default.Colors.Window, true);
+            var window = UiThemes.Default.Colors.Window;
+            const double page = 1240, ambientHeight = 520, videoWidth = 744, videoHeight = 418.5, gap = 16, shadeHeight = 640;
+            const double left = page - gap - videoWidth;
+            var shaded = Momoka.Shell.Views.StoreBackdropBlend.Video(ambient, window, page, ambientHeight,
+                videoWidth, videoHeight, gap, page, shadeHeight);
+            var plain = Momoka.Shell.Views.StoreBackdropBlend.Video(ambient, window, page, ambientHeight,
+                videoWidth, videoHeight, gap, 0, 0);
+            var side = Momoka.Shell.Views.StoreBackdropBlend.Side;
+            int At(int x, int y) => (y * side + x) * 4;
+            // 左沿与底边是不透明端点：淡墨不在视频上，这两处必须比不补淡墨的那版暗，中部（透明区）一个色阶都不动。
+            foreach (var (x, y) in new[] { (0, 20), (0, 60), (0, side - 1) })
+                Assert.True(shaded[At(x, y) + 2] < plain[At(x, y) + 2],
+                    $"视频边沿没有补上淡墨（{x},{y}）：{shaded[At(x, y) + 2]} 对 {plain[At(x, y) + 2]}");
+            Assert.Equal(plain[At(75, 20) + 2], shaded[At(75, 20) + 2]);
+            // 端点色 == 窗口底 ← 环境底 ← 淡墨 叠出来的那个值：差一个色阶，屏上就是一道竖线。
+            ThemeColor Background(double ax, double ay)
+            {
+                var at = ((int)Math.Round(ay * (ArtworkAmbient.Height - 1)) * ArtworkAmbient.Width
+                    + (int)Math.Round(ax * (ArtworkAmbient.Width - 1))) * 4;
+                var baseline = window.Mix(ThemeColor.Rgb(ambient[at + 2], ambient[at + 1], ambient[at]),
+                    Momoka.Shell.Views.StoreBackdropBlend.Alpha(ax, ay, ambient: true));
+                return baseline.Mix(Momoka.Shell.Views.StoreBackdropBlend.ShadeInk,
+                    Momoka.Shell.Views.StoreBackdropBlend.Shade(ax * page, ay * ambientHeight, page, shadeHeight));
+            }
+            foreach (var (x, y) in new[] { (0, 20), (0, 60), (side - 1, 60), (60, side - 1) })
+            {
+                var ax = (left + x / (double)(side - 1) * videoWidth) / page;
+                var ay = y / (double)(side - 1) * videoHeight / ambientHeight;
+                var expect = Background(ax, ay);
+                Assert.True(Math.Abs(shaded[At(x, y)] - expect.B) <= 1 && Math.Abs(shaded[At(x, y) + 1] - expect.G) <= 1
+                    && Math.Abs(shaded[At(x, y) + 2] - expect.R) <= 1,
+                    $"视频端点与环境底对不上（{x},{y}）：{shaded[At(x, y) + 2]},{shaded[At(x, y) + 1]},{shaded[At(x, y)]}"
+                    + $" 对 {expect.R},{expect.G},{expect.B}");
+            }
+            // 淡墨自己：左上角最浓，往下散尽，两道叠起来不会超过 1，尺寸没量到时按「没有淡墨」处理。
+            var blend = Momoka.Shell.Views.StoreBackdropBlend.Shade;
+            Assert.Equal(0d, blend(0, shadeHeight, page, shadeHeight));
+            // 两道同色叠起来：1-(1-横)(1-竖)，顶边那一点不能只算其中一道。
+            Assert.True(Math.Abs(blend(0.3 * page, 0, page, shadeHeight)
+                - (1 - (1 - (0x24 / 255d)) * (1 - (0x30 / 255d)))) < 1e-9, "顶边没有把两道淡墨叠起来");
+            Assert.True(Math.Abs(blend(0.3 * page, shadeHeight, page, shadeHeight) - (0x24 / 255d)) < 1e-9,
+                "底边没有退到只剩横向那道");
+            Assert.True(blend(0.3 * page, 0, page, shadeHeight) > blend(0.3 * page, 0.35 * shadeHeight, page, shadeHeight)
+                && blend(0.3 * page, 0.35 * shadeHeight, page, shadeHeight) > blend(0.3 * page, shadeHeight, page, shadeHeight),
+                "淡墨没有从上往下散尽");
+            Assert.True(blend(0.3 * page, 0, page, shadeHeight) < 1, "淡墨叠成了实色");
+            Assert.Equal(0d, blend(0.3 * page, 0, 0, shadeHeight));
+            Assert.Equal(0d, blend(double.NaN, 0, page, shadeHeight));
         });
         Test("环境渐变：保留左右红蓝色区，过渡连续且原像素不变", () =>
         {

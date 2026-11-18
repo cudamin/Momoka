@@ -135,8 +135,11 @@ public sealed partial class MoviePilotSubscriptionPage
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _trailerBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
             window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
+        // 同媒体详情页：叠图的端点色要把压在环境底上的淡墨补进去，否则视频左沿有一道竖直的接缝；
+        // 淡墨那一格的高取 XAML 里 Height（StoreAmbientHeight）与 MinHeight（Viewport）里大的那个。
         StoreTrailerFade.Background = _trailerBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
-            window, MediaViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
+            window, MediaViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap,
+            window, Math.Max(MediaViewModel.StoreAmbientHeight, MediaViewModel.Viewport));
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)

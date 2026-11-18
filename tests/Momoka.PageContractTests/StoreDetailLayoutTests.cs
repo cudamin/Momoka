@@ -215,6 +215,47 @@ internal static class StoreDetailLayoutTests
             // 横着那道左沿透明起坡，和右侧「左上角跟右侧一样的渐变」一致。
             var horizontalStops = brushes[0].Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
             Assert.Equal("#000C0E11", horizontalStops[0].Attribute("Color")?.Value);
+            // 2026-11-18 用户令「预告片这左边的边缘没遮住」：视频那层叠图要按同一份色标把淡墨补进去，
+            // 两处色标因此必须逐档同值 —— 这一页与订阅详情页的 XAML 都对着代码里那两份核。
+            var pages = new[]
+            {
+                page,
+                XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"))
+            };
+            foreach (var sheet in pages)
+            {
+                var grid = sheet.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreShade");
+                var gradients = grid.Descendants().Where(element => element.Name.LocalName == "LinearGradientBrush").ToArray();
+                Assert.Equal(2, gradients.Length, "淡墨层不是横向＋竖向两道");
+                foreach (var (gradient, stops) in new[]
+                {
+                    (gradients[0], Momoka.Shell.Views.StoreBackdropBlend.ShadeAcross),
+                    (gradients[1], Momoka.Shell.Views.StoreBackdropBlend.ShadeDown)
+                })
+                {
+                    var declared = gradient.Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
+                    Assert.Equal(stops.Length, declared.Length, "淡墨色标档数与代码不同");
+                    for (var index = 0; index < stops.Length; index++)
+                    {
+                        var offset = double.Parse((string)declared[index].Attribute("Offset")!,
+                            System.Globalization.CultureInfo.InvariantCulture);
+                        Assert.True(Math.Abs(stops[index].Position - offset) < 1e-6,
+                            $"淡墨第 {index + 1} 档的位置与代码不同：{offset} 对 {stops[index].Position}");
+                        var color = (string)declared[index].Attribute("Color")!;
+                        var alpha = Convert.ToInt32(color[1..3], 16) / 255d;
+                        Assert.True(Math.Abs(stops[index].Alpha - alpha) < 1e-6,
+                            $"淡墨第 {index + 1} 档的浓度与代码不同：{alpha} 对 {stops[index].Alpha}");
+                        Assert.True(color.EndsWith("0C0E11", StringComparison.Ordinal), "淡墨没有用 #0C0E11 那一族墨色");
+                    }
+                }
+                // 淡墨那一格的高就是这两条绑定的大的那个（代码里按同一个数算视频边沿的色）。
+                Assert.True(((string?)grid.Attribute("Height"))?.EndsWith("StoreAmbientHeight, Mode=OneWay}", StringComparison.Ordinal) == true,
+                    "淡墨的高度不再跟环境底走");
+                Assert.True(((string?)grid.Attribute("MinHeight"))?.EndsWith("Viewport, Mode=OneWay}", StringComparison.Ordinal) == true,
+                    "淡墨不再最低铺满一屏");
+            }
+            Assert.Contains("Math.Max(ViewModel.StoreAmbientHeight, ViewModel.Viewport)", Source("Views/DetailPage.StoreTrailer.cs"));
+            Assert.Contains("Math.Max(MediaViewModel.StoreAmbientHeight, MediaViewModel.Viewport)", Source("Views/MoviePilotSubscriptionPage.Trailer.cs"));
             Assert.Contains("StoreShade.Visibility = StoreBackdrop.Visibility;", Source("Views/DetailPage.Store.cs"));
             // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」；2026-11-17 用户令订阅详情页也照媒体
             // 详情页：两页的环境底遮罩左端都起坡，左上角不再有一块从内容区左沿就满色的环境色。
