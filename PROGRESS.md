@@ -1,3 +1,23 @@
+## 2026-11-19 0.2.9 统一验证与发布（四道闸门 + 探针；带环境红）
+
+用户令「先交付，跑探针和闸门，完了再提交代码，更新版本打包发布到 GitHub，生成一个微软商店商店安装包」；随后「我睡觉去了，有什么问题你自己决定吧」。最终代码为主树 `master`，版本号 `0.2.9`（提交 `30fd246`）；之后只追加测试夹具与探针修复，产品行为未改。
+
+**闸门 1。** `tools/quality.ps1`（`artifacts/quality/20261119-001602`）**7/7 通过**：全方案 Release 构建 **0 警告 0 错误**；空白检查；63 个 PowerShell 脚本；文档链接；架构 **7/7**；重复代码 **66 段／1190 / 250832 行＝0.47%**（预算 ≤70 段、≤1%）；`check-diff`。本机 `npx jscpd` 需要精简 PATH（原 PATH 过长时子进程找不到 `jscpd`）；`py` 用 `-p:PythonLauncher=C:\WINDOWS\py.exe` 固定。
+
+**闸门 2。** 先编译当前 `Momoka.Tests` 与 Core，再运行：全量 **5258/5258、0 失败 0 跳过**（`TEMP` 指用户临时目录，避开 `C:\WINDOWS\TEMP` 的两条下载环境红）。`tools/run-regressions.ps1 -All -IncludeExternal` **82/82 通过、0 失败 0 跳过 0 deferred**（外部 Node／Playwright／Edge DOM 专项实际运行），报告 `artifacts/regressions/20261118-165413391-48982fe0b6db41a8b2a57a5a576c82ba/summary.json`。Playwright 包临时装在 `artifacts/external-node`（不入库）。
+
+**闸门 3。** `tools/publish.ps1 -NoArchive -Shortcut` 退出 0：**548 文件、290.0 MB**，`verify-publish.ps1` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `C33A2E927A5DE4868F443D34F594D4F77403D7EADADD41B64DFBD713EC2606F4`，`Momoka.dll` SHA256 `1A084695725A32A8484394969A6ADAF414A356F34A2BEE6D4058AA6D5FFC2E41`；桌面 `Momoka.lnk` 已写成功，指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。
+
+**闸门 4。** `tools/selfcheck-diff.ps1` 运行发布件：**190 项、失败 0；消失 0、降级 0、新增 0**（`artifacts/selfcheck/run-5f91b21850904a32af006e1c4fcbedd0`）。
+
+**探针（全分区，发布前构建）。** `--probe-shell --probe-section <全部 25 区> --screen 1` 共 **230 项、211 过、19 红**（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261118-172004554-10888`），范围文件写明「未执行区域：无、未执行检查：0」。逐项复核后修了三处探针自身问题并单独重跑：Plex 详情已看文字改从 `ColumnWatchedLabels` 读（`plex-state` **1/1**）；探针夹具补注册 `YouTubeSession`（`moviepilot` 不再报 DI 缺失）；输入框「跟随系统」改按 `ThemeHost.Current` 量实际模板（`settings` **27/28**，只剩设置搜索超时）。集页角图测量在最大化还原后仍读到 17.76×10，加了布局等待仍复现，保留为未归因红。
+
+**探针红项分类。** ①**桌面环境**：`ScrollView offset=0 / State=Idle` 让「详情封面与面包屑等距」「飞牛详情」「详情自定义三页」「详情背景渐变」「简洁详情」「详情悬浮卡片」「删除确认保持位置」「聚合主页滚到底」「MoviePilot 删库文件保持滚动」等滚不动；一次 `PickerHost.exe` 的「即将注销你的登录」遮罩盖住探针窗口（已 `shutdown /a` 中止计划关机，遮罩消失，随之那一轮 library 的 35 红作废、重跑后只剩集页红）。②**已知超时／旧红**：MoviePilot 剧资源按 TMDB 筛选、MoviePilot 背景／沉浸切换、设置搜索、Jellyfin 通用对话框、性能三项、动效原生候选提交帧、MediaSimilar 右排、MoviePilot 长货架卡宽。③**实屏采样**：弹幕热力属性里 101 根柱都在，但 `CaptureResizeFrame` 抓到的合成帧里没有播放器控件层（截图只有黑底），`visible-heat-pixels=0`，按采样边界记红，不据此判产品回归。这些红没有一条被记作通过；按规则本轮不把全部待交付条目销账。
+
+**测试与构建夹具修复（产品行为未改）。** ①`Momoka.NaturalContinuationCallerTests` 的 `PlayerViewModel.Events.cs` 源 hash 跟上 `4ec83c8` 的「弹幕设置」菜单改名（只改这一份 pin，其余 19 份逐份核对未动）。②`Momoka.SidebarPreviewTests` 补上音乐库预览的 `Users/{id}/Items?IncludeItemTypes=MusicAlbum` 路由，断言改为「音乐预览只列专辑」（`35/35`）。③`Momoka.ShaderMonitorPolicyTests` 钉 x64，Core 引用以 `AdditionalProperties="Platform=x64"` 与被加载 Shell 同平台；解决方案映射同步为 x64；`run-regressions.ps1` 构建 Shell 时传 `-p:Platform=x64`，否则 Shell 旁的 Core 与专项 Core 会一份 x64、一份 AnyCPU，按字节核对来源时随机红（`32/32`，运行器自测 **26/26**）。④版本号 `Directory.Build.props` 升到 `0.2.9`／`0.2.9.0`。
+
+**未验证。** 真实服务器实屏与真实播放（未授权）；探针未覆盖的商店／沉浸五主题逐张目视、高对比度、跨 DPI、Narrator／触摸／200% 文字；微软商店包安装与认证；GitHub Release 与商店包的远端结果见下一段。
+
 ## 2026-11-18 艺术图不再当轮播/头图底图，只留给显式的「艺术图」档（待统一验证）
 
 用户附主页截图一句：「艺术图怎么跑轮播图上了?」。截图上整条带铺的是那部剧的艺术图：透明底的英文片名、右边角色抠图；透明底被解成黑色，巨型英文片名正压在带子自己的中文标题、简介和播放键上。
