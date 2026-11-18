@@ -225,6 +225,32 @@ internal static class DanmakuTests
             Assert.Null(DandanPlayMatching.SeasonNumber(""));
         });
 
+        Test("弹幕：自动匹配到零弹幕时只改选同作品同集的来源行", () =>
+        {
+            var item = new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "工作细胞", Name = "肺炎链球菌", IndexNumber = 1, ParentIndexNumber = 1 };
+            var attempted = new DandanPlayEpisode(10842, "工作细胞(2018)【日番】from bilibili", "【bilibili1】 第1话 肺炎链球菌");
+            var sameWork = new DandanPlayEpisode(10828, "工作细胞(2018)【动漫】from 360", "【bilibili1】 第1集");
+            var alternatives = DanmakuMatchRules.Alternatives(item,
+            [
+                attempted,
+                sameWork,
+                sameWork with { EpisodeId = 10828 },
+                new DandanPlayEpisode(10856, "工作细胞 第二季(2021)【日番】from bilibili", "【bilibili1】 第1话 肿包"),
+                new DandanPlayEpisode(10866, "工作细胞BLACK(2021)【日番】from bilibili", "【bilibili1】 第1话 吸烟、细菌、终焉的开始"),
+                new DandanPlayEpisode(10864, "工作细胞：细胞大作战(2020)【动画电影】from bilibili", "【bilibili1】 中文"),
+                new DandanPlayEpisode(230001, "工作细胞(2018)【动漫】from 360", "第2集"),
+                new DandanPlayEpisode(230002, "工作细胞(2024)【动漫】from 360", "第1集"),
+            ], attempted.EpisodeId, 2018);
+            Assert.Equal(1, alternatives.Count);
+            Assert.Equal(10828L, alternatives[0].EpisodeId);
+            Assert.Equal("工作细胞", DanmakuMatchRules.WorkTitle("工作细胞(2018)【日番】from bilibili"));
+
+            var sequelItem = new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "工作细胞", IndexNumber = 1, ParentIndexNumber = 2 };
+            var sequel = new DandanPlayEpisode(10856, "工作细胞 第二季(2021)【日番】from bilibili", "第1话 肿包");
+            Assert.Equal(1, DanmakuMatchRules.Alternatives(sequelItem, [sequel], 0, 2021).Count);
+            Assert.Equal(0, DanmakuMatchRules.Alternatives(item, [sequel], 0, 2021).Count);
+        });
+
         Test("弹弹play：签名按官方串联顺序，不含查询参数", () =>
         {
             var actual = DandanPlayClient.Signature("fixture-app", "fixture-secret", 1735660800, "/api/v2/comment/123450001");

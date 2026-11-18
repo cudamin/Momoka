@@ -17,6 +17,13 @@
             <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{Binding DanmakuStatus}" TextWrapping="Wrap" />
             <TextBlock x:Name="SessionMessage" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
 
+            <StackPanel x:Name="SourceModeSection" Spacing="4" Visibility="Collapsed">
+                <ComboBox x:Name="SourceModeBox" Header="弹幕来源" HorizontalAlignment="Stretch"
+                          SelectionChanged="OnSourceModeChanged" AutomationProperties.Name="弹幕来源" />
+                <TextBlock Text="两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。"
+                           Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+            </StackPanel>
+
             <StackPanel Spacing="8">
                 <TextBlock Text="选择弹幕库" Style="{StaticResource EgBodyStyle}" />
                 <ComboBox x:Name="SourceBox" Header="搜索来源" Visibility="Collapsed"

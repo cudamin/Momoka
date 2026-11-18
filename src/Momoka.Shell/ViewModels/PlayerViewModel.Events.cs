@@ -283,7 +283,7 @@ public sealed partial class PlayerViewModel
                 true,
                 false)).ToList();
         items.Add(new UoscMenuItem(PlayerSettingsLinks.MenuLabel, null, true, false, Items: settings));
-        if (DanmakuAvailable) items.Add(new UoscMenuItem("弹幕 · 弹弹play…", $"script-message {MpvDanmaku.Menu} open", true, false));
+        if (DanmakuAvailable) items.Add(new UoscMenuItem("弹幕设置…", $"script-message {MpvDanmaku.Menu} open", true, false));
 
         // title 传 null：画面菜单不画顶部那行「画面」（用户令 2026-09-26）；仍带 anchor 贴光标弹。
         await SendMenuAsync("picture", null, items, anchor: true).ConfigureAwait(true);

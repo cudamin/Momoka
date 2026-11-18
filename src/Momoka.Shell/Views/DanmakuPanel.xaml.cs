@@ -3,6 +3,7 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Mpv;
 using Momoka.Shell.ViewModels;
@@ -17,10 +18,13 @@ public sealed partial class DanmakuPanel : UserControl
     private readonly ObservableCollection<DandanPlayEpisode> _results = [];
     private bool _seeding;
     private bool _sourceSeeding;
+    private bool _sourceModeSeeding;
+    private bool _changingSourceMode;
     private DanmakuSource _searchSource = DanmakuSource.DandanPlay;
     private DanmakuSource? _resultsSource;
     private int _resultsConnectionVersion;
     private bool _closed;
+    private int _candidatesVersion = -1;
     private int _searchRequest;
     private CancellationTokenSource? _searchCancellation;
     private readonly ObservableCollection<string> _fontFamilies = [];
@@ -82,6 +86,7 @@ public sealed partial class DanmakuPanel : UserControl
         EpisodeBox.Visibility = Visibility.Collapsed;
         SettingsButton.Visibility = Visibility.Collapsed;
         Appearance.Visibility = Visibility.Collapsed;
+        SourceModeSection.Visibility = Visibility.Collapsed;
         SourceBox.Visibility = Visibility.Collapsed;
         SearchButton.Visibility = Visibility.Collapsed;
         Results.Visibility = Visibility.Collapsed;
@@ -101,7 +106,9 @@ public sealed partial class DanmakuPanel : UserControl
             Results.Visibility = LoadButton.Visibility = Visibility.Collapsed;
             SearchButton.IsEnabled = true;
             SeedSources(vm);
+            SeedSourceModes();
         }
+        else if (e.PropertyName == nameof(PlayerViewModel.DanmakuCandidatesVersion) && Current()) SeedCandidates();
         else if (e.PropertyName == nameof(PlayerViewModel.DanmakuAvailable) && _viewModel is { DanmakuAvailable: false }) Current();
     }
 
@@ -138,6 +145,8 @@ public sealed partial class DanmakuPanel : UserControl
             Labels();
         }
         finally { _seeding = false; }
+        SeedSourceModes();
+        SeedCandidates();
     }
 
     private async Task LoadFontsAsync()
@@ -237,6 +246,75 @@ public sealed partial class DanmakuPanel : UserControl
         if (_seeding || _viewModel is null || !Current()) return;
         _viewModel.ChangeDanmakuPreferences(settings => settings.Show = ShowToggle.IsOn);
         Seed();
+    }
+
+    private void SeedSourceModes()
+    {
+        if (_viewModel is null || _changingSourceMode) return;
+        var current = _viewModel.DanmakuPreferences.Source;
+        var dandan = _viewModel.DanmakuSourceReady(DanmakuSource.DandanPlay);
+        var custom = _viewModel.DanmakuSourceReady(DanmakuSource.DanmuApi);
+        List<SourceModeChoice> choices = [];
+        if (dandan || current == DanmakuSourceMode.DandanPlay) choices.Add(new("弹弹play", DanmakuSourceMode.DandanPlay));
+        if (custom || current == DanmakuSourceMode.DanmuApi) choices.Add(new("danmu_api", DanmakuSourceMode.DanmuApi));
+        if (dandan && custom || current == DanmakuSourceMode.Both) choices.Add(new("两者合并", DanmakuSourceMode.Both));
+        _sourceModeSeeding = true;
+        try
+        {
+            SourceModeBox.ItemsSource = choices;
+            SourceModeBox.DisplayMemberPath = nameof(SourceModeChoice.Label);
+            SourceModeBox.SelectedItem = choices.FirstOrDefault(choice => choice.Mode == current);
+            SourceModeSection.Visibility = choices.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        finally { _sourceModeSeeding = false; }
+    }
+
+    private void OnSourceModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_sourceModeSeeding || _viewModel is null || !Current()) return;
+        if (SourceModeBox.SelectedItem is not SourceModeChoice choice) return;
+        if (_viewModel.DanmakuPreferences.Source == choice.Mode) return;
+        _changingSourceMode = true;
+        try { _viewModel.ChangeDanmakuPreferences(settings => settings.Source = choice.Mode); }
+        finally { _changingSourceMode = false; }
+        SeedSources(_viewModel);
+        SeedSourceModes();
+    }
+
+    private sealed record SourceModeChoice(string Label, DanmakuSourceMode Mode);
+
+    /// <summary>自动匹配到零弹幕时，宿主已经把同作品候选算好；面板打开或收到新版本就直接列出来。</summary>
+    private void SeedCandidates()
+    {
+        if (_viewModel is null || _viewModel.DanmakuCandidatesVersion == _candidatesVersion) return;
+        _candidatesVersion = _viewModel.DanmakuCandidatesVersion;
+        var candidates = _viewModel.DanmakuCandidates;
+        if (candidates.Count == 0) return;
+        _searchRequest++;
+        CancelPanelSearch();
+        _sourceSeeding = true;
+        try
+        {
+            if (SourceBox.ItemsSource is IEnumerable<DanmakuSourceOption> options)
+            {
+                foreach (var option in options)
+                {
+                    if (option.Source != _viewModel.DanmakuCandidatesSource) continue;
+                    SourceBox.SelectedItem = option;
+                    _searchSource = option.Source;
+                    SearchButton.Content = $"搜索{option.Label}";
+                    break;
+                }
+            }
+        }
+        finally { _sourceSeeding = false; }
+        _results.Clear();
+        foreach (var candidate in candidates) _results.Add(candidate);
+        _resultsSource = _viewModel.DanmakuCandidatesSource;
+        _resultsConnectionVersion = _viewModel.DanmakuConnectionVersion;
+        Results.Visibility = Visibility.Visible;
+        LoadButton.Visibility = Visibility.Collapsed;
+        SearchButton.IsEnabled = true;
     }
 
     private void OnStyleChanged(object sender, RangeBaseValueChangedEventArgs e)

@@ -1090,7 +1090,7 @@
                         </Button.Resources>
                         <FontIcon Glyph="&#xE9D9;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
-                    <Button x:Name="DanmakuButton" Style="{StaticResource TransportButtonStyle}" Click="OnDanmakuClick" Visibility="{x:Bind ViewModel.DanmakuControlsVisibility, Mode=OneWay}" AutomationProperties.Name="弹幕" ToolTipService.ToolTip="弹幕 · 弹弹play">
+                    <Button x:Name="DanmakuButton" Style="{StaticResource TransportButtonStyle}" Click="OnDanmakuClick" Visibility="{x:Bind ViewModel.DanmakuControlsVisibility, Mode=OneWay}" AutomationProperties.Name="弹幕设置" ToolTipService.ToolTip="弹幕设置">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
                             <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />

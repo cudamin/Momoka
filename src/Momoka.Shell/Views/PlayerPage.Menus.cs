@@ -334,7 +334,7 @@ public sealed partial class PlayerPage
         }
         menu.Items.Add(settings);
 
-        if (ViewModel.DanmakuAvailable) AddAction("弹幕 · 弹弹play…", () => ViewModel.RequestDanmaku());
+        if (ViewModel.DanmakuAvailable) AddAction("弹幕设置…", () => ViewModel.RequestDanmaku());
 
         void AddAction(string label, Action action)
         {

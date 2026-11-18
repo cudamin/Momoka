@@ -214,6 +214,7 @@ internal sealed class PanelEndpoint
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged { add { } remove { } }
     private readonly TaskCompletionSource<DandanPlaySearchResult> _pending = new();
     internal int DanmakuConnectionVersion { get; set; }
+    internal int DanmakuCandidatesVersion { get; set; }
     internal DanmakuSource SearchSource { get; private set; }
     internal DanmakuSource? LoadSource { get; private set; }
     internal long? LoadedId { get; private set; }
@@ -235,6 +236,8 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
     private CancellationTokenSource? _searchCancellation;
     private bool _sourceSeeding = false;
     private void Seed() { }
+    private void SeedSourceModes() { }
+    private void SeedCandidates() { }
     internal void SeedForTest() => SeedSources(_viewModel!);
     internal void ConnectionChanged() => OnPlayerChanged(_viewModel, new(nameof(PanelEndpoint.DanmakuConnectionVersion)));
     internal DanmakuSource SelectedSource => _searchSource;
@@ -300,6 +303,7 @@ internal sealed partial class Host(AppSettings settings)
     internal void SeedDandan(DandanPlayEpisode episode) => _danmakuEpisode = episode;
     internal void Change() => DanmakuSettingsChanged();
     private void RefreshDanmakuProperties() { }
+    private void ClearDanmakuCandidates() { }
     private void RefreshDanmakuHeat() { }
     private void OnPropertyChanged(string name) { }
     private void CancelDanmakuRequests() { }
