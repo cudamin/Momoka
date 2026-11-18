@@ -106,9 +106,10 @@ internal static partial class ItemArtworkTests
                 $"{EmbyImageStore.Logo},{EmbyImageStore.Banner}",
                 string.Join(',', ItemArtwork.PlateOrder));
 
-            // 背景图 first, 艺术图 second — the only other wide artwork an item is likely to have.
+            // 背景图 first, 缩略图 second — 头图和轮播从 2026-11-18 起是同一张单子：艺术图是透明片名图，
+            // 海报是 2:3，两样都不该铺到整页背后。
             Assert.Equal(
-                $"{EmbyImageStore.Backdrop},{EmbyImageStore.Art},{EmbyImageStore.Thumb},{EmbyImageStore.Primary}",
+                $"{EmbyImageStore.Backdrop},{EmbyImageStore.Thumb}",
                 string.Join(',', ItemArtwork.HeroOrder));
 
             // The overlap is the thing worth asserting: a kind in both lists would be drawn twice on the
@@ -116,10 +117,15 @@ internal static partial class ItemArtworkTests
             Assert.False(ItemArtwork.PlateOrder.Intersect(ItemArtwork.HeroOrder).Any(),
                 "同一种图不能同时当名牌和背景");
 
-            // 主页轮播 is the same band again — the 徽标 sits on top of the picture — so the same must hold
-            // there. 海报 absent is the whole difference from HeroOrder, and it is the point of the list.
+            // 主页轮播 is the same band again — the 徽标 sits on top of the picture — and from 2026-11-18 it
+            // takes the same two kinds as the hero: a transparent title plate stretched across the band
+            // paints a black bar with a giant logo over the band's own title and synopsis.
             Assert.Equal(
-                $"{EmbyImageStore.Backdrop},{EmbyImageStore.Art},{EmbyImageStore.Thumb}",
+                $"{EmbyImageStore.Backdrop},{EmbyImageStore.Thumb}",
+                string.Join(',', ItemArtwork.BannerOrder));
+
+            Assert.Equal(
+                string.Join(',', ItemArtwork.HeroOrder),
                 string.Join(',', ItemArtwork.BannerOrder));
 
             Assert.False(ItemArtwork.PlateOrder.Intersect(ItemArtwork.BannerOrder).Any(),
@@ -315,14 +321,15 @@ internal static partial class ItemArtworkTests
             Assert.Equal(EmbyImageStore.Logo, ItemArtwork.Plate(item)!.Value.ImageType);
         });
 
-        Test("图片：整页站在这张艺术图上时，徽标那一格照旧有", () =>
+        Test("图片：艺术图不再铺整页，但徽标与右上角那一格照旧", () =>
         {
-            // 没有背景图的条目上，铺满整页的就是这张艺术图（ItemArtwork.Hero 第二档）。徽标本来就在它自己
-            // 那一格里，两件事互不相干。
+            // 没有背景图和缩略图的条目上，头图那一串是空的（艺术图从 2026-11-18 起不再当备选）；艺术图自己
+            // 仍归右上角那一格，徽标也仍在自己那一格 —— 三件事互不相干。
             var item = Item("film44", (EmbyImageStore.Primary, "p"), (EmbyImageStore.Logo, "logotag"),
                 (EmbyImageStore.Art, "arttag"));
 
-            Assert.Equal(EmbyImageStore.Art, ItemArtwork.Hero(item)[0].ImageType);
+            Assert.Equal(0, ItemArtwork.Hero(item).Count);
+            Assert.Equal(EmbyImageStore.Art, ItemArtwork.Corner(item)!.Value.ImageType);
             Assert.Equal(EmbyImageStore.Logo, ItemArtwork.Plate(item)!.Value.ImageType);
         });
 
@@ -368,13 +375,19 @@ internal static partial class ItemArtworkTests
             Assert.Equal("bd", banner.Value.Tag);
         });
 
-        Test("图片：没有背景图时轮播用艺术图，再退到缩略图", () =>
+        Test("图片：没有背景图时轮播退到缩略图，艺术图不当底图", () =>
         {
-            var art = Item("film3", (EmbyImageStore.Art, "a"), (EmbyImageStore.Thumb, "t"));
-            Assert.Equal(EmbyImageStore.Art, ItemArtwork.Banner(art)!.Value.ImageType);
+            // 艺术图是透明片名图：铺到整窗宽的轮播带上就是一条黑带加一行巨大的片名，压着带子自己的
+            // 标题和简介（2026-11-18 用户报「艺术图怎么跑轮播图上了」）。它只归详情页右上角。
+            var artOnly = Item("film3", (EmbyImageStore.Art, "a"));
+            Assert.Null(ItemArtwork.Banner(artOnly));
 
             var thumb = Item("film4", (EmbyImageStore.Thumb, "t"));
             Assert.Equal(EmbyImageStore.Thumb, ItemArtwork.Banner(thumb)!.Value.ImageType);
+
+            // 两样都有时也不拿艺术图顶上去。
+            var both = Item("film3b", (EmbyImageStore.Art, "a"), (EmbyImageStore.Thumb, "t"));
+            Assert.Equal(EmbyImageStore.Thumb, ItemArtwork.Banner(both)!.Value.ImageType);
         });
 
         Test("图片：只有海报的条目上不了轮播", () =>
@@ -444,16 +457,18 @@ internal static partial class ItemArtworkTests
             Assert.Equal("bd", hero[0].Tag);
         });
 
-        Test("图片：头图按优先序往下退，最后退到海报", () =>
+        Test("图片：头图只按背景图、缩略图往下退，艺术图与海报都不算", () =>
         {
-            var art = Item("film8", (EmbyImageStore.Art, "a"), (EmbyImageStore.Thumb, "t"));
-            Assert.Equal(EmbyImageStore.Art, ItemArtwork.Hero(art)[0].ImageType);
+            // 艺术图是透明片名图，铺到整页背后是黑底加巨型片名 —— 它只归右上角（2026-11-18 用户令
+            // 「艺术图只留给显式的『艺术图』档」）。
+            var art = Item("film8", (EmbyImageStore.Art, "a"));
+            Assert.Equal(0, ItemArtwork.Hero(art).Count);
 
             var thumb = Item("film9", (EmbyImageStore.Thumb, "t"), (EmbyImageStore.Primary, "p"));
             Assert.Equal(EmbyImageStore.Thumb, ItemArtwork.Hero(thumb)[0].ImageType);
 
-            // 海报是这一条的最后一档 —— 详情页那一格是张圆角卡片，裁一张 2:3 还能看，这也是它和轮播的唯一差别。
-            Assert.Equal(EmbyImageStore.Primary, ItemArtwork.Hero(Item("film10", (EmbyImageStore.Primary, "p")))[0].ImageType);
+            // 海报也不在里头：整页那条带子裁一张 2:3 海报就是一条下巴，和轮播同一条规矩。
+            Assert.Equal(0, ItemArtwork.Hero(Item("film10", (EmbyImageStore.Primary, "p"))).Count);
 
             // 徽标和横幅图不在这条序里：它们是名牌，站在这张图前面。
             Assert.Equal(0, ItemArtwork.Hero(Item("film11",
@@ -509,10 +524,10 @@ internal static partial class ItemArtworkTests
             Assert.Equal("seasonthumb", ItemArtwork.Hero(walked)[0].Tag);
         });
 
-        Test("图片：借来的两档之后还留着这一集自己的图", () =>
+        Test("图片：借来的两档之后还留着这一集自己的缩略图", () =>
         {
             // 一串而不是一个：取图那一遍挨着往下退，剧集那张解不出来还能退回这一集自己那张，而不是整页没图。
-            var episode = Episode("ep23", (EmbyImageStore.Primary, "still"));
+            var episode = Episode("ep23", (EmbyImageStore.Thumb, "ownthumb"), (EmbyImageStore.Primary, "still"));
             episode.ParentBackdropItemId = "series6";
             episode.ParentBackdropImageTags.Add("parentbd");
             episode.SeriesId = "series6";
@@ -524,14 +539,14 @@ internal static partial class ItemArtworkTests
             Assert.Equal("series6", hero[0].ItemId);
             Assert.Equal(EmbyImageStore.Thumb, hero[1].ImageType);
             Assert.Equal("ep23", hero[2].ItemId);
-            Assert.Equal(EmbyImageStore.Primary, hero[2].ImageType);
+            Assert.Equal(EmbyImageStore.Thumb, hero[2].ImageType);
         });
 
         Test("图片：只有集和季借上一层的图", () =>
         {
             // 那趟上溯走到最后是媒体库那一层，而媒体库的背景图不是这部片子的画面。电影和剧集自己就有宽幅图，
             // 借来的那两档只会把一张别人的画面顶到前面去。
-            var film = Item("film16", (EmbyImageStore.Primary, "p"));
+            var film = Item("film16", (EmbyImageStore.Thumb, "ownthumb"), (EmbyImageStore.Primary, "p"));
             film.Type = EmbyItemType.Movie;
             film.ParentBackdropItemId = "library1";
             film.ParentBackdropImageTags.Add("librarybd");
@@ -540,6 +555,7 @@ internal static partial class ItemArtworkTests
 
             Assert.Equal(1, hero.Count);
             Assert.Equal("film16", hero[0].ItemId);
+            Assert.Equal(EmbyImageStore.Thumb, hero[0].ImageType);
 
             // 季页和集页是同一副数据形状，也是同一条规则：季自己那张图也是一张海报。
             var season = Item("season7", (EmbyImageStore.Primary, "p"));
@@ -791,8 +807,9 @@ internal static partial class ItemArtworkTests
             film.ParentBackdropImageTags.Add("librarybd");
 
             Assert.Equal(1, ItemArtwork.Inherited(film).Count);
-            Assert.Equal(1, ItemArtwork.Hero(film).Count);
-            Assert.Equal("film17", ItemArtwork.Hero(film)[0].ItemId);
+
+            // 电影自己不借上一层，而它自己只有一张海报 —— 海报从 2026-11-18 起也不当头图，所以这一页没有背景。
+            Assert.Equal(0, ItemArtwork.Hero(film).Count);
 
             Assert.Equal(0, ItemArtwork.Inherited(Item("film18")).Count);
             Assert.Equal(0, ItemArtwork.Inherited(null).Count);

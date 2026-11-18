@@ -340,6 +340,19 @@ internal static class HomeCarouselTests
             Assert.Equal("l2", slides[0].Id);
         });
 
+        Test("轮播：只有艺术图的条目也不上", () =>
+        {
+            // 艺术图是透明片名图，铺满整条带就是黑底加一行巨型片名（2026-11-18 用户报的那一张）。它归
+            // 详情页右上角；轮播只要背景图和缩略图这两种像画面的宽图。
+            var art = new EmbyItem { Id = "art1", Name = "只有艺术图", Type = EmbyItemType.Movie };
+            art.ImageTags[EmbyImageStore.Art] = "a";
+
+            var slides = HomeCarousel.Slides([art, Wide("l3")]);
+
+            Assert.Equal(1, slides.Count);
+            Assert.Equal("l3", slides[0].Id);
+        });
+
         Test("轮播：借来的剧集背景图算宽图", () =>
         {
             var episode = Episode("e5", "s3", backdrop: false);
