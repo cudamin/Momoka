@@ -10,7 +10,7 @@
 
 **没验证的。** 没有真实多库 + MoviePilot 同时在线的实屏：探针夹具不接媒体服务器，截图只有两条订阅入口；库项与订阅真正混排的那一屏留给交付检查（台账第 96 条）。真实服务器上拖排序后栏是否当场跟随，也只在离线夹具里按偏好通知走过一次。
 
-**分支与合并。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `6496404`；2026-11-18 用户令「合并到主树」，在主树 `master` 的 `7b04397` 上以 `--no-ff` 合入（合并提交 `0654bdd`，无冲突；主树原有 3 个未提交的测试夹具改动保持原样，未纳入本批）。分支工作树干净、内容全部进入 master；未推远端。
+**分支与合并。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `6496404`；2026-11-18 用户令「合并到主树」，在主树 `master` 的 `7b04397` 上以 `--no-ff` 合入（合并提交 `0654bdd`，无冲突；主树原有 3 个未提交的测试夹具改动保持原样，未纳入本批）。分支工作树干净、内容全部进入 master；未推远端。分支快捷方式 `Momoka-workbuddy-master-f2dbaad8.lnk` 与工作树被本会话占用、沙箱也拒绝桌面写入，登记待清理（下次在主树：`git worktree remove --force <路径>`、`git branch -d workbuddy/master-f2dbaad8`、删桌面 lnk）。
 
 **合并后主树复验（2026-11-18 晚）。** 主树 Core／`Momoka.Tests`／Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5256/5256**、`browse-identity-fixture` **64/64**、`startup-reapply-notice-fixture` **34/34**、`sidebar-icons-fixture` **21/21**、`Momoka.HomeOrderProbeTests` **22/22**，0 失败 0 跳过；主树发布件 `--probe-shell --probe-section moviepilot --screen 2` **37 项、36 过、1 红**，本批用例通过，唯一红是既有的 `YouTubeSession` 未注册（与本批无交集）。已发布主树 `artifacts/publish/win-x64`（548 文件、290.0 MB，18:28）；`Momoka.lnk` 未重写（沙箱拒写桌面），但指向同一 exe 路径，双击即当前版本。
 
