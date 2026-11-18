@@ -616,6 +616,10 @@ internal sealed partial class ShellNavigationProbe
                 // 注册进去的就是那个具体类型。
                 .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
                 .AddSingleton<BrowseSnapshotStore>()
+                // 订阅详情页现在要交一份 YouTube 会话（预告共用登录态）；探针不建 WebView2 环境，
+                // 只把服务登记齐，页面解析得到即可。
+                .AddSingleton(_ => new Media.YouTubeSession(
+                    Path.Combine(root, "webview2", "youtube"), () => Settings.Network.ProxyServer))
                 .AddSingleton(_ => new Media.DetailHeroCache(Session))
                 .AddSingleton<RemovedMedia>()
                 .AddSingleton<HiddenWatchedMedia>()

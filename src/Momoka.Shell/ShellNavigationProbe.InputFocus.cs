@@ -67,13 +67,16 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var theme in width == 1040 ? UiThemes.All : [UiThemes.Default])
                 {
                     ThemeHost.Apply(theme);
-                    _root.Background = new SolidColorBrush(ThemeHost.ToColor(theme.Colors.Window));
-                    card.Background = new SolidColorBrush(ThemeHost.ToColor(theme.Colors.SurfaceAlt));
+                    // 「跟随系统」目录项是深色预览，实际深浅以应用后的 ThemeHost.Current 为准；
+                    // 按预览色量真实模板会把系统浅色下的中性描边误判成主题色。
+                    var applied = ThemeHost.Current;
+                    _root.Background = new SolidColorBrush(ThemeHost.ToColor(applied.Colors.Window));
+                    card.Background = new SolidColorBrush(ThemeHost.ToColor(applied.Colors.SurfaceAlt));
                     await LayoutAsync(card);
-                    var expected = ThemeHost.ToColor(theme.Colors.BorderStrong);
-                    var background = ThemeHost.ToColor(theme.Colors.Window);
-                    var glass = ThemeHost.ToColor(InputControlTheme.Glass(theme));
-                    Require(background != ThemeHost.ToColor(theme.Colors.SurfaceAlt), "样例卡片与页面底色没有区别");
+                    var expected = ThemeHost.ToColor(applied.Colors.BorderStrong);
+                    var background = ThemeHost.ToColor(applied.Colors.Window);
+                    var glass = ThemeHost.ToColor(InputControlTheme.Glass(applied));
+                    Require(background != ThemeHost.ToColor(applied.Colors.SurfaceAlt), "样例卡片与页面底色没有区别");
                     foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver", "TextControlBackgroundFocused",
                         "TextControlBackgroundDisabled" })
                         foreach (var dictionary in new[] { "Dark", "Light" })
@@ -90,7 +93,7 @@ internal sealed partial class ShellNavigationProbe
                     foreach (var dictionary in new[] { "Dark", "Light" })
                         Require(ThemeHost.ColorOf(dictionary, "TextControlBorderBrushFocused") == expected,
                             $"{theme.Id}/{dictionary} 全局焦点被重新涂成主题色");
-                    Require(!IsNeutralInputBorder(new SolidColorBrush(ThemeHost.ToColor(theme.Colors.Accent)), expected),
+                    Require(!IsNeutralInputBorder(new SolidColorBrush(ThemeHost.ToColor(applied.Colors.Accent)), expected),
                         "探针未拒绝强调色描边反例");
                     Require(!IsNeutralInputBorder(null, expected), "探针未拒绝缺失焦点描边反例");
                     var searchInput = Descendants(search).OfType<TextBox>().Single();

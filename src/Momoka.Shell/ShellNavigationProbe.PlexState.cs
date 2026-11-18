@@ -135,7 +135,12 @@ internal sealed partial class ShellNavigationProbe
                 // 文字组整组收起；紧凑版式与沉浸宽版式仍是带字胶囊，照旧量文字状态。
                 if (width == 760 || !page.ViewModel.StoreMode)
                 {
-                    var labels = ((StackPanel)watchedButton.Content).Children.OfType<TextBlock>()
+                    // 宽版式那颗键的文字收在 ColumnWatchedLabels（与图标同一个 StackPanel 的兄弟），
+                    // 扁平版式才是直接子级；从实际内容里找那一组，别按按钮层数猜。
+                    var content = (StackPanel)watchedButton.Content;
+                    var labelsRoot = content.Children.OfType<StackPanel>()
+                        .FirstOrDefault(panel => panel.Name == "ColumnWatchedLabels") ?? content;
+                    var labels = labelsRoot.Children.OfType<TextBlock>()
                         .Where(label => label.Visibility == Visibility.Visible).ToArray();
                     Require(labels.Length == 1 && labels[0].Text == (played ? "已看" : "未看"),
                         "详情已看按钮文字没有随确认状态更新：" + string.Join(" / ", labels.Select(label => label.Text)));

@@ -298,6 +298,11 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await LayoutAsync(page);
                 var corner = Get<Image>(page, "CornerArt");
+                // 从最大化还原后，窗口尺寸已经变了但这一格还要再排一帧才量得到真实尺寸；
+                // 先让它落定再读，否则会把过渡中的极小 ActualWidth 当成最终版面。
+                await LayoutAsync(corner);
+                await Task.Delay(120);
+                await LayoutAsync(corner);
                 var actualWindow = width == 0 ? maximum : _window.ClientSize.Width / _root.XamlRoot.RasterizationScale;
                 var scale = DetailHero.CornerScale(actualWindow, maximum);
                 var wantWidth = DetailHero.CornerBoxWidth(page.ViewModel.PageWidth, page.ViewModel.StillWidth, scale);
