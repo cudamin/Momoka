@@ -12,6 +12,8 @@
 
 **本轮已跑。** Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5254/5254**、0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`；用默认 `C:\WINDOWS\TEMP` 时两条下载用例报环境红：`Access to the path 'C:\WINDOWS\TEMP' is denied`，与本批无关）；`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 干净。已按改好收尾发布本树 `artifacts/publish/win-x64`（548 文件、290.0 MB，16:43）并写桌面 `Momoka-fix-aggregation-recent-display-wacLCA.lnk`；发布脚本这次没带 `-ShortcutName`，一度改写了主树 `Momoka.lnk`，已重建指回主树 14:14 那份发布件（仅体验刷新、不销账）。本树根缺 `libmpv-2.dll`，发布前从主树复制了一份（未入库）。
 
+**合并（`d0489bd`）。** 2026-11-18 用户令「合并到主分支」：主树 `master` 在 `581e105` 上以 `--no-ff` 合入（冲突只在 `PROGRESS.md` 与本台账，按两边保留、本批置顶，编号顺延为 94；主树原有 3 个未提交的测试夹具改动保持原样、未纳入本批）。合并后在最终 master 上复编 Shell Release/x64 **0 警告 0 错误**、全量 `Momoka.Tests` **5254/5254**、发布件上 `--probe-shell --probe-section accounts --screen 1` **6/6、退出 0**；主树已按改好收尾发布 `artifacts/publish/win-x64`（548 文件、290.0 MB，17:04）并刷新桌面 `Momoka.lnk`。分支快捷方式 `Momoka-fix-aggregation-recent-display-wacLCA.lnk` 已删；分支与工作树仍被本会话占用，登记待清理。未推远端。
+
 **没验证的。** 真实账号的实屏复验（四账号、15 排、1414×865、轮播开着）留到统一验证：滚到底应看见 Jellyfin 三排最近添加、飞牛音乐与 Emby 音乐两排，五套主题与宽窄两档一并看。探针用的是假服务器与关轮播的版面；本批已合并 master，未推远端、未跑统一验证。
 
 ## 2026-11-18 商店档预告控制排挪进画框，播放预告不再把卡片推下去（已合并 master）
