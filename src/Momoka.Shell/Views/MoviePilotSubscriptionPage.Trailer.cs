@@ -38,6 +38,8 @@ public sealed partial class MoviePilotSubscriptionPage
     private bool _trailerYouTubeMuted = true;
     private MenuFlyout? _trailerMenu;
     private readonly StoreVideoBrush _trailerBrush = new();
+    /// <summary>上回摆控制排时量到的高；为 0 表示还没排过（当时用的是兜底值）。</summary>
+    private double _trailerControlsHeight;
 
     internal void SetStorePreviewActive(bool active)
     {
@@ -56,6 +58,11 @@ public sealed partial class MoviePilotSubscriptionPage
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
         };
         Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+        // 同媒体详情页：控制排的顶边按它自己的高算，量到新高度后重摆一次（只改边距，同高不再触发）。
+        StoreTrailerControls.SizeChanged += (_, args) =>
+        {
+            if (Math.Abs(args.NewSize.Height - _trailerControlsHeight) > 0.5) LayoutStoreTrailer();
+        };
     }
 
     private void CloseStoreTrailer()
@@ -131,8 +138,15 @@ public sealed partial class MoviePilotSubscriptionPage
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(MediaViewModel.StorePageWidth);
         StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(MediaViewModel.StorePageWidth);
         StoreTrailerHost.Margin = MediaViewModel.StorePreviewMargin;
-        // 2026-11-18 同媒体详情页：控制排挪进画框右上角（预告字幕在下、标题在左上），尾部不再替它让位。
-        StoreTrailerControls.Margin = new Thickness(0, DetailHero.StoreTrailerControlsInset,
+        // 2026-11-18 同媒体详情页：控制排挂在画框右下角（用户令「移到右下」），尾部仍不替它让位。
+        // 顶边按画面的高算 —— 它与画面同格，格子比画面高，VerticalAlignment=Bottom 会掉到页面底下；
+        // 键高先按兜底值摆，量到真高后由 SizeChanged 再摆一次。
+        _trailerControlsHeight = StoreTrailerControls.ActualHeight;
+        var controlsHeight = _trailerControlsHeight > 0
+            ? _trailerControlsHeight
+            : DetailHero.StoreTrailerControlsRowHeight;
+        StoreTrailerControls.Margin = new Thickness(0,
+            Math.Max(0, StoreTrailerHost.Height - controlsHeight - DetailHero.StoreTrailerControlsInset),
             MediaViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset, 0);
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _trailerBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,

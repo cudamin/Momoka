@@ -57,7 +57,7 @@ internal static class SubscriptionTrailerLayoutTests
             Assert.Contains("TrailerPreview.BackgroundWidth(MediaViewModel.StorePageWidth)", trailer);
             Assert.Contains("TrailerPreview.BackgroundHeight(MediaViewModel.StorePageWidth)", trailer);
             Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
-            // 2026-11-18：控制排挪进画框左下角，不再贴着窗口右沿摆。
+            // 2026-11-18：控制排挪进画框右下角（用户令「移到右下」），不再贴着窗口右沿摆。
             Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
 
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));

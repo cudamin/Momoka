@@ -432,7 +432,7 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("TrailerPreview.BackgroundWidth(ViewModel.PageWidth)", trailer);
             Assert.Contains("TrailerPreview.BackgroundHeight(ViewModel.PageWidth)", trailer);
             Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
-            // 2026-11-18 起控制排挂在画框里，紧挨左下角，不再贴着窗口右沿。
+            // 2026-11-18 起控制排挂在画框里，紧挨右下角，不再贴着窗口右沿。
             Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
         });
 
@@ -446,8 +446,9 @@ internal static class StoreDetailLayoutTests
             var media = Source("ViewModels/MoviePilotMediaViewModel.cs");
             Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, DetailHero.StorePreviewGap)", media);
             Assert.DoesNotContain("TrailerControlsRoom", media);
-            // 两页都把控制排摆在画框右上角：顶边一个内缩，右边距 = 视口右沿空隙 + 内缩（视口自己右对齐，
-            // 所以不必算绝对左边）。2026-11-18 用户报「按钮位置都重合了」：别再把那排键摆到字幕上。
+            // 2026-11-18 用户令「移到右下」：两页都把控制排摆在画框右下角 —— 顶边 = 画面高 − 键高 − 内缩，
+            // 右边距 = 视口右沿空隙 + 内缩（视口自己右对齐，不必算绝对左边）。键高量不到时用同一个兜底常量，
+            // 量到后由 SizeChanged 重摆；顶边不能用 VerticalAlignment=Bottom（那一格比画面高）。
             foreach (var (page, margin) in new[]
             {
                 ("Views/DetailPage.StoreTrailer.cs", "ViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset"),
@@ -455,10 +456,12 @@ internal static class StoreDetailLayoutTests
             })
             {
                 var trailer = Source(page);
-                Assert.Contains("new Thickness(0, DetailHero.StoreTrailerControlsInset,", trailer);
+                Assert.Contains("Math.Max(0, StoreTrailerHost.Height - controlsHeight - DetailHero.StoreTrailerControlsInset)", trailer);
                 Assert.Contains(margin, trailer);
+                Assert.Contains("DetailHero.StoreTrailerControlsRowHeight", trailer);
+                Assert.Contains("StoreTrailerControls.SizeChanged +=", trailer);
                 Assert.DoesNotContain("StoreTrailerHost.Height + 32", trailer);
-                Assert.DoesNotContain("StoreTrailerHost.Height - controls", trailer);
+                Assert.DoesNotContain("new Thickness(0, DetailHero.StoreTrailerControlsInset,", trailer);
             }
             foreach (var name in new[] { "Views/DetailPage.xaml", "Views/MoviePilotSubscriptionPage.xaml" })
             {
