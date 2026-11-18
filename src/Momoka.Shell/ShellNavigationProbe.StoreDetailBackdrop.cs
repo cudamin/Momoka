@@ -252,10 +252,12 @@ internal sealed partial class ShellNavigationProbe
             var picture = Get<Grid>(page, "StoreBackdrop");
             var controlsBox = Bounds(controls, canvas);
             var pictureBox = Bounds(picture, canvas);
-            Require(controlsBox.Left >= pictureBox.Left + DetailHero.StoreTrailerControlsInset - 1
-                && controlsBox.Top >= pictureBox.Top
-                && controlsBox.Bottom <= pictureBox.Bottom - DetailHero.StoreTrailerControlsInset + 1,
-                $"预告控制排没有落在画框左下角：键 {controlsBox}、画面 {pictureBox}");
+            // 右上角：右沿比画面右沿再进一个内缩，上沿同理；整排都在画框里。
+            Require(controlsBox.Right <= pictureBox.Right - DetailHero.StoreTrailerControlsInset + 1
+                && controlsBox.Left >= pictureBox.Left
+                && controlsBox.Top >= pictureBox.Top + DetailHero.StoreTrailerControlsInset - 1
+                && controlsBox.Bottom <= pictureBox.Bottom,
+                $"预告控制排没有落在画框右上角：键 {controlsBox}、画面 {pictureBox}");
             StoreDetailProbeEvidence.RequireClearance(Bounds(cover, canvas).Bottom, Bounds(details, canvas).Top,
                 Bounds(details, canvas).Bottom, pictureBox.Bottom, controlsBox.Bottom,
                 Bounds(firstCard, canvas).Top, DetailHero.StorePreviewGap);

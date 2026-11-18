@@ -438,7 +438,7 @@ internal static class StoreDetailLayoutTests
 
         Test("商店尾部：预告控制排进画框，卡片不再替它让位", () =>
         {
-            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：那排键从画面下沿外侧挪进画框左下角，
+            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：那排键从画面下沿外侧挪进画框，
             // 尾部只剩「画面 + 空隙 − 带高」，卡片的位置跟这支预告开没开播无关。
             var viewModel = Source("ViewModels/DetailViewModel.cs");
             Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroHeight, DetailHero.StorePreviewGap)", viewModel);
@@ -446,20 +446,26 @@ internal static class StoreDetailLayoutTests
             var media = Source("ViewModels/MoviePilotMediaViewModel.cs");
             Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, DetailHero.StorePreviewGap)", media);
             Assert.DoesNotContain("TrailerControlsRoom", media);
-            // 两页都把控制排的顶边摆在「画面下沿 − 键高 − 内缩」，左右对齐靠 XAML 的 Left。
-            foreach (var page in new[] { "Views/DetailPage.StoreTrailer.cs", "Views/MoviePilotSubscriptionPage.Trailer.cs" })
+            // 两页都把控制排摆在画框右上角：顶边一个内缩，右边距 = 视口右沿空隙 + 内缩（视口自己右对齐，
+            // 所以不必算绝对左边）。2026-11-18 用户报「按钮位置都重合了」：别再把那排键摆到字幕上。
+            foreach (var (page, margin) in new[]
+            {
+                ("Views/DetailPage.StoreTrailer.cs", "ViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset"),
+                ("Views/MoviePilotSubscriptionPage.Trailer.cs", "MediaViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset")
+            })
             {
                 var trailer = Source(page);
-                Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
-                Assert.Contains("Math.Max(0, StoreTrailerHost.Height - controls - DetailHero.StoreTrailerControlsInset)", trailer);
+                Assert.Contains("new Thickness(0, DetailHero.StoreTrailerControlsInset,", trailer);
+                Assert.Contains(margin, trailer);
                 Assert.DoesNotContain("StoreTrailerHost.Height + 32", trailer);
+                Assert.DoesNotContain("StoreTrailerHost.Height - controls", trailer);
             }
             foreach (var name in new[] { "Views/DetailPage.xaml", "Views/MoviePilotSubscriptionPage.xaml" })
             {
                 var xaml = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", name));
                 var controls = xaml.Descendants().Single(element =>
                     (string?)element.Attribute(X + "Name") == "StoreTrailerControls");
-                Assert.Equal("Left", (string?)controls.Attribute("HorizontalAlignment"));
+                Assert.Equal("Right", (string?)controls.Attribute("HorizontalAlignment"));
                 Assert.Equal("Top", (string?)controls.Attribute("VerticalAlignment"));
             }
             var trailerCode = Source("Views/DetailPage.StoreTrailer.cs");

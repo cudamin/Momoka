@@ -4,13 +4,13 @@
 
 **根因。** 那排暂停／静音／字幕／关闭原来挂在画面下沿再往下 32 处（`StoreTrailerControlsRoom = 72` 的由来），为了让后面不透明的卡片不压住它，`TailMinHeight` 在「预告真的开播」时替它多留 72 —— 于是播放那一刻卡片整体往下跳一块，画面下沿到首卡之间就是那片空。2026-11-17 那轮只把判据从「条目有没有预告」改成「控制键在不在屏上」，播起来照样跳。
 
-**改法（用户选「控制键挪进画面」）。** `DetailHero.StoreTrailerControlsRoom` 退役，换成 `StoreTrailerControlsInset = 12`；`StoreTailHeight` 只剩「画面 + 空隙 − 带高」三项，跟预告开没开播无关。控制排挂到画框左下角（`Margin` 的顶边 = 画面高 − 键高 − 内缩，`HorizontalAlignment` 改 Left；YouTube 自带的分享／稍后看图标在右下角，让开它们），键高由 `ActualHeight` 量，量到后经 `SizeChanged` 再摆一次。`DetailViewModel.StoreTrailerControlsShown` 与订阅页的 `TrailerControlsRoom` 一起退役。
+**改法（用户选「控制键挪进画面」）。** `DetailHero.StoreTrailerControlsRoom` 退役，换成 `StoreTrailerControlsInset = 12`；`StoreTailHeight` 只剩「画面 + 空隙 − 带高」三项，跟预告开没开播无关。控制排挂到画框里，与上沿、右沿各留 12（先摆左下角，用户当场报「按钮位置都重合了」——预告字幕压在下边，随即改到右上角：标题在左上、字幕在下，只有这一角是空的）。`DetailViewModel.StoreTrailerControlsShown` 与订阅页的 `TrailerControlsRoom` 一起退役。
 
 **改到的验证面。** `StoreDetailTailProbeEvidence` 的期望尾部去掉了 72 那一档（`WideTrailer` 只剩读数）；`ShellNavigationProbe.StoreDetailBackdrop` 的 clearance 用例改成「尾部不多留 + 控制排真的落在画框左下角」；`DetailLayoutTests`、`StoreDetailTailProbeEvidenceTests`、`StoreDetailLayoutTests`、`SubscriptionTrailerLayoutTests` 各按新形状重钉。
 
 **本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 30 秒）；`Momoka.PageContractTests` **361/361**、全量 `Momoka.Tests` **5248/5248**，0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`）。实屏：静图那一态（飞牛条目、没有预告）首卡紧跟在画面与信息区之后，画面下沿到「演职人员」之间只剩常规留白。
 
-**没验证的。** 这一版没拍到「预告在播」的实屏——13:20 起这台机器的来源切到了飞牛那条账号（`donxuelian · 电影`），那条库没有预告，控制排不会露头；播起来那一态要靠 `--probe-section library` 的 clearance 用例（它把控制排真显出来、量它在画框里的位置）与用户手上的 Emby 条目复核。五套主题、窄窗、订阅详情页同一处同样留给统一验证。
+**没验证的（用户令「探针记到交付里」，不在本批跑）。** 「预告在播」那一态没有实屏：13:20 起这台机器的来源切到飞牛那条账号（`donxuelian · 电影`），那条库没有预告，控制排不会露头。`--probe-section library` 起过两轮：第一轮跑到 11 分钟被我停掉重跑（当时还是左下角那版），第二轮 34 项里 5 红——本批那条「商店预告实帧、轨道菜单与离页关闭」红在**边距整等号比 double**（44.79999923706055 对 44.8，已改成带容差），另外「集页封面与窄窗背景图」是艺术图没解出来的旧账、三条「像素探针窗口被遮挡」是桌面遮挡，都跟本批无关。这条用例要按新位置（右上角）重跑并在交付时看 `store-trailer-decoded-screen.png`；五套主题、窄窗、订阅详情页同一处同样留给统一验证。
 
 ## 2026-11-18 商店档预告片左沿那道竖线：叠图补上压在视频下面的淡墨（分支 `workbuddy/master-85d70cea`，待合并）
 
