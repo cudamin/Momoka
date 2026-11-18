@@ -96,9 +96,11 @@ internal static class MoviePilotMediaManagementTests
             Assert.Contains("dialog.DefaultButton == ContentDialogButton.Close", runtime);
             Assert.Contains("VerticalAlignment = VerticalAlignment.Top", runtime);
             var sidebar = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.Sidebar.cs"));
-            var titleCheck = sidebar.IndexOf("Require(section.ActualHeight > 0", StringComparison.Ordinal);
-            var measured = sidebar.LastIndexOf("await LayoutAsync(section);", titleCheck, StringComparison.Ordinal);
-            Assert.True(measured >= 0 && measured < titleCheck);
+            // 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：原「订阅」分区标题退役，
+            // 盯着「标题真有高度」的那条断言随之退役；改盯新的运行判据 —— 栏里没有「订阅」标题、两条入口
+            // 与库项同排，且把「订阅·电影」拖到第一位后探针真量到它紧跟媒体库标题。
+            Assert.Contains("All(header => (string?)header.Content != \"订阅\")", sidebar);
+            Assert.Contains("EntryItems()[0].Tag as string == HomeLayout.MoviePilotMovies", sidebar);
             Assert.Contains("VisibleArea(icon, host) >= bounds.Width * bounds.Height - 0.5", sidebar);
         });
         Test("MP 更多菜单：能力补到时不收起且探针在运行清单里", () =>

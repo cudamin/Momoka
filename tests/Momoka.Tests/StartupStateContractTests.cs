@@ -556,7 +556,9 @@ internal sealed class StartupShellFixture
     internal void Notify(object vm, string? title, string? message, string severity)
     {
         var kind = _vm.GetProperty("NoticeSeverity", Members)!.PropertyType;
-        Call(vm, "Notify", title, message, Enum.Parse(kind, severity));
+        // 生产 Notify 后来多了可选的「提示条动作」（文字与回调）两个参数；反射调用不补可选实参，
+        // 这里把两个空位一起传进去，判据仍是原来那条「这条提示是谁写的」。
+        Call(vm, "Notify", title, message, Enum.Parse(kind, severity), null, null);
     }
     private static object? Invoke(object target, MethodInfo method, object?[] args)
     {

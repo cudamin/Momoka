@@ -281,6 +281,36 @@ internal static class AggregateQueryTests
             Assert.Equal(HomeLayout.LibraryKey(first.Bind(new EmbyItem { Id = "same", Name = "电影" })), firstKey);
         });
 
+        Test("侧栏顺序：固定排不进栏，订阅与库排同一份次序、勾选不影响入口", () =>
+        {
+            var first = Scope("a", "user").Bind(new EmbyItem { Id = "movies", Name = "电影" });
+            var second = Scope("b", "other").Bind(new EmbyItem { Id = "shows", Name = "电视剧" });
+            var firstKey = HomeLayout.LibraryKey(first);
+            var secondKey = HomeLayout.LibraryKey(second);
+            var plan = HomeLayout.Plan(null, [first, second]).ToList();
+            var order = HomeLayout.SidebarOrder(plan, [firstKey, secondKey]);
+
+            // 继续观看、媒体库、接下来看是主页的货架，不进栏；两条订阅在出厂次序里补在库后面。
+            Assert.Equal($"{firstKey},{secondKey},{HomeLayout.MoviePilotMovies},{HomeLayout.MoviePilotSeries}",
+                string.Join(',', order));
+
+            // 用户把「订阅·电影」拖到最前、把电影库勾掉：栏里订阅排第一，勾掉的库仍有入口 ——
+            // 那一列管的是主页显不显示，侧栏不该跟着少一行。
+            var movie = plan.Single(row => row.Key == HomeLayout.MoviePilotMovies);
+            plan.Remove(movie);
+            plan.Insert(0, movie);
+            plan = [.. plan.Select(row => row.Key == firstKey ? row with { Visible = false } : row)];
+            order = HomeLayout.SidebarOrder(plan, [firstKey, secondKey]);
+            Assert.Equal($"{HomeLayout.MoviePilotMovies},{firstKey},{secondKey},{HomeLayout.MoviePilotSeries}",
+                string.Join(',', order));
+
+            // 版面里没有的库（这一跑刚读出来、设置文件还没写回去）补在末尾，入口不会悄悄消失。
+            var thirdKey = HomeLayout.LibraryKey(Scope("c", "third").Bind(new EmbyItem { Id = "music", Name = "音乐" }));
+            order = HomeLayout.SidebarOrder(plan, [firstKey, secondKey, thirdKey]);
+            Assert.Equal(5, order.Count);
+            Assert.Equal(thirdKey, order[^1]);
+        });
+
         Test("聚合主页：移除来源文字仍保留独立货架、排列和勾选", () =>
         {
             var first = Scope("a", "user").Bind(new EmbyItem { Id = "same", Name = "电影" });

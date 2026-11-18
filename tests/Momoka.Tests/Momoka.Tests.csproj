@@ -114,7 +114,7 @@
             "        fixture.ReloadRow();\n        return fixture.ReloadFinish;\n    }\n" +
             "    private Task ReapplyPlaybackPreferencesAsync(string notice, string? startupReadFailure = null) => fixture.Push(notice, startupReadFailure);\n" +
             "    private static class ThemeHost { internal static void Apply(UiSettings ui) { } }\n" +
-            "    private static class ShellPrefs { internal static void Apply(UiSettings ui) { } internal static void ApplyTrailers(TrailerSettings trailer) { } internal static void ApplyProxy(NetworkSettings network) { } internal static void ApplyShortcuts() { } internal static void ApplyDanmaku() { } internal static void ApplySubtitleTranslation() { } }\n" +
+            "    private static class ShellPrefs { internal static void Apply(UiSettings ui) { } internal static void ApplySidebar(UiSettings ui) { } internal static void ApplyTrailers(TrailerSettings trailer) { } internal static void ApplyProxy(NetworkSettings network) { } internal static void ApplyShortcuts() { } internal static void ApplyDanmaku() { } internal static void ApplySubtitleTranslation() { } }\n" +
             reapply + "\n    internal Task Run(string notice) => ReapplyAndReloadAsync(notice);\n" +
             "    internal Task ReloadOnly() => ReloadAsync();\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(Output));

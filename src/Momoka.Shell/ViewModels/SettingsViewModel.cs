@@ -1950,6 +1950,10 @@ public sealed partial class SettingsViewModel : PageViewModel
                         .Select(row => new Emby.HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray()));
 
                 Save();
+                // 侧边栏里「媒体库 + 订阅」那一段也照这张表排（2026-11-18 用户令「订阅按照媒体库顺序排序」）：
+                // 单独喊一声 SidebarChanged，让外壳按新次序重排栏里的条目。Apply 那一根是给主页重新查询的，
+                // 外壳不订阅它，搭不上这趟车。
+                ShellPrefs.ApplySidebar(ui);
                 ShellPrefs.Apply(ui);
             });
 
@@ -3102,6 +3106,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         var ui = Settings.Ui;
         ThemeHost.Apply(ui);
+        // 侧边栏「媒体库 + 订阅」那一段的次序也来自这份设置：导入或恢复默认之后要让外壳重排一次。
+        ShellPrefs.ApplySidebar(ui);
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyTrailers(Settings.Trailer);
         ShellPrefs.ApplyProxy(Settings.Network);

@@ -296,6 +296,28 @@ public static class HomeLayout
             .ToArray();
     }
 
+    /// <summary>
+    /// 侧边栏「媒体库 + 订阅」那一段的次序（2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」）：
+    /// 取主页版面那一份名单，只留下库排与两条订阅 —— 继续观看、媒体库、接下来看是主页的货架，不是栏里的入口。
+    /// 勾没勾不影响这里：那一列管的是主页显不显示，栏里的入口一直都在。
+    /// <para>
+    /// 版面里没有的库（这一跑读出目录、设置文件还没写回去）按 <paramref name="libraryKeys"/> 的次序补在末尾，
+    /// 和 <see cref="Plan"/> 对「服务器上新加的库」的处置一致：入口不该悄悄消失。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> SidebarOrder(IEnumerable<HomeRowPlan> plan, IEnumerable<string> libraryKeys)
+    {
+        var libraries = libraryKeys.ToHashSet(StringComparer.Ordinal);
+        var order = new List<string>(libraries.Count + 2);
+        foreach (var row in plan)
+            if (IsMoviePilot(row.Key) || libraries.Contains(row.Key)) order.Add(row.Key);
+
+        foreach (var key in libraries)
+            if (!order.Contains(key)) order.Add(key);
+
+        return order;
+    }
+
     /// <summary>只替换本次编辑的行；暂时不可用的订阅和其它来源的媒体库保留原位置和勾选状态。</summary>
     public static IReadOnlyList<HomeRowPlan> MergeEdits(IReadOnlyList<HomeRowPlan> plan, IReadOnlyList<HomeRowPlan> edits)
     {
