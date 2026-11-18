@@ -106,7 +106,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     [NotifyPropertyChangedFor(nameof(LyricsEmptyVisibility))]
     public partial bool LyricsLoading { get; set; }
 
-    [ObservableProperty] public partial string LyricsEmptyText { get; set; } = "暂无内嵌歌词";
+    [ObservableProperty] public partial string LyricsEmptyText { get; set; } = "暂无歌词";
 
     /// <summary>刚唱到的那一句；播放页据它把列表滚进视野。纯文本歌词一直是 null。</summary>
     [ObservableProperty] public partial MusicLyricLine? ActiveLyric { get; set; }
@@ -351,8 +351,8 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     }
 
     /// <summary>
-    /// 读到文件标签里的歌词。走 mpv 自己的 <c>metadata/by-key</c>，不新增任何服务端接口：
-    /// 标签名先从 <c>display-tags</c> 里找像歌词的那一个，读不到再按几个常见名兜底。
+    /// 读到歌词。先问服务器自己的歌词表（飞牛音乐的 <c>lyric/list</c> 把内嵌、同名 .lrc 与手工歌词
+    /// 一并返回），服务器没有或这个服务没有核对过的接口时，再读当前文件标签里的原文。
     /// <para>
     /// 这里只读属性，不碰播放生命周期；换曲、停止、转视频和换代都在回填时按版本核对，
     /// 迟到的歌词不会贴到下一首上。
@@ -361,11 +361,48 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     private void BeginLyricsRead(long trackVersion)
     {
         if (_lyricsTrack == trackVersion || !HasIntent || !_playback.IsAudioOnly) return;
+        if (CurrentItem is not { } item) return;
         _lyricsTrack = trackVersion;
-        _ = ReadLyricsAsync(trackVersion);
+        _ = ReadLyricsAsync(trackVersion, item);
     }
 
-    private async Task ReadLyricsAsync(long trackVersion)
+    private async Task ReadLyricsAsync(long trackVersion, EmbyItem item)
+    {
+        var parsed = await ReadServerLyricsAsync(item).ConfigureAwait(false);
+        if (parsed is not { IsEmpty: false })
+            parsed = MusicLyrics.Parse(await ReadTagLyricsAsync().ConfigureAwait(false));
+
+        _ui.Run(() =>
+        {
+            if (_disposed || trackVersion != _trackVersion || !HasIntent || !_playback.IsAudioOnly) return;
+            ApplyLyrics(parsed);
+        });
+    }
+
+    /// <summary>
+    /// 服务器歌词。没有歌词、服务没有核对过这条接口或读取失败都返回 null，由调用方退回文件标签；
+    /// 失败不弹通知打扰正在听歌的人。
+    /// </summary>
+    private async Task<MusicLyrics?> ReadServerLyricsAsync(EmbyItem item)
+    {
+        try
+        {
+            var scope = item.Source ?? _session.Capture(item);
+            return await scope.ExecuteAsync((client, token) => client.GetLyricsAsync(item.Id, token), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            Log.Debug("音乐", $"读取服务端歌词失败：{error.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 当前音频文件自己的歌词标签。走 mpv 的 <c>metadata/by-key</c>：标签名先从
+    /// <c>display-tags</c> 里找像歌词的那一个，读不到再按几个常见名兜底。
+    /// </summary>
+    private async Task<string?> ReadTagLyricsAsync()
     {
         string? raw = null;
         try
@@ -387,28 +424,23 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
             // 读取失败与「文件没有歌词」在屏上是同一件事，不弹通知打扰正在听歌的人。
             Log.Debug("音乐", $"读取内嵌歌词失败：{error.Message}");
         }
-
-        _ui.Run(() =>
-        {
-            if (_disposed || trackVersion != _trackVersion || !HasIntent || !_playback.IsAudioOnly) return;
-            ApplyLyrics(raw);
-        });
+        return raw;
     }
 
-    /// <summary>把读到的原文换成行。没有内容时停在空态，不把上一首的歌词留在屏上。</summary>
-    private void ApplyLyrics(string? raw)
+    /// <summary>把读到的结果换成行。没有内容时停在空态，不把上一首的歌词留在屏上。</summary>
+    private void ApplyLyrics(MusicLyrics? parsed)
     {
         LyricsLoading = false;
         foreach (var line in Lyrics) line.IsActive = false;
         Lyrics.Clear();
-        _lyrics = MusicLyrics.Parse(raw);
+        _lyrics = parsed;
         _activeLyricIndex = -1;
         ActiveLyric = null;
-        if (_lyrics.IsEmpty)
+        if (_lyrics is not { IsEmpty: false })
         {
             HasLyrics = false;
             LyricsSynced = false;
-            LyricsEmptyText = "暂无内嵌歌词";
+            LyricsEmptyText = "暂无歌词";
             return;
         }
 
@@ -508,7 +540,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         AmbientArtwork = null;
         ResetLyrics();
         LyricsLoading = false;
-        LyricsEmptyText = "暂无内嵌歌词";
+        LyricsEmptyText = "暂无歌词";
     }
     public void Dispose()
     {

@@ -204,6 +204,52 @@ internal static class FnMusicTests
             Assert.Equal("https://fixture.invalid/music/api/v1/track/stream?guid=track3", item.MediaSources.Single().DirectStreamUrl!.AbsoluteUri);
             Assert.False(item.MediaSources.Single().DirectStreamUrl!.AbsoluteUri.Contains("token", StringComparison.Ordinal));
         });
+        Test("飞牛音乐：歌词按来源优先级取内嵌时间轴并应用服务端偏移", () =>
+        {
+            using var fixture = new Fixture(); var client = fixture.Client();
+            fixture.Transport.Lyrics = new JsonArray(
+                new JsonObject { ["guid"] = "lrc", ["content"] = "[00:01.00]外部 lrc", ["source"] = 2, ["offset"] = 0, ["updatedAt"] = 300, ["createdAt"] = 3 },
+                new JsonObject { ["guid"] = "manual", ["content"] = "[00:01.00]手工", ["source"] = 4, ["offset"] = 0, ["updatedAt"] = 200, ["createdAt"] = 2 },
+                new JsonObject { ["guid"] = "embedded", ["content"] = "[00:01.00]内嵌\n[00:05.00]第二句", ["source"] = 1, ["offset"] = -500, ["updatedAt"] = 100, ["createdAt"] = 1 });
+            var lyrics = client.GetLyricsAsync("track0", default).GetAwaiter().GetResult();
+            Assert.NotNull(lyrics);
+            Assert.True(lyrics!.Synced);
+            Assert.Equal("内嵌", lyrics.Lines[0].Text);
+            Assert.Equal(TimeSpan.FromMilliseconds(500), lyrics.Lines[0].Time);
+            Assert.Equal(TimeSpan.FromMilliseconds(4500), lyrics.Lines[1].Time);
+            var request = fixture.Transport.Requests[^1];
+            Assert.Equal("/music/api/v1/lyric/list", request.Path);
+            Assert.Contains("trackGUID=track0", request.Query);
+            Assert.Equal("fixture-token", request.Cookie?.Replace("music-token=", "", StringComparison.Ordinal));
+        });
+        Test("飞牛音乐：歌词优先项、纯文本兜底与坏时间轴跳过", () =>
+        {
+            using var fixture = new Fixture(); var client = fixture.Client();
+            fixture.Transport.Lyrics = new JsonArray(
+                new JsonObject { ["guid"] = "manual", ["content"] = "手工纯文本\n第二行", ["source"] = 4 },
+                new JsonObject { ["guid"] = "embedded", ["content"] = "[00:01.00]内嵌", ["source"] = 1 });
+            fixture.Transport.PreferredLyric = "manual";
+            var chosen = client.GetLyricsAsync("track0", default).GetAwaiter().GetResult();
+            Assert.NotNull(chosen);
+            Assert.False(chosen!.Synced);
+            Assert.Equal("手工纯文本", chosen.Lines[0].Text);
+
+            fixture.Transport.PreferredLyric = null;
+            fixture.Transport.Lyrics = new JsonArray(
+                new JsonObject { ["guid"] = "plain", ["content"] = "只有文字", ["source"] = 4 },
+                new JsonObject { ["guid"] = "broken", ["content"] = "[00:01.00]", ["source"] = 1 });
+            var fallback = client.GetLyricsAsync("track0", default).GetAwaiter().GetResult();
+            Assert.NotNull(fallback);
+            Assert.False(fallback!.Synced);
+            Assert.Equal("只有文字", fallback.Lines[0].Text);
+
+            fixture.Transport.Lyrics = new JsonArray(
+                new JsonObject { ["guid"] = "yrc", ["content"] = "[1000,500](1000,200,0)词", ["source"] = 1 });
+            Assert.Null(client.GetLyricsAsync("track0", default).GetAwaiter().GetResult());
+
+            fixture.Transport.Lyrics = new JsonArray();
+            Assert.Null(client.GetLyricsAsync("track0", default).GetAwaiter().GetResult());
+        });
         Test("飞牛音乐：专辑歌单容器使用各自曲目路由", () =>
         {
             using var fixture = new Fixture(); var client = fixture.Client();
@@ -284,6 +330,8 @@ internal static class FnMusicTests
         internal int AccessStatus { get; set; }
         internal bool RedirectCover { get; set; }
         internal string[] AlbumCovers { get; set; } = [];
+        internal JsonArray? Lyrics { get; set; }
+        internal string? PreferredLyric { get; set; }
         internal int AlbumListFailure { get; set; }
         internal bool ExpireOnce { get; set; }
         internal int Logins { get; private set; }
@@ -316,6 +364,7 @@ internal static class FnMusicTests
             else if (route == "album/list" && AlbumListFailure != 0) { code = AlbumListFailure; data = null; }
             else if (route == "album/list" && AlbumCovers.Length > 0) data = Albums();
             else if (route.StartsWith("favorite-track/", StringComparison.Ordinal) && request.Method == HttpMethod.Post) data = null;
+            else if (route == "lyric/list") data = new JsonObject { ["list"] = Lyrics ?? new JsonArray(), ["preferred"] = PreferredLyric };
             else if (route == "track/metadata") data = new JsonObject { ["track"] = Track("track0"), ["audioSpec"] = Spec() };
             else if (route.EndsWith("/detail", StringComparison.Ordinal)) data = new JsonObject { ["guid"] = "album", ["name"] = "专辑", ["trackCount"] = 6 };
             else

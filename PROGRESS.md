@@ -1,3 +1,17 @@
+## 2026-11-18 音乐歌词：飞牛音乐 lyric/list 与文件标签两条来源（日常批，待统一验证）
+
+用户报「飞牛音乐那边有歌词的，momoka没读取到」，附两窗对比截图：左边飞牛音乐播放页歌词随唱随滚，右边 Momoka 显示「暂无内嵌歌词」。本机 `settings.json` 的 `LastServerId` 指向飞牛音乐账号，确认对比的就是同一台音乐服务器。
+
+**查到的原因。** 播放页只读当前音频文件的标签：`MusicPlaybackViewModel` 从 mpv `display-tags` 找名字带 lyric 的键，再按几个常见名兜底。`display-tags` 是「要显示哪些标签」的选项列表，不是文件实际带的标签；而飞牛音乐把内嵌、同名 `.lrc` 和手工填写的歌词统一存在自己的歌词表里（官方 1.1.19 前端 `GET lyric/list?trackGUID=`），文件本身没有标签时这条链路永远是空。
+
+**改了什么。** 新增 `FnMusicMediaAdapter.Lyrics.cs`：读 `lyric/list`，按官方顺序挑一条——`source` 1 内嵌 > 2 外部 lrc > 4 手工 > 未知，同级再按 `updatedAt`、`createdAt` 倒序，第一条能解析出时间轴的优先，`preferred` 指向的那条优先；条目上的毫秒 `offset` 由 `MusicLyrics.Parse` 新增的 `shift` 参数叠加到每句时间。TTML／YRC 原文只识别格式并跳过，退回文件标签。`EmbyClient.GetLyricsAsync` 只在飞牛音乐连接上走这条接口，其余服务器直接返回 null、不发请求。`MusicPlaybackViewModel` 改为先读服务器歌词，没有或读取失败再读文件标签；空态标题改成「暂无歌词」，XAML 说明改成「音频文件与服务端都没有找到歌词」。
+
+**跑过什么。** Core、Shell、`Momoka.Tests`、`Momoka.MusicViewModelTests` Release/x64 均 **0 警告 0 错误**；`fnmusic-fixture` **23/23**（新增来源优先级＋服务端偏移、`preferred`／纯文本兜底／坏时间轴跳过两条）；`music-fixture` **19/19**（新增服务端偏移叠加与负时间夹零）；`Momoka.MusicViewModelTests` **43/43**（新增飞牛音乐连接下先请求 `lyric/list`、随进度高亮、停止清空），均 0 失败 0 跳过。
+
+**未验证。** 协议来自官方 1.1.19 前端产物（`5e884898…` 的 `/lyric/list` 路由、`fd1fcd61…` 的 `I.lyric.list({trackGUID})`、`016b06…` 的 source 枚举与优先级），没有读到真实服务器的歌词内容：保存的会话令牌已过期，临时登录的探测会话被正在运行的飞牛网页会话挤掉。真实曲目能否出歌词要等用户用桌面分支快捷方式复测；本批未播放真实媒体。
+
+**发布。** 已按改好收尾发布 `artifacts\publish\win-x64`（548 文件、290.0 MB，13:42），桌面 `Momoka-fix-momoka-lyric-read-g3pc0d.lnk` 指向本树发布目录；发布脚本同时写出的 `Momoka.lnk` 已还原到主树发布目录。日常批不跑探针、不拍验收截图，待交付项记在台账。
+
 ## 2026-11-18 详情页封面返回主页：等目标排好版再起跑（日常批，待统一验证）
 
 用户报「媒体详情页的封面移动回主页的动画不是很顺滑」。

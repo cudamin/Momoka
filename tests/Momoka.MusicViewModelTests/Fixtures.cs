@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -19,7 +20,7 @@ internal sealed class Fixture : IAsyncDisposable
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.NonPublic;
     private readonly string _directory;
-    public Fixture()
+    public Fixture(MediaServerKind kind = MediaServerKind.Emby)
     {
         _directory = Path.Combine(FindRoot(), "artifacts", "music-vm-tests", Guid.NewGuid().ToString("N"));
         var noSecrets = new NoSecrets();
@@ -30,7 +31,10 @@ internal sealed class Fixture : IAsyncDisposable
             [Settings.Settings, new SettingsStore(new AppPaths(_directory), noSecrets),
                 new CredentialVault(noSecrets), device, Transport], CultureInfo.InvariantCulture)!;
         var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(Session)!;
-        var connection = new EmbyConnection(new Uri("https://music-vm.invalid/emby/"), "anonymous-fixture", "user", "fixture", "fixture", device);
+        Transport.Kind = kind;
+        var connection = new EmbyConnection(new Uri(kind == MediaServerKind.FnMusic
+            ? "https://music-vm.invalid/music/" : "https://music-vm.invalid/emby/"), "anonymous-fixture", "user", "fixture", "fixture", device)
+        { ServerKind = kind };
         var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
         var identity = Activator.CreateInstance(identityType, [new EmbyClient(http, connection),
             new ServerProfile { Id = "server", Name = "fixture" }, new AccountProfile { Id = "account", Username = "fixture" }])!;
@@ -128,6 +132,8 @@ internal sealed class Transport : HttpMessageHandler
 {
     public ConcurrentQueue<Sent> Requests { get; } = new();
     public Func<Sent, CancellationToken, Task<HttpResponseMessage>>? Reply { get; set; }
+    public MediaServerKind Kind { get; set; } = MediaServerKind.Emby;
+    public string? ServerLyrics { get; set; }
     public EmbyItem Track(string id) => new()
     {
         Id = id,
@@ -149,10 +155,52 @@ internal sealed class Transport : HttpMessageHandler
     }
     public HttpResponseMessage Default(Sent sent)
     {
+        if (Kind == MediaServerKind.FnMusic && sent.Path.StartsWith("/music/api/v1/", StringComparison.Ordinal)) return FnMusic(sent);
         if (sent.Path.Contains("/FavoriteItems/", StringComparison.Ordinal)) return Json(new EmbyUserData { IsFavorite = true });
         if (sent.Path.StartsWith("/emby/Users/user/Items/", StringComparison.Ordinal)) return Json(Track(sent.Path.Split('/').Last()));
         if (sent.Path.EndsWith("/Items", StringComparison.Ordinal)) return Json(new ItemsResult());
         throw new InvalidOperationException("未安排的匿名 HTTP: " + sent.Path);
+    }
+    private HttpResponseMessage FnMusic(Sent sent)
+    {
+        var data = sent.Path switch
+        {
+            "/music/api/v1/lyric/list" => (JsonNode)new JsonObject
+            {
+                ["list"] = ServerLyrics is null ? new JsonArray() : new JsonArray(
+                    new JsonObject { ["guid"] = "lyric", ["content"] = ServerLyrics, ["source"] = 1 }),
+                ["preferred"] = null
+            },
+            "/music/api/v1/track/metadata" => new JsonObject
+            {
+                ["track"] = new JsonObject
+                {
+                    ["guid"] = "lyrics",
+                    ["title"] = "歌词曲",
+                    ["duration"] = 120000,
+                    ["artists"] = new JsonArray(new JsonObject { ["guid"] = "artist", ["name"] = "歌手" }),
+                    ["album"] = new JsonObject { ["guid"] = "album", ["name"] = "专辑" }
+                },
+                ["audioSpec"] = new JsonObject
+                {
+                    ["path"] = "/library/song.flac",
+                    ["codec"] = "flac",
+                    ["format"] = "flac",
+                    ["channel"] = 2,
+                    ["duration"] = 120000,
+                    ["sampleRate"] = 48000,
+                    ["bitDepth"] = 24,
+                    ["bitrate"] = 800000,
+                    ["size"] = 2000000
+                }
+            },
+            _ => throw new InvalidOperationException("未安排的匿名 HTTP: " + sent.Path)
+        };
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(new JsonObject { ["code"] = 0, ["msg"] = "", ["data"] = data }.ToJsonString(),
+                System.Text.Encoding.UTF8, "application/json")
+        };
     }
     public static HttpResponseMessage Json<T>(T value) => new(HttpStatusCode.OK)
     { Content = new StringContent(JsonSerializer.Serialize(value), System.Text.Encoding.UTF8, "application/json") };

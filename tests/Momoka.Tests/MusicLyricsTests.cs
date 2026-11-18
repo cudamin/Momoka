@@ -50,6 +50,14 @@ internal static class MusicLyricsTests
             Assert.Equal(TimeSpan.FromSeconds(5.5), lyrics.Lines[1].Time);
         });
 
+        Test("歌词解析：服务端偏移叠加在原文 offset 上，负时间夹到零", () =>
+        {
+            var lyrics = MusicLyrics.Parse("[offset:+500]\n[00:01.00]一句", TimeSpan.FromMilliseconds(-250));
+            Assert.Equal(TimeSpan.FromSeconds(1.25), lyrics.Lines[0].Time);
+            var shifted = MusicLyrics.Parse("[00:01.00]一句", TimeSpan.FromMilliseconds(-2000));
+            Assert.Equal(TimeSpan.Zero, shifted.Lines[0].Time);
+        });
+
         Test("歌词定位：二分找最后一句已到的行", () =>
         {
             var lyrics = MusicLyrics.Parse("[00:01.00]一\n[00:05.00]二\n[00:09.00]三");
