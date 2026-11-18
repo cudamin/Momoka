@@ -134,8 +134,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Controls.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Controls.lua",
-      "size": 18774,
-      "sha256": "baf0a30535a6575d2597150094bb66326ab48e1f526f473e8602049f77bdbbd1"
+      "size": 18766,
+      "sha256": "9a5f7dc346bfeba5f24f209144634502ba218de4aa251b9d8e00db533e9f1930"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Curtain.lua",
