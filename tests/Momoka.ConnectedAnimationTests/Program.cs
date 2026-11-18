@@ -173,6 +173,31 @@ internal static class Program
             returning.Complete();
             Assert.False(CardDetailTransition.Returning(fixture.Frame));
         });
+        Test("返回目标尚未上树时不判死，首次布局后接上", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            Assert.Equal(1, fixture.Source.ReturnSettles);
+            fixture.Frame.Content = fixture.Source;
+            // 主页刚从缓存恢复：卡片还没画出来，第一次低优先级回调不能把票据判死。
+            fixture.Source.ConnectedPoster.IsLoaded = false;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(CardDetailTransition.Returning(fixture.Frame));
+            Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+            // 首帧布局落定：返回这条也要像前进那样接上。
+            fixture.Source.ConnectedPoster.IsLoaded = true;
+            fixture.Source.Layout();
+            fixture.Frame.DispatcherQueue.Drain();
+            var returning = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, returning.StartCalls);
+            Assert.True(CardDetailTransition.Started(fixture.Frame));
+            returning.Complete();
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+        });
         Test("返回源回收或队列拒绝正常回退，不强制创建源", () =>
         {
             foreach (var rejected in new[] { false, true })

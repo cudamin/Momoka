@@ -383,6 +383,9 @@ namespace Momoka.Shell.Views
             Retentions++;
             return () => Retentions--;
         }
+
+        public int ReturnSettles { get; private set; }
+        public void SettleForConnectedReturn() => ReturnSettles++;
     }
     public sealed class DetailRequest
     {

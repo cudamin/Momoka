@@ -576,6 +576,20 @@ public sealed partial class PosterCard : UserControl
         }
     }
 
+    /// <summary>
+    /// 关联动画返回的落点必须是卡片的静止几何。指针还停在刚点过的卡上时，整卡 1.045、
+    /// 图片推近那一层和 BackEase 的过冲都还在，平台按放大态算终点；指针一动卡片缩回 1，
+    /// 封面就跟着缩一下。这里只停这段动画、把两层缩放归 1，不动 _hovered —— 指针确实还在卡上，
+    /// 操作层该留着。
+    /// </summary>
+    internal void SettleForConnectedReturn()
+    {
+        _motion?.Stop();
+        _motion = null;
+        CardMotion.ScaleX = CardMotion.ScaleY = 1;
+        PosterMotion.ScaleX = PosterMotion.ScaleY = 1;
+    }
+
     private void ResetMotion()
     {
         CancelHoverDwell();

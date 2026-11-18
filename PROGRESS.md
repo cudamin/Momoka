@@ -1,3 +1,27 @@
+## 2026-11-18 详情页封面返回主页：等目标排好版再起跑（日常批，待统一验证）
+
+用户报「媒体详情页的封面移动回主页的动画不是很顺滑」。
+
+**查到的原因。** 返回只有一次机会：`ShellPage.Navigated` 里排一次低优先级回调就调 `CompleteReturn`，
+目标页（主页）从 Frame 缓存恢复的首次布局、滚动位置恢复都晚于这一拍，`VisibleImage` 判
+`SourceUnavailable` 后直接作废票据，退成 180ms 整页淡入；前进那条却有 `TryStartEarly`、`TryStart`、
+`Loaded`、`LayoutUpdated` 四道机会。另一个可见破绽是落点：指针还停在刚点过的卡上，`PosterCard` 的
+整卡 1.045 与图片推近缩放都还在，平台按放大态算终点，指针一动卡片缩回 1，封面跟着缩一下。
+
+**改了什么。** `CardDetailTransition.Ticket.CompleteReturn` 改为 `TryStartReturn`：第一次仍排低优先级
+试跑；只在「源图还在、只是还没上树或还没量出尺寸」的 `SourceUnavailable` 上重试，订阅目标页
+`Loaded` 与 `LayoutUpdated`，每次落定再排一次低优先级，1200ms 准备超时仍是唯一兜底；源图缺失、身份或
+图版本变化、目标已换页仍立即终态，不空等。`BeginReturn` 准备返回前调用
+`PosterCard.SettleForConnectedReturn()`，只停悬停动画、把整卡与图片两层缩放归 1，不动 `_hovered`
+与操作层。返回仍用 Gallery 的 `Direct` 配置（150ms），没有改产品节奏。
+
+**跑过什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.ConnectedAnimationTests` **83/83**（新增
+「返回目标尚未上树时不判死，首次布局后接上」）；`Momoka.BrowsePresentationTests` **32/32**；
+`Momoka.PageContractTests` **360/360**，均 0 失败 0 跳过（`TEMP` 指到本树 `work\tmp`）。
+
+**未做。** 日常界面批不跑探针、不拍验收截图；真实主页缓存返回的观感要等发布后手点确认，待交付项
+记在台账。
+
 ## 2026-11-18 弹幕：续季自动匹配按季标记核对（待发布）
 
 用户对「《青之箱》S02E06 不会自动匹配、只能手动搜索」回了一句「修」。

@@ -218,6 +218,10 @@ internal static class CardDetailTransition
         private bool _disposed;
         private bool _resolved;
         private bool _returnQueued;
+        private FrameworkElement? _returnPage;
+        private RoutedEventHandler? _returnPageLoaded;
+        private EventHandler<object>? _returnPageLayout;
+        private bool _returnRetryQueued;
         private int _generation;
         private int _timeoutGeneration;
         private EventHandler<object>? _timedOut;
@@ -399,6 +403,9 @@ internal static class CardDetailTransition
                 Report(Started, completed: false, ConnectedMotionReason.Superseded, terminal: true);
                 if (_disposed || previousGeneration != _generation) return false;
                 StopAnimation();
+                // 落点必须是卡片的静止几何：指针还停在刚点过的卡上时，整卡 1.045 与图片推近那一层
+                // 都还在，平台会按放大态算终点；指针一动卡片缩回 1，封面就跟着缩一下。
+                source.SettleForConnectedReturn();
                 _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPoster);
                 _lifecycle = new("card", "return", _clock, _clock.GetTimestamp());
                 _lifecycle.Prepared();
@@ -437,12 +444,25 @@ internal static class CardDetailTransition
             if (!IsReturning || _returnQueued) return;
             _returnQueued = true;
             var generation = _generation;
-            if (!_frame.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            if (!_frame.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => TryStartReturn(generation)))
+                Cancel(_frame, ConnectedMotionReason.TargetUnavailable);
+        }
+
+        /// <summary>
+        /// 返回的落点在主页从 Frame 缓存恢复之后才成立：第一次布局、滚动位置恢复都晚于 Navigated。
+        /// 前进有四道机会（Early、Loaded、LayoutUpdated、TryStart），返回从前只排一次低优先级回调就判死，
+        /// 于是最常见的结局是「封面没飞，整页淡一下」。这里让返回也等目标真正排好版再起跑；
+        /// 只对「源还在、只是还没上树或还没量出尺寸」这类暂时状态重试，身份、图版本、源图缺失仍是终态。
+        /// </summary>
+        private void TryStartReturn(int generation)
+        {
+            if (_disposed || generation != _generation || !IsReturning || Started) return;
+
+            var reason = ReturnFailure();
+            if (reason == ConnectedMotionReason.None)
             {
-                if (_disposed || generation != _generation) return;
                 var started = false;
-                var reason = ReturnFailure();
-                if (reason == ConnectedMotionReason.None && _source.TryGetTarget(out var source))
+                if (_source.TryGetTarget(out var source))
                 {
                     try
                     {
@@ -452,14 +472,71 @@ internal static class CardDetailTransition
                         if (started) _lifecycle.StartSucceeded();
                     }
                     catch (Exception) { }
-                    if (!started) reason = ConnectedMotionReason.StartRejected;
                 }
-                Started = started;
-                BrowsePresentation.ResolveConnectedMotion(_frame, started);
-                Report(started, completed: false, reason, terminal: !started);
-                if (_disposed) return;
-                if (!started) Cancel(_frame, reason);
-            })) Cancel(_frame, ConnectedMotionReason.TargetUnavailable);
+                else reason = ConnectedMotionReason.SourceUnavailable;
+
+                if (started)
+                {
+                    Started = true;
+                    BrowsePresentation.ResolveConnectedMotion(_frame, true);
+                    Report(true, completed: false, ConnectedMotionReason.None, terminal: false);
+                    return;
+                }
+                if (reason == ConnectedMotionReason.None) reason = ConnectedMotionReason.StartRejected;
+            }
+
+            if (IsReturnRetryable(reason))
+            {
+                WatchReturnPage(generation);
+                return;
+            }
+
+            Report(false, completed: false, reason, terminal: true);
+            if (!_disposed) Cancel(_frame, reason);
+        }
+
+        /// <summary>源图还在、只是目标还没上树或还没排版；源图本身没了就不该等到超时。</summary>
+        private bool IsReturnRetryable(ConnectedMotionReason reason) =>
+            reason == ConnectedMotionReason.SourceUnavailable
+            && _source.TryGetTarget(out var source)
+            && source.ConnectedPoster.Source is BitmapSource;
+
+        /// <summary>
+        /// 订阅目标页的 Loaded 与 LayoutUpdated；两者任一落定都只排一次低优先级重试。
+        /// 重试失败不会报回执，也不会在这里取消——1200ms 的准备超时仍是唯一的兜底。
+        /// </summary>
+        private void WatchReturnPage(int generation)
+        {
+            if (_returnPage is not null) return;
+            if (_frame.Content is not FrameworkElement page) return;
+
+            _returnPage = page;
+            _returnPageLoaded = (_, _) => QueueReturnRetry(generation);
+            _returnPageLayout = (_, _) => QueueReturnRetry(generation);
+            page.Loaded += _returnPageLoaded;
+            page.LayoutUpdated += _returnPageLayout;
+        }
+
+        private void QueueReturnRetry(int generation)
+        {
+            if (_disposed || generation != _generation || !IsReturning || Started || _returnRetryQueued) return;
+            _returnRetryQueued = true;
+            if (!_frame.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                _returnRetryQueued = false;
+                TryStartReturn(generation);
+            })) _returnRetryQueued = false;
+        }
+
+        private void DetachReturnWait()
+        {
+            if (_returnPage is not { } page) return;
+            if (_returnPageLoaded is not null) page.Loaded -= _returnPageLoaded;
+            if (_returnPageLayout is not null) page.LayoutUpdated -= _returnPageLayout;
+            _returnPage = null;
+            _returnPageLoaded = null;
+            _returnPageLayout = null;
+            _returnRetryQueued = false;
         }
 
         private ConnectedMotionReason ReturnFailure()
@@ -610,6 +687,7 @@ internal static class CardDetailTransition
             _disposed = true;
             _generation++;
             DetachTargetWait();
+            DetachReturnWait();
             StopTimeout();
             _frame.Unloaded -= OnFrameUnloaded;
             StopAnimation();
