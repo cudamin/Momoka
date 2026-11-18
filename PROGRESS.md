@@ -19,8 +19,10 @@
 「返回目标尚未上树时不判死，首次布局后接上」）；`Momoka.BrowsePresentationTests` **32/32**；
 `Momoka.PageContractTests` **360/360**，均 0 失败 0 跳过（`TEMP` 指到本树 `work\tmp`）。
 
-**未做。** 日常界面批不跑探针、不拍验收截图；真实主页缓存返回的观感要等发布后手点确认，待交付项
-记在台账。
+**发布。** 已按改好收尾发布 `artifacts\publish\win-x64`（548 文件、290.0 MB，12:18）；
+`shortcut.ps1` 写桌面 `Momoka.lnk` 被沙箱拒绝（UnauthorizedAccessException），旧 lnk 仍指向同一发布
+目录，exe 内容已是新版。日常界面批不跑探针、不拍验收截图；真实主页缓存返回的观感要等用户手点确认，
+待交付项记在台账。
 
 ## 2026-11-18 弹幕：续季自动匹配按季标记核对（待发布）
 
