@@ -1,3 +1,17 @@
+## 2026-11-18 侧边栏去掉「订阅」分区，订阅按「媒体库顺序」排列（临时分支，待合并）
+
+用户附侧边栏截图一句：「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」。
+
+**改了什么。** 栏里那条「订阅」分区标题删掉，两条 MoviePilot 订阅入口不再单独成段：它们跟各媒体库项排进同一张名单，次序就是设置 → 主页版面 →「媒体库顺序」那一份。Core 新增 `HomeLayout.SidebarOrder`（纯函数）：取主页版面，只留库排与两条订阅，固定排（继续观看、媒体库、接下来看）不进栏；版面里没有的库按目录次序补在末尾。勾没勾不影响栏 —— 那一列管的是主页显不显示，入口一直都在。`RebuildSidebarLibraries` 每次先把两条订阅从 `MenuItems` 摘下来，再按这份次序和库项一起插回「媒体库」标题之后；控件仍是 XAML 里那两颗，图标、AutomationId、选中高亮都不用重建。名单、次序和屏上那句库名都没变时直接返回，不白闪。设置页拖完一行会喊一声 `SidebarChanged`（`ShellPrefs.ApplySidebar`），外壳当场重排；导入/恢复默认也补了这一声。
+
+**测了什么。** Core／`Momoka.Tests`／Shell Release/x64 均 **0 警告 0 错误**；全量 `Momoka.Tests` **5256/5256**、0 失败 0 跳过（新增「侧栏顺序：固定排不进栏，订阅与库排同一份次序、勾选不影响入口」；`Agreements.txt` 按有意退役删掉 `SidebarSubscriptionsHeader` 那一行，`MoviePilotMediaManagementTests` 里盯着「订阅标题真有高度」的旧断言换成新的同段判据）；`browse-identity-fixture` **64/64**；`sidebar-icons-fixture` **21/21**（新增「侧栏订阅与库项同排，没有单独的分区标题」）；`startup-reapply-notice-fixture` **34/34**（顺手修好测试夹具反射 `Notify` 少传两个可选参数导致的既有 2 红，否则这项永远是 32/34）。`--probe-shell --probe-section moviepilot --screen 2` **37 项、34 过、3 红**：本批用例「侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页」**通过**（栏里没有「订阅」标题；把「订阅·电影」拖到第一位后量到它紧跟「媒体库」标题；断线只收两条入口），3 红是像素探针被 Chrome 窗口遮挡（环境）、订阅详情沉浸切换超时（文档记过的既有红）与 `YouTubeSession` 未注册（既有服务注册，和侧栏无交集）。`--probe-shell --probe-section shell --screen 2` **17 项、14 过、3 红**，3 红全是文档记过的 `ScrollView offset=0 / State=Idle` 桌面签名（登录页、侧栏、主页）。`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 干净；`tools/check-diff.ps1` 14 个文本文件通过。
+
+**发布。** 已发布本树 `artifacts/publish/win-x64`（548 文件、290.0 MB，17:59），但桌面 `Momoka-workbuddy-master-f2dbaad8.lnk` 写不进去（`UnauthorizedAccessException`，单独跑 `tools/shortcut.ps1` 同样被拒，沙箱在拦桌面写入）；lnk 仍指向同一个 exe 路径，产物已更新，双击即当前版本，只是链接文件本身没重写。仅体验刷新、不销账。
+
+**没验证的。** 没有真实多库 + MoviePilot 同时在线的实屏：探针夹具不接媒体服务器，截图只有两条订阅入口；库项与订阅真正混排的那一屏留给交付检查（台账第 96 条）。真实服务器上拖排序后栏是否当场跟随，也只在离线夹具里按偏好通知走过一次。
+
+**分支。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-f2dbaad8`，分支 `workbuddy/master-f2dbaad8`，基点 `d0489bd`，产品与测试提交 `6496404`；未合并 master、未推远端。
+
 ## 2026-11-18 聚合模式「媒体库顺序」表在库名前写账号用户名（临时分支，待合并）
 
 用户附设置页「媒体库顺序」截图一句：「开启聚合模式时这个地方的前面也要显示用户名」。
