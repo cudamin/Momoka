@@ -32,6 +32,8 @@ public sealed partial class DetailPage
     private StoreYouTubePreview? _storeYouTube;
     private bool _storeYouTubeMuted = true;
     private readonly StoreVideoBrush _storeVideoBrush = new();
+    /// <summary>上回摆控制排时量到的高；为 0 表示还没排过（当时用的是兜底值）。</summary>
+    private double _storeTrailerControlsHeight;
 
     internal void SetStorePreviewActive(bool active)
     {
@@ -51,6 +53,12 @@ public sealed partial class DetailPage
             ShellPrefs.TrailerChanged += OnTrailerPreferencesChanged;
         };
         Unloaded += (_, _) => ShellPrefs.TrailerChanged -= OnTrailerPreferencesChanged;
+        // 控制排挂在画框右下角，顶边按它自己的高算；没量到时用的兜底值，量到后重摆一次。
+        // 只改边距、不改它的大小，所以同高时不再触发，不会自己套自己。
+        StoreTrailerControls.SizeChanged += (_, args) =>
+        {
+            if (Math.Abs(args.NewSize.Height - _storeTrailerControlsHeight) > 0.5) LayoutStoreTrailer();
+        };
     }
 
     /// <summary>用户关掉预告：标记这个条目不再自动重开，收起画面和控制排，并把「加载失败」提示一起收掉。</summary>
@@ -129,12 +137,17 @@ public sealed partial class DetailPage
         var gap = DetailHero.StorePreviewEdgeGap(window);
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
         StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(ViewModel.PageWidth);
-        // 2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：那排控制键从画面下沿外侧挪进画框，
-        // 尾部因此不必再替它让出 72，卡片的位置跟这支预告开没开播无关，播放前后不再上下跳。
-        // 位置取画框右上角：预告自己的字幕压在下边、标题压在左上角，只有这一角永远是空的
-        //（2026-11-18 用户报「按钮位置都重合了」，就是摆左下沉到字幕上）。靠右与右沿的空隙同宽，
-        // 再往里让一个内缩 —— 视口自己是右对齐的，所以这里只写右边距，不必算绝对左边。
-        StoreTrailerControls.Margin = new Thickness(0, DetailHero.StoreTrailerControlsInset,
+        // 2026-11-18 用户令「移到右下」：那排控制键在画框的右下角（上两版摆过左下与右上，用户各否一次）。
+        // 尾部照旧不替它让位 —— 键在画框里面，卡片的位置与这支预告开没开播无关。
+        // 顶边得自己算：这一排与画面是同一格里的兄弟，格子比画面高（下面还有信息区与尾部），
+        // 靠 VerticalAlignment=Bottom 会掉到页面底下。键高先按兜底值摆，排过一遍量到真高后
+        // 由 SizeChanged 再摆一次（字幕／音频那两颗会随轨道出现或收起）。
+        _storeTrailerControlsHeight = StoreTrailerControls.ActualHeight;
+        var controlsHeight = _storeTrailerControlsHeight > 0
+            ? _storeTrailerControlsHeight
+            : DetailHero.StoreTrailerControlsRowHeight;
+        StoreTrailerControls.Margin = new Thickness(0,
+            Math.Max(0, StoreTrailerHost.Height - controlsHeight - DetailHero.StoreTrailerControlsInset),
             ViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset, 0);
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _storeVideoBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,

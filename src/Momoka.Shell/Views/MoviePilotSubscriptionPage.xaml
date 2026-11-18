@@ -187,7 +187,8 @@
         <Grid x:Name="StoreTrailerContent" IsHitTestVisible="False" />
         <Border x:Name="StoreTrailerFade" Canvas.ZIndex="1" IsHitTestVisible="False" />
     </Grid>
-    <!-- 2026-11-18 同媒体详情页：这一排挪进画框右上角（字幕在下、标题在左上），卡片不必替它让位。 -->
+    <!-- 2026-11-18 同媒体详情页：这一排挪进画框右下角（用户令「移到右下」），卡片不必替它让位。
+         竖排靠上：它与画面同格、格子比画面高，顶边由 code-behind 按画面高算。 -->
     <StackPanel x:Name="StoreTrailerControls" Orientation="Horizontal" Spacing="8"
                 HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed">
         <Button x:Name="StoreTrailerPause" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerPause"

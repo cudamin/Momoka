@@ -42,14 +42,23 @@ public static class DetailHero
 
     /// <summary>
     /// 预告片那排控制键在画面里的内缩：2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」，
-    /// 那一排从画面下沿外侧挪进画框，挂在右上角（预告自己的字幕压在下边、标题压在左上角），
-    /// 与上沿、右沿各留这么多。
+    /// 那一排从画面下沿外侧挪进画框；同日用户又令「移到右下」，现在挂在画框的右下角，
+    /// 与下沿、右沿各留这么多。
     /// <para>
     /// 从前它在画面下沿再往下 32（<c>StoreTrailerControlsRoom = 72</c>），尾部要替它让出那 72，
     /// 卡片于是被推下去一块、播放前后还会跳一下。
     /// </para>
     /// </summary>
     public const double StoreTrailerControlsInset = 12;
+
+    /// <summary>
+    /// 那排控制键还没排过一遍时的兜底高：按钮 40（见两页 XAML 的 <c>AppBarButton</c> 样式）再加一点余量，取 48。
+    /// <para>
+    /// 只用在一支预告刚铺上、控件还没量到的那一帧；<c>SizeChanged</c> 量到真高后重摆。
+    /// 兜底故意取大不取小：那一帧里那排键宁可离下沿远一点，也不会探出画面下沿。
+    /// </para>
+    /// </summary>
+    public const double StoreTrailerControlsRowHeight = 48;
 
     /// <summary>
     /// 商店模式头图尾部至少要补多高，下方卡片才不会压在剧照／预告上。
