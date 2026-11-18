@@ -27,7 +27,8 @@ internal static class Program
             ("专辑容器里的曲目第二行不再重复专辑名", AlbumRowSubtitleAsync),
             ("正在播放的那一行跟着播放栏标记，重新载入仍保留", PlayingMarkAsync),
             ("正在播放的身份键跟着曲目走，停止后清空", CurrentKeyAsync),
-            ("内嵌歌词：装好后读标签、进度高亮、停止清空", LyricsAsync)
+            ("内嵌歌词：装好后读标签、进度高亮、停止清空", LyricsAsync),
+            ("服务器歌词：飞牛音乐先读 lyric/list，播放进度照常高亮", ServerLyricsAsync)
         }.Concat(MusicPagingTests.Cases()).ToArray();
         var failures = 0;
         foreach (var (name, run) in cases)
@@ -432,6 +433,28 @@ internal static class Program
         await fixture.Music.StopAsync();
         await play;
         Require(!fixture.Music.HasLyrics && fixture.Music.Lyrics.Count == 0, "停止后仍留着上一首的歌词");
+    }
+
+    private static async Task ServerLyricsAsync()
+    {
+        await using var fixture = new Fixture(MediaServerKind.FnMusic);
+        fixture.Transport.ServerLyrics = "[00:01.00]服务器第一句\n[00:05.00]服务器第二句";
+        var play = fixture.Music.PlayAsync(fixture.Track("lyrics"));
+        await UntilAsync(() => fixture.Backend.Handles.Length == 1);
+        fixture.Backend.Handles[0].Publish(0);
+        await UntilUiAsync(fixture, () => fixture.Music.HasLyrics);
+        Require(fixture.Music.Lyrics.Count == 2 && fixture.Music.LyricsSynced, "服务器歌词没有按时间轴装进列表");
+        Require(fixture.Transport.Requests.Any(request => request.Path.EndsWith("/lyric/list", StringComparison.Ordinal)
+            && request.Query.Contains("trackGUID=lyrics", StringComparison.Ordinal)), "没有向飞牛音乐请求 lyric/list");
+
+        fixture.Backend.Handles[0].Publish(6);
+        await UntilUiAsync(fixture, () => ReferenceEquals(fixture.Music.ActiveLyric, fixture.Music.Lyrics[1]));
+        Require(fixture.Music.Lyrics[0].ActiveOpacity < 1 && Math.Abs(fixture.Music.Lyrics[1].ActiveOpacity - 1) < 0.01,
+            "服务器歌词的高亮没有跟着播放进度走");
+
+        await fixture.Music.StopAsync();
+        await play;
+        Require(!fixture.Music.HasLyrics && fixture.Music.Lyrics.Count == 0, "停止后仍留着服务器歌词");
     }
 
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);

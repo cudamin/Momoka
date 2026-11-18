@@ -391,7 +391,7 @@
                             Visibility="{x:Bind ViewModel.LyricsEmptyVisibility, Mode=OneWay}">
                             <FontIcon Style="{StaticResource MusicEmptyGlyphStyle}" Foreground="{ThemeResource EgTextFaintBrush}" Glyph="&#xE8D6;" HorizontalAlignment="Center" />
                             <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind ViewModel.LyricsEmptyText, Mode=OneWay}" HorizontalAlignment="Center" />
-                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="音乐文件没有携带歌词标签" HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="音频文件与服务端都没有找到歌词" HorizontalAlignment="Center" />
                         </StackPanel>
                         <ProgressBar
                             Height="2"

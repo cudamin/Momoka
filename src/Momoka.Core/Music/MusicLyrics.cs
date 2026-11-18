@@ -97,15 +97,19 @@ public sealed class MusicLyrics
     /// 带时间轴的行按时间排序；同一行写了多个时间戳就拆成多句（副歌重复）。没有时间戳的行在
     /// LRC 里是注释或空行，不画。纯文本保留原文顺序，去掉首尾空白与空行。
     /// </para>
+    /// <para>
+    /// <paramref name="shift"/> 叠加在原文自带 <c>[offset:…]</c> 之上：飞牛音乐把用户调过的
+    /// 偏移单独存在歌词条目里，不改原文，这里换算回每句的时间。
+    /// </para>
     /// </summary>
-    public static MusicLyrics Parse(string? text)
+    public static MusicLyrics Parse(string? text, TimeSpan shift = default)
     {
         if (string.IsNullOrWhiteSpace(text)) return Empty();
 
         var raw = text.Replace("\r\n", "\n").Replace('\r', '\n').Trim('\uFEFF', ' ', '\t', '\n');
         if (raw.Length == 0) return Empty();
 
-        var offset = ReadOffset(raw);
+        var offset = ReadOffset(raw) + shift;
         var timed = new List<MusicLyricLine>();
         var plain = new List<MusicLyricLine>();
 
