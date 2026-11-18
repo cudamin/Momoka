@@ -10,7 +10,7 @@
 
 **测试（先红后绿）。** 新增探针「聚合主页多库滚到底，最后一排最近添加仍在」：三个假账号各五个库（15 排库货架 + 媒体库 + 继续观看），1280×800、关轮播，要求 17 排全部实现、滚到 `ScrollableHeight` 后最后一排在屏上。旧布局（`StackLayout`）跑同一条**红**在「排没有全部实现」；换回 `HomeRowsLayout` 后**绿**。`--probe-shell --probe-section accounts --screen 1` **6/6、退出 0**；截图 `aggregate-home-rows-bottom-screen.png`：滚到底最后三排（`账号乙 · 最近添加 · 电视节目／混合内容／音乐`）都在屏上。
 
-**本轮已跑。** Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5254/5254**、0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`；用默认 `C:\WINDOWS\TEMP` 时两条下载用例报环境红：`Access to the path 'C:\WINDOWS\TEMP' is denied`，与本批无关）；`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 干净。
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5254/5254**、0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`；用默认 `C:\WINDOWS\TEMP` 时两条下载用例报环境红：`Access to the path 'C:\WINDOWS\TEMP' is denied`，与本批无关）；`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 干净。已按改好收尾发布本树 `artifacts/publish/win-x64`（548 文件、290.0 MB，16:43）并写桌面 `Momoka-fix-aggregation-recent-display-wacLCA.lnk`；发布脚本这次没带 `-ShortcutName`，一度改写了主树 `Momoka.lnk`，已重建指回主树 14:14 那份发布件（仅体验刷新、不销账）。本树根缺 `libmpv-2.dll`，发布前从主树复制了一份（未入库）。
 
 **没验证的。** 真实账号的实屏复验（四账号、15 排、1414×865、轮播开着）留到统一验证：滚到底应看见 Jellyfin 三排最近添加、飞牛音乐与 Emby 音乐两排，五套主题与宽窄两档一并看。探针用的是假服务器与关轮播的版面；本批未合并、未推远端、未跑统一验证。
 
