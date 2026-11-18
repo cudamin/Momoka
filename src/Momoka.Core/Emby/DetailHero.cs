@@ -41,31 +41,38 @@ public static class DetailHero
     public const double StorePreviewGap = 16;
 
     /// <summary>
-    /// 预告片暂停／静音那一排从视口下沿再往下占的高（页面里是 32 的间距加 40 的按钮）。
-    /// 头图尾部要把它一起让出来，下一条卡片才压不到那排键上。
+    /// 预告片那排控制键在画面里的内缩：2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」，
+    /// 那一排从画面下沿外侧挪进画框，挂在右上角（预告自己的字幕压在下边、标题压在左上角），
+    /// 与上沿、右沿各留这么多。
+    /// <para>
+    /// 从前它在画面下沿再往下 32（<c>StoreTrailerControlsRoom = 72</c>），尾部要替它让出那 72，
+    /// 卡片于是被推下去一块、播放前后还会跳一下。
+    /// </para>
     /// </summary>
-    public const double StoreTrailerControlsRoom = 72;
+    public const double StoreTrailerControlsInset = 12;
 
     /// <summary>
     /// 商店模式头图尾部至少要补多高，下方卡片才不会压在剧照／预告上。
     /// <para>
     /// 剧照盒在宽版式里跟窗口宽走、并不跟头图内容走；头图内容（封面、片名、简介、版本框和那排键）比它矮时，
-    /// 正文卡片会从画面中间开始，把画面下沿盖掉。这里把差额交给尾部（那一档是透明的），卡片就排在画面、
-    /// 预告控制排和右沿空隙下面。内容已经高过画面时返回 0，一个像素都不多占。
+    /// 正文卡片会从画面中间开始，把画面下沿盖掉。这里把差额交给尾部（那一档是透明的），卡片就排在画面
+    /// 与右沿空隙下面。内容已经高过画面时返回 0，一个像素都不多占。
+    /// </para>
+    /// <para>
+    /// 2026-11-18 起不再有「预告控制排」那一档：控制键挪进了画框（见 <see cref="StoreTrailerControlsInset"/>），
+    /// 卡片的位置跟这支预告有没有开播无关，播放前后不再上下跳。
     /// </para>
     /// </summary>
     /// <param name="pictureHeight">剧照盒这一次的高（<see cref="StoreBackdropHeight"/>）。</param>
     /// <param name="heroHeight">头图这一格已经占掉的高。</param>
-    /// <param name="trailerRoom">预告片那排控制键：有预告片时给 <see cref="StoreTrailerControlsRoom"/>，否则 0。</param>
     /// <param name="gap">画面与下方卡片之间的空隙（<see cref="StorePreviewGap"/>）。</param>
-    public static double StoreTailHeight(double pictureHeight, double heroHeight, double trailerRoom, double gap)
+    public static double StoreTailHeight(double pictureHeight, double heroHeight, double gap)
     {
         if (!double.IsFinite(pictureHeight) || pictureHeight <= 0) return 0;
 
         var hero = double.IsFinite(heroHeight) ? Math.Max(0, heroHeight) : 0;
-        var trailer = double.IsFinite(trailerRoom) ? Math.Max(0, trailerRoom) : 0;
         var room = double.IsFinite(gap) ? Math.Max(0, gap) : 0;
-        return Math.Max(0, Math.Round(pictureHeight + trailer + room - hero));
+        return Math.Max(0, Math.Round(pictureHeight + room - hero));
     }
 
     /// <summary>

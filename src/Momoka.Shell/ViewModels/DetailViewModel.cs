@@ -1854,24 +1854,6 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial double HeaderLift { get; set; }
 
     /// <summary>
-    /// 商店档右上角那排预告片控制键这一刻是不是真的在屏上 —— 尾部替它让出的
-    /// <see cref="DetailHero.StoreTrailerControlsRoom"/> 只在它露头时算进 <see cref="TailMinHeight"/>。
-    /// <para>
-    /// 从前按「条目有没有预告片」（<see cref="TrailerVisibility"/>）提前占位：详情页自动播放关着、预告片还在
-    /// 加载、或者这支预告根本不会打开时，那段 72 一直空在那儿，「更多来自」被推到背景图下沿再往下约 72 像素，
-    /// 中间一条死空（2026-11-17 用户令「不够紧凑，下方留了太多空位」）。
-    /// </para>
-    /// <para>
-    /// 由视图在控制键真正显隐的那两处写：预告片开播（本地 <c>MediaOpened</c> 与网页预告起播）写 true，
-    /// <c>StopStoreTrailer</c> 写 false。滚动暂停不算停（<c>_storeTrailerScrollPaused</c> 只暂停播放器），
-    /// 那一段空档留着，卡片不跟着滚动一上一下。
-    /// </para>
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(TailMinHeight))]
-    public partial bool StoreTrailerControlsShown { get; set; }
-
-    /// <summary>
     /// 头图底下那段压暗的尾部的下限 —— 见 <see cref="DetailHero.TailHeight"/>：尾部先补满第一屏减掉带子那么多，
     /// 于是正文那张纸从第一屏的下沿起，「拉大或拉小窗口」都不会把那道不透明的边提到剧照上。撑到纸面那条线
     /// （<see cref="PaperLine"/>，窗口高过阈值）就不再撑，富余的高度归纸 —— 不然剧情说明底下那段空画面会跟着
@@ -1888,10 +1870,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public double TailMinHeight => StoreMode
         ? StoreBackdropVisibility == Visibility.Visible
-            ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroHeight,
-                StoreTrailerControlsShown && PageWidth >= DetailHero.StoreWideFloor
-                    ? DetailHero.StoreTrailerControlsRoom : 0,
-                DetailHero.StorePreviewGap)
+            ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroHeight, DetailHero.StorePreviewGap)
             : 0
         : DetailHero.TailHeight(
             Viewport, HeroHeight, BackdropShown, PaperLine, PictureHeight - HeaderLift, Showcase);

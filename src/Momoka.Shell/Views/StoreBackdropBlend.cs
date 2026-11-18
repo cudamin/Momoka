@@ -28,6 +28,40 @@ internal static class StoreBackdropBlend
     private static readonly (double Position, double Alpha)[] AmbientDown =
         [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
+    /// <summary>
+    /// 商店档左上角那道淡墨（<c>StoreShade</c>）横向那一道的色标。与 DetailPage.xaml、
+    /// MoviePilotSubscriptionPage.xaml 里那支 <c>LinearGradientBrush</c> 逐档同值，
+    /// <c>StoreDetailLayoutTests</c> 读那两份 XAML 核对。
+    /// <para>
+    /// 为什么要在这里再来一份：淡墨画在视频<em>下面</em>（2026-11-16 用户令「视频与它那排控制键不该
+    /// 跟着变暗」），而视频那层叠图是拿颜色盖住画面边缘的 —— 端点的颜色必须与「压了淡墨之后」的环境底
+    /// 同值，否则视频左沿露出一道竖直的接缝（2026-11-18 用户报的那条）。叠图算色的时候读不到 XAML，
+    /// 所以同一份色标在两处，靠测试对齐。
+    /// </para>
+    /// </summary>
+    internal static readonly (double Position, double Alpha)[] ShadeAcross =
+        [(0, 0), (0.3, 0x24 / 255d), (0.58, 0)];
+
+    /// <inheritdoc cref="ShadeAcross"/>
+    internal static readonly (double Position, double Alpha)[] ShadeDown =
+        [(0, 0x30 / 255d), (0.35, 0x10 / 255d), (1, 0)];
+
+    /// <summary>淡墨的颜色（同一个 #0C0E11 一族，同主页大图）。</summary>
+    internal static readonly ThemeColor ShadeInk = ThemeColor.Rgb(0x0C, 0x0E, 0x11);
+
+    /// <summary>
+    /// 一点上的淡墨不透明度：横向那道压左沿、竖向那道压顶上，两道各自线性过渡后叠起来（两层同色，
+    /// 合成一层等价）。<paramref name="width"/>／<paramref name="height"/> 是那道淡墨自己那一格的尺寸 ——
+    /// XAML 里取环境底与视口里大的那个。
+    /// </summary>
+    internal static double Shade(double x, double y, double width, double height)
+    {
+        if (!(width > 0) || !(height > 0) || !double.IsFinite(x) || !double.IsFinite(y)) return 0;
+        var across = Linear(x / width, ShadeAcross);
+        var down = Linear(y / height, ShadeDown);
+        return 1 - (1 - across) * (1 - down);
+    }
+
     internal static double Alpha(double x, double y, bool ambient) => ambient
         ? Interpolate(x, AmbientAcross) * Interpolate(y, AmbientDown)
         : Interpolate(x, PictureAcross) * Interpolate(y, PictureDown);
@@ -84,13 +118,21 @@ internal static class StoreBackdropBlend
         return pixels;
     }
 
-    /// <summary>叠图RGB预乘透明度；其端点等于视频背后的环境底与窗口合成色，避免实色矩形。</summary>
+    /// <summary>
+    /// 叠图RGB预乘透明度；其端点等于视频背后的环境底与窗口合成色，避免实色矩形。
+    /// <para>
+    /// <paramref name="shadeWidth"/>／<paramref name="shadeHeight"/> 是压在环境底上那道淡墨（<c>StoreShade</c>）
+    /// 自己那一格的尺寸：淡墨在视频下面，叠图看不见它，端点的颜色就得自己把淡墨补进去 ——
+    /// 少了这一步，视频左沿在屏上是一道竖直的接缝（2026-11-18 用户报的「预告片左边的边缘没遮住」）。
+    /// </para>
+    /// </summary>
     internal static byte[] Video(byte[]? ambient, ThemeColor window, double pageWidth, double ambientHeight,
-        double videoWidth, double videoHeight, double rightGap)
+        double videoWidth, double videoHeight, double rightGap, double shadeWidth, double shadeHeight)
     {
         var pixels = new byte[Side * Side * 4];
         var valid = ambient?.Length == ArtworkAmbient.Width * ArtworkAmbient.Height * 4
             && double.IsFinite(pageWidth) && pageWidth > 0 && double.IsFinite(ambientHeight) && ambientHeight > 0;
+        var left = pageWidth - rightGap - videoWidth;
         for (var y = 0; y < Side; y++)
             for (var x = 0; x < Side; x++)
             {
@@ -100,12 +142,13 @@ internal static class StoreBackdropBlend
                 var color = window;
                 if (valid)
                 {
-                    var ax = Math.Clamp((pageWidth - rightGap - videoWidth + nx * videoWidth) / pageWidth, 0, 1);
+                    var ax = Math.Clamp((left + nx * videoWidth) / pageWidth, 0, 1);
                     var ay = Math.Clamp(ny * videoHeight / ambientHeight, 0, 1);
                     var at = ((int)Math.Round(ay * (ArtworkAmbient.Height - 1)) * ArtworkAmbient.Width
                         + (int)Math.Round(ax * (ArtworkAmbient.Width - 1))) * 4;
                     color = window.Mix(ThemeColor.Rgb(ambient![at + 2], ambient[at + 1], ambient[at]), Alpha(ax, ay, ambient: true));
                 }
+                color = color.Mix(ShadeInk, Shade(left + nx * videoWidth, ny * videoHeight, shadeWidth, shadeHeight));
                 var offset = (y * Side + x) * 4;
                 pixels[offset] = Channel(color.B * amount);
                 pixels[offset + 1] = Channel(color.G * amount);
@@ -125,6 +168,22 @@ internal static class StoreBackdropBlend
             var next = stops[i];
             var t = (position - previous.Position) / (next.Position - previous.Position);
             return previous.Alpha + (next.Alpha - previous.Alpha) * t * t * (3 - 2 * t);
+        }
+        return stops[^1].Alpha;
+    }
+
+    /// <summary>与 XAML 渐变同一条曲线：两道 GradientStop 之间就是直线，这里不套 smoothstep。</summary>
+    private static double Linear(double position, (double Position, double Alpha)[] stops)
+    {
+        position = Math.Clamp(position, 0, 1);
+        for (var i = 1; i < stops.Length; i++)
+        {
+            if (position > stops[i].Position) continue;
+            var previous = stops[i - 1];
+            var next = stops[i];
+            var span = next.Position - previous.Position;
+            var t = span > 0 ? (position - previous.Position) / span : 1;
+            return previous.Alpha + (next.Alpha - previous.Alpha) * t;
         }
         return stops[^1].Alpha;
     }

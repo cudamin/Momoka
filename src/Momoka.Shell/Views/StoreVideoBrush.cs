@@ -9,7 +9,8 @@ namespace Momoka.Shell.Views;
 internal sealed class StoreVideoBrush
 {
     private byte[]? _ambient;
-    private (ThemeColor Window, double Page, double Ambient, double Width, double Height, double Gap) _layout;
+    private (ThemeColor Window, double Page, double Ambient, double Width, double Height, double Gap,
+        double ShadeWidth, double ShadeHeight) _layout;
     private ImageBrush? _brush;
     private (ThemeColor Window, double Page, double Width, double Height, double Gap) _foundationLayout;
     private ImageBrush? _foundation;
@@ -29,12 +30,13 @@ internal sealed class StoreVideoBrush
     }
 
     internal ImageBrush Resolve(byte[]? ambient, ThemeColor window, double page, double ambientHeight,
-        double width, double height, double gap)
+        double width, double height, double gap, double shadeWidth, double shadeHeight)
     {
-        var layout = (window, page, ambientHeight, width, height, gap);
+        var layout = (window, page, ambientHeight, width, height, gap, shadeWidth, shadeHeight);
         if (_brush is not null && ReferenceEquals(_ambient, ambient) && _layout == layout) return _brush;
         var bitmap = new WriteableBitmap(StoreBackdropBlend.Side, StoreBackdropBlend.Side);
-        var pixels = StoreBackdropBlend.Video(ambient, window, page, ambientHeight, width, height, gap);
+        var pixels = StoreBackdropBlend.Video(ambient, window, page, ambientHeight, width, height, gap,
+            shadeWidth, shadeHeight);
         using (var stream = bitmap.PixelBuffer.AsStream()) stream.Write(pixels);
         bitmap.Invalidate();
         _ambient = ambient;

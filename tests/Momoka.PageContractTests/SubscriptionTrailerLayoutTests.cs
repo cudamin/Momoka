@@ -28,7 +28,7 @@ internal static class SubscriptionTrailerLayoutTests
 
             var viewModel = Source("ViewModels/MoviePilotMediaViewModel.cs");
             Assert.Contains("public double StoreTailHeight => Plain && (Backdrop is not null || TrailerSubject is not null)", viewModel);
-            Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, TrailerControlsRoom, DetailHero.StorePreviewGap)", viewModel);
+            Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, DetailHero.StorePreviewGap)", viewModel);
             Assert.Contains("OnPropertyChanged(nameof(StoreTailHeight));", viewModel);
         });
         Test("订阅详情：商店剧照与媒体详情页同一套右边距、圆角和环境底", () =>
@@ -57,7 +57,8 @@ internal static class SubscriptionTrailerLayoutTests
             Assert.Contains("TrailerPreview.BackgroundWidth(MediaViewModel.StorePageWidth)", trailer);
             Assert.Contains("TrailerPreview.BackgroundHeight(MediaViewModel.StorePageWidth)", trailer);
             Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
-            Assert.Contains("MediaViewModel.StorePreviewMargin.Right + 32", trailer);
+            // 2026-11-18：控制排挪进画框左下角，不再贴着窗口右沿摆。
+            Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
 
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             var backdropElement = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreBackdrop");

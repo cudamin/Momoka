@@ -1,3 +1,32 @@
+## 2026-11-18 商店档预告控制排挪进画框，播放预告不再把卡片推下去（已合并 master）
+
+用户附商店档详情页截图（《F1：狂飙飞车》，预告在播）一句「放预告片的时候下面会出现大片空位，请修复」。
+
+**根因。** 那排暂停／静音／字幕／关闭原来挂在画面下沿再往下 32 处（`StoreTrailerControlsRoom = 72` 的由来），为了让后面不透明的卡片不压住它，`TailMinHeight` 在「预告真的开播」时替它多留 72 —— 于是播放那一刻卡片整体往下跳一块，画面下沿到首卡之间就是那片空。2026-11-17 那轮只把判据从「条目有没有预告」改成「控制键在不在屏上」，播起来照样跳。
+
+**改法（用户选「控制键挪进画面」）。** `DetailHero.StoreTrailerControlsRoom` 退役，换成 `StoreTrailerControlsInset = 12`；`StoreTailHeight` 只剩「画面 + 空隙 − 带高」三项，跟预告开没开播无关。控制排挂到画框里，与上沿、右沿各留 12（先摆左下角，用户当场报「按钮位置都重合了」——预告字幕压在下边，随即改到右上角：标题在左上、字幕在下，只有这一角是空的）。`DetailViewModel.StoreTrailerControlsShown` 与订阅页的 `TrailerControlsRoom` 一起退役。
+
+**改到的验证面。** `StoreDetailTailProbeEvidence` 的期望尾部去掉了 72 那一档（`WideTrailer` 只剩读数）；`ShellNavigationProbe.StoreDetailBackdrop` 的 clearance 用例改成「尾部不多留 + 控制排真的落在画框左下角」；`DetailLayoutTests`、`StoreDetailTailProbeEvidenceTests`、`StoreDetailLayoutTests`、`SubscriptionTrailerLayoutTests` 各按新形状重钉。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 30 秒）；`Momoka.PageContractTests` **361/361**、全量 `Momoka.Tests` **5248/5248**，0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`）。实屏：静图那一态（飞牛条目、没有预告）首卡紧跟在画面与信息区之后，画面下沿到「演职人员」之间只剩常规留白。
+
+**没验证的（用户令「探针记到交付里」，不在本批跑）。** 「预告在播」那一态没有实屏：13:20 起这台机器的来源切到飞牛那条账号（`donxuelian · 电影`），那条库没有预告，控制排不会露头。`--probe-section library` 起过两轮：第一轮跑到 11 分钟被我停掉重跑（当时还是左下角那版），第二轮 34 项里 5 红——本批那条「商店预告实帧、轨道菜单与离页关闭」红在**边距整等号比 double**（44.79999923706055 对 44.8，已改成带容差），另外「集页封面与窄窗背景图」是艺术图没解出来的旧账、三条「像素探针窗口被遮挡」是桌面遮挡，都跟本批无关。这条用例要按新位置（右上角）重跑并在交付时看 `store-trailer-decoded-screen.png`；五套主题、窄窗、订阅详情页同一处同样留给统一验证。
+
+## 2026-11-18 商店档预告片左沿那道竖线：叠图补上压在视频下面的淡墨（已合并 master）
+
+用户一句：「预告片这左边的边缘没遮住」，附详情页截图（《F1：狂飙飞车》，商店档，右上角 YouTube 预告在播）。
+
+**根因。** 商店档的背景图（静图）是用一张二维 alpha 遮罩渐隐的；视频走不了那条路（WebView2／媒体用外部输出桥，遮照捕不到），所以视频那层改成「拿颜色盖住画面边缘」——`StoreBackdropBlend.Video` 烘一张预乘透明度的叠图，左沿、右沿、底边三处不透明。那张叠图的端点色只算到「窗口底 ← 环境底」，漏了压在环境底上、排在预告视口之前（屏上在视频下面）的那道淡墨 `StoreShade`。于是视频左沿以内比外面亮 6–13 个色阶，越靠顶越浓——正好是淡墨那道竖向坡的浓度，屏上就是一道竖直的接缝；底边同理（截图里 y≈409 那条横贯 749 列的线）。静图那一档走的是真遮罩，所以没有这个问题。
+
+**改了什么。** 淡墨的两道色标、墨色与「一点上的浓度」做成 `StoreBackdropBlend` 里可测的纯函数（`ShadeAcross`／`ShadeDown`／`ShadeInk`／`Shade`，线性过渡，与 XAML 渐变同一条曲线）；`Video()` 多收淡墨那一格的尺寸，端点色按「窗口底 ← 环境底 ← 淡墨」重算；`StoreVideoBrush` 的缓存键带上这两个数，窗口变速或换主题一起失效。两个调用点（详情页与订阅详情页的 `LayoutStoreTrailer`）把 `StoreShade` 那一格的宽与高（XAML 里 Height=StoreAmbientHeight、MinHeight=Viewport 的大的那个）传进去。**淡墨仍在视频下面**——2026-11-16「视频与它那排控制键不该跟着变暗」那条不改，改的是叠图自己按同样的浓度补上。
+
+**为什么色标有两份。** 叠图算色的时候读不到 XAML。所以色标在 `StoreBackdropBlend` 里再写一份，由页面契约测试读 `DetailPage.xaml`、`MoviePilotSubscriptionPage.xaml` 三档逐档核对位置与浓度；谁改了 XAML 不改代码，测试当场红。
+
+**本轮已跑。** Shell Release/x64 **0 警告 0 错误**（2 分 12 秒）；`Momoka.PageContractTests` **361/361**（新增「视频渐变：边沿补上压在下面的淡墨，端点色接得住环境底」：左沿与底边必须比不补淡墨的那版暗、中部一个色阶不动、端点色与「窗口底←环境底←淡墨」叠出来的值差不超过 1；另把两页 XAML 的淡墨色标钉到代码那两份）；全量 `Momoka.Tests` **5248/5248**、0 失败 0 跳过（`TEMP` 指 `%LOCALAPPDATA%\Temp`；用默认 `C:\WINDOWS\TEMP` 时三条 UNC 用例报环境红，与本批无关）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 变更路径通过。本树已按改好收尾发布 `artifacts/publish/win-x64`（548 文件、290.0 MB）并写桌面 `Momoka-workbuddy.lnk`，仅体验刷新、不销账。
+
+**真机 A/B（同一台机器、同一扇窗口 1408×793、同一页）。** 用 UIA 走「侧栏电影 → 卡片 F1：狂飙飞车」进商店档详情页，等右上角预告起播后截屏；只导航，不点播放键、不播放正片（预告是这一页自己的静音预览）。同一段在干净行带（y 348–370）上量预告左沿的亮度：**旧构建**（主树 05:40 那份发布件）x=546 是 47.0、x=552 是 52.7，**一步跳 +5.7 个色阶**，左外侧平色、内侧偏亮，屏上就是那道竖线；**本树构建**同两点是 47.0 与 46.7，**没有跳变**，再往右 552→614 一路平滑下降。截图 `work/diag/f1-trailer-before.png`、`work/diag/f1-trailer-after.png`（`work/` 不入库）。
+
+**没验证的。** 只核了宽版式、深色、这一条目的预告在播那一态：五套固定深色与跟随系统深浅、窄窗、无预告只有静图、YouTube 未起播回图、订阅详情页同一处都还没目视；交付时按台账一起看。静图那一档不走这张叠图，代码路径没动。
 ## 2026-11-18 音乐歌词：飞牛音乐 lyric/list 与文件标签两条来源（已合并 master，待统一验证）
 
 用户报「飞牛音乐那边有歌词的，momoka没读取到」，附两窗对比截图：左边飞牛音乐播放页歌词随唱随滚，右边 Momoka 显示「暂无内嵌歌词」。本机 `settings.json` 的 `LastServerId` 指向飞牛音乐账号，确认对比的就是同一台音乐服务器。

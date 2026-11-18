@@ -453,7 +453,10 @@
                     <Border x:Name="StoreTrailerFade" Canvas.ZIndex="1" IsHitTestVisible="False" />
                 </Grid>
                     <!-- Gallery Samples/CommandBar/CommandBarPage.xaml,
-                         v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7：原生命令与可访问标签。 -->
+                         v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7：原生命令与可访问标签。
+                         2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：这一排从画面下沿外侧挪进画框，
+                         挂在右上角（字幕在下边、标题在左上角），卡片因此不必替它让位；随后用户报「按钮位置
+                         都重合了」，就是先前摆左下沉到了字幕上。 -->
                     <CommandBar x:Name="StoreTrailerControls" HorizontalAlignment="Right"
                                 VerticalAlignment="Top" Canvas.ZIndex="1" Visibility="Collapsed"
                                 DefaultLabelPosition="Collapsed" IsOpen="False" IsDynamicOverflowEnabled="False"

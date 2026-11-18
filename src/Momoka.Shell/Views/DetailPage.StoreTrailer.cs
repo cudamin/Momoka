@@ -129,12 +129,22 @@ public sealed partial class DetailPage
         var gap = DetailHero.StorePreviewEdgeGap(window);
         StoreTrailerHost.Width = TrailerPreview.BackgroundWidth(ViewModel.PageWidth);
         StoreTrailerHost.Height = TrailerPreview.BackgroundHeight(ViewModel.PageWidth);
-        StoreTrailerControls.Margin = new Thickness(0, StoreTrailerHost.Height + 32, ViewModel.StorePreviewMargin.Right + 32, 0);
+        // 2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：那排控制键从画面下沿外侧挪进画框，
+        // 尾部因此不必再替它让出 72，卡片的位置跟这支预告开没开播无关，播放前后不再上下跳。
+        // 位置取画框右上角：预告自己的字幕压在下边、标题压在左上角，只有这一角永远是空的
+        //（2026-11-18 用户报「按钮位置都重合了」，就是摆左下沉到字幕上）。靠右与右沿的空隙同宽，
+        // 再往里让一个内缩 —— 视口自己是右对齐的，所以这里只写右边距，不必算绝对左边。
+        StoreTrailerControls.Margin = new Thickness(0, DetailHero.StoreTrailerControlsInset,
+            ViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset, 0);
         StoreTrailerFoundation.Height = StoreTrailerHost.Height + StoreBackdropBlend.FoundationTail;
         StoreTrailerFoundation.Background = _storeVideoBrush.ResolveFoundation(ThemeHost.Current.Colors.Window,
             window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
+        // 叠图的端点色要跟「压了淡墨之后」的环境底同值：淡墨那道在视频下面（视频不跟着变暗），
+        // 所以这里得把它的尺寸一起给进去，否则视频左沿露出一道竖直的接缝。淡墨自己那一格的高取
+        // XAML 里 Height（StoreAmbientHeight）与 MinHeight（Viewport）里大的那个。
         StoreTrailerFade.Background = _storeVideoBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
-            window, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
+            window, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap,
+            window, Math.Max(ViewModel.StoreAmbientHeight, ViewModel.Viewport));
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)
@@ -196,7 +206,6 @@ public sealed partial class DetailPage
                     StoreTrailerFoundation.Visibility = Visibility.Visible;
                     StoreTrailerHost.Opacity = 1;
                     StoreTrailerControls.Visibility = Visibility.Visible;
-                    ViewModel.StoreTrailerControlsShown = true;
                     StoreBackdrop.Visibility = Visibility.Collapsed;
                     ScrollStoreTrailer();
                 });
@@ -255,7 +264,6 @@ public sealed partial class DetailPage
                 StoreTrailerHost.Opacity = 1;
                 StoreTrailerHost.Visibility = Visibility.Visible;
                 StoreTrailerControls.Visibility = Visibility.Visible;
-                ViewModel.StoreTrailerControlsShown = true;
                 StoreBackdrop.Visibility = Visibility.Collapsed;
                 ScrollStoreTrailer();
             }
@@ -323,7 +331,6 @@ public sealed partial class DetailPage
         StoreTrailerFoundation.Visibility = Visibility.Collapsed;
         StoreTrailerFoundation.Background = null;
         StoreTrailerControls.Visibility = Visibility.Collapsed;
-        ViewModel.StoreTrailerControlsShown = false;
         _storeVideoBrush.Clear();
         StoreTrailerFade.Background = null;
         var player = _storeTrailerPlayer;

@@ -269,7 +269,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreAmbientHeight))]
     [NotifyPropertyChangedFor(nameof(StorePreviewMargin))]
     [NotifyPropertyChangedFor(nameof(StoreWide))]
-    [NotifyPropertyChangedFor(nameof(TrailerControlsRoom))]
     [NotifyPropertyChangedFor(nameof(StoreTailHeight))]
     public partial double PageWidth { get; set; }
 
@@ -362,15 +361,12 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     /// <summary>
     /// 商店模式下头部尾部至少要补多高，右侧剧照／预告才不会压到下面那些卡片。
-    /// 同媒体详情页 <c>DetailViewModel.TailMinHeight</c>：内容已经高过画面时返回 0。
+    /// 同媒体详情页 <c>DetailViewModel.TailMinHeight</c>：内容已经高过画面时返回 0；
+    /// 预告那排控制键 2026-11-18 起在画框里面，不再让位。
     /// </summary>
     public double StoreTailHeight => Plain && (Backdrop is not null || TrailerSubject is not null)
-        ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, TrailerControlsRoom, DetailHero.StorePreviewGap)
+        ? DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, DetailHero.StorePreviewGap)
         : 0;
-
-    /// <summary>预告片控制排要从视口下沿再往下占的高；没有预告片或不在宽版式时为 0。</summary>
-    public double TrailerControlsRoom => TrailerSubject is not null && StoreWide
-        ? DetailHero.StoreTrailerControlsRoom : 0;
 
     /// <summary>
     /// 预告片那颗键只在沉浸档出现（同媒体详情页 <c>DetailViewModel.TrailerButtonVisibility</c>）：
@@ -391,7 +387,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             _trailerSubject = value;
             OnPropertyChanged(nameof(TrailerSubject));
             OnPropertyChanged(nameof(TrailerButtonVisibility));
-            OnPropertyChanged(nameof(TrailerControlsRoom));
             OnPropertyChanged(nameof(StoreTailHeight));
         }
     }
@@ -506,7 +501,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreAmbientHeight));
         OnPropertyChanged(nameof(StorePreviewMargin));
         OnPropertyChanged(nameof(StoreWide));
-        OnPropertyChanged(nameof(TrailerControlsRoom));
         OnPropertyChanged(nameof(StoreTailHeight));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
     }

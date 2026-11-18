@@ -215,6 +215,47 @@ internal static class StoreDetailLayoutTests
             // 横着那道左沿透明起坡，和右侧「左上角跟右侧一样的渐变」一致。
             var horizontalStops = brushes[0].Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
             Assert.Equal("#000C0E11", horizontalStops[0].Attribute("Color")?.Value);
+            // 2026-11-18 用户令「预告片这左边的边缘没遮住」：视频那层叠图要按同一份色标把淡墨补进去，
+            // 两处色标因此必须逐档同值 —— 这一页与订阅详情页的 XAML 都对着代码里那两份核。
+            var pages = new[]
+            {
+                page,
+                XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"))
+            };
+            foreach (var sheet in pages)
+            {
+                var grid = sheet.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreShade");
+                var gradients = grid.Descendants().Where(element => element.Name.LocalName == "LinearGradientBrush").ToArray();
+                Assert.Equal(2, gradients.Length, "淡墨层不是横向＋竖向两道");
+                foreach (var (gradient, stops) in new[]
+                {
+                    (gradients[0], Momoka.Shell.Views.StoreBackdropBlend.ShadeAcross),
+                    (gradients[1], Momoka.Shell.Views.StoreBackdropBlend.ShadeDown)
+                })
+                {
+                    var declared = gradient.Elements().Where(element => element.Name.LocalName == "GradientStop").ToArray();
+                    Assert.Equal(stops.Length, declared.Length, "淡墨色标档数与代码不同");
+                    for (var index = 0; index < stops.Length; index++)
+                    {
+                        var offset = double.Parse((string)declared[index].Attribute("Offset")!,
+                            System.Globalization.CultureInfo.InvariantCulture);
+                        Assert.True(Math.Abs(stops[index].Position - offset) < 1e-6,
+                            $"淡墨第 {index + 1} 档的位置与代码不同：{offset} 对 {stops[index].Position}");
+                        var color = (string)declared[index].Attribute("Color")!;
+                        var alpha = Convert.ToInt32(color[1..3], 16) / 255d;
+                        Assert.True(Math.Abs(stops[index].Alpha - alpha) < 1e-6,
+                            $"淡墨第 {index + 1} 档的浓度与代码不同：{alpha} 对 {stops[index].Alpha}");
+                        Assert.True(color.EndsWith("0C0E11", StringComparison.Ordinal), "淡墨没有用 #0C0E11 那一族墨色");
+                    }
+                }
+                // 淡墨那一格的高就是这两条绑定的大的那个（代码里按同一个数算视频边沿的色）。
+                Assert.True(((string?)grid.Attribute("Height"))?.EndsWith("StoreAmbientHeight, Mode=OneWay}", StringComparison.Ordinal) == true,
+                    "淡墨的高度不再跟环境底走");
+                Assert.True(((string?)grid.Attribute("MinHeight"))?.EndsWith("Viewport, Mode=OneWay}", StringComparison.Ordinal) == true,
+                    "淡墨不再最低铺满一屏");
+            }
+            Assert.Contains("Math.Max(ViewModel.StoreAmbientHeight, ViewModel.Viewport)", Source("Views/DetailPage.StoreTrailer.cs"));
+            Assert.Contains("Math.Max(MediaViewModel.StoreAmbientHeight, MediaViewModel.Viewport)", Source("Views/MoviePilotSubscriptionPage.Trailer.cs"));
             Assert.Contains("StoreShade.Visibility = StoreBackdrop.Visibility;", Source("Views/DetailPage.Store.cs"));
             // 2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」；2026-11-17 用户令订阅详情页也照媒体
             // 详情页：两页的环境底遮罩左端都起坡，左上角不再有一块从内容区左沿就满色的环境色。
@@ -391,27 +432,49 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("TrailerPreview.BackgroundWidth(ViewModel.PageWidth)", trailer);
             Assert.Contains("TrailerPreview.BackgroundHeight(ViewModel.PageWidth)", trailer);
             Assert.Contains("DetailHero.StorePreviewEdgeGap(window)", trailer);
-            Assert.Contains("ViewModel.StorePreviewMargin.Right + 32", trailer);
+            // 2026-11-18 起控制排挂在画框里，紧挨左下角，不再贴着窗口右沿。
+            Assert.Contains("DetailHero.StoreTrailerControlsInset", trailer);
         });
 
-        Test("商店尾部：预告控制条没上屏时不再预留那 72 的空档", () =>
+        Test("商店尾部：预告控制排进画框，卡片不再替它让位", () =>
         {
+            // 2026-11-18 用户令「放预告片的时候下面会出现大片空位，请修复」：那排键从画面下沿外侧挪进画框，
+            // 尾部只剩「画面 + 空隙 − 带高」，卡片的位置跟这支预告开没开播无关。
             var viewModel = Source("ViewModels/DetailViewModel.cs");
-            Assert.Contains("StoreTrailerControlsShown && PageWidth >= DetailHero.StoreWideFloor", viewModel);
-            Assert.DoesNotContain("TrailerVisibility == Visibility.Visible && PageWidth >= DetailHero.StoreWideFloor",
-                viewModel);
-            var trailer = Source("Views/DetailPage.StoreTrailer.cs");
-            // 控制键真正露头的两处（本地 MediaOpened 与网页预告起播）各接一次；StopStoreTrailer 统一收回。
-            Assert.Equal(2, Regex.Matches(trailer,
-                @"StoreTrailerControls\.Visibility = Visibility\.Visible;\r?\n\s*ViewModel\.StoreTrailerControlsShown = true;").Count);
-            Assert.Contains("ViewModel.StoreTrailerControlsShown = false;", trailer);
-            var xaml = Source("Views/DetailPage.xaml");
-            Assert.Contains("x:Name=\"StoreTrailerClose\"", xaml);
-            Assert.Contains("Click=\"OnStoreTrailerClose\"", xaml);
-            Assert.Contains("ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);", trailer);
-            Assert.Contains("ViewModel.NotifyTrailerSignInRequired(", trailer);
-            Assert.Contains("YouTubeLoginDialog.ShowAsync(this, session)", trailer);
-            Assert.Contains("new StoreYouTubePreview(environment)", trailer);
+            Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroHeight, DetailHero.StorePreviewGap)", viewModel);
+            Assert.DoesNotContain("StoreTrailerControlsShown", viewModel);
+            var media = Source("ViewModels/MoviePilotMediaViewModel.cs");
+            Assert.Contains("DetailHero.StoreTailHeight(StoreBackdropHeight, HeroBandHeight, DetailHero.StorePreviewGap)", media);
+            Assert.DoesNotContain("TrailerControlsRoom", media);
+            // 两页都把控制排摆在画框右上角：顶边一个内缩，右边距 = 视口右沿空隙 + 内缩（视口自己右对齐，
+            // 所以不必算绝对左边）。2026-11-18 用户报「按钮位置都重合了」：别再把那排键摆到字幕上。
+            foreach (var (page, margin) in new[]
+            {
+                ("Views/DetailPage.StoreTrailer.cs", "ViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset"),
+                ("Views/MoviePilotSubscriptionPage.Trailer.cs", "MediaViewModel.StorePreviewMargin.Right + DetailHero.StoreTrailerControlsInset")
+            })
+            {
+                var trailer = Source(page);
+                Assert.Contains("new Thickness(0, DetailHero.StoreTrailerControlsInset,", trailer);
+                Assert.Contains(margin, trailer);
+                Assert.DoesNotContain("StoreTrailerHost.Height + 32", trailer);
+                Assert.DoesNotContain("StoreTrailerHost.Height - controls", trailer);
+            }
+            foreach (var name in new[] { "Views/DetailPage.xaml", "Views/MoviePilotSubscriptionPage.xaml" })
+            {
+                var xaml = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", name));
+                var controls = xaml.Descendants().Single(element =>
+                    (string?)element.Attribute(X + "Name") == "StoreTrailerControls");
+                Assert.Equal("Right", (string?)controls.Attribute("HorizontalAlignment"));
+                Assert.Equal("Top", (string?)controls.Attribute("VerticalAlignment"));
+            }
+            var trailerCode = Source("Views/DetailPage.StoreTrailer.cs");
+            Assert.Contains("x:Name=\"StoreTrailerClose\"", Source("Views/DetailPage.xaml"));
+            Assert.Contains("Click=\"OnStoreTrailerClose\"", Source("Views/DetailPage.xaml"));
+            Assert.Contains("ViewModel.NotifyTrailerLoadFailed(CloseStoreTrailer);", trailerCode);
+            Assert.Contains("ViewModel.NotifyTrailerSignInRequired(", trailerCode);
+            Assert.Contains("YouTubeLoginDialog.ShowAsync(this, session)", trailerCode);
+            Assert.Contains("new StoreYouTubePreview(environment)", trailerCode);
         });
     }
 
