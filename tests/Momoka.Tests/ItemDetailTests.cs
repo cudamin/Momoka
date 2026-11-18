@@ -1480,6 +1480,17 @@ internal static class ItemDetailTests
             Assert.Null(ItemDetail.MissingStill(
                 new EmbyItem { Id = "e2", Type = EmbyItemType.Episode },
                 new EmbyItem { Id = "s2", Type = EmbyItemType.Series }));
+
+            // 头图从 2026-11-18 起不再收海报，但这一格是列表里的小图，海报兜底仍要留着：只有海报的剧上
+            // 那一行不能集体退回占位字形。
+            var posterSeries = new EmbyItem { Id = "s3", Type = EmbyItemType.Series };
+            posterSeries.ImageTags[EmbyImageStore.Primary] = "tag-poster";
+            var poster = ItemDetail.MissingStill(
+                new EmbyItem { Id = "e3", Type = EmbyItemType.Episode, SeriesId = "s3" }, posterSeries);
+            Assert.NotNull(poster);
+            Assert.Equal("s3", poster!.Value.ItemId);
+            Assert.Equal(EmbyImageStore.Primary, poster.Value.ImageType);
+            Assert.Equal("tag-poster", poster.Value.Tag);
         });
     }
 

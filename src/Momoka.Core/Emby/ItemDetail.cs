@@ -1254,9 +1254,23 @@ public static class ItemDetail
     /// <param name="owner">这一页是哪一个条目 —— 剧页上是那部剧，季页上是那一季。</param>
     public static ArtworkRef? MissingStill(EmbyItem episode, EmbyItem owner)
     {
-        if (ItemArtwork.Hero(episode).FirstOrDefault() is { ItemId.Length: > 0 } inherited) return inherited;
-        if (ItemArtwork.Hero(owner).FirstOrDefault() is { ItemId.Length: > 0 } own) return own;
+        if (FirstStill(episode) is { ItemId.Length: > 0 } inherited) return inherited;
+        if (FirstStill(owner) is { ItemId.Length: > 0 } own) return own;
         return null;
+    }
+
+    /// <summary>
+    /// 遗漏集那一行优先要宽图（背景图或缩略图，走 <see cref="ItemArtwork.Hero"/>），一张都没有时退回条目自己的
+    /// 海报 —— 这一格是列表里的小图，不是整页背景，2:3 的海报裁成小方块照样认得出；2026-11-18 头图不再收海报
+    /// 之后，这一档兜底仍要留着，否则「只有海报的剧」上那一行会集体退回占位字形。
+    /// </summary>
+    private static ArtworkRef? FirstStill(EmbyItem item)
+    {
+        if (ItemArtwork.Hero(item).FirstOrDefault() is { ItemId.Length: > 0 } wide) return wide;
+
+        return item.ImageTags.TryGetValue(EmbyImageStore.Primary, out var poster) && poster is { Length: > 0 }
+            ? new ArtworkRef(item.Id, EmbyImageStore.Primary, poster)
+            : null;
     }
 
     /// <summary>
