@@ -2122,8 +2122,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private IReadOnlyList<HomeRowChoice> CurrentHomeChoices()
     {
-        var sources = _capabilities?.Sources.Where(source => source.IsAvailable)
-            .Select(source => source.Scope).ToArray() ?? [];
+        // 与主页 ShowAccountNames 取同一份来源（会话里的全部在线来源）：这里按 IsAvailable 先筛一遍，
+        // 撤销中的来源会让「主页写用户名、设置表不写」在同一刻出现两种字。
+        var sources = _capabilities?.Sources.Select(source => source.Scope).ToArray() ?? [];
 
         return [.. CurrentHomeRows().Select(row => new HomeRowChoice(
             row.Key,
