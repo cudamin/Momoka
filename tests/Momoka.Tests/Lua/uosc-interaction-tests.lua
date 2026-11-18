@@ -553,7 +553,7 @@ do
 				assert(toggle and toggle.active, 'shown danmaku has no active toggle button')
 				local matching = false
 				for _, control in ipairs(Elements.controls.layout) do
-					if control.element and control.element.tooltip == '弹幕 · 弹弹play' then matching = true end
+					if control.element and control.element.tooltip == '弹幕设置' then matching = true end
 				end
 				assert(matching, 'adding the toggle removed the matching button')
 				toggle:handle_cursor_click(); advance(0.02)

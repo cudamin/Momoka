@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using Momoka.Emby;
 
@@ -12,6 +13,15 @@ public static class DanmakuMatchRules
 
     private static readonly Regex LatinEpisode = new(@"(?:^|[\s\[【(（])(?:EP?|Episode)\s*(\d{1,6})(?=$|[\s\]】)）.,，。:：-])",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Regex PlatformSuffix = new(@"\s*from\s+\S+\s*$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Regex BracketedTag = new(@"[\(（\[【][^\)）\]】]*[\)）\]】]",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex YearTag = new(@"[\(（\[【]\s*((?:19|20)\d{2})\s*[\)）\]】]",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static bool CanAutoMatch(EmbyItem item) => item.Type switch
     {
@@ -58,4 +68,47 @@ public static class DanmakuMatchRules
                 ? number
                 : null;
     }
+
+    /// <summary>
+    /// danmu_api 搜索结果的作品名形如「工作细胞(2018)【日番】from bilibili」。
+    /// 去掉平台后缀、年份与方括号标签后，用于和当前剧名比较。
+    /// </summary>
+    public static string WorkTitle(string? animeTitle) =>
+        BracketedTag.Replace(PlatformSuffix.Replace(animeTitle ?? "", ""), " ").Trim();
+
+    private static int? WorkYear(string? animeTitle)
+    {
+        var match = YearTag.Match(animeTitle ?? "");
+        return match.Success && int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var year)
+            ? year : null;
+    }
+
+    /// <summary>danmu_api 常把同一作品拆成多个平台行；只有同名同季才算可替换的候选。</summary>
+    public static bool SameWork(EmbyItem item, DandanPlayEpisode candidate, int? seriesYear)
+    {
+        if (WorkYear(candidate.AnimeTitle) is { } year && seriesYear is > 0 && year != seriesYear.Value) return false;
+        var work = WorkTitle(candidate.AnimeTitle);
+        if (work.Length == 0) return false;
+        var series = DandanPlayMatching.Title(item);
+        if (Normalize(work) == Normalize(series)) return true;
+        var season = item.ParentIndexNumber;
+        if (season is not > 1) return false;
+        return DandanPlayMatching.TrySplitSeason(work, out var baseTitle, out var candidateSeason)
+            && candidateSeason == season
+            && Normalize(baseTitle) == Normalize(series);
+    }
+
+    /// <summary>零弹幕兜底只收同作品、同集，且不是刚试过的那一条；按搜索结果原顺序保留。</summary>
+    public static IReadOnlyList<DandanPlayEpisode> Alternatives(EmbyItem item,
+        IReadOnlyList<DandanPlayEpisode> candidates, long attemptedId, int? seriesYear)
+    {
+        HashSet<long> seen = [];
+        return [.. candidates.Where(candidate => candidate.EpisodeId != attemptedId
+            && seen.Add(candidate.EpisodeId)
+            && Accepts(item, candidate)
+            && SameWork(item, candidate, seriesYear))];
+    }
+
+    private static string Normalize(string value) => new(value.Normalize(NormalizationForm.FormKC)
+        .Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
 }

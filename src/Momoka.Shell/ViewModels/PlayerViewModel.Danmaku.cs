@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Danmaku;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Mpv;
@@ -38,6 +39,9 @@ public sealed partial class PlayerViewModel
     private string _danmakuSourceSummary = "弹弹play";
     private string _danmakuLabel = "";
     private string _danmakuWarning = "";
+    private IReadOnlyList<DandanPlayEpisode> _danmakuCandidates = [];
+    private DanmakuSource _danmakuCandidatesSource = DanmakuSource.DandanPlay;
+    private int _danmakuCandidatesVersion;
 
     [ObservableProperty]
     public partial string DanmakuStatus { get; set; } = "弹幕来源：弹弹play；搜索作品后选择对应剧集。";
@@ -53,11 +57,16 @@ public sealed partial class PlayerViewModel
     internal string DanmakuSearchTitle => _nowPlaying is { } item ? DandanPlayMatching.Title(item) : "";
     internal string DanmakuSearchEpisode => _nowPlaying is { } item ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
     internal DanmakuSettings DanmakuPreferences => Settings.Danmaku;
+    internal IReadOnlyList<DandanPlayEpisode> DanmakuCandidates => _danmakuCandidates;
+    internal DanmakuSource DanmakuCandidatesSource => _danmakuCandidatesSource;
+    internal int DanmakuCandidatesVersion => _danmakuCandidatesVersion;
     internal Task<FontCatalogue> DanmakuFontsAsync() => _danmakuFonts.LoadAsync();
 
     internal IReadOnlyList<DanmakuSourceOption> DanmakuSearchSources() =>
         [.. DanmakuSourceRules.AvailableSources(Settings)
             .Select(source => new DanmakuSourceOption(DanmakuSourceRules.SourceName(source), source))];
+
+    internal bool DanmakuSourceReady(DanmakuSource source) => DanmakuSourceRules.IsSourceReady(Settings, source);
 
     internal void ChangeDanmakuPreferences(Action<DanmakuSettings> change)
     {
@@ -94,6 +103,7 @@ public sealed partial class PlayerViewModel
         _danmakuDanmuApiCount = 0;
         _danmakuLabel = "";
         _danmakuWarning = "";
+        ClearDanmakuCandidates();
         _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
         _danmakuConnection = DanmakuConnection();
         _danmuApiConnection = DanmuApiConnection();
@@ -181,6 +191,7 @@ public sealed partial class PlayerViewModel
             _danmakuDanmuApiCount = 0;
             _danmakuLabel = "";
             _danmakuWarning = "";
+            ClearDanmakuCandidates();
             _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
             RefreshDanmakuHeat();
             DanmakuStatus = DefaultDanmakuStatus;
@@ -299,6 +310,7 @@ public sealed partial class PlayerViewModel
             if (selections.Count > 0)
             {
                 await LoadSourcesAsync(selections).ConfigureAwait(true);
+                await TryEmptyDanmakuFallbackAsync(item, selections).ConfigureAwait(true);
                 return;
             }
 
@@ -326,6 +338,86 @@ public sealed partial class PlayerViewModel
         }
         catch (OperationCanceledException) { throw; }
         catch { return null; }
+    }
+
+    private void ClearDanmakuCandidates()
+    {
+        _danmakuCandidates = [];
+        _danmakuCandidatesSource = DanmakuSource.DandanPlay;
+        _danmakuCandidatesVersion++;
+        OnPropertyChanged(nameof(DanmakuCandidatesVersion));
+    }
+
+    /// <summary>
+    /// danmu_api 的 match 可能命中同名但零弹幕的条目，同一作品的其它平台行仍可能有数据。
+    /// 只对自动匹配的单源 danmu_api 结果兜底：换一条同名同集候选试一次；仍为空就把候选交给面板。
+    /// </summary>
+    private async Task TryEmptyDanmakuFallbackAsync(EmbyItem item,
+        IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections)
+    {
+        if (!selections.Any(selection => selection.Source == DanmakuSource.DanmuApi)) return;
+        // 合并模式下弹弹play 已有结果时保留它，只补 danmu_api 的同作品行；单源模式则整体改选。
+        if (!_danmakuFetched || _danmakuDanmuApiCount != 0 || _danmakuWarning.Length > 0) return;
+        if (!DanmakuAvailable || !_playback.IsPlaying) return;
+        var context = CaptureInteraction();
+        var connectionVersion = DanmakuConnectionVersion;
+        var searchRequest = _danmakuSearchRequest;
+        var token = _danmakuLoad?.Token ?? _lifetime.Token;
+        var attempted = selections.First(selection => selection.Source == DanmakuSource.DanmuApi).Episode;
+        Log.Debug("danmaku", $"零弹幕兜底：fetched={_danmakuFetched} custom={_danmakuDanmuApiCount} "
+            + $"warning={_danmakuWarning.Length} available={DanmakuAvailable} playing={_playback.IsPlaying}");
+        DanmakuStatus = $"danmu_api 匹配到的「{attempted.Label}」没有弹幕，正在尝试其他来源行…";
+        var (matches, error) = await SearchSourceAsync(DandanPlayMatching.Title(item),
+            DandanPlayMatching.EpisodeNumber(item), DanmakuSource.DanmuApi, token).ConfigureAwait(true);
+        Log.Debug("danmaku", $"零弹幕兜底：搜索 error={error} 候选={matches.Episodes.Count}");
+        if (!DanmakuAvailable || !IsCurrentPlayback(context) || connectionVersion != DanmakuConnectionVersion
+            || searchRequest != _danmakuSearchRequest) return;
+        if (error.Length > 0)
+        {
+            DanmakuStatus = $"自动匹配到的「{attempted.Label}」没有弹幕；{error}";
+            return;
+        }
+        var seriesYear = await DanmakuSeriesYearAsync(item, token).ConfigureAwait(true);
+        if (!DanmakuAvailable || !IsCurrentPlayback(context) || connectionVersion != DanmakuConnectionVersion
+            || searchRequest != _danmakuSearchRequest) return;
+        var candidates = DanmakuMatchRules.Alternatives(item, matches.Episodes, attempted.EpisodeId, seriesYear);
+        Log.Debug("danmaku", $"零弹幕兜底：year={seriesYear} 同作品候选={candidates.Count}"
+            + (candidates.Count > 0 ? $" 首个={candidates[0].EpisodeId}" : ""));
+        if (candidates.Count > 0)
+        {
+            try
+            {
+                var fetched = await _dandanPlay.GetCommentsAsync(candidates[0].EpisodeId, false,
+                    DanmakuSource.DanmuApi, token).ConfigureAwait(true);
+                Log.Debug("danmaku", $"零弹幕兜底：候选 {candidates[0].EpisodeId} 读取 {fetched.Count} 条");
+                if (fetched.Count > 0 && DanmakuAvailable && IsCurrentPlayback(context)
+                    && connectionVersion == DanmakuConnectionVersion && searchRequest == _danmakuSearchRequest)
+                {
+                    var merged = new List<(DanmakuSource Source, DandanPlayEpisode Episode)>(2);
+                    if (_danmakuDandanCount > 0 && _danmakuEpisode is { } dandan)
+                        merged.Add((DanmakuSource.DandanPlay, dandan));
+                    merged.Add((DanmakuSource.DanmuApi, candidates[0]));
+                    await LoadSourcesAsync(merged).ConfigureAwait(true);
+                    return;
+                }
+            }
+            catch (OperationCanceledException) { return; }
+            catch (DandanPlayException) { }
+        }
+        if (!DanmakuAvailable || !IsCurrentPlayback(context) || connectionVersion != DanmakuConnectionVersion
+            || searchRequest != _danmakuSearchRequest) return;
+        // 弹弹play 已经有内容时不拿空结果或候选去覆盖它。
+        if (_danmakuDandanCount > 0) return;
+        if (candidates.Count == 0)
+        {
+            DanmakuStatus = $"自动匹配到的「{attempted.Label}」没有弹幕，也没有找到同作品的其它来源行；请手动搜索。";
+            return;
+        }
+        _danmakuCandidates = candidates;
+        _danmakuCandidatesSource = DanmakuSource.DanmuApi;
+        _danmakuCandidatesVersion++;
+        OnPropertyChanged(nameof(DanmakuCandidatesVersion));
+        DanmakuStatus = $"自动匹配到的「{attempted.Label}」没有弹幕；已列出同作品候选，请选择其它来源行。";
     }
 
     internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string? episode,

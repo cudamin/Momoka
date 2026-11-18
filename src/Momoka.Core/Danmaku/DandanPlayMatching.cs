@@ -73,7 +73,7 @@ public static class DandanPlayMatching
             && Normalize(baseTitle) == seriesTitle;
     }
 
-    private static bool TrySplitSeason(string title, out string baseTitle, out int season)
+    internal static bool TrySplitSeason(string title, out string baseTitle, out int season)
     {
         baseTitle = "";
         season = 0;

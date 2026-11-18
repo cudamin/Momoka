@@ -56,7 +56,7 @@ function Controls:init_options()
 		['momoka-ui-prev'] = 'command:skip_previous:script-binding uosc/momoka-ui-prev?' .. t('Previous'),
 		['momoka-ui-next'] = 'command:skip_next:script-binding uosc/momoka-ui-next?' .. t('Next'),
 		['momoka-ui-episodes'] = 'command:list_alt:script-binding uosc/momoka-ui-episodes?选集',
-		['momoka-ui-danmaku'] = 'command:comment:script-binding uosc/momoka-ui-danmaku?弹幕 · 弹弹play',
+		['momoka-ui-danmaku'] = 'command:comment:script-binding uosc/momoka-ui-danmaku?弹幕设置',
 		['momoka-ui-danmaku-toggle'] = 'button:momoka-danmaku-toggle',
 		-- MOMOKA[controls] — 控制条上补的两颗（2026-09-23）：版本与画面菜单。两者都只是把宿主那两条
 		-- 既有通道摆到按钮上 —— 画面菜单与集成模式的「更多」按钮、独占模式的右键点画面是同一份
