@@ -15,6 +15,11 @@ internal partial class PageViewModel : IDisposable
     internal bool Busy { get; set; }
     internal bool IsReady { get; set; }
     internal bool NoticeOpen { get; set; }
+    // The extracted BeginLoad/ClearNotice reset the optional notice action; the label itself is
+    // never read by these fixtures (no InfoBar), so a plain property keeps the real resets compiling.
+    // Both stay internal so the write-only fixture does not trip CS0414.
+    internal string? NoticeActionLabel { get; set; }
+    internal Action? _noticeAction;
     internal List<string> Reports { get; } = [];
     protected void Report(string what, Exception error) => Reports.Add(what);
     protected void Notify(string? title, string? message, InfoBarSeverity severity) => Reports.Add(title ?? "");

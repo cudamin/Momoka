@@ -101,10 +101,12 @@ namespace Momoka.Shell.ViewModels
         private Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius, CancellationToken token,
             DetailHeroCache.Ticket? ticket, object? timing) => Task.FromResult<BitmapImage?>(new());
     }
-    /// <summary>详情页抢排只读这一个数；真正的视图模型由生产工程编译。</summary>
+    /// <summary>详情页抢排只读这两个数；真正的视图模型由生产工程编译。</summary>
     internal sealed class DetailViewModel
     {
         public double PageWidth { get; set; }
+
+        public double WindowWidth { get; set; }
     }
 
     internal class CancelBoundary { public virtual void Cancel() { } }
