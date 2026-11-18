@@ -49,8 +49,8 @@ public sealed partial class SettingsViewModel
         };
         if (configured)
         {
-            rows.Add(Toggle("自动匹配弹幕", "自动匹配只接受能确认的作品与集数；danmu_api 会带年份并核对集号。"
-                + "续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
+            rows.Add(Toggle("自动匹配弹幕", "自动匹配只接受能确认的作品与集数；danmu_api 会带年份并核对集号，"
+                + "弹弹play 续季按标题里的季标记核对。特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
                 () => settings.AutoMatch, value => settings.AutoMatch = value, after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDandanPlay(settings.Source))
                 rows.Add(Toggle("包含关联弹幕", "同时获取弹弹play 关联的第三方网站弹幕；修改后重新加载当前弹幕库。",

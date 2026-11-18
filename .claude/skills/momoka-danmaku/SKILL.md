@@ -49,9 +49,9 @@ metadata: {agent_created: true}
 
 ## 匹配、加载与聚合
 
-- 自动入口共用 `DanmakuMatchRules.CanAutoMatch`：电影，或第一季且集号为正的单集。续季、特别篇和其他类型不发自动请求，保留手动选择。
-- 弹弹play按元数据标题搜索；`SeriesName` 优先，Unicode 归一化后只比较字母数字、忽略大小写。`UniqueMatch` 只收唯一精确结果；`HasMore`、本地截断和多个候选都不能证明唯一。
-- danmu_api 使用 `DanmakuMatchRules.MatchFileName` 拼出 `标题 (年份) S01E02`，电影省略季集号。单集优先用所属剧首播年，取不到才退回本集年份。`DanmakuSeriesYearAsync` 可能只读媒体服务器取得剧年份；不会下载视频来算哈希。`MatchAsync` 只取有效的 `matches[0]`，再由 `Accepts` 拒绝明确集号冲突；结果未写集号时不据此拒绝，也不能宣称已验证集号一致。
+- 自动入口共用 `DanmakuMatchRules.CanAutoMatch`：电影，或第 1 季及以后且集号为正的单集；第 0 季（特别篇）和其他类型不发自动请求，保留手动选择。
+- 弹弹play按元数据标题搜索；`SeriesName` 优先，Unicode 归一化后只比较字母数字、忽略大小写。`UniqueMatch` 只收唯一结果；`HasMore`、本地截断和多个候选都不能证明唯一。续季按候选标题里的季标记（第二季／第2季／Season 2／2nd Season／S3）与当前 `ParentIndexNumber` 核对；裸标题只认第一季，季标记缺失或对不上就留给手动选择。
+- danmu_api 使用 `DanmakuMatchRules.MatchFileName` 拼出 `标题 (年份) S02E06`，电影省略季集号。单集优先用所属剧首播年，取不到才退回本集年份。`DanmakuSeriesYearAsync` 可能只读媒体服务器取得剧年份；不会下载视频来算哈希。`MatchAsync` 只取有效的 `matches[0]`，再由 `Accepts` 拒绝明确集号冲突；结果未写集号时不据此拒绝，也不能宣称已验证集号一致。续季的季号由文件名携带，客户端不另行核对结果标题的季标记。
 - `Both` 自动流程依次匹配两源，再由 `LoadSourcesAsync` 依次读取成功匹配的选择。任一源有匹配就继续；另一源的匹配错误目前不会带入加载后的状态。读取阶段一源失败时保留成功来源，并显示读取失败警告。
 - 成功返回空 `comments` 也算已加载，记录为零条；全部读取失败才保持未加载。弹弹play成功但零条仍可建立发送目标。
 - **手动一次只搜索和加载一源。** `AvailableSources` 列出模式包含且本地配置有效的来源；`LoadDanmakuAsync` 只传一个选择并替换原加载结果。不能把手动选择描述成逐次累加两源。

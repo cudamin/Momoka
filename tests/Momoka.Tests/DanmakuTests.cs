@@ -183,7 +183,7 @@ internal static class DanmakuTests
             Assert.Equal(40000, DanmakuComments.Filter(comments, new()).Count);
         });
 
-        Test("弹幕：唯一精确标题可自动选中，歧义、续季和特别篇必须手选", () =>
+        Test("弹幕：唯一精确标题可自动选中，续季按季标记核对，歧义和特别篇必须手选", () =>
         {
             var item = new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试作品", Name = "第1集", IndexNumber = 1, ParentIndexNumber = 1 };
             var episode = new DandanPlayEpisode(230001, "测试作品", "第1话");
@@ -194,9 +194,35 @@ internal static class DanmakuTests
             Assert.Null(DandanPlayMatching.UniqueMatch(item, [episode with { AnimeTitle = "测试作品第二季" }]));
             item.ParentIndexNumber = 2;
             Assert.Null(DandanPlayMatching.UniqueMatch(item, [episode]));
+            var sequel = episode with { AnimeTitle = "测试作品 第二季" };
+            Assert.Equal(sequel, DandanPlayMatching.UniqueMatch(item, [episode, sequel]));
+            Assert.Equal(sequel, DandanPlayMatching.UniqueMatch(item, [sequel]));
+            Assert.Equal(sequel, DandanPlayMatching.UniqueMatch(item, [sequel, episode with { AnimeTitle = "测试作品第三季" }]));
+            Assert.Null(DandanPlayMatching.UniqueMatch(item, [sequel, sequel with { EpisodeId = 230002 }]));
+            Assert.Null(DandanPlayMatching.UniqueMatch(item, [episode with { AnimeTitle = "测试作品第三季" }]));
+            var named = new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试作品 第二季", IndexNumber = 1, ParentIndexNumber = 2 };
+            Assert.Equal(sequel, DandanPlayMatching.UniqueMatch(named, [sequel]));
+            var real = new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "青之箱", IndexNumber = 6, ParentIndexNumber = 2 };
+            var realMatch = new DandanPlayEpisode(192490006, "青之箱 第二季", "第6话 Christmas Eve");
+            Assert.Equal(realMatch, DandanPlayMatching.UniqueMatch(real,
+                [realMatch, new DandanPlayEpisode(182780006, "蓝箱", "第6话 祝我好运"), new DandanPlayEpisode(163580006, "青之芦苇", "第6话 最初的粉丝")]));
             item.ParentIndexNumber = 0;
             Assert.Null(DandanPlayMatching.UniqueMatch(item, [episode]));
             Assert.Null(DandanPlayMatching.EpisodeNumber(item));
+        });
+
+        Test("弹幕：续季标记识别中文、英文与序数写法", () =>
+        {
+            Assert.Equal(2, DandanPlayMatching.SeasonNumber("测试作品 第二季"));
+            Assert.Equal(2, DandanPlayMatching.SeasonNumber("测试作品 第2季"));
+            Assert.Equal(2, DandanPlayMatching.SeasonNumber("测试作品 Season 2"));
+            Assert.Equal(2, DandanPlayMatching.SeasonNumber("测试作品 2nd Season"));
+            Assert.Equal(3, DandanPlayMatching.SeasonNumber("测试作品 S3"));
+            Assert.Equal(12, DandanPlayMatching.SeasonNumber("测试作品 第十二季"));
+            Assert.Equal(20, DandanPlayMatching.SeasonNumber("测试作品 第二十季"));
+            Assert.Null(DandanPlayMatching.SeasonNumber("测试作品"));
+            Assert.Null(DandanPlayMatching.SeasonNumber("86 -不存在的战区-"));
+            Assert.Null(DandanPlayMatching.SeasonNumber(""));
         });
 
         Test("弹弹play：签名按官方串联顺序，不含查询参数", () =>
@@ -945,7 +971,7 @@ internal static class DanmakuTests
             Assert.DoesNotContain("fixture-token", File.ReadAllText(file));
         }));
 
-        Test("弹幕：danmu_api 自动匹配文件名带年份，续季不自动", () =>
+        Test("弹幕：danmu_api 自动匹配文件名带年份，续季按季集号匹配", () =>
         {
             var episode = new EmbyItem
             {
@@ -966,13 +992,23 @@ internal static class DanmakuTests
             };
             Assert.Equal("凡人修仙传 S01E02", DanmakuMatchRules.MatchFileName(noYear));
 
+            var sequel = new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                SeriesName = "凡人修仙传",
+                IndexNumber = 6,
+                ParentIndexNumber = 2,
+                ProductionYear = 2026
+            };
+            Assert.True(DanmakuMatchRules.CanAutoMatch(sequel));
+            Assert.Equal("凡人修仙传 (2020) S02E06", DanmakuMatchRules.MatchFileName(sequel, 2020));
+
             var movie = new EmbyItem { Type = EmbyItemType.Movie, Name = "测试电影", ProductionYear = 2024 };
             Assert.True(DanmakuMatchRules.CanAutoMatch(movie));
             Assert.Equal("测试电影 (2024)", DanmakuMatchRules.MatchFileName(movie));
 
             foreach (var unavailable in new[]
             {
-                new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试", IndexNumber = 1, ParentIndexNumber = 2 },
                 new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试", IndexNumber = 1, ParentIndexNumber = 0 },
                 new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试", ParentIndexNumber = 1 },
                 new EmbyItem { Type = EmbyItemType.Series, Name = "测试" }

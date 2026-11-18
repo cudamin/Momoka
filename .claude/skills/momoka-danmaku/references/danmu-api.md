@@ -35,7 +35,7 @@ Momoka 使用 `DanmuApiEndpoint.TryCreate` 和 `DanmuApiToken`：
 | 取弹幕 | `GET api/v2/comment/{episodeId}?withRelated=false&chConvert=0` | JSON `comments[].p/m`；沿用共同解析上限 |
 
 - `MatchAsync` 接受去首尾空白后的 2–200 字符且无控制字符的名字；正文只有 `fileName`，没有 `fileHash`、`fileSize`、`videoDuration` 或伪造哈希。`DanmakuMatchRules.MatchFileName` 用媒体元数据构造名字；匹配前置规则和年份回退见主技能。
-- 上游 `matchAnime` 从 `fileName` 提取标题、年份、季集和可选平台偏好，并可能应用服务端标题映射。Momoka 读取首个结果后，还会拒绝结果标题明确写出的集号与当前视频冲突；没有明确集号不当作反证。不能因为上游支持跨季映射，就放宽 Momoka 的续季自动匹配边界。
+- 上游 `matchAnime` 从 `fileName` 提取标题、年份、季集和可选平台偏好，并可能应用服务端标题映射。Momoka 对第 1 季及以后的单集都会自动请求，季号由 `MatchFileName` 的 `SxxExx` 携带；读取首个结果后，还会拒绝结果标题明确写出的集号与当前视频冲突；没有明确集号不当作反证。上游的跨季映射不改变这条集号核对规则。
 - `success=false`、非零/非法 `errorCode`、非法 JSON 都按协议失败处理。`isMatched=false` 或无有效首个结果是未匹配，不伪造候选。
 - 搜索响应的 `HasMore` 和截断必须保留；上游支持平台选择、收藏和远程映射，不代表 Momoka 提供这些界面或调用。
 - **输出格式须为 JSON。** 当前 Momoka 没有追加 `format=json`。上游 `formatDanmuResponse` 在缺少该参数时使用 `DANMU_OUTPUT_FORMAT`，默认是 `json`；若用户改为 XML 等格式，会触发本地解析失败。先核对部署输出格式，不把 XML 当作空弹幕吞掉。

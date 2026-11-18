@@ -242,10 +242,10 @@ public sealed partial class PlayerViewModel
     {
         var context = CaptureInteraction();
         if (DandanPlayMatching.Title(item).Trim().Length < 2) return;
-        // 续季与特别篇不发含糊的自动请求；仍然可以从播放页手动搜索。
+        // 特别篇或集号缺失时不发含糊的自动请求；仍然可以从播放页手动搜索。
         if (!DanmakuMatchRules.CanAutoMatch(item))
         {
-            DanmakuStatus = "续季或特别篇请手动搜索并选择弹幕库，避免串集。";
+            DanmakuStatus = "特别篇或集号缺失时请手动搜索并选择弹幕库，避免串集。";
             return;
         }
         if (!DanmakuAvailable) return;

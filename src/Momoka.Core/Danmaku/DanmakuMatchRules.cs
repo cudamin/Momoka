@@ -16,7 +16,8 @@ public static class DanmakuMatchRules
     public static bool CanAutoMatch(EmbyItem item) => item.Type switch
     {
         EmbyItemType.Movie => true,
-        EmbyItemType.Episode => item.ParentIndexNumber is 1 && item.IndexNumber is > 0,
+        // 续季也自动匹配；季号只用来核对候选，特别篇（第 0 季）仍留给手动选择。
+        EmbyItemType.Episode => item.ParentIndexNumber is >= 1 && item.IndexNumber is > 0,
         _ => false
     };
 
