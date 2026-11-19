@@ -19,6 +19,18 @@ public sealed record TrackRow(string Text, MediaStream? Stream, bool Disable)
     public bool IsAvailable { get; init; } = true;
 
     /// <summary>
+    /// 下拉展开后那一行的第二行：轨道自带的标题，如外挂字幕的 <c>chs[Sakurato]</c>。
+    /// <para>
+    /// 2026-11-19 用户报「音频和字幕，选择栏展开后显示不全，缺少Title」：Emby 给的字幕轨 DisplayTitle
+    /// 一律是「Chinese (ASS)」，同一部片子的三条简繁字幕在展开列表里长得一模一样，而分辨它们的那截
+    /// <see cref="MediaStream.Title"/> 被 DisplayTitle 挡掉了（<see cref="EmbyItem.ToDisplayLabel"/> 只在
+    /// DisplayTitle 为空时才自己拼）。这里把标题单独留给第二行；第一行已经写着它（自己拼的那条轨道名，
+    /// 或服务器已把标题写进 DisplayTitle）时留空，不写两遍。
+    /// </para>
+    /// </summary>
+    public string Title { get; init; } = "";
+
+    /// <summary>
     /// 商店模式那一行收起时显示的字（2026-11-16 用户令「该回去原来怎么显示的就怎么显示，去掉前面的自动」）：
     /// 仍是原来的完整轨道名（编码、声道、「默认」都在），只是不带「自动 · 」那截前缀 —— 展开列表照旧带前缀
     /// 说明这一行是自动选择。没有明确轨道时（由 mpv 决定、不使用字幕）原样用 <see cref="Text"/>。
@@ -580,8 +592,29 @@ public static class ItemDetail
         var label = stream.ToDisplayLabel();
         return new TrackRow(available ? label : $"{label} · 无法加载此外挂轨道", stream, false)
         {
-            IsAvailable = available
+            IsAvailable = available,
+            Title = TrackTitleLine(stream, label)
         };
+    }
+
+    /// <summary>
+    /// 展开列表的第二行那一截：轨道自带的标题；第一行已经写着它时留空。
+    /// <para>
+    /// 服务器（Emby／飞牛）的外挂字幕标题是「chs[Sakurato]」这种发布组标记，DisplayTitle 却只写
+    /// 「Chinese (ASS)」—— 两条简繁字幕就靠这一截分得开。自己拼的轨道名已经把标题写在第一行里，
+    /// 「国语」配上「国语 · AAC 2.0」也是一回事，都让第二行留空而不是写两遍。
+    /// </para>
+    /// </summary>
+    private static string TrackTitleLine(MediaStream stream, string label)
+    {
+        var title = stream.Title?.Trim();
+        if (string.IsNullOrEmpty(title)) return "";
+
+        // 标题认得出时第一行写的是它的中文名（「繁体」而不是「Traditional」），两种写法都要比。
+        var described = TrackLanguagePriority.DescribeTitle(title);
+        var alreadyShown = label.Contains(title, StringComparison.OrdinalIgnoreCase)
+            || (described.Length > 0 && label.Contains(described, StringComparison.OrdinalIgnoreCase));
+        return alreadyShown ? "" : title;
     }
 
     /// <summary>

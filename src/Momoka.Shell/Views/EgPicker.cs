@@ -85,7 +85,9 @@ public sealed class EgPicker : ComboBox
     /// 收起态显示选中项的哪个成员（2026-11-16 用户令「没展开的时候这样显示」）。非空时，闭合框的正文取
     /// <see cref="Selector.SelectedItem"/> 的这个成员，展开列表和 <see cref="Selector.DisplayMemberPath"/> 都不动。
     /// 商店那一行用它把音频/字幕的闭合态换成 <c>TrackRow.ShortText</c>（完整轨道名去掉「自动」前缀），
-    /// 列表里仍是带自动说明的那一份。空串（默认）时收起态照框架的 DisplayMemberPath 显示，其它页面的选择框完全不受影响。
+    /// 列表里仍是带自动说明的那一份。详情页音频/字幕的展开列表自 2026-11-19 起是两行（第二行是轨道标题，
+    /// 见 <c>TrackPickerRowTemplate</c>），那颗 32 高的闭合框靠它只取 <c>TrackRow.Text</c> 这一行。
+    /// 空串（默认）时收起态照框架的 DisplayMemberPath／ItemTemplate 显示，其它页面的选择框完全不受影响。
     /// </summary>
     public static readonly DependencyProperty SelectionTextMemberPathProperty = DependencyProperty.Register(
         nameof(SelectionTextMemberPath), typeof(string), typeof(EgPicker),

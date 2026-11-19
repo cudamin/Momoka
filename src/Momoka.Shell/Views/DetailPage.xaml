@@ -246,6 +246,27 @@
                     TextWrapping="Wrap" />
             </Grid>
         </DataTemplate>
+
+        <local:EmptyTextToCollapsedConverter x:Key="EmptyTextCollapsed" />
+
+        <!-- 音频、字幕下拉展开后的一行：第一行是轨道名，第二行是轨道自带的标题。
+             2026-11-19 用户报「音频和字幕，选择栏展开后显示不全，缺少Title」—— Emby 的 DisplayTitle
+             只写「Chinese (ASS)」，同一部片子的几条简繁字幕在展开列表里一模一样，区分它们的那截标题
+             （chs[Sakurato] 这类）原先被 DisplayTitle 挡掉了（见 TrackRow.Title）。
+             没有标题的行（自动、不使用字幕）第二行折掉，行高与从前一样；
+             收起态仍只写第一行，由 EgPicker.SelectionTextMemberPath 指到 Text。 -->
+        <DataTemplate x:Key="TrackPickerRowTemplate" x:DataType="emby:TrackRow">
+            <StackPanel>
+                <TextBlock Text="{x:Bind Text}" TextTrimming="CharacterEllipsis" />
+                <TextBlock
+                    Margin="0,1,0,0"
+                    FontSize="{StaticResource EgCaptionFontSize}"
+                    Foreground="{ThemeResource EgTextFaintBrush}"
+                    Text="{x:Bind Title}"
+                    TextTrimming="CharacterEllipsis"
+                    Visibility="{x:Bind Title, Converter={StaticResource EmptyTextCollapsed}}" />
+            </StackPanel>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid>
@@ -1063,10 +1084,11 @@
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
                                             CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
-                                            DisplayMemberPath="Text"
+                                            ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                             ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                             MinWidth="0"
                                             SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}"
+                                            SelectionTextMemberPath="Text"
                                             Visibility="{x:Bind ViewModel.AudioPickerVisibility, Mode=OneWay}" />
                                         <!-- 单音轨那一档读的就是这一行字：原来的轨道名，没有选择框。 -->
                                         <TextBlock
@@ -1100,10 +1122,11 @@
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
                                             CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
-                                            DisplayMemberPath="Text"
+                                            ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                             ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                             MinWidth="0"
-                                            SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}" />
+                                            SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}"
+                                            SelectionTextMemberPath="Text" />
                                     </Grid>
                                 </StackPanel>
 
@@ -1538,10 +1561,11 @@
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
-                                    DisplayMemberPath="Text"
+                                    ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                     ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                     MinWidth="200"
                                     SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}"
+                                    SelectionTextMemberPath="Text"
                                     Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
                                         <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
@@ -1552,10 +1576,11 @@
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
-                                    DisplayMemberPath="Text"
+                                    ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                     ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                     MinWidth="200"
                                     SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}"
+                                    SelectionTextMemberPath="Text"
                                     Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
                                         <TextBlock x:Uid="DetailPage_TextBlock4" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />

@@ -265,8 +265,8 @@ public sealed partial class DetailPage
     /// <para>
     /// 2026-11-16 用户令「该回去原来怎么显示的就怎么显示，去掉前面的自动」：商店档只把两颗下拉的<b>收起态</b>
     /// 换成 <see cref="Momoka.Emby.TrackRow.ShortText"/> —— 仍是原来的完整轨道名，只是不带「自动 · 」前缀；
-    /// 展开列表照旧带前缀，沉浸版式和 <c>DisplayMemberPath</c> 都不动
-    /// （见 <see cref="EgPicker.SelectionTextMemberPath"/>）。
+    /// 展开列表照旧带前缀（2026-11-19 起每行再带第二行的轨道标题 <see cref="Momoka.Emby.TrackRow.Title"/>，
+    /// 见 <c>TrackPickerRowTemplate</c>），由 <see cref="EgPicker.SelectionTextMemberPath"/> 只接管收起态。
     /// </para>
     /// <para>
     /// 同一句令还带出两条：只有一条音轨时音频不摆选择框、这一行直接显示轨道名
@@ -277,7 +277,9 @@ public sealed partial class DetailPage
     /// </summary>
     private void PlaceStoreTrackRow(bool store)
     {
-        var member = store ? nameof(Momoka.Emby.TrackRow.ShortText) : null;
+        // 收起态只在第一行取字：音频、字幕两颗的 ItemTemplate 是两行（第二行是轨道标题），
+        // 不指给 ContentPresenter 的话，32 高的闭合框里会挤进第二行。
+        var member = store ? nameof(Momoka.Emby.TrackRow.ShortText) : nameof(Momoka.Emby.TrackRow.Text);
         ColumnAudioPicker.SelectionTextMemberPath = member;
         ColumnSubtitlePicker.SelectionTextMemberPath = member;
 

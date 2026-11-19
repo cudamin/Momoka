@@ -131,6 +131,45 @@ internal static class SubtitleBehaviorTests
             Assert.Equal("不使用字幕", ItemDetail.SubtitleRows(settings, source)[1].ShortText);
         });
 
+        // 2026-11-19 用户报「音频和字幕，选择栏展开后显示不全，缺少Title」，附的是 Emby 自己的下拉：
+        // 第一行「Chinese (ASS)」、第二行「chs[Sakurato]」。Momoka 从前只画第一行（DisplayTitle 非空就照抄），
+        // 几条简繁字幕在展开列表里长得一模一样，分不出哪条是哪条。
+        Test("轨道行：展开列表的第二行带上被 DisplayTitle 挡掉的标题", () =>
+        {
+            var simplified = Subtitle(1, "chi");
+            (simplified.DisplayTitle, simplified.Title) = ("Chinese (ASS)", "chs[Sakurato]");
+            var traditional = Subtitle(2, "chi");
+            (traditional.DisplayTitle, traditional.Title) = ("Chinese (ASS)", "cht[Sakurato]");
+            var audio = Audio(3, "jpn");
+            (audio.DisplayTitle, audio.Title) = ("Japanese AAC stereo (默认)", "国语");
+            var source = Source(audio, simplified, traditional);
+            var settings = new PlaybackSettings();
+
+            var subtitles = ItemDetail.SubtitleRows(settings, source);
+            Assert.Equal("Chinese (ASS)", subtitles[2].Text);
+            Assert.Equal("chs[Sakurato]", subtitles[2].Title);
+            Assert.Equal("cht[Sakurato]", subtitles[3].Title);
+            // 自动与不使用字幕没有轨道，第二行留空（那一行在列表里仍是单行）。
+            Assert.Equal("", subtitles[0].Title);
+            Assert.Equal("", subtitles[1].Title);
+
+            Assert.Equal("国语", ItemDetail.AudioRows(settings, source)[1].Title);
+        });
+
+        // 第一行已经写着标题时不写第二遍：自己拼的轨道名里那截标题是翻译过的（Traditional → 繁体）。
+        Test("轨道行：第一行已带标题时第二行留空", () =>
+        {
+            var traditional = Subtitle(1, "chi");
+            traditional.Title = "Traditional";
+            var plain = Subtitle(2, "eng");
+            var source = Source(traditional, plain);
+            var rows = ItemDetail.SubtitleRows(new PlaybackSettings(), source);
+
+            Assert.Equal("中文 · 繁体 · SRT", rows[2].Text);
+            Assert.Equal("", rows[2].Title);
+            Assert.Equal("", rows[3].Title);
+        });
+
         Test("字幕可用性：自动跳过外挂图形轨，详情下拉隐藏不可加载候选", () =>
         {
             var external = Subtitle(1, "chi");
