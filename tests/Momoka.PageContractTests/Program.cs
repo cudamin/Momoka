@@ -118,6 +118,7 @@ internal static class Program
         StoreTrailerWebTests.Register();
         StoreDetailProbeEvidenceTests.Register();
         ArtworkAmbientTests.Register();
+        DetailTrailerMenuTests.Register();
         return TestHarness.Run();
     }
 

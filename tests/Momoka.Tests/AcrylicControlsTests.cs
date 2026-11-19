@@ -333,16 +333,17 @@ internal static class AcrylicControlsTests
         });
 
         foreach (var name in new[] { "ColumnActions", "CompactBlock" })
-            Test($"详情操作：{name} 七颗键共用灰色背景和平台模板", () =>
+            Test($"详情操作：{name} 六颗键共用灰色背景和平台模板", () =>
             {
                 var page = Read("Views/DetailPage.xaml");
                 var actions = Named(page, name).Elements().First(element => element.Name.LocalName == "WrapRow");
                 Assert.False(actions.Elements().Any(element => element.Name.LocalName == "WrapRow.Resources"),
                     name + " 仍带局部材质字典");
                 var buttons = actions.Elements().Where(element => element.Name.LocalName is "Button" or "ToggleButton").ToArray();
-                // 2026-11-14「把从头开始按钮折叠进更多按钮」之后少一颗，七颗：播放、预告片、花絮、连播、已看、
-                // 收藏、更多；预告片/花絮的显隐由能力给，不占固定名额。
-                Assert.Equal(7, buttons.Length, name + " 的动作范围变了（包含预告片与花絮入口）");
+                // 2026-11-14「把从头开始按钮折叠进更多按钮」之后少一颗，2026-11-19「把沉浸模式中的预告片按钮收进
+                // 更多按钮中」再少一颗，现在六颗：播放、花絮、连播、已看、收藏、更多；花絮的显隐由能力给，
+                // 不占固定名额。
+                Assert.Equal(6, buttons.Length, name + " 的动作范围变了（包含花絮与更多入口）");
                 var extras = buttons.Single(button => ((string?)button.Attribute(X + "Name"))?.EndsWith("ExtrasButton", StringComparison.Ordinal) == true);
                 Assert.Equal("OnExtrasClick", (string?)extras.Attribute("Click"));
                 Assert.Equal("{x:Bind ViewModel.ExtraVisibility, Mode=OneWay}", (string?)extras.Attribute("Visibility"));

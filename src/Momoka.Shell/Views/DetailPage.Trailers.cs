@@ -10,11 +10,11 @@ public sealed partial class DetailPage
 {
     private MenuFlyout? _trailerMenu;
 
-    private void OnTrailersClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button anchor) _ = ShowTrailersAsync(anchor);
-    }
-
+    /// <summary>
+    /// 预告片那一份选择菜单。入口自 2026-11-19 起只剩「更多」菜单里的一行（用户令「把沉浸模式中的预告片按钮
+    /// 收进更多按钮中」），所以 <paramref name="anchor"/> 是那一颗「更多」键：按下「预告片」后更多菜单先收，
+    /// 这一张在它旁边接着开。自检和重试也直接走这里，不必先点开更多。
+    /// </summary>
     internal async Task ShowTrailersAsync(Button anchor)
     {
         if (ViewModel.TrailerVisibility != Visibility.Visible) return;

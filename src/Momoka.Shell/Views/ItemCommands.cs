@@ -137,7 +137,17 @@ internal static partial class ItemCommands
     /// 别的行不同 —— 起点、媒体源、音轨和字幕都取详情页当前的选择，所以动作由那一页的视图模型给，
     /// 这里只负责在「继续播放」旁边摆一行；null 是「这颗条目没有断点」，菜单和从前一模一样。
     /// </param>
-    public static void Show(
+    /// <param name="trailer">
+    /// 「预告片」那一行，同样只由详情页递进来（2026-11-19 用户令：把沉浸模式里的预告片按钮收进「更多」）。
+    /// 它要连服务器读这一条目的本地预告，选完还要按预告自己的身份起播，这些只有详情页知道 —— 这里只摆一行
+    /// 并把按下的那颗「更多」交给它当锚点；null 是这一页此刻没有预告入口（没有资源、或商店模式），
+    /// 菜单里就不出现这一行。
+    /// </param>
+    /// <returns>
+    /// 刚弹出来的那张菜单。调用方多数用不上（菜单自己管开合），详情页留一份是为了自检能读回它排了哪几行 ——
+    /// 那些行是现搭的，抓不到实例就只能去浮层模板里翻。
+    /// </returns>
+    public static MenuFlyout Show(
         EmbySession session,
         IShellActions shell,
         FrameworkElement owner,
@@ -150,7 +160,8 @@ internal static partial class ItemCommands
         Style? presenterStyle = null,
         Func<CardItem, Action?>? select = null,
         bool self = false,
-        Action? restart = null)
+        Action? restart = null,
+        Action? trailer = null)
     {
         var invalidated = 0;
         bool CanContinue() => Volatile.Read(ref invalidated) == 0;
@@ -158,7 +169,7 @@ internal static partial class ItemCommands
         {
             if (CanContinue()) Invoke(command, shell, owner, card, siblings, changed, removed, watched);
         }
-        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart);
+        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart, trailer);
         if (presenterStyle is not null) menu.MenuFlyoutPresenterStyle = presenterStyle;
         menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
@@ -211,7 +222,7 @@ internal static partial class ItemCommands
         // 服务器权限探测迟到而收起的那几条也不该连累整张菜单。
         void AvailabilityChanged(object? sender, EventArgs args)
         {
-            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart);
+            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart, trailer);
             var before = MoviePilotCommands(menu.Items);
             var after = MoviePilotCommands(rows);
             if (before.SetEquals(after)) return;
@@ -235,14 +246,14 @@ internal static partial class ItemCommands
             if (source.Key != card.Scope?.Key) return;
             owner.DispatcherQueue.TryEnqueue(() =>
             {
-                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart));
+                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart, trailer));
             });
         }
         menu.Opened += (_, _) => session.PermissionsChanged += PermissionsChanged;
         menu.Closed += (_, _) => session.PermissionsChanged -= PermissionsChanged;
         void QueueChanged(object? sender, EventArgs args) => owner.DispatcherQueue.TryEnqueue(() =>
         {
-            if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart));
+            if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self, restart, trailer));
         });
         menu.Opened += (_, _) => shell.VideoQueueChanged += QueueChanged;
         menu.Closed += (_, _) => shell.VideoQueueChanged -= QueueChanged;
@@ -282,6 +293,7 @@ internal static partial class ItemCommands
 
         if (position is { } point) menu.ShowAt(owner, new FlyoutShowOptions { Position = point });
         else menu.ShowAt(owner);
+        return menu;
     }
 
     /// <summary>
@@ -304,10 +316,11 @@ internal static partial class ItemCommands
         Func<bool>? canContinue = null,
         Func<CardItem, Action?>? select = null,
         bool self = false,
-        Action? restart = null)
+        Action? restart = null,
+        Action? trailer = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
-        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue, select, self, restart));
+        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue, select, self, restart, trailer));
         return menu;
     }
 
@@ -326,7 +339,8 @@ internal static partial class ItemCommands
         Func<bool>? canContinue,
         Func<CardItem, Action?>? select,
         bool self = false,
-        Action? restart = null)
+        Action? restart = null,
+        Action? trailer = null)
     {
         var rows = new List<MenuFlyoutItemBase>(16);
         var permissions = card.Scope is { } scope ? shell.MenuPermissionsFor(scope) : default;
@@ -368,20 +382,43 @@ internal static partial class ItemCommands
         // 不在 Core 的 ItemMenu 里排，因为它带着那一页当前选中的媒体源、音轨和字幕，只有那一页自己知道。
         // 不带 Tag：它不是一条 ItemCommand，也不该被那些按命令对账的路径（MoviePilot 补行、队列变化）当成
         // 菜单自己排出来的行。
-        if (restart is not null)
+        // 「预告片」也是同一支规矩（2026-11-19 用户令「把沉浸模式中的预告片按钮收进更多按钮中」）：它要连
+        // 服务器读这一条目的预告，选完按预告自己的身份起播，只有详情页办得到；挨着「从头开始」摆，
+        // 因为这两行都是「这一部片子还能怎么看」。两颗都不带 Tag。
+        if (restart is not null || trailer is not null)
         {
-            var entry = new MenuFlyoutItem
-            {
-                Text = "从头开始",
-                Icon = new FontIcon { Glyph = "\uE892" }
-            };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "DetailRestartMenuItem");
-            entry.Click += (_, _) =>
-            {
-                if (canContinue?.Invoke() != false) restart();
-            };
             var play = rows.FindIndex(row => row is MenuFlyoutItem { Tag: ItemCommand.Play });
-            rows.Insert(play < 0 ? 0 : play + 1, entry);
+            var insert = play < 0 ? 0 : play + 1;
+
+            if (restart is not null)
+            {
+                var entry = new MenuFlyoutItem
+                {
+                    Text = "从头开始",
+                    Icon = new FontIcon { Glyph = "\uE892" }
+                };
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "DetailRestartMenuItem");
+                entry.Click += (_, _) =>
+                {
+                    if (canContinue?.Invoke() != false) restart();
+                };
+                rows.Insert(insert++, entry);
+            }
+
+            if (trailer is not null)
+            {
+                var entry = new MenuFlyoutItem
+                {
+                    Text = "预告片",
+                    Icon = new FontIcon { Glyph = "\uE786" }
+                };
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "DetailTrailerMenuItem");
+                entry.Click += (_, _) =>
+                {
+                    if (canContinue?.Invoke() != false) trailer();
+                };
+                rows.Insert(insert, entry);
+            }
         }
 
         AddQueueRows(rows, shell, card, canContinue);

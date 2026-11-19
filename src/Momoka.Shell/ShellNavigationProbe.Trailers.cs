@@ -53,17 +53,32 @@ internal sealed partial class ShellNavigationProbe
             var page = (DetailPage)frame.Content;
             page.AttachWindow(_window!);
             await UntilAsync(() => page.IsReady && page.ViewModel.StillImage is not null);
+
+            // 2026-11-19 用户令「把沉浸模式中的预告片按钮收进更多按钮中」：两套版式的操作排里都不该再留那一颗，
+            // 入口只剩「更多」菜单里的一行。旧键删没删、新行在不在、按下去开不开得出来，三件一起钉住。
+            Require(page.FindName("ColumnTrailerButton") is null && page.FindName("CompactTrailerButton") is null,
+                "操作排里还留着预告片那颗键");
             foreach (var width in new[] { 1280, 760 })
             {
                 await ResizeResponsiveAsync(page, width, 900);
                 await LayoutAsync(page);
-                var button = Get<Button>(page, width < 820 ? "CompactTrailerButton" : "ColumnTrailerButton");
-                Require(button.Visibility == Visibility.Visible && button.ActualWidth > 0 && button.ActualHeight > 0,
-                    $"{width}：预告片入口不可见");
+                var compact = width < 820;
+                var more = compact ? CompactMore(page) : Get<Button>(page, "ColumnMoreButton");
+                Require(page.ViewModel.TrailerButtonVisibility == Visibility.Visible,
+                    $"{width}：有资源时入口没有跟着菜单显示");
                 await SaveProbeScreenAsync($"detail-trailers-{width}-screen.png");
-                await page.ShowTrailersAsync(button);
+
+                Call(page, "OnMoreClicked", more, new RoutedEventArgs());
+                await UntilAsync(() => Get<MenuFlyout?>(page, "_moreMenu") is { IsOpen: true });
+                var moreMenu = Get<MenuFlyout>(page, "_moreMenu");
+                var entry = moreMenu.Items.OfType<MenuFlyoutItem>().SingleOrDefault(row => row.Text == "预告片");
+                Require(entry is not null, $"{width}：更多菜单里没有预告片这一行");
+                Require(AutomationProperties.GetAutomationId(entry) == "DetailTrailerMenuItem",
+                    "预告片那一行缺少自动化句柄");
+                new MenuFlyoutItemAutomationPeer(entry).Invoke();
+                await UntilAsync(() => Get<MenuFlyout?>(page, "_trailerMenu") is { IsOpen: true } opened
+                    && opened.Items.OfType<MenuFlyoutItem>().Count() == 2);
                 var menu = Get<MenuFlyout>(page, "_trailerMenu");
-                Require(menu.Items.OfType<MenuFlyoutItem>().Count() == 2, "本地和远程预告没有同时列出");
                 Require(menu.Items.OfType<MenuFlyoutItem>().All(row => !string.IsNullOrWhiteSpace(AutomationProperties.GetAutomationId(row))),
                     "预告选项缺少自动化句柄");
                 Require(menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Text.Contains("在 Momoka 播放", StringComparison.Ordinal))
@@ -73,7 +88,7 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"detail-trailers-menu-{width}-screen.png");
                 menu.Hide();
             }
-            var narrow = Get<Button>(page, "CompactTrailerButton");
+            var narrow = CompactMore(page);
             fail = true;
             await page.ShowTrailersAsync(narrow);
             var failed = Get<MenuFlyout>(page, "_trailerMenu");
@@ -95,11 +110,13 @@ internal sealed partial class ShellNavigationProbe
             movie.RemoteTrailers = [];
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
-            Require(narrow.Visibility == Visibility.Collapsed, "没有资源时入口未隐藏");
+            Require(page.ViewModel.TrailerButtonVisibility == Visibility.Collapsed, "没有资源时入口未隐藏");
+            Require(!(await MoreRowsAsync(page, narrow)).Any(row => row.Text == "预告片"), "没有资源时更多菜单仍列着预告片");
             movie.RemoteTrailers = [new() { Url = "https://trailers.invalid/returned" }];
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
-            Require(narrow.Visibility == Visibility.Visible, "服务器重新提供资源后入口未恢复");
+            Require(page.ViewModel.TrailerButtonVisibility == Visibility.Visible, "服务器重新提供资源后入口未恢复");
+            Require((await MoreRowsAsync(page, narrow)).Any(row => row.Text == "预告片"), "服务器重新提供资源后更多菜单里没有入口");
             await page.ShowTrailersAsync(narrow);
             var stale = Get<MenuFlyout>(page, "_trailerMenu");
             page.Release();
@@ -115,5 +132,22 @@ internal sealed partial class ShellNavigationProbe
             if (frame.Content is IShellContent content) content.Release();
             _root.Children.Remove(host);
         }
+
+        // 紧凑版式那颗「更多」只有 AutomationId（XAML 里没有 x:Name，见 Agreements 的句柄基线），
+        // 照 UIA 那一个句柄找它 —— 与读屏、自动走查认的是同一把钥匙。
+        static Button CompactMore(DetailPage page) => Descendants(page).OfType<Button>()
+            .Single(button => AutomationProperties.GetAutomationId(button) == "CompactMoreButton");
+    }
+
+    /// <summary>按一次紧凑版式的「更多」，把那张菜单里摊着的几行读回来；读完收起来，下一段断言仍能重开。</summary>
+    private static async Task<MenuFlyoutItem[]> MoreRowsAsync(DetailPage page, Button anchor)
+    {
+        Call(page, "OnMoreClicked", anchor, new RoutedEventArgs());
+        await UntilAsync(() => Get<MenuFlyout?>(page, "_moreMenu") is { IsOpen: true });
+        var menu = Get<MenuFlyout>(page, "_moreMenu");
+        var rows = menu.Items.OfType<MenuFlyoutItem>().ToArray();
+        menu.Hide();
+        await SettleAsync();
+        return rows;
     }
 }

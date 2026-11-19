@@ -313,8 +313,9 @@ internal sealed partial class ShellNavigationProbe
         if (overview.Visibility == Visibility.Visible)
             Require(Top(overview) >= Top(band) - 1 && Bottom(overview) <= Top(band) + band.ActualHeight + 1,
                 "商店头部裁切简介");
-        Require(Get<Button>(page, "ColumnTrailerButton").Visibility == Visibility.Collapsed
-            && Get<Button>(page, "CompactTrailerButton").Visibility == Visibility.Collapsed, "商店仍显示预告片入口");
+        // 2026-11-19 起操作排上不再单独有预告片那颗键（并进「更多」菜单），商店模式仍不给入口：
+        // 判据就是菜单行读的同一个 TrailerButtonVisibility，它收起时那一行也不摆。
+        Require(page.ViewModel.TrailerButtonVisibility == Visibility.Collapsed, "商店仍显示预告片入口");
         Require(Get<Grid>(shell, "TrailBar").Visibility == Visibility.Collapsed, "商店仍显示媒体路径栏");
     }
 

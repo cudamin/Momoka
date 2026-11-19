@@ -399,7 +399,9 @@ internal static class StoreDetailLayoutTests
             var commands = Source("Views/ItemCommands.cs");
             Assert.Contains("Text = \"从头开始\"", commands);
             Assert.Contains("var play = rows.FindIndex(row => row is MenuFlyoutItem { Tag: ItemCommand.Play });", commands);
-            Assert.Contains("rows.Insert(play < 0 ? 0 : play + 1, entry);", commands);
+            // 2026-11-19 起这一行和「预告片」共用同一个插入点：从头开始先占 play+1，预告片接在它后面。
+            Assert.Contains("var insert = play < 0 ? 0 : play + 1;", commands);
+            Assert.Contains("rows.Insert(insert++, entry);", commands);
             Assert.Contains("DetailRestartMenuItem", commands);
             Assert.False(Source("Strings/zh-Hans/Resources.resw").Contains("DetailPage_TextBlock1.Text", StringComparison.Ordinal),
                 "旧按钮的本地化字串没有退役");

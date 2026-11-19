@@ -63,6 +63,12 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <summary>正文纸面从标题栏底边往上盖了多少，0..1；-1 是还没画过。</summary>
     private double _paperCover = -1;
 
+    /// <summary>
+    /// 刚打开的那张「更多」菜单。行是现搭的，留一份实例给自检读回（预告片与从头开始这两行只有这一页会递），
+    /// 关闭时清掉并核对是不是还指着自己 —— 免得一张早关掉的菜单把后来那张的引用抹了。
+    /// </summary>
+    private MenuFlyout? _moreMenu;
+
     /// <summary>标题栏当前画的是空、半透明黑底、纸面边界还是整张纸；给滚动时的 1/255 级去重用。</summary>
     private int _paintPhase = -1;
 
@@ -2517,6 +2523,12 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 动作仍是这一页的 <see cref="ViewModels.DetailViewModel.RestartCommand"/> —— 起点、媒体源、音轨和字幕
     /// 都取这一页当前的选择。没有断点时不递这一行，菜单和从前一样。
     /// </para>
+    /// <para>
+    /// 2026-11-19 用户令「把沉浸模式中的预告片按钮收进更多按钮中」：同一套做法，操作排上那颗「预告片」不再
+    /// 单独占一位，改在「从头开始」下面排一行；按下它仍走 <see cref="ShowTrailersAsync"/>，锚点跟着这一颗
+    /// 「更多」走 —— 那颗预告片键已经不在屏上了，菜单只能挂在按下来的这一颗旁边。没有预告资源或处于商店
+    /// 模式时（<see cref="ViewModels.DetailViewModel.TrailerButtonVisibility"/> 收起）连这一行也不出现。
+    /// </para>
     /// </summary>
     private void OnMoreClicked(object sender, RoutedEventArgs e)
     {
@@ -2529,7 +2541,8 @@ public sealed partial class DetailPage : Page, IShellContent
 
         ViewModel.EnsureCurrentEpisodeCard();
         var card = new CardItem(item, images, CardSize.PosterWidth) { AllowResumeRemoval = false };
-        ItemCommands.Show(
+        _moreMenu?.Hide();
+        var menu = ItemCommands.Show(
             session,
             actions,
             anchor,
@@ -2540,7 +2553,16 @@ public sealed partial class DetailPage : Page, IShellContent
             removed: ViewModel.CaptureRemoval(),
             presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"],
             restart: ViewModel.RestartVisibility == Visibility.Visible
-                ? () => ViewModel.RestartCommand.Execute(null) : null);
+                ? () => ViewModel.RestartCommand.Execute(null) : null,
+            // 点「预告片」这一行时先把这一张收掉，再在「更多」那颗键上开预告片自己的菜单；排到下一拍是为了
+            // 不在一张浮层正在收的时候去开另一张。真正能不能开仍由 ShowTrailersAsync 自己核对。
+            trailer: ViewModel.TrailerButtonVisibility == Visibility.Visible
+                ? () => DispatcherQueue.TryEnqueue(() => _ = ShowTrailersAsync(anchor)) : null);
+        _moreMenu = menu;
+        menu.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_moreMenu, menu)) _moreMenu = null;
+        };
     }
 
     /// <summary>

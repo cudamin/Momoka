@@ -1124,7 +1124,10 @@
                                  （DetailPage.Store.cs 的 PlaceStoreActionButtons）；这一排只留花絮与特典和断点进度。
                                  从前那颗「从头开始」不再单独占一颗键：它并进「更多」菜单，
                                  只在有断点、原先那颗会露头的同一判据下出现（RestartVisibility）。
-                                 七颗键同一批命令；AutomationId 前缀 Column，和紧凑版式那份（Compact*）
+                                 2026-11-19 用户令「把沉浸模式中的预告片按钮收进更多按钮中」：预告片也不再单独
+                                 占一颗键，并进同一张「更多」菜单（DetailPage.xaml.cs 的 OnMoreClicked）；
+                                 判据仍是 TrailerButtonVisibility，没有资源或商店模式时那一行不出现。
+                                 六颗键同一批命令；AutomationId 前缀 Column，和紧凑版式那份（Compact*）
                                  同一个规矩 —— 一个 id 只说一颗键。 -->
                             <StackPanel
                                 x:Name="ColumnActions"
@@ -1159,13 +1162,6 @@
                                             <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                         </StackPanel>
                                     </Button>
-
-                                    <Button
-                                        x:Name="ColumnTrailerButton"
-                                        Content="预告片"
-                                        Click="OnTrailersClick"
-                                        Style="{StaticResource EgPillButtonStyle}"
-                                        Visibility="{x:Bind ViewModel.TrailerButtonVisibility, Mode=OneWay}" />
 
                                     <Button
                                         x:Name="ColumnExtrasButton"
@@ -1626,13 +1622,6 @@
                                         <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                     </StackPanel>
                                 </Button>
-
-                                <Button
-                                    x:Name="CompactTrailerButton"
-                                    Content="预告片"
-                                    Click="OnTrailersClick"
-                                    Style="{StaticResource EgPillButtonStyle}"
-                                    Visibility="{x:Bind ViewModel.TrailerButtonVisibility, Mode=OneWay}" />
 
                                 <Button
                                     x:Name="CompactExtrasButton"

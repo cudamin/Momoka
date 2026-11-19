@@ -1,3 +1,15 @@
+## 2026-11-19 详情页预告片收进「更多」菜单（日常界面批次，待统一验证）
+
+用户令「把沉浸模式中的预告片按钮收进更多按钮中」。
+
+**改了什么。** 详情页宽版式（`ColumnActions`）与紧凑版式（`CompactBlock`）那排操作键里都不再给「预告片」留位置；同一判据（`TrailerButtonVisibility`：没有本地或远程预告、或处于商店模式时收起）改由「更多」菜单里的一行「预告片」出面，紧挨「从头开始」排在播放行之后（自动化句柄 `DetailTrailerMenuItem`）。`ItemCommands.Show／Build／Rows` 新增 `trailer` 委托，和 `restart` 同一条路：只有详情页递得进来，菜单只负责摆一行、并把按下的那颗「更多」交给它当锚点。按下后更多菜单先收起，下一拍在原「更多」键上打开原来那份预告选择菜单（`ShowTrailersAsync`）—— 本地预告在 Momoka 播放、远程链接交浏览器、读取失败的「重新加载」、离页关闭都不变。`ItemCommands.Show` 改为交回 `MenuFlyout`，详情页留一份 `_moreMenu` 给自检读行；旧的 `OnTrailersClick` 退役。紧凑版式那颗「更多」只有 `AutomationId`（`CompactMoreButton`），探针按 UIA 句柄找它，没有另加同值 `x:Name`。
+
+**测了什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` **5258/5258、0 失败 0 跳过**（`TEMP` 指用户临时目录，避开沙箱不可写的 `C:\WINDOWS\TEMP`）；`Momoka.PageContractTests` **365/365**（新增 `DetailTrailerMenuTests` 三条：两套操作排不再有那两颗键、菜单行与锚点的接线、旧处理器退役；`AcrylicControlsTests` 的操作排从七颗改成六颗，`StoreDetailLayoutTests` 的「从头开始紧跟播放」跟上共用插入点）。探针 `--probe-shell --probe-section library --screen 2`：**42 项、41 过、1 红**（`shell-probe-20261119-005102583-2648`，窗口开在第 2 块屏幕，1080x1872 @ 2560,0）。红项是同一条既有超时「商店预告实帧、轨道菜单与离页关闭」（注册表注释载明长期无信号、默认不跑，显式选 library 分区时仍执行）；本轮的「详情预告片：宽窄菜单、错误与隐藏恢复」通过，`detail-trailers-1280/760`、`-menu-1280/760`、`-failed` 截图均已生成。
+
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut`：`artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过；桌面 `Momoka.lnk` 本次写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），lnk 仍指向同一个 exe 路径。仅体验刷新、不销账。
+
+**没验证的。** 没连真实服务器：真实条目的预告列表、YouTube 预告与真实起播都未走；没做五主题逐张目视、高对比度、跨 DPI、Narrator／触摸。日常界面批次按规矩不拍验收截图（探针截图只覆盖离线夹具）。MoviePilot 订阅详情页那颗「预告片」没动 —— 用户这次说的是媒体详情页的沉浸模式，订阅页要同样收的话另开一批。
+
 ## 2026-11-19 0.2.9 统一验证与发布（四道闸门 + 探针；带环境红）
 
 用户令「先交付，跑探针和闸门，完了再提交代码，更新版本打包发布到 GitHub，生成一个微软商店商店安装包」；随后「我睡觉去了，有什么问题你自己决定吧」。最终代码为主树 `master`，版本号 `0.2.9`（提交 `30fd246`）；之后只追加测试夹具与探针修复，产品行为未改。
