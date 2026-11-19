@@ -6,6 +6,7 @@ using Momoka.Shell.Interop;
 using Momoka.Shell.Media;
 using Momoka.Shell.Views;
 using Microsoft.UI.Input;
+using Microsoft.UI.Xaml.Input;
 
 namespace Momoka.Tests;
 
@@ -199,12 +200,14 @@ internal static class Program
                 // 音乐预览按 HomeLatest.MusicQuery 只列专辑：同一库里混着的音频与电影不得出现。
                 var cells = s.LibraryPreviewCovers.Children.OfType<StackPanel>().ToArray();
                 Assert.Equal(1, cells.Length);
-                Assert.True(cells[0].Children[0] is Border);
+                Assert.True(cells[0].Children[0] is Grid);
+                Assert.Equal(1, OpenButtons(s.LibraryPreviewCovers).Count());
+                Assert.Equal(0, PlayButtons(s.LibraryPreviewCovers).Count());
                 foreach (var cell in cells)
                 {
                     var frame = (FrameworkElement)cell.Children[0];
                     Assert.Equal(frame.Width, frame.Height);
-                    Assert.Equal("\uE8D6", PreviewTree.Descendants(frame).OfType<FontIcon>().Single().Glyph);
+                    Assert.Equal("\uE8D6", PreviewTree.Descendants(frame).OfType<FontIcon>().Single(icon => icon.Glyph is "\uE8B2" or "\uE8D6").Glyph);
                     Assert.True(cell.Children.OfType<TextBlock>().Single().Text.Length > 0);
                 }
                 await s.Show(f.Anchors.Movies);
@@ -214,7 +217,7 @@ internal static class Program
                 {
                     var frame = (FrameworkElement)cell.Children[0];
                     Assert.Equal(Math.Round(frame.Width * 1.5), frame.Height);
-                    Assert.Equal("\uE8B2", PreviewTree.Descendants(frame).OfType<FontIcon>().Single().Glyph);
+                    Assert.Equal("\uE8B2", PreviewTree.Descendants(frame).OfType<FontIcon>().Single(icon => icon.Glyph is "\uE8B2" or "\uE8D6").Glyph);
                 }
                 Assert.Equal(0, s.Played.Count);
             });
@@ -223,21 +226,59 @@ internal static class Program
     private static void RegisterPlaybackTests()
     {
         foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode, EmbyItemType.Video })
-            TestAsync("原生Button Click直接交给既有PlayAsync且先收起/" + type, async () =>
+        {
+            TestAsync("封面Click交给OpenItem且先收起，不直接播放/" + type, async () =>
+            {
+                using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
+                f.Http.Items["movies"] = [AnonymousFixture.Media("open", type)];
+                s.At(a, 0);
+                await s.Show(a);
+                var details = OpenButtons(s.LibraryPreviewCovers).Single();
+                Assert.Equal("SidebarLibraryPreviewOpen_0", details.AutomationId);
+                Assert.Equal("查看匿名媒体 open详情", details.AutomationName);
+                Assert.Equal(Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Control, details.AccessibilityView);
+                var item = (EmbyItem)details.Tag!; details.Invoke();
+                Assert.True(ReferenceEquals(item, s.Opened.Single())); Assert.Equal(type, s.Opened.Single().Type);
+                Assert.True(ReferenceEquals(item.Source?.UserStateOwner, f.Source.UserStateOwner));
+                Assert.Equal(0, s.Played.Count);
+                Assert.True(s.PreviewWasClosedOnOpen); Assert.False(s.Visible); Assert.True(s.Suppressed(a));
+            });
+            TestAsync("鼠标悬停显示遮罩与兄弟播放键，播放不会连带打开详情/" + type, async () =>
             {
                 using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
                 f.Http.Items["movies"] = [AnonymousFixture.Media("play", type)];
                 s.At(a, 0);
-                await s.Show(a); var button = CoverButtons(s.LibraryPreviewCovers).Single();
-                Assert.Equal("SidebarLibraryPreviewPlay_0", button.AutomationId);
-                Assert.Contains("播放：匿名媒体 play", button.AutomationName);
-                Assert.Equal(Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Control, button.AccessibilityView);
-                var item = (EmbyItem)button.Tag!; button.Invoke();
+                await s.Show(a);
+                var play = PlayButtons(s.LibraryPreviewCovers).Single();
+                var details = OpenButtons(s.LibraryPreviewCovers).Single();
+                var cover = (Grid)s.LibraryPreviewCovers.Children.OfType<StackPanel>().Single().Children.First();
+                var shade = PreviewTree.Descendants(cover).OfType<Border>().Single();
+                Assert.Equal("SidebarLibraryPreviewPlay_0", play.AutomationId);
+                Assert.Equal("播放：匿名媒体 play", play.AutomationName);
+                Assert.Equal(Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Control, play.AccessibilityView);
+                Assert.False(play.IsTabStop); Assert.False(play.IsHitTestVisible);
+                Assert.Equal(0d, shade.Opacity); Assert.Equal(0d, play.Opacity);
+                Assert.True(cover.Children.Contains(details) && cover.Children.Contains(play));
+                Assert.False(((Grid)details.Content!).Children.Contains(play));
+
+                cover.Enter(PointerEvent());
+                Assert.Equal(0.78, shade.Opacity); Assert.Equal(1d, play.Opacity); Assert.True(play.IsHitTestVisible);
+                cover.Exit(PointerEvent(position: new Windows.Foundation.Point(10, 10)));
+                Assert.Equal(1d, play.Opacity); Assert.True(play.IsHitTestVisible);
+                cover.Exit(PointerEvent(position: new Windows.Foundation.Point(-1, -1)));
+                Assert.Equal(0d, shade.Opacity); Assert.Equal(0d, play.Opacity); Assert.False(play.IsHitTestVisible);
+                cover.Enter(PointerEvent(PointerDeviceType.Touch));
+                Assert.Equal(0d, shade.Opacity); Assert.Equal(0d, play.Opacity);
+
+                cover.Enter(PointerEvent());
+                var item = (EmbyItem)play.Tag!; play.Invoke();
                 Assert.True(ReferenceEquals(item, s.Played.Single())); Assert.Equal(type, s.Played.Single().Type);
                 Assert.True(ReferenceEquals(item.Source?.UserStateOwner, f.Source.UserStateOwner));
+                Assert.Equal(0, s.Opened.Count);
                 Assert.True(s.PreviewWasClosedOnPlay); Assert.False(s.Visible); Assert.True(s.Suppressed(a));
             });
-        TestAsync("不可播放与展示条目保留普通封面，不创建无效播放Button", async () =>
+        }
+        TestAsync("不可播放条目仍可打开，展示条目保留普通封面且不创建无效按钮", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
             var display = AnonymousFixture.Media("display", EmbyItemType.Movie); display.IsDisplayOnly = true;
@@ -245,35 +286,49 @@ internal static class Program
             // IsDisplayOnly is local presentation state, not serialized by the server.
             await s.Show(a);
             Assert.Equal(3, s.LibraryPreviewCovers.Children.OfType<StackPanel>().Count());
-            Assert.True(s.LibraryPreviewCovers.Children.OfType<StackPanel>().Take(2).All(cell => cell.Children.First() is Border));
+            Assert.Equal(3, OpenButtons(s.LibraryPreviewCovers).Count());
+            Assert.Equal(1, PlayButtons(s.LibraryPreviewCovers).Count());
+            Assert.True(s.LibraryPreviewCovers.Children.OfType<StackPanel>().Take(2).All(cell => cell.Children.First() is Grid));
+            var folderCover = (Grid)s.LibraryPreviewCovers.Children.OfType<StackPanel>().First().Children.First();
+            var folderShade = PreviewTree.Descendants(folderCover).OfType<Border>().Single();
+            folderCover.Enter(PointerEvent()); Assert.Equal(0.78, folderShade.Opacity);
+            folderCover.Exit(PointerEvent(position: new Windows.Foundation.Point(-1, -1))); Assert.Equal(0d, folderShade.Opacity);
             var frame = s.Create(display, s.CurrentLoad!).Frame; Assert.True(frame is Border);
-            Assert.Equal(0, s.Played.Count);
+            OpenButtons(s.LibraryPreviewCovers).First().Invoke();
+            Assert.Equal("folder", s.Opened.Single().Id); Assert.Equal(0, s.Played.Count);
         });
-        TestAsync("切换默认来源后封面仍使用原账号，不回退当前账号", async () =>
-        {
-            using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
-            await s.Show(a); var button = CoverButtons(s.LibraryPreviewCovers).First();
-            var other = f.AddSource("source-b"); Assert.True(f.Session.SelectSource(other));
-            Assert.True(f.Source.IsAvailable); button.Invoke();
-            Assert.True(ReferenceEquals(s.Played.Single().Source?.UserStateOwner, f.Source.UserStateOwner));
-        });
-        TestAsync("失效来源Button禁止调用播放", async () =>
+        foreach (var action in new[] { "open", "play" })
+            TestAsync("切换默认来源后封面仍使用原账号，不回退当前账号/" + action, async () =>
+            {
+                using var f = new AnonymousFixture(); var s = f.Shell; var a = f.Anchors.Movies;
+                await s.Show(a);
+                var button = action == "open" ? OpenButtons(s.LibraryPreviewCovers).First() : PlayButtons(s.LibraryPreviewCovers).First();
+                var other = f.AddSource("source-b"); Assert.True(f.Session.SelectSource(other));
+                Assert.True(f.Source.IsAvailable); button.Invoke();
+                var item = action == "open" ? s.Opened.Single() : s.Played.Single();
+                Assert.True(ReferenceEquals(item.Source?.UserStateOwner, f.Source.UserStateOwner));
+            });
+        TestAsync("失效来源的详情与播放Button都禁止调用", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell;
-            await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
-            f.Session.SignOut(); Assert.False(f.Source.IsAvailable); button.Invoke(); Assert.Equal(0, s.Played.Count);
+            await s.Show(f.Anchors.Movies);
+            var details = OpenButtons(s.LibraryPreviewCovers).First(); var play = PlayButtons(s.LibraryPreviewCovers).First();
+            f.Session.SignOut(); Assert.False(f.Source.IsAvailable);
+            details.Invoke(); play.Invoke(); Assert.Equal(0, s.Opened.Count); Assert.Equal(0, s.Played.Count);
         });
-        TestAsync("关闭、替换库或移出Children后的旧Button不得播放", async () =>
+        TestAsync("关闭、替换库或移出Children后的旧Button不得打开或播放", async () =>
         {
             foreach (var action in new[] { "hide", "replace", "remove", "rebuild" })
             {
                 using var f = new AnonymousFixture(); var s = f.Shell;
-                await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
+                await s.Show(f.Anchors.Movies);
+                var details = OpenButtons(s.LibraryPreviewCovers).First(); var play = PlayButtons(s.LibraryPreviewCovers).First();
                 if (action == "hide") s.Hide();
                 if (action == "replace") await s.Show(f.Anchors.Series);
-                if (action == "remove") ((StackPanel)s.LibraryPreviewCovers.Children.First()).Children.Remove(button);
+                if (action == "remove") ((Grid)((StackPanel)s.LibraryPreviewCovers.Children.First()).Children.First()).Children.Clear();
                 if (action == "rebuild") s.RebuildBoundary();
-                button.Invoke(); Assert.Equal(0, s.Played.Count, action);
+                details.Invoke(); play.Invoke();
+                Assert.Equal(0, s.Opened.Count, action); Assert.Equal(0, s.Played.Count, action);
             }
         });
     }
@@ -303,13 +358,13 @@ internal static class Program
             f.Http.Override = null; await s.Show(f.Anchors.Series); Assert.True(oldLoad.IsCancellationRequested);
             reply.SetResult(f.Http.Reply(held!)); await old;
             Assert.Equal(f.Anchors.Series.Tag, s.DisplayedTag); Assert.Equal("匿名剧集库", s.LibraryPreviewTitle.Text);
-            Assert.Equal(3, CoverButtons(s.LibraryPreviewCovers).Count());
-            Assert.True(CoverButtons(s.LibraryPreviewCovers).All(button => ((EmbyItem)button.Tag!).Id != "movie-a"));
+            Assert.Equal(3, OpenButtons(s.LibraryPreviewCovers).Count());
+            Assert.True(OpenButtons(s.LibraryPreviewCovers).All(button => ((EmbyItem)button.Tag!).Id != "movie-a"));
         });
         TestAsync("图片解码在飞时关闭取消且晚返不会填回已释放Image", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell;
-            await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
+            await s.Show(f.Anchors.Movies); var button = OpenButtons(s.LibraryPreviewCovers).First();
             var grid = (Grid)button.Content!; var picture = grid.Children.OfType<Image>().Single();
             var placeholder = grid.Children.OfType<FontIcon>().Single(); var item = (EmbyItem)button.Tag!;
             var decode = new TaskCompletionSource<Bitmap?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -323,7 +378,7 @@ internal static class Program
         TestAsync("未取消但已换属主的图片返回也不能填回旧Image", async () =>
         {
             using var f = new AnonymousFixture(); var s = f.Shell;
-            await s.Show(f.Anchors.Movies); var button = CoverButtons(s.LibraryPreviewCovers).First();
+            await s.Show(f.Anchors.Movies); var button = OpenButtons(s.LibraryPreviewCovers).First();
             var grid = (Grid)button.Content!; var picture = grid.Children.OfType<Image>().Single();
             var placeholder = grid.Children.OfType<FontIcon>().Single(); var item = (EmbyItem)button.Tag!;
             var decode = new TaskCompletionSource<Bitmap?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -347,7 +402,7 @@ internal static class Program
             {
                 using var f = new AnonymousFixture(); var s = f.Shell;
                 await s.Show(f.Anchors.Movies); var grid = s.LibraryPreviewCovers;
-                var button = CoverButtons(grid).First();
+                var button = OpenButtons(grid).First();
                 var cell = (StackPanel)grid.Children.First();
                 if (defect == "zero") grid.Children.Clear();
                 if (defect == "two") grid.Children.RemoveAt(2);
@@ -426,7 +481,20 @@ internal static class Program
         });
     }
 
-    private static IEnumerable<Button> CoverButtons(Grid covers) => PreviewTree.Descendants(covers).OfType<Button>();
+    private static IEnumerable<Button> OpenButtons(Grid covers) => PreviewTree.Descendants(covers).OfType<Button>()
+        .Where(button => button.AutomationId?.StartsWith("SidebarLibraryPreviewOpen_", StringComparison.Ordinal) == true);
+
+    private static IEnumerable<Button> PlayButtons(Grid covers) => PreviewTree.Descendants(covers).OfType<Button>()
+        .Where(button => button.AutomationId?.StartsWith("SidebarLibraryPreviewPlay_", StringComparison.Ordinal) == true);
+
+    private static PointerRoutedEventArgs PointerEvent(PointerDeviceType type = PointerDeviceType.Mouse,
+        Windows.Foundation.Point? position = null)
+    {
+        var args = new PointerRoutedEventArgs();
+        args.Pointer.PointerDeviceType = type;
+        if (position is { } point) args.Point.Position = point;
+        return args;
+    }
 
     private static string ReadSource(string relative)
     {

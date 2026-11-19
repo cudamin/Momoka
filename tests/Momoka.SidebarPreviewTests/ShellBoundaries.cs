@@ -69,8 +69,10 @@ namespace Momoka.Shell.Views
         internal Button LibraryPreviewMore { get; } = new();
         internal DispatcherQueue DispatcherQueue { get; } = new();
         internal List<EmbyItem> Played { get; } = [];
+        internal List<EmbyItem> Opened { get; } = [];
         internal List<string> Navigated { get; } = [];
         internal bool PreviewWasClosedOnPlay { get; private set; }
+        internal bool PreviewWasClosedOnOpen { get; private set; }
         internal bool Visible => LibraryPreviewPanel.Visibility == Visibility.Visible;
         internal string? DisplayedTag => _previewTag;
         internal NavigationViewItem? DisplayedAnchor => _previewAnchor;
@@ -145,10 +147,16 @@ namespace Momoka.Shell.Views
         internal bool IsCurrent(CancellationTokenSource load) => IsCurrentPreview(load);
         internal void ReplaceLoadBoundary(CancellationTokenSource load) => _previewLoad = load;
         internal void ClickHandler(Button button, EmbyItem item, CancellationTokenSource load) => OnLibraryPreviewCoverClicked(button, item, load);
+        internal void PlayHandler(Button button, EmbyItem item, CancellationTokenSource load) => OnLibraryPreviewPlayClicked(button, item, load);
         internal (FrameworkElement Frame, Image Picture, FontIcon Placeholder) Create(EmbyItem item, CancellationTokenSource load)
         {
             var (cell, picture, placeholder) = CreatePreviewCover(100, 0, item, load);
             return (((StackPanel)cell).Children.OfType<FrameworkElement>().First(), picture, placeholder);
+        }
+        private void OpenItem(EmbyItem item)
+        {
+            PreviewWasClosedOnOpen = !Visible && LibraryPreviewCovers.Children.Count == 0;
+            Opened.Add(item);
         }
         private Task PlayAsync(EmbyItem item)
         {

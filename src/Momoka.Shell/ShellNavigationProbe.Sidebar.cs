@@ -1287,20 +1287,29 @@ internal sealed partial class ShellNavigationProbe
             Require(previewTitle.Text == previewItem.Content as string, "媒体库悬停预览的库名不对");
             Require(previewMeta.Visibility == Visibility.Collapsed, "媒体库悬停预览仍显示服务器名副标题");
             Require(previewMore.Visibility == Visibility.Visible, "聚合模式下没有「查看更多」");
-            // 一颗封面现在是一格「图 + 片名」的竖排（2026-11-14 用户令「给封面下方加上片名」），
-            // 按钮在格子里，不再是预览网格的直接孩子。
-            var coverButtons = Descendants(previewCovers).OfType<Button>().ToArray();
-            Require(coverButtons.Length == 3, "可播放封面没有使用三颗原生按钮");
+            // 一颗封面现在是一格「图 + 片名」的竖排；详情面和播放键是同一画框里的兄弟按钮，
+            // 不嵌套、不互相触发。这里只核对静止态的语义，指针悬停由源码链接夹具覆盖。
+            var coverButtons = Descendants(previewCovers).OfType<Button>()
+                .Where(button => AutomationProperties.GetAutomationId(button).StartsWith("SidebarLibraryPreviewOpen_", StringComparison.Ordinal)).ToArray();
+            var playButtons = Descendants(previewCovers).OfType<Button>()
+                .Where(button => AutomationProperties.GetAutomationId(button).StartsWith("SidebarLibraryPreviewPlay_", StringComparison.Ordinal)).ToArray();
+            Require(coverButtons.Length == 3 && playButtons.Length == 3, "可播放封面没有三颗详情按钮和三颗独立播放按钮");
             var coverTitles = previewCovers.Children.OfType<StackPanel>()
                 .Select(cell => cell.Children.OfType<TextBlock>().LastOrDefault()?.Text).ToArray();
             Require(coverTitles.Length == 3 && coverTitles.All(title => !string.IsNullOrEmpty(title)),
                 "预览封面下方没有显示片名");
             foreach (var button in coverButtons)
             {
-                Require(button.Tag is EmbyItem item && AutomationProperties.GetName(button) == $"播放：{item.Name}"
-                    && AutomationProperties.GetAutomationId(button).StartsWith("SidebarLibraryPreviewPlay_", StringComparison.Ordinal)
+                Require(button.Tag is EmbyItem item && AutomationProperties.GetName(button) == $"查看{item.Name}详情"
                     && new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke) is IInvokeProvider,
-                    "封面播放按钮没有正确的可访问名称、定位句柄或原生调用语义");
+                    "封面详情按钮没有正确的可访问名称、定位句柄或原生调用语义");
+            }
+            foreach (var button in playButtons)
+            {
+                Require(button.Tag is EmbyItem item && AutomationProperties.GetName(button) == $"播放：{item.Name}"
+                    && button.Opacity == 0 && !button.IsHitTestVisible && !button.IsTabStop
+                    && new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke) is IInvokeProvider,
+                    "封面播放按钮没有正确的可访问名称、静止悬停态或原生调用语义");
             }
             await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));
             await SaveProbeScreenAsync($"sidebar-library-preview-{width}-screen.png");

@@ -77,6 +77,14 @@ namespace Microsoft.UI.Xaml
         {
             foreach (var handler in _pointerPressed) handler(this, args);
         }
+        internal void Enter(Input.PointerRoutedEventArgs args)
+        {
+            foreach (var handler in _entered) handler(this, args);
+        }
+        internal void Exit(Input.PointerRoutedEventArgs args)
+        {
+            foreach (var handler in _exited) handler(this, args);
+        }
         public Visibility Visibility { get; set; } = Visibility.Visible;
         public double Opacity { get; set; } = 1;
         public object? RenderTransform { get; set; }
@@ -132,6 +140,11 @@ namespace Microsoft.UI.Xaml
             ["EgFrameStyle"] = new Style(),
             ["EgPosterButtonStyle"] = new Style(),
             ["EgArtworkTileStyle"] = new Style(),
+            ["EgOverlayPlayButtonStyle"] = new Style(),
+            ["EgPlayGlyphStyle"] = new Style(),
+            ["EgScrimBrush"] = new Media.Brush(),
+            ["EgPlayGlassHoverBrush"] = new Media.Brush(),
+            ["EgPlayGlassPressedBrush"] = new Media.Brush(),
             ["EgTextOnAccentBrush"] = new Media.Brush()
         };
     }
@@ -183,6 +196,7 @@ namespace Microsoft.UI.Xaml.Controls
         public Media.Brush? BorderBrush { get; set; }
         public Thickness BorderThickness { get; set; }
         public bool IsEnabled { get; set; } = true;
+        public bool IsTabStop { get; set; } = true;
         public bool InvokeAvailable { get; set; } = true;
         public event Action<object, RoutedEventArgs>? Click;
         internal void Invoke() => Click?.Invoke(this, new());
