@@ -1,3 +1,15 @@
+## 2026-11-19 侧栏预览封面进详情并增加悬停播放（临时分支，待合并与统一验证）
+
+用户令「点击侧边栏悬浮栏封面时改为进入详情页，鼠标移到封面上的时候要有遮罩和播放按钮」，并要求在独立工作树分支完成。
+
+**改法。** 折叠侧栏媒体库预览的封面点击面从直接 `PlayAsync` 改为统一 `OpenItem` 下钻；可播放条目另有一颗与详情面平级的原生播放按钮，鼠标进入封面时与 0.78 遮罩一起出现，真正离开后收起。结构复用现有海报卡的详情点击面／兄弟播放键、`EgScrimBrush` 与 `EgOverlayPlayButtonStyle`，不在按钮里嵌按钮。不可播放但可导航的条目只显示遮罩，展示条目仍无按钮；MoviePilot 订阅预览保持原行为。
+
+**验证。** `Momoka.SidebarPreviewTests` **41/41**、0 失败 0 跳过，覆盖五种可播放类型的详情与播放分流、悬停进入／子元素退出／真正离开、触摸不悬停、来源切换与失效、关闭或替换后的旧按钮守卫，以及探针正反例。Shell Release/x64 **0 警告 0 错误**；架构 **7/7**；`dotnet format whitespace --verify-no-changes` 退出 0；质量入口的脚本、文档、凭据、架构与差异 **6/6** 通过（使用 `-SkipBuild -SkipDuplication`，不算完整闸门 1）。自动化定位扫描已运行，动态按钮的句柄与调用语义由上述专项核对。
+
+**发布。** 产品与测试提交 `2c2b179`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `19892A25E88B78AEDB59D8B504DF95A2AF2C38B14AEB31EF73908BBF224D50D4`，`Momoka.dll` SHA256 `F6DD5EB38D66F3CCAF235FE150D345B3B1A30D23EFDFBB55B903406CB02A0817`。新树首次发布缺根目录 `libmpv-2.dll`，核对主树既有文件与批准清单 SHA256 一致后复制（未入库）再发布。桌面 `Momoka-feat-sidebar-cover-detail.lnk` 的目标与工作目录均回读为本树发布目录。仅体验刷新、不销账。
+
+**树与未验项。** 工作树 `C:/Users/89400/.codearts/worktrees/Momoka/feat-sidebar-cover-detail`，分支 `feat-sidebar-cover-detail`，基点 `333d36b`；未合并 master、未推远端。日常界面批次未跑探针、未拍验收截图；未连接真实服务器、未起播、未写服务器。实际指针画面、真实详情导航与播放仍待统一验证。
+
 ## 2026-11-19 主页相同媒体去重（已合并 master，待统一验证）
 
 用户报「主页媒体有时候会重复，显示两个一样的媒体」，截图中「最近添加 · 电视节目」的《战栗杀机》并排出现两次。`HomeViewModel.Visible` 原先把回包逐项交给货架，同一媒体重复返回时会生成多张卡，增量刷新也没有另一道身份去重。
