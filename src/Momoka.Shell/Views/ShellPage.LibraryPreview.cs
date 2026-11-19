@@ -22,9 +22,9 @@ namespace Momoka.Shell.Views;
 
 /// <summary>
 /// 折叠侧栏的媒体库悬停预览：指针停在图标栏里某个库的图标上时，从栏右边滑出一块小面板，显示库名和几张
-/// 媒体封面；聚合模式下多一颗「查看更多」，点它进这个库的完整页面。侧栏那两条 MoviePilot 订阅入口
-/// （订阅·电影 / 订阅·电视剧）用的是同一块面板：三张订阅海报，点海报进那条订阅的详情页
-/// （2026-11-18 用户令「给侧边栏的订阅也加悬浮」）。
+/// 媒体封面；聚合模式下多一颗「查看更多」，点它进这个库的完整页面。点封面走统一的 OpenItem 下钻，能够播放的
+/// 条目在鼠标悬停时浮出遮罩和独立播放键。侧栏那两条 MoviePilot 订阅入口（订阅·电影 / 订阅·电视剧）用的是
+/// 同一块面板：三张订阅海报，点海报进那条订阅的详情页（2026-11-18 用户令「给侧边栏的订阅也加悬浮」）。
 /// <para>
 /// 只在<b>图标栏</b>（<c>Sidebar.IsPaneOpen == false</c>）这一档发生，因为展开时库名本来就写在栏里，再弹一块
 /// 同名浮层只是重复。面板左沿由代码钉在栏右边，永远不压住那 56 宽的一列 —— 这是用户点名要的
@@ -42,6 +42,7 @@ public sealed partial class ShellPage
     private const double PreviewMinWidth = 160;
     private const double PreviewCoverGap = 10;
     private const double PreviewPadding = 16;
+    private const double PreviewCoverShadeOpacity = 0.78;
 
     private DispatcherQueueTimer? _previewOpenTimer;
     private DispatcherQueueTimer? _previewCloseTimer;
@@ -535,7 +536,13 @@ public sealed partial class ShellPage
         foreach (var cell in LibraryPreviewCovers.Children.OfType<StackPanel>())
         {
             var frame = cell.Children.OfType<FrameworkElement>().FirstOrDefault();
-            var content = frame is Button button ? button.Content : (frame as Border)?.Child;
+            var content = frame switch
+            {
+                Button button => button.Content as UIElement,
+                Border border => border.Child,
+                Grid cover => cover.Children.OfType<Button>().FirstOrDefault()?.Content as UIElement,
+                _ => null
+            };
             if (content is not Grid grid) continue;
             foreach (var picture in grid.Children.OfType<Image>()) picture.Source = null;
         }
@@ -571,15 +578,23 @@ public sealed partial class ShellPage
             VerticalAlignment = VerticalAlignment.Center
         };
         var picture = new Image { Stretch = Stretch.UniformToFill, Visibility = Visibility.Collapsed };
+        var shade = new Border
+        {
+            Background = (Brush)Application.Current.Resources["EgScrimBrush"],
+            IsHitTestVisible = false,
+            Opacity = 0
+        };
         var content = new Grid();
         content.Children.Add(placeholder);
         content.Children.Add(picture);
+        content.Children.Add(shade);
         // Gallery ButtonPage.xaml Example2 / Button_Click，固定提交 6de91feccadfbb0a796b71caedead5a2284f730e：
-        // 保留 Button + 图片内容 + Click + 无障碍名称；使用本地画框样式和既有播放入口。
+        // 保留 Button + 图片内容 + Click + 无障碍名称。详情面与播放键沿用 PosterCard.xaml 的兄弟结构，
+        // 不把一颗 Button 嵌进另一颗；悬停遮罩与播放键分别复用 EgScrimBrush 和 EgOverlayPlayButtonStyle。
         FrameworkElement frame;
-        if (CanPlayPreviewItem(item))
+        if (!item.IsDisplayOnly)
         {
-            var button = new Button
+            var details = new Button
             {
                 Width = width,
                 Height = height,
@@ -588,10 +603,61 @@ public sealed partial class ShellPage
                 Content = content,
                 Tag = item
             };
-            AutomationProperties.SetAutomationId(button, "SidebarLibraryPreviewPlay_" + column);
-            AutomationProperties.SetName(button, $"播放：{item.Name}");
-            button.Click += (_, _) => OnLibraryPreviewCoverClicked(button, item, load);
-            frame = button;
+            AutomationProperties.SetAutomationId(details, "SidebarLibraryPreviewOpen_" + column);
+            AutomationProperties.SetName(details, $"查看{item.Name}详情");
+            details.Click += (_, _) => OnLibraryPreviewCoverClicked(details, item, load);
+
+            var cover = new Grid { Width = width, Height = height };
+            cover.Children.Add(details);
+            Button? play = null;
+            if (CanPlayPreviewItem(item))
+            {
+                play = new Button
+                {
+                    Style = (Style)Application.Current.Resources["EgOverlayPlayButtonStyle"],
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    IsHitTestVisible = false,
+                    IsTabStop = false,
+                    Opacity = 0,
+                    Tag = item,
+                    Content = new FontIcon
+                    {
+                        Glyph = "\uE768",
+                        Style = (Style)Application.Current.Resources["EgPlayGlyphStyle"]
+                    }
+                };
+                play.Resources["ButtonBackgroundPointerOver"] = Application.Current.Resources["EgPlayGlassHoverBrush"];
+                play.Resources["ButtonBackgroundPressed"] = Application.Current.Resources["EgPlayGlassPressedBrush"];
+                play.Resources["ButtonForegroundPointerOver"] = Application.Current.Resources["EgTextOnAccentBrush"];
+                play.Resources["ButtonForegroundPressed"] = Application.Current.Resources["EgTextOnAccentBrush"];
+                AutomationProperties.SetAutomationId(play, "SidebarLibraryPreviewPlay_" + column);
+                AutomationProperties.SetName(play, $"播放：{item.Name}");
+                ToolTipService.SetToolTip(play, $"播放：{item.Name}");
+                play.Click += (_, _) => OnLibraryPreviewPlayClicked(play, item, load);
+                cover.Children.Add(play);
+            }
+
+            void SetHover(bool hovered)
+            {
+                shade.Opacity = hovered ? PreviewCoverShadeOpacity : 0;
+                if (play is null) return;
+                play.Opacity = hovered ? 1 : 0;
+                play.IsHitTestVisible = hovered;
+            }
+
+            cover.PointerEntered += (_, e) =>
+            {
+                if (e.Pointer.PointerDeviceType == PointerDeviceType.Mouse) SetHover(true);
+            };
+            cover.PointerExited += (_, e) =>
+            {
+                // 与 PosterCard 相同：子按钮的捕获/退出也会冒泡，指针仍在封面里时不能把按钮藏起来。
+                var point = e.GetCurrentPoint(cover).Position;
+                if (point.X >= 0 && point.Y >= 0 && point.X < cover.Width && point.Y < cover.Height) return;
+                SetHover(false);
+            };
+            frame = cover;
         }
         else
         {
@@ -629,12 +695,22 @@ public sealed partial class ShellPage
     private static bool CanPlayPreviewItem(EmbyItem item) => !item.IsDisplayOnly
         && (item.IsPlayable || item.Type is EmbyItemType.Series or EmbyItemType.Season);
 
+    private bool IsCurrentPreviewCoverButton(Button button, EmbyItem item, CancellationTokenSource load) =>
+        IsCurrentPreview(load) && item.Source is { IsAvailable: true }
+        && LibraryPreviewCovers.Children.OfType<StackPanel>()
+            .Select(cell => cell.Children.OfType<Grid>().FirstOrDefault())
+            .Any(cover => cover?.Children.Contains(button) == true);
+
     private void OnLibraryPreviewCoverClicked(Button button, EmbyItem item, CancellationTokenSource load)
     {
-        // 封面按钮眼下是格子的孩子（图 + 片名那一格），不在网格的直接孩子里 —— 判在不在面板里要往下走一层。
-        if (!IsCurrentPreview(load)
-            || !LibraryPreviewCovers.Children.OfType<StackPanel>().Any(cell => cell.Children.Contains(button))
-            || item.Source is not { IsAvailable: true } || !CanPlayPreviewItem(item)) return;
+        if (!IsCurrentPreviewCoverButton(button, item, load) || item.IsDisplayOnly) return;
+        SuppressLibraryPreview();
+        OpenItem(item);
+    }
+
+    private void OnLibraryPreviewPlayClicked(Button button, EmbyItem item, CancellationTokenSource load)
+    {
+        if (!IsCurrentPreviewCoverButton(button, item, load) || !CanPlayPreviewItem(item)) return;
         SuppressLibraryPreview();
         _ = PlayAsync(item);
     }

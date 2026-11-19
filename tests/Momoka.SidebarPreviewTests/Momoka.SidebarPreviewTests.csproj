@@ -30,7 +30,7 @@
         const string clock = "Environment.TickCount64";
         if (!source.Contains(clock)) throw new InvalidOperationException("Missing production monotonic clock boundary");
         var probe = File.ReadAllText(ProbeFile).Replace("\r\n", "\n");
-        const string probeStart = "            var coverButtons = Descendants(previewCovers).OfType<Button>().ToArray();";
+        const string probeStart = "            var coverButtons = Descendants(previewCovers).OfType<Button>()";
         const string probeEnd = "            await UntilAsync(() => Descendants(previewCovers).OfType<Image>().Any(image => image.Source is not null));";
         var probeFirst = probe.IndexOf(probeStart, StringComparison.Ordinal);
         var probeLast = probe.IndexOf(probeEnd, StringComparison.Ordinal);
