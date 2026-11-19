@@ -20,7 +20,7 @@
 
 **提交与接手复核。** 产品、测试与资源提交 `f53d2ee`，文档随后另提交。接手本树后重编 Shell/Core 与 `Momoka.Tests` Release/x64 **0 警告 0 错误**，主测试 **5273/5273、0 失败 0 跳过**；`git diff --check`、`tools/check-diff.ps1`（23 个文本文件）通过。
 
-**合并。** 用户令「合并到主树」，在主树 `master` 的 `ab76be3` 上以 `--no-ff` 合入，合并提交待补记；`PROGRESS.md`、待交付台账、`approved-payload.json`、`SettingsTests.cs` 四处冲突按两边保留解决（uosc 脚本自动合并后同时含后台单击与撤下自动跟随，批准载荷按合并后的 `main.lua` 重新钉成 85053 字节 / `af47665a…`）。主树复验结果见待交付台账。
+**合并。** 用户令「合并到主树」，在主树 `master` 的 `ab76be3` 上以 `--no-ff` 合入，合并提交 `f3af0e7`；`PROGRESS.md`、待交付台账、`approved-payload.json`、`SettingsTests.cs` 四处冲突按两边保留解决（uosc 脚本自动合并后同时含后台单击与撤下自动跟随，批准载荷按合并后的 `main.lua` 重新钉成 85053 字节 / `af47665a…`）。合并后主树复验：Shell/Core Release/x64 **0 警告 0 错误**，`Momoka.Tests` 全量 **5277/5277、0 失败 0 跳过**，`Momoka.LibMpvEndFileTests` **49/49**；自然接续专项 `Run-Caller.ps1` **81/81**（后台单击批次在 `OnNowPlayingChanged` 里新加的 `NoteActivationClick` 让 caller-only 夹具缺桩，补一个空通知桩后通过；`PlayerViewModel.cs`／`PlayerViewModel.Events.cs` 两枚来源哈希按合并结果重钉）。仅合并与体验刷新，未跑探针、未拍验收截图。
 
 ## 2026-11-20 播放页右键菜单后台单击播放/暂停与 B 快捷键（已合并 master，待统一验证）
 
