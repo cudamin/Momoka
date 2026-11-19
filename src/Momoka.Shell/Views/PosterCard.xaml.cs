@@ -230,6 +230,7 @@ public sealed partial class PosterCard : UserControl
 
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
     internal Image ConnectedPoster => Poster;
+    internal Border ConnectedPosterSurface => PosterSurface;
 
     /// <summary>取走悬停交接；一次点击只有一次详情导航，取走即清。</summary>
     internal PreviewHeadingCapture? TakePreviewHeading()

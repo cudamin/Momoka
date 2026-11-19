@@ -117,15 +117,18 @@
                     </Image>
                     <Border Background="{ThemeResource EgScrimBrush}" Opacity="0.4" />
                 </Grid>
-                <Image
-                    x:Name="Poster"
-                    RenderTransformOrigin="0.5,0.5"
-                    Source="{x:Bind Card.Poster, Mode=OneWay}"
-                    Stretch="{x:Bind Card.PosterStretch, Mode=OneWay}">
-                    <Image.RenderTransform>
-                        <ScaleTransform x:Name="PosterMotion" />
-                    </Image.RenderTransform>
-                </Image>
+                <!-- ConnectedAnimation 截取这层带圆角的封面，不能只靠 Art 的外层裁剪。 -->
+                <Border x:Name="PosterSurface" CornerRadius="{StaticResource EgPosterCornerRadius}">
+                    <Image
+                        x:Name="Poster"
+                        RenderTransformOrigin="0.5,0.5"
+                        Source="{x:Bind Card.Poster, Mode=OneWay}"
+                        Stretch="{x:Bind Card.PosterStretch, Mode=OneWay}">
+                        <Image.RenderTransform>
+                            <ScaleTransform x:Name="PosterMotion" />
+                        </Image.RenderTransform>
+                    </Image>
+                </Border>
                 <!-- 飞牛文件夹的封面墙：官方前端读 poster_list，1～4 张按张数排版（见 CardItem.FolderTileSlot）。
                      格子先留着透明，图陆续到达；一张也没有时仍透出下面的字形占位。 -->
                 <Grid

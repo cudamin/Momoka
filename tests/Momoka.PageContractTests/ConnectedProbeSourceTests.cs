@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -6,6 +7,24 @@ internal static class ConnectedProbeSourceTests
 {
     internal static void Register()
     {
+        Test("海报关联动画：转场两端都移动带同一圆角的封面层", () =>
+        {
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            foreach (var (path, name) in new[]
+            {
+                ("src/Momoka.Shell/Views/PosterCard.xaml", "Poster"),
+                ("src/Momoka.Shell/Views/DetailPage.xaml", "PosterImage")
+            })
+            {
+                var page = XDocument.Load(Path.Combine(RepositoryRoot(), path));
+                var image = page.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+                var surface = image.Parent;
+                Assert.NotNull(surface);
+                Assert.Equal("Border", surface!.Name.LocalName);
+                Assert.Equal("PosterSurface", (string?)surface.Attribute(x + "Name"));
+                Assert.Equal("{StaticResource EgPosterCornerRadius}", (string?)surface.Attribute("CornerRadius"), name);
+            }
+        });
         Test("悬停标题原生补验：真实预览点击与生产媒体库交接，不绕Prepare或Frame导航", () =>
         {
             var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.PreviewHeading.cs"));

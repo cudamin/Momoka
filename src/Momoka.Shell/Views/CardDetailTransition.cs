@@ -57,7 +57,7 @@ internal static class CardDetailTransition
             // WinUIGallery/SampleSupport/SamplePages/ItemsRepeaterCollectionPage.xaml.cs
             // -> DetailedInfoPage.xaml.cs. Keep the sample's native forward/default and return/Direct.
             // Prepare before Suppress navigation, populate the same image, then TryStart.
-            animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPoster);
+            animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPosterSurface);
             var motionClock = clock ?? TimeProvider.System;
             var preparedTimestamp = motionClock.GetTimestamp();
             ticket = new Ticket(frame, item, source, artwork, picture, animation, releaseSource, motionClock, preparedTimestamp);
@@ -315,7 +315,7 @@ internal static class CardDetailTransition
             {
                 WatchAnimationCompletion();
                 _lifecycle.StartAttempt();
-                started = _animation?.TryStart(target.ConnectedPoster) == true;
+                started = _animation?.TryStart(target.ConnectedPosterSurface) == true;
                 if (started) _lifecycle.StartSucceeded();
             }
             catch (Exception) { }
@@ -353,7 +353,7 @@ internal static class CardDetailTransition
             {
                 WatchAnimationCompletion();
                 _lifecycle.StartAttempt();
-                started = _animation?.TryStart(target.ConnectedPoster) == true;
+                started = _animation?.TryStart(target.ConnectedPosterSurface) == true;
                 if (started) _lifecycle.StartSucceeded();
             }
             catch (Exception) { }
@@ -406,7 +406,7 @@ internal static class CardDetailTransition
                 // 落点必须是卡片的静止几何：指针还停在刚点过的卡上时，整卡 1.045 与图片推近那一层
                 // 都还在，平台会按放大态算终点；指针一动卡片缩回 1，封面就跟着缩一下。
                 source.SettleForConnectedReturn();
-                _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPoster);
+                _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPosterSurface);
                 _lifecycle = new("card", "return", _clock, _clock.GetTimestamp());
                 _lifecycle.Prepared();
                 IsReturning = true;
@@ -468,7 +468,7 @@ internal static class CardDetailTransition
                     {
                         WatchAnimationCompletion();
                         _lifecycle.StartAttempt();
-                        started = _animation?.TryStart(source.ConnectedPoster) == true;
+                        started = _animation?.TryStart(source.ConnectedPosterSurface) == true;
                         if (started) _lifecycle.StartSucceeded();
                     }
                     catch (Exception) { }
