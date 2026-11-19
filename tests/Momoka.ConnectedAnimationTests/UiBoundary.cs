@@ -139,6 +139,7 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public Microsoft.UI.Xaml.Media.Imaging.BitmapSource? Source { get; set; }
     }
+    public sealed class Border : Microsoft.UI.Xaml.FrameworkElement;
     public sealed class TextBlock : Microsoft.UI.Xaml.FrameworkElement
     {
         public double FontSize { get; set; } = 32;
@@ -233,6 +234,7 @@ namespace Microsoft.UI.Xaml.Media.Animation
         public bool ThrowOnCancel { get; set; }
         public int StartCalls { get; private set; }
         public int CancelCalls { get; private set; }
+        public Microsoft.UI.Xaml.UIElement? LastTarget { get; private set; }
         public Windows.Foundation.TypedEventHandler<ConnectedAnimation, object>? Handlers;
         public event Windows.Foundation.TypedEventHandler<ConnectedAnimation, object>? Completed
         {
@@ -251,6 +253,7 @@ namespace Microsoft.UI.Xaml.Media.Animation
         }
         public bool TryStart(Microsoft.UI.Xaml.UIElement target)
         {
+            LastTarget = target;
             StartCalls++;
             Starting?.Invoke();
             if (ThrowOnStart) throw new InvalidOperationException("Injected start failure.");
@@ -274,9 +277,11 @@ namespace Microsoft.UI.Xaml.Media.Animation
         public static bool ThrowOnPrepare { get; set; }
         public static Action? Preparing { get; set; }
         public static List<ConnectedAnimation> Created { get; } = [];
+        public Microsoft.UI.Xaml.UIElement? LastSource { get; private set; }
         public static ConnectedAnimationService GetForCurrentView() => Current;
         public ConnectedAnimation PrepareToAnimate(string key, Microsoft.UI.Xaml.UIElement source)
         {
+            LastSource = source;
             Preparing?.Invoke();
             if (ThrowOnPrepare) throw new InvalidOperationException("Injected prepare failure.");
             var animation = new ConnectedAnimation();
@@ -370,6 +375,7 @@ namespace Momoka.Shell.Views
     {
         public CardItem? Card { get; set; } = new();
         public Microsoft.UI.Xaml.Controls.Image ConnectedPoster { get; set; } = new();
+        public Microsoft.UI.Xaml.Controls.Border ConnectedPosterSurface { get; set; } = new();
         public int Retentions { get; private set; }
         internal PreviewHeadingCapture? PreviewHeading { get; set; }
         internal PreviewHeadingCapture? TakePreviewHeading()
@@ -413,6 +419,7 @@ namespace Momoka.Shell.Views
     public sealed partial class DetailPage : Microsoft.UI.Xaml.Controls.Page
     {
         public Microsoft.UI.Xaml.Controls.Image ConnectedPoster { get; set; } = new();
+        public Microsoft.UI.Xaml.Controls.Border ConnectedPosterSurface { get; set; } = new();
         public DetailViewModel ViewModel { get; } = new();
         public int StoppedArrivals { get; private set; }
         public int SeededWidths { get; private set; }

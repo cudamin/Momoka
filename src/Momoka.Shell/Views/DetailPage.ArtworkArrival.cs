@@ -7,6 +7,7 @@ public sealed partial class DetailPage
 {
     private ImageArrivalFade[]? _artworkArrivals;
     internal Microsoft.UI.Xaml.Controls.Image ConnectedPoster => PosterImage;
+    internal Microsoft.UI.Xaml.Controls.Border ConnectedPosterSurface => PosterSurface;
     internal void StopConnectedPosterArrival() => _artworkArrivals?[1].Suppress();
 
     /// <summary>

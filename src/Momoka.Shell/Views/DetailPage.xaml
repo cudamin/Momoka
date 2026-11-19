@@ -690,10 +690,13 @@
                                         <local:Shimmer
                                             CornerRadius="{StaticResource EgPosterCornerRadius}"
                                             IsActive="{x:Bind ViewModel.StillPending, Mode=OneWay}" />
-                                        <Image
-                                            x:Name="PosterImage"
-                                            Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
-                                            Stretch="Uniform" />
+                                        <!-- 关联动画截取这层带圆角的封面，不能只靠 PosterStill 的外层裁剪。 -->
+                                        <Border x:Name="PosterSurface" CornerRadius="{StaticResource EgPosterCornerRadius}">
+                                            <Image
+                                                x:Name="PosterImage"
+                                                Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
+                                                Stretch="Uniform" />
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </Button>

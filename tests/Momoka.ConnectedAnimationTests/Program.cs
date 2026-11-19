@@ -32,6 +32,7 @@ internal static class Program
             using var fixture = new Fixture();
             Assert.True(fixture.Prepare());
             var animation = ConnectedAnimationService.Created.Last();
+            Assert.True(ReferenceEquals(fixture.Source.ConnectedPosterSurface, ConnectedAnimationService.Current.LastSource));
             // 目标还没排过版（宽高为 0）：抢跑这一趟什么都不做，等第一次布局。
             fixture.Target.ConnectedPoster.Source = null;
             fixture.Target.ConnectedPoster.ActualWidth = 0;
@@ -47,6 +48,7 @@ internal static class Program
             fixture.Target.Layout();
             fixture.Target.Layout();
             Assert.Equal(1, animation.StartCalls);
+            Assert.True(ReferenceEquals(fixture.Target.ConnectedPosterSurface, animation.LastTarget));
             Assert.Equal(2, fixture.Target.StoppedArrivals);
             Assert.True(BrowsePresentation.Results.Any(result => result.Started));
             animation.Complete();
@@ -164,11 +166,13 @@ internal static class Program
             CardDetailTransition.Attach(fixture.Target, fixture.Item);
             ConnectedAnimationService.Created.Last().Complete();
             Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            Assert.True(ReferenceEquals(fixture.Target.ConnectedPosterSurface, ConnectedAnimationService.Current.LastSource));
             fixture.Frame.Content = fixture.Source;
             CardDetailTransition.CompleteReturn(fixture.Frame);
             fixture.Frame.DispatcherQueue.Drain();
             var returning = ConnectedAnimationService.Created.Last();
             Assert.Equal(1, returning.StartCalls);
+            Assert.True(ReferenceEquals(fixture.Source.ConnectedPosterSurface, returning.LastTarget));
             Assert.True(CardDetailTransition.Returning(fixture.Frame));
             returning.Complete();
             Assert.False(CardDetailTransition.Returning(fixture.Frame));
