@@ -1,3 +1,17 @@
+## 2026-11-19 设置窗口系统外观事件降级与日志修正
+
+用户拿设置窗口日志截图问「这是咋了」：`[WARN] 设置窗口: 订阅设置窗口系统外观失败，显示时继续核对` 加 `COMException 0x80070490`（`AccessibilitySettings.add_HighContrastChanged`）。先只读审查，随后令「你看着改吧」。
+
+**根因。** WinUI 3 桌面应用不支持这两个系统设置事件：Project Reunion 0.5/0.8 发行说明点名 `UISettings.ColorValuesChanged` 与 `AccessibilitySettings.HighContrastChanged` 在桌面应用不再支持，WindowsAppSDK issue #4075（2025-03）仍确认会失败；本机 Windows 11 26300 + WinAppSDK 2.5.1 上，11-18／11-19 全部 18 个创建过设置窗口的会话都是创建 1 次、警告 1 条，进程内只一次（窗口对象缓存复用）。`0x80070490` 是 `ERROR_NOT_FOUND`，不是运行时缺失或系统损坏；读 `HighContrast` 与系统颜色本身是成功的。
+
+**改法。** `StartSystemAppearanceWatch` 原先一段 `try` 连挂四颗事件，第一颗失败后其余三颗全部跳过，还要每次创建窗口刷一条警告。改成逐颗 `Watch`：三颗系统外观事件挂不上只记一条 `Info`（带首个 HRESULT 与事件名），显示期一秒轮询继续兜底，与 `DetailPage.Appearance.cs` 同一套；`Window.Activated` 是框架自己的事件，单独 `try`，失败仍记 `Warn`。轮询触发条件与 Hide 停止逻辑不变。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.SettingsAppearanceTests` **50/50、0 失败 0 跳过**（新增三条：高对比失败不连坐其余三颗、激活失败才记警告、事件缺失不算失败）；`tools/check-diff.ps1` 3 个文本文件通过。`dotnet format whitespace --verify-no-changes` 被当前沙箱安全策略拦下，未执行。全方案构建另有既有红：`Momoka.DetailImageArrivalTests`（夹具缺 `Microsoft.UI.Xaml.Controls.Border`，源于 0.2.9 之后的 `87e1b60`）与 `Momoka.DetailDeleteCommandTests`（生成切片仍引用 `_moreMenu`／`TrailerButtonVisibility`，源于 `66ed15a`），两项与本批无关，未改。
+
+**发布。** 产品与测试提交 `58476c6`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过；`Momoka.exe` SHA256 `F78D145D759397E28219D409A21436E056761DF3C372FB3A78D9AEF58E0B9AD1`，`Momoka.dll` SHA256 `5F37FED82AE9A7559566D2D304BA47C6F130C2A1D840BA708111ED4C28BFC18B`。`Momoka.lnk` 重写被沙箱拒写桌面（`UnauthorizedAccessException`），目标路径仍是本树同一个 exe。仅体验刷新、不销账。
+
+**边界。** 日常界面批次未跑探针、未拍验收截图；没有实际切换系统高对比／透明效果，也没有开真设置窗口复看新日志，仍待统一验证。未推远端。
+
 ## 2026-11-19 侧栏预览封面进详情并增加悬停播放（已合并 master，待统一验证）
 
 用户令「点击侧边栏悬浮栏封面时改为进入详情页，鼠标移到封面上的时候要有遮罩和播放按钮」，并要求在独立工作树分支完成。
