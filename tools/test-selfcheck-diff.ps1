@@ -7,6 +7,12 @@ $repo = Split-Path -Parent $PSScriptRoot
 $script = Join-Path $PSScriptRoot 'selfcheck-diff.ps1'
 $root = Join-Path $repo ('artifacts\selfcheck-script-tests\' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($root) | Out-Null
+# Add-Type compiles through TEMP; the machine default can be blocked in the sandbox.
+$savedTemp = $env:TEMP
+$savedTmp = $env:TMP
+$env:TEMP = Join-Path $root 'temp'
+$env:TMP = $env:TEMP
+[IO.Directory]::CreateDirectory($env:TEMP) | Out-Null
 $baseline = Join-Path $root 'baseline.txt'
 $log = Join-Path $root 'report.txt'
 $script:count = 0
@@ -103,7 +109,12 @@ public static class Fixture {
         string logs = Path.Combine(root, "logs");
         Directory.CreateDirectory(logs);
         if (mode != "missing-receipt") File.WriteAllText(Path.Combine(logs, "selfcheck-isolation.txt"), "Momoka.SelfCheckIsolation=1\n" + (mode == "wrong-root" ? home : root) + "\n");
-        if (mode != "missing-log") File.WriteAllText(Path.Combine(logs, "selfcheck-shell.txt"), "[通过] A\n结果：全部通过\n");
+        if (mode != "missing-log") {
+            string report = mode == "credential"
+                ? "[通过] A\nhttps://fixture.invalid/item?api_key=fixture-selfcheck-secret\n结果：全部通过\n"
+                : "[通过] A\n结果：全部通过\n";
+            File.WriteAllText(Path.Combine(logs, "selfcheck-shell.txt"), report);
+        }
         return mode == "nonzero" ? 7 : 0;
     }
 }
@@ -115,6 +126,10 @@ public static class Fixture {
         $script:runRoots += [IO.File]::ReadAllText((Join-Path $root 'last-run.txt'))
     }
     Assert-True (($script:runRoots | Select-Object -Unique).Count -eq $script:runRoots.Count) '每次运行须使用新目录'
+    Put (Join-Path $root 'mode.txt') 'credential'
+    Check '报告含疑似凭据时拒绝作证据' $false @('-Exe', $exe, '-Baseline', $baseline)
+    Assert-True (($script:lastOutput -join "`n") -match '疑似凭据') '凭据拒绝原因不明确'
+    $script:runRoots += [IO.File]::ReadAllText((Join-Path $root 'last-run.txt'))
     Remove-Item -LiteralPath (Join-Path $root 'invoked.txt')
     $dll = [IO.Path]::ChangeExtension($exe, '.dll')
     Remove-Item -LiteralPath $dll
@@ -126,6 +141,8 @@ public static class Fixture {
     Write-Output "脚本离线回归：$script:count 项通过，0 失败，0 跳过；未使用应用/真实设置/媒体库。"
 }
 finally {
+    $env:TEMP = $savedTemp
+    $env:TMP = $savedTmp
     foreach ($runRoot in $script:runRoots) {
         $expectedPrefix = (Join-Path $repo 'artifacts\selfcheck\run-')
         if ($runRoot.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $runRoot)) {

@@ -76,6 +76,16 @@ try {
     }
 
     if (-not (Test-Path -LiteralPath $logPath -PathType Leaf)) { throw "没有本次自检日志：$logPath" }
+    $credentialScanner = Join-Path $PSScriptRoot 'check-report-credentials.py'
+    if (-not (Test-Path -LiteralPath $credentialScanner -PathType Leaf)) { throw '缺少报告凭据扫描器，拒绝把未检查的报告当证据。' }
+    $python = Get-Command py -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $python) { throw '找不到 py，无法执行报告凭据扫描。' }
+    $savedEa = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $python.Source $credentialScanner --file $logPath *> $null } finally { $ErrorActionPreference = $savedEa }
+    $scanExit = $LASTEXITCODE
+    if ($scanExit -eq 1) { throw '报告含疑似凭据；已拒绝作为交付证据，扫描器不回显原值。' }
+    if ($scanExit -ne 0) { throw "报告凭据扫描器执行失败，退出码 $scanExit。" }
     $text = Get-Content -LiteralPath $logPath -Raw -Encoding UTF8
     if (-not $text) { throw '报告为空。' }
     $lines = @($text -split "`r?`n" | Where-Object { $_.Trim().Length -gt 0 })

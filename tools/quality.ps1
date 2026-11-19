@@ -18,7 +18,8 @@ if (-not $Repo) { $Repo = Join-Path $PSScriptRoot '..' }
 # 一个入口跑完这套质量工具。它不发明新规则，只是把仓库既有的闸门与新增的检查串起来：
 #   编译 + 空白        —— 闸门 1 的两条，参数与 docs/开发与验证.md 完全一致
 #   脚本检查           —— tools/check-scripts.ps1（BOM、LF、语法）
-#   文档链接           —— tools/check-docs.py（相对路径与锚点）
+#   文档链接           —— tools/check-docs.py（相对路径、锚点与技能索引）
+#   证据凭据           —— tools/check-report-credentials.py（只报位置与类别）
 #   架构依赖           —— tests/Momoka.ArchitectureTests（NetArchTest）
 #   重复代码           —— tools/check-duplication.ps1（jscpd，预算制）
 #   Git 变更检查       —— tools/check-diff.ps1（CRLF、末尾换行、BOM、空白）
@@ -99,7 +100,7 @@ try {
 
     Invoke-ChildScript 'PowerShell 脚本检查' 'tools/check-scripts.ps1' @()
 
-    Invoke-Step '文档链接检查（相对路径与锚点）' {
+    Invoke-Step '文档链接检查（相对路径、锚点与技能索引）' {
         $log = Join-Path $evidence 'docs-links.log'
         $savedEa = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
@@ -107,6 +108,17 @@ try {
         if ($LASTEXITCODE -ne 0) {
             Get-Content -LiteralPath $log -Tail 20 | ForEach-Object { Write-Output $_ }
             throw "文档链接检查失败，日志 $log"
+        }
+    }
+
+    Invoke-Step '报告凭据扫描（PROGRESS、台账与归档）' {
+        $log = Join-Path $evidence 'report-credentials.log'
+        $savedEa = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { & py (Join-Path $root 'tools/check-report-credentials.py') *> $log } finally { $ErrorActionPreference = $savedEa }
+        if ($LASTEXITCODE -ne 0) {
+            Get-Content -LiteralPath $log -Tail 20 | ForEach-Object { Write-Output $_ }
+            throw "报告凭据扫描失败，日志 $log"
         }
     }
 

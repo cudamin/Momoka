@@ -13,6 +13,7 @@ $lookup = '$dotnet = Join-Path $HOME ''.dotnet/dotnet.exe'''
 if ($source.Split([string[]]@($lookup), [StringSplitOptions]::None).Length -ne 2) { throw 'SDK discovery boundary changed.' }
 Save 'tools/quality.ps1' $source.Replace($lookup, '$dotnet = Join-Path $root ''fake-dotnet.ps1''')
 foreach ($name in @('check-scripts.ps1', 'check-diff.ps1', 'check-duplication.ps1')) { Save ("tools/$name") 'exit 0' }
+foreach ($name in @('check-docs.py', 'check-report-credentials.py')) { Save ("tools/$name") '' }
 Save 'fake-dotnet.ps1' @'
 [IO.File]::AppendAllText((Join-Path $PSScriptRoot 'calls.log'), (($args | ConvertTo-Json -Compress) + "`n"))
 $mode = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'mode.txt'))
