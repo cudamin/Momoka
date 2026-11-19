@@ -455,6 +455,51 @@ internal static class InputControlThemeTests
                     new XAttribute("TargetType", "TextBox"), new XAttribute("BasedOn", "{StaticResource DefaultTextBoxStyle}")))));
             Assert.Throws<AssertionException>(() => AssertProductInputRadii("Page.xaml", localImplicit, shared));
         });
+        Test("编辑订阅：多选下拉换成与组合框同一套几何", () =>
+        {
+            // 2026-11-19 用户把「订阅站点」和「搜索周期」并排截图：「改成跟下面搜索周期差不多的样式」。
+            // 后者是 ComboBox（EditorPicker），前者是 DropDownButton，两套壳并排就是两种控件。
+            var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
+            var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
+            var style = Resource(resources, "EditorMultiPicker");
+            Assert.Equal("DropDownButton", (string?)style.Attribute("TargetType"));
+            Assert.Equal("{StaticResource DefaultDropDownButtonStyle}", (string?)style.Attribute("BasedOn"),
+                "多选下拉没有沿用平台的 DropDownButton 样式");
+            var setters = style.Elements(Xaml + "Setter").ToDictionary(
+                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
+            // 壳照 ComboBox 抄：底、描边、1 像素边、12,5,0,7 内边距、32 高；圆角接全站输入那一档。
+            Assert.Equal(SearchRadius, setters["CornerRadius"], "多选下拉的圆角没有接全站输入那一档");
+            Assert.Equal("{ThemeResource ComboBoxPadding}", setters["Padding"]);
+            Assert.Equal("{ThemeResource ComboBoxMinHeight}", setters["MinHeight"]);
+            Assert.Equal("{ThemeResource ComboBoxBorderThemeThickness}", setters["BorderThickness"]);
+            Assert.Equal("{ThemeResource ComboBoxBackground}", setters["Background"]);
+            Assert.Equal("{ThemeResource ComboBoxBorderBrush}", setters["BorderBrush"]);
+            Assert.Equal("{ThemeResource ComboBoxForeground}", setters["Foreground"]);
+            Assert.Equal("Stretch", setters["HorizontalAlignment"]);
+            // 箭头与 ComboBox 模板同档：右侧 38 宽列、12 号、离右边 14。
+            var columns = style.Descendants(Xaml + "ColumnDefinition")
+                .Select(column => (string?)column.Attribute("Width")).ToArray();
+            Assert.Equal("*|38", string.Join('|', columns), "箭头列不是 ComboBox 那档 38");
+            var chevron = style.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "ChevronIcon");
+            Assert.Equal("12", (string?)chevron.Attribute("Width"));
+            Assert.Equal("0,0,14,0", (string?)chevron.Attribute("Margin"));
+            Assert.Equal("{ThemeResource ComboBoxDropDownGlyphForeground}", (string?)chevron.Attribute("Foreground"));
+            // 三态跟着 ComboBox 走，不再自画一套按钮颜色；多选语义仍是 DropDownButton 的浮层。
+            var states = style.Descendants(Xaml + "VisualState").Select(state => (string?)state.Attribute(X + "Name")).ToArray();
+            Assert.Equal("Normal|PointerOver|Pressed|Disabled", string.Join('|', states));
+            var label = editor.Descendants(Xaml + "TextBlock").Single(element =>
+                (string?)element.Attribute("Text") == "订阅站点"
+                && (string?)element.Attribute("Style") == "{StaticResource EgBodyStyle}");
+            Assert.Equal("0,0,0,4", (string?)label.Attribute("Margin"), "标签到框的间距没有跟 ComboBox 表头对齐");
+            foreach (var name in new[] { "SubscriptionSitesInput", "FilterGroupsInput" })
+            {
+                var picker = Named(editor, name);
+                Assert.Equal("{StaticResource EditorMultiPicker}", (string?)picker.Attribute("Style"), name);
+                Assert.True(picker.Attribute("HorizontalAlignment") is null
+                    && picker.Attribute("HorizontalContentAlignment") is null,
+                    name + " 仍在控件上自设对齐，样式里的几何会被盖掉");
+            }
+        });
         Test("搜索输入圆角：所有产品 AutoSuggestBox 继承共享样式，无局部旧值或遮蔽", () =>
         {
             var count = 0;
