@@ -668,6 +668,31 @@ public sealed class PlaybackSettings
     /// </summary>
     public bool AutoFullscreenOnPlayback { get; set; }
 
+    /// <summary>
+    /// 窗口不在前台时，单击画面直接播放/暂停（用户令 2026-11-20：「在设置中新增无论 momoka 播放页面是否为
+    /// 前台窗口，都可以直接点击播放/暂停的选项」；同日续令「不要添加到设置页面，添加到播放页面的右键菜单中」）。
+    /// <para>
+    /// <b>入口在播放页右键菜单的「更多」区，不是设置页上的一行</b>——集成模式是
+    /// <c>PlayerPage.BuildActivationClickRow</c>，独占模式是 <c>PlayerViewModel.PushPictureMenuAsync</c> 推给
+    /// uosc 的同名行；两处写的是这一格，跨重启保留。
+    /// </para>
+    /// <para>
+    /// <b>关着（装机默认）是 2026-09-23 定下的老行为：</b>从别的窗口回来，第一下点击只把播放窗口带到前台，
+    /// 要再点一下才播放/暂停 —— 判据见 <see cref="Playback.WakeClick"/>；独占模式那一份在
+    /// <c>assets/mpv-ui/scripts/uosc/main.lua</c> 的 MOMOKA[click-pause-wake]。开着时那一下「叫醒」不再被
+    /// 吃掉：第一下点击就把播放/暂停切了，窗口照常被带到前台。
+    /// </para>
+    /// <para>
+    /// 缺键的旧设置文件读出来是 false，行为一个像素都不变，所以不需要迁移；恢复默认（<see cref="SettingsPreferences"/>）
+    /// 整组抄 <see cref="PlaybackSettings"/>，这一项自动跟着回关，正在播的独占窗口由
+    /// <c>ShellPrefs.ApplyActivationClick</c> 推给 uosc。
+    /// </para>
+    /// <para>
+    /// 只作用于内置播放器。外置 mpv.exe 的画面与输入都归用户自己那份配置，客户端不插手。
+    /// </para>
+    /// </summary>
+    public bool ActivationClickTogglesPlayback { get; set; }
+
     // 「调整窗口大小后继续播放」那一格 2026-11-08 按用户令删掉了（「在设置中删掉这个选项，固定设置为打开」）：
     // 拖边收尾从此一律替用户放开，判据只剩 Playback.ResizeFreeze.Freezes 那一半（什么时候冻）。
     // **不留一个存而不用的键** —— 反序列化碰到没处放的键本来就不出声，所以旧设置文件里存着的 false 照旧读得起来、

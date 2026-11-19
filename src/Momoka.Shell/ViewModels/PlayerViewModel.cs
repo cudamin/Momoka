@@ -347,6 +347,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.VideoWindowUpdated += OnVideoWindowMessage;
         ShellPrefs.ShortcutsChanged += NativeShortcutsChanged;
         ShellPrefs.DanmakuChanged += DanmakuSettingsChanged;
+        ShellPrefs.ActivationClickChanged += NoteActivationClick;
         _session.SourcesChanged += OnVersionSourcesChanged;
     }
 
@@ -387,6 +388,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.VideoWindowUpdated -= OnVideoWindowMessage;
         ShellPrefs.ShortcutsChanged -= NativeShortcutsChanged;
         ShellPrefs.DanmakuChanged -= DanmakuSettingsChanged;
+        ShellPrefs.ActivationClickChanged -= NoteActivationClick;
         CancelDanmakuRequests();
         _session.SourcesChanged -= OnVersionSourcesChanged;
         _lifetime.Cancel();
@@ -880,6 +882,35 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// </para>
     /// </summary>
     internal bool AutoFullscreenOnPlayback => Settings.Playback.AutoFullscreenOnPlayback && !_replacingPlayback;
+
+    /// <summary>
+    /// 「窗口不在前台时，单击画面直接播放/暂停」（播放页右键菜单「更多」区，
+    /// <see cref="Configuration.PlaybackSettings.ActivationClickTogglesPlayback"/>，默认关）。集成模式由
+    /// <c>PlayerPage.OnPointerPressed</c> 每一次按下现读，拨完下一拍就认；独占模式那一头住在 mpv 的 uosc
+    /// 脚本里、读不到设置文件，由 <c>PlayerViewModel.NoteActivationClick</c> 把新值推过去。
+    /// <para>写入口径与 <see cref="AutoPlayNextEpisode"/> 相同：两条管线的菜单行都落到这里，写内存再落盘。</para>
+    /// </summary>
+    internal bool ActivationClickTogglesPlayback
+    {
+        get => Settings.Playback.ActivationClickTogglesPlayback;
+        set
+        {
+            if (Settings.Playback.ActivationClickTogglesPlayback == value) return;
+            Settings.Playback.ActivationClickTogglesPlayback = value;
+            _settings.Save();
+        }
+    }
+
+    /// <summary>
+    /// 翻转「窗口不在前台时单击画面播放/暂停」——右键菜单（两条管线）与快捷键共用的那一下。
+    /// 写完把值推给独占模式的 uosc（<see cref="NoteActivationClick"/>），叫醒闸当场跟着变；集成模式那一句
+    /// 在 <see cref="HeadlessPlayback"/> 为假时是空操作，页面下一次按下直接现读。
+    /// </summary>
+    internal void ToggleActivationClickPlayback()
+    {
+        ActivationClickTogglesPlayback = !ActivationClickTogglesPlayback;
+        NoteActivationClick();
+    }
 
     /// <summary>
     /// 播放中、后端已明确表态「画面在宿主窗口外」的那一刻才为真 —— 全屏键交给 mpv（Esc 先退

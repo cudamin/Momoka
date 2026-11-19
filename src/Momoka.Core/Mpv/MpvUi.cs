@@ -282,6 +282,21 @@ public static class VideoWindowContract
     public const string Subline = "momoka-subline";
 
     /// <summary>
+    /// <b>宿主 → uosc</b>：窗口不在前台时，单击画面是否直接播放/暂停（<c>'1'</c> 开、<c>'0'</c> 关，缺省 <c>'0'</c>）。
+    /// 值来自设置 → 播放行为（<see cref="Configuration.PlaybackSettings.ActivationClickTogglesPlayback"/>，2026-11-20
+    /// 用户令）。uosc 的 <c>MOMOKA[click-pause-wake]</c> 按它决定要不要吃掉「叫醒窗口的那一下」：关着是老行为
+    /// （第一下只激活窗口），开着时第一下直接播放/暂停。
+    /// <para>
+    /// 方向与 <see cref="VersionCount"/>/<see cref="EpisodeCount"/> 相同，所以它<b>故意不进 <see cref="Parse"/></b>
+    /// （宿主不会收到自己发出去的东西）；名字照旧守 <see cref="Episodes"/> 那条硬规矩 —— 不许与任何脚本绑定同名
+    /// （uosc 那边是一条 <c>mp.register_script_message('momoka-activation-click', …)</c>），<c>MpvUiTests</c> 的
+    /// 「绑定名 ≠ 消息名」把它一并数进去。什么时候发：uosc 装载完成的握手（<see cref="Ready"/>）那一下，以及
+    /// 设置页拨开关之后（<c>ShellPrefs.ApplyActivationClick</c>）。
+    /// </para>
+    /// </summary>
+    public const string ActivationClick = "momoka-activation-click";
+
+    /// <summary>
     /// uosc → 宿主：右键画面菜单里点了一档「跳过片头片尾」，值是 <c>ask</c>／<c>auto</c>／<c>off</c>。
     /// 宿主把它写进 <c>Settings.Playback.SkipSections</c>（与集成模式右键菜单同一格设置、同一句执行），
     /// 那颗「跳过」按钮的 offer 由 <c>ApplySkipOffer</c> 自己跟上。
@@ -299,6 +314,13 @@ public static class VideoWindowContract
     /// 按当前值现算，不认菜单推送那一份旧值（推送与点击之间设置可能被设置窗口改过）。
     /// </summary>
     public const string AutoPlayNext = "momoka-autoplay-next";
+
+    /// <summary>
+    /// uosc → 宿主：右键画面菜单里拨了「窗口不在前台时单击画面播放/暂停」（<see cref="Configuration.PlaybackSettings.ActivationClickTogglesPlayback"/>，
+    /// 2026-11-20），值固定 <c>toggle</c>。与 <see cref="AutoPlayNext"/> 同一款：拨到哪边由宿主按当前值现算，
+    /// 写完由宿主把新值经 <see cref="ActivationClick"/> 推回 uosc，叫醒闸当场跟着变。
+    /// </summary>
+    public const string ActivationClickToggle = "momoka-activation-click-toggle";
     public const string Queue = "momoka-video-queue";
 
     /// <summary>
@@ -357,6 +379,7 @@ public static class VideoWindowContract
         }
         if (key == SkipMode) return value is "ask" or "auto" or "off" ? new VideoWindowMessage(key, value) : null;
         if (key == AutoPlayNext) return value == "toggle" ? new VideoWindowMessage(key, value) : null;
+        if (key == ActivationClickToggle) return value == "toggle" ? new VideoWindowMessage(key, value) : null;
         if (key == Queue) return value is "next" or "append" or "clear" ? new VideoWindowMessage(key, value) : null;
         if (key == OpenSettings)
             return PlayerSettingsLinks.For(value) is not null ? new VideoWindowMessage(key, value) : null;

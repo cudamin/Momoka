@@ -1350,7 +1350,17 @@ mp.observe_property('focused', 'bool', function(_, value)
 	if value then momoka_click_pause_focus_at = mp.get_time() end
 end)
 
+-- MOMOKA[click-pause-direct] — 上面那道「叫醒闸」的总开关（设置 → 播放行为「窗口不在前台时单击画面播放/暂停」，
+-- 2026-11-20 用户令）。宿主在 uosc 装载握手与拨开关时各推一次 '1'／'0'；缺省 '0' ＝ 老行为（2026-09-23 用户令：
+-- 叫醒窗口的那一下不作数）。'1' 时那一下不再被吃掉，直接走下面的押后与暂停 —— uosc 读不到设置文件，值只能
+-- 由宿主经 momoka-activation-click（VideoWindowContract.ActivationClick）送过来。
+momoka_click_pause_direct = false
+mp.register_script_message('momoka-activation-click', function(value)
+	momoka_click_pause_direct = value == '1'
+end)
+
 function momoka_click_pause_waking(press_time)
+	if momoka_click_pause_direct then return false end
 	return momoka_click_pause_focus_at ~= nil
 		and press_time - momoka_click_pause_focus_at <= 0.4
 end

@@ -235,6 +235,15 @@ internal static class MpvUiTests
             Assert.Null(VideoWindowContract.Parse(["momoka-something", "x"]));
         });
 
+        // 右键菜单拨「窗口不在前台时单击画面播放/暂停」：只有 toggle 这一个值合法，别的都不知所云。
+        TestHarness.Test("后台单击开关消息只认 toggle", () =>
+        {
+            Assert.Equal(VideoWindowContract.ActivationClickToggle,
+                VideoWindowContract.Parse([VideoWindowContract.ActivationClickToggle, "toggle"])?.Key);
+            Assert.Null(VideoWindowContract.Parse([VideoWindowContract.ActivationClickToggle, "on"]));
+            Assert.Null(VideoWindowContract.Parse([VideoWindowContract.ActivationClickToggle, ""]));
+        });
+
         // 就绪握手原样通过：值是版本号字符串，宿主只负责把它记档与进日志，不做二次解释。
         TestHarness.Test("就绪握手通过契约", () =>
         {
@@ -322,11 +331,15 @@ internal static class MpvUiTests
                 VideoWindowContract.SkipOffer,
                 // 左上角第二行的文件信息（宿主→uosc，方向不影响这条硬规矩）。
                 VideoWindowContract.Subline,
+                // 「窗口不在前台时单击画面播放/暂停」的开关（宿主→uosc，2026-11-20）。
+                VideoWindowContract.ActivationClick,
                 // 右键菜单统一（2026-09-29）添的三条：跳过档位、连播开关、播放信息 —— 「更多」那一棵
                 // 在独占模式的同款行点中回宿主的 value。
                 VideoWindowContract.SkipMode,
                 VideoWindowContract.AutoPlayNext,
                 VideoWindowContract.MediaInfo,
+                // 「窗口不在前台时单击画面播放/暂停」的菜单开关（uosc→宿主，2026-11-20）。
+                VideoWindowContract.ActivationClickToggle,
                 // 2026-10-01 添的第四条：画面菜单末尾那三行设置入口（字幕／视频输出／音频输出）。
                 VideoWindowContract.OpenSettings,
             };
@@ -374,6 +387,12 @@ internal static class MpvUiTests
             // 叫醒窗口的那一下不作数（用户令 2026-09-23）：判据是 mpv 的 focused，命中在兜底命中区里。
             Assert.True(main.Contains("momoka_click_pause_waking"), "点击暂停丢了：没有「叫醒窗口的那一下」这道闸");
             Assert.True(main.Contains("observe_property('focused'"), "点击暂停丢了：没有订阅 focused，叫醒那一下判不出来");
+            // 这道闸的总开关（设置 → 播放行为，2026-11-20）：宿主经 momoka-activation-click 推 '1'／'0'，
+            // uosc 收到后整个让开那道闸；缺省仍是老行为。
+            Assert.True(main.Contains($"register_script_message('{VideoWindowContract.ActivationClick}'"),
+                "「窗口不在前台时单击画面播放/暂停」丢了：uosc 没接宿主推来的开关");
+            Assert.True(main.Contains("momoka_click_pause_direct"),
+                "「窗口不在前台时单击画面播放/暂停」丢了：叫醒闸没有开关量");
             // 滚轮＝音量：兜底命中区要在 render 里登记（最低优先级，元素先命中），命令必须 no-osd。
             Assert.True(main.Contains("momoka_wheel_volume_zone"), "滚轮音量丢了：main.lua 里没有兜底命中区");
             Assert.True(main.Contains("'no-osd', 'add', 'volume'"), "滚轮音量没走 no-osd：左上角的 Volume OSD 会回来");

@@ -40,6 +40,7 @@ public sealed partial class PlayerViewModel
             case "previous-episode": PreviousEpisode(); break;
             case "next-episode": NextEpisode(); break;
             case "toggle-pin": _ = _playback.CommandAsync("cycle", "ontop"); break;
+            case PlayerMenuCatalog.BackgroundClickShortcut: ToggleActivationClickPlayback(); break;
             case "chapter-previous": StepChapter(-1); break;
             case "chapter-next": StepChapter(1); break;
             case "speed-down": NudgeSpeed(-0.1); break;

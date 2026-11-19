@@ -86,6 +86,9 @@ public sealed partial class PlayerViewModel
             // 左上角第二行的文件信息也一样：握手到的时候宿主手上已经有条目与媒体源，趁画面还没出来把
             // 副标题摆对，别等第一次 OnNowPlayingChanged。
             NoteSubline();
+            // 「窗口不在前台时单击画面播放/暂停」的开关（2026-11-20）：uosc 的判定里没有设置文件，
+            // 握手这一拍先把值摆对，之后拨开关由 ShellPrefs.ApplyActivationClick 再推。
+            NoteActivationClick();
             _ = PushNativeShortcutsAsync(force: true);
             _ = PushDanmakuVisibilityAsync();
             _ = PushDanmakuInputAsync();
@@ -194,6 +197,12 @@ public sealed partial class PlayerViewModel
                 AutoPlayNextEpisode = !AutoPlayNextEpisode;
                 break;
 
+            case VideoWindowContract.ActivationClickToggle:
+                // 右键画面菜单拨了「窗口不在前台时单击画面播放/暂停」（2026-11-20）。与上一条同一套：
+                // 值固定 toggle、按当前值现算；写完之后把新值推回 uosc，叫醒闸当场跟着变。
+                ToggleActivationClickPlayback();
+                break;
+
             case VideoWindowContract.Queue:
                 if (value is "next" or "append") RequestQueue(value == "next");
                 else if (value == "clear" && HasPendingQueue) ClearQueue();
@@ -219,8 +228,8 @@ public sealed partial class PlayerViewModel
     /// 前半是 <see cref="PlayerMenuCatalog"/> 那棵目录（命令叶子按 DFS 先序编号，序号对着
     /// <see cref="PlayerMenuCatalog.Commands"/>，点中回 <see cref="VideoWindowContract.MenuIndex"/>、宿主用
     /// <c>RunMenuNodeAsync</c> 跑），后半是集成模式「更多」那一棵的同款 —— 版本…、着色器、跳过片头片尾、
-    /// 自动播放下一集、播放信息…（2026-09-29 用户令「统一独占模式和集成模式的右键菜单选项」；在那之前
-    /// 这里只推目录加一条置顶的着色器，两边差着一截）。
+    /// 自动播放下一集、窗口不在前台时单击画面播放/暂停、播放信息…（2026-09-29 用户令「统一独占模式和集成模式的
+    /// 右键菜单选项」；在那之前这里只推目录加一条置顶的着色器，两边差着一截；最后一行 2026-11-20 添）。
     /// <para>
     /// 「更多」的那几行在两条管线里各有各的拼法（集成侧是 XAML 行、走 <c>PlayerPage.OnMoreMenuOpening</c>，
     /// 这里是 uosc 菜单行），但数据源与执行是同一份：版本开的是同一张版本菜单、着色器/跳过写的是同一格
@@ -252,7 +261,8 @@ public sealed partial class PlayerViewModel
             items[^1] = items[^1] with { Separator = true };
 
         // —— 「更多」那一棵，行集与次序照抄 OnMoreMenuOpening：版本…（有第二版才在）、着色器、跳过片头片尾、
-        // 自动播放下一集、播放信息…；集成侧在这些行之间放的是独立分隔线，这里落在前一行上。
+        // 自动播放下一集、窗口不在前台时单击画面播放/暂停、播放信息…；集成侧在这些行之间放的是独立分隔线，
+        // 这里落在前一行上。
         if (VersionControlsVisible)
             items.Add(new UoscMenuItem("版本…", $"script-message {VideoWindowContract.Versions} open",
                 true, false, Separator: true));
@@ -261,7 +271,11 @@ public sealed partial class PlayerViewModel
         items[^1] = items[^1] with { Separator = true };
         items.Add(BuildUoscSkipMenu());
         items.Add(new UoscMenuItem("自动播放下一集",
-            $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode, Separator: true));
+            $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode));
+        items.Add(new UoscMenuItem("窗口不在前台时单击画面播放/暂停",
+            $"script-message {VideoWindowContract.ActivationClickToggle} toggle", true,
+            ActivationClickTogglesPlayback, shortcutTexts.GetValueOrDefault(PlayerMenuCatalog.BackgroundClickShortcut),
+            Separator: true));
         if (CanArrangeQueue)
         {
             var queue = new List<UoscMenuItem>
@@ -485,6 +499,29 @@ public sealed partial class PlayerViewModel
     }
 
     private void NoteSubline() => _ = PushSublineAsync();
+
+    /// <summary>
+    /// 把「窗口不在前台时，单击画面直接播放/暂停」推给独占模式的视频窗 —— 那一道判定住在 uosc 的
+    /// <c>MOMOKA[click-pause-wake]</c> 里（assets/mpv-ui/scripts/uosc/main.lua），它读不到设置文件，只能由宿主
+    /// 把答案送过去：值是 <c>'1'</c>（开着，叫醒那一下也照常播放/暂停）或 <c>'0'</c>（关着，老行为）。
+    /// <para>
+    /// 调用点与 <see cref="NoteVersionCount"/> 同一套：uosc 装载握手的应答（画面还没出来就摆对）、右键菜单里
+    /// 拨动 <see cref="VideoWindowContract.ActivationClickToggle"/> 那一下，以及恢复默认／恢复配置之后经
+    /// <see cref="ShellPrefs.ApplyActivationClick"/> 的那一声。集成模式不经过这里 —— 页面下一次按下现读同一个
+    /// 设置单例，不需要通知管线。
+    /// </para>
+    /// </summary>
+    private void NoteActivationClick() => _ = PushActivationClickAsync();
+
+    private async Task PushActivationClickAsync()
+    {
+        if (!HeadlessPlayback) return;
+
+        var value = ActivationClickTogglesPlayback ? "1" : "0";
+
+        if (!await _playback.CommandAsync("script-message", VideoWindowContract.ActivationClick, value).ConfigureAwait(true))
+            Log.Debug(Category, $"「窗口不在前台时单击画面播放/暂停」（{value}）没能送到视频窗 —— uosc 还没起来？");
+    }
 
     /// <summary>
     /// 把左上角第二行那句文件信息（<see cref="PlaybackTitles.Subline"/> ＝「文件大小 · 分辨率 · 视频编码 ·
@@ -775,6 +812,9 @@ public sealed partial class PlayerViewModel
 
         PlaybackStarted?.Invoke();
         _ = PushNativeShortcutsAsync(force: true);
+        // 换片/换集也重推一次（同快捷键那一句）：握手那次若落在 uosc 装载之前，命令会落空；
+        // 这一句保证下一集起播时视频窗里的「单击画面播放/暂停」开关仍是设置里的值。
+        NoteActivationClick();
 
         _ = PopulateTracksAsync(_generation);
         _ = RefineChapterMarksAsync(_generation);

@@ -1575,6 +1575,11 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "按 F 退出后也不会被下一集顶回去",
                 () => playback.AutoFullscreenOnPlayback, value => playback.AutoFullscreenOnPlayback = value),
 
+            // 「窗口不在前台时单击画面播放/暂停」不在设置页：用户令 2026-11-20 把入口放到播放页右键菜单
+            // （见 PlayerPage.OnMoreMenuOpening 与 PlayerViewModel.PushPictureMenuAsync 的同名行）。
+            // 值仍存在 PlaybackSettings 里，跨重启保留；恢复默认／恢复配置整组抄 Playback 时跟着回默认，
+            // 正在播的独占窗口由 ShellPrefs.ApplyActivationClick 推给 uosc。
+
             // 「调整窗口大小后继续播放」那一行 2026-11-08 按用户令删掉了（「在设置中删掉这个选项，固定设置为打开」）：
             // 拖边收尾一律接着放，那一档没有第二个答案，所以设置页不再给它一行。拖动开始时先冻住那一半照旧
             // （判据在 Core 的 ResizeFreeze.Freezes），只对集成模式有效 —— 独占模式的窗口归 mpv 自己管。
@@ -3114,6 +3119,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
         ShellPrefs.ApplySubtitleTranslation();
+        // 独占模式那个开关同样住在视频窗脚本里：恢复默认／恢复配置把这一格盖回去之后也要推一次。
+        ShellPrefs.ApplyActivationClick();
 
         // 建行同步完成，后续 Task 只等字体/设备：在 await 前保留本次启动初读错误，不能借另一轮的读数。
         var reload = ReloadAsync();

@@ -460,6 +460,13 @@ public static class PlayerMenuCatalog
     public const string PlaybackInfoShortcut = "show-playback-info";
 
     /// <summary>
+    /// 「更多」里「窗口不在前台时单击画面播放/暂停」那一行的快捷键动作（2026-11-20 用户令「记得加快捷键」）。
+    /// 与 <see cref="PlaybackInfoShortcut"/> 同一个道理：两条管线的菜单行都要从同一个 Id 取当前键，
+    /// 而它不在目录树里。
+    /// </summary>
+    public const string BackgroundClickShortcut = "toggle-background-click";
+
+    /// <summary>
     /// 目录行右列要显示的快捷键文字：动作 Id → 当前生效键的屏上写法。取自 <see cref="ShortcutCatalog.Resolve"/>，
     /// 所以设置页重绑后这里跟着变；显式解绑的动作不进表，那一行就不显示右列，而不是显示一个按下去没用的键。
     /// </summary>

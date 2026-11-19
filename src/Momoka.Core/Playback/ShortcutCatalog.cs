@@ -153,6 +153,9 @@ public static class ShortcutCatalog
         new("speed-one-and-half", "切换到 1.5 倍速", K("2", ctrl: true)),
         new("speed-double", "切换到 2 倍速", K("3", ctrl: true)),
         new("danmaku-delay-reset", "弹幕延迟归零", K("D", shift: true)),
+        // 「窗口不在前台时单击画面播放/暂停」的开关（2026-11-20 用户令「记得加快捷键」）。B＝Background，
+        // 与菜单里那一行同一个动作；默认键 B 此前没人用（Alt+B 是次字幕 bidi，与它不同组合）。
+        new("toggle-background-click", "窗口不在前台时单击画面播放/暂停", K("B")),
         .. NativeMenuShortcuts.Actions,
         .. PlayerToolShortcuts.Actions
     ];

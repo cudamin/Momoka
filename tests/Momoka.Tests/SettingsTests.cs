@@ -450,6 +450,36 @@ internal static partial class SettingsTests
             Assert.True(loaded.Playback.AutoFullscreenOnPlayback, "开了就得记住，不然每次开机都要重开");
         });
 
+        // 「窗口不在前台时单击画面播放/暂停」（用户令 2026-11-20：「在设置中新增无论 momoka 播放页面是否为前台
+        // 窗口，都可以直接点击播放/暂停的选项」，同日续令把入口从设置页改到播放页右键菜单）。偏好值仍住在
+        // PlaybackSettings：和自动全屏同一类，装机默认关，缺键的旧文件行为不变，所以不需要迁移；
+        // 这里钉的正是那两件 —— 默认关、开了记得住。
+        Test("播放偏好：窗口不在前台时单击画面播放/暂停出厂是关的", () =>
+        {
+            var fresh = SettingsMigration.NewDefaults();
+            Assert.False(fresh.Playback.ActivationClickTogglesPlayback,
+                "出厂关 —— 没动过这一行的人仍是「第一下只把窗口带到前台」");
+
+            var older = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":" + AppSettings.CurrentSchemaVersion
+                    + ",\"Playback\":{\"AutoPlayNextEpisode\":true}}",
+                Protector);
+
+            Assert.False(older.Playback.ActivationClickTogglesPlayback);
+        });
+
+        Test("播放偏好：窗口不在前台时单击画面播放/暂停开着能记住", () =>
+        {
+            var original = SettingsMigration.NewDefaults();
+            original.Playback.ActivationClickTogglesPlayback = true;
+
+            var loaded = SettingsMigration.FromJson(
+                JsonSerializer.Serialize(original, SettingsSerializer.WriteOptions),
+                Protector);
+
+            Assert.True(loaded.Playback.ActivationClickTogglesPlayback, "开了就得记住，不然每次开机都要重开");
+        });
+
         Test("迁移：中文写进文件时不该变成 \\uXXXX", () =>
         {
             var settings = SettingsMigration.NewDefaults();

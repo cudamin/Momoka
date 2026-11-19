@@ -53,7 +53,9 @@ internal static partial class ShortcutTests
         });
         Test("扩展播放菜单：每个新增动作都执行真实目录，要求属性完整且恢复入口可达", () =>
         {
-            foreach (var action in ShortcutCatalog.Actions.Skip(70).Where(action => !PlayerToolShortcuts.Contains(action.Id)))
+            // 2026-11-20 起核心动作表末尾多了一条 toggle-background-click（动作表共 71 条），原生菜单动作
+            // 从下一条开始 —— 这里的 Skip 跟着那条一起后移。
+            foreach (var action in ShortcutCatalog.Actions.Skip(71).Where(action => !PlayerToolShortcuts.Contains(action.Id)))
             {
                 var node = AdditionalShortcuts.Plan(action.Id);
                 Assert.NotNull(node, action.Id);
