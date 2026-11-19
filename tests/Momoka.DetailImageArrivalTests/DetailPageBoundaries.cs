@@ -18,6 +18,7 @@ public sealed partial class DetailPage
     public ImageBrush BackdropImageBrush { get; } = new();
     public FrameworkElement BackdropPicture { get; } = new();
     public Image PosterImage { get; } = new();
+    public Border PosterSurface { get; } = new();
     public Image TitlePlate { get; } = new();
     public Image CornerArt { get; } = new();
     public Image FooterBanner { get; } = new();

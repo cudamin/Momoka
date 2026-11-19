@@ -89,6 +89,10 @@ namespace Microsoft.UI.Xaml.Controls
         public double ActualWidth { get; set; }
     }
 
+    // 封面转场表面（2026-11-19 起详情页用它包住转场图片）：这一套只编译关联封面抢排，
+    // 圆角表面本身是纯占位，生产控件由页面那一侧覆盖。
+    public sealed class Border : Microsoft.UI.Xaml.FrameworkElement;
+
     public sealed class Image : Microsoft.UI.Xaml.FrameworkElement
     {
         public static Microsoft.UI.Xaml.DependencyProperty SourceProperty { get; } = new("Source");

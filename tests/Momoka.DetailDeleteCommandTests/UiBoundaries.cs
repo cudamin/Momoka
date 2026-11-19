@@ -52,8 +52,22 @@ namespace Microsoft.UI.Xaml.Media.Imaging
     public sealed class BitmapImage;
 }
 
+namespace Microsoft.UI.Dispatching
+{
+    // 「更多」菜单里点预告片那一行只把开菜单排到下一拍；这一套不驱动真实调度。
+    public sealed class DispatcherQueue
+    {
+        public bool TryEnqueue(Action action) => true;
+    }
+}
+
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class MenuFlyout
+    {
+        public event EventHandler<object>? Closed;
+        public void Hide() => Closed?.Invoke(this, new object());
+    }
     public enum InfoBarSeverity { Informational, Success, Warning, Error }
     public enum ContentDialogResult { None, Primary, Secondary }
     public enum ContentDialogButton { None, Primary, Secondary, Close }
@@ -117,12 +131,13 @@ namespace Momoka.Shell.Views
     internal static partial class ItemCommands
     {
         internal static ItemCommand NextCommand { get; set; } = ItemCommand.Delete;
-        internal static void Show(EmbySession session, IShellActions shell, FrameworkElement owner, CardItem card,
+        internal static MenuFlyout Show(EmbySession session, IShellActions shell, FrameworkElement owner, CardItem card,
             Windows.Foundation.Point? position, IReadOnlyList<EmbyItem>? siblings = null, Action? changed = null,
             Action<CardItem>? removed = null, Action<CardItem>? watched = null, Style? presenterStyle = null,
-            Action? restart = null)
+            Action? restart = null, Action? trailer = null)
         {
             Invoke(NextCommand, shell, owner, card, siblings, changed, removed, watched);
+            return new MenuFlyout();
         }
     }
     // Only forwards view-model calls to the real VM from the supplied fresh Shell DLL.
@@ -131,6 +146,8 @@ namespace Momoka.Shell.Views
         private readonly EmbySession? _session;
         private readonly IShellActions? _actions;
         private readonly EmbyImageStore? _images;
+        private Microsoft.UI.Xaml.Controls.MenuFlyout? _moreMenu;
+        internal Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
         internal Momoka.Tests.DetailVmBridge ViewModel { get; }
         internal DetailPage(EmbySession session, IShellActions actions, EmbyImageStore images, Momoka.Tests.DetailVmBridge vm)
         {
@@ -140,5 +157,7 @@ namespace Momoka.Shell.Views
             ViewModel = vm;
         }
         internal void OpenMore(FrameworkElement owner) => OnMoreClicked(owner, new RoutedEventArgs());
+        // 预告片菜单属于另一条播放生命周期；本夹具只验证「更多」那一拍的菜单组装。
+        private Task ShowTrailersAsync(FrameworkElement anchor) => Task.CompletedTask;
     }
 }
