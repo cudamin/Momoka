@@ -154,6 +154,57 @@ try {
 Check ($docExit -eq 0) 'check-docs 自测通过：有效链接、外部链接、代码块与坏链接'
 Write-Output ($docOutput | Out-String)
 
+# ---- check-doc-commands.ps1 -------------------------------------------------------------------
+$commandChecker = Join-Path $PSScriptRoot 'check-doc-commands.ps1'
+$commandFixture = Join-Path $root 'commands'
+$null = New-Item -ItemType Directory -Path $commandFixture
+$commandDoc = Join-Path $commandFixture 'commands.md'
+$sentinel = Join-Path $commandFixture 'must-not-exist.txt'
+$example = @'
+# Commands
+
+```powershell
+& "$HOME/.dotnet/dotnet.exe" build ./fixture.csproj `
+  -c Release --no-restore
+[IO.File]::WriteAllText('__SENTINEL__', 'must not execute')
+throw 'must not execute'
+```
+
+~~~pwsh
+Write-Output '中文'
+~~~
+
+````text
+```powershell
+"$HOME/.dotnet/dotnet.exe" build
+```
+````
+
+```powershell-example
+if (
+```
+'@
+[IO.File]::WriteAllText($commandDoc, $example.Replace('__SENTINEL__', $sentinel.Replace("'", "''")) + "`n", $utf8Bom)
+$result = Run-Script $commandChecker @('-Path', $commandDoc)
+Check ($result.ExitCode -eq 0) '文档命令接受 BOM、中文、续行、powershell 与 pwsh，只解析完整示例'
+Check ($result.Output -match '2 个 PowerShell/pwsh 代码块') '文档命令跳过其他语言、外层文本中的嵌套示例与标明不完整的片段'
+Check (-not (Test-Path -LiteralPath $sentinel)) '文档命令不执行写文件、throw 或构建示例'
+
+$invalid = "# Commands`n`n" + '```powershell' + "`n" + '"$HOME/.dotnet/dotnet.exe" build ./fixture.csproj' + "`n" + '```' + "`n"
+[IO.File]::WriteAllText($commandDoc, $invalid, $utf8)
+$result = Run-Script $commandChecker @('-Path', $commandDoc)
+Check ($result.ExitCode -eq 1) '文档命令拒绝缺少调用运算符的可执行路径'
+Check ($result.Output -match 'commands.md:4: UnexpectedToken' -and $result.Output -notmatch 'fixture\.csproj') '文档命令错误定位到原文档行号且不回显命令内容'
+
+$incomplete = '~~~pwsh' + "`nWrite-Output 'fixture'`n"
+[IO.File]::WriteAllText($commandDoc, $incomplete, $utf8)
+$result = Run-Script $commandChecker @('-Path', $commandDoc)
+Check ($result.ExitCode -eq 1) '文档命令拒绝未闭合的 PowerShell 代码块'
+
+$missingCommandDoc = Join-Path $commandFixture 'missing.md'
+$result = Run-Script $commandChecker @('-Path', $missingCommandDoc)
+Check ($result.ExitCode -ne 0) '文档命令拒绝不存在的输入文件'
+
 Write-Output ''
 Write-Output ''
 Write-Output "共 $passed 项，全部通过。"

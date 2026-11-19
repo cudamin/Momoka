@@ -13,6 +13,9 @@ $lookup = '$dotnet = Join-Path $HOME ''.dotnet/dotnet.exe'''
 if ($source.Split([string[]]@($lookup), [StringSplitOptions]::None).Length -ne 2) { throw 'SDK discovery boundary changed.' }
 Save 'tools/quality.ps1' $source.Replace($lookup, '$dotnet = Join-Path $root ''fake-dotnet.ps1''')
 foreach ($name in @('check-scripts.ps1', 'check-diff.ps1', 'check-duplication.ps1')) { Save ("tools/$name") 'exit 0' }
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'check-doc-commands.ps1') -Destination (Join-Path $fixture 'tools/check-doc-commands.ps1')
+& git -C $fixture init --quiet
+if ($LASTEXITCODE -ne 0) { throw 'Cannot initialize anonymous command-check fixture.' }
 foreach ($name in @('check-docs.py', 'check-report-credentials.py')) { Save ("tools/$name") '' }
 Save 'fake-dotnet.ps1' @'
 [IO.File]::AppendAllText((Join-Path $PSScriptRoot 'calls.log'), (($args | ConvertTo-Json -Compress) + "`n"))
@@ -29,9 +32,12 @@ if ($Suite.Count -ne 1 -or $Suite[0] -ne 'Momoka.ArchitectureTests') { throw 'un
 exit 0
 '@
 $results = @()
-foreach ($mode in @('failure', 'warning', 'success', 'skip-build')) {
+foreach ($mode in @('failure', 'warning', 'success', 'skip-build', 'command-syntax')) {
     Save 'mode.txt' $mode
     Save 'calls.log' ''
+    $example = if ($mode -eq 'command-syntax') { '"$HOME/.dotnet/dotnet.exe" build ./fixture.csproj' }
+        else { '& "$HOME/.dotnet/dotnet.exe" build ./fixture.csproj' }
+    Save 'commands.md' ('```powershell' + "`n" + $example + "`n" + '```' + "`n")
     $flags = @()
     if ($mode -eq 'skip-build') { $flags += '-SkipBuild' }
     $log = Join-Path $run "$mode.log"
@@ -43,6 +49,7 @@ foreach ($mode in @('failure', 'warning', 'success', 'skip-build')) {
     } finally { $ErrorActionPreference = $saved }
     $calls = [IO.File]::ReadAllText((Join-Path $fixture 'calls.log'))
     $passed = if ($mode -in @('failure', 'warning')) { $code -ne 0 -and -not $calls.Contains('"run"') -and [IO.File]::ReadAllText($log).Contains('未执行') }
+        elseif ($mode -eq 'command-syntax') { $code -ne 0 -and [IO.File]::ReadAllText($log).Contains('UnexpectedToken') }
         elseif ($mode -eq 'skip-build') { $code -eq 0 -and $calls.Contains('fresh-architecture-runner') }
         else { $code -eq 0 -and $calls.Contains('"run"') }
     $results += [pscustomobject]@{ name=$mode; passed=$passed; exitCode=$code }

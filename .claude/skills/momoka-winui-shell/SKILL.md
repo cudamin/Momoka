@@ -16,6 +16,8 @@ Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviatio
 5. Make the smallest coherent change with its behavioral tests. Preserve Attach/identity/cancellation ownership, stable collections, input semantics and settings migrations. Avoid mechanical replacement just to increase the count of native APIs.
 6. Select verification from CLAUDE and [momoka-verification](../momoka-verification/SKILL.md). Source presence and unit tests do not establish material pixels, focus, native windowing or rendered virtualization.
 
+For a new control base style, a key resolved across resource dictionaries, or a dictionary load-order change, trace the actual application/page/theme resource scope rather than assuming a key in SDK generic.xaml is public. Follow CLAUDE's high-risk XAML minimum-load rule before the experience publish: instantiate the affected page/dialog and apply its template in anonymous isolation through an existing targeted entry. Compilation or text contracts do not establish resource lookup. Full theme, visual and input acceptance remains governed by unified delivery.
+
 ## Read by task
 
 | Task | Required reference |

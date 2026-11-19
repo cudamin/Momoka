@@ -19,6 +19,7 @@ if (-not $Repo) { $Repo = Join-Path $PSScriptRoot '..' }
 #   编译 + 空白        —— 闸门 1 的两条，参数与 docs/开发与验证.md 完全一致
 #   脚本检查           —— tools/check-scripts.ps1（BOM、LF、语法）
 #   文档链接           —— tools/check-docs.py（相对路径、锚点与技能索引）
+#   文档命令           —— tools/check-doc-commands.ps1（PowerShell 代码块，只解析）
 #   证据凭据           —— tools/check-report-credentials.py（只报位置与类别）
 #   架构依赖           —— tests/Momoka.ArchitectureTests（NetArchTest）
 #   重复代码           —— tools/check-duplication.ps1（jscpd，预算制）
@@ -110,6 +111,8 @@ try {
             throw "文档链接检查失败，日志 $log"
         }
     }
+
+    Invoke-ChildScript '文档命令语法（仅解析）' 'tools/check-doc-commands.ps1' @()
 
     Invoke-Step '报告凭据扫描（PROGRESS、台账与归档）' {
         $log = Join-Path $evidence 'report-credentials.log'
