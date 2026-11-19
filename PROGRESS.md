@@ -1,4 +1,4 @@
-## 2026-11-19 首页到详情封面转场保留圆角（临时分支，待统一验证）
+## 2026-11-19 首页到详情封面转场保留圆角（已合并 master，待统一验证）
 
 用户报「点击封面进入媒体详情页面时首页封面移到详情页的时候 ui 动画封面的圆角会消失」。根因是原生 `ConnectedAnimation` 前进与返回都直接截取 `Image`，静态页面的圆角却在外层 `Border` 上，飞行快照拿不到那层裁剪。
 
@@ -8,7 +8,9 @@
 
 **发布。** 产品与测试提交 `87e1b60`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `BBCB9B58B60B43D7D1F519F3A79ABC6465313BF08C2B2298EA673B3330802EFB`，`Momoka.dll` SHA256 `970CB3B19B693A941862B73467DBA3D5E79144F7147B78F15A198EFC10BBCDFB`。桌面 `Momoka-fix-detail-cover-corner.lnk` 已回读，目标与工作目录均为本树发布目录。仅体验刷新、不销账。
 
-**树与未验项。** 工作树 `C:/Users/89400/.codearts/worktrees/Momoka/fix-detail-cover-corner`，分支 `fix-detail-cover-corner`，基点 `4f38294`；未合并 master、未推远端。日常界面批次未跑探针、未拍验收截图，原生动画中间帧的圆角与静止封面视觉仍待统一验证；未连接真实服务器、未播放。
+**树与未验项。** 原工作树 `C:/Users/89400/.codearts/worktrees/Momoka/fix-detail-cover-corner`，原分支 `fix-detail-cover-corner`，基点 `4f38294`；未推远端。日常界面批次未跑探针、未拍验收截图，原生动画中间帧的圆角与静止封面视觉仍待统一验证；未连接真实服务器、未播放。
+
+**合并与主树复验。** 用户令「合并到主树」，在主树 `master` 的 `4f38294` 上以 `--no-ff` 合入，合并提交 `42e61ee`，无冲突。最终主树 Shell Release/x64 **0 警告 0 错误**；`Momoka.ConnectedAnimationTests` **83/83**、`Momoka.PageContractTests` **366/366**，均 0 失败 0 跳过。主树发布 **548 文件、290.1 MB**，`verify-publish` 通过；`Momoka.exe` SHA256 `B46EB9F7024A82F29E7FE048F84E390A176BD31ACC9146127AA0EE0AAA0F2A14`，`Momoka.dll` SHA256 `84805F72D43527F6CDDD02A16F72A86896C0D29442A569E22D3DA9F82CD66220`。桌面 `Momoka.lnk` 目标与工作目录均回读为主树发布目录。确认分支内容全部进入 master、工作树干净且无独有提交后，已删除 `Momoka-fix-detail-cover-corner.lnk`、原工作树与原分支。仅体验刷新、不销账；未推远端。
 
 ## 2026-11-19 项目规则与验证入口优化
 
