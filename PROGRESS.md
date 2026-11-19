@@ -1,3 +1,23 @@
+## 2026-11-20 0.3.0 统一验证与发布（闸门 1～3 通过、探针 27 红、闸门 4 带 3 红，未销账）
+
+用户令「交付」「提交代码到 github」「更新版本打包发布到 GitHub，生成一个微软商店商店安装包」，随后指定版本 **0.3.0** 并「我睡觉去了有什么其他问题你自己决定吧」；途中追加「以后打包发布时要带一个免安装 zip」。最终代码为主树 `master`（版本提交 `3661564`、夹具提交 `994e80c`、本记录），用户级偏好已记入项目记忆，发布规则同步写进[开发与验证](docs/开发与验证.md#发布与交付)。
+
+**版本与夹具修复（产品行为未改）。** `Directory.Build.props` 升到 `0.3.0`／`0.3.0.0`。全方案构建先红在两条 11-19 起就存在的测试夹具漂移：`Momoka.DetailImageArrivalTests` 编译 `DetailPage.ArtworkArrival.cs` 时缺 `Microsoft.UI.Xaml.Controls.Border` 桩与 `PosterSurface`（源自 `87e1b60`）；`Momoka.DetailDeleteCommandTests` 的生成切片仍按旧 `OnMoreClicked`／`ItemCommands.Show` 形状，缺 `_moreMenu`、`DispatcherQueue`、`TrailerButtonVisibility` 与 `trailer` 参数（源自 `66ed15a`）。按当前产品源补边界桩后，两个专项 **26/26**、**41/41** 通过。
+
+**闸门 1。** `tools/quality.ps1`（`artifacts/quality/20261120-013503`）**9/9 通过**：全方案 Release **0 警告 0 错误**；空白；64 个 PowerShell 脚本；文档链接；文档命令 198 个文档／151 个代码块 0 问题；报告凭据 0 命中；架构 **7/7**；重复代码 **66 段／1190 / 251641 行＝0.47%**；diff。jscpd 需在精简 PATH 下运行（原 PATH 过长时 npx 子进程找不到 jscpd，与 0.2.9 记录相同）。
+
+**闸门 2。** `Momoka.Tests` Release/x64 重新编译 **0 警告 0 错误**，全量 **5277/5277、0 失败 0 跳过**（`TEMP` 指本树 `artifacts/delivery-tmp`）。`tools/run-regressions.ps1 -All -IncludeExternal` **82/82 套全部 passed、0 失败 0 跳过 0 deferred**，外部 Node／Playwright／Edge 专项实际运行（`artifacts/regressions/20261119-174406500-c4c566d6c39b4d91a3bda0b6f19cab80/summary.json`）。
+
+**原生探针（主树开发构建，`--screen 1`）。** 全量 **226 项、199 过、27 红**，范围「未执行区域：无、未执行检查：0」，默认不跑 4 项（`shell-probe-20261119-180423784-15608`）。红项与 0.2.9 记录的环境签名和既有红同类：①`ScrollView offset=0 / State=Idle` 桌面签名（详情自定义两页、背景渐变、简洁详情底材、悬浮卡片、性能竖滚等）；②既有超时／旧红（媒体库弹窗五主题、主页多账号、设置搜索、快捷键、两项从属设置、MoviePilot 订阅详情与背景、四项性能、商店详情渐隐、动效原生候选提交帧）；③既有未归因红（集页角图 17.76×10、悬停预览图片夹具色差、MediaSimilar 右排、MP 长货架虚拟化、返回主页轮播淡入）；④两项偶发：文件选项下拉收起宽度 442 对 453（该用例 11-17～11-19 多数通过、11-18 也红过一次）、动效海报正式返回（`--probe-section motion` 定向复跑 **3 过 2 红**，海报前进／正式返回通过，余下两条是既有 ScrollView 与原生候选提交帧红）。没有一条被记作通过；末项复跑只用于区分偶发与确定性回归。
+
+**闸门 3。** `tools/publish.ps1 -Shortcut` 退出 0：**548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `BB3D06AE1EE6C71795AE184F2F8A88450DD6243352EFFA4834DEB0AC81CA4F01`，`Momoka.dll` SHA256 `7CD3AB758919838372B7E33E1D7E9CA15169F05ED5F9F69B0CCC310567746EC1`；桌面 `Momoka.lnk` 已写成功并回读本树发布目录。按新规则同时产出免安装 ZIP `artifacts/Momoka-0.3.0-win-x64.zip`（119,258,149 字节，SHA256 `36775C56495F36E6B8C436EA4E09364D9B5F4D3E9B382E01D04766C989601A9D`，550 条目，根目录含 `Momoka.exe`）。安装包 `artifacts/Momoka_windows-x64_0.3.0.exe`（84,961,218 字节，SHA256 `34D9E4BEF559BF26C0F510375B700E007FBF8882F1DB6FC4D256929437631965`）；商店上架包 `artifacts/Momoka-0.3.0-win-x64-store.msix`（122,105,655 字节，SHA256 `E47C9F95234EF68AC6C4E0722129DC5C675D10DE98347F199E347F589AA41A63`，554 条目，身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.3.0.0`／x64，未签名，只留本地由用户在 Partner Center 上传）。
+
+**闸门 4（红）。** `tools/selfcheck-diff.ps1` 跑发布件：首轮 190 项、失败 4、消失 0、降级 4、新增 0（`artifacts/selfcheck/run-66a9889b1468476582b7179f6dafde7c`）；同一构建复跑 190 项、失败 3、消失 0、降级 3、新增 0（`run-d14d403ff5c54d1ea186b9aeb43ec682`）。稳定红项 3 条：「播放回来那一页」（页面从播放返回后偏移 1144→1491；轨迹里刷新把 extent 从 1888 缩到 1541、再恢复时原生视图跳位）、「文件选项没出界」与「文件页文件选项」（字幕 412–656，可用 112–986，整排偏离左沿 248）。后两条在 `f53d2ee` 合并时已记录为与本批无关的既有红；「播放回来」在同日 11:41 的基线跑里通过，此后产品代码只多了版本号与测试夹具，且自检读取的真实账号 11-19 22:54 有新观看记录，按数据/运行现场变化如实保留为红，不据此改基线。首轮多出的「媒体信息表格（已渲染 0）」在复跑转绿，按采样时序记偶发。**闸门 4 未全绿。**
+
+**产物与远端。** `master` 推送、标签 `v0.3.0` 与 Release（pre-release）随后创建；上传安装包与免安装 ZIP 两件资产，回读字节数与 digest 一致。商店 MSIX 未上传，由用户在 Partner Center 完成。
+
+**未验证。** 真实服务器实屏与真实播放（未授权）；探针未覆盖的五主题逐张目视、高对比度、跨 DPI、Narrator／触摸／200% 文字；商店包安装与认证；闸门 4 的三条红没有记作通过。按规则全部待交付条目保持开放，本轮不销账。
+
 ## 2026-11-20 播放页置顶只认手动开关并持久化（集成与独占共用一份偏好）
 
 用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」；追问里选定「只认手动开关（推荐）」与「两边一起改」。起因是 2026-09-29 的「播放时自动置顶，暂停时自动取消置顶」：它会在第一条播放/暂停边沿盖掉用户存下的那一档 —— 本机 `PinWindowTopmost` 存的是 false，每次开播却照样置顶，开关像是没写进去。
