@@ -504,6 +504,55 @@ internal static class InputControlThemeTests
                     name + " 仍在控件上自设对齐，样式里的几何会被盖掉");
             }
         });
+        Test("编辑订阅：多选下拉的展开态按组合框下拉排", () =>
+        {
+            // 2026-11-19 用户指着展开的「订阅站点」截图一句「这个展开的选择栏也要改」。展开态原来还是
+            // Flyout 的默认件：16,15,16,17 的大内边距、456 的 MaxWidth、自带标题、底部一颗带底的小按钮。
+            var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
+            var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
+            var flyoutStyle = Resource(resources, "EditorMultiFlyout");
+            Assert.Equal("FlyoutPresenter", (string?)flyoutStyle.Attribute("TargetType"));
+            Assert.Equal("{StaticResource DefaultFlyoutPresenterStyle}", (string?)flyoutStyle.Attribute("BasedOn"));
+            var flyoutSetters = flyoutStyle.Elements(Xaml + "Setter").ToDictionary(
+                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
+            Assert.Equal("4", flyoutSetters["Padding"]);
+            Assert.Equal("1", flyoutSetters["BorderThickness"]);
+            Assert.Equal("{ThemeResource OverlayCornerRadius}", flyoutSetters["CornerRadius"]);
+            Assert.Equal("{ThemeResource ComboBoxDropDownBackground}", flyoutSetters["Background"]);
+            Assert.Equal("{ThemeResource ComboBoxDropDownBorderBrush}", flyoutSetters["BorderBrush"]);
+            Assert.Equal("Infinity", flyoutSetters["MaxWidth"]);
+
+            var optionStyle = Resource(resources, "EditorMultiOption");
+            Assert.Equal("CheckBox", (string?)optionStyle.Attribute("TargetType"));
+            Assert.Equal("{StaticResource DefaultCheckBoxStyle}", (string?)optionStyle.Attribute("BasedOn"));
+            var optionSetters = optionStyle.Elements(Xaml + "Setter").ToDictionary(
+                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
+            Assert.Equal("32", optionSetters["MinHeight"], "选项行没有按 ComboBox 的 32 高排");
+            Assert.Equal("11,5,11,5", optionSetters["Padding"]);
+            Assert.Equal("Stretch", optionSetters["HorizontalAlignment"]);
+
+            foreach (var name in new[] { "SubscriptionSitesInput", "FilterGroupsInput" })
+            {
+                var picker = Named(editor, name);
+                var flyout = picker.Element(Xaml + "DropDownButton.Flyout")!.Elements().Single();
+                Assert.Equal("{StaticResource EditorMultiFlyout}", (string?)flyout.Attribute("FlyoutPresenterStyle"), name);
+                Assert.Equal("BottomEdgeAlignedLeft", (string?)flyout.Attribute("Placement"), name);
+                // 展开态不再自带标题（框上那行标签已经写着），也不再放一颗带底的小按钮。
+                Assert.False(flyout.Descendants(Xaml + "TextBlock").Any(text =>
+                        (string?)text.Attribute("Style") == "{StaticResource EgSubheadStyle}"),
+                    name + " 的展开态又放回了标题");
+                Assert.False(flyout.Descendants(Xaml + "Button").Any(), name + " 的展开态又放回了带底的按钮");
+                var clear = flyout.Descendants(Xaml + "HyperlinkButton").Single();
+                Assert.Equal("32", (string?)clear.Attribute("MinHeight"));
+                Assert.Equal("Stretch", (string?)clear.Attribute("HorizontalAlignment"));
+                // 清空动作的文字要与上面每行的标签对齐：4 的内边距 + 20 的勾选框 + 11 的标签内缩。
+                Assert.Equal("31,0,11,0", (string?)clear.Attribute("Padding"));
+            }
+
+            var checkTemplate = Resource(resources, "EditorCheckTemplate");
+            Assert.Equal("{StaticResource EditorMultiOption}",
+                (string?)checkTemplate.Descendants(Xaml + "CheckBox").Single().Attribute("Style"));
+        });
         Test("搜索输入圆角：所有产品 AutoSuggestBox 继承共享样式，无局部旧值或遮蔽", () =>
         {
             var count = 0;

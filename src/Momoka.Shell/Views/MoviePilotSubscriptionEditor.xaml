@@ -144,9 +144,45 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!--
+          多选下拉展开后的那张表（2026-11-19，用户指着截图一句「这个展开的选择栏也要改」）。
+
+          同一天先把闭合态换成了 ComboBox 的壳，展开态还是 Flyout 的默认件：16,15,16,17 的大内边距、
+          456 的 MaxWidth、一块 FlyoutPresenterBackground，里面还自带一个标题和一颗带底的小按钮 ——
+          打开像一张小对话框，不像下拉。这里按 ComboBox 的下拉量：底与描边接
+          `ComboBoxDropDownBackground` / `ComboBoxDropDownBorderBrush`、1 像素边、`OverlayCornerRadius`
+          （8）、4 的内边距（ComboBox 是 0,4 的弹层内边距加每项 5,2 的外边，取同一档观感）；每一项是
+          一条 32 高的整行（勾选框 + 文字），与 ComboBoxItem 的 32 高、11 的左右内缩同一档，行与行之间
+          留 1 的缝，悬停时整行亮起一块 4 圆角的高亮（四支行底在浮层里就地钉成 ComboBoxItem 那对
+          SubtleFillColorSecondary／Tertiary —— 框架给复选框的行底本来是透明的，只有那只小方块会亮）。
+
+          底部「跟随系统」从一颗带底的按钮换成整行链接式动作，文字与上面每行的标签对齐（4 + 20 + 11）；
+          做法与筛选面板那颗「可勾选的下拉」底部的「全选」一致。标题「订阅站点」「优先级规则组」不再
+          放进表里：框上那行标签已经写着，ComboBox 的下拉也没有标题。
+
+          只改展开态这张表的几何与层级，不动勾选、跟随系统清空、保存中禁用这些行为。
+        -->
+        <Style x:Key="EditorMultiFlyout" TargetType="FlyoutPresenter" BasedOn="{StaticResource DefaultFlyoutPresenterStyle}">
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MaxWidth" Value="Infinity" />
+            <Setter Property="Background" Value="{ThemeResource ComboBoxDropDownBackground}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource ComboBoxDropDownBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
+        </Style>
+        <Style x:Key="EditorMultiOption" TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="11,5,11,5" />
+            <Setter Property="Margin" Value="0,1" />
+        </Style>
         <DataTemplate x:Key="EditorChoiceTemplate" x:DataType="mp:MoviePilotSubscriptionChoice"><TextBlock Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" /></DataTemplate>
         <DataTemplate x:Key="EditorCheckTemplate" x:DataType="vm:MoviePilotSubscriptionEditorChoiceRow">
-            <CheckBox x:Name="SelectEditorChoice" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}" HorizontalAlignment="Stretch"><TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" /></CheckBox>
+            <CheckBox x:Name="SelectEditorChoice" Style="{StaticResource EditorMultiOption}" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}"><TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" /></CheckBox>
         </DataTemplate>
     </UserControl.Resources>
     <Grid x:Name="EditorRoot" MinWidth="220" RowSpacing="4" SizeChanged="OnBodySizeChanged">
@@ -178,7 +214,29 @@
                         <TextBlock Text="订阅站点" Style="{StaticResource EgBodyStyle}" Margin="0,0,0,4" />
                         <DropDownButton x:Name="SubscriptionSitesInput" Style="{StaticResource EditorMultiPicker}" AutomationProperties.Name="选择订阅站点">
                             <TextBlock Text="{x:Bind ViewModel.SitesSummary, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
-                            <DropDownButton.Flyout><Flyout><StackPanel Spacing="8" Width="280"><TextBlock Text="订阅站点" Style="{StaticResource EgSubheadStyle}" /><ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{x:Bind ViewModel.Sites, Mode=OneWay}" ItemTemplate="{StaticResource EditorCheckTemplate}" /></ScrollViewer><Button x:Name="ClearEditorSites" Content="跟随系统" Click="OnClearSites" /></StackPanel></Flyout></DropDownButton.Flyout>
+                            <DropDownButton.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource EditorMultiFlyout}">
+                                    <StackPanel Width="280">
+                                        <StackPanel.Resources>
+                                            <!-- 浮层内容不在页面那棵树上，查不到 UserControl.Resources。框架给复选框的
+                                                 四条行底都是透明，悬停只有那只 20 的小方块会亮；这里就地钉成
+                                                 ComboBoxItem 用的那对细分底色，悬停时整行才有一块 4 圆角的高亮。 -->
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                        </StackPanel.Resources>
+                                        <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsControl ItemsSource="{x:Bind ViewModel.Sites, Mode=OneWay}" ItemTemplate="{StaticResource EditorCheckTemplate}">
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style TargetType="ContentPresenter"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+                                                </ItemsControl.ItemContainerStyle>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                        <HyperlinkButton x:Name="ClearEditorSites" Content="跟随系统" Click="OnClearSites" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" MinHeight="32" Padding="31,0,11,0" />
+                                    </StackPanel>
+                                </Flyout>
+                            </DropDownButton.Flyout>
                         </DropDownButton>
                         <TextBlock Text="订阅的站点范围，不选使用系统设置" Style="{StaticResource EditorHint}" />
                     </StackPanel>
@@ -206,7 +264,27 @@
                         <StackPanel x:Name="ExcludeField" Grid.Column="1" Spacing="4"><TextBox x:Name="ExcludeInput" Header="排除" Text="{x:Bind ViewModel.Exclude, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><TextBlock Text="排除资源标题，支持正则表达式" Style="{StaticResource EditorHint}" /></StackPanel>
                     </Grid>
                     <StackPanel Spacing="4"><TextBlock Text="优先级规则组" Style="{StaticResource EgBodyStyle}" Margin="0,0,0,4" />
-                        <DropDownButton x:Name="FilterGroupsInput" Style="{StaticResource EditorMultiPicker}" AutomationProperties.Name="选择优先级规则组"><TextBlock Text="{x:Bind ViewModel.FilterSummary, Mode=OneWay}" TextTrimming="CharacterEllipsis" /><DropDownButton.Flyout><Flyout><StackPanel Spacing="8" Width="280"><TextBlock Text="优先级规则组" Style="{StaticResource EgSubheadStyle}" /><ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{x:Bind ViewModel.FilterGroups, Mode=OneWay}" ItemTemplate="{StaticResource EditorCheckTemplate}" /></ScrollViewer><Button x:Name="ClearEditorFilters" Content="跟随系统" Click="OnClearFilters" /></StackPanel></Flyout></DropDownButton.Flyout></DropDownButton>
+                        <DropDownButton x:Name="FilterGroupsInput" Style="{StaticResource EditorMultiPicker}" AutomationProperties.Name="选择优先级规则组"><TextBlock Text="{x:Bind ViewModel.FilterSummary, Mode=OneWay}" TextTrimming="CharacterEllipsis" /><DropDownButton.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource EditorMultiFlyout}">
+                                <StackPanel Width="280">
+                                    <StackPanel.Resources>
+                                        <!-- 行底与「订阅站点」那张同一对，原因见那边。 -->
+                                        <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                        <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                        <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                        <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                    </StackPanel.Resources>
+                                    <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl ItemsSource="{x:Bind ViewModel.FilterGroups, Mode=OneWay}" ItemTemplate="{StaticResource EditorCheckTemplate}">
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <HyperlinkButton x:Name="ClearEditorFilters" Content="跟随系统" Click="OnClearFilters" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" MinHeight="32" Padding="31,0,11,0" />
+                                </StackPanel>
+                            </Flyout>
+                        </DropDownButton.Flyout></DropDownButton>
                         <TextBlock Text="不选时使用系统设置的优先级规则组" Style="{StaticResource EditorHint}" />
                     </StackPanel>
                     <Grid x:Name="GroupFields" ColumnSpacing="20" RowSpacing="16" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}">

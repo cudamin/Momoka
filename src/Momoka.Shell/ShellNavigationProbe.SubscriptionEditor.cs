@@ -40,6 +40,30 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(editor);
                 await SaveProbeScreenAsync($"mp-editor-basic-{theme.Id}-1000.png");
             }
+            var flyoutTheme = ThemeHost.Current.Id;
+            ThemeHost.Apply(Momoka.Theming.UiThemes.All[0].Id);
+            await LayoutAsync(editor);
+            var sites = Get<DropDownButton>(editor, "SubscriptionSitesInput");
+            sites.Flyout.ShowAt(sites);
+            await LayoutAsync(editor);
+            var flyout = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .SelectMany(popup => Descendants(popup.Child)).OfType<FlyoutPresenter>().Single();
+            Require(flyout.Padding == new Thickness(4) && flyout.CornerRadius.TopLeft == 8,
+                "多选下拉的展开态没有接 ComboBox 下拉那档内边距与圆角");
+            Require(flyout.Background is AcrylicBrush, "多选下拉的展开态不是 ComboBox 下拉那块亚克力");
+            var options = Descendants(flyout).OfType<CheckBox>().ToArray();
+            Require(options.Length == editor.ViewModel.Sites.Count
+                && options.All(option => Math.Abs(option.ActualHeight - 32) < 0.5),
+                "多选下拉的展开态没有按 ComboBox 的 32 高整行排");
+            var sample = editor.ViewModel.Sites.FirstOrDefault(row => !row.Selected) ?? editor.ViewModel.Sites[0];
+            var wasSelected = sample.Selected;
+            sample.Selected = !wasSelected;
+            await LayoutAsync(editor);
+            await SaveProbeScreenAsync("mp-editor-sites-flyout-1000.png");
+            sample.Selected = wasSelected;
+            sites.Flyout.Hide();
+            ThemeHost.Apply(flyoutTheme);
+            await LayoutAsync(editor);
             paths.SelectedItem = editor.ViewModel.Paths.Single(path => path.Value == "/downloads/anime");
             await LayoutAsync(editor);
             Require(editor.Read().SavePath == "/downloads/anime", "选择目录没有写入真实路径");
