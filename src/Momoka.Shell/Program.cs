@@ -330,6 +330,13 @@ internal static class Program
 
         var paths = AppPaths.Default;
 
+        // logs 下只有 app-*.log 有自己的保留期；探针一次运行留下的截图、WebView2 配置和测量文件没有。
+        // 探针/自检在开窗前同步回收（避免清理 IO 混进计时和截图），正常启动放到后台。见 LogProbeArtifacts。
+        PruneProbeArtifacts(paths.LogDirectory, beforeToolRun:
+            RequestsShellProbe(args) || RequestsSubtitleProbe(args) || RequestsSelfCheck(args)
+            || CompositionPlaybackProbe.IsRequested(args) || CursorVisibilityProbe.IsRequested(args)
+            || PlayerMotionProbe.IsRequested(args));
+
         if (RequestsShellProbe(args))
         {
             try
@@ -588,6 +595,31 @@ internal static class Program
         options.Tooling || options.ProbeShell || options.InspectShell || options.ProbeSubtitles || options.InspectSubtitles
         || options.ProbeComposition || options.ProbeCursor || options.ProbePlayerMotion
         || options.ProbeResizeOnly || options.ProbeResizeManual;
+
+    /// <summary>
+    /// 回收 logs 下过期的探针产物（口径见 <see cref="LogProbeArtifacts"/>）。单次最多删 64 个目录：
+    /// 积压分几次启动清完，探针开窗前也不会被一次几百 GB 的删除拖住。
+    /// </summary>
+    private static void PruneProbeArtifacts(string logDirectory, bool beforeToolRun)
+    {
+        void Prune()
+        {
+            try
+            {
+                var deleted = LogProbeArtifacts.Prune(logDirectory, DateTimeOffset.UtcNow,
+                    LogProbeArtifacts.Retain, maximumDeletes: 64);
+                if (deleted > 0) Log.Info(Category, $"已回收 {deleted} 个过期探针产物目录");
+            }
+            catch (Exception error)
+            {
+                // 清理是顺带的：失败只记一条，不能影响启动或探针。
+                Log.Warn(Category, "回收过期探针产物失败", error);
+            }
+        }
+
+        if (beforeToolRun) Prune();
+        else _ = Task.Run(Prune);
+    }
 
     private static void StartLogging(AppPaths paths)
     {

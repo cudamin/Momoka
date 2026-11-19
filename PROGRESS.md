@@ -15140,3 +15140,13 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 验证：Shell Release/x64 **0 警告 0 错误**（1 分 57 秒；把阈值写成 `36 + 13` 后复编 2 分 20 秒）；`Momoka.HomeFoldCompletionTests` **74/74**；全量 `Momoka.Tests` **5242/5242**（默认 TEMP 下两项 `C:\WINDOWS\TEMP` 下载用例环境红，TEMP 指本树 `artifacts/delivery-tmp` 后全绿）；`Momoka.PageContractTests` **358/358**；均 0 失败 0 跳过。`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 6 个变更路径通过。按日常界面规则未跑原生探针与验收截图；已按改好收尾发布 548 个文件、290.0 MB 到本树 `artifacts/publish/win-x64`，桌面 `Momoka-feat-shop-width-1850-KOcXd7.lnk` 指向该 exe（02:07），仅体验刷新、不销账。交付时需在 2560 宽（含侧栏）实屏核对轮播与货架同宽居中、滚动条不压内容，并看 1920／1600／1422 窄档与沉浸通栏回退。
 
 **合并（2026-11-18，用户令「合并」）。** 分支在主树 `master` 的 `860deba` 上以 `--no-ff` 合入，合并提交 `dbe7ee2`；两处文档冲突（`PROGRESS.md` 与 `docs/待交付批次.md`）按两边保留，本批编号顺延为 87。合并后在最终 master 上复编 Shell Release/x64 **0 警告 0 错误**（2 分 09 秒），`Momoka.HomeFoldCompletionTests` **74/74**、`Momoka.PageContractTests` **360/360**，0 失败 0 跳过。按规则合并本身未跑全量测试与探针；台账第 87 项的验证列仍需在统一验证时按最终代码重跑。主树已按改好收尾发布 `artifacts/publish/win-x64`（548 文件、290.0 MB，02:16）并刷新桌面 `Momoka.lnk`，仅体验刷新、不销账。内容已确认全部进入 master（代码与测试与分支一致），工作树干净；桌面 `Momoka-feat-shop-width-1850-KOcXd7.lnk` 已删除；分支与工作树因当前会话仍占用，登记待清理。未推远端。
+
+# 2026-11-19 日志目录回收过期探针产物（待统一验证）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/log-directory-size-mmJue0`，分支 `log-directory-size-mmJue0`。用户问「日志目录怎么体积这么大」，并确认口径：**删 3 天前的探针产物、每类保留最新一次**，以后按同一口径自动回收。
+
+- **实测。** `%LOCALAPPDATA%\Momoka\logs` 共 37.9 GB / 642,127 个文件 / 3,670 个目录：`shell-probe-*` 36.7 GB（2,547 次运行）、`trailer-preview` 1.1 GB（早期探针每次预告一份 WebView2 配置）、其余探针 78 MB；真正的 `app-*.log` 只有 3 MB。`FileLogSink` 只回收自己的 `app-*.log`，探针运行目录从来没有保留期。
+- **实现。** 新增 Core `LogProbeArtifacts`：按目录名里的 UTC 时间戳回收超过 3 天的 `<探针>-yyyyMMdd-HHmmssfff-pid` 运行目录，每类保留最新一次；`trailer-preview`／`trailer-web-fixture` 按子目录最后写入时间回收；未知条目、手工保留证据和 `app-*.log` 不碰，链接不递归删，删除失败留给下一次。`Program.Main` 在探针/自检启动前同步回收（单次最多 64 个目录，避免清理 IO 混进计时与截图），正常启动放到后台。
+- **一次性清理。** 用同一口径实际删除 2,855 个过期目录，`logs` 从 37.9 GB 降到 3.96 GB：最近 3 天 86 次 shell 探针 3.52 GB、最近 `trailer-preview` 413 MB、`gallery-frontend-source-20261114-741e` 16 MB，其余为近期小探针。旧文档/PROGRESS 引用的过期探针目录已随此次清理不在磁盘上。
+- **测试。** `tests/Momoka.Tests/LogProbeArtifactsTests.cs` 7 项：保留期、每类最新、未知条目与日志文件、`trailer-preview` 容器、占用失败与解锁补删、单次上限、目录缺失；已注册进主测试。`docs/开发与验证.md` 补保留口径。
+- **验证。** Core/Shell/Tests Release 编译 0 警告 0 错误；`Momoka.Tests` **5270/5270**，0 失败 0 跳过（154 秒）；全量解决方案构建在本机受 `py` 缺失与两个测试项目既有生成源错误阻断（`DetailDeleteCommandTests`、`DanmakuPerformanceTests`、`DanmakuSourceBoundaryTests`、`SubscriptionIdentityTests`、`DetailImageArrivalTests`），与本改动无关；`tools/check-diff.ps1` 5 个变更路径通过；`tools/check-doc-commands.ps1` 0 个问题。未跑质量闸门全量与原生探针（本次不改变界面行为）。待统一验证时复跑完整闸门。
