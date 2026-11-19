@@ -26,6 +26,12 @@ namespace Momoka.Playback;
 /// 唤回之后 250ms 内的第一下点击也会被吃掉一次（与 Windows 自己那套激活规矩同款）。独占模式那一份写在
 /// <c>assets/mpv-ui/scripts/uosc/main.lua</c> 的 <c>MOMOKA[click-pause-wake]</c>，判据是 mpv 的 <c>focused</c>。
 /// </para>
+/// <para>
+/// <b>这条规矩可以整个关掉</b>（用户令 2026-11-20）：「在设置中新增无论 momoka 播放页面是否为前台窗口，都可以
+/// 直接点击播放/暂停的选项」，同日续令把入口放进播放页右键菜单。开关是
+/// <see cref="Configuration.PlaybackSettings.ActivationClickTogglesPlayback"/>，默认关（保持 2026-09-23 的老行为）。
+/// 开着时 <see cref="IsWaking"/> 一律答假，叫醒那一下照常播放/暂停。
+/// </para>
 /// </summary>
 public static class WakeClick
 {
@@ -41,8 +47,14 @@ public static class WakeClick
     /// 认错的代价是吃掉用户真想要的那一次点击（「点一下没反应」），所以 <paramref name="foregroundNow"/> 为假时
     /// 一律不算：没激活成前台的点击不可能是叫醒那一下。
     /// </para>
+    /// <para>
+    /// <paramref name="activationClickTogglesPlayback"/> 是设置里的开关（默认关）：开着时这条规矩整个让开，
+    /// 第一下点击直接播放/暂停 —— 见 <see cref="Configuration.PlaybackSettings.ActivationClickTogglesPlayback"/>。
+    /// </para>
     /// </summary>
-    public static bool IsWaking(bool foregroundNow, bool wasForeground, long foregroundForMilliseconds) =>
-        foregroundNow
+    public static bool IsWaking(bool foregroundNow, bool wasForeground, long foregroundForMilliseconds,
+        bool activationClickTogglesPlayback) =>
+        !activationClickTogglesPlayback
+        && foregroundNow
         && (!wasForeground || foregroundForMilliseconds is >= 0 and <= RegainedMilliseconds);
 }

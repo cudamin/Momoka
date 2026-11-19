@@ -247,13 +247,14 @@ public sealed partial class PlayerPage
     // ---- ⚙更多 -------------------------------------------------------------------
     //
     // 2026-09-27 晚用户令「移除集成模式右下角的更多按钮」：右下那颗按钮（`MoreButton`）与控制条上它挂的
-    // 那个 `MoreMenu` 一起摘掉了。**菜单本体没有跟着删** —— 着色器三档、跳过片头/片尾、自动连播、播放信息
-    // 这几行只有这一处入口，删按钮不等于删功能。整棵拼装仍是「每次打开现算」（每行都显当前值）。
+    // 那个 `MoreMenu` 一起摘掉了。**菜单本体没有跟着删** —— 着色器三档、跳过片头/片尾、自动连播、
+    // 窗口不在前台时单击画面播放/暂停、播放信息这几行只有这一处入口，删按钮不等于删功能。整棵拼装仍是
+    // 「每次打开现算」（每行都显当前值）。
     //
     // ⚠️ 这一棵挂在右键画面菜单上（见 `OnPictureMenuOpening`）：2026-09-27 晚右下角那颗「更多」按钮撤掉时，
-    // 它是整页唯一的入口，于是整棵并进右键菜单 —— 着色器三档、跳过片头/片尾、自动连播、播放信息落在
-    // 画面目录之后，由一条分隔线隔开。`ProbePictureMenu` 按目录算期望行数，那一条的计数已同步把这一棵
-    // 数进去（见该处的注释）。
+    // 它是整页唯一的入口，于是整棵并进右键菜单 —— 着色器三档、跳过片头/片尾、自动连播、后台单击开关、
+    // 播放信息落在画面目录之后，由一条分隔线隔开。`ProbePictureMenu` 按目录算期望行数，那一条的计数已同步
+    // 把这一棵数进去（见该处的注释）。
     //
     // 2026-09-29 用户令「删掉右键菜单里的这些」（截图从「片段循环」下面那条线拍到「选集…」）：跟控制条
     // 和键盘重复的那一整块摘掉了 —— 播放/暂停、统计、上一章节、下一章节、章节、音轨…、字幕…、播放速度…、
@@ -274,8 +275,9 @@ public sealed partial class PlayerPage
     /// <para>
     /// 2026-09-29 用户令「统一独占模式和集成模式的右键菜单选项」：这一棵在独占模式有了同款 ——
     /// <c>PlayerViewModel.PushPictureMenuAsync</c> 把同一批行（版本…、着色器、跳过片头片尾、自动播放
-    /// 下一集、播放信息…）按同一次序拼进推给 uosc 的菜单。两处各是各的 UI 栈（这边 XAML 行，那边 uosc
-    /// 菜单行），但行集、次序与文案必须一致 —— 改这边任何一行，那边要跟上，反过来也一样。
+    /// 下一集、窗口不在前台时单击画面播放/暂停、播放信息…）按同一次序拼进推给 uosc 的菜单。两处各是各的
+    /// UI 栈（这边 XAML 行，那边 uosc 菜单行），但行集、次序与文案必须一致 —— 改这边任何一行，那边要跟上，
+    /// 反过来也一样。
     /// </para>
     /// </summary>
     private void OnMoreMenuOpening(MenuFlyout menu, FrameworkElement anchor)
@@ -292,6 +294,7 @@ public sealed partial class PlayerPage
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(BuildSkipMenu());
         menu.Items.Add(BuildAutoPlayRow());
+        menu.Items.Add(BuildActivationClickRow());
         if (ViewModel.CanArrangeQueue)
         {
             var queue = new MenuFlyoutSubItem { Text = "本次播放队列", Name = "PlayerSessionVideoQueue" };
@@ -442,6 +445,31 @@ public sealed partial class PlayerPage
         row.Click += (source, _) =>
         {
             if (source is ToggleMenuFlyoutItem toggle) ViewModel.AutoPlayNextEpisode = toggle.IsChecked;
+        };
+
+        return row;
+    }
+
+    /// <summary>
+    /// 窗口不在前台时单击画面播放/暂停（用户令 2026-11-20：「不要添加到设置页面，添加到播放页面的右键菜单中」）。
+    /// 与 <see cref="BuildAutoPlayRow"/> 同一个形状、同一格设置的写入口；独占模式那一行在
+    /// <c>PlayerViewModel.PushPictureMenuAsync</c> 里随同一张菜单推给 uosc，两处文案与次序保持一致。
+    /// </summary>
+    private ToggleMenuFlyoutItem BuildActivationClickRow()
+    {
+        var row = new ToggleMenuFlyoutItem
+        {
+            Text = "窗口不在前台时单击画面播放/暂停",
+            IsChecked = ViewModel.ActivationClickTogglesPlayback,
+            // 右列那颗键（默认 B）与独占模式同一份取法：重绑后打开菜单就跟着变，解绑则不显示。
+            KeyboardAcceleratorTextOverride = PlayerMenuCatalog
+                .ShortcutTexts(ViewModel.ShortcutBindings)
+                .GetValueOrDefault(PlayerMenuCatalog.BackgroundClickShortcut)
+        };
+
+        row.Click += (source, _) =>
+        {
+            if (source is ToggleMenuFlyoutItem toggle) ViewModel.ActivationClickTogglesPlayback = toggle.IsChecked;
         };
 
         return row;

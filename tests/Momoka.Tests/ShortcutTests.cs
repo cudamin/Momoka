@@ -20,7 +20,7 @@ internal static partial class ShortcutTests
         RegisterNativeMenu();
         Test("快捷键表：新增动作保留原有动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(162, ShortcutCatalog.Actions.Count);
+            Assert.Equal(163, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");
@@ -57,6 +57,8 @@ internal static partial class ShortcutTests
             Assert.Equal(Key("BracketLeft"), Default("speed-down"));
             Assert.Equal(Key("Z"), Default("subtitle-delay-decrease"));
             Assert.Equal(Key("Z", shift: true), Default("subtitle-delay-increase"));
+            // 2026-11-20 添的那一颗：窗口不在前台时单击画面播放/暂停（B＝Background）。
+            Assert.Equal(Key("B"), Default("toggle-background-click"));
         });
 
         Test("快捷键表：四颗方向键各归一对步长，音量让到 Ctrl+方向键（2026-09-20 那两句话）", () =>

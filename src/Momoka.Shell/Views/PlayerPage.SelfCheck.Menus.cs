@@ -67,7 +67,8 @@ public sealed partial class PlayerPage
         // radio/toggle and been registered for refresh. Counted against the catalogue, not a number here, so a
         // newly checkable row is covered the day it is added. Reads mpv when the menu opened above; with no film
         // the reads came back null and nothing is ticked — a pass, since what is proved here is the wiring.
-        // 「更多」那一棵里没有可打勾的行，所以期望值仍只由目录给出。
+        // 「更多」那一棵里没有随 mpv 刷新打勾的行（2026-11-20 添的后台单击开关是设置行，不归 _pictureChecks 管），
+        // 所以期望值仍只由目录给出。
         var wantChecks = catalogue.Count(node => node.State is not null);
         var checks = _pictureChecks.Count;
 

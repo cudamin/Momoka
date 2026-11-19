@@ -96,6 +96,16 @@ public static class ShellPrefs
 
     public static void ApplyShortcuts() => ShortcutsChanged?.Invoke();
 
+    /// <summary>
+    /// 「窗口不在前台时，单击画面直接播放/暂停」改了（播放页右键菜单「更多」区，2026-11-20）。集成模式读的是
+    /// 同一个设置单例，下一次按下就认，不需要通知；独占模式按这条设置开关的地方住在 mpv 的 uosc 脚本里（那里
+    /// 读不到设置文件），只能由这一根线把新值推给正在播的视频窗。菜单里拨动的那一下由
+    /// <c>PlayerViewModel</c> 直接推；这一根线管的是恢复默认／恢复配置把 Playback 整组抄回去之后那一拍。
+    /// </summary>
+    public static event Action? ActivationClickChanged;
+
+    public static void ApplyActivationClick() => ActivationClickChanged?.Invoke();
+
     public static event Action? DanmakuChanged;
 
     public static void ApplyDanmaku() => DanmakuChanged?.Invoke();

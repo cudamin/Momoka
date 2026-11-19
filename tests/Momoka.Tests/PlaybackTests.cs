@@ -6952,30 +6952,49 @@ internal static class PlaybackTests
     // 是轮询记的、轮询抓不到那 1~5ms，于是它一直是陈值、叫醒那一下反被当普通点击——用户实测「点一下就播了」正是
     // 这个，现在「刚变前台」只留作轮询恰好抓到时的兜底。独占模式那份在 uosc 的 MOMOKA[click-pause-wake]
     // （判据是 mpv 的 focused 属性），MpvUiTests 里对着源码钉住。
+    //
+    // 2026-11-20 用户令加了一道设置（默认关）：开着时叫醒那一下也照常播放/暂停 —— 判据仍在这里，
+    // 开关只是让 IsWaking 整个答假（设置项见 PlaybackSettings.ActivationClickTogglesPlayback）。
 
     private static void RegisterWakeClick()
     {
         Test("叫醒点击：此刻是前台、上一拍还不是 —— 就是叫醒那一下，不该顺带暂停/播放", () =>
         {
-            Assert.True(WakeClick.IsWaking(foregroundNow: true, wasForeground: false, foregroundForMilliseconds: 99999),
+            Assert.True(WakeClick.IsWaking(foregroundNow: true, wasForeground: false, foregroundForMilliseconds: 99999,
+                    activationClickTogglesPlayback: false),
                 "点别的窗口再点画面：上一拍问到「不在前台」，这一下把窗口叫醒 —— 不作数（陈值 99999 也不影响）");
-            Assert.False(WakeClick.IsWaking(foregroundNow: true, wasForeground: true, foregroundForMilliseconds: 99999),
+            Assert.False(WakeClick.IsWaking(foregroundNow: true, wasForeground: true, foregroundForMilliseconds: 99999,
+                    activationClickTogglesPlayback: false),
                 "上一拍就已经在前台 ⇒ 普通点击，照常暂停/播放");
         });
 
         Test("叫醒点击：轮询正好抓到激活那一拍时，靠「刚变前台」兜底", () =>
         {
-            Assert.True(WakeClick.IsWaking(true, wasForeground: true, WakeClick.RegainedMilliseconds),
+            Assert.True(WakeClick.IsWaking(true, wasForeground: true, WakeClick.RegainedMilliseconds,
+                    activationClickTogglesPlayback: false),
                 "轮询恰好落在激活与按下之间、把上一拍前台位写成了 true —— 靠「刚变前台 ≤250ms」仍认成叫醒");
-            Assert.False(WakeClick.IsWaking(true, true, WakeClick.RegainedMilliseconds + 1),
+            Assert.False(WakeClick.IsWaking(true, true, WakeClick.RegainedMilliseconds + 1,
+                    activationClickTogglesPlayback: false),
                 "又是前台位 true、变前台还超过 250ms ⇒ Alt+Tab 唤回后隔一会才点，照常暂停/播放");
-            Assert.False(WakeClick.IsWaking(true, true, -1), "差值为负（时刻还没记）且上一拍已是前台，不算");
+            Assert.False(WakeClick.IsWaking(true, true, -1, activationClickTogglesPlayback: false),
+                "差值为负（时刻还没记）且上一拍已是前台，不算");
         });
 
         Test("叫醒点击：没激活成前台的点击不可能是叫醒那一下", () =>
         {
-            Assert.False(WakeClick.IsWaking(foregroundNow: false, wasForeground: false, 3),
+            Assert.False(WakeClick.IsWaking(foregroundNow: false, wasForeground: false, 3,
+                    activationClickTogglesPlayback: false),
                 "此刻都不是前台 ⇒ 这一下没把谁叫醒");
+        });
+
+        Test("叫醒点击：设置开着时，叫醒那一下也照常暂停/播放", () =>
+        {
+            Assert.False(WakeClick.IsWaking(foregroundNow: true, wasForeground: false, foregroundForMilliseconds: 99999,
+                    activationClickTogglesPlayback: true),
+                "设置 → 播放行为里的开关打开后，从别的窗口回来的第一下点击直接播放/暂停");
+            Assert.False(WakeClick.IsWaking(true, wasForeground: true, WakeClick.RegainedMilliseconds,
+                    activationClickTogglesPlayback: true),
+                "兜底那一支同样不再吃点击");
         });
     }
 
