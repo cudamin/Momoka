@@ -1,4 +1,4 @@
-## 2026-11-19 主页相同媒体去重（临时分支，待合并与统一验证）
+## 2026-11-19 主页相同媒体去重（已合并 master，待统一验证）
 
 用户报「主页媒体有时候会重复，显示两个一样的媒体」，截图中「最近添加 · 电视节目」的《战栗杀机》并排出现两次。`HomeViewModel.Visible` 原先把回包逐项交给货架，同一媒体重复返回时会生成多张卡，增量刷新也没有另一道身份去重。
 
@@ -8,7 +8,9 @@
 
 **发布。** 产品与测试提交 `ec71861`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `957DE04F7FFA722CF0D90700DB4B87AE7EBCAEEEF8321A66E22839B75538A8F0`，`Momoka.dll` SHA256 `5D6050BB3685300A95327F7A0756F552DF05D59F4286829D1DA7C047E26BCDB1`。首次发布因新树缺本地 `libmpv-2.dll` 停止，从主树复制项目既有同版本运行库（未入库）后载荷校验通过。桌面 `Momoka-fix-home-media-duplicates.lnk` 的目标与工作目录均已回读为本树发布目录。仅体验刷新、不销账。
 
-**树与未验项。** 工作树 `C:/Users/89400/.codearts/worktrees/Momoka/fix-home-media-duplicates`，分支 `fix-home-media-duplicates`，基点 `42e61ee`；未合并 master、未推远端。日常批次未跑探针、未拍验收截图；未连接真实服务器、未播放，真实服务器上出现该重复回包时的画面仍待统一验证。
+**树与未验项。** 原工作树 `C:/Users/89400/.codearts/worktrees/Momoka/fix-home-media-duplicates`，原分支 `fix-home-media-duplicates`，基点 `42e61ee`；未推远端。日常批次未跑探针、未拍验收截图；未连接真实服务器、未播放，真实服务器上出现该重复回包时的画面仍待统一验证。
+
+**合并与主树复验。** 用户令「合并」，在主树 `master` 的 `121494e` 上以 `--no-ff` 合入，合并提交 `068ef5c`；冲突仅 `PROGRESS.md` 与待交付台账，按两边保留解决，代码与测试无冲突。最终主树 Shell 与 `Momoka.Tests` Release 均 **0 警告 0 错误**，`home-performance-fixture` **61/61、0 失败 0 跳过**。本次仅合并，未跑全量测试与探针，未发布主树或刷新 `Momoka.lnk`。确认内容全部进入 master、原工作树干净且无独有提交后，已删除 `Momoka-fix-home-media-duplicates.lnk`、原工作树与原分支；Windows 长路径残留已用完整扩展路径清理。
 
 ## 2026-11-19 首页到详情封面转场保留圆角（已合并 master，待统一验证）
 
