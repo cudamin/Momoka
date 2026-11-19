@@ -1,3 +1,25 @@
+## 2026-11-20 播放页置顶只认手动开关并持久化（集成与独占共用一份偏好）
+
+用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」；追问里选定「只认手动开关（推荐）」与「两边一起改」。起因是 2026-09-29 的「播放时自动置顶，暂停时自动取消置顶」：它会在第一条播放/暂停边沿盖掉用户存下的那一档 —— 本机 `PinWindowTopmost` 存的是 false，每次开播却照样置顶，开关像是没写进去。
+
+**改了什么。**
+
+- 集成模式：`PlayerPage.OnStatusApplied` 删掉自动跟随；进场仍按 `SavedPinTopmost` 立回上次那一档（`EnterPlayer`），按钮／T 键一拨即写设置（`TogglePinByHand`）。`PinWindowTopmost` 出厂默认从开改回关（2026-11-08 的默认开随自动跟随一起作废），新装与「恢复默认」都是不置顶；旧文件里写着的值照旧尊重，不加迁移。
+- 独占模式：`StandaloneWindowPolicy.Options` 多一条 `ontop`，mpv 窗口按上次保存的那一档出生（写在自定义 mpv.conf 之后，用户拨的压过配置文件）。`LibMpvHandle` 在独占模式观察 mpv 的 `ontop`，经新的可选能力 `IPlayerWindowPin` → `PlaybackService.WindowPinChanged` → `PlayerViewModel.OnWindowPinChanged`／`SavePinTopmost` 写回同一份设置。uosc 的 `MOMOKA[ontop-follows-pause]` 整段撤下；那颗图钉的按钮本体与状态画法不动。
+- 传输探针两处为自动跟随准备的置顶保存／还原删掉（探针不再会动置顶）。`assets/mpv-ui` 改动按技术文档同批重钉批准载荷清单（`uosc/main.lua` 大小与 SHA256，`approvalId` 未动）。
+
+**测试。** 新增：设置出厂关、旧文件缺键读成关、存过的 true 读回、恢复默认回到关；`StandaloneWindowPolicy` 的 `ontop=yes/no`、集成模式零项、渲染契约不含它；`PlaybackService` 把 `IPlayerWindowPin` 的变化原样转发、收场后的回声不再转发；uosc 源码不再含 `follow_pause_ontop` 或 `set_property_bool('ontop'`。`ProbePin` 第三半从「播放立起、暂停放下」改成「两条边沿都不动置顶，图钉放斜时开播也不按上去」。
+
+**验证。** Shell/Core Release/x64 **0 警告 0 错误**（3 分 19 秒）；`Momoka.Tests` 全量 **5273/5273、0 失败 0 跳过**（161 秒）；`Momoka.LibMpvEndFileTests` 编译 0 警 0 错、运行 **49/49**；`dotnet format whitespace --verify-no-changes` 退出 0。发布 **548 文件、290.1 MB**，`verify-publish` 通过（批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `F56CF8826651B36F741BE4D9819B576A669BACC18C05E243D56645AE02F04536`，`Momoka.dll` SHA256 `2A0DEDF3BFD2DA5D364353A9624885AC3AD39E0DD287D55B1A7E8D49CFC5E8D9`；发布件里的 `uosc/main.lua` 与源文件 SHA256 `9b4e4975…7119dc` 一致。桌面 `Momoka-workbuddy.lnk` 已建立并回读指向本树发布目录（`publish.ps1 -SkipPublish` 的待验 deps 检查报 runtimepack 10.0.11 未批准，与本批改动无关，故只单独运行 `tools/shortcut.ps1`）。
+
+**来源钉与闸门。** 本批改了五份被 `Momoka.NaturalContinuationCallerTests` 钉住的来源（`IPlaybackBackend.cs`、`LibMpvBackend.cs`、`PlaybackService.Lifecycle.cs`、`PlayerViewModel.cs`、`PlayerViewModel.Events.cs`），逐份核对自然接续成员与 lease 规则未变后只更新这五份 SHA256（专项 `README.md` 已记）；`Run-Caller.ps1` **81/81、0 失败 0 跳过**，`Test-SourceExtraction.ps1` **10 个反例均按预期退出 1**，随后当前源重编并再次 **81/81**。`tools/quality.ps1` **9 项通过 7、失败 2**：全方案编译仍红在两条既有缺陷（`Momoka.DetailImageArrivalTests` 缺 `Microsoft.UI.Xaml.Controls.Border`，源于 `87e1b60`；`Momoka.DetailDeleteCommandTests` 的生成切片仍引用 `_moreMenu`／`TrailerButtonVisibility`，源于 `66ed15a`），架构依赖因此未执行；空白、脚本、文档链接、文档命令、凭据、重复率与 Git 变更检查均通过，本批触及的 Core／Shell／Tests／LibMpv 专项编译 0 警告 0 错误。
+
+自检（隔离目录 `%LOCALAPPDATA%\Momoka.SelfCheck\1cd3938a…`）里「置顶开关」**通过**，读数「不跟播放：置顶时 播放=True/0°、暂停=True/0°；放下后开播=False/35°」。同轮另有 **2 项失败**，都在详情页文件选项（「文件选项没出界」「文件页文件选项」：字幕 412–656 摆成 1 行、整排偏离左沿 248），与本批代码无关，但如实记红。随包 libmpv 二进制里查得到 `ontop` 选项名（只读字符串核对）。
+
+**没做／边界。** 没有真实起播（不连服务器、不写观看历史），独占窗口「按上次那一档出生、uosc 图钉一拨写回」这条原生链路没有实机走过；现有本地播放探针只覆盖集成管线，独占窗口的缺口按规则登记。没有拍验收截图；五主题、跨 DPI、读屏、触摸留给统一验证。自检探针只跑了受影响路径，没有另造断言失败反例。闸门 1 因两条与本批无关的既有测试编译红而未全绿，架构依赖未执行；自检另有 2 项详情页文件选项红。
+
+**提交与接手复核。** 产品、测试与资源提交 `f53d2ee`，文档随后另提交。接手本树后重编 Shell/Core 与 `Momoka.Tests` Release/x64 **0 警告 0 错误**，主测试 **5273/5273、0 失败 0 跳过**；`git diff --check`、`tools/check-diff.ps1`（23 个文本文件）通过。本树是临时分支，未合并、未推远端。
+
 ## 2026-11-19 设置窗口系统外观事件降级与日志修正
 
 用户拿设置窗口日志截图问「这是咋了」：`[WARN] 设置窗口: 订阅设置窗口系统外观失败，显示时继续核对` 加 `COMException 0x80070490`（`AccessibilitySettings.add_HighContrastChanged`）。先只读审查，随后令「你看着改吧」。
