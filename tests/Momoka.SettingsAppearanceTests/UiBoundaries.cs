@@ -213,7 +213,8 @@ namespace Momoka.Diagnostics
     public static class Log
     {
         public static readonly List<string> Lines = [];
-        public static void Warn(string category, string message, Exception? error = null) => Lines.Add(category + ":" + message + ":" + error?.Message);
+        public static void Info(string category, string message) => Lines.Add("info:" + category + ":" + message);
+        public static void Warn(string category, string message, Exception? error = null) => Lines.Add("warn:" + category + ":" + message + ":" + error?.Message);
     }
 }
 namespace Momoka.Shell.Views

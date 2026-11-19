@@ -42,27 +42,58 @@ internal sealed partial class SettingsWindow
     private void StartSystemAppearanceWatch()
     {
         _appearanceQueue = _window.DispatcherQueue;
-        try
+
+        // 系统外观事件在 WinUI 3 桌面应用里挂不上：两个系统设置事件的 add 直接回 E_NOTFOUND
+        // (0x80070490)。依据：Project Reunion 0.5/0.8 发行说明点名 UISettings.ColorValuesChanged
+        // 与 AccessibilitySettings.HighContrastChanged 在桌面应用不再支持；WindowsAppSDK issue #4075
+        // (2025-03) 仍如此；本机 2026-11-19（Windows 11 26300 / WinAppSDK 2.5.1）每个进程必现。
+        // 于是逐个挂、各自记账：这三颗挂不上只记一条 Info（显示期一秒轮询兜底，与
+        // DetailPage.Appearance.cs 同一套做法），只有窗口激活这颗本框架事件失败才值得一条 Warn。
+        var unavailable = new List<string>(3);
+        var firstFailure = 0;
+        _highContrastObserved = Watch("高对比", () =>
         {
             _appearanceAccessibility.HighContrastChanged += OnHighContrastChanged;
-            _highContrastObserved = true;
+            return true;
+        });
+        _colorValuesObserved = Watch("系统配色", () =>
+        {
             _appearanceSettings.ColorValuesChanged += OnColorValuesChanged;
-            _colorValuesObserved = true;
+            return true;
+        });
+        _effectsObserved = Watch("透明效果", () =>
+        {
             // This event is present in the current net.ref 19041 contract. Guard runtime availability.
-            if (ApiInformation.IsEventPresent("Windows.UI.ViewManagement.UISettings", "AdvancedEffectsEnabledChanged"))
-            {
-                _appearanceSettings.AdvancedEffectsEnabledChanged += OnAdvancedEffectsChanged;
-                _effectsObserved = true;
-            }
+            if (!ApiInformation.IsEventPresent("Windows.UI.ViewManagement.UISettings", "AdvancedEffectsEnabledChanged")) return false;
+            _appearanceSettings.AdvancedEffectsEnabledChanged += OnAdvancedEffectsChanged;
+            return true;
+        });
+        if (unavailable.Count > 0)
+            Log.Info(Category, $"系统外观事件不可用（0x{firstFailure:X8}）：{string.Join("、", unavailable)}，显示时按秒核对");
+
+        try
+        {
             _window.Activated += OnAppearanceWindowActivated;
             _activationObserved = true;
         }
         catch (Exception error)
         {
-            // Keep ordinary window usability; visible polling covers a missing event, not a setting change.
-            Log.Warn(Category, "订阅设置窗口系统外观失败，显示时继续核对", error);
+            // WinUI 自己的窗口事件没有「桌面应用不支持」这一说；挂不上要多看一眼。
+            Log.Warn(Category, "订阅设置窗口激活失败，显示时仍会核对", error);
         }
+
         RefreshSystemAppearance();
+
+        bool Watch(string name, Func<bool> attach)
+        {
+            try { return attach(); }
+            catch (Exception error)
+            {
+                if (firstFailure == 0) firstFailure = error.HResult;
+                unavailable.Add(name);
+                return false;
+            }
+        }
     }
 
     private void OnHighContrastChanged(AccessibilitySettings sender, object args) => QueueSystemAppearance();
@@ -110,6 +141,8 @@ internal sealed partial class SettingsWindow
     private void ResumeSystemAppearance()
     {
         RefreshSystemAppearance();
+        // 桌面应用挂不上系统外观事件（见 StartSystemAppearanceWatch），所以显示期间的一秒轮询不是
+        // 临时兜底而是常规路径：有任意一颗没挂上就一直跑，Hide 停掉，下次 Show 先当场核对一次。
         if (_appearanceStopped || _highContrastObserved && _colorValuesObserved && _effectsObserved) return;
         if (_appearanceQueue is null) return;
         try

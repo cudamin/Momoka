@@ -31,6 +31,37 @@ internal static class Program
             Assert.Equal(1, window.PaintCalls); window.Dispose(); window.Dispose();
             Assert.Equal(0, AppearanceFaults.Subscribers);
         });
+        Case("真实观察：高对比事件挂不上不连坐其余三颗，只记信息并按秒轮询", () =>
+        {
+            AppearanceFaults.FailOnce("add.Contrast");
+            using var window = Window();
+            Assert.Equal(3, AppearanceFaults.Subscribers, "配色／透明效果／窗口激活仍应挂上");
+            Assert.True(Momoka.Diagnostics.Log.Lines.Any(line => line.StartsWith("info:") && line.Contains("高对比")),
+                "平台不可用只记一条信息");
+            Assert.False(Momoka.Diagnostics.Log.Lines.Any(line => line.StartsWith("warn:")), "已知平台限制不记警告");
+            window.ShowForTest(); Assert.True(window.Queue.Timers.Single().IsRunning);
+            var paints = window.PaintCalls;
+            AppearanceFaults.Foreground = Color.FromArgb(255, 9, 8, 7);
+            AppearanceFaults.FireColor(); window.Queue.Drain();
+            Assert.Equal(paints + 1, window.PaintCalls);
+            Assert.Equal(AppearanceFaults.Foreground, window.SnapshotForTest!.Value.Foreground);
+        });
+        Case("真实观察：窗口激活挂不上才记警告，三颗外观事件齐时不轮询", () =>
+        {
+            AppearanceFaults.FailOnce("add.Activated");
+            using var window = Window();
+            Assert.Equal(3, AppearanceFaults.Subscribers);
+            Assert.True(Momoka.Diagnostics.Log.Lines.Any(line => line.StartsWith("warn:") && line.Contains("激活")));
+            Assert.False(Momoka.Diagnostics.Log.Lines.Any(line => line.Contains("系统外观事件不可用")));
+            window.ShowForTest(); Assert.Equal(0, window.Queue.Timers.Count);
+        });
+        Case("真实观察：运行时不提供透明效果事件不算失败，不写不可用信息", () =>
+        {
+            AppearanceFaults.EventPresent = false;
+            using var window = Window();
+            Assert.Equal(3, AppearanceFaults.Subscribers);
+            Assert.False(Momoka.Diagnostics.Log.Lines.Any(line => line.Contains("系统外观事件不可用")));
+        });
         Case("真实队列：offUI通知只post，不先读状态，UI drain才刷新", () =>
         {
             using var window = Window(); var paints = window.PaintCalls; var reads = AppearanceFaults.Reads;
