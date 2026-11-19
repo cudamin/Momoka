@@ -1,3 +1,15 @@
+## 2026-11-19 首页到详情封面转场保留圆角（临时分支，待统一验证）
+
+用户报「点击封面进入媒体详情页面时首页封面移到详情页的时候 ui 动画封面的圆角会消失」。根因是原生 `ConnectedAnimation` 前进与返回都直接截取 `Image`，静态页面的圆角却在外层 `Border` 上，飞行快照拿不到那层裁剪。
+
+**改法。** `PosterCard` 与 `DetailPage` 各给转场图片包一层只含这张图的 `PosterSurface`（`Border`，沿用 `EgPosterCornerRadius`），`CardDetailTransition` 的前进准备／启动与返回准备／启动全部改用这层表面；位图交接、高清图不降级、可见性判断、导航时序和取消回退不变。当前 WinUI 的 `Image` 没有 `CornerRadius` 成员，实际 XAML 编译已排除直接给图片加属性的方案。
+
+**验证。** 新增页面契约先证明旧代码 366 项中仅圆角项失败，修后 `Momoka.PageContractTests` **366/366**；`Momoka.ConnectedAnimationTests` **83/83**，并核对前进和返回的原生源／目标都是圆角表面而不是裸图片。Shell Release/x64 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 退出 0，`check-diff` 8 个文本文件通过，`git diff --check` 干净。
+
+**发布。** 产品与测试提交 `87e1b60`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `BBCB9B58B60B43D7D1F519F3A79ABC6465313BF08C2B2298EA673B3330802EFB`，`Momoka.dll` SHA256 `970CB3B19B693A941862B73467DBA3D5E79144F7147B78F15A198EFC10BBCDFB`。桌面 `Momoka-fix-detail-cover-corner.lnk` 已回读，目标与工作目录均为本树发布目录。仅体验刷新、不销账。
+
+**树与未验项。** 工作树 `C:/Users/89400/.codearts/worktrees/Momoka/fix-detail-cover-corner`，分支 `fix-detail-cover-corner`，基点 `4f38294`；未合并 master、未推远端。日常界面批次未跑探针、未拍验收截图，原生动画中间帧的圆角与静止封面视觉仍待统一验证；未连接真实服务器、未播放。
+
 ## 2026-11-19 项目规则与验证入口优化
 
 - 用户令「审查项目规则，针对后续开发提出优化建议」后确认「优化」。修复开发文档中缺少 PowerShell `&` 的标准命令，同步语言标记；新增 `tools/check-doc-commands.ps1`，仅解析完整 powershell/pwsh 围栏代码块，报告文件／行号／错误类型，接入质量闸门 1，不执行或回显示例。
