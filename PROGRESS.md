@@ -2,15 +2,17 @@
 
 用户附「订阅站点」与「搜索周期」并排的截图一句：「把这个订阅站点选择框改成跟下面搜索周期差不多的样式」。截图里两颗框摞在一起却是两套控件：搜索周期是 `ComboBox`（`EditorPicker`，走 `EgComboBoxStyle`，10 DIP 圆角、32 高、箭头离右边 14），订阅站点是 `DropDownButton`，穿的是平台按钮那壳（4 DIP 圆角、按钮底、箭头离右边 11），连标签到框的距离都差 4。
 
-**改了什么。** `Views/MoviePilotSubscriptionEditor.xaml` 的本地资源新增 `EditorMultiPicker`（`DropDownButton`，BasedOn `DefaultDropDownButtonStyle`），只把模板换成 ComboBox 的几何：`ComboBoxBackground`／`ComboBoxBorderBrush` 的底与描边、`ComboBoxBorderThemeThickness`（1）、`ComboBoxPadding`（12,5,0,7）、`ComboBoxMinHeight`（32）、右侧 38 宽箭头列里 12 号 `AnimatedIcon` 离边 14，圆角接 `EgSearchCornerRadius`（10）；三态改用 ComboBox 那四组颜色键，禁用时箭头一起收暗。订阅站点与进阶页的「优先级规则组」一起接上 —— 同一颗多选下拉、同一张弹窗，只改一颗会留两种壳；标签补 4 的下边距，与 ComboBox 表头的 8 对齐。多选浮层、跟随系统、UIA 展开／收起、保存中禁用都没动：它仍是 DropDownButton，没有换成普通 Button。
+**改了什么。** `Views/MoviePilotSubscriptionEditor.xaml` 的本地资源新增 `EditorMultiPicker`（`DropDownButton`，BasedOn `DefaultButtonStyle`），只把模板换成 ComboBox 的几何：`ComboBoxBackground`／`ComboBoxBorderBrush` 的底与描边、1 像素边、12,5,0,7 的内边距、32 的高度、右侧 38 宽箭头列里 12 号 `AnimatedIcon` 离边 14，圆角接 `EgSearchCornerRadius`（10）；三态改用 ComboBox 那四组颜色键，禁用时箭头一起收暗。订阅站点与进阶页的「优先级规则组」一起接上 —— 同一颗多选下拉、同一张弹窗，只改一颗会留两种壳；标签补 4 的下边距，与 ComboBox 表头的 8 对齐。多选浮层、跟随系统、UIA 展开／收起、保存中禁用都没动：它仍是 DropDownButton，没有换成普通 Button。
 
-**测了什么。** Shell 与 `Momoka.Tests` Release/x64 均 **0 警告 0 错误**；全量 **5260 项、全过、0 跳过**（新增「编辑订阅：多选下拉换成与组合框同一套几何」：圆角接全站输入那一档、内边距／高度／边框厚度接 ComboBox 的键、箭头列 `*|38`、12 号、`0,0,14,0`、三态顺序、两颗下拉都挂 `EditorMultiPicker` 且不再自设对齐、标签下边距 4）。首跑有一处红是约定「内联字号只减不增」—— 箭头回退字形写了 `FontSize="12"`，改接 `EgCaptionFontSize` 后回绿。`dotnet format whitespace --verify-no-changes` 退出 0、`git diff --check` 干净、`tools/check-diff.ps1` 2 个文本文件通过。
+**一次运行时事故与修法。** 首版把 BasedOn 写成 `DefaultDropDownButtonStyle` —— 那条样式确实在 Microsoft.UI.Xaml 的 generic.xaml 里，编译也过，但运行时不在应用能解析的那一层：用户一打开订阅页就弹「读取订阅失败 / Cannot find a Resource with the Name/Key DefaultDropDownButtonStyle」。改成 BasedOn `DefaultButtonStyle`（`DefaultComboBoxStyle` 与它都在应用作用域里，弹窗底部按钮长期这么接；壳本来整块自绘，基样式只给字体与系统焦点框）。同一类险的还有 `ComboBoxPadding`、`ComboBoxMinHeight`、`ComboBoxBorderThemeThickness` —— 它们和那条样式一样只活在 generic.xaml，于是按 ComboBox 桌面档把 12,5,0,7／32／1 写成本地数值，几何不变。契约测试同步盯住这两点（基样式必须是 `DefaultButtonStyle`、三条几何必须是数值）。
 
-**发布。** `tools/publish.ps1 -NoArchive -Shortcut`：`artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish.ps1` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `2EAC88AF94BAD542CDED6E8246E08D0858BCD0EDCF0C2C0B91FD62C799D558D9`，`Momoka.dll` SHA256 `2BEE20ADE45AD41FE593D368FF00A094D9076E4526D267427CDCA3DDD4B54091`。桌面 `Momoka.lnk` 仍写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），lnk 没重写；目标路径还是同一个 exe，双击即当前构建。仅体验刷新、不销账。
+**测了什么。** Shell 与 `Momoka.Tests` Release/x64 均 **0 警告 0 错误**；全量 **5260 项、全过、0 跳过**（新增「编辑订阅：多选下拉换成与组合框同一套几何」：基样式、圆角接全站输入那一档、12,5,0,7／32／1、箭头列 `*|38`、12 号、`0,0,14,0`、三态顺序、两颗下拉都挂 `EditorMultiPicker` 且不再自设对齐、标签下边距 4）。首跑有一处红是约定「内联字号只减不增」—— 箭头回退字形写了 `FontSize="12"`，改接 `EgCaptionFontSize` 后回绿。修完后跑原生探针 `--probe-shell --probe-section moviepilot --screen 2`（`shell-probe-20261119-023718746-26360`）**37/37、0 失败、退出 0**，其中「MoviePilot 编辑订阅双页、目录与宽窄主题」通过，弹窗不再报资源错误；实屏 `mp-editor-basic-{system,emby-dark,graphite,midnight,oled-black,plum}-1000.png` 与 `mp-editor-advanced-1000/520.png` 已逐张目视：订阅站点与搜索周期的圆角、高度、底与描边、箭头位置一致，进阶页的优先级规则组与同页组合框同形。`dotnet format whitespace --verify-no-changes` 退出 0、`git diff --check` 干净、`tools/check-diff.ps1` 2 个文本文件通过。
 
-**没验证的。** 没开真窗口看像素：新模板是照着 ComboBox 的模板抄的，实际圆角、32 高、箭头位置、悬停与禁用、浮层高度都要在统一验证时按 1000／520 两档宽度、深浅色各看一次；五主题、高对比度、跨 DPI、Narrator／触摸同样留那一轮。浮层里的复选框与「跟随系统」按钮本身没改。
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut`（修复后重发）：`artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish.ps1` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `3C2A0A795A9DE92F2CFDBC3413333289D94D924DA6C1C0EBFFE98F25E702EE2D`，`Momoka.dll` SHA256 `A4504582EF06CFFF1751FB792F2C8ADAE2CD91794F76705F3BD6F4D640AC117B`。桌面 `Momoka.lnk` 仍写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），lnk 没重写；目标路径还是同一个 exe，双击即当前构建。仅体验刷新、不销账。
 
-**树与提交。** 主树 `C:/Users/89400/Momoka` 的 `master`，产品与测试提交 `5d95cef`，文档随后另提交；未推远端。
+**没验证的。** 探针只拍了深色五主题与 system 档的宽窗、以及进阶页的 1000／520，浅色与 520 宽的基础页、高对比度、跨 DPI、Narrator／触摸、浮层展开后的高度仍要留到统一验证；浮层里的复选框与「跟随系统」按钮本身没改。
+
+**树与提交。** 主树 `C:/Users/89400/Momoka` 的 `master`，换壳提交 `5d95cef`、运行时修复 `f73ed4f`，文档随后另提交；未推远端。
 
 ## 2026-11-19 编辑订阅弹窗底部三颗键统一 4 DIP 圆角、32 高（日常界面批次，待统一验证）
 
