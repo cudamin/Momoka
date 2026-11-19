@@ -14,8 +14,20 @@ POLICY = "CLAUDE.md"
 DOC = "docs/开发与验证.md"
 SKILL = ".claude/skills/momoka-verification/SKILL.md"
 LEDGER = "docs/待交付批次.md"
+MATRIX = "docs/后端能力矩阵.md"
 REQUIRED = {
     POLICY: (
+        "每个可独立回滚的逻辑变更对应一个 Git 提交",
+        "新增行为或修复缺陷必须有相应测试",
+        "只修项目内既有缺陷且不参考外部实现时，不强制另找外部源码",
+        "强制查 Gallery 与外部源码",
+        "按项目既有规范直接改",
+        "提交级",
+        "批次级",
+        "统一交付级",
+        "日常体验刷新最多等待 30 秒",
+        "不在正文写死协作者模型版本",
+        "后端能力矩阵",
         "只维护 `master` 主树，其他分支都是临时分支",
         "分支以后不自动合并，我要要求了再合并",
         "改好收尾自动刷新桌面快捷方式",
@@ -45,7 +57,10 @@ REQUIRED = {
         "../CLAUDE.md#git-与协作",
         "../CLAUDE.md#四道闸门与日常交付",
         "](待交付批次.md)",
-        "改好收尾只发布当前树并刷新快捷方式",
+        "涉及应用运行产物时，改好收尾只发布当前树并刷新快捷方式",
+        "纯文档、仅测试或不随应用发布的检查工具不刷新应用快捷方式",
+        "最多 30 秒的只读等待",
+        "每个提交先编译本提交触及的项目与测试",
         "合并不跑这一闸",
         "py tools/check-main-tree-policy.py --self-test",
         "只检查文档，不合并、不构建、不运行应用或发布",
@@ -59,7 +74,10 @@ REQUIRED = {
         "../../../CLAUDE.md#git-与协作",
         "../../../CLAUDE.md#四道闸门与日常交付",
         "../../../docs/待交付批次.md",
-        "A completed change refreshes the desktop shortcut automatically",
+        "Every commit must compile the projects/tests it touches",
+        "A change that affects shipped runtime output publishes the current tree",
+        "non-shipped checking tools",
+        "wait at most 30 seconds",
         "Daily UI edits run no probes",
         "Branches are not merged automatically",
         "Merge only on an explicit user request",
@@ -89,6 +107,14 @@ REQUIRED = {
         "只登记待清理，不执行删除",
         "## 交付时怎么做",
         "## 已交付",
+    ),
+    MATRIX: (
+        "| 共享能力 | Emby | Jellyfin | 飞牛影视 | Plex |",
+        "仅离线协议与夹具，未连真实服务器",
+        "真实管理写入未验证",
+        "未接入；入口按条目来源隐藏",
+        "代码中的能力声明、适配器和契约测试是实现真源",
+        "同一批次更新本表",
     ),
 }
 FORBIDDEN = {

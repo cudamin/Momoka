@@ -16,6 +16,7 @@ from urllib.parse import unquote
 LINK = re.compile(r"!?\[([^\]]*)\]\(([^)]+)\)")
 INLINE_CODE = re.compile(r"`[^`]*`")
 HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
+SKILL_LINK = re.compile(r"\]\(\.claude/skills/([^/()]+)/SKILL\.md(?:#[^)]*)?\)")
 SCHEMES = ("http://", "https://", "mailto:", "computer:", "file:")
 
 
@@ -49,6 +50,22 @@ def tracked_docs(root: Path) -> list[Path]:
         return [root / name for name in output.decode("utf-8").split("\0") if name]
     except Exception:
         return sorted(path for path in root.rglob("*.md") if ".git" not in path.parts)
+
+
+def check_skill_index(root: Path) -> list[str]:
+    policy = root / "CLAUDE.md"
+    if not policy.is_file():
+        return []
+    indexed = set(SKILL_LINK.findall(INLINE_CODE.sub("", policy.read_text(encoding="utf-8-sig"))))
+    directory = root / ".claude" / "skills"
+    actual = {
+        path.parent.name
+        for path in directory.glob("*/SKILL.md")
+        if path.is_file()
+    } if directory.is_dir() else set()
+    return [f"CLAUDE.md: skill index missing {name}" for name in sorted(actual - indexed)] + [
+        f"CLAUDE.md: skill index names missing skill {name}" for name in sorted(indexed - actual)
+    ]
 
 
 def check_file(path: Path) -> list[str]:
@@ -102,13 +119,26 @@ def self_test() -> int:
             "[bad-anchor](b.md#不存在)\n",
             encoding="utf-8",
         )
+        skills = root / ".claude" / "skills"
+        for name in ("alpha", "orphan"):
+            (skills / name).mkdir(parents=True)
+            (skills / name / "SKILL.md").write_text("---\nname: fixture\n---\n", encoding="utf-8")
+        (root / "CLAUDE.md").write_text(
+            "[alpha](.claude/skills/alpha/SKILL.md)\n[gone](.claude/skills/gone/SKILL.md)\n",
+            encoding="utf-8",
+        )
+        index_failures = check_skill_index(root)
+        if not any("missing orphan" in failure for failure in index_failures):
+            raise AssertionError("self-test did not reject an unindexed skill")
+        if not any("names missing skill gone" in failure for failure in index_failures):
+            raise AssertionError("self-test did not reject a stale skill index entry")
         failures = [item for path in tracked_docs(root) for item in check_file(path)]
-        expected = ("missing.md", "missing anchor b.md#不存在")
+        expected = ("missing.md", "missing anchor b.md#不存在", "missing .claude/skills/gone/SKILL.md")
         for marker in expected:
             if not any(marker in failure for failure in failures):
                 raise AssertionError(f"self-test did not reject {marker}")
-        if len(failures) != 2:
-            raise AssertionError(f"self-test expected 2 failures, got {len(failures)}: {failures}")
+        if len(failures) != 3:
+            raise AssertionError(f"self-test expected 3 failures, got {len(failures)}: {failures}")
     print("Document link self-test passed: valid, external, fenced and inline links handled; broken file and anchor rejected.")
     return 0
 
@@ -123,9 +153,10 @@ def main() -> int:
     root = args.root.resolve()
     docs = tracked_docs(root)
     failures = [item for path in docs for item in check_file(path)]
+    failures.extend(check_skill_index(root))
     for failure in failures:
         print(failure)
-    print(f"Document link check: {len(docs)} files, {len(failures)} broken links.")
+    print(f"Document link check: {len(docs)} files, {len(failures)} broken links or skill-index gaps.")
     return 1 if failures else 0
 
 
