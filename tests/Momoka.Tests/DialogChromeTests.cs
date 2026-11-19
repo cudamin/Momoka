@@ -198,13 +198,14 @@ internal static class DialogChromeTests
             }
         });
 
-        Test("编辑订阅弹窗：底部三颗键同形，统一 4 DIP 圆角", () =>
+        Test("编辑订阅弹窗：底部三颗键同形，4 DIP 圆角与系统弹窗同高", () =>
         {
             var styles = Styles();
             var primary = styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgDialogPrimaryButtonStyle");
             Assert.Equal("Button", primary.Attribute("TargetType")?.Value);
             Assert.Equal("{StaticResource EgPrimaryButtonStyle}", primary.Attribute("BasedOn")?.Value);
-            Assert.Equal("4", Setters(primary).GetValueOrDefault("CornerRadius"));
+            var primarySetters = Setters(primary);
+            Assert.Equal("4", primarySetters.GetValueOrDefault("CornerRadius"));
 
             var secondary = styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgDialogSecondaryButtonStyle");
             Assert.Equal("Button", secondary.Attribute("TargetType")?.Value);
@@ -212,11 +213,12 @@ internal static class DialogChromeTests
             var setters = Setters(secondary);
             Assert.Equal("4", setters.GetValueOrDefault("CornerRadius"));
 
-            // 同高同内边距：主键的 MinHeight / Padding 从 EgPrimaryButtonStyle 继承，两处必须继续对上，
-            // 否则「形状统一」只剩圆角一样，高度和内边距还会各走各的。
-            var accent = Setters(styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgPrimaryButtonStyle"));
-            Assert.Equal(accent.GetValueOrDefault("MinHeight"), setters.GetValueOrDefault("MinHeight"), "主次键高度不一致");
-            Assert.Equal(accent.GetValueOrDefault("Padding"), setters.GetValueOrDefault("Padding"), "主次键内边距不一致");
+            // 同高同内边距：两条样式各写一次 32 高与常规内边距（EgPrimaryButtonStyle 的 44 胶囊尺寸被盖掉），
+            // 以后谁单独调一处，三颗又会长短不一。
+            Assert.Equal("32", setters.GetValueOrDefault("MinHeight"), "次键不是系统弹窗的 32 高");
+            Assert.Equal("32", primarySetters.GetValueOrDefault("MinHeight"), "主键不是系统弹窗的 32 高");
+            Assert.Equal("11,5,11,6", setters.GetValueOrDefault("Padding"), "次键内边距不是常规值");
+            Assert.Equal(primarySetters.GetValueOrDefault("Padding"), setters.GetValueOrDefault("Padding"), "主次键内边距不一致");
 
             var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionEditor.xaml.cs"));
             Assert.Contains("""["EgDialogPrimaryButtonStyle"]""", source);

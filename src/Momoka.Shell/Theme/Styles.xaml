@@ -633,22 +633,26 @@
       弹窗底部一排行动键（2026-11-19）。
 
       用户指着「编辑订阅」底部那三颗键说形状要统一：当时「保存」接的是 22 DIP 圆角的胶囊，
-      「取消订阅」「关闭」还是框架默认的 4 DIP 小圆角，一排里两套几何。选定的统一形状是框架那档
-      4 DIP：主行动仍靠强调色底和半粗字突出，危险次行动靠红字，三颗同高 44、同圆角、同内边距。
+      「取消订阅」「关闭」还是框架默认的 4 DIP 小圆角，一排里两套几何。统一到框架那档 4 DIP 之后
+      用户又说「按钮太大了」—— 44 高的胶囊一走，三颗全成了 44 高的大块，于是尺寸回到系统弹窗的
+      32 高、常规内边距：三颗同高、同圆角、同内边距，主行动仍靠强调色底和半粗字突出，危险次行动
+      靠红字。32 也是 `ContentDialogButtonMinHeight` 与 DefaultButtonStyle 的默认值，跟别的弹窗一致。
 
-      主键只覆盖 EgPrimaryButtonStyle 的圆角，三态、焦点环和禁用行为仍走 AccentButtonStyle；
+      主键只覆盖 EgPrimaryButtonStyle 的尺寸和圆角，三态、焦点环和禁用行为仍走 AccentButtonStyle；
       次键保留 DefaultButtonStyle 的中性底和三态，只补几何。只给这一张弹窗用，别处要跟随就显式
       接这两个键 —— 不写隐式 Button 样式：ContentDialog 底部的按钮也是普通 Button，隐式样式会连
       标签页、浮出层和小图标键一起改。
     -->
     <Style x:Key="EgDialogPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="11,5,11,6" />
     </Style>
 
     <Style x:Key="EgDialogSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="22,10" />
+        <Setter Property="Padding" Value="11,5,11,6" />
     </Style>
 
     <Style x:Key="EgIconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
