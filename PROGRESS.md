@@ -1,3 +1,17 @@
+## 2026-11-20 播放页右键菜单后台单击播放/暂停与 B 快捷键（已合并 master，待统一验证）
+
+用户令三连：先在设置中新增「无论播放页是否为前台窗口，都可以直接点击播放/暂停」的选项，并选定默认关；随后令「不要添加到设置页面，添加到播放页面的右键菜单中」；再令「记得加快捷键」。
+
+**改法。** 播放页右键菜单「更多」区新增「窗口不在前台时单击画面播放/暂停」，入口不在设置页；状态仍存在 `PlaybackSettings.ActivationClickTogglesPlayback`，默认关＝2026-09-23 的「第一下只激活窗口」。集成模式由 `WakeClick.IsWaking` 接受设置开关后放行；独占模式由宿主经 `momoka-activation-click` 把值推给 uosc 的 `MOMOKA[click-pause-wake]`，菜单开关经 `momoka-activation-click-toggle` 回宿主。新增快捷键动作 `toggle-background-click`（默认 **B**，可在设置 → 快捷键重绑），两条管线的菜单右列显示当前键。`main.lua` 改动已按规矩重钉 `assets/mpv-runtime/approved-payload.json` 的大小与 SHA256（`approvalId` 未动）。
+
+**验证。** Shell 与 `Momoka.Tests` Release/x64 **0 警告 0 错误**；全量 `Momoka.Tests` **5274/5274、0 失败 0 跳过**（新增叫醒点击开关、设置出厂值／持久化、uosc 契约、菜单开关消息与快捷键表计数）；`dotnet format whitespace --verify-no-changes`、`git diff --check` 通过。
+
+**发布。** 产品与测试提交 `752af50`。原工作树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `F56CF8826651B36F741BE4D9819B576A669BACC18C05E243D56645AE02F04536`，`Momoka.dll` SHA256 `D1E739DFBEEF103B4D5BB331DEC7F6E25BCFFD36DA141A188FFCC486E80CD369`。桌面 `Momoka-feat-global-play-pause-UE7v0J.lnk` 目标与工作目录均回读为该树发布目录。分支体验发布，不销账。
+
+**树与未验项。** 原工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-global-play-pause-UE7v0J`，原分支 `feat-global-play-pause-UE7v0J`，基点 `910fc90`；未推远端。未真实起播、未点击实测、未按 B 实测，未跑探针与验收截图；真实服务器播放按授权边界另行验收。
+
+**合并与清理。** 用户令「合并」，在主树 `master` 的 `910fc90` 上以 `--no-ff` 合入，合并提交 `918fa9f`，无冲突。本次仅合并，未在主树重跑全量测试或探针，未发布主树、未刷新 `Momoka.lnk`。确认内容全部进入 master、原工作树干净且无独有提交后，已删除 `Momoka-feat-global-play-pause-UE7v0J.lnk`、原分支与工作树；原工作树目录因本会话进程占用，内容已清空但空目录暂留，关闭会话后手动删除。
+
 ## 2026-11-19 设置窗口系统外观事件降级与日志修正
 
 用户拿设置窗口日志截图问「这是咋了」：`[WARN] 设置窗口: 订阅设置窗口系统外观失败，显示时继续核对` 加 `COMException 0x80070490`（`AccessibilitySettings.add_HighContrastChanged`）。先只读审查，随后令「你看着改吧」。
