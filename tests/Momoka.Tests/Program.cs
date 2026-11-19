@@ -721,6 +721,7 @@ internal static class Program
         UiLifecycleTests.Register();
         StartIntentTests.Register();
         DiagnosticsTests.Register();
+        LogProbeArtifactsTests.Register();
         NavigationTimingTests.Register();
         ScreenTests.Register();
         CardStripTests.Register();
