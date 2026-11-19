@@ -1,3 +1,15 @@
+## 2026-11-19 主页相同媒体去重（临时分支，待合并与统一验证）
+
+用户报「主页媒体有时候会重复，显示两个一样的媒体」，截图中「最近添加 · 电视节目」的《战栗杀机》并排出现两次。`HomeViewModel.Visible` 原先把回包逐项交给货架，同一媒体重复返回时会生成多张卡，增量刷新也没有另一道身份去重。
+
+**改法。** 在主页货架统一的可见项入口按 `IdentityKey`（来源 + 媒体 Id）保留第一次出现的条目；不按标题合并，不同来源的同编号条目、同剧不同单集仍各自独立，缺 Id 的条目无法确认身份，原样保留。删除与手动已看过滤、卡片顺序和稳定集合更新不变。
+
+**验证。** 新增真实 `HomeViewModel` + 匿名 HTTP 回归：同一最新清单重复返回《战栗杀机》两次并带另一部剧，首读与第二次增量刷新均只应显示两张卡。修复前该项得到 `a-latest-0,a-latest-0,a-latest-1` 并失败，修复后 `home-performance-fixture` **61/61**；完整主测试 **5263/5263、0 失败 0 跳过**。Shell 与 `Momoka.Tests` Release 均 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。
+
+**发布。** 产品与测试提交 `ec71861`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `957DE04F7FFA722CF0D90700DB4B87AE7EBCAEEEF8321A66E22839B75538A8F0`，`Momoka.dll` SHA256 `5D6050BB3685300A95327F7A0756F552DF05D59F4286829D1DA7C047E26BCDB1`。首次发布因新树缺本地 `libmpv-2.dll` 停止，从主树复制项目既有同版本运行库（未入库）后载荷校验通过。桌面 `Momoka-fix-home-media-duplicates.lnk` 的目标与工作目录均已回读为本树发布目录。仅体验刷新、不销账。
+
+**树与未验项。** 工作树 `C:/Users/89400/.codearts/worktrees/Momoka/fix-home-media-duplicates`，分支 `fix-home-media-duplicates`，基点 `42e61ee`；未合并 master、未推远端。日常批次未跑探针、未拍验收截图；未连接真实服务器、未播放，真实服务器上出现该重复回包时的画面仍待统一验证。
+
 ## 2026-11-19 首页到详情封面转场保留圆角（临时分支，待统一验证）
 
 用户报「点击封面进入媒体详情页面时首页封面移到详情页的时候 ui 动画封面的圆角会消失」。根因是原生 `ConnectedAnimation` 前进与返回都直接截取 `Image`，静态页面的圆角却在外层 `Border` 上，飞行快照拿不到那层裁剪。
