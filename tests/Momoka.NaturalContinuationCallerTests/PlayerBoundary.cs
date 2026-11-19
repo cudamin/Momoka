@@ -127,6 +127,9 @@ public sealed partial class PlayerViewModel
     private void AdoptServerAspect(EmbyItem item) { }
     private void NoteEpisodeCount() { }
     private void NoteSubline() { }
+    // 「窗口不在前台时单击画面播放/暂停」的 uosc 通知（2026-11-20，在 OnNowPlayingChanged 里随换集重推），
+    // 与自然接续无关；独占视频窗在这套 caller-only 夹具里不存在。
+    private void NoteActivationClick() { }
     private void ApplySkipOffer() { }
     private MediaSource? PlayingSourceOrFirst(EmbyItem? item) => item?.MediaSources.FirstOrDefault();
     private static string PlayingSourceLabel(EmbyItem item) => "inert";
