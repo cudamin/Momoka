@@ -368,8 +368,8 @@
     {
       "path": "mpv-ui/scripts/uosc/main.lua",
       "source": "assets/mpv-ui/scripts/uosc/main.lua",
-      "size": 85609,
-      "sha256": "b57f8c867152a66b3269356d9b22cf05cb0f9e372f0f09aeea99025d676b22e1"
+      "size": 85053,
+      "sha256": "af47665adf8e6c3af0cd744713a115c9b91cdb2e7c286f7f392ac1e34a3ec5ea"
     },
     {
       "path": "mpv-ui/scripts/momoka_analysis.lua",

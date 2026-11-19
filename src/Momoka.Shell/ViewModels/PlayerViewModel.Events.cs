@@ -656,6 +656,21 @@ public sealed partial class PlayerViewModel
         Tracks = update.Value;
     });
 
+    /// <summary>
+    /// 独占窗口那颗图钉改了（uosc 顶栏、T 键、窗口自己的变化都从同一条 ontop 观察出来）：把用户的选择
+    /// 记进设置，与集成模式 <see cref="Views.PlayerPage"/> 的 TogglePinByHand 同一条账。2026-11-20 起
+    /// 没有别的东西会动它 —— 播放/暂停的自动跟随已按用户令撤下，所以这里收到的每一次变化都来自人。
+    /// <para>
+    /// 落盘在 UI 线程上做；播放已经收场时迟到的属性变更不记账 —— 那是窗口关掉时的回声，不是用户又拨了
+    /// 一下（下一次播放的出生值从保存的那一档来，不能被回声改掉）。
+    /// </para>
+    /// </summary>
+    private void OnWindowPinChanged(bool pinned) => OnUi(() =>
+    {
+        if (!_playback.IsPlaying) return;
+        SavePinTopmost(pinned);
+    });
+
     private void OnNowPlayingChanged(PlaybackUpdate<EmbyItem?> update) => OnUi(() =>
     {
         if (update.AudioOnly) return;

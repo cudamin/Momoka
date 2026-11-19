@@ -88,9 +88,10 @@
 -- │     MOMOKA[topbar-pin]    右上角置顶按钮（push_pin）：点它 cycle ontop（置顶这块 mpv 窗口）；状态画在
 -- │                             图钉的姿势上 —— 未置顶斜 35°、置顶立正（用户令 2026-09-29「置顶不要长亮」，
 -- │                             见 render 里 MOMOKA[topbar-pin-tilt]）；状态由 main.lua 的 ontop 观察器送进来
--- │     MOMOKA[ontop-follows-pause] 置顶跟着播放状态走：在播 ontop yes、暂停 no（用户令 2026-09-29
--- │                             「播放时自动置顶，暂停时自动取消置顶」），换片由 file-loaded 补一拍，
--- │                             空闲不跟；手动 cycle ontop 仍即时生效，只撑到下一条边沿
+-- │                             **置顶只认人拨**（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，
+-- │                             不再固定设置为置顶」）：2026-09-29 那套 MOMOKA[ontop-follows-pause] 已整段
+-- │                             撤下，ontop 的出生值由宿主按上次保存的那一档经 --ontop 给，之后每次变化
+-- │                             经宿主写回设置
 -- │     MOMOKA[topbar-back-glass] 返回键可见底与标题那块玻璃**同形同色**：都高 size-2*margin、同从
 -- │                             self.ay+margin 起；返回键那一块四周各让 margin（左缘＝窗口左缘＋margin，
 -- │                             用户令 2026-09-28 更晚「左边的空隙要和上面的一样大」）；静止档不透明度取
@@ -901,7 +902,8 @@ mp.observe_property('window-maximized', 'bool', create_state_setter('maximized',
 -- MOMOKA[topbar-pin] — 顶栏那颗置顶按钮（TopBar.lua 的 push_pin）要的第二个数：mpv 窗口此刻是不是置顶。
 -- 形状与上面两条一模一样（同一个 create_state_setter：写 state + request_render 各一次），因为「谁改的它」
 -- 不重要 —— 按钮自己（cycle ontop）、mpv 自己的快捷键或将来别处改了，都从这里回到顶栏重画一遍。
--- **不经过宿主**：置顶在这里就是一扇 mpv 窗口的属性，宿主那边的 TopMost 管的是它自己的主窗口（集成模式）。
+-- **不经过 uosc 转给宿主**：置顶在这里就是一扇 mpv 窗口的属性，宿主在同一个 mpv 实例上直接观察它并写回
+-- 设置（见 LibMpvHandle 的 ObserveTopMost）；宿主那边的 TopMost 管的是它自己的主窗口（集成模式）。
 mp.observe_property('ontop', 'bool', create_state_setter('ontop'))
 mp.observe_property('idle-active', 'bool', function(_, idle)
 	set_state('is_idle', idle)
@@ -909,19 +911,9 @@ mp.observe_property('idle-active', 'bool', function(_, idle)
 	mp.commandv('script-message-to', 'thumbfast', 'clear')
 end)
 mp.observe_property('pause', 'bool', create_state_setter('pause'))
--- MOMOKA[ontop-follows-pause] — 独占那颗图钉跟着播放状态走（用户令 2026-09-29「播放时自动置顶，暂停时
--- 自动取消置顶」）：在播＝ontop yes、暂停＝ontop no，顶栏图钉立没立正由上面那条 ontop 观察器跟着画。
--- 手动那颗（cycle ontop）仍即时生效，只是只撑到下一条边沿 —— 与集成那头 SetPinned 的规矩同一句
--- （PlayerPage.OnStatusApplied）。两处来源：pause 的每一条边沿（uosc 按钮、快捷键、宿主经 IPC 暂停，
--- 从哪来都一样）；以及 file-loaded —— 片与片之间 pause 常常不变（换片不换窗，同窗换片那条路），
--- 光盯它会漏掉「新片开播」这一下。空闲不跟（idle-active）：没有片子在放，置不置顶归手动，
--- 别把空闲那扇窗也按到顶上。
-local function follow_pause_ontop(paused)
-	if mp.get_property_bool('idle-active') then return end
-	mp.set_property_bool('ontop', not paused)
-end
-mp.observe_property('pause', 'bool', function(_, paused) follow_pause_ontop(paused) end)
-mp.register_event('file-loaded', function() follow_pause_ontop(mp.get_property_native('pause')) end)
+-- 2026-11-20 起置顶只认人拨（用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」）：
+-- 这里原有 MOMOKA[ontop-follows-pause]（在播 ontop yes、暂停 ontop no），整段撤下。出生值由宿主经
+-- --ontop 按上一次保存的那一档给，之后每一次变化由宿主观察写回设置 —— 播放、暂停、换片都不再动它。
 mp.observe_property('volume', 'number', create_state_setter('volume'))
 mp.observe_property('volume-max', 'number', create_state_setter('volume_max'))
 mp.observe_property('mute', 'bool', create_state_setter('mute'))

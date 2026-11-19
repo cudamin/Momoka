@@ -70,6 +70,12 @@ public sealed partial class PlaybackService(
     public event Action<PlayerStatus>? StatusChanged;
     public event Action<IReadOnlyList<MpvTrack>>? TracksChanged;
     public event Action<string, string>? VideoWindowMessage;
+
+    /// <summary>
+    /// 独占视频窗的置顶被用户改了（uosc 那颗图钉、T 键；mpv 的事件线程）。宿主把它写回设置 —— 与集成
+    /// 模式那颗按钮同一条账，见 <c>PlayerViewModel.SavePinTopmost</c>。集成模式没有这扇窗，不会发。
+    /// </summary>
+    public event Action<bool>? WindowPinChanged;
     public event Action<PlaybackUpdate<EmbyItem?>>? NowPlayingUpdated;
     public event Action<PlaybackUpdate<PlayerStatus>>? StatusUpdated;
     public event Action<PlaybackUpdate<IReadOnlyList<MpvTrack>>>? TracksUpdated;

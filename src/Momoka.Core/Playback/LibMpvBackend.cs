@@ -344,9 +344,11 @@ public sealed class LibMpvBackend(
         foreach (var option in uiOptions ?? []) Set(context, option.Key, option.Value);
         if (request.SelectedExternalSubtitle is not null) Set(context, "sid", "no");
 
-        // 独占模式那扇 mpv 窗口的窗口策略（窗口形状跟画面、出生尺寸下限、拖窗吸附）—— 参考项目 mpv.conf
-        // 那一组里的三条，理由与出处见 StandaloneWindowPolicy。与上面那串同在管线契约之前，且都不是必需项。
-        foreach (var option in request.AudioOnly ? [] : StandaloneWindowPolicy.Options(pipeline)) Set(context, option.Key, option.Value);
+        // 独占模式那扇 mpv 窗口的窗口策略（窗口形状跟画面、出生尺寸下限、拖窗吸附、按上次保存的那一档
+        // 置顶）—— 参考项目 mpv.conf 那一组里的三条，加 2026-11-20 的播放页置顶偏好，理由与出处见
+        // StandaloneWindowPolicy。与上面那串同在管线契约之前，且都不是必需项。
+        foreach (var option in request.AudioOnly ? [] : StandaloneWindowPolicy.Options(pipeline, playback.PinWindowTopmost))
+            Set(context, option.Key, option.Value);
 
         // 「开始播放后自动全屏」在独占模式的落地：起播即全屏，不先冒一个小窗再跳
         // （mpv 自建窗口没有宿主动画可借，直接以全屏出生就是最接近集成模式的形态）。
@@ -530,7 +532,7 @@ internal sealed class LibMpvHandle(
     IntPtr context,
     IVideoSurface? surface,
     PlaybackLaunchSignature? signature,
-    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl, IShaderBatchPlayerControl
+    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IPlayerWindowPin, IFileScopedPlayerControl, IShaderBatchPlayerControl
 {
     internal bool AudioOnly { get; init; }
     internal MpvCustomConfig? CustomConfig { get; init; }
@@ -573,6 +575,13 @@ internal sealed class LibMpvHandle(
     private const ulong ObserveChapters = 15;
     private const ulong ObserveLoopA = 16;
     private const ulong ObserveLoopB = 17;
+
+    /// <summary>
+    /// <c>ontop</c>，只在独占模式订阅：那扇窗口的置顶归 mpv 自己（uosc 顶栏那颗图钉、T 键的
+    /// <c>cycle ontop</c>、窗口自己的变化），宿主听见它才能把用户拨的那一档写回设置 —— 下次播放
+    /// 由 <see cref="StandaloneWindowPolicy"/> 带着窗口出生。集成模式没有这扇窗，订阅它没有意义。
+    /// </summary>
+    private const ulong ObserveTopMost = 18;
 
     /// <summary>
     /// 这一跑的收场信号。换片快路会把它换成新的一只（见 <see cref="SwapToAsync"/>）：旧的被
@@ -651,6 +660,13 @@ internal sealed class LibMpvHandle(
     public event Action<string, string>? HostMessageReceived;
 
     /// <summary>
+    /// 独占窗口的置顶变了（uosc 那颗图钉、T 键的 <c>cycle ontop</c>、窗口自己的变化都算）；只在事件
+    /// 线程上发，订阅方负责调度。第一次观察回执也会来一条 —— 那是出生时按设置写下去的那一档，宿主
+    /// 拿到的值与它刚存的相同，记账那边同值不落盘，所以不必特判。
+    /// </summary>
+    public event Action<bool>? TopMostChanged;
+
+    /// <summary>
     /// uosc 的握手是否已到（<c>momoka-ready</c>）。脚本先于宿主订阅启动，这一位把迟到错过的
     /// 握手留成可读的状态，而不是让「没收到」永远无法与「没订阅」区分。
     /// </summary>
@@ -706,6 +722,10 @@ internal sealed class LibMpvHandle(
             // 独占模式：出生时 force-window=no，窗口要等画面，所以「按住窗口」得等 vo-configured
             // 翻真（见 OnPropertyChange）。集成模式不需要——它的 force-window 一直是 immediate。
             Observe(ObserveVoConfigured, "vo-configured", LibMpvNative.FormatFlag);
+
+            // 同一扇窗的置顶：出生值由 StandaloneWindowPolicy 按上次保存的那一档写下去，之后谁改了都从
+            // 这里出来（见 ObserveTopMost）。
+            Observe(ObserveTopMost, "ontop", LibMpvNative.FormatFlag);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -1068,6 +1088,16 @@ internal sealed class LibMpvHandle(
                 Log.Debug(Category, "独占窗口已立起：force-window 改回 yes（播完与换片都不再收窗）");
             }
 
+            return;
+        }
+
+        // 独占窗口的置顶不参与 PlayerStatus：它不是画面状态，屏上那颗图钉归 uosc 自己画。这里只把用户
+        // 改的那一档送出去记账（宿主写回设置），然后就走 —— 别让一次置顶翻转顺手 Publish 一份没有变化
+        // 的状态。属性不可用时没有数据可读，静默跳过。
+        if (mpvEvent.ReplyUserData == ObserveTopMost)
+        {
+            var pinned = Marshal.PtrToStructure<LibMpvNative.MpvEventProperty>(mpvEvent.Data);
+            if (pinned.Data != IntPtr.Zero) TopMostChanged?.Invoke(ReadFlag(pinned));
             return;
         }
 

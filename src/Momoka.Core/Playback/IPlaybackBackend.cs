@@ -225,3 +225,19 @@ public interface IPlayerHostMessages
     /// <summary>一条已通过契约解析的 <c>momoka-*</c> 消息（key、value）。</summary>
     event Action<string, string>? HostMessageReceived;
 }
+
+/// <summary>
+/// 独占模式视频窗的置顶通道。画面在 mpv 自己的顶层窗口里，uosc 顶栏那颗图钉（<c>cycle ontop</c>）、
+/// T 键都改 mpv 的 <c>ontop</c>，而不是宿主的 <c>HostWindow.TopMost</c> —— 宿主听见这一位，才能把
+/// 用户的选择写回同一份设置，下一次播放按它让窗口出生。
+/// <para>
+/// 与 <see cref="IPlayerHostMessages"/> 同一条判据：类型测试，不往 <see cref="IPlaybackHandle"/> 上加
+/// 一条对所有后端都无意义的成员 —— 集成模式的画面在宿主窗里（走 <c>PlayerPage.SetPinned</c>），
+/// 外部 <c>mpv.exe</c> 的界面也不归我们画，两者都不实现它。
+/// </para>
+/// </summary>
+public interface IPlayerWindowPin
+{
+    /// <summary>窗口此刻是不是置顶。事件从 mpv 的事件线程发出，订阅方负责调度。</summary>
+    event Action<bool>? TopMostChanged;
+}

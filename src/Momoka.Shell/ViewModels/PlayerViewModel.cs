@@ -345,6 +345,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.TracksUpdated += OnTracksChanged;
         _playback.NowPlayingUpdated += OnNowPlayingChanged;
         _playback.VideoWindowUpdated += OnVideoWindowMessage;
+        _playback.WindowPinChanged += OnWindowPinChanged;
         ShellPrefs.ShortcutsChanged += NativeShortcutsChanged;
         ShellPrefs.DanmakuChanged += DanmakuSettingsChanged;
         ShellPrefs.ActivationClickChanged += NoteActivationClick;
@@ -957,15 +958,19 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     /// <summary>
     /// 播放页置顶的持久化偏好（<see cref="Configuration.PlaybackSettings.PinWindowTopmost"/>），页面进场时
-    /// 按它把窗口立回上一回的那一档。读写分两口而不是一个属性，因为「读」在播放开始、而「写」只属于用户
-    /// 拨开关那一下 —— 探针、退出播放与**播放/暂停的自动跟随**（2026-09-29 用户令「播放时自动置顶，暂停时
-    /// 自动取消置顶」）也会动窗口的置顶，那些都不许碰这份记账；播放一开始，第一条状态边沿就会按「在播」
-    /// 把它盖过去（见 PlayerPage.OnStatusApplied），它撑的只是进场到开播之间那一小段。
+    /// 按它把窗口立回上一回的那一档。读写分两口而不是一个属性，因为「读」在播放开始，而「写」只属于用户
+    /// 改主意那一下 —— 探针、退出播放都会动窗口的置顶，那些都不许碰这份记账。
+    /// <para>
+    /// 2026-11-20 起也没有「播放/暂停自动跟随」了（用户令「持久化保存播放页面右上角的置顶状态，不再固定
+    /// 设置为置顶」）：页面进场这一档就是这一场播放从头到尾的那一档，直到用户再拨一次。独占模式那颗图钉
+    /// 改的是 mpv 窗口的 <c>ontop</c>，由 <see cref="Views.PlayerPage"/> 之外的观察路经
+    /// <see cref="SavePinTopmost"/> 写回同一份偏好。
+    /// </para>
     /// </summary>
     internal bool SavedPinTopmost => Settings.Playback.PinWindowTopmost;
 
-    /// <summary>用户拨了置顶开关，记下来。同值不落盘，拨得再勤也只是内存里的一次比较；自动跟随不记账 ——
-    /// 那是播放的状态，不是用户的偏好。</summary>
+    /// <summary>用户改了置顶，记下来。同值不落盘，拨得再勤也只是内存里的一次比较；探针与退出播放不记账 ——
+    /// 那是窗口此刻的样子，不是用户的偏好。</summary>
     internal void SavePinTopmost(bool pinned)
     {
         if (Settings.Playback.PinWindowTopmost == pinned) return;
@@ -979,9 +984,9 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// 不落盘），传 null 只读不写；两讫都返回改前的值，探针的退出门拿它放回去。
     /// <para>
     /// 为什么要有它：<see cref="PictureInHostWindow"/> 在还没有会话时按设置推算，而这台机器的管线档是
-    /// 会被翻到独占的（「窗口命令按钮」那一条红过的环境病）—— 播放/暂停自动跟随那一关若照设置读，
-    /// 翻到独占的机器上就会假红。探针要的是那条代码路，不是这台机器此刻的口味，所以把两枚设置直接
-    /// 摆到集成再喂状态。
+    /// 会被翻到独占的（「窗口命令按钮」那一条红过的环境病）—— 「置顶开关」那一关要量的是集成播放页
+    /// 走真实状态的那条路（画面在宿主窗里、图钉在屏上），翻到独占的机器上就会假红。探针要的是那条
+    /// 代码路，不是这台机器此刻的口味，所以把两枚设置直接摆到集成再喂状态。
     /// </para>
     /// </summary>
     internal VideoPipelineKind ProbeForcePipeline(VideoPipelineKind? value)

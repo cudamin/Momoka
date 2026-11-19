@@ -276,6 +276,27 @@ internal static class PlaybackLifecycleTests
             Assert.Equal(0, fixture.Transport.Requests.Count(request => request.IsProgress));
         });
 
+        // 独占窗口那颗图钉（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」）：
+        // mpv 的 ontop 一变，服务原样转给宿主记账；播放收场之后迟到的回声不再转 —— 那会把用户刚存下的
+        // 那一档又改回窗口关掉时的样子。集成模式没有这扇窗（不实现 IPlayerWindowPin），不会走这条路。
+        Case("独占置顶：ontop 变化原样转给宿主，收场后的回声不再记账", async () =>
+        {
+            using var fixture = new Fixture();
+            var handle = new Handle();
+            fixture.Backend.Next = (_, _) => Task.FromResult<IPlaybackHandle>(handle);
+            var pins = new List<bool>();
+            fixture.Service.WindowPinChanged += pins.Add;
+            var playing = fixture.Service.PlayAsync(Ticket(), None);
+            await handle.Listening.Task;
+            handle.Pin(true);
+            handle.Pin(false);
+            Assert.Equal("True,False", string.Join(",", pins));
+            handle.End();
+            await playing;
+            handle.Pin(true);
+            Assert.Equal(2, pins.Count);
+        });
+
         Case("播放上报：注销取消已发出的暂停请求", async () =>
         {
             using var fixture = new Fixture();
@@ -635,7 +656,7 @@ internal static class PlaybackLifecycleTests
         }
     }
 
-    internal sealed class Handle : IPlaybackHandle, IPlayerControl, IFileScopedPlayerControl
+    internal sealed class Handle : IPlaybackHandle, IPlayerControl, IPlayerWindowPin, IFileScopedPlayerControl
     {
         private TaskCompletionSource<PlaybackExit> _exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private Action<PlayerStatus>? _statusChanged;
@@ -657,6 +678,9 @@ internal static class PlaybackLifecycleTests
         public PlayerStatus Status { get; private set; } = new();
         public event Action<bool>? PauseChanged;
         public event Action<IReadOnlyList<MpvTrack>>? TracksChanged;
+        public event Action<bool>? TopMostChanged;
+        /// <summary>独占窗口的 ontop 被改了（uosc 那颗图钉、T 键、窗口自己）。</summary>
+        public void Pin(bool pinned) => TopMostChanged?.Invoke(pinned);
         public IReadOnlyList<MpvTrack> CurrentTracks { get; set; } = [];
         public Func<IReadOnlyList<string>, CancellationToken, Task<bool>>? OnCommand { get; set; }
         public long FileGeneration { get; set; }

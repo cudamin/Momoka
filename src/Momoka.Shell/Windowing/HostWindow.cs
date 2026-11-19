@@ -981,13 +981,14 @@ internal sealed partial class HostWindow : IDisposable
     /// outright when the calling process is not already in the foreground.
     /// <para>
     /// 全屏期间放下置顶只记账、不动 z 序（2026-10-07，用户报「集成模式下暂停的时候会显示 windows 任务栏，
-    /// 然后自动消失」）。暂停那条边沿按「暂停时自动取消置顶」（2026-09-29 用户令）走到这里把窗口
+    /// 然后自动消失」）。当时是暂停那条边沿按「暂停时自动取消置顶」（2026-09-29 用户令）走到这里把窗口
     /// SetWindowPos(HWND_NOTOPMOST) 提出置顶带：副屏任务栏还在带里，当拍就盖回画面上；主屏被
     /// <see cref="HideTrayForFullscreen"/> 收起的任务栏也会被 shell 当作「前台不再是全屏窗口」放回来。
     /// 最多 250 毫秒后 <see cref="HoldBand"/> 又把窗口提回去，任务栏再收走 —— 正好是闪一下又消失。
-    /// 全屏的日子 z 序归 band 那一套管（<see cref="HoldBand"/>、<see cref="JudgeBand"/>、藏任务栏），
-    /// 这里只把旗子记下：图钉姿势照翻、<see cref="TogglePinByHand"/> 的记账照落，退出全屏时
-    /// <see cref="LeaveFullscreen"/> 按旗子放回 NOTOPMOST，「暂停不置顶」在回到窗口化的那一刻兑现。
+    /// 自动跟随 2026-11-20 已撤，但这条规矩照旧：全屏里用户亲手放下图钉也同样只记账，z 序归 band 那套
+    /// 管（<see cref="HoldBand"/>、<see cref="JudgeBand"/>、藏任务栏）。旗子照记：图钉姿势照翻、
+    /// <see cref="TogglePinByHand"/> 的记账照落，退出全屏时 <see cref="LeaveFullscreen"/> 按旗子放回
+    /// NOTOPMOST，「不置顶」在回到窗口化的那一刻兑现。
     /// </para>
     /// </summary>
     public bool TopMost
