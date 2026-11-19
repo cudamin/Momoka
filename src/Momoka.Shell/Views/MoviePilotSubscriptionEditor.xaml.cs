@@ -59,14 +59,17 @@ public sealed partial class MoviePilotSubscriptionEditor : UserControl
             DefaultButton = ContentDialogButton.None
         };
         dialog.Resources["ContentDialogMaxWidth"] = 740d;
-        dialog.PrimaryButtonStyle = (Style)Application.Current.Resources["EgPrimaryButtonStyle"];
+        // 2026-11-19 用户令三颗键形状统一：主、次和关闭同接 4 DIP 小圆角那一档（EgDialog*ButtonStyle），
+        // 主次只靠底色、字色和字重区分；返回时仍走 40 的图标键，不在这排里。
+        dialog.PrimaryButtonStyle = (Style)Application.Current.Resources["EgDialogPrimaryButtonStyle"];
         foreach (var prefix in new[] { "AccentButtonBackground", "ToggleSwitchFillOn" })
         {
             dialog.Resources[prefix] = Application.Current.Resources["EgAccentBrush"];
             dialog.Resources[prefix + "PointerOver"] = Application.Current.Resources["EgAccentHoverBrush"];
             dialog.Resources[prefix + "Pressed"] = Application.Current.Resources["EgAccentPressedBrush"];
         }
-        var removeStyle = new Style(typeof(Button)) { BasedOn = (Style)Application.Current.Resources["DefaultButtonStyle"] };
+        dialog.CloseButtonStyle = (Style)Application.Current.Resources["EgDialogSecondaryButtonStyle"];
+        var removeStyle = new Style(typeof(Button)) { BasedOn = dialog.CloseButtonStyle };
         removeStyle.Setters.Add(new Setter(Control.ForegroundProperty, Application.Current.Resources["EgDangerBrush"]));
         dialog.SecondaryButtonStyle = removeStyle;
         var close = new Button { Content = new FontIcon { Glyph = "\uE8BB" }, Style = (Style)Application.Current.Resources["EgIconButtonStyle"] };

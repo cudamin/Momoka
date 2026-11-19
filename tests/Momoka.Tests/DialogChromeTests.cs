@@ -198,6 +198,33 @@ internal static class DialogChromeTests
             }
         });
 
+        Test("编辑订阅弹窗：底部三颗键同形，统一 4 DIP 圆角", () =>
+        {
+            var styles = Styles();
+            var primary = styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgDialogPrimaryButtonStyle");
+            Assert.Equal("Button", primary.Attribute("TargetType")?.Value);
+            Assert.Equal("{StaticResource EgPrimaryButtonStyle}", primary.Attribute("BasedOn")?.Value);
+            Assert.Equal("4", Setters(primary).GetValueOrDefault("CornerRadius"));
+
+            var secondary = styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgDialogSecondaryButtonStyle");
+            Assert.Equal("Button", secondary.Attribute("TargetType")?.Value);
+            Assert.Equal("{StaticResource DefaultButtonStyle}", secondary.Attribute("BasedOn")?.Value);
+            var setters = Setters(secondary);
+            Assert.Equal("4", setters.GetValueOrDefault("CornerRadius"));
+
+            // 同高同内边距：主键的 MinHeight / Padding 从 EgPrimaryButtonStyle 继承，两处必须继续对上，
+            // 否则「形状统一」只剩圆角一样，高度和内边距还会各走各的。
+            var accent = Setters(styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgPrimaryButtonStyle"));
+            Assert.Equal(accent.GetValueOrDefault("MinHeight"), setters.GetValueOrDefault("MinHeight"), "主次键高度不一致");
+            Assert.Equal(accent.GetValueOrDefault("Padding"), setters.GetValueOrDefault("Padding"), "主次键内边距不一致");
+
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionEditor.xaml.cs"));
+            Assert.Contains("""["EgDialogPrimaryButtonStyle"]""", source);
+            Assert.Contains("""["EgDialogSecondaryButtonStyle"]""", source);
+            Assert.Contains("BasedOn = dialog.CloseButtonStyle", source, "取消订阅没有和关闭共用同一份几何");
+            Assert.False(source.Contains("\"EgPrimaryButtonStyle\"", StringComparison.Ordinal), "编辑订阅的主键又接回胶囊");
+        });
+
         Test("弹窗表面：每张表都接上「点外面关闭」，新增的也不例外", () =>
         {
             var styles = Styles();
