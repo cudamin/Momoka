@@ -22,6 +22,8 @@
 
 **合并。** 用户令「合并到主树」，在主树 `master` 的 `ab76be3` 上以 `--no-ff` 合入，合并提交 `f3af0e7`；`PROGRESS.md`、待交付台账、`approved-payload.json`、`SettingsTests.cs` 四处冲突按两边保留解决（uosc 脚本自动合并后同时含后台单击与撤下自动跟随，批准载荷按合并后的 `main.lua` 重新钉成 85053 字节 / `af47665a…`）。合并后主树复验：Shell/Core Release/x64 **0 警告 0 错误**，`Momoka.Tests` 全量 **5277/5277、0 失败 0 跳过**，`Momoka.LibMpvEndFileTests` **49/49**；自然接续专项 `Run-Caller.ps1` **81/81**（后台单击批次在 `OnNowPlayingChanged` 里新加的 `NoteActivationClick` 让 caller-only 夹具缺桩，补一个空通知桩后通过；`PlayerViewModel.cs`／`PlayerViewModel.Events.cs` 两枚来源哈希按合并结果重钉）。仅合并与体验刷新，未跑探针、未拍验收截图。
 
+**主树发布与清理。** 主树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过；`Momoka.exe` SHA256 `7FECEADFD69FF1ACE32C39C204C55F49F40B3A6F6B20AA8FCB6479F14139AAE0`，`Momoka.dll` SHA256 `AB0EA39F5ABBD4692A491813C99647CC00A92D407F49B5C0009C67ACB661BE3C`；桌面 `Momoka.lnk` 目标与工作目录均回读为主树发布目录。确认分支内容全部进入 master、无独有提交且工作树干净后，已删除 `Momoka-workbuddy.lnk`、分支 `workbuddy/master-b53105d8` 与工作树注册；原工作树目录已清空但仍被本会话进程占用，空目录待关闭会话后删除。未推远端。
+
 ## 2026-11-20 播放页右键菜单后台单击播放/暂停与 B 快捷键（已合并 master，待统一验证）
 
 用户令三连：先在设置中新增「无论播放页是否为前台窗口，都可以直接点击播放/暂停」的选项，并选定默认关；随后令「不要添加到设置页面，添加到播放页面的右键菜单中」；再令「记得加快捷键」。
