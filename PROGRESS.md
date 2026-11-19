@@ -1,3 +1,17 @@
+## 2026-11-19 编辑订阅弹窗底部三颗键统一 4 DIP 圆角（日常界面批次，待统一验证）
+
+用户附「编辑订阅」弹窗底部截图一句：「统一编辑订阅 弹窗页面的下方的按钮形状」。当时那一排是两套几何：「保存」接 `EgPrimaryButtonStyle`（高 44、圆角 22 的胶囊），「取消订阅」是 `DefaultButtonStyle` 加红字、`CloseButtonText` 的「关闭」走框架默认样式，后两颗都是 4 DIP 小圆角。问过用户选哪一档，答复「都改成 4 DIP 小圆角」。
+
+**改了什么。** `Theme/Styles.xaml` 新增两条只给这张弹窗用的样式：`EgDialogPrimaryButtonStyle`（BasedOn `EgPrimaryButtonStyle`，只把 `CornerRadius` 覆盖成 4）和 `EgDialogSecondaryButtonStyle`（BasedOn `DefaultButtonStyle`，`MinHeight` 44、`CornerRadius` 4、`Padding` 22,10）。`MoviePilotSubscriptionEditor.ShowAsync` 的主键改接前者；`CloseButtonStyle` 接后者；「取消订阅」仍从后者派生、只加 `EgDangerBrush` 前景。三颗因此同高 44、同圆角 4、同内边距，主次只靠强调色底（半粗字）、红字和中性底区分；三态、焦点环、禁用与「保存中不许关闭」的原行为没动，标题栏那颗 × 仍是 40 的图标键，不在这排里。
+
+**测了什么。** Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` Release/x64 **0 警告 0 错误**，全量 **5259 项**：首跑 5258 过、1 红为既有的「MP 图片夹具：取消接收完成后才释放监听套接字」SocketException（与本批无交集，2026-11-15 记过同一项），复跑 **5259/5259、0 失败 0 跳过**。新增 `DialogChromeTests`「编辑订阅弹窗：底部三颗键同形，统一 4 DIP 圆角」：两条样式各自 `CornerRadius=4`、次键与主键的 `MinHeight`／`Padding` 一致、代码里主键与关闭各接这两条、「取消订阅」以关闭那条为基并加红字、也没有再引用胶囊主键。`dotnet format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 3 个文本文件通过（行尾、末尾换行、BOM、空白）。
+
+**发布。** `tools/publish.ps1 -NoArchive -Shortcut`：`artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish.ps1` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `DE1A7E86CA1A6187D7D688E0FF2AE5688C9EE2D5598AEB008623B543F2FDC0E8`，`Momoka.dll` SHA256 `2D5847D5EC532AF45DD2EFFD72E7DFFB312A9A0F861782DB7FF7F4481EE5E070`。桌面 `Momoka.lnk` 这一步写不进去（`UnauthorizedAccessException`，沙箱拦桌面写入），lnk 未重写；二进制里仍读得到 `Momoka\artifacts\publish\win-x64`，指向同一个 exe 路径，双击即当前构建。仅体验刷新、不销账。
+
+**没验证的。** 没开真窗口看这一排像素（日常界面批次按规矩不跑探针、不拍验收截图）：三颗在深色／浅色下的实际圆角、保存中禁用、点弹窗外关闭都留给统一验证。五主题、高对比度、跨 DPI、Narrator／触摸也没做。
+
+**树与提交。** 会话给的 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-018e0f48` 已不是注册工作树（`.git` 指向的 `Momoka/.git/worktrees/master-018e0f48` 已不存在，`git worktree list` 里也没有它），内容与主树 `f397901` 一致、没有独有改动；本批改在主树 `C:/Users/89400/Momoka` 的 `master`，产品与测试提交 `fdcdaad`，文档随后另提交；未推远端。
+
 ## 2026-11-19 详情页预告片收进「更多」菜单（日常界面批次，待统一验证）
 
 用户令「把沉浸模式中的预告片按钮收进更多按钮中」。
