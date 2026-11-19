@@ -1,4 +1,4 @@
-## 2026-11-19 侧栏预览封面进详情并增加悬停播放（临时分支，待合并与统一验证）
+## 2026-11-19 侧栏预览封面进详情并增加悬停播放（已合并 master，待统一验证）
 
 用户令「点击侧边栏悬浮栏封面时改为进入详情页，鼠标移到封面上的时候要有遮罩和播放按钮」，并要求在独立工作树分支完成。
 
@@ -8,7 +8,9 @@
 
 **发布。** 产品与测试提交 `2c2b179`。本树 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过（14 GLSL、4 HOOK、批准 mpv 清单 60 文件）；`Momoka.exe` SHA256 `19892A25E88B78AEDB59D8B504DF95A2AF2C38B14AEB31EF73908BBF224D50D4`，`Momoka.dll` SHA256 `F6DD5EB38D66F3CCAF235FE150D345B3B1A30D23EFDFBB55B903406CB02A0817`。新树首次发布缺根目录 `libmpv-2.dll`，核对主树既有文件与批准清单 SHA256 一致后复制（未入库）再发布。桌面 `Momoka-feat-sidebar-cover-detail.lnk` 的目标与工作目录均回读为本树发布目录。仅体验刷新、不销账。
 
-**树与未验项。** 工作树 `C:/Users/89400/.codearts/worktrees/Momoka/feat-sidebar-cover-detail`，分支 `feat-sidebar-cover-detail`，基点 `333d36b`；未合并 master、未推远端。日常界面批次未跑探针、未拍验收截图；未连接真实服务器、未起播、未写服务器。实际指针画面、真实详情导航与播放仍待统一验证。
+**树与未验项。** 原工作树 `C:/Users/89400/.codearts/worktrees/Momoka/feat-sidebar-cover-detail`，原分支 `feat-sidebar-cover-detail`，基点 `333d36b`；未推远端。日常界面批次未跑探针、未拍验收截图；未连接真实服务器、未起播、未写服务器。实际指针画面、真实详情导航与播放仍待统一验证。
+
+**合并与主树复验。** 用户令「合并到主树」，在主树 `master` 的 `333d36b` 上以 `--no-ff` 合入，合并提交 `c605935`，无冲突。最终主树 Shell Release/x64 **0 警告 0 错误**，`Momoka.SidebarPreviewTests` **41/41、0 失败 0 跳过**。本次仅合并，未跑全量测试与探针，未发布主树或刷新 `Momoka.lnk`。确认内容全部进入 master、原工作树干净且无独有提交后，已删除 `Momoka-feat-sidebar-cover-detail.lnk`、原工作树与原分支。
 
 ## 2026-11-19 主页相同媒体去重（已合并 master，待统一验证）
 
