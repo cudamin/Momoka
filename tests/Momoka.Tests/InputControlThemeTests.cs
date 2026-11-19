@@ -463,15 +463,19 @@ internal static class InputControlThemeTests
             var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
             var style = Resource(resources, "EditorMultiPicker");
             Assert.Equal("DropDownButton", (string?)style.Attribute("TargetType"));
-            Assert.Equal("{StaticResource DefaultDropDownButtonStyle}", (string?)style.Attribute("BasedOn"),
-                "多选下拉没有沿用平台的 DropDownButton 样式");
+            // 基样式只能接应用作用域里解析得到的那几条：DefaultDropDownButtonStyle 在运行时会
+            // 「Cannot find a Resource」把整页订阅打挂（2026-11-19 首版实况），所以接 Button 那条。
+            Assert.Equal("{StaticResource DefaultButtonStyle}", (string?)style.Attribute("BasedOn"),
+                "多选下拉的基样式不是运行时可解析的那条");
             var setters = style.Elements(Xaml + "Setter").ToDictionary(
                 setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
             // 壳照 ComboBox 抄：底、描边、1 像素边、12,5,0,7 内边距、32 高；圆角接全站输入那一档。
+            // 三条几何写死成数值 —— ComboBoxPadding / ComboBoxMinHeight / ComboBoxBorderThemeThickness
+            // 与 DefaultDropDownButtonStyle 同属 generic.xaml 的私有键，应用作用域解析不到（2026-11-19 实况）。
             Assert.Equal(SearchRadius, setters["CornerRadius"], "多选下拉的圆角没有接全站输入那一档");
-            Assert.Equal("{ThemeResource ComboBoxPadding}", setters["Padding"]);
-            Assert.Equal("{ThemeResource ComboBoxMinHeight}", setters["MinHeight"]);
-            Assert.Equal("{ThemeResource ComboBoxBorderThemeThickness}", setters["BorderThickness"]);
+            Assert.Equal("12,5,0,7", setters["Padding"]);
+            Assert.Equal("32", setters["MinHeight"]);
+            Assert.Equal("1", setters["BorderThickness"]);
             Assert.Equal("{ThemeResource ComboBoxBackground}", setters["Background"]);
             Assert.Equal("{ThemeResource ComboBoxBorderBrush}", setters["BorderBrush"]);
             Assert.Equal("{ThemeResource ComboBoxForeground}", setters["Foreground"]);

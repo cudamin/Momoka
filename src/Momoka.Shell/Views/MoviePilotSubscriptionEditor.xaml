@@ -19,21 +19,32 @@
           4 DIP 圆角、按钮底、箭头离右边 11。两排摞在一起，一眼就是两种控件，连标签到框的距离都差 4。
 
           这里把 DropDownButton 的壳换成 ComboBox 的壳，量着 EgComboBoxStyle 的模板一一对上：
-          `ComboBoxBackground` / `ComboBoxBorderBrush` 的底与描边、1 像素边、`ComboBoxPadding`（12,5,0,7）
-          的内边距、`ComboBoxMinHeight`（32）的高度、右侧 38 宽箭头列里离边 14 的 12 号箭头；圆角仍是全站
-          输入那一档 `EgSearchCornerRadius`（10）。三态颜色也跟着 ComboBox 走，禁用时箭头一起收暗。
+          `ComboBoxBackground` / `ComboBoxBorderBrush` 的底与描边、1 像素边、12,5,0,7 的内边距、
+          32 的高度、右侧 38 宽箭头列里离边 14 的 12 号箭头；圆角仍是全站输入那一档
+          `EgSearchCornerRadius`（10）。三态颜色也跟着 ComboBox 走，禁用时箭头一起收暗。
+
+          内边距、高度、边框厚度写成数值，不引 `ComboBoxPadding` / `ComboBoxMinHeight` /
+          `ComboBoxBorderThemeThickness`：那几条和 `DefaultDropDownButtonStyle` 一样只活在 Microsoft.UI.Xaml
+          的 generic.xaml 里、不在应用能解析的那一层（见下）。数值就是桌面档 ComboBox 那三档。
 
           只换皮不换语义：它仍是 DropDownButton —— 点开是带复选框的浮层，多选、不替用户关上，UIA 的
-          展开／收起也还在。正因为这层语义，没有换成普通 Button。焦点框沿用按钮的系统焦点框，没有抄
+          展开／收起也还在。正因为这层语义，没有换成普通 Button。焦点框沿用按钮的系统焦点框（
+          `DefaultButtonStyle` 给的 `UseSystemFocusVisuals` 与 `-3` 的 `FocusVisualMargin`），没有抄
           ComboBox 模板里那圈 HighlightBackground。
+
+          BasedOn 写的是 `DefaultButtonStyle`，不是 `DefaultDropDownButtonStyle`：后者虽然在
+          Microsoft.UI.Xaml 的 generic.xaml 里，但运行时不在应用能解析的那一层 —— 2026-11-19 首版就是
+          这么写的，打开订阅页直接弹「Cannot find a Resource with the Name/Key DefaultDropDownButtonStyle」
+          （`DefaultButtonStyle` 与 `DefaultComboBoxStyle` 都在应用作用域里，可正常解析）。壳本来整块
+          自绘，按钮样式只负责字体、焦点框这些与几何无关的继承项。
         -->
-        <Style x:Key="EditorMultiPicker" TargetType="DropDownButton" BasedOn="{StaticResource DefaultDropDownButtonStyle}">
+        <Style x:Key="EditorMultiPicker" TargetType="DropDownButton" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Background" Value="{ThemeResource ComboBoxBackground}" />
             <Setter Property="BorderBrush" Value="{ThemeResource ComboBoxBorderBrush}" />
-            <Setter Property="BorderThickness" Value="{ThemeResource ComboBoxBorderThemeThickness}" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{ThemeResource ComboBoxForeground}" />
-            <Setter Property="Padding" Value="{ThemeResource ComboBoxPadding}" />
-            <Setter Property="MinHeight" Value="{ThemeResource ComboBoxMinHeight}" />
+            <Setter Property="Padding" Value="12,5,0,7" />
+            <Setter Property="MinHeight" Value="32" />
             <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
