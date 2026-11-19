@@ -434,11 +434,21 @@ public sealed partial class PlaybackService
             try { VideoWindowMessage?.Invoke(key, value); }
             catch (Exception error) { Log.Warn(Category, "视频窗口通知失败", error); }
         }
+        // 独占窗口的置顶：这是用户的选择（那颗图钉或 T 键），不是播放状态 —— 原样转出去记账，谁落盘谁
+        // 负责（见 PlayerViewModel）。订阅排在 StatusChanged 之前，好让句柄那只 Listening 信号连同这一条
+        // 一起算数（测试拿它当「已经接上了」的凭据）。
+        void OnTopMost(bool pinned)
+        {
+            if (!IsCurrent(attempt)) return;
+            Raise(WindowPinChanged, pinned);
+        }
+        if (attempt.Handle is IPlayerWindowPin pin) pin.TopMostChanged += OnTopMost;
         control.StatusChanged += OnStatus;
         control.TracksChanged += OnTracks;
         if (attempt.Handle is IPlayerHostMessages host) host.HostMessageReceived += OnHost;
         attempt.Unsubscribe = () =>
         {
+            if (attempt.Handle is IPlayerWindowPin unpin) unpin.TopMostChanged -= OnTopMost;
             control.StatusChanged -= OnStatus;
             control.TracksChanged -= OnTracks;
             if (attempt.Handle is IPlayerHostMessages messages) messages.HostMessageReceived -= OnHost;

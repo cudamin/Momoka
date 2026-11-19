@@ -755,6 +755,9 @@ public sealed partial class PlayerPage : UserControl
         _chrome.Reset(Now);
         Render();
         PlaceOverlays();
+        // 进场按上次保存的那一档立起窗口置顶（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再
+        // 固定设置为置顶」）：没有自动跟随之后，这就是这一场播放从头到尾的那一档，直到用户再拨一次。
+        // 独占模式画面不在宿主窗里，主窗口照旧不置顶。
         SetPinned(ViewModel.PictureInHostWindow && ViewModel.SavedPinTopmost);
         _polledKnown = false;
 
@@ -994,13 +997,10 @@ public sealed partial class PlayerPage : UserControl
         _paused = status.Paused;
         if (!opening && !ViewModel.TimelinePauseFeedbackSuppressed) Pulse(status.Paused);
 
-        // 置顶跟着播放状态走（用户令 2026-09-29「播放时自动置顶，暂停时自动取消置顶」）：在播＝立起，
-        // 暂停＝放下。手动那颗（按钮／T 键）仍即时生效，但只撑到下一条边沿 —— 边沿一来，状态归播放说了算；
-        // 记账也不落盘（写设置的只有用户亲手拨的那一下，见 TogglePinByHand）。两道守卫：
-        // 独占模式不归这里管（画面在 mpv 自己的窗里，主窗口保持可浏览；那一头由 main.lua 的
-        // MOMOKA[ontop-follows-pause] 直接跟 mpv 的 pause 属性）；下了台也不跟（LeavePlayer 已放下，
-        // 迟到的状态不许把浏览中的主窗口又按到顶上去）。
-        if (_onStage && ViewModel.PictureInHostWindow) SetPinned(!status.Paused);
+        // 置顶不跟播放/暂停走（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为
+        // 置顶」）：2026-09-29～2026-11-20 那条「播放时自动置顶，暂停时自动取消置顶」已撤。置顶只由
+        // 用户拨那颗键／T 键（TogglePinByHand）改，进场按上次保存的那一档立起（EnterPlayer），
+        // 播放与暂停一个像素都不碰它。
     }
 
     /// <summary>

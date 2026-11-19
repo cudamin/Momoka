@@ -66,15 +66,22 @@ internal static class WindowFormTests
                 "最大化还没全屏，照样要进");
         });
 
-        Test("独占窗口策略：三条只在独占模式发出，渲染契约里一条都没有", () =>
+        Test("独占窗口策略：三条常量＋置顶只在独占模式发出，渲染契约里一条都没有", () =>
         {
-            var standalone = StandaloneWindowPolicy.Options(VideoPipelineKind.Standalone);
-            Assert.Equal("keepaspect-window=yes,autofit-smaller=40%x30%,snap-window=yes",
+            var standalone = StandaloneWindowPolicy.Options(VideoPipelineKind.Standalone, topMost: false);
+            Assert.Equal("keepaspect-window=yes,autofit-smaller=40%x30%,snap-window=yes,ontop=no",
                 string.Join(",", standalone.Select(option => $"{option.Key}={option.Value}")));
 
+            // 置顶读的是用户上一次拨的那一档（2026-11-20）：窗口出生时按它立起，别的一概不替用户决定。
+            Assert.Equal("ontop=yes",
+                string.Join(",", StandaloneWindowPolicy.Options(VideoPipelineKind.Standalone, topMost: true)
+                    .Where(option => option.Key == "ontop").Select(option => $"{option.Key}={option.Value}")));
+
             // 集成模式的窗口是这一个程序自己的（几何归 HostWindow），mpv 的窗口选项对它没有意义。
-            Assert.Equal(0, StandaloneWindowPolicy.Options(VideoPipelineKind.Integrated).Count,
+            Assert.Equal(0, StandaloneWindowPolicy.Options(VideoPipelineKind.Integrated, topMost: false).Count,
                 "集成模式不该收到窗口策略");
+            Assert.Equal(0, StandaloneWindowPolicy.Options(VideoPipelineKind.Integrated, topMost: true).Count,
+                "集成模式也不该收到置顶");
 
             // 窗口策略不是渲染契约：那一串是必需且致命的（设置失败就停止启动），窗口策略只是行为，
             // 少一条就少一个特性。混进去会让一台不认 snap-window 的构建整个起不来。
@@ -99,7 +106,7 @@ internal static class WindowFormTests
                 return;
             }
 
-            Assert.Contains("StandaloneWindowPolicy.Options(pipeline)", File.ReadAllText(backend),
+            Assert.Contains("StandaloneWindowPolicy.Options(pipeline, playback.PinWindowTopmost)", File.ReadAllText(backend),
                 "LibMpvBackend 没有再发出这组选项 —— 编译过、测试全绿、行为悄悄退回 mpv 默认值");
         });
 

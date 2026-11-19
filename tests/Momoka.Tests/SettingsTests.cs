@@ -450,6 +450,39 @@ internal static partial class SettingsTests
             Assert.True(loaded.Playback.AutoFullscreenOnPlayback, "开了就得记住，不然每次开机都要重开");
         });
 
+        // 播放页置顶（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」）：
+        // 出厂不置顶；旧文件里存着的那一档照旧尊重；恢复默认回到不置顶。自动跟随撤下之后，这三条就是
+        // 「不固定设置为置顶」在设置这一层的全部 —— 播放、暂停再来盖它的是别的代码，不归这里管。
+        Test("播放页置顶：出厂不置顶，旧文件缺键也是不置顶", () =>
+        {
+            Assert.False(SettingsMigration.NewDefaults().Playback.PinWindowTopmost,
+                "新装不该一进播放页就置顶");
+
+            // 缺键＝装机默认。旧版本写下的文件里本来就没有这个键，升级后不该忽然变成置顶。
+            var older = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":" + AppSettings.CurrentSchemaVersion
+                    + ",\"Playback\":{\"AutoPlayNextEpisode\":true}}",
+                Protector);
+            Assert.False(older.Playback.PinWindowTopmost);
+
+            // 用户自己拨成置顶的那一档不能被新默认值盖掉：新默认只管「没存过」的机器。
+            var kept = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":" + AppSettings.CurrentSchemaVersion
+                    + ",\"Playback\":{\"PinWindowTopmost\":true}}",
+                Protector);
+            Assert.True(kept.Playback.PinWindowTopmost, "存过的置顶必须读得回来");
+        });
+
+        Test("播放页置顶：恢复默认回到不置顶", () =>
+        {
+            var settings = SettingsMigration.NewDefaults();
+            settings.Playback.PinWindowTopmost = true;
+
+            SettingsReset.Restore(settings);
+
+            Assert.False(settings.Playback.PinWindowTopmost, "恢复默认之后不该还是置顶");
+        });
+
         Test("迁移：中文写进文件时不该变成 \\uXXXX", () =>
         {
             var settings = SettingsMigration.NewDefaults();

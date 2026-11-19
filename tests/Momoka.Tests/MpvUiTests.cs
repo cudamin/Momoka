@@ -571,10 +571,13 @@ internal static class MpvUiTests
         //   · TopBar.lua 那颗按钮本体（pin／push_pin／`cycle ontop`）与它的状态画法（is_pin ＋ \frz 斜图钉
         //     那一档，2026-09-29 用户令「置顶不要长亮，改为非置顶的时候图标是斜的，置顶的时候恢复原样」
         //     起状态画在姿势上 —— lit 只看悬停）；
-        //   · main.lua 的状态来源（state.ontop ＋ mpv `ontop` 属性的观察器）与自动跟随
-        //     （MOMOKA[ontop-follows-pause]，2026-09-29 用户令「播放时自动置顶，暂停时自动取消置顶」）
+        //   · main.lua 的状态来源（state.ontop ＋ mpv `ontop` 属性的观察器）
         //     —— 只打一头的话，按钮点得动而图钉永远斜着立不正（状态没人送），或状态有了而屏上没有
-        //     那颗按钮，或点得动却不跟着播放/暂停走。
+        //     那颗按钮。
+        // **2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」**：2026-09-29 那套
+        // MOMOKA[ontop-follows-pause]（播放置顶、暂停取消）已整段撤下，这里反过来钉住它不再出现 ——
+        // 置顶只认人拨，出生值由宿主按上次保存的那一档经 --ontop 给（见 StandaloneWindowPolicy），
+        // 状态变化由宿主在同一个 mpv 实例上直接观察、写回设置。
         // 图标 push_pin 与装箱的 MaterialIconsRound-Regular.otf 里的字形同名（集成模式那颗 PathIcon
         // 的图钉与它同义，两模式同一颗图钉）。
         TestHarness.Test("独占模式右上角置顶按钮：uosc 补丁两头都在", () =>
@@ -605,16 +608,11 @@ internal static class MpvUiTests
             Assert.True(main.Contains("observe_property('ontop'"),
                 "ontop 没人观察：用户点了置顶，那颗图钉不会立正");
 
-            // 置顶跟着播放状态走（2026-09-29 用户令「播放时自动置顶，暂停时自动取消置顶」）：
-            // main.lua 的 MOMOKA[ontop-follows-pause] 三件事 —— pause 的边沿、file-loaded（换片那条路
-            // pause 常常不变，光盯它会漏掉新片开播）、空闲不跟（没有片子在放，置顶归手动）。
-            Assert.True(main.Contains("follow_pause_ontop"), "自动跟随的函数丢了：播放/暂停不再动置顶");
-            Assert.True(main.Contains("observe_property('pause', 'bool', function(_, paused) follow_pause_ontop(paused) end)"),
-                "pause 的边沿没接自动跟随：暂停不会取消置顶、恢复不会置顶");
-            Assert.True(main.Contains("register_event('file-loaded', function() follow_pause_ontop"),
-                "换片那一下没接自动跟随：pause 不变的换片路上新片不会置顶");
-            Assert.True(main.Contains("if mp.get_property_bool('idle-active') then return end"),
-                "空闲那档的守卫丢了：没有片子在放也会被按到顶上");
+            // 置顶只认人拨（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定设置为置顶」）：
+            // 2026-09-29 的自动跟随整段撤下，脚本里不该再有任何替用户改 ontop 的代码 —— 出生值归宿主，
+            // 之后的每一次变化也归那颗图钉／T 键。
+            Assert.False(main.Contains("follow_pause_ontop"), "自动跟随又回来了：播放/暂停会盖掉用户存的置顶");
+            Assert.False(main.Contains("set_property_bool('ontop'"), "还有人在替用户改置顶：置顶只认人拨");
         });
 
         // 跳过片头/片尾契约（2026-09-26 用户令「独占模式下 跳过片头/片尾的按钮不显示」）：集成模式那颗

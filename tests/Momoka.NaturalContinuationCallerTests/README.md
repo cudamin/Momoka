@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-20：播放页置顶改为手动持久化的来源同步
+
+播放页置顶撤下播放/暂停自动跟随（集成与独占），并新增 `IPlayerWindowPin` 观察通道；五份被钉住的来源随之改动：`IPlaybackBackend.cs` 只在文件末尾新增该可选接口，`LibMpvBackend.cs` 只在独占窗口策略里多写一条 `ontop`、新增一个属性观察与转发事件，`PlaybackService.Lifecycle.cs` 只在 `Subscribe` 里多一条转发与退订，`PlayerViewModel.cs` / `PlayerViewModel.Events.cs` 只改 `SavedPinTopmost`／`SavePinTopmost` 的注释并新增 `OnWindowPinChanged`。自然接续抽取的 `PlayerViewModel` 成员（`StartPlaybackAsync`、`NextEpisodeToAutoPlay`、`OnNowPlayingChanged` 等）、来源 identity/id、自动接集与 lease 规则一字未动，其余 pin 逐份核对一致。只定点更新这五份完整源 SHA256，base/date、提取器与失败条件不变。
+
 ## 2026-11-18：播放菜单「弹幕设置」改名后的来源同步
 
 `4ec83c8` 把画面菜单里那一项 `弹幕 · 弹弹play…` 改名为 `弹幕设置…`，只动 `BuildPictureMenuItems` 的菜单文字；自然接续抽取的 `StartPlaybackAsync`、`NowPlaying` 与 lease／取消控制流未动，其余 pin 逐份核对一致。只定点更新 `src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs` 的 SHA256（`1dcb904…` → `e67cfef…`），不改基点、提取器和失败条件。

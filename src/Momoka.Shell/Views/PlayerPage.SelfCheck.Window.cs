@@ -230,11 +230,12 @@ public sealed partial class PlayerPage
     /// 两条线索**：屏上是那颗图钉，读屏软件那一头是 <c>PinIndicator</c> 的两句话，两边都得跟着状态走。
     /// </para>
     /// <para>
-    /// **第三半是自动跟随**（同日另一条令「播放时自动置顶，暂停时自动取消置顶」）：边沿在
-    /// <c>OnStatusApplied</c>，探针从 <see cref="PlayerViewModel.SetTransportProbeStatus"/> 喂合成状态 ——
-    /// 那是真实播放走的同一条 ApplyStatus 路 —— 播放要立起、暂停要放斜，姿势与窗口置顶一起跟着走。
-    /// 崩它的方式：守卫写歪（独占模式误把可浏览的主窗口按到顶上）、或者边沿只顾角标忘了置顶 —— 都是
-    /// 编译与截图看不见的事。
+    /// **第三半是「播放/暂停不动它」**（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定
+    /// 设置为置顶」，把 2026-09-29 那套自动跟随即刻撤下）：探针从
+    /// <see cref="PlayerViewModel.SetTransportProbeStatus"/> 喂合成状态 —— 那是真实播放走的同一条
+    /// ApplyStatus 路 —— 图钉开着时播放、暂停两条边沿都得保持立正，图钉关着时开播那条边沿也不许把它按
+    /// 上去。崩它的方式：有人把自动跟随写回来、或守卫写歪（独占模式误把可浏览的主窗口按到顶上）——
+    /// 都是编译与截图看不见的事。
     /// </para>
     /// <para>
     /// The reset at the end is not housekeeping. A probe that left the main window in the topmost band would
@@ -313,44 +314,46 @@ public sealed partial class PlayerPage
         // 只报不判：拍照裁图要按这个框定位，而它跟着字体、缩放和这一排别的控件走。
         report.Add($"按钮 {BoundsOf(PinButton).Width:0}×{BoundsOf(PinButton).Height:0} @ {BoundsOf(PinButton).Left:0},{BoundsOf(PinButton).Top:0}");
 
-        // 自动跟随那一半（用户令 2026-09-29「播放时自动置顶，暂停时自动取消置顶」）：把合成状态从
-        // SetTransportProbeStatus 喂进来 —— 那是真实状态走的那条 ApplyStatus 路 —— 播放的边沿要立起图钉、
-        // 暂停的边沿要放下。OnStatusApplied 那条守卫（在台上＋画面在宿主窗）探针也得照实摆上：_onStage
-        // 只在 EnterPlayer 才立起，自检没有那一拍，这里手动摆上、退门放回；管线档/后端两枚设置按到集成
-        // （机器翻到独占时这里会假红，见 ProbeForcePipeline），同样退门放回。记账（SavePinTopmost）不在
-        // 这一条上：自动跟随是播放的状态，不是用户的偏好。喂完把原状态放回去，再把 loading 那一拍锁存
-        // 掀掉 —— 回灌的存档多半是未加载，OnStatusApplied 会顺手把控制条按回「加载中钉住」，而 Reset
-        // 不清这一位，不掀就漏给后面的 ProbeTap。
+        // 「播放/暂停不动置顶」那一半（2026-11-20 用户令「持久化保存播放页面右上角的置顶状态，不再固定
+        // 设置为置顶」，2026-09-29 那套自动跟随已撤）：把合成状态从 SetTransportProbeStatus 喂进来 ——
+        // 那是真实状态走的那条 ApplyStatus 路 —— 两条边沿都不许改变用户拨的那一档。_onStage 与管线两枚
+        // 设置照旧摆成集成在台上：探针要的是真实播放那条路，不是这台机器此刻的形态（见 ProbeForcePipeline）。
+        // 喂完把原状态放回去，再把 loading 那一拍锁存掀掉 —— 回灌的存档多半是未加载，OnStatusApplied 会
+        // 顺手把控制条按回「加载中钉住」，而 Reset 不清这一位，不掀就漏给后面的 ProbeTap。
         var keepStatus = ViewModel.Status;
         var keepMarks = ViewModel.ChapterMarks;
         var keepPipeline = ViewModel.ProbeForcePipeline(VideoPipelineKind.Integrated);
         var keepBackend = ViewModel.ProbeForceBackend(MpvBackendKind.BuiltInLibMpv);
         var wasOnStage = _onStage;
         _onStage = true;
-        // 起跳点摆干净：_paused 归 null（LeavePlayer 之后的那个值）、图钉放下 —— 下面两条边沿（开播立起、
-        // 暂停放下）就都是真实发生的，不吃这一关之前任何探针留下的口味。
+        // 起跳点摆干净：_paused 归 null（LeavePlayer 之后的那个值），图钉立起 —— 下面每条边沿都是真实
+        // 发生的，不吃这一关之前任何探针留下的口味。
         _paused = null;
-        SetPinned(false);
+        SetPinned(true);
         try
         {
             ViewModel.SetTransportProbeStatus(new PlayerStatus { Duration = 1200, Position = 60, Loaded = true, Paused = false }, []);
             UpdateLayout();
-            var playingTop = _window.TopMost;
-            var playingAngle = Tilt(PinGlyphBox);
-            var playingBed = Fill(PinButton);
+            var pinnedPlayingTop = _window.TopMost;
+            var pinnedPlayingAngle = Tilt(PinGlyphBox);
 
             ViewModel.SetTransportProbeStatus(new PlayerStatus { Duration = 1200, Position = 90, Loaded = true, Paused = true }, []);
             UpdateLayout();
-            var pausedTop = _window.TopMost;
-            var pausedAngle = Tilt(PinGlyphBox);
-            var pausedBed = Fill(PinButton);
+            var pinnedPausedTop = _window.TopMost;
+            var pinnedPausedAngle = Tilt(PinGlyphBox);
 
-            report.Add($"自动跟随：播放 置顶={playingTop}、姿势 {playingAngle:0.#}°、底 {playingBed}；"
-                + $"暂停 置顶={pausedTop}、姿势 {pausedAngle:0.#}°、底 {pausedBed}");
-            Want("播放中的边沿自动置顶（图钉立正）", playingTop && Math.Abs(playingAngle) < 0.01);
-            Want("暂停的边沿自动取消置顶（图钉放斜）", !pausedTop && Math.Abs(pausedAngle - PinTiltDegrees) < 0.01);
-            Want("自动跟随也不画底", (playingBed is "不画" || playingBed.StartsWith("00", StringComparison.Ordinal))
-                && (pausedBed is "不画" || pausedBed.StartsWith("00", StringComparison.Ordinal)));
+            // 反过来：用户放下图钉之后，开播那条边沿也不许把它按回去。
+            SetPinned(false);
+            ViewModel.SetTransportProbeStatus(new PlayerStatus { Duration = 1200, Position = 120, Loaded = true, Paused = false }, []);
+            UpdateLayout();
+            var offPlayingTop = _window.TopMost;
+            var offPlayingAngle = Tilt(PinGlyphBox);
+
+            report.Add($"不跟播放：置顶时 播放={pinnedPlayingTop}/{pinnedPlayingAngle:0.#}°、"
+                + $"暂停={pinnedPausedTop}/{pinnedPausedAngle:0.#}°；放下后开播={offPlayingTop}/{offPlayingAngle:0.#}°");
+            Want("置顶时播放边沿不改置顶（图钉立正）", pinnedPlayingTop && Math.Abs(pinnedPlayingAngle) < 0.01);
+            Want("置顶时暂停边沿不改置顶（图钉立正）", pinnedPausedTop && Math.Abs(pinnedPausedAngle) < 0.01);
+            Want("放下图钉后开播也不自动置顶（图钉放斜）", !offPlayingTop && Math.Abs(offPlayingAngle - PinTiltDegrees) < 0.01);
         }
         finally
         {
