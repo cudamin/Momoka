@@ -1623,7 +1623,10 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private List<EmbyItem> Visible(string rowKey, IEnumerable<EmbyItem> items)
     {
-        var shown = Shown(items);
+        // 同一媒体即使在回包里出现多次，同一货架也只留第一次。身份包含来源，不能按标题合并：
+        // 不同账号的同编号条目、同剧的不同单集都仍是各自独立的卡。缺少 Id 的条目无法确认身份，原样保留。
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        var shown = Shown(items).Where(item => string.IsNullOrEmpty(item.Id) || identities.Add(item.IdentityKey)).ToList();
         if (HomeLayout.LibraryId(rowKey) is null || _watchedHidden is null) return shown;
         return shown.Where(item => !_watchedHidden.Hides(item)).ToList();
     }

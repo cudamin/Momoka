@@ -507,6 +507,38 @@ internal static class HomePerformanceTests
             static EmbyItem ItemOf(object card) =>
                 (EmbyItem)card.GetType().GetProperty("Item")!.GetValue(card)!;
         });
+        Case("主页最近添加：服务器重复返回同一媒体时只保留一张卡", async () =>
+        {
+            using var fixture = new Fixture(shell, 2);
+            fixture.Transport.LatestReply = uri =>
+            {
+                var host = uri.Host.Split('.')[0];
+                var items = new[]
+                {
+                    new EmbyItem { Id = host + "-latest-0", Name = "战栗杀机", Type = EmbyItemType.Series },
+                    new EmbyItem { Id = host + "-latest-0", Name = "战栗杀机", Type = EmbyItemType.Series },
+                    new EmbyItem { Id = host + "-latest-1", Name = "另一部剧", Type = EmbyItemType.Series }
+                };
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(items),
+                        System.Text.Encoding.UTF8, "application/json")
+                };
+            };
+            var home = fixture.CreateLoadingHome();
+            try
+            {
+                const string title = "最近添加 · 电影";
+                for (var load = 0; load < 2; load++)
+                {
+                    await fixture.LoadHome(home);
+                    await Supplement(home);
+                    Assert.Equal("a-latest-0,a-latest-1", string.Join(',', RowIds(fixture, home, title)),
+                        load == 0 ? "首次读取不能把同一媒体摆成两张卡" : "增量刷新也不能带回重复卡");
+                }
+            }
+            finally { await Supplement(home); ((IDisposable)home).Dispose(); }
+        });
         Case("主页最近添加：标记已看后当场撤下，重读与重建主页都不再带回来", async () =>
         {
             using var fixture = new Fixture(shell, 2);
