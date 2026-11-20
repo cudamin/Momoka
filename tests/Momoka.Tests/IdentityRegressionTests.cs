@@ -1015,6 +1015,51 @@ internal static class IdentityRegressionTests
             // 已经不在线的账号没有「下线」可言，也不该重复通知。
             Assert.False(fixture.Session.TakeOffline(new ServerProfile { Name = "没登录过的" }, fixture.A.Account));
         });
+
+        Case("聚合模式：下线写进设置，重启后不自动上线，显式登录才清除", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            Assert.Equal(2, fixture.Session.Sources.Count);
+
+            Assert.True(fixture.Session.TakeOffline(fixture.A.Server, fixture.A.Account));
+            Assert.True(fixture.A.Account.KeptOffline, "下线状态没有记到账号上");
+            Assert.True(fixture.A.Account.HasSavedToken && fixture.A.Account.HasSavedPassword
+                && fixture.A.Account.AutoConnect != false, "保持下线不该动凭据或自动连接");
+
+            // 重启：设置从磁盘读回，同一个账号不再自动上线，另一个照常。
+            var store = new SettingsStore(new AppPaths(fixture.Root), PassthroughSecretProtector.Instance);
+            var loaded = store.Load();
+            Assert.True(loaded.Servers.Single(server => server.Id == fixture.A.Server.Id)
+                .Accounts.Single().KeptOffline, "下线状态没有写进设置文件");
+            using (var restarted = new EmbySession(loaded, store, fixture.Vault,
+                DeviceIdentity.Create("restart", "1"), new Transport()))
+            {
+                Assert.Equal(1, await restarted.RestoreAllAsync(None));
+                Assert.Equal(fixture.B.Account.Id, restarted.Capture().AccountProfileId);
+            }
+
+            // 点那一行「登录」走的就是这条路：令牌还在，成功后恢复自动连接。
+            Assert.True(await fixture.Session.TryRestoreAsync(fixture.A.Server, fixture.A.Account, None));
+            Assert.False(fixture.A.Account.KeptOffline);
+            Assert.Equal(2, fixture.Session.Sources.Count);
+            Assert.Equal(2, fixture.Session.RestorableAccounts);
+        });
+
+        Case("聚合模式：重开聚合把主动下线的账号也接回来", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            Assert.True(fixture.Session.TakeOffline(fixture.A.Server, fixture.A.Account));
+            Assert.Equal(2, fixture.Session.RestorableAccounts);
+
+            // 启动那一档跳过保持下线的账号；用户明确重开聚合模式则全部接回。
+            Assert.Equal(1, await fixture.Session.RestoreAllAsync(None));
+            Assert.False(fixture.Session.Sources.Any(source => source.AccountProfileId == fixture.A.Account.Id));
+            Assert.Equal(2, await fixture.Session.RestoreAllAsync(None, includeOffline: true));
+            Assert.False(fixture.A.Account.KeptOffline);
+            Assert.Equal(2, fixture.Session.Sources.Count);
+        });
     }
 
     private static void RegisterCapabilities()

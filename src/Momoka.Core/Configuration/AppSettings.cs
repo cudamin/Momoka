@@ -161,6 +161,13 @@ public sealed class AccountProfile
     /// <summary>退出账号时关闭，显式再次登录时开启；保存密码本身不构成重新登录授权。</summary>
     public bool? AutoConnect { get; set; }
 
+    /// <summary>
+    /// 用户在聚合模式里主动点了「下线」：启动恢复跳过这个账号，状态写进设置所以重启后仍保持下线。
+    /// 与 <see cref="AutoConnect"/> 分开 —— 下线保留令牌、密码与自动连接偏好，只挡自动接回；
+    /// 再次登录该账号（账号菜单或服务器页的「登录」）成功后清除。
+    /// </summary>
+    public bool KeptOffline { get; set; }
+
     public DateTimeOffset? LastSignedIn { get; set; }
 
     [JsonIgnore]

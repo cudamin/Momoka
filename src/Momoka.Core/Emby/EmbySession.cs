@@ -122,8 +122,9 @@ public sealed class EmbySession : IDisposable
     }
 
     /// <summary>
-    /// 能自动登录的账号数：与 <see cref="RestoreAllAsync"/> 用的是同一套筛选，用来告诉用户「本该有几个上线」。
-    /// 有保存的令牌，或者明确允许自动连接且存了密码 —— 关掉自动连接的账号不算。
+    /// 能自动登录的账号数：与打开聚合模式后的 <see cref="RestoreAllAsync"/> 用的是同一套筛选，用来告诉用户
+    /// 「本该有几个上线」。有保存的令牌，或者明确允许自动连接且存了密码 —— 关掉自动连接的账号不算；
+    /// 主动下线的账号算在内，因为那一档会把它们接回来。
     /// </summary>
     public int RestorableAccounts => _settings.Servers.Sum(server => server.Accounts.Count(CanAutoConnect));
 
@@ -133,6 +134,8 @@ public sealed class EmbySession : IDisposable
     /// <summary>
     /// 聚合模式下把一台服务器上的某个账号临时下线。只撤掉这次会话，令牌、密码与自动连接都留着 ——
     /// 和「退出登录」不是一回事：退出是用户说别再自动进来了，下线只是这一会儿不想让它占着一个在线来源。
+    /// 下线状态写进账号（<see cref="AccountProfile.KeptOffline"/>），启动恢复跳过它，重启后仍保持下线；
+    /// 再次登录成功后清除。
     /// 返回是否真的下线了一个在线来源。
     /// </summary>
     public bool TakeOffline(ServerProfile server, AccountProfile account)
@@ -141,6 +144,7 @@ public sealed class EmbySession : IDisposable
         lock (_lifecycleGate)
         {
             if (_disposed || !_sources.ContainsKey(key)) return false;
+            account.KeptOffline = true;
         }
         EndSource(key, "已下线", explicitSignOut: false, keepCredentials: true);
         return true;
@@ -294,13 +298,19 @@ public sealed class EmbySession : IDisposable
     public Task<bool> TryRestoreAsync(ServerProfile server, AccountProfile account, CancellationToken cancellationToken) =>
         TryRestoreAsync(server, account, true, cancellationToken);
 
-    /// <summary>恢复允许自动连接的账号。聚合模式恢复所有来源；非聚合模式只恢复一个（上次那一个优先）。</summary>
-    public async Task<int> RestoreAllAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// 恢复允许自动连接的账号。聚合模式恢复所有来源；非聚合模式只恢复一个（上次那一个优先）。
+    /// <para>
+    /// <paramref name="includeOffline"/> 默认 false：启动恢复跳过用户主动「下线」的账号，让下线状态跨重启保留；
+    /// 用户重新打开聚合模式时传 true，把保存的账号（包括之前下线的）都接回来 —— 那是一次明确的「全部连上」。
+    /// </para>
+    /// </summary>
+    public async Task<int> RestoreAllAsync(CancellationToken cancellationToken, bool includeOffline = false)
     {
         var lastServer = _settings.LastServerId;
         var lastAccount = _settings.LastAccountId;
         var accounts = _settings.Servers.SelectMany(server => server.Accounts
-            .Where(CanAutoConnect)
+            .Where(account => CanAutoConnect(account) && (includeOffline || !account.KeptOffline))
             .Select(account => (Server: server, Account: account))).ToArray();
 
         if (!Aggregate)
@@ -752,6 +762,8 @@ public sealed class EmbySession : IDisposable
         server.ServerVersion = connection.ServerVersion;
         server.ServerId = connection.ServerId;
         account.AutoConnect = true;
+        // 连上了就是「不再保持下线」：显式登录或用户重新打开聚合模式后接回，都会走到这里。
+        account.KeptOffline = false;
         var key = EmbySessionScope.CreateKey(server.Id, account.Id);
         if (_sources.TryGetValue(key, out var existing) && existing.Client.Connection.IsSameIdentityAs(connection))
         {
@@ -813,7 +825,12 @@ public sealed class EmbySession : IDisposable
             if (account is not null && !keepCredentials)
             {
                 _vault.ClearAccessToken(account);
-                if (explicitSignOut) account.AutoConnect = false;
+                if (explicitSignOut)
+                {
+                    account.AutoConnect = false;
+                    // 退出登录比「下线」更强，留着旧标记只会让菜单把已注销账号写成「下线」。
+                    account.KeptOffline = false;
+                }
             }
             _sources.Remove(key);
             if (ReferenceEquals(_current, removed) && removed is not null)

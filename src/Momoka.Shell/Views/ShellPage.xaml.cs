@@ -2779,7 +2779,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
             {
                 Content = new TextBlock
                 {
-                    Text = identity + (source?.IsCurrent == true ? "（当前）" : source is not null ? "（在线）" : ""),
+                    // 「已下线」是写进设置的保持状态：重启后这个账号不会自动回来，直到用户再点它登录。
+                    Text = identity + (source?.IsCurrent == true ? "（当前）"
+                        : source is not null ? "（在线）"
+                        : account?.KeptOffline == true ? "（已下线）"
+                        : ""),
                     Style = (Style)Application.Current.Resources["EgBodyStyle"],
                     FontSize = (double)Application.Current.Resources["EgCaptionFontSize"],
                     TextTrimming = TextTrimming.CharacterEllipsis

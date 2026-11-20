@@ -344,7 +344,7 @@ public sealed partial class ServersViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
-            var online = await _session.RestoreAllAsync(token).ConfigureAwait(true);
+            var online = await _session.RestoreAllAsync(token, includeOffline: true).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
 
             Refresh();
@@ -396,6 +396,7 @@ public sealed partial class ServersViewModel : PageViewModel
 
     /// <summary>
     /// 聚合模式下的「下线」：把这个账号从在线来源里摘掉，账号本身、保存的令牌和密码都留着，点「登录」就回来。
+    /// 下线状态写进设置，重启后仍保持下线，直到这个账号再次登录。
     /// 和「退出登录」不是一回事 —— 后者会清掉令牌并关掉自动连接。
     /// </summary>
     [RelayCommand]
@@ -405,7 +406,7 @@ public sealed partial class ServersViewModel : PageViewModel
         if (!_session!.TakeOffline(row.Server, row.Account)) return;
 
         Refresh();
-        Notify("已下线", $"{row.Username} 已下线；账号和保存的凭据都还在，点「登录」就能回来。",
+        Notify("已下线", $"{row.Username} 已下线，重启后仍保持下线；账号和保存的凭据都还在，点「登录」就能回来。",
             InfoBarSeverity.Informational);
     }
 
