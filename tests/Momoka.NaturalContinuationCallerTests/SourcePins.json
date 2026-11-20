@@ -57,7 +57,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "751fd7faf9db357a5c0c73f1adc2e06ad16eaf48c0430b013b25d17c7c7a2baf"
+      "sha256": "e9596ff1cb3583be56682f655a5adff1486f69c8a7e35e15032172c7e6778e28"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
