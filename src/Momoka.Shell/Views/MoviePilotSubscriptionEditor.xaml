@@ -12,7 +12,55 @@
             <Setter Property="Foreground" Value="{ThemeResource EgTextDimBrush}" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Margin" Value="8,2,0,0" />
         </Style>
         <!--
-          订阅站点、优先级规则组这两颗多选下拉的衣服（2026-11-19）。
+          订阅站点的选择栏（2026-11-20，用户拿参考图令「参考下图修改编辑订阅的订阅站点选择栏」）。
+
+          参考图里这颗控件跟同一张弹窗里的 32 高组合框不是一档：整条字段 54 高、12 圆角，左边一颗地球、
+          右边一颗箭头，标签「订阅站点」嵌在顶边的缺口里；展开后的站点列表不长在浮层里，而是直接接在
+          字段下面、把下面的内容往下推。
+
+          壳用框架 ToggleButton 的默认模板，不另写一份：几何（高度、圆角、内边距、边框）走这条样式，
+          四组三态颜色由控件自己的资源表接项目角色键（与 Theme/MoviePilotSiteControls.xaml 同一手法）。
+          于是键盘、焦点框、TogglePattern 和禁用态都还是平台那套，只换颜色与尺寸。
+
+          展开态不是弹层：Expander 那种「头与内容同框」的默认外观与参考图的两块独立框不符，所以这里用
+          ToggleButton + 下方面板自绘；「把内容往下推、不覆盖」这一点与官方 Expander 的行为一致
+          （Microsoft Learn「Expander」：it pushes other UI elements out of the way; it does not overlay other UI）。
+        -->
+        <Style x:Key="EditorSitePicker" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="54" />
+            <Setter Property="Padding" Value="20,0,16,0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPickerCornerRadius}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <!--
+          展开后那张表：整块与字段同宽、隔 2 像素接在下面，1 像素边 + 16 圆角（EgCardCornerRadius），
+          上下各 10 的内边距让第一行与最后一行离框边 24（行高 48，勾选框在行里居中）。
+          行高与内边距按参考图量：勾选框 18、行距 48、面板左右内缩 24、文字 16。
+
+          左右内缩写在 Margin 上而不是 Padding：框架的 CheckBox 模板把 Padding 只加在文字那一侧
+          （勾选框固定贴在控件左沿），Padding 写 24 时方块还压在面板边框上（2026-11-20 首版实拍）。
+          所以整颗控件内缩 24，Padding 只管方块到文字的 12。
+        -->
+        <Style x:Key="EditorSiteOption" TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="Margin" Value="24,0,24,0" />
+            <Setter Property="Padding" Value="12,0,0,0" />
+        </Style>
+        <Style x:Key="EditorSiteOptionText" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgSubheadFontSize}" />
+        </Style>
+        <!--
+          优先级规则组这颗多选下拉的衣服（2026-11-19；2026-11-20 订阅站点换成下面那颗就地展开的字段后，
+          只剩进阶页这一颗还穿它）。
 
           用户把「订阅站点」和下面「搜索周期」并排截图，一句「改成跟下面搜索周期差不多的样式」：同一个弹窗里，
           搜索周期是 ComboBox（EditorPicker），订阅站点是 DropDownButton —— 平台给后者穿的是按钮那套衣服：
@@ -146,6 +194,7 @@
         </Style>
         <!--
           多选下拉展开后的那张表（2026-11-19，用户指着截图一句「这个展开的选择栏也要改」）。
+          2026-11-20 订阅站点改成就地展开之后，这张表只剩进阶页的优先级规则组在用。
 
           同一天先把闭合态换成了 ComboBox 的壳，展开态还是 Flyout 的默认件：16,15,16,17 的大内边距、
           456 的 MaxWidth、一块 FlyoutPresenterBackground，里面还自带一个标题和一颗带底的小按钮 ——
@@ -184,6 +233,10 @@
         <DataTemplate x:Key="EditorCheckTemplate" x:DataType="vm:MoviePilotSubscriptionEditorChoiceRow">
             <CheckBox x:Name="SelectEditorChoice" Style="{StaticResource EditorMultiOption}" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}"><TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" /></CheckBox>
         </DataTemplate>
+        <!-- 订阅站点展开后的一行：整行 48 高、勾选框与文字在行里居中；优先级规则组仍用上面那张 32 高的表。 -->
+        <DataTemplate x:Key="EditorSiteOptionTemplate" x:DataType="vm:MoviePilotSubscriptionEditorChoiceRow">
+            <CheckBox x:Name="SelectSiteChoice" Style="{StaticResource EditorSiteOption}" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}"><TextBlock Text="{x:Bind Label}" Style="{StaticResource EditorSiteOptionText}" TextWrapping="Wrap" /></CheckBox>
+        </DataTemplate>
     </UserControl.Resources>
     <Grid x:Name="EditorRoot" MinWidth="220" RowSpacing="4" SizeChanged="OnBodySizeChanged">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -210,34 +263,79 @@
                         <StackPanel x:Name="ResolutionField" Grid.Column="1" Spacing="4"><ComboBox x:Name="ResolutionInput" Header="分辨率" Style="{StaticResource EditorPicker}" ItemsSource="{x:Bind ViewModel.Resolutions, Mode=OneWay}" ItemTemplate="{StaticResource EditorChoiceTemplate}" SelectedItem="{x:Bind ViewModel.Resolution, Mode=TwoWay}" /><TextBlock Text="订阅资源分辨率" Style="{StaticResource EditorHint}" /></StackPanel>
                         <StackPanel x:Name="EffectField" Grid.Column="2" Spacing="4"><ComboBox x:Name="EffectInput" Header="特效" Style="{StaticResource EditorPicker}" ItemsSource="{x:Bind ViewModel.Effects, Mode=OneWay}" ItemTemplate="{StaticResource EditorChoiceTemplate}" SelectedItem="{x:Bind ViewModel.Effect, Mode=TwoWay}" /><TextBlock Text="订阅资源特效" Style="{StaticResource EditorHint}" /></StackPanel>
                     </Grid>
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="订阅站点" Style="{StaticResource EgBodyStyle}" Margin="0,0,0,4" />
-                        <DropDownButton x:Name="SubscriptionSitesInput" Style="{StaticResource EditorMultiPicker}" AutomationProperties.Name="选择订阅站点">
-                            <TextBlock Text="{x:Bind ViewModel.SitesSummary, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
-                            <DropDownButton.Flyout>
-                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource EditorMultiFlyout}">
-                                    <StackPanel Width="280">
-                                        <StackPanel.Resources>
-                                            <!-- 浮层内容不在页面那棵树上，查不到 UserControl.Resources。框架给复选框的
-                                                 四条行底都是透明，悬停只有那只 20 的小方块会亮；这里就地钉成
-                                                 ComboBoxItem 用的那对细分底色，悬停时整行才有一块 4 圆角的高亮。 -->
-                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
-                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
-                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
-                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
-                                        </StackPanel.Resources>
-                                        <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                            <ItemsControl ItemsSource="{x:Bind ViewModel.Sites, Mode=OneWay}" ItemTemplate="{StaticResource EditorCheckTemplate}">
-                                                <ItemsControl.ItemContainerStyle>
-                                                    <Style TargetType="ContentPresenter"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
-                                                </ItemsControl.ItemContainerStyle>
-                                            </ItemsControl>
-                                        </ScrollViewer>
-                                        <HyperlinkButton x:Name="ClearEditorSites" Content="跟随系统" Click="OnClearSites" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" MinHeight="32" Padding="31,0,11,0" />
-                                    </StackPanel>
-                                </Flyout>
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
+                    <StackPanel x:Name="SiteFields" Spacing="4" Margin="0,8,0,0">
+                        <Grid>
+                            <ToggleButton x:Name="SubscriptionSitesInput" Style="{StaticResource EditorSitePicker}"
+                                IsChecked="{x:Bind ViewModel.SitesExpanded, Mode=TwoWay}"
+                                AutomationProperties.Name="订阅站点" AutomationProperties.HelpText="展开或收起站点列表">
+                                <!-- 框架模板按这几条键取四组三态的颜色；就地接项目角色键，禁用态保持透明不抢眼。
+                                     悬停／按下用两支叠加笔（EgOverlayHover/Pressed）：弹窗内容区比 EgSurfaceBrush
+                                     亮一档（ContentDialog 模板在内容区压了一层 5% 的白，正好等于 EgSurfaceElevatedBrush），
+                                     换成 EgSurfaceAltBrush 反而会变暗。 -->
+                                <ToggleButton.Resources>
+                                    <SolidColorBrush x:Key="ToggleButtonBackground" Color="Transparent" />
+                                    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="Transparent" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgOverlayHoverBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgOverlayPressedBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgOverlayHoverBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgOverlayPressedBrush" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="{ThemeResource EgBorderColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="{ThemeResource EgBorderStrongColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" Color="{ThemeResource EgBorderStrongColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="{ThemeResource EgAccentColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="{ThemeResource EgAccentColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="{ThemeResource EgAccentColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled" Color="{ThemeResource EgBorderColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonForeground" Color="{ThemeResource EgTextColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="{ThemeResource EgTextColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="{ThemeResource EgTextColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="{ThemeResource EgTextColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="{ThemeResource EgTextColor}" />
+                                    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="{ThemeResource EgTextColor}" />
+                                </ToggleButton.Resources>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE774;" FontSize="{StaticResource EgTitleFontSize}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.SitesSummary, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <!-- 箭头用字形加旋转变换，不用 AnimatedIcon：那颗的 Pressed 档在关掉系统动画时
+                                         只剩回退字形，展开与否在屏上分不出来；这里只翻 0／180 度。 -->
+                                    <FontIcon x:Name="SiteChevron" Grid.Column="2" Width="12" Height="12" Glyph="&#xE70D;"
+                                        FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw">
+                                        <FontIcon.RenderTransform>
+                                            <RotateTransform x:Name="SiteChevronRotation" CenterX="6" CenterY="6" />
+                                        </FontIcon.RenderTransform>
+                                    </FontIcon>
+                                </Grid>
+                            </ToggleButton>
+                            <!-- 标签压在字段顶边上：垫一层与弹窗内容区同色的 Border，正好把那一小段描边盖掉，
+                                 留出参考图那样的缺口。内容区比 EgSurfaceBrush 亮一档（ContentDialog 模板在上面压了
+                                 一层 5% 的白），所以垫片接 EgSurfaceElevatedBrush，否则缺口处会露出一块更深的方块。
+                                 TextBlock 没有 Background；两层都不吃指针。 -->
+                            <Border x:Name="SubscriptionSitesLabelPlate" Background="{ThemeResource EgSurfaceElevatedBrush}"
+                                Padding="4,0" Margin="16,-8,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
+                                <TextBlock x:Name="SubscriptionSitesLabel" Text="订阅站点" Style="{StaticResource EgCaptionStyle}" />
+                            </Border>
+                        </Grid>
+                        <Border x:Name="SubscriptionSitesPanel" Visibility="{x:Bind ViewModel.SitesPanelVisibility, Mode=OneWay}"
+                            Margin="0,2,0,0" Padding="0,10" Background="Transparent"
+                            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
+                            <Border.Resources>
+                                <!-- 框架给复选框的四条行底都是透明，悬停只有那只 20 的小方块会亮；就地钉成
+                                     ComboBoxItem 用的那对细分底色，悬停时整行才有一块高亮。 -->
+                                <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                            </Border.Resources>
+                            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.Sites, Mode=OneWay}" ItemTemplate="{StaticResource EditorSiteOptionTemplate}">
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
                         <TextBlock Text="订阅的站点范围，不选使用系统设置" Style="{StaticResource EditorHint}" />
                     </StackPanel>
                     <Grid x:Name="IntervalFields" ColumnSpacing="20" RowSpacing="16">

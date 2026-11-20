@@ -455,10 +455,10 @@ internal static class InputControlThemeTests
                     new XAttribute("TargetType", "TextBox"), new XAttribute("BasedOn", "{StaticResource DefaultTextBoxStyle}")))));
             Assert.Throws<AssertionException>(() => AssertProductInputRadii("Page.xaml", localImplicit, shared));
         });
-        Test("编辑订阅：多选下拉换成与组合框同一套几何", () =>
+        Test("编辑订阅：优先级规则组仍接组合框那套壳", () =>
         {
             // 2026-11-19 用户把「订阅站点」和「搜索周期」并排截图：「改成跟下面搜索周期差不多的样式」。
-            // 后者是 ComboBox（EditorPicker），前者是 DropDownButton，两套壳并排就是两种控件。
+            // 2026-11-20 订阅站点换成参考图那颗就地展开的字段之后，进阶页的优先级规则组仍走这一套。
             var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
             var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
             var style = Resource(resources, "EditorMultiPicker");
@@ -491,18 +491,11 @@ internal static class InputControlThemeTests
             // 三态跟着 ComboBox 走，不再自画一套按钮颜色；多选语义仍是 DropDownButton 的浮层。
             var states = style.Descendants(Xaml + "VisualState").Select(state => (string?)state.Attribute(X + "Name")).ToArray();
             Assert.Equal("Normal|PointerOver|Pressed|Disabled", string.Join('|', states));
-            var label = editor.Descendants(Xaml + "TextBlock").Single(element =>
-                (string?)element.Attribute("Text") == "订阅站点"
-                && (string?)element.Attribute("Style") == "{StaticResource EgBodyStyle}");
-            Assert.Equal("0,0,0,4", (string?)label.Attribute("Margin"), "标签到框的间距没有跟 ComboBox 表头对齐");
-            foreach (var name in new[] { "SubscriptionSitesInput", "FilterGroupsInput" })
-            {
-                var picker = Named(editor, name);
-                Assert.Equal("{StaticResource EditorMultiPicker}", (string?)picker.Attribute("Style"), name);
-                Assert.True(picker.Attribute("HorizontalAlignment") is null
-                    && picker.Attribute("HorizontalContentAlignment") is null,
-                    name + " 仍在控件上自设对齐，样式里的几何会被盖掉");
-            }
+            var picker = Named(editor, "FilterGroupsInput");
+            Assert.Equal("{StaticResource EditorMultiPicker}", (string?)picker.Attribute("Style"));
+            Assert.True(picker.Attribute("HorizontalAlignment") is null
+                && picker.Attribute("HorizontalContentAlignment") is null,
+                "优先级规则组仍在控件上自设对齐，样式里的几何会被盖掉");
         });
         Test("编辑订阅：多选下拉的展开态按组合框下拉排", () =>
         {
@@ -531,7 +524,7 @@ internal static class InputControlThemeTests
             Assert.Equal("11,5,11,5", optionSetters["Padding"]);
             Assert.Equal("Stretch", optionSetters["HorizontalAlignment"]);
 
-            foreach (var name in new[] { "SubscriptionSitesInput", "FilterGroupsInput" })
+            foreach (var name in new[] { "FilterGroupsInput" })
             {
                 var picker = Named(editor, name);
                 var flyout = picker.Element(Xaml + "DropDownButton.Flyout")!.Elements().Single();
@@ -552,6 +545,102 @@ internal static class InputControlThemeTests
             var checkTemplate = Resource(resources, "EditorCheckTemplate");
             Assert.Equal("{StaticResource EditorMultiOption}",
                 (string?)checkTemplate.Descendants(Xaml + "CheckBox").Single().Attribute("Style"));
+        });
+        Test("编辑订阅：订阅站点是带地球图标的就地展开字段", () =>
+        {
+            // 2026-11-20 用户拿参考图令「参考下图修改编辑订阅的订阅站点选择栏」，并选定：就地展开、
+            // 去掉「跟随系统」那一行（清空勾选即跟随系统）、字段里照旧显示已选站点、只改这一栏。
+            var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
+            var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
+
+            var fieldStyle = Resource(resources, "EditorSitePicker");
+            Assert.Equal("ToggleButton", (string?)fieldStyle.Attribute("TargetType"));
+            Assert.Equal("{StaticResource DefaultToggleButtonStyle}", (string?)fieldStyle.Attribute("BasedOn"));
+            var fieldSetters = fieldStyle.Elements(Xaml + "Setter").ToDictionary(
+                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
+            // 参考图量出来的几何：54 高、12 圆角（EgPickerCornerRadius）、1 像素边、20,0,16,0 的内边距。
+            Assert.Equal("54", fieldSetters["MinHeight"], "订阅站点字段不是参考图那档 54 高");
+            Assert.Equal("{StaticResource EgPickerCornerRadius}", fieldSetters["CornerRadius"]);
+            Assert.Equal("1", fieldSetters["BorderThickness"]);
+            Assert.Equal("20,0,16,0", fieldSetters["Padding"]);
+            Assert.Equal("Stretch", fieldSetters["HorizontalAlignment"]);
+            Assert.Equal("Stretch", fieldSetters["HorizontalContentAlignment"]);
+
+            var field = Named(editor, "SubscriptionSitesInput");
+            Assert.Equal(Xaml + "ToggleButton", field.Name);
+            Assert.Equal("{StaticResource EditorSitePicker}", (string?)field.Attribute("Style"));
+            Assert.Equal("{x:Bind ViewModel.SitesExpanded, Mode=TwoWay}", (string?)field.Attribute("IsChecked"));
+            Assert.Equal("订阅站点", (string?)field.Attribute("AutomationProperties.Name"));
+            // 四组三态的颜色走控件自己的资源表：展开时描边接强调色，底保持透明。
+            var keys = field.Element(Xaml + "ToggleButton.Resources")!.Elements()
+                .Select(brush => (string?)brush.Attribute(X + "Key")).ToHashSet();
+            foreach (var key in new[] { "ToggleButtonBorderBrushChecked", "ToggleButtonBackgroundChecked",
+                "ToggleButtonBorderBrushPointerOver", "ToggleButtonForeground" })
+                Assert.True(keys.Contains(key), "订阅站点字段缺颜色键 " + key);
+            var checkedBorder = field.Element(Xaml + "ToggleButton.Resources")!.Elements()
+                .Single(brush => (string?)brush.Attribute(X + "Key") == "ToggleButtonBorderBrushChecked");
+            Assert.Equal("{ThemeResource EgAccentColor}", (string?)checkedBorder.Attribute("Color"));
+            // 悬停／按下接叠加笔：弹窗内容区比面色亮一档，接 EgSurfaceAltBrush 会变暗。
+            var hover = field.Element(Xaml + "ToggleButton.Resources")!.Elements()
+                .Single(brush => (string?)brush.Attribute(X + "Key") == "ToggleButtonBackgroundPointerOver");
+            Assert.Equal("EgOverlayHoverBrush", (string?)hover.Attribute("ResourceKey"));
+            // 字段里：地球图标 + 已选摘要 + 会翻面的箭头。
+            Assert.True(field.Descendants(Xaml + "FontIcon").Any(icon => (string?)icon.Attribute("Glyph") == "\uE774"),
+                "字段左边没有地球图标");
+            Assert.Equal("{x:Bind ViewModel.SitesSummary, Mode=OneWay}",
+                (string?)field.Descendants(Xaml + "TextBlock").Single().Attribute("Text"));
+            var chevron = field.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "SiteChevron");
+            Assert.Equal("FontIcon", chevron.Name.LocalName);
+            Assert.Equal("\uE70D", (string?)chevron.Attribute("Glyph"));
+            var rotation = chevron.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "SiteChevronRotation");
+            Assert.Equal("6", (string?)rotation.Attribute("CenterX"));
+            Assert.Equal("6", (string?)rotation.Attribute("CenterY"));
+            Assert.True(File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views",
+                    "MoviePilotSubscriptionEditor.xaml.cs"))
+                .Contains("SiteChevronRotation.Angle = ViewModel.SitesExpanded ? 180 : 0", StringComparison.Ordinal),
+                "展开时箭头没有翻上去");
+
+            // 标签压在顶边缺口里：标题样式、底色取弹窗表面、不吃指针。
+            var labelPlate = Named(editor, "SubscriptionSitesLabelPlate");
+            Assert.Equal("{ThemeResource EgSurfaceElevatedBrush}", (string?)labelPlate.Attribute("Background"),
+                "标签垫片的底色不是弹窗内容区那一档，缺口处会露出一块更深的方块");
+            Assert.Equal("False", (string?)labelPlate.Attribute("IsHitTestVisible"));
+            Assert.Equal("16,-8,0,0", (string?)labelPlate.Attribute("Margin"));
+            Assert.Equal("4,0", (string?)labelPlate.Attribute("Padding"));
+            var label = Named(editor, "SubscriptionSitesLabel");
+            Assert.Equal("订阅站点", (string?)label.Attribute("Text"));
+            Assert.Equal("{StaticResource EgCaptionStyle}", (string?)label.Attribute("Style"));
+
+            // 展开的列表是字段下面一块独立的面板，把内容往下推；不再有浮层，也没有「跟随系统」那一行。
+            var panel = Named(editor, "SubscriptionSitesPanel");
+            Assert.Equal(Xaml + "Border", panel.Name);
+            Assert.Equal("{x:Bind ViewModel.SitesPanelVisibility, Mode=OneWay}", (string?)panel.Attribute("Visibility"));
+            Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)panel.Attribute("CornerRadius"));
+            Assert.Equal("0,2,0,0", (string?)panel.Attribute("Margin"));
+            Assert.Equal("0,10", (string?)panel.Attribute("Padding"));
+            var options = panel.Descendants(Xaml + "ItemsControl").Single();
+            Assert.Equal("{x:Bind ViewModel.Sites, Mode=OneWay}", (string?)options.Attribute("ItemsSource"));
+            Assert.Equal("{StaticResource EditorSiteOptionTemplate}", (string?)options.Attribute("ItemTemplate"));
+            Assert.Equal("260", (string?)panel.Descendants(Xaml + "ScrollViewer").Single().Attribute("MaxHeight"));
+            Assert.False(editor.Descendants(Xaml + "HyperlinkButton").Any(link => (string?)link.Attribute("Content") == "跟随系统"
+                    && (string?)link.Attribute(X + "Name") == "ClearEditorSites"),
+                "订阅站点又放回了「跟随系统」清空行");
+            Assert.False(File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views",
+                "MoviePilotSubscriptionEditor.xaml.cs")).Contains("OnClearSites", StringComparison.Ordinal),
+                "订阅站点还留着清空站点的处理器");
+
+            var optionStyle = Resource(resources, "EditorSiteOption");
+            var optionSetters = optionStyle.Elements(Xaml + "Setter").ToDictionary(
+                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
+            Assert.Equal("48", optionSetters["MinHeight"], "站点行没有按参考图的 48 高排");
+            Assert.Equal("24,0,24,0", optionSetters["Margin"], "站点行的左右内缩没写在 Margin 上");
+            Assert.Equal("12,0,0,0", optionSetters["Padding"]);
+            var optionText = Resource(resources, "EditorSiteOptionText");
+            Assert.Equal("{StaticResource EgSubheadFontSize}",
+                (string?)optionText.Elements(Xaml + "Setter").Single().Attribute("Value"));
+            var optionTemplate = Resource(resources, "EditorSiteOptionTemplate");
+            Assert.Equal("{StaticResource EditorSiteOption}",
+                (string?)optionTemplate.Descendants(Xaml + "CheckBox").Single().Attribute("Style"));
         });
         Test("搜索输入圆角：所有产品 AutoSuggestBox 继承共享样式，无局部旧值或遮蔽", () =>
         {
