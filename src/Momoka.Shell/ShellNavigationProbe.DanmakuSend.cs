@@ -214,7 +214,6 @@ internal sealed partial class ShellNavigationProbe
         Call(page, "OnPictureMenuOpening", page, new object());
         Require(MenuDanmakuRows().Count == 2, "启用后右键缺少面板或弹幕设置入口");
         var settingsGroup = pictureMenu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == PlayerSettingsLinks.MenuLabel);
-        var staleSettingsRow = settingsGroup.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is PlayerSettingsLink { Token: "danmaku" });
         var settingsRequests = 0;
         void Requested(PlayerSettingsLink link) { if (link.Token == "danmaku") settingsRequests++; }
         vm.SettingsRequested += Requested;
@@ -229,11 +228,14 @@ internal sealed partial class ShellNavigationProbe
             Require(panelButton.Visibility == Visibility.Collapsed && toggle.Visibility == Visibility.Collapsed
                 && input.Visibility == Visibility.Collapsed, "关闭全局弹幕后仍有弹幕播放控件");
             Call(page, "OnPictureMenuOpening", page, new object());
-            Require(MenuDanmakuRows().Count == 0, "关闭全局弹幕后右键仍泄漏相关入口");
-            Call(page, "OnPictureSettingsRow", staleSettingsRow, new RoutedEventArgs());
+            Require(MenuDanmakuRows().Count == 1, "关闭全局弹幕后应只保留弹幕设置入口");
+            var settingsRowWhenDisabled = pictureMenu.Items.OfType<MenuFlyoutSubItem>()
+                .Single(group => group.Text == PlayerSettingsLinks.MenuLabel).Items.OfType<MenuFlyoutItem>()
+                .Single(row => row.Tag is PlayerSettingsLink { Token: "danmaku" });
+            Call(page, "OnPictureSettingsRow", settingsRowWhenDisabled, new RoutedEventArgs());
             Call(page, "OnDanmakuToggleClick", toggle, new RoutedEventArgs());
-            Require(settingsRequests == 0 && settings.Danmaku.Show && settings.Danmaku.Opacity == opacity,
-                "旧弹幕入口仍执行或隐藏清空了偏好");
+            Require(settingsRequests == 1 && settings.Danmaku.Show && settings.Danmaku.Opacity == opacity,
+                "服务关闭时设置入口不能打开弹幕卡，或隐藏清空了偏好");
             await SaveProbeScreenAsync("player-danmaku-disabled-screen.png");
             settings.Danmaku.Enabled = true;
             ShellPrefs.ApplyDanmaku();
@@ -246,8 +248,13 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyDanmaku();
             await LayoutAsync(page);
             Call(page, "OnPictureMenuOpening", page, new object());
-            Require(toggle.Visibility == Visibility.Collapsed && MenuDanmakuRows().Count == 0,
-                "来源地址未配置仍显示弹幕操作");
+            Require(toggle.Visibility == Visibility.Collapsed && MenuDanmakuRows().Count == 1,
+                "来源地址未配置时应隐藏弹幕操作并保留弹幕设置入口");
+            var settingsRowWithInvalidSource = pictureMenu.Items.OfType<MenuFlyoutSubItem>()
+                .Single(group => group.Text == PlayerSettingsLinks.MenuLabel).Items.OfType<MenuFlyoutItem>()
+                .Single(row => row.Tag is PlayerSettingsLink { Token: "danmaku" });
+            Call(page, "OnPictureSettingsRow", settingsRowWithInvalidSource, new RoutedEventArgs());
+            Require(settingsRequests == 2, "来源未配置时弹幕设置入口没有打开设置卡");
             settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
             settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
             ShellPrefs.ApplyDanmaku();

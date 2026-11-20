@@ -748,17 +748,19 @@ internal static class MpvUiTests
                     $"「{link.Label}」指向的设置卡「{link.Category}」不在卡片名单里（{string.Join('、', cards)}）");
         });
 
-        TestHarness.Test("播放设置弹幕入口随能力隐藏并恢复，其他设置入口与行身份保留", () =>
+        TestHarness.Test("播放设置弹幕入口随设置卡可用性显隐，服务关闭仍保留入口与行身份", () =>
         {
-            foreach (var available in new[] { false, true, false, true })
+            foreach (var settingsAvailable in new[] { false, true, false, true })
             {
-                var rows = PlayerSettingsLinks.Available(available);
-                Assert.Equal(available ? "subtitle,video,audio,tools,danmaku" : "subtitle,video,audio,tools",
+                var rows = PlayerSettingsLinks.Available(settingsAvailable);
+                Assert.Equal(settingsAvailable ? "subtitle,video,audio,tools,danmaku" : "subtitle,video,audio,tools",
                     string.Join(',', rows.Select(link => link.Token)));
                 foreach (var row in rows)
                     Assert.True(ReferenceEquals(row, PlayerSettingsLinks.For(row.Token)), "显隐不能重建或修改设置落点");
             }
             Assert.NotNull(PlayerSettingsLinks.For("danmaku"), "菜单隐藏不能退役全局设置恢复入口");
+            Assert.True(PlayerSettingsLinks.Available(danmakuSettingsAvailable: true)
+                .Any(link => link.Token == "danmaku"), "弹幕设置卡存在时，服务关闭也要保留进入设置的菜单项");
         });
 
         // 设置页那几处截图说明指的菜单名，必须就是右键菜单里真有那一组的名字。菜单早就不叫「画面」了

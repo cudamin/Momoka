@@ -424,7 +424,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     internal event Action? MediaInfoRequested;
 
     /// <summary>
-    /// 右键画面菜单末尾那三行设置入口被点了（<c>字幕</c>／<c>视频输出</c>／<c>音频输出</c>，2026-10-01 用户令）。
+    /// 右键画面菜单末尾的设置入口被点了（<c>字幕</c>／<c>视频输出</c>／<c>音频输出</c>等，2026-10-01 用户令）。
     /// 开窗归外壳：独占模式播放页是摘下去的，集成模式的设置窗口也不归页面管 —— 两条管线因此共用这一条出口
     /// （集成侧 <c>PlayerPage.OnMoreMenuOpening</c> 的菜单行、独占侧 <see cref="VideoWindowContract.OpenSettings"/>
     /// 都是调 <see cref="RequestSettings"/>），像 <see cref="MediaInfoRequested"/> 那样由 <c>ShellPage</c> 接住。
@@ -435,7 +435,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// 「去设置里改这一块」：把画面菜单那一行交给外壳，由它开设置窗口并落在该行那张卡上。
     /// <para>
     /// 一个出口而不是两处各开各的：独占模式播放时播放页根本不在树上，只有 view model 这条线通到外壳；集成
-    /// 模式走同一条，于是「点这三行会发生什么」在两个模式里不可能写出两种答案。
+    /// 模式走同一条，于是「点设置入口会发生什么」在两个模式里不可能写出两种答案。
     /// </para>
     /// </summary>
     internal void RequestSettings(PlayerSettingsLink link) => SettingsRequested?.Invoke(link);

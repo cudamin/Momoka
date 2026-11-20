@@ -47,6 +47,8 @@ public sealed partial class PlayerViewModel
     public partial string DanmakuStatus { get; set; } = "弹幕来源：弹弹play；搜索作品后选择对应剧集。";
 
     internal event Action? DanmakuRequested;
+    /// <summary>当前设置后端是否提供弹幕设置卡；与全局服务开关和当前播放能力分开。</summary>
+    internal bool DanmakuSettingsAvailable => DandanPlayMatching.CanRender(Settings.Mpv);
     public bool DanmakuAvailable => DanmakuSourceRules.IsAvailable(Settings) && Embedded;
     public Visibility DanmakuControlsVisibility => DanmakuAvailable ? Visibility.Visible : Visibility.Collapsed;
     public bool DanmakuShown => Settings.Danmaku.Show;

@@ -117,7 +117,7 @@ public sealed partial class PlayerPage
             .ToList();
 
         var trouble = new List<string>();
-        var available = PlayerSettingsLinks.Available(ViewModel.DanmakuAvailable);
+        var available = PlayerSettingsLinks.Available(ViewModel.DanmakuSettingsAvailable);
         if (roots.OfType<MenuFlyoutItem>().Any(item => item.Tag is PlayerSettingsLink))
             trouble.Add("设置入口仍在根菜单平铺");
         if (!rows.Select(item => item.Text).SequenceEqual(available.Select(link => link.Label)))

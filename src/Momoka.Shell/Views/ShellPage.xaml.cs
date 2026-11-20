@@ -854,7 +854,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     /// <summary>
     /// 右键画面菜单「播放设置」里的设置入口被点了（<see cref="PlayerViewModel.SettingsRequested"/>，2026-10-01 用户令）。
-    /// 开窗归外壳，两个模式共用这一条出口：集成模式那三行也走 view model 这扇门（而不是页面自己去开），因为
+    /// 开窗归外壳，两个模式共用这一条出口：集成模式的设置入口也走 view model 这扇门（而不是页面自己去开），因为
     /// 独占模式播放时播放页根本不在树上 —— 只有这条线通到外壳，而两条管线点同一行因此是同一句执行。
     /// </summary>
     private void OnPlayerSettingsRequested(PlayerSettingsLink link) => ShowSettings(link.Category);

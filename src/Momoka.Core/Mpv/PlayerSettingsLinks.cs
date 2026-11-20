@@ -42,8 +42,8 @@ public static class PlayerSettingsLinks
         new("弹幕", "danmaku", "弹幕"),
     ];
 
-    /// <summary>按当前弹幕能力返回右键菜单里的设置入口，保留全局设置目录与原行身份。</summary>
-    public static IReadOnlyList<PlayerSettingsLink> Available(bool danmakuAvailable) => danmakuAvailable
+    /// <summary>按当前后端是否提供弹幕设置卡返回入口；弹幕服务关闭时仍可进入开启设置。</summary>
+    public static IReadOnlyList<PlayerSettingsLink> Available(bool danmakuSettingsAvailable) => danmakuSettingsAvailable
         ? All
         : All.Where(link => link.Token != "danmaku").ToArray();
 

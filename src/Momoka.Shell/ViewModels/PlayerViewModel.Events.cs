@@ -218,7 +218,7 @@ public sealed partial class PlayerViewModel
                 // 右键画面菜单末尾那一行「去设置里改」被点了（2026-10-01）。令牌由 Parse 收窄过，这里再查
                 // 一次表拿到那张卡 —— 与集成模式点同一行走的是同一个出口（RequestSettings），两条管线同一句。
                 if (PlayerSettingsLinks.For(value) is { } settings
-                    && (settings.Token != "danmaku" || DanmakuAvailable)) RequestSettings(settings);
+                    && (settings.Token != "danmaku" || DanmakuSettingsAvailable)) RequestSettings(settings);
                 break;
         }
     });
@@ -288,7 +288,7 @@ public sealed partial class PlayerViewModel
 
         // 与集成侧 OnMoreMenuOpening 同样折叠进「播放设置」，子项保留原来的宿主消息。
         items[^1] = items[^1] with { Separator = true };
-        var settings = PlayerSettingsLinks.Available(DanmakuAvailable).Select(link => new UoscMenuItem(
+        var settings = PlayerSettingsLinks.Available(DanmakuSettingsAvailable).Select(link => new UoscMenuItem(
                 link.Label,
                 $"script-message {VideoWindowContract.OpenSettings} {link.Token}",
                 true,
