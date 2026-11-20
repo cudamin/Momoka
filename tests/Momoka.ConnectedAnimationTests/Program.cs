@@ -27,6 +27,44 @@ internal static class Program
                 Assert.False(CardDetailTransition.Prepare(fixture.Frame, fixture.Source));
             }
         });
+        Test("主页回收海报仍在当前页面时不因Loaded假值丢掉前进转场", () =>
+        {
+            using var fixture = new Fixture();
+            var page = new Page { XamlRoot = fixture.Frame.XamlRoot };
+            fixture.Frame.Content = page;
+            fixture.Source.Parent = page;
+            fixture.Source.IsLoaded = false;
+            fixture.Source.ConnectedPoster.IsLoaded = false;
+            Assert.True(fixture.Prepare());
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            var animation = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, animation.StartCalls);
+            Assert.True(CardDetailTransition.Started(fixture.Frame));
+            Assert.True(ReferenceEquals(fixture.Target.ConnectedPosterSurface, animation.LastTarget));
+            animation.Complete();
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("回收海报忽略Loaded仍拒绝脱树异页与无效画面", () =>
+        {
+            foreach (var state in new[] { "detached", "other-page", "other-root", "unrooted", "zero-width", "zero-height", "hidden-parent", "outside" })
+            {
+                using var fixture = new Fixture();
+                var page = new Page { XamlRoot = fixture.Frame.XamlRoot };
+                fixture.Frame.Content = page;
+                fixture.Source.Parent = page;
+                fixture.Source.ConnectedPoster.IsLoaded = false;
+                if (state == "detached") fixture.Source.Parent = null;
+                if (state == "other-page") fixture.Source.Parent = new Page();
+                if (state == "other-root") fixture.Source.ConnectedPoster.XamlRoot = new XamlRoot { Content = new FrameworkElement() };
+                if (state == "unrooted") fixture.Source.ConnectedPoster.XamlRoot = null;
+                if (state == "zero-width") fixture.Source.ConnectedPoster.ActualWidth = 0;
+                if (state == "zero-height") fixture.Source.ConnectedPoster.ActualHeight = 0;
+                if (state == "hidden-parent") page.Visibility = Visibility.Collapsed;
+                if (state == "outside") fixture.Source.ConnectedPoster.X = 2000;
+                Assert.False(fixture.Prepare(), state);
+                Assert.Equal(0, fixture.Source.Retentions);
+            }
+        });
         Test("实际身份与目标就绪后启动一次，并取消图片淡入", () =>
         {
             using var fixture = new Fixture();
@@ -177,6 +215,39 @@ internal static class Program
             returning.Complete();
             Assert.False(CardDetailTransition.Returning(fixture.Frame));
         });
+        Test("返回当前页的回收海报不因Loaded假值等待到超时", () =>
+        {
+            using var fixture = new Fixture();
+            Assert.True(fixture.Prepare());
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Source.IsLoaded = false;
+            fixture.Source.ConnectedPoster.IsLoaded = false;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            var returning = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, returning.StartCalls);
+            returning.Complete();
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+        });
+        Test("返回源卡已移出原页时不借残留布局启动", () =>
+        {
+            using var fixture = new Fixture();
+            var page = new Page { XamlRoot = fixture.Frame.XamlRoot };
+            fixture.Frame.Content = page;
+            fixture.Source.Parent = page;
+            Assert.True(fixture.Prepare());
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Source.Parent = null;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+            DispatcherTimer.Created.Last().Fire();
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+        });
         Test("返回目标尚未上树时不判死，首次布局后接上", () =>
         {
             using var fixture = new Fixture();
@@ -188,11 +259,13 @@ internal static class Program
             fixture.Frame.Content = fixture.Source;
             // 主页刚从缓存恢复：卡片还没画出来，第一次低优先级回调不能把票据判死。
             fixture.Source.ConnectedPoster.IsLoaded = false;
+            fixture.Source.ConnectedPoster.XamlRoot = null;
             CardDetailTransition.CompleteReturn(fixture.Frame);
             fixture.Frame.DispatcherQueue.Drain();
             Assert.True(CardDetailTransition.Returning(fixture.Frame));
             Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
             // 首帧布局落定：返回这条也要像前进那样接上。
+            fixture.Source.ConnectedPoster.XamlRoot = fixture.Frame.XamlRoot;
             fixture.Source.ConnectedPoster.IsLoaded = true;
             fixture.Source.Layout();
             fixture.Frame.DispatcherQueue.Drain();
@@ -543,6 +616,7 @@ internal static class Program
         {
             using var fixture = new Fixture();
             fixture.Frame.Content = fixture.Target;
+            fixture.Source.Parent = fixture.Target;
             fixture.Prepare();
             CardDetailTransition.Release(fixture.Target);
             Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
@@ -559,6 +633,7 @@ internal static class Program
             using var fixture = new Fixture();
             var page = new Page { Frame = fixture.Frame };
             fixture.Frame.Content = page;
+            fixture.Source.Parent = page;
             CardDetailTransition.Navigate(page, fixture.Source, () => { });
             Assert.Equal(0, fixture.Source.Retentions);
             try { CardDetailTransition.Navigate(page, fixture.Source, () => throw new InvalidOperationException("navigation rejected")); }

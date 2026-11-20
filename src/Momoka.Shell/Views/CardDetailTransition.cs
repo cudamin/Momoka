@@ -44,7 +44,7 @@ internal static class CardDetailTransition
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
         if (card.Item.Source?.IsCurrent != true) return RejectPreparation(ConnectedMotionReason.IdentityChanged);
         if (PrimaryArtwork(card.Item) != artwork) return RejectPreparation(ConnectedMotionReason.ArtworkChanged);
-        if (!VisibleImage(source.ConnectedPoster) || source.ConnectedPoster.Source is not BitmapSource picture)
+        if (!VisibleSource(frame, source) || source.ConnectedPoster.Source is not BitmapSource picture)
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
         var item = card.Item;
         Action? releaseSource = null;
@@ -161,6 +161,22 @@ internal static class CardDetailTransition
         ? new(EmbyImageStore.ImageItemId(item, EmbyImageStore.Primary), EmbyImageStore.Primary, tag) : null;
 
     internal static bool VisibleImage(Image image) => image.IsLoaded && ArrangedImage(image);
+
+    /// <summary>
+    /// Repeater 回收可能把仍在屏上的海报标为未 Loaded（与 PosterCard、ImageArrivalFade 的处理一致）。
+    /// 来源以当前页里的真实几何为准；同时核对所属页面与 XamlRoot，不能借离树容器残留的尺寸起跑。
+    /// 仅在准备前和返回落点使用，前进导航后来源正常离树不受此约束。
+    /// </summary>
+    private static bool VisibleSource(Frame frame, PosterCard source)
+    {
+        var image = source.ConnectedPoster;
+        if (frame.Content is not FrameworkElement page || frame.XamlRoot is null
+            || !ReferenceEquals(image.XamlRoot, frame.XamlRoot)) return false;
+
+        for (DependencyObject? current = image; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (ReferenceEquals(current, page)) return ArrangedImage(image);
+        return false;
+    }
 
     /// <summary>
     /// 已经排过版、画得出画面的目标图 —— 与 <see cref="VisibleImage"/> 只差「Loaded」那一位。
@@ -547,7 +563,7 @@ internal static class CardDetailTransition
             if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return ConnectedMotionReason.SourceUnavailable;
             if (!Matches(card.Item)) return ConnectedMotionReason.IdentityChanged;
             if (card.LoadedPosterArtwork != _artwork || PrimaryArtwork(card.Item) != _artwork) return ConnectedMotionReason.ArtworkChanged;
-            return VisibleImage(source.ConnectedPoster) ? ConnectedMotionReason.None : ConnectedMotionReason.SourceUnavailable;
+            return VisibleSource(_frame, source) ? ConnectedMotionReason.None : ConnectedMotionReason.SourceUnavailable;
         }
 
         private void BeginTimeout(int milliseconds, Action expired)

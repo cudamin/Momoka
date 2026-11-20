@@ -1,3 +1,27 @@
+## 2026-11-20 主页海报进入详情转场的回收状态修复（分支，待合并）
+
+用户报点击主页封面后，封面移进详情的动画消失；先要求停止修复只查版本，随后明确“算了，你直接修吧”。
+版本调查发现 `87e1b60` 把转场对象改为圆角表面，但后续仍有原生通过记录，不能认定它是首次故障提交，未撤回圆角层。
+
+本批修复一处可复现的判定冲突：`PosterCard`／`ImageArrivalFade` 已兼容 Repeater 回收时图片仍在树上却被标为未 Loaded，
+`CardDetailTransition` 的来源准备与返回落点仍硬查 IsLoaded，因而拒绝原本可见的海报。
+改为确认图片属于当前 Frame 页面的视觉子树、共享 XamlRoot，复用现有像素、尺寸、祖先可见与视口检查。
+只在准备与返回落点使用，不改变导航后来源离树保图、目的页 Loaded 等待、圆角快照、身份／图版本或超时。
+
+新增四项回归：仍在当前页的回收海报前进与返回、脱树残留拒绝，以及异页／异根／无根／零尺寸／隐藏／屏外负例。
+原“返回未上树”夹具改为真正清空 XamlRoot 再恢复；两处导航夹具补齐来源的实际父页。
+旧产品代码先复现三项失败；修复后关联动画 **87/87**、页面契约 **371/371**、导航呈现 **32/32**、架构 **7/7**，
+均 0 失败 0 跳过；Shell Release/x64 与受影响测试编译 0 警告 0 错误。格式与变更空白检查通过，重复率 **66 段／0.47%**。
+
+工作树 `C:/Users/89400/.codex/worktrees/c065/Momoka`，分支 `codex/fix-home-cover-transition`，基点 `747cadf`，未合并、未上传。
+体验发布 `publish.ps1 -NoArchive -Shortcut` 退出 0，载荷验证通过（548 文件／290.1 MB），桌面
+`Momoka-home-cover-transition-c065.lnk` 的目标与工作目录回读均为本树 `artifacts/publish/win-x64`。
+`Momoka.exe` SHA256 `CBEED05BA37DF3DA035F82870361AE2D08BAA5EC7F31BBF54F54FD850EA4A679`，
+`Momoka.dll` SHA256 `02C4D9BA3963D43C1C37A05AEB3EA885EB8B32EBA5098C32351011A2EA032B45`；
+发布日志 `artifacts/home-cover-transition-publish.log`。主树快捷方式未覆盖。
+本轮按日常规则不跑原生探针或验收截图；不涉及新样式、资源字典或 XAML 变动，无高风险加载例外。
+尚未证明用户现场就是回收 Loaded 假值触发，真实鼠标、封面飞行中间帧、宽窄与主题覆盖登记到待交付台账。
+
 ## 2026-11-20 商店轮播按参考图重排宽窄两档（原分支 codex/store-carousel-responsive，已合入主树）
 
 **合入主树。** 用户令「合并到主树」后，确认两树干净、`master d965861` 是分支 `9739ba8` 的祖先，以快进方式合入全部 5 条提交、25 个路径；合入后主树与分支内容完全一致、差异空白检查通过，无冲突与额外产品改动。本轮只合并并维护记录，不重跑应用编译、单测、原生探针或验收截图，不发布主树、不上传，台账 111 保持待统一验证。已删除桌面 `Momoka-store-carousel-543e.lnk`；41 份分支验证日志逐一校验 SHA256 后保留到主树 `artifacts/store-carousel-543e-evidence`。临时树干净且无独有提交，归档工具因「The task's primary checkout cannot be removed.」拒绝移除本聊天主工作树，按保护要求保留目录，已分离 HEAD 并删除合并完成的临时分支。主树 `Momoka.lnk` 与现有发布产物未刷新。
