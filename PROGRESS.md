@@ -1,5 +1,13 @@
 ## 2026-11-21 聚合主页封面转场身份修复（分支，待合并）
 
+**体验刷新完成。** 产品提交 `475c49a`（直角试验 `f967e38`），发布时产品与检查代码无未提交差异；
+`verify-publish` 通过，548 文件／290.1 MB，桌面 `Momoka-home-cover-transition-c065.lnk` 已回读为本树发布目录。
+`Momoka.dll` SHA256 `E330168E6C0258BE11C22C5F0D577092EEE8CF75639A94D20C9B5F6BD39F4055`，
+`Momoka.exe` SHA256 `400CD87730B771641F1DB353E32508CACBFFE0F3F35D10B94BAAACFA8C821832`。
+已从该路径以匿名导航计时启动 PID 16616，窗口响应正常，供用户实际复验；没有代替用户点击真实海报。
+发布日志 `artifacts/home-source-final-publish.log`。主树未合并、未上传；以下原生证据对应本树开发构建，
+发布件启动成功不等于真实账号转场已验收。
+
 用户在正确运行的诊断版再次点击无动画，匿名导航阶段连续七次 `card-forward-identity-changed`，
 均发生在 `PrepareToAnimate` 前。源码核对：`EmbySessionScope.IsCurrent` 是默认账号，
 `IsAvailable` 才表示原登录身份仍在线；主页和 CardItem 允许非默认在线来源，封面票据却硬查前者。
