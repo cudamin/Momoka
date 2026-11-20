@@ -5,7 +5,7 @@ description: "Plan, implement or review Momoka C# and WinUI XAML: native control
 
 # Momoka — WinUI shell
 
-Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviation confirmation](../../../CLAUDE.md#winui-官方优先与偏离确认), before proposing a UI change. Versions and runtime behavior come from current source, not old comments or this skill. Use the current worktree; enumerate affected views instead of assuming an old inventory is complete.
+Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviation confirmation](../../../CLAUDE.md#winui-官方优先与偏离确认), before proposing a UI change. Before editing, follow [the required project configuration checks](../../../CLAUDE.md#动手前核对项目配置). Versions and runtime behavior come from current source, not old comments or this skill. Use the current worktree; enumerate affected views instead of assuming an old inventory is complete.
 
 ## Start with the affected experience
 

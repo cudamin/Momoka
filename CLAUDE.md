@@ -16,7 +16,7 @@
 
 ## 项目与技能
 
-媒体服务器桌面客户端（Emby、Jellyfin、飞牛影视、Plex）：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x64，播放内核 libmpv。SDK 与包版本分别见 `global.json` 和各项目 csproj。
+媒体服务器桌面客户端（Emby、Jellyfin、飞牛影视、Plex）：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x64，播放内核 libmpv。
 
 - `src/Momoka.Core`：无 UI 框架依赖；`src/Momoka.Shell`：WinUI 外壳；`tests/Momoka.Tests`：项目引用仅有 Core 的离线控制台测试运行器，另选择性编译无 WinUI 依赖的 Shell 源文件，可按需调整测试边界。
 - **播放管线与后端分开判断。** 集成管线把 mpv Composition 交换链嵌入 WinUI；独占管线使用 mpv 顶层窗口和 `assets/mpv-ui` 的 uosc。默认管线以 `AppSettings.cs` 为准，同窗换片由 `InlineSwitch.cs` 判定。
@@ -30,6 +30,11 @@
 - 外部集成与验证：[momoka-moviepilot](.claude/skills/momoka-moviepilot/SKILL.md)、[momoka-verification](.claude/skills/momoka-verification/SKILL.md)。
 
 技能维护见 [开发文档](docs/开发与验证.md#项目技能维护)。通用 `winui-*` 技能与本文件冲突时以本文件为准；技能不另立升级、验证或安全政策，不在 `.workbuddy/`、`.zcode/` 复制规则。规则改动须同步受影响技能、文档和脚本。数量与状态从当前源码或工具输出获取，不写死。
+
+## 动手前核对项目配置
+
+- **改 C#、XAML 或构建／依赖配置前必读：** 当前工作树的 [`.editorconfig`](.editorconfig)、本文件的[分层与代码风格](#分层与代码风格)、本次涉及的 `.csproj`（含受影响的测试项目），以及 [`global.json`](global.json) 和适用的共享构建配置（如 [`Directory.Build.props`](Directory.Build.props)、项目导入的 `.props`／`.targets`）。用这些文件确认 .NET SDK、目标框架和相关 NuGet 包版本。
+- **上下文压缩后：** 先重读本文件，再补读当前任务仍需的项目配置与编码规范。只摘记当前任务用到的版本和约定，无需预读其他项目文件；切换工作树或相关文件有变化时，从当前文件重新核对。
 
 ## 参考与复刻先读源码
 
