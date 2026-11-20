@@ -601,15 +601,21 @@ internal static class InputControlThemeTests
                 "展开时箭头没有翻上去");
 
             // 标签压在顶边缺口里：标题样式、底色取弹窗表面、不吃指针。
+            var siteFields = Named(editor, "SiteFields");
+            Assert.Equal("0,14,0,0", (string?)siteFields.Attribute("Margin"),
+                "订阅站点与上方三列说明之间没留出字段组间距，缺口标签会贴着上一行说明");
             var labelPlate = Named(editor, "SubscriptionSitesLabelPlate");
             Assert.Equal("{ThemeResource EgSurfaceElevatedBrush}", (string?)labelPlate.Attribute("Background"),
                 "标签垫片的底色不是弹窗内容区那一档，缺口处会露出一块更深的方块");
             Assert.Equal("False", (string?)labelPlate.Attribute("IsHitTestVisible"));
             Assert.Equal("16,-8,0,0", (string?)labelPlate.Attribute("Margin"));
-            Assert.Equal("4,0", (string?)labelPlate.Attribute("Padding"));
+            Assert.Equal("6,0", (string?)labelPlate.Attribute("Padding"));
             var label = Named(editor, "SubscriptionSitesLabel");
             Assert.Equal("订阅站点", (string?)label.Attribute("Text"));
             Assert.Equal("{StaticResource EgCaptionStyle}", (string?)label.Attribute("Style"));
+            // 12 号灰字与上方「订阅资源质量」同色同号，会被读成说明的续行；标签取正文白。
+            Assert.Equal("{ThemeResource EgTextBrush}", (string?)label.Attribute("Foreground"),
+                "订阅站点标签又回到说明文字那一档灰");
 
             // 展开的列表是字段下面一块独立的面板，把内容往下推；不再有浮层，也没有「跟随系统」那一行。
             var panel = Named(editor, "SubscriptionSitesPanel");

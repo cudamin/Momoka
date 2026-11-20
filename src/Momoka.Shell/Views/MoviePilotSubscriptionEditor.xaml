@@ -263,7 +263,7 @@
                         <StackPanel x:Name="ResolutionField" Grid.Column="1" Spacing="4"><ComboBox x:Name="ResolutionInput" Header="分辨率" Style="{StaticResource EditorPicker}" ItemsSource="{x:Bind ViewModel.Resolutions, Mode=OneWay}" ItemTemplate="{StaticResource EditorChoiceTemplate}" SelectedItem="{x:Bind ViewModel.Resolution, Mode=TwoWay}" /><TextBlock Text="订阅资源分辨率" Style="{StaticResource EditorHint}" /></StackPanel>
                         <StackPanel x:Name="EffectField" Grid.Column="2" Spacing="4"><ComboBox x:Name="EffectInput" Header="特效" Style="{StaticResource EditorPicker}" ItemsSource="{x:Bind ViewModel.Effects, Mode=OneWay}" ItemTemplate="{StaticResource EditorChoiceTemplate}" SelectedItem="{x:Bind ViewModel.Effect, Mode=TwoWay}" /><TextBlock Text="订阅资源特效" Style="{StaticResource EditorHint}" /></StackPanel>
                     </Grid>
-                    <StackPanel x:Name="SiteFields" Spacing="4" Margin="0,8,0,0">
+                    <StackPanel x:Name="SiteFields" Spacing="4" Margin="0,14,0,0">
                         <Grid>
                             <ToggleButton x:Name="SubscriptionSitesInput" Style="{StaticResource EditorSitePicker}"
                                 IsChecked="{x:Bind ViewModel.SitesExpanded, Mode=TwoWay}"
@@ -295,7 +295,7 @@
                                 </ToggleButton.Resources>
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <FontIcon Glyph="&#xE774;" FontSize="{StaticResource EgTitleFontSize}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                                    <FontIcon Glyph="&#xE774;" FontSize="{StaticResource EgTitleFontSize}" Foreground="{ThemeResource EgTextBrush}" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
                                     <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.SitesSummary, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                     <!-- 箭头用字形加旋转变换，不用 AnimatedIcon：那颗的 Pressed 档在关掉系统动画时
                                          只剩回退字形，展开与否在屏上分不出来；这里只翻 0／180 度。 -->
@@ -311,10 +311,11 @@
                             <!-- 标签压在字段顶边上：垫一层与弹窗内容区同色的 Border，正好把那一小段描边盖掉，
                                  留出参考图那样的缺口。内容区比 EgSurfaceBrush 亮一档（ContentDialog 模板在上面压了
                                  一层 5% 的白），所以垫片接 EgSurfaceElevatedBrush，否则缺口处会露出一块更深的方块。
-                                 TextBlock 没有 Background；两层都不吃指针。 -->
+                                 TextBlock 没有 Background；两层都不吃指针。字色取正文白：这一栏上方紧挨着三列
+                                 说明，标签若也用 12 号灰字，读起来就是「订阅资源质量」的续行。 -->
                             <Border x:Name="SubscriptionSitesLabelPlate" Background="{ThemeResource EgSurfaceElevatedBrush}"
-                                Padding="4,0" Margin="16,-8,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
-                                <TextBlock x:Name="SubscriptionSitesLabel" Text="订阅站点" Style="{StaticResource EgCaptionStyle}" />
+                                Padding="6,0" Margin="16,-8,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
+                                <TextBlock x:Name="SubscriptionSitesLabel" Text="订阅站点" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextBrush}" />
                             </Border>
                         </Grid>
                         <Border x:Name="SubscriptionSitesPanel" Visibility="{x:Bind ViewModel.SitesPanelVisibility, Mode=OneWay}"
