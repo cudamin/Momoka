@@ -546,10 +546,10 @@ internal static class InputControlThemeTests
             Assert.Equal("{StaticResource EditorMultiOption}",
                 (string?)checkTemplate.Descendants(Xaml + "CheckBox").Single().Attribute("Style"));
         });
-        Test("编辑订阅：订阅站点是带地球图标的就地展开字段", () =>
+        Test("编辑订阅：订阅站点是与搜索周期同一套壳的就地展开字段", () =>
         {
-            // 2026-11-20 用户拿参考图令「参考下图修改编辑订阅的订阅站点选择栏」，并选定：就地展开、
-            // 去掉「跟随系统」那一行（清空勾选即跟随系统）、字段里照旧显示已选站点、只改这一栏。
+            // 2026-11-20 用户先拿参考图要「54 高、缺口标签、地球图标」；实屏后改口「不能改成跟下面
+            // 搜索周期一样的吗」，并确认列表仍就地展开。于是壳换回 ComboBox 那档，展开行为不变。
             var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
             var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
 
@@ -558,11 +558,14 @@ internal static class InputControlThemeTests
             Assert.Equal("{StaticResource DefaultToggleButtonStyle}", (string?)fieldStyle.Attribute("BasedOn"));
             var fieldSetters = fieldStyle.Elements(Xaml + "Setter").ToDictionary(
                 setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
-            // 参考图量出来的几何：54 高、12 圆角（EgPickerCornerRadius）、1 像素边、20,0,16,0 的内边距。
-            Assert.Equal("54", fieldSetters["MinHeight"], "订阅站点字段不是参考图那档 54 高");
-            Assert.Equal("{StaticResource EgPickerCornerRadius}", fieldSetters["CornerRadius"]);
+            // 与搜索周期的 ComboBox 同一档：32 高、10 圆角（EgSearchCornerRadius）、1 像素边、
+            // 12,5,0,7 内边距、组合框的底与描边。
+            Assert.Equal("32", fieldSetters["MinHeight"], "订阅站点字段没有跟搜索周期一样高");
+            Assert.Equal("{StaticResource EgSearchCornerRadius}", fieldSetters["CornerRadius"]);
             Assert.Equal("1", fieldSetters["BorderThickness"]);
-            Assert.Equal("20,0,16,0", fieldSetters["Padding"]);
+            Assert.Equal("12,5,0,7", fieldSetters["Padding"]);
+            Assert.Equal("{ThemeResource ComboBoxBackground}", fieldSetters["Background"]);
+            Assert.Equal("{ThemeResource ComboBoxBorderBrush}", fieldSetters["BorderBrush"]);
             Assert.Equal("Stretch", fieldSetters["HorizontalAlignment"]);
             Assert.Equal("Stretch", fieldSetters["HorizontalContentAlignment"]);
 
@@ -571,27 +574,32 @@ internal static class InputControlThemeTests
             Assert.Equal("{StaticResource EditorSitePicker}", (string?)field.Attribute("Style"));
             Assert.Equal("{x:Bind ViewModel.SitesExpanded, Mode=TwoWay}", (string?)field.Attribute("IsChecked"));
             Assert.Equal("订阅站点", (string?)field.Attribute("AutomationProperties.Name"));
-            // 四组三态的颜色走控件自己的资源表：展开时描边接强调色，底保持透明。
-            var keys = field.Element(Xaml + "ToggleButton.Resources")!.Elements()
+            // 三态颜色接 ComboBox 的键：收起是组合框的底与边，展开时描边接强调色。
+            var fieldResources = field.Element(Xaml + "ToggleButton.Resources")!;
+            var keys = fieldResources.Elements()
                 .Select(brush => (string?)brush.Attribute(X + "Key")).ToHashSet();
             foreach (var key in new[] { "ToggleButtonBorderBrushChecked", "ToggleButtonBackgroundChecked",
                 "ToggleButtonBorderBrushPointerOver", "ToggleButtonForeground" })
                 Assert.True(keys.Contains(key), "订阅站点字段缺颜色键 " + key);
-            var checkedBorder = field.Element(Xaml + "ToggleButton.Resources")!.Elements()
+            var checkedBorder = fieldResources.Elements()
                 .Single(brush => (string?)brush.Attribute(X + "Key") == "ToggleButtonBorderBrushChecked");
             Assert.Equal("{ThemeResource EgAccentColor}", (string?)checkedBorder.Attribute("Color"));
-            // 悬停／按下接叠加笔：弹窗内容区比面色亮一档，接 EgSurfaceAltBrush 会变暗。
-            var hover = field.Element(Xaml + "ToggleButton.Resources")!.Elements()
+            var hover = fieldResources.Elements()
                 .Single(brush => (string?)brush.Attribute(X + "Key") == "ToggleButtonBackgroundPointerOver");
-            Assert.Equal("EgOverlayHoverBrush", (string?)hover.Attribute("ResourceKey"));
-            // 字段里：地球图标 + 已选摘要 + 会翻面的箭头。
-            Assert.True(field.Descendants(Xaml + "FontIcon").Any(icon => (string?)icon.Attribute("Glyph") == "\uE774"),
-                "字段左边没有地球图标");
+            Assert.Equal("ComboBoxBackgroundPointerOver", (string?)hover.Attribute("ResourceKey"),
+                "悬停底色没有接组合框那一档");
+            // 字段里：已选摘要 + 会翻面的箭头，地球图标跟缺口标签一起退役。
+            Assert.False(field.Descendants(Xaml + "FontIcon").Any(icon => (string?)icon.Attribute("Glyph") == "\uE774"),
+                "订阅站点字段又放回了地球图标");
             Assert.Equal("{x:Bind ViewModel.SitesSummary, Mode=OneWay}",
                 (string?)field.Descendants(Xaml + "TextBlock").Single().Attribute("Text"));
             var chevron = field.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "SiteChevron");
             Assert.Equal("FontIcon", chevron.Name.LocalName);
             Assert.Equal("\uE70D", (string?)chevron.Attribute("Glyph"));
+            Assert.Equal("38", (string?)field.Descendants(Xaml + "ColumnDefinition").Last().Attribute("Width"),
+                "箭头列不是 ComboBox 那档 38");
+            Assert.Equal("0,0,14,0", (string?)chevron.Attribute("Margin"));
+            Assert.Equal("{ThemeResource ComboBoxDropDownGlyphForeground}", (string?)chevron.Attribute("Foreground"));
             var rotation = chevron.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "SiteChevronRotation");
             Assert.Equal("6", (string?)rotation.Attribute("CenterX"));
             Assert.Equal("6", (string?)rotation.Attribute("CenterY"));
@@ -600,28 +608,22 @@ internal static class InputControlThemeTests
                 .Contains("SiteChevronRotation.Angle = ViewModel.SitesExpanded ? 180 : 0", StringComparison.Ordinal),
                 "展开时箭头没有翻上去");
 
-            // 标签压在顶边缺口里：标题样式、底色取弹窗表面、不吃指针。
+            // 标签回到框上方，与「质量」「搜索周期」同级：正文样式、4 的间距，不再有缺口垫片。
             var siteFields = Named(editor, "SiteFields");
-            Assert.Equal("0,14,0,0", (string?)siteFields.Attribute("Margin"),
-                "订阅站点与上方三列说明之间没留出字段组间距，缺口标签会贴着上一行说明");
-            var labelPlate = Named(editor, "SubscriptionSitesLabelPlate");
-            Assert.Equal("{ThemeResource EgSurfaceElevatedBrush}", (string?)labelPlate.Attribute("Background"),
-                "标签垫片的底色不是弹窗内容区那一档，缺口处会露出一块更深的方块");
-            Assert.Equal("False", (string?)labelPlate.Attribute("IsHitTestVisible"));
-            Assert.Equal("16,-8,0,0", (string?)labelPlate.Attribute("Margin"));
-            Assert.Equal("6,0", (string?)labelPlate.Attribute("Padding"));
+            Assert.True(siteFields.Attribute("Margin") is null, "订阅站点还在自己加字段组上边距");
             var label = Named(editor, "SubscriptionSitesLabel");
             Assert.Equal("订阅站点", (string?)label.Attribute("Text"));
-            Assert.Equal("{StaticResource EgCaptionStyle}", (string?)label.Attribute("Style"));
-            // 12 号灰字与上方「订阅资源质量」同色同号，会被读成说明的续行；标签取正文白。
-            Assert.Equal("{ThemeResource EgTextBrush}", (string?)label.Attribute("Foreground"),
-                "订阅站点标签又回到说明文字那一档灰");
+            Assert.Equal("{StaticResource EgBodyStyle}", (string?)label.Attribute("Style"));
+            Assert.Equal("0,0,0,4", (string?)label.Attribute("Margin"));
+            Assert.False(editor.Descendants(Xaml + "Border").Any(border =>
+                    (string?)border.Attribute(X + "Name") == "SubscriptionSitesLabelPlate"),
+                "缺口标签的垫片又回来了");
 
             // 展开的列表是字段下面一块独立的面板，把内容往下推；不再有浮层，也没有「跟随系统」那一行。
             var panel = Named(editor, "SubscriptionSitesPanel");
             Assert.Equal(Xaml + "Border", panel.Name);
             Assert.Equal("{x:Bind ViewModel.SitesPanelVisibility, Mode=OneWay}", (string?)panel.Attribute("Visibility"));
-            Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)panel.Attribute("CornerRadius"));
+            Assert.Equal("{StaticResource EgSearchCornerRadius}", (string?)panel.Attribute("CornerRadius"));
             Assert.Equal("0,2,0,0", (string?)panel.Attribute("Margin"));
             Assert.Equal("0,10", (string?)panel.Attribute("Padding"));
             var options = panel.Descendants(Xaml + "ItemsControl").Single();
