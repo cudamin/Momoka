@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.MoviePilot;
 using Momoka.Shell.Views;
@@ -43,25 +44,27 @@ internal sealed partial class ShellNavigationProbe
             var flyoutTheme = ThemeHost.Current.Id;
             ThemeHost.Apply(Momoka.Theming.UiThemes.All[0].Id);
             await LayoutAsync(editor);
-            var sites = Get<DropDownButton>(editor, "SubscriptionSitesInput");
-            sites.Flyout.ShowAt(sites);
+            var sites = Get<ToggleButton>(editor, "SubscriptionSitesInput");
+            sites.IsChecked = true;
             await LayoutAsync(editor);
-            var flyout = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
-                .SelectMany(popup => Descendants(popup.Child)).OfType<FlyoutPresenter>().Single();
-            Require(flyout.Padding == new Thickness(4) && flyout.CornerRadius.TopLeft == 8,
-                "多选下拉的展开态没有接 ComboBox 下拉那档内边距与圆角");
-            Require(flyout.Background is AcrylicBrush, "多选下拉的展开态不是 ComboBox 下拉那块亚克力");
-            var options = Descendants(flyout).OfType<CheckBox>().ToArray();
+            var panel = Get<Border>(editor, "SubscriptionSitesPanel");
+            Require(panel.Visibility == Visibility.Visible && panel.ActualHeight > 40
+                && Math.Abs(panel.ActualWidth - sites.ActualWidth) < 0.5,
+                $"订阅站点的列表没有在字段下方就地展开（展开={editor.ViewModel.SitesExpanded}，可见={panel.Visibility}，"
+                    + $"面板 {panel.ActualWidth:0.#}×{panel.ActualHeight:0.#}，字段宽 {sites.ActualWidth:0.#}）");
+            var options = Descendants(panel).OfType<CheckBox>().ToArray();
             Require(options.Length == editor.ViewModel.Sites.Count
                 && options.All(option => Math.Abs(option.ActualHeight - 32) < 0.5),
-                "多选下拉的展开态没有按 ComboBox 的 32 高整行排");
+                "订阅站点的列表没有按组合框下拉的 32 高整行排");
             var sample = editor.ViewModel.Sites.FirstOrDefault(row => !row.Selected) ?? editor.ViewModel.Sites[0];
             var wasSelected = sample.Selected;
             sample.Selected = !wasSelected;
             await LayoutAsync(editor);
-            await SaveProbeScreenAsync("mp-editor-sites-flyout-1000.png");
+            await SaveProbeScreenAsync("mp-editor-sites-panel-1000.png");
             sample.Selected = wasSelected;
-            sites.Flyout.Hide();
+            sites.IsChecked = false;
+            await LayoutAsync(editor);
+            Require(panel.Visibility == Visibility.Collapsed, "订阅站点的列表没有收回去");
             ThemeHost.Apply(flyoutTheme);
             await LayoutAsync(editor);
             paths.SelectedItem = editor.ViewModel.Paths.Single(path => path.Value == "/downloads/anime");

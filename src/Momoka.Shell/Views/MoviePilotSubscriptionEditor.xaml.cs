@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
 
@@ -17,10 +19,15 @@ public sealed partial class MoviePilotSubscriptionEditor : UserControl
     public MoviePilotSubscriptionEditor()
     {
         InitializeComponent();
+        // 站点列表是就地展开的，没有浮层那层「点外面自动关」；点字段与面板之外就收回去。
+        // 用 handledEventsToo 是因为按钮一类的子控件会先把 PointerPressed 标掉。
+        EditorRoot.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnEditorPointerPressed), true);
         ViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(ViewModel.IntervalMode) or nameof(ViewModel.BestVersion)) LayoutFields();
             if (args.PropertyName == nameof(ViewModel.SavePath)) SyncPathSelection();
+            if (args.PropertyName == nameof(ViewModel.SitesExpanded)) SyncSitesPanel();
+            if (args.PropertyName == nameof(ViewModel.Working) && ViewModel.Working) ViewModel.SitesExpanded = false;
         };
         ViewModel.Paths.CollectionChanged += (_, _) => SyncPathSelection();
     }
@@ -125,14 +132,37 @@ public sealed partial class MoviePilotSubscriptionEditor : UserControl
     private void OnTabChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
     {
         if (BasicFields is null || AdvancedFields is null) return;
+        ViewModel.SitesExpanded = false;
         var advanced = sender.SelectedItem == AdvancedTab;
         BasicFields.Visibility = advanced ? Visibility.Collapsed : Visibility.Visible;
         AdvancedFields.Visibility = advanced ? Visibility.Visible : Visibility.Collapsed;
         EditorScroll.ChangeView(null, 0, null);
     }
     private async void OnRetry(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync();
-    private void OnClearSites(object sender, RoutedEventArgs args) { foreach (var row in ViewModel.Sites) row.Selected = false; }
     private void OnClearFilters(object sender, RoutedEventArgs args) { foreach (var row in ViewModel.FilterGroups) row.Selected = false; }
+    /// <summary>
+    /// 展开态的两件收尾：箭头翻上来（字形转 180 度），以及把面板带进视野 —— 面板是就地撑开的，
+    /// 字段贴着内容区底边时它会长在可视区外面。
+    /// </summary>
+    private void SyncSitesPanel()
+    {
+        SiteChevronRotation.Angle = ViewModel.SitesExpanded ? 180 : 0;
+        if (!ViewModel.SitesExpanded) return;
+        DispatcherQueue.TryEnqueue(() => SubscriptionSitesPanel.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = true }));
+    }
+    private void OnEditorPointerPressed(object sender, PointerRoutedEventArgs args)
+    {
+        if (!ViewModel.SitesExpanded) return;
+        if (args.OriginalSource is DependencyObject source
+            && (Within(source, SubscriptionSitesInput) || Within(source, SubscriptionSitesPanel))) return;
+        ViewModel.SitesExpanded = false;
+    }
+    private static bool Within(DependencyObject source, DependencyObject root)
+    {
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
+            if (ReferenceEquals(node, root)) return true;
+        return false;
+    }
     private void OnPathSelected(object sender, SelectionChangedEventArgs args)
     {
         if (_syncingPath) return;
