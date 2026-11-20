@@ -19,15 +19,18 @@ public sealed partial class MoviePilotSubscriptionEditor : UserControl
     public MoviePilotSubscriptionEditor()
     {
         InitializeComponent();
-        // 站点列表是就地展开的，没有浮层那层「点外面自动关」；点字段与面板之外就收回去。
+        // 就地展开的列表没有浮层的轻关闭，点字段和面板之外时收起。
         // 用 handledEventsToo 是因为按钮一类的子控件会先把 PointerPressed 标掉。
         EditorRoot.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnEditorPointerPressed), true);
         ViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(ViewModel.IntervalMode) or nameof(ViewModel.BestVersion)) LayoutFields();
             if (args.PropertyName == nameof(ViewModel.SavePath)) SyncPathSelection();
-            if (args.PropertyName == nameof(ViewModel.SitesExpanded)) SyncSitesPanel();
-            if (args.PropertyName == nameof(ViewModel.Working) && ViewModel.Working) ViewModel.SitesExpanded = false;
+            if (args.PropertyName == nameof(ViewModel.SitesExpanded))
+                SyncChoicePanel(ViewModel.SitesExpanded, SiteChevronRotation, SubscriptionSitesPanel);
+            if (args.PropertyName == nameof(ViewModel.FilterGroupsExpanded))
+                SyncChoicePanel(ViewModel.FilterGroupsExpanded, FilterGroupsChevronRotation, FilterGroupsPanel);
+            if (args.PropertyName == nameof(ViewModel.Working) && ViewModel.Working) CollapseChoicePanels();
         };
         ViewModel.Paths.CollectionChanged += (_, _) => SyncPathSelection();
     }
@@ -132,7 +135,7 @@ public sealed partial class MoviePilotSubscriptionEditor : UserControl
     private void OnTabChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
     {
         if (BasicFields is null || AdvancedFields is null) return;
-        ViewModel.SitesExpanded = false;
+        CollapseChoicePanels();
         var advanced = sender.SelectedItem == AdvancedTab;
         BasicFields.Visibility = advanced ? Visibility.Collapsed : Visibility.Visible;
         AdvancedFields.Visibility = advanced ? Visibility.Visible : Visibility.Collapsed;
@@ -140,23 +143,32 @@ public sealed partial class MoviePilotSubscriptionEditor : UserControl
     }
     private async void OnRetry(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync();
     private void OnClearFilters(object sender, RoutedEventArgs args) { foreach (var row in ViewModel.FilterGroups) row.Selected = false; }
-    /// <summary>
-    /// 展开态的两件收尾：箭头翻上来（字形转 180 度），以及把面板带进视野 —— 面板是就地撑开的，
-    /// 字段贴着内容区底边时它会长在可视区外面。
-    /// </summary>
-    private void SyncSitesPanel()
+    private void CollapseChoicePanels()
     {
-        SiteChevronRotation.Angle = ViewModel.SitesExpanded ? 180 : 0;
-        if (!ViewModel.SitesExpanded) return;
-        DispatcherQueue.TryEnqueue(() => SubscriptionSitesPanel.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = true }));
+        ViewModel.SitesExpanded = false;
+        ViewModel.FilterGroupsExpanded = false;
+    }
+    private void SyncChoicePanel(bool expanded, RotateTransform rotation, FrameworkElement panel)
+    {
+        rotation.Angle = expanded ? 180 : 0;
+        if (!expanded) return;
+        // 等可见性绑定更新后再滚入视野；排队期间已经收起就不滚动。
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (rotation.Angle == 180 && panel.IsLoaded)
+                panel.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = true });
+        });
     }
     private void OnEditorPointerPressed(object sender, PointerRoutedEventArgs args)
     {
-        if (!ViewModel.SitesExpanded) return;
-        if (args.OriginalSource is DependencyObject source
-            && (Within(source, SubscriptionSitesInput) || Within(source, SubscriptionSitesPanel))) return;
-        ViewModel.SitesExpanded = false;
+        var source = args.OriginalSource as DependencyObject;
+        if (ViewModel.SitesExpanded && !IsInsideChoice(source, SubscriptionSitesInput, SubscriptionSitesPanel))
+            ViewModel.SitesExpanded = false;
+        if (ViewModel.FilterGroupsExpanded && !IsInsideChoice(source, FilterGroupsInput, FilterGroupsPanel))
+            ViewModel.FilterGroupsExpanded = false;
     }
+    private static bool IsInsideChoice(DependencyObject? source, FrameworkElement field, FrameworkElement panel) =>
+        source is not null && (Within(source, field) || Within(source, panel));
     private static bool Within(DependencyObject source, DependencyObject root)
     {
         for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
