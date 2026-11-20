@@ -30,7 +30,11 @@ public static class ShellPrefs
     /// <summary>主页只重排已读到的媒体库入口，保留轮播和其它货架。</summary>
     public static event Action<UiSettings>? HomeLibraryEntriesChanged;
 
-    public static void ApplyHomeLibraryEntries(UiSettings ui) => HomeLibraryEntriesChanged?.Invoke(ui);
+    public static void ApplyHomeLibraryEntries(UiSettings ui)
+    {
+        ApplySidebar(ui);
+        HomeLibraryEntriesChanged?.Invoke(ui);
+    }
 
     public static event Action<UiSettings>? SidebarChanged;
 

@@ -107,8 +107,15 @@ internal sealed class HomeOrderFixture : IDisposable
     public Task Open() => ShellNavigationProbe.BeginHomeOrderForFixture(Page, Service);
     public Task Reopen() => ShellNavigationProbe.ReopenHomeOrderForFixture(Page, Service, Rows);
     public Task WaitRows(int count) => ShellNavigationProbe.UntilForFixture(() => Rows.Count == count);
+    public Task WaitLibraryEntries(int count) => ShellNavigationProbe.UntilForFixture(() => LibraryKeys().Length == count);
     public void Drain() => Page.DispatcherQueue.Drain();
     public string[] Keys => Rows.Cast<object>().Select(row => Runtime.Get<string>(row, "Key")).ToArray();
+    public string[] LibraryKeys()
+    {
+        var table = Runtime.Get<object>(Table, "LibraryEntries");
+        return table is null ? [] : Runtime.List(table, "Rows").Cast<object>()
+            .Select(row => Runtime.Get<string>(row, "Key")).ToArray();
+    }
     public int MoviePilotCount => Keys.Count(HomeLayout.IsMoviePilot);
 
     public Task<bool> Connect()

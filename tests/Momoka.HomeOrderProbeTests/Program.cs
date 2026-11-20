@@ -364,6 +364,64 @@ internal static class Program
             Assert.False(f.Settings.Settings.Ui.HomeLibraryEntries.Single(row => row.Key == keys[2]).Visible,
                 "编辑在线库时要保留离线库偏好");
         });
+        Test("HomeOrder 订阅库随真实可用性进入媒体库子表，断线重连保留排序和勾选", async () =>
+        {
+            using var f = new HomeOrderFixture(liveDirectory: true);
+            await f.Open();
+            var runtime = HomeOrderFixture.Runtime;
+            var subscriptionKey = HomeLibraryLayout.SubscriptionLibraryKey;
+
+            Assert.False(f.LibraryKeys().Contains(subscriptionKey), "MoviePilot 未连接时不应显示订阅库入口");
+            Assert.True(await f.Connect());
+            f.Drain();
+            await f.WaitLibraryEntries(3);
+
+            var table = LibraryEntries(f);
+            var rows = runtime.List(table, "Rows");
+            var directoryKeys = f.LibraryDirectory.Select(HomeLayout.LibraryKey).ToArray();
+            Assert.Equal(3, rows.Count);
+            Assert.True(f.LibraryKeys().Contains(subscriptionKey));
+            Assert.True(directoryKeys.All(key => f.LibraryKeys().Contains(key)));
+            Assert.True(HomeLayout.Same(f.Saved, HomeLayout.Plan(f.Settings.Settings.Ui.HomeRows, null)),
+                "新增订阅库入口不能改写父表最近添加排");
+
+            var subscription = rows.Cast<object>().Single(row => runtime.Get<string>(row, "Key") == subscriptionKey);
+            var firstLibrary = rows.Cast<object>().Single(row => runtime.Get<string>(row, "Key") == directoryKeys[0]);
+            runtime.Invoke(table, "BeginReorder");
+            rows.Remove(subscription);
+            rows.Insert(0, subscription);
+            CompleteReorder(table);
+            runtime.Set(firstLibrary, "Visible", false);
+            runtime.Set(subscription, "Visible", false);
+            var writes = f.Settings.Writes;
+            var saved = f.Settings.Settings.Ui.HomeLibraryEntries
+                .Select(row => (row.Key, row.Title, row.Visible)).ToArray();
+            Assert.Equal(3, writes);
+            Assert.Equal(subscriptionKey, saved[0].Key);
+            Assert.False(saved[0].Visible);
+            Assert.False(saved.Single(row => row.Key == directoryKeys[0]).Visible);
+
+            f.Reads.Offline = true;
+            Assert.False(await f.Service.RefreshAvailabilityAsync());
+            f.Drain();
+            await f.WaitLibraryEntries(2);
+            Assert.False(f.LibraryKeys().Contains(subscriptionKey));
+            Assert.True(saved.SequenceEqual(f.Settings.Settings.Ui.HomeLibraryEntries
+                .Select(row => (row.Key, row.Title, row.Visible))), "订阅库暂不可用时不能清除排序存档");
+            Assert.True(HomeLayout.Same(f.Saved, HomeLayout.Plan(f.Settings.Settings.Ui.HomeRows, null)),
+                "订阅库可用性不能改写父表");
+
+            f.Reads.Offline = false;
+            Assert.True(await f.Connect());
+            f.Drain();
+            await f.WaitLibraryEntries(3);
+            Assert.True(f.LibraryKeys().SequenceEqual([subscriptionKey, directoryKeys[0], directoryKeys[1]]));
+            var restored = runtime.List(LibraryEntries(f), "Rows").Cast<object>().ToArray();
+            Assert.False(runtime.Get<bool>(restored[0], "Visible"), "订阅库隐藏偏好未恢复");
+            Assert.False(runtime.Get<bool>(restored[1], "Visible"), "媒体库隐藏偏好未恢复");
+            Assert.True(HomeLayout.Same(f.Saved, HomeLayout.Plan(f.Settings.Settings.Ui.HomeRows, null)),
+                "订阅库恢复不能改变父表顺序或勾选");
+        });
         Test("HomeOrder 轮播开着时媒体库固定第一位，关掉放开再开回来", () =>
         {
             using var f = new HomeOrderFixture();

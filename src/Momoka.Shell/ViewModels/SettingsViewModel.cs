@@ -2149,8 +2149,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             IsPinnedHomeRow(Settings.Ui, row.Key),
             Emby.HomeLayout.Caption(row.Key, row.Title, sources))
         {
-            LibraryEntries = row.Key == Emby.HomeLayout.Libraries && libraryEntries is { Rows.Count: > 0 }
-                ? libraryEntries : null
+            LibraryEntries = row.Key == Emby.HomeLayout.Libraries ? libraryEntries : null
         })];
     }
 
@@ -2161,12 +2160,16 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     private IReadOnlyList<HomeRowPlan> HomeLibraryDirectory()
     {
-        if (_readHomeLibraryDirectory?.Invoke() is not { Count: > 0 } libraries) return [];
-
+        var available = _readHomeLibraryDirectory?.Invoke() is { } libraries
+            ? HomeLibraryLayout.FromItems(libraries.Where(library => library.Source is { IsAvailable: true }))
+            : [];
         var sources = _capabilities?.Sources.Where(source => source.IsAvailable)
             .Select(source => source.Key).ToHashSet(StringComparer.Ordinal) ?? [];
-        return HomeLibraryLayout.FromItems(libraries.Where(library =>
-            library.Source is { } source && sources.Contains(source.Key)));
+        var current = available.Where(row => HomeLayout.LibrarySourceKey(row.Key) is { } source && sources.Contains(source))
+            .ToList();
+        if (_moviePilot?.Available == true)
+            current.Add(new HomeRowPlan(HomeLibraryLayout.SubscriptionLibraryKey, "订阅库", Visible: true));
+        return current;
     }
 
     private IReadOnlyList<HomeRowChoice> CurrentHomeLibraryChoices(UiSettings ui)

@@ -59,17 +59,18 @@ internal sealed partial class ShellNavigationProbe
             var home = (HomePage)shell.Pages.Content;
             Require(home.ViewModel.LibraryShelf?.Cards.All(card => !card.IsNavigation) != false, "未连接时显示了 MP 库卡");
             await ConnectMoviePilotAsync(fixture);
-            // 2026-11-11 起主页的 MP 订阅库是两张分类导航卡（订阅·电影／订阅·电视剧），
-            // 不再是旧的那一张「MP 订阅库」汇总卡；点开落在对应分类页，那一页立订阅墙。
-            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.Count(card => card.IsNavigation) == 2);
+            // 主页媒体库入口包含汇总订阅卡和两张分类导航卡；三张卡共用设置页的次序。
+            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.Count(card => card.IsNavigation) == 3);
             var ordinary = home.ViewModel.LibraryShelf!.Cards.Where(card => !card.IsNavigation).ToArray();
             Require(ordinary.Length == 2, "两来源媒体库夹具没有生效");
             var navigation = home.ViewModel.LibraryShelf.Cards.Where(card => card.IsNavigation).ToArray();
-            Require(navigation.Length == 2
+            Require(navigation.Length == 3
                 && navigation.Any(card => card.Item.Id == HomeLayout.MoviePilotMovies
                     && card.Title == HomeLayout.FixedTitle(HomeLayout.MoviePilotMovies))
                 && navigation.Any(card => card.Item.Id == HomeLayout.MoviePilotSeries
                     && card.Title == HomeLayout.FixedTitle(HomeLayout.MoviePilotSeries))
+                && navigation.Any(card => card.Item.Id == HomeLibraryLayout.SubscriptionLibraryKey
+                    && card.Title == "MP 订阅库")
                 && navigation.All(card => card.Scope is null && card.Item.Source is null
                     && card.PlayVisibility == Visibility.Collapsed && card.MoreVisibility == Visibility.Collapsed),
                 "主页订阅分类卡不是两张纯导航卡");
@@ -139,7 +140,7 @@ internal sealed partial class ShellNavigationProbe
             Call(shell, "GoBack");
             await UntilAsync(() => shell.Pages.Content is HomePage returned && returned.IsReady);
             home = (HomePage)shell.Pages.Content;
-            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.Count(card => card.IsNavigation) == 2);
+            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.Count(card => card.IsNavigation) == 3);
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.All(card => !card.IsNavigation) != false);
             await LayoutAsync(home);
@@ -149,7 +150,7 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(shell.Pages.Content, home), "失效卡仍打开 MP 页");
             server.Items.Clear();
             await ConnectMoviePilotAsync(fixture);
-            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.Count(card => card.IsNavigation) == 2);
+            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.Count(card => card.IsNavigation) == 3);
             await LayoutAsync(home);
             await SaveProbeScreenAsync("mp-library-restored-screen.png");
             home.ViewModel.Open(home.ViewModel.LibraryShelf!.Cards.First(card => card.IsNavigation));

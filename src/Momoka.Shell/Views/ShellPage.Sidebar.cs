@@ -98,8 +98,7 @@ public sealed partial class ShellPage
         // 宽度偏好也可能单独改过（导入设置）。先钉回 NavigationView；真变了才重排，没变就让原来的路径收尾。
         var before = Sidebar.OpenPaneLength;
         ApplyPreferredSidebarWidth();
-        // 主页版面（媒体库顺序）也决定栏里那一段的次序（2026-11-18 用户令「订阅按照媒体库顺序排序」）：
-        // 设置页拖完一行，栏跟着重排。次序没变时 Rebuild 自己会退出来，不会白闪一下。
+        // 媒体库入口重排会同步到侧栏；只改主页勾选时，名单没变就不重插。
         RebuildSidebarLibraries();
         if (_sidebarMode == !ui.EnableImmersive)
         {
@@ -511,14 +510,7 @@ public sealed partial class ShellPage
     private bool ShowsAccountNames => _session is { IsSignedIn: true } session && session.Sources.Count > 1;
 
     /// <summary>
-    /// 把媒体库那几项和两条订阅填进栏里，**插在「媒体库」那条分区标题之后**。次序取
-    /// <see cref="SidebarRowOrder"/> —— 就是设置 → 主页版面 →「媒体库顺序」那一份。
-    /// <para>
-    /// 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：从前订阅两条是栏尾单独一段，
-    /// 栏里因此有「媒体库 → 订阅」两条标题；现在只有库项与订阅同排的一张名单，订阅在哪一行由 <c>HomeRows</c>
-    /// 的顺序说了算。两条订阅控件仍是 XAML 里那两颗，这里每次先摘下来再跟着库项插回去，图标、AutomationId 与
-    /// 选中高亮都不必重建。
-    /// </para>
+    /// 把媒体库和两条订阅填在侧栏「媒体库」标题下。两条订阅复用 XAML 控件，以保留图标和 AutomationId。
     /// </summary>
     private void RebuildSidebarLibraries()
     {
@@ -575,12 +567,12 @@ public sealed partial class ShellPage
     }
 
     /// <summary>
-    /// 栏里「媒体库 + 订阅」这一段的次序（见 <see cref="HomeLayout.SidebarOrder"/>）：与设置 → 主页版面 →
-    /// 「媒体库顺序」同一份名单，新库照旧补在末尾。
+    /// 侧栏与设置 → 主页版面 → 展开「媒体库」共用入口次序。
     /// </summary>
     private IReadOnlyList<string> SidebarRowOrder() => HomeLayout.SidebarOrder(
         HomeLayout.Plan(_settings?.Settings.Ui.HomeRows, _libraryViews),
-        _libraries.Keys);
+        _libraries.Keys,
+        _settings?.Settings.Ui.HomeLibraryEntries);
 
     /// <summary>栏里那一行库写什么字：聚合多账号时带账号用户名（见 <see cref="SourceCaption.Prefix"/>）。</summary>
     private string SidebarLibraryLabel(LibraryRequest library) =>

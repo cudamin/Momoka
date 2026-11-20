@@ -311,6 +311,49 @@ internal static class AggregateQueryTests
             Assert.Equal(thirdKey, order[^1]);
         });
 
+        Test("侧栏顺序：新版入口表把汇总订阅放在库之间，电影和电视剧入口相邻", () =>
+        {
+            var first = Scope("a", "user").Bind(new EmbyItem { Id = "movies", Name = "电影" });
+            var second = Scope("b", "other").Bind(new EmbyItem { Id = "shows", Name = "电视剧" });
+            var firstKey = HomeLayout.LibraryKey(first);
+            var secondKey = HomeLayout.LibraryKey(second);
+            var subscriptionKey = HomeLibraryLayout.SubscriptionLibraryKey;
+            var entries = new List<HomeRowSetting>
+            {
+                new() { Key = secondKey, Title = second.Name },
+                new() { Key = subscriptionKey, Title = "订阅" },
+                new() { Key = firstKey, Title = first.Name, Visible = false }
+            };
+            var legacy = HomeLayout.Plan(null, [first, second]);
+            var order = HomeLayout.SidebarOrder(legacy, [firstKey, secondKey], entries);
+
+            Assert.Equal($"{secondKey},{HomeLayout.MoviePilotMovies},{HomeLayout.MoviePilotSeries},{firstKey}",
+                string.Join(',', order));
+            Assert.True(order.Contains(firstKey), "主页取消勾选只隐藏主页卡片，侧栏仍保留入口");
+            Assert.False(order.Contains(subscriptionKey), "汇总库只是排序键，侧栏仍展示两条实际目的地");
+        });
+
+        Test("侧栏顺序：新子表为空或尚未有媒体库时维持旧主页排序规则", () =>
+        {
+            const string firstKey = "library:first";
+            const string secondKey = "library:second";
+            var legacy = new[]
+            {
+                new HomeRowPlan(HomeLayout.MoviePilotMovies, "订阅·电影", true),
+                new HomeRowPlan(firstKey, "最近添加 · 电影", false),
+                new HomeRowPlan(HomeLayout.MoviePilotSeries, "订阅·电视剧", true),
+                new HomeRowPlan(secondKey, "最近添加 · 剧集", true)
+            };
+
+            var empty = HomeLayout.SidebarOrder(legacy, [firstKey, secondKey], []);
+            Assert.Equal($"{HomeLayout.MoviePilotMovies},{firstKey},{HomeLayout.MoviePilotSeries},{secondKey}",
+                string.Join(',', empty));
+            var unsubscribed = HomeLayout.SidebarOrder(legacy, [firstKey, secondKey], [
+                new HomeRowSetting { Key = HomeLibraryLayout.SubscriptionLibraryKey, Title = "订阅", Visible = true }
+            ]);
+            Assert.Equal(string.Join(',', empty), string.Join(',', unsubscribed));
+        });
+
         Test("聚合主页：移除来源文字仍保留独立货架、排列和勾选", () =>
         {
             var first = Scope("a", "user").Bind(new EmbyItem { Id = "same", Name = "电影" });

@@ -15,7 +15,7 @@ namespace Momoka.Shell.Views;
 /// </param>
 internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open)
 {
-    internal const string LibraryKey = "mp-subscriptions";
+    internal const string LibraryKey = HomeLibraryLayout.SubscriptionLibraryKey;
     internal const string LibraryTitle = "MP 订阅库";
     internal string Title => Key == LibraryKey ? LibraryTitle : HomeLayout.FixedTitle(Key)!;
 }

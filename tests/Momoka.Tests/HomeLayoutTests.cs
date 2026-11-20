@@ -88,6 +88,23 @@ internal static class HomeLayoutTests
             Assert.Equal(library, HomeLibraryLayout.VisibleItems(restored.Ui.HomeLibraryEntries, [library]).Single());
         });
 
+        Test("主页媒体库入口：订阅汇总项参与排序但不冒充服务器库", () =>
+        {
+            var library = new HomeRowPlan("library:one", "电影", true);
+            var ordered = HomeLibraryLayout.Plan(
+                [new HomeRowSetting { Key = HomeLibraryLayout.SubscriptionLibraryKey, Title = "订阅库" },
+                 new HomeRowSetting { Key = library.Key, Title = library.Title }],
+                [library, new HomeRowPlan(HomeLibraryLayout.SubscriptionLibraryKey, "订阅库", true)]);
+
+            Assert.Equal(HomeLibraryLayout.SubscriptionLibraryKey, ordered[0].Key);
+            Assert.Equal(library.Key, ordered[1].Key);
+            var visible = HomeLibraryLayout.VisibleItems(
+                [new HomeRowSetting { Key = HomeLibraryLayout.SubscriptionLibraryKey, Title = "订阅库" }],
+                [new EmbyItem { Id = "one", Name = "电影" }]);
+            Assert.Equal(1, visible.Count);
+            Assert.Equal("library:one", HomeLayout.LibraryKey(visible[0]));
+        });
+
         Test("主页版面：音乐库也排「最近添加」一排，标题按库名走", () =>
         {
             // 2026-11-18 用户令「在主页媒体库排序中新增 最近添加·音乐」「添加 最近添加·飞牛音乐」：
