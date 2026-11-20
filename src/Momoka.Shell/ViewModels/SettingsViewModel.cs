@@ -1575,8 +1575,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "按 F 退出后也不会被下一集顶回去",
                 () => playback.AutoFullscreenOnPlayback, value => playback.AutoFullscreenOnPlayback = value),
 
-            // 「窗口不在前台时单击画面播放/暂停」不在设置页：用户令 2026-11-20 把入口放到播放页右键菜单
-            // （见 PlayerPage.OnMoreMenuOpening 与 PlayerViewModel.PushPictureMenuAsync 的同名行）。
+            // 「窗口不在前台时单击画面播放/暂停」不在设置页：用户令 2026-11-20 把入口放到播放页右键菜单的
+            // 「导航」组（见 PlayerMenuCatalog.Root 的同名行，两条管线共用）。
             // 值仍存在 PlaybackSettings 里，跨重启保留；恢复默认／恢复配置整组抄 Playback 时跟着回默认，
             // 正在播的独占窗口由 ShellPrefs.ApplyActivationClick 推给 uosc。
 

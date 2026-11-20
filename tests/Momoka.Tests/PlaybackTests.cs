@@ -5420,7 +5420,8 @@ internal static class PlaybackTests
                 {
                     case PlayerMenuKind.Command:
                         Assert.True(node.Label.Length > 0, "命令行要有名字");
-                        Assert.True(node.Commands.Count > 0, node.Label);
+                        // 「导航」里的后台单击开关没有 mpv 命令：它走 HostAction，由宿主写设置并推给 uosc。
+                        Assert.True(node.Commands.Count > 0 || node.HostAction is not null, node.Label);
                         Assert.True(node.Commands.All(command => command.Count > 0), node.Label);
                         Assert.True(node.Commands.All(command => command[0].Length > 0), node.Label);
                         Assert.Equal(0, node.Children.Count, node.Label);
@@ -5477,6 +5478,33 @@ internal static class PlaybackTests
             {
                 Assert.True(PlayerMenuCatalog.Root.Any(node => node.Label == group), group);
             }
+        });
+
+        Test("画面菜单：后台单击开关住在「导航」组，不另拼一行", () =>
+        {
+            // 2026-11-20 用户令「移到导航里」：这一行原来由两条管线各自拼在「更多」尾部，挪进目录后
+            // 集成侧与 uosc 侧都从同一棵树取它；勾与右列快捷键也跟着目录走。只数总行数看不出挂错分组，
+            // 所以这里认它的父分组、执行出口和读数键。
+            const string label = "窗口不在前台时单击画面播放/暂停";
+            var all = PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root).ToList();
+            Assert.Equal(1, all.Count(node => node.Label == label), "同名行只能有一份");
+
+            var navigation = PlayerMenuCatalog.Root.Single(node => node.Label == "导航");
+            var row = navigation.Children.Single(node => node.Label == label);
+            Assert.Equal(PlayerMenuKind.Command, row.Kind);
+            Assert.Equal(PlayerMenuCatalog.ActivationClickAction, row.HostAction);
+            Assert.Equal(PlayerMenuCatalog.BackgroundClickShortcut, row.Shortcut);
+            Assert.Equal(PlayerMenuCatalog.ActivationClickSettingProperty, row.State?.Property);
+            Assert.Equal(PlayerMenuMatch.Bool, row.State?.Match);
+            Assert.True(PlayerMenuCatalog.Commands.Any(node => ReferenceEquals(node, row)));
+
+            // 宿主填的是设置值而不是 mpv 属性；yes 打勾、no 不打勾，读不到也不打勾。
+            var on = new Dictionary<string, string?> { [PlayerMenuCatalog.ActivationClickSettingProperty] = "yes" };
+            var off = new Dictionary<string, string?> { [PlayerMenuCatalog.ActivationClickSettingProperty] = "no" };
+            Assert.True(row.IsCheckedBy(on));
+            Assert.False(row.IsCheckedBy(off));
+            Assert.False(row.IsCheckedBy(new Dictionary<string, string?>()));
+            Assert.True(PlayerMenuCatalog.CheckProperties.Contains(PlayerMenuCatalog.ActivationClickSettingProperty));
         });
 
         Test("画面菜单：一行按不动的重置要把该重的都重了", () =>

@@ -58,6 +58,8 @@ public sealed partial class PlayerViewModel
         {
             case "previous-episode": PreviousEpisode(); return;
             case "next-episode": NextEpisode(); return;
+            // 「导航」里的后台单击开关：与快捷键 B、uosc 菜单点中走同一句，写完即推给独占窗口。
+            case PlayerMenuCatalog.ActivationClickAction: ToggleActivationClickPlayback(); return;
             case "tool-start":
             case "tool-end":
                 var seconds = await _playback.GetNumberAsync("time-pos").ConfigureAwait(true);

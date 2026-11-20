@@ -102,6 +102,14 @@ public static class PlayerMenuCatalog
     public static IReadOnlyList<PlayerMenuNode> Root { get; } = Describe(
     [
         Group("导航",
+            // 2026-11-20 用户令「移到导航里」：这一行原来拼在「更多」尾部，现在进目录树，两条管线一起从
+            // 这里取。它不是 mpv 属性行：勾由宿主读 PlaybackSettings 后填值，点中走 HostAction。
+            new PlayerMenuNode(PlayerMenuKind.Command, "窗口不在前台时单击画面播放/暂停", [], "", [])
+            {
+                HostAction = ActivationClickAction,
+                Shortcut = BackgroundClickShortcut,
+                State = new PlayerMenuState(ActivationClickSettingProperty, PlayerMenuMatch.Bool)
+            },
             Item("跳到下一个静音位置", "", "script-message-to", MpvAnalysis.ScriptName, "silence")
                 with { Shortcut = "skip-to-silence", Requirement = PlayerMenuRequirement.SilenceDetection,
                     RequireProperties = [MpvAnalysis.ReadyProperty, MpvAnalysis.SilenceProperty] },
@@ -460,11 +468,22 @@ public static class PlayerMenuCatalog
     public const string PlaybackInfoShortcut = "show-playback-info";
 
     /// <summary>
-    /// 「更多」里「窗口不在前台时单击画面播放/暂停」那一行的快捷键动作（2026-11-20 用户令「记得加快捷键」）。
-    /// 与 <see cref="PlaybackInfoShortcut"/> 同一个道理：两条管线的菜单行都要从同一个 Id 取当前键，
-    /// 而它不在目录树里。
+    /// 目录里「窗口不在前台时单击画面播放/暂停」那一行的宿主动作（2026-11-20 从「更多」移进「导航」）。
+    /// 与 <see cref="BackgroundClickShortcut"/> 同一个 Id：菜单行、快捷键、uosc 的 MenuIndex 回包走的是同一件事。
     /// </summary>
-    public const string BackgroundClickShortcut = "toggle-background-click";
+    public const string ActivationClickAction = "toggle-background-click";
+
+    /// <summary>
+    /// 「窗口不在前台时单击画面播放/暂停」那一行的快捷键动作（2026-11-20 用户令「记得加快捷键」）。
+    /// 与 <see cref="PlaybackInfoShortcut"/> 同一个道理：菜单行的右列都要从同一个 Id 取当前键。
+    /// </summary>
+    public const string BackgroundClickShortcut = ActivationClickAction;
+
+    /// <summary>
+    /// 上面那一行打勾用的键 —— 不是 mpv 属性，宿主读 <c>PlaybackSettings.ActivationClickTogglesPlayback</c>
+    /// 后以 yes/no 填进读数表（<c>PlayerViewModel.ReadMenuChecksAsync</c>），两条管线据此显示当前档。
+    /// </summary>
+    public const string ActivationClickSettingProperty = "momoka/settings/activation-click";
 
     /// <summary>
     /// 目录行右列要显示的快捷键文字：动作 Id → 当前生效键的屏上写法。取自 <see cref="ShortcutCatalog.Resolve"/>，
@@ -476,10 +495,11 @@ public static class PlayerMenuCatalog
             .ToDictionary(pair => pair.Key, pair => ShortcutCatalog.Format(pair.Value), StringComparer.Ordinal);
 
     /// <summary>
-    /// The distinct mpv properties any row's <see cref="PlayerMenuNode.State"/> reads, deduplicated — 解码方式's
+    /// The distinct property keys any row's <see cref="PlayerMenuNode.State"/> reads, deduplicated — 解码方式's
     /// eight rows share one 「hwdec」 read. The client reads exactly these when the 画面菜单 opens and ticks each
     /// row against the answers（<see cref="PlayerMenuNode.IsCheckedBy"/>）, so the read cost is one round trip
-    /// per property however many rows use it.
+    /// per property however many rows use it. 唯一例外是 <see cref="ActivationClickSettingProperty"/>：它不是
+    /// mpv 属性，宿主填设置值；读表时先认它，别发给 mpv。
     /// </summary>
     public static IReadOnlyList<string> CheckProperties { get; } =
         [.. Flatten(Root)

@@ -885,7 +885,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     internal bool AutoFullscreenOnPlayback => Settings.Playback.AutoFullscreenOnPlayback && !_replacingPlayback;
 
     /// <summary>
-    /// 「窗口不在前台时，单击画面直接播放/暂停」（播放页右键菜单「更多」区，
+    /// 「窗口不在前台时，单击画面直接播放/暂停」（播放页右键菜单「导航」组，
     /// <see cref="Configuration.PlaybackSettings.ActivationClickTogglesPlayback"/>，默认关）。集成模式由
     /// <c>PlayerPage.OnPointerPressed</c> 每一次按下现读，拨完下一拍就认；独占模式那一头住在 mpv 的 uosc
     /// 脚本里、读不到设置文件，由 <c>PlayerViewModel.NoteActivationClick</c> 把新值推过去。

@@ -228,8 +228,9 @@ public sealed partial class PlayerViewModel
     /// 前半是 <see cref="PlayerMenuCatalog"/> 那棵目录（命令叶子按 DFS 先序编号，序号对着
     /// <see cref="PlayerMenuCatalog.Commands"/>，点中回 <see cref="VideoWindowContract.MenuIndex"/>、宿主用
     /// <c>RunMenuNodeAsync</c> 跑），后半是集成模式「更多」那一棵的同款 —— 版本…、着色器、跳过片头片尾、
-    /// 自动播放下一集、窗口不在前台时单击画面播放/暂停、播放信息…（2026-09-29 用户令「统一独占模式和集成模式的
-    /// 右键菜单选项」；在那之前这里只推目录加一条置顶的着色器，两边差着一截；最后一行 2026-11-20 添）。
+    /// 自动播放下一集、播放信息…（2026-09-29 用户令「统一独占模式和集成模式的右键菜单选项」）。
+    /// 「窗口不在前台时单击画面播放/暂停」2026-11-20 用户令「移到导航里」后进了前半的目录树，
+    /// 与集成侧共用那一行、那一格设置和快捷键，不再在「更多」尾部另拼一行。
     /// <para>
     /// 「更多」的那几行在两条管线里各有各的拼法（集成侧是 XAML 行、走 <c>PlayerPage.OnMoreMenuOpening</c>，
     /// 这里是 uosc 菜单行），但数据源与执行是同一份：版本开的是同一张版本菜单、着色器/跳过写的是同一格
@@ -261,8 +262,8 @@ public sealed partial class PlayerViewModel
             items[^1] = items[^1] with { Separator = true };
 
         // —— 「更多」那一棵，行集与次序照抄 OnMoreMenuOpening：版本…（有第二版才在）、着色器、跳过片头片尾、
-        // 自动播放下一集、窗口不在前台时单击画面播放/暂停、播放信息…；集成侧在这些行之间放的是独立分隔线，
-        // 这里落在前一行上。
+        // 自动播放下一集、播放信息…；集成侧在这些行之间放的是独立分隔线，这里落在前一行上。
+        // 后台单击开关已在「导航」目录里（见 PlayerMenuCatalog），不在这里重复。
         if (VersionControlsVisible)
             items.Add(new UoscMenuItem("版本…", $"script-message {VideoWindowContract.Versions} open",
                 true, false, Separator: true));
@@ -271,11 +272,7 @@ public sealed partial class PlayerViewModel
         items[^1] = items[^1] with { Separator = true };
         items.Add(BuildUoscSkipMenu());
         items.Add(new UoscMenuItem("自动播放下一集",
-            $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode));
-        items.Add(new UoscMenuItem("窗口不在前台时单击画面播放/暂停",
-            $"script-message {VideoWindowContract.ActivationClickToggle} toggle", true,
-            ActivationClickTogglesPlayback, shortcutTexts.GetValueOrDefault(PlayerMenuCatalog.BackgroundClickShortcut),
-            Separator: true));
+            $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode, Separator: true));
         if (CanArrangeQueue)
         {
             var queue = new List<UoscMenuItem>
@@ -348,6 +345,10 @@ public sealed partial class PlayerViewModel
     /// rather than shadowed in fields because the keys（Z/X 延迟、外部 mpv、上一场遗留的 cycle）can move a value
     /// without this class seeing it; a menu open is a rare, user-driven moment where a handful of reads is cheap
     /// even on the piped backend. 读不到（没在播、句柄刚换）就是空表，行一律不打勾。
+    /// <para>
+    /// <see cref="PlayerMenuCatalog.ActivationClickSettingProperty"/> 是表里的例外：它不是 mpv 属性，读的是
+    /// <see cref="ActivationClickTogglesPlayback"/> 那格设置，宿主自己填 yes/no，不能发给 mpv 问。
+    /// </para>
     /// </summary>
     internal async Task<IReadOnlyDictionary<string, string?>> ReadMenuChecksAsync()
     {
@@ -361,7 +362,9 @@ public sealed partial class PlayerViewModel
                 "user-data/momoka-analysis-crop-available", "user-data/momoka-analysis-silence-available" }).Distinct(StringComparer.Ordinal))
         {
             if (!IsCurrentInteraction(context)) return new Dictionary<string, string?>(StringComparer.Ordinal);
-            values[property] = await _playback.GetTextAsync(property).ConfigureAwait(true);
+            values[property] = property == PlayerMenuCatalog.ActivationClickSettingProperty
+                ? ActivationClickTogglesPlayback ? "yes" : "no"
+                : await _playback.GetTextAsync(property).ConfigureAwait(true);
         }
 
         if (IsCurrentInteraction(context))

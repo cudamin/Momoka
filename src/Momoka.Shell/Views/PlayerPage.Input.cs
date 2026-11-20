@@ -261,7 +261,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         // 之前只隔 1~5ms），只有上一拍分得出「这一下之前我们在不在前台」。此刻现问一次严格前台位，配上一拍那个
         // 值交给 WakeClick 判（为什么不能拿「刚变前台多久」当主料，见那里）。按下后把 _wasForeground 记成此刻的
         // 真值，于是**紧接着的第二下**（已是前台）自然不算叫醒。
-        // 设置里的「窗口不在前台时单击画面播放/暂停」（2026-11-20，默认关）开着时，这条规矩整个让开：
+        // 右键菜单「导航」组里的「窗口不在前台时单击画面播放/暂停」（2026-11-20，默认关）开着时，这条规矩整个让开：
         // 第一下点击就把播放/暂停切了 —— 判据本身仍是 WakeClick 那一份，开关只决定要不要认它。
         var handle = _window?.Handle ?? IntPtr.Zero;
         var foregroundNow = handle != IntPtr.Zero && Native.GetForegroundWindow() == handle;

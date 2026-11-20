@@ -49,11 +49,11 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "253db5dfe73a27b86c0db3053c4130cc152e4791b6806d7afbab9de387738da0"
+      "sha256": "057fad5d06729169dc3de6a5102f9f5cf5131722842352ed60d4ca720c5ed95b"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "98b0b0a379448dd6798fd2c7e5a340ea7429b978404ac74887bfd72f80780a58"
+      "sha256": "c357e325f03a302d4c1596d1854cf178f8eddd502522532c20d51e91ec8febc8"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",

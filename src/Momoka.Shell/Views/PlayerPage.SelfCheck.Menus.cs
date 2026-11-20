@@ -29,8 +29,9 @@ public sealed partial class PlayerPage
     /// （见 <see cref="OnPictureMenuOpening"/>），于是屏上这只菜单比目录多出来的正是那一棵。期望值因此按
     /// 「目录自己算出来的 ＋ 同一只 <c>OnMoreMenuOpening</c> 现拼一棵的计数」来比 —— 两侧都由代码量出来，
     /// 不写死数字：目录里加一行仍当天被覆盖，而「更多」那一棵自身的那条自检在
-    /// <see cref="ProbeControlMenus"/> 里（它把这一棵现拼一只临时浮层、问「至少六行」），
-    /// 这里只保证它确实落进了右键菜单。
+    /// <see cref="ProbeControlMenus"/> 里（它把这一棵现拼一只临时浮层、问「至少五行」），
+    /// 这里只保证它确实落进了右键菜单。「窗口不在前台时单击画面播放/暂停」2026-11-20 起在目录的
+    /// 「导航」组，所以行数、勾数和快捷键右列都跟着目录算，不再算进「更多」。
     /// </para>
     /// <para>
     /// 2026-10-01 起还多读一条：末尾那三行设置入口（字幕／视频输出／音频输出）逐行对账 —— 在不在菜单里、
@@ -63,12 +64,11 @@ public sealed partial class PlayerPage
         var panscan = !ViewModel.Tracks.Any(track => track.Type == "video")
             || catalogue.Any(node => node.Label.Contains("裁切填充", StringComparison.Ordinal));
 
-        // 打勾: every row the catalogue marks checkable（解码方式, 声道布局, 抖动补偿…）must have built as a
-        // radio/toggle and been registered for refresh. Counted against the catalogue, not a number here, so a
-        // newly checkable row is covered the day it is added. Reads mpv when the menu opened above; with no film
-        // the reads came back null and nothing is ticked — a pass, since what is proved here is the wiring.
-        // 「更多」那一棵里没有随 mpv 刷新打勾的行（2026-11-20 添的后台单击开关是设置行，不归 _pictureChecks 管），
-        // 所以期望值仍只由目录给出。
+        // 打勾: every row the catalogue marks checkable（解码方式, 声道布局, 抖动补偿, 还有「导航」里的
+        // 后台单击开关）must have built as a radio/toggle and been registered for refresh. Counted against
+        // the catalogue, not a number here, so a newly checkable row is covered the day it is added. Read
+        // mpv when the menu opened above; with no film the reads came back null and only the setting row is
+        // ticked — a pass, since what is proved here is the wiring.「更多」那一棵没有随 mpv 刷新打勾的行。
         var wantChecks = catalogue.Count(node => node.State is not null);
         var checks = _pictureChecks.Count;
 
@@ -250,14 +250,15 @@ public sealed partial class PlayerPage
         // placeholder and 字幕's 关闭字幕. 版本 owes the 「没有可切换的版本」 row
         // (nothing is playing, so there is no item to have versions of).
         // 「更多」那一棵 2026-09-27 晚不再有自己那颗按钮／浮层（拼进了右键画面菜单），这里仍把它整棵拼到
-        // 一只临时浮层上，沿用「至少六行」的底线。
+        // 一只临时浮层上，沿用「至少五行」的底线（着色器、跳过、连播、播放信息、播放设置；2026-11-20
+        // 后台单击开关移进「导航」目录后少了一行）。
         Open("单集", EpisodeMenu, () => OnEpisodeMenuOpening(this, new object()), 1);
         Open("版本", VersionMenu, () => OnVersionMenuOpening(this, new object()), 1);
         Open("音轨", AudioMenu, () => OnAudioMenuOpening(this, new object()), 1);
         Open("字幕", SubtitleMenu, () => OnSubtitleMenuOpening(this, new object()), 1);
 
         var moreProbe = new MenuFlyout();
-        Open("更多", moreProbe, () => OnMoreMenuOpening(moreProbe, Root), 6);
+        Open("更多", moreProbe, () => OnMoreMenuOpening(moreProbe, Root), 5);
 
         return (failures == 0, string.Join("、", built));
     }

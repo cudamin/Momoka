@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-20：后台单击开关从「更多」移到「导航」
+
+用户令「移到导航里」后，菜单行移进 Core 的 `PlayerMenuCatalog.Root`「导航」组；`PlayerViewModel.Events.cs` 只改了 `ReadMenuChecksAsync`（多一格宿主填写的设置读数、不再把这一格发给 mpv）和 `PushPictureMenuAsync` 的「更多」拼装（删掉那一行、把分隔线挪到自动连播行）。自然接续抽取的 `StartPlaybackAsync`、`NowPlaying`、lease／取消控制流与 `NoteActivationClick` 均未动，其余 pin 逐份核对一致。只定点更新 `src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs` 的 SHA256（`98b0b0a3…` → `c357e325…`）与 `PlayerViewModel.cs` 的注释哈希（`253db5df…` → `057fad5d…`），不改基点、提取器和失败条件。
+
 ## 2026-11-20：播放页置顶改为手动持久化的来源同步
 
 播放页置顶撤下播放/暂停自动跟随（集成与独占），并新增 `IPlayerWindowPin` 观察通道；五份被钉住的来源随之改动：`IPlaybackBackend.cs` 只在文件末尾新增该可选接口，`LibMpvBackend.cs` 只在独占窗口策略里多写一条 `ontop`、新增一个属性观察与转发事件，`PlaybackService.Lifecycle.cs` 只在 `Subscribe` 里多一条转发与退订，`PlayerViewModel.cs` / `PlayerViewModel.Events.cs` 只改 `SavedPinTopmost`／`SavePinTopmost` 的注释并新增 `OnWindowPinChanged`。自然接续抽取的 `PlayerViewModel` 成员（`StartPlaybackAsync`、`NextEpisodeToAutoPlay`、`OnNowPlayingChanged` 等）、来源 identity/id、自动接集与 lease 规则一字未动，其余 pin 逐份核对一致。只定点更新这五份完整源 SHA256，base/date、提取器与失败条件不变。合入 master 后与后台单击播放/暂停批次在同一批文件上合并，多出的 `NoteActivationClick`／`ActivationClickTogglesPlayback` 与菜单行同样不碰自然接续成员；按合并后的完整源复核后只重钉 `PlayerViewModel.cs` 与 `PlayerViewModel.Events.cs` 两枚 SHA256。

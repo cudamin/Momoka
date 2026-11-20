@@ -672,9 +672,10 @@ public sealed class PlaybackSettings
     /// 窗口不在前台时，单击画面直接播放/暂停（用户令 2026-11-20：「在设置中新增无论 momoka 播放页面是否为
     /// 前台窗口，都可以直接点击播放/暂停的选项」；同日续令「不要添加到设置页面，添加到播放页面的右键菜单中」）。
     /// <para>
-    /// <b>入口在播放页右键菜单的「更多」区，不是设置页上的一行</b>——集成模式是
-    /// <c>PlayerPage.BuildActivationClickRow</c>，独占模式是 <c>PlayerViewModel.PushPictureMenuAsync</c> 推给
-    /// uosc 的同名行；两处写的是这一格，跨重启保留。
+    /// <b>入口在播放页右键菜单的「导航」组，不是设置页上的一行</b>——两条管线都从
+    /// <c>PlayerMenuCatalog.Root</c> 的那一行取当前档与当前快捷键：集成模式由 <c>PlayerPage</c> 的目录构建画出
+    /// 勾选行，独占模式由 <c>PlayerViewModel.PushPictureMenuAsync</c> 推给 uosc；两处写的是这一格，跨重启保留。
+    /// 2026-11-20 用户令「移到导航里」之前，这一行挂在「更多」区尾部。
     /// </para>
     /// <para>
     /// <b>关着（装机默认）是 2026-09-23 定下的老行为：</b>从别的窗口回来，第一下点击只把播放窗口带到前台，
