@@ -1,5 +1,7 @@
 ## 2026-11-20 编辑订阅的订阅站点改成就地展开的字段（分支 workbuddy/master-6e01e559，日常界面批次）
 
+**2026-11-20 复查修正。** 用户发来实屏截图问「你看看有什么问题」。量下来：「订阅站点」标签与上方三列说明同为 12 号、同 `#9FA4A8`，标签顶到说明底只剩 7 像素，读起来是「订阅资源质量」的续行；地球图标与箭头同为灰字色，54 高的空框整栏发灰；缺口左右只留 4 像素。修法：标签改取 `EgTextBrush`（正文白，字号仍 12）、`SiteFields` 上边距 8→14、垫片 `Padding` 4→6、地球图标转 `EgTextBrush`（箭头仍灰）。复查后 `input-theme-fixture` **32/32**、主测试 **5279/5279**、专项 **20/20**、探针 **37/37**（首轮探针有 3 项窗口时序超时，重跑全过）。
+
 用户拿参考图令「参考下图修改编辑订阅的订阅站点选择栏」，四问里选定：列表就地展开（把下面内容往下推）、去掉「跟随系统」那一行（全部不勾即跟随系统）、字段里照旧显示已选站点、只改这一栏。
 
 **改了什么。** `Views/MoviePilotSubscriptionEditor.xaml` 新增本页三件样式与一张模板：`EditorSitePicker`（`ToggleButton`，BasedOn `DefaultToggleButtonStyle`：54 高、`EgPickerCornerRadius` 12、1 像素边、20,0,16,0 内边距）、`EditorSiteOption`（`CheckBox`：48 高、左右 `Margin` 24、`Padding` 12，让勾选框与文字内缩 24）、`EditorSiteOptionText`（16 号）与 `EditorSiteOptionTemplate`。订阅站点从「32 高、组合框壳的 DropDownButton + 浮层」换成这颗字段：左边 20 号地球（E774），中间是已选站点摘要（空选仍显示「跟随系统」），右边 12 号箭头在展开时转 180 度；标签「订阅站点」压进顶边缺口 —— 垫一层 `EgSurfaceElevatedBrush` 的 Border 盖掉那一小段描边（弹窗内容区比 `EgSurfaceBrush` 亮一档，接面色会露出更深的方块，首版实拍后改）。展开后字段下方接一块同宽、隔 2 像素、`EgCardCornerRadius` 16 圆角的面板：上下各 10 内边距、每行 48、列表最高 260 在面板里滚；点字段、点别处（`EditorRoot` 上 `handledEventsToo` 的 PointerPressed）、切页签、保存中都收起，展开时 `StartBringIntoView` 把面板带进视野。四组三态颜色走控件自己的资源表接项目角色键：收起中性边线、展开强调色、悬停／按下用 `EgOverlayHoverBrush`／`EgOverlayPressedBrush`（内容区亮一档，接 `EgSurfaceAltBrush` 会变暗）。列表底部的「跟随系统」清空行与 `OnClearSites` 按用户要求退役，全部不勾即跟随系统；进阶页「优先级规则组」仍是原来的多选下拉。`MoviePilotSubscriptionEditorViewModel` 只多一个不落盘的 `SitesExpanded` 与它的 `SitesPanelVisibility`。
