@@ -1,10 +1,10 @@
 ## 2026-11-21 修复媒体库 APNG 封面只显示首帧
 
-临时分支 `codex/animated-library-covers`，工作树 `C:/Users/89400/.codex/worktrees/animated-library-covers/Momoka`，基于 `f27bc9c`，待合入 master。媒体库网格、列表、首页库卡和飞牛拼图现在能播放服务端返回的 APNG。普通静态封面与原生 GIF 延用 WinUI BitmapImage。APNG 按 [W3C PNG 动画规范](https://www.w3.org/TR/png-3/#animation-information)保留局部帧、透明度、清除和循环，每帧交给 Windows 解码。WinUI 2.5.1 的 [WicService.cpp](https://github.com/microsoft/microsoft-ui-xaml/blob/ba3a8d59e6de4e2b86ca4f61c78bc26ccf129afd/src/dxaml/xcp/components/imaging/WicService.cpp#L234-L285) 只识别 GIF 动画。
+产品提交 `cd15ef9` 已合入本地 `master`，待统一验证。媒体库网格、列表、首页库卡和飞牛拼图现在能播放服务端返回的 APNG。普通静态封面与原生 GIF 延用 WinUI BitmapImage。APNG 按 [W3C PNG 动画规范](https://www.w3.org/TR/png-3/#animation-information)保留局部帧、透明度、清除和循环，每帧交给 Windows 解码。WinUI 2.5.1 的 [WicService.cpp](https://github.com/microsoft/microsoft-ui-xaml/blob/ba3a8d59e6de4e2b86ca4f61c78bc26ccf129afd/src/dxaml/xcp/components/imaging/WicService.cpp#L234-L285) 只识别 GIF 动画。
 
 动图使用保留原始字节的图片缓存。离开视口、换卡、最小化或关闭动效后停止。缓存和帧都有内存上限，损坏或超出限制的文件保留静态封面。已有缓存含原动图时可直接使用。如果服务端已经把动图转为静态缩略图，客户端收到的内容只有一帧。原生窗口和各后端的图片响应留待统一验收。
 
-本树 Release x64 编译 0 警告、0 错误，主测试 5316/5316，图片专项 22 项基础及 54 项扩展全过，图片生命周期 33/33，页面契约 393/393，架构 7/7。自包含产物校验通过，桌面分支快捷方式已回读确认。
+合并前分支 Release x64 编译 0 警告、0 错误，主测试 5316/5316，图片专项 22 项基础及 54 项扩展全过，图片生命周期 33/33，页面契约 393/393，架构 7/7。分支体验产物校验通过。主测试和图片专项日志留在主树 `artifacts/animated-library-covers-evidence-cd15ef9/`，主树运行验收仍待执行。
 
 ## 2026-11-21 项目许可改为 GPL-3.0-or-later
 
