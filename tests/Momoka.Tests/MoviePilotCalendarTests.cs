@@ -16,6 +16,7 @@ internal static class MoviePilotCalendarTests
 
     public static void Register()
     {
+        PresentationTests();
         Test("MoviePilot 日历：读取真实日期窗口、分组摘要、特别篇与原始计数", () =>
         {
             using var transport = Transport().Answer("subscribe/calendar", Page(2, Series, Movie));
@@ -73,11 +74,15 @@ internal static class MoviePilotCalendarTests
         Test("MoviePilot 日历：只根据实际 library 文件标单集已入库", () =>
         {
             using var transport = Transport().Answer("subscribe/calendar", Page(1, Series))
-                .Answer("subscribe/files/12", """{"subscribe":{"id":12,"name":"日历剧集","type":"电视剧","season":0},"episodes":{"1":{"library":[],"download":[{"file_path":"anonymous-download"}]},"2":{"library":[{"file_path":"anonymous-library"}],"download":[]}}}""");
+                .Answer("subscribe/files/12", """{"subscribe":{"id":12,"name":"日历剧集","type":"电视剧","season":0,"total_episode":12,"last_update":"2026-11-20 11:00:00"},"episodes":{"1":{"library":[],"download":[{"file_path":"anonymous-download"}]},"2":{"library":[{"file_path":"anonymous-library"}],"download":[]},"10":{"library":[{},{}]},"11":{"library":[]}}}""");
             using var service = Service(transport);
             var entries = Read(service);
             Assert.Equal(false, entries[0].Episodes[0].IsInLibrary);
             Assert.Equal(true, entries[0].Episodes[1].IsInLibrary);
+            Assert.Equal(2, entries[0].LibraryEpisodeCount, "统计整个订阅已入库集数，重复版本只算一集");
+            Assert.Equal(12, entries[0].LibraryTotalEpisodes);
+            Assert.Equal("2026-11-20 11:00:00", entries[0].LastUpdate);
+            Assert.Equal("已入库 2/12 集", MoviePilotCalendarPresentation.LibraryProgressText(entries[0]));
             Assert.Equal(1, transport.Count("subscribe/files/12"));
         });
 
@@ -97,7 +102,11 @@ internal static class MoviePilotCalendarTests
             {
                 using var transport = Transport().Answer("subscribe/calendar", Page(1, Series)).Answer("subscribe/files/12", data);
                 using var service = Service(transport);
-                Assert.Null(Read(service)[0].Episodes[0].IsInLibrary);
+                var entry = Read(service)[0];
+                Assert.Null(entry.Episodes[0].IsInLibrary);
+                Assert.Null(entry.LibraryEpisodeCount);
+                Assert.Null(entry.LibraryTotalEpisodes);
+                Assert.Equal("入库进度未知", MoviePilotCalendarPresentation.LibraryProgressText(entry));
             }
         });
 
@@ -209,6 +218,85 @@ internal static class MoviePilotCalendarTests
             }
         });
     }
+
+    private static void PresentationTests()
+    {
+        Test("MoviePilot 日历卡片：当天分集全部、部分、未入库与未知分开", () =>
+        {
+            var entry = Entry();
+            var states = new (bool?[] Episodes, MoviePilotCalendarLibraryState State, string Text)[]
+            {
+                ([true, true], MoviePilotCalendarLibraryState.InLibrary, "已入库"),
+                ([true, false], MoviePilotCalendarLibraryState.PartiallyInLibrary, "部分入库"),
+                ([false, false], MoviePilotCalendarLibraryState.NotInLibrary, "未入库"),
+                ([null, null], MoviePilotCalendarLibraryState.Unknown, "入库状态未知"),
+                ([true, null], MoviePilotCalendarLibraryState.Unknown, "入库状态未知"),
+                ([], MoviePilotCalendarLibraryState.Unknown, "入库状态未知"),
+            };
+            foreach (var (episodes, state, text) in states)
+            {
+                var current = entry with { Episodes = episodes.Select((value, index) => new MoviePilotCalendarEpisode(index + 1, "", value)).ToArray() };
+                Assert.Equal(state, MoviePilotCalendarPresentation.LibraryState(current));
+                Assert.Equal(text, MoviePilotCalendarPresentation.LibraryStateText(current));
+            }
+        });
+
+        Test("MoviePilot 日历卡片：分集组连续压缩、不连续保留，不猜缺失集号", () =>
+        {
+            var entry = Entry() with
+            {
+                Episodes = new[] { 5, 2, 1, 3, 5, -1, 0, 7, 8 }.Select(number => new MoviePilotCalendarEpisode(number, "")).ToArray()
+            };
+            Assert.Equal("第 1-3、5、7-8 集", MoviePilotCalendarPresentation.EpisodeLabel(entry));
+            Assert.Equal("第 5 集", MoviePilotCalendarPresentation.EpisodeLabel(entry with { Episodes = [new(5, "")] }));
+            Assert.Equal("", MoviePilotCalendarPresentation.EpisodeLabel(entry with { Episodes = [] }));
+            Assert.Equal("电影", MoviePilotCalendarPresentation.EpisodeLabel(entry with { Type = "电影", Episodes = [] }));
+        });
+
+        Test("MoviePilot 日历卡片：入库汇总不借下载聚合，不猜总集数", () =>
+        {
+            var entry = Entry() with { TotalEpisodes = 12, MissingEpisodes = 0, CompletedEpisodes = 12 };
+            Assert.Equal("入库进度未知", MoviePilotCalendarPresentation.LibraryProgressText(entry));
+            Assert.Equal("已入库 4/12 集", MoviePilotCalendarPresentation.LibraryProgressText(entry with { LibraryEpisodeCount = 4, LibraryTotalEpisodes = 12 }));
+            Assert.Equal("已入库 0/12 集", MoviePilotCalendarPresentation.LibraryProgressText(entry with { LibraryEpisodeCount = 0, LibraryTotalEpisodes = 12 }));
+            Assert.Equal("已入库 4 集", MoviePilotCalendarPresentation.LibraryProgressText(entry with { LibraryEpisodeCount = 4 }));
+            Assert.Equal("", MoviePilotCalendarPresentation.LibraryProgressText(entry with { Type = "电影" }));
+        });
+
+        Test("MoviePilot 日历卡片：更新时间复用相对格式并保持调用方时区", () =>
+        {
+            var now = new DateTimeOffset(2026, 11, 21, 12, 0, 0, TimeSpan.FromHours(8));
+            var entry = Entry() with { LibraryEpisodeCount = 1, LastUpdate = "2026-11-21 11:55:00" };
+            Assert.Equal("5 分钟前更新", MoviePilotCalendarPresentation.UpdatedText(entry, now));
+            Assert.Equal("5 分钟前更新", MoviePilotCalendarPresentation.UpdatedText(entry with { LastUpdate = "2026-11-21T03:55:00Z" }, now));
+            Assert.Equal("1 小时前更新", MoviePilotCalendarPresentation.UpdatedText(entry with { LastUpdate = "2026-11-21 11:00:00" }, now));
+            Assert.Equal("2026-11-01更新", MoviePilotCalendarPresentation.UpdatedText(entry with { LastUpdate = "2026-11-01T12:00:00+08:00" }, now));
+            Assert.Equal("", MoviePilotCalendarPresentation.UpdatedText(entry with { LastUpdate = "anonymous-invalid-date" }, now));
+            Assert.Equal("", MoviePilotCalendarPresentation.UpdatedText(entry with { LastUpdate = "0001-01-01 00:00:00" }, now));
+            Assert.Equal("", MoviePilotCalendarPresentation.UpdatedText(entry with { LastUpdate = "" }, now));
+            Assert.Equal("", MoviePilotCalendarPresentation.UpdatedText(entry with { LibraryEpisodeCount = 0 }, now));
+            Assert.Equal("", MoviePilotCalendarPresentation.UpdatedText(entry with { LibraryEpisodeCount = null }, now));
+        });
+
+        Test("MoviePilot 日历卡片：电影时长和日期不套用剧集进度", () =>
+        {
+            var movie = Entry() with { Type = "电影", RuntimeMinutes = 120, Episodes = [] };
+            Assert.Equal("120 分钟", MoviePilotCalendarPresentation.RuntimeText(movie));
+            Assert.Equal("", MoviePilotCalendarPresentation.LibraryStateText(movie));
+            Assert.Equal("2026-11-20 上映", MoviePilotCalendarPresentation.ScheduleText(movie));
+            Assert.Equal("2026-11-20 播出", MoviePilotCalendarPresentation.ScheduleText(Entry()));
+            Assert.Equal("", MoviePilotCalendarPresentation.RuntimeText(movie with { RuntimeMinutes = 0 }));
+            Assert.Equal("", MoviePilotCalendarPresentation.RuntimeText(movie with { RuntimeMinutes = null }));
+        });
+    }
+
+    private static MoviePilotCalendarEntry Entry() => new()
+    {
+        Date = new(2026, 11, 20),
+        SubscriptionId = 12,
+        Title = "匿名卡片",
+        Type = "电视剧"
+    };
 
     private static IReadOnlyList<MoviePilotCalendarEntry> Read(MoviePilotService service) => service.CalendarAsync(Start, End).GetAwaiter().GetResult();
     private static StubTransport Transport() => new StubTransport().Answer("login/access-token", Session);

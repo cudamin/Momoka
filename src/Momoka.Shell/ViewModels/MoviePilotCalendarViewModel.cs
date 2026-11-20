@@ -21,7 +21,13 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
     internal int MediaType
     {
         get => _mediaType;
-        set { _mediaType = value; UpdateEntries(); Changed?.Invoke(); }
+        set
+        {
+            if (_mediaType == value) return;
+            _mediaType = value;
+            UpdateEntries();
+            Changed?.Invoke();
+        }
     }
 
     internal void Attach(MoviePilotService service, MoviePilotSettings settings)

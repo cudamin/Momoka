@@ -18,6 +18,10 @@ public sealed record MoviePilotCalendarEntry
     public int? TotalEpisodes { get; init; }
     public int? CompletedEpisodes { get; init; }
     public int? MissingEpisodes { get; init; }
+    /// <summary>经当前订阅的文件统计确认的已入库集数；null 表示统计读取失败或尚未读取。</summary>
+    public int? LibraryEpisodeCount { get; init; }
+    /// <summary>同一文件统计快照声明的总集数；不以缺集下载数反推。</summary>
+    public int? LibraryTotalEpisodes { get; init; }
     public string LastUpdate { get; init; } = "";
     public int? RuntimeMinutes { get; init; }
     public IReadOnlyList<MoviePilotCalendarEpisode> Episodes { get; init; } = [];
@@ -25,6 +29,7 @@ public sealed record MoviePilotCalendarEntry
 }
 
 internal sealed record MoviePilotCalendarPage(int Total, int Count, IReadOnlyList<MoviePilotCalendarEntry> Entries);
+internal sealed record MoviePilotCalendarLibrarySnapshot(IReadOnlySet<int> Episodes, int? TotalEpisodes, string LastUpdate);
 
 internal static class MoviePilotCalendar
 {
@@ -71,7 +76,7 @@ internal static class MoviePilotCalendar
         return new(total.Value, items.GetArrayLength(), result);
     }
 
-    internal static IReadOnlySet<int> LibraryEpisodes(JsonElement data, MoviePilotCalendarEntry entry)
+    internal static MoviePilotCalendarLibrarySnapshot LibraryEpisodes(JsonElement data, MoviePilotCalendarEntry entry)
     {
         var subscription = MoviePilotSubscription.Member(data, "subscribe");
         var episodes = MoviePilotSubscription.Member(data, "episodes");
@@ -81,10 +86,12 @@ internal static class MoviePilotCalendar
             || MoviePilotSubscription.Text(subscription, "name") != entry.Title
             || episodes.ValueKind != JsonValueKind.Object)
             throw new MoviePilotException("MoviePilot 日历的文件统计身份不匹配");
-        return episodes.EnumerateObject()
+        var numbers = episodes.EnumerateObject()
             .Where(property => int.TryParse(property.Name, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number > 0
                 && MoviePilotSubscription.Member(property.Value, "library") is { ValueKind: JsonValueKind.Array } files && files.GetArrayLength() > 0)
             .Select(property => int.Parse(property.Name, CultureInfo.InvariantCulture)).ToHashSet();
+        return new(numbers, Nonnegative(subscription, "total_episode") is > 0 and var total ? total : null,
+            MoviePilotSubscription.Text(subscription, "last_update"));
     }
 
     internal static bool IsLegacyEndpoint(MoviePilotException error)

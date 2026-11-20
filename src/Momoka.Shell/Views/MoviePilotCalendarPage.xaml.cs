@@ -1,10 +1,13 @@
 using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
+using Momoka.Shell.Media;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -15,13 +18,25 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
 {
     internal const string Destination = "moviepilot:calendar";
     private MoviePilotCalendarRequest? _request;
-    private readonly Dictionary<DateOnly, Button> _days = [];
+    private readonly HashSet<DateOnly> _expandedDays = [];
+    private readonly List<MoviePilotCalendarEventCard> _cards = [];
+    private readonly Dictionary<string, Task<BitmapImage?>> _images = new(StringComparer.Ordinal);
+    private CancellationTokenSource? _imagesLifetime;
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private IReadOnlyList<MoviePilotCalendarEntry>? _renderedEntries;
+    private int _renderedType;
     private DateOnly _renderedMonth;
+    private bool _compactToolbar;
+    private long _calendarRevision;
     internal MoviePilotCalendarViewModel ViewModel { get; } = new();
     public object? NavigationRequest => _request;
 
-    public MoviePilotCalendarPage() => InitializeComponent();
+    public MoviePilotCalendarPage()
+    {
+        InitializeComponent();
+        SizeChanged += OnSizeChanged;
+        CalendarScroll.SizeChanged += (_, _) => MonthGrid.Width = Math.Max(MoviePilotCalendarLayout.CalendarMinimumWidth, CalendarScroll.ActualWidth - 16);
+    }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -49,135 +64,209 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
     {
         ViewModel.Changed -= OnChanged;
         ViewModel.Release();
-        DayEvents.Children.Clear();
-        MonthGrid.Children.Clear();
-        _days.Clear();
+        ClearMonth();
+        ReleaseImages();
+        _expandedDays.Clear();
         _renderedEntries = null;
     }
 
     private void OnChanged()
     {
-        MonthTitle.Text = ViewModel.Month.ToString("yyyy 年 M 月", CultureInfo.InvariantCulture);
+        MonthTitle.Text = ViewModel.Month.ToString("yyyy年M月", CultureInfo.InvariantCulture);
         var entries = ViewModel.Entries;
         var count = entries.Count(entry => entry.Date.Month == ViewModel.Month.Month && entry.Date.Year == ViewModel.Month.Year);
         MonthSummary.Text = ViewModel.Busy ? "正在读取日历…" : ViewModel.NoticeOpen ? "读取未完成，请点击刷新重试。"
             : count == 0 ? "本月暂无符合条件的播出安排。" : $"本月共 {count} 项播出安排";
-        if (!ReferenceEquals(_renderedEntries, entries) || _renderedMonth != ViewModel.Month)
+        var filters = new[] { AllMedia, MovieMedia, SeriesMedia };
+        for (var index = 0; index < filters.Length; index++)
         {
-            RenderMonth(entries);
-            _renderedEntries = entries;
-            _renderedMonth = ViewModel.Month;
+            filters[index].Style = (Style)Application.Current.Resources[index == ViewModel.MediaType ? "EgPrimaryButtonStyle" : "EgSecondaryButtonStyle"];
+            AutomationProperties.SetName(filters[index], filters[index].Content + (index == ViewModel.MediaType ? "，已选中" : ""));
         }
-        foreach (var (day, button) in _days)
+        if (ViewModel.Busy || _imagesLifetime is null)
         {
-            button.Style = (Style)Application.Current.Resources[day == ViewModel.SelectedDate ? "EgPrimaryButtonStyle" : "EgSecondaryButtonStyle"];
-            AutomationProperties.SetHelpText(button, day == ViewModel.SelectedDate ? "已选中" : "");
+            ReleaseImages();
+            _imagesLifetime = new CancellationTokenSource();
+            _fetchImage = _request?.Service.CaptureImageFetcher();
         }
-        SelectedDayTitle.Text = ViewModel.SelectedDate.ToString("M 月 d 日 dddd", CultureInfo.GetCultureInfo("zh-CN"));
-        var selected = entries.Where(entry => entry.Date == ViewModel.SelectedDate).ToArray();
-        DaySummary.Text = ViewModel.Busy ? "正在读取…" : ViewModel.NoticeOpen ? "日历暂不可用。"
-            : selected.Length == 0 ? "当天暂无符合条件的播出安排。" : $"共 {selected.Length} 项";
-        DayEvents.Children.Clear();
-        foreach (var entry in selected)
-        {
-            var panel = new StackPanel { Spacing = 4 };
-            panel.Children.Add(Body(entry.Title, "EgBodyStyle"));
-            var season = entry.Season is { } number ? $" · 第 {number} 季" : "";
-            var runtime = entry.RuntimeMinutes is { } minutes ? $" · {minutes} 分钟" : "";
-            panel.Children.Add(Body(entry.Type + season + runtime, "EgCaptionStyle"));
-            foreach (var episode in entry.Episodes)
-            {
-                var state = episode.IsInLibrary switch { true => "已入库", false => "未入库", null => "入库状态未知" };
-                panel.Children.Add(Body($"第 {episode.Number} 集  {episode.Title} · {state}", "EgBodyStyle"));
-            }
-            DayEvents.Children.Add(panel);
-        }
+        if (ReferenceEquals(_renderedEntries, entries) && _renderedMonth == ViewModel.Month) return;
+        if (_renderedMonth != ViewModel.Month || _renderedType != ViewModel.MediaType) _expandedDays.Clear();
+        RenderMonth(entries);
+        _renderedEntries = entries;
+        _renderedMonth = ViewModel.Month;
+        _renderedType = ViewModel.MediaType;
+    }
+
+    private void ClearMonth()
+    {
+        _calendarRevision++;
+        foreach (var card in _cards) card.Release();
+        _cards.Clear();
+        MonthGrid.Children.Clear();
+        MonthGrid.RowDefinitions.Clear();
+        MonthGrid.ColumnDefinitions.Clear();
+    }
+
+    private void ReleaseImages()
+    {
+        _imagesLifetime?.Cancel();
+        _imagesLifetime?.Dispose();
+        _imagesLifetime = null;
+        _images.Clear();
+        _fetchImage = null;
     }
 
     private void RenderMonth(IReadOnlyList<MoviePilotCalendarEntry> entries)
     {
-        // Gallery 6de91feccadfbb0a796b71caedead5a2284f730e Samples/CalendarView only selects dates.
-        // CalendarViewDayItem cannot host event text; compose existing Grid/Button controls for summaries.
-        var (start, end) = MoviePilotCalendarLayout.Window(ViewModel.Month);
-        if (_days.Count == 0 || _renderedMonth != ViewModel.Month)
+        // MoviePilot-Frontend e6a30ad4: FullCalendarView.vue, 6-week month, Monday first,
+        // five cards per day, inline expansion. MIT, Copyright (c) 2023 jxxghp.
+        // Gallery CalendarViewDayItem cannot contain event cards; use existing Grid/Border controls.
+        ClearMonth();
+        MonthGrid.MinWidth = MoviePilotCalendarLayout.CalendarMinimumWidth;
+        for (var column = 0; column < 7; column++) MonthGrid.ColumnDefinitions.Add(new ColumnDefinition());
+        MonthGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        for (var row = 0; row < 6; row++) MonthGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var weekdays = new[] { "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
+        for (var column = 0; column < weekdays.Length; column++)
         {
-            MonthGrid.Children.Clear();
-            _days.Clear();
-            MonthGrid.RowDefinitions.Clear();
-            MonthGrid.ColumnDefinitions.Clear();
-            for (var column = 0; column < 7; column++) MonthGrid.ColumnDefinitions.Add(new ColumnDefinition());
-            var weeks = (end.DayNumber - start.DayNumber) / 7;
-            for (var row = 0; row <= weeks; row++) MonthGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var weekdays = new[] { "一", "二", "三", "四", "五", "六", "日" };
-            for (var column = 0; column < 7; column++)
-            {
-                var text = Body(weekdays[column], "EgCaptionStyle");
-                text.HorizontalAlignment = HorizontalAlignment.Center;
-                Grid.SetColumn(text, column);
-                MonthGrid.Children.Add(text);
-            }
+            var label = Text(weekdays[column], "EgBodyStyle");
+            label.HorizontalAlignment = HorizontalAlignment.Center;
+            var header = Cell(label, new Thickness(0, 1, 0, 1));
+            Grid.SetColumn(header, column);
+            MonthGrid.Children.Add(header);
         }
+        var (start, end) = MoviePilotCalendarLayout.Window(ViewModel.Month);
         var groups = entries.GroupBy(entry => entry.Date).ToDictionary(group => group.Key, group => group.ToArray());
         for (var date = start; date < end; date = date.AddDays(1))
         {
             var day = date;
-            var items = groups.GetValueOrDefault(day) ?? [];
-            var today = day == DateOnly.FromDateTime(DateTime.Today) ? "今天 · " : "";
-            if (!_days.TryGetValue(day, out var button))
+            var events = groups.GetValueOrDefault(day) ?? [];
+            var panel = new StackPanel { Spacing = 5 };
+            var dayText = Text(day.Day.ToString(CultureInfo.InvariantCulture) + "日", "EgBodyStyle");
+            dayText.HorizontalAlignment = HorizontalAlignment.Right;
+            if (day.Month != ViewModel.Month.Month) dayText.Opacity = 0.4;
+            panel.Children.Add(dayText);
+            var visible = MoviePilotCalendarLayout.VisibleCount(events.Length, _expandedDays.Contains(day));
+            for (var index = 0; index < visible; index++) panel.Children.Add(EventCard(events[index]));
+            if (events.Length > visible)
             {
-                button = new Button
+                var more = new Button
                 {
-                    MinWidth = 0,
-                    MinHeight = 88,
+                    Content = $"+{events.Length - visible} 项",
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                    Padding = new Thickness(4),
-                    Opacity = day.Month == ViewModel.Month.Month ? 1 : 0.55
+                    Style = (Style)Application.Current.Resources["EgSecondaryButtonStyle"],
+                    MinWidth = 0,
+                    Padding = new Thickness(6)
                 };
-                AutomationProperties.SetAutomationId(button, "MoviePilotCalendarDay" + day.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
-                button.Click += (_, _) => ViewModel.SelectDate(day);
-                _days.Add(day, button);
-                var index = day.DayNumber - start.DayNumber;
-                Grid.SetColumn(button, index % 7);
-                Grid.SetRow(button, 1 + (index / 7));
-                MonthGrid.Children.Add(button);
+                AutomationProperties.SetAutomationId(more, "MoviePilotCalendarMore" + day.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
+                AutomationProperties.SetName(more, $"展开{day:M月d日}的其余{events.Length - visible}项安排");
+                more.Click += (_, _) => ExpandDay(day, panel, more, events, visible);
+                panel.Children.Add(more);
             }
-            button.Content = DayContent(day, items, button);
-            AutomationProperties.SetName(button, today + day.ToString("yyyy年M月d日", CultureInfo.InvariantCulture) + $"，{items.Length} 项安排，点击查看详情");
+            var cell = Cell(panel, new Thickness(date.DayOfWeek == DayOfWeek.Monday ? 1 : 0, 0, 1, 1), day == DateOnly.FromDateTime(DateTime.Today));
+            cell.MinHeight = 180;
+            var offset = date.DayNumber - start.DayNumber;
+            Grid.SetColumn(cell, offset % 7);
+            Grid.SetRow(cell, 1 + (offset / 7));
+            MonthGrid.Children.Add(cell);
         }
     }
 
-    private StackPanel DayContent(DateOnly day, IReadOnlyList<MoviePilotCalendarEntry> items, Button button)
+    private void ExpandDay(DateOnly day, StackPanel panel, Button more, IReadOnlyList<MoviePilotCalendarEntry> entries, int visible)
     {
-        var content = new StackPanel { Spacing = 4, DataContext = button };
-        void Add(string text, string style, bool trim = false)
+        if (!_expandedDays.Add(day)) return;
+        var revision = _calendarRevision;
+        var horizontal = CalendarScroll.HorizontalOffset;
+        var vertical = CalendarScroll.VerticalOffset;
+        panel.Children.Remove(more);
+        for (var index = visible; index < entries.Count; index++) panel.Children.Add(EventCard(entries[index]));
+        // Match the existing header-scroll focus handoff without inventing an action for the expanded state.
+        var expanded = Text("已显示全部", "EgCaptionStyle");
+        panel.Children.Add(expanded);
+        AutomationProperties.SetLiveSetting(expanded, AutomationLiveSetting.Polite);
+        AutomationProperties.SetName(expanded, $"{day:M月d日}已显示全部{entries.Count}项安排");
+        var tabStop = CalendarScroll.IsTabStop;
+        CalendarScroll.IsTabStop = true;
+        CalendarScroll.Focus(FocusState.Programmatic);
+        CalendarScroll.IsTabStop = tabStop;
+        DispatcherQueue.TryEnqueue(() =>
         {
-            var label = Body(text, style);
-            label.SetBinding(TextBlock.ForegroundProperty, new Microsoft.UI.Xaml.Data.Binding { Path = new PropertyPath("Foreground") });
-            if (trim)
-            {
-                label.TextWrapping = TextWrapping.NoWrap;
-                label.TextTrimming = TextTrimming.CharacterEllipsis;
-            }
-            content.Children.Add(label);
-        }
-        var today = day == DateOnly.FromDateTime(DateTime.Today) ? "今天 · " : "";
-        Add(today + day.Day.ToString(CultureInfo.InvariantCulture), "EgBodyStyle");
-        if (items.Count > 0) Add(items[0].Title, "EgCaptionStyle", trim: true);
-        if (items.Count > 1) Add($"另有 {items.Count - 1} 项", "EgCaptionStyle");
-        return content;
+            if (revision == _calendarRevision && _expandedDays.Contains(day) && _cards.Count > 0)
+                CalendarScroll.ChangeView(horizontal, vertical, null, disableAnimation: true);
+        });
     }
 
-    private TextBlock Body(string text, string style) => new()
+    private MoviePilotCalendarEventCard EventCard(MoviePilotCalendarEntry entry)
     {
-        Text = text,
-        Style = (Style)Application.Current.Resources[style],
-        TextWrapping = TextWrapping.Wrap
-    };
+        var card = new MoviePilotCalendarEventCard();
+        card.Attach(entry, LoadImageAsync, _imagesLifetime?.Token ?? new CancellationToken(canceled: true));
+        _cards.Add(card);
+        return card;
+    }
+
+    private Task<BitmapImage?> LoadImageAsync(string url, CancellationToken token)
+    {
+        if (_imagesLifetime is null || _fetchImage is null || !Uri.TryCreate(url, UriKind.Absolute, out var image)
+            || image.Scheme is not ("http" or "https")) return Task.FromResult<BitmapImage?>(null);
+        if (!_images.TryGetValue(url, out var task))
+        {
+            task = ReadImageAsync(url, _fetchImage, _imagesLifetime.Token);
+            _images.Add(url, task);
+        }
+        return task.WaitAsync(token);
+    }
+
+    private static async Task<BitmapImage?> ReadImageAsync(string url, Func<string, CancellationToken, Task<byte[]>> fetch, CancellationToken token)
+    {
+        try
+        {
+            var bytes = await fetch(url, token);
+            token.ThrowIfCancellationRequested();
+            var image = await PosterLoader.DecodeAsync(bytes, 56);
+            token.ThrowIfCancellationRequested();
+            return image;
+        }
+        catch (Exception) { return null; }
+    }
+
+    private Border Cell(UIElement content, Thickness border, bool today = false)
+    {
+        var cell = new Border
+        {
+            Style = (Style)Application.Current.Resources["EgFrameStyle"],
+            Child = content,
+            Padding = new Thickness(5),
+            BorderThickness = border,
+            CornerRadius = new CornerRadius(0)
+        };
+        if (!today) cell.Background = null;
+        return cell;
+    }
+
+    private static TextBlock Text(string text, string style) => new() { Text = text, Style = (Style)Application.Current.Resources[style] };
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var compact = e.NewSize.Width < 820;
+        if (compact != _compactToolbar)
+        {
+            _compactToolbar = compact;
+            CalendarToolbar.RowDefinitions.Clear();
+            if (compact) { CalendarToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); CalendarToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); }
+            Grid.SetColumnSpan(MediaType, compact ? 3 : 1);
+            Grid.SetRow(MonthTitle, compact ? 1 : 0);
+            Grid.SetColumn(MonthTitle, compact ? 0 : 1);
+            Grid.SetRow(MonthActions, compact ? 1 : 0);
+            MonthTitle.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        }
+    }
 
     private void OnPreviousMonth(object sender, RoutedEventArgs e) => ViewModel.MoveMonth(-1);
     private void OnNextMonth(object sender, RoutedEventArgs e) => ViewModel.MoveMonth(1);
     private void OnToday(object sender, RoutedEventArgs e) => ViewModel.Today();
     private void OnRefresh(object sender, RoutedEventArgs e) => _ = ViewModel.ReloadAsync();
-    private void OnMediaTypeChanged(object sender, SelectionChangedEventArgs e) => ViewModel.MediaType = MediaType.SelectedIndex;
+    private void OnMediaTypeChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string tag } && int.TryParse(tag, out var type)) ViewModel.MediaType = type;
+    }
 }

@@ -44,7 +44,7 @@ public sealed partial class MoviePilotService
             }
 
             // lack_episode 是下载进度；只有文件统计中的 library 才能确认某一集已入库。
-            var library = new ConcurrentDictionary<int, IReadOnlySet<int>>();
+            var library = new ConcurrentDictionary<int, MoviePilotCalendarLibrarySnapshot>();
             var candidates = entries.Values.Where(entry => entry.Type == "电视剧" && entry.Episodes.Count > 0)
                 .DistinctBy(entry => entry.SubscriptionId).ToArray();
             await Parallel.ForEachAsync(candidates, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = token }, async (entry, readToken) =>
@@ -60,8 +60,14 @@ public sealed partial class MoviePilotService
                 catch (MoviePilotException error) when (!ConnectionFailed(error)) { /* 可选统计失败时保留未知，不猜入库集。 */ }
             }).ConfigureAwait(false);
             CheckIdentity(identity, token);
-            return entries.Values.Select(entry => library.TryGetValue(entry.SubscriptionId, out var numbers)
-                    ? entry with { Episodes = entry.Episodes.Select(episode => episode with { IsInLibrary = numbers.Contains(episode.Number) }).ToArray() }
+            return entries.Values.Select(entry => library.TryGetValue(entry.SubscriptionId, out var snapshot)
+                    ? entry with
+                    {
+                        Episodes = entry.Episodes.Select(episode => episode with { IsInLibrary = snapshot.Episodes.Contains(episode.Number) }).ToArray(),
+                        LibraryEpisodeCount = snapshot.Episodes.Count,
+                        LibraryTotalEpisodes = snapshot.TotalEpisodes,
+                        LastUpdate = snapshot.LastUpdate.Length > 0 ? snapshot.LastUpdate : entry.LastUpdate
+                    }
                     : entry)
                 .OrderBy(entry => entry.Date).ThenBy(entry => entry.Title, StringComparer.Ordinal).ThenBy(entry => entry.SubscriptionId).ToArray();
         }
