@@ -1,3 +1,12 @@
+## 2026-11-20 播放设置菜单新增弹幕入口（分支 codex/add-player-danmaku-settings-menu）
+
+用户要求「在播放页面的右键菜单-播放设置中新增 弹幕」。产品与契约测试提交 `84a6145`，独立工作树 `C:/Users/89400/.codex/worktrees/8202/Momoka`，分支 `codex/add-player-danmaku-settings-menu`，基于当时主树 `747cadf`。
+
+**实现。** `PlayerSettingsLinks` 的弹幕设置行从「弹弹play」改名为「弹幕」，令牌 `danmaku` 与设置卡「弹幕」保持不变。集成播放和独占/uosc 右键菜单共用该表，因此菜单文案一致；弹幕当前不可用时仍隐藏入口，点击仍落到原弹幕设置卡。更新菜单契约测试与过期的入口数量注释。
+
+**验证。** 固定 .NET SDK 10.0.400；Core/Tests Release 编译 **0 警告、0 错误**，Shell Release/x64 编译 **0 警告、0 错误**；最终主测试 **5288/5288**、0 失败、0 跳过，定向 `mpv-ui-fixture` **33/33**；格式检查退出 0（有工作区加载提示），`tools/check-diff.ps1` 7 个变更路径通过，`git diff --check` 通过。日常 UI 改动未启动程序、未跑播放探针或截图验收；实际右键菜单画面、键鼠操作和两种播放模式的运行观感待统一验证。
+
+**体验发布。** 本树发布脚本载荷检查通过：548 个文件、290.1 MB；桌面 `Momoka-add-player-danmaku-settings-menu.lnk` 已回读确认指向本树发布 EXE，工作目录亦正确。所需根目录 `libmpv-2.dll` 不入库；从主树复制前后均核对 SHA256 与固定批准清单一致（`FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`）。仅分支体验刷新，不是主树交付；未合并、未推送。
 ## 2026-11-20 商店轮播按参考图重排宽窄两档（原分支 codex/store-carousel-responsive，已合入主树）
 
 **合入主树。** 用户令「合并到主树」后，确认两树干净、`master d965861` 是分支 `9739ba8` 的祖先，以快进方式合入全部 5 条提交、25 个路径；合入后主树与分支内容完全一致、差异空白检查通过，无冲突与额外产品改动。本轮只合并并维护记录，不重跑应用编译、单测、原生探针或验收截图，不发布主树、不上传，台账 111 保持待统一验证。已删除桌面 `Momoka-store-carousel-543e.lnk`；41 份分支验证日志逐一校验 SHA256 后保留到主树 `artifacts/store-carousel-543e-evidence`。临时树干净且无独有提交，归档工具因「The task's primary checkout cannot be removed.」拒绝移除本聊天主工作树，按保护要求保留目录，已分离 HEAD 并删除合并完成的临时分支。主树 `Momoka.lnk` 与现有发布产物未刷新。
