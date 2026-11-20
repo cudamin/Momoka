@@ -26,7 +26,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
     private IReadOnlyList<MoviePilotCalendarEntry>? _renderedEntries;
     private int _renderedType;
     private DateOnly _renderedMonth;
-    private bool _compactToolbar;
+    private int _toolbarMode = -1;
     private long _calendarRevision;
     internal MoviePilotCalendarViewModel ViewModel { get; } = new();
     public object? NavigationRequest => _request;
@@ -34,8 +34,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
     public MoviePilotCalendarPage()
     {
         InitializeComponent();
-        SizeChanged += OnSizeChanged;
-        CalendarScroll.SizeChanged += (_, _) => MonthGrid.Width = Math.Max(MoviePilotCalendarLayout.CalendarMinimumWidth, CalendarScroll.ActualWidth - 16);
+        CalendarToolbar.SizeChanged += OnSizeChanged;
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -122,7 +121,6 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
         // five cards per day, inline expansion. MIT, Copyright (c) 2023 jxxghp.
         // Gallery CalendarViewDayItem cannot contain event cards; use existing Grid/Border controls.
         ClearMonth();
-        MonthGrid.MinWidth = MoviePilotCalendarLayout.CalendarMinimumWidth;
         for (var column = 0; column < 7; column++) MonthGrid.ColumnDefinitions.Add(new ColumnDefinition());
         MonthGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         for (var row = 0; row < 6; row++) MonthGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -152,7 +150,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
             {
                 var more = new Button
                 {
-                    Content = $"+{events.Length - visible} 项",
+                    Content = $"+{events.Length - visible}",
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     Style = (Style)Application.Current.Resources["EgSecondaryButtonStyle"],
                     MinWidth = 0,
@@ -247,17 +245,21 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        var compact = e.NewSize.Width < 820;
-        if (compact != _compactToolbar)
+        var mode = e.NewSize.Width < 500 ? 2 : e.NewSize.Width < 820 ? 1 : 0;
+        if (mode != _toolbarMode)
         {
-            _compactToolbar = compact;
+            _toolbarMode = mode;
             CalendarToolbar.RowDefinitions.Clear();
-            if (compact) { CalendarToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); CalendarToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); }
-            Grid.SetColumnSpan(MediaType, compact ? 3 : 1);
-            Grid.SetRow(MonthTitle, compact ? 1 : 0);
-            Grid.SetColumn(MonthTitle, compact ? 0 : 1);
-            Grid.SetRow(MonthActions, compact ? 1 : 0);
-            MonthTitle.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+            for (var row = 0; row <= mode; row++) CalendarToolbar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetColumnSpan(MediaType, mode > 0 ? 3 : 1);
+            Grid.SetRow(MonthTitle, mode > 0 ? 1 : 0);
+            Grid.SetColumn(MonthTitle, mode > 0 ? 0 : 1);
+            Grid.SetColumnSpan(MonthTitle, mode == 2 ? 3 : 1);
+            Grid.SetRow(MonthActions, mode);
+            Grid.SetColumn(MonthActions, mode == 2 ? 0 : mode == 1 ? 1 : 2);
+            Grid.SetColumnSpan(MonthActions, mode == 2 ? 3 : mode == 1 ? 2 : 1);
+            MonthTitle.HorizontalAlignment = mode == 1 ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+            MonthActions.HorizontalAlignment = mode == 2 ? HorizontalAlignment.Center : HorizontalAlignment.Right;
         }
     }
 

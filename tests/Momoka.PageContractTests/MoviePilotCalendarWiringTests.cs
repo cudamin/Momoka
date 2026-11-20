@@ -13,6 +13,7 @@ internal static class MoviePilotCalendarWiringTests
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var item = xaml.Descendants().Single(element => element.Attribute(x + "Name")?.Value == "SidebarMoviePilotCalendar");
             Assert.Equal("NavigationViewItem", item.Name.LocalName);
+            Assert.Equal("日历", item.Attribute("Content")?.Value);
             Assert.Equal("moviepilot:calendar", item.Attribute("Tag")?.Value);
             Assert.Equal("Collapsed", item.Attribute("Visibility")?.Value);
             var page = Read("MoviePilotCalendarPage.xaml.cs");
@@ -82,7 +83,7 @@ internal static class MoviePilotCalendarWiringTests
             Assert.Contains("MonthGrid.Children.Clear();", clear);
         });
 
-        Test("MP 日历月视图：顶部筛选、中央年月、右侧翻月，窄窗保留七列滚动", () =>
+        Test("日历月视图：顶部筛选、中央年月、右侧翻月，七列适应窗口且不横滚", () =>
         {
             var page = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarPage.xaml"));
             var filters = Named(page, "MediaType");
@@ -101,8 +102,8 @@ internal static class MoviePilotCalendarWiringTests
             foreach (var (name, handler) in new[] { ("PreviousMonth", "OnPreviousMonth"), ("NextMonth", "OnNextMonth"), ("CurrentMonth", "OnToday"), ("RefreshCalendar", "OnRefresh") })
                 Assert.Equal(handler, Named(page, name).Attribute("Click")?.Value);
             var scroll = Named(page, "CalendarScroll");
-            Assert.Equal("Auto", scroll.Attribute("HorizontalScrollMode")?.Value);
-            Assert.Equal("Auto", scroll.Attribute("HorizontalScrollBarVisibility")?.Value);
+            Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollMode")?.Value);
+            Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollBarVisibility")?.Value);
             Assert.True(Named(page, "MonthGrid").Ancestors().Contains(scroll));
             Assert.False(page.Descendants().Any(element => element.Name.LocalName is "ComboBox" or "ComboBoxItem"));
             Assert.False(page.Descendants().Any(element => Name(element) is "SelectedDayTitle" or "DaySummary" or "DayEvents"));
@@ -112,7 +113,8 @@ internal static class MoviePilotCalendarWiringTests
         {
             var page = Read("MoviePilotCalendarPage.xaml.cs");
             var render = Between(page, "private void RenderMonth(", "private void ExpandDay(");
-            Assert.Contains("MoviePilotCalendarLayout.CalendarMinimumWidth", render);
+            Assert.DoesNotContain("MonthGrid.MinWidth", render);
+            Assert.DoesNotContain("MonthGrid.Width", page);
             Assert.Contains("MoviePilotCalendarLayout.VisibleCount(events.Length, _expandedDays.Contains(day))", render);
             Assert.Contains("for (var index = 0; index < visible; index++) panel.Children.Add(EventCard(events[index]))", render);
             Assert.Contains("if (events.Length > visible)", render);
@@ -159,6 +161,22 @@ internal static class MoviePilotCalendarWiringTests
             Assert.Contains("ToolTipService.SetToolTip(this, description)", source);
             Assert.DoesNotContain("CompletedEpisodes", source);
             Assert.DoesNotContain("MissingEpisodes", source);
+        });
+
+        Test("日历事件卡：缩放只重排现有控件，不重新读取或销毁卡片", () =>
+        {
+            var source = Read("MoviePilotCalendarEventCard.xaml.cs");
+            var resize = Between(source, "private void OnCardSizeChanged(", "internal void Attach(");
+            Assert.Contains("Math.Abs(width - _layoutWidth) < 0.5", resize);
+            Assert.Contains("MoviePilotCalendarLayout.FitCard(width)", resize);
+            Assert.Contains("PosterFrame.Height = layout.PosterWidth * 1.5", resize);
+            Assert.Contains("Grid.SetRow(TextPanel, layout.Stacked ? 1 : 0)", resize);
+            foreach (var forbidden in new[] { "LoadImageAsync", "Release(", "Attach(", "RenderMonth(", "DecodeAsync" })
+                Assert.DoesNotContain(forbidden, resize);
+            var xaml = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarEventCard.xaml"));
+            foreach (var name in new[] { "EpisodeText", "LibraryText", "CompleteText", "PartialText", "UpdatedText" })
+                Assert.Equal("Wrap", Named(xaml, name).Attribute("TextWrapping")?.Value);
+            Assert.False(xaml.Descendants().Any(element => element.Name.LocalName == "Viewbox"));
         });
 
         Test("MP 日历事件卡：离页取消旧海报，迟到读取不能覆盖重用的卡片", () =>

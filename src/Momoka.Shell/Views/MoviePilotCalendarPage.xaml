@@ -35,9 +35,9 @@
                 Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
             <TextBlock x:Name="MonthSummary" Style="{StaticResource EgCaptionStyle}" AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
-        <ScrollViewer x:Name="CalendarScroll" Grid.Row="2" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="CalendarScroll" Grid.Row="2" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
             VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto">
-            <Grid x:Name="MonthGrid" />
+            <Grid x:Name="MonthGrid" HorizontalAlignment="Stretch" />
         </ScrollViewer>
     </Grid>
 </Page>

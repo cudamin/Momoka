@@ -2530,7 +2530,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingSection MoviePilotCard()
     {
         var moviePilot = Settings.MoviePilot;
-        var calendar = new SettingToggleRow("侧边栏显示 MP 日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
+        var calendar = new SettingToggleRow("侧边栏显示日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
             moviePilot.CalendarEnabled, value =>
             {
                 if (moviePilot.Enabled) moviePilot.CalendarEnabled = value;

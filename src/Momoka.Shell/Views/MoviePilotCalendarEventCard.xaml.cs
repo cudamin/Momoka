@@ -10,8 +10,30 @@ namespace Momoka.Shell.Views;
 public sealed partial class MoviePilotCalendarEventCard : UserControl
 {
     private CancellationTokenSource? _load;
+    private double _layoutWidth = -1;
 
-    public MoviePilotCalendarEventCard() => InitializeComponent();
+    public MoviePilotCalendarEventCard()
+    {
+        InitializeComponent();
+        SizeChanged += OnCardSizeChanged;
+    }
+
+    private void OnCardSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var width = e.NewSize.Width;
+        if (Math.Abs(width - _layoutWidth) < 0.5) return;
+        _layoutWidth = width;
+        var layout = MoviePilotCalendarLayout.FitCard(width);
+        CardSurface.Padding = new Thickness(layout.Padding);
+        CardLayout.ColumnSpacing = layout.Gap;
+        PosterColumn.Width = layout.Stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(layout.PosterWidth);
+        PosterFrame.Width = layout.PosterWidth;
+        PosterFrame.Height = layout.PosterWidth * 1.5;
+        Grid.SetColumnSpan(PosterHost, layout.Stacked ? 2 : 1);
+        Grid.SetRow(TextPanel, layout.Stacked ? 1 : 0);
+        Grid.SetColumn(TextPanel, layout.Stacked ? 0 : 1);
+        Grid.SetColumnSpan(TextPanel, layout.Stacked ? 2 : 1);
+    }
 
     internal void Attach(MoviePilotCalendarEntry entry, Func<string, CancellationToken, Task<BitmapImage?>> loadImage,
         CancellationToken token)

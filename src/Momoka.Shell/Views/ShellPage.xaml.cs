@@ -1260,7 +1260,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (tag == MoviePilotCalendarPage.Destination)
         {
             if (!MoviePilotCalendarAvailable) return;
-            Open(typeof(MoviePilotCalendarPage), new MoviePilotCalendarRequest(_moviePilotService!, Settings.MoviePilot), "MP 日历", tag);
+            Open(typeof(MoviePilotCalendarPage), new MoviePilotCalendarRequest(_moviePilotService!, Settings.MoviePilot), "日历", tag);
             return;
         }
 

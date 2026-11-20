@@ -5,11 +5,12 @@
     IsTabStop="False">
     <!-- Adapted from MoviePilot-Frontend e6a30ad4, FullCalendarView.vue (MIT, jxxghp).
          The shared card stays inside its date; it never initiates playback or subscription writes. -->
-    <Border Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8" Padding="6">
-        <Grid ColumnSpacing="8">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <Grid VerticalAlignment="Top">
-                <Border Width="56" Height="84" CornerRadius="6" Background="{ThemeResource EgSurfaceAltBrush}">
+    <Border x:Name="CardSurface" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8" Padding="6" MinWidth="0">
+        <Grid x:Name="CardLayout" ColumnSpacing="8" RowSpacing="4" MinWidth="0">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition x:Name="PosterColumn" Width="56" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <Grid x:Name="PosterHost" VerticalAlignment="Top" HorizontalAlignment="Left">
+                <Border x:Name="PosterFrame" Width="56" Height="84" CornerRadius="6" Background="{ThemeResource EgSurfaceAltBrush}">
                     <Grid>
                         <FontIcon x:Name="PosterPlaceholder" Glyph="&#xE8B2;" Foreground="{ThemeResource EgTextDimBrush}" />
                         <Image x:Name="PosterImage" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
@@ -20,29 +21,29 @@
                     <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextOnAccentBrush}" />
                 </Border>
             </Grid>
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Top">
+            <StackPanel x:Name="TextPanel" Grid.Column="1" Spacing="2" VerticalAlignment="Top" MinWidth="0">
                 <TextBlock x:Name="EventTitle" Style="{StaticResource EgBodyStyle}" FontWeight="Bold"
                     TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                 <Grid ColumnSpacing="3">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <FontIcon Glyph="&#xE787;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextDimBrush}" />
-                    <TextBlock x:Name="EpisodeText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="EpisodeText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                 </Grid>
                 <Grid x:Name="LibraryRow" ColumnSpacing="3">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <FontIcon x:Name="LibraryIcon" Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextDimBrush}" />
                     <FontIcon x:Name="CompleteIcon" Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgAccentBrush}" Visibility="Collapsed" />
                     <FontIcon x:Name="PartialIcon" Glyph="&#xE7BA;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgWarningBrush}" Visibility="Collapsed" />
-                    <TextBlock x:Name="LibraryText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock x:Name="CompleteText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
-                    <TextBlock x:Name="PartialText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgWarningBrush}" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                    <TextBlock x:Name="LibraryText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="CompleteText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                    <TextBlock x:Name="PartialText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgWarningBrush}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
                 </Grid>
                 <Grid x:Name="UpdatedRow" ColumnSpacing="3" Visibility="Collapsed">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <FontIcon Glyph="&#xE823;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextDimBrush}" />
-                    <TextBlock x:Name="UpdatedText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="UpdatedText" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                 </Grid>
-                <TextBlock x:Name="RuntimeText" Style="{StaticResource EgCaptionStyle}" Visibility="Collapsed" />
+                <TextBlock x:Name="RuntimeText" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="2" Visibility="Collapsed" />
             </StackPanel>
         </Grid>
     </Border>

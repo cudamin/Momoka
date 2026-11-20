@@ -70,11 +70,20 @@ internal static class MoviePilotCalendarLayoutTests
             Assert.Equal(0, MoviePilotCalendarLayout.VisibleCount(-1, expanded: true));
         });
 
-        Test("MP 日历月视图：窄窗仍保留七列海报卡片的最小宽度", () =>
+        Test("日历自适应：窄格海报等比收紧并在文字上方重排", () =>
         {
-            Assert.Equal(1260d, MoviePilotCalendarLayout.CalendarMinimumWidth);
-            Assert.True(MoviePilotCalendarLayout.CalendarMinimumWidth / 7 >= 180,
-                "七列每列至少留出 180 DIP，窄窗通过水平滚动保留相同月视图");
+            foreach (var width in new[] { 0d, 20, 42, 60, 99, 100, 149.9, 150, 179.9, 180, 200, 400 })
+            {
+                var layout = MoviePilotCalendarLayout.FitCard(width);
+                Assert.Equal(width < 150, layout.Stacked);
+                Assert.True(layout.PosterWidth >= 0 && layout.PosterWidth <= 56);
+                Assert.True(layout.PosterWidth + (2 * layout.Padding) <= Math.Max(width, 2 * layout.Padding));
+                if (!layout.Stacked) Assert.True(layout.PosterWidth + layout.Gap + (2 * layout.Padding) < width);
+            }
+            Assert.Equal(56d, MoviePilotCalendarLayout.FitCard(200).PosterWidth);
+            Assert.Equal(30d, MoviePilotCalendarLayout.FitCard(60).PosterWidth);
+            foreach (var width in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity, -1 })
+                Assert.Equal(0d, MoviePilotCalendarLayout.FitCard(width).PosterWidth);
         });
     }
 

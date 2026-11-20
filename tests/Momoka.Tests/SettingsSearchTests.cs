@@ -146,7 +146,7 @@ internal static class SettingsSearchTests
             fixture.List(vm, "Sections").Add(section);
             var rows = fixture.List(section, "Rows");
             var connection = rows[0]!;
-            fixture.Set(vm, "SettingsSearchQuery", "侧边栏显示 MP 日历");
+            fixture.Set(vm, "SettingsSearchQuery", "侧边栏显示日历");
             Assert.Equal(1, rows.Count);
             Assert.Equal(0, Results(vm).Count());
             Assert.Equal(0, settings.TrySaveCalls);
@@ -154,6 +154,7 @@ internal static class SettingsSearchTests
             fixture.Set(connection, "Enabled", true);
             Assert.Equal(2, rows.Count);
             var calendar = rows[1]!;
+            Assert.Equal("侧边栏显示日历", fixture.Get<string>(calendar, "Label"));
             Assert.True(fixture.Get<bool>(calendar, "IsOn"));
             Assert.Equal(1, settings.TrySaveCalls);
             var suggestion = Results(vm).Single();
