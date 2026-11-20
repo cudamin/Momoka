@@ -455,96 +455,42 @@ internal static class InputControlThemeTests
                     new XAttribute("TargetType", "TextBox"), new XAttribute("BasedOn", "{StaticResource DefaultTextBoxStyle}")))));
             Assert.Throws<AssertionException>(() => AssertProductInputRadii("Page.xaml", localImplicit, shared));
         });
-        Test("编辑订阅：优先级规则组仍接组合框那套壳", () =>
+        Test("编辑订阅：优先级规则组复用订阅站点的就地展开字段", () =>
         {
-            // 2026-11-19 用户把「订阅站点」和「搜索周期」并排截图：「改成跟下面搜索周期差不多的样式」。
-            // 2026-11-20 订阅站点换成参考图那颗就地展开的字段之后，进阶页的优先级规则组仍走这一套。
             var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
-            var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
-            var style = Resource(resources, "EditorMultiPicker");
-            Assert.Equal("DropDownButton", (string?)style.Attribute("TargetType"));
-            // 基样式只能接应用作用域里解析得到的那几条：DefaultDropDownButtonStyle 在运行时会
-            // 「Cannot find a Resource」把整页订阅打挂（2026-11-19 首版实况），所以接 Button 那条。
-            Assert.Equal("{StaticResource DefaultButtonStyle}", (string?)style.Attribute("BasedOn"),
-                "多选下拉的基样式不是运行时可解析的那条");
-            var setters = style.Elements(Xaml + "Setter").ToDictionary(
-                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
-            // 壳照 ComboBox 抄：底、描边、1 像素边、12,5,0,7 内边距、32 高；圆角接全站输入那一档。
-            // 三条几何写死成数值 —— ComboBoxPadding / ComboBoxMinHeight / ComboBoxBorderThemeThickness
-            // 与 DefaultDropDownButtonStyle 同属 generic.xaml 的私有键，应用作用域解析不到（2026-11-19 实况）。
-            Assert.Equal(SearchRadius, setters["CornerRadius"], "多选下拉的圆角没有接全站输入那一档");
-            Assert.Equal("12,5,0,7", setters["Padding"]);
-            Assert.Equal("32", setters["MinHeight"]);
-            Assert.Equal("1", setters["BorderThickness"]);
-            Assert.Equal("{ThemeResource ComboBoxBackground}", setters["Background"]);
-            Assert.Equal("{ThemeResource ComboBoxBorderBrush}", setters["BorderBrush"]);
-            Assert.Equal("{ThemeResource ComboBoxForeground}", setters["Foreground"]);
-            Assert.Equal("Stretch", setters["HorizontalAlignment"]);
-            // 箭头与 ComboBox 模板同档：右侧 38 宽列、12 号、离右边 14。
-            var columns = style.Descendants(Xaml + "ColumnDefinition")
-                .Select(column => (string?)column.Attribute("Width")).ToArray();
-            Assert.Equal("*|38", string.Join('|', columns), "箭头列不是 ComboBox 那档 38");
-            var chevron = style.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "ChevronIcon");
-            Assert.Equal("12", (string?)chevron.Attribute("Width"));
-            Assert.Equal("0,0,14,0", (string?)chevron.Attribute("Margin"));
-            Assert.Equal("{ThemeResource ComboBoxDropDownGlyphForeground}", (string?)chevron.Attribute("Foreground"));
-            // 三态跟着 ComboBox 走，不再自画一套按钮颜色；多选语义仍是 DropDownButton 的浮层。
-            var states = style.Descendants(Xaml + "VisualState").Select(state => (string?)state.Attribute(X + "Name")).ToArray();
-            Assert.Equal("Normal|PointerOver|Pressed|Disabled", string.Join('|', states));
             var picker = Named(editor, "FilterGroupsInput");
-            Assert.Equal("{StaticResource EditorMultiPicker}", (string?)picker.Attribute("Style"));
-            Assert.True(picker.Attribute("HorizontalAlignment") is null
-                && picker.Attribute("HorizontalContentAlignment") is null,
-                "优先级规则组仍在控件上自设对齐，样式里的几何会被盖掉");
+            var panel = Named(editor, "FilterGroupsPanel");
+            Assert.Equal(Xaml + "ToggleButton", picker.Name);
+            Assert.Equal("{StaticResource EditorSitePicker}", (string?)picker.Attribute("Style"));
+            Assert.Equal("{x:Bind ViewModel.FilterGroupsExpanded, Mode=TwoWay}", (string?)picker.Attribute("IsChecked"));
+            Assert.Equal("{x:Bind ViewModel.FilterSummary, Mode=OneWay}",
+                (string?)picker.Descendants(Xaml + "TextBlock").Single().Attribute("Text"));
+            Assert.Equal(Xaml + "Border", panel.Name);
+            Assert.True(ReferenceEquals(picker.ElementsAfterSelf().FirstOrDefault(), panel), "规则组面板应紧接在字段下面");
+            Assert.Equal("{x:Bind ViewModel.FilterGroupsPanelVisibility, Mode=OneWay}", (string?)panel.Attribute("Visibility"));
+            Assert.True(panel.Attribute("Width") is null && panel.Attribute("MaxWidth") is null
+                && (string?)panel.Attribute("HorizontalAlignment") is null or "Stretch", "规则组面板应随字段拉伸");
+            Assert.False(picker.Parent!.Descendants().Any(element => element.Name.LocalName.Contains("Flyout", StringComparison.Ordinal)),
+                "规则组又使用了浮层");
         });
-        Test("编辑订阅：多选下拉的展开态按组合框下拉排", () =>
+        Test("编辑订阅：规则组展开后复用站点选项行并保留清空入口", () =>
         {
-            // 2026-11-19 用户指着展开的「订阅站点」截图一句「这个展开的选择栏也要改」。展开态原来还是
-            // Flyout 的默认件：16,15,16,17 的大内边距、456 的 MaxWidth、自带标题、底部一颗带底的小按钮。
             var editor = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml");
-            var resources = editor.Root!.Element(Xaml + "UserControl.Resources")!;
-            var flyoutStyle = Resource(resources, "EditorMultiFlyout");
-            Assert.Equal("FlyoutPresenter", (string?)flyoutStyle.Attribute("TargetType"));
-            Assert.Equal("{StaticResource DefaultFlyoutPresenterStyle}", (string?)flyoutStyle.Attribute("BasedOn"));
-            var flyoutSetters = flyoutStyle.Elements(Xaml + "Setter").ToDictionary(
-                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
-            Assert.Equal("4", flyoutSetters["Padding"]);
-            Assert.Equal("1", flyoutSetters["BorderThickness"]);
-            Assert.Equal("{ThemeResource OverlayCornerRadius}", flyoutSetters["CornerRadius"]);
-            Assert.Equal("{ThemeResource ComboBoxDropDownBackground}", flyoutSetters["Background"]);
-            Assert.Equal("{ThemeResource ComboBoxDropDownBorderBrush}", flyoutSetters["BorderBrush"]);
-            Assert.Equal("Infinity", flyoutSetters["MaxWidth"]);
+            var panel = Named(editor, "FilterGroupsPanel");
+            var sitesPanel = Named(editor, "SubscriptionSitesPanel");
+            foreach (var property in new[] { "Margin", "Background", "BorderBrush", "BorderThickness", "CornerRadius" })
+                Assert.Equal((string?)sitesPanel.Attribute(property), (string?)panel.Attribute(property), property);
 
-            var optionStyle = Resource(resources, "EditorMultiOption");
-            Assert.Equal("CheckBox", (string?)optionStyle.Attribute("TargetType"));
-            Assert.Equal("{StaticResource DefaultCheckBoxStyle}", (string?)optionStyle.Attribute("BasedOn"));
-            var optionSetters = optionStyle.Elements(Xaml + "Setter").ToDictionary(
-                setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
-            Assert.Equal("32", optionSetters["MinHeight"], "选项行没有按 ComboBox 的 32 高排");
-            Assert.Equal("11,5,11,5", optionSetters["Padding"]);
-            Assert.Equal("Stretch", optionSetters["HorizontalAlignment"]);
-
-            foreach (var name in new[] { "FilterGroupsInput" })
-            {
-                var picker = Named(editor, name);
-                var flyout = picker.Element(Xaml + "DropDownButton.Flyout")!.Elements().Single();
-                Assert.Equal("{StaticResource EditorMultiFlyout}", (string?)flyout.Attribute("FlyoutPresenterStyle"), name);
-                Assert.Equal("BottomEdgeAlignedLeft", (string?)flyout.Attribute("Placement"), name);
-                // 展开态不再自带标题（框上那行标签已经写着），也不再放一颗带底的小按钮。
-                Assert.False(flyout.Descendants(Xaml + "TextBlock").Any(text =>
-                        (string?)text.Attribute("Style") == "{StaticResource EgSubheadStyle}"),
-                    name + " 的展开态又放回了标题");
-                Assert.False(flyout.Descendants(Xaml + "Button").Any(), name + " 的展开态又放回了带底的按钮");
-                var clear = flyout.Descendants(Xaml + "HyperlinkButton").Single();
-                Assert.Equal("32", (string?)clear.Attribute("MinHeight"));
-                Assert.Equal("Stretch", (string?)clear.Attribute("HorizontalAlignment"));
-                // 清空动作的文字要与上面每行的标签对齐：4 的内边距 + 20 的勾选框 + 11 的标签内缩。
-                Assert.Equal("31,0,11,0", (string?)clear.Attribute("Padding"));
-            }
-
-            var checkTemplate = Resource(resources, "EditorCheckTemplate");
-            Assert.Equal("{StaticResource EditorMultiOption}",
-                (string?)checkTemplate.Descendants(Xaml + "CheckBox").Single().Attribute("Style"));
+            var list = panel.Descendants(Xaml + "ScrollViewer").Single();
+            Assert.Equal("260", (string?)list.Attribute("MaxHeight"));
+            Assert.Equal("Auto", (string?)list.Attribute("VerticalScrollBarVisibility"));
+            var options = list.Descendants(Xaml + "ItemsControl").Single();
+            Assert.Equal("{x:Bind ViewModel.FilterGroups, Mode=OneWay}", (string?)options.Attribute("ItemsSource"));
+            Assert.Equal("{StaticResource EditorSiteOptionTemplate}", (string?)options.Attribute("ItemTemplate"));
+            var clear = Named(editor, "ClearEditorFilters");
+            Assert.True(clear.Ancestors().Contains(panel), "跟随系统入口应在规则组面板内");
+            Assert.Equal("跟随系统", (string?)clear.Attribute("Content"));
+            Assert.Equal("OnClearFilters", (string?)clear.Attribute("Click"));
         });
         Test("编辑订阅：订阅站点是与搜索周期同一套壳的就地展开字段", () =>
         {
@@ -603,9 +549,9 @@ internal static class InputControlThemeTests
             var rotation = chevron.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "SiteChevronRotation");
             Assert.Equal("6", (string?)rotation.Attribute("CenterX"));
             Assert.Equal("6", (string?)rotation.Attribute("CenterY"));
-            Assert.True(File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views",
-                    "MoviePilotSubscriptionEditor.xaml.cs"))
-                .Contains("SiteChevronRotation.Angle = ViewModel.SitesExpanded ? 180 : 0", StringComparison.Ordinal),
+            var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionEditor.xaml.cs"));
+            Assert.True(code.Contains("SyncChoicePanel(ViewModel.SitesExpanded, SiteChevronRotation, SubscriptionSitesPanel)", StringComparison.Ordinal)
+                && code.Contains("rotation.Angle = expanded ? 180 : 0", StringComparison.Ordinal),
                 "展开时箭头没有翻上去");
 
             // 标签回到框上方，与「质量」「搜索周期」同级：正文样式、4 的间距，不再有缺口垫片。
