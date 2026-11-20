@@ -16,6 +16,7 @@ public sealed partial class ShellPage
         // 保留原生导航与设置动画，图标跟随 SyncSidebar 最终解析的页面（含详情所属库与返回历史）。
         RegisterSidebarIcon(SidebarHome, new FontIcon { Glyph = "\uE80F" }, new FontIcon { Glyph = "\uEA8A" });
         RegisterSidebarIcon(SidebarFavorites, SidebarFavorites.Icon, new FontIcon { Glyph = "\uEB52" });
+        RegisterSidebarIcon(SidebarMoviePilotCalendar, SidebarMoviePilotCalendar.Icon, new FontIcon { Glyph = "\uEA89" });
         // 延续 ShellPage.xaml 已核对的 MDI 外形，只去掉选中图标的内部孔。
         RegisterSidebarIcon(SidebarMoviePilotMovies, SidebarMoviePilotMovies.Icon, SidebarPathIcon(
             "F1 M 13.89,1.45 L 11.27,1.97 L 13.1,4.33 L 14.41,4.07 L 13.89,1.45 M 9.31,2.36 L 8,2.62 L 9.83,4.97 L 11.14,4.71 L 9.31,2.36 M 6.05,3 L 4.73,3.27 L 6.57,5.63 L 7.87,5.37 L 6.05,3 M 2.77,3.67 L 2.12,3.79 C 1.4,3.93,0.93,4.64,1.07,5.36 L 1.33,6.67 L 4.6,6.02 L 2.77,3.67 M 14.67,6.67 H 1.33 V 13.33 C 1.33,14.07,1.93,14.67,2.67,14.67 H 13.33 C 14.07,14.67,14.67,14.07,14.67,13.33 V 6.67 Z"));

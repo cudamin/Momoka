@@ -1376,6 +1376,9 @@ public sealed class MoviePilotSettings
     /// <summary>AniBT 仅改变界面入口显隐，不重连 MoviePilot；菜单与搜索页据此当场收放。</summary>
     public event EventHandler? AniBtChanged;
 
+    /// <summary>日历的显示偏好独立于 MoviePilot 连接。</summary>
+    public event EventHandler? CalendarChanged;
+
     /// <summary>
     /// Whether the settings page may talk to MoviePilot at all. Off by default: a fresh install has no
     /// MoviePilot, and a client that probes an address nobody configured on every visit to the settings
@@ -1395,6 +1398,13 @@ public sealed class MoviePilotSettings
     {
         get;
         set { if (field == value) return; field = value; AniBtChanged?.Invoke(this, EventArgs.Empty); }
+    } = true;
+
+    /// <summary>侧边栏日历入口的显示偏好；MoviePilot 不可用时仍隐藏，但保留用户选择。</summary>
+    public bool CalendarEnabled
+    {
+        get;
+        set { if (field == value) return; field = value; CalendarChanged?.Invoke(this, EventArgs.Empty); }
     } = true;
 
     /// <summary>

@@ -137,6 +137,63 @@ internal static class SettingsSearchTests
             fixture.List(section, "Rows").Add(Fact("旧设置项2"));
             Assert.Equal(0, Results(vm).Count());
         });
+        TestHarness.Test("MP 日历设置：实际卡片随总开关收放，搜索和保存保持同步", () =>
+        {
+            var settings = new SettingsPageStateTests.FakeSettings();
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var section = fixture.Invoke(vm, "MoviePilotCard")!;
+            fixture.List(vm, "Sections").Add(section);
+            var rows = fixture.List(section, "Rows");
+            var connection = rows[0]!;
+            fixture.Set(vm, "SettingsSearchQuery", "侧边栏显示 MP 日历");
+            Assert.Equal(1, rows.Count);
+            Assert.Equal(0, Results(vm).Count());
+            Assert.Equal(0, settings.TrySaveCalls);
+
+            fixture.Set(connection, "Enabled", true);
+            Assert.Equal(2, rows.Count);
+            var calendar = rows[1]!;
+            Assert.True(fixture.Get<bool>(calendar, "IsOn"));
+            Assert.Equal(1, settings.TrySaveCalls);
+            var suggestion = Results(vm).Single();
+            Assert.True(ReferenceEquals(calendar, fixture.Get<object>(suggestion, "Row")));
+            Assert.True((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
+
+            fixture.Set(calendar, "IsOn", false);
+            Assert.False(settings.Settings.MoviePilot.CalendarEnabled);
+            Assert.Equal(2, settings.TrySaveCalls);
+            fixture.Set(connection, "Enabled", false);
+            Assert.Equal(1, rows.Count);
+            Assert.Equal(0, Results(vm).Count());
+            Assert.False((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
+            fixture.Set(calendar, "IsOn", true);
+            Assert.False(settings.Settings.MoviePilot.CalendarEnabled, "已隐藏行的迟到调用不能改变偏好");
+
+            fixture.Set(connection, "Enabled", true);
+            Assert.True(ReferenceEquals(calendar, rows[1]));
+            Assert.False(fixture.Get<bool>(calendar, "IsOn"));
+            Assert.Equal(1, Results(vm).Count());
+        });
+        TestHarness.Test("MP 日历设置：重建卡片读取导入或恢复后的偏好", () =>
+        {
+            var settings = new SettingsPageStateTests.FakeSettings();
+            settings.Settings.MoviePilot.Enabled = true;
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var imported = new Configuration.AppSettings();
+            imported.MoviePilot.CalendarEnabled = false;
+            Configuration.SettingsPreferences.Apply(settings.Settings, imported);
+            var section = fixture.Invoke(vm, "MoviePilotCard")!;
+            Assert.False(fixture.Get<bool>(fixture.List(section, "Rows")[1]!, "IsOn"));
+            Assert.True(settings.Settings.MoviePilot.Enabled);
+
+            Configuration.SettingsReset.Restore(settings.Settings);
+            section = fixture.Invoke(vm, "MoviePilotCard")!;
+            Assert.True(fixture.Get<bool>(fixture.List(section, "Rows")[1]!, "IsOn"));
+            Assert.True(settings.Settings.MoviePilot.Enabled);
+            Assert.Equal(0, settings.TrySaveCalls, "重建只读，不补写配置");
+        });
 
         Array Rows(params object[] rows)
         {

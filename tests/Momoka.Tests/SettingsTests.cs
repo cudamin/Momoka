@@ -47,6 +47,84 @@ internal static partial class SettingsTests
             }
             finally { Directory.Delete(directory, recursive: true); }
         });
+        Test("MP 日历设置：旧配置默认显示，关闭保存并独立于连接状态", () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-calendar-settings").FullName;
+            try
+            {
+                var paths = new AppPaths(directory);
+                var store = new SettingsStore(paths, Protector);
+                File.WriteAllText(paths.SettingsFile, JsonSerializer.Serialize(new
+                {
+                    SchemaVersion = AppSettings.CurrentSchemaVersion,
+                    MoviePilot = new { Enabled = true }
+                }));
+                var settings = store.Load();
+                Assert.True(settings.MoviePilot.Enabled);
+                Assert.True(settings.MoviePilot.CalendarEnabled);
+                var calendarChanges = 0;
+                var connectionChanges = 0;
+                var aniBtChanges = 0;
+                settings.MoviePilot.CalendarChanged += (_, _) => calendarChanges++;
+                settings.MoviePilot.ConnectionChanged += (_, _) => connectionChanges++;
+                settings.MoviePilot.AniBtChanged += (_, _) => aniBtChanges++;
+
+                settings.MoviePilot.CalendarEnabled = false;
+                settings.MoviePilot.CalendarEnabled = false;
+                Assert.Equal(1, calendarChanges);
+                Assert.Equal(0, connectionChanges);
+                Assert.Equal(0, aniBtChanges);
+
+                settings.MoviePilot.Enabled = false;
+                store.Save(settings);
+                var restored = store.Load();
+                Assert.False(restored.MoviePilot.Enabled);
+                restored.MoviePilot.Enabled = true;
+                Assert.False(restored.MoviePilot.CalendarEnabled);
+                restored.MoviePilot.CalendarEnabled = true;
+                store.Save(restored);
+                Assert.True(store.Load().MoviePilot.CalendarEnabled);
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        });
+        Test("MP 日历设置：备份恢复和默认只复制界面偏好，保留原连接", () =>
+        {
+            var source = new AppSettings();
+            source.MoviePilot.CalendarEnabled = false;
+            source.MoviePilot.Enabled = true;
+            source.MoviePilot.Url = "http://mp-source.invalid:3001";
+            source.MoviePilot.Username = "source-account";
+            var backup = SettingsPreferences.ToBackupDocument(source);
+            Assert.False(backup.MoviePilot.CalendarEnabled);
+            Assert.False(backup.MoviePilot.Enabled);
+            Assert.Equal("", backup.MoviePilot.Url);
+            Assert.Equal("", backup.MoviePilot.Username);
+
+            var live = new AppSettings();
+            live.MoviePilot.Enabled = true;
+            live.MoviePilot.Url = "http://mp-target.invalid:3001";
+            live.MoviePilot.Username = "target-account";
+            var moviePilot = live.MoviePilot;
+            var calendarChanges = 0;
+            var connectionChanges = 0;
+            moviePilot.CalendarChanged += (_, _) => calendarChanges++;
+            moviePilot.ConnectionChanged += (_, _) => connectionChanges++;
+            SettingsPreferences.Apply(live, backup);
+            Assert.True(ReferenceEquals(moviePilot, live.MoviePilot));
+            Assert.False(moviePilot.CalendarEnabled);
+            Assert.Equal(1, calendarChanges);
+            Assert.Equal(0, connectionChanges);
+            Assert.True(moviePilot.Enabled);
+            Assert.Equal("http://mp-target.invalid:3001", moviePilot.Url);
+            Assert.Equal("target-account", moviePilot.Username);
+
+            SettingsReset.Restore(live);
+            Assert.True(moviePilot.CalendarEnabled);
+            Assert.Equal(2, calendarChanges);
+            Assert.Equal(0, connectionChanges);
+            Assert.True(moviePilot.Enabled);
+            Assert.Equal("http://mp-target.invalid:3001", moviePilot.Url);
+        });
         RegisterMigration();
         RegisterReviewMigration();
         RegisterNormalize();

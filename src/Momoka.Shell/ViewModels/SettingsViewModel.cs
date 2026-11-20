@@ -2530,6 +2530,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingSection MoviePilotCard()
     {
         var moviePilot = Settings.MoviePilot;
+        var calendar = new SettingToggleRow("侧边栏显示 MP 日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
+            moviePilot.CalendarEnabled, value =>
+            {
+                if (moviePilot.Enabled) moviePilot.CalendarEnabled = value;
+            }, Save);
+        SettingSection? card = null;
 
         // 行本身只拿读写对，不碰设置对象（同这一页每一条的规矩）。密码那一对是个例外里的例外：写进去的是明文、
         // 存下来的是密文，所以包一层 —— 行永远只见到明文，包和拆都在 MoviePilotCredentials 里。
@@ -2543,7 +2549,17 @@ public sealed partial class SettingsViewModel : PageViewModel
             moviePilot.Url,
             moviePilot.Username,
             moviePilot.HasSavedPassword,
-            value => moviePilot.Enabled = value,
+            value =>
+            {
+                moviePilot.Enabled = value;
+                if (card is null) return;
+                if (value)
+                {
+                    calendar.Reseed(moviePilot.CalendarEnabled);
+                    card.Rows.Add(calendar);
+                }
+                else card.Rows.Remove(calendar);
+            },
             value => moviePilot.AniBtEnabled = value,
             value => moviePilot.Url = value,
             value => moviePilot.Username = value,
@@ -2559,9 +2575,10 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         SyncMoviePilotSites();
 
-        return new SettingSection("MoviePilot", "MoviePilot",
+        card = new SettingSection("MoviePilot", "MoviePilot",
             "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。",
-            [_moviePilotRow]);
+            moviePilot.Enabled ? [_moviePilotRow, calendar] : [_moviePilotRow]);
+        return card;
     }
 
     /// <summary>

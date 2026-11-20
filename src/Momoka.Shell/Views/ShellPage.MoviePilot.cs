@@ -13,6 +13,7 @@ public sealed partial class ShellPage
     public event EventHandler? MoviePilotAvailabilityChanged;
     public bool MoviePilotMediaManagementEnabled => _moviePilotService?.CanManageHistory == true;
     public bool MoviePilotSmartReorganizeEnabled => _moviePilotService?.CanSmartReorganize == true;
+    private bool MoviePilotCalendarAvailable => _moviePilotService?.Available == true && Settings.MoviePilot.CalendarEnabled;
 
     private void OpenMoviePilotSubscriptionsAfterSubscribe(MoviePilotMedia media)
     {
@@ -27,6 +28,7 @@ public sealed partial class ShellPage
         service.HistoryCapabilitiesChanged += OnMoviePilotHistoryCapabilitiesChanged;
         Settings.MoviePilot.ConnectionChanged += OnMoviePilotConfigurationChanged;
         Settings.MoviePilot.AniBtChanged += OnMoviePilotAniBtChanged;
+        Settings.MoviePilot.CalendarChanged += OnMoviePilotCalendarChanged;
         _moviePilotTimer.Tick += CheckMoviePilot;
         _moviePilotTimer.Start();
         CheckMoviePilot(null, null);
@@ -64,6 +66,15 @@ public sealed partial class ShellPage
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
     });
 
+    private void OnMoviePilotCalendarChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        SyncSidebar();
+        if (!MoviePilotCalendarAvailable && ContentFrame.Content is MoviePilotCalendarPage) GoTo("home");
+        else if (ContentFrame.Content is MoviePilotCalendarPage calendar) _ = calendar.ViewModel.ReloadAsync();
+        PruneMoviePilotHistory();
+        SyncChrome();
+    });
+
     private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
     {
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
@@ -71,7 +82,11 @@ public sealed partial class ShellPage
         // 所以这一句不能挪到下面那道「不可用才继续」的门里面 —— 那道门管的是「收起已经打开的附属界面」，
         // 只走一个方向。
         SyncSidebar();
-        if (_moviePilotService is null || _moviePilotService.Available) return;
+        if (_moviePilotService is null || _moviePilotService.Available)
+        {
+            if (MoviePilotCalendarAvailable && ContentFrame.Content is MoviePilotCalendarPage calendar) _ = calendar.ViewModel.ReloadAsync();
+            return;
+        }
         _moviePilotWindow?.Hide();
         _moviePilotDialog?.Hide();
         if (IsMoviePilotPage(ContentFrame.Content?.GetType())) GoTo("home");
@@ -81,20 +96,22 @@ public sealed partial class ShellPage
 
     /// <summary>连不上 MoviePilot 时不能再留着的两页：订阅列表（侧边栏那两条入口）和一条订阅的详情。</summary>
     private static bool IsMoviePilotPage(Type? type) =>
-        type == typeof(MoviePilotSubscriptionPage) || type == typeof(MoviePilotSubscriptionsPage);
+        type == typeof(MoviePilotSubscriptionPage) || type == typeof(MoviePilotSubscriptionsPage) || type == typeof(MoviePilotCalendarPage);
+
+    private bool IsUnavailableMoviePilotPage(Type type) => type == typeof(MoviePilotCalendarPage)
+        ? !MoviePilotCalendarAvailable : _moviePilotService?.Available != true && IsMoviePilotPage(type);
 
     private void PruneMoviePilotHistory()
     {
-        if (_moviePilotService?.Available == true) return;
         for (var index = ContentFrame.BackStack.Count - 1; index >= 0; index--)
         {
-            if (!IsMoviePilotPage(ContentFrame.BackStack[index].SourcePageType)) continue;
+            if (!IsUnavailableMoviePilotPage(ContentFrame.BackStack[index].SourcePageType)) continue;
             ContentFrame.BackStack.RemoveAt(index);
             if (index < _backTrails.Count) _backTrails.RemoveAt(index);
         }
         for (var index = ContentFrame.ForwardStack.Count - 1; index >= 0; index--)
         {
-            if (!IsMoviePilotPage(ContentFrame.ForwardStack[index].SourcePageType)) continue;
+            if (!IsUnavailableMoviePilotPage(ContentFrame.ForwardStack[index].SourcePageType)) continue;
             ContentFrame.ForwardStack.RemoveAt(index);
             if (index < _forwardTrails.Count) _forwardTrails.RemoveAt(index);
         }
@@ -108,6 +125,7 @@ public sealed partial class ShellPage
         _moviePilotCheck?.Cancel();
         Settings.MoviePilot.ConnectionChanged -= OnMoviePilotConfigurationChanged;
         Settings.MoviePilot.AniBtChanged -= OnMoviePilotAniBtChanged;
+        Settings.MoviePilot.CalendarChanged -= OnMoviePilotCalendarChanged;
         if (_moviePilotService is { } service)
         {
             service.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;

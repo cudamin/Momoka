@@ -1096,6 +1096,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
             case MoviePilotSubscriptionsPage subscriptions:
                 _ = subscriptions.ViewModel.ReloadAsync();
                 break;
+            case MoviePilotCalendarPage calendar:
+                _ = calendar.ViewModel.ReloadAsync();
+                break;
         }
     }
 
@@ -1251,6 +1254,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             var request = LibraryRequest.Favorites(_services);
             Open(typeof(LibraryPage), request, request.Title, tag);
+            return;
+        }
+
+        if (tag == MoviePilotCalendarPage.Destination)
+        {
+            if (!MoviePilotCalendarAvailable) return;
+            Open(typeof(MoviePilotCalendarPage), new MoviePilotCalendarRequest(_moviePilotService!, Settings.MoviePilot), "MP 日历", tag);
             return;
         }
 

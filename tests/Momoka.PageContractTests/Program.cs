@@ -91,6 +91,9 @@ internal static class Program
         CardPresentationTests.Register();
         PosterCaptionTests.Register();
         NavigationArtworkTests.Register();
+        MoviePilotCalendarLayoutTests.Register();
+        MoviePilotCalendarViewModelTests.Register();
+        MoviePilotCalendarWiringTests.Register();
         BannerCacheTests.Register();
         ImageRecoveryTests.Register();
         CardArtworkRecoveryTests.Register();

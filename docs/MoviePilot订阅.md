@@ -1,5 +1,11 @@
 # MoviePilot 订阅
 
+侧边栏「MP 日历」显示订阅的上映和播出安排：周一开始的月视图、上一月／下一月／今天、全部／电影／电视剧筛选，以及选中日期的分集详情。设置的 MoviePilot 卡可关闭日历入口，关闭 MoviePilot 或失去连接也会立即隐藏；已打开的日历退出主页，前进／后退不再恢复不可用日历，偏好保留。设置导入和恢复默认只处理日历显示偏好，不覆盖 MoviePilot 连接。
+
+接口为只读 `GET subscribe/calendar`，按月的完整周窗口读取全部分页，再最多四路补查订阅文件的 `library` 事实；统计失败显示「入库状态未知」，不根据缺集数猜入库。旧版缺失日期接口时提示升级至 MoviePilot 3.2.3 或更新版本。上游前端 `e6a30ad4b6091859999f3bbbe7cffbcce782edf1` 的 `src/views/subscribe/FullCalendarView.vue` 与后端 `bf2236f024d4e3046be3b4376a986fb216142f02` 的日历 schema／chain 已核对，3.2.3 的后端日期契约一致。本地以日格摘要和页面下方选中日详情适配 WinUI，未嵌入网页；没有上游的周视图、海报及提示浮层。全部日期和入库统计读完后显示，首次读取可能比网页分批展示慢。
+
+日历离线专项：当前 Release/x64 Core、Tests 编译成功后运行 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -p:Platform=x64 -- moviepilot-calendar-fixture`；日期布局、真实 VM 迟到响应和显隐接线同时由 `Momoka.PageContractTests` 覆盖。均不登录真实服务器、读取真实配置或播放。
+
 主页和侧栏共用的订阅封面悬停时使用媒体库同款暗罩。集数右侧显示下载图标和 `last_update` 的相对时间；电影没有集数时单独显示时间，缺失或无效时间不显示。超过一天仍按天数显示，较短间隔显示小时、分钟或几秒。
 
 整份订阅列表包含至少两个不同的非空用户名时，封面左上角显示订阅人头像，悬停提示原始用户名。头像使用管理员用户目录的 `name/avatar`，支持服务端内嵌图片；缺图、读取失败或外部来源使用首字占位。恢复单用户时自动隐藏。`last_update` 也可能由集数变化、整理入库更新，不等同下载成功时间。

@@ -31,7 +31,7 @@ public static class SettingsPreferences
 {
     /// <summary>
     /// 把 <paramref name="source"/> 的偏好部分就地抄进 <paramref name="live"/>，再归一化，交回同一个
-    /// <paramref name="live"/>。身份、记下来的位置、音量、MoviePilot 一个字不动。恢复默认（source 是全新对象）和
+    /// <paramref name="live"/>。身份、记下来的位置、音量、MoviePilot 连接配置保持原样。恢复默认（source 是全新对象）和
     /// 恢复配置（source 是从备份文件读出来的那一份）走的是同一段。落盘由调用方负责。
     /// </summary>
     public static AppSettings Apply(AppSettings live, AppSettings source)
@@ -69,7 +69,7 @@ public static class SettingsPreferences
     }
 
     /// <summary>
-    /// 偏好部分就地覆盖：几组整组抄，音频除音量、界面除「记下来的那几项」，身份与 MoviePilot 一概不碰。见类注释。
+    /// 偏好部分就地覆盖：几组整组抄，音频除音量、界面除「记下来的那几项」，身份和连接配置保持原样。见类注释。
     /// </summary>
     private static void CopyInto(AppSettings destination, AppSettings source)
     {
@@ -144,9 +144,11 @@ public static class SettingsPreferences
         ui.HomeRowsByIdentity = homeHistory;
         ui.RecentSearches = recentSearches;
 
-        // 身份（DeviceId、Servers、LastServerId、LastAccountId）和 MoviePilot 一个字都没碰 —— 这里没有一句提到
-        // 它们，而 AppSettings 这一层本身不走覆盖，正是为了让「不碰」是默认状态而不是一条例外。MoviePilot 那组
-        // 带着一个 DPAPI 密码，当「连接配置」看待：备份不带它（令牌不进备份文件），恢复默认也从不动它。
+        // 日历入口是侧边栏偏好。MoviePilot 共用同一配置对象的账号、连接开关和凭据仍属于本机。
+        destination.MoviePilot.CalendarEnabled = source.MoviePilot.CalendarEnabled;
+
+        // 身份（DeviceId、Servers、LastServerId、LastAccountId）留在目的地。AppSettings 本身不走整组覆盖，
+        // 新增的身份字段也不会进入偏好备份。
         // （通知的 Webhook 地址原来也在这里豁免；2026-09-25 通知改走 Emby 服务器，那组设置整个退役了。）
     }
 

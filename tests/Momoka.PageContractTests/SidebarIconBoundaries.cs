@@ -43,9 +43,12 @@ namespace Momoka.Shell.Views
         private NavigationViewItem SidebarFavorites { get; } = new() { Icon = new FontIcon { Glyph = "\uEB51" } };
         private NavigationViewItem SidebarMoviePilotMovies { get; } = new() { Icon = new PathIcon("movie outline") };
         private NavigationViewItem SidebarMoviePilotSeries { get; } = new() { Icon = new PathIcon("series outline") };
+        private NavigationViewItem SidebarMoviePilotCalendar { get; } = new() { Icon = new FontIcon { Glyph = "\uE787" } };
 
         internal ShellPage() => InitializeSidebarIcons();
         internal NavigationViewItem[] ContractItems => _sidebarIcons.Keys.ToArray();
+        internal NavigationViewItem ContractMoviePilotMovies => SidebarMoviePilotMovies;
+        internal NavigationViewItem ContractMoviePilotSeries => SidebarMoviePilotSeries;
         internal (IconElement Outline, IconElement Filled) ContractPair(NavigationViewItem item) => _sidebarIcons[item];
         internal void ContractSelect(NavigationViewItem? item) => SyncSidebarIcons(item);
         internal NavigationViewItem ContractLibrary(string? collectionType)

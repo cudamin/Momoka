@@ -12,7 +12,7 @@ internal static class SidebarIconTests
         Test("侧栏初始为空心且主页与收藏使用同形系统配对", () =>
         {
             var shell = new ShellPage();
-            Assert.Equal(4, shell.ContractItems.Length);
+            Assert.Equal(5, shell.ContractItems.Length);
             foreach (var item in shell.ContractItems)
                 Assert.True(ReferenceEquals(item.Icon, shell.ContractPair(item).Outline));
             var home = shell.ContractPair(shell.ContractItems[0]);
@@ -85,8 +85,8 @@ internal static class SidebarIconTests
         Test("侧栏订阅填充图标移除内孔并保留独立对象", () =>
         {
             var shell = new ShellPage();
-            var movies = shell.ContractPair(shell.ContractItems[2]);
-            var shows = shell.ContractPair(shell.ContractItems[3]);
+            var movies = shell.ContractPair(shell.ContractMoviePilotMovies);
+            var shows = shell.ContractPair(shell.ContractMoviePilotSeries);
             Assert.True(!ReferenceEquals(movies.Outline, movies.Filled));
             Assert.True(!ReferenceEquals(shows.Outline, shows.Filled));
             Assert.True(!((PathIcon)movies.Filled).Data.Contains("M 13.33,8", StringComparison.Ordinal));

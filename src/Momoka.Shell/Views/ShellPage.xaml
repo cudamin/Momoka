@@ -651,6 +651,8 @@
                     <NavigationViewItem x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
                         <NavigationViewItem.Icon><FontIcon Glyph="&#xEB51;" /></NavigationViewItem.Icon>
                     </NavigationViewItem>
+                    <NavigationViewItem x:Name="SidebarMoviePilotCalendar" Content="MP 日历"
+                        Tag="moviepilot:calendar" Icon="Calendar" Visibility="Collapsed" />
                     <!-- 分区标题（2026-10-13 晚加、2026-11-18 只留这一条）：媒体库那几项运行时插在它后面
                          （见 ShellPage.Sidebar.cs 的 RebuildSidebarLibraries）。「订阅」那条标题同日按用户令
                          「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」删掉 —— 两条订阅入口不再单独成段，

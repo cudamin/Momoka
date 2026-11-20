@@ -480,6 +480,12 @@ internal static class Program
             RestoreIdentityR003Tests.Register();
             return TestHarness.Run();
         }
+        if (args is ["moviepilot-calendar-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MoviePilotCalendarTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-login-redirect-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

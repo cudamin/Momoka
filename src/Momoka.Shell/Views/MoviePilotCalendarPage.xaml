@@ -1,0 +1,33 @@
+<Page
+    x:Class="Momoka.Shell.Views.MoviePilotCalendarPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceL}">
+            <TextBlock Text="MP 日历" Style="{StaticResource EgPageTitleStyle}" />
+            <TextBlock Text="订阅的上映与播出安排" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+            <CommandBar DefaultLabelPosition="Right" HorizontalAlignment="Stretch" Background="Transparent">
+                <AppBarButton x:Name="PreviousMonth" Icon="Back" Label="上个月" Click="OnPreviousMonth" />
+                <AppBarButton x:Name="CurrentMonth" Icon="Calendar" Label="今天" Click="OnToday" />
+                <AppBarButton x:Name="NextMonth" Icon="Forward" Label="下个月" Click="OnNextMonth" />
+                <AppBarButton x:Name="RefreshCalendar" Icon="Refresh" Label="刷新" Click="OnRefresh" />
+            </CommandBar>
+            <TextBlock x:Name="MonthTitle" Style="{StaticResource EgPageTitleStyle}" />
+            <ComboBox x:Name="MediaType" Header="媒体类型" SelectedIndex="0" SelectionChanged="OnMediaTypeChanged">
+                <ComboBoxItem Content="全部" />
+                <ComboBoxItem Content="电影" />
+                <ComboBoxItem Content="电视剧" />
+            </ComboBox>
+            <ProgressBar IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+            <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+                Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+            <TextBlock x:Name="MonthSummary" Style="{StaticResource EgBodyStyle}" AutomationProperties.LiveSetting="Polite" />
+            <Grid x:Name="MonthGrid" RowSpacing="4" ColumnSpacing="4" />
+            <TextBlock x:Name="SelectedDayTitle" Style="{StaticResource EgPageTitleStyle}" />
+            <TextBlock x:Name="DaySummary" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+            <StackPanel x:Name="DayEvents" Spacing="{StaticResource EgSpaceM}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

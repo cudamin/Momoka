@@ -16,6 +16,7 @@
     <Compile Include="../../src/Momoka.Shell/StoreDetailProbeEvidence.cs" Link="Production/StoreDetailProbeEvidence.cs" />
     <Compile Include="../../src/Momoka.Shell/StoreTrailerScrollProbeEvidence.cs" Link="Production/StoreTrailerScrollProbeEvidence.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/HomeHeaderScrollState.cs" Link="Production/HomeHeaderScrollState.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/MoviePilotCalendarLayout.cs" Link="Production/MoviePilotCalendarLayout.cs" />
     <Compile Include="../../src/Momoka.Shell/HomeHeaderChromeProbeReadings.cs" Link="Production/HomeHeaderChromeProbeReadings.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/DetailSectionCard.cs" Link="Production/DetailSectionCard.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Shell\LocalLibraryArtwork.cs" />
@@ -24,6 +25,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\DiagnosticsViewModel.cs" Link="Production\DiagnosticsViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotCalendarViewModel.cs" Link="Production\MoviePilotCalendarViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\FilterSection.cs" Link="Production\FilterSection.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\FilterPanelViewModel.cs" Link="Production\FilterPanelViewModel.cs" />
     <Compile Include="..\Momoka.Tests\DiagnosticsTests.cs" Link="DiagnosticsTests.cs" />

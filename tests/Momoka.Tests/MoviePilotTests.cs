@@ -32,6 +32,7 @@ internal static class MoviePilotTests
         MoviePilotLoginRedirectTests.Register();
         MoviePilotCookieOwnershipTests.Register();
         MoviePilotImageConcurrencyTests.Register();
+        MoviePilotCalendarTests.Register();
     }
 
     // ── 地址归一化 ───────────────────────────────────────────────────────────────────────────────────

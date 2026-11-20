@@ -298,6 +298,7 @@ public sealed partial class ShellPage
         // 2026-11-18 用户令「去掉侧边栏的订阅分区，订阅按照媒体库顺序排序」：订阅不再单独成段，两条入口
         // 跟库项排在同一张名单里（见 RebuildSidebarLibraries），这里只翻它们自己的显隐 —— 没有分区标题要跟着收。
         var moviePilot = _moviePilotService?.Available == true;
+        SidebarMoviePilotCalendar.Visibility = MoviePilotCalendarAvailable ? Visibility.Visible : Visibility.Collapsed;
         SidebarMoviePilotMovies.Visibility = moviePilot ? Visibility.Visible : Visibility.Collapsed;
         SidebarMoviePilotSeries.Visibility = moviePilot ? Visibility.Visible : Visibility.Collapsed;
 
@@ -312,6 +313,7 @@ public sealed partial class ShellPage
         var selected = tag switch
         {
             "home" => SidebarHome,
+            MoviePilotCalendarPage.Destination when MoviePilotCalendarAvailable => SidebarMoviePilotCalendar,
             LibraryRequest.FavoritesTag when Favorites.HasItems => SidebarFavorites,
             HomeLayout.MoviePilotMovies when moviePilot => SidebarMoviePilotMovies,
             HomeLayout.MoviePilotSeries when moviePilot => SidebarMoviePilotSeries,
