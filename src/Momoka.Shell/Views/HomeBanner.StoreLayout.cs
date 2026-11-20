@@ -13,9 +13,11 @@ public sealed partial class HomeBanner
     private void PlaceRecommendations(double width, double heroHeight, bool side, bool shown)
     {
         var below = shown && !side;
+        var compact = below && HomeCarousel.StacksRecommendations(width);
+        var columnsBelow = below && !compact;
         var gap = HomeCarousel.RailGap;
         var columns = HomeCarousel.RecommendationColumns(width);
-        var rows = HomeCarousel.RailRows(heroHeight);
+        var rows = HomeCarousel.RailRows(compact ? HomeCarousel.RecommendationHeight(width) : heroHeight);
         _recommendationsHeight = below ? HomeCarousel.RecommendationHeight(width) + gap : 0;
 
         HeroRow.Height = new GridLength(heroHeight);
@@ -24,20 +26,20 @@ public sealed partial class HomeBanner
         Grid.SetColumn(Rail, side ? 2 : 0);
         Rail.Margin = below ? new Thickness(0, gap, 0, 0) : default;
 
-        RailTopRow.Height = below ? new GridLength(1, GridUnitType.Star) : new GridLength(rows.Big);
-        RailMiddleRow.Height = new GridLength(below ? 0 : gap);
-        RailBottomRow.Height = new GridLength(below ? 0 : rows.Small);
-        RailBigColumn.Width = below ? new GridLength(columns.Big) : new GridLength(1, GridUnitType.Star);
-        RailMiddleColumn.Width = new GridLength(below ? gap : 0);
-        RailSmallColumn.Width = new GridLength(below ? columns.Small : 0);
-        Grid.SetRow(RailSmallCards, below ? 0 : 2);
-        Grid.SetColumn(RailSmallCards, below ? 2 : 0);
+        RailTopRow.Height = columnsBelow ? new GridLength(1, GridUnitType.Star) : new GridLength(rows.Big);
+        RailMiddleRow.Height = new GridLength(columnsBelow ? 0 : gap);
+        RailBottomRow.Height = new GridLength(columnsBelow ? 0 : rows.Small);
+        RailBigColumn.Width = columnsBelow ? new GridLength(columns.Big) : new GridLength(1, GridUnitType.Star);
+        RailMiddleColumn.Width = new GridLength(columnsBelow ? gap : 0);
+        RailSmallColumn.Width = new GridLength(columnsBelow ? columns.Small : 0);
+        Grid.SetRow(RailSmallCards, columnsBelow ? 0 : 2);
+        Grid.SetColumn(RailSmallCards, columnsBelow ? 2 : 0);
 
-        SmallGapColumn.Width = new GridLength(below ? 0 : gap);
-        SmallSecondColumn.Width = below ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        SmallGapRow.Height = new GridLength(below ? gap : 0);
-        SmallSecondRow.Height = below ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        Grid.SetRow(RailSmallCardB, below ? 2 : 0);
-        Grid.SetColumn(RailSmallCardB, below ? 0 : 2);
+        SmallGapColumn.Width = new GridLength(columnsBelow ? 0 : gap);
+        SmallSecondColumn.Width = columnsBelow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        SmallGapRow.Height = new GridLength(columnsBelow ? gap : 0);
+        SmallSecondRow.Height = columnsBelow ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        Grid.SetRow(RailSmallCardB, columnsBelow ? 2 : 0);
+        Grid.SetColumn(RailSmallCardB, columnsBelow ? 0 : 2);
     }
 }

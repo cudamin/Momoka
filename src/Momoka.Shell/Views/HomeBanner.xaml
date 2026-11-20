@@ -227,7 +227,7 @@
           商店截图只作视觉参考（Store 闭源）。已核 Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7
           Samples/Grid/GridPage.xaml[.cs]、Samples/Acrylic/AcrylicPage.xaml[.cs]、Styles/ItemTemplates.xaml：
           原生 Grid 与响应式改位没有一主三辅的成套实现，因此沿用本项目的按内容宽计算；不使用窗口宽触发器。
-          宽屏主图左、推荐右；窄屏主图满宽、圆点下方左大右二小。四张卡与圆点始终保留同一实例。
+          宽屏主图左、推荐右；中档主图满宽、圆点下方左大右二小；最窄档大推荐满行、再下两小卡。始终保留同一实例。
         -->
         <Grid x:Name="Stage" Grid.Row="0">
             <Grid.RowDefinitions>
@@ -261,6 +261,9 @@
         <Border
             x:Name="HeroClip"
             Grid.Column="0"
+            PointerEntered="OnHeroPointerEntered"
+            PointerMoved="OnHeroPointerEntered"
+            PointerExited="OnHeroPointerExited"
             Background="{StaticResource EgBannerBaseBrush}"
             CornerRadius="{StaticResource EgCardCornerRadius}">
         <Grid x:Name="Frame" Background="{StaticResource EgBannerBaseBrush}">
@@ -600,8 +603,7 @@
                      这块读数。同一天下午按他一句「把轮播图左下角这个稍微放大一点这个，把下方那条线弄成进度条，
                      跑满进度条就翻页」把这块从 12 号字／120×2 放大到 14 号／160×3，底下那条线也定死了身份：
                      进度条 —— 从左往右填满一个 Dwell，填满的那一拍钟到点、翻下一张。
-                     **条和翻页是同一只钟**（HomeBanner.OnTick 按经过时间直接写 ScaleX，2026-11-02）：悬停和焦点
-                     都不再停表 —— 指针停在窗口上半截是常态，停表就是「卡住不动」、移开清零就是「跑到一半回退」。
+                     条和翻页共用经过时间，整宽版式悬停不停表；商店主图悬停时保留进度、移开只恢复余量。
                      它也不跟系统的动画开关走：它是一句读数，不是装饰（见 SyncTimer 的说明）。 -->
                 <StackPanel
                     x:Name="SlideStatus"
@@ -623,6 +625,35 @@
                         </Border>
                     </Border>
                 </StackPanel>
+
+                <!-- Store 闭源截图只作视觉参考。Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7
+                     Samples/ProgressRing/ProgressRingPage.xaml[.cs] 的确定进度是圆环；没有填充扇形样例。
+                     用现有原生几何画 16 DIP 的扇形，和自动翻页共用经过时间，不另开动画时钟。 -->
+                <Grid
+                    x:Name="HeroCountdown"
+                    Width="16"
+                    Height="16"
+                    Margin="12,0,0,12"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed">
+                    <Ellipse x:Name="CountdownFace" Fill="{StaticResource EgOnScrimBrush}" Opacity="0.18" />
+                    <Path x:Name="CountdownSlice" Fill="{StaticResource EgOnScrimBrush}" Opacity="0.64">
+                        <Path.Data>
+                            <PathGeometry>
+                                <PathFigure x:Name="CountdownFigure" StartPoint="8,8" IsClosed="True">
+                                    <LineSegment x:Name="CountdownStart" Point="8,0" />
+                                    <ArcSegment
+                                        x:Name="CountdownArc"
+                                        Point="8,0"
+                                        Size="8,8"
+                                        SweepDirection="Clockwise" />
+                                </PathFigure>
+                            </PathGeometry>
+                        </Path.Data>
+                    </Path>
+                </Grid>
             </Grid>
         </Grid>
         </Border>

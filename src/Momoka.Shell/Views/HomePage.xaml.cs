@@ -619,6 +619,17 @@ public sealed partial class HomePage : Page, IShellContent
 
     private void UpdateLibraryOverlayCore()
     {
+        // 商店版式不允许媒体库上移。切版要当场撤掉旧宿主与排队动画，不能被几何未就绪、
+        // 播放层或翻档节流拦在旧的压上状态；保留设置中的整宽版式偏好。
+        if (Banner.Layout == CarouselLayout.Store || _homeSettings?.Settings.Ui.ShowHomeBanner == false)
+        {
+            CancelFold();
+            _foldPlacedAt = 0;
+            ViewModel.SetLibraryOverlay(false);
+            ApplyLibraryChrome();
+            return;
+        }
+
         if (XamlRoot is null) return;
 
         // 播放层占着窗口这一整段里不判（2026-09-25 用户报「全屏从播放页面退出的时候，媒体库别乱上下移动」）。

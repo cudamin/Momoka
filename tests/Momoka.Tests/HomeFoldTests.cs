@@ -25,6 +25,20 @@ internal static class HomeFoldTests
 {
     public static void Register()
     {
+        Test("主页媒体库位置：商店与轮播关闭固定下方，整宽保留全部位置偏好", () =>
+        {
+            foreach (var preference in Enum.GetValues<HomeLibraryPlacement>())
+            {
+                Assert.Equal(HomeLibraryPlacement.BelowCarousel,
+                    HomeFold.EffectivePlacement(CarouselLayout.Store, true, preference));
+                Assert.Equal(HomeLibraryPlacement.BelowCarousel,
+                    HomeFold.EffectivePlacement(CarouselLayout.Store, false, preference));
+                Assert.Equal(HomeLibraryPlacement.BelowCarousel,
+                    HomeFold.EffectivePlacement(CarouselLayout.Full, false, preference));
+                Assert.Equal(preference, HomeFold.EffectivePlacement(CarouselLayout.Full, true, preference));
+            }
+        });
+
         Test("矮窗档：那条线被裁掉 —— 压上", () =>
         {
             // 视口 900：线在 922、整个在第一屏外 —— 媒体库整排一个像素都不露，这正是要压上轮播的那一档。

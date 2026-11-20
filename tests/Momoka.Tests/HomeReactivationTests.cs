@@ -44,7 +44,7 @@ internal static class HomeReactivationTests
         });
 
         foreach (var change in new[] { "directory-name", "directory-type", "directory-image", "row-title", "row-visible",
-            "row-order", "banner", "carousel-source", "carousel-media", "carousel-count", "carousel-dwell", "placement",
+            "row-order", "banner", "carousel-source", "carousel-media", "carousel-count", "carousel-dwell", "carousel-layout", "placement",
             "control-color", "control-opacity", "acrylic", "source-owner", "removed" })
         {
             Case("主页实例重入：改变 " + change + " 拒绝旧页面并清除内容", async () =>
@@ -72,6 +72,7 @@ internal static class HomeReactivationTests
                         case "carousel-media": ui.CarouselMedia = CarouselMediaType.Series; break;
                         case "carousel-count": ui.CarouselCount++; break;
                         case "carousel-dwell": ui.CarouselSeconds++; break;
+                        case "carousel-layout": ui.CarouselLayout = CarouselLayout.Store; break;
                         case "placement": ui.HomeLibraryPlacement = HomeLibraryPlacement.OnCarousel; break;
                         case "control-color": ui.ControlBackgroundColor = "#123456"; break;
                         case "control-opacity": ui.ControlBackgroundOpacity = 10; break;

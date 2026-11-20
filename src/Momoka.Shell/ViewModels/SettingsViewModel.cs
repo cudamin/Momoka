@@ -2016,10 +2016,11 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value =>
                 {
                     ui.CarouselLayout = value;
+                    RefreshHomeCarouselRows();
                     ShellPrefs.Apply(ui);
                 },
-                "全宽大图是现在的样子；商店版式把大图放在左侧、右边一列跟着翻页显示接下来的三张，"
-                    + "窗口窄到放不下右栏时自动回到整宽大图"),
+                "全宽大图是一张整宽轮播；商店版式宽窗左主图、右侧三张推荐，窄窗推荐移到圆点下方。"
+                    + "商店版式的媒体库固定在轮播下方，切回全宽大图恢复原位置偏好"),
 
             Choice("轮播图用什么媒体", carouselMedia,
                 () => ui.CarouselMedia,
@@ -2059,13 +2060,14 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "一张封面站多少秒再换下一张，指针停在带上的时候不计时"),
         };
 
-        var layoutRows = new List<SettingRow>
+        var layoutRows = new List<SettingRow>();
+        if (ui.ShowHomeBanner && ui.CarouselLayout != Emby.CarouselLayout.Store)
         {
             // 「主页媒体库位置」（用户 2026-10-12 令，当时叫「首页媒体库位置」、摆在界面卡上；2026-10-16 令改名
             // 并挪进主页卡）。三档的判定在 Core（<see cref="Emby.HomeFold.LibraryOnBanner"/>），主页那一头只管量
             // 几何和搬那一排。改完当场喊一声（ShellPrefs）：主页在另一个窗口里，它照这一档重新摆一次，不等回到
             // 主页、不用重启。
-            Pick("主页媒体库位置",
+            layoutRows.Add(Pick("主页媒体库位置",
                 "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：窗口矮到"
                     + "快看不见下面那几排时，它自己压到轮播封面的左下角，窗口拉高又落回轮播下面；另两档钉死，"
                     + "不看窗口高矮。轮播收起来时（关掉大图，或一张幻灯片都没有）没有轮播可依，"
@@ -2078,10 +2080,9 @@ public sealed partial class SettingsViewModel : PageViewModel
                 () => ui.HomeLibraryPlacement,
                 value => ui.HomeLibraryPlacement = value,
                 EqualityComparer<Emby.HomeLibraryPlacement>.Default,
-                after: () => ShellPrefs.Apply(ui)),
-
-            HomeRows
-        };
+                after: () => ShellPrefs.Apply(ui)));
+        }
+        layoutRows.Add(HomeRows);
 
         return
         [
@@ -2096,10 +2097,15 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     private void RefreshHomeCarouselRows()
     {
-        var section = Sections.FirstOrDefault(section => section.Category == "主页" && section.Title == "轮播图");
         var homeRows = HomeRows;
-        section?.UpdateRows(HomeSections()[0].Rows);
-        HomeRows = homeRows;
+        try
+        {
+            // 两张卡是同级：版式和开关同时决定位置行是否生效。原地更新保留排序行、输入焦点与搜索索引。
+            foreach (var desired in HomeSections())
+                Sections.FirstOrDefault(section => section.Category == desired.Category && section.Title == desired.Title)
+                    ?.UpdateRows(desired.Rows);
+        }
+        finally { HomeRows = homeRows; }
     }
 
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>

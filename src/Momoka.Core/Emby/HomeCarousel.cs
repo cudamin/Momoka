@@ -52,7 +52,7 @@ public enum CarouselLayout
     Full = 0,
 
     /// <summary>
-    /// 商店版式：宽窗口左侧大图、右侧三张推荐（上大下二小）；窄窗口主卡满宽、推荐下排（左大右二小）。都用大图
+    /// 商店版式：宽窗口左侧大图、右侧三张推荐；中档左大右二小；紧凑档大推荐满行、再下方两小卡并排。都用大图
     /// <em>下面</em>那一排分页圆点代替右下角的读数与进度条（2026-11-16 重做，按用户给的商店参考图）。
     /// </summary>
     Store = 1
@@ -127,9 +127,16 @@ public static class HomeCarousel
     public const double RailGap = 12;
 
     /// <summary>
-    /// 推荐区最窄 480 DIP，保证三张卡的标题与操作命中区仍能读、能点；更窄时只留主卡。
+    /// 推荐区最窄 320 DIP；紧凑档把大推荐铺满一行，两张小卡并排，避免挤成过窄的侧列。
     /// </summary>
-    public const double RecommendationsMinWidth = 480;
+    public const double RecommendationsMinWidth = 320;
+
+    /// <summary>紧凑档的大推荐满行，下方两张小卡并排；再宽才用左大右二小。</summary>
+    public const double RecommendationsCompactWidth = 680;
+
+    /// <summary>当前内容宽是否使用竖排推荐。</summary>
+    public static bool StacksRecommendations(double width) =>
+        double.IsFinite(width) && width >= RecommendationsMinWidth && width < RecommendationsCompactWidth;
 
     /// <summary>
     /// 整条轮播至少多宽才摆右栏（DIP）。再窄时三张推荐移到主卡与圆点下面，左大右二小。
@@ -165,7 +172,12 @@ public static class HomeCarousel
     }
 
     /// <summary>下排推荐区的高度，不占主卡和圆点的位置。</summary>
-    public static double RecommendationHeight(double width) => Math.Round(RecommendationColumns(width).Big / WindowAspect);
+    public static double RecommendationHeight(double width)
+    {
+        if (!double.IsFinite(width) || width < RecommendationsMinWidth) return 0;
+        if (!StacksRecommendations(width)) return Math.Round(RecommendationColumns(width).Big / WindowAspect);
+        return Math.Round(width / WindowAspect) + RailGap + Math.Round((width - RailGap) / 2 / WindowAspect);
+    }
 
     /// <summary>
     /// 大图那一列的宽（DIP）。摆右栏时让出右栏和两栏之间的空当；不摆右栏时整条都归大图。
@@ -309,13 +321,16 @@ public static class HomeCarousel
     /// </summary>
     public const double DotsHeight = 28;
 
+    /// <summary>紧凑商店主图仍须容下两行片名和播放操作，不沿用整宽版式的 300 高下限。</summary>
+    public const double StoreMinHeight = 240;
+
     /// <summary>
     /// 商店版式的带高（2026-11-16 重做）。两种宽度两副形状，都从参考图量出来的：
     /// <list type="bullet">
     /// <item>摆右栏：先让出推荐区和间隔，再按主卡自己的 16:9 取高。</item>
     /// <item>放不下右栏：主卡满宽 16:9，三张推荐在圆点下方另起一排。</item>
     /// </list>
-    /// 上限仍是一屏、下限仍是 <see cref="MinHeight"/>，与整宽版式同一道闸；<paramref name="width"/> 是整条
+    /// 上限仍是一屏、下限为 <see cref="StoreMinHeight"/>；<paramref name="width"/> 是整条
     /// 轮播的宽（不是大图那一列的宽），右栏和空当都算在里面。
     /// </summary>
     public static double StoreHeight(double viewport, double width, bool rail)
@@ -323,9 +338,9 @@ public static class HomeCarousel
         if (width <= 0) return UnmeasuredHeight;
 
         var band = Math.Round(MainWidth(width, rail) / WindowAspect);
-        var ceiling = viewport > 0 ? Math.Max(MinHeight, Math.Round(viewport)) : double.MaxValue;
+        var ceiling = viewport > 0 ? Math.Max(StoreMinHeight, Math.Round(viewport)) : double.MaxValue;
 
-        return Math.Clamp(band, MinHeight, ceiling);
+        return Math.Clamp(band, StoreMinHeight, ceiling);
     }
 
     /// <summary>商店版式按设计形状的带高，不被一屏封住；同 <see cref="NaturalHeight"/> 的差事。</summary>

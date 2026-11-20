@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
+using Momoka.Emby;
 using Momoka.Services;
 
 namespace Momoka.Tests;
@@ -43,6 +44,96 @@ internal static class SettingsPageStateTests
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
         PlayerToolsSettingsUiTests.Register(fixture);
+        TestHarness.Test("主页位置真实 VM：商店和轮播开关只改变有效值，切回立即恢复保存偏好", () =>
+        {
+            var settings = new FakeSettings();
+            var home = fixture.NewHomeViewModel(settings);
+            try
+            {
+                foreach (var immersive in new[] { false, true })
+                    foreach (var preference in Enum.GetValues<HomeLibraryPlacement>())
+                    {
+                        var ui = settings.Settings.Ui;
+                        ui.EnableImmersive = immersive;
+                        ui.HomeLibraryPlacement = preference;
+                        ui.ShowHomeBanner = true;
+                        ui.CarouselLayout = CarouselLayout.Full;
+                        Assert.Equal(preference, fixture.Get<HomeLibraryPlacement>(home, "LibraryPlacement"));
+                        ui.CarouselLayout = CarouselLayout.Store;
+                        Assert.Equal(HomeLibraryPlacement.BelowCarousel, fixture.Get<HomeLibraryPlacement>(home, "LibraryPlacement"));
+                        ui.CarouselLayout = CarouselLayout.Full;
+                        Assert.Equal(preference, fixture.Get<HomeLibraryPlacement>(home, "LibraryPlacement"));
+                        ui.ShowHomeBanner = false;
+                        Assert.Equal(HomeLibraryPlacement.BelowCarousel, fixture.Get<HomeLibraryPlacement>(home, "LibraryPlacement"));
+                        ui.ShowHomeBanner = true;
+                        Assert.Equal(preference, fixture.Get<HomeLibraryPlacement>(home, "LibraryPlacement"));
+                        Assert.Equal(preference, ui.HomeLibraryPlacement);
+                    }
+                Assert.Equal(0, settings.TrySaveCalls);
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+        foreach (var immersive in new[] { false, true })
+            foreach (var preference in Enum.GetValues<HomeLibraryPlacement>())
+                TestHarness.Test($"轮播商店版式：{preference}／沉浸{immersive} 位置行即时隐藏恢复且排序行保留", () =>
+                {
+                    var settings = new FakeSettings();
+                    settings.Settings.Ui.EnableImmersive = immersive;
+                    settings.Settings.Ui.HomeLibraryPlacement = preference;
+                    var vm = fixture.NewViewModel();
+                    fixture.Attach(vm, settings, fixture.NewLauncher());
+                    try
+                    {
+                        var sections = ((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ToArray();
+                        foreach (var section in sections) fixture.List(vm, "Sections").Add(section);
+                        var carousel = fixture.List(sections[0], "Rows");
+                        var layout = fixture.List(sections[1], "Rows");
+                        var homeRows = layout.Cast<object>().Single(row => Label(row) == "媒体库顺序");
+                        var style = carousel.Cast<object>().Single(row => Label(row) == "轮播图版式");
+                        var toggle = carousel.Cast<object>().Single(row => Label(row) == "显示主页轮播大图");
+                        var choices = fixture.List(style, "Choices").Cast<object>().ToArray();
+                        var position = layout.Cast<object>().Single(row => Label(row) == "主页媒体库位置");
+                        fixture.Set(vm, "SettingsSearchQuery", "主页媒体库位置");
+                        var oldSuggestion = fixture.List(vm, "SettingsSearchResults").Cast<object>()
+                            .Single(result => fixture.Get<string>(result, "Label") == "主页媒体库位置");
+                        fixture.Set(style, "Selected", choices.Single(choice => Label(choice) == "商店版式"));
+                        Assert.Equal(CarouselLayout.Store, settings.Settings.Ui.CarouselLayout);
+                        Assert.Equal(preference, settings.Settings.Ui.HomeLibraryPlacement);
+                        Assert.Equal(1, layout.Count);
+                        Assert.True(ReferenceEquals(homeRows, layout[0]));
+                        Assert.True(ReferenceEquals(homeRows, fixture.Get<object>(vm, "HomeRows")));
+                        Assert.True(ReferenceEquals(style, carousel.Cast<object>().Single(row => Label(row) == "轮播图版式")));
+                        Assert.Equal(0, fixture.List(vm, "SettingsSearchResults").Count);
+                        Assert.False((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", oldSuggestion)!);
+                        fixture.Set(toggle, "IsOn", false);
+                        Assert.Equal(1, layout.Count);
+                        fixture.Set(toggle, "IsOn", true);
+                        Assert.Equal(1, layout.Count);
+                        // 整个轮播关闭再开启会重新创建其从属行；接下来操作当前行，不使用已离树的旧下拉。
+                        style = carousel.Cast<object>().Single(row => Label(row) == "轮播图版式");
+                        choices = fixture.List(style, "Choices").Cast<object>().ToArray();
+                        fixture.Set(style, "Selected", choices.Single(choice => Label(choice) == "全宽大图"));
+                        var restored = layout.Cast<object>().Single(row => Label(row) == "主页媒体库位置");
+                        Assert.Equal(fixture.Get<string>(fixture.Get<object>(position, "Selected"), "Label"),
+                            fixture.Get<string>(fixture.Get<object>(restored, "Selected"), "Label"));
+                        Assert.Equal(preference, settings.Settings.Ui.HomeLibraryPlacement);
+                        Assert.True(ReferenceEquals(homeRows, layout[1]));
+                        Assert.True(ReferenceEquals(style, carousel.Cast<object>().Single(row => Label(row) == "轮播图版式")));
+                        Assert.Equal(1, fixture.List(vm, "SettingsSearchResults").Count);
+                        fixture.Set(toggle, "IsOn", false);
+                        Assert.Equal(1, layout.Count);
+                        fixture.Set(toggle, "IsOn", true);
+                        Assert.Equal(2, layout.Count);
+                        Assert.Equal(preference, settings.Settings.Ui.HomeLibraryPlacement);
+                        settings.Settings.Ui.CarouselLayout = CarouselLayout.Store;
+                        Assert.Equal(1, fixture.List(((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ElementAt(1), "Rows").Count);
+                        settings.Settings.Ui.CarouselLayout = CarouselLayout.Full;
+                        Assert.Equal(2, fixture.List(((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ElementAt(1), "Rows").Count);
+                    }
+                    finally { ((IDisposable)vm).Dispose(); }
+
+                    string Label(object row) => fixture.Get<string>(row, "Label");
+                });
         TestHarness.Test("R06-009 轮播关闭收起从属行，开启原位恢复偏好", () =>
         {
             var settings = new FakeSettings();
@@ -751,6 +842,14 @@ internal static class SettingsPageStateTests
         }
 
         public object NewViewModel() => Activator.CreateInstance(_viewModel)!;
+        /// <summary>只注入假设置读取边界，不 Attach、不取媒体库、不建立会话或图片服务。</summary>
+        public object NewHomeViewModel(ISettingsService settings)
+        {
+            var type = _shell.GetType("Momoka.Shell.ViewModels.HomeViewModel", throwOnError: true)!;
+            var home = Activator.CreateInstance(type)!;
+            type.GetField("_settings", Members)!.SetValue(home, settings);
+            return home;
+        }
         public IDisposable SubscribeShellPreference(string name, Action<UiSettings> handler)
         {
             var preference = _shell.GetType("Momoka.Shell.ShellPrefs", throwOnError: true)!.GetEvent(name)!;

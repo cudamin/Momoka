@@ -80,10 +80,12 @@ internal static class HomeCarouselLayoutTests
             var layout = Source("Momoka.Shell/Views/HomeBanner.StoreLayout.cs");
             Assert.Contains("Grid.SetRow(Rail, below ? 2 : 0)", layout);
             Assert.Contains("Grid.SetColumn(Rail, side ? 2 : 0)", layout);
-            Assert.Contains("Grid.SetRow(RailSmallCards, below ? 0 : 2)", layout);
-            Assert.Contains("Grid.SetColumn(RailSmallCards, below ? 2 : 0)", layout);
-            Assert.Contains("Grid.SetRow(RailSmallCardB, below ? 2 : 0)", layout);
-            Assert.Contains("Grid.SetColumn(RailSmallCardB, below ? 0 : 2)", layout);
+            Assert.Contains("var compact = below && HomeCarousel.StacksRecommendations(width)", layout);
+            Assert.Contains("var columnsBelow = below && !compact", layout);
+            Assert.Contains("Grid.SetRow(RailSmallCards, columnsBelow ? 0 : 2)", layout);
+            Assert.Contains("Grid.SetColumn(RailSmallCards, columnsBelow ? 2 : 0)", layout);
+            Assert.Contains("Grid.SetRow(RailSmallCardB, columnsBelow ? 2 : 0)", layout);
+            Assert.Contains("Grid.SetColumn(RailSmallCardB, columnsBelow ? 0 : 2)", layout);
             foreach (var rebuild in new[] { "Children.Clear(", "Children.Remove(", "Children.Add(", "new Button", "new Border", "new Grid()" })
                 Assert.DoesNotContain(rebuild, layout);
 
@@ -91,6 +93,84 @@ internal static class HomeCarouselLayoutTests
             Assert.Contains("HomeCarousel.ShowsRecommendations(_layout, width, _slides.Count)", code);
             Assert.Contains("PlaceRecommendations(width, height, rail, recommendations)", code);
             Assert.Contains("if (ReferenceEquals(_railSlides[slot], slide)) continue;", code);
+        });
+
+        Test("轮播紧凑商店版式：大推荐满行，下方小卡并排，退出紧凑档恢复原有行列", () =>
+        {
+            var layout = Source("Momoka.Shell/Views/HomeBanner.StoreLayout.cs");
+            Assert.Contains("HomeCarousel.RailRows(compact ? HomeCarousel.RecommendationHeight(width) : heroHeight)", layout);
+            Assert.Contains("RailTopRow.Height = columnsBelow ? new GridLength(1, GridUnitType.Star) : new GridLength(rows.Big)", layout);
+            Assert.Contains("RailMiddleRow.Height = new GridLength(columnsBelow ? 0 : gap)", layout);
+            Assert.Contains("RailBottomRow.Height = new GridLength(columnsBelow ? 0 : rows.Small)", layout);
+            Assert.Contains("RailBigColumn.Width = columnsBelow ? new GridLength(columns.Big) : new GridLength(1, GridUnitType.Star)", layout);
+            Assert.Contains("RailMiddleColumn.Width = new GridLength(columnsBelow ? gap : 0)", layout);
+            Assert.Contains("RailSmallColumn.Width = new GridLength(columnsBelow ? columns.Small : 0)", layout);
+            Assert.Contains("SmallGapColumn.Width = new GridLength(columnsBelow ? 0 : gap)", layout);
+            Assert.Contains("SmallSecondColumn.Width = columnsBelow ? new GridLength(0) : new GridLength(1, GridUnitType.Star)", layout);
+            Assert.Contains("SmallGapRow.Height = new GridLength(columnsBelow ? gap : 0)", layout);
+            Assert.Contains("SmallSecondRow.Height = columnsBelow ? new GridLength(1, GridUnitType.Star) : new GridLength(0)", layout);
+        });
+
+        Test("商店主卡倒计时：左下 16 DIP 原生扇形不接管命中，分页点与推荐仍在主卡外", () =>
+        {
+            var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
+            var countdown = Single(banner, "HeroCountdown");
+            Assert.Equal("Grid", countdown.Name.LocalName);
+            Assert.Equal("16", (string?)countdown.Attribute("Width"));
+            Assert.Equal("16", (string?)countdown.Attribute("Height"));
+            Assert.Equal("12,0,0,12", (string?)countdown.Attribute("Margin"));
+            Assert.Equal("Left", (string?)countdown.Attribute("HorizontalAlignment"));
+            Assert.Equal("Bottom", (string?)countdown.Attribute("VerticalAlignment"));
+            Assert.Equal("False", (string?)countdown.Attribute("IsHitTestVisible"));
+            Assert.Equal("Collapsed", (string?)countdown.Attribute("Visibility"));
+            Assert.True(Single(banner, "Frame").Descendants().Contains(countdown), "扇形必须位于主卡的裁剪范围内");
+            foreach (var name in new[] { "DotsHost", "Rail" })
+                Assert.False(Single(banner, name).Descendants().Contains(countdown), "推荐与圆点不能承载主卡倒计时");
+            Assert.Equal("Ellipse", Single(banner, "CountdownFace").Name.LocalName);
+            Assert.Equal("Path", Single(banner, "CountdownSlice").Name.LocalName);
+            Assert.Equal("8,8", (string?)Single(banner, "CountdownFigure").Attribute("StartPoint"));
+            Assert.Equal("True", (string?)Single(banner, "CountdownFigure").Attribute("IsClosed"));
+            Assert.Equal("8,0", (string?)Single(banner, "CountdownStart").Attribute("Point"));
+            var arc = Single(banner, "CountdownArc");
+            Assert.Equal("8,8", (string?)arc.Attribute("Size"));
+            Assert.Equal("Clockwise", (string?)arc.Attribute("SweepDirection"));
+        });
+
+        Test("商店主卡悬停：暂停只绑定主卡，扇形与翻页使用同一个可恢复时钟", () =>
+        {
+            var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
+            var hero = Single(banner, "HeroClip");
+            Assert.Equal("OnHeroPointerEntered", (string?)hero.Attribute("PointerEntered"));
+            Assert.Equal("OnHeroPointerEntered", (string?)hero.Attribute("PointerMoved"));
+            Assert.Equal("OnHeroPointerExited", (string?)hero.Attribute("PointerExited"));
+            foreach (var name in new[] { "Root", "Rail", "DotsHost" })
+                Assert.False(Single(banner, name).Attributes().Any(attribute => attribute.Value is "OnHeroPointerEntered" or "OnHeroPointerExited"),
+                    "主卡之外不能因指针停留而暂停");
+
+            var code = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            Assert.Contains("_heroWatch = new HoverWatch(HeroClip", code);
+            Assert.Contains("private readonly BannerCycleClock _cycleClock = new()", code);
+            Assert.Contains("HeroCountdown.Visibility = _layout == CarouselLayout.Store && _slides.Count > 1", code);
+            Assert.Contains("_cycleClock.Restart(_cycleStarted)", code);
+            Assert.Contains("_cycleClock.SetPaused(_layout == CarouselLayout.Store && _heroHover, _cycleStarted)", code);
+            Assert.Contains("TimeSpan.FromMilliseconds(_cycleClock.ElapsedMilliseconds(Environment.TickCount64))", code);
+            Assert.Contains("PaintCountdown(elapsed / _dwell)", code);
+            var unloaded = code.IndexOf("private void OnUnloaded(", StringComparison.Ordinal);
+            var nextHandler = code.IndexOf("private void OnColorSystemTick(", unloaded, StringComparison.Ordinal);
+            Assert.True(unloaded >= 0 && nextHandler > unloaded, "找不到主卡卸载范围");
+            Assert.Contains("_heroWatch.Leave()", code[unloaded..nextHandler]);
+
+            var countdown = Source("Momoka.Shell/Views/HomeBanner.Countdown.cs");
+            Assert.Contains("var paused = _layout == CarouselLayout.Store && _heroHover", countdown);
+            Assert.Contains("_cycleClock.SetPaused(paused, Environment.TickCount64)", countdown);
+            Assert.Contains("_cycleClock.ElapsedMilliseconds(Environment.TickCount64)", countdown);
+            Assert.Contains("if (paused) _timer?.Stop()", countdown);
+            Assert.Contains("if (e.Pointer.PointerDeviceType != Microsoft.UI.Input.PointerDeviceType.Mouse) return", countdown);
+            Assert.DoesNotContain(".Restart(", countdown);
+            Assert.DoesNotContain("CreateTimer(", countdown);
+            Assert.DoesNotContain("new Storyboard", countdown);
+            Assert.Contains("var remaining = Math.Clamp(1 - progress, 0, 1)", countdown);
+            Assert.Contains("CountdownArc.IsLargeArc = remaining > 0.5", countdown);
         });
 
         Test("轮播商店版式：主卡、圆点与下排分别计高，圆点与卡片控件保持原有样式", () =>

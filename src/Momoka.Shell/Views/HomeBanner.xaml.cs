@@ -68,6 +68,8 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>「鼠标移出窗口后不会自动恢复」：翻页箭头浮出来了还得收回去，理由见 <see cref="HoverWatch"/>。</summary>
     private readonly HoverWatch _watch;
+    private readonly HoverWatch _heroWatch;
+    private bool _heroHover;
     private readonly BannerPointerGlow _pointerGlow;
 
     /// <summary>
@@ -84,6 +86,7 @@ public sealed partial class HomeBanner : UserControl
     /// 进度条和换片都从这一个数推出来，所以「条跑满了还没换」和「没跑满就被换」在结构上不会发生。
     /// </summary>
     private long _cycleStarted;
+    private readonly BannerCycleClock _cycleClock = new();
 
     // 每一种动画只有一个所有者：换片先收尾，卸载全部停止，避免上一张的 Completed 改到下一张。
     private readonly Dictionary<string, (Storyboard Board, Action Settle)> _motions = [];
@@ -219,6 +222,8 @@ public sealed partial class HomeBanner : UserControl
         SlideStatus.Visibility = _layout == CarouselLayout.Full && _slides.Count > 1 && ActualWidth >= 800
             ? Visibility.Visible
             : Visibility.Collapsed;
+        HeroCountdown.Visibility = _layout == CarouselLayout.Store && _slides.Count > 1
+            ? Visibility.Visible : Visibility.Collapsed;
         SyncPageDots();
     }
 
@@ -490,6 +495,7 @@ public sealed partial class HomeBanner : UserControl
         if (_layout == layout) return;
 
         _layout = layout;
+        UpdateCyclePause();
 
         // 商店版式的背景是原图本身（2026-11-16 用户实屏：「没必要加高斯模糊」）；整宽版式保留左侧采色扩边。
         foreach (var slide in _slides) slide.SetLeftExtension(layout != CarouselLayout.Store);
@@ -557,13 +563,18 @@ public sealed partial class HomeBanner : UserControl
         TextInk.Attach(CaptionInk, CaptionText);
         TextInk.Attach(SynopsisInk, SynopsisText);
 
-        // 悬停只管箭头浮不浮出来。它从前还会停掉自动翻页的钟，而指针停在窗口上半截（也就是这条带）上
-        // 是常态 —— 那条路让进度条看着像坏了（2026-11-02「经常会卡住不动」），现在钟不认指针。
+        // 整组悬停只管箭头；商店版式的暂停单独监视主卡，移到圆点或推荐时恢复剩余时间。
         _watch = new HoverWatch(Root, up =>
         {
             _hover = up;
             if (!up) _pointerGlow.Leave();
             SyncArrows();
+        });
+        _heroWatch = new HoverWatch(HeroClip, up =>
+        {
+            if (_heroHover == up) return;
+            _heroHover = up;
+            UpdateCyclePause();
         });
 
         // 全名一次：UserControl 自己有个同名的 DispatcherQueue 属性，简名先落在它身上，静态方法就取不到了。
@@ -1161,9 +1172,8 @@ public sealed partial class HomeBanner : UserControl
     /// 另一边在同一帧 —— 2026-11-02「进度条经常会卡住不动，或者跑到一半回退」。
     /// </para>
     /// <para>
-    /// **指针不再停表**：同一批反馈里「卡住不动」的另一半来处是悬停暂停 —— 指针停在窗口上半截（也就是这条带上）
-    /// 是常态，那条路让钟和条一起停，移开又从零起算，看着就是「跑到一半回退」。悬停现在只管箭头浮不浮出来。
-    /// 只有一张、还没进树、一张都没有，才是真的停。
+    /// 商店版式主卡悬停时冻结已走时间，移开只恢复余量；整宽版式保持原来的连续计时。
+    /// 圆点、推荐卡和键盘焦点不会暂停主图，避免整个推荐区变高后意外扩大暂停范围。
     /// </para>
     /// <para>
     /// **钟和条不是装饰，不吃界面的动画开关**（2026-09-13「首页的轮播图貌似不会自己滚动了」：这台机器 Windows
@@ -1177,9 +1187,12 @@ public sealed partial class HomeBanner : UserControl
     {
         CountdownScale.ScaleX = 0;
         _cycleStarted = Environment.TickCount64;
+        _cycleClock.Restart(_cycleStarted);
+        _cycleClock.SetPaused(_layout == CarouselLayout.Store && _heroHover, _cycleStarted);
+        PaintCountdown(0);
 
         _timer?.Stop();
-        if (_slides.Count <= 1 || !_active) return;
+        if (_slides.Count <= 1 || !_active || _cycleClock.IsPaused) return;
 
         _timer?.Start();
     }
@@ -1350,13 +1363,13 @@ public sealed partial class HomeBanner : UserControl
     /// </summary>
     private void OnTick(DispatcherQueueTimer sender, object args)
     {
-        if (!_active || _slides.Count <= 1)
+        if (!_active || _slides.Count <= 1 || _cycleClock.IsPaused)
         {
             sender.Stop();
             return;
         }
 
-        var elapsed = TimeSpan.FromMilliseconds(Environment.TickCount64 - _cycleStarted);
+        var elapsed = TimeSpan.FromMilliseconds(_cycleClock.ElapsedMilliseconds(Environment.TickCount64));
 
         if (elapsed >= _dwell)
         {
@@ -1366,6 +1379,7 @@ public sealed partial class HomeBanner : UserControl
         }
 
         CountdownScale.ScaleX = elapsed / _dwell;
+        PaintCountdown(elapsed / _dwell);
     }
 
     /// <summary>
@@ -1569,6 +1583,7 @@ public sealed partial class HomeBanner : UserControl
             return;
 
         _watch.Leave();
+        _heroWatch.Leave();
     }
 
     private void OnResized(object sender, SizeChangedEventArgs e)
@@ -1645,6 +1660,7 @@ public sealed partial class HomeBanner : UserControl
         ThemeHost.Changed -= OnAppearanceThemeChanged;
         _timer?.Stop();
         _watch.Leave();
+        _heroWatch.Leave();
         _pointerGlow.Leave(immediate: true);
         Unwatch();
         StopMotions();

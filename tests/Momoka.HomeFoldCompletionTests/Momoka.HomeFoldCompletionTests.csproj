@@ -12,6 +12,7 @@
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Carousel.cs" Link="Production\HomePage.Carousel.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Header.cs" Link="Production\HomePage.Header.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeHeaderScrollState.cs" Link="Production\HomeHeaderScrollState.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\BannerCycleClock.cs" Link="Production\BannerCycleClock.cs" />
     </ItemGroup>
     <!-- Compile the actual page methods unchanged. Missing or ambiguous boundaries fail closed;
          only layout values, UI owners and Storyboard delivery are inert test boundaries. -->
@@ -20,6 +21,7 @@
         <ParameterGroup>
             <PageSource ParameterType="System.String" Required="true" />
             <BannerSource ParameterType="System.String" Required="true" />
+            <CountdownSource ParameterType="System.String" Required="true" />
             <PosterSource ParameterType="System.String" Required="true" />
             <EpisodeSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
@@ -52,9 +54,12 @@
                     between(page, "    public void Release()", "\n    /// <summary>\n    /// 设置里主页那一组改了") +
                     "\n}\n";
                 var banner = File.ReadAllText(BannerSource).Replace("\r\n", "\n");
+                var countdown = File.ReadAllText(CountdownSource).Replace("\r\n", "\n");
                 generated += "\ninternal sealed partial class BannerClockFixture\n{\n" +
                     between(banner, "    internal void Apply(IReadOnlyList<BannerSlide> slides)", "\n    /// <summary>\n    /// 把第") +
-                    between(banner, "    private void SyncTimer()", "\n    /// <summary>\n    /// 带多高") + "\n}\n";
+                    between(banner, "    private void SyncTimer()", "\n    /// <summary>\n    /// 带多高") +
+                    between(countdown, "    private void UpdateCyclePause()", "\n    /// <summary>从 12 点") +
+                    between(banner, "    private void OnTick(DispatcherQueueTimer sender, object args)", "\n    /// <summary>\n    /// 键盘翻页。") + "\n}\n";
                 generated += "\ninternal sealed partial class BannerReturnFixture\n{\n" +
                     "    internal void PaintVisit()\n    {\n" +
                     between(banner, "        // 控件返回可视树时重新订阅当前图片", "\n        SyncTimer();\n\n        if (XamlRoot") + "\n    }\n" +
@@ -79,6 +84,7 @@
         <ExtractHomeFoldSources
             PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.xaml.cs"
             BannerSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomeBanner.xaml.cs"
+            CountdownSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomeBanner.Countdown.cs"
             PosterSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PosterCard.xaml.cs"
             EpisodeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\EpisodeRow.xaml.cs"
             OutputSource="$(IntermediateOutputPath)HomeFoldPage.g.cs" />

@@ -229,13 +229,14 @@ public sealed partial class HomeViewModel : PageViewModel
     /// 存成快照就得等下次开这一页 —— 而那正是用户会当成「设置没生效」的样子。
     /// </para>
     /// <para>
-    /// 这一头只交出用户选的那一档；「这一档窗口该压不该压」由 <see cref="HomeFold.LibraryOnBanner"/> 结合量出来的
-    /// 几何定，屏上量那几样在 <c>HomePage.UpdateLibraryOverlay</c>。还没 <see cref="Attach"/> 时没有设置可问，
+    /// 商店版式或轮播关闭时有效位置固定在下方，保留用户给整宽版式选的偏好；其余档由
+    /// <see cref="HomeFold.LibraryOnBanner"/> 结合几何定，屏上量那几样在 <c>HomePage.UpdateLibraryOverlay</c>。还没 <see cref="Attach"/> 时没有设置可问，
     /// 交回装机默认那一档。
     /// </para>
     /// </summary>
-    internal Emby.HomeLibraryPlacement LibraryPlacement =>
-        _settings?.Settings.Ui.HomeLibraryPlacement ?? Emby.HomeLibraryPlacement.Auto;
+    internal Emby.HomeLibraryPlacement LibraryPlacement => _settings?.Settings.Ui is { } ui
+        ? HomeFold.EffectivePlacement(ui.CarouselLayout, ui.ShowHomeBanner, ui.HomeLibraryPlacement)
+        : Emby.HomeLibraryPlacement.Auto;
 
     /// <summary>
     /// 视图（量完几何之后）对矮窗档下的判断。开、关都走 <see cref="ApplyLibraryOverlay"/> 搬那一排；没有媒体库
@@ -243,6 +244,7 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     internal void SetLibraryOverlay(bool on)
     {
+        on &= LibraryPlacement != Emby.HomeLibraryPlacement.BelowCarousel;
         if (_libraryOnBanner == on) return;
         if (on && LibraryShelf is null) return;
 
@@ -256,6 +258,7 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private void ApplyLibraryOverlay()
     {
+        if (LibraryPlacement == Emby.HomeLibraryPlacement.BelowCarousel) _libraryOnBanner = false;
         if (LibraryShelf is not { } shelf)
         {
             _libraryOnBanner = false;
@@ -433,6 +436,7 @@ public sealed partial class HomeViewModel : PageViewModel
             settings.Settings.Ui.CarouselMedia,
             settings.Settings.Ui.CarouselCount,
             settings.Settings.Ui.CarouselSeconds,
+            settings.Settings.Ui.CarouselLayout,
             settings.Settings.Ui.HomeLibraryPlacement,
             settings.Settings.Ui.ControlBackgroundColor,
             settings.Settings.Ui.ControlBackgroundOpacity,
@@ -712,6 +716,8 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private void PublishShelves()
     {
+        // 迟到的刷新也按此刻有效版式发布，不能沿用切到商店前压在主卡上的状态。
+        if (LibraryPlacement == Emby.HomeLibraryPlacement.BelowCarousel) _libraryOnBanner = false;
         SyncMoviePilotLibrary();
         SyncLocalLibraries();
         var timing = NavigationTiming.Capture();

@@ -45,7 +45,8 @@ internal static class HomePerformanceTests
             foreach (var overlay in new[] { false, true })
             {
                 using var fixture = new Fixture(shell, 2, secondSource: true);
-                var home = fixture.CreateLoadingHome();
+                // 压上分支需要实际开启整宽轮播；关闭轮播时 SetLibraryOverlay 必须拒绝上移。
+                var home = fixture.CreateLoadingHome(banner: true);
                 try
                 {
                     await (Task)shell.Invoke(home, "ReloadAsync")!;
@@ -60,6 +61,46 @@ internal static class HomePerformanceTests
                     Assert.True(before.SequenceEqual(((IEnumerable)shelves).Cast<object>()));
                     Assert.Equal(0, changes.Count, "内容刷新不应移除、重建相同货架行");
                     Assert.Equal(overlay, shell.Get<bool>(home, "LibraryOnBanner"));
+                }
+                finally { await Supplement(home); ((IDisposable)home).Dispose(); }
+            }
+        });
+        Case("聚合主页：商店和关闭轮播的刷新归还媒体库，切回保留整宽偏好", async () =>
+        {
+            foreach (var store in new[] { false, true })
+            {
+                using var fixture = new Fixture(shell, 2, secondSource: true);
+                fixture.Settings.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.OnCarousel;
+                var home = fixture.CreateLoadingHome(banner: true);
+                try
+                {
+                    await fixture.LoadHome(home);
+                    await Supplement(home);
+                    var library = shell.Get<object>(home, "LibraryShelf");
+                    shell.Invoke(home, "SetLibraryOverlay", true);
+                    Assert.True(shell.Get<bool>(home, "LibraryOnBanner"));
+                    var slow = fixture.Transport.HomeResumeGates["b"] = new Gate(true);
+                    var refresh = (Task)shell.Invoke(home, "ReloadAsync")!;
+                    try
+                    {
+                        await slow.Entered.Task;
+                        fixture.Settings.Settings.Ui.CarouselLayout = store ? CarouselLayout.Store : CarouselLayout.Full;
+                        fixture.Settings.Settings.Ui.ShowHomeBanner = store;
+                        // 不调用页面回调：真实刷新挂起后切版，迟到发布也必须把媒体库归还横排。
+                        Assert.False(refresh.IsCompleted);
+                    }
+                    finally { slow.Release.TrySetResult(); await refresh; }
+                    await Supplement(home);
+                    Assert.False(shell.Get<bool>(home, "LibraryOnBanner"));
+                    Assert.Equal(1, Rows(home).Count(row => ReferenceEquals(row, library)));
+                    shell.Invoke(home, "SetLibraryOverlay", true);
+                    Assert.False(shell.Get<bool>(home, "LibraryOnBanner"), "失效的压上请求不能绕过有效版式");
+                    Assert.Equal(HomeLibraryPlacement.OnCarousel, fixture.Settings.Settings.Ui.HomeLibraryPlacement);
+                    fixture.Settings.Settings.Ui.CarouselLayout = CarouselLayout.Full;
+                    fixture.Settings.Settings.Ui.ShowHomeBanner = true;
+                    shell.Invoke(home, "SetLibraryOverlay", true);
+                    Assert.True(shell.Get<bool>(home, "LibraryOnBanner"));
+                    Assert.Equal(0, Rows(home).Count(row => ReferenceEquals(row, library)));
                 }
                 finally { await Supplement(home); ((IDisposable)home).Dispose(); }
             }

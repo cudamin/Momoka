@@ -43,6 +43,7 @@ namespace Momoka.Shell.Views
         internal double LibraryOverlayRightInset { get; set; } = 36;
         internal double LibraryOverlayBottomInset { get; set; }
         internal bool RailShown { get; set; }
+        internal CarouselLayout Layout { get; set; }
         internal double MainColumnWidth { get; set; } = 660;
         internal double NaturalBandHeight { get; set; } = 400;
         internal CornerRadius CardCornerRadius { get; private set; }

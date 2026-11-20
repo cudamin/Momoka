@@ -74,6 +74,13 @@ public enum HomeLibraryPlacement
 public static class HomeFold
 {
     /// <summary>
+    /// 商店版式的媒体库固定在轮播下方；关掉轮播同样没有可覆盖的主卡。
+    /// 只计算有效位置，不改写整宽版式保留的用户偏好，切回时立即恢复。
+    /// </summary>
+    public static HomeLibraryPlacement EffectivePlacement(CarouselLayout layout, bool showBanner, HomeLibraryPlacement preference) =>
+        layout == CarouselLayout.Store || !showBanner ? HomeLibraryPlacement.BelowCarousel : preference;
+
+    /// <summary>
     /// 这一档窗口该不该把媒体库那一排压上轮播。设置里那一行（<paramref name="placement"/>）先说哪一档：
     /// <list type="bullet">
     /// <item><see cref="HomeLibraryPlacement.OnCarousel"/> / <see cref="HomeLibraryPlacement.BelowCarousel"/>

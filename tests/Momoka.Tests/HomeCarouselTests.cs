@@ -27,7 +27,7 @@ internal static class HomeCarouselTests
 
     /// <summary>
     /// 「参考上图在设置中再添加一版轮播图」（用户 2026-11-16，附图是商店轮播在不同窗口大小下的样子）：
-    /// 商店版式在宽窗口左主右辅，窄窗口主图满行、三张推荐移到圆点下方。这一组钉的是
+    /// 商店版式在宽窗口左主右辅，中档主图满行、三张推荐左大右小；紧凑档推荐上大下二小。这一组钉的是
     /// 内容宽度和条目数的换档边界、参考图的卡片比例，以及推荐区接着哪三张。
     /// </summary>
     private static void RegisterLayout()
@@ -51,19 +51,40 @@ internal static class HomeCarouselTests
             Assert.True(HomeCarousel.ShowsRail(CarouselLayout.Store, 901, 4));
         });
 
-        Test("轮播版式：480 内容宽是下排边界，再窄只留主图", () =>
+        Test("轮播版式：320 内容宽是推荐边界，再窄只留主图", () =>
         {
-            Assert.Equal(480d, HomeCarousel.RecommendationsMinWidth);
-            Assert.False(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, 479, 4));
-            Assert.True(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, 480, 4));
-            Assert.True(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, 481, 4));
-            Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, 480, 4));
+            Assert.Equal(320d, HomeCarousel.RecommendationsMinWidth);
+            Assert.False(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, 319, 4));
+            Assert.True(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, 320, 4));
+            Assert.True(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, 321, 4));
+            Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, 320, 4));
+            Assert.Equal(0d, HomeCarousel.RecommendationHeight(319));
+            Assert.Equal(279d, HomeCarousel.RecommendationHeight(320));
+        });
+
+        Test("轮播版式：680 内容宽从竖排推荐恢复左大右二小", () =>
+        {
+            Assert.Equal(680d, HomeCarousel.RecommendationsCompactWidth);
+            Assert.False(HomeCarousel.StacksRecommendations(319));
+            Assert.True(HomeCarousel.StacksRecommendations(320));
+            Assert.True(HomeCarousel.StacksRecommendations(679));
+            Assert.False(HomeCarousel.StacksRecommendations(680));
+            Assert.False(HomeCarousel.StacksRecommendations(681));
+            Assert.False(HomeCarousel.StacksRecommendations(900));
+            foreach (var width in new[] { 679d, 680d })
+            {
+                Assert.True(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, width, 4));
+                Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, width, 4));
+            }
+            Assert.Equal(582d, HomeCarousel.RecommendationHeight(679));
+            Assert.Equal((452d, 216d), HomeCarousel.RecommendationColumns(680));
+            Assert.Equal(254d, HomeCarousel.RecommendationHeight(680));
         });
 
         Test("轮播版式：条目不足四张时宽窄两档都隐藏推荐，避免重复主角", () =>
         {
             Assert.Equal(3, HomeCarousel.RailSlots);
-            foreach (var width in new[] { 848d, 1120d })
+            foreach (var width in new[] { 320d, 470d, 679d, 680d, 848d, 1120d })
             {
                 foreach (var count in new[] { 0, 1, 2, 3 })
                 {
@@ -80,6 +101,7 @@ internal static class HomeCarouselTests
             {
                 Assert.False(HomeCarousel.ShowsRecommendations(CarouselLayout.Store, width, 10));
                 Assert.False(HomeCarousel.ShowsRail(CarouselLayout.Store, width, 10));
+                Assert.False(HomeCarousel.StacksRecommendations(width));
                 Assert.Equal((0d, 0d), HomeCarousel.RecommendationColumns(width));
                 Assert.Equal(0d, HomeCarousel.RecommendationHeight(width));
             }
@@ -126,7 +148,7 @@ internal static class HomeCarouselTests
             Assert.Equal((564d, 272d), HomeCarousel.RecommendationColumns(848));
             Assert.Equal(317d, HomeCarousel.RecommendationHeight(848));
 
-            foreach (var width in new[] { 480d, 600d, 848d, 899d })
+            foreach (var width in new[] { 680d, 848d, 899d })
             {
                 var (big, small) = HomeCarousel.RecommendationColumns(width);
                 var height = HomeCarousel.RecommendationHeight(width);
@@ -138,6 +160,25 @@ internal static class HomeCarouselTests
             Assert.Equal((0d, 0d), HomeCarousel.RecommendationColumns(HomeCarousel.RailGap));
         });
 
+        Test("轮播版式：470 紧凑参考图推荐满行 264 高，下方两张 229 宽小卡并排", () =>
+        {
+            Assert.True(HomeCarousel.StacksRecommendations(470));
+            Assert.Equal(264d, HomeCarousel.StoreHeight(0, 470, false));
+            Assert.Equal(405d, HomeCarousel.RecommendationHeight(470));
+            Assert.Equal((264d, 129d), HomeCarousel.RailRows(HomeCarousel.RecommendationHeight(470)));
+            Assert.Equal(229d, (470 - HomeCarousel.RailGap) / 2);
+
+            foreach (var width in new[] { 320d, 470d, 600d, 679d })
+            {
+                var height = HomeCarousel.RecommendationHeight(width);
+                var (big, small) = HomeCarousel.RailRows(height);
+                Assert.Equal(height, big + HomeCarousel.RailGap + small);
+                Assert.True(big > small && small > 0);
+                Assert.True(Math.Abs(width / HomeCarousel.WindowAspect - big) <= 1);
+                Assert.True(Math.Abs((width - HomeCarousel.RailGap) / 2 / HomeCarousel.WindowAspect - small) <= 1);
+            }
+        });
+
         Test("轮播版式：商店主卡按自身 16:9 取高，仍受一屏与下限约束", () =>
         {
             Assert.Equal(337d, HomeCarousel.StoreHeight(0, 1000, true));
@@ -145,10 +186,10 @@ internal static class HomeCarouselTests
                 HomeCarousel.NaturalStoreHeight(1000, true));
             Assert.Equal(562d, HomeCarousel.StoreHeight(0, 1000, false));
 
-            // 上限是一屏、下限是 MinHeight，和整宽版式同一道闸。
+            // 上限是一屏，商店下限单独为 240，整宽版式的 300 下限不变。
             Assert.Equal(360d, HomeCarousel.StoreHeight(360, 1120, true));
             Assert.Equal(360d, HomeCarousel.StoreHeight(360, 1000, false));
-            Assert.Equal(HomeCarousel.MinHeight, HomeCarousel.StoreHeight(0, 100, false));
+            Assert.Equal(HomeCarousel.StoreMinHeight, HomeCarousel.StoreHeight(0, 100, false));
             Assert.Equal(HomeCarousel.UnmeasuredHeight, HomeCarousel.StoreHeight(0, 0, true));
 
             // 分版式取用时：整宽档一个像素不变，商店档换成上面两副形状。
@@ -159,6 +200,23 @@ internal static class HomeCarouselTests
 
             // 圆点那一行的高度是页面预留的，不是压在剧照里。
             Assert.Equal(28d, HomeCarousel.DotsHeight);
+        });
+
+        Test("轮播版式：紧凑主卡的 240 下限不改变整宽版式，窗口恢复后返回设计高度", () =>
+        {
+            Assert.Equal(240d, HomeCarousel.StoreMinHeight);
+            Assert.Equal(300d, HomeCarousel.MinHeight);
+            foreach (var width in new[] { 320d, 470d, 679d, 680d, 848d })
+            {
+                Assert.Equal(HomeCarousel.Height(700, width), HomeCarousel.BandHeight(CarouselLayout.Full, 700, width, false));
+                Assert.Equal(HomeCarousel.Height(700, width), HomeCarousel.BandHeight(CarouselLayout.Full, 700, width, true));
+            }
+            Assert.Equal(300d, HomeCarousel.Height(0, 470));
+            Assert.Equal(240d, HomeCarousel.StoreHeight(0, 320, false));
+            Assert.Equal(240d, HomeCarousel.StoreHeight(200, 470, false));
+            Assert.Equal(264d, HomeCarousel.StoreHeight(700, 470, false));
+            Assert.Equal(264d, HomeCarousel.NaturalStoreHeight(470, false));
+            Assert.Equal(382d, HomeCarousel.StoreHeight(700, 679, false));
         });
 
         Test("轮播版式：右栏接着台上那张的后面三张，到末尾绕回开头", () =>

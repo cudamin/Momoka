@@ -15,7 +15,10 @@ internal sealed partial class BannerClockFixture
     // No host means no measured width; Apply then takes the status-only branch.
     private double ActualWidth => 0;
     private long _cycleStarted;
-    private readonly Clock _timer = new();
+    private readonly BannerCycleClock _cycleClock = new();
+    private readonly TimeSpan _dwell = HomeCarousel.Dwell;
+    private bool _heroHover;
+    private readonly DispatcherQueueTimer _timer = new();
     private readonly Layer LayerA = new();
     private readonly Layer LayerB = new();
     private readonly Layer LogoImage = new();
@@ -30,8 +33,17 @@ internal sealed partial class BannerClockFixture
     internal int Stops => _timer.Stops;
     internal bool ShimmerActive => PictureShimmer.IsActive;
     internal int ShimmerStops => PictureShimmer.Stops;
+    internal double Progress => CountdownScale.ScaleX;
+    internal double PaintedProgress { get; private set; }
+    internal int Advances { get; private set; }
+    internal int CurrentIndex => _index;
+    internal bool Paused => _cycleClock.IsPaused;
+    internal void SetNow(long milliseconds) => Environment.TickCount64 = milliseconds;
+    internal void Tick() => OnTick(_timer, EventArgs.Empty);
     internal void SetLoadingPlaceholder() => PictureShimmer.IsActive = true;
     internal void SetActive(bool value) { _active = value; SyncTimer(); }
+    internal void SetHeroHover(bool value) { _heroHover = value; UpdateCyclePause(); }
+    internal void SetStore(bool value) { _layout = value ? CarouselLayout.Store : CarouselLayout.Full; UpdateCyclePause(); }
     private void StopMotions() { }
     private void Unwatch() { }
     private void SyncArrows() { }
@@ -39,6 +51,14 @@ internal sealed partial class BannerClockFixture
     private void Resize(double width) { }
     private void SyncSlideStatus() { }
     private void PaintFadeInk() { }
+    private void PaintCountdown(double progress) => PaintedProgress = progress;
+    // Actual OnTick decides whether to advance; navigation/rendering is inert after that decision.
+    private void Advance(int delta)
+    {
+        Advances++;
+        _index = HomeCarousel.Step(_index, delta, _slides.Count);
+        SyncTimer();
+    }
     private void Show(int index, bool animate = true) { _index = index; _ = _second; }
     private void OnPictureUnavailable(object? sender, EventArgs args) { }
     private static Layer Brush(Layer layer) => layer;
@@ -50,13 +70,19 @@ internal sealed partial class BannerClockFixture
         internal object? Source { get; set; }
         internal Visibility Visibility { get; set; }
     }
-    private sealed class Clock
+    // The production methods are copied unchanged at build time. Only time and timer delivery use
+    // controlled values in this fixture, so these tests never wait or create a timer thread.
+    private sealed class DispatcherQueueTimer
     {
         internal bool Running { get; private set; }
         internal int Starts { get; private set; }
         internal int Stops { get; private set; }
         internal void Start() { Running = true; Starts++; }
         internal void Stop() { Running = false; Stops++; }
+    }
+    private static class Environment
+    {
+        internal static long TickCount64 { get; set; }
     }
 }
 

@@ -14,6 +14,7 @@ internal static class Program
     {
         RegisterMotion();
         RegisterPage();
+        BannerCycleClockTests.Register(Case);
         Cases.Add(("poster/demand-waits-for-tree-and-captures-own-gate", () =>
         {
             var poster = new PosterDemandFixture();
@@ -381,6 +382,61 @@ internal static class Program
 
     private static void RegisterPage()
     {
+        foreach (var preference in new[] { HomeLibraryPlacement.Auto, HomeLibraryPlacement.OnCarousel })
+            foreach (var width in new[] { 848d, 1120d })
+                Case($"page/store-keeps-library-below/{preference}/{width}", () =>
+                {
+                    var scene = new Scene();
+                    scene.Page.ViewModel.LibraryPlacement = preference;
+                    scene.Page.Banner.Layout = CarouselLayout.Store;
+                    scene.Page.Banner.ActualWidth = width;
+                    foreach (var height in new[] { 560d, 900d, 300d })
+                    {
+                        scene.Page.Scroller.ActualHeight = height;
+                        scene.Page.UpdateFold();
+                        Check(!scene.Page.ViewModel.LibraryOnBanner, "store ignores saved auto/on-carousel preference");
+                        scene.AssertFlowOnly();
+                    }
+                    Equal(preference, scene.Page.ViewModel.LibraryPlacement, "store does not overwrite saved placement");
+                    Equal(0, Storyboard.Created.Count, "store cannot start a fold trip");
+                });
+        Case("page/store-switch-cancels-current-fold-and-retains-full-preference", () =>
+        {
+            var scene = new Scene();
+            var old = scene.Start(true);
+            var captured = Board(old).CaptureCompletion();
+            Check(scene.Page.ViewModel.LibraryOnBanner, "full layout is on the carousel before switch");
+            scene.Page.Banner.Layout = CarouselLayout.Store;
+            scene.Page.UpdateFold();
+            Check(!scene.Page.ViewModel.LibraryOnBanner, "store switch settles before fold throttle expires");
+            Check(scene.Page.MainMotion is null && scene.Page.LateMotion is null, "store cancels both fold owners");
+            scene.AssertFlowOnly();
+            scene.Drain();
+            captured();
+            scene.AssertFlowOnly();
+            Equal(HomeLibraryPlacement.OnCarousel, scene.Page.ViewModel.LibraryPlacement, "saved preference survives store");
+            scene.Page.Banner.Layout = CarouselLayout.Full;
+            scene.Page.UpdateFold();
+            Check(scene.Page.ViewModel.LibraryOnBanner, "full layout restores the saved on-carousel preference");
+        });
+        Case("page/store-and-disabled-banner-clear-overlay-without-live-layout-or-images", () =>
+        {
+            foreach (var store in new[] { false, true })
+            {
+                var scene = new Scene(initialOn: true);
+                scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.OnCarousel;
+                scene.Page.Banner.Layout = store ? CarouselLayout.Store : CarouselLayout.Full;
+                scene.Page.Ui.ShowHomeBanner = store;
+                scene.Page.Banner.Visibility = Visibility.Collapsed;
+                scene.Page.ViewModel.Slides.Clear();
+                scene.Page.XamlRoot = null;
+                scene.Page.SetPlayerLayer(true);
+                scene.Page.UpdateFold();
+                Check(!scene.Page.ViewModel.LibraryOnBanner, "mode change does not wait for player or layout readiness");
+                scene.AssertFlowOnly();
+                Equal(HomeLibraryPlacement.OnCarousel, scene.Page.ViewModel.LibraryPlacement, "hidden carousel does not erase preference");
+            }
+        });
         Case("page/header-mode-layout-anchoring-is-not-user-down-scroll", () =>
         {
             var page = new HomePage();
