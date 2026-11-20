@@ -7,7 +7,7 @@ internal static class ConnectedProbeSourceTests
 {
     internal static void Register()
     {
-        Test("海报关联动画：转场两端都移动带同一圆角的封面层", () =>
+        Test("海报关联动画：静态封面保留圆角，飞行直接连接Image", () =>
         {
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             foreach (var (path, name) in new[]
@@ -24,6 +24,12 @@ internal static class ConnectedProbeSourceTests
                 Assert.Equal("PosterSurface", (string?)surface.Attribute(x + "Name"));
                 Assert.Equal("{StaticResource EgPosterCornerRadius}", (string?)surface.Attribute("CornerRadius"), name);
             }
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "CardDetailTransition.cs"));
+            Assert.DoesNotContain("ConnectedPosterSurface", source);
+            Assert.Contains("source.ConnectedPoster);", source);
+            Assert.Contains("page.ConnectedPoster);", source);
+            Assert.Contains("TryStart(target.ConnectedPoster)", source);
+            Assert.Contains("TryStart(source.ConnectedPoster)", source);
         });
         Test("悬停标题原生补验：真实预览点击与生产媒体库交接，不绕Prepare或Frame导航", () =>
         {
