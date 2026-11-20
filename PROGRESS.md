@@ -1,3 +1,9 @@
+## 2026-11-20 订阅优先级规则组改为就地展开（分支 codex/subscription-rule-group-picker，日常界面批次）
+
+产品与界面契约提交 `1ea91aa`，工作树 `C:/Users/89400/.codex/worktrees/e9a2/Momoka`。进阶页「优先级规则组」现在沿用「订阅站点」的 32 DIP 原生 ToggleButton 字段和全宽内联选项面板；展开后内容向下推，选项复用同一条 32 高 CheckBox 与 260 高滚动列表。原来的摘要、多选写回、清空为「跟随系统」和说明保留；切页签、点面板外和开始保存时收起，两栏箭头按展开状态翻转。展开状态仅用于当前弹窗。
+
+验证：Shell Release 构建 0 警告／0 错误；`input-theme-fixture` **32/32**、`Momoka.SubscriptionEditorTests` **20/20**、`moviepilot-subscription-fixture` **117/117**；行尾／空白检查和重复率 **66 段／0.47%** 通过，差异检查通过。发布本树体验版并通过 `verify-publish`（548 文件，290.1 MB）；桌面 `Momoka-subscription-rule-group-picker.lnk` 目标和工作目录已回读核对。`Momoka.exe` SHA256 `CBEED05BA37DF3DA035F82870361AE2D08BAA5EC7F31BBF54F54FD850EA4A679`，`Momoka.dll` SHA256 `8678E957C820188568E73FFC065E74D19A47A728F634BFE7F6F0D99D87D79537`。未运行 UI 探针或拍实屏截图；宽窄窗、主题和实际键盘操作留待验收。未合并或推送，不销账。
+
 ## 2026-11-20 商店轮播按参考图重排宽窄两档（原分支 codex/store-carousel-responsive，已合入主树）
 
 **合入主树。** 用户令「合并到主树」后，确认两树干净、`master d965861` 是分支 `9739ba8` 的祖先，以快进方式合入全部 5 条提交、25 个路径；合入后主树与分支内容完全一致、差异空白检查通过，无冲突与额外产品改动。本轮只合并并维护记录，不重跑应用编译、单测、原生探针或验收截图，不发布主树、不上传，台账 111 保持待统一验证。已删除桌面 `Momoka-store-carousel-543e.lnk`；41 份分支验证日志逐一校验 SHA256 后保留到主树 `artifacts/store-carousel-543e-evidence`。临时树干净且无独有提交，归档工具因「The task's primary checkout cannot be removed.」拒绝移除本聊天主工作树，按保护要求保留目录，已分离 HEAD 并删除合并完成的临时分支。主树 `Momoka.lnk` 与现有发布产物未刷新。
