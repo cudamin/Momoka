@@ -29,11 +29,11 @@ Require-File (Join-Path $root 'libmpv-2.dll') '内置 libmpv'
 Require-File (Join-Path $root 'vulkan-1.dll') 'libmpv 依赖的 Vulkan loader'
 
 # 许可正文必须随二进制走：libmpv-2.dll 是 LGPL（mpv 自身 LGPL-2.1-or-later，它静态链入的 FFmpeg 是
-# LGPL-3.0，判定依据见 assets\mpv-runtime\NOTICE.txt），vulkan-1.dll 是 Apache-2.0，项目自身是 MIT，
+# LGPL-3.0，判定依据见 assets\mpv-runtime\NOTICE.txt），vulkan-1.dll 是 Apache-2.0，项目自身是 GPL-3.0-or-later，
 # 三者都要求把许可文本连同二进制一起交给接收者。2026-10-14 之前发布包里一份许可文本都没有 ——
 # libmpv-2.dll 就躺在 exe 旁边，许可正文却不在，这是发行上的缺口。四道闸门里没有一关会读许可证，
 # 所以只能在这里守。
-Require-File (Join-Path $root 'LICENSE') '项目自身的 MIT 许可正文'
+Require-File (Join-Path $root 'LICENSE') '项目自身的 GPL 第 3 版许可正文'
 Require-File (Join-Path $root 'LICENSE.LGPL-2.1.txt') 'libmpv-2.dll 的 LGPL-2.1 许可文本'
 Require-File (Join-Path $root 'LICENSE.LGPL-3.0.txt') 'libmpv-2.dll 链入的 FFmpeg 的 LGPL-3.0 许可文本'
 Require-File (Join-Path $root 'LICENSE.GPL-3.0.txt') 'LGPL-3.0 正文引用的 GPL-3.0 条款'

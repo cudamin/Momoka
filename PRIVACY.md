@@ -1,6 +1,6 @@
 # Momoka 隐私政策
 
-最后更新：2026-11-07
+最后更新：2026-11-21
 
 ## 一句话
 
@@ -81,7 +81,7 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 
 ## 8. 第三方组件
 
-应用内包含以下第三方组件，各自遵循其许可，随包附带许可与归属文本（`shaders\`、`mpv-ui\` 目录与 exe 根目录下，清单见 `THIRD-PARTY-NOTICES.md`）：mpv / libmpv（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg）、uosc（LGPL-2.1）、Material Icons Round 字体（Apache-2.0）、ArtCNN / CfL（MIT）、ravu 与 igv SSim 系列（LGPL-3.0-or-later）、an3223（LGPL-2.1-or-later）、igv adaptive-sharpen（BSD-2-Clause）、vulkan-1.dll（Apache-2.0），以及 Microsoft Windows App SDK 与 WebView2 Runtime。应用自身按 MIT 分发（见 README 的许可证一节）。
+应用内包含以下第三方组件，各自遵循其许可，随包附带许可与归属文本（`shaders\`、`mpv-ui\` 目录与 exe 根目录下，清单见 `THIRD-PARTY-NOTICES.md`）：mpv / libmpv（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg）、uosc（LGPL-2.1）、Material Icons Round 字体（Apache-2.0）、ArtCNN / CfL（MIT）、ravu 与 igv SSim 系列（LGPL-3.0-or-later）、an3223（LGPL-2.1-or-later）、igv adaptive-sharpen（BSD-2-Clause）、vulkan-1.dll（Apache-2.0），以及 Microsoft Windows App SDK 与 WebView2 Runtime。应用自身按 GPL-3.0-or-later 授权，并附 Windows App SDK / WebView2 的有限链接、组合分发附加许可（见 README 的许可证一节及 THIRD-PARTY-NOTICES.md）。
 
 这些组件同样不收集数据，不改变本政策。
 
@@ -119,6 +119,6 @@ Optional self-hosted danmu_api receives work searches, item identifiers and comm
 
 Optional real-time Subtitle Translation is off by default. When enabled with an API key, the currently displayed primary text subtitle is sent to Google Cloud Translation, Microsoft Translator, or your configured OpenAI-compatible AI service. Requests contain the subtitle text, source/target language and required service configuration. Keys go in request headers, never URLs, logs or process arguments. Google/Microsoft use official endpoints; AI endpoints allow HTTPS or local HTTP loopback. Services may impose usage charges and process the text under their privacy policies. Up to 256 translated lines per file are held in memory and cleared on file changes; no original/translated subtitle file is saved. Disabling the feature, signing out or switching files cancels old requests, but cancellation cannot retract text already received by the provider. Image subtitles are not transcribed or processed with OCR.
 
-Bundled third-party components — mpv / libmpv (LGPL-2.1-or-later, statically linked against an LGPL-3.0 FFmpeg), uosc (LGPL-2.1), the Material Icons Round font (Apache-2.0), the ArtCNN and CfL shaders (MIT), the ravu and igv SSim shaders (LGPL-3.0-or-later), the an3223 shaders (LGPL-2.1-or-later), igv's adaptive-sharpen (BSD-2-Clause), vulkan-1.dll (Apache-2.0), and the Microsoft Windows App SDK and WebView2 Runtime — follow their own licenses, with license and attribution texts shipped alongside the app (see `THIRD-PARTY-NOTICES.md`). mpv / libmpv is an LGPL build, which permits linking without the copyleft reaching this application; the application itself is distributed under MIT (see the license section of the README). They do not collect data.
+Bundled third-party components — mpv / libmpv (LGPL-2.1-or-later, statically linked against an LGPL-3.0 FFmpeg), uosc (LGPL-2.1), the Material Icons Round font (Apache-2.0), the ArtCNN and CfL shaders (MIT), the ravu and igv SSim shaders (LGPL-3.0-or-later), the an3223 shaders (LGPL-2.1-or-later), igv's adaptive-sharpen (BSD-2-Clause), vulkan-1.dll (Apache-2.0), and the Microsoft Windows App SDK and WebView2 Runtime — follow their own licenses, with license and attribution texts shipped alongside the app (see `THIRD-PARTY-NOTICES.md`). mpv / libmpv remains an LGPL build; Momoka's own code is licensed under GPL-3.0-or-later with the limited additional permission for Microsoft Windows App SDK / WebView2 components in THIRD-PARTY-NOTICES.md (see the license section of the README). They do not collect data.
 
 Questions: <https://github.com/cudamin/Momoka/issues>

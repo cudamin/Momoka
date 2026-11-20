@@ -65,10 +65,14 @@
 主页翻档完成／取消的独立离线回归与运行边界见 [翻档夹具](tests/Momoka.HomeFoldCompletionTests/README.md)。
 
 ## 许可证
-**本软件按 `MIT` 分发**，许可正文见 [LICENSE](LICENSE)。
+**Momoka 自身代码按 `GPL-3.0-or-later` 授权**：你可以选择 GNU 通用公共许可证第 3 版，或自由软件基金会发布的任何后续版本。Copyright (c) 2026 Momoka contributors。许可正文见 [LICENSE](LICENSE)。
+
+Momoka is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Windows App SDK / WinUI / Windows App Runtime 与 WebView2 的有限链接、组合分发附加许可，见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md#momoka-microsoft-components-permission)。这项许可仅适用于有权授权的 Momoka 代码，微软组件仍遵循各自条款。
 
 随包的播放内核是 **LGPL 构建的 mpv / libmpv**（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg）。
-LGPL 允许链接而不传染，所以本软件自身按 MIT 分发；那一份 dll 仍是 LGPL 作品，它的许可正文
+本次选择不改变那一份 DLL 的 LGPL 许可，它的许可正文
 （`LICENSE.LGPL-2.1.txt`、`LICENSE.LGPL-3.0.txt`、`LICENSE.GPL-3.0.txt`）与对应源代码地址随包提供。
 
 随包还包含多个第三方组件（uosc、Material Icons、着色器、vulkan-1.dll 等），逐个组件的许可证、
@@ -77,11 +81,11 @@ LGPL 允许链接而不传染，所以本软件自身按 MIT 分发；那一份 
 [docs/第三方组件许可合规.md](docs/第三方组件许可合规.md)。其中 `mpv-ui` 里那份 uosc 是 LGPL-2.1，
 本软件改过它，修改部分本身也以 LGPL-2.1 授权。
 
-完整对应源代码见本仓库。
+完整对应源代码见本仓库。分发二进制时，须按 GPL 提供与该二进制对应的完整源码和构建资料；仅链接到持续变化的最新分支不代替这项义务。此前已按 MIT 发布的代码仍保留原有 MIT 授权，相关声明见第三方归属清单。
 
 ## 免责声明
 
-**请在使用 Momoka 前完整阅读本节。下载、安装或使用本软件，即表示你已阅读、理解并同意以下全部内容；若你不同意，请立即停止使用并卸载。**
+**本节说明软件风险、第三方关系与法律责任，不对 GPL 授予的使用、修改或再分发权利增加限制；如有冲突，以适用的软件许可证为准。**
 
 **1. 软件按「现状」提供。** Momoka 是免费提供的开源软件，按「现状」（AS IS）和「现有可用」提供，不附带任何明示或默示的担保，包括但不限于对适销性、特定用途适用性、无错误运行、不中断以及安全性的担保。开发者不保证本软件在所有环境与版本组合（Emby、MoviePilot、显卡驱动、Windows 版本等）下都能正常工作。
 
@@ -89,14 +93,14 @@ LGPL 允许链接而不传染，所以本软件自身按 MIT 分发；那一份 
 
 **3. 与第三方无任何关联。** Momoka 是独立的第三方客户端，与 Emby LLC、MoviePilot、The Movie Database (TMDB)、豆瓣、IMDb、Microsoft 等均无隶属、授权、赞助、合作或背书关系。文中出现的所有产品名、商标与图标归其各自所有者，此处仅用于说明兼容性或作为引用。
 
-**4. 使用者自负合规与版权责任。** 你有责任确保对所使用的服务器及其中的内容拥有合法权利或授权，并遵守你所在国家或地区的法律法规。**请勿将本软件用于观看、获取、传播盗版、侵权或任何违法内容。** 因使用本软件（包括但不限于访问服务器、播放、下载、截图、上报播放记录等行为）产生的一切法律后果，由使用者自行承担。
+**4. 使用者自负合规与版权责任。** 你有责任确保对所使用的服务器及其中的内容拥有合法权利或授权，并遵守你所在国家或地区的法律法规。观看、获取或传播媒体内容时，请尊重版权；这是法律提醒，不是对 GPL 授权的额外用途限制。因使用本软件（包括但不限于访问服务器、播放、下载、截图、上报播放记录等行为）产生的一切法律后果，由使用者依法承担。
 
 **5. 责任限制。** 在适用法律允许的最大范围内，开发者不对因使用或无法使用本软件而造成的任何直接、间接、附带、特殊、惩罚性或后果性损害承担责任，包括但不限于数据丢失、播放记录或续播点变化、服务器账号被限制或封禁、设备或数据损坏、服务中断，以及任何第三方索赔。使用本软件的风险由你自行承担。
 
-**6. 第三方组件。** 本软件随包包含 mpv / libmpv（**LGPL-2.1-or-later**，静态链 LGPL-3.0 的 FFmpeg）、uosc（**LGPL-2.1**）与 Material Icons Round 字体（Apache-2.0）、ArtCNN 与 CfL 着色器（MIT）、ravu 与 igv 的 SSimDownscaler / SSimSuperRes（LGPL-3.0-or-later）、an3223 着色器（LGPL-2.1-or-later）、igv adaptive-sharpen（BSD-2-Clause）、vulkan-1.dll（Apache-2.0），以及 Microsoft Windows App SDK、WebView2 Runtime 等第三方组件。它们各自遵循其许可，版权归各自作者，相关许可与归属文本随包提供（清单见 `THIRD-PARTY-NOTICES.md`）。**其中 mpv / libmpv 是 LGPL 构建，LGPL 允许链接而不传染，本软件自身按 MIT 分发；那一份 dll 仍是 LGPL 作品，其许可正文与对应源代码地址随包提供。** 使用这些组件不改变本声明。
+**6. 第三方组件。** 本软件随包包含 mpv / libmpv（**LGPL-2.1-or-later**，静态链 LGPL-3.0 的 FFmpeg）、uosc（**LGPL-2.1**）与 Material Icons Round 字体（Apache-2.0）、ArtCNN 与 CfL 着色器（MIT）、ravu 与 igv 的 SSimDownscaler / SSimSuperRes（LGPL-3.0-or-later）、an3223 着色器（LGPL-2.1-or-later）、igv adaptive-sharpen（BSD-2-Clause）、vulkan-1.dll（Apache-2.0），以及 Microsoft Windows App SDK、WebView2 Runtime 等第三方组件。它们各自遵循其许可，版权归各自作者，相关许可与归属文本随包提供（清单见 `THIRD-PARTY-NOTICES.md`）。**其中 mpv / libmpv 继续按其 LGPL 许可分发；Momoka 自身代码采用 GPL-3.0-or-later，并附上述微软组件的有限附加许可。** 各组件的许可正文与对应源码获取说明随包提供。
 
 **7. 第三方接口依赖。** 部分功能依赖第三方服务器接口（如 Emby、MoviePilot、TMDB 等），这些接口可能随时变更、限制或停止服务。由此导致的功能失效或不可用，开发者不作保证，也不承担责任。
 
 **8. 隐私。** 开发者不收集遥测、使用统计或账号数据；你启用的媒体、弹幕和字幕翻译功能会向所选服务发送必要信息，详见 [PRIVACY.md](PRIVACY.md)。
 
-**9. 变更与终止。** 开发者保留随时修改、更新或停止分发本软件及本声明的权利，本声明的更新以本文件为准。
+**9. 后续变更。** 开发者可更新或停止分发后续版本；本声明的更新不追溯撤销已授予的许可，许可证的终止与恢复以其自身条款为准。

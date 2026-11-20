@@ -6,7 +6,7 @@
 2026-10-14 起这里还放许可正文，跟着一起拷到 exe 根目录：`LICENSE.Apache-2.0.txt`
 （`vulkan-1.dll` 的许可）、`LICENSE.LGPL-2.1.txt` / `LICENSE.LGPL-3.0.txt` / `LICENSE.GPL-3.0.txt`
 （`libmpv-2.dll` 的许可），以及 `NOTICE.txt`（两个 dll 的出处与归属，并记录「这份 libmpv 为什么是
-LGPL 构建」的判定依据）。项目自身的许可正文是仓库根的 `LICENSE`（MIT）。
+LGPL 构建」的判定依据）。项目自身的许可正文是仓库根的 `LICENSE`（GPL 第 3 版）；项目明确采用 `GPL-3.0-or-later`，微软组件的有限附加许可和先前 MIT 归属见随包 `THIRD-PARTY-NOTICES.md`。
 在这之前发布包里**一份许可文本都没有** —— `libmpv-2.dll` 就在 exe 旁边，许可正文却不在，
 这是发行上的缺口。
 

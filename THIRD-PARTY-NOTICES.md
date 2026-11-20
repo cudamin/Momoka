@@ -40,13 +40,50 @@ SOFTWARE.
 
 ## 〇、本项目自身的许可证
 
-**Momoka 整体按 `MIT` 分发**，许可正文是仓库根目录的 `LICENSE`
-（随发布拷到 exe 根，与 `libmpv-2.dll` 同级）。Copyright © 2026 Momoka 贡献者。
+**自 2026-11-21 起，Momoka 自身代码采用 `GPL-3.0-or-later`**，并附下述微软组件的有限附加许可。GNU GPL 第 3 版正文是仓库根目录的 `LICENSE`；本文件包含明确的项目授权、附加许可和原有归属，两份文件均随发布拷到 exe 根。Copyright (c) 2026 Momoka contributors。
 
-这不是「随包组件都宽松」得出的结论，而是**选定的**：随包的 `libmpv-2.dll` 是 LGPL 构建
-（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg），LGPL 允许「链接而不传染」，所以本项目
-可以自选许可。2026-10-14 之前随包的是 GPL 构建，那时整个应用被迫按 GPL-2.0-or-later 分发；
-两轮判定的过程与依据见 `docs/第三方组件许可合规.md`。
+Momoka is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Momoka is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with Momoka; if not, see <https://www.gnu.org/licenses/>.
+
+这是项目维护者的许可选择，不是更换播放内核的结果。随包 `libmpv-2.dll` 继续使用 LGPL 构建（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg），其许可及源码义务保持不变。2026-10-14 的两轮历史判定及本次选择见 `docs/第三方组件许可合规.md`。
+
+### Momoka Microsoft components permission
+
+Additional permission under GNU GPL version 3 section 7
+
+For the portions of Momoka for which the Momoka copyright holders have authority to grant this permission, those copyright holders additionally permit you to link or combine those portions with the Microsoft Windows App SDK, including WinUI 3 and the Windows App Runtime, and with Microsoft WebView2 SDK, loader, and runtime components, in unmodified forms distributed by Microsoft, and to convey the resulting work.
+
+This permission does not require the source code of those Microsoft components to be provided under the GNU General Public License. Those components remain subject to their respective Microsoft or other applicable licenses, and their redistribution must comply with those licenses.
+
+This permission does not grant rights in third-party code or waive obligations under its licenses. In particular, the bundled libmpv, uosc, shaders, fonts, and other third-party components retain their own licenses. Except for the permission stated above, all requirements of the GNU General Public License continue to apply to the covered Momoka code.
+
+这项附加许可仅允许有权授权的 Momoka 代码与上述微软原版组件链接、组合并分发，不授予第三方代码的新权利，不豁免微软组件自身的分发条款，也不把 libmpv、uosc 等组件改为带此例外的 GPL。GPL 本身允许移除附加许可；如移除后仍使用这些组件，分发者须另行确认兼容性。
+
+### 先前 MIT 代码的归属
+
+此前按 MIT 发布的代码仍保留原有授权。以下为原根目录 LICENSE 的完整 MIT 声明，仅用于该部分代码；它不把本次或后续仅按 GPL 授权的新代码重新许可为 MIT。
+
+```text
+MIT License
+
+Copyright (c) 2026 Momoka contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
 
 **仍受约束的一角**：`mpv-ui` 里那份 uosc 是 LGPL-2.1，本项目改过它，按 LGPL-2.1 第 2 条，
 修改部分本身也以 LGPL-2.1 授权（见第二节）。这一条不随内核更换而改变。
@@ -84,7 +121,7 @@ SOFTWARE.
 `libdvdcss`、`dvdread` 这四个 GPL-only 组件的字符串出现 **0** 次（换掉的那份 GPL 构建是
 5 / 10 / 3 / 6 次）。这几条与「LGPL 构建」的说法互相印证。
 
-**义务：** LGPL 允许动态链接而不传染，所以 Momoka 自身可以按 MIT 分发；但随包这一份仍是 LGPL 作品，
+**义务：** Momoka 自身选择 GPL-3.0-or-later 不改变随包这一份 DLL 的 LGPL 许可，
 要随二进制提供许可正文（上面三份文本）与对应源代码的获取地址 —— mpv、它链入的 FFmpeg 与
 构建脚本都在上表的地址。**这份 dll 按上游原样分发，本项目没有改动它。**
 
@@ -175,8 +212,9 @@ GPL-2.0-or-later 处理；换内核后按文件本身的许可写。
 
 | 组件 | 许可 | 说明 |
 |---|---|---|
-| Microsoft Windows App SDK | Microsoft 软件许可条款（非开源） | 随包 |
-| Microsoft WebView2 Runtime | Microsoft 软件许可条款（非开源） | 可选，用于「网页控制台」页 |
+| Microsoft Windows App SDK / WinUI / Windows App Runtime | 随包二进制适用 Microsoft 软件许可条款 | 随包；另见上文 Momoka 有限附加许可 |
+| Microsoft WebView2 SDK / loader | BSD-3-Clause（所用 NuGet 包 LICENSE.txt） | 与 Runtime 分开，保留 NuGet 包许可 |
+| Microsoft WebView2 Runtime | Microsoft 软件许可条款（非开源） | 可选，用于「网页控制台」页；另见上文附加许可 |
 | CommunityToolkit.Mvvm / WinUI.* | MIT | NuGet |
 | Microsoft.Extensions.DependencyInjection | MIT | NuGet |
 | System.Security.Cryptography.ProtectedData | MIT | NuGet |
@@ -189,7 +227,8 @@ GPL-2.0-or-later 处理；换内核后按文件本身的许可写。
 
 | 文件 | 覆盖的组件 |
 |---|---|
-| `LICENSE` | 本项目自身（MIT） |
+| `LICENSE` | Momoka 自身代码的 GPL 第 3 版正文；项目授权为 GPL-3.0-or-later |
+| `THIRD-PARTY-NOTICES.md` | 项目明确授权、微软组件有限附加许可、先前 MIT 代码及第三方归属 |
 | `LICENSE.LGPL-2.1.txt` | libmpv-2.dll 里的 mpv 代码、an3223 着色器 |
 | `LICENSE.LGPL-3.0.txt` | libmpv-2.dll 里静态链入的 FFmpeg、ravu 与 igv SSim 系列 |
 | `LICENSE.GPL-3.0.txt` | 上一行 LGPL-3.0 正文引用的 GPL-3.0 条款、双许可的另一支 |

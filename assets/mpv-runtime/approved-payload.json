@@ -32,14 +32,14 @@
     {
       "path": "LICENSE",
       "source": "LICENSE",
-      "size": 1076,
-      "sha256": "9ec750013867adde9c93755d32d04d5dfe3b0b4b0772eab3024e07dccda68439"
+      "size": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
     },
     {
       "path": "THIRD-PARTY-NOTICES.md",
       "source": "THIRD-PARTY-NOTICES.md",
-      "size": 13294,
-      "sha256": "911dbd5485f3447a91cf4d72ae9ad066b0ac23ec3ca3487e91b4816230546e69"
+      "size": 17152,
+      "sha256": "c18c0f258c3124e9e532a07de1c7238a94b0c90555795ed316c8bd268f21c205"
     },
     {
       "path": "LICENSE.Apache-2.0.txt",
@@ -68,8 +68,8 @@
     {
       "path": "NOTICE.txt",
       "source": "assets/mpv-runtime/NOTICE.txt",
-      "size": 3621,
-      "sha256": "2d4f31a651ff331607f5f9f5211e615bcd89ac5bdc43b8e9016cbf673610ed90"
+      "size": 4169,
+      "sha256": "c0fa0f050d4de3f131ccc093fbfdd837dc1d02a04035d52d16efa38ca2bc0aaf"
     },
     {
       "path": "mpv-ui/fonts/MaterialIconsRound-Regular.otf",
@@ -381,8 +381,8 @@
   "evidence": [
     {
       "source": "assets/mpv-runtime/README.md",
-      "size": 5280,
-      "sha256": "0a5d4ed8d4aced30091973afb7a3100210da1989d8d5fb13cb14ccc9be66d8bb"
+      "size": 5420,
+      "sha256": "10f325a4500ddcebc807897ec698bb2e2b5ba6f4c0eb585e41281d8b45d01b21"
     }
   ]
 }
