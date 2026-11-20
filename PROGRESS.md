@@ -1,3 +1,15 @@
+## 2026-11-20 聚合模式「下线」写进设置，重启不再默认全部上线（主树日常界面批次）
+
+用户附顶部账号菜单截图令「持久化保持已下线的服务器，不要每次重启都默认全部打开」。此前「下线」只摘掉本次会话，`RestoreAllAsync` 每次启动都把仍能自动连接的账号全接回来。
+
+**改法。** `AccountProfile` 新增持久化标记 `KeptOffline`（缺键即 false，旧设置文件不用迁移）。聚合模式里点「下线」时 `EmbySession.TakeOffline` 连同撤销来源一起写进设置；启动恢复默认跳过这些账号，其余照常接回。用户重新打开聚合模式时服务器页传 `includeOffline: true`，把保存的账号（包括之前下线的）全部接回，保持「打开聚合＝全部连上」的既有语义。任一恢复或登录成功（`Adopt`）都会清掉标记；显式「退出登录」也清掉，避免菜单把已注销账号写成「已下线」。顶栏账号菜单的离线行因此显示「（已下线）」，服务器页下线提示补一句「重启后仍保持下线」。令牌、密码与 `AutoConnect` 都不动，仍与退出登录分得开。
+
+**测试。** 新增两条：下线后设置文件读回带标记、重启只恢复另一个账号、显式登录后标记清除；以及启动档跳过保持下线的账号、`includeOffline: true` 全部接回。
+
+**验证。** Shell 与 `Momoka.Tests` Release/x64 **0 警告 0 错误**；主测试 **5280/5280、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `artifacts/delivery-tmp`；首轮未设 TEMP 时 18 条红全部来自 `C:\WINDOWS\TEMP` 拒绝与另一工作树 `--probe-shell` 占着的自检锁，重跑全绿）；`dotnet format whitespace --verify-no-changes`、`git diff --check` 通过。发布 `artifacts/publish/win-x64` **548 文件、290.1 MB**，`verify-publish` 通过；`Momoka.exe` SHA256 `8001A115…BA21F`、`Momoka.dll` SHA256 `F25F4F50…40E41`；桌面 `Momoka.lnk` 已刷新并回读 TargetPath／WorkingDirectory 均指向本树发布目录。
+
+**未验。** 未做真实服务器实屏，未人手重启验证；「（已下线）」在五主题、窄窗下的截断与读屏名留给统一验证；日常界面批次未跑探针、未拍验收截图，按规则不销账（台账第 109 项）。
+
 ## 2026-11-20 后台单击开关移到播放右键菜单的「导航」组（主树日常界面批次）
 
 用户拿右键菜单里那一行截图令「移到导航里」。此前「窗口不在前台时单击画面播放/暂停」是集成侧 `PlayerPage.BuildActivationClickRow` 与独占侧 `PushPictureMenuAsync` 各自拼在「更多」尾部的一行；现在它是 Core `PlayerMenuCatalog.Root`「导航」组的第一行，两条管线从同一棵树取它。勾选状态不走 mpv 属性：宿主在 `ReadMenuChecksAsync` 里用 `momoka/settings/activation-click` 填设置值，点中走 HostAction，和 B 键、uosc 菜单点中共用 `ToggleActivationClickPlayback`；集成侧点完当场翻勾。自检里「更多」的底线相应从六行降到五行，行数/勾数/快捷键仍按目录现算。
