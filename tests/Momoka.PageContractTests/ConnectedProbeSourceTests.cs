@@ -98,6 +98,20 @@ internal static class ConnectedProbeSourceTests
             Assert.False(source.Contains("CardDetailConnectedSourcePage", StringComparison.Ordinal), "不能用未具XAML元数据的自定义Page激活");
             Assert.False(source.Contains("frame.Content = sourcePage", StringComparison.Ordinal), "直接替换Content不能证明GoBack");
         });
+        Test("主页关联原生检查：生产竖海报Click经过真实Shell并保留启动回执", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.ConnectedAnimation.cs"));
+            Assert.Contains("await HomeCardDetailConnectedAnimationAsync()", source);
+            Assert.Contains("var shell = DiscoveryShell(fixture)", source);
+            Assert.Contains("fixture.Actions.CaptureOpen = shell.OpenItem", source);
+            Assert.Contains("var frame = shell.Pages", source);
+            Assert.Contains("frame.Navigate(typeof(HomePage)", source);
+            Assert.Contains("new ButtonAutomationPeer(button!)", source);
+            Assert.Contains("frame.Navigating += Navigating", source);
+            Assert.Contains("CardDetailTransition.Observe(frame, receipts.Add)", source);
+            Assert.Contains("home-card-detail-connected.json", source);
+            Assert.Contains("fixture.Actions.Opened == 1 && fixture.Actions.Plays == 0", source);
+        });
         Test("悬浮卡片原生探针：核对真实客户区与页面宽，拒绝VM目标宽冒充视口", () =>
         {
             var path = Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.DetailStickyHeader.cs");

@@ -351,6 +351,7 @@ namespace Momoka.Emby
     public sealed class SourceScope
     {
         public bool IsCurrent { get; set; } = true;
+        public bool IsAvailable { get; set; } = true;
         public object UserStateOwner { get; } = new();
     }
     public sealed class EmbyItem

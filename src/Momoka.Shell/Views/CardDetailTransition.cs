@@ -42,7 +42,8 @@ internal static class CardDetailTransition
         if (!HomeMotion.AnimationsEnabled) return RejectPreparation(ConnectedMotionReason.Disabled);
         if (source?.Card is not { LoadedPosterArtwork: { } artwork } card || !VideoDetail(card.Item))
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
-        if (card.Item.Source?.IsCurrent != true) return RejectPreparation(ConnectedMotionReason.IdentityChanged);
+        // 聚合主页可打开任一在线账号；默认账号切换不撤销原身份，退出／重登才失效。
+        if (card.Item.Source?.IsAvailable != true) return RejectPreparation(ConnectedMotionReason.IdentityChanged);
         if (PrimaryArtwork(card.Item) != artwork) return RejectPreparation(ConnectedMotionReason.ArtworkChanged);
         if (!VisibleSource(frame, source) || source.ConnectedPoster.Source is not BitmapSource picture)
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
@@ -268,7 +269,7 @@ internal static class CardDetailTransition
         internal bool IsResolved => _resolved;
         internal bool Started { get; private set; }
         internal event Action<CardDetailTransitionReceipt>? Observed;
-        internal bool Matches(EmbyItem item) => !_disposed && _item.Source?.IsCurrent == true
+        internal bool Matches(EmbyItem item) => !_disposed && _item.Source?.IsAvailable == true
             && ReferenceEquals(_owner, item.Source?.UserStateOwner) && _identity == item.IdentityKey;
 
         internal void Watch()
@@ -319,7 +320,7 @@ internal static class CardDetailTransition
         {
             if (_disposed || _resolved || _target is not { } target || target.IsLoaded) return;
             if (!HomeMotion.AnimationsEnabled) return;
-            if (_item.Source?.IsCurrent != true) return;
+            if (_item.Source?.IsAvailable != true) return;
             if (target.ViewModel.CurrentItem is not { } current || !Matches(current)) return;
             if (PrimaryArtwork(current) != _artwork) return;
             if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return;
@@ -355,7 +356,7 @@ internal static class CardDetailTransition
             // OnNavigatedTo尚在Frame事务里；取消/普通淡入同样等Loaded，不能拆正在创建的新页。
             if (_disposed || _resolved || _target is not { IsLoaded: true } target) return;
             if (!HomeMotion.AnimationsEnabled) { Resolve(false, ConnectedMotionReason.Disabled); return; }
-            if (_item.Source?.IsCurrent != true || target.ViewModel.CurrentItem is { } item && !Matches(item))
+            if (_item.Source?.IsAvailable != true || target.ViewModel.CurrentItem is { } item && !Matches(item))
             { Resolve(false, ConnectedMotionReason.IdentityChanged); return; }
             if (target.ViewModel.CurrentItem is { } current && PrimaryArtwork(current) != _artwork)
             { Resolve(false, ConnectedMotionReason.ArtworkChanged); return; }
@@ -560,7 +561,7 @@ internal static class CardDetailTransition
         {
             if (!HomeMotion.AnimationsEnabled) return ConnectedMotionReason.Disabled;
             if (!ReturnPageMatches) return ConnectedMotionReason.TargetUnavailable;
-            if (_item.Source?.IsCurrent != true) return ConnectedMotionReason.IdentityChanged;
+            if (_item.Source?.IsAvailable != true) return ConnectedMotionReason.IdentityChanged;
             if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return ConnectedMotionReason.SourceUnavailable;
             if (!Matches(card.Item)) return ConnectedMotionReason.IdentityChanged;
             if (card.LoadedPosterArtwork != _artwork || PrimaryArtwork(card.Item) != _artwork) return ConnectedMotionReason.ArtworkChanged;

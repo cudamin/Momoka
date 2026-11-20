@@ -21,10 +21,75 @@ internal static class Program
                 using var fixture = new Fixture();
                 if (state == "music") fixture.Item.Type = "Audio";
                 if (state == "missing") fixture.Source.ConnectedPoster.Source = null;
-                if (state == "stale") fixture.Item.Source!.IsCurrent = false;
+                if (state == "stale") { fixture.Item.Source!.IsCurrent = false; fixture.Item.Source.IsAvailable = false; }
                 if (state == "hidden") fixture.Source.Visibility = Visibility.Collapsed;
                 if (state == "outside") fixture.Source.ConnectedPoster.X = 2000;
                 Assert.False(CardDetailTransition.Prepare(fixture.Frame, fixture.Source));
+            }
+        });
+        Test("聚合主页非默认在线账号的封面可前进并返回", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Item.Source!.IsCurrent = false;
+            Assert.True(fixture.Prepare());
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            var animation = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, animation.StartCalls);
+            animation.Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            var returning = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, returning.StartCalls);
+            returning.Complete();
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("只切默认账号不取消仍在线来源的前进与返回", () =>
+        {
+            foreach (var switchBeforeStart in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                Assert.True(fixture.Prepare());
+                if (switchBeforeStart) fixture.Item.Source!.IsCurrent = false;
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                var animation = ConnectedAnimationService.Created.Last();
+                Assert.Equal(1, animation.StartCalls);
+                animation.Complete();
+                fixture.Item.Source!.IsCurrent = false;
+                Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+                fixture.Frame.Content = fixture.Source;
+                CardDetailTransition.CompleteReturn(fixture.Frame);
+                fixture.Frame.DispatcherQueue.Drain();
+                Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+            }
+        });
+        Test("在线来源退出后仍以身份变更拒绝前进与返回", () =>
+        {
+            foreach (var forward in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                Assert.True(fixture.Prepare());
+                var receipts = new List<CardDetailTransitionReceipt>();
+                CardDetailTransition.Observe(fixture.Frame, receipts.Add);
+                if (!forward)
+                {
+                    CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                    ConnectedAnimationService.Created.Last().Complete();
+                }
+                fixture.Item.Source!.IsAvailable = false;
+                if (forward)
+                {
+                    CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                    Assert.True(receipts.Any(receipt => receipt.Reason == ConnectedMotionReason.IdentityChanged));
+                    Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+                }
+                else
+                {
+                    var count = ConnectedAnimationService.Created.Count;
+                    Assert.False(CardDetailTransition.BeginReturn(fixture.Target));
+                    Assert.Equal(count, ConnectedAnimationService.Created.Count);
+                }
             }
         });
         Test("主页回收海报仍在当前页面时不因Loaded假值丢掉前进转场", () =>
@@ -158,6 +223,7 @@ internal static class Program
                 if (stale)
                 {
                     fixture.Item.Source!.IsCurrent = false;
+                    fixture.Item.Source.IsAvailable = false;
                     fixture.Target.Layout();
                 }
                 else DispatcherTimer.Created.Last().Fire();
@@ -441,6 +507,7 @@ internal static class Program
                 else
                 {
                     fixture.Item.Source!.IsCurrent = false;
+                    fixture.Item.Source.IsAvailable = false;
                     fixture.Target.ViewModel.CurrentItem = new EmbyItem { IdentityKey = fixture.Item.IdentityKey };
                 }
                 Assert.False(CardDetailTransition.BeginReturn(fixture.Target));
