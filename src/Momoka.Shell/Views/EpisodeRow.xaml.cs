@@ -77,6 +77,7 @@ public sealed partial class EpisodeRow : UserControl
     {
         InitializeComponent();
         _posterArrival = new ImageArrivalFade(Poster);
+        _ = new AnimatedPoster(Poster, _posterArrival);
 
         _watch = new HoverWatch(Root, up =>
         {

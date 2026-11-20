@@ -26,7 +26,27 @@ namespace Microsoft.UI.Xaml
     public sealed class ExceptionRoutedEventArgs : RoutedEventArgs;
     public sealed record DependencyProperty(string Name);
     public readonly record struct Duration(TimeSpan TimeSpan);
-    public sealed class XamlRoot;
+    public sealed class XamlRoot
+    {
+        public double RasterizationScale { get; set; } = 1;
+        public bool IsHostVisible { get; private set; } = true;
+        public int Subscriptions => Changed?.GetInvocationList().Length ?? 0;
+        public event Action<XamlRoot, XamlRootChangedEventArgs>? Changed;
+
+        public void SetHostVisible(bool visible)
+        {
+            IsHostVisible = visible;
+            Changed?.Invoke(this, new());
+        }
+    }
+    public sealed class XamlRootChangedEventArgs : EventArgs;
+    public enum Visibility { Visible, Collapsed }
+    public class UIElement : DependencyObject
+    {
+        public Visibility Visibility { get; set; }
+        public DependencyObject? Parent { get; set; }
+    }
+    public sealed record EffectiveViewportChangedEventArgs(Windows.Foundation.Rect EffectiveViewport);
     public class DependencyObject
     {
         private readonly Dictionary<long, (DependencyProperty Property, DependencyPropertyChangedCallback Callback)> _callbacks = [];
@@ -46,13 +66,17 @@ namespace Microsoft.UI.Xaml
                 if (entry.Property == property) entry.Callback(this, property);
         }
     }
-    public class FrameworkElement : DependencyObject
+    public class FrameworkElement : UIElement
     {
+        public double ActualWidth { get; set; } = 100;
+        public double ActualHeight { get; set; } = 100;
         public bool IsLoaded { get; private set; }
         public XamlRoot? XamlRoot { get; set; }
         public double Opacity { get; set; } = 1;
         public event RoutedEventHandler? Loaded;
         public event RoutedEventHandler? Unloaded;
+        public event Action<FrameworkElement, EffectiveViewportChangedEventArgs>? EffectiveViewportChanged;
+        public void SetViewport(Windows.Foundation.Rect viewport) => EffectiveViewportChanged?.Invoke(this, new(viewport));
         public void Load() { IsLoaded = true; XamlRoot ??= new(); Loaded?.Invoke(this, new()); }
         public void Unload(bool phantom = false) { IsLoaded = false; if (!phantom) XamlRoot = null; Unloaded?.Invoke(this, new()); }
     }
@@ -60,6 +84,11 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Media
 {
+    public static class VisualTreeHelper
+    {
+        public static Microsoft.UI.Xaml.DependencyObject? GetParent(Microsoft.UI.Xaml.DependencyObject element) =>
+            (element as Microsoft.UI.Xaml.UIElement)?.Parent;
+    }
     public class ImageSource : Microsoft.UI.Xaml.DependencyObject;
     public sealed class ImageBrush : Microsoft.UI.Xaml.DependencyObject
     {
@@ -79,15 +108,21 @@ namespace Microsoft.UI.Xaml.Media.Imaging
         public int PixelWidth { get; set; } = 600;
         public int PixelHeight { get; set; } = 400;
     }
-    public sealed class BitmapImage : BitmapSource;
+    public sealed class BitmapImage : BitmapSource
+    {
+        public int DecodePixelWidth { get; set; } = 100;
+    }
+    public sealed class WriteableBitmap(int width, int height) : BitmapSource
+    {
+        public Microsoft.UI.Xaml.FixturePixelBuffer PixelBuffer { get; } = new(width * height * 4);
+        public List<byte> PaintedPixels { get; } = [];
+        public void Invalidate() => PaintedPixels.Add(PixelBuffer.Bytes[0]);
+    }
 }
 
 namespace Microsoft.UI.Xaml.Controls
 {
-    public sealed class Frame : Microsoft.UI.Xaml.FrameworkElement
-    {
-        public double ActualWidth { get; set; }
-    }
+    public sealed class Frame : Microsoft.UI.Xaml.FrameworkElement;
 
     // 封面转场表面（2026-11-19 起详情页用它包住转场图片）：这一套只编译关联封面抢排，
     // 圆角表面本身是纯占位，生产控件由页面那一侧覆盖。

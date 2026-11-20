@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -31,6 +32,8 @@ internal static class PosterCache
     private const int Capacity = 160;
 
     private static readonly LruCache<string, BitmapImage> Decoded = new(Capacity);
+    private static readonly ConditionalWeakTable<BitmapImage, AnimationKey> Animations = new();
+    private static readonly BudgetCache<AnimationKey, byte[]> AnimationBytes = new(64 * 1024 * 1024, bytes => bytes.Length);
 
     /// <summary>
     /// The name one decoded picture goes under. The decode width is part of it, not just the width asked
@@ -41,11 +44,37 @@ internal static class PosterCache
     public static string Key(EmbyConnection connection, string itemId, string imageType, string tag, int decodeWidth) =>
         EmbyImageStore.CacheKey(connection, itemId, imageType, tag, decodeWidth);
 
-    public static bool TryGet(string key, [MaybeNullWhen(false)] out BitmapImage bitmap) =>
-        Decoded.TryGet(key, out bitmap);
+    public static bool TryGet(string key, [MaybeNullWhen(false)] out BitmapImage bitmap)
+    {
+        if (!Decoded.TryGet(key, out bitmap)) return false;
+        if (!Animations.TryGetValue(bitmap, out var animation) || AnimationBytes.TryGet(animation, out _)) return true;
+
+        // Its compressed animation was evicted. Let the card reload the original from the disk cache.
+        Decoded.Remove(key);
+        bitmap = null;
+        return false;
+    }
 
     public static void Remember(string key, BitmapImage bitmap) => Decoded.Set(key, bitmap);
 
+    internal static void TrackAnimation(BitmapImage bitmap, byte[] bytes)
+    {
+        var key = Animations.GetValue(bitmap, static _ => new());
+        AnimationBytes.Set(key, bytes);
+    }
+
+    internal static bool TryGetAnimation(BitmapImage bitmap, [NotNullWhen(true)] out byte[]? bytes)
+    {
+        bytes = null;
+        return Animations.TryGetValue(bitmap, out var key) && AnimationBytes.TryGet(key, out bytes);
+    }
+
     /// <summary>Drops everything. 设置 → 清除图片缓存 also has to forget what is already decoded.</summary>
-    public static void Clear() => Decoded.Clear();
+    public static void Clear()
+    {
+        Decoded.Clear();
+        AnimationBytes.Clear();
+    }
+
+    private sealed class AnimationKey;
 }

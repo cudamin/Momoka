@@ -29,7 +29,7 @@ internal static class ImageData
         return file.ToArray();
     }
 
-    private static void Chunk(Stream target, string type, byte[] data)
+    internal static void Chunk(Stream target, string type, byte[] data)
     {
         Span<byte> number = stackalloc byte[4];
         BinaryPrimitives.WriteInt32BigEndian(number, data.Length);

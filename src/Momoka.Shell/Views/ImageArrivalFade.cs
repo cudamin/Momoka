@@ -58,10 +58,11 @@ internal sealed class ImageArrivalFade : IDisposable
     }
 
     internal bool IsRunning => _board is not null;
+    internal Func<bool>? IsUpdatingAnimatedFrame { get; set; }
 
     private void OnSourceChanged(DependencyObject sender, DependencyProperty property)
     {
-        if (_disposed) return;
+        if (_disposed || IsUpdatingAnimatedFrame?.Invoke() == true) return;
         var source = _image is not null ? _image.Source : _brush?.ImageSource;
         if (ReferenceEquals(source, _seen)) return;
         _seen = source;

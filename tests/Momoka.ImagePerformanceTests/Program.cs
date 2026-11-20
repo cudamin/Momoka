@@ -57,6 +57,7 @@ internal static class Program
         SharedBudgetTests.Register();
         StoreBudgetTests.Register();
         CoverDecodeTests.Register();
+        AnimatedPngTests.Register();
         CoverCallerTests.Register();
         DetailHeroCacheTests.Register();
         var log = new Momoka.Diagnostics.RingBufferLogSink(100);

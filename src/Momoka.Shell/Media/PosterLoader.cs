@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Infrastructure;
 using Windows.Storage.Streams;
 
 namespace Momoka.Shell.Media;
@@ -51,6 +52,7 @@ internal static class PosterLoader
         };
 
         await bitmap.SetSourceAsync(stream);
+        if (AnimatedPng.CanAnimate(bytes)) PosterCache.TrackAnimation(bitmap, bytes);
         return bitmap;
     }
 }

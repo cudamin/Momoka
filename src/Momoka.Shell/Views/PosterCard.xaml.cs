@@ -314,8 +314,22 @@ public sealed partial class PosterCard : UserControl
             new(FolderPoster0), new(FolderPoster1), new(FolderPoster2), new(FolderPoster3),
             new(LibraryPoster0), new(LibraryPoster1), new(LibraryPoster2),
         ];
+        _ = new AnimatedPoster(Poster, _posterArrival);
+        AttachAnimatedTiles();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+    }
+
+    private void AttachAnimatedTiles()
+    {
+        Image[] tiles =
+        [
+            FnNasPosterBackground,
+            FolderPoster0, FolderPoster1, FolderPoster2, FolderPoster3,
+            LibraryPoster0, LibraryPoster1, LibraryPoster2,
+        ];
+        for (int index = 0; index < tiles.Length; index++)
+            _ = new AnimatedPoster(tiles[index], _tileArrivals[index]);
     }
 
     /// <summary>

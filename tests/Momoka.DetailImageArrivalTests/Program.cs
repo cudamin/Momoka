@@ -430,6 +430,7 @@ internal static class Program
             gate.SetResult();
             Await(load);
         });
+        AnimatedPosterTests.Register();
         return Run();
     }
     private static EmbyItem Item() => new()

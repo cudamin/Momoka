@@ -310,9 +310,8 @@ public sealed class EmbyImageStore
 
                 if (bytes.Length == 0) return null;
 
-                // A card-sized poster is tens of kilobytes. Anything this big came back unresized — an
-                // animated PNG is the usual reason, and only its first frame survives the decode here, so
-                // the card ends up showing something that looks nothing like it does in a browser.
+                // A large response can be the original animated artwork. Keep the bytes intact so
+                // the card can decode the animation, including when it comes from the disk cache.
                 if (bytes.Length > 512 * 1024)
                     Log.Debug(Category, $"图片未被服务器缩放（{description}，{bytes.Length / 1024} KB）");
 

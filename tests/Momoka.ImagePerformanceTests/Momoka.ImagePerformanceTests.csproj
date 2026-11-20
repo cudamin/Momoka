@@ -11,6 +11,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
         <!-- Full production decoder/geometry, real Windows Runtime, no XAML or app launch. -->
+        <Compile Include="..\..\src\Momoka.Shell\Media\AnimatedPngFrames.cs" Link="Production\AnimatedPngFrames.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\CoverBackdropImage.cs" Link="Production\CoverBackdropImage.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\CoverBackdropSize.cs" Link="Production\CoverBackdropSize.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Media\HeroPictureLoader.cs" Link="Production\HeroPictureLoader.cs" />
