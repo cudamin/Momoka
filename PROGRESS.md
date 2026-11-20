@@ -6,6 +6,8 @@
 
 合并前分支 Release x64 编译 0 警告、0 错误，主测试 5316/5316，图片专项 22 项基础及 54 项扩展全过，图片生命周期 33/33，页面契约 393/393，架构 7/7。分支体验产物校验通过。主测试和图片专项日志留在主树 `artifacts/animated-library-covers-evidence-cd15ef9/`，主树运行验收仍待执行。
 
+合并后已删除临时分支与专用快捷方式。Codex 将原工作树 `C:/Users/89400/.codex/worktrees/animated-library-covers/Momoka` 标为当前任务主工作树，无法归档，已停在分离 HEAD，待解除保护后清理。
+
 ## 2026-11-21 项目许可改为 GPL-3.0-or-later
 
 用户明确选择 `GPL-3.0-or-later`。根 LICENSE 改用 GNU 官方 GPL 第 3 版完整原文；README 与随包 THIRD-PARTY-NOTICES 明确第 3 版或 FSF 后续版本授权，保留先前完整 MIT 声明及第三方归属。为有权授权的 Momoka 代码加入 Windows App SDK / WinUI / Windows App Runtime、WebView2 微软原版组件的有限链接、组合分发附加许可，不改变第三方许可或微软自身分发条款。同步隐私政策中英文许可说明、技术文档、现行合规结论与官网源文件／dist 的四处许可文案；保留有日期的历史审计。README 免责声明改为风险说明，不附加 GPL 用途限制或追溯撤销许可。
