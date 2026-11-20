@@ -1,4 +1,6 @@
-## 2026-11-20 商店轮播按参考图重排宽窄两档（分支 codex/store-carousel-responsive，待合并）
+## 2026-11-20 商店轮播按参考图重排宽窄两档（原分支 codex/store-carousel-responsive，已合入主树）
+
+**合入主树。** 用户令「合并到主树」后，确认两树干净、`master d965861` 是分支 `9739ba8` 的祖先，以快进方式合入全部 5 条提交、25 个路径；合入后主树与分支内容完全一致、差异空白检查通过，无冲突与额外产品改动。本轮只合并并维护记录，不重跑应用编译、单测、原生探针或验收截图，不发布主树、不上传，台账 111 保持待统一验证。已删除桌面 `Momoka-store-carousel-543e.lnk`；41 份分支验证日志逐一校验 SHA256 后保留到主树 `artifacts/store-carousel-543e-evidence`。临时树干净且无独有提交，归档工具因「The task's primary checkout cannot be removed.」拒绝移除本聊天主工作树，按保护要求保留目录，已分离 HEAD 并删除合并完成的临时分支。主树 `Momoka.lnk` 与现有发布产物未刷新。
 
 **21:30 体验刷新完成。** 用户令「刷新桌面体验版」后确认旧程序已退出，在干净 `8f0d0c6`（产品 `0ad9601`）上正常发布本树，`verify-publish` 通过：548 文件 / 290.1 MB。桌面 `Momoka-store-carousel-543e.lnk` 已重写并回读目标与工作目录均为本树 `artifacts/publish/win-x64`，现在包含媒体库固定下方、紧凑竖排、饼形倒计时及悬停暂停。`Momoka.exe` SHA256 `C289F73B…0237`、`Momoka.dll` SHA256 `E60C8891…0146`，日志 `artifacts/store-carousel-followup-refresh.log`。本轮只刷新体验产物，未改产品代码、未启动程序、未补跑探针/实屏验收、未合并/上传，不销账。
 
