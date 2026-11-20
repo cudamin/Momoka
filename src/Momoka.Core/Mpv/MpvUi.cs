@@ -333,9 +333,8 @@ public static class VideoWindowContract
     public const string Shortcuts = "momoka-shortcuts";
 
     /// <summary>
-    /// uosc → 宿主：右键画面菜单末尾点了「字幕」「视频输出」「音频输出」三行之一（2026-10-01 用户令
-    /// 「在右键菜单中添加字幕、视频输出、音频输出三个按钮，点击后打开设置页面」），值是
-    /// <see cref="PlayerSettingsLinks"/> 的令牌（<c>subtitle</c>／<c>video</c>／<c>audio</c>）。宿主把设置窗口
+    /// uosc → 宿主：右键画面菜单「播放设置」中点了一项，值是
+    /// <see cref="PlayerSettingsLinks"/> 的令牌。宿主把设置窗口
     /// 开在该行那张卡上 —— 与集成模式右键点同一行是同一句执行，那边由 <c>PlayerViewModel.RequestSettings</c>
     /// 直接走，两条管线共用同一个出口。
     /// <para>

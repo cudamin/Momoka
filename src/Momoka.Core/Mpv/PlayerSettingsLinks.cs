@@ -3,9 +3,9 @@ namespace Momoka.Mpv;
 /// <summary>
 /// 右键画面菜单里「去设置里改」的一行：菜单上写什么、独占模式回传什么令牌、设置窗口落在哪一张卡。
 /// </summary>
-/// <param name="Label">菜单上那一行的字（「字幕」「视频输出」「音频输出」）。</param>
+/// <param name="Label">菜单上那一行的字（「字幕」「视频输出」「音频输出」「弹幕」等）。</param>
 /// <param name="Token">
-/// 独占模式菜单行 <c>value</c> 里带的令牌（<c>subtitle</c>／<c>video</c>／<c>audio</c>）。ASCII、短、每个只有
+/// 独占模式菜单行 <c>value</c> 里带的令牌（如 <c>subtitle</c>／<c>video</c>／<c>audio</c>）。ASCII、短、每个只有
 /// 一个含义 —— 契约 <see cref="VideoWindowContract.Parse"/> 收窄值域收的就是它，uosc 那头只把它原样发回来。
 /// </param>
 /// <param name="Category">
@@ -15,7 +15,7 @@ namespace Momoka.Mpv;
 public sealed record PlayerSettingsLink(string Label, string Token, string Category);
 
 /// <summary>
-/// 右键画面菜单「播放设置」子菜单中的三行设置入口。
+/// 右键画面菜单「播放设置」子菜单中的设置入口。
 /// <para>
 /// 放在 Core 而不是画在某一侧的界面里，理由与 <see cref="PlayerMenuCatalog"/> 一字不差：这两条管线各画各的
 /// 菜单（集成侧是 XAML 行、走 <c>PlayerPage.OnMoreMenuOpening</c>；独占侧是 uosc 菜单行、走
@@ -23,8 +23,8 @@ public sealed record PlayerSettingsLink(string Label, string Token, string Categ
 /// 改一个字都只有一处；两处各写一份，就一定会有一天两边差一截（2026-09-29 统一右键菜单时刚交过这笔学费）。
 /// </para>
 /// <para>
-/// 这三行不执行 mpv 命令，所以它们不进 <see cref="PlayerMenuCatalog"/>：那份目录的每一行都是「跑一串 mpv
-/// 命令 + 用 <c>${property}</c> 回读」，而这三行的动作是「把那扇设置窗口开在这张卡上」——由宿主执行，与
+/// 这些行不执行 mpv 命令，所以它们不进 <see cref="PlayerMenuCatalog"/>：那份目录的每一行都是「跑一串 mpv
+/// 命令 + 用 <c>${property}</c> 回读」，而这些行的动作是「把那扇设置窗口开在这张卡上」——由宿主执行，与
 /// 版本…／播放信息…一样属于「更多」那一棵。
 /// </para>
 /// </summary>
@@ -32,14 +32,14 @@ public static class PlayerSettingsLinks
 {
     public const string MenuLabel = "播放设置";
 
-    /// <summary>The three rows, in the order both menus draw them.</summary>
+    /// <summary>All settings entries, in the order both menus draw them.</summary>
     public static IReadOnlyList<PlayerSettingsLink> All { get; } =
     [
         new("字幕", "subtitle", "字幕"),
         new("视频输出", "video", "视频输出"),
         new("音频输出", "audio", "音频输出"),
         new("播放工具", "tools", "播放工具"),
-        new("弹弹play", "danmaku", "弹幕"),
+        new("弹幕", "danmaku", "弹幕"),
     ];
 
     /// <summary>按当前弹幕能力返回右键菜单里的设置入口，保留全局设置目录与原行身份。</summary>

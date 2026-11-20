@@ -340,7 +340,7 @@ internal static class MpvUiTests
                 VideoWindowContract.MediaInfo,
                 // 「窗口不在前台时单击画面播放/暂停」的菜单开关（uosc→宿主，2026-11-20）。
                 VideoWindowContract.ActivationClickToggle,
-                // 2026-10-01 添的第四条：画面菜单末尾那三行设置入口（字幕／视频输出／音频输出）。
+                // 2026-10-01 添的设置菜单消息：画面菜单末尾的设置行。
                 VideoWindowContract.OpenSettings,
             };
             var bindings = new List<string>();
@@ -686,14 +686,14 @@ internal static class MpvUiTests
                 Assert.Null(VideoWindowContract.Parse([VideoWindowContract.Queue, action]));
         });
 
-        // 画面菜单末尾那三行设置入口（2026-10-01 用户令「在右键菜单中添加字幕、视频输出、音频输出三个按钮，
+        // 画面菜单末尾的设置入口（2026-10-01 用户令「在右键菜单中添加字幕、视频输出、音频输出按钮，
         // 点击后打开设置页面」）。表在 Core、两条管线都读它，所以这里钉三件事：
-        //   · 表本身立得住：三行、令牌唯一、文案不空、落点互不相同；
+        //   · 表本身立得住：入口令牌唯一、文案不空、落点互不相同；
         //   · 令牌与设置卡对得上 —— 设置页那张卡片名单就在 SettingsViewModel 的 CardCategories 里，改卡片名
-        //     而这张表没跟上，SettingsPage.Select 会安静地退回「播放器」：点「字幕」开在别的卡上，靠看是看不
+        //     而这张表没跟上，SettingsPage.Select 会安静地退回「播放器」：点「弹幕」开在别的卡上，靠看是看不
         //     出来的（这条在闸门 2 就拦住，不用等自检）；
-        //   · 契约：三个令牌进 Parse，杂词与空串一律不收 —— 菜单行的 value 是从视频窗那棵 Lua 树回来的。
-        TestHarness.Test("画面菜单末尾三行设置入口：表的令牌与设置卡名单对得上", () =>
+        //   · 契约：每个令牌都能进 Parse，杂词与空串一律不收 —— 菜单行的 value 是从视频窗那棵 Lua 树回来的。
+        TestHarness.Test("画面菜单末尾设置入口：表的令牌与设置卡名单对得上", () =>
         {
             var links = PlayerSettingsLinks.All;
 
@@ -709,9 +709,9 @@ internal static class MpvUiTests
                 Assert.True(link.Category.Length > 0, $"「{link.Label}」没有设置落点");
             }
 
-            // 文案就是用户点名的四个词，落点就是设置页那四张卡 —— 写死一遍，免得改表时两边一起悄悄漂开。
+            // 文案与设置卡落点写死校验，免得改表时菜单和设置页一起悄悄漂开。
             Assert.Equal(
-                "字幕/subtitle/字幕、视频输出/video/视频输出、音频输出/audio/音频输出、播放工具/tools/播放工具、弹弹play/danmaku/弹幕",
+                "字幕/subtitle/字幕、视频输出/video/视频输出、音频输出/audio/音频输出、播放工具/tools/播放工具、弹幕/danmaku/弹幕",
                 string.Join('、', links.Select(link => $"{link.Label}/{link.Token}/{link.Category}")));
 
             foreach (var link in links)
@@ -748,7 +748,7 @@ internal static class MpvUiTests
                     $"「{link.Label}」指向的设置卡「{link.Category}」不在卡片名单里（{string.Join('、', cards)}）");
         });
 
-        TestHarness.Test("播放设置弹幕入口随能力隐藏并恢复，其他三项与行身份保留", () =>
+        TestHarness.Test("播放设置弹幕入口随能力隐藏并恢复，其他设置入口与行身份保留", () =>
         {
             foreach (var available in new[] { false, true, false, true })
             {

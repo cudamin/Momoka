@@ -62,7 +62,7 @@ public sealed partial class PlayerViewModel
     /// 在独占模式的同款行，点中回宿主执行。
     /// </para>
     /// <para>
-    /// 2026-10-01 再添一条：菜单末尾那三行「去设置里改」回 <see cref="VideoWindowContract.OpenSettings"/>，
+    /// 2026-10-01 再添一条：菜单末尾的「去设置里改」入口回 <see cref="VideoWindowContract.OpenSettings"/>，
     /// 值是 <see cref="PlayerSettingsLinks"/> 的令牌，宿主把那扇设置窗口开在该行那张卡上。
     /// </para>
     /// </summary>
@@ -237,7 +237,7 @@ public sealed partial class PlayerViewModel
     /// 设置、连播同一格、播放信息同一份正文。**改任何一边的行集、次序或文案，另一边要跟上** —— 两处
     /// 旁边的注释就是互相指认的路标。
     /// <para>
-    /// 末尾「播放设置」中的字幕／视频输出／音频输出共用 <see cref="PlayerSettingsLinks"/> 的名称与行集。
+    /// 末尾「播放设置」中的各设置入口共用 <see cref="PlayerSettingsLinks"/> 的名称与行集。
     /// </para>
     /// </summary>
     private async Task PushPictureMenuAsync()
