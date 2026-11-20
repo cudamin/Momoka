@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Momoka.Configuration;
 using Momoka.Emby;
 using static Momoka.Tests.TestHarness;
@@ -16,6 +17,77 @@ internal static class HomeLayoutTests
 {
     public static void Register()
     {
+        Test("主页媒体库入口：四后端与飞牛音乐默认按目录次序显示，新增的库补到末尾", () =>
+        {
+            using var emby = LibrarySource("emby", "user");
+            using var jellyfin = LibrarySource("jellyfin", "user", MediaServerKind.Jellyfin);
+            using var fnnas = LibrarySource("fnnas", "user", MediaServerKind.FnNas);
+            using var plex = LibrarySource("plex", "user", MediaServerKind.Plex);
+            using var music = LibrarySource("music", "user", MediaServerKind.FnMusic);
+            EmbyItem[] directory =
+            [
+                emby.Scope.Bind(Library("same:id", "电影")),
+                jellyfin.Scope.Bind(Library("same:id", "剧集")),
+                fnnas.Scope.Bind(Library("same:id", "飞牛影视")),
+                plex.Scope.Bind(Library("same:id", "Plex 电影")),
+                music.Scope.Bind(Library("same:id", "飞牛音乐"))
+            ];
+            var available = HomeLibraryLayout.FromItems(directory);
+            Assert.True(HomeLibraryLayout.VisibleItems(null, directory).SequenceEqual(directory));
+            Assert.True(available.All(row => row.Visible && HomeLayout.LibrarySourceKey(row.Key) is not null));
+            Assert.Equal(directory.Length, available.Select(row => row.Key).Distinct(StringComparer.Ordinal).Count());
+
+            var choices = HomeLibraryLayout.MergeEdits(null, available, available.Reverse());
+            var added = emby.Scope.Bind(Library("new", "纪录片"));
+            var visible = HomeLibraryLayout.VisibleItems(choices, [added, .. directory]);
+            Assert.True(visible.SequenceEqual(directory.Reverse().Append(added)));
+            Assert.Equal("飞牛音乐", choices[0].Title);
+        });
+
+        Test("主页媒体库入口：同服不同账号同号库可独立隐藏，离开的来源与过期编辑不改原偏好", () =>
+        {
+            using var currentSource = LibrarySource("shared", "current");
+            using var otherSource = LibrarySource("shared", "other");
+            var current = currentSource.Scope.Bind(Library("same:id", "电影"));
+            var other = otherSource.Scope.Bind(Library("same:id", "电影"));
+            var series = currentSource.Scope.Bind(Library("series", "剧集"));
+            var currentKey = HomeLayout.LibraryKey(current);
+            var otherKey = HomeLayout.LibraryKey(other);
+            var seriesKey = HomeLayout.LibraryKey(series);
+            var known = HomeLibraryLayout.FromItems([current, other, series]);
+            var initial = HomeLibraryLayout.MergeEdits(null, known, [known[0], known[1] with { Visible = false }, known[2]]);
+            var narrowed = HomeLibraryLayout.FromItems([current, series]);
+            var edited = HomeLibraryLayout.MergeEdits(initial, narrowed,
+                [narrowed[1], known[1] with { Visible = true }, narrowed[0]]);
+
+            Assert.True(edited.Select(row => row.Key).SequenceEqual([seriesKey, otherKey, currentKey]));
+            Assert.False(edited.Single(row => row.Key == otherKey).Visible);
+            Assert.True(HomeLibraryLayout.VisibleItems(edited, [current, other, series]).SequenceEqual([series, current]));
+            Assert.True(HomeLayout.Plan(null, [current, other, series]).Single(row => row.Key == otherKey).Visible);
+            var offline = ScopedLibrary("offline", "user", "cached", "缓存库");
+            Assert.True(HomeLibraryLayout.FromItems([current, offline]).Select(row => row.Key).SequenceEqual([currentKey]));
+        });
+
+        Test("主页媒体库入口：配置归一化、备份与恢复默认按独立偏好处理", () =>
+        {
+            var settings = new AppSettings();
+            using var musicSource = LibrarySource("server", "user", MediaServerKind.FnMusic);
+            var library = musicSource.Scope.Bind(Library("music", "音乐"));
+            var key = HomeLayout.LibraryKey(library);
+            settings.Ui.HomeRows = [Row(key, "最近添加 · 音乐")];
+            settings.Ui.HomeLibraryEntries = [null!, Row(key, "音乐", visible: false)];
+            settings = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
+            Assert.Equal(1, settings.Ui.HomeLibraryEntries.Count);
+            var backup = SettingsPreferences.ToBackupDocument(settings);
+            var restored = SettingsPreferences.Apply(new AppSettings(), backup);
+            Assert.False(restored.Ui.HomeLibraryEntries.Single().Visible);
+            Assert.True(restored.Ui.HomeRows.Single().Visible);
+            Assert.Equal(0, HomeLibraryLayout.VisibleItems(restored.Ui.HomeLibraryEntries, [library]).Count);
+            SettingsReset.Restore(restored);
+            Assert.Equal(0, restored.Ui.HomeLibraryEntries.Count);
+            Assert.Equal(library, HomeLibraryLayout.VisibleItems(restored.Ui.HomeLibraryEntries, [library]).Single());
+        });
+
         Test("主页版面：音乐库也排「最近添加」一排，标题按库名走", () =>
         {
             // 2026-11-18 用户令「在主页媒体库排序中新增 最近添加·音乐」「添加 最近添加·飞牛音乐」：
@@ -513,12 +585,17 @@ internal static class HomeLayoutTests
     private static EmbyItem ScopedLibrary(string server, string account, string id, string name,
         MediaServerKind kind = MediaServerKind.Emby)
     {
+        using var fixture = LibrarySource(server, account, kind);
+        return fixture.Scope.Bind(Library(id, name));
+    }
+
+    private static AnonymousScopeFixture LibrarySource(string server, string account, MediaServerKind kind = MediaServerKind.Emby)
+    {
         var connection = new EmbyConnection(new Uri("https://fixture.invalid/"), "fixture", account, account,
             server, DeviceIdentity.Create("home-layout-fixture", "test"))
         { ServerKind = kind };
-        var scope = AnonymousScopeFixture.DetachedIdentity(connection,
+        return new AnonymousScopeFixture(connection,
             new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account });
-        return scope.Bind(Library(id, name));
     }
 
     /// <summary>一台飞牛的库：标题那条规则按服务器分，所以这里要一个真带来源的条目。</summary>

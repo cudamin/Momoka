@@ -1316,12 +1316,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (_services is null) return;
 
         _settingsWindow ??= SettingsWindow.TryCreate(_window);
+        var request = new SettingsRequest(_services, category) { ReadLibraryDirectory = () => _libraryViews };
 
         if (_settingsWindow is null)
         {
             // The frame keeps 设置 reachable, but not 服务器 or 诊断 as separate pages: they are cards in the
             // settings page now, so the fallback opens the settings page on the category that was asked for.
-            Open(typeof(SettingsPage), new SettingsRequest(_services, category), "设置", "settings");
+            Open(typeof(SettingsPage), request, "设置", "settings");
             return;
         }
 
@@ -1334,7 +1335,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 订阅者，收摊时那句「拿回来」也就跑几遍。
         _settingsWindow.Hidden -= OnSettingsWindowHidden;
         _settingsWindow.Hidden += OnSettingsWindowHidden;
-        _settingsWindow.Show(new SettingsRequest(_services, category));
+        _settingsWindow.Show(request);
     }
 
     /// <summary>

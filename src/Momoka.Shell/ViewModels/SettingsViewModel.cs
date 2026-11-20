@@ -1940,11 +1940,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IReadOnlyList<SettingSection> HomeSections()
     {
         var ui = Settings.Ui;
+        var libraryEntries = CreateHomeLibraryEntries(ui);
 
         HomeRows = new SettingHomeLayoutRow(
             "媒体库顺序",
             HomeRowsNote(ui),
-            CurrentHomeChoices(),
+            CurrentHomeChoices(libraryEntries),
             rows =>
             {
                 // 来源切换与刷新之间，旧列表也可能交来一次编辑；只接收此刻仍适用的键。
@@ -1960,7 +1961,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 // 外壳不订阅它，搭不上这趟车。
                 ShellPrefs.ApplySidebar(ui);
                 ShellPrefs.Apply(ui);
-            });
+            }, libraryEntries: libraryEntries);
 
         // 「新增在设置中设置轮播图要使用什么媒体，和要使用最近添加还是随机的还有数量的选项。还有封面的
         // 轮换的秒数」（用户的话，2026-09-13）。四行照他点的名落：站哪一类、从哪来、几张、一张站几秒。
@@ -2118,7 +2119,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private static string HomeRowsNote(UiSettings ui) =>
         "拖动一行或用右边那两颗箭头决定次序，取消勾选就不显示。"
             + (ui.ShowHomeBanner ? "轮播图开着时「媒体库」固定在第一位、不能挪动。" : "")
-            + "「媒体库」那一排是进各媒体库的入口（点上面的卡片打开那个库），其余各排装的是那个库最近添加的内容。";
+            + "展开「媒体库」可选择首页要显示的入口，并调整入口顺序。各库的最近添加可在下方单独设置。";
 
     /// <summary>这一排现在是不是钉住的：轮播图开着时的「媒体库」那一排（见 <see cref="Emby.HomeLayout.Plan"/>）。</summary>
     private static bool IsPinnedHomeRow(UiSettings ui, string key) =>
@@ -2135,7 +2136,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 聚合模式多账号时库排前面写账号用户名（<see cref="Emby.HomeLayout.Caption"/>），拖拽与勾选写回设置文件的
     /// 仍是不带前缀的库名。两处造表（首次建卡与来源变化后重填）共用这一份，判定不会各说各话。
     /// </summary>
-    private IReadOnlyList<HomeRowChoice> CurrentHomeChoices()
+    private IReadOnlyList<HomeRowChoice> CurrentHomeChoices(SettingHomeLayoutRow? libraryEntries)
     {
         // 与主页 ShowAccountNames 取同一份来源（会话里的全部在线来源）：这里按 IsAvailable 先筛一遍，
         // 撤销中的来源会让「主页写用户名、设置表不写」在同一刻出现两种字。
@@ -2146,8 +2147,49 @@ public sealed partial class SettingsViewModel : PageViewModel
             row.Title,
             row.Visible,
             IsPinnedHomeRow(Settings.Ui, row.Key),
-            Emby.HomeLayout.Caption(row.Key, row.Title, sources)))];
+            Emby.HomeLayout.Caption(row.Key, row.Title, sources))
+        {
+            LibraryEntries = row.Key == Emby.HomeLayout.Libraries && libraryEntries is { Rows.Count: > 0 }
+                ? libraryEntries : null
+        })];
     }
+
+    private Func<IReadOnlyList<EmbyItem>>? _readHomeLibraryDirectory;
+
+    internal void UseHomeLibraryDirectory(Func<IReadOnlyList<EmbyItem>>? readDirectory) =>
+        _readHomeLibraryDirectory = readDirectory;
+
+    private IReadOnlyList<HomeRowPlan> HomeLibraryDirectory()
+    {
+        if (_readHomeLibraryDirectory?.Invoke() is not { Count: > 0 } libraries) return [];
+
+        var sources = _capabilities?.Sources.Where(source => source.IsAvailable)
+            .Select(source => source.Key).ToHashSet(StringComparer.Ordinal) ?? [];
+        return HomeLibraryLayout.FromItems(libraries.Where(library =>
+            library.Source is { } source && sources.Contains(source.Key)));
+    }
+
+    private IReadOnlyList<HomeRowChoice> CurrentHomeLibraryChoices(UiSettings ui)
+    {
+        var sources = _capabilities?.Sources.Select(source => source.Scope).ToArray() ?? [];
+        return [.. HomeLibraryLayout.Plan(ui.HomeLibraryEntries, HomeLibraryDirectory())
+            .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible,
+                caption: Emby.HomeLayout.Caption(row.Key, row.Title, sources)))];
+    }
+
+    private SettingHomeLayoutRow CreateHomeLibraryEntries(UiSettings ui) => new(
+        "媒体库入口", null, CurrentHomeLibraryChoices(ui), rows =>
+        {
+            var directory = HomeLibraryDirectory();
+            var current = directory.Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
+            var edits = rows.Where(row => current.Contains(row.Key))
+                .Select(row => new HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray();
+            if (edits.Length == 0) return;
+
+            ui.HomeLibraryEntries = HomeLibraryLayout.MergeEdits(ui.HomeLibraryEntries, directory, edits);
+            Save();
+            ShellPrefs.ApplyHomeLibraryEntries(ui);
+        });
 
     internal void RefreshHomeRows()
     {
@@ -2159,23 +2201,29 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 把这一页摆到前面时会再喊一次。
         if (!string.Equals(SelectedCategory, FirstCardCategory, StringComparison.Ordinal)) return;
 
-        var wanted = CurrentHomeChoices().ToList();
+        if (HomeRows.LibraryEntries is { } entries)
+            RefreshHomeChoices(entries, CurrentHomeLibraryChoices(Settings.Ui));
+        RefreshHomeChoices(HomeRows, CurrentHomeChoices(HomeRows.LibraryEntries));
+    }
 
+    private static void RefreshHomeChoices(SettingHomeLayoutRow table, IReadOnlyList<HomeRowChoice> wanted)
+    {
         // 名单没变就别重填。重填是一记 Reset，会把这一页上正看着的容器整批拆了重建 —— 而「切回主页」这一次
         // 调用绝大多数时候名单就是一个没变（见 ShowCategory），白拆一遍只会把切分类那点动效搅乱。固定项也算
         // 「名单变了」：轮播开关一拨，那一排的箭头和把手要跟着锁上或放开；账号名也算 —— 聚合开关一拨，
         // 那几排的库名前面要添上或去掉用户名，不重建就还是上一份的字。
-        if (HomeRows.Rows.Count == wanted.Count
-            && HomeRows.Rows.Zip(wanted).All(pair => pair.First.Key == pair.Second.Key
+        if (table.Rows.Count == wanted.Count
+            && table.Rows.Zip(wanted).All(pair => pair.First.Key == pair.Second.Key
                 && pair.First.Title == pair.Second.Title
                 && pair.First.Caption == pair.Second.Caption
                 && pair.First.Visible == pair.Second.Visible
-                && pair.First.Pinned == pair.Second.Pinned))
+                && pair.First.Pinned == pair.Second.Pinned
+                && ReferenceEquals(pair.First.LibraryEntries, pair.Second.LibraryEntries)))
         {
             return;
         }
 
-        HomeRows.Seed(wanted);
+        table.Seed(wanted);
     }
 
     /// <summary>

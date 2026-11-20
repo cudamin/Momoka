@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
+using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -431,6 +432,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 item.ParentThumbImageTag
             }),
             settings.Settings.Ui.HomeRows,
+            settings.Settings.Ui.HomeLibraryEntries,
             settings.Settings.Ui.ShowHomeBanner,
             settings.Settings.Ui.CarouselSource,
             settings.Settings.Ui.CarouselMedia,
@@ -599,6 +601,21 @@ public sealed partial class HomeViewModel : PageViewModel
         return LoadAsync();
     }
 
+    private IReadOnlyList<EmbyItem> LibraryEntryItems() =>
+        HomeLibraryLayout.VisibleItems(_settings?.Settings.Ui.HomeLibraryEntries, _libraryViews);
+
+    internal void ApplyLibraryEntries(UiSettings ui)
+    {
+        if (!Live || _settings is not { } settings || !ReferenceEquals(settings.Settings.Ui, ui)) return;
+        var (row, shelf) = _all.FirstOrDefault(entry => entry.Row.Key == HomeLayout.Libraries);
+        if (!row.Visible || shelf is null) return;
+
+        shelf.Apply(LibraryEntryItems(), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
+        PublishShelves();
+        if (IsReady && !Busy) ShowEmptyNotice = Shelves.Count == 0 && LibraryShelf is null;
+        if (_retainedFingerprint is not null) _retainedFingerprint = RetainedFingerprint(_libraryViews, settings, _sources);
+    }
+
     /// <summary>
     /// 同一身份、同一版面和轮播配置下，先用上次的条目把货架摆出来。命中时页面立即可读，网络检查交给
     /// <see cref="BackgroundRefreshAsync"/>；未命中照旧首读。
@@ -625,6 +642,12 @@ public sealed partial class HomeViewModel : PageViewModel
         timing?.Mark("home-cards-begin");
         foreach (var (row, shelf) in _all)
         {
+            if (row.Key == HomeLayout.Libraries && row.Visible)
+            {
+                // 库列表已经随导航拿到，按本次偏好摆放，不让缓存里的旧次序或勾选覆盖它。
+                shelf.Apply(LibraryEntryItems(), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
+                continue;
+            }
             if (!row.Visible || snapshot.Rows.FirstOrDefault(entry => entry.Key == row.Key) is not { } cached)
             {
                 shelf.Clear();
@@ -686,7 +709,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
         _snapshots.StoreHome(_snapshotKey, _sourceTokens, new HomeSnapshot
         {
-            Rows = [.. _all.Where(entry => entry.Row.Visible).Select(entry => new HomeRowSnapshot(
+            Rows = [.. _all.Where(entry => entry.Row.Visible && entry.Row.Key != HomeLayout.Libraries).Select(entry => new HomeRowSnapshot(
                 entry.Row.Key, [.. entry.Shelf.Cards.Where(card => !card.IsNavigation).Select(card => card.Item)], entry.Shelf.NoteOverride))],
             SlideItems = [.. Slides.Select(slide => slide.Item)],
             LoadedCount = LoadedCount,
@@ -1177,7 +1200,7 @@ public sealed partial class HomeViewModel : PageViewModel
         // 逐片回填也走这里，所以删掉一件之后，任何一片迟到的结果都不会把它重新摆回货架。
         // 音乐库那一排不过 WithoutMusic：它装的本来就是专辑（查询侧已经限定 MusicAlbum）。
         IReadOnlyList<EmbyItem> ItemsOf(RowRead load) =>
-            load.Row.Key == HomeLayout.Libraries ? _libraryViews
+            load.Row.Key == HomeLayout.Libraries ? LibraryEntryItems()
             : IsMusicRow(load.Row.Key) ? Visible(load.Row.Key, MergeParts(load.Parts))
             : WithoutMusic(Visible(load.Row.Key, MergeParts(load.Parts)));
 

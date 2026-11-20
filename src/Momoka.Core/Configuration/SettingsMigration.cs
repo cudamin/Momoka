@@ -447,6 +447,8 @@ public static class SettingsMigration
 
         if (settings.Ui.HomeRows is null) settings.Ui.HomeRows = [];
         settings.Ui.HomeRows.RemoveAll(row => row is null);
+        if (settings.Ui.HomeLibraryEntries is null) settings.Ui.HomeLibraryEntries = [];
+        settings.Ui.HomeLibraryEntries.RemoveAll(row => row is null);
         settings.Ui.HomeRowsIdentity ??= "";
         settings.Ui.HomeRowsByIdentity ??= new(StringComparer.Ordinal);
         DropNullValues(settings.Ui.HomeRowsByIdentity);

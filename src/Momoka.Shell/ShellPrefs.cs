@@ -27,6 +27,11 @@ public static class ShellPrefs
     /// <summary>界面那一组设置改了。参数是改完之后的那一份。</summary>
     public static event Action<UiSettings>? Changed;
 
+    /// <summary>主页只重排已读到的媒体库入口，保留轮播和其它货架。</summary>
+    public static event Action<UiSettings>? HomeLibraryEntriesChanged;
+
+    public static void ApplyHomeLibraryEntries(UiSettings ui) => HomeLibraryEntriesChanged?.Invoke(ui);
+
     public static event Action<UiSettings>? SidebarChanged;
 
     public static void ApplySidebar(UiSettings ui) => SidebarChanged?.Invoke(ui);

@@ -29,7 +29,10 @@ namespace Momoka.Shell.Views;
 /// last reading is the reason it is.
 /// </para>
 /// </summary>
-internal sealed record SettingsRequest(IServiceProvider Services, string Category = "");
+internal sealed record SettingsRequest(IServiceProvider Services, string Category = "")
+{
+    internal Func<IReadOnlyList<EmbyItem>>? ReadLibraryDirectory { get; init; }
+}
 
 /// <summary>
 /// 设置页。左侧分类，右侧卡片，播放、字幕、视频输出、音频和着色器的修改会立即写入设置文件。
@@ -441,6 +444,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         _activityToken = _activity.Begin();
         ViewModel.Activate();
         _request = request;
+        ViewModel.UseHomeLibraryDirectory(request.ReadLibraryDirectory);
         // Hide 后 XAML 仍可保持 Loaded；重开不能只等另一次 Loaded 才恢复动效偏好通知。
         HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
         HomeMotion.PreferenceChanged += ApplySettingsMotionPreference;
@@ -945,7 +949,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// <summary>同上，数主页版面那张表画出来的行。见 <see cref="MeasureHomeRows"/>。</summary>
     private static void CountHomeRows(DependencyObject node, ref int rows)
     {
-        if (node is ListView { Tag: SettingHomeLayoutRow { EnableSpring: true } }) return;
+        if (node is ListView list && (list.Name == "HomeLibraryEntriesList"
+            || list.Tag is SettingHomeLayoutRow { EnableSpring: true })) return;
         if (node is ContentPresenter { Content: HomeRowChoice }) rows++;
 
         var children = VisualTreeHelper.GetChildrenCount(node);

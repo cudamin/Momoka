@@ -123,7 +123,7 @@ public sealed partial class HomeViewModel
             _all = next.ToArray();
             var directory = _all.FirstOrDefault(entry => entry.Row.Key == HomeLayout.Libraries);
             if (directory.Shelf is not null && directory.Row.Visible)
-                directory.Shelf.Apply(_libraryViews, ShelfSubtitle(HomeLayout.Libraries), ShelfTitle(HomeLayout.Libraries));
+                directory.Shelf.Apply(LibraryEntryItems(), ShelfSubtitle(HomeLayout.Libraries), ShelfTitle(HomeLayout.Libraries));
             PublishShelves();
 
             // 官方 sum 从空到非空或新库才挂载货架；正数到正数不重读现有 item/list。

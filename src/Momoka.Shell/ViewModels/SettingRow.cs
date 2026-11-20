@@ -922,16 +922,23 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
 
     public bool EnableSpring { get; }
 
+    public SettingHomeLayoutRow? LibraryEntries { get; }
+
+    [ObservableProperty]
+    public partial bool IsExpanded { get; set; }
+
     internal SettingHomeLayoutRow(
         string label,
         string? note,
         IEnumerable<HomeRowChoice> rows,
         Action<IReadOnlyList<HomeRowChoice>> changed,
-        bool enableSpring = false)
+        bool enableSpring = false,
+        SettingHomeLayoutRow? libraryEntries = null)
         : base(label, note)
     {
         _changed = changed;
         EnableSpring = enableSpring;
+        LibraryEntries = libraryEntries;
 
         foreach (var row in rows) Adopt(row);
 
@@ -958,10 +965,9 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
     public ObservableCollection<HomeRowChoice> Rows { get; } = [];
 
     /// <summary>
-    /// 这张表要多高。给死高度而不是让它自己滚：设置页本来就是一整页滚动条，表里再套一个滚动条的话，拖到边上
-    /// 时两个滚动条会互相抢，一项都拖不到看不见的地方去。
+    /// 主页的表随展开内容自然增高，详情排序和子表仍按行数留出空间。滚动统一交给外层设置页。
     /// </summary>
-    public double ListHeight => (Rows.Count * RowHeight) + 8;
+    public double ListHeight => LibraryEntries is not null ? double.NaN : (Rows.Count * RowHeight) + 8;
 
     /// <summary>一项占多高。<c>ListViewItem</c> 默认那一档加上勾和把手之后量出来的数。</summary>
     private const double RowHeight = 40;
@@ -969,6 +975,13 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
     /// <summary>装表的时候先别喊 —— 那不是用户改的。</summary>
     internal void Seed(IEnumerable<HomeRowChoice> rows)
     {
+        // A directory refresh replaces the choices. A late drop must not restore the previous account's rows.
+        foreach (var row in (_beforeReorder ?? []).Concat(Rows))
+        {
+            row.Changed = null;
+            row.Shift = null;
+        }
+        _beforeReorder = null;
         _quiet = true;
 
         try
@@ -995,12 +1008,14 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
 
     internal void EndReorder() => EndReorder(save: true);
 
+    internal void CancelReorder() => EndReorder(save: false);
+
     private void EndReorder(bool save)
     {
         if (_beforeReorder is not { } before) return;
         _beforeReorder = null;
         // 原生拖拽先 Remove 再 Add；离页或取消落在中间时还原完整集合，不保存缺项快照。
-        if (Rows.Count != before.Length || before.Any(row => !Rows.Contains(row)))
+        if ((!save && !Rows.SequenceEqual(before)) || Rows.Count != before.Length || before.Any(row => !Rows.Contains(row)))
         {
             _quiet = true;
             try
@@ -1184,6 +1199,12 @@ public sealed partial class HomeRowChoice : ObservableObject
     /// 位置」和窗口高度决定，不随这张表的次序走。固定项两头箭头都灰着，也拖不动，别的排挪不到它前面。
     /// </summary>
     public bool Pinned { get; }
+
+    public SettingHomeLayoutRow? LibraryEntries { get; init; }
+
+    public Visibility LibraryExpanderVisibility => LibraryEntries is null ? Visibility.Collapsed : Visibility.Visible;
+
+    public Visibility PlainCaptionVisibility => LibraryEntries is null ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>行尾那颗图标：能拖的是把手，固定的是锁（同一支 Segoe 图标字体）。</summary>
     public string HandleGlyph => Pinned ? "\uE72E" : "\uE76F";

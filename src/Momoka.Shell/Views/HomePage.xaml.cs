@@ -1489,6 +1489,8 @@ public sealed partial class HomePage : Page, IShellContent
         // 版面（拖拽出来的次序、勾掉的那几排）改完当场生效：设置页在另一个窗口里，它改完喊一声，这一页重排。
         ShellPrefs.Changed -= OnShellPrefsChanged;
         ShellPrefs.Changed += OnShellPrefsChanged;
+        ShellPrefs.HomeLibraryEntriesChanged -= OnHomeLibraryEntriesChanged;
+        ShellPrefs.HomeLibraryEntriesChanged += OnHomeLibraryEntriesChanged;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         ShellPrefs.AppearanceChanged += OnAppearanceChanged;
 
@@ -1524,6 +1526,7 @@ public sealed partial class HomePage : Page, IShellContent
         _homeSettings = null;
         Subscriptions.Release();
         ShellPrefs.Changed -= OnShellPrefsChanged;
+        ShellPrefs.HomeLibraryEntriesChanged -= OnHomeLibraryEntriesChanged;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         if (_localLibraries is { } localLibraries) localLibraries.Changed -= OnLocalLibrariesChanged;
         _localLibraries = null;
@@ -1558,6 +1561,14 @@ public sealed partial class HomePage : Page, IShellContent
         RefreshHomeRows();
         UpdateLibraryOverlay();
         _ = ViewModel.ApplyLayoutAsync();
+    }
+
+    private void OnHomeLibraryEntriesChanged(Configuration.UiSettings ui)
+    {
+        if (_released) return;
+        ViewModel.ApplyLibraryEntries(ui);
+        RefreshHomeRows();
+        ScheduleFold();
     }
 
     private void OnLocalLibrariesChanged(object? sender, EventArgs args)

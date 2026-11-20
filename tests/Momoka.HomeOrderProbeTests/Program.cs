@@ -76,8 +76,7 @@ internal static class Program
             Assert.Equal(1, f.Capabilities.Sources.Count);
             Assert.Equal(4, f.Rows.Count);
             Assert.True(f.Keys.Any(key => key.Contains(Uri.EscapeDataString(f.Source.Key), StringComparison.Ordinal)));
-            var identity = typeof(EmbySessionScope).GetProperty("IdentityState", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Source)!;
-            ((CancellationTokenSource)identity.GetType().GetProperty("Lifetime")!.GetValue(identity)!).Cancel();
+            Revoke(f.Source);
             HomeOrderFixture.Runtime.Invoke(f.Vm, "RefreshHomeRows");
             Assert.False(f.Source.IsAvailable);
             Assert.Equal(3, f.Rows.Count);
@@ -213,7 +212,8 @@ internal static class Program
             await f.WaitRows(6);
             Assert.Equal(2, f.MoviePilotCount);
             Assert.Equal(1, f.Reads.Requests);
-            Assert.Equal(248d, HomeOrderFixture.Runtime.Get<double>(f.Table, "ListHeight"));
+            Assert.True(double.IsNaN(HomeOrderFixture.Runtime.Get<double>(f.Table, "ListHeight")),
+                "主页表按内容伸缩，要为展开的媒体库子项留出空间");
             f.Stable();
         });
         Test("HomeOrder 断线/连接恢复原地4→6，非默认次序与两个取消勾选不丢失", async () =>
@@ -226,7 +226,8 @@ internal static class Program
             Assert.False(await f.Service.RefreshAvailabilityAsync());
             f.Drain();
             await f.WaitRows(4);
-            Assert.Equal(168d, HomeOrderFixture.Runtime.Get<double>(f.Table, "ListHeight"));
+            Assert.True(double.IsNaN(HomeOrderFixture.Runtime.Get<double>(f.Table, "ListHeight")),
+                "断线后仍由父表按内容测量，不给隐藏的订阅项保留固定高度");
             Assert.Equal(0, f.MoviePilotCount);
             f.Stable();
             f.Reads.Offline = false;
@@ -263,6 +264,105 @@ internal static class Program
             Assert.Equal(writes + 1, f.Settings.Writes);
             Assert.True(f.Settings.Settings.Ui.HomeRows.Where(row => HomeLayout.LibraryId(row.Key) is not null)
                 .All(row => row.Title == "最近添加 · 离线电影库"), "保存不能带上屏上的账号用户名");
+        });
+        Test("HomeOrder 子表用实际库名，媒体库入口与最近添加排分别保存", () =>
+        {
+            using var f = new HomeOrderFixture(secondSource: true, liveDirectory: true);
+            var runtime = HomeOrderFixture.Runtime;
+            var entries = runtime.List(LibraryEntries(f), "Rows");
+            var keys = f.LibraryDirectory.Select(HomeLayout.LibraryKey).ToArray();
+            Assert.True(keys.SequenceEqual(ChoiceKeys(entries)), "默认照目录次序，包括音乐库和另一来源的同 ID 库");
+            Assert.Equal("anonymous-user · 离线电影库", runtime.Get<string>(entries[0]!, "Caption"));
+            Assert.Equal("second-user · 离线电影库", runtime.Get<string>(entries[2]!, "Caption"));
+            Assert.True(entries.Cast<object>().All(row => runtime.Get<bool>(row, "Visible")));
+            Assert.Equal(0, f.Settings.Writes);
+
+            runtime.Set(entries[0]!, "Visible", false);
+            Assert.Equal(1, f.Settings.Writes);
+            var ui = f.Settings.Settings.Ui;
+            Assert.True(HomeLayout.Same(f.Saved, HomeLayout.Plan(ui.HomeRows, null)), "子表不能改最近添加排和父行的显示");
+            Assert.True(ui.HomeLibraryEntries.Single(entry => entry.Key == keys[2]).Visible, "同 ID 的另一来源库不受影响");
+            Assert.Equal("离线电影库", ui.HomeLibraryEntries.Single(entry => entry.Key == keys[0]).Title);
+            Assert.False(ui.HomeLibraryEntries.Single(entry => entry.Key == keys[0]).Visible);
+
+            var saved = ui.HomeLibraryEntries.Select(row => (row.Key, row.Title, row.Visible)).ToArray();
+            runtime.Set(Choice(f, HomeLayout.Libraries), "Visible", false);
+            runtime.Set(Choice(f, keys[1]), "Visible", false);
+            Assert.Equal(3, f.Settings.Writes);
+            Assert.True(saved.SequenceEqual(ui.HomeLibraryEntries.Select(row => (row.Key, row.Title, row.Visible))),
+                "关闭父行及最近添加排后，重新开启时仍应恢复原子表偏好");
+        });
+        Test("HomeOrder 媒体库子项原生拖动拆插完成才保存，取消保留全表，箭头也能换位", () =>
+        {
+            using var f = new HomeOrderFixture(liveDirectory: true);
+            var runtime = HomeOrderFixture.Runtime;
+            var table = LibraryEntries(f);
+            var entries = runtime.List(table, "Rows");
+            var keys = ChoiceKeys(entries);
+            var first = entries[0]!;
+            runtime.Invoke(table, "BeginReorder");
+            entries.RemoveAt(0);
+            entries.Insert(1, first);
+            Assert.Equal(0, f.Settings.Writes);
+            CompleteReorder(table);
+            Assert.Equal(1, f.Settings.Writes);
+            Assert.True(keys.Reverse().SequenceEqual(f.Settings.Settings.Ui.HomeLibraryEntries.Select(row => row.Key)));
+
+            runtime.Invoke(table, "BeginReorder");
+            entries.RemoveAt(1);
+            entries.Insert(0, first);
+            runtime.Invoke(table, "CancelReorder");
+            Assert.Equal(1, f.Settings.Writes);
+            Assert.True(keys.Reverse().SequenceEqual(ChoiceKeys(entries)), "取消落位后恢复原次序");
+
+            runtime.Invoke(table, "BeginReorder");
+            entries.RemoveAt(1);
+            CompleteReorder(table);
+            Assert.Equal(1, f.Settings.Writes);
+            Assert.True(keys.Reverse().SequenceEqual(ChoiceKeys(entries)), "拖动取消不丢选项");
+
+            ((ICommand)runtime.Get<object>(first, "UpCommand")).Execute(null);
+            Assert.Equal(2, f.Settings.Writes);
+            Assert.True(keys.SequenceEqual(ChoiceKeys(entries)));
+            Assert.True(keys.SequenceEqual(f.Settings.Settings.Ui.HomeLibraryEntries.Select(row => row.Key)));
+            Assert.True(HomeLayout.Same(f.Saved, HomeLayout.Plan(f.Settings.Settings.Ui.HomeRows, null)));
+        });
+        Test("HomeOrder 刷新目录时维持子表身份，旧拖动不能恢复离线来源或覆盖偏好", () =>
+        {
+            using var f = new HomeOrderFixture(secondSource: true, liveDirectory: true);
+            var runtime = HomeOrderFixture.Runtime;
+            var table = LibraryEntries(f);
+            var entries = runtime.List(table, "Rows");
+            var keys = ChoiceKeys(entries);
+            var leaving = entries[2]!;
+            Assert.True(ReferenceEquals(table, runtime.Get<object>(Choice(f, HomeLayout.Libraries), "LibraryEntries")));
+            Assert.False(runtime.Get<bool>(table, "IsExpanded"), "媒体库子表默认折叠");
+            runtime.Set(table, "IsExpanded", true);
+            runtime.Set(leaving, "Visible", false);
+
+            runtime.Invoke(table, "BeginReorder");
+            entries.RemoveAt(2);
+            Revoke(f.SecondSource!);
+            f.LibraryDirectory.RemoveAt(2);
+            f.LibraryDirectory.Add(f.Source.Bind(new EmbyItem
+            {
+                Id = "new", Name = "新增剧集库", Type = EmbyItemType.CollectionFolder, CollectionType = "tvshows"
+            }));
+            runtime.Invoke(f.Vm, "RefreshHomeRows");
+            CompleteReorder(table);
+            Assert.True(ReferenceEquals(table, LibraryEntries(f)));
+            Assert.True(ReferenceEquals(entries, runtime.List(table, "Rows")));
+            Assert.True(ReferenceEquals(table, runtime.Get<object>(Choice(f, HomeLayout.Libraries), "LibraryEntries")));
+            Assert.True(runtime.Get<bool>(table, "IsExpanded"), "重填父表后保留展开位置");
+            Assert.True(f.LibraryDirectory.Select(HomeLayout.LibraryKey).SequenceEqual(ChoiceKeys(entries)));
+            Assert.True(runtime.Get<bool>(entries[2]!, "Visible"), "新库默认显示");
+            Assert.Equal(1, f.Settings.Writes, "来源切换或旧拖动结束不能保存");
+
+            runtime.Set(leaving, "Visible", true);
+            runtime.Set(entries[2]!, "Visible", false);
+            Assert.Equal(2, f.Settings.Writes, "已离开的旧行不能提交，当前新行可以提交");
+            Assert.False(f.Settings.Settings.Ui.HomeLibraryEntries.Single(row => row.Key == keys[2]).Visible,
+                "编辑在线库时要保留离线库偏好");
         });
         Test("HomeOrder 轮播开着时媒体库固定第一位，关掉放开再开回来", () =>
         {
@@ -408,6 +508,25 @@ internal static class Program
 
     private static object Choice(HomeOrderFixture fixture, string key) =>
         fixture.Rows.Cast<object>().Single(row => HomeOrderFixture.Runtime.Get<string>(row, "Key") == key);
+
+    private static object LibraryEntries(HomeOrderFixture fixture) =>
+        HomeOrderFixture.Runtime.Get<object>(fixture.Table, "LibraryEntries")
+            ?? throw new AssertionException("找不到媒体库的子排序表");
+
+    private static string[] ChoiceKeys(IList rows) =>
+        rows.Cast<object>().Select(row => HomeOrderFixture.Runtime.Get<string>(row, "Key")).ToArray();
+
+    private static void CompleteReorder(object table) =>
+        table.GetType().GetMethod("EndReorder",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+            binder: null, types: Type.EmptyTypes, modifiers: null)!.Invoke(table, null);
+
+    private static void Revoke(EmbySessionScope source)
+    {
+        var identity = typeof(EmbySessionScope).GetProperty("IdentityState",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(source)!;
+        ((CancellationTokenSource)identity.GetType().GetProperty("Lifetime")!.GetValue(identity)!).Cancel();
+    }
 
     /// <summary>「显示主页轮播大图」那一行的真对象 —— Shell 程序集只在运行时加载，这里按反射取。</summary>
     private static object ToggleRow(HomeOrderFixture fixture) =>

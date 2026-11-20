@@ -522,6 +522,8 @@ public sealed partial class ShellPage
     /// </summary>
     private void RebuildSidebarLibraries()
     {
+        // Both surfaces read the same directory. Refresh choices even when only the account-qualified title changed.
+        (_settingsWindow?.Page ?? ContentFrame.Content as SettingsPage)?.RefreshHomeLibraryDirectory();
         var order = SidebarRowOrder();
 
         // 名单、次序和屏上那句库名都没变时不动：设置页拖一下排序也会走到这里，而重插是一记 Remove/Insert，

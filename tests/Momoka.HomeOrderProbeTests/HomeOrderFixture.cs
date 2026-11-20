@@ -30,11 +30,12 @@ internal sealed class HomeOrderFixture : IDisposable
     public object Table { get; }
     public IList Rows { get; }
     public object Sections { get; }
+    public List<EmbyItem> LibraryDirectory { get; } = [];
     public SettingsPage Page { get; }
     public IReadOnlyList<HomeRowSetting> Saved { get; }
     public static ShellRuntime Runtime => ShellRuntime.Current;
 
-    public HomeOrderFixture(bool secondSource = false)
+    public HomeOrderFixture(bool secondSource = false, bool liveDirectory = false)
     {
         Settings.Settings.MoviePilot.Url = "https://homeorder-fixture.invalid:3001";
         Settings.Settings.MoviePilot.Username = "anonymous-fixture";
@@ -57,13 +58,21 @@ internal sealed class HomeOrderFixture : IDisposable
         }
         typeof(EmbySession).GetField("_current", Members)!.SetValue(Session, Source);
         Capabilities = new ServerCapabilities(Session);
-        var libraries = new List<EmbyItem>
+        LibraryDirectory.Add(Source.Bind(new EmbyItem
         {
-            Source.Bind(new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder })
-        };
+            Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+        }));
+        if (liveDirectory)
+            LibraryDirectory.Add(Source.Bind(new EmbyItem
+            {
+                Id = "music", Name = "离线音乐库", Type = EmbyItemType.CollectionFolder, CollectionType = "music"
+            }));
         if (SecondSource is not null)
-            libraries.Add(SecondSource.Bind(new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder }));
-        var plan = HomeLayout.Plan(null, libraries).ToList();
+            LibraryDirectory.Add(SecondSource.Bind(new EmbyItem
+            {
+                Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+            }));
+        var plan = HomeLayout.Plan(null, LibraryDirectory).ToList();
         var series = plan.Single(row => row.Key == HomeLayout.MoviePilotSeries);
         plan.Remove(series);
         plan.Insert(0, series with { Visible = false });
@@ -81,6 +90,8 @@ internal sealed class HomeOrderFixture : IDisposable
             _ => parameter.HasDefaultValue ? parameter.DefaultValue : null
         }).ToArray();
         Runtime.Invoke(Vm, "Attach", args);
+        if (liveDirectory)
+            Runtime.Invoke(Vm, "UseHomeLibraryDirectory", (Func<IReadOnlyList<EmbyItem>>)(() => LibraryDirectory.ToArray()));
         // Only the actual home cards are built. Whole-page Reload would construct native subtitle previews.
         foreach (var section in (IEnumerable)Runtime.Invoke(Vm, "HomeSections")!)
             Runtime.List(Vm, "Sections").Add(section);

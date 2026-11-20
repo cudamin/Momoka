@@ -1934,6 +1934,9 @@ public sealed class UiSettings
     /// </summary>
     public List<HomeRowSetting> HomeRows { get; set; } = [];
 
+    /// <summary>主页「媒体库」横排中各服务器库入口的顺序与显隐。空列表沿用目录次序，全部显示。</summary>
+    public List<HomeRowSetting> HomeLibraryEntries { get; set; } = [];
+
     public string HomeRowsIdentity { get; set; } = "";
 
     public Dictionary<string, List<HomeRowSetting>> HomeRowsByIdentity { get; set; } = new(StringComparer.Ordinal);
