@@ -2,11 +2,16 @@
 param(
     [string]$Repo = '',
     [switch]$All,
-    [string[]]$Paths
+    [string[]]$Paths,
+    [ValidateNotNullOrEmpty()]
+    [string]$Base
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+if ($Base -and ($All -or $PSBoundParameters.ContainsKey('Paths'))) {
+    throw '-Base 不能和 -All 或 -Paths 一起使用。'
+}
 # 参数的默认值在脚本根路径就绪前求值（-File 调用时 $PSScriptRoot 可能还是空串），
 # 所以仓库路径放到正文里补，不在 param 块里 Join-Path。
 if (-not $Repo) { $Repo = Join-Path $PSScriptRoot '..' }
@@ -43,12 +48,62 @@ function Invoke-Git([string]$RepoPath, [string[]]$Arguments) {
     }
 }
 
+function Resolve-Commit([string]$Ref) {
+    $commit = @(Invoke-Git $root @('rev-parse', '--verify', '--end-of-options', "${Ref}^{commit}"))
+    if ($gitExit -ne 0 -or $commit.Count -ne 1 -or $commit[0] -cnotmatch '^(?:[0-9a-f]{40}|[0-9a-f]{64})$') {
+        throw "找不到提交：$Ref"
+    }
+    return $commit[0]
+}
+
+# Windows PowerShell 的原生命令管道会转码；读取 Git 对象时必须保留原始字节。
+# 命令行仅使用固定选项和已解析的 Git 对象 ID，不传文件名或用户输入的引用。
+function Read-GitBytes([string]$Command, [string]$Failure) {
+    $start = [Diagnostics.ProcessStartInfo]::new($gitPath, $Command)
+    $start.WorkingDirectory = $root
+    $start.UseShellExecute = $false
+    $start.RedirectStandardOutput = $true
+    $start.CreateNoWindow = $true
+    $process = [Diagnostics.Process]::Start($start)
+    $buffer = [IO.MemoryStream]::new()
+    try {
+        $process.StandardOutput.BaseStream.CopyTo($buffer)
+        $process.WaitForExit()
+        if ($process.ExitCode -ne 0) { throw $Failure }
+        return ,$buffer.ToArray()
+    } finally {
+        $buffer.Dispose()
+        $process.Dispose()
+    }
+}
+
 $rootLines = @(Invoke-Git $Repo @('rev-parse', '--show-toplevel'))
 if ($gitExit -ne 0 -or $rootLines.Count -eq 0 -or -not $rootLines[0]) { throw "不是 Git 工作树：$Repo" }
 $root = [IO.Path]::GetFullPath(([string]$rootLines[0]).Trim())
 
 $files = [Collections.Generic.List[string]]::new()
-if ($Paths) {
+$utf8Strict = [Text.UTF8Encoding]::new($false, $true)
+$blobs = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+if ($Base) {
+    $gitPath = (Get-Command git -CommandType Application | Select-Object -First 1).Source
+    $baseCommit = Resolve-Commit $Base
+    $headCommit = Resolve-Commit 'HEAD'
+    Write-Output "检查已提交范围：$baseCommit → $headCommit"
+    # 不检测重命名：目标按新增处理。用 NUL 分隔，按目标文件模式排除符号链接和子模块。
+    $raw = Read-GitBytes "diff --raw -z --no-abbrev --no-renames --no-relative --ignore-submodules=all --diff-filter=AMT $baseCommit $headCommit --" '无法读取提交范围的变更文件。'
+    $entries = $utf8Strict.GetString($raw).Split([char]0)
+    for ($i = 0; $i -lt $entries.Length - 1; $i += 2) {
+        $fields = $entries[$i].Split(' ')
+        if ($fields.Length -ne 5 -or $i + 1 -ge $entries.Length - 1 -or
+            $fields[3] -cnotmatch '^(?:[0-9a-f]{40}|[0-9a-f]{64})$') {
+            throw '无法解析 Git 变更文件记录。'
+        }
+        if ($fields[1] -notin @('100644', '100755')) { continue }
+        $path = $entries[$i + 1]
+        $files.Add($path)
+        $blobs.Add($path, $fields[3])
+    }
+} elseif ($Paths) {
     foreach ($path in $Paths) { $files.Add($path) }
 } elseif ($All) {
     foreach ($path in @(Invoke-Git $root @('ls-files'))) { if ($path) { $files.Add([string]$path) } }
@@ -64,21 +119,25 @@ if ($Paths) {
 
 $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 $checked = 0
-$utf8Strict = [Text.UTF8Encoding]::new($false, $true)
 
-foreach ($relative in ($files | Sort-Object -Unique)) {
-    $relative = $relative.Trim()
-    if (-not $relative) { continue }
-    if (-not $seen.Add($relative)) { continue }
-    $full = [IO.Path]::GetFullPath((Join-Path $root $relative))
-    if ($full -ne $root -and
-        -not $full.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
-        Fail "$relative 越过工作树"
-        continue
+if (-not $Base) { $files = @($files | Sort-Object -Unique) }
+foreach ($relative in $files) {
+    if ($Base) {
+        $bytes = Read-GitBytes "cat-file blob $($blobs[$relative])" "无法读取提交中的文件：$relative"
+    } else {
+        $relative = $relative.Trim()
+        if (-not $relative) { continue }
+        if (-not $seen.Add($relative)) { continue }
+        $full = [IO.Path]::GetFullPath((Join-Path $root $relative))
+        if ($full -ne $root -and
+            -not $full.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+            Fail "$relative 越过工作树"
+            continue
+        }
+        if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
+
+        $bytes = [IO.File]::ReadAllBytes($full)
     }
-    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
-
-    $bytes = [IO.File]::ReadAllBytes($full)
     if ($bytes.Length -eq 0) { continue }
     $checked++
     $extension = [IO.Path]::GetExtension($relative).ToLowerInvariant()
@@ -105,15 +164,21 @@ foreach ($relative in ($files | Sort-Object -Unique)) {
     try { $null = $utf8Strict.GetString($bytes) } catch { Fail "$relative 不是合法 UTF-8" }
 }
 
-# git 自己认定的空白错误：行尾空格、行首空格后跟 tab、冲突标记。它只覆盖已跟踪的改动。
-# 没有 HEAD 的新仓库里这条没有意义，跳过而不是把 git 的报错当成违规。
-$null = @(Invoke-Git $root @('rev-parse', '--verify', 'HEAD'))
-if ($gitExit -eq 0) {
-    $diffCheck = @(Invoke-Git $root @('diff', '--check', 'HEAD'))
-    if ($gitExit -ne 0) {
-        foreach ($line in $diffCheck) {
-            if ("$line" -match '^.+:\d+: ') { Fail "git diff --check：$line" }
-        }
+# 没有 HEAD 的新仓库仅做文件字节检查；提交模式使用上面固定的同一范围。
+$diffCheck = @()
+if ($Base) {
+    $diffCheck = @(Invoke-Git $root @("--attr-source=$headCommit", 'diff', '--check', '--no-ext-diff', '--no-textconv', $baseCommit, $headCommit, '--'))
+} else {
+    $null = @(Invoke-Git $root @('rev-parse', '--verify', 'HEAD'))
+    if ($gitExit -eq 0) {
+        $diffCheck = @(Invoke-Git $root @('diff', '--check', 'HEAD'))
+    }
+}
+if ($gitExit -ne 0) {
+    $diagnostics = @($diffCheck | Where-Object { $_ -match '^(?!\+).+:\d+: ' })
+    foreach ($line in $diagnostics) { Fail "git diff --check：$line" }
+    if ($Base -and $diagnostics.Count -eq 0) {
+        throw '无法完成提交范围的 Git 空白检查（-Base 需要 Git 2.41 或更新版本）。'
     }
 }
 

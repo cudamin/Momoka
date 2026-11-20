@@ -103,6 +103,54 @@ $result = Run-Script $diffChecker @('-Repo', $fixture)
 Check ($result.ExitCode -eq 1) 'check-diff 拒绝非法 UTF-8'
 Remove-Item -LiteralPath $bad
 
+# 用真实提交区分工作区与提交范围。禁止夹具继承签名、钩子和 CRLF 转换设置。
+& git -C $fixture config core.autocrlf false
+& git -C $fixture config core.hooksPath (Join-Path $fixture 'no-hooks')
+& git -C $fixture config core.whitespace 'blank-at-eol'
+
+function Commit-Fixture([string]$Message) {
+    & git -C $fixture add --all
+    if ($LASTEXITCODE -ne 0) { throw '无法暂存检查夹具。' }
+    & git -C $fixture -c commit.gpgSign=false commit --quiet -m $Message
+    if ($LASTEXITCODE -ne 0) { throw '无法提交检查夹具。' }
+}
+
+Commit-Fixture 'base'
+$base = (& git -C $fixture rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw '无法读取检查夹具的基准提交。' }
+$range = @('-Repo', $fixture, '-Base', $base)
+$result = Run-Script $diffChecker $range
+Check ($result.ExitCode -eq 0 -and $result.Output -match '检查了 0 个文本文件') '同一提交作为基准时允许空差异'
+$changed = Join-Path $fixture 'src/已提交 改动.cs'
+Save-Bytes $changed ($utf8.GetBytes("namespace Fixture;`r`n"))
+Save-Bytes $clean ($utf8.GetBytes("namespace Fixture;  `n"))
+Commit-Fixture 'bad formatting'
+
+$result = Run-Script $diffChecker @('-Repo', $fixture)
+Check ($result.ExitCode -eq 0 -and $result.Output -match '检查了 0 个文本文件') '干净工作区的默认检查仍不扫描已提交改动'
+
+$attributes = Join-Path $fixture '.gitattributes'
+Save-Bytes $attributes ($utf8.GetBytes("*.cs -whitespace`n"))
+Save-Bytes $changed ($utf8.GetBytes("namespace Fixture;`n"))
+Save-Bytes $clean ($utf8.GetBytes("namespace Fixture;`n"))
+$result = Run-Script $diffChecker $range
+Check ($result.ExitCode -eq 1 -and $result.Output -match '已提交 改动\.cs 使用了 CRLF') '提交中的 CRLF 不被工作区修正掩盖，中文路径可定位'
+Check ($result.Output -match 'src/Clean\.cs:1: trailing whitespace') '提交范围使用提交里的空白规则，工作区改动不能关闭检查'
+
+Remove-Item -LiteralPath $attributes
+Remove-Item -LiteralPath $clean
+Commit-Fixture 'clean formatting and remove an old file'
+Save-Bytes $changed ($utf8.GetBytes("namespace Fixture;`r`n"))
+$result = Run-Script $diffChecker $range
+Check ($result.ExitCode -eq 0 -and $result.Output -match '检查了 1 个文本文件（1 个变更路径）') '范围检查排除已删除文件，且不受工作区 CRLF 影响'
+$result = Run-Script $diffChecker @('-Repo', $fixture)
+Check ($result.ExitCode -eq 1 -and $result.Output -match '使用了 CRLF') '默认检查仍能发现工作区 CRLF'
+
+$result = Run-Script $diffChecker @('-Repo', $fixture, '-Base', 'missing-fixture-ref')
+Check ($result.ExitCode -ne 0 -and $result.Output -match '找不到提交') '无效基准明确失败'
+$result = Run-Script $diffChecker ($range + @('-All'))
+Check ($result.ExitCode -ne 0 -and $result.Output -match '不能和 -All 或 -Paths 一起使用') '基准与工作区选项不能混用'
+
 # ---- check-duplication ------------------------------------------------------------------------
 $dupDirectory = Join-Path $root 'dup'
 $null = New-Item -ItemType Directory -Path $dupDirectory
