@@ -42,9 +42,10 @@ internal static class CardDetailTransition
         if (!HomeMotion.AnimationsEnabled) return RejectPreparation(ConnectedMotionReason.Disabled);
         if (source?.Card is not { LoadedPosterArtwork: { } artwork } card || !VideoDetail(card.Item))
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
-        if (card.Item.Source?.IsCurrent != true) return RejectPreparation(ConnectedMotionReason.IdentityChanged);
+        // 聚合主页可打开任一在线账号；默认账号切换不撤销原身份，退出／重登才失效。
+        if (card.Item.Source?.IsAvailable != true) return RejectPreparation(ConnectedMotionReason.IdentityChanged);
         if (PrimaryArtwork(card.Item) != artwork) return RejectPreparation(ConnectedMotionReason.ArtworkChanged);
-        if (!VisibleImage(source.ConnectedPoster) || source.ConnectedPoster.Source is not BitmapSource picture)
+        if (!VisibleSource(frame, source) || source.ConnectedPoster.Source is not BitmapSource picture)
             return RejectPreparation(ConnectedMotionReason.SourceUnavailable);
         var item = card.Item;
         Action? releaseSource = null;
@@ -57,7 +58,8 @@ internal static class CardDetailTransition
             // WinUIGallery/SampleSupport/SamplePages/ItemsRepeaterCollectionPage.xaml.cs
             // -> DetailedInfoPage.xaml.cs. Keep the sample's native forward/default and return/Direct.
             // Prepare before Suppress navigation, populate the same image, then TryStart.
-            animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPosterSurface);
+            // 用户要求排除圆角表面快照的影响：飞行只截取 Image，静态封面的圆角保持。
+            animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail." + Guid.NewGuid().ToString("N"), source.ConnectedPoster);
             var motionClock = clock ?? TimeProvider.System;
             var preparedTimestamp = motionClock.GetTimestamp();
             ticket = new Ticket(frame, item, source, artwork, picture, animation, releaseSource, motionClock, preparedTimestamp);
@@ -163,6 +165,22 @@ internal static class CardDetailTransition
     internal static bool VisibleImage(Image image) => image.IsLoaded && ArrangedImage(image);
 
     /// <summary>
+    /// Repeater 回收可能把仍在屏上的海报标为未 Loaded（与 PosterCard、ImageArrivalFade 的处理一致）。
+    /// 来源以当前页里的真实几何为准；同时核对所属页面与 XamlRoot，不能借离树容器残留的尺寸起跑。
+    /// 仅在准备前和返回落点使用，前进导航后来源正常离树不受此约束。
+    /// </summary>
+    private static bool VisibleSource(Frame frame, PosterCard source)
+    {
+        var image = source.ConnectedPoster;
+        if (frame.Content is not FrameworkElement page || frame.XamlRoot is null
+            || !ReferenceEquals(image.XamlRoot, frame.XamlRoot)) return false;
+
+        for (DependencyObject? current = image; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (ReferenceEquals(current, page)) return ArrangedImage(image);
+        return false;
+    }
+
+    /// <summary>
     /// 已经排过版、画得出画面的目标图 —— 与 <see cref="VisibleImage"/> 只差「Loaded」那一位。
     /// Gallery 的样例在目标页 OnNavigatedTo 里就 TryStart，那时目标还没 Loaded 但已经在树里；
     /// 详情页在 <see cref="DetailPage.ForceConnectedLayout"/> 里先排过一遍，位置与尺寸是真的，
@@ -251,7 +269,7 @@ internal static class CardDetailTransition
         internal bool IsResolved => _resolved;
         internal bool Started { get; private set; }
         internal event Action<CardDetailTransitionReceipt>? Observed;
-        internal bool Matches(EmbyItem item) => !_disposed && _item.Source?.IsCurrent == true
+        internal bool Matches(EmbyItem item) => !_disposed && _item.Source?.IsAvailable == true
             && ReferenceEquals(_owner, item.Source?.UserStateOwner) && _identity == item.IdentityKey;
 
         internal void Watch()
@@ -302,7 +320,7 @@ internal static class CardDetailTransition
         {
             if (_disposed || _resolved || _target is not { } target || target.IsLoaded) return;
             if (!HomeMotion.AnimationsEnabled) return;
-            if (_item.Source?.IsCurrent != true) return;
+            if (_item.Source?.IsAvailable != true) return;
             if (target.ViewModel.CurrentItem is not { } current || !Matches(current)) return;
             if (PrimaryArtwork(current) != _artwork) return;
             if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return;
@@ -315,7 +333,7 @@ internal static class CardDetailTransition
             {
                 WatchAnimationCompletion();
                 _lifecycle.StartAttempt();
-                started = _animation?.TryStart(target.ConnectedPosterSurface) == true;
+                started = _animation?.TryStart(target.ConnectedPoster) == true;
                 if (started) _lifecycle.StartSucceeded();
             }
             catch (Exception) { }
@@ -338,7 +356,7 @@ internal static class CardDetailTransition
             // OnNavigatedTo尚在Frame事务里；取消/普通淡入同样等Loaded，不能拆正在创建的新页。
             if (_disposed || _resolved || _target is not { IsLoaded: true } target) return;
             if (!HomeMotion.AnimationsEnabled) { Resolve(false, ConnectedMotionReason.Disabled); return; }
-            if (_item.Source?.IsCurrent != true || target.ViewModel.CurrentItem is { } item && !Matches(item))
+            if (_item.Source?.IsAvailable != true || target.ViewModel.CurrentItem is { } item && !Matches(item))
             { Resolve(false, ConnectedMotionReason.IdentityChanged); return; }
             if (target.ViewModel.CurrentItem is { } current && PrimaryArtwork(current) != _artwork)
             { Resolve(false, ConnectedMotionReason.ArtworkChanged); return; }
@@ -353,7 +371,7 @@ internal static class CardDetailTransition
             {
                 WatchAnimationCompletion();
                 _lifecycle.StartAttempt();
-                started = _animation?.TryStart(target.ConnectedPosterSurface) == true;
+                started = _animation?.TryStart(target.ConnectedPoster) == true;
                 if (started) _lifecycle.StartSucceeded();
             }
             catch (Exception) { }
@@ -406,7 +424,7 @@ internal static class CardDetailTransition
                 // 落点必须是卡片的静止几何：指针还停在刚点过的卡上时，整卡 1.045 与图片推近那一层
                 // 都还在，平台会按放大态算终点；指针一动卡片缩回 1，封面就跟着缩一下。
                 source.SettleForConnectedReturn();
-                _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPosterSurface);
+                _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPoster);
                 _lifecycle = new("card", "return", _clock, _clock.GetTimestamp());
                 _lifecycle.Prepared();
                 IsReturning = true;
@@ -468,7 +486,7 @@ internal static class CardDetailTransition
                     {
                         WatchAnimationCompletion();
                         _lifecycle.StartAttempt();
-                        started = _animation?.TryStart(source.ConnectedPosterSurface) == true;
+                        started = _animation?.TryStart(source.ConnectedPoster) == true;
                         if (started) _lifecycle.StartSucceeded();
                     }
                     catch (Exception) { }
@@ -543,11 +561,11 @@ internal static class CardDetailTransition
         {
             if (!HomeMotion.AnimationsEnabled) return ConnectedMotionReason.Disabled;
             if (!ReturnPageMatches) return ConnectedMotionReason.TargetUnavailable;
-            if (_item.Source?.IsCurrent != true) return ConnectedMotionReason.IdentityChanged;
+            if (_item.Source?.IsAvailable != true) return ConnectedMotionReason.IdentityChanged;
             if (!_source.TryGetTarget(out var source) || source.Card is not { } card) return ConnectedMotionReason.SourceUnavailable;
             if (!Matches(card.Item)) return ConnectedMotionReason.IdentityChanged;
             if (card.LoadedPosterArtwork != _artwork || PrimaryArtwork(card.Item) != _artwork) return ConnectedMotionReason.ArtworkChanged;
-            return VisibleImage(source.ConnectedPoster) ? ConnectedMotionReason.None : ConnectedMotionReason.SourceUnavailable;
+            return VisibleSource(_frame, source) ? ConnectedMotionReason.None : ConnectedMotionReason.SourceUnavailable;
         }
 
         private void BeginTimeout(int milliseconds, Action expired)

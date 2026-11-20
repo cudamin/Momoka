@@ -7,7 +7,7 @@ internal static class ConnectedProbeSourceTests
 {
     internal static void Register()
     {
-        Test("海报关联动画：转场两端都移动带同一圆角的封面层", () =>
+        Test("海报关联动画：静态封面保留圆角，飞行直接连接Image", () =>
         {
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             foreach (var (path, name) in new[]
@@ -24,6 +24,12 @@ internal static class ConnectedProbeSourceTests
                 Assert.Equal("PosterSurface", (string?)surface.Attribute(x + "Name"));
                 Assert.Equal("{StaticResource EgPosterCornerRadius}", (string?)surface.Attribute("CornerRadius"), name);
             }
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "CardDetailTransition.cs"));
+            Assert.DoesNotContain("ConnectedPosterSurface", source);
+            Assert.Contains("source.ConnectedPoster);", source);
+            Assert.Contains("page.ConnectedPoster);", source);
+            Assert.Contains("TryStart(target.ConnectedPoster)", source);
+            Assert.Contains("TryStart(source.ConnectedPoster)", source);
         });
         Test("悬停标题原生补验：真实预览点击与生产媒体库交接，不绕Prepare或Frame导航", () =>
         {
@@ -91,6 +97,20 @@ internal static class ConnectedProbeSourceTests
             Assert.False(source.Contains("CompositionPlaybackProbe.SaveScreenAsync", StringComparison.Ordinal), "不能绕过统一截图路径的遮挡准备和还原");
             Assert.False(source.Contains("CardDetailConnectedSourcePage", StringComparison.Ordinal), "不能用未具XAML元数据的自定义Page激活");
             Assert.False(source.Contains("frame.Content = sourcePage", StringComparison.Ordinal), "直接替换Content不能证明GoBack");
+        });
+        Test("主页关联原生检查：生产竖海报Click经过真实Shell并保留启动回执", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.ConnectedAnimation.cs"));
+            Assert.Contains("await HomeCardDetailConnectedAnimationAsync()", source);
+            Assert.Contains("var shell = DiscoveryShell(fixture)", source);
+            Assert.Contains("fixture.Actions.CaptureOpen = shell.OpenItem", source);
+            Assert.Contains("var frame = shell.Pages", source);
+            Assert.Contains("frame.Navigate(typeof(HomePage)", source);
+            Assert.Contains("new ButtonAutomationPeer(button!)", source);
+            Assert.Contains("frame.Navigating += Navigating", source);
+            Assert.Contains("CardDetailTransition.Observe(frame, receipts.Add)", source);
+            Assert.Contains("home-card-detail-connected.json", source);
+            Assert.Contains("fixture.Actions.Opened == 1 && fixture.Actions.Plays == 0", source);
         });
         Test("悬浮卡片原生探针：核对真实客户区与页面宽，拒绝VM目标宽冒充视口", () =>
         {

@@ -329,7 +329,7 @@ public sealed partial class PlayerPage
         // 子项仍走 ViewModel.RequestSettings，由外壳打开对应设置卡。
         menu.Items.Add(new MenuFlyoutSeparator());
         var settings = new MenuFlyoutSubItem { Text = PlayerSettingsLinks.MenuLabel, Name = "PlaybackSettingsMenu" };
-        foreach (var link in PlayerSettingsLinks.Available(ViewModel.DanmakuAvailable))
+        foreach (var link in PlayerSettingsLinks.Available(ViewModel.DanmakuSettingsAvailable))
         {
             var row = new MenuFlyoutItem { Text = link.Label, Tag = link, Name = $"PlaybackSettings_{link.Token}" };
             row.Click += OnPictureSettingsRow;
@@ -357,7 +357,7 @@ public sealed partial class PlayerPage
     private void OnPictureSettingsRow(object sender, RoutedEventArgs e)
     {
         if (sender is not MenuFlyoutItem { Tag: PlayerSettingsLink picked }) return;
-        if (picked.Token == "danmaku" && !ViewModel.DanmakuAvailable) return;
+        if (picked.Token == "danmaku" && !ViewModel.DanmakuSettingsAvailable) return;
         ViewModel.RequestSettings(picked);
     }
 

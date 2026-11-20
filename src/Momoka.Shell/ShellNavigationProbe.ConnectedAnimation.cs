@@ -1,6 +1,9 @@
 using System.Net;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
@@ -165,6 +168,8 @@ internal sealed partial class ShellNavigationProbe
             Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item), new SuppressNavigationTransitionInfo()), "失效源测试详情导航失败");
             target = (DetailPage)frame.Content;
             await UntilAsync(() => target.IsReady && CardDetailTransition.Started(frame));
+            // 该用例只验证返回缺图；先结束前进，避免把中途反向取消混进这一条失败场景。
+            await UntilAsync(() => receipts.Skip(beforeCancel).Any(receipt => receipt.Direction == "forward" && receipt.Completed));
             Require(CardDetailTransition.BeginReturn(target), "失效源回退测试不能准备返回");
             source.ConnectedPoster.Source = null;
             var previousReceipts = receipts.Count;
@@ -192,6 +197,226 @@ internal sealed partial class ShellNavigationProbe
             frame.Content = null;
             _root.Children.Remove(frame);
             HomeMotion.ApplyPreference(motion);
+        }
+        await HomeCardDetailConnectedAnimationAsync();
+    }
+
+    /// <summary>同一项关联检查补主页真实 Click → Shell 导航，不能用直接 Prepare 代替入口接线。</summary>
+    private async Task HomeCardDetailConnectedAnimationAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        fixture.Settings.Ui.ShowHomeBanner = false;
+        fixture.Settings.Ui.AnimationsEnabled = true;
+        var library = fixture.Session.Capture().Bind(new EmbyItem
+        {
+            Id = "connected-home-library",
+            Name = "匿名主页库",
+            Type = EmbyItemType.CollectionFolder,
+            CollectionType = "movies"
+        });
+        // 现场失败来自聚合主页的非默认在线来源：保留甲账号，再让乙成为默认。
+        await fixture.SelectAsync("connected-default.invalid", "default");
+        Require(library.Source is { IsAvailable: true, IsCurrent: false }, "主页夹具没有建立非默认在线来源");
+        var item = new EmbyItem
+        {
+            Id = "connected-home-movie",
+            Name = "匿名主页竖海报",
+            Type = EmbyItemType.Movie,
+            ImageTags = new() { ["Primary"] = "poster" }
+        };
+        var bytes = await CoverMarkedImageAsync(260, 375);
+        fixture.Transport.Reply = (request, _) =>
+        {
+            Require(request.Method == HttpMethod.Get, "主页关联检查拒绝服务器写入");
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) });
+            if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(new[] { item }));
+            if (path.EndsWith("/Items/Resume", StringComparison.Ordinal) || path.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
+                return Task.FromResult(Json(new ItemsResult { Items = [], TotalRecordCount = 0 }));
+            if (path.EndsWith("/Items/" + item.Id, StringComparison.Ordinal)) return Task.FromResult(Json(item));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        var shell = DiscoveryShell(fixture);
+        fixture.Actions.CaptureOpen = shell.OpenItem;
+        var frame = shell.Pages;
+        var receipts = new List<CardDetailTransitionReceipt>();
+        var navigations = new List<object>();
+        var observations = new List<Action>();
+        var framePixels = new List<(double Milliseconds, CompositionPlaybackProbe.ResizeScreenFrame Frame)>();
+        var pixelReadings = new List<object>();
+        var markerBounds = new List<(int Count, int Top, int Bottom, bool Valid)>();
+        using var captureCancellation = new CancellationTokenSource();
+        Task? captureFlight = null;
+        var motion = HomeMotion.PreferenceEnabled;
+        var captureWindow = _window!;
+        var captureHandle = captureWindow.Handle;
+        var topMost = captureWindow.TopMost;
+        PosterCard? source = null;
+        _root.Children.Add(shell);
+        void Navigating(object sender, Microsoft.UI.Xaml.Navigation.NavigatingCancelEventArgs args)
+        {
+            if (source is null) return;
+            navigations.Add(new
+            {
+                direction = args.NavigationMode.ToString(),
+                prepared = CardDetailTransition.IsPrepared(frame, args.Parameter),
+                returning = CardDetailTransition.Returning(frame),
+                enabled = HomeMotion.AnimationsEnabled,
+                sourceLoaded = source.ConnectedPoster.IsLoaded,
+                sourceRoot = source.ConnectedPoster.XamlRoot is not null,
+                sourceWidth = source.ConnectedPoster.ActualWidth,
+                sourceHeight = source.ConnectedPoster.ActualHeight,
+                primaryMatches = source.Card?.LoadedPosterArtwork == CardDetailTransition.PrimaryArtwork(source.Card!.Item),
+                sourceAvailable = source.Card?.Item.Source?.IsAvailable,
+                sourceCurrent = source.Card?.Item.Source?.IsCurrent
+            });
+            if (observations.Count == 0 && CardDetailTransition.Observe(frame, receipts.Add) is { } detach) observations.Add(detach);
+        }
+        frame.Navigating += Navigating;
+        try
+        {
+            ResizeProbeClient(1280, 850);
+            HomeMotion.ApplyPreference(true);
+            Require(frame.Navigate(typeof(HomePage), new HomeRequest(fixture.Services, [library], null),
+                new SuppressNavigationTransitionInfo()), "匿名主页不能正式导航");
+            var home = (HomePage)frame.Content;
+            await UntilAsync(() => home.IsReady && home.ViewModel.Shelves.Any(shelf => shelf.Cards.Any(card => card.Item.Id == item.Id)));
+            await LayoutAsync(home);
+            await UntilAsync(() =>
+            {
+                source = Descendants(home).OfType<PosterCard>().FirstOrDefault(card => card.Card?.Item.Id == item.Id
+                    && CardDetailTransition.ArrangedImage(card.ConnectedPoster));
+                return source is not null;
+            });
+            await source!.Card!.EnsurePosterAsync();
+            Require(source.Card.Item.Source is { IsAvailable: true, IsCurrent: false }, "主页没有呈现预定的非默认来源海报");
+            await UntilAsync(() => !source.PosterArrivalRunning);
+            Button? button = null;
+            for (var parent = VisualTreeHelper.GetParent(source); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+                if (parent is Button found) { button = found; break; }
+            Require(button is not null, "主页竖海报没有生产点击按钮");
+            captureWindow.TopMost = true;
+            var sourceBounds = source.ConnectedPosterSurface.TransformToVisual(_root)
+                .TransformBounds(new Windows.Foundation.Rect(0, 0, source.ConnectedPosterSurface.ActualWidth, source.ConnectedPosterSurface.ActualHeight));
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            await WaitForDiagnosticsFrameAsync();
+            framePixels.Add((clock.Elapsed.TotalMilliseconds, CompositionPlaybackProbe.CaptureResizeFrame(captureHandle, 0)));
+            async Task CaptureFlightAsync()
+            {
+                for (var index = 0; index < 15; index++)
+                {
+                    await Task.Delay(35, captureCancellation.Token);
+                    captureCancellation.Token.ThrowIfCancellationRequested();
+                    framePixels.Add((clock.Elapsed.TotalMilliseconds,
+                        CompositionPlaybackProbe.CaptureResizeFrame(captureHandle, System.Diagnostics.Stopwatch.GetTimestamp())));
+                }
+            }
+            captureFlight = CaptureFlightAsync();
+            ((IInvokeProvider)new ButtonAutomationPeer(button!).GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => frame.Content is DetailPage { IsReady: true });
+            await UntilAsync(() => CardDetailTransition.Started(frame) || receipts.Any(receipt => receipt.Terminal));
+            Require(navigations.Count > 0 && CardDetailTransition.Started(frame), "主页点击没有启动关联转场");
+            await UntilAsync(() => receipts.Any(receipt => receipt.Direction == "forward" && receipt.Completed));
+            await captureFlight;
+            await WaitForDiagnosticsFrameAsync();
+            framePixels.Add((clock.Elapsed.TotalMilliseconds,
+                CompositionPlaybackProbe.CaptureResizeFrame(captureHandle, System.Diagnostics.Stopwatch.GetTimestamp())));
+            var target = (DetailPage)frame.Content;
+            var targetBounds = target.ConnectedPosterSurface.TransformToVisual(_root)
+                .TransformBounds(new Windows.Foundation.Rect(0, 0, target.ConnectedPosterSurface.ActualWidth, target.ConnectedPosterSurface.ActualHeight));
+            foreach (var (milliseconds, pixels) in framePixels)
+            {
+                var valid = pixels.Stable && pixels.Width > 0 && pixels.Height > 0
+                    && pixels.Bytes.LongLength == (long)pixels.Width * pixels.Height * 4;
+                var count = 0;
+                long sumX = 0, sumY = 0;
+                var left = pixels.Width;
+                var top = pixels.Height;
+                var right = -1;
+                var bottom = -1;
+                for (var y = 0; valid && y < pixels.Height; y++)
+                    for (var x = 0; x < pixels.Width; x++)
+                    {
+                        var offset = (y * pixels.Width + x) * 4;
+                        if (pixels.Bytes[offset + 2] < 170 || pixels.Bytes[offset + 1] > 65 || pixels.Bytes[offset] > 65) continue;
+                        count++; sumX += x; sumY += y;
+                        left = Math.Min(left, x); top = Math.Min(top, y);
+                        right = Math.Max(right, x); bottom = Math.Max(bottom, y);
+                    }
+                pixelReadings.Add(new
+                {
+                    milliseconds,
+                    count,
+                    centerX = count > 0 ? (double)sumX / count : -1,
+                    centerY = count > 0 ? (double)sumY / count : -1,
+                    left,
+                    top,
+                    right,
+                    bottom,
+                    pixels.Stable,
+                    valid
+                });
+                markerBounds.Add((count, top, bottom, valid));
+            }
+            await WritePerformanceEvidenceAsync("home-card-flight-pixels.json", new { sourceBounds, targetBounds, frames = pixelReadings });
+            Require(markerBounds.Count == 17 && markerBounds.All(bounds => bounds.Valid), "封面采屏帧缺失或客户区不稳定");
+            foreach (var index in new[] { 0, 2, 4, 6, 8, 12, 15 })
+                await framePixels[index].Frame.SaveAsync(Path.Combine(_options.Paths.LogDirectory, $"home-card-flight-{index:00}-screen.png"));
+            await framePixels[^1].Frame.SaveAsync(Path.Combine(_options.Paths.LogDirectory, "home-card-flight-final-screen.png"));
+            var first = markerBounds[0];
+            var last = markerBounds[^1];
+            Require(first.Count > 100 && last.Count > 100, "封面首尾帧没有足够标记像素");
+            Require(Math.Abs(first.Top - last.Top) >= 24 && Math.Abs(first.Bottom - last.Bottom) >= 24,
+                "封面首尾位置不足以判断飞行");
+            static bool Between(int value, int a, int b) => value >= Math.Min(a, b) + 12 && value <= Math.Max(a, b) - 12;
+            Require(markerBounds.Skip(1).SkipLast(1).Any(bounds => bounds.Count > 100
+                && Between(bounds.Top, first.Top, last.Top) && Between(bounds.Bottom, first.Bottom, last.Bottom)),
+                "封面没有同时离开首尾位置的中间帧，不能只凭原生回执证明飞行");
+            Require(fixture.Actions.Opened == 1 && fixture.Actions.Plays == 0, "主页点击没有只打开一次详情");
+            await SaveProbeScreenAsync("home-card-detail-connected-forward-screen.png");
+            Require(frame.CanGoBack, "主页转场没有真实返回栈");
+            frame.GoBack(new SuppressNavigationTransitionInfo());
+            await UntilAsync(() => ReferenceEquals(frame.Content, home) && receipts.Any(receipt => receipt.Direction == "return" && receipt.Terminal));
+            Require(receipts.Any(receipt => receipt.Direction == "return" && receipt.Completed), "主页正式返回没有完成封面转场");
+            Require(fixture.Actions.Plays == 0, "主页关联检查发生播放");
+        }
+        finally
+        {
+            captureCancellation.Cancel();
+            try
+            {
+                if (captureFlight is not null)
+                    try { await captureFlight; }
+                    catch (OperationCanceledException) when (captureCancellation.IsCancellationRequested) { }
+            }
+            finally
+            {
+                try
+                {
+                    await WritePerformanceEvidenceAsync("home-card-detail-connected.json", new { navigations, receipts, realNetwork = false, mediaLoaded = false });
+                }
+                finally
+                {
+                    try
+                    {
+                        frame.Navigating -= Navigating;
+                        CardDetailTransition.Cancel(frame);
+                        foreach (var detach in observations) detach();
+                        Call(shell, "ReleaseContent");
+                        frame.Content = null;
+                        fixture.Actions.CaptureOpen = null;
+                        Get<DispatcherTimer>(shell, "_toast").Stop();
+                        _root.Children.Remove(shell);
+                    }
+                    finally
+                    {
+                        try { captureWindow.TopMost = topMost; }
+                        finally { HomeMotion.ApplyPreference(motion); }
+                    }
+                }
+            }
         }
     }
 }

@@ -47,12 +47,13 @@ public sealed partial class MoviePilotSubscriptionEditorViewModel : PageViewMode
     [ObservableProperty] public partial MoviePilotSubscriptionChoice? EpisodeGroup { get; set; }
     [ObservableProperty][NotifyPropertyChangedFor(nameof(CanEdit))] public partial bool Working { get; set; }
     /// <summary>
-    /// 订阅站点的列表是不是就地展开着（2026-11-20）。展开态是编辑态的一部分，不落盘：
-    /// 打开弹窗默认收起，换页、点别处、保存中都会收回。
+    /// 选择列表的展开态只用于本次编辑，不写进订阅。
     /// </summary>
     [ObservableProperty][NotifyPropertyChangedFor(nameof(SitesPanelVisibility))] public partial bool SitesExpanded { get; set; }
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(FilterGroupsPanelVisibility))] public partial bool FilterGroupsExpanded { get; set; }
     public bool CanEdit => !Working;
     public Visibility SitesPanelVisibility => Show(SitesExpanded);
+    public Visibility FilterGroupsPanelVisibility => Show(FilterGroupsExpanded);
     public bool IsSeries => _subscription?.IsSeries == true;
     public Visibility SeriesVisibility => Show(IsSeries);
     public Visibility GroupVisibility => Show(IsSeries && _subscription?.Media.MediaSource == "themoviedb");
@@ -65,6 +66,7 @@ public sealed partial class MoviePilotSubscriptionEditorViewModel : PageViewMode
     {
         _subscription = subscription; _service = service; _active = true;
         SitesExpanded = false;
+        FilterGroupsExpanded = false;
         var edit = MoviePilotSubscriptionEdit.From(subscription);
         Keyword = edit.Keyword; Include = edit.Include; Exclude = edit.Exclude;
         CustomWords = edit.CustomWords; MediaCategory = edit.MediaCategory; SavePath = edit.SavePath;
