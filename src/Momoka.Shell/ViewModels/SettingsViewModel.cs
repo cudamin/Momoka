@@ -583,7 +583,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 这个名字是不是一张设置卡（不是 服务器／诊断／通知／网页控制台 那几页）。给「点进去落在哪张卡」这类
-    /// 读数当判据用：播放页右键菜单末尾那三行设置入口（<see cref="Momoka.Mpv.PlayerSettingsLinks"/>）拿它
+    /// 读数当判据用：播放页右键菜单末尾的设置入口（<see cref="Momoka.Mpv.PlayerSettingsLinks"/>）拿它
     /// 对账，卡片改名而那一张表没跟上时当场报红 —— 找不到名字时 <c>SettingsPage.Select</c> 会安静地退回
     /// 「播放器」，用户点「字幕」却开在别的卡上，那种错靠看是看不出来的。
     /// </summary>

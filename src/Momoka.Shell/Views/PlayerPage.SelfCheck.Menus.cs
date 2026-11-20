@@ -34,7 +34,7 @@ public sealed partial class PlayerPage
     /// 「导航」组，所以行数、勾数和快捷键右列都跟着目录算，不再算进「更多」。
     /// </para>
     /// <para>
-    /// 2026-10-01 起还多读一条：末尾那三行设置入口（字幕／视频输出／音频输出）逐行对账 —— 在不在菜单里、
+    /// 2026-10-01 起还多读一条：末尾的设置入口逐行对账 —— 在不在菜单里、
     /// 带的设置落点是不是一张真卡。行数由上面两侧的计数管着，那一条管的是「点下去开哪张卡」。
     /// </para>
     /// </summary>
@@ -72,7 +72,7 @@ public sealed partial class PlayerPage
         var wantChecks = catalogue.Count(node => node.State is not null);
         var checks = _pictureChecks.Count;
 
-        // 末尾那三行「去设置里改」（2026-10-01 用户令）。行数已经由上面两侧的计数管着，这里管的是**它们点得出
+        // 末尾的「去设置里改」入口（2026-10-01 用户令）。行数已经由上面两侧的计数管着，这里管的是**它们点得出
         // 什么**：每一行都得在屏上，而且带的设置落点必须是一张真的设置卡。少了名字、或者 Cards 里改了名而
         // PlayerSettingsLinks 没跟上，症状都是「点『字幕』开在播放器卡上」—— 菜单看着一切正常，只有这条读数看得见。
         var settings = ProbeSettingsRows(PictureMenu.Items);
@@ -94,14 +94,14 @@ public sealed partial class PlayerPage
         return (ok, $"{rows}/{wantRows} 行、{groups}/{wantGroups} 个子菜单、{rules}/{wantRules} 条分隔线"
                     + $"（含并进来的「更多」{moreRows} 行）"
                     + $"，裁切填充={(panscan ? "在" : "缺")}、可打勾 {checks}/{wantChecks} 行"
-                    + $"，快捷键 {shownShortcuts}/{wantShortcuts} 行、设置三行 {settings.Detail}");
+                    + $"，快捷键 {shownShortcuts}/{wantShortcuts} 行、设置入口 {settings.Detail}");
     }
 
     /// <summary>
-    /// 「播放设置」内的三行入口逐行对账：表里每一行都要在子菜单里找得到同名行、行上带着同一个设置落点，而
+    /// 「播放设置」内的设置入口逐行对账：表里每一行都要在子菜单里找得到同名行、行上带着同一个设置落点，而
     /// 那个落点必须是一张真的设置卡（<see cref="SettingsViewModel.IsCardCategory"/>）。
     /// <para>
-    /// 期望值从 <see cref="PlayerSettingsLinks.All"/> 现取，不写死三个名字 —— 表里加一行、改一行，这条当天跟上。
+    /// 期望值从 <see cref="PlayerSettingsLinks.All"/> 现取，不写死入口数量或名字 —— 表里加一行、改一行，这条当天跟上。
     /// 独占模式共用这张表与执行出口，但这里的控件检查只覆盖集成菜单。
     /// </para>
     /// </summary>
@@ -117,7 +117,7 @@ public sealed partial class PlayerPage
             .ToList();
 
         var trouble = new List<string>();
-        var available = PlayerSettingsLinks.Available(ViewModel.DanmakuAvailable);
+        var available = PlayerSettingsLinks.Available(ViewModel.DanmakuSettingsAvailable);
         if (roots.OfType<MenuFlyoutItem>().Any(item => item.Tag is PlayerSettingsLink))
             trouble.Add("设置入口仍在根菜单平铺");
         if (!rows.Select(item => item.Text).SequenceEqual(available.Select(link => link.Label)))
