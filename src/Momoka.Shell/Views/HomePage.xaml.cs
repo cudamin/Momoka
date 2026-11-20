@@ -784,12 +784,13 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void OnPlayerLayerEnded() => ScheduleFold();
 
-    /// <summary>媒体库横向视口停在轮播读数左侧；读数收起时恢复原来的右边距。返回是否真的改了。</summary>
+    /// <summary>媒体库停在主图底边和轮播读数左侧；圆点与下排推荐留在主图外。返回是否真的改了。</summary>
     private bool PlaceLibraryOverlay()
     {
         var margin = LibraryOverlay.Margin;
         var left = BannerOverlayLeftInset;
         var right = Banner.LibraryOverlayRightInset;
+        var bottom = Banner.LibraryOverlayBottomInset;
 
         // 商店版式摆右栏时，轮播上的媒体库只能待在左边主卡里；不摆右栏时仍是原来那三张卡的宽（660）。
         var width = Banner.RailShown && Banner.MainColumnWidth > 0
@@ -797,9 +798,11 @@ public sealed partial class HomePage : Page, IShellContent
             : LibraryOverlayBaseWidth;
 
         var changed = false;
-        if (Math.Abs(margin.Left - left) > 0.5 || Math.Abs(margin.Right - right) > 0.5)
+        if (Math.Abs(margin.Left - left) > 0.5 || Math.Abs(margin.Right - right) > 0.5
+            || Math.Abs(margin.Bottom - bottom) > 0.5)
         {
-            LibraryOverlay.Margin = new Thickness(left, margin.Top, right, margin.Bottom);
+            // 宿主与整个轮播同高；商店窄档多出的下排推荐不能把媒体库从主图底边带下来。
+            LibraryOverlay.Margin = new Thickness(left, margin.Top, right, bottom);
             changed = true;
         }
 

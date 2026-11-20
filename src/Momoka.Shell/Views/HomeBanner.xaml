@@ -223,18 +223,18 @@
         LostFocus="OnBannerLostFocus"
         KeyDown="OnKeyDown">
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
         <!--
-          商店版式（2026-11-16 用户令「参考上图在设置中再添加一版轮播图」）把这一块分成两列：左边主卡照旧是
-          整条带，右边一列跟着台上那张展示接下来的三张。窄窗口（放不下右栏时）回整宽，右栏两列的宽都收成 0，
-          主卡因此仍是原来那一整块。列宽由 HomeBanner.Resize 按 HomeCarousel.ShowsRail 拨，标记里不写数。
-          第二行的圆点在两张卡片外面（见下面 DotsHost），Stage 拿第一行。
+          商店截图只作视觉参考（Store 闭源）。已核 Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7
+          Samples/Grid/GridPage.xaml[.cs]、Samples/Acrylic/AcrylicPage.xaml[.cs]、Styles/ItemTemplates.xaml：
+          原生 Grid 与响应式改位没有一主三辅的成套实现，因此沿用本项目的按内容宽计算；不使用窗口宽触发器。
+          宽屏主图左、推荐右；窄屏主图满宽、圆点下方左大右二小。四张卡与圆点始终保留同一实例。
         -->
         <Grid x:Name="Stage" Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="HeroRow" Height="Auto" />
+                <RowDefinition x:Name="DotsRow" Height="0" />
+                <RowDefinition x:Name="RecommendationsRow" Height="0" />
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="MainColumn" Width="*" />
                 <ColumnDefinition x:Name="RailGapColumn" Width="0" />
@@ -628,19 +628,20 @@
         </Border>
 
             <!--
-              商店版式的右栏（2026-11-16 重做）：上面一张大卡、下面并排两张小卡，图片和标题由 HomeBanner.SyncRail
-              从台上那张后面三张里取。整列跟着主卡的圆角卡片一起被 BannerCard 剪裁；各卡自己的圆角剪在内容
-              那层 Border 上。窄窗口时这一列宽 0、整列收起（见 Resize），不占位置。
-              **上下的行高是 2:1**（2026-11-16 重做）：参考图里上面那张大卡高约下面两张小卡的两倍，从前上下
-              各一半，三张看起来是同一级；2:1 之后「一张主推带两张陪衬」的关系才出来。与
-              HomeCarousel.RailRows 的算法同源，自检拿量到的两条边对账。
+              这三张推荐跟随主卡取接下来的三张，保持原有图片订阅、点击入口与无障碍名称。
+              Resize 只改原生 Grid 行列：宽档上大下二小，窄档左大右二小；间隔统一 12 DIP。
             -->
             <Grid x:Name="Rail" Grid.Column="2" Visibility="Collapsed">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="2*" />
-                    <RowDefinition Height="8" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition x:Name="RailTopRow" Height="2*" />
+                    <RowDefinition x:Name="RailMiddleRow" Height="12" />
+                    <RowDefinition x:Name="RailBottomRow" Height="*" />
                 </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="RailBigColumn" Width="*" />
+                    <ColumnDefinition x:Name="RailMiddleColumn" Width="0" />
+                    <ColumnDefinition x:Name="RailSmallColumn" Width="0" />
+                </Grid.ColumnDefinitions>
 
                 <Button
                     x:Name="RailBigCard"
@@ -677,11 +678,17 @@
                     </Border>
                 </Button>
 
-                <Grid Grid.Row="2" ColumnSpacing="8">
+                <Grid x:Name="RailSmallCards" Grid.Row="2">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition x:Name="SmallFirstColumn" Width="*" />
+                        <ColumnDefinition x:Name="SmallGapColumn" Width="12" />
+                        <ColumnDefinition x:Name="SmallSecondColumn" Width="*" />
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="SmallFirstRow" Height="*" />
+                        <RowDefinition x:Name="SmallGapRow" Height="0" />
+                        <RowDefinition x:Name="SmallSecondRow" Height="0" />
+                    </Grid.RowDefinitions>
 
                     <Button
                         x:Name="RailSmallCardA"
@@ -720,7 +727,7 @@
 
                     <Button
                         x:Name="RailSmallCardB"
-                        Grid.Column="1"
+                        Grid.Column="2"
                         Style="{StaticResource EgBannerRailCardStyle}"
                         AutomationProperties.AutomationId="BannerRailCard3"
                         Click="OnRailCardClicked">
@@ -754,7 +761,6 @@
                     </Button>
                 </Grid>
             </Grid>
-        </Grid>
 
         <!--
           商店版式的分页圆点（2026-11-16 重做）：**在两张卡片下面的页面底上**，不是压在剧照里 —— 参考图两种
@@ -774,6 +780,7 @@
                 Margin="0,10,0,4"
                 Spacing="0"
                 Visibility="Collapsed" />
+        </Grid>
         </Grid>
     </Grid>
 </UserControl>

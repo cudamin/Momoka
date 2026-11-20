@@ -53,6 +53,60 @@ internal static class Program
             Check(ReferenceEquals(BrowsePresentation.Gate, row.Card.Requests.Single()), "list row keeps exact gate");
         }
         ));
+        Case("banner/stacked-store-recommendations-prefetch-all-visible-cards", () =>
+        {
+            var banner = new BannerDemandFixture(10) { XamlRoot = new object() };
+            BrowsePresentation.Gate = new TaskCompletionSource().Task;
+            Check(!HomeCarousel.ShowsRail(CarouselLayout.Store, 848, banner.Slides.Count),
+                "fixture is below the side-rail threshold");
+            banner.SetLayout(CarouselLayout.Store, 848);
+            banner.Request();
+            var decoded = banner.Slides.Select((slide, index) => (slide, index))
+                .Where(entry => entry.slide.PictureRetained).Select(entry => entry.index);
+            Check(decoded.SequenceEqual(new[] { 0, 1, 2, 3, 9 }),
+                "stacked cards retain the current, previous and all three following pictures");
+            Check(banner.Slides.Where(slide => slide.PictureRetained)
+                .All(slide => ReferenceEquals(BrowsePresentation.Gate, slide.Requests.Single())),
+                "all stacked-card requests capture their own owner's navigation gate");
+        });
+        Case("banner/hiding-store-recommendations-releases-extra-decoded-pictures", () =>
+        {
+            var banner = new BannerDemandFixture(10) { XamlRoot = new object() };
+            banner.SetLayout(CarouselLayout.Store, 848);
+            banner.Request();
+            Check(banner.Slides[2].PictureRetained && banner.Slides[3].PictureRetained,
+                "stacked recommendations were decoded before shrinking");
+            var releases = banner.Slides[2].Releases;
+            banner.SetLayout(CarouselLayout.Store, HomeCarousel.RecommendationsMinWidth - 1);
+            banner.Request();
+            var decoded = banner.Slides.Select((slide, index) => (slide, index))
+                .Where(entry => entry.slide.PictureRetained).Select(entry => entry.index);
+            Check(decoded.SequenceEqual(new[] { 0, 1, 9 }),
+                "hiding recommendations leaves only the main-card neighbor cache");
+            Equal(releases + 1, banner.Slides[2].Releases, "newly hidden next-next picture is released");
+            Check(!banner.Slides[3].PictureRetained, "third recommendation releases its decoded picture");
+            banner.SetLayout(CarouselLayout.Store, 848);
+            banner.Request();
+            Check(banner.Slides[2].PictureRetained && banner.Slides[3].PictureRetained,
+                "restoring stacked recommendations demands released images again");
+        });
+        Case("banner/recommendation-prefetch-stays-bounded-through-wraparound", () =>
+        {
+            var banner = new BannerDemandFixture(15) { XamlRoot = new object() };
+            banner.SetLayout(CarouselLayout.Store, 848);
+            for (var index = 0; index < banner.Slides.Count; index++)
+            {
+                banner.SetCurrent(index);
+                banner.Request();
+                Equal(5, banner.Slides.Count(slide => slide.PictureRetained),
+                    "paging keeps exactly the main card, previous card and three recommendations");
+                Check(banner.Slides[index].PictureRetained, "the current main picture is never released");
+            }
+            var decoded = banner.Slides.Select((slide, index) => (slide, index))
+                .Where(entry => entry.slide.PictureRetained).Select(entry => entry.index);
+            Check(decoded.SequenceEqual(new[] { 0, 1, 2, 13, 14 }),
+                "last slide wraps recommendations to the start and releases old middle slides");
+        });
         Cases.Add(("banner/warm-loaded-keeps-cached-art-but-fades-late-art", () =>
         {
             var banner = new BannerReturnFixture();
@@ -533,6 +587,7 @@ internal static class Program
         {
             var scene = new Scene(initialOn: true);
             scene.Page.LibraryOverlay.Margin = new Thickness(36, 0, 36, 4);
+            scene.Page.Banner.LibraryOverlayBottomInset = 4;
             scene.Page.Banner.LibraryOverlayRightInset = 244;
             scene.Page.Apply();
             Equal(new Thickness(36, 0, 244, 4), scene.Page.LibraryOverlay.Margin,
@@ -544,6 +599,63 @@ internal static class Program
             scene.Page.Apply();
             Equal(new Thickness(36, 0, 36, 4), scene.Page.LibraryOverlay.Margin,
                 "hidden status restores the original viewport width");
+        });
+        Case("page/store-overlay-stays-on-main-card-across-wide-stacked-and-full-layouts", () =>
+        {
+            var scene = new Scene(initialOn: true);
+            scene.Page.Ui.EnableImmersive = false;
+            scene.Page.LibraryOverlay.Margin = new Thickness(36, 7, 36, 0);
+            scene.Page.Banner.RailShown = true;
+            scene.Page.Banner.MainColumnWidth = 670;
+            scene.Page.Banner.LibraryOverlayBottomInset = 28;
+            scene.Page.ApplyCarousel();
+            Equal(new Thickness(24, 7, 36, 28), scene.Page.LibraryOverlay.Margin,
+                "wide store leaves pagination below the main-card overlay");
+            Equal(634d, scene.Page.LibraryOverlay.MaxWidth, "wide overlay stays inside the main column");
+
+            scene.Page.Banner.RailShown = false;
+            scene.Page.Banner.MainColumnWidth = 848;
+            scene.Page.Banner.LibraryOverlayBottomInset = 357;
+            scene.Page.ApplyCarousel();
+            Equal(new Thickness(24, 7, 36, 357), scene.Page.LibraryOverlay.Margin,
+                "stacked recommendations and pagination remain below the overlay");
+            Equal(660d, scene.Page.LibraryOverlay.MaxWidth, "stacked layout restores the normal library viewport");
+            scene.AssertOverlayOnly();
+            Check(scene.Page.MainMotion is null, "moving recommendations does not invent a fold trip");
+
+            scene.Page.Banner.RailShown = true;
+            scene.Page.Banner.MainColumnWidth = 670;
+            scene.Page.Banner.LibraryOverlayBottomInset = 28;
+            scene.Page.ApplyCarousel();
+            Equal(28d, scene.Page.LibraryOverlay.Margin.Bottom, "widening removes the old recommendation-row offset");
+            Equal(634d, scene.Page.LibraryOverlay.MaxWidth, "widening limits the overlay to the main card again");
+
+            scene.Page.Banner.RailShown = false;
+            scene.Page.Banner.LibraryOverlayBottomInset = 0;
+            scene.Page.Ui.EnableImmersive = true;
+            scene.Page.ApplyCarousel();
+            Equal(new Thickness(36, 7, 36, 0), scene.Page.LibraryOverlay.Margin,
+                "full layout clears store offsets and retains the independent top inset");
+            Equal(660d, scene.Page.LibraryOverlay.MaxWidth, "full layout restores the normal viewport");
+            scene.AssertOverlayOnly();
+        });
+        Case("page/store-overlay-tail-change-updates-layout-once-without-rewriting-banner", () =>
+        {
+            var scene = new Scene(initialOn: true);
+            var layouts = scene.Page.ForcedLayouts;
+            var overlayWrites = scene.Page.Banner.SetLibraryOverlayCalls;
+            scene.Page.Banner.LibraryOverlayBottomInset = 340;
+            scene.Page.Apply();
+            Equal(340d, scene.Page.LibraryOverlay.Margin.Bottom, "new recommendation height changes the bottom anchor");
+            Equal(layouts + 1, scene.Page.ForcedLayouts, "changed anchor requires one layout");
+            Equal(overlayWrites, scene.Page.Banner.SetLibraryOverlayCalls, "anchor change does not rewrite the unchanged banner overlay");
+            scene.Page.Apply();
+            Equal(layouts + 1, scene.Page.ForcedLayouts, "same anchor does not force another layout");
+            scene.Page.Banner.LibraryOverlayBottomInset = 0;
+            scene.Page.Apply();
+            Equal(0d, scene.Page.LibraryOverlay.Margin.Bottom, "collapsing recommendations clears the stale anchor");
+            Equal(layouts + 2, scene.Page.ForcedLayouts, "clearing the old anchor requires one layout");
+            scene.AssertOverlayOnly();
         });
         Case("page/auto-single-following-row-keeps-scroll-and-live-transform", () =>
         {

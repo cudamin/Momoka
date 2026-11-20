@@ -41,6 +41,7 @@ namespace Momoka.Shell.Views
     {
         internal FrameworkElement InfoBlock { get; } = new() { RenderTransform = new TranslateTransform(), TestTop = 100 };
         internal double LibraryOverlayRightInset { get; set; } = 36;
+        internal double LibraryOverlayBottomInset { get; set; }
         internal bool RailShown { get; set; }
         internal double MainColumnWidth { get; set; } = 660;
         internal double NaturalBandHeight { get; set; } = 400;

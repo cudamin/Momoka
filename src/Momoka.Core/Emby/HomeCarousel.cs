@@ -42,7 +42,7 @@ public enum CarouselMediaType
 /// </para>
 /// <para>
 /// <see cref="Store"/> 按参考的商店轮播：宽窗口把大图收到左侧、右边一列跟着翻页显示接下来的三张；窗口窄到
-/// 放不下右栏时自动回到整宽大图，两种宽度下都用底部分页圆点代替右下角的读数与进度条。右栏的阈值、宽度和
+/// 放不下右栏时主卡满宽，推荐移到圆点下方。两种宽度下都用底部分页圆点代替右下角的读数与进度条。阈值、宽度和
 /// 「接着哪三张」都在这一类的纯函数里（<see cref="ShowsRail"/> 等），屏上那部分交给 <c>HomeBanner</c>。
 /// </para>
 /// </summary>
@@ -52,7 +52,7 @@ public enum CarouselLayout
     Full = 0,
 
     /// <summary>
-    /// 商店版式：宽窗口左侧大图、右侧三张推荐（上大下二小）；窄窗口回到整宽大图。两种宽度下都用大图
+    /// 商店版式：宽窗口左侧大图、右侧三张推荐（上大下二小）；窄窗口主卡满宽、推荐下排（左大右二小）。都用大图
     /// <em>下面</em>那一排分页圆点代替右下角的读数与进度条（2026-11-16 重做，按用户给的商店参考图）。
     /// </summary>
     Store = 1
@@ -124,37 +124,48 @@ public static class HomeCarousel
     public const int RailSlots = 3;
 
     /// <summary>大图和右栏之间的空当（DIP）。右栏自己不带左边距，这个数由 <see cref="MainWidth"/> 从大图那一侧让出来。</summary>
-    public const double RailGap = 8;
+    public const double RailGap = 12;
 
     /// <summary>
-    /// 右栏的宽度占整条轮播宽度的比例。参考截图里右栏约占四成；上下限 <see cref="RailMinWidth"/>／
-    /// <see cref="RailMaxWidth"/> 兜住窄窗和超宽屏 —— 太窄放不下两行标题，太宽会把大图挤成竖条。
+    /// 推荐区最窄 480 DIP，保证三张卡的标题与操作命中区仍能读、能点；更窄时只留主卡。
     /// </summary>
-    public const double RailWidthShare = 0.39;
-
-    /// <summary>右栏最窄一档（DIP）。再窄，下面两张卡片的标题就没法读了。</summary>
-    public const double RailMinWidth = 300;
-
-    /// <summary>右栏最宽一档（DIP）。超宽屏上右栏不再跟着变宽，多出来的宽度留给大图。</summary>
-    public const double RailMaxWidth = 460;
+    public const double RecommendationsMinWidth = 480;
 
     /// <summary>
-    /// 整条轮播至少多宽才摆右栏（DIP）。窗口窄到放不下「大图 + 右栏」时回到整宽大图 —— 参考截图里
-    /// 两种宽度下看到的就是这两档（2026-11-16 用户说明「截图里是轮播图不同窗口大小下的状态」）。
+    /// 整条轮播至少多宽才摆右栏（DIP）。再窄时三张推荐移到主卡与圆点下面，左大右二小。
     /// 「整条轮播的宽」是 <c>HomeBanner</c> 自己的宽（页面里那块卡片的内沿），不是窗口宽。
     /// </summary>
     public const double RailBasisWidth = 900;
 
+    /// <summary>主卡之外还有三张不同条目，且内容区放得下可用的推荐卡。</summary>
+    public static bool ShowsRecommendations(CarouselLayout layout, double width, int slots) =>
+        layout == CarouselLayout.Store && slots > RailSlots
+        && double.IsFinite(width) && width >= RecommendationsMinWidth;
+
     /// <summary>
     /// 商店版式这一档要不要摆右栏：版式是商店版、轮播条目多过右栏的三张（否则会重复台上的那张）、
-    /// 而且宽度够放得下两栏。三个条件缺一个都回到整宽大图。
+    /// 而且宽度够放得下两栏。宽度不够时改为下排，少条目或极窄时仅显示主卡。
     /// </summary>
     public static bool ShowsRail(CarouselLayout layout, double width, int slots) =>
-        layout == CarouselLayout.Store && slots > RailSlots && width >= RailBasisWidth;
+        ShowsRecommendations(layout, width, slots) && width >= RailBasisWidth;
 
-    /// <summary>右栏那一列的宽（DIP）：整条轮播宽度的 <see cref="RailWidthShare"/>，夹在上下限之间，取整到像素。</summary>
+    /// <summary>
+    /// 一主三辅的四张卡都以 16:9 为设计比例；右栏上大、下二小，共用主卡的高度。
+    /// 联立宽高与三处 12 DIP 间隔求出右栏宽，不对超宽屏单独锁死小卡宽度。
+    /// </summary>
     public static double RailWidth(double width) =>
-        Math.Round(Math.Clamp(width * RailWidthShare, RailMinWidth, RailMaxWidth));
+        double.IsFinite(width) ? Math.Max(0, Math.Round((width - (WindowAspect + 0.5) * RailGap) / 2.5)) : 0;
+
+    /// <summary>下排推荐左大、右二小；大卡与整列小卡同高，卡面仍按 16:9 取高。</summary>
+    public static (double Big, double Small) RecommendationColumns(double width)
+    {
+        if (!double.IsFinite(width) || width <= RailGap) return (0, 0);
+        var small = Math.Max(0, Math.Round((width - (WindowAspect + 1) * RailGap) / 3));
+        return (Math.Max(0, width - RailGap - small), small);
+    }
+
+    /// <summary>下排推荐区的高度，不占主卡和圆点的位置。</summary>
+    public static double RecommendationHeight(double width) => Math.Round(RecommendationColumns(width).Big / WindowAspect);
 
     /// <summary>
     /// 大图那一列的宽（DIP）。摆右栏时让出右栏和两栏之间的空当；不摆右栏时整条都归大图。
@@ -182,14 +193,13 @@ public static class HomeCarousel
     }
 
     /// <summary>
-    /// 右栏上下两段怎么分（2026-11-16 重做）：上面一张大卡占两份、下面并排两张小卡占一份，中间让出
-    /// <see cref="RailGap"/>。参考图里大卡高约小卡的两倍；从前那一版是上下各一半，所以右栏看着是「三张同辈」，
-    /// 不像参考图里「一张主推带两张陪衬」。标记里的行高写 2＊／1＊，两边算出来的数一致，自检据此对账。
+    /// 右栏上下两段：大卡约为小卡两倍，再补两张小卡之间的水平间隔按 16:9 换算出的高度。
+    /// 限高时按同一关系压缩两行，不让推荐卡超出主卡。
     /// </summary>
     public static (double Big, double Small) RailRows(double height)
     {
         var usable = Math.Max(0, height - RailGap);
-        var big = Math.Round(usable * 2 / 3);
+        var big = Math.Min(usable, Math.Round((usable + RailGap / (2 * WindowAspect)) * 2 / 3));
         return (big, Math.Max(0, usable - big));
     }
 
@@ -294,13 +304,6 @@ public static class HomeCarousel
     public static double NaturalHeight(double width) => Height(0, width);
 
     /// <summary>
-    /// 商店版式有右栏那一档的带高占整条轮播宽度的比例（2026-11-16 重做）。参考图里宽窗的大图加右栏
-    /// 合起来约 3:1，右栏的大卡与两张小卡都在这个高度里排；从前照整宽版式的 2.34:1 算，商店版式会比
-    /// 参考图高出一大截。
-    /// </summary>
-    public const double StoreWideHeightShare = 0.335;
-
-    /// <summary>
     /// 底部分页圆点那一行占的高度（DIP，2026-11-16 重做）。商店版式的圆点在两张卡片<em>下面</em>的页面
     /// 底上，不是压在剧照里（参考图两种宽度都是这样）；这一行连上下的呼吸一共 28。
     /// </summary>
@@ -309,8 +312,8 @@ public static class HomeCarousel
     /// <summary>
     /// 商店版式的带高（2026-11-16 重做）。两种宽度两副形状，都从参考图量出来的：
     /// <list type="bullet">
-    /// <item>摆右栏：整条宽度 × <see cref="StoreWideHeightShare"/>，约 3:1，右栏的 2:1 上下分段才有意义。</item>
-    /// <item>放不下右栏（整宽大图）：回到 16:9，就是参考图窄窗那一张的比例；此时大图是页面里唯一一张。</item>
+    /// <item>摆右栏：先让出推荐区和间隔，再按主卡自己的 16:9 取高。</item>
+    /// <item>放不下右栏：主卡满宽 16:9，三张推荐在圆点下方另起一排。</item>
     /// </list>
     /// 上限仍是一屏、下限仍是 <see cref="MinHeight"/>，与整宽版式同一道闸；<paramref name="width"/> 是整条
     /// 轮播的宽（不是大图那一列的宽），右栏和空当都算在里面。
@@ -319,7 +322,7 @@ public static class HomeCarousel
     {
         if (width <= 0) return UnmeasuredHeight;
 
-        var band = Math.Round(rail ? width * StoreWideHeightShare : width / WindowAspect);
+        var band = Math.Round(MainWidth(width, rail) / WindowAspect);
         var ceiling = viewport > 0 ? Math.Max(MinHeight, Math.Round(viewport)) : double.MaxValue;
 
         return Math.Clamp(band, MinHeight, ceiling);

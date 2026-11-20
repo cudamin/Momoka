@@ -106,13 +106,14 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>这一刻摆没摆右栏，由 <see cref="Resize"/> 按 <see cref="HomeCarousel.ShowsRail"/> 拨。</summary>
     private bool _railShown;
+    private bool _recommendationsShown;
+    private double _recommendationsHeight;
 
     /// <summary>主卡那一列这一刻的宽（摆右栏时是整条宽减右栏和空当）；页面那头用它限制轮播上的媒体库视口。</summary>
     private double _mainWidth;
 
     /// <summary>
-    /// 上面那两列卡片（Stage）这一刻的高。下沿的圆点行不归它管，Root 的总高是它加上圆点那一行
-    /// （见 <see cref="UpdateRootHeight"/>）。
+    /// 主卡这一刻的高。主图裁剪、简介显隐和矮窗档只读它；Stage/Root 另外加圆点与下排推荐。
     /// </summary>
     private double _bandHeight;
 
@@ -261,14 +262,16 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 圆点那一行占不占位置：占就按 <see cref="HomeCarousel.DotsHeight"/> 加进 Root 的高，收起时归零；
+    /// 圆点那一行占不占位置：占就按 <see cref="HomeCarousel.DotsHeight"/> 加进 Stage/Root 的高，收起时归零；
     /// 同时把这一行的宽拨成主卡那一列，圆点因此在主卡下方居中。
     /// </summary>
     private void UpdateRootHeight()
     {
         var dots = PageDots.Visibility == Visibility.Visible ? HomeCarousel.DotsHeight : 0;
-        var total = _bandHeight + dots;
+        DotsRow.Height = new GridLength(dots);
+        var total = _bandHeight + dots + _recommendationsHeight;
         if (double.IsNaN(Root.Height) || Math.Abs(Root.Height - total) > 0.5) Root.Height = total;
+        if (double.IsNaN(Stage.Height) || Math.Abs(Stage.Height - total) > 0.5) Stage.Height = total;
 
         var width = _mainWidth > 0 ? _mainWidth : ActualWidth;
         if (double.IsNaN(DotsHost.Width) || Math.Abs(DotsHost.Width - width) > 0.5) DotsHost.Width = width;
@@ -335,18 +338,20 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 商店版式的右栏：跟着台上那张换成接下来的三张（<see cref="HomeCarousel.RailIndices"/>）。
-    /// 摆右栏时主卡让出的宽度由 <see cref="Resize"/> 拨列宽，这里只管那三格画谁。
+    /// 商店推荐区：跟着台上那张换成接下来的三张（<see cref="HomeCarousel.RailIndices"/>）。
+    /// 侧栏与下排共用订阅；返回条目是否更换，让坏图摘除后的替补也能立即预取。
     /// </summary>
-    private void SyncRail()
+    private bool SyncRail()
     {
-        if (!_railShown)
+        if (!_recommendationsShown)
         {
+            var hidden = _railSlides.Any(slide => slide is not null);
             HideRail();
-            return;
+            return hidden;
         }
 
         Rail.Visibility = Visibility.Visible;
+        var changed = false;
         var indices = HomeCarousel.RailIndices(_index, _slides.Count);
         for (var slot = 0; slot < _railSlides.Length; slot++)
         {
@@ -357,7 +362,9 @@ public sealed partial class HomeBanner : UserControl
             _railSlides[slot] = slide;
             if (slide is not null) slide.PropertyChanged += OnRailSlideChanged;
             PaintRailCard(slot, slide);
+            changed = true;
         }
+        return changed;
     }
 
     /// <summary>收右栏时把它订着的幻灯片退掉、图也放掉 —— 收起来的右栏不该继续扣着三张解码好的剧照。</summary>
@@ -506,6 +513,10 @@ public sealed partial class HomeBanner : UserControl
     /// <summary>主卡那一列此刻的宽（DIP）。还没量到宽时退回控件自己的宽。</summary>
     internal double MainColumnWidth => _mainWidth > 0 ? _mainWidth : ActualWidth;
 
+    /// <summary>外层媒体库仍贴主卡下沿，不压住圆点和窄档推荐。</summary>
+    internal double LibraryOverlayBottomInset =>
+        (PageDots.Visibility == Visibility.Visible ? HomeCarousel.DotsHeight : 0) + _recommendationsHeight;
+
     /// <summary>当前轮播版式；页面按它算翻档界线与自检的预期带高。</summary>
     internal CarouselLayout Layout => _layout;
 
@@ -522,7 +533,9 @@ public sealed partial class HomeBanner : UserControl
             var rail = HomeCarousel.ShowsRail(_layout, width, _slides.Count);
             var band = HomeCarousel.BandHeight(_layout, XamlRoot?.Size.Height ?? 0, width, rail);
             var dots = _layout == CarouselLayout.Store && _slides.Count > 1 ? HomeCarousel.DotsHeight : 0;
-            return band + dots;
+            var recommendations = HomeCarousel.ShowsRecommendations(_layout, width, _slides.Count) && !rail
+                ? HomeCarousel.RecommendationHeight(width) + HomeCarousel.RailGap : 0;
+            return band + dots + recommendations;
         }
     }
 
@@ -1117,7 +1130,7 @@ public sealed partial class HomeBanner : UserControl
 
         // 右栏那三张也要解码：它们是「接下来」的推荐，图没到就是三块深色矩形。
         var wanted = new HashSet<int> { _index, back, next };
-        if (_railShown)
+        if (_recommendationsShown)
             foreach (var index in HomeCarousel.RailIndices(_index, _slides.Count)) wanted.Add(index);
 
         for (var i = 0; i < _slides.Count; i++)
@@ -1215,27 +1228,28 @@ public sealed partial class HomeBanner : UserControl
         var viewport = XamlRoot?.Size ?? default;
         var store = _layout == CarouselLayout.Store;
 
-        // 商店版式：整条够宽才把大图收到左列、右边摆三张推荐；窄窗回整宽（右栏两列宽 0）。
+        // 商店版式：够宽时推荐在右侧，窄窗移到主卡与圆点下面；极窄和少条目时只留主卡。
         // 列宽和主卡的宽都从 Core 那几个纯函数来，标记里不写数（见 HomeCarousel.ShowsRail）。
         var rail = HomeCarousel.ShowsRail(_layout, width, _slides.Count);
         var main = HomeCarousel.MainWidth(width, rail);
-        var railChanged = _railShown != rail;
+        var recommendations = HomeCarousel.ShowsRecommendations(_layout, width, _slides.Count);
+        var recommendationsChanged = _recommendationsShown != recommendations;
         RailGapColumn.Width = new GridLength(rail ? HomeCarousel.RailGap : 0);
         RailColumn.Width = new GridLength(rail ? HomeCarousel.RailWidth(width) : 0);
         _railShown = rail;
+        _recommendationsShown = recommendations;
         _mainWidth = main;
-        SyncRail();
+        var cardsChanged = SyncRail();
 
         // 摆进／收起右栏那一刻要重挑「谁该解码」：收起那几档刚被 Prefetch 放掉，摆回来得重新要。
         // 换幻灯片引起的张数变化在 Apply 里另走一遍 Show，两条路都汇到同一个 Prefetch。
-        if (railChanged && ActualWidth > 0) Prefetch();
+        if ((recommendationsChanged || cardsChanged) && ActualWidth > 0) Prefetch();
 
-        // 带高按版式分两副形状（HomeCarousel.BandHeight）：整宽版式照旧；商店版式有右栏时约 3:1、
-        // 放不下右栏的窄档回 16:9。Stage 只拿卡片那一截，Root 底下还给圆点那一行留位置
-        // （见 UpdateRootHeight）。
+        // 主图单独取 16:9，整宽版式沿用原形状。窄档推荐和圆点的高度另外计入 Stage/Root，
+        // 不参与主图裁剪或简介显隐（见 UpdateRootHeight）。
         var height = HomeCarousel.BandHeight(_layout, viewport.Height, width, rail);
         _bandHeight = height;
-        if (double.IsNaN(Stage.Height) || Math.Abs(Stage.Height - height) > 0.5) Stage.Height = height;
+        PlaceRecommendations(width, height, rail, recommendations);
         Frame.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, Math.Max(0, main), height) };
 
         // 两层剧照不在这里给尺寸：空 Grid 由对齐撑满 Band 的内沿，图在背景那支 ImageBrush 里按 UniformToFill

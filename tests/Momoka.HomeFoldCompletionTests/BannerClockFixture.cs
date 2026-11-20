@@ -79,9 +79,12 @@ internal sealed class ShimmerBoundary
 internal sealed class BannerSlide(string id)
 {
     internal List<Task?> Requests { get; } = [];
+    internal bool PictureRetained { get; private set; }
+    internal int Releases { get; private set; }
     internal Task EnsureAsync(Task? presentation = null)
     {
         Requests.Add(presentation);
+        PictureRetained = true;
         return Task.CompletedTask;
     }
     internal Microsoft.UI.Xaml.Media.Imaging.BitmapImage? Logo { get; set; }
@@ -89,7 +92,11 @@ internal sealed class BannerSlide(string id)
     internal EmbyItem Item { get; } = new() { Id = id, Name = id };
     internal string Signature => Item.Id;
     internal event EventHandler? PictureUnavailable;
-    internal void Release() { }
+    internal void Release()
+    {
+        PictureRetained = false;
+        Releases++;
+    }
     internal void SetGaussianBackdrop(bool value) { }
     internal void SetLeftExtension(bool value) { }
     internal void Fail() => PictureUnavailable?.Invoke(this, EventArgs.Empty);

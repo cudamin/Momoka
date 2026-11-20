@@ -4,9 +4,8 @@ using static Momoka.Tests.TestHarness;
 namespace Momoka.Tests;
 
 /// <summary>
-/// 主页轮播「商店版式」重做（2026-11-16）的源码契约：两列卡片、右栏上大下二小、分页圆点在卡片
-/// <em>下面</em>那一行，以及圆点墨不再从应用字典里找一支只写在控件里的画刷。
-/// 实际尺寸、命中区与随窗口换档由 Shell 原生探针核对；这里钉的是结构，免得下一次改版把圆点又塞回剧照里。
+/// 主页轮播「商店版式」的结构契约：主卡、圆点、下排推荐分行，推荐区用同一组三张卡响应式改位。
+/// 实际尺寸、命中区、焦点和随窗口换档由 Shell 原生探针核对；这里防止圆点重回剧照或换档重建控件。
 /// </summary>
 internal static class HomeCarouselLayoutTests
 {
@@ -14,7 +13,7 @@ internal static class HomeCarouselLayoutTests
 
     internal static void Register()
     {
-        Test("轮播商店版式：大图与右栏在 Stage 两列里，圆点在 Stage 外面的下一行", () =>
+        Test("轮播商店版式：Stage 分主卡、圆点与下排三行，圆点和推荐在主卡裁剪外", () =>
         {
             var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
             var names = banner.Descendants()
@@ -32,27 +31,71 @@ internal static class HomeCarouselLayoutTests
                 "右栏不在 Stage 里（会整块压在大图上）");
             Assert.False(stage.Elements().Any(element => (string?)element.Attribute(X + "Name") == "Frame"),
                 "大图应该由自己的圆角层包着，而不是直接站在 Stage 里");
-            Assert.False(stage.Descendants().Any(element => (string?)element.Attribute(X + "Name") is "DotsHost" or "PageDots"),
-                "圆点又回到了卡片里面");
+
+            var rows = stage.Elements().Single(element => element.Name.LocalName == "Grid.RowDefinitions").Elements()
+                .Select(element => (string?)element.Attribute(X + "Name")).ToArray();
+            Assert.Equal(3, rows.Length);
+            Assert.Equal("HeroRow", rows[0]);
+            Assert.Equal("DotsRow", rows[1]);
+            Assert.Equal("RecommendationsRow", rows[2]);
 
             var dots = Single(banner, "DotsHost");
+            Assert.True(ReferenceEquals(stage, dots.Parent), "圆点应由 Stage 独立行承载");
             Assert.Equal("1", (string?)dots.Attribute("Grid.Row"));
             Assert.True(dots.Elements().Any(element => (string?)element.Attribute(X + "Name") == "PageDots"),
                 "圆点没有站在卡片下面那一行里");
+            foreach (var name in new[] { "HeroClip", "Frame" })
+                Assert.False(Single(banner, name).Descendants().Any(element =>
+                    (string?)element.Attribute(X + "Name") is "DotsHost" or "PageDots" or "Rail"),
+                    "圆点或推荐又回到了主卡的裁剪范围里");
         });
 
-        Test("轮播商店版式：右栏上大下二小是 2:1，圆点行高与 Core 的 DotsHeight 同一档", () =>
+        Test("轮播商店版式：辅助区可改行列，三张卡只声明一次并保留点击与自动化入口", () =>
         {
             var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
             var rail = Single(banner, "Rail");
-            var rows = rail.Elements().Single(element => element.Name.LocalName == "Grid.RowDefinitions")
-                .Elements()
-                .Select(element => (string?)element.Attribute("Height"))
-                .ToArray();
-            Assert.Equal(new[] { "2*", "8", "*" }.Length, rows.Length);
-            Assert.Equal("2*", rows[0]);
-            Assert.Equal("8", rows[1]);
-            Assert.Equal("*", rows[2]);
+            var small = Single(banner, "RailSmallCards");
+            foreach (var element in new[] { rail, small })
+            {
+                Assert.Equal(3, element.Elements().Single(child => child.Name.LocalName == "Grid.RowDefinitions").Elements().Count());
+                Assert.Equal(3, element.Elements().Single(child => child.Name.LocalName == "Grid.ColumnDefinitions").Elements().Count());
+            }
+            Assert.Equal("12", (string?)Single(banner, "RailMiddleRow").Attribute("Height"));
+            Assert.Equal("12", (string?)Single(banner, "SmallGapColumn").Attribute("Width"));
+            Assert.Equal("0", (string?)Single(banner, "RecommendationsRow").Attribute("Height"));
+            Assert.Equal("Collapsed", (string?)rail.Attribute("Visibility"));
+
+            var names = new[] { "RailBigCard", "RailSmallCardA", "RailSmallCardB" };
+            Assert.Equal(3, rail.Descendants().Count(element => element.Name.LocalName == "Button"));
+            for (var index = 0; index < names.Length; index++)
+            {
+                var card = Single(banner, names[index]);
+                Assert.Equal("Button", card.Name.LocalName);
+                Assert.Equal("OnRailCardClicked", (string?)card.Attribute("Click"));
+                Assert.Equal("BannerRailCard" + (index + 1), (string?)card.Attribute("AutomationProperties.AutomationId"));
+                Assert.True(rail.Descendants().Contains(card));
+                Assert.True(ReferenceEquals(index == 0 ? rail : small, card.Parent));
+            }
+
+            var layout = Source("Momoka.Shell/Views/HomeBanner.StoreLayout.cs");
+            Assert.Contains("Grid.SetRow(Rail, below ? 2 : 0)", layout);
+            Assert.Contains("Grid.SetColumn(Rail, side ? 2 : 0)", layout);
+            Assert.Contains("Grid.SetRow(RailSmallCards, below ? 0 : 2)", layout);
+            Assert.Contains("Grid.SetColumn(RailSmallCards, below ? 2 : 0)", layout);
+            Assert.Contains("Grid.SetRow(RailSmallCardB, below ? 2 : 0)", layout);
+            Assert.Contains("Grid.SetColumn(RailSmallCardB, below ? 0 : 2)", layout);
+            foreach (var rebuild in new[] { "Children.Clear(", "Children.Remove(", "Children.Add(", "new Button", "new Border", "new Grid()" })
+                Assert.DoesNotContain(rebuild, layout);
+
+            var code = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            Assert.Contains("HomeCarousel.ShowsRecommendations(_layout, width, _slides.Count)", code);
+            Assert.Contains("PlaceRecommendations(width, height, rail, recommendations)", code);
+            Assert.Contains("if (ReferenceEquals(_railSlides[slot], slide)) continue;", code);
+        });
+
+        Test("轮播商店版式：主卡、圆点与下排分别计高，圆点与卡片控件保持原有样式", () =>
+        {
+            var banner = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "HomeBanner.xaml"));
 
             var host = Single(banner, "DotsHost");
             var pageDots = Single(banner, "PageDots");
@@ -61,6 +104,12 @@ internal static class HomeCarouselLayoutTests
 
             var carousel = Source("Momoka.Core/Emby/HomeCarousel.cs");
             Assert.Contains("public const double DotsHeight = 28;", carousel);
+            var code = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            Assert.Contains("DotsRow.Height = new GridLength(dots)", code);
+            Assert.Contains("_bandHeight + dots + _recommendationsHeight", code);
+            var layout = Source("Momoka.Shell/Views/HomeBanner.StoreLayout.cs");
+            Assert.Contains("HeroRow.Height = new GridLength(heroHeight)", layout);
+            Assert.Contains("RecommendationsRow.Height = new GridLength(_recommendationsHeight)", layout);
 
             var round = banner.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgBannerPageRoundStyle");
             Assert.Equal("30", (string?)round.Elements().Single(element => element.Name.LocalName == "Setter"
@@ -94,6 +143,22 @@ internal static class HomeCarouselLayoutTests
             var cache = Source("Momoka.Shell/Media/BannerBackdropCache.cs");
             Assert.Contains("int requestedWidth, bool extendLeft = true", cache);
             Assert.Contains("? CarouselBackdrop.LeftExtensionShare", cache);
+        });
+
+        Test("商店推荐图片：下排与侧栏都参与预取，未换条目不重复清空图片订阅", () =>
+        {
+            var code = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            var start = code.IndexOf("private void Prefetch()", StringComparison.Ordinal);
+            Assert.True(start >= 0, "找不到真实轮播图片预取入口");
+            var end = code.IndexOf("private void SyncArrows()", start, StringComparison.Ordinal);
+            Assert.True(end > start, "找不到真实轮播图片预取边界");
+            var prefetch = code[start..end];
+            Assert.Contains("if (_recommendationsShown)", prefetch);
+            Assert.DoesNotContain("if (_railShown)", prefetch);
+            Assert.Contains("HomeCarousel.RailIndices(_index, _slides.Count)", prefetch);
+            Assert.Contains("if (wanted.Contains(i))", prefetch);
+            Assert.Contains("else _slides[i].Release()", prefetch);
+            Assert.Contains("if (_railSlides.All(slide => slide is null)) return;", code);
         });
 
         Test("商店版式大图自己剪四边圆角，沉浸档由页面拨成 0", () =>
