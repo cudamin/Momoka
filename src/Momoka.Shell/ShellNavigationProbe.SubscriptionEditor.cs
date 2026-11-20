@@ -54,8 +54,8 @@ internal sealed partial class ShellNavigationProbe
                     + $"面板 {panel.ActualWidth:0.#}×{panel.ActualHeight:0.#}，字段宽 {sites.ActualWidth:0.#}）");
             var options = Descendants(panel).OfType<CheckBox>().ToArray();
             Require(options.Length == editor.ViewModel.Sites.Count
-                && options.All(option => Math.Abs(option.ActualHeight - 48) < 0.5),
-                "订阅站点的列表没有按参考图的 48 高整行排");
+                && options.All(option => Math.Abs(option.ActualHeight - 32) < 0.5),
+                "订阅站点的列表没有按组合框下拉的 32 高整行排");
             var sample = editor.ViewModel.Sites.FirstOrDefault(row => !row.Selected) ?? editor.ViewModel.Sites[0];
             var wasSelected = sample.Selected;
             sample.Selected = !wasSelected;

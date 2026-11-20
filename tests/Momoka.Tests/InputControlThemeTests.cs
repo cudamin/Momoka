@@ -625,7 +625,7 @@ internal static class InputControlThemeTests
             Assert.Equal("{x:Bind ViewModel.SitesPanelVisibility, Mode=OneWay}", (string?)panel.Attribute("Visibility"));
             Assert.Equal("{StaticResource EgSearchCornerRadius}", (string?)panel.Attribute("CornerRadius"));
             Assert.Equal("0,2,0,0", (string?)panel.Attribute("Margin"));
-            Assert.Equal("0,10", (string?)panel.Attribute("Padding"));
+            Assert.Equal("0,4", (string?)panel.Attribute("Padding"));
             var options = panel.Descendants(Xaml + "ItemsControl").Single();
             Assert.Equal("{x:Bind ViewModel.Sites, Mode=OneWay}", (string?)options.Attribute("ItemsSource"));
             Assert.Equal("{StaticResource EditorSiteOptionTemplate}", (string?)options.Attribute("ItemTemplate"));
@@ -640,13 +640,14 @@ internal static class InputControlThemeTests
             var optionStyle = Resource(resources, "EditorSiteOption");
             var optionSetters = optionStyle.Elements(Xaml + "Setter").ToDictionary(
                 setter => (string)setter.Attribute("Property")!, setter => (string?)setter.Attribute("Value"));
-            Assert.Equal("48", optionSetters["MinHeight"], "站点行没有按参考图的 48 高排");
-            Assert.Equal("24,0,24,0", optionSetters["Margin"], "站点行的左右内缩没写在 Margin 上");
-            Assert.Equal("12,0,0,0", optionSetters["Padding"]);
-            var optionText = Resource(resources, "EditorSiteOptionText");
-            Assert.Equal("{StaticResource EgSubheadFontSize}",
-                (string?)optionText.Elements(Xaml + "Setter").Single().Attribute("Value"));
+            // 用户一句「展开的选项太大了」：从 48 高／24 内缩／16 号改成组合框下拉那一档。
+            Assert.Equal("32", optionSetters["MinHeight"], "站点行没有跟组合框下拉一样高");
+            Assert.Equal("0,1", optionSetters["Margin"]);
+            Assert.Equal("11,5,11,5", optionSetters["Padding"]);
             var optionTemplate = Resource(resources, "EditorSiteOptionTemplate");
+            Assert.Equal("{StaticResource EgBodyStyle}",
+                (string?)optionTemplate.Descendants(Xaml + "TextBlock").Single().Attribute("Style"),
+                "站点行的文字没有回到 14 号正文");
             Assert.Equal("{StaticResource EditorSiteOption}",
                 (string?)optionTemplate.Descendants(Xaml + "CheckBox").Single().Attribute("Style"));
         });

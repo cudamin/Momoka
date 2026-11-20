@@ -40,24 +40,19 @@
         </Style>
         <!--
           展开后那张表：整块与字段同宽、隔 2 像素接在下面，1 像素边 + 10 圆角（EgSearchCornerRadius，
-          与字段同一档），上下各 10 的内边距让第一行与最后一行离框边 24（行高 48，勾选框在行里居中）。
-          行高与内边距按参考图量：勾选框 18、行距 48、面板左右内缩 24、文字 16。
-
-          左右内缩写在 Margin 上而不是 Padding：框架的 CheckBox 模板把 Padding 只加在文字那一侧
-          （勾选框固定贴在控件左沿），Padding 写 24 时方块还压在面板边框上（2026-11-20 首版实拍）。
-          所以整颗控件内缩 24，Padding 只管方块到文字的 12。
+          与字段同一档），上下各 4 的内边距（ComboBox 下拉弹层那一档）；每行 32 高、左右内缩 11、
+          勾选框到文字 11、文字 14 号，与优先级规则组的浮层选项同一档。
+          首版按参考图排的是 48 高／24 内缩／16 号；2026-11-20 用户看着实屏一句「展开的选项太大了」，
+          改成与组合框下拉同档。
         -->
         <Style x:Key="EditorSiteOption" TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="MinHeight" Value="48" />
-            <Setter Property="Margin" Value="24,0,24,0" />
-            <Setter Property="Padding" Value="12,0,0,0" />
-        </Style>
-        <Style x:Key="EditorSiteOptionText" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
-            <Setter Property="FontSize" Value="{StaticResource EgSubheadFontSize}" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="11,5,11,5" />
+            <Setter Property="Margin" Value="0,1" />
         </Style>
         <!--
           优先级规则组这颗多选下拉的衣服（2026-11-19；2026-11-20 订阅站点换成下面那颗就地展开的字段后，
@@ -234,9 +229,9 @@
         <DataTemplate x:Key="EditorCheckTemplate" x:DataType="vm:MoviePilotSubscriptionEditorChoiceRow">
             <CheckBox x:Name="SelectEditorChoice" Style="{StaticResource EditorMultiOption}" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}"><TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" /></CheckBox>
         </DataTemplate>
-        <!-- 订阅站点展开后的一行：整行 48 高、勾选框与文字在行里居中；优先级规则组仍用上面那张 32 高的表。 -->
+        <!-- 订阅站点展开后的一行：32 高、14 号字，与优先级规则组那张表同一档。 -->
         <DataTemplate x:Key="EditorSiteOptionTemplate" x:DataType="vm:MoviePilotSubscriptionEditorChoiceRow">
-            <CheckBox x:Name="SelectSiteChoice" Style="{StaticResource EditorSiteOption}" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}"><TextBlock Text="{x:Bind Label}" Style="{StaticResource EditorSiteOptionText}" TextWrapping="Wrap" /></CheckBox>
+            <CheckBox x:Name="SelectSiteChoice" Style="{StaticResource EditorSiteOption}" IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Label}"><TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" /></CheckBox>
         </DataTemplate>
     </UserControl.Resources>
     <Grid x:Name="EditorRoot" MinWidth="220" RowSpacing="4" SizeChanged="OnBodySizeChanged">
@@ -311,7 +306,7 @@
                             </Grid>
                         </ToggleButton>
                         <Border x:Name="SubscriptionSitesPanel" Visibility="{x:Bind ViewModel.SitesPanelVisibility, Mode=OneWay}"
-                            Margin="0,2,0,0" Padding="0,10" Background="Transparent"
+                            Margin="0,2,0,0" Padding="0,4" Background="Transparent"
                             BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgSearchCornerRadius}">
                             <Border.Resources>
                                 <!-- 框架给复选框的四条行底都是透明，悬停只有那只 20 的小方块会亮；就地钉成
