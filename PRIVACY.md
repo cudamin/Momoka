@@ -97,7 +97,7 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 
 # Momoka Privacy Policy
 
-Last updated: 2026-11-07
+Last updated: 2026-11-21
 
 Momoka is a Windows desktop client for an Emby, Jellyfin, 飞牛影视 or Plex media server that you own or are authorized to use.
 

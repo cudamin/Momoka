@@ -58,11 +58,9 @@
 
 ## 开发与验证
 
-常设规则见 [CLAUDE.md](CLAUDE.md)。开发使用 .NET 10 SDK，具体版本以 [global.json](global.json) 为准；构建、离线测试、隔离界面探针及发布命令见 [开发与验证](docs/开发与验证.md)。本地播放与发布需要另行准备匹配的 x64 `libmpv-2.dll`，该文件不入库。
+开发和贡献入口见 [CONTRIBUTING.md](CONTRIBUTING.md)。项目使用 .NET 10 SDK，具体版本以 [global.json](global.json) 为准；详细验证命令见 [开发与验证](docs/开发与验证.md)。本地播放与发布需要另行准备匹配的 x64 `libmpv-2.dll`，该文件不入库。
 
 整体架构、模块职责、播放管线与验证体系见 [技术文档](docs/技术文档.md)。
-
-主页翻档完成／取消的独立离线回归与运行边界见 [翻档夹具](tests/Momoka.HomeFoldCompletionTests/README.md)。
 
 ## 许可证
 **Momoka 自身代码按 `GPL-3.0-or-later` 授权**：你可以选择 GNU 通用公共许可证第 3 版，或自由软件基金会发布的任何后续版本。Copyright (c) 2026 Momoka contributors。许可正文见 [LICENSE](LICENSE)。

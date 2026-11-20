@@ -103,6 +103,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 | 构建 | <https://github.com/zhongfly/mpv-winbuild>（基于 shinchiro/mpv-winbuild-cmake） |
 | 版本 | mpv v0.41.0-1163-g270367e8a（提交 `270367e8af…`），构建于 2026-10-14 03:08:54 |
 | 发布 | release `2026-10-14-270367e8af` 的 `mpv-dev-lgpl-x86_64-20261014-git-270367e8af.7z` |
+| 固定源码 | [mpv commit 270367e8af7e2f49fc3d3f8da03c985f5ae3b402](https://github.com/mpv-player/mpv/tree/270367e8af7e2f49fc3d3f8da03c985f5ae3b402)；[对应构建发布页](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-10-14-270367e8af) |
 | 归档 SHA256 | `1488b4458279561a4a0134ddf837989dcc8045308ac521657a98a284bcd8529d`（与发布页 `sha256.txt` 一致） |
 | 文件 SHA256 | `fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17` |
 | 版权 | Copyright © 2000–2026 mpv/MPlayer/mplayer2 projects |

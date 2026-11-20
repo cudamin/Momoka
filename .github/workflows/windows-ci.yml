@@ -1,0 +1,111 @@
+name: Windows CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build and repository checks
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.400
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore solution
+        shell: pwsh
+        run: dotnet restore .\Momoka.sln --disable-parallel -p:NuGetAudit=false
+
+      - name: Build Release solution
+        shell: pwsh
+        run: dotnet build .\Momoka.sln -c Release --no-restore -warnaserror
+
+      - name: Run main offline tests
+        shell: pwsh
+        run: dotnet run --project .\tests\Momoka.Tests\Momoka.Tests.csproj -c Release --no-build --no-restore
+
+      - name: Run repository checks
+        shell: pwsh
+        run: |
+          python .\tools\check-docs.py
+          .\tools\check-scripts.ps1
+          .\tools\check-doc-commands.ps1
+          python .\tools\check-report-credentials.py
+          .\tools\check-duplication.ps1 -ReportDirectory .\artifacts\ci-duplication
+
+      - name: Check committed diff format
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'pull_request') {
+            .\tools\check-diff.ps1 -Base '${{ github.event.pull_request.base.sha }}'
+          } elseif ('${{ github.event.before }}' -match '^[0]+$') {
+            .\tools\check-diff.ps1 -Base 'HEAD^'
+          } else {
+            .\tools\check-diff.ps1 -Base '${{ github.event.before }}'
+          }
+
+      - name: Upload quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-quality-evidence
+          path: artifacts/
+          if-no-files-found: ignore
+
+  offline-regressions:
+    name: Offline regression suites
+    runs-on: windows-2022
+    timeout-minutes: 90
+    needs: quality
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.400
+
+      - name: Restore solution
+        shell: pwsh
+        run: dotnet restore .\Momoka.sln --disable-parallel -p:NuGetAudit=false
+
+      - name: Run offline suites serially
+        shell: pwsh
+        run: .\tools\run-regressions.ps1 -All -Dotnet (Get-Command dotnet).Source -Packages (Join-Path $env:USERPROFILE '.nuget\packages')
+
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-regression-evidence
+          path: artifacts/regressions/
+          if-no-files-found: ignore

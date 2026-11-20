@@ -170,7 +170,7 @@ docker run -d \
 ### 用 Wrangler 部署
 
 ```bash
-cd C:\Users\89400\Momoka\website
+cd /path/to/Momoka/website
 npx wrangler@latest login
 npx wrangler@latest pages deploy dist --project-name momoka-site
 ```
@@ -184,7 +184,7 @@ npx wrangler@latest pages deploy dist --project-name momoka-site
 这是纯静态站点，Worker 只负责返回 `dist/` 里的文件。需要本机有 Node.js 和 Cloudflare 账号。
 
 ```bash
-cd C:\Users\89400\Momoka\website
+cd website
 npx wrangler@latest login
 npx wrangler@latest deploy
 ```

@@ -32,5 +32,7 @@ shell.png
 .workbuddy/
 .workbuddy-ai/
 .zcode/
+# AI coding-tool session data is local user state, not project source.
+.opencode/
 # 本机沙箱构建的环境变量兜底（写死了本机用户路径），不入库
 envprobe.props
