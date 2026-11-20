@@ -1,6 +1,6 @@
 ## 2026-11-20 商店轮播按参考图重排宽窄两档（分支 codex/store-carousel-responsive，待合并）
 
-用户附微软商店宽窄截图令「参考上图重做 商店版式 轮播图」。Store 闭源，截图仅作视觉布局参考；已读固定 Gallery v2.9.3 / `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 `Samples/Grid/GridPage.xaml[.cs]`、`Samples/Acrylic/AcrylicPage.xaml[.cs]`、`Styles/ItemTemplates.xaml` 与 `standalone.props`（Windows App SDK 2.0.1，本项目为 2.5.1 对应子包），以及 Learn 响应式布局指南。没有一主三辅的成套样例；继续组合已有原生 Grid，按内容宽和卡数计算，不引入包和控件类型。
+用户附微软商店宽窄截图令「参考上图重做 商店版式 轮播图」。产品与测试提交 `72ed818`，工作树 `C:/Users/89400/.codex/worktrees/543e/Momoka`。Store 闭源，截图仅作视觉布局参考；已读固定 Gallery v2.9.3 / `14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7` 的 `Samples/Grid/GridPage.xaml[.cs]`、`Samples/Acrylic/AcrylicPage.xaml[.cs]`、`Styles/ItemTemplates.xaml` 与 `standalone.props`（Windows App SDK 2.0.1，本项目为 2.5.1 对应子包），以及 Learn 响应式布局指南。没有一主三辅的成套样例；继续组合已有原生 Grid，按内容宽和卡数计算，不引入包和控件类型。
 
 **改动。** 商店轮播内容宽至少 900 DIP 时左主右辅，右侧上大下二小；480～899 时主图满宽、分页圆点在主图下，三张推荐移到下一排左大右二小。按参考四卡 16:9 联立尺寸、统一 12 DIP 间隔，取消右栏固定 460 宽封顶；页面 1860 DIP 最大宽度仍由原规则控制。不足四张或内容宽不足 480 时仅主卡，避免重复和过小命中区。四卡与圆点保留原实例、图片订阅、点击和 UIA；显示推荐的两档都参与预取，隐藏时释放额外图，坏图摘除后的替补及时预取。主图裁剪和简介显隐只读主图高度；整个轮播另加圆点和下排高度。外层媒体库浮层通过底边距仍锚在主图底部，窄档不会盖住推荐。几何计算在 Core，Grid 改位放 `HomeBanner.StoreLayout.cs`，没有外部调用或后端能力变化。
 
