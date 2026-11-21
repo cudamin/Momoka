@@ -2,11 +2,11 @@
 
 用户令（三条）：①「当音量大小快捷键设为其他键时，音量调节能正常触发，但是音量条不显示，无法看到音量大小，另外使用快捷键调整音量时只显示音量条即可，不要显示所有控件」；②「键盘上的所有按键都要支持设为快捷键」；③「设置快捷键遇到冲突重复时候要支持覆盖/替换功能」。
 
-树：`C:/Users/89400/.codex/worktrees/1937/Momoka`，临时分支 `codex/player-shortcuts-1937`，基于 `41835d6`；产品提交 `0b775f3`（上一窗口的初版）与 `5284ab1`（本窗口补齐，只含本任务文件，不含同树既有的独占播放探针未提交工作）。
+树：`C:/Users/89400/.codex/worktrees/1937/Momoka`，临时分支 `codex/player-shortcuts-1937`，基于 `41835d6`；产品提交 `0b775f3`（上一窗口的初版）、`5284ab1`（本窗口补齐）与 `4a7f555`（音量条纯净闸注释），只含本任务文件，不含同树既有的独占播放探针未提交工作。
 
 实现：Core 新增 `ShortcutKeyCatalog`，把 `VirtualKey` 1～0xFF 与扩展键标志映射为持久化 token（F1–F24、小键盘、导航键、标点/OEM、媒体与浏览器键；Shift/Ctrl/Alt 单按在抓键框里也能录入；无稳定名字的键落成 `VkXX`），独占窗口只写 mpv 有键名的键。`ShortcutCatalog` 取消 Esc/回车/Delete 的保留键，固定行为改为无绑定时的回退；`Rebind` 增加 `replaceConflict`，替换时原占用者接收新动作原来的键，新动作原本未绑则解绑。设置页冲突时弹「替换快捷键」确认，确认前复核绑定未变化；抓键框接受任意键，修饰键单按在抬起时提交，Esc 也可录入。播放页三条键路（岛内、Win32 兜底、seek 滑条）统一走 `Dispatch`；Root 的 `handledEventsToo` 处理器只接有绑定的键，焦点在按钮/滑条上时未改绑的控件原生键仍归控件（本窗口移除了会抢占音量滑条方向键的专用处理器）。音量增/减/静音的 `WakesChrome` 为 false，集成管线只 `FlashRail(preserveSilence: true)` 亮音量条，独占管线在改音量后发 `flash-elements volume` 只亮 uosc 音量条；uosc 键名校验同步支持 F13–F24、小键盘与新媒体键；批准清单已同步。
 
-验证：Shell Release x64 **0 警告 0 错误**；`Momoka.Tests` **5321/5321、0 失败 0 跳过**（新增音量滑条让位契约）；`Momoka.PlayerInputRecoveryTests` **17/17**（修正抽取桩的 `Token` 双参与 `CanDispatchStroke` 缺口）；`Momoka.ResizeHandoffTests` 编译通过；改动文件 `dotnet format whitespace --verify-no-changes` 通过；`git diff --check` 与 `check-docs.py`（178 文件、0 断链）通过。全量方案构建仍被同树既有问题挡住：独占播放探针未提交改动导致 `Momoka.ProbeFinalizationTests`／`NaturalContinuationCallerTests` 失败，分支基点缺少 master 后续的日历/主页测试桩，本机 `py` 不在 PATH；这些均不在本任务提交内，未记作本批通过。本树已发布到 `artifacts/publish/win-x64`（14:23）并刷新 `Momoka-player-shortcuts-1937.lnk`，未合并、未上传、未销账。
+验证：Shell Release x64 **0 警告 0 错误**；`Momoka.Tests` **5321/5321、0 失败 0 跳过**（新增音量滑条让位契约）；`Momoka.PlayerInputRecoveryTests` **17/17**（修正抽取桩的 `Token` 双参与 `CanDispatchStroke` 缺口）；`Momoka.ResizeHandoffTests` 编译通过；改动文件 `dotnet format whitespace --verify-no-changes` 通过；`git diff --check` 与 `check-docs.py`（178 文件、0 断链）通过。全量方案构建仍被同树既有问题挡住：独占播放探针未提交改动导致 `Momoka.ProbeFinalizationTests`／`NaturalContinuationCallerTests` 失败，分支基点缺少 master 后续的日历/主页测试桩，本机 `py` 不在 PATH；这些均不在本任务提交内，未记作本批通过。本树已用最终代码发布到 `artifacts/publish/win-x64` 并刷新 `Momoka-player-shortcuts-1937.lnk`，未合并、未上传、未销账。
 
 未覆盖：没有真实键盘逐键验收，也没有在独占窗口实按自定义键；系统保留组合（Win、Alt+Tab、Ctrl+Alt+Delete）不可录入；`VkXX` 在独占窗口无 mpv 键名，只在集成管线生效；本窗口未重拍音量条实屏／主题／DPI 证据，统一验证时补。
 
