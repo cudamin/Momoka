@@ -1,3 +1,11 @@
+## 2026-11-21 界面语言移到底部并统一选项语言（分支待合并）
+
+树 `C:/Users/89400/.codex/worktrees/c114/Momoka`，分支 `codex/english-ui`，基于英语界面提交 `33ec76a` 追加用户要求：将「界面语言」移到界面卡片最后一行；中文界面的选项只显示「跟随系统／简体中文／英语」，英文界面只显示对应英文。默认跟随 Windows 显示语言、手动覆盖、保存值与重启生效逻辑不变。仅调整既有行顺序和标签，未改共享控件模板或 XAML 资源，不触发高风险加载检查。
+
+Shell x64／Tests Release 编译均 0 警告 0 错误；语言专项 6/6、设置页状态 75/75，0 失败 0 跳过，覆盖四后端真实 VM 的中英单语言选项、保存稳定值和界面卡片末行源码契约。未重复全量主测试，未启动客户端、探针或截图；实际排版与输入验收仍待统一验证。独立只读审查未发现阻塞。三个 C# 文件格式验证退出 0，Shell 保留工作区加载提示；184 个文档链接、两份改动文档命令语法、五个任务文本文件行尾与差异、凭据零疑似值检查通过。日志为 `artifacts/english-language-bottom-*.log`。
+
+本树 `publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-english-ui` 成功，548 文件／290.6 MB 自包含载荷验证通过；桌面 `Momoka-english-ui.lnk` 回读目标、工作目录和空参数正确，指向 c114 本树发布目录，未启动程序。主程序集 SHA256 `6C36C8753EC40D61FD0F2736318B9847B55DF9B0BF66E9032BC9B0E9B87CFA40`，EXE／Core／PRI 哈希与快捷方式回执在 `artifacts/english-language-bottom-publish-receipt.json`。发布基于 `33ec76a` 加本轮工作区代码，仍包含既有 CardCollection 编辑，不是纯净提交独立构建。原 README／素材、CardCollection 与 DeferredCardsTests 差异哈希和删除状态均保持，排除本轮提交。未合并 master、未上传，台账保持开放。
+
 ## 2026-11-21 新增英语界面与默认跟随系统（分支待合并）
 
 树 `C:/Users/89400/.codex/worktrees/c114/Momoka`，临时分支 `codex/english-ui`，基点 `ac3a59a`；本节随产品变更提交，未合入 master、未上传。设置「界面 → 界面语言」新增跟随系统／简体中文／English，默认跟随 Windows 显示语言：中文系统用简体中文，其他语言用英语。手动选择优先，保存后重启生效；区域格式不变，旧配置、偏好备份导入与恢复默认均兼容。初始化移到 XAML 加载前，复用唯一容器，六类匿名探针不读取生产设置；初始化失败仍生成自检报告。补充 Windows UI locale 的特殊编号和无效零值安全回退，避免启动因 CultureInfo 转换失败退出。

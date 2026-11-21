@@ -116,13 +116,16 @@ internal static class UiLanguageDisplayTests
                     var choices = fixture.List(row, "Choices").Cast<object>().ToArray();
                     Assert.Equal("界面语言", fixture.Get<string>(row, "Label"));
                     Assert.Equal("Interface language", fixture.Get<string>(row, "DisplayLabel"));
-                    Assert.Equal("跟随系统,简体中文,English", string.Join(',', choices.Select(choice => fixture.Get<string>(choice, "Label"))));
+                    Assert.Equal("跟随系统,简体中文,英语", string.Join(',', choices.Select(choice => fixture.Get<string>(choice, "Label"))));
                     Assert.Equal("Follow system,Simplified Chinese,English", string.Join(',', choices.Select(choice => fixture.Get<string>(choice, "DisplayLabel"))));
+                    language.SetValue(null, UiLanguages.Chinese);
+                    Assert.Equal("跟随系统,简体中文,英语", string.Join(',', choices.Select(choice => fixture.Get<string>(choice, "DisplayLabel"))));
+                    language.SetValue(null, UiLanguages.English);
                     Assert.Equal("跟随系统", fixture.Get<string>(fixture.Get<object>(row, "Selected"), "Label"));
                     Assert.Contains("Restart Momoka", fixture.Get<string>(row, "DisplayNote"));
                     Assert.Equal(0, settings.TrySaveCalls);
 
-                    foreach (var (label, value) in new[] { ("English", UiLanguages.English), ("简体中文", UiLanguages.Chinese), ("跟随系统", UiLanguages.System) })
+                    foreach (var (label, value) in new[] { ("英语", UiLanguages.English), ("简体中文", UiLanguages.Chinese), ("跟随系统", UiLanguages.System) })
                     {
                         fixture.Set(row, "Selected", choices.Single(choice => fixture.Get<string>(choice, "Label") == label));
                         Assert.Equal(value, settings.Settings.Ui.Language);

@@ -2315,7 +2315,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     // Separate from the theme swatches so the shared preference can be tested without creating XAML brushes.
     private SettingChoiceRow InterfaceLanguageRow(UiSettings ui) => Choice("界面语言",
-        new[] { ("跟随系统", UiLanguages.System), ("简体中文", UiLanguages.Chinese), ("English", UiLanguages.English) },
+        new[] { ("跟随系统", UiLanguages.System), ("简体中文", UiLanguages.Chinese), ("英语", UiLanguages.English) },
         () => UiLanguages.Normalize(ui.Language), value => ui.Language = value,
         "默认跟随 Windows 显示语言：中文系统使用简体中文，其他语言使用英语。修改后重新启动 Momoka 生效。");
 
@@ -2328,7 +2328,6 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         var rows = new List<SettingRow>
         {
-            InterfaceLanguageRow(ui),
             // 「参考上图修改新增设置中的相关功能」（2026-11-16）：选择模式、透明效果排在这里。主题那一行
             // 保留五套固定色板加「跟随系统」—— 2026-11-16 晚用户令「右下角的主题色改为跟随当前系统设置，
             // 不要自己自选」，原先那格自选主题色撤掉，强调色回到所选色板自带。
@@ -2383,7 +2382,9 @@ public sealed partial class SettingsViewModel : PageViewModel
                 {
                     SettingRow.NotesHidden = ui.CompactMode;
                     RefreshNoteVisibility();
-                })
+                }),
+
+            InterfaceLanguageRow(ui)
         };
 
         return new SettingSection("界面", "界面",

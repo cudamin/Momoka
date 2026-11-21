@@ -343,6 +343,8 @@ internal static class SettingsPageStateTests
             Assert.Contains("AppearanceModeRow(ui)", card);
             Assert.Contains("TransparencyRow(ui)", card);
             Assert.Contains("ThemeSwatches(ui)", card);
+            Assert.True(System.Text.RegularExpressions.Regex.IsMatch(card, @"InterfaceLanguageRow\(ui\)\s*\};"),
+                "界面语言必须是界面卡片的最后一行");
             Assert.DoesNotContain("AccentColorRow(ui)", card);
             Assert.DoesNotContain("StartupRow()", card);
 
