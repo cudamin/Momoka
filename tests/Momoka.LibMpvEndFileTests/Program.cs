@@ -53,6 +53,27 @@ internal static class Program
             next.SeriesId = null;
             Assert.Null(vm.Following(current, next, f.Target, f.Target));
         });
+        Test("实际 VM 片尾：已从待播移除的条目不从播放全部列表找回，普通剧集仍可接续", async () =>
+        {
+            await using var f = new ServiceFixture();
+            using var vm = new AutoNextBoundary();
+            vm.Settings.Playback.AutoPlayNextEpisode = true;
+            var next = f.Target.Bind(new Momoka.Emby.EmbyItem
+            { Id = "next", Type = "Episode", SeasonId = "season" });
+            vm.Episodes = new UserPlaybackQueue([f.Item, next]);
+            var queue = vm.SessionQueue;
+            queue.Begin();
+            queue.AdoptInitial(f.Item, vm.Episodes);
+            var eof = new PlaybackResult(new PlaybackExit(PlaybackEndReason.EndOfFile, 100, 0, null), 0, false, false);
+
+            Assert.Equal(next.IdentityKey, vm.Next(eof, f.Item)?.Episode.IdentityKey);
+            Assert.True(queue.Remove(queue.Pending.Single().Slot));
+            Assert.Null(vm.Next(eof, f.Item));
+
+            vm.Episodes = [f.Item, next];
+            Assert.Equal(next.IdentityKey, vm.Next(eof, f.Item)?.Episode.IdentityKey);
+            Assert.Equal(0, f.Transport.Requests.Count);
+        });
         Test("离线边界：配置载入端点拒绝执行，不回退真实 libmpv", () =>
         {
             var error = Assert.Catch<AssertionException>(() =>
@@ -277,7 +298,7 @@ internal static class Program
                 vm.Settings.Playback.AutoPlayNextEpisode = true;
                 var following = f.Target.Bind(new Momoka.Emby.EmbyItem
                 { Id = "next", Type = "Episode", SeasonId = "season" });
-                vm.Episodes.AddRange([f.Item, following]);
+                vm.Episodes = [f.Item, following];
                 var startResponseRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 f.Transport.StartResponseRelease = startResponseRelease.Task;
                 var start = f.StartAsync();
@@ -339,8 +360,8 @@ internal static class Program
             f.Settings.Playback.ProgressReportIntervalSeconds = 1;
             using var vm = new AutoNextBoundary();
             vm.Settings.Playback.AutoPlayNextEpisode = true;
-            vm.Episodes.AddRange([f.Item, f.Target.Bind(new Momoka.Emby.EmbyItem
-            { Id = "next", Type = "Episode", SeasonId = "season" })]);
+            vm.Episodes = [f.Item, f.Target.Bind(new Momoka.Emby.EmbyItem
+            { Id = "next", Type = "Episode", SeasonId = "season" })];
             await f.StartAsync();
             f.Backend.End(5);
             Assert.False(f.Backend.Exit.IsCompleted);

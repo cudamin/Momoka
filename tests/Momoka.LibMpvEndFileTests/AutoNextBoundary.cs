@@ -8,11 +8,12 @@ namespace Momoka.Tests;
 internal sealed partial class AutoNextBoundary : IDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly SessionPlaybackQueue _sessionQueue = new();
     private EmbyItem? _parent;
     internal EmbyItem? Parent { get => _parent; set => _parent = value; }
     internal AppSettings Settings { get; } = new();
-    internal bool HasAggregateQueue { get; set; }
-    internal List<EmbyItem> Episodes { get; } = [];
+    internal IReadOnlyList<EmbyItem> Episodes { get; set; } = [];
+    internal SessionPlaybackQueue SessionQueue => _sessionQueue;
     internal int Decisions { get; private set; }
     internal EpisodeDestination? Next(PlaybackResult result, EmbyItem item)
     {
