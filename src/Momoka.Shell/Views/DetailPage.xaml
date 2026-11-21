@@ -490,23 +490,23 @@
                                 <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
                             </Style>
                         </CommandBar.Resources>
-                        <AppBarButton x:Name="StoreTrailerPause" Click="OnStoreTrailerPause" Label="暂停预告片"
+                        <AppBarButton x:Uid="DetailPage_StoreTrailerPause" x:Name="StoreTrailerPause" Click="OnStoreTrailerPause" Label="暂停预告片"
                                       AutomationProperties.AutomationId="StoreTrailerPause">
                             <AppBarButton.Icon><FontIcon Glyph="&#xE769;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
-                        <AppBarButton x:Name="StoreTrailerMute" Click="OnStoreTrailerMute" Label="预告片静音"
+                        <AppBarButton x:Uid="DetailPage_StoreTrailerMute" x:Name="StoreTrailerMute" Click="OnStoreTrailerMute" Label="预告片静音"
                                       AutomationProperties.AutomationId="StoreTrailerMute">
                             <AppBarButton.Icon><FontIcon Glyph="&#xE74F;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
-                        <AppBarButton x:Name="StoreTrailerSubtitles" Click="OnStoreTrailerSubtitles" Label="预告片字幕"
+                        <AppBarButton x:Uid="DetailPage_StoreTrailerSubtitles" x:Name="StoreTrailerSubtitles" Click="OnStoreTrailerSubtitles" Label="预告片字幕"
                                       AutomationProperties.AutomationId="StoreTrailerSubtitles" Visibility="Collapsed">
                             <AppBarButton.Icon><FontIcon Glyph="&#xED1E;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
-                        <AppBarButton x:Name="StoreTrailerAudio" Click="OnStoreTrailerAudio" Label="预告片音频"
+                        <AppBarButton x:Uid="DetailPage_StoreTrailerAudio" x:Name="StoreTrailerAudio" Click="OnStoreTrailerAudio" Label="预告片音频"
                                       AutomationProperties.AutomationId="StoreTrailerAudio" Visibility="Collapsed">
                             <AppBarButton.Icon><FontIcon Glyph="&#xE8D6;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
-                        <AppBarButton x:Name="StoreTrailerClose" Click="OnStoreTrailerClose" Label="关闭预告"
+                        <AppBarButton x:Uid="DetailPage_StoreTrailerClose" x:Name="StoreTrailerClose" Click="OnStoreTrailerClose" Label="关闭预告"
                                       AutomationProperties.AutomationId="StoreTrailerClose">
                             <AppBarButton.Icon><FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgBodyFontSize}" /></AppBarButton.Icon>
                         </AppBarButton>
@@ -1189,7 +1189,7 @@
                                         </StackPanel>
                                     </Button>
 
-                                    <Button
+                                    <Button x:Uid="DetailPage_ColumnExtrasButton"
                                         x:Name="ColumnExtrasButton"
                                         Content="花絮与特典"
                                         Click="OnExtrasClick"
@@ -1235,11 +1235,11 @@
                                         Orientation="Horizontal"
                                         Spacing="8"
                                         Visibility="{x:Bind ViewModel.StoreContinueVisibility, Mode=OneWay}">
-                                        <TextBlock
+                                        <TextBlock x:Uid="DetailPage_Localization1"
                                             VerticalAlignment="Center"
                                             Style="{StaticResource EgCaptionStyle}"
                                             Text="连播" />
-                                        <ToggleSwitch
+                                        <ToggleSwitch x:Uid="DetailPage_StoreContinueSwitch"
                                             x:Name="StoreContinueSwitch"
                                             MinWidth="0"
                                             VerticalAlignment="Center"
@@ -1651,7 +1651,7 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button
+                                <Button x:Uid="DetailPage_CompactExtrasButton"
                                     x:Name="CompactExtrasButton"
                                     Content="花絮与特典"
                                     Click="OnExtrasClick"
@@ -1984,13 +1984,13 @@
                             <!-- 沉浸档同样收起强调条与通栏线：一块让开的板上不该只剩这一条线。 -->
 
                             <Border x:Name="InfoPanelHeader">
-                                <local:ShelfHead
+                                <local:ShelfHead x:Uid="DetailPage_InfoHead"
                                 x:Name="InfoHead"
                                 ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="其他信息" />
                             </Border>
                             <StackPanel x:Name="InfoPanelContent">
-                                <TextBlock
+                                <TextBlock x:Uid="DetailPage_MediaInfoTitle"
                                     x:Name="MediaInfoTitle"
                                     Style="{StaticResource EgSubheadStyle}"
                                     Text="媒体信息"

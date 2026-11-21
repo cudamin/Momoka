@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Music;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell.ViewModels;
@@ -23,7 +24,7 @@ public sealed partial class MusicLibraryViewModel : PageViewModel
     private string _playingKey = "";
 
     public ObservableCollection<CardItem> Rows { get; } = [];
-    [ObservableProperty] public partial string Title { get; set; } = "音乐";
+    [ObservableProperty] public partial string Title { get; set; } = UiText.Translate("音乐");
     [ObservableProperty] public partial string Search { get; set; } = "";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TrackViewVisibility))]
@@ -173,7 +174,7 @@ public sealed partial class MusicLibraryViewModel : PageViewModel
         catch (OperationCanceledException) when (token.IsCancellationRequested || !scope.IsAvailable) { }
         catch (Exception error)
         {
-            if (Live()) Report("读取音乐失败", error);
+            if (Live()) Report(UiText.Translate("读取音乐失败"), error);
         }
         finally
         {

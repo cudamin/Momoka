@@ -1,3 +1,27 @@
+## 2026-11-21 界面语言移到底部并统一选项语言（分支待合并）
+
+树 `C:/Users/89400/.codex/worktrees/c114/Momoka`，分支 `codex/english-ui`，基于英语界面提交 `33ec76a` 追加用户要求：将「界面语言」移到界面卡片最后一行；中文界面的选项只显示「跟随系统／简体中文／英语」，英文界面只显示对应英文。默认跟随 Windows 显示语言、手动覆盖、保存值与重启生效逻辑不变。仅调整既有行顺序和标签，未改共享控件模板或 XAML 资源，不触发高风险加载检查。
+
+Shell x64／Tests Release 编译均 0 警告 0 错误；语言专项 6/6、设置页状态 75/75，0 失败 0 跳过，覆盖四后端真实 VM 的中英单语言选项、保存稳定值和界面卡片末行源码契约。未重复全量主测试，未启动客户端、探针或截图；实际排版与输入验收仍待统一验证。独立只读审查未发现阻塞。三个 C# 文件格式验证退出 0，Shell 保留工作区加载提示；184 个文档链接、两份改动文档命令语法、五个任务文本文件行尾与差异、凭据零疑似值检查通过。日志为 `artifacts/english-language-bottom-*.log`。
+
+本树 `publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-english-ui` 成功，548 文件／290.6 MB 自包含载荷验证通过；桌面 `Momoka-english-ui.lnk` 回读目标、工作目录和空参数正确，指向 c114 本树发布目录，未启动程序。主程序集 SHA256 `6C36C8753EC40D61FD0F2736318B9847B55DF9B0BF66E9032BC9B0E9B87CFA40`，EXE／Core／PRI 哈希与快捷方式回执在 `artifacts/english-language-bottom-publish-receipt.json`。发布基于 `33ec76a` 加本轮工作区代码，仍包含既有 CardCollection 编辑，不是纯净提交独立构建。原 README／素材、CardCollection 与 DeferredCardsTests 差异哈希和删除状态均保持，排除本轮提交。未合并 master、未上传，台账保持开放。
+
+## 2026-11-21 新增英语界面与默认跟随系统（分支待合并）
+
+树 `C:/Users/89400/.codex/worktrees/c114/Momoka`，临时分支 `codex/english-ui`，基点 `ac3a59a`；本节随产品变更提交，未合入 master、未上传。设置「界面 → 界面语言」新增跟随系统／简体中文／English，默认跟随 Windows 显示语言：中文系统用简体中文，其他语言用英语。手动选择优先，保存后重启生效；区域格式不变，旧配置、偏好备份导入与恢复默认均兼容。初始化移到 XAML 加载前，复用唯一容器，六类匿名探针不读取生产设置；初始化失败仍生成自检报告。补充 Windows UI locale 的特殊编号和无效零值安全回退，避免启动因 CultureInfo 转换失败退出。
+
+中英静态资源各 1292 项；动态设置和主壳文案经明确展示入口精确翻译，内部选项、分类、导航键、协议字段不翻译，用户／媒体／服务器名称与路径保持原值。中英文设置搜索均可定位原条目。覆盖主壳、设置、登录、库／搜索／详情／音乐及常用 MoviePilot 提示；部分 Core 组合提示、后台界面、服务端内容以及独占 uosc 定制菜单／统计页仍可能出现中文，本批不宣称全客户端全英语。未改播放管线、Lua 载荷或批准清单。MRTCore 的 ApplicationLanguages.cpp 已读源码确认 unpackaged override 为进程内状态，Windows 显示语言与区域格式分开处理。
+
+最终代码 Shell x64／Tests Release 构建均 0 警告 0 错误；主测试 **5341/5341**，语言专项 **6/6**，真实设置页状态 **75/75**（含新增双语展示与四后端共用语言行），权限快照 **54/54**，架构 **7/7**，均 0 失败 0 跳过。23 套受影响顶层专项均有通过结果，嵌套 AccountCompatibility Current **14/14**；页面契约 **393/393**、资源浏览器 **189/189** 已按最终本地化绑定精确复核，保留原结构哈希和负向断言。专项与主测试有重叠，不累加。证据：`artifacts/english-main-tests-current.log`、`english-language-tests-current.log`、`english-settings-current.log`、`english-permission-current.log`、`english-architecture-current.log`；专项汇总在 `artifacts/english-regressions-final`、`english-regressions-recheck` 与 `english-resource-final`。
+
+首轮主测试两处、页面三处、资源两处旧中文源契约报红，均保留原日志并按新的展示属性／精确翻译入口更新，未删除检查或接受整份基线。资源模板克隆最初丢失祖先 XML 命名空间导致结构哈希不符，已改克隆完整文档并验证回原哈希；无产品结构修改。语言回归发现零编号转换异常后加守卫。最终 PRI 抽查又发现两处开关关闭状态误译为 Close，新增语义断言先复现失败，再仅将对应 OffContent 改为 Off；`artifacts/english-offcontent-red.log` 保留红例。修复后 Shell／Tests 均重新编译零警告零错误，主测试 5341/5341、语言 6/6、设置 75/75、权限 54/54、架构 7/7 重新通过，以上 current 日志均已刷新。
+
+改动文件空白／行尾检查通过，Shell 格式工作区有加载提示但退出 0；UIA 扫描保留已有 5 个无句柄点，未删除原句柄。重复率 66 段／0.46%，在现有预算内；原 npx 启动 jscpd 失败保留日志，直接调用本机缓存同一 5.4.2 入口生成新报告后交原预算脚本验收通过。文档链接／命令与凭据检查见本批收尾日志。不宣称完整四道闸门；按日常 UI 规则未启动应用、登录、播放、探针或截图，Windows 实际 MRT 加载、双语排版与系统改语言重启等留台账。未引入基样式、跨字典取键或字典顺序变化，未触发高风险 XAML 最小加载例外。
+
+本树原缺忽略的 `libmpv-2.dll`，从主树已供应文件核对 size 与仓库既有 SHA256 批准后复制，未更新批准记录。最终 `publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-english-ui` 成功，自包含载荷 548 文件／290.6 MB、14 GLSL／4 HOOK 与固定 mpv 60 文件通过验证；桌面 `Momoka-english-ui.lnk` 已回读目标、工作目录及空参数正确，指向本树 `artifacts/publish/win-x64/Momoka.exe`，主树快捷方式未改，未启动程序。主程序集 SHA256 `7A775B7C312BAC5CF97594C2123BE5C01B33A35B33B5B1756801591474B5C788`，PRI SHA256 `1FAECB38415608CB668ECBEB488560738BE26C81A1F4AA2038480699F652EB0B`，EXE／Core 及完整回执在 `artifacts/english-publish-receipt.json`。最终 PRI dump 抽查应用自有资源包含中英候选，并确认两处 OffContent 为 Off；这只证明打包资源，不代替 MRT 实际加载或排版验收。发布基于本树现有工作区，包含原有 CardCollection 编辑，非纯净提交独立构建。
+
+未合并、未推送，台账保持开放。初始 README／README_EN／library 素材、CardCollection 与 DeferredCardsTests 的六处无关改动保留，收尾核对哈希及删除状态不变，不进入本提交。文档链接 184 文件零断链、命令语法 154 代码块零问题、凭据零疑似值、148 个任务文本文件行尾与空白及 Git diff 检查通过；本提交不包含上述既有差异。
+
 ## 2026-11-21 移除媒体库转换入口，保留设置转码管理（已合并 master，待统一验证）
 
 树 C:/Users/89400/.codex/worktrees/3490/Momoka，分支 codex/remove-media-conversion，基点 c4e9e14，产品提交 3d86588。按用户最终范围，移除单卡／多选「转换…」菜单、参数弹窗、专用权限与转换请求；Emby 设置「转码／转换」和 Jellyfin 设置「转码」管理页面、导航与图标全部保留。播放原已使用 Static=true 原码直读，没有转码选项或自动转码回退，本批补回归固定该边界，没有声称删除不存在的播放路径。播放列表创建结果模型原样迁出，保留逐项写前重核、取消、成功回执及 UI 线程回调。后端矩阵与开发文档同步本次范围。

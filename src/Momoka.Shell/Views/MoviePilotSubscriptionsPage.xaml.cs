@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Emby;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -17,7 +18,7 @@ internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service,
 {
     internal const string LibraryKey = HomeLibraryLayout.SubscriptionLibraryKey;
     internal const string LibraryTitle = "MP 订阅库";
-    internal string Title => Key == LibraryKey ? LibraryTitle : HomeLayout.FixedTitle(Key)!;
+    internal string Title => UiText.Translate(Key == LibraryKey ? LibraryTitle : HomeLayout.FixedTitle(Key)!);
 }
 
 /// <summary>

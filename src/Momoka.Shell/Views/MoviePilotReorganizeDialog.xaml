@@ -54,10 +54,10 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <FontIcon Glyph="&#xE8DE;" Foreground="{ThemeResource EgTextDimBrush}" />
             <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock Text="手动整理" Style="{StaticResource EgSectionTitleStyle}" />
+                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization1" Text="手动整理" Style="{StaticResource EgSectionTitleStyle}" />
                 <TextBlock x:Name="ReorganizeSubtitle" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" MaxLines="1" />
             </StackPanel>
-            <Button x:Name="DismissReorganize" Grid.Column="2" Click="OnDismiss" Style="{StaticResource EgIconButtonStyle}"
+            <Button x:Uid="MoviePilotReorganizeDialog_DismissReorganize" x:Name="DismissReorganize" Grid.Column="2" Click="OnDismiss" Style="{StaticResource EgIconButtonStyle}"
                 AutomationProperties.Name="关闭手动整理" ToolTipService.ToolTip="关闭">
                 <FontIcon Glyph="&#xE8BB;" FontSize="{StaticResource EgSubheadFontSize}" />
             </Button>
@@ -73,9 +73,9 @@
                     <StackPanel Spacing="24">
                         <StackPanel x:Name="HistoryLookupPanel" Spacing="10" Visibility="Collapsed">
                             <TextBlock x:Name="HistorySummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                            <AutoSuggestBox x:Name="HistoryQuery" Header="查找整理历史" PlaceholderText="输入原片名或文件名"
+                            <AutoSuggestBox x:Uid="MoviePilotReorganizeDialog_HistoryQuery" x:Name="HistoryQuery" Header="查找整理历史" PlaceholderText="输入原片名或文件名"
                                 QueryIcon="Find" QuerySubmitted="OnHistoryQuery" />
-                            <ComboBox x:Name="HistoryBox" Header="原整理记录" HorizontalAlignment="Stretch"
+                            <ComboBox x:Uid="MoviePilotReorganizeDialog_HistoryBox" x:Name="HistoryBox" Header="原整理记录" HorizontalAlignment="Stretch"
                                 DisplayMemberPath="Display" SelectionChanged="OnHistoryChanged" />
                         </StackPanel>
                         <Grid x:Name="DestinationGrid" ColumnSpacing="24" RowSpacing="20" Margin="0,12,0,0">
@@ -83,54 +83,54 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="TargetStorageField" Spacing="6">
                                 <Grid>
-                                    <ComboBox x:Name="TargetStorageBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="目的存储" PlaceholderText="自动" HorizontalAlignment="Stretch"
+                                    <ComboBox x:Uid="MoviePilotReorganizeDialog_TargetStorageBox" x:Name="TargetStorageBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="目的存储" PlaceholderText="自动" HorizontalAlignment="Stretch"
                                     DisplayMemberPath="Name" SelectionChanged="OnStorageChanged" />
                                     <FontIcon Glyph="&#xE958;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock x:Name="TargetStorageLabel" Text="目的存储" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_TargetStorageLabel" x:Name="TargetStorageLabel" Text="目的存储" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理目的存储，选择自动时由后端匹配" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization2" Style="{StaticResource EgCaptionStyle}" Text="整理目的存储，选择自动时由后端匹配" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="TransferMethodField" Spacing="6">
                                 <Grid>
-                                    <ComboBox x:Name="TransferTypeBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="整理方式" HorizontalAlignment="Stretch" SelectionChanged="OnSelectionEdited">
-                                    <ComboBoxItem Content="自动" Tag="" /><ComboBoxItem Content="复制" Tag="copy" />
-                                    <ComboBoxItem Content="移动（移走源文件）" Tag="move" /><ComboBoxItem Content="硬链接" Tag="link" /><ComboBoxItem Content="软链接" Tag="softlink" />
+                                    <ComboBox x:Uid="MoviePilotReorganizeDialog_TransferTypeBox" x:Name="TransferTypeBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="整理方式" HorizontalAlignment="Stretch" SelectionChanged="OnSelectionEdited">
+                                    <ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization3" Content="自动" Tag="" /><ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization4" Content="复制" Tag="copy" />
+                                    <ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization5" Content="移动（移走源文件）" Tag="move" /><ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization6" Content="硬链接" Tag="link" /><ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization7" Content="软链接" Tag="softlink" />
                                 </ComboBox>
                                     <FontIcon Glyph="&#xE8AB;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="整理方式" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization8" Text="整理方式" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="文件操作整理方式，选择自动时使用后端匹配结果或默认规则" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization9" Style="{StaticResource EgCaptionStyle}" Text="文件操作整理方式，选择自动时使用后端匹配结果或默认规则" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                         <StackPanel x:Name="TargetPathPanel" Spacing="6">
                             <Grid>
-                                    <ComboBox x:Name="TargetPathBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="目的路径" PlaceholderText="自动" HorizontalAlignment="Stretch" IsEditable="True"
+                                    <ComboBox x:Uid="MoviePilotReorganizeDialog_TargetPathBox" x:Name="TargetPathBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="目的路径" PlaceholderText="自动" HorizontalAlignment="Stretch" IsEditable="True"
                                 SelectionChanged="OnDirectoryChanged" />
                                     <FontIcon Glyph="&#xE8B7;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="目的路径" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization10" Text="目的路径" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理目的路径，选择自动将由后端按源路径匹配" TextWrapping="Wrap" />
+                            <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization11" Style="{StaticResource EgCaptionStyle}" Text="整理目的路径，选择自动将由后端按源路径匹配" TextWrapping="Wrap" />
                             <Border x:Name="MatchedPathPanel" Visibility="Collapsed" Padding="12,8" CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 Background="{ThemeResource EgAccentSoftBrush}">
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock x:Name="MatchedPathText" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgAccentBrush}"
                                         TextWrapping="Wrap" VerticalAlignment="Center" />
-                                    <Button x:Name="UseMatchedPathButton" AutomationProperties.Name="使用匹配路径" Grid.Column="1" Click="OnUseMatchedPath"
+                                    <Button x:Uid="MoviePilotReorganizeDialog_UseMatchedPathButton" x:Name="UseMatchedPathButton" AutomationProperties.Name="使用匹配路径" Grid.Column="1" Click="OnUseMatchedPath"
                                         VerticalAlignment="Center" Style="{StaticResource ReorganizeActionStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="使用匹配路径" /></StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock x:Uid="MoviePilotReorganizeDialog_Localization12" Text="使用匹配路径" /></StackPanel>
                 </Button>
                                 </Grid>
                             </Border>
@@ -140,59 +140,59 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="TypeField" Spacing="6">
                                 <Grid>
-                                    <ComboBox x:Name="TypeBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="类型" HorizontalAlignment="Stretch" SelectionChanged="OnTypeChanged">
-                                    <ComboBoxItem Content="自动" Tag="" /><ComboBoxItem Content="电影" Tag="电影" /><ComboBoxItem Content="电视剧" Tag="电视剧" />
+                                    <ComboBox x:Uid="MoviePilotReorganizeDialog_TypeBox" x:Name="TypeBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="类型" HorizontalAlignment="Stretch" SelectionChanged="OnTypeChanged">
+                                    <ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization13" Content="自动" Tag="" /><ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization14" Content="电影" Tag="电影" /><ComboBoxItem x:Uid="MoviePilotReorganizeDialog_Localization15" Content="电视剧" Tag="电视剧" />
                                 </ComboBox>
                                     <FontIcon Glyph="&#xE714;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="类型" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization16" Text="类型" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="文件的媒体类型" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization17" Style="{StaticResource EgCaptionStyle}" Text="文件的媒体类型" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="MediaSourceField" Spacing="6">
                                 <Grid>
-                                    <ComboBox x:Name="SourceBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="数据源" HorizontalAlignment="Stretch" DisplayMemberPath="Name" SelectionChanged="OnSourceChanged" />
+                                    <ComboBox x:Uid="MoviePilotReorganizeDialog_SourceBox" x:Name="SourceBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="数据源" HorizontalAlignment="Stretch" DisplayMemberPath="Name" SelectionChanged="OnSourceChanged" />
                                     <FontIcon Glyph="&#xE1A5;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="数据源" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization18" Text="数据源" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="默认使用后台识别设置，可为本次整理与刮削单独切换" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization19" Style="{StaticResource EgCaptionStyle}" Text="默认使用后台识别设置，可为本次整理与刮削单独切换" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                         <Grid x:Name="IdentityGrid" ColumnSpacing="24" RowSpacing="20">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="MediaIdPanel" Spacing="6">
-                                <AutoSuggestBox x:Name="MediaIdBox" Header="媒体编号" PlaceholderText="留空自动识别，或输入片名查找"
+                                <AutoSuggestBox x:Uid="MoviePilotReorganizeDialog_MediaIdBox" x:Name="MediaIdBox" Header="媒体编号" PlaceholderText="留空自动识别，或输入片名查找"
                                     QueryIcon="Find" TextChanged="OnMediaIdChanged" QuerySubmitted="OnMediaIdQuery" SuggestionChosen="OnSuggestionChosen" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="用所选数据源的原生编号。" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization20" Style="{StaticResource EgCaptionStyle}" Text="用所选数据源的原生编号。" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="SeasonField" Spacing="6">
-                                <TextBox x:Name="SeasonBox" Header="季（特别篇为 0）" PlaceholderText="留空自动识别" TextChanged="OnEdited" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="留空按文件名识别，特别篇填 0。" TextWrapping="Wrap" />
+                                <TextBox x:Uid="MoviePilotReorganizeDialog_SeasonBox" x:Name="SeasonBox" Header="季（特别篇为 0）" PlaceholderText="留空自动识别" TextChanged="OnEdited" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization21" Style="{StaticResource EgCaptionStyle}" Text="留空按文件名识别，特别篇填 0。" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="EpisodeField" Spacing="6">
-                                <TextBox x:Name="EpisodeBox" Header="集（如 1 或 1,2）" PlaceholderText="起始集,终止集" TextChanged="OnEdited" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="写单集或起始集,终止集。" TextWrapping="Wrap" />
+                                <TextBox x:Uid="MoviePilotReorganizeDialog_EpisodeBox" x:Name="EpisodeBox" Header="集（如 1 或 1,2）" PlaceholderText="起始集,终止集" TextChanged="OnEdited" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization22" Style="{StaticResource EgCaptionStyle}" Text="写单集或起始集,终止集。" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="EpisodeGroupPanel" Spacing="6">
-                                <ComboBox x:Name="EpisodeGroupBox" Header="剧集组" PlaceholderText="默认排序，或填写剧集组编号" HorizontalAlignment="Stretch"
+                                <ComboBox x:Uid="MoviePilotReorganizeDialog_EpisodeGroupBox" x:Name="EpisodeGroupBox" Header="剧集组" PlaceholderText="默认排序，或填写剧集组编号" HorizontalAlignment="Stretch"
                                     IsEditable="True" DisplayMemberPath="Label" SelectionChanged="OnSelectionEdited" />
-                                <TextBlock x:Name="EpisodeGroupHint" Style="{StaticResource EgCaptionStyle}" Text="可填 TMDB 剧集组编号。" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_EpisodeGroupHint" x:Name="EpisodeGroupHint" Style="{StaticResource EgCaptionStyle}" Text="可填 TMDB 剧集组编号。" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="EpisodeFormatField" Spacing="6">
-                                <TextBox x:Name="EpisodeFormatBox" Header="集数定位" PlaceholderText="使用 {ep} 定位集数" TextChanged="OnEdited" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="用 {ep} 标记集数位置。" TextWrapping="Wrap" />
+                                <TextBox x:Uid="MoviePilotReorganizeDialog_EpisodeFormatBox" x:Name="EpisodeFormatBox" Header="集数定位" PlaceholderText="使用 {ep} 定位集数" TextChanged="OnEdited" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization23" Style="{StaticResource EgCaptionStyle}" Text="用 {ep} 标记集数位置。" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="EpisodeOffsetField" Spacing="6">
-                                <TextBox x:Name="EpisodeOffsetBox" Header="集数偏移" PlaceholderText="如 -10 或 EP*2" TextChanged="OnEdited" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="按表达式调整识别到的集号。" TextWrapping="Wrap" />
+                                <TextBox x:Uid="MoviePilotReorganizeDialog_EpisodeOffsetBox" x:Name="EpisodeOffsetBox" Header="集数偏移" PlaceholderText="如 -10 或 EP*2" TextChanged="OnEdited" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization24" Style="{StaticResource EgCaptionStyle}" Text="按表达式调整识别到的集号。" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                         <Grid x:Name="FileOptionsGrid" ColumnSpacing="24" RowSpacing="20">
@@ -200,27 +200,27 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="PartField" Spacing="6">
                                 <Grid>
-                                    <TextBox x:Name="PartBox" Style="{StaticResource ReorganizeTextStyle}" AutomationProperties.Name="指定Part" PlaceholderText="如 part1" TextChanged="OnEdited" />
+                                    <TextBox x:Uid="MoviePilotReorganizeDialog_PartBox" x:Name="PartBox" Style="{StaticResource ReorganizeTextStyle}" AutomationProperties.Name="指定Part" PlaceholderText="如 part1" TextChanged="OnEdited" />
                                     <FontIcon Glyph="&#xE8C8;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="指定Part" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization25" Text="指定Part" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="指定Part，如part1" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization26" Style="{StaticResource EgCaptionStyle}" Text="指定Part，如part1" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="MinimumSizeField" Spacing="6">
                                 <Grid>
-                                    <TextBox x:Name="MinSizeBox" Style="{StaticResource ReorganizeTextStyle}" AutomationProperties.Name="最小文件大小（MB）" Text="0" TextChanged="OnEdited" />
+                                    <TextBox x:Uid="MoviePilotReorganizeDialog_MinSizeBox" x:Name="MinSizeBox" Style="{StaticResource ReorganizeTextStyle}" AutomationProperties.Name="最小文件大小（MB）" Text="0" TextChanged="OnEdited" />
                                     <FontIcon Glyph="&#xE8A5;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="最小文件大小（MB）" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization27" Text="最小文件大小（MB）" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="只整理大于最小文件大小的文件" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization28" Style="{StaticResource EgCaptionStyle}" Text="只整理大于最小文件大小的文件" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                         <Grid x:Name="FolderOptionsGrid" ColumnSpacing="24" RowSpacing="20">
@@ -228,31 +228,31 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="TypeFolderField" Spacing="6">
                                 <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <ToggleSwitch x:Name="TypeFolderToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="按类型分类" />
-                                    <TextBlock Grid.Column="1" Text="按类型分类" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Uid="MoviePilotReorganizeDialog_TypeFolderToggle" x:Name="TypeFolderToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="按类型分类" />
+                                    <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization29" Grid.Column="1" Text="按类型分类" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理时目的路径下按媒体类型添加子目录" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization30" Style="{StaticResource EgCaptionStyle}" Text="整理时目的路径下按媒体类型添加子目录" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="CategoryFolderField" Spacing="6">
                                 <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <ToggleSwitch x:Name="CategoryFolderToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="按类别分类" />
-                                    <TextBlock Grid.Column="1" Text="按类别分类" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Uid="MoviePilotReorganizeDialog_CategoryFolderToggle" x:Name="CategoryFolderToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="按类别分类" />
+                                    <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization31" Grid.Column="1" Text="按类别分类" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理时在目的路径下按媒体类别添加子目录" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization32" Style="{StaticResource EgCaptionStyle}" Text="整理时在目的路径下按媒体类别添加子目录" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="ScrapeField" Spacing="6">
                                 <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <ToggleSwitch x:Name="ScrapeToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="刮削元数据" />
-                                    <TextBlock Grid.Column="1" Text="刮削元数据" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Uid="MoviePilotReorganizeDialog_ScrapeToggle" x:Name="ScrapeToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="刮削元数据" />
+                                    <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization33" Grid.Column="1" Text="刮削元数据" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理完成后自动刮削元数据" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization34" Style="{StaticResource EgCaptionStyle}" Text="整理完成后自动刮削元数据" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="FromHistoryField" Spacing="6">
                                 <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <ToggleSwitch x:Name="FromHistoryToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFromHistoryChanged" AutomationProperties.Name="复用历史识别信息" />
-                                    <TextBlock Grid.Column="1" Text="复用历史识别信息" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    <ToggleSwitch x:Uid="MoviePilotReorganizeDialog_FromHistoryToggle" x:Name="FromHistoryToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFromHistoryChanged" AutomationProperties.Name="复用历史识别信息" />
+                                    <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization35" Grid.Column="1" Text="复用历史识别信息" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="使用历史整理记录中已识别的媒体信息" TextWrapping="Wrap" />
+                                <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization36" Style="{StaticResource EgCaptionStyle}" Text="使用历史整理记录中已识别的媒体信息" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -271,7 +271,7 @@
                 <Border x:Name="ConfirmationPanel" Visibility="Collapsed" Padding="12" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
                     <StackPanel Spacing="10">
                         <TextBlock x:Name="ConfirmationText" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                        <CheckBox x:Name="ConfirmChanges" Content="我已核对源文件、目标路径和旧记录的影响" Checked="OnConfirmed" Unchecked="OnConfirmed" />
+                        <CheckBox x:Uid="MoviePilotReorganizeDialog_ConfirmChanges" x:Name="ConfirmChanges" Content="我已核对源文件、目标路径和旧记录的影响" Checked="OnConfirmed" Unchecked="OnConfirmed" />
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -285,14 +285,14 @@
             <Grid x:Name="ActionsGrid" ColumnSpacing="8" RowSpacing="8">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <Button x:Name="PreviewButton" AutomationProperties.Name="预览" Click="OnPreview" Style="{StaticResource ReorganizeActionStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE890;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="预览" /></StackPanel>
+                <Button x:Uid="MoviePilotReorganizeDialog_PreviewButton" x:Name="PreviewButton" AutomationProperties.Name="预览" Click="OnPreview" Style="{StaticResource ReorganizeActionStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE890;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock x:Uid="MoviePilotReorganizeDialog_Localization37" Text="预览" /></StackPanel>
                 </Button>
-                <Button x:Name="QueueButton" AutomationProperties.Name="加入整理队列" Grid.Column="1" Click="OnQueueSubmit" Style="{StaticResource ReorganizeActionStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="加入整理队列" /></StackPanel>
+                <Button x:Uid="MoviePilotReorganizeDialog_QueueButton" x:Name="QueueButton" AutomationProperties.Name="加入整理队列" Grid.Column="1" Click="OnQueueSubmit" Style="{StaticResource ReorganizeActionStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock x:Uid="MoviePilotReorganizeDialog_Localization38" Text="加入整理队列" /></StackPanel>
                 </Button>
-                <Button x:Name="ReorganizeButton" AutomationProperties.Name="重新整理" Grid.Column="3" Click="OnReorganizeSubmit" Style="{StaticResource AccentButtonStyle}" MinHeight="36">
-                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="重新整理" /></StackPanel>
+                <Button x:Uid="MoviePilotReorganizeDialog_ReorganizeButton" x:Name="ReorganizeButton" AutomationProperties.Name="重新整理" Grid.Column="3" Click="OnReorganizeSubmit" Style="{StaticResource AccentButtonStyle}" MinHeight="36">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock x:Uid="MoviePilotReorganizeDialog_Localization39" Text="重新整理" /></StackPanel>
                 </Button>
             </Grid>
         </StackPanel>

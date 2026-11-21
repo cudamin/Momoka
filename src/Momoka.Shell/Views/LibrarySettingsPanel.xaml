@@ -27,7 +27,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Button
+                <Button x:Uid="LibrarySettingsPanel_SettingsCloseButton"
                     x:Name="SettingsCloseButton"
                     AutomationProperties.Name="关闭设置"
                     Background="Transparent"
@@ -37,7 +37,7 @@
                     ToolTipService.ToolTip="关闭">
                     <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE711;" />
                 </Button>
-                <TextBlock
+                <TextBlock x:Uid="LibrarySettingsPanel_Localization1"
                     Grid.Column="1"
                     VerticalAlignment="Center"
                     Style="{StaticResource EgSubheadStyle}"
@@ -53,8 +53,8 @@
                 <StackPanel Spacing="18">
 
                     <StackPanel Spacing="6">
-                        <TextBlock Style="{StaticResource EgCaptionStyle}" Text="视图" />
-                        <ComboBox
+                        <TextBlock x:Uid="LibrarySettingsPanel_Localization2" Style="{StaticResource EgCaptionStyle}" Text="视图" />
+                        <ComboBox x:Uid="LibrarySettingsPanel_ViewCombo"
                             x:Name="ViewCombo" x:FieldModifier="internal"
                             AutomationProperties.Name="视图"
                             HorizontalAlignment="Stretch"
@@ -64,13 +64,13 @@
                     <!-- 网页端只在能算宽度的视图里给这一行（海报/横幅图/光盘封面/徽标/缩略图），
                          列表与表格没有格子可缩放，所以整行连说明一起收起。 -->
                     <StackPanel x:Name="SizeSection" x:FieldModifier="internal" Spacing="6">
-                        <TextBlock Style="{StaticResource EgCaptionStyle}" Text="图像大小" />
-                        <ComboBox
+                        <TextBlock x:Uid="LibrarySettingsPanel_Localization3" Style="{StaticResource EgCaptionStyle}" Text="图像大小" />
+                        <ComboBox x:Uid="LibrarySettingsPanel_SizeCombo"
                             x:Name="SizeCombo" x:FieldModifier="internal"
                             AutomationProperties.Name="图像大小"
                             HorizontalAlignment="Stretch"
                             SelectionChanged="OnSizeChanged" />
-                        <TextBlock
+                        <TextBlock x:Uid="LibrarySettingsPanel_Localization4"
                             Foreground="{ThemeResource EgTextFaintBrush}"
                             Style="{StaticResource EgCaptionStyle}"
                             Text="设置图像网格的首选尺寸。"
@@ -86,9 +86,9 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock VerticalAlignment="Center" Style="{StaticResource EgBodyStyle}"
+                            <TextBlock x:Uid="LibrarySettingsPanel_Localization5" VerticalAlignment="Center" Style="{StaticResource EgBodyStyle}"
                                 Text="将项目分组到合集中" />
-                            <ToggleSwitch
+                            <ToggleSwitch x:Uid="LibrarySettingsPanel_GroupSwitch"
                                 x:Name="GroupSwitch"
                                 Grid.Column="1"
                                 AutomationProperties.Name="将项目分组到合集中"
@@ -97,7 +97,7 @@
                                 OnContent=""
                                 Toggled="OnGroupToggled" />
                         </Grid>
-                        <TextBlock
+                        <TextBlock x:Uid="LibrarySettingsPanel_Localization6"
                             Foreground="{ThemeResource EgTextFaintBrush}"
                             Style="{StaticResource EgCaptionStyle}"
                             Text="根据已添加到的合集对项目进行分组。启用某些筛选器或排序命令可能会自动禁用此功能。"
@@ -105,7 +105,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="FieldsSection" Spacing="4">
-                        <TextBlock
+                        <TextBlock x:Uid="LibrarySettingsPanel_Localization7"
                             Margin="0,0,0,4"
                             Style="{StaticResource EgSubheadStyle}"
                             Text="显示字段" />

@@ -12,10 +12,10 @@
         </Grid.RowDefinitions>
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <Button x:Name="CloseButton" Click="OnClose" Content="返回" Style="{StaticResource EgSecondaryButtonStyle}" />
+            <Button x:Uid="MoviePilotResourcePanel_CloseButton" x:Name="CloseButton" Click="OnClose" Content="返回" Style="{StaticResource EgSecondaryButtonStyle}" />
             <TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource EgSubheadStyle}"
                 Text="{x:Bind ViewModel.Heading, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
-            <Button x:Name="RetrySearch" Grid.Column="2" Content="搜索资源" Click="OnRetry" Style="{StaticResource EgSecondaryButtonStyle}" />
+            <Button x:Uid="MoviePilotResourcePanel_RetrySearch" x:Name="RetrySearch" Grid.Column="2" Content="搜索资源" Click="OnRetry" Style="{StaticResource EgSecondaryButtonStyle}" />
         </Grid>
         <local:MoviePilotSitePicker x:Name="SearchSitePicker" Grid.Row="1" />
         <InfoBar Grid.Row="2" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"

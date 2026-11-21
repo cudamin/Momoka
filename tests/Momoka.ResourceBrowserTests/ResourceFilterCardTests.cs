@@ -282,8 +282,27 @@ internal static class ResourceFilterCardTests
         Test("资源筛选卡片：已审核亚克力模板与交互结构保持", () =>
         {
             var xml = Load(sourceRoot, "MoviePilotResourceBrowser.xaml");
-            var template = Named(xml, "ResourceList").Elements().Single(node => node.Name.LocalName == "ItemsView.ItemTemplate");
-            var canonical = string.Concat(template.ToString(SaveOptions.DisableFormatting).Where(character => !char.IsWhiteSpace(character)));
+            var document = new XDocument(xml);
+            var structure = Named(document, "ResourceList").Elements().Single(node => node.Name.LocalName == "ItemsView.ItemTemplate");
+            // Only the three reviewed localization identifiers are neutral to this structural
+            // baseline. Assert their targets and both resources before removing them from the clone.
+            foreach (var (uid, property, chinese, english) in new[]
+            {
+                ("MoviePilotResourceBrowser_Localization8", "[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip", "做种人数", "Seeders"),
+                ("MoviePilotResourceBrowser_Localization9", "[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip", "下载人数", "Leechers"),
+                ("MoviePilotResourceBrowser_Localization10", "Text", "身份待核对", "Identity needs verification")
+            })
+            {
+                var target = structure.Descendants().Single(node => node.Attribute(X + "Uid")?.Value == uid);
+                Assert.Equal(chinese, target.Attribute(property == "Text" ? "Text" : "ToolTipService.ToolTip")?.Value);
+                foreach (var (language, value) in new[] { ("zh-Hans", chinese), ("en-US", english) })
+                {
+                    var resources = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Strings", language, "Resources.resw"));
+                    Assert.Equal(value, resources.Root!.Elements("data").Single(entry => entry.Attribute("name")?.Value == uid + "." + property).Element("value")?.Value);
+                }
+                target.Attribute(X + "Uid")!.Remove();
+            }
+            var canonical = string.Concat(structure.ToString(SaveOptions.DisableFormatting).Where(character => !char.IsWhiteSpace(character)));
             Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Named(xml, "ResourceCard").Attribute("Background")?.Value);
             Assert.Equal("D51477DBB1D37698A365639A4E3B759A5FE349CF3EA5AA4C36E63753CC1BB82E", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
         });

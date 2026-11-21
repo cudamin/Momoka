@@ -77,14 +77,14 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <StackPanel x:Name="Transport" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
-                    <Button x:Name="PreviousButton" Click="OnPrevious" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="上一曲" ToolTipService.ToolTip="上一曲"><FontIcon Glyph="&#xE892;" /></Button>
+                    <Button x:Uid="MusicPlayerBar_PreviousButton" x:Name="PreviousButton" Click="OnPrevious" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="上一曲" ToolTipService.ToolTip="上一曲"><FontIcon Glyph="&#xE892;" /></Button>
                     <Button x:Name="PauseButton" Click="OnPause" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="{x:Bind ViewModel.PlayLabel, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind ViewModel.PlayLabel, Mode=OneWay}"><FontIcon Glyph="{x:Bind ViewModel.PlayGlyph, Mode=OneWay}" /></Button>
-                    <Button x:Name="StopButton" Click="OnStop" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="停止播放并隐藏播放栏" ToolTipService.ToolTip="停止播放并隐藏">
+                    <Button x:Uid="MusicPlayerBar_StopButton" x:Name="StopButton" Click="OnStop" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="停止播放并隐藏播放栏" ToolTipService.ToolTip="停止播放并隐藏">
                         <FontIcon Glyph="&#xE71A;" />
                     </Button>
-                    <Button x:Name="NextButton" Click="OnNext" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="下一曲" ToolTipService.ToolTip="下一曲"><FontIcon Glyph="&#xE893;" /></Button>
+                    <Button x:Uid="MusicPlayerBar_NextButton" x:Name="NextButton" Click="OnNext" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="下一曲" ToolTipService.ToolTip="下一曲"><FontIcon Glyph="&#xE893;" /></Button>
                 </StackPanel>
-                <Button x:Name="CoverButton" Grid.Column="1" Click="OnExpand" Style="{StaticResource MusicCoverButtonStyle}"
+                <Button x:Uid="MusicPlayerBar_CoverButton" x:Name="CoverButton" Grid.Column="1" Click="OnExpand" Style="{StaticResource MusicCoverButtonStyle}"
                     VerticalAlignment="Center" AutomationProperties.Name="展开音乐播放页" ToolTipService.ToolTip="打开播放页">
                     <Border x:Name="CoverFrame" Width="42" Height="42" CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
                         <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
@@ -92,7 +92,7 @@
                 </Button>
                 <Grid x:Name="TrackInfo" Grid.Column="2" MaxWidth="360" RowSpacing="2" VerticalAlignment="Center" SizeChanged="OnTrackInfoSizeChanged">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <Button x:Name="TitleButton" Click="OnExpand" Style="{StaticResource MusicTitleButtonStyle}"
+                    <Button x:Uid="MusicPlayerBar_TitleButton" x:Name="TitleButton" Click="OnExpand" Style="{StaticResource MusicTitleButtonStyle}"
                         AutomationProperties.Name="展开音乐播放页" ToolTipService.ToolTip="打开播放页">
                         <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     </Button>
@@ -101,7 +101,7 @@
                         <Grid>
                             <TextBlock x:Name="ArtistText" Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
                             <Border Background="{ThemeResource EgSurfaceBrush}" Visibility="{x:Bind ViewModel.PreparingVisibility, Mode=OneWay}">
-                                <TextBlock Text="正在准备音乐…" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Uid="MusicPlayerBar_Localization1" Text="正在准备音乐…" Style="{StaticResource EgCaptionStyle}" />
                             </Border>
                         </Grid>
                         <StackPanel x:Name="ClockPanel" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -110,7 +110,7 @@
                             <TextBlock x:Name="DurationLabel" Text="{x:Bind ViewModel.DurationClock, Mode=OneWay}" Style="{StaticResource EgDataStyle}" />
                         </StackPanel>
                     </Grid>
-                    <Slider x:Name="SeekSlider" Grid.Row="2" Width="360" MaxWidth="360" HorizontalAlignment="Left" Minimum="0" Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
+                    <Slider x:Uid="MusicPlayerBar_SeekSlider" x:Name="SeekSlider" Grid.Row="2" Width="360" MaxWidth="360" HorizontalAlignment="Left" Minimum="0" Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
                         Value="{x:Bind ViewModel.Position, Mode=OneWay}" ValueChanged="OnSeek" AutomationProperties.Name="音乐进度" MinWidth="20">
                         <Slider.Resources>
                             <x:Double x:Key="SliderHorizontalHeight">12</x:Double>
@@ -125,32 +125,32 @@
                     </Slider>
                 </Grid>
                 <StackPanel x:Name="Extras" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
-                    <ToggleButton x:Name="ShuffleButton" Click="OnShuffle" IsChecked="{x:Bind ViewModel.Shuffle, Mode=OneWay}" Style="{StaticResource MusicToggleStyle}" AutomationProperties.Name="随机播放" ToolTipService.ToolTip="随机播放"><PathIcon Data="{x:Bind ShuffleGeometry}" /></ToggleButton>
-                    <Button x:Name="RepeatButton" Click="OnRepeat" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="{x:Bind ViewModel.RepeatLabel, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind ViewModel.RepeatLabel, Mode=OneWay}"><PathIcon x:Name="RepeatIcon" Data="{x:Bind RepeatGeometry(ViewModel.RepeatLabel), Mode=OneWay}" /></Button>
+                    <ToggleButton x:Uid="MusicPlayerBar_ShuffleButton" x:Name="ShuffleButton" Click="OnShuffle" IsChecked="{x:Bind ViewModel.Shuffle, Mode=OneWay}" Style="{StaticResource MusicToggleStyle}" AutomationProperties.Name="随机播放" ToolTipService.ToolTip="随机播放"><PathIcon Data="{x:Bind ShuffleGeometry}" /></ToggleButton>
+                    <Button x:Name="RepeatButton" Click="OnRepeat" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="{x:Bind ViewModel.DisplayRepeatLabel, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind ViewModel.DisplayRepeatLabel, Mode=OneWay}"><PathIcon x:Name="RepeatIcon" Data="{x:Bind RepeatGeometry(ViewModel.RepeatLabel), Mode=OneWay}" /></Button>
                     <Button x:Name="FavoriteButton" Click="OnFavorite" Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}" Style="{StaticResource MusicButtonStyle}"
                         AutomationProperties.Name="{x:Bind local:MusicPlayerBar.FavoriteLabel(ViewModel.Favorite), Mode=OneWay}" ToolTipService.ToolTip="{x:Bind local:MusicPlayerBar.FavoriteLabel(ViewModel.Favorite), Mode=OneWay}"><PathIcon x:Name="FavoriteIcon" Data="{x:Bind FavoriteGeometry(ViewModel.Favorite), Mode=OneWay}" /></Button>
-                    <Button x:Name="QueueButton" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="播放队列" ToolTipService.ToolTip="播放队列">
+                    <Button x:Uid="MusicPlayerBar_QueueButton" x:Name="QueueButton" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="播放队列" ToolTipService.ToolTip="播放队列">
                         <FontIcon Glyph="&#xE8FD;" />
                         <Button.Flyout><Flyout x:Name="QueueFlyout" Placement="Top">
                             <StackPanel Width="300" Spacing="12">
-                                <TextBlock Text="播放队列" Style="{StaticResource EgBodyStyle}" />
+                                <TextBlock x:Uid="MusicPlayerBar_Localization2" Text="播放队列" Style="{StaticResource EgBodyStyle}" />
                                 <ListView x:Name="QueueList" ItemsSource="{x:Bind ViewModel.Queue, Mode=OneWay}" MaxHeight="340" SelectionMode="Single"
                                     SelectedIndex="{x:Bind ViewModel.QueueIndex, Mode=OneWay}" IsItemClickEnabled="True" ItemClick="OnQueueItem">
                                     <ListView.ItemTemplate><DataTemplate x:DataType="emby:EmbyItem"><TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" Style="{StaticResource EgBodyStyle}" /></DataTemplate></ListView.ItemTemplate>
                                 </ListView>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="QueueShuffleButton" Content="随机" Click="OnShuffle" />
-                                    <Button x:Name="QueueRepeatButton" Content="{x:Bind ViewModel.RepeatLabel, Mode=OneWay}" Click="OnRepeat" />
+                                    <Button x:Uid="MusicPlayerBar_QueueShuffleButton" x:Name="QueueShuffleButton" Content="随机" Click="OnShuffle" />
+                                    <Button x:Name="QueueRepeatButton" Content="{x:Bind ViewModel.DisplayRepeatLabel, Mode=OneWay}" Click="OnRepeat" />
                                 </StackPanel>
                             </StackPanel>
                         </Flyout></Button.Flyout>
                     </Button>
-                    <Button x:Name="VolumeButton" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="音量" ToolTipService.ToolTip="音量">
+                    <Button x:Uid="MusicPlayerBar_VolumeButton" x:Name="VolumeButton" Style="{StaticResource MusicButtonStyle}" AutomationProperties.Name="音量" ToolTipService.ToolTip="音量">
                         <FontIcon Glyph="{x:Bind local:MusicPlayerBar.VolumeGlyph(ViewModel.Muted), Mode=OneWay}" />
                         <Button.Flyout><Flyout Placement="Top"><StackPanel Width="190" Spacing="8">
-                            <TextBlock Text="音量" Style="{StaticResource EgBodyStyle}" />
-                            <Slider x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="{x:Bind ViewModel.Volume, Mode=OneWay}" ValueChanged="OnVolume" AutomationProperties.Name="音乐音量" />
-                            <Button x:Name="MuteButton" Content="静音 / 取消静音" Click="OnMute" />
+                            <TextBlock x:Uid="MusicPlayerBar_Localization3" Text="音量" Style="{StaticResource EgBodyStyle}" />
+                            <Slider x:Uid="MusicPlayerBar_VolumeSlider" x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="{x:Bind ViewModel.Volume, Mode=OneWay}" ValueChanged="OnVolume" AutomationProperties.Name="音乐音量" />
+                            <Button x:Uid="MusicPlayerBar_MuteButton" x:Name="MuteButton" Content="静音 / 取消静音" Click="OnMute" />
                         </StackPanel></Flyout></Button.Flyout>
                     </Button>
                 </StackPanel>

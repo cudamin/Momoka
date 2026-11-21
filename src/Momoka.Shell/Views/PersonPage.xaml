@@ -113,7 +113,7 @@
                         <StackLayout Spacing="0" />
                     </ItemsRepeater.Layout>
                 </ItemsRepeater>
-                <HyperlinkButton
+                <HyperlinkButton x:Uid="PersonPage_Localization1"
                     Click="OnGroupMoreClicked"
                     Content="查看全部"
                     Tag="{x:Bind}"
@@ -157,13 +157,13 @@
                         MaxWidth="{StaticResource EgProseWidth}"
                         VerticalAlignment="Center"
                         Spacing="{StaticResource EgSpaceS}">
-                        <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="演职人员" />
+                        <TextBlock x:Uid="PersonPage_Localization2" Style="{StaticResource EgEyebrowStyle}" Text="演职人员" />
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
                             <TextBlock
                                 Style="{StaticResource EgPageTitleStyle}"
                                 Text="{x:Bind ViewModel.Name, Mode=OneWay}"
                                 TextWrapping="Wrap" />
-                            <Button
+                            <Button x:Uid="PersonPage_Localization3"
                                 AutomationProperties.Name="编辑演职人员元数据"
                                 Click="OnEditClicked"
                                 Style="{StaticResource EgIconButtonStyle}"
@@ -205,7 +205,7 @@
                                         Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}" />
                                 </Grid>
                             </Button>
-                            <Button
+                            <Button x:Uid="PersonPage_MoreButton"
                                 x:Name="MoreButton"
                                 AutomationProperties.Name="更多人物操作"
                                 Click="OnMoreClicked"
@@ -213,7 +213,7 @@
                                 ToolTipService.ToolTip="更多">
                                 <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE712;" />
                             </Button>
-                            <Button
+                            <Button x:Uid="PersonPage_Localization4"
                                 Command="{x:Bind ViewModel.RetryCommand}"
                                 Content="重试"
                                 Style="{StaticResource EgSecondaryButtonStyle}"
@@ -260,7 +260,7 @@
                     Style="{StaticResource EgBodyPanelStyle}"
                     Spacing="{StaticResource EgSpaceM}"
                     Visibility="{x:Bind ViewModel.OtherVisibility, Mode=OneWay}">
-                    <TextBlock
+                    <TextBlock x:Uid="PersonPage_Localization5"
                         AutomationProperties.HeadingLevel="Level2"
                         Style="{StaticResource EgSectionTitleStyle}"
                         Text="其他信息" />
@@ -271,7 +271,7 @@
                     Style="{StaticResource EgBodyPanelStyle}"
                     Spacing="{StaticResource EgSpaceM}"
                     Visibility="{x:Bind ViewModel.FilmographyVisibility, Mode=OneWay}">
-                    <TextBlock
+                    <TextBlock x:Uid="PersonPage_Localization6"
                         AutomationProperties.HeadingLevel="Level2"
                         Style="{StaticResource EgSectionTitleStyle}"
                         Text="影视作品" />
@@ -285,8 +285,8 @@
                     Style="{StaticResource EgBodyPanelStyle}"
                     Spacing="{StaticResource EgSpaceS}"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
-                    <TextBlock Style="{StaticResource EgBodyStyle}" Text="没有找到这个人的参演作品。" />
-                    <TextBlock Style="{StaticResource EgCaptionStyle}" Text="作品可能还在服务器上整理，也可能这个人物只有照片和简介。" TextWrapping="Wrap" />
+                    <TextBlock x:Uid="PersonPage_Localization7" Style="{StaticResource EgBodyStyle}" Text="没有找到这个人的参演作品。" />
+                    <TextBlock x:Uid="PersonPage_Localization8" Style="{StaticResource EgCaptionStyle}" Text="作品可能还在服务器上整理，也可能这个人物只有照片和简介。" TextWrapping="Wrap" />
                 </StackPanel>
             </StackPanel>
         </ScrollView>

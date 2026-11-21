@@ -10,7 +10,7 @@
   and hides the dialog itself only when the server accepted), so a rejected save leaves the form on screen
   with the reason instead of throwing the user's typing away.
 -->
-<ContentDialog
+<ContentDialog x:Uid="NotificationEditDialog_Localization1"
     x:Class="Momoka.Shell.Views.NotificationEditDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -30,25 +30,25 @@
     <ScrollViewer MaxHeight="560" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" MinWidth="440">
             <StackPanel Spacing="8">
-                <TextBox
+                <TextBox x:Uid="NotificationEditDialog_NameBox"
                     x:Name="NameBox"
                     Header="名称（可选）"
                     PlaceholderText="例：MoviePilot" />
                 <StackPanel x:Name="WebhookFields" Spacing="8">
-                    <TextBox
+                    <TextBox x:Uid="NotificationEditDialog_UrlBox"
                         x:Name="UrlBox"
                         Header="Webhook 地址"
                         PlaceholderText="http://192.0.2.10:3001/api/v1/webhook?token=你的令牌" />
-                    <ComboBox
+                    <ComboBox x:Uid="NotificationEditDialog_RequestType"
                         x:Name="RequestType"
                         Header="请求类型"
                         MinWidth="260"
                         SelectedIndex="0">
-                        <ComboBoxItem Content="简单表单" />
-                        <ComboBoxItem Content="多部分表单（multipart/form-data）" />
+                        <ComboBoxItem x:Uid="NotificationEditDialog_Localization2" Content="简单表单" />
+                        <ComboBoxItem x:Uid="NotificationEditDialog_Localization3" Content="多部分表单（multipart/form-data）" />
                     </ComboBox>
                 </StackPanel>
-                <TextBlock
+                <TextBlock x:Uid="NotificationEditDialog_OtherServiceNote"
                     x:Name="OtherServiceNote"
                     Style="{StaticResource EgCaptionStyle}"
                     Foreground="{ThemeResource EgTextDimBrush}"
@@ -58,8 +58,8 @@
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Style="{StaticResource EgBodyStyle}" Text="订阅的事件" />
-                <TextBlock
+                <TextBlock x:Uid="NotificationEditDialog_Localization4" Style="{StaticResource EgBodyStyle}" Text="订阅的事件" />
+                <TextBlock x:Uid="NotificationEditDialog_Localization5"
                     Style="{StaticResource EgCaptionStyle}"
                     Foreground="{ThemeResource EgTextDimBrush}"
                     Text="勾哪几类发哪几类；一条都不勾，这个渠道就什么都不发。"
@@ -68,11 +68,11 @@
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Style="{StaticResource EgBodyStyle}" Text="限定（可多选；全不勾＝不限定）" />
+                <TextBlock x:Uid="NotificationEditDialog_Localization6" Style="{StaticResource EgBodyStyle}" Text="限定（可多选；全不勾＝不限定）" />
                 <StackPanel x:Name="FilterList" Spacing="10" />
             </StackPanel>
 
-            <Button
+            <Button x:Uid="NotificationEditDialog_TestButton"
                 x:Name="TestButton"
                 Click="OnTest"
                 Content="发送测试通知"

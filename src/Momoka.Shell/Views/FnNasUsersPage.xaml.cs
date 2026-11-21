@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -23,6 +24,10 @@ public sealed partial class FnNasUsersPage : Page, IShellContent, ISessionScoped
     public FnNasUsersPage()
     {
         InitializeComponent();
+
+        // Only fixed, index-based choices are localized; selected values keep their original indices.
+        for (var index = 0; index < FnNasUserPermission.Items.Count; index++)
+            if (FnNasUserPermission.Items[index] is string label) FnNasUserPermission.Items[index] = UiText.Translate(label);
         ViewModel.UseConfirm(ConfirmAsync);
         Loaded += (_, _) => HomeMotion.Reveal(PageLayout);
         Unloaded += (_, _) => Release();
@@ -52,7 +57,7 @@ public sealed partial class FnNasUsersPage : Page, IShellContent, ISessionScoped
             Title = title,
             Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 480 },
             PrimaryButtonText = primary,
-            CloseButtonText = "取消",
+            CloseButtonText = UiText.Translate("取消"),
             DefaultButton = ContentDialogButton.Close,
             RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light
         };

@@ -28,7 +28,7 @@
                 TextWrapping="Wrap" VerticalAlignment="Center" />
             <!-- 尺寸与筛选面板那颗 ✕ 同一套：透明底、8 DIP 内边距、E711；字号取次标题那档，
                  压在 20 号标题右边才不至于显得是个小点（同下载弹窗的取消下载）。 -->
-            <Button x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
+            <Button x:Uid="SubtitleDialog_HeaderCloseButton" x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
                 AutomationProperties.Name="关闭字幕管理" Background="Transparent" BorderThickness="0"
                 Padding="8" ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
@@ -44,28 +44,28 @@
         VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="SubtitleBody" MinWidth="260" Spacing="16">
             <StackPanel x:Name="VersionRow" Spacing="8" Visibility="Collapsed">
-                <TextBlock Text="媒体版本" Style="{StaticResource EgSubheadStyle}" />
-                <ComboBox x:Name="VersionBox" HorizontalAlignment="Stretch" SelectionChanged="OnVersionChanged"
+                <TextBlock x:Uid="SubtitleDialog_Localization1" Text="媒体版本" Style="{StaticResource EgSubheadStyle}" />
+                <ComboBox x:Uid="SubtitleDialog_VersionBox" x:Name="VersionBox" HorizontalAlignment="Stretch" SelectionChanged="OnVersionChanged"
                     AutomationProperties.Name="字幕所属媒体版本" />
             </StackPanel>
             <TextBlock x:Name="SourceFileText" Style="{StaticResource EgDataStyle}"
                 TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
 
             <StackPanel x:Name="UploadSection" Spacing="12" Visibility="Collapsed">
-                <TextBlock Text="上传本地字幕" Style="{StaticResource EgSubheadStyle}" />
-                <Button x:Name="PickSubtitleButton" Content="选择字幕文件" Click="OnPickUpload"
+                <TextBlock x:Uid="SubtitleDialog_Localization2" Text="上传本地字幕" Style="{StaticResource EgSubheadStyle}" />
+                <Button x:Uid="SubtitleDialog_PickSubtitleButton" x:Name="PickSubtitleButton" Content="选择字幕文件" Click="OnPickUpload"
                     HorizontalAlignment="Stretch" AutomationProperties.Name="选择本地字幕文件" />
                 <StackPanel x:Name="UploadDraft" Spacing="12" Visibility="Collapsed">
                     <TextBlock x:Name="UploadFileText" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
-                    <ComboBox x:Name="UploadLanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
+                    <ComboBox x:Uid="SubtitleDialog_UploadLanguageBox" x:Name="UploadLanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
                         AutomationProperties.Name="上传字幕语言" />
-                    <ToggleSwitch x:Name="UploadForced" Header="强制字幕" OnContent="" OffContent=""
+                    <ToggleSwitch x:Uid="SubtitleDialog_UploadForced" x:Name="UploadForced" Header="强制字幕" OnContent="" OffContent=""
                         AutomationProperties.Name="上传为强制字幕" />
-                    <ToggleSwitch x:Name="UploadHearingImpaired" Header="听障字幕" OnContent="" OffContent=""
+                    <ToggleSwitch x:Uid="SubtitleDialog_UploadHearingImpaired" x:Name="UploadHearingImpaired" Header="听障字幕" OnContent="" OffContent=""
                         AutomationProperties.Name="上传为听障字幕" />
-                    <TextBlock Text="文件原样上传到选定的媒体版本。支持 SUB、SRT、VTT、ASS、SSA、MKS，最大 10 MiB。"
+                    <TextBlock x:Uid="SubtitleDialog_Localization3" Text="文件原样上传到选定的媒体版本。支持 SUB、SRT、VTT、ASS、SSA、MKS，最大 10 MiB。"
                         Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
-                    <Button x:Name="UploadSubtitleButton" Content="上传字幕" Click="OnUploadSubtitle"
+                    <Button x:Uid="SubtitleDialog_UploadSubtitleButton" x:Name="UploadSubtitleButton" Content="上传字幕" Click="OnUploadSubtitle"
                         Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch"
                         AutomationProperties.Name="上传所选字幕文件" />
                 </StackPanel>
@@ -79,7 +79,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Uid="SubtitleDialog_TextBlock2" Style="{StaticResource EgSubheadStyle}"
                     TextWrapping="Wrap" VerticalAlignment="Center" />
-                <Button x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新字幕列表" Click="OnRefreshTracks" />
+                <Button x:Uid="SubtitleDialog_RefreshTracksButton" x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新字幕列表" Click="OnRefreshTracks" />
             </Grid>
 
             <TextBlock x:Name="NoTracks" x:Uid="SubtitleDialog_NoTracks"
@@ -106,18 +106,18 @@
             <Border x:Name="DeleteConfirmation" Visibility="Collapsed" BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1" Padding="12">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Uid="SubtitleDialog_Localization4" Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
                     <TextBlock x:Name="DeleteConfirmationText" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
                     <StackPanel Spacing="8">
-                        <Button x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
-                        <Button x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
+                        <Button x:Uid="SubtitleDialog_CancelDeleteButton" x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
+                        <Button x:Uid="SubtitleDialog_ConfirmDeleteButton" x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
                     </StackPanel>
                 </StackPanel>
             </Border>
 
             <Border Style="{StaticResource EgRuleStyle}" />
             <StackPanel Spacing="16">
-                <TextBlock Text="搜索字幕" Style="{StaticResource EgSubheadStyle}" />
+                <TextBlock x:Uid="SubtitleDialog_Localization5" Text="搜索字幕" Style="{StaticResource EgSubheadStyle}" />
                 <!-- 不叫 Language，避免隐藏 FrameworkElement.Language。 -->
                 <ComboBox x:Name="LanguageBox" x:Uid="SubtitleDialog_LanguageBox"
                     HorizontalAlignment="Stretch" SelectionChanged="OnSearchConditionsChanged"
@@ -132,7 +132,7 @@
                         <TextBlock x:Uid="SubtitleDialog_ForcedOnlyLabel" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
                         <TextBlock x:Uid="SubtitleDialog_ForcedOnlyHelp" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                     </StackPanel>
-                    <ToggleSwitch x:Name="ForcedOnly" Grid.Column="1" OnContent="" OffContent=""
+                    <ToggleSwitch x:Uid="SubtitleDialog_ForcedOnly" x:Name="ForcedOnly" Grid.Column="1" OnContent="" OffContent=""
                         MinWidth="0" HorizontalAlignment="Right" VerticalAlignment="Top" Toggled="OnSearchConditionsChanged" AutomationProperties.Name="仅强制字幕" />
                 </Grid>
 
@@ -153,12 +153,12 @@
 
             <TextBlock x:Name="NoSearchResults" Visibility="Collapsed" Style="{StaticResource EgBodyStyle}"
                 TextWrapping="Wrap" TextAlignment="Center">
-                <Run Text="未找到结果。您是否已配置" /><Hyperlink x:Name="SubtitleDownloadHelp"
+                <Run x:Uid="SubtitleDialog_Localization6" Text="未找到结果。您是否已配置" /><Hyperlink x:Uid="SubtitleDialog_SubtitleDownloadHelp" x:Name="SubtitleDownloadHelp"
                     NavigateUri="https://emby.media/support/articles/Manual-Subtitle-Downloads.html"
-                    AutomationProperties.Name="字幕下载配置帮助"><Run Text="字幕下载" /></Hyperlink><Run Text="？" />
+                    AutomationProperties.Name="字幕下载配置帮助"><Run x:Uid="SubtitleDialog_Localization7" Text="字幕下载" /></Hyperlink><Run Text="？" />
             </TextBlock>
 
-            <ListView x:Name="Results" MaxHeight="280" SelectionMode="None" Visibility="Collapsed"
+            <ListView x:Uid="SubtitleDialog_Results" x:Name="Results" MaxHeight="280" SelectionMode="None" Visibility="Collapsed"
                 Padding="{StaticResource EgScrollBarLane}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled"
                 AutomationProperties.Name="字幕搜索结果">

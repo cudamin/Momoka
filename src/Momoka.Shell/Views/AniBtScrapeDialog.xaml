@@ -1,4 +1,4 @@
-<ContentDialog
+<ContentDialog x:Uid="AniBtScrapeDialog_Localization1"
     x:Class="Momoka.Shell.Views.AniBtScrapeDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -35,12 +35,12 @@
                     <StackPanel Spacing="16" Margin="0,4,0,12" HorizontalAlignment="Stretch">
                         <StackPanel Spacing="6">
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                <TextBlock Text="识别用原名称" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Uid="AniBtScrapeDialog_Localization2" Text="识别用原名称" Style="{StaticResource EgCaptionStyle}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind MatchNote}" Style="{StaticResource EgCaptionStyle}" />
                             </Grid>
                             <TextBlock Text="{x:Bind SourceName}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
                         </StackPanel>
-                        <ComboBox x:Name="AnimeChoice" Header="识别结果" PlaceholderText="选择对应番剧" HorizontalAlignment="Stretch"
+                        <ComboBox x:Uid="AniBtScrapeDialog_AnimeChoice" x:Name="AnimeChoice" Header="识别结果" PlaceholderText="选择对应番剧" HorizontalAlignment="Stretch"
                             IsEnabled="{x:Bind CanSelect, Mode=OneWay}" Foreground="{ThemeResource EgAccentBrush}"
                             ItemsSource="{x:Bind Candidates}" SelectedItem="{x:Bind Selected, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
@@ -66,12 +66,12 @@
                                 </Grid>
                             </Border>
                             <StackPanel Spacing="4" Visibility="{x:Bind SourceVisibility, Mode=OneWay}">
-                                <TextBlock Text="实际源文件" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Uid="AniBtScrapeDialog_Localization3" Text="实际源文件" Style="{StaticResource EgCaptionStyle}" />
                                 <TextBlock x:Name="SourceDirectoryText" Text="{x:Bind SourceDirectory, Mode=OneWay}" TextWrapping="Wrap"
                                     Style="{StaticResource EgBodyStyle}" />
                             </StackPanel>
                             <StackPanel Spacing="4">
-                                <TextBlock Text="目标位置" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Uid="AniBtScrapeDialog_Localization4" Text="目标位置" Style="{StaticResource EgCaptionStyle}" />
                                 <TextBlock x:Name="DestinationDirectoryText" Text="{x:Bind DestinationDirectory, Mode=OneWay}" TextWrapping="Wrap"
                                     Style="{StaticResource EgCaptionStyle}" />
                                 <TextBlock x:Name="DestinationFileText" Text="{x:Bind DestinationFile, Mode=OneWay}" TextWrapping="Wrap"
@@ -88,7 +88,7 @@
             </ListView.ItemTemplate>
         </ListView>
         <StackPanel Grid.Row="2" Spacing="8">
-            <Button x:Name="RetryPrepare" Content="重新读取整理目标" HorizontalAlignment="Left" Click="OnRetryPrepare"
+            <Button x:Uid="AniBtScrapeDialog_RetryPrepare" x:Name="RetryPrepare" Content="重新读取整理目标" HorizontalAlignment="Left" Click="OnRetryPrepare"
                 Visibility="{x:Bind ViewModel.RetryPrepareVisibility, Mode=OneWay}" />
             <InfoBar x:Name="ScrapeNotice" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}"
                 Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"

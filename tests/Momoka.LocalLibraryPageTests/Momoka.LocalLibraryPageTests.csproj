@@ -18,4 +18,10 @@
     <Compile Include="../Momoka.Tests/LocalLibraryHomeTests.cs" Link="LocalLibraryHomeTests.cs" />
     <Compile Include="../Momoka.Tests/LocalLibraryArtworkTests.cs" Link="LocalLibraryArtworkTests.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Source-linked UI code shares the production translator and embedded dictionaries. -->
+    <Compile Include="../../src/Momoka.Shell/Localization/UiText.cs" Link="Production/UiText.cs" />
+    <EmbeddedResource Include="../../src/Momoka.Shell/Localization/*English.json" Link="Production/%(Filename)%(Extension)" />
+    <Using Include="Momoka.Shell.Localization" />
+  </ItemGroup>
 </Project>

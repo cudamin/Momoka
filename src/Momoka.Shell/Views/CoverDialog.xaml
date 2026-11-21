@@ -23,7 +23,7 @@
             Style="{StaticResource EgDataStyle}"
             TextWrapping="Wrap"
             Visibility="Collapsed" />
-        <Button x:Name="RefreshArtworkButton"
+        <Button x:Uid="CoverDialog_RefreshArtworkButton" x:Name="RefreshArtworkButton"
             Grid.Row="1"
             Click="OnRefreshArtwork"
             Content="刷新图片列表"
@@ -59,24 +59,24 @@
                                 </Button>
                                 <TextBlock HorizontalAlignment="Center" Style="{StaticResource EgDataStrongStyle}"
                                     Text="{x:Bind Caption}" TextTrimming="CharacterEllipsis" />
-                                <Button Click="OnRetryPreview" Content="重试预览" Tag="{x:Bind}"
+                                <Button x:Uid="CoverDialog_Localization1" Click="OnRetryPreview" Content="重试预览" Tag="{x:Bind}"
                                     AutomationProperties.AutomationId="RetryCurrentArtworkPreview"
                                     Style="{StaticResource EgSecondaryButtonStyle}" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                     Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
                                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
-                                    <Button Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
+                                    <Button x:Uid="CoverDialog_Localization2" Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                         AutomationProperties.AutomationId="ChangeArtwork"
                                         AutomationProperties.Name="{x:Bind Hint, Mode=OneWay}"
                                         Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
                                         ToolTipService.ToolTip="换一张（从刮削源挑，或者从本机传）">
                                         <FontIcon FontSize="14" Glyph="&#xE721;" />
                                     </Button>
-                                    <Button Click="OnView" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
+                                    <Button x:Uid="CoverDialog_Localization3" Click="OnView" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
                                         AutomationProperties.AutomationId="ViewArtwork" AutomationProperties.Name="{x:Bind ViewName}"
                                         Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="看大图">
                                         <FontIcon FontSize="14" Glyph="&#xE8A7;" />
                                     </Button>
-                                    <Button Click="OnDelete" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
+                                    <Button x:Uid="CoverDialog_Localization4" Click="OnDelete" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
                                         AutomationProperties.AutomationId="DeleteArtwork" AutomationProperties.Name="{x:Bind DeleteName}"
                                         Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
                                         ToolTipService.ToolTip="删除这一种图（不可撤销）">
@@ -88,7 +88,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <StackPanel Spacing="{StaticResource EgSpaceM}">
-                    <TextBlock Style="{StaticResource EgSectionTitleStyle}" Text="背景图" />
+                    <TextBlock x:Uid="CoverDialog_Localization5" Style="{StaticResource EgSectionTitleStyle}" Text="背景图" />
                     <ItemsControl x:Name="BackdropSlots" ItemsSource="{x:Bind Backdrops}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -99,7 +99,7 @@
                             <DataTemplate x:DataType="views:ArtworkSlot">
                                 <StackPanel Margin="0,0,0,12" Spacing="{StaticResource EgSpaceS}"
                                     Width="{StaticResource EgBackdropFrameWidth}">
-                                    <Button Click="OnView" Padding="0" Height="{x:Bind FrameHeight}" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
+                                    <Button x:Uid="CoverDialog_Localization6" Click="OnView" Padding="0" Height="{x:Bind FrameHeight}" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
                                         AutomationProperties.AutomationId="ArtworkTile" AutomationProperties.Name="{x:Bind ViewName}"
                                         Style="{StaticResource EgArtworkTileStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="看大图">
                                         <Grid>
@@ -112,18 +112,18 @@
                                     </Button>
                                     <TextBlock HorizontalAlignment="Center" Style="{StaticResource EgDataStyle}"
                                         Text="{x:Bind Caption}" TextTrimming="CharacterEllipsis" />
-                                    <Button Click="OnRetryPreview" Content="重试预览" Tag="{x:Bind}"
+                                    <Button x:Uid="CoverDialog_Localization7" Click="OnRetryPreview" Content="重试预览" Tag="{x:Bind}"
                                         AutomationProperties.AutomationId="RetryCurrentArtworkPreview"
                                         Style="{StaticResource EgSecondaryButtonStyle}" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                         Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
-                                        <Button Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
+                                        <Button x:Uid="CoverDialog_Localization8" Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                             AutomationProperties.AutomationId="AddRemoteBackdrop" AutomationProperties.Name="{x:Bind Hint}"
                                             Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
                                             ToolTipService.ToolTip="从刮削源另加一张（保留现有背景图）">
                                             <FontIcon FontSize="14" Glyph="&#xE710;" />
                                         </Button>
-                                        <Button Click="OnDelete" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
+                                        <Button x:Uid="CoverDialog_Localization9" Click="OnDelete" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
                                             AutomationProperties.AutomationId="DeleteArtwork" AutomationProperties.Name="{x:Bind DeleteName}"
                                             Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
                                             ToolTipService.ToolTip="删掉这一张（不可撤销）">
@@ -134,11 +134,11 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button x:Name="AddBackdropButton" Click="OnAddBackdrop" Style="{StaticResource EgSecondaryButtonStyle}"
+                    <Button x:Uid="CoverDialog_AddBackdropButton" x:Name="AddBackdropButton" Click="OnAddBackdrop" Style="{StaticResource EgSecondaryButtonStyle}"
                         AutomationProperties.Name="从本机再加一张背景图">
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
                             <FontIcon FontSize="14" Glyph="&#xE710;" />
-                            <TextBlock Style="{StaticResource EgBodyStyle}" Text="从本机再加一张背景图…" />
+                            <TextBlock x:Uid="CoverDialog_Localization10" Style="{StaticResource EgBodyStyle}" Text="从本机再加一张背景图…" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

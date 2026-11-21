@@ -39,7 +39,30 @@ public partial class App : Application
     public App(StartupOptions options)
     {
         _options = options;
-        InitializeComponent();
+        // Resolve the preference before InitializeComponent loads any localized XAML. Anonymous
+        // probes must not construct the production container or read saved accounts.
+        var anonymous = options.ProbeShell || options.ProbeSubtitles || options.ProbeStandalonePlayback
+            || options.ProbeComposition || options.ProbeCursor || options.ProbePlayerMotion;
+        try
+        {
+            var language = UiLanguages.System;
+            if (!anonymous)
+            {
+                _container = ShellServices.Build(options.Paths, selfCheck: options.SelfCheck);
+                language = _container.GetRequiredService<ISettingsService>().Settings.Ui.Language;
+            }
+            Localization.UiLanguage.Initialize(language);
+            InitializeComponent();
+        }
+        catch (Exception error)
+        {
+            // Strict-load failures must still produce this run's self-check report even though
+            // settings now load before OnLaunched, where startup errors were previously caught.
+            if (options.SelfCheck) ShellSelfCheck.ReportCrash(options, error, "自检界面初始化失败");
+            _container?.Dispose();
+            _container = null;
+            throw;
+        }
 
         // Program hooks AppDomain.UnhandledException, which does not see this: an exception thrown on the
         // UI thread — a template that fails to realise, a converter that throws — is raised here by XAML
@@ -104,9 +127,7 @@ public partial class App : Application
 
         try
         {
-            var services = ShellServices.Build(_options.Paths, selfCheck: _options.SelfCheck);
-            _container = services;
-
+            var services = _container ?? throw new InvalidOperationException("Application services were not initialized");
             var settings = services.GetRequiredService<ISettingsService>();
             var ui = settings.Settings.Ui;
             Views.HomeMotion.ApplyPreference(ui.AnimationsEnabled);

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -53,13 +54,13 @@ public sealed partial class MoviePilotDownloadViewModel : PageViewModel
     public string PeersText => $"↓ {_resource?.Peers ?? 0}";
     public string SiteText => _resource?.SiteName ?? "";
     public string PromotionText => _resource?.PromotionBadge ?? "";
-    public string RuleText => _resource?.HitAndRun == true ? "此资源有 HR 考核，请先核对站点做种要求。" : "";
+    public string RuleText => _resource?.HitAndRun == true ? UiText.Translate("此资源有 HR 考核，请先核对站点做种要求。") : "";
     public string MediaIdLabel => $"{Source?.Name ?? "媒体"} 编号";
-    public string AdvancedLabel => Advanced ? "隐藏高级选项" : "显示高级选项";
+    public string AdvancedLabel => Advanced ? UiText.Translate("隐藏高级选项") : UiText.Translate("显示高级选项");
     public string AdvancedGlyph => Advanced ? "\uE70E" : "\uE70D";
     public string IdentityStatus => _resolved is { } media
         ? $"已识别：{media.Title} · {MoviePilotSourceNames.Label(media.Source)} {media.Id} · {media.Type}"
-        : _identityEdited ? "识别信息已修改，请核对编号或按片名选择作品。" : "";
+        : _identityEdited ? UiText.Translate("识别信息已修改，请核对编号或按片名选择作品。") : "";
     public Visibility AdvancedVisibility => Show(Advanced);
     public Visibility SearchVisibility => Show(Advanced && SearchOpen);
     public Visibility DescriptionVisibility => Show(Description.Length > 0);
@@ -110,7 +111,7 @@ public sealed partial class MoviePilotDownloadViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token)) Report("读取下载选项失败，可刷新重试或使用默认设置", error);
+            if (IsCurrent(token)) Report(UiText.Translate("读取下载选项失败，可刷新重试或使用默认设置"), error);
         }
         finally { EndLoad(token); }
     }
@@ -141,7 +142,7 @@ public sealed partial class MoviePilotDownloadViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token)) Report("读取媒体数据源失败", error);
+            if (IsCurrent(token)) Report(UiText.Translate("读取媒体数据源失败"), error);
         }
         finally { _syncing = false; EndLoad(token); }
     }
@@ -163,7 +164,7 @@ public sealed partial class MoviePilotDownloadViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token) && version == _identityVersion) Report("无法核对媒体编号", error);
+            if (IsCurrent(token) && version == _identityVersion) Report(UiText.Translate("无法核对媒体编号"), error);
         }
         finally { EndLoad(token); }
     }
@@ -179,19 +180,19 @@ public sealed partial class MoviePilotDownloadViewModel : PageViewModel
         var term = SearchText.Trim();
         var token = BeginLoad();
         Matches.Clear();
-        SearchStatus = "正在搜索…";
+        SearchStatus = UiText.Translate("正在搜索…");
         try
         {
             var matches = await _service.SearchAsync(term, token, [source]).ConfigureAwait(true);
             if (!IsCurrent(token) || version != _identityVersion || term != SearchText.Trim()) return;
             foreach (var media in matches.Where(media => media.CanSubscribe && media.MediaSource == source &&
                 media.Type is "电影" or "电视剧" && (MediaType is null or AutomaticType || media.Type == MediaType))) Matches.Add(media);
-            SearchStatus = Matches.Count > 0 ? $"选择作品以核对编号 · {Matches.Count} 条" : "没有找到匹配作品，请调整片名或类型。";
+            SearchStatus = Matches.Count > 0 ? UiText.Format("选择作品以核对编号 · {0} 条", Matches.Count) : UiText.Translate("没有找到匹配作品，请调整片名或类型。");
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token)) { SearchStatus = "搜索失败，可重试。"; Report("搜索媒体失败", error); }
+            if (IsCurrent(token)) { SearchStatus = UiText.Translate("搜索失败，可重试。"); Report(UiText.Translate("搜索媒体失败"), error); }
         }
         finally { EndLoad(token); }
     }

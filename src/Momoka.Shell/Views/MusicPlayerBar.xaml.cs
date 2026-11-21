@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -34,7 +35,7 @@ public sealed partial class MusicPlayerBar : UserControl
         SeekSlider.PointerCanceled += (_, _) => { _seeking = false; ViewModel.CancelScrub(); };
         SeekSlider.KeyUp += async (_, _) => { if (_attached) await ViewModel.SeekAsync(SeekSlider.Value); };
     }
-    public static string FavoriteLabel(bool value) => value ? "取消收藏" : "收藏歌曲";
+    public static string FavoriteLabel(bool value) => value ? UiText.Translate("取消收藏") : UiText.Translate("收藏歌曲");
     /// <summary>主页底部那一条是空底：栏只留控件，不铺胶囊；压在封面上的页面仍用玻璃。</summary>
     internal void ShowSurface(bool show) => SurfaceGlass.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
     /// <summary>播放页收起后把焦点还给入口，键盘用户不会掉到窗口里。窄窗封面收起时退到歌名。</summary>

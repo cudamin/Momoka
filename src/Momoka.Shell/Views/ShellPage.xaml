@@ -401,8 +401,8 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="聚合模式" Style="{StaticResource EgBodyStyle}" FontSize="{StaticResource EgCaptionFontSize}" VerticalAlignment="Center" />
-                            <ToggleSwitch x:Name="AggregateModeItem" Grid.Column="1" OnContent="开" OffContent="关"
+                            <TextBlock x:Uid="ShellPage_Localization1" Text="聚合模式" Style="{StaticResource EgBodyStyle}" FontSize="{StaticResource EgCaptionFontSize}" VerticalAlignment="Center" />
+                            <ToggleSwitch x:Uid="ShellPage_AggregateModeItem" x:Name="AggregateModeItem" Grid.Column="1" OnContent="开" OffContent="关"
                                 MinWidth="0" FontSize="{StaticResource EgCaptionFontSize}" AutomationProperties.Name="聚合模式" Toggled="OnAggregateModeToggled">
                                 <ToggleSwitch.Resources>
                                     <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
@@ -417,7 +417,7 @@
                         <!-- 聚合开关那一档的分组线：开关本身按保存服务器数收起时，这条线一起收起。 -->
                         <Border x:Name="AggregateModeDivider" Height="1" Margin="6,3"
                             Background="{ThemeResource EgBorderBrush}" Visibility="Collapsed" />
-                        <ListView x:Name="AccountProfileList" MaxHeight="256" SelectionMode="None"
+                        <ListView x:Uid="ShellPage_AccountProfileList" x:Name="AccountProfileList" MaxHeight="256" SelectionMode="None"
                             AutomationProperties.Name="服务器与账号">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
@@ -585,7 +585,7 @@
                         Visibility="Collapsed" />
                 </Grid>
 
-                <Button
+                <Button x:Uid="ShellPage_LibraryPreviewMore"
                     x:Name="LibraryPreviewMore"
                     Grid.Row="2"
                     AutomationProperties.AutomationId="SidebarLibraryPreviewMore"
@@ -645,13 +645,13 @@
                     <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="EgSurfaceHoverBrush" />
                 </NavigationView.Resources>
                 <NavigationView.MenuItems>
-                    <NavigationViewItem x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />
+                    <NavigationViewItem x:Uid="ShellPage_SidebarHome" x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />
                     <!-- 「搜索」这一项 2026-11-13 按用户令删掉（「开启侧边栏模式时删除侧边栏的搜索按钮」）：
                          搜索入口只剩标题栏正中那颗框（窄窗没有替代入口），点它进搜索页。 -->
-                    <NavigationViewItem x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
+                    <NavigationViewItem x:Uid="ShellPage_SidebarFavorites" x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
                         <NavigationViewItem.Icon><FontIcon Glyph="&#xEB51;" /></NavigationViewItem.Icon>
                     </NavigationViewItem>
-                    <NavigationViewItem x:Name="SidebarMoviePilotCalendar" Content="日历"
+                    <NavigationViewItem x:Uid="ShellPage_SidebarMoviePilotCalendar" x:Name="SidebarMoviePilotCalendar" Content="日历"
                         Tag="moviepilot:calendar" Icon="Calendar" Visibility="Collapsed" />
                     <!-- 分区标题（2026-10-13 晚加、2026-11-18 只留这一条）：媒体库那几项运行时插在它后面
                          （见 ShellPage.Sidebar.cs 的 RebuildSidebarLibraries）。「订阅」那条标题同日按用户令
@@ -659,7 +659,7 @@
                          由 RebuildSidebarLibraries 跟库项一起按设置 → 主页版面 →「媒体库顺序」插在下面。
 
                          分区标题只有栏展开时才画得出字（收成 56 宽的图标栏时框架把标题整条收掉）。 -->
-                    <NavigationViewItemHeader x:Name="SidebarLibrariesHeader" Content="媒体库" Visibility="Collapsed" />
+                    <NavigationViewItemHeader x:Uid="ShellPage_SidebarLibrariesHeader" x:Name="SidebarLibrariesHeader" Content="媒体库" Visibility="Collapsed" />
 
                     <!-- MoviePilot 的两条订阅入口（2026-10-13）：开关没开或连不上时整条收起，判据是
                          MoviePilotService.Available（见 ShellPage.Sidebar.cs 的 SyncSidebar）。Tag 直接
@@ -673,13 +673,13 @@
                          的路径按 2/3 缩到 16×16 —— 栏里图标格就是 16 见方（同旁边那几颗 FontIcon），而
                          **PathIcon 不缩放几何也不居中**（见 PlayerPage.xaml 那条实测），照 24 画会被裁掉。
                          MDI 的许可跟着 uosc 那一份走，见 assets/mpv-ui/LICENSE-MaterialIcons.txt。 -->
-                    <NavigationViewItem x:Name="SidebarMoviePilotMovies" Content="订阅·电影"
+                    <NavigationViewItem x:Uid="ShellPage_SidebarMoviePilotMovies" x:Name="SidebarMoviePilotMovies" Content="订阅·电影"
                         Tag="moviepilot:movies" Visibility="Collapsed">
                         <NavigationViewItem.Icon>
                             <PathIcon Data="F1 M 13.89,1.45 L 11.27,1.97 L 13.1,4.33 L 14.41,4.07 L 13.89,1.45 M 9.31,2.36 L 8,2.62 L 9.83,4.97 L 11.14,4.71 L 9.31,2.36 M 6.05,3 L 4.73,3.27 L 6.57,5.63 L 7.87,5.37 L 6.05,3 M 2.77,3.67 L 2.12,3.79 C 1.4,3.93,0.93,4.64,1.07,5.36 L 1.33,6.67 L 4.6,6.02 L 2.77,3.67 M 13.33,8 V 13.33 H 2.67 V 8 H 13.33 M 14.67,6.67 H 1.33 V 13.33 C 1.33,14.07,1.93,14.67,2.67,14.67 H 13.33 C 14.07,14.67,14.67,14.07,14.67,13.33 V 6.67 Z" />
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
-                    <NavigationViewItem x:Name="SidebarMoviePilotSeries" Content="订阅·电视剧"
+                    <NavigationViewItem x:Uid="ShellPage_SidebarMoviePilotSeries" x:Name="SidebarMoviePilotSeries" Content="订阅·电视剧"
                         Tag="moviepilot:series" Visibility="Collapsed">
                         <NavigationViewItem.Icon>
                             <PathIcon Data="F1 M 14,11.33 H 2 V 3.33 H 14 M 14,2 H 2 A 1.33,1.33 0 0 0 0.67,3.33 V 11.33 A 1.33,1.33 0 0 0 2,12.67 H 5.33 V 14 H 10.67 V 12.67 H 14 A 1.33,1.33 0 0 0 15.33,11.33 V 3.33 A 1.33,1.33 0 0 0 14,2 Z" />
@@ -718,7 +718,7 @@
              它整体站在内容区这一侧（左沿正好在栏的右沿），因此不会切走栏里滚动条与条目的命中；
              Canvas.ZIndex 高于 SidebarHost（1）、低于外壳那一行（10），标题栏的拖动区不受影响。
              栏收起时一起收起：收成 56 的图标栏没有「拖宽」这一档，开合仍归标题栏那颗折叠键。 -->
-        <local:SidebarResizeGrip
+        <local:SidebarResizeGrip x:Uid="ShellPage_SidebarResizeGrip"
             x:Name="SidebarResizeGrip"
             Canvas.ZIndex="2"
             Width="7"

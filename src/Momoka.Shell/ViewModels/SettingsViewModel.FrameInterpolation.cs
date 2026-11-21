@@ -1,5 +1,6 @@
 using Momoka.Configuration;
 using Momoka.Mpv;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -78,7 +79,7 @@ public sealed partial class SettingsViewModel
         if (!MpvSvp.IsEnabled(mpv))
         {
             rows.Add(Fact("SVP 接入状态", "自定义 mpv.conf 可能安装其他滤镜／脚本，首版不与 SVP 同时接管。"
-                + "关闭自定义配置后恢复 SVP 接入；两个开关与文件路径都会保留。", "当前使用自定义 mpv.conf，SVP 不接入",
+                + "关闭自定义配置后恢复 SVP 接入；两个开关与文件路径都会保留。", UiText.Translate("当前使用自定义 mpv.conf，SVP 不接入"),
                 "重新检测", RefreshFrameInterpolationMode));
             return;
         }
@@ -92,12 +93,12 @@ public sealed partial class SettingsViewModel
         var status = MpvSvp.FindLibrary(mpv.SvpVapourSynthPath);
         rows.Add(Fact("SVP 接入状态", status.Problem ?? "仅确认本地 x64 文件存在，不代表 Python／滤镜已加载或 SVP 已连接。"
                 + "请先运行 SVP Manager；播放开始后在 SVP 窗口确认接管状态。",
-            status.Found ? "已找到组件，等待播放时检查" : "缺少可用组件，SVP 播放暂不可用",
+            UiText.Translate(status.Found ? "已找到组件，等待播放时检查" : "缺少可用组件，SVP 播放暂不可用"),
             "重新检测", RefreshFrameInterpolationMode));
         rows.Add(Fact("SVP 设置", "算法、目标帧率、质量与可选 RIFE 模型在 SVP Manager 中管理。"
             + "本次使用复制硬解／软件解码、音频同步，并关闭 Momoka 的其他补帧；保存偏好不变。"
             + "首版启用 SVP 后换片会重建视频窗口；mpvpipe 被其他播放器占用时会提示并停止起播，不连接别人的播放器。",
-            "由 SVP Manager 管理"));
+            UiText.Translate("由 SVP Manager 管理")));
     }
 
     /// <summary>Only update this card; the parent owns backend/card refresh wiring.</summary>

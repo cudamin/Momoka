@@ -11,6 +11,7 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell.ViewModels;
@@ -43,7 +44,7 @@ public sealed record SortEntry(EmbySortOption Option, bool IsChecked, bool Desce
     public string Glyph => char.ConvertFromUtf32(Descending ? 0xE70D : 0xE70E);
 
     /// <summary>What pressing the arrow does, for its accessible name.</summary>
-    public string ArrowName => Descending ? "改为升序" : "改为降序";
+    public string ArrowName => Descending ? UiText.Translate("改为升序") : UiText.Translate("改为降序");
 }
 
 /// <summary>
@@ -78,7 +79,7 @@ public sealed partial class FilterChipRow
     public string Label => Chip?.Label ?? _label ?? "";
 
     /// <summary>读屏软件念出来的那一句：光一个片名念不出「点它会怎样」。</summary>
-    public string AutomationName => $"去掉筛选：{Label}";
+    public string AutomationName => UiText.Format("去掉筛选：{0}", Label);
 
     [RelayCommand]
     private void Drop()
@@ -197,12 +198,12 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public LibraryViewModel()
     {
-        Heading = "媒体库";
-        EmptyNotice = "这里没有内容";
+        Heading = UiText.Translate("媒体库");
+        EmptyNotice = UiText.Translate("这里没有内容");
         SearchText = "";
         SortKey = EmbySortBy.Name;
         SortLabel = EmbySortBy.LabelOf(EmbySortBy.Name);
-        FilterTooltip = "筛选";
+        FilterTooltip = UiText.Translate("筛选");
         CardWidth = Momoka.Infrastructure.CardSize.PosterWidth;
         Cards.CollectionChanged += OnSearchCardsChanged;
         // 每次一页真正到达之后写快照；放在事件里而不是 LoadAsync 里，让「读取」和「记住读到了什么」
@@ -296,7 +297,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public string SortGlyph => Glyph(SortDescending ? DescendingIcon : AscendingIcon);
 
-    public string SortTooltip => SortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
+    public string SortTooltip => SortDescending ? UiText.Translate("降序，点击改为升序") : UiText.Translate("升序，点击改为降序");
 
     /// <summary>
     /// 这一面墙上一次量到的可用宽度（<c>CardWall.ActualWidth</c>），0 是还没量过 —— 见
@@ -340,7 +341,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>What the view button shows; see <see cref="ViewGlyphOf"/>.</summary>
     public string ViewGlyph => Glyph(ViewGlyphOf(View));
 
-    public string ViewLabel => LibraryDisplayCatalog.LabelOf(View);
+    public string ViewLabel => UiText.Translate(LibraryDisplayCatalog.LabelOf(View));
 
     /// <summary>Segoe Fluent codepoints for the view shapes.</summary>
     internal static int ViewGlyphOf(LibraryView view) => view switch
@@ -588,7 +589,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility SubscriptionMatchesVisibility => Show(_request?.IsSearch == true && _embySourceActive
         && SearchText.Trim().Length > 0 && MatchingSubscriptions.Count > 0);
 
-    public string SubscriptionMatchesNote => MatchingSubscriptions.Count == 0 ? "" : $"{MatchingSubscriptions.Count} 条订阅";
+    public string SubscriptionMatchesNote => MatchingSubscriptions.Count == 0 ? "" : UiText.Format("{0} 条订阅", MatchingSubscriptions.Count);
 
     private MoviePilotSubscription[] _moviePilotSubscriptions = [];
     private MoviePilotSubscriptionIndex _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Empty;
@@ -932,10 +933,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// drawing the web client's previous/next page buttons.
     /// </summary>
     public string TotalLabel => _total < 0
-        ? _pageFailed ? "加载失败" : "正在加载"
+        ? _pageFailed ? UiText.Translate("加载失败") : UiText.Translate("正在加载")
         : IsJellyfinListPage
-            ? $"{_total} 的 {(Cards.Count > 0 ? WindowStart + 1 : 0)}-{Math.Min(_total, WindowEnd)}"
-            : $"共 {_total} 项";
+            ? UiText.Format("{0} 的 {1}-{2}", _total, Cards.Count > 0 ? WindowStart + 1 : 0, Math.Min(_total, WindowEnd))
+            : UiText.Format("共 {0} 项", _total);
 
     /// <summary>库页载入失败后提示条上的「重试」在不在；成功重载或开始重载时收起。</summary>
     public Visibility RetryVisibility => Show(_pageFailed);
@@ -948,7 +949,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>list.js renders its sort text with <c>SortByValue</c> — 「排序方式：文件夹」.</summary>
-    public string ToolbarSortLabel => IsJellyfinListPage ? $"排序方式：{SortLabel}" : SortLabel;
+    public string ToolbarSortLabel => IsJellyfinListPage ? UiText.Format("排序方式：{0}", SortLabel) : SortLabel;
 
     /// <summary>飞牛与 Jellyfin list 页的排序／筛选都是纯文字按钮，没有前导图标。</summary>
     public Visibility SortIconVisibility => Show(!IsJellyfinListPage && !IsFnNas);
@@ -1018,19 +1019,19 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_request is not { } request)
         {
-            EmptyNotice = "这里没有内容";
+            EmptyNotice = UiText.Translate("这里没有内容");
             return;
         }
 
-        EmptyNotice = request.IsSearch ? "输入关键字开始搜索"
-            : request.Row == HomeLayout.HomeRowTarget.Resume ? "这里还没有看到一半的内容"
-            : IsJellyfinNextUpPage ? "这里还没有下一集"
-            : request.Row is not null ? "这里还没有看过的内容"
+        EmptyNotice = request.IsSearch ? UiText.Translate("输入关键字开始搜索")
+            : request.Row == HomeLayout.HomeRowTarget.Resume ? UiText.Translate("这里还没有看到一半的内容")
+            : IsJellyfinNextUpPage ? UiText.Translate("这里还没有下一集")
+            : request.Row is not null ? UiText.Translate("这里还没有看过的内容")
             : IsJellyfin && request.Section is LibrarySection.Trailers or LibrarySection.Collections or LibrarySection.Recommended
                 ? JellyfinLibrary.EmptyNotice(request.CollectionType, request.Section)
             : request.CollectionType == "movies" && request.Section == LibrarySection.Trailers
-                ? "未找到预告片。要添加预告片，请在 Emby 插件目录中安装 Trailers 插件。"
-            : "这里没有内容";
+                ? UiText.Translate("未找到预告片。要添加预告片，请在 Emby 插件目录中安装 Trailers 插件。")
+            : UiText.Translate("这里没有内容");
     }
 
     internal int LoadedCount => WindowEnd;
@@ -1948,7 +1949,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             if (QueryCurrent(queryToken) && IsCurrent(token))
             {
                 SetPageFailed(true);
-                Report("更新删除后的列表失败，请刷新重试", error);
+                Report(UiText.Translate("更新删除后的列表失败，请刷新重试"), error);
             }
             return false;
         }
@@ -1999,7 +2000,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         foreach (var key in snapshot.ResumeRead) _resumeRead.Add(key);
         _cursor = snapshot.Cursor?.Copy();
         SetPageFailed(false);
-        EmptyNotice = "这里没有内容";
+        EmptyNotice = UiText.Translate("这里没有内容");
         ShowEmptyNotice = Cards.Count == 0;
         RefreshUpcomingState();
         UpdateUpcomingDays();
@@ -2190,7 +2191,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             foreach (var item in items) _resumeRead.Add(item.IdentityKey);
         }
 
-        EmptyNotice = "这里没有内容";
+        EmptyNotice = UiText.Translate("这里没有内容");
         ShowEmptyNotice = Cards.Count == 0;
         UpdateUpcomingDays();
         UpdateSearchGroupMetrics();
@@ -2224,7 +2225,7 @@ public sealed partial class LibraryViewModel : PageViewModel
                 _total = 0;
                 _firstPage = true;
                 SetPageFailed(false);
-                EmptyNotice = "没有可读取收藏的账号";
+                EmptyNotice = UiText.Translate("没有可读取收藏的账号");
                 ShowEmptyNotice = true;
                 IsReady = true;
                 RowsArrived();
@@ -2327,9 +2328,9 @@ public sealed partial class LibraryViewModel : PageViewModel
             UpdateUpcomingDays();
             _firstPage = true;
             SetPageFailed(false);
-            EmptyNotice = result is null ? "输入关键字开始搜索"
-                : _request.IsSearch ? $"没有找到“{SearchText}”的匹配结果"
-                : IsUpcomingPage ? "暂无即将播出的剧集，可稍后刷新查看" : "这里没有内容";
+            EmptyNotice = result is null ? UiText.Translate("输入关键字开始搜索")
+                : _request.IsSearch ? UiText.Format("没有找到“{0}”的匹配结果", SearchText)
+                : IsUpcomingPage ? UiText.Translate("暂无即将播出的剧集，可稍后刷新查看") : UiText.Translate("这里没有内容");
             ShowEmptyNotice = Cards.Count == 0;
             EndLoad(token);
             PageArrived?.Invoke();
@@ -2770,7 +2771,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         catch (OperationCanceledException) { return null; }
         catch (Exception error)
         {
-            if (QueryCurrent(queryToken)) Report("字母跳转失败", error);
+            if (QueryCurrent(queryToken)) Report(UiText.Translate("字母跳转失败"), error);
             return null;
         }
     }
@@ -2897,7 +2898,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         {
             if (!FnNasFilterLoadCurrent(token, scope, request)) return;
             Log.Warn(Category, "读取飞牛媒体库筛选项失败", error);
-            Report("读取媒体库筛选项失败，请稍后重试", error);
+            Report(UiText.Translate("读取媒体库筛选项失败，请稍后重试"), error);
         }
         finally
         {
@@ -3017,9 +3018,9 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     internal string FnNasViewLabel(LibraryView view) => view switch
     {
-        LibraryView.List => "列表",
-        LibraryView.Thumb => "横幅海报",
-        _ => IsFolderDrillDown ? "海报墙" : "竖幅海报"
+        LibraryView.List => UiText.Translate("列表"),
+        LibraryView.Thumb => UiText.Translate("横幅海报"),
+        _ => IsFolderDrillDown ? UiText.Translate("海报墙") : UiText.Translate("竖幅海报")
     };
 
     internal void SetFnNasLayout(bool wide) => ChooseFnNasView(wide ? LibraryView.Thumb : LibraryView.Poster);
@@ -3443,7 +3444,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         FilterCount = _filters.Count;
         var fields = IsJellyfin ? JellyfinLibrary.FilterFields(FilterCollectionType, Section) : EmbyFilterBy.Fields;
-        FilterTooltip = FilterCount == 0 ? "筛选" : _filters.Describe(fields);
+        FilterTooltip = FilterCount == 0 ? UiText.Translate("筛选") : _filters.Describe(fields);
 
         // 工具栏底下那一行：一条筛选一格，点一下去掉那一条。整行重建而不是逐格对账 —— 一次改动最多动一格，
         // 而这一行最长也就十几格，重建一遍比「哪一格该留」这道题便宜得多，也不会算错。
@@ -3458,7 +3459,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         var active = FnNasFilterRows.Where(row => row.SelectedValue.Length > 0).ToList();
         FilterCount = active.Count;
-        FilterTooltip = FilterCount == 0 ? "筛选" : string.Join("；", active.Select(row => $"{row.Label}：{row.SelectedLabel}"));
+        FilterTooltip = FilterCount == 0 ? UiText.Translate("筛选") : string.Join("；", active.Select(row => $"{row.Label}：{row.SelectedLabel}"));
 
         // 飞牛的筛选面板自己就是「哪几条在生效」：选中的值在面板里保持高亮，收起来的时候按钮上还有数字。
         // 不再往工具栏下面铺一行可点的标签 —— 用户 2026-10-19 令「点击选项后不要在界面添加标签」。
@@ -3511,9 +3512,9 @@ public sealed partial class LibraryViewModel : PageViewModel
                 + (Section == LibrarySection.Items ? "" : "/section/" + Section) : null;
 
     private string Describe() =>
-        _total <= 0 ? (Cards.Count == 0 ? "没有内容" : $"共 {Cards.Count} 项")
-        : Cards.Count >= _total ? $"共 {_total} 项"
-        : $"已加载 {Cards.Count} / {_total} 项";
+        _total <= 0 ? (Cards.Count == 0 ? UiText.Translate("没有内容") : UiText.Format("共 {0} 项", Cards.Count))
+        : Cards.Count >= _total ? UiText.Format("共 {0} 项", _total)
+        : UiText.Format("已加载 {0} / {1} 项", Cards.Count, _total);
 
     /// <summary>
     /// The query this grid is showing, or null when there is nothing to ask: the search page before a

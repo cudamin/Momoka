@@ -1,4 +1,5 @@
 using Momoka.Configuration;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -64,10 +65,12 @@ public sealed partial class SettingsViewModel
     }
 
     private static string BufferSizeNote(bool lan, int megabytes) =>
-        $"当前：{megabytes}MB（默认 {BufferSettings.DefaultMegabytes}MB）。{ScopeSentence(lan)}；前向缓冲上限，后向取其一半";
+        UiText.Format("当前：{0}MB（默认 {1}MB）。{2}；前向缓冲上限，后向取其一半",
+            megabytes, BufferSettings.DefaultMegabytes, UiText.Translate(ScopeSentence(lan)));
 
     private static string BufferSecondsNote(bool lan, int seconds) =>
-        $"当前：{seconds}s（默认 {BufferSettings.DefaultSeconds}s）。{ScopeSentence(lan)}；实际缓冲取大小与时长二者的较小值";
+        UiText.Format("当前：{0}s（默认 {1}s）。{2}；实际缓冲取大小与时长二者的较小值",
+            seconds, BufferSettings.DefaultSeconds, UiText.Translate(ScopeSentence(lan)));
 
     private static string ScopeSentence(bool lan) => lan
         ? "服务器在本机或局域网时使用"

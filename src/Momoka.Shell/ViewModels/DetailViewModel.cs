@@ -15,6 +15,7 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 using Momoka.Shell.Views;
 
@@ -2474,7 +2475,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public TextTrimming OverviewTrimming => !StoreMode && Expanded ? TextTrimming.None : TextTrimming.CharacterEllipsis;
 
-    public string ReadMoreText => Expanded ? "收起" : "阅读更多";
+    public string ReadMoreText => Expanded ? UiText.Translate("收起") : UiText.Translate("阅读更多");
 
     public Visibility ReadMoreVisibility => Show(!StoreMode && !string.IsNullOrWhiteSpace(Overview) && (OverviewTrimmed || Expanded));
 
@@ -2776,12 +2777,12 @@ public sealed partial class DetailViewModel : PageViewModel
         // 得等图。列表接口回来的条目已经带着 ImageTags，而这一页正是从那张列表上点进来的。
         HeroArt = SpreadsBackdrop(request.Item);
 
-        var episodes = new CardShelf("更多单集", images, CardSize.WideWidth, wide: true);
-        var cast = new CardShelf("演职人员", images, CardSize.CastWidth,
+        var episodes = new CardShelf(UiText.Translate("更多单集"), images, CardSize.WideWidth, wide: true);
+        var cast = new CardShelf(UiText.Translate("演职人员"), images, CardSize.CastWidth,
             wide: false, indicators: false);
-        var seasons = new CardShelf("全部剧季", images, CardSize.PosterWidth, wide: false);
+        var seasons = new CardShelf(UiText.Translate("全部剧季"), images, CardSize.PosterWidth, wide: false);
 
-        var similar = new CardShelf("更多类似", images, CardSize.PosterWidth, wide: false);
+        var similar = new CardShelf(UiText.Translate("更多类似"), images, CardSize.PosterWidth, wide: false);
 
         if (EpisodeShelf is { } previous) previous.Cards.CollectionChanged -= OnEpisodeCardsChanged;
         if (CastShelf is { } before) before.Cards.CollectionChanged -= OnCastCardsChanged;
@@ -2891,7 +2892,7 @@ public sealed partial class DetailViewModel : PageViewModel
             Log.Warn(Category, "加载详情失败", error);
             if (!IsCurrent(token)) return;
 
-            if (committedNotice is null) Report("加载详情失败", error);
+            if (committedNotice is null) Report(UiText.Translate("加载详情失败"), error);
             else
             {
                 var transient = error is EmbyUnreachableException || error is EmbyApiException { StatusCode: { } status }
@@ -2946,7 +2947,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 这一份和 Apply 里那一段同源，所以两处的答案不会分叉 —— 这里少的正是「卡片答不出的那几样」。
         ApplyHeading(seed);
-        Overview = ItemDetail.Prose(seed.Overview) is { Length: > 0 } prose ? prose : "暂无简介。";
+        Overview = ItemDetail.Prose(seed.Overview) is { Length: > 0 } prose ? prose : UiText.Translate("暂无简介。");
 
         Watched = seed.IsWatched;
         Favorite = seed.UserData?.IsFavorite == true;
@@ -3259,7 +3260,7 @@ public sealed partial class DetailViewModel : PageViewModel
         ApplyScore(item);
         Facts = ItemDetail.Facts(item, includeStudio: false);
         Directors = ItemDetail.Directors(item);
-        Overview = ItemDetail.Prose(item.Overview) is { Length: > 0 } prose ? prose : "暂无简介。";
+        Overview = ItemDetail.Prose(item.Overview) is { Length: > 0 } prose ? prose : UiText.Translate("暂无简介。");
 
         Watched = item.IsWatched;
         Favorite = item.UserData?.IsFavorite == true;
@@ -4606,7 +4607,7 @@ public sealed partial class DetailViewModel : PageViewModel
         SimilarShelf?.Clear();
         AnnounceShape();
         IsReady = true;
-        Notify("条目已删除", "此条目已从服务器移除，请返回媒体库查看其它内容。", InfoBarSeverity.Informational);
+        Notify(UiText.Translate("条目已删除"), UiText.Translate("此条目已从服务器移除，请返回媒体库查看其它内容。"), InfoBarSeverity.Informational);
     }
 
     internal Action CaptureReload()

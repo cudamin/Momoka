@@ -11,22 +11,22 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="弹幕" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
-                <ToggleSwitch x:Name="ShowToggle" Grid.Column="1" OffContent="关闭" OnContent="开启" Toggled="OnShowToggled" AutomationProperties.Name="显示弹幕" />
+                <TextBlock x:Uid="DanmakuPanel_Localization1" Text="弹幕" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                <ToggleSwitch x:Uid="DanmakuPanel_ShowToggle" x:Name="ShowToggle" Grid.Column="1" OffContent="关闭" OnContent="开启" Toggled="OnShowToggled" AutomationProperties.Name="显示弹幕" />
             </Grid>
             <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{Binding DanmakuStatus}" TextWrapping="Wrap" />
             <TextBlock x:Name="SessionMessage" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
 
             <StackPanel x:Name="SourceModeSection" Spacing="4" Visibility="Collapsed">
-                <ComboBox x:Name="SourceModeBox" Header="弹幕来源" HorizontalAlignment="Stretch"
+                <ComboBox x:Uid="DanmakuPanel_SourceModeBox" x:Name="SourceModeBox" Header="弹幕来源" HorizontalAlignment="Stretch"
                           SelectionChanged="OnSourceModeChanged" AutomationProperties.Name="弹幕来源" />
-                <TextBlock Text="两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。"
+                <TextBlock x:Uid="DanmakuPanel_Localization2" Text="两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。"
                            Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Text="选择弹幕库" Style="{StaticResource EgBodyStyle}" />
-                <ComboBox x:Name="SourceBox" Header="搜索来源" Visibility="Collapsed"
+                <TextBlock x:Uid="DanmakuPanel_Localization3" Text="选择弹幕库" Style="{StaticResource EgBodyStyle}" />
+                <ComboBox x:Uid="DanmakuPanel_SourceBox" x:Name="SourceBox" Header="搜索来源" Visibility="Collapsed"
                           CornerRadius="{StaticResource EgSearchCornerRadius}"
                           SelectionChanged="OnSourceChanged"
                           AutomationProperties.Name="弹幕搜索来源" />
@@ -35,11 +35,11 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="70" />
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="TitleBox" CornerRadius="{StaticResource EgSearchCornerRadius}" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称" />
-                    <TextBox x:Name="EpisodeBox" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
+                    <TextBox x:Uid="DanmakuPanel_TitleBox" x:Name="TitleBox" CornerRadius="{StaticResource EgSearchCornerRadius}" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称" />
+                    <TextBox x:Uid="DanmakuPanel_EpisodeBox" x:Name="EpisodeBox" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
                 </Grid>
-                <Button x:Name="SearchButton" Content="搜索" Click="OnSearch" HorizontalAlignment="Stretch" />
-                <ListView x:Name="Results" MaxHeight="200" Padding="{StaticResource EgScrollBarLane}" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹幕剧集搜索结果">
+                <Button x:Uid="DanmakuPanel_SearchButton" x:Name="SearchButton" Content="搜索" Click="OnSearch" HorizontalAlignment="Stretch" />
+                <ListView x:Uid="DanmakuPanel_Results" x:Name="Results" MaxHeight="200" Padding="{StaticResource EgScrollBarLane}" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹幕剧集搜索结果">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="dm:DandanPlayEpisode">
                             <StackPanel Spacing="2">
@@ -49,38 +49,38 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <Button x:Name="LoadButton" Content="加载所选剧集的弹幕" Click="OnLoad" Visibility="Collapsed" HorizontalAlignment="Stretch" />
+                <Button x:Uid="DanmakuPanel_LoadButton" x:Name="LoadButton" Content="加载所选剧集的弹幕" Click="OnLoad" Visibility="Collapsed" HorizontalAlignment="Stretch" />
             </StackPanel>
 
             <StackPanel x:Name="Appearance" Spacing="12">
-                <TextBlock Text="显示设置" Style="{StaticResource EgBodyStyle}" />
-                <CheckBox x:Name="ScaleCheck" Content="弹幕随窗口缩放" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
-                <CheckBox x:Name="SubtitleCheck" Content="防挡字幕" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
-                <ComboBox x:Name="DensityModeBox" Header="弹幕密度" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
-                <CheckBox x:Name="OverlapCheck" Content="智能防挡弹幕（避免重叠）" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <TextBlock x:Uid="DanmakuPanel_Localization4" Text="显示设置" Style="{StaticResource EgBodyStyle}" />
+                <CheckBox x:Uid="DanmakuPanel_ScaleCheck" x:Name="ScaleCheck" Content="弹幕随窗口缩放" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <CheckBox x:Uid="DanmakuPanel_SubtitleCheck" x:Name="SubtitleCheck" Content="防挡字幕" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <ComboBox x:Uid="DanmakuPanel_DensityModeBox" x:Name="DensityModeBox" Header="弹幕密度" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
+                <CheckBox x:Uid="DanmakuPanel_OverlapCheck" x:Name="OverlapCheck" Content="智能防挡弹幕（避免重叠）" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="OpacityLabel" Style="{StaticResource EgCaptionStyle}" />
-                    <Slider x:Name="OpacitySlider" Minimum="10" Maximum="100" StepFrequency="5" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕不透明度" />
+                    <Slider x:Uid="DanmakuPanel_OpacitySlider" x:Name="OpacitySlider" Minimum="10" Maximum="100" StepFrequency="5" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕不透明度" />
                 </StackPanel>
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="FontLabel" Style="{StaticResource EgCaptionStyle}" />
-                    <Slider x:Name="FontSlider" Minimum="20" Maximum="64" StepFrequency="2" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕字号" />
+                    <Slider x:Uid="DanmakuPanel_FontSlider" x:Name="FontSlider" Minimum="20" Maximum="64" StepFrequency="2" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕字号" />
                 </StackPanel>
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="SpeedLabel" Style="{StaticResource EgCaptionStyle}" />
-                    <Slider x:Name="SpeedSlider" Minimum="0.5" Maximum="2" StepFrequency="0.1" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕速度" />
+                    <Slider x:Uid="DanmakuPanel_SpeedSlider" x:Name="SpeedSlider" Minimum="0.5" Maximum="2" StepFrequency="0.1" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕速度" />
                 </StackPanel>
-                <CheckBox x:Name="SpeedSyncCheck" Content="弹幕速度同步播放倍数" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
-                <ComboBox x:Name="FontFamilyBox" Header="弹幕字体" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
-                <CheckBox x:Name="BoldCheck" Content="粗体" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
-                <ComboBox x:Name="BorderStyleBox" Header="描边类型" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
+                <CheckBox x:Uid="DanmakuPanel_SpeedSyncCheck" x:Name="SpeedSyncCheck" Content="弹幕速度同步播放倍数" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <ComboBox x:Uid="DanmakuPanel_FontFamilyBox" x:Name="FontFamilyBox" Header="弹幕字体" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
+                <CheckBox x:Uid="DanmakuPanel_BoldCheck" x:Name="BoldCheck" Content="粗体" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <ComboBox x:Uid="DanmakuPanel_BorderStyleBox" x:Name="BorderStyleBox" Header="描边类型" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="AreaLabel" Style="{StaticResource EgCaptionStyle}" />
-                    <Slider x:Name="AreaSlider" Minimum="25" Maximum="100" StepFrequency="25" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕显示区域" />
+                    <Slider x:Uid="DanmakuPanel_AreaSlider" x:Name="AreaSlider" Minimum="25" Maximum="100" StepFrequency="25" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕显示区域" />
                 </StackPanel>
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="DensityLabel" Style="{StaticResource EgCaptionStyle}" />
-                    <Slider x:Name="DensitySlider" Minimum="10" Maximum="100" StepFrequency="10" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="同屏弹幕上限" />
+                    <Slider x:Uid="DanmakuPanel_DensitySlider" x:Name="DensitySlider" Minimum="10" Maximum="100" StepFrequency="10" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="同屏弹幕上限" />
                 </StackPanel>
                 <Grid ColumnSpacing="12" RowSpacing="4">
                     <Grid.ColumnDefinitions>
@@ -92,17 +92,17 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <CheckBox x:Name="ScrollCheck" Content="滚动弹幕" Click="OnFiltersChanged" />
-                    <CheckBox x:Name="TopCheck" Grid.Column="1" Content="顶部弹幕" Click="OnFiltersChanged" />
-                    <CheckBox x:Name="BottomCheck" Grid.Row="1" Content="底部弹幕" Click="OnFiltersChanged" />
-                    <CheckBox x:Name="ColorCheck" Grid.Row="1" Grid.Column="1" Content="彩色弹幕" Click="OnFiltersChanged" />
-                    <CheckBox x:Name="RepeatCheck" Grid.Row="2" Grid.ColumnSpan="2" Content="合并 10 秒内的重复弹幕" Click="OnFiltersChanged" />
+                    <CheckBox x:Uid="DanmakuPanel_ScrollCheck" x:Name="ScrollCheck" Content="滚动弹幕" Click="OnFiltersChanged" />
+                    <CheckBox x:Uid="DanmakuPanel_TopCheck" x:Name="TopCheck" Grid.Column="1" Content="顶部弹幕" Click="OnFiltersChanged" />
+                    <CheckBox x:Uid="DanmakuPanel_BottomCheck" x:Name="BottomCheck" Grid.Row="1" Content="底部弹幕" Click="OnFiltersChanged" />
+                    <CheckBox x:Uid="DanmakuPanel_ColorCheck" x:Name="ColorCheck" Grid.Row="1" Grid.Column="1" Content="彩色弹幕" Click="OnFiltersChanged" />
+                    <CheckBox x:Uid="DanmakuPanel_RepeatCheck" x:Name="RepeatCheck" Grid.Row="2" Grid.ColumnSpan="2" Content="合并 10 秒内的重复弹幕" Click="OnFiltersChanged" />
                 </Grid>
-                <TextBox x:Name="BlockBox" Header="屏蔽词" PlaceholderText="多个词用逗号分隔" MaxLength="4000" LostFocus="OnBlockLostFocus" AutomationProperties.Name="弹幕屏蔽词" />
-                <TextBlock Text="屏蔽词与设置页共用并同步保存本机列表。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                <Button x:Name="RestoreAppearanceButton" Content="恢复弹幕外观默认" Click="OnRestoreAppearance" HorizontalAlignment="Stretch" />
+                <TextBox x:Uid="DanmakuPanel_BlockBox" x:Name="BlockBox" Header="屏蔽词" PlaceholderText="多个词用逗号分隔" MaxLength="4000" LostFocus="OnBlockLostFocus" AutomationProperties.Name="弹幕屏蔽词" />
+                <TextBlock x:Uid="DanmakuPanel_Localization5" Text="屏蔽词与设置页共用并同步保存本机列表。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                <Button x:Uid="DanmakuPanel_RestoreAppearanceButton" x:Name="RestoreAppearanceButton" Content="恢复弹幕外观默认" Click="OnRestoreAppearance" HorizontalAlignment="Stretch" />
             </StackPanel>
-            <Button x:Name="SettingsButton" Content="更多弹幕设置与连接配置" Click="OnSettings" HorizontalAlignment="Stretch" />
+            <Button x:Uid="DanmakuPanel_SettingsButton" x:Name="SettingsButton" Content="更多弹幕设置与连接配置" Click="OnSettings" HorizontalAlignment="Stretch" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

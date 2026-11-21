@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Playback;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -81,8 +82,8 @@ public sealed partial class SettingsViewModel
         Fact(label, "找到文件只表示路径可用，不代表工具版本兼容。", ToolExecutableState(read()), "选择程序…",
             _pickPlayerToolExecutable is null ? null : () => _ = PickPlayerToolPathAsync(false, write));
 
-    private static string ToolExecutableState(string path) => string.IsNullOrWhiteSpace(path) ? "未配置"
-        : PlayerToolPaths.IsExecutableAvailable(path) ? "已找到本地程序" : "未找到可用的本地 .exe 程序";
+    private static string ToolExecutableState(string path) => UiText.Translate(string.IsNullOrWhiteSpace(path) ? "未配置"
+        : PlayerToolPaths.IsExecutableAvailable(path) ? "已找到本地程序" : "未找到可用的本地 .exe 程序");
 
     private static string ToolSyncStatus(PlayerToolsSettings tools)
     {
@@ -90,23 +91,24 @@ public sealed partial class SettingsViewModel
         {
             (Label: "ffsubsync", Path: tools.FfsubsyncPath), (Label: "alass", Path: tools.AlassPath)
         }.Where(tool => PlayerToolPaths.IsExecutableAvailable(tool.Path)).Select(tool => tool.Label).ToArray();
-        if (available.Length == 0) return "未配置可用的字幕同步工具";
+        if (available.Length == 0) return UiText.Translate("未配置可用的字幕同步工具");
         var audio = PlayerToolPaths.IsExecutableAvailable(tools.FfmpegPath)
             && PlayerToolPaths.IsExecutableAvailable(PlayerToolPaths.ResolveFfprobe(tools));
-        return string.Join("、", available) + (audio ? "；音轨参考工具已找到" : "；音轨参考还需要 ffmpeg 与 ffprobe");
+        return UiText.Format(audio ? "{0}；音轨参考工具已找到" : "{0}；音轨参考还需要 ffmpeg 与 ffprobe",
+            string.Join(", ", available));
     }
 
     private static string ToolDirectoryStatus(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return "跟随截图保存目录";
+        if (string.IsNullOrWhiteSpace(path)) return UiText.Translate("跟随截图保存目录");
         try
         {
             _ = PlayerToolPaths.RequireOutput(Path.Combine(path, "momoka-directory-check-" + Guid.NewGuid().ToString("N")));
-            return "已找到本地文件夹";
+            return UiText.Translate("已找到本地文件夹");
         }
         catch (Exception error) when (error is PlayerToolException or ArgumentException or NotSupportedException)
         {
-            return "未找到可用的本地文件夹";
+            return UiText.Translate("未找到可用的本地文件夹");
         }
     }
 
@@ -142,14 +144,14 @@ public sealed partial class SettingsViewModel
             if (!Current() || selected is null) return;
             var path = TypedPath.Clean(selected);
             if (directory) _ = PlayerToolPaths.RequireOutput(Path.Combine(path, "momoka-directory-check-" + Guid.NewGuid().ToString("N")));
-            else if (!PlayerToolPaths.IsExecutableAvailable(path)) throw new PlayerToolException("请选择可用的本地 .exe 程序。");
+            else if (!PlayerToolPaths.IsExecutableAvailable(path)) throw new PlayerToolException(UiText.Translate("请选择可用的本地 .exe 程序。"));
             write(path);
             Save();
             RefreshPlayerToolsRows();
         }
         catch (Exception error)
         {
-            if (Current()) Notify("选择播放工具失败", Failure.Describe(error), InfoBarSeverity.Error);
+            if (Current()) Notify(UiText.Translate("选择播放工具失败"), Failure.Describe(error), InfoBarSeverity.Error);
         }
         finally { _playerToolsPicking = false; }
     }

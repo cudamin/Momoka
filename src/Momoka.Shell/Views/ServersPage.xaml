@@ -65,7 +65,7 @@
                 <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
                 <Border.ContextFlyout>
                     <MenuFlyout>
-                        <MenuFlyoutItem
+                        <MenuFlyoutItem x:Uid="ServersPage_Localization1"
                             Text="测试服务器连接"
                             Command="{x:Bind Owner.TestCommand}"
                             CommandParameter="{x:Bind ServerGroup}">
@@ -73,7 +73,7 @@
                                 <FontIcon Glyph="&#xE72C;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem
+                        <MenuFlyoutItem x:Uid="ServersPage_Localization2"
                             Text="新增账号"
                             Command="{x:Bind Owner.AddAccountCommand}"
                             CommandParameter="{x:Bind ServerGroup}">
@@ -81,7 +81,7 @@
                                 <FontIcon Glyph="&#xE710;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem
+                        <MenuFlyoutItem x:Uid="ServersPage_Localization3"
                             Text="退出登录（清除保存的令牌）"
                             Command="{x:Bind Owner.SignOutAccountCommand}"
                             CommandParameter="{x:Bind}"
@@ -90,7 +90,7 @@
                                 <FontIcon Glyph="&#xE8A5;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem
+                        <MenuFlyoutItem x:Uid="ServersPage_Localization4"
                             Text="删除此服务器及全部账号"
                             Command="{x:Bind Owner.DeleteServerCommand}"
                             CommandParameter="{x:Bind ServerGroup}">
@@ -110,7 +110,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <local:WrapRow Spacing="8" RowSpacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="≡" VerticalAlignment="Center" Opacity="0.45"
+                        <TextBlock x:Uid="ServersPage_Localization5" Text="≡" VerticalAlignment="Center" Opacity="0.45"
                             ToolTipService.ToolTip="按住卡片拖动调整账号顺序" />
                         <TextBlock
                             Style="{StaticResource EgSectionTitleStyle}"
@@ -129,7 +129,7 @@
                             Text="{x:Bind Status}" VerticalAlignment="Center" />
                         <Border Background="{ThemeResource EgAccentSoftBrush}" CornerRadius="10"
                             Padding="8,2" VerticalAlignment="Center" Visibility="{x:Bind OnlineVisibility}">
-                            <TextBlock Style="{StaticResource EgCaptionStyle}"
+                            <TextBlock x:Uid="ServersPage_Localization6" Style="{StaticResource EgCaptionStyle}"
                                 Foreground="{ThemeResource EgAccentBrush}" Text="在线" />
                         </Border>
                         <Border Background="{ThemeResource EgAccentBrush}" CornerRadius="10"
@@ -150,7 +150,7 @@
                                 <TextBlock Text="{x:Bind LoginShortLabel}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <Button x:Name="AccountOfflineButton"
+                        <Button x:Uid="ServersPage_AccountOfflineButton" x:Name="AccountOfflineButton"
                             AutomationProperties.Name="下线"
                             ToolTipService.ToolTip="下线（保留已保存的账号）"
                             Visibility="{x:Bind OfflineVisibility}"
@@ -179,7 +179,7 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <!-- 外层拖拽的抓手：账号卡自己的拖拽归内层列表，服务器组的换位从这里按下去。 -->
-                <Grid Grid.Column="0" Background="Transparent"
+                <Grid x:Uid="ServersPage_Localization7" Grid.Column="0" Background="Transparent"
                     ToolTipService.ToolTip="按住拖动调整服务器顺序">
                     <TextBlock Text="⋮⋮" FontSize="{StaticResource EgCaptionFontSize}"
                         HorizontalAlignment="Center" VerticalAlignment="Top"
@@ -228,16 +228,16 @@
                                 MaxWidth="260" TextTrimming="CharacterEllipsis" />
                             <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{x:Bind KindLabel}"
                                 VerticalAlignment="Center" />
-                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="未保存账号"
+                            <TextBlock x:Uid="ServersPage_Localization8" Style="{StaticResource EgCaptionStyle}" Text="未保存账号"
                                 VerticalAlignment="Center" />
                         </local:WrapRow>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                            <Button x:Name="ServerLoginButton" Style="{StaticResource ServersActionButtonStyle}"
+                            <Button x:Uid="ServersPage_ServerLoginButton" x:Name="ServerLoginButton" Style="{StaticResource ServersActionButtonStyle}"
                                 AutomationProperties.Name="登录服务器" ToolTipService.ToolTip="登录服务器"
                                 Command="{x:Bind Owner.LoginServerCommand}" CommandParameter="{x:Bind}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE77B;" />
-                                    <TextBlock Text="登录服务器" VerticalAlignment="Center" />
+                                    <TextBlock x:Uid="ServersPage_Localization9" Text="登录服务器" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="ServerDeleteButton" x:Uid="ServersPage_ButtonA5"
@@ -349,7 +349,7 @@
                                             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
                                         </Style>
                                     </Flyout.FlyoutPresenterStyle>
-                                    <ListView
+                                    <ListView x:Uid="ServersPage_ServerSortList"
                                         x:Name="ServerSortList"
                                         x:FieldModifier="internal"
                                         AutomationProperties.Name="排序方式"
@@ -401,8 +401,8 @@
                             FontSize="{StaticResource EgSubheadFontSize}"
                             Foreground="{ThemeResource EgAccentBrush}"
                             Glyph="&#xE8AB;" />
-                        <TextBlock FontWeight="SemiBold" Text="聚合模式" VerticalAlignment="Center" />
-                        <ToggleSwitch
+                        <TextBlock x:Uid="ServersPage_Localization10" FontWeight="SemiBold" Text="聚合模式" VerticalAlignment="Center" />
+                        <ToggleSwitch x:Uid="ServersPage_AggregateToggle"
                             x:Name="AggregateToggle"
                             AutomationProperties.Name="聚合模式"
                             VerticalAlignment="Center"

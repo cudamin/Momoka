@@ -47,13 +47,13 @@
                 Spacing="{StaticResource EgSpaceL}">
                 <!-- 开关自己那两个字（开／关）留空：这两颗是筛选，状态看滑块位置就够，而参考图上也只有标签加一颗
                      开关。名字仍旧给全，读屏那一头念的是「特别篇／预告」。 -->
-                <ToggleSwitch x:Name="SpecialsSwitch"
+                <ToggleSwitch x:Uid="MissingEpisodesDialog_SpecialsSwitch" x:Name="SpecialsSwitch"
                     AutomationProperties.Name="特别篇"
                     Header="特别篇"
                     OffContent=""
                     OnContent=""
                     Toggled="OnToggled" />
-                <ToggleSwitch x:Name="UnairedSwitch"
+                <ToggleSwitch x:Uid="MissingEpisodesDialog_UnairedSwitch" x:Name="UnairedSwitch"
                     AutomationProperties.Name="预告"
                     Header="预告"
                     OffContent=""
@@ -108,7 +108,7 @@
                                 TextTrimming="CharacterEllipsis"
                                 TextWrapping="Wrap"
                                 Visibility="{x:Bind OverviewVisibility}" />
-                            <Button x:Name="SearchMissingMoviePilot" Content="MP" Tag="{x:Bind Episode}"
+                            <Button x:Uid="MissingEpisodesDialog_SearchMissingMoviePilot" x:Name="SearchMissingMoviePilot" Content="MP" Tag="{x:Bind Episode}"
                                 HorizontalAlignment="Left" Click="OnSearchMoviePilot"
                                 AutomationProperties.Name="{x:Bind SearchName}" ToolTipService.ToolTip="使用 MoviePilot 搜索这一集"
                                 Visibility="{x:Bind SearchVisibility}" />
@@ -116,8 +116,8 @@
                                 AutomationProperties.Name="{x:Bind SearchName}" Visibility="{x:Bind AnimeSearchVisibility}">
                                 <DropDownButton.Flyout>
                                     <MenuFlyout>
-                                        <MenuFlyoutItem x:Name="MissingMoviePilot" Text="使用 MoviePilot" Tag="{x:Bind Episode}" Click="OnSearchMoviePilot" />
-                                        <MenuFlyoutItem x:Name="MissingAniBt" Text="使用 AniBT API 搜索" Tag="{x:Bind Episode}" Click="OnSearchAniBt" />
+                                        <MenuFlyoutItem x:Uid="MissingEpisodesDialog_MissingMoviePilot" x:Name="MissingMoviePilot" Text="使用 MoviePilot" Tag="{x:Bind Episode}" Click="OnSearchMoviePilot" />
+                                        <MenuFlyoutItem x:Uid="MissingEpisodesDialog_MissingAniBt" x:Name="MissingAniBt" Text="使用 AniBT API 搜索" Tag="{x:Bind Episode}" Click="OnSearchAniBt" />
                                     </MenuFlyout>
                                 </DropDownButton.Flyout>
                             </DropDownButton>

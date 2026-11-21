@@ -245,9 +245,9 @@
                 <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" TextWrapping="Wrap"
                     Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
                     Visibility="{x:Bind StatusVisibility, Mode=OneWay}" AutomationProperties.LiveSetting="Polite" />
-                <Button x:Name="FavoriteRetry" Content="重新加载" Tag="{x:Bind}" Click="OnFavoriteMoreClicked"
+                <Button x:Uid="LibraryPage_FavoriteRetry" x:Name="FavoriteRetry" Content="重新加载" Tag="{x:Bind}" Click="OnFavoriteMoreClicked"
                     HorizontalAlignment="Left" Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
-                <Button x:Name="FavoriteMore" Content="加载更多" Tag="{x:Bind}" Click="OnFavoriteMoreClicked"
+                <Button x:Uid="LibraryPage_FavoriteMore" x:Name="FavoriteMore" Content="加载更多" Tag="{x:Bind}" Click="OnFavoriteMoreClicked"
                     HorizontalAlignment="Left" Visibility="{x:Bind MoreVisibility, Mode=OneWay}" />
             </StackPanel>
         </DataTemplate>
@@ -352,7 +352,7 @@
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
                     <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
                 </Border>
-                <HyperlinkButton x:Name="LibraryBrowseGroup" Grid.Row="3" Grid.ColumnSpan="2"
+                <HyperlinkButton x:Uid="LibraryPage_LibraryBrowseGroup" x:Name="LibraryBrowseGroup" Grid.Row="3" Grid.ColumnSpan="2"
                     HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
                     ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
@@ -448,10 +448,10 @@
                                     <Setter Property="FontWeight" Value="SemiBold" />
                                 </Style>
                             </local:SearchSourceTabs.ItemContainerStyle>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem x:Name="AniBtSourceTab" AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_Localization1" AutomationProperties.Name="媒体库搜索"><TextBlock x:Uid="LibraryPage_Localization2" Text="媒体库" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_Localization3" AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock x:Uid="LibraryPage_Localization4" Text="MoviePilot 订阅" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_Localization5" AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock x:Uid="LibraryPage_Localization6" Text="MoviePilot 资源" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_AniBtSourceTab" x:Name="AniBtSourceTab" AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                         </local:SearchSourceTabs>
                     </Grid>
                 </Border>
@@ -469,7 +469,7 @@
                             Visibility="{x:Bind ViewModel.ItemCountVisibility, Mode=OneWay}"
                             FontSize="{StaticResource EgCaptionFontSize}" FontWeight="SemiBold" Margin="0,0,2,0" VerticalAlignment="Center" />
                         <!-- 标题栏收藏页聚合所有在线账号；两个及以上可收藏账号时给一颗筛选，选择留在返回栈里。 -->
-                        <Button
+                        <Button x:Uid="LibraryPage_FavoriteAccountButton"
                             x:Name="FavoriteAccountButton"
                             Style="{StaticResource LibraryPillStyle}"
                             Visibility="{x:Bind ViewModel.FavoriteAccountFilterVisibility, Mode=OneWay}"
@@ -516,7 +516,7 @@
                             Padding="12,0">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon FontSize="12" Glyph="&#xE768;" />
-                                <TextBlock Text="播放" />
+                                <TextBlock x:Uid="LibraryPage_Localization7" Text="播放" />
                             </StackPanel>
                         </Button>
                         <Button
@@ -531,11 +531,11 @@
                             Padding="12,0">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon FontSize="12" Glyph="&#xE8B1;" />
-                                <TextBlock Text="随机播放" />
+                                <TextBlock x:Uid="LibraryPage_Localization8" Text="随机播放" />
                             </StackPanel>
                         </Button>
 
-                        <Button x:Name="SortButton" Style="{StaticResource LibraryPillStyle}"
+                        <Button x:Uid="LibraryPage_SortButton" x:Name="SortButton" Style="{StaticResource LibraryPillStyle}"
                             Visibility="{x:Bind ViewModel.SortFilterVisibility, Mode=OneWay}"
                             ToolTipService.ToolTip="排序" AutomationProperties.Name="排序">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -558,7 +558,7 @@
                                             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
                                         </Style>
                                     </Flyout.FlyoutPresenterStyle>
-                                    <ListView
+                                    <ListView x:Uid="LibraryPage_SortList"
                                         x:Name="SortList"
                                         x:FieldModifier="internal"
                                         AutomationProperties.Name="排序方式"
@@ -615,7 +615,7 @@
                         <!-- 网页端的筛选：打开的是盖住整页的一块面板（网页端也是个模态框），不是浮层。
                              浮层是亚克力的，底下的卡片墙会从面板底下透上来 —— 设置面板当初就是因为这个改成
                              页内模态层的，这一块跟着它。 -->
-                        <Button
+                        <Button x:Uid="LibraryPage_FilterButton"
                             x:Name="FilterButton"
                             Style="{StaticResource LibraryPillStyle}" Width="{x:Bind ViewModel.FilterButtonWidth, Mode=OneWay}" Padding="0"
                             AutomationProperties.Name="筛选"
@@ -630,7 +630,7 @@
                                     Visibility="{x:Bind ViewModel.FilterIconVisibility, Mode=OneWay}" />
                                 <TextBlock x:Name="FilterText" Visibility="Collapsed"
                 x:Uid="LibraryPage_FilterText" />
-                                <TextBlock Text="筛选" VerticalAlignment="Center"
+                                <TextBlock x:Uid="LibraryPage_Localization9" Text="筛选" VerticalAlignment="Center"
                                     Visibility="{x:Bind ViewModel.FilterTextVisibility, Mode=OneWay}" />
                                 <!-- How many filters are on, without spending a row of the page saying so. -->
                                 <InfoBadge
@@ -645,7 +645,7 @@
                         <!-- Jellyfin list.html 的 btnViewSettings：竖排三点，tooltip「更多」。它开的是
                              viewSettings.template.html 那张设置 —— 图片类型六选一 + 显示标题 ——
                              电影／剧集库根仍用旁边的「布局」按钮。 -->
-                        <Button x:Name="JellyfinMoreButton" Style="{StaticResource LibraryPillStyle}"
+                        <Button x:Uid="LibraryPage_JellyfinMoreButton" x:Name="JellyfinMoreButton" Style="{StaticResource LibraryPillStyle}"
                             Width="32" Padding="0" HorizontalContentAlignment="Center"
                             Visibility="{x:Bind ViewModel.JellyfinMoreVisibility, Mode=OneWay}"
                             ToolTipService.ToolTip="更多" AutomationProperties.Name="更多">
@@ -655,7 +655,7 @@
                             <Button.Flyout>
                                 <Flyout x:Name="JellyfinMoreMenu" Placement="Bottom" Opening="OnJellyfinMoreMenuOpening">
                                     <StackPanel Width="200" Spacing="4">
-                                        <TextBlock Text="图片类型" Style="{StaticResource EgDataStyle}"
+                                        <TextBlock x:Uid="LibraryPage_Localization10" Text="图片类型" Style="{StaticResource EgDataStyle}"
                                             Margin="10,6,10,2" />
                                         <ListView x:Name="JellyfinImageTypeList" Width="200" SelectionMode="None"
                                             IsItemClickEnabled="True" ItemClick="OnJellyfinImageTypeItemClick"
@@ -668,7 +668,7 @@
                                                 </Style>
                                             </ListView.ItemContainerStyle>
                                         </ListView>
-                                        <CheckBox x:Name="JellyfinShowTitleCheck" Content="显示标题"
+                                        <CheckBox x:Uid="LibraryPage_JellyfinShowTitleCheck" x:Name="JellyfinShowTitleCheck" Content="显示标题"
                                             Margin="10,4,10,8" AutomationProperties.Name="显示标题"
                                             Click="OnJellyfinShowTitleClicked" />
                                     </StackPanel>
@@ -677,11 +677,11 @@
                         </Button>
                         <!-- 飞牛布局按原生页面裁剪：其他库和目录可选列表，电影/电视只选横竖海报。
                              Emby 的分组和显示字段对飞牛接口无效，因此保留独立布局菜单。 -->
-                        <Button x:Name="FnNasLayoutButton" Style="{StaticResource LibraryPillStyle}"
+                        <Button x:Uid="LibraryPage_FnNasLayoutButton" x:Name="FnNasLayoutButton" Style="{StaticResource LibraryPillStyle}"
                             Visibility="{x:Bind ViewModel.LayoutVisibility, Mode=OneWay}"
                             ToolTipService.ToolTip="布局" AutomationProperties.Name="布局">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="布局" />
+                                <TextBlock x:Uid="LibraryPage_Localization11" Text="布局" />
                                 <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
                             </StackPanel>
                             <Button.Flyout>
@@ -704,12 +704,12 @@
                         <!-- Jellyfin Web's 「视图」 button. It replaces Emby's gear on a Jellyfin library:
                              the gear's grouping and field switches are Emby settings, and Jellyfin offers
                              a fixed list of layout shapes per tab instead. -->
-                        <Button x:Name="JellyfinLayoutButton" Style="{StaticResource LibraryPillStyle}"
+                        <Button x:Uid="LibraryPage_JellyfinLayoutButton" x:Name="JellyfinLayoutButton" Style="{StaticResource LibraryPillStyle}"
                             Visibility="{x:Bind ViewModel.JellyfinLayoutVisibility, Mode=OneWay}"
                             ToolTipService.ToolTip="布局" AutomationProperties.Name="布局">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE8A9;" />
-                                <TextBlock Text="布局" />
+                                <TextBlock x:Uid="LibraryPage_Localization12" Text="布局" />
                                 <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
                             </StackPanel>
                             <Button.Flyout>
@@ -732,7 +732,7 @@
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
                              打开的是本页盖上来的一块面板（网页端也是个模态框），不是浮层：浮层是亚克力的，
                              卡片墙会从面板底下透上来。 -->
-                        <Button x:Name="LibrarySettingsButton" Style="{StaticResource LibraryPillStyle}"
+                        <Button x:Uid="LibraryPage_LibrarySettingsButton" x:Name="LibrarySettingsButton" Style="{StaticResource LibraryPillStyle}"
                             Width="32" Padding="0" ToolTipService.ToolTip="设置" AutomationProperties.Name="设置"
                             Click="OnSettingsClicked"
                             Visibility="{x:Bind ViewModel.SettingsVisibility, Mode=OneWay}">
@@ -805,8 +805,8 @@
                 local:VisibilityReveal.IsEnabled="True">
                 <StackPanel Spacing="10">
                     <Grid>
-                        <TextBlock Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
-                        <HyperlinkButton x:Name="FnNasFilterCollapse" Content="收起" HorizontalAlignment="Right" Click="OnFnNasFilterCloseClicked"
+                        <TextBlock x:Uid="LibraryPage_Localization13" Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+                        <HyperlinkButton x:Uid="LibraryPage_FnNasFilterCollapse" x:Name="FnNasFilterCollapse" Content="收起" HorizontalAlignment="Right" Click="OnFnNasFilterCloseClicked"
                             Padding="4,2,4,2" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar IsIndeterminate="True"
@@ -839,7 +839,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <HyperlinkButton x:Name="FnNasFilterClear" Content="清除筛选" HorizontalAlignment="Left"
+                    <HyperlinkButton x:Uid="LibraryPage_FnNasFilterClear" x:Name="FnNasFilterClear" Content="清除筛选" HorizontalAlignment="Left"
                         Command="{x:Bind ViewModel.ClearFiltersCommand}" Padding="4,2,4,2" />
                 </StackPanel>
             </Border>
@@ -850,12 +850,12 @@
                 Visibility="{x:Bind ViewModel.PlexFilterVisibility, Mode=OneWay}">
                 <StackPanel Spacing="10">
                     <Grid>
-                        <TextBlock Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
-                        <HyperlinkButton x:Name="PlexFilterCollapse" Content="收起" HorizontalAlignment="Right"
+                        <TextBlock x:Uid="LibraryPage_Localization14" Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+                        <HyperlinkButton x:Uid="LibraryPage_PlexFilterCollapse" x:Name="PlexFilterCollapse" Content="收起" HorizontalAlignment="Right"
                             Click="OnPlexFilterCloseClicked" Padding="4,2,4,2" />
                     </Grid>
                     <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.PlexFilterLoadingVisibility, Mode=OneWay}" />
-                    <ComboBox x:Name="PlexTypePicker" Header="媒体类型" HorizontalAlignment="Stretch"
+                    <ComboBox x:Uid="LibraryPage_PlexTypePicker" x:Name="PlexTypePicker" Header="媒体类型" HorizontalAlignment="Stretch"
                         Visibility="{x:Bind ViewModel.PlexTypeVisibility, Mode=OneWay}"
                         ItemsSource="{x:Bind ViewModel.PlexTypes, Mode=OneWay}"
                         SelectedItem="{x:Bind ViewModel.PlexSelectedType, Mode=TwoWay}">
@@ -878,9 +878,9 @@
                     </ItemsControl>
                     <StackPanel Visibility="{x:Bind ViewModel.PlexFilterErrorVisibility, Mode=OneWay}" Spacing="4">
                         <TextBlock Text="{x:Bind ViewModel.PlexFilterError, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
-                        <HyperlinkButton x:Name="PlexFilterRetry" Content="重试" HorizontalAlignment="Left" Click="OnPlexFilterRetryClicked" />
+                        <HyperlinkButton x:Uid="LibraryPage_PlexFilterRetry" x:Name="PlexFilterRetry" Content="重试" HorizontalAlignment="Left" Click="OnPlexFilterRetryClicked" />
                     </StackPanel>
-                    <HyperlinkButton x:Name="PlexFilterClear" Content="清除筛选" HorizontalAlignment="Left" Click="OnPlexFilterClearClicked" />
+                    <HyperlinkButton x:Uid="LibraryPage_PlexFilterClear" x:Name="PlexFilterClear" Content="清除筛选" HorizontalAlignment="Left" Click="OnPlexFilterClearClicked" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -907,7 +907,7 @@
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}">
             <!-- 网页端库页上那颗 btnRetryData：失败之后不必退出重进（2026-11-01 审查 F4）。 -->
             <InfoBar.ActionButton>
-                <Button
+                <Button x:Uid="LibraryPage_LibraryRetryButton"
                     x:Name="LibraryRetryButton"
                     Content="重试"
                     Click="OnLibraryRetryClicked"
@@ -926,36 +926,36 @@
                     HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
                     HorizontalContentAlignment="Center" Visibility="{x:Bind ViewModel.SearchCategoriesVisibility, Mode=OneWay}">
                     <SelectorBar x:Name="SearchCategories" HorizontalAlignment="Center">
-                        <SelectorBarItem x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />
-                        <SelectorBarItem x:Name="SeriesCategory" Text="节目" Tag="Series" />
-                        <SelectorBarItem x:Name="MoviesCategory" Text="影片" Tag="Movies" />
-                        <SelectorBarItem x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
-                        <SelectorBarItem x:Name="PeopleCategory" Text="人物" Tag="People"
+                        <SelectorBarItem x:Uid="LibraryPage_TopResultsCategory" x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />
+                        <SelectorBarItem x:Uid="LibraryPage_SeriesCategory" x:Name="SeriesCategory" Text="节目" Tag="Series" />
+                        <SelectorBarItem x:Uid="LibraryPage_MoviesCategory" x:Name="MoviesCategory" Text="影片" Tag="Movies" />
+                        <SelectorBarItem x:Uid="LibraryPage_EpisodesCategory" x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
+                        <SelectorBarItem x:Uid="LibraryPage_PeopleCategory" x:Name="PeopleCategory" Text="人物" Tag="People"
                             Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
-                        <SelectorBarItem x:Name="CollectionsCategory" Text="合集" Tag="Collections"
+                        <SelectorBarItem x:Uid="LibraryPage_CollectionsCategory" x:Name="CollectionsCategory" Text="合集" Tag="Collections"
                             Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
-                        <SelectorBarItem x:Name="PlaylistsCategory" Text="播放列表" Tag="Playlists"
+                        <SelectorBarItem x:Uid="LibraryPage_PlaylistsCategory" x:Name="PlaylistsCategory" Text="播放列表" Tag="Playlists"
                             Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
                     </SelectorBar>
                 </ScrollViewer>
                 <StackPanel x:Name="LibraryBatchSurface" Grid.Row="0" Visibility="Collapsed" Spacing="8">
-                    <CommandBar x:Name="LibraryBatchCommandBar" DefaultLabelPosition="Right"
+                    <CommandBar x:Uid="LibraryPage_LibraryBatchCommandBar" x:Name="LibraryBatchCommandBar" DefaultLabelPosition="Right"
                         Background="Transparent" HorizontalContentAlignment="Stretch"
                         AutomationProperties.Name="媒体库多选操作">
                         <CommandBar.Content>
-                            <TextBlock x:Name="LibrarySelectionCount" Text="已选 0 项" Style="{StaticResource EgBodyStyle}"
+                            <TextBlock x:Uid="LibraryPage_LibrarySelectionCount" x:Name="LibrarySelectionCount" Text="已选 0 项" Style="{StaticResource EgBodyStyle}"
                                 Margin="0,0,12,0" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
                         </CommandBar.Content>
-                        <AppBarButton x:Name="LibrarySelectLoaded" Label="全选已加载" Icon="SelectAll"
+                        <AppBarButton x:Uid="LibraryPage_LibrarySelectLoaded" x:Name="LibrarySelectLoaded" Label="全选已加载" Icon="SelectAll"
                             DynamicOverflowOrder="1" Click="OnSelectLoaded" />
-                        <AppBarButton x:Name="LibraryBatchActions" Label="批量操作" Icon="More" IsEnabled="False">
+                        <AppBarButton x:Uid="LibraryPage_LibraryBatchActions" x:Name="LibraryBatchActions" Label="批量操作" Icon="More" IsEnabled="False">
                             <AppBarButton.Flyout><MenuFlyout x:Name="LibraryBatchMenu" Opening="OnBatchMenuOpening" Placement="BottomEdgeAlignedLeft" /></AppBarButton.Flyout>
                         </AppBarButton>
-                        <AppBarButton x:Name="LibraryCancelBatch" Label="取消剩余" Icon="Cancel"
+                        <AppBarButton x:Uid="LibraryPage_LibraryCancelBatch" x:Name="LibraryCancelBatch" Label="取消剩余" Icon="Cancel"
                             Click="OnCancelBatch" Visibility="Collapsed" />
-                        <AppBarButton x:Name="LibraryEndSelection" Label="完成" Icon="Accept" Click="OnEndSelection" />
+                        <AppBarButton x:Uid="LibraryPage_LibraryEndSelection" x:Name="LibraryEndSelection" Label="完成" Icon="Accept" Click="OnEndSelection" />
                         <CommandBar.SecondaryCommands>
-                            <AppBarButton x:Name="LibraryClearSelection" Label="清空选择" Icon="ClearSelection" Click="OnClearSelection" />
+                            <AppBarButton x:Uid="LibraryPage_LibraryClearSelection" x:Name="LibraryClearSelection" Label="清空选择" Icon="ClearSelection" Click="OnClearSelection" />
                         </CommandBar.SecondaryCommands>
                     </CommandBar>
                     <InfoBar x:Name="LibraryBatchResult" IsOpen="False" IsClosable="True" Severity="Informational" />
@@ -1038,7 +1038,7 @@
                          摆法和下面那些类型组一致（组标题 + 同一档海报卡），读起来是同一张结果表里的一组。 -->
                     <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SubscriptionMatchesVisibility, Mode=OneWay}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="订阅" Style="{StaticResource EgSectionTitleStyle}"
+                            <TextBlock x:Uid="LibraryPage_Localization15" Text="订阅" Style="{StaticResource EgSectionTitleStyle}"
                                 AutomationProperties.HeadingLevel="Level2" />
                             <TextBlock Text="{x:Bind ViewModel.SubscriptionMatchesNote, Mode=OneWay}"
                                 Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
@@ -1130,14 +1130,14 @@
 
         <StackPanel x:Name="UpcomingLoadingPanel" HorizontalAlignment="Center" VerticalAlignment="Center"
             Spacing="{StaticResource EgSpaceL}" Visibility="{x:Bind ViewModel.UpcomingLoadingVisibility, Mode=OneWay}">
-            <ProgressRing x:Name="UpcomingLoadingRing" x:FieldModifier="internal" Width="44" Height="44"
+            <ProgressRing x:Uid="LibraryPage_UpcomingLoadingRing" x:Name="UpcomingLoadingRing" x:FieldModifier="internal" Width="44" Height="44"
                 IsActive="{x:Bind ViewModel.UpcomingLoading, Mode=OneWay}" IsIndeterminate="True"
                 Foreground="{ThemeResource EgAccentBrush}" AutomationProperties.Name="正在加载电视节目预告" />
-            <TextBlock Text="正在加载预告…" Style="{StaticResource EgBodyStyle}"
+            <TextBlock x:Uid="LibraryPage_Localization16" Text="正在加载预告…" Style="{StaticResource EgBodyStyle}"
                 Foreground="{ThemeResource EgTextDimBrush}" TextAlignment="Center"
                 AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
-        <Button x:Name="UpcomingRetryButton" Content="重新加载" HorizontalAlignment="Center" VerticalAlignment="Center"
+        <Button x:Uid="LibraryPage_UpcomingRetryButton" x:Name="UpcomingRetryButton" Content="重新加载" HorizontalAlignment="Center" VerticalAlignment="Center"
             Click="OnUpcomingRetryClicked" Visibility="{x:Bind ViewModel.UpcomingErrorVisibility, Mode=OneWay}" />
 
         <StackPanel x:Name="LibraryEmptyPanel"
@@ -1156,8 +1156,8 @@
                 Visibility="{x:Bind ViewModel.RecentSearchVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <Grid>
-                    <TextBlock Text="最近搜索" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
-                    <Button x:Name="ClearRecentSearches" Content="清除" HorizontalAlignment="Right"
+                    <TextBlock x:Uid="LibraryPage_Localization17" Text="最近搜索" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                    <Button x:Uid="LibraryPage_ClearRecentSearches" x:Name="ClearRecentSearches" Content="清除" HorizontalAlignment="Right"
                         Style="{StaticResource RecentSearchButtonStyle}" Command="{x:Bind ViewModel.ClearRecentSearchesCommand}"
                         Visibility="{x:Bind ViewModel.ClearRecentVisibility, Mode=OneWay}" />
                 </Grid>
@@ -1190,7 +1190,7 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <TextBlock Grid.Row="1" Text="暂无最近搜索" Margin="0,20" Style="{StaticResource EgBodyStyle}"
+                <TextBlock x:Uid="LibraryPage_Localization18" Grid.Row="1" Text="暂无最近搜索" Margin="0,20" Style="{StaticResource EgBodyStyle}"
                     Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind ViewModel.NoRecentVisibility, Mode=OneWay}" />
             </Grid>
         </Grid>
@@ -1215,7 +1215,7 @@
             x:FieldModifier="internal"
             Grid.RowSpan="3"
             Visibility="Collapsed">
-            <Button
+            <Button x:Uid="LibraryPage_FilterScrim"
                 x:Name="FilterScrim"
                 x:FieldModifier="internal"
                 AutomationProperties.Name="关闭筛选"
@@ -1242,7 +1242,7 @@
             x:FieldModifier="internal"
             Grid.RowSpan="3"
             Visibility="Collapsed">
-            <Button
+            <Button x:Uid="LibraryPage_SettingsScrim"
                 x:Name="SettingsScrim"
                 x:FieldModifier="internal"
                 AutomationProperties.Name="关闭设置"

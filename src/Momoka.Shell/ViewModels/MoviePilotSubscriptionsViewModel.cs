@@ -8,6 +8,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 
 namespace Momoka.Shell.ViewModels;
@@ -37,7 +38,7 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
     public Visibility UpdatedVisibility => UpdatedText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility MetadataVisibility => Progress.Length > 0 || UpdatedText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public string SubscriberName => Subscription.Username.Trim();
-    public string SubscriberTooltip => "订阅人：" + SubscriberName;
+    public string SubscriberTooltip => UiText.Format("订阅人：{0}", SubscriberName);
     public Visibility SubscriberVisibility => Subscription.ShowSubscriber ? Visibility.Visible : Visibility.Collapsed;
     public string Overview => Subscription.Media.Overview ?? "";
     public string Identity => Subscription.Media.Confirmation;
@@ -55,7 +56,7 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
         Subscription.Media.SourceLabel,
         Subscription.Media.MediaId ?? "",
         Subscription.Media.Type ?? "",
-        Subscription.Media.Season is { } season ? $"第 {season} 季" : ""
+        Subscription.Media.Season is { } season ? UiText.Format("第 {0} 季", season) : ""
     }.Where(part => !string.IsNullOrWhiteSpace(part)));
 
     /// <summary>
@@ -68,7 +69,7 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
     /// <summary>评分是 0～10 的读数，五颗星按 10 分制的一半折算。</summary>
     public bool HasRating => Subscription.Vote is > 0;
     public double RatingValue => (Subscription.Vote ?? 0) / 2;
-    public string RatingText => HasRating ? $"{Subscription.Vote:0.0} / 10" : "暂无评分";
+    public string RatingText => HasRating ? $"{Subscription.Vote:0.0} / 10" : UiText.Translate("暂无评分");
 
     /// <summary>
     /// 五颗星的字形：够到的实心（FavoriteStarFill），不够的空心（FavoriteStar）。取整走「四舍五入、.5 向上」——
@@ -186,8 +187,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public ObservableCollection<MoviePilotSubscriptionCard> Series { get; } = [];
     public ObservableCollection<MoviePilotSubscriptionEpisodeRow> Episodes { get; } = [];
 
-    public string MoviesNote => Movies.Count == 0 ? "暂无电影订阅" : $"{Movies.Count} 部电影";
-    public string SeriesNote => Series.Count == 0 ? "暂无电视剧订阅" : $"{Series.Count} 条订阅";
+    public string MoviesNote => Movies.Count == 0 ? UiText.Translate("暂无电影订阅") : UiText.Format("{0} 部电影", Movies.Count);
+    public string SeriesNote => Series.Count == 0 ? UiText.Translate("暂无电视剧订阅") : UiText.Format("{0} 条订阅", Series.Count);
 
     /// <summary>连接可用且已有内容时显示；业务提示只在服务可连接时保留，断线不撑起空板块。</summary>
     public Visibility Visible => Show(_service?.Available == true && (Movies.Count > 0 || Series.Count > 0 || NoticeOpen));
@@ -244,8 +245,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanWriteSelected))]
     public partial MoviePilotSubscriptionCard? Selected { get; set; }
-    public string DetailTitle => Selected?.Title ?? "订阅媒体详情";
-    public string DetailStatus => Deleted ? "已取消订阅" : Selected?.Status ?? "";
+    public string DetailTitle => Selected?.Title ?? UiText.Translate("订阅媒体详情");
+    public string DetailStatus => Deleted ? UiText.Translate("已取消订阅") : Selected?.Status ?? "";
     public string DetailMeta => Selected?.Meta ?? "";
     public string DetailOverview => Selected?.Overview ?? "";
     public BitmapImage? DetailPoster => Selected?.Poster;
@@ -272,7 +273,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public string DetailRatingText => Selected?.RatingText ?? "";
     public IReadOnlyList<string> DetailStars => Selected?.Stars ?? [];
     public bool DetailPaused => Selected?.Subscription.Paused == true;
-    public string DetailPauseLabel => DetailPaused ? "恢复订阅" : "暂停订阅";
+    public string DetailPauseLabel => DetailPaused ? UiText.Translate("恢复订阅") : UiText.Translate("暂停订阅");
 
     /// <summary>
     /// 标题旁边那颗徽标：这条订阅的入库情况。文件统计读不到时是空串（不显示），而不是「未入库」——
@@ -314,13 +315,13 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(DetailSummaryVisibility))]
     public partial bool Deleted { get; set; }
     [ObservableProperty]
-    public partial string FileSummary { get; set; } = "正在读取文件统计…";
+    public partial string FileSummary { get; set; } = UiText.Translate("正在读取文件统计…");
     [ObservableProperty]
     public partial string PlaybackStatus { get; set; } = "";
     [ObservableProperty]
     public partial int FilterIndex { get; set; }
     public string FilterNotice => _episodes.Count > 0 && Episodes.Count == 0
-        ? FilterIndex == 1 ? "当前范围内暂无已入库的集。" : "当前范围内没有缺集或未入库的集。" : "";
+        ? FilterIndex == 1 ? UiText.Translate("当前范围内暂无已入库的集。") : UiText.Translate("当前范围内没有缺集或未入库的集。") : "";
     public MoviePilotSubscriptionIdentity? SelectedIdentity => Selected is { } selected
         ? MoviePilotSubscriptionIdentity.Of(selected.Subscription) : null;
 
@@ -383,7 +384,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         Selected = selected is null ? null : new(selected);
         Selected?.BindImages(_fetchImage);
         try { _connection = selected?.ConnectionStamp ?? service.ConnectionStamp; }
-        catch (MoviePilotException error) { Report("MoviePilot 未连接", error); }
+        catch (MoviePilotException error) { Report(UiText.Translate("MoviePilot 未连接"), error); }
 
         // 进这一页/返回主页时先把上一批卡片收干净，整块板块跟着塌下来；真的取到订阅时再由 NotifyRows 立起来。
         // 不能在这里凭 Enabled 就把整块摆上屏 —— 那正是「先看到两块空牌子」的那一帧（见 Visible）。
@@ -415,7 +416,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                 OnPropertyChanged(nameof(FilterNotice));
                 PlaybackStatus = "";
                 LibraryBadge = "";
-                FileSummary = "正在读取文件统计…";
+                FileSummary = UiText.Translate("正在读取文件统计…");
                 RefreshCommands();
                 var current = await _service.SubscriptionAsync(selected.Subscription, pending.Token);
                 if (!IsCurrent(token) || !Live) return;
@@ -444,10 +445,10 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                     () => CanManage && _search is not null, SearchEpisode)).ToArray();
                 foreach (var row in _episodes) row.BindImages(_fetchImage!);
                 FileSummary = current.IsSeries ? files.Summary
-                    : files.Episodes.Count == 0 ? files.Summary : files.LibraryCount > 0 ? "电影已入库" : "电影尚未入库";
+                    : files.Episodes.Count == 0 ? files.Summary : files.LibraryCount > 0 ? UiText.Translate("电影已入库") : UiText.Translate("电影尚未入库");
                 // 徽标只在统计真的读到时给结论：空回话与接口错误都不说「未入库」。
-                LibraryBadge = files.Episodes.Count == 0 ? "" : files.LibraryCount == files.Episodes.Count ? "已入库"
-                    : files.LibraryCount > 0 ? "部分入库" : "未入库";
+                LibraryBadge = files.Episodes.Count == 0 ? "" : files.LibraryCount == files.Episodes.Count ? UiText.Translate("已入库")
+                    : files.LibraryCount > 0 ? UiText.Translate("部分入库") : UiText.Translate("未入库");
                 ApplyFilter();
                 await LoadPlaybackAsync(current, files, token, pending.Token);
             }
@@ -477,9 +478,9 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         {
             if (IsCurrent(token))
             {
-                if (_detail) { FileSummary = "文件统计未读取成功，不能据此判断是否入库"; LibraryBadge = ""; }
+                if (_detail) { FileSummary = UiText.Translate("文件统计未读取成功，不能据此判断是否入库"); LibraryBadge = ""; }
                 else { _wallListFailed = true; OnPropertyChanged(nameof(WallListErrorVisibility)); }
-                Report("读取 MoviePilot 订阅失败", error);
+                Report(UiText.Translate("读取 MoviePilot 订阅失败"), error);
             }
         }
         finally { EndLoad(token); OnPropertyChanged(nameof(CanManage)); }
@@ -514,7 +515,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             var current = matches.FirstOrDefault(item => item.Id == original.Id) ?? (matches.Length == 1 ? matches[0] : null);
             Deleted = current is null;
             if (current is not null) selected.Update(current);
-            else FileSummary = "这条订阅已取消，已入库文件保留。";
+            else FileSummary = UiText.Translate("这条订阅已取消，已入库文件保留。");
         }
         catch (OperationCanceledException) { return; }
         finally { EndLoad(load); }
@@ -558,7 +559,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         Working = true;
         try
         {
-            if (await ConfirmAsync("核对订阅操作", card.Identity + "\n\n上次操作的结果不明确。请先核对 MoviePilot 中的订阅状态和下载任务，确认不会重复执行后再继续。", "已核对，允许继续")
+            if (await ConfirmAsync(UiText.Translate("核对订阅操作"), card.Identity + "\n\n上次操作的结果不明确。请先核对 MoviePilot 中的订阅状态和下载任务，确认不会重复执行后再继续。", UiText.Translate("已核对，允许继续"))
                 && !token.IsCancellationRequested && Owns(card))
             {
                 _service.ConfirmSubscriptionReviewed(card.Subscription);
@@ -575,19 +576,19 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         var token = _lifetime.Token;
         var verb = action switch
         {
-            MoviePilotSubscriptionAction.Pause => "暂停订阅",
-            MoviePilotSubscriptionAction.Resume => "恢复订阅",
-            MoviePilotSubscriptionAction.Search => "搜索订阅",
-            MoviePilotSubscriptionAction.Reset => "重置订阅",
-            _ => "取消订阅"
+            MoviePilotSubscriptionAction.Pause => UiText.Translate("暂停订阅"),
+            MoviePilotSubscriptionAction.Resume => UiText.Translate("恢复订阅"),
+            MoviePilotSubscriptionAction.Search => UiText.Translate("搜索订阅"),
+            MoviePilotSubscriptionAction.Reset => UiText.Translate("重置订阅"),
+            _ => UiText.Translate("取消订阅")
         };
         var note = action switch
         {
-            MoviePilotSubscriptionAction.Delete => "将取消这条 MoviePilot 订阅，已入库文件保留。",
-            MoviePilotSubscriptionAction.Reset => "将重置订阅进度并重新处理，可能触发下载。",
-            MoviePilotSubscriptionAction.Search => "将立即搜索这条订阅，并可能自动加入下载。",
-            MoviePilotSubscriptionAction.Resume => "恢复后 MoviePilot 将继续处理这条订阅。",
-            _ => "暂停后 MoviePilot 将停止处理这条订阅。"
+            MoviePilotSubscriptionAction.Delete => UiText.Translate("将取消这条 MoviePilot 订阅，已入库文件保留。"),
+            MoviePilotSubscriptionAction.Reset => UiText.Translate("将重置订阅进度并重新处理，可能触发下载。"),
+            MoviePilotSubscriptionAction.Search => UiText.Translate("将立即搜索这条订阅，并可能自动加入下载。"),
+            MoviePilotSubscriptionAction.Resume => UiText.Translate("恢复后 MoviePilot 将继续处理这条订阅。"),
+            _ => UiText.Translate("暂停后 MoviePilot 将停止处理这条订阅。")
         };
         Working = true;
         var changed = false;
@@ -603,7 +604,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                 Deleted = _detail;
                 if (!_detail) { card.Release(); Movies.Remove(card); Series.Remove(card); }
             }
-            Notify(verb, action == MoviePilotSubscriptionAction.Search ? "搜索请求已提交，可稍后刷新查看进度。" : "MoviePilot 已确认操作成功。", InfoBarSeverity.Success);
+            Notify(verb, action == MoviePilotSubscriptionAction.Search ? UiText.Translate("搜索请求已提交，可稍后刷新查看进度。") : UiText.Translate("MoviePilot 已确认操作成功。"), InfoBarSeverity.Success);
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(verb, error); }
@@ -629,7 +630,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             changed = true;
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report("保存订阅失败", error); }
+        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(UiText.Translate("保存订阅失败"), error); }
         finally { if (!token.IsCancellationRequested) Working = false; }
         if (changed && Live) await ReloadAsync();
     }
@@ -664,7 +665,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                 changed = true;
                 Deleted = _detail;
                 if (!_detail) { card.Release(); Movies.Remove(card); Series.Remove(card); }
-                Notify("取消订阅", "MoviePilot 已确认操作成功，已入库文件保留。", InfoBarSeverity.Success);
+                Notify(UiText.Translate("取消订阅"), UiText.Translate("MoviePilot 已确认操作成功，已入库文件保留。"), InfoBarSeverity.Success);
             }
             void RequireCurrent()
             {
@@ -674,7 +675,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report("读取订阅失败", error); }
+        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(UiText.Translate("读取订阅失败"), error); }
         finally { if (!token.IsCancellationRequested) Working = false; }
         if (changed && !Deleted && Live) await ReloadAsync();
         NotifyRows();
@@ -690,21 +691,21 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     private async Task LoadPlaybackAsync(MoviePilotSubscription subscription, MoviePilotSubscriptionFiles files,
         CancellationToken load, CancellationToken cancellationToken)
     {
-        PlaybackStatus = files.LibraryCount == 0 ? "" : "正在匹配当前 Emby 的播放条目…";
+        PlaybackStatus = files.LibraryCount == 0 ? "" : UiText.Translate("正在匹配当前 Emby 的播放条目…");
         if (files.LibraryCount == 0) return;
         if (_playbackScope is not { IsCurrent: true } scope || _play is null)
-        { PlaybackStatus = "连接对应的 Emby 服务器后即可播放已入库内容。"; return; }
+        { PlaybackStatus = UiText.Translate("连接对应的 Emby 服务器后即可播放已入库内容。"); return; }
         try
         {
             var targets = await scope.ExecuteAsync((client, token) => MoviePilotLibraryPlayback.FindAsync(client, subscription, files, token), cancellationToken);
             if (!IsCurrent(load) || !Live || !scope.IsCurrent) return;
             foreach (var row in _episodes) row.SetTarget(targets.GetValueOrDefault(row.Episode.Number));
             RefreshCommands();
-            PlaybackStatus = $"当前 Emby 可播放 {targets.Count} / {files.LibraryCount} 项";
+            PlaybackStatus = UiText.Format("当前 Emby 可播放 {0} / {1} 项", targets.Count, files.LibraryCount);
         }
         catch (OperationCanceledException) { }
         catch (Exception)
-        { if (IsCurrent(load) && Live) PlaybackStatus = "播放条目匹配失败，请刷新重试；文件统计仍保留。"; }
+        { if (IsCurrent(load) && Live) PlaybackStatus = UiText.Translate("播放条目匹配失败，请刷新重试；文件统计仍保留。"); }
     }
 
     /// <summary>
@@ -742,7 +743,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             if (!token.IsCancellationRequested && Live && _playbackScope?.IsCurrent == true) await _play(target);
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report("播放失败", error); }
+        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(UiText.Translate("播放失败"), error); }
         finally { if (!token.IsCancellationRequested) Working = false; }
     }
 

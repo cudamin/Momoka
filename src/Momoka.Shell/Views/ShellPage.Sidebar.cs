@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.Views;
 
@@ -372,7 +373,7 @@ public sealed partial class ShellPage
             TitleActions.Margin = titleMargin;
         }
 
-        ToolTipService.SetToolTip(NavToggleButton, Sidebar.IsPaneOpen ? "关闭导航" : "打开导航");
+        ToolTipService.SetToolTip(NavToggleButton, Sidebar.IsPaneOpen ? UiText.Translate("关闭导航") : UiText.Translate("打开导航"));
         NavPaneExpandedIcon.Visibility = Sidebar.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;
         NavPaneCollapsedIcon.Visibility = Sidebar.IsPaneOpen ? Visibility.Collapsed : Visibility.Visible;
         ApplyAccountCluster(shown);

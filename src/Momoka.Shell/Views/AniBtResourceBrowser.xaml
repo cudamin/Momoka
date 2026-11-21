@@ -38,7 +38,7 @@
                     </StackPanel>
                     <StackPanel x:Name="ReleaseActions" Grid.Column="1" Orientation="Horizontal" Spacing="8"
                         HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button x:Name="OpenTorrentPage" Command="{x:Bind OpenDetailsCommand}" Style="{StaticResource ReleaseActionButtonStyle}"
+                        <Button x:Uid="AniBtResourceBrowser_OpenTorrentPage" x:Name="OpenTorrentPage" Command="{x:Bind OpenDetailsCommand}" Style="{StaticResource ReleaseActionButtonStyle}"
                             ToolTipService.ToolTip="打开发布页" AutomationProperties.Name="{x:Bind DetailsAutomationName}">
                             <FontIcon Glyph="&#xE71B;" FontSize="{StaticResource EgBodyFontSize}" />
                         </Button>

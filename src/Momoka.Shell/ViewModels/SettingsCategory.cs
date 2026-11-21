@@ -1,6 +1,7 @@
 using System.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -27,6 +28,9 @@ public sealed partial class SettingsCategoryGroup : ObservableObject, IEnumerabl
     }
 
     public string Name { get; }
+
+    // Server names are user data; translate only the built-in product group headings.
+    public string DisplayName => SourceKey is null ? UiText.Translate(Name) : Name;
 
     /// <summary>这一组属于哪一条在线身份；Momoka 自己的组与单服务器产品组是 null。</summary>
     public string? SourceKey { get; }
@@ -101,6 +105,8 @@ public sealed partial class SettingsCategoryEntry : ObservableObject
     public string Key { get; }
     public string Label { get; }
 
+    public string DisplayLabel => UiText.Translate(Label);
+
     /// <summary>这一行是服务器原生目录的分区标题，不是可打开的页面。</summary>
     public bool IsSection { get; }
 
@@ -109,6 +115,7 @@ public sealed partial class SettingsCategoryEntry : ObservableObject
 
     public Visibility EntryVisibility => IsSection ? Visibility.Collapsed : Visibility.Visible;
     public string PickerLabel => Group.SourceKey is null ? Label : Group.Name + " · " + Label;
+    public string DisplayPickerLabel => Group.SourceKey is null ? DisplayLabel : Group.Name + " · " + DisplayLabel;
     public string CardCategory { get; }
     public SettingsCategoryGroup Group { get; }
     public string? SourceKey { get; }
@@ -118,5 +125,5 @@ public sealed partial class SettingsCategoryEntry : ObservableObject
 
     internal void RefreshExpansion() => OnPropertyChanged(nameof(Visibility));
 
-    public override string ToString() => Label;
+    public override string ToString() => DisplayLabel;
 }

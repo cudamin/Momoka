@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Playback;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -28,15 +29,15 @@ public sealed partial class SettingTitleRulesRow : SettingRow
 
     public ObservableCollection<TitleRuleChoice> Rules { get; } = [];
 
-    public string PriorityHint => "拖动调整顺序，越靠上优先级越高；默认不参与筛选";
-    public string NewTermPlaceholder => Label switch
+    public string PriorityHint => UiText.Translate("拖动调整顺序，越靠上优先级越高；默认不参与筛选");
+    public string NewTermPlaceholder => UiText.Translate(Label switch
     {
         "音轨格式筛选" => "自定义词，如 Atmos、TrueHD、7.1",
         "视频文件名筛选" => "自定义词，如 REMUX、2160p、HDR",
         _ => "自定义词，如 中英、SDH"
-    };
-    public string NewTermName => $"{Label}：新增关键词";
-    public string AddName => $"{Label}：添加关键词";
+    });
+    public string NewTermName => UiText.Format("{0}：新增关键词", DisplayLabel);
+    public string AddName => UiText.Format("{0}：添加关键词", DisplayLabel);
 
     [ObservableProperty]
     public partial string NewTerm { get; set; } = string.Empty;
@@ -169,9 +170,11 @@ public sealed partial class TitleRuleChoice : ObservableObject
 
     public string Term { get; }
     public IReadOnlyList<string> StateLabels { get; } = ["优先", "默认", "候补"];
-    public string UpName => $"上移 {Term}";
-    public string DownName => $"下移 {Term}";
-    public string RemoveName => $"删除 {Term}";
+    public IReadOnlyList<string> DisplayStateLabels { get; } =
+        [UiText.Translate("优先"), UiText.Translate("默认"), UiText.Translate("候补")];
+    public string UpName => UiText.Format("上移 {0}", Term);
+    public string DownName => UiText.Format("下移 {0}", Term);
+    public string RemoveName => UiText.Format("删除 {0}", Term);
     internal Action? Changed { get; set; }
     internal Action<TitleRuleChoice>? Remove { get; set; }
     internal Action<TitleRuleChoice, int>? Shift { get; set; }
@@ -187,7 +190,23 @@ public sealed partial class TitleRuleChoice : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedState))]
+    [NotifyPropertyChangedFor(nameof(DisplaySelectedState))]
     public partial int StateIndex { get; set; }
+
+    public string? DisplaySelectedState
+    {
+        get => DisplayStateLabels[StateIndex is >= 0 and < 3 ? StateIndex : 1];
+        set
+        {
+            if (value is null) return;
+            for (var index = 0; index < DisplayStateLabels.Count; index++)
+                if (DisplayStateLabels[index] == value)
+                {
+                    StateIndex = index;
+                    return;
+                }
+        }
+    }
 
     // ComboBox 在填充或回收 ItemsSource 时会先清空选择。用选项对象绑定并忽略这个 null，
     // 避免 SelectedIndex 的临时 -1 回写，把新加的「默认」误当成排在第一档的「优先」。

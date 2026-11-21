@@ -44,6 +44,7 @@ internal static class SettingsPageStateTests
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
         PlayerToolsSettingsUiTests.Register(fixture);
+        UiLanguageDisplayTests.Register(fixture);
         TestHarness.Test("主页位置真实 VM：商店和轮播开关只改变有效值，切回立即恢复保存偏好", () =>
         {
             var settings = new FakeSettings();
@@ -342,6 +343,8 @@ internal static class SettingsPageStateTests
             Assert.Contains("AppearanceModeRow(ui)", card);
             Assert.Contains("TransparencyRow(ui)", card);
             Assert.Contains("ThemeSwatches(ui)", card);
+            Assert.True(System.Text.RegularExpressions.Regex.IsMatch(card, @"InterfaceLanguageRow\(ui\)\s*\};"),
+                "界面语言必须是界面卡片的最后一行");
             Assert.DoesNotContain("AccentColorRow(ui)", card);
             Assert.DoesNotContain("StartupRow()", card);
 

@@ -47,7 +47,7 @@
             </Viewbox>
         </Border>
         <!-- 与 PosterCard 的 32px 更多按钮对齐；这里位于画框外层，边距包含画框的 1px 边线。 -->
-        <Button x:Name="SubscriptionMore" Style="{StaticResource EgIconButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+        <Button x:Uid="MoviePilotSubscriptionPoster_SubscriptionMore" x:Name="SubscriptionMore" Style="{StaticResource EgIconButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Bottom"
             Width="32" Height="32" MinWidth="0" Margin="0,0,7,5" Visibility="Collapsed"
             Background="Transparent" Foreground="{ThemeResource EgOnScrimBrush}"
             Click="OnMore" Tag="{x:Bind Card, Mode=OneWay}" AutomationProperties.Name="订阅管理" ToolTipService.ToolTip="订阅管理">
