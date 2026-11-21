@@ -327,3 +327,15 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 四项既有pin漂移先审再更新：IPlaybackBackend/LibMpvBackend/HandleFixture旧字节来自d2febcd，此后1dcb33b增加可选集成切链，31d82c7仅格式；EmbySession旧字节来自3ae8878，此后5c67fcb/a271874为已交付的登录/恢复绑定保护。原caller不执行上述native批量或登录/恢复方法。只改这四项与修复后Events，共五项，其他14项与元数据保留。10个提取负例全部拒绝，随后当前源码重编并59/59；原漂移拒绝及红日志保持。
 
 实际 `ApplyStatus` 和 `RefineChapterMarksAsync` 共用该方法已静态核对，但本夹具的这两个邻接入口仍为替身，不能据此声称覆盖实际mpv/WinUI章节到达或播放。
+
+## 2026-11-21 独占播放探针新增诊断属性的来源复核
+
+`476df26` 为 `LibMpvHandle` 增加只读属性 `NativeShutdownCompletion`（3 行，紧跟 `ShutdownWait` 字段），
+供新独占播放探针等待原生资源释放；提取的 `StartPlaybackAsync`、`OnNowPlayingChanged`、
+`NextEpisodeToAutoPlay`／`LeavePlayer` 成员与所有权字段未改。只更新
+`src/Momoka.Core/Playback/LibMpvBackend.cs` 一份 SHA256 从
+`e398b59a69cee6a6a35d604e78196cb098630e22418233220ffb47371ee7ba76` 到
+`84ececff7e8ffd7bfd1f3865c72a53cb32f9ab71aaddaf8eb5e1df43d3375682`；其余 19 份来源、
+`baseCommit`、提取规则与拒绝条件不动。同步后按本 README 既有要求重跑：Release 单节点 0 警告 0 错误，
+**81/81**、0 失败 0 跳过、exit 0，证据 `artifacts/r046-caller/verify-20261121-151316-8758`，
+报告 `sdk=10.0.400`、`head=476df26`。探针本体的原生窗口／着色器验收仍属该探针自己的台账，不由本专项代替。
