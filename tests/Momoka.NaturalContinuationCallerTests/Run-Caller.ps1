@@ -1,13 +1,15 @@
 ﻿[CmdletBinding()]
 param(
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    [string]$Dotnet = (Join-Path $HOME '.dotnet\dotnet.exe'),
+    [string]$Packages = (Join-Path $HOME '.nuget\packages')
 )
 
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $gitRoot = (& git -C $root rev-parse --show-toplevel).Trim().Replace('/', '\')
 if ($LASTEXITCODE -ne 0 -or $gitRoot -ne $root) { throw '必须在此 fixture 所属工作树运行。' }
-$dotnet = 'C:\Users\89400\.dotnet\dotnet.exe'
+$dotnet = $Dotnet
 $area = Join-Path $root 'artifacts\r046-caller'
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $area ('verify-' + (Get-Date -Format 'yyyyMMdd-HHmmss-ffff')) }
 $output = [IO.Path]::GetFullPath($OutputDirectory)
@@ -46,9 +48,10 @@ try {
         }
     }
     $feed = Join-Path $area 'feed'
+    $packagesRoot = (Resolve-Path -LiteralPath $Packages).Path
     foreach ($package in @(@('microsoft.visualstudio.threading.analyzers', '18.7.23'),
         @('microsoft.codeanalysis.bannedapianalyzers', '5.6.0'), @('roslynator.analyzers', '5.0.0'))) {
-        $source = Join-Path 'C:\Users\89400\.nuget\packages' "$($package[0])\$($package[1])\$($package[0]).$($package[1]).nupkg"
+        $source = Join-Path $packagesRoot "$($package[0])\$($package[1])\$($package[0]).$($package[1]).nupkg"
         if (-not (Test-Path -LiteralPath $source)) { throw "本机固定缓存缺包，停止：$source" }
         $destination = Join-Path $feed ([IO.Path]::GetFileName($source))
         if (Test-Path -LiteralPath $destination) {
