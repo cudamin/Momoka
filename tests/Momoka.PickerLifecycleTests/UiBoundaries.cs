@@ -25,9 +25,10 @@ namespace Microsoft.UI.Dispatching
 
 namespace Microsoft.UI.Xaml
 {
-    public sealed record DependencyProperty(string Name, object? DefaultValue)
+    public sealed record DependencyProperty(string Name, object? DefaultValue, PropertyChangedCallback? Changed = null)
     {
-        public static DependencyProperty Register(string name, Type type, Type owner, PropertyMetadata metadata) => new(name, metadata.DefaultValue);
+        public static DependencyProperty Register(string name, Type type, Type owner, PropertyMetadata metadata) =>
+            new(name, metadata.DefaultValue, metadata.Changed);
     }
     public sealed class PropertyMetadata(object? defaultValue, PropertyChangedCallback? changed = null)
     {
@@ -49,13 +50,18 @@ namespace Microsoft.UI.Xaml
             _values.TryGetValue(property, out var value) && value is not null ? value : property.DefaultValue!;
         public void SetValue(DependencyProperty property, object? value)
         {
+            var oldValue = GetValue(property);
             _values[property] = value;
             Count(property);
+            if (!Equals(oldValue, value)) property.Changed?.Invoke(this, new(oldValue, value));
         }
         public void ClearValue(DependencyProperty property)
         {
+            var oldValue = GetValue(property);
             _values.Remove(property);
             Count(property);
+            if (!Equals(oldValue, property.DefaultValue))
+                property.Changed?.Invoke(this, new(oldValue, property.DefaultValue));
         }
         private void Count(DependencyProperty property)
         {
@@ -149,11 +155,15 @@ namespace Microsoft.UI.Xaml.Controls
     {
         private bool _open;
         private Primitives.Popup? _templatePopup;
+        private ContentPresenter? _templatePresenter;
         public event Microsoft.UI.Xaml.RoutedEventHandler? DropDownOpened;
         public event Microsoft.UI.Xaml.RoutedEventHandler? DropDownClosed;
         public event Microsoft.UI.Xaml.SelectionChangedEventHandler? SelectionChanged;
         public object? SelectedItem { get; set; }
         public string? DisplayMemberPath { get; set; }
+        public object? ItemTemplate { get; set; }
+        public object? ItemTemplateSelector { get; set; }
+        public ContentPresenter? SelectionPresenter => _templatePresenter;
         public bool IsDropDownOpen
         {
             get => _open;
@@ -163,12 +173,20 @@ namespace Microsoft.UI.Xaml.Controls
                 _open = value;
                 if (_templatePopup is not null) _templatePopup.IsOpen = value;
                 if (value) DropDownOpened?.Invoke(this, new());
-                else DropDownClosed?.Invoke(this, new());
+                else
+                {
+                    // ComboBox_Partial.cpp, 693f472aeaf89c6dff66256ee6fcd453e5d553b8:
+                    // FinishClosingDropDown calls SetContentPresenter before DropDownClosed,
+                    // restoring the selected container's content and both template properties.
+                    RestoreFrameworkSelection();
+                    DropDownClosed?.Invoke(this, new());
+                }
             }
         }
         public void ReapplyTemplate(Primitives.Popup? popup)
         {
             _templatePopup = popup;
+            _templatePresenter = new ContentPresenter();
             OnApplyTemplate();
         }
         public void NotifyOpened() => DropDownOpened?.Invoke(this, new());
@@ -180,7 +198,19 @@ namespace Microsoft.UI.Xaml.Controls
             IsDropDownOpen = false;
             if (_templatePopup is not null) _templatePopup.ShouldConstrainToRootBounds = false;
         }
-        protected object? GetTemplateChild(string name) => name == "Popup" ? _templatePopup : null;
+        private void RestoreFrameworkSelection()
+        {
+            if (_templatePresenter is not { } presenter) return;
+            presenter.Content = SelectedItem;
+            presenter.ContentTemplate = ItemTemplate;
+            presenter.ContentTemplateSelector = ItemTemplateSelector;
+        }
+        protected object? GetTemplateChild(string name) => name switch
+        {
+            "Popup" => _templatePopup,
+            "ContentPresenter" => _templatePresenter,
+            _ => null
+        };
         protected virtual void PrepareContainerForItemOverride(Microsoft.UI.Xaml.DependencyObject element, object item) { }
     }
 }

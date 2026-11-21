@@ -179,6 +179,104 @@ internal static class Program
             fixture.Picker.Prepare(container, "普通项");
             Assert.True(container.IsEnabled);
         });
+        foreach (var member in new[] { nameof(TrackRow.Text), nameof(TrackRow.ShortText) })
+        {
+            Case($"闭合正文{member}在框架关闭回写后恢复，未换选中项也清除两行模板", fixture =>
+            {
+                var row = new TrackRow("自动 · English · 完整音轨", null, false) { ShortText = "English · 完整音轨" };
+                fixture.Picker.SelectedItem = row;
+                fixture.Picker.ItemTemplate = new object();
+                fixture.Picker.ItemTemplateSelector = new object();
+                fixture.Picker.SelectionTextMemberPath = member;
+                fixture.Picker.DispatcherQueue.Drain();
+                var expected = member == nameof(TrackRow.Text) ? row.Text : row.ShortText;
+                var presenter = fixture.Picker.SelectionPresenter!;
+                Assert.Equal(expected, presenter.Content);
+                fixture.Open(); fixture.Picker.DispatcherQueue.Drain(); fixture.Close();
+                Assert.True(ReferenceEquals(row, presenter.Content), "边界没有模拟框架关闭时重写正文");
+                Assert.True(ReferenceEquals(fixture.Picker.ItemTemplate, presenter.ContentTemplate));
+                Assert.True(ReferenceEquals(fixture.Picker.ItemTemplateSelector, presenter.ContentTemplateSelector));
+                fixture.Picker.DispatcherQueue.Drain();
+                Assert.Equal(expected, presenter.Content);
+                Assert.Null(presenter.ContentTemplate);
+                Assert.Null(presenter.ContentTemplateSelector);
+                Assert.True(double.IsNaN(fixture.Picker.Width));
+            });
+        }
+        Case("快速关闭重开只使用最新正文，旧撑宽队列不过界", fixture =>
+        {
+            var first = new TrackRow("自动 · first", null, false) { ShortText = "first" };
+            var latest = new TrackRow("自动 · latest", null, false) { ShortText = "latest" };
+            fixture.Picker.SelectedItem = first;
+            fixture.Picker.SelectionTextMemberPath = nameof(TrackRow.ShortText);
+            fixture.Picker.DispatcherQueue.Drain();
+            fixture.Open(); fixture.Close();
+            fixture.Picker.SelectedItem = latest;
+            fixture.Picker.NotifySelectionChanged();
+            fixture.Open();
+            fixture.Picker.DispatcherQueue.DrainOne();
+            Assert.True(double.IsNaN(fixture.Picker.Width));
+            Assert.Equal(0, fixture.List.SizeSubscribers);
+            fixture.Picker.DispatcherQueue.Drain();
+            Assert.Equal("latest", fixture.Picker.SelectionPresenter!.Content);
+            Assert.Equal(240d, fixture.Picker.Width);
+            fixture.Close(); fixture.Picker.DispatcherQueue.Drain();
+            Assert.Equal("latest", fixture.Picker.SelectionPresenter.Content);
+        });
+        Case("关闭后重套模板不让旧文本队列改旧正文", fixture =>
+        {
+            var row = new TrackRow("自动 · 原轨道", null, false) { ShortText = "原轨道" };
+            fixture.Picker.SelectedItem = row;
+            fixture.Picker.SelectionTextMemberPath = nameof(TrackRow.ShortText);
+            fixture.Picker.DispatcherQueue.Drain();
+            var previous = fixture.Picker.SelectionPresenter!;
+            fixture.Open(); fixture.Close();
+            fixture.ReplacePopup(310);
+            fixture.Picker.DispatcherQueue.Drain();
+            Assert.True(ReferenceEquals(row, previous.Content));
+            Assert.Equal("原轨道", fixture.Picker.SelectionPresenter!.Content);
+            Assert.Null(fixture.Picker.SelectionPresenter.ContentTemplate);
+        });
+        Case("未设闭合成员时保持框架正文和列表模板", fixture =>
+        {
+            var row = new TrackRow("完整轨道", null, false);
+            fixture.Picker.SelectedItem = row;
+            fixture.Picker.ItemTemplate = new object();
+            fixture.Picker.ItemTemplateSelector = new object();
+            fixture.Open(); fixture.Picker.DispatcherQueue.Drain(); fixture.Close();
+            fixture.Picker.DispatcherQueue.Drain();
+            var presenter = fixture.Picker.SelectionPresenter!;
+            Assert.True(ReferenceEquals(row, presenter.Content));
+            Assert.True(ReferenceEquals(fixture.Picker.ItemTemplate, presenter.ContentTemplate));
+            Assert.True(ReferenceEquals(fixture.Picker.ItemTemplateSelector, presenter.ContentTemplateSelector));
+        });
+        Case("成员在模板前设置时由OnApplyTemplate与Loaded只应用当前正文", fixture =>
+        {
+            var row = new TrackRow("自动 · 中文", null, false) { ShortText = "中文" };
+            var picker = new EgPicker
+            {
+                SelectedItem = row,
+                SelectionTextMemberPath = nameof(TrackRow.ShortText)
+            };
+            picker.ReapplyTemplate(fixture.Popup);
+            picker.Load();
+            picker.DispatcherQueue.Drain();
+            Assert.Equal("中文", picker.SelectionPresenter!.Content);
+            Assert.Null(picker.SelectionPresenter.ContentTemplate);
+            picker.Unload();
+        });
+        Case("关闭排队后清除成员不会被旧回调写回短名", fixture =>
+        {
+            var row = new TrackRow("自动 · English", null, false) { ShortText = "English" };
+            fixture.Picker.SelectedItem = row;
+            fixture.Picker.SelectionTextMemberPath = nameof(TrackRow.ShortText);
+            fixture.Picker.DispatcherQueue.Drain();
+            fixture.Open(); fixture.Close();
+            fixture.Picker.DisplayMemberPath = nameof(TrackRow.Text);
+            fixture.Picker.SelectionTextMemberPath = null;
+            fixture.Picker.DispatcherQueue.Drain();
+            Assert.Equal(row.Text, fixture.Picker.SelectionPresenter!.Content);
+        });
         return TestHarness.Run();
     }
 

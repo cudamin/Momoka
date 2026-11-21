@@ -114,7 +114,13 @@ public sealed class EgPicker : ComboBox
         };
         // 列表那一份的宽度要等它自己布完才量得到，所以撑宽这一步排在下一个 UI 回合。
         DropDownOpened += (_, _) => QueueWidenToDropDown();
-        DropDownClosed += (_, _) => RestoreDropDownWidths();
+        DropDownClosed += (_, _) =>
+        {
+            RestoreDropDownWidths();
+            // ComboBox_Partial.cpp, 693f472aeaf89c6dff66256ee6fcd453e5d553b8:
+            // FinishClosingDropDown 在发 Closed 前会重写正文和两行列表模板；未换选中项也要恢复单行。
+            QueueApplySelectionText();
+        };
         Loaded += (_, _) =>
         {
             if (IsDropDownOpen) QueueWidenToDropDown();

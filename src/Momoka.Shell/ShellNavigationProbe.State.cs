@@ -342,6 +342,27 @@ internal sealed partial class ShellNavigationProbe
             await ResizeResponsiveAsync(page, 1280, 900);
             await LayoutAsync(page);
             var audio = Get<EgPicker>(page, vm.IsCompact ? "AudioPicker" : "ColumnAudioPicker");
+            void RecordPicker(string stage)
+            {
+                var box = Box(audio);
+                var parent = (FrameworkElement)audio.Parent;
+                var parentBox = Box(parent);
+                var presenter = Descendants(audio).OfType<ContentPresenter>()
+                    .FirstOrDefault(element => element.Name == "ContentPresenter");
+                var selected = audio.SelectedItem as TrackRow;
+                var expected = audio.SelectionTextMemberPath == nameof(TrackRow.ShortText) ? selected?.ShortText : selected?.Text;
+                var type = presenter?.Content?.GetType().Name ?? "null";
+                readings.Add($"正文 {stage}：成员 {audio.SelectionTextMemberPath ?? "无"}，索引 {audio.SelectedIndex}，"
+                    + $"同一选中项 {ReferenceEquals(audio.SelectedItem, vm.SelectedAudio)}，正文类型 {type}，"
+                    + $"正文等于成员 {presenter?.Content is string text && text == expected}，"
+                    + $"ContentTemplate为空 {presenter?.ContentTemplate is null}，"
+                    + $"Selector为空 {presenter?.ContentTemplateSelector is null}，"
+                    + $"正文 {(presenter?.Content as string) ?? "<非字符串>"}；"
+                    + $"框 {box.Width:0.00}×{box.Height:0.00}/Width={audio.Width}，"
+                    + $"正文尺寸 {presenter?.ActualWidth:0.00}×{presenter?.ActualHeight:0.00}、"
+                    + $"期望 {presenter?.DesiredSize.Width:0.00}×{presenter?.DesiredSize.Height:0.00}，"
+                    + $"父宽 {parentBox.Width:0.00}、剩余 {parentBox.Right - box.Left:0.00}");
+            }
             Task SettlePickerAsync() => ProbeLayoutStability.WaitAsync(() =>
             {
                 page.UpdateLayout();
@@ -363,11 +384,13 @@ internal sealed partial class ShellNavigationProbe
                 vm.SelectedAudio = vm.AudioTracks[index];
                 await SettlePickerAsync();
                 var closed = Box(audio);
+                RecordPicker($"选中{index}开前");
                 // Close and reopen in the same dispatcher turn: the first queued sizing
                 // callback must not acquire the next dropdown's width/event ownership.
                 audio.IsDropDownOpen = true;
                 audio.IsDropDownOpen = false;
                 await SettlePickerAsync();
+                RecordPicker($"选中{index}快速开关后");
                 Require(double.IsNaN(audio.Width), "快速开关后旧回调仍钉住闭合框宽度");
                 audio.IsDropDownOpen = true;
                 await SettleAsync();
@@ -392,6 +415,7 @@ internal sealed partial class ShellNavigationProbe
                 if (index == 0) await SaveProbeScreenAsync("detail-picker-open-screen.png");
                 audio.IsDropDownOpen = false;
                 await SettlePickerAsync();
+                RecordPicker($"选中{index}最终关闭后");
                 // 收起之后要回到内容撑出来的宽度：展开态那个数不许留在身上。
                 Require(Math.Abs(Box(audio).Width - closed.Width) < 0.5,
                     $"收起后选择框没有回到原来的宽度：{Box(audio).Width:0} 对 {closed.Width:0}");
