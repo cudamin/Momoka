@@ -11,6 +11,7 @@ internal sealed record StartupOptions(AppPaths Paths)
     internal bool SelfCheck { get; init; }
     internal bool ProbeShell { get; init; }
     internal bool ProbeSubtitles { get; init; }
+    internal bool ProbeStandalonePlayback { get; init; }
     internal bool ProbeComposition { get; init; }
     internal bool ProbeCursor { get; init; }
     internal bool ProbePlayerMotion { get; init; }
@@ -26,6 +27,7 @@ internal sealed record StartupOptions(AppPaths Paths)
 internal static class CompositionPlaybackProbe { internal static int ExitCode => 12; }
 internal static class CursorVisibilityProbe { internal static int ExitCode => 13; }
 internal static class PlayerMotionProbe { internal static int ExitCode => 14; }
+internal static class StandalonePlaybackProbe { internal static int ExitCode => 15; }
 
 internal sealed class ProbeHostWindow : IDisposable
 {

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/app-icon.png" alt="Momoka app icon" width="96" height="96">
+
 # Momoka
 
 **An all-in-one Windows media client for playback, subscriptions, downloads, metadata scraping, and file management.**

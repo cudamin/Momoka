@@ -28,6 +28,7 @@ internal static partial class Program
             Equal(0, ProgramExitFixture.Exit(new(Paths("ordinary-close"))), "normal close succeeds without selfcheck");
             Equal(1, ProgramExitFixture.Exit(new(Paths("selfcheck-pending")) { SelfCheck = true }), "unfinished selfcheck still fails");
             Equal(12, ProgramExitFixture.Exit(new(Paths("composition-exit")) { ProbeComposition = true }), "composition keeps its own exit code");
+            Equal(15, ProgramExitFixture.Exit(new(Paths("standalone-exit")) { ProbeStandalonePlayback = true }), "standalone playback keeps its own exit code");
             Equal(13, ProgramExitFixture.Exit(new(Paths("cursor-exit")) { ProbeCursor = true }), "cursor keeps its own exit code");
             Equal(14, ProgramExitFixture.Exit(new(Paths("motion-exit")) { ProbePlayerMotion = true }), "motion keeps its own exit code");
             return Task.CompletedTask;

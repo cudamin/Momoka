@@ -1742,6 +1742,9 @@ internal sealed class LibMpvHandle(
     private Task? _lateDestroyTask;
     private static readonly TimeSpan ShutdownWait = TimeSpan.FromSeconds(3);
 
+    /// <summary>Diagnostic evidence for completion of the one native-resource release owner, including a late worker join.</summary>
+    internal Task NativeShutdownCompletion => _disposeWork ?? Task.CompletedTask;
+
     public Task StopAsync()
     {
         lock (_shutdownGate) return _stopTask ??= WaitForShutdownAsync(_stopWork = StopCoreAsync(), "停播");

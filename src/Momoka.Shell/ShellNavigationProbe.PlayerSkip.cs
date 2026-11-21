@@ -171,22 +171,22 @@ internal sealed partial class ShellNavigationProbe
                 "跳过后仍在画面上显示已跳过提示");
 
             Arm(ending);
-            ((IWin32KeySink)page).Handle((int)VirtualKey.Enter);
+            ((IWin32KeySink)page).Handle((int)VirtualKey.Enter, extended: false);
             // 片尾落点保留现有规则：停在总时长前半秒，由播放器自然走到 EOF。
             Require(handle.Commands.Contains("seek|1499.5|absolute+exact") && !vm.SkipOffered, "回车没有接受片尾提示或改变了原有 EOF 落点");
             Arm(opening);
-            ((IWin32KeySink)page).Handle((int)VirtualKey.Delete);
+            ((IWin32KeySink)page).Handle((int)VirtualKey.Delete, extended: true);
             Require(!vm.SkipOffered && handle.Commands.Count == 0 && _window.Fullscreen,
                 "Delete 没有只取消提示，或误退出全屏/执行命令");
             vm.ApplySkipOffer();
             Require(!vm.SkipOffered, "取消后仍在同一区间又冒出提示");
 
             Arm(opening);
-            ((IWin32KeySink)page).Handle((int)VirtualKey.Escape);
+            ((IWin32KeySink)page).Handle((int)VirtualKey.Escape, extended: false);
             // 探针页面不在舞台上，窗口状态切换不会落地；这里验的是 Dispatch 发出的「退全屏」请求。
             Require(vm.SkipOffered && Get<bool?>(page, "_fullscreenWanted") == false && handle.Commands.Count == 0,
                 "Esc 没有发出退全屏请求，或把跳过提示一起收掉了");
-            ((IWin32KeySink)page).Handle((int)VirtualKey.Delete);
+            ((IWin32KeySink)page).Handle((int)VirtualKey.Delete, extended: true);
             Require(!vm.SkipOffered, "Esc 退出全屏之后 Delete 关不掉提示");
             vm.ApplySkipOffer();
             Require(!vm.SkipOffered, "取消后仍在同一区间又冒出提示");

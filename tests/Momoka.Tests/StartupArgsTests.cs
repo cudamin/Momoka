@@ -14,6 +14,23 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("独占播放探针：两个本地素材单独解析并拒绝正常启动混用", () =>
+        {
+            Assert.True(StartupArgs.RequestsStandalonePlaybackProbe(["/PROBE-STANDALONE-PLAYBACK=standalone-red.mp4"]));
+            var parsed = StartupArgs.ValidateStandalonePlaybackProbe([
+                "--probe-standalone-playback", "standalone-red.mp4",
+                "--probe-standalone-playback-next=standalone-cyan.mp4"
+            ]);
+            Assert.Equal("standalone-red.mp4", parsed.FirstFile);
+            Assert.Equal("standalone-cyan.mp4", parsed.SecondFile);
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateStandalonePlaybackProbe([
+                "--probe-standalone-playback=standalone-red.mp4",
+                "--probe-standalone-playback-next=standalone-cyan.mp4", "--play"
+            ]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateStandalonePlaybackProbe([
+                "--probe-standalone-playback=standalone-red.mp4"
+            ]));
+        });
         Test("动效探针：分区归一、隐私开关与真实播放组合拒绝", () =>
         {
             Assert.True(ShellProbeSections.All.Contains(ShellProbeSections.Motion));

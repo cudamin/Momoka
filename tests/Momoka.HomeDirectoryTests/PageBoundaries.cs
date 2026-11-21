@@ -90,6 +90,11 @@ namespace Momoka.Shell.Views
     internal sealed class LibraryPage;
     internal sealed class MusicLibraryPage;
     internal sealed class MoviePilotSubscriptionsPage;
+    internal sealed class MoviePilotCalendarPage
+    {
+        internal const string Destination = "moviepilot:calendar";
+    }
+    internal sealed record MoviePilotCalendarRequest(MoviePilotService Service, MoviePilotSettings Settings);
     internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open)
     {
         // 与 Views/MoviePilotSubscriptionsPage.xaml.cs 里那一份同值：主页面板新增的「MP 订阅库」入口按这两个
@@ -158,6 +163,7 @@ namespace Momoka.Shell.Views
         private DispatchBoundary DispatcherQueue { get; } = new();
         private readonly Windowing.HostWindow? _window = null;
         private readonly MoviePilotService? _moviePilotService = null;
+        private bool MoviePilotCalendarAvailable => false;
         private FavoritesBoundary Favorites { get; } = new();
         private SignInBoundary SignIn { get; } = new();
         private Microsoft.UI.Xaml.FrameworkElement ContentHost { get; } = new();

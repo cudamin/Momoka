@@ -33,10 +33,10 @@ public sealed partial class PlayerViewModel
             case "seek-forward": SeekForward(); break;
             case "seek-backward-long": SeekBackwardLong(); break;
             case "seek-forward-long": SeekForwardLong(); break;
-            case "volume-up": _ = _playback.CommandAsync("no-osd", "add", "volume", "5"); break;
-            case "volume-down": _ = _playback.CommandAsync("no-osd", "add", "volume", "-5"); break;
+            case "volume-up": _ = AdjustNativeVolumeAsync("5"); break;
+            case "volume-down": _ = AdjustNativeVolumeAsync("-5"); break;
             case "toggle-fullscreen": ToggleNativeFullscreen(); break;
-            case "toggle-mute": ToggleMute(); break;
+            case "toggle-mute": _ = ToggleNativeMuteAsync(); break;
             case "previous-episode": PreviousEpisode(); break;
             case "next-episode": NextEpisode(); break;
             case "toggle-pin": _ = _playback.CommandAsync("cycle", "ontop"); break;
@@ -52,6 +52,22 @@ public sealed partial class PlayerViewModel
             case "audio-delay-increase": NudgeDelay(false, 0.1); break;
             default: RunAdditionalShortcut(action); break;
         }
+    }
+
+    private async Task AdjustNativeVolumeAsync(string delta)
+    {
+        var context = CaptureInteraction();
+        if (!await _playback.CommandAsync("no-osd", "add", "volume", delta).ConfigureAwait(true)
+            || !IsCurrentInteraction(context)) return;
+        await _playback.CommandAsync("script-message", "flash-elements", "volume").ConfigureAwait(true);
+    }
+
+    private async Task ToggleNativeMuteAsync()
+    {
+        var context = CaptureInteraction();
+        await _playback.SetPropertyAsync("mute", !Status.Muted).ConfigureAwait(true);
+        if (!IsCurrentInteraction(context)) return;
+        await _playback.CommandAsync("script-message", "flash-elements", "volume").ConfigureAwait(true);
     }
 
     private Dictionary<string, Action>? _additionalShortcutHandlers;

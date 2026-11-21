@@ -65,3 +65,12 @@ $fixture = Join-Path $root 'tests\Momoka.CurrentPermissionSnapshotTests'
 当前主树权限54/源码绑定提取17、完整帐号Current14/明确R010快照14、Defaults36/SettingsLifetime45绿；实际Store＋完整密码VM追加权限变更不取消确认/本地重试/保存监听两项，41绿。再追加Dispose后派生Attach监听泄漏（42项41过1败），仅base protected IsDisposed与派生Attach首守卫两行修后42绿，其余PasswordVM/Store/Service合同与5fa9c96逐字相同，源码合同只准这一行守卫，不放宽认证或持久化实现。
 
 caller50的19份来源只根据真实Session/Scope权限diff逐份复核更新两hash，另外17原样保留，当前50全过；提取边界和最终方案/当前组合重新编译见主树`artifacts/staged-repair/batch05/r011`。Contracts在最后预期失败子进程后会遗留LASTEXITCODE=1，主线程保存首17检查全绿但child1记录，成功ledger明确exit0，真正检查失败仍抛/拒绝。各红绿和未执行边界保留，不把来源或旧二进制当主树输出。
+
+## 无进展看门狗（2026-11-21）
+
+主线程在 CI run 13 上观察到本专项加载真实 Shell 之后不再有任何输出，作业一直挂到 90 分钟上限。
+现在 `Program.cs` 在每一步把阶段名写进 `_stage`（`shell-load`、`case: <用例名>`、`result-path`、
+`result-directory`、`result-write`、`summary`、`done`），后台线程每 5 秒读一次，连续 120 秒没有变化
+就往 stderr 打一行 `R011 挂起：120 秒没有进展，停在 <阶段>`，再用 `Environment.FailFast` 结束进程。
+这只把「永久挂起」变成「带最后一个阶段的失败」，不跳过、不吞错，也不改变任何用例的断言；
+看门狗触发时作业会立刻以非零退出，日志里能直接看到停在哪一步。

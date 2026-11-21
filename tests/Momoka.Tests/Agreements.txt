@@ -741,6 +741,8 @@ switch  --probe-resize
 switch  --probe-resize-manual
 switch  --probe-section
 switch  --probe-shell
+switch  --probe-standalone-playback
+switch  --probe-standalone-playback-next
 switch  --probe-subtitles
 switch  --screen
 switch  --scroll-end

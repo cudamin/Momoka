@@ -84,7 +84,9 @@ internal static class Program
             noSettingsAccountsUiNativePlayback = true,
             fixedTargetBudget = PressureCases.TargetBudget,
             fixedWritesPerTarget = PressureCases.WritesPerTarget,
-            retryBudget = 0
+            contentRetryBudget = 0,
+            sharingRetryBudget = FileIo.SharingRetryBudget,
+            sharingRetryDelayMs = FileIo.SharingRetryDelayMs
         };
         Log("=== AtomicFile 独立真实文件系统契约 ===");
         Log(JsonSerializer.Serialize(environment, Json));

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/app-icon.png" alt="Momoka 应用图标" width="96" height="96">
+
 # Momoka
 
 **Windows 端播放、订阅、下载、刮削与文件管理一体化媒体客户端**

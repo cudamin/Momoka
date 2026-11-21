@@ -7,9 +7,8 @@
   「激活」，而空格恰好是要抓的键之一（播放/暂停），两者会打架；做成自己掌控 KeyDown 的可聚焦控件就没有这一层。
 
   静止时中间显示当前组合键（VM 用 ShortcutCatalog.Format 算好的 display 串，经 Combo 绑进来）；点一下方框、或
-  聚焦后按空格/回车，进入「按快捷键…」；抓到一个键就把 token 经 Committed 抛出去，× 抛空串表示清除。Esc 取消
-  （Esc 本来就是保留键、绑不了，正好拿来当取消）；Tab 取消并放行让焦点照常走。Esc/回车/Delete 这类保留键抓到了不收，
-  在框里把话说破、等一个别的键。
+  聚焦后按空格/回车，进入「按快捷键…」；抓到一个键就把 token 经 Committed 抛出去，× 抛空串表示清除。
+  捕获期间按下的任意按键都会提交；离开焦点可取消。
 -->
 <UserControl
     x:Class="Momoka.Shell.Views.ShortcutCaptureBox"

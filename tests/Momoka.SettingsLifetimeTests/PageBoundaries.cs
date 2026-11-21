@@ -191,6 +191,8 @@ namespace Momoka.Shell.ViewModels
     public sealed class SettingsViewModel
     {
         public void UseHeroCacheClear(Action clear) => Runtime.Invoke(Inner, "UseHeroCacheClear", clear);
+        public void UseHomeLibraryDirectory(Func<IReadOnlyList<EmbyItem>>? readDirectory) =>
+            Runtime.Invoke(Inner, "UseHomeLibraryDirectory", readDirectory);
         internal object Inner { get; } = ShellRuntime.Current.TakePageViewModel();
         private ShellRuntime Runtime => ShellRuntime.Current;
         public event PropertyChangedEventHandler? PropertyChanged

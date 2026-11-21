@@ -110,3 +110,12 @@ $output = Join-Path $root ('artifacts/anonymous-selfcheck/run-' + [guid]::NewGui
 对真实服务分支的判断仍由原样源码链接回归提供，不证明真实账号、DPAPI、服务或播放已验证。
 
 主线程仅整合题内生产和本专项项目文件，不复制支线PROGRESS。项目已加入 Momoka.sln 与开发文档的独立 restore → Release build → run 命令；公共 Core Program不注册本项目，没有新增产品开关或基线条目。普通完整构建只编译，不自动执行本套件。未发布、推送或更新快捷方式。
+
+## 2026-11-21 新增探针必须同时补退出码边界
+
+`Program.cs` 的退出码链（`return options.ProbeShell ? … : options.SelfCheck ? … : 0`）是逐字提取的真实代码。
+新增 `--probe-standalone-playback` 后，这一段引用了 `StandalonePlaybackProbe`，而 `ProbeCallerBoundaries.cs`
+只有旧三个探针的替身，Release 方案构建因此在本专项生成的 `SelfCheckFinalCallback.g.cs` 里报 CS0103／CS0117
+（CI run 44879572258 的实际红点）。以后每加一个探针，同一提交里要在 `StartupOptions` 加对应开关、补一个
+`internal static class XxxProbe { internal static int ExitCode => N; }` 替身，并在 `Program.cs` 的退出码用例里
+加一条断言；边界缺失仍按构建失败处理，不改成跳过或字符串断言。

@@ -16,6 +16,7 @@ namespace Momoka.Shell.Views;
 public sealed partial class ShortcutCaptureBox : UserControl
 {
     private bool _capturing;
+    private VirtualKey? _pendingModifier;
     internal bool IsCapturing => _capturing;
 
     public ShortcutCaptureBox()
@@ -29,6 +30,7 @@ public sealed partial class ShortcutCaptureBox : UserControl
             Committed?.Invoke(this, "");
         };
         KeyDown += OnKeyDown;
+        KeyUp += OnKeyUp;
         LostFocus += (_, _) => { if (_capturing) EndCapture(); };
 
         UpdateDisplay();
@@ -63,6 +65,7 @@ public sealed partial class ShortcutCaptureBox : UserControl
 
     private void EndCapture()
     {
+        _pendingModifier = null;
         _capturing = false;
         UpdateDisplay();
     }
@@ -82,37 +85,46 @@ public sealed partial class ShortcutCaptureBox : UserControl
             return;
         }
 
-        // Esc 取消（它本来就是保留键、绑不了，正好当取消）；Tab 取消并放行，让焦点照常往下走。
-        if (e.Key == VirtualKey.Escape) { EndCapture(); e.Handled = true; return; }
-        if (e.Key == VirtualKey.Tab) { EndCapture(); return; }
-
-        // 只按下修饰键先不算 —— 等一个真正的键。
-        if (IsModifier(e.Key)) { e.Handled = true; return; }
-
-        e.Handled = true;
-
-        if (KeyStrokeInterop.Token(e.Key) is not { } token) return; // 认不出的键，忽略、继续等
-
-        var stroke = new KeyStroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
-
-        if (ShortcutCatalog.IsReserved(stroke))
+        if (e.KeyStatus.WasKeyDown)
         {
-            // Esc/回车/Delete 这类保留键（2026-11-02 起是这三颗，Y 早已退役）：不收，留在捕获里、把话说破，等一个别的键。
-            // （Esc 上面已经当取消处理了，这里实际拦下的是回车和 Delete。）
-            ComboLabel.Text = "该键已保留（Esc / 回车 / Delete）";
+            e.Handled = true;
             return;
         }
+
+        if (IsModifier(e.Key))
+        {
+            _pendingModifier = e.Key;
+            e.Handled = true;
+            return;
+        }
+
+        _pendingModifier = null;
+        e.Handled = true;
+
+        if (KeyStrokeInterop.Token(e.Key, e.KeyStatus.IsExtendedKey) is not { } token) return; // 认不出的键，忽略、继续等
+
+        var stroke = ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
 
         _capturing = false;
         Committed?.Invoke(this, ShortcutCatalog.Serialize(stroke));
         UpdateDisplay();
     }
 
+    private void OnKeyUp(object sender, KeyRoutedEventArgs e)
+    {
+        if (!_capturing || _pendingModifier != e.Key || !IsModifier(e.Key)) return;
+        _pendingModifier = null;
+        e.Handled = true;
+        if (KeyStrokeInterop.Token(e.Key, e.KeyStatus.IsExtendedKey) is not { } token) return;
+        _capturing = false;
+        Committed?.Invoke(this, ShortcutCatalog.Serialize(ShortcutKeyCatalog.Stroke(token, false, false, false)));
+        UpdateDisplay();
+    }
+
     private static bool IsModifier(VirtualKey key) => key is
         VirtualKey.Control or VirtualKey.LeftControl or VirtualKey.RightControl or
         VirtualKey.Menu or VirtualKey.LeftMenu or VirtualKey.RightMenu or
-        VirtualKey.Shift or VirtualKey.LeftShift or VirtualKey.RightShift or
-        VirtualKey.LeftWindows or VirtualKey.RightWindows;
+        VirtualKey.Shift or VirtualKey.LeftShift or VirtualKey.RightShift;
 
     private void UpdateDisplay()
     {
