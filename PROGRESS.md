@@ -1,4 +1,17 @@
-## 2026-11-21 交接：Dependabot 与 Windows CI（未完成，换窗口）
+## 2026-11-21 CI 修复：原子写共享冲突、Caller SDK 判据、探针 pin（已提交，待推送与 CI）
+
+接手「Dependabot 与 Windows CI」交接；那条里的目标提交和「领先 9 个」已被后续推进覆盖，以本条为准。主树在任务期间被另一个会话推进到 `476df26`（独占播放探针），它顺带把上一位留在工作区的两处 CI 修复文件（`Momoka.AtomicFileWriteTests/ContractAssertions.cs` 的重试 helper、`Momoka.CurrentPermissionSnapshotTests/Program.cs` 的 120 秒看门狗）一并提交了。本地 `master` 现比 `origin/master`（`5e5488d`）领先 15 个提交，含未上传的快捷键批次与探针；工作树干净。
+
+本轮三条提交：
+- `e889587` 原子写跨提交读者只对 Win32 共享/锁冲突做有界等待。CI run 13 的 `readers-cross-commit-backup` 第 0 轮首读 `0x80070020` 是 `File.Replace` 原地换主/备时的瞬时拒绝，不是半文档或内容损坏。新 reader 与带备份时对 backup 的校验改走 `ReadCompleteRetryingSharing`，只对 Win32 `32`／`33` 等 50 次 × 20 ms，次数写进 `sharingRetries`／`maxSharingRetriesPerRead` 事实；路径空窗、半文档、候选外正文仍立即失败，没有加测试侧提交锁，生产 `AtomicFile` 未改。本机完整专项 Release 单节点 0 警告 0 错误，**35/35 生产契约＋4/4 对照**、0 失败 0 跳过、exit 0，`sharingRetries=0`（本机未命中等待分支）。
+- `5cc6e7d` 按探针提交复核一份来源 pin：`476df26` 只给 `LibMpvHandle` 加了只读属性 `NativeShutdownCompletion`，R046 提取的四个成员与所有权字段未改；只改 `LibMpvBackend.cs` 的 SHA256，其余 19 份来源与规则不动。Run-Caller **81/81**、0 失败 0 跳过。
+- `c422180` Caller wrapper 的 SDK 判据改按 `global.json` 的 `rollForward`：CI runner 实际解析到 10.0.404，旧代码精确要求 10.0.400，排在其后的本专项在同一次 `-All` 里必然失败。判据与 `run-regressions.ps1` 相同（该逻辑已在 CI run 13 以 10.0.404 通过），实际版本写进 `verification.json` 的 `sdk`。同一次 Run-Caller 81/81、0 警告 0 错误；本机仍解析 10.0.400，更新补丁那一支只能由 CI 验证。
+
+R011 权限专项：看门狗已在 `476df26` 里，本机带当前 Shell 跑 **54/54**、0 失败 0 跳过、exit 0，没有触发挂起。CI 上「打印 46 项后停在第一个实际 Settings 用例」在本机复现不了（本机装有 Windows App Runtime，Shell 是 `WindowsAppSDKSelfContained=false` 的框架依赖构建）；下一轮 CI 日志会给出 `R011 挂起：120 秒没有进展，停在 …` 的具体阶段，再决定装运行时还是收窄边界 VM。
+
+未上传、未合并任何 Dependabot PR、未销账；两条既有历版红（窗口命令按钮／文件页音频右边缘）状态不变。
+
+## 2026-11-21 交接：Dependabot 与 Windows CI（未完成，换窗口；后续与当前状态见上方「CI 修复」条目，以下为当时快照）
 
 **树与提交。** 主树 `C:/Users/89400/Momoka`，分支 `master`。**本地 `master` 为 `2241307`，比 `origin/master`（`5e5488d`）领先 9 个未推送提交**：`0b775f3`、`5284ab1`、`4a7f555`、`b035373`、`b15e166`、`b325dda`、`6ff1f5e`、`2241307` 等快捷键批次与合并记录；它们不是本任务提交，也没有上传，不要直接 push／pull／reset。本次已推送的 CI 修复是 `36df3a9`、`3cd79d7`、`5e5488d`，`origin/master` 仍停在 `5e5488d`；CI 证据只对应这个提交（本地快捷键批次未经过这轮 CI）。
 
