@@ -165,6 +165,11 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public bool IsPaneOpen { get; set; }
         public double CompactPaneLength { get; set; } = 56;
+        public List<object> MenuItems { get; } = [];
+    }
+    public sealed class NavigationViewItemHeader : FrameworkElement
+    {
+        public object? Content { get; set; }
     }
     public sealed class Border : FrameworkElement
     {

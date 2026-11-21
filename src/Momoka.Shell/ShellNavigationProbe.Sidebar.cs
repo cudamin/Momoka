@@ -973,7 +973,7 @@ internal sealed partial class ShellNavigationProbe
             NavigationViewItem[] EntryItems() => [.. nav.MenuItems.OfType<NavigationViewItem>()
                 .Where(item => item.Tag is string tag
                     && (tag.StartsWith("library:", StringComparison.Ordinal)
-                        || tag.StartsWith("moviepilot:", StringComparison.Ordinal)))];
+                        || HomeLayout.IsMoviePilot(tag)))];
             var stacked = EntryItems();
             Require(stacked.Length == shell.LibraryViews.Count + 2
                 && stacked.All(item => nav.MenuItems.IndexOf(item) > nav.MenuItems.IndexOf(librariesHeader)),

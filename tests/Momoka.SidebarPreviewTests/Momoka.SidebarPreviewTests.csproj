@@ -38,11 +38,24 @@
             || probe.IndexOf(probeStart, probeFirst + probeStart.Length, StringComparison.Ordinal) >= 0
             || probe.IndexOf(probeEnd, probeLast + probeEnd.Length, StringComparison.Ordinal) >= 0)
             throw new InvalidOperationException("Missing or ambiguous production sidebar button probe boundary");
+        const string entryStart = "            NavigationViewItem[] EntryItems() =>";
+        const string entryEnd = "            // 把「订阅·电影」拖到第一位";
+        var entryFirst = probe.IndexOf(entryStart, StringComparison.Ordinal);
+        var entryLast = probe.IndexOf(entryEnd, StringComparison.Ordinal);
+        if (entryFirst < 0 || entryLast <= entryFirst
+            || probe.IndexOf(entryStart, entryFirst + entryStart.Length, StringComparison.Ordinal) >= 0
+            || probe.IndexOf(entryEnd, entryLast + entryEnd.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous production subscription entry probe boundary");
         var generated = "// Exact production source; only monotonic clock reads use the fixture clock.\n#nullable enable\nusing Microsoft.UI.Xaml.Automation.Provider;\n" +
             source.Replace(clock, "PreviewClock.Now") +
             "\ninternal static class PreviewProbeContract\n{\ninternal static void Validate(Grid previewCovers)\n{\n" +
             probe.Substring(probeFirst, probeLast - probeFirst) +
-            "\n}\nprivate static IEnumerable<UIElement> Descendants(UIElement root) => Momoka.Shell.Views.PreviewTree.Descendants(root);\nprivate static void Require(bool condition, string message)\n{\nif (!condition) throw new InvalidOperationException(message);\n}\n}\n";
+            "\n}\nprivate static IEnumerable<UIElement> Descendants(UIElement root) => Momoka.Shell.Views.PreviewTree.Descendants(root);\nprivate static void Require(bool condition, string message)\n{\nif (!condition) throw new InvalidOperationException(message);\n}\n}\n" +
+            "\ninternal static class SidebarEntryProbeContract\n{\n" +
+            "internal static NavigationViewItem[] Validate(NavigationView nav, NavigationViewItemHeader librariesHeader, int libraryCount)\n{\n" +
+            "var shell = new { LibraryViews = Enumerable.Range(0, libraryCount).ToList() };\n" +
+            probe.Substring(entryFirst, entryLast - entryFirst) +
+            "\nreturn stacked;\n}\nprivate static void Require(bool condition, string message)\n{\nif (!condition) throw new InvalidOperationException(message);\n}\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
             File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

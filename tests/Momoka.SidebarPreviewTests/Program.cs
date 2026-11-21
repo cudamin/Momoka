@@ -24,6 +24,7 @@ internal static class Program
         RegisterPlaybackTests();
         RegisterOwnershipTests();
         RegisterProbeTests();
+        RegisterSubscriptionEntryProbeTests();
         RegisterWiringTests();
         var failures = 0;
         foreach (var (name, run) in Cases)
@@ -172,7 +173,9 @@ internal static class Program
             // 修好之前第二次摆位量到 232 + 410，上限塌到 56，面板跳到内容区最上面。
             var low = s.AddLibrary(f.Source.Bind(new EmbyItem
             {
-                Id = "low", Name = "栏底库", CollectionType = "movies"
+                Id = "low",
+                Name = "栏底库",
+                CollectionType = "movies"
             }), 520);
             f.Http.Items["low"] = [AnonymousFixture.Media("low-a", EmbyItemType.Movie)];
             await s.Show(low);
@@ -189,7 +192,9 @@ internal static class Program
                 using var f = new AnonymousFixture(); var s = f.Shell;
                 var music = s.AddLibrary(f.Source.Bind(new EmbyItem
                 {
-                    Id = "music", Name = "匿名音乐库", CollectionType = collectionType
+                    Id = "music",
+                    Name = "匿名音乐库",
+                    CollectionType = collectionType
                 }), 168);
                 f.Http.Items["music"] = [AnonymousFixture.Media("track", EmbyItemType.Audio),
                     AnonymousFixture.Media("album", EmbyItemType.MusicAlbum),
@@ -416,6 +421,74 @@ internal static class Program
                 else Assert.Throws<InvalidOperationException>(() => PreviewProbeContract.Validate(grid), defect);
             }
         });
+    }
+
+    private static void RegisterSubscriptionEntryProbeTests()
+    {
+        foreach (var calendarShown in new[] { true, false })
+            foreach (var libraryCount in new[] { 0, 2 })
+                Test($"实际订阅入口探针：日历显示{calendarShown}与{libraryCount}座库仍只统计两条订阅", () =>
+                {
+                    var (nav, header, calendar) = Fixture(libraryCount);
+                    calendar.Visibility = calendarShown ? Visibility.Visible : Visibility.Collapsed;
+                    var rows = SidebarEntryProbeContract.Validate(nav, header, libraryCount);
+                    Assert.Equal(libraryCount + 2, rows.Length);
+                    Assert.False(rows.Contains(calendar));
+                    Assert.True(nav.MenuItems.IndexOf(calendar) < nav.MenuItems.IndexOf(header));
+                });
+
+        foreach (var defect in new[] { "missing-movies", "missing-series", "duplicate-movies", "before-header", "swapped-subscriptions", "library-after-subscriptions" })
+            Test($"实际订阅入口探针：仍拒绝{defect}", () =>
+            {
+                var (nav, header, _) = Fixture(1);
+                NavigationViewItem Item(string tag) => nav.MenuItems.OfType<NavigationViewItem>()
+                    .Single(item => item.Tag as string == tag);
+                var movies = Item(HomeLayout.MoviePilotMovies);
+                var series = Item(HomeLayout.MoviePilotSeries);
+                switch (defect)
+                {
+                    case "missing-movies": nav.MenuItems.Remove(movies); break;
+                    case "missing-series": nav.MenuItems.Remove(series); break;
+                    case "duplicate-movies": nav.MenuItems.Add(new NavigationViewItem { Tag = HomeLayout.MoviePilotMovies }); break;
+                    case "before-header":
+                        nav.MenuItems.Remove(movies);
+                        nav.MenuItems.Insert(nav.MenuItems.IndexOf(header), movies);
+                        break;
+                    case "swapped-subscriptions":
+                        nav.MenuItems.Remove(series);
+                        nav.MenuItems.Insert(nav.MenuItems.IndexOf(movies), series);
+                        break;
+                    case "library-after-subscriptions":
+                        var library = Item("library:anonymous-0");
+                        nav.MenuItems.Remove(library);
+                        nav.MenuItems.Add(library);
+                        break;
+                }
+                Assert.Throws<InvalidOperationException>(() => SidebarEntryProbeContract.Validate(nav, header, 1));
+            });
+
+        Test("订阅入口判据只认两把真实钥匙，日历和未知前缀不属于订阅排序", () =>
+        {
+            Assert.True(HomeLayout.IsMoviePilot(HomeLayout.MoviePilotMovies));
+            Assert.True(HomeLayout.IsMoviePilot(HomeLayout.MoviePilotSeries));
+            Assert.False(HomeLayout.IsMoviePilot("moviepilot:calendar"));
+            Assert.False(HomeLayout.IsMoviePilot("moviepilot:unknown"));
+        });
+
+        static (NavigationView Nav, NavigationViewItemHeader Header, NavigationViewItem Calendar) Fixture(int libraries)
+        {
+            var nav = new NavigationView();
+            var calendar = new NavigationViewItem { Tag = "moviepilot:calendar", Content = "日历" };
+            var header = new NavigationViewItemHeader { Content = "媒体库" };
+            nav.MenuItems.Add(new NavigationViewItem { Tag = "home" });
+            nav.MenuItems.Add(calendar);
+            nav.MenuItems.Add(header);
+            for (var index = 0; index < libraries; index++)
+                nav.MenuItems.Add(new NavigationViewItem { Tag = "library:anonymous-" + index });
+            nav.MenuItems.Add(new NavigationViewItem { Tag = HomeLayout.MoviePilotMovies });
+            nav.MenuItems.Add(new NavigationViewItem { Tag = HomeLayout.MoviePilotSeries });
+            return (nav, header, calendar);
+        }
     }
 
     private static void RegisterWiringTests()
