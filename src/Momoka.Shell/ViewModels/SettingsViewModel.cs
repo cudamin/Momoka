@@ -335,11 +335,21 @@ public sealed partial class SettingsViewModel : PageViewModel
         return groups;
     }
 
-    private SettingsCategoryGroup MomokaGroup(bool serverAdministration, MediaServerKind kind)
+    private SettingsCategoryGroup MomokaGroup(bool serverAdministration, MediaServerKind kind,
+        IReadOnlyList<ServerSettingsSource>? notificationSources = null)
     {
         var group = new SettingsCategoryGroup("Momoka");
+        var sources = notificationSources?.Where(source => source.IsAvailable && source.IsAdministrator
+            && source.Kind == MediaServerKind.Emby).ToArray() ?? [];
         foreach (var category in SidebarCategories(serverAdministration, kind))
+        {
+            // 聚合时只移动入口，不切换默认服务器；每一项继续绑定它自己的 Emby 在线身份。
+            if (category == "诊断")
+                foreach (var source in sources)
+                    group.Add(NotificationsCategory, source.Key,
+                        displayLabel: sources.Length > 1 ? NotificationsCategory + " · " + source.ServerName : null);
             if (category != "弹幕" || _settings is null || Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) group.Add(category);
+        }
         return group;
     }
 
@@ -365,13 +375,13 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
-    /// 前面；管理员入口再插在 诊断 与 关于 中间。Emby 的服务器设置目录不在这里 —— 它自成一档，
+    /// 前面；Emby 通知入口插在服务器与诊断之间。Emby 的服务器设置目录不在这里 —— 它自成一档，
     /// 见 <see cref="BuildCategoryGroups"/>。
     /// </summary>
     private static IReadOnlyList<string> SidebarCategories(bool serverAdministration, MediaServerKind kind) =>
-        [.. CardCategories[..^1], "本机整理", "服务器", "诊断",
+        [.. CardCategories[..^1], "本机整理", "服务器",
             .. (serverAdministration ? MomokaAdministrationCategories(kind) : []),
-            LastCardCategory];
+            "诊断", LastCardCategory];
 
     /// <summary>The cards, in the order they appear in the left-hand list.</summary>
     /// <remarks>
@@ -848,16 +858,15 @@ public sealed partial class SettingsViewModel : PageViewModel
         _fnNasAccountHosted = [];
         _administrationKind = _capabilities?.ServerKind ?? MediaServerKind.Emby;
 
+        var selected = SelectServerSources(sources).OrderBy(ServerOrder).ToArray();
         var groups = new List<SettingsCategoryGroup>
         {
-            MomokaGroup(serverAdministration: false, _administrationKind)
+            MomokaGroup(serverAdministration: false, _administrationKind, selected)
         };
 
         var previous = _categoryGroups
             .Where(group => group.SourceKey is not null)
             .ToDictionary(group => group.SourceKey!, group => group.IsExpanded, StringComparer.Ordinal);
-
-        var selected = SelectServerSources(sources).OrderBy(ServerOrder).ToArray();
 
         foreach (var source in selected)
         {
@@ -896,7 +905,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 一条来源在左栏里列出的行。Emby／Jellyfin 保留它们网页控制台的原生分区（Emby 三段、Jellyfin 五段），
-    /// 分区标题与入口交错；Emby 的通知列在原生分区之前。飞牛保留「帐号／影视服务器」两段：
+    /// 分区标题与入口交错；Emby 的通知独立列在 Momoka 组的诊断上方。飞牛保留「帐号／影视服务器」两段：
     /// 帐号三项所有账号可见，影视服务器四项只在管理员时列出；Plex 没有这套设置。
     /// </summary>
     private static IReadOnlyList<ServerSourceRow> SourceRows(ServerSettingsSource source,
@@ -905,7 +914,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (source.Kind == MediaServerKind.Emby)
         {
             if (!source.IsAdministrator) return [];
-            var rows = new List<ServerSourceRow> { new(NotificationsCategory) };
+            var rows = new List<ServerSourceRow>();
             AddSections(rows, ServerSettingsMenu.Build(pages));
             return rows;
         }
@@ -976,6 +985,14 @@ public sealed partial class SettingsViewModel : PageViewModel
     internal bool CanOpenServerCategory(string value)
     {
         var entry = FindEntry(value);
+        if ((entry?.Label ?? value) == NotificationsCategory)
+        {
+            if (entry is null) return false;
+            if (entry.SourceKey is null)
+                return CanShowServerAdministration && _capabilities?.ServerKind == MediaServerKind.Emby;
+            if (_capabilities?.Sources.FirstOrDefault(source => source.Key == entry.SourceKey)?.Kind != MediaServerKind.Emby)
+                return false;
+        }
         if (entry is not null)
         {
             if (entry.SourceKey is { } key)
@@ -1053,8 +1070,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         && current.Zip(desired).All(pair => pair.First.Name == pair.Second.Name
             && pair.First.SourceKey == pair.Second.SourceKey
             && pair.First.Collapsible == pair.Second.Collapsible
-            && pair.First.Rows.Select(row => (row.Key, row.Label, row.Route, row.CardCategory, row.IsSection))
-                .SequenceEqual(pair.Second.Rows.Select(row => (row.Key, row.Label, row.Route, row.CardCategory, row.IsSection))));
+            && pair.First.Rows.Select(row => (row.Key, row.Label, row.DisplayLabel, row.Route, row.CardCategory, row.IsSection))
+                .SequenceEqual(pair.Second.Rows.Select(row => (row.Key, row.Label, row.DisplayLabel, row.Route, row.CardCategory, row.IsSection))));
 
     private void ReplaceCategories(IReadOnlyList<SettingsCategoryGroup> groups)
     {

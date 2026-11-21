@@ -490,10 +490,10 @@ internal sealed partial class ShellNavigationProbe
                 "服务器目录或插件页没有进左栏");
             Require(!page.Categories.Any(category => category.Contains("CustomCssJS", StringComparison.OrdinalIgnoreCase)),
                 "CustomCssJS 插件页仍在左栏");
-            Require(SitsBeforeLastCard(
+            Require(SitsBeforeDiagnostics(
                     page.ViewModel.CategoryGroups.Single(group => group.Name == "Momoka"),
                     new[] { SettingsViewModel.NotificationsCategory }),
-                "「通知」没有排在 诊断 与 关于 中间");
+                "「通知」没有排在诊断正上方");
             Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
             Require(page.ViewModel.ConsoleCategory == "控制台"
                 && page.ViewModel.ServerRoute("控制台") == "dashboard"
@@ -709,7 +709,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(embyGroups)
                 && page.Categories.Contains("控制台")
-                && SitsBeforeLastCard(
+                && SitsBeforeDiagnostics(
                     page.ViewModel.CategoryGroups.Single(group => group.Name == "Momoka"),
                     new[] { SettingsViewModel.NotificationsCategory }),
                 "返回 Emby 后三段目录没有按原次序恢复");
@@ -793,8 +793,7 @@ internal sealed partial class ShellNavigationProbe
             var emby = groups.Single(group => group.SourceKey == sourceA.Key);
             var jellyfin = groups.Single(group => group.SourceKey == sourceB.Key);
             var fnNas = groups.Single(group => group.SourceKey == sourceC.Key);
-            Require(emby.Entries.Any(entry => entry.Label == SettingsViewModel.NotificationsCategory)
-                && emby.Entries.Any(entry => entry.Label == "控制台")
+            Require(emby.Entries.Any(entry => entry.Label == "控制台")
                 && emby.Entries.Any(entry => entry.Label == "媒体库")
                 && jellyfin.Entries.Any(entry => entry.Label == "媒体资料管理器")
                 && jellyfin.Entries.Any(entry => entry.Label == "媒体库")
@@ -808,9 +807,12 @@ internal sealed partial class ShellNavigationProbe
                 && Sections(fnNas).SequenceEqual(new[] { "帐号", "影视服务器" }),
                 "多服务器分组丢了各产品的原生分区：" +
                 $"{string.Join("/", Sections(emby))}；{string.Join("/", Sections(jellyfin))}；{string.Join("/", Sections(fnNas))}");
-            Require(emby.Rows[0].Label == SettingsViewModel.NotificationsCategory
-                && emby.Rows[1].IsSection && emby.Rows[1].Label == "Emby Server",
-                "Emby 的通知或第一段分区次序不对");
+            var notification = groups[0].Entries.Single(entry => entry.Label == SettingsViewModel.NotificationsCategory);
+            Require(notification.SourceKey == sourceA.Key
+                && SitsBeforeDiagnostics(groups[0], new[] { SettingsViewModel.NotificationsCategory })
+                && !emby.Entries.Any(entry => entry.Label == SettingsViewModel.NotificationsCategory)
+                && emby.Rows[0].IsSection && emby.Rows[0].Label == "Emby Server",
+                "通知没有移到 Momoka 组诊断上方，或丢失了 Emby 来源绑定");
 
             // 分区标题只分段，不当页面：即使被键盘/自动化选中，也必须退回上一次真正打开的入口。
             var selectionBeforeSection = page.ViewModel.SelectedEntry;
@@ -1247,15 +1249,14 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 管理员入口是不是正好落在最后一张卡（关于）前面、且次序与 <paramref name="expected"/> 一致。
-    /// 用户令 2026-10-16 那句「通知和网页控制台放到诊断和关于之间」量的就是这件事。
+    /// 通知入口是不是正好落在诊断前面、且次序与 <paramref name="expected"/> 一致。
     /// </summary>
-    private static bool SitsBeforeLastCard(IEnumerable<SettingsCategoryEntry> categories, IReadOnlyList<string> expected)
+    private static bool SitsBeforeDiagnostics(IEnumerable<SettingsCategoryEntry> categories, IReadOnlyList<string> expected)
     {
         var labels = categories.Select(entry => entry.Label).ToArray();
-        return labels.Length > expected.Count + 1
-            && labels[^1] == SettingsViewModel.LastCardCategory
-            && labels.Skip(labels.Length - 1 - expected.Count).Take(expected.Count).SequenceEqual(expected);
+        var index = Array.IndexOf(labels, "诊断");
+        return index >= expected.Count
+            && labels.Skip(index - expected.Count).Take(expected.Count).SequenceEqual(expected);
     }
 
     private static IEnumerable<string> Sections(SettingsCategoryGroup group) =>

@@ -58,7 +58,7 @@ public sealed partial class SettingsViewModel
         var matches = new List<(SettingsSearchResult Result, int Rank)>();
         foreach (var entry in Categories.Where(entry => !entry.IsSection))
         {
-            Add(new(entry.Label, entry.Group.Name, entry.Key), entry.Label, entry.PickerLabel);
+            Add(new(entry.DisplayLabel, entry.Group.Name, entry.Key), entry.Label, entry.PickerLabel);
             if (IsHostedEntry(entry)) continue;
             foreach (var section in Sections.Where(section => section.Category == entry.CardCategory && section.Rows.Count > 0))
                 foreach (var row in section.Rows)
