@@ -77,13 +77,20 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(Box(content, scroll).Top) < 1 && Math.Abs(scroll.ActualHeight - content.ActualHeight) < 1,
                     "标题移除后正文仍留有空白带");
                 Require(Descendants(page).OfType<ShelfHead>().Count() == 0, "设置正文仍有重复分类与数量徽标");
-                // 主页 2026-10-27 拆成两张卡（轮播图 / 主页版面）：每张卡都该显示自己的标题。
+                // 主页当前三张卡（轮播图 / 主页版面 / 媒体库封面）都应显示自己的标题。
                 // 按 DataContext 认「这张卡此刻是可见的那一组」—— 没选中的卡也建着，标题的 Visibility 仍是 Visible。
                 var cardTitles = Descendants(page).OfType<TextBlock>()
                     .Where(title => title.Name == "SettingsSectionTitle" && title.DataContext is SettingSection { IsVisible: true })
                     .Select(title => title.Text).ToArray();
-                Require(cardTitles.SequenceEqual(["轮播图", "主页版面"]),
+                Require(SettingsHomeCardsMatch(cardTitles),
                     "主页分类的卡片标题不对：" + string.Join('、', cardTitles));
+                var covers = Descendants(page).OfType<ItemsControl>().Single(list => list.Name == "SettingsRowsList"
+                    && list.Tag is SettingSection { IsVisible: true, Title: "媒体库封面" });
+                Require(Descendants(covers).OfType<ToggleSwitch>().Any(control =>
+                    AutomationProperties.GetName(control) == "覆盖媒体库封面" && control.IsOn == fixture.Settings.Ui.HomeLibraryCoverOverride),
+                    "媒体库封面卡缺少实际总开关或状态没有绑定");
+                Require(Descendants(covers).OfType<ComboBox>().Any(control => AutomationProperties.GetName(control) == "封面预设")
+                    == fixture.Settings.Ui.HomeLibraryCoverOverride, "媒体库封面预设没有跟随总开关显隐");
                 foreach (var list in Descendants(page).OfType<ItemsControl>().Where(list => list.Name == "SettingsRowsList"
                     && list.Tag is SettingSection { IsVisible: true }))
                 {
@@ -184,4 +191,7 @@ internal sealed partial class ShellNavigationProbe
         static Rect Box(UIElement anchor, FrameworkElement element) => element.TransformToVisual(anchor)
             .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
     }
+
+    internal static bool SettingsHomeCardsMatch(IEnumerable<string> titles) =>
+        titles.SequenceEqual(["轮播图", "主页版面", "媒体库封面"]);
 }

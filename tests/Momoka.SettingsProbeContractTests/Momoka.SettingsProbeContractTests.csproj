@@ -57,6 +57,7 @@
         var colors = read("src/Momoka.Shell/Views/SettingsPage.AppearanceColors.cs");
         var probe = read("src/Momoka.Shell/ShellNavigationProbe.Settings.cs");
         var motion = read("src/Momoka.Shell/ShellNavigationProbe.SettingsMotion.cs");
+        var search = read("src/Momoka.Shell/ShellNavigationProbe.SettingsSearch.cs");
         var shared = read("src/Momoka.Shell/ShellNavigationProbe.cs");
         var conditional = between(motion, "    private async Task SettingsConditionalRowsAsync(int width)", "    private static SettingsPage CreateMotionSettingsPage");
         var support = read("tests/Momoka.SettingsLifetimeTests/Program.cs");
@@ -77,6 +78,7 @@
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(probe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +
+            between(search, "    internal static bool SettingsHomeCardsMatch(IEnumerable<string> titles)", "\n}") +
             between(probe, "    private static Task WaitForSettingsRowsLoadedAsync(SettingsPage page, ItemsControl rows)", "    private static void AssertSettingsSettled(SettingsPage page)") +
             between(shared, "    private static void Field(object target", "    private static async Task SettleAsync()") +
             between(shared, "    private sealed class FakeCapabilities", "    private sealed class FakeLauncher") +

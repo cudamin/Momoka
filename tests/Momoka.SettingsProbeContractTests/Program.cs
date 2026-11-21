@@ -41,6 +41,52 @@ internal static class Program
 
     private static void Register()
     {
+        Test("主页搜索探针只接受当前三卡标题，旧两卡、缺卡、重复和乱序均拒绝", () =>
+        {
+            Assert.True(ShellNavigationProbe.SettingsHomeCardsMatch(["轮播图", "主页版面", "媒体库封面"]));
+            Assert.False(ShellNavigationProbe.SettingsHomeCardsMatch(["轮播图", "主页版面"]));
+            Assert.False(ShellNavigationProbe.SettingsHomeCardsMatch(["轮播图", "媒体库封面"]));
+            Assert.False(ShellNavigationProbe.SettingsHomeCardsMatch(["轮播图", "主页版面", "主页版面"]));
+            Assert.False(ShellNavigationProbe.SettingsHomeCardsMatch(["轮播图", "媒体库封面", "主页版面"]));
+        });
+        Test("主页真实媒体库封面卡常驻，总开关原地显隐预设并保留选值", () => WithPage((_, fixture, _) =>
+        {
+            var runtime = ShellRuntime.Current;
+            var ui = fixture.Settings.Settings.Ui;
+            ui.HomeLibraryCoverOverride = false;
+            ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Wall;
+            var sections = runtime.List(fixture.Vm, "Sections");
+            sections.Clear();
+            foreach (var section in (IEnumerable)runtime.Invoke(fixture.Vm, "HomeSections")!) sections.Add(section);
+            Assert.True(ShellNavigationProbe.SettingsHomeCardsMatch(sections.Cast<object>()
+                .Select(section => runtime.Get<string>(section, "Title"))));
+            var covers = sections.Cast<object>().Single(section => runtime.Get<string>(section, "Title") == "媒体库封面");
+            var rows = runtime.Get<object>(covers, "Rows");
+            SameStrings(["覆盖媒体库封面"], Labels(covers));
+            Assert.Throws<InvalidOperationException>(() => Row(fixture.Vm, "封面预设"));
+            runtime.Set(Row(fixture.Vm, "覆盖媒体库封面"), "IsOn", true);
+            Assert.True(ui.HomeLibraryCoverOverride);
+            SameStrings(["覆盖媒体库封面", "封面预设"], Labels(covers));
+            Assert.Equal("九宫格海报墙", runtime.Get<string>(runtime.Get<object>(Row(fixture.Vm, "封面预设"), "Selected"), "Label"));
+            runtime.Set(Row(fixture.Vm, "覆盖媒体库封面"), "IsOn", false);
+            SameStrings(["覆盖媒体库封面"], Labels(covers));
+            Assert.Throws<InvalidOperationException>(() => Row(fixture.Vm, "封面预设"));
+            Assert.Equal(HomeLibraryCoverPresets.Wall, ui.HomeLibraryCoverPreset);
+            runtime.Set(Row(fixture.Vm, "覆盖媒体库封面"), "IsOn", true);
+            Assert.Equal("九宫格海报墙", runtime.Get<string>(runtime.Get<object>(Row(fixture.Vm, "封面预设"), "Selected"), "Label"));
+            Assert.True(ReferenceEquals(rows, runtime.Get<object>(covers, "Rows")));
+            Assert.True(ReferenceEquals(covers, sections.Cast<object>().Single(section => runtime.Get<string>(section, "Title") == "媒体库封面")));
+        }));
+        Test("主页搜索布局探针保留真实封面总开关与预设显隐检查", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(SettingsProbeInputs.SourceRoot, "src/Momoka.Shell/ShellNavigationProbe.SettingsSearch.cs"));
+            Assert.Contains("Require(SettingsHomeCardsMatch(cardTitles)", source);
+            Assert.Contains("Title: \"媒体库封面\"", source);
+            Assert.Contains("AutomationProperties.GetName(control) == \"覆盖媒体库封面\"", source);
+            Assert.Contains("control.IsOn == fixture.Settings.Ui.HomeLibraryCoverOverride", source);
+            Assert.Contains("AutomationProperties.GetName(control) == \"封面预设\"", source);
+            Assert.Contains("== fixture.Settings.Ui.HomeLibraryCoverOverride", source);
+        });
         Test("输入主题夹具先启用实际轮播从属行，关闭后旧定位拒绝，恢复保留值", () => WithPage((_, fixture, _) =>
         {
             fixture.Settings.Settings.Ui.ShowHomeBanner = false;
