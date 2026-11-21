@@ -43,7 +43,8 @@ public sealed partial class PlayerPage
         // 一个物理键按得出它，那颗键从装机起就是死的。
         var producible = new HashSet<string>(StringComparer.Ordinal);
         for (var code = 0; code <= 0xFF; code++)
-            if (KeyStrokeInterop.Token((VirtualKey)code) is { } token) producible.Add(token);
+        foreach (var extended in new[] { false, true })
+            if (KeyStrokeInterop.Token((VirtualKey)code, extended) is { } token) producible.Add(token);
 
         var unreachable = actions.Where(action => !producible.Contains(action.Default.Key)).Select(action => action.Id).ToList();
         var unique = ShortcutCatalog.DefaultsAreUnique();
@@ -99,7 +100,8 @@ public sealed partial class PlayerPage
         string[] quiet =
         [
             "toggle-pause", "seek-backward", "seek-forward", "seek-backward-long", "seek-forward-long",
-            "toggle-fullscreen", "seek-backward-fine", "seek-forward-fine", "subtitle-seek-previous", "subtitle-seek-next"
+            "toggle-fullscreen", "volume-up", "volume-down", "toggle-mute", "seek-backward-fine", "seek-forward-fine",
+            "subtitle-seek-previous", "subtitle-seek-next"
         ];
 
         var actions = ShortcutCatalog.Actions;

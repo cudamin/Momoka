@@ -1,4 +1,5 @@
 using Windows.System;
+using Momoka.Playback;
 
 namespace Momoka.Shell.Views;
 
@@ -13,33 +14,6 @@ namespace Momoka.Shell.Views;
 /// </summary>
 internal static class KeyStrokeInterop
 {
-    /// <summary>裸键翻成 token；认不出的返回 null（那一下就当没有快捷键 —— 派发时不处理，捕获时不收）。</summary>
-    public static string? Token(VirtualKey key) => key switch
-    {
-        >= VirtualKey.A and <= VirtualKey.Z => key.ToString(),
-        >= VirtualKey.Number0 and <= VirtualKey.Number9 => ((char)('0' + (key - VirtualKey.Number0))).ToString(),
-        >= VirtualKey.F1 and <= VirtualKey.F12 => key.ToString(),
-        VirtualKey.Space => "Space",
-        VirtualKey.Enter => "Enter",
-        VirtualKey.Back => "Back",
-        VirtualKey.Delete => "Delete",
-        VirtualKey.Insert => "Insert",
-        VirtualKey.Home => "Home",
-        VirtualKey.End => "End",
-        VirtualKey.PageUp => "PageUp",
-        VirtualKey.PageDown => "PageDown",
-        VirtualKey.Left => "Left",
-        VirtualKey.Right => "Right",
-        VirtualKey.Up => "Up",
-        VirtualKey.Down => "Down",
-        VirtualKey.Escape => "Escape",
-        (VirtualKey)219 => "BracketLeft",
-        (VirtualKey)221 => "BracketRight",
-        (VirtualKey)189 => "Minus",
-        (VirtualKey)187 => "Equal",
-        (VirtualKey)188 => "Comma",
-        (VirtualKey)190 => "Period",
-        (VirtualKey)192 => "Backquote",
-        _ => null
-    };
+    /// <summary>Windows 键值翻成持久化 token；具体映射由 Core 与独占播放器共享。</summary>
+    public static string? Token(VirtualKey key, bool extended = false) => ShortcutKeyCatalog.Token((int)key, extended);
 }

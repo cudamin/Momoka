@@ -10,11 +10,11 @@ public sealed class PlayerSlider : Slider
     internal Action? FinishDrag { get; set; }
     internal Func<double, double, double>? PositionValue { get; set; }
     internal Func<double, double, bool>? PressPosition { get; set; }
-    internal Func<Windows.System.VirtualKey, bool>? KeyCommand { get; set; }
+    internal Func<KeyRoutedEventArgs, bool>? KeyCommand { get; set; }
 
     protected override void OnKeyDown(KeyRoutedEventArgs e)
     {
-        if (KeyCommand?.Invoke(e.Key) == true) e.Handled = true;
+        if (KeyCommand?.Invoke(e) == true) e.Handled = true;
         else base.OnKeyDown(e);
     }
 

@@ -398,11 +398,11 @@ public sealed partial class PlayerPage : UserControl
         // 「点一下音量」偷走此后整场的空格（见 OnChromeClick）。
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnSpaceShortcut), handledEventsToo: true);
 
-        // 跳过提示立着时，回车／Delete 还要从 Root 上再兜一道（同样带 handledEventsToo）：提示一立起，指针
-        // 多半正压在那颗 Button 上，回车在它身上被当成「按这颗按钮」、事件到不了页面那一路 —— 用户按下去
-        // 期待的是「确认跳过」。这一道只在 SkipOffered 时接（见 OnSkipKeyFallback），其余时候回车/Delete 的
-        // 规矩一点不动（2026-11-02 关闭键从 Esc 换成 Delete）。
-        Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnSkipKeyFallback), handledEventsToo: true);
+        // 所有重绑键都从 Root 接 handledEventsToo：按钮、滑条先处理按键时也不能让设置的快捷键失效。
+        // Dispatch 只在确有绑定/固定回退时标记 handled；普通输入仍交给焦点控件。
+        Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
+        VolumeSlider.AddHandler(KeyDownEvent, new KeyEventHandler(OnVolumeSliderShortcut), handledEventsToo: true);
+        SeekSlider.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
         // Click 的路由事件标识符在这套投影里没暴露（ButtonBase、Button 上都没有），所以这些不带菜单的
         // 按钮一颗颗订阅；带 Flyout 的六颗不订阅 —— 菜单要靠焦点接管上下键（见 OnChromeClick）。
         // 公共输入反馈也用于滑条以外的按钮。

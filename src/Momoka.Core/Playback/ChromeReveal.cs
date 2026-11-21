@@ -850,9 +850,9 @@ public sealed class ChromeReveal
     /// works anywhere over the picture. A deliberate show, so it also unlocks the double-click silence
     /// latch.
     /// </summary>
-    public bool FlashRail(long now)
+    public bool FlashRail(long now, bool preserveSilence = false)
     {
-        _silenced = false;
+        if (!preserveSilence) _silenced = false;
         _lastActivity = now;
         _railUntil = now + GraceMilliseconds;
         return Settle(now);
@@ -960,7 +960,7 @@ public sealed class ChromeReveal
 
         // 双击全屏／还原的纯净闸（2026-09-18）：在真手再动（Moved/WakeFully/FlashRail/Reset 解锁）之前，
         // 点画面那一下给的宽限与指针所在的位置都不构成显示理由 —— 画面保持只有片子。
-        if (_silenced) return new ChromeState(false, false, false);
+        if (_silenced) return new ChromeState(false, false, now < _railUntil);
 
         var (bar, title) = Edges();
 

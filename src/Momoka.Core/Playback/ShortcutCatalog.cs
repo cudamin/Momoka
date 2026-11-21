@@ -36,22 +36,31 @@ public sealed record ShortcutAction(string Id, string Label, KeyStroke Default);
 /// 自然落到它的默认上。
 /// </para>
 /// <para>
-/// <b>Esc、回车和 Delete 不在这张表里。</b> 它们仨是固定键（Esc 全屏则退否则停；回车只在出现跳过提示时
-/// 确认跳过；Delete 只在出现跳过提示时关闭提示），留在 <c>PlayerPage.OnKeyDown</c> 里原样处理，不参与重绑
-/// —— 见 <see cref="ReservedKeys"/>。所以捕获到这三个键的时候要拦住（<see cref="IsReserved"/>），不让任何
-/// 可重绑动作占上它们，否则同一个键会有两种意思。
+/// Esc、回车和 Delete 没有自己的动作行；它们的旧固定行为仅在没有用户快捷键绑定时作为回退。用户把任意动作
+/// 绑定到这些键后，绑定动作优先。这让设置页可以覆盖原固定键，同时保留未改设置用户的原行为。
 /// </para>
 /// </summary>
 public static class ShortcutCatalog
 {
     /// <summary>
-    /// 不许绑的键（整颗键、连着任何修饰键都不许）：Esc 是全局「退出」、还兼做重绑方框的「取消」；回车只在
-    /// 出现跳过提示时有效、它的名字还印在播放画面的那句提示上（<c>SkipCoordinator</c>，被测试钉着）。Delete
-    /// 2026-11-02 接替 Esc 当「关闭跳过提示」的固定键（用户令），同样只在那一段里有效、名字印在提示上。
-    /// 这些留作固定键比让人改掉、再让画面上的提示对不上要稳。Y 原先也在这里，2026-09-26 随「确认跳过从 Y 改成
-    /// 回车」（用户令）退役 —— 它不再有固定用途，可以绑了。
+    /// 不再有保留键。Esc、Enter、Delete 的既有播放器行为只在没有对应用户绑定时回退执行；录制时 Esc 可绑定，
+    /// 离开捕获框或按 Tab（未捕获时）结束录制。
     /// </summary>
-    public static readonly IReadOnlyList<string> ReservedKeys = ["Escape", "Enter", "Delete"];
+    public static readonly IReadOnlyList<string> ReservedKeys = [];
+
+    private static readonly IReadOnlyDictionary<string, string> DisplayNames = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["Tab"] = "Tab", ["CapsLock"] = "Caps Lock", ["NumLock"] = "Num Lock", ["ScrollLock"] = "Scroll Lock",
+        ["PrintScreen"] = "Print Screen", ["Pause"] = "Pause", ["LeftWindows"] = "左 Win", ["RightWindows"] = "右 Win",
+        ["Application"] = "菜单键", ["Semicolon"] = ";", ["Slash"] = "/", ["Backslash"] = "\\", ["Quote"] = "'",
+        ["Oem102"] = "\\\\", ["NumPadDecimal"] = "小键盘 .", ["NumPadDivide"] = "小键盘 /",
+        ["NumPadMultiply"] = "小键盘 *", ["NumPadSubtract"] = "小键盘 -", ["NumPadAdd"] = "小键盘 +",
+        ["NumPadEnter"] = "小键盘回车", ["VolumeMute"] = "静音键", ["VolumeDown"] = "音量减小键",
+        ["VolumeUp"] = "音量增大键", ["MediaNextTrack"] = "下一曲键", ["MediaPreviousTrack"] = "上一曲键",
+        ["MediaStop"] = "媒体停止键", ["MediaPlayPause"] = "播放/暂停媒体键", ["BrowserBack"] = "浏览器后退键",
+        ["BrowserForward"] = "浏览器前进键", ["BrowserRefresh"] = "浏览器刷新键", ["BrowserStop"] = "浏览器停止键",
+        ["BrowserSearch"] = "浏览器搜索键", ["BrowserFavorites"] = "浏览器收藏键", ["BrowserHome"] = "浏览器主页键"
+    };
 
     /// <summary>
     /// 可重绑动作，次序就是设置页上从上到下的次序。原有动作的默认键不变；新增键冲突时优先保留用户的绑定。
@@ -205,34 +214,52 @@ public static class ShortcutCatalog
     }
 
     /// <summary>一次重绑的结果：要么成功（<see cref="Bindings"/> 是新的一份），要么被占用（<see cref="Conflict"/> 是占用者的 Id、绑定原封不动）。</summary>
-    public readonly record struct RebindResult(IReadOnlyDictionary<string, string> Bindings, string? Conflict);
+    public readonly record struct RebindResult(IReadOnlyDictionary<string, string> Bindings, string? Conflict, bool Replaced = false);
 
     /// <summary>
     /// 把 <paramref name="id"/> 这个动作绑到 <paramref name="stroke"/> 上。
     /// <para>
-    /// <b>冲突就拦下（用户的选择，2026-09-08）。</b> 这个键已经是别的动作的了，就返回那个占用者的 Id、一个绑定
-    /// 都不改；调用方负责提示「先清掉那边再绑」。这样保证任何时候都不会两个动作共用一个键，派发不含糊，也不会
-    /// 悄悄把别处的键抹掉。绑到自己的默认键上就把这条改动记录删掉（回到「没动过」），别的写进字典。
+    /// 默认冲突时保持原绑定不变。调用方明确选择替换时，新动作接收此键、旧占用者接收新动作原来的键；若新动作
+    /// 原来未绑定，旧占用者就解绑。这样始终保持唯一映射，且不静默改变其他动作。绑回自己的默认键会删掉改动记录。
     /// </para>
-    /// <para>空键、保留键（Esc/回车/Delete）都当空操作原样返回 —— 方框那边本来就拦在前面，这里是第二道防线，可被测试钉住。</para>
+    /// <para>空键或未知动作原样返回；全部按键（包含 Esc、回车和 Delete）均可绑定。</para>
     /// </summary>
-    public static RebindResult Rebind(IReadOnlyDictionary<string, string> bindings, string id, KeyStroke stroke)
+    public static RebindResult Rebind(IReadOnlyDictionary<string, string> bindings, string id, KeyStroke stroke,
+        bool replaceConflict = false)
     {
         var action = Actions.FirstOrDefault(a => a.Id == id);
-        if (action is null || stroke.IsEmpty || IsReserved(stroke)) return new(bindings, null);
+        if (action is null || stroke.IsEmpty) return new(bindings, null);
 
         var effective = Resolve(bindings);
+        ShortcutAction? occupant = null;
         foreach (var other in Actions)
         {
             if (other.Id == id) continue;
-            if (effective[other.Id] == stroke) return new(bindings, other.Id);
+            if (effective[other.Id] == stroke)
+            {
+                occupant = other;
+                break;
+            }
         }
 
-        var next = new Dictionary<string, string>(bindings, StringComparer.Ordinal);
-        if (stroke == action.Default) next.Remove(id);
-        else next[id] = Serialize(stroke);
+        if (occupant is not null && !replaceConflict) return new(bindings, occupant.Id);
 
-        return new(next, null);
+        var next = new Dictionary<string, string>(bindings, StringComparer.Ordinal);
+        SetBinding(next, action, stroke);
+        if (occupant is not null)
+        {
+            var previous = effective[action.Id];
+            if (previous.IsEmpty) next[occupant.Id] = "";
+            else SetBinding(next, occupant, previous);
+        }
+
+        return new(next, null, occupant is not null);
+    }
+
+    private static void SetBinding(Dictionary<string, string> bindings, ShortcutAction action, KeyStroke stroke)
+    {
+        if (stroke == action.Default) bindings.Remove(action.Id);
+        else bindings[action.Id] = Serialize(stroke);
     }
 
     /// <summary>把这个动作解绑（× 那颗按钮）。存空串而不是删键：默认都是有键的，删键会退回默认，空串才是「就是不要」。</summary>
@@ -262,8 +289,8 @@ public static class ShortcutCatalog
         return result;
     }
 
-    /// <summary>这个键是不是保留键（整颗键、连着任何修饰键）。</summary>
-    public static bool IsReserved(KeyStroke stroke) => ReservedKeys.Contains(stroke.Key, StringComparer.Ordinal);
+    /// <summary>保留给旧调用点的兼容检查；现在所有非空按键都能绑定。</summary>
+    public static bool IsReserved(KeyStroke stroke) => false;
 
     /// <summary>动作的中文名，找不到就把 Id 原样给回去（不该发生，给个不炸的兜底）。</summary>
     public static string Label(string id) => Actions.FirstOrDefault(a => a.Id == id)?.Label ?? id;
@@ -305,6 +332,7 @@ public static class ShortcutCatalog
         }
 
         if (key is null) return false;
+        if (!ShortcutKeyCatalog.IsKnownToken(key)) return false;
 
         stroke = new KeyStroke(key, ctrl, alt, shift);
         return true;
@@ -325,6 +353,9 @@ public static class ShortcutCatalog
 
     private static string Display(string key) => key switch
     {
+        _ when DisplayNames.TryGetValue(key, out var label) => label,
+        _ when key.StartsWith("NumPad", StringComparison.Ordinal) && key.Length == 7 => $"小键盘 {key[^1]}",
+        "ShiftKey" => "Shift",
         "Space" => "空格",
         "Enter" => "回车",
         "Delete" => "Del",
@@ -341,6 +372,7 @@ public static class ShortcutCatalog
         "Period" => ".",
         "Backquote" => "`",
         "Escape" => "Esc",
+        _ when key.Length == 4 && key.StartsWith("Vk", StringComparison.Ordinal) => $"按键 {key[2..]}",
         _ => key
     };
 

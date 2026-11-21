@@ -10,7 +10,6 @@ public sealed partial class SettingsViewModel
 {
     // 全部可用行与搜索结果分开保管；过滤不能解绑、丢失行回调，或让恢复默认只作用于屏上的几行。
     private readonly List<SettingShortcutRow> _shortcutRows = [];
-    private readonly List<(SettingFactRow Row, KeyStroke Stroke)> _shortcutFixedRows = [];
     private SettingFactRow? _shortcutResetRow;
     private readonly SettingFactRow _shortcutEmptyRow = Fact("没有找到匹配的快捷键", "试试操作名称或按键，如「字幕」「Ctrl + ↑」；清空搜索可查看全部。", "");
 
@@ -41,17 +40,10 @@ public sealed partial class SettingsViewModel
         var effective = ShortcutCatalog.Resolve(Settings.Shortcuts.Bindings);
         _shortcutRows.Clear();
         _shortcutRows.AddRange(AvailableShortcutActions().Select(action => ShortcutRow(action, effective[action.Id])));
-        _shortcutFixedRows.Clear();
-        _shortcutFixedRows.Add((Fact("退出全屏 / 停止", "固定，不可更改；全屏时退出全屏，非全屏时停止播放", "Esc"),
-            new KeyStroke("Escape", false, false, false)));
-        _shortcutFixedRows.Add((Fact("关闭跳过提示", "固定，不可更改；只在出现跳过提示时有效", "Del"),
-            new KeyStroke("Delete", false, false, false)));
-        _shortcutFixedRows.Add((Fact("确认跳过片头 / 片尾", "固定，不可更改；只在出现跳过提示时有效", "回车"),
-            new KeyStroke("Enter", false, false, false)));
         _shortcutResetRow = Fact("恢复默认快捷键", "恢复全部快捷键，包括当前搜索未显示的项目；其他设置不受影响",
             $"{_shortcutRows.Count} 个可改快捷键", "恢复默认", ClearAllShortcuts);
         return new SettingSection("快捷键", "快捷键",
-            "播放时的键盘快捷键。点右边方框后按组合键（可带 Ctrl / Alt / Shift）即可改绑，× 清除。只在播放窗口生效。",
+            "播放时的键盘快捷键。点右边方框后按键即可改绑，可带 Ctrl / Alt / Shift；冲突时可确认替换。× 清除。只在播放窗口生效。",
             ShortcutFilteredRows(effective));
     }
 
@@ -59,8 +51,6 @@ public sealed partial class SettingsViewModel
     {
         var rows = _shortcutRows.Where(row => ShortcutCatalog.MatchesSearch(ShortcutSearchQuery, row.Label,
             effective[row.Id])).Cast<SettingRow>().ToList();
-        foreach (var (row, stroke) in _shortcutFixedRows)
-            if (ShortcutCatalog.MatchesSearch(ShortcutSearchQuery, $"{row.Label} {row.Note}", stroke)) rows.Add(row);
         var matched = rows.Count;
         var searching = !string.IsNullOrWhiteSpace(ShortcutSearchQuery);
         ShortcutSearchSummary = searching
@@ -96,7 +86,9 @@ public sealed partial class SettingsViewModel
     /// 一个绑定都不改（那一行方框还显示着原来的，因为 <c>ComboText</c> 没动）；否则写回、落盘、逐行刷新显示。
     /// 写回一份新字典即可，播放器那头每次按键现读同一个单例设置，所以已经开着的播放器也当场跟上。
     /// </summary>
-    private void ApplyShortcut(string id, string token)
+    private void ApplyShortcut(string id, string token) => _ = ApplyShortcutAsync(id, token);
+
+    private async Task ApplyShortcutAsync(string id, string token)
     {
         var bindings = Settings.Shortcuts.Bindings;
 
@@ -111,13 +103,33 @@ public sealed partial class SettingsViewModel
             var result = ShortcutCatalog.Rebind(bindings, id, stroke);
             if (result.Conflict is { } occupant)
             {
-                Notify("快捷键冲突",
-                    $"「{ShortcutCatalog.Format(stroke)}」已经是「{ShortcutCatalog.Label(occupant)}」的快捷键了。先把那边清掉，再绑到这里。",
-                    InfoBarSeverity.Warning);
-                return;
-            }
+                var beforeConfirmation = ShortcutCatalog.Resolve(bindings);
+                var previous = beforeConfirmation[id];
+                var occupied = beforeConfirmation[occupant];
+                var replacement = await ConfirmAsync("替换快捷键",
+                    $"「{ShortcutCatalog.Format(stroke)}」已绑定到「{ShortcutCatalog.Label(occupant)}」。确认后，新动作会使用这个键；"
+                    + (previous.IsEmpty
+                        ? $"「{ShortcutCatalog.Label(occupant)}」将解绑。"
+                        : $"「{ShortcutCatalog.Label(occupant)}」将改用「{ShortcutCatalog.Format(previous)}」。"),
+                    "替换");
+                if (!replacement) return;
 
-            Settings.Shortcuts.Bindings = new Dictionary<string, string>(result.Bindings, StringComparer.Ordinal);
+                // 等待确认期间设置可能已改变；若冲突对象变了，保留当前绑定并让用户重新录制确认。
+                var currentBindings = Settings.Shortcuts.Bindings;
+                var currentEffective = ShortcutCatalog.Resolve(currentBindings);
+                var current = ShortcutCatalog.Rebind(currentBindings, id, stroke);
+                if (current.Conflict != occupant || currentEffective[id] != previous || currentEffective[occupant] != occupied)
+                {
+                    Notify("快捷键已变化", "绑定状态已更新，请重新录制后再确认替换。", InfoBarSeverity.Warning);
+                    return;
+                }
+                var replaced = ShortcutCatalog.Rebind(Settings.Shortcuts.Bindings, id, stroke, replaceConflict: true);
+                Settings.Shortcuts.Bindings = new Dictionary<string, string>(replaced.Bindings, StringComparer.Ordinal);
+            }
+            else
+            {
+                Settings.Shortcuts.Bindings = new Dictionary<string, string>(result.Bindings, StringComparer.Ordinal);
+            }
         }
 
         Save();

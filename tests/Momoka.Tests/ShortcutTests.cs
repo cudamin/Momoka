@@ -127,15 +127,38 @@ internal static partial class ShortcutTests
             Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("F12")));
         });
 
-        Test("Rebind：冲突就拦下 —— 返回占用者、一个绑定都不改", () =>
+        Test("Rebind：默认拒绝冲突，确认替换后交换两个动作的按键", () =>
         {
-            var bindings = Empty();
-            var result = ShortcutCatalog.Rebind(bindings, "toggle-mute", Key("F")); // F 是全屏的默认键
+            var bindings = new Dictionary<string, string>(StringComparer.Ordinal) { ["toggle-mute"] = "K" };
+            var rejected = ShortcutCatalog.Rebind(bindings, "toggle-mute", Key("F")); // F 是全屏的默认键
 
-            Assert.Equal("toggle-fullscreen", result.Conflict);
-            Assert.Equal(0, result.Bindings.Count, "冲突时绑定不该有任何改动");
-            // 原字典没被改（返回的就是传进去那一份）
-            Assert.Equal(0, bindings.Count);
+            Assert.Equal("toggle-fullscreen", rejected.Conflict);
+            Assert.Equal("K", rejected.Bindings["toggle-mute"], "未确认时绑定不变");
+
+            var replaced = ShortcutCatalog.Rebind(bindings, "toggle-mute", Key("F"), replaceConflict: true);
+            Assert.Null(replaced.Conflict);
+            Assert.True(replaced.Replaced);
+            Assert.Equal("F", replaced.Bindings["toggle-mute"]);
+            Assert.Equal("K", replaced.Bindings["toggle-fullscreen"]);
+            Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(replaced.Bindings, Key("F")));
+            Assert.Equal("toggle-fullscreen", ShortcutCatalog.Lookup(replaced.Bindings, Key("K")));
+            Assert.Null(ShortcutCatalog.Lookup(replaced.Bindings, Key("M")));
+            Assert.Equal("K", bindings["toggle-mute"], "原字典不能被修改");
+        });
+
+        Test("Rebind：替换用户已自定义的占用键时，原动作接收新动作之前的有效键", () =>
+        {
+            var bindings = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["toggle-fullscreen"] = "Ctrl+F8",
+                ["toggle-mute"] = "K"
+            };
+            var result = ShortcutCatalog.Rebind(bindings, "toggle-mute", Key("F8", ctrl: true), replaceConflict: true);
+            Assert.True(result.Replaced);
+            Assert.Equal("Ctrl+F8", result.Bindings["toggle-mute"]);
+            Assert.Equal("K", result.Bindings["toggle-fullscreen"]);
+            Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("F8", ctrl: true)));
+            Assert.Equal("toggle-fullscreen", ShortcutCatalog.Lookup(result.Bindings, Key("K")));
         });
 
         Test("Rebind：绑回自己的默认键，就把这条改动删掉（回到「没动过」）", () =>
@@ -148,14 +171,17 @@ internal static partial class ShortcutTests
             Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("M")));
         });
 
-        Test("Rebind：保留键（Esc/回车）和空键都当空操作，绑定不动", () =>
+        Test("Rebind：Esc、回车、Delete 可绑定，空键仍是空操作", () =>
         {
             var esc = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Escape"));
             Assert.Null(esc.Conflict);
-            Assert.Equal(0, esc.Bindings.Count);
+            Assert.Equal("Escape", esc.Bindings["toggle-pause"]);
 
             var enter = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Enter"));
-            Assert.Equal(0, enter.Bindings.Count);
+            Assert.Equal("Enter", enter.Bindings["toggle-pause"]);
+
+            var delete = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Delete"));
+            Assert.Equal("Delete", delete.Bindings["toggle-pause"]);
 
             var empty = ShortcutCatalog.Rebind(Empty(), "toggle-pause", KeyStroke.None);
             Assert.Equal(0, empty.Bindings.Count);
@@ -182,6 +208,13 @@ internal static partial class ShortcutTests
             RoundTrip(Key("Z", shift: true));
             RoundTrip(Key("S", ctrl: true, alt: true));
             RoundTrip(Key("BracketLeft"));
+            RoundTrip(Key("NumPad7", ctrl: true));
+            RoundTrip(Key("F24", shift: true));
+            RoundTrip(Key("MediaPlayPause"));
+            RoundTrip(Key("VkFF", alt: true));
+            for (var vk = 1; vk <= 0xFF; vk++)
+                foreach (var extended in new[] { false, true })
+                    RoundTrip(ShortcutKeyCatalog.Stroke(ShortcutKeyCatalog.Token(vk, extended)!, false, false, false));
 
             Assert.Equal("Shift+Z", ShortcutCatalog.Serialize(Key("Z", shift: true)));
             Assert.Equal("Ctrl+Alt+S", ShortcutCatalog.Serialize(Key("S", ctrl: true, alt: true)));
@@ -203,13 +236,13 @@ internal static partial class ShortcutTests
             Assert.Equal("未设置", ShortcutCatalog.Format(KeyStroke.None));
         });
 
-        Test("IsReserved：Esc、回车和 Delete 是保留键（连着修饰键也算），别的不是", () =>
+        Test("IsReserved：快捷键设置不再保留 Esc、回车和 Delete", () =>
         {
-            Assert.True(ShortcutCatalog.IsReserved(Key("Escape")));
-            Assert.True(ShortcutCatalog.IsReserved(Key("Enter")), "回车 2026-09-26 起接替 Y 当确认跳过的固定键");
-            Assert.True(ShortcutCatalog.IsReserved(Key("Enter", ctrl: true)), "带修饰键的回车也保留 —— 固定的那颗确认跳过键不查修饰键");
-            Assert.True(ShortcutCatalog.IsReserved(Key("Delete")), "Delete 2026-11-02 接替 Esc 当关闭跳过提示的固定键");
-            Assert.True(ShortcutCatalog.IsReserved(Key("Delete", ctrl: true)), "带修饰键的 Delete 也保留 —— 固定键不查修饰键");
+            Assert.False(ShortcutCatalog.IsReserved(Key("Escape")));
+            Assert.False(ShortcutCatalog.IsReserved(Key("Enter")));
+            Assert.False(ShortcutCatalog.IsReserved(Key("Enter", ctrl: true)));
+            Assert.False(ShortcutCatalog.IsReserved(Key("Delete")));
+            Assert.False(ShortcutCatalog.IsReserved(Key("Delete", ctrl: true)));
             Assert.False(ShortcutCatalog.IsReserved(Key("Y")), "Y 随确认跳过改到回车而退役，从此可以绑");
             Assert.False(ShortcutCatalog.IsReserved(Key("F")));
             Assert.False(ShortcutCatalog.IsReserved(Key("Space")));
@@ -223,14 +256,14 @@ internal static partial class ShortcutTests
                 ["toggle-pause"] = "Ctrl",        // 只有修饰键，解析不了
                 ["seek-forward"] = "Right",       // 好的，留
                 ["toggle-mute"] = "",             // 显式解绑，留
-                ["volume-up"] = "Escape"          // 落在保留键上
+                ["volume-up"] = "Escape"          // Esc 已可绑定
             };
 
             var clean = ShortcutCatalog.Clean(dirty);
 
             Assert.False(clean.ContainsKey("不存在的动作"));
             Assert.False(clean.ContainsKey("toggle-pause"));
-            Assert.False(clean.ContainsKey("volume-up"));
+            Assert.Equal("Escape", clean["volume-up"]);
             Assert.Equal("Right", clean["seek-forward"]);
             Assert.Equal("", clean["toggle-mute"]);
         });

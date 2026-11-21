@@ -70,17 +70,17 @@ internal static class PlayerInteractionTests
             var code = File.ReadAllText(Path.Combine(
                 RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.Input.cs"));
 
-            Assert.Contains("case VirtualKey.Delete when ViewModel.SkipOffered:", code);
-            Assert.Contains("case VirtualKey.Enter when ViewModel.SkipOffered:", code);
-            Assert.DoesNotContain("case VirtualKey.Escape when ViewModel.SkipOffered:", code);
-            Assert.Contains("e.Key is not (VirtualKey.Enter or VirtualKey.Delete)", code);
-            Assert.Contains("or (int)VirtualKey.Delete;", code);
+            Assert.Contains("case VirtualKey.Delete when token == \"Delete\" && ViewModel.SkipOffered && fixedFallback:", code);
+            Assert.Contains("case VirtualKey.Enter when token == \"Enter\" && ViewModel.SkipOffered && fixedFallback:", code);
+            Assert.Contains("reboundAction is null", code);
+            Assert.Contains("fixedFallback", code);
+            Assert.Contains("CanDispatchVirtualKey", code);
 
             // 焦点掉出 XAML 岛时走的是窗口钩子；页面点头还不够，钩子自己的白名单也得放行 Delete。
             var host = File.ReadAllText(Path.Combine(
                 RepositoryRoot(), "src", "Momoka.Shell", "Windowing", "HostWindow.cs"));
-            Assert.Contains("const int VkDelete = 0x2E;", host);
-            Assert.Contains("vk is VkSpace or VkEscape or VkReturn or VkDelete", host);
+            Assert.Contains("vk is > 0 and <= 0xFF", host);
+            Assert.Contains("_win32Keys?.WantsKey(vk, extended) == true", host);
         });
         TestHarness.Test("服务器渲染计数：按实际模板根标识，不依赖框架容器类型", () =>
         {
@@ -181,8 +181,39 @@ internal static class PlayerInteractionTests
             Assert.Equal("Shift+z", VideoWindowShortcuts.Key(new KeyStroke("Z", false, false, true)));
             Assert.Equal("Ctrl+Alt+F12", VideoWindowShortcuts.Key(new KeyStroke("F12", true, true, false)));
             Assert.Equal("[", VideoWindowShortcuts.Key(new KeyStroke("BracketLeft", false, false, false)));
-            Assert.Null(VideoWindowShortcuts.Key(new KeyStroke("F13", false, false, false)));
+            Assert.Equal("F24", VideoWindowShortcuts.Key(new KeyStroke("F24", false, false, false)));
+            Assert.Equal("KP7", VideoWindowShortcuts.Key(new KeyStroke("NumPad7", false, false, false)));
+            Assert.Equal("KP_ENTER", VideoWindowShortcuts.Key(new KeyStroke("NumPadEnter", false, false, false)));
+            Assert.Equal("VOLUME_UP", VideoWindowShortcuts.Key(new KeyStroke("VolumeUp", false, false, false)));
+            Assert.Null(VideoWindowShortcuts.Key(new KeyStroke("VkFF", false, false, false)),
+                "当前 Windows mpv 窗口输入不支持通用 VK 别名");
+            Assert.Equal("RECORD", VideoWindowShortcuts.Key(new KeyStroke("MediaRecord", false, false, false)));
+            Assert.Equal("FORWARD", VideoWindowShortcuts.Key(new KeyStroke("MediaFastForward", false, false, false)));
             Assert.Null(VideoWindowShortcuts.Key(new KeyStroke("x;quit", false, false, false)));
+        });
+        TestHarness.Test("快捷键令牌：常用特殊键、数字键盘与键盘范围按预期生成", () =>
+        {
+            Assert.Equal("NumPad7", ShortcutKeyCatalog.Token(0x67));
+            Assert.Equal("NumPadAdd", ShortcutKeyCatalog.Token(0x6B));
+            Assert.Equal("F24", ShortcutKeyCatalog.Token(0x87));
+            Assert.Equal("CapsLock", ShortcutKeyCatalog.Token(0x14));
+            Assert.Equal("VolumeUp", ShortcutKeyCatalog.Token(0xAF));
+            Assert.Equal("BrowserBack", ShortcutKeyCatalog.Token(0xA6));
+            Assert.Equal("Semicolon", ShortcutKeyCatalog.Token(0xBA));
+            Assert.Equal("Slash", ShortcutKeyCatalog.Token(0xBF));
+            Assert.Equal("Backslash", ShortcutKeyCatalog.Token(0xDC));
+            Assert.Equal("Oem8", ShortcutKeyCatalog.Token(0xDF));
+            Assert.Equal("OemClear", ShortcutKeyCatalog.Token(0xFE));
+            Assert.Equal("Vk88", ShortcutKeyCatalog.Token(0x88));
+            Assert.Equal("VkE3", ShortcutKeyCatalog.Token(0xE3));
+            Assert.Equal("NumPadLeft", ShortcutKeyCatalog.Token(0x25));
+            Assert.Equal("Left", ShortcutKeyCatalog.Token(0x25, extended: true));
+            Assert.Equal("NumPadEnter", ShortcutKeyCatalog.Token(0x0D, extended: true));
+            Assert.Equal("Enter", ShortcutKeyCatalog.Token(0x0D));
+            Assert.Null(ShortcutKeyCatalog.Token(0));
+            Assert.True(Enumerable.Range(1, 0xFF).All(code => ShortcutKeyCatalog.Token(code) is not null),
+                "每个可见的 Windows VirtualKey 都必须能录制成一个 token");
+            Assert.Equal("NumPadSeparator", ShortcutKeyCatalog.Token(0x6C));
         });
 
         TestHarness.Test("独占快捷键：宿主只接受已知动作不接受任意命令", () =>

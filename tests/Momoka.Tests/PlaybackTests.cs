@@ -4090,7 +4090,9 @@ internal static class PlaybackTests
             // 「触发渐变的时候不隐藏控件，但是要隐藏鼠标」），留着的只是音量条自己。
             chrome.Pointer(y: 500, height: 1000, ChromePart.None, railNear: -1, now + 1199);
             Assert.False(chrome.CursorHidden, "指针还压在死区上，一秒没到光标不走");
-            Assert.True(chrome.FlashRail(now + 1200));
+            chrome.Silence(now + 1199);
+            Assert.True(chrome.FlashRail(now + 1200, preserveSilence: true));
+            Assert.True(chrome.Silenced);
             Assert.Equal(new ChromeState(false, false, true), chrome.State, "只亮音量条，不把整套控件拉出来");
             Assert.Equal(0d, chrome.IdleAgo(now + 1200), "宽限那一记也是活动，空闲钟从它重数");
 
