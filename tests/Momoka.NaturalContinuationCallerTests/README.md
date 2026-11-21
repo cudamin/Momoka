@@ -339,3 +339,7 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 `baseCommit`、提取规则与拒绝条件不动。同步后按本 README 既有要求重跑：Release 单节点 0 警告 0 错误，
 **81/81**、0 失败 0 跳过、exit 0，证据 `artifacts/r046-caller/verify-20261121-151316-8758`，
 报告 `sdk=10.0.400`、`head=476df26`。探针本体的原生窗口／着色器验收仍属该探针自己的台账，不由本专项代替。
+
+## 2026-11-21 CI 的 SDK 判据改为 global.json 策略
+
+GitHub `windows-2022` 的离线回归日志显示实际解析到 **10.0.404**（`rollForward=latestMinor` 允许），而 `Run-Caller.ps1` 原来要求 `dotnet --version` 精确等于 `10.0.400`，会让排在后面的本专项在同一次 `-All` 里必然失败。现在与 `tools/run-regressions.ps1` 用同一条判据：同一主版本、不低于 `global.json` 固定版本即接受，并把实际版本写进 `verification.json` 的 `sdk` 字段；`SourcePins.json`、离线还原、单节点构建与 81 项 caller 本身未改；本机仍解析到 10.0.400，本机运行没有走到「更新补丁」这一支，CI 才是它的实际验证点。

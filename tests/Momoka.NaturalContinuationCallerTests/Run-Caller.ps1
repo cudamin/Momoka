@@ -38,7 +38,19 @@ try {
     $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
     $env:DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE = '1'
     $env:MSBUILDDISABLENODEREUSE = '1'
-    if ((& $dotnet --version).Trim() -ne '10.0.400') { throw '仅允许已核实的 10.0.400 SDK。' }
+    # 与 global.json 的 rollForward=latestMinor 和 run-regressions.ps1 用同一判据：同一主版本、
+    # 不低于固定的 10.0.400 就接受。CI runner 镜像自带 10.0.404，按精确补丁拒绝会误杀整套回归。
+    $sdk = (& $dotnet --version).Trim()
+    if ($LASTEXITCODE -ne 0) { throw '读取 SDK 版本失败。' }
+    $sdkSpec = (Get-Content -LiteralPath (Join-Path $root 'global.json') -Raw -Encoding UTF8 | ConvertFrom-Json).sdk
+    $expectedSdk = [version]'0.0'
+    $actualSdk = [version]'0.0'
+    if (-not [version]::TryParse([string]$sdkSpec.version, [ref]$expectedSdk)) { throw "global.json 的 SDK 版本无效：$($sdkSpec.version)" }
+    if (-not [version]::TryParse($sdk, [ref]$actualSdk)) { throw "无法解析 SDK 版本：$sdk" }
+    $withinPolicy = $actualSdk.Major -eq $expectedSdk.Major -and
+        ($actualSdk.Minor -gt $expectedSdk.Minor -or
+            ($actualSdk.Minor -eq $expectedSdk.Minor -and $actualSdk.Build -ge $expectedSdk.Build))
+    if (-not $withinPolicy) { throw "SDK 为 $sdk，不符合 global.json 固定版本 $($sdkSpec.version)。" }
     $pins = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'SourcePins.json') -Raw | ConvertFrom-Json
     foreach ($pin in $pins.sources) {
         $path = [IO.Path]::GetFullPath((Join-Path $root $pin.path))
@@ -80,7 +92,7 @@ try {
     if ($results.failed -ne 0 -or $results.skipped -ne 0 -or $results.exit -ne 0) { throw '报告中仍有失败或跳过。' }
     [IO.File]::WriteAllText((Join-Path $output 'verification.json'), (([ordered]@{
         date = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'); root = $root; head = (& git -C $root rev-parse HEAD).Trim()
-        sdk = '10.0.400'; buildExit = $buildExit; warning = 0; error = 0; dynamic = $results
+        sdk = $sdk; buildExit = $buildExit; warning = 0; error = 0; dynamic = $results
         productSnapshotsUncommitted = $true; noAppWindowNativeOrRealServer = $true
     } | ConvertTo-Json -Depth 8).Replace("`r`n", "`n") + "`n"), $utf8)
     Write-Output "无窗口 caller 验证通过：$($results.passed) 项；证据 $output"
