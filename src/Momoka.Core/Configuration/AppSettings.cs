@@ -1779,6 +1779,12 @@ public sealed class UiSettings
     /// </summary>
     public Emby.HomeLibraryPlacement HomeLibraryPlacement { get; set; } = Emby.HomeLibraryPlacement.Auto;
 
+    /// <summary>只覆盖主页媒体库入口的客户端封面显示；默认关闭，服务器图片保持原样。</summary>
+    public bool HomeLibraryCoverOverride { get; set; }
+
+    /// <summary>主页媒体库封面的显示预设；关闭覆盖时保留选择，合法标识见 <see cref="HomeLibraryCoverPresets"/>。</summary>
+    public string HomeLibraryCoverPreset { get; set; } = HomeLibraryCoverPresets.Stack;
+
     /// <summary>
     /// 轮播条目从哪来 —— 「要使用最近添加还是随机的」（用户的话，2026-09-13）。枚举存整数，
     /// Recent 必须是 0：缺键的旧设置文件读出来就是它，

@@ -1491,6 +1491,8 @@ public sealed partial class HomePage : Page, IShellContent
         ShellPrefs.Changed += OnShellPrefsChanged;
         ShellPrefs.HomeLibraryEntriesChanged -= OnHomeLibraryEntriesChanged;
         ShellPrefs.HomeLibraryEntriesChanged += OnHomeLibraryEntriesChanged;
+        ShellPrefs.HomeLibraryCoverChanged -= OnHomeLibraryCoverChanged;
+        ShellPrefs.HomeLibraryCoverChanged += OnHomeLibraryCoverChanged;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         ShellPrefs.AppearanceChanged += OnAppearanceChanged;
 
@@ -1527,6 +1529,7 @@ public sealed partial class HomePage : Page, IShellContent
         Subscriptions.Release();
         ShellPrefs.Changed -= OnShellPrefsChanged;
         ShellPrefs.HomeLibraryEntriesChanged -= OnHomeLibraryEntriesChanged;
+        ShellPrefs.HomeLibraryCoverChanged -= OnHomeLibraryCoverChanged;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         if (_localLibraries is { } localLibraries) localLibraries.Changed -= OnLocalLibrariesChanged;
         _localLibraries = null;
@@ -1569,6 +1572,11 @@ public sealed partial class HomePage : Page, IShellContent
         ViewModel.ApplyLibraryEntries(ui);
         RefreshHomeRows();
         ScheduleFold();
+    }
+
+    private void OnHomeLibraryCoverChanged(Configuration.UiSettings ui)
+    {
+        if (!_released) ViewModel.ApplyLibraryCovers(ui);
     }
 
     private void OnLocalLibrariesChanged(object? sender, EventArgs args)

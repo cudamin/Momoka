@@ -25,7 +25,7 @@ namespace Momoka.Shell.Views;
 /// nulling <see cref="Poster"/> is the only thing that actually frees the decoded surface.
 /// </para>
 /// </summary>
-public sealed class CardItem : INotifyPropertyChanged
+public sealed partial class CardItem : INotifyPropertyChanged
 {
     private const string Category = "卡片";
 
@@ -724,6 +724,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
         Poster = null;
         ClearCollageTiles();
+        ClearHomeLibraryCoverImages();
 
         // 首图尚未返回也得重启；离屏后只是继续等旧图，不因此开启新宽度请求。
         // 容器再把它递进来时，EnsurePosterAsync 会按最新宽度取。
@@ -765,7 +766,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </para>
     /// </summary>
     public bool ImagePending =>
-        _loading is not null && _poster is null && !FolderCollage && !LibraryWall;
+        _homeLibraryCoverPreset is null && _loading is not null && _poster is null && !FolderCollage && !LibraryWall;
 
     /// <summary>「在等图」变了就喊一声 —— 绑定它的那道流光据此起停。</summary>
     private void RaiseImagePending() => Raise(nameof(ImagePending));
@@ -931,6 +932,13 @@ public sealed class CardItem : INotifyPropertyChanged
         _wanted = true;
         _resizeWanted = true;
         if (presentation is not null) _presentation = presentation;
+
+        if (_homeLibraryCoverPreset == Configuration.HomeLibraryCoverPresets.Gradient) return;
+        if (_homeLibraryCoverPreset is not null && !IsNavigation)
+        {
+            await EnsureHomeLibraryCoverAsync(presentation).ConfigureAwait(true);
+            return;
+        }
 
         if (FolderCollage || LibraryWall)
         {
@@ -1179,6 +1187,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
         Poster = null;
         ClearCollageTiles();
+        ClearHomeLibraryCoverImages();
     }
 
     /// <summary>导航封面由其属主读取，不捕获媒体服务器来源；保留取消、尺寸和容器需求守卫。</summary>
@@ -1234,6 +1243,7 @@ public sealed class CardItem : INotifyPropertyChanged
         RaiseImagePending();
         Poster = null;
         ClearCollageTiles();
+        ClearHomeLibraryCoverImages();
     }
 
     /// <summary>

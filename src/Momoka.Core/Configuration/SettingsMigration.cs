@@ -556,6 +556,9 @@ public static class SettingsMigration
         if (!Enum.IsDefined(settings.Ui.HomeLibraryPlacement))
             settings.Ui.HomeLibraryPlacement = Emby.HomeLibraryPlacement.Auto;
 
+        // 客户端封面预设无效时回到叠卡；不改变总开关或因为关闭而丢掉已选风格。
+        settings.Ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Normalize(settings.Ui.HomeLibraryCoverPreset);
+
         // 主题 id 不在目录里就写回默认那套，而不是留着一个认不出来的字符串：留着的话每次启动都要再判一次，
         // 而且设置里那个下拉框会显示成空的。这里换掉，用户下次保存就落盘成一个真的 id。
         settings.Ui.Theme = Theming.UiThemes.Resolve(settings.Ui.Theme).Id;
