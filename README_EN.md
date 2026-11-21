@@ -23,13 +23,14 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
 
 ## Screenshots
 
-![Momoka home screen with media libraries, continue watching, and recently added items](assets/readme/home.jpg)
-
-<p align="center"><em>Browse libraries, continue watching, and see recent and subscribed items from one home screen.</em></p>
+<table width="100%">
+  <tr>
+    <td width="50%" align="center" valign="top"><img src="assets/readme/home.jpg" alt="Momoka home screen with media libraries, continue watching, and recently added items" width="100%"><br><em>Libraries, continue watching, and recent additions</em></td>
+    <td width="50%" align="center" valign="top"><img src="assets/readme/detail.jpg" alt="Momoka movie details with playback, media information, cast, and similar titles" width="100%"><br><em>Movie details and media information</em></td>
+  </tr>
+</table>
 
 ![Browsing movies, series, and subscribed content in Momoka's library](assets/readme/library.gif)
-
-![Momoka movie details with playback, media information, cast, and similar titles](assets/readme/detail.jpg)
 
 ## Features
 
