@@ -18,6 +18,9 @@ internal static class Program
     internal static string Root { get; private set; } = "";
     private static PermissionShellRuntime? _shell;
     private static readonly List<(string Name, Func<Task> Run)> Cases = [];
+    private static string _stage = "start";
+
+    private static void Stage(string value) => System.Threading.Volatile.Write(ref _stage, value);
 
     private static async Task<int> Main(string[] args)
     {
@@ -25,20 +28,39 @@ internal static class Program
         if (args.Length is < 1 or > 2 || !Path.IsPathFullyQualified(args[0]))
             throw new ArgumentException("传入本工作树绝对路径，可选本树当前 Release Shell DLL。");
         Root = Path.GetFullPath(args[0]);
+        var watchdog = new System.Threading.Thread(() =>
+        {
+            var previous = System.Threading.Volatile.Read(ref _stage);
+            var stalled = 0;
+            while (true)
+            {
+                System.Threading.Thread.Sleep(5_000);
+                var current = System.Threading.Volatile.Read(ref _stage);
+                if (current != previous) { previous = current; stalled = 0; continue; }
+                if (++stalled < 24) continue;
+                Console.Error.WriteLine("R011 挂起：120 秒没有进展，停在 " + current);
+                Environment.FailFast("R011 hang: " + current);
+            }
+        }) { IsBackground = true, Name = "r011-watchdog" };
+        watchdog.Start();
         var project = Path.Combine(Root, "tests", "Momoka.CurrentPermissionSnapshotTests");
         Assert.True(typeof(Program).Assembly.Location.StartsWith(project + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+        Stage("shell-load");
         if (args.Length == 2) _shell = new PermissionShellRuntime(args[1]);
         Console.WriteLine("R-011 匿名当前权限／完整 FnNas VM＋真实生成器／可选实际 Settings VM＋原样 Page；禁止认证、设置IO、真实网络、App、native、播放。");
+        Stage("register");
         RegisterCore();
         RegisterFnNas();
         RegisterSources();
         RegisterPermissionEdges();
         if (_shell is not null) { RegisterSettings(); RegisterSettingsEdges(); }
+        Stage("cases");
         var results = new List<object>();
         var failures = 0;
         var stopwatch = Stopwatch.StartNew();
         foreach (var (name, run) in Cases)
         {
+            Stage("case: " + name);
             try
             {
                 await run();
@@ -52,11 +74,14 @@ internal static class Program
                 Console.WriteLine("失败 " + name + " —— " + error.Message);
             }
         }
+        Stage("result-path");
         var output = Path.GetFullPath(Environment.GetEnvironmentVariable("R011_RESULT_PATH")
             ?? Path.Combine(Root, "artifacts", "r011-current-permission", "result-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-ffff") + ".json"));
         Assert.True(output.StartsWith(Path.Combine(Root, "artifacts") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
         Assert.False(File.Exists(output), "不得覆盖红／绿证据");
+        Stage("result-directory");
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+        Stage("result-write");
         File.WriteAllText(output, System.Text.Json.JsonSerializer.Serialize(new
         {
             startedAgainst = "anonymous fixture only",
@@ -69,7 +94,9 @@ internal static class Program
             cases = results,
             notExecuted = new[] { "Authenticate/TryReauthenticate/Restore/Password", "CredentialVault/DPAPI/settings IO", "WinUI/App/native/real network/playback", "full Core/selfcheck/user mutex", "publish/push/shortcut" }
         }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) + "\n", new UTF8Encoding(false));
+        Stage("summary");
         Console.WriteLine($"共 {Cases.Count} 项，通过 {Cases.Count - failures}，失败 {failures}，跳过 0；证据 {output}");
+        Stage("done");
         return failures == 0 ? 0 : 1;
     }
 

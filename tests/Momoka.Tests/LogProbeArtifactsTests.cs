@@ -36,6 +36,15 @@ internal static class LogProbeArtifactsTests
             Assert.True(Directory.Exists(otherNewest), "别的探针也各留最后一份");
         }));
 
+        Test("探针产物：独占播放报告使用当前探针的三天保留规则", () => InTempDirectory(root =>
+        {
+            var expired = NewRun(root, "standalone-playback-probe", Now.AddDays(-5), 1);
+            var latest = NewRun(root, "standalone-playback-probe", Now.AddDays(-4), 2);
+            Assert.Equal(1, LogProbeArtifacts.Prune(root, Now, TimeSpan.FromDays(3)));
+            Assert.False(Directory.Exists(expired));
+            Assert.True(Directory.Exists(latest));
+        }));
+
         Test("探针产物：不认识的名字、日志文件和用户保留的证据一律不碰", () => InTempDirectory(root =>
         {
             Directory.CreateDirectory(root);

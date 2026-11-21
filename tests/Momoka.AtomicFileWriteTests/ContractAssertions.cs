@@ -85,6 +85,9 @@ internal sealed record FileState(bool Exists, FileAttributes? Attributes, long? 
 internal static class FileIo
 {
     public const FileShare SharedDelete = FileShare.ReadWrite | FileShare.Delete;
+    // ReplaceFile may briefly deny new readers; only the Win32 sharing/lock errors are retried.
+    public const int SharingRetryBudget = 50;
+    public const int SharingRetryDelayMs = 20;
 
     public static FileStream OpenReader(string path, FileShare share = SharedDelete) =>
         new(path, FileMode.Open, FileAccess.Read, share, bufferSize: 1, FileOptions.SequentialScan);
@@ -94,6 +97,23 @@ internal static class FileIo
         using var reader = OpenReader(path);
         return ReadRemainder(reader);
     }
+
+    public static byte[] ReadCompleteRetryingSharing(string path, out int retries)
+    {
+        retries = 0;
+        for (var attempt = 0; ; attempt++)
+        {
+            try { return ReadComplete(path); }
+            catch (IOException error) when (attempt < SharingRetryBudget && IsTransientSharing(error))
+            {
+                retries++;
+                Thread.Sleep(SharingRetryDelayMs);
+            }
+        }
+    }
+
+    private static bool IsTransientSharing(IOException error) =>
+        error.HResult == unchecked((int)0x80070020) || error.HResult == unchecked((int)0x80070021);
 
     public static byte[] ReadRemainder(Stream reader, byte[]? prefix = null)
     {

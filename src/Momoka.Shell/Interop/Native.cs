@@ -476,6 +476,12 @@ internal static partial class Native
     [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
     public static partial IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 
+    [LibraryImport("user32.dll", EntryPoint = "SendMessageTimeoutW", SetLastError = true)]
+    public static partial IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr wParam, IntPtr lParam,
+        uint flags, uint timeout, out IntPtr result);
+
+    public const uint SmtoAbortIfHung = 0x0002;
+
     /// <summary>
     /// 从一段 ICO 图像数据造一颗图标。两扇第二窗口用它造「整幅全透明」的那颗占住标题栏 —— 见
     /// <see cref="BlankCaptionIcon"/>。必须是 32bpp：单色 1bpp 的透明掩码 DWM 不认，

@@ -12,6 +12,8 @@ namespace Momoka.Infrastructure;
 /// </summary>
 public static class StartupArgs
 {
+    private const string StandalonePlaybackProbeFlag = "--probe-standalone-playback";
+    private const string StandalonePlaybackProbeNextFlag = "--probe-standalone-playback-next";
     private const string SelfCheckFlag = "--self-check";
     private const string SelfCheckDataFlag = "--self-check-data";
 
@@ -109,6 +111,38 @@ public static class StartupArgs
 
     public static bool RequestsSubtitleProbe(string[] args) => args.Any(argument =>
         argument.TrimStart('-', '/').Split('=', 2)[0].Equals("probe-subtitles", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>识别只能播放本地测试素材的独占原生探针。</summary>
+    public static bool RequestsStandalonePlaybackProbe(string[] args) => args.Any(argument =>
+        argument.TrimStart('-', '/').Split('=', 2)[0].Equals(StandalonePlaybackProbeFlag.TrimStart('-'), StringComparison.OrdinalIgnoreCase)
+        || argument.TrimStart('-', '/').Split('=', 2)[0].Equals(StandalonePlaybackProbeNextFlag.TrimStart('-'), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>解析两段测试素材并拒绝任何普通启动或副作用开关。</summary>
+    public static (string FirstFile, string SecondFile) ValidateStandalonePlaybackProbe(string[] args)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < args.Length; index++)
+        {
+            var parts = args[index].TrimStart('-', '/').Split('=', 2);
+            var name = parts[0].ToLowerInvariant();
+            if (!seen.Add(name)) throw new ArgumentException("独占播放探针参数不能重复");
+            if (name is "probe-standalone-playback" or "probe-standalone-playback-next")
+            {
+                var value = parts.Length == 2 ? parts[1] : index + 1 < args.Length
+                    && !args[index + 1].StartsWith('-') && !args[index + 1].StartsWith('/')
+                        ? args[++index] : null;
+                if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("独占播放探针缺少本地素材路径");
+                files.Add(name, value);
+                continue;
+            }
+            throw new ArgumentException("独占播放探针不能与其他启动模式组合");
+        }
+        if (!files.TryGetValue("probe-standalone-playback", out var first)
+            || !files.TryGetValue("probe-standalone-playback-next", out var second))
+            throw new ArgumentException("独占播放探针需要两个本地素材路径");
+        return (first, second);
+    }
 
     public static void ValidateSubtitleProbe(string[] args)
     {

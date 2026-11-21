@@ -46,6 +46,12 @@ public sealed record StartupOptions
 
     public bool InspectSubtitles { get; init; }
 
+    public bool ProbeStandalonePlayback { get; init; }
+
+    public string? ProbeStandaloneFile { get; init; }
+
+    public string? ProbeStandaloneNextFile { get; init; }
+
     public bool ProbeCursor { get; init; }
 
     public string? ProbeCursorFile { get; init; }
@@ -330,10 +336,26 @@ internal static class Program
 
         var paths = AppPaths.Default;
 
+        if (RequestsStandalonePlaybackProbe(args))
+        {
+            try { _ = StandalonePlaybackProbe.ValidateFixtures(args); }
+            catch (Exception error)
+            {
+                Console.Error.WriteLine($"[失败] 独占播放探针参数错误：{error.Message}；未清理报告或启动程序");
+                return 1;
+            }
+        }
+        else if (RequestsStandalonePlaybackProbeNext(args))
+        {
+            Console.Error.WriteLine("[失败] 独占播放探针缺少首片开关；未清理报告或启动程序");
+            return 1;
+        }
+
         // logs 下只有 app-*.log 有自己的保留期；探针一次运行留下的截图、WebView2 配置和测量文件没有。
         // 探针/自检在开窗前同步回收（避免清理 IO 混进计时和截图），正常启动放到后台。见 LogProbeArtifacts。
         PruneProbeArtifacts(paths.LogDirectory, beforeToolRun:
             RequestsShellProbe(args) || RequestsSubtitleProbe(args) || RequestsSelfCheck(args)
+            || RequestsStandalonePlaybackProbe(args)
             || CompositionPlaybackProbe.IsRequested(args) || CursorVisibilityProbe.IsRequested(args)
             || PlayerMotionProbe.IsRequested(args));
 
@@ -387,6 +409,22 @@ internal static class Program
             }
         }
 
+        if (RequestsStandalonePlaybackProbe(args))
+        {
+            try
+            {
+                _ = StandalonePlaybackProbe.ValidateFixtures(args);
+                if (LegacyInstanceIsRunning() is { } legacyEvent)
+                    throw new InvalidOperationException($"旧版 Momoka 正在运行（{legacyEvent}）；请先退出后运行独占探针。");
+                return RunDesktopProbeExclusive(args, paths, "standalone-playback-probe");
+            }
+            catch (Exception error)
+            {
+                Console.Error.WriteLine($"[失败] 独占播放探针准备失败（{error.GetType().Name}）：{error.Message}；未启动主程序");
+                return 1;
+            }
+        }
+
         // Includes malformed self-check/data requests: no migration, normal activation or probe may
         // run before this validation. Preparation errors never open a fallback client or print secrets.
         if (RequestsSelfCheck(args))
@@ -411,23 +449,17 @@ internal static class Program
         // never fall through to the real client, nor activate an already-running Emby session.
         if (CompositionPlaybackProbe.IsRequested(args))
         {
-            paths = new AppPaths(Path.Combine(paths.LogDirectory,
-                $"composition-probe-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Environment.ProcessId}"));
-            return Run(args, paths, migratedFrom: null, selfCheck: false);
+            return RunDesktopProbeExclusive(args, paths, "composition-probe");
         }
 
         if (CursorVisibilityProbe.IsRequested(args))
         {
-            paths = new AppPaths(Path.Combine(paths.LogDirectory,
-                $"cursor-probe-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Environment.ProcessId}"));
-            return Run(args, paths, migratedFrom: null, selfCheck: false);
+            return RunDesktopProbeExclusive(args, paths, "cursor-probe");
         }
 
         if (PlayerMotionProbe.IsRequested(args))
         {
-            paths = new AppPaths(Path.Combine(paths.LogDirectory,
-                $"player-motion-probe-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Environment.ProcessId}"));
-            return Run(args, paths, migratedFrom: null, selfCheck: false);
+            return RunDesktopProbeExclusive(args, paths, "player-motion-probe");
         }
 
         // First real statement on purpose: everything below reads settings, and under the old name — or,
@@ -460,6 +492,43 @@ internal static class Program
         }
     }
 
+    private static int RunDesktopProbeExclusive(string[] args, AppPaths paths, string prefix)
+    {
+        using var applicationMutex = new Mutex(false, InstanceMutexName);
+        using var desktopMutex = new Mutex(false, SelfCheckRun.MutexName);
+        var ownsApplication = false;
+        var ownsDesktop = false;
+        try
+        {
+            try { ownsApplication = applicationMutex.WaitOne(0); }
+            catch (AbandonedMutexException) { ownsApplication = true; }
+            if (!ownsApplication) throw new InvalidOperationException("Momoka 正在运行；桌面探针未启动");
+            if (LegacyInstanceIsRunning() is { } legacyEvent)
+                throw new InvalidOperationException($"旧版 Momoka 正在运行（{legacyEvent}）；桌面探针未启动");
+            try { ownsDesktop = desktopMutex.WaitOne(0); }
+            catch (AbandonedMutexException) { ownsDesktop = true; }
+            if (!ownsDesktop) throw new InvalidOperationException("另一个桌面诊断正在运行");
+
+            var runPaths = new AppPaths(Path.Combine(paths.LogDirectory,
+                $"{prefix}-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Environment.ProcessId}"));
+            return Run(args, runPaths, migratedFrom: null, selfCheck: false);
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine($"[失败] 桌面探针准备失败（{error.GetType().Name}）：{error.Message}；未启动普通客户端");
+            return 1;
+        }
+        finally
+        {
+            if (ownsDesktop) desktopMutex.ReleaseMutex();
+            if (ownsApplication) applicationMutex.ReleaseMutex();
+        }
+    }
+
+    private static bool RequestsStandalonePlaybackProbeNext(string[] args) => args.Any(argument =>
+        argument.TrimStart('-', '/').Split('=', 2)[0]
+            .Equals("probe-standalone-playback-next", StringComparison.OrdinalIgnoreCase));
+
     private static int Run(string[] args, AppPaths paths, string? migratedFrom, bool selfCheck)
     {
         StartLogging(paths);
@@ -484,6 +553,11 @@ internal static class Program
             NavigationTiming = Has(args, "--navigation-timing"),
             ProbeSubtitles = RequestsSubtitleProbe(args),
             InspectSubtitles = Text(args, "--probe-subtitles") == "inspect",
+            ProbeStandalonePlayback = RequestsStandalonePlaybackProbe(args),
+            ProbeStandaloneFile = RequestsStandalonePlaybackProbe(args)
+                ? ValidateStandalonePlaybackProbe(args).FirstFile : null,
+            ProbeStandaloneNextFile = RequestsStandalonePlaybackProbe(args)
+                ? ValidateStandalonePlaybackProbe(args).SecondFile : null,
             ProbeComposition = CompositionPlaybackProbe.IsRequested(args),
             ProbeCompositionFile = Text(args, "--probe-composition"),
             ProbeCursor = CursorVisibilityProbe.IsRequested(args),
@@ -566,6 +640,7 @@ internal static class Program
             Log.Info(Category, "正常退出");
             return options.ProbeShell ? ShellNavigationProbe.ExitCode
                 : options.ProbeSubtitles ? SubtitleSettingsProbe.ExitCode
+                : options.ProbeStandalonePlayback ? StandalonePlaybackProbe.ExitCode
                 : options.ProbeComposition ? CompositionPlaybackProbe.ExitCode
                 : options.ProbeCursor ? CursorVisibilityProbe.ExitCode
                 : options.ProbePlayerMotion ? PlayerMotionProbe.ExitCode : options.SelfCheck ? ShellSelfCheck.ExitCode : 0;
@@ -593,7 +668,7 @@ internal static class Program
     /// </summary>
     private static bool ToolingRun(StartupOptions options) =>
         options.Tooling || options.ProbeShell || options.InspectShell || options.ProbeSubtitles || options.InspectSubtitles
-        || options.ProbeComposition || options.ProbeCursor || options.ProbePlayerMotion
+        || options.ProbeStandalonePlayback || options.ProbeComposition || options.ProbeCursor || options.ProbePlayerMotion
         || options.ProbeResizeOnly || options.ProbeResizeManual;
 
     /// <summary>
