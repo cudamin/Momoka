@@ -161,6 +161,19 @@ internal static partial class ShortcutTests
             Assert.Equal("toggle-fullscreen", ShortcutCatalog.Lookup(result.Bindings, Key("K")));
         });
 
+        Test("Rebind：替换占用键时新动作原本未绑定，原占用者解绑", () =>
+        {
+            var bindings = new Dictionary<string, string>(StringComparer.Ordinal) { ["video-pan-left"] = "" };
+            var result = ShortcutCatalog.Rebind(bindings, "video-pan-left", Key("F"), replaceConflict: true);
+
+            Assert.True(result.Replaced);
+            Assert.Equal("F", result.Bindings["video-pan-left"]);
+            Assert.Equal("", result.Bindings["toggle-fullscreen"], "新动作原来没有键，原占用者应当解绑");
+            Assert.Equal("video-pan-left", ShortcutCatalog.Lookup(result.Bindings, Key("F")));
+            Assert.Null(ShortcutCatalog.Lookup(result.Bindings, Key("Left", alt: true)), "解绑后旧键不再触发任何动作");
+            Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("M")));
+        });
+
         Test("Rebind：绑回自己的默认键，就把这条改动删掉（回到「没动过」）", () =>
         {
             var moved = new Dictionary<string, string>(StringComparer.Ordinal) { ["toggle-mute"] = "K" };
