@@ -15578,10 +15578,13 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 - **验证。** Core/Shell/Tests Release 编译 0 警告 0 错误；`Momoka.Tests` **5270/5270**，0 失败 0 跳过（154 秒）；全量解决方案构建在本机受 `py` 缺失与两个测试项目既有生成源错误阻断（`DetailDeleteCommandTests`、`DanmakuPerformanceTests`、`DanmakuSourceBoundaryTests`、`SubscriptionIdentityTests`、`DetailImageArrivalTests`），与本改动无关；`tools/check-diff.ps1` 5 个变更路径通过；`tools/check-doc-commands.ps1` 0 个问题。未跑质量闸门全量与原生探针（本次不改变界面行为）。待统一验证时复跑完整闸门。
 
 **合并（2026-11-20，用户令「合并」）。** 分支 `log-directory-size-mmJue0`（顶端 `9802ac8`）在主树 `master` 的 `3893d36` 上以 `--no-ff` 合入，合并提交 `ad5ceb0`；`PROGRESS.md` 由 Git 自动合并、无冲突。合并后在最终 master 上复编 Core/Shell Release/x64 **0 警告 0 错误**（3 分 28 秒）；全量 `Momoka.Tests` **5270/5270**，0 失败 0 跳过（153 秒，含 7 项探针产物用例）。按规则合并本身未跑探针与统一验证；未推远端；本轮只确认合并结果可编译可测试，不销账。分支已删除；`git worktree remove` 因 Windows 长路径报错但已撤销工作树注册，残留目录被当前会话占用无法删净，登记待会话关闭后清理；本分支没有单独的桌面快捷方式。
+
 ## 2026-11-21 通知移到诊断上方并按服务器显隐（临时分支，待合并）
 
 当前树 C:/Users/89400/.codex/worktrees/6450/Momoka，分支 codex/notification-settings-placement，基点 402ff86。按用户要求将单服／多服通知入口统一移到 Momoka 组「诊断」正上方；多台 Emby 独立保留来源绑定，名称附服务器名，下拉和搜索一致。Jellyfin、飞牛影视／音乐和 Plex 未适配 Emby 用户通知接口，连接后隐藏，不以相似的插件／账号 Webhook 代替；隐藏不清偏好。通知 VM 严格限制在线 Emby 与当前管理员权限，旧编辑器在降权后保存／测试均在发请求前拒绝，权限未知沿用 Emby 既有回退。
 
 Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告 0 错误；设置页真实 VM 回归 73/73、设置搜索 16/16、设置适用性 38/38，0 失败 0 跳过；通知专项含所有服务器类型 × 三种权限 × 默认／独立来源的 30 种组合、降权旧编辑器 Save/Test 零请求与既有恢复回归通过。初次新增编辑器测试遗漏把行加入 Entries，正确触发「未实际打开编辑器」失败，修正匿名夹具后通过；未放宽生产守卫。格式首轮两份新增测试有缩进错误，定向修复后通过。探针旧排序断言同步，真实纯静态检查函数的正确顺序、错位和缺失反例已离线执行；完整 WinUI 管理／多来源探针未运行。没有新增样式／资源键，不触发高风险 XAML 最小加载；实际主题、DPI、宽窄、键盘和实服通知仍待统一验收，不销账。证据在 artifacts/notification-settings-evidence/。
 
-架构依赖 7/7、184 份文档链接、154 个命令块语法、改动格式与报告凭据扫描均通过。Shell 格式工具有工作区加载提示，退出码 0；不作为编译警告。工作树原有 README.md、README_EN.md、library.gif 删除及 library.webm 新增均保留，哈希与开工时一致，排除本任务提交。没有登录、播放、读取真实凭据或写服务器；不自动合并或上传。体验发布与快捷方式回读结果在本条后续补记。
+架构依赖 7/7、184 份文档链接、154 个命令块语法、改动格式与报告凭据扫描均通过。Shell 格式工具有工作区加载提示，退出码 0；不作为编译警告。工作树原有 README.md、README_EN.md、library.gif 删除及 library.webm 新增均保留，哈希与开工时一致，排除本任务提交。没有登录、播放、读取真实凭据或写服务器；不自动合并或上传。
+
+产品提交 aaf0f81；本树完整自包含体验发布通过：548 文件／290.3 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件验证通过，未制作压缩包或安装包。检出缺少的忽略文件 libmpv-2.dll 从主树复制，前后 SHA256 均与本树登记的 FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17 一致，无内核升级。桌面 C:/Users/89400/Desktop/Momoka-notification-settings-placement.lnk 已回读目标、本树工作目录及空参数正确，指向 artifacts/publish/win-x64/Momoka.exe；主树快捷方式未改。EXE SHA256 35BB11527A959849C976B0DCEAD0C8743EA3A989F1D3CB2F5EEFDBB93516F290，主程序集 SHA256 40E428E8917F0EB773643B90EDB0055486E8B96BDD7F7B98F932E6DF8C80610C。发布与回读证据为同目录 publish.log／shortcut-receipt.json。分支本地体验已刷新，未启动客户端或运行原生画面验收，未合并、不上传。
