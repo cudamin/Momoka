@@ -1000,10 +1000,13 @@ internal static class Program
             var scene = new Scene();
             var motion = scene.Start(true);
             var late = scene.Drain()!;
+            scene.Page.UseHomeLibraryCoverPreferences();
+            Equal(1, ShellPrefs.HomeLibraryCoverSubscribers, "cover preference notice belongs to this visit");
             scene.Page.Release();
             Check(scene.Page.MainMotion is null && scene.Page.LateMotion is null, "release clears current owners");
             Equal(0, Board(motion).HandlerCount, "release detaches main Completed");
             Equal(0, Board(late).HandlerCount, "release detaches late Completed");
+            Equal(0, ShellPrefs.HomeLibraryCoverSubscribers, "release detaches the cover preference notice");
             Equal(1, scene.Page.ViewModel.CancelCalls, "actual Release calls VM boundary Cancel once");
         });
         Case("page/release-detaches-local-library-event-and-owner", () =>
