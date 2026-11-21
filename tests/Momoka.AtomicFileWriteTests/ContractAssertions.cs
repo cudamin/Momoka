@@ -82,10 +82,31 @@ internal sealed record FileState(bool Exists, FileAttributes? Attributes, long? 
     }
 }
 
+/// <summary>Readers report how often a fresh open had to wait out a transient Win32 sharing/lock error.</summary>
+internal sealed class RetryStats
+{
+    private int _total;
+    private int _max;
+
+    public int Total => Volatile.Read(ref _total);
+    public int Max => Volatile.Read(ref _max);
+
+    public void Record(int retries)
+    {
+        if (retries <= 0) return;
+        Interlocked.Add(ref _total, retries);
+        int observed;
+        while (retries > (observed = Volatile.Read(ref _max))
+            && Interlocked.CompareExchange(ref _max, retries, observed) != observed) { }
+    }
+}
+
 internal static class FileIo
 {
     public const FileShare SharedDelete = FileShare.ReadWrite | FileShare.Delete;
-    // ReplaceFile may briefly deny new readers; only the Win32 sharing/lock errors are retried.
+    // ReplaceFile may briefly deny new readers while it swaps the primary and the backup in place.
+    // Only those two Win32 errors are retried; a missing path, a half document or a wrong candidate
+    // still fails at once, and the test never serializes readers against commits with its own lock.
     public const int SharingRetryBudget = 50;
     public const int SharingRetryDelayMs = 20;
 

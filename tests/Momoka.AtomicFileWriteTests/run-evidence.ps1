@@ -47,7 +47,9 @@ Save-Json 'preconditions.json' ([ordered]@{
     sourceSha256 = $sourceHash; source = $source; sdk = $sdk; status = $status;
     coreDependencyDiff = $diff; testFiles = $testHashes; controlsOnly = [bool]$ControlsOnly;
     backupFailuresOnly = [bool]$BackupFailuresOnly; scope = $scope;
-    noNetwork = $true; retryBudget = 0; releaseSingleNode = $true
+    noNetwork = $true; contentRetryBudget = 0; releaseSingleNode = $true;
+    # Bounded wait for Win32 sharing/lock denials only; per-case counts are recorded as facts.
+    sharingRetryBudget = 50; sharingRetryDelayMs = 20
 })
 # Snapshot evidence only; the project always compile-links the CURRENT repository source.
 [System.IO.File]::WriteAllBytes((Join-Path $output 'AtomicFile.dependency-snapshot.txt'), [System.IO.File]::ReadAllBytes($source))

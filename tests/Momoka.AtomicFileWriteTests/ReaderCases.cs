@@ -64,11 +64,14 @@ internal static class ReaderCases
         var successfulCommits = 0;
         var completedRounds = 0;
         var completeReads = 0;
+        var retries = new RetryStats();
         fixture.Fact("roundBudget", Rounds);
         fixture.Fact("readerCount", ReaderCount);
         fixture.Fact("writesPerRound", WritesPerRound);
         fixture.Fact("freshReadsPerReaderRound", FreshReadsPerRound);
-        fixture.Fact("retryBudget", 0);
+        fixture.Fact("contentRetryBudget", 0);
+        fixture.Fact("sharingRetryBudget", FileIo.SharingRetryBudget);
+        fixture.Fact("sharingRetryDelayMs", FileIo.SharingRetryDelayMs);
         try
         {
             for (var round = 0; round < Rounds; round++)
@@ -100,7 +103,11 @@ internal static class ReaderCases
                         {
                             // Fresh opens are deliberately unsynchronized with individual commits.
                             // A missing path, partial UTF-8 or spliced document is a failure, not retry.
-                            Check.CompleteCandidate(candidates, FileIo.ReadComplete(target),
+                            // A Win32 sharing/lock denial from ReplaceFile's in-place swap is waited
+                            // out and counted; the re-read still has to be one exact round candidate.
+                            var fresh = FileIo.ReadCompleteRetryingSharing(target, out var freshRetries);
+                            retries.Record(freshRetries);
+                            Check.CompleteCandidate(candidates, fresh,
                                 $"round={round} reader={readerIndex} fresh={read} 不得看半文档/空窗");
                             Interlocked.Increment(ref completeReads);
                         }
@@ -110,7 +117,9 @@ internal static class ReaderCases
                         Interlocked.Increment(ref completeReads);
                         if (writerCompleted)
                         {
-                            Check.Bytes(last, FileIo.ReadComplete(target), "提交后新 reader 得到最终完整文档");
+                            var latest = FileIo.ReadCompleteRetryingSharing(target, out var latestRetries);
+                            retries.Record(latestRetries);
+                            Check.Bytes(last, latest, "提交后新 reader 得到最终完整文档");
                             Interlocked.Increment(ref completeReads);
                         }
                     }
@@ -136,7 +145,14 @@ internal static class ReaderCases
                             AtomicFile.WriteAllText(target, texts[operation], Documents.Utf8, backup ? backupPath : null);
                         else AtomicFile.WriteAllBytes(target, replacements[operation]);
                         successfulCommits++;
-                        if (backup) Check.Bytes(previous, FileIo.ReadComplete(backupPath), "有读者时每次备份精确为前主文件");
+                        // The readers' old file object became this backup, so the publish can briefly
+                        // deny a fresh open too; the bytes still have to equal the exact predecessor.
+                        if (backup)
+                        {
+                            var backupBytes = FileIo.ReadCompleteRetryingSharing(backupPath, out var backupRetries);
+                            retries.Record(backupRetries);
+                            Check.Bytes(previous, backupBytes, "有读者时每次备份精确为前主文件");
+                        }
                         previous = replacements[operation];
                     }
                     writerCompleted = true;
@@ -160,6 +176,8 @@ internal static class ReaderCases
             fixture.Fact("successfulCommits", successfulCommits);
             fixture.Fact("completedRounds", completedRounds);
             fixture.Fact("completeReads", completeReads);
+            fixture.Fact("sharingRetries", retries.Total);
+            fixture.Fact("maxSharingRetriesPerRead", retries.Max);
             fixture.Snapshot("finalTarget", target);
             if (backup) fixture.Snapshot("finalBackup", backupPath);
         }

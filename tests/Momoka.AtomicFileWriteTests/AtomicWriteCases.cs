@@ -400,7 +400,7 @@ internal static class BackupFailureCases
             fixture.Fact("primaryReaderShare", FileIo.SharedDelete.ToString());
             fixture.Fact("backupReaderShare", backupShare.ToString());
             fixture.Fact("backupReadOnly", readOnly);
-            fixture.Fact("retryBudget", 0);
+            fixture.Fact("contentRetryBudget", 0);
             using var primaryReader = FileIo.OpenReader(target);
             using var backupReader = FileIo.OpenReader(backup, backupShare);
             var primaryPrefix = new byte[137];
