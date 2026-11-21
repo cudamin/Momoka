@@ -55,6 +55,8 @@ internal static class SmallTableLayoutTests
             var probe = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.InfoTable.cs"));
             Assert.Contains("InfoTableProbeFixture.RequireRendered(10, realized, first.Contains('：'))", probe);
             Assert.Contains("tableTop + table.ActualHeight > 0 && tableTop < body.ViewportHeight", probe);
+            Assert.Contains("SaveProbeScreenAsync($\"info-table-{size.Width}-{size.Height}-screen.png\")", probe);
+            Assert.Contains("SaveSettledFrameAsync(page, $\"info-table-{size.Width}-{size.Height}-render.png\")", probe);
         });
     }
 }

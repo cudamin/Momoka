@@ -70,6 +70,8 @@ internal sealed partial class ShellNavigationProbe
                 Require(tableTop + table.ActualHeight > 0 && tableTop < body.ViewportHeight, "媒体表不在可见视口");
                 Require(fixture.Actions.Plays == 0, "信息表定位意外起播");
                 await SaveProbeScreenAsync($"info-table-{size.Width}-{size.Height}-screen.png");
+                // 本机 XAML 岛的 BitBlt 实屏可能只有窗口底色；另存实际页面渲染帧，不能将两者混称。
+                await SaveSettledFrameAsync(page, $"info-table-{size.Width}-{size.Height}-render.png");
                 page.Release();
 
                 void Capture(string phase)
