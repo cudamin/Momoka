@@ -1,3 +1,11 @@
+## 2026-11-21 补齐封面预设分支桌面快捷方式
+
+用户要求「桌面快捷方式」，基于本树封面预设产品提交 `d6fbea3`。上次发布的许可字节不一致已查明：`f27bc9c` 的 `THIRD-PARTY-NOTICES.md` 原始Git字节17152／SHA256 `c18c0f258c3124e9e532a07de1c7238a94b0c90555795ed316c8bd268f21c205` 与旧批准精确一致；后续 `293a5deb95b4a7e9a6ecae83b63ecc3c36460e99` 只加一行mpv固定源码与对应构建发布链接（257字节），当前文件17409／SHA256 `8c06a4b1dc5aa2de7f965e9f704e2ad0ea98a479e19cce3ff729fffdf9174459` 等于该Git blob。删除新增一行即可逐字节回到旧批准；项目与第三方许可条款、归属和源码义务没有变化。主代理与独立代理逐行复核后仅更新这一条size/hash；其余60份来源、所有native、许可和evidence批准未变，不自动接受待验载荷。
+
+重新运行 `publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-home-library-cover-presets` 已成功：完整自包含发布验证548文件／290.3MB，14个GLSL／4个HOOK，固定mpv批准60文件（51 UI／2 native）通过。桌面 `C:/Users/89400/Desktop/Momoka-home-library-cover-presets.lnk` 已创建并回读TargetPath／WorkingDirectory／空参数均正确，指向本树 `artifacts/publish/win-x64/Momoka.exe`；主树 `Momoka.lnk` 未改。EXE SHA256 `980a235b33fcae13e2181141c7ace99eea7389fdef41522c7565576b7dea8afc`，主程序集SHA256 `a1c85172bb66fb39bd3c3f293d897b6c290cddf2bcf9a1709dc06a187a281a4f`。日志和回读回执在 `artifacts/home-library-cover-evidence/shortcut-publish.log`／`shortcut-receipt.json`。
+
+这是独立分支的本地体验刷新；未启动普通客户端、未登录／播放／写服务器、未运行原生探针／截图。此前发布红项是历史事实，本次已解决；批次仍待合并与统一验证，不销账、不上传。许可载荷成功／损坏拒绝回归152/152通过、0失败0跳过（`tools/test-mpv-payload.ps1 -Phase cover-shortcut`，独立合成夹具，实际发布证据另以上述完整校验为准）；文本格式、184文档链接、154命令块语法与凭据扫描均通过。
+
 ## 2026-11-21 主页媒体库封面四套预设（临时分支，待合并与统一验证）
 
 树 `C:/Users/89400/.codex/worktrees/1a30/Momoka`，分支 `codex/home-library-cover-presets`，基点 `6e22d3d`。按用户确认直接实现客户端显示覆盖：设置「主页 → 媒体库封面」总开关 + 叠卡／斜切大图／九宫格海报墙／纯文字渐变单选，默认关闭，关闭隐藏风格行但保留选择；只替换主页入口横排，关闭恢复原图。不生成服务器成品图、不上传、无新依赖。
