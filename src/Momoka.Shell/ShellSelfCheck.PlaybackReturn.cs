@@ -22,6 +22,8 @@ internal static partial class ShellSelfCheck
         TypedEventHandler<ScrollView, object> view = (_, _) => trace.Record("view-changed");
         TypedEventHandler<ScrollView, object> extent = (_, _) => trace.Record("extent-changed");
         TypedEventHandler<ScrollView, object> state = (_, _) => trace.Record("state-changed");
+        TypedEventHandler<ScrollView, ScrollingScrollCompletedEventArgs> completed = (_, args) =>
+            trace.Record("scroll-completed", args.CorrelationId);
         PropertyChangedEventHandler ready = (_, args) =>
         {
             if (args.PropertyName is "Busy" or "IsReady") trace.Record("view-model-" + args.PropertyName);
@@ -29,12 +31,14 @@ internal static partial class ShellSelfCheck
         body.ViewChanged += view;
         body.ExtentChanged += extent;
         body.StateChanged += state;
+        body.ScrollCompleted += completed;
         page.ViewModel.PropertyChanged += ready;
         _stopPlaybackReturnTrace = () =>
         {
             body.ViewChanged -= view;
             body.ExtentChanged -= extent;
             body.StateChanged -= state;
+            body.ScrollCompleted -= completed;
             page.ViewModel.PropertyChanged -= ready;
             _stopPlaybackReturnTrace = null;
         };

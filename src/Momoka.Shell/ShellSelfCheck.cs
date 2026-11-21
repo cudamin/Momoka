@@ -716,6 +716,10 @@ internal static partial class ShellSelfCheck
             else if (_stage == 1) _library = ReadLibrary(shell);
             else if (_stage == 2)
             {
+                // 等返回恢复时不要重走媒体信息的定位步骤；恢复期结束后仍保留原来的最终ReadInfo覆盖。
+                if (_returned && _fileReturn is null && shell.Pages.Content is DetailPage returning
+                    && WaitForPlaybackReturn(returning)) return true;
+
                 // Where the click of the previous tick ended up, read before anything else looks at the
                 // frame. A detail page is what it should be; a library page is the regression. Recorded
                 // once, on arrival: this stage comes back here three more times, by which point the frame
@@ -760,12 +764,7 @@ internal static partial class ShellSelfCheck
                 // 每一条读数都得先拿到手。
                 if (ReturnFromPlayer(shell)) return true;
 
-                if (_fileReturn is null && shell.Pages.Content is DetailPage back)
-                {
-                    EndPlaybackReturnTrace();
-                    var (returnOk, returnRead) = back.ReturnRead(_returnScrollBefore, _returnScrollAfterRefresh, _returnScrollAfterHide);
-                    _fileReturn = (back.ViewModel.ItemType, returnOk, returnRead);
-                }
+                if (_fileReturn is null && shell.Pages.Content is DetailPage back && ReadPlaybackReturn(back)) return true;
             }
             else if (_stage == 3) _servers = ReadServers(shell);
             else if (_stage == 4) _diagnostics = ReadDiagnostics(shell);
@@ -835,16 +834,7 @@ internal static partial class ShellSelfCheck
 
         // Which cards have been opened, this one included. Taken from the page rather than from the index,
         // so a category the list decided not to select is reported as what it is instead of as its neighbour.
-        var opened = _settings
-            .Select(stop => stop.Category)
-            .Append(page.SelectedCategory)
-            .ToHashSet(StringComparer.Ordinal);
-
-        _settings.Add(new SettingsStop(
-            page.SelectedCategory,
-            page.VisibleRows,
-            page.Realised,
-            cards.Where(card => opened.Contains(card.Category)).Sum(card => card.Rows)));
+        var opened = RecordSettingsStop(page);
 
         var next = cards.FirstOrDefault(card => !opened.Contains(card.Category)).Category;
         if (!string.IsNullOrEmpty(next))
@@ -866,6 +856,17 @@ internal static partial class ShellSelfCheck
             OpenConsoleOrReturn(page);
         }
         return true;
+    }
+
+    private static HashSet<string> RecordSettingsStop(SettingsPage page)
+    {
+        // 分类已选中、模型已 Ready 时，刚显露的行模板仍可能尚未完成布局。先量本页，再取实际容器数；
+        // 不主动实现缺行，不改累计预期，量后仍缺就保留原来的红读数。
+        page.UpdateLayout();
+        var opened = _settings.Select(stop => stop.Category).Append(page.SelectedCategory).ToHashSet(StringComparer.Ordinal);
+        _settings.Add(new SettingsStop(page.SelectedCategory, page.VisibleRows, page.Realised,
+            page.Cards.Where(card => opened.Contains(card.Category)).Sum(card => card.Rows)));
+        return opened;
     }
 
     private static void OpenConsoleOrReturn(SettingsPage page)
@@ -1155,6 +1156,24 @@ internal static partial class ShellSelfCheck
         shell.ShowPlayer(false);
         _returnScrollAfterHide = back.BodyScrollOffset;
         _playbackReturnTrace?.Record("player-hidden");
+        return true;
+    }
+
+    private static bool ReadPlaybackReturn(DetailPage back)
+    {
+        // Ready 只覆盖数据；现有600ms返回恢复期尚未结束时再等一拍。沿用本阶段总截止，
+        // 到期仍读取原始 ReturnRead，不能因为恢复未结束而无限等待或放宽偏移相等判据。
+        if (WaitForPlaybackReturn(back)) return true;
+        EndPlaybackReturnTrace();
+        var (returnOk, returnRead) = back.ReturnRead(_returnScrollBefore, _returnScrollAfterRefresh, _returnScrollAfterHide);
+        _fileReturn = (back.ViewModel.ItemType, returnOk, returnRead);
+        return false;
+    }
+
+    private static bool WaitForPlaybackReturn(DetailPage back)
+    {
+        if (back.IsPlaybackReturnSettled || _ticks >= Deadline) return false;
+        _playbackReturnTrace?.Record("waiting-for-reveal");
         return true;
     }
 

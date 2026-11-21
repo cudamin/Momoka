@@ -96,6 +96,11 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.ScrollView Body { get; } = new();
         internal Microsoft.UI.Xaml.InfoPanelBoundary InfoPanel { get; } = new();
         internal ReturnLoadBoundary ViewModel { get; } = new();
+        internal object XamlRoot { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement EpisodePanel { get; } = new() { Top = 498 };
+        internal ReturnSheetBoundary BodySheet { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement HeroTail { get; } = new() { ActualHeight = 16 };
+        private static double PaperOffset() => 484;
         internal Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
         private const string PointerWheelChangedEvent = "wheel";
         private const string PointerPressedEvent = "pointer";
@@ -108,10 +113,23 @@ namespace Momoka.Shell.Views
     }
     internal sealed class ReturnLoadBoundary : System.ComponentModel.INotifyPropertyChanged
     {
+        public string ItemType => Momoka.Emby.EmbyItemType.Episode;
+        public double HeroHeight => 468;
+        public double TailMinHeight => 16;
+        public double Viewport => 744;
+        public ReturnShelfBoundary? EpisodeShelf { get; set; }
         public bool Busy { get; set; }
         public bool IsReady { get; set; } = true;
         public List<int> InfoRows { get; } = [];
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         internal void Finish() { Busy = false; IsReady = true; PropertyChanged?.Invoke(this, new(nameof(IsReady))); }
+    }
+    internal sealed class ReturnShelfBoundary
+    {
+        internal List<int> Cards { get; } = [];
+    }
+    internal sealed class ReturnSheetBoundary
+    {
+        internal List<Microsoft.UI.Xaml.UIElement> Children { get; } = [];
     }
 }

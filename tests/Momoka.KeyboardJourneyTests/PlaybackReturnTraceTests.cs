@@ -56,7 +56,7 @@ internal static class PlaybackReturnTraceTests
             foreach (var stage in new[] { "player-shown", "refresh-requested", "player-hidden" })
                 Assert.Contains("_playbackReturnTrace?.Record(\"" + stage + "\");", shell);
             var events = File.ReadAllText(Path.Combine(directory.FullName, "src/Momoka.Shell/ShellSelfCheck.PlaybackReturn.cs"));
-            foreach (var (signal, handler) in new[] { ("ViewChanged", "view"), ("ExtentChanged", "extent"), ("StateChanged", "state") })
+            foreach (var (signal, handler) in new[] { ("ViewChanged", "view"), ("ExtentChanged", "extent"), ("StateChanged", "state"), ("ScrollCompleted", "completed") })
             {
                 Assert.Contains("body." + signal + " += " + handler + ";", events);
                 Assert.Contains("body." + signal + " -= " + handler + ";", events);
@@ -67,5 +67,5 @@ internal static class PlaybackReturnTraceTests
     }
 
     private static PlaybackReturnReading Reading(double offset, double max, bool busy) =>
-        new(offset, max, max + 708, 708, max + 708, busy, !busy, 787, 700, "Idle", "Button", 3);
+        new(offset, max, max + 708, 708, max + 708, busy, !busy, 787, 700, "Idle", "Button", 3, 7, 787);
 }

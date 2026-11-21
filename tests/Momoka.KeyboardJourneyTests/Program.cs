@@ -268,6 +268,7 @@ internal static class Program
         NotificationsLayoutTests.Register();
         PlaybackReturnTraceTests.Register();
         PlaybackReturnScrollTests.Register();
+        SelfCheckReadinessTests.Register();
         Test("键盘结果定位按子卡片身份，不依赖原生容器DataContext", () =>
         {
             var correct = new object();

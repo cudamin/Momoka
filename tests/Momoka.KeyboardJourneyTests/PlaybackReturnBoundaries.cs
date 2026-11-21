@@ -9,6 +9,39 @@ namespace Microsoft.UI.Xaml.Input
     public delegate void KeyEventHandler(object sender, KeyRoutedEventArgs args);
     public sealed class PointerRoutedEventArgs;
     public sealed class KeyRoutedEventArgs(Windows.System.VirtualKey key) { public Windows.System.VirtualKey Key { get; } = key; }
+    public static class FocusManager
+    {
+        public static object? GetFocusedElement(object root) => null;
+    }
+}
+
+namespace Momoka.Shell
+{
+    internal static partial class ShellSelfCheck
+    {
+        private static double _returnScrollBefore;
+        private static double _returnScrollAfterRefresh;
+        private static double _returnScrollAfterHide;
+        private static (string Type, bool Ok, string Detail)? _fileReturn;
+        internal static (string Type, bool Ok, string Detail)? PlaybackReturnFixtureRead => _fileReturn;
+        internal static int PlaybackReturnFixtureDeadline => Deadline;
+        internal static void BeginReturnReadFixture(Views.DetailPage page, double before, Action<string> write)
+        {
+            EndPlaybackReturnTrace();
+            _stage = 2;
+            _ticks = 0;
+            _returnScrollBefore = _returnScrollAfterRefresh = _returnScrollAfterHide = before;
+            _fileReturn = null;
+            _writePlaybackReturnTrace = write;
+            BeginPlaybackReturnTrace(page);
+        }
+        internal static bool ReadReturnFixture(Views.DetailPage page, int tick)
+        {
+            _ticks = tick;
+            return ReadPlaybackReturn(page);
+        }
+        internal static void EndReturnFixture() => EndPlaybackReturnTrace();
+    }
 }
 
 namespace Windows.System

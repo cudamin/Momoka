@@ -4,6 +4,18 @@ namespace Momoka.Shell.Views
     {
         internal NotificationsPage? Notifications { get; set; }
         internal int NextCalls { get; set; }
+        internal IReadOnlyList<(string Category, int Rows)> Cards { get; set; } = [];
+        internal IReadOnlyList<string> Categories { get; set; } = [];
+        internal string SelectedCategory { get; set; } = "主页";
+        internal int VisibleRows => Cards.FirstOrDefault(card => card.Category == SelectedCategory).Rows;
+        internal int Realised { get; set; }
+        internal int LayoutCalls { get; private set; }
+        internal Action? OnLayout { get; set; }
+        internal void UpdateLayout() { LayoutCalls++; OnLayout?.Invoke(); }
+    }
+    internal sealed class ShellPage
+    {
+        internal SettingsPage? SettingsRoot { get; set; }
     }
     internal sealed class NotificationsPage
     {
@@ -30,12 +42,15 @@ namespace Momoka.Shell
     internal static partial class ShellSelfCheck
     {
         private static int _notificationsStep;
+        private static int _dashboardStep;
         private static NotificationsState? _notifications;
         private sealed record NotificationsState(bool Ready, int Bound, int Drawn, bool CanConfirm, bool StopReport, bool NoteHidden, bool NoteFollows);
-        private static void OpenConsoleOrReturn(Views.SettingsPage page) => page.NextCalls++;
+        private static void OpenConsoleOrReturn(Views.SettingsPage page) { page.NextCalls++; _dashboardStep = 2; }
+        private static bool VisitDashboard(Views.SettingsPage page) => false;
         internal static void BeginNotificationsFixture(Action<string> write)
         {
             _notificationsStep = 1;
+            _dashboardStep = 0;
             _notificationsLayoutWaits = 0;
             _notifications = null;
             _writeNotificationsLayout = write;
@@ -50,5 +65,22 @@ namespace Momoka.Shell
         }
         internal static (int Bound, int Drawn)? NotificationsFixtureReading => _notifications is null ? null : (_notifications.Bound, _notifications.Drawn);
         internal static int NotificationsFixtureWaits => _notificationsLayoutWaits;
+        internal static void BeginSettingsWalkFixture()
+        {
+            _settings.Clear();
+            _notificationsStep = _dashboardStep = 0;
+        }
+        internal static bool WalkSettingsFixture(Views.SettingsPage page) => WalkSettings(new Views.ShellPage { SettingsRoot = page });
+        internal static (string Category, int Rows, int Drawn, int Expected)[] SettingsWalkFixtureReadings =>
+            _settings.Select(stop => (stop.Category, stop.Rows, stop.Drawn, stop.Expected)).ToArray();
+    }
+}
+
+namespace Momoka.Shell.ViewModels
+{
+    internal static class SettingsViewModel
+    {
+        internal const string FirstCardCategory = "主页";
+        internal const string NotificationsCategory = "通知";
     }
 }

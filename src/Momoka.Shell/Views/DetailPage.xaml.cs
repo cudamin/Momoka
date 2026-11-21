@@ -1570,12 +1570,15 @@ public sealed partial class DetailPage : Page, IShellContent
     private double? _revealRequestedOffset;
     private DispatcherQueueTimer? _revealStopTimer;
 
+    /// <summary>仅供自检等待现有返回恢复期结束；数据 Ready 不代表该有限布局期已经完成。</summary>
+    internal bool IsPlaybackReturnSettled => _revealScrollTarget is null;
+
     internal PlaybackReturnReading PlaybackReturnReading() => new(Body.VerticalOffset, Body.ScrollableHeight,
         Body.ExtentHeight, Body.ViewportHeight, (Body.Content as FrameworkElement)?.ActualHeight ?? 0,
         ViewModel.Busy, ViewModel.IsReady, _revealScrollTarget,
         _revealScrollTarget is null ? -1 : Environment.TickCount64 - _revealArmedAt,
         Body.State.ToString(), FocusManager.GetFocusedElement(XamlRoot)?.GetType().Name,
-        ViewModel.EpisodeShelf?.Cards.Count ?? 0);
+        ViewModel.EpisodeShelf?.Cards.Count ?? 0, _revealScrollCorrelation, _revealRequestedOffset);
 
     /// <summary>
     /// 播放层收起、详情页重新露出来那一小段里，把滚动位按在离开时看的地方。
