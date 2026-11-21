@@ -51,19 +51,9 @@ public sealed partial class HomeViewModel
                     && service.IsCurrentSubscription(row.Subscription)).ToArray();
             }
 
-            var available = HomeLibraryLayout.FromItems(_libraryViews)
-                .Append(new HomeRowPlan(HomeLibraryLayout.SubscriptionLibraryKey, "MP 订阅库", Visible: true));
-            var subscriptionOrder = HomeLibraryLayout.Plan(_settings?.Settings.Ui.HomeLibraryEntries, available)
-                .Where(row => row.Visible).Select(row => row.Key).ToArray();
-            var wantedKeys = new[] { HomeLayout.MoviePilotMovies, HomeLayout.MoviePilotSeries }
-                .Append(HomeLibraryLayout.SubscriptionLibraryKey);
-            foreach (var key in wantedKeys)
+            foreach (var key in new[] { HomeLayout.MoviePilotMovies, HomeLayout.MoviePilotSeries })
             {
-                if (key == HomeLibraryLayout.SubscriptionLibraryKey && !subscriptionOrder.Contains(key, StringComparer.Ordinal))
-                    continue;
-                var current = key == HomeLibraryLayout.SubscriptionLibraryKey
-                    ? rowsByKey.Values.SelectMany(rows => rows).ToArray()
-                    : rowsByKey[key];
+                var current = rowsByKey[key];
                 var urls = MoviePilotLibraryArtwork.Select(current.Select(row => row.Subscription));
                 if (!_moviePilotLibraries.TryGetValue(key, out var kept)
                     || !kept.Urls.SequenceEqual(urls, StringComparer.Ordinal) || !ReferenceEquals(kept.Fetch, fetch))
@@ -72,8 +62,7 @@ public sealed partial class HomeViewModel
                     var card = new CardItem(new EmbyItem
                     {
                         Id = key,
-                        Name = key == HomeLibraryLayout.SubscriptionLibraryKey
-                            ? "MP 订阅库" : HomeLayout.FixedTitle(key)!,
+                        Name = HomeLayout.FixedTitle(key)!,
                         Type = EmbyItemType.CollectionFolder
                     }, images, CardSize.LibraryWidth, wide: true, subtitle: "", indicators: false,
                         navigate: () =>

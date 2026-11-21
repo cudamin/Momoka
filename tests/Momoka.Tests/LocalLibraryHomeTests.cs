@@ -12,6 +12,9 @@ internal static class LocalLibraryHomeTests
         {
             var home = Read("ViewModels/HomeViewModel.LocalLibraries.cs");
             var moviePilot = Read("ViewModels/HomeViewModel.MoviePilotLibrary.cs");
+            Assert.False(moviePilot.Contains("var wantedKeys", StringComparison.Ordinal),
+                "首页不再追加 MP 汇总卡，只创建电影和电视剧分类卡");
+            Assert.True(moviePilot.Contains("var current = rowsByKey[key];", StringComparison.Ordinal));
             Assert.True(home.Contains("LocalLibraryRequest.Prefix", StringComparison.Ordinal));
             Assert.True(home.Contains("entry.IsInLibrary", StringComparison.Ordinal));
             Assert.True(home.Contains("localPosterPath:", StringComparison.Ordinal));
