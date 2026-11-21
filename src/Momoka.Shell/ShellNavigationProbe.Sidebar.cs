@@ -939,6 +939,10 @@ internal sealed partial class ShellNavigationProbe
 
             await ConnectMoviePilotAsync(fixture);
             await UntilAsync(() => movies.Visibility == Visibility.Visible && series.Visibility == Visibility.Visible);
+            // Visible 是连接完成的逻辑状态；刚重建的 NavigationView 项要先排版才有真实图标尺寸。
+            await LayoutAsync(shell);
+            await UntilAsync(() => movies.Icon is { ActualWidth: > 0, ActualHeight: > 0 }
+                && series.Icon is { ActualWidth: > 0, ActualHeight: > 0 });
             Require(movies.Content as string == HomeLayout.FixedTitle(HomeLayout.MoviePilotMovies)
                 && series.Content as string == HomeLayout.FixedTitle(HomeLayout.MoviePilotSeries),
                 "侧栏订阅入口的文案不是主页那两排的名字");
