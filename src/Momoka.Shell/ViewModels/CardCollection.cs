@@ -21,6 +21,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
     private readonly List<Slot> _slots = [];
     private Func<EmbyItem, CardItem>? _build;
     private int _version;
+    private bool _notifyingMoveRemoval;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -55,6 +56,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
         }
         set
         {
+            CheckMoveReentrancy();
             ArgumentNullException.ThrowIfNull(value);
             var previous = _slots[index].Card;
             _slots[index] = new(value.Item, value);
@@ -70,6 +72,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
 
     internal void ResetDeferred(IReadOnlyList<EmbyItem> items, Func<EmbyItem, CardItem> build)
     {
+        CheckMoveReentrancy();
         _slots.Clear();
         _slots.EnsureCapacity(items.Count);
         foreach (var item in items) _slots.Add(new(item, null));
@@ -79,6 +82,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
 
     internal int RemoveWhere(Predicate<EmbyItem> match)
     {
+        CheckMoveReentrancy();
         var removed = new List<CardItem>();
         var count = _slots.RemoveAll(slot =>
         {
@@ -103,6 +107,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
 
     public void Insert(int index, CardItem item)
     {
+        CheckMoveReentrancy();
         ArgumentNullException.ThrowIfNull(item);
         _slots.Insert(index, new(item.Item, item));
         Changed(new(NotifyCollectionChangedAction.Add, item, index), countChanged: true);
@@ -112,11 +117,26 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
 
     public void Move(int oldIndex, int newIndex)
     {
+        CheckMoveReentrancy();
+        if ((uint)oldIndex >= (uint)Count) throw new ArgumentOutOfRangeException(nameof(oldIndex));
         if ((uint)newIndex >= (uint)Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
+        if (oldIndex == newIndex) return;
+
+        // WinUI ItemsRepeater's ViewManager (693f472) updates realized indices on Remove/Add.
+        // Publish each actual change so the repeater can read the correct count and slots at either step.
         var slot = _slots[oldIndex];
         _slots.RemoveAt(oldIndex);
-        _slots.Insert(newIndex, slot);
-        Changed(new(NotifyCollectionChangedAction.Move, slot.Card, newIndex, oldIndex), countChanged: false);
+        _notifyingMoveRemoval = true;
+        try
+        {
+            Changed(new(NotifyCollectionChangedAction.Remove, slot.Card, oldIndex), countChanged: true);
+        }
+        finally
+        {
+            _notifyingMoveRemoval = false;
+            _slots.Insert(newIndex, slot);
+        }
+        Changed(new(NotifyCollectionChangedAction.Add, slot.Card, newIndex), countChanged: true);
     }
 
     public bool Remove(CardItem item)
@@ -134,6 +154,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
 
     public void RemoveAt(int index)
     {
+        CheckMoveReentrancy();
         var previous = _slots[index].Card;
         _slots.RemoveAt(index);
         // WinUI also uses null item payloads for vector removal; index and count carry the change.
@@ -142,6 +163,7 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
 
     public void Clear()
     {
+        CheckMoveReentrancy();
         _slots.Clear();
         _build = null;
         Changed(new(NotifyCollectionChangedAction.Reset), countChanged: true);
@@ -183,6 +205,11 @@ public sealed class CardCollection : IList<CardItem>, IList, IReadOnlyList<CardI
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    private void CheckMoveReentrancy()
+    {
+        if (_notifyingMoveRemoval) throw new InvalidOperationException("卡片换位期间不能修改集合");
+    }
 
     private void Changed(NotifyCollectionChangedEventArgs args, bool countChanged)
     {

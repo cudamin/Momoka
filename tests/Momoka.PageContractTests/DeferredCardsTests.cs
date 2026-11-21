@@ -57,23 +57,35 @@ internal static class DeferredCardsTests
             Assert.Equal(2, created);
             shelf.Clear();
         }));
-        Test("P3 普通货架：Fill仍立即造卡，增删插入移动通知正常", () => Run(fixture =>
+        Test("P3 普通货架：换序后横排的已显示卡片按新索引排列", () => Run(fixture =>
         {
             var shelf = Shelf(fixture);
             var created = 0;
             shelf.Fill([fixture.Scope.Bind(Episode(1)), fixture.Scope.Bind(Episode(2)), fixture.Scope.Bind(Episode(3))],
                 _ => { created++; return null; });
             Assert.Equal(3, created);
-            var original = shelf.Cards[0];
-            var changes = new List<NotifyCollectionChangedAction>();
-            shelf.Cards.CollectionChanged += (_, args) => changes.Add(args.Action);
-            shelf.Cards.Move(0, 2);
-            Assert.True(ReferenceEquals(original, shelf.Cards[2]));
-            shelf.Cards.Insert(1, shelf.NewCard(fixture.Scope.Bind(Episode(4))));
-            Assert.True(shelf.Cards.Remove(original));
-            Assert.True(changes.SequenceEqual([NotifyCollectionChangedAction.Move,
-                NotifyCollectionChangedAction.Add, NotifyCollectionChangedAction.Remove]));
-            Assert.True(shelf.Cards.Select(card => card.Item.Id).SequenceEqual(["episode-2", "episode-4", "episode-3"]));
+            var source = shelf.Cards;
+            var displayed = source.ToList();
+            var retained = displayed[1];
+            source.CollectionChanged += (_, args) =>
+            {
+                // WinUI 的容器管理只用 Add/Remove 重算这些索引。通知发出时它也会读取当前集合。
+                if (args.Action == NotifyCollectionChangedAction.Remove)
+                {
+                    displayed.RemoveAt(args.OldStartingIndex);
+                    if (ReferenceEquals(args.OldItems?[0], retained))
+                        Assert.Throws<InvalidOperationException>(() => source.Clear());
+                }
+                else if (args.Action == NotifyCollectionChangedAction.Add)
+                    displayed.Insert(args.NewStartingIndex, source[args.NewStartingIndex]);
+                else if (args.Action == NotifyCollectionChangedAction.Reset)
+                    displayed = source.ToList();
+                Assert.True(displayed.SequenceEqual(source), "屏上位置与集合位置不同步");
+            };
+            shelf.Apply([fixture.Scope.Bind(Episode(2)), fixture.Scope.Bind(Episode(4)), fixture.Scope.Bind(Episode(1))]);
+            Assert.True(ReferenceEquals(source, shelf.Cards));
+            Assert.True(ReferenceEquals(retained, displayed[0]), "换位应沿用原卡片数据对象");
+            Assert.True(displayed.Select(card => card.Item.Id).SequenceEqual(["episode-2", "episode-4", "episode-1"]));
             shelf.Clear();
         }));
         Test("P3 长剧：删除尚未创建的整季也移除DTO，不创建前缀或丢掉其它实例", () => Run(fixture =>
