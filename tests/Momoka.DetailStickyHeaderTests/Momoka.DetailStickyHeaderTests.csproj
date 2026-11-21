@@ -46,14 +46,27 @@
                     || probeEnd <= probeBegin || probe.IndexOf(probeEndMarker, probeEnd + 1, StringComparison.Ordinal) >= 0)
                     throw new InvalidOperationException("Missing or ambiguous production hero-gap probe readings");
                 var generated = "// Production layout and probe methods extracted verbatim; XAML value boundaries only.\n#nullable enable\n"
-                    + "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Momoka.Shell.Views;\n"
+                    + "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Momoka.Shell.Views;\nusing Momoka.Emby;\nusing Windows.Foundation;\n"
                     + "namespace Momoka.Shell.Views\n{\npublic sealed partial class DetailPage\n{\n" + constants
-                    + source.Substring(begin, end - begin) + "\n}\n}\n"
+                    + source.Substring(begin, end - begin) + "\n"
+                    + ExtractUnique(source, "    private (FrameworkElement Panel, Thickness Padding, ComboBox Source, ComboBox Audio, ComboBox Subtitle) PickerSet =>", "\n    /// <summary>\n    /// Tooling: 把这一页的一颗下拉弹开留着")
+                    + ExtractUnique(source, "    internal (bool Ok, string Detail) PickerFit()", "\n    /// <summary>\n    /// 自检：标题栏那一条") + "\n}\n}\n"
                     + "namespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n"
                     + probe.Substring(probeBegin, probeEnd - probeBegin) + "\n}\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+
+                string ExtractUnique(string text, string first, string last)
+                {
+                    var offset = text.IndexOf(first, StringComparison.Ordinal);
+                    if (offset < 0 || text.IndexOf(first, offset + first.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous production picker start: " + first);
+                    var finish = text.IndexOf(last, offset + first.Length, StringComparison.Ordinal);
+                    if (finish < 0 || text.IndexOf(last, finish + last.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous production picker end: " + last);
+                    return text.Substring(offset, finish - offset);
+                }
             ]]></Code>
         </Task>
     </UsingTask>

@@ -89,12 +89,14 @@ namespace Microsoft.UI.Xaml
     public sealed class XamlRoot
     {
         public object? FocusedElement { get; set; }
+        public UIElement? Content { get; set; }
+        public Windows.Foundation.Size Size { get; set; } = new(1280, 800);
     }
     public sealed record DependencyProperty(string Name);
     public class DependencyObject
     {
         public DispatcherQueue DispatcherQueue { get; set; } = new();
-        public FrameworkElement? Parent { get; set; }
+        public FrameworkElement Parent { get; set; } = null!;
         public object? GetValue(DependencyProperty property) => null;
     }
     public class UIElement : DependencyObject
@@ -264,6 +266,7 @@ namespace Microsoft.UI.Xaml.Controls
 {
     public class Page : FrameworkElement;
     public class Border : FrameworkElement;
+    public class ComboBox : FrameworkElement;
     public class Grid : FrameworkElement
     {
         public double ColumnSpacing { get; set; }
@@ -312,6 +315,8 @@ namespace Momoka.Shell.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged { add => _changed += value; remove => _changed -= value; }
         public int Subscriptions => _changed?.GetInvocationList().Length ?? 0;
         public bool IsCompact { get; set; }
+        public object? PlayTarget { get; set; } = new();
+        public string ItemType { get; set; } = "Movie";
         public bool Busy { get; set; }
         public bool IsReady { get; set; } = true;
         public double PageWidth { get; set; } = 600;

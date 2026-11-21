@@ -20,6 +20,7 @@ internal static class Program
 {
     private static int Main()
     {
+        PickerFitTests.Register();
         Test("右栏原生行距判据：10DIP和实际小空位通过，均摊/操作外边距/假行距读数拒绝", () =>
         {
             var page = new DetailPage();

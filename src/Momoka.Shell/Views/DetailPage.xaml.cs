@@ -1143,6 +1143,16 @@ public sealed partial class DetailPage : Page, IShellContent
             read.Add($"{name} {box.Left:0}–{box.Right:0}{(fits ? "" : "（出界）")}");
         }
 
+        // 商店宽版的单音轨用文字占住左列，字幕跟在它右边；隐藏的音频选择框没有读数，
+        // 但实际可见的文字行仍是这一排的左沿。只纳入已排出尺寸的行，不能借隐藏/空行洗掉偏移。
+        if (ViewModel.StoreMode && !ViewModel.IsCompact
+            && audio.Visibility != Visibility.Visible
+            && AudioPickerRow.Visibility == Visibility.Visible
+            && ColumnAudioText.Visibility == Visibility.Visible
+            && AudioPickerRow.ActualWidth > 0 && AudioPickerRow.ActualHeight > 0
+            && ColumnAudioText.ActualWidth > 0 && ColumnAudioText.ActualHeight > 0)
+            lefts.Add(AudioPickerRow.TransformToVisual(root).TransformPoint(new Point()).X);
+
         if (read.Count == 0) return (true, "三个下拉这一次都没露面");
 
         // 每一行都从这一块板的内容左沿起排，所以最靠左那个必须正好贴着它。这一句钉的是另一种坏法：面板摆完之后
