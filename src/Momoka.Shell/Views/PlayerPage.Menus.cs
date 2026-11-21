@@ -593,11 +593,24 @@ public sealed partial class PlayerPage
                     };
 
                     if (node.State is not null) _pictureChecks.Add((row, node));
-                    if (node.Shortcut is not null) _pictureShortcuts.Add((row, node));
+                    if (node.Shortcut is not null)
+                    {
+                        _pictureShortcuts.Add((row, node));
+                        if (row is ToggleMenuFlyoutItem) row.Loaded += AlignToggleShortcut;
+                    }
 
                     yield return row;
                     break;
             }
         }
+    }
+
+    private static void AlignToggleShortcut(object sender, RoutedEventArgs args)
+    {
+        // WinUI 2.3.9 right-aligns the toggle's shortcut box but leaves its text left-aligned
+        // inside the space reserved for the longest shortcut in the submenu.
+        if (sender is ToggleMenuFlyoutItem row
+            && PartNamed(row, "KeyboardAcceleratorTextBlock") is TextBlock hint)
+            hint.TextAlignment = TextAlignment.Right;
     }
 }
