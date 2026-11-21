@@ -112,8 +112,9 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(settings);
                 await Task.Delay(450); // 真实 ListView 换位与主题过渡结束后再保存可见行。
                 var list = Descendants(settings).OfType<ListView>().Single(view => ReferenceEquals(view.ItemsSource, choices));
-                Require(list.Items.Count == count && Math.Abs(list.ActualHeight - table.ListHeight) < 1,
-                    $"{state}：隐藏来源没有收起整行或留下空白");
+                var geometry = MeasureHomeOrderList(list);
+                Require(list.Items.Count == count && geometry.Fits,
+                    $"{state}：隐藏来源没有收起整行或留下空白：{geometry.Detail}");
                 Require(settings.ViewModel.MeasureHomeRows() is { Ok: true }, $"{state}：范围内版面未对账");
                 for (var index = 0; index < list.Items.Count; index++)
                 {

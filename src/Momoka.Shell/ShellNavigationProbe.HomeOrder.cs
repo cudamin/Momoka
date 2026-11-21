@@ -107,9 +107,10 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(settings);
             await SaveProbeScreenAsync("settings-home-order-offline.png");
             var hiddenList = Descendants(settings).OfType<ListView>().Single(view => ReferenceEquals(view.ItemsSource, choices));
-            Require(hiddenList.Items.Count == 3 && Math.Abs(hiddenList.ActualHeight - table.ListHeight) < 1,
-                "断线后排序表没有收起整行或仍有空白");
-            // ListView 的回收池仍可保留旧视觉孩子；只检查当前四个有效容器，不把回收池当屏上控件。
+            var hiddenGeometry = MeasureHomeOrderList(hiddenList);
+            Require(hiddenList.Items.Count == 3 && hiddenGeometry.Fits,
+                $"断线后排序表没有收起整行或仍有空白：{hiddenGeometry.Detail}");
+            // ListView 的回收池仍可保留旧视觉孩子；只检查当前三个有效容器，不把回收池当屏上控件。
             for (var index = 0; index < hiddenList.Items.Count; index++)
             {
                 var container = (ListViewItem)hiddenList.ContainerFromIndex(index);
@@ -344,6 +345,23 @@ internal sealed partial class ShellNavigationProbe
         await LayoutAsync(home);
         Require(Math.Abs(repeater.TransformToVisual(home).TransformPoint(default).Y - before) < 1,
             "媒体库刷新结束后主页列表发生回落");
+    }
+
+    private static (bool Fits, string Detail) MeasureHomeOrderList(ListView list)
+    {
+        var rows = new List<(double Top, double Height)>();
+        for (var index = 0; index < list.Items.Count; index++)
+        {
+            if (list.ContainerFromIndex(index) is not ListViewItem item) continue;
+            rows.Add((item.TransformToVisual(list).TransformPoint(default).Y, item.ActualHeight));
+        }
+        // 父表的 Height=Auto（ListHeight=NaN），且媒体库展开行可变高；不能再拿固定行高或 NaN 比表高。
+        // 当前 SDK ListView 模板把 Padding 交给 ItemsPresenter，外层 Border 占 BorderThickness。
+        var topInset = list.Padding.Top + list.BorderThickness.Top;
+        var bottomInset = list.Padding.Bottom + list.BorderThickness.Bottom;
+        return (HomeOrderProbeGeometry.Fits(list.Items.Count, list.ActualHeight, topInset, bottomInset, rows),
+            $"有效容器 {rows.Count}/{list.Items.Count}，表高 {list.ActualHeight:0.##}，上下边距 {topInset:0.##}/{bottomInset:0.##}，"
+                + $"行边界 {string.Join("、", rows.Select(row => $"{row.Top:0.##}+{row.Height:0.##}"))}");
     }
 
     private sealed class HomeOrderTransport(HttpMessageHandler inner) : DelegatingHandler(inner)

@@ -57,6 +57,29 @@ internal static class Program
 
     private static void Register(string root)
     {
+        Test("HomeOrder 实际几何判据接受贴合父表的连续行与展开媒体库行", () =>
+        {
+            Assert.True(HomeOrderProbeGeometry.Fits(3, 128, 4, 4, [(4, 40), (44, 40), (84, 40)]));
+            Assert.True(HomeOrderProbeGeometry.Fits(3, 288, 4, 4, [(4, 200), (204, 40), (244, 40)]));
+            Assert.True(HomeOrderProbeGeometry.Fits(3, 120, 0, 0, [(0, 40), (40, 40), (80, 40)]));
+        });
+        Test("HomeOrder 实际几何判据拒绝中间残留空行，即使总高度碰巧对齐", () =>
+            Assert.False(HomeOrderProbeGeometry.Fits(3, 128, 4, 4, [(4, 40), (54, 30), (84, 40)])));
+        Test("HomeOrder 实际几何判据拒绝底部留白及末行裁切", () =>
+        {
+            Assert.False(HomeOrderProbeGeometry.Fits(3, 168, 4, 4, [(4, 40), (44, 40), (84, 40)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(3, 108, 4, 4, [(4, 40), (44, 40), (84, 40)]));
+        });
+        Test("HomeOrder 实际几何判据拒绝缺容器、顶部留白、重叠及无效读数", () =>
+        {
+            Assert.False(HomeOrderProbeGeometry.Fits(3, 128, 4, 4, [(4, 40), (44, 40)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(3, 128, 4, 4, [(8, 36), (44, 40), (84, 40)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(3, 128, 4, 4, [(4, 40), (40, 44), (84, 40)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(3, double.NaN, 4, 4, [(4, 40), (44, 40), (84, 40)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(1, 48, 4, 4, [(4, double.NaN)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(1, 48, 4, 4, [(4, 0)]));
+            Assert.False(HomeOrderProbeGeometry.Fits(0, 8, 4, 4, []));
+        });
         foreach (var release in new[] { "ReleaseHosted", "Release" })
             Test($"HomeOrder {release}取消两卡真实颜色草稿而保留主页表", () =>
             {
@@ -598,6 +621,13 @@ internal static class Program
     private static void CoverageContract(string root)
     {
         var source = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ShellNavigationProbe.HomeOrder.cs"));
+        var sources = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ShellNavigationProbe.HomeSources.cs"));
+        Assert.Contains("MeasureHomeOrderList(hiddenList)", source);
+        Assert.Contains("MeasureHomeOrderList(list)", sources);
+        Assert.Contains("list.ContainerFromIndex(index)", source);
+        Assert.Contains("HomeOrderProbeGeometry.Fits(list.Items.Count, list.ActualHeight, topInset, bottomInset, rows)", source);
+        Assert.False(source.Contains("ActualHeight - table.ListHeight", StringComparison.Ordinal));
+        Assert.False(sources.Contains("ActualHeight - table.ListHeight", StringComparison.Ordinal));
         Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(source,
             @"BeginSettingsFixtureVisit\(settings\);\s+settings\.WatchMoviePilot\(service\);").Count,
             "初入、缓存重入和MP关/开恢复统一复用共享入口");

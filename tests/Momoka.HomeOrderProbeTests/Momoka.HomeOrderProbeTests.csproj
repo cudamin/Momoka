@@ -14,6 +14,7 @@
     <Compile Include="..\Momoka.SettingsLifetimeTests\AppearanceColorFixture.cs" Link="AppearanceColorFixture.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\HomeOrderProbeGeometry.cs" Link="Production\HomeOrderProbeGeometry.cs" />
   </ItemGroup>
   <!-- The shared fixture visit, actual page monitoring and changed HomeOrder call sites run verbatim. HomeSections/Rows are the
        explicitly supplied current Shell DLL; no copied availability or home-row model. -->
