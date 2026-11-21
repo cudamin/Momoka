@@ -10,6 +10,8 @@
 
 未覆盖：没有真实键盘逐键验收，也没有在独占窗口实按自定义键；系统保留组合（Win、Alt+Tab、Ctrl+Alt+Delete）不可录入；`VkXX` 在独占窗口无 mpv 键名，只在集成管线生效；本窗口未重拍音量条实屏／主题／DPI 证据，统一验证时补。
 
+**合并。** 主树合并提交 `6ff1f5e`。合并时主树已有的独占播放探针未提交工作（含台账 117）用 `git merge --autostash` 保护后原样恢复，未放进任何提交；自动暂存后的冲突只在台账，已按「118 → 117 → APNG → 116」排列，非台账文件 SHA256 与合并前逐一相同、117 条目原文未变。分支提交 `b325dda` 移除了早前文档提交误带入的台账 117 条目，117 仍留在主树工作区未提交。合并后 Shell Release x64 **0 警告 0 错误**、主测试 **5322/5322**、`Momoka.PlayerInputRecoveryTests` **17/17**、`Momoka.ResizeHandoffTests` 编译通过，改动文件空白检查与文档检查（184 文件、0 断链）通过。分支桌面快捷方式已删除；1937 工作树仍保留同一份独占探针未提交改动，待清理条件确认后再删。
+
 ## 2026-11-21 修复媒体库 APNG 封面只显示首帧
 
 产品提交 `cd15ef9` 已合入本地 `master`，待统一验证。媒体库网格、列表、首页库卡和飞牛拼图现在能播放服务端返回的 APNG。普通静态封面与原生 GIF 延用 WinUI BitmapImage。APNG 按 [W3C PNG 动画规范](https://www.w3.org/TR/png-3/#animation-information)保留局部帧、透明度、清除和循环，每帧交给 Windows 解码。WinUI 2.5.1 的 [WicService.cpp](https://github.com/microsoft/microsoft-ui-xaml/blob/ba3a8d59e6de4e2b86ca4f61c78bc26ccf129afd/src/dxaml/xcp/components/imaging/WicService.cpp#L234-L285) 只识别 GIF 动画。
