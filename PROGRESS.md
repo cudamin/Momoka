@@ -1,4 +1,4 @@
-## 2026-11-21 移除媒体库转换入口，保留设置转码管理（临时分支，待合并）
+## 2026-11-21 移除媒体库转换入口，保留设置转码管理（已合并 master，待统一验证）
 
 树 C:/Users/89400/.codex/worktrees/3490/Momoka，分支 codex/remove-media-conversion，基点 c4e9e14，产品提交 3d86588。按用户最终范围，移除单卡／多选「转换…」菜单、参数弹窗、专用权限与转换请求；Emby 设置「转码／转换」和 Jellyfin 设置「转码」管理页面、导航与图标全部保留。播放原已使用 Static=true 原码直读，没有转码选项或自动转码回退，本批补回归固定该边界，没有声称删除不存在的播放路径。播放列表创建结果模型原样迁出，保留逐项写前重核、取消、成功回执及 UI 线程回调。后端矩阵与开发文档同步本次范围。
 
@@ -8,7 +8,9 @@
 
 本树 publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-remove-media-conversion 成功，完整自包含载荷验证 548 文件／290.3 MB、固定批准 mpv 60 文件通过。桌面 Momoka-remove-media-conversion.lnk 已回读 TargetPath／WorkingDirectory／空参数正确，指向 3490 本树发布目录，主树快捷方式未改。EXE SHA256 B91CAED8A0773B447CC929A19F4FAFF7F481B9F85918C1A8C55F32DF4749BC4B；主程序集 SHA256 FB99176D306B6831015E0E8B8E52D8F3473484EC0D0993504BE23DCD4233B7B7。发布时基点 c4e9e14 加本任务未提交代码，最终提交只记录同一组产品代码；publish.log 与 shortcut-receipt.json 留证。184 文档链接、154 命令块语法、文本／diff 检查与凭据扫描通过，未声称完整四闸门。
 
-真实账号、服务器播放及写入未授权，不执行；五主题／跟随系统、DPI、真实输入与真实服务兼容仍待统一验证，不销账、不自动合并或上传。既有 README.md、README_EN.md、library.gif 删除和 library.webm 新增不属于本任务，哈希复核未变，保留原状并排除提交。
+真实账号、服务器播放及写入未授权，不执行；五主题／跟随系统、DPI、真实输入与真实服务兼容仍待统一验证，不销账、不上传。既有 README.md、README_EN.md、library.gif 删除和 library.webm 新增不属于本任务，哈希复核未变，保留原状并排除提交。
+
+合并（同日，用户令「合并」）：3d86588 与 b96eb29 已通过双父提交 c4ed944 合入 C:/Users/89400/Momoka 的 master，保留主树 b4c07af 及 fb18b91 两次 README 提交。23 个传入路径与分支完全一致，设置相关八文件相对合并前无差异；主树既有 README／素材修改的存在状态、SHA256 和未暂存状态均保持。184 文档链接、154 命令块语法、暂存 diff 和凭据扫描通过，合并本身未重新构建、运行探针或发布，分支结果不冒充主树验证；主树 Momoka.lnk 未刷新，仍指向原产物。分支 Momoka-remove-media-conversion.lnk 已删除；3490 开发树仍有独立的 README 与素材未提交内容，且 README 字节与主树不同，因此保留该工作树和 codex/remove-media-conversion 分支待清理，不强制删除，不销账、不推送。合并／哈希／清理回执在 artifacts/remove-media-conversion-merge/。
 
 ## 2026-11-21 静态媒体库封面合入主树
 
