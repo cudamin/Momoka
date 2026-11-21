@@ -848,7 +848,8 @@ public sealed class ChromeReveal
     /// Shows the volume rail for the length of the grace window without touching the other two. This is
     /// how the wheel and the volume keys get a readout: neither has a pointer on the rail, and the wheel
     /// works anywhere over the picture. A deliberate show, so it also unlocks the double-click silence
-    /// latch.
+    /// latch — unless <paramref name="preserveSilence"/> is set, which keeps the latch so a volume key
+    /// pressed after double-click fullscreen only shows the rail instead of the rest of the chrome.
     /// </summary>
     public bool FlashRail(long now, bool preserveSilence = false)
     {
@@ -958,8 +959,9 @@ public sealed class ChromeReveal
         // 见上面那两行 —— 它要的恰好是「三样里只留一样」。）
         if (HoldChrome || KeepChrome || now < _forceUntil) return new ChromeState(true, true, true);
 
-        // 双击全屏／还原的纯净闸（2026-09-18）：在真手再动（Moved/WakeFully/FlashRail/Reset 解锁）之前，
-        // 点画面那一下给的宽限与指针所在的位置都不构成显示理由 —— 画面保持只有片子。
+        // 双击全屏／还原的纯净闸（2026-09-18）：在真手再动（Moved/WakeFully/解锁式 FlashRail/Reset 解锁）之前，
+        // 点画面那一下给的宽限与指针所在的位置都不构成显示理由 —— 画面保持只有片子。音量快捷键用
+        // preserveSilence 保留这道闸，只借 _railUntil 单独亮音量条。
         if (_silenced) return new ChromeState(false, false, now < _railUntil);
 
         var (bar, title) = Edges();
