@@ -13,6 +13,14 @@
 
 </div>
 
+## 适合谁与快速开始
+
+适合已经在使用 Emby、Jellyfin 或飞牛影视媒体服务器，并希望在 Windows 上集中浏览和播放的用户。订阅、下载和整理功能还需要单独部署并配置 MoviePilot。
+
+1. 确认电脑运行 Windows 10 1809 或更高版本（x64），并能访问你的媒体服务器。
+2. 从[微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN)安装，或前往 [GitHub Releases](https://github.com/cudamin/Momoka/releases) 下载。当前最新 GitHub Release 标记为预发布版；安装程序和便携包未做代码签名，首次运行可能出现 SmartScreen 提示。下载前请查看所选版本的发布说明。
+3. 启动 Momoka，打开“设置 → 服务器”，添加服务器地址并登录，然后选择要浏览的媒体库。
+
 ## 界面预览
 
 ![Momoka 首页：媒体库、继续观看和最近添加内容](assets/readme/home.jpg)

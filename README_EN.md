@@ -13,6 +13,14 @@
 
 </div>
 
+## Who It Is For and Getting Started
+
+Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media server and want to browse and play it from one desktop app. Subscriptions, downloads, and organization also require a separately hosted and configured MoviePilot instance.
+
+1. Make sure your PC runs Windows 10 version 1809 or later (x64) and can reach your media server.
+2. Install from the [Microsoft Store](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=en-US&gl=US), or download from [GitHub Releases](https://github.com/cudamin/Momoka/releases). The latest GitHub Release is currently marked Pre-release. The installer and portable ZIP are unsigned, so Windows SmartScreen may show a warning on first launch. Review the release notes before downloading.
+3. Start Momoka, open **Settings → Servers**, add your server address, and sign in. Then select the libraries you want to browse.
+
 ## Screenshots
 
 ![Momoka home screen with media libraries, continue watching, and recently added items](assets/readme/home.jpg)
