@@ -14,6 +14,7 @@ internal static class HomeLibraryCoverTests
 {
     internal static void Register()
     {
+        HomeLibraryCoverMotionTests.Register();
         Test("主页媒体库封面：纯文字预设不枚举或读取图片候选", () =>
         {
             var library = Library();
