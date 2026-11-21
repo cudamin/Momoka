@@ -65,12 +65,14 @@ internal static class ReaderCases
         var completedRounds = 0;
         var completeReads = 0;
         var retries = new RetryStats();
+        var gaps = new RetryStats();
         fixture.Fact("roundBudget", Rounds);
         fixture.Fact("readerCount", ReaderCount);
         fixture.Fact("writesPerRound", WritesPerRound);
         fixture.Fact("freshReadsPerReaderRound", FreshReadsPerRound);
         fixture.Fact("contentRetryBudget", 0);
         fixture.Fact("sharingRetryBudget", FileIo.SharingRetryBudget);
+        fixture.Fact("pathGapRetryBudget", backup ? FileIo.SharingRetryBudget : 0);
         fixture.Fact("sharingRetryDelayMs", FileIo.SharingRetryDelayMs);
         try
         {
@@ -105,8 +107,10 @@ internal static class ReaderCases
                             // A missing path, partial UTF-8 or spliced document is a failure, not retry.
                             // A Win32 sharing/lock denial from ReplaceFile's in-place swap is waited
                             // out and counted; the re-read still has to be one exact round candidate.
-                            var fresh = FileIo.ReadCompleteRetryingSharing(target, out var freshRetries);
-                            retries.Record(freshRetries);
+                            var fresh = FileIo.ReadCompleteRetryingTransient(target, backup,
+                                out var freshSharing, out var freshGaps);
+                            retries.Record(freshSharing);
+                            gaps.Record(freshGaps);
                             Check.CompleteCandidate(candidates, fresh,
                                 $"round={round} reader={readerIndex} fresh={read} 不得看半文档/空窗");
                             Interlocked.Increment(ref completeReads);
@@ -117,8 +121,10 @@ internal static class ReaderCases
                         Interlocked.Increment(ref completeReads);
                         if (writerCompleted)
                         {
-                            var latest = FileIo.ReadCompleteRetryingSharing(target, out var latestRetries);
-                            retries.Record(latestRetries);
+                            var latest = FileIo.ReadCompleteRetryingTransient(target, backup,
+                                out var latestSharing, out var latestGaps);
+                            retries.Record(latestSharing);
+                            gaps.Record(latestGaps);
                             Check.Bytes(last, latest, "提交后新 reader 得到最终完整文档");
                             Interlocked.Increment(ref completeReads);
                         }
@@ -149,8 +155,10 @@ internal static class ReaderCases
                         // deny a fresh open too; the bytes still have to equal the exact predecessor.
                         if (backup)
                         {
-                            var backupBytes = FileIo.ReadCompleteRetryingSharing(backupPath, out var backupRetries);
-                            retries.Record(backupRetries);
+                            var backupBytes = FileIo.ReadCompleteRetryingTransient(backupPath, allowPathGap: true,
+                                out var backupSharing, out var backupGaps);
+                            retries.Record(backupSharing);
+                            gaps.Record(backupGaps);
                             Check.Bytes(previous, backupBytes, "有读者时每次备份精确为前主文件");
                         }
                         previous = replacements[operation];
@@ -177,6 +185,7 @@ internal static class ReaderCases
             fixture.Fact("completedRounds", completedRounds);
             fixture.Fact("completeReads", completeReads);
             fixture.Fact("sharingRetries", retries.Total);
+            fixture.Fact("pathGapRetries", gaps.Total);
             fixture.Fact("maxSharingRetriesPerRead", retries.Max);
             fixture.Snapshot("finalTarget", target);
             if (backup) fixture.Snapshot("finalBackup", backupPath);

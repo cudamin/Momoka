@@ -119,15 +119,25 @@ internal static class FileIo
         return ReadRemainder(reader);
     }
 
-    public static byte[] ReadCompleteRetryingSharing(string path, out int retries)
+    public static byte[] ReadCompleteRetryingTransient(string path, bool allowPathGap,
+        out int sharingRetries, out int pathGapRetries)
     {
-        retries = 0;
+        sharingRetries = 0;
+        pathGapRetries = 0;
         for (var attempt = 0; ; attempt++)
         {
             try { return ReadComplete(path); }
+            catch (FileNotFoundException) when (allowPathGap && attempt < SharingRetryBudget)
+            {
+                // ReplaceFile renames the destination to the backup before it publishes the replacement,
+                // so a fresh open can transiently find no primary at all. The re-read still has to be one
+                // exact candidate; only the backup scenario may wait this out, and the count is recorded.
+                pathGapRetries++;
+                Thread.Sleep(SharingRetryDelayMs);
+            }
             catch (IOException error) when (attempt < SharingRetryBudget && IsTransientSharing(error))
             {
-                retries++;
+                sharingRetries++;
                 Thread.Sleep(SharingRetryDelayMs);
             }
         }
