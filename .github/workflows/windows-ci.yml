@@ -98,6 +98,18 @@ jobs:
         shell: pwsh
         run: dotnet restore .\Momoka.sln --disable-parallel -p:NuGetAudit=false
 
+      # The Shell is a framework-dependent WinAppSDK build, and the R011 suite loads the real
+      # Shell assembly. Record which runtime the runner actually has instead of guessing from a hang.
+      - name: Report Windows App Runtime
+        shell: pwsh
+        run: |
+          $packages = @(Get-AppxPackage -Name 'Microsoft.WindowsAppRuntime*' | Sort-Object Name, Version)
+          if ($packages.Count -eq 0) {
+            Write-Host 'No Microsoft.WindowsAppRuntime package is registered for this user.'
+          } else {
+            $packages | Select-Object Name, Version, Architecture | Format-Table -AutoSize | Out-String | Write-Host
+          }
+
       - name: Run offline suites serially
         shell: pwsh
         run: .\tools\run-regressions.ps1 -All -Dotnet (Get-Command dotnet).Source -Packages (Join-Path $env:USERPROFILE '.nuget\packages')
