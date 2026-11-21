@@ -1,5 +1,7 @@
 ## 2026-11-21 库封面循环动画与顶角白边（临时分支，待合并）
 
+产品提交 593a8b5。首次 Windows PowerShell 发布异常退出且未给错误正文，保留 motion-publish.log；当前 PowerShell 重跑成功，完整自包含载荷验证 548 文件、290.3 MB 通过，分支桌面 Momoka-home-library-cover-presets.lnk 已刷新并回读目标正确。主程序集 SHA256：01561A753354F012619A1BD2DBB01BA8EDC6A1BB32350F11E077A4179D7F2416。最终发布日志 motion-publish-retry.log。主树快捷方式未改，没有启动客户端或实际窗口验收。
+
 前三种预设改为客户端循环动画：叠卡摆动、斜切推近平移、九宫格错向浮动。复用项目 Storyboard、HomeMotion 和 AnimatedPoster 生命周期模式；可见视口、宿主可见且系统及应用动画开启时运行，离树退订、偏好关闭停止、返回恢复。纯文字、高对比及缺图静态。覆盖封面移除 Art 浅色描边，关闭恢复样式；斜切图超边裁切避免运动露缝。没有改变服务器请求或写回。
 
 Shell 与 Tests Release 编译均 0 警告 0 错误；封面 Core／接线定向 13/13，连同正式 VM 定向 18/18（重叠不相加），0 失败 0 跳过。改动格式和 diff 检查通过；Shell 格式检查有工作区加载提示，退出码 0，不冒充构建告警。四项新测试仅证明接线，不证明原生中间帧。无新增样式和资源键，不触发高风险 XAML。按日常规则未跑原生探针、截图、登录或播放，实际动画、主题和 DPI 白边验收留在台账。证据位于 artifacts/home-library-cover-evidence/motion-*。分支不自动合并、不上传。
