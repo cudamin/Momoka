@@ -1,3 +1,10 @@
+## 2026-11-21 通知设置分支合入 master（待统一验证）
+
+用户令「合并」后，通知产品提交 aaf0f81、分支验证记录 652f9a5 与 master ae351d7 经双父整合提交 5edcee9 合入 C:/Users/89400/Momoka 的 master。主树按已验证提交快进，15 个传入文件无本地重叠；设置类别、搜索与台账冲突已处理，保留双方功能及记录。通知位于诊断前、各 Emby 来源独立，其他后端隐藏；英文通知标题仅翻译固定标签，服务器名保持原样，搜索和紧凑下拉一致。
+
+整合树先编译 Shell／Tests／ServerSettingsReviewTests Release，均 0 警告 0 错误；设置页真实 VM 83/83、搜索 16/16、适用性 38/38、语言 6/6 与完整 ServerSettingsReviewTests 通过。主树传入代码与该整合提交完全相同；这些是合入前冲突解决的定向离线证据，不冒充合入后主树统一验证。主树本轮只做合入、内容一致性与文档检查，没有重新构建、运行客户端／原生探针／截图、发布或上传，不销账。实际主题、DPI、窗口和输入验收及真实服务兼容仍按台账保留；真实通知保存／测试另需明确授权。
+
+合并完成后已立即删除 Momoka-notification-settings-placement.lnk；主树 Momoka.lnk 的 SHA256 与合并前相同、仍指原构建。主树与 6450 开发树的 README.md、README_EN.md、library.webm 的 SHA256 及 library.gif 删除状态逐项不变、未纳入提交。开发树仍有这四项原有未提交内容，故保留分支 codex/notification-settings-placement 及工作树待清理，未强删。证据在来源树 artifacts/notification-settings-evidence/merge-* 与主树 artifacts/notification-settings-merge/，当前批次保持已合并、待统一验证。
 ## 2026-11-21 英语界面分支合入 master（待统一验证）
 
 用户令「合并」后，英语界面提交 `33ec76a` 与底部语言行／单语言选项调整 `8b1fac8` 已由双父提交 `979bc23` 合入 `C:/Users/89400/Momoka` 的 master，保留原主树 `402ff86` 卡片换序修复及较完整的重入保护测试。148 个传入路径与主树原有未提交文件无交集；除台账自动合并外，147 个传入文件的索引 blob 与英语分支一致，CardCollection／DeferredCardsTests 的主树 blob 完全保留。主树既有 README／README_EN／library.webm 的 SHA256、library.gif 删除状态和未暂存状态均未变，未纳入提交。
