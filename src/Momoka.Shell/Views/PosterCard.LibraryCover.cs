@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -32,7 +31,6 @@ public sealed partial class PosterCard
         if (preset is null) Art.ClearValue(Border.BorderThicknessProperty);
         else Art.BorderThickness = new Thickness(0);
         if (preset is null) return null;
-        var motion = new Storyboard();
         var canvas = new Canvas { Width = 208, Height = 117, Clip = new RectangleGeometry { Rect = new Rect(0, 0, 208, 117) } };
         var palette = UiThemes.All[HomeLibraryCoverArtwork.PaletteIndex(identity)].Colors;
         var start = palette.Window;
@@ -112,25 +110,7 @@ public sealed partial class PosterCard
         Canvas.SetLeft(text, textOnly ? 18 : 10);
         Canvas.SetTop(text, 21);
         canvas.Children.Add(text);
-        var cover = new Viewbox { Stretch = Stretch.Fill, Child = canvas };
-        if (motion.Children.Count > 0) _ = new LibraryCoverMotion(cover, motion);
-        return cover;
-
-        void Animate(CompositeTransform target, string property, double from, double to, double seconds)
-        {
-            var animation = new DoubleAnimation
-            {
-                From = from,
-                To = to,
-                Duration = new Duration(TimeSpan.FromSeconds(seconds)),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever,
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
-            };
-            Storyboard.SetTarget(animation, target);
-            Storyboard.SetTargetProperty(animation, property);
-            motion.Children.Add(animation);
-        }
+        return new Viewbox { Stretch = Stretch.Fill, Child = canvas };
 
         void AddImage(BitmapImage source, double x, double y, double width, double height,
             double rotation = 0, double opacity = 1, double corner = 0)
@@ -142,27 +122,12 @@ public sealed partial class PosterCard
                 CornerRadius = new(corner),
                 Opacity = opacity,
                 RenderTransformOrigin = new(0.5, 0.5),
-                RenderTransform = new CompositeTransform { Rotation = rotation },
+                RenderTransform = new RotateTransform { Angle = rotation },
                 Child = new Image { Source = source, Stretch = Stretch.UniformToFill }
             };
             Canvas.SetLeft(frame, x);
             Canvas.SetTop(frame, y);
             canvas.Children.Add(frame);
-            var transform = (CompositeTransform)frame.RenderTransform;
-            switch (preset)
-            {
-                case HomeLibraryCoverPresets.Stack:
-                    Animate(transform, "Rotation", rotation, rotation + (rotation == 18 ? -6 : 6), 4.5);
-                    break;
-                case HomeLibraryCoverPresets.Diagonal:
-                    Animate(transform, "ScaleX", 1, 1.1, 7);
-                    Animate(transform, "ScaleY", 1, 1.1, 7);
-                    Animate(transform, "TranslateX", 0, -8, 7);
-                    break;
-                case HomeLibraryCoverPresets.Wall:
-                    Animate(transform, "TranslateY", 0, x > 140 ? -9 : 9, 5.5);
-                    break;
-            }
         }
     }
 
