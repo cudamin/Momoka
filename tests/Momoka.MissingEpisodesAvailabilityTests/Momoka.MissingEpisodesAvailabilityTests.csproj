@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
     <Compile Include="..\..\src\Momoka.Shell\Views\MissingEpisodesDialog.xaml.cs" Link="Production\MissingEpisodesDialog.xaml.cs" />
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MissingEpisodesDialog.xaml" LogicalName="Production.MissingEpisodesDialog.xaml" />
   </ItemGroup>
