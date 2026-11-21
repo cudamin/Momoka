@@ -322,7 +322,7 @@ internal static class StandalonePlaybackProbe
             Native.GetWindowThreadProcessId(window, out var targetPid);
             var targetClassBuffer = new char[128];
             var targetClassLength = Native.GetClassName(window, targetClassBuffer, targetClassBuffer.Length);
-            throw new InvalidOperationException($"原生播放器窗口被遮挡；target=0x{window:X}/pid={targetPid}/class={new string(targetClassBuffer,0,Math.Max(0,targetClassLength))}; hit=0x{hit:X}/root=0x{hitRoot:X}/pid={hitPid}/class={new string(hitClassBuffer,0,Math.Max(0,hitClassLength))}");
+            throw new InvalidOperationException($"原生播放器窗口被遮挡；target=0x{window:X}/pid={targetPid}/class={new string(targetClassBuffer, 0, Math.Max(0, targetClassLength))}; hit=0x{hit:X}/root=0x{hitRoot:X}/pid={hitPid}/class={new string(hitClassBuffer, 0, Math.Max(0, hitClassLength))}");
         }
         var screen = Native.GetDC(IntPtr.Zero);
         if (screen == IntPtr.Zero) throw new InvalidOperationException("无法读取屏幕像素");

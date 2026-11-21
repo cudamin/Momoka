@@ -60,17 +60,26 @@ internal sealed class HomeOrderFixture : IDisposable
         Capabilities = new ServerCapabilities(Session);
         LibraryDirectory.Add(Source.Bind(new EmbyItem
         {
-            Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+            Id = "library",
+            Name = "离线电影库",
+            Type = EmbyItemType.CollectionFolder,
+            CollectionType = "movies"
         }));
         if (liveDirectory)
             LibraryDirectory.Add(Source.Bind(new EmbyItem
             {
-                Id = "music", Name = "离线音乐库", Type = EmbyItemType.CollectionFolder, CollectionType = "music"
+                Id = "music",
+                Name = "离线音乐库",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "music"
             }));
         if (SecondSource is not null)
             LibraryDirectory.Add(SecondSource.Bind(new EmbyItem
             {
-                Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+                Id = "library",
+                Name = "离线电影库",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "movies"
             }));
         var plan = HomeLayout.Plan(null, LibraryDirectory).ToList();
         var series = plan.Single(row => row.Key == HomeLayout.MoviePilotSeries);

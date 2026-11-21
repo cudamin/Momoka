@@ -41,7 +41,8 @@ internal static class Program
                 Console.Error.WriteLine("R011 挂起：120 秒没有进展，停在 " + current);
                 Environment.FailFast("R011 hang: " + current);
             }
-        }) { IsBackground = true, Name = "r011-watchdog" };
+        })
+        { IsBackground = true, Name = "r011-watchdog" };
         watchdog.Start();
         var project = Path.Combine(Root, "tests", "Momoka.CurrentPermissionSnapshotTests");
         Assert.True(typeof(Program).Assembly.Location.StartsWith(project + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));

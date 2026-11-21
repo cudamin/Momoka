@@ -346,7 +346,10 @@ internal static class Program
             f.LibraryDirectory.RemoveAt(2);
             f.LibraryDirectory.Add(f.Source.Bind(new EmbyItem
             {
-                Id = "new", Name = "新增剧集库", Type = EmbyItemType.CollectionFolder, CollectionType = "tvshows"
+                Id = "new",
+                Name = "新增剧集库",
+                Type = EmbyItemType.CollectionFolder,
+                CollectionType = "tvshows"
             }));
             runtime.Invoke(f.Vm, "RefreshHomeRows");
             CompleteReorder(table);
