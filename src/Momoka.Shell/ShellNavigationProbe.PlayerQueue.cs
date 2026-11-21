@@ -56,9 +56,13 @@ internal sealed partial class ShellNavigationProbe
                 Require(vm.CanArrangeQueue, "正在播放的离线句柄没有排队入口");
                 Call(page, "RebuildPictureMenu");
                 var menu = Get<MenuFlyout>(page, "PictureMenu");
-                var queue = menu.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Name == "PlayerSessionVideoQueue");
+                Require(!menu.Items.OfType<MenuFlyoutSubItem>().Any(item => item.Name == "PlayerSessionVideoQueue"),
+                    "本次播放队列仍在画面菜单顶层");
+                var navigation = menu.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Text == "导航");
+                var queue = navigation.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Name == "PlayerSessionVideoQueue");
                 Require(queue.Items.OfType<MenuFlyoutItem>().Any(item => item.Name == "PlayerQueueNext")
                     && queue.Items.OfType<MenuFlyoutItem>().Any(item => item.Name == "PlayerQueueAppend"), "播放画面菜单缺少队列操作");
+                Require(!queue.Items.OfType<MenuFlyoutItem>().Any(item => item.Name == "PlayerQueueManage"), "空队列显示了待播项管理");
                 var choosing = page.ShowQueueDialogAsync(_root.XamlRoot, next: true);
                 await UntilAsync(() => DialogsFor(_root.XamlRoot).Length == 1);
                 var dialog = DialogsFor(_root.XamlRoot)[0];
@@ -82,7 +86,33 @@ internal sealed partial class ShellNavigationProbe
                 new ButtonAutomationPeer(Descendants(dialog).OfType<Button>().Single(element => element.Name == "PrimaryButton")).Invoke();
                 await choosing;
                 Require(vm.PendingQueue.Count == 1 && vm.PendingQueue[0].Item.Id == "next", "原生确认未安排本次队列");
-                vm.ClearQueue();
+                Call(page, "RebuildPictureMenu");
+                navigation = menu.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Text == "导航");
+                queue = navigation.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Name == "PlayerSessionVideoQueue");
+                Require(queue.Items.OfType<MenuFlyoutItem>().Any(item => item.Name == "PlayerQueueManage")
+                    && queue.Items.OfType<MenuFlyoutItem>().Any(item => item.Name == "PlayerQueueClear"), "已有待播项但缺少管理或清空入口");
+                Require(vm.Queue(scope.Bind(new EmbyItem { Id = "last", Name = "最后一部", Type = EmbyItemType.Movie }),
+                    next: false), "管理界面夹具无法追加第二项");
+                var managing = page.ShowQueueManagementAsync(_root.XamlRoot);
+                await UntilAsync(() => DialogsFor(_root.XamlRoot).Length == 1);
+                var manager = DialogsFor(_root.XamlRoot)[0];
+                Require(DialogDismiss.GetClosesOnOutsideClick(manager), "待播管理未继承点外关闭");
+                ListView? pending = null;
+                await UntilAsync(() => (pending = Descendants(manager).OfType<ListView>()
+                    .FirstOrDefault(element => element.Name == "VideoQueuePendingItems")) is not null);
+                await LayoutAsync(manager);
+                Require(pending!.Items.Count == 2 && Descendants(manager).OfType<TextBlock>().Any(label => label.Text == scope.DisplayName),
+                    "待播管理未显示待播项或其来源");
+                void Click(string name) => new ButtonAutomationPeer(Descendants(manager).OfType<Button>()
+                    .Single(button => button.Name == name)).Invoke();
+                Click("VideoQueueMoveDown");
+                await UntilAsync(() => vm.PendingQueue[0].Item.Id == "last" && pending.SelectedIndex == 1);
+                Click("VideoQueueRemove");
+                await UntilAsync(() => vm.PendingQueue.Count == 1 && vm.PendingQueue[0].Item.Id == "last");
+                Click("VideoQueueRemove");
+                await UntilAsync(() => !vm.HasPendingQueue && pending.Visibility == Visibility.Collapsed);
+                manager.Hide();
+                await managing;
                 var cancel = page.ShowQueueDialogAsync(_root.XamlRoot, next: false);
                 await UntilAsync(() => DialogsFor(_root.XamlRoot).Length == 1);
                 DialogsFor(_root.XamlRoot)[0].Hide();

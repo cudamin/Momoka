@@ -295,23 +295,6 @@ public sealed partial class PlayerPage
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(BuildSkipMenu());
         menu.Items.Add(BuildAutoPlayRow());
-        if (ViewModel.CanArrangeQueue)
-        {
-            var queue = new MenuFlyoutSubItem { Text = "本次播放队列", Name = "PlayerSessionVideoQueue" };
-            var next = new MenuFlyoutItem { Text = "下一项播放…", Name = "PlayerQueueNext" };
-            next.Click += (_, _) => ViewModel.RequestQueue(next: true);
-            queue.Items.Add(next);
-            var append = new MenuFlyoutItem { Text = "追加到队尾…", Name = "PlayerQueueAppend" };
-            append.Click += (_, _) => ViewModel.RequestQueue(next: false);
-            queue.Items.Add(append);
-            if (ViewModel.HasPendingQueue)
-            {
-                var clear = new MenuFlyoutItem { Text = "清空待播项", Name = "PlayerQueueClear" };
-                clear.Click += (_, _) => ViewModel.ClearQueue();
-                queue.Items.Add(clear);
-            }
-            menu.Items.Add(queue);
-        }
         menu.Items.Add(new MenuFlyoutSeparator());
 
         // 这一行也有一份快捷键（Ctrl+I），与目录行同一条取法 —— 重绑后右列跟着走。
@@ -565,6 +548,7 @@ public sealed partial class PlayerPage
 
                 case PlayerMenuKind.Group:
                     var group = new MenuFlyoutSubItem { Text = node.Label };
+                    if (node.AutomationId is { } groupId) group.Name = groupId;
                     foreach (var child in BuildMenuItems(node.Children)) group.Items.Add(child);
                     yield return group;
                     break;
@@ -578,6 +562,7 @@ public sealed partial class PlayerPage
                         : node.State.Radio
                             ? new RadioMenuFlyoutItem { Text = node.Label, Tag = node, GroupName = "pic-" + node.State.Property }
                             : new ToggleMenuFlyoutItem { Text = node.Label, Tag = node };
+                    if (node.AutomationId is { } rowId) row.Name = rowId;
 
                     row.Click += (source, args) =>
                     {

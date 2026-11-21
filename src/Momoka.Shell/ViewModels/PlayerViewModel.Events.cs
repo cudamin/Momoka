@@ -273,16 +273,6 @@ public sealed partial class PlayerViewModel
         items.Add(BuildUoscSkipMenu());
         items.Add(new UoscMenuItem("自动播放下一集",
             $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode, Separator: true));
-        if (CanArrangeQueue)
-        {
-            var queue = new List<UoscMenuItem>
-            {
-                new("下一项播放…", $"script-message {VideoWindowContract.Queue} next", true, false),
-                new("追加到队尾…", $"script-message {VideoWindowContract.Queue} append", true, false)
-            };
-            if (HasPendingQueue) queue.Add(new("清空待播项", $"script-message {VideoWindowContract.Queue} clear", true, false));
-            items.Add(new("本次播放队列", null, true, false, Items: queue));
-        }
         items.Add(new UoscMenuItem("播放信息…", $"script-message {VideoWindowContract.MediaInfo} open", true, false,
             shortcutTexts.GetValueOrDefault(PlayerMenuCatalog.PlaybackInfoShortcut)));
 

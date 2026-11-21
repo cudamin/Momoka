@@ -29,7 +29,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
-      "sha256": "8fcf9573c5fbdf4c01e2389a2f3826ff36e25fd3e85ea35b3f92d8831339d443"
+      "sha256": "a68a213a0a2dd6b50089023fee0e997820336612655f242fed10bcf0dfc6b5b6"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
@@ -53,7 +53,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "33230a94a451675a00c7b52e12cf74dcb903b92d4cad8a23d09b2a47d4f38cd4"
+      "sha256": "57c27b606214a245b4e1b244d00880343160cb1badb6084f3de0769d125b9b91"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
@@ -65,7 +65,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "73382fe8c9d3c00a94b5ba3292c50be455524a351f75e1f372a3657d45feaa96"
+      "sha256": "0db756abf5b68ec248a7c01ff96358895a437bea74909fb2a47f34556c4a18c5"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",
@@ -81,7 +81,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Queue.cs",
-      "sha256": "8d871eccf2749fe464ab551dee1b638082d400370ca7adfb4642c2bde41704cb"
+      "sha256": "7ce50f9bb26ed4cf1ac0e2d25d5439b4a54bc80a20c90c405acf85de9542ead5"
     }
   ]
 }

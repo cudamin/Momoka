@@ -10,6 +10,7 @@ public sealed partial class PlayerViewModel
 
     internal event EventHandler? QueueChanged;
     internal event Action<bool>? QueueRequested;
+    internal event Action? QueueManagementRequested;
 
     internal sealed record QueueArrangement(long Intent, int Attempt, EmbyItem Item, EmbySessionScope Scope);
 
@@ -30,10 +31,28 @@ public sealed partial class PlayerViewModel
         if (CanArrangeQueue) QueueRequested?.Invoke(next);
     }
 
-    internal async Task<ItemsResult> SearchQueueAsync(QueueArrangement arrangement, string term, int start, CancellationToken token)
+    internal void RequestQueueManagement()
     {
-        if (!IsCurrentQueueArrangement(arrangement)) throw new OperationCanceledException("播放安排所属的本次播放已改变");
-        var result = await arrangement.Scope.ExecuteAsync((client, ct) => client.GetItemsAsync(new ItemQuery
+        if (CanArrangeQueue && HasPendingQueue) QueueManagementRequested?.Invoke();
+    }
+
+    internal IReadOnlyList<EmbySessionScope> GetQueueSearchSources(QueueArrangement arrangement)
+    {
+        if (!IsCurrentQueueArrangement(arrangement)) return [];
+        if (!Settings.AggregateMode) return [arrangement.Scope];
+        return [arrangement.Scope, .. _session.Sources.Where(scope => scope.IsAvailable && !scope.Connection.IsFnMusic
+            && !ReferenceEquals(scope.UserStateOwner, arrangement.Scope.UserStateOwner))];
+    }
+
+    private bool IsQueueSearchSource(QueueArrangement arrangement, EmbySessionScope source) => source.IsAvailable
+        && GetQueueSearchSources(arrangement).Any(scope => ReferenceEquals(scope.UserStateOwner, source.UserStateOwner));
+
+    internal async Task<ItemsResult> SearchQueueAsync(QueueArrangement arrangement, string term, int start,
+        CancellationToken token, EmbySessionScope? source = null)
+    {
+        source ??= arrangement.Scope;
+        if (!IsQueueSearchSource(arrangement, source)) throw new OperationCanceledException("播放安排或所选来源已改变");
+        var result = await source.ExecuteAsync((client, ct) => client.GetItemsAsync(new ItemQuery
         {
             SearchTerm = term.Trim(),
             Recursive = true,
@@ -41,20 +60,31 @@ public sealed partial class PlayerViewModel
             StartIndex = start,
             Limit = 50
         }, ct), token).ConfigureAwait(true);
-        if (!IsCurrentQueueArrangement(arrangement)) throw new OperationCanceledException("播放安排所属的本次播放已改变");
+        if (!IsQueueSearchSource(arrangement, source)) throw new OperationCanceledException("播放安排或所选来源已改变");
         return result;
     }
 
-    internal bool ArrangeQueue(QueueArrangement arrangement, IReadOnlyList<EmbyItem> items, bool next)
+    internal bool ArrangeQueue(QueueArrangement arrangement, IReadOnlyList<EmbyItem> items, bool next,
+        EmbySessionScope? source = null)
     {
-        if (!IsCurrentQueueArrangement(arrangement) || items.Count == 0
-            || items.Any(item => !CanQueue(item) || item.Source is null
-                || !ReferenceEquals(item.Source.UserStateOwner, arrangement.Scope.UserStateOwner))) return false;
-        var ordered = next ? items.Reverse() : items;
-        foreach (var item in ordered)
-            if (!_sessionQueue.Add(item, arrangement.Scope, next)) return false;
+        source ??= arrangement.Scope;
+        if (!IsQueueSearchSource(arrangement, source) || !_sessionQueue.Add(items, source, next)) return false;
         QueueChanged?.Invoke(this, EventArgs.Empty);
         Noticed?.Invoke(next ? $"已安排 {items.Count} 项接下来播放" : $"已追加 {items.Count} 项到本次队尾", InfoBarSeverity.Success);
+        return true;
+    }
+
+    internal bool MovePendingQueueItem(QueueArrangement arrangement, long slot, int offset)
+    {
+        if (!IsCurrentQueueArrangement(arrangement) || !_sessionQueue.Move(slot, offset)) return false;
+        QueueChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    internal bool RemovePendingQueueItem(QueueArrangement arrangement, long slot)
+    {
+        if (!IsCurrentQueueArrangement(arrangement) || !_sessionQueue.Remove(slot)) return false;
+        QueueChanged?.Invoke(this, EventArgs.Empty);
         return true;
     }
 
