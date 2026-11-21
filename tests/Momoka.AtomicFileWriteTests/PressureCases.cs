@@ -67,7 +67,7 @@ internal static class PressureCases
         fixture.Fact("writesPerTarget", WritesPerTarget);
         fixture.Fact("commitBudget", TargetBudget * (WritesPerTarget + (concurrent && backup ? 1 : 0)));
         fixture.Fact("concurrentWriters", concurrent ? ConcurrentWriters : 1);
-        fixture.Fact("retryBudget", 0);
+        fixture.Fact("contentRetryBudget", 0);
         try
         {
             for (var targetIndex = 0; targetIndex < TargetBudget; targetIndex++)

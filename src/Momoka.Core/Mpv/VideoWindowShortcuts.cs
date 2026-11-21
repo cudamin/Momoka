@@ -18,32 +18,7 @@ public static class VideoWindowShortcuts
     public static string? Key(KeyStroke stroke)
     {
         if (stroke.IsEmpty) return null;
-        var key = stroke.Key switch
-        {
-            "Space" => "SPACE",
-            "Back" => "BS",
-            "Delete" => "DEL",
-            "Insert" => "INS",
-            "Home" => "HOME",
-            "End" => "END",
-            "PageUp" => "PGUP",
-            "PageDown" => "PGDWN",
-            "Left" => "LEFT",
-            "Right" => "RIGHT",
-            "Up" => "UP",
-            "Down" => "DOWN",
-            "BracketLeft" => "[",
-            "BracketRight" => "]",
-            "Minus" => "-",
-            "Equal" => "=",
-            "Comma" => ",",
-            "Period" => ".",
-            "Backquote" => "`",
-            { Length: 1 } value when char.IsAsciiLetterOrDigit(value[0]) => value.ToLowerInvariant(),
-            { Length: 2 or 3 } value when value[0] == 'F' && int.TryParse(value.AsSpan(1), out var number)
-                && number is >= 1 and <= 12 => value,
-            _ => null
-        };
+        var key = ShortcutKeyCatalog.StandaloneMpvKey(stroke.Key);
         if (key is null) return null;
         return (stroke.Ctrl ? "Ctrl+" : "") + (stroke.Alt ? "Alt+" : "") + (stroke.Shift ? "Shift+" : "") + key;
     }

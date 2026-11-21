@@ -164,6 +164,11 @@ namespace Momoka.Shell.Views
         protected override void OnNavigatedTo(NavigationEventArgs args) => Tag = (args.Parameter as LibraryRequest)?.Tag;
     }
     public sealed class MoviePilotSubscriptionsPage : Page;
+    internal sealed class MoviePilotCalendarPage : Page
+    {
+        internal const string Destination = "moviepilot:calendar";
+    }
+    internal sealed record MoviePilotCalendarRequest(MoviePilotService Service, MoviePilotSettings Settings);
     internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open)
     {
         internal const string LibraryKey = "mp-subscriptions";
@@ -188,6 +193,8 @@ namespace Momoka.Shell.Views
         private readonly ObservableCollection<Crumb> _trail = [];
         private readonly Windowing.HostWindow? _window = null;
         private readonly MoviePilotService? _moviePilotService = null;
+        private bool MoviePilotCalendarAvailable => false;
+        private AppSettings Settings { get; } = new();
         private bool _closing;
         private string? _current;
         private readonly MenuBoundary AccountMenu = new();

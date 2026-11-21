@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["standalone-probe-contract-fixture"])
+        {
+            StartupArgsTests.Register();
+            LogProbeArtifactsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["motion-probe-fixture"])
         {
             StartupArgsTests.Register();

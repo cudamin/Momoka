@@ -142,8 +142,8 @@ internal static partial class FnNasMediaTests
                 Assert.Equal("update_time", body["sort_column"]!.GetValue<string>());
                 var job = body["job"]!.GetValue<string>();
                 return Task.FromResult(DetailEnvelope(job == "Director"
-                    ? """{"total":2,"list":[{"guid":"work-a","title":"甲","type":"Movie"},{"guid":"work-b","title":"乙","type":"TV"}]}"""
-                    : """{"total":1,"list":[{"guid":"work-a","title":"甲","type":"Movie"}]}"""));
+                    ? """{"total":2,"list":[{"guid":"work-a","title":"Alpha","type":"Movie"},{"guid":"work-b","title":"Beta","type":"TV"}]}"""
+                    : """{"total":1,"list":[{"guid":"work-a","title":"Alpha","type":"Movie"}]}"""));
             };
             var page = fixture.Session.Client.GetItemsAsync(new ItemQuery
             { PersonId = "person-a", SortBy = EmbySortBy.Name, StartIndex = 1, Limit = 1 }, default).GetAwaiter().GetResult();
@@ -236,12 +236,12 @@ internal static partial class FnNasMediaTests
                     return Task.FromResult(DetailEnvelope("""{"total":0,"list":[]}"""));
                 var page = body["page"]!.GetValue<int>();
                 return Task.FromResult(DetailEnvelope(page == 2
-                    ? """{"total":201,"list":[{"guid":"work-b","title":"乙","type":"Movie"}]}"""
+                    ? """{"total":201,"list":[{"guid":"work-b","title":"Beta","type":"Movie"}]}"""
                     : new JsonObject
                     {
                         ["total"] = 201,
                         ["list"] = new JsonArray(Enumerable.Range(0, 200).Select(_ => (JsonNode)new JsonObject
-                        { ["guid"] = "work-a", ["title"] = "甲", ["type"] = "Movie" }).ToArray())
+                        { ["guid"] = "work-a", ["title"] = "Alpha", ["type"] = "Movie" }).ToArray())
                     }.ToJsonString()));
             };
             var works = fixture.Session.Client.GetItemsAsync(new ItemQuery

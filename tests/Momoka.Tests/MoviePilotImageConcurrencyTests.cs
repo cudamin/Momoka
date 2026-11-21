@@ -161,6 +161,9 @@ internal static class MoviePilotImageConcurrencyTests
                     _handlers.Add(HandleAsync(await _listener.AcceptTcpClientAsync(_stop.Token)));
             }
             catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+            // Cancelling the token can abort the pending accept with 995 (ERROR_OPERATION_ABORTED)
+            // instead of surfacing as OperationCanceledException; that is still our own stop.
+            catch (SocketException) when (_stop.IsCancellationRequested) { }
         }
 
         private async Task HandleAsync(TcpClient socket)

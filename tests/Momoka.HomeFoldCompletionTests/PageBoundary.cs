@@ -91,7 +91,9 @@ namespace Momoka.Shell.Views
     internal static class ShellPrefs
     {
         internal static event Action? Changed;
+        internal static event Action<Momoka.Configuration.UiSettings>? HomeLibraryEntriesChanged;
         internal static event Action<Momoka.Configuration.UiSettings>? AppearanceChanged;
+        internal static void NotifyHomeLibraryEntries(Momoka.Configuration.UiSettings ui) => HomeLibraryEntriesChanged?.Invoke(ui);
         internal static void NotifyAppearance(Momoka.Configuration.UiSettings ui) => AppearanceChanged?.Invoke(ui);
         internal static void Notify() => Changed?.Invoke();
     }
@@ -186,6 +188,7 @@ namespace Momoka.Shell.Views
         internal void ReplaceLate(HomeFoldMotion motion) => _foldLate = motion;
         internal void SetFlowIndex(int index) => _homeLibraryFlowIndex = index;
         private void OnShellPrefsChanged() { }
+        private void OnHomeLibraryEntriesChanged(Momoka.Configuration.UiSettings ui) { }
         internal void UseLocalLibraries(TestLocalLibraries source)
         {
             _localLibraries = source;

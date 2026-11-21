@@ -30,7 +30,7 @@ public static class LogProbeArtifacts
     private static readonly string[] RunPrefixes =
     [
         "shell-probe", "subtitle-probe", "composition-probe", "cursor-probe",
-        "player-motion-probe", "navigation-timing", "trailer-web-fixture"
+        "player-motion-probe", "standalone-playback-probe", "navigation-timing", "trailer-web-fixture"
     ];
 
     /// <summary>这些是容器目录，子目录一次预告一个，按最后写入时间回收。</summary>

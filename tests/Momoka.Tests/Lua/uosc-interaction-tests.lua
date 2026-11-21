@@ -481,9 +481,16 @@ do
 			test('OEM punctuation shortcuts accept exact keys and canonical modifiers', function()
 				local values = {
 					['-'] = 'video-zoom-out', ['='] = 'video-zoom-in', [','] = 'frame-backward',
-					['.'] = 'frame-forward', ['`'] = 'toggle-stats', ['Ctrl+-'] = 'video-zoom-out',
+					['.'] = 'frame-forward', ['`'] = 'toggle-stats', [';'] = 'toggle-mute',
+					['/'] = 'toggle-fullscreen', ["'"] = 'toggle-pause', ['\\'] = 'toggle-pin',
+					['Ctrl+-'] = 'video-zoom-out',
 					['Alt+='] = 'video-zoom-in', ['Ctrl+Shift+,'] = 'frame-backward',
 					['Ctrl+Alt+.'] = 'frame-forward', ['Ctrl+Alt+Shift+`'] = 'toggle-stats',
+					['KP7'] = 'seek-forward', ['KP_ENTER'] = 'toggle-pause', ['F24'] = 'toggle-mute',
+					['VOLUME_UP'] = 'volume-up', ['PLAYPAUSE'] = 'toggle-pause',
+					['GO_BACK'] = 'previous-episode', ['MUTE'] = 'toggle-mute', ['KP_LEFT'] = 'seek-backward',
+					['RECORD'] = 'screenshot', ['CHANNEL_UP'] = 'chapter-next',
+					['Ctrl+ESC'] = 'toggle-pin', ['TAB'] = 'toggle-pin', ['CAPS_LOCK'] = 'toggle-mute',
 				}
 				fixture_messages['momoka-shortcuts'](utils.format_json(values))
 				for key in pairs(values) do
@@ -491,11 +498,27 @@ do
 				end
 				fixture_messages['momoka-shortcuts']('{}')
 			end)
+			test('host volume readout flashes only the volume element', function()
+				local ids = {'volume', 'timeline', 'controls', 'top_bar'}
+				local original, flashes = {}, {}
+				for _, id in ipairs(ids) do
+					if Elements[id] then
+						original[id] = Elements[id].flash
+						Elements[id].flash = function() flashes[id] = (flashes[id] or 0) + 1 end
+					end
+				end
+				fixture_messages['flash-elements']('volume')
+				for id, flash in pairs(original) do Elements[id].flash = flash end
+				require_equal(flashes.volume, 1, 'volume readout did not flash')
+				for _, id in ipairs({'timeline', 'controls', 'top_bar'}) do
+					require_equal(flashes[id] or 0, 0, id .. ' flashed with the volume rail')
+				end
+			end)
 			test('host shortcuts reject compound key injection and malformed modifiers', function()
 				local values = {
 					['x;quit'] = 'toggle-pause', ['Ctrl+Ctrl+x'] = 'toggle-pause',
 					['Alt+Ctrl+x'] = 'toggle-pause', ['Ctrl++x'] = 'toggle-pause',
-					['F13'] = 'toggle-pause', ['LEFT RIGHT'] = 'toggle-pause',
+					['F25'] = 'toggle-pause', ['LEFT RIGHT'] = 'toggle-pause',
 					['Ctrl+'] = 'toggle-pause', ['x\nquit'] = 'toggle-pause',
 					['Ctrl+F9'] = 'toggle-pause',
 				}
