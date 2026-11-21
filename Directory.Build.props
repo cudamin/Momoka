@@ -120,7 +120,7 @@
     <!-- Roslynator 5.0.0：先实测后采纳（主包不含格式规则，格式辖区仍是闸门 1 的 dotnet format）。
          首测 6 处命中、3 条规则，全是刻意写法，逐条降级与失效条件见 .editorconfig 的 RCS 节；
          调查记录在 work/roslynator-survey.md。 -->
-    <PackageReference Include="Roslynator.Analyzers" Version="5.0.0" PrivateAssets="all" />
+    <PackageReference Include="Roslynator.Analyzers" Version="5.0.1" PrivateAssets="all" />
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)tools\BannedSymbols.txt" />
   </ItemGroup>
 
