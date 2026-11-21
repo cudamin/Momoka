@@ -4,7 +4,7 @@
 
 **Windows 端播放、订阅、下载、刮削与文件管理一体化媒体客户端**
 
-[English](README_EN.md) · [微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN) · [GitHub Releases](https://github.com/cudamin/Momoka/releases) · [功能与问题反馈](https://github.com/cudamin/Momoka/issues)
+[English](README_EN.md) · [微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN) · [GitHub Releases](https://github.com/cudamin/Momoka/releases) · [问题反馈](https://github.com/cudamin/Momoka/issues) · [Telegram](https://t.me/Ebizuka_Tomo) · [QQ群](https://qm.qq.com/q/vXph3vMyFW)
 
 ![Windows](https://img.shields.io/badge/Windows-10%201809%2B%20%7C%20x64-0078D4?style=flat-square&logo=windows)
 ![License](https://img.shields.io/github/license/cudamin/Momoka?style=flat-square)
