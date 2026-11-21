@@ -124,13 +124,13 @@
       versions 2.5.1 resolves to: Base 2.0.4, Foundation 2.3.12, InteractiveExperiences 2.1.9,
       WinUI 2.3.9, DWrite 2.1.0, Runtime [2.5.1].
     -->
-    <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="2.0.4" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="2.7.0" />
     <!-- GeneratePathProperty on the three packages that carry a framework .pri: the injection target
          below needs their on-disk roots to find the files. See that target for the whole story. -->
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="2.3.12" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="2.1.9" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.9" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="2.1.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="2.7.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="[2.5.1]" />
     <!-- MVVM, source-generated. The pages bind to view models rather than reaching for named XAML
          elements, and this package is what makes that cheap enough to be worth doing everywhere:
