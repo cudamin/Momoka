@@ -30,10 +30,10 @@ namespace Momoka.Shell.Windowing;
 internal interface IWin32KeySink
 {
     /// <summary>这一下接不接。真＝钩子把它吃掉；假＝钩子放行。</summary>
-    bool WantsKey(int virtualKey);
+    bool WantsKey(int virtualKey, bool extended);
 
     /// <summary>接。等价于那颗键在岛内被按下时页面会做的事。</summary>
-    void Handle(int virtualKey);
+    void Handle(int virtualKey, bool extended);
 
     /// <summary>
     /// 焦点 HWND 在岛里时，XAML 那头有没有元素真接着键盘。通常「焦点在岛里＝XAML 自己收、钩子放行」，
@@ -2856,22 +2856,18 @@ internal sealed partial class HostWindow : IDisposable
     {
         const long KfUp = 0x80000000;
         const long KfRepeat = 0x40000000;
-        const long KfAltDown = 0x20000000;
-        const int VkSpace = 0x20;
-        const int VkEscape = 0x1B;
-        const int VkReturn = 0x0D;
-        const int VkDelete = 0x2E;
 
         if (code >= 0)
         {
             var bits = lParam.ToInt64();
             var vk = unchecked((int)(long)wParam);
-            if ((bits & KfUp) == 0 && (bits & KfRepeat) == 0 && (bits & KfAltDown) == 0
-                && vk is VkSpace or VkEscape or VkReturn or VkDelete
-                && KeyFellThroughTheIsland(vk)
-                && _win32Keys?.WantsKey(vk) == true)
+            var extended = (bits & (1L << 24)) != 0;
+            if ((bits & KfUp) == 0 && (bits & KfRepeat) == 0
+                && vk is > 0 and <= 0xFF
+                && KeyFellThroughTheIsland()
+                && _win32Keys?.WantsKey(vk, extended) == true)
             {
-                _win32Keys!.Handle(vk);
+                _win32Keys!.Handle(vk, extended);
                 return 1;
             }
         }
@@ -2887,7 +2883,7 @@ internal sealed partial class HostWindow : IDisposable
     /// 就死，兜底路照旧收下（2026-10-02 用户报「点击第二屏的窗口之后回车/Esc 失灵」）。问自己的线程号，
     /// 不是 0：0 问到的是前台线程，而前台可能是别家。
     /// </summary>
-    private bool KeyFellThroughTheIsland(int vk)
+    private bool KeyFellThroughTheIsland()
     {
         var info = new GuiThreadInfo { Size = Marshal.SizeOf<GuiThreadInfo>() };
         if (!Native.GetGUIThreadInfo(Native.GetCurrentThreadId(), ref info)) return false;

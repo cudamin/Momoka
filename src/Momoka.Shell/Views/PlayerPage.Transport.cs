@@ -20,9 +20,12 @@ public sealed partial class PlayerPage
         SeekSlider.PressPosition = PressTimelineChapter;
         SeekSlider.FinishDrag = FinishTimelineGesture;
         SeekSlider.PositionValue = TimelinePositionValue;
-        SeekSlider.KeyCommand = key =>
+        SeekSlider.KeyCommand = e =>
         {
-            if (!Attached || _inputSuspended || key == Windows.System.VirtualKey.Space || !Dispatch(key, out var wake)) return false;
+            if (!Attached || _inputSuspended || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)
+                || !Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return false;
+            e.Handled = true;
+            _lastDispatchedKeyEvent = e;
             if (wake && _chrome.WakeFully(Now)) Render();
             return true;
         };

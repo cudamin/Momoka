@@ -476,7 +476,7 @@ public static class SettingsMigration
             display.Fields ??= [.. LibraryDisplayCatalog.DefaultFields];
 
         // 快捷键那张 Id→token 表：null 的那份先扔掉（string 值，和 Sort/Filters 同一条规矩）。认不出的动作 Id、
-        // 解析不了的写法、落到保留键上的，留给 Normalize 里的 ShortcutCatalog.Clean 收。
+        // 解析不了的写法，留给 Normalize 里的 ShortcutCatalog.Clean 收。
         if (settings.Shortcuts.Bindings is null) settings.Shortcuts.Bindings = new(StringComparer.Ordinal);
         DropNullValues(settings.Shortcuts.Bindings);
 
@@ -717,7 +717,7 @@ public static class SettingsMigration
         // 字幕字体 is a family name for mpv; a v3 file may still hold the path of a font file here.
         settings.Playback.SubtitleFontFamily = ResolveFontFamily(settings.Playback.SubtitleFontFamily);
 
-        // 快捷键：认不出的动作 Id、解析不了的写法、落到保留键（Esc/回车/Delete）上的，都清掉并把写法规范化 —— 和上面
+        // 快捷键：认不出的动作 Id、解析不了的写法，都清掉并把写法规范化 —— 和上面
         // 每一项都被夹进合法范围是同一条规矩，手改的设置文件也拦得住。
         settings.Shortcuts.Bindings = ShortcutCatalog.Clean(settings.Shortcuts.Bindings);
         settings.Danmaku ??= new DanmakuSettings();

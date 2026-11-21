@@ -615,16 +615,17 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// <see cref="KeyStroke"/>，<see cref="ShortcutCatalog.Lookup"/> 查它绑到哪个动作，再由 <see cref="ShortcutHandlers"/>
     /// 那张 动作→处理器 表执行。这一头每个处理器仍是一句话 —— 一个窗口操作或一次视图模型调用；「键→动作」在
     /// Core 那张表、单测钉着，两张表靠动作 Id 对上。Esc 和 Y 两个固定键不参与重绑，留在下面 <see cref="Dispatch"/>
-    /// 的开头原样处理。快退多少秒、倍速夹到哪、有没有下一集 —— 都不是键盘该回答的，这里一样不管。
+    /// 的开头作为未改绑时的回退。快退多少秒、倍速夹到哪、有没有下一集 —— 都不是键盘该回答的，这里一样不管。
     /// </para>
     /// </summary>
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
 
-        if (!Dispatch(e.Key, out var wake)) return;
+        if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return;
 
         e.Handled = true;
+        _lastDispatchedKeyEvent = e;
 
         // A keyboard command has no pointer behind it, so the chrome is shown wherever the pointer
         // happens to be resting — otherwise pressing Space over the middle of the picture changes the
@@ -636,16 +637,40 @@ public sealed partial class PlayerPage : IWin32KeySink
         if (wake && _chrome.WakeFully(Now)) Render();
     }
 
+    /// <summary>处理被按钮等焦点控件标记为 handled 的播放器快捷键，并避免与页面冒泡路重复派发。</summary>
+    private void OnRootShortcut(object sender, KeyRoutedEventArgs e)
+    {
+        if (ReferenceEquals(_lastDispatchedKeyEvent, e) || !Attached || _window is null || _inputSuspended || DanmakuInputFocused
+            || _holds.HasFlag(ChromeHold.Menu) || _chrome.PictureMenuOpen
+            || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)) return;
+        var skipFallback = !Native.CtrlHeld && !Native.AltHeld && !Native.ShiftHeld && ViewModel.SkipOffered
+            && e.Key is VirtualKey.Enter or VirtualKey.Delete;
+        if (e.Handled && FocusManager.GetFocusedElement() is ButtonBase or Slider
+            && !HasExplicitShortcutBinding(e.Key, e.KeyStatus.IsExtendedKey) && !skipFallback) return;
+
+        if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return;
+        e.Handled = true;
+        _lastDispatchedKeyEvent = e;
+        if (wake && _cursorHidden) _woke = $"按键 {e.Key}";
+        if (wake && _chrome.WakeFully(Now)) Render();
+    }
+
+    private KeyRoutedEventArgs? _lastDispatchedKeyEvent;
+
+    private bool HasExplicitShortcutBinding(VirtualKey key, bool extended)
+    {
+        if (KeyStrokeInterop.Token(key, extended) is not { } token) return false;
+        var stroke = ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
+        return ViewModel.ShortcutBindings.Values.Any(value => ShortcutCatalog.TryParse(value, out var stored) && stored == stroke);
+    }
+
     /// <summary>
-    /// 这一下有没有当成播放器键位处理掉。固定键在前（原样，不查修饰键，和改造前一致）：Delete 跳过提示立着时
-    /// 归「关闭提示」（用户令 2026-11-02「关闭跳过片头/片尾的快捷键从 Esc 改为删除键」）；Esc 不再先抢提示，
-    /// 恢复成老三样 —— 全屏则退全屏、否则停止播放（Esc 是全局「退出」、也是设置里重绑方框的取消键）；回车只在
-    /// 出现跳过提示时确认跳过（原 Y，用户令 2026-09-26「把确认跳过片头/片尾从 Y 改成回车」）—— 没提示时它落到
-    /// 下面那张表。
+    /// 这一下有没有当成播放器键位处理掉。固定键的回退排在最前，只在没有用户绑定且不带修饰键
+    /// （<c>fixedFallback</c>）时生效：Delete 跳过提示立着时归「关闭提示」（用户令 2026-11-02「关闭跳过
+    /// 片头/片尾的快捷键从 Esc 改为删除键」）；Esc 全屏则退全屏、否则停止播放；回车只在出现跳过提示时
+    /// 确认跳过（原 Y，用户令 2026-09-26「把确认跳过片头/片尾从 Y 改成回车」）—— 没提示时它落到下面那张表。
     /// <para>
-    /// Esc、回车、Delete 是 <see cref="ShortcutCatalog.ReservedKeys"/> 里的保留键，可重绑那张表永远不会绑上
-    /// 它们；<b>N 不是</b> —— 它默认就是「下一集」（<c>next-episode</c>）。原来 N 兼管「关闭跳过提示」那一支已随
-    /// 2026-09-26 的改动退役，Esc 的那一版也在 2026-11-02 随 Delete 接任而退役。
+    /// 自定义绑定优先于 Esc 全屏/停止、回车确认跳过、Delete 关闭提示的回退行为。
     /// </para>
     /// <para>
     /// <paramref name="wakeChrome"/> 答的是「这一下要不要把整套控件叫出来」。跳过提示的那两颗不要 ——
@@ -659,40 +684,47 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// 其余键走可重绑那张表：认不出的键、查不到动作、或没有处理器的，返回 false，那一下照旧不被吃掉。
     /// </para>
     /// </summary>
-    private bool Dispatch(VirtualKey key, out bool wakeChrome)
+    private bool Dispatch(VirtualKey key, out bool wakeChrome, bool extended = false)
     {
+        var token = KeyStrokeInterop.Token(key, extended);
+        var stroke = token is null
+            ? KeyStroke.None
+            : ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
+        var reboundAction = ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke);
+        var fixedFallback = !stroke.Ctrl && !stroke.Alt && !stroke.Shift && reboundAction is null;
+
         switch (key)
         {
             // 提示立着时 Delete 归「关闭跳过提示」（用户令 2026-11-02，原 Esc），与点画面收提示
             // （OnTapped 那一支）同一句话：这一下的意思是「别挡着」，不是「退出」。
             // 这一支和回车确认跳过都不给控件宽限（wakeChrome=false）。
-            case VirtualKey.Delete when ViewModel.SkipOffered:
+            case VirtualKey.Delete when token == "Delete" && ViewModel.SkipOffered && fixedFallback:
                 ViewModel.DismissSkip();
                 wakeChrome = false;
                 return true;
 
-            case VirtualKey.Escape when ViewModel.NativeWindowPlayback:
+            case VirtualKey.Escape when ViewModel.NativeWindowPlayback && fixedFallback:
                 ViewModel.ExitNativeFullscreenOrStop();
                 break;
 
             // 退全屏不给控件宽限（用户令 2026-10-10「退出全屏的时候也不要自动显示播放控件」）：与 F 键
             // 那一半走同一句判据（<see cref="WakesChrome"/>），一处改两处跟着走。窗口形状变了本身就是回执。
-            case VirtualKey.Escape when _window!.Fullscreen || _fullscreenWanted == true:
+            case VirtualKey.Escape when fixedFallback && (_window!.Fullscreen || _fullscreenWanted == true):
                 SetFullscreen(false);
                 wakeChrome = WakesChrome("toggle-fullscreen");
                 return true;
 
-            case VirtualKey.Escape:
+            case VirtualKey.Escape when fixedFallback:
                 ViewModel.Stop();
                 break;
 
-            case VirtualKey.Enter when ViewModel.SkipOffered:
+            case VirtualKey.Enter when token == "Enter" && ViewModel.SkipOffered && fixedFallback:
                 ViewModel.TakeSkip();
                 wakeChrome = false;
                 return true;
 
             default:
-                return ShortcutCommand(key, out wakeChrome);
+                return ShortcutCommand(key, out wakeChrome, extended);
         }
 
         wakeChrome = true;
@@ -700,22 +732,22 @@ public sealed partial class PlayerPage : IWin32KeySink
     }
 
     /// <summary>Dispatch 的后半截：可重绑那张表的查找与执行。单独一个方法只是为了让上面的 switch 能提前返回。</summary>
-    private bool ShortcutCommand(VirtualKey key, out bool wakeChrome)
+    private bool ShortcutCommand(VirtualKey key, out bool wakeChrome, bool extended = false)
     {
         wakeChrome = true;
 
         // 修饰键 KeyRoutedEventArgs 不带，从 Native 读（同改造前 Z/X 那套）。认不出的键当没有快捷键。
-        if (KeyStrokeInterop.Token(key) is not { } token) return false;
+        if (KeyStrokeInterop.Token(key, extended) is not { } token) return false;
 
-        var stroke = new KeyStroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
+        var stroke = ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
         var action = ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke);
         if (ViewModel.PictureInHostWindow && !stroke.Ctrl && !stroke.Alt && !stroke.Shift
-            && key is VirtualKey.Up or VirtualKey.Down or VirtualKey.PageUp or VirtualKey.PageDown)
+            && (token is "Up" or "Down" or "PageUp" or "PageDown"))
         {
             var context = ViewModel.CaptureInteraction();
             var file = ViewModel.CaptureFreeze().FileGeneration;
             var previous = _statsKeyTail;
-            _statsKeyTail = StatsKeyAsync(previous, context, file, key is VirtualKey.Up or VirtualKey.PageUp, action);
+            _statsKeyTail = StatsKeyAsync(previous, context, file, token is "Up" or "PageUp", action);
             wakeChrome = false;
             return true;
         }
@@ -732,6 +764,12 @@ public sealed partial class PlayerPage : IWin32KeySink
 
         run();
         return true;
+    }
+
+    private bool CanDispatchVirtualKey(VirtualKey key, bool extended = false)
+    {
+        if (KeyStrokeInterop.Token(key, extended) is not { } token) return false;
+        return CanDispatchStroke(ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld));
     }
 
     private Task _statsKeyTail = Task.CompletedTask;
@@ -775,7 +813,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         "seek-backward" or "seek-forward" or "seek-backward-long" or "seek-forward-long"
             or "seek-backward-fine" or "seek-forward-fine" or "subtitle-seek-previous" or "subtitle-seek-next" => false,
         "toggle-pause" => false,
-        "toggle-fullscreen" => false,
+        "toggle-fullscreen" or "volume-up" or "volume-down" or "toggle-mute" => false,
         _ => true
     };
 
@@ -851,6 +889,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         // 一并去掉，两半自然一致；从前这里只放过暂停那一半，恢复照旧给宽限，同一颗空格于是按出两种行为。
         ViewModel.TogglePause();
         e.Handled = true;
+        _lastDispatchedKeyEvent = e;
     }
 
     /// <summary>
@@ -907,19 +946,6 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// 动作就返回 false、钩子照旧放行，不抢别人（比如焦点停在按钮上按回车＝按那颗按钮）的键。
     /// </para>
     /// </summary>
-    bool IWin32KeySink.WantsKey(int virtualKey)
-    {
-        if (!Attached || _inputSuspended || DanmakuInputFocused) return false;
-
-        // 焦点在弹层上时 Win32 焦点本来就在岛里、走不到这里；这道闸留给「弹层开着而焦点又掉出岛」
-        // 这种状态机打架的时刻 —— Esc 该归 XAML 去关弹层，兜底路不越权。右键画面菜单没有挂钉住的账
-        // （它走的是收下去那一路，见 HoldPictureMenu），所以单独问一句。
-        if (_holds.HasFlag(ChromeHold.Menu) || _chrome.PictureMenuOpen) return false;
-
-        return virtualKey is (int)VirtualKey.Space or (int)VirtualKey.Escape or (int)VirtualKey.Enter
-            or (int)VirtualKey.Delete;
-    }
-
     /// <summary>
     /// 岛内此刻有没有元素真接着键盘。钩子问的：焦点 HWND 在岛里通常等于「XAML 自己收、兜底路放行」，
     /// 但有一段「焦点进了岛、XAML 没人接」的状态（点击叫醒窗口那一拍、进场那一拍；见
@@ -933,10 +959,24 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// 只在提示立着时关闭提示、回车只在提示立着时确认跳过；空格走可重绑表 —— 表里默认绑在 toggle-pause 上，
     /// 重绑走了兜底路跟着走，岛内岛外永远做同一件事。
     /// </summary>
-    void IWin32KeySink.Handle(int virtualKey)
+    bool IWin32KeySink.WantsKey(int virtualKey, bool extended)
+    {
+        if (!Attached || _inputSuspended || DanmakuInputFocused || _holds.HasFlag(ChromeHold.Menu) || _chrome.PictureMenuOpen)
+            return false;
+        return KeyStrokeInterop.Token((VirtualKey)virtualKey, extended) is { } token
+            && CanDispatchStroke(ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld));
+    }
+
+    private bool CanDispatchStroke(KeyStroke stroke) => ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke) is not null
+        || (!stroke.Ctrl && !stroke.Alt && !stroke.Shift && (stroke.Key is "Escape" or "Enter" or "Delete"));
+
+    void IWin32KeySink.Handle(int virtualKey, bool extended)
     {
         var key = (VirtualKey)virtualKey;
-        if (!Attached || _inputSuspended || !Dispatch(key, out var wake)) return;
+        if (KeyStrokeInterop.Token(key, extended) is not { } token) return;
+        var stroke = ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
+        if (!CanDispatchStroke(stroke)) return;
+        if (!Attached || _inputSuspended || !Dispatch(key, out var wake, extended)) return;
 
         // 姓名牌：兜底路自己的名字，和 XAML 那两路（「按键 X」「空格（播放/暂停）」）分得开 ——
         // 以后日志里见到「（Win32 兜底）」就是焦点掉出岛的那一阵。收提示那两颗与落在暂停上的
@@ -946,45 +986,6 @@ public sealed partial class PlayerPage : IWin32KeySink
     }
 
     /// <summary>
-    /// 跳过提示立着时，回车／Delete 从 <see cref="Root"/> 上再兜一道（带 <c>handledEventsToo</c>）。
-    /// <para>
-    /// <b>为什么需要这一道</b>（2026-09-30 用户报「按回车和 esc 确认跳过不生效」）：跳过提示是**常驻**
-    /// 立着的，而它一立起，指针多半正压在 <c>SkipButton</c> 自己身上 —— 那颗 <c>Button</c> 是
-    /// <c>ButtonBase</c>，回车与空格在它身上都算「按这一颗按钮」，事件在它那里就被标了已处理。页面那一路
-    /// （<see cref="OnKeyDown"/> 的 <c>KeyDown += OnKeyDown</c>）**特意不带 handledEventsToo**（那是为了
-    /// 不抢焦点按钮的空格，理由见 <see cref="OnKeyDown"/>），于是提示立着时按回车，事件到不了
-    /// <see cref="Dispatch"/>，什么都没发生 —— 而「确认跳过」正是提示立着时回车唯一的语义，用户按下去
-    /// 期待的是跳，不是「再按一次这颗按钮」。
-    /// </para>
-    /// <para>
-    /// <b>只在提示立着时接</b>：这一道是给跳过提示开的口子，不是给回车/Delete 改规矩。提示不在时直接返回、
-    /// 不标已处理，那颗焦点按钮照旧按按钮的规矩收自己的回车；Delete 也照旧落进可重绑表/mpv。这一道只在
-    /// 「提示立着」这一个状态下把两颗键收进 <see cref="Dispatch"/>。
-    /// </para>
-    /// <para>
-    /// 与 <see cref="OnSpaceShortcut"/> 同一套防重：处理完标已处理，页面那一路（在树上更靠外、这次冒泡
-    /// 到不了）不会再走第二遍。焦点在页面上时空格那一颗只从 <see cref="OnKeyDown"/> 走；回车/Delete 这一头
-    /// 现在两条路都可能到（页面那一路处理完会标已处理，就不再冒到这里），一颗键每次按键只执行一次。
-    /// </para>
-    /// </summary>
-    private void OnSkipKeyFallback(object sender, KeyRoutedEventArgs e)
-    {
-        if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
-
-        if (e.Key is not (VirtualKey.Enter or VirtualKey.Delete)) return;
-
-        // 提示不在：这一道不开，回车/Delete 的规矩一点不动。
-        if (!ViewModel.SkipOffered) return;
-
-        if (!Dispatch(e.Key, out var wake)) return;
-
-        e.Handled = true;
-
-        // 与岛内那一路同一句话：收提示的两颗不给控件宽限（wake=false），见 Dispatch。
-        if (wake && _cursorHidden) _woke = $"按键 {e.Key}";
-        if (wake && _chrome.WakeFully(Now)) Render();
-    }
-
     /// <summary>
     /// 自检：上面两条 Root 接线（空格拦截、chrome 焦点归还）都真的挂上了。注册被拆掉是「按空格没反应」
     /// 最静默的死法 —— 键盘到不了页面那一路，屏上什么都看不见，编译也看不出，只有这里能问。
@@ -994,7 +995,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     private bool _spaceShortcutArmed;
     private bool _chromeBlurArmed;
 
-    /// <summary>跳过提示那两颗键的兜底接线（<see cref="OnSkipKeyFallback"/>）挂上了没有。</summary>
+    /// <summary>全局快捷键的 handledEventsToo 接线是否挂上。</summary>
     private bool _skipKeyArmed;
 
     // ---- the window -------------------------------------------------------------
@@ -1335,7 +1336,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         if (!Attached) return;
 
         ViewModel.NudgeVolume(delta);
-        if (_chrome.FlashRail(Now)) Render();
+        if (_chrome.FlashRail(Now, preserveSilence: true)) Render();
     }
 
     /// <summary>
@@ -1358,7 +1359,8 @@ public sealed partial class PlayerPage : IWin32KeySink
         if (!Attached) return;
 
         ViewModel.ToggleMute();
-        if (_chrome.FlashRail(Now)) Render();
+        // 与音量增减同一句话：快捷键调音量只亮音量条，不把整套控件叫出来，也不解开双击全屏的纯净闸。
+        if (_chrome.FlashRail(Now, preserveSilence: true)) Render();
     }
 
     // ---- 拖字幕进画面 ------------------------------------------------------------
