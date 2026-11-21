@@ -8,6 +8,7 @@ using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Music;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
 
@@ -1180,7 +1181,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _backgroundFatal = null;
         var refreshVersion = _refresh.Begin();
         refreshSlides = _refresh.NeedsSlides(refreshSlides);
-        if (!quiet) Subheading = "正在读取…";
+        if (!quiet) Subheading = UiText.Translate("正在读取…");
 
         // 每一排这一趟的读取状态。各排、各来源的请求照旧一起发出去；新的地方在于不再等所有请求齐了才
         // 统一落屏 —— 哪一片先回来，就先把这一排按现有轮流合并规则重算一遍。
@@ -1286,7 +1287,7 @@ public sealed partial class HomeViewModel : PageViewModel
                     _backgroundFailures++;
                     if (_backgroundFatal is null && FailureDropsContent(error)) _backgroundFatal = error;
                 }
-                if (IsCurrent(token) && !NoticeOpen) Report("接下来看", error);
+                if (IsCurrent(token) && !NoticeOpen) Report(UiText.Translate("接下来看"), error);
             }
             finally
             {
@@ -1375,7 +1376,7 @@ public sealed partial class HomeViewModel : PageViewModel
             if (library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount == 0)
             {
                 shelf.Clear();
-                shelf.NoteOverride = "0 项";
+                shelf.NoteOverride = UiText.Translate("0 项");
                 continue;
             }
 
@@ -1520,7 +1521,7 @@ public sealed partial class HomeViewModel : PageViewModel
         // would be plainly untrue.
         ShowEmptyNotice = Shelves.Count == 0;
 
-        Subheading = LoadedCount == 0 ? null : $"{LoadedCount} 项";
+        Subheading = LoadedCount == 0 ? null : UiText.Format("{0} 项", LoadedCount);
 
         EndLoad(token);
         if (IsCurrent(token) && !NoticeOpen && _settings is not null)

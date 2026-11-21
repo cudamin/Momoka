@@ -7,6 +7,7 @@ using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell.ViewModels;
@@ -56,8 +57,8 @@ public sealed partial class ServersViewModel : PageViewModel
 
     /// <summary>当前这一档对用户意味着什么；开关旁边那一行小字。</summary>
     public string AggregateNote => AggregateMode
-        ? "多台服务器、多个账号可以同时在线；主页、搜索、收藏与版本选择覆盖全部在线账号。"
-        : "同一时间只保留一台服务器、一个账号在线；登录另一台或另一个账号时替换当前来源，保存的凭据不删除。";
+        ? UiText.Translate("多台服务器、多个账号可以同时在线；主页、搜索、收藏与版本选择覆盖全部在线账号。")
+        : UiText.Translate("同一时间只保留一台服务器、一个账号在线；登录另一台或另一个账号时替换当前来源，保存的凭据不删除。");
 
     /// <summary>
     /// 说明只在关着的时候占地方：开着的那一档本身就是结论，再摆一句解释只是把一行工具栏撑成两行
@@ -80,13 +81,13 @@ public sealed partial class ServersViewModel : PageViewModel
     public Visibility DiscoveredVisibility => Show(ShowDiscovered);
 
     /// <summary>排序按钮上的那块字；手动排序是拖拽出来的保存顺序。</summary>
-    public string SortButtonLabel => $"排序：{SortLabel}";
+    public string SortButtonLabel => UiText.Format("排序：{0}", SortLabel);
 
     private string SortLabel => _sortMode switch
     {
-        ServerSortMode.Name => "名称",
-        ServerSortMode.Status => "在线状态",
-        _ => "手动"
+        ServerSortMode.Name => UiText.Translate("名称"),
+        ServerSortMode.Status => UiText.Translate("在线状态"),
+        _ => UiText.Translate("手动")
     };
 
     /// <summary>按钮右端的方向提示；手动排序显示排序字形（它没有方向）。</summary>
@@ -95,8 +96,8 @@ public sealed partial class ServersViewModel : PageViewModel
         : _sortDescending ? "\uE70D" : "\uE70E";
 
     public string SortTooltip => _sortMode == ServerSortMode.Manual
-        ? "手动排序：按住卡片拖动可调整顺序"
-        : _sortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
+        ? UiText.Translate("手动排序：按住卡片拖动可调整顺序")
+        : _sortDescending ? UiText.Translate("降序，点击改为升序") : UiText.Translate("升序，点击改为降序");
 
     /// <summary>排序菜单的条目；方向箭头只挂在当前选中的那一行，点字换字段、点箭头翻方向。</summary>
     internal IReadOnlyList<ServerSortEntry> SortEntries()
@@ -104,16 +105,16 @@ public sealed partial class ServersViewModel : PageViewModel
         var glyph = _sortDescending ? "\uE70D" : "\uE70E";
         return
         [
-            new(ServerSortMode.Manual, "手动排序（拖拽调整）", _sortMode == ServerSortMode.Manual,
+            new(ServerSortMode.Manual, UiText.Translate("手动排序（拖拽调整）"), _sortMode == ServerSortMode.Manual,
                 CanFlip: false, Glyph: "", ArrowName: ""),
-            new(ServerSortMode.Name, "服务器与账号名称", _sortMode == ServerSortMode.Name,
+            new(ServerSortMode.Name, UiText.Translate("服务器与账号名称"), _sortMode == ServerSortMode.Name,
                 CanFlip: true, Glyph: glyph, ArrowName: SortArrowName),
-            new(ServerSortMode.Status, "在线状态", _sortMode == ServerSortMode.Status,
+            new(ServerSortMode.Status, UiText.Translate("在线状态"), _sortMode == ServerSortMode.Status,
                 CanFlip: true, Glyph: glyph, ArrowName: SortArrowName)
         ];
     }
 
-    private string SortArrowName => _sortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
+    private string SortArrowName => _sortDescending ? UiText.Translate("降序，点击改为升序") : UiText.Translate("升序，点击改为降序");
 
     /// <summary>换一种排序方式。方向回到该字段的默认值（名称升序、在线在前），已选中的再点不翻方向。</summary>
     internal void ChooseSort(ServerSortMode mode)
@@ -282,10 +283,10 @@ public sealed partial class ServersViewModel : PageViewModel
 
         ShowEmpty = Servers.Count == 0;
         Subheading = Servers.Count == 0
-            ? "管理服务器与登录用户"
+            ? UiText.Translate("管理服务器与登录用户")
             : sources.Count == 0
-                ? $"已保存 {Servers.Count} 台服务器"
-                : $"已保存 {Servers.Count} 台服务器 · {sources.Count} 个账号在线";
+                ? UiText.Format("已保存 {0} 台服务器", Servers.Count)
+                : UiText.Format("已保存 {0} 台服务器 · {1} 个账号在线", Servers.Count, sources.Count);
         IsReady = true;
     }
 
@@ -323,10 +324,10 @@ public sealed partial class ServersViewModel : PageViewModel
             Refresh();
 
             if (removed > 0)
-                Notify("已关闭聚合模式", $"其余 {removed} 个在线账号已下线；服务器、账号和保存的凭据都还在。",
+                Notify(UiText.Translate("已关闭聚合模式"), $"其余 {removed} 个在线账号已下线；服务器、账号和保存的凭据都还在。",
                     InfoBarSeverity.Informational);
             else
-                Notify("已关闭聚合模式", "只保留当前账号在线。", InfoBarSeverity.Informational);
+                Notify(UiText.Translate("已关闭聚合模式"), UiText.Translate("只保留当前账号在线。"), InfoBarSeverity.Informational);
             return;
         }
 
@@ -351,13 +352,13 @@ public sealed partial class ServersViewModel : PageViewModel
             if (!IsCurrent(token)) return;
             var restorable = _session.RestorableAccounts;
             if (restorable > online)
-                Notify("已开启聚合模式",
+                Notify(UiText.Translate("已开启聚合模式"),
                     $"{online} 个账号在线；{restorable - online} 个没能自动登录，可以在列表里手动登录。",
                     InfoBarSeverity.Warning);
             else if (online > 1)
-                Notify("已开启聚合模式", $"{online} 个账号同时在线。", InfoBarSeverity.Success);
+                Notify(UiText.Translate("已开启聚合模式"), UiText.Format("{0} 个账号同时在线。", online), InfoBarSeverity.Success);
             else
-                Notify("已开启聚合模式", "之后登录的其他账号会与当前账号同时在线，不会再替换掉它。",
+                Notify(UiText.Translate("已开启聚合模式"), UiText.Translate("之后登录的其他账号会与当前账号同时在线，不会再替换掉它。"),
                     InfoBarSeverity.Informational);
         }
         catch (OperationCanceledException)
@@ -366,7 +367,7 @@ public sealed partial class ServersViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Warn(Category, "打开聚合模式后自动登录账号失败", error);
-            if (IsCurrent(token)) Report("自动登录账号失败", error);
+            if (IsCurrent(token)) Report(UiText.Translate("自动登录账号失败"), error);
         }
         finally
         {
@@ -406,7 +407,7 @@ public sealed partial class ServersViewModel : PageViewModel
         if (!_session!.TakeOffline(row.Server, row.Account)) return;
 
         Refresh();
-        Notify("已下线", $"{row.Username} 已下线，重启后仍保持下线；账号和保存的凭据都还在，点「登录」就能回来。",
+        Notify(UiText.Translate("已下线"), $"{row.Username} 已下线，重启后仍保持下线；账号和保存的凭据都还在，点「登录」就能回来。",
             InfoBarSeverity.Informational);
     }
 
@@ -432,10 +433,10 @@ public sealed partial class ServersViewModel : PageViewModel
             ShowDiscovered = Discovered.Count > 0;
 
             Notify(
-                Discovered.Count > 0 ? "发现局域网服务器" : "未发现服务器",
+                Discovered.Count > 0 ? UiText.Translate("发现局域网服务器") : UiText.Translate("未发现服务器"),
                 Discovered.Count > 0
-                    ? $"找到 {Discovered.Count} 台 Emby 服务器，请选择要添加的服务器。"
-                    : "当前网络没有响应 Emby 发现请求。",
+                    ? UiText.Format("找到 {0} 台 Emby 服务器，请选择要添加的服务器。", Discovered.Count)
+                    : UiText.Translate("当前网络没有响应 Emby 发现请求。"),
                 Discovered.Count > 0 ? InfoBarSeverity.Informational : InfoBarSeverity.Warning);
         }
         catch (OperationCanceledException)
@@ -444,7 +445,7 @@ public sealed partial class ServersViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Warn(Category, "搜索局域网服务器失败", error);
-            if (IsCurrent(token)) Report("搜索局域网服务器失败", error);
+            if (IsCurrent(token)) Report(UiText.Translate("搜索局域网服务器失败"), error);
         }
         finally
         {
@@ -474,7 +475,7 @@ public sealed partial class ServersViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Warn(Category, "保存发现的服务器失败", error);
-            Report("保存发现的服务器失败", error);
+            Report(UiText.Translate("保存发现的服务器失败"), error);
         }
     }
 
@@ -489,7 +490,7 @@ public sealed partial class ServersViewModel : PageViewModel
 
         if (!EmbyServerAddress.TryNormalize(row.Profile.Url, out var apiBase, out var complaint))
         {
-            Notify("连接失败", complaint, InfoBarSeverity.Error);
+            Notify(UiText.Translate("连接失败"), complaint, InfoBarSeverity.Error);
             return;
         }
 
@@ -524,7 +525,7 @@ public sealed partial class ServersViewModel : PageViewModel
             }
 
             var version = string.IsNullOrWhiteSpace(info.Version) ? "" : $" · 版本 {info.Version}";
-            Notify("连接成功", $"{info.ServerName ?? apiBase.Host}{version}", InfoBarSeverity.Success);
+            Notify(UiText.Translate("连接成功"), $"{info.ServerName ?? apiBase.Host}{version}", InfoBarSeverity.Success);
         }
         catch (OperationCanceledException)
         {
@@ -532,7 +533,7 @@ public sealed partial class ServersViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Warn(Category, $"测试服务器连接失败：{row.Profile.Url}", error);
-            if (IsCurrent(token)) Report("连接失败", error);
+            if (IsCurrent(token)) Report(UiText.Translate("连接失败"), error);
         }
         finally
         {
@@ -577,9 +578,9 @@ public sealed partial class ServersViewModel : PageViewModel
         if (!Attached || row is null) return;
 
         var confirmed = await ConfirmAsync(
-            "删除服务器",
-            $"确定删除“{row.Name}”及其保存的 {row.Accounts.Count} 个账号吗？",
-            "删除").ConfigureAwait(true);
+            UiText.Translate("删除服务器"),
+            UiText.Format("确定删除“{0}”及其保存的 {1} 个账号吗？", row.Name, row.Accounts.Count),
+            UiText.Translate("删除")).ConfigureAwait(true);
         if (!confirmed || !Attached) return;
 
         _session!.SignOutServer(row.Profile);
@@ -600,7 +601,7 @@ public sealed partial class ServersViewModel : PageViewModel
     {
         if (!Attached || row is null) return;
 
-        var confirmed = await ConfirmAsync("删除账号", $"确定删除账号“{row.Username}”吗？", "删除")
+        var confirmed = await ConfirmAsync(UiText.Translate("删除账号"), UiText.Format("确定删除账号“{0}”吗？", row.Username), UiText.Translate("删除"))
             .ConfigureAwait(true);
         if (!confirmed || !Attached) return;
 

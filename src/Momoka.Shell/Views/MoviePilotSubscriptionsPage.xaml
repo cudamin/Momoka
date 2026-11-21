@@ -26,9 +26,9 @@
                  PlayerPage 里那颗 CoverRing 的理由）。 -->
             <StackPanel x:Name="LoadingState" HorizontalAlignment="Center" Spacing="{StaticResource EgSpaceL}"
                 Visibility="{x:Bind ViewModel.LoadingVisibility, Mode=OneWay}">
-                <ProgressRing x:Name="LoadingRing" Width="44" Height="44" Foreground="{ThemeResource EgAccentBrush}"
+                <ProgressRing x:Uid="MoviePilotSubscriptionsPage_LoadingRing" x:Name="LoadingRing" Width="44" Height="44" Foreground="{ThemeResource EgAccentBrush}"
                     IsActive="{x:Bind ViewModel.Loading, Mode=OneWay}" AutomationProperties.Name="正在读取订阅" />
-                <TextBlock Text="正在读取订阅…" Style="{StaticResource EgBodyStyle}"
+                <TextBlock x:Uid="MoviePilotSubscriptionsPage_Localization1" Text="正在读取订阅…" Style="{StaticResource EgBodyStyle}"
                     Foreground="{ThemeResource EgTextDimBrush}" TextAlignment="Center"
                     AutomationProperties.LiveSetting="Polite" />
             </StackPanel>
@@ -38,7 +38,7 @@
             <StackPanel x:Name="EmptyState" Spacing="{StaticResource EgSpaceM}"
                 Visibility="{x:Bind PageEmptyVisibility(ViewModel.EmptyStateVisibility), Mode=OneWay}">
                 <TextBlock x:Name="EmptyText" Style="{StaticResource EgBodyStyle}" />
-                <Button x:Name="RefreshSubscriptions" Content="刷新订阅"
+                <Button x:Uid="MoviePilotSubscriptionsPage_RefreshSubscriptions" x:Name="RefreshSubscriptions" Content="刷新订阅"
                     Style="{StaticResource EgSecondaryButtonStyle}" Click="OnRefresh" />
             </StackPanel>
         </StackPanel>

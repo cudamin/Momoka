@@ -23,11 +23,9 @@
     <!--
       The language the UI is written in, and the one MRT falls back to. Both halves matter.
 
-      Strings\zh-Hans\Resources.resw is the only resource table this app has, and PRI generation writes
-      a default Language qualifier into priconfig.xml — left alone it is en-US, which would make every
-      x:Uid lookup ask for a language that has no table and get nothing. DefaultLanguage is what puts
-      zh-Hans there instead, so a machine running Windows in English still resolves these strings rather
-      than drawing blank labels. NeutralLanguage in Directory.Build.props is the managed-assembly
+      Strings\zh-Hans and Strings\en-US contain both supported UI tables. DefaultLanguage keeps
+      Chinese as the resource fallback; UiLanguage selects the Windows display language or saved
+      preference before XAML loads. NeutralLanguage in Directory.Build.props is the managed-assembly
       counterpart and does not reach the PRI.
     -->
     <DefaultLanguage>zh-Hans</DefaultLanguage>
@@ -105,6 +103,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Localization\*English.json" />
     <!--
       The parts of the Windows App SDK this app uses, rather than the Microsoft.WindowsAppSDK
       meta-package. That package is ten sub-packages in a trench coat, and four of them are for

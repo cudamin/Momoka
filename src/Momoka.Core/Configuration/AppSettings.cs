@@ -1489,6 +1489,9 @@ public sealed class UiSettings
     /// </summary>
     public string AppearanceMode { get; set; } = Theming.UiThemes.ModeDark;
 
+    /// <summary>界面语言：默认跟随 Windows 显示语言，另可固定简体中文或英语；下次启动生效。</summary>
+    public string Language { get; set; } = UiLanguages.System;
+
     /// <summary>
     /// 透明效果：窗口和表面显示半透明。关掉时窗口的 Mica、整窗画布与侧栏落成实色，亚克力表面走各自的回退色。
     /// 默认开，与 Windows 的「透明效果」默认状态一致。

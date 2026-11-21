@@ -47,7 +47,7 @@
 
                 <!-- ① 搜索条件 -->
                 <StackPanel x:Name="SearchForm" Spacing="{StaticResource EgSpaceM}">
-                    <TextBlock
+                    <TextBlock x:Uid="IdentifyDialog_Localization1"
                         Style="{StaticResource EgBodyStyle}"
                         Text="输入一个或多个搜索条件。移除条件可增加搜索结果。"
                         TextWrapping="Wrap" />
@@ -55,7 +55,7 @@
                     <!-- 路径：服务器上这个条目背后的文件。单集没有自己的路径、搜索结果里的存根也可能没有，
                          所以没有就整段不出现。 -->
                     <StackPanel x:Name="PathRow" Spacing="{StaticResource EgSpaceXS}" Visibility="Collapsed">
-                        <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="路径" />
+                        <TextBlock x:Uid="IdentifyDialog_Localization2" Style="{StaticResource EgEyebrowStyle}" Text="路径" />
                         <TextBlock
                             x:Name="PathText"
                             IsTextSelectionEnabled="True"
@@ -63,8 +63,8 @@
                             TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <TextBox x:Name="NameBox" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="标题" />
-                    <TextBox x:Name="YearBox" Header="年份" InputScope="Number" />
+                    <TextBox x:Uid="IdentifyDialog_NameBox" x:Name="NameBox" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="标题" />
+                    <TextBox x:Uid="IdentifyDialog_YearBox" x:Name="YearBox" Header="年份" InputScope="Number" />
 
                     <!-- 各家刮削源的标识符：服务器按条目类型答哪几家，所以这一块是代码填的。 -->
                     <StackPanel x:Name="ProviderFields" Spacing="{StaticResource EgSpaceM}" />
@@ -81,8 +81,8 @@
 
                 <!-- ③ 搜索结果 -->
                 <StackPanel x:Name="ResultsArea" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
-                    <TextBlock Style="{StaticResource EgSectionTitleStyle}" Text="搜索结果" />
-                    <TextBlock
+                    <TextBlock x:Uid="IdentifyDialog_Localization3" Style="{StaticResource EgSectionTitleStyle}" Text="搜索结果" />
+                    <TextBlock x:Uid="IdentifyDialog_NoResults"
                         x:Name="NoResults"
                         Style="{StaticResource EgBodyStyle}"
                         Text="刮削源上没有对得上的记录。把条件放宽一些再试一次。"
@@ -100,7 +100,7 @@
                                     Margin="0,0,0,12"
                                     Spacing="{StaticResource EgSpaceS}"
                                     Width="{StaticResource EgArtworkFrameWidth}">
-                                    <Button
+                                    <Button x:Uid="IdentifyDialog_Localization4"
                                         Height="{StaticResource EgArtworkFrameWidth}"
                                         AutomationProperties.AutomationId="IdentifyResult"
                                         AutomationProperties.Name="{x:Bind Title}"
@@ -120,7 +120,7 @@
                                                 Visibility="{x:Bind EmptyMark, Mode=OneWay}" />
                                         </Grid>
                                     </Button>
-                                    <Button
+                                    <Button x:Uid="IdentifyDialog_Localization5"
                                         AutomationProperties.AutomationId="IdentifyTextResult"
                                         AutomationProperties.Name="{x:Bind Title}"
                                         Click="OnPick"
@@ -154,7 +154,7 @@
                         x:Name="ChosenDetail"
                         Style="{StaticResource EgDataStyle}"
                         TextWrapping="Wrap" />
-                    <CheckBox x:Name="ReplaceImages" Content="替换现有图像" />
+                    <CheckBox x:Uid="IdentifyDialog_ReplaceImages" x:Name="ReplaceImages" Content="替换现有图像" />
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
@@ -164,41 +164,41 @@
             Grid.Row="1"
             Orientation="Horizontal"
             Spacing="{StaticResource EgSpaceM}">
-            <Button
+            <Button x:Uid="IdentifyDialog_SearchButton"
                 x:Name="SearchButton"
                 Click="OnSearch"
                 Content="搜索"
                 Style="{StaticResource EgPrimaryButtonStyle}" />
-            <Button
+            <Button x:Uid="IdentifyDialog_RemoveButton"
                 x:Name="RemoveButton"
                 Click="OnAskRemove"
                 Content="移除识别"
                 Style="{StaticResource EgSecondaryButtonStyle}" />
-            <Button
+            <Button x:Uid="IdentifyDialog_ConfirmRemoveButton"
                 x:Name="ConfirmRemoveButton"
                 Click="OnConfirmRemove"
                 Content="移除识别"
                 Style="{StaticResource EgPrimaryButtonStyle}"
                 Visibility="Collapsed" />
-            <Button
+            <Button x:Uid="IdentifyDialog_CancelRemoveButton"
                 x:Name="CancelRemoveButton"
                 Click="OnCancelRemove"
                 Content="取消"
                 Style="{StaticResource EgSecondaryButtonStyle}"
                 Visibility="Collapsed" />
-            <Button
+            <Button x:Uid="IdentifyDialog_ApplyButton"
                 x:Name="ApplyButton"
                 Click="OnApply"
                 Content="识别"
                 Style="{StaticResource EgPrimaryButtonStyle}"
                 Visibility="Collapsed" />
-            <Button
+            <Button x:Uid="IdentifyDialog_BackToFormButton"
                 x:Name="BackToFormButton"
                 Click="OnBackToForm"
                 Content="返回搜索条件"
                 Style="{StaticResource EgSecondaryButtonStyle}"
                 Visibility="Collapsed" />
-            <Button
+            <Button x:Uid="IdentifyDialog_BackToResultsButton"
                 x:Name="BackToResultsButton"
                 Click="OnBackToResults"
                 Content="返回搜索结果"

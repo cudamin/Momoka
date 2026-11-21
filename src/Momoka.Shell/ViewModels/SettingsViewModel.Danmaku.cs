@@ -209,7 +209,7 @@ public sealed partial class SettingsViewModel
             var rebuilt = new SettingsCategoryGroup("Momoka");
             foreach (var entry in momoka.Entries.Where(entry => entry.Label != DanmakuCategory))
             {
-                rebuilt.Add(entry.Label, entry.SourceKey, entry.Route, entry.CardCategory, entry.DisplayLabel);
+                rebuilt.Add(entry.Label, entry.SourceKey, entry.Route, entry.CardCategory, entry.SourceDisplayName);
                 if (entry.Label == "字幕" && available) rebuilt.Add(DanmakuCategory);
             }
             ReplaceCategories(groups.Select(group => ReferenceEquals(group, momoka) ? rebuilt : group).ToArray());

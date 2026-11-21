@@ -31,26 +31,26 @@
         </StackPanel>
         <ScrollView Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
             <StackPanel Spacing="16" Padding="0,0,20,20" MaxWidth="720" HorizontalAlignment="Left">
-                <TextBlock Text="播放偏好" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                <TextBlock Text="偏好保存在飞牛影视服务器上，作为服务器播放与字幕选择的默认语言；Momoka 自己的播放语言仍按「设置 → 字幕」执行。"
+                <TextBlock x:Uid="FnNasPreferencesPage_Localization1" Text="播放偏好" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                <TextBlock x:Uid="FnNasPreferencesPage_Localization2" Text="偏好保存在飞牛影视服务器上，作为服务器播放与字幕选择的默认语言；Momoka 自己的播放语言仍按「设置 → 字幕」执行。"
                     Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                 <Border Style="{StaticResource FnNasCard}">
                     <StackPanel Spacing="16">
-                        <ComboBox x:Name="FnNasSubtitleLanguage" Header="首选字幕语言" HorizontalAlignment="Stretch"
+                        <ComboBox x:Uid="FnNasPreferencesPage_FnNasSubtitleLanguage" x:Name="FnNasSubtitleLanguage" Header="首选字幕语言" HorizontalAlignment="Stretch"
                             AutomationProperties.Name="首选字幕语言"
                             ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}"
                             SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.SubtitleLanguage, Mode=TwoWay}" />
-                        <TextBlock Text="优先下载及使用首选语言的字幕，播放时可切换至其他语言。"
+                        <TextBlock x:Uid="FnNasPreferencesPage_Localization3" Text="优先下载及使用首选语言的字幕，播放时可切换至其他语言。"
                             Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                        <ComboBox x:Name="FnNasAudioLanguage" Header="首选音频语言" HorizontalAlignment="Stretch"
+                        <ComboBox x:Uid="FnNasPreferencesPage_FnNasAudioLanguage" x:Name="FnNasAudioLanguage" Header="首选音频语言" HorizontalAlignment="Stretch"
                             AutomationProperties.Name="首选音频语言"
                             ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}"
                             SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.AudioLanguage, Mode=TwoWay}" />
-                        <TextBlock Text="优先使用首选语言的音频，播放时可切换至其他语言。"
+                        <TextBlock x:Uid="FnNasPreferencesPage_Localization4" Text="优先使用首选语言的音频，播放时可切换至其他语言。"
                             Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
-                <Button x:Name="FnNasPreferencesSave" Content="保存修改" Style="{StaticResource AccentButtonStyle}"
+                <Button x:Uid="FnNasPreferencesPage_FnNasPreferencesSave" x:Name="FnNasPreferencesSave" Content="保存修改" Style="{StaticResource AccentButtonStyle}"
                     Command="{x:Bind ViewModel.SaveCommand}" HorizontalAlignment="Left" />
             </StackPanel>
         </ScrollView>

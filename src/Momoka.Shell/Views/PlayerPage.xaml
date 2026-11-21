@@ -694,7 +694,7 @@
                     HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,5,4,0"
                     Visibility="{x:Bind ViewModel.DanmakuInputVisibility, Mode=OneWay}"
                     GotFocus="OnDanmakuInputGotFocus" LostFocus="OnDanmakuInputLostFocus">
-                    <TextBox x:Name="DanmakuInputBox" Width="208" MinWidth="40" Height="30" MinHeight="30" Padding="8,3"
+                    <TextBox x:Uid="PlayerPage_DanmakuInputBox" x:Name="DanmakuInputBox" Width="208" MinWidth="40" Height="30" MinHeight="30" Padding="8,3"
                         FontSize="{StaticResource EgBodyFontSize}" MaxLength="100"
                         Background="{StaticResource PlayerGlassTopBrush}" Foreground="{StaticResource PlayerInkBrush}"
                         Text="{x:Bind ViewModel.DanmakuDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -717,7 +717,7 @@
                             </ResourceDictionary>
                         </TextBox.Resources>
                     </TextBox>
-                    <Button x:Name="SendDanmakuButton" Height="30" MinWidth="44" Padding="8,0"
+                    <Button x:Uid="PlayerPage_SendDanmakuButton" x:Name="SendDanmakuButton" Height="30" MinWidth="44" Padding="8,0"
                         Content="{x:Bind ViewModel.DanmakuSendButtonText, Mode=OneWay}"
                         Command="{x:Bind ViewModel.SendDanmakuCommand}"
                         IsEnabled="{x:Bind ViewModel.DanmakuSendEnabled, Mode=OneWay}"
@@ -1081,7 +1081,7 @@
                         </Button.Resources>
                         <FontIcon Glyph="&#xE893;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
-                    <Button x:Name="TransportStatsButton"  Style="{StaticResource TransportButtonStyle}" Command="{x:Bind ViewModel.CycleStatsCommand}" AutomationProperties.Name="统计" ToolTipService.ToolTip="统计">
+                    <Button x:Uid="PlayerPage_TransportStatsButton" x:Name="TransportStatsButton"  Style="{StaticResource TransportButtonStyle}" Command="{x:Bind ViewModel.CycleStatsCommand}" AutomationProperties.Name="统计" ToolTipService.ToolTip="统计">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
                             <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />
@@ -1090,7 +1090,7 @@
                         </Button.Resources>
                         <FontIcon Glyph="&#xE9D9;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
-                    <Button x:Name="DanmakuButton" Style="{StaticResource TransportButtonStyle}" Click="OnDanmakuClick" Visibility="{x:Bind ViewModel.DanmakuControlsVisibility, Mode=OneWay}" AutomationProperties.Name="弹幕设置" ToolTipService.ToolTip="弹幕设置">
+                    <Button x:Uid="PlayerPage_DanmakuButton" x:Name="DanmakuButton" Style="{StaticResource TransportButtonStyle}" Click="OnDanmakuClick" Visibility="{x:Bind ViewModel.DanmakuControlsVisibility, Mode=OneWay}" AutomationProperties.Name="弹幕设置" ToolTipService.ToolTip="弹幕设置">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
                             <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />
@@ -1111,7 +1111,7 @@
                         </Button.Resources>
                         <FontIcon Glyph="&#xE8A7;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
-                    <Button x:Name="ChapterButton"  Style="{StaticResource TransportButtonStyle}" AutomationProperties.Name="章节" ToolTipService.ToolTip="章节">
+                    <Button x:Uid="PlayerPage_ChapterButton" x:Name="ChapterButton"  Style="{StaticResource TransportButtonStyle}" AutomationProperties.Name="章节" ToolTipService.ToolTip="章节">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
                             <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />
@@ -1146,7 +1146,7 @@
                     </Button>
                 </StackPanel>
                 <StackPanel x:Name="TransportMiddle" Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Bottom">
-                    <Button x:Name="PreviousChapterButton" VerticalAlignment="Bottom"  Style="{StaticResource TransportButtonStyle}" Click="OnPreviousChapter" AutomationProperties.Name="上一章节" ToolTipService.ToolTip="上一章节">
+                    <Button x:Uid="PlayerPage_PreviousChapterButton" x:Name="PreviousChapterButton" VerticalAlignment="Bottom"  Style="{StaticResource TransportButtonStyle}" Click="OnPreviousChapter" AutomationProperties.Name="上一章节" ToolTipService.ToolTip="上一章节">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
                             <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />
@@ -1156,7 +1156,7 @@
                         <FontIcon Glyph="&#xE892;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
                     <Grid x:Name="SpeedStrip" Width="146" Height="42" Background="{StaticResource PlayerRailBrush}">
-                        <local:PlayerSlider x:Name="InlineSpeedSlider" Style="{StaticResource BlockSliderStyle}"
+                        <local:PlayerSlider x:Uid="PlayerPage_InlineSpeedSlider" x:Name="InlineSpeedSlider" Style="{StaticResource BlockSliderStyle}"
                                             Minimum="0.1" Maximum="20" StepFrequency="0.1" SmallChange="0.1" LargeChange="0.5"
                                             Foreground="Transparent" IsThumbToolTipEnabled="False"
                                             Value="{x:Bind ViewModel.SpeedValue, Mode=TwoWay}" AutomationProperties.Name="播放速度"
@@ -1217,7 +1217,7 @@
                         </Button.Flyout>
                     </Button>
 
-                    <Button x:Name="NextChapterButton" VerticalAlignment="Bottom"  Style="{StaticResource TransportButtonStyle}" Click="OnNextChapter" AutomationProperties.Name="下一章节" ToolTipService.ToolTip="下一章节">
+                    <Button x:Uid="PlayerPage_NextChapterButton" x:Name="NextChapterButton" VerticalAlignment="Bottom"  Style="{StaticResource TransportButtonStyle}" Click="OnNextChapter" AutomationProperties.Name="下一章节" ToolTipService.ToolTip="下一章节">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
                             <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />

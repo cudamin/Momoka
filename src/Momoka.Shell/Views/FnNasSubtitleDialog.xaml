@@ -16,7 +16,7 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="DialogTitleText" Style="{StaticResource EgSectionTitleStyle}"
                 TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
+            <Button x:Uid="FnNasSubtitleDialog_HeaderCloseButton" x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
                 AutomationProperties.Name="关闭飞牛字幕管理" Background="Transparent" BorderThickness="0"
                 Padding="8" ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
@@ -26,7 +26,7 @@
     <ScrollViewer x:Name="SubtitleScroll" Padding="{StaticResource EgScrollBarLane}"
         HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="SubtitleBody" Spacing="16">
-            <ComboBox x:Name="VersionBox" Header="媒体版本" HorizontalAlignment="Stretch"
+            <ComboBox x:Uid="FnNasSubtitleDialog_VersionBox" x:Name="VersionBox" Header="媒体版本" HorizontalAlignment="Stretch"
                 SelectionChanged="OnVersionChanged" AutomationProperties.Name="字幕所属媒体版本" />
             <TextBlock x:Name="SourceFileText" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap"
                 MaxLines="2" TextTrimming="CharacterEllipsis" />
@@ -35,10 +35,10 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="服务器外部字幕" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
-                <Button x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新列表" Click="OnRefreshTracks" />
+                <TextBlock x:Uid="FnNasSubtitleDialog_Localization1" Text="服务器外部字幕" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+                <Button x:Uid="FnNasSubtitleDialog_RefreshTracksButton" x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新列表" Click="OnRefreshTracks" />
             </Grid>
-            <TextBlock x:Name="NoTracks" Text="这个版本还没有外部字幕。" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+            <TextBlock x:Uid="FnNasSubtitleDialog_NoTracks" x:Name="NoTracks" Text="这个版本还没有外部字幕。" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
             <ItemsControl x:Name="Tracks">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="views:FnNasSubtitleRow">
@@ -52,7 +52,7 @@
                                     TextTrimming="CharacterEllipsis" MaxLines="2" />
                                 <TextBlock Text="{x:Bind Detail}" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                             </StackPanel>
-                            <Button x:Name="DeleteFnNasSubtitleButton" Grid.Column="1" Content="删除"
+                            <Button x:Uid="FnNasSubtitleDialog_DeleteFnNasSubtitleButton" x:Name="DeleteFnNasSubtitleButton" Grid.Column="1" Content="删除"
                                 Click="OnDelete" Visibility="{x:Bind DeleteVisibility}" VerticalAlignment="Center"
                                 AutomationProperties.Name="删除服务器字幕文件" />
                         </Grid>
@@ -62,21 +62,21 @@
             <Border x:Name="DeleteConfirmation" Visibility="Collapsed" BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1" Padding="12">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Uid="FnNasSubtitleDialog_Localization2" Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
                     <TextBlock x:Name="DeleteConfirmationText" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
-                    <Button x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
-                    <Button x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
+                    <Button x:Uid="FnNasSubtitleDialog_CancelDeleteButton" x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
+                    <Button x:Uid="FnNasSubtitleDialog_ConfirmDeleteButton" x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
                 </StackPanel>
             </Border>
             <StackPanel x:Name="ManagementArea" Spacing="16">
                 <Border Style="{StaticResource EgRuleStyle}" />
                 <StackPanel x:Name="SearchArea" Spacing="12">
-                    <TextBlock Text="搜索字幕" Style="{StaticResource EgSubheadStyle}" />
-                    <ComboBox x:Name="LanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
+                    <TextBlock x:Uid="FnNasSubtitleDialog_Localization3" Text="搜索字幕" Style="{StaticResource EgSubheadStyle}" />
+                    <ComboBox x:Uid="FnNasSubtitleDialog_LanguageBox" x:Name="LanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
                         SelectionChanged="OnLanguageChanged" AutomationProperties.Name="飞牛字幕搜索语言" />
-                    <Button x:Name="SearchButton" Content="搜索字幕" Click="OnSearch"
+                    <Button x:Uid="FnNasSubtitleDialog_SearchButton" x:Name="SearchButton" Content="搜索字幕" Click="OnSearch"
                         Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch" />
-                    <TextBlock x:Name="NoSearchResults" Text="没有找到字幕，请更换语言后重试。"
+                    <TextBlock x:Uid="FnNasSubtitleDialog_NoSearchResults" x:Name="NoSearchResults" Text="没有找到字幕，请更换语言后重试。"
                         Visibility="Collapsed" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                     <ItemsControl x:Name="Results">
                         <ItemsControl.ItemTemplate>
@@ -91,7 +91,7 @@
                                             TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{x:Bind Detail}" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                                     </StackPanel>
-                                    <Button x:Name="DownloadFnNasSubtitleButton" Grid.Column="1" Content="添加"
+                                    <Button x:Uid="FnNasSubtitleDialog_DownloadFnNasSubtitleButton" x:Name="DownloadFnNasSubtitleButton" Grid.Column="1" Content="添加"
                                         Click="OnDownload" Visibility="{x:Bind DownloadVisibility}" VerticalAlignment="Center"
                                         AutomationProperties.Name="下载并添加飞牛字幕" />
                                 </Grid>
@@ -99,15 +99,15 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
-                <Button x:Name="UploadButton" Content="上传本地字幕…" Click="OnUpload" HorizontalAlignment="Stretch" />
-                <TextBlock Text="支持 SRT、SUB、SSA、ASS、VTT、SUP；文件不超过 32 MiB。"
+                <Button x:Uid="FnNasSubtitleDialog_UploadButton" x:Name="UploadButton" Content="上传本地字幕…" Click="OnUpload" HorizontalAlignment="Stretch" />
+                <TextBlock x:Uid="FnNasSubtitleDialog_Localization4" Text="支持 SRT、SUB、SSA、ASS、VTT、SUP；文件不超过 32 MiB。"
                     Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                 <StackPanel x:Name="ServerFileArea" Spacing="8" Visibility="Collapsed">
                     <Border Style="{StaticResource EgRuleStyle}" />
-                    <TextBlock Text="指定服务器文件" Style="{StaticResource EgSubheadStyle}" />
-                    <TextBox x:Name="ServerPathBox" Header="服务器字幕完整路径" PlaceholderText="/media/movie.zh.srt"
+                    <TextBlock x:Uid="FnNasSubtitleDialog_Localization5" Text="指定服务器文件" Style="{StaticResource EgSubheadStyle}" />
+                    <TextBox x:Uid="FnNasSubtitleDialog_ServerPathBox" x:Name="ServerPathBox" Header="服务器字幕完整路径" PlaceholderText="/media/movie.zh.srt"
                         AutomationProperties.Name="服务器字幕完整路径" />
-                    <Button x:Name="MarkServerFileButton" Content="添加服务器字幕" Click="OnMarkServerFile" HorizontalAlignment="Stretch" />
+                    <Button x:Uid="FnNasSubtitleDialog_MarkServerFileButton" x:Name="MarkServerFileButton" Content="添加服务器字幕" Click="OnMarkServerFile" HorizontalAlignment="Stretch" />
                 </StackPanel>
             </StackPanel>
             <Grid ColumnSpacing="8">

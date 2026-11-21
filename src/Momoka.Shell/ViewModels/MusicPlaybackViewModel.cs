@@ -9,6 +9,7 @@ using Momoka.Infrastructure;
 using Momoka.Music;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
 
@@ -106,7 +107,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     [NotifyPropertyChangedFor(nameof(LyricsEmptyVisibility))]
     public partial bool LyricsLoading { get; set; }
 
-    [ObservableProperty] public partial string LyricsEmptyText { get; set; } = "暂无歌词";
+    [ObservableProperty] public partial string LyricsEmptyText { get; set; } = UiText.Translate("暂无歌词");
 
     /// <summary>刚唱到的那一句；播放页据它把列表滚进视野。纯文本歌词一直是 null。</summary>
     [ObservableProperty] public partial MusicLyricLine? ActiveLyric { get; set; }
@@ -120,7 +121,10 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     [ObservableProperty] public partial bool Favorite { get; set; }
     [ObservableProperty] public partial Visibility FavoriteVisibility { get; set; }
     [ObservableProperty] public partial bool Shuffle { get; set; }
-    [ObservableProperty] public partial string RepeatLabel { get; set; } = "顺序播放";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayRepeatLabel))]
+    public partial string RepeatLabel { get; set; } = "顺序播放";
+    public string DisplayRepeatLabel => UiText.Translate(RepeatLabel);
     [ObservableProperty] public partial int QueueIndex { get; set; } = -1;
 
     /// <summary>
@@ -139,7 +143,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     public Visibility LyricsLoadingVisibility => LyricsLoading ? Visibility.Visible : Visibility.Collapsed;
     public Visibility LyricsNoteVisibility => HasLyrics && !LyricsSynced ? Visibility.Visible : Visibility.Collapsed;
     public string PlayGlyph => char.ConvertFromUtf32(Paused ? 0xE768 : 0xE769);
-    public string PlayLabel => Paused ? "播放" : "暂停";
+    public string PlayLabel => Paused ? UiText.Translate("播放") : UiText.Translate("暂停");
     public bool HasIntent => _intent is not null;
     internal (long Intent, long Track, long Generation) BeginScrub()
     {
@@ -241,7 +245,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (Current()) Noticed?.Invoke($"音乐播放失败：{Failure.Describe(error)}", InfoBarSeverity.Error);
+            if (Current()) Noticed?.Invoke(UiText.Format("音乐播放失败：{0}", Failure.Describe(error)), InfoBarSeverity.Error);
         }
         finally
         {
@@ -440,7 +444,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         {
             HasLyrics = false;
             LyricsSynced = false;
-            LyricsEmptyText = "暂无歌词";
+            LyricsEmptyText = UiText.Translate("暂无歌词");
             return;
         }
 
@@ -540,7 +544,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         AmbientArtwork = null;
         ResetLyrics();
         LyricsLoading = false;
-        LyricsEmptyText = "暂无歌词";
+        LyricsEmptyText = UiText.Translate("暂无歌词");
     }
     public void Dispose()
     {

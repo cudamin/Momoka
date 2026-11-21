@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["ui-language-fixture"])
+        {
+            UiLanguageTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["standalone-probe-contract-fixture"])
         {
             StartupArgsTests.Register();
@@ -652,6 +657,7 @@ internal static class Program
         MpvProcessTests.Register();
         SelfCheckTests.Register();
         SelfCheckOutputIsolationTests.Register();
+        UiLanguageTests.Register();
         SettingsTests.Register();
         SettingsLayoutTests.Register();
         ProxySettingsTests.Register();

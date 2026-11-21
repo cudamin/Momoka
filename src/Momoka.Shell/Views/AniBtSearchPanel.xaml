@@ -5,7 +5,7 @@
     xmlns:local="using:Momoka.Shell.Views" xmlns:vm="using:Momoka.Shell.ViewModels">
     <Grid x:Name="AnimeSearchRoot" RowSpacing="0">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-        <AutoSuggestBox x:Name="AnimeSearchInput" Header="搜索 AniBT 番剧" PlaceholderText="输入番剧名称或原名"
+        <AutoSuggestBox x:Uid="AniBtSearchPanel_AnimeSearchInput" x:Name="AnimeSearchInput" Header="搜索 AniBT 番剧" PlaceholderText="输入番剧名称或原名"
             QueryIcon="Find" QuerySubmitted="OnSearch" TextChanged="OnSearchTextChanged" Margin="0,0,0,8" Visibility="Collapsed" />
         <ProgressBar Grid.Row="1" Margin="0,0,0,6" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         <InfoBar Grid.Row="2" Margin="0,0,0,8" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
@@ -15,17 +15,17 @@
             <Grid x:Name="AnimeResultsView" Visibility="{x:Bind ViewModel.ListVisibility, Mode=OneWay}" RowSpacing="8">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <local:WrapRow Spacing="12" RowSpacing="8">
-                    <TextBlock Text="番剧" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                    <TextBlock x:Uid="AniBtSearchPanel_Localization1" Text="番剧" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                     <TextBlock Text="{x:Bind ViewModel.ResultCountText, Mode=OneWay}" Style="{StaticResource EgDataStyle}"
                         Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" Margin="0,0,12,0" />
                     <local:WrapRow Spacing="8" RowSpacing="8" Visibility="{x:Bind ViewModel.SearchFiltersVisibility, Mode=OneWay}">
-                        <local:EgPicker x:Name="AnimeFormatFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧格式"
+                        <local:EgPicker x:Uid="AniBtSearchPanel_AnimeFormatFilter" x:Name="AnimeFormatFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧格式"
                             ItemsSource="{x:Bind ViewModel.Formats, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedFormat, Mode=TwoWay}"
                             Visibility="{x:Bind ViewModel.FormatFilterVisibility, Mode=OneWay}" />
-                        <local:EgPicker x:Name="AnimeStatusFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧状态"
+                        <local:EgPicker x:Uid="AniBtSearchPanel_AnimeStatusFilter" x:Name="AnimeStatusFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧状态"
                             ItemsSource="{x:Bind ViewModel.Statuses, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedStatus, Mode=TwoWay}"
                             Visibility="{x:Bind ViewModel.StatusFilterVisibility, Mode=OneWay}" />
-                        <local:EgPicker x:Name="AnimeYearFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧年份"
+                        <local:EgPicker x:Uid="AniBtSearchPanel_AnimeYearFilter" x:Name="AnimeYearFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧年份"
                             ItemsSource="{x:Bind ViewModel.Years, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedYear, Mode=TwoWay}"
                             Visibility="{x:Bind ViewModel.YearFilterVisibility, Mode=OneWay}" />
                     </local:WrapRow>
@@ -77,10 +77,10 @@
                         <TextBlock Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
                             TextAlignment="Center" TextWrapping="Wrap" MaxWidth="460" />
                     </StackPanel>
-                    <TextBlock Text="没有符合筛选条件的番剧" Style="{StaticResource EgBodyStyle}" Margin="24,48" HorizontalAlignment="Center"
+                    <TextBlock x:Uid="AniBtSearchPanel_Localization2" Text="没有符合筛选条件的番剧" Style="{StaticResource EgBodyStyle}" Margin="24,48" HorizontalAlignment="Center"
                         VerticalAlignment="Top" TextWrapping="Wrap" Visibility="{x:Bind ViewModel.NoFilteredResultsVisibility, Mode=OneWay}" />
                 </Grid>
-                <Button x:Name="LoadMoreAnime" Style="{StaticResource EgResourceButtonStyle}" Grid.Row="2" Content="加载更多番剧" HorizontalAlignment="Center" Command="{x:Bind ViewModel.LoadMoreCommand}"
+                <Button x:Uid="AniBtSearchPanel_LoadMoreAnime" x:Name="LoadMoreAnime" Style="{StaticResource EgResourceButtonStyle}" Grid.Row="2" Content="加载更多番剧" HorizontalAlignment="Center" Command="{x:Bind ViewModel.LoadMoreCommand}"
                     Visibility="{x:Bind ViewModel.MoreVisibility, Mode=OneWay}" />
             </Grid>
             <ScrollViewer x:Name="AnimeDetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
@@ -117,21 +117,21 @@
                                 <Button x:Name="ToggleAnimeSummary" Content="{x:Bind ViewModel.SummaryToggleText, Mode=OneWay}" Command="{x:Bind ViewModel.ToggleSummaryCommand}"
                                     Style="{StaticResource EgResourceButtonStyle}" Visibility="{x:Bind ViewModel.SummaryVisibility, Mode=OneWay}" />
                                 <local:WrapRow Spacing="8" RowSpacing="8">
-                                    <Button x:Name="OpenAniBtSite" Style="{StaticResource EgResourceButtonStyle}" Content="打开 AniBT"
+                                    <Button x:Uid="AniBtSearchPanel_OpenAniBtSite" x:Name="OpenAniBtSite" Style="{StaticResource EgResourceButtonStyle}" Content="打开 AniBT"
                                         Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="anibt" ToolTipService.ToolTip="在浏览器打开当前番剧" />
-                                    <Button x:Name="ReturnToAnime" Style="{StaticResource EgResourceButtonStyle}" Content="返回番剧" Command="{x:Bind ViewModel.ReturnToResultsCommand}" />
+                                    <Button x:Uid="AniBtSearchPanel_ReturnToAnime" x:Name="ReturnToAnime" Style="{StaticResource EgResourceButtonStyle}" Content="返回番剧" Command="{x:Bind ViewModel.ReturnToResultsCommand}" />
                                     <Button x:Name="OpenAniDbSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniDB" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniDB"
                                         Visibility="{x:Bind ViewModel.AniDbVisibility, Mode=OneWay}" />
                                     <Button x:Name="OpenAniListSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniList"
                                         Visibility="{x:Bind ViewModel.AniListVisibility, Mode=OneWay}" />
                                     <Button x:Name="OpenMyAnimeListSite" Style="{StaticResource EgResourceButtonStyle}" Content="MyAnimeList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="MyAnimeList"
                                         Visibility="{x:Bind ViewModel.MyAnimeListVisibility, Mode=OneWay}" />
-                                    <Button x:Name="OpenBangumiSite" Style="{StaticResource EgResourceButtonStyle}" Content="Bangumi 条目" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="bangumi" />
-                                    <Button x:Name="OpenAnimeOfficialSite" Style="{StaticResource EgResourceButtonStyle}" Content="官方网站" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="official"
+                                    <Button x:Uid="AniBtSearchPanel_OpenBangumiSite" x:Name="OpenBangumiSite" Style="{StaticResource EgResourceButtonStyle}" Content="Bangumi 条目" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="bangumi" />
+                                    <Button x:Uid="AniBtSearchPanel_OpenAnimeOfficialSite" x:Name="OpenAnimeOfficialSite" Style="{StaticResource EgResourceButtonStyle}" Content="官方网站" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="official"
                                         Visibility="{x:Bind ViewModel.OfficialSiteVisibility, Mode=OneWay}" />
-                                    <Button x:Name="ShowAllAnimeEpisodes" Style="{StaticResource EgResourceButtonStyle}" Content="查看全部集数" Command="{x:Bind ViewModel.ShowAllEpisodesCommand}"
+                                    <Button x:Uid="AniBtSearchPanel_ShowAllAnimeEpisodes" x:Name="ShowAllAnimeEpisodes" Style="{StaticResource EgResourceButtonStyle}" Content="查看全部集数" Command="{x:Bind ViewModel.ShowAllEpisodesCommand}"
                                         Visibility="{x:Bind ViewModel.EpisodeScopeVisibility, Mode=OneWay}" />
-                                    <Button x:Name="ReloadAnimeResources" Style="{StaticResource EgResourceButtonStyle}" Content="刷新" Command="{x:Bind ViewModel.ReloadResourcesCommand}" />
+                                    <Button x:Uid="AniBtSearchPanel_ReloadAnimeResources" x:Name="ReloadAnimeResources" Style="{StaticResource EgResourceButtonStyle}" Content="刷新" Command="{x:Bind ViewModel.ReloadResourcesCommand}" />
                                 </local:WrapRow>
                                 <TextBlock Text="{x:Bind ViewModel.SelectedTags, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
                                     TextWrapping="Wrap" Visibility="{x:Bind ViewModel.TagsVisibility, Mode=OneWay}" />

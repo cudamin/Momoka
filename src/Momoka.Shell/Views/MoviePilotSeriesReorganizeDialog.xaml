@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ContentDialog
+<ContentDialog x:Uid="MoviePilotSeriesReorganizeDialog_Localization1"
     x:Class="Momoka.Shell.Views.MoviePilotSeriesReorganizeDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -55,7 +55,7 @@
             <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
             <local:WrapRow Spacing="8">
                 <Border Padding="10,5" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgAccentMutedBrush}">
-                    <TextBlock x:Name="SeriesQuery" Text="{x:Bind ViewModel.Query, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                    <TextBlock x:Uid="MoviePilotSeriesReorganizeDialog_SeriesQuery" x:Name="SeriesQuery" Text="{x:Bind ViewModel.Query, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                         Foreground="{ThemeResource EgAccentBrush}" IsTextSelectionEnabled="True" AutomationProperties.Name="当前剧的 TMDB 筛选条件" />
                 </Border>
                 <TextBlock Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
@@ -64,11 +64,11 @@
         <StackPanel Grid.Row="1" Spacing="8">
             <Grid ColumnSpacing="8">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <AutoSuggestBox x:Name="ResourceSearch" PlaceholderText="搜索标题、季集或路径，支持 * / ?"
+                <AutoSuggestBox x:Uid="MoviePilotSeriesReorganizeDialog_ResourceSearch" x:Name="ResourceSearch" PlaceholderText="搜索标题、季集或路径，支持 * / ?"
                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}" QueryIcon="Find" VerticalAlignment="Center"
                     TextChanged="OnSearchTextChanged" QuerySubmitted="OnSearchSubmitted" AutomationProperties.Name="搜索当前剧的整理资源"
                     ToolTipService.ToolTip="输入自定义关键词；多个词用空格分隔，* 匹配任意文字，? 匹配一个字符。" />
-                <Button x:Name="ReloadResources" Grid.Column="1" Content="刷新" Click="OnReload" VerticalAlignment="Center"
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ReloadResources" x:Name="ReloadResources" Grid.Column="1" Content="刷新" Click="OnReload" VerticalAlignment="Center"
                     IsEnabled="{x:Bind local:MoviePilotSeriesReorganizeDialog.CanReload(ViewModel.Busy), Mode=OneWay}" Style="{StaticResource EgSecondaryButtonStyle}" />
             </Grid>
             <local:WrapRow Spacing="8">
@@ -81,11 +81,11 @@
                     </StackPanel>
                     <Button.Flyout>
                         <MenuFlyout x:Name="StatusFilterMenu" Opening="OnMenuOpening" Placement="Bottom" ShouldConstrainToRootBounds="True" MenuFlyoutPresenterStyle="{StaticResource SeriesResourceMenuStyle}">
-                            <RadioMenuFlyoutItem x:Name="StatusAll" Text="全部" Tag="All" Click="OnStatusFilter" />
-                            <RadioMenuFlyoutItem x:Name="StatusSuccess" Text="成功" Tag="Success" Click="OnStatusFilter">
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_StatusAll" x:Name="StatusAll" Text="全部" Tag="All" Click="OnStatusFilter" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_StatusSuccess" x:Name="StatusSuccess" Text="成功" Tag="Success" Click="OnStatusFilter">
                                 <RadioMenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" Foreground="{ThemeResource EgAccentBrush}" /></RadioMenuFlyoutItem.Icon>
                             </RadioMenuFlyoutItem>
-                            <RadioMenuFlyoutItem x:Name="StatusFailed" Text="失败" Tag="Failed" Click="OnStatusFilter">
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_StatusFailed" x:Name="StatusFailed" Text="失败" Tag="Failed" Click="OnStatusFilter">
                                 <RadioMenuFlyoutItem.Icon><FontIcon Glyph="&#xE783;" Foreground="{ThemeResource EgDangerBrush}" /></RadioMenuFlyoutItem.Icon>
                             </RadioMenuFlyoutItem>
                         </MenuFlyout>
@@ -100,26 +100,26 @@
                     </StackPanel>
                     <Button.Flyout>
                         <MenuFlyout x:Name="ResourceSortMenu" Opening="OnMenuOpening" Placement="Bottom" ShouldConstrainToRootBounds="True" MenuFlyoutPresenterStyle="{StaticResource SeriesResourceMenuStyle}">
-                            <RadioMenuFlyoutItem x:Name="SortDefault" Text="默认顺序" Tag="Default" Click="OnSort" />
-                            <RadioMenuFlyoutItem x:Name="SortTitle" Text="标题" Tag="Title" Click="OnSort" />
-                            <RadioMenuFlyoutItem x:Name="SortPath" Text="路径" Tag="Path" Click="OnSort" />
-                            <RadioMenuFlyoutItem x:Name="SortMode" Text="转移方式" Tag="Mode" Click="OnSort" />
-                            <RadioMenuFlyoutItem x:Name="SortSize" Text="大小" Tag="Size" Click="OnSort" />
-                            <RadioMenuFlyoutItem x:Name="SortTime" Text="时间" Tag="Time" Click="OnSort" />
-                            <RadioMenuFlyoutItem x:Name="SortStatus" Text="状态" Tag="Status" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortDefault" x:Name="SortDefault" Text="默认顺序" Tag="Default" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortTitle" x:Name="SortTitle" Text="标题" Tag="Title" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortPath" x:Name="SortPath" Text="路径" Tag="Path" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortMode" x:Name="SortMode" Text="转移方式" Tag="Mode" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortSize" x:Name="SortSize" Text="大小" Tag="Size" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortTime" x:Name="SortTime" Text="时间" Tag="Time" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_SortStatus" x:Name="SortStatus" Text="状态" Tag="Status" Click="OnSort" />
                             <MenuFlyoutSeparator Visibility="{x:Bind ViewModel.DirectionVisibility, Mode=OneWay}" />
                             <MenuFlyoutItem x:Name="SortDirection" Text="{x:Bind ViewModel.DirectionAction, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.DirectionVisibility, Mode=OneWay}" Click="OnSortDirection" />
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="ResourceViewButton" Style="{StaticResource EgIconButtonStyle}"
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ResourceViewButton" x:Name="ResourceViewButton" Style="{StaticResource EgIconButtonStyle}"
                     AutomationProperties.Name="{x:Bind ViewModel.ViewAutomationName, Mode=OneWay}" ToolTipService.ToolTip="列表 / 分组模式">
                     <FontIcon Glyph="{x:Bind ViewModel.ViewGlyph, Mode=OneWay}" />
                     <Button.Flyout>
                         <MenuFlyout x:Name="ResourceViewMenu" Opening="OnMenuOpening" Placement="Bottom" ShouldConstrainToRootBounds="True" MenuFlyoutPresenterStyle="{StaticResource SeriesResourceMenuStyle}">
-                            <RadioMenuFlyoutItem x:Name="ViewList" Text="列表模式" Tag="False" Click="OnViewMode" />
-                            <RadioMenuFlyoutItem x:Name="ViewGrouped" Text="分组模式" Tag="True" Click="OnViewMode" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_ViewList" x:Name="ViewList" Text="列表模式" Tag="False" Click="OnViewMode" />
+                            <RadioMenuFlyoutItem x:Uid="MoviePilotSeriesReorganizeDialog_ViewGrouped" x:Name="ViewGrouped" Text="分组模式" Tag="True" Click="OnViewMode" />
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
@@ -131,14 +131,14 @@
         <Grid Grid.Row="2" ColumnSpacing="12" Visibility="{x:Bind ViewModel.SelectionVisibility, Mode=OneWay}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button x:Name="SelectAllResources" Content="全选" Click="OnSelectAll" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
-                <Button x:Name="ClearResourceSelection" Content="清空选择" Click="OnClearSelection" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_SelectAllResources" x:Name="SelectAllResources" Content="全选" Click="OnSelectAll" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ClearResourceSelection" x:Name="ClearResourceSelection" Content="清空选择" Click="OnClearSelection" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
             </StackPanel>
             <TextBlock x:Name="SelectedResourcesCount" Grid.Column="1" Text="{x:Bind ViewModel.SelectionLabel, Mode=OneWay}"
                 Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
         </Grid>
         <Grid Grid.Row="3" MinHeight="120">
-            <ListView x:Name="SeriesResources" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnResourceClicked"
+            <ListView x:Uid="MoviePilotSeriesReorganizeDialog_SeriesResources" x:Name="SeriesResources" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnResourceClicked"
                 IsMultiSelectCheckBoxEnabled="False" HorizontalContentAlignment="Stretch"
                 IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="当前剧的整理资源">
@@ -169,7 +169,7 @@
                                             <TextBlock Text="{x:Bind CountLabel}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
                                         </local:WrapRow>
                                     </Button>
-                                    <Button x:Name="SelectSeriesResourceGroup" Grid.Column="1" Tag="{x:Bind}" Content="全选本组"
+                                    <Button x:Uid="MoviePilotSeriesReorganizeDialog_SelectSeriesResourceGroup" x:Name="SelectSeriesResourceGroup" Grid.Column="1" Tag="{x:Bind}" Content="全选本组"
                                         Click="OnSelectGroup" AutomationProperties.Name="{x:Bind AutomationName}" />
                                 </Grid>
                             </DataTemplate>
@@ -208,8 +208,8 @@
                                     <TextBlock Text="{x:Bind YearLabel}" Style="{StaticResource EgCaptionStyle}" Visibility="{x:Bind YearVisibility}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
                                     <Border Padding="7,2" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgSurfaceBrush}">
                                         <Grid>
-                                            <TextBlock Text="成功" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" Visibility="{x:Bind SuccessVisibility}" />
-                                            <TextBlock Text="失败" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgDangerBrush}" Visibility="{x:Bind FailureVisibility}" />
+                                            <TextBlock x:Uid="MoviePilotSeriesReorganizeDialog_Localization2" Text="成功" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" Visibility="{x:Bind SuccessVisibility}" />
+                                            <TextBlock x:Uid="MoviePilotSeriesReorganizeDialog_Localization3" Text="失败" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgDangerBrush}" Visibility="{x:Bind FailureVisibility}" />
                                         </Grid>
                                     </Border>
                                 </local:WrapRow>
@@ -239,6 +239,6 @@
                 <TextBlock Text="{x:Bind ViewModel.EmptyMessage, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxWidth="360" />
             </StackPanel>
         </Grid>
-        <TextBlock Grid.Row="4" Text="选择资源后继续核对整理设置与预览，再确认提交。" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
+        <TextBlock x:Uid="MoviePilotSeriesReorganizeDialog_Localization4" Grid.Row="4" Text="选择资源后继续核对整理设置与预览，再确认提交。" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
     </Grid>
 </ContentDialog>

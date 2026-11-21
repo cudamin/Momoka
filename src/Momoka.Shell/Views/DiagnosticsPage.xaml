@@ -98,7 +98,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Uid="DiagnosticsPage_TextBlock13" Style="{StaticResource EgSubheadStyle}" />
-                        <Button x:Name="DiagnosticsDetailsButton" Grid.Column="1" Content="详情"
+                        <Button x:Uid="DiagnosticsPage_DiagnosticsDetailsButton" x:Name="DiagnosticsDetailsButton" Grid.Column="1" Content="详情"
                             AutomationProperties.Name="运行状态详情" Padding="6,0" MinHeight="22"
                             Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
                             <Button.Flyout>
@@ -111,7 +111,7 @@
                                     </Flyout.FlyoutPresenterStyle>
                                     <ScrollView MaxHeight="440" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
                                         <StackPanel Spacing="12" MaxWidth="460">
-                                            <TextBlock Text="运行详情" Style="{StaticResource EgSectionTitleStyle}" />
+                                            <TextBlock x:Uid="DiagnosticsPage_Localization1" Text="运行详情" Style="{StaticResource EgSectionTitleStyle}" />
                                             <Grid ColumnSpacing="12" RowSpacing="8">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" />
@@ -222,7 +222,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="分类" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                            <TextBlock x:Uid="DiagnosticsPage_Localization2" Text="分类" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
                             <ComboBox x:Uid="DiagnosticsPage_ComboBoxA1" AutomationProperties.AutomationId="DiagnosticsCategoryPicker"
                                 Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="日志分类"
                                 ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
@@ -233,7 +233,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="级别" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                            <TextBlock x:Uid="DiagnosticsPage_Localization3" Text="级别" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
                             <ComboBox x:Uid="DiagnosticsPage_ComboBoxA2" AutomationProperties.AutomationId="DiagnosticsLevelPicker"
                                 Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="日志级别"
                                 ItemsSource="{x:Bind ViewModel.Levels, Mode=OneWay}"

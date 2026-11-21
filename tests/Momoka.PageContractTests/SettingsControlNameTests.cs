@@ -22,7 +22,7 @@ internal static class SettingsControlNameTests
             var notes = page.Descendants().Where(element => element.Name.LocalName == "TextBlock"
                 && ((string?)element.Attribute("Text") is { } text && (text.StartsWith("关闭后隐藏 AniBT", StringComparison.Ordinal)
                     || text.StartsWith("搜索时默认使用的站点", StringComparison.Ordinal) || text == "{x:Bind PriorityHint}"
-                    || element.Ancestors().Any(parent => parent.Name.LocalName == "DataTemplate" && ((string?)parent.Attribute(XName.Get("DataType", "http://schemas.microsoft.com/winfx/2006/xaml"))) == "vm:SettingSubtitlePreviewRow") && text == "{x:Bind Note}"))).ToList();
+                    || element.Ancestors().Any(parent => parent.Name.LocalName == "DataTemplate" && ((string?)parent.Attribute(XName.Get("DataType", "http://schemas.microsoft.com/winfx/2006/xaml"))) == "vm:SettingSubtitlePreviewRow") && text == "{x:Bind DisplayNote}"))).ToList();
             Assert.Equal(4, notes.Count);
             foreach (var note in notes) Assert.Equal("{x:Bind SupportingNotesVisibility, Mode=OneWay}", (string?)note.Attribute("Visibility"));
         });
@@ -43,7 +43,7 @@ internal static class SettingsControlNameTests
                 var control = template.Descendants().Single(element => shape == "Slider"
                     ? element.Name.LocalName == "Slider"
                     : element.Name.LocalName == "Button" && element.Elements().Any(child => child.Name.LocalName == "Button.Flyout"));
-                Assert.True(BindsRowName(control, resources), "控件必须绑定当前行 Label，且不能被通用 x:Uid 名称盖回去");
+                Assert.True(BindsRowName(control, resources), "控件必须绑定当前行 DisplayLabel，且不能被通用 x:Uid 名称盖回去");
                 var oldName = new XElement(control);
                 oldName.SetAttributeValue("AutomationProperties.Name", "通用控件");
                 Assert.False(BindsRowName(oldName, resources), "负向：统一名称必须被拒绝");
@@ -101,7 +101,7 @@ internal static class SettingsControlNameTests
 
     private static bool BindsRowName(XElement control, XDocument resources)
     {
-        if (control.Attribute("AutomationProperties.Name")?.Value != "{x:Bind Label}") return false;
+        if (control.Attribute("AutomationProperties.Name")?.Value != "{x:Bind DisplayLabel}") return false;
         var uid = control.Attribute(XName.Get("Uid", "http://schemas.microsoft.com/winfx/2006/xaml"))?.Value;
         return uid is null || !resources.Descendants("data").Any(entry =>
             entry.Attribute("name")?.Value == uid + ".[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name");

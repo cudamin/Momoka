@@ -45,11 +45,11 @@
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <TextBlock x:Name="CountText" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                <CheckBox x:Name="SelectAllRecords" Grid.Column="1" Content="全选" IsThreeState="True" Click="OnSelectAll"
+                <CheckBox x:Uid="MoviePilotMediaManagementDialog_SelectAllRecords" x:Name="SelectAllRecords" Grid.Column="1" Content="全选" IsThreeState="True" Click="OnSelectAll"
                     Visibility="Collapsed" AutomationProperties.Name="全选整理记录" />
             </Grid>
         </StackPanel>
-        <ListView x:Name="RecordList" Grid.Row="2" ItemsSource="{x:Bind Records}" SelectionMode="None"
+        <ListView x:Uid="MoviePilotMediaManagementDialog_RecordList" x:Name="RecordList" Grid.Row="2" ItemsSource="{x:Bind Records}" SelectionMode="None"
             IsItemClickEnabled="False" ItemContainerStyle="{StaticResource RecordContainerStyle}"
             ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="整理记录与文件操作结果">

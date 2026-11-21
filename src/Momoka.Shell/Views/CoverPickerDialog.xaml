@@ -27,10 +27,10 @@
         <!-- Gallery 6de91fe: Samples/ComboBox/ComboBoxPage.xaml (Header/ItemsSource/SelectionChanged)
              and Samples/ToggleSwitch/ToggleSwitchPage.xaml (Header/IsOn). Server search owns cancellation. -->
         <VariableSizedWrapGrid Orientation="Horizontal" HorizontalAlignment="Right">
-            <ComboBox x:Name="SourcePicker" Header="来源" MinWidth="160" MaxWidth="240"
+            <ComboBox x:Uid="CoverPickerDialog_SourcePicker" x:Name="SourcePicker" Header="来源" MinWidth="160" MaxWidth="240"
                 Margin="0,0,16,8" SelectionChanged="OnSourceChanged"
                 AutomationProperties.AutomationId="ArtworkSourcePicker" AutomationProperties.Name="图片来源" />
-            <ToggleSwitch x:Name="AllLanguagesToggle" Header="所有语言" IsOn="True"
+            <ToggleSwitch x:Uid="CoverPickerDialog_AllLanguagesToggle" x:Name="AllLanguagesToggle" Header="所有语言" IsOn="True"
                 Margin="0,0,0,8" Toggled="OnLanguagesChanged"
                 AutomationProperties.AutomationId="ArtworkAllLanguages" AutomationProperties.Name="所有语言" />
         </VariableSizedWrapGrid>
@@ -41,7 +41,7 @@
             Style="{StaticResource EgDataStyle}"
             TextWrapping="Wrap"
             Visibility="Collapsed" />
-        <Button x:Name="RetryArtworkSearch" Content="重新搜索" Click="OnRetrySearch" Visibility="Collapsed"
+        <Button x:Uid="CoverPickerDialog_RetryArtworkSearch" x:Name="RetryArtworkSearch" Content="重新搜索" Click="OnRetrySearch" Visibility="Collapsed"
             Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.AutomationId="RetryArtworkSearch" />
 
         <GridView
@@ -81,7 +81,7 @@
                             TextTrimming="CharacterEllipsis"
                             TextWrapping="Wrap" />
                         <Grid Height="40" Visibility="{x:Bind PreviewVisibility}">
-                            <Button Click="OnRetry" Content="重试预览" Tag="{x:Bind}"
+                            <Button x:Uid="CoverPickerDialog_Localization1" Click="OnRetry" Content="重试预览" Tag="{x:Bind}"
                                 AutomationProperties.AutomationId="RetryArtworkPreview"
                                 Style="{StaticResource EgSecondaryButtonStyle}"
                                 Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
@@ -93,7 +93,7 @@
 
         <TextBlock x:Name="PreviewNotice" Style="{StaticResource EgDataStyle}"
             TextWrapping="Wrap" Visibility="Collapsed" />
-        <Button x:Name="RetryArtworkPreviews" Click="OnRetry" Content="重试预览"
+        <Button x:Uid="CoverPickerDialog_RetryArtworkPreviews" x:Name="RetryArtworkPreviews" Click="OnRetry" Content="重试预览"
             Style="{StaticResource EgSecondaryButtonStyle}" Visibility="Collapsed" />
 
         <!-- 这一条路和上面那些候选是同一件事的两个答案，所以摆在同一张表里。 -->
@@ -103,7 +103,7 @@
             Style="{StaticResource EgSecondaryButtonStyle}">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
                 <FontIcon FontSize="14" Glyph="&#xE710;" />
-                <TextBlock Style="{StaticResource EgBodyStyle}" Text="从本机传一张…" />
+                <TextBlock x:Uid="CoverPickerDialog_Localization2" Style="{StaticResource EgBodyStyle}" Text="从本机传一张…" />
             </StackPanel>
         </Button>
     </StackPanel>

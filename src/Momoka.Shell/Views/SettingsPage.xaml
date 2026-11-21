@@ -166,10 +166,10 @@
         -->
         <DataTemplate x:Key="EgThemeTile" x:DataType="vm:ThemeSwatch">
             <Button
-                automation:AutomationProperties.Name="{x:Bind Name}"
+                automation:AutomationProperties.Name="{x:Bind DisplayName}"
                 Command="{x:Bind PickCommand}"
                 Style="{StaticResource EgSwatchStyle}"
-                ToolTipService.ToolTip="{x:Bind Note}">
+                ToolTipService.ToolTip="{x:Bind DisplayNote}">
                 <Button.Resources>
                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
                     <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
@@ -193,13 +193,13 @@
                             FontSize="{StaticResource EgSubheadFontSize}"
                             FontWeight="SemiBold"
                             Foreground="{x:Bind Ink}"
-                            Text="{x:Bind Name}"
+                            Text="{x:Bind DisplayName}"
                             TextTrimming="CharacterEllipsis" />
                         <TextBlock
                             FontFamily="{StaticResource EgDataFontFamily}"
                             FontSize="{StaticResource EgEyebrowFontSize}"
                             Foreground="{x:Bind InkDim}"
-                            Text="{x:Bind Kind}" />
+                            Text="{x:Bind DisplayKind}" />
                     </StackPanel>
                     <Border
                         Background="{x:Bind Accent}"
@@ -414,10 +414,10 @@
         <DataTemplate x:Key="EgSettingToggle" x:DataType="vm:SettingToggleRow">
             <ToggleSwitch x:Uid="SettingsPage_ToggleSwitch1"
                 Margin="0,3,0,3"
-                Header="{x:Bind Label}"
+                Header="{x:Bind DisplayLabel}"
                 HorizontalAlignment="Left"
                 IsOn="{x:Bind IsOn, Mode=TwoWay}"
-                ToolTipService.ToolTip="{x:Bind Note}" />
+                ToolTipService.ToolTip="{x:Bind DisplayNote}" />
         </DataTemplate>
 
         <!--
@@ -435,14 +435,14 @@
                     <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                    <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                     <TextBlock
                         Style="{StaticResource EgSettingNote}"
-                        Text="{x:Bind Note}"
+                        Text="{x:Bind DisplayNote}"
                         Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                 </StackPanel>
                 <ToggleSwitch x:Uid="SettingsPage_ToggleSwitch2"
-                    AutomationProperties.Name="{x:Bind Label}"
+                    AutomationProperties.Name="{x:Bind DisplayLabel}"
                     Grid.Column="1"
                     HorizontalAlignment="Left"
                     IsOn="{x:Bind IsOn, Mode=TwoWay}"
@@ -460,7 +460,7 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <!--
                               OneWay 而不是默认的 OneTime：视频同步那一行的说明写的是「此刻真正生效的值」，
                               而它会随两行之下的「启用插值」变。别的下拉行的说明构造完就再也不动，OneWay 对它们
@@ -468,13 +468,13 @@
                             -->
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note, Mode=OneWay}"
+                                Text="{x:Bind DisplayNote, Mode=OneWay}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <ComboBox
-                            AutomationProperties.Name="{x:Bind Label}"
+                            AutomationProperties.Name="{x:Bind DisplayLabel}"
                             Grid.Column="1"
-                            DisplayMemberPath="Label"
+                            DisplayMemberPath="DisplayLabel"
                             HorizontalAlignment="Stretch"
                             ItemsSource="{x:Bind Choices, Mode=OneWay}"
                             MinWidth="260"
@@ -494,7 +494,7 @@
                     <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
                         <!-- 词表里的小标题（Theme/Styles.xaml 的 EgSubheadStyle）：以前这里只写了 SemiBold，
                              没写字体也没写字号，一组开关的标题于是比同一张卡片上的别的字都大一点。 -->
-                        <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind Label}" />
+                        <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind DisplayLabel}" />
                         <ItemsControl
                             ItemTemplate="{StaticResource EgSettingToggle}"
                             ItemsSource="{x:Bind Toggles}">
@@ -519,10 +519,10 @@
             <local:SettingRowTemplates.Theme>
                 <DataTemplate x:DataType="vm:SettingThemeRow">
                     <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
-                        <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind Label}" />
+                        <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind DisplayLabel}" />
                         <TextBlock
                             Style="{StaticResource EgSettingNote}"
-                            Text="{x:Bind Note}"
+                            Text="{x:Bind DisplayNote}"
                             Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         <ItemsControl
                             ItemTemplate="{StaticResource EgThemeTile}"
@@ -551,10 +551,10 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <!--
@@ -566,7 +566,7 @@
                         <NumberBox
                             CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
                             Grid.Column="1"
-                            AutomationProperties.Name="{x:Bind Label}"
+                            AutomationProperties.Name="{x:Bind DisplayLabel}"
                             HorizontalAlignment="Left"
                             Maximum="{x:Bind Maximum}"
                             Minimum="{x:Bind Minimum}"
@@ -587,22 +587,22 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                            <CheckBox
+                            <CheckBox x:Uid="SettingsPage_UseAutomaticValue"
                                 x:Name="UseAutomaticValue"
-                                AutomationProperties.Name="{x:Bind Label}"
+                                AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 Content="自动"
                                 IsChecked="{x:Bind Automatic, Mode=TwoWay}" />
                             <NumberBox
                                 CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
                                 x:Name="ManualValue"
-                                AutomationProperties.Name="{x:Bind Label}"
+                                AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
                                 Visibility="{x:Bind InputVisibility, Mode=OneWay}"
                                 Minimum="{x:Bind Minimum}"
@@ -624,10 +624,10 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <!--
@@ -640,7 +640,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Slider
-                                AutomationProperties.Name="{x:Bind Label}"
+                                AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 HorizontalAlignment="Stretch"
                                 Maximum="{x:Bind Maximum}"
                                 Minimum="{x:Bind Minimum}"
@@ -674,10 +674,10 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <TextBox
@@ -687,8 +687,8 @@
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
                             MinWidth="260"
-                            AutomationProperties.Name="{x:Bind Label}"
-                            PlaceholderText="{x:Bind Placeholder}"
+                            AutomationProperties.Name="{x:Bind DisplayLabel}"
+                            PlaceholderText="{x:Bind DisplayPlaceholder}"
                             Text="{x:Bind Text, Mode=TwoWay}"
                             VerticalAlignment="Center" />
                     </Grid>
@@ -703,15 +703,15 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
-                            <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
+                            <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind DisplayNote, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="8">
-                            <PasswordBox x:Name="SecretInput" Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新密钥" AutomationProperties.Name="{x:Bind Label}" VerticalAlignment="Center" />
+                            <PasswordBox x:Uid="SettingsPage_SecretInput" x:Name="SecretInput" Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新密钥" AutomationProperties.Name="{x:Bind DisplayLabel}" VerticalAlignment="Center" />
                             <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Status, Mode=OneWay}" TextWrapping="Wrap" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="SaveSecret" Command="{x:Bind CommitCommand}" Content="保存密钥" AutomationProperties.Name="{x:Bind SaveAutomationName}" />
-                                <Button x:Name="ClearSecret" Command="{x:Bind ClearCommand}" Content="清除密钥" AutomationProperties.Name="{x:Bind ClearAutomationName}" />
+                                <Button x:Uid="SettingsPage_SaveSecret" x:Name="SaveSecret" Command="{x:Bind CommitCommand}" Content="保存密钥" AutomationProperties.Name="{x:Bind SaveAutomationName}" />
+                                <Button x:Uid="SettingsPage_ClearSecret" x:Name="ClearSecret" Command="{x:Bind ClearCommand}" Content="清除密钥" AutomationProperties.Name="{x:Bind ClearAutomationName}" />
                             </StackPanel>
                         </StackPanel>
                     </Grid>
@@ -734,16 +734,16 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <StackPanel Spacing="10">
                             <StackPanel Spacing="2">
-                                <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                                <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                                 <TextBlock
                                     Style="{StaticResource EgSettingNote}"
-                                    Text="{x:Bind Note}"
+                                    Text="{x:Bind DisplayNote}"
                                     TextWrapping="Wrap"
                                     Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                             </StackPanel>
 
-                            <ToggleSwitch
-                                AutomationProperties.Name="{x:Bind Label}"
+                            <ToggleSwitch x:Uid="SettingsPage_Localization1"
+                                AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 Header="启用"
                                 IsOn="{x:Bind Enabled, Mode=TwoWay}"
                                 OffContent="关闭"
@@ -755,14 +755,14 @@
                               但关闭它只收入口，不删除已保存的连接或整理防重状态。
                             -->
                             <StackPanel Spacing="2" Visibility="{x:Bind AniBtVisibility, Mode=OneWay}">
-                                <ToggleSwitch
+                                <ToggleSwitch x:Uid="SettingsPage_Localization2"
                                     AutomationProperties.AutomationId="MoviePilotAniBtToggle"
                                     AutomationProperties.Name="显示 AniBT 入口"
                                     Header="AniBT 功能"
                                     IsOn="{x:Bind AniBtEnabled, Mode=TwoWay}"
                                     OffContent="隐藏"
                                     OnContent="显示" />
-                                <TextBlock Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
+                                <TextBlock x:Uid="SettingsPage_Localization3" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
                                     Text="关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                             </StackPanel>
 
@@ -775,7 +775,7 @@
                               不跟着卡面拉满；下面用户名/密码才是整幅宽的框。
                             -->
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <ComboBox
+                                <ComboBox x:Uid="SettingsPage_Localization4"
                                     MinWidth="88"
                                     AutomationProperties.Name="MoviePilot 协议"
                                     Header="协议"
@@ -783,13 +783,13 @@
                                     <ComboBoxItem Content="http" />
                                     <ComboBoxItem Content="https" />
                                 </ComboBox>
-                                <TextBox
+                                <TextBox x:Uid="SettingsPage_Localization5"
                                     Width="240"
                                     AutomationProperties.Name="MoviePilot 地址"
                                     Header="地址"
                                     PlaceholderText="192.0.2.10"
                                     Text="{x:Bind Host, Mode=TwoWay}" />
-                                <TextBox
+                                <TextBox x:Uid="SettingsPage_Localization6"
                                     Width="110"
                                     AutomationProperties.Name="MoviePilot API 端口"
                                     Header="API 端口"
@@ -798,7 +798,7 @@
                                     Text="{x:Bind Port, Mode=TwoWay}" />
                             </StackPanel>
 
-                            <TextBox
+                            <TextBox x:Uid="SettingsPage_Localization7"
                                 AutomationProperties.Name="MoviePilot 用户名"
                                 Header="用户名"
                                 PlaceholderText="MoviePilot 的登录名"
@@ -809,12 +809,12 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <PasswordBox
+                                <PasswordBox x:Uid="SettingsPage_Localization8"
                                     AutomationProperties.Name="MoviePilot 密码"
                                     Header="密码"
                                     Password="{x:Bind Password, Mode=TwoWay}"
                                     PlaceholderText="留空则用已保存的那个" />
-                                <TextBlock
+                                <TextBlock x:Uid="SettingsPage_Localization9"
                                     Grid.Column="1"
                                     VerticalAlignment="Bottom"
                                     Margin="0,0,0,6"
@@ -824,7 +824,7 @@
                             </Grid>
 
                             <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Button
+                                <Button x:Uid="SettingsPage_Localization10"
                                     AutomationProperties.Name="测试 MoviePilot 连接"
                                     Command="{x:Bind TestCommand}"
                                     Content="{x:Bind TestLabel, Mode=OneWay}"
@@ -846,9 +846,9 @@
                               上面的开关、地址和测试按钮照旧留着，连接恢复后这一截原样回来。
                             -->
                             <StackPanel Spacing="2" Margin="0,4,0,0" Visibility="{x:Bind SitesVisibility, Mode=OneWay}">
-                                <local:MoviePilotSitePicker x:Name="DefaultSearchSites" Label="默认搜索站点"
+                                <local:MoviePilotSitePicker x:Uid="SettingsPage_DefaultSearchSites" x:Name="DefaultSearchSites" Label="默认搜索站点"
                                     ViewModel="{x:Bind SearchSites}" />
-                                <TextBlock Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
+                                <TextBlock x:Uid="SettingsPage_Localization11" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
                                     Text="搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                             </StackPanel>
                         </StackPanel>
@@ -876,10 +876,10 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Top">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" MinWidth="260" Spacing="6">
@@ -937,10 +937,10 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note, Mode=OneWay}"
+                                Text="{x:Bind DisplayNote, Mode=OneWay}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <StackPanel
@@ -951,7 +951,7 @@
                             VerticalAlignment="Center">
                             <Button
                                 x:Uid="SettingsPage_ColorSwatch"
-                                AutomationProperties.Name="{x:Bind Label}"
+                                AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 Tag="{x:Bind}"
                                 Loaded="OnColorSwatchLoaded"
                                 Background="{x:Bind Swatch, Mode=OneWay}"
@@ -979,7 +979,7 @@
                             <TextBlock
                                 IsTextSelectionEnabled="True"
                                 Style="{StaticResource EgDataStyle}"
-                                Text="{x:Bind HexLabel, Mode=OneWay}"
+                                Text="{x:Bind DisplayHexLabel, Mode=OneWay}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
@@ -1052,7 +1052,7 @@
                             </Grid>
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 TextWrapping="Wrap" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
@@ -1078,10 +1078,10 @@
             <local:SettingRowTemplates.HomeLayout>
                 <DataTemplate x:DataType="vm:SettingHomeLayoutRow">
                     <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
-                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                         <TextBlock
                             Style="{StaticResource EgSettingNote}"
-                            Text="{x:Bind Note}"
+                            Text="{x:Bind DisplayNote}"
                             Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
 
                         <ListView
@@ -1140,7 +1140,7 @@
                                             MinHeight="40"
                                             Padding="8,0,0,0"
                                             Visibility="{x:Bind LibraryExpanderVisibility}">
-                                            <ListView
+                                            <ListView x:Uid="SettingsPage_HomeLibraryEntriesList"
                                                 x:Name="HomeLibraryEntriesList"
                                                 automation:AutomationProperties.Name="媒体库入口"
                                                 AllowDrop="True"
@@ -1258,21 +1258,21 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 TextWrapping="Wrap"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <DropDownButton
-                            AutomationProperties.Name="{x:Bind Label}"
+                            AutomationProperties.Name="{x:Bind DisplayLabel}"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
                             MinWidth="260">
                             <TextBlock
-                                Text="{x:Bind Summary, Mode=OneWay}"
+                                Text="{x:Bind DisplaySummary, Mode=OneWay}"
                                 TextTrimming="CharacterEllipsis" />
                             <DropDownButton.Flyout>
                                 <Flyout Placement="Bottom">
@@ -1298,13 +1298,13 @@
                                                     </Grid.ColumnDefinitions>
 
                                                     <CheckBox
-                                                        AutomationProperties.Name="{x:Bind Name}"
+                                                        AutomationProperties.Name="{x:Bind DisplayName}"
                                                         IsChecked="{x:Bind Checked, Mode=TwoWay}"
                                                         MinWidth="0" />
 
                                                     <TextBlock
                                                         Grid.Column="1"
-                                                        Text="{x:Bind Name}"
+                                                        Text="{x:Bind DisplayName}"
                                                         VerticalAlignment="Center" />
 
                                                     <!-- 换次序那两颗。到顶的「上移」和到底的「下移」置灰
@@ -1355,8 +1355,8 @@
             <local:SettingRowTemplates.TitleRules>
                 <DataTemplate x:DataType="vm:SettingTitleRulesRow">
                     <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
-                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
-                        <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note}"
+                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
+                        <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind DisplayNote}"
                             TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind PriorityHint}" TextWrapping="Wrap" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
 
@@ -1367,7 +1367,7 @@
                             ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             Loaded="OnPriorityListLoaded" Unloaded="OnPriorityListUnloaded"
                             DragItemsStarting="OnPriorityDragStarting" DragItemsCompleted="OnPriorityDragCompleted"
-                            AutomationProperties.Name="{x:Bind Label}">
+                            AutomationProperties.Name="{x:Bind DisplayLabel}">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -1386,7 +1386,7 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="≡" VerticalAlignment="Center" Opacity="0.55"
+                                        <TextBlock x:Uid="SettingsPage_Localization12" Text="≡" VerticalAlignment="Center" Opacity="0.55"
                                             ToolTipService.ToolTip="按住拖动调整优先级" />
                                         <TextBlock Grid.Column="1" Text="{x:Bind Position, Mode=OneWay}"
                                             VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.65" />
@@ -1394,15 +1394,15 @@
                                             VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind Term}" />
                                         <ComboBox x:Name="PriorityRuleState" Grid.Column="3" MinWidth="88"
                                             AutomationProperties.Name="{x:Bind Term}"
-                                            ItemsSource="{x:Bind StateLabels}" SelectedItem="{x:Bind SelectedState, Mode=TwoWay}" />
+                                            ItemsSource="{x:Bind DisplayStateLabels}" SelectedItem="{x:Bind DisplaySelectedState, Mode=TwoWay}" />
                                         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2">
-                                            <Button x:Name="PriorityRuleUp" Content="↑" MinWidth="28" Padding="4"
+                                            <Button x:Uid="SettingsPage_PriorityRuleUp" x:Name="PriorityRuleUp" Content="↑" MinWidth="28" Padding="4"
                                                 Command="{x:Bind UpCommand}" IsEnabled="{x:Bind CanUp, Mode=OneWay}"
                                                 AutomationProperties.Name="{x:Bind UpName}" ToolTipService.ToolTip="提高优先级" />
-                                            <Button x:Name="PriorityRuleDown" Content="↓" MinWidth="28" Padding="4"
+                                            <Button x:Uid="SettingsPage_PriorityRuleDown" x:Name="PriorityRuleDown" Content="↓" MinWidth="28" Padding="4"
                                                 Command="{x:Bind DownCommand}" IsEnabled="{x:Bind CanDown, Mode=OneWay}"
                                                 AutomationProperties.Name="{x:Bind DownName}" ToolTipService.ToolTip="降低优先级" />
-                                            <Button x:Name="PriorityRuleDelete" Content="✕" MinWidth="28" Padding="4"
+                                            <Button x:Uid="SettingsPage_PriorityRuleDelete" x:Name="PriorityRuleDelete" Content="✕" MinWidth="28" Padding="4"
                                                 Command="{x:Bind RemoveSelfCommand}"
                                                 AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="删除这个关键词" />
                                         </StackPanel>
@@ -1417,7 +1417,7 @@
                             <TextBox x:Name="PriorityNewTerm" AutomationProperties.Name="{x:Bind NewTermName}"
                                 PlaceholderText="{x:Bind NewTermPlaceholder}"
                                 Text="{x:Bind NewTerm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                            <Button x:Name="PriorityAddTerm" Grid.Column="1" AutomationProperties.Name="{x:Bind AddName}"
+                            <Button x:Uid="SettingsPage_PriorityAddTerm" x:Name="PriorityAddTerm" Grid.Column="1" AutomationProperties.Name="{x:Bind AddName}"
                                 Command="{x:Bind AddCommand}" Content="添加" />
                         </Grid>
                     </StackPanel>
@@ -1442,7 +1442,7 @@
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                             <TextBlock
                                 IsTextSelectionEnabled="True"
                                 Style="{StaticResource EgDataStyle}"
@@ -1451,13 +1451,13 @@
                                 Visibility="{x:Bind ValueVisibility, Mode=OneWay}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
-                                Text="{x:Bind Note}"
+                                Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <Button
                             Grid.Column="1"
                             Command="{x:Bind RunCommand}"
-                            Content="{x:Bind ActionLabel}"
+                            Content="{x:Bind DisplayActionLabel}"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Visibility="{x:Bind ActionVisibility}" />
@@ -1478,10 +1478,10 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" TextWrapping="Wrap" />
+                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" TextWrapping="Wrap" />
                         <local:ShortcutCaptureBox
                             Grid.Column="1"
-                            AutomationProperties.Name="{x:Bind Label}"
+                            AutomationProperties.Name="{x:Bind DisplayLabel}"
                             Combo="{x:Bind ComboText, Mode=OneWay}"
                             Committed="{x:Bind OnCommitted}"
                             HorizontalAlignment="Stretch"
@@ -1544,7 +1544,7 @@
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <InfoBar
+            <InfoBar x:Uid="SettingsPage_UnsavedSettingsNotice"
                 x:Name="UnsavedSettingsNotice"
                 IsClosable="False"
                 IsOpen="{x:Bind ViewModel.HasUnsavedChanges, Mode=OneWay}"
@@ -1553,7 +1553,7 @@
                 Message="修改仍在本次运行中生效，但关闭程序后可能丢失。请检查磁盘空间和目录权限后重试。"
                 Visibility="{x:Bind ViewModel.UnsavedVisibility, Mode=OneWay}">
                 <InfoBar.ActionButton>
-                    <Button x:Name="RetrySaveSettingsButton" Content="重试保存" Command="{x:Bind ViewModel.RetrySaveCommand}" />
+                    <Button x:Uid="SettingsPage_RetrySaveSettingsButton" x:Name="RetrySaveSettingsButton" Content="重试保存" Command="{x:Bind ViewModel.RetrySaveCommand}" />
                 </InfoBar.ActionButton>
             </InfoBar>
         </StackPanel>
@@ -1603,13 +1603,13 @@
                         <AutoSuggestBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:SettingsSearchResult">
                                 <StackPanel Spacing="2" Padding="0,4">
-                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgSettingsNavLabel}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind Location}" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind DisplayLabel}" Style="{StaticResource EgSettingsNavLabel}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind DisplayLocation}" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </DataTemplate>
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
-                    <Button x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
+                    <Button x:Uid="SettingsPage_SettingsSearchButton" x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
                         HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" CornerRadius="8"
                         Background="Transparent" BorderThickness="0" AutomationProperties.Name="搜索设置项"
                         Click="OnSettingsSearchClick">
@@ -1617,7 +1617,7 @@
                             Foreground="{ThemeResource EgTextDimBrush}" />
                     </Button>
                 </Grid>
-                <TextBlock x:Name="SettingsSearchEmpty" Grid.Row="1" Margin="4,0,4,12"
+                <TextBlock x:Uid="SettingsPage_SettingsSearchEmpty" x:Name="SettingsSearchEmpty" Grid.Row="1" Margin="4,0,4,12"
                     Text="未找到匹配的设置项" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
                     automation:AutomationProperties.LiveSetting="Polite"
                     Visibility="{x:Bind ViewModel.SettingsSearchEmptyVisibility, Mode=OneWay}" />
@@ -1630,7 +1630,7 @@
                     HorizontalAlignment="Stretch"
                     MinWidth="0"
                     ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
-                    DisplayMemberPath="PickerLabel"
+                    DisplayMemberPath="DisplayPickerLabel"
                     SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
                     Visibility="Collapsed" />
 
@@ -1654,7 +1654,7 @@
                         <GroupStyle.HeaderTemplate>
                             <DataTemplate x:DataType="vm:SettingsCategoryGroup">
                                 <Grid Margin="4,12,4,4">
-                                    <TextBlock Text="{x:Bind Name}" Margin="12,4,0,4"
+                                    <TextBlock Text="{x:Bind DisplayName}" Margin="12,4,0,4"
                                         Style="{StaticResource EgSettingsGroupHeader}"
                                         AutomationProperties.HeadingLevel="Level2"
                                         Visibility="{x:Bind CollapsedHeaderVisibility}" />
@@ -1664,9 +1664,9 @@
                                         Click="OnServerGroupToggle"
                                         Style="{StaticResource SettingsGroupToggle}"
                                         Visibility="{x:Bind CollapsibleHeaderVisibility}"
-                                        AutomationProperties.Name="{x:Bind Name}">
+                                        AutomationProperties.Name="{x:Bind DisplayName}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgSettingsGroupHeader}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{x:Bind DisplayName}" Style="{StaticResource EgSettingsGroupHeader}" TextWrapping="Wrap" />
                                             <FontIcon
                                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                                 FontSize="{StaticResource EgCaptionFontSize}"
@@ -1697,7 +1697,7 @@
                                 AutomationProperties.HeadingLevel="Level3"
                                 Foreground="{ThemeResource EgTextDimBrush}"
                                 Style="{StaticResource EgSettingsGroupHeader}"
-                                Text="{x:Bind Label}"
+                                Text="{x:Bind DisplayLabel}"
                                 Visibility="{x:Bind SectionVisibility}" />
                             <StackPanel
                                 Orientation="Horizontal"
@@ -1791,10 +1791,10 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <AutoSuggestBox x:Name="ShortcutSearchBox" PlaceholderText="搜索快捷键名称或按键，如：字幕、Ctrl + ↑"
+                                <AutoSuggestBox x:Uid="SettingsPage_ShortcutSearchBox" x:Name="ShortcutSearchBox" PlaceholderText="搜索快捷键名称或按键，如：字幕、Ctrl + ↑"
                                     AutomationProperties.Name="搜索快捷键" QueryIcon="Find"
                                     Text="{x:Bind ViewModel.ShortcutSearchQuery, Mode=TwoWay}" />
-                                <Button x:Name="ClearShortcutSearchButton" Grid.Column="1" Content="清空搜索"
+                                <Button x:Uid="SettingsPage_ClearShortcutSearchButton" x:Name="ClearShortcutSearchButton" Grid.Column="1" Content="清空搜索"
                                     Command="{x:Bind ViewModel.ClearShortcutSearchCommand}"
                                     Visibility="{x:Bind ViewModel.ClearShortcutSearchVisibility, Mode=OneWay}" />
                             </Grid>
@@ -1824,7 +1824,7 @@
                                         </StackPanel.RenderTransform>
                                         <!-- 每张卡都写自己的标题：与侧栏同名也保留，卡片因此自成一段。 -->
                                         <TextBlock x:Name="SettingsSectionTitle" Margin="8,0,0,12"
-                                            Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource EgSettingsSectionTitle}"
+                                            Text="{x:Bind DisplayTitle, Mode=OneWay}" Style="{StaticResource EgSettingsSectionTitle}"
                                             AutomationProperties.HeadingLevel="Level2" />
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

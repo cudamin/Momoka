@@ -12,6 +12,7 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 using Momoka.Shell.Security;
 using Momoka.Theming;
@@ -31,6 +32,7 @@ public sealed partial class SettingSection : ObservableObject
         Rows.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(nameof(DisplayCount));
             OnPropertyChanged(nameof(SectionVisibility));
             UpdateFirstRow();
         };
@@ -56,6 +58,8 @@ public sealed partial class SettingSection : ObservableObject
 
     public string Title { get; private set; }
 
+    public string DisplayTitle => UiText.Translate(Title);
+
     /// <summary>
     /// 同一张卡挂两个左栏入口时改抬头：飞牛的「外观」就是「界面」卡，选中哪一项，卡上就写哪一项，
     /// 否则左栏说「外观」、右边却写「界面」。别的卡不动。
@@ -65,9 +69,22 @@ public sealed partial class SettingSection : ObservableObject
         if (string.Equals(Title, title, StringComparison.Ordinal)) return;
         Title = title;
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(DisplayTitle));
     }
 
     public string Description { get; }
+
+    public string DisplayDescription
+    {
+        get
+        {
+            // This is an app-owned fixed prefix, not a general rule for arbitrary text.
+            const string NextPlaybackPrefix = "自动保存，下次播放生效。";
+            if (!Description.StartsWith(NextPlaybackPrefix, StringComparison.Ordinal)) return UiText.Translate(Description);
+            var note = Description[NextPlaybackPrefix.Length..].TrimStart();
+            return UiText.Translate(NextPlaybackPrefix) + (note.Length == 0 ? "" : " " + UiText.Translate(note));
+        }
+    }
 
     public ObservableCollection<SettingRow> Rows { get; }
 
@@ -122,6 +139,9 @@ public sealed partial class SettingSection : ObservableObject
     /// </para>
     /// </summary>
     public string Count => $"{Rows.Sum(row => row is SettingToggleGroupRow group ? group.Toggles.Count : 1)} 项";
+
+    public string DisplayCount => Rows.Sum(row => row is SettingToggleGroupRow group ? group.Toggles.Count : 1)
+        + " " + UiText.Translate("项");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SectionVisibility))]
@@ -347,7 +367,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             if (category == "诊断")
                 foreach (var source in sources)
                     group.Add(NotificationsCategory, source.Key,
-                        displayLabel: sources.Length > 1 ? NotificationsCategory + " · " + source.ServerName : null);
+                        sourceDisplayName: sources.Length > 1 ? source.ServerName : null);
             if (category != "弹幕" || _settings is null || Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) group.Add(category);
         }
         return group;
@@ -1070,8 +1090,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         && current.Zip(desired).All(pair => pair.First.Name == pair.Second.Name
             && pair.First.SourceKey == pair.Second.SourceKey
             && pair.First.Collapsible == pair.Second.Collapsible
-            && pair.First.Rows.Select(row => (row.Key, row.Label, row.DisplayLabel, row.Route, row.CardCategory, row.IsSection))
-                .SequenceEqual(pair.Second.Rows.Select(row => (row.Key, row.Label, row.DisplayLabel, row.Route, row.CardCategory, row.IsSection))));
+            && pair.First.Rows.Select(row => (row.Key, row.Label, row.SourceDisplayName, row.Route, row.CardCategory, row.IsSection))
+                .SequenceEqual(pair.Second.Rows.Select(row => (row.Key, row.Label, row.SourceDisplayName, row.Route, row.CardCategory, row.IsSection))));
 
     private void ReplaceCategories(IReadOnlyList<SettingsCategoryGroup> groups)
     {
@@ -1271,7 +1291,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             () => audio.Device,
             value => audio.Device = value,
             StringComparer.OrdinalIgnoreCase,
-            stored => $"{stored}（已保存，本次内置设备名单中未找到）");
+            stored => UiText.Format("{0}（已保存，本次内置设备名单中未找到）", stored));
     }
 
     /// <summary>
@@ -1382,14 +1402,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (_disposed || !_active || !ReferenceEquals(_settings, settings)) return;
         SyncSaveState();
         if (!saved && settings.HasUnsavedChanges)
-            Notify(null, "设置保存失败，修改仍在本次运行中生效；请重试保存。", InfoBarSeverity.Error);
+            Notify(null, UiText.Translate("设置保存失败，修改仍在本次运行中生效；请重试保存。"), InfoBarSeverity.Error);
     }
 
     [RelayCommand(CanExecute = nameof(HasUnsavedChanges))]
     private void RetrySave()
     {
         Save();
-        if (!HasUnsavedChanges) Notify(null, "设置已保存。", InfoBarSeverity.Success);
+        if (!HasUnsavedChanges) Notify(null, UiText.Translate("设置已保存。"), InfoBarSeverity.Success);
     }
 
     // ── Cards ────────────────────────────────────────────────────────────────────────────────────────
@@ -1458,7 +1478,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 集成模式：不读外部配置文件，这一项固定关闭。只读文字展示有效值，不动用户存着的偏好 ——
             // 切回独占模式时原来那个开关和路径都还在（隐藏/不可用不清空偏好）。
             rows.Add(Fact("启用自定义 mpv.conf",
-                "集成模式不读取外部配置文件，这一项固定关闭；切成独占模式后可以选择。", "关"));
+                "集成模式不读取外部配置文件，这一项固定关闭；切成独占模式后可以选择。", UiText.Translate("关")));
         }
         return new SettingSection("播放器", "自定义 mpv.conf",
             "内置播放器可用；只有独占模式会读取这个文件，下次播放生效。", rows);
@@ -1564,7 +1584,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         catch (OperationCanceledException) { return false; }
         catch (Exception error)
         {
-            Report("当前播放的截图选项未完全更新", error);
+            Report(UiText.Translate("当前播放的截图选项未完全更新"), error);
             return false;
         }
     }
@@ -1832,7 +1852,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         catch (OperationCanceledException) { return false; }
         catch (Exception error)
         {
-            Report("当前播放的字幕外观未完全更新", error);
+            Report(UiText.Translate("当前播放的字幕外观未完全更新"), error);
             return false;
         }
     }
@@ -1848,11 +1868,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             "需要功放/电视支持这一格式；直通后音量均衡、下混归一化和音量条都不再作用于这条音轨";
         var passthroughNotes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["ac3"] = $"交给功放原样解码（杜比数字）。{PassthroughTail}",
-            ["eac3"] = $"交给功放原样解码（杜比数字加）。{PassthroughTail}",
-            ["dts"] = $"交给功放原样解码（DTS 核心流）。{PassthroughTail}",
-            ["dts-hd"] = $"交给功放原样解码（DTS-HD MA；与「直通 DTS」同时勾选时按这一档处理）。{PassthroughTail}",
-            ["truehd"] = $"交给功放原样解码（杜比 TrueHD，仅 HDMI）。{PassthroughTail}",
+            ["ac3"] = UiText.Translate("交给功放原样解码（杜比数字）。") + UiText.Translate(PassthroughTail),
+            ["eac3"] = UiText.Translate("交给功放原样解码（杜比数字加）。") + UiText.Translate(PassthroughTail),
+            ["dts"] = UiText.Translate("交给功放原样解码（DTS 核心流）。") + UiText.Translate(PassthroughTail),
+            ["dts-hd"] = UiText.Translate("交给功放原样解码（DTS-HD MA；与「直通 DTS」同时勾选时按这一档处理）。") + UiText.Translate(PassthroughTail),
+            ["truehd"] = UiText.Translate("交给功放原样解码（杜比 TrueHD，仅 HDMI）。") + UiText.Translate(PassthroughTail),
         };
 
         var passthrough = MpvOutputOptions.PassthroughCodecs
@@ -2065,8 +2085,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                     ui.CarouselCount = value;
                     ShellPrefs.Apply(ui);
                 },
-                $"这条带最多摆几张，{Emby.HomeCarousel.MinSlots}–{Emby.HomeCarousel.MaxSlots}；"
-                    + "筛掉没有宽图的条目之后可能不足这个数"),
+                UiText.Format("这条带最多摆几张，{0}–{1}；筛掉没有宽图的条目之后可能不足这个数",
+                    Emby.HomeCarousel.MinSlots, Emby.HomeCarousel.MaxSlots)),
 
             Number("封面轮换秒数", Emby.HomeCarousel.MinDwellSeconds, Emby.HomeCarousel.MaxDwellSeconds,
                 () => ui.CarouselSeconds,
@@ -2310,6 +2330,12 @@ public sealed partial class SettingsViewModel : PageViewModel
                 $"{choice.Caption}{(choice.Visible ? "✓" : "✗")}")))}");
     }
 
+    // Separate from the theme swatches so the shared preference can be tested without creating XAML brushes.
+    private SettingChoiceRow InterfaceLanguageRow(UiSettings ui) => Choice("界面语言",
+        new[] { ("跟随系统", UiLanguages.System), ("简体中文", UiLanguages.Chinese), ("英语", UiLanguages.English) },
+        () => UiLanguages.Normalize(ui.Language), value => ui.Language = value,
+        "默认跟随 Windows 显示语言：中文系统使用简体中文，其他语言使用英语。修改后重新启动 Momoka 生效。");
+
     private SettingSection InterfaceCard()
     {
         var ui = Settings.Ui;
@@ -2373,7 +2399,9 @@ public sealed partial class SettingsViewModel : PageViewModel
                 {
                     SettingRow.NotesHidden = ui.CompactMode;
                     RefreshNoteVisibility();
-                })
+                }),
+
+            InterfaceLanguageRow(ui)
         };
 
         return new SettingSection("界面", "界面",
@@ -2494,12 +2522,14 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         void Failed(string? title, string message)
         {
+            title = title is null ? null : UiText.Translate(title);
+            message = UiText.Translate(message);
             failureNotice = (title, message);
             Notify(title, message, InfoBarSeverity.Error);
         }
 
         void ReadFailed(Exception error) => Failed("读取开机自启状态失败",
-            $"{Failure.Describe(error)}；无法确认当前状态，请在系统启动项中核对。");
+            UiText.Format("{0}；无法确认当前状态，请在系统启动项中核对。", UiText.Translate(Failure.Describe(error))));
 
         bool Read()
         {
@@ -2668,7 +2698,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>测试已保存的当前配置，共享连接状态；只记录测试时间，不替用户打开功能开关。</summary>
     private async Task<string> TestMoviePilotAsync(CancellationToken cancellationToken)
     {
-        if (_moviePilot is null) throw new InvalidOperationException("设置页还没准备好，稍后再试");
+        if (_moviePilot is null) throw new InvalidOperationException(UiText.Translate("设置页还没准备好，稍后再试"));
 
         var moviePilot = Settings.MoviePilot;
         var status = await _moviePilot.TestConnectionAsync(cancellationToken).ConfigureAwait(true);
@@ -2677,13 +2707,13 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         Save();
 
-        var servers = status.MediaServers.Count > 0 ? string.Join("、", status.MediaServers) : "无";
-        var downloaders = status.Downloaders.Count > 0 ? string.Join("、", status.Downloaders) : "无";
+        var servers = status.MediaServers.Count > 0 ? string.Join(", ", status.MediaServers) : UiText.Translate("无");
+        var downloaders = status.Downloaders.Count > 0 ? string.Join(", ", status.Downloaders) : UiText.Translate("无");
 
-        return $"连接成功：MoviePilot {status.Version}"
+        return UiText.Format("连接成功：MoviePilot {0}", status.Version)
             + (status.OperatingSystem.Length > 0 ? $"（{status.OperatingSystem}）" : "")
-            + $"\n已连的媒体服务器：{servers}"
-            + $"\n已连的下载器：{downloaders}";
+            + "\n" + UiText.Format("已连的媒体服务器：{0}", servers)
+            + "\n" + UiText.Format("已连的下载器：{0}", downloaders);
     }
 
     // ── 截图保存目录 ──────────────────────────────────────────────────────────────────────────────────
@@ -2721,7 +2751,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             await Task.Run(() => launcher.OpenFolder(directory)).ConfigureAwait(true);
         }
-        catch (Exception error) { Report("打开目录失败", error); }
+        catch (Exception error) { Report(UiText.Translate("打开目录失败"), error); }
     }
 
     // ── 检查新版本 ────────────────────────────────────────────────────────────────────────────────────
@@ -2741,7 +2771,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         var row = _updateRow;
         _checkingUpdates = true;
-        row.Value = UpdateNotice.Checking;
+        row.Value = UiText.Translate(UpdateNotice.Checking);
 
         try
         {
@@ -2754,20 +2784,22 @@ public sealed partial class SettingsViewModel : PageViewModel
 
             if (release is null)
             {
-                row.Value = UpdateNotice.UpToDate(current);
+                row.Value = UiText.Format("已是最新版本（{0}）", current.ToString(3));
                 return;
             }
 
-            row.Value = UpdateNotice.Found(release);
-            if (await ConfirmAsync(UpdateNotice.Title, UpdateNotice.Prompt(release, current), UpdateNotice.OpenLabel)
+            row.Value = UiText.Format("发现新版本 {0}", release.VersionText);
+            if (await ConfirmAsync(UiText.Translate(UpdateNotice.Title),
+                    UiText.Format("Momoka {0} 已发布，当前是 {1}。是否打开下载页？", release.VersionText, current.ToString(3)),
+                    UiText.Translate(UpdateNotice.OpenLabel))
                 .ConfigureAwait(true))
                 OpenReleasePage(release);
         }
         catch (Exception error)
         {
             if (!ReferenceEquals(row, _updateRow)) return;
-            row.Value = UpdateNotice.Failed;
-            Report("检查更新失败", error);
+            row.Value = UiText.Translate(UpdateNotice.Failed);
+            Report(UiText.Translate("检查更新失败"), error);
         }
         finally
         {
@@ -2787,7 +2819,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         catch (Exception error)
         {
-            Report("打不开下载页", error);
+            Report(UiText.Translate("打不开下载页"), error);
         }
     }
 
@@ -2873,8 +2905,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             Emby.ImageCachePolicy.MaxMegabytes,
             () => Settings.Ui.ImageCacheMegabytes,
             value => Settings.Ui.ImageCacheMegabytes = value,
-            $"海报和剧照在磁盘上最多占多少，装机是 {Emby.ImageCachePolicy.DefaultMegabytes} MB。这一行是填进去的，"
-                + "不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。",
+            UiText.Format("海报和剧照在磁盘上最多占多少，装机是 {0} MB。这一行是填进去的，不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。",
+                Emby.ImageCachePolicy.DefaultMegabytes),
             after: () => ShellPrefs.Apply(Settings.Ui));
         fileRows.Add(ImageBudget);
 
@@ -2996,12 +3028,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (_images is not { } images || _imageCache is not { } row) return;
 
         var confirmed = await ConfirmAsync(
-            "清除图片缓存",
-            $"将删除已下载的海报与缩略图（{row.Value}）。下次浏览会重新下载，不影响服务器、账号和任何设置。",
-            "清除").ConfigureAwait(true);
+            UiText.Translate("清除图片缓存"),
+            UiText.Format("将删除已下载的海报与缩略图（{0}）。下次浏览会重新下载，不影响服务器、账号和任何设置。", row.Value),
+            UiText.Translate("清除")).ConfigureAwait(true);
         if (!confirmed) return;
 
-        row.Value = "正在清除…";
+        row.Value = UiText.Translate("正在清除…");
         try
         {
             // Invalidate outstanding background tickets before the asynchronous disk clear begins.
@@ -3009,11 +3041,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             var removed = await images.ClearAsync().ConfigureAwait(true);
             PosterCache.Clear();
             BannerBackdropCache.Clear();
-            Notify("已清除图片缓存", $"删除了 {removed:N0} 个文件。", InfoBarSeverity.Success);
+            Notify(UiText.Translate("已清除图片缓存"), UiText.Format("删除了 {0:N0} 个文件。", removed), InfoBarSeverity.Success);
         }
         catch (Exception error)
         {
-            Report("清除图片缓存失败", error);
+            Report(UiText.Translate("清除图片缓存失败"), error);
         }
         finally
         {
@@ -3024,10 +3056,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>「上限」跟着读数走：1.1 GB 是多是少，要旁边那个预算才说得清。</summary>
     private static string DescribeImageCache(ImageCacheUsage usage, long max)
     {
-        var limit = $"上限 {TimeFormat.FileSize(max)}";
+        var limit = UiText.Format("上限 {0}", TimeFormat.FileSize(max));
         return usage.Files == 0
-            ? $"暂无缓存 · {limit}"
-            : $"{TimeFormat.FileSize(usage.Bytes)} · {usage.Files:N0} 个文件 · {limit}";
+            ? UiText.Format("暂无缓存 · {0}", limit)
+            : UiText.Format("{0} · {1:N0} 个文件 · {2}", TimeFormat.FileSize(usage.Bytes), usage.Files, limit);
     }
 
     /// <summary>
@@ -3066,7 +3098,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _restoring = true;
         try
         {
-            var agreed = await ConfirmAsync(ResetDialogTitle, ResetDialogMessage, "恢复默认").ConfigureAwait(true);
+            var agreed = await ConfirmAsync(UiText.Translate(ResetDialogTitle), UiText.Translate(ResetDialogMessage), UiText.Translate("恢复默认")).ConfigureAwait(true);
             if (!agreed) return;
 
             SettingsReset.Restore(_settings.Settings);
@@ -3079,7 +3111,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         catch (Exception error)
         {
-            Report("恢复默认设置失败", error);
+            Report(UiText.Translate("恢复默认设置失败"), error);
         }
         finally
         {
@@ -3102,11 +3134,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         try
         {
             _settings.ExportPreferences(path);
-            Notify(null, $"偏好设置已备份到：{path}", InfoBarSeverity.Success);
+            Notify(null, UiText.Format("偏好设置已备份到：{0}", path), InfoBarSeverity.Success);
         }
         catch (Exception error)
         {
-            Report("备份配置文件失败", error);
+            Report(UiText.Translate("备份配置文件失败"), error);
         }
     }
 
@@ -3132,11 +3164,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             }
             catch (Exception error)
             {
-                Notify("这个文件不是有效的配置备份", Failure.Describe(error), InfoBarSeverity.Warning);
+                Notify(UiText.Translate("这个文件不是有效的配置备份"), Failure.Describe(error), InfoBarSeverity.Warning);
                 return;
             }
 
-            var agreed = await ConfirmAsync(RestoreDialogTitle, RestoreDialogMessage, "恢复").ConfigureAwait(true);
+            var agreed = await ConfirmAsync(UiText.Translate(RestoreDialogTitle), UiText.Translate(RestoreDialogMessage), UiText.Translate("恢复")).ConfigureAwait(true);
             if (!agreed) return;
 
             SettingsPreferences.Apply(_settings.Settings, loaded);
@@ -3146,7 +3178,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         catch (Exception error)
         {
-            Report("恢复配置失败", error);
+            Report(UiText.Translate("恢复配置失败"), error);
         }
         finally
         {
@@ -3193,7 +3225,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         try
         {
             var applied = await PushSubtitleStyleAsync();
-            return !applied && NoticeOpen && NoticeTitle == "当前播放的字幕外观未完全更新"
+            return !applied && NoticeOpen && NoticeTitle == UiText.Translate("当前播放的字幕外观未完全更新")
                 && NoticeMessage?.Contains("字幕选项读数失败", StringComparison.Ordinal) == true;
         }
         finally { _pushSubtitleStyle = push; }
@@ -3231,11 +3263,11 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         if (startupReadFailure is not null)
         {
-            Notify("读取开机自启状态失败", startupReadFailure, InfoBarSeverity.Error);
+            Notify(UiText.Translate("读取开机自启状态失败"), startupReadFailure, InfoBarSeverity.Error);
             return;
         }
 
-        Notify(null, HasUnsavedChanges ? "偏好已在本次运行应用，但尚未保存；请重试保存。" : notice,
+        Notify(null, UiText.Translate(HasUnsavedChanges ? "偏好已在本次运行应用，但尚未保存；请重试保存。" : notice),
             HasUnsavedChanges ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
     }
 
@@ -3325,7 +3357,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // choosing it writes the same value again.
         if (selected is null && current?.ToString() is { Length: > 0 } stored)
         {
-            selected = new SettingChoice(describe?.Invoke(current) ?? $"{stored}（设置文件中的值）", () => write(current));
+            selected = new SettingChoice(describe?.Invoke(current) ?? UiText.Format("{0}（设置文件中的值）", stored), () => write(current));
             choices.Add(selected);
         }
 

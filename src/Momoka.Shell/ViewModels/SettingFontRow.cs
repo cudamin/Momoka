@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Infrastructure;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -95,7 +96,7 @@ public sealed partial class SettingFontRow : SettingRow
         _write = write;
         _save = save;
 
-        Status = "正在读取这台机器装的字体…";
+        Status = UiText.Translate("正在读取这台机器装的字体…");
         Load(value);
     }
 
@@ -220,8 +221,9 @@ public sealed partial class SettingFontRow : SettingRow
         }
 
         Status = catalogue.Families.Count == 0
-            ? "没有在 Windows 字体目录里读到字体，下面这一个来自设置文件"
-            : $"机器上共 {catalogue.Families.Count} 个字体族（{catalogue.FileCount} 个字体文件）；搜名字的任意一段，点一下就用它";
+            ? UiText.Translate("没有在 Windows 字体目录里读到字体，下面这一个来自设置文件")
+            : UiText.Format("机器上共 {0} 个字体族（{1} 个字体文件）；搜名字的任意一段，点一下就用它",
+                catalogue.Families.Count, catalogue.FileCount);
     }
 
     /// <summary>
@@ -463,7 +465,7 @@ public sealed partial class SettingFontRow : SettingRow
                 && kept
                 && pinned == 1
                 && spent < 2000
-                && !Status.Contains("正在", StringComparison.Ordinal);
+                && _catalogue.Families.Count > 0;
 
             return new Probe(ok, Total,
                 $"静止时输入栏{(atRest ? $"显示着「{value}」" : "没显示当前字体")}，共 {Total} 个字体族；"

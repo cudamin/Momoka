@@ -29,4 +29,11 @@
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs" LogicalName="Production.SettingsPage.xaml.cs" />
     <EmbeddedResource Include="..\..\src\Momoka.Core\Emby\EmbySession.cs" LogicalName="Production.EmbySession.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Source-linked UI code shares the production translator and embedded dictionaries. -->
+    <Compile Include="../../src/Momoka.Shell/Localization/UiText.cs" Link="Production/UiText.cs" />
+    <Compile Include="../../src/Momoka.Core/Configuration/UiLanguages.cs" Link="Production/UiLanguages.cs" />
+    <EmbeddedResource Include="../../src/Momoka.Shell/Localization/*English.json" Link="Production/%(Filename)%(Extension)" />
+    <Using Include="Momoka.Shell.Localization" />
+  </ItemGroup>
 </Project>

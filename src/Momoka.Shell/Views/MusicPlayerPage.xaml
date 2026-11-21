@@ -128,7 +128,7 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
-                <Button
+                <Button x:Uid="MusicPlayerPage_CollapseButton"
                     x:Name="CollapseButton"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
@@ -138,7 +138,7 @@
                     ToolTipService.ToolTip="收起播放页（Esc）">
                     <FontIcon Style="{StaticResource MusicGlyphStyle}" Glyph="&#xE70E;" />
                 </Button>
-                <Button
+                <Button x:Uid="MusicPlayerPage_FullscreenButton"
                     x:Name="FullscreenButton"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
@@ -193,7 +193,7 @@
                                 Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}">
                                 <PathIcon x:Name="FavoriteIcon" Data="{x:Bind FavoriteGeometry(ViewModel.Favorite), Mode=OneWay}" />
                             </Button>
-                            <Button
+                            <Button x:Uid="MusicPlayerPage_MoreButton"
                                 x:Name="MoreButton"
                                 Grid.Column="2"
                                 AutomationProperties.Name="更多操作"
@@ -202,10 +202,10 @@
                                 <FontIcon Style="{StaticResource MusicGlyphStyle}" Glyph="&#xE712;" />
                                 <Button.Flyout>
                                     <MenuFlyout>
-                                        <MenuFlyoutItem x:Name="PauseMenuItem" Click="OnTogglePause" Text="播放 / 暂停" />
+                                        <MenuFlyoutItem x:Uid="MusicPlayerPage_PauseMenuItem" x:Name="PauseMenuItem" Click="OnTogglePause" Text="播放 / 暂停" />
                                         <MenuFlyoutItem x:Name="RepeatMenuItem" Click="OnRepeat" Text="{x:Bind local:MusicPlayerPage.RepeatMenuLabel(ViewModel.RepeatLabel), Mode=OneWay}" />
-                                        <MenuFlyoutItem x:Name="QueueMenuItem" Click="OnQueue" Text="播放队列" />
-                                        <MenuFlyoutItem x:Name="StopMenuItem" Click="OnStop" Text="停止播放" />
+                                        <MenuFlyoutItem x:Uid="MusicPlayerPage_QueueMenuItem" x:Name="QueueMenuItem" Click="OnQueue" Text="播放队列" />
+                                        <MenuFlyoutItem x:Uid="MusicPlayerPage_StopMenuItem" x:Name="StopMenuItem" Click="OnStop" Text="停止播放" />
                                     </MenuFlyout>
                                 </Button.Flyout>
                             </Button>
@@ -223,7 +223,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <Slider
+                            <Slider x:Uid="MusicPlayerPage_SeekSlider"
                                 x:Name="SeekSlider"
                                 Minimum="0"
                                 Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
@@ -271,7 +271,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Button
+                        <Button x:Uid="MusicPlayerPage_ShuffleButton"
                             x:Name="ShuffleButton"
                             VerticalAlignment="Center"
                             AutomationProperties.Name="随机播放"
@@ -280,7 +280,7 @@
                             ToolTipService.ToolTip="随机播放">
                             <PathIcon Data="{x:Bind ShuffleGeometry}" />
                         </Button>
-                        <Button
+                        <Button x:Uid="MusicPlayerPage_PreviousButton"
                             x:Name="PreviousButton"
                             Grid.Column="1"
                             HorizontalAlignment="Right"
@@ -300,7 +300,7 @@
                             ToolTipService.ToolTip="{x:Bind ViewModel.PlayLabel, Mode=OneWay}">
                             <FontIcon Style="{StaticResource MusicPlayGlyphStyle}" Glyph="{x:Bind ViewModel.PlayGlyph, Mode=OneWay}" />
                         </Button>
-                        <Button
+                        <Button x:Uid="MusicPlayerPage_NextButton"
                             x:Name="NextButton"
                             Grid.Column="3"
                             HorizontalAlignment="Left"
@@ -311,7 +311,7 @@
                             ToolTipService.ToolTip="下一曲">
                             <FontIcon Style="{StaticResource MusicTransportGlyphStyle}" Glyph="&#xE893;" />
                         </Button>
-                        <Button
+                        <Button x:Uid="MusicPlayerPage_VolumeButton"
                             x:Name="VolumeButton"
                             Grid.Column="4"
                             VerticalAlignment="Center"
@@ -322,15 +322,15 @@
                             <Button.Flyout>
                                 <Flyout Placement="Top">
                                     <StackPanel Width="190" Spacing="8">
-                                        <TextBlock Style="{StaticResource EgBodyStyle}" Text="音量" />
-                                        <Slider
+                                        <TextBlock x:Uid="MusicPlayerPage_Localization1" Style="{StaticResource EgBodyStyle}" Text="音量" />
+                                        <Slider x:Uid="MusicPlayerPage_VolumeSlider"
                                             x:Name="VolumeSlider"
                                             Minimum="0"
                                             Maximum="100"
                                             Value="{x:Bind ViewModel.Volume, Mode=OneWay}"
                                             ValueChanged="OnVolume"
                                             AutomationProperties.Name="音乐音量" />
-                                        <Button x:Name="MuteButton" Click="OnMute" Content="静音 / 取消静音" />
+                                        <Button x:Uid="MusicPlayerPage_MuteButton" x:Name="MuteButton" Click="OnMute" Content="静音 / 取消静音" />
                                     </StackPanel>
                                 </Flyout>
                             </Button.Flyout>
@@ -343,14 +343,14 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock
+                    <TextBlock x:Uid="MusicPlayerPage_LyricsNote"
                         x:Name="LyricsNote"
                         Margin="0,0,0,10"
                         Style="{StaticResource EgCaptionStyle}"
                         Text="纯文本歌词不支持自动滚动"
                         Visibility="{x:Bind ViewModel.LyricsNoteVisibility, Mode=OneWay}" />
                     <Grid Grid.Row="1">
-                        <ListView
+                        <ListView x:Uid="MusicPlayerPage_LyricsList"
                             x:Name="LyricsList"
                             AutomationProperties.Name="歌词"
                             IsItemClickEnabled="False"
@@ -391,7 +391,7 @@
                             Visibility="{x:Bind ViewModel.LyricsEmptyVisibility, Mode=OneWay}">
                             <FontIcon Style="{StaticResource MusicEmptyGlyphStyle}" Foreground="{ThemeResource EgTextFaintBrush}" Glyph="&#xE8D6;" HorizontalAlignment="Center" />
                             <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind ViewModel.LyricsEmptyText, Mode=OneWay}" HorizontalAlignment="Center" />
-                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="音频文件与服务端都没有找到歌词" HorizontalAlignment="Center" />
+                            <TextBlock x:Uid="MusicPlayerPage_Localization2" Style="{StaticResource EgCaptionStyle}" Text="音频文件与服务端都没有找到歌词" HorizontalAlignment="Center" />
                         </StackPanel>
                         <ProgressBar
                             Height="2"
@@ -403,7 +403,7 @@
             </Grid>
 
             <Grid Grid.Row="2">
-                <Button
+                <Button x:Uid="MusicPlayerPage_QueueButton"
                     x:Name="QueueButton"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
@@ -414,7 +414,7 @@
                     <Button.Flyout>
                         <Flyout Placement="Top">
                             <StackPanel Width="360" Spacing="12">
-                                <TextBlock Style="{StaticResource EgBodyStyle}" Text="播放队列" />
+                                <TextBlock x:Uid="MusicPlayerPage_Localization3" Style="{StaticResource EgBodyStyle}" Text="播放队列" />
                                 <ListView
                                     x:Name="QueueList"
                                     MaxHeight="420"

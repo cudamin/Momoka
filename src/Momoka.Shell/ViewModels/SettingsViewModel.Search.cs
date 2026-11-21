@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -9,7 +10,11 @@ namespace Momoka.Shell.ViewModels;
 public sealed record SettingsSearchResult(string Label, string Location, string CategoryKey,
     SettingSection? Section = null, SettingRow? Row = null)
 {
-    public override string ToString() => Label + " — " + Location;
+    public string? SourceDisplayName { get; init; }
+    public string DisplayLabel => SourceDisplayName is null ? UiText.Translate(Label) : UiText.Translate(Label) + " · " + SourceDisplayName;
+    public string DisplayLocation { get; init; } = Location;
+
+    public override string ToString() => DisplayLabel + " — " + DisplayLocation;
 }
 
 public sealed partial class SettingsViewModel
@@ -58,30 +63,40 @@ public sealed partial class SettingsViewModel
         var matches = new List<(SettingsSearchResult Result, int Rank)>();
         foreach (var entry in Categories.Where(entry => !entry.IsSection))
         {
-            Add(new(entry.DisplayLabel, entry.Group.Name, entry.Key), entry.Label, entry.PickerLabel);
+            Add(new(entry.Label, entry.Group.Name, entry.Key)
+            {
+                SourceDisplayName = entry.SourceDisplayName,
+                DisplayLocation = entry.Group.DisplayName
+            }, entry.Label, entry.PickerLabel);
             if (IsHostedEntry(entry)) continue;
             foreach (var section in Sections.Where(section => section.Category == entry.CardCategory && section.Rows.Count > 0))
                 foreach (var row in section.Rows)
                 {
                     var location = section.Title == entry.Label ? entry.PickerLabel : entry.PickerLabel + " / " + section.Title;
+                    var displayLocation = section.Title == entry.Label ? entry.DisplayPickerLabel : entry.DisplayPickerLabel + " / " + section.DisplayTitle;
                     if (row is SettingToggleGroupRow group)
                     {
                         foreach (var toggle in group.Toggles)
-                            Add(new(toggle.Label, location, entry.Key, section, row), toggle.Label, location + " " + toggle.Note);
+                            Add(new(toggle.Label, location, entry.Key, section, row) { DisplayLocation = displayLocation }, toggle.Label, location + " " + toggle.Note);
                     }
-                    else Add(new(row.Label, location, entry.Key, section, row), row.Label, location + " " + row.Note);
+                    else Add(new(row.Label, location, entry.Key, section, row) { DisplayLocation = displayLocation }, row.Label, location + " " + row.Note);
                 }
         }
         foreach (var match in matches.OrderBy(match => match.Rank).Take(40)) SettingsSearchResults.Add(match.Result);
 
         void Add(SettingsSearchResult result, string label, string context)
         {
-            var searchable = label + " " + context;
+            var displayLabel = result.DisplayLabel;
+            var searchable = label + " " + context + " " + displayLabel + " " + result.DisplayLocation
+                + " " + UiText.Translate(result.Row?.Note ?? "");
             if (!words.All(word => searchable.Contains(word, StringComparison.CurrentCultureIgnoreCase))) return;
             var query = SettingsSearchQuery.Trim();
-            var rank = label.Equals(query, StringComparison.CurrentCultureIgnoreCase) ? 0
-                : label.StartsWith(query, StringComparison.CurrentCultureIgnoreCase) ? 1
-                : words.All(word => label.Contains(word, StringComparison.CurrentCultureIgnoreCase)) ? 2 : 3;
+            var rank = label.Equals(query, StringComparison.CurrentCultureIgnoreCase)
+                || displayLabel.Equals(query, StringComparison.CurrentCultureIgnoreCase) ? 0
+                : label.StartsWith(query, StringComparison.CurrentCultureIgnoreCase)
+                    || displayLabel.StartsWith(query, StringComparison.CurrentCultureIgnoreCase) ? 1
+                : words.All(word => label.Contains(word, StringComparison.CurrentCultureIgnoreCase)
+                    || displayLabel.Contains(word, StringComparison.CurrentCultureIgnoreCase)) ? 2 : 3;
             matches.Add((result, rank));
         }
     }

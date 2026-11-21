@@ -191,8 +191,8 @@ internal static class SearchCompactMergeTests
             Assert.Contains("horizontalPadding = formWidth < 520 ? 4 : 8", source);
             Assert.Contains("item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2)", source);
             Assert.Contains("item.MaxWidth - horizontalPadding * 2", source);
-            Assert.Contains("1 => formWidth < 520 ? \"MP 订阅\" : \"MoviePilot 订阅\"", source);
-            Assert.Contains("2 => formWidth < 520 ? \"MP 资源\" : \"MoviePilot 资源\"", source);
+            Assert.Contains("1 => formWidth < 520 ? UiText.Translate(\"MP 订阅\") : UiText.Translate(\"MoviePilot 订阅\")", source);
+            Assert.Contains("2 => formWidth < 520 ? UiText.Translate(\"MP 资源\") : UiText.Translate(\"MoviePilot 资源\")", source);
         });
 
         Test("搜索胶囊：真实父级和数据项辅助功能接到原生单选", () =>
