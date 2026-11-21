@@ -316,15 +316,34 @@ internal sealed partial class ShellNavigationProbe
                 var wantHeight = wantWidth * 9 / 16;
                 bool LimitsMatch() => Math.Abs(corner.MaxWidth - wantWidth) < 0.01
                     && Math.Abs(corner.MaxHeight - wantHeight) < 0.01;
+                void RecordCorner(string stage)
+                {
+                    var source = corner.Source as BitmapSource;
+                    var bitmapImage = corner.Source as BitmapImage;
+                    var content = Get<Grid>(page, "HeroContent");
+                    var layout = Get<Grid>(page, "HeroLayout");
+                    var slot = Microsoft.UI.Xaml.Controls.Primitives.LayoutInformation.GetLayoutSlot(corner);
+                    readings.Add($"角图快照 {stage}：窗口 {actualWindow:0.##}，VM宽 {page.ViewModel.PageWidth:0.##}，"
+                        + $"Actual {corner.ActualWidth:0.##}×{corner.ActualHeight:0.##}，Desired {corner.DesiredSize.Width:0.##}×{corner.DesiredSize.Height:0.##}，"
+                        + $"Width/Height {corner.Width}/{corner.Height}，Max {corner.MaxWidth:0.##}×{corner.MaxHeight:0.##}，"
+                        + $"像素 {source?.PixelWidth}×{source?.PixelHeight}，解码 {bitmapImage?.DecodePixelWidth}×{bitmapImage?.DecodePixelHeight}，"
+                        + $"Slot {slot.X:0.##},{slot.Y:0.##}/{slot.Width:0.##}×{slot.Height:0.##}，"
+                        + $"父 {content.ActualWidth:0.##}×{content.ActualHeight:0.##}，行 {content.RowDefinitions[0].ActualHeight:0.##}，"
+                        + $"列 {content.ColumnDefinitions[2].ActualWidth:0.##}，布局 {layout.ActualWidth:0.##}×{layout.ActualHeight:0.##}");
+                    File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-episode-band.txt"), readings);
+                }
+                RecordCorner("修改上限前");
                 if (width == 1280)
                 {
                     var saved = corner.MaxWidth;
                     try
                     {
                         corner.MaxWidth = saved + 40;
+                        RecordCorner("错误上限");
                         Require(!LimitsMatch(), "错误的艺术图尺寸上限未被检查识别");
                     }
                     finally { corner.MaxWidth = saved; }
+                    RecordCorner("恢复上限后");
                 }
                 // 解码后的位图像素会取整，Image 的 Uniform 按那一份比例排版；分别验上限绑定、贴边与真实比例，
                 // 不能把原图 16:9 当作缩略图也能精确保留的比例，否则两次取整会造成约一像素的假失败。
