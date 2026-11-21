@@ -1,15 +1,27 @@
-## 2026-11-21 CI 修复：原子写共享冲突、Caller SDK 判据、探针 pin（已提交，待推送与 CI）
+## 2026-11-21 CI 修复：原子写共享冲突、探针边界、Caller SDK 判据、CRLF 与 R011 看门狗（已推送，等 CI）
 
-接手「Dependabot 与 Windows CI」交接；那条里的目标提交和「领先 9 个」已被后续推进覆盖，以本条为准。主树在任务期间被另一个会话推进到 `476df26`（独占播放探针），它顺带把上一位留在工作区的两处 CI 修复文件（`Momoka.AtomicFileWriteTests/ContractAssertions.cs` 的重试 helper、`Momoka.CurrentPermissionSnapshotTests/Program.cs` 的 120 秒看门狗）一并提交了。本地 `master` 现比 `origin/master`（`5e5488d`）领先 15 个提交，含未上传的快捷键批次与探针；工作树干净。
+接手「Dependabot 与 Windows CI」交接；那条里的目标提交和「领先 9 个」已被后续推进覆盖，以本条为准。
 
-本轮三条提交：
-- `e889587` 原子写跨提交读者只对 Win32 共享/锁冲突做有界等待。CI run 13 的 `readers-cross-commit-backup` 第 0 轮首读 `0x80070020` 是 `File.Replace` 原地换主/备时的瞬时拒绝，不是半文档或内容损坏。新 reader 与带备份时对 backup 的校验改走 `ReadCompleteRetryingSharing`，只对 Win32 `32`／`33` 等 50 次 × 20 ms，次数写进 `sharingRetries`／`maxSharingRetriesPerRead` 事实；路径空窗、半文档、候选外正文仍立即失败，没有加测试侧提交锁，生产 `AtomicFile` 未改。本机完整专项 Release 单节点 0 警告 0 错误，**35/35 生产契约＋4/4 对照**、0 失败 0 跳过、exit 0，`sharingRetries=0`（本机未命中等待分支）。
-- `5cc6e7d` 按探针提交复核一份来源 pin：`476df26` 只给 `LibMpvHandle` 加了只读属性 `NativeShutdownCompletion`，R046 提取的四个成员与所有权字段未改；只改 `LibMpvBackend.cs` 的 SHA256，其余 19 份来源与规则不动。Run-Caller **81/81**、0 失败 0 跳过。
-- `c422180` Caller wrapper 的 SDK 判据改按 `global.json` 的 `rollForward`：CI runner 实际解析到 10.0.404，旧代码精确要求 10.0.400，排在其后的本专项在同一次 `-All` 里必然失败。判据与 `run-regressions.ps1` 相同（该逻辑已在 CI run 13 以 10.0.404 通过），实际版本写进 `verification.json` 的 `sdk`。同一次 Run-Caller 81/81、0 警告 0 错误；本机仍解析 10.0.400，更新补丁那一支只能由 CI 验证。
+**主树状态。** 任务期间另一个会话把独占播放探针提交为 `476df26`，顺带把上一位留在工作区的两处 CI 修复文件（`Momoka.AtomicFileWriteTests/ContractAssertions.cs` 的重试 helper、`Momoka.CurrentPermissionSnapshotTests/Program.cs` 的 120 秒看门狗与阶段标记）一起提交了。经用户批准已推 `origin/master`（原先落后的快捷键批次与探针一并上传）。
 
-R011 权限专项：看门狗已在 `476df26` 里，本机带当前 Shell 跑 **54/54**、0 失败 0 跳过、exit 0，没有触发挂起。CI 上「打印 46 项后停在第一个实际 Settings 用例」在本机复现不了（本机装有 Windows App Runtime，Shell 是 `WindowsAppSDKSelfContained=false` 的框架依赖构建）；下一轮 CI 日志会给出 `R011 挂起：120 秒没有进展，停在 …` 的具体阶段，再决定装运行时还是收窄边界 VM。
+本轮我提交的九条：
+- `e889587` 原子写跨提交读者只对 Win32 共享/锁冲突做有界等待。CI run 13 的 `readers-cross-commit-backup` 第 0 轮首读 `0x80070020` 是 `File.Replace` 原地换主/备的瞬时拒绝，不是半文档。新 reader 与带备份时对 backup 的校验改走 `ReadCompleteRetryingSharing`，只对 Win32 `32`／`33` 等 50 次 × 20 ms，次数写进 `sharingRetries`／`maxSharingRetriesPerRead` 事实；路径空窗、半文档、候选外正文仍立即失败，不加测试侧锁，生产 `AtomicFile` 未改。
+- `5cc6e7d` 按探针提交复核 `LibMpvBackend.cs` 一条来源 pin：`476df26` 只加了只读属性 `NativeShutdownCompletion`，R046 提取的四个成员与所有权字段未改；其余 19 份来源与规则不动。
+- `c422180` Caller wrapper 的 SDK 判据改按 `global.json` 的 `rollForward`（runner 实际 10.0.404，旧的精确 `10.0.400` 断言会让本专项在同一次 `-All` 里必然失败）；实际版本写进 `verification.json` 的 `sdk`。
+- `571b813` 记录（本条的上一个版本）。
+- `e78dd12` 探针收尾专项补退出码边界：`476df26` 在 `Program.cs` 退出码链里新增 `ProbeStandalonePlayback`／`StandalonePlaybackProbe`，而 `Momoka.ProbeFinalizationTests` 逐字提取这一段、边界替身没跟上，Release 方案构建 CS0103／CS0117；按既有做法补替身（ExitCode 15）与一条断言。
+- `967fbda` 修掉快捷键批次带进 `assets/mpv-runtime/approved-payload.json` 第 341／342 行的两处 CRLF（`check-diff` 会同时报 CRLF 与 trailing whitespace）。
+- `43c78dd` 离线回归前打印 runner 实际注册的 `Microsoft.WindowsAppRuntime` 包（诊断用，不改构建参数与测试边界）。
+- `0a4e41e` 在 R011 README 记录无进展看门狗的阶段与行为。
+- `30904b4` 在探针收尾专项 README 记录「新增探针必须同时补退出码边界」。
 
-未上传、未合并任何 Dependabot PR、未销账；两条既有历版红（窗口命令按钮／文件页音频右边缘）状态不变。
+**CI 事实。** run 44879572258（`571b813`）红在 `Build Release solution`，就是上面那条探针边界；run 44880757672（`0a4e41e`）的质量作业**全绿**（编译 0 警告 0 错误、主测试 5322、仓库检查与 diff 格式全过），离线作业因为诊断步骤用 `pwsh` 调 `Get-AppxPackage` 失败（Appx 模块在 7 里载不动）在 1 分 21 秒退出，套件一个没跑；该步骤已改用 Windows PowerShell。
+
+**本机验证（对 `0a4e41e` 这棵树的代码）。** 全方案 Release 构建 0 警告 0 错误；主测试 **5322/5322**、0 失败 0 跳过；原子写专项 **35/35 契约＋4/4 对照**、0 失败 0 跳过、`sharingRetries=0`（本机未命中等待分支）；R011 带当轮 Shell **54/54**、0 失败 0 跳过；Run-Caller **81/81**；`check-diff 5e5488d→0a4e41e` 61 个文件通过；文档 184 文件 0 断链；重复率 66 段／0.47%。
+
+**R011 观察。** 本机装有 Windows App Runtime 2.5.1（2.3／2.4／2.6／2.7 也在），CI 上该专项加载真实 Shell 后连 banner 都没有输出，因此怀疑 runner 缺运行时（Shell 是 `WindowsAppSDKSelfContained=false` 的框架依赖构建）。诊断步骤会给出实际注册包，配合看门狗的 `R011 挂起：…停在 <阶段>` 决定是装运行时还是收窄边界，不靠猜。
+
+**未做。** Dependabot #1–#5 仍未合并（等 CI 全绿）；两棵临时工作树 `ci-fixture-sync-20261121`／`ci-culture-fix-20261121` 未删——已核对 7 个「脏」文件与历史提交逐字一致，但两棵树各带 26 MB／1.2 MB 未跟踪证据，删前要先决定留不留；未销账。
 
 ## 2026-11-21 交接：Dependabot 与 Windows CI（未完成，换窗口；后续与当前状态见上方「CI 修复」条目，以下为当时快照）
 

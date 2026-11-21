@@ -100,8 +100,9 @@ jobs:
 
       # The Shell is a framework-dependent WinAppSDK build, and the R011 suite loads the real
       # Shell assembly. Record which runtime the runner actually has instead of guessing from a hang.
+      # Windows PowerShell, not pwsh: the Appx module that owns Get-AppxPackage cannot load in 7.
       - name: Report Windows App Runtime
-        shell: pwsh
+        shell: powershell
         run: |
           $packages = @(Get-AppxPackage -Name 'Microsoft.WindowsAppRuntime*' | Sort-Object Name, Version)
           if ($packages.Count -eq 0) {
