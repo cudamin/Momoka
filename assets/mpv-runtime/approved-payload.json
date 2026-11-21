@@ -338,8 +338,8 @@
     {
       "path": "mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
       "source": "assets/mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
-      "size": 2390,
-      "sha256": "804dca94046f6601eaa55251d7c312e4a3671a1427828bab7fa2af58e0150d52"
+      "size": 3367,
+      "sha256": "d9e6dbd667d61a58995c4e29af137d784d3c6a8c471bd8400b805ebb4d1c56e2"
     },
     {
       "path": "mpv-ui/scripts/uosc/lib/std.lua",

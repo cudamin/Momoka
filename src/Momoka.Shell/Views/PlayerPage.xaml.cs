@@ -399,9 +399,9 @@ public sealed partial class PlayerPage : UserControl
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnSpaceShortcut), handledEventsToo: true);
 
         // 所有重绑键都从 Root 接 handledEventsToo：按钮、滑条先处理按键时也不能让设置的快捷键失效。
-        // Dispatch 只在确有绑定/固定回退时标记 handled；普通输入仍交给焦点控件。
+        // Dispatch 只在确有绑定/固定回退时标记 handled；普通输入仍交给焦点控件 —— 焦点在音量滑条上时
+        // 未改绑的方向键仍归滑条自己（OnRootShortcut 的 Slider 豁免）。
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
-        VolumeSlider.AddHandler(KeyDownEvent, new KeyEventHandler(OnVolumeSliderShortcut), handledEventsToo: true);
         SeekSlider.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
         // Click 的路由事件标识符在这套投影里没暴露（ButtonBase、Button 上都没有），所以这些不带菜单的
         // 按钮一颗颗订阅；带 Flyout 的六颗不订阅 —— 菜单要靠焦点接管上下键（见 OnChromeClick）。
@@ -542,8 +542,8 @@ public sealed partial class PlayerPage : UserControl
 
         // 键盘兜底（2026-09-15「新增esc退出全屏 按空格开始播放」）：Win32 键盘焦点不在岛里时（全屏播放
         // 期间被别的应用抢过前台再回来、焦点落在宿主/视频子窗口上），OnKeyDown 和 OnSpaceShortcut 都收
-        // 不到键 —— 窗口的 WH_KEYBOARD 钩子把空格、Esc、回车和 Delete 转到本页（<see cref="IWin32KeySink"/>）。
-        // Detach 时收回，独立窗口接管播放后两边不打架。
+        // 不到键 —— 窗口的 WH_KEYBOARD 钩子把当前绑定表认识的键（默认含空格、Esc、回车和 Delete）转到
+        // 本页（<see cref="IWin32KeySink"/>）。Detach 时收回，独立窗口接管播放后两边不打架。
         window.SetWin32Keys(this);
 
         ViewModel.Connect();

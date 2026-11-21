@@ -64,6 +64,7 @@ namespace Momoka.Shell.Views
         private readonly Chrome _chrome = new();
         public List<string> Actions { get; } = [];
         private static bool WakesChrome(string action) => false;
+        private static bool CanDispatchStroke(Momoka.Playback.KeyStroke stroke) => true;
         private void Render() { }
         public PlayerPage()
         {
@@ -89,5 +90,5 @@ namespace Windows.System { public enum VirtualKey { Up, Down, PageUp, PageDown }
 namespace Momoka.Shell.Interop
 {
     public static class Native { public static bool CtrlHeld => false; public static bool AltHeld => false; public static bool ShiftHeld => false; }
-    public static class KeyStrokeInterop { public static string? Token(Windows.System.VirtualKey key) => key.ToString(); }
+    public static class KeyStrokeInterop { public static string? Token(Windows.System.VirtualKey key, bool extended = false) => key.ToString(); }
 }

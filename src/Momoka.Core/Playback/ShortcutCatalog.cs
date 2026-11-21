@@ -50,16 +50,40 @@ public static class ShortcutCatalog
 
     private static readonly IReadOnlyDictionary<string, string> DisplayNames = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["Tab"] = "Tab", ["CapsLock"] = "Caps Lock", ["NumLock"] = "Num Lock", ["ScrollLock"] = "Scroll Lock",
-        ["PrintScreen"] = "Print Screen", ["Pause"] = "Pause", ["LeftWindows"] = "左 Win", ["RightWindows"] = "右 Win",
-        ["Application"] = "菜单键", ["Semicolon"] = ";", ["Slash"] = "/", ["Backslash"] = "\\", ["Quote"] = "'",
-        ["Oem102"] = "\\\\", ["NumPadDecimal"] = "小键盘 .", ["NumPadDivide"] = "小键盘 /",
-        ["NumPadMultiply"] = "小键盘 *", ["NumPadSubtract"] = "小键盘 -", ["NumPadAdd"] = "小键盘 +",
-        ["NumPadEnter"] = "小键盘回车", ["VolumeMute"] = "静音键", ["VolumeDown"] = "音量减小键",
-        ["VolumeUp"] = "音量增大键", ["MediaNextTrack"] = "下一曲键", ["MediaPreviousTrack"] = "上一曲键",
-        ["MediaStop"] = "媒体停止键", ["MediaPlayPause"] = "播放/暂停媒体键", ["BrowserBack"] = "浏览器后退键",
-        ["BrowserForward"] = "浏览器前进键", ["BrowserRefresh"] = "浏览器刷新键", ["BrowserStop"] = "浏览器停止键",
-        ["BrowserSearch"] = "浏览器搜索键", ["BrowserFavorites"] = "浏览器收藏键", ["BrowserHome"] = "浏览器主页键"
+        ["Tab"] = "Tab",
+        ["CapsLock"] = "Caps Lock",
+        ["NumLock"] = "Num Lock",
+        ["ScrollLock"] = "Scroll Lock",
+        ["PrintScreen"] = "Print Screen",
+        ["Pause"] = "Pause",
+        ["LeftWindows"] = "左 Win",
+        ["RightWindows"] = "右 Win",
+        ["Application"] = "菜单键",
+        ["Semicolon"] = ";",
+        ["Slash"] = "/",
+        ["Backslash"] = "\\",
+        ["Quote"] = "'",
+        ["Oem102"] = "\\\\",
+        ["NumPadDecimal"] = "小键盘 .",
+        ["NumPadDivide"] = "小键盘 /",
+        ["NumPadMultiply"] = "小键盘 *",
+        ["NumPadSubtract"] = "小键盘 -",
+        ["NumPadAdd"] = "小键盘 +",
+        ["NumPadEnter"] = "小键盘回车",
+        ["VolumeMute"] = "静音键",
+        ["VolumeDown"] = "音量减小键",
+        ["VolumeUp"] = "音量增大键",
+        ["MediaNextTrack"] = "下一曲键",
+        ["MediaPreviousTrack"] = "上一曲键",
+        ["MediaStop"] = "媒体停止键",
+        ["MediaPlayPause"] = "播放/暂停媒体键",
+        ["BrowserBack"] = "浏览器后退键",
+        ["BrowserForward"] = "浏览器前进键",
+        ["BrowserRefresh"] = "浏览器刷新键",
+        ["BrowserStop"] = "浏览器停止键",
+        ["BrowserSearch"] = "浏览器搜索键",
+        ["BrowserFavorites"] = "浏览器收藏键",
+        ["BrowserHome"] = "浏览器主页键"
     };
 
     /// <summary>
@@ -271,7 +295,7 @@ public static class ShortcutCatalog
         return next;
     }
 
-    /// <summary>读盘时把手改坏的清掉：认不出的动作 Id、解析不了的写法、落到保留键上的，全丢；空串（显式解绑）留着。</summary>
+    /// <summary>读盘时把手改坏的清掉：认不出的动作 Id、解析不了的写法，全丢；空串（显式解绑）留着。</summary>
     public static Dictionary<string, string> Clean(IReadOnlyDictionary<string, string>? bindings)
     {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);

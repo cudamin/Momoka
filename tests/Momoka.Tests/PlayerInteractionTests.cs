@@ -82,6 +82,19 @@ internal static class PlayerInteractionTests
             Assert.Contains("vk is > 0 and <= 0xFF", host);
             Assert.Contains("_win32Keys?.WantsKey(vk, extended) == true", host);
         });
+        TestHarness.Test("快捷键派发：音量滑条未改绑的方向键仍归滑条自己", () =>
+        {
+            // Root 上的全局快捷键带 handledEventsToo；若不给焦点滑条/按钮留豁免，焦点停在音量滑条上按
+            // ↑↓ 会先被绑在方向键上的播放器动作抢走。豁免只认用户显式改绑，默认键仍遵循控件自己的语义。
+            var input = File.ReadAllText(Path.Combine(
+                RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.Input.cs"));
+            Assert.Contains("FocusManager.GetFocusedElement() is ButtonBase or Slider", input);
+            Assert.Contains("HasExplicitShortcutBinding", input);
+
+            var page = File.ReadAllText(Path.Combine(
+                RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.xaml.cs"));
+            Assert.DoesNotContain("VolumeSlider.AddHandler", page);
+        });
         TestHarness.Test("服务器渲染计数：按实际模板根标识，不依赖框架容器类型", () =>
         {
             var root = RepositoryRoot();

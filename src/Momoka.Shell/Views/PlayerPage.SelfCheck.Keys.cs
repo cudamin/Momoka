@@ -43,8 +43,8 @@ public sealed partial class PlayerPage
         // 一个物理键按得出它，那颗键从装机起就是死的。
         var producible = new HashSet<string>(StringComparer.Ordinal);
         for (var code = 0; code <= 0xFF; code++)
-        foreach (var extended in new[] { false, true })
-            if (KeyStrokeInterop.Token((VirtualKey)code, extended) is { } token) producible.Add(token);
+            foreach (var extended in new[] { false, true })
+                if (KeyStrokeInterop.Token((VirtualKey)code, extended) is { } token) producible.Add(token);
 
         var unreachable = actions.Where(action => !producible.Contains(action.Default.Key)).Select(action => action.Id).ToList();
         var unique = ShortcutCatalog.DefaultsAreUnique();

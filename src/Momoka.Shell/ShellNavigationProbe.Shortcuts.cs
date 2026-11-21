@@ -143,7 +143,12 @@ internal sealed partial class ShellNavigationProbe
             await QueryAsync("未设置");
             Require(Shown().Single().Id == "video-pan-left", "未设置搜索未显示解绑动作");
             await QueryAsync("Esc");
-            Require(!Shown().Any() && card.Rows.OfType<SettingFactRow>().Any(row => row.Label == "退出全屏 / 停止"), "固定键没有参与搜索");
+            Require(!Shown().Any(), "未绑定的 Esc 不应匹配快捷键行");
+            originalRows["toggle-pause"].OnCommitted(capture, "Escape");
+            await LayoutAsync(page);
+            Require(Shown().Single().Id == "toggle-pause", "Esc 改绑后没有参与搜索");
+            originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
+            await LayoutAsync(page);
             await QueryAsync("zzzz-not-a-shortcut");
             Require(!Shown().Any() && card.Rows.Any(row => row.Label == "没有找到匹配的快捷键"), "空结果提示缺失");
             Require(card.Rows.Any(row => row.Label == "恢复默认快捷键"), "搜索结果为空时丢了恢复默认入口");

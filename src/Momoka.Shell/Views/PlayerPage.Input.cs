@@ -664,24 +664,11 @@ public sealed partial class PlayerPage : IWin32KeySink
         return ViewModel.ShortcutBindings.Values.Any(value => ShortcutCatalog.TryParse(value, out var stored) && stored == stroke);
     }
 
-    /// <summary>音量滑条优先响应自身方向键；只有该键实际绑定了播放器动作时才改由快捷键处理。</summary>
-    private void OnVolumeSliderShortcut(object sender, KeyRoutedEventArgs e)
-    {
-        if (ReferenceEquals(_lastDispatchedKeyEvent, e) || !Attached || _inputSuspended || DanmakuInputFocused
-            || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)
-            || !Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return;
-        e.Handled = true;
-        _lastDispatchedKeyEvent = e;
-        if (wake && _cursorHidden) _woke = $"按键 {e.Key}";
-        if (wake && _chrome.WakeFully(Now)) Render();
-    }
-
     /// <summary>
-    /// 这一下有没有当成播放器键位处理掉。固定键在前（原样，不查修饰键，和改造前一致）：Delete 跳过提示立着时
-    /// 归「关闭提示」（用户令 2026-11-02「关闭跳过片头/片尾的快捷键从 Esc 改为删除键」）；Esc 不再先抢提示，
-    /// 恢复成老三样 —— 全屏则退全屏、否则停止播放（Esc 是全局「退出」、也是设置里重绑方框的取消键）；回车只在
-    /// 出现跳过提示时确认跳过（原 Y，用户令 2026-09-26「把确认跳过片头/片尾从 Y 改成回车」）—— 没提示时它落到
-    /// 下面那张表。
+    /// 这一下有没有当成播放器键位处理掉。固定键的回退排在最前，只在没有用户绑定且不带修饰键
+    /// （<c>fixedFallback</c>）时生效：Delete 跳过提示立着时归「关闭提示」（用户令 2026-11-02「关闭跳过
+    /// 片头/片尾的快捷键从 Esc 改为删除键」）；Esc 全屏则退全屏、否则停止播放；回车只在出现跳过提示时
+    /// 确认跳过（原 Y，用户令 2026-09-26「把确认跳过片头/片尾从 Y 改成回车」）—— 没提示时它落到下面那张表。
     /// <para>
     /// 自定义绑定优先于 Esc 全屏/停止、回车确认跳过、Delete 关闭提示的回退行为。
     /// </para>
@@ -1372,7 +1359,8 @@ public sealed partial class PlayerPage : IWin32KeySink
         if (!Attached) return;
 
         ViewModel.ToggleMute();
-        if (_chrome.FlashRail(Now)) Render();
+        // 与音量增减同一句话：快捷键调音量只亮音量条，不把整套控件叫出来，也不解开双击全屏的纯净闸。
+        if (_chrome.FlashRail(Now, preserveSilence: true)) Render();
     }
 
     // ---- 拖字幕进画面 ------------------------------------------------------------
