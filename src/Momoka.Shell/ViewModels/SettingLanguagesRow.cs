@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Playback;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -84,7 +85,12 @@ public sealed partial class SettingLanguagesRow : SettingRow
 
     /// <summary>下拉按钮上那句话：勾了的语言照优先级次序连起来，一个都没勾时是占位文字。</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplaySummary))]
     public partial string Summary { get; set; } = string.Empty;
+
+    public string DisplaySummary => Choices.Any(choice => choice.Checked)
+        ? string.Join(UiText.Translate("、"), Choices.Where(choice => choice.Checked).Select(choice => choice.DisplayName))
+        : UiText.Translate(_placeholder);
 
     /// <summary>把一项收进表里，接上它那两根线：勾变了要归位＋写盘，箭头按了要换位。</summary>
     private void Adopt(string name, bool chosen)
@@ -248,6 +254,10 @@ public sealed partial class LanguageChoice : ObservableObject
     /// <summary>存进设置文件、送给 mpv 的 slang 的那个语言名，也是屏上显示的字。</summary>
     public string Name { get; }
 
+    public string DisplayName => Name == TrackLanguagePriority.Any
+        || TrackLanguagePriority.Catalogue.Any(entry => entry.Label == Name)
+        ? UiText.Translate(Name) : Name;
+
     /// <summary>勾变了的时候喊一声，把自己交回去；由 <see cref="SettingLanguagesRow"/> 挂上（它要知道是哪一项好归位）。</summary>
     internal Action<LanguageChoice>? Changed { get; set; }
 
@@ -274,5 +284,5 @@ public sealed partial class LanguageChoice : ObservableObject
     private void Down() => Shift?.Invoke(this, 1);
 
     /// <summary>读屏的人听到的那一句，也是拖动时那块浮起来的东西的名字。</summary>
-    public override string ToString() => Name;
+    public override string ToString() => DisplayName;
 }

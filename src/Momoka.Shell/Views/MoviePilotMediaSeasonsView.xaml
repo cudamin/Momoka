@@ -6,8 +6,8 @@
     <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SeasonsVisibility, Mode=OneWay}">
         <Grid ColumnSpacing="{x:Bind local:MoviePilotMediaSeasonsView.HeadingSpacing(ViewModel.Plain), Mode=OneWay}" Visibility="{x:Bind local:MoviePilotMediaSeasonsView.HeadingRowVisibility(ViewModel.Plain, ViewModel.GroupsVisibility), Mode=OneWay}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <TextBlock x:Name="SeasonsHeading" Visibility="{x:Bind local:MoviePilotMediaSeasonsView.HeadingVisibility(ViewModel.Plain), Mode=OneWay}" Text="季" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
-            <TextBlock x:Name="EpisodeGroupsHeading" Grid.Column="1" Text="选择剧集组" Style="{StaticResource EgCaptionStyle}"
+            <TextBlock x:Uid="MoviePilotMediaSeasonsView_SeasonsHeading" x:Name="SeasonsHeading" Visibility="{x:Bind local:MoviePilotMediaSeasonsView.HeadingVisibility(ViewModel.Plain), Mode=OneWay}" Text="季" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+            <TextBlock x:Uid="MoviePilotMediaSeasonsView_EpisodeGroupsHeading" x:Name="EpisodeGroupsHeading" Grid.Column="1" Text="选择剧集组" Style="{StaticResource EgCaptionStyle}"
                 VerticalAlignment="Center" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}" />
         </Grid>
         <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}">
@@ -86,11 +86,11 @@
                             <StackPanel Spacing="8" Visibility="{x:Bind FilesHostVisibility, Mode=OneWay}">
                                 <TextBlock Text="{x:Bind FilesPlaybackStatus, Mode=OneWay}" Visibility="{x:Bind FilesPlaybackStatusVisibility, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                     TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
-                                <TextBlock Text="按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。" Style="{StaticResource EgCaptionStyle}"
+                                <TextBlock x:Uid="MoviePilotMediaSeasonsView_Localization1" Text="按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。" Style="{StaticResource EgCaptionStyle}"
                                     TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
-                                <ComboBox x:Name="EpisodeFilter" Header="显示范围" SelectedIndex="{x:Bind FilesFilterIndex, Mode=OneWay}"
+                                <ComboBox x:Uid="MoviePilotMediaSeasonsView_EpisodeFilter" x:Name="EpisodeFilter" Header="显示范围" SelectedIndex="{x:Bind FilesFilterIndex, Mode=OneWay}"
                                     MinWidth="180" SelectionChanged="OnFilesFilterChanged" Tag="{x:Bind}">
-                                    <ComboBoxItem Content="全部" /><ComboBoxItem Content="已入库" /><ComboBoxItem Content="缺集 / 未入库" />
+                                    <ComboBoxItem x:Uid="MoviePilotMediaSeasonsView_Localization2" Content="全部" /><ComboBoxItem x:Uid="MoviePilotMediaSeasonsView_Localization3" Content="已入库" /><ComboBoxItem x:Uid="MoviePilotMediaSeasonsView_Localization4" Content="缺集 / 未入库" />
                                 </ComboBox>
                                 <TextBlock Text="{x:Bind FilesEmptyNotice, Mode=OneWay}" Visibility="{x:Bind FilesEmptyNoticeVisibility, Mode=OneWay}"
                                     Style="{StaticResource EgCaptionStyle}" Margin="0,8" TextWrapping="Wrap" />
@@ -155,7 +155,7 @@
                                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                         <TextBlock Text="{x:Bind Meta, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                                                     </StackPanel>
-                                                    <Button x:Name="SearchMediaEpisode" Grid.Column="1" Command="{x:Bind SearchCommand}" Style="{StaticResource EgIconButtonStyle}"
+                                                    <Button x:Uid="MoviePilotMediaSeasonsView_SearchMediaEpisode" x:Name="SearchMediaEpisode" Grid.Column="1" Command="{x:Bind SearchCommand}" Style="{StaticResource EgIconButtonStyle}"
                                                         AutomationProperties.Name="搜索这一集的资源" ToolTipService.ToolTip="搜索资源">
                                                         <FontIcon Glyph="&#xE721;" />
                                                     </Button>

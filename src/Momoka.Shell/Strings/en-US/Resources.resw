@@ -1,0 +1,3940 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- English interface strings. Keys match the Simplified Chinese resource table. -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CollectionDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="CollectionDialog_ContentDialog1.PrimaryButtonText" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="CollectionDialog_ContentDialog1.Title" xml:space="preserve">
+    <value>Add to collection</value>
+  </data>
+  <data name="CollectionDialog_Empty.Text" xml:space="preserve">
+    <value>There are no collections on this server yet. Enter a name below to create one.</value>
+  </data>
+  <data name="CollectionDialog_NewBox.Header" xml:space="preserve">
+    <value>Or create a new collection</value>
+  </data>
+  <data name="CollectionDialog_NewBox.PlaceholderText" xml:space="preserve">
+    <value>Collection name</value>
+  </data>
+  <data name="CoverDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="CoverDialog_ContentDialog1.PrimaryButtonText" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="CoverDialog_ContentDialog1.Title" xml:space="preserve">
+    <value>Change media artwork</value>
+  </data>
+  <data name="CoverPickerDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="CoverPickerDialog_ContentDialog1.PrimaryButtonText" xml:space="preserve">
+    <value>Use this image</value>
+  </data>
+  <data name="DashboardPage_ButtonA1.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Reload the dashboard</value>
+  </data>
+  <data name="DashboardPage_ButtonA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open this page in your default browser</value>
+  </data>
+  <data name="DashboardPage_TextBlock1.Text" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DashboardPage_TextBlock2.Text" xml:space="preserve">
+    <value>Open in browser</value>
+  </data>
+  <data name="DetailPage_ButtonA1.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Mark as watched / unwatched</value>
+  </data>
+  <data name="DetailPage_ButtonA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="DetailPage_ComboBoxA4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Switch season</value>
+  </data>
+  <data name="DetailPage_ComboBoxA4.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Switch season</value>
+  </data>
+  <data name="DetailPage_CoverButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Open this series</value>
+  </data>
+  <data name="DetailPage_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="DetailPage_TextBlock2.Text" xml:space="preserve">
+    <value>Media source</value>
+  </data>
+  <data name="DetailPage_TextBlock3.Text" xml:space="preserve">
+    <value>Audio:</value>
+  </data>
+  <data name="DetailPage_TextBlock4.Text" xml:space="preserve">
+    <value>Subtitles:</value>
+  </data>
+  <data name="DetailPage_WatchedOn.Text" xml:space="preserve">
+    <value>Watched</value>
+  </data>
+  <data name="DetailPage_WatchedOff.Text" xml:space="preserve">
+    <value>Unwatched</value>
+  </data>
+  <data name="DetailPage_ContinuePlay.Text" xml:space="preserve">
+    <value>Autoplay</value>
+  </data>
+  <data name="DetailPage_ContinuePlay.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Automatically play the next episode when this one ends (the same as “Automatically play next episode” in Settings)</value>
+  </data>
+  <data name="DiagnosticsPage_ButtonA3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="DiagnosticsPage_ComboBoxA1.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Show logs from one category</value>
+  </data>
+  <data name="DiagnosticsPage_ComboBoxA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Filter by severity</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock10.Text" xml:space="preserve">
+    <value>Player</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock11.Text" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock12.Text" xml:space="preserve">
+    <value>Progress</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock13.Text" xml:space="preserve">
+    <value>mpv configuration</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock14.Text" xml:space="preserve">
+    <value>Backend</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock15.Text" xml:space="preserve">
+    <value>mpv.exe path</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock16.Text" xml:space="preserve">
+    <value>Shader preset</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock17.Text" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock18.Text" xml:space="preserve">
+    <value>Log folder</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock19.Text" xml:space="preserve">
+    <value>Recent logs</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock2.Text" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock21.Text" xml:space="preserve">
+    <value>No logs match these filters</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock3.Text" xml:space="preserve">
+    <value>Copy logs</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock4.Text" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock5.Text" xml:space="preserve">
+    <value>Session</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock6.Text" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock7.Text" xml:space="preserve">
+    <value>Account</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock8.Text" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="DiagnosticsPage_TextBlock9.Text" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="DiagnosticsPage_TextBox22.PlaceholderText" xml:space="preserve">
+    <value>Playback launch arguments will appear here</value>
+  </data>
+  <data name="DiagnosticsPage_ToggleSwitch20.OffContent" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="DiagnosticsPage_ToggleSwitch20.OnContent" xml:space="preserve">
+    <value>Follow live</value>
+  </data>
+  <data name="FilterPanel_HyperlinkButton1.Content" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="HomeBanner_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next slide</value>
+  </data>
+  <data name="HomeBanner_PrevButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous slide</value>
+  </data>
+  <data name="HomeBanner_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Use the Left and Right arrow keys to change slides. Press Enter to open details.</value>
+  </data>
+  <data name="HomeBanner_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Home slideshow</value>
+  </data>
+  <data name="HomePage_TextBlock1.Text" xml:space="preserve">
+    <value>There is no content to display on this server yet</value>
+  </data>
+  <data name="IdentifyDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="IdentifyDialog_ContentDialog1.Title" xml:space="preserve">
+    <value>Identify</value>
+  </data>
+  <data name="LibraryPage_FilterText.Text" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="LibraryPage_HyperlinkButton4.Content" xml:space="preserve">
+    <value>Clear all</value>
+  </data>
+  <data name="LibraryPage_PlayAllButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Play all</value>
+  </data>
+  <data name="LibraryPage_PlayRandomButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Shuffle play</value>
+  </data>
+  <data name="LibraryPage_RadioMenuFlyoutItem1.Text" xml:space="preserve">
+    <value>Posters</value>
+  </data>
+  <data name="LibraryPage_RadioMenuFlyoutItem2.Text" xml:space="preserve">
+    <value>Thumbnails</value>
+  </data>
+  <data name="LibraryPage_RadioMenuFlyoutItem3.Text" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="LibraryPage_ViewButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Change view</value>
+  </data>
+  <data name="LibrarySearchBox.PlaceholderText" xml:space="preserve">
+    <value>Search movies, series, and people</value>
+  </data>
+  <data name="LibrarySearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search library</value>
+  </data>
+  <data name="SettingsSearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search settings</value>
+  </data>
+  <data name="MetadataDialog_CommunityRatingBox.Header" xml:space="preserve">
+    <value>Community rating</value>
+  </data>
+  <data name="MetadataDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MetadataDialog_ContentDialog1.PrimaryButtonText" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="MetadataDialog_ContentDialog1.Title" xml:space="preserve">
+    <value>Edit metadata</value>
+  </data>
+  <data name="MetadataDialog_CriticRatingBox.Header" xml:space="preserve">
+    <value>Critic rating</value>
+  </data>
+  <data name="MetadataDialog_GenresBox.Header" xml:space="preserve">
+    <value>Genres</value>
+  </data>
+  <data name="MetadataDialog_GenresBox.PlaceholderText" xml:space="preserve">
+    <value>Separate entries with 、 or commas; enclose an entry in double quotes if it contains punctuation</value>
+  </data>
+  <data name="MetadataDialog_IndexBox.Header" xml:space="preserve">
+    <value>Episode number</value>
+  </data>
+  <data name="MetadataDialog_NameBox.Header" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="MetadataDialog_OfficialRatingBox.Header" xml:space="preserve">
+    <value>Parental rating</value>
+  </data>
+  <data name="MetadataDialog_OriginalTitleBox.Header" xml:space="preserve">
+    <value>Original title</value>
+  </data>
+  <data name="MetadataDialog_OverviewBox.Header" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="MetadataDialog_ParentIndexBox.Header" xml:space="preserve">
+    <value>Season number</value>
+  </data>
+  <data name="MetadataDialog_PremiereDateBox.Header" xml:space="preserve">
+    <value>Release date</value>
+  </data>
+  <data name="MetadataDialog_ProductionYearBox.Header" xml:space="preserve">
+    <value>Release year</value>
+  </data>
+  <data name="MetadataDialog_SortNameBox.Header" xml:space="preserve">
+    <value>Sort title</value>
+  </data>
+  <data name="MetadataDialog_SortNameBox.PlaceholderText" xml:space="preserve">
+    <value>Leave blank to let the server determine the sort title</value>
+  </data>
+  <data name="MetadataDialog_TagsBox.Header" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="MetadataDialog_TagsBox.PlaceholderText" xml:space="preserve">
+    <value>Separate entries with 、 or commas; enclose an entry in double quotes if it contains punctuation</value>
+  </data>
+  <data name="MissingEpisodesDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MissingEpisodesDialog_ContentDialog1.Title" xml:space="preserve">
+    <value>View missing episodes</value>
+  </data>
+  <data name="PlayerPage_AudioButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Audio tracks</value>
+  </data>
+  <data name="PlayerPage_AudioButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Audio tracks</value>
+  </data>
+  <data name="PlayerPage_BackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="PlayerPage_BackButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Back (Esc)</value>
+  </data>
+  <data name="PlayerPage_CloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="PlayerPage_CloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="PlayerPage_EpisodeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="PlayerPage_EpisodeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="PlayerPage_VersionButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Switch version</value>
+  </data>
+  <data name="PlayerPage_VersionButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Other versions of this item (4K / 1080p / Director's Cut). Playback resumes at the current position after switching.</value>
+  </data>
+  <data name="PlayerPage_StandaloneHint.Text" xml:space="preserve">
+    <value>Video is displayed in a separate mpv window, outside the WinUI compositor.
+The fullscreen button controls the video window. In that window, press F to toggle fullscreen, Space to pause, or Q to stop.
+Closing the video window or leaving this page stops playback.</value>
+  </data>
+  <data name="PlayerPage_FullscreenButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Enter or exit fullscreen</value>
+  </data>
+  <data name="PlayerPage_FullscreenButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Fullscreen (F)</value>
+  </data>
+  <data name="PlayerPage_MaximizeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Maximize or restore</value>
+  </data>
+  <data name="PlayerPage_MaximizeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Maximize or restore</value>
+  </data>
+  <data name="PlayerPage_MinimizeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="PlayerPage_MinimizeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="PlayerPage_MuteButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Mute</value>
+  </data>
+  <data name="PlayerPage_MuteButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Mute (M)</value>
+  </data>
+  <data name="PlayerPage_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next episode</value>
+  </data>
+  <data name="PlayerPage_NextButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next episode</value>
+  </data>
+  <data name="PlayerPage_PlayButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Play or pause</value>
+  </data>
+  <data name="PlayerPage_PlayButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Play / pause (Space)</value>
+  </data>
+  <data name="PlayerPage_PreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous episode</value>
+  </data>
+  <data name="PlayerPage_PreviousButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous episode</value>
+  </data>
+  <data name="PlayerPage_SeekSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Playback progress</value>
+  </data>
+  <data name="PlayerPage_SpeedButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Playback speed</value>
+  </data>
+  <data name="PlayerPage_SpeedButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Playback speed</value>
+  </data>
+  <data name="PlayerPage_SubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subtitles</value>
+  </data>
+  <data name="PlayerPage_SubtitleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Subtitles</value>
+  </data>
+  <data name="PlayerPage_VolumeSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="CardPreview_Resume.Text" xml:space="preserve">
+    <value>Continue watching</value>
+  </data>
+  <data name="PosterCard_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="ServersPage_ButtonA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete account</value>
+  </data>
+  <data name="ServersPage_ButtonA5.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete server</value>
+  </data>
+  <data name="ServersPage_TextBlock1.Text" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="ServersPage_AddAccountLabel.Text" xml:space="preserve">
+    <value>Add account</value>
+  </data>
+  <data name="ServersPage_DiscoverLabel.Text" xml:space="preserve">
+    <value>Discover local servers</value>
+  </data>
+  <data name="ServersPage_RefreshLabel.Text" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ServersPage_TextBlock8.Text" xml:space="preserve">
+    <value>No servers have been saved yet. Select “Add account” and enter a server address to get started.</value>
+  </data>
+  <data name="SettingsPage_ButtonA2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="SettingsPage_ButtonA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Move this row up</value>
+  </data>
+  <data name="SettingsPage_ButtonA3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="SettingsPage_ButtonA3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Move this row down</value>
+  </data>
+  <data name="SettingsPage_ButtonL1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="SettingsPage_ButtonL1.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Move this language up one position. Languages higher in the list have priority.</value>
+  </data>
+  <data name="SettingsPage_ButtonL2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="SettingsPage_ButtonL2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Move this language down one position</value>
+  </data>
+  <data name="SettingsPage_TextBox3.PlaceholderText" xml:space="preserve">
+    <value>Search fonts: yahei, Microsoft YaHei, mono…</value>
+  </data>
+  <data name="SettingsPage_SubtitlePreview.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subtitle appearance preview: sample subtitles rendered with the current settings</value>
+  </data>
+  <data name="SettingsPage_ToggleSwitch1.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SettingsPage_ToggleSwitch1.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="SettingsPage_ToggleSwitch2.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SettingsPage_ToggleSwitch2.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="ShelfStrip_Next.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next page</value>
+  </data>
+  <data name="ShelfStrip_Next.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next page</value>
+  </data>
+  <data name="ShelfStrip_Prev.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous page</value>
+  </data>
+  <data name="ShelfStrip_Prev.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous page</value>
+  </data>
+  <data name="ShelfStrip_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Use the Left and Right arrow keys to browse media. Press Enter to open.</value>
+  </data>
+  <data name="ShelfStrip_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Media card list</value>
+  </data>
+  <data name="ShellPage_AccountButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Accounts and servers</value>
+  </data>
+  <data name="ShellPage_AccountServer.Text" xml:space="preserve">
+    <value>Not connected to a server</value>
+  </data>
+  <data name="ShellPage_AccountUser.Text" xml:space="preserve">
+    <value>Not signed in</value>
+  </data>
+  <data name="ShellPage_BackButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="ShellPage_BackButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="ShellPage_ForwardButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Forward</value>
+  </data>
+  <data name="ShellPage_ForwardButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Forward</value>
+  </data>
+  <data name="ShellPage_TitleSearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ShellPage_TitleSearchBox.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Search libraries, subscriptions, and more</value>
+  </data>
+  <data name="ShellPage_TitleSearchBox.PlaceholderText" xml:space="preserve">
+    <value>Search libraries, subscriptions, and more</value>
+  </data>
+  <data name="ShellPage_FavoritesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="ShellPage_FavoritesButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="ShellPage_HomeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="ShellPage_HomeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="ShellPage_AccountSignOutItem.Content" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="ShellPage_NavToggleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="ShellPage_NavToggleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close navigation</value>
+  </data>
+  <data name="ShellPage_SearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ShellPage_SearchButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ShellPage_SettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="ShellPage_SettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="ShellPage_SidebarSettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="ShellPage_SidebarSettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="ShellPage_AddAccountItem.Content" xml:space="preserve">
+    <value>Add account…</value>
+  </data>
+  <data name="ShortcutCaptureBox_Clear.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Clear shortcut</value>
+  </data>
+  <data name="ShortcutCaptureBox_Clear.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Clear this keyboard shortcut</value>
+  </data>
+  <data name="SignInPage_Button1.Content" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="SignInPage_Button5.Content" xml:space="preserve">
+    <value>Choose another server</value>
+  </data>
+  <data name="SignInPage_ButtonA1.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Search for Emby servers on the local network</value>
+  </data>
+  <data name="SignInPage_CheckBox4.Content" xml:space="preserve">
+    <value>Remember password</value>
+  </data>
+  <data name="SignInPage_DropDownButton2.Content" xml:space="preserve">
+    <value>Saved servers</value>
+  </data>
+  <data name="SignInPage_PasswordInput.PlaceholderText" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="SignInPage_ServerBox.PlaceholderText" xml:space="preserve">
+    <value>Server address</value>
+  </data>
+  <data name="SignInPage_TextBlock3.Text" xml:space="preserve">
+    <value>Discover local servers</value>
+  </data>
+  <data name="SignInPage_UserBox.PlaceholderText" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="HtmlColorPicker_BLabel.Text" xml:space="preserve">
+    <value>B</value>
+  </data>
+  <data name="HtmlColorPicker_BlueBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Blue (B)</value>
+  </data>
+  <data name="HtmlColorPicker_ClearButton.Content" xml:space="preserve">
+    <value>Not set</value>
+  </data>
+  <data name="HtmlColorPicker_GLabel.Text" xml:space="preserve">
+    <value>G</value>
+  </data>
+  <data name="HtmlColorPicker_GreenBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Green (G)</value>
+  </data>
+  <data name="HtmlColorPicker_HLabel.Text" xml:space="preserve">
+    <value>H</value>
+  </data>
+  <data name="HtmlColorPicker_HashLabel.Text" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="HtmlColorPicker_HexBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>HTML color code</value>
+  </data>
+  <data name="HtmlColorPicker_HexBox.PlaceholderText" xml:space="preserve">
+    <value>RRGGBB</value>
+  </data>
+  <data name="HtmlColorPicker_HueBar.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Hue</value>
+  </data>
+  <data name="HtmlColorPicker_HueBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Hue (H)</value>
+  </data>
+  <data name="HtmlColorPicker_RLabel.Text" xml:space="preserve">
+    <value>R</value>
+  </data>
+  <data name="HtmlColorPicker_RedBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Red (R)</value>
+  </data>
+  <data name="HtmlColorPicker_SLabel.Text" xml:space="preserve">
+    <value>S</value>
+  </data>
+  <data name="HtmlColorPicker_SatValSquare.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Saturation and value</value>
+  </data>
+  <data name="HtmlColorPicker_SaturationBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Saturation (S)</value>
+  </data>
+  <data name="HtmlColorPicker_VLabel.Text" xml:space="preserve">
+    <value>V</value>
+  </data>
+  <data name="HtmlColorPicker_ValueBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Value (V)</value>
+  </data>
+  <data name="SettingsPage_ColorSwatch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open the HTML color picker. “Not set” uses mpv's default.</value>
+  </data>
+  <data name="SubtitleDialog_Button3.Content" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SubtitleDialog_Button4.Content" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="SubtitleDialog_LanguageBox.Header" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="SubtitleDialog_NoTracks.Text" xml:space="preserve">
+    <value>This file has no external subtitles. Subtitles embedded in the video file cannot be deleted here.</value>
+  </data>
+  <data name="SubtitleDialog_SearchButton.Content" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="SubtitleDialog_ForcedOnlyLabel.Text" xml:space="preserve">
+    <value>Forced subtitles only</value>
+  </data>
+  <data name="SubtitleDialog_ForcedOnlyHelp.Text" xml:space="preserve">
+    <value>Requiring forced subtitles limits results to subtitles marked as containing foreign-language dialogue.</value>
+  </data>
+  <data name="SubtitleDialog_TextBlock2.Text" xml:space="preserve">
+    <value>Existing external subtitles</value>
+  </data>
+  <data name="PosterCard_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More actions</value>
+  </data>
+  <data name="SignInPage_WelcomeNote.Text" xml:space="preserve">
+    <value>Movies · Series · Music. Your favorites are all here.</value>
+  </data>
+  <data name="SignInPage_FormTitle.Text" xml:space="preserve">
+    <value>Welcome back</value>
+  </data>
+  <data name="ServersPage_Heading.Text" xml:space="preserve">
+    <value>My servers</value>
+  </data>
+  <data name="ServersPage_EmptyHeading.Text" xml:space="preserve">
+    <value>Connect your first media library</value>
+  </data>
+  <data name="ServersPage_AddAction.Label" xml:space="preserve">
+    <value>Add server</value>
+  </data>
+  <data name="ServersPage_DiscoverAction.Label" xml:space="preserve">
+    <value>Discover local servers</value>
+  </data>
+  <data name="ServersPage_RefreshAction.Label" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DiagnosticsPage_Heading.Text" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="DiagnosticsPage_Description.Text" xml:space="preserve">
+    <value>Session details, playback status, and live logs at a glance.</value>
+  </data>
+  <data name="DiagnosticsPage_RefreshAction.Label" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DiagnosticsPage_CopyAction.Label" xml:space="preserve">
+    <value>Copy logs</value>
+  </data>
+  <data name="DiagnosticsPage_OpenLogsAction.Label" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="DashboardPage_Heading.Text" xml:space="preserve">
+    <value>Server dashboard</value>
+  </data>
+  <data name="DashboardPage_RefreshAction.Label" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DashboardPage_OpenAction.Label" xml:space="preserve">
+    <value>Open in browser</value>
+  </data>
+  <data name="SettingsPage_CategoryPicker.Header" xml:space="preserve">
+    <value>Settings category</value>
+  </data>
+  <data name="LibraryPage_BrowseHint.Text" xml:space="preserve">
+    <value>Browse and filter</value>
+  </data>
+  <data name="LibraryPage_SourceEmby.Content" xml:space="preserve">
+    <value>My library</value>
+  </data>
+  <data name="LibraryPage_SourceMoviePilot.Content" xml:space="preserve">
+    <value>MoviePilot</value>
+  </data>
+  <data name="NotificationsPage_Heading.Text" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="NotificationsPage_AddAction.Label" xml:space="preserve">
+    <value>Add notification</value>
+  </data>
+  <data name="NotificationsPage_AddAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Add notification</value>
+  </data>
+  <data name="NotificationsPage_RefreshAction.Label" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="NotificationsPage_RefreshAction.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh notification list</value>
+  </data>
+  <data name="NotificationsPage_EmptyHeading.Text" xml:space="preserve">
+    <value>No notifications have been configured yet</value>
+  </data>
+  <data name="NotificationsPage_TextBlock8.Text" xml:space="preserve">
+    <value>Select “Add notification”, choose a channel and events to forward, and enter a destination address. The Emby server will then send notifications for events such as playback and new media.</value>
+  </data>
+  <data name="NotificationsPage_ButtonA1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Send test notification</value>
+  </data>
+  <data name="NotificationsPage_ButtonA1.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Ask the server to send a real notification using this configuration</value>
+  </data>
+  <data name="NotificationsPage_ButtonA2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Edit this notification</value>
+  </data>
+  <data name="NotificationsPage_ButtonA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Edit this notification</value>
+  </data>
+  <data name="NotificationsPage_ButtonA3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Delete this notification</value>
+  </data>
+  <data name="NotificationsPage_ButtonA3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete this notification</value>
+  </data>
+  <data name="NotificationsPage_StopReportHeading.Text" xml:space="preserve">
+    <value>Client-managed notifications</value>
+  </data>
+  <data name="NotificationsPage_StopReportNote.Text" xml:space="preserve">
+    <value>When enabled, the client controls when notifications are sent. Once playback reaches the watched threshold in “Playback behavior” (using the Chinese animation threshold for Chinese animation), or you manually select “Mark as watched”, the client reports “Playback stopped” to the server so that its configured notifications, such as forwarding to MoviePilot, are sent immediately. Seeking directly into this range also counts. Manually marking an item as watched reports 100% progress. Playback continues uninterrupted. This report is sent only once per playback session; no further progress reports or second stop report are sent for that session. This is a local setting, separate from the server notification list below.</value>
+  </data>
+  <data name="NotificationsPage_StopReportToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Client-managed notifications</value>
+  </data>
+  <data name="NotificationsPage_StopReportToggle.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="NotificationsPage_StopReportToggle.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="MusicLibraryPage_LoadMore.Content" xml:space="preserve">
+    <value>Load more</value>
+  </data>
+  <data name="MusicLibraryPage_LoadMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Load more music</value>
+  </data>
+  <data name="AniBtResourceBrowser_OpenTorrentPage.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open release page</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization2.Text" xml:space="preserve">
+    <value>Original name for identification</value>
+  </data>
+  <data name="AniBtScrapeDialog_AnimeChoice.Header" xml:space="preserve">
+    <value>Identification results</value>
+  </data>
+  <data name="AniBtScrapeDialog_AnimeChoice.PlaceholderText" xml:space="preserve">
+    <value>Choose matching anime</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization3.Text" xml:space="preserve">
+    <value>Actual source file</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization4.Text" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="AniBtScrapeDialog_RetryPrepare.Content" xml:space="preserve">
+    <value>Reload organization destinations</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeSearchInput.Header" xml:space="preserve">
+    <value>Search AniBT anime</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeSearchInput.PlaceholderText" xml:space="preserve">
+    <value>Enter an anime title or original title</value>
+  </data>
+  <data name="AniBtSearchPanel_Localization1.Text" xml:space="preserve">
+    <value>Anime</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeFormatFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Anime format</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeStatusFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Anime status</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeYearFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Anime year</value>
+  </data>
+  <data name="AniBtSearchPanel_Localization2.Text" xml:space="preserve">
+    <value>No anime matches these filters</value>
+  </data>
+  <data name="AniBtSearchPanel_LoadMoreAnime.Content" xml:space="preserve">
+    <value>Load more anime</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenAniBtSite.Content" xml:space="preserve">
+    <value>Open AniBT</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenAniBtSite.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open this anime in a browser</value>
+  </data>
+  <data name="AniBtSearchPanel_ReturnToAnime.Content" xml:space="preserve">
+    <value>Back to anime</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenBangumiSite.Content" xml:space="preserve">
+    <value>Bangumi entry</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenAnimeOfficialSite.Content" xml:space="preserve">
+    <value>Official website</value>
+  </data>
+  <data name="AniBtSearchPanel_ShowAllAnimeEpisodes.Content" xml:space="preserve">
+    <value>View all episodes</value>
+  </data>
+  <data name="AniBtSearchPanel_ReloadAnimeResources.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ArtworkViewer_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="CoverDialog_RefreshArtworkButton.Content" xml:space="preserve">
+    <value>Refresh image list</value>
+  </data>
+  <data name="CoverDialog_Localization1.Content" xml:space="preserve">
+    <value>Retry preview</value>
+  </data>
+  <data name="CoverDialog_Localization2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Replace image (from a provider or this computer)</value>
+  </data>
+  <data name="CoverDialog_Localization3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>View full image</value>
+  </data>
+  <data name="CoverDialog_Localization4.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete this image type (cannot be undone)</value>
+  </data>
+  <data name="CoverDialog_Localization5.Text" xml:space="preserve">
+    <value>Backdrop</value>
+  </data>
+  <data name="CoverDialog_Localization6.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>View full image</value>
+  </data>
+  <data name="CoverDialog_Localization7.Content" xml:space="preserve">
+    <value>Retry preview</value>
+  </data>
+  <data name="CoverDialog_Localization8.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Add from a provider (keep existing backdrops)</value>
+  </data>
+  <data name="CoverDialog_Localization9.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete this image (cannot be undone)</value>
+  </data>
+  <data name="CoverDialog_AddBackdropButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Add a backdrop from this computer</value>
+  </data>
+  <data name="CoverDialog_Localization10.Text" xml:space="preserve">
+    <value>Add a backdrop from this computer…</value>
+  </data>
+  <data name="CoverPickerDialog_SourcePicker.Header" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="CoverPickerDialog_SourcePicker.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Image source</value>
+  </data>
+  <data name="CoverPickerDialog_AllLanguagesToggle.Header" xml:space="preserve">
+    <value>All languages</value>
+  </data>
+  <data name="CoverPickerDialog_AllLanguagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>All languages</value>
+  </data>
+  <data name="CoverPickerDialog_RetryArtworkSearch.Content" xml:space="preserve">
+    <value>Search again</value>
+  </data>
+  <data name="CoverPickerDialog_Localization1.Content" xml:space="preserve">
+    <value>Retry preview</value>
+  </data>
+  <data name="CoverPickerDialog_RetryArtworkPreviews.Content" xml:space="preserve">
+    <value>Retry preview</value>
+  </data>
+  <data name="CoverPickerDialog_Localization2.Text" xml:space="preserve">
+    <value>Upload from this computer…</value>
+  </data>
+  <data name="DanmakuPanel_Localization1.Text" xml:space="preserve">
+    <value>Danmaku</value>
+  </data>
+  <data name="DanmakuPanel_ShowToggle.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="DanmakuPanel_ShowToggle.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="DanmakuPanel_ShowToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Show danmaku</value>
+  </data>
+  <data name="DanmakuPanel_SourceModeBox.Header" xml:space="preserve">
+    <value>Danmaku source</value>
+  </data>
+  <data name="DanmakuPanel_SourceModeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku source</value>
+  </data>
+  <data name="DanmakuPanel_Localization2.Text" xml:space="preserve">
+    <value>Combining sources requests both and uses the shared Dandanplay quota.</value>
+  </data>
+  <data name="DanmakuPanel_Localization3.Text" xml:space="preserve">
+    <value>Choose a danmaku library</value>
+  </data>
+  <data name="DanmakuPanel_SourceBox.Header" xml:space="preserve">
+    <value>Search source</value>
+  </data>
+  <data name="DanmakuPanel_SourceBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku search source</value>
+  </data>
+  <data name="DanmakuPanel_TitleBox.PlaceholderText" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="DanmakuPanel_TitleBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku title</value>
+  </data>
+  <data name="DanmakuPanel_EpisodeBox.PlaceholderText" xml:space="preserve">
+    <value>Episode</value>
+  </data>
+  <data name="DanmakuPanel_EpisodeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku episode; leave blank to search all</value>
+  </data>
+  <data name="DanmakuPanel_SearchButton.Content" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="DanmakuPanel_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku episode search results</value>
+  </data>
+  <data name="DanmakuPanel_LoadButton.Content" xml:space="preserve">
+    <value>Load danmaku for the selected episode</value>
+  </data>
+  <data name="DanmakuPanel_Localization4.Text" xml:space="preserve">
+    <value>Display settings</value>
+  </data>
+  <data name="DanmakuPanel_ScaleCheck.Content" xml:space="preserve">
+    <value>Scale danmaku with the window</value>
+  </data>
+  <data name="DanmakuPanel_SubtitleCheck.Content" xml:space="preserve">
+    <value>Avoid subtitles</value>
+  </data>
+  <data name="DanmakuPanel_DensityModeBox.Header" xml:space="preserve">
+    <value>Danmaku density</value>
+  </data>
+  <data name="DanmakuPanel_OverlapCheck.Content" xml:space="preserve">
+    <value>Prevent danmaku overlap</value>
+  </data>
+  <data name="DanmakuPanel_OpacitySlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku opacity</value>
+  </data>
+  <data name="DanmakuPanel_FontSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku font size</value>
+  </data>
+  <data name="DanmakuPanel_SpeedSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku speed</value>
+  </data>
+  <data name="DanmakuPanel_SpeedSyncCheck.Content" xml:space="preserve">
+    <value>Match danmaku speed to playback rate</value>
+  </data>
+  <data name="DanmakuPanel_FontFamilyBox.Header" xml:space="preserve">
+    <value>Danmaku font</value>
+  </data>
+  <data name="DanmakuPanel_BoldCheck.Content" xml:space="preserve">
+    <value>Bold</value>
+  </data>
+  <data name="DanmakuPanel_BorderStyleBox.Header" xml:space="preserve">
+    <value>Outline type</value>
+  </data>
+  <data name="DanmakuPanel_AreaSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku display area</value>
+  </data>
+  <data name="DanmakuPanel_DensitySlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Maximum visible danmaku</value>
+  </data>
+  <data name="DanmakuPanel_ScrollCheck.Content" xml:space="preserve">
+    <value>Scrolling danmaku</value>
+  </data>
+  <data name="DanmakuPanel_TopCheck.Content" xml:space="preserve">
+    <value>Top danmaku</value>
+  </data>
+  <data name="DanmakuPanel_BottomCheck.Content" xml:space="preserve">
+    <value>Bottom danmaku</value>
+  </data>
+  <data name="DanmakuPanel_ColorCheck.Content" xml:space="preserve">
+    <value>Colored danmaku</value>
+  </data>
+  <data name="DanmakuPanel_RepeatCheck.Content" xml:space="preserve">
+    <value>Merge duplicate danmaku within 10 seconds</value>
+  </data>
+  <data name="DanmakuPanel_BlockBox.Header" xml:space="preserve">
+    <value>Blocked words</value>
+  </data>
+  <data name="DanmakuPanel_BlockBox.PlaceholderText" xml:space="preserve">
+    <value>Separate words with commas</value>
+  </data>
+  <data name="DanmakuPanel_BlockBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Blocked danmaku words</value>
+  </data>
+  <data name="DanmakuPanel_Localization5.Text" xml:space="preserve">
+    <value>Blocked words are shared with Settings and saved to the local list.</value>
+  </data>
+  <data name="DanmakuPanel_RestoreAppearanceButton.Content" xml:space="preserve">
+    <value>Reset danmaku appearance</value>
+  </data>
+  <data name="DanmakuPanel_SettingsButton.Content" xml:space="preserve">
+    <value>More danmaku and connection settings</value>
+  </data>
+  <data name="DetailPage_StoreTrailerPause.Label" xml:space="preserve">
+    <value>Pause trailer</value>
+  </data>
+  <data name="DetailPage_StoreTrailerMute.Label" xml:space="preserve">
+    <value>Mute trailer</value>
+  </data>
+  <data name="DetailPage_StoreTrailerSubtitles.Label" xml:space="preserve">
+    <value>Trailer subtitles</value>
+  </data>
+  <data name="DetailPage_StoreTrailerAudio.Label" xml:space="preserve">
+    <value>Trailer audio</value>
+  </data>
+  <data name="DetailPage_StoreTrailerClose.Label" xml:space="preserve">
+    <value>Close preview</value>
+  </data>
+  <data name="DetailPage_ColumnExtrasButton.Content" xml:space="preserve">
+    <value>Extras and specials</value>
+  </data>
+  <data name="DetailPage_Localization1.Text" xml:space="preserve">
+    <value>Autoplay</value>
+  </data>
+  <data name="DetailPage_StoreContinueSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Autoplay</value>
+  </data>
+  <data name="DetailPage_StoreContinueSwitch.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="DetailPage_StoreContinueSwitch.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="DetailPage_ButtonA1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Mark watched / unwatched</value>
+  </data>
+  <data name="DetailPage_ButtonA2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="DetailPage_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="DetailPage_CompactExtrasButton.Content" xml:space="preserve">
+    <value>Extras and specials</value>
+  </data>
+  <data name="DetailPage_InfoHead.Title" xml:space="preserve">
+    <value>Additional information</value>
+  </data>
+  <data name="DetailPage_MediaInfoTitle.Text" xml:space="preserve">
+    <value>Media information</value>
+  </data>
+  <data name="DiagnosticsPage_DiagnosticsDetailsButton.Content" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="DiagnosticsPage_DiagnosticsDetailsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Runtime status details</value>
+  </data>
+  <data name="DiagnosticsPage_Localization1.Text" xml:space="preserve">
+    <value>Runtime details</value>
+  </data>
+  <data name="DiagnosticsPage_Localization2.Text" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="DiagnosticsPage_ComboBoxA1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Log category</value>
+  </data>
+  <data name="DiagnosticsPage_Localization3.Text" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="DiagnosticsPage_ComboBoxA2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Log level</value>
+  </data>
+  <data name="DiagnosticsPage_ButtonA3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization1.Title" xml:space="preserve">
+    <value>Edit metadata</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="EmbyMetadataDialog_NameBox.Header" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="EmbyMetadataDialog_NameLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_SortNameBox.Header" xml:space="preserve">
+    <value>Sort title</value>
+  </data>
+  <data name="EmbyMetadataDialog_SortNameBox.PlaceholderText" xml:space="preserve">
+    <value>Leave blank to let the server generate it</value>
+  </data>
+  <data name="EmbyMetadataDialog_SortNameLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_DateCreatedBox.Header" xml:space="preserve">
+    <value>Date added</value>
+  </data>
+  <data name="EmbyMetadataDialog_PickCreatedDateButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Choose the date and time added</value>
+  </data>
+  <data name="EmbyMetadataDialog_PickCreatedDateButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Choose date and time</value>
+  </data>
+  <data name="EmbyMetadataDialog_AddedDatePicker.Header" xml:space="preserve">
+    <value>Date added</value>
+  </data>
+  <data name="EmbyMetadataDialog_AddedTimePicker.Header" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="EmbyMetadataDialog_ApplyCreatedDateButton.Content" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization2.Text" xml:space="preserve">
+    <value>Configure how the date added is determined in the Library settings of the Emby Server dashboard.</value>
+  </data>
+  <data name="EmbyMetadataDialog_ParentIndexBox.Header" xml:space="preserve">
+    <value>Season number</value>
+  </data>
+  <data name="EmbyMetadataDialog_IndexBox.Header" xml:space="preserve">
+    <value>Episode number</value>
+  </data>
+  <data name="EmbyMetadataDialog_CommunityRatingBox.Header" xml:space="preserve">
+    <value>Community rating</value>
+  </data>
+  <data name="EmbyMetadataDialog_CommunityRatingLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_OverviewBox.Header" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="EmbyMetadataDialog_OverviewLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_PremiereDatePicker.Header" xml:space="preserve">
+    <value>Release date</value>
+  </data>
+  <data name="EmbyMetadataDialog_PremiereDatePicker.PlaceholderText" xml:space="preserve">
+    <value>Choose date</value>
+  </data>
+  <data name="EmbyMetadataDialog_ClearPremiereDate.Content" xml:space="preserve">
+    <value>Clear release date</value>
+  </data>
+  <data name="EmbyMetadataDialog_ProductionYearBox.Header" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="EmbyMetadataDialog_OfficialRatingBox.Header" xml:space="preserve">
+    <value>Parental rating</value>
+  </data>
+  <data name="EmbyMetadataDialog_OfficialRatingLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_CustomRatingBox.Header" xml:space="preserve">
+    <value>Custom rating</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization3.Text" xml:space="preserve">
+    <value>The custom rating is used for parental controls but is not displayed. The parental rating remains visible.</value>
+  </data>
+  <data name="EmbyMetadataDialog_VideoFormatBox.Header" xml:space="preserve">
+    <value>3D format</value>
+  </data>
+  <data name="EmbyMetadataDialog_AdditionalFields.Header" xml:space="preserve">
+    <value>More fields</value>
+  </data>
+  <data name="EmbyMetadataDialog_OriginalTitleBox.Header" xml:space="preserve">
+    <value>Original title</value>
+  </data>
+  <data name="EmbyMetadataDialog_OriginalTitleLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_CriticRatingBox.Header" xml:space="preserve">
+    <value>Critic rating</value>
+  </data>
+  <data name="EmbyMetadataDialog_CriticRatingLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this field to prevent automatic refresh from overwriting it</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization4.Text" xml:space="preserve">
+    <value>External identifiers</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization5.Text" xml:space="preserve">
+    <value>Metadata settings</value>
+  </data>
+  <data name="EmbyMetadataDialog_LanguageBox.Header" xml:space="preserve">
+    <value>Preferred metadata language</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization6.Text" xml:space="preserve">
+    <value>Leave blank to inherit the parent item's settings or use the global default.</value>
+  </data>
+  <data name="EmbyMetadataDialog_CountryBox.Header" xml:space="preserve">
+    <value>Country or region</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization7.Text" xml:space="preserve">
+    <value>Leave blank to inherit the parent item's settings or use the global default.</value>
+  </data>
+  <data name="EmbyMetadataDialog_LockItemSwitch.Header" xml:space="preserve">
+    <value>Lock this item to prevent future changes</value>
+  </data>
+  <data name="FilterPanel_FilterValuesSelectAll.Content" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="FilterPanel_FilterCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close filters</value>
+  </data>
+  <data name="FilterPanel_FilterCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FilterPanel_Localization1.Text" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization1.Text" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesNew.Content" xml:space="preserve">
+    <value>New library</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesSort.Content" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesScanAll.Content" xml:space="preserve">
+    <value>Scan all</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesRefresh.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryMoveUp.Content" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryMoveDown.Content" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryScan.Content" xml:space="preserve">
+    <value>Scan</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryRemovedFiles.Content" xml:space="preserve">
+    <value>Removed files…</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryBack.Content" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryCategory.Header" xml:space="preserve">
+    <value>Library type</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryName.Header" xml:space="preserve">
+    <value>Library name</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization2.Text" xml:space="preserve">
+    <value>Library folders</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasRemoveFolder.Content" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasBrowseFolders.Content" xml:space="preserve">
+    <value>Choose folder</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasReplacePlaylist.Header" xml:space="preserve">
+    <value>Replace the current playlist</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistMode.Header" xml:space="preserve">
+    <value>Playlist source</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistUrl.Header" xml:space="preserve">
+    <value>Playlist URL</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistRefresh.Header" xml:space="preserve">
+    <value>Automatic update interval</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistText.Header" xml:space="preserve">
+    <value>Playlist contents</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistBrowse.Content" xml:space="preserve">
+    <value>Choose a playlist file on the NAS</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistPick.Content" xml:space="preserve">
+    <value>Choose a local playlist file</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization3.Text" xml:space="preserve">
+    <value>Authorized NAS folders</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasDirectoryRoots.Content" xml:space="preserve">
+    <value>Authorized root directory</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasDirectoryChoose.Content" xml:space="preserve">
+    <value>Use this folder</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasDirectoryClose.Content" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization4.Text" xml:space="preserve">
+    <value>Advanced settings</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPreferNfo.Header" xml:space="preserve">
+    <value>Prefer local NFO files and images</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasFilterSmall.Header" xml:space="preserve">
+    <value>Filter small files</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasMinimumFileSize.Header" xml:space="preserve">
+    <value>Skip files smaller than (MB)</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryLanguage.Header" xml:space="preserve">
+    <value>Metadata language</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasIncludeAdult.Header" xml:space="preserve">
+    <value>Include adult content</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasProgressThumb.Header" xml:space="preserve">
+    <value>Generate seek preview thumbnails</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasViewType.Header" xml:space="preserve">
+    <value>Display mode</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasAutoSubtitle.Header" xml:space="preserve">
+    <value>Automatically download subtitles</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasSubtitleLanguage.Header" xml:space="preserve">
+    <value>Preferred subtitle language</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryDelete.Content" xml:space="preserve">
+    <value>Remove library</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrarySave.Content" xml:space="preserve">
+    <value>Save library</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization1.Title" xml:space="preserve">
+    <value>Match a movie manually</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Match</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="FnNasMatchDialog_SourceBox.Header" xml:space="preserve">
+    <value>Search method</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization2.Content" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="FnNasMatchDialog_KeywordBox.Header" xml:space="preserve">
+    <value>Keywords</value>
+  </data>
+  <data name="FnNasMatchDialog_SearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search matching results</value>
+  </data>
+  <data name="FnNasMatchDialog_SearchButton.Content" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="FnNasMatchDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Matching results</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization3.Text" xml:space="preserve">
+    <value>Matching downloads metadata again. Existing images and custom fields may be overwritten by the new information.</value>
+  </data>
+  <data name="FnNasMetadataDialog_Localization1.Title" xml:space="preserve">
+    <value>Edit metadata</value>
+  </data>
+  <data name="FnNasMetadataDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="FnNasMetadataDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="FnNasMetadataDialog_NameBox.Header" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="FnNasMetadataDialog_OverviewBox.Header" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="FnNasMetadataDialog_RatingBox.Header" xml:space="preserve">
+    <value>Rating</value>
+  </data>
+  <data name="FnNasMetadataDialog_ReleaseBox.Header" xml:space="preserve">
+    <value>Release date</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordUnsavedNotice.Title" xml:space="preserve">
+    <value>Local settings not saved</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordUnsavedNotice.Message" xml:space="preserve">
+    <value>The current settings have not been saved locally. Retry only saves locally; it will not change the server password again or submit your new draft.</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordRetryLocalSave.Content" xml:space="preserve">
+    <value>Retry local save</value>
+  </data>
+  <data name="FnNasPasswordPage_Localization1.Text" xml:space="preserve">
+    <value>Change password</value>
+  </data>
+  <data name="FnNasPasswordPage_Localization2.Text" xml:space="preserve">
+    <value>Change the password for the current FNOS Video account. After saving, Momoka uses the new password to keep you signed in.</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordNew.Header" xml:space="preserve">
+    <value>New password</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordConfirm.Header" xml:space="preserve">
+    <value>Confirm password</value>
+  </data>
+  <data name="FnNasPasswordPage_Localization3.Text" xml:space="preserve">
+    <value>The password must contain 6–127 characters.</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordSave.Content" xml:space="preserve">
+    <value>Save changes</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization1.Text" xml:space="preserve">
+    <value>Playback preferences</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization2.Text" xml:space="preserve">
+    <value>These preferences are saved on the FNOS Video server as the default languages for playback and subtitles. Momoka's playback languages still follow Settings → Subtitles.</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasSubtitleLanguage.Header" xml:space="preserve">
+    <value>Preferred subtitle language</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasSubtitleLanguage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Preferred subtitle language</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization3.Text" xml:space="preserve">
+    <value>Prefer downloading and using subtitles in the selected language. You can switch languages during playback.</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasAudioLanguage.Header" xml:space="preserve">
+    <value>Preferred audio language</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasAudioLanguage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Preferred audio language</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization4.Text" xml:space="preserve">
+    <value>Prefer audio in the selected language. You can switch languages during playback.</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasPreferencesSave.Content" xml:space="preserve">
+    <value>Save changes</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization1.Title" xml:space="preserve">
+    <value>Removed files</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Restore selected</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization2.Text" xml:space="preserve">
+    <value>Only folders and removed items appear here. Restoring adds them back to the library; files remain on disk.</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_FnNasRemovedBack.Content" xml:space="preserve">
+    <value>Parent folder</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_FnNasRemovedRefresh.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_FnNasRemovedList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Removed files and folders</value>
+  </data>
+  <data name="FnNasSettingsPage_Localization1.Text" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasSettingsRefresh.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasServerName.Header" xml:space="preserve">
+    <value>Server name</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasServerLanguage.Header" xml:space="preserve">
+    <value>Preferred language</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasMetadataVolume.Header" xml:space="preserve">
+    <value>Metadata storage location</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasPlaybackCacheVolume.Header" xml:space="preserve">
+    <value>Playback temporary cache location</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasFileMonitor.Header" xml:space="preserve">
+    <value>Monitor file changes in real time</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasSettingsSave.Content" xml:space="preserve">
+    <value>Save settings</value>
+  </data>
+  <data name="FnNasSettingsPage_Localization2.Text" xml:space="preserve">
+    <value>Search index</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasRebuildIndex.Content" xml:space="preserve">
+    <value>Rebuild index</value>
+  </data>
+  <data name="FnNasSubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close FNOS subtitle management</value>
+  </data>
+  <data name="FnNasSubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FnNasSubtitleDialog_VersionBox.Header" xml:space="preserve">
+    <value>Media version</value>
+  </data>
+  <data name="FnNasSubtitleDialog_VersionBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Media version for subtitles</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization1.Text" xml:space="preserve">
+    <value>External subtitles on the server</value>
+  </data>
+  <data name="FnNasSubtitleDialog_RefreshTracksButton.Content" xml:space="preserve">
+    <value>Refresh list</value>
+  </data>
+  <data name="FnNasSubtitleDialog_NoTracks.Text" xml:space="preserve">
+    <value>This version has no external subtitles.</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DeleteFnNasSubtitleButton.Content" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DeleteFnNasSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Delete subtitle file from the server</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization2.Text" xml:space="preserve">
+    <value>Delete subtitle file from the server?</value>
+  </data>
+  <data name="FnNasSubtitleDialog_CancelDeleteButton.Content" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="FnNasSubtitleDialog_ConfirmDeleteButton.Content" xml:space="preserve">
+    <value>Delete server file</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization3.Text" xml:space="preserve">
+    <value>Search subtitles</value>
+  </data>
+  <data name="FnNasSubtitleDialog_LanguageBox.Header" xml:space="preserve">
+    <value>Subtitle language</value>
+  </data>
+  <data name="FnNasSubtitleDialog_LanguageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>FNOS subtitle search language</value>
+  </data>
+  <data name="FnNasSubtitleDialog_SearchButton.Content" xml:space="preserve">
+    <value>Search subtitles</value>
+  </data>
+  <data name="FnNasSubtitleDialog_NoSearchResults.Text" xml:space="preserve">
+    <value>No subtitles found. Choose another language and try again.</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DownloadFnNasSubtitleButton.Content" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DownloadFnNasSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Download and add FNOS subtitles</value>
+  </data>
+  <data name="FnNasSubtitleDialog_UploadButton.Content" xml:space="preserve">
+    <value>Upload local subtitles…</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization4.Text" xml:space="preserve">
+    <value>Supports SRT, SUB, SSA, ASS, VTT and SUP; up to 32 MiB.</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization5.Text" xml:space="preserve">
+    <value>Specify a server file</value>
+  </data>
+  <data name="FnNasSubtitleDialog_ServerPathBox.Header" xml:space="preserve">
+    <value>Full path to the subtitle file on the server</value>
+  </data>
+  <data name="FnNasSubtitleDialog_ServerPathBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Full path to the subtitle file on the server</value>
+  </data>
+  <data name="FnNasSubtitleDialog_MarkServerFileButton.Content" xml:space="preserve">
+    <value>Add server subtitles</value>
+  </data>
+  <data name="FnNasTasksPage_Localization1.Text" xml:space="preserve">
+    <value>Scheduled tasks</value>
+  </data>
+  <data name="FnNasTasksPage_FnNasTasksRefresh.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="FnNasTasksPage_FnNasTasksEnabled.Header" xml:space="preserve">
+    <value>Run tasks on a schedule</value>
+  </data>
+  <data name="FnNasTasksPage_Localization2.Text" xml:space="preserve">
+    <value>Run tasks automatically every night to improve everyday use of FNOS Video.</value>
+  </data>
+  <data name="FnNasTasksPage_FnNasTasksSave.Content" xml:space="preserve">
+    <value>Save task schedule</value>
+  </data>
+  <data name="FnNasUsersPage_Localization1.Text" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUsersNew.Content" xml:space="preserve">
+    <value>New user</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUsersDefaults.Content" xml:space="preserve">
+    <value>Default permissions for new users</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUsersRefresh.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="FnNasUsersPage_Localization2.Text" xml:space="preserve">
+    <value>Last accessed</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserBack.Content" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserName.Header" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserPassword.Header" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserConfirmPassword.Header" xml:space="preserve">
+    <value>Confirm password</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserPermission.Header" xml:space="preserve">
+    <value>Accessible libraries</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserUnlock.Content" xml:space="preserve">
+    <value>Unlock user</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserDelete.Content" xml:space="preserve">
+    <value>Delete user</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserSave.Content" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization1.Title" xml:space="preserve">
+    <value>Manage versions</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Delete selected version</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization2.Text" xml:space="preserve">
+    <value>Choose a version. Delete removes the file from disk. Remove from library keeps the file and allows restoration from Removed files. You will confirm the action in the next step.</value>
+  </data>
+  <data name="FnNasVersionsDialog_Files.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Version list</value>
+  </data>
+  <data name="HtmlColorPicker_AppearanceColorDefault.Content" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="HtmlColorPicker_AppearanceColorCancel.Content" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="HtmlColorPicker_AppearanceColorComplete.Content" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="IdentifyDialog_Localization1.Text" xml:space="preserve">
+    <value>Enter one or more search criteria. Remove criteria to find more results.</value>
+  </data>
+  <data name="IdentifyDialog_Localization2.Text" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="IdentifyDialog_NameBox.Header" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="IdentifyDialog_YearBox.Header" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="IdentifyDialog_Localization3.Text" xml:space="preserve">
+    <value>Search results</value>
+  </data>
+  <data name="IdentifyDialog_NoResults.Text" xml:space="preserve">
+    <value>No matching records found from the metadata provider. Try broader search criteria.</value>
+  </data>
+  <data name="IdentifyDialog_Localization4.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Choose this result</value>
+  </data>
+  <data name="IdentifyDialog_Localization5.Content" xml:space="preserve">
+    <value>Select this item</value>
+  </data>
+  <data name="IdentifyDialog_ReplaceImages.Content" xml:space="preserve">
+    <value>Replace existing images</value>
+  </data>
+  <data name="IdentifyDialog_SearchButton.Content" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="IdentifyDialog_RemoveButton.Content" xml:space="preserve">
+    <value>Remove identification</value>
+  </data>
+  <data name="IdentifyDialog_ConfirmRemoveButton.Content" xml:space="preserve">
+    <value>Remove identification</value>
+  </data>
+  <data name="IdentifyDialog_CancelRemoveButton.Content" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="IdentifyDialog_ApplyButton.Content" xml:space="preserve">
+    <value>Identify</value>
+  </data>
+  <data name="IdentifyDialog_BackToFormButton.Content" xml:space="preserve">
+    <value>Back to search criteria</value>
+  </data>
+  <data name="IdentifyDialog_BackToResultsButton.Content" xml:space="preserve">
+    <value>Back to search results</value>
+  </data>
+  <data name="LibraryPage_FavoriteRetry.Content" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="LibraryPage_FavoriteMore.Content" xml:space="preserve">
+    <value>Load more</value>
+  </data>
+  <data name="LibraryPage_LibraryBrowseGroup.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Back to category list</value>
+  </data>
+  <data name="LibraryPage_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Library search</value>
+  </data>
+  <data name="LibraryPage_Localization2.Text" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="LibraryPage_Localization3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search MoviePilot subscriptions</value>
+  </data>
+  <data name="LibraryPage_Localization4.Text" xml:space="preserve">
+    <value>MoviePilot subscriptions</value>
+  </data>
+  <data name="LibraryPage_Localization5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search MoviePilot releases</value>
+  </data>
+  <data name="LibraryPage_Localization6.Text" xml:space="preserve">
+    <value>MoviePilot releases</value>
+  </data>
+  <data name="LibraryPage_AniBtSourceTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search AniBT</value>
+  </data>
+  <data name="LibraryPage_FavoriteAccountButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Account filter</value>
+  </data>
+  <data name="LibraryPage_FavoriteAccountButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Account filter</value>
+  </data>
+  <data name="LibraryPage_Localization7.Text" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="LibraryPage_Localization8.Text" xml:space="preserve">
+    <value>Shuffle play</value>
+  </data>
+  <data name="LibraryPage_SortButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="LibraryPage_SortButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="LibraryPage_SortList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Sort by</value>
+  </data>
+  <data name="LibraryPage_FilterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="LibraryPage_Localization9.Text" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="LibraryPage_JellyfinMoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="LibraryPage_JellyfinMoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="LibraryPage_Localization10.Text" xml:space="preserve">
+    <value>Image type</value>
+  </data>
+  <data name="LibraryPage_JellyfinShowTitleCheck.Content" xml:space="preserve">
+    <value>Show titles</value>
+  </data>
+  <data name="LibraryPage_JellyfinShowTitleCheck.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Show titles</value>
+  </data>
+  <data name="LibraryPage_FnNasLayoutButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="LibraryPage_FnNasLayoutButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="LibraryPage_Localization11.Text" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="LibraryPage_JellyfinLayoutButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="LibraryPage_JellyfinLayoutButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="LibraryPage_Localization12.Text" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="LibraryPage_LibrarySettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="LibraryPage_LibrarySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="LibraryPage_Localization13.Text" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="LibraryPage_FnNasFilterCollapse.Content" xml:space="preserve">
+    <value>Collapse</value>
+  </data>
+  <data name="LibraryPage_FnNasFilterClear.Content" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="LibraryPage_Localization14.Text" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="LibraryPage_PlexFilterCollapse.Content" xml:space="preserve">
+    <value>Collapse</value>
+  </data>
+  <data name="LibraryPage_PlexTypePicker.Header" xml:space="preserve">
+    <value>Media type</value>
+  </data>
+  <data name="LibraryPage_PlexFilterRetry.Content" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="LibraryPage_PlexFilterClear.Content" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="LibraryPage_LibraryRetryButton.Content" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="LibraryPage_TopResultsCategory.Text" xml:space="preserve">
+    <value>Top results</value>
+  </data>
+  <data name="LibraryPage_SeriesCategory.Text" xml:space="preserve">
+    <value>Shows</value>
+  </data>
+  <data name="LibraryPage_MoviesCategory.Text" xml:space="preserve">
+    <value>Movies</value>
+  </data>
+  <data name="LibraryPage_EpisodesCategory.Text" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="LibraryPage_PeopleCategory.Text" xml:space="preserve">
+    <value>People</value>
+  </data>
+  <data name="LibraryPage_CollectionsCategory.Text" xml:space="preserve">
+    <value>Collections</value>
+  </data>
+  <data name="LibraryPage_PlaylistsCategory.Text" xml:space="preserve">
+    <value>Playlists</value>
+  </data>
+  <data name="LibraryPage_LibraryBatchCommandBar.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Library selection actions</value>
+  </data>
+  <data name="LibraryPage_LibrarySelectionCount.Text" xml:space="preserve">
+    <value>0 items selected</value>
+  </data>
+  <data name="LibraryPage_LibrarySelectLoaded.Label" xml:space="preserve">
+    <value>Select all loaded</value>
+  </data>
+  <data name="LibraryPage_LibraryBatchActions.Label" xml:space="preserve">
+    <value>Batch actions</value>
+  </data>
+  <data name="LibraryPage_LibraryCancelBatch.Label" xml:space="preserve">
+    <value>Cancel remaining</value>
+  </data>
+  <data name="LibraryPage_LibraryEndSelection.Label" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="LibraryPage_LibraryClearSelection.Label" xml:space="preserve">
+    <value>Clear selection</value>
+  </data>
+  <data name="LibraryPage_Localization15.Text" xml:space="preserve">
+    <value>Subscribe</value>
+  </data>
+  <data name="LibraryPage_UpcomingLoadingRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Loading TV previews</value>
+  </data>
+  <data name="LibraryPage_Localization16.Text" xml:space="preserve">
+    <value>Loading previews…</value>
+  </data>
+  <data name="LibraryPage_UpcomingRetryButton.Content" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="LibraryPage_Localization17.Text" xml:space="preserve">
+    <value>Recent searches</value>
+  </data>
+  <data name="LibraryPage_ClearRecentSearches.Content" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="LibraryPage_Localization18.Text" xml:space="preserve">
+    <value>No recent searches</value>
+  </data>
+  <data name="LibraryPage_FilterScrim.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close filters</value>
+  </data>
+  <data name="LibraryPage_SettingsScrim.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close settings</value>
+  </data>
+  <data name="LibrarySettingsPanel_SettingsCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close settings</value>
+  </data>
+  <data name="LibrarySettingsPanel_SettingsCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization1.Text" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization2.Text" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="LibrarySettingsPanel_ViewCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization3.Text" xml:space="preserve">
+    <value>Image size</value>
+  </data>
+  <data name="LibrarySettingsPanel_SizeCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Image size</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization4.Text" xml:space="preserve">
+    <value>Set the preferred size of images in the grid.</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization5.Text" xml:space="preserve">
+    <value>Group items into collections</value>
+  </data>
+  <data name="LibrarySettingsPanel_GroupSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Group items into collections</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization6.Text" xml:space="preserve">
+    <value>Group items by the collections they belong to. Some filters or sort orders may automatically disable this feature.</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization7.Text" xml:space="preserve">
+    <value>Display fields</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryRefresh.Label" xml:space="preserve">
+    <value>Refresh library</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryRefresh.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh library</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryOpenSource.Label" xml:space="preserve">
+    <value>Open source directory</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryOpenSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Open source directory</value>
+  </data>
+  <data name="LocalLibraryPage_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refreshing local library</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryOpenLocation.Content" xml:space="preserve">
+    <value>Open containing folder</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryPlay.Content" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="LocalLibraryPage_Localization2.Text" xml:space="preserve">
+    <value>No media files have been added yet. They will appear after background scanning and metadata retrieval finish.</value>
+  </data>
+  <data name="LocalMediaPage_Localization1.Text" xml:space="preserve">
+    <value>Local organization</value>
+  </data>
+  <data name="LocalMediaPage_Localization2.Text" xml:space="preserve">
+    <value>Identify media files on this computer or a network share, preview renaming or links, and write NFO files, posters and backdrops.</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="LocalMediaPage_Localization3.Text" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryPicker.Header" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryNew.Content" xml:space="preserve">
+    <value>Add library</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryName.Header" xml:space="preserve">
+    <value>Library name</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaRecognitionCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Identify and organize</value>
+  </data>
+  <data name="LocalMediaPage_Localization4.Text" xml:space="preserve">
+    <value>Identify and organize</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaProvider.Header" xml:space="preserve">
+    <value>Identification method</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMethod.Header" xml:space="preserve">
+    <value>Organization method</value>
+  </data>
+  <data name="LocalMediaPage_Localization5.Content" xml:space="preserve">
+    <value>Hard link</value>
+  </data>
+  <data name="LocalMediaPage_Localization6.Content" xml:space="preserve">
+    <value>Symbolic link</value>
+  </data>
+  <data name="LocalMediaPage_Localization7.Content" xml:space="preserve">
+    <value>Rename source files</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaToken.PlaceholderText" xml:space="preserve">
+    <value>Enter a read access token; Windows encrypts it after saving</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSaveToken.Content" xml:space="preserve">
+    <value>Save token</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaClearToken.Content" xml:space="preserve">
+    <value>Clear token</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaTmdbSettings.Content" xml:space="preserve">
+    <value>Open TMDB API settings</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMpNotice.Text" xml:space="preserve">
+    <value>MoviePilot receives only directory and filename text, not video files. If unavailable, connect in MoviePilot settings first.</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaDirectoriesCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Directories</value>
+  </data>
+  <data name="LocalMediaPage_Localization8.Text" xml:space="preserve">
+    <value>Directories</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSource.Header" xml:space="preserve">
+    <value>Source directory</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickSource.Content" xml:space="preserve">
+    <value>Choose…</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Choose source directory</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaTarget.Header" xml:space="preserve">
+    <value>Destination directory</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickTarget.Content" xml:space="preserve">
+    <value>Choose…</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickTarget.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Choose destination directory</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaRecursive.Content" xml:space="preserve">
+    <value>Include subfolders</value>
+  </data>
+  <data name="LocalMediaPage_Localization9.Text" xml:space="preserve">
+    <value>Source and destination directories may be local paths (C:Media) or network shares (\serversharemedia). Network shares use the current Windows account.</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryAutomationCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Automatic library import</value>
+  </data>
+  <data name="LocalMediaPage_Localization10.Text" xml:space="preserve">
+    <value>Automatic library import</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryMonitor.Header" xml:space="preserve">
+    <value>Monitor and fetch metadata automatically</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryMonitor.OnContent" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryMonitor.OffContent" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="LocalMediaPage_Localization11.Text" xml:space="preserve">
+    <value>Existing and new files are processed. Identification starts after file writes settle; unclear matches wait for manual correction. Takes effect after saving the rules.</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibrarySave.Content" xml:space="preserve">
+    <value>Save library rules</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryRemove.Content" xml:space="preserve">
+    <value>Remove library</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaScan.Content" xml:space="preserve">
+    <value>Scan and identify</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaStop.Content" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSelectFile.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Select this file</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaCorrectFile.Content" xml:space="preserve">
+    <value>Correct match</value>
+  </data>
+  <data name="LocalMediaPage_Localization12.Text" xml:space="preserve">
+    <value>Correct selected file</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSearchText.Header" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSearchType.Header" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="LocalMediaPage_Localization13.Content" xml:space="preserve">
+    <value>Movie</value>
+  </data>
+  <data name="LocalMediaPage_Localization14.Content" xml:space="preserve">
+    <value>TV show</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSearch.Content" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaCandidates.Header" xml:space="preserve">
+    <value>Identification results</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSeason.Header" xml:space="preserve">
+    <value>Season number (0 for specials)</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaEpisode.Header" xml:space="preserve">
+    <value>Episode number</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaUpdatePreview.Content" xml:space="preserve">
+    <value>Update preview using the selected title</value>
+  </data>
+  <data name="MetadataListEditor_EntryNameBox.Header" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="MetadataListEditor_EntryRoleBox.Header" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="MetadataListEditor_EntryTypeBox.Header" xml:space="preserve">
+    <value>Person type</value>
+  </data>
+  <data name="MetadataListEditor_ApplyEntryButton.Content" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MetadataListEditor_CancelEntryButton.Content" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MetadataListEditor_AddButton.Content" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="MetadataListEditor_LockToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lock this metadata group</value>
+  </data>
+  <data name="MetadataListEditor_EmptyText.Text" xml:space="preserve">
+    <value>Not added yet</value>
+  </data>
+  <data name="MetadataListEditor_EditEntry.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Edit this item</value>
+  </data>
+  <data name="MetadataListEditor_EditEntry.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="MetadataListEditor_RemoveEntry.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Remove this item</value>
+  </data>
+  <data name="MetadataListEditor_RemoveEntry.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="MetadataListEditor_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Drag to reorder</value>
+  </data>
+  <data name="MetadataListEditor_MoveUpButton.Content" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="MetadataListEditor_MoveDownButton.Content" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="MissingEpisodesDialog_SpecialsSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Specials</value>
+  </data>
+  <data name="MissingEpisodesDialog_SpecialsSwitch.Header" xml:space="preserve">
+    <value>Specials</value>
+  </data>
+  <data name="MissingEpisodesDialog_UnairedSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="MissingEpisodesDialog_UnairedSwitch.Header" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="MissingEpisodesDialog_SearchMissingMoviePilot.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Search for this episode using MoviePilot</value>
+  </data>
+  <data name="MissingEpisodesDialog_MissingMoviePilot.Text" xml:space="preserve">
+    <value>Use MoviePilot</value>
+  </data>
+  <data name="MissingEpisodesDialog_MissingAniBt.Text" xml:space="preserve">
+    <value>Search using the AniBT API</value>
+  </data>
+  <data name="MoviePilotCalendarPage_AllMedia.Content" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="MoviePilotCalendarPage_MovieMedia.Content" xml:space="preserve">
+    <value>Movie</value>
+  </data>
+  <data name="MoviePilotCalendarPage_SeriesMedia.Content" xml:space="preserve">
+    <value>TV show</value>
+  </data>
+  <data name="MoviePilotCalendarPage_CurrentMonth.Content" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="MoviePilotCalendarPage_RefreshCalendar.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh calendar</value>
+  </data>
+  <data name="MoviePilotCalendarPage_RefreshCalendar.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="MoviePilotCalendarPage_PreviousMonth.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous month</value>
+  </data>
+  <data name="MoviePilotCalendarPage_PreviousMonth.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous month</value>
+  </data>
+  <data name="MoviePilotCalendarPage_NextMonth.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next month</value>
+  </data>
+  <data name="MoviePilotCalendarPage_NextMonth.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next month</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Start download</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_Localization2.Text" xml:space="preserve">
+    <value>Confirm download</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DismissDownload.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Cancel download</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DismissDownload.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Cancel download</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_RefreshDownloadChoices.Content" xml:space="preserve">
+    <value>Refresh options</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadClient.Header" xml:space="preserve">
+    <value>Downloader</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadPath.Header" xml:space="preserve">
+    <value>Save directory</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadPath.PlaceholderText" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadPath.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Choose or enter a path on the downloader; leave blank to select automatically</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaType.Header" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaType.PlaceholderText" xml:space="preserve">
+    <value>Identify automatically</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaSource.Header" xml:space="preserve">
+    <value>Data source</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaSource.PlaceholderText" xml:space="preserve">
+    <value>Choose data source</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaId.PlaceholderText" xml:space="preserve">
+    <value>Enter ID</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_ResolveDownloadMedia.Content" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_SearchDownloadMedia.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Find media ID by title</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_SearchDownloadMedia.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Find by title</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_ResetDownloadIdentity.Content" xml:space="preserve">
+    <value>Restore original identification</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadSearchText.Header" xml:space="preserve">
+    <value>Find by title</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_SubmitDownloadSearch.Content" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="MoviePilotMediaManagementDialog_SelectAllRecords.Content" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="MoviePilotMediaManagementDialog_SelectAllRecords.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Select all organization records</value>
+  </data>
+  <data name="MoviePilotMediaManagementDialog_RecordList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Organization records and file operation results</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_SeasonsHeading.Text" xml:space="preserve">
+    <value>Season</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_EpisodeGroupsHeading.Text" xml:space="preserve">
+    <value>Choose episode group</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization1.Text" xml:space="preserve">
+    <value>Counts are based on the library linked to MoviePilot. Downloaded episodes not yet imported and unaired episodes also count as not imported.</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_EpisodeFilter.Header" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization2.Content" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization3.Content" xml:space="preserve">
+    <value>In library</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization4.Content" xml:space="preserve">
+    <value>Missing / not imported</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_SearchMediaEpisode.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search releases for this episode</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_SearchMediaEpisode.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Search releases</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization1.Text" xml:space="preserve">
+    <value>Manual organization</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_DismissReorganize.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close manual organization</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_DismissReorganize.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_HistoryQuery.Header" xml:space="preserve">
+    <value>Find organization history</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_HistoryQuery.PlaceholderText" xml:space="preserve">
+    <value>Enter the original title or filename</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_HistoryBox.Header" xml:space="preserve">
+    <value>Original organization record</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetStorageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Destination storage</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetStorageBox.PlaceholderText" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetStorageLabel.Text" xml:space="preserve">
+    <value>Destination storage</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization2.Text" xml:space="preserve">
+    <value>Storage destination; the backend matches it when Automatic is selected</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TransferTypeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Organization method</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization3.Content" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization4.Content" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization5.Content" xml:space="preserve">
+    <value>Move (remove source file)</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization6.Content" xml:space="preserve">
+    <value>Hard link</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization7.Content" xml:space="preserve">
+    <value>Symbolic link</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization8.Text" xml:space="preserve">
+    <value>Organization method</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization9.Text" xml:space="preserve">
+    <value>File operation method; Automatic uses backend matching or the default rules</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetPathBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Destination path</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetPathBox.PlaceholderText" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization10.Text" xml:space="preserve">
+    <value>Destination path</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization11.Text" xml:space="preserve">
+    <value>Organization destination path; Automatic matches the source path on the backend</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_UseMatchedPathButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Use matched path</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization12.Text" xml:space="preserve">
+    <value>Use matched path</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TypeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization13.Content" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization14.Content" xml:space="preserve">
+    <value>Movie</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization15.Content" xml:space="preserve">
+    <value>TV show</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization16.Text" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization17.Text" xml:space="preserve">
+    <value>File media type</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_SourceBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Data source</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization18.Text" xml:space="preserve">
+    <value>Data source</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization19.Text" xml:space="preserve">
+    <value>Uses backend identification settings by default; override for this organization and metadata retrieval</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_MediaIdBox.Header" xml:space="preserve">
+    <value>Media ID</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_MediaIdBox.PlaceholderText" xml:space="preserve">
+    <value>Leave blank to identify automatically, or enter a title to search</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization20.Text" xml:space="preserve">
+    <value>Use the native ID of the selected data source.</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_SeasonBox.Header" xml:space="preserve">
+    <value>Season (0 for specials)</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_SeasonBox.PlaceholderText" xml:space="preserve">
+    <value>Leave blank to identify automatically</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization21.Text" xml:space="preserve">
+    <value>Leave blank to identify from the filename; enter 0 for specials.</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeBox.Header" xml:space="preserve">
+    <value>Episodes (e.g. 1 or 1,2)</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeBox.PlaceholderText" xml:space="preserve">
+    <value>First episode,last episode</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization22.Text" xml:space="preserve">
+    <value>Enter one episode or first episode,last episode.</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeGroupBox.Header" xml:space="preserve">
+    <value>Episode group</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeGroupBox.PlaceholderText" xml:space="preserve">
+    <value>Default order, or enter an episode group ID</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeGroupHint.Text" xml:space="preserve">
+    <value>Accepts a TMDB episode group ID.</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeFormatBox.Header" xml:space="preserve">
+    <value>Episode position</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeFormatBox.PlaceholderText" xml:space="preserve">
+    <value>Use {ep} to locate the episode number</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization23.Text" xml:space="preserve">
+    <value>Mark the episode number position with {ep}.</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeOffsetBox.Header" xml:space="preserve">
+    <value>Episode offset</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeOffsetBox.PlaceholderText" xml:space="preserve">
+    <value>E.g. -10 or EP*2</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization24.Text" xml:space="preserve">
+    <value>Adjust the identified episode number with an expression.</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_PartBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Part</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_PartBox.PlaceholderText" xml:space="preserve">
+    <value>E.g. part1</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization25.Text" xml:space="preserve">
+    <value>Part</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization26.Text" xml:space="preserve">
+    <value>Specify a part, e.g. part1</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_MinSizeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Minimum file size (MB)</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization27.Text" xml:space="preserve">
+    <value>Minimum file size (MB)</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization28.Text" xml:space="preserve">
+    <value>Only organize files larger than the minimum size</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TypeFolderToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Group by media type</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization29.Text" xml:space="preserve">
+    <value>Group by media type</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization30.Text" xml:space="preserve">
+    <value>Create media type subdirectories under the destination</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_CategoryFolderToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Group by category</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization31.Text" xml:space="preserve">
+    <value>Group by category</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization32.Text" xml:space="preserve">
+    <value>Create media category subdirectories under the destination</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_ScrapeToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Fetch metadata</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization33.Text" xml:space="preserve">
+    <value>Fetch metadata</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization34.Text" xml:space="preserve">
+    <value>Fetch metadata automatically after organization</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_FromHistoryToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Reuse identification history</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization35.Text" xml:space="preserve">
+    <value>Reuse identification history</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization36.Text" xml:space="preserve">
+    <value>Use the media information identified in previous organization records</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_ConfirmChanges.Content" xml:space="preserve">
+    <value>I have checked the source files, destination path and impact on existing records</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_PreviewButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization37.Text" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_QueueButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Add to organization queue</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization38.Text" xml:space="preserve">
+    <value>Add to organization queue</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_ReorganizeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Organize again</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization39.Text" xml:space="preserve">
+    <value>Organize again</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization1.Text" xml:space="preserve">
+    <value>Release search results</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortAscending.Text" xml:space="preserve">
+    <value>Ascending</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortDescending.Text" xml:space="preserve">
+    <value>Descending</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortDefault.Text" xml:space="preserve">
+    <value>Default sort order</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortSite.Text" xml:space="preserve">
+    <value>Site</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortSize.Text" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortSeeders.Text" xml:space="preserve">
+    <value>Seeders</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortPublishedAt.Text" xml:space="preserve">
+    <value>Published</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_FilterExpander.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>All filters</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization2.Text" xml:space="preserve">
+    <value>All filters</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_FilterText.Header" xml:space="preserve">
+    <value>Filter results</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_FilterText.PlaceholderText" xml:space="preserve">
+    <value>Title, subtitle or tag</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization3.Text" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_EpisodeFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Episodes</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization4.Text" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_LabelFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization5.Text" xml:space="preserve">
+    <value>Published</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_DateFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Published</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SeededFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Seeded only</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization6.Text" xml:space="preserve">
+    <value>Seeded only</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_HitAndRunFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Exclude HR</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization7.Text" xml:space="preserve">
+    <value>Exclude HR</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_ResetAdvancedFilters.Content" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_ResetFilters.Content" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization8.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Seeders</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization9.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Leechers</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization10.Text" xml:space="preserve">
+    <value>Identity needs verification</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization11.Text" xml:space="preserve">
+    <value>No releases match these filters. Clear the filters and try again.</value>
+  </data>
+  <data name="MoviePilotResourcePanel_CloseButton.Content" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="MoviePilotResourcePanel_RetrySearch.Content" xml:space="preserve">
+    <value>Search releases</value>
+  </data>
+  <data name="MoviePilotSearchPanel_ReviewMovieSubscription.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>I have checked subscriptions and downloads in MoviePilot to avoid duplicate actions; reload status</value>
+  </data>
+  <data name="MoviePilotSearchPanel_ReviewMovieSubscription.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Verified in MoviePilot · Reload</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization2.Text" xml:space="preserve">
+    <value>Choose a season to subscribe to</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_DismissSeasonPicker.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close season selection</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_DismissSeasonPicker.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization3.Text" xml:space="preserve">
+    <value>Choose episode group</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_PreviousEpisodeGroups.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous episode group</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_NextEpisodeGroups.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next episode group</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_RetrySeasonStates.Content" xml:space="preserve">
+    <value>Retry library status</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization4.Text" xml:space="preserve">
+    <value>Subscribed</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_SelectSubscribeSeason.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Enable to subscribe to this season. Disabling and submitting cancels the subscription while keeping imported files</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_SeasonModes.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subscription mode</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_NormalSubscribeMode.Content" xml:space="preserve">
+    <value>Standard subscription</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_EpisodeUpgradeMode.Content" xml:space="preserve">
+    <value>Upgrade individual episodes</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_FullSeasonUpgradeMode.Content" xml:space="preserve">
+    <value>Upgrade complete season</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_ConfirmSubscriptionReview.Content" xml:space="preserve">
+    <value>I have checked subscriptions and downloads in MoviePilot to avoid duplicate actions</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_ReviewSubscriptionResult.Content" xml:space="preserve">
+    <value>Clear verification status and reload</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization1.Title" xml:space="preserve">
+    <value>Reorganize this show's releases</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SeriesQuery.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>TMDB filter for this show</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.PlaceholderText" xml:space="preserve">
+    <value>Search title, season, episode or path; supports * / ?</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search organized releases for this show</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Enter custom keywords separated by spaces. * matches any text; ? matches one character.</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ReloadResources.Content" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_StatusAll.Text" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_StatusSuccess.Text" xml:space="preserve">
+    <value>Succeeded</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_StatusFailed.Text" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortDefault.Text" xml:space="preserve">
+    <value>Default order</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortTitle.Text" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortPath.Text" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortMode.Text" xml:space="preserve">
+    <value>Transfer method</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortSize.Text" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortTime.Text" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortStatus.Text" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceViewButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>List / grouped view</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ViewList.Text" xml:space="preserve">
+    <value>List view</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ViewGrouped.Text" xml:space="preserve">
+    <value>Grouped view</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SelectAllResources.Content" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ClearResourceSelection.Content" xml:space="preserve">
+    <value>Clear selection</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SeriesResources.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Organized releases for this show</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SelectSeriesResourceGroup.Content" xml:space="preserve">
+    <value>Select this group</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization2.Text" xml:space="preserve">
+    <value>Succeeded</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization3.Text" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization4.Text" xml:space="preserve">
+    <value>Select releases, then review the organization settings and preview before submitting.</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Localization1.Text" xml:space="preserve">
+    <value>Choose sites</value>
+  </data>
+  <data name="MoviePilotSiteDialog_CloseSiteDialog.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close site selection</value>
+  </data>
+  <data name="MoviePilotSiteDialog_CloseSiteDialog.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close (do not save or search)</value>
+  </data>
+  <data name="MoviePilotSiteDialog_SelectAllSites.Content" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="MoviePilotSiteDialog_ClearSelectedSites.Content" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh site directory</value>
+  </data>
+  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Reload site directory</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Localization2.Text" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="MoviePilotSiteDialog_UseDefaultSites.Content" xml:space="preserve">
+    <value>Default sites</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Localization3.Text" xml:space="preserve">
+    <value>Default sites follow MoviePilot. Select cards or Select all to choose specific sites. Confirm saves your choice; Cancel leaves it unchanged.</value>
+  </data>
+  <data name="MoviePilotSiteDialog_NoSearchSites.Text" xml:space="preserve">
+    <value>No enabled sites are available for searching. Refresh to try again.</value>
+  </data>
+  <data name="MoviePilotSitePicker_SiteLabel.Text" xml:space="preserve">
+    <value>Search sites</value>
+  </data>
+  <data name="MoviePilotSitePicker_ChooseSites.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Choose search sites</value>
+  </data>
+  <data name="MoviePilotSitePicker_ChooseSites.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Choose search sites</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_BasicTab.Text" xml:space="preserve">
+    <value>Basic</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_AdvancedTab.Text" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_RetryEditorChoices.Content" xml:space="preserve">
+    <value>Reload options</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_KeywordInput.Header" xml:space="preserve">
+    <value>Search keywords</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization1.Text" xml:space="preserve">
+    <value>Keywords used when searching selected sites</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_TotalInput.Header" xml:space="preserve">
+    <value>Total episodes</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization2.Text" xml:space="preserve">
+    <value>Total number of episodes</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_StartInput.Header" xml:space="preserve">
+    <value>Starting episode</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization3.Text" xml:space="preserve">
+    <value>First episode to subscribe to</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_QualityInput.Header" xml:space="preserve">
+    <value>Quality</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization4.Text" xml:space="preserve">
+    <value>Subscription release quality</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ResolutionInput.Header" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization5.Text" xml:space="preserve">
+    <value>Subscription release resolution</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_EffectInput.Header" xml:space="preserve">
+    <value>Effects</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization6.Text" xml:space="preserve">
+    <value>Subscription release effects</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SubscriptionSitesLabel.Text" xml:space="preserve">
+    <value>Subscription sites</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SubscriptionSitesInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subscription sites</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SubscriptionSitesInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Expand or collapse the site list</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization7.Text" xml:space="preserve">
+    <value>Sites to use for this subscription; leave unselected to use system settings</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SearchIntervalMode.Header" xml:space="preserve">
+    <value>Search interval</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization8.Content" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization9.Content" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization10.Text" xml:space="preserve">
+    <value>Only applies when scheduled subscription searches are enabled. Manual searches and RSS refresh are unaffected.</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SearchIntervalHours.Header" xml:space="preserve">
+    <value>Interval in hours</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_DownloaderInput.Header" xml:space="preserve">
+    <value>Downloader</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization11.Text" xml:space="preserve">
+    <value>Choose the downloader for this subscription</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SavePathInput.Header" xml:space="preserve">
+    <value>Save path</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SavePathInput.PlaceholderText" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization12.Text" xml:space="preserve">
+    <value>Choose or enter a download path; leave blank to use the configured download directory</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_BestVersionInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Upgrade releases</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization13.Text" xml:space="preserve">
+    <value>Upgrade releases</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization14.Text" xml:space="preserve">
+    <value>Upgrade subscribed releases according to priority</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_BestVersionFullInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Upgrade complete season</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization15.Text" xml:space="preserve">
+    <value>Upgrade complete season</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization16.Text" xml:space="preserve">
+    <value>Only choose complete packs covering the subscribed episodes</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SearchImdbInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search by IMDb ID</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization17.Text" xml:space="preserve">
+    <value>Search by IMDb ID</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization18.Text" xml:space="preserve">
+    <value>Search precisely using the IMDb ID</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_IncludeInput.Header" xml:space="preserve">
+    <value>Include</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization19.Text" xml:space="preserve">
+    <value>Match release titles; supports regular expressions</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ExcludeInput.Header" xml:space="preserve">
+    <value>Exclude</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization20.Text" xml:space="preserve">
+    <value>Exclude release titles; supports regular expressions</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization21.Text" xml:space="preserve">
+    <value>Priority rule groups</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_FilterGroupsInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Priority rule groups</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_FilterGroupsInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Expand or collapse the rule group list</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ClearEditorFilters.Content" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization22.Text" xml:space="preserve">
+    <value>Leave unselected to use the system priority rule groups</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_EpisodeGroupInput.Header" xml:space="preserve">
+    <value>Episode group</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization23.Text" xml:space="preserve">
+    <value>Use the season and episode order of the selected episode group</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SeasonInput.Header" xml:space="preserve">
+    <value>Season number</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization24.Text" xml:space="preserve">
+    <value>Subscribed season; 0 means specials</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_MediaCategoryInput.Header" xml:space="preserve">
+    <value>Custom category</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization25.Text" xml:space="preserve">
+    <value>Leave blank for automatic categorization</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_CustomWordsInput.Header" xml:space="preserve">
+    <value>Custom identification rules</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization26.Text" xml:space="preserve">
+    <value>Only for this subscription; one rule per line</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization27.Text" xml:space="preserve">
+    <value>Cancel this subscription? Imported files will be kept.</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ConfirmRemoveSubscription.Content" xml:space="preserve">
+    <value>Confirm cancellation</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_KeepSubscription.Content" xml:space="preserve">
+    <value>Keep subscription</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerPause.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Pause trailer</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerPause.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Pause trailer</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerMute.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Mute trailer</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerMute.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Mute trailer</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerClose.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close preview</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerClose.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close preview</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchSubscription.Content" xml:space="preserve">
+    <value>Search releases</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchMediaTitle.Text" xml:space="preserve">
+    <value>Search by title</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchMediaImdb.Text" xml:space="preserve">
+    <value>Search by IMDb</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchAniBt.Content" xml:space="preserve">
+    <value>Search in AniBT</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchMediaSubtitles.Content" xml:space="preserve">
+    <value>Search subtitles</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_PlayMediaLibraryItem.Content" xml:space="preserve">
+    <value>Play from library</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_PlaySubscriptionTrailer.Content" xml:space="preserve">
+    <value>Trailer</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_EditSubscription.Content" xml:space="preserve">
+    <value>Edit subscription</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_MoreActions.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_MoreActions.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SeasonHead.Title" xml:space="preserve">
+    <value>Season</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization1.Title" xml:space="preserve">
+    <value>Cast</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization2.Title" xml:space="preserve">
+    <value>Recommendations</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization3.Title" xml:space="preserve">
+    <value>Similar titles</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization4.Text" xml:space="preserve">
+    <value>Subscribe</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Media information unavailable</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization6.Text" xml:space="preserve">
+    <value>Something went wrong!</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_RetryMediaDetail.Content" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization7.Text" xml:space="preserve">
+    <value>Loading media details…</value>
+  </data>
+  <data name="MoviePilotSubscriptionPoster_SubscriptionMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subscription management</value>
+  </data>
+  <data name="MoviePilotSubscriptionPoster_SubscriptionMore.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Subscription management</value>
+  </data>
+  <data name="MoviePilotSubscriptionsPage_LoadingRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Loading subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionsPage_Localization1.Text" xml:space="preserve">
+    <value>Loading subscriptions…</value>
+  </data>
+  <data name="MoviePilotSubscriptionsPage_RefreshSubscriptions.Content" xml:space="preserve">
+    <value>Refresh subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionsView_RefreshSubscriptions.Content" xml:space="preserve">
+    <value>Refresh subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionsView_RefreshSeriesSubscriptions.Content" xml:space="preserve">
+    <value>Refresh subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallCard_CardMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subscription management</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallCard_CardMore.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Subscription management</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallFilterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Filter subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallFilterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Filter subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallKeywordBox.PlaceholderText" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallKeywordClear.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Clear name filter</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallKeywordClear.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization1.Text" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization2.Text" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallSortModeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Drag to reorder</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallSortModeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Drag to reorder</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Batch actions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Batch actions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefresh.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefresh.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Refresh subscriptions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallMaintenanceButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subscription maintenance</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallMaintenanceButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Subscription maintenance</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallSearchAll.Text" xml:space="preserve">
+    <value>Search subscriptions of the current media type</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefreshResources.Text" xml:space="preserve">
+    <value>Refresh subscription releases</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefreshMetadata.Text" xml:space="preserve">
+    <value>Update subscription metadata</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization3.Text" xml:space="preserve">
+    <value>Batch actions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization4.Text" xml:space="preserve">
+    <value>Select subscriptions by clicking cards, then use the buttons at the bottom right.</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchResume.Content" xml:space="preserve">
+    <value>Enable selected</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchPause.Content" xml:space="preserve">
+    <value>Pause selected</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchDelete.Content" xml:space="preserve">
+    <value>Delete selected</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallExitBatch.Content" xml:space="preserve">
+    <value>Exit batch actions</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchCancel.Content" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchDismiss.Content" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization5.Text" xml:space="preserve">
+    <value>Drag to reorder mode is active</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallExitSort.Content" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization6.Text" xml:space="preserve">
+    <value>Request failed. Try again later</value>
+  </data>
+  <data name="MoviePilotVersionsView_SearchInput.PlaceholderText" xml:space="preserve">
+    <value>Enter keywords (e.g. Show S01 E01)</value>
+  </data>
+  <data name="MusicLibraryPage_RefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh music</value>
+  </data>
+  <data name="MusicLibraryPage_RefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="MusicLibraryPage_TracksTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Songs</value>
+  </data>
+  <data name="MusicLibraryPage_TracksTab.Content" xml:space="preserve">
+    <value>Songs</value>
+  </data>
+  <data name="MusicLibraryPage_AlbumsTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Albums</value>
+  </data>
+  <data name="MusicLibraryPage_AlbumsTab.Content" xml:space="preserve">
+    <value>Albums</value>
+  </data>
+  <data name="MusicLibraryPage_ArtistsTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Artists</value>
+  </data>
+  <data name="MusicLibraryPage_ArtistsTab.Content" xml:space="preserve">
+    <value>Artists</value>
+  </data>
+  <data name="MusicLibraryPage_PlaylistsTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Playlists</value>
+  </data>
+  <data name="MusicLibraryPage_PlaylistsTab.Content" xml:space="preserve">
+    <value>Playlists</value>
+  </data>
+  <data name="MusicLibraryPage_FavoritesTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="MusicLibraryPage_FavoritesTab.Content" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="MusicLibraryPage_MusicSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search music</value>
+  </data>
+  <data name="MusicLibraryPage_MusicSearch.PlaceholderText" xml:space="preserve">
+    <value>Search songs, albums, artists or playlists</value>
+  </data>
+  <data name="MusicLibraryPage_Localization1.Text" xml:space="preserve">
+    <value>Track</value>
+  </data>
+  <data name="MusicLibraryPage_Localization2.Text" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="MusicLibraryPage_Localization3.Text" xml:space="preserve">
+    <value>No music here yet</value>
+  </data>
+  <data name="MusicLibraryPage_Localization4.Text" xml:space="preserve">
+    <value>Try different keywords or refresh this library</value>
+  </data>
+  <data name="MusicPlayerBar_PreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous track</value>
+  </data>
+  <data name="MusicPlayerBar_PreviousButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous track</value>
+  </data>
+  <data name="MusicPlayerBar_StopButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Stop playback and hide the player bar</value>
+  </data>
+  <data name="MusicPlayerBar_StopButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Stop and hide</value>
+  </data>
+  <data name="MusicPlayerBar_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next track</value>
+  </data>
+  <data name="MusicPlayerBar_NextButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next track</value>
+  </data>
+  <data name="MusicPlayerBar_CoverButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Expand music player</value>
+  </data>
+  <data name="MusicPlayerBar_CoverButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open player</value>
+  </data>
+  <data name="MusicPlayerBar_TitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Expand music player</value>
+  </data>
+  <data name="MusicPlayerBar_TitleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open player</value>
+  </data>
+  <data name="MusicPlayerBar_Localization1.Text" xml:space="preserve">
+    <value>Preparing music…</value>
+  </data>
+  <data name="MusicPlayerBar_SeekSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Music progress</value>
+  </data>
+  <data name="MusicPlayerBar_ShuffleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Shuffle play</value>
+  </data>
+  <data name="MusicPlayerBar_ShuffleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Shuffle play</value>
+  </data>
+  <data name="MusicPlayerBar_QueueButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="MusicPlayerBar_QueueButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="MusicPlayerBar_Localization2.Text" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="MusicPlayerBar_QueueShuffleButton.Content" xml:space="preserve">
+    <value>Shuffle</value>
+  </data>
+  <data name="MusicPlayerBar_VolumeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="MusicPlayerBar_VolumeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="MusicPlayerBar_Localization3.Text" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="MusicPlayerBar_VolumeSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Music volume</value>
+  </data>
+  <data name="MusicPlayerBar_MuteButton.Content" xml:space="preserve">
+    <value>Mute / unmute</value>
+  </data>
+  <data name="MusicPlayerPage_CollapseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Collapse player</value>
+  </data>
+  <data name="MusicPlayerPage_CollapseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Collapse player (Esc)</value>
+  </data>
+  <data name="MusicPlayerPage_FullscreenButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Fullscreen</value>
+  </data>
+  <data name="MusicPlayerPage_FullscreenButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Fullscreen</value>
+  </data>
+  <data name="MusicPlayerPage_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More actions</value>
+  </data>
+  <data name="MusicPlayerPage_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>More actions</value>
+  </data>
+  <data name="MusicPlayerPage_PauseMenuItem.Text" xml:space="preserve">
+    <value>Play / pause</value>
+  </data>
+  <data name="MusicPlayerPage_QueueMenuItem.Text" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="MusicPlayerPage_StopMenuItem.Text" xml:space="preserve">
+    <value>Stop playback</value>
+  </data>
+  <data name="MusicPlayerPage_SeekSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Music progress</value>
+  </data>
+  <data name="MusicPlayerPage_ShuffleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Shuffle play</value>
+  </data>
+  <data name="MusicPlayerPage_ShuffleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Shuffle play</value>
+  </data>
+  <data name="MusicPlayerPage_PreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous track</value>
+  </data>
+  <data name="MusicPlayerPage_PreviousButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous track</value>
+  </data>
+  <data name="MusicPlayerPage_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next track</value>
+  </data>
+  <data name="MusicPlayerPage_NextButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next track</value>
+  </data>
+  <data name="MusicPlayerPage_VolumeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="MusicPlayerPage_VolumeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="MusicPlayerPage_Localization1.Text" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="MusicPlayerPage_VolumeSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Music volume</value>
+  </data>
+  <data name="MusicPlayerPage_MuteButton.Content" xml:space="preserve">
+    <value>Mute / unmute</value>
+  </data>
+  <data name="MusicPlayerPage_LyricsNote.Text" xml:space="preserve">
+    <value>Plain text lyrics do not support automatic scrolling</value>
+  </data>
+  <data name="MusicPlayerPage_LyricsList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Lyrics</value>
+  </data>
+  <data name="MusicPlayerPage_Localization2.Text" xml:space="preserve">
+    <value>No lyrics found in the audio file or on the server</value>
+  </data>
+  <data name="MusicPlayerPage_QueueButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="MusicPlayerPage_QueueButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="MusicPlayerPage_Localization3.Text" xml:space="preserve">
+    <value>Play queue</value>
+  </data>
+  <data name="NotificationEditDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="NotificationEditDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="NotificationEditDialog_NameBox.Header" xml:space="preserve">
+    <value>Name (optional)</value>
+  </data>
+  <data name="NotificationEditDialog_NameBox.PlaceholderText" xml:space="preserve">
+    <value>E.g. MoviePilot</value>
+  </data>
+  <data name="NotificationEditDialog_UrlBox.Header" xml:space="preserve">
+    <value>Webhook URL</value>
+  </data>
+  <data name="NotificationEditDialog_UrlBox.PlaceholderText" xml:space="preserve">
+    <value>http://192.0.2.10:3001/api/v1/webhook?token=YOUR_TOKEN</value>
+  </data>
+  <data name="NotificationEditDialog_RequestType.Header" xml:space="preserve">
+    <value>Request type</value>
+  </data>
+  <data name="NotificationEditDialog_Localization2.Content" xml:space="preserve">
+    <value>Simple form</value>
+  </data>
+  <data name="NotificationEditDialog_Localization3.Content" xml:space="preserve">
+    <value>Multipart form (multipart/form-data)</value>
+  </data>
+  <data name="NotificationEditDialog_OtherServiceNote.Text" xml:space="preserve">
+    <value>Edit service-specific options on the Emby dashboard's Plugins page. You can still change the name, events and scope here.</value>
+  </data>
+  <data name="NotificationEditDialog_Localization4.Text" xml:space="preserve">
+    <value>Subscribed events</value>
+  </data>
+  <data name="NotificationEditDialog_Localization5.Text" xml:space="preserve">
+    <value>Only selected event types are sent. If none are selected, this channel sends nothing.</value>
+  </data>
+  <data name="NotificationEditDialog_Localization6.Text" xml:space="preserve">
+    <value>Scope (multiple selections; none means unrestricted)</value>
+  </data>
+  <data name="NotificationEditDialog_TestButton.Content" xml:space="preserve">
+    <value>Send test notification</value>
+  </data>
+  <data name="PersonPage_Localization1.Content" xml:space="preserve">
+    <value>View all</value>
+  </data>
+  <data name="PersonPage_Localization2.Text" xml:space="preserve">
+    <value>Cast and crew</value>
+  </data>
+  <data name="PersonPage_Localization3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Edit cast and crew metadata</value>
+  </data>
+  <data name="PersonPage_Localization3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Edit metadata</value>
+  </data>
+  <data name="PersonPage_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More person actions</value>
+  </data>
+  <data name="PersonPage_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="PersonPage_Localization4.Content" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="PersonPage_Localization5.Text" xml:space="preserve">
+    <value>Additional information</value>
+  </data>
+  <data name="PersonPage_Localization6.Text" xml:space="preserve">
+    <value>Filmography</value>
+  </data>
+  <data name="PersonPage_Localization7.Text" xml:space="preserve">
+    <value>No titles found for this person.</value>
+  </data>
+  <data name="PersonPage_Localization8.Text" xml:space="preserve">
+    <value>The server may still be organizing their titles, or this person may only have a photo and biography.</value>
+  </data>
+  <data name="PlayerCaptureDialog_Localization1.Title" xml:space="preserve">
+    <value>Crop screenshot</value>
+  </data>
+  <data name="PlayerCaptureDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Save crop</value>
+  </data>
+  <data name="PlayerCaptureDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureInstruction.Text" xml:space="preserve">
+    <value>Drag on the image to select an area, or enter its pixel position and dimensions.</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureX.Header" xml:space="preserve">
+    <value>Left X (pixels)</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureY.Header" xml:space="preserve">
+    <value>Top Y (pixels)</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureWidth.Header" xml:space="preserve">
+    <value>Width (pixels)</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureHeight.Header" xml:space="preserve">
+    <value>Height (pixels)</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureWholeImage.Content" xml:space="preserve">
+    <value>Entire image</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureSubtitleRegion.Content" xml:space="preserve">
+    <value>Bottom subtitle area</value>
+  </data>
+  <data name="PlayerPage_DanmakuInputBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku text</value>
+  </data>
+  <data name="PlayerPage_SendDanmakuButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Send danmaku</value>
+  </data>
+  <data name="PlayerPage_TransportStatsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Statistics</value>
+  </data>
+  <data name="PlayerPage_TransportStatsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Statistics</value>
+  </data>
+  <data name="PlayerPage_DanmakuButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Danmaku settings</value>
+  </data>
+  <data name="PlayerPage_DanmakuButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Danmaku settings</value>
+  </data>
+  <data name="PlayerPage_ChapterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Chapters</value>
+  </data>
+  <data name="PlayerPage_ChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Chapters</value>
+  </data>
+  <data name="PlayerPage_PreviousChapterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Previous chapter</value>
+  </data>
+  <data name="PlayerPage_PreviousChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous chapter</value>
+  </data>
+  <data name="PlayerPage_InlineSpeedSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Playback speed</value>
+  </data>
+  <data name="PlayerPage_InlineSpeedSlider.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Scroll or drag left and right to adjust; right-click to reset to 1×</value>
+  </data>
+  <data name="PlayerPage_NextChapterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Next chapter</value>
+  </data>
+  <data name="PlayerPage_NextChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next chapter</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization1.Title" xml:space="preserve">
+    <value>Refresh metadata</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="RefreshMetadataDialog_ModeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Refresh mode</value>
+  </data>
+  <data name="RefreshMetadataDialog_ModeBox.Header" xml:space="preserve">
+    <value>Refresh mode</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization2.Content" xml:space="preserve">
+    <value>Search for missing metadata</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization3.Content" xml:space="preserve">
+    <value>Replace all metadata</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization4.Text" xml:space="preserve">
+    <value>Update metadata with new data using the library settings and metadata providers.</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization5.Text" xml:space="preserve">
+    <value>Replace existing images</value>
+  </data>
+  <data name="RefreshMetadataDialog_ImagesSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Replace existing images</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization6.Text" xml:space="preserve">
+    <value>Based on library options, all existing images will be deleted and new images downloaded. In some cases, fewer images may be available afterward.</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization7.Text" xml:space="preserve">
+    <value>Replace existing video preview thumbnails</value>
+  </data>
+  <data name="RefreshMetadataDialog_ThumbnailsSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Replace existing video preview thumbnails</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization8.Text" xml:space="preserve">
+    <value>If enabled in library options, all existing video preview thumbnails will be deleted and regenerated.</value>
+  </data>
+  <data name="ServersPage_Localization1.Text" xml:space="preserve">
+    <value>Test server connection</value>
+  </data>
+  <data name="ServersPage_Localization2.Text" xml:space="preserve">
+    <value>Add account</value>
+  </data>
+  <data name="ServersPage_Localization3.Text" xml:space="preserve">
+    <value>Sign out (clear saved token)</value>
+  </data>
+  <data name="ServersPage_Localization4.Text" xml:space="preserve">
+    <value>Delete this server and all accounts</value>
+  </data>
+  <data name="ServersPage_Localization5.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Drag the card to reorder accounts</value>
+  </data>
+  <data name="ServersPage_Localization6.Text" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="ServersPage_AccountOfflineButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="ServersPage_AccountOfflineButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Disconnect (keep saved accounts)</value>
+  </data>
+  <data name="ServersPage_Localization7.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Drag to reorder servers</value>
+  </data>
+  <data name="ServersPage_Localization8.Text" xml:space="preserve">
+    <value>No saved accounts</value>
+  </data>
+  <data name="ServersPage_ServerLoginButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Sign in to server</value>
+  </data>
+  <data name="ServersPage_ServerLoginButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Sign in to server</value>
+  </data>
+  <data name="ServersPage_Localization9.Text" xml:space="preserve">
+    <value>Sign in to server</value>
+  </data>
+  <data name="ServersPage_ButtonA5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Delete server</value>
+  </data>
+  <data name="ServersPage_ServerSortList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Sort by</value>
+  </data>
+  <data name="ServersPage_Localization10.Text" xml:space="preserve">
+    <value>Aggregate mode</value>
+  </data>
+  <data name="ServersPage_AggregateToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Aggregate mode</value>
+  </data>
+  <data name="SettingsPage_UseAutomaticValue.Content" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="SettingsPage_SecretInput.PlaceholderText" xml:space="preserve">
+    <value>Enter a new key</value>
+  </data>
+  <data name="SettingsPage_SaveSecret.Content" xml:space="preserve">
+    <value>Save key</value>
+  </data>
+  <data name="SettingsPage_ClearSecret.Content" xml:space="preserve">
+    <value>Clear key</value>
+  </data>
+  <data name="SettingsPage_Localization1.Header" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="SettingsPage_Localization1.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SettingsPage_Localization1.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="SettingsPage_Localization2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Show AniBT entry points</value>
+  </data>
+  <data name="SettingsPage_Localization2.Header" xml:space="preserve">
+    <value>AniBT features</value>
+  </data>
+  <data name="SettingsPage_Localization2.OffContent" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="SettingsPage_Localization2.OnContent" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="SettingsPage_Localization3.Text" xml:space="preserve">
+    <value>Disabling hides AniBT identification, search and version source entry points. Other MoviePilot features are unaffected.</value>
+  </data>
+  <data name="SettingsPage_Localization4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot protocol</value>
+  </data>
+  <data name="SettingsPage_Localization4.Header" xml:space="preserve">
+    <value>Protocol</value>
+  </data>
+  <data name="SettingsPage_Localization5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot address</value>
+  </data>
+  <data name="SettingsPage_Localization5.Header" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="SettingsPage_Localization6.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot API port</value>
+  </data>
+  <data name="SettingsPage_Localization6.Header" xml:space="preserve">
+    <value>API port</value>
+  </data>
+  <data name="SettingsPage_Localization7.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot username</value>
+  </data>
+  <data name="SettingsPage_Localization7.Header" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="SettingsPage_Localization7.PlaceholderText" xml:space="preserve">
+    <value>MoviePilot login name</value>
+  </data>
+  <data name="SettingsPage_Localization8.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot password</value>
+  </data>
+  <data name="SettingsPage_Localization8.Header" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="SettingsPage_Localization8.PlaceholderText" xml:space="preserve">
+    <value>Leave blank to use the saved password</value>
+  </data>
+  <data name="SettingsPage_Localization9.Text" xml:space="preserve">
+    <value>A password is saved</value>
+  </data>
+  <data name="SettingsPage_Localization10.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Test MoviePilot connection</value>
+  </data>
+  <data name="SettingsPage_DefaultSearchSites.Label" xml:space="preserve">
+    <value>Default search sites</value>
+  </data>
+  <data name="SettingsPage_Localization11.Text" xml:space="preserve">
+    <value>Sites used by default for searches. Changes made in the search box are saved and reflected here.</value>
+  </data>
+  <data name="SettingsPage_HomeLibraryEntriesList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Library entry</value>
+  </data>
+  <data name="SettingsPage_Localization12.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Drag to change priority</value>
+  </data>
+  <data name="SettingsPage_PriorityRuleUp.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Increase priority</value>
+  </data>
+  <data name="SettingsPage_PriorityRuleDown.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Decrease priority</value>
+  </data>
+  <data name="SettingsPage_PriorityRuleDelete.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Delete this keyword</value>
+  </data>
+  <data name="SettingsPage_PriorityAddTerm.Content" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="SettingsPage_UnsavedSettingsNotice.Title" xml:space="preserve">
+    <value>Settings not saved</value>
+  </data>
+  <data name="SettingsPage_UnsavedSettingsNotice.Message" xml:space="preserve">
+    <value>Changes remain active for this session but may be lost after closing. Check disk space and directory permissions, then retry.</value>
+  </data>
+  <data name="SettingsPage_RetrySaveSettingsButton.Content" xml:space="preserve">
+    <value>Retry save</value>
+  </data>
+  <data name="SettingsSearchBox.PlaceholderText" xml:space="preserve">
+    <value>Find a setting</value>
+  </data>
+  <data name="SettingsPage_SettingsSearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Find a setting</value>
+  </data>
+  <data name="SettingsPage_SettingsSearchEmpty.Text" xml:space="preserve">
+    <value>No matching settings</value>
+  </data>
+  <data name="SettingsPage_ShortcutSearchBox.PlaceholderText" xml:space="preserve">
+    <value>Search shortcut names or keys, e.g. subtitles, Ctrl + ↑</value>
+  </data>
+  <data name="SettingsPage_ShortcutSearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search shortcuts</value>
+  </data>
+  <data name="SettingsPage_ClearShortcutSearchButton.Content" xml:space="preserve">
+    <value>Clear search</value>
+  </data>
+  <data name="ShellPage_Localization1.Text" xml:space="preserve">
+    <value>Aggregate mode</value>
+  </data>
+  <data name="ShellPage_AggregateModeItem.OnContent" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="ShellPage_AggregateModeItem.OffContent" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="ShellPage_AggregateModeItem.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Aggregate mode</value>
+  </data>
+  <data name="ShellPage_AccountProfileList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Servers and accounts</value>
+  </data>
+  <data name="ShellPage_LibraryPreviewMore.Content" xml:space="preserve">
+    <value>View more</value>
+  </data>
+  <data name="ShellPage_SidebarHome.Content" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="ShellPage_SidebarFavorites.Content" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="ShellPage_SidebarMoviePilotCalendar.Content" xml:space="preserve">
+    <value>Calendar</value>
+  </data>
+  <data name="ShellPage_SidebarLibrariesHeader.Content" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="ShellPage_SidebarMoviePilotMovies.Content" xml:space="preserve">
+    <value>Subscriptions · Movies</value>
+  </data>
+  <data name="ShellPage_SidebarMoviePilotSeries.Content" xml:space="preserve">
+    <value>Subscriptions · TV shows</value>
+  </data>
+  <data name="ShellPage_SidebarSettingsButton.Content" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="ShellPage_SidebarResizeGrip.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Resize sidebar</value>
+  </data>
+  <data name="SignInPage_ServerBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Server address</value>
+  </data>
+  <data name="SignInPage_UserBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="SignInPage_PasswordInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="SubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Close subtitle management</value>
+  </data>
+  <data name="SubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SubtitleDialog_Localization1.Text" xml:space="preserve">
+    <value>Media version</value>
+  </data>
+  <data name="SubtitleDialog_VersionBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Media version for subtitles</value>
+  </data>
+  <data name="SubtitleDialog_Localization2.Text" xml:space="preserve">
+    <value>Upload local subtitles</value>
+  </data>
+  <data name="SubtitleDialog_PickSubtitleButton.Content" xml:space="preserve">
+    <value>Choose subtitle file</value>
+  </data>
+  <data name="SubtitleDialog_PickSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Choose a local subtitle file</value>
+  </data>
+  <data name="SubtitleDialog_UploadLanguageBox.Header" xml:space="preserve">
+    <value>Subtitle language</value>
+  </data>
+  <data name="SubtitleDialog_UploadLanguageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Uploaded subtitle language</value>
+  </data>
+  <data name="SubtitleDialog_UploadForced.Header" xml:space="preserve">
+    <value>Forced subtitles</value>
+  </data>
+  <data name="SubtitleDialog_UploadForced.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Upload as forced subtitles</value>
+  </data>
+  <data name="SubtitleDialog_UploadHearingImpaired.Header" xml:space="preserve">
+    <value>Hearing impaired</value>
+  </data>
+  <data name="SubtitleDialog_UploadHearingImpaired.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Upload as hearing impaired subtitles</value>
+  </data>
+  <data name="SubtitleDialog_Localization3.Text" xml:space="preserve">
+    <value>The file is uploaded unchanged to the selected media version. Supports SUB, SRT, VTT, ASS, SSA and MKS; up to 10 MiB.</value>
+  </data>
+  <data name="SubtitleDialog_UploadSubtitleButton.Content" xml:space="preserve">
+    <value>Upload subtitles</value>
+  </data>
+  <data name="SubtitleDialog_UploadSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Upload selected subtitle file</value>
+  </data>
+  <data name="SubtitleDialog_RefreshTracksButton.Content" xml:space="preserve">
+    <value>Refresh subtitle list</value>
+  </data>
+  <data name="SubtitleDialog_Localization4.Text" xml:space="preserve">
+    <value>Delete subtitle file from the server?</value>
+  </data>
+  <data name="SubtitleDialog_CancelDeleteButton.Content" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SubtitleDialog_ConfirmDeleteButton.Content" xml:space="preserve">
+    <value>Delete server file</value>
+  </data>
+  <data name="SubtitleDialog_Localization5.Text" xml:space="preserve">
+    <value>Search subtitles</value>
+  </data>
+  <data name="SubtitleDialog_LanguageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subtitle language</value>
+  </data>
+  <data name="SubtitleDialog_ForcedOnly.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Forced subtitles only</value>
+  </data>
+  <data name="SubtitleDialog_SearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search subtitles</value>
+  </data>
+  <data name="SubtitleDialog_Localization6.Text" xml:space="preserve">
+    <value>No results found. Have you configured</value>
+  </data>
+  <data name="SubtitleDialog_SubtitleDownloadHelp.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subtitle download setup help</value>
+  </data>
+  <data name="SubtitleDialog_Localization7.Text" xml:space="preserve">
+    <value>Subtitle download</value>
+  </data>
+  <data name="SubtitleDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Subtitle search results</value>
+  </data>
+</root>

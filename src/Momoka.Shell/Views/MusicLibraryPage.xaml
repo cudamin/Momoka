@@ -226,7 +226,7 @@
                     Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}"
                     VerticalAlignment="Bottom" />
             </Grid>
-            <Button
+            <Button x:Uid="MusicLibraryPage_RefreshButton"
                 x:Name="RefreshButton"
                 Grid.Column="1"
                 Click="OnRefresh"
@@ -247,7 +247,7 @@
                 Padding="3"
                 Visibility="{x:Bind ViewModel.TabsVisibility, Mode=OneWay}">
                 <local:WrapRow x:Name="SectionTabs" Spacing="0" RowSpacing="4" CenterRows="True">
-                    <ToggleButton
+                    <ToggleButton x:Uid="MusicLibraryPage_TracksTab"
                         x:Name="TracksTab"
                         AutomationProperties.Name="歌曲"
                         Click="OnSectionClick"
@@ -255,28 +255,28 @@
                         IsChecked="True"
                         Style="{StaticResource MusicTabStyle}"
                         Tag="0" />
-                    <ToggleButton
+                    <ToggleButton x:Uid="MusicLibraryPage_AlbumsTab"
                         x:Name="AlbumsTab"
                         AutomationProperties.Name="专辑"
                         Click="OnSectionClick"
                         Content="专辑"
                         Style="{StaticResource MusicTabStyle}"
                         Tag="1" />
-                    <ToggleButton
+                    <ToggleButton x:Uid="MusicLibraryPage_ArtistsTab"
                         x:Name="ArtistsTab"
                         AutomationProperties.Name="艺术家"
                         Click="OnSectionClick"
                         Content="艺术家"
                         Style="{StaticResource MusicTabStyle}"
                         Tag="2" />
-                    <ToggleButton
+                    <ToggleButton x:Uid="MusicLibraryPage_PlaylistsTab"
                         x:Name="PlaylistsTab"
                         AutomationProperties.Name="歌单"
                         Click="OnSectionClick"
                         Content="歌单"
                         Style="{StaticResource MusicTabStyle}"
                         Tag="3" />
-                    <ToggleButton
+                    <ToggleButton x:Uid="MusicLibraryPage_FavoritesTab"
                         x:Name="FavoritesTab"
                         AutomationProperties.Name="收藏"
                         Click="OnSectionClick"
@@ -289,7 +289,7 @@
             <!-- 宽窗里把搜索框顶到右沿，与页头那颗刷新键对齐；宽度由代码按剩余空间算（见 PlaceSearchBox）。
                  窄到放不下时它是 0 宽，搜索框由 WrapRow 换到下一行。 -->
             <Border x:Name="ToolbarSpacer" Width="0" />
-            <AutoSuggestBox
+            <AutoSuggestBox x:Uid="MusicLibraryPage_MusicSearch"
                 x:Name="MusicSearch"
                 AutomationProperties.Name="搜索音乐"
                 PlaceholderText="搜索歌曲、专辑、艺术家或歌单"
@@ -334,12 +334,12 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="48" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock
+                    <TextBlock x:Uid="MusicLibraryPage_Localization1"
                         Grid.Column="2"
                         Style="{StaticResource EgEyebrowStyle}"
                         Text="曲目"
                         VerticalAlignment="Center" />
-                    <TextBlock
+                    <TextBlock x:Uid="MusicLibraryPage_Localization2"
                         Grid.Column="3"
                         Style="{StaticResource EgEyebrowStyle}"
                         Text="时长"
@@ -434,11 +434,11 @@
                     Foreground="{ThemeResource EgTextFaintBrush}"
                     Glyph="&#xE8D6;"
                     HorizontalAlignment="Center" />
-                <TextBlock
+                <TextBlock x:Uid="MusicLibraryPage_Localization3"
                     Style="{StaticResource EgSubheadStyle}"
                     HorizontalAlignment="Center"
                     Text="这里还没有音乐" />
-                <TextBlock
+                <TextBlock x:Uid="MusicLibraryPage_Localization4"
                     Style="{StaticResource EgCaptionStyle}"
                     HorizontalAlignment="Center"
                     Text="换个关键词，或者刷新一下这个库" />

@@ -1,4 +1,5 @@
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.Views;
 
@@ -83,7 +84,7 @@ internal sealed record LibraryRequest
     public static LibraryRequest Favorites(IServiceProvider services) => new()
     {
         Services = services,
-        Title = "收藏",
+        Title = UiText.Translate("收藏"),
         Tag = FavoritesTag
     };
 
@@ -195,7 +196,7 @@ internal sealed record LibraryRequest
     /// What the search page is called, for whichever term it is showing. One rule and two callers: the
     /// request above, and the box on the page — which retitles itself in place rather than navigating.
     /// </summary>
-    public static string SearchTitle(string term) => term.Length == 0 ? "搜索" : $"搜索：{term}";
+    public static string SearchTitle(string term) => term.Length == 0 ? UiText.Translate("搜索") : UiText.Format("搜索：{0}", term);
 
     /// <summary>The pane tag the search page carries. No pane entry points at it; the title bar does.</summary>
     public const string SearchTag = "search";

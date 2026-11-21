@@ -11,6 +11,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 using Momoka.Theming;
 
@@ -934,10 +935,10 @@ public sealed partial class LibraryPage : Page, IShellContent
                 label.MaxWidth = Math.Max(0, item.MaxWidth - horizontalPadding * 2);
                 label.Text = SourceTabs.Items.IndexOf(item) switch
                 {
-                    1 => formWidth < 520 ? "MP 订阅" : "MoviePilot 订阅",
-                    2 => formWidth < 520 ? "MP 资源" : "MoviePilot 资源",
+                    1 => formWidth < 520 ? UiText.Translate("MP 订阅") : UiText.Translate("MoviePilot 订阅"),
+                    2 => formWidth < 520 ? UiText.Translate("MP 资源") : UiText.Translate("MoviePilot 资源"),
                     3 => "AniBT",
-                    _ => "媒体库"
+                    _ => UiText.Translate("媒体库")
                 };
             }
         }
@@ -1904,18 +1905,18 @@ public sealed partial class LibraryPage : Page, IShellContent
         EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
         SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible;
         SearchUnavailableTitle.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
-            ? "AniBT 尚未启用" : "MoviePilot 尚未连接";
+            ? UiText.Translate("AniBT 尚未启用") : UiText.Translate("MoviePilot 尚未连接");
         SearchUnavailableMessage.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
-            ? "请在设置 → MoviePilot 中启用 AniBT；此入口会一直保留。"
-            : "请在设置 → MoviePilot 中启用并连接服务，然后在这里继续搜索。";
+            ? UiText.Translate("请在设置 → MoviePilot 中启用 AniBT；此入口会一直保留。")
+            : UiText.Translate("请在设置 → MoviePilot 中启用并连接服务，然后在这里继续搜索。");
         ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
         SearchInput.PlaceholderText = source switch
         {
-            1 => "输入关键词，按回车搜索可订阅的影视",
-            2 => "输入资源关键词，按回车搜索",
-            3 => "输入番剧名称，按回车搜索 AniBT",
+            1 => UiText.Translate("输入关键词，按回车搜索可订阅的影视"),
+            2 => UiText.Translate("输入资源关键词，按回车搜索"),
+            3 => UiText.Translate("输入番剧名称，按回车搜索 AniBT"),
             _ => ViewModel.ExtendedSearchCategoriesVisibility == Visibility.Visible
-                ? "搜索影片、节目、人物、合集和播放列表" : "搜索媒体库中的影片、节目和单集"
+                ? UiText.Translate("搜索影片、节目、人物、合集和播放列表") : UiText.Translate("搜索媒体库中的影片、节目和单集")
         };
         ApplyHeaderLayout();
         ViewModel.Cancel();

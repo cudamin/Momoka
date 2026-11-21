@@ -37,30 +37,30 @@
                 <StackPanel Spacing="16" Padding="0,0,20,20">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="设置" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                        <Button x:Name="FnNasSettingsRefresh" Grid.Column="1" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
+                        <TextBlock x:Uid="FnNasSettingsPage_Localization1" Text="设置" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                        <Button x:Uid="FnNasSettingsPage_FnNasSettingsRefresh" x:Name="FnNasSettingsRefresh" Grid.Column="1" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
                     </Grid>
                     <StackPanel Spacing="16">
                         <Border Style="{StaticResource FnNasCard}">
                             <StackPanel Spacing="16">
-                                <TextBox x:Name="FnNasServerName" Header="服务器名称" MaxLength="32" Text="{x:Bind ViewModel.ServerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                <ComboBox x:Name="FnNasServerLanguage" Header="首选语言" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.Language, Mode=TwoWay}" />
+                                <TextBox x:Uid="FnNasSettingsPage_FnNasServerName" x:Name="FnNasServerName" Header="服务器名称" MaxLength="32" Text="{x:Bind ViewModel.ServerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <ComboBox x:Uid="FnNasSettingsPage_FnNasServerLanguage" x:Name="FnNasServerLanguage" Header="首选语言" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.Language, Mode=TwoWay}" />
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource FnNasCard}">
                             <StackPanel Spacing="16">
-                                <ComboBox x:Name="FnNasMetadataVolume" Header="元数据保存位置" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Volumes, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.MetadataVolume, Mode=TwoWay}" />
-                                <ComboBox x:Name="FnNasPlaybackCacheVolume" Header="播放临时文件缓存位置" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Volumes, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.PlaybackCacheVolume, Mode=TwoWay}" />
-                                <ToggleSwitch x:Name="FnNasFileMonitor" Header="实时监控文件更新" IsOn="{x:Bind ViewModel.FileMonitor, Mode=TwoWay}" />
+                                <ComboBox x:Uid="FnNasSettingsPage_FnNasMetadataVolume" x:Name="FnNasMetadataVolume" Header="元数据保存位置" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Volumes, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.MetadataVolume, Mode=TwoWay}" />
+                                <ComboBox x:Uid="FnNasSettingsPage_FnNasPlaybackCacheVolume" x:Name="FnNasPlaybackCacheVolume" Header="播放临时文件缓存位置" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Volumes, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.PlaybackCacheVolume, Mode=TwoWay}" />
+                                <ToggleSwitch x:Uid="FnNasSettingsPage_FnNasFileMonitor" x:Name="FnNasFileMonitor" Header="实时监控文件更新" IsOn="{x:Bind ViewModel.FileMonitor, Mode=TwoWay}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                    <Button x:Name="FnNasSettingsSave" Content="保存设置" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                    <Button x:Uid="FnNasSettingsPage_FnNasSettingsSave" x:Name="FnNasSettingsSave" Content="保存设置" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
                     <Border Style="{StaticResource FnNasCard}">
                         <StackPanel Spacing="12">
-                            <TextBlock Text="搜索索引" Style="{StaticResource EgSubheadStyle}" />
+                            <TextBlock x:Uid="FnNasSettingsPage_Localization2" Text="搜索索引" Style="{StaticResource EgSubheadStyle}" />
                             <TextBlock Text="{x:Bind ViewModel.IndexStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                            <Button x:Name="FnNasRebuildIndex" Content="重建索引" Command="{x:Bind ViewModel.RebuildCommand}" />
+                            <Button x:Uid="FnNasSettingsPage_FnNasRebuildIndex" x:Name="FnNasRebuildIndex" Content="重建索引" Command="{x:Bind ViewModel.RebuildCommand}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

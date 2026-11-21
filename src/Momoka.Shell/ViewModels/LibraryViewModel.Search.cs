@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Views;
 using CardMetrics = Momoka.Infrastructure.CardSize;
 
@@ -20,8 +21,8 @@ public sealed partial class RecentSearchRow
     internal RecentSearchEntry Entry { get; }
     public CardItem Card { get; }
     public string Title => Entry.Name;
-    public string TypeLabel => Entry.ItemId is null ? "搜索关键词" : EmbyItemType.ToChinese(Entry.Type);
-    public string RemoveLabel => $"移除最近搜索：{Title}";
+    public string TypeLabel => Entry.ItemId is null ? UiText.Translate("搜索关键词") : EmbyItemType.ToChinese(Entry.Type);
+    public string RemoveLabel => UiText.Format("移除最近搜索：{0}", Title);
     [RelayCommand] private Task Open() => _owner.OpenRecentAsync(this);
     [RelayCommand] private void Remove() => _owner.RemoveRecent(this);
 }

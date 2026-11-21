@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -26,12 +27,12 @@ public sealed partial class SettingSecretRow : SettingRow
     [ObservableProperty]
     public partial string Draft { get; set; } = "";
 
-    public string Status => _protectionError ?? (_unsaved ? "尚未保存到磁盘，请重试；当前运行保留本次修改" : _stored() ? "已保存密钥；输入新值可替换" : "尚未保存密钥");
+    public string Status => UiText.Translate(_protectionError ?? (_unsaved ? "尚未保存到磁盘，请重试；当前运行保留本次修改" : _stored() ? "已保存密钥；输入新值可替换" : "尚未保存密钥"));
 
     /// <summary>密钥行的两颗按钮不再写死「弹弹play」：这一行属于哪张卡，自动化名就跟着那行的标签走。</summary>
-    public string SaveAutomationName => $"保存{Label}";
+    public string SaveAutomationName => UiText.Format("保存{0}", DisplayLabel);
 
-    public string ClearAutomationName => $"清除{Label}";
+    public string ClearAutomationName => UiText.Format("清除{0}", DisplayLabel);
 
     [RelayCommand]
     private void Commit()

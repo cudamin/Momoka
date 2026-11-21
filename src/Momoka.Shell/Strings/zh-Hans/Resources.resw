@@ -1,24 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
-    界面文字的资源表。winui-code-review 的全球化清单要求界面字符串走 x:Uid + .resw 而不是写死在标记里，
-    「单一语言也一样」—— 理由不是翻译，是这些字从此有了一份能列出来、能被查的清单：从前一句话改错、少
-    一个字、两处说法不一致，除了逐个文件读没有别的办法发现。
+    简体中文界面资源。en-US/Resources.resw 使用完全相同的键；界面语言由应用按用户偏好或系统语言解析。
+    XAML 保留中文作为可读的回退值，运行时由 x:Uid 对应的资源覆盖；用户内容和协议值不参与翻译。
 
-    这一份已经验过能用：不打包（WindowsPackageType=None）的情况下 x:Uid 照样解析得到，凭据是搜索框那
-    句灰字提示（LibrarySearchBox.PlaceholderText）在标记里已经没有字面值、屏上照旧写着它。
-    要让它成立还需要 csproj 里的 DefaultLanguage=zh-Hans —— 不设的话 PRI 的默认语言限定符是 en-US，
-    而这里只有 zh-Hans 一张表，于是每一次查找都问一个没有表的语言、拿回空字符串。理由写在那个属性旁边。
-
-    名字规则：<x:Uid>.<属性名>。属性名就是 XAML 里那个属性本身（Text / Content / Header / Title /
-    PlaceholderText / CloseButtonText / PrimaryButtonText / OffContent / OnContent）。x:Uid 的取法是
-    「文件名_元素的 x:Name」，元素没有名字时退回「文件名_类型序号」—— 后一种不好看，但它是机械生成的，
-    而机械生成的名字不会因为有人改了屏上的字就变旧。要改名的话连 XAML 里那个 x:Uid 一起改。
-
-    ⚠ ToolTipService.ToolTip 和 AutomationProperties.Name / HelpText 这 82 处**不在这份表里**。
-    附加属性在 .resw 里的键名是 <Uid>.[using:命名空间]类型.属性 这种形式，写错一个字不会报错、也不会
-    留下痕迹 —— 属性只是没被设上，于是读屏软件念不出那颗按钮的名字、悬停没有提示。那一档要自己的探针
-    （自检里「播放器控件报出名字」那二十条正好是它的判据），所以单独一批做，见 PROGRESS.md。
+    名称规则：&lt;x:Uid&gt;.&lt;属性名&gt;。新增元素优先使用「文件名_x:Name」，无名称时使用
+    「文件名_Localization序号」。附加属性必须包含声明命名空间，例如
+    Uid.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name 或
+    Uid.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip。
+    更改资源键须同步 XAML 和两种语言的资源表。DefaultLanguage 的 PRI 回退规则见 Shell csproj。
   -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -856,5 +846,3116 @@
   </data>
   <data name="MusicLibraryPage_LoadMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>加载更多音乐</value>
+  </data>
+  <data name="AniBtResourceBrowser_OpenTorrentPage.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization2.Text" xml:space="preserve">
+    <value>识别用原名称</value>
+  </data>
+  <data name="AniBtScrapeDialog_AnimeChoice.Header" xml:space="preserve">
+    <value>识别结果</value>
+  </data>
+  <data name="AniBtScrapeDialog_AnimeChoice.PlaceholderText" xml:space="preserve">
+    <value>选择对应番剧</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization3.Text" xml:space="preserve">
+    <value>实际源文件</value>
+  </data>
+  <data name="AniBtScrapeDialog_Localization4.Text" xml:space="preserve">
+    <value>目标位置</value>
+  </data>
+  <data name="AniBtScrapeDialog_RetryPrepare.Content" xml:space="preserve">
+    <value>重新读取整理目标</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeSearchInput.Header" xml:space="preserve">
+    <value>搜索 AniBT 番剧</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeSearchInput.PlaceholderText" xml:space="preserve">
+    <value>输入番剧名称或原名</value>
+  </data>
+  <data name="AniBtSearchPanel_Localization1.Text" xml:space="preserve">
+    <value>番剧</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeFormatFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>番剧格式</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeStatusFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>番剧状态</value>
+  </data>
+  <data name="AniBtSearchPanel_AnimeYearFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>番剧年份</value>
+  </data>
+  <data name="AniBtSearchPanel_Localization2.Text" xml:space="preserve">
+    <value>没有符合筛选条件的番剧</value>
+  </data>
+  <data name="AniBtSearchPanel_LoadMoreAnime.Content" xml:space="preserve">
+    <value>加载更多番剧</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenAniBtSite.Content" xml:space="preserve">
+    <value>打开 AniBT</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenAniBtSite.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>在浏览器打开当前番剧</value>
+  </data>
+  <data name="AniBtSearchPanel_ReturnToAnime.Content" xml:space="preserve">
+    <value>返回番剧</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenBangumiSite.Content" xml:space="preserve">
+    <value>Bangumi 条目</value>
+  </data>
+  <data name="AniBtSearchPanel_OpenAnimeOfficialSite.Content" xml:space="preserve">
+    <value>官方网站</value>
+  </data>
+  <data name="AniBtSearchPanel_ShowAllAnimeEpisodes.Content" xml:space="preserve">
+    <value>查看全部集数</value>
+  </data>
+  <data name="AniBtSearchPanel_ReloadAnimeResources.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="ArtworkViewer_ContentDialog1.CloseButtonText" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="CoverDialog_RefreshArtworkButton.Content" xml:space="preserve">
+    <value>刷新图片列表</value>
+  </data>
+  <data name="CoverDialog_Localization1.Content" xml:space="preserve">
+    <value>重试预览</value>
+  </data>
+  <data name="CoverDialog_Localization2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>换一张（从刮削源挑，或者从本机传）</value>
+  </data>
+  <data name="CoverDialog_Localization3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>看大图</value>
+  </data>
+  <data name="CoverDialog_Localization4.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>删除这一种图（不可撤销）</value>
+  </data>
+  <data name="CoverDialog_Localization5.Text" xml:space="preserve">
+    <value>背景图</value>
+  </data>
+  <data name="CoverDialog_Localization6.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>看大图</value>
+  </data>
+  <data name="CoverDialog_Localization7.Content" xml:space="preserve">
+    <value>重试预览</value>
+  </data>
+  <data name="CoverDialog_Localization8.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>从刮削源另加一张（保留现有背景图）</value>
+  </data>
+  <data name="CoverDialog_Localization9.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>删掉这一张（不可撤销）</value>
+  </data>
+  <data name="CoverDialog_AddBackdropButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>从本机再加一张背景图</value>
+  </data>
+  <data name="CoverDialog_Localization10.Text" xml:space="preserve">
+    <value>从本机再加一张背景图…</value>
+  </data>
+  <data name="CoverPickerDialog_SourcePicker.Header" xml:space="preserve">
+    <value>来源</value>
+  </data>
+  <data name="CoverPickerDialog_SourcePicker.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>图片来源</value>
+  </data>
+  <data name="CoverPickerDialog_AllLanguagesToggle.Header" xml:space="preserve">
+    <value>所有语言</value>
+  </data>
+  <data name="CoverPickerDialog_AllLanguagesToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>所有语言</value>
+  </data>
+  <data name="CoverPickerDialog_RetryArtworkSearch.Content" xml:space="preserve">
+    <value>重新搜索</value>
+  </data>
+  <data name="CoverPickerDialog_Localization1.Content" xml:space="preserve">
+    <value>重试预览</value>
+  </data>
+  <data name="CoverPickerDialog_RetryArtworkPreviews.Content" xml:space="preserve">
+    <value>重试预览</value>
+  </data>
+  <data name="CoverPickerDialog_Localization2.Text" xml:space="preserve">
+    <value>从本机传一张…</value>
+  </data>
+  <data name="DanmakuPanel_Localization1.Text" xml:space="preserve">
+    <value>弹幕</value>
+  </data>
+  <data name="DanmakuPanel_ShowToggle.OffContent" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="DanmakuPanel_ShowToggle.OnContent" xml:space="preserve">
+    <value>开启</value>
+  </data>
+  <data name="DanmakuPanel_ShowToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>显示弹幕</value>
+  </data>
+  <data name="DanmakuPanel_SourceModeBox.Header" xml:space="preserve">
+    <value>弹幕来源</value>
+  </data>
+  <data name="DanmakuPanel_SourceModeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕来源</value>
+  </data>
+  <data name="DanmakuPanel_Localization2.Text" xml:space="preserve">
+    <value>两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。</value>
+  </data>
+  <data name="DanmakuPanel_Localization3.Text" xml:space="preserve">
+    <value>选择弹幕库</value>
+  </data>
+  <data name="DanmakuPanel_SourceBox.Header" xml:space="preserve">
+    <value>搜索来源</value>
+  </data>
+  <data name="DanmakuPanel_SourceBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕搜索来源</value>
+  </data>
+  <data name="DanmakuPanel_TitleBox.PlaceholderText" xml:space="preserve">
+    <value>作品名称</value>
+  </data>
+  <data name="DanmakuPanel_TitleBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕作品名称</value>
+  </data>
+  <data name="DanmakuPanel_EpisodeBox.PlaceholderText" xml:space="preserve">
+    <value>集数</value>
+  </data>
+  <data name="DanmakuPanel_EpisodeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕集数，留空搜索全部</value>
+  </data>
+  <data name="DanmakuPanel_SearchButton.Content" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="DanmakuPanel_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕剧集搜索结果</value>
+  </data>
+  <data name="DanmakuPanel_LoadButton.Content" xml:space="preserve">
+    <value>加载所选剧集的弹幕</value>
+  </data>
+  <data name="DanmakuPanel_Localization4.Text" xml:space="preserve">
+    <value>显示设置</value>
+  </data>
+  <data name="DanmakuPanel_ScaleCheck.Content" xml:space="preserve">
+    <value>弹幕随窗口缩放</value>
+  </data>
+  <data name="DanmakuPanel_SubtitleCheck.Content" xml:space="preserve">
+    <value>防挡字幕</value>
+  </data>
+  <data name="DanmakuPanel_DensityModeBox.Header" xml:space="preserve">
+    <value>弹幕密度</value>
+  </data>
+  <data name="DanmakuPanel_OverlapCheck.Content" xml:space="preserve">
+    <value>智能防挡弹幕（避免重叠）</value>
+  </data>
+  <data name="DanmakuPanel_OpacitySlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕不透明度</value>
+  </data>
+  <data name="DanmakuPanel_FontSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕字号</value>
+  </data>
+  <data name="DanmakuPanel_SpeedSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕速度</value>
+  </data>
+  <data name="DanmakuPanel_SpeedSyncCheck.Content" xml:space="preserve">
+    <value>弹幕速度同步播放倍数</value>
+  </data>
+  <data name="DanmakuPanel_FontFamilyBox.Header" xml:space="preserve">
+    <value>弹幕字体</value>
+  </data>
+  <data name="DanmakuPanel_BoldCheck.Content" xml:space="preserve">
+    <value>粗体</value>
+  </data>
+  <data name="DanmakuPanel_BorderStyleBox.Header" xml:space="preserve">
+    <value>描边类型</value>
+  </data>
+  <data name="DanmakuPanel_AreaSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕显示区域</value>
+  </data>
+  <data name="DanmakuPanel_DensitySlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>同屏弹幕上限</value>
+  </data>
+  <data name="DanmakuPanel_ScrollCheck.Content" xml:space="preserve">
+    <value>滚动弹幕</value>
+  </data>
+  <data name="DanmakuPanel_TopCheck.Content" xml:space="preserve">
+    <value>顶部弹幕</value>
+  </data>
+  <data name="DanmakuPanel_BottomCheck.Content" xml:space="preserve">
+    <value>底部弹幕</value>
+  </data>
+  <data name="DanmakuPanel_ColorCheck.Content" xml:space="preserve">
+    <value>彩色弹幕</value>
+  </data>
+  <data name="DanmakuPanel_RepeatCheck.Content" xml:space="preserve">
+    <value>合并 10 秒内的重复弹幕</value>
+  </data>
+  <data name="DanmakuPanel_BlockBox.Header" xml:space="preserve">
+    <value>屏蔽词</value>
+  </data>
+  <data name="DanmakuPanel_BlockBox.PlaceholderText" xml:space="preserve">
+    <value>多个词用逗号分隔</value>
+  </data>
+  <data name="DanmakuPanel_BlockBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕屏蔽词</value>
+  </data>
+  <data name="DanmakuPanel_Localization5.Text" xml:space="preserve">
+    <value>屏蔽词与设置页共用并同步保存本机列表。</value>
+  </data>
+  <data name="DanmakuPanel_RestoreAppearanceButton.Content" xml:space="preserve">
+    <value>恢复弹幕外观默认</value>
+  </data>
+  <data name="DanmakuPanel_SettingsButton.Content" xml:space="preserve">
+    <value>更多弹幕设置与连接配置</value>
+  </data>
+  <data name="DetailPage_StoreTrailerPause.Label" xml:space="preserve">
+    <value>暂停预告片</value>
+  </data>
+  <data name="DetailPage_StoreTrailerMute.Label" xml:space="preserve">
+    <value>预告片静音</value>
+  </data>
+  <data name="DetailPage_StoreTrailerSubtitles.Label" xml:space="preserve">
+    <value>预告片字幕</value>
+  </data>
+  <data name="DetailPage_StoreTrailerAudio.Label" xml:space="preserve">
+    <value>预告片音频</value>
+  </data>
+  <data name="DetailPage_StoreTrailerClose.Label" xml:space="preserve">
+    <value>关闭预告</value>
+  </data>
+  <data name="DetailPage_ColumnExtrasButton.Content" xml:space="preserve">
+    <value>花絮与特典</value>
+  </data>
+  <data name="DetailPage_Localization1.Text" xml:space="preserve">
+    <value>连播</value>
+  </data>
+  <data name="DetailPage_StoreContinueSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>连播</value>
+  </data>
+  <data name="DetailPage_StoreContinueSwitch.OffContent" xml:space="preserve">
+    <value>关</value>
+  </data>
+  <data name="DetailPage_StoreContinueSwitch.OnContent" xml:space="preserve">
+    <value>开</value>
+  </data>
+  <data name="DetailPage_ButtonA1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>标记已看 / 未看</value>
+  </data>
+  <data name="DetailPage_ButtonA2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="DetailPage_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="DetailPage_CompactExtrasButton.Content" xml:space="preserve">
+    <value>花絮与特典</value>
+  </data>
+  <data name="DetailPage_InfoHead.Title" xml:space="preserve">
+    <value>其他信息</value>
+  </data>
+  <data name="DetailPage_MediaInfoTitle.Text" xml:space="preserve">
+    <value>媒体信息</value>
+  </data>
+  <data name="DiagnosticsPage_DiagnosticsDetailsButton.Content" xml:space="preserve">
+    <value>详情</value>
+  </data>
+  <data name="DiagnosticsPage_DiagnosticsDetailsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>运行状态详情</value>
+  </data>
+  <data name="DiagnosticsPage_Localization1.Text" xml:space="preserve">
+    <value>运行详情</value>
+  </data>
+  <data name="DiagnosticsPage_Localization2.Text" xml:space="preserve">
+    <value>分类</value>
+  </data>
+  <data name="DiagnosticsPage_ComboBoxA1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>日志分类</value>
+  </data>
+  <data name="DiagnosticsPage_Localization3.Text" xml:space="preserve">
+    <value>级别</value>
+  </data>
+  <data name="DiagnosticsPage_ComboBoxA2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>日志级别</value>
+  </data>
+  <data name="DiagnosticsPage_ButtonA3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>清除筛选</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization1.Title" xml:space="preserve">
+    <value>编辑元数据</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="EmbyMetadataDialog_NameBox.Header" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="EmbyMetadataDialog_NameLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_SortNameBox.Header" xml:space="preserve">
+    <value>排序标题</value>
+  </data>
+  <data name="EmbyMetadataDialog_SortNameBox.PlaceholderText" xml:space="preserve">
+    <value>留空则由服务器自动生成</value>
+  </data>
+  <data name="EmbyMetadataDialog_SortNameLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_DateCreatedBox.Header" xml:space="preserve">
+    <value>加入日期</value>
+  </data>
+  <data name="EmbyMetadataDialog_PickCreatedDateButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>选择加入日期和时间</value>
+  </data>
+  <data name="EmbyMetadataDialog_PickCreatedDateButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>选择日期和时间</value>
+  </data>
+  <data name="EmbyMetadataDialog_AddedDatePicker.Header" xml:space="preserve">
+    <value>加入日期</value>
+  </data>
+  <data name="EmbyMetadataDialog_AddedTimePicker.Header" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="EmbyMetadataDialog_ApplyCreatedDateButton.Content" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization2.Text" xml:space="preserve">
+    <value>在 Emby Server 控制台的“媒体库”设置中可配置如何确定加入日期。</value>
+  </data>
+  <data name="EmbyMetadataDialog_ParentIndexBox.Header" xml:space="preserve">
+    <value>季编号</value>
+  </data>
+  <data name="EmbyMetadataDialog_IndexBox.Header" xml:space="preserve">
+    <value>集编号</value>
+  </data>
+  <data name="EmbyMetadataDialog_CommunityRatingBox.Header" xml:space="preserve">
+    <value>社区评分</value>
+  </data>
+  <data name="EmbyMetadataDialog_CommunityRatingLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_OverviewBox.Header" xml:space="preserve">
+    <value>概要</value>
+  </data>
+  <data name="EmbyMetadataDialog_OverviewLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_PremiereDatePicker.Header" xml:space="preserve">
+    <value>发行日期</value>
+  </data>
+  <data name="EmbyMetadataDialog_PremiereDatePicker.PlaceholderText" xml:space="preserve">
+    <value>选择日期</value>
+  </data>
+  <data name="EmbyMetadataDialog_ClearPremiereDate.Content" xml:space="preserve">
+    <value>清除发行日期</value>
+  </data>
+  <data name="EmbyMetadataDialog_ProductionYearBox.Header" xml:space="preserve">
+    <value>年份</value>
+  </data>
+  <data name="EmbyMetadataDialog_OfficialRatingBox.Header" xml:space="preserve">
+    <value>家长评分</value>
+  </data>
+  <data name="EmbyMetadataDialog_OfficialRatingLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_CustomRatingBox.Header" xml:space="preserve">
+    <value>自定义评分</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization3.Text" xml:space="preserve">
+    <value>自定义评分不会显示，但会用于家长控制评估。家长评分字段仍会显示。</value>
+  </data>
+  <data name="EmbyMetadataDialog_VideoFormatBox.Header" xml:space="preserve">
+    <value>3D 格式</value>
+  </data>
+  <data name="EmbyMetadataDialog_AdditionalFields.Header" xml:space="preserve">
+    <value>更多字段</value>
+  </data>
+  <data name="EmbyMetadataDialog_OriginalTitleBox.Header" xml:space="preserve">
+    <value>原始标题</value>
+  </data>
+  <data name="EmbyMetadataDialog_OriginalTitleLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_CriticRatingBox.Header" xml:space="preserve">
+    <value>影评指数</value>
+  </data>
+  <data name="EmbyMetadataDialog_CriticRatingLock.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此字段，阻止自动刷新覆盖</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization4.Text" xml:space="preserve">
+    <value>外部标识符</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization5.Text" xml:space="preserve">
+    <value>元数据设置</value>
+  </data>
+  <data name="EmbyMetadataDialog_LanguageBox.Header" xml:space="preserve">
+    <value>首选元数据下载语言</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization6.Text" xml:space="preserve">
+    <value>留空可继承上级项目的设置，或者使用全局默认值。</value>
+  </data>
+  <data name="EmbyMetadataDialog_CountryBox.Header" xml:space="preserve">
+    <value>国家或地区</value>
+  </data>
+  <data name="EmbyMetadataDialog_Localization7.Text" xml:space="preserve">
+    <value>留空可继承上级项目的设置，或者使用全局默认值。</value>
+  </data>
+  <data name="EmbyMetadataDialog_LockItemSwitch.Header" xml:space="preserve">
+    <value>锁定此项目可防止今后改动</value>
+  </data>
+  <data name="FilterPanel_FilterValuesSelectAll.Content" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="FilterPanel_FilterCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭筛选</value>
+  </data>
+  <data name="FilterPanel_FilterCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="FilterPanel_Localization1.Text" xml:space="preserve">
+    <value>筛选</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization1.Text" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesNew.Content" xml:space="preserve">
+    <value>新增媒体库</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesSort.Content" xml:space="preserve">
+    <value>排序</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesScanAll.Content" xml:space="preserve">
+    <value>扫描全部</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrariesRefresh.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryMoveUp.Content" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryMoveDown.Content" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryScan.Content" xml:space="preserve">
+    <value>扫描</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryRemovedFiles.Content" xml:space="preserve">
+    <value>已移除文件…</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryBack.Content" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryCategory.Header" xml:space="preserve">
+    <value>媒体库类型</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryName.Header" xml:space="preserve">
+    <value>媒体库名称</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization2.Text" xml:space="preserve">
+    <value>媒体库文件夹</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasRemoveFolder.Content" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasBrowseFolders.Content" xml:space="preserve">
+    <value>选择文件夹</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasReplacePlaylist.Header" xml:space="preserve">
+    <value>更换当前播放列表</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistMode.Header" xml:space="preserve">
+    <value>播放列表来源</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistUrl.Header" xml:space="preserve">
+    <value>播放列表地址</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistRefresh.Header" xml:space="preserve">
+    <value>自动更新间隔</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistText.Header" xml:space="preserve">
+    <value>播放列表内容</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistBrowse.Content" xml:space="preserve">
+    <value>选择 NAS 播放列表文件</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPlaylistPick.Content" xml:space="preserve">
+    <value>选择本地播放列表文件</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization3.Text" xml:space="preserve">
+    <value>NAS 已授权的文件夹</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasDirectoryRoots.Content" xml:space="preserve">
+    <value>授权根目录</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasDirectoryChoose.Content" xml:space="preserve">
+    <value>使用此文件夹</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasDirectoryClose.Content" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="FnNasLibrariesPage_Localization4.Text" xml:space="preserve">
+    <value>高级设置</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasPreferNfo.Header" xml:space="preserve">
+    <value>优先使用本地 NFO 和图片</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasFilterSmall.Header" xml:space="preserve">
+    <value>过滤较小的文件</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasMinimumFileSize.Header" xml:space="preserve">
+    <value>跳过小于此大小的文件（MB）</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryLanguage.Header" xml:space="preserve">
+    <value>元数据语言</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasIncludeAdult.Header" xml:space="preserve">
+    <value>包含成人内容</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasProgressThumb.Header" xml:space="preserve">
+    <value>生成进度预览缩略图</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasViewType.Header" xml:space="preserve">
+    <value>显示方式</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasAutoSubtitle.Header" xml:space="preserve">
+    <value>自动下载字幕</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasSubtitleLanguage.Header" xml:space="preserve">
+    <value>首选字幕语言</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibraryDelete.Content" xml:space="preserve">
+    <value>移除媒体库</value>
+  </data>
+  <data name="FnNasLibrariesPage_FnNasLibrarySave.Content" xml:space="preserve">
+    <value>保存媒体库</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization1.Title" xml:space="preserve">
+    <value>手动匹配影片</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>匹配</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="FnNasMatchDialog_SourceBox.Header" xml:space="preserve">
+    <value>搜索方式</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization2.Content" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="FnNasMatchDialog_KeywordBox.Header" xml:space="preserve">
+    <value>关键词</value>
+  </data>
+  <data name="FnNasMatchDialog_SearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索匹配结果</value>
+  </data>
+  <data name="FnNasMatchDialog_SearchButton.Content" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="FnNasMatchDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>匹配结果</value>
+  </data>
+  <data name="FnNasMatchDialog_Localization3.Text" xml:space="preserve">
+    <value>匹配会重新抓取这个条目的元数据；现有图片和自定义字段可能被新的节目信息覆盖。</value>
+  </data>
+  <data name="FnNasMetadataDialog_Localization1.Title" xml:space="preserve">
+    <value>编辑元数据</value>
+  </data>
+  <data name="FnNasMetadataDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="FnNasMetadataDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="FnNasMetadataDialog_NameBox.Header" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="FnNasMetadataDialog_OverviewBox.Header" xml:space="preserve">
+    <value>简介</value>
+  </data>
+  <data name="FnNasMetadataDialog_RatingBox.Header" xml:space="preserve">
+    <value>评分</value>
+  </data>
+  <data name="FnNasMetadataDialog_ReleaseBox.Header" xml:space="preserve">
+    <value>发行日期</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordUnsavedNotice.Title" xml:space="preserve">
+    <value>本地设置尚未保存</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordUnsavedNotice.Message" xml:space="preserve">
+    <value>当前内存设置尚未写入本地。重试只保存本地，不会再次修改服务器密码，也不会提交新输入的草稿。</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordRetryLocalSave.Content" xml:space="preserve">
+    <value>重试本地保存</value>
+  </data>
+  <data name="FnNasPasswordPage_Localization1.Text" xml:space="preserve">
+    <value>修改密码</value>
+  </data>
+  <data name="FnNasPasswordPage_Localization2.Text" xml:space="preserve">
+    <value>修改当前飞牛影视账号的登录密码。保存成功后，Momoka 会改用新密码保持登录。</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordNew.Header" xml:space="preserve">
+    <value>新密码</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordConfirm.Header" xml:space="preserve">
+    <value>确认密码</value>
+  </data>
+  <data name="FnNasPasswordPage_Localization3.Text" xml:space="preserve">
+    <value>密码长度为 6～127 个字符。</value>
+  </data>
+  <data name="FnNasPasswordPage_FnNasPasswordSave.Content" xml:space="preserve">
+    <value>保存修改</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization1.Text" xml:space="preserve">
+    <value>播放偏好</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization2.Text" xml:space="preserve">
+    <value>偏好保存在飞牛影视服务器上，作为服务器播放与字幕选择的默认语言；Momoka 自己的播放语言仍按「设置 → 字幕」执行。</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasSubtitleLanguage.Header" xml:space="preserve">
+    <value>首选字幕语言</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasSubtitleLanguage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>首选字幕语言</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization3.Text" xml:space="preserve">
+    <value>优先下载及使用首选语言的字幕，播放时可切换至其他语言。</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasAudioLanguage.Header" xml:space="preserve">
+    <value>首选音频语言</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasAudioLanguage.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>首选音频语言</value>
+  </data>
+  <data name="FnNasPreferencesPage_Localization4.Text" xml:space="preserve">
+    <value>优先使用首选语言的音频，播放时可切换至其他语言。</value>
+  </data>
+  <data name="FnNasPreferencesPage_FnNasPreferencesSave.Content" xml:space="preserve">
+    <value>保存修改</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization1.Title" xml:space="preserve">
+    <value>已移除文件</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>恢复所选项</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_Localization2.Text" xml:space="preserve">
+    <value>这里只显示文件夹与已移除项目。恢复会重新加入媒体库；磁盘文件一直保留。</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_FnNasRemovedBack.Content" xml:space="preserve">
+    <value>返回上级</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_FnNasRemovedRefresh.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="FnNasRemovedFilesDialog_FnNasRemovedList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>已移除文件与文件夹</value>
+  </data>
+  <data name="FnNasSettingsPage_Localization1.Text" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasSettingsRefresh.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasServerName.Header" xml:space="preserve">
+    <value>服务器名称</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasServerLanguage.Header" xml:space="preserve">
+    <value>首选语言</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasMetadataVolume.Header" xml:space="preserve">
+    <value>元数据保存位置</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasPlaybackCacheVolume.Header" xml:space="preserve">
+    <value>播放临时文件缓存位置</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasFileMonitor.Header" xml:space="preserve">
+    <value>实时监控文件更新</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasSettingsSave.Content" xml:space="preserve">
+    <value>保存设置</value>
+  </data>
+  <data name="FnNasSettingsPage_Localization2.Text" xml:space="preserve">
+    <value>搜索索引</value>
+  </data>
+  <data name="FnNasSettingsPage_FnNasRebuildIndex.Content" xml:space="preserve">
+    <value>重建索引</value>
+  </data>
+  <data name="FnNasSubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭飞牛字幕管理</value>
+  </data>
+  <data name="FnNasSubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="FnNasSubtitleDialog_VersionBox.Header" xml:space="preserve">
+    <value>媒体版本</value>
+  </data>
+  <data name="FnNasSubtitleDialog_VersionBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>字幕所属媒体版本</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization1.Text" xml:space="preserve">
+    <value>服务器外部字幕</value>
+  </data>
+  <data name="FnNasSubtitleDialog_RefreshTracksButton.Content" xml:space="preserve">
+    <value>刷新列表</value>
+  </data>
+  <data name="FnNasSubtitleDialog_NoTracks.Text" xml:space="preserve">
+    <value>这个版本还没有外部字幕。</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DeleteFnNasSubtitleButton.Content" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DeleteFnNasSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>删除服务器字幕文件</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization2.Text" xml:space="preserve">
+    <value>删除服务器字幕文件？</value>
+  </data>
+  <data name="FnNasSubtitleDialog_CancelDeleteButton.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="FnNasSubtitleDialog_ConfirmDeleteButton.Content" xml:space="preserve">
+    <value>删除服务器文件</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization3.Text" xml:space="preserve">
+    <value>搜索字幕</value>
+  </data>
+  <data name="FnNasSubtitleDialog_LanguageBox.Header" xml:space="preserve">
+    <value>字幕语言</value>
+  </data>
+  <data name="FnNasSubtitleDialog_LanguageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>飞牛字幕搜索语言</value>
+  </data>
+  <data name="FnNasSubtitleDialog_SearchButton.Content" xml:space="preserve">
+    <value>搜索字幕</value>
+  </data>
+  <data name="FnNasSubtitleDialog_NoSearchResults.Text" xml:space="preserve">
+    <value>没有找到字幕，请更换语言后重试。</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DownloadFnNasSubtitleButton.Content" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="FnNasSubtitleDialog_DownloadFnNasSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>下载并添加飞牛字幕</value>
+  </data>
+  <data name="FnNasSubtitleDialog_UploadButton.Content" xml:space="preserve">
+    <value>上传本地字幕…</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization4.Text" xml:space="preserve">
+    <value>支持 SRT、SUB、SSA、ASS、VTT、SUP；文件不超过 32 MiB。</value>
+  </data>
+  <data name="FnNasSubtitleDialog_Localization5.Text" xml:space="preserve">
+    <value>指定服务器文件</value>
+  </data>
+  <data name="FnNasSubtitleDialog_ServerPathBox.Header" xml:space="preserve">
+    <value>服务器字幕完整路径</value>
+  </data>
+  <data name="FnNasSubtitleDialog_ServerPathBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>服务器字幕完整路径</value>
+  </data>
+  <data name="FnNasSubtitleDialog_MarkServerFileButton.Content" xml:space="preserve">
+    <value>添加服务器字幕</value>
+  </data>
+  <data name="FnNasTasksPage_Localization1.Text" xml:space="preserve">
+    <value>任务计划</value>
+  </data>
+  <data name="FnNasTasksPage_FnNasTasksRefresh.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="FnNasTasksPage_FnNasTasksEnabled.Header" xml:space="preserve">
+    <value>定时执行任务</value>
+  </data>
+  <data name="FnNasTasksPage_Localization2.Text" xml:space="preserve">
+    <value>每天凌晨自动执行任务，以提升日常使用影视的体验。</value>
+  </data>
+  <data name="FnNasTasksPage_FnNasTasksSave.Content" xml:space="preserve">
+    <value>保存任务计划</value>
+  </data>
+  <data name="FnNasUsersPage_Localization1.Text" xml:space="preserve">
+    <value>用户</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUsersNew.Content" xml:space="preserve">
+    <value>新增用户</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUsersDefaults.Content" xml:space="preserve">
+    <value>新用户默认权限</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUsersRefresh.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="FnNasUsersPage_Localization2.Text" xml:space="preserve">
+    <value>最近访问</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserBack.Content" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserName.Header" xml:space="preserve">
+    <value>用户名</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserPassword.Header" xml:space="preserve">
+    <value>密码</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserConfirmPassword.Header" xml:space="preserve">
+    <value>确认密码</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserPermission.Header" xml:space="preserve">
+    <value>可访问媒体库</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserUnlock.Content" xml:space="preserve">
+    <value>解锁用户</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserDelete.Content" xml:space="preserve">
+    <value>删除用户</value>
+  </data>
+  <data name="FnNasUsersPage_FnNasUserSave.Content" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization1.Title" xml:space="preserve">
+    <value>管理版本</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>删除所选版本</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="FnNasVersionsDialog_Localization2.Text" xml:space="preserve">
+    <value>选择一个版本。删除会删除磁盘文件；移出仅从媒体库移除并保留文件，可在“已移除文件”中恢复。下一步会单独确认。</value>
+  </data>
+  <data name="FnNasVersionsDialog_Files.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>版本列表</value>
+  </data>
+  <data name="HtmlColorPicker_AppearanceColorDefault.Content" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="HtmlColorPicker_AppearanceColorCancel.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="HtmlColorPicker_AppearanceColorComplete.Content" xml:space="preserve">
+    <value>完成</value>
+  </data>
+  <data name="IdentifyDialog_Localization1.Text" xml:space="preserve">
+    <value>输入一个或多个搜索条件。移除条件可增加搜索结果。</value>
+  </data>
+  <data name="IdentifyDialog_Localization2.Text" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="IdentifyDialog_NameBox.Header" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="IdentifyDialog_YearBox.Header" xml:space="preserve">
+    <value>年份</value>
+  </data>
+  <data name="IdentifyDialog_Localization3.Text" xml:space="preserve">
+    <value>搜索结果</value>
+  </data>
+  <data name="IdentifyDialog_NoResults.Text" xml:space="preserve">
+    <value>刮削源上没有对得上的记录。把条件放宽一些再试一次。</value>
+  </data>
+  <data name="IdentifyDialog_Localization4.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>选这一条</value>
+  </data>
+  <data name="IdentifyDialog_Localization5.Content" xml:space="preserve">
+    <value>选择此项</value>
+  </data>
+  <data name="IdentifyDialog_ReplaceImages.Content" xml:space="preserve">
+    <value>替换现有图像</value>
+  </data>
+  <data name="IdentifyDialog_SearchButton.Content" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="IdentifyDialog_RemoveButton.Content" xml:space="preserve">
+    <value>移除识别</value>
+  </data>
+  <data name="IdentifyDialog_ConfirmRemoveButton.Content" xml:space="preserve">
+    <value>移除识别</value>
+  </data>
+  <data name="IdentifyDialog_CancelRemoveButton.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="IdentifyDialog_ApplyButton.Content" xml:space="preserve">
+    <value>识别</value>
+  </data>
+  <data name="IdentifyDialog_BackToFormButton.Content" xml:space="preserve">
+    <value>返回搜索条件</value>
+  </data>
+  <data name="IdentifyDialog_BackToResultsButton.Content" xml:space="preserve">
+    <value>返回搜索结果</value>
+  </data>
+  <data name="LibraryPage_FavoriteRetry.Content" xml:space="preserve">
+    <value>重新加载</value>
+  </data>
+  <data name="LibraryPage_FavoriteMore.Content" xml:space="preserve">
+    <value>加载更多</value>
+  </data>
+  <data name="LibraryPage_LibraryBrowseGroup.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>返回分类列表</value>
+  </data>
+  <data name="LibraryPage_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>媒体库搜索</value>
+  </data>
+  <data name="LibraryPage_Localization2.Text" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="LibraryPage_Localization3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 订阅搜索</value>
+  </data>
+  <data name="LibraryPage_Localization4.Text" xml:space="preserve">
+    <value>MoviePilot 订阅</value>
+  </data>
+  <data name="LibraryPage_Localization5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 资源搜索</value>
+  </data>
+  <data name="LibraryPage_Localization6.Text" xml:space="preserve">
+    <value>MoviePilot 资源</value>
+  </data>
+  <data name="LibraryPage_AniBtSourceTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>AniBT 搜索</value>
+  </data>
+  <data name="LibraryPage_FavoriteAccountButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>账号筛选</value>
+  </data>
+  <data name="LibraryPage_FavoriteAccountButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>账号筛选</value>
+  </data>
+  <data name="LibraryPage_Localization7.Text" xml:space="preserve">
+    <value>播放</value>
+  </data>
+  <data name="LibraryPage_Localization8.Text" xml:space="preserve">
+    <value>随机播放</value>
+  </data>
+  <data name="LibraryPage_SortButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>排序</value>
+  </data>
+  <data name="LibraryPage_SortButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>排序</value>
+  </data>
+  <data name="LibraryPage_SortList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>排序方式</value>
+  </data>
+  <data name="LibraryPage_FilterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>筛选</value>
+  </data>
+  <data name="LibraryPage_Localization9.Text" xml:space="preserve">
+    <value>筛选</value>
+  </data>
+  <data name="LibraryPage_JellyfinMoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="LibraryPage_JellyfinMoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="LibraryPage_Localization10.Text" xml:space="preserve">
+    <value>图片类型</value>
+  </data>
+  <data name="LibraryPage_JellyfinShowTitleCheck.Content" xml:space="preserve">
+    <value>显示标题</value>
+  </data>
+  <data name="LibraryPage_JellyfinShowTitleCheck.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>显示标题</value>
+  </data>
+  <data name="LibraryPage_FnNasLayoutButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="LibraryPage_FnNasLayoutButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="LibraryPage_Localization11.Text" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="LibraryPage_JellyfinLayoutButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="LibraryPage_JellyfinLayoutButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="LibraryPage_Localization12.Text" xml:space="preserve">
+    <value>布局</value>
+  </data>
+  <data name="LibraryPage_LibrarySettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="LibraryPage_LibrarySettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="LibraryPage_Localization13.Text" xml:space="preserve">
+    <value>筛选</value>
+  </data>
+  <data name="LibraryPage_FnNasFilterCollapse.Content" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="LibraryPage_FnNasFilterClear.Content" xml:space="preserve">
+    <value>清除筛选</value>
+  </data>
+  <data name="LibraryPage_Localization14.Text" xml:space="preserve">
+    <value>筛选</value>
+  </data>
+  <data name="LibraryPage_PlexFilterCollapse.Content" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="LibraryPage_PlexTypePicker.Header" xml:space="preserve">
+    <value>媒体类型</value>
+  </data>
+  <data name="LibraryPage_PlexFilterRetry.Content" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="LibraryPage_PlexFilterClear.Content" xml:space="preserve">
+    <value>清除筛选</value>
+  </data>
+  <data name="LibraryPage_LibraryRetryButton.Content" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="LibraryPage_TopResultsCategory.Text" xml:space="preserve">
+    <value>热门结果</value>
+  </data>
+  <data name="LibraryPage_SeriesCategory.Text" xml:space="preserve">
+    <value>节目</value>
+  </data>
+  <data name="LibraryPage_MoviesCategory.Text" xml:space="preserve">
+    <value>影片</value>
+  </data>
+  <data name="LibraryPage_EpisodesCategory.Text" xml:space="preserve">
+    <value>集</value>
+  </data>
+  <data name="LibraryPage_PeopleCategory.Text" xml:space="preserve">
+    <value>人物</value>
+  </data>
+  <data name="LibraryPage_CollectionsCategory.Text" xml:space="preserve">
+    <value>合集</value>
+  </data>
+  <data name="LibraryPage_PlaylistsCategory.Text" xml:space="preserve">
+    <value>播放列表</value>
+  </data>
+  <data name="LibraryPage_LibraryBatchCommandBar.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>媒体库多选操作</value>
+  </data>
+  <data name="LibraryPage_LibrarySelectionCount.Text" xml:space="preserve">
+    <value>已选 0 项</value>
+  </data>
+  <data name="LibraryPage_LibrarySelectLoaded.Label" xml:space="preserve">
+    <value>全选已加载</value>
+  </data>
+  <data name="LibraryPage_LibraryBatchActions.Label" xml:space="preserve">
+    <value>批量操作</value>
+  </data>
+  <data name="LibraryPage_LibraryCancelBatch.Label" xml:space="preserve">
+    <value>取消剩余</value>
+  </data>
+  <data name="LibraryPage_LibraryEndSelection.Label" xml:space="preserve">
+    <value>完成</value>
+  </data>
+  <data name="LibraryPage_LibraryClearSelection.Label" xml:space="preserve">
+    <value>清空选择</value>
+  </data>
+  <data name="LibraryPage_Localization15.Text" xml:space="preserve">
+    <value>订阅</value>
+  </data>
+  <data name="LibraryPage_UpcomingLoadingRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>正在加载电视节目预告</value>
+  </data>
+  <data name="LibraryPage_Localization16.Text" xml:space="preserve">
+    <value>正在加载预告…</value>
+  </data>
+  <data name="LibraryPage_UpcomingRetryButton.Content" xml:space="preserve">
+    <value>重新加载</value>
+  </data>
+  <data name="LibraryPage_Localization17.Text" xml:space="preserve">
+    <value>最近搜索</value>
+  </data>
+  <data name="LibraryPage_ClearRecentSearches.Content" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="LibraryPage_Localization18.Text" xml:space="preserve">
+    <value>暂无最近搜索</value>
+  </data>
+  <data name="LibraryPage_FilterScrim.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭筛选</value>
+  </data>
+  <data name="LibraryPage_SettingsScrim.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭设置</value>
+  </data>
+  <data name="LibrarySettingsPanel_SettingsCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭设置</value>
+  </data>
+  <data name="LibrarySettingsPanel_SettingsCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization1.Text" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization2.Text" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="LibrarySettingsPanel_ViewCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization3.Text" xml:space="preserve">
+    <value>图像大小</value>
+  </data>
+  <data name="LibrarySettingsPanel_SizeCombo.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>图像大小</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization4.Text" xml:space="preserve">
+    <value>设置图像网格的首选尺寸。</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization5.Text" xml:space="preserve">
+    <value>将项目分组到合集中</value>
+  </data>
+  <data name="LibrarySettingsPanel_GroupSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>将项目分组到合集中</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization6.Text" xml:space="preserve">
+    <value>根据已添加到的合集对项目进行分组。启用某些筛选器或排序命令可能会自动禁用此功能。</value>
+  </data>
+  <data name="LibrarySettingsPanel_Localization7.Text" xml:space="preserve">
+    <value>显示字段</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryRefresh.Label" xml:space="preserve">
+    <value>刷新媒体库</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryRefresh.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刷新媒体库</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryOpenSource.Label" xml:space="preserve">
+    <value>打开源目录</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryOpenSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>打开源目录</value>
+  </data>
+  <data name="LocalLibraryPage_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>正在刷新本地媒体库</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryOpenLocation.Content" xml:space="preserve">
+    <value>打开所在文件夹</value>
+  </data>
+  <data name="LocalLibraryPage_LocalLibraryPlay.Content" xml:space="preserve">
+    <value>播放</value>
+  </data>
+  <data name="LocalLibraryPage_Localization2.Text" xml:space="preserve">
+    <value>还没有已入库的影视文件。后台扫描与刮削完成后会显示在这里。</value>
+  </data>
+  <data name="LocalMediaPage_Localization1.Text" xml:space="preserve">
+    <value>本机整理</value>
+  </data>
+  <data name="LocalMediaPage_Localization2.Text" xml:space="preserve">
+    <value>识别本机或网络共享中的影视文件，预览后改名或创建链接，并写入 NFO、海报与背景图。</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="LocalMediaPage_Localization3.Text" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryPicker.Header" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryNew.Content" xml:space="preserve">
+    <value>添加媒体库</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryName.Header" xml:space="preserve">
+    <value>媒体库名称</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaRecognitionCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>识别与整理</value>
+  </data>
+  <data name="LocalMediaPage_Localization4.Text" xml:space="preserve">
+    <value>识别与整理</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaProvider.Header" xml:space="preserve">
+    <value>识别方式</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMethod.Header" xml:space="preserve">
+    <value>整理方式</value>
+  </data>
+  <data name="LocalMediaPage_Localization5.Content" xml:space="preserve">
+    <value>硬链接</value>
+  </data>
+  <data name="LocalMediaPage_Localization6.Content" xml:space="preserve">
+    <value>软链接</value>
+  </data>
+  <data name="LocalMediaPage_Localization7.Content" xml:space="preserve">
+    <value>直接改源文件名</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaToken.PlaceholderText" xml:space="preserve">
+    <value>填入读取令牌，保存后由 Windows 加密保管</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSaveToken.Content" xml:space="preserve">
+    <value>保存令牌</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaClearToken.Content" xml:space="preserve">
+    <value>清除令牌</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaTmdbSettings.Content" xml:space="preserve">
+    <value>打开 TMDB API 设置</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMpNotice.Text" xml:space="preserve">
+    <value>MoviePilot 只接收目录与文件名文本，不接收视频；连接不可用时，请先到 MoviePilot 设置中连接。</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaDirectoriesCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>目录</value>
+  </data>
+  <data name="LocalMediaPage_Localization8.Text" xml:space="preserve">
+    <value>目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSource.Header" xml:space="preserve">
+    <value>源目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickSource.Content" xml:space="preserve">
+    <value>选择…</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>选择源目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaTarget.Header" xml:space="preserve">
+    <value>目标目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickTarget.Content" xml:space="preserve">
+    <value>选择…</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaPickTarget.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>选择目标目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaRecursive.Content" xml:space="preserve">
+    <value>包含子文件夹</value>
+  </data>
+  <data name="LocalMediaPage_Localization9.Text" xml:space="preserve">
+    <value>源目录和目标目录可以是本机盘符（C:\媒体）或网络共享（\\服务器\共享\媒体）；网络共享使用当前 Windows 账号访问。</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryAutomationCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>自动入库</value>
+  </data>
+  <data name="LocalMediaPage_Localization10.Text" xml:space="preserve">
+    <value>自动入库</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryMonitor.Header" xml:space="preserve">
+    <value>自动监控并刮削入库</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryMonitor.OnContent" xml:space="preserve">
+    <value>已开启</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryMonitor.OffContent" xml:space="preserve">
+    <value>已关闭</value>
+  </data>
+  <data name="LocalMediaPage_Localization11.Text" xml:space="preserve">
+    <value>已有和新增文件都会处理。文件写入稳定后自动识别；结果不明确时等待手动校正。保存规则后生效。</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibrarySave.Content" xml:space="preserve">
+    <value>保存媒体库规则</value>
+  </data>
+  <data name="LocalMediaPage_LocalLibraryRemove.Content" xml:space="preserve">
+    <value>移除媒体库</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaScan.Content" xml:space="preserve">
+    <value>扫描并识别</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaStop.Content" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSelectFile.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>选择此文件</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaCorrectFile.Content" xml:space="preserve">
+    <value>校正</value>
+  </data>
+  <data name="LocalMediaPage_Localization12.Text" xml:space="preserve">
+    <value>校正所选文件</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSearchText.Header" xml:space="preserve">
+    <value>片名</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSearchType.Header" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="LocalMediaPage_Localization13.Content" xml:space="preserve">
+    <value>电影</value>
+  </data>
+  <data name="LocalMediaPage_Localization14.Content" xml:space="preserve">
+    <value>电视剧</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSearch.Content" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaCandidates.Header" xml:space="preserve">
+    <value>识别结果</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaSeason.Header" xml:space="preserve">
+    <value>季号（特别篇为 0）</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaEpisode.Header" xml:space="preserve">
+    <value>集号</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaUpdatePreview.Content" xml:space="preserve">
+    <value>使用所选作品更新预览</value>
+  </data>
+  <data name="MetadataListEditor_EntryNameBox.Header" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="MetadataListEditor_EntryRoleBox.Header" xml:space="preserve">
+    <value>角色</value>
+  </data>
+  <data name="MetadataListEditor_EntryTypeBox.Header" xml:space="preserve">
+    <value>人物类型</value>
+  </data>
+  <data name="MetadataListEditor_ApplyEntryButton.Content" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="MetadataListEditor_CancelEntryButton.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="MetadataListEditor_AddButton.Content" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="MetadataListEditor_LockToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>锁定此组元数据</value>
+  </data>
+  <data name="MetadataListEditor_EmptyText.Text" xml:space="preserve">
+    <value>尚未添加</value>
+  </data>
+  <data name="MetadataListEditor_EditEntry.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>编辑此项</value>
+  </data>
+  <data name="MetadataListEditor_EditEntry.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="MetadataListEditor_RemoveEntry.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>移除此项</value>
+  </data>
+  <data name="MetadataListEditor_RemoveEntry.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="MetadataListEditor_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>拖动调整顺序</value>
+  </data>
+  <data name="MetadataListEditor_MoveUpButton.Content" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="MetadataListEditor_MoveDownButton.Content" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="MissingEpisodesDialog_SpecialsSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>特别篇</value>
+  </data>
+  <data name="MissingEpisodesDialog_SpecialsSwitch.Header" xml:space="preserve">
+    <value>特别篇</value>
+  </data>
+  <data name="MissingEpisodesDialog_UnairedSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>预告</value>
+  </data>
+  <data name="MissingEpisodesDialog_UnairedSwitch.Header" xml:space="preserve">
+    <value>预告</value>
+  </data>
+  <data name="MissingEpisodesDialog_SearchMissingMoviePilot.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>使用 MoviePilot 搜索这一集</value>
+  </data>
+  <data name="MissingEpisodesDialog_MissingMoviePilot.Text" xml:space="preserve">
+    <value>使用 MoviePilot</value>
+  </data>
+  <data name="MissingEpisodesDialog_MissingAniBt.Text" xml:space="preserve">
+    <value>使用 AniBT API 搜索</value>
+  </data>
+  <data name="MoviePilotCalendarPage_AllMedia.Content" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="MoviePilotCalendarPage_MovieMedia.Content" xml:space="preserve">
+    <value>电影</value>
+  </data>
+  <data name="MoviePilotCalendarPage_SeriesMedia.Content" xml:space="preserve">
+    <value>电视剧</value>
+  </data>
+  <data name="MoviePilotCalendarPage_CurrentMonth.Content" xml:space="preserve">
+    <value>今天</value>
+  </data>
+  <data name="MoviePilotCalendarPage_RefreshCalendar.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刷新日历</value>
+  </data>
+  <data name="MoviePilotCalendarPage_RefreshCalendar.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="MoviePilotCalendarPage_PreviousMonth.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上个月</value>
+  </data>
+  <data name="MoviePilotCalendarPage_PreviousMonth.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>上个月</value>
+  </data>
+  <data name="MoviePilotCalendarPage_NextMonth.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>下个月</value>
+  </data>
+  <data name="MoviePilotCalendarPage_NextMonth.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>下个月</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>开始下载</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_Localization2.Text" xml:space="preserve">
+    <value>确认下载</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DismissDownload.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>取消下载</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DismissDownload.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>取消下载</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_RefreshDownloadChoices.Content" xml:space="preserve">
+    <value>刷新选项</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadClient.Header" xml:space="preserve">
+    <value>下载器</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadPath.Header" xml:space="preserve">
+    <value>保存目录</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadPath.PlaceholderText" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadPath.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>选择或输入下载器上的路径；留空自动选择</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaType.Header" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaType.PlaceholderText" xml:space="preserve">
+    <value>自动识别</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaSource.Header" xml:space="preserve">
+    <value>数据源</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaSource.PlaceholderText" xml:space="preserve">
+    <value>选择数据源</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadMediaId.PlaceholderText" xml:space="preserve">
+    <value>输入编号</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_ResolveDownloadMedia.Content" xml:space="preserve">
+    <value>核对</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_SearchDownloadMedia.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>按片名查找媒体编号</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_SearchDownloadMedia.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>按片名查找</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_ResetDownloadIdentity.Content" xml:space="preserve">
+    <value>恢复原识别</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_DownloadSearchText.Header" xml:space="preserve">
+    <value>按片名查找</value>
+  </data>
+  <data name="MoviePilotDownloadDialog_SubmitDownloadSearch.Content" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="MoviePilotMediaManagementDialog_SelectAllRecords.Content" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="MoviePilotMediaManagementDialog_SelectAllRecords.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>全选整理记录</value>
+  </data>
+  <data name="MoviePilotMediaManagementDialog_RecordList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>整理记录与文件操作结果</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_SeasonsHeading.Text" xml:space="preserve">
+    <value>季</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_EpisodeGroupsHeading.Text" xml:space="preserve">
+    <value>选择剧集组</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization1.Text" xml:space="preserve">
+    <value>按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_EpisodeFilter.Header" xml:space="preserve">
+    <value>显示范围</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization2.Content" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization3.Content" xml:space="preserve">
+    <value>已入库</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_Localization4.Content" xml:space="preserve">
+    <value>缺集 / 未入库</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_SearchMediaEpisode.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索这一集的资源</value>
+  </data>
+  <data name="MoviePilotMediaSeasonsView_SearchMediaEpisode.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>搜索资源</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization1.Text" xml:space="preserve">
+    <value>手动整理</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_DismissReorganize.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭手动整理</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_DismissReorganize.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_HistoryQuery.Header" xml:space="preserve">
+    <value>查找整理历史</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_HistoryQuery.PlaceholderText" xml:space="preserve">
+    <value>输入原片名或文件名</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_HistoryBox.Header" xml:space="preserve">
+    <value>原整理记录</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetStorageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>目的存储</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetStorageBox.PlaceholderText" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetStorageLabel.Text" xml:space="preserve">
+    <value>目的存储</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization2.Text" xml:space="preserve">
+    <value>整理目的存储，选择自动时由后端匹配</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TransferTypeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>整理方式</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization3.Content" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization4.Content" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization5.Content" xml:space="preserve">
+    <value>移动（移走源文件）</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization6.Content" xml:space="preserve">
+    <value>硬链接</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization7.Content" xml:space="preserve">
+    <value>软链接</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization8.Text" xml:space="preserve">
+    <value>整理方式</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization9.Text" xml:space="preserve">
+    <value>文件操作整理方式，选择自动时使用后端匹配结果或默认规则</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetPathBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>目的路径</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TargetPathBox.PlaceholderText" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization10.Text" xml:space="preserve">
+    <value>目的路径</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization11.Text" xml:space="preserve">
+    <value>整理目的路径，选择自动将由后端按源路径匹配</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_UseMatchedPathButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>使用匹配路径</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization12.Text" xml:space="preserve">
+    <value>使用匹配路径</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TypeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization13.Content" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization14.Content" xml:space="preserve">
+    <value>电影</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization15.Content" xml:space="preserve">
+    <value>电视剧</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization16.Text" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization17.Text" xml:space="preserve">
+    <value>文件的媒体类型</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_SourceBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>数据源</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization18.Text" xml:space="preserve">
+    <value>数据源</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization19.Text" xml:space="preserve">
+    <value>默认使用后台识别设置，可为本次整理与刮削单独切换</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_MediaIdBox.Header" xml:space="preserve">
+    <value>媒体编号</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_MediaIdBox.PlaceholderText" xml:space="preserve">
+    <value>留空自动识别，或输入片名查找</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization20.Text" xml:space="preserve">
+    <value>用所选数据源的原生编号。</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_SeasonBox.Header" xml:space="preserve">
+    <value>季（特别篇为 0）</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_SeasonBox.PlaceholderText" xml:space="preserve">
+    <value>留空自动识别</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization21.Text" xml:space="preserve">
+    <value>留空按文件名识别，特别篇填 0。</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeBox.Header" xml:space="preserve">
+    <value>集（如 1 或 1,2）</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeBox.PlaceholderText" xml:space="preserve">
+    <value>起始集,终止集</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization22.Text" xml:space="preserve">
+    <value>写单集或起始集,终止集。</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeGroupBox.Header" xml:space="preserve">
+    <value>剧集组</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeGroupBox.PlaceholderText" xml:space="preserve">
+    <value>默认排序，或填写剧集组编号</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeGroupHint.Text" xml:space="preserve">
+    <value>可填 TMDB 剧集组编号。</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeFormatBox.Header" xml:space="preserve">
+    <value>集数定位</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeFormatBox.PlaceholderText" xml:space="preserve">
+    <value>使用 {ep} 定位集数</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization23.Text" xml:space="preserve">
+    <value>用 {ep} 标记集数位置。</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeOffsetBox.Header" xml:space="preserve">
+    <value>集数偏移</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_EpisodeOffsetBox.PlaceholderText" xml:space="preserve">
+    <value>如 -10 或 EP*2</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization24.Text" xml:space="preserve">
+    <value>按表达式调整识别到的集号。</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_PartBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>指定Part</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_PartBox.PlaceholderText" xml:space="preserve">
+    <value>如 part1</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization25.Text" xml:space="preserve">
+    <value>指定Part</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization26.Text" xml:space="preserve">
+    <value>指定Part，如part1</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_MinSizeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>最小文件大小（MB）</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization27.Text" xml:space="preserve">
+    <value>最小文件大小（MB）</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization28.Text" xml:space="preserve">
+    <value>只整理大于最小文件大小的文件</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_TypeFolderToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>按类型分类</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization29.Text" xml:space="preserve">
+    <value>按类型分类</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization30.Text" xml:space="preserve">
+    <value>整理时目的路径下按媒体类型添加子目录</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_CategoryFolderToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>按类别分类</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization31.Text" xml:space="preserve">
+    <value>按类别分类</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization32.Text" xml:space="preserve">
+    <value>整理时在目的路径下按媒体类别添加子目录</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_ScrapeToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刮削元数据</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization33.Text" xml:space="preserve">
+    <value>刮削元数据</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization34.Text" xml:space="preserve">
+    <value>整理完成后自动刮削元数据</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_FromHistoryToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>复用历史识别信息</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization35.Text" xml:space="preserve">
+    <value>复用历史识别信息</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization36.Text" xml:space="preserve">
+    <value>使用历史整理记录中已识别的媒体信息</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_ConfirmChanges.Content" xml:space="preserve">
+    <value>我已核对源文件、目标路径和旧记录的影响</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_PreviewButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization37.Text" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_QueueButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>加入整理队列</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization38.Text" xml:space="preserve">
+    <value>加入整理队列</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_ReorganizeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>重新整理</value>
+  </data>
+  <data name="MoviePilotReorganizeDialog_Localization39.Text" xml:space="preserve">
+    <value>重新整理</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization1.Text" xml:space="preserve">
+    <value>资源搜索结果</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortAscending.Text" xml:space="preserve">
+    <value>升序</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortDescending.Text" xml:space="preserve">
+    <value>降序</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortDefault.Text" xml:space="preserve">
+    <value>默认排序</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortSite.Text" xml:space="preserve">
+    <value>站点</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortSize.Text" xml:space="preserve">
+    <value>体积</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortSeeders.Text" xml:space="preserve">
+    <value>做种数</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SortPublishedAt.Text" xml:space="preserve">
+    <value>发布时间</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_FilterExpander.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>综合筛选</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization2.Text" xml:space="preserve">
+    <value>综合筛选</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_FilterText.Header" xml:space="preserve">
+    <value>在结果中筛选</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_FilterText.PlaceholderText" xml:space="preserve">
+    <value>标题、副标题或标签</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization3.Text" xml:space="preserve">
+    <value>集</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_EpisodeFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>集</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization4.Text" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_LabelFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization5.Text" xml:space="preserve">
+    <value>发布时间</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_DateFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>发布时间</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_SeededFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>仅有做种</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization6.Text" xml:space="preserve">
+    <value>仅有做种</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_HitAndRunFilter.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>排除 HR</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization7.Text" xml:space="preserve">
+    <value>排除 HR</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_ResetAdvancedFilters.Content" xml:space="preserve">
+    <value>清除筛选</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_ResetFilters.Content" xml:space="preserve">
+    <value>清除筛选</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization8.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>做种人数</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization9.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>下载人数</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization10.Text" xml:space="preserve">
+    <value>身份待核对</value>
+  </data>
+  <data name="MoviePilotResourceBrowser_Localization11.Text" xml:space="preserve">
+    <value>没有符合筛选条件的资源，可清除筛选后重试。</value>
+  </data>
+  <data name="MoviePilotResourcePanel_CloseButton.Content" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="MoviePilotResourcePanel_RetrySearch.Content" xml:space="preserve">
+    <value>搜索资源</value>
+  </data>
+  <data name="MoviePilotSearchPanel_ReviewMovieSubscription.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>我已在 MoviePilot 核对订阅和下载任务，确认不会重复操作，重新读取状态</value>
+  </data>
+  <data name="MoviePilotSearchPanel_ReviewMovieSubscription.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>已在 MoviePilot 核对 · 重新读取</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization2.Text" xml:space="preserve">
+    <value>请选择订阅季</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_DismissSeasonPicker.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭订阅季选择</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_DismissSeasonPicker.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization3.Text" xml:space="preserve">
+    <value>选择剧集组</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_PreviousEpisodeGroups.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>向前查看剧集组</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_NextEpisodeGroups.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>向后查看剧集组</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_RetrySeasonStates.Content" xml:space="preserve">
+    <value>重试入库状态</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_Localization4.Text" xml:space="preserve">
+    <value>已订阅</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_SelectSubscribeSeason.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>开启订阅此季；关闭后提交会取消该季订阅，保留已入库文件</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_SeasonModes.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>订阅方式</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_NormalSubscribeMode.Content" xml:space="preserve">
+    <value>普通订阅</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_EpisodeUpgradeMode.Content" xml:space="preserve">
+    <value>分集洗版</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_FullSeasonUpgradeMode.Content" xml:space="preserve">
+    <value>全集洗版</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_ConfirmSubscriptionReview.Content" xml:space="preserve">
+    <value>我已在 MoviePilot 核对订阅和下载任务，确认不会重复操作</value>
+  </data>
+  <data name="MoviePilotSeasonPicker_ReviewSubscriptionResult.Content" xml:space="preserve">
+    <value>解除待核对状态并重新读取</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization1.Title" xml:space="preserve">
+    <value>重新整理剧资源</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SeriesQuery.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>当前剧的 TMDB 筛选条件</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.PlaceholderText" xml:space="preserve">
+    <value>搜索标题、季集或路径，支持 * / ?</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索当前剧的整理资源</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>输入自定义关键词；多个词用空格分隔，* 匹配任意文字，? 匹配一个字符。</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ReloadResources.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_StatusAll.Text" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_StatusSuccess.Text" xml:space="preserve">
+    <value>成功</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_StatusFailed.Text" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortDefault.Text" xml:space="preserve">
+    <value>默认顺序</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortTitle.Text" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortPath.Text" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortMode.Text" xml:space="preserve">
+    <value>转移方式</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortSize.Text" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortTime.Text" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SortStatus.Text" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ResourceViewButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>列表 / 分组模式</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ViewList.Text" xml:space="preserve">
+    <value>列表模式</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ViewGrouped.Text" xml:space="preserve">
+    <value>分组模式</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SelectAllResources.Content" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_ClearResourceSelection.Content" xml:space="preserve">
+    <value>清空选择</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SeriesResources.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>当前剧的整理资源</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_SelectSeriesResourceGroup.Content" xml:space="preserve">
+    <value>全选本组</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization2.Text" xml:space="preserve">
+    <value>成功</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization3.Text" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="MoviePilotSeriesReorganizeDialog_Localization4.Text" xml:space="preserve">
+    <value>选择资源后继续核对整理设置与预览，再确认提交。</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Localization1.Text" xml:space="preserve">
+    <value>选择站点</value>
+  </data>
+  <data name="MoviePilotSiteDialog_CloseSiteDialog.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭站点选择</value>
+  </data>
+  <data name="MoviePilotSiteDialog_CloseSiteDialog.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭（不保存、不搜索）</value>
+  </data>
+  <data name="MoviePilotSiteDialog_SelectAllSites.Content" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="MoviePilotSiteDialog_ClearSelectedSites.Content" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刷新站点目录</value>
+  </data>
+  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>重新读取站点目录</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Localization2.Text" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="MoviePilotSiteDialog_UseDefaultSites.Content" xml:space="preserve">
+    <value>默认站点</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Localization3.Text" xml:space="preserve">
+    <value>默认站点跟随 MoviePilot；点击卡片或全选可改为指定站点。确认后保存，取消不更改偏好。</value>
+  </data>
+  <data name="MoviePilotSiteDialog_NoSearchSites.Text" xml:space="preserve">
+    <value>没有可供搜索的已启用站点，可点击刷新重试。</value>
+  </data>
+  <data name="MoviePilotSitePicker_SiteLabel.Text" xml:space="preserve">
+    <value>搜索站点</value>
+  </data>
+  <data name="MoviePilotSitePicker_ChooseSites.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>选择搜索站点</value>
+  </data>
+  <data name="MoviePilotSitePicker_ChooseSites.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>选择搜索站点</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_BasicTab.Text" xml:space="preserve">
+    <value>基础</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_AdvancedTab.Text" xml:space="preserve">
+    <value>进阶</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_RetryEditorChoices.Content" xml:space="preserve">
+    <value>重新读取选项</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_KeywordInput.Header" xml:space="preserve">
+    <value>搜索关键词</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization1.Text" xml:space="preserve">
+    <value>指定搜索站点时使用的关键词</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_TotalInput.Header" xml:space="preserve">
+    <value>总集数</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization2.Text" xml:space="preserve">
+    <value>剧集总集数</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_StartInput.Header" xml:space="preserve">
+    <value>开始集数</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization3.Text" xml:space="preserve">
+    <value>开始订阅集数</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_QualityInput.Header" xml:space="preserve">
+    <value>质量</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization4.Text" xml:space="preserve">
+    <value>订阅资源质量</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ResolutionInput.Header" xml:space="preserve">
+    <value>分辨率</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization5.Text" xml:space="preserve">
+    <value>订阅资源分辨率</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_EffectInput.Header" xml:space="preserve">
+    <value>特效</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization6.Text" xml:space="preserve">
+    <value>订阅资源特效</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SubscriptionSitesLabel.Text" xml:space="preserve">
+    <value>订阅站点</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SubscriptionSitesInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>订阅站点</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SubscriptionSitesInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>展开或收起站点列表</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization7.Text" xml:space="preserve">
+    <value>订阅的站点范围，不选使用系统设置</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SearchIntervalMode.Header" xml:space="preserve">
+    <value>搜索周期</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization8.Content" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization9.Content" xml:space="preserve">
+    <value>自定义</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization10.Text" xml:space="preserve">
+    <value>仅在开启订阅定时搜索时生效；手动搜索和 RSS 刷新不受影响。</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SearchIntervalHours.Header" xml:space="preserve">
+    <value>间隔小时数</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_DownloaderInput.Header" xml:space="preserve">
+    <value>下载器</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization11.Text" xml:space="preserve">
+    <value>指定该订阅使用的下载器</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SavePathInput.Header" xml:space="preserve">
+    <value>保存路径</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SavePathInput.PlaceholderText" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization12.Text" xml:space="preserve">
+    <value>选择或输入下载路径；留空自动使用设置的下载目录</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_BestVersionInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>洗版</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization13.Text" xml:space="preserve">
+    <value>洗版</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization14.Text" xml:space="preserve">
+    <value>根据洗版优先级提升订阅版本</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_BestVersionFullInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>全集洗版</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization15.Text" xml:space="preserve">
+    <value>全集洗版</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization16.Text" xml:space="preserve">
+    <value>只选择覆盖订阅范围的整包</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SearchImdbInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>使用 IMDb ID 搜索</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization17.Text" xml:space="preserve">
+    <value>使用 IMDb ID 搜索</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization18.Text" xml:space="preserve">
+    <value>使用 IMDb ID 精确搜索资源</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_IncludeInput.Header" xml:space="preserve">
+    <value>包含</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization19.Text" xml:space="preserve">
+    <value>匹配资源标题，支持正则表达式</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ExcludeInput.Header" xml:space="preserve">
+    <value>排除</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization20.Text" xml:space="preserve">
+    <value>排除资源标题，支持正则表达式</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization21.Text" xml:space="preserve">
+    <value>优先级规则组</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_FilterGroupsInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>优先级规则组</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_FilterGroupsInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>展开或收起规则组列表</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ClearEditorFilters.Content" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization22.Text" xml:space="preserve">
+    <value>不选时使用系统设置的优先级规则组</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_EpisodeGroupInput.Header" xml:space="preserve">
+    <value>剧集组</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization23.Text" xml:space="preserve">
+    <value>使用所选剧集组的季和集顺序</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_SeasonInput.Header" xml:space="preserve">
+    <value>季号</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization24.Text" xml:space="preserve">
+    <value>订阅的季，0 表示特别篇</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_MediaCategoryInput.Header" xml:space="preserve">
+    <value>自定义类别</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization25.Text" xml:space="preserve">
+    <value>留空使用自动分类</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_CustomWordsInput.Header" xml:space="preserve">
+    <value>自定义识别词</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization26.Text" xml:space="preserve">
+    <value>仅用于该订阅，每行一条识别规则</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_Localization27.Text" xml:space="preserve">
+    <value>确认取消这条订阅？已入库文件将保留。</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_ConfirmRemoveSubscription.Content" xml:space="preserve">
+    <value>确认取消订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionEditor_KeepSubscription.Content" xml:space="preserve">
+    <value>保留订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerPause.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>暂停预告片</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerPause.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>暂停预告片</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerMute.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>预告片静音</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerMute.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>预告片静音</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerClose.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭预告</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_StoreTrailerClose.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭预告</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchSubscription.Content" xml:space="preserve">
+    <value>搜索资源</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchMediaTitle.Text" xml:space="preserve">
+    <value>按标题搜索</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchMediaImdb.Text" xml:space="preserve">
+    <value>按 IMDb 搜索</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchAniBt.Content" xml:space="preserve">
+    <value>在 AniBT 中搜索</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SearchMediaSubtitles.Content" xml:space="preserve">
+    <value>搜索字幕</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_PlayMediaLibraryItem.Content" xml:space="preserve">
+    <value>播放已入库</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_PlaySubscriptionTrailer.Content" xml:space="preserve">
+    <value>预告片</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_EditSubscription.Content" xml:space="preserve">
+    <value>编辑订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_MoreActions.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_MoreActions.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_SeasonHead.Title" xml:space="preserve">
+    <value>季</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization1.Title" xml:space="preserve">
+    <value>演员阵容</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization2.Title" xml:space="preserve">
+    <value>相关推荐</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization3.Title" xml:space="preserve">
+    <value>相似作品</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization4.Text" xml:space="preserve">
+    <value>订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>媒体信息不可用</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization6.Text" xml:space="preserve">
+    <value>出错啦！</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_RetryMediaDetail.Content" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="MoviePilotSubscriptionPage_Localization7.Text" xml:space="preserve">
+    <value>正在读取媒体详情…</value>
+  </data>
+  <data name="MoviePilotSubscriptionPoster_SubscriptionMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>订阅管理</value>
+  </data>
+  <data name="MoviePilotSubscriptionPoster_SubscriptionMore.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>订阅管理</value>
+  </data>
+  <data name="MoviePilotSubscriptionsPage_LoadingRing.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>正在读取订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionsPage_Localization1.Text" xml:space="preserve">
+    <value>正在读取订阅…</value>
+  </data>
+  <data name="MoviePilotSubscriptionsPage_RefreshSubscriptions.Content" xml:space="preserve">
+    <value>刷新订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionsView_RefreshSubscriptions.Content" xml:space="preserve">
+    <value>刷新订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionsView_RefreshSeriesSubscriptions.Content" xml:space="preserve">
+    <value>刷新订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallCard_CardMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>订阅管理</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallCard_CardMore.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>订阅管理</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallFilterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>筛选订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallFilterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>筛选订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallKeywordBox.PlaceholderText" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallKeywordClear.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>清除名称筛选</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallKeywordClear.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization1.Text" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization2.Text" xml:space="preserve">
+    <value>排序</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallSortModeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>拖拽排序</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallSortModeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>拖拽排序</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>批量操作</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>批量操作</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefresh.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刷新订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefresh.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>刷新订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallMaintenanceButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>订阅维护</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallMaintenanceButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>订阅维护</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallSearchAll.Text" xml:space="preserve">
+    <value>搜索当前媒体类型订阅</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefreshResources.Text" xml:space="preserve">
+    <value>刷新订阅资源</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallRefreshMetadata.Text" xml:space="preserve">
+    <value>更新订阅元数据</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization3.Text" xml:space="preserve">
+    <value>批量操作</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization4.Text" xml:space="preserve">
+    <value>点击卡片选择订阅，再使用右下角按钮操作。</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchResume.Content" xml:space="preserve">
+    <value>批量启用</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchPause.Content" xml:space="preserve">
+    <value>批量暂停</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchDelete.Content" xml:space="preserve">
+    <value>批量删除</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallExitBatch.Content" xml:space="preserve">
+    <value>退出批量操作</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchCancel.Content" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallBatchDismiss.Content" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization5.Text" xml:space="preserve">
+    <value>已进入拖拽排序模式</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_WallExitSort.Content" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="MoviePilotSubscriptionWallView_Localization6.Text" xml:space="preserve">
+    <value>请求失败，请稍后重试</value>
+  </data>
+  <data name="MoviePilotVersionsView_SearchInput.PlaceholderText" xml:space="preserve">
+    <value>输入关键字（如：剧名 S01 E01）</value>
+  </data>
+  <data name="MusicLibraryPage_RefreshButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刷新音乐</value>
+  </data>
+  <data name="MusicLibraryPage_RefreshButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="MusicLibraryPage_TracksTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>歌曲</value>
+  </data>
+  <data name="MusicLibraryPage_TracksTab.Content" xml:space="preserve">
+    <value>歌曲</value>
+  </data>
+  <data name="MusicLibraryPage_AlbumsTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="MusicLibraryPage_AlbumsTab.Content" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="MusicLibraryPage_ArtistsTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="MusicLibraryPage_ArtistsTab.Content" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="MusicLibraryPage_PlaylistsTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>歌单</value>
+  </data>
+  <data name="MusicLibraryPage_PlaylistsTab.Content" xml:space="preserve">
+    <value>歌单</value>
+  </data>
+  <data name="MusicLibraryPage_FavoritesTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="MusicLibraryPage_FavoritesTab.Content" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="MusicLibraryPage_MusicSearch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索音乐</value>
+  </data>
+  <data name="MusicLibraryPage_MusicSearch.PlaceholderText" xml:space="preserve">
+    <value>搜索歌曲、专辑、艺术家或歌单</value>
+  </data>
+  <data name="MusicLibraryPage_Localization1.Text" xml:space="preserve">
+    <value>曲目</value>
+  </data>
+  <data name="MusicLibraryPage_Localization2.Text" xml:space="preserve">
+    <value>时长</value>
+  </data>
+  <data name="MusicLibraryPage_Localization3.Text" xml:space="preserve">
+    <value>这里还没有音乐</value>
+  </data>
+  <data name="MusicLibraryPage_Localization4.Text" xml:space="preserve">
+    <value>换个关键词，或者刷新一下这个库</value>
+  </data>
+  <data name="MusicPlayerBar_PreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上一曲</value>
+  </data>
+  <data name="MusicPlayerBar_PreviousButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>上一曲</value>
+  </data>
+  <data name="MusicPlayerBar_StopButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>停止播放并隐藏播放栏</value>
+  </data>
+  <data name="MusicPlayerBar_StopButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>停止播放并隐藏</value>
+  </data>
+  <data name="MusicPlayerBar_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>下一曲</value>
+  </data>
+  <data name="MusicPlayerBar_NextButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>下一曲</value>
+  </data>
+  <data name="MusicPlayerBar_CoverButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>展开音乐播放页</value>
+  </data>
+  <data name="MusicPlayerBar_CoverButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>打开播放页</value>
+  </data>
+  <data name="MusicPlayerBar_TitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>展开音乐播放页</value>
+  </data>
+  <data name="MusicPlayerBar_TitleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>打开播放页</value>
+  </data>
+  <data name="MusicPlayerBar_Localization1.Text" xml:space="preserve">
+    <value>正在准备音乐…</value>
+  </data>
+  <data name="MusicPlayerBar_SeekSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>音乐进度</value>
+  </data>
+  <data name="MusicPlayerBar_ShuffleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>随机播放</value>
+  </data>
+  <data name="MusicPlayerBar_ShuffleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>随机播放</value>
+  </data>
+  <data name="MusicPlayerBar_QueueButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="MusicPlayerBar_QueueButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="MusicPlayerBar_Localization2.Text" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="MusicPlayerBar_QueueShuffleButton.Content" xml:space="preserve">
+    <value>随机</value>
+  </data>
+  <data name="MusicPlayerBar_VolumeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="MusicPlayerBar_VolumeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="MusicPlayerBar_Localization3.Text" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="MusicPlayerBar_VolumeSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>音乐音量</value>
+  </data>
+  <data name="MusicPlayerBar_MuteButton.Content" xml:space="preserve">
+    <value>静音 / 取消静音</value>
+  </data>
+  <data name="MusicPlayerPage_CollapseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>收起播放页</value>
+  </data>
+  <data name="MusicPlayerPage_CollapseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>收起播放页（Esc）</value>
+  </data>
+  <data name="MusicPlayerPage_FullscreenButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>全屏显示</value>
+  </data>
+  <data name="MusicPlayerPage_FullscreenButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>全屏显示</value>
+  </data>
+  <data name="MusicPlayerPage_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>更多操作</value>
+  </data>
+  <data name="MusicPlayerPage_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>更多操作</value>
+  </data>
+  <data name="MusicPlayerPage_PauseMenuItem.Text" xml:space="preserve">
+    <value>播放 / 暂停</value>
+  </data>
+  <data name="MusicPlayerPage_QueueMenuItem.Text" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="MusicPlayerPage_StopMenuItem.Text" xml:space="preserve">
+    <value>停止播放</value>
+  </data>
+  <data name="MusicPlayerPage_SeekSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>音乐进度</value>
+  </data>
+  <data name="MusicPlayerPage_ShuffleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>随机播放</value>
+  </data>
+  <data name="MusicPlayerPage_ShuffleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>随机播放</value>
+  </data>
+  <data name="MusicPlayerPage_PreviousButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上一曲</value>
+  </data>
+  <data name="MusicPlayerPage_PreviousButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>上一曲</value>
+  </data>
+  <data name="MusicPlayerPage_NextButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>下一曲</value>
+  </data>
+  <data name="MusicPlayerPage_NextButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>下一曲</value>
+  </data>
+  <data name="MusicPlayerPage_VolumeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="MusicPlayerPage_VolumeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="MusicPlayerPage_Localization1.Text" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="MusicPlayerPage_VolumeSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>音乐音量</value>
+  </data>
+  <data name="MusicPlayerPage_MuteButton.Content" xml:space="preserve">
+    <value>静音 / 取消静音</value>
+  </data>
+  <data name="MusicPlayerPage_LyricsNote.Text" xml:space="preserve">
+    <value>纯文本歌词不支持自动滚动</value>
+  </data>
+  <data name="MusicPlayerPage_LyricsList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="MusicPlayerPage_Localization2.Text" xml:space="preserve">
+    <value>音频文件与服务端都没有找到歌词</value>
+  </data>
+  <data name="MusicPlayerPage_QueueButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="MusicPlayerPage_QueueButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="MusicPlayerPage_Localization3.Text" xml:space="preserve">
+    <value>播放队列</value>
+  </data>
+  <data name="NotificationEditDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="NotificationEditDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="NotificationEditDialog_NameBox.Header" xml:space="preserve">
+    <value>名称（可选）</value>
+  </data>
+  <data name="NotificationEditDialog_NameBox.PlaceholderText" xml:space="preserve">
+    <value>例：MoviePilot</value>
+  </data>
+  <data name="NotificationEditDialog_UrlBox.Header" xml:space="preserve">
+    <value>Webhook 地址</value>
+  </data>
+  <data name="NotificationEditDialog_UrlBox.PlaceholderText" xml:space="preserve">
+    <value>http://192.0.2.10:3001/api/v1/webhook?token=你的令牌</value>
+  </data>
+  <data name="NotificationEditDialog_RequestType.Header" xml:space="preserve">
+    <value>请求类型</value>
+  </data>
+  <data name="NotificationEditDialog_Localization2.Content" xml:space="preserve">
+    <value>简单表单</value>
+  </data>
+  <data name="NotificationEditDialog_Localization3.Content" xml:space="preserve">
+    <value>多部分表单（multipart/form-data）</value>
+  </data>
+  <data name="NotificationEditDialog_OtherServiceNote.Text" xml:space="preserve">
+    <value>这个服务的专属选项本客户端不编辑 —— 到 Emby 控制台的插件页里改；在这里改名称、挑事件、限定范围照常有效。</value>
+  </data>
+  <data name="NotificationEditDialog_Localization4.Text" xml:space="preserve">
+    <value>订阅的事件</value>
+  </data>
+  <data name="NotificationEditDialog_Localization5.Text" xml:space="preserve">
+    <value>勾哪几类发哪几类；一条都不勾，这个渠道就什么都不发。</value>
+  </data>
+  <data name="NotificationEditDialog_Localization6.Text" xml:space="preserve">
+    <value>限定（可多选；全不勾＝不限定）</value>
+  </data>
+  <data name="NotificationEditDialog_TestButton.Content" xml:space="preserve">
+    <value>发送测试通知</value>
+  </data>
+  <data name="PersonPage_Localization1.Content" xml:space="preserve">
+    <value>查看全部</value>
+  </data>
+  <data name="PersonPage_Localization2.Text" xml:space="preserve">
+    <value>演职人员</value>
+  </data>
+  <data name="PersonPage_Localization3.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>编辑演职人员元数据</value>
+  </data>
+  <data name="PersonPage_Localization3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>编辑元数据</value>
+  </data>
+  <data name="PersonPage_MoreButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>更多人物操作</value>
+  </data>
+  <data name="PersonPage_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="PersonPage_Localization4.Content" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="PersonPage_Localization5.Text" xml:space="preserve">
+    <value>其他信息</value>
+  </data>
+  <data name="PersonPage_Localization6.Text" xml:space="preserve">
+    <value>影视作品</value>
+  </data>
+  <data name="PersonPage_Localization7.Text" xml:space="preserve">
+    <value>没有找到这个人的参演作品。</value>
+  </data>
+  <data name="PersonPage_Localization8.Text" xml:space="preserve">
+    <value>作品可能还在服务器上整理，也可能这个人物只有照片和简介。</value>
+  </data>
+  <data name="PlayerCaptureDialog_Localization1.Title" xml:space="preserve">
+    <value>裁切截图</value>
+  </data>
+  <data name="PlayerCaptureDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>保存裁切</value>
+  </data>
+  <data name="PlayerCaptureDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureInstruction.Text" xml:space="preserve">
+    <value>在图片上拖动选择区域，或输入像素位置与尺寸。</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureX.Header" xml:space="preserve">
+    <value>左侧 X（像素）</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureY.Header" xml:space="preserve">
+    <value>顶部 Y（像素）</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureWidth.Header" xml:space="preserve">
+    <value>宽度（像素）</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureHeight.Header" xml:space="preserve">
+    <value>高度（像素）</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureWholeImage.Content" xml:space="preserve">
+    <value>整张图片</value>
+  </data>
+  <data name="PlayerCaptureDialog_CaptureSubtitleRegion.Content" xml:space="preserve">
+    <value>底部字幕区域</value>
+  </data>
+  <data name="PlayerPage_DanmakuInputBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕内容</value>
+  </data>
+  <data name="PlayerPage_SendDanmakuButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>发送弹幕</value>
+  </data>
+  <data name="PlayerPage_TransportStatsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>统计</value>
+  </data>
+  <data name="PlayerPage_TransportStatsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>统计</value>
+  </data>
+  <data name="PlayerPage_DanmakuButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>弹幕设置</value>
+  </data>
+  <data name="PlayerPage_DanmakuButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>弹幕设置</value>
+  </data>
+  <data name="PlayerPage_ChapterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>章节</value>
+  </data>
+  <data name="PlayerPage_ChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>章节</value>
+  </data>
+  <data name="PlayerPage_PreviousChapterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上一章节</value>
+  </data>
+  <data name="PlayerPage_PreviousChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>上一章节</value>
+  </data>
+  <data name="PlayerPage_InlineSpeedSlider.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>播放速度</value>
+  </data>
+  <data name="PlayerPage_InlineSpeedSlider.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>滚轮调速，左右拖动，右键恢复 1×</value>
+  </data>
+  <data name="PlayerPage_NextChapterButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>下一章节</value>
+  </data>
+  <data name="PlayerPage_NextChapterButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>下一章节</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization1.Title" xml:space="preserve">
+    <value>刷新元数据</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization1.PrimaryButtonText" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="RefreshMetadataDialog_ModeBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>刷新模式</value>
+  </data>
+  <data name="RefreshMetadataDialog_ModeBox.Header" xml:space="preserve">
+    <value>刷新模式</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization2.Content" xml:space="preserve">
+    <value>搜索缺少的元数据</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization3.Content" xml:space="preserve">
+    <value>替换所有元数据</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization4.Text" xml:space="preserve">
+    <value>依据媒体库中的设置和元数据提供器，用新的数据更新元数据。</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization5.Text" xml:space="preserve">
+    <value>替换现有图像</value>
+  </data>
+  <data name="RefreshMetadataDialog_ImagesSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>替换现有图像</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization6.Text" xml:space="preserve">
+    <value>基于媒体库选项，将删除全部现有图像，并下载新图像。在某些情况下，这可能会导致可用图像比以前要少。</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization7.Text" xml:space="preserve">
+    <value>替换现有视频预览缩略图</value>
+  </data>
+  <data name="RefreshMetadataDialog_ThumbnailsSwitch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>替换现有视频预览缩略图</value>
+  </data>
+  <data name="RefreshMetadataDialog_Localization8.Text" xml:space="preserve">
+    <value>如果在媒体库选项中启用此功能，将删除所有现有视频预览缩略图并生成新缩略图。</value>
+  </data>
+  <data name="ServersPage_Localization1.Text" xml:space="preserve">
+    <value>测试服务器连接</value>
+  </data>
+  <data name="ServersPage_Localization2.Text" xml:space="preserve">
+    <value>新增账号</value>
+  </data>
+  <data name="ServersPage_Localization3.Text" xml:space="preserve">
+    <value>退出登录（清除保存的令牌）</value>
+  </data>
+  <data name="ServersPage_Localization4.Text" xml:space="preserve">
+    <value>删除此服务器及全部账号</value>
+  </data>
+  <data name="ServersPage_Localization5.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>按住卡片拖动调整账号顺序</value>
+  </data>
+  <data name="ServersPage_Localization6.Text" xml:space="preserve">
+    <value>在线</value>
+  </data>
+  <data name="ServersPage_AccountOfflineButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>下线</value>
+  </data>
+  <data name="ServersPage_AccountOfflineButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>下线（保留已保存的账号）</value>
+  </data>
+  <data name="ServersPage_Localization7.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>按住拖动调整服务器顺序</value>
+  </data>
+  <data name="ServersPage_Localization8.Text" xml:space="preserve">
+    <value>未保存账号</value>
+  </data>
+  <data name="ServersPage_ServerLoginButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>登录服务器</value>
+  </data>
+  <data name="ServersPage_ServerLoginButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>登录服务器</value>
+  </data>
+  <data name="ServersPage_Localization9.Text" xml:space="preserve">
+    <value>登录服务器</value>
+  </data>
+  <data name="ServersPage_ButtonA5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>删除服务器</value>
+  </data>
+  <data name="ServersPage_ServerSortList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>排序方式</value>
+  </data>
+  <data name="ServersPage_Localization10.Text" xml:space="preserve">
+    <value>聚合模式</value>
+  </data>
+  <data name="ServersPage_AggregateToggle.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>聚合模式</value>
+  </data>
+  <data name="SettingsPage_UseAutomaticValue.Content" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="SettingsPage_SecretInput.PlaceholderText" xml:space="preserve">
+    <value>输入新密钥</value>
+  </data>
+  <data name="SettingsPage_SaveSecret.Content" xml:space="preserve">
+    <value>保存密钥</value>
+  </data>
+  <data name="SettingsPage_ClearSecret.Content" xml:space="preserve">
+    <value>清除密钥</value>
+  </data>
+  <data name="SettingsPage_Localization1.Header" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="SettingsPage_Localization1.OffContent" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="SettingsPage_Localization1.OnContent" xml:space="preserve">
+    <value>开启</value>
+  </data>
+  <data name="SettingsPage_Localization2.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>显示 AniBT 入口</value>
+  </data>
+  <data name="SettingsPage_Localization2.Header" xml:space="preserve">
+    <value>AniBT 功能</value>
+  </data>
+  <data name="SettingsPage_Localization2.OffContent" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="SettingsPage_Localization2.OnContent" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="SettingsPage_Localization3.Text" xml:space="preserve">
+    <value>关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。</value>
+  </data>
+  <data name="SettingsPage_Localization4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 协议</value>
+  </data>
+  <data name="SettingsPage_Localization4.Header" xml:space="preserve">
+    <value>协议</value>
+  </data>
+  <data name="SettingsPage_Localization5.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 地址</value>
+  </data>
+  <data name="SettingsPage_Localization5.Header" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="SettingsPage_Localization6.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot API 端口</value>
+  </data>
+  <data name="SettingsPage_Localization6.Header" xml:space="preserve">
+    <value>API 端口</value>
+  </data>
+  <data name="SettingsPage_Localization7.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 用户名</value>
+  </data>
+  <data name="SettingsPage_Localization7.Header" xml:space="preserve">
+    <value>用户名</value>
+  </data>
+  <data name="SettingsPage_Localization7.PlaceholderText" xml:space="preserve">
+    <value>MoviePilot 的登录名</value>
+  </data>
+  <data name="SettingsPage_Localization8.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 密码</value>
+  </data>
+  <data name="SettingsPage_Localization8.Header" xml:space="preserve">
+    <value>密码</value>
+  </data>
+  <data name="SettingsPage_Localization8.PlaceholderText" xml:space="preserve">
+    <value>留空则用已保存的那个</value>
+  </data>
+  <data name="SettingsPage_Localization9.Text" xml:space="preserve">
+    <value>已保存一个密码</value>
+  </data>
+  <data name="SettingsPage_Localization10.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>测试 MoviePilot 连接</value>
+  </data>
+  <data name="SettingsPage_DefaultSearchSites.Label" xml:space="preserve">
+    <value>默认搜索站点</value>
+  </data>
+  <data name="SettingsPage_Localization11.Text" xml:space="preserve">
+    <value>搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。</value>
+  </data>
+  <data name="SettingsPage_HomeLibraryEntriesList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>媒体库入口</value>
+  </data>
+  <data name="SettingsPage_Localization12.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>按住拖动调整优先级</value>
+  </data>
+  <data name="SettingsPage_PriorityRuleUp.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>提高优先级</value>
+  </data>
+  <data name="SettingsPage_PriorityRuleDown.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>降低优先级</value>
+  </data>
+  <data name="SettingsPage_PriorityRuleDelete.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>删除这个关键词</value>
+  </data>
+  <data name="SettingsPage_PriorityAddTerm.Content" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="SettingsPage_UnsavedSettingsNotice.Title" xml:space="preserve">
+    <value>设置尚未保存</value>
+  </data>
+  <data name="SettingsPage_UnsavedSettingsNotice.Message" xml:space="preserve">
+    <value>修改仍在本次运行中生效，但关闭程序后可能丢失。请检查磁盘空间和目录权限后重试。</value>
+  </data>
+  <data name="SettingsPage_RetrySaveSettingsButton.Content" xml:space="preserve">
+    <value>重试保存</value>
+  </data>
+  <data name="SettingsSearchBox.PlaceholderText" xml:space="preserve">
+    <value>搜索设置项</value>
+  </data>
+  <data name="SettingsPage_SettingsSearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索设置项</value>
+  </data>
+  <data name="SettingsPage_SettingsSearchEmpty.Text" xml:space="preserve">
+    <value>未找到匹配的设置项</value>
+  </data>
+  <data name="SettingsPage_ShortcutSearchBox.PlaceholderText" xml:space="preserve">
+    <value>搜索快捷键名称或按键，如：字幕、Ctrl + ↑</value>
+  </data>
+  <data name="SettingsPage_ShortcutSearchBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索快捷键</value>
+  </data>
+  <data name="SettingsPage_ClearShortcutSearchButton.Content" xml:space="preserve">
+    <value>清空搜索</value>
+  </data>
+  <data name="ShellPage_Localization1.Text" xml:space="preserve">
+    <value>聚合模式</value>
+  </data>
+  <data name="ShellPage_AggregateModeItem.OnContent" xml:space="preserve">
+    <value>开</value>
+  </data>
+  <data name="ShellPage_AggregateModeItem.OffContent" xml:space="preserve">
+    <value>关</value>
+  </data>
+  <data name="ShellPage_AggregateModeItem.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>聚合模式</value>
+  </data>
+  <data name="ShellPage_AccountProfileList.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>服务器与账号</value>
+  </data>
+  <data name="ShellPage_LibraryPreviewMore.Content" xml:space="preserve">
+    <value>查看更多</value>
+  </data>
+  <data name="ShellPage_SidebarHome.Content" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="ShellPage_SidebarFavorites.Content" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="ShellPage_SidebarMoviePilotCalendar.Content" xml:space="preserve">
+    <value>日历</value>
+  </data>
+  <data name="ShellPage_SidebarLibrariesHeader.Content" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="ShellPage_SidebarMoviePilotMovies.Content" xml:space="preserve">
+    <value>订阅·电影</value>
+  </data>
+  <data name="ShellPage_SidebarMoviePilotSeries.Content" xml:space="preserve">
+    <value>订阅·电视剧</value>
+  </data>
+  <data name="ShellPage_SidebarSettingsButton.Content" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="ShellPage_SidebarResizeGrip.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>调整侧边栏宽度</value>
+  </data>
+  <data name="SignInPage_ServerBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>服务器地址</value>
+  </data>
+  <data name="SignInPage_UserBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>用户名</value>
+  </data>
+  <data name="SignInPage_PasswordInput.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>密码</value>
+  </data>
+  <data name="SubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>关闭字幕管理</value>
+  </data>
+  <data name="SubtitleDialog_HeaderCloseButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="SubtitleDialog_Localization1.Text" xml:space="preserve">
+    <value>媒体版本</value>
+  </data>
+  <data name="SubtitleDialog_VersionBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>字幕所属媒体版本</value>
+  </data>
+  <data name="SubtitleDialog_Localization2.Text" xml:space="preserve">
+    <value>上传本地字幕</value>
+  </data>
+  <data name="SubtitleDialog_PickSubtitleButton.Content" xml:space="preserve">
+    <value>选择字幕文件</value>
+  </data>
+  <data name="SubtitleDialog_PickSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>选择本地字幕文件</value>
+  </data>
+  <data name="SubtitleDialog_UploadLanguageBox.Header" xml:space="preserve">
+    <value>字幕语言</value>
+  </data>
+  <data name="SubtitleDialog_UploadLanguageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上传字幕语言</value>
+  </data>
+  <data name="SubtitleDialog_UploadForced.Header" xml:space="preserve">
+    <value>强制字幕</value>
+  </data>
+  <data name="SubtitleDialog_UploadForced.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上传为强制字幕</value>
+  </data>
+  <data name="SubtitleDialog_UploadHearingImpaired.Header" xml:space="preserve">
+    <value>听障字幕</value>
+  </data>
+  <data name="SubtitleDialog_UploadHearingImpaired.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上传为听障字幕</value>
+  </data>
+  <data name="SubtitleDialog_Localization3.Text" xml:space="preserve">
+    <value>文件原样上传到选定的媒体版本。支持 SUB、SRT、VTT、ASS、SSA、MKS，最大 10 MiB。</value>
+  </data>
+  <data name="SubtitleDialog_UploadSubtitleButton.Content" xml:space="preserve">
+    <value>上传字幕</value>
+  </data>
+  <data name="SubtitleDialog_UploadSubtitleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>上传所选字幕文件</value>
+  </data>
+  <data name="SubtitleDialog_RefreshTracksButton.Content" xml:space="preserve">
+    <value>刷新字幕列表</value>
+  </data>
+  <data name="SubtitleDialog_Localization4.Text" xml:space="preserve">
+    <value>删除服务器字幕文件？</value>
+  </data>
+  <data name="SubtitleDialog_CancelDeleteButton.Content" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="SubtitleDialog_ConfirmDeleteButton.Content" xml:space="preserve">
+    <value>删除服务器文件</value>
+  </data>
+  <data name="SubtitleDialog_Localization5.Text" xml:space="preserve">
+    <value>搜索字幕</value>
+  </data>
+  <data name="SubtitleDialog_LanguageBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>字幕语言</value>
+  </data>
+  <data name="SubtitleDialog_ForcedOnly.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>仅强制字幕</value>
+  </data>
+  <data name="SubtitleDialog_SearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索字幕</value>
+  </data>
+  <data name="SubtitleDialog_Localization6.Text" xml:space="preserve">
+    <value>未找到结果。您是否已配置</value>
+  </data>
+  <data name="SubtitleDialog_SubtitleDownloadHelp.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>字幕下载配置帮助</value>
+  </data>
+  <data name="SubtitleDialog_Localization7.Text" xml:space="preserve">
+    <value>字幕下载</value>
+  </data>
+  <data name="SubtitleDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>字幕搜索结果</value>
   </data>
 </root>

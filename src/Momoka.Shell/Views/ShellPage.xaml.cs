@@ -16,6 +16,7 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Windowing;
@@ -879,9 +880,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var dialog = new ContentDialog
         {
             XamlRoot = root,
-            Title = "弹幕设置与匹配",
+            Title = UiText.Translate("弹幕设置与匹配"),
             Content = panel,
-            CloseButtonText = "关闭",
+            CloseButtonText = UiText.Translate("关闭对话框"),
             DefaultButton = ContentDialogButton.Close,
         };
         try { await dialog.ShowAsync().AsTask().ConfigureAwait(true); }
@@ -1198,10 +1199,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     public void ShowAccount(string? user, string? server)
     {
-        AccountUser.Text = string.IsNullOrWhiteSpace(user) ? "未登录" : user;
-        AccountServer.Text = string.IsNullOrWhiteSpace(server) ? "未连接服务器" : server;
+        AccountUser.Text = string.IsNullOrWhiteSpace(user) ? UiText.Translate("未登录") : user;
+        AccountServer.Text = string.IsNullOrWhiteSpace(server) ? UiText.Translate("未连接服务器") : server;
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(AccountButton,
-            $"账号与服务器：{AccountUser.Text} · {AccountServer.Text}");
+            UiText.Format("账号与服务器：{0} · {1}", AccountUser.Text, AccountServer.Text));
     }
 
     /// <summary>
@@ -1240,7 +1241,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
                     if (!_closing && homeScope?.IsCurrent == true && source.IsAvailable && SourcesStamp() == homeSources)
                         ApplyLibraryDirectory(source, views);
                 }
-            }, "主页", tag);
+            }, UiText.Translate("主页"), tag);
             return;
         }
 
@@ -1260,7 +1261,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (tag == MoviePilotCalendarPage.Destination)
         {
             if (!MoviePilotCalendarAvailable) return;
-            Open(typeof(MoviePilotCalendarPage), new MoviePilotCalendarRequest(_moviePilotService!, Settings.MoviePilot), "日历", tag);
+            Open(typeof(MoviePilotCalendarPage), new MoviePilotCalendarRequest(_moviePilotService!, Settings.MoviePilot), UiText.Translate("日历"), tag);
             return;
         }
 
@@ -1322,7 +1323,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             // The frame keeps 设置 reachable, but not 服务器 or 诊断 as separate pages: they are cards in the
             // settings page now, so the fallback opens the settings page on the category that was asked for.
-            Open(typeof(SettingsPage), request, "设置", "settings");
+            Open(typeof(SettingsPage), request, UiText.Translate("设置"), "settings");
             return;
         }
 
@@ -2365,7 +2366,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (TitleSearchPage is null)
         {
             TitleSearchBox.Text = string.Empty;
-            TitleSearchBox.PlaceholderText = "搜索媒体库、订阅等";
+            TitleSearchBox.PlaceholderText = UiText.Translate("搜索媒体库、订阅等");
         }
         TitleSearchBox.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
@@ -2754,9 +2755,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var sources = session.Sources;
         var aggregate = Settings.AggregateMode;
         AccountIdentityItem.Text = sources.Count == 0
-            ? "尚未登录"
+            ? UiText.Translate("尚未登录")
             : $"{session.ServerDisplayName} · {session.Account?.Username}";
-        AccountOnlineItem.Text = $"{sources.Count} 个账号在线";
+        AccountOnlineItem.Text = UiText.Format("{0} 个账号在线", sources.Count);
         AccountIdentityItem.Visibility = aggregate ? Visibility.Collapsed : Visibility.Visible;
         AccountOnlineItem.Visibility = aggregate ? Visibility.Visible : Visibility.Collapsed;
         RefreshAccountModeVisibility();
@@ -2791,9 +2792,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 Content = new TextBlock
                 {
                     // 「已下线」是写进设置的保持状态：重启后这个账号不会自动回来，直到用户再点它登录。
-                    Text = identity + (source?.IsCurrent == true ? "（当前）"
-                        : source is not null ? "（在线）"
-                        : account?.KeptOffline == true ? "（已下线）"
+                    Text = identity + (source?.IsCurrent == true ? UiText.Translate("（当前）")
+                        : source is not null ? UiText.Translate("（在线）")
+                        : account?.KeptOffline == true ? UiText.Translate("（已下线）")
                         : ""),
                     Style = (Style)Application.Current.Resources["EgBodyStyle"],
                     FontSize = (double)Application.Current.Resources["EgCaptionFontSize"],
@@ -2811,7 +2812,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             row.Children.Add(select);
             var offline = new Button
             {
-                Content = "下线",
+                Content = UiText.Translate("下线"),
                 Tag = source,
                 Style = (Style)AccountMenuBody.Resources["AccountActionStyle"],
                 Visibility = aggregate && source is not null ? Visibility.Visible : Visibility.Collapsed

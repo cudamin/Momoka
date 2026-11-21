@@ -565,6 +565,7 @@ public static class SettingsMigration
 
         // 选择模式（2026-11-16）：只认三个值，认不出来回深色（缺键旧文件的默认档）。
         settings.Ui.AppearanceMode = Theming.UiThemes.NormalizeMode(settings.Ui.AppearanceMode);
+        settings.Ui.Language = UiLanguages.Normalize(settings.Ui.Language);
 
         // 代理服务器（设置 → 关于 → 网络，2026-11-18）：认得出的地址归一成 scheme://host:port，认不出的
         // 原样去空白留着 —— 两个消费者都先过 ProxyEndpoint.TryParse，认不出的值不会被拿去用，也不会被这里

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ContentDialog x:Class="Momoka.Shell.Views.MoviePilotDownloadDialog"
+<ContentDialog x:Uid="MoviePilotDownloadDialog_Localization1" x:Class="Momoka.Shell.Views.MoviePilotDownloadDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:moviepilot="using:Momoka.MoviePilot"
@@ -41,11 +41,11 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <FontIcon Glyph="&#xE896;" Foreground="{ThemeResource EgTextDimBrush}" />
             <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock Text="确认下载" Style="{StaticResource EgSectionTitleStyle}" />
+                <TextBlock x:Uid="MoviePilotDownloadDialog_Localization2" Text="确认下载" Style="{StaticResource EgSectionTitleStyle}" />
                 <TextBlock Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                     Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" MaxLines="1" />
             </StackPanel>
-            <Button x:Name="DismissDownload" Grid.Column="2" Click="OnDismiss" Style="{StaticResource EgIconButtonStyle}"
+            <Button x:Uid="MoviePilotDownloadDialog_DismissDownload" x:Name="DismissDownload" Grid.Column="2" Click="OnDismiss" Style="{StaticResource EgIconButtonStyle}"
                 AutomationProperties.Name="取消下载" ToolTipService.ToolTip="取消下载">
                 <FontIcon Glyph="&#xE8BB;" FontSize="{StaticResource EgSubheadFontSize}" />
             </Button>
@@ -92,15 +92,15 @@
             <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" IsClosable="False"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <Button x:Name="RefreshDownloadChoices" Content="刷新选项" Command="{x:Bind ViewModel.RefreshCommand}"
+            <Button x:Uid="MoviePilotDownloadDialog_RefreshDownloadChoices" x:Name="RefreshDownloadChoices" Content="刷新选项" Command="{x:Bind ViewModel.RefreshCommand}"
                 Visibility="{x:Bind ViewModel.RefreshVisibility, Mode=OneWay}" />
             <Grid x:Name="DestinationGrid" ColumnSpacing="20" RowSpacing="12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <ComboBox x:Name="DownloadClient" Header="下载器" Style="{StaticResource DownloadPickerStyle}"
+                <ComboBox x:Uid="MoviePilotDownloadDialog_DownloadClient" x:Name="DownloadClient" Header="下载器" Style="{StaticResource DownloadPickerStyle}"
                     ItemsSource="{x:Bind ViewModel.Downloaders, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Downloader, Mode=TwoWay}"
                     IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
-                <ComboBox x:Name="DownloadPath" Grid.Column="1" Header="保存目录" Style="{StaticResource DownloadPickerStyle}" IsEditable="True"
+                <ComboBox x:Uid="MoviePilotDownloadDialog_DownloadPath" x:Name="DownloadPath" Grid.Column="1" Header="保存目录" Style="{StaticResource DownloadPickerStyle}" IsEditable="True"
                     PlaceholderText="自动" ToolTipService.ToolTip="选择或输入下载器上的路径；留空自动选择"
                     ItemsSource="{x:Bind ViewModel.Paths, Mode=OneWay}" Text="{x:Bind ViewModel.SavePath, Mode=TwoWay}"
                     IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
@@ -117,32 +117,32 @@
                 <Grid x:Name="IdentityGrid" ColumnSpacing="20" RowSpacing="12">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <ComboBox x:Name="DownloadMediaType" Header="类型" Style="{StaticResource DownloadPickerStyle}"
+                    <ComboBox x:Uid="MoviePilotDownloadDialog_DownloadMediaType" x:Name="DownloadMediaType" Header="类型" Style="{StaticResource DownloadPickerStyle}"
                         PlaceholderText="自动识别" ItemsSource="{x:Bind ViewModel.Types, Mode=OneWay}"
                         SelectedItem="{x:Bind ViewModel.MediaType, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
-                    <ComboBox x:Name="DownloadMediaSource" Grid.Column="1" Header="数据源" Style="{StaticResource DownloadPickerStyle}"
+                    <ComboBox x:Uid="MoviePilotDownloadDialog_DownloadMediaSource" x:Name="DownloadMediaSource" Grid.Column="1" Header="数据源" Style="{StaticResource DownloadPickerStyle}"
                         PlaceholderText="选择数据源" ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}" DisplayMemberPath="Name"
                         SelectedItem="{x:Bind ViewModel.Source, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
                 </Grid>
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBox x:Name="DownloadMediaId" Header="{x:Bind ViewModel.MediaIdLabel, Mode=OneWay}" PlaceholderText="输入编号"
+                    <TextBox x:Uid="MoviePilotDownloadDialog_DownloadMediaId" x:Name="DownloadMediaId" Header="{x:Bind ViewModel.MediaIdLabel, Mode=OneWay}" PlaceholderText="输入编号"
                         Text="{x:Bind ViewModel.MediaId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
-                    <Button x:Name="ResolveDownloadMedia" Grid.Column="1" Content="核对" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.ResolveCommand}" />
-                    <Button x:Name="SearchDownloadMedia" Grid.Column="2" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.ToggleSearchCommand}"
+                    <Button x:Uid="MoviePilotDownloadDialog_ResolveDownloadMedia" x:Name="ResolveDownloadMedia" Grid.Column="1" Content="核对" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.ResolveCommand}" />
+                    <Button x:Uid="MoviePilotDownloadDialog_SearchDownloadMedia" x:Name="SearchDownloadMedia" Grid.Column="2" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.ToggleSearchCommand}"
                         AutomationProperties.Name="按片名查找媒体编号" ToolTipService.ToolTip="按片名查找"
                         IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"><FontIcon Glyph="&#xE721;" /></Button>
                 </Grid>
                 <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IdentityVisibility, Mode=OneWay}">
                     <TextBlock x:Name="DownloadIdentityStatus" Text="{x:Bind ViewModel.IdentityStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                    <Button x:Name="ResetDownloadIdentity" Content="恢复原识别" Command="{x:Bind ViewModel.ResetIdentityCommand}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                    <Button x:Uid="MoviePilotDownloadDialog_ResetDownloadIdentity" x:Name="ResetDownloadIdentity" Content="恢复原识别" Command="{x:Bind ViewModel.ResetIdentityCommand}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
                 </StackPanel>
                 <StackPanel x:Name="DownloadMediaSearch" Spacing="8" Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBox x:Name="DownloadSearchText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="按片名查找" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox x:Uid="MoviePilotDownloadDialog_DownloadSearchText" x:Name="DownloadSearchText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="按片名查找" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
-                        <Button x:Name="SubmitDownloadSearch" Grid.Column="1" Content="搜索" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.SearchCommand}" />
+                        <Button x:Uid="MoviePilotDownloadDialog_SubmitDownloadSearch" x:Name="SubmitDownloadSearch" Grid.Column="1" Content="搜索" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.SearchCommand}" />
                     </Grid>
                     <TextBlock Text="{x:Bind ViewModel.SearchStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                     <ListView x:Name="DownloadMediaMatches" ItemsSource="{x:Bind ViewModel.Matches, Mode=OneWay}" MaxHeight="160"

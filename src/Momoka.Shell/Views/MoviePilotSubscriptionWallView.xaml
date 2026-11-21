@@ -47,7 +47,7 @@
         -->
         <Grid ColumnSpacing="{StaticResource EgSpaceS}">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceXS}" HorizontalAlignment="Left">
-                <Button x:Name="WallFilterButton" Style="{StaticResource EgIconButtonStyle}"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallFilterButton" x:Name="WallFilterButton" Style="{StaticResource EgIconButtonStyle}"
                     AutomationProperties.Name="筛选订阅" ToolTipService.ToolTip="筛选订阅">
                     <FontIcon Glyph="&#xE71C;" FontSize="{StaticResource EgSubheadFontSize}"
                         Foreground="{x:Bind FilterTone(ViewModel.WallFilter, ViewModel.WallKeyword), Mode=OneWay}" />
@@ -57,13 +57,13 @@
                             <StackPanel Width="264">
                                 <!-- 名称：网页端那颗带放大镜、可清空的外框输入框。 -->
                                 <Grid Margin="12,12,12,10">
-                                    <TextBox x:Name="WallKeywordBox" Style="{StaticResource EgTextBoxStyle}" Height="36"
+                                    <TextBox x:Uid="MoviePilotSubscriptionWallView_WallKeywordBox" x:Name="WallKeywordBox" Style="{StaticResource EgTextBoxStyle}" Height="36"
                                         Padding="30,0,30,0" PlaceholderText="名称"
                                         Text="{x:Bind ViewModel.WallKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgCaptionFontSize}"
                                         Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
                                         IsHitTestVisible="False" Foreground="{ThemeResource EgTextDimBrush}" />
-                                    <Button x:Name="WallKeywordClear" Style="{StaticResource EgIconButtonStyle}"
+                                    <Button x:Uid="MoviePilotSubscriptionWallView_WallKeywordClear" x:Name="WallKeywordClear" Style="{StaticResource EgIconButtonStyle}"
                                         Width="24" Height="24" HorizontalAlignment="Right" Margin="0,0,4,0"
                                         Click="OnClearKeyword" Visibility="{x:Bind KeywordClearVisibility(ViewModel.WallKeyword), Mode=OneWay}"
                                         AutomationProperties.Name="清除名称筛选" ToolTipService.ToolTip="清除">
@@ -72,47 +72,47 @@
                                     </Button>
                                 </Grid>
                                 <Border Style="{StaticResource EgRuleStyle}" />
-                                <TextBlock Text="状态" Style="{StaticResource WallMenuHeadingStyle}" />
+                                <TextBlock x:Uid="MoviePilotSubscriptionWallView_Localization1" Text="状态" Style="{StaticResource WallMenuHeadingStyle}" />
                                 <StackPanel x:Name="WallFilterOptions" Margin="6,0,6,8" Spacing="2" />
                                 <Border Style="{StaticResource EgRuleStyle}" />
-                                <TextBlock Text="排序" Style="{StaticResource WallMenuHeadingStyle}" />
+                                <TextBlock x:Uid="MoviePilotSubscriptionWallView_Localization2" Text="排序" Style="{StaticResource WallMenuHeadingStyle}" />
                                 <StackPanel x:Name="WallSortOptions" Margin="6,0,6,10" Spacing="2" />
                             </StackPanel>
                         </Flyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="WallSortModeButton" Style="{StaticResource EgIconButtonStyle}" Click="OnToggleSortMode"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallSortModeButton" x:Name="WallSortModeButton" Style="{StaticResource EgIconButtonStyle}" Click="OnToggleSortMode"
                     AutomationProperties.Name="拖拽排序" ToolTipService.ToolTip="拖拽排序">
                     <FontIcon Glyph="&#xE8CB;" FontSize="{StaticResource EgSubheadFontSize}"
                         Foreground="{x:Bind SortModeTone(ViewModel.WallSortMode), Mode=OneWay}" />
                 </Button>
-                <Button x:Name="WallBatchButton" Style="{StaticResource EgIconButtonStyle}" Click="OnToggleBatchMode"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallBatchButton" x:Name="WallBatchButton" Style="{StaticResource EgIconButtonStyle}" Click="OnToggleBatchMode"
                     AutomationProperties.Name="批量操作" ToolTipService.ToolTip="批量操作">
                     <FontIcon Glyph="&#xE762;" FontSize="{StaticResource EgSubheadFontSize}"
                         Foreground="{x:Bind BatchModeTone(ViewModel.WallBatchMode), Mode=OneWay}" />
                 </Button>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceXS}" HorizontalAlignment="Right">
-                <Button x:Name="WallRefresh" Style="{StaticResource EgIconButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallRefresh" x:Name="WallRefresh" Style="{StaticResource EgIconButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}"
                     AutomationProperties.Name="刷新订阅" ToolTipService.ToolTip="刷新订阅">
                     <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" />
                 </Button>
                 <!-- 维护键用扳手（E90F）而不是「⋯」：卡片右上角那颗「⋯」是订阅管理，同屏两个 ⋯ 会混。 -->
-                <Button x:Name="WallMaintenanceButton" Style="{StaticResource EgIconButtonStyle}"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallMaintenanceButton" x:Name="WallMaintenanceButton" Style="{StaticResource EgIconButtonStyle}"
                     AutomationProperties.Name="订阅维护" ToolTipService.ToolTip="订阅维护">
                     <FontIcon Glyph="&#xE90F;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" />
                     <Button.Flyout>
                         <MenuFlyout x:Name="WallMaintenanceMenu">
-                            <MenuFlyoutItem x:Name="WallSearchAll" Text="搜索当前媒体类型订阅" Click="OnSearchAll"
+                            <MenuFlyoutItem x:Uid="MoviePilotSubscriptionWallView_WallSearchAll" x:Name="WallSearchAll" Text="搜索当前媒体类型订阅" Click="OnSearchAll"
                                 IsEnabled="{x:Bind NotBusy(ViewModel.WallSearchBusy), Mode=OneWay}">
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE721;" /></MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="WallRefreshResources" Text="刷新订阅资源" Click="OnRefreshResources"
+                            <MenuFlyoutItem x:Uid="MoviePilotSubscriptionWallView_WallRefreshResources" x:Name="WallRefreshResources" Text="刷新订阅资源" Click="OnRefreshResources"
                                 Visibility="{x:Bind VisibleWhen(ViewModel.CanWallAdmin), Mode=OneWay}"
                                 IsEnabled="{x:Bind NotBusy(ViewModel.WallRefreshBusy), Mode=OneWay}">
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                            <MenuFlyoutItem x:Name="WallRefreshMetadata" Text="更新订阅元数据" Click="OnRefreshMetadata"
+                            <MenuFlyoutItem x:Uid="MoviePilotSubscriptionWallView_WallRefreshMetadata" x:Name="WallRefreshMetadata" Text="更新订阅元数据" Click="OnRefreshMetadata"
                                 Visibility="{x:Bind VisibleWhen(ViewModel.CanWallAdmin), Mode=OneWay}"
                                 IsEnabled="{x:Bind NotBusy(ViewModel.WallMetadataBusy), Mode=OneWay}">
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8B5;" /></MenuFlyoutItem.Icon>
@@ -134,23 +134,23 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Spacing="{StaticResource EgSpaceXS}" VerticalAlignment="Center">
-                    <TextBlock Text="批量操作" Style="{StaticResource EgSubheadStyle}" />
+                    <TextBlock x:Uid="MoviePilotSubscriptionWallView_Localization3" Text="批量操作" Style="{StaticResource EgSubheadStyle}" />
                     <TextBlock x:Name="WallBatchSummary" Text="{x:Bind ViewModel.WallBatchSummary, Mode=OneWay}"
                         Style="{StaticResource EgCaptionStyle}" />
-                    <TextBlock Text="点击卡片选择订阅，再使用右下角按钮操作。" Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock x:Uid="MoviePilotSubscriptionWallView_Localization4" Text="点击卡片选择订阅，再使用右下角按钮操作。" Style="{StaticResource EgCaptionStyle}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}"
                     HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button x:Name="WallSelectAll" Style="{StaticResource EgSecondaryButtonStyle}"
                         Content="{x:Bind SelectAllLabel(ViewModel.IsWallAllSelected), Mode=OneWay}" Click="OnSelectAll" />
-                    <Button x:Name="WallBatchResume" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量启用"
+                    <Button x:Uid="MoviePilotSubscriptionWallView_WallBatchResume" x:Name="WallBatchResume" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量启用"
                         Click="OnBatchResume" Visibility="{x:Bind VisibleWhen(ViewModel.CanWallBatchOperate), Mode=OneWay}" />
-                    <Button x:Name="WallBatchPause" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量暂停"
+                    <Button x:Uid="MoviePilotSubscriptionWallView_WallBatchPause" x:Name="WallBatchPause" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量暂停"
                         Click="OnBatchPause" Visibility="{x:Bind VisibleWhen(ViewModel.CanWallBatchOperate), Mode=OneWay}" />
-                    <Button x:Name="WallBatchDelete" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量删除"
+                    <Button x:Uid="MoviePilotSubscriptionWallView_WallBatchDelete" x:Name="WallBatchDelete" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量删除"
                         Click="OnBatchDelete" Foreground="{ThemeResource EgDangerBrush}"
                         Visibility="{x:Bind VisibleWhen(ViewModel.CanWallBatchOperate), Mode=OneWay}" />
-                    <Button x:Name="WallExitBatch" Style="{StaticResource EgSecondaryButtonStyle}" Content="退出批量操作" Click="OnExitBatch" />
+                    <Button x:Uid="MoviePilotSubscriptionWallView_WallExitBatch" x:Name="WallExitBatch" Style="{StaticResource EgSecondaryButtonStyle}" Content="退出批量操作" Click="OnExitBatch" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -183,10 +183,10 @@
                         IsIndeterminate="{x:Bind ViewModel.WallBatchIndeterminate, Mode=OneWay}"
                         Foreground="{x:Bind ToneBrush(ViewModel.WallBatchTone), Mode=OneWay}" />
                 </StackPanel>
-                <Button x:Name="WallBatchCancel" Grid.Column="1" Style="{StaticResource EgSecondaryButtonStyle}" Content="停止"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallBatchCancel" x:Name="WallBatchCancel" Grid.Column="1" Style="{StaticResource EgSecondaryButtonStyle}" Content="停止"
                     Click="OnCancelBatch" VerticalAlignment="Center"
                     Visibility="{x:Bind VisibleWhen(ViewModel.WallBatchCanCancel), Mode=OneWay}" />
-                <Button x:Name="WallBatchDismiss" Grid.Column="1" Style="{StaticResource EgSecondaryButtonStyle}" Content="关闭"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallBatchDismiss" x:Name="WallBatchDismiss" Grid.Column="1" Style="{StaticResource EgSecondaryButtonStyle}" Content="关闭"
                     Click="OnDismissBatch" VerticalAlignment="Center"
                     Visibility="{x:Bind VisibleWhen(ViewModel.WallBatchCanDismiss), Mode=OneWay}" />
             </Grid>
@@ -197,9 +197,9 @@
             Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="12">
             <Grid ColumnSpacing="{StaticResource EgSpaceM}">
-                <TextBlock Text="已进入拖拽排序模式" Style="{StaticResource EgBodyStyle}"
+                <TextBlock x:Uid="MoviePilotSubscriptionWallView_Localization5" Text="已进入拖拽排序模式" Style="{StaticResource EgBodyStyle}"
                     Foreground="{ThemeResource EgWarningBrush}" VerticalAlignment="Center" />
-                <Button x:Name="WallExitSort" Style="{StaticResource EgSecondaryButtonStyle}" Content="退出"
+                <Button x:Uid="MoviePilotSubscriptionWallView_WallExitSort" x:Name="WallExitSort" Style="{StaticResource EgSecondaryButtonStyle}" Content="退出"
                     Click="OnExitSort" HorizontalAlignment="Right" />
             </Grid>
         </Border>
@@ -209,7 +209,7 @@
             local:VisibilityReveal.IsEnabled="True"
             Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="12" BorderThickness="1" BorderBrush="{ThemeResource EgDangerBrush}">
-            <TextBlock Text="请求失败，请稍后重试" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgDangerBrush}" />
+            <TextBlock x:Uid="MoviePilotSubscriptionWallView_Localization6" Text="请求失败，请稍后重试" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgDangerBrush}" />
         </Border>
 
         <!-- 业务提示条（复用 VM 的 Notice*） -->

@@ -36,12 +36,12 @@
             <Grid RowSpacing="16" Visibility="{x:Bind ViewModel.ListVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <StackPanel Spacing="12">
-                    <TextBlock Text="用户" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                    <TextBlock x:Uid="FnNasUsersPage_Localization1" Text="用户" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                     <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button x:Name="FnNasUsersNew" Content="新增用户" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.NewUserCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
-                        <Button x:Name="FnNasUsersDefaults" Content="新用户默认权限" Command="{x:Bind ViewModel.DefaultsCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
-                        <Button x:Name="FnNasUsersRefresh" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
+                        <Button x:Uid="FnNasUsersPage_FnNasUsersNew" x:Name="FnNasUsersNew" Content="新增用户" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.NewUserCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
+                        <Button x:Uid="FnNasUsersPage_FnNasUsersDefaults" x:Name="FnNasUsersDefaults" Content="新用户默认权限" Command="{x:Bind ViewModel.DefaultsCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
+                        <Button x:Uid="FnNasUsersPage_FnNasUsersRefresh" x:Name="FnNasUsersRefresh" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
                     </StackPanel>
                 </StackPanel>
                 <ListView x:Name="FnNasUsersList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.Users, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnUserClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
@@ -54,7 +54,7 @@
                                     <TextBlock Text="{x:Bind Access}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
                                     <TextBlock Text="{x:Bind NasAccount}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="最近访问" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Uid="FnNasUsersPage_Localization2" Text="最近访问" Style="{StaticResource EgCaptionStyle}" />
                                         <TextBlock Text="{x:Bind LastLogin}" Style="{StaticResource EgCaptionStyle}" />
                                     </StackPanel>
                                 </StackPanel>
@@ -67,34 +67,34 @@
             <Grid RowSpacing="16" Visibility="{x:Bind ViewModel.EditorVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal" Spacing="12">
-                    <Button x:Name="FnNasUserBack" Content="返回" Command="{x:Bind ViewModel.BackCommand}" />
+                    <Button x:Uid="FnNasUsersPage_FnNasUserBack" x:Name="FnNasUserBack" Content="返回" Command="{x:Bind ViewModel.BackCommand}" />
                     <TextBlock Text="{x:Bind ViewModel.EditorTitle, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                 </StackPanel>
                 <ScrollView x:Name="FnNasUserEditorScroll" Grid.Row="1" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
                     <StackPanel Spacing="16" Padding="0,0,20,16">
                         <Border Style="{StaticResource FnNasCard}" Visibility="{x:Bind ViewModel.IdentityVisibility, Mode=OneWay}">
                             <StackPanel Spacing="16">
-                                <TextBox x:Name="FnNasUserName" Header="用户名" MaxLength="32" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                <PasswordBox x:Name="FnNasUserPassword" Header="密码" MaxLength="127" Password="{x:Bind ViewModel.Password, Mode=TwoWay}" />
-                                <PasswordBox x:Name="FnNasUserConfirmPassword" Header="确认密码" MaxLength="127" Password="{x:Bind ViewModel.ConfirmPassword, Mode=TwoWay}" />
+                                <TextBox x:Uid="FnNasUsersPage_FnNasUserName" x:Name="FnNasUserName" Header="用户名" MaxLength="32" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <PasswordBox x:Uid="FnNasUsersPage_FnNasUserPassword" x:Name="FnNasUserPassword" Header="密码" MaxLength="127" Password="{x:Bind ViewModel.Password, Mode=TwoWay}" />
+                                <PasswordBox x:Uid="FnNasUsersPage_FnNasUserConfirmPassword" x:Name="FnNasUserConfirmPassword" Header="确认密码" MaxLength="127" Password="{x:Bind ViewModel.ConfirmPassword, Mode=TwoWay}" />
                                 <TextBlock Text="{x:Bind ViewModel.PasswordNote, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource FnNasCard}" Visibility="{x:Bind ViewModel.PermissionVisibility, Mode=OneWay}">
                             <StackPanel Spacing="12">
-                                <ComboBox x:Name="FnNasUserPermission" Header="可访问媒体库" HorizontalAlignment="Stretch" SelectedIndex="{x:Bind ViewModel.Permission, Mode=TwoWay}">
+                                <ComboBox x:Uid="FnNasUsersPage_FnNasUserPermission" x:Name="FnNasUserPermission" Header="可访问媒体库" HorizontalAlignment="Stretch" SelectedIndex="{x:Bind ViewModel.Permission, Mode=TwoWay}">
                                     <x:String>无媒体库访问权限</x:String><x:String>部分媒体库</x:String><x:String>全部媒体库（含以后新增）</x:String>
                                 </ComboBox>
                                 <ItemsControl x:Name="FnNasUserLibraries" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" ItemTemplate="{StaticResource FnNasPermissionTemplate}" Visibility="{x:Bind ViewModel.LibrariesVisibility, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button x:Name="FnNasUserUnlock" Content="解锁用户" Command="{x:Bind ViewModel.UnlockCommand}" Visibility="{x:Bind ViewModel.UnlockVisibility, Mode=OneWay}" />
-                            <Button x:Name="FnNasUserDelete" Content="删除用户" Command="{x:Bind ViewModel.DeleteCommand}" Visibility="{x:Bind ViewModel.DeleteVisibility, Mode=OneWay}" />
+                            <Button x:Uid="FnNasUsersPage_FnNasUserUnlock" x:Name="FnNasUserUnlock" Content="解锁用户" Command="{x:Bind ViewModel.UnlockCommand}" Visibility="{x:Bind ViewModel.UnlockVisibility, Mode=OneWay}" />
+                            <Button x:Uid="FnNasUsersPage_FnNasUserDelete" x:Name="FnNasUserDelete" Content="删除用户" Command="{x:Bind ViewModel.DeleteCommand}" Visibility="{x:Bind ViewModel.DeleteVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </StackPanel>
                 </ScrollView>
-                <Button x:Name="FnNasUserSave" Grid.Row="2" Content="保存" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                <Button x:Uid="FnNasUsersPage_FnNasUserSave" x:Name="FnNasUserSave" Grid.Row="2" Content="保存" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
             </Grid>
         </Grid>
     </Grid>

@@ -19,4 +19,10 @@
           Outputs="$(IntermediateOutputPath)MediaRows.g.cs;$(IntermediateOutputPath)SubscriptionSync.g.cs">
     <Exec Command="&quot;$(PythonLauncher)&quot; &quot;$(MSBuildThisFileDirectory)extract.py&quot; --output &quot;$(MSBuildProjectDirectory)/$(IntermediateOutputPath).&quot;" />
   </Target>
+  <ItemGroup>
+    <!-- Source-linked UI code shares the production translator and embedded dictionaries. -->
+    <Compile Include="../../src/Momoka.Shell/Localization/UiText.cs" Link="Production/UiText.cs" />
+    <EmbeddedResource Include="../../src/Momoka.Shell/Localization/*English.json" Link="Production/%(Filename)%(Extension)" />
+    <Using Include="Momoka.Shell.Localization" />
+  </ItemGroup>
 </Project>

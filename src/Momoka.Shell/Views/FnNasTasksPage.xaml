@@ -32,13 +32,13 @@
                 <StackPanel Spacing="16" Padding="0,0,20,20">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="任务计划" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                        <Button x:Name="FnNasTasksRefresh" Grid.Column="1" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
+                        <TextBlock x:Uid="FnNasTasksPage_Localization1" Text="任务计划" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                        <Button x:Uid="FnNasTasksPage_FnNasTasksRefresh" x:Name="FnNasTasksRefresh" Grid.Column="1" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
                     </Grid>
                     <Border Style="{StaticResource FnNasCard}">
                         <StackPanel Spacing="12">
-                            <ToggleSwitch x:Name="FnNasTasksEnabled" Header="定时执行任务" IsOn="{x:Bind ViewModel.Enabled, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanSave, Mode=OneWay}" />
-                            <TextBlock Text="每天凌晨自动执行任务，以提升日常使用影视的体验。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            <ToggleSwitch x:Uid="FnNasTasksPage_FnNasTasksEnabled" x:Name="FnNasTasksEnabled" Header="定时执行任务" IsOn="{x:Bind ViewModel.Enabled, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanSave, Mode=OneWay}" />
+                            <TextBlock x:Uid="FnNasTasksPage_Localization2" Text="每天凌晨自动执行任务，以提升日常使用影视的体验。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <ItemsControl x:Name="FnNasTaskList" ItemsSource="{x:Bind ViewModel.Tasks, Mode=OneWay}">
@@ -55,7 +55,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button x:Name="FnNasTasksSave" Content="保存任务计划" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                    <Button x:Uid="FnNasTasksPage_FnNasTasksSave" x:Name="FnNasTasksSave" Content="保存任务计划" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
                 </StackPanel>
             </ScrollView>
         </Grid>

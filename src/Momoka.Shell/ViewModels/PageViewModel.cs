@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Diagnostics;
 using Momoka.Infrastructure;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -239,15 +240,15 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
 
     /// <summary>需要登录才能播的 YouTube 预告：提示条上的动作直接打开登录窗，登录成功后页面原地重试。</summary>
     internal void NotifyTrailerSignInRequired(Action? login) =>
-        Notify("YouTube 预告需要登录",
-            "YouTube 要求先登录才能播放这支预告。登录一次，之后的预告会直接在 Momoka 里播放。",
-            InfoBarSeverity.Warning, "登录 YouTube", login);
+        Notify(UiText.Translate("YouTube 预告需要登录"),
+            UiText.Translate("YouTube 要求先登录才能播放这支预告。登录一次，之后的预告会直接在 Momoka 里播放。"),
+            InfoBarSeverity.Warning, UiText.Translate("登录 YouTube"), login);
 
     /// <summary>预告没能加载/起播时的通用提示；关闭由页面收起预览并清掉这条提示。</summary>
     internal void NotifyTrailerLoadFailed(Action? close) =>
-        Notify("预告加载失败",
-            "这支预告暂时没有加载出来，可以先关掉它，稍后再进详情页试。",
-            InfoBarSeverity.Warning, "关闭预告", close);
+        Notify(UiText.Translate("预告加载失败"),
+            UiText.Translate("这支预告暂时没有加载出来，可以先关掉它，稍后再进详情页试。"),
+            InfoBarSeverity.Warning, UiText.Translate("关闭预告"), close);
 
     /// <summary>页面自己收起提示条（关闭预告时一起收）。</summary>
     internal void DismissNotice() => ClearNotice();

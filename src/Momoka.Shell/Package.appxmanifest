@@ -50,10 +50,10 @@
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
-  <!-- zh-CN only, to match Strings\zh-Hans\Resources.resw and the csproj's DefaultLanguage. A second
-       language listed here with no table behind it makes the package claim something it cannot do. -->
+  <!-- Both UI resource tables are shipped; UiLanguage resolves system or explicit preference. -->
   <Resources>
     <Resource Language="zh-CN" />
+    <Resource Language="en-US" />
   </Resources>
 
   <Dependencies>

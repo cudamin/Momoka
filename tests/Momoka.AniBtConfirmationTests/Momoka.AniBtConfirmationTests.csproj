@@ -24,4 +24,10 @@
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
     </ItemGroup>
+    <ItemGroup>
+        <!-- Source-linked UI code shares the production translator and embedded dictionaries. -->
+        <Compile Include="../../src/Momoka.Shell/Localization/UiText.cs" Link="Production/UiText.cs" />
+        <EmbeddedResource Include="../../src/Momoka.Shell/Localization/*English.json" Link="Production/%(Filename)%(Extension)" />
+        <Using Include="Momoka.Shell.Localization" />
+    </ItemGroup>
 </Project>

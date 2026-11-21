@@ -40,7 +40,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel Spacing="8" Margin="0,0,0,8" Visibility="{x:Bind ViewModel.FiltersVisibility, Mode=OneWay}">
-            <TextBlock Text="资源搜索结果" Style="{StaticResource EgSubheadStyle}" />
+            <TextBlock x:Uid="MoviePilotResourceBrowser_Localization1" Text="资源搜索结果" Style="{StaticResource EgSubheadStyle}" />
             <Border Padding="10" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8">
                 <local:WrapRow x:Name="FilterToolbar" Spacing="8" RowSpacing="8">
                     <Border Padding="10,6" CornerRadius="16" Background="{ThemeResource EgAccentBrush}" VerticalAlignment="Center">
@@ -66,20 +66,20 @@
                         <DropDownButton.Flyout>
                             <!-- RadioMenuFlyoutItem 的空 GroupName 也是共享组；方向与字段用每个浏览器自己的组名。 -->
                             <MenuFlyout x:Name="SortMenu" Placement="Bottom" Opening="OnSortMenuOpening">
-                                <RadioMenuFlyoutItem x:Name="SortAscending" Text="升序" GroupName="{x:Bind SortDirectionGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortAscending" x:Name="SortAscending" Text="升序" GroupName="{x:Bind SortDirectionGroup}"
                                     Click="OnSortDirectionClick" />
-                                <RadioMenuFlyoutItem x:Name="SortDescending" Text="降序" GroupName="{x:Bind SortDirectionGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortDescending" x:Name="SortDescending" Text="降序" GroupName="{x:Bind SortDirectionGroup}"
                                     Click="OnSortDirectionClick" />
                                 <MenuFlyoutSeparator />
-                                <RadioMenuFlyoutItem x:Name="SortDefault" Text="默认排序" Tag="0" GroupName="{x:Bind SortFieldGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortDefault" x:Name="SortDefault" Text="默认排序" Tag="0" GroupName="{x:Bind SortFieldGroup}"
                                     Click="OnSortFieldClick" />
-                                <RadioMenuFlyoutItem x:Name="SortSite" Text="站点" Tag="1" GroupName="{x:Bind SortFieldGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortSite" x:Name="SortSite" Text="站点" Tag="1" GroupName="{x:Bind SortFieldGroup}"
                                     Click="OnSortFieldClick" />
-                                <RadioMenuFlyoutItem x:Name="SortSize" Text="体积" Tag="2" GroupName="{x:Bind SortFieldGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortSize" x:Name="SortSize" Text="体积" Tag="2" GroupName="{x:Bind SortFieldGroup}"
                                     Click="OnSortFieldClick" />
-                                <RadioMenuFlyoutItem x:Name="SortSeeders" Text="做种数" Tag="3" GroupName="{x:Bind SortFieldGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortSeeders" x:Name="SortSeeders" Text="做种数" Tag="3" GroupName="{x:Bind SortFieldGroup}"
                                     Click="OnSortFieldClick" />
-                                <RadioMenuFlyoutItem x:Name="SortPublishedAt" Text="发布时间" Tag="4" GroupName="{x:Bind SortFieldGroup}"
+                                <RadioMenuFlyoutItem x:Uid="MoviePilotResourceBrowser_SortPublishedAt" x:Name="SortPublishedAt" Text="发布时间" Tag="4" GroupName="{x:Bind SortFieldGroup}"
                                     Click="OnSortFieldClick" />
                             </MenuFlyout>
                         </DropDownButton.Flyout>
@@ -91,7 +91,7 @@
                     <local:MoviePilotResourceFacetPicker x:Name="EditionFilter" Facet="{x:Bind ViewModel.EditionFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="ResolutionFilter" Facet="{x:Bind ViewModel.ResolutionFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="GroupFilter" Facet="{x:Bind ViewModel.GroupFacet, Mode=OneWay}" />
-                    <DropDownButton x:Name="FilterExpander" CornerRadius="16" Padding="10,4" MinHeight="30"
+                    <DropDownButton x:Uid="MoviePilotResourceBrowser_FilterExpander" x:Name="FilterExpander" CornerRadius="16" Padding="10,4" MinHeight="30"
                         Background="{ThemeResource EgAccentSoftBrush}" Foreground="{ThemeResource EgAccentBrush}" BorderThickness="0"
                         AutomationProperties.Name="综合筛选">
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -104,55 +104,55 @@
                                 <ScrollViewer MaxHeight="440" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                     HorizontalScrollMode="Disabled" Padding="4">
                                     <StackPanel Width="280" MaxWidth="280" Spacing="16">
-                                        <TextBlock Text="综合筛选" Style="{StaticResource EgSubheadStyle}" />
-                                        <TextBox x:Name="FilterText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="在结果中筛选" PlaceholderText="标题、副标题或标签"
+                                        <TextBlock x:Uid="MoviePilotResourceBrowser_Localization2" Text="综合筛选" Style="{StaticResource EgSubheadStyle}" />
+                                        <TextBox x:Uid="MoviePilotResourceBrowser_FilterText" x:Name="FilterText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="在结果中筛选" PlaceholderText="标题、副标题或标签"
                                             Text="{x:Bind ViewModel.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}">
-                                            <TextBlock Text="集" Style="{StaticResource EgCaptionStyle}" />
-                                            <ItemsControl x:Name="EpisodeFilter" AutomationProperties.Name="集"
+                                            <TextBlock x:Uid="MoviePilotResourceBrowser_Localization3" Text="集" Style="{StaticResource EgCaptionStyle}" />
+                                            <ItemsControl x:Uid="MoviePilotResourceBrowser_EpisodeFilter" x:Name="EpisodeFilter" AutomationProperties.Name="集"
                                                 ItemsSource="{x:Bind ViewModel.EpisodeCards, Mode=OneWay}" ItemTemplate="{StaticResource ResourceFilterOptionTemplate}">
                                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="8" RowSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             </ItemsControl>
                                         </StackPanel>
                                         <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.LabelVisibility, Mode=OneWay}">
-                                            <TextBlock Text="标签" Style="{StaticResource EgCaptionStyle}" />
-                                            <ItemsControl x:Name="LabelFilter" AutomationProperties.Name="标签"
+                                            <TextBlock x:Uid="MoviePilotResourceBrowser_Localization4" Text="标签" Style="{StaticResource EgCaptionStyle}" />
+                                            <ItemsControl x:Uid="MoviePilotResourceBrowser_LabelFilter" x:Name="LabelFilter" AutomationProperties.Name="标签"
                                                 ItemsSource="{x:Bind ViewModel.LabelCards, Mode=OneWay}" ItemTemplate="{StaticResource ResourceFilterOptionTemplate}">
                                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="8" RowSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             </ItemsControl>
                                         </StackPanel>
                                         <StackPanel Spacing="8">
-                                            <TextBlock Text="发布时间" Style="{StaticResource EgCaptionStyle}" />
-                                            <ItemsControl x:Name="DateFilter" AutomationProperties.Name="发布时间"
+                                            <TextBlock x:Uid="MoviePilotResourceBrowser_Localization5" Text="发布时间" Style="{StaticResource EgCaptionStyle}" />
+                                            <ItemsControl x:Uid="MoviePilotResourceBrowser_DateFilter" x:Name="DateFilter" AutomationProperties.Name="发布时间"
                                                 ItemsSource="{x:Bind ViewModel.DateCards, Mode=OneWay}" ItemTemplate="{StaticResource ResourceFilterOptionTemplate}">
                                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="8" RowSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             </ItemsControl>
                                         </StackPanel>
                                         <local:WrapRow Spacing="8" RowSpacing="8">
-                                            <ToggleButton x:Name="SeededFilter" AutomationProperties.Name="仅有做种"
+                                            <ToggleButton x:Uid="MoviePilotResourceBrowser_SeededFilter" x:Name="SeededFilter" AutomationProperties.Name="仅有做种"
                                                 Style="{StaticResource ResourceFilterOptionStyle}" IsChecked="{x:Bind ViewModel.SeededOnly, Mode=TwoWay}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
                                                         Visibility="{x:Bind local:MoviePilotResourceBrowser.FilterCheckVisibility(ViewModel.SeededOnly), Mode=OneWay}" />
-                                                    <TextBlock Text="仅有做种" />
+                                                    <TextBlock x:Uid="MoviePilotResourceBrowser_Localization6" Text="仅有做种" />
                                                 </StackPanel>
                                             </ToggleButton>
-                                            <ToggleButton x:Name="HitAndRunFilter" AutomationProperties.Name="排除 HR"
+                                            <ToggleButton x:Uid="MoviePilotResourceBrowser_HitAndRunFilter" x:Name="HitAndRunFilter" AutomationProperties.Name="排除 HR"
                                                 Style="{StaticResource ResourceFilterOptionStyle}" IsChecked="{x:Bind ViewModel.ExcludeHitAndRun, Mode=TwoWay}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
                                                         Visibility="{x:Bind local:MoviePilotResourceBrowser.FilterCheckVisibility(ViewModel.ExcludeHitAndRun), Mode=OneWay}" />
-                                                    <TextBlock Text="排除 HR" />
+                                                    <TextBlock x:Uid="MoviePilotResourceBrowser_Localization7" Text="排除 HR" />
                                                 </StackPanel>
                                             </ToggleButton>
                                         </local:WrapRow>
-                                        <Button x:Name="ResetAdvancedFilters" Content="清除筛选" Command="{x:Bind ViewModel.ResetCommand}" HorizontalAlignment="Right" />
+                                        <Button x:Uid="MoviePilotResourceBrowser_ResetAdvancedFilters" x:Name="ResetAdvancedFilters" Content="清除筛选" Command="{x:Bind ViewModel.ResetCommand}" HorizontalAlignment="Right" />
                                     </StackPanel>
                                 </ScrollViewer>
                             </Flyout>
                         </DropDownButton.Flyout>
                     </DropDownButton>
-                    <Button x:Name="ResetFilters" Content="清除筛选" Padding="10,4" MinHeight="30" CornerRadius="16"
+                    <Button x:Uid="MoviePilotResourceBrowser_ResetFilters" x:Name="ResetFilters" Content="清除筛选" Padding="10,4" MinHeight="30" CornerRadius="16"
                         Command="{x:Bind ViewModel.ResetCommand}" Visibility="{x:Bind ViewModel.ResetVisibility, Mode=OneWay}" />
                 </local:WrapRow>
             </Border>
@@ -208,8 +208,8 @@
                                     <Grid Grid.Row="2" ColumnSpacing="8">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <TextBlock Text="{x:Bind SiteName}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind Seeders}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" ToolTipService.ToolTip="做种人数" />
-                                        <TextBlock Grid.Column="2" Text="{x:Bind Peers}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgWarningBrush}" ToolTipService.ToolTip="下载人数" />
+                                        <TextBlock x:Uid="MoviePilotResourceBrowser_Localization8" Grid.Column="1" Text="{x:Bind Seeders}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" ToolTipService.ToolTip="做种人数" />
+                                        <TextBlock x:Uid="MoviePilotResourceBrowser_Localization9" Grid.Column="2" Text="{x:Bind Peers}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgWarningBrush}" ToolTipService.ToolTip="下载人数" />
                                     </Grid>
                                     <TextBlock Grid.Row="3" Text="{x:Bind Title}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextBrush}"
                                         MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
@@ -241,7 +241,7 @@
                                     <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                         <!-- 身份待核对与过程状态各说各的：前者不因后者出现或消失而收起来。 -->
-                                        <TextBlock Text="身份待核对" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" Foreground="{ThemeResource EgWarningBrush}"
+                                        <TextBlock x:Uid="MoviePilotResourceBrowser_Localization10" Text="身份待核对" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" Foreground="{ThemeResource EgWarningBrush}"
                                             Visibility="{x:Bind DownloadProblemVisibility, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
                                         <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center"
                                             Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
@@ -256,7 +256,7 @@
                     </DataTemplate>
                 </ItemsView.ItemTemplate>
             </ItemsView>
-            <TextBlock Margin="20,32" HorizontalAlignment="Center" VerticalAlignment="Top"
+            <TextBlock x:Uid="MoviePilotResourceBrowser_Localization11" Margin="20,32" HorizontalAlignment="Center" VerticalAlignment="Top"
                 Style="{StaticResource EgBodyStyle}" Text="没有符合筛选条件的资源，可清除筛选后重试。"
                 TextWrapping="Wrap" TextAlignment="Center" Visibility="{x:Bind ViewModel.NoMatchesVisibility, Mode=OneWay}" />
         </Grid>

@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -67,7 +68,7 @@ internal static class MoviePilotSubscriptionMenu
 
         void Add(string title, string glyph, Action action, bool write = true, string? color = null)
         {
-            var item = new MenuFlyoutItem { Text = title, Icon = new FontIcon { Glyph = glyph }, IsEnabled = vm.Owns(card) && !vm.Working && (!write || vm.CanManage && !needsReview) };
+            var item = new MenuFlyoutItem { Text = UiText.Translate(title), Icon = new FontIcon { Glyph = glyph }, IsEnabled = vm.Owns(card) && !vm.Working && (!write || vm.CanManage && !needsReview) };
             AutomationProperties.SetAutomationId(item, "Subscription" + title);
             if (color is not null) item.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources[color];
             item.Click += (_, _) => action();

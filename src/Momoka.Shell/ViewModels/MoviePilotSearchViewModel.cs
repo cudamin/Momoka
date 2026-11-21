@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Diagnostics;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -156,12 +157,12 @@ public sealed partial class MoviePilotResult : ObservableObject
 
     public string SubscribeLabel => State switch
     {
-        MoviePilotSubscribeState.Working => "处理中…",
-        MoviePilotSubscribeState.Done => Media.Type == "电影" ? "取消订阅" : "已订阅 · 选择季",
-        MoviePilotSubscribeState.Failed => "重试订阅",
-        MoviePilotSubscribeState.Unknown => "重新读取状态",
-        MoviePilotSubscribeState.Uncertain => Media.Type == "电视剧" ? "核对订阅季" : "请先核对",
-        _ => "订阅"
+        MoviePilotSubscribeState.Working => UiText.Translate("处理中…"),
+        MoviePilotSubscribeState.Done => Media.Type == "电影" ? UiText.Translate("取消订阅") : UiText.Translate("已订阅 · 选择季"),
+        MoviePilotSubscribeState.Failed => UiText.Translate("重试订阅"),
+        MoviePilotSubscribeState.Unknown => UiText.Translate("重新读取状态"),
+        MoviePilotSubscribeState.Uncertain => Media.Type == "电视剧" ? UiText.Translate("核对订阅季") : UiText.Translate("请先核对"),
+        _ => UiText.Translate("订阅")
     };
 
     internal static MoviePilotSubscribeState StateOf(MoviePilotOperationState state) => state switch
@@ -178,7 +179,7 @@ public sealed partial class MoviePilotResult : ObservableObject
 
     /// <summary>同上，给「搜索资源」那颗键。</summary>
     public string SearchResourcesAutomationName => SourceLabel.Length > 0
-        ? $"搜索资源（{SourceLabel}）：{Media.Title}" : $"搜索资源：{Media.Title}";
+        ? UiText.Format("搜索资源（{0}）：{1}", SourceLabel, Media.Title) : UiText.Format("搜索资源：{0}", Media.Title);
 
     public Visibility ReviewVisibility => Media.Type == "电影" && State == MoviePilotSubscribeState.Uncertain ? Visibility.Visible : Visibility.Collapsed;
     public bool CanReview => ConnectionAvailable && ReviewVisibility == Visibility.Visible && _review is not null;
@@ -254,13 +255,13 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 
     public MoviePilotSearchViewModel()
     {
-        EmptyNotice = IdlePrompt;
+        EmptyNotice = UiText.Translate(IdlePrompt);
         ShowEmptyNotice = true;
         Results.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ResultCount));
     }
 
-    public string Heading => _lastTerm.Length == 0 ? "电影、电视剧" : $"电影、电视剧：{_lastTerm}";
-    public string ResultCount => Results.Count == 0 ? "" : $"{Results.Count} 个结果";
+    public string Heading => _lastTerm.Length == 0 ? UiText.Translate("电影、电视剧") : UiText.Format("电影、电视剧：{0}", _lastTerm);
+    public string ResultCount => Results.Count == 0 ? "" : UiText.Format("{0} 个结果", Results.Count);
 
     public ObservableCollection<MoviePilotResult> Results { get; } = [];
 
@@ -269,7 +270,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         if (!_active || _service is not { Available: true } service || _lastTerm.Length == 0) return null;
         return new(service.ConnectionStamp, _lastTerm,
             Results.Select(row => row.Media).ToArray(),
-            Busy ? "上次搜索尚未完成，按回车继续搜索。" : EmptyNotice, Busy || ShowEmptyNotice,
+            Busy ? UiText.Translate("上次搜索尚未完成，按回车继续搜索。") : EmptyNotice, Busy || ShowEmptyNotice,
             NoticeTitle, NoticeMessage, NoticeSeverity, NoticeOpen);
     }
 
@@ -331,7 +332,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (QueryCurrent(service, visit, token)) Report("订阅状态暂不可用", error);
+            if (QueryCurrent(service, visit, token)) Report(UiText.Translate("订阅状态暂不可用"), error);
         }
     }
 
@@ -427,7 +428,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         if (visit != Volatile.Read(ref _visit)) return;
         IsReady = true;
         if (visit != Volatile.Read(ref _visit)) return;
-        EmptyNotice = IdlePrompt;
+        EmptyNotice = UiText.Translate(IdlePrompt);
         if (visit != Volatile.Read(ref _visit)) return;
         ShowEmptyNotice = true;
     }
@@ -473,7 +474,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
             if (!VisitCurrent(service, visit) || _query != default) return;
             ClearResults();
             if (!VisitCurrent(service, visit) || _query != default) return;
-            EmptyNotice = IdlePrompt;
+            EmptyNotice = UiText.Translate(IdlePrompt);
             if (!VisitCurrent(service, visit) || _query != default) return;
             ShowEmptyNotice = true;
             return;
@@ -497,7 +498,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
             catch (OperationCanceledException) { throw; }
             catch (Exception error)
             {
-                if (QueryCurrent(service, visit, token)) Report("订阅状态暂不可用", error);
+                if (QueryCurrent(service, visit, token)) Report(UiText.Translate("订阅状态暂不可用"), error);
             }
             if (!QueryCurrent(service, visit, token) || !service.Available) return;
 
@@ -512,7 +513,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
                 if (!QueryCurrent(service, visit, token)) return;
             }
 
-            EmptyNotice = found.Count == 0 ? $"MoviePilot 上没搜到「{keyword}」" : IdlePrompt;
+            EmptyNotice = found.Count == 0 ? UiText.Format("MoviePilot 上没搜到「{0}」", keyword) : UiText.Translate(IdlePrompt);
             if (!QueryCurrent(service, visit, token)) return;
             ShowEmptyNotice = found.Count == 0;
             EndLoad(token);
@@ -526,7 +527,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
             if (!QueryCurrent(service, visit, token)) return;
 
             Log.Warn(Category, $"MoviePilot 搜「{keyword}」失败", error);
-            Report("搜索 MoviePilot 失败", error);
+            Report(UiText.Translate("搜索 MoviePilot 失败"), error);
             if (!QueryCurrent(service, visit, token)) return;
             ClearResults();
             if (!QueryCurrent(service, visit, token)) return;
@@ -557,7 +558,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         {
             result.Subscription = null;
             result.State = MoviePilotSubscribeState.Unknown;
-            Report("订阅状态需核对", error);
+            Report(UiText.Translate("订阅状态需核对"), error);
         }
     }
 
@@ -615,7 +616,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
                     IReadOnlyList<MoviePilotSubscription>? subscriptions = null;
                     try { subscriptions = await service.SubscriptionsAsync(token).ConfigureAwait(true); }
                     catch (OperationCanceledException) { }
-                    catch (Exception error) { if (QueryCurrent(service, visit, token)) Report("订阅状态读取失败", error); }
+                    catch (Exception error) { if (QueryCurrent(service, visit, token)) Report(UiText.Translate("订阅状态读取失败"), error); }
                     if (QueryCurrent(service, visit, token) && service.Available)
                         foreach (var current in Results.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, result.Media))) RefreshResult(current, subscriptions);
                 }
@@ -659,7 +660,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (QueryCurrent(service, visit, token) && Results.Contains(result)) { result.State = MoviePilotSubscribeState.Uncertain; Report("订阅核对未完成", error); }
+            if (QueryCurrent(service, visit, token) && Results.Contains(result)) { result.State = MoviePilotSubscribeState.Uncertain; Report(UiText.Translate("订阅核对未完成"), error); }
         }
         finally { _subscriptionActions.Remove(action); }
     }

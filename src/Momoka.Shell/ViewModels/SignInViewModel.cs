@@ -8,6 +8,7 @@ using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Services;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -112,7 +113,7 @@ public sealed partial class SignInViewModel : PageViewModel
 
     /// <summary>The line under the app's name. Says what is happening whenever something is.</summary>
     [ObservableProperty]
-    public partial string Caption { get; set; } = FirstCaption;
+    public partial string Caption { get; set; } = UiText.Translate(FirstCaption);
 
     /// <summary>Which server the credential step is asking about, with its Emby version when it gave one.</summary>
     [ObservableProperty]
@@ -162,9 +163,9 @@ public sealed partial class SignInViewModel : PageViewModel
 
     public string FormTitle => Step switch
     {
-        SignInStep.Address => "连接服务器",
-        SignInStep.Credential => "登录账号",
-        _ => "欢迎回来"
+        SignInStep.Address => UiText.Translate("连接服务器"),
+        SignInStep.Credential => UiText.Translate("登录账号"),
+        _ => UiText.Translate("欢迎回来")
     };
 
     public Visibility DiscoveredVisibility => Show(ShowDiscovered && Discovered.Count > 0);
@@ -176,10 +177,10 @@ public sealed partial class SignInViewModel : PageViewModel
 
     /// <summary>The sign-in button's own label, which used to be assigned alongside its IsEnabled.</summary>
     public string SignInText => Busy
-        ? "请稍候…"
+        ? UiText.Translate("请稍候…")
         : _session?.IsSignedIn != true
-            ? "登录"
-            : Settings.AggregateMode ? "登录并添加" : "登录并切换";
+            ? UiText.Translate("登录")
+            : Settings.AggregateMode ? UiText.Translate("登录并添加") : UiText.Translate("登录并切换");
 
     /// <summary>来源或聚合模式改变只刷新动作文案，不清空正在输入的账号与密码。</summary>
     internal void RefreshSessionText() => OnPropertyChanged(nameof(SignInText));
@@ -271,7 +272,7 @@ public sealed partial class SignInViewModel : PageViewModel
     {
         ClearNotice();
         Step = SignInStep.Restoring;
-        Caption = serverName.Length > 0 ? $"正在连接 {serverName}…" : "正在连接…";
+        Caption = serverName.Length > 0 ? UiText.Format("正在连接 {0}…", serverName) : UiText.Translate("正在连接…");
         Busy = true;
     }
 
@@ -295,8 +296,8 @@ public sealed partial class SignInViewModel : PageViewModel
         Address = server.Url;
         ShowDiscovered = false;
         Caption = server.VersionLabel.Length > 0
-            ? $"已找到 {server.Name}（{server.VersionLabel}）"
-            : $"已找到 {server.Name}";
+            ? UiText.Format("已找到 {0}（{1}）", server.Name, server.VersionLabel)
+            : UiText.Format("已找到 {0}", server.Name);
 
         // A discovered endpoint has already answered the Emby probe, so carrying on to the normal
         // public-info/user-list step is the least surprising next action.
@@ -341,7 +342,7 @@ public sealed partial class SignInViewModel : PageViewModel
         }
 
         var token = BeginLoad();
-        Caption = "正在连接…";
+        Caption = UiText.Translate("正在连接…");
 
         try
         {
@@ -369,7 +370,7 @@ public sealed partial class SignInViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Warn(Category, "连接服务器失败", error);
-            if (IsCurrent(token)) Fail(Failure.Describe(error), "连接失败");
+            if (IsCurrent(token)) Fail(Failure.Describe(error), UiText.Translate("连接失败"));
         }
         finally
         {
@@ -383,7 +384,7 @@ public sealed partial class SignInViewModel : PageViewModel
         if (!Attached || Busy) return;
 
         var token = BeginLoad();
-        Caption = "正在搜索局域网服务器…";
+        Caption = UiText.Translate("正在搜索局域网服务器…");
         ShowDiscovered = false;
         Discovered.Clear();
 
@@ -399,13 +400,13 @@ public sealed partial class SignInViewModel : PageViewModel
             ShowDiscovered = discovered.Count > 0;
 
             Notify(
-                discovered.Count > 0 ? "发现局域网服务器" : "未发现服务器",
+                discovered.Count > 0 ? UiText.Translate("发现局域网服务器") : UiText.Translate("未发现服务器"),
                 discovered.Count > 0
-                    ? $"找到 {discovered.Count} 台 Emby 服务器，请选择要连接的服务器。"
-                    : "当前网络没有响应 Emby 发现请求。你仍可以手动输入服务器地址。",
+                    ? UiText.Format("找到 {0} 台 Emby 服务器，请选择要连接的服务器。", discovered.Count)
+                    : UiText.Translate("当前网络没有响应 Emby 发现请求。你仍可以手动输入服务器地址。"),
                 discovered.Count > 0 ? InfoBarSeverity.Informational : InfoBarSeverity.Warning);
 
-            Caption = FirstCaption;
+            Caption = UiText.Translate(FirstCaption);
         }
         catch (OperationCanceledException)
         {
@@ -437,7 +438,7 @@ public sealed partial class SignInViewModel : PageViewModel
         var username = Username.Trim();
         if (username.Length == 0)
         {
-            Fail("请填写用户名");
+            Fail(UiText.Translate("请填写用户名"));
             RequestFocus(SignInFocus.Username);
             return;
         }
@@ -465,7 +466,7 @@ public sealed partial class SignInViewModel : PageViewModel
         try
         {
             if (!IsCurrent(token)) return;
-            Caption = "正在登录…";
+            Caption = UiText.Translate("正在登录…");
             if (!IsCurrent(token)) return;
             // ResolveServer canonicalizes the live profile. Reject a replacement before that write or
             // creating an account: a new login never authorizes moving the other accounts' credentials.
@@ -497,7 +498,7 @@ public sealed partial class SignInViewModel : PageViewModel
 
             settings.Save();
             if (!IsCurrent(token)) return;
-            Caption = FirstCaption;
+            Caption = UiText.Translate(FirstCaption);
             if (!IsCurrent(token)) return;
             Password = "";
             if (!IsCurrent(token)) return;
@@ -513,7 +514,7 @@ public sealed partial class SignInViewModel : PageViewModel
 
             if (IsCurrent(token))
             {
-                Fail(Failure.Describe(error), "登录失败", token);
+                Fail(Failure.Describe(error), UiText.Translate("登录失败"), token);
                 if (IsCurrent(token)) RequestFocus(SignInFocus.RejectedPassword);
             }
         }
@@ -618,7 +619,7 @@ public sealed partial class SignInViewModel : PageViewModel
         if (_signInToken != token || !OwnsInputTail(version)) return;
         IsReady = true;
         if (_signInToken != token || !OwnsInputTail(version)) return;
-        Caption = Step == SignInStep.Credential ? "选择用户并输入密码" : FirstCaption;
+        Caption = Step == SignInStep.Credential ? UiText.Translate("选择用户并输入密码") : UiText.Translate(FirstCaption);
     }
 
     partial void OnRememberChanged(bool value) => _inputVersion++;
@@ -654,14 +655,14 @@ public sealed partial class SignInViewModel : PageViewModel
     private void ShowAddressStep()
     {
         Step = SignInStep.Address;
-        Caption = FirstCaption;
+        Caption = UiText.Translate(FirstCaption);
         ShowDiscovered = false;
     }
 
     private void ShowCredentialStep(List<EmbyUser> users)
     {
         Step = SignInStep.Credential;
-        Caption = "选择用户并输入密码";
+        Caption = UiText.Translate("选择用户并输入密码");
 
         _filling = true;
         try
@@ -721,7 +722,7 @@ public sealed partial class SignInViewModel : PageViewModel
     private void Fail(string message, string? title = null)
     {
         Notify(title, message, InfoBarSeverity.Error);
-        Caption = FirstCaption;
+        Caption = UiText.Translate(FirstCaption);
     }
 
     private void Fail(string message, string? title, CancellationToken token)
@@ -735,7 +736,7 @@ public sealed partial class SignInViewModel : PageViewModel
         if (!IsCurrent(token)) return;
         NoticeOpen = true;
         if (!IsCurrent(token)) return;
-        Caption = FirstCaption;
+        Caption = UiText.Translate(FirstCaption);
     }
 
     private void RequestFocus(SignInFocus what) =>

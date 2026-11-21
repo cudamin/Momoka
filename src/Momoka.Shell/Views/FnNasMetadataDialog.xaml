@@ -4,7 +4,7 @@
   这里不摆图像、标签、演职人员 —— 那几样在官方页面上各有自己的子表或上传器，塞进一张短表只会把
   服务器上原有的内容改坏。规则在 Core 的 FnNasMetadataEdit，这里只管长相。
 -->
-<ContentDialog x:Class="Momoka.Shell.Views.FnNasMetadataDialog"
+<ContentDialog x:Uid="FnNasMetadataDialog_Localization1" x:Class="Momoka.Shell.Views.FnNasMetadataDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="编辑元数据"
@@ -26,8 +26,8 @@
             IsOpen="False"
             Severity="Error" />
 
-        <TextBox x:Name="NameBox" Header="名称" />
-        <TextBox
+        <TextBox x:Uid="FnNasMetadataDialog_NameBox" x:Name="NameBox" Header="名称" />
+        <TextBox x:Uid="FnNasMetadataDialog_OverviewBox"
             x:Name="OverviewBox"
             AcceptsReturn="True"
             Header="简介"
@@ -39,8 +39,8 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="RatingBox" Header="评分" PlaceholderText="0 – 10" />
-            <TextBox x:Name="ReleaseBox" Grid.Column="1" Header="发行日期" PlaceholderText="2024-05-01" />
+            <TextBox x:Uid="FnNasMetadataDialog_RatingBox" x:Name="RatingBox" Header="评分" PlaceholderText="0 – 10" />
+            <TextBox x:Uid="FnNasMetadataDialog_ReleaseBox" x:Name="ReleaseBox" Grid.Column="1" Header="发行日期" PlaceholderText="2024-05-01" />
         </Grid>
     </StackPanel>
 </ContentDialog>

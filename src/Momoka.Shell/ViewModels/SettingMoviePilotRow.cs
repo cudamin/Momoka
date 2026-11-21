@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -176,7 +177,7 @@ public sealed partial class SettingMoviePilotRow : SettingRow
 
     /// <summary>What the button says. While a test runs it is the progress, because a button that still says
     /// 「测试连接」 with a spinner somewhere else is a button the user presses twice.</summary>
-    public string TestLabel => Testing ? "正在测试…" : "测试连接";
+    public string TestLabel => UiText.Translate(Testing ? "正在测试…" : "测试连接");
 
     /// <summary>
     /// The button greys out while a test is in flight. A property rather than a converter, because the page

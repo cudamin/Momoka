@@ -1,5 +1,6 @@
 using Momoka.Configuration;
 using Momoka.Mpv;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -59,12 +60,13 @@ public sealed partial class SettingsViewModel
         var (effectiveSync, effectiveInterpolation, _) = MpvOutputOptions.ResolveSync(video, svp: svp);
         var hardwareNote = "推荐自动（复制回内存），兼顾硬解与滤镜兼容性。原生硬解的开销较低，但受显卡、图形接口和滤镜限制。"
             + "无法硬解时会尝试软件解码；画面异常时可选关闭。";
+        hardwareNote = UiText.Translate(hardwareNote);
         if (!string.Equals(frames.HardwareDecoding, (video.HardwareDecoding ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
-            hardwareNote += $"补帧的运动补偿需要把帧交回内存，本次播放实际使用 {frames.HardwareDecoding}；保存的偏好不变。";
+            hardwareNote += UiText.Format("补帧的运动补偿需要把帧交回内存，本次播放实际使用 {0}；保存的偏好不变。", frames.HardwareDecoding);
 
         SettingRow sync = Mpv("视频同步", MpvOutputOptions.VideoSync, () => video.VideoSync, value => video.VideoSync = value,
             "video-sync", SyncNote(video, svp), RefreshVideoBackend);
-        if (svp) sync = Fact("视频同步", "SVP 接入时使用音频同步；关闭 SVP 后恢复原有同步偏好。", "音频同步（SVP）");
+        if (svp) sync = Fact("视频同步", "SVP 接入时使用音频同步；关闭 SVP 后恢复原有同步偏好。", UiText.Translate("音频同步（SVP）"));
         rows.AddRange(
         [
             // JSON 里的 null 会被反序列化照单收下（SettingsMigration 里同一句提醒），读的时候兜一个空串，
@@ -79,23 +81,23 @@ public sealed partial class SettingsViewModel
         if (svp || frames.Mode != FrameInterpolationMode.Smooth) rows.Add(sync);
         if (svp)
         {
-            rows.Add(Fact("插值", "本次补帧交给 SVP；相邻帧混合关闭，保存的插值偏好保留。", "关闭（SVP）"));
+            rows.Add(Fact("插值", "本次补帧交给 SVP；相邻帧混合关闭，保存的插值偏好保留。", UiText.Translate("关闭（SVP）")));
         }
         else if (frames.Mode == FrameInterpolationMode.MotionCompensated)
         {
             // 运动补偿替代相邻帧混合，这里的选择在本次播放不会生效；算法与质量都归补帧卡，所以只留恢复入口。
             rows.Add(Fact("插值", Annotate("本次播放使用补帧的运动补偿，相邻帧混合已关闭；在「补帧」卡切回其他模式后可选择插值。",
-                "interpolation、tscale"), "关闭"));
+                "interpolation、tscale"), UiText.Translate("关闭")));
         }
         else if (frames.Mode == FrameInterpolationMode.Smooth)
         {
             rows.Add(Fact("插值", Annotate("本次播放由「补帧」卡的平滑插值启用相邻帧混合，算法在那张卡里选；这里不改保存的插值偏好。",
-                "interpolation、tscale"), "开启"));
+                "interpolation、tscale"), UiText.Translate("开启")));
         }
         else if (video.VideoSync == "audio" && !effectiveInterpolation)
         {
             // 用户要求始终显示插值；只读状态展示有效值，不覆盖原来的开关与算法偏好。
-            rows.Add(Fact("插值", Annotate("音频同步下插值关闭；切换视频同步后可选择插值。", "interpolation、tscale"), "关闭"));
+            rows.Add(Fact("插值", Annotate("音频同步下插值关闭；切换视频同步后可选择插值。", "interpolation、tscale"), UiText.Translate("关闭")));
         }
         else
         {
@@ -151,10 +153,10 @@ public sealed partial class SettingsViewModel
     {
         var (sync, interpolation, reason) = MpvOutputOptions.ResolveSync(video, svp: svp);
         var label = sync.Length == 0 ? "音频同步" : MpvOutputOptions.Describe(MpvOutputOptions.VideoSync, sync);
-        var note = $"下次播放：{label}；插值{(interpolation ? "开启" : "关闭")}。";
-        if (reason is not null) note += reason + "。";
+        var note = UiText.Format("下次播放：{0}；插值{1}。", UiText.Translate(label), UiText.Translate(interpolation ? "开启" : "关闭"));
+        if (reason is not null) note += UiText.Translate(reason) + "。";
         if (video.HighFrameRateAudioSync && sync.StartsWith("display-", StringComparison.Ordinal))
-            note += $"片源超过 47 fps 或屏幕超过 {video.HighRefreshRateLimitHz} Hz 时改用音频同步，并停用插值。";
+            note += UiText.Format("片源超过 47 fps 或屏幕超过 {0} Hz 时改用音频同步，并停用插值。", video.HighRefreshRateLimitHz);
         return note;
     }
 

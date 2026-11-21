@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Momoka.Emby;
 using Momoka.Mpv;
 using Momoka.Playback;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -81,7 +82,7 @@ public sealed partial class PlayerPage
 
         if (ViewModel.Episodes.Count == 0)
         {
-            EpisodeMenu.Items.Add(new MenuFlyoutItem { Text = "没有可选的单集", IsEnabled = false });
+            EpisodeMenu.Items.Add(new MenuFlyoutItem { Text = UiText.Translate("没有可选的单集"), IsEnabled = false });
             return;
         }
 
@@ -98,7 +99,7 @@ public sealed partial class PlayerPage
                 Tag = episode
             };
 
-            if (episode.UserData?.Played == true) row.KeyboardAcceleratorTextOverride = "已看";
+            if (episode.UserData?.Played == true) row.KeyboardAcceleratorTextOverride = UiText.Translate("已看");
 
             row.Click += (source, args) =>
             {
@@ -138,7 +139,7 @@ public sealed partial class PlayerPage
         var versions = ViewModel.Versions;
         if (versions.Count == 0)
         {
-            VersionMenu.Items.Add(new MenuFlyoutItem { Text = "没有可切换的版本", IsEnabled = false });
+            VersionMenu.Items.Add(new MenuFlyoutItem { Text = UiText.Translate("没有可切换的版本"), IsEnabled = false });
             return;
         }
 
@@ -182,7 +183,7 @@ public sealed partial class PlayerPage
         if (!Attached) return;
 
         SubtitleMenu.Items.Clear();
-        FillTrackMenu(SubtitleMenu, track => track.IsSubtitle, audio: false, offRow: "关闭字幕");
+        FillTrackMenu(SubtitleMenu, track => track.IsSubtitle, audio: false, offRow: UiText.Translate("关闭字幕"));
     }
 
     /// <summary>
@@ -213,7 +214,7 @@ public sealed partial class PlayerPage
 
         if (tracks.Count == 0)
         {
-            menu.Items.Add(new MenuFlyoutItem { Text = "正在读取轨道…", IsEnabled = false });
+            menu.Items.Add(new MenuFlyoutItem { Text = UiText.Translate("正在读取轨道…"), IsEnabled = false });
             return;
         }
 
@@ -221,7 +222,7 @@ public sealed partial class PlayerPage
         {
             var row = new RadioMenuFlyoutItem
             {
-                Text = track.DisplayName.Length > 0 ? track.DisplayName : $"轨道 {track.Id}",
+                Text = track.DisplayName.Length > 0 ? track.DisplayName : UiText.Format("轨道 {0}", track.Id),
                 IsChecked = track.Selected && (audio || track.MainSelection != 1),
                 Tag = track.Id
             };
@@ -297,16 +298,16 @@ public sealed partial class PlayerPage
         menu.Items.Add(BuildAutoPlayRow());
         if (ViewModel.CanArrangeQueue)
         {
-            var queue = new MenuFlyoutSubItem { Text = "本次播放队列", Name = "PlayerSessionVideoQueue" };
-            var next = new MenuFlyoutItem { Text = "下一项播放…", Name = "PlayerQueueNext" };
+            var queue = new MenuFlyoutSubItem { Text = UiText.Translate("本次播放队列"), Name = "PlayerSessionVideoQueue" };
+            var next = new MenuFlyoutItem { Text = UiText.Translate("下一项播放…"), Name = "PlayerQueueNext" };
             next.Click += (_, _) => ViewModel.RequestQueue(next: true);
             queue.Items.Add(next);
-            var append = new MenuFlyoutItem { Text = "追加到队尾…", Name = "PlayerQueueAppend" };
+            var append = new MenuFlyoutItem { Text = UiText.Translate("追加到队尾…"), Name = "PlayerQueueAppend" };
             append.Click += (_, _) => ViewModel.RequestQueue(next: false);
             queue.Items.Add(append);
             if (ViewModel.HasPendingQueue)
             {
-                var clear = new MenuFlyoutItem { Text = "清空待播项", Name = "PlayerQueueClear" };
+                var clear = new MenuFlyoutItem { Text = UiText.Translate("清空待播项"), Name = "PlayerQueueClear" };
                 clear.Click += (_, _) => ViewModel.ClearQueue();
                 queue.Items.Add(clear);
             }
@@ -317,7 +318,7 @@ public sealed partial class PlayerPage
         // 这一行也有一份快捷键（Ctrl+I），与目录行同一条取法 —— 重绑后右列跟着走。
         var info = new MenuFlyoutItem
         {
-            Text = "播放信息…",
+            Text = UiText.Translate("播放信息…"),
             KeyboardAcceleratorTextOverride = PlayerMenuCatalog
                 .ShortcutTexts(ViewModel.ShortcutBindings)
                 .GetValueOrDefault(PlayerMenuCatalog.PlaybackInfoShortcut)
@@ -328,10 +329,10 @@ public sealed partial class PlayerPage
         // 两条管线都将设置入口收进「播放设置」，名称与次序共用 Core 那张表。
         // 子项仍走 ViewModel.RequestSettings，由外壳打开对应设置卡。
         menu.Items.Add(new MenuFlyoutSeparator());
-        var settings = new MenuFlyoutSubItem { Text = PlayerSettingsLinks.MenuLabel, Name = "PlaybackSettingsMenu" };
+        var settings = new MenuFlyoutSubItem { Text = UiText.Translate(PlayerSettingsLinks.MenuLabel), Name = "PlaybackSettingsMenu" };
         foreach (var link in PlayerSettingsLinks.Available(ViewModel.DanmakuSettingsAvailable))
         {
-            var row = new MenuFlyoutItem { Text = link.Label, Tag = link, Name = $"PlaybackSettings_{link.Token}" };
+            var row = new MenuFlyoutItem { Text = UiText.Translate(link.Label), Tag = link, Name = $"PlaybackSettings_{link.Token}" };
             row.Click += OnPictureSettingsRow;
             settings.Items.Add(row);
         }
@@ -341,7 +342,7 @@ public sealed partial class PlayerPage
 
         void AddAction(string label, Action action)
         {
-            var row = new MenuFlyoutItem { Text = label };
+            var row = new MenuFlyoutItem { Text = UiText.Translate(label) };
             row.Click += (_, _) => action();
             menu.Items.Add(row);
         }
@@ -369,16 +370,16 @@ public sealed partial class PlayerPage
         var groupName = "shader-" + Guid.NewGuid().ToString("N");
         var menu = new MenuFlyoutSubItem
         {
-            Text = $"着色器：{ViewModel.ActiveShaderLabel}"
+            Text = UiText.Format("着色器：{0}", ViewModel.ActiveShaderLabel)
         };
 
         // 恢复设置的方案（2026-09-29 统一右键菜单时从独占模式的推送收编过来，两边的行集从此一致）：
         // 没钉档时它亮着 —— 起播算出的那档在生效；钉过档之后点它是唯一回自动方案的路（两条管线同一句执行）。
-        var restore = new RadioMenuFlyoutItem { Text = "恢复设置的方案", GroupName = groupName, IsChecked = known && !pinned };
+        var restore = new RadioMenuFlyoutItem { Text = UiText.Translate("恢复设置的方案"), GroupName = groupName, IsChecked = known && !pinned };
         restore.Click += (_, _) => ViewModel.RestoreShaderPlan();
         menu.Items.Add(restore);
 
-        var off = new RadioMenuFlyoutItem { Text = "关闭着色器", GroupName = groupName, IsChecked = known && pinned && active is null };
+        var off = new RadioMenuFlyoutItem { Text = UiText.Translate("关闭着色器"), GroupName = groupName, IsChecked = known && pinned && active is null };
         off.Click += (_, _) => ViewModel.ApplyShaderGroup(null);
         menu.Items.Add(off);
         menu.Items.Add(new MenuFlyoutSeparator());
@@ -412,13 +413,13 @@ public sealed partial class PlayerPage
     private MenuFlyoutSubItem BuildSkipMenu()
     {
         var mode = ViewModel.SkipMode;
-        var menu = new MenuFlyoutSubItem { Text = $"跳过片头片尾：{PlayerViewModel.SkipModeLabel(mode)}" };
+        var menu = new MenuFlyoutSubItem { Text = UiText.Format("跳过片头片尾：{0}", UiText.Translate(PlayerViewModel.SkipModeLabel(mode))) };
 
         foreach (var choice in new[] { SkipSectionMode.Ask, SkipSectionMode.Auto, SkipSectionMode.Off })
         {
             var row = new RadioMenuFlyoutItem
             {
-                Text = PlayerViewModel.SkipModeLabel(choice),
+                Text = UiText.Translate(PlayerViewModel.SkipModeLabel(choice)),
                 IsChecked = mode == choice,
                 Tag = choice
             };
@@ -438,7 +439,7 @@ public sealed partial class PlayerPage
     {
         var row = new ToggleMenuFlyoutItem
         {
-            Text = "自动播放下一集",
+            Text = UiText.Translate("自动播放下一集"),
             IsChecked = ViewModel.AutoPlayNextEpisode
         };
 
@@ -564,7 +565,7 @@ public sealed partial class PlayerPage
                     break;
 
                 case PlayerMenuKind.Group:
-                    var group = new MenuFlyoutSubItem { Text = node.Label };
+                    var group = new MenuFlyoutSubItem { Text = UiText.Translate(node.Label) };
                     foreach (var child in BuildMenuItems(node.Children)) group.Items.Add(child);
                     yield return group;
                     break;
@@ -574,10 +575,10 @@ public sealed partial class PlayerPage
                     // GroupName keys the radio set to its property so a click reads as clean single-selection;
                     // the menu is built once, so no group accumulates across opens（选集 菜单那条陷阱不在这里）.
                     MenuFlyoutItem row =
-                        node.State is null ? new MenuFlyoutItem { Text = node.Label, Tag = node }
+                        node.State is null ? new MenuFlyoutItem { Text = UiText.Translate(node.Label), Tag = node }
                         : node.State.Radio
-                            ? new RadioMenuFlyoutItem { Text = node.Label, Tag = node, GroupName = "pic-" + node.State.Property }
-                            : new ToggleMenuFlyoutItem { Text = node.Label, Tag = node };
+                            ? new RadioMenuFlyoutItem { Text = UiText.Translate(node.Label), Tag = node, GroupName = "pic-" + node.State.Property }
+                            : new ToggleMenuFlyoutItem { Text = UiText.Translate(node.Label), Tag = node };
 
                     row.Click += (source, args) =>
                     {

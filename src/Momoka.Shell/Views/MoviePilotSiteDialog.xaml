@@ -20,8 +20,8 @@
         <Grid x:Name="SiteDialogHeader" ColumnSpacing="10">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <FontIcon Glyph="&#xE774;" FontSize="{StaticResource EgBodyFontSize}" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Text="选择站点" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
-            <Button x:Name="CloseSiteDialog" Grid.Column="2" Style="{StaticResource EgIconButtonStyle}"
+            <TextBlock x:Uid="MoviePilotSiteDialog_Localization1" Grid.Column="1" Text="选择站点" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+            <Button x:Uid="MoviePilotSiteDialog_CloseSiteDialog" x:Name="CloseSiteDialog" Grid.Column="2" Style="{StaticResource EgIconButtonStyle}"
                 AutomationProperties.Name="关闭站点选择" ToolTipService.ToolTip="关闭（不保存、不搜索）" Click="OnClose">
                 <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgCaptionFontSize}" />
             </Button>
@@ -32,13 +32,13 @@
         <StackPanel x:Name="SiteDialogBody" Spacing="12">
             <Border BorderThickness="0,1,0,0" BorderBrush="{ThemeResource EgBorderBrush}" Padding="0,12,0,0">
                 <local:WrapRow x:Name="SiteActions" Spacing="8" RowSpacing="8">
-                    <Button x:Name="SelectAllSites" Content="全选" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.SelectAllCommand}" />
-                    <Button x:Name="ClearSelectedSites" Content="清空" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.ClearSelectionCommand}" />
-                    <Button x:Name="ReloadSites" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.RefreshCommand}"
+                    <Button x:Uid="MoviePilotSiteDialog_SelectAllSites" x:Name="SelectAllSites" Content="全选" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.SelectAllCommand}" />
+                    <Button x:Uid="MoviePilotSiteDialog_ClearSelectedSites" x:Name="ClearSelectedSites" Content="清空" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.ClearSelectionCommand}" />
+                    <Button x:Uid="MoviePilotSiteDialog_ReloadSites" x:Name="ReloadSites" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.RefreshCommand}"
                         AutomationProperties.Name="刷新站点目录" ToolTipService.ToolTip="重新读取站点目录">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgCaptionFontSize}" />
-                            <TextBlock Text="刷新" />
+                            <TextBlock x:Uid="MoviePilotSiteDialog_Localization2" Text="刷新" />
                         </StackPanel>
                     </Button>
                     <TextBlock x:Name="SelectedSiteCount" Text="{x:Bind ViewModel.SelectionText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
@@ -46,9 +46,9 @@
                 </local:WrapRow>
             </Border>
             <StackPanel Spacing="4">
-                <CheckBox x:Name="UseDefaultSites" Content="默认站点" MinHeight="28" IsEnabled="{x:Bind ViewModel.CanComplete, Mode=OneWay}"
+                <CheckBox x:Uid="MoviePilotSiteDialog_UseDefaultSites" x:Name="UseDefaultSites" Content="默认站点" MinHeight="28" IsEnabled="{x:Bind ViewModel.CanComplete, Mode=OneWay}"
                     IsChecked="{x:Bind ViewModel.UseDefault, Mode=TwoWay}" />
-                <TextBlock Text="默认站点跟随 MoviePilot；点击卡片或全选可改为指定站点。确认后保存，取消不更改偏好。"
+                <TextBlock x:Uid="MoviePilotSiteDialog_Localization3" Text="默认站点跟随 MoviePilot；点击卡片或全选可改为指定站点。确认后保存，取消不更改偏好。"
                     Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
             </StackPanel>
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -82,7 +82,7 @@
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
             </ContentControl>
-            <TextBlock x:Name="NoSearchSites" Text="没有可供搜索的已启用站点，可点击刷新重试。" Style="{StaticResource EgCaptionStyle}"
+            <TextBlock x:Uid="MoviePilotSiteDialog_NoSearchSites" x:Name="NoSearchSites" Text="没有可供搜索的已启用站点，可点击刷新重试。" Style="{StaticResource EgCaptionStyle}"
                 TextWrapping="Wrap" Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
         </StackPanel>
     </ScrollViewer>

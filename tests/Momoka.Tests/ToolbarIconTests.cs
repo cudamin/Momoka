@@ -23,7 +23,9 @@ internal static class ToolbarIconTests
             var method = source[source.IndexOf("public void ShowAccount(", StringComparison.Ordinal)..];
             method = method[..method.IndexOf("\n    }", StringComparison.Ordinal)];
             Assert.Contains("AutomationProperties.SetName(AccountButton,", method);
-            Assert.Contains("AccountUser.Text} · {AccountServer.Text}", method);
+            Assert.Contains("UiText.Format(\"账号与服务器：{0} · {1}\", AccountUser.Text, AccountServer.Text)", method);
+            Assert.Contains("UiText.Translate(\"未登录\") : user", method);
+            Assert.Contains("UiText.Translate(\"未连接服务器\") : server", method);
         });
 
         TestHarness.Test("标题栏那一排：返回、沉浸前进、商店折叠、主页、收藏、设置、搜索", () =>

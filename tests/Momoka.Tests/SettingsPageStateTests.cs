@@ -44,6 +44,7 @@ internal static class SettingsPageStateTests
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
         PlayerToolsSettingsUiTests.Register(fixture);
+        UiLanguageDisplayTests.Register(fixture);
         TestHarness.Test("主页位置真实 VM：商店和轮播开关只改变有效值，切回立即恢复保存偏好", () =>
         {
             var settings = new FakeSettings();

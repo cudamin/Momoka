@@ -26,10 +26,10 @@
                     Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
                 <CommandBar x:Name="LocalLibraryCommands" Grid.Column="1" DefaultLabelPosition="Right" IsOpen="False"
                     Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}">
-                    <AppBarButton x:Name="LocalLibraryRefresh" Icon="Refresh" Label="刷新媒体库" Click="OnRefresh"
+                    <AppBarButton x:Uid="LocalLibraryPage_LocalLibraryRefresh" x:Name="LocalLibraryRefresh" Icon="Refresh" Label="刷新媒体库" Click="OnRefresh"
                         AutomationProperties.Name="刷新媒体库"
                         Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
-                    <AppBarButton x:Name="LocalLibraryOpenSource" Icon="OpenLocal" Label="打开源目录" Click="OnOpenSource"
+                    <AppBarButton x:Uid="LocalLibraryPage_LocalLibraryOpenSource" x:Name="LocalLibraryOpenSource" Icon="OpenLocal" Label="打开源目录" Click="OnOpenSource"
                         AutomationProperties.Name="打开源目录"
                         Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
                 </CommandBar>
@@ -37,7 +37,7 @@
             <TextBlock Text="{x:Bind ViewModel.Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                 Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
-        <ProgressBar Grid.Row="1" IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}"
+        <ProgressBar x:Uid="LocalLibraryPage_Localization1" Grid.Row="1" IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" AutomationProperties.Name="正在刷新本地媒体库" />
         <InfoBar x:Name="LocalLibraryNotice" Grid.Row="2" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
@@ -63,8 +63,8 @@
                                 TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                             <local:WrapRow Spacing="{StaticResource EgSpaceM}" RowSpacing="{StaticResource EgSpaceS}">
                                 <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-                                <Button x:Name="LocalLibraryOpenLocation" Content="打开所在文件夹" Tag="{x:Bind}" Click="OnOpenLocation" />
-                                <Button x:Name="LocalLibraryPlay" Content="播放" Tag="{x:Bind}" Click="OnPlay"
+                                <Button x:Uid="LocalLibraryPage_LocalLibraryOpenLocation" x:Name="LocalLibraryOpenLocation" Content="打开所在文件夹" Tag="{x:Bind}" Click="OnOpenLocation" />
+                                <Button x:Uid="LocalLibraryPage_LocalLibraryPlay" x:Name="LocalLibraryPlay" Content="播放" Tag="{x:Bind}" Click="OnPlay"
                                     Visibility="{x:Bind PlayVisibility, Mode=OneWay}" />
                             </local:WrapRow>
                         </StackPanel>
@@ -72,7 +72,7 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <TextBlock Grid.Row="3" Text="还没有已入库的影视文件。后台扫描与刮削完成后会显示在这里。"
+        <TextBlock x:Uid="LocalLibraryPage_Localization2" Grid.Row="3" Text="还没有已入库的影视文件。后台扫描与刮削完成后会显示在这里。"
             Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap"
             Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" />
     </Grid>

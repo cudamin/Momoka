@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.Playback;
+using Momoka.Shell.Localization;
 using Windows.UI.Text;
 
 namespace Momoka.Shell.ViewModels;
@@ -40,6 +41,11 @@ public abstract class SettingRow : ObservableObject
     /// <summary>The text in the left-hand column.</summary>
     public string Label { get; }
 
+    /// <summary>Localized presentation; the original label remains the stable row identity.</summary>
+    public string DisplayLabel => UiText.Translate(Label);
+
+    public string DisplayNote => UiText.Translate(Note);
+
     /// <summary>
     /// The smaller line under the label, or empty when there is none.
     /// <para>
@@ -54,7 +60,9 @@ public abstract class SettingRow : ObservableObject
         get => _note;
         private set
         {
-            if (SetProperty(ref _note, value)) OnPropertyChanged(nameof(NoteVisibility));
+            if (!SetProperty(ref _note, value)) return;
+            OnPropertyChanged(nameof(NoteVisibility));
+            OnPropertyChanged(nameof(DisplayNote));
         }
     }
 
@@ -212,9 +220,11 @@ public sealed class SettingChoice
     /// <summary>What the drop-down shows.</summary>
     public string Label { get; }
 
+    public string DisplayLabel => UiText.Translate(Label);
+
     internal void Apply() => _apply();
 
-    public override string ToString() => Label;
+    public override string ToString() => DisplayLabel;
 }
 
 /// <summary>A drop-down bound to one setting.</summary>
@@ -611,6 +621,8 @@ public sealed partial class SettingTextRow : SettingRow
 
     public string Placeholder { get; }
 
+    public string DisplayPlaceholder => UiText.Translate(Placeholder);
+
     [ObservableProperty]
     public partial string Text { get; set; }
 
@@ -736,12 +748,15 @@ public sealed partial class SettingColorRow : SettingRow
     /// <summary>The code beside the swatch, or what 「不设置」 looks like when there is none.</summary>
     public string HexLabel => HtmlColor.TryParse(Color, out _) ? Color.ToUpperInvariant() : "不设置";
 
+    public string DisplayHexLabel => UiText.Translate(HexLabel);
+
     partial void OnColorChanged(string value)
     {
         if (!_seeded) return;
 
         OnPropertyChanged(nameof(Swatch));
         OnPropertyChanged(nameof(HexLabel));
+        OnPropertyChanged(nameof(DisplayHexLabel));
 
         if (_restoring) return;
         if (RequiresConfirmation)
@@ -883,6 +898,8 @@ public sealed partial class SettingFactRow : SettingRow
     public Visibility ValueVisibility => Value.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
 
     public string ActionLabel { get; }
+
+    public string DisplayActionLabel => UiText.Translate(ActionLabel);
 
     /// <summary>没有按钮的那几行不给它留位置，同 <see cref="SettingRow.NoteVisibility"/>。</summary>
     public Visibility ActionVisibility =>
@@ -1339,7 +1356,7 @@ public sealed partial class SettingSubtitlePreviewRow : SettingRow
     public Thickness PlatePadding => new(Model.PlatePadding);
 
     public IReadOnlyList<SubtitlePreviewLine> Lines =>
-        [.. Model.Text.Split('\n').Select(text => new SubtitlePreviewLine(
+        [.. UiText.Translate(Model.Text).Split('\n').Select(text => new SubtitlePreviewLine(
             [.. Layers.Select(layer => layer with { Text = text })]))];
 
     /// <summary>
@@ -1350,9 +1367,9 @@ public sealed partial class SettingSubtitlePreviewRow : SettingRow
     [
         .. Model.Layers.Select(layer => new PreviewLayer(
             layer.X, layer.Y, BrushFor(layer.Color, layer.Opacity),
-            Model.Text, FontFamilyValue, Model.FontSize, Bold(Model.Bold),
+            UiText.Translate(Model.Text), FontFamilyValue, Model.FontSize, Bold(Model.Bold),
             layer.IsBox, layer.Padding)),
-        new(0, 0, BrushFor(Model.TextColor, 1), Model.Text, FontFamilyValue, Model.FontSize, Bold(Model.Bold))
+        new(0, 0, BrushFor(Model.TextColor, 1), UiText.Translate(Model.Text), FontFamilyValue, Model.FontSize, Bold(Model.Bold))
     ];
 
     private static Brush BrushFor(string color, double opacity)

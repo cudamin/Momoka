@@ -18,7 +18,7 @@
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind MoviesVisible(ViewModel.MoviesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
             <local:ShelfHead x:Name="MoviesHead" Note="{x:Bind ViewModel.MoviesNote, Mode=OneWay}" />
-            <Button x:Name="RefreshSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed" Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
+            <Button x:Uid="MoviePilotSubscriptionsView_RefreshSubscriptions" x:Name="RefreshSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed" Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
             <!-- 加载条覆盖标题下沿，不额外撑高整排，避免触发主页媒体库自动换位。 -->
             <ProgressBar IsIndeterminate="True" VerticalAlignment="Bottom" IsHitTestVisible="False"
                 Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -32,7 +32,7 @@
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind SeriesVisible(ViewModel.SeriesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
             <local:ShelfHead x:Name="SeriesHead" Note="{x:Bind ViewModel.SeriesNote, Mode=OneWay}" />
-            <Button x:Name="RefreshSeriesSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed"
+            <Button x:Uid="MoviePilotSubscriptionsView_RefreshSeriesSubscriptions" x:Name="RefreshSeriesSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed"
                 Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
             <ProgressBar IsIndeterminate="True" VerticalAlignment="Bottom" IsHitTestVisible="False"
                 Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />

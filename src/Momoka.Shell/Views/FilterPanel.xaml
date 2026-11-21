@@ -204,7 +204,7 @@
                                             </ItemsControl>
                                         </StackPanel>
                                         </ScrollViewer>
-                                        <HyperlinkButton x:Name="FilterValuesSelectAll" Grid.Row="1" Content="全选"
+                                        <HyperlinkButton x:Uid="FilterPanel_FilterValuesSelectAll" x:Name="FilterValuesSelectAll" Grid.Row="1" Content="全选"
                                             AutomationProperties.Name="{x:Bind SelectAllLabel}" Click="OnValuesSelectAll"
                                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="32" />
                                     </Grid>
@@ -257,7 +257,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Button
+                <Button x:Uid="FilterPanel_FilterCloseButton"
                     x:Name="FilterCloseButton"
                     AutomationProperties.Name="关闭筛选"
                     Background="Transparent"
@@ -267,7 +267,7 @@
                     ToolTipService.ToolTip="关闭">
                     <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE711;" />
                 </Button>
-                <TextBlock
+                <TextBlock x:Uid="FilterPanel_Localization1"
                     Grid.Column="1"
                     VerticalAlignment="Center"
                     Style="{StaticResource EgSubheadStyle}"

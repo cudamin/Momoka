@@ -16,6 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\Momoka.Shell\Localization\UiText.cs" Link="Shell\UiText.cs" />
+    <EmbeddedResource Include="..\..\src\Momoka.Shell\Localization\*English.json" />
     <Compile Include="..\..\src\Momoka.Shell\Views\StoreTrailerDocument.cs" Link="Shell\StoreTrailerDocument.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\SettingsCategoryGlyphConverter.cs" Link="Shell\SettingsCategoryGlyphConverter.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Services\FnNasLibraryRemovalService.cs" Link="Shell\FnNasLibraryRemovalService.cs" />

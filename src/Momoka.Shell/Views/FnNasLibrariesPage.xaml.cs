@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -23,6 +24,14 @@ public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionSc
     public FnNasLibrariesPage()
     {
         InitializeComponent();
+
+        // Only fixed, index-based choices are localized; selected values keep their original indices.
+        for (var index = 0; index < FnNasPlaylistMode.Items.Count; index++)
+            if (FnNasPlaylistMode.Items[index] is string label) FnNasPlaylistMode.Items[index] = UiText.Translate(label);
+        for (var index = 0; index < FnNasPlaylistRefresh.Items.Count; index++)
+            if (FnNasPlaylistRefresh.Items[index] is string label) FnNasPlaylistRefresh.Items[index] = UiText.Translate(label);
+        for (var index = 0; index < FnNasViewType.Items.Count; index++)
+            if (FnNasViewType.Items[index] is string label) FnNasViewType.Items[index] = UiText.Translate(label);
         ViewModel.UseConfirm(ConfirmAsync);
         ViewModel.PickPlaylist = () => FnNasPlaylistFile.PickAsync(XamlRoot);
         Loaded += (_, _) => HomeMotion.Reveal(PageLayout);
@@ -74,7 +83,7 @@ public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionSc
             Title = title,
             Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 480 },
             PrimaryButtonText = primary,
-            CloseButtonText = "取消",
+            CloseButtonText = UiText.Translate("取消"),
             DefaultButton = ContentDialogButton.Close,
             RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light
         };

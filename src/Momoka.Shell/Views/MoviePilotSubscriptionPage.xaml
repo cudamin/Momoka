@@ -191,15 +191,15 @@
          竖排靠上：它与画面同格、格子比画面高，顶边由 code-behind 按画面高算。 -->
     <StackPanel x:Name="StoreTrailerControls" Orientation="Horizontal" Spacing="8"
                 HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed">
-        <Button x:Name="StoreTrailerPause" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerPause"
+        <Button x:Uid="MoviePilotSubscriptionPage_StoreTrailerPause" x:Name="StoreTrailerPause" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerPause"
                 AutomationProperties.Name="暂停预告片" ToolTipService.ToolTip="暂停预告片">
             <FontIcon Glyph="&#xE769;" FontSize="{StaticResource EgBodyFontSize}" />
         </Button>
-        <Button x:Name="StoreTrailerMute" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerMute"
+        <Button x:Uid="MoviePilotSubscriptionPage_StoreTrailerMute" x:Name="StoreTrailerMute" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerMute"
                 AutomationProperties.Name="预告片静音" ToolTipService.ToolTip="预告片静音">
             <FontIcon Glyph="&#xE74F;" FontSize="{StaticResource EgBodyFontSize}" />
         </Button>
-        <Button x:Name="StoreTrailerClose" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerClose"
+        <Button x:Uid="MoviePilotSubscriptionPage_StoreTrailerClose" x:Name="StoreTrailerClose" Style="{StaticResource EgPreviewButtonStyle}" Click="OnStoreTrailerClose"
                 AutomationProperties.Name="关闭预告" ToolTipService.ToolTip="关闭预告">
             <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgBodyFontSize}" />
         </Button>
@@ -264,27 +264,27 @@
                         TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
                 </StackPanel>
                 <local:WrapRow x:Name="DetailActions" Spacing="10" RowSpacing="10">
-                    <Button x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_SearchSubscription" x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgActionButtonStyle}"
                         IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}">
                         <Button.Flyout><MenuFlyout>
-                            <MenuFlyoutItem x:Name="SearchMediaTitle" Text="按标题搜索" Click="OnSearch" />
-                            <MenuFlyoutItem x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
+                            <MenuFlyoutItem x:Uid="MoviePilotSubscriptionPage_SearchMediaTitle" x:Name="SearchMediaTitle" Text="按标题搜索" Click="OnSearch" />
+                            <MenuFlyoutItem x:Uid="MoviePilotSubscriptionPage_SearchMediaImdb" x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
                         </MenuFlyout></Button.Flyout>
                     </Button>
-                    <Button x:Name="SearchAniBt" Content="在 AniBT 中搜索" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_SearchAniBt" x:Name="SearchAniBt" Content="在 AniBT 中搜索" Style="{StaticResource EgActionButtonStyle}"
                         Visibility="{x:Bind MediaViewModel.AniBtVisibility, Mode=OneWay}"
                         IsEnabled="{x:Bind MediaViewModel.CanSearchAniBt, Mode=OneWay}" Click="OnSearchAniBt" />
-                    <Button x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_SearchMediaSubtitles" x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgActionButtonStyle}"
                         IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnSearchSubtitles" />
                     <Button x:Name="ChooseSubscribeSeasons" Content="{x:Bind MediaViewModel.SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgActionButtonStyle}"
                         IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnChooseSeasons" />
-                    <Button x:Name="PlayMediaLibraryItem" Content="播放已入库" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_PlayMediaLibraryItem" x:Name="PlayMediaLibraryItem" Content="播放已入库" Style="{StaticResource EgActionButtonStyle}"
                         Visibility="{x:Bind ViewModel.PlayFirstVisibility, Mode=OneWay}" Command="{x:Bind ViewModel.PlayFirstCommand}" />
-                    <Button x:Name="PlaySubscriptionTrailer" Content="预告片" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_PlaySubscriptionTrailer" x:Name="PlaySubscriptionTrailer" Content="预告片" Style="{StaticResource EgActionButtonStyle}"
                         Visibility="{x:Bind MediaViewModel.TrailerButtonVisibility, Mode=OneWay}" Click="OnTrailerButtonClick" />
-                    <Button x:Name="EditSubscription" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" Content="编辑订阅" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_EditSubscription" x:Name="EditSubscription" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" Content="编辑订阅" Style="{StaticResource EgActionButtonStyle}"
                         IsEnabled="{x:Bind ViewModel.CanWriteSelected, Mode=OneWay}" Click="OnEdit" />
-                    <Button x:Name="MoreActions" Style="{StaticResource EgRoundButtonStyle}" Click="OnMoreActions"
+                    <Button x:Uid="MoviePilotSubscriptionPage_MoreActions" x:Name="MoreActions" Style="{StaticResource EgRoundButtonStyle}" Click="OnMoreActions"
                         ToolTipService.ToolTip="更多" AutomationProperties.Name="更多">
                         <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE712;" />
                     </Button>
@@ -326,7 +326,7 @@
             <StackPanel x:Name="SeasonPanel" Visibility="{x:Bind MediaViewModel.SeasonsVisibility, Mode=OneWay}"
                 Style="{StaticResource EgBodyPanelStyle}" VerticalAlignment="Top">
                 <Border x:Name="SeasonPanelHeader">
-                    <local:ShelfHead x:Name="SeasonHead" Title="季" />
+                    <local:ShelfHead x:Uid="MoviePilotSubscriptionPage_SeasonHead" x:Name="SeasonHead" Title="季" />
                 </Border>
                 <StackPanel x:Name="SeasonPanelContent">
                     <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
@@ -336,7 +336,7 @@
             <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
 
                 <Border x:Name="PeoplePanelHeader">
-                    <local:ShelfHead Title="演员阵容" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
+                    <local:ShelfHead x:Uid="MoviePilotSubscriptionPage_Localization1" Title="演员阵容" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 </Border>
                 <StackPanel x:Name="PeoplePanelContent">
                     <local:ShelfStrip x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}"
@@ -346,7 +346,7 @@
             <StackPanel x:Name="RecommendationsPanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
 
                 <Border x:Name="RecommendationsPanelHeader">
-                    <local:ShelfHead Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
+                    <local:ShelfHead x:Uid="MoviePilotSubscriptionPage_Localization2" Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 </Border>
                 <StackPanel x:Name="RecommendationsPanelContent">
                     <local:ShelfStrip x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}"
@@ -356,7 +356,7 @@
             <StackPanel x:Name="SimilarPanel" Style="{StaticResource EgBodyPanelStyle}" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
 
                 <Border x:Name="SimilarPanelHeader">
-                    <local:ShelfHead Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
+                    <local:ShelfHead x:Uid="MoviePilotSubscriptionPage_Localization3" Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 </Border>
                 <StackPanel x:Name="SimilarPanelContent">
                     <local:ShelfStrip x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}"
@@ -393,7 +393,7 @@
                              纯媒体详情没有订阅时整段收起，不画小标题也不留空行。 -->
                         <Border BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" Padding="14,12,14,2"
                             Visibility="{x:Bind ViewModel.DetailSummaryVisibility, Mode=OneWay}">
-                            <TextBlock Text="订阅" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+                            <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization4" Text="订阅" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
                         </Border>
                         <ItemsRepeater x:Name="SubscriptionFacts" ItemsSource="{x:Bind ViewModel.DetailSummaryFacts, Mode=OneWay}"
                             ItemTemplate="{StaticResource SubscriptionSummaryFactTemplate}"
@@ -410,7 +410,7 @@
     <ScrollViewer x:Name="DetailErrorState" VerticalScrollBarVisibility="Auto"
         HorizontalScrollBarVisibility="Disabled" Visibility="{x:Bind MediaViewModel.DetailErrorVisibility, Mode=OneWay}">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" Margin="32,72" Spacing="20">
-            <Viewbox MaxWidth="360" Height="132" Stretch="Uniform" AutomationProperties.Name="媒体信息不可用">
+            <Viewbox x:Uid="MoviePilotSubscriptionPage_Localization5" MaxWidth="360" Height="132" Stretch="Uniform" AutomationProperties.Name="媒体信息不可用">
                 <Canvas Width="360" Height="132">
                     <Viewbox Width="86" Height="132" Stretch="Uniform">
                         <TextBlock Text="5" Style="{StaticResource EgDisplayTitleStyle}" FontWeight="ExtraBold"
@@ -447,13 +447,13 @@
                 </Canvas>
             </Viewbox>
             <StackPanel Spacing="10" HorizontalAlignment="Center">
-                <TextBlock Text="出错啦！" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
+                <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization6" Text="出错啦！" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
                 <Border Width="44" Height="3" Background="{ThemeResource EgAccentBrush}" CornerRadius="2" />
             </StackPanel>
             <TextBlock x:Name="DetailErrorMessage" Text="{x:Bind MediaViewModel.DetailError, Mode=OneWay}"
                 Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
                 TextAlignment="Center" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-            <Button x:Name="RetryMediaDetail" Content="重试" Click="OnRefreshDetails"
+            <Button x:Uid="MoviePilotSubscriptionPage_RetryMediaDetail" x:Name="RetryMediaDetail" Content="重试" Click="OnRefreshDetails"
                 HorizontalAlignment="Center" Style="{StaticResource EgSecondaryButtonStyle}" />
         </StackPanel>
     </ScrollViewer>
@@ -529,7 +529,7 @@
             <local:Shimmer x:Name="DetailLoadingShimmer" Grid.RowSpan="2"
                 IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}" />
         </Grid>
-        <TextBlock Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Bottom"
+        <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization7" Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Bottom"
             HorizontalAlignment="Center" Margin="0,0,0,32" AutomationProperties.LiveSetting="Polite" />
     </Grid>
     <local:MoviePilotResourcePanel x:Name="MediaResources" Visibility="Collapsed" Closed="OnResourcesClosed" />

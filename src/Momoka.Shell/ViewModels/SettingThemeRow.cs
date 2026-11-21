@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Shell.Localization;
 using Momoka.Theming;
 
 namespace Momoka.Shell.ViewModels;
@@ -40,10 +41,16 @@ public sealed partial class ThemeSwatch : ObservableObject
 
     public string Name { get; }
 
+    public string DisplayName => UiText.Translate(Name);
+
     /// <summary>那一套自己的说明，挂成这一块的提示条 —— 一块色板放不下一整句话。</summary>
     public string Note { get; }
 
+    public string DisplayNote => UiText.Translate(Note);
+
     public string Kind { get; }
+
+    public string DisplayKind => UiText.Translate(Kind);
 
     public SolidColorBrush Window { get; }
 
