@@ -485,6 +485,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroCardTopMargin))]
     [NotifyPropertyChangedFor(nameof(HeroCardBottomMargin))]
     [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxHeight))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -509,6 +510,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
     [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxHeight))]
     public partial double WindowWidth { get; set; }
 
     /// <summary>
@@ -527,6 +529,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(StoreHeroWidth))]
     [NotifyPropertyChangedFor(nameof(StoreArtMargin))]
     [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxHeight))]
     public partial double FullWindowWidth { get; set; }
 
     /// <summary>
@@ -975,6 +978,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroCardTopMargin))]
     [NotifyPropertyChangedFor(nameof(HeroCardBottomMargin))]
     [NotifyPropertyChangedFor(nameof(CornerMaxWidth))]
+    [NotifyPropertyChangedFor(nameof(CornerMaxHeight))]
     public partial bool HeroArt { get; set; }
 
     /// <summary>
@@ -1175,6 +1179,14 @@ public sealed partial class DetailViewModel : PageViewModel
         SyncBackdrop();
     }
 
+    // 三个宽度按页面测量顺序分别到达。后到的窗口宽会改变两侧留白，仍须把角图的宽高上限
+    // 和喂给头部的高度一起重算；不能只依赖 PageWidth 或倍率变化时的那一次 FitCorner。
+    partial void OnWindowWidthChanged(double value) => FitCorner();
+
+    partial void OnFullWindowWidthChanged(double value) => FitCorner();
+
+    partial void OnStillWidthChanged(double value) => FitCorner();
+
     /// <summary>
     /// 页宽跨过紧凑断点之后重问一句「这一页要不要铺背景图」，答案翻了才写 ——
     /// <see cref="SpreadsBackdrop"/> 从 2026-10-13 起读 <see cref="IsCompact"/>，而 <see cref="HeroArt"/> 自己
@@ -1330,7 +1342,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// （<see cref="DetailHero.CornerWidth"/>，这个数只在那里写一遍），以下让位给题栏
     /// （<see cref="DetailHero.CornerBoxWidth"/>：封面的宽进去，题栏的保底出来）。取图那一头
     /// （<see cref="ShowCorner"/> → <see cref="FitCorner"/>）读的也是它，两处不会分叉。
-    /// 谁的手换了它的输入，谁负责喊它：<see cref="FitCorner"/>（页面宽和封面的宽都在它那儿汇齐）。
+    /// 输入变化后由 <see cref="FitCorner"/> 同步宽高上限与头部高度；窗口宽晚于页宽到达时也要重算。
     /// </summary>
     public double CornerMaxWidth => DetailHero.CornerBoxWidth(PageWidth - (2 * ContentGutterWidth), StillWidth, _cornerScale);
 

@@ -9,6 +9,7 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
+        RegisterCornerLimitTests(assembly, root);
         Test("商店操作块：四类页面宽窄常驻，离开商店恢复已看文字且通知真实绑定", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
