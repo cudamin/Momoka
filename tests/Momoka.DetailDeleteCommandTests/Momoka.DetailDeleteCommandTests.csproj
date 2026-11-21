@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.HomeLibraryCover.cs" Link="Production\CardItem.HomeLibraryCover.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellActions.cs" Link="Production\IShellActions.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\ConfirmDialog.cs" Link="Production\ConfirmDialog.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.FnNasRemoval.cs" Link="Production\ItemCommands.FnNasRemoval.cs" />

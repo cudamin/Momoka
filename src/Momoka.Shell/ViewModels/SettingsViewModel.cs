@@ -2092,7 +2092,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                 ui.ShowHomeBanner ? carouselRows : carouselRows.Take(1).ToArray()),
             new SettingSection("主页", "主页版面",
                 "媒体库那一排摆在第一屏的哪儿，以及主页上那几排的次序和显示与否，包括每个媒体库自己那一排。",
-                layoutRows)
+                layoutRows),
+            HomeLibraryCoverCard()
         ];
     }
 
@@ -2101,7 +2102,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var homeRows = HomeRows;
         try
         {
-            // 两张卡是同级：版式和开关同时决定位置行是否生效。原地更新保留排序行、输入焦点与搜索索引。
+            // 主页卡是同级：版式和开关同时决定位置行是否生效。原地更新保留排序行、输入焦点与搜索索引。
             foreach (var desired in HomeSections())
                 Sections.FirstOrDefault(section => section.Category == desired.Category && section.Title == desired.Title)
                     ?.UpdateRows(desired.Rows);

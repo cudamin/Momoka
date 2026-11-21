@@ -30,6 +30,11 @@ public static class ShellPrefs
     /// <summary>主页只重排已读到的媒体库入口，保留轮播和其它货架。</summary>
     public static event Action<UiSettings>? HomeLibraryEntriesChanged;
 
+    /// <summary>只更新主页媒体库入口的封面显示，切换预设不重新查询媒体数据。</summary>
+    public static event Action<UiSettings>? HomeLibraryCoverChanged;
+
+    public static void NotifyHomeLibraryCover(UiSettings ui) => HomeLibraryCoverChanged?.Invoke(ui);
+
     public static void ApplyHomeLibraryEntries(UiSettings ui)
     {
         ApplySidebar(ui);
@@ -144,6 +149,7 @@ public static class ShellPrefs
         ApplyAppearance(ui);
         ApplyDetailLayout(ui);
         ApplyDetailCast(ui);
+        NotifyHomeLibraryCover(ui);
         Changed?.Invoke(ui);
     }
 

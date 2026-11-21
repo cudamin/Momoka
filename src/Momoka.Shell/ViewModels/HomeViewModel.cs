@@ -404,6 +404,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _watchBusy = false;
         _watchBaseline = Task.CompletedTask;
         StartRealtime();
+        SyncLibraryCovers();
         return true;
     }
 
@@ -743,6 +744,7 @@ public sealed partial class HomeViewModel : PageViewModel
         if (LibraryPlacement == Emby.HomeLibraryPlacement.BelowCarousel) _libraryOnBanner = false;
         SyncMoviePilotLibrary();
         SyncLocalLibraries();
+        SyncLibraryCovers();
         var timing = NavigationTiming.Capture();
         timing?.Mark("home-shelves-begin");
         var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
@@ -1815,6 +1817,8 @@ public sealed partial class HomeViewModel : PageViewModel
         _directoryRead?.Cancel();
         _directoryRead = null;
         _active = false;
+        foreach (var (_, shelf) in _all)
+            foreach (var card in shelf.Cards.Materialized) card.ReleaseHomeLibraryCover();
         foreach (var entry in _moviePilotLibraries.Values) entry.Card.AbandonPoster();
         // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
         _realtime.Release();

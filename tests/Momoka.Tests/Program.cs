@@ -407,6 +407,13 @@ internal static class Program
             return LibraryDeepReturnTests.Run(deepShell, deepRoot);
         if (args is ["home-performance-fixture", var homeShell, var homeRoot])
             return HomePerformanceTests.Run(homeShell, homeRoot);
+        if (args is ["home-library-cover-fixture", var coverShell, var coverRoot])
+            return HomeLibraryCoverTests.Run(coverShell, coverRoot);
+        if (args is ["home-library-cover-fixture"])
+        {
+            HomeLibraryCoverTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["detail-deferred-cards-fixture", var detailShell, var detailRoot])
             return DetailDeferredCardsTests.Run(detailShell, detailRoot);
         if (args is ["budget-cache-fixture"])
@@ -727,6 +734,7 @@ internal static class Program
         RemovedMediaTests.Register();
         HiddenWatchedMediaTests.Register();
         HomeLatestTests.Register();
+        HomeLibraryCoverTests.Register();
         LibraryTotalTests.Register();
         HomeResumeTextTests.Register();
         ResumeRowTests.Register();

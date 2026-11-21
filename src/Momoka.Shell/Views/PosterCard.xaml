@@ -202,6 +202,12 @@
                         <Image x:Name="LibraryPoster2" Source="{x:Bind Card.LibraryTile2, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                 </Grid>
+                <!-- 仅主页入口卡携带预设；x:Bind 随回收换卡与每张图片到达更新，不另订阅卡片事件。 -->
+                <Border x:Name="LibraryCoverSurface" IsHitTestVisible="False"
+                    CornerRadius="{StaticResource EgPosterCornerRadius}">
+                    <ContentPresenter x:Name="LibraryCoverHost" ActualThemeChanged="OnLibraryCoverThemeChanged"
+                        Content="{x:Bind LibraryCover(Card.HomeLibraryCoverPreset, Card.HomeLibraryCoverImages, Card.Poster, Card.LibraryTile0, Card.Title, Card.Item.IdentityKey), Mode=OneWay}" />
+                </Border>
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
                     Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">

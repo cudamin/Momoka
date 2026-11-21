@@ -12,6 +12,7 @@
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\Momoka.Tests\CardImageResizeTests.Boundaries.cs" Link="Existing\CardImageResizeTests.Boundaries.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.HomeLibraryCover.cs" Link="Production\CardItem.HomeLibraryCover.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\CardArtwork.cs" Link="Production\CardArtwork.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\MusicLibraryPage.Artwork.cs" Link="Production\MusicLibraryPage.Artwork.cs" />
         <Compile Include="..\..\src\Momoka.Shell\MusicArtworkProbeRules.cs" Link="Production\MusicArtworkProbeRules.cs" />

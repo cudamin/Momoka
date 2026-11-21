@@ -1,6 +1,49 @@
+## 2026-11-21 静态媒体库封面合入主树
+
+按用户最新要求，静态恢复提交 04d2b4a 连同四套封面预设、许可索引批准及去白边修复正常合入 master，保留主树 e116ed2 的 MP 订阅汇总卡删除、CI 和测试修复。唯一冲突为本文件新增记录，已保留双方历史；合并前主树干净，没有覆盖无关本地编辑。
+
+最终整合代码重新编译 Shell 与 Tests Release，均 0 警告 0 错误；封面正式 VM 17/17、设置适用性 38/38、设置页状态 66/66、主页性能 63/63、本地媒体 186/186、设置存储 202/202、页面契约 393/393、Plex 显隐 85/85，0 失败 0 跳过。七个显式链接 CardItem 的专项工程重新编译通过；改动格式、暂存 diff、184 文档链接及凭据扫描通过。证据在 artifacts/static-cover-merge。未跑全量闸门、原生探针和截图，主题及 DPI 白边像素等仍在待交付批次，不销账、不推送。
+
 ## 2026-11-21 移除首页 MP 订阅库汇总卡
 
 按用户要求仅去掉媒体库横排汇总卡，保留电影／电视剧分类卡及排序、旧卡清理。c112 本树 Shell Release/x64 编译 0 警告 0 错误；local-media-fixture 186/186；文档检查通过。用户要求直接合并 master，合并后发布主树体验版；原生探针与视觉验收待统一验证。
+## 2026-11-21 库封面按要求恢复静态并准备合并
+
+用户撤回前三种循环动画，保留四套封面预设及顶角白边修复。移除 Storyboard、专用生命周期和事件订阅，恢复静态 RotateTransform；去描边与斜切图超边裁切保留。测试契约由动画改为静态构图与白边恢复，历史动画条目保留为历史证据，不再代表当前能力。主树合并前检查为干净 master=e116ed2；双方独有内容正常三方合并，保留主树删除 MP 订阅汇总卡及 CI 修复，不自动推送。
+
+静态恢复提交前：本分支 Shell、Tests Release 编译均 0 警告 0 错误；封面及正式 VM 定向 17/17，0 失败 0 跳过，改动格式和 diff 检查通过；184 文档链接与凭据扫描通过。格式检查仅有工作区加载提示，退出码 0。新三项源码契约替代已撤回的动画契约，验证静态构图、动画类退役、描边恢复与斜切超边裁切；实际主题及 DPI 像素仍待统一验收，不销账。
+
+## 2026-11-21 库封面循环动画与顶角白边（历史尝试，后已撤回动画）
+
+产品提交 593a8b5。首次 Windows PowerShell 发布异常退出且未给错误正文，保留 motion-publish.log；当前 PowerShell 重跑成功，完整自包含载荷验证 548 文件、290.3 MB 通过，分支桌面 Momoka-home-library-cover-presets.lnk 已刷新并回读目标正确。主程序集 SHA256：01561A753354F012619A1BD2DBB01BA8EDC6A1BB32350F11E077A4179D7F2416。最终发布日志 motion-publish-retry.log。主树快捷方式未改，没有启动客户端或实际窗口验收。
+
+前三种预设改为客户端循环动画：叠卡摆动、斜切推近平移、九宫格错向浮动。复用项目 Storyboard、HomeMotion 和 AnimatedPoster 生命周期模式；可见视口、宿主可见且系统及应用动画开启时运行，离树退订、偏好关闭停止、返回恢复。纯文字、高对比及缺图静态。覆盖封面移除 Art 浅色描边，关闭恢复样式；斜切图超边裁切避免运动露缝。没有改变服务器请求或写回。
+
+Shell 与 Tests Release 编译均 0 警告 0 错误；封面 Core／接线定向 13/13，连同正式 VM 定向 18/18（重叠不相加），0 失败 0 跳过。改动格式和 diff 检查通过；Shell 格式检查有工作区加载提示，退出码 0，不冒充构建告警。四项新测试仅证明接线，不证明原生中间帧。无新增样式和资源键，不触发高风险 XAML。按日常规则未跑原生探针、截图、登录或播放，实际动画、主题和 DPI 白边验收留在台账。证据位于 artifacts/home-library-cover-evidence/motion-*。分支不自动合并、不上传。
+
+## 2026-11-21 补齐封面预设分支桌面快捷方式
+
+用户要求「桌面快捷方式」，基于本树封面预设产品提交 `d6fbea3`。上次发布的许可字节不一致已查明：`f27bc9c` 的 `THIRD-PARTY-NOTICES.md` 原始Git字节17152／SHA256 `c18c0f258c3124e9e532a07de1c7238a94b0c90555795ed316c8bd268f21c205` 与旧批准精确一致；后续 `293a5deb95b4a7e9a6ecae83b63ecc3c36460e99` 只加一行mpv固定源码与对应构建发布链接（257字节），当前文件17409／SHA256 `8c06a4b1dc5aa2de7f965e9f704e2ad0ea98a479e19cce3ff729fffdf9174459` 等于该Git blob。删除新增一行即可逐字节回到旧批准；项目与第三方许可条款、归属和源码义务没有变化。主代理与独立代理逐行复核后仅更新这一条size/hash；其余60份来源、所有native、许可和evidence批准未变，不自动接受待验载荷。
+
+重新运行 `publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-home-library-cover-presets` 已成功：完整自包含发布验证548文件／290.3MB，14个GLSL／4个HOOK，固定mpv批准60文件（51 UI／2 native）通过。桌面 `C:/Users/89400/Desktop/Momoka-home-library-cover-presets.lnk` 已创建并回读TargetPath／WorkingDirectory／空参数均正确，指向本树 `artifacts/publish/win-x64/Momoka.exe`；主树 `Momoka.lnk` 未改。EXE SHA256 `980a235b33fcae13e2181141c7ace99eea7389fdef41522c7565576b7dea8afc`，主程序集SHA256 `a1c85172bb66fb39bd3c3f293d897b6c290cddf2bcf9a1709dc06a187a281a4f`。日志和回读回执在 `artifacts/home-library-cover-evidence/shortcut-publish.log`／`shortcut-receipt.json`。
+
+这是独立分支的本地体验刷新；未启动普通客户端、未登录／播放／写服务器、未运行原生探针／截图。此前发布红项是历史事实，本次已解决；批次仍待合并与统一验证，不销账、不上传。许可载荷成功／损坏拒绝回归152/152通过、0失败0跳过（`tools/test-mpv-payload.ps1 -Phase cover-shortcut`，独立合成夹具，实际发布证据另以上述完整校验为准）；文本格式、184文档链接、154命令块语法与凭据扫描均通过。
+
+## 2026-11-21 主页媒体库封面四套预设（临时分支，待合并与统一验证）
+
+树 `C:/Users/89400/.codex/worktrees/1a30/Momoka`，分支 `codex/home-library-cover-presets`，基点 `6e22d3d`。按用户确认直接实现客户端显示覆盖：设置「主页 → 媒体库封面」总开关 + 叠卡／斜切大图／九宫格海报墙／纯文字渐变单选，默认关闭，关闭隐藏风格行但保留选择；只替换主页入口横排，关闭恢复原图。不生成服务器成品图、不上传、无新依赖。
+
+参考源码：justzerock/moviepilot-plugins 固定 `4943fb3a5bd00cc0e8b1b6f79f84bf2f1922ce41`，呀哈哈封面工坊2.2.11，真实链路 `style_static_template.py → style_static_custom.py → template_renderer.py`，默认构图来自 `preset_templates.py:create_preset_layout`。WinUI Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的 Image／Viewbox／ImplicitTransition 样例已读，官方 Stretch／Clip／LinearGradientBrush API 已核。没有现成四套封面组合，用项目已有原生图像、Canvas、旋转、渐变和遮盖多边形独立组成；WinUI只支持矩形Clip，斜切采用左侧同坐标渐变遮盖。稳定渐变替代参考模糊采色，省略副标题／颗粒／阴影和九格第三列额外偏移，是有意适配208×117库卡；不复制插件代码、字体或素材。
+
+选图只用同库近期排已读DTO与已有库图，按来源账号及登录代次隔离；不会为了被隐藏的近期排增加目录查询。图片缓存未命中时最多取九张小图，少图稳定循环，缺图仍有库名渐变，纯文字不发图片请求。MP／本地入口复用其已有原封面加载。原地切换沿专属ShellPrefs事件，不重建货架；封面文字绑定可通知的Card.Title，本地库改名同步；暖恢复按当前偏好；切换、弃卡、注销、离页撤销旧图片需求。高对比用系统前景／背景的文字封面，其余主题同库配色稳定。预设未接入APNG自定义动画，关闭后的原APNG路径保持。
+
+最终源码验证：Core／Tests／Shell Release构建均0警告0错误；主测试5335/5335；正式封面VM定向14/14、设置存储202/202、设置适用性38/38、设置页状态66/66、主页性能63/63，均0失败0跳过。七个显式链接CardItem的专项同步新分部，AniBT入口51/51、详情删除命令41/41、用户状态顺序76/76、音乐图片37/37、页面契约393/393、性能诊断80/80、Plex显隐85/85、架构7/7通过。主测试与定向重叠，不合计。格式检查、diff文本格式检查、184文档链接／154命令块语法、凭据扫描通过；重复代码66段／0.47%，在70段／1%预算内。证据在 `artifacts/home-library-cover-evidence/`。
+
+中途真实失败保留：UI绘图API编译错误已修；并行构建曾引起XAML中间程序集写入锁，最后串行对应构建与Plex／架构专项通过。`quality.ps1 -SkipBuild` 的子脚本汇总曾把退出失败写为通过：它的架构子进程遇到同一构建锁、npx未找到jscpd，不能据该汇总声称完整闸门1通过；本批以之后实际串行专项和固定jscpd5.4.2入口结果为准，没有修改质量脚本或预算。
+
+体验发布受阻：`publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-home-library-cover-presets` 已生成自包含目录，但正式载荷验证拒绝当前既有 `THIRD-PARTY-NOTICES.md`：批准17152字节／SHA256 `c18c0f258c3124e9e532a07de1c7238a94b0c90555795ed316c8bd268f21c205`，当前17409字节／SHA256 `8c06a4b1dc5aa2de7f965e9f704e2ad0ea98a479e19cce3ff729fffdf9174459`。文件和批准清单本任务未改，不能绕过或自动更新批准。本树缺失的ignored libmpv从主树复制前核对当前固定批准SHA256一致；没有改运行库版本。发布目录为未通过验证的中间产物，不作体验交付，分支快捷方式未创建／刷新，主树快捷方式未动。
+
+没有运行原生探针、截图、真实账号登录、播放或服务器写入。此批复用已有可解析控件／样式，没有首次引用控件基样式、跨字典新键或加载顺序变化；按日常规则保留原生主题／DPI／图片／键盘验收于待交付批次台账，未合并、未上传、未销账。
 
 ## 2026-11-21 CI 修复：原子写共享冲突、探针边界、Caller SDK 判据、CRLF 与 R011 看门狗（已推送，等 CI）
 

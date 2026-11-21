@@ -128,6 +128,7 @@ internal static partial class SettingsTests
         RegisterMigration();
         RegisterReviewMigration();
         RegisterNormalize();
+        RegisterHomeLibraryCoverSettings();
         RegisterTrailerSettings();
         RegisterReset();
         RegisterBackup();

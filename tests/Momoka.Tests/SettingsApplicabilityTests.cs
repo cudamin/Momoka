@@ -149,6 +149,83 @@ internal static class SettingsApplicabilityTests
             Assert.Equal("audio", state.Settings.Settings.Video.VideoSync);
         });
         if (videoOnly) return;
+        TestHarness.Test("媒体库封面设置VM：总开关收起预设且保留选择，每次编辑只通知封面", () =>
+        {
+            var state = shell.Create(settings => settings.Ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Diagonal);
+            var card = state.Card("媒体库封面");
+            var rows = state.Rows(card);
+            var toggle = state.Row("媒体库封面", "覆盖媒体库封面");
+            Assert.Equal(1, rows.Count);
+            Assert.Equal(0, state.Settings.Saves);
+
+            var prefs = state.Vm.GetType().Assembly.GetType("Momoka.Shell.ShellPrefs", throwOnError: true)!;
+            var coverEvent = prefs.GetEvent("HomeLibraryCoverChanged")!;
+            var generalEvent = prefs.GetEvent("Changed")!;
+            var notifications = 0;
+            var generalNotifications = 0;
+            Action<UiSettings> coverHandler = ui =>
+            {
+                Assert.True(ReferenceEquals(ui, state.Settings.Settings.Ui));
+                notifications++;
+            };
+            Action<UiSettings> generalHandler = _ => generalNotifications++;
+            coverEvent.AddEventHandler(null, coverHandler);
+            generalEvent.AddEventHandler(null, generalHandler);
+            try
+            {
+                state.Toggle("媒体库封面", "覆盖媒体库封面", true);
+                Assert.Equal(2, rows.Count);
+                var choice = state.Row("媒体库封面", "封面预设");
+                Assert.Equal("斜切大图", state.SelectedLabel("媒体库封面", "封面预设"));
+                var choices = state.Get<IEnumerable>(choice, "Choices").Cast<object>().ToArray();
+                Assert.True(choices.Select(value => state.Get<string>(value, "Label"))
+                    .SequenceEqual(new[] { "叠卡", "斜切大图", "九宫格海报墙", "纯文字渐变" }));
+                state.Set(choice, "Selected", choices.Single(value => state.Get<string>(value, "Label") == "九宫格海报墙"));
+                Assert.Equal(HomeLibraryCoverPresets.Wall, state.Settings.Settings.Ui.HomeLibraryCoverPreset);
+
+                state.Toggle("媒体库封面", "覆盖媒体库封面", false);
+                Assert.Equal(1, rows.Count);
+                Assert.Equal(HomeLibraryCoverPresets.Wall, state.Settings.Settings.Ui.HomeLibraryCoverPreset);
+                state.Toggle("媒体库封面", "覆盖媒体库封面", true);
+                Assert.Equal("九宫格海报墙", state.SelectedLabel("媒体库封面", "封面预设"));
+                Assert.True(ReferenceEquals(card, state.Card("媒体库封面")) && ReferenceEquals(rows, state.Rows(card)));
+                Assert.True(ReferenceEquals(toggle, state.Row("媒体库封面", "覆盖媒体库封面")));
+                Assert.Equal(4, state.Settings.Saves);
+                Assert.Equal(4, notifications);
+                Assert.Equal(0, generalNotifications, "改封面不触发整页查询通知");
+            }
+            finally
+            {
+                coverEvent.RemoveEventHandler(null, coverHandler);
+                generalEvent.RemoveEventHandler(null, generalHandler);
+            }
+        });
+        TestHarness.Test("媒体库封面设置VM：缓存重入、导入和恢复默认重新计算显隐且不额外保存", () =>
+        {
+            var state = shell.Create();
+            var card = state.Card("媒体库封面");
+            state.Settings.Settings.Ui.HomeLibraryCoverOverride = true;
+            state.Settings.Settings.Ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Gradient;
+            state.Reenter();
+            Assert.Equal("纯文字渐变", state.SelectedLabel("媒体库封面", "封面预设"));
+            Assert.True(state.Get<bool>(state.Row("媒体库封面", "覆盖媒体库封面"), "IsOn"));
+            Assert.True(ReferenceEquals(card, state.Card("媒体库封面")));
+
+            var backup = new AppSettings();
+            backup.Ui.HomeLibraryCoverOverride = true;
+            backup.Ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Wall;
+            SettingsPreferences.Apply(state.Settings.Settings, backup);
+            state.Rebuild();
+            card = state.Card("媒体库封面");
+            Assert.Equal("九宫格海报墙", state.SelectedLabel("媒体库封面", "封面预设"));
+
+            SettingsReset.Restore(state.Settings.Settings);
+            state.Reenter();
+            Assert.Equal(1, state.Rows(card).Count);
+            Assert.False(state.Get<bool>(state.Row("媒体库封面", "覆盖媒体库封面"), "IsOn"));
+            Assert.Equal(HomeLibraryCoverPresets.Stack, state.Settings.Settings.Ui.HomeLibraryCoverPreset);
+            Assert.Equal(0, state.Settings.Saves);
+        });
         TestHarness.Test("SVP 实际设置VM：缓存重入更新补帧及基础输出，偏好不被隐藏清空", () =>
         {
             var state = shell.Create(settings =>
@@ -619,6 +696,7 @@ internal static class SettingsApplicabilityTests
             foreach (var method in new[] { "VideoCard", _shell.Builder("ApplicableShaderCard", "ShaderCard"),
                 _shell.Builder("ApplicableHdrCard", "HdrCard"), "FrameInterpolationCard", "TrailerCard" })
                 sections.Add(_shell.Invoke(Vm, method)!);
+            foreach (var section in (IEnumerable)_shell.Invoke(Vm, "HomeSections")!) sections.Add(section);
             // 字幕 2026-10-27 拆成三张卡，建卡入口返回一份列表，逐张加。
             foreach (var section in (IEnumerable)_shell.Invoke(Vm, "SubtitleSections")!) sections.Add(section);
         }

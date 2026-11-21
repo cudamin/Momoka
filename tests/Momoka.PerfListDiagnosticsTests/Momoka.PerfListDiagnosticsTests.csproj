@@ -19,6 +19,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingDay.cs" Link="Production\UpcomingDay.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingListDiff.cs" Link="Production\UpcomingListDiff.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.HomeLibraryCover.cs" Link="Production\CardItem.HomeLibraryCover.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\LibraryRequest.cs" Link="Production\LibraryRequest.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchSnapshot.cs" Link="Production\MoviePilotSearchSnapshot.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />

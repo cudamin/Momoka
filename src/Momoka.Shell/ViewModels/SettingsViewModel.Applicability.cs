@@ -135,5 +135,6 @@ public sealed partial class SettingsViewModel
         }
         SyncSubtitleBackControls();
         RefreshSubtitleBackRows();
+        RefreshHomeLibraryCoverRows();
     }
 }
