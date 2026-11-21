@@ -11,6 +11,7 @@
         <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.StickyHeader.cs" Link="Production\DetailPage.StickyHeader.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.StickyPlayMotion.cs" Link="Production\DetailPage.StickyPlayMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ProbeLayoutStability.cs" Link="Production\ProbeLayoutStability.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\HomeRowsLayout.cs" Link="Production\HomeRowsLayout.cs" />
     </ItemGroup>
     <UsingTask TaskName="ExtractHeroColumnLayout" TaskFactory="RoslynCodeTaskFactory"
                AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">

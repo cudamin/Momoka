@@ -5,7 +5,7 @@ using Windows.Foundation;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 主页那一叠货架：从上到下逐排码放，行与行之间隔一个 <see cref="Spacing"/>。
+/// 主页货架与小型媒体信息表：从上到下逐排码放，行与行之间隔一个 <see cref="Spacing"/>。
 /// <para>
 /// **不虚拟化是有意的**（2026-11-18 用户报「聚合模式下主页的最近添加显示不全」）。原来的竖向
 /// <c>StackLayout</c> 只实现视口里的行，其余行按已实现的行的尺寸估算总高；主页的行高差别很大
@@ -18,6 +18,8 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 只量高、不估高：<see cref="MeasureOverride"/> 量每一行，<see cref="ArrangeOverride"/> 按量到的
 /// 高度往下摞，所以总高与屏上内容一致，滚到底就是真的底。
+/// 媒体信息表同样只有约十行，全部实现避免窄窗滚入后有效视口未重新触发行模板而留空；
+/// 默认间距为零，各行自己的边距保持不变。大型媒体库和每排卡片的虚拟化不受影响。
 /// </para>
 /// </summary>
 public sealed partial class HomeRowsLayout : NonVirtualizingLayout

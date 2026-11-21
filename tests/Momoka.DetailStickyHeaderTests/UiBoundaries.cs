@@ -101,6 +101,11 @@ namespace Microsoft.UI.Xaml
     }
     public class UIElement : DependencyObject
     {
+        public Windows.Foundation.Size DesiredSize { get; set; }
+        public Action<Windows.Foundation.Size>? OnMeasure { get; set; }
+        public Windows.Foundation.Rect? ArrangedBounds { get; private set; }
+        public void Measure(Windows.Foundation.Size size) => OnMeasure?.Invoke(size);
+        public void Arrange(Windows.Foundation.Rect bounds) => ArrangedBounds = bounds;
         private Visibility _visibility = Visibility.Visible;
         public virtual Visibility Visibility
         {
