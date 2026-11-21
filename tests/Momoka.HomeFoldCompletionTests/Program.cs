@@ -543,14 +543,16 @@ internal static class Program
             page.ScrollHeader(100);
             Equal(HomeHeaderMode.Revealed, page.HeaderMode, "pending restore does not hide");
             page.SetPendingHeaderRestore(null);
-            page.BeginHeaderRestore(12);
+            page.BeginHeaderRestore(500);
             page.ScrollHeader(500);
-            page.CompleteHeaderRestore(11);
+            page.CompleteHeaderRestore(0);
             Check(page.RestoringHeader, "old completion does not end this restore");
             page.ScrollHeader(550);
             Equal(HomeHeaderMode.Revealed, page.HeaderMode, "restore still visible");
-            page.CompleteHeaderRestore(12);
-            Check(!page.RestoringHeader, "matching completion ends restore");
+            page.CompleteHeaderRestore(1);
+            Check(page.RestoringHeader, "completion alone does not end the layout period");
+            page.ExpireHeaderRestore();
+            Check(!page.RestoringHeader, "finite layout period ends restore");
             page.ScrollHeader(580);
             Equal(HomeHeaderMode.Hidden, page.HeaderMode, "new user scroll hides");
             page.FocusHeaderScroll();
@@ -558,6 +560,68 @@ internal static class Program
             Equal(580d, page.Scroller.VerticalOffset, "focus helper issues no scrolling");
             page.ScrollHeader(0);
             Equal(HomeHeaderMode.Top, page.HeaderMode, "top is transparent");
+        });
+        Case("page/header-return-completion-at-wrong-offset-retries-with-original-target", () =>
+        {
+            var page = new HomePage();
+            page.BeginHeaderRestore(300);
+            Equal(300d, page.Scroller.Requests.Single().Offset, "initial requested position");
+            page.CompleteHeaderRestore(1);
+            Equal(2, page.Scroller.Requests.Count, "completed request at zero is repaired");
+            Equal(300d, page.Scroller.Requests.Last().Offset, "original target survives completion");
+            page.ScrollHeader(300);
+            page.CompleteHeaderRestore(2);
+            page.ScrollHeader(0);
+            Equal(3, page.Scroller.Requests.Count, "late focus movement is repaired during layout");
+            page.ScrollHeader(300);
+            page.CompleteHeaderRestore(3);
+            page.ExpireHeaderRestore();
+            Equal(0, page.Scroller.HandlerCount, "layout completion releases user-input handlers");
+            page.ScrollHeader(120);
+            Equal(3, page.Scroller.Requests.Count, "user remains free after layout period");
+        });
+        Case("page/header-return-keeps-target-through-clamped-extent-and-ignores-sync-old-completion", () =>
+        {
+            var page = new HomePage();
+            page.Scroller.ScrollableHeight = 100;
+            page.BeginHeaderRestore(300);
+            Equal(100d, page.Scroller.Requests.Single().Offset, "initial request clamps to current extent");
+            page.ScrollHeader(100);
+            page.CompleteHeaderRestore(1);
+            page.Scroller.BeforeScrollRequest = () => page.CompleteHeaderRestore(1);
+            page.Scroller.ScrollableHeight = 1000;
+            page.TickHeaderRestore();
+            Equal(2, page.Scroller.Requests.Count, "extent recovery submits one request despite old completion");
+            Equal(300d, page.Scroller.Requests.Last().Offset, "extent recovery uses original position");
+            page.Release();
+            Equal(0, page.Scroller.HandlerCount, "leave detaches input handlers");
+            page.TickHeaderRestore();
+            page.CompleteHeaderRestore(2);
+            Equal(2, page.Scroller.Requests.Count, "late callbacks after leave cannot scroll");
+        });
+        Case("page/header-return-releases-for-pointer-navigation-key-and-native-interaction", () =>
+        {
+            foreach (var kind in new[] { "wheel", "pointer", "key", "interaction" })
+            {
+                var page = new HomePage();
+                page.BeginHeaderRestore(300);
+                if (kind == "wheel" || kind == "pointer")
+                    page.Scroller.Raise(kind == "wheel" ? UIElement.PointerWheelChangedEvent : UIElement.PointerPressedEvent,
+                        new Microsoft.UI.Xaml.Input.PointerRoutedEventArgs());
+                else if (kind == "key")
+                    page.Scroller.Raise(UIElement.KeyDownEvent, new Microsoft.UI.Xaml.Input.KeyRoutedEventArgs
+                    { Key = Windows.System.VirtualKey.Down });
+                else
+                {
+                    page.Scroller.State = Microsoft.UI.Xaml.Controls.ScrollingInteractionState.Interaction;
+                    page.ScrollHeader(120);
+                }
+                Check(!page.RestoringHeader, kind + " immediately takes over");
+                Equal(0, page.Scroller.HandlerCount, kind + " detaches input handlers");
+                page.TickHeaderRestore();
+                page.CompleteHeaderRestore(1);
+                Equal(1, page.Scroller.Requests.Count, kind + " receives no late restoration");
+            }
         });
         Case("page/carousel-mode-restores-full-bleed-and-store-insets-without-replacing-slides", () =>
         {

@@ -158,11 +158,13 @@ namespace Momoka.Shell.Views
             Scroller.VerticalOffset = offset;
             OnHeaderViewChanged(Scroller, new object());
         }
-        internal void BeginHeaderRestore(int correlation)
+        internal void BeginHeaderRestore(double offset) => BeginHeaderScrollRestore(offset);
+        internal void ExpireHeaderRestore()
         {
-            _restoringHeaderScroll = true;
-            _headerRestoreCorrelation = correlation;
+            _headerRestoreArmedAt = Environment.TickCount64 - 1000;
+            _headerRestoreTimer?.Fire();
         }
+        internal void TickHeaderRestore() => _headerRestoreTimer?.Fire();
         internal void CompleteHeaderRestore(int correlation) =>
             OnHeaderScrollCompleted(Scroller, new ScrollingScrollCompletedEventArgs { CorrelationId = correlation });
         internal void SetPendingHeaderRestore(double? offset) => _restoredScroll = offset;

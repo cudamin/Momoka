@@ -23,6 +23,22 @@ namespace Windows.Foundation
     public readonly record struct Point(double X, double Y);
 }
 
+namespace Windows.System
+{
+    public enum VirtualKey { None, Tab, Up, Down, Left, Right, Home, End, PageUp, PageDown, Enter }
+}
+
+namespace Microsoft.UI.Xaml.Input
+{
+    public sealed class PointerRoutedEventArgs : EventArgs;
+    public delegate void PointerEventHandler(object sender, PointerRoutedEventArgs args);
+    public sealed class KeyRoutedEventArgs : EventArgs
+    {
+        public Windows.System.VirtualKey Key { get; set; }
+    }
+    public delegate void KeyEventHandler(object sender, KeyRoutedEventArgs args);
+}
+
 namespace Microsoft.UI.Dispatching
 {
     public sealed class DispatcherQueue
@@ -54,7 +70,7 @@ namespace Microsoft.UI.Dispatching
         public TimeSpan Interval { get; set; }
         public bool IsRepeating { get; set; }
         public bool IsRunning { get; private set; }
-        public event EventHandler<object>? Tick;
+        public event Action<DispatcherQueueTimer, object>? Tick;
         public void Start() => IsRunning = true;
         public void Stop() => IsRunning = false;
         public void Fire()
@@ -86,6 +102,17 @@ namespace Microsoft.UI.Xaml
     }
     public class UIElement : DependencyObject
     {
+        public static object PointerWheelChangedEvent { get; } = new();
+        public static object PointerPressedEvent { get; } = new();
+        public static object KeyDownEvent { get; } = new();
+        private readonly Dictionary<object, Delegate> _handlers = [];
+        public int HandlerCount => _handlers.Count;
+        public void AddHandler(object routedEvent, object handler, bool handledEventsToo) => _handlers[routedEvent] = (Delegate)handler;
+        public void RemoveHandler(object routedEvent, object handler) => _handlers.Remove(routedEvent);
+        public void Raise(object routedEvent, EventArgs args)
+        {
+            if (_handlers.TryGetValue(routedEvent, out var handler)) handler.DynamicInvoke(this, args);
+        }
         private Visibility _visibility = Visibility.Visible;
         public int CollapseCount { get; private set; }
         public Visibility Visibility
@@ -180,9 +207,26 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ScrollView : FrameworkElement
     {
         public double VerticalOffset { get; set; }
+        public double ScrollableHeight { get; set; } = 1000;
+        public ScrollingInteractionState State { get; set; }
+        public List<(int Correlation, double Offset)> Requests { get; } = [];
+        public Action? BeforeScrollRequest { get; set; }
+        public int ScrollTo(double horizontalOffset, double verticalOffset, ScrollingScrollOptions options)
+        {
+            BeforeScrollRequest?.Invoke();
+            var correlation = Requests.Count + 1;
+            Requests.Add((correlation, verticalOffset));
+            return correlation;
+        }
         public bool IsTabStop { get; set; }
         public bool FocusedSelf { get; private set; }
         public bool Focus(Microsoft.UI.Xaml.FocusState state) => FocusedSelf = IsTabStop;
+    }
+    public enum ScrollingInteractionState { Idle, Interaction }
+    public enum ScrollingAnimationMode { Disabled }
+    public sealed class ScrollingScrollOptions(ScrollingAnimationMode animationMode)
+    {
+        public ScrollingAnimationMode AnimationMode { get; } = animationMode;
     }
     public sealed class ScrollingScrollCompletedEventArgs
     {

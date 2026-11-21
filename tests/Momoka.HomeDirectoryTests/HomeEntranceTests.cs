@@ -21,6 +21,9 @@ namespace Momoka.Tests
                         Assert.Equal(mode == NavigationMode.New && !restored ? 1 : 0, page.EnterCalls,
                             "暖恢复和历史返回不能把现成货架重新藏到入场动画里");
                         Assert.Equal(restored ? 140d : 0d, page.Scroller.Offset);
+                        Assert.Equal(restored ? 1 : 0, page.HeaderRestoreCalls,
+                            "只有暖返回才把保存位置交给页头恢复边界");
+                        if (restored) Assert.Equal(140d, page.HeaderRestoreTarget);
                         Assert.False(page.PlaybackEntranceSuppressed, "普通导航不改变播放返回与折叠抑制位");
                         Assert.Equal(restored ? 1 : 0, page.ViewModel.BackgroundReads);
                         Assert.Equal(restored ? 0 : 1, page.ViewModel.InitialReads);
@@ -81,6 +84,17 @@ namespace Momoka.Shell.Views
         internal ScrollBoundary Scroller { get; } = new();
         internal int EnterCalls { get; set; }
         internal int TitlePaintCalls { get; private set; }
+        internal int HeaderRestoreCalls { get; private set; }
+        internal double HeaderRestoreTarget { get; private set; }
+        // 恢复算法由 HomeFoldCompletionTests 逐字编译 HomePage.Header.cs 验证。
+        // 本目录／账号夹具只记录正式 Loaded 调用交出的目标，并用惯性滚动端点接住。
+        private void BeginHeaderScrollRestore(double offset)
+        {
+            HeaderRestoreCalls++;
+            HeaderRestoreTarget = offset;
+            Scroller.ScrollTo(0, offset,
+                new Microsoft.UI.Xaml.Controls.ScrollingScrollOptions(Microsoft.UI.Xaml.Controls.ScrollingAnimationMode.Disabled));
+        }
         private void PaintInk() => TitlePaintCalls++;
         internal bool PlaybackEntranceSuppressed => _entranceSuppressed;
         internal void Visit(NavigationMode mode, bool restored)

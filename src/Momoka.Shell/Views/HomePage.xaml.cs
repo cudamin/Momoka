@@ -168,6 +168,8 @@ public sealed partial class HomePage : Page, IShellContent
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
         Scroller.ViewChanged += OnHeaderViewChanged;
+        Scroller.ExtentChanged += OnHeaderViewChanged;
+        Scroller.StateChanged += OnHeaderViewChanged;
         Scroller.ScrollCompleted += OnHeaderScrollCompleted;
 
         // 竖滚动条不从轮播图上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，
@@ -222,9 +224,7 @@ public sealed partial class HomePage : Page, IShellContent
                 _timing?.Mark("home-scroll-layout-begin");
                 Scroller.UpdateLayout();
                 _timing?.Mark("home-scroll-layout-end", 1);
-                _restoringHeaderScroll = true;
-                _headerRestoreCorrelation = Scroller.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
-                if (_headerRestoreCorrelation == -1) _restoringHeaderScroll = false;
+                BeginHeaderScrollRestore(offset);
             }
             ResetHeaderScroll();
         };
@@ -1516,8 +1516,7 @@ public sealed partial class HomePage : Page, IShellContent
 
     public void Release()
     {
-        _restoringHeaderScroll = false;
-        _headerRestoreCorrelation = -1;
+        StopHeaderScrollRestore();
         _headerScroll.Reset(false, 0);
         _actions?.RefreshHomeHeader();
         _released = true;
