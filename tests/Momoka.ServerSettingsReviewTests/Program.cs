@@ -85,6 +85,7 @@ await FnNasArtwork.RunAsync();
 DisplaySettings.Run();
 await NotificationEditor.RunAsync();
 await NotificationSaveRecovery.RunAsync();
+await NotificationAvailability.RunAsync();
 NotificationProbeTests.Run();
 await MetadataEditor.RunAsync();
 ReviewEditorProbeContract.Run();

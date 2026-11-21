@@ -56,9 +56,10 @@ public sealed partial class SettingsCategoryGroup : ObservableObject, IEnumerabl
     /// <summary>左栏实际画出来的行：分区标题与页面交错。</summary>
     public IReadOnlyList<SettingsCategoryEntry> Rows => _rows;
 
-    internal SettingsCategoryEntry Add(string label, string? sourceKey = null, string? route = null, string? cardCategory = null)
+    internal SettingsCategoryEntry Add(string label, string? sourceKey = null, string? route = null, string? cardCategory = null,
+        string? sourceDisplayName = null)
     {
-        var entry = new SettingsCategoryEntry(this, label, sourceKey, route, cardCategory);
+        var entry = new SettingsCategoryEntry(this, label, sourceKey, route, cardCategory, sourceDisplayName: sourceDisplayName);
         _entries.Add(entry);
         _rows.Add(entry);
         return entry;
@@ -90,10 +91,11 @@ public sealed partial class SettingsCategoryGroup : ObservableObject, IEnumerabl
 public sealed partial class SettingsCategoryEntry : ObservableObject
 {
     internal SettingsCategoryEntry(SettingsCategoryGroup group, string label,
-        string? sourceKey, string? route, string? cardCategory, bool section = false)
+        string? sourceKey, string? route, string? cardCategory, bool section = false, string? sourceDisplayName = null)
     {
         Group = group;
         Label = label;
+        SourceDisplayName = sourceDisplayName;
         SourceKey = sourceKey;
         Route = route;
         CardCategory = cardCategory ?? label;
@@ -104,8 +106,10 @@ public sealed partial class SettingsCategoryEntry : ObservableObject
 
     public string Key { get; }
     public string Label { get; }
+    public string? SourceDisplayName { get; }
 
-    public string DisplayLabel => UiText.Translate(Label);
+    // Keep server names as user data, including names that also occur in the translation table.
+    public string DisplayLabel => SourceDisplayName is null ? UiText.Translate(Label) : UiText.Translate(Label) + " · " + SourceDisplayName;
 
     /// <summary>这一行是服务器原生目录的分区标题，不是可打开的页面。</summary>
     public bool IsSection { get; }
@@ -114,7 +118,9 @@ public sealed partial class SettingsCategoryEntry : ObservableObject
     public Visibility SectionVisibility => IsSection ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility EntryVisibility => IsSection ? Visibility.Collapsed : Visibility.Visible;
-    public string PickerLabel => Group.SourceKey is null ? Label : Group.Name + " · " + Label;
+    public string PickerLabel => Group.SourceKey is null
+        ? SourceDisplayName is null ? Label : Label + " · " + SourceDisplayName
+        : Group.Name + " · " + Label;
     public string DisplayPickerLabel => Group.SourceKey is null ? DisplayLabel : Group.Name + " · " + DisplayLabel;
     public string CardCategory { get; }
     public SettingsCategoryGroup Group { get; }

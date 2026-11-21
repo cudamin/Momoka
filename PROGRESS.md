@@ -14,6 +14,14 @@ Shell 与 Tests Release 编译 0 警告 0 错误，离线播放专项 390/390，
 
 该树已通过 548 个文件的体验版发布核对，桌面 Momoka-player-shortcut-alignment.lnk 的目标、工作目录和参数已回读。继续保留待合并和待统一验证状态。
 
+## 2026-11-21 通知设置分支合入 master（待统一验证）
+
+用户令「合并」后，通知产品提交 aaf0f81、分支验证记录 652f9a5 与 master ae351d7 经双父整合提交 5edcee9 合入 C:/Users/89400/Momoka 的 master。主树按已验证提交快进，15 个传入文件无本地重叠；设置类别、搜索与台账冲突已处理，保留双方功能及记录。通知位于诊断前、各 Emby 来源独立，其他后端隐藏；英文通知标题仅翻译固定标签，服务器名保持原样，搜索和紧凑下拉一致。
+
+整合树先编译 Shell／Tests／ServerSettingsReviewTests Release，均 0 警告 0 错误；设置页真实 VM 83/83、搜索 16/16、适用性 38/38、语言 6/6 与完整 ServerSettingsReviewTests 通过。主树传入代码与该整合提交完全相同；这些是合入前冲突解决的定向离线证据，不冒充合入后主树统一验证。主树本轮只做合入、内容一致性与文档检查，没有重新构建、运行客户端／原生探针／截图、发布或上传，不销账。实际主题、DPI、窗口和输入验收及真实服务兼容仍按台账保留；真实通知保存／测试另需明确授权。
+
+合并完成后已立即删除 Momoka-notification-settings-placement.lnk；主树 Momoka.lnk 的 SHA256 与合并前相同、仍指原构建。主树与 6450 开发树的 README.md、README_EN.md、library.webm 的 SHA256 及 library.gif 删除状态逐项不变、未纳入提交。开发树仍有这四项原有未提交内容，故保留分支 codex/notification-settings-placement 及工作树待清理，未强删。证据在来源树 artifacts/notification-settings-evidence/merge-* 与主树 artifacts/notification-settings-merge/，当前批次保持已合并、待统一验证。
+
 ## 2026-11-21 英语界面分支合入 master（待统一验证）
 
 用户令「合并」后，英语界面提交 `33ec76a` 与底部语言行／单语言选项调整 `8b1fac8` 已由双父提交 `979bc23` 合入 `C:/Users/89400/Momoka` 的 master，保留原主树 `402ff86` 卡片换序修复及较完整的重入保护测试。148 个传入路径与主树原有未提交文件无交集；除台账自动合并外，147 个传入文件的索引 blob 与英语分支一致，CardCollection／DeferredCardsTests 的主树 blob 完全保留。主树既有 README／README_EN／library.webm 的 SHA256、library.gif 删除状态和未暂存状态均未变，未纳入提交。
@@ -15624,3 +15632,16 @@ Gallery可追溯文件补全：固定6de91feccadfbb0a796b71caedead5a2284f730e与
 - **验证。** Core/Shell/Tests Release 编译 0 警告 0 错误；`Momoka.Tests` **5270/5270**，0 失败 0 跳过（154 秒）；全量解决方案构建在本机受 `py` 缺失与两个测试项目既有生成源错误阻断（`DetailDeleteCommandTests`、`DanmakuPerformanceTests`、`DanmakuSourceBoundaryTests`、`SubscriptionIdentityTests`、`DetailImageArrivalTests`），与本改动无关；`tools/check-diff.ps1` 5 个变更路径通过；`tools/check-doc-commands.ps1` 0 个问题。未跑质量闸门全量与原生探针（本次不改变界面行为）。待统一验证时复跑完整闸门。
 
 **合并（2026-11-20，用户令「合并」）。** 分支 `log-directory-size-mmJue0`（顶端 `9802ac8`）在主树 `master` 的 `3893d36` 上以 `--no-ff` 合入，合并提交 `ad5ceb0`；`PROGRESS.md` 由 Git 自动合并、无冲突。合并后在最终 master 上复编 Core/Shell Release/x64 **0 警告 0 错误**（3 分 28 秒）；全量 `Momoka.Tests` **5270/5270**，0 失败 0 跳过（153 秒，含 7 项探针产物用例）。按规则合并本身未跑探针与统一验证；未推远端；本轮只确认合并结果可编译可测试，不销账。分支已删除；`git worktree remove` 因 Windows 长路径报错但已撤销工作树注册，残留目录被当前会话占用无法删净，登记待会话关闭后清理；本分支没有单独的桌面快捷方式。
+
+## 2026-11-21 通知移到诊断上方并按服务器显隐（临时分支，待合并）
+
+当前树 C:/Users/89400/.codex/worktrees/6450/Momoka，分支 codex/notification-settings-placement，基点 402ff86。按用户要求将单服／多服通知入口统一移到 Momoka 组「诊断」正上方；多台 Emby 独立保留来源绑定，名称附服务器名，下拉和搜索一致。Jellyfin、飞牛影视／音乐和 Plex 未适配 Emby 用户通知接口，连接后隐藏，不以相似的插件／账号 Webhook 代替；隐藏不清偏好。通知 VM 严格限制在线 Emby 与当前管理员权限，旧编辑器在降权后保存／测试均在发请求前拒绝，权限未知沿用 Emby 既有回退。
+
+Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告 0 错误；设置页真实 VM 回归 73/73、设置搜索 16/16、设置适用性 38/38，0 失败 0 跳过；通知专项含所有服务器类型 × 三种权限 × 默认／独立来源的 30 种组合、降权旧编辑器 Save/Test 零请求与既有恢复回归通过。初次新增编辑器测试遗漏把行加入 Entries，正确触发「未实际打开编辑器」失败，修正匿名夹具后通过；未放宽生产守卫。格式首轮两份新增测试有缩进错误，定向修复后通过。探针旧排序断言同步，真实纯静态检查函数的正确顺序、错位和缺失反例已离线执行；完整 WinUI 管理／多来源探针未运行。没有新增样式／资源键，不触发高风险 XAML 最小加载；实际主题、DPI、宽窄、键盘和实服通知仍待统一验收，不销账。证据在 artifacts/notification-settings-evidence/。
+
+架构依赖 7/7、184 份文档链接、154 个命令块语法、改动格式与报告凭据扫描均通过。Shell 格式工具有工作区加载提示，退出码 0；不作为编译警告。工作树原有 README.md、README_EN.md、library.gif 删除及 library.webm 新增均保留，哈希与开工时一致，排除本任务提交。没有登录、播放、读取真实凭据或写服务器；不自动合并或上传。
+
+产品提交 aaf0f81；本树完整自包含体验发布通过：548 文件／290.3 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件验证通过，未制作压缩包或安装包。检出缺少的忽略文件 libmpv-2.dll 从主树复制，前后 SHA256 均与本树登记的 FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17 一致，无内核升级。桌面 C:/Users/89400/Desktop/Momoka-notification-settings-placement.lnk 已回读目标、本树工作目录及空参数正确，指向 artifacts/publish/win-x64/Momoka.exe；主树快捷方式未改。EXE SHA256 35BB11527A959849C976B0DCEAD0C8743EA3A989F1D3CB2F5EEFDBB93516F290，主程序集 SHA256 40E428E8917F0EB773643B90EDB0055486E8B96BDD7F7B98F932E6DF8C80610C。发布与回读证据为同目录 publish.log／shortcut-receipt.json。分支本地体验已刷新，未启动客户端或运行原生画面验收，未合并、不上传。
+**合并整合检查（2026-11-21）。** 用户令「合并」后，在本开发树纳入 master ae351d7，保留英语界面；设置类别和搜索的冲突按原始 Label／Key／SourceKey 不变、SourceDisplayName 单独保存服务器名处理，展示仅翻译固定标签。弹幕目录重建复制原始来源名，侧栏／紧凑下拉／中英文搜索一致；英语真实模型测试两处反射调用补齐新增可选参数。台账冲突保留双方记录。新增双语匿名回归覆盖单服和多 Emby、名为「界面／通知」的服务器不误翻、来源路由和弹幕重建；夹具按连接真实取名顺序及单服无显式 SourceKey 的既有行为校准，未改产品权限或路由政策。
+
+整合后的 Shell／Tests／ServerSettingsReviewTests Release 编译均 0 警告 0 错误；设置页真实 VM 83/83、搜索 16/16、适用性 38/38、语言 6/6 与完整 ServerSettingsReviewTests 通过。仅为冲突解决运行受影响离线验证，不是四道闸门、主树统一交付或原生画面验收；没有登录、播放、读真实设置或写服务器。冲突标记清理并暂存后，184 份文档链接通过；154 个文档命令块及报告凭据扫描通过。定向格式退出 0，Shell 格式工具仍有工作区加载提示，构建本身无警告；差异检查通过，证据见 artifacts/notification-settings-evidence/merge-*。原 README／素材修改前后哈希及删除状态不变。主树合入与快捷方式清理结果另记，统一验证和销账继续开放。

@@ -10,7 +10,8 @@ namespace Momoka.Shell.ViewModels;
 public sealed record SettingsSearchResult(string Label, string Location, string CategoryKey,
     SettingSection? Section = null, SettingRow? Row = null)
 {
-    public string DisplayLabel => UiText.Translate(Label);
+    public string? SourceDisplayName { get; init; }
+    public string DisplayLabel => SourceDisplayName is null ? UiText.Translate(Label) : UiText.Translate(Label) + " · " + SourceDisplayName;
     public string DisplayLocation { get; init; } = Location;
 
     public override string ToString() => DisplayLabel + " — " + DisplayLocation;
@@ -62,7 +63,11 @@ public sealed partial class SettingsViewModel
         var matches = new List<(SettingsSearchResult Result, int Rank)>();
         foreach (var entry in Categories.Where(entry => !entry.IsSection))
         {
-            Add(new(entry.Label, entry.Group.Name, entry.Key) { DisplayLocation = entry.Group.DisplayName }, entry.Label, entry.PickerLabel);
+            Add(new(entry.Label, entry.Group.Name, entry.Key)
+            {
+                SourceDisplayName = entry.SourceDisplayName,
+                DisplayLocation = entry.Group.DisplayName
+            }, entry.Label, entry.PickerLabel);
             if (IsHostedEntry(entry)) continue;
             foreach (var section in Sections.Where(section => section.Category == entry.CardCategory && section.Rows.Count > 0))
                 foreach (var row in section.Rows)
@@ -81,7 +86,7 @@ public sealed partial class SettingsViewModel
 
         void Add(SettingsSearchResult result, string label, string context)
         {
-            var displayLabel = UiText.Translate(label);
+            var displayLabel = result.DisplayLabel;
             var searchable = label + " " + context + " " + displayLabel + " " + result.DisplayLocation
                 + " " + UiText.Translate(result.Row?.Note ?? "");
             if (!words.All(word => searchable.Contains(word, StringComparison.CurrentCultureIgnoreCase))) return;

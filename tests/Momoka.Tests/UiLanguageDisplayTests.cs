@@ -88,7 +88,7 @@ internal static class UiLanguageDisplayTests
             Assert.Equal("Interface", fixture.Get<string>(builtIn, "DisplayName"));
             // Deliberately collide with a known label: a server named 界面 is still user data.
             var server = fixture.NewRow("SettingsCategoryGroup", "界面", "opaque-source", true, true);
-            var entry = fixture.Invoke(server, "Add", "界面", "opaque-source", "dashboard/settings", "界面")!;
+            var entry = fixture.Invoke(server, "Add", "界面", "opaque-source", "dashboard/settings", "界面", null)!;
             Assert.Equal("界面", fixture.Get<string>(server, "Name"));
             Assert.Equal("界面", fixture.Get<string>(server, "DisplayName"));
             Assert.Equal("opaque-source\u001f界面", fixture.Get<string>(entry, "Key"));
@@ -164,7 +164,7 @@ internal static class UiLanguageDisplayTests
                 }
 
                 var server = fixture.NewRow("SettingsCategoryGroup", "界面", "source-a", true, true);
-                var entry = fixture.Invoke(server, "Add", "控制台", "source-a", "dashboard", "控制台")!;
+                var entry = fixture.Invoke(server, "Add", "控制台", "source-a", "dashboard", "控制台", null)!;
                 fixture.List(vm, "Categories").Add(entry);
                 foreach (var query in new[] { "控制台", "Dashboard" })
                 {

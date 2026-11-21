@@ -64,10 +64,13 @@ public sealed partial class NotificationsViewModel : PageViewModel
     internal string? SourceKey { get; private set; }
 
     private bool Live => _lifetime is { IsCancellationRequested: false } && _scope is { IsAvailable: true } scope
-        && !scope.Connection.IsJellyfin
+        && scope.Connection.ServerKind == MediaServerKind.Emby
+        && ServerAccess.CanAdminister(MediaServerKind.Emby, scope.IsAdministrator)
         && (SourceKey is not null || scope.IsCurrent);
 
     internal bool IsCurrentSession => _scope is { IsAvailable: true } scope
+        && scope.Connection.ServerKind == MediaServerKind.Emby
+        && ServerAccess.CanAdminister(MediaServerKind.Emby, scope.IsAdministrator)
         && (SourceKey is not null || scope.IsCurrent);
 
     public override void Cancel()
