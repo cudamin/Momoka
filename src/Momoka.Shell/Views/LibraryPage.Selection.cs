@@ -234,7 +234,6 @@ public sealed partial class LibraryPage
         ItemCommand.Unfavorite => "取消收藏",
         ItemCommand.AddToCollection => "加入合集…",
         ItemCommand.AddToPlaylist => "加入播放列表…",
-        ItemCommand.Convert => "转换…",
         ItemCommand.Delete => "删除…",
         ItemCommand.ResetMetadata => "移除识别…",
         ItemCommand.RefreshMetadata => "刷新元数据…",
@@ -345,16 +344,6 @@ public sealed partial class LibraryPage
                 if (!Current()) return;
                 options = await LibraryBatchDialogs.PlaylistAsync(this, cards.Length, playlists, confirmationToken);
                 if (options is null) return;
-            }
-            else if (command == ItemCommand.Convert)
-            {
-                var ids = cards.Select(card => card.Item.Id).ToArray();
-                var available = await source.ExecuteAsync((client, token) => client.GetConversionOptionsAsync(ids, null, token), confirmationToken).ConfigureAwait(true);
-                if (!Current()) return;
-                var conversion = await LibraryBatchDialogs.ConvertAsync(this, cards.Length, available,
-                    (target, token) => source.ExecuteAsync((client, ct) => client.GetConversionOptionsAsync(ids, target, ct), token), confirmationToken);
-                if (conversion is null) return;
-                options = new(Conversion: conversion);
             }
             else if (command == ItemCommand.RefreshMetadata)
             {
@@ -508,7 +497,7 @@ public sealed partial class LibraryPage
             }
             var details = result.Results.Where(receipt => receipt.Error is not null || receipt.RefreshError is not null)
                 .Select(receipt => $"{receipt.Item.Name}：{receipt.Error ?? "已保存，但刷新失败：" + receipt.RefreshError}");
-            var successLabel = command == ItemCommand.Convert ? "已提交转换任务" : command is ItemCommand.RefreshMetadata
+            var successLabel = command is ItemCommand.RefreshMetadata
                 or ItemCommand.ScanLibraryFiles or ItemCommand.ResetMetadata ? "已提交" : "成功";
             LibraryBatchResult.Message = $"{successLabel} {result.Succeeded} 项，失败 {result.Failed} 项，取消 {result.Canceled} 项。"
                 + (details.Any() ? "\n" + string.Join("\n", details.Take(5)) : "");

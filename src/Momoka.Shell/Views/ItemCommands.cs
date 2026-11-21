@@ -619,10 +619,6 @@ internal static partial class ItemCommands
                 _ = ScanLibraryFilesAsync(scope, shell, card);
                 break;
 
-            case ItemCommand.Convert:
-                _ = ConvertLibraryAsync(scope, shell, owner, card);
-                break;
-
             case ItemCommand.OpenSeries:
                 OpenSeries(scope, shell, item);
                 break;
@@ -937,7 +933,6 @@ internal static partial class ItemCommands
             ItemCommand.ScanLibrary => 0xE895,
             ItemCommand.ScanLibraryFiles => 0xE895,
             ItemCommand.Shuffle => 0xE8B1,
-            ItemCommand.Convert => 0xE895,
             ItemCommand.OpenSeries => 0xE7F4,
             ItemCommand.ViewMissingEpisodes => 0xE8FD,
             ItemCommand.MoviePilotVersions => 0xE721,

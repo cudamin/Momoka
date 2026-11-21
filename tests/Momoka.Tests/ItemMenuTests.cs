@@ -351,11 +351,25 @@ internal static class ItemMenuTests
             Assert.DoesNotContain("重新扫描媒体库", labels);
         });
 
-        Test("更多菜单：媒体库卡片的菜单照网页端补齐", () =>
+        Test("更多菜单：四后端所有媒体类型均无后台转换入口", () =>
         {
-            // 网页端 itemmanager.getCommands 对 CollectionFolder 给的那几条：播放、随机播放、添加到播放列表、
-            // 标记为已播放、多选、转换、编辑图像、刷新元数据、扫描媒体库文件。多选由库页工具栏提供（见 Shell），
-            // 这里钉的是 Core 排出来的那几条。
+            foreach (var type in new[] { EmbyItemType.CollectionFolder, EmbyItemType.Movie, EmbyItemType.Series,
+                EmbyItemType.Season, EmbyItemType.Episode, EmbyItemType.Folder, EmbyItemType.BoxSet, EmbyItemType.Playlist })
+                foreach (var administrator in new bool?[] { null, false, true })
+                    foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
+                    {
+                        var item = new EmbyItem { Id = "item", Type = type, CollectionType = "movies", IsFolder = true };
+                        var rows = ItemMenu.For(item, jellyfin: kind == MediaServerKind.Jellyfin,
+                            fnNas: kind == MediaServerKind.FnNas, plex: kind == MediaServerKind.Plex,
+                            permissions: new(IsAdministrator: administrator));
+                        Assert.DoesNotContain("转换…", Labels(rows));
+                        Assert.True(rows.All(row => row.Command?.ToString() != "Convert"));
+                    }
+        });
+
+        Test("更多菜单：媒体库卡片保留播放与管理操作", () =>
+        {
+            // 转换功能已退役；其余库卡命令和分组仍保留，多选继续由库页工具栏提供。
             var labels = Labels(new EmbyItem
             {
                 Id = "lib1",
@@ -370,7 +384,6 @@ internal static class ItemMenuTests
                 "打开",
                 "标记为已观看",
                 "加入播放列表…",
-                "转换…",
                 "修改封面图…",
                 "刷新元数据",
                 "扫描媒体库文件"])
@@ -380,8 +393,8 @@ internal static class ItemMenuTests
 
         Test("更多菜单：音乐、合集、播放列表和直播库不摆视频队列与标记已看", () =>
         {
-            // 网页端的 canPlay/canMarkPlayed/canConvert/canRefreshMetadata 对这些 CollectionType 各有排除项；
-            // 本客户端没有把音乐库当视频队列播的入口，合集／播放列表库也不转换、不刷新、不扫。
+            // 网页端的 canPlay/canMarkPlayed/canRefreshMetadata 对这些 CollectionType 各有排除项；
+            // 本客户端没有把音乐库当视频队列播的入口，合集／播放列表库也不刷新、不扫。
             // 音乐视频库由外壳的目录策略整库跳过（ShellPage），库卡不出现，这里仍按非视频库收着。
             foreach (var collection in (string[])["music", "musicvideos", "boxsets", "playlists", "livetv", "books", "games"])
             {
@@ -416,7 +429,7 @@ internal static class ItemMenuTests
         Test("更多菜单：合集库能进播放列表，但不摆播放、标记、转换和扫库", () =>
         {
             // 网页端 canAddToPlaylist 对 CollectionFolder 只排直播库和播放列表库；canPlay/canMarkPlayed/
-            // canConvert/canRefreshMetadata 都把 boxsets 排掉。
+            // canRefreshMetadata 都把 boxsets 排掉。
             var rows = ItemMenu.For(new EmbyItem
             {
                 Id = "lib-boxsets",
@@ -459,7 +472,7 @@ internal static class ItemMenuTests
             }
         });
 
-        Test("更多菜单：媒体库的播放、转换、扫库入口跟着账号能力收起", () =>
+        Test("更多菜单：媒体库的管理入口跟着账号能力收起", () =>
         {
             var library = new EmbyItem
             {
@@ -469,7 +482,7 @@ internal static class ItemMenuTests
             };
 
             var denied = Labels(ItemMenu.For(library,
-                permissions: new ItemMenuPermissions(IsAdministrator: false, CanConvertMedia: false)));
+                permissions: new ItemMenuPermissions(IsAdministrator: false)));
             Assert.DoesNotContain("修改封面图…", denied);
             Assert.DoesNotContain("刷新元数据", denied);
             Assert.DoesNotContain("扫描媒体库文件", denied);
@@ -477,10 +490,10 @@ internal static class ItemMenuTests
             Assert.Contains("播放", denied);
             Assert.Contains("标记为已观看", denied);
 
-            var convertOnly = Labels(ItemMenu.For(library,
-                permissions: new ItemMenuPermissions(IsAdministrator: true, CanConvertMedia: false)));
-            Assert.DoesNotContain("转换…", convertOnly);
-            Assert.Contains("刷新元数据", convertOnly);
+            var administrator = Labels(ItemMenu.For(library,
+                permissions: new ItemMenuPermissions(IsAdministrator: true)));
+            Assert.DoesNotContain("转换…", administrator);
+            Assert.Contains("刷新元数据", administrator);
         });
 
         Test("更多菜单：演职人员有收藏、编辑、照片、识别和刷新，没有合集和删除", () =>

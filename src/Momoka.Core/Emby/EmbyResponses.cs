@@ -53,9 +53,6 @@ public sealed class EmbyUserPolicy
     /// <summary>用户策略里的「允许删除媒体」。菜单据此收起删除入口。</summary>
     public bool? EnableContentDeletion { get; set; }
 
-    /// <summary>Emby 用户策略里的「允许媒体转换」，与下载权限独立。</summary>
-    public bool? EnableMediaConversion { get; set; }
-
     /// <summary>用户策略里的「允许下载字幕」。</summary>
     public bool? EnableSubtitleDownloading { get; set; }
 
@@ -78,7 +75,6 @@ public sealed class EmbyUserPolicy
             CanDeleteContent = permissions.CanDeleteContent,
             CanManageSubtitles = permissions.CanManageSubtitles,
             CanManageCollections = permissions.CanManageCollections,
-            CanConvertMedia = permissions.CanConvertMedia,
             CanUploadSubtitles = permissions.CanUploadSubtitles
         };
     }
@@ -94,7 +90,6 @@ public sealed class EmbyUserPolicy
         kind == MediaServerKind.FnMusic ? false : kind == MediaServerKind.Jellyfin
             ? (IsAdministrator || EnableCollectionManagement == true ? true : EnableCollectionManagement)
             : IsAdministrator,
-        kind == MediaServerKind.Emby ? EnableMediaConversion : false,
         kind == MediaServerKind.Jellyfin ? EnableSubtitleManagement : false);
 }
 
@@ -212,9 +207,6 @@ public sealed record EmbyConnection(
 
     /// <summary>账号能不能删媒体（用户策略里的 <c>EnableContentDeletion</c>）；null 表示还没问到。</summary>
     public bool? CanDeleteContent { get; init; }
-
-    /// <summary>Emby 媒体转换权限（EnableMediaConversion）；null 是尚未确认。</summary>
-    public bool? CanConvertMedia { get; init; }
 
     /// <summary>
     /// 账号能不能管理/下载字幕（<c>EnableSubtitleDownloading</c> 或 <c>EnableSubtitleManagement</c>）。

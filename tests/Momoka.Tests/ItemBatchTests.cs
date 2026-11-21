@@ -30,14 +30,21 @@ internal static class ItemBatchTests
         }));
         Test("媒体批量：Emby新增命令可用于播放子菜单与服务器写入", () =>
         {
-            foreach (var name in new[] { "PlayFromBeginning", "Shuffle", "AddToPlaylist", "Convert", "ResetMetadata", "ScanLibraryFiles" })
+            foreach (var name in new[] { "PlayFromBeginning", "Shuffle", "AddToPlaylist", "ResetMetadata", "ScanLibraryFiles" })
                 Assert.True(Enum.TryParse<ItemCommand>(name, out _), name);
         });
         Test("媒体批量：新增协议与账号能力必须可独立调用", () =>
         {
-            foreach (var name in new[] { "GetConversionOptionsAsync", "CreateConversionJobAsync", "GetEditablePlaylistsAsync", "CreatePlaylistAsync", "AddToPlaylistAsync", "ScanLibraryFilesAsync" })
+            foreach (var name in new[] { "GetEditablePlaylistsAsync", "CreatePlaylistAsync", "AddToPlaylistAsync", "ScanLibraryFilesAsync" })
                 Assert.NotNull(typeof(EmbyClient).GetMethod(name), name);
-            Assert.NotNull(typeof(EmbyUserPolicy).GetProperty("EnableMediaConversion"));
+        });
+        Test("媒体批量：后台媒体转换命令与协议已退役", () =>
+        {
+            Assert.False(Enum.TryParse<ItemCommand>("Convert", out _));
+            Assert.True(ItemBatch.Commands.All(command => command.ToString() != "Convert"));
+            foreach (var name in new[] { "GetConversionOptionsAsync", "CreateConversionJobAsync" })
+                Assert.True(typeof(EmbyClient).GetMethod(name) is null, name);
+            Assert.True(typeof(EmbyItem).Assembly.GetType("Momoka.Emby.EmbyConversionSelection") is null);
         });
         Test("媒体批量：Emby删除权限与安全类型拒绝零写", () => Run(async () =>
         {
@@ -122,7 +129,7 @@ internal static class ItemBatchTests
             {
                 using var fixture = new Fixture(kind);
                 foreach (var command in new[] { ItemCommand.Play, ItemCommand.PlayFromBeginning, ItemCommand.Shuffle,
-                    ItemCommand.Delete, ItemCommand.AddToPlaylist, ItemCommand.Convert, ItemCommand.ResetMetadata,
+                    ItemCommand.Delete, ItemCommand.AddToPlaylist, ItemCommand.ResetMetadata,
                     ItemCommand.RefreshMetadata, ItemCommand.ScanLibraryFiles })
                 {
                     if (kind == MediaServerKind.Jellyfin && command == ItemCommand.AddToPlaylist) continue;
@@ -149,21 +156,14 @@ internal static class ItemBatchTests
         Test("媒体批量：Emby聚合写成功但响应无效仍保留确认且不重发", () => Run(async () =>
         {
             using var fixture = new Fixture(MediaServerKind.Emby);
-            fixture.Http.Answer("Playlists", "not-json").Answer("Sync/Options", ConversionChoices).Answer("Sync/Jobs", "");
-            foreach (var command in new[] { ItemCommand.AddToPlaylist, ItemCommand.Convert })
-            {
-                var options = command == ItemCommand.Convert
-                    ? new ItemBatchOptions(Conversion: new("target", Profile: "mobile", Quality: "high"))
-                    : new ItemBatchOptions(NewPlaylistName: "列表");
-                var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, command,
-                    () => default, null, default, options: options);
-                Assert.Equal(3, result.Succeeded);
-                Assert.True(result.Results.All(value => value.RefreshError is not null));
-            }
+            fixture.Http.Answer("Playlists", "not-json");
+            var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.AddToPlaylist,
+                () => default, null, default, options: new(NewPlaylistName: "列表"));
+            Assert.Equal(3, result.Succeeded);
+            Assert.True(result.Results.All(value => value.RefreshError is not null));
             Assert.Equal(1, fixture.Http.Count("Playlists"));
-            Assert.Equal(1, fixture.Http.Count("Sync/Jobs"));
         }));
-        Test("媒体批量：Emby转换拒绝后续HTTP并保留聚合成功回执上下文", () =>
+        Test("媒体批量：Emby新建播放列表保留聚合成功回执上下文", () =>
         {
             using var fixture = new Fixture(MediaServerKind.Emby, new BatchBackgroundTransport());
             using var context = new BatchContext();
@@ -173,12 +173,12 @@ internal static class ItemBatchTests
             {
                 var callbackThread = Environment.CurrentManagedThreadId;
                 var published = 0;
-                var task = new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
+                var task = new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.AddToPlaylist,
                     () => default, null, default, _ =>
                     {
                         Assert.Equal(callbackThread, Environment.CurrentManagedThreadId);
                         published++;
-                    }, options: new(Conversion: new("target", Profile: "mobile", Quality: "high")));
+                    }, options: new(NewPlaylistName: "列表"));
                 context.DrainUntil(task);
                 Assert.Equal(3, task.GetAwaiter().GetResult().Succeeded);
                 Assert.Equal(3, published);
@@ -201,70 +201,6 @@ internal static class ItemBatchTests
                 Assert.False(json.RootElement.GetProperty("SkipDuplicates").GetBoolean());
             }
             Assert.True(result.Results.All(value => value.PlaylistId == "list"));
-        }));
-        Test("媒体批量：Emby转换先查询目标能力后一次提交所有成员", () => Run(async () =>
-        {
-            using var fixture = new Fixture(MediaServerKind.Emby);
-            fixture.Http.Answer("Sync/Options", ConversionChoices)
-                .Answer("Sync/Jobs", "{\"Job\":{\"Id\":\"job\",\"Status\":\"Queued\"},\"JobItems\":[]}");
-            var selection = new EmbyConversionSelection("target", Profile: "mobile", Quality: "high", UnwatchedOnly: true, ItemLimit: 2);
-            var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
-                () => new(CanConvertMedia: true), null, default, options: new(Conversion: selection));
-            Assert.Equal(3, result.Succeeded);
-            Assert.True(result.Results.All(value => value.ConversionJobId == "job"));
-            var read = fixture.Http.Only("Sync/Options");
-            Assert.Contains("IncludeProviders=ConvertSyncProvider", read.Url);
-            Assert.Contains("TargetId=target", read.Url);
-            Assert.Contains("ItemIds=101%2C102%2C103", read.Url);
-            var sent = fixture.Http.Only("Sync/Jobs");
-            Assert.Equal("POST", sent.Method);
-            using var json = System.Text.Json.JsonDocument.Parse(sent.Body);
-            Assert.Equal("101,102,103", json.RootElement.GetProperty("ItemIds").GetString());
-            Assert.Equal("target", json.RootElement.GetProperty("TargetId").GetString());
-            Assert.Equal("mobile", json.RootElement.GetProperty("Profile").GetString());
-            Assert.Equal(2, json.RootElement.GetProperty("ItemLimit").GetInt32());
-            Assert.True(json.RootElement.GetProperty("UnwatchedOnly").GetBoolean());
-            Assert.False(json.RootElement.TryGetProperty("Container", out _));
-        }));
-        Test("媒体批量：Emby转换取消读取后不得提交服务器任务", () => Run(async () =>
-        {
-            using var fixture = new Fixture(MediaServerKind.Emby);
-            using var cancel = new CancellationTokenSource();
-            fixture.Http.Answer("Sync/Options", ConversionChoices).When("Sync/Options", cancel.Cancel);
-            var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
-                () => new(CanConvertMedia: true), null, cancel.Token,
-                options: new(Conversion: new("target", Profile: "mobile", Quality: "high")));
-            Assert.Equal(3, result.Canceled);
-            Assert.Equal(0, fixture.Http.Count("Sync/Jobs"));
-        }));
-        Test("媒体批量：Emby转换权限在选项读取后撤销阻止提交", () => Run(async () =>
-        {
-            using var fixture = new Fixture(MediaServerKind.Emby);
-            var allowed = true;
-            fixture.Http.Answer("Sync/Options", ConversionChoices).When("Sync/Options", () => allowed = false);
-            var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
-                () => new(CanConvertMedia: allowed), null, default,
-                options: new(Conversion: new("target", Profile: "mobile", Quality: "high")));
-            Assert.Equal(3, result.Failed);
-            Assert.Equal(0, fixture.Http.Count("Sync/Jobs"));
-        }));
-        Test("媒体批量：Emby转换目标失效和不受支持选项拒绝零写", () => Run(async () =>
-        {
-            using var fixture = new Fixture(MediaServerKind.Emby);
-            fixture.Http.Answer("Sync/Options", ConversionChoices);
-            foreach (var selection in new[]
-            {
-                new EmbyConversionSelection("unknown", Profile: "mobile", Quality: "high"),
-                new EmbyConversionSelection("target", Profile: "unknown", Quality: "high"),
-                new EmbyConversionSelection("target", Profile: "mobile", Quality: "unknown"),
-                new EmbyConversionSelection("target", Profile: "mobile", Quality: "high", SyncNewContent: true)
-            })
-            {
-                var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
-                    () => new(CanConvertMedia: true), null, default, options: new(Conversion: selection));
-                Assert.Equal(3, result.Failed);
-            }
-            Assert.Equal(0, fixture.Http.Count("Sync/Jobs"));
         }));
         Test("媒体批量：Emby聚合提交在回调失败或取消后仍保留服务器确认", () => Run(async () =>
         {
@@ -297,34 +233,6 @@ internal static class ItemBatchTests
             Assert.Equal(fixture.Entries[1], result.Results[1].Entry);
             Assert.Contains("Ids=101%2C103", fixture.Http.Only("Playlists").Url);
             Assert.Equal(0, another.Http.Total);
-        }));
-        Test("媒体批量：Emby转换旧账号权限读取不能覆盖重登录拒绝", () => Run(async () =>
-        {
-            using var fixture = new Fixture(MediaServerKind.Emby);
-            fixture.Http.Answer("Sync/Options", ConversionChoices)
-                .Sequence("Sync/Jobs", (HttpStatusCode.Unauthorized, ""), (HttpStatusCode.OK, "{\"Job\":{\"Id\":\"unexpected\"}}"))
-                .When("Sync/Jobs", () => fixture.Session.ReplaceClient(fixture.Source,
-                    fixture.Source.CurrentConnection with { CanConvertMedia = false }));
-            var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
-                () => new(CanConvertMedia: fixture.Source.CurrentConnection.CanConvertMedia), null, default,
-                options: new(Conversion: new("target", Profile: "mobile", Quality: "high")));
-            Assert.Equal(3, result.Failed);
-            Assert.Equal(1, fixture.Http.Count("Sync/Jobs"));
-        }));
-        Test("媒体批量：Emby转换策略经过用户映射和能力读取", () => Run(async () =>
-        {
-            using var fixture = new Fixture(MediaServerKind.Emby);
-            var policy = System.Text.Json.JsonSerializer.Deserialize<EmbyUserPolicy>("""
-                {"IsAdministrator":false,"EnableContentDownloading":false,"EnableMediaConversion":true}
-                """)!;
-            var connection = policy.ApplyTo(fixture.Source.CurrentConnection);
-            fixture.Session.ReplaceClient(fixture.Source, connection);
-            var capabilities = new ServerCapabilities(fixture.Session);
-            Assert.Equal(true, capabilities.PermissionsFor(fixture.Source.Key).CanConvertMedia);
-            Assert.Equal(false, capabilities.PermissionsFor(fixture.Source.Key).CanDownload);
-            Assert.Equal(true, policy.ToPermissions().CanConvertMedia);
-            Assert.Equal(false, policy.ToPermissions(MediaServerKind.Jellyfin).CanConvertMedia);
-            await Task.CompletedTask;
         }));
         Test("媒体批量：Emby扫描与重置危险标识在HTTP前拒绝", () =>
         {
@@ -469,12 +377,6 @@ internal static class ItemBatchTests
 
     private static void Run(Func<Task> run) => run().GetAwaiter().GetResult();
 
-    private const string ConversionChoices = """
-        {"Targets":[{"Id":"target","Name":"新建版本"}],"Options":["Profile","Quality","UnwatchedOnly","ItemLimit"],
-        "ProfileOptions":[{"Id":"mobile","Name":"移动设备","IsDefault":true,"EnableQualityOptions":true}],
-        "QualityOptions":[{"Id":"high","Name":"高画质","IsDefault":true}]}
-        """;
-
     private sealed class Fixture : IDisposable
     {
         public StubTransport Http { get; } = new();
@@ -545,8 +447,9 @@ internal static class ItemBatchTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.Run(() =>
             {
-                var body = request.RequestUri!.AbsolutePath.EndsWith("Sync/Options", StringComparison.Ordinal)
-                    ? ConversionChoices : "{\"Job\":{\"Id\":\"job\"}}";
+                Assert.Equal(HttpMethod.Post, request.Method);
+                Assert.True(request.RequestUri!.AbsolutePath.EndsWith("/Playlists", StringComparison.Ordinal));
+                var body = "{\"Id\":\"new-list\"}";
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
             }, cancellationToken);
     }

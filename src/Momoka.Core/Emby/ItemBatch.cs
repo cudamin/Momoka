@@ -5,12 +5,12 @@ public enum ItemBatchStatus { Succeeded, Failed, Canceled }
 
 public sealed record ItemBatchOptions(string? PlaylistId = null, bool SkipPlaylistDuplicates = true,
     string RefreshMode = "missing", bool ReplaceImages = false, bool ReplaceThumbnails = false,
-    EmbyConversionSelection? Conversion = null, string? NewPlaylistName = null);
+    string? NewPlaylistName = null);
 
 /// <summary>A confirmed write and its optional read-back have separate outcomes.</summary>
 public sealed record ItemBatchItemResult(ItemBatchEntry Entry, ItemBatchStatus Status,
     EmbyUserData? UserData = null, EmbyUserData? RefreshedUserData = null,
-    string? Error = null, string? RefreshError = null, string? ConversionJobId = null, string? PlaylistId = null)
+    string? Error = null, string? RefreshError = null, string? PlaylistId = null)
 {
     public EmbyItem Item => Entry.Item;
 }
@@ -29,7 +29,7 @@ public static class ItemBatch
         ItemCommand.MarkPlayed, ItemCommand.MarkUnplayed, ItemCommand.Favorite, ItemCommand.Unfavorite,
         ItemCommand.AddToCollection, ItemCommand.RemoveFromCollection,
         ItemCommand.Play, ItemCommand.PlayFromBeginning, ItemCommand.Shuffle,
-        ItemCommand.AddToPlaylist, ItemCommand.Convert, ItemCommand.Delete, ItemCommand.ResetMetadata,
+        ItemCommand.AddToPlaylist, ItemCommand.Delete, ItemCommand.ResetMetadata,
         ItemCommand.RefreshMetadata, ItemCommand.ScanLibraryFiles
     });
 
@@ -54,7 +54,6 @@ public static class ItemBatch
             ItemCommand.Play or ItemCommand.PlayFromBeginning or ItemCommand.Shuffle => kind == MediaServerKind.Emby && CanCollect(item),
             ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby ? ServerPlaylistItems.CanAddContainer(item)
                 : ServerPlaylistItems.CanAddVideo(item),
-            ItemCommand.Convert => kind == MediaServerKind.Emby && CanConvert(item) && permissions.CanConvertMedia != false,
             ItemCommand.Delete => kind == MediaServerKind.Emby && CanDelete(item, permissions),
             ItemCommand.ResetMetadata => kind == MediaServerKind.Emby && ItemIdentify.Supports(item)
                 && item.Type != EmbyItemType.Person && permissions.IsAdministrator != false,
@@ -69,12 +68,6 @@ public static class ItemBatch
     // Kept identical to ItemBatchPlayback.CanCollect until its independent implementation is integrated.
     private static bool CanCollect(EmbyItem item) => item.IsPlayable || item.Type is EmbyItemType.Series or EmbyItemType.Season
         or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist or EmbyItemType.CollectionFolder;
-
-    private static bool CanConvert(EmbyItem item) => item.CollectionType is not ("livetv" or "playlists" or "boxsets")
-        && item.MediaType is not ("Book" or "Photo" or "Game" or "Audio")
-        && (item.LocationType != "Virtual" || item.IsFolder)
-        && (item.IsPlayable || item.Type is EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Folder
-            or EmbyItemType.BoxSet or EmbyItemType.CollectionFolder);
 
     private static bool CanDelete(EmbyItem item, ItemMenuPermissions permissions) => permissions.CanDeleteContent != false
         && item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode
@@ -98,7 +91,7 @@ public sealed class ItemBatchService
         CancellationToken cancellationToken, Action<ItemBatchItemResult>? completed = null,
         Action<ItemBatchItemResult>? refreshed = null, ItemBatchOptions? options = null)
     {
-        if (command == ItemCommand.Convert || command == ItemCommand.AddToPlaylist && options?.NewPlaylistName is not null)
+        if (command == ItemCommand.AddToPlaylist && options?.NewPlaylistName is not null)
             return await ExecuteAggregateAsync(source, entries, command, permissions, cancellationToken, completed, options)
                 .ConfigureAwait(true);
         var results = new List<ItemBatchItemResult>(entries.Count);
@@ -158,7 +151,6 @@ public sealed class ItemBatchService
             else results[index] = rejected;
         }
         var confirmed = false;
-        string? conversionJobId = null;
         string? playlistId = null;
         try
         {
@@ -185,33 +177,16 @@ public sealed class ItemBatchService
                     Recheck();
                     if (eligible.Count == 0) return;
                     var ids = eligible.Select(index => entries[index].Item.Id).ToArray();
-                    if (command == ItemCommand.Convert)
-                    {
-                        var selection = options?.Conversion ?? throw new InvalidOperationException("请选择转换目标与选项");
-                        var choices = await client.GetConversionOptionsAsync(ids, selection.TargetId, token).ConfigureAwait(false);
-                        EmbyConversion.Validate(choices, selection);
-                        Recheck();
-                        if (eligible.Count == 0) return;
-                        ids = eligible.Select(index => entries[index].Item.Id).ToArray();
-                        var receipt = await client.CreateConversionJobAsync(ids, selection, token).ConfigureAwait(false);
-                        conversionJobId = receipt.Job?.Id;
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrWhiteSpace(options?.PlaylistId))
-                            throw new InvalidOperationException("不能同时选择已有列表和新列表名称");
-                        Recheck();
-                        if (eligible.Count == 0) return;
-                        ids = eligible.Select(index => entries[index].Item.Id).ToArray();
-                        var receipt = await client.CreatePlaylistAsync(options?.NewPlaylistName ?? "", ids, token,
-                            () => confirmed = true, () =>
-                            {
-                                Recheck();
-                                if (source.PermissionRevision != permissionRevision || eligible.Count != ids.Length)
-                                    throw new OperationCanceledException("播放列表提交前的账号或选择已改变。");
-                            }).ConfigureAwait(false);
-                        playlistId = receipt.Id;
-                    }
+                    if (!string.IsNullOrWhiteSpace(options?.PlaylistId))
+                        throw new InvalidOperationException("不能同时选择已有列表和新列表名称");
+                    var receipt = await client.CreatePlaylistAsync(options?.NewPlaylistName ?? "", ids, token,
+                        () => confirmed = true, () =>
+                        {
+                            Recheck();
+                            if (source.PermissionRevision != permissionRevision || eligible.Count != ids.Length)
+                                throw new OperationCanceledException("播放列表提交前的账号或选择已改变。");
+                        }).ConfigureAwait(false);
+                    playlistId = receipt.Id;
                     // A server acceptance must survive the session's later result-publication guard.
                     confirmed = true;
                 }, CancellationToken.None).ConfigureAwait(true);
@@ -227,12 +202,11 @@ public sealed class ItemBatchService
         if (confirmed)
         {
             source.ConfirmUserStateChange();
-            var refreshError = command == ItemCommand.Convert
-                ? string.IsNullOrWhiteSpace(conversionJobId) ? "服务器已接受转换任务，但未返回任务编号，请查看服务器任务列表" : null
-                : string.IsNullOrWhiteSpace(playlistId) ? "服务器已接受播放列表创建，但未返回列表编号，请刷新播放列表" : null;
+            var refreshError = string.IsNullOrWhiteSpace(playlistId)
+                ? "服务器已接受播放列表创建，但未返回列表编号，请刷新播放列表" : null;
             foreach (var index in eligible)
                 results[index] = new(entries[index], ItemBatchStatus.Succeeded,
-                    RefreshError: refreshError, ConversionJobId: conversionJobId, PlaylistId: playlistId);
+                    RefreshError: refreshError, PlaylistId: playlistId);
         }
         // HTTP continuations may run on a worker; callbacks touch the native UI and belong to
         // the caller's captured context after the entire server write has produced its receipt.

@@ -272,6 +272,21 @@ internal static class EmbyTests
             Assert.Contains("/stream?", EmbyUrl.Stream(ApiBase, "42", "src1", null).AbsoluteUri, "容器未知时不加后缀");
         });
 
+        Test("URL：Emby与Jellyfin影音播放始终取原文件", () =>
+        {
+            foreach (var apiBase in new[] { ApiBase, new Uri("https://jellyfin.invalid/") })
+                foreach (var audioOnly in new[] { false, true })
+                    foreach (var container in new string?[] { null, "mkv", "mp4", "flac" })
+                    {
+                        var url = EmbyUrl.Stream(apiBase, "42", "source", container, audioOnly);
+                        Assert.Contains("Static=true", url.Query);
+                        Assert.Contains("MediaSourceId=source", url.Query);
+                        Assert.DoesNotContain("transcod", url.AbsoluteUri);
+                        Assert.DoesNotContain("Bitrate", url.Query);
+                        Assert.DoesNotContain("Codec", url.Query);
+                    }
+        });
+
         Test("URL：外挂字幕按编解码器选扩展名", () =>
         {
             Assert.Contains("/Subtitles/4/Stream.ass", EmbyUrl.Subtitle(ApiBase, "42", "src1", 4, "ass").AbsoluteUri);

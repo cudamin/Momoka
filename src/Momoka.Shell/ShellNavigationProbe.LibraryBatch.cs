@@ -649,15 +649,6 @@ internal sealed partial class ShellNavigationProbe
             var path = request.RequestUri!.AbsolutePath;
             if (kind == MediaServerKind.Emby)
             {
-                if (path.EndsWith("/Sync/Options", StringComparison.Ordinal))
-                    return Json(new EmbyConversionOptions
-                    {
-                        Targets = [new() { Id = "convert", Name = "原始媒体目录" }],
-                        Options = ["Profile", "Quality", "UnwatchedOnly", "SyncNewContent", "ItemLimit"],
-                        ProfileOptions = [new() { Id = "mobile", Name = "移动设备", IsDefault = true, EnableQualityOptions = true },
-                            new() { Id = "custom", Name = "自定义", EnableQualityOptions = true }],
-                        QualityOptions = [new() { Id = "high", Name = "高质量", IsDefault = true }, new() { Id = "custom", Name = "自定义码率" }]
-                    });
                 if (request.Method == HttpMethod.Get && Query(request, "IncludeItemTypes") == "Playlist")
                     return Json(new { Items = new[] { new EmbyItem { Id = "playlist", Name = "稍后观看", Type = EmbyItemType.Playlist, MediaType = "Video", CanEditItems = true } }, TotalRecordCount = 1 });
                 if (request.Method == HttpMethod.Get && path.EndsWith("/Items/playlist", StringComparison.Ordinal))
@@ -669,13 +660,10 @@ internal sealed partial class ShellNavigationProbe
                 }
                 if (request.Method == HttpMethod.Post && (path.EndsWith("/Playlists", StringComparison.Ordinal)
                     || path.EndsWith("/Playlists/playlist/Items", StringComparison.Ordinal)
-                    || path.EndsWith("/Sync/Jobs", StringComparison.Ordinal)
                     || path.EndsWith("/Items/Metadata/Reset", StringComparison.Ordinal)
                     || path.EndsWith("/Refresh", StringComparison.Ordinal)))
                 {
                     ExtendedWrites.Add(path + " " + request.RequestUri.Query);
-                    if (path.EndsWith("/Sync/Jobs", StringComparison.Ordinal))
-                        return Json(new EmbyConversionJobReceipt { Job = new() { Id = "conversion-job", Status = "Queued" } });
                     if (path.EndsWith("/Playlists", StringComparison.Ordinal)) return Json(new EmbyPlaylistCreationResult { Id = "new-playlist", ItemAddedCount = 3 });
                     return new(HttpStatusCode.NoContent);
                 }
@@ -719,8 +707,7 @@ internal sealed partial class ShellNavigationProbe
                     {
                         IsAdministrator = kind == MediaServerKind.Emby,
                         EnableCollectionManagement = true,
-                        EnableContentDeletion = kind == MediaServerKind.Emby,
-                        EnableMediaConversion = true
+                        EnableContentDeletion = kind == MediaServerKind.Emby
                     }
                 });
             if (kind != MediaServerKind.Plex && path.EndsWith("/Items", StringComparison.Ordinal))
