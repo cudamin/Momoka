@@ -30,7 +30,7 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
   </tr>
 </table>
 
-![Browsing movies, series, and subscribed content in Momoka's library](assets/readme/library.gif)
+[Watch the library demo (WebM)](assets/readme/library.webm)
 
 ## Features
 
@@ -49,7 +49,7 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
 
 Requires Windows 10 version 1809 or later, x64. Emby, Jellyfin, or fnOS features require access to the corresponding media server. Resource subscriptions, downloads, and organization require a separately hosted and configured MoviePilot instance.
 
-Verified compatibility notes: Jellyfin 10.10.7 has been checked for saved-login restoration, library reads, original-quality playback, and resume. The same scope has been checked with fnOS Media Web 0.9.8 / Service 0.8.43. Management writes and other coverage boundaries are documented in the [Jellyfin notes](docs/Jellyfin支持.md) and [fnOS notes](docs/飞牛影视.md). Plex has offline protocol adaptation only; live connection, browsing, and playback have not been verified. See the [Plex notes](docs/Plex支持.md). These version records are not guarantees of compatibility with every release.
+Verified compatibility notes: Jellyfin 10.10.7 has been checked for saved-login restoration, library reads, original-quality playback, and resume. The same scope has been checked with fnOS Media Web 0.9.8 / Service 0.8.43. Management writes have not been verified for Jellyfin or fnOS Media. Other coverage boundaries are documented in the [Jellyfin notes](docs/Jellyfin支持.md) and [fnOS notes](docs/飞牛影视.md). Plex has offline protocol adaptation only; live connection, browsing, and playback have not been verified. See the [Plex notes](docs/Plex支持.md). These version records are not guarantees of compatibility with every release.
 
 ## Development and verification
 
