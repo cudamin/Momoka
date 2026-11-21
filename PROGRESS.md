@@ -1,3 +1,9 @@
+## 2026-11-21 英语界面分支合入 master（待统一验证）
+
+用户令「合并」后，英语界面提交 `33ec76a` 与底部语言行／单语言选项调整 `8b1fac8` 已由双父提交 `979bc23` 合入 `C:/Users/89400/Momoka` 的 master，保留原主树 `402ff86` 卡片换序修复及较完整的重入保护测试。148 个传入路径与主树原有未提交文件无交集；除台账自动合并外，147 个传入文件的索引 blob 与英语分支一致，CardCollection／DeferredCardsTests 的主树 blob 完全保留。主树既有 README／README_EN／library.webm 的 SHA256、library.gif 删除状态和未暂存状态均未变，未纳入提交。
+
+合并文档检查通过；本轮只合并并记录状态，未重编、运行测试／客户端／探针／截图或发布，不将分支通过记录当作最终主树验证，主树 `Momoka.lnk` 的哈希未变、仍指向原产物。分支 `Momoka-english-ui.lnk` 已核对目标并删除；c114 开发树仍有 README／素材、CardCollection 和 DeferredCardsTests 原有未提交内容，其中 DeferredCardsTests 与 master 有独特字节差异，因此保留该工作树和分支待清理，未强行覆盖或删除。合并预检与后续回执在 `artifacts/english-ui-merge/`；未推送，统一验证和台账销账仍待后续明确要求。
+
 ## 2026-11-21 界面语言移到底部并统一选项语言（分支待合并）
 
 树 `C:/Users/89400/.codex/worktrees/c114/Momoka`，分支 `codex/english-ui`，基于英语界面提交 `33ec76a` 追加用户要求：将「界面语言」移到界面卡片最后一行；中文界面的选项只显示「跟随系统／简体中文／英语」，英文界面只显示对应英文。默认跟随 Windows 显示语言、手动覆盖、保存值与重启生效逻辑不变。仅调整既有行顺序和标签，未改共享控件模板或 XAML 资源，不触发高风险加载检查。
