@@ -1,3 +1,18 @@
+## 2026-11-21 交接：Dependabot 与 Windows CI（未完成，换窗口）
+
+**树与提交。** 主树 `C:/Users/89400/Momoka`，分支 `master`。**本地 `master` 为 `2241307`，比 `origin/master`（`5e5488d`）领先 9 个未推送提交**：`0b775f3`、`5284ab1`、`4a7f555`、`b035373`、`b15e166`、`b325dda`、`6ff1f5e`、`2241307` 等快捷键批次与合并记录；它们不是本任务提交，也没有上传，不要直接 push／pull／reset。本次已推送的 CI 修复是 `36df3a9`、`3cd79d7`、`5e5488d`，`origin/master` 仍停在 `5e5488d`；CI 证据只对应这个提交（本地快捷键批次未经过这轮 CI）。
+
+**主树未提交。** 本任务在途：`tests/Momoka.CurrentPermissionSnapshotTests/Program.cs`（新增 120 秒无进展看门狗与阶段标记，尚未编译／提交）；`tests/Momoka.AtomicFileWriteTests/ContractAssertions.cs`（只加了共享／锁冲突的有界重试 helper，`ReaderCases` 尚未使用、README 契约未改，尚未编译／提交）；以及本文件这条交接。用户自己的独占播放探针在途（15 个修改 + 3 个未跟踪，含 `src/Momoka.Shell/StandalonePlaybackProbe.cs` 与两个 mp4）没有触碰，不要提交。
+
+**CI 现状。** `5e5488d` 的 run 13：`Build and repository checks` 全绿（含主测试 5316/5316）；`Offline regression suites` 在 90 分钟上限被取消，原因有二：
+
+1. `Momoka.AtomicFileWriteTests` 的 `readers-cross-commit-backup` 在 round=0 首次新读时抛 `IOException`，HResult `0x80070020`（共享冲突），该套件 35 项中 1 失败；不是半文档或内容损坏。
+2. `Momoka.CurrentPermissionSnapshotTests` 打印 46 项通过后，在第一个真实 Shell 的 Settings 用例开始时不再输出，旧代码会一直挂到作业超时；其后的 58 个套件没有运行。
+
+证据：本机日志 `C:\Users\89400\AppData\Local\Temp\ci13-quality.log`、`ci13-offline.log`，下载产物目录 `C:\Users\89400\AppData\Local\Temp\ci13-regressions\20261121-051911928-d30ed79f9c394031b3f88100df2094a1\`；CI artifact `windows-regression-evidence`（run 13，artifact id 14696990486）。另注意：离线运行器实际用的是 **10.0.404** SDK（runner 镜像），不是 global.json 的 10.0.400；`tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1` 仍硬校验 `10.0.400`，该套件排在后面、本次没跑到，下一次会因此失败。应放宽为 global.json 的 10.0.x 策略，或在 workflow 中改用 setup-dotnet 的 10.0.400 路径。
+
+**下一步。** ①完成 Atomic 修复：`ReaderCases` 的两处新读改用 `ReadCompleteRetryingSharing`，记录重试次数并更新 README 契约 7/8，本地跑该套件；②完成并编译权限看门狗，本地带 Shell 跑（应为 54/54），推送后若仍挂，日志会报 `R011 挂起：case: …` 的最后阶段；若确认是真实 WinUI／Windows App Runtime 依赖，先决定安装运行时还是改边界 VM；③处理 `Run-Caller.ps1` 的 10.0.400 硬校验；④两个修复各自提交、推送，等 CI 全绿后再按用户已批准范围合并 Dependabot；⑤PR 状态：#1–#5 仍开放（各只改一行 Actions 版本，此前 mergeable=true，现在 GitHub 重算），#8 已带理由关闭，#6／#7／#9 按用户决定继续缓着（#7／#9 要同步三个 wrapper 的硬编码分析器版本并跑全量四道门禁，#6 只影响测试 DI）；⑥本会话创建的临时工作树 `C:\Users\89400\.trae-cn\worktrees\Momoka\ci-fixture-sync-20261121`（detached `99c87c8`，旧补丁与证据）和 `C:\Users\89400\.trae-cn\worktrees\Momoka\ci-culture-fix-20261121`（detached `3cd79d7`，含 FnNas 测试副本与构建产物）待清理，其他工作树属于别的会话不要动。本次未发布桌面、未合并任何 Dependabot PR、未销账。
+
 ## 2026-11-21 播放器快捷键：任意键录制、冲突替换与音量条反馈（已合入主树，待统一验证）
 
 用户令（三条）：①「当音量大小快捷键设为其他键时，音量调节能正常触发，但是音量条不显示，无法看到音量大小，另外使用快捷键调整音量时只显示音量条即可，不要显示所有控件」；②「键盘上的所有按键都要支持设为快捷键」；③「设置快捷键遇到冲突重复时候要支持覆盖/替换功能」。
@@ -10,7 +25,7 @@
 
 未覆盖：没有真实键盘逐键验收，也没有在独占窗口实按自定义键；系统保留组合（Win、Alt+Tab、Ctrl+Alt+Delete）不可录入；`VkXX` 在独占窗口无 mpv 键名，只在集成管线生效；本窗口未重拍音量条实屏／主题／DPI 证据，统一验证时补。
 
-**合并。** 主树合并提交 `6ff1f5e`。合并时主树已有的独占播放探针未提交工作（含台账 117）用 `git merge --autostash` 保护后原样恢复，未放进任何提交；自动暂存后的冲突只在台账，已按「118 → 117 → APNG → 116」排列，非台账文件 SHA256 与合并前逐一相同、117 条目原文未变。分支提交 `b325dda` 移除了早前文档提交误带入的台账 117 条目，117 仍留在主树工作区未提交。合并后 Shell Release x64 **0 警告 0 错误**、主测试 **5322/5322**、`Momoka.PlayerInputRecoveryTests` **17/17**、`Momoka.ResizeHandoffTests` 编译通过，改动文件空白检查与文档检查（184 文件、0 断链）通过。分支桌面快捷方式已删除；1937 工作树仍保留同一份独占探针未提交改动，待清理条件确认后再删。
+**合并。** 主树合并提交 `6ff1f5e`。合并时主树已有的独占播放探针未提交工作（含台账 117）用 `git merge --autostash` 保护后原样恢复，未放进任何提交；自动暂存后的冲突只在台账，已按「118 → 117 → APNG → 116」排列，非台账文件 SHA256 与合并前逐一相同、117 条目原文未变。分支提交 `b325dda` 移除了早前文档提交误带入的台账 117 条目，117 仍留在主树工作区未提交。合并后 Shell Release x64 **0 警告 0 错误**、主测试 **5322/5322**、`Momoka.PlayerInputRecoveryTests` **17/17**、`Momoka.ResizeHandoffTests` 编译通过，改动文件空白检查与文档检查（184 文件、0 断链）通过。分支桌面快捷方式已删除，`codex/player-shortcuts-1937` 分支已删除，工作树已从 Git 注销；目录因被其他进程占用未能删除（未结束他人进程），释放后清理。合并前验证日志保留到主树 `artifacts/shortcut-1937-evidence`。
 
 ## 2026-11-21 修复媒体库 APNG 封面只显示首帧
 
