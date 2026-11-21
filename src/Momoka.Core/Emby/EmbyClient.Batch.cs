@@ -86,41 +86,6 @@ public sealed partial class EmbyClient
             .ConfigureAwait(false);
     }
 
-    /// <summary>Conversion uses only server conversion providers, never a download target.</summary>
-    public Task<EmbyConversionOptions> GetConversionOptionsAsync(IReadOnlyList<string> itemIds, string? targetId,
-        CancellationToken cancellationToken)
-    {
-        RequireEmby("媒体转换");
-        return http.GetJsonAsync<EmbyConversionOptions>(Url("Sync/Options", ("UserId", Connection.UserId),
-            ("ItemIds", BatchIds(itemIds)), ("IncludeProviders", "ConvertSyncProvider"), ("TargetId", targetId)),
-            Context, cancellationToken);
-    }
-
-    /// <summary>ItemLimit and the automatic-conversion switches belong to this single shared job.</summary>
-    public async Task<EmbyConversionJobReceipt> CreateConversionJobAsync(IReadOnlyList<string> itemIds,
-        EmbyConversionSelection selection, CancellationToken cancellationToken)
-    {
-        RequireEmby("媒体转换");
-        if (string.IsNullOrWhiteSpace(selection.TargetId)) throw new ArgumentException("请选择转换目标", nameof(selection));
-        if (selection.Bitrate is <= 0 || selection.ItemLimit is <= 0)
-            throw new ArgumentException("转换码率和数量上限必须大于零", nameof(selection));
-        return await http.PostForJsonAsync<EmbyConversionJobReceipt>(Url("Sync/Jobs"), new
-        {
-            UserId = Connection.UserId,
-            ItemIds = BatchIds(itemIds),
-            selection.TargetId,
-            selection.Profile,
-            selection.Quality,
-            selection.Bitrate,
-            selection.Container,
-            selection.VideoCodec,
-            selection.AudioCodec,
-            selection.UnwatchedOnly,
-            selection.SyncNewContent,
-            selection.ItemLimit
-        }, Context, cancellationToken).ConfigureAwait(false) ?? new();
-    }
-
     /// <summary>Scans the selected folder's files using the same Default refresh as Emby Web.</summary>
     public Task ScanLibraryFilesAsync(string itemId, CancellationToken cancellationToken)
     {
@@ -128,11 +93,5 @@ public sealed partial class EmbyClient
         return http.PostAsync(Url($"Items/{CollectionSegment(itemId)}/Refresh", ("Recursive", "true"),
             ("ImageRefreshMode", "Default"), ("MetadataRefreshMode", "Default"),
             ("ReplaceAllImages", "false"), ("ReplaceAllMetadata", "false")), null, Context, cancellationToken);
-    }
-
-    private static string BatchIds(IReadOnlyList<string> itemIds)
-    {
-        if (itemIds.Count == 0) throw new ArgumentException("请选择媒体条目", nameof(itemIds));
-        return string.Join(',', itemIds.Select(CollectionId));
     }
 }

@@ -21,11 +21,12 @@ internal sealed partial class ShellNavigationProbe
             var commands = page.ProbeBatchCommands();
             foreach (var command in new[] { ItemCommand.Play, ItemCommand.PlayFromBeginning, ItemCommand.Shuffle,
                 ItemCommand.AddToCollection, ItemCommand.AddToPlaylist, ItemCommand.Favorite, ItemCommand.MarkPlayed,
-                ItemCommand.Convert, ItemCommand.Delete, ItemCommand.ResetMetadata, ItemCommand.RefreshMetadata })
+                ItemCommand.Delete, ItemCommand.ResetMetadata, ItemCommand.RefreshMetadata })
                 Require(commands.Contains(command), "Emby 批量菜单缺少操作：" + command);
             Require(!commands.Contains(ItemCommand.ScanLibraryFiles), "电影文件不应出现目录扫描入口");
             new AppBarButtonAutomationPeer(Get<AppBarButton>(page, "LibraryBatchActions")).Invoke();
-            await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand.Convert));
+            await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand.AddToPlaylist));
+            Require(MenuItems().All(item => item.Text != "转换…"), "批量菜单不应恢复已移除的转换入口");
             await SettleAsync();
             var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                 .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Single();
@@ -51,33 +52,6 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.LastBatchResult?.Succeeded == 3);
             Require(server.ExtendedWrites.Count(path => path.Contains("/Playlists/playlist/Items", StringComparison.Ordinal)) == (width == 1100 ? 3 : 6),
                 "播放列表没有逐项添加或发生重复提交");
-
-            Select();
-            await OpenAsync(ItemCommand.Convert);
-            var conversion = await DialogAsync();
-            await UntilAsync(() => conversion.IsPrimaryButtonEnabled);
-            var profile = await FindAsync<ComboBox>(conversion, "BatchConversionProfile");
-            var quality = await FindAsync<ComboBox>(conversion, "BatchConversionQuality");
-            profile.SelectedIndex = 1;
-            quality.SelectedIndex = 1;
-            await LayoutAsync(conversion);
-            Require((await FindAsync<NumberBox>(conversion, "BatchConversionBitrate")).Visibility == Visibility.Visible,
-                "自定义转换质量没有显示码率");
-            quality.SelectedIndex = 0;
-            Require((await FindAsync<NumberBox>(conversion, "BatchConversionBitrate")).Visibility == Visibility.Collapsed,
-                "固定转换质量仍显示自定义码率");
-            quality.SelectedIndex = 1;
-            await SaveProbeScreenAsync($"library-batch-convert-{width}-screen.png");
-            var conversionScroll = Descendants(conversion).OfType<ScrollViewer>().Single(element => element.Content is StackPanel);
-            conversionScroll.ChangeView(null, conversionScroll.ScrollableHeight, null, disableAnimation: true);
-            await LayoutAsync(conversion);
-            await SaveProbeScreenAsync($"library-batch-convert-options-{width}-screen.png");
-            Primary(conversion);
-            await UntilAsync(() => page.LastBatchResult?.Results.All(result => result.ConversionJobId == "conversion-job") == true);
-            Require(server.ExtendedWrites.Count(path => path.Contains("/Sync/Jobs", StringComparison.Ordinal)) == (width == 1100 ? 1 : 2),
-                "转换没有对所选项目提交一个共同任务");
-            Require(Get<InfoBar>(page, "LibraryBatchResult").Message.Contains("已提交转换任务", StringComparison.Ordinal),
-                "转换接受回执错误宣称转换完成");
 
             foreach (var command in new[] { ItemCommand.Delete, ItemCommand.ResetMetadata, ItemCommand.RefreshMetadata })
             {
@@ -116,18 +90,6 @@ internal sealed partial class ShellNavigationProbe
         folder.Type = originalType;
         folder.IsFolder = false;
         page.ProbeEndSelection();
-
-        using (var cancellation = new CancellationTokenSource())
-        {
-            var pendingRead = new TaskCompletionSource<EmbyConversionOptions>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var options = new EmbyConversionOptions { Targets = [new() { Id = "convert", Name = "取消测试" }] };
-            var dialogTask = LibraryBatchDialogs.ConvertAsync(page, 1, options,
-                (_, token) => pendingRead.Task.WaitAsync(token), cancellation.Token);
-            await UntilAsync(() => Dialogs().Length == 1);
-            cancellation.Cancel();
-            Require(await dialogTask is null, "取消中的转换弹窗仍返回提交参数");
-            await UntilAsync(() => Dialogs().Length == 0);
-        }
 
         IReadOnlyList<EmbyItem>? captured = null;
         actions.CapturePlay = (_, queue) => captured = queue;

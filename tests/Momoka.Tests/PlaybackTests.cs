@@ -1807,6 +1807,8 @@ internal static class PlaybackTests
             var request = planner.Plan(Ticket(), Connection());
 
             Assert.Contains("Videos/42/stream.mkv", request.MediaUrl.AbsoluteUri);
+            Assert.Contains("Static=true", request.MediaUrl.Query, "播放只取原文件，不协商转码");
+            Assert.DoesNotContain("transcod", request.MediaUrl.AbsoluteUri);
             Assert.DoesNotContain("api_key", request.MediaUrl.AbsoluteUri, "令牌不能出现在 URL 里");
             Assert.Equal("X-Emby-Token", request.HttpHeaders[0].Key);
             Assert.Equal("token-abc", request.HttpHeaders[0].Value);
@@ -1828,6 +1830,8 @@ internal static class PlaybackTests
             Assert.Equal("Authorization", request.HttpHeaders[0].Key);
             Assert.Contains("Token=\"token-abc\"", request.HttpHeaders[0].Value);
             Assert.Contains("/media/Videos/", request.MediaUrl.AbsoluteUri);
+            Assert.Contains("Static=true", request.MediaUrl.Query, "Jellyfin同样保持原码播放");
+            Assert.DoesNotContain("transcod", request.MediaUrl.AbsoluteUri);
             Assert.True(request.ExternalSubtitles.All(url => url.AbsolutePath.StartsWith("/media/Videos/", StringComparison.Ordinal)));
             Assert.DoesNotContain("token-abc", Line(LaunchArguments(request)));
             Assert.DoesNotContain("token-abc", request.MediaUrl.AbsoluteUri);

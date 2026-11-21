@@ -129,9 +129,6 @@ public enum ItemCommand
 
     AddToPlaylist,
 
-    /// <summary>通过服务器提供的目标与选项提交媒体转换任务。</summary>
-    Convert,
-
     /// <summary>清除所选媒体的识别与元数据；确认后调用 Metadata/Reset。</summary>
     ResetMetadata,
 
@@ -160,7 +157,6 @@ public readonly record struct ItemMenuPermissions(
     bool? CanDeleteContent = null,
     bool? CanManageSubtitles = null,
     bool? CanManageCollections = null,
-    bool? CanConvertMedia = null,
     bool? CanUploadSubtitles = null);
 
 /// <summary>
@@ -198,7 +194,6 @@ public static class ItemMenu
             ItemCommand.AddToCollection or ItemCommand.RemoveFromCollection => ItemCollections.CanManage(kind, permissions, item),
             ItemCommand.AddToPlaylist => kind is MediaServerKind.Emby or MediaServerKind.Jellyfin
                 && (item is null || CanAddToPlaylist(item, jellyfin: kind == MediaServerKind.Jellyfin)),
-            ItemCommand.Convert => kind == MediaServerKind.Emby && permissions.CanConvertMedia != false,
             ItemCommand.ResetMetadata or ItemCommand.ScanLibraryFiles => kind == MediaServerKind.Emby && IsAdministrator(permissions),
             ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
                 or ItemCommand.ScanLibrary or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch => IsAdministrator(permissions),
@@ -349,13 +344,6 @@ public static class ItemMenu
     private static bool IsVideoLibrary(EmbyItem item) => item.Type == EmbyItemType.CollectionFolder
         && item.CollectionType is null or "" or "movies" or "tvshows" or "homevideos" or "mixed";
 
-    /// <summary>
-    /// 网页端 <c>canConvert</c> 对媒体库的排除项：直播、播放列表、合集库不转换，
-    /// 书籍、照片、游戏和音频库也不转换。
-    /// </summary>
-    private static bool CanConvertLibrary(EmbyItem item) => item.CollectionType is not ("livetv" or "playlists" or "boxsets")
-        && item.MediaType is not ("Book" or "Photo" or "Game" or "Audio");
-
     /// <summary>网页端 <c>canRefreshMetadata</c> 对库的排除项：直播库和合集库不刷新、也不扫。</summary>
     private static bool CanRefreshLibrary(EmbyItem item) => item.CollectionType is not ("livetv" or "boxsets");
 
@@ -481,9 +469,6 @@ public static class ItemMenu
         if ((IsFile(item) || IsEpisodeSet(item)) && CanDownload(permissions))
             rows.Add(new(ItemCommand.Download, jellyfin ? "下载" : "下载到设备"));
 
-        // 转换：网页端媒体库卡片上那一条。音乐、合集、播放列表与直播库不摆（服务器也不收）。
-        if (!jellyfin && IsVideoLibrary(item) && CanConvertLibrary(item) && permissions.CanConvertMedia != false)
-            rows.Add(new(ItemCommand.Convert, "转换…"));
         return rows;
     }
 

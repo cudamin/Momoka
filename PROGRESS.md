@@ -1,3 +1,15 @@
+## 2026-11-21 移除媒体库转换入口，保留设置转码管理（临时分支，待合并）
+
+树 C:/Users/89400/.codex/worktrees/3490/Momoka，分支 codex/remove-media-conversion，基点 c4e9e14。按用户最终范围，移除单卡／多选「转换…」菜单、参数弹窗、专用权限与转换请求；Emby 设置「转码／转换」和 Jellyfin 设置「转码」管理页面、导航与图标全部保留。播放原已使用 Static=true 原码直读，没有转码选项或自动转码回退，本批补回归固定该边界，没有声称删除不存在的播放路径。播放列表创建结果模型原样迁出，保留逐项写前重核、取消、成功回执及 UI 线程回调。后端矩阵与开发文档同步本次范围。
+
+最终范围下 Shell 与 Tests Release/x64 编译均 0 警告 0 错误；主测试 5335/5335、架构 7/7、Plex 显隐 85/85、AniBT 入口 51/51，0 失败 0 跳过。批处理离线专项 67/67、播放列表专项 151/151 通过，覆盖与主测试重叠不相加。格式检查早期两处嵌套循环缩进报红，已定点修正，最终 Tests 格式验证退出 0；Shell 格式退出 0，仅有工作区加载提示。独立静态审查无阻断，确认设置相关八个文件与 HEAD 无差异。证据在 artifacts/remove-media-conversion/。
+
+本批没有新增控件类型、基样式或跨字典资源键，不触发高风险 XAML 最小加载例外。因适配多选探针，本轮仅补匿名 InspectLibraryBatch：PID 13596，隔离目录 shell-probe-20261121-110244352-13596，报告明确包含「多选取消与逐项结果」通过，退出 0。回执确认 Emby／Jellyfin／Plex 各有 Succeeded／Failed／Canceled，取消确认及预取消均零写入；Plex 已确认写入后补读失败仍保留成功与刷新错误。Emby 三次 Plays 只是 FakeActions 队列记录，不是真实起播。宽窄菜单截图已人工查看，均无「转换…」且菜单在窗内；不等于全主题和真实输入验收。首次驱动以 Hidden 启动的 PID 34916 因宿主不可见退出 1、未进入用例，保留 inspect-hidden-start-failed；仅改本地驱动为 Normal 后完成上述通过轮，产品宿主未改，不能将精确的 Windows 启动机制当作已定案。报告和 36 张自动截图归档 artifacts/remove-media-conversion/inspect-passed，凭据扫描 0 命中。
+
+本树 publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-remove-media-conversion 成功，完整自包含载荷验证 548 文件／290.3 MB、固定批准 mpv 60 文件通过。桌面 Momoka-remove-media-conversion.lnk 已回读 TargetPath／WorkingDirectory／空参数正确，指向 3490 本树发布目录，主树快捷方式未改。EXE SHA256 B91CAED8A0773B447CC929A19F4FAFF7F481B9F85918C1A8C55F32DF4749BC4B；主程序集 SHA256 FB99176D306B6831015E0E8B8E52D8F3473484EC0D0993504BE23DCD4233B7B7。发布时基点 c4e9e14 加本任务未提交代码，最终提交只记录同一组产品代码；publish.log 与 shortcut-receipt.json 留证。184 文档链接、154 命令块语法、文本／diff 检查与凭据扫描通过，未声称完整四闸门。
+
+真实账号、服务器播放及写入未授权，不执行；五主题／跟随系统、DPI、真实输入与真实服务兼容仍待统一验证，不销账、不自动合并或上传。既有 README.md、README_EN.md、library.gif 删除和 library.webm 新增不属于本任务，哈希复核未变，保留原状并排除提交。
+
 ## 2026-11-21 静态媒体库封面合入主树
 
 合并提交 2532baa；主树完整自包含发布验证 548 文件、290.3 MB 通过，桌面 Momoka.lnk 已刷新并回读 TargetPath、WorkingDirectory 与空参数正确。主程序集 SHA256：f7a7f7d970d48f004d40e29392ebe8543fa8a72e6090bab78adb04d51a7ef152。证据为 artifacts/static-cover-merge/publish.log 和 shortcut-receipt.json。分支快捷方式已删除。工作树工具确认原开发树由另一任务持有，因此按规则保留该树和分支待清理，未强行删除。合并后另一个会话修改 README.md、README_EN.md 并新增 assets/readme/library.webm；本会话未触碰，哈希记录前后相同，未纳入本任务提交。未推送远端、未运行实际窗口验收。
