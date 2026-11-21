@@ -339,23 +339,35 @@ internal sealed partial class ShellNavigationProbe
             var page = (DetailPage)frame.Content;
             var vm = page.ViewModel;
             await UntilAsync(() => page.IsReady && vm.AudioTracks.Count > 3 && vm.SelectedAudio is not null);
-            var scale = _root.XamlRoot.RasterizationScale;
-            ResizeInspect((int)Math.Ceiling(1280 * scale), (int)Math.Ceiling(900 * scale));
+            await ResizeResponsiveAsync(page, 1280, 900);
             await LayoutAsync(page);
             var audio = Get<EgPicker>(page, vm.IsCompact ? "AudioPicker" : "ColumnAudioPicker");
+            Task SettlePickerAsync() => ProbeLayoutStability.WaitAsync(() =>
+            {
+                page.UpdateLayout();
+                var box = Box(audio);
+                var parent = (FrameworkElement)audio.Parent;
+                var parentBox = Box(parent);
+                var open = audio.IsDropDownOpen;
+                return new(page.IsReady && audio.XamlRoot is not null && box.Width > 0 && box.Height > 0
+                    && Math.Abs(vm.PageWidth - 1280) < 0.6
+                    && (open || double.IsNaN(audio.Width)),
+                    [box.Left, box.Top, box.Width, box.Height, parentBox.Left, parentBox.Width,
+                        vm.PageWidth, Get<Grid>(page, "HeroContent").ActualHeight]);
+            }, () => Task.Delay(25), "文件选项");
             // 第 0 条是最长的（它自己就比 MinWidth 宽）、第 5 条是最短的（闭合时正好贴在 MinWidth 上）——
             // 用户那张实拍里塌下去的正是后一种。
             foreach (var index in new[] { 0, 5 })
             {
                 if (index >= vm.AudioTracks.Count) continue;
                 vm.SelectedAudio = vm.AudioTracks[index];
-                await SettleAsync();
+                await SettlePickerAsync();
                 var closed = Box(audio);
                 // Close and reopen in the same dispatcher turn: the first queued sizing
                 // callback must not acquire the next dropdown's width/event ownership.
                 audio.IsDropDownOpen = true;
                 audio.IsDropDownOpen = false;
-                await SettleAsync();
+                await SettlePickerAsync();
                 Require(double.IsNaN(audio.Width), "快速开关后旧回调仍钉住闭合框宽度");
                 audio.IsDropDownOpen = true;
                 await SettleAsync();
@@ -379,7 +391,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(fit.Ok, fit.Detail);
                 if (index == 0) await SaveProbeScreenAsync("detail-picker-open-screen.png");
                 audio.IsDropDownOpen = false;
-                await SettleAsync();
+                await SettlePickerAsync();
                 // 收起之后要回到内容撑出来的宽度：展开态那个数不许留在身上。
                 Require(Math.Abs(Box(audio).Width - closed.Width) < 0.5,
                     $"收起后选择框没有回到原来的宽度：{Box(audio).Width:0} 对 {closed.Width:0}");

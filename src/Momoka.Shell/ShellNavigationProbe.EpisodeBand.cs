@@ -293,16 +293,23 @@ internal sealed partial class ShellNavigationProbe
                 if (width == 0) _window.ToggleMaximize();
                 else
                 {
-                    if (_window.IsMaximized) _window.ToggleMaximize();
-                    ResizeProbeClient(width, 900);
+                    await ResizeResponsiveAsync(page, width, 900);
                 }
                 await LayoutAsync(page);
                 var corner = Get<Image>(page, "CornerArt");
-                // 从最大化还原后，窗口尺寸已经变了但这一格还要再排一帧才量得到真实尺寸；
-                // 先让它落定再读，否则会把过渡中的极小 ActualWidth 当成最终版面。
-                await LayoutAsync(corner);
-                await Task.Delay(120);
-                await LayoutAsync(corner);
+                // 最大化还原先等真实客户区/页宽，再等几何连续稳定；稳定的错误尺寸仍由下方原断言判红。
+                await ProbeLayoutStability.WaitAsync(() =>
+                {
+                    page.UpdateLayout();
+                    var client = _window.ClientSize.Width / _root.XamlRoot.RasterizationScale;
+                    return new(corner.Visibility == Visibility.Visible && corner.Source is BitmapSource
+                        && corner.ActualWidth > 0 && corner.ActualHeight > 0
+                        && Math.Abs(client - page.ViewModel.PageWidth) < 0.6
+                        && Math.Abs(client - (width == 0 ? maximum : width)) < 0.6,
+                        [client, page.ViewModel.PageWidth, page.ViewModel.HeroHeight,
+                            Get<Grid>(page, "HeroContent").ActualHeight, corner.MaxWidth, corner.MaxHeight,
+                            corner.ActualWidth, corner.ActualHeight]);
+                }, () => Task.Delay(25), "艺术图缩放");
                 var actualWindow = width == 0 ? maximum : _window.ClientSize.Width / _root.XamlRoot.RasterizationScale;
                 var scale = DetailHero.CornerScale(actualWindow, maximum);
                 var wantWidth = DetailHero.CornerBoxWidth(page.ViewModel.PageWidth, page.ViewModel.StillWidth, scale);
