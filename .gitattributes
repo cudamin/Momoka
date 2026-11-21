@@ -10,6 +10,7 @@
 *.ico binary
 *.png binary
 *.jpg binary
+*.gif binary
 *.zip binary
 *.dll binary
 *.exe binary
