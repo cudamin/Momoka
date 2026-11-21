@@ -53,7 +53,7 @@
 
 ## 开发与验证
 
-Momoka 使用 WinUI 3、.NET 10 与 libmpv。开发环境和提交前检查见 [贡献指南](CONTRIBUTING.md)；整体架构和验证范围见[技术文档](docs/技术文档.md)与[开发和验证说明](docs/开发与验证.md)。
+Momoka 使用 WinUI 3、.NET 10 与 libmpv。项目规则先看 [CLAUDE.md](CLAUDE.md)；开发环境和提交前检查见 [贡献指南](CONTRIBUTING.md)；整体架构、专题文档入口和验证范围见[技术文档](docs/技术文档.md)与[开发和验证说明](docs/开发与验证.md)。
 
 ## 隐私与许可
 

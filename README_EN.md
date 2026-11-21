@@ -53,7 +53,7 @@ Verified compatibility notes: Jellyfin 10.10.7 has been checked for saved-login 
 
 ## Development and verification
 
-Momoka is built with WinUI 3, .NET 10, and libmpv. See the [contribution guide](CONTRIBUTING.md), [architecture notes](docs/技术文档.md), and [development and verification guide](docs/开发与验证.md).
+Momoka is built with WinUI 3, .NET 10, and libmpv. Start with the [project rules](CLAUDE.md), then use the [contribution guide](CONTRIBUTING.md), [architecture notes and document map](docs/技术文档.md), and [development and verification guide](docs/开发与验证.md).
 
 ## Privacy and license
 
