@@ -25,7 +25,7 @@
 
 未覆盖：没有真实键盘逐键验收，也没有在独占窗口实按自定义键；系统保留组合（Win、Alt+Tab、Ctrl+Alt+Delete）不可录入；`VkXX` 在独占窗口无 mpv 键名，只在集成管线生效；本窗口未重拍音量条实屏／主题／DPI 证据，统一验证时补。
 
-**合并。** 主树合并提交 `6ff1f5e`。合并时主树已有的独占播放探针未提交工作（含台账 117）用 `git merge --autostash` 保护后原样恢复，未放进任何提交；自动暂存后的冲突只在台账，已按「118 → 117 → APNG → 116」排列，非台账文件 SHA256 与合并前逐一相同、117 条目原文未变。分支提交 `b325dda` 移除了早前文档提交误带入的台账 117 条目，117 仍留在主树工作区未提交。合并后 Shell Release x64 **0 警告 0 错误**、主测试 **5322/5322**、`Momoka.PlayerInputRecoveryTests` **17/17**、`Momoka.ResizeHandoffTests` 编译通过，改动文件空白检查与文档检查（184 文件、0 断链）通过。分支桌面快捷方式已删除，`codex/player-shortcuts-1937` 分支已删除，工作树已从 Git 注销；目录因被其他进程占用未能删除（未结束他人进程），释放后清理。合并前验证日志保留到主树 `artifacts/shortcut-1937-evidence`。
+**合并。** 主树合并提交 `6ff1f5e`。合并时主树已有的独占播放探针未提交工作（含台账 117）用 `git merge --autostash` 保护后原样恢复，未放进任何提交；自动暂存后的冲突只在台账，已按「118 → 117 → APNG → 116」排列，非台账文件 SHA256 与合并前逐一相同、117 条目原文未变。分支提交 `b325dda` 移除了早前文档提交误带入的台账 117 条目，117 仍留在主树工作区未提交。合并后 Shell Release x64 **0 警告 0 错误**、主测试 **5322/5322**、`Momoka.PlayerInputRecoveryTests` **17/17**、`Momoka.ResizeHandoffTests` 编译通过，改动文件空白检查与文档检查（184 文件、0 断链）通过。合并期间主树另有会话在 14:58 修改 `tests/Momoka.AtomicFileWriteTests/ContractAssertions.cs` 与 `tests/Momoka.CurrentPermissionSnapshotTests/Program.cs`，未触碰、未提交其内容；这两项在飞改动不属于本批，合并后测试证据与其写入时刻可能交错。分支桌面快捷方式已删除，`codex/player-shortcuts-1937` 分支已删除，工作树已从 Git 注销；目录因被其他进程占用未能删除（未结束他人进程），释放后清理。合并前验证日志保留到主树 `artifacts/shortcut-1937-evidence`。
 
 ## 2026-11-21 修复媒体库 APNG 封面只显示首帧
 
