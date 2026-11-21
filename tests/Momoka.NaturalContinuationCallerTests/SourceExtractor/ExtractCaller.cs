@@ -166,7 +166,9 @@ public sealed class ExtractCaller : BuildTask
         foreach (var name in new[]
         {
             "_sessionQueue", "QueueChanged", "QueueRequested", "QueueArrangement", "CurrentQueueScope", "CanArrangeQueue",
-            "CaptureQueueArrangement", "IsCurrentQueueArrangement", "RequestQueue", "SearchQueueAsync", "ArrangeQueue",
+            "CaptureQueueArrangement", "IsCurrentQueueArrangement", "RequestQueue", "GetQueueSearchSources", "IsQueueSearchSource",
+            "SearchQueueAsync", "ArrangeQueue",
+            "MovePendingQueueItem", "RemovePendingQueueItem",
             "CanQueue", "HasPendingQueue", "CanResumeQueue", "PendingQueue",
             "Queue", "ClearQueue", "ResumeQueueAsync", "QueuedAfterEnd", "ContinueQueuedAsync",
             "AdoptQueueStart", "FinishQueueViewing", "UpdateQueueAvailability"

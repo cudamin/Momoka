@@ -37,6 +37,8 @@ public sealed partial class PlayerViewModel
                 Children =
                 [HostRow("上一集", "previous-episode", "previous-episode"), HostRow("下一集", "next-episode", "next-episode"), .. nodes[navigation].Children]
             };
+        if (navigation >= 0 && CanArrangeQueue)
+            nodes[navigation] = nodes[navigation] with { Children = [.. nodes[navigation].Children, BuildQueueMenu()] };
         var subtitleIndex = nodes.FindIndex(node => node.Label == "字幕");
         if (subtitleIndex >= 0 && (available & PlayerMenuRequirement.TextSubtitle) != 0)
             nodes[subtitleIndex] = nodes[subtitleIndex] with { Children = [.. nodes[subtitleIndex].Children, HostRow("查看当前字幕内容", "subtitle-content")] };
@@ -68,6 +70,21 @@ public sealed partial class PlayerViewModel
             }));
             tracks.Add(DynamicGroup(label, rows));
         }
+    }
+
+    private PlayerMenuNode BuildQueueMenu()
+    {
+        var rows = new List<PlayerMenuNode>
+        {
+            HostRow("下一项播放…", "video-queue-next") with { AutomationId = "PlayerQueueNext" },
+            HostRow("追加到队尾…", "video-queue-append") with { AutomationId = "PlayerQueueAppend" }
+        };
+        if (HasPendingQueue)
+        {
+            rows.Add(HostRow("管理待播项…", "video-queue-manage") with { AutomationId = "PlayerQueueManage" });
+            rows.Add(HostRow("清空待播项", "video-queue-clear") with { AutomationId = "PlayerQueueClear" });
+        }
+        return DynamicGroup("本次播放队列", rows) with { AutomationId = "PlayerSessionVideoQueue" };
     }
 
     private PlayerMenuRequirement AvailableMenuRequirements(IReadOnlyDictionary<string, string?> values)

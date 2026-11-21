@@ -20,11 +20,13 @@ public sealed class SessionPlaybackQueue
     private bool _active;
     private bool _seeded;
     private bool _explicit;
+    private bool _edited;
 
+    public bool Edited { get { lock (_gate) return _edited; } }
     public bool Active { get { lock (_gate) return _active; } }
     public bool HasReservation { get { lock (_gate) return _reserved is not null; } }
     public int Count { get { lock (_gate) return _pending.Count; } }
-    public IReadOnlyList<Entry> Pending { get { lock (_gate) return _pending.ToArray(); } }
+    public IReadOnlyList<Entry> Pending { get { lock (_gate) return _pending.Where(entry => entry.Scope.IsAvailable).ToArray(); } }
 
     public static bool Supports(EmbyItem item) => item.IsPlayable && !EmbyItemType.IsMusic(item.Type)
         && !string.IsNullOrWhiteSpace(item.Id);
@@ -38,6 +40,7 @@ public sealed class SessionPlaybackQueue
             _active = true;
             _seeded = false;
             _explicit = false;
+            _edited = false;
         }
     }
 
@@ -61,18 +64,53 @@ public sealed class SessionPlaybackQueue
         }
     }
 
-    public bool Add(EmbyItem item, EmbySessionScope scope, bool next)
+    public bool Add(EmbyItem item, EmbySessionScope scope, bool next) => Add([item], scope, next);
+
+    public bool Add(IReadOnlyList<EmbyItem> items, EmbySessionScope scope, bool next)
     {
-        if (!Supports(item) || !scope.IsAvailable || item.Source?.Key != scope.Key) return false;
         lock (_gate)
         {
-            if (!_active || _reserved is not null) return false;
-            var entry = new Entry(++_nextSlot, item, scope);
-            if (next) _pending.Insert(0, entry);
-            else _pending.Add(entry);
+            if (!_active || _reserved is not null || !scope.IsAvailable || items.Count == 0
+                || items.Any(item => !Supports(item) || !ReferenceEquals(item.Source?.UserStateOwner, scope.UserStateOwner)))
+                return false;
+            var entries = items.Select(item => new Entry(++_nextSlot, item, scope));
+            _pending.InsertRange(next ? 0 : _pending.Count, entries);
             _explicit = true;
             return true;
         }
+    }
+
+    public bool Move(long slot, int offset)
+    {
+        if (offset is not (-1 or 1)) return false;
+        lock (_gate)
+        {
+            var index = IndexForEdit(slot);
+            var next = index + offset;
+            if (index < 0 || next < 0 || next >= _pending.Count) return false;
+            (_pending[index], _pending[next]) = (_pending[next], _pending[index]);
+            _edited = true;
+            return true;
+        }
+    }
+
+    public bool Remove(long slot)
+    {
+        lock (_gate)
+        {
+            var index = IndexForEdit(slot);
+            if (index < 0) return false;
+            _pending.RemoveAt(index);
+            _edited = true;
+            return true;
+        }
+    }
+
+    private int IndexForEdit(long slot)
+    {
+        if (!_active || _reserved is not null) return -1;
+        _pending.RemoveAll(entry => !entry.Scope.IsAvailable);
+        return _pending.FindIndex(entry => entry.Slot == slot);
     }
 
     public bool ShouldContinue(bool autoPlayEnabled)
@@ -133,6 +171,7 @@ public sealed class SessionPlaybackQueue
             _active = false;
             _seeded = false;
             _explicit = false;
+            _edited = false;
         }
     }
 }

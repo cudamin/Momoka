@@ -372,9 +372,16 @@ public sealed partial class PlayerViewModel
             var endingIntent = ownsViewing ? _activeIntent : intent;
             if (newest && result.Exit.Reason != PlaybackEndReason.EndOfFile && !result.Exit.IsFailure)
                 _sessionQueue.Clear();
-            var queued = QueuedAfterEnd(result, endingIntent, newest);
-            var following = queued is null && newest && _startIntent.IsCurrent(endingIntent)
+            var playAll = Episodes is UserPlaybackQueue;
+            var following = newest && _startIntent.IsCurrent(endingIntent)
                 ? NextEpisodeToAutoPlay(result, detail) : null;
+
+            // Browsing refresh can remove a source after EOF. Preserve the navigation snapshot,
+            // but choose the queue head only after the refresh has returned.
+            if (newest) RefreshRequested?.Invoke();
+            var queued = QueuedAfterEnd(result, endingIntent, newest);
+            if (playAll && following?.Episode.Source?.IsAvailable == false) following = null;
+
             if (newest && following is null && queued is null)
             {
                 // 这一版打不开就说到点子上（2026-10-22 用户令：「你要提示无法播放」）：多版本条目上「播放失败」
@@ -385,10 +392,6 @@ public sealed partial class PlayerViewModel
                     : result.ToChinese();
                 Noticed?.Invoke(message, result.Exit.IsFailure ? InfoBarSeverity.Error : InfoBarSeverity.Success);
             }
-
-            // The item's watched flag and resume position have just changed on the server. 换到下一场那条路
-            // 自己收尾时会再报一次，被接手的那一场不必替它做。
-            if (newest) RefreshRequested?.Invoke();
 
             if (queued is not null)
             {
@@ -473,6 +476,9 @@ public sealed partial class PlayerViewModel
         if (result.Exit.Reason != PlaybackEndReason.EndOfFile) return null;
         if (_lifetime.IsCancellationRequested) return null;
 
+        // The pending order already handled EOF. Its edited or empty tail must not be replayed
+        // through the original play-all navigation list.
+        if (_sessionQueue.Edited && Episodes is UserPlaybackQueue) return null;
         return EpisodeNavigation.Step(Episodes, played.IdentityKey, 1);
     }
 

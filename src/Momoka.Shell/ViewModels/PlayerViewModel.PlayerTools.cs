@@ -60,6 +60,12 @@ public sealed partial class PlayerViewModel
             case "next-episode": NextEpisode(); return;
             // 「导航」里的后台单击开关：与快捷键 B、uosc 菜单点中走同一句，写完即推给独占窗口。
             case PlayerMenuCatalog.ActivationClickAction: ToggleActivationClickPlayback(); return;
+            case "video-queue-next": RequestQueue(next: true); return;
+            case "video-queue-append": RequestQueue(next: false); return;
+            case "video-queue-manage": RequestQueueManagement(); return;
+            case "video-queue-clear":
+                if (CanArrangeQueue && HasPendingQueue) ClearQueue();
+                return;
             case "tool-start":
             case "tool-end":
                 var seconds = await _playback.GetNumberAsync("time-pos").ConfigureAwait(true);

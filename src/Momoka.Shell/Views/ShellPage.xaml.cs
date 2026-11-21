@@ -687,6 +687,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.PlayerDialogRequested += OnPlayerDialogRequested;
         Player.ViewModel.DanmakuRequested += OnDanmakuRequested;
         Player.ViewModel.QueueRequested += OnQueueRequested;
+        Player.ViewModel.QueueManagementRequested += OnQueueManagementRequested;
 
         // 详情页要认显示器多大（纸面上沿那条线跟着显示器走，见 DetailHero.PaperLineFor），挂在这一个事件上
         // 而不是 OpenDetail 里：后退/前进重建的详情页实例不走 OpenDetail，却一样要从外壳领窗口。
@@ -755,6 +756,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.PlayerDialogRequested -= OnPlayerDialogRequested;
         Player.ViewModel.DanmakuRequested -= OnDanmakuRequested;
         Player.ViewModel.QueueRequested -= OnQueueRequested;
+        Player.ViewModel.QueueManagementRequested -= OnQueueManagementRequested;
         Player.ViewModel.Noticed -= Notify;
         Player.ViewModel.RefreshRequested -= RefreshActive;
         Player.ViewModel.PreparePresentation = null;
@@ -867,6 +869,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (_shutdownTask is not null || Root.XamlRoot is not { } root) return;
         _window?.Activate();
         try { await Player.ShowQueueDialogAsync(root, next); }
+        catch (Exception error) { Notify($"播放队列：{error.Message}", InfoBarSeverity.Error); }
+    }
+
+    private async void OnQueueManagementRequested()
+    {
+        if (_shutdownTask is not null || Root.XamlRoot is not { } root) return;
+        _window?.Activate();
+        try { await Player.ShowQueueManagementAsync(root); }
         catch (Exception error) { Notify($"播放队列：{error.Message}", InfoBarSeverity.Error); }
     }
 

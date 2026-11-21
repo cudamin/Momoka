@@ -75,6 +75,9 @@ public sealed record PlayerMenuNode(
     /// <summary>Host-owned action for dynamic rows; mutually exclusive with native Commands.</summary>
     public string? HostAction { get; init; }
 
+    /// <summary>Optional stable identifier for automation in the native menu.</summary>
+    public string? AutomationId { get; init; }
+
     /// <summary>
     /// The rebindable action（<see cref="ShortcutCatalog"/>）that does exactly what this row does, or null for
     /// the rows no key reaches. Display only — the row still runs <see cref="Commands"/>. Both menus draw the

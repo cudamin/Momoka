@@ -91,6 +91,26 @@ internal static class UiLanguageTests
             }
             finally { UiText.Language = original; }
         });
+        Test("界面语言：播放器导航、队列选片与待播管理有英文文案", () =>
+        {
+            var original = UiText.Language;
+            try
+            {
+                UiText.Language = UiLanguages.English;
+                Assert.Equal("Navigation", UiText.Translate("导航"));
+                Assert.Equal("Session play queue", UiText.Translate("本次播放队列"));
+                Assert.Equal("Search source", UiText.Translate("搜索来源"));
+                Assert.Equal("Add to queue", UiText.Translate("加入本次队列"));
+                Assert.Equal("Manage queued items…", UiText.Translate("管理待播项…"));
+                Assert.Equal("No queued items", UiText.Translate("没有待播项"));
+                Assert.Equal("Move up", UiText.Translate("上移"));
+                Assert.Equal("Move down", UiText.Translate("下移"));
+                Assert.Equal("Remove", UiText.Translate("移除"));
+                UiText.Language = UiLanguages.Chinese;
+                Assert.Equal("管理待播项…", UiText.Translate("管理待播项…"));
+            }
+            finally { UiText.Language = original; }
+        });
         Test("界面语言：动态词典没有空译文且格式占位符一致", () =>
         {
             var files = Directory.GetFiles(Path.Combine(Root(), "src/Momoka.Shell/Localization"), "*English.json");

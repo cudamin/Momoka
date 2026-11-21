@@ -12,6 +12,7 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Shell.Interop;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Services;
 using Momoka.Translation;
 using Momoka.Shell.ViewModels;
@@ -478,6 +479,19 @@ internal sealed partial class ShellNavigationProbe
                 Require(menu.IsOpen, "播放右键菜单未打开");
                 Require(CompactRows(menu.Items),
                     "右键菜单或子菜单没有使用紧凑字号");
+                var navigation = menu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == UiText.Translate("导航"));
+                var navigationPeer = FrameworkElementAutomationPeer.CreatePeerForElement(navigation)?.GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
+                    ?? throw new InvalidOperationException("导航子菜单没有可展开入口");
+                navigation.Focus(FocusState.Programmatic);
+                navigationPeer.Expand();
+                var backgroundClick = navigation.Items.OfType<ToggleMenuFlyoutItem>().Single(row =>
+                    row.Tag is PlayerMenuNode { Shortcut: PlayerMenuCatalog.BackgroundClickShortcut });
+                await UntilAsync(() => backgroundClick.IsLoaded);
+                var hint = Descendants(backgroundClick).OfType<TextBlock>()
+                    .SingleOrDefault(part => part.Name == "KeyboardAcceleratorTextBlock");
+                Require(hint is { Text: "B", TextAlignment: TextAlignment.Right, Visibility: Visibility.Visible },
+                    "导航里的后台单击开关没有在右侧显示 B");
+                navigationPeer.Collapse();
                 var subtitleGroup = menu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == "字幕");
                 var expansion = FrameworkElementAutomationPeer.CreatePeerForElement(subtitleGroup)?.GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
                     ?? throw new InvalidOperationException("字幕子菜单没有可展开入口");
