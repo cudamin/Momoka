@@ -1,6 +1,6 @@
 ## 2026-11-22 主页媒体库封面删除斜切大图（worktree 分支，待合并）
 
-用户看着设置截图说「删除斜切大图」。树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-1c86fd4c`，分支 `workbuddy/master-1c86fd4c`，基点 `0caeeca`。
+用户看着设置截图说「删除斜切大图」。树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-1c86fd4c`，分支 `workbuddy/master-1c86fd4c`，基点 `0caeeca`，产品提交 `0ea57bc`。
 
 设置「主页 → 媒体库封面」的预设只剩叠卡、九宫格海报墙、纯文字渐变。删掉 `HomeLibraryCoverPresets.Diagonal`，以及它的宽图优先取图、满宽解码和 Canvas 斜切遮罩；渐变助手随之去掉绝对坐标分支。旧配置里的 `diagonal` 与空值、未知值一并回到叠卡，不改总开关、服务器封面、请求路径和另外三套构图。
 
