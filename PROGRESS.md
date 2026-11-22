@@ -1,4 +1,4 @@
-## 2026-11-23 搜索页「MP 资源」自动铺 MoviePilot 网页端上次搜索缓存（未合并，待统一验证）
+## 2026-11-23 搜索页「MP 资源」自动铺 MoviePilot 网页端上次搜索缓存（已合并 master，待统一验证）
 
 用户上传 Momoka 搜索页与 MoviePilot 网页资源搜索页截图，要求「momoka搜索页面的 mp资源 搜索页面下面要自动显示mp网页端已缓存的搜索结果」。树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-momoka-cached-search-x5iZTv`，分支 `feat-momoka-cached-search-x5iZTv`，基点 `db97463`。
 
@@ -8,9 +8,13 @@
 
 **验证。** Shell、Tests、ResourceBrowserTests、SearchLifetimeTests Release 编译 0 警告 0 错误；主测试完整套件 **5351/5351、0 失败 0 跳过**（150956 ms，新增 4 条 Core 缓存用例）；`Momoka.ResourceBrowserTests` 全套 **194/194**（新增 4 条 `CachedSearchTests` 与 1 条页面触发契约）；`Momoka.SearchLifetimeTests` **44/44**。全部匿名离线，不登录、不联网、不写服务器。
 
-**未验。** 按日常界面规则未跑原生探针、自检与验收截图；自动铺设后的真实 WinUI 画面、滚动位置、五套主题、宽窄窗口、真实 MoviePilot 服务器返回的缓存形状（含 v3.2.x 与旧版 404 回退的实际表现）留待统一验证。未合并、未上传。
+**未验。** 按日常界面规则未跑原生探针、自检与验收截图；自动铺设后的真实 WinUI 画面、滚动位置、五套主题、宽窄窗口、真实 MoviePilot 服务器返回的缓存形状（含 v3.2.x 与旧版 404 回退的实际表现）留待统一验证。未上传。
 
 **分支体验发布。** 产品与测试提交 `a061b38`。`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-momoka-cached-search-x5iZTv` 通过：548 文件、290.7 MB，载荷验收通过；`Momoka.exe` 668,160 字节、SHA256 `F745CD6DF7D0362261F422D5254062A59C79A9D26E2C607CF175A1591A9E3198`（2026-11-23 00:38）。桌面 `Momoka-feat-momoka-cached-search-x5iZTv.lnk` 的目标和工作目录均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。工作树原缺 `libmpv-2.dll`，从主树复制同一文件（101,242,880 字节）后再发布。
+
+**合并与主树复验。** 用户令「合并」。主树合并前 master `ba1e010`，工作区仅 `global.json` 一处既有未提交注释改动（未触碰，保持原样）；以 `--no-ff` 合入 `feat-momoka-cached-search-x5iZTv`，合并提交 `44aa497`，17 路径 +272/−3，无冲突。主树重编 Shell、Tests、资源专项、搜索生命周期 Release/x64 均 0 警告 0 错误；主测试完整套件 **5354/5354、0 失败 0 跳过**（146951 ms）、资源专项 **198/198**、搜索生命周期 **44/44**、架构 **7/7**、空白与文档链接检查通过。首次主测试有 16 条自检隔离用例因其它会话占用桌面自检 mutex 报红（`已有当前用户的自检运行中`）；锁释放后同一最终代码重跑全绿，未改基线、未放宽检查。
+
+**主树发布。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件、290.7 MB，载荷验收通过；`Momoka.exe` 668,160 字节、SHA256 `7151EBF16A8B2E1BCD40B1AB9EEFF1D7DD2EAA3DBAB93CDCB25276E3641CB3DA`（2026-11-23 01:00）。`Momoka.lnk` 的目标和工作目录均回读为主树 `artifacts/publish/win-x64`。分支桌面快捷方式已删除；分支与工作树因本会话仍在使用，登记待清理。真实画面、主题、宽窄与真实服务器缓存形状仍未验。
 
 ## 2026-11-22 主页媒体库九宫格启动稳定与订阅入口逐张海报（已合并 master，待统一验证）
 
