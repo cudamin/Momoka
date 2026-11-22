@@ -702,6 +702,9 @@ internal sealed partial class ShellNavigationProbe
                 new { id = 4, name = "已停用站点", is_active = false }
             }));
             if (path.Contains("media/source", StringComparison.Ordinal)) return Task.FromResult(Sources());
+            // 进入「MP 资源」来源时页面会预读网页端上次搜索的缓存；离线夹具没有缓存，回空快照。
+            if (path.Contains("search/last", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { success = true, data = new { @params = new { }, results = Array.Empty<object>() } }));
             if (path.Contains("media/search?", StringComparison.Ordinal) && MediaResults is { } results) return Task.FromResult(Json(results));
             if (path.Contains("media/search?", StringComparison.Ordinal)) return Task.FromResult(Json(new[]
             { new { title = "测试电影", type = "电影", media_source = "themoviedb", media_id = "123", tmdb_id = 123 } }));

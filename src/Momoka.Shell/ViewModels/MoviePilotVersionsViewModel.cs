@@ -11,6 +11,7 @@ namespace Momoka.Shell.ViewModels;
 /// <summary>独立窗口的关键词资源搜索；过滤和结果行与精确搜索共用。</summary>
 public sealed partial class MoviePilotVersionsViewModel : PageViewModel
 {
+    private const string Category = "moviepilot";
     private const string IdlePrompt = "输入关键词，按回车或点击搜索图标，在 MoviePilot 各站点查找资源";
     private MoviePilotService? _service;
     private ISystemLauncher? _launcher;
@@ -112,6 +113,36 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
     protected override void BusyChanged()
     {
         if (!Busy) SearchProgress.Stop();
+    }
+
+    /// <summary>
+    /// 进入搜索页的「MP 资源」来源时先铺 MoviePilot 网页端上次搜索留下的结果（网页的资源搜索页打开时
+    /// 看到的就是它，见 <see cref="MoviePilotService.LastSearchResultsAsync"/>）。只在这一页还没有结果时读：
+    /// 自己搜出来的和已经铺过的缓存都不覆盖。后台预读不转忙态，失败只记日志、保留「输入关键词」空态，
+    /// 用户照常可以直接搜。
+    /// </summary>
+    internal async Task LoadCachedResultsAsync()
+    {
+        var service = _service;
+        if (service is null || Browser.HasResults) return;
+        var token = BeginBackgroundLoad();
+        try
+        {
+            var found = await service.LastSearchResultsAsync(token).ConfigureAwait(true);
+            if (!IsCurrent(token) || !ReferenceEquals(service, _service) || Browser.HasResults) return;
+            Browser.SetResults(found.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
+            {
+                State = MoviePilotResourceRow.StateOf(service.DownloadState(resource))
+            }));
+            ShowEmptyNotice = found.Count == 0;
+            if (found.Count == 0) EmptyNotice = IdlePrompt;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            if (IsCurrent(token)) Log.Warn(Category, "读取 MoviePilot 上次搜索结果失败", error);
+        }
+        finally { EndLoad(token); }
     }
 
     /// <summary>

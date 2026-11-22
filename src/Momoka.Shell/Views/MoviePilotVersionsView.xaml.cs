@@ -69,6 +69,12 @@ public sealed partial class MoviePilotVersionsView : UserControl
 
     internal Task SearchAsync(string keyword) => ViewModel.SearchAsync(keyword);
 
+    /// <summary>
+    /// 搜索页内嵌时由页面在进入「MP 资源」来源时调一次：铺 MoviePilot 网页端上次搜索的缓存结果。
+    /// 独立窗口总是带着关键词开搜，不走这一条。
+    /// </summary>
+    internal Task LoadCachedResultsAsync() => ViewModel.LoadCachedResultsAsync();
+
     /// <summary>窗口收起时收手：取消在飞的搜索。</summary>
     internal void Release()
     {

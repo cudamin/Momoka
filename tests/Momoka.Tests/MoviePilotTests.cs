@@ -649,6 +649,65 @@ internal static class MoviePilotTests
             Assert.Equal(0, list.Count);
             Assert.Equal(0, transport.Total, "空词不联网");
         });
+
+        Test("MoviePilot 连接：网页端上次搜索缓存读上下文并拆成资源", () =>
+        {
+            var transport = new StubTransport()
+                .Answer("login/access-token", """{"access_token":"jwt","super_user":true,"user_name":"docuser","user_id":1}""")
+                .Answer("search/last/context", """{"success":true,"data":{"params":{"keyword":"某剧","result_type":"torrent"},"results":[{"torrent_info":{"title":"某剧 S01E01 1080p","site_name":"站点A","size":2147483648,"seeders":7}}]}}""");
+
+            var list = ServiceOn(transport).LastSearchResultsAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            Assert.Equal(1, list.Count);
+            Assert.Equal("某剧 S01E01 1080p", list[0].Title);
+            Assert.Equal("站点A", list[0].SiteName);
+            var sent = transport.Only("search/last/context");
+            Assert.Equal("GET", sent.Method);
+            Assert.Contains("api/v1/search/last/context", sent.Url);
+        });
+
+        Test("MoviePilot 连接：旧服务端没有上次搜索上下文时退回 search/last", () =>
+        {
+            var transport = new StubTransport()
+                .Answer("login/access-token", """{"access_token":"jwt","super_user":true,"user_name":"docuser","user_id":1}""")
+                .Sequence("search/last",
+                    (HttpStatusCode.NotFound, ""),
+                    (HttpStatusCode.OK, """[{"torrent_info":{"title":"旧缓存 1080p","site_name":"站点B"}}]"""));
+
+            var list = ServiceOn(transport).LastSearchResultsAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            Assert.Equal(1, list.Count);
+            Assert.Equal("旧缓存 1080p", list[0].Title);
+            var sent = transport.SentTo("search/last");
+            Assert.Equal(2, sent.Count, "先问上下文，明确没有才问裸结果");
+            Assert.Contains("search/last/context", sent[0].Url);
+            Assert.True(sent[1].Url.EndsWith("/search/last", StringComparison.Ordinal), "第二趟应退回裸的 search/last");
+        });
+
+        Test("MoviePilot 连接：上次搜的是字幕时不把字幕当种子", () =>
+        {
+            var transport = new StubTransport()
+                .Answer("login/access-token", """{"access_token":"jwt","super_user":true,"user_name":"docuser","user_id":1}""")
+                .Answer("search/last/context", """{"success":true,"data":{"params":{"result_type":"subtitle"},"results":[{"title":"某剧 S01E01 字幕","enclosure":"https://example.invalid/s.ass"}]}}""");
+
+            var list = ServiceOn(transport).LastSearchResultsAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            Assert.Equal(0, list.Count);
+            Assert.Equal(1, transport.Count("search/last/context"), "字幕缓存不退回裸结果，也不重试");
+        });
+
+        Test("MoviePilot 连接：上次搜索缓存服务器出错不换接口重试", () =>
+        {
+            var transport = new StubTransport()
+                .Answer("login/access-token", """{"access_token":"jwt","super_user":true,"user_name":"docuser","user_id":1}""")
+                .Fail("search/last/context", HttpStatusCode.InternalServerError);
+
+            Assert.Catch<MoviePilotException>(() =>
+                ServiceOn(transport).LastSearchResultsAsync(CancellationToken.None).GetAwaiter().GetResult());
+
+            Assert.Equal(1, transport.Count("search/last/context"));
+            Assert.Equal(2, transport.Total, "只发登录和上下文读取，不另试 search/last");
+        });
     }
 
     private static void ImageServiceTests()

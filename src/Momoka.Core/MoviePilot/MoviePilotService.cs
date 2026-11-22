@@ -1,3 +1,5 @@
+using System.Net;
+using System.Text.Json;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 
@@ -184,6 +186,41 @@ public sealed partial class MoviePilotService : IDisposable
         var resources = MoviePilotMediaParser.ParseResources(data, null, null)
             .Select(resource => resource with { ConnectionStamp = stamp }).ToList();
         Log.Info(Category, $"MoviePilot 关键词搜「{text}」：{resources.Count} 个资源");
+        return resources;
+    }
+
+    /// <summary>
+    /// MoviePilot 网页端上一次完成的搜索留下的缓存。网页的「资源搜索结果」页在没有新关键词时打开，显示的
+    /// 就是这一份（<c>search/last/context</c>）。旧服务端没有上下文接口、明确回 404／405／501 时，退回
+    /// 只有结果的 <c>search/last</c>。上一次搜的是字幕时回空 —— 字幕不是种子，这个列表只喂资源卡片。
+    /// 只读；不触发搜索、不写任何东西。
+    /// </summary>
+    public async Task<IReadOnlyList<MoviePilotResource>> LastSearchResultsAsync(CancellationToken cancellationToken)
+    {
+        var identity = CaptureIdentity();
+        JsonElement data;
+        try
+        {
+            data = await CallAsync((apiBase, token, client) =>
+                client.GetAsync(apiBase, token, "search/last/context", cancellationToken),
+                cancellationToken, identity).ConfigureAwait(false);
+            if (data.ValueKind == JsonValueKind.Object
+                && data.TryGetProperty("params", out var parameters)
+                && MoviePilotTransfer.Text(parameters, "result_type") == "subtitle")
+                return [];
+        }
+        catch (MoviePilotException error) when (error.Status is HttpStatusCode.NotFound
+            or HttpStatusCode.MethodNotAllowed or HttpStatusCode.NotImplemented)
+        {
+            data = await CallAsync((apiBase, token, client) =>
+                client.GetAsync(apiBase, token, "search/last", cancellationToken),
+                cancellationToken, identity).ConfigureAwait(false);
+        }
+
+        var stamp = TransferConnectionStamp(identity);
+        var resources = MoviePilotMediaParser.ParseResources(data, null, null)
+            .Select(resource => resource with { ConnectionStamp = stamp }).ToList();
+        Log.Info(Category, $"MoviePilot 上次搜索缓存：{resources.Count} 个资源");
         return resources;
     }
 

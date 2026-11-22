@@ -41,6 +41,7 @@ internal static class Program
         SearchProgressTests.Register();
         SiteGridContractTests.Register(sourceRoot);
         if (args is [_, "search-sites"]) return Run();
+        CachedSearchTests.Register();
         SearchCompactMergeTests.Register(sourceRoot);
         ResourceFilterCardTests.Register(sourceRoot);
         SearchPreviewContractTests.Register(sourceRoot);

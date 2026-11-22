@@ -183,6 +183,8 @@ internal sealed partial class ShellNavigationProbe
                 }).ToArray()));
             if (path.EndsWith("/media/source", StringComparison.Ordinal)) return Task.FromResult(SearchProbeServer.Sources());
             if (path.EndsWith("/media/search", StringComparison.Ordinal)) return Task.FromResult(Json(Media()));
+            if (path.EndsWith("/search/last/context", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { success = true, data = new { @params = new { }, results = Array.Empty<object>() } }));
             if (path.EndsWith("/search/title", StringComparison.Ordinal) || path.Contains("/search/media/", StringComparison.Ordinal))
                 return Task.FromResult(Json(Resources()));
             throw new InvalidOperationException("搜索试用拒绝未登记的 MP 请求");
