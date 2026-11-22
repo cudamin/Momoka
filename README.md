@@ -25,12 +25,11 @@
 
 <table width="100%">
   <tr>
-    <td width="50%" align="center" valign="top"><img src="assets/readme/home.jpg" alt="Momoka 首页：媒体库、继续观看和最近添加内容" width="100%"><br><em>媒体库、继续观看和最近添加</em></td>
-    <td width="50%" align="center" valign="top"><img src="assets/readme/detail.jpg" alt="Momoka 电影详情：播放、版本与媒体信息、演职人员和更多类似内容" width="100%"><br><em>电影详情与媒体信息</em></td>
+    <td width="33%" align="center" valign="top"><img src="assets/readme/home.jpg" alt="Momoka 首页：媒体库、继续观看和最近添加内容" width="100%"><br><em>媒体库、继续观看和最近添加</em></td>
+    <td width="33%" align="center" valign="top"><img src="assets/readme/detail.jpg" alt="Momoka 电影详情：播放、版本与媒体信息、演职人员和更多类似内容" width="100%"><br><em>电影详情与媒体信息</em></td>
+    <td width="33%" align="center" valign="top"><img src="assets/readme/library.gif" alt="Momoka 浏览电影、剧集与订阅内容的媒体库页面" width="100%"><br><em>媒体库浏览演示</em></td>
   </tr>
 </table>
-
-![Momoka 浏览电影、剧集与订阅内容的媒体库页面](assets/readme/library.gif)
 
 ## 功能
 
