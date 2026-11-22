@@ -12,7 +12,7 @@
 
 **分支体验发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-stacked-card-redesign` 通过：548 文件、290.7 MB，批准 mpv 清单 60 文件；`Momoka.exe` SHA256 `686C7566651B3F45DA6F4E106A97E0BF3F4263FFC1196445CE8957C098B8FA55`。桌面 `Momoka-stacked-card-redesign.lnk` 的 TargetPath 与 WorkingDirectory 均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
 
-**追加发布状态。** `8fa2be2` 的重新发布被本树 `Momoka.exe`（pid 23612）占用挡住；按日常体验刷新规则等待 30 秒仍未释放后跳过，未结束用户进程。当前发布目录和快捷方式仍指向 `da26f86` 的产物，`Momoka.exe` 哈希仍为上述 `686C…`；`8fa2be2` 尚未进入发布产物。
+**追加发布状态。** `8fa2be2` 首次重新发布时被本树 `Momoka.exe` 占用，按日常规则等待 30 秒后跳过；用户随后明确授权结束该实例。执行时目标发布目录已释放，重新运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-stacked-card-redesign` 通过：548 文件、290.7 MB，载荷验收通过，`Momoka.exe` SHA256 `F1801B97326EE2BDB9139082C746BBC54CC3F45B7495B5B4E340251C69169F46`。桌面 `Momoka-stacked-card-redesign.lnk` 的 TargetPath 与 WorkingDirectory 均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
 
 **未验。** 按日常界面规则未跑原生探针、自检或验收截图；真实主页叠卡的主题、DPI、窄窗、长库名、图片渐进到达、圆角裁切和开关恢复，以及其他两套预设的相邻实屏回归均留待统一验证。未登录、未播放、未读写真实服务器，台账保持开放。
 
