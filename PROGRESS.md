@@ -8,7 +8,9 @@
 
 **验证。** Shell、Tests、ResourceBrowserTests、SearchLifetimeTests Release 编译 0 警告 0 错误；主测试完整套件 **5351/5351、0 失败 0 跳过**（150956 ms，新增 4 条 Core 缓存用例）；`Momoka.ResourceBrowserTests` 全套 **194/194**（新增 4 条 `CachedSearchTests` 与 1 条页面触发契约）；`Momoka.SearchLifetimeTests` **44/44**。全部匿名离线，不登录、不联网、不写服务器。
 
-**未验。** 按日常界面规则未跑原生探针、自检与验收截图；自动铺设后的真实 WinUI 画面、滚动位置、五套主题、宽窄窗口、真实 MoviePilot 服务器返回的缓存形状（含 v3.2.x 与旧版 404 回退的实际表现）留待统一验证。未发布、未刷新快捷方式、未合并、未上传。
+**未验。** 按日常界面规则未跑原生探针、自检与验收截图；自动铺设后的真实 WinUI 画面、滚动位置、五套主题、宽窄窗口、真实 MoviePilot 服务器返回的缓存形状（含 v3.2.x 与旧版 404 回退的实际表现）留待统一验证。未合并、未上传。
+
+**分支体验发布。** 产品与测试提交 `a061b38`。`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-momoka-cached-search-x5iZTv` 通过：548 文件、290.7 MB，载荷验收通过；`Momoka.exe` 668,160 字节、SHA256 `F745CD6DF7D0362261F422D5254062A59C79A9D26E2C607CF175A1591A9E3198`（2026-11-23 00:38）。桌面 `Momoka-feat-momoka-cached-search-x5iZTv.lnk` 的目标和工作目录均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。工作树原缺 `libmpv-2.dll`，从主树复制同一文件（101,242,880 字节）后再发布。
 
 ## 2026-11-22 主页媒体库九宫格启动稳定与订阅入口逐张海报（已合并 master，待统一验证）
 
