@@ -15744,7 +15744,7 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 
 整合后的 Shell／Tests／ServerSettingsReviewTests Release 编译均 0 警告 0 错误；设置页真实 VM 83/83、搜索 16/16、适用性 38/38、语言 6/6 与完整 ServerSettingsReviewTests 通过。仅为冲突解决运行受影响离线验证，不是四道闸门、主树统一交付或原生画面验收；没有登录、播放、读真实设置或写服务器。冲突标记清理并暂存后，184 份文档链接通过；154 个文档命令块及报告凭据扫描通过。定向格式退出 0，Shell 格式工具仍有工作区加载提示，构建本身无警告；差异检查通过，证据见 artifacts/notification-settings-evidence/merge-*。原 README／素材修改前后哈希及删除状态不变。主树合入与快捷方式清理结果另记，统一验证和销账继续开放。
 
-## 2026-11-22 MP 搜索页筛选修复（临时分支，待合并）
+## 2026-11-22 MP 搜索页筛选修复（已合并 master，待统一验证）
 
 工作树 `c:/Users/89400/.trae-cn/worktrees/Momoka/fix-mp-search-page-VqkSeK`，分支 `fix-mp-search-page-VqkSeK`，基点 `db97463`。用户四条令：参考网页端源码把「综合筛选」做成弹窗；「季」里补上集；展开的栏尽量向下展开；修复鼠标移到折叠栏上图标丢色与瞬间变浅色。
 
@@ -15760,3 +15760,5 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 - 实现：`MoviePilotResource` 增加 `PromotionLabel`（`volume_factor` 原值优先，旧回包按下载倍率补「免费／普通／50%」）；`MoviePilotResourceFilter` 增加 `WebSources`、`Subtitles`、`Promotions` 多选，字幕选项与匹配共用 `SubtitleLabels`（中字／特效）。ViewModel 新增 `WebSourceFacet`、`SubtitleFacet`，按网页端顺序组成 `Facets` 与 `DialogFacets`（只放本批有选项的组）；`MoviePilotResourceFacet` 增加 `SelectAllCommand`／`ClearCommand` 和批量 `SetAll`（一次 Apply），`SelectionVisibility` 驱动组内「清除」。弹窗重写为 `ItemsRepeater` + `UniformGridLayout`（MinItemWidth 250、两列、`ItemsStretch=Fill`）的分组卡，资源模板增加分组卡模板；关键词、集、标签、时间、有做种、排除 HR 收进下方「更多条件」卡。工具栏在季后补「源」「字幕」两个 facet。中英文案补「全选／清除／更多条件」，标题行「清除筛选」改「清除全部」。
 - 测试与证据：`MoviePilotResourceOptionsTests` 新增源／字幕（同维度并集、非中字特效标签不冒充字幕）；`ResourceFilterCardTests` 新增九组齐全、源／字幕／促销多选、全选与清除只动本组、分组模板与工具栏 facet 契约，夹具资源补 `WebSource`／`Promotion`／编码质量制作组；`Agreements.txt` 登记 `WebSourceFilter`、`SubtitleFilter`、`DialogFacetGroups`、`SelectAllGroup`、`ClearGroup`。Shell 与 Tests Release/x64 0 警告 0 错误；`Momoka.ResourceBrowserTests` 193/193；主 `Momoka.Tests` 5350/5350，0 失败 0 跳过；`tools/quality.ps1` 9/9（`artifacts/quality/20261122-235545`）；UIA 扫描 769 个交互元素、5 个无句柄均为旧控件。本轮未跑原生探针与截图、未连真实 MoviePilot、未合并。
 - 二改提交与发布：`31b107d`「补齐 MP 搜索页九组筛选分区与分组卡片」（14 文件 +287/−59）。提交后重跑 `tools/quality.ps1 -SkipBuild` 7/7 与 `check-diff` 通过；`tools/publish.ps1 -NoArchive -Shortcut` 退出 0（548 文件、290.7 MB、批准 mpv 清单 60 文件）。`Momoka.exe` SHA256 `96ACF564A3545E9A8886D88CBA9629F05401583FD75AC4EB153C38849B953497`，`Momoka.dll` SHA256 `10801F2F032EE952CD6E30B9C775869CA771E6AB89FF25CE8EEB8B39B9B1098A`，ProductVersion `0.3.1+31b107d514fcb789dc6f79ec7d6058c8a718b30e`；桌面快捷方式回读指向本树 `artifacts/publish/win-x64/Momoka.exe`。
+
+**合并与主树复验。** 用户令「合并到主树」。主树合并前干净、master `db97463`；以 `--no-ff` 合入 `fix-mp-search-page-VqkSeK`，合并提交 `9366aeb`，22 路径 +655/−118，无冲突。主树重编 Shell、Tests Release/x64 为 0 警告 0 错误；`Momoka.ResourceBrowserTests` **193/193**、主测试完整套件 **5350/5350、0 失败 0 跳过**（159405 ms）。首轮主测试 16 项自检隔离红，报「已有当前用户的自检运行中」，核对为另一路会话同时运行自检占用桌面互斥锁；锁释放后用同一构建整轮重跑全绿，首轮日志原样保留。合并本身不补跑闸门 1 与探针；未连真实 MoviePilot、未播放、未推送远端。主树未重新发布，`Momoka.lnk` 仍指向合并前的旧构建。分支桌面快捷方式已删除；工作树经扩展长度路径清理并 prune，`fix-mp-search-page-VqkSeK` 分支已删除。
