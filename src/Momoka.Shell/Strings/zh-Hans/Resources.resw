@@ -2684,7 +2684,7 @@
     <value>排除 HR</value>
   </data>
   <data name="MoviePilotResourceBrowser_ResetAdvancedFilters.Content" xml:space="preserve">
-    <value>清除筛选</value>
+    <value>清除全部</value>
   </data>
   <data name="MoviePilotResourceBrowser_ResetFilters.Content" xml:space="preserve">
     <value>清除筛选</value>
@@ -2706,6 +2706,15 @@
   </data>
   <data name="MoviePilotResourceFilterDialog_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>综合筛选</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_SelectAll.Content" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_ClearGroup.Content" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_MoreFilters.Text" xml:space="preserve">
+    <value>更多条件</value>
   </data>
   <data name="MoviePilotResourcePanel_CloseButton.Content" xml:space="preserve">
     <value>返回</value>

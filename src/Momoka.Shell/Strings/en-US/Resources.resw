@@ -2663,7 +2663,7 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Exclude HR</value>
   </data>
   <data name="MoviePilotResourceBrowser_ResetAdvancedFilters.Content" xml:space="preserve">
-    <value>Clear filters</value>
+    <value>Clear all</value>
   </data>
   <data name="MoviePilotResourceBrowser_ResetFilters.Content" xml:space="preserve">
     <value>Clear filters</value>
@@ -2685,6 +2685,15 @@ Closing the video window or leaving this page stops playback.</value>
   </data>
   <data name="MoviePilotResourceFilterDialog_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>All filters</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_SelectAll.Content" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_ClearGroup.Content" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_MoreFilters.Text" xml:space="preserve">
+    <value>More filters</value>
   </data>
   <data name="MoviePilotResourcePanel_CloseButton.Content" xml:space="preserve">
     <value>Back</value>

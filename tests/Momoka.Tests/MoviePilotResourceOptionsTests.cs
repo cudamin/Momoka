@@ -94,6 +94,20 @@ internal static class MoviePilotResourceOptionsTests
             Assert.Equal(1, new MoviePilotResourceFilter { PromotionFactors = [1] }.Apply(rows, now).Count());
             Assert.Equal(1, new MoviePilotResourceFilter { Episodes = [2] }.Apply(rows, now).Count());
         });
+        Test("MoviePilot 资源多选：源按 web_source、字幕只认中字与特效", () =>
+        {
+            var rows = Parse("""
+                [{"torrent_info":{"title":"甲","labels":["中字"]},"meta_info":{"web_source":"Netflix"}},
+                 {"torrent_info":{"title":"乙","labels":["特效","国语"]},"meta_info":{"web_source":"AMZN"}},
+                 {"torrent_info":{"title":"丙"},"meta_info":{}}]
+                """);
+            var now = DateTimeOffset.Now;
+            Assert.Equal("甲", new MoviePilotResourceFilter { WebSources = ["netflix"] }.Apply(rows, now).Single().Title);
+            Assert.Equal("甲,乙", string.Join(',', new MoviePilotResourceFilter { Subtitles = ["中字", "特效"] }
+                .Apply(rows, now).Select(resource => resource.Title)));
+            Assert.Equal(0, new MoviePilotResourceFilter { Subtitles = ["国语"] }.Apply(rows, now).Count());
+            Assert.Equal(3, new MoviePilotResourceFilter().Apply(rows, now).Count());
+        });
         Test("MoviePilot 资源角标：未知不冒充免费，数字倍率优先于旧优惠文本", () =>
         {
             var resource = Parse("""[{"torrent_info":{"title":"资源"}}]""")[0];

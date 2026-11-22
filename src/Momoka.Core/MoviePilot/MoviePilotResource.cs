@@ -67,6 +67,12 @@ public sealed record MoviePilotResource
     }
 
     public string LabelsText => string.Join(" · ", Labels);
+
+    /// <summary>促销分区的候选文本：网页端用 volume_factor 原值，旧回包只有倍率时按当前口径补齐。</summary>
+    public string PromotionLabel => !string.IsNullOrWhiteSpace(Promotion) ? Promotion.Trim()
+        : DownloadFactor is { } factor
+            ? factor == 0 ? "免费" : factor == 1 ? "普通" : $"{(factor * 100).ToString("0.##", CultureInfo.InvariantCulture)}%"
+            : "";
     public string PublishedLine => PublishedAt is { } time
         ? $"发布于 {time.ToLocalTime():yyyy-MM-dd HH:mm}"
         : string.IsNullOrWhiteSpace(PublishedText) ? "发布时间未提供" : $"发布于 {PublishedText}";

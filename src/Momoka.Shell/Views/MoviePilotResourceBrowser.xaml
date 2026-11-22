@@ -74,6 +74,9 @@
                     </DropDownButton>
                     <local:MoviePilotResourceFacetPicker x:Name="SiteFilter" Facet="{x:Bind ViewModel.SiteFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="SeasonFilter" Facet="{x:Bind ViewModel.SeasonFacet, Mode=OneWay}" />
+                    <!-- 网页端筛选条在「季」后面还有「源」和「字幕」，分区与综合筛选弹窗保持一致。 -->
+                    <local:MoviePilotResourceFacetPicker x:Name="WebSourceFilter" Facet="{x:Bind ViewModel.WebSourceFacet, Mode=OneWay}" />
+                    <local:MoviePilotResourceFacetPicker x:Name="SubtitleFilter" Facet="{x:Bind ViewModel.SubtitleFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="PromotionFilter" Facet="{x:Bind ViewModel.PromotionFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="VideoFilter" Facet="{x:Bind ViewModel.VideoFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="EditionFilter" Facet="{x:Bind ViewModel.EditionFacet, Mode=OneWay}" />

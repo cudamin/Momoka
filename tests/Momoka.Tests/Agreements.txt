@@ -36,6 +36,10 @@
 # AdvancedFilters 连同 FilterText / EpisodeFilter / LabelFilter / DateFilter / SeededFilter / HitAndRunFilter /
 # ResetAdvancedFilters 一起迁到新 MoviePilotResourceFilterDialog.xaml，句柄一个不少，只是换了文件；
 # FilterExpander 保留在 Browser，类型由 DropDownButton 改为打开弹窗的 Button，句柄与 UIA 名称不变。
+# 2026-11-22 二轮（用户令「网页端有的筛选分区 momoka 都要有」）：综合筛选弹窗改为网页端 TorrentAllFiltersDialog
+# 的九张分组卡（站点、季、源、字幕、促销状态、视频编码、质量、分辨率、制作组），每组带全选/清除；
+# Browser 句柄新增 WebSourceFilter / SubtitleFilter，FilterDialog 新增 DialogFacetGroups 与组内
+# SelectAllGroup / ClearGroup（模板内，每个分组实例各一份）。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -793,18 +797,23 @@ handle  Views/MoviePilotResourceBrowser.xaml  GroupFilter
 handle  Views/MoviePilotResourceBrowser.xaml  RemoveFilter
 handle  Views/MoviePilotResourceBrowser.xaml  ResourceCard
 handle  Views/MoviePilotResourceBrowser.xaml  SeasonFilter
+handle  Views/MoviePilotResourceBrowser.xaml  SubtitleFilter
 handle  Views/MoviePilotResourceBrowser.xaml  VideoFilter
+handle  Views/MoviePilotResourceBrowser.xaml  WebSourceFilter
 handle  Views/MoviePilotResourceFacetPicker.xaml  ChoicesFlyout
 handle  Views/MoviePilotResourceFacetPicker.xaml  FacetChoices
 handle  Views/MoviePilotResourceFacetPicker.xaml  OpenFacet
 handle  Views/MoviePilotResourceFacetPicker.xaml  SelectChoice
+handle  Views/MoviePilotResourceFilterDialog.xaml  ClearGroup
 handle  Views/MoviePilotResourceFilterDialog.xaml  DateFilter
+handle  Views/MoviePilotResourceFilterDialog.xaml  DialogFacetGroups
 handle  Views/MoviePilotResourceFilterDialog.xaml  EpisodeFilter
 handle  Views/MoviePilotResourceFilterDialog.xaml  FilterText
 handle  Views/MoviePilotResourceFilterDialog.xaml  HitAndRunFilter
 handle  Views/MoviePilotResourceFilterDialog.xaml  LabelFilter
 handle  Views/MoviePilotResourceFilterDialog.xaml  ResetAdvancedFilters
 handle  Views/MoviePilotResourceFilterDialog.xaml  SeededFilter
+handle  Views/MoviePilotResourceFilterDialog.xaml  SelectAllGroup
 handle  Views/MoviePilotSearchPanel.xaml  MediaPoster
 handle  Views/MoviePilotSearchPanel.xaml  SearchContent
 handle  Views/MoviePilotSearchPanel.xaml  SearchResources
