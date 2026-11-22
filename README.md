@@ -30,7 +30,7 @@
   </tr>
 </table>
 
-[查看媒体库演示视频（WebM）](assets/readme/library.webm)
+![Momoka 浏览电影、剧集与订阅内容的媒体库页面](assets/readme/library.gif)
 
 ## 功能
 

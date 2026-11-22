@@ -30,7 +30,7 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
   </tr>
 </table>
 
-[Watch the library demo (WebM)](assets/readme/library.webm)
+![Browsing movies, series, and subscribed content in Momoka's library](assets/readme/library.gif)
 
 ## Features
 
