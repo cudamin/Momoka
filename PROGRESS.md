@@ -1,4 +1,4 @@
-## 2026-11-22 主页媒体库九宫格启动稳定与订阅入口逐张海报（分支 fix-cover-preset-duplicate-YHgnsO，待合并）
+## 2026-11-22 主页媒体库九宫格启动稳定与订阅入口逐张海报（已合并 master，待统一验证）
 
 用户报两件事：刚开启 Momoka 时九宫格封面里的海报会反复重排；「订阅·电影／订阅·电视剧」的封面一直重复同一张。工作表 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-cover-preset-duplicate-YHgnsO`，分支 `fix-cover-preset-duplicate-YHgnsO`，基点 `f7766c9`，产品与测试提交 `a4b8394`。
 
@@ -10,7 +10,9 @@
 
 **分支体验发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-cover-preset-duplicate-YHgnsO` 通过：548 文件、290.7 MB，载荷验收通过；`Momoka.exe` SHA256 `E8AD2784CC5D75E9CA2AF5FD945BD9DC581099B977F3A95FF43EA5C013E10BD4`。桌面 `Momoka-fix-cover-preset-duplicate-YHgnsO.lnk` 的目标和工作目录均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。工作树缺 `libmpv-2.dll`，按前例从主树发布目录复制同一文件（101,242,880 字节）后再发布。
 
-**未验。** 按日常界面规则未跑原生探针、自检或验收截图。真实 MoviePilot 图片代理返回后的九宫格外观、不同订阅数量（1～9 张）的循环效果、五套深色主题与跟随系统深浅、高对比、跨 DPI、窄窗、图片渐进到达、关闭预设恢复合成封面均留待统一验证。未合并主树、未上传。
+**未验。** 按日常界面规则未跑原生探针、自检或验收截图。真实 MoviePilot 图片代理返回后的九宫格外观、不同订阅数量（1～9 张）的循环效果、五套深色主题与跟随系统深浅、高对比、跨 DPI、窄窗、图片渐进到达、关闭预设恢复合成封面均留待统一验证。未上传。
+
+**合并与主树复验。** 用户令「合并到主树」。主树合并前干净、master `f7766c9`；以 `--no-ff` 合入 `fix-cover-preset-duplicate-YHgnsO`，合并提交 `53c7a3f`，13 路径 +394/−30，无冲突。主树重编 Shell、Tests Release/x64 为 0 警告 0 错误；封面专项 **23/23**、主测试完整套件 **5347/5347、0 失败 0 跳过**（152179 ms）。未推送远端。主树 `Momoka.exe` 正在运行，未发布、未刷新 `Momoka.lnk`，当前主树快捷方式仍指向合并前的旧构建；分支快捷方式待清理。
 
 ## 2026-11-22 叠卡悬浮扇形重设计（已合并 master，待统一验证）
 
