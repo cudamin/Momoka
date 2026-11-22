@@ -1,3 +1,15 @@
+## 2026-11-22 叠卡悬浮扇形重设计（分支待合并）
+
+用户要求重新设计叠卡，并确认采用悬浮扇形方向。树 `C:/Users/89400/.codearts/worktrees/Momoka-stacked-card-redesign`，分支 `codex/stacked-card-redesign`，基点 `ed557b8`，产品提交 `da26f86`，未合并、未上传。
+
+保留左侧库名和单张封面读取路径，右侧改为左右错位、降低不透明度的后卡与直立前卡组成三层扇形；增加两层静态圆角柔影、细边框、三停点主题渐变和库名上方的小段强调色。缺图与高对比仍回退系统色文字封面，九宫格、纯文字、设置项、服务器图片、请求数量和动画生命周期不变。
+
+**验证。** Shell、Tests Release/x64 编译 0 警告 0 错误；`home-library-cover-fixture` 18/18；主测试 **5343/5343、0 失败 0 跳过**（143085 ms）；架构 7/7。全方案空白格式通过；183 篇文档链接、153 个文档命令块、主树政策检查通过。文档命令首次经独立 PowerShell 启动时 Git 中文路径被按错误编码解码，改为当前进程 UTF-8 后同一份检查通过，未改产品或检查脚本。UIA 扫描没有本次新增交互控件，仍只报告既有 5 处无句柄项。
+
+**分支体验发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-stacked-card-redesign` 通过：548 文件、290.7 MB，批准 mpv 清单 60 文件；`Momoka.exe` SHA256 `686C7566651B3F45DA6F4E106A97E0BF3F4263FFC1196445CE8957C098B8FA55`。桌面 `Momoka-stacked-card-redesign.lnk` 的 TargetPath 与 WorkingDirectory 均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
+
+**未验。** 按日常界面规则未跑原生探针、自检或验收截图；真实主页叠卡的主题、DPI、窄窗、长库名、图片渐进到达、圆角裁切和开关恢复，以及其他两套预设的相邻实屏回归均留待统一验证。未登录、未播放、未读写真实服务器，台账保持开放。
+
 ## 2026-11-22 主页媒体库封面删除斜切大图（已合并 master，待统一验证）
 
 用户看着设置截图说「删除斜切大图」。树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-1c86fd4c`，分支 `workbuddy/master-1c86fd4c`，基点 `0caeeca`，产品提交 `0ea57bc`。
