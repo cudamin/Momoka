@@ -7,6 +7,8 @@ description: "Plan, implement or review Momoka C# and WinUI XAML: native control
 
 Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviation confirmation](../../../CLAUDE.md#winui-官方优先与偏离确认), before proposing a UI change. Before editing, follow [the required project configuration checks](../../../CLAUDE.md#动手前核对项目配置). Versions and runtime behavior come from current source, not old comments or this skill. Use the current worktree; enumerate affected views instead of assuming an old inventory is complete.
 
+For module or cross-layer reviews, start with the relevant sections of [技术文档](../../../docs/技术文档.md). Use its [document map](../../../docs/技术文档.md#14-文档地图) for existing feature, animation, sticky-header and image-search notes before creating another explanation; maintain or retire them under [the documentation policy](../../../CLAUDE.md#文档查阅与维护).
+
 ## Start with the affected experience
 
 1. Identify the surface, lifetime, users, input modes and current behavior. Trace XAML, code-behind, VM, service and tests only as far as the task needs. Preserve server-specific video-library capabilities and the shared music UI.

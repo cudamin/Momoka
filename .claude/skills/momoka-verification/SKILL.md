@@ -13,7 +13,7 @@ For material, layout/DPI, input/accessibility, binding, collection, animation, w
 
 Use [CLAUDE.md's official-guidance confirmation rule](../../../CLAUDE.md#winui-官方优先与偏离确认) before a requested deviation is implemented. A visual test cannot retrospectively approve an unconfirmed product choice. Keep unavailable system/monitor/assistive-technology coverage explicit; a simulated configuration is only evidence for the simulated boundary.
 
-For documentation-only skill changes, check routing, links, source assertions and realistic read-only decision scenarios. Structure validation does not measure actual automatic skill discovery or prove product runtime behavior.
+For documentation-only skill changes, check routing, links, source assertions and realistic read-only decision scenarios. Use the [document map](../../../docs/技术文档.md#14-文档地图) and [documentation policy](../../../CLAUDE.md#文档查阅与维护) to maintain useful notes and remove superseded ones with their active references. Structure validation does not measure actual automatic skill discovery or prove product runtime behavior.
 
 ## Change batches and delivery
 

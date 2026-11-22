@@ -1,8 +1,8 @@
 # Momoka WinUI 动效施工文档
 
-编写日期：2026-11-14；执行记录更新：2026-11-15。状态：S0～S3 已实施，S2 原生候选按门槛评估后保留现状；S4 已合入 master，待用户要求交付时统一验收。用户已要求开始施工，本批不发布、不上传。实际结果见第八节。
+编写日期：2026-11-14；执行记录更新：2026-11-15。本文保留该批动效的实施范围、来源、取舍与验证记录：S0～S3 已实施，S2 原生候选按门槛评估后保留现状；S4 已合入 master，未验项见第八节及交付台账。原批次的施工授权与“不发布、不上传”只适用于当时任务，不作为新的施工或交付指令。
 
-目标：在现有动效上补齐可观测性、导航一致性和中断处理，让后续执行者可以按批次实施、测试、合并和验收。默认施工范围是 S0～S4；AnimatedVisualPlayer 和 Composition Effects 暂缓，原因与重新评估条件见第七节。
+原批次目标是在现有动效上补齐可观测性、导航一致性和中断处理，实施范围为 S0～S4；AnimatedVisualPlayer 和 Composition Effects 暂缓，原因与重新评估条件见第七节。后续动效改动先查本文相关依据，再核对当前源码与当次需求；历史步骤不自动成为待执行计划。
 
 本文只覆盖本次五类动效，不恢复已撤销的其他 WinUI 优化计划。项目规则以 [CLAUDE.md](../CLAUDE.md) 为准。2026-11-14 的只读审查及文档编写已结束，随后用户“开始做吧”授权执行默认 S0～S4；原计划步骤保留，执行结论单独记录。
 
@@ -71,7 +71,7 @@
 | 表面 | 当前实现与参数 | 源码 |
 | --- | --- | --- |
 | 集成播放器标题条、操作行、音量条 | 原生 OpacityTransition / ScalarTransition，220ms；应用或系统关闭动画时设为 0 | [PlayerPage.xaml](../src/Momoka.Shell/Views/PlayerPage.xaml)，约 563、969、1048 行；[PlayerPage.Chrome.cs](../src/Momoka.Shell/Views/PlayerPage.Chrome.cs)，Render、FadeRail、FadeStrip |
-| 详情顶部悬浮播放卡 | Toolkit 隐式显隐：显示位移 400ms、透明度 200ms；隐藏位移 200ms、透明度 100ms；位移终点 0 / −24 DIP | [DetailPage.StickyHeader.cs](../src/Momoka.Shell/Views/DetailPage.StickyHeader.cs)，SyncHeaderMotion、ClearHeaderMotion |
+| 详情顶部悬浮播放卡 | Toolkit 隐式显隐；当前时序、位移和中断处理见[详情悬浮卡片](详情悬浮卡片.md)，原调查的 400/200ms 参数已被后续实现替代 | [DetailPage.StickyHeader.cs](../src/Momoka.Shell/Views/DetailPage.StickyHeader.cs)，SyncHeaderMotion、ClearHeaderMotion |
 | 普通浮层与音乐播放栏 | SurfaceMotion：默认显示 180ms / 12 DIP，退出 140ms / 8 DIP；反向从当前值接续 | [SurfaceMotion.cs](../src/Momoka.Shell/Views/SurfaceMotion.cs)；[ShellPage.Music.cs](../src/Momoka.Shell/Views/ShellPage.Music.cs)，PlaceMusicBar |
 | 媒体库筛选与视图设置 | 遮罩显示/退出 150/120ms；面板显示/退出 200/140ms，位移 12/8 DIP | LibraryPage.xaml.cs，相关 SurfaceMotion 调用 |
 | 首页货架 | 默认 440ms / 20 DIP；货架错峰 65ms，序号上限 5；仅动已实现模板根 | [HomeMotion.cs](../src/Momoka.Shell/Views/HomeMotion.cs)，Enter、Reveal、TargetOf |
@@ -217,8 +217,8 @@ S1、S2 共用 Frame、BrowsePresentation 和关联票据，顺序实施。S3 �
 
 ### S4：合并与最终统一验收
 
-1. 每批受影响代码与测试编译成功、相应测试通过后提交。独立树完成后合入 master，登记批次，清理已合并的本任务临时分支与工作树。
-2. 默认只合并，不刷新发布目录和快捷方式；用户明确要求交付时，在主树最终整合版本对待交付范围做一次统一验证。
+1. 每批受影响代码与测试编译成功、相应测试通过后提交并登记批次。是否合并、已合并分支的清理条件遵守当前 [CLAUDE「Git 与协作」](../CLAUDE.md#git-与协作)，不沿用原批次的自动合并指令。
+2. 日常体验发布、快捷方式与统一验收按当前 [CLAUDE「四道闸门与日常交付」](../CLAUDE.md#四道闸门与日常交付)执行；原批次“不刷新”的执行条件不作为后续任务默认值。
 3. 原生验证使用当前探针真实注册的分区或 inspect 项，不凭文件名猜命令。新增或修改探针的成功与失败路径须当轮实际运行，不能一律留到交付再验。
 4. 若改依赖、版本或分析器，按 CLAUDE 完整四道闸门执行；这不是本施工范围的默认动作。
 5. 记录最终提交、实际通过/失败/跳过、运行配置、截图/帧证据、资源采样和未覆盖项。保存失败证据，不删检查或放宽条件来取得绿色结果。
