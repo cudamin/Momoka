@@ -89,7 +89,7 @@ internal sealed partial class ShellNavigationProbe
         }, _ => Task.CompletedTask, _ => { })).ToArray();
         browser.SetResults(rows, autoEpisode: 5);
         Require(browser.Rows.Count == 1 && browser.AdvancedSummary.Contains("E05", StringComparison.Ordinal), "自动集号没有显示在综合筛选摘要");
-        browser.SeasonFacet.Choices.Single(choice => choice.Value == "2").Selected = true;
+        browser.SeasonFacet.Choices.Single(choice => choice.Value == "S02").Selected = true;
         Require(browser.SelectedEpisode == MoviePilotResourceBrowserViewModel.AllEpisodes && browser.Rows.Count == 4,
             "切季仍残留自动集号");
         browser.ResetCommand.Execute(null);
@@ -138,9 +138,10 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(resourceView, $"mp-search-resources-{width}-render.png");
                 await SaveProbeScreenAsync($"mp-search-resources-{width}-screen.png");
                 await MoviePilotResourceSortMenuAsync(resourceView, browser, rows, width);
-                Get<Flyout>(resourceView, "AdvancedFilters").ShowAt(Get<DropDownButton>(resourceView, "FilterExpander"));
-                await LayoutAsync(resourceView);
+                var filterDialog = resourceView.OpenAdvancedFilters();
+                await LayoutAsync(filterDialog);
                 await SaveProbeScreenAsync($"mp-search-filters-{width}-screen.png");
+                filterDialog.Hide();
                 resourceView.ClosePopups();
                 await Task.Delay(250);
                 _root.Children.Remove(resourceView);

@@ -129,8 +129,9 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         SetFacet(EditionFacet, _all.Select(row => row.Resource.Edition));
         SetFacet(ResolutionFacet, _all.Select(row => row.Resource.Resolution));
         SetFacet(GroupFacet, _all.Select(row => row.Resource.ReleaseGroup));
-        SeasonFacet.SetChoices(_all.SelectMany(row => row.Resource.Seasons).Distinct().Order()
-            .Select(season => (season.ToString(CultureInfo.InvariantCulture), $"S{season:00}")));
+        // 网页端的「季」筛选列出 meta_info.season_episode 原值：整季 S01、单集 S01E05 都在同一张表里。
+        SeasonFacet.SetChoices(MoviePilotSeasonEpisodeOptions.Order(SeasonValues(_all))
+            .Select(value => (value, value)));
         PromotionFacet.SetChoices(_all.Where(row => row.Resource.DownloadFactor.HasValue)
             .Select(row => row.Resource.DownloadFactor!.Value).Distinct().Order()
             .Select(factor => (factor.ToString(CultureInfo.InvariantCulture),
@@ -191,13 +192,28 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     {
         if (_resetting) return;
         _resetting = true;
-        var seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToHashSet();
+        var seasons = SeasonFacet.Selected.Select(MoviePilotSeasonEpisodeOptions.SeasonNumber)
+            .Where(number => number is not null).Select(number => number!.Value).ToHashSet();
         FillNumbers(Episodes, AllEpisodes, "E", EpisodeChoices(_all
             .Where(row => seasons.Count == 0 || row.Resource.Seasons.Any(seasons.Contains))
             .SelectMany(row => row.Resource.Episodes)));
         SelectedEpisode = AllEpisodes;
         _resetting = false;
         Apply();
+    }
+
+    /// <summary>季筛选候选：优先用服务器给的 season_episode 原值，缺这个字段才退回 season_list 的季号。</summary>
+    private static IEnumerable<string> SeasonValues(IEnumerable<MoviePilotResourceRow> rows)
+    {
+        foreach (var row in rows)
+        {
+            if (!string.IsNullOrWhiteSpace(row.Resource.SeasonEpisode))
+            {
+                yield return row.Resource.SeasonEpisode.Trim();
+                continue;
+            }
+            foreach (var season in row.Resource.Seasons) yield return $"S{season:00}";
+        }
     }
 
     private void Apply()
@@ -214,7 +230,9 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
             VideoCodecs = VideoFacet.Selected,
             Editions = EditionFacet.Selected,
             ReleaseGroups = GroupFacet.Selected,
-            Seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
+            Seasons = SeasonFacet.Selected.Select(value => MoviePilotSeasonEpisodeOptions.SeasonNumber(value))
+                .Where(number => number is not null).Select(number => number!.Value).ToArray(),
+            SeasonEpisodes = SeasonFacet.Selected,
             PromotionFactors = PromotionFacet.Selected.Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
             Season = SelectedNumber(SelectedSeason),
             Episode = SelectedNumber(SelectedEpisode),

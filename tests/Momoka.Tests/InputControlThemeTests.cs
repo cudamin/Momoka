@@ -24,7 +24,7 @@ internal static class InputControlThemeTests
     [
         ("DanmakuPanel.xaml", "TitleBox"), ("FnNasMatchDialog.xaml", "KeywordBox"),
         ("IdentifyDialog.xaml", "NameBox"), ("MoviePilotDownloadDialog.xaml", "DownloadSearchText"),
-        ("MoviePilotResourceBrowser.xaml", "FilterText"), ("MoviePilotSubscriptionEditor.xaml", "KeywordInput")
+        ("MoviePilotResourceFilterDialog.xaml", "FilterText"), ("MoviePilotSubscriptionEditor.xaml", "KeywordInput")
     ];
     private static readonly string[] SettingsInputPages =
     [

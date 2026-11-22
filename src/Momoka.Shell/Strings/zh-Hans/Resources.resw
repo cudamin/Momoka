@@ -2701,6 +2701,12 @@
   <data name="MoviePilotResourceBrowser_Localization11.Text" xml:space="preserve">
     <value>没有符合筛选条件的资源，可清除筛选后重试。</value>
   </data>
+  <data name="MoviePilotResourceFilterDialog_Localization1.CloseButtonText" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="MoviePilotResourceFilterDialog_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>综合筛选</value>
+  </data>
   <data name="MoviePilotResourcePanel_CloseButton.Content" xml:space="preserve">
     <value>返回</value>
   </data>

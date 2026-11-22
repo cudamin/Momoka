@@ -32,6 +32,10 @@
 # StoreShade 两道渐变，颜色计数 0→6——与 DetailPage.xaml 同一组 #0C0E11 字面色；高对比度那本词典里
 # 只有画刷没有颜色键，渐变停点写 ThemeResource 会在运行时抛，故沿用固定值。新增句柄 StoreShade 与
 # SubscriptionFacts（订阅摘要列表），UIA 脚本据后者读资料卡下半段。
+# 2026-11-22（MP 搜索页综合筛选改弹窗）：用户令「参考网页端源码，修改综合筛选，做成弹窗」。原 Flyout
+# AdvancedFilters 连同 FilterText / EpisodeFilter / LabelFilter / DateFilter / SeededFilter / HitAndRunFilter /
+# ResetAdvancedFilters 一起迁到新 MoviePilotResourceFilterDialog.xaml，句柄一个不少，只是换了文件；
+# FilterExpander 保留在 Browser，类型由 DropDownButton 改为打开弹窗的 Button，句柄与 UIA 名称不变。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -403,17 +407,12 @@ handle  Views/MoviePilotReorganizeDialog.xaml  TypeBox
 handle  Views/MoviePilotReorganizeDialog.xaml  TypeField
 handle  Views/MoviePilotReorganizeDialog.xaml  TypeFolderField
 handle  Views/MoviePilotReorganizeDialog.xaml  TypeFolderToggle
-handle  Views/MoviePilotResourceBrowser.xaml  DateFilter
 handle  Views/MoviePilotResourceBrowser.xaml  FilterExpander
-handle  Views/MoviePilotResourceBrowser.xaml  FilterText
-handle  Views/MoviePilotResourceBrowser.xaml  HitAndRunFilter
-handle  Views/MoviePilotResourceBrowser.xaml  LabelFilter
 handle  Views/MoviePilotResourceBrowser.xaml  OpenTorrentPage
 handle  Views/MoviePilotResourceBrowser.xaml  PromotionFilter
 handle  Views/MoviePilotResourceBrowser.xaml  ResetFilters
 handle  Views/MoviePilotResourceBrowser.xaml  ResolutionFilter
 handle  Views/MoviePilotResourceBrowser.xaml  ResourceList
-handle  Views/MoviePilotResourceBrowser.xaml  SeededFilter
 handle  Views/MoviePilotResourceBrowser.xaml  SiteFilter
 handle  Views/MoviePilotResourceBrowser.xaml  SortOrder
 handle  Views/MoviePilotResourcePanel.xaml  CloseButton
@@ -788,13 +787,10 @@ handle  Views/MoviePilotSubscriptionPage.xaml  HeroSection
 handle  Views/MoviePilotSubscriptionPage.xaml  StoreShade
 handle  Views/MoviePilotSubscriptionPage.xaml  SubscriptionFacts
 handle  Views/MoviePilotResourceBrowser.xaml  ActiveFilters
-handle  Views/MoviePilotResourceBrowser.xaml  AdvancedFilters
 handle  Views/MoviePilotResourceBrowser.xaml  EditionFilter
-handle  Views/MoviePilotResourceBrowser.xaml  EpisodeFilter
 handle  Views/MoviePilotResourceBrowser.xaml  FilterToolbar
 handle  Views/MoviePilotResourceBrowser.xaml  GroupFilter
 handle  Views/MoviePilotResourceBrowser.xaml  RemoveFilter
-handle  Views/MoviePilotResourceBrowser.xaml  ResetAdvancedFilters
 handle  Views/MoviePilotResourceBrowser.xaml  ResourceCard
 handle  Views/MoviePilotResourceBrowser.xaml  SeasonFilter
 handle  Views/MoviePilotResourceBrowser.xaml  VideoFilter
@@ -802,6 +798,13 @@ handle  Views/MoviePilotResourceFacetPicker.xaml  ChoicesFlyout
 handle  Views/MoviePilotResourceFacetPicker.xaml  FacetChoices
 handle  Views/MoviePilotResourceFacetPicker.xaml  OpenFacet
 handle  Views/MoviePilotResourceFacetPicker.xaml  SelectChoice
+handle  Views/MoviePilotResourceFilterDialog.xaml  DateFilter
+handle  Views/MoviePilotResourceFilterDialog.xaml  EpisodeFilter
+handle  Views/MoviePilotResourceFilterDialog.xaml  FilterText
+handle  Views/MoviePilotResourceFilterDialog.xaml  HitAndRunFilter
+handle  Views/MoviePilotResourceFilterDialog.xaml  LabelFilter
+handle  Views/MoviePilotResourceFilterDialog.xaml  ResetAdvancedFilters
+handle  Views/MoviePilotResourceFilterDialog.xaml  SeededFilter
 handle  Views/MoviePilotSearchPanel.xaml  MediaPoster
 handle  Views/MoviePilotSearchPanel.xaml  SearchContent
 handle  Views/MoviePilotSearchPanel.xaml  SearchResources

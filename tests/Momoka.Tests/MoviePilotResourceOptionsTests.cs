@@ -152,6 +152,27 @@ internal static class MoviePilotResourceOptionsTests
             Assert.Equal(0, rows[0].Seasons.Count);
             Assert.Equal(0, rows[0].Episodes.Count);
         });
+        Test("MoviePilot 季筛选：season_episode 原值含集，缺字段才退回季号", () =>
+        {
+            var rows = Parse("""
+                [{"torrent_info":{"title":"整季"},"meta_info":{"season_episode":"S01","begin_season":1}},
+                 {"torrent_info":{"title":"单集"},"meta_info":{"season_episode":"S01E05","begin_season":1,"begin_episode":5}},
+                 {"torrent_info":{"title":"旧回包"},"meta_info":{"begin_season":2}}]
+                """);
+            var now = DateTimeOffset.Now;
+            Assert.Equal("整季", new MoviePilotResourceFilter { SeasonEpisodes = ["S01"] }.Apply(rows, now).Single().Title);
+            Assert.Equal("单集", new MoviePilotResourceFilter { SeasonEpisodes = ["S01E05"] }.Apply(rows, now).Single().Title);
+            Assert.Equal("旧回包", new MoviePilotResourceFilter { SeasonEpisodes = ["S02"] }.Apply(rows, now).Single().Title);
+            Assert.Equal(3, new MoviePilotResourceFilter().Apply(rows, now).Count());
+        });
+        Test("MoviePilot 季筛选：整季排在单集前，同类按季号与集号降序", () =>
+        {
+            Assert.Equal("S10,S02,S01,S10E01-E03,S02E12,S01E05,Special",
+                string.Join(',', MoviePilotSeasonEpisodeOptions.Order(
+                    ["S01E05", "Special", "S10", "S02", "S10E01-E03", "S02E12", "S01"])));
+            Assert.Equal(2, MoviePilotSeasonEpisodeOptions.SeasonNumber("S02E12"));
+            Assert.True(MoviePilotSeasonEpisodeOptions.SeasonNumber("Special") is null);
+        });
         Test("MoviePilot 下载选项：目录只读取名称及保存路径，远程路径不丢存储前缀", () =>
         {
             using var transport = Transport()

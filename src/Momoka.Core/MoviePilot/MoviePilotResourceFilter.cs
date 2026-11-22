@@ -20,6 +20,8 @@ public sealed record MoviePilotResourceFilter
     public IReadOnlyList<string> VideoCodecs { get; init; } = [];
     public IReadOnlyList<string> Editions { get; init; } = [];
     public IReadOnlyList<string> ReleaseGroups { get; init; } = [];
+    // 网页端「季」筛选按 meta_info.season_episode 原值（含 S01E05 这类单集）匹配。
+    public IReadOnlyList<string> SeasonEpisodes { get; init; } = [];
     public IReadOnlyList<int> Seasons { get; init; } = [];
     public IReadOnlyList<int> Episodes { get; init; } = [];
     public IReadOnlyList<double> PromotionFactors { get; init; } = [];
@@ -34,7 +36,9 @@ public sealed record MoviePilotResourceFilter
 
     public bool Matches(MoviePilotResource resource, DateTimeOffset now)
     {
-        if (Seasons.Count > 0 ? !Seasons.Any(resource.Seasons.Contains) :
+        if (SeasonEpisodes.Count > 0
+            ? !SeasonEpisodes.Any(value => MoviePilotSeasonEpisodeOptions.Matches(resource, value))
+            : Seasons.Count > 0 ? !Seasons.Any(resource.Seasons.Contains) :
             Season is { } season && !resource.Seasons.Contains(season)) return false;
         // 按集筛选认两处：meta 里解析出的集号，或标题／描述里写着集号（E05、第5集这些写法，见
         // MoviePilotEpisodePattern）—— 服务器 meta 偶尔整段没解析出来，标题里明写着的不该跟着丢。
