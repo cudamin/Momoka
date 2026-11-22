@@ -133,6 +133,20 @@ internal static class MoviePilotLibraryArtworkTests
             Assert.Throws<ArgumentNullException>(() => MoviePilotLibraryArtwork.Select(null!));
             Assert.Throws<ArgumentNullException>(() => MoviePilotLibraryArtwork.Compose(null!));
         });
+        Test("订阅分类封面：九宫格按上限取九张不同海报，默认合成仍只取四张", () =>
+        {
+            var subscriptions = Enumerable.Range(0, 12)
+                .Select(index => Subscription($"https://images.invalid/poster-{index}", null)).ToArray();
+            var cover = MoviePilotLibraryArtwork.Select(subscriptions);
+            Assert.Equal(MoviePilotLibraryArtwork.CoverPosters, cover.Count);
+            Assert.Equal(4, cover.Count);
+            var wall = MoviePilotLibraryArtwork.Select(subscriptions, MoviePilotLibraryArtwork.WallPosters);
+            Assert.Equal(9, wall.Count);
+            Assert.Equal(9, wall.Distinct().Count());
+            Assert.True(wall.SequenceEqual(Enumerable.Range(0, 9)
+                .Select(index => $"https://images.invalid/poster-{index}")));
+            Assert.Throws<ArgumentOutOfRangeException>(() => MoviePilotLibraryArtwork.Select(subscriptions, 0));
+        });
         Test("订阅分类封面：取消在像素处理前生效", () =>
         {
             using var cancellation = new CancellationTokenSource();

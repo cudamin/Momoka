@@ -10,21 +10,33 @@ public static class MoviePilotLibraryArtwork
     private const int MaxPosters = 4;
     private const int MaxSourcePixels = 1280 * 720;
 
+    /// <summary>合成订阅入口封面最多用四张海报（<see cref="Compose"/> 的上限）。</summary>
+    public const int CoverPosters = MaxPosters;
+
+    /// <summary>主页「九宫格海报墙」预设最多要九张不同海报；不足时由绘制端循环补足。</summary>
+    public const int WallPosters = 9;
+
     /// <summary>顶行在前、非预乘 alpha 的 BGRA 像素；合成结果始终不透明。</summary>
     public sealed record ArtworkPixels(byte[] Pixels, int Width, int Height);
 
-    /// <summary>每条订阅优先取海报，缺海报才取背景图；去重后保留列表中的前四张。</summary>
-    public static IReadOnlyList<string> Select(IEnumerable<MoviePilotSubscription> subscriptions)
+    /// <summary>
+    /// 每条订阅优先取海报，缺海报才取背景图；去重后按顺序取前 <paramref name="limit"/> 张。
+    /// 合成封面用 <see cref="CoverPosters"/>，九宫格预设用 <see cref="WallPosters"/>，
+    /// 两张订阅入口卡因此能拿到各自最多九张不同的海报，而不是把同一张合成图复制九份。
+    /// </summary>
+    public static IReadOnlyList<string> Select(IEnumerable<MoviePilotSubscription> subscriptions,
+        int limit = CoverPosters)
     {
         ArgumentNullException.ThrowIfNull(subscriptions);
-        var urls = new List<string>(MaxPosters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        var urls = new List<string>(Math.Min(limit, 16));
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var subscription in subscriptions)
         {
             var url = ArtworkUrl(subscription.Media.PosterUrl) ?? ArtworkUrl(subscription.Media.BackdropUrl);
             if (url is null || !seen.Add(url)) continue;
             urls.Add(url);
-            if (urls.Count == MaxPosters) break;
+            if (urls.Count == limit) break;
         }
         return urls.ToArray();
     }

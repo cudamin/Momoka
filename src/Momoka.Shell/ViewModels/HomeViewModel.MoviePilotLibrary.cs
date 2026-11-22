@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
@@ -10,13 +11,52 @@ public sealed partial class HomeViewModel
 {
     private MoviePilotHomeSubscriptions? _librarySubscriptions;
     private Action<string>? _openSubscriptionLibrary;
-    private readonly Dictionary<string, (CardItem Card, IReadOnlyList<string> Urls, Func<string, CancellationToken, Task<byte[]>> Fetch)> _moviePilotLibraries = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, MoviePilotLibraryEntry> _moviePilotLibraries = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// 一张订阅入口卡和它那份海报来源。封面预设要的逐张海报与合成封面共用同一组去重后的地址；
+    /// 取图任务随卡片一起取消，离页时不留下没人接收的图片。
+    /// </summary>
+    private sealed class MoviePilotLibraryEntry(string key, CardItem card, IReadOnlyList<string> urls,
+        Func<string, CancellationToken, Task<byte[]>> fetch)
+    {
+        internal string Key { get; } = key;
+        internal CardItem Card { get; } = card;
+        internal IReadOnlyList<string> Urls { get; } = urls;
+        internal Func<string, CancellationToken, Task<byte[]>> Fetch { get; } = fetch;
+
+        /// <summary>预设用的一组小海报；null 表示还没取到。</summary>
+        internal IReadOnlyList<BitmapImage>? Tiles { get; set; }
+
+        /// <summary>在途的那一趟，同一张卡不重复下载。</summary>
+        internal Task<IReadOnlyList<BitmapImage>>? TileLoad { get; set; }
+
+        internal CancellationTokenSource? TileLifetime { get; set; }
+
+        /// <summary>上一次一张都没取到的时刻；冷却期内不再反复请求同一批坏地址。</summary>
+        internal DateTime TileFailedAt { get; set; }
+
+        internal void CancelTiles()
+        {
+            TileLifetime?.Cancel();
+            TileLifetime = null;
+            TileLoad = null;
+        }
+
+        /// <summary>离页、换连接或这张入口不再需要时整份放掉。</summary>
+        internal void Release()
+        {
+            CancelTiles();
+            Tiles = null;
+            Card.AbandonPoster();
+        }
+    }
 
     internal void UseMoviePilotLibrary(MoviePilotHomeSubscriptions subscriptions, Action<string>? open)
     {
         if (!ReferenceEquals(subscriptions, _librarySubscriptions))
         {
-            foreach (var entry in _moviePilotLibraries.Values) entry.Card.AbandonPoster();
+            foreach (var entry in _moviePilotLibraries.Values) entry.Release();
             _moviePilotLibraries.Clear();
         }
         _librarySubscriptions = subscriptions;
@@ -54,11 +94,14 @@ public sealed partial class HomeViewModel
             foreach (var key in new[] { HomeLayout.MoviePilotMovies, HomeLayout.MoviePilotSeries })
             {
                 var current = rowsByKey[key];
-                var urls = MoviePilotLibraryArtwork.Select(current.Select(row => row.Subscription));
+                // 合成封面只要前四张；九宫格预设最多要九张。两组地址同源，卡片按预设各取所需。
+                var urls = MoviePilotLibraryArtwork.Select(current.Select(row => row.Subscription),
+                    MoviePilotLibraryArtwork.WallPosters);
                 if (!_moviePilotLibraries.TryGetValue(key, out var kept)
                     || !kept.Urls.SequenceEqual(urls, StringComparer.Ordinal) || !ReferenceEquals(kept.Fetch, fetch))
                 {
-                    kept.Card?.AbandonPoster();
+                    kept?.Release();
+                    var coverUrls = urls.Take(MoviePilotLibraryArtwork.CoverPosters).ToArray();
                     var card = new CardItem(new EmbyItem
                     {
                         Id = key,
@@ -69,10 +112,10 @@ public sealed partial class HomeViewModel
                         {
                             if (Current()) _openSubscriptionLibrary?.Invoke(key);
                         },
-                        fetchPoster: urls.Count == 0 ? null : async token =>
+                        fetchPoster: coverUrls.Length == 0 ? null : async token =>
                         {
                             if (!Current()) throw new OperationCanceledException();
-                            var bytes = await MoviePilotLibraryCoverLoader.LoadAsync(urls, async (url, ct) =>
+                            var bytes = await MoviePilotLibraryCoverLoader.LoadAsync(coverUrls, async (url, ct) =>
                             {
                                 if (!Current()) throw new OperationCanceledException(ct);
                                 return await fetch(url, ct).ConfigureAwait(true);
@@ -80,7 +123,7 @@ public sealed partial class HomeViewModel
                             if (!Current()) throw new OperationCanceledException();
                             return bytes;
                         });
-                    kept = (card, urls, fetch);
+                    kept = new MoviePilotLibraryEntry(key, card, urls, fetch);
                     _moviePilotLibraries[key] = kept;
                 }
                 wanted.Add(kept.Card);
@@ -106,7 +149,7 @@ public sealed partial class HomeViewModel
             if (!cards.Contains(card)) { cards.Add(card); changed = true; }
         foreach (var key in _moviePilotLibraries.Keys.Where(key => !wanted.Any(card => card.Item.Id == key)).ToArray())
         {
-            _moviePilotLibraries[key].Card.AbandonPoster();
+            _moviePilotLibraries[key].Release();
             _moviePilotLibraries.Remove(key);
         }
         changed |= ReorderLibraryEntries(cards);

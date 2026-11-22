@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.MoviePilot;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
@@ -7,6 +8,42 @@ namespace Momoka.Shell.Media;
 /// <summary>订阅入口复用已加载的订阅海报，合成一张封面后走导航卡原有的取消与释放通道。</summary>
 internal static class MoviePilotLibraryCoverLoader
 {
+    /// <summary>
+    /// 主页封面预设要用的逐张订阅海报。每张单独解码成小图，失败的一张跳过；
+    /// 顺序按输入保留，交给九宫格时才能像媒体库那样看到同一分类下的不同作品。
+    /// </summary>
+    public static async Task<IReadOnlyList<BitmapImage>> LoadTilesAsync(IReadOnlyList<string> urls,
+        Func<string, CancellationToken, Task<byte[]>> fetch, int width, CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(urls);
+        ArgumentNullException.ThrowIfNull(fetch);
+        var pending = urls.Select((url, index) => LoadTileAsync(url, index)).ToArray();
+        var decoded = await Task.WhenAll(pending).ConfigureAwait(true);
+        token.ThrowIfCancellationRequested();
+        return decoded.OrderBy(pair => pair.Index).Select(pair => pair.Image).OfType<BitmapImage>().ToArray();
+
+        async Task<(int Index, BitmapImage? Image)> LoadTileAsync(string url, int index)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                var bytes = await fetch(url, token).ConfigureAwait(true);
+                token.ThrowIfCancellationRequested();
+                return (index, await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true));
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                // 单张超时不等于整个卡片取消，其余海报仍可用。
+                return (index, null);
+            }
+            catch (Exception error) when (error is IOException or ArgumentException or HttpRequestException
+                or MoviePilotException or System.Runtime.InteropServices.COMException)
+            {
+                return (index, null);
+            }
+        }
+    }
+
     public static async Task<byte[]> LoadAsync(IReadOnlyList<string> urls,
         Func<string, CancellationToken, Task<byte[]>> fetch, CancellationToken token)
     {
