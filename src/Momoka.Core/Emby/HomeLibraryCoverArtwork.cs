@@ -9,7 +9,12 @@ public static class HomeLibraryCoverArtwork
     {
         preset = HomeLibraryCoverPresets.Normalize(preset);
         if (preset == HomeLibraryCoverPresets.Gradient) return [];
-        var limit = preset == HomeLibraryCoverPresets.Wall ? 9 : 1;
+        var limit = preset switch
+        {
+            HomeLibraryCoverPresets.Wall => 9,
+            HomeLibraryCoverPresets.Stack => 3,
+            _ => 1
+        };
         var result = new List<ArtworkRef>(limit);
         var seen = new HashSet<ArtworkRef>();
         var order = new[] { EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop };

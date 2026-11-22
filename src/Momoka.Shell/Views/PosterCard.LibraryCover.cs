@@ -55,10 +55,10 @@ public sealed partial class PosterCard
             switch (preset)
             {
                 case HomeLibraryCoverPresets.Stack:
-                    // 悬浮扇形：后卡向左右展开并降低不透明度，前卡最后以直立姿态覆盖。
-                    AddStackCard(images[0], 108, 22, 56, 82, -14, 0.52);
-                    AddStackCard(images[0], 145, 21, 56, 82, 14, 0.68);
-                    AddStackCard(images[0], 126, 13, 62, 92);
+                    // 悬浮扇形：最新海报在前卡，较早两张分列后侧；不足三张时复用已有封面。
+                    AddStackCard(StackPicture(1), 108, 22, 56, 82, -14, 0.52);
+                    AddStackCard(StackPicture(2), 145, 21, 56, 82, 14, 0.68);
+                    AddStackCard(StackPicture(0), 126, 13, 62, 92);
                     break;
                 case HomeLibraryCoverPresets.Wall:
                     // 原模板九张海报右侧出框，少图稳定循环补足；同一张 BitmapImage 可由多个 Image 共用。
@@ -118,6 +118,8 @@ public sealed partial class PosterCard
         Canvas.SetTop(text, preset == HomeLibraryCoverPresets.Stack && !textOnly ? 26 : 21);
         canvas.Children.Add(text);
         return new Viewbox { Stretch = Stretch.Fill, Child = canvas };
+
+        BitmapImage StackPicture(int position) => images[Math.Min(position, images.Count - 1)];
 
         void AddStackCard(BitmapImage source, double x, double y, double width, double height,
             double rotation = 0, double opacity = 1)

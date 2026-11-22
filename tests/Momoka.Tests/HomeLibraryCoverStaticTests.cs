@@ -21,13 +21,14 @@ internal static class HomeLibraryCoverStaticTests
             Assert.Contains("RenderTransform = new RotateTransform { Angle = rotation }", source);
             Assert.Contains("return new Viewbox { Stretch = Stretch.Fill, Child = canvas }", source);
         });
-        Test("主页媒体库静态封面：叠卡使用悬浮扇形、直立前卡和静态柔影", () =>
+        Test("主页媒体库静态封面：叠卡使用三张海报、直立前卡和静态柔影", () =>
         {
             var source = Source("PosterCard.LibraryCover.cs");
-            var left = source.IndexOf("AddStackCard(images[0], 108, 22, 56, 82, -14, 0.52)", StringComparison.Ordinal);
-            var right = source.IndexOf("AddStackCard(images[0], 145, 21, 56, 82, 14, 0.68)", StringComparison.Ordinal);
-            var front = source.IndexOf("AddStackCard(images[0], 126, 13, 62, 92)", StringComparison.Ordinal);
+            var left = source.IndexOf("AddStackCard(StackPicture(1), 108, 22, 56, 82, -14, 0.52)", StringComparison.Ordinal);
+            var right = source.IndexOf("AddStackCard(StackPicture(2), 145, 21, 56, 82, 14, 0.68)", StringComparison.Ordinal);
+            var front = source.IndexOf("AddStackCard(StackPicture(0), 126, 13, 62, 92)", StringComparison.Ordinal);
             Assert.True(left >= 0 && left < right && right < front, "后卡先展开，前卡最后直立覆盖");
+            Assert.Contains("BitmapImage StackPicture(int position) => images[Math.Min(position, images.Count - 1)]", source);
             var card = Block(source, "void AddStackCard(");
             Assert.Contains("RenderTransform = new RotateTransform { Angle = rotation }", card);
             Assert.Contains("Windows.UI.Color.FromArgb(22, 0, 0, 0)", card);
