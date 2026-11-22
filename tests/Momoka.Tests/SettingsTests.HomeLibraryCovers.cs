@@ -18,7 +18,7 @@ internal static partial class SettingsTests
             Assert.False(new UiSettings().HomeLibraryCoverOverride);
         });
 
-        Test("媒体库封面设置：四套预设往返保存，关闭覆盖仍保留选择", () =>
+        Test("媒体库封面设置：三套预设往返保存，关闭覆盖仍保留选择", () =>
         {
             var directory = Directory.CreateTempSubdirectory("momoka-home-cover-settings").FullName;
             try
@@ -26,7 +26,7 @@ internal static partial class SettingsTests
                 var store = new SettingsStore(new AppPaths(directory), Protector);
                 foreach (var preset in new[]
                 {
-                    HomeLibraryCoverPresets.Stack, HomeLibraryCoverPresets.Diagonal,
+                    HomeLibraryCoverPresets.Stack,
                     HomeLibraryCoverPresets.Wall, HomeLibraryCoverPresets.Gradient
                 })
                 {
@@ -48,9 +48,9 @@ internal static partial class SettingsTests
             finally { Directory.Delete(directory, recursive: true); }
         });
 
-        Test("媒体库封面设置：空值和未知预设回到叠卡，不改变开关", () =>
+        Test("媒体库封面设置：空值、未知和已退役预设回到叠卡，不改变开关", () =>
         {
-            foreach (var value in new string?[] { null, "", "unknown-preset", "STACK" })
+            foreach (var value in new string?[] { null, "", "unknown-preset", "STACK", "diagonal" })
             {
                 var settings = new AppSettings();
                 settings.Ui.HomeLibraryCoverOverride = true;

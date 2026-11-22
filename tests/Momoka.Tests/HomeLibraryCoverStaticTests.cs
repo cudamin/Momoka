@@ -7,12 +7,12 @@ internal static class HomeLibraryCoverStaticTests
 {
     internal static void Register()
     {
-        Test("主页媒体库静态封面：保留三种构图及无图、高对比和纯文字回退", () =>
+        Test("主页媒体库静态封面：保留两种构图及无图、高对比和纯文字回退", () =>
         {
             var source = Source("PosterCard.LibraryCover.cs");
             Assert.Contains("highContrast || preset == HomeLibraryCoverPresets.Gradient || images.Count == 0", source);
             var pictures = Block(source, "if (!textOnly)");
-            foreach (var preset in new[] { "Stack", "Diagonal", "Wall" })
+            foreach (var preset in new[] { "Stack", "Wall" })
             {
                 var marker = "case HomeLibraryCoverPresets." + preset + ":";
                 Assert.Contains(marker, pictures);
@@ -35,7 +35,6 @@ internal static class HomeLibraryCoverStaticTests
             Assert.Contains("else Art.BorderThickness = new Thickness(0)", source);
             Assert.True(source.IndexOf("Art.ClearValue", StringComparison.Ordinal)
                 < source.IndexOf("if (preset is null) return null", StringComparison.Ordinal));
-            Assert.Contains("AddImage(images[0], -2, -2, 212, 121)", source);
             Assert.Contains("Clip = new RectangleGeometry { Rect = new Rect(0, 0, 208, 117) }", source);
         });
     }

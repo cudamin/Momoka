@@ -23,13 +23,11 @@ internal static class HomeLibraryCoverTests
                 throw new AssertionException("纯文字预设不应读取图片候选"));
             Assert.Equal(0, HomeLibraryCoverArtwork.Select(library, samples, HomeLibraryCoverPresets.Gradient).Count);
         });
-        Test("主页媒体库封面：叠卡优先海报，斜切优先宽图且各取一张", () =>
+        Test("主页媒体库封面：叠卡优先海报且只取一张", () =>
         {
             var samples = Enumerable.Range(0, 12).Select(index => Sample("sample-" + index)).ToArray();
             var stack = HomeLibraryCoverArtwork.Select(Library(), samples, HomeLibraryCoverPresets.Stack);
-            var diagonal = HomeLibraryCoverArtwork.Select(Library(), samples, HomeLibraryCoverPresets.Diagonal);
             Assert.Equal(new ArtworkRef("sample-0", EmbyImageStore.Primary, "poster-sample-0"), stack.Single());
-            Assert.Equal(new ArtworkRef("sample-0", EmbyImageStore.Backdrop, "wide-sample-0"), diagonal.Single());
         });
         Test("主页媒体库封面：九宫格按既有顺序取九个不重复引用", () =>
         {
@@ -204,7 +202,7 @@ internal static class HomeLibraryCoverTests
             var ui = fixture.Settings.Settings.Ui;
             var store = new BrowseSnapshotStore();
             ui.HomeLibraryCoverOverride = true;
-            ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Diagonal;
+            ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Stack;
             var first = fixture.CreateLoadingHome(snapshots: store);
             try { await Load(shell, first); }
             finally { ((IDisposable)first).Dispose(); }
@@ -282,7 +280,7 @@ internal static class HomeLibraryCoverTests
     }
 
     private static readonly string[] Presets =
-    [HomeLibraryCoverPresets.Stack, HomeLibraryCoverPresets.Diagonal, HomeLibraryCoverPresets.Wall, HomeLibraryCoverPresets.Gradient];
+    [HomeLibraryCoverPresets.Stack, HomeLibraryCoverPresets.Wall, HomeLibraryCoverPresets.Gradient];
 
     private static EmbyItem Library(EmbySessionScope? source = null) => new()
     {

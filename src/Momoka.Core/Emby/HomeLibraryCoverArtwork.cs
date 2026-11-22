@@ -12,9 +12,7 @@ public static class HomeLibraryCoverArtwork
         var limit = preset == HomeLibraryCoverPresets.Wall ? 9 : 1;
         var result = new List<ArtworkRef>(limit);
         var seen = new HashSet<ArtworkRef>();
-        var order = preset == HomeLibraryCoverPresets.Diagonal
-            ? new[] { EmbyImageStore.Backdrop, EmbyImageStore.Thumb, EmbyImageStore.Primary }
-            : new[] { EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop };
+        var order = new[] { EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop };
 
         foreach (var item in samples.Where(item => SameSource(library, item)))
         {

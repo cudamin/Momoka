@@ -47,7 +47,7 @@ public sealed partial class CardItem
         var artwork = _homeLibraryCoverArtwork;
         var loading = new CancellationTokenSource();
         _loading = loading;
-        var width = preset == HomeLibraryCoverPresets.Diagonal ? _width : Math.Min(_width, 130);
+        var width = Math.Min(_width, 130);
         try
         {
             foreach (var picture in artwork)

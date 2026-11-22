@@ -27,7 +27,6 @@ public sealed partial class SettingsViewModel
                 new[]
                 {
                     ("叠卡", HomeLibraryCoverPresets.Stack),
-                    ("斜切大图", HomeLibraryCoverPresets.Diagonal),
                     ("九宫格海报墙", HomeLibraryCoverPresets.Wall),
                     ("纯文字渐变", HomeLibraryCoverPresets.Gradient)
                 },

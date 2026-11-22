@@ -4,13 +4,13 @@ namespace Momoka.Configuration;
 public static class HomeLibraryCoverPresets
 {
     public const string Stack = "stack";
-    public const string Diagonal = "diagonal";
     public const string Wall = "wall";
     public const string Gradient = "gradient";
 
+    // 已退役的 diagonal 与空值、未知值一并回到叠卡，旧配置不阻塞启动。
     public static string Normalize(string? value) => value switch
     {
-        Stack or Diagonal or Wall or Gradient => value,
+        Stack or Wall or Gradient => value,
         _ => Stack
     };
 }
