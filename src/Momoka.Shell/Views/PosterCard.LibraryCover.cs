@@ -20,10 +20,10 @@ public sealed partial class PosterCard
                 card.Poster, card.LibraryTile0, card.Title, card.Item.IdentityKey);
     }
 
-    // 构图参考呀哈哈封面工坊 preset_templates.py static_1–4，4943fb3a5bd00cc0e8b1b6f79f84bf2f1922ce41。
+    // 构图参考呀哈哈封面工坊 preset_templates.py 的静态模板，4943fb3a5bd00cc0e8b1b6f79f84bf2f1922ce41。
     // 原生绘图参考 Gallery 6de91feccadfbb0a796b71caedead5a2284f730e 的 Samples/Image (UniformToFill)、
     // Viewbox (整组缩放)、ImplicitTransition (旋转/渐变)。没有对应库封面组合；这里独立组合原生元素。
-    // WinUI Clip 仅支持 RectangleGeometry，斜切用同坐标渐变 Polygon 遮盖，不用不受支持的路径 Clip。
+    // WinUI Clip 仅支持 RectangleGeometry，海报墙出框部分靠矩形 Clip 裁切。
     private UIElement? LibraryCover(string? preset, IReadOnlyList<BitmapImage>? pictures,
         BitmapImage? poster, BitmapImage? libraryPoster, string title, string identity)
     {
@@ -57,14 +57,6 @@ public sealed partial class PosterCard
                     AddImage(images[0], 109, 18, 82, 82, 36, 0.56, 10);
                     AddImage(images[0], 109, 18, 82, 82, 18, 0.74, 10);
                     AddImage(images[0], 109, 18, 82, 82, 0, 1, 10);
-                    break;
-                case HomeLibraryCoverPresets.Diagonal:
-                    AddImage(images[0], -2, -2, 212, 121);
-                    canvas.Children.Add(new Polygon
-                    {
-                        Points = new PointCollection { new(0, 0), new(114.4, 0), new(83.2, 117), new(0, 117) },
-                        Fill = Gradient(start, end, absolute: true)
-                    });
                     break;
                 case HomeLibraryCoverPresets.Wall:
                     // 原模板九张海报右侧出框，少图稳定循环补足；同一张 BitmapImage 可由多个 Image 共用。
@@ -133,11 +125,10 @@ public sealed partial class PosterCard
 
     private static Windows.UI.Color Color(ThemeColor color) => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
 
-    private static LinearGradientBrush Gradient(ThemeColor start, ThemeColor end, bool absolute = false) => new()
+    private static LinearGradientBrush Gradient(ThemeColor start, ThemeColor end) => new()
     {
         StartPoint = new(0, 0),
-        EndPoint = absolute ? new(208, 117) : new(1, 1),
-        MappingMode = absolute ? BrushMappingMode.Absolute : BrushMappingMode.RelativeToBoundingBox,
+        EndPoint = new(1, 1),
         GradientStops = [new GradientStop { Offset = 0, Color = Color(start) },
             new GradientStop { Offset = 1, Color = Color(end) }]
     };

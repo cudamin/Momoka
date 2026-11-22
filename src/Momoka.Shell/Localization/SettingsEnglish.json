@@ -478,7 +478,6 @@
   "在 Momoka 主页的媒体库那一排使用内置封面风格；关闭后恢复原封面，不修改服务器图片。": "Use built-in cover styles for Home library shortcuts. Turn off to restore original covers. Server images are never modified.",
   "封面预设": "Cover preset",
   "叠卡": "Stacked cards",
-  "斜切大图": "Angled image",
   "九宫格海报墙": "Nine-poster wall",
   "纯文字渐变": "Text gradient",
   "全部媒体库入口使用同一套风格，切换后立即生效。": "Apply one style to all library shortcuts immediately.",

@@ -151,7 +151,7 @@ internal static class SettingsApplicabilityTests
         if (videoOnly) return;
         TestHarness.Test("媒体库封面设置VM：总开关收起预设且保留选择，每次编辑只通知封面", () =>
         {
-            var state = shell.Create(settings => settings.Ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Diagonal);
+            var state = shell.Create(settings => settings.Ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Gradient);
             var card = state.Card("媒体库封面");
             var rows = state.Rows(card);
             var toggle = state.Row("媒体库封面", "覆盖媒体库封面");
@@ -176,10 +176,10 @@ internal static class SettingsApplicabilityTests
                 state.Toggle("媒体库封面", "覆盖媒体库封面", true);
                 Assert.Equal(2, rows.Count);
                 var choice = state.Row("媒体库封面", "封面预设");
-                Assert.Equal("斜切大图", state.SelectedLabel("媒体库封面", "封面预设"));
+                Assert.Equal("纯文字渐变", state.SelectedLabel("媒体库封面", "封面预设"));
                 var choices = state.Get<IEnumerable>(choice, "Choices").Cast<object>().ToArray();
                 Assert.True(choices.Select(value => state.Get<string>(value, "Label"))
-                    .SequenceEqual(new[] { "叠卡", "斜切大图", "九宫格海报墙", "纯文字渐变" }));
+                    .SequenceEqual(new[] { "叠卡", "九宫格海报墙", "纯文字渐变" }));
                 state.Set(choice, "Selected", choices.Single(value => state.Get<string>(value, "Label") == "九宫格海报墙"));
                 Assert.Equal(HomeLibraryCoverPresets.Wall, state.Settings.Settings.Ui.HomeLibraryCoverPreset);
 

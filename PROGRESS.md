@@ -1,3 +1,17 @@
+## 2026-11-22 主页媒体库封面删除斜切大图（worktree 分支，待合并）
+
+用户看着设置截图说「删除斜切大图」。树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-1c86fd4c`，分支 `workbuddy/master-1c86fd4c`，基点 `0caeeca`。
+
+设置「主页 → 媒体库封面」的预设只剩叠卡、九宫格海报墙、纯文字渐变。删掉 `HomeLibraryCoverPresets.Diagonal`，以及它的宽图优先取图、满宽解码和 Canvas 斜切遮罩；渐变助手随之去掉绝对坐标分支。旧配置里的 `diagonal` 与空值、未知值一并回到叠卡，不改总开关、服务器封面、请求路径和另外三套构图。
+
+**验证。** Shell、Tests Release/x64 编译 0 警告 0 错误；`home-library-cover-fixture` 12/12，同一入口带本树 Shell 与根后 VM 17/17；`settings-storage-fixture` 202/202；`settings-applicability-fixture` 38/38；主测试完整套件 **5342/5342、0 失败 0 跳过**（162 秒）。全部匿名离线，不创建真实窗口、不登录、不播放、不读写服务器。
+
+**闸门 1 未完成，不记通过。** 用户问「你跑什么闸门」后中止，未重跑。首次 `tools/quality.ps1` 在新工作树只还原过 Shell／Tests 的情况下编译失败：其余测试项目缺 `project.assets.json`，77 个 NETSDK1004；同一轮空白、PowerShell 脚本、文档链接、文档命令、凭据、重复代码（66 段／0.46%）和 diff 七项通过，架构依赖因产品构建失败未执行。随后补齐 `dotnet restore ./Momoka.sln`（80 个项目），重跑被中止，编译与架构没有本轮通过证据。未跑原生探针、自检和验收截图。
+
+**体验发布。** 工作树原本缺被 `.gitignore` 忽略的 `libmpv-2.dll`，首次发布在脚本的运行时检查处失败；从主树复制同一文件（101,242,880 字节）后重跑通过：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-workbuddy-master-1c86fd4c`，548 文件、290.7 MB，载荷与批准 mpv 清单 60 文件校验通过，`Momoka.exe` 668,160 字节、SHA256 `28A3385897ED3C1A4B2537D6F237B20F5ECD39921F64725C99A004950E8C1306`（2026-11-22 15:00）。桌面新建 `Momoka-workbuddy-master-1c86fd4c.lnk` 指向本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
+
+**未验。** 真实设置页和主页画面、五套主题／系统深浅、高对比、DPI、窄窗与图片渐进到达；真实服务器未连接。分支未合并、未上传，待交付台账已登记本批次。
+
 ## 2026-11-22 0.3.1 统一验证与发布（闸门 1／2／4 通过；探针 194/226；未销账）
 
 用户令「交付，自己决定要跑哪些探针，跑四道闸门，有红自己决定要不要修」「然后提交代码到 github」「最后更新版本打包发布到 GitHub，生成一个微软商店安装包」。最终代码为主树 `master` `bc21ecf`（版本 `0.3.1`）；产品代码自 02:08 的 `861e4a9` 起未再改动，此后只有文档、README 与一处弹幕夹具提交，交付期间并入的两个 README 提交 `b3a79ae`／`bc21ecf` 均在目标代码内。交付开始时工作区干净，没有未提交的产品改动。
