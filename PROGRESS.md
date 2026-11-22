@@ -1,6 +1,6 @@
-## 2026-11-22 叠卡悬浮扇形重设计（分支待合并）
+## 2026-11-22 叠卡悬浮扇形重设计（已合并 master，待统一验证）
 
-用户要求重新设计叠卡，并确认采用悬浮扇形方向。树 `C:/Users/89400/.codearts/worktrees/Momoka-stacked-card-redesign`，分支 `codex/stacked-card-redesign`，基点 `ed557b8`，首版产品提交 `da26f86`，多图追加产品提交 `8fa2be2`，未合并、未上传。
+用户要求重新设计叠卡，并确认采用悬浮扇形方向。树 `C:/Users/89400/.codearts/worktrees/Momoka-stacked-card-redesign`（已清理），分支 `codex/stacked-card-redesign`（已删除），基点 `ed557b8`，首版产品提交 `da26f86`，多图追加产品提交 `8fa2be2`，已由 `acf5744` 合入 master，未上传。
 
 保留左侧库名和单张封面读取路径，右侧改为左右错位、降低不透明度的后卡与直立前卡组成三层扇形；增加两层静态圆角柔影、细边框、三停点主题渐变和库名上方的小段强调色。缺图与高对比仍回退系统色文字封面，九宫格、纯文字、设置项、服务器图片、请求数量和动画生命周期不变。
 
@@ -13,6 +13,8 @@
 **分支体验发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-stacked-card-redesign` 通过：548 文件、290.7 MB，批准 mpv 清单 60 文件；`Momoka.exe` SHA256 `686C7566651B3F45DA6F4E106A97E0BF3F4263FFC1196445CE8957C098B8FA55`。桌面 `Momoka-stacked-card-redesign.lnk` 的 TargetPath 与 WorkingDirectory 均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
 
 **追加发布状态。** `8fa2be2` 首次重新发布时被本树 `Momoka.exe` 占用，按日常规则等待 30 秒后跳过；用户随后明确授权结束该实例。执行时目标发布目录已释放，重新运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-stacked-card-redesign` 通过：548 文件、290.7 MB，载荷验收通过，`Momoka.exe` SHA256 `F1801B97326EE2BDB9139082C746BBC54CC3F45B7495B5B4E340251C69169F46`。桌面 `Momoka-stacked-card-redesign.lnk` 的 TargetPath 与 WorkingDirectory 均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
+
+**合并与主树复验。** 用户令「合并」。主树合并前干净、master `ed557b8`；以 `--no-ff` 合入 `codex/stacked-card-redesign`，合并提交 `acf5744`，7 路径 +146/−10，无冲突。主树重编 Shell、Tests Release/x64 为 0 警告 0 错误；封面专项 **19/19**、主测试 **5344/5344、0 失败 0 跳过**（146861 ms）、架构 7/7；文档命令、链接、政策、空白格式通过。主树体验发布 `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件、290.7 MB，载荷验收通过，`Momoka.exe` SHA256 `648C09DF5F7D28FEA92A8F1BD9A129C65D5F7AF6E3B5FA9857BEF136E8DB8667`；`Momoka.lnk` 的目标和工作目录均回读为主树发布目录。分支快捷方式已删除；分支内容全部进入主树、工作树无未跟踪保留改动后，首次删除工作树遇 Windows 长路径失败，改用扩展长度路径清理并 prune，`codex/stacked-card-redesign` 已安全删除。未推送远端。
 
 **未验。** 按日常界面规则未跑原生探针、自检或验收截图；真实主页叠卡的主题、DPI、窄窗、长库名、图片渐进到达、圆角裁切和开关恢复，以及其他两套预设的相邻实屏回归均留待统一验证。未登录、未播放、未读写真实服务器，台账保持开放。
 
