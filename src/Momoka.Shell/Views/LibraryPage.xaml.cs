@@ -1903,6 +1903,10 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_aniBtPanel is { } aniBt)
             aniBt.Visibility = ReferenceEquals(aniBt, active) ? Visibility.Visible : Visibility.Collapsed;
         EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // MoviePilot 网页端上次搜索的结果就是网页「资源搜索结果」页打开时看到的那一份。这一来源刚露面、
+        // 页上还没有结果、框里也没有待搜的词时把缓存铺出来；读取失败留在空态，不挡用户自己搜。
+        if (available && source == 2 && _moviePilotResources is { } cached && ViewModel.SearchText.Trim().Length == 0)
+            _ = cached.LoadCachedResultsAsync();
         SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible;
         SearchUnavailableTitle.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
             ? UiText.Translate("AniBT 尚未启用") : UiText.Translate("MoviePilot 尚未连接");

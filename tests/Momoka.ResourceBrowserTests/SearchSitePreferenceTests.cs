@@ -382,6 +382,7 @@ internal sealed class SiteTransport : HttpMessageHandler
     internal string Catalogue { get; set; } = FullCatalogue;
     internal string SearchResults { get; set; } = "[]";
     internal bool FailCatalogue { get; set; }
+    internal bool FailSearch { get; set; }
     internal TaskCompletionSource<HttpResponseMessage>? PendingCatalogue { get; set; }
     internal Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? StreamReply { get; set; }
     internal int StreamReads { get; private set; }
@@ -404,6 +405,9 @@ internal sealed class SiteTransport : HttpMessageHandler
         if (!sites && !uri.AbsolutePath.StartsWith("/api/v1/search/", StringComparison.Ordinal))
             throw new AssertionException("站点夹具拒绝未登记读取");
         if (sites && PendingCatalogue is { } pending) return pending.Task;
+        if (!sites && FailSearch)
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+            { Content = new StringContent("{\"message\":\"服务器明确拒绝\"}", Encoding.UTF8, "application/json") });
         return Task.FromResult(new HttpResponseMessage(sites && FailCatalogue ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
         { Content = new StringContent(sites ? Catalogue : SearchResults, Encoding.UTF8, "application/json") });
     }

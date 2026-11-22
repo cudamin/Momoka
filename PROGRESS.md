@@ -1,3 +1,17 @@
+## 2026-11-23 搜索页「MP 资源」自动铺 MoviePilot 网页端上次搜索缓存（未合并，待统一验证）
+
+用户上传 Momoka 搜索页与 MoviePilot 网页资源搜索页截图，要求「momoka搜索页面的 mp资源 搜索页面下面要自动显示mp网页端已缓存的搜索结果」。树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-momoka-cached-search-x5iZTv`，分支 `feat-momoka-cached-search-x5iZTv`，基点 `db97463`。
+
+**上游依据。** 按主规则先读官方 v3 源码（`MoviePilot-Frontend` `65fa8a387070e212b62464f93d12c44f37d6dc6d`、`MoviePilot` 同分支浅克隆）：网页 `src/pages/resource.vue` 在没有新关键词时请求 `search/last/context` 并铺出 `data.results`，失败才退回 `search/last`；后端 `app/api/endpoints/search.py` 该接口按登录用户保存最近一次完成的搜索参数与结果。v2 分支前端同样先问上下文、失败退回裸结果，所以本地按「先上下文、明确 404／405／501 才退回 `search/last`」实现，超时与其它错误不换接口重试。
+
+**改法。** Core 新增 `MoviePilotService.LastSearchResultsAsync`：读当前连接账号的上次搜索上下文，复用 `MoviePilotMediaParser.ParseResources` 拆种子并盖连接 stamp；`params.result_type=subtitle` 时回空，字幕不当种子。Shell 的 `MoviePilotVersionsViewModel.LoadCachedResultsAsync` 走后台代次（不转忙态、不弹提示），只在该面板还没有结果时铺卡片；失败只记日志并保留「输入关键词」空态。`LibraryPage.ApplySource` 在切到「MP 资源」、连接可用、搜索框为空且面板尚无结果时触发一次，已有结果（自己搜的或刚才铺的缓存）不重读不覆盖；独立版本窗口照旧带关键词开搜，不预读。探针假服务补 `search/last` 空快照路由（搜索布局、搜索试用、MP 检查台），`Momoka.SearchLifetimeTests` 的页面边界补同名空实现。
+
+**验证。** Shell、Tests、ResourceBrowserTests、SearchLifetimeTests Release 编译 0 警告 0 错误；主测试完整套件 **5351/5351、0 失败 0 跳过**（150956 ms，新增 4 条 Core 缓存用例）；`Momoka.ResourceBrowserTests` 全套 **194/194**（新增 4 条 `CachedSearchTests` 与 1 条页面触发契约）；`Momoka.SearchLifetimeTests` **44/44**。全部匿名离线，不登录、不联网、不写服务器。
+
+**未验。** 按日常界面规则未跑原生探针、自检与验收截图；自动铺设后的真实 WinUI 画面、滚动位置、五套主题、宽窄窗口、真实 MoviePilot 服务器返回的缓存形状（含 v3.2.x 与旧版 404 回退的实际表现）留待统一验证。未合并、未上传。
+
+**分支体验发布。** 产品与测试提交 `a061b38`。`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-momoka-cached-search-x5iZTv` 通过：548 文件、290.7 MB，载荷验收通过；`Momoka.exe` 668,160 字节、SHA256 `F745CD6DF7D0362261F422D5254062A59C79A9D26E2C607CF175A1591A9E3198`（2026-11-23 00:38）。桌面 `Momoka-feat-momoka-cached-search-x5iZTv.lnk` 的目标和工作目录均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。工作树原缺 `libmpv-2.dll`，从主树复制同一文件（101,242,880 字节）后再发布。
+
 ## 2026-11-22 主页媒体库九宫格启动稳定与订阅入口逐张海报（已合并 master，待统一验证）
 
 用户报两件事：刚开启 Momoka 时九宫格封面里的海报会反复重排；「订阅·电影／订阅·电视剧」的封面一直重复同一张。工作表 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-cover-preset-duplicate-YHgnsO`，分支 `fix-cover-preset-duplicate-YHgnsO`，基点 `f7766c9`，产品与测试提交 `a4b8394`。

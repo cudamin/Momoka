@@ -70,6 +70,7 @@ description: "Develop, review and verify Momoka's MoviePilot integration: availa
 ## 资源列表
 
 - `search/media/{id}` 是已选媒体的精确搜索；带 `media_source`、类型 `mtype` 和已指定的 `season`（0 是特别篇，缺失不猜 1）。`search/title` 是关键词搜索，不能借用前一次选择的媒体身份。
+- 搜索页「MP 资源」在没有新关键词时先预读 MoviePilot 网页端上次搜索的缓存：`search/last/context`（当前账号的参数与结果），只有明确 404／405／501 才退回 `search/last`（只有结果）；`result_type=subtitle` 不铺成种子。已有结果不重读不覆盖，预读失败只留空态、不弹提示。
 - 精确搜索只保留与所选来源、编号和类型一致的完整 `media_info`。即使身份一致，回话显式返回 `media_info_is_target=false`，或解析得到的非空 `match_status` 不是 `exact`，仍须拒绝下载并隐藏下载入口，保留不匹配的状态说明，不能把候选当精确命中。缺少这两个标志或 `match_status` 为空字符串本身不构成否决，仍须核对身份、类型和媒体快照；对应规则在 `MoviePilotMediaParser.ToResource`。
 - 带可信媒体信息的下载走 `download/` 的 `media_in`，不能退回 `download/add` 再按种子标题猜片；后者没有影视 `mtype` 参数。
 - 搜索结果绑定获取时的连接与账号。订阅、下载和整理的防重状态由服务持有，不随重搜、新行或窗口重建清空；网络结果不明时保留“请先核对”，不开放直接重试。当前防重仅在本进程有效，不是跨进程幂等或服务器最终完成证明。

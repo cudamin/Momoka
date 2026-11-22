@@ -68,6 +68,22 @@ internal static class SearchCompactMergeTests
             Assert.Contains("public Visibility MoviePilotTabsVisibility =>\n        Show(_request?.IsSearch == true)", vm.Replace("\r\n", "\n"));
         });
 
+        Test("搜索来源：进入 MP 资源时自动铺 MoviePilot 网页端上次搜索缓存", () =>
+        {
+            var page = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
+            Assert.Contains(
+                "if (available && source == 2 && _moviePilotResources is { } cached && ViewModel.SearchText.Trim().Length == 0)",
+                page);
+            Assert.Contains("_ = cached.LoadCachedResultsAsync();", page);
+            var view = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotVersionsView.xaml.cs"));
+            Assert.Contains("internal Task LoadCachedResultsAsync() => ViewModel.LoadCachedResultsAsync();", view);
+            var vm = File.ReadAllText(Path.Combine(sourceRoot,
+                "src/Momoka.Shell/ViewModels/MoviePilotVersionsViewModel.cs"));
+            Assert.Contains("internal async Task LoadCachedResultsAsync()", vm);
+            Assert.Contains("if (service is null || Browser.HasResults) return;", vm);
+            Assert.Contains("BeginBackgroundLoad()", vm);
+        });
+
         Test("搜索来源：页内输入收起后来源栏仍居中在搜索区", () =>
             CheckSearchFormColumns(Load(sourceRoot, "LibraryPage.xaml")));
 

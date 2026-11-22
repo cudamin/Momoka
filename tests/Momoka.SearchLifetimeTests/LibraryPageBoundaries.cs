@@ -136,6 +136,8 @@ namespace Momoka.Shell.Views
     {
         internal int Releases { get; private set; }
         public void Release() { Releases++; }
+        // 缓存预读属于真实 MoviePilotVersionsView；这一份边界只证明来源切换接上了它。
+        internal System.Threading.Tasks.Task LoadCachedResultsAsync() => System.Threading.Tasks.Task.CompletedTask;
     }
     internal sealed class PickerBoundary
     {
