@@ -934,10 +934,16 @@ public sealed partial class CardItem : INotifyPropertyChanged
         if (presentation is not null) _presentation = presentation;
 
         if (_homeLibraryCoverPreset == Configuration.HomeLibraryCoverPresets.Gradient) return;
-        if (_homeLibraryCoverPreset is not null && !IsNavigation)
+        if (_homeLibraryCoverPreset is not null)
         {
-            await EnsureHomeLibraryCoverAsync(presentation).ConfigureAwait(true);
-            return;
+            if (!IsNavigation)
+            {
+                await EnsureHomeLibraryCoverAsync(presentation).ConfigureAwait(true);
+                return;
+            }
+            // 订阅入口的预设海报由主页取好直接交进来（见 ApplyHomeLibraryCoverImages），
+            // 不再退回那张会被九宫格复制九份的合成封面；本地媒体库等导航卡仍走自己那张封面。
+            if (_homeLibraryCoverFromOwner) return;
         }
 
         if (FolderCollage || LibraryWall)

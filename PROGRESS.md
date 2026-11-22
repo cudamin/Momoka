@@ -1,3 +1,17 @@
+## 2026-11-22 主页媒体库九宫格启动稳定与订阅入口逐张海报（分支 fix-cover-preset-duplicate-YHgnsO，待合并）
+
+用户报两件事：刚开启 Momoka 时九宫格封面里的海报会反复重排；「订阅·电影／订阅·电视剧」的封面一直重复同一张。工作表 `C:/Users/89400/.trae-cn/worktrees/Momoka/fix-cover-preset-duplicate-YHgnsO`，分支 `fix-cover-preset-duplicate-YHgnsO`，基点 `f7766c9`，产品与测试提交 `a4b8394`。
+
+**启动重排。** `CardItem.EnsureHomeLibraryCoverAsync` 改为先把这一排要的海报攒进本地列表，全部取完才一次性加入 `HomeLibraryCoverImages` 并通知；加载期间保持 `HomeLibraryCoverPreset` 的渐变文字，不再每来一张就重建九宫格。`HomeViewModel` 新增 `_settledLibraryRows`：只有该库排已经发布过内容（或暖缓存恢复过）才用真实条目选图；未落屏时不套库自身封面，避免先复制一张、等库排回来再整体换一遍。预设有图仍按原顺序、去重和上限规则，服务器封面与写回未改。
+
+**订阅入口。** 两张分类卡是导航卡，原来只有一张合成封面，九宫格会把它复制九份。`MoviePilotLibraryArtwork.Select` 增加上限参数（合成默认 4，九宫格 9）；`MoviePilotLibraryCoverLoader.LoadTilesAsync` 并发取图并逐张解码，坏图跳过、顺序保留；`HomeViewModel` 按分类缓存取好的海报，通过 `CardItem.ApplyHomeLibraryCoverImages` 直接交给预设绘制，导航卡在预设开启时不再退回合成封面。关闭预设、纯文字渐变、离页、换连接或订阅列表变化时取消取图并恢复原路径；全部取不到的批次按 `ImageCachePolicy` 冷却，避免每次刷新重打同一批坏地址。
+
+**验证。** Shell、Tests Release/x64 编译 0 警告 0 错误；`home-library-cover-fixture` 无参 16/16、带本树 Shell 与根 23/23（新增库排落屏前后选图、订阅入口走逐张通道和失败冷却断言）；主测试完整套件 **5347/5347、0 失败 0 跳过**（146686 ms）；闸门 1 `tools/quality.ps1` **9/9 通过**（`artifacts/quality/20261122-195505`）：跨方案 Release 0 警告 0 错误、空白、64 脚本、183 文档链接、153 文档命令、凭据 0 命中、架构 7/7、重复代码 66 段／1187 行／0.46%、diff。全部匿名离线，不创建真实窗口、不登录、不播放、不读写服务器。
+
+**分支体验发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-cover-preset-duplicate-YHgnsO` 通过：548 文件、290.7 MB，载荷验收通过；`Momoka.exe` SHA256 `E8AD2784CC5D75E9CA2AF5FD945BD9DC581099B977F3A95FF43EA5C013E10BD4`。桌面 `Momoka-fix-cover-preset-duplicate-YHgnsO.lnk` 的目标和工作目录均回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。工作树缺 `libmpv-2.dll`，按前例从主树发布目录复制同一文件（101,242,880 字节）后再发布。
+
+**未验。** 按日常界面规则未跑原生探针、自检或验收截图。真实 MoviePilot 图片代理返回后的九宫格外观、不同订阅数量（1～9 张）的循环效果、五套深色主题与跟随系统深浅、高对比、跨 DPI、窄窗、图片渐进到达、关闭预设恢复合成封面均留待统一验证。未合并主树、未上传。
+
 ## 2026-11-22 叠卡悬浮扇形重设计（已合并 master，待统一验证）
 
 用户要求重新设计叠卡，并确认采用悬浮扇形方向。树 `C:/Users/89400/.codearts/worktrees/Momoka-stacked-card-redesign`（已清理），分支 `codex/stacked-card-redesign`（已删除），基点 `ed557b8`，首版产品提交 `da26f86`，多图追加产品提交 `8fa2be2`，已由 `acf5744` 合入 master，未上传。

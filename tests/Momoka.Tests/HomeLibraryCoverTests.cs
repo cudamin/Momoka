@@ -303,6 +303,66 @@ internal static class HomeLibraryCoverTests
             }
             finally { ((IDisposable)home).Dispose(); }
         });
+        Case("主页媒体库封面VM：库排落屏前不拿库自身封面凑九宫格", async () =>
+        {
+            using var fixture = CoverFixture(shell);
+            var ui = fixture.Settings.Settings.Ui;
+            ui.HomeLibraryCoverOverride = true;
+            ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Wall;
+            var home = fixture.CreateLoadingHome();
+            try
+            {
+                // 给库自己一张封面：旧路径会先把它复制成九份，等库排回来再整体重排。
+                foreach (var library in ((IEnumerable)Field(home, "_libraryViews")!).Cast<EmbyItem>())
+                {
+                    library.PrimaryImageTag = "library-poster";
+                    library.PrimaryImageItemId = library.Id;
+                }
+                shell.Invoke(home, "ApplyLibraryEntries", ui);
+                var cards = Values(shell, shell.Get<object>(home, "LibraryShelf"), "Cards");
+                Assert.Equal(2, cards.Length);
+                foreach (var card in cards)
+                {
+                    Assert.Equal(HomeLibraryCoverPresets.Wall, shell.Get<string?>(card, "HomeLibraryCoverPreset"));
+                    Assert.Equal(0, ((IReadOnlyList<ArtworkRef>)Field(card, "_homeLibraryCoverArtwork")!).Count,
+                        "库排还没落屏时不能先套库自己的封面");
+                }
+                await Load(shell, home);
+                foreach (var card in cards)
+                    Assert.Equal(9, ((IReadOnlyList<ArtworkRef>)Field(card, "_homeLibraryCoverArtwork")!).Count,
+                        "库排落屏后才按真实最近条目取九张");
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+        Case("主页媒体库封面VM：订阅入口走逐张海报通道，不退回合成封面", async () =>
+        {
+            using var fixture = CoverFixture(shell);
+            var ui = fixture.Settings.Settings.Ui;
+            ui.HomeLibraryCoverOverride = true;
+            ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Wall;
+            var home = fixture.CreateLoadingHome();
+            try
+            {
+                shell.Invoke(home, "ApplyLibraryEntries", ui);
+                var card = Values(shell, shell.Get<object>(home, "LibraryShelf"), "Cards").First();
+                var id = shell.Get<EmbyItem>(card, "Item").Id;
+                var entryType = home.GetType().GetNestedType("MoviePilotLibraryEntry", BindingFlags.NonPublic)!;
+                var entry = entryType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    .Single().Invoke([id, card, new[] { "https://images.invalid/a", "https://images.invalid/b" },
+                        (Func<string, CancellationToken, Task<byte[]>>)((_, _) => Task.FromResult(Array.Empty<byte>()))]);
+                ((IDictionary)Field(home, "_moviePilotLibraries")!)[id] = entry;
+                shell.Invoke(home, "SyncLibraryCovers");
+                Assert.Equal(HomeLibraryCoverPresets.Wall, shell.Get<string?>(card, "HomeLibraryCoverPreset"));
+                Assert.True((bool)Field(card, "_homeLibraryCoverFromOwner")!, "订阅入口的预设图应由属主提供");
+                Assert.Equal(0, ((IReadOnlyList<ArtworkRef>)Field(card, "_homeLibraryCoverArtwork")!).Count);
+                Assert.True(shell.Get<object>(card, "Poster") is null, "不能留下会被复制九份的合成封面");
+                var failedAt = entryType.GetProperty("TileFailedAt", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!;
+                for (var attempt = 0; attempt < 100 && (DateTime)failedAt.GetValue(entry)! == default; attempt++)
+                    await Task.Delay(10);
+                Assert.True((DateTime)failedAt.GetValue(entry)! != default, "坏图应走失败冷却，不能逐次刷新反复请求");
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
         return TestHarness.Run();
     }
 

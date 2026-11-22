@@ -454,6 +454,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _retainedFingerprint = null;
         foreach (var (_, shelf) in _all) shelf.Clear();
         Shelves.Clear();
+        _settledLibraryRows.Clear();
         Slides = [];
         LibraryShelf = null;
         _libraryOnBanner = false;
@@ -495,6 +496,7 @@ public sealed partial class HomeViewModel : PageViewModel
         if (_images is not { } images || !Live) return;
 
         _refresh.Invalidate();
+        _settledLibraryRows.Clear();
         var ui = _settings?.Settings.Ui;
 
         // 轮播图开着时「媒体库」那一排固定在第一位（2026-10-31 用户令）：它的落点由「主页媒体库位置」和窗口
@@ -658,6 +660,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
             shelf.Apply(Visible(row.Key, cached.Items), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
             shelf.NoteOverride = cached.Note;
+            if (HomeLayout.LibraryId(row.Key) is not null) _settledLibraryRows.Add(row.Key);
         }
         timing?.Mark("home-cards-end", _all.Sum(entry => entry.Shelf.Cards.Count));
 
@@ -1247,6 +1250,8 @@ public sealed partial class HomeViewModel : PageViewModel
             if (items.Count == 0 && load.Parts.Length > 0 && !load.Complete) return;
 
             ApplyShelf(load.Row, load.Shelf, items);
+            // 库排第一次落屏之后，封面预设才可以照这一排的真实条目取图（见 SyncLibraryCovers）。
+            if (HomeLayout.LibraryId(load.Row.Key) is not null) _settledLibraryRows.Add(load.Row.Key);
             PublishShelves();
             LoadedCount = _all.Where(entry => entry.Row.Key != HomeLayout.Libraries)
                 .Sum(entry => entry.Shelf.Cards.Count);
@@ -1820,7 +1825,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _active = false;
         foreach (var (_, shelf) in _all)
             foreach (var card in shelf.Cards.Materialized) card.ReleaseHomeLibraryCover();
-        foreach (var entry in _moviePilotLibraries.Values) entry.Card.AbandonPoster();
+        foreach (var entry in _moviePilotLibraries.Values) entry.Release();
         // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
         _realtime.Release();
         _fnNasTasks.Release();
