@@ -6,6 +6,9 @@ public enum MoviePilotResourceSort { Original, Site, Size, Seeders, PublishedAt 
 /// <summary>过滤只作用于本次返回的资源，不重新访问站点，也不改变下载所用的原始身份。</summary>
 public sealed record MoviePilotResourceFilter
 {
+    /// <summary>网页端字幕分区的候选只有站点明确标注的这两个标签，选项收集与结果匹配共用。</summary>
+    public static IReadOnlySet<string> SubtitleLabels { get; } = new HashSet<string>(StringComparer.Ordinal) { "中字", "特效" };
+
     public string Text { get; init; } = "";
     public string Site { get; init; } = "";
     public string Resolution { get; init; } = "";
@@ -20,6 +23,13 @@ public sealed record MoviePilotResourceFilter
     public IReadOnlyList<string> VideoCodecs { get; init; } = [];
     public IReadOnlyList<string> Editions { get; init; } = [];
     public IReadOnlyList<string> ReleaseGroups { get; init; } = [];
+    // 网页端综合筛选的「源」取 meta_info.web_source；「字幕」只认站点明确标注的中字／特效。
+    public IReadOnlyList<string> WebSources { get; init; } = [];
+    public IReadOnlyList<string> Subtitles { get; init; } = [];
+    // 网页端促销分区直接列 torrent_info.volume_factor 原值；旧回包只有倍率时用 PromotionLabel 补齐。
+    public IReadOnlyList<string> Promotions { get; init; } = [];
+    // 网页端「季」筛选按 meta_info.season_episode 原值（含 S01E05 这类单集）匹配。
+    public IReadOnlyList<string> SeasonEpisodes { get; init; } = [];
     public IReadOnlyList<int> Seasons { get; init; } = [];
     public IReadOnlyList<int> Episodes { get; init; } = [];
     public IReadOnlyList<double> PromotionFactors { get; init; } = [];
@@ -34,17 +44,24 @@ public sealed record MoviePilotResourceFilter
 
     public bool Matches(MoviePilotResource resource, DateTimeOffset now)
     {
-        if (Seasons.Count > 0 ? !Seasons.Any(resource.Seasons.Contains) :
+        if (SeasonEpisodes.Count > 0
+            ? !SeasonEpisodes.Any(value => MoviePilotSeasonEpisodeOptions.Matches(resource, value))
+            : Seasons.Count > 0 ? !Seasons.Any(resource.Seasons.Contains) :
             Season is { } season && !resource.Seasons.Contains(season)) return false;
         // 按集筛选认两处：meta 里解析出的集号，或标题／描述里写着集号（E05、第5集这些写法，见
         // MoviePilotEpisodePattern）—— 服务器 meta 偶尔整段没解析出来，标题里明写着的不该跟着丢。
         if (Episodes.Count > 0 ? !Episodes.Any(episode => MatchesEpisode(resource, episode)) :
             Episode is { } selectedEpisode && !MatchesEpisode(resource, selectedEpisode)) return false;
-        if (!MatchesValue(resource.SiteName, Site, Sites) || !MatchesValue(resource.Resolution, Resolution, Resolutions) ||
+        if (!MatchesValue(resource.SiteName, Site, Sites) || !MatchesValue(resource.WebSource, "", WebSources) ||
+            !MatchesValue(resource.Resolution, Resolution, Resolutions) ||
             !MatchesValue(resource.VideoCodec, VideoCodec, VideoCodecs) || !MatchesValue(resource.Edition, Edition, Editions) ||
             !MatchesValue(resource.ReleaseGroup, ReleaseGroup, ReleaseGroups)) return false;
+        if (Subtitles.Count > 0 && !resource.Labels.Any(label =>
+                SubtitleLabels.Contains(label) && Subtitles.Contains(label, StringComparer.OrdinalIgnoreCase))) return false;
         if (Labels.Count > 0 ? !Labels.Any(label => resource.Labels.Contains(label, StringComparer.OrdinalIgnoreCase)) :
             Label.Length > 0 && !resource.Labels.Contains(Label, StringComparer.OrdinalIgnoreCase)) return false;
+        if (Promotions.Count > 0 &&
+            !Promotions.Contains(resource.PromotionLabel, StringComparer.OrdinalIgnoreCase)) return false;
         if (PromotionFactors.Count > 0 &&
             (resource.DownloadFactor is not { } factor || !PromotionFactors.Contains(factor))) return false;
         if (SeededOnly && resource.Seeders <= 0 || ExcludeHitAndRun && resource.HitAndRun) return false;

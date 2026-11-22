@@ -22,7 +22,6 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
 
     private static Visibility AscendingIconVisibility(bool descending) => descending ? Visibility.Collapsed : Visibility.Visible;
     private static Visibility DescendingIconVisibility(bool descending) => descending ? Visibility.Visible : Visibility.Collapsed;
-    private static Visibility FilterCheckVisibility(bool selected) => selected ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// 点卡片（指针单击或键盘回车）：打开下载选择栏。卡片上的详情方钮自己处理指针，不会走到这里。
@@ -64,7 +63,33 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
     {
         foreach (var facet in new[] { SiteFilter, SeasonFilter, PromotionFilter, VideoFilter, EditionFilter, ResolutionFilter, GroupFilter })
             facet.ClosePopup();
-        AdvancedFilters.Hide();
+        AdvancedFilterDialog?.Hide();
         SortMenu.Hide();
+    }
+
+    /// <summary>当前打开的综合筛选弹窗；检查台用它取真实控件，关窗或换页时一并收掉。</summary>
+    internal MoviePilotResourceFilterDialog? AdvancedFilterDialog { get; private set; }
+
+    private void OnAdvancedFilters(object sender, RoutedEventArgs e) => OpenAdvancedFilters();
+
+    /// <summary>
+    /// 打开综合筛选弹窗（网页端「全部筛选」的对应物）。弹窗与结果共用同一份视图模型，
+    /// 勾选即生效；点外面或关闭都只是收起，不改已经选中的条件。
+    /// </summary>
+    internal MoviePilotResourceFilterDialog OpenAdvancedFilters()
+    {
+        if (AdvancedFilterDialog is { } opened) return opened;
+        var dialog = new MoviePilotResourceFilterDialog(ViewModel)
+        {
+            XamlRoot = XamlRoot,
+            RequestedTheme = ActualTheme
+        };
+        AdvancedFilterDialog = dialog;
+        dialog.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(AdvancedFilterDialog, dialog)) AdvancedFilterDialog = null;
+        };
+        _ = dialog.ShowAsync();
+        return dialog;
     }
 }

@@ -103,13 +103,43 @@ internal static class ResourceFilterCardTests
             var e01 = Choice(vm.EpisodeCards, "E01");
             var e03 = Choice(vm.EpisodeCards, "E03");
             e03.Selected = true;
-            Choice(vm.SeasonFacet.Choices, "1").Selected = true;
+            Choice(vm.SeasonFacet.Choices, "S01").Selected = true;
             Assert.False(vm.Episodes.Contains("E03"));
             Assert.Equal(MoviePilotResourceBrowserViewModel.AllEpisodes, vm.SelectedEpisode);
             Assert.True(ReferenceEquals(e01, Choice(vm.EpisodeCards, "E01")));
             e03.Selected = false;
             e03.Selected = true;
             Assert.Equal(MoviePilotResourceBrowserViewModel.AllEpisodes, vm.SelectedEpisode, "已退役的旧卡不能再改本批条件");
+        });
+        Test("季筛选：网页端 season_episode 原值含集，整季优先、同类按季集降序", () =>
+        {
+            var vm = new MoviePilotResourceBrowserViewModel();
+            var rows = new[]
+            {
+                Row(Season("Whole.S10", "S10", 10)),
+                Row(Season("Whole.S02", "S02", 2)),
+                Row(Season("Whole.S01", "S01", 1)),
+                Row(Season("Episode.S10E01E03", "S10E01-E03", 10)),
+                Row(Season("Episode.S02E12", "S02E12", 2)),
+                Row(Season("Episode.S01E05", "S01E05", 1))
+            };
+            vm.SetResults(rows);
+            Assert.Equal("S10,S02,S01,S10E01-E03,S02E12,S01E05",
+                string.Join(',', vm.SeasonFacet.Choices.Select(choice => choice.Value)));
+            Choice(vm.SeasonFacet.Choices, "S01E05").Selected = true;
+            Assert.Equal("Episode.S01E05", Titles(vm));
+            Choice(vm.SeasonFacet.Choices, "S01E05").Selected = false;
+            Choice(vm.SeasonFacet.Choices, "S01").Selected = true;
+            Assert.Equal("Whole.S01", Titles(vm), "整季选项按原值精确匹配，不吞掉同一季的单集");
+            Assert.Equal(MoviePilotResourceBrowserViewModel.AllEpisodes, vm.SelectedEpisode);
+            Assert.Equal("季 · S01", Choice(vm.SeasonFacet.Choices, "S01").FilterLabel);
+        });
+        Test("季筛选：缺 season_episode 的旧回包退回季号仍可选", () =>
+        {
+            var vm = Browser();
+            Assert.Equal("S02,S01", string.Join(',', vm.SeasonFacet.Choices.Select(choice => choice.Value)));
+            Choice(vm.SeasonFacet.Choices, "S02").Selected = true;
+            Assert.Equal("Voice", Titles(vm));
         });
         Test("综合筛选卡片：meta缺集号的目标集可清除并选回，新结果撤销旧卡", () =>
         {
@@ -137,13 +167,40 @@ internal static class ResourceFilterCardTests
             Assert.Equal("Chinese,Dual", Titles(vm));
             Choice(vm.LabelCards, "特效").Selected = true;
             Assert.Equal("Effects,Dual", Titles(vm));
-            Assert.False(Choice(vm.LabelCards, "中字").Selected, "保留原标签单选，不顺带增加独立字幕业务维度");
+            Assert.False(Choice(vm.LabelCards, "中字").Selected, "标签单选保持独立，字幕分组是另一维多选");
             Assert.Equal(1, vm.LabelCards.Count(card => card.Selected));
             Choice(vm.LabelCards, "特效").RemoveCommand.Execute(null);
             Assert.Equal(MoviePilotResourceBrowserViewModel.AllLabels, vm.SelectedLabel);
             vm.SelectedLabel = "国语";
             Assert.Equal("Voice", Titles(vm));
             Assert.True(Choice(vm.LabelCards, "国语").Selected);
+        });
+        Test("综合筛选分区：网页端九组齐全，源/字幕/促销可多选，全选与清除只动本组", () =>
+        {
+            var vm = Browser();
+            Assert.Equal("站点,季,源,字幕,促销状态,视频编码,质量,分辨率,制作组",
+                string.Join(',', vm.DialogFacets.Select(facet => facet.Label)));
+            var source = vm.DialogFacets.Single(facet => facet.Label == "源");
+            Assert.Equal("AMZN,Netflix", string.Join(',', source.Choices.Select(choice => choice.Value)));
+            Assert.Equal(Visibility.Collapsed, source.SelectionVisibility);
+            Choice(source.Choices, "Netflix").Selected = true;
+            Assert.Equal("Chinese,Dual", Titles(vm));
+            Assert.Equal(Visibility.Visible, source.SelectionVisibility);
+            var subtitle = vm.DialogFacets.Single(facet => facet.Label == "字幕");
+            Assert.Equal("中字,特效", string.Join(',', subtitle.Choices.Select(choice => choice.Value)));
+            subtitle.SelectAllCommand.Execute(null);
+            Assert.Equal("Chinese,Dual", Titles(vm), "字幕全选后仍受已选源的约束");
+            Assert.Equal("Netflix", string.Join(',', source.Selected), "全选字幕不应改动其它分组");
+            subtitle.ClearCommand.Execute(null);
+            Assert.Equal("Chinese,Dual", Titles(vm));
+            var promotion = vm.DialogFacets.Single(facet => facet.Label == "促销状态");
+            Choice(promotion.Choices, "50%").Selected = true;
+            Assert.Equal(0, vm.Rows.Count, "源和促销是不同维度的交集");
+            Assert.Equal(Visibility.Visible, promotion.SelectionVisibility);
+            source.ClearCommand.Execute(null);
+            Assert.Equal("Effects", Titles(vm), "清除源只放开源，不影响已选促销");
+            promotion.ClearCommand.Execute(null);
+            Assert.Equal(4, vm.Rows.Count);
         });
         foreach (var (index, count) in new[] { (0, 4), (1, 2), (2, 3), (3, 3), (4, 3) })
         {
@@ -196,11 +253,13 @@ internal static class ResourceFilterCardTests
             var picker = Load(sourceRoot, "MoviePilotResourceFacetPicker.xaml");
             var styles = Load(sourceRoot, "MoviePilotResourceFilterStyles.xaml");
             var browser = Load(sourceRoot, "MoviePilotResourceBrowser.xaml");
+            var dialog = Load(sourceRoot, "MoviePilotResourceFilterDialog.xaml");
             Assert.False(picker.Descendants().Any(node => node.Name.LocalName == "CheckBox"));
             Assert.False(browser.Descendants().Any(node => node.Name.LocalName == "CheckBox"));
+            Assert.False(dialog.Descendants().Any(node => node.Name.LocalName == "CheckBox"));
             Assert.False(styles.Descendants().Any(node => node.Name.LocalName == "ControlTemplate"), "不替换原生模板");
             var option = Named(picker, "SelectChoice");
-            Assert.True(XNode.DeepEquals(Keyed(picker, "ResourceFilterOptionTemplate"), Keyed(browser, "ResourceFilterOptionTemplate")),
+            Assert.True(XNode.DeepEquals(Keyed(picker, "ResourceFilterOptionTemplate"), Keyed(dialog, "ResourceFilterOptionTemplate")),
                 "两处轻量内容模板一致，保持旧SelectChoice的文件定位契约，不引入额外控件生命周期");
             Assert.Equal("ToggleButton", option.Name.LocalName);
             Assert.Equal("{x:Bind Selected, Mode=TwoWay}", option.Attribute("IsChecked")?.Value);
@@ -212,7 +271,7 @@ internal static class ResourceFilterCardTests
             Assert.True(style.Elements().Any(node => node.Attribute("Property")?.Value == "UseSystemFocusVisuals" && node.Attribute("Value")?.Value == "True"));
             Assert.True(style.Elements().Any(node => node.Attribute("Property")?.Value == "IsThreeState" && node.Attribute("Value")?.Value == "False"));
             foreach (var (xml, name, source) in new[] { (picker, "FacetChoices", "Facet.Choices"),
-                (browser, "EpisodeFilter", "ViewModel.EpisodeCards"), (browser, "LabelFilter", "ViewModel.LabelCards"), (browser, "DateFilter", "ViewModel.DateCards") })
+                (dialog, "EpisodeFilter", "ViewModel.EpisodeCards"), (dialog, "LabelFilter", "ViewModel.LabelCards"), (dialog, "DateFilter", "ViewModel.DateCards") })
             {
                 var items = Named(xml, name);
                 Assert.Equal("ItemsControl", items.Name.LocalName);
@@ -220,20 +279,63 @@ internal static class ResourceFilterCardTests
                 Assert.Equal("{StaticResource ResourceFilterOptionTemplate}", items.Attribute("ItemTemplate")?.Value);
                 Assert.True(items.Descendants().Any(node => node.Name.LocalName == "WrapRow"));
             }
-            foreach (var xml in new[] { picker, browser })
+            foreach (var xml in new[] { picker, dialog })
                 Assert.True(xml.Descendants().Where(node => node.Name.LocalName == "ScrollViewer").All(node =>
                     node.Attribute("HorizontalScrollBarVisibility")?.Value == "Disabled" && node.Attribute("HorizontalScrollMode")?.Value == "Disabled"));
             foreach (var name in new[] { "SeededFilter", "HitAndRunFilter" })
             {
-                var toggle = Named(browser, name);
+                var toggle = Named(dialog, name);
                 Assert.Equal("ToggleButton", toggle.Name.LocalName);
                 Assert.NotNull(toggle.Attribute("AutomationProperties.Name"));
                 Assert.Contains("Mode=TwoWay", toggle.Attribute("IsChecked")?.Value);
             }
         });
+        Test("综合筛选弹窗：网页端弹窗结构与下方展开、图标字色不再被框架悬停槽改掉", () =>
+        {
+            var browser = Load(sourceRoot, "MoviePilotResourceBrowser.xaml");
+            var picker = Load(sourceRoot, "MoviePilotResourceFacetPicker.xaml");
+            var dialog = Load(sourceRoot, "MoviePilotResourceFilterDialog.xaml");
+            Assert.Equal("ContentDialog", dialog.Root!.Name.LocalName);
+            Assert.Equal("BottomEdgeAlignedLeft", Named(picker, "ChoicesFlyout").Attribute("Placement")?.Value,
+                "筛选项又展开到按钮上方了");
+            var expander = Named(browser, "FilterExpander");
+            Assert.Equal("Button", expander.Name.LocalName, "综合筛选应打开弹窗而不是下拉");
+            Assert.Equal("OnAdvancedFilters", expander.Attribute("Click")?.Value);
+            var icon = expander.Descendants().First(node => node.Name.LocalName == "FontIcon");
+            Assert.Equal("{ThemeResource EgAccentBrush}", icon.Attribute("Foreground")?.Value,
+                "折叠栏图标继承模板前景色，悬停时会丢失强调色");
+            var facetIcon = Named(picker, "OpenFacet").Descendants().First(node => node.Name.LocalName == "FontIcon");
+            Assert.Equal("{ThemeResource EgAccentBrush}", facetIcon.Attribute("Foreground")?.Value);
+            foreach (var (xml, element) in new[] { (browser, expander), (picker, Named(picker, "OpenFacet")) })
+            {
+                var resources = element.Elements().Single(node => node.Name.LocalName == "Button.Resources" || node.Name.LocalName == "DropDownButton.Resources");
+                Assert.True(resources.Elements().Any(node => node.Attribute(X + "Key")?.Value == "ButtonBackgroundPointerOver"
+                    && node.Attribute("ResourceKey")?.Value == "EgAccentMutedBrush"), "悬停背景没钉在强调色柔和底上");
+                Assert.True(resources.Elements().Any(node => node.Attribute(X + "Key")?.Value == "ButtonBackgroundPressed"
+                    && node.Attribute("ResourceKey")?.Value == "EgAccentSoftBrush"), "按下背景没钉住");
+            }
+            foreach (var (name, source) in new[] { ("WebSourceFilter", "ViewModel.WebSourceFacet"), ("SubtitleFilter", "ViewModel.SubtitleFacet") })
+            {
+                var facet = Named(browser, name);
+                Assert.Equal("MoviePilotResourceFacetPicker", facet.Name.LocalName);
+                Assert.Equal("{x:Bind " + source + ", Mode=OneWay}", facet.Attribute("Facet")?.Value);
+            }
+            var groups = Named(dialog, "DialogFacetGroups");
+            Assert.Equal("ItemsRepeater", groups.Name.LocalName);
+            Assert.Equal("{x:Bind ViewModel.DialogFacets, Mode=OneWay}", groups.Attribute("ItemsSource")?.Value);
+            Assert.Equal("{StaticResource ResourceFilterGroupTemplate}", groups.Attribute("ItemTemplate")?.Value);
+            Assert.True(groups.Descendants().Any(node => node.Name.LocalName == "UniformGridLayout"
+                && node.Attribute("ItemsStretch")?.Value == "Fill"), "网页端分组卡按可用宽度换行成两列");
+            var group = Keyed(dialog, "ResourceFilterGroupTemplate");
+            Assert.Equal("{x:Bind Choices}", group.Descendants().Single(node => node.Name.LocalName == "ItemsControl").Attribute("ItemsSource")?.Value);
+            Assert.Equal("{x:Bind SelectAllCommand}", Named(group, "SelectAllGroup").Attribute("Command")?.Value);
+            Assert.Equal("{x:Bind ClearCommand}", Named(group, "ClearGroup").Attribute("Command")?.Value);
+            Assert.Equal("{x:Bind SelectionVisibility, Mode=OneWay}", Named(group, "ClearGroup").Attribute("Visibility")?.Value,
+                "分组清除只在这一组有选中时出现");
+        });
         Test("资源筛选卡片：已有句柄保留原文件归属，不靠移动句柄或修改基线洗绿", () =>
         {
-            foreach (var file in new[] { "MoviePilotResourceBrowser.xaml", "MoviePilotResourceFacetPicker.xaml" })
+            foreach (var file in new[] { "MoviePilotResourceBrowser.xaml", "MoviePilotResourceFacetPicker.xaml", "MoviePilotResourceFilterDialog.xaml" })
             {
                 var names = Load(sourceRoot, file).Descendants().Attributes(X + "Name").Select(attribute => attribute.Value).ToHashSet();
                 var prefix = "handle  Views/" + file + "  ";
@@ -321,7 +423,7 @@ internal static class ResourceFilterCardTests
 
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static XDocument Load(string sourceRoot, string file) => XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views", file));
-    private static XElement Named(XDocument xml, string name) => xml.Descendants().Single(node => node.Attribute(X + "Name")?.Value == name);
+    private static XElement Named(XContainer xml, string name) => xml.Descendants().Single(node => node.Attribute(X + "Name")?.Value == name);
     private static XElement Keyed(XDocument xml, string key) => xml.Descendants().Single(node => node.Attribute(X + "Key")?.Value == key);
     private static MoviePilotResourceChoice Choice(IEnumerable<MoviePilotResourceChoice> cards, string value) => cards.Single(card => card.Value == value);
     private static string Titles(MoviePilotResourceBrowserViewModel vm) => string.Join(',', vm.Rows.Select(row => row.Title));
@@ -332,6 +434,15 @@ internal static class ResourceFilterCardTests
         return vm;
     }
     private static MoviePilotResourceRow Row(MoviePilotResource resource) => new(resource, _ => Task.CompletedTask);
+    private static MoviePilotResource Season(string title, string seasonEpisode, int season) => new()
+    {
+        Title = title,
+        SeasonEpisode = seasonEpisode,
+        Seasons = [season],
+        Episodes = [1],
+        Size = 10,
+        TorrentInfo = JsonSerializer.SerializeToElement(new { title = "anonymous" })
+    };
     private static MoviePilotResource[] Resources()
     {
         var now = DateTimeOffset.Now;
@@ -341,6 +452,11 @@ internal static class ResourceFilterCardTests
             Description = "1080p",
             SiteName = "A",
             Resolution = "1080p",
+            VideoCodec = "H264",
+            Edition = "WEB-DL",
+            ReleaseGroup = "GROUP",
+            WebSource = "Netflix",
+            Promotion = "普通",
             Labels = ["中字"],
             Seasons = [1],
             Episodes = [1],
@@ -349,10 +465,11 @@ internal static class ResourceFilterCardTests
             PublishedAt = now.AddHours(-1),
             TorrentInfo = JsonSerializer.SerializeToElement(new { title = "anonymous" })
         };
-        return [first, first with { Title = "Effects", SiteName = "B", Labels = ["特效"], Episodes = [2], Size = 20, Seeders = 0, PublishedAt = now.AddDays(-2) },
+        return [first, first with { Title = "Effects", SiteName = "B", Labels = ["特效"], Episodes = [2], Size = 20, Seeders = 0, PublishedAt = now.AddDays(-2),
+                VideoCodec = "H265", Edition = "BluRay", ReleaseGroup = "OTHER", WebSource = "AMZN", Promotion = "50%" },
             first with { Title = "Dual", SiteName = "A", Description = "2160p", Resolution = "2160p", Labels = ["中字", "特效"], Episodes = [2],
                 Size = 30, PublishedAt = now.AddDays(-100) },
             first with { Title = "Voice", Description = "片名含中字不代表字幕 1080p", SiteName = "C", Labels = ["国语"], Seasons = [2], Episodes = [3],
-                Size = 40, HitAndRun = true }];
+                Size = 40, HitAndRun = true, WebSource = "AMZN" }];
     }
 }

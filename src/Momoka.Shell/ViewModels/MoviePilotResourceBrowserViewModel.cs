@@ -24,23 +24,30 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     {
         SiteFacet = new("site", "站点", "\uE968", Apply);
         SeasonFacet = new("season", "季", "\uE787", SeasonSelectionChanged);
+        WebSourceFacet = new("webSource", "源", "\uE774", Apply);
+        SubtitleFacet = new("subtitle", "字幕", "\uED1E", Apply);
         PromotionFacet = new("promotion", "促销状态", "\uE719", Apply);
         VideoFacet = new("video", "视频编码", "\uE714", Apply);
         EditionFacet = new("edition", "质量", "\uE7C1", Apply);
         ResolutionFacet = new("resolution", "分辨率", "\uE7F4", Apply);
         GroupFacet = new("group", "制作组", "\uE902", Apply);
-        Facets = [SiteFacet, SeasonFacet, PromotionFacet, VideoFacet, EditionFacet, ResolutionFacet, GroupFacet];
+        // 顺序照网页端 TorrentAllFiltersDialog 的 filterTitles：站点、季、源、字幕、促销、编码、质量、分辨率、制作组。
+        Facets = [SiteFacet, SeasonFacet, WebSourceFacet, SubtitleFacet, PromotionFacet, VideoFacet, EditionFacet, ResolutionFacet, GroupFacet];
         RefreshFilterCards();
     }
 
     public MoviePilotResourceFacet SiteFacet { get; }
     public MoviePilotResourceFacet SeasonFacet { get; }
+    public MoviePilotResourceFacet WebSourceFacet { get; }
+    public MoviePilotResourceFacet SubtitleFacet { get; }
     public MoviePilotResourceFacet PromotionFacet { get; }
     public MoviePilotResourceFacet VideoFacet { get; }
     public MoviePilotResourceFacet EditionFacet { get; }
     public MoviePilotResourceFacet ResolutionFacet { get; }
     public MoviePilotResourceFacet GroupFacet { get; }
     public IReadOnlyList<MoviePilotResourceFacet> Facets { get; }
+    /// <summary>综合筛选弹窗里的分组卡片：只放本批结果真有选项的维度，顺序与网页端一致。</summary>
+    public ObservableCollection<MoviePilotResourceFacet> DialogFacets { get; } = [];
     public ObservableCollection<MoviePilotResourceChoice> ActiveChoices { get; } = [];
 
     public ObservableCollection<MoviePilotResourceRow> Rows { get; } = [];
@@ -125,19 +132,23 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         FillChoices(Labels, AllLabels, _all.SelectMany(row => row.Resource.Labels));
         FillNumbers(Seasons, AllSeasons, "S", _all.SelectMany(row => row.Resource.Seasons));
         SetFacet(SiteFacet, _all.Select(row => row.Resource.SiteName));
+        SetFacet(WebSourceFacet, _all.Select(row => row.Resource.WebSource));
         SetFacet(VideoFacet, _all.Select(row => row.Resource.VideoCodec));
         SetFacet(EditionFacet, _all.Select(row => row.Resource.Edition));
         SetFacet(ResolutionFacet, _all.Select(row => row.Resource.Resolution));
         SetFacet(GroupFacet, _all.Select(row => row.Resource.ReleaseGroup));
-        SeasonFacet.SetChoices(_all.SelectMany(row => row.Resource.Seasons).Distinct().Order()
-            .Select(season => (season.ToString(CultureInfo.InvariantCulture), $"S{season:00}")));
-        PromotionFacet.SetChoices(_all.Where(row => row.Resource.DownloadFactor.HasValue)
-            .Select(row => row.Resource.DownloadFactor!.Value).Distinct().Order()
-            .Select(factor => (factor.ToString(CultureInfo.InvariantCulture),
-                factor == 0 ? "免费" : factor == 1 ? "普通" : $"{factor * 100:0.##}%")));
+        SubtitleFacet.SetChoices(SubtitleValues(_all).Select(value => (value, value)));
+        // 网页端的「季」筛选列出 meta_info.season_episode 原值：整季 S01、单集 S01E05 都在同一张表里。
+        SeasonFacet.SetChoices(MoviePilotSeasonEpisodeOptions.Order(SeasonValues(_all))
+            .Select(value => (value, value)));
+        // 网页端促销分区的候选就是 volume_factor 原值；缺这个字段的旧回包由 PromotionLabel 按倍率补齐。
+        PromotionFacet.SetChoices(_all.Select(row => row.Resource.PromotionLabel)
+            .Where(label => label.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(label => (label, label)));
         SortIndex = 0;
         SortDescending = true;
         _resetting = false;
+        Sync(DialogFacets, Facets.Where(facet => facet.Choices.Count > 0).ToArray());
         Reset();
         if (autoEpisode is { } episode) SelectedEpisode = EpisodeChoice(episode);
         OnPropertyChanged(nameof(FiltersVisibility));
@@ -191,7 +202,8 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     {
         if (_resetting) return;
         _resetting = true;
-        var seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToHashSet();
+        var seasons = SeasonFacet.Selected.Select(MoviePilotSeasonEpisodeOptions.SeasonNumber)
+            .Where(number => number is not null).Select(number => number!.Value).ToHashSet();
         FillNumbers(Episodes, AllEpisodes, "E", EpisodeChoices(_all
             .Where(row => seasons.Count == 0 || row.Resource.Seasons.Any(seasons.Contains))
             .SelectMany(row => row.Resource.Episodes)));
@@ -199,6 +211,26 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         _resetting = false;
         Apply();
     }
+
+    /// <summary>季筛选候选：优先用服务器给的 season_episode 原值，缺这个字段才退回 season_list 的季号。</summary>
+    private static IEnumerable<string> SeasonValues(IEnumerable<MoviePilotResourceRow> rows)
+    {
+        foreach (var row in rows)
+        {
+            if (!string.IsNullOrWhiteSpace(row.Resource.SeasonEpisode))
+            {
+                yield return row.Resource.SeasonEpisode.Trim();
+                continue;
+            }
+            foreach (var season in row.Resource.Seasons) yield return $"S{season:00}";
+        }
+    }
+
+    /// <summary>网页端「字幕」只看站点明确标注的两个标签，顺序沿用结果出现顺序。</summary>
+    private static IEnumerable<string> SubtitleValues(IEnumerable<MoviePilotResourceRow> rows) =>
+        rows.SelectMany(row => row.Resource.Labels)
+            .Where(MoviePilotResourceFilter.SubtitleLabels.Contains)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
     private void Apply()
     {
@@ -210,12 +242,16 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
             Resolution = SelectedResolution == AllResolutions ? "" : SelectedResolution ?? "",
             Label = SelectedLabel == AllLabels ? "" : SelectedLabel ?? "",
             Sites = SiteFacet.Selected,
+            WebSources = WebSourceFacet.Selected,
+            Subtitles = SubtitleFacet.Selected,
             Resolutions = ResolutionFacet.Selected,
             VideoCodecs = VideoFacet.Selected,
             Editions = EditionFacet.Selected,
             ReleaseGroups = GroupFacet.Selected,
-            Seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
-            PromotionFactors = PromotionFacet.Selected.Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
+            Seasons = SeasonFacet.Selected.Select(value => MoviePilotSeasonEpisodeOptions.SeasonNumber(value))
+                .Where(number => number is not null).Select(number => number!.Value).ToArray(),
+            SeasonEpisodes = SeasonFacet.Selected,
+            Promotions = PromotionFacet.Selected,
             Season = SelectedNumber(SelectedSeason),
             Episode = SelectedNumber(SelectedEpisode),
             Promotion = (MoviePilotPromotionFilter)PromotionIndex,

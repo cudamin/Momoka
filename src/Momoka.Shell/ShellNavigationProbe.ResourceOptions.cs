@@ -48,14 +48,14 @@ internal sealed partial class ShellNavigationProbe
                 .Single(box => AutomationProperties.GetName(box) == "季 · S02");
             ((IToggleProvider)new ToggleButtonAutomationPeer(chooseSeason).GetPattern(PatternInterface.Toggle)).Toggle();
             seasons.ClosePopup();
-            Get<Flyout>(list, "AdvancedFilters").ShowAt(Get<DropDownButton>(list, "FilterExpander"));
-            await LayoutAsync(list);
-            await UntilAsync(() => Descendants(Get<ItemsControl>(list, "EpisodeFilter")).OfType<ToggleButton>()
+            var filterDialog = list.OpenAdvancedFilters();
+            await LayoutAsync(filterDialog);
+            await UntilAsync(() => Descendants(Get<ItemsControl>(filterDialog, "EpisodeFilter")).OfType<ToggleButton>()
                 .Any(button => AutomationProperties.GetName(button) == "集 · E02"));
-            var chooseEpisode = Descendants(Get<ItemsControl>(list, "EpisodeFilter")).OfType<ToggleButton>()
+            var chooseEpisode = Descendants(Get<ItemsControl>(filterDialog, "EpisodeFilter")).OfType<ToggleButton>()
                 .Single(button => AutomationProperties.GetName(button) == "集 · E02");
             ((IToggleProvider)new ToggleButtonAutomationPeer(chooseEpisode).GetPattern(PatternInterface.Toggle)).Toggle();
-            Get<Flyout>(list, "AdvancedFilters").Hide();
+            filterDialog.Hide();
             Require(browser.Rows.Count == 1 && browser.Rows[0].Resource.Seasons.Contains(2), "季集控件未实际筛选结果");
             first.State = MoviePilotDownloadState.Uncertain;
             browser.ResetCommand.Execute(null);
@@ -75,9 +75,9 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(720, 980);
             await LayoutAsync(view);
             await Task.Delay(450);
-            var filters = Get<Flyout>(list, "AdvancedFilters");
-            filters.ShowAt(Get<DropDownButton>(list, "FilterExpander"));
-            var filterInput = Get<TextBox>(list, "FilterText");
+            var filters = list.OpenAdvancedFilters();
+            await LayoutAsync(filters);
+            var filterInput = Get<TextBox>(filters, "FilterText");
             try
             {
                 await LayoutAsync(filterInput);

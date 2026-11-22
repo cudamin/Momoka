@@ -94,6 +94,20 @@ internal static class MoviePilotResourceOptionsTests
             Assert.Equal(1, new MoviePilotResourceFilter { PromotionFactors = [1] }.Apply(rows, now).Count());
             Assert.Equal(1, new MoviePilotResourceFilter { Episodes = [2] }.Apply(rows, now).Count());
         });
+        Test("MoviePilot 资源多选：源按 web_source、字幕只认中字与特效", () =>
+        {
+            var rows = Parse("""
+                [{"torrent_info":{"title":"甲","labels":["中字"]},"meta_info":{"web_source":"Netflix"}},
+                 {"torrent_info":{"title":"乙","labels":["特效","国语"]},"meta_info":{"web_source":"AMZN"}},
+                 {"torrent_info":{"title":"丙"},"meta_info":{}}]
+                """);
+            var now = DateTimeOffset.Now;
+            Assert.Equal("甲", new MoviePilotResourceFilter { WebSources = ["netflix"] }.Apply(rows, now).Single().Title);
+            Assert.Equal("甲,乙", string.Join(',', new MoviePilotResourceFilter { Subtitles = ["中字", "特效"] }
+                .Apply(rows, now).Select(resource => resource.Title)));
+            Assert.Equal(0, new MoviePilotResourceFilter { Subtitles = ["国语"] }.Apply(rows, now).Count());
+            Assert.Equal(3, new MoviePilotResourceFilter().Apply(rows, now).Count());
+        });
         Test("MoviePilot 资源角标：未知不冒充免费，数字倍率优先于旧优惠文本", () =>
         {
             var resource = Parse("""[{"torrent_info":{"title":"资源"}}]""")[0];
@@ -151,6 +165,27 @@ internal static class MoviePilotResourceOptionsTests
                 """);
             Assert.Equal(0, rows[0].Seasons.Count);
             Assert.Equal(0, rows[0].Episodes.Count);
+        });
+        Test("MoviePilot 季筛选：season_episode 原值含集，缺字段才退回季号", () =>
+        {
+            var rows = Parse("""
+                [{"torrent_info":{"title":"整季"},"meta_info":{"season_episode":"S01","begin_season":1}},
+                 {"torrent_info":{"title":"单集"},"meta_info":{"season_episode":"S01E05","begin_season":1,"begin_episode":5}},
+                 {"torrent_info":{"title":"旧回包"},"meta_info":{"begin_season":2}}]
+                """);
+            var now = DateTimeOffset.Now;
+            Assert.Equal("整季", new MoviePilotResourceFilter { SeasonEpisodes = ["S01"] }.Apply(rows, now).Single().Title);
+            Assert.Equal("单集", new MoviePilotResourceFilter { SeasonEpisodes = ["S01E05"] }.Apply(rows, now).Single().Title);
+            Assert.Equal("旧回包", new MoviePilotResourceFilter { SeasonEpisodes = ["S02"] }.Apply(rows, now).Single().Title);
+            Assert.Equal(3, new MoviePilotResourceFilter().Apply(rows, now).Count());
+        });
+        Test("MoviePilot 季筛选：整季排在单集前，同类按季号与集号降序", () =>
+        {
+            Assert.Equal("S10,S02,S01,S10E01-E03,S02E12,S01E05,Special",
+                string.Join(',', MoviePilotSeasonEpisodeOptions.Order(
+                    ["S01E05", "Special", "S10", "S02", "S10E01-E03", "S02E12", "S01"])));
+            Assert.Equal(2, MoviePilotSeasonEpisodeOptions.SeasonNumber("S02E12"));
+            Assert.True(MoviePilotSeasonEpisodeOptions.SeasonNumber("Special") is null);
         });
         Test("MoviePilot 下载选项：目录只读取名称及保存路径，远程路径不丢存储前缀", () =>
         {

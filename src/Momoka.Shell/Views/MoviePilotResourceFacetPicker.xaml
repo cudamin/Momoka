@@ -27,13 +27,26 @@
         Background="{ThemeResource EgAccentSoftBrush}" Foreground="{ThemeResource EgAccentBrush}"
         BorderThickness="0" AutomationProperties.Name="{x:Bind Facet.Summary, Mode=OneWay}"
         Visibility="{x:Bind Facet.Visibility, Mode=OneWay}">
+        <DropDownButton.Resources>
+            <!-- 框架模板的悬停/按下会切到 ButtonBackgroundPointerOver 等浅色默认槽；不钉住这里，
+                 鼠标一过按钮底色变浅、图标字色跟着 ContentPresenter 换掉，看起来像丢了颜色。 -->
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="DropDownButtonForegroundSecondary" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="DropDownButtonForegroundSecondaryPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="DropDownButtonForegroundSecondaryPressed" ResourceKey="EgAccentBrush" />
+        </DropDownButton.Resources>
         <StackPanel Orientation="Horizontal" Spacing="6">
-            <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="{x:Bind Facet.Glyph, Mode=OneWay}" />
+            <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="{x:Bind Facet.Glyph, Mode=OneWay}"
+                Foreground="{ThemeResource EgAccentBrush}" />
             <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}"
                 Text="{x:Bind Facet.Summary, Mode=OneWay}" />
         </StackPanel>
         <DropDownButton.Flyout>
-            <Flyout x:Name="ChoicesFlyout">
+            <!-- 网页端筛选项是在按钮下方展开的；Flyout 默认 Placement=Top，这里钉成下边缘左对齐。 -->
+            <Flyout x:Name="ChoicesFlyout" Placement="BottomEdgeAlignedLeft">
                 <StackPanel Width="280" MaxWidth="280" Spacing="12">
                     <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind Facet.Label, Mode=OneWay}" />
                     <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
