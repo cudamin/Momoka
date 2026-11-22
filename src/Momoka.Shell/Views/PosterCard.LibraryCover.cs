@@ -45,7 +45,8 @@ public sealed partial class PosterCard
             start = end = new(background.A, background.R, background.G, background.B);
             ink = new(foreground.A, foreground.R, foreground.G, foreground.B);
         }
-        canvas.Background = Gradient(start, end);
+        canvas.Background = preset == HomeLibraryCoverPresets.Stack && !highContrast
+            ? StackGradient(start, end, palette.Accent) : Gradient(start, end);
         IReadOnlyList<BitmapImage> images = pictures is { Count: > 0 } ? pictures
             : poster is not null ? [poster] : libraryPoster is not null ? [libraryPoster] : [];
         var textOnly = highContrast || preset == HomeLibraryCoverPresets.Gradient || images.Count == 0;
@@ -54,9 +55,10 @@ public sealed partial class PosterCard
             switch (preset)
             {
                 case HomeLibraryCoverPresets.Stack:
-                    AddImage(images[0], 109, 18, 82, 82, 36, 0.56, 10);
-                    AddImage(images[0], 109, 18, 82, 82, 18, 0.74, 10);
-                    AddImage(images[0], 109, 18, 82, 82, 0, 1, 10);
+                    // 悬浮扇形：最新海报在前卡，较早两张分列后侧；不足三张时复用已有封面。
+                    AddStackCard(StackPicture(1), 108, 22, 56, 82, -14, 0.52);
+                    AddStackCard(StackPicture(2), 145, 21, 56, 82, 14, 0.68);
+                    AddStackCard(StackPicture(0), 126, 13, 62, 92);
                     break;
                 case HomeLibraryCoverPresets.Wall:
                     // 原模板九张海报右侧出框，少图稳定循环补足；同一张 BitmapImage 可由多个 Image 共用。
@@ -84,6 +86,19 @@ public sealed partial class PosterCard
                     break;
             }
         }
+        if (preset == HomeLibraryCoverPresets.Stack && !textOnly)
+        {
+            var accent = new Border
+            {
+                Width = 20,
+                Height = 3,
+                CornerRadius = new(1.5),
+                Background = new SolidColorBrush(Color(palette.Accent))
+            };
+            Canvas.SetLeft(accent, 12);
+            Canvas.SetTop(accent, 18);
+            canvas.Children.Add(accent);
+        }
         var heading = new TextBlock
         {
             Text = title,
@@ -100,9 +115,47 @@ public sealed partial class PosterCard
         heading.VerticalAlignment = VerticalAlignment.Center;
         text.Children.Add(heading);
         Canvas.SetLeft(text, textOnly ? 18 : 10);
-        Canvas.SetTop(text, 21);
+        Canvas.SetTop(text, preset == HomeLibraryCoverPresets.Stack && !textOnly ? 26 : 21);
         canvas.Children.Add(text);
         return new Viewbox { Stretch = Stretch.Fill, Child = canvas };
+
+        BitmapImage StackPicture(int position) => images[Math.Min(position, images.Count - 1)];
+
+        void AddStackCard(BitmapImage source, double x, double y, double width, double height,
+            double rotation = 0, double opacity = 1)
+        {
+            var card = new Grid
+            {
+                Width = width,
+                Height = height,
+                Opacity = opacity,
+                RenderTransformOrigin = new(0.5, 0.5),
+                RenderTransform = new RotateTransform { Angle = rotation }
+            };
+            // 小尺寸下用两层低透明圆角偏移形成柔影，不为静态封面引入 Composition 生命周期。
+            card.Children.Add(new Border
+            {
+                Margin = new Thickness(-3, 5, -3, -1),
+                CornerRadius = new(10),
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(22, 0, 0, 0))
+            });
+            card.Children.Add(new Border
+            {
+                Margin = new Thickness(-1, 3, -1, 1),
+                CornerRadius = new(9),
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(42, 0, 0, 0))
+            });
+            card.Children.Add(new Border
+            {
+                CornerRadius = new(8),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(36, 255, 255, 255)),
+                Child = new Image { Source = source, Stretch = Stretch.UniformToFill }
+            });
+            Canvas.SetLeft(card, x);
+            Canvas.SetTop(card, y);
+            canvas.Children.Add(card);
+        }
 
         void AddImage(BitmapImage source, double x, double y, double width, double height,
             double rotation = 0, double opacity = 1, double corner = 0)
@@ -124,6 +177,15 @@ public sealed partial class PosterCard
     }
 
     private static Windows.UI.Color Color(ThemeColor color) => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
+
+    private static LinearGradientBrush StackGradient(ThemeColor start, ThemeColor end, ThemeColor accent) => new()
+    {
+        StartPoint = new(0, 0),
+        EndPoint = new(1, 1),
+        GradientStops = [new GradientStop { Offset = 0, Color = Color(start) },
+            new GradientStop { Offset = 0.58, Color = Color(end) },
+            new GradientStop { Offset = 1, Color = Color(end.Mix(accent, 0.38)) }]
+    };
 
     private static LinearGradientBrush Gradient(ThemeColor start, ThemeColor end) => new()
     {

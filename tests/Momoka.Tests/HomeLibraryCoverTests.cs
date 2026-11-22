@@ -23,11 +23,28 @@ internal static class HomeLibraryCoverTests
                 throw new AssertionException("纯文字预设不应读取图片候选"));
             Assert.Equal(0, HomeLibraryCoverArtwork.Select(library, samples, HomeLibraryCoverPresets.Gradient).Count);
         });
-        Test("主页媒体库封面：叠卡优先海报且只取一张", () =>
+        Test("主页媒体库封面：叠卡按近期顺序取三张不同海报", () =>
         {
             var samples = Enumerable.Range(0, 12).Select(index => Sample("sample-" + index)).ToArray();
             var stack = HomeLibraryCoverArtwork.Select(Library(), samples, HomeLibraryCoverPresets.Stack);
-            Assert.Equal(new ArtworkRef("sample-0", EmbyImageStore.Primary, "poster-sample-0"), stack.Single());
+            Assert.Equal(3, stack.Count);
+            Assert.Equal(3, stack.Distinct().Count());
+            Assert.True(stack.Select(picture => picture.ItemId)
+                .SequenceEqual(Enumerable.Range(0, 3).Select(index => "sample-" + index)));
+        });
+        Test("主页媒体库封面：叠卡不足三张时用库已有封面补位", () =>
+        {
+            var library = Library();
+            library.PosterPaths = ["path-1", "path-1", "path-2"];
+            library.PrimaryImageTag = "library-poster";
+            library.PrimaryImageItemId = "poster-owner";
+            var stack = HomeLibraryCoverArtwork.Select(library, new[] { Sample("only") }, HomeLibraryCoverPresets.Stack);
+            Assert.True(stack.SequenceEqual(new[]
+            {
+                new ArtworkRef("only", EmbyImageStore.Primary, "poster-only"),
+                new ArtworkRef("library", EmbyImageStore.Primary, "path-1"),
+                new ArtworkRef("library", EmbyImageStore.Primary, "path-2")
+            }));
         });
         Test("主页媒体库封面：九宫格按既有顺序取九个不重复引用", () =>
         {
@@ -204,7 +221,17 @@ internal static class HomeLibraryCoverTests
             ui.HomeLibraryCoverOverride = true;
             ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Stack;
             var first = fixture.CreateLoadingHome(snapshots: store);
-            try { await Load(shell, first); }
+            try
+            {
+                await Load(shell, first);
+                var stackCards = Values(shell, shell.Get<object>(first, "LibraryShelf"), "Cards");
+                foreach (var card in stackCards)
+                {
+                    var artwork = (IReadOnlyList<ArtworkRef>)Field(card, "_homeLibraryCoverArtwork")!;
+                    Assert.Equal(3, artwork.Count);
+                    Assert.Equal(3, artwork.Distinct().Count());
+                }
+            }
             finally { ((IDisposable)first).Dispose(); }
             var requests = fixture.RequestCount;
             ui.HomeLibraryCoverPreset = HomeLibraryCoverPresets.Wall;
