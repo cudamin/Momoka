@@ -4,62 +4,70 @@ using Windows.Storage.Streams;
 
 namespace Momoka.Shell.Media;
 
-internal sealed record AnimatedPngFrames(int Width, int Height, uint Plays, IReadOnlyList<AnimatedPngFrame> Frames)
+/// <summary>Decodes one native-size frame at a time; frame count never multiplies retained canvases.</summary>
+internal sealed class AnimatedPngFrames
 {
-    private const int MaxSide = 768;
-    internal const int MaxBytes = 24 * 1024 * 1024;
+    private readonly AnimatedPng _animation;
+    private byte[]? _canvas;
+    private byte[]? _restore;
+    private int _index = -1;
 
-    internal static Task<AnimatedPngFrames?> DecodeAsync(byte[] bytes, int requestedPixelWidth,
-        CancellationToken token = default) =>
-        Task.Run(() => DecodeAsync(bytes, requestedPixelWidth, MaxBytes, token), token);
+    private AnimatedPngFrames(AnimatedPng animation)
+    {
+        _animation = animation;
+    }
 
-    internal static async Task<AnimatedPngFrames?> DecodeAsync(byte[] bytes, int requestedPixelWidth, int byteBudget,
-        CancellationToken token)
+    internal int Width => _animation.Width;
+    internal int Height => _animation.Height;
+    internal uint Plays => _animation.Plays;
+    internal int FrameCount => _animation.Frames.Count;
+
+    internal static Task<AnimatedPngFrames?> OpenAsync(byte[] bytes, CancellationToken token = default) =>
+        Task.Run(() =>
+        {
+            token.ThrowIfCancellationRequested();
+            var animation = AnimatedPng.Parse(bytes);
+            token.ThrowIfCancellationRequested();
+            return animation is { Frames.Count: > 1 } ? new AnimatedPngFrames(animation) : null;
+        }, token);
+
+    // The returned pixels belong to this decoder and remain valid until the next read. The caller
+    // paints them before reading again. No complete-animation cache or downscaled fallback is needed.
+    internal Task<AnimatedPngFrame?> ReadFrameAsync(int index, CancellationToken token = default) =>
+        Task.Run(() => ReadFrameCoreAsync(index, token), token);
+
+    private async Task<AnimatedPngFrame?> ReadFrameCoreAsync(int index, CancellationToken token)
     {
         try
         {
             token.ThrowIfCancellationRequested();
-            if (AnimatedPng.Parse(bytes) is not { Frames.Count: > 1 } animation) return null;
-
-            var scale = Math.Min(1d, (double)Math.Clamp(requestedPixelWidth, 1, MaxSide) / animation.Width);
-            scale = Math.Min(scale, (double)MaxSide / animation.Height);
-            scale = Math.Min(scale, Math.Sqrt((double)byteBudget /
-                (4L * animation.Frames.Count * animation.Width * animation.Height)));
-            var width = Math.Max(1, (int)(animation.Width * scale));
-            var height = Math.Max(1, (int)(animation.Height * scale));
-            if (4L * width * height * animation.Frames.Count > byteBudget) return null;
-
-            var frames = new List<AnimatedPngFrame>(animation.Frames.Count);
-            var canvas = new byte[width * height * 4];
-            foreach (var frame in animation.Frames)
+            if (index < 0 || index >= FrameCount || (index != 0 && index != _index + 1))
+                throw new ArgumentOutOfRangeException(nameof(index));
+            _canvas ??= new byte[Width * Height * 4];
+            if (index == 0) Array.Clear(_canvas); // Each loop starts with a transparent canvas.
+            else if (_index >= 0)
             {
-                token.ThrowIfCancellationRequested();
-                // Map both edges to the same output grid. Adjacent rectangles stay adjacent and
-                // a subpixel rectangle can disappear without shifting the rest of the animation.
-                int x = (int)((long)frame.X * width / animation.Width);
-                int y = (int)((long)frame.Y * height / animation.Height);
-                int partWidth = (int)((long)(frame.X + frame.Width) * width / animation.Width) - x;
-                int partHeight = (int)((long)(frame.Y + frame.Height) * height / animation.Height) - y;
-                var previous = frame.Dispose == 2 ? (byte[])canvas.Clone() : null;
-                if (partWidth > 0 && partHeight > 0)
+                var previous = _animation.Frames[_index];
+                if (previous.Dispose == 2) _restore!.CopyTo(_canvas, 0);
+                else if (previous.Dispose == 1)
                 {
-                    var pixels = await DecodePartAsync(animation.GetFramePng(frame), partWidth, partHeight, token)
-                        .ConfigureAwait(false);
-                    if (pixels.Length != partWidth * partHeight * 4) return null;
-                    Draw(canvas, width, pixels, x, y, partWidth, partHeight, frame.Blend != 0);
-                }
-
-                frames.Add(new((byte[])canvas.Clone(), frame.Delay));
-                if (previous is not null) canvas = previous;
-                else if (frame.Dispose == 1)
-                {
-                    for (int row = 0; row < partHeight; row++)
-                        canvas.AsSpan(((y + row) * width + x) * 4, partWidth * 4).Clear();
+                    for (int row = 0; row < previous.Height; row++)
+                        _canvas.AsSpan(((previous.Y + row) * Width + previous.X) * 4, previous.Width * 4).Clear();
                 }
             }
 
+            var frame = _animation.Frames[index];
+            if (frame.Dispose == 2)
+            {
+                _restore ??= new byte[_canvas.Length];
+                _canvas.CopyTo(_restore, 0);
+            }
+            var pixels = await DecodePartAsync(_animation.GetFramePng(frame), token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
-            return new(width, height, animation.Plays, frames);
+            if (pixels.Length != frame.Width * frame.Height * 4) return null;
+            Draw(_canvas, Width, pixels, frame.X, frame.Y, frame.Width, frame.Height, frame.Blend != 0);
+            _index = index;
+            return new(_canvas, frame.Delay);
         }
         catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException))
         {
@@ -70,7 +78,7 @@ internal sealed record AnimatedPngFrames(int Width, int Height, uint Plays, IRea
         }
     }
 
-    private static async Task<byte[]> DecodePartAsync(byte[] png, int width, int height, CancellationToken token)
+    private static async Task<byte[]> DecodePartAsync(byte[] png, CancellationToken token)
     {
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream))
@@ -83,14 +91,8 @@ internal sealed record AnimatedPngFrames(int Width, int Height, uint Plays, IRea
         stream.Seek(0);
         var decoder = await BitmapDecoder.CreateAsync(BitmapDecoder.PngDecoderId, stream)
             .AsTask(token).ConfigureAwait(false);
-        var transform = new BitmapTransform
-        {
-            ScaledWidth = (uint)width,
-            ScaledHeight = (uint)height,
-            InterpolationMode = BitmapInterpolationMode.Fant
-        };
         var pixels = await decoder.GetPixelDataAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
-            transform, ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.ColorManageToSRgb)
+            new BitmapTransform(), ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.ColorManageToSRgb)
             .AsTask(token).ConfigureAwait(false);
         return pixels.DetachPixelData();
     }

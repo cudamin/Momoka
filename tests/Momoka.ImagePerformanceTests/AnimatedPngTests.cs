@@ -24,7 +24,7 @@ internal static class AnimatedPngTests
                     new(0, 1, 1, 1, Transparent, 15, 0),
                     new(2, 1, 1, 1, 0x0000FF40, 0, 100, Blend: 1)
                 ]);
-            var animation = await AnimatedPngFrames.DecodeAsync(png, 12);
+            var animation = await ReadAllAsync(png);
             Assert.NotNull(animation);
             Assert.Equal((3, 2, 3u, 5), (animation!.Width, animation.Height, animation.Plays, animation.Frames.Count));
             Assert.True(animation.Frames.Select(frame => frame.Delay.TotalMilliseconds)
@@ -39,7 +39,7 @@ internal static class AnimatedPngTests
             Pixel(animation, 4, 2, 1, [64, 0, 0, 64]);
         });
 
-        Test("实际 WinRT APNG：独立默认图不参与无限循环，小局部帧缩放保留时序", async () =>
+        Test("实际 WinRT APNG：独立默认图不参与无限循环，小局部帧保留原生像素和时序", async () =>
         {
             var png = Png(8, 4, 0,
                 [
@@ -47,36 +47,37 @@ internal static class AnimatedPngTests
                     new(5, 0, 1, 1, Blue, 1, 5, Dispose: 2),
                     new(4, 0, 4, 4, Blue, 1, 5)
                 ], defaultColor: Red);
-            var animation = await AnimatedPngFrames.DecodeAsync(png, 2);
+            var animation = await ReadAllAsync(png);
             Assert.NotNull(animation);
-            Assert.Equal((2, 1, 0u, 3), (animation!.Width, animation.Height, animation.Plays, animation.Frames.Count));
+            Assert.Equal((8, 4, 0u, 3), (animation!.Width, animation.Height, animation.Plays, animation.Frames.Count));
             Pixel(animation, 0, 0, 0, [0, 255, 0, 255]);
-            Pixel(animation, 0, 1, 0, [0, 0, 0, 0]);
+            Pixel(animation, 0, 4, 0, [0, 0, 0, 0]);
             Pixel(animation, 1, 0, 0, [0, 255, 0, 255]);
             Pixel(animation, 2, 0, 0, [0, 255, 0, 255]);
-            Pixel(animation, 2, 1, 0, [255, 0, 0, 255]);
+            Pixel(animation, 2, 4, 0, [255, 0, 0, 255]);
+            Pixel(animation, 1, 5, 0, [255, 0, 0, 255]);
         });
 
         Test("实际 WinRT APNG：静态图和损坏动图交回静态路径，取消可观察", async () =>
         {
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(ImageData.Png(3, 2), 3));
+            Assert.Null(await ReadAllAsync(ImageData.Png(3, 2)));
             var gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(gif, 3));
+            Assert.Null(await ReadAllAsync(gif));
 
             var valid = Png(3, 2, 0, [new(0, 0, 3, 2, Red), new(1, 1, 1, 1, Blue)]);
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(valid[..^8], 3));
+            Assert.Null(await ReadAllAsync(valid[..^8]));
             var invalidCrc = (byte[])valid.Clone();
             invalidCrc[49] ^= 1; // First byte of the animation control chunk CRC.
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(invalidCrc, 3));
+            Assert.Null(await ReadAllAsync(invalidCrc));
             var outOfBounds = Png(3, 2, 0, [new(0, 0, 3, 2, Red), new(3, 1, 1, 1, Blue)]);
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(outOfBounds, 3));
+            Assert.Null(await ReadAllAsync(outOfBounds));
             var firstFrameUsingBothDataTypes = Png(3, 2, 0,
                 [new(0, 0, 3, 2, Red), new(1, 1, 1, 1, Blue)], mixFirstFrameData: true);
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(firstFrameUsingBothDataTypes, 3));
+            Assert.Null(await ReadAllAsync(firstFrameUsingBothDataTypes));
 
             using var cancelled = new CancellationTokenSource();
             cancelled.Cancel();
-            await Cancelled(AnimatedPngFrames.DecodeAsync(valid, 3, cancelled.Token));
+            await Cancelled(ReadAllAsync(valid, cancelled.Token));
         });
 
         Test("实际 WinRT APNG：调色板与透明色块传给每一帧", async () =>
@@ -84,7 +85,7 @@ internal static class AnimatedPngTests
             // Pillow-generated 2-bit indexed PNG with two colors and a transparent palette entry.
             var png = Convert.FromBase64String(
                 "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABAgMAAACJTJcZAAAADFBMVEX/AAAA/wAAAAAAAAAlu0AVAAAAA3RSTlP//wDXyg1BAAAACGFjVEwAAAACAAAAAPONk3AAAAAaZmNUTAAAAAAAAAACAAAAAQAAAAAAAAAAAGQD6AAAECjlZAAAAApJREFUeJxjYAAAAAIAAUivpHEAAAAaZmNUTAAAAAEAAAACAAAAAQAAAAAAAAAAAMgD6AAAPox9JwAAAA5mZEFUAAAAAnicY5gAAACSAJFgPbCrAAAAAElFTkSuQmCC");
-            var animation = await AnimatedPngFrames.DecodeAsync(png, 2);
+            var animation = await ReadAllAsync(png);
             Assert.NotNull(animation);
             Assert.Equal((2, 1, 2), (animation!.Width, animation.Height, animation.Frames.Count));
             Pixel(animation, 0, 0, 0, [0, 0, 255, 255]);
@@ -92,41 +93,74 @@ internal static class AnimatedPngTests
             Pixel(animation, 1, 1, 0, [0, 255, 0, 255]);
         });
 
-        Test("实际 WinRT APNG：边长和留存像素预算限制高分辨率多帧", async () =>
+        Test("实际 WinRT APNG：高分辨率多帧使用原生像素且复用画布", async () =>
         {
             var wide = Png(1200, 8, 0, [new(0, 0, 1200, 8, Red), new(1, 1, 1, 1, Blue)]);
-            var scaled = await AnimatedPngFrames.DecodeAsync(wide, 2400);
-            Assert.NotNull(scaled);
-            Assert.Equal(768, scaled!.Width);
-            Assert.True(scaled.Height is > 0 and < 8);
+            var native = await ReadAllAsync(wide);
+            Assert.NotNull(native);
+            Assert.Equal((1200, 8), (native!.Width, native.Height));
+            Pixel(native, 1, 1, 1, [255, 0, 0, 255]);
 
             var frames = new FixtureFrame[20];
             frames[0] = new(0, 0, 900, 900, Red);
-            for (var i = 1; i < frames.Length; i++)
-                frames[i] = new(i, i, 1, 1, Green);
+            for (var i = 1; i < frames.Length; i++) frames[i] = new(i, i, 1, 1, Green);
             var png = Png(900, 900, 0, frames);
-            var animation = await AnimatedPngFrames.DecodeAsync(png, 900);
+            var animation = await AnimatedPngFrames.OpenAsync(png);
             Assert.NotNull(animation);
-            Assert.Equal(frames.Length, animation!.Frames.Count);
-            Assert.Equal(animation.Width, animation.Height);
-            Assert.True(animation.Width is > 0 and < 768, "多帧留存上限必须比单边上限更严格");
-            Assert.True(animation.Frames.All(frame => frame.Pixels.Length == animation.Width * animation.Height * 4));
-            Assert.True(animation.Frames.Sum(frame => (long)frame.Pixels.Length) <= 24 * 1024 * 1024);
+            Assert.Equal((900, 900, 20), (animation!.Width, animation.Height, animation.FrameCount));
+            byte[]? canvas = null;
+            for (var i = 0; i < animation.FrameCount; i++)
+            {
+                var frame = await animation.ReadFrameAsync(i);
+                Assert.NotNull(frame);
+                Assert.Equal(900 * 900 * 4, frame!.Pixels.Length);
+                canvas ??= frame.Pixels;
+                Assert.True(ReferenceEquals(canvas, frame.Pixels), "不留存整部动图的独立画布");
+            }
+            var restarted = await animation.ReadFrameAsync(0);
+            Assert.True(ReferenceEquals(canvas, restarted!.Pixels));
+            Assert.True(restarted.Pixels.AsSpan((19 * 900 + 19) * 4, 4).SequenceEqual(new byte[] { 0, 0, 255, 255 }),
+                "新一轮必须清除上一轮的局部帧");
 
-            var visibleCard = await AnimatedPngFrames.DecodeAsync(png, 900, 4 * 1024 * 1024, default);
-            Assert.NotNull(visibleCard);
-            Assert.True(visibleCard!.Width < animation.Width);
-            Assert.True(visibleCard.Frames.Sum(frame => (long)frame.Pixels.Length) <= 4 * 1024 * 1024);
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(png, 900, frames.Length * 4 - 1, default));
-
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            await Cancelled(animation.ReadFrameAsync(1, cancelled.Token));
             var huge = Png(4097, 1, 0, [new(0, 0, 4097, 1, Red), new(1, 0, 1, 1, Blue)]);
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(huge, 100));
+            Assert.Null(await AnimatedPngFrames.OpenAsync(huge));
+            Assert.Equal(170, PosterDecodeSize.Width(huge, 170), "超限APNG静态回退也不能提前原生解码");
             var excessive = Png(1, 1, 0, Enumerable.Repeat(new FixtureFrame(0, 0, 1, 1, Red), 241).ToArray());
-            Assert.Null(await AnimatedPngFrames.DecodeAsync(excessive, 1));
+            Assert.Null(await AnimatedPngFrames.OpenAsync(excessive));
+        });
+        Test("动图静态封面保留原生尺寸，普通图片保持卡片解码预算", () =>
+        {
+            var png = Png(3, 2, 0, [new(0, 0, 3, 2, Red), new(1, 1, 1, 1, Blue)]);
+            Assert.Equal(0, PosterDecodeSize.Width(png, 170));
+            Assert.Equal(0, PosterDecodeSize.Width("GIF87a"u8.ToArray(), 170));
+            Assert.Equal(0, PosterDecodeSize.Width("GIF89a"u8.ToArray(), 170));
+            Assert.Equal(170, PosterDecodeSize.Width(ImageData.Png(3, 2), 170));
+            Assert.Equal(1, PosterDecodeSize.Width([], 0));
+            return Task.CompletedTask;
         });
     }
 
-    private static void Pixel(AnimatedPngFrames animation, int frame, int x, int y, ReadOnlySpan<byte> expected)
+    // Snapshot only in this assertion helper; production reuses its single native canvas.
+    private sealed record CapturedAnimation(int Width, int Height, uint Plays, IReadOnlyList<AnimatedPngFrame> Frames);
+
+    private static async Task<CapturedAnimation?> ReadAllAsync(byte[] bytes, CancellationToken token = default)
+    {
+        var animation = await AnimatedPngFrames.OpenAsync(bytes, token);
+        if (animation is null) return null;
+        var frames = new List<AnimatedPngFrame>();
+        for (var index = 0; index < animation.FrameCount; index++)
+        {
+            var frame = await animation.ReadFrameAsync(index, token);
+            if (frame is null) return null;
+            frames.Add(new((byte[])frame.Pixels.Clone(), frame.Delay));
+        }
+        return new(animation.Width, animation.Height, animation.Plays, frames);
+    }
+
+    private static void Pixel(CapturedAnimation animation, int frame, int x, int y, ReadOnlySpan<byte> expected)
     {
         var pixels = animation.Frames[frame].Pixels;
         var actual = pixels.AsSpan((y * animation.Width + x) * 4, 4);

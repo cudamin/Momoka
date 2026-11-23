@@ -11,6 +11,20 @@ internal static class HoverMotionTests
 {
     internal static void Register()
     {
+        Test("悬浮预览：封面和徽标播放动图，过渡层不提前播放且保留动态封面", () =>
+        {
+            var source = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");
+            Assert.Contains("_previewAnimation = new AnimatedPoster(PreviewImage, preview: true);", source);
+            Assert.DoesNotContain("new AnimatedPoster(TransitionImage", source);
+            Assert.Contains("new AnimatedPoster(LogoImage, preview: true)", source);
+            Assert.Contains("ReferenceEquals(_previewAnimation.OriginalSource, artwork)", source);
+            Assert.Contains("_pendingArtwork ?? TransitionImage.Source", source);
+            Assert.Contains("if (Poster is { } poster && PosterCache.IsAnimated(poster))",
+                Read("src/Momoka.Shell/Views/CardItem.cs"));
+            Assert.Contains("PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;", source);
+            var loader = Read("src/Momoka.Shell/Media/PosterLoader.cs");
+            Assert.Contains("DecodePixelWidth = PosterDecodeSize.Width(bytes, logicalWidth)", loader);
+        });
         Test("悬停放大：卡片整卡抬到 1.03，抬起用 BackEase 过冲", () =>
         {
             var source = Read("src/Momoka.Shell/Views/PosterCard.xaml.cs");

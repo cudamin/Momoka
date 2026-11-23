@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -12,12 +13,16 @@ namespace Momoka.Shell.Views;
 /// <summary>Supplies APNG frames to an existing Image without changing its card binding.</summary>
 internal sealed class AnimatedPoster
 {
-    private const int FrameBudget = 4 * 1024 * 1024;
     private static readonly SemaphoreSlim ActiveSlots = new(24);
+    private static readonly SemaphoreSlim PreviewSlots = new(2);
+    private static readonly AnimationSurfaceBudget CardSurfaces = new(192L * 1024 * 1024);
+    private static readonly AnimationSurfaceBudget PreviewSurfaces = new(128L * 1024 * 1024);
     private static readonly SemaphoreSlim DecodeSlots = new(2);
     private static readonly TimeSpan MinimumFrameDelay = TimeSpan.FromMilliseconds(33);
     private static readonly UISettings SystemSettings = new();
     private readonly Image _image;
+    private readonly bool _preview;
+    private IDisposable? _heldSurface;
     private BitmapImage? _source;
     private WriteableBitmap? _surface;
     private XamlRoot? _root;
@@ -26,16 +31,19 @@ internal sealed class AnimatedPoster
     private bool _writing;
     private bool _watching;
 
-    internal AnimatedPoster(Image image, ImageArrivalFade arrival)
+    internal AnimatedPoster(Image image, ImageArrivalFade? arrival = null, bool preview = false)
     {
         _image = image;
-        arrival.IsUpdatingAnimatedFrame = () => _writing;
+        _preview = preview;
+        if (arrival is not null) arrival.IsUpdatingAnimatedFrame = () => _writing;
         image.RegisterPropertyChangedCallback(Image.SourceProperty, OnSourceChanged);
         image.EffectiveViewportChanged += OnViewportChanged;
         image.Loaded += OnLoaded;
         image.Unloaded += OnUnloaded;
         UpdateSource();
     }
+
+    internal ImageSource? OriginalSource => _source ?? _image.Source;
 
     private void OnSourceChanged(DependencyObject sender, DependencyProperty property)
     {
@@ -127,41 +135,60 @@ internal sealed class AnimatedPoster
     private async Task PlayAsync(BitmapImage original, CancellationTokenSource playback)
     {
         var token = playback.Token;
+        var slots = _preview ? PreviewSlots : ActiveSlots;
+        IDisposable? surfaceReservation = null;
         bool reserved = false;
         try
         {
-            await ActiveSlots.WaitAsync(token).ConfigureAwait(true);
+            await slots.WaitAsync(token).ConfigureAwait(true);
             reserved = true;
             await DecodeSlots.WaitAsync(token).ConfigureAwait(true);
             AnimatedPngFrames? decoded;
             try
             {
-                if (!IsCurrent(playback, original) || !PosterCache.TryGetAnimation(original, out var bytes)
-                    || _root is not { } root) return;
-                var width = (int)Math.Ceiling(original.DecodePixelWidth * root.RasterizationScale);
-                decoded = await Task.Run(() => AnimatedPngFrames.DecodeAsync(bytes, width, FrameBudget, token), token)
-                    .ConfigureAwait(true);
+                if (!IsCurrent(playback, original) || !PosterCache.TryGetAnimation(original, out var bytes)) return;
+                decoded = await AnimatedPngFrames.OpenAsync(bytes, token).ConfigureAwait(true);
             }
             finally { DecodeSlots.Release(); }
 
             if (decoded is null || !IsCurrent(playback, original)) return;
+            // Canvas, optional restore canvas, current WriteableBitmap and temporary WIC frame.
+            // Preview has its own reserve, so a full grid cannot starve the hover image or logo.
+            surfaceReservation = await (_preview ? PreviewSurfaces : CardSurfaces)
+                .ReserveAsync(16L * decoded.Width * decoded.Height, token).ConfigureAwait(true);
+            if (!IsCurrent(playback, original)) return;
             var bitmap = new WriteableBitmap(decoded.Width, decoded.Height);
-            _surface = bitmap;
-            Paint(bitmap, decoded.Frames[0]);
-            SetSource(bitmap);
+            long paintedAt = 0;
+            var delay = TimeSpan.Zero;
 
             for (uint loop = 0; decoded.Plays == 0 || loop < decoded.Plays; loop++)
             {
-                for (int index = 0; index < decoded.Frames.Count; index++)
+                for (int index = 0; index < decoded.FrameCount; index++)
                 {
-                    var frame = decoded.Frames[index];
-                    if (loop != 0 || index != 0) Paint(bitmap, frame);
-                    if (decoded.Plays != 0 && loop == decoded.Plays - 1 && index == decoded.Frames.Count - 1) return;
-                    await Task.Delay(frame.Delay < MinimumFrameDelay ? MinimumFrameDelay : frame.Delay, token)
-                        .ConfigureAwait(true);
-                    if (!IsCurrent(playback, bitmap))
+                    await DecodeSlots.WaitAsync(token).ConfigureAwait(true);
+                    AnimatedPngFrame? frame;
+                    try { frame = await decoded.ReadFrameAsync(index, token).ConfigureAwait(true); }
+                    finally { DecodeSlots.Release(); }
+                    // Decode the next frame during the preceding frame's display interval.
+                    var remaining = delay - (paintedAt == 0 ? TimeSpan.Zero : Stopwatch.GetElapsedTime(paintedAt));
+                    if (remaining > TimeSpan.Zero) await Task.Delay(remaining, token).ConfigureAwait(true);
+                    if (frame is null || !IsCurrent(playback, _surface is null ? original : bitmap))
                     {
                         if (ReferenceEquals(_playback, playback)) Stop();
+                        return;
+                    }
+                    Paint(bitmap, frame);
+                    if (_surface is null)
+                    {
+                        _surface = bitmap;
+                        SetSource(bitmap);
+                    }
+                    paintedAt = Stopwatch.GetTimestamp();
+                    delay = frame.Delay < MinimumFrameDelay ? MinimumFrameDelay : frame.Delay;
+                    if (decoded.Plays != 0 && loop == decoded.Plays - 1 && index == decoded.FrameCount - 1)
+                    {
+                        _heldSurface = surfaceReservation;
+                        surfaceReservation = null; // The final visible frame owns its reservation until Stop.
                         return;
                     }
                 }
@@ -174,7 +201,8 @@ internal sealed class AnimatedPoster
         }
         finally
         {
-            if (reserved) ActiveSlots.Release();
+            surfaceReservation?.Dispose();
+            if (reserved) slots.Release();
             if (ReferenceEquals(_playback, playback)) _playback = null;
             playback.Dispose();
         }
@@ -198,6 +226,8 @@ internal sealed class AnimatedPoster
         var surface = _surface;
         _surface = null;
         if (surface is not null && ReferenceEquals(_image.Source, surface)) SetSource(_source);
+        _heldSurface?.Dispose();
+        _heldSurface = null;
     }
 
     private void SetSource(ImageSource? source)

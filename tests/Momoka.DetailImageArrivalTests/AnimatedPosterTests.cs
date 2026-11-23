@@ -14,6 +14,148 @@ internal static class AnimatedPosterTests
 {
     public static void Register()
     {
+        Test("原生帧预算耗尽时等待，取消不占容量，释放后继续且可重复释放", () => BudgetAsync().GetAwaiter().GetResult());
+
+        static async Task BudgetAsync()
+        {
+            var budget = new AnimationSurfaceBudget(16);
+            var first = await budget.ReserveAsync(16, default);
+            using var cancelled = new CancellationTokenSource();
+            var abandoned = budget.ReserveAsync(1, cancelled.Token);
+            var next = budget.ReserveAsync(8, default);
+            Assert.False(next.IsCompleted);
+            cancelled.Cancel();
+            try { await abandoned; Assert.True(false, "预算等待应取消"); }
+            catch (OperationCanceledException) { }
+            first.Dispose();
+            first.Dispose();
+            using var second = await next.WaitAsync(TimeSpan.FromSeconds(1));
+            using var third = await budget.ReserveAsync(8, default).WaitAsync(TimeSpan.FromSeconds(1));
+            using var leaving = new CancellationTokenSource();
+            var full = budget.ReserveAsync(1, leaving.Token);
+            Assert.False(full.IsCompleted, "重复释放不能扩大容量");
+            leaving.Cancel();
+            try { await full; Assert.True(false, "预算等待应取消"); }
+            catch (OperationCanceledException) { }
+        }
+        Test("网格播放槽满时悬浮封面和徽标仍能播放", () =>
+        {
+            using var ui = new UiPump();
+            PosterCache.Clear();
+            AnimatedPngFrames.Decode = (_, _) => Task.FromResult<AnimatedPngFrames?>(Fixture.Frames);
+            var images = new List<Image>();
+            try
+            {
+                for (var index = 0; index < 26; index++)
+                {
+                    var image = new Image();
+                    images.Add(image);
+                    image.Load();
+                    _ = new AnimatedPoster(image, preview: index >= 24);
+                    var source = new BitmapImage();
+                    PosterCache.TrackAnimation(source, [2]);
+                    image.Source = source;
+                    image.SetViewport(new(0, 0, 100, 100));
+                }
+                ui.Until(() => images.All(image => image.Source is WriteableBitmap), "网格不能占住预览的两个播放槽");
+            }
+            finally
+            {
+                foreach (var image in images) image.Unload();
+                // Cancellation is asynchronous; don't leave occupied slots for the following case.
+                ui.Until(() => HomeMotion.Subscriptions == 0 && Available("ActiveSlots") == 24 && Available("PreviewSlots") == 2,
+                    "离树未释放监听或播放槽");
+                PosterCache.Clear();
+            }
+
+            static int Available(string name) => ((SemaphoreSlim)typeof(AnimatedPoster)
+                .GetField(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .GetValue(null)!).CurrentCount;
+        });
+        Test("原生尺寸位图缓存按像素预算淘汰，GIF与APNG均识别为动图", () =>
+        {
+            PosterCache.Clear();
+            for (var index = 0; index < 5; index++)
+                PosterCache.Remember($"native-{index}", new BitmapImage { PixelWidth = 2048, PixelHeight = 2048 });
+            Assert.False(PosterCache.TryGet("native-0", out _));
+            Assert.True(PosterCache.TryGet("native-4", out _));
+            Assert.True(PosterCache.IsAnimated(new BitmapImage { IsAnimatedBitmap = true }));
+            var apng = new BitmapImage();
+            PosterCache.TrackAnimation(apng, [2]);
+            Assert.True(PosterCache.IsAnimated(apng));
+            Assert.False(PosterCache.IsAnimated(new BitmapImage()));
+            PosterCache.Clear();
+        });
+        Test("悬浮图无需淡入包装也按原生尺寸播放，同图身份不随帧改变", () =>
+        {
+            using var fixture = new Fixture(withArrival: false);
+            AnimatedPngFrames.Decode = (_, _) => Task.FromResult<AnimatedPngFrames?>(new(1200, 8, 0,
+                [new(new byte[1200 * 8 * 4], TimeSpan.FromMilliseconds(40)),
+                 new(new byte[1200 * 8 * 4], TimeSpan.FromMilliseconds(40))]));
+            var original = fixture.Original();
+            original.DecodePixelWidth = 100;
+            fixture.Image.XamlRoot!.RasterizationScale = 1.5;
+            fixture.Image.Source = original;
+            fixture.InView();
+            var surface = fixture.Surface();
+            Assert.Equal((1200, 8), (surface.NativeWidth, surface.NativeHeight));
+            Assert.True(ReferenceEquals(original, fixture.Animation.OriginalSource));
+            fixture.Ui.Until(() => surface.PaintedPixels.Count >= 2, "悬浮图没有更新第二帧");
+            Assert.Equal(0, Storyboard.Created.Count);
+            fixture.Image.Source = null; // Popup Reset 清源也必须立即取消。
+            Assert.Null(fixture.Animation.OriginalSource);
+            Assert.Equal(0, HomeMotion.Subscriptions);
+        });
+        Test("逐帧解码期间关闭预览取消旧帧，迟到像素不回填", () =>
+        {
+            using var fixture = new Fixture(withArrival: false);
+            var pending = new TaskCompletionSource<AnimatedPngFrame?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            CancellationToken readToken = default;
+            AnimatedPngFrames.Decode = (_, _) => Task.FromResult<AnimatedPngFrames?>(Fixture.Frames with
+            {
+                Read = (index, token) =>
+                {
+                    if (index == 0) return Task.FromResult<AnimatedPngFrame?>(Fixture.Frames.Frames[0]);
+                    readToken = token;
+                    return pending.Task;
+                }
+            });
+            fixture.Image.Source = fixture.Original();
+            fixture.InView();
+            var surface = fixture.Surface();
+            fixture.Ui.Until(() => readToken.CanBeCanceled, "第二帧没有进入解码");
+            fixture.Image.Source = null;
+            Assert.True(readToken.IsCancellationRequested);
+            var handled = fixture.Ui.Handled;
+            pending.SetResult(Fixture.Frames.Frames[1]);
+            fixture.Ui.Until(() => fixture.Ui.Handled > handled, "迟到帧没有返回");
+            Assert.Null(fixture.Image.Source);
+            Assert.Equal(1, surface.PaintedPixels.Count);
+        });
+        Test("有限循环停在最后一帧，解码失败恢复原图", () =>
+        {
+            using var fixture = new Fixture(withArrival: false);
+            AnimatedPngFrames.Decode = (_, _) => Task.FromResult<AnimatedPngFrames?>(Fixture.Frames with { Plays = 1 });
+            fixture.Image.Source = fixture.Original();
+            fixture.InView();
+            var surface = fixture.Surface();
+            fixture.Ui.Until(() => surface.PaintedPixels.Count == 2, "有限循环没有完成");
+            Assert.Equal((byte)22, surface.PaintedPixels[^1]);
+
+            var reads = 0;
+            AnimatedPngFrames.Decode = (_, _) => Task.FromResult<AnimatedPngFrames?>(Fixture.Frames with
+            {
+                Read = (_, _) =>
+                {
+                    reads++;
+                    return Task.FromResult<AnimatedPngFrame?>(null);
+                }
+            });
+            var failed = fixture.Original();
+            fixture.Image.Source = failed;
+            fixture.Ui.Until(() => reads > 0, "失败帧未实际执行");
+            Assert.True(ReferenceEquals(failed, fixture.Image.Source));
+        });
         Test("静态图和折叠分支保留原始封面且不执行动画解码", () =>
         {
             using var fixture = new Fixture();
@@ -172,6 +314,7 @@ internal static class AnimatedPosterTests
                 PosterCache.TrackAnimation(new BitmapImage(), largeSource);
 
             Assert.False(PosterCache.TryGet("animated-poster", out _));
+            Assert.True(PosterCache.IsAnimated(animatedPoster), "原料逐出不改变APNG身份");
             Assert.True(PosterCache.TryGet("static-poster", out cached) && ReferenceEquals(staticPoster, cached));
             var reloaded = fixture.Original();
             PosterCache.Remember("animated-poster", reloaded);
@@ -187,7 +330,7 @@ internal static class AnimatedPosterTests
         internal static readonly AnimatedPngFrames Frames = new(1, 1, 0,
             [new([11, 0, 0, 255], TimeSpan.FromMilliseconds(40)), new([22, 0, 0, 255], TimeSpan.FromMilliseconds(40))]);
 
-        internal Fixture()
+        internal Fixture(bool withArrival = true)
         {
             Assert.Equal(0, HomeMotion.Subscriptions);
             Storyboard.Created.Clear();
@@ -195,12 +338,14 @@ internal static class AnimatedPosterTests
             AnimatedPngFrames.Decode = (_, _) => Task.FromResult<AnimatedPngFrames?>(Frames);
             Image.Load();
             Fade = new(Image);
-            _ = new AnimatedPoster(Image, Fade);
+            if (!withArrival) Fade.Dispose();
+            Animation = new AnimatedPoster(Image, withArrival ? Fade : null);
         }
 
         internal UiPump Ui { get; } = new();
         internal Image Image { get; } = new();
         internal ImageArrivalFade Fade { get; }
+        internal AnimatedPoster Animation { get; }
 
         internal void InView() => Image.SetViewport(new(0, 0, 100, 100));
         internal void OutOfView() => Image.SetViewport(new(200, 0, 100, 100));

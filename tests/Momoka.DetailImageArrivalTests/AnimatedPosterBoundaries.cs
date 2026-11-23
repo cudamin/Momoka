@@ -28,7 +28,13 @@ namespace Momoka.Shell.Media
         internal static Func<byte[], CancellationToken, Task<AnimatedPngFrames?>> Decode { get; set; } =
             (_, _) => Task.FromResult<AnimatedPngFrames?>(null);
 
-        internal static Task<AnimatedPngFrames?> DecodeAsync(byte[] bytes, int requestedPixelWidth, int byteBudget,
-            CancellationToken token) => Decode(bytes, token);
+        internal int FrameCount => Frames.Count;
+
+        internal static Task<AnimatedPngFrames?> OpenAsync(byte[] bytes, CancellationToken token) => Decode(bytes, token);
+
+        internal Func<int, CancellationToken, Task<AnimatedPngFrame?>>? Read { get; init; }
+
+        internal Task<AnimatedPngFrame?> ReadFrameAsync(int index, CancellationToken token) =>
+            Read?.Invoke(index, token) ?? Task.FromResult<AnimatedPngFrame?>(Frames[index]);
     }
 }

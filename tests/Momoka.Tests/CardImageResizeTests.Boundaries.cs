@@ -36,6 +36,7 @@ namespace Microsoft.UI.Xaml.Media.Imaging
 {
     public sealed class BitmapImage
     {
+        public bool IsAnimatedBitmap { get; init; }
         public int DecodePixelWidth { get; init; }
         public int PixelWidth { get; init; }
         public int PixelHeight { get; init; }
@@ -267,7 +268,8 @@ namespace Momoka.Tests
                 throw new InvalidOperationException("Only in-memory synthetic image GETs are allowed");
             var widthText = uri.Query.TrimStart('?').Split('&')
                 .Select(pair => pair.Split('=', 2)).Single(pair => pair[0].Equals("maxWidth", StringComparison.OrdinalIgnoreCase))[1];
-            var pending = new CardImageRequest(int.Parse(widthText, System.Globalization.CultureInfo.InvariantCulture), cancellationToken);
+            var pending = new CardImageRequest(int.Parse(widthText, System.Globalization.CultureInfo.InvariantCulture), cancellationToken)
+            { Path = uri.AbsolutePath };
             TaskCompletionSource changed;
             lock (_gate)
             {
@@ -306,6 +308,7 @@ namespace Momoka.Tests
 
     internal sealed class CardImageRequest(int width, CancellationToken token)
     {
+        public string Path { get; init; } = "";
         private readonly TaskCompletionSource<HttpResponseMessage> _response = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int Width { get; } = width;
         public CancellationToken Token { get; } = token;

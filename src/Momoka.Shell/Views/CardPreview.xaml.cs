@@ -43,6 +43,7 @@ public sealed partial class CardPreview : UserControl
     private bool _shown;
     private int _generation;
     private bool _watchingMotion;
+    private readonly AnimatedPoster _previewAnimation;
 
     /// <summary>
     /// 悬停面板里的预告片：静音、循环、不接收指针，盖在静态宽图上面。没有预告、读取失败或面板收起时
@@ -58,6 +59,8 @@ public sealed partial class CardPreview : UserControl
     public CardPreview()
     {
         InitializeComponent();
+        _previewAnimation = new AnimatedPoster(PreviewImage, preview: true);
+        _ = new AnimatedPoster(LogoImage, preview: true);
         Panel.Visibility = Visibility.Collapsed;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -142,14 +145,14 @@ public sealed partial class CardPreview : UserControl
     {
         if (artwork is null || !_shown) return;
         if (_running || _artworkFade is not null) { _pendingArtwork = artwork; return; }
-        if (ReferenceEquals(PreviewImage.Source, artwork)) return;
+        if (ReferenceEquals(_previewAnimation.OriginalSource, artwork)) return;
         if (!HomeMotion.AnimationsEnabled || PreviewImage.Source is null)
         {
             PreviewImage.Source = artwork;
             return;
         }
 
-        // 两张图共用随封面撑开的表面。新图在不透明旧图上渐显，混合时不会闪出底色。
+        // 过渡层保持首帧，交给主图后才播放，避免淡入结束时动画倒回第一帧。
         TransitionImage.Source = artwork;
         var board = new Storyboard();
         var animation = new DoubleAnimation { From = 0, To = 1, Duration = TimeSpan.FromMilliseconds(ArtworkFadeMs) };
