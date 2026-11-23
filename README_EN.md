@@ -54,6 +54,17 @@ Verified compatibility notes: Jellyfin 10.10.7 has been checked for saved-login 
 
 Momoka is built with WinUI 3, .NET 10, and libmpv. Start with the [project rules](CLAUDE.md), then use the [contribution guide](CONTRIBUTING.md), [architecture notes and document map](docs/技术文档.md), and [development and verification guide](docs/开发与验证.md).
 
+## Acknowledgements
+
+Momoka is a client built on the work of the open-source community and the services it connects to:
+
+- **Playback and picture:** [mpv / libmpv](https://github.com/mpv-player/mpv) powers the player, and [uosc](https://github.com/tomasklaen/uosc) provides the standalone-mode controls. uosc, stats.lua, and some bundled shaders are distributed via the [dyphire/mpv-config](https://github.com/dyphire/mpv-config) bundle; the shaders themselves come from [Anime4K](https://github.com/bloc97/Anime4K), [ArtCNN](https://github.com/Artoriuz/ArtCNN), CfL, [ravu](https://github.com/bjin/mpv-prescalers), igv, Shiandow, an3223, and others. The bundled `libmpv-2.dll` is an LGPL build from [zhongfly/mpv-winbuild](https://github.com/zhongfly/mpv-winbuild), and the Vulkan loader comes from [Khronos](https://github.com/KhronosGroup/Vulkan-Loader).
+- **Platform and components:** Microsoft's [WinUI 3 / Windows App SDK](https://github.com/microsoft/WindowsAppSDK), the .NET runtime, and [CommunityToolkit](https://github.com/CommunityToolkit/Windows); some animations and icons follow [WinUI Gallery](https://github.com/microsoft/WinUI-Gallery) and [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons).
+- **Services:** [MoviePilot](https://github.com/jxxghp/MoviePilot) connects subscriptions, downloads, and organization; Emby, Jellyfin, fnOS Media, and Plex provide the media servers; [TMDB](https://www.themoviedb.org) provides metadata, and AniBT helps check anime releases; [DanDanPlay](https://www.dandanplay.com) and danmu_api provide danmaku; [SVP](https://www.svp-team.com) provides frame interpolation; real-time subtitle translation can use Google Cloud Translation, Microsoft Translator, or OpenAI Chat Completions-compatible services.
+- **Community:** Thanks to everyone who reported problems, shared suggestions, and tried new builds.
+
+Third-party projects and services belong to their respective authors and maintainers; Momoka is not affiliated with them. See [Third-Party Notices](THIRD-PARTY-NOTICES.md) for bundled component versions, licenses, and sources.
+
 ## Privacy and license
 
 Momoka does not include telemetry, advertising, or usage analytics. Optional media-server, danmaku, and subtitle-translation features send the information needed to provide those features. See the [privacy policy](PRIVACY.md).

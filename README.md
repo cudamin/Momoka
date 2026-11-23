@@ -54,6 +54,17 @@
 
 Momoka 使用 WinUI 3、.NET 10 与 libmpv。项目规则先看 [CLAUDE.md](CLAUDE.md)；开发环境和提交前检查见 [贡献指南](CONTRIBUTING.md)；整体架构、专题文档入口和验证范围见[技术文档](docs/技术文档.md)与[开发和验证说明](docs/开发与验证.md)。
 
+## 致谢
+
+Momoka 是站在开源社区和服务提供方肩膀上的客户端，主要借力如下：
+
+- **播放与画面**：[mpv / libmpv](https://github.com/mpv-player/mpv) 提供播放内核，[uosc](https://github.com/tomasklaen/uosc) 提供独占模式的控制条；uosc、stats.lua 与部分随包着色器经 [dyphire/mpv-config](https://github.com/dyphire/mpv-config) 整合包分发，着色器本体来自 [Anime4K](https://github.com/bloc97/Anime4K)、[ArtCNN](https://github.com/Artoriuz/ArtCNN)、CfL、[ravu](https://github.com/bjin/mpv-prescalers)、igv、Shiandow、an3223 等作者；`libmpv-2.dll` 使用 [zhongfly/mpv-winbuild](https://github.com/zhongfly/mpv-winbuild) 的 LGPL 构建，Vulkan 加载器来自 [Khronos](https://github.com/KhronosGroup/Vulkan-Loader)。
+- **平台与组件**：Microsoft 的 [WinUI 3 / Windows App SDK](https://github.com/microsoft/WindowsAppSDK)、.NET 运行时与 [CommunityToolkit](https://github.com/CommunityToolkit/Windows)；部分界面动效和图标参考 [WinUI Gallery](https://github.com/microsoft/WinUI-Gallery) 与 [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons)。
+- **服务生态**：[MoviePilot](https://github.com/jxxghp/MoviePilot) 串起订阅、下载与整理；Emby、Jellyfin、飞牛影视与 Plex 提供媒体服务；[TMDB](https://www.themoviedb.org) 提供元数据，AniBT 提供番剧资源核对；[弹弹play](https://www.dandanplay.com) 与 danmu_api 提供弹幕；[SVP](https://www.svp-team.com) 提供补帧；实时字幕翻译可接 Google Cloud Translation、Microsoft Translator 或兼容 OpenAI Chat Completions 的服务。
+- **社区**：感谢每一位反馈问题、提出建议和帮忙试用新版本的朋友。
+
+这些项目与服务归各自作者和维护者所有，Momoka 与它们没有隶属关系。随包第三方组件的版本、许可证与出处见[第三方组件声明](THIRD-PARTY-NOTICES.md)。
+
 ## 隐私与许可
 
 Momoka 不含遥测、广告或使用统计。启用的媒体服务器、弹幕和字幕翻译功能会向相应服务发送完成该功能所需的信息，详见[隐私政策](PRIVACY.md)。
