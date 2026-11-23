@@ -20,7 +20,7 @@
 
 **产物。** 安装包 `artifacts/Momoka_windows-x64_0.3.2.exe`（85,147,790 字节，SHA256 `83A546D8EDE82D70140615D82E8EE1D75C39EF8AF37416D196F4EBC7A51AA226`，文件版本 0.3.2.0）；免安装 ZIP `artifacts/Momoka-0.3.2-win-x64.zip`（119,505,583 字节，SHA256 `CBD09B75389C2890132914370BA919DBF9DC54EC7B2BAD20D7B124B28F5A15BA`，550 条目，根目录含 `Momoka.exe`）；商店上架包 `artifacts/Momoka-0.3.2-win-x64-store.msix`（122,362,512 字节，SHA256 `17767F993810D8C957303E600B50B23405BFBFC2614FC3A81D4C4B26280B5629`，554 条目，身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.3.2.0`／x64，未签名，核心四文件与发布目录逐字节一致，只留本地由用户在 Partner Center 上传）。`SHA256SUMS.txt` 只含前两件；商店 MSIX 不上传 Release。
 
-**远端。** 待推送与上传后回填。
+**远端。** `master` 已推送 `76bc9c0`（`dbdea3f..76bc9c0`），标签 `v0.3.2` 已推送；Release [v0.3.2](https://github.com/cudamin/Momoka/releases/tag/v0.3.2)（pre-release）已创建并上传 `Momoka_windows-x64_0.3.2.exe`、`Momoka-0.3.2-win-x64.zip` 与 `SHA256SUMS.txt`，回读字节数与 digest（`sha256:83a546d8…1aa226`、`sha256:cbd09b75…5a15ba`、`sha256:4d005754…b9f77`）与本地一致。商店 MSIX 未上传，由用户在 Partner Center 完成。
 
 **未验证。** 真实 MoviePilot／Emby／Jellyfin／飞牛／Plex 实屏与真实播放／写入（未获授权）；五套固定深色与跟随系统深浅的逐张目视、高对比、跨 DPI、Narrator／触摸；商店包安装与 Partner Center 认证；35 条探针红与两项播放探针红保留原状态。按规则不整批销账，台账保持开放。
 
