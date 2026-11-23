@@ -294,7 +294,7 @@ internal sealed partial class ShellNavigationProbe
             var page = (LibraryPage)frame.Content;
             await LayoutAsync(page);
             var tabs = Get<Segmented>(page, "SourceTabs");
-            Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 4, "连接后未显示 AniBT 搜索栏");
+            Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 5, "连接后未显示 AniBT 搜索栏");
             var aniBtTab = tabs.Items.OfType<SegmentedItem>().Single(item => item.Name == "AniBtSourceTab");
             Require(aniBtTab.Visibility == Visibility.Visible, "默认设置下 AniBT 搜索来源被隐藏");
             fixture.Settings.MoviePilot.AniBtEnabled = false;
@@ -307,7 +307,7 @@ internal sealed partial class ShellNavigationProbe
             // 来源栏现在固定显示，等可见不再等于设置回调已经跑完；先让那次 ApplySource/Release 落定再搜。
             await LayoutAsync(page);
             await SettleAsync();
-            tabs.SelectedIndex = 3;
+            tabs.SelectedIndex = 4;
             var panel = page.AniBtPanel;
             if (panel is null) throw new InvalidOperationException("AniBT 来源没有创建面板");
             Field(panel.ViewModel, "_launcher", launcher);
@@ -638,7 +638,7 @@ internal sealed partial class ShellNavigationProbe
             await page.SubmitSearchAsync("断线前请求");
             moviePilot.Offline = true;
             Require(!await service.RefreshAvailabilityAsync(), "假 MP 断线后仍被判为可用");
-            await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 3
+            await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 4
                 && Get<StackPanel>(page, "SearchUnavailableSurface").Visibility == Visibility.Visible);
             Require(panel.Visibility == Visibility.Collapsed && panel.ViewModel.Results.Count == 0
                 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Collapsed,
@@ -652,7 +652,7 @@ internal sealed partial class ShellNavigationProbe
             Require(await service.RefreshAvailabilityAsync(), "假 MP 恢复后仍不可用");
             await UntilAsync(() => tabs.Visibility == Visibility.Visible);
             await page.SubmitSearchAsync("");
-            tabs.SelectedIndex = 3;
+            tabs.SelectedIndex = 4;
             var departed = aniBt.DelayNextSearch();
             var leavingQuery = page.SubmitSearchAsync("离页请求");
             await UntilAsync(() => departed.Entered.Task.IsCompleted);

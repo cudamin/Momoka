@@ -18,6 +18,9 @@
   只替换 HTTP endpoint，禁止网络备援。
 - 每次编译从当前 `LibraryPage.xaml.cs` 原样提取 `Release/OnNavigatedFrom/SearchSource/ApplySource`。
   除 MoviePilot panel/VM 外的页面控制器是惰性边界，但接线控制流不抄写、不重新模拟。
+- 搜索键盘回归链接完整的 `LibraryPage.SearchInput.cs`，以编辑框和查询入口为边界，覆盖
+  组字确认与显式提交的区分、回车按下漏送时的补提交、原生查询与补提交去重、文字清空、离焦和模板更换。
+  覆盖漏送退格按下时的单字与选区编辑，以及原生退格、修饰键和组字末尾的去重。实体按键路由和系统输入法另在真实窗口验证。
 - P3 普通库窗口在搜索路径不适用：锚点保存为无操作，待恢复槽保持 null／false，
   `LoadedCount` 取当前 Cards.Count；新增字段只补原样 `Release` 的编译边界，不引入窗口逻辑。
 - 提取的 start/end 锚点必须存在且唯一，否则直接编译失败；生成文件在本项目 `obj` 下。

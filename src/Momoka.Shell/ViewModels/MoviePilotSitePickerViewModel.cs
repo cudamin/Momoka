@@ -64,13 +64,12 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     public bool CanComplete => _editing && !Busy && IsCurrentConnection && DraftIsCurrent;
     public bool CanSearch => CanComplete && HasSelection;
     private bool CanSelect => CanPick && Sites.Count > 0;
-    private bool CanRefresh => _editing && !Busy && IsCurrentConnection && DraftIsCurrent;
     private bool DraftIsCurrent => _draftOwner is null || (_draftOwner._editing && _draftOwner._editVersion == _ownerEditVersion
         && _draftOwner._preferenceVersion == _ownerPreferenceVersion
         && ReferenceEquals(_draftOwner._service, _service) && _draftOwner._mediaType == _mediaType
         && _draftOwner._connectionStamp == _connectionStamp);
     public Visibility EmptyVisibility => Show(_loaded && Sites.Count == 0 && !Busy);
-    internal bool HasSelection => UseDefault || (_service?.IsCurrentConnection(_connectionStamp) == true && Sites.Any(site => site.Selected));
+    internal bool HasSelection => UseDefault || (_loaded && IsCurrentConnection && Sites.Any(site => site.Selected));
     internal MoviePilotSiteSelection? Selection => UseDefault ? null : new(_connectionStamp, [.. Sites.Where(site => site.Selected).Select(site => site.Id)]);
     internal bool IsDraftOwnerCurrent => DraftIsCurrent && IsCurrentConnection;
 
@@ -147,6 +146,19 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     {
         if (_service is null || !_service.IsCurrentConnection(_connectionStamp)) return;
         Apply(_service.SearchSitePreference(_mediaType), notify: true);
+    }
+
+    /// <summary>
+    /// 宿主切回这一格时恢复监听并重读本机选择，不打断在飞的目录读取。
+    /// 连接换过才整份重接（旧目录与旧勾都不属于新连接）。
+    /// </summary>
+    internal void ReloadPreference()
+    {
+        if (_service is not { } service) return;
+        if (!service.IsCurrentConnection(_connectionStamp)) { Attach(service, _mediaType); return; }
+        _editing = true;
+        Observe(service);
+        Apply(service.SearchSitePreference(_mediaType), notify: true);
     }
 
     /// <summary>
@@ -267,7 +279,15 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token)) Report("读取搜索站点失败，可点击刷新重试", error);
+            if (IsCurrent(token))
+            {
+                if (_draftOwner is not null)
+                {
+                    _loaded = false;
+                    CopySites([]);
+                }
+                Report(_draftOwner is null ? "读取搜索站点失败" : "读取搜索站点失败，请关闭弹窗后重新打开", error);
+            }
         }
         finally { EndLoad(token); }
     }
@@ -294,7 +314,6 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         Changed();
     }
 
-    [RelayCommand(CanExecute = nameof(CanRefresh))] private Task Refresh() => ReloadAsync();
     [RelayCommand(CanExecute = nameof(CanSelect))] private void SelectAll() => Select(true);
     [RelayCommand(CanExecute = nameof(CanSelect))] private void ClearSelection() => Select(false);
 
@@ -343,7 +362,6 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         OnPropertyChanged(nameof(SelectedCount));
         OnPropertyChanged(nameof(SelectionText));
         OnPropertyChanged(nameof(EmptyVisibility));
-        RefreshCommand.NotifyCanExecuteChanged();
         SelectAllCommand.NotifyCanExecuteChanged();
         ClearSelectionCommand.NotifyCanExecuteChanged();
     }

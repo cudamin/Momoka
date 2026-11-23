@@ -28,6 +28,8 @@ public sealed class MoviePilotTransferBlockedException(string message, Exception
 
 public sealed class MoviePilotOperationBlockedException(string message) : MoviePilotException(message);
 
+internal sealed class MoviePilotSearchRejectedException() : MoviePilotException("MoviePilot 未能完成搜索，请稍后重试");
+
 public sealed class MoviePilotMediaNotRecognizedException() : MoviePilotException("未识别到媒体信息。");
 
 /// <summary>服务端确认尚未加入下载；用户可在高级选项核对媒体后重新提交。</summary>

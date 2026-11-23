@@ -40,7 +40,7 @@ internal static class SearchCompactMergeTests
         Test("搜索合并：订阅结果保留点击入口与滚动条车道，不恢复来源筛选", () =>
             CheckSubscriptionPanel(Load(sourceRoot, "MoviePilotSearchPanel.xaml")));
 
-        Test("搜索来源：固定四入口，不因完成、焦点或连接改变导航", () =>
+        Test("搜索来源：固定五入口，不因完成、焦点或连接改变导航", () =>
         {
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
             Assert.Contains("SourceTabs.Visibility = ViewModel.MoviePilotTabsVisibility", source);
@@ -48,7 +48,7 @@ internal static class SearchCompactMergeTests
             Assert.DoesNotContain("_searchPresentationVersion", source);
             Assert.Contains("SearchForm.RowSpacing = 0", source);
             Assert.Contains("SourceTabs.Margin = SourceTabs.Visibility == Visibility.Visible", source);
-            Assert.Contains("get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3)", source);
+            Assert.Contains("get => Math.Clamp(SourceTabs.SelectedIndex, 0, 4)", source);
             Assert.Contains("AniBtSourceTab.Visibility = Visibility.Visible", source);
             Assert.Contains("if (!SearchSourceAvailable)", source);
             Assert.Contains("SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible", source);
@@ -80,7 +80,7 @@ internal static class SearchCompactMergeTests
             var vm = File.ReadAllText(Path.Combine(sourceRoot,
                 "src/Momoka.Shell/ViewModels/MoviePilotVersionsViewModel.cs"));
             Assert.Contains("internal async Task LoadCachedResultsAsync()", vm);
-            Assert.Contains("if (service is null || Browser.HasResults) return;", vm);
+            Assert.Contains("if (service is not { Available: true } || Busy || Browser.HasResults || _lastKeyword.Length != 0) return;", vm);
             Assert.Contains("BeginBackgroundLoad()", vm);
         });
 
@@ -178,13 +178,13 @@ internal static class SearchCompactMergeTests
             Assert.Throws<AssertionException>(() => CheckSourceTabSize(xml));
         });
 
-        Test("搜索胶囊：保留原生模板与四个稳定来源入口", () =>
+        Test("搜索胶囊：保留原生模板与五个稳定来源入口", () =>
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
             var tabs = Named(xml, "SourceTabs");
             var items = tabs.Elements().Where(node => node.Name.LocalName == "SegmentedItem").ToArray();
-            Assert.Equal(4, items.Length);
-            Assert.Equal("媒体库|MoviePilot 订阅|MoviePilot 资源|AniBT",
+            Assert.Equal(5, items.Length);
+            Assert.Equal("媒体库|MoviePilot 订阅|MoviePilot 资源|MoviePilot 字幕|AniBT",
                 string.Join('|', items.Select(item => item.Elements().Single().Attribute("Text")?.Value)));
             Assert.True(items.All(item => item.Attribute("AutomationProperties.Name") is not null));
             Assert.True(items.All(item => item.Elements().Single().Attribute("TextWrapping")?.Value == "NoWrap"));
@@ -202,13 +202,15 @@ internal static class SearchCompactMergeTests
         {
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
             Assert.Contains("SearchEntry.Width = formWidth", source);
-            Assert.Contains("SourceTabs.Width = Math.Min(480, formWidth)", source);
+            Assert.Contains("SourceTabs.Width = Math.Min(600, formWidth)", source);
             Assert.Contains("(SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length)", source);
             Assert.Contains("horizontalPadding = formWidth < 520 ? 4 : 8", source);
             Assert.Contains("item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2)", source);
             Assert.Contains("item.MaxWidth - horizontalPadding * 2", source);
             Assert.Contains("1 => formWidth < 520 ? UiText.Translate(\"MP 订阅\") : UiText.Translate(\"MoviePilot 订阅\")", source);
             Assert.Contains("2 => formWidth < 520 ? UiText.Translate(\"MP 资源\") : UiText.Translate(\"MoviePilot 资源\")", source);
+            Assert.Contains("3 => formWidth < 520 ? UiText.Translate(\"MP 字幕\") : UiText.Translate(\"MoviePilot 字幕\")", source);
+            Assert.Contains("4 => \"AniBT\",", source);
         });
 
         Test("搜索胶囊：真实父级和数据项辅助功能接到原生单选", () =>

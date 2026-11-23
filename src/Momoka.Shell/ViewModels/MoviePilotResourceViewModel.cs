@@ -277,7 +277,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
             if (_options?.Subtitles == true)
             {
                 Subtitles.Clear();
-                var subtitles = await _service.SearchSubtitlesAsync(_media, SearchSites.Selection, _options.Episode, token);
+                var subtitles = await _service.SearchSubtitlesAsync(_media, SearchSites.Selection, _options.Episode, token, progress);
                 if (!IsCurrent(token)) return;
                 foreach (var subtitle in subtitles) Subtitles.Add(new(subtitle, DownloadSubtitleAsync, _service.SubtitleState(subtitle)));
                 EmptyNotice = "没有找到字幕"; ShowEmptyNotice = subtitles.Count == 0; EndLoad(token); return;
@@ -341,7 +341,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
     /// <summary>
     /// 站点范围只影响下一次搜索（2026-10-29 用户令：取消勾选默认站点时不许把眼前的结果清空）。
     /// 在飞的旧搜索仍然作废 —— 它请求的是改选之前那个站点范围；已经铺出来的卡片和字幕留在原地，
-    /// 下一次「搜索资源」才换掉它们，留在原地的卡片照样能打开下载确认。
+    /// 下一次搜索（站点弹窗的「搜索」或面板上的「搜索资源」）才换掉它们，留在原地的卡片照样能打开下载确认。
     /// </summary>
     private void OnSearchSitesChanged()
     {
@@ -352,7 +352,9 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
             Notify("搜索站点已更改", "当前结果仍是刚才那次搜索的；点“搜索资源”后才会按新站点重搜。", InfoBarSeverity.Informational);
             return;
         }
-        EmptyNotice = SearchSites.HasSelection ? "搜索站点已更改，点击“搜索资源”应用" : "请至少选择一个站点，或使用 MoviePilot 默认站点";
+        EmptyNotice = SearchSites.HasSelection
+            ? "搜索站点已更改，点击“搜索资源”应用"
+            : "请至少选择一个站点，或使用 MoviePilot 默认站点";
         ShowEmptyNotice = true;
     }
 

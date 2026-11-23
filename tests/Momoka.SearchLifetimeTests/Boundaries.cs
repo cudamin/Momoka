@@ -7,7 +7,17 @@ namespace Windows.UI
         public static Color FromArgb(byte a, byte r, byte g, byte b) => new(a, r, g, b);
     }
 }
-namespace Windows.System { public enum VirtualKey { Enter, Escape } }
+namespace Windows.System { public enum VirtualKey { Enter, Escape, Back, Control, Menu, LeftWindows, RightWindows } }
+namespace Windows.UI.Core { public enum CoreVirtualKeyStates { None, Down } }
+namespace Microsoft.UI.Input
+{
+    public static class InputKeyboardSource
+    {
+        public static HashSet<Windows.System.VirtualKey> KeysDown { get; } = [];
+        public static Windows.UI.Core.CoreVirtualKeyStates GetKeyStateForCurrentThread(Windows.System.VirtualKey key) =>
+            KeysDown.Contains(key) ? Windows.UI.Core.CoreVirtualKeyStates.Down : Windows.UI.Core.CoreVirtualKeyStates.None;
+    }
+}
 namespace Microsoft.UI.Dispatching
 {
     public sealed class DispatcherQueue
@@ -22,7 +32,7 @@ namespace Microsoft.UI.Xaml
     public enum Visibility { Visible, Collapsed }
     public enum ElementTheme { Default, Light, Dark }
     public sealed class XamlRoot;
-    public class RoutedEventArgs : EventArgs;
+    public class RoutedEventArgs : EventArgs { public object? OriginalSource { get; init; } }
     public sealed class ExceptionRoutedEventArgs : RoutedEventArgs;
     public delegate void ExceptionRoutedEventHandler(object sender, ExceptionRoutedEventArgs args);
     public class FrameworkElement
@@ -41,6 +51,7 @@ namespace Microsoft.UI.Xaml.Input
     {
         public Windows.System.VirtualKey Key { get; set; }
         public bool Handled { get; set; }
+        public object? OriginalSource { get; set; }
     }
 }
 namespace Microsoft.UI.Xaml.Media.Imaging
@@ -80,8 +91,48 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ItemsViewItemInvokedEventArgs : EventArgs { public object? InvokedItem { get; init; } }
     public sealed class TextBox : Microsoft.UI.Xaml.FrameworkElement
     {
-        public string? Text { get; set; }
+        public string Name { get; init; } = "TextBox";
+        public string Text { get; set; } = "";
         public string PlaceholderText { get; set; } = "";
+        public bool IsReadOnly { get; set; }
+        public int SelectionStart { get; private set; }
+        public int SelectionLength { get; private set; }
+        public string SelectedText
+        {
+            get => Text.Substring(SelectionStart, SelectionLength);
+            set
+            {
+                Text = Text.Remove(SelectionStart, SelectionLength).Insert(SelectionStart, value);
+                Select(SelectionStart + value.Length, 0);
+            }
+        }
+        public void Select(int start, int length) => (SelectionStart, SelectionLength) = (start, length);
+        public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? PreviewKeyDown;
+        public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? KeyUp;
+        internal void Press(Windows.System.VirtualKey key) => PreviewKeyDown?.Invoke(this, new() { Key = key });
+        internal bool Release(Windows.System.VirtualKey key, object? originalSource = null)
+        {
+            var args = new Microsoft.UI.Xaml.Input.KeyRoutedEventArgs { Key = key, OriginalSource = originalSource ?? this };
+            KeyUp?.Invoke(this, args);
+            return args.Handled;
+        }
+        public event Action<TextBox, TextCompositionStartedEventArgs>? TextCompositionStarted;
+        public event Action<TextBox, TextCompositionEndedEventArgs>? TextCompositionEnded;
+        public event Action<object, Microsoft.UI.Xaml.RoutedEventArgs>? LostFocus;
+        internal void BeginComposition() => TextCompositionStarted?.Invoke(this, new());
+        internal void EndComposition() => TextCompositionEnded?.Invoke(this, new());
+        internal void Blur() => LostFocus?.Invoke(this, new());
+    }
+    public sealed class TextCompositionStartedEventArgs : EventArgs;
+    public sealed class TextCompositionEndedEventArgs : EventArgs;
+    public sealed class AutoSuggestBox : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; }
+    public sealed class AutoSuggestBoxQuerySubmittedEventArgs : EventArgs { public string? QueryText { get; init; } }
+    public enum AutoSuggestionBoxTextChangeReason { UserInput, ProgrammaticChange }
+    public sealed class AutoSuggestBoxTextChangedEventArgs : EventArgs
+    {
+        public AutoSuggestionBoxTextChangeReason Reason { get; init; }
+        public bool Current { get; init; } = true;
+        public bool CheckCurrent() => Current;
     }
     public sealed class ComboBox : Microsoft.UI.Xaml.FrameworkElement { public int SelectedIndex { get; set; } }
     public sealed class Button : Microsoft.UI.Xaml.FrameworkElement { public bool IsEnabled { get; set; } = true; }

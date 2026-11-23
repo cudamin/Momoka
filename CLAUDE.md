@@ -74,7 +74,7 @@
 - 当前配置下不可用或不会生效的功能自动隐藏，相关按钮、菜单、设置、从属说明和空白一起收起；不用置灰或说明代替隐藏。整组无效时收起容器，控制启用或模式切换的入口保持可达。
 - 状态变化、重新进入、导入设置和恢复默认后当场重算；隐藏不清空偏好，条件恢复后显示原值，不要求重启。
 - 加载、提交和失败仍须显示必要进度、错误与恢复操作。界面隐藏不替代命令和服务层的能力、身份及权限检查。
-- **搜索页来源栏例外：**「媒体库／MoviePilot 订阅／MoviePilot 资源／AniBT」始终显示且不改选；不可用时显示恢复说明并阻止请求。其他从属操作仍遵守上述规则。
+- **搜索页来源栏例外：**「媒体库／MoviePilot 订阅／MoviePilot 资源／MoviePilot 字幕／AniBT」始终显示且不改选；不可用时显示恢复说明并阻止请求。其他从属操作仍遵守上述规则。
 
 实现与核验分别见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md#capability-dependent-visibility)和[验证技能](.claude/skills/momoka-verification/SKILL.md#capability-dependent-visibility)。
 

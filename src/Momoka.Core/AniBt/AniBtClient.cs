@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
+using Momoka.Infrastructure;
 
 namespace Momoka.AniBt;
 
@@ -16,20 +17,65 @@ public sealed partial class AniBtClient : IDisposable
     private static readonly Uri Origin = new("https://anibt.net/");
     private static readonly XNamespace RssNamespace = "https://anibt.net/xmlns/rss/1.0/";
     private const int MaximumResponseBytes = 8 * 1024 * 1024;
-    private readonly HttpClient _http;
+    private readonly Lock _connectionLock = new();
+    private readonly Func<string?>? _readProxyServer;
+    private Connection? _connection;
 
-    public AniBtClient(HttpMessageHandler? handler = null)
+    public AniBtClient(HttpMessageHandler? handler = null, Func<string?>? readProxyServer = null)
     {
-        handler ??= new SocketsHttpHandler
+        _readProxyServer = handler is null ? readProxyServer : null;
+        _connection = new Connection(CreateHttpClient(handler ?? CreateHandler(null)), null);
+    }
+
+    private static HttpClient CreateHttpClient(HttpMessageHandler handler) =>
+        new(handler) { Timeout = Timeout.InfiniteTimeSpan };
+
+    private static SocketsHttpHandler CreateHandler(IWebProxy? proxy) =>
+        new()
         {
             AllowAutoRedirect = false,
             UseCookies = false,
             Credentials = null,
+            Proxy = proxy,
             AutomaticDecompression = DecompressionMethods.All,
             ConnectTimeout = TimeSpan.FromSeconds(8),
             PooledConnectionLifetime = TimeSpan.FromMinutes(5)
         };
-        _http = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+
+    private Connection AcquireConnection()
+    {
+        lock (_connectionLock)
+        {
+            var connection = _connection ?? throw new ObjectDisposedException(nameof(AniBtClient));
+            var proxyServer = _readProxyServer?.Invoke();
+            if (connection.ProxyServer != proxyServer)
+            {
+                // The handler keeps its proxy and pool for the life of the connection. Retire the
+                // old client after its last request has finished reading the response body.
+                var proxy = ProxyEndpoint.CreateWebProxy(proxyServer);
+                _connection = new Connection(CreateHttpClient(CreateHandler(proxy)), proxyServer);
+                if (connection.ActiveRequests == 0) connection.Http.Dispose();
+                connection = _connection;
+            }
+
+            connection.ActiveRequests++;
+            return connection;
+        }
+    }
+
+    private void ReleaseConnection(Connection connection)
+    {
+        lock (_connectionLock)
+        {
+            if (--connection.ActiveRequests == 0 && connection != _connection) connection.Http.Dispose();
+        }
+    }
+
+    private sealed class Connection(HttpClient http, string? proxyServer)
+    {
+        public HttpClient Http { get; } = http;
+        public string? ProxyServer { get; } = proxyServer;
+        public int ActiveRequests { get; set; }
     }
 
     public async Task<AniBtMatch> MatchAsync(string filename, CancellationToken cancellationToken)
@@ -151,6 +197,7 @@ public sealed partial class AniBtClient : IDisposable
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
+        var connection = AcquireConnection();
         try
         {
             var uri = new Uri(Origin, path);
@@ -159,7 +206,8 @@ public sealed partial class AniBtClient : IDisposable
                 using var request = new HttpRequestMessage(body is null ? HttpMethod.Get : HttpMethod.Post, uri);
                 if (body is not null) request.Content = new StringContent(body, Encoding.UTF8, "application/json");
                 request.Headers.Accept.ParseAdd(xml ? "application/xml" : "application/json");
-                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
+                using var response = await connection.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
+                    deadline.Token).ConfigureAwait(false);
                 if ((int)response.StatusCode is >= 300 and < 400)
                 {
                     var next = response.Headers.Location is { } location ? new Uri(uri, location) : null;
@@ -208,6 +256,10 @@ public sealed partial class AniBtClient : IDisposable
         catch (HttpRequestException error)
         {
             throw new AniBtException("无法连接 AniBT，请检查网络后重试", innerException: error);
+        }
+        finally
+        {
+            ReleaseConnection(connection);
         }
     }
 
@@ -270,5 +322,12 @@ public sealed partial class AniBtClient : IDisposable
     private static AniBtException InvalidResponse(Exception? inner = null) =>
         new("AniBT 返回的数据无法读取，请稍后重试", innerException: inner);
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose()
+    {
+        lock (_connectionLock)
+        {
+            _connection?.Http.Dispose();
+            _connection = null;
+        }
+    }
 }

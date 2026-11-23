@@ -52,6 +52,7 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public Thickness Padding { get; set; }
         public HorizontalAlignment HorizontalAlignment { get; set; } = HorizontalAlignment.Stretch;
+        public bool IsEnabled { get; set; } = true;
     }
     public sealed class ItemsRepeater : FrameworkElement { }
     public sealed class UniformGridLayout { public double MinItemWidth { get; set; } = 168; }
@@ -113,6 +114,8 @@ namespace Momoka.Shell.Views
         internal readonly Microsoft.UI.Xaml.Controls.Grid SiteDialogHeader = new();
         internal readonly Microsoft.UI.Xaml.Controls.ScrollViewer SiteDialogScroll = new();
         internal readonly Microsoft.UI.Xaml.Controls.Button Primary = new();
+        internal readonly Microsoft.UI.Xaml.Controls.Button SearchNowButton = new();
+        internal readonly Microsoft.UI.Xaml.Controls.Button CompleteButton = new();
         private void InitializeComponent()
         {
             Resources.MergedDictionaries.Add(new Microsoft.UI.Xaml.ResourceDictionary
@@ -124,6 +127,8 @@ namespace Momoka.Shell.Views
             PrimaryButtonClick += OnConfirm;
         }
         internal void PressX() => OnClose(this, new());
+        internal void PressSearchNow() => OnSearchNow(this, new());
+        internal void PressComplete() => OnComplete(this, new());
         internal void SetGridWidth(double width) => OnGridSizeChanged(this, new(new(width, 100)));
     }
 }

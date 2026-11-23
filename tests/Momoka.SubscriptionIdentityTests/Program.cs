@@ -111,14 +111,70 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
     files.Cancel();
 }
 await Momoka.SubscriptionWallFixture.WallTests.RunAsync(failures);
+await CheckSearchManagementAsync(failures);
 Console.WriteLine(JsonSerializer.Serialize(new { production = "Actual subscription VM/card/episode row, actual MediaSeasonsView, verbatim media row source; inert WinUI and metadata owner", network = "none", observations }, new JsonSerializerOptions { WriteIndented = true }));
 
 Console.WriteLine($"3 identity edit cases; {failures.Count} failures");
 Console.WriteLine("1 actual availability-handler ownership case completed (foreign/current/departed).");
 Console.WriteLine("11 subscription-wall cases completed (filter/sort, preference, order, selection, batch, maintenance, banner, polling, card execution, card year/title, list failure).");
+Console.WriteLine("Search subscription management checked confirmation, refresh, editing and stale cards.");
 if (failures.Count > 0) throw new InvalidOperationException(string.Join("; ", failures));
 
 static int? HostSeason(MoviePilotMediaViewModel media) => media.Seasons.SingleOrDefault(row => row.Files is not null)?.Season.Number;
+
+static async Task CheckSearchManagementAsync(List<string> failures)
+{
+    using var handler = new AnonymousSubscriptions();
+    using var client = new MoviePilotClient(handler);
+    var settings = new AppSettings();
+    settings.MoviePilot.Enabled = true;
+    settings.MoviePilot.Url = "http://round6-subscription.invalid:3001";
+    settings.MoviePilot.Username = "anonymous-review";
+    var credentials = new MoviePilotCredentials(PassthroughSecretProtector.Instance);
+    credentials.SetPassword(settings.MoviePilot, "placeholder");
+    using var service = new MoviePilotService(client, credentials, settings);
+    var card = new MoviePilotSubscriptionCard((await service.SubscriptionsAsync(default)).Single());
+    MoviePilotSubscriptionCard? hit = card;
+    var refreshed = new List<int?>();
+    using var manager = new MoviePilotSubscriptionsViewModel();
+    manager.AttachForSearch(service, candidate => ReferenceEquals(candidate, hit), id =>
+    {
+        refreshed.Add(id);
+        if (id == card.Subscription.Id) hit = null;
+        return Task.CompletedTask;
+    });
+    if (!manager.CanManage || !manager.Owns(card) || manager.Owns(new(card.Subscription)))
+        failures.Add("search manager did not own only the current hit");
+
+    var confirmations = 0;
+    manager.UseConfirm((_, _, _) => { confirmations++; return Task.FromResult(false); });
+    if (await manager.ManageAsync(card, MoviePilotSubscriptionAction.Delete) || confirmations != 1
+        || handler.Writes != 0 || refreshed.Count != 0)
+        failures.Add("cancelling did not leave the current hit unchanged");
+
+    await manager.EditAsync(card, async (subscription, save, _) =>
+        await save(MoviePilotSubscriptionEdit.From(subscription) with { Keyword = "edited from search" }));
+    if (handler.Writes != 1 || !refreshed.SequenceEqual(new int?[] { null }))
+        failures.Add("editing the current hit did not refresh the search list");
+
+    manager.UseConfirm((_, _, _) =>
+    {
+        hit = null;
+        return Task.FromResult(true);
+    });
+    if (await manager.ManageAsync(card, MoviePilotSubscriptionAction.Delete) || handler.Writes != 1)
+        failures.Add("a hit that disappeared while confirming could still be managed");
+
+    hit = card;
+    manager.UseConfirm((_, _, _) => Task.FromResult(true));
+    if (!await manager.ManageAsync(card, MoviePilotSubscriptionAction.Delete) || handler.Writes != 2
+        || !refreshed.SequenceEqual(new int?[] { null, card.Subscription.Id }) || manager.Owns(card))
+        failures.Add("confirmed removal did not invalidate the correct search hit");
+    manager.Cancel();
+    hit = card;
+    if (manager.Owns(card) || await manager.ManageAsync(card, MoviePilotSubscriptionAction.Delete) || handler.Writes != 2)
+        failures.Add("a released manager could still manage a search hit");
+}
 
 internal sealed class AnonymousSubscriptions : HttpMessageHandler
 {
@@ -150,6 +206,11 @@ internal sealed class AnonymousSubscriptions : HttpMessageHandler
             return Reply(new { success = true });
         }
         if (path == "subscribe/") return Reply(new[] { _subscription });
+        if (path == "subscribe/12" && request.Method == HttpMethod.Delete)
+        {
+            Writes++;
+            return Reply(new { success = true });
+        }
         if (path == "subscribe/12") return Reply(_subscription);
         if (path == "subscribe/files/12") return Reply(new
         {

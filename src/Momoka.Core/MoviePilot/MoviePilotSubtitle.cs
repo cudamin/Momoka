@@ -4,6 +4,10 @@ using System.Text.Json;
 namespace Momoka.MoviePilot;
 
 public sealed record MoviePilotMediaSearchOptions(string Area = "title", int? Episode = null, bool Subtitles = false);
+
+public sealed record MoviePilotDetailSearch(MoviePilotMedia Media, MoviePilotMediaSearchOptions Options, MoviePilotSiteSelection? Sites);
+public sealed record MoviePilotSearchPage(string Source, int Number);
+public sealed record MoviePilotResourcePage(IReadOnlyList<MoviePilotResource> Resources, IReadOnlyList<MoviePilotSearchPage> NextPages);
 public sealed record MoviePilotSubtitle(MoviePilotMedia Media, JsonElement Data)
 {
     public string Title => MoviePilotSubscription.Text(Data, "title");
@@ -18,17 +22,19 @@ public sealed partial class MoviePilotService
     public MoviePilotOperationState SubtitleState(MoviePilotSubtitle subtitle) => OperationState(SubtitleKey(subtitle));
 
     public async Task<IReadOnlyList<MoviePilotSubtitle>> SearchSubtitlesAsync(MoviePilotMedia media, MoviePilotSiteSelection? sites,
-        int? episode, CancellationToken cancellationToken)
+        int? episode, CancellationToken cancellationToken, IProgress<MoviePilotSearchProgress>? progress = null)
     {
+        if (!media.CanSubscribe || string.IsNullOrWhiteSpace(media.Type)) return [];
         var identity = RequireResultConnection(media.ConnectionStamp);
         var path = $"search/subtitle/media/{Uri.EscapeDataString(media.MediaId!)}?media_source={Uri.EscapeDataString(media.MediaSource!)}&mtype={Uri.EscapeDataString(media.Type!)}";
-        if (media.Season is >= 0) path += "&season=" + media.Season.Value.ToString(CultureInfo.InvariantCulture);
+        path += SearchDisplayQuery(media);
+        if (media.Season is >= 0 && media.Type == MoviePilotTransferRequest.TypeSeries) path += "&season=" + media.Season.Value.ToString(CultureInfo.InvariantCulture);
         if (episode is > 0) path += "&episode=" + episode.Value.ToString(CultureInfo.InvariantCulture);
         path += SearchSitesQuery(sites);
-        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await ReadSearchAsync(identity, path, progress, cancellationToken, subtitle: true).ConfigureAwait(false);
         if (data.ValueKind != JsonValueKind.Array) throw new MoviePilotException("字幕搜索结果格式不正确");
-        return data.EnumerateArray().Where(item => MoviePilotSubscription.Text(item, "title").Length > 0
-            && MoviePilotSubscription.Text(item, "enclosure").Length > 0).Select(item => new MoviePilotSubtitle(media, item.Clone())).ToArray();
+        return data.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object)
+            .Select(item => new MoviePilotSubtitle(media, item.Clone())).ToArray();
     }
 
     public async Task<IReadOnlyList<string>> SubtitlePathsAsync(MoviePilotSubtitle subtitle, CancellationToken cancellationToken)

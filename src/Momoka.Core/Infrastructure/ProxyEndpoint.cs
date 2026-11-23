@@ -5,9 +5,8 @@ namespace Momoka.Infrastructure;
 /// <summary>
 /// 设置 → 关于 → 网络 那一行「代理服务器」的解析与归一化。
 /// <para>
-/// 同一个值有两个消费者，形状却不一样：<c>TmdbClient</c> 要一个 <see cref="IWebProxy"/>，
-/// WebView2 要一条 Chromium 的 <c>--proxy-server</c> 启动参数。两边各解析一遍就会在「socks5h 算不算
-/// socks5」「没写端口怎么办」这些地方悄悄走岔，所以判断只在这里做一次，两处都从这里取。
+/// TMDB 和 AniBT 请求使用 <see cref="IWebProxy"/>，WebView2 使用 Chromium 的 <c>--proxy-server</c>
+/// 启动参数。它们共用地址校验、端口和协议转换规则。
 /// </para>
 /// <para>
 /// 接受 <c>http(s)://</c>、<c>socks5://</c>、<c>socks5h://</c> 三种写法；不写 scheme 的
@@ -15,8 +14,7 @@ namespace Momoka.Infrastructure;
 /// WebView2 的浏览器参数，换行和空格能把一条参数拆成两条，所以字符范围也一并卡死。
 /// </para>
 /// <para>
-/// 空串是「不设置」：两个消费者都不拿到代理，.NET 与 Chromium 各自回到系统的代理设置 —— 与这一行出现之前
-/// 的行为完全一样。
+/// 空串表示 .NET 与 Chromium 各自使用系统代理。
 /// </para>
 /// </summary>
 public static class ProxyEndpoint
@@ -82,11 +80,6 @@ public static class ProxyEndpoint
     private static string Canonical(Uri endpoint) =>
         $"{endpoint.Scheme.ToLowerInvariant()}://{HostAndPort(endpoint)}";
 
-    private static string HostAndPort(Uri endpoint)
-    {
-        var host = endpoint.Host.ToLowerInvariant();
-        // Uri 交给我们的 IPv6 主机不带方括号，拼回地址时要自己加。
-        if (host.Contains(':')) host = "[" + host + "]";
-        return $"{host}:{endpoint.Port}";
-    }
+    // Uri.Host 已包含 IPv6 主机的方括号。
+    private static string HostAndPort(Uri endpoint) => $"{endpoint.Host.ToLowerInvariant()}:{endpoint.Port}";
 }

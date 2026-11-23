@@ -118,6 +118,7 @@ internal static class Program
         DetailSectionCardTests.Register();
         StoreDetailLayoutTests.Register();
         SubscriptionTrailerLayoutTests.Register();
+        SubscriptionResourceFlowTests.Register();
         StoreTrailerWebTests.Register();
         StoreDetailProbeEvidenceTests.Register();
         ArtworkAmbientTests.Register();

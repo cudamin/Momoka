@@ -568,8 +568,7 @@ public static class SettingsMigration
         settings.Ui.Language = UiLanguages.Normalize(settings.Ui.Language);
 
         // 代理服务器（设置 → 关于 → 网络，2026-11-18）：认得出的地址归一成 scheme://host:port，认不出的
-        // 原样去空白留着 —— 两个消费者都先过 ProxyEndpoint.TryParse，认不出的值不会被拿去用，也不会被这里
-        // 悄悄清掉。缺键的旧文件读出来是空串，两个消费者都不拿代理，行为一个字节都不变。
+        // 保留暂未写完整的值，用户可以继续编辑。消费者在地址无效或缺省时跟随系统代理。
         settings.Network.ProxyServer = ProxyEndpoint.Normalize(settings.Network.ProxyServer);
 
         // 记下来的窗口尺寸只做「不是垃圾数字」这一道校验，摆到哪块屏、要不要缩进工作区由

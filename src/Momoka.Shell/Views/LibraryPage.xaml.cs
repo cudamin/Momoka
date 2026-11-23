@@ -73,6 +73,22 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>导航时程序化设来源标签，别让 SelectionChanged 和后面的显式 ApplySource 各跑一遍。</summary>
     private bool _suppressSourceApply;
 
+    /// <summary>
+    /// 这次导航请求要显示的来源。来源标签在页面加载后才真正建出选中项，控件会把导航时写进去的
+    /// <c>SelectedIndex</c> 改回第一项（2026-11-23 用户报「跳到搜索页却停在媒体库，搜索也没触发」）——
+    /// 在页面落定之前以这里为准把它钉回去。
+    /// </summary>
+    private int _requestedSource;
+
+    /// <summary>
+    /// 还在「来源标签刚落定」这段窗口里：此间被控件改回去的选择要钉回 <see cref="_requestedSource"/>。
+    /// 第一次排版时来源已经对上了就结束这段窗口，之后程序或用户改来源一律照办。
+    /// </summary>
+    private bool _pinningSource;
+
+    /// <summary>用户已经自己选过来源（指针按下或键盘方向键）：此后的选择归用户，不再钉回请求的那一项。</summary>
+    private bool _sourceChosen;
+
     /// <summary>这一页真正执行视图/分区/头部布局的次数，给性能探针核对一次 Attach 只做一次。</summary>
     internal int ViewApplies { get; private set; }
     internal int SectionBuilds { get; private set; }
@@ -88,6 +104,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     // 五个面板都按首次使用创建：普通媒体库不该替 MoviePilot、AniBT、筛选和设置付构造与隐藏控件的价钱。
     private MoviePilotSearchPanel? _moviePilotPanel;
     private MoviePilotVersionsView? _moviePilotResources;
+    private MoviePilotSubtitlePanel? _moviePilotSubtitles;
     private AniBtSearchPanel? _aniBtPanel;
     private FilterPanel? _filterPane;
     private LibrarySettingsPanel? _settingsPane;
@@ -101,11 +118,19 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>返回搜索页时先记下 MoviePilot 那段的结果，等面板真正建出来再恢复。</summary>
     private MoviePilotSearchSnapshot? _pendingMoviePilotSearch;
 
+    /// <summary>从订阅详情「搜索资源」跳来：面板建出来就用搜索框里的词真搜一次。</summary>
+    private bool _pendingMoviePilotResourceSearch;
+
+    /// <summary>从订阅详情「搜索字幕」跳来：字幕面板建出来就直接读这部剧的字幕。</summary>
+    private MoviePilotDetailSearch? _pendingMoviePilotDetailSearch;
+
     internal MoviePilotSearchPanel? MoviePilotPanel => _moviePilotPanel;
     internal MoviePilotVersionsView? MoviePilotResources => _moviePilotResources;
+    internal MoviePilotSubtitlePanel? MoviePilotSubtitles => _moviePilotSubtitles;
     internal AniBtSearchPanel? AniBtPanel => _aniBtPanel;
     internal bool MoviePilotPanelCreated => _moviePilotPanel is not null;
     internal bool MoviePilotResourcesCreated => _moviePilotResources is not null;
+    internal bool MoviePilotSubtitlesCreated => _moviePilotSubtitles is not null;
     internal bool AniBtPanelCreated => _aniBtPanel is not null;
     internal bool FilterPanelCreated => _filterPane is not null;
     internal bool SettingsPanelCreated => _settingsPane is not null;
@@ -113,15 +138,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>探针与自检用；真正创建仍由打开面板的那条路走。</summary>
     internal FilterPanel FilterPane => _filterPane ?? EnsureFilterPanel();
     internal LibrarySettingsPanel SettingsPane => _settingsPane ?? EnsureSettingsPanel();
-
-    /// <summary>
-    /// 这一次回车有没有送到 keydown。输入法组字时没有（见 <see cref="OnSearchKeyUp"/>），
-    /// 只有普通回车才会让 <see cref="AutoSuggestBox.QuerySubmitted"/> 先提交一次。
-    /// </summary>
-    private bool _searchEnterDown;
-
-    /// <summary>组字回车补提交那一趟的取消源；离页、换来源与普通提交都收掉它。</summary>
-    private CancellationTokenSource? _imeSubmit;
 
     /// <summary>筛选、排序或分区切换已经把重查发出去：第一批结果落定时给整面墙补一段淡入。</summary>
     private bool _wallResetPending;
@@ -173,16 +189,22 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 换来源之后光标要能落在搜索框里：这一页唯一的输入口是那个框，而点标签会把焦点留在标签上，
         // 用户换完来源就打不了字、也按不出回车（2026-10-15 用户报的正是「按回车不触发搜索」）。只认
         // 指针点的那一下，键盘方向键在标签之间移动时不抢焦点，见 OnSourceTabsKeyDown。
+        SourceTabs.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSourceTabsPointerPressed), handledEventsToo: true);
         SourceTabs.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnSourceTabsPointerReleased), handledEventsToo: true);
         SourceTabs.PreviewKeyDown += OnSourceTabsKeyDown;
 
-        // 输入法组字时，回车被输入法吃掉：keydown（连同 QuerySubmitted）不发给页面，只有 keyup 到得了。
-        // 补提交的那一路见 OnSearchKeyUp。
-        SearchInput.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnSearchKeyDown), handledEventsToo: true);
-        SearchInput.AddHandler(UIElement.KeyUpEvent, new KeyEventHandler(OnSearchKeyUp), handledEventsToo: true);
+        SearchInput.GotFocus += OnSearchInputGotFocus;
         SearchInput.Loaded += (_, _) => PlaceSearchSites();
+        // 搜索页的站点表（用户令 2026-11-22）：「完成」左边多一颗「立即搜索」，按它保存这次的选择并当场重搜。
+        SearchSitePicker.SearchNow = true;
+        SearchSitePicker.SearchRequested += (_, _) =>
+        {
+            if (SearchSource == 3 && _moviePilotSubtitles is { ViewModel.HasSelectedMedia: true } subtitles)
+                _ = subtitles.ViewModel.ReloadAsync();
+            else
+                _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
+        };
         ViewModel.SubmitRecentSearch = SubmitSearchAsync;
-        SearchInput.LostFocus += OnSearchLostFocus;
         SearchCategories.SelectionChanged += OnSearchCategoryChanged;
         HeaderLayout.SizeChanged += OnHeaderSizeChanged;
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
@@ -572,17 +594,24 @@ public sealed partial class LibraryPage : Page, IShellContent
             services.GetRequiredService<EmbyImageStore>(),
             _capabilities, _moviePilot);
 
-        // 搜索面板只在真正切到那个来源时才建；这里只记下要恢复的 MoviePilot 结果。
+        // 搜索面板只在真正切到那个来源时才建；这里只记下要恢复的 MoviePilot 结果与跨页跳来的搜索请求。
+        // 返回栈复用同一页时（resumed）面板已在，跨页请求不能留到下一次手切来源才执行。
         _pendingMoviePilotSearch = request.IsSearch ? request.MoviePilotSearch : null;
+        _pendingMoviePilotResourceSearch = !resumed && request.IsSearch && request.MoviePilotResourceSearchNow;
+        _pendingMoviePilotDetailSearch = !resumed && request.IsSearch ? request.MoviePilotDetailSearch : null;
         SearchCategories.SelectedItem = SearchCategories.Items.FirstOrDefault(item =>
             item.Tag is string value && value == request.SearchCategory.ToString()) ?? TopResultsCategory;
 
         // 返回搜索页时恢复来源；新请求默认仍从媒体库开始。
         ApplyAniBtTab();
+        _requestedSource = request.IsSearch ? request.SearchSource : 0;
+        _sourceChosen = false;
+        _pinningSource = true;
+        WatchSourcePin();
         _suppressSourceApply = true;
         try
         {
-            SourceTabs.SelectedIndex = request.IsSearch ? request.SearchSource : 0;
+            SourceTabs.SelectedIndex = _requestedSource;
         }
         finally
         {
@@ -691,7 +720,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _moviePilot = null;
         if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
         CancelTyping();
-        CancelImeSubmit();
+        DetachSearchTextBox();
         _navigation++;
         SearchSitePicker.ClosePopup();
         if (_request is { } request)
@@ -722,8 +751,10 @@ public sealed partial class LibraryPage : Page, IShellContent
         _filterScrimMotion?.Collapse();
         _filterMotion?.Collapse();
         CloseSettings(animated: false);
+        StopSourcePin();
         _moviePilotPanel?.Release();
         _moviePilotResources?.Release();
+        _moviePilotSubtitles?.Release();
         _aniBtPanel?.Release();
     }
 
@@ -740,6 +771,15 @@ public sealed partial class LibraryPage : Page, IShellContent
         UpdateTabColors(ThemeHost.Current);
         if (ViewModel.IsFnNas && !ViewModel.IsFolderDrillDown && _request?.IsSearch != true) ReorderFnNasToolbar();
         ApplyHeaderLayout();
+        // 来源标签加载完才建出选中项：导航时写进去的选择可能已被控件改回第一项。用户还没自己选过，
+        // 就按这次请求再钉一次（静默改回不会发 SelectionChanged，所以这里也得补一手）。
+        if (_pinningSource && !_sourceChosen && SourceTabs.SelectedIndex != _requestedSource)
+        {
+            _suppressSourceApply = true;
+            try { SourceTabs.SelectedIndex = _requestedSource; }
+            finally { _suppressSourceApply = false; }
+            ApplySource();
+        }
         // 侧边栏模式点标题框进来时，先让关联动画把那只框接到这里（它同时从标题栏收起）；
         // 接不上才退回原来的淡入。
         var connected = _request?.IsSearch == true
@@ -909,7 +949,8 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         var formWidth = Math.Min(900, width);
         SourceTabs.Visibility = ViewModel.MoviePilotTabsVisibility;
-        SearchSitePicker.Visibility = SearchSource == 2 && SearchSourceAvailable ? Visibility.Visible : Visibility.Collapsed;
+        // 资源与字幕两格都要站点入口：字幕接口同样按站点范围搜（2026-11-23 用户令「搜索字幕也要能选站点」）。
+        SearchSitePicker.Visibility = SearchSource is 2 or 3 && SearchSourceAvailable ? Visibility.Visible : Visibility.Collapsed;
         SearchSitePicker.MaxWidth = formWidth < 520 ? 108 : 180;
         SearchSitePicker.SetCompact(SearchSitePicker.MaxWidth);
         SearchSurface.Margin = new Thickness(0, 8, 0, 0);
@@ -921,12 +962,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchForm.RowSpacing = 0;
         SourceTabs.Margin = SourceTabs.Visibility == Visibility.Visible
             ? new Thickness(0, 8, 0, 0) : new Thickness(0);
-        SourceTabs.Width = Math.Min(480, formWidth);
+        // 600：五个来源平分之后每格仍和原来的四格差不多宽，长标签不至于一上来就省略。
+        SourceTabs.Width = Math.Min(600, formWidth);
         var visibleTabs = SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>()
             .Where(item => item.Visibility == Visibility.Visible).ToArray();
         foreach (var item in visibleTabs)
         {
-            // 四个来源始终保留；窄窗只缩短文案，不改查询来源或移走入口。
+            // 五个来源始终保留；窄窗只缩短文案，不改查询来源或移走入口。
             item.Width = item.MaxWidth = Math.Max(0, (SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length));
             var horizontalPadding = formWidth < 520 ? 4 : 8;
             item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2);
@@ -937,18 +979,20 @@ public sealed partial class LibraryPage : Page, IShellContent
                 {
                     1 => formWidth < 520 ? UiText.Translate("MP 订阅") : UiText.Translate("MoviePilot 订阅"),
                     2 => formWidth < 520 ? UiText.Translate("MP 资源") : UiText.Translate("MoviePilot 资源"),
-                    3 => "AniBT",
+                    3 => formWidth < 520 ? UiText.Translate("MP 字幕") : UiText.Translate("MoviePilot 字幕"),
+                    4 => "AniBT",
                     _ => UiText.Translate("媒体库")
                 };
             }
         }
     }
 
-    /// <summary>搜索页三段共用的内容边距；只拨已经建出来的面板。</summary>
+    /// <summary>搜索页各段共用的内容边距；只拨已经建出来的面板。</summary>
     private void ApplySearchPanelMargins(Thickness margin)
     {
         if (_moviePilotPanel is { } moviePilot) moviePilot.Margin = margin;
         if (_moviePilotResources is { } resources) resources.Margin = margin;
+        if (_moviePilotSubtitles is { } subtitles) subtitles.Margin = margin;
         if (_aniBtPanel is { } aniBt) aniBt.Margin = margin;
     }
 
@@ -1522,19 +1566,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnFilterChanged(object? sender, EventArgs e) => ViewModel.ApplyFilters();
 
     /// <summary>
-    /// 搜索页's own box. Handed to the view model rather than turned into a navigation: this is already
-    /// the right page, and one back-stack entry per word typed is not a history anyone wants to walk.
-    /// <para>
-    /// 按当前来源分流：在「MoviePilot」那一段时把词交给那半的面板，否则照旧搜 Emby 库。
-    /// </para>
-    /// </summary>
-    private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs e)
-    {
-        CancelImeSubmit();
-        _ = SubmitSearchAsync(e.QueryText ?? sender.Text ?? string.Empty);
-    }
-
-    /// <summary>
     /// 在系统 AutoSuggestBox 的清除键与查询键之间加一格，保留原生输入、清除和回车语义。
     /// 同时扩展模板的跨列表面，站点入口也在输入框边框内；模板重建时重新挂载。搜索页与「在 MoviePilot 搜索版本」
     /// 窗口共用 <see cref="SearchSiteSlot"/> 这一份做法。
@@ -1554,74 +1585,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
     }
 
-    private void OnSearchLostFocus(object sender, RoutedEventArgs args)
-    {
-        _searchEnterDown = false;
-        CancelImeSubmit();
-    }
-
-    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key == Windows.System.VirtualKey.Enter) _searchEnterDown = true;
-    }
-
-    /// <summary>
-    /// 输入法组字时的回车只留下 keyup：keydown 与 <see cref="AutoSuggestBox.QuerySubmitted"/> 都被输入法
-    /// 吞掉，用户用中文打完词按一回车，只有候选上屏、搜索不动。这里把那一颗回车补成一次提交 —— 等组合上屏
-    /// （框里的字变了）或最多约 0.35 秒，再拿框里现在的词搜一次。普通回车有 keydown，QuerySubmitted 已经
-    /// 提交过，这一路不重复。
-    /// </summary>
-    private void OnSearchKeyUp(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key == Windows.System.VirtualKey.Escape)
-        {
-            CancelImeSubmit();
-            return;
-        }
-
-        if (e.Key != Windows.System.VirtualKey.Enter) return;
-        var submitted = _searchEnterDown;
-        _searchEnterDown = false;
-        if (!submitted) _ = SubmitImeEnterAsync();
-    }
-
-    /// <summary>
-    /// <see cref="OnSearchKeyUp"/> 的补提交。组字回车的那一下，框里刚提交的组合串可能还没落进 Text，
-    /// 所以先等文本变化（多在 100 毫秒上下），再提交上屏后的词；一直没变就按框里现有的词提交。
-    /// </summary>
-    internal async Task SubmitImeEnterAsync()
-    {
-        CancelImeSubmit();
-        var pending = new CancellationTokenSource();
-        _imeSubmit = pending;
-        var before = SearchInput.Text ?? string.Empty;
-        try
-        {
-            for (var attempt = 0; attempt < 14; attempt++)
-            {
-                await Task.Delay(25, pending.Token).ConfigureAwait(true);
-                if (string.Equals(SearchInput.Text, before, StringComparison.Ordinal)) continue;
-                await Task.Delay(60, pending.Token).ConfigureAwait(true);
-                break;
-            }
-
-            if (pending.IsCancellationRequested || _released) return;
-            await SubmitSearchAsync(SearchInput.Text ?? string.Empty).ConfigureAwait(true);
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            if (ReferenceEquals(_imeSubmit, pending)) _imeSubmit = null;
-            pending.Dispose();
-        }
-    }
-
-    private void CancelImeSubmit()
-    {
-        _imeSubmit?.Cancel();
-        _imeSubmit = null;
-    }
-
     internal Task SubmitSearchAsync(string text)
     {
         CancelTyping();
@@ -1629,13 +1592,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 从来源标签按回车后把焦点交回输入框，接着修改关键词不必再点一次。
         SearchInput.Focus(FocusState.Programmatic);
         return RunSearchAsync(text, remember: true);
-    }
-
-    private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && args.CheckCurrent()
-            && !string.Equals(sender.Text, ViewModel.SearchText, StringComparison.Ordinal))
-            _ = SearchTypingAsync(sender.Text ?? string.Empty);
     }
 
     /// <summary>
@@ -1655,7 +1611,8 @@ public sealed partial class LibraryPage : Page, IShellContent
             ViewModel.SearchText = text;
             if (!SearchSourceAvailable) return;
             if (SearchSource == 1) await EnsureMoviePilotPanel().PrepareSearchAsync().ConfigureAwait(true);
-            else if (SearchSource == 3) await EnsureAniBtPanel().SearchAsync("").ConfigureAwait(true);
+            else if (SearchSource == 3) EnsureMoviePilotSubtitles().Clear();
+            else if (SearchSource == 4) await EnsureAniBtPanel().SearchAsync("").ConfigureAwait(true);
             else await EnsureMoviePilotResources().SearchAsync("").ConfigureAwait(true);
             return;
         }
@@ -1689,7 +1646,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             1 => EnsureMoviePilotPanel().SearchAsync(text),
             2 => EnsureMoviePilotResources().SearchAsync(text),
-            3 => EnsureAniBtPanel().SearchAsync(text),
+            3 => EnsureMoviePilotSubtitles().SearchAsync(text),
+            4 => EnsureAniBtPanel().SearchAsync(text),
             _ => ViewModel.SearchAsync(text, remember)
         }).ConfigureAwait(true);
     }
@@ -1697,11 +1655,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     // 来源是用户明确选的分段，连接变化不能偷偷把 MP / AniBT 查询改成媒体库查询。
     private int SearchSource
     {
-        get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3);
+        get => Math.Clamp(SourceTabs.SelectedIndex, 0, 4);
     }
 
     private bool SearchSourceAvailable => SearchSource == 0 || (_moviePilot?.Available == true
-        && (SearchSource != 3 || _settings?.Settings.MoviePilot.AniBtEnabled != false));
+        && (SearchSource != 4 || _settings?.Settings.MoviePilot.AniBtEnabled != false));
 
     private void CancelTyping()
     {
@@ -1712,7 +1670,40 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressSourceApply) return;
+        if (_pinningSource && !_sourceChosen && SourceTabs.SelectedIndex != _requestedSource)
+        {
+            // 控件在落定过程中把导航时写进去的选择改回了第一项：钉回这次请求要显示的来源。
+            // 这里不能再走 ApplySource —— 那会把刚由请求触发的自动搜索／字幕读取当成「用户切走」收掉。
+            _suppressSourceApply = true;
+            try { SourceTabs.SelectedIndex = _requestedSource; }
+            finally { _suppressSourceApply = false; }
+            return;
+        }
+        _sourceChosen = true;
+        _pinningSource = false;
         ApplySource();
+    }
+
+    /// <summary>来源标签第一次真正落定（已加载且选中项就是这次请求的来源）就结束钉定窗口。</summary>
+    private void TrackSourcePin(object? sender, object e)
+    {
+        if (!_pinningSource || !SourceTabs.IsLoaded || SourceTabs.SelectedIndex != _requestedSource) return;
+        SourceTabs.LayoutUpdated -= TrackSourcePin;
+        _pinningSource = false;
+    }
+
+    /// <summary>接上「来源标签落定」这一耳朵；每次导航重接一次，不叠监听。</summary>
+    private void WatchSourcePin()
+    {
+        SourceTabs.LayoutUpdated -= TrackSourcePin;
+        SourceTabs.LayoutUpdated += TrackSourcePin;
+    }
+
+    /// <summary>离页／换请求时收手：钉定窗口就此结束。</summary>
+    private void StopSourcePin()
+    {
+        SourceTabs.LayoutUpdated -= TrackSourcePin;
+        _pinningSource = false;
     }
 
     /// <summary>
@@ -1723,6 +1714,17 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_released || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
         ViewModel.OpenMatchingSubscription(card);
+    }
+
+    private void OnSubscriptionMatchMenu(object? sender, EventArgs args)
+    {
+        if (_released || SearchSource != 0 || _moviePilot is not { Available: true } service
+            || sender is not MoviePilotSubscriptionPoster { Card: { } card } poster) return;
+        var manager = ViewModel.GetMatchingSubscriptionManager(card,
+            ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
+        if (manager is null) return;
+        MoviePilotSubscriptionMenu.Create(this, manager, card, () => ViewModel.OpenMatchingSubscription(card), service)
+            .ShowAt(poster.MenuAnchor);
     }
 
     private void OnSubscriptionMatchPosterRequested(object? sender, EventArgs args)
@@ -1736,6 +1738,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// 用现有的词搜 —— 两件事都要求焦点在框里。挂 <c>PointerReleased</c> 而不是无条件抢：键盘方向键
     /// 在标签之间移动时焦点本来就该留在标签上（见 <see cref="OnSourceTabsKeyDown"/>）。
     /// </summary>
+    /// <summary>
+    /// 指针按下就算用户自己选了来源（早于选中项变化），后续选择归用户，不再钉回导航请求的那一项。
+    /// </summary>
+    private void OnSourceTabsPointerPressed(object sender, PointerRoutedEventArgs e) => _sourceChosen = true;
+
     private void OnSourceTabsPointerReleased(object sender, PointerRoutedEventArgs e)
     {
         if (!_released && _request?.IsSearch == true) SearchInput.Focus(FocusState.Programmatic);
@@ -1748,11 +1755,21 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSourceTabsKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (_released || e.Key != Windows.System.VirtualKey.Enter) return;
+        if (_released) return;
+        // 方向键／Home／End／空格会让标签自己换选中项：先记成用户的选择，别被「钉回请求来源」拽回去。
+        if (e.Key is Windows.System.VirtualKey.Left or Windows.System.VirtualKey.Right
+            or Windows.System.VirtualKey.Up or Windows.System.VirtualKey.Down
+            or Windows.System.VirtualKey.Home or Windows.System.VirtualKey.End
+            or Windows.System.VirtualKey.Space)
+        {
+            _sourceChosen = true;
+            return;
+        }
+        if (e.Key != Windows.System.VirtualKey.Enter) return;
         e.Handled = true;
         _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
-        // 提交把焦点交到输入框后，这颗回车的 keyup 也会过去，不能误认为输入法补提交。
-        _searchEnterDown = true;
+        // 提交会把焦点交回输入框。这个回车随后在输入框抬起时不应补搜。
+        _searchEnterConsumed = true;
     }
 
     private MoviePilotService? _moviePilot;
@@ -1772,7 +1789,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         ApplyHeaderLayout();
     });
 
-    /// <summary>用户指定搜索页固定四个来源；AniBT 开关只决定该页能否搜索，不移走标签。</summary>
+    /// <summary>用户指定搜索页固定五个来源；AniBT 开关只决定该页能否搜索，不移走标签。</summary>
     private void ApplyAniBtTab()
     {
         AniBtSourceTab.Visibility = Visibility.Visible;
@@ -1796,6 +1813,11 @@ public sealed partial class LibraryPage : Page, IShellContent
             _pendingMoviePilotSearch = null;
             if (panel.ViewModel.Restore(snapshot)) _ = panel.ViewModel.RefreshSubscriptionStatesAsync();
         }
+        else if (panel.ViewModel.RestoreCached(ViewModel.SearchText) is { } restoredTerm)
+        {
+            ViewModel.SearchText = restoredTerm;
+            _ = panel.ViewModel.RefreshSubscriptionStatesAsync();
+        }
 
         return panel;
     }
@@ -1803,16 +1825,64 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>MoviePilot 资源面板：首次切到「MP 资源」时创建，并把站点选择器接到它的来源表。</summary>
     private MoviePilotVersionsView EnsureMoviePilotResources()
     {
-        if (_moviePilotResources is { } existing) return existing;
-
-        var request = _request!;
-        var panel = new MoviePilotVersionsView { Visibility = Visibility.Collapsed };
-        AutomationProperties.SetAutomationId(panel, "MoviePilotResources");
-        panel.Attach(request.Services.GetRequiredService<MoviePilotService>(),
-            request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
+        if (_moviePilotResources is not { } panel)
+        {
+            var request = _request!;
+            panel = new MoviePilotVersionsView { Visibility = Visibility.Collapsed };
+            AutomationProperties.SetAutomationId(panel, "MoviePilotResources");
+            panel.Attach(request.Services.GetRequiredService<MoviePilotService>(),
+                request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
+            // 本次运行内保留上一次结果（用户令 2026-11-22）；换页面回来先摆出来，不重搜。
+            panel.ViewModel.UseCache(request.Services.GetRequiredService<MoviePilotResourceSearchCache>());
+            SearchSourceHost.Children.Add(panel);
+            _moviePilotResources = panel;
+            if (!_pendingMoviePilotResourceSearch && _pendingMoviePilotDetailSearch is not { Options.Subtitles: false })
+                panel.ViewModel.RestoreCached(ViewModel.SearchText);
+        }
+        // 每次切到这一格都接一遍：字幕那一格也会占用页面上这唯一一颗站点入口，切回来要换回资源这份选择。
         SearchSitePicker.Attach(panel.ViewModel.SearchSites);
-        SearchSourceHost.Children.Add(panel);
-        return _moviePilotResources = panel;
+        // 面板是复用的：回到这一格时重读一次站点偏好（不发请求、不打断在飞的目录读取）。用户可能刚在
+        // 订阅详情选过站点再跳回来，只靠建面板那一刻读的那一份会把这次选择漏掉。
+        panel.ViewModel.SearchSites.ReloadPreference();
+        if (_pendingMoviePilotDetailSearch is { Options.Subtitles: false } detailSearch)
+        {
+            _pendingMoviePilotDetailSearch = null;
+            _request!.MoviePilotDetailSearch = null;
+            _ = panel.ViewModel.SearchDetailAsync(detailSearch);
+        }
+        else if (_pendingMoviePilotResourceSearch)
+        {
+            // 从订阅详情跳来：那个词是用户刚确认过的，真搜一次，也顺手把旧缓存换掉。面板上次已经建过
+            // （搜索页 → 订阅详情 → 再从详情跳回来）也要搜，不能因为控件还在就停在旧结果上。
+            _pendingMoviePilotResourceSearch = false;
+            _request!.MoviePilotResourceSearchNow = false;
+            _ = panel.SearchAsync(ViewModel.SearchText);
+        }
+        return panel;
+    }
+
+    /// <summary>MoviePilot 字幕面板：首次切到「MP 字幕」时创建；从订阅详情「搜索字幕」跳来时直接读那部片。</summary>
+    private MoviePilotSubtitlePanel EnsureMoviePilotSubtitles()
+    {
+        if (_moviePilotSubtitles is not { } panel)
+        {
+            var request = _request!;
+            panel = new MoviePilotSubtitlePanel { Visibility = Visibility.Collapsed };
+            AutomationProperties.SetAutomationId(panel, "MoviePilotSubtitles");
+            panel.Attach(request.Services.GetRequiredService<MoviePilotService>());
+            SearchSourceHost.Children.Add(panel);
+            _moviePilotSubtitles = panel;
+        }
+        // 字幕接口同样按站点范围搜；这一格也用页面上那一颗站点入口（切来切去要跟着换）。
+        SearchSitePicker.Attach(panel.ViewModel.SearchSites);
+        panel.ViewModel.SearchSites.ReloadPreference();
+        if (_pendingMoviePilotDetailSearch is { Options.Subtitles: true } detailSearch)
+        {
+            _pendingMoviePilotDetailSearch = null;
+            _request!.MoviePilotDetailSearch = null;
+            _ = panel.ViewModel.LoadSubtitlesAsync(detailSearch.Media, detailSearch.Options.Episode, detailSearch);
+        }
+        return panel;
     }
 
     /// <summary>AniBT 面板：首次切到 AniBT 来源时创建。</summary>
@@ -1876,14 +1946,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void ApplySource()
     {
         CancelTyping();
-        CancelImeSubmit();
         SearchSitePicker.ClosePopup();
         var source = SearchSource;
         var available = SearchSourceAvailable;
-        _moviePilotPanel?.CancelSearch();
-        _moviePilotResources?.Release();
-        _aniBtPanel?.Release();
 
+        // 先把要显示的那一格接上、再让别的收手。跨页跳来的自动搜索／字幕读取就在 Ensure 里消费 ——
+        // 提前 Release 会把刚发出去的那一趟取消掉（来源标签加载后补发的 SelectionChanged 会再走一遍这里）。
         FrameworkElement? active = null;
         if (available)
         {
@@ -1891,15 +1959,22 @@ public sealed partial class LibraryPage : Page, IShellContent
             {
                 1 => EnsureMoviePilotPanel(),
                 2 => EnsureMoviePilotResources(),
-                3 => EnsureAniBtPanel(),
+                3 => EnsureMoviePilotSubtitles(),
+                4 => EnsureAniBtPanel(),
                 _ => null
             };
         }
+        if (!ReferenceEquals(_moviePilotPanel, active)) _moviePilotPanel?.CancelSearch();
+        if (!ReferenceEquals(_moviePilotResources, active)) _moviePilotResources?.Release();
+        if (!ReferenceEquals(_moviePilotSubtitles, active)) _moviePilotSubtitles?.Release();
+        if (!ReferenceEquals(_aniBtPanel, active)) _aniBtPanel?.Release();
 
         if (_moviePilotPanel is { } moviePilot)
             moviePilot.Visibility = ReferenceEquals(moviePilot, active) ? Visibility.Visible : Visibility.Collapsed;
         if (_moviePilotResources is { } resources)
             resources.Visibility = ReferenceEquals(resources, active) ? Visibility.Visible : Visibility.Collapsed;
+        if (_moviePilotSubtitles is { } subtitles)
+            subtitles.Visibility = ReferenceEquals(subtitles, active) ? Visibility.Visible : Visibility.Collapsed;
         if (_aniBtPanel is { } aniBt)
             aniBt.Visibility = ReferenceEquals(aniBt, active) ? Visibility.Visible : Visibility.Collapsed;
         EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -1908,9 +1983,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (available && source == 2 && _moviePilotResources is { } cached && ViewModel.SearchText.Trim().Length == 0)
             _ = cached.LoadCachedResultsAsync();
         SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible;
-        SearchUnavailableTitle.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
+        SearchUnavailableTitle.Text = source == 4 && _settings?.Settings.MoviePilot.AniBtEnabled == false
             ? UiText.Translate("AniBT 尚未启用") : UiText.Translate("MoviePilot 尚未连接");
-        SearchUnavailableMessage.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
+        SearchUnavailableMessage.Text = source == 4 && _settings?.Settings.MoviePilot.AniBtEnabled == false
             ? UiText.Translate("请在设置 → MoviePilot 中启用 AniBT；此入口会一直保留。")
             : UiText.Translate("请在设置 → MoviePilot 中启用并连接服务，然后在这里继续搜索。");
         ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
@@ -1918,7 +1993,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             1 => UiText.Translate("输入关键词，按回车搜索可订阅的影视"),
             2 => UiText.Translate("输入资源关键词，按回车搜索"),
-            3 => UiText.Translate("输入番剧名称，按回车搜索 AniBT"),
+            3 => UiText.Translate("输入片名，按回车查找影片，再点一部查看字幕"),
+            4 => UiText.Translate("输入番剧名称，按回车搜索 AniBT"),
             _ => ViewModel.ExtendedSearchCategoriesVisibility == Visibility.Visible
                 ? UiText.Translate("搜索影片、节目、人物、合集和播放列表") : UiText.Translate("搜索媒体库中的影片、节目和单集")
         };

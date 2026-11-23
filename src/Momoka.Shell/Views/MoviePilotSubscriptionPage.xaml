@@ -532,6 +532,8 @@
         <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization7" Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Bottom"
             HorizontalAlignment="Center" Margin="0,0,0,32" AutomationProperties.LiveSetting="Polite" />
     </Grid>
-    <local:MoviePilotResourcePanel x:Name="MediaResources" Visibility="Collapsed" Closed="OnResourcesClosed" />
+    <!-- 站点表住在本页（用户令 2026-11-22「选择站点的弹窗的界面要保持在订阅详情页」）：这颗控件自己不露面，
+         只借它的 XamlRoot 弹 ContentDialog；确认后由外壳跳到搜索页，页面不再铺资源结果。 -->
+    <local:MoviePilotSitePicker x:Name="SearchSitePicker" Visibility="Collapsed" />
 </Grid>
 </Page>

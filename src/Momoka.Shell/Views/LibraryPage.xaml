@@ -162,7 +162,8 @@
         <DataTemplate x:Key="SubscriptionMatchTemplate" x:DataType="vm:MoviePilotSubscriptionCard">
             <StackPanel Width="{x:Bind CardWidth}" Spacing="8">
                 <local:MoviePilotSubscriptionPoster Card="{x:Bind}" Width="{x:Bind CardWidth}" Height="{x:Bind PosterHeight}"
-                    OpenRequested="OnSubscriptionMatchOpen" PosterRequested="OnSubscriptionMatchPosterRequested" />
+                    OpenRequested="OnSubscriptionMatchOpen" MenuRequested="OnSubscriptionMatchMenu"
+                    PosterRequested="OnSubscriptionMatchPosterRequested" />
                 <TextBlock Text="{x:Bind Title, Mode=OneWay}" TextWrapping="Wrap"
                     Style="{StaticResource EgBodyStyle}" ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
             </StackPanel>
@@ -451,6 +452,7 @@
                             <tkcontrols:SegmentedItem x:Uid="LibraryPage_Localization1" AutomationProperties.Name="媒体库搜索"><TextBlock x:Uid="LibraryPage_Localization2" Text="媒体库" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem x:Uid="LibraryPage_Localization3" AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock x:Uid="LibraryPage_Localization4" Text="MoviePilot 订阅" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem x:Uid="LibraryPage_Localization5" AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock x:Uid="LibraryPage_Localization6" Text="MoviePilot 资源" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_MoviePilotSubtitleTab" AutomationProperties.Name="MoviePilot 字幕搜索"><TextBlock x:Uid="LibraryPage_MoviePilotSubtitleTabText" Text="MoviePilot 字幕" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem x:Uid="LibraryPage_AniBtSourceTab" x:Name="AniBtSourceTab" AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                         </local:SearchSourceTabs>
                     </Grid>

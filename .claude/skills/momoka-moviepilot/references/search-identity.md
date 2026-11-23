@@ -6,6 +6,7 @@
 
 - `GET /api/v1/media/search?title=<词>&type=media&page=1&count=N`。`media_source` 是**数组参数**：官方后端（`app/api/endpoints/media.py` 的 `search`）用 `MediaSourceQuery` 接收重复的 `media_source=<值>` 查询参数；**逗号分隔串只是旧客户端兼容**。客户端应发重复参数，不要自己拼逗号串。
 - 不传 `media_source` 就是全部来源，由服务器按它自己的来源顺序设置排序后分页（同一 endpoint 内先排序后切页）。
+- 「MoviePilot 订阅」页的最近一次已完成查询保留在本次运行的连接服务中。新面板遇到空框或相同关键词时可恢复作品结果，订阅状态独立补读；手动提交重新发请求。缓存不写入本地文件，退出或切换连接后失效。详情返回仍用自己的导航快照保留滚动位置。
 - 合法值是开放集合：内置 `themoviedb`、`douban`、`bangumi`、`anilist`、`imdb`、`tvdb`、`musicbrainz`、`theaudiodb`、`doubanmusic`，加上插件注册的动态标识（格式 `^[a-z][a-z0-9._-]{0,63}$`，见 MediaSource schema）。**不要写死白名单**；显示名来自 `GET /api/v1/media/source` 的 `name`。
 - `media/source` 每条带 `name`、`media_source`、`media_types`。影视能力按电影/电视剧/movie/tv 判断；前端 v3.1.0 的 `utils/mediaId.ts` 不再把显式空列表视为可用。后端插件 schema 在省略字段时会补默认类型，不能把省略默认与显式 `[]` 混为一谈。来源下拉以实际目录为准，仅请求失败时才退到内置清单，成功返回空目录不伪造 TMDB。
 
@@ -15,7 +16,17 @@
 - 省略或空 `sites` 会回退服务器的 `IndexerSites`；该设置也为空时才进一步回退可用索引器。因此界面应称“MoviePilot 默认站点”，不能一概标成“全部站点”。明确全选须传实际编号；明确清空须拦截查询，不能省略参数后扩大范围。
 - 关键词搜索目录用 `GET site/`，只投影 `is_active=true` 的 `id`（数字或数字字符串）和 `name`。精确搜索用 `GET site/media/movie` 或 `site/media/tv`，沿用服务端的媒体能力判断。目录可能带 Cookie 等敏感字段，不打印原始响应，也不把完整站点对象放进显示模型。
 - 站点编号属于获取目录时的连接与账号，选定编号的请求带同一连接戳；连接改变后拒绝旧编号，重新读取目录。站点选择用于发起搜索，结果列表中的站点筛选用于已取回结果，两者应分开标识。
-- 选择按媒体类型（`null`／电影／电视剧）分开存；某一类没有存过时退到 `null` 那一份，所以设置页的“默认搜索站点”对关键词与按类型的精确搜索都生效，某一类单独改过则以那一类为准。存下来的选择经 `MoviePilotService.SearchSitesChanged` 通知还在台上的选择器重读；`Attach` 报的是“接上来的头一次”，不算一次更改，别拿它触发起搜或提示。
+- 普通关键词窗口与订阅搜索结果中的原精确资源面板，选择按媒体类型（`null`／电影／电视剧）分开存；某一类没有存过时退到 `null` 那一份，所以设置页的“默认搜索站点”对关键词与按类型的精确搜索都生效，某一类单独改过则以那一类为准。存下来的选择经 `MoviePilotService.SearchSitesChanged` 通知还在台上的选择器重读；`Attach` 报的是“接上来的头一次”，不算一次更改，别拿它触发起搜或提示。
+
+## 详情搜索与选站
+
+本节依据 MoviePilot v3.2.9，前端 `dbad4059d158eca46b667db359951ce049563fb8` 的 `MediaDetailView.vue`、`resource.vue`、`SearchSiteDialog.vue`、`useSearchPagination.ts`，后端 `b186df432f2f1657f2e2e70e1fdedf78b4f3bde8` 的 `search.py`、`chain/search/facade.py` 与 `manual.py`。本节描述协议与本地实现，2026-11-23 用户取消了本轮在线结果对比，离线回归不构成实服结果一致性证据。
+
+- 详情按标题和 IMDb 均通过 `search/media/{id}` 保留媒体来源、原生编号、类型、标题、年份与已有季号，分别传 `area=title/imdbid`。IMDb 缺失的标题回退交给后端。资源接口不传 episode，初始列表保留完整最终快照；普通集版本关键词窗口继续沿用原有自动选集行为。
+- 首轮事件流带 `manual_paging=true&page=0`，完整 replace、最后 replace_batch 或 done 上的 sources 决定可继续的来源与页号，完整结果确认后才发布摘要。续页按 source 追加，保留筛选与排序；失败保留该页号，其余来源继续。改站点取消旧请求并撤销旧续页，已经显示的结果保留。
+- 字幕走 `search/subtitle/media/{id}/stream`，携带已有季号及集号。详情资源与字幕的首轮流连接、解析失败可回退普通 GET；显式 error 事件不重放，会话过期交给既有重连机制。续页失败保留待重试状态。
+- 详情标题、IMDb 与字幕先在详情页打开选站，和搜索页的资源、字幕共享本机不限类型偏好。弹窗每次打开读取目录，失败可关闭后重开。确认保存本机选择，再跳转开搜；默认模式省略 `sites`，自选零站点阻止搜索。
+- 跨页详情搜索是一次性指令，面板实际消费后清掉导航请求字段，返回时恢复资源缓存，避免再次覆盖续页或用户的新查询。
 
 ## 三种身份各自是什么
 

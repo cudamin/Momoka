@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Momoka.AniBt;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.Metadata;
@@ -8,11 +9,7 @@ using Momoka.Metadata;
 namespace Momoka.Tests;
 
 /// <summary>
-/// 设置 → 关于 → 网络 的代理服务器：地址解析、设置读写与它真正被交给 TMDB 请求的那根线。
-/// <para>
-/// 纯函数那几条钉住写法（http/socks5/socks5h、不写 scheme、认不出的值）；最后一条用回环上的假代理收一次
-/// CONNECT，证明「填了代理」不是只写进设置文件，而是真的换了 <see cref="HttpClient"/> 的出口。
-/// </para>
+/// 设置 → 关于 → 网络的地址解析、设置读写，以及 TMDB 和 AniBT 请求的代理出口。
 /// </summary>
 internal static class ProxySettingsTests
 {
@@ -28,7 +25,8 @@ internal static class ProxySettingsTests
                 ("socks5://127.0.0.1:1080", "socks5://127.0.0.1:1080", "--proxy-server=socks5://127.0.0.1:1080"),
                 // socks5h 是 curl 的写法（域名也交给代理解析）；Chromium 只认 socks5，换算在 BrowserArgument 里。
                 ("socks5h://127.0.0.1:1080", "socks5h://127.0.0.1:1080", "--proxy-server=socks5://127.0.0.1:1080"),
-                ("127.0.0.1:8686", "http://127.0.0.1:8686", "--proxy-server=http://127.0.0.1:8686")
+                ("127.0.0.1:8686", "http://127.0.0.1:8686", "--proxy-server=http://127.0.0.1:8686"),
+                ("http://[::1]:8686", "http://[::1]:8686", "--proxy-server=http://[::1]:8686")
             })
             {
                 Assert.True(ProxyEndpoint.TryParse(input, out _), input);
@@ -44,6 +42,9 @@ internal static class ProxySettingsTests
             var http = (WebProxy)ProxyEndpoint.CreateWebProxy("172.17.0.1:8888")!;
             Assert.Equal("http", http.Address!.Scheme);
             Assert.Equal(8888, http.Address.Port);
+
+            var ipv6 = (WebProxy)ProxyEndpoint.CreateWebProxy("http://[::1]:8686")!;
+            Assert.Equal("[::1]", ipv6.Address!.Host);
         });
 
         TestHarness.Test("代理：空、带凭据、带路径、少端口的 socks 与控制字符都不认", () =>
@@ -62,7 +63,7 @@ internal static class ProxySettingsTests
 
             Assert.Equal("", ProxyEndpoint.Normalize(null));
             Assert.Equal("", ProxyEndpoint.Normalize("   "));
-            // 认不出的值原样留着（用户可能正打到一半），只是不生效 —— 两个消费者都先过 TryParse。
+            // 认不出的值原样保留，用户可以继续编辑。
             Assert.Equal("还没写完", ProxyEndpoint.Normalize("  还没写完  "));
         });
 
@@ -131,5 +132,89 @@ internal static class ProxySettingsTests
             Assert.True(head?.StartsWith("CONNECT api.themoviedb.org:443", StringComparison.Ordinal) == true,
                 head ?? "代理没有收到 CONNECT");
         });
+
+        TestHarness.Test("代理：AniBT 目录搜索使用当前代理，切换地址保留正在进行的请求", async () =>
+        {
+            using var firstProxy = new TcpListener(IPAddress.Loopback, 0);
+            using var secondProxy = new TcpListener(IPAddress.Loopback, 0);
+            firstProxy.Start();
+            secondProxy.Start();
+            var firstPort = ((IPEndPoint)firstProxy.LocalEndpoint).Port;
+            var secondPort = ((IPEndPoint)secondProxy.LocalEndpoint).Port;
+            var settings = new AppSettings();
+            settings.Network.ProxyServer = $"127.0.0.1:{firstPort}";
+            using var client = new AniBtClient(readProxyServer: () => settings.Network.ProxyServer);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+            var firstSearch = ExpectProxyRejectionAsync(client, timeout.Token);
+            using var firstTunnel = await firstProxy.AcceptTcpClientAsync(timeout.Token);
+            await AssertAniBtConnectAsync(firstTunnel, timeout.Token);
+
+            settings.Network.ProxyServer = $"http://127.0.0.1:{secondPort}";
+            var secondSearch = ExpectProxyRejectionAsync(client, timeout.Token);
+            using var secondTunnel = await secondProxy.AcceptTcpClientAsync(timeout.Token);
+            await AssertAniBtConnectAsync(secondTunnel, timeout.Token);
+            await RejectTunnelAsync(secondTunnel, timeout.Token);
+            await secondSearch;
+
+            Assert.False(firstSearch.IsCompleted, "切换代理提前中断了旧请求");
+            await RejectTunnelAsync(firstTunnel, timeout.Token);
+            await firstSearch;
+        });
+
+        TestHarness.Test("代理：AniBT 清空地址后恢复系统代理", async () =>
+        {
+            using var systemProxy = new TcpListener(IPAddress.Loopback, 0);
+            using var explicitProxy = new TcpListener(IPAddress.Loopback, 0);
+            systemProxy.Start();
+            explicitProxy.Start();
+            var systemPort = ((IPEndPoint)systemProxy.LocalEndpoint).Port;
+            var explicitPort = ((IPEndPoint)explicitProxy.LocalEndpoint).Port;
+            var previousProxy = HttpClient.DefaultProxy;
+            try
+            {
+                HttpClient.DefaultProxy = new WebProxy($"http://127.0.0.1:{systemPort}");
+                var settings = new AppSettings();
+                settings.Network.ProxyServer = $"http://127.0.0.1:{explicitPort}";
+                using var client = new AniBtClient(readProxyServer: () => settings.Network.ProxyServer);
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                var explicitSearch = ExpectProxyRejectionAsync(client, timeout.Token);
+                using var explicitTunnel = await explicitProxy.AcceptTcpClientAsync(timeout.Token);
+                await AssertAniBtConnectAsync(explicitTunnel, timeout.Token);
+                await RejectTunnelAsync(explicitTunnel, timeout.Token);
+                await explicitSearch;
+
+                SettingsPreferences.Apply(settings, new AppSettings());
+                var systemSearch = ExpectProxyRejectionAsync(client, timeout.Token);
+                using var systemTunnel = await systemProxy.AcceptTcpClientAsync(timeout.Token);
+                await AssertAniBtConnectAsync(systemTunnel, timeout.Token);
+                await RejectTunnelAsync(systemTunnel, timeout.Token);
+                await systemSearch;
+            }
+            finally
+            {
+                HttpClient.DefaultProxy = previousProxy;
+            }
+        });
     }
+
+    private static async Task ExpectProxyRejectionAsync(AniBtClient client, CancellationToken cancellationToken)
+    {
+        try { await client.SearchCatalogAsync("Anime", null, cancellationToken); }
+        catch (AniBtException error) when (error.InnerException is HttpRequestException) { return; }
+        throw new InvalidOperationException("AniBT 没有报告代理拒绝连接");
+    }
+
+    private static async Task AssertAniBtConnectAsync(TcpClient tunnel, CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(tunnel.GetStream(), Encoding.ASCII, leaveOpen: true);
+        var request = await reader.ReadLineAsync(cancellationToken);
+        Assert.Equal("CONNECT anibt.net:443 HTTP/1.1", request);
+        while (await reader.ReadLineAsync(cancellationToken) is { Length: > 0 }) { }
+    }
+
+    private static ValueTask RejectTunnelAsync(TcpClient tunnel, CancellationToken cancellationToken) =>
+        tunnel.GetStream().WriteAsync("HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"u8.ToArray(),
+            cancellationToken);
 }

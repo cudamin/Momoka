@@ -9,16 +9,23 @@ public sealed partial class MoviePilotSiteDialog : ContentDialog
 {
     private XamlRoot? _observedRoot;
     private readonly bool _searchOnConfirm;
+    private readonly bool _searchNow;
     private readonly MoviePilotSitePickerViewModel _owner;
 
     public MoviePilotSitePickerViewModel ViewModel { get; }
-    public string ConfirmText => _searchOnConfirm ? "搜索" : "完成";
+    public string ConfirmText => _searchNow ? "" : _searchOnConfirm ? "搜索" : "完成";
+    public Visibility SearchNowVisibility => _searchNow ? Visibility.Visible : Visibility.Collapsed;
     public bool CanConfirm => _searchOnConfirm ? ViewModel.CanSearch : ViewModel.CanComplete;
+
+    /// <summary>这颗「立即搜索」这次按下去有没有真的保存并准备开搜。宿主据此决定要不要发搜索。</summary>
+    internal bool Searched { get; private set; }
+
     internal ItemsRepeater SiteGrid => SiteChoices;
 
-    internal MoviePilotSiteDialog(MoviePilotSitePickerViewModel owner, bool searchOnConfirm)
+    internal MoviePilotSiteDialog(MoviePilotSitePickerViewModel owner, bool searchOnConfirm, bool searchNow = false)
     {
         _searchOnConfirm = searchOnConfirm;
+        _searchNow = searchNow;
         _owner = owner;
         ViewModel = owner.CreateDraft();
         InitializeComponent();
@@ -37,8 +44,9 @@ public sealed partial class MoviePilotSiteDialog : ContentDialog
         // 框架模板给按钮写了本地 Stretch，会压过样式的 Right；不换模板，只调整实际部件。
         if (DialogDismiss.TemplatePart(this, "PrimaryButton") is Button primary)
             primary.HorizontalAlignment = HorizontalAlignment.Right;
-        _ = ViewModel.EnsureLoadedAsync();
+        _ = ViewModel.ReloadAsync();
         IsPrimaryButtonEnabled = CanConfirm;
+        SyncSearchNowButtons();
     }
 
     private void OnClosed(ContentDialog sender, ContentDialogClosedEventArgs args)
@@ -50,7 +58,19 @@ public sealed partial class MoviePilotSiteDialog : ContentDialog
         ViewModel.Cancel();
     }
 
-    private void OnStateChanged(object? sender, PropertyChangedEventArgs args) => IsPrimaryButtonEnabled = CanConfirm;
+    private void OnStateChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        IsPrimaryButtonEnabled = CanConfirm;
+        SyncSearchNowButtons();
+    }
+
+    /// <summary>搜索页那一份的两颗底栏键跟着草稿的可确认状态一起亮/暗。</summary>
+    private void SyncSearchNowButtons()
+    {
+        if (SearchNowButton is not null) SearchNowButton.IsEnabled = CanConfirm;
+        if (CompleteButton is not null) CompleteButton.IsEnabled = CanConfirm;
+    }
+
     private void OnRootChanged(XamlRoot sender, XamlRootChangedEventArgs args) => ResizeForRoot();
 
     private void ResizeForRoot()
@@ -72,6 +92,21 @@ public sealed partial class MoviePilotSiteDialog : ContentDialog
     private void OnConfirm(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
         args.Cancel = !CanConfirm || !ViewModel.CommitSelection();
+    }
+
+    /// <summary>「立即搜索」：保存这次的选择，关表，并让宿主接着搜一次。</summary>
+    private void OnSearchNow(object sender, RoutedEventArgs args)
+    {
+        if (!CanConfirm || !ViewModel.CommitSelection()) return;
+        Searched = true;
+        Hide();
+    }
+
+    /// <summary>「完成」：只保存这次的选择，不触发搜索。</summary>
+    private void OnComplete(object sender, RoutedEventArgs args)
+    {
+        if (!CanConfirm || !ViewModel.CommitSelection()) return;
+        Hide();
     }
 
     private void OnClose(object sender, RoutedEventArgs args) => Hide();

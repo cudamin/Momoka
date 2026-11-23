@@ -28,7 +28,8 @@ internal static class TestEntryPointTests
                 Assert.False(result.DefaultStarted, "非空错误参数启动了默认套件");
                 Assert.Equal(2, result.ExitCode);
                 Assert.DoesNotContain("Momoka Core 测试", result.Output);
-                Assert.DoesNotContain("共 ", result.Output);
+                Assert.False(result.Output.Split('\n').Any(line => line.TrimStart().StartsWith("共 ", StringComparison.Ordinal)),
+                    "错误参数输出不能包含默认套件汇总行");
             });
         }
         foreach (var name in new[] { "startup-state-contract-fixture", "startup-reapply-notice-fixture", "settings-screenshot-restore-fixture" })
@@ -39,7 +40,8 @@ internal static class TestEntryPointTests
                 Assert.False(result.DefaultStarted, "文档兼容尾参退回了默认套件");
                 Assert.Equal(1, result.ExitCode, "入口必须执行原夹具的输入拒绝，不将缺失程序集当通过");
                 Assert.DoesNotContain("Momoka Core 测试", result.Output);
-                Assert.DoesNotContain("共 ", result.Output);
+                Assert.False(result.Output.Split('\n').Any(line => line.TrimStart().StartsWith("共 ", StringComparison.Ordinal)),
+                    "兼容尾参输出不能包含默认套件汇总行");
                 Assert.True(result.Output.Length > 0);
             });
         }

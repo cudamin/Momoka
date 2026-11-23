@@ -11,6 +11,8 @@
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/LibraryRequest.cs" Link="Production/LibraryRequest.cs" />
+    <!-- GoBack 逐字抽到本夹具里；它先问页面的 IShellBackHandler，接口本身无框架依赖，按生产文件链接。 -->
+    <Compile Include="../../src/Momoka.Shell/Views/IShellContent.cs" Link="Production/IShellContent.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractNavigationStateSources" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>

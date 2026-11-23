@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Momoka.Shell.Views.MoviePilotSubtitlePanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    xmlns:local="using:Momoka.Shell.Views">
+    <!-- 搜索页第 3 个来源：关键词先找片，点一部片读它的 MoviePilot 字幕（用户令 2026-11-22）。
+         字幕接口认影片身份，不认片名，所以这一格多一步选片。 -->
+    <Grid Background="{ThemeResource EgWindowBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <ProgressBar Height="2" Margin="0,0,0,8" IsIndeterminate="True"
+                Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+            <local:MoviePilotSearchProgressView x:Name="SearchProgress" Margin="0,0,0,12" />
+        </StackPanel>
+        <InfoBar Grid.Row="1" Margin="0,0,0,8" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+            Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+        <Grid Grid.Row="2" Margin="0,0,0,12" ColumnSpacing="10">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <StackPanel Spacing="4">
+                <TextBlock Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Style="{StaticResource EgSubheadStyle}"
+                    TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                    Foreground="{ThemeResource EgTextDimBrush}" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="重新选择影片" Command="{x:Bind ViewModel.BackToMediaListCommand}"
+                Style="{StaticResource EgSecondaryButtonStyle}" VerticalAlignment="Center"
+                Visibility="{x:Bind ViewModel.BackVisibility, Mode=OneWay}" />
+        </Grid>
+        <Grid Grid.Row="3">
+            <!-- 找片结果：还只有片名、没有选定影片时。点「查看字幕」换到这部片的字幕列表。 -->
+            <ListView x:Name="SubtitleMediaResults" ItemsSource="{x:Bind ViewModel.MediaResults, Mode=OneWay}"
+                SelectionMode="None" Padding="{StaticResource EgScrollBarLane}"
+                Visibility="{x:Bind ViewModel.MediaListVisibility, Mode=OneWay}">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MoviePilotSubtitleMediaRow">
+                        <Grid ColumnSpacing="10" Padding="8,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{x:Bind Meta}" Style="{StaticResource EgCaptionStyle}"
+                                    Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind MetaVisibility}" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="查看字幕" Command="{x:Bind OpenCommand}"
+                                Style="{StaticResource EgSecondaryButtonStyle}" VerticalAlignment="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <!-- 字幕结果：结构与订阅详情原来的字幕列表一致（标题、来源／语言／季集／日期、说明、下载键）。 -->
+            <ListView x:Name="SubtitleResults" ItemsSource="{x:Bind ViewModel.Subtitles, Mode=OneWay}" SelectionMode="None"
+                Padding="{StaticResource EgScrollBarLane}"
+                Visibility="{x:Bind ViewModel.SubtitlesVisibility, Mode=OneWay}">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MoviePilotSubtitleRow">
+                        <StackPanel Spacing="8" Padding="8">
+                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind Meta}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind Description}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            <Button x:Name="DownloadMediaSubtitle" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <TextBlock Margin="24,48,24,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+                Foreground="{ThemeResource EgTextDimBrush}" Style="{StaticResource EgBodyStyle}"
+                Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"
+                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
+        </Grid>
+    </Grid>
+</UserControl>

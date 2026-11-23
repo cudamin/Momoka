@@ -986,6 +986,12 @@ internal sealed partial class ShellNavigationProbe
         });
         internal List<string> Writes { get; } = [];
         internal List<JsonObject> WriteBodies { get; } = [];
+        /// <summary>关键词语义资源搜索（<c>search/title</c>）收到的请求路径：跨页跳来有没有真搜看这里。</summary>
+        internal List<string> KeywordSearches { get; } = [];
+        internal List<string> MediaSearches { get; } = [];
+        /// <summary>字幕搜索（<c>search/subtitle/media</c>）收到的请求路径，用来核对站点参数。</summary>
+        internal List<string> SubtitleSearches { get; } = [];
+        internal List<string> SiteCatalogueReads { get; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingGroup { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingExists { get; set; }
         internal bool FailSubscriptionCreate { get; set; }
@@ -1036,7 +1042,47 @@ internal sealed partial class ShellNavigationProbe
                 new { name = "second-user", avatar = "" }
             });
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
+            // 资源搜索先问进度流：探针不支持 SSE，回 404 让客户端退回普通 GET（与其它资源探针一致）。
+            if (path.EndsWith("/stream", StringComparison.Ordinal))
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
             if (path == "/api/v1/site/rss") return Json(new[] { new { id = 8, name = "站点八", is_active = true } });
+            // 站点目录：详情页的站点表（按类型与不限类型两种路径）都读这一份。
+            if (path == "/api/v1/site/" || path.StartsWith("/api/v1/site/media/", StringComparison.Ordinal))
+            {
+                SiteCatalogueReads.Add(path);
+                return Json(new[]
+                {
+                    new { id = 1, name = "站点甲", is_active = true },
+                    new { id = 2, name = "站点乙", is_active = true },
+                    new { id = 3, name = "已停用站点", is_active = false }
+                });
+            }
+            // 关键词资源（搜索页「MoviePilot 资源」那一格）：只记录请求，回一条能解析的卡片。
+            if (path == "/api/v1/search/title" || path.StartsWith("/api/v1/search/media/", StringComparison.Ordinal))
+            {
+                var searches = path == "/api/v1/search/title" ? KeywordSearches : MediaSearches;
+                searches.Add(request.RequestUri.PathAndQuery);
+                return Json(new[]
+                {
+                    new
+                    {
+                        torrent_info = new { title = "漫长的旅途 S02E02 1080p WEB-DL-GROUP", site_name = "站点乙", size = 2147483648L,
+                            seeders = 12, peers = 5, description = "夹具资源", downloadvolumefactor = 0 },
+                        meta_info = new { begin_season = 2, begin_episode = 2, resource_pix = "1080p" },
+                        media_info = new { title = "漫长的旅途", type = "电视剧", media_source = "themoviedb", media_id = "4" }
+                    }
+                });
+            }
+            // 字幕搜索（搜索页「MoviePilot 字幕」那一格）：同样只记录请求。
+            if (path.StartsWith("/api/v1/search/subtitle/media/", StringComparison.Ordinal))
+            {
+                SubtitleSearches.Add(request.RequestUri.PathAndQuery);
+                return Json(new[]
+                {
+                    new { title = "第 2 集 简体中文字幕", site_name = "站点乙", language = "简中", site = 2,
+                        enclosure = "https://moviepilot.invalid/subtitle/fixture", season_episode = "S02E02", description = "夹具字幕" }
+                });
+            }
             if (path == "/api/v1/download/clients") return Json(new[] { new { name = "qbittorrent" } });
             if (path == "/api/v1/download/paths") return Json(new[] { new { name = "电视剧", download_path = "/媒体库/电视剧", save_path = "local:/媒体库/电视剧" } });
             if (path == "/api/v1/rule/groups") return Json(new { rule_groups = Array.Empty<object>() });

@@ -313,6 +313,15 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         return QueryCurrent(service, visit, token);
     }
 
+    internal string? RestoreCached(string term)
+    {
+        if (!_active || _service?.FindSubscriptionMediaSearch(term) is not { } cached) return null;
+        var snapshot = new MoviePilotSearchSnapshot(cached.ConnectionStamp, cached.Term,
+            cached.Results, SearchEmptyNotice(cached.Term, cached.Results.Count),
+            cached.Results.Count == 0, null, null, default, false);
+        return Restore(snapshot) ? cached.Term : null;
+    }
+
     /// <summary>返回时只更新订阅状态，不再次提交媒体搜索，也不重建结果和滚动位置。</summary>
     internal async Task RefreshSubscriptionStatesAsync()
     {
@@ -491,7 +500,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         try
         {
             // 不指定 media_source，沿用 MoviePilot 服务器的默认搜索范围。
-            var found = await service.SearchAsync(keyword, token).ConfigureAwait(true);
+            var found = await service.SearchSubscriptionMediaAsync(keyword, token).ConfigureAwait(true);
             if (!QueryCurrent(service, visit, token) || !service.Available) return;
             IReadOnlyList<MoviePilotSubscription>? subscriptions = null;
             try { subscriptions = await service.SubscriptionsAsync(token).ConfigureAwait(true); }
@@ -513,7 +522,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
                 if (!QueryCurrent(service, visit, token)) return;
             }
 
-            EmptyNotice = found.Count == 0 ? UiText.Format("MoviePilot 上没搜到「{0}」", keyword) : UiText.Translate(IdlePrompt);
+            EmptyNotice = SearchEmptyNotice(keyword, found.Count);
             if (!QueryCurrent(service, visit, token)) return;
             ShowEmptyNotice = found.Count == 0;
             EndLoad(token);
@@ -535,6 +544,9 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
             EndLoad(token);
         }
     }
+
+    private static string SearchEmptyNotice(string keyword, int count) =>
+        count == 0 ? UiText.Format("MoviePilot 上没搜到「{0}」", keyword) : UiText.Translate(IdlePrompt);
 
     private void RefreshResult(MoviePilotResult result, IReadOnlyList<MoviePilotSubscription>? subscriptions)
     {

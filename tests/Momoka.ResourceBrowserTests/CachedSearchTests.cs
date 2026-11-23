@@ -51,6 +51,23 @@ internal static class CachedSearchTests
             Assert.Equal(0, fixture.Transport.Requests.Count, "页上已有结果时连缓存都不读");
         });
 
+        Test("MP 资源缓存：本次搜索返回空结果时不回填网页旧缓存", () =>
+        {
+            using var fixture = new SiteFixture();
+            var vm = new MoviePilotVersionsViewModel();
+            vm.Attach(fixture.Service, new FixtureLauncher());
+            ResourceFixture.Complete(vm.SearchAsync("Target"));
+
+            fixture.Transport.Requests.Clear();
+            fixture.Transport.SearchResults =
+                """{"success":true,"data":{"params":{},"results":[{"torrent_info":{"title":"网页旧缓存"}}]}}""";
+            ResourceFixture.Complete(vm.LoadCachedResultsAsync());
+
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+            Assert.Equal(0, vm.Versions.Count);
+            Assert.Contains("Target", vm.EmptyNotice);
+        });
+
         Test("MP 资源缓存：网页上次搜的是字幕时不铺种子并保留空态", () =>
         {
             using var fixture = new SiteFixture();

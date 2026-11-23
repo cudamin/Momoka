@@ -18,12 +18,12 @@ using Windows.UI;
 namespace Momoka.Shell.Views;
 
 internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, MoviePilotSubscription? Subscription,
-    EmbySessionScope? PlaybackScope = null, Func<MoviePilotPlaybackTarget, Task>? Play = null, Action<string>? SearchVersions = null,
+    EmbySessionScope? PlaybackScope = null, Func<MoviePilotPlaybackTarget, Task>? Play = null, Action<string>? OpenResourceSearch = null,
     ISystemLauncher? Launcher = null, Action<MoviePilotMedia>? OpenMedia = null, MoviePilotMedia? Media = null,
     Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null,
     Action<MoviePilotMedia>? Subscribed = null, ISettingsService? Settings = null,
     Func<EmbyItem, Task>? PlayTrailer = null, Momoka.Infrastructure.AppPaths? Paths = null,
-    YouTubeSession? YouTube = null);
+    YouTubeSession? YouTube = null, Action<MoviePilotDetailSearch>? OpenDetailSearch = null);
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
@@ -44,11 +44,11 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private CancellationTokenSource? _pageLifetime;
     private bool _appearanceObserved;
     private SurfaceMotion? _detailMotion;
-    private SurfaceMotion? _resourcesMotion;
-    private bool _resourcesOpen;
 
     private SurfaceMotion DetailMotion => _detailMotion ??= new SurfaceMotion(DetailScroll);
-    private SurfaceMotion ResourcesMotion => _resourcesMotion ??= new SurfaceMotion(MediaResources);
+
+    /// <summary>这一页的站点选择：点「搜索资源」先在本页弹表，确认后跳到搜索页（用户令 2026-11-22）。</summary>
+    internal MoviePilotSitePickerViewModel SearchSites { get; } = new();
 
     /// <summary>上一次算正文两列时 BodyRow 的宽；只按宽度重算，避免高度变化回灌成布局回路。</summary>
     private double _bodyLayoutWidth = double.NaN;
@@ -69,6 +69,10 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     public MoviePilotSubscriptionPage()
     {
         InitializeComponent();
+        // 资源搜索这一页不再自己铺结果（用户令 2026-11-22「舍弃当前的订阅详情页资源搜索界面」）：
+        // 点搜索只在本页弹站点表，确认后交给外壳跳到搜索页的 MoviePilot 资源／MoviePilot 字幕。
+        SearchSitePicker.Attach(SearchSites);
+        SearchSitePicker.SearchOnConfirm = true;
         PaintBackdropFade();
         PrepareShowcase();
         PrepareActionAppearance();
@@ -142,8 +146,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// 和头部那一段让开多少（<c>HeroMinHeight</c>）都问它。只有布好的滚动视图知道自己的视口，怎么用这个数
     /// 是 Core 那两支纯函数的事，不在这个处理器里。
     /// <para>
-    /// 0 不写回去：这一层在资源面板打开时是收着的（<c>OpenResources</c> 把 <c>DetailScroll</c> 收起来），
-    /// 收着的元素量出来是 0，写进去会让背景图当场消失；面板关掉时再量一次就对了。
+    /// 0 不写回去：首次排版或页面暂时不在台上时这一层量出来是 0，写进去会让背景图当场消失；真正布好时
+    /// SizeChanged 会再量一次。
     /// </para>
     /// </summary>
     private void OnDetailScrollSizeChanged(object sender, SizeChangedEventArgs args)
@@ -323,10 +327,10 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         if (media is null) return;
         if (request.Subscription is not null) ViewModel.Attach(request.Service, request.Subscription);
         ViewModel.AttachPlayback(request.PlaybackScope, request.Play);
-        ViewModel.AttachSearch(request.SearchVersions);
+        ViewModel.AttachSearch(request.OpenResourceSearch);
         ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, request.Service)));
         MediaViewModel.Attach(request.Service, media, request.Subscription?.EpisodeGroup ?? "",
-            search: (season, episode) => OpenResources(season, episode), subscribe: season => _ = ChooseSeasonsAsync(season));
+            search: (season, episode) => _ = SearchResourcesAsync(season, episode), subscribe: season => _ = ChooseSeasonsAsync(season));
         MediaViewModel.AttachPlayback(request.PlaybackScope);
         // 换到另一条订阅时先收起上一部作品的季数，读完这一部的订阅列表再写回（见构造函数里的 Busy 监听）。
         ViewModel.SubscribedSeasons = 0;
@@ -467,10 +471,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         catch (Exception error) { if (ReferenceEquals(_request, request)) MediaViewModel.OperationFailed(error); }
     }
 
-    private void OnSearch(object sender, RoutedEventArgs args)
-    {
-        OpenResources(null, null);
-    }
+    private void OnSearch(object sender, RoutedEventArgs args) => _ = SearchResourcesAsync(null, null);
 
     /// <summary>
     /// 订阅详情里的番剧名交给外壳的 AniBT 窗口。这里不判断媒体类型 —— 是否显示这颗键由
@@ -482,42 +483,41 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         search(new AniBtSearchQuery(detail.Media.Title, null));
     }
 
-    private void OnSearchImdb(object sender, RoutedEventArgs args) => OpenResources(null, null, "imdbid");
-    private void OnSearchSubtitles(object sender, RoutedEventArgs args) => OpenResources(null, null, subtitles: true);
+    private void OnSearchImdb(object sender, RoutedEventArgs args) => _ = SearchResourcesAsync(null, null, "imdbid");
+    private void OnSearchSubtitles(object sender, RoutedEventArgs args) => _ = SearchSubtitlesAsync();
 
-    private void OpenResources(int? season, int? episode, string area = "title", bool subtitles = false)
+    private Task SearchSubtitlesAsync() => SearchFromDetailAsync(null, new(Subtitles: true));
+
+    private Task SearchResourcesAsync(int? season, int? episode, string area = "title") =>
+        SearchFromDetailAsync(season, new(area, episode));
+
+    private bool _choosingSearchSites;
+
+    private async Task SearchFromDetailAsync(int? season, MoviePilotMediaSearchOptions options)
     {
-        if (_request is not { } request || !MediaViewModel.CanInteract || MediaViewModel.Detail is not { } detail) return;
-        if (request.Launcher is not { } launcher)
+        if (_choosingSearchSites || _request is not { OpenDetailSearch: { } open } request
+            || !MediaViewModel.CanInteract || MediaViewModel.Detail is not { } detail
+            || _pageLifetime is not { } lifetime || detail.Media.Type is not ("电影" or "电视剧")
+            || !detail.Media.CanSubscribe) return;
+        var token = lifetime.Token;
+        var media = detail.Media with
         {
-            request.SearchVersions?.Invoke(MoviePilotVersionQuery.Keyword(detail.Media.Title, season, episode));
-            return;
+            Season = season ?? detail.Media.Season
+            ?? request.Subscription?.Media.Season ?? request.Media?.Season
+        };
+        bool IsCurrent() => !token.IsCancellationRequested && ReferenceEquals(_request, request)
+            && ReferenceEquals(MediaViewModel.Detail, detail) && MediaViewModel.CanInteract
+            && request.Service.IsCurrentConnection(media.ConnectionStamp);
+        _choosingSearchSites = true;
+        try
+        {
+            SearchSites.Attach(request.Service);
+            if (!IsCurrent() || await SearchSitePicker.OpenAsync() != ContentDialogResult.Primary) return;
+            if (IsCurrent()) open(new(media, options, SearchSites.Selection));
         }
-        MediaResources.Open(request.Service, detail.Media with { Season = season }, launcher, new(area, episode, subtitles));
-        _resourcesOpen = true;
-        // 资源面板淡入的这 120ms 里底层详情仍画着，但不能接输入。
-        DetailScroll.IsHitTestVisible = false;
-        MediaResources.IsHitTestVisible = true;
-        MediaResources.Visibility = Visibility.Visible;
-        ResourcesMotion.Enter(200, 12);
-        // Exit 对从未显示过的元素会立即落定；先 Settle 到显示档，淡出才有起始帧。
-        DetailMotion.Settle();
-        DetailMotion.Exit(120, 8, () => DetailScroll.Visibility = Visibility.Collapsed);
-    }
-
-    private void OnResourcesClosed(object? sender, EventArgs args)
-    {
-        _resourcesOpen = false;
-        MediaResources.IsHitTestVisible = false;
-        DetailScroll.IsHitTestVisible = true;
-        ResourcesMotion.Settle();
-        ResourcesMotion.Exit(120, 8, () =>
-        {
-            MediaResources.Visibility = Visibility.Collapsed;
-            MediaResources.Release();
-        });
-        DetailScroll.Visibility = Visibility.Visible;
-        DetailMotion.Enter(160, 8);
+        catch (OperationCanceledException) { }
+        catch (Exception error) { if (IsCurrent()) MediaViewModel.OperationFailed(error); }
+        finally { _choosingSearchSites = false; }
     }
 
     private void OnChooseSeasons(object sender, RoutedEventArgs args) => _ = ChooseSeasonsAsync(null);
@@ -618,14 +618,11 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;
-        // 离页不播淡出：停掉进出动画并立即落定，按离开时所处的那一档写死可见性，最后状态不变。
+        // 离页不播淡出：停掉进出动画并立即落定。
         _detailMotion?.Settle();
-        _resourcesMotion?.Collapse();
-        DetailScroll.Visibility = _resourcesOpen ? Visibility.Collapsed : Visibility.Visible;
-        MediaResources.Visibility = _resourcesOpen ? Visibility.Visible : Visibility.Collapsed;
-        MediaResources.IsHitTestVisible = true;
-        DetailScroll.IsHitTestVisible = true;
-        _request = null; ViewModel.Cancel(); MediaViewModel.Cancel(); MediaResources.Release();
+        SearchSitePicker.ClosePopup();
+        SearchSites.Cancel();
+        _request = null; ViewModel.Cancel(); MediaViewModel.Cancel();
     }
     protected override void OnNavigatedFrom(NavigationEventArgs e) { Release(); base.OnNavigatedFrom(e); }
 }

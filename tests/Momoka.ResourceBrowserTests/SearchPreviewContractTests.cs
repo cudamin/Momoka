@@ -1,6 +1,6 @@
 using System.Net;
 using System.Reflection;
-using System.Runtime.Loader;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Momoka.AniBt;
 using Momoka.MoviePilot;
@@ -15,18 +15,15 @@ internal static class SearchPreviewContractTests
     {
         var root = Path.GetFullPath(sourceRoot);
         var source = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.SearchPreview.cs"));
-        var directory = Path.Combine(root, "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64");
-        var shellPath = Path.Combine(directory, "Momoka.dll");
-        if (!File.Exists(shellPath)) throw new InvalidOperationException("先成功编译本树 Shell Release，不能加载旧树输出");
-        AssemblyLoadContext.Default.Resolving += (context, name) =>
-        {
-            var candidate = Path.Combine(directory, name.Name + ".dll");
-            return File.Exists(candidate) ? context.LoadFromAssemblyPath(candidate) : null;
-        };
-        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(shellPath);
-        var probe = assembly.GetType("Momoka.Shell.ShellNavigationProbe", throwOnError: true)!;
+        var probe = typeof(Momoka.Shell.ShellNavigationProbe);
         var mp = probe.GetNestedType("SearchPreviewMoviePilotServer", BindingFlags.NonPublic)!;
         var ani = probe.GetNestedType("SearchPreviewAniBtServer", BindingFlags.NonPublic)!;
+
+        Test("搜索试用：实际抽取的 handler 与本树源码哈希一致", () =>
+        {
+            foreach (var input in Momoka.Shell.SearchPreviewSourceInputs.Hashes)
+                Assert.Equal(input.Hash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(root, input.Path)))));
+        });
 
         Test("搜索试用：真实页面、资源来源2与提交入口", () =>
         {
