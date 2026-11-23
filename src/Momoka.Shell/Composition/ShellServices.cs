@@ -160,7 +160,8 @@ internal static class ShellServices
             provider.GetRequiredService<MoviePilotCredentials>(),
             provider.GetRequiredService<AppSettings>(),
             () => provider.GetRequiredService<SettingsStore>().Save(provider.GetRequiredService<AppSettings>())));
-        services.AddSingleton<Momoka.AniBt.AniBtClient>();
+        services.AddSingleton(provider => new Momoka.AniBt.AniBtClient(
+            readProxyServer: () => provider.GetRequiredService<AppSettings>().Network.ProxyServer));
         services.AddSingleton<Momoka.AniBt.AniBtService>();
         services.AddSingleton<Momoka.Shell.Services.LocalLibraryCoordinator>();
 

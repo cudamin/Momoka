@@ -2952,13 +2952,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// 关于分类里的「网络」卡（2026-11-18 用户令「在设置关于中新增代理服务器，用于刮削和播放油管视频」）。
     /// <para>
-    /// 这一行管的是本机直接连外网的两处：本机整理的 TMDB 刮削（<c>TmdbClient</c>）与详情页的 YouTube 预告
-    /// （共享的 WebView2 配置）。Emby／Jellyfin／飞牛／Plex／MoviePilot 的连接是用户自己那几台服务器，
-    /// 不经过这一行 —— 把内网地址也塞进代理只会把它们弄坏。
+    /// 本机整理的 TMDB 刮削、详情页的 YouTube 预告和 AniBT 查询共用这项代理设置。
     /// </para>
     /// <para>
-    /// 改完当场生效：TMDB 那头重开媒体库监控、本机整理页换掉手里的客户端；YouTube 那头在下一次建 WebView2
-    /// 环境时读新值。归一化在 <see cref="ProxyEndpoint.Normalize"/>，认得出的地址整理成
+    /// TMDB 客户端重建时、YouTube 下次创建 WebView2 环境时、AniBT 下次查询时读取新值。
+    /// 归一化在 <see cref="ProxyEndpoint.Normalize"/>，认得出的地址整理成
     /// <c>scheme://host:port</c>，认不出的原样留着但不生效。
     /// </para>
     /// </summary>
@@ -2968,11 +2966,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("关于", "网络",
-                "Momoka 直接连外网的两处 —— 本机整理的 TMDB 刮削、详情页的 YouTube 预告 —— 走这里的代理；"
-                    + "你自己那几台媒体服务器和 MoviePilot 的连接不经过它。",
+                "设置 Momoka 连接 TMDB、YouTube 和 AniBT 时使用的代理。",
                 [
                     new SettingTextRow("代理服务器",
-                        "设置代理服务器地址，支持：http(s)、socks5、socks5h 等协议；留空则跟随系统代理。",
+                        "用于 TMDB 刮削、YouTube 预告和 AniBT 搜索。支持 HTTP(S)、SOCKS5、SOCKS5H，留空时跟随系统代理。",
                         "http://127.0.0.1:8686",
                         network.ProxyServer,
                         typed =>
