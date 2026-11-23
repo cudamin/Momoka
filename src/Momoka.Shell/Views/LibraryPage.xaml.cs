@@ -970,7 +970,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             // 五个来源始终保留；窄窗只缩短文案，不改查询来源或移走入口。
             item.Width = item.MaxWidth = Math.Max(0, (SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length));
-            var horizontalPadding = formWidth < 520 ? 4 : 8;
+            // 360 宽时五个来源平分后每格只有 69 DIP，4 DIP 的左右内边距会把「MP 订阅」挤出省略号；
+            // 窄档收到 2 DIP，标签仍用短文案，不换行也不截断。
+            var horizontalPadding = formWidth < 520 ? 2 : 8;
             item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2);
             if (item.Content is TextBlock label)
             {

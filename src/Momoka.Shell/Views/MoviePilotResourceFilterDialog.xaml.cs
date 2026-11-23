@@ -16,6 +16,9 @@ public sealed partial class MoviePilotResourceFilterDialog : ContentDialog
     {
         ViewModel = viewModel;
         InitializeComponent();
+        // 关闭后 ItemsRepeater 不再订阅 DialogFacets：弹窗收起后若新结果改到这份集合，
+        // 隐藏的 repeater 会收到集合变更并在原生层抛 COMException（探针里 0x80004005）。
+        Closed += (_, _) => DialogFacetGroups.ItemsSource = null;
     }
 
     private static Visibility FilterCheckVisibility(bool selected) => selected ? Visibility.Visible : Visibility.Collapsed;

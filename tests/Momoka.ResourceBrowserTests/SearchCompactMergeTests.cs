@@ -204,7 +204,7 @@ internal static class SearchCompactMergeTests
             Assert.Contains("SearchEntry.Width = formWidth", source);
             Assert.Contains("SourceTabs.Width = Math.Min(600, formWidth)", source);
             Assert.Contains("(SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length)", source);
-            Assert.Contains("horizontalPadding = formWidth < 520 ? 4 : 8", source);
+            Assert.Contains("horizontalPadding = formWidth < 520 ? 2 : 8", source);
             Assert.Contains("item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2)", source);
             Assert.Contains("item.MaxWidth - horizontalPadding * 2", source);
             Assert.Contains("1 => formWidth < 520 ? UiText.Translate(\"MP 订阅\") : UiText.Translate(\"MoviePilot 订阅\")", source);

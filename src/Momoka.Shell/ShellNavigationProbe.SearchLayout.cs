@@ -139,7 +139,9 @@ internal sealed partial class ShellNavigationProbe
                     Require(item.FontSize == (double)Application.Current.Resources["EgCaptionFontSize"],
                         $"{width} 来源胶囊没有使用紧凑字号");
                     Require(label.TextWrapping == TextWrapping.NoWrap && !label.IsTextTrimmed,
-                        $"{width} 来源胶囊标签换行或被截断：{label.Text}");
+                        $"{width} 来源胶囊标签换行或被截断：{label.Text}"
+                        + $"（实际 {label.ActualWidth:F1}，期望 {label.DesiredSize.Width:F1}，"
+                        + $"胶囊 {item.ActualWidth:F1}，上限 {label.MaxWidth:F1}）");
                 }
                 // 原生辅助功能选择必须触发真实 SelectionChanged，不只直接修改索引。
                 if (width == 1040)
@@ -604,8 +606,9 @@ internal sealed partial class ShellNavigationProbe
             {
                 tabs.SelectedIndex = source;
                 await LayoutAsync(page);
-                Require(sites.Visibility == (source == 2 ? Visibility.Visible : Visibility.Collapsed),
-                    "站点入口没有只随 MP 资源显示和恢复");
+                // 资源与字幕两个来源共用搜索框里的站点入口；媒体库、订阅和 AniBT 不显示。
+                Require(sites.Visibility == (source is 2 or 3 ? Visibility.Visible : Visibility.Collapsed),
+                    "站点入口没有只随 MP 资源和字幕来源显示和恢复");
             }
         }
         tabs.SelectedIndex = 0;
