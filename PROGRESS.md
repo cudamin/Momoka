@@ -1,3 +1,19 @@
+## 2026-11-23 统一验证与本地交付（目标 a1e0bee 起，含修复提交）
+
+用户令「交付」。开始时目标为 `c149659`；验证期间另一会话把「媒体库动图原生分辨率与悬浮预览」合入 master（`9c6eadf`→`f88a165`→`a1e0bee`），本轮按整合后的最终代码重跑编译、测试和受影响探针，并记录目标移动。另有并行改动 `global.json`、`DetailSearchParityTests.cs`、`ShellNavigationProbe.SearchCards.cs` 和 480→600 断言已由 `ba4c11b` 纳入，不计入本任务提交。
+
+**本轮修复。** `6816f3c`：360 宽五来源平分后每格 69 DIP，4 DIP 左右内边距把「MP 订阅」挤出省略号，窄档收到 2 DIP；综合筛选弹窗关闭后隐藏的 ItemsRepeater 仍订阅 `DialogFacets`，新结果改集合时在原生层抛 COMException 0x80004005，关闭事件里断开 `ItemsSource`。探针同步季筛选缺字段回退、600 DIP 上限、资源与字幕共用站点入口，标签失败信息带实测宽度。`4350ef3`：动图合并让 `PosterCache`/`CardItem` 读取 `BitmapImage` 的 `PixelWidth`、`PixelHeight`、`IsAnimatedBitmap`，三处测试边界桩未同步，导致 ItemUserStateOrder、AniBtEntry、PlexAffordance、DetailDeleteCommand、PerfListDiagnostics 五个工程编译失败；补齐边界桩后恢复全方案编译，仅测试边界。
+
+**闸门 1。** `tools/quality.ps1` **9/9**（`artifacts/quality/20261123-205628`）：全方案 Release 0 警告 0 错误，空白、脚本、文档链接与命令、报告凭据、架构 7/7、重复代码 68 段／0.48%、diff 全部通过。
+
+**闸门 2。** 最终代码 x64 主测试 **5356/5356、0 失败 0 跳过**（148184 ms，测试目录 Core 与源码 x64 Core SHA256 一致）；`run-regressions -All -IncludeExternal` **82/82**（`artifacts/regressions/20261123-130145205-32fb9cf79860488da581c7d8dba3b4ae/summary.json`），详情图片到达 **39/39**、图片性能 **55/55**、页面契约 **408/408**、资源 **247/247**、搜索生命周期 **56/56**、外部 DOM 14 例通过。
+
+**探针。** 全量 `--probe-shell --screen 1` **227 项、196 过、31 红、4 默认不跑、0 未执行**（`shell-probe-20261123-105324872-26748`）。31 红中多数为第三方 Chrome 窗口遮挡（`Chrome_RenderWidgetHostHWND`）、截图句柄失效、既有超时与性能采样红；其中两条为本轮发现：全量时「MoviePilot 搜索海报、资源卡片与多选筛选布局」在关闭弹窗后 `SetResults` 抛 0x80004005，「搜索宽窄布局」1600 宽来源栏断言仍是旧的 480。修复后在最终代码定向复跑：`--probe-section search` **13/13**（`shell-probe-20261123-122422421-29548`）、`--probe-section moviepilot` **32/32**（`shell-probe-20261123-122938435-14648`），均副屏、匿名离线、淘汰 `moviepilot` 的综合筛选新旧路径均通过。修复前的失败报告和全量 31 红保留，不重跑洗绿。
+
+**闸门 3。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：**548 个文件、290.8 MB**，批准 mpv 清单 60 个文件、14 个 GLSL 与 4 个 HOOK 逐项校验通过。`Momoka.exe` 668,160 字节、SHA256 `3E14608D6EEA6FC8672D74AEBCD01A1B8FB516637AE90798AD27AEC8E8D4F2FC`；`Momoka.dll` 10,426,880 字节、SHA256 `5C1C0EE82EEE35E75158FFF5C91B89276DB3BD4A1EB7E4F5839632F64589447A`（2026-11-23 21:28）。桌面 `Momoka.lnk` 已重写并回读目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`、工作目录同目录。发布时另一会话的体验版仍在独立工作树运行，未覆盖本树产物。
+
+**未验。** 非发版，未跑闸门 4 自检；最终整合代码未重跑全量探针（31 红报告来自 `c149659`，最终只定向复跑本轮改动涉及的分区）；真实 MoviePilot／Emby／Jellyfin／飞牛／Plex、真实 IME 与实服搜索、五套主题、系统深浅、高对比、跨 DPI、窄窗字宽、Narrator／触摸、真实播放、GitHub 上传均未验。并发会话合入的动图原生分辨率仍按其台账条目验收。按规则不整批销账，台账保持开放。
+
 ## 2026-11-23 动图原生分辨率与悬浮预览合并 master
 
 用户令「合并」。产品提交 `9c6eadf` 经无冲突合并提交 `f88a165` 进入本地 `master`（原主树 `ba4c11b`），范围为原23个路径，没有纳入主树已有的4处搜索修改。合并前后3处文件字节哈希一致；`ShellNavigationProbe.SearchLayout.cs` 在核对期间新增另一处来源标签尺寸诊断，合并提交该路径差异为空，保留并行编辑，不把它算成本任务修改。
