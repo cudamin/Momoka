@@ -24,17 +24,25 @@
 
 **未验。** 非发版，未跑闸门 4 自检；最终整合代码未重跑全量探针（31 红报告来自 `c149659`，最终只定向复跑本轮改动涉及的分区）；真实 MoviePilot／Emby／Jellyfin／飞牛／Plex、真实 IME 与实服搜索、五套主题、系统深浅、高对比、跨 DPI、窄窗字宽、Narrator／触摸、真实播放、GitHub 上传均未验。并发会话合入的动图原生分辨率仍按其台账条目验收。按规则不整批销账，台账保持开放。
 
-## 2026-11-23 日历本地缓存与启动后台刷新（分支待合并）
+## 2026-11-23 日历本地缓存与启动后台刷新（已合并 master）
 
-用户令「1.持久化日历缓存到本地 2.在设置中新增一个开关，每次打开momoka自动在后台刷新日历，默认关闭」。树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-calendar-cache-sync-SAiRs3`，分支 `feat-calendar-cache-sync-SAiRs3`，基点 `4350ef3`，产品改动尚未提交。
+用户令「1.持久化日历缓存到本地 2.在设置中新增一个开关，每次打开momoka自动在后台刷新日历，默认关闭」。树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-calendar-cache-sync-SAiRs3`，分支 `feat-calendar-cache-sync-SAiRs3`，基点 `4350ef3`，产品提交 `5c6bf36`。
 
 **缓存。** 新增 Core `MoviePilotCalendarCache`，路径 `%LocalAppData%\Momoka\cache\moviepilot-calendar.json`（`AppPaths.MoviePilotCalendarCacheFile`）。每次 `MoviePilotService.CalendarAsync` 成功读完六周窗口后按「规范化服务地址 + 用户名」落盘，同一窗口替换、最多保留八个、`AtomicFile` 原子提交；不存密码、令牌或 Cookie，条目的运行期 `ConnectionStamp` 读取时清空。日历页 `ReloadAsync` 先把同连接、覆盖当前窗口的缓存摆上屏再请求最新安排，读取失败保留旧内容；缓存损坏、换账号或换地址只当作没有缓存。
 
 **开关。** `MoviePilotSettings.CalendarRefreshOnStartup` 默认 false，加入备份与恢复默认的偏好复制。设置 → MoviePilot 的「侧边栏显示日历」下方新增「启动时自动刷新日历」；MoviePilot 总开关或日历入口关闭时整行收起，隐藏行的迟到写入不改偏好。开关在启动那一刻取一次快照（`_moviePilotCalendarRefreshOnLaunch`），拨动本身不立刻联网，下次启动生效；外壳在首次确认 MoviePilot 可用后后台刷新本月窗口一次（`RefreshCalendarOnStartupAsync`，30 秒可用性轮询不重复触发），失败只写日志，关闭应用时取消。
 
-**验证（最终代码）。** `tools/quality.ps1` 九项全过：全方案 Release 0 警告 0 错误、空白、脚本、文档链接（183 文档）、文档命令语法、报告凭据、架构 7/7、重复代码 0.48%（68 段）、Git 变更 19 文件；证据 `artifacts/quality/20261123-221434`。主测试 **5358/5358**；`moviepilot-calendar-fixture` **22/22**（新增缓存跨进程、换连接/窗口不命中、服务读取后落缓存与换账号不命中）；`Momoka.PageContractTests` **410/410**（新增缓存先上屏再被网络替换、启动刷新接线）；`settings-search-fixture` **16/16**（新增行收放、隐藏迟到写入不改偏好）；`settings-page-state-fixture` **83/83**。未跑真实 MoviePilot、实屏或探针，未验证真实窗口中的缓存首屏与启动请求次数。
+**分支验证（提交前）。** `tools/quality.ps1` 九项全过：全方案 Release 0 警告 0 错误、空白、脚本、文档链接（183 文档）、文档命令语法、报告凭据、架构 7/7、重复代码 0.48%（68 段）、Git 变更 19 文件；证据 `artifacts/quality/20261123-221434`。主测试 **5358/5358**；`moviepilot-calendar-fixture` **22/22**（新增缓存跨进程、换连接/窗口不命中、服务读取后落缓存与换账号不命中）；`Momoka.PageContractTests` **410/410**（新增缓存先上屏再被网络替换、启动刷新接线）；`settings-search-fixture` **16/16**（新增行收放、隐藏迟到写入不改偏好）；`settings-page-state-fixture` **83/83**。未跑真实 MoviePilot、实屏或探针，未验证真实窗口中的缓存首屏与启动请求次数。
 
-**体验发布。** 本树缺少 `libmpv-2.dll`，从主树复制并核对 SHA256 `FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`。`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-calendar-cache-sync-SAiRs3` 在最终代码上重新执行并通过载荷验收：548 文件、290.8 MB；`Momoka.exe` SHA256 `3E14608D6EEA6FC8672D74AEBCD01A1B8FB516637AE90798AD27AEC8E8D4F2FC`，`Momoka.dll` SHA256 `C2AA361EB625EE814E213DA1466FFFF56A70222E6697FFF015FBFA413A02A949`，`Momoka.Core.dll` SHA256 `230FF5D27AE4765A8DD30565C8DC0B6B9A60BB80F609E378CF9D3F184ED8E4CB`；桌面快捷方式已回读本树发布目录。未启动应用、未合并、未推送，台账保持待统一验证。
+**体验发布。** 本树缺少 `libmpv-2.dll`，从主树复制并核对 SHA256 `FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`。`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-calendar-cache-sync-SAiRs3` 在最终代码上重新执行并通过载荷验收：548 文件、290.8 MB；`Momoka.exe` SHA256 `3E14608D6EEA6FC8672D74AEBCD01A1B8FB516637AE90798AD27AEC8E8D4F2FC`，`Momoka.dll` SHA256 `C2AA361EB625EE814E213DA1466FFFF56A70222E6697FFF015FBFA413A02A949`，`Momoka.Core.dll` SHA256 `230FF5D27AE4765A8DD30565C8DC0B6B9A60BB80F609E378CF9D3F184ED8E4CB`；桌面快捷方式已回读本树发布目录。未启动应用。
+
+**合并。** 用户令「验证，完成后自动合并」。合并前主树 `dbdea3f`；`--no-ff` 合并提交 `534c82d`（父 `dbdea3f`、`5c6bf36`）。冲突只有 `PROGRESS.md` 与 `docs/待交付批次.md` 两处文档，保留双方记录；产品与测试代码自动合并，`MoviePilotCalendarCache.cs` 等本轮文件与分支提交一致。
+
+**主树复验（最终整合代码）。** `tools/quality.ps1` **9/9** 两次（`artifacts/quality/20261123-225431`、最终 `20261123-230928`）：全方案 Release 0 警告 0 错误、空白、脚本、文档链接与命令、报告凭据、架构 7/7、重复代码 68 段／0.47%、diff 全部通过。主测试 **5361/5361、0 失败 0 跳过**（`artifacts/regressions/20261123-151331938-c337e0a30a5e4eff90acfdf175e4afff`）；`Momoka.PageContractTests` **410/410**（`…20261123-150500164-6cfddddad63f4c9484c6386a9e25849a`）；`moviepilot-calendar-fixture` **22/22**、`settings-search-fixture` **16/16**、`settings-page-state-fixture` **83/83**。主测试首跑 16 条 SelfCheck 因同用户自检互斥被别的进程占用而红，锁释放后重跑全绿；设置页状态夹具首跑 6 红，原因是上一次「拖动封面翻页」合并新增的主页版面首行未同步旧计数与行序断言，分支 Shell 上同一夹具 83/83 证明与本轮产品代码无关，已在 `ba624e2` 补齐夹具到「位置、拖动、排序」三行并复跑 83/83。
+
+**清理。** 分支 `feat-calendar-cache-sync-SAiRs3` 已删除，Git 工作树记录已摘除；目录内容已清空，根目录仍被占用进程锁住，待其退出后可删。桌面 `Momoka-feat-calendar-cache-sync-SAiRs3.lnk` 已删除，主树 `Momoka.lnk` 未动。
+
+**未验。** 未跑真实 MoviePilot、实屏或探针，未验证真实窗口中的缓存首屏与启动请求次数；未刷新主树体验包，未推送远端，台账保持开放。
 
 ## 2026-11-23 动图原生分辨率与悬浮预览合并 master
 
