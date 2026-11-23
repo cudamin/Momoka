@@ -110,10 +110,13 @@ namespace Microsoft.UI.Xaml.Media.Imaging
     }
     public sealed class BitmapImage : BitmapSource
     {
+        public bool IsAnimatedBitmap { get; set; }
         public int DecodePixelWidth { get; set; } = 100;
     }
     public sealed class WriteableBitmap(int width, int height) : BitmapSource
     {
+        public int NativeWidth => width;
+        public int NativeHeight => height;
         public Microsoft.UI.Xaml.FixturePixelBuffer PixelBuffer { get; } = new(width * height * 4);
         public List<byte> PaintedPixels { get; } = [];
         public void Invalidate() => PaintedPixels.Add(PixelBuffer.Bytes[0]);

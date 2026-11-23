@@ -12,26 +12,22 @@ namespace Momoka.Shell.Media;
 /// A card drops its bitmap when its container is recycled — it has to, or a long scroll ends up holding
 /// every cover it ever passed. The cost was that scrolling back up did the whole job again: read the
 /// file, decode it, wait for the picture to appear. Keeping the last few hundred here is the middle
-/// answer, and the ceiling is a count because that is what the eviction policy can count.
+/// answer. Native-size animated covers make a pixel-byte budget necessary.
 /// </para>
 /// <para>
 /// Static, because the cache is about the process rather than about any one page: the same poster
 /// appears on the home page, in a library grid and on a detail page's 更多类似 row, and all three should
-/// find it already decoded. Only the UI thread touches it, and <see cref="LruCache{TKey,TValue}"/> locks
+/// find it already decoded. Only the UI thread touches it, and <see cref="BudgetCache{TKey,TValue}"/> locks
 /// anyway.
 /// </para>
 /// </summary>
 internal static class PosterCache
 {
     /// <summary>
-    /// How many decoded covers to keep. A 170-wide poster at 150% scale is about 390 KB of surface and a
-    /// 320-wide still about 520 KB, so 160 entries is roughly 60 MB in the worst case and well under half
-    /// that in the usual mix — set against a screen of shelves holding 30 to 40 of them at once, which
-    /// means this is several screens of scroll-back rather than a second copy of the library.
+    /// Bound retained decoded pixels, including native-size GIF/APNG fallback images.
     /// </summary>
-    private const int Capacity = 160;
-
-    private static readonly LruCache<string, BitmapImage> Decoded = new(Capacity);
+    private static readonly BudgetCache<string, BitmapImage> Decoded = new(64 * 1024 * 1024,
+        bitmap => Math.Max(4L, (long)bitmap.PixelWidth * bitmap.PixelHeight * 4));
     private static readonly ConditionalWeakTable<BitmapImage, AnimationKey> Animations = new();
     private static readonly BudgetCache<AnimationKey, byte[]> AnimationBytes = new(64 * 1024 * 1024, bytes => bytes.Length);
 
@@ -68,6 +64,8 @@ internal static class PosterCache
         bytes = null;
         return Animations.TryGetValue(bitmap, out var key) && AnimationBytes.TryGet(key, out bytes);
     }
+
+    internal static bool IsAnimated(BitmapImage bitmap) => bitmap.IsAnimatedBitmap || Animations.TryGetValue(bitmap, out _);
 
     /// <summary>Drops everything. 设置 → 清除图片缓存 also has to forget what is already decoded.</summary>
     public static void Clear()

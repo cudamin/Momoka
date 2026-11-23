@@ -25,6 +25,7 @@ internal static class PosterLoader
     /// layout: the framework multiplies by the rasterization scale itself, which means the card stays
     /// sharp at 150% without this code knowing the scale.
     /// </para>
+    /// Animated GIF/APNG images retain native pixels; APNG playback reads one frame at a time.
     /// </summary>
     public static async Task<BitmapImage?> DecodeAsync(byte[] bytes, int logicalWidth)
     {
@@ -48,7 +49,7 @@ internal static class PosterLoader
         var bitmap = new BitmapImage
         {
             DecodePixelType = DecodePixelType.Logical,
-            DecodePixelWidth = Math.Max(1, logicalWidth)
+            DecodePixelWidth = PosterDecodeSize.Width(bytes, logicalWidth)
         };
 
         await bitmap.SetSourceAsync(stream);

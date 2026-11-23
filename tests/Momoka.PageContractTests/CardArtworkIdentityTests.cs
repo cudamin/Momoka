@@ -11,6 +11,41 @@ internal static class CardArtworkIdentityTests
 {
     internal static void Register()
     {
+        foreach (var gif in new[] { false, true })
+        {
+            Test($"悬浮预览保留已有{(gif ? "GIF" : "APNG")}封面，不请求静态宽图", () => CardImageContext.Run(async () =>
+            {
+                await using var fixture = new CardImageFixture();
+                fixture.Item.ImageTags[EmbyImageStore.Thumb] = "static-thumb";
+                var poster = new BitmapImage { FixtureImage = "animated", IsAnimatedBitmap = gif };
+                if (!gif) PosterCache.TrackAnimation(poster, [2]);
+                PosterCache.Remember(fixture.Key(170), poster);
+                await fixture.Card.EnsurePosterAsync();
+                var preview = await fixture.Card.LoadPreviewArtworkAsync(480, CancellationToken.None);
+                Assert.True(ReferenceEquals(poster, preview));
+                Assert.Equal(0, fixture.Handler.Count);
+                fixture.Card.AbandonPoster();
+            }));
+        }
+        Test("悬浮预览原料逐出后只重取原动图类型，不切换静态Thumb", () => CardImageContext.Run(async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            fixture.Item.ImageTags[EmbyImageStore.Thumb] = "static-thumb";
+            var poster = new BitmapImage { FixtureImage = "animated" };
+            PosterCache.TrackAnimation(poster, [2]);
+            PosterCache.Remember(fixture.Key(170), poster);
+            await fixture.Card.EnsurePosterAsync();
+            var large = new byte[24 * 1024 * 1024];
+            for (var i = 0; i < 3; i++) PosterCache.TrackAnimation(new BitmapImage(), large);
+            var loading = fixture.Card.LoadPreviewArtworkAsync(480, CancellationToken.None);
+            var request = await fixture.Handler.AtAsync(0);
+            request.Complete("reloaded-primary");
+            var preview = await loading;
+            Assert.NotNull(preview);
+            Assert.Equal(1, fixture.Handler.Count);
+            Assert.Contains("Primary", request.Path);
+            fixture.Card.AbandonPoster();
+        }));
         Test("实际封面引用：下载Primary后记录，释放图后不可用，热缓存恢复原引用", () => CardImageContext.Run(async () =>
         {
             await using var fixture = new CardImageFixture();

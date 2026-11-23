@@ -1089,6 +1089,18 @@ public sealed partial class CardItem : INotifyPropertyChanged
     {
         if (width <= 0 || Scope is not { IsAvailable: true } scope) return null;
 
+        // Keep the animated cover rather than replacing it with a server's static Thumb/Backdrop.
+        if (Poster is { } poster && PosterCache.IsAnimated(poster))
+        {
+            if (poster.IsAnimatedBitmap || PosterCache.TryGetAnimation(poster, out _)) return poster;
+            // The active card can outlive compressed-cache eviction. Reload its exact artwork for
+            // the preview, never replace an animated Primary with a static Thumb in that case.
+            if (PosterArtwork is not { } animated) return poster;
+            return await _images.GetDecodedAsync(scope, animated.ItemId, animated.ImageType, animated.Tag,
+                EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width),
+                cancellationToken).ConfigureAwait(true) ?? poster;
+        }
+
         foreach (var imageType in PreviewImageTypes)
         {
             cancellationToken.ThrowIfCancellationRequested();
