@@ -101,16 +101,17 @@ internal static class SettingsPageStateTests
                         fixture.Set(style, "Selected", choices.Single(choice => Label(choice) == "商店版式"));
                         Assert.Equal(CarouselLayout.Store, settings.Settings.Ui.CarouselLayout);
                         Assert.Equal(preference, settings.Settings.Ui.HomeLibraryPlacement);
-                        Assert.Equal(1, layout.Count);
-                        Assert.True(ReferenceEquals(homeRows, layout[0]));
+                        // 主页版面第一行是「拖动封面翻页」，位置行收起后它仍与排序行一起保留。
+                        Assert.Equal(2, layout.Count);
+                        Assert.True(ReferenceEquals(homeRows, layout[1]));
                         Assert.True(ReferenceEquals(homeRows, fixture.Get<object>(vm, "HomeRows")));
                         Assert.True(ReferenceEquals(style, carousel.Cast<object>().Single(row => Label(row) == "轮播图版式")));
                         Assert.Equal(0, fixture.List(vm, "SettingsSearchResults").Count);
                         Assert.False((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", oldSuggestion)!);
                         fixture.Set(toggle, "IsOn", false);
-                        Assert.Equal(1, layout.Count);
+                        Assert.Equal(2, layout.Count);
                         fixture.Set(toggle, "IsOn", true);
-                        Assert.Equal(1, layout.Count);
+                        Assert.Equal(2, layout.Count);
                         // 整个轮播关闭再开启会重新创建其从属行；接下来操作当前行，不使用已离树的旧下拉。
                         style = carousel.Cast<object>().Single(row => Label(row) == "轮播图版式");
                         choices = fixture.List(style, "Choices").Cast<object>().ToArray();
@@ -119,18 +120,19 @@ internal static class SettingsPageStateTests
                         Assert.Equal(fixture.Get<string>(fixture.Get<object>(position, "Selected"), "Label"),
                             fixture.Get<string>(fixture.Get<object>(restored, "Selected"), "Label"));
                         Assert.Equal(preference, settings.Settings.Ui.HomeLibraryPlacement);
-                        Assert.True(ReferenceEquals(homeRows, layout[1]));
+                        // 全宽恢复后行序为「位置、拖动封面翻页、媒体库顺序」，排序行仍在末尾。
+                        Assert.True(ReferenceEquals(homeRows, layout[2]));
                         Assert.True(ReferenceEquals(style, carousel.Cast<object>().Single(row => Label(row) == "轮播图版式")));
                         Assert.Equal(1, fixture.List(vm, "SettingsSearchResults").Count);
                         fixture.Set(toggle, "IsOn", false);
-                        Assert.Equal(1, layout.Count);
-                        fixture.Set(toggle, "IsOn", true);
                         Assert.Equal(2, layout.Count);
+                        fixture.Set(toggle, "IsOn", true);
+                        Assert.Equal(3, layout.Count);
                         Assert.Equal(preference, settings.Settings.Ui.HomeLibraryPlacement);
                         settings.Settings.Ui.CarouselLayout = CarouselLayout.Store;
-                        Assert.Equal(1, fixture.List(((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ElementAt(1), "Rows").Count);
-                        settings.Settings.Ui.CarouselLayout = CarouselLayout.Full;
                         Assert.Equal(2, fixture.List(((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ElementAt(1), "Rows").Count);
+                        settings.Settings.Ui.CarouselLayout = CarouselLayout.Full;
+                        Assert.Equal(3, fixture.List(((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ElementAt(1), "Rows").Count);
                     }
                     finally { ((IDisposable)vm).Dispose(); }
 
