@@ -34,7 +34,13 @@ namespace Microsoft.UI.Xaml.Media
 }
 namespace Microsoft.UI.Xaml.Media.Imaging
 {
-    public sealed class BitmapImage;
+    // PosterCache 的像素预算与动画判断读这三个成员；边界值只够编译和预算计算，不表示真实解码。
+    public sealed class BitmapImage
+    {
+        public int PixelWidth { get; set; } = 200;
+        public int PixelHeight { get; set; } = 200;
+        public bool IsAnimatedBitmap { get; set; }
+    }
 }
 namespace Momoka.Shell.Media
 {
