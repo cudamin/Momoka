@@ -1789,6 +1789,22 @@ public sealed class UiSettings
     public string HomeLibraryCoverPreset { get; set; } = HomeLibraryCoverPresets.Stack;
 
     /// <summary>
+    /// 主页封面列表能不能用鼠标拖动翻页 —— 「主页的封面列表新增支持拖拽封面翻页」，同时要一个开关
+    /// （2026-11-23 用户令）。
+    /// <para>
+    /// 开着时按住任意一排封面左右拖动：内容跟手，松手按方向和距离落到整页对齐的位置；没拖够就回原位。
+    /// 关掉后只剩两边的箭头、键盘和触摸屏的系统平移，鼠标拖动不再翻页。触摸自己由 <c>ScrollView</c> 管，
+    /// 不在这条开关的覆盖范围里。
+    /// </para>
+    /// <para>
+    /// <b>装机默认开</b>：这是用户点名要加上的交互，缺键的旧设置文件读出来就是可用；不想用时再到
+    /// 设置 → 主页 → 主页版面里关掉。恢复默认（<see cref="SettingsPreferences"/>）对界面组是整组抄，
+    /// 这一项自动跟着回到开。
+    /// </para>
+    /// </summary>
+    public bool HomeDragPaging { get; set; } = true;
+
+    /// <summary>
     /// 轮播条目从哪来 —— 「要使用最近添加还是随机的」（用户的话，2026-09-13）。枚举存整数，
     /// Recent 必须是 0：缺键的旧设置文件读出来就是它，
     /// 从旧版本升上来的人一个像素都不变。认不出来的数字由 <c>SettingsMigration.Normalize</c> 拨回。

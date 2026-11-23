@@ -77,6 +77,7 @@
              — the row pages now, one screenful of cards per chevron. -->
         <DataTemplate x:Key="ShelfCardsTemplate" x:DataType="vm:CardShelf">
             <local:ShelfStrip
+                DragPaging="{x:Bind DragPaging, Mode=OneWay}"
                 Height="{x:Bind RowHeight}"
                 ItemSpacing="18"
                 ItemTemplate="{StaticResource CardTemplate}"

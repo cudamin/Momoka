@@ -35,6 +35,14 @@ public static class ShellPrefs
 
     public static void NotifyHomeLibraryCover(UiSettings ui) => HomeLibraryCoverChanged?.Invoke(ui);
 
+    /// <summary>
+    /// 主页封面能不能用鼠标拖动翻页（2026-11-23）。只换交互开关，不重读数据、不重排货架 ——
+    /// 接着 <see cref="Changed"/> 走会让一次纯交互切换触发整页重载。
+    /// </summary>
+    public static event Action<UiSettings>? HomeDragPagingChanged;
+
+    public static void ApplyHomeDragPaging(UiSettings ui) => HomeDragPagingChanged?.Invoke(ui);
+
     public static void ApplyHomeLibraryEntries(UiSettings ui)
     {
         ApplySidebar(ui);
@@ -150,6 +158,7 @@ public static class ShellPrefs
         ApplyDetailLayout(ui);
         ApplyDetailCast(ui);
         NotifyHomeLibraryCover(ui);
+        ApplyHomeDragPaging(ui);
         Changed?.Invoke(ui);
     }
 

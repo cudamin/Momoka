@@ -93,9 +93,11 @@ namespace Momoka.Shell.Views
         internal static event Action? Changed;
         internal static event Action<Momoka.Configuration.UiSettings>? HomeLibraryEntriesChanged;
         internal static event Action<Momoka.Configuration.UiSettings>? HomeLibraryCoverChanged;
+        internal static event Action<Momoka.Configuration.UiSettings>? HomeDragPagingChanged;
         internal static event Action<Momoka.Configuration.UiSettings>? AppearanceChanged;
         internal static int HomeLibraryCoverSubscribers => HomeLibraryCoverChanged?.GetInvocationList().Length ?? 0;
         internal static void NotifyHomeLibraryEntries(Momoka.Configuration.UiSettings ui) => HomeLibraryEntriesChanged?.Invoke(ui);
+        internal static void NotifyHomeDragPaging(Momoka.Configuration.UiSettings ui) => HomeDragPagingChanged?.Invoke(ui);
         internal static void NotifyAppearance(Momoka.Configuration.UiSettings ui) => AppearanceChanged?.Invoke(ui);
         internal static void Notify() => Changed?.Invoke();
     }
@@ -195,6 +197,8 @@ namespace Momoka.Shell.Views
         private void OnHomeLibraryEntriesChanged(Momoka.Configuration.UiSettings ui) { }
         internal void UseHomeLibraryCoverPreferences() => ShellPrefs.HomeLibraryCoverChanged += OnHomeLibraryCoverChanged;
         private void OnHomeLibraryCoverChanged(Momoka.Configuration.UiSettings ui) { }
+        internal void UseHomeDragPagingPreferences() => ShellPrefs.HomeDragPagingChanged += OnHomeDragPagingChanged;
+        private void OnHomeDragPagingChanged(Momoka.Configuration.UiSettings ui) { }
         internal void UseLocalLibraries(TestLocalLibraries source)
         {
             _localLibraries = source;

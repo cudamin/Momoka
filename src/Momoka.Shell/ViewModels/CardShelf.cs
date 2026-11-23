@@ -134,6 +134,14 @@ public sealed partial class CardShelf : ObservableObject
     [ObservableProperty]
     public partial bool OnScrim { get; set; }
 
+    /// <summary>
+    /// 这一排的封面能不能用鼠标拖动翻页。主页按设置 → 主页 → 主页版面那一项交给每一排；详情页造的
+    /// <see cref="CardShelf"/> 不设，保持 false，只有翻页箭头与键盘。绑到
+    /// <see cref="Views.ShelfStrip.DragPaging"/>。
+    /// </summary>
+    [ObservableProperty]
+    public partial bool DragPaging { get; set; }
+
     public CardCollection Cards { get; } = new();
 
     /// <summary>

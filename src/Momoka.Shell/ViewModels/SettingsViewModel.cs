@@ -2120,6 +2120,19 @@ public sealed partial class SettingsViewModel : PageViewModel
                 EqualityComparer<Emby.HomeLibraryPlacement>.Default,
                 after: () => ShellPrefs.Apply(ui)));
         }
+        // 「主页的封面列表新增支持拖拽封面翻页」＋「在设置中新增一个开关来开启和关闭拖拽翻页」（2026-11-23
+        // 用户令）。摆在版面表前面：它管的是所有主页封面排的交互，不是某一排的次序。改完当场喊一声专用通知，
+        // 主页把新档交给每一排，不用回主页、不用重载。
+        layoutRows.Add(Toggle("拖动封面翻页",
+            "打开后按住封面用鼠标左右拖动，内容跟手走，松手翻到上一页或下一页；拖得太短会回到原位。"
+                + "关掉后仍可用两边箭头、键盘和触摸屏手势翻页。",
+            () => ui.HomeDragPaging,
+            value =>
+            {
+                ui.HomeDragPaging = value;
+                // 专用通知：只换首页封面排的交互开关，不借 Changed 触发整页重载。
+                ShellPrefs.ApplyHomeDragPaging(ui);
+            }));
         layoutRows.Add(HomeRows);
 
         return
@@ -2128,7 +2141,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "主页最上面那条会自己走的大图：摆不摆、哪一版、放哪一类、几张、一张站几秒。",
                 ui.ShowHomeBanner ? carouselRows : carouselRows.Take(1).ToArray()),
             new SettingSection("主页", "主页版面",
-                "媒体库那一排摆在第一屏的哪儿，以及主页上那几排的次序和显示与否，包括每个媒体库自己那一排。",
+                "媒体库那一排摆在第一屏的哪儿，主页封面能不能拖动翻页，以及那几排的次序和显示与否。",
                 layoutRows),
             HomeLibraryCoverCard()
         ];

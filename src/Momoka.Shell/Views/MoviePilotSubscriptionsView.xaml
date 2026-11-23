@@ -26,7 +26,7 @@
         <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
-        <local:ShelfStrip x:Name="MovieSubscriptions" ItemsSource="{x:Bind ViewModel.Movies, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
+        <local:ShelfStrip x:Name="MovieSubscriptions" DragPaging="{x:Bind Row.DragPaging, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.Movies, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
             ItemSpacing="18" PictureHeight="255" Visibility="{x:Bind ViewModel.MoviesVisibility, Mode=OneWay}" />
       </StackPanel>
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind SeriesVisible(ViewModel.SeriesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
@@ -40,7 +40,7 @@
         <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Visibility="{x:Bind SeriesNoticeVisibility(ViewModel.NoticeVisibility), Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
-        <local:ShelfStrip x:Name="SeriesSubscriptions" ItemsSource="{x:Bind ViewModel.Series, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
+        <local:ShelfStrip x:Name="SeriesSubscriptions" DragPaging="{x:Bind Row.DragPaging, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.Series, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
             ItemSpacing="18" PictureHeight="255" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}" />
       </StackPanel>
     </StackPanel>

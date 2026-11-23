@@ -1,3 +1,11 @@
+## 2026-11-23 主页封面拖拽翻页（分支 feat-drag-cover-pagination-zoe0tp，未合并）
+
+用户令：「主页的封面列表新增支持拖拽封面翻页」「在设置中新增一个开关来开启和关闭拖拽翻页」。确认稿：开关默认开启、拖动跟手并按页吸附、覆盖主页所有封面排。
+
+树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-drag-cover-pagination-zoe0tp`，分支 `feat-drag-cover-pagination-zoe0tp`，基点 `ba4c11b`。`ShelfStrip` 新增 `DragPaging`，鼠标左键横拖跟手、松手按 `CardStrip.DragTargetFor` 落到整页；`UiSettings.HomeDragPaging` 默认开，设置 → 主页 → 主页版面新增「拖动封面翻页」，经 `ShellPrefs.ApplyHomeDragPaging` 当场生效、不重载数据。主页普通货架、压上轮播的媒体库一份和 MoviePilot 订阅两排都跟随；详情页各带与订阅列表页保持默认关。
+
+Shell Release/x64 与 `Momoka.Tests` Release 编译 0 警告 0 错误；闸门 1 9/9；主测试 5359/5359，UiMotion 102/102、HomeFold 102/102、页面契约 404/404、设置探针 39/39，均 0 失败 0 跳过。未跑实窗拖动、主题、DPI、触摸、探针与截图。体验发布已刷新：`artifacts/publish/win-x64` 548 个文件、290.8 MB、载荷校验通过；桌面 `Momoka-feat-drag-cover-pagination-zoe0tp.lnk` 已回读指向本树发布程序与工作目录，主树 `Momoka.lnk` 未覆盖。未提交、未合并、未推送。
+
 ## 2026-11-23 branch-X8LTcG 搜索批次合并并清理
 
 主树合并提交 `cffcaaa` 包含原分支 7 条已提交改动和工作区快照 `1b48589`。保留主树的网页端缓存、资源筛选和「搜索AniBT」按钮文案。整合后的本机显式搜索优先于网页端缓存，详情跳转的一次性请求消费后不重复触发。原主树未提交的 `global.json` 哈希未变。

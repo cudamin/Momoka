@@ -10,11 +10,13 @@ using Windows.System;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 一条横向卡片带，翻页而不是拖动。主页的每个分区、详情页的 单集、全部剧季、演职人员、更多类似 都是这个控件。
+/// 一条横向卡片带，翻页而不是拖着滚动条自由滑。主页的每个分区、详情页的 单集、全部剧季、演职人员、更多类似
+/// 都是这个控件。
 /// <para>
 /// 三处以前各写一遍同样的 <c>ScrollView</c> + <c>ItemsRepeater</c>，底下各挂一条水平滚动条。要看后面的
 /// 卡片就得把指针放到那条几像素高的条上拖 —— 「下方拖动的这种不是很好用」。现在滚动条藏掉，指针进到带上
-/// 时两边浮出箭头，一次翻整整一屏卡片。
+/// 时两边浮出箭头，一次翻整整一屏卡片。主页另外可以按设置开启「拖动封面翻页」：按住封面拖动时内容跟手，
+/// 松手落到整页位置，见 <see cref="DragPagingProperty"/> 与 Core 的 <see cref="CardStrip.DragTargetFor"/>。
 /// </para>
 /// <para>
 /// 翻多远是这里唯一算得上规则的东西，所以它不在这个文件里：四条规则（一屏放得下几张卡就翻几张、翻过去
@@ -72,6 +74,16 @@ public sealed partial class ShelfStrip : UserControl
         new PropertyMetadata(false, OnScrimSwitched));
 
     /// <summary>
+    /// 这一排能不能用鼠标拖动翻页。主页按设置 → 主页 → 主页版面的开关交给每一排；详情页的几条带不设，
+    /// 保持原样（只翻页箭头、键盘和触摸屏平移）。规则在 Core 的 <see cref="CardStrip.DragTargetFor"/>。
+    /// </summary>
+    public static readonly DependencyProperty DragPagingProperty = DependencyProperty.Register(
+        nameof(DragPaging),
+        typeof(bool),
+        typeof(ShelfStrip),
+        new PropertyMetadata(false, OnDragPagingChanged));
+
+    /// <summary>
     /// 箭头只盖卡片的图片，不盖图片下面那两行字 —— 带的高度里有 <see cref="CardSize.Chrome"/> 是那两行
     /// 的。这个下限管的是还没量过的那一瞬间：高度是 0 时按 0 减出来是负数，按钮会直接消失。
     /// </summary>
@@ -88,6 +100,24 @@ public sealed partial class ShelfStrip : UserControl
     /// 为什么事件不够用，见 <see cref="HoverWatch"/>。
     /// </summary>
     private readonly HoverWatch _watch;
+
+    /// <summary>拖动翻页按住的指针；不在拖动候选里时为 null。只有鼠标左键会进这条路。</summary>
+    private Pointer? _dragPointer;
+
+    /// <summary>已经按下、还在等方向明确：横向拖过 <see cref="DragStartDistance"/> 才开始跟手。</summary>
+    private bool _dragCandidate;
+
+    /// <summary>已经越过起始阈值、由这条带接管指针，内容正跟着指针走。</summary>
+    private bool _dragActive;
+
+    /// <summary>按下那一点在 <see cref="Root"/> 里的位置，拖动距离都相对它量。</summary>
+    private Windows.Foundation.Point _dragOrigin;
+
+    /// <summary>按下那一刻的滚动位置，松手不够远就回到这里。</summary>
+    private double _dragStartOffset;
+
+    /// <summary>横向拖过这么多才开始翻页。比它小的抖动留给卡片自己的点击。</summary>
+    private const double DragStartDistance = 8;
 
     /// <summary>
     /// 上一次量到的卡片间距（卡片宽 + 间隔）。记下来而不是每次现问：翻到后面时第一张卡已经被虚拟化掉，
@@ -154,9 +184,18 @@ public sealed partial class ShelfStrip : UserControl
         SizeChanged += OnContentResized;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+        Unloaded += OnDragUnloaded;
         Scroller.ScrollCompleted += OnFocusScrollCompleted;
         Scroller.BringingIntoView += OnFocusBringingIntoView;
         Root.BringIntoViewRequested += OnFocusBringRequested;
+
+        // 拖动翻页（设置 → 主页）：卡片自己的 Button 会先把按下标掉并捕获指针，所以三个事件都按
+        // handledEventsToo 挂；真正开始拖动时才把捕获从卡片手里接过来，没拖够的按下仍是一次普通点击。
+        Root.AddHandler(PointerPressedEvent, new PointerEventHandler(OnDragPressed), true);
+        Root.AddHandler(PointerMovedEvent, new PointerEventHandler(OnDragMoved), true);
+        Root.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnDragReleased), true);
+        Root.AddHandler(PointerCanceledEvent, new PointerEventHandler(OnDragCanceled), true);
+        Root.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnDragCaptureLost), true);
     }
 
     public object? ItemsSource
@@ -202,6 +241,13 @@ public sealed partial class ShelfStrip : UserControl
         set => SetValue(OnScrimProperty, value);
     }
 
+    /// <inheritdoc cref="DragPagingProperty"/>
+    public bool DragPaging
+    {
+        get => (bool)GetValue(DragPagingProperty);
+        set => SetValue(DragPagingProperty, value);
+    }
+
     /// <summary>
     /// 这一档交给每张卡（<see cref="PosterCard.OnScrim"/>）。卡片是回收着用的，所以两处都要：这里过一遍
     /// 已经建出来的，<see cref="OnElementPrepared"/> 管之后建出来的和回收回来的那些。
@@ -212,6 +258,12 @@ public sealed partial class ShelfStrip : UserControl
 
         for (var index = 0; index < strip.ItemCount; index++)
             if (strip.Repeater.TryGetElement(index) is { } element) strip.PaintInk(element);
+    }
+
+    /// <summary>开关关掉那一刻如果正按着拖，先把内容送回起点再放手，不留半页。</summary>
+    private static void OnDragPagingChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        if (args.NewValue is false) ((ShelfStrip)sender).CancelDrag();
     }
 
     /// <summary>
@@ -309,6 +361,157 @@ public sealed partial class ShelfStrip : UserControl
                 new ScrollingScrollOptions(HomeMotion.AnimationsEnabled ? ScrollingAnimationMode.Auto : ScrollingAnimationMode.Disabled));
 
         return target;
+    }
+
+    // ---- 拖动翻页 ---------------------------------------------------------------
+    //
+    // 主页那几排按设置里的开关可以按住封面拖动：内容跟手走，松手按 CardStrip.DragTargetFor 落到整页位置。
+    // 触摸和触控笔仍由 ScrollView 自己的平移接管，这里只认鼠标左键 —— 两种输入各走各的，不会互相抢指针。
+    //
+    // Gallery 对照（microsoft/WinUI-Gallery @ 6de91feccadfbb0a796b71caedead5a2284f730e，
+    // WinUIGallery/Samples/ScrollView/ScrollViewPage.xaml.cs）：官方样例只演示 ScrollTo 与缩放，没有鼠标左键
+    // 拖动平移；Learn「Scroll viewer controls」把 panning 定义为触摸／笔，鼠标走滚轮或滚动条（2026-11-23 读）。
+    // 没有可照抄的样例，因此沿用项目自己的指针捕获写法（ShellPage.Sidebar 的拖动条、PlayerPage.Input 的拖动），
+    // 只把翻页落点放进 Core 的 CardStrip 由单测钉住。
+
+    /// <summary>
+    /// 按下：只登记候选，不捕获指针，也不把事件标掉。卡片自己的 Button 因此照旧收到这次按下，没拖动的
+    /// 点击仍然是一次点击；箭头上的按下不算，否则点翻页会先被当成一次拖动。
+    /// </summary>
+    private void OnDragPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (!DragPaging || e.Pointer.PointerDeviceType is not Microsoft.UI.Input.PointerDeviceType.Mouse) return;
+
+        var point = e.GetCurrentPoint(Root);
+        if (!point.Properties.IsLeftButtonPressed || Scroller.ScrollableWidth <= CardStrip.Edge) return;
+        if (FromArrow(e.OriginalSource as DependencyObject)) return;
+
+        ResetDrag();
+        _dragPointer = e.Pointer;
+        _dragCandidate = true;
+        _dragOrigin = point.Position;
+        _dragStartOffset = Scroller.HorizontalOffset;
+    }
+
+    /// <summary>
+    /// 移动：横向拖过 <see cref="DragStartDistance"/> 才接管指针并让内容跟手。竖向的拖动不是翻页，
+    /// 一旦方向明确就放弃这一次候选，把这一下手势还给页面和卡片。
+    /// </summary>
+    private void OnDragMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_dragCandidate || !ReferenceEquals(e.Pointer, _dragPointer)) return;
+
+        var point = e.GetCurrentPoint(Root);
+        if (!point.Properties.IsLeftButtonPressed) { CancelDrag(); return; }
+
+        var dx = point.Position.X - _dragOrigin.X;
+        if (!_dragActive)
+        {
+            if (Math.Abs(dx) < DragStartDistance) return;
+            if (Math.Abs(dx) <= Math.Abs(point.Position.Y - _dragOrigin.Y)) { ResetDrag(); return; }
+            _dragActive = TryCaptureDragPointer(e.Pointer, e.OriginalSource as DependencyObject);
+            if (!_dragActive) { ResetDrag(); return; }
+        }
+
+        var target = Math.Clamp(_dragStartOffset - dx, 0, Scroller.ScrollableWidth);
+        e.Handled = true;
+        if (Math.Abs(target - Scroller.HorizontalOffset) < 0.5) return;
+        Scroller.ScrollTo(target, Scroller.VerticalOffset,
+            new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+    }
+
+    /// <summary>
+    /// 松手：拖够了就按方向和距离翻页，没拖够就回原位。落地动画与箭头一致（跟随「减少动画」偏好）。
+    /// </summary>
+    private void OnDragReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_dragCandidate || !ReferenceEquals(e.Pointer, _dragPointer)) return;
+        if (!_dragActive) { ResetDrag(); return; }
+
+        var target = CardStrip.DragTargetFor(
+            _dragStartOffset, e.GetCurrentPoint(Root).Position.X - _dragOrigin.X, Step, Scroller.ScrollableWidth);
+        _requested = target;
+        Scroller.ScrollTo(target, Scroller.VerticalOffset,
+            new ScrollingScrollOptions(HomeMotion.AnimationsEnabled ? ScrollingAnimationMode.Auto : ScrollingAnimationMode.Disabled));
+
+        var pointer = _dragPointer;
+        ResetDrag();
+        if (pointer is not null) Root.ReleasePointerCapture(pointer);
+        e.Handled = true;
+    }
+
+    private void OnDragCanceled(object sender, PointerRoutedEventArgs e)
+    {
+        if (_dragCandidate && ReferenceEquals(e.Pointer, _dragPointer)) CancelDrag();
+    }
+
+    /// <summary>
+    /// 这一排自己丢了指针捕获才算中断。卡片自己的捕获被这里接手时也会来一发，认它就会把刚开始的拖动
+    /// 当场取消 —— 所以只认 <see cref="Root"/> 作为来源的那一条。
+    /// </summary>
+    private void OnDragCaptureLost(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_dragCandidate || !ReferenceEquals(e.Pointer, _dragPointer)) return;
+        if (!ReferenceEquals(e.OriginalSource, Root)) return;
+        CancelDrag();
+    }
+
+    /// <summary>单独挂一条离树收尾：焦点那一段的 OnUnloaded 会被 UiMotion 原样抽走，拖动状态不属于那一摊。</summary>
+    private void OnDragUnloaded(object sender, RoutedEventArgs e)
+    {
+        ResetDrag();
+        Root.ReleasePointerCaptures();
+    }
+
+    /// <summary>拖动被打断（开关关掉、捕获丢失、换了一批卡）：回到按下时的位置，别把这一排留在半页上。</summary>
+    private void CancelDrag()
+    {
+        if (!_dragCandidate && !_dragActive) return;
+
+        var restore = _dragActive ? _dragStartOffset : double.NaN;
+        var pointer = _dragPointer;
+        ResetDrag();
+        if (pointer is not null) Root.ReleasePointerCapture(pointer);
+        if (!double.IsFinite(restore)) return;
+
+        _requested = Math.Clamp(restore, 0, Scroller.ScrollableWidth);
+        Scroller.ScrollTo(_requested, Scroller.VerticalOffset,
+            new ScrollingScrollOptions(HomeMotion.AnimationsEnabled ? ScrollingAnimationMode.Auto : ScrollingAnimationMode.Disabled));
+    }
+
+    private void ResetDrag()
+    {
+        _dragPointer = null;
+        _dragCandidate = false;
+        _dragActive = false;
+    }
+
+    /// <summary>
+    /// 把指针从按下路径上的卡片按钮手里接过来。按下那一刻 Button 已经捕获了指针，而
+    /// <c>CapturePointer</c> 在指针已被别人捕获时会直接返回 false（Learn，2026-11-23 读），所以先沿
+    /// 原始来源往上逐个松手，再由这一排捕获。松不开就放弃这一次拖动，交给原来的按钮。
+    /// </summary>
+    private bool TryCaptureDragPointer(Pointer pointer, DependencyObject? source)
+    {
+        if (Root.CapturePointer(pointer)) return true;
+
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is not UIElement element) continue;
+            element.ReleasePointerCapture(pointer);
+            if (Root.CapturePointer(pointer)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>这一次按下是不是落在两边那两颗翻页圆钮上：那两颗自己管翻页，不该再被拖一次。</summary>
+    private bool FromArrow(DependencyObject? source)
+    {
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
+            if (node is Button button && (ReferenceEquals(button, Prev) || ReferenceEquals(button, Next))) return true;
+
+        return false;
     }
 
     /// <summary>一页多远，按当前视口和量到的卡片间距。</summary>
@@ -909,6 +1112,8 @@ public sealed partial class ShelfStrip : UserControl
 
         // 换了一批卡片，上一批量出来的间距不作数了 —— 主页每条带的卡片形状可以不一样（海报 2:3、剧照
         // 16:9），而这个控件是同一个。
+        strip.ResetDrag();
+        strip.Root.ReleasePointerCaptures();
         strip._pitch = 0;
         strip._focusedIndex = -1;
         strip._pendingFocusedIndex = -1;

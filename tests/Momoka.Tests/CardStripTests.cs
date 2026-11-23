@@ -50,6 +50,29 @@ internal static class CardStripTests
             Assert.Equal(0d, CardStrip.TargetFor(0, 1, 744, 0), "翻不动的带停在 0");
         });
 
+        Test("卡片带：拖动封面翻页落点", () =>
+        {
+            // 拖过 48 就算一次翻页：向左推内容（dx 为负）去后一页，向右回前一页。
+            Near(744, CardStrip.DragTargetFor(0, -CardStrip.DragThreshold, 744, 2000), "向左拖过阈值翻一页");
+            Near(0, CardStrip.DragTargetFor(744, CardStrip.DragThreshold, 744, 2000), "向右拖过阈值回一页");
+            Assert.Equal(0d, CardStrip.DragTargetFor(0, 47, 744, 2000), "拖得太短回原位");
+            Assert.Equal(744d, CardStrip.DragTargetFor(744, -47, 744, 2000), "反方向也一样");
+
+            // 拖得远就多翻几页：按拖过的距离占几页来算，至少一页；落点仍是整页对齐的位置。
+            Near(1488, CardStrip.DragTargetFor(0, -1200, 744, 2000), "约一页半按两页算");
+            Near(1488, CardStrip.DragTargetFor(744, -600, 744, 2000), "不到一页也至少翻一页");
+            Assert.Equal(2000d, CardStrip.DragTargetFor(1600, -1200, 744, 2000), "拖过带尾就夹在末尾");
+
+            // 已经在半页上也按整页步长走：落点与箭头共用同一组对齐位置。
+            Near(0, CardStrip.DragTargetFor(744, 800, 744, 2000), "从第二页往回拖过头贴回开头");
+            Near(2000, CardStrip.DragTargetFor(1600, -744, 744, 2000), "从接近带尾再往后也是带尾");
+
+            // 没有可翻的余量、量不到卡片或位移不是有限数：都待在按下时的位置。
+            Assert.Equal(0d, CardStrip.DragTargetFor(0, -800, 744, 0), "一屏放得下就不动");
+            Near(100, CardStrip.DragTargetFor(100, -800, 0, 2000), "量不到步长就不动");
+            Near(100, CardStrip.DragTargetFor(100, double.NaN, 744, 2000), "坏位移不动");
+        });
+
         Test("卡片带：哪个箭头该在屏上", () =>
         {
             Assert.Equal((false, true), CardStrip.ArrowsFor(0, 2000, true), "在开头：只有往后");
