@@ -1,3 +1,11 @@
+## 2026-11-23 动图原生分辨率与悬浮预览合并 master
+
+用户令「合并」。产品提交 `9c6eadf` 经无冲突合并提交 `f88a165` 进入本地 `master`（原主树 `ba4c11b`），范围为原23个路径，没有纳入主树已有的4处搜索修改。合并前后3处文件字节哈希一致；`ShellNavigationProbe.SearchLayout.cs` 在核对期间新增另一处来源标签尺寸诊断，合并提交该路径差异为空，保留并行编辑，不把它算成本任务修改。
+
+原临时树两处既有改动 `global.json` 和 `DetailSearchParityTests.cs` 已与 master 对应文件字节一致，安全暂存、切到合并后的 detached HEAD 后复核仍一致，再移除临时备份。原分支及 `Momoka-native-animated-covers.lnk` 已删除。托管归档工具拒绝移除聊天的主工作树（`The task's primary checkout cannot be removed.`），遵守保护，原树干净 detached 保留、待以后清理。分支测试报告和发布日志已复制到主树忽略目录 `artifacts/native-cover-branch-9c6eadf`。
+
+本轮仅合并与记录、文档及Git差异检查；未重跑主树编译、单测、探针或实屏，未刷新主树体验包，未推送远端。上一节分支验证不当作整合树验收，台账改为已合并、待统一验证，保持开放。
+
 ## 2026-11-23 媒体库动图原生分辨率与悬浮预览（分支待合并）
 
 用户令「媒体库封面的动图要用原生分辨率」「封面是动图时悬浮窗中的图标也要动」。分支 `codex/native-animated-covers`，工作树 `C:/Users/89400/.codex/worktrees/b83e/Momoka`，基点 `c149659`。GIF 与通过容器边界校验的 APNG 不再按卡片宽度解码；APNG 改为后台逐帧原生像素合成、复用画布及还原画布，保留局部帧、透明混合、清空、循环与取消。卡片/悬浮预览分别预留原生画面字节和播放槽；有限循环最后一帧保留预留直到清源，取消中的解码真正退出才释放。解码位图缓存由张数改为 64 MiB 像素预算，压缩 APNG 缓存原预算不变。
