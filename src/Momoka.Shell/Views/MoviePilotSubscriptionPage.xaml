@@ -271,7 +271,7 @@
                             <MenuFlyoutItem x:Uid="MoviePilotSubscriptionPage_SearchMediaImdb" x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
                         </MenuFlyout></Button.Flyout>
                     </Button>
-                    <Button x:Uid="MoviePilotSubscriptionPage_SearchAniBt" x:Name="SearchAniBt" Content="在 AniBT 中搜索" Style="{StaticResource EgActionButtonStyle}"
+                    <Button x:Uid="MoviePilotSubscriptionPage_SearchAniBt" x:Name="SearchAniBt" Content="搜索AniBT" Style="{StaticResource EgActionButtonStyle}"
                         Visibility="{x:Bind MediaViewModel.AniBtVisibility, Mode=OneWay}"
                         IsEnabled="{x:Bind MediaViewModel.CanSearchAniBt, Mode=OneWay}" Click="OnSearchAniBt" />
                     <Button x:Uid="MoviePilotSubscriptionPage_SearchMediaSubtitles" x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgActionButtonStyle}"

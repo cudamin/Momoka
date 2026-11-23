@@ -561,7 +561,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public Visibility SubscribeProgressVisibility => Show(Busy || _groupLoad is not null || Submitting);
 
     /// <summary>
-    /// 订阅详情页上「在 AniBT 中搜索」那一颗。只有订阅详情（不是从搜索或推荐打开的纯媒体页）
+    /// 订阅详情页上「搜索AniBT」那一颗。只有订阅详情（不是从搜索或推荐打开的纯媒体页）
     /// 才把这一位打开；具体是否日本动画要等媒体详情回来才知道，见
     /// <see cref="AniBtEligibility.IsJapaneseAnime"/>。
     /// </summary>

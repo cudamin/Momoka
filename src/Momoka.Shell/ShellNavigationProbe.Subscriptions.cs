@@ -452,7 +452,7 @@ internal sealed partial class ShellNavigationProbe
 
                 // 操作排（用户令 2026-10-12：「只留这四个按钮 + 一个编辑订阅按钮，其他的折叠到更多按钮里」
                 // ＋「复刻电影页面的更多按钮」）：五颗带字的键按这个次序排着，右端一颗见方的圆角图标键。
-                // 2026-10-19 起「在 AniBT 中搜索」也是一颗常驻在树上的键，只有日本动画才显示；这一条夹具不是动画。
+                // 2026-10-19 起「搜索AniBT」也是一颗常驻在树上的键，只有日本动画才显示；这一条夹具不是动画。
                 var actions = Descendants(page).OfType<WrapRow>()
                     .Single(row => Descendants(row).OfType<Button>().Any(button => button.Name == "MoreActions"));
                 var rowButtons = Descendants(actions).OfType<Button>().ToArray();
@@ -460,12 +460,12 @@ internal sealed partial class ShellNavigationProbe
                         new[] { "SearchSubscription", "SearchAniBt", "SearchMediaSubtitles", "ChooseSubscribeSeasons", "PlayMediaLibraryItem", "PlaySubscriptionTrailer", "EditSubscription", "MoreActions" }),
                     "操作排不是「搜索资源 + AniBT + 搜索字幕 + 播放 + 预告片 + 编辑 + 更多」：" + string.Join("、", rowButtons.Select(button => button.Name)));
                 Require(rowButtons.Select(button => button.Content as string).SequenceEqual(
-                        new[] { "搜索资源", "在 AniBT 中搜索", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "预告片", "编辑订阅", null }),
+                        new[] { "搜索资源", "搜索AniBT", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "预告片", "编辑订阅", null }),
                     "操作排上的文案不对：" + string.Join("、", rowButtons.Select(button => button.Content?.ToString() ?? "（图标）")));
                 Require(Get<Button>(page, "PlaySubscriptionTrailer").Visibility == Visibility.Collapsed,
                     "夹具没有可用的库内预告片，预告片按钮却出现了");
                 Require(Get<Button>(page, "SearchAniBt").Visibility == Visibility.Collapsed,
-                    "非日本动画的订阅显示了「在 AniBT 中搜索」");
+                    "非日本动画的订阅显示了「搜索AniBT」");
                 // 这一条同时钉住「没有片源时隐藏播放键」的另一半：夹具里有已入库且能播的集，这颗键该在。
                 Require(Get<Button>(page, "PlayMediaLibraryItem").Visibility == Visibility.Visible,
                     "当前 Emby 里有可播放条目，「播放已入库」却没有出现");
@@ -844,7 +844,7 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 日本动画订阅详情上的那颗「在 AniBT 中搜索」：只验显示条件、点击接线与宽度布局，不打开第二个窗口，
+    /// 日本动画订阅详情上的那颗「搜索AniBT」：只验显示条件、点击接线与宽度布局，不打开第二个窗口，
     /// 也不请求 AniBT —— 外壳那一头由回调捕获，只读地去核对交出去的是订阅标题。
     /// </summary>
     private async Task MoviePilotAnimeSubscriptionDetailAsync()
@@ -866,8 +866,8 @@ internal sealed partial class ShellNavigationProbe
                 ResizeInspect(width, 1000);
                 await LayoutAsync(page);
                 var button = Get<Button>(page, "SearchAniBt");
-                Require(button.Visibility == Visibility.Visible && button.IsEnabled && Equals(button.Content, "在 AniBT 中搜索"),
-                    "日本动画订阅没有显示可用的「在 AniBT 中搜索」");
+                Require(button.Visibility == Visibility.Visible && button.IsEnabled && Equals(button.Content, "搜索AniBT"),
+                    "日本动画订阅没有显示可用的「搜索AniBT」");
                 await SaveSettledFrameAsync(page, $"mp-subscription-anibt-{width}.png");
             }
             InvokeSubscriptionButton(Get<Button>(page, "SearchAniBt"));

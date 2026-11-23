@@ -3101,7 +3101,7 @@
     <value>按 IMDb 搜索</value>
   </data>
   <data name="MoviePilotSubscriptionPage_SearchAniBt.Content" xml:space="preserve">
-    <value>在 AniBT 中搜索</value>
+    <value>搜索AniBT</value>
   </data>
   <data name="MoviePilotSubscriptionPage_SearchMediaSubtitles.Content" xml:space="preserve">
     <value>搜索字幕</value>

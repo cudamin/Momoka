@@ -384,6 +384,19 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("Facts = ItemDetail.Facts(series, includeStudio: false);", vm);
         });
 
+        Test("订阅详情操作：搜索AniBT 使用一致的默认和简体中文文案", () =>
+        {
+            var shell = Path.Combine(FindRoot(), "src", "Momoka.Shell");
+            var page = XDocument.Load(Path.Combine(shell, "Views", "MoviePilotSubscriptionPage.xaml"));
+            var button = page.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "SearchAniBt");
+            const string uid = "MoviePilotSubscriptionPage_SearchAniBt";
+            Assert.Equal(uid, (string?)button.Attribute(X + "Uid"));
+            Assert.Equal("搜索AniBT", (string?)button.Attribute("Content"));
+            Assert.Equal("OnSearchAniBt", (string?)button.Attribute("Click"));
+            var resources = XDocument.Load(Path.Combine(shell, "Strings", "zh-Hans", "Resources.resw"));
+            var label = resources.Descendants("data").Single(entry => (string?)entry.Attribute("name") == uid + ".Content");
+            Assert.Equal("搜索AniBT", label.Element("value")?.Value);
+        });
         Test("详情操作：从头开始只在更多菜单里，紧跟继续播放一行", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));

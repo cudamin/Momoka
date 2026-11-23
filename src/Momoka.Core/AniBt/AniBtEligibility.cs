@@ -18,7 +18,7 @@ public static class AniBtEligibility
         genre.Contains("动画", StringComparison.Ordinal) || genre.Contains("动漫", StringComparison.Ordinal));
 
     /// <summary>
-    /// 订阅详情那颗「在 AniBT 中搜索」的显示条件：类型是动画，且能从出品国家、原始语言或 Bangumi
+    /// 订阅详情那颗「搜索AniBT」的显示条件：类型是动画，且能从出品国家、原始语言或 Bangumi
     /// 来源确认它是日本动画。缺国家与语言时宁可不显示，也不把国漫之类的订阅交给 AniBT。
     /// </summary>
     public static bool IsJapaneseAnime(MoviePilotMediaDetail? detail)
