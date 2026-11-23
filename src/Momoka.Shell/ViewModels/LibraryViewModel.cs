@@ -591,6 +591,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public string SubscriptionMatchesNote => MatchingSubscriptions.Count == 0 ? "" : UiText.Format("{0} 条订阅", MatchingSubscriptions.Count);
 
+    private MoviePilotSubscriptionsViewModel? _matchingSubscriptionManager;
     private MoviePilotSubscription[] _moviePilotSubscriptions = [];
     private MoviePilotSubscriptionIndex _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Empty;
     private CancellationTokenSource? _moviePilotSubscriptionLoad;
@@ -614,6 +615,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
 
         // 断线或关掉 MoviePilot：标记是附加信息，不能留着旧连接上的结论。
+        ReleaseMatchingSubscriptionManager();
         _moviePilotSubscriptionGeneration++;
         _moviePilotSubscriptionLoad?.Cancel();
         _moviePilotSubscriptionLoad = null;
@@ -640,6 +642,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>换页、换账号或离开媒体库时把上一份订阅快照与命中货架收干净；下一次 Attach 会重读。</summary>
     private void ResetMoviePilotSubscriptionState()
     {
+        ReleaseMatchingSubscriptionManager();
         _moviePilotSubscriptionGeneration++;
         _moviePilotSubscriptionLoad?.Cancel();
         _moviePilotSubscriptionLoad = null;
@@ -665,11 +668,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             var items = await service.SubscriptionsAsync(pending.Token).ConfigureAwait(true);
             if (!_active || generation != _moviePilotSubscriptionGeneration || !ReferenceEquals(service, _moviePilot)
                 || !service.Available) return;
-            _moviePilotSubscriptions = items.ToArray();
-            _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Build(items);
             _moviePilotSubscriptionsLoaded = true;
-            MarkMoviePilotSubscriptions();
-            RefreshMatchingSubscriptions();
+            ApplyMoviePilotSubscriptions(items.ToArray());
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -686,6 +686,14 @@ public sealed partial class LibraryViewModel : PageViewModel
             }
             pending.Dispose();
         }
+    }
+
+    private void ApplyMoviePilotSubscriptions(MoviePilotSubscription[] items)
+    {
+        _moviePilotSubscriptions = items;
+        _moviePilotSubscriptionIndex = MoviePilotSubscriptionIndex.Build(items);
+        MarkMoviePilotSubscriptions();
+        RefreshMatchingSubscriptions();
     }
 
     private void MarkMoviePilotSubscriptions()
@@ -738,9 +746,53 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(EmptyVisibility));
     }
 
+    private bool OwnsMatchingSubscription(MoviePilotSubscriptionCard card) =>
+        _active && _embySourceActive && _moviePilot is { Available: true } service
+        && service.IsCurrentSubscription(card.Subscription) && MatchingSubscriptions.Contains(card);
+
+    internal MoviePilotSubscriptionsViewModel? GetMatchingSubscriptionManager(MoviePilotSubscriptionCard card, ConfirmRequest confirm)
+    {
+        if (_moviePilot is not { } service || !OwnsMatchingSubscription(card)) return null;
+        if (_matchingSubscriptionManager is null)
+        {
+            var manager = new MoviePilotSubscriptionsViewModel();
+            manager.AttachForSearch(service, OwnsMatchingSubscription, RefreshManagedSubscriptionsAsync);
+            manager.UseConfirm(confirm);
+            manager.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName != nameof(manager.NoticeOpen) || !manager.NoticeOpen) return;
+                Notify(manager.NoticeTitle, manager.NoticeMessage, manager.NoticeSeverity);
+                manager.DismissNotice();
+            };
+            _matchingSubscriptionManager = manager;
+        }
+        return _matchingSubscriptionManager;
+    }
+
+    private Task RefreshManagedSubscriptionsAsync(int? removedId)
+    {
+        if (!_active || !_embySourceActive || _moviePilot is not { Available: true } service) return Task.CompletedTask;
+        // 已确认取消的订阅立即消失；即使读回失败也不再保留已取消的卡片或角标。
+        _moviePilotSubscriptionLoad?.Cancel();
+        _moviePilotSubscriptionsLoaded = false;
+        if (removedId is { } id)
+            ApplyMoviePilotSubscriptions(_moviePilotSubscriptions.Where(subscription => subscription.Id != id).ToArray());
+        return LoadMoviePilotSubscriptionsAsync(service);
+    }
+
+    private void ReleaseMatchingSubscriptionManager()
+    {
+        var manager = _matchingSubscriptionManager;
+        _matchingSubscriptionManager = null;
+        if (manager is null) return;
+        if (manager.Working) _moviePilotSubscriptionsLoaded = false;
+        manager.Cancel();
+        manager.Dispose();
+    }
+
     internal void OpenMatchingSubscription(MoviePilotSubscriptionCard card)
     {
-        if (_moviePilot?.IsCurrentSubscription(card.Subscription) != true || !MatchingSubscriptions.Contains(card)) return;
+        if (!OwnsMatchingSubscription(card)) return;
         _actions?.OpenMoviePilotMedia(card.Subscription.Media, card.Subscription);
     }
 
@@ -2361,6 +2413,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
         CaptureSnapshot();
         _active = false;
+        ReleaseMatchingSubscriptionManager();
         _moviePilotSubscriptionGeneration++;
         _moviePilotSubscriptionLoad?.Cancel();
         _moviePilotSubscriptionLoad = null;

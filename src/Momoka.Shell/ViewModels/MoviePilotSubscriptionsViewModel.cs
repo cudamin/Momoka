@@ -176,6 +176,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     private string _connection = "";
     private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private bool _detail;
+    private Func<MoviePilotSubscriptionCard, bool>? _ownsSearchCard;
+    private Func<int?, Task>? _refreshSearchSubscriptions;
     private bool Live => _lifetime is { IsCancellationRequested: false } && _service?.IsCurrentConnection(_connection) == true;
     private IReadOnlyList<MoviePilotSubscriptionEpisodeRow> _episodes = [];
     private EmbySessionScope? _playbackScope;
@@ -391,6 +393,14 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         ClearCards();
     }
 
+    internal void AttachForSearch(MoviePilotService service, Func<MoviePilotSubscriptionCard, bool> ownsCard,
+        Func<int?, Task> refreshSubscriptions)
+    {
+        Attach(service);
+        _ownsSearchCard = ownsCard;
+        _refreshSearchSubscriptions = refreshSubscriptions;
+    }
+
     public override async Task ReloadAsync()
     {
         if (Working || _service is null || _lifetime is not { IsCancellationRequested: false }) return;
@@ -545,7 +555,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         }
     }
 
-    public bool Owns(MoviePilotSubscriptionCard card) => Live && (_detail ? ReferenceEquals(Selected, card) : Movies.Contains(card) || Series.Contains(card));
+    public bool Owns(MoviePilotSubscriptionCard card) => Live && (_ownsSearchCard?.Invoke(card)
+        ?? (_detail ? ReferenceEquals(Selected, card) : Movies.Contains(card) || Series.Contains(card)));
     public bool NeedsReview(MoviePilotSubscriptionCard card) => _service?.SubscriptionNeedsReview(card.Subscription) == true;
     public Task LoadPosterAsync(MoviePilotSubscriptionCard card) => Owns(card) && _service is { } service
         ? Task.WhenAll(card.LoadPosterAsync(service), card.LoadSubscriberAvatarAsync(service)) : Task.CompletedTask;
@@ -597,19 +608,16 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             if (!await ConfirmAsync(verb, subscription.Media.Confirmation + "\n\n" + note, verb)) return false;
             if (token.IsCancellationRequested || !Owns(card)) return false;
             await _service.ManageSubscriptionAsync(subscription, action, token);
-            if (token.IsCancellationRequested || !Owns(card)) return false;
+            if (token.IsCancellationRequested || !Live || (_ownsSearchCard is null && !Owns(card))) return false;
             changed = true;
-            if (action == MoviePilotSubscriptionAction.Delete)
-            {
-                Deleted = _detail;
-                if (!_detail) { card.Release(); Movies.Remove(card); Series.Remove(card); }
-            }
+            if (action == MoviePilotSubscriptionAction.Delete) RemoveManagedCard(card);
             Notify(verb, action == MoviePilotSubscriptionAction.Search ? UiText.Translate("搜索请求已提交，可稍后刷新查看进度。") : UiText.Translate("MoviePilot 已确认操作成功。"), InfoBarSeverity.Success);
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(verb, error); }
         finally { if (!token.IsCancellationRequested) Working = false; }
-        if (changed && !Deleted && Live && action != MoviePilotSubscriptionAction.Search) await ReloadAsync();
+        if (changed && !token.IsCancellationRequested && action != MoviePilotSubscriptionAction.Search)
+            await RefreshAfterManagementAsync(action == MoviePilotSubscriptionAction.Delete ? subscription.Id : null);
         NotifyRows();
         return changed;
     }
@@ -632,7 +640,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(UiText.Translate("保存订阅失败"), error); }
         finally { if (!token.IsCancellationRequested) Working = false; }
-        if (changed && Live) await ReloadAsync();
+        if (changed && !token.IsCancellationRequested) await RefreshAfterManagementAsync();
     }
 
     /// <summary>真实编辑窗口在提交完成后才关闭；错误交回窗口，输入草稿与重试入口保持可见。</summary>
@@ -643,6 +651,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         var token = _lifetime.Token;
         Working = true;
         var changed = false;
+        int? removedId = null;
         try
         {
             var original = await _service.SubscriptionAsync(card.Subscription, token);
@@ -653,18 +662,18 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             {
                 RequireCurrent();
                 await _service.UpdateSubscriptionAsync(original, draft, token);
-                RequireCurrent();
                 changed = true;
+                RequireCurrent();
             }
             async Task Remove()
             {
                 RequireCurrent();
                 // 编辑器内的具名确认区域已获得确认，不叠开第二个 ContentDialog。
                 await _service.ManageSubscriptionAsync(original, MoviePilotSubscriptionAction.Delete, token);
-                RequireCurrent();
                 changed = true;
-                Deleted = _detail;
-                if (!_detail) { card.Release(); Movies.Remove(card); Series.Remove(card); }
+                removedId = original.Id;
+                RequireCurrent();
+                RemoveManagedCard(card);
                 Notify(UiText.Translate("取消订阅"), UiText.Translate("MoviePilot 已确认操作成功，已入库文件保留。"), InfoBarSeverity.Success);
             }
             void RequireCurrent()
@@ -677,8 +686,33 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!token.IsCancellationRequested && Live) Report(UiText.Translate("读取订阅失败"), error); }
         finally { if (!token.IsCancellationRequested) Working = false; }
-        if (changed && !Deleted && Live) await ReloadAsync();
+        if (changed && !token.IsCancellationRequested) await RefreshAfterManagementAsync(removedId);
         NotifyRows();
+    }
+
+    private void RemoveManagedCard(MoviePilotSubscriptionCard card)
+    {
+        if (_ownsSearchCard is not null) return;
+        if (_detail) Deleted = true;
+        else
+        {
+            card.Release();
+            Movies.Remove(card);
+            Series.Remove(card);
+        }
+    }
+
+    private async Task RefreshAfterManagementAsync(int? removedId = null)
+    {
+        if (!Live || Deleted) return;
+        if (_refreshSearchSubscriptions is not { } refresh)
+        {
+            await ReloadAsync();
+            return;
+        }
+        var load = BeginLoad();
+        try { await refresh(removedId); }
+        finally { EndLoad(load); }
     }
 
     private void ApplyFilter()
@@ -772,6 +806,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public override void Cancel()
     {
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
+        _ownsSearchCard = null;
+        _refreshSearchSubscriptions = null;
         _playbackScope = null; _play = null;
         foreach (var row in _episodes) row.Retire();
         _episodes = []; Episodes.Clear();

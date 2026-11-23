@@ -1725,6 +1725,17 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.OpenMatchingSubscription(card);
     }
 
+    private void OnSubscriptionMatchMenu(object? sender, EventArgs args)
+    {
+        if (_released || SearchSource != 0 || _moviePilot is not { Available: true } service
+            || sender is not MoviePilotSubscriptionPoster { Card: { } card } poster) return;
+        var manager = ViewModel.GetMatchingSubscriptionManager(card,
+            ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
+        if (manager is null) return;
+        MoviePilotSubscriptionMenu.Create(this, manager, card, () => ViewModel.OpenMatchingSubscription(card), service)
+            .ShowAt(poster.MenuAnchor);
+    }
+
     private void OnSubscriptionMatchPosterRequested(object? sender, EventArgs args)
     {
         if (_released || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;

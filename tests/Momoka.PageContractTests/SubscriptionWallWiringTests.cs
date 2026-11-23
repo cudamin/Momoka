@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -156,6 +157,22 @@ namespace Momoka.Tests
                 Assert.Contains("MoviePilotSubscriptionMenu.Create(this, ViewModel, card, () => Open(card), _service).ShowAt(control.MenuAnchor);", wall);
                 Assert.False(wall.Contains(".ShowAt(control);"), "不能退回整张宽卡定位");
                 Assert.Contains("MenuRequested?.Invoke(this, EventArgs.Empty)", card);
+            });
+            Test("媒体库搜索：订阅海报的更多按钮接到同一套管理菜单", () =>
+            {
+                var root = Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views");
+                XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+                var page = XDocument.Load(Path.Combine(root, "LibraryPage.xaml"));
+                var template = page.Descendants().Single(node => (string?)node.Attribute(x + "Key") == "SubscriptionMatchTemplate");
+                var poster = template.Descendants().Single(node => node.Name.LocalName == "MoviePilotSubscriptionPoster");
+                Assert.Equal("OnSubscriptionMatchOpen", (string?)poster.Attribute("OpenRequested"));
+                Assert.Equal("OnSubscriptionMatchMenu", (string?)poster.Attribute("MenuRequested"));
+
+                var code = File.ReadAllText(Path.Combine(root, "LibraryPage.xaml.cs"));
+                Assert.Contains("GetMatchingSubscriptionManager(card,", code);
+                Assert.Contains("ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service))", code);
+                Assert.Contains("MoviePilotSubscriptionMenu.Create(this, manager, card, () => ViewModel.OpenMatchingSubscription(card), service)", code);
+                Assert.Contains(".ShowAt(poster.MenuAnchor);", code);
             });
             Test("订阅墙菜单：电影和电视剧都运行真实点击及几何探针", () =>
             {

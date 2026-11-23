@@ -162,7 +162,8 @@
         <DataTemplate x:Key="SubscriptionMatchTemplate" x:DataType="vm:MoviePilotSubscriptionCard">
             <StackPanel Width="{x:Bind CardWidth}" Spacing="8">
                 <local:MoviePilotSubscriptionPoster Card="{x:Bind}" Width="{x:Bind CardWidth}" Height="{x:Bind PosterHeight}"
-                    OpenRequested="OnSubscriptionMatchOpen" PosterRequested="OnSubscriptionMatchPosterRequested" />
+                    OpenRequested="OnSubscriptionMatchOpen" MenuRequested="OnSubscriptionMatchMenu"
+                    PosterRequested="OnSubscriptionMatchPosterRequested" />
                 <TextBlock Text="{x:Bind Title, Mode=OneWay}" TextWrapping="Wrap"
                     Style="{StaticResource EgBodyStyle}" ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
             </StackPanel>
