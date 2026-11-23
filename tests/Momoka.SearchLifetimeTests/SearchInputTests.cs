@@ -1,7 +1,5 @@
 using Microsoft.UI.Xaml.Controls;
-using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
-using Windows.System;
 
 namespace Momoka.Tests;
 
@@ -9,51 +7,6 @@ internal static class SearchInputTests
 {
     internal static void Register(List<(string Name, Func<Task> Run)> cases)
     {
-        cases.Add(("搜索框 Delete 删除光标后一个完整字符并保留光标", () =>
-        {
-            var (page, field) = Focused("甲👩‍🚀乙");
-            field.Select(1, 0);
-            Check.True(field.Press(VirtualKey.Delete));
-            Check.Equal("甲乙", field.Text);
-            Check.Equal(1, field.SelectionStart);
-            Check.Equal(0, field.SelectionLength);
-            Check.Equal(0, page.SearchSubmissions.Count);
-            return Task.CompletedTask;
-        }
-        ));
-
-        cases.Add(("搜索框 Delete 删除选区，光标在末尾时保留已有文字", () =>
-        {
-            var (_, field) = Focused("甲乙丙");
-            field.Select(0, 2);
-            Check.True(field.Press(VirtualKey.Delete));
-            Check.Equal("丙", field.Text);
-            Check.Equal(0, field.SelectionStart);
-            field.Select(1, 0);
-            Check.True(field.Press(VirtualKey.Delete));
-            Check.Equal("丙", field.Text);
-            return Task.CompletedTask;
-        }
-        ));
-
-        cases.Add(("搜索框给组字中的 Delete、修饰键和其他输入让路", () =>
-        {
-            var (_, field) = Focused("甲乙");
-            field.BeginComposition();
-            Check.False(field.Press(VirtualKey.Delete));
-            field.EndComposition();
-            Check.False(field.Press(VirtualKey.Back));
-            Check.False(field.Press(VirtualKey.Delete, new object()));
-            Native.CtrlHeld = true;
-            try { Check.False(field.Press(VirtualKey.Delete)); }
-            finally { Native.CtrlHeld = false; }
-            field.IsReadOnly = true;
-            Check.False(field.Press(VirtualKey.Delete));
-            Check.Equal("甲乙", field.Text);
-            return Task.CompletedTask;
-        }
-        ));
-
         cases.Add(("组字时不提交或防抖搜索，确认后按最终文字编辑，下一次回车提交一次", () =>
         {
             var (page, field) = Focused("旧词");
@@ -93,14 +46,20 @@ internal static class SearchInputTests
             var (page, field) = Focused("甲");
             field.BeginComposition();
             field.Blur();
-            Check.True(field.Press(VirtualKey.Delete));
-            var next = new TextBox { Text = "乙丙" };
+            page.SubmitSearchFixture("甲");
+            Check.Equal("甲", page.SearchSubmissions.Single());
+
+            var next = new TextBox { Text = "乙" };
             page.FocusSearchFixture(next);
-            Check.False(field.Press(VirtualKey.Delete));
-            Check.True(next.Press(VirtualKey.Delete));
-            Check.Equal("丙", next.Text);
+            field.BeginComposition();
+            page.SubmitSearchFixture("乙");
+            Check.Equal(2, page.SearchSubmissions.Count);
+            next.BeginComposition();
+            page.SubmitSearchFixture("乙");
+            Check.Equal(2, page.SearchSubmissions.Count);
             page.Release();
-            Check.False(next.Press(VirtualKey.Delete));
+            next.EndComposition();
+            Check.Equal(0, page.SearchEdits.Count);
             return Task.CompletedTask;
         }
         ));

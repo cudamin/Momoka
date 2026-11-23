@@ -1,9 +1,5 @@
-using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Momoka.Shell.Interop;
-using Windows.System;
 
 namespace Momoka.Shell.Views;
 
@@ -19,7 +15,6 @@ public sealed partial class LibraryPage
             || ReferenceEquals(field, _searchTextBox)) return;
         DetachSearchTextBox();
         _searchTextBox = field;
-        field.PreviewKeyDown += OnSearchEditKeyDown;
         field.TextCompositionStarted += OnSearchCompositionStarted;
         field.TextCompositionEnded += OnSearchCompositionEnded;
         field.LostFocus += OnSearchEditLostFocus;
@@ -28,7 +23,6 @@ public sealed partial class LibraryPage
     private void DetachSearchTextBox()
     {
         if (_searchTextBox is not { } field) return;
-        field.PreviewKeyDown -= OnSearchEditKeyDown;
         field.TextCompositionStarted -= OnSearchCompositionStarted;
         field.TextCompositionEnded -= OnSearchCompositionEnded;
         field.LostFocus -= OnSearchEditLostFocus;
@@ -49,22 +43,6 @@ public sealed partial class LibraryPage
         _searchComposing = false;
         // 文本可能已在组字期间变化，确认后用最终文字恢复媒体库原有的输入防抖。
         ApplySearchEdit(sender.Text);
-    }
-
-    private void OnSearchEditKeyDown(object sender, KeyRoutedEventArgs args)
-    {
-        if (args.Key != VirtualKey.Delete || _searchComposing || Native.CtrlHeld || Native.ShiftHeld || Native.AltHeld
-            || sender is not TextBox field || !ReferenceEquals(args.OriginalSource, field) || field.IsReadOnly) return;
-
-        // 在模板编辑框收到 Delete 时做一次前向删除。沿用文本框的选区写入和 TextChanged 通知，
-        // 避免整串回写重置光标，修饰键和组字中的 Delete 仍由系统处理。
-        if (field.SelectionLength == 0 && field.SelectionStart < field.Text.Length)
-        {
-            var start = field.SelectionStart;
-            field.Select(start, StringInfo.GetNextTextElementLength(field.Text.AsSpan(start)));
-        }
-        if (field.SelectionLength > 0) field.SelectedText = string.Empty;
-        args.Handled = true;
     }
 
     private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
