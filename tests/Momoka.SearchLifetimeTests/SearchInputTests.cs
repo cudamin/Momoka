@@ -1,5 +1,7 @@
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Shell.Views;
+using Windows.System;
 
 namespace Momoka.Tests;
 
@@ -37,6 +39,48 @@ internal static class SearchInputTests
             Check.Equal(0, page.SearchEdits.Count);
             page.EditSearchFixture("", AutoSuggestionBoxTextChangeReason.UserInput);
             Check.Equal("", page.SearchEdits.Single());
+            return Task.CompletedTask;
+        }
+        ));
+
+        cases.Add(("微软拼音漏送退格按下时，抬起删除光标左边一字或选区", () =>
+        {
+            var (_, field) = Focused("甲👨‍👩‍👧乙");
+            field.Select(field.Text.Length - 1, 0);
+            Check.Equal(true, field.Release(VirtualKey.Back));
+            Check.Equal("甲乙", field.Text);
+            Check.Equal(1, field.SelectionStart);
+            field.Select(0, 0);
+            Check.Equal(false, field.Release(VirtualKey.Back));
+            Check.Equal("甲乙", field.Text);
+            field.Select(0, field.Text.Length);
+            Check.Equal(true, field.Release(VirtualKey.Back));
+            Check.Equal("", field.Text);
+            return Task.CompletedTask;
+        }
+        ));
+
+        cases.Add(("原生退格、组合键和输入法组字期间不重复补删", () =>
+        {
+            var (_, field) = Focused("甲乙");
+            field.Select(field.Text.Length, 0);
+            field.Press(VirtualKey.Back);
+            Check.Equal(false, field.Release(VirtualKey.Back));
+
+            field.BeginComposition();
+            Check.Equal(false, field.Release(VirtualKey.Back));
+            Check.Equal("甲乙", field.Text);
+            InputKeyboardSource.KeysDown.Add(VirtualKey.Back);
+            try { field.EndComposition(); }
+            finally { InputKeyboardSource.KeysDown.Remove(VirtualKey.Back); }
+            Check.Equal(false, field.Release(VirtualKey.Back));
+
+            InputKeyboardSource.KeysDown.Add(VirtualKey.Control);
+            try { Check.Equal(false, field.Release(VirtualKey.Back)); }
+            finally { InputKeyboardSource.KeysDown.Remove(VirtualKey.Control); }
+            Check.Equal("甲乙", field.Text);
+            Check.Equal(true, field.Release(VirtualKey.Back));
+            Check.Equal("甲", field.Text);
             return Task.CompletedTask;
         }
         ));

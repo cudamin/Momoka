@@ -7,7 +7,17 @@ namespace Windows.UI
         public static Color FromArgb(byte a, byte r, byte g, byte b) => new(a, r, g, b);
     }
 }
-namespace Windows.System { public enum VirtualKey { Enter, Escape } }
+namespace Windows.System { public enum VirtualKey { Enter, Escape, Back, Control, Menu, LeftWindows, RightWindows } }
+namespace Windows.UI.Core { public enum CoreVirtualKeyStates { None, Down } }
+namespace Microsoft.UI.Input
+{
+    public static class InputKeyboardSource
+    {
+        public static HashSet<Windows.System.VirtualKey> KeysDown { get; } = [];
+        public static Windows.UI.Core.CoreVirtualKeyStates GetKeyStateForCurrentThread(Windows.System.VirtualKey key) =>
+            KeysDown.Contains(key) ? Windows.UI.Core.CoreVirtualKeyStates.Down : Windows.UI.Core.CoreVirtualKeyStates.None;
+    }
+}
 namespace Microsoft.UI.Dispatching
 {
     public sealed class DispatcherQueue
@@ -83,6 +93,28 @@ namespace Microsoft.UI.Xaml.Controls
         public string Name { get; init; } = "TextBox";
         public string Text { get; set; } = "";
         public string PlaceholderText { get; set; } = "";
+        public bool IsReadOnly { get; set; }
+        public int SelectionStart { get; private set; }
+        public int SelectionLength { get; private set; }
+        public string SelectedText
+        {
+            get => Text.Substring(SelectionStart, SelectionLength);
+            set
+            {
+                Text = Text.Remove(SelectionStart, SelectionLength).Insert(SelectionStart, value);
+                Select(SelectionStart + value.Length, 0);
+            }
+        }
+        public void Select(int start, int length) => (SelectionStart, SelectionLength) = (start, length);
+        public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? PreviewKeyDown;
+        public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? KeyUp;
+        internal void Press(Windows.System.VirtualKey key) => PreviewKeyDown?.Invoke(this, new() { Key = key });
+        internal bool Release(Windows.System.VirtualKey key)
+        {
+            var args = new Microsoft.UI.Xaml.Input.KeyRoutedEventArgs { Key = key };
+            KeyUp?.Invoke(this, args);
+            return args.Handled;
+        }
         public event Action<TextBox, TextCompositionStartedEventArgs>? TextCompositionStarted;
         public event Action<TextBox, TextCompositionEndedEventArgs>? TextCompositionEnded;
         public event Action<object, Microsoft.UI.Xaml.RoutedEventArgs>? LostFocus;
