@@ -159,7 +159,9 @@ internal static class ShellServices
             provider.GetRequiredService<MoviePilotClient>(),
             provider.GetRequiredService<MoviePilotCredentials>(),
             provider.GetRequiredService<AppSettings>(),
-            () => provider.GetRequiredService<SettingsStore>().Save(provider.GetRequiredService<AppSettings>())));
+            () => provider.GetRequiredService<SettingsStore>().Save(provider.GetRequiredService<AppSettings>()),
+            // 日历的本地缓存：每次成功读取后落盘，打开日历页先摆这一份再刷新（用户令 2026-11-23）。
+            new MoviePilotCalendarCache(paths.MoviePilotCalendarCacheFile)));
         services.AddSingleton(provider => new Momoka.AniBt.AniBtClient(
             readProxyServer: () => provider.GetRequiredService<AppSettings>().Network.ProxyServer));
         services.AddSingleton<Momoka.AniBt.AniBtService>();

@@ -62,6 +62,7 @@ internal static partial class SettingsTests
                 var settings = store.Load();
                 Assert.True(settings.MoviePilot.Enabled);
                 Assert.True(settings.MoviePilot.CalendarEnabled);
+                Assert.False(settings.MoviePilot.CalendarRefreshOnStartup, "启动后台刷新日历默认关闭");
                 var calendarChanges = 0;
                 var connectionChanges = 0;
                 var aniBtChanges = 0;
@@ -82,8 +83,10 @@ internal static partial class SettingsTests
                 restored.MoviePilot.Enabled = true;
                 Assert.False(restored.MoviePilot.CalendarEnabled);
                 restored.MoviePilot.CalendarEnabled = true;
+                restored.MoviePilot.CalendarRefreshOnStartup = true;
                 store.Save(restored);
                 Assert.True(store.Load().MoviePilot.CalendarEnabled);
+                Assert.True(store.Load().MoviePilot.CalendarRefreshOnStartup);
             }
             finally { Directory.Delete(directory, recursive: true); }
         });
@@ -91,11 +94,13 @@ internal static partial class SettingsTests
         {
             var source = new AppSettings();
             source.MoviePilot.CalendarEnabled = false;
+            source.MoviePilot.CalendarRefreshOnStartup = true;
             source.MoviePilot.Enabled = true;
             source.MoviePilot.Url = "http://mp-source.invalid:3001";
             source.MoviePilot.Username = "source-account";
             var backup = SettingsPreferences.ToBackupDocument(source);
             Assert.False(backup.MoviePilot.CalendarEnabled);
+            Assert.True(backup.MoviePilot.CalendarRefreshOnStartup);
             Assert.False(backup.MoviePilot.Enabled);
             Assert.Equal("", backup.MoviePilot.Url);
             Assert.Equal("", backup.MoviePilot.Username);
@@ -112,6 +117,7 @@ internal static partial class SettingsTests
             SettingsPreferences.Apply(live, backup);
             Assert.True(ReferenceEquals(moviePilot, live.MoviePilot));
             Assert.False(moviePilot.CalendarEnabled);
+            Assert.True(moviePilot.CalendarRefreshOnStartup);
             Assert.Equal(1, calendarChanges);
             Assert.Equal(0, connectionChanges);
             Assert.True(moviePilot.Enabled);
@@ -120,6 +126,7 @@ internal static partial class SettingsTests
 
             SettingsReset.Restore(live);
             Assert.True(moviePilot.CalendarEnabled);
+            Assert.False(moviePilot.CalendarRefreshOnStartup);
             Assert.Equal(2, calendarChanges);
             Assert.Equal(0, connectionChanges);
             Assert.True(moviePilot.Enabled);

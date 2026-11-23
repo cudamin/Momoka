@@ -6,6 +6,24 @@ namespace Momoka.MoviePilot;
 
 public sealed partial class MoviePilotService
 {
+    /// <summary>
+    /// 上一次成功读取留下的同一窗口缓存；连接身份（服务地址 + 用户名）不符、没有缓存或缓存不可读时返回 null。
+    /// 只用于先把内容摆上屏，调用方随后仍应调用 <see cref="CalendarAsync"/> 拿最新安排。
+    /// </summary>
+    public IReadOnlyList<MoviePilotCalendarEntry>? CachedCalendar(DateOnly start, DateOnly endExclusive)
+    {
+        if (_calendarCache is null || endExclusive <= start || !_settings.MoviePilot.CalendarEnabled) return null;
+        if (!MoviePilotAddress.TryNormalize(_settings.MoviePilot.Url, out var apiBase, out _) || apiBase is null) return null;
+        return _calendarCache.Read(apiBase.AbsoluteUri + "\n" + (_settings.MoviePilot.Username?.Trim() ?? ""), start, endExclusive);
+    }
+
+    /// <summary>
+    /// 日历缓存的连接身份：规范化服务地址 + 用户名。和 <see cref="ConnectionStamp"/> 不同，它不派生自密码或
+    /// 令牌，所以可以安全地作为磁盘缓存的匹配键；换服务器、换账号后旧缓存自然失效。
+    /// </summary>
+    private static string CalendarCacheConnection(SessionIdentity identity) =>
+        identity.ApiBase.AbsoluteUri + "\n" + identity.Username;
+
     /// <summary>读取左闭右开的真实播出日窗口。关闭入口、取消或连接换代后不交付旧结果。</summary>
     public async Task<IReadOnlyList<MoviePilotCalendarEntry>> CalendarAsync(
         DateOnly start, DateOnly endExclusive, CancellationToken cancellationToken = default)
@@ -60,7 +78,7 @@ public sealed partial class MoviePilotService
                 catch (MoviePilotException error) when (!ConnectionFailed(error)) { /* 可选统计失败时保留未知，不猜入库集。 */ }
             }).ConfigureAwait(false);
             CheckIdentity(identity, token);
-            return entries.Values.Select(entry => library.TryGetValue(entry.SubscriptionId, out var snapshot)
+            var result = entries.Values.Select(entry => library.TryGetValue(entry.SubscriptionId, out var snapshot)
                     ? entry with
                     {
                         Episodes = entry.Episodes.Select(episode => episode with { IsInLibrary = snapshot.Episodes.Contains(episode.Number) }).ToArray(),
@@ -70,6 +88,10 @@ public sealed partial class MoviePilotService
                     }
                     : entry)
                 .OrderBy(entry => entry.Date).ThenBy(entry => entry.Title, StringComparer.Ordinal).ThenBy(entry => entry.SubscriptionId).ToArray();
+
+            // 读成功后立刻落本地：翻月、退出应用之后下次进来先显示这一份，再向 MoviePilot 要最新的。
+            _calendarCache?.Write(CalendarCacheConnection(identity), start, endExclusive, result);
+            return result;
         }
         catch (MoviePilotException error) when (MoviePilotCalendar.IsLegacyEndpoint(error))
         {
