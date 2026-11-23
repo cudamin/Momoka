@@ -566,8 +566,20 @@ public sealed partial class HomeViewModel : PageViewModel
             aspect: music ? 1 : null)
         {
             HomeKey = row.Key,
-            Source = source
+            Source = source,
+            // 设置 → 主页的「拖动封面翻页」：每一排都按这个开关，改完由 ApplyDragPaging 当场补到已建的排上。
+            DragPaging = _settings?.Settings.Ui.HomeDragPaging == true
         };
+    }
+
+    /// <summary>
+    /// 「拖动封面翻页」拨过之后，把新档交给已经建好的每一排。只换开关、不重读数据 ——
+    /// 这一项不影响取数和版式，没必要为它重排整页。
+    /// </summary>
+    internal void ApplyDragPaging(UiSettings ui)
+    {
+        if (!Live || _settings is not { } settings || !ReferenceEquals(settings.Settings.Ui, ui)) return;
+        foreach (var (_, shelf) in _all) shelf.DragPaging = ui.HomeDragPaging;
     }
 
     /// <summary>

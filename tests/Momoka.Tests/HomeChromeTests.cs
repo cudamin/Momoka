@@ -67,6 +67,43 @@ internal static class HomeChromeTests
             Assert.Contains("new PropertyMetadata(true, OnShowRuleChanged)", shelfHead,
                 "ShowRule 的默认值不是 true：详情页与设置页会跟着丢线");
         });
+
+        Test("主页拖动封面翻页：开关接到每一排（含订阅两排）并当场生效", () =>
+        {
+            var page = HomePage();
+            var shelf = page.Descendants().Single(element => element.Name.LocalName == "ShelfStrip");
+            Assert.Equal("{x:Bind DragPaging, Mode=OneWay}", shelf.Attribute("DragPaging")?.Value,
+                "主页普通货架没有把拖拽翻页开关交给 ShelfStrip");
+
+            var subscriptions = XDocument.Load(Path.Combine(Root(),
+                "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionsView.xaml"));
+            var strips = subscriptions.Descendants().Where(element => element.Name.LocalName == "ShelfStrip").ToArray();
+            Assert.Equal(2, strips.Length);
+            Assert.True(strips.All(element =>
+                    element.Attribute("DragPaging")?.Value == "{x:Bind Row.DragPaging, Mode=OneWay}"),
+                "订阅两排没有跟随主页的拖拽翻页开关");
+
+            var model = File.ReadAllText(Path.Combine(Root(),
+                "src", "Momoka.Shell", "ViewModels", "HomeViewModel.cs"));
+            Assert.Contains("DragPaging = _settings?.Settings.Ui.HomeDragPaging == true", model,
+                "新造的货架没有按设置取拖拽翻页");
+            Assert.Contains("internal void ApplyDragPaging(UiSettings ui)", model,
+                "设置拨动后没有现成的排可改");
+
+            var pageSource = File.ReadAllText(Path.Combine(Root(),
+                "src", "Momoka.Shell", "Views", "HomePage.xaml.cs"));
+            Assert.Contains("ShellPrefs.HomeDragPagingChanged += OnHomeDragPagingChanged;", pageSource);
+            Assert.Contains("ShellPrefs.HomeDragPagingChanged -= OnHomeDragPagingChanged;", pageSource);
+            Assert.Contains("ViewModel.ApplyDragPaging(ui);", pageSource);
+            Assert.Contains("Subscriptions.ApplyDragPaging(ui.HomeDragPaging);", pageSource);
+
+            var settings = File.ReadAllText(Path.Combine(Root(),
+                "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
+            Assert.Contains("Toggle(\"拖动封面翻页\"", settings, "设置里没有这一项开关");
+            Assert.Contains("ui.HomeDragPaging = value;", settings);
+            Assert.Contains("ShellPrefs.ApplyHomeDragPaging(ui);", settings,
+                "拖拽翻页开关搭了整页重载那条线");
+        });
     }
 
     private static XDocument HomePage() =>

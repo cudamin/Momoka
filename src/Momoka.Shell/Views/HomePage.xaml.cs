@@ -1454,6 +1454,7 @@ public sealed partial class HomePage : Page, IShellContent
         _homeSettings = settings;
 
         Subscriptions.Attach(services.GetRequiredService<MoviePilotService>(), request.OpenSubscription);
+        Subscriptions.ApplyDragPaging(settings.Settings.Ui.HomeDragPaging);
         ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
         // 删掉媒体库文件的条目在本次运行里不再显示（服务器元数据要等下一次扫描才消失）。
         ViewModel.UseRemovedMedia(services.GetRequiredService<RemovedMedia>());
@@ -1469,6 +1470,10 @@ public sealed partial class HomePage : Page, IShellContent
             HomeRows.Clear();
             ViewModel.Attach(_actions, request.EffectiveLibraryViews, settings, _session, images, dispatcher);
         }
+
+        // 「拖动封面翻页」在暖缓存命中时也要按当前设置补一遍：那几条货架没有重新 BuildShelves，
+        // 开关只在造排时读过一次就会停在上一趟的档上。
+        ViewModel.ApplyDragPaging(settings.Settings.Ui);
         ViewModel.UseMoviePilotLibrary(Subscriptions, request.OpenSubscriptionLibrary);
         if (_localLibraries is { } previousLocalLibraries) previousLocalLibraries.Changed -= OnLocalLibrariesChanged;
         _localLibraries = services.GetService<LocalLibraryCoordinator>();
@@ -1493,6 +1498,8 @@ public sealed partial class HomePage : Page, IShellContent
         ShellPrefs.HomeLibraryEntriesChanged += OnHomeLibraryEntriesChanged;
         ShellPrefs.HomeLibraryCoverChanged -= OnHomeLibraryCoverChanged;
         ShellPrefs.HomeLibraryCoverChanged += OnHomeLibraryCoverChanged;
+        ShellPrefs.HomeDragPagingChanged -= OnHomeDragPagingChanged;
+        ShellPrefs.HomeDragPagingChanged += OnHomeDragPagingChanged;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         ShellPrefs.AppearanceChanged += OnAppearanceChanged;
 
@@ -1529,6 +1536,7 @@ public sealed partial class HomePage : Page, IShellContent
         ShellPrefs.Changed -= OnShellPrefsChanged;
         ShellPrefs.HomeLibraryEntriesChanged -= OnHomeLibraryEntriesChanged;
         ShellPrefs.HomeLibraryCoverChanged -= OnHomeLibraryCoverChanged;
+        ShellPrefs.HomeDragPagingChanged -= OnHomeDragPagingChanged;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         if (_localLibraries is { } localLibraries) localLibraries.Changed -= OnLocalLibrariesChanged;
         _localLibraries = null;
@@ -1576,6 +1584,17 @@ public sealed partial class HomePage : Page, IShellContent
     private void OnHomeLibraryCoverChanged(Configuration.UiSettings ui)
     {
         if (!_released) ViewModel.ApplyLibraryCovers(ui);
+    }
+
+    /// <summary>
+    /// 「拖动封面翻页」只换交互开关：把新档交给现有的每一排和订阅两排，不重读数据、不重排货架。
+    /// 恢复默认与恢复配置走 <see cref="ShellPrefs.Apply"/>，也同样会先喊这一声。
+    /// </summary>
+    private void OnHomeDragPagingChanged(Configuration.UiSettings ui)
+    {
+        if (_released) return;
+        ViewModel.ApplyDragPaging(ui);
+        Subscriptions.ApplyDragPaging(ui.HomeDragPaging);
     }
 
     private void OnLocalLibrariesChanged(object? sender, EventArgs args)

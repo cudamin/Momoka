@@ -129,6 +129,7 @@ internal static partial class SettingsTests
         RegisterReviewMigration();
         RegisterNormalize();
         RegisterHomeLibraryCoverSettings();
+        RegisterHomeDragPagingSettings();
         RegisterTrailerSettings();
         RegisterReset();
         RegisterBackup();
@@ -140,6 +141,39 @@ internal static partial class SettingsTests
         RegisterDirectoryRecovery();
         RegisterDirectoryMigration();
         RegisterPaths();
+    }
+
+    /// <summary>
+    /// 主页「拖动封面翻页」是用户点名新增的交互，所以缺键的旧设置文件读出来要是开的；关掉之后照常往返保存。
+    /// 恢复默认由 <see cref="RegisterReset"/> 的整组反射比对盯着，这一项自动跟着回开。
+    /// </summary>
+    private static void RegisterHomeDragPagingSettings()
+    {
+        Test("主页拖动封面翻页：旧配置默认开启，关闭后往返保存", () =>
+        {
+            var json = JsonSerializer.Serialize(new
+            {
+                SchemaVersion = AppSettings.CurrentSchemaVersion,
+                Ui = new { ShowHomeBanner = true }
+            });
+            var settings = SettingsMigration.FromJson(json, Protector);
+            Assert.True(settings.Ui.HomeDragPaging, "缺这个键的旧设置文件读出来要是开的");
+            Assert.True(new UiSettings().HomeDragPaging);
+
+            var directory = Directory.CreateTempSubdirectory("momoka-home-drag-paging").FullName;
+            try
+            {
+                var store = new SettingsStore(new AppPaths(directory), Protector);
+                settings.Ui.HomeDragPaging = false;
+                store.Save(settings);
+                Assert.False(store.Load().Ui.HomeDragPaging);
+
+                settings.Ui.HomeDragPaging = true;
+                store.Save(settings);
+                Assert.True(store.Load().Ui.HomeDragPaging);
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        });
     }
 
     /// <summary>

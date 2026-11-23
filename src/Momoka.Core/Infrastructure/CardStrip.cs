@@ -60,6 +60,33 @@ public static class CardStrip
     public static double TargetFor(double offset, int direction, double step, double scrollable) =>
         scrollable <= 0 ? 0 : Math.Clamp(offset + (direction * step), 0, scrollable);
 
+    /// <summary>鼠标拖动松手时至少拖过这么远才算一次翻页；不到就回原位。</summary>
+    public const double DragThreshold = 48;
+
+    /// <summary>
+    /// 拖动封面翻页：按住拖动之后松手落在哪里。
+    /// <para>
+    /// <paramref name="dragDistance"/> 是指针相对按下那一点的横向位移：向左为负 —— 指针把内容往左推，
+    /// 后面那些卡上来；向右为正，回前一页。拖过 <see cref="DragThreshold"/> 就按拖过的距离翻页，
+    /// 至少一页，按 <paramref name="step"/> 的整数倍落到整页位置；没拖够就回到起点，一次误触不会把这一排
+    /// 留在半页上。翻页步长与箭头共用 <see cref="StepFor"/>，所以拖动和点箭头落在同一组对齐位置，带尾照旧夹住。
+    /// </para>
+    /// </summary>
+    /// <param name="offset">按下那一刻已经滚到哪儿。</param>
+    /// <param name="dragDistance">指针相对按下点的横向位移，见上。</param>
+    /// <param name="step">一页多远，同 <see cref="StepFor"/>。</param>
+    /// <param name="scrollable">还能滚多远（内容宽减视口宽）。</param>
+    public static double DragTargetFor(double offset, double dragDistance, double step, double scrollable)
+    {
+        var start = Math.Clamp(offset, 0, Math.Max(0, scrollable));
+        if (scrollable <= Edge || step <= 0 || !double.IsFinite(dragDistance)) return start;
+        if (Math.Abs(dragDistance) < DragThreshold) return start;
+
+        var pages = Math.Max(1, (int)Math.Round(Math.Abs(dragDistance) / step, MidpointRounding.AwayFromZero));
+        var direction = dragDistance < 0 ? 1 : -1;
+        return Math.Clamp(start + (direction * pages * step), 0, scrollable);
+    }
+
     /// <summary>
     /// 要让第 <paramref name="index"/> 张卡露出来，带该停在哪里 —— 单集页的「更多来自」要开在正在看的那一
     /// 集上，而不是开在第一集上然后让人自己往后翻。

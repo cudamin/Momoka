@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Momoka.Emby;
@@ -53,16 +54,28 @@ internal sealed class MoviePilotHomeSubscriptions
     {
         if (ViewModel.Owns(card)) _open?.Invoke(card.Subscription);
     }
+
+    /// <summary>主页那两排跟随「拖动封面翻页」开关；订阅列表页自己建的属主不设，保持默认关。</summary>
+    internal void ApplyDragPaging(bool enabled)
+    {
+        Movies.DragPaging = enabled;
+        Series.DragPaging = enabled;
+    }
 }
 
 /// <summary>共享订阅数据中的一排；排序不重建数据，也不增加网络请求。</summary>
-public sealed class MoviePilotHomeRow
+public sealed partial class MoviePilotHomeRow : ObservableObject
 {
     internal MoviePilotHomeRow(MoviePilotHomeSubscriptions owner, string key) { Owner = owner; Key = key; }
     internal MoviePilotHomeSubscriptions Owner { get; }
     public string Key { get; }
     public string Title => HomeLayout.FixedTitle(Key)!;
     public double RowHeight => Owner.ViewModel.RowHeight;
+
+    /// <summary>主页上这一排能不能用鼠标拖动翻页，绑到两排订阅各自 <see cref="ShelfStrip.DragPaging"/>。</summary>
+    [ObservableProperty]
+    public partial bool DragPaging { get; set; }
+
     internal bool HasContent => Owner.Service?.Available == true && Owner.ViewModel.Visible == Visibility.Visible
         && (Owner.ViewModel.NoticeOpen || (Key == HomeLayout.MoviePilotMovies ? Owner.ViewModel.Movies.Count : Owner.ViewModel.Series.Count) > 0);
 }
