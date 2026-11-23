@@ -51,6 +51,7 @@ namespace Microsoft.UI.Xaml.Input
     {
         public Windows.System.VirtualKey Key { get; set; }
         public bool Handled { get; set; }
+        public object? OriginalSource { get; set; }
     }
 }
 namespace Microsoft.UI.Xaml.Media.Imaging
@@ -109,9 +110,9 @@ namespace Microsoft.UI.Xaml.Controls
         public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? PreviewKeyDown;
         public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? KeyUp;
         internal void Press(Windows.System.VirtualKey key) => PreviewKeyDown?.Invoke(this, new() { Key = key });
-        internal bool Release(Windows.System.VirtualKey key)
+        internal bool Release(Windows.System.VirtualKey key, object? originalSource = null)
         {
-            var args = new Microsoft.UI.Xaml.Input.KeyRoutedEventArgs { Key = key };
+            var args = new Microsoft.UI.Xaml.Input.KeyRoutedEventArgs { Key = key, OriginalSource = originalSource ?? this };
             KeyUp?.Invoke(this, args);
             return args.Handled;
         }

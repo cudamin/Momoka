@@ -43,6 +43,66 @@ internal static class SearchInputTests
         }
         ));
 
+        cases.Add(("普通回车漏送按下时补搜，原生提交和长按不重复提交", () =>
+        {
+            var (page, field) = Focused("甲");
+            Check.Equal(true, field.Release(VirtualKey.Enter));
+            Check.Equal("甲", page.SearchSubmissions.Single());
+
+            field.Text = "乙";
+            field.Press(VirtualKey.Enter);
+            WhileDown(VirtualKey.Enter, () =>
+            {
+                page.SubmitSearchFixture("乙");
+                field.Press(VirtualKey.Enter);
+                page.SubmitSearchFixture("乙");
+            });
+            Check.Equal(false, field.Release(VirtualKey.Enter));
+            Check.Equal("乙", page.SearchSubmissions[1]);
+            Check.Equal(2, page.SearchSubmissions.Count);
+
+            page.SubmitSearchFixture("按钮");
+            Check.Equal("按钮", page.SearchSubmissions[2]);
+            return Task.CompletedTask;
+        }
+        ));
+
+        cases.Add(("回车确认组字时不会补搜，无论组字结束和键释放的先后", () =>
+        {
+            var (page, field) = Focused("拼音");
+            field.BeginComposition();
+            Check.Equal(false, field.Release(VirtualKey.Enter));
+            field.EndComposition();
+            Check.Equal(0, page.SearchSubmissions.Count);
+
+            field.BeginComposition();
+            field.Text = "中文";
+            WhileDown(VirtualKey.Enter, () =>
+            {
+                field.EndComposition();
+                page.SubmitSearchFixture("中文");
+            });
+            Check.Equal(false, field.Release(VirtualKey.Enter));
+            Check.Equal(0, page.SearchSubmissions.Count);
+            Check.Equal(true, field.Release(VirtualKey.Enter));
+            Check.Equal("中文", page.SearchSubmissions.Single());
+            return Task.CompletedTask;
+        }
+        ));
+
+        cases.Add(("搜索框不接管子控件回车或修饰键组合", () =>
+        {
+            var (page, field) = Focused("甲");
+            Check.Equal(false, field.Release(VirtualKey.Enter, new Button()));
+            WhileDown(VirtualKey.Control, () => field.Press(VirtualKey.Enter));
+            Check.Equal(false, field.Release(VirtualKey.Enter));
+            Check.Equal(0, page.SearchSubmissions.Count);
+            Check.Equal(true, field.Release(VirtualKey.Enter));
+            Check.Equal("甲", page.SearchSubmissions.Single());
+            return Task.CompletedTask;
+        }
+        ));
+
         cases.Add(("微软拼音漏送退格按下时，抬起删除光标左边一字或选区", () =>
         {
             var (_, field) = Focused("甲👨‍👩‍👧乙");
@@ -115,5 +175,12 @@ internal static class SearchInputTests
         var field = new TextBox { Text = text };
         page.FocusSearchFixture(field);
         return (page, field);
+    }
+
+    private static void WhileDown(VirtualKey key, Action action)
+    {
+        InputKeyboardSource.KeysDown.Add(key);
+        try { action(); }
+        finally { InputKeyboardSource.KeysDown.Remove(key); }
     }
 }

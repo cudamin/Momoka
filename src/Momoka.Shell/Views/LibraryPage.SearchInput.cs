@@ -13,6 +13,7 @@ public sealed partial class LibraryPage
     private TextBox? _searchTextBox;
     private bool _searchComposing;
     private bool _searchBackspaceHandled;
+    private bool _searchEnterConsumed;
 
     private void OnSearchInputGotFocus(object sender, RoutedEventArgs args)
     {
@@ -46,23 +47,30 @@ public sealed partial class LibraryPage
     {
         _searchComposing = false;
         _searchBackspaceHandled = false;
+        _searchEnterConsumed = false;
     }
 
     private void OnSearchEditKeyDown(object sender, KeyRoutedEventArgs args)
     {
         if (args.Key == VirtualKey.Back) _searchBackspaceHandled = true;
+        if (args.Key == VirtualKey.Enter && (_searchComposing || IsSearchShortcutModifierDown()))
+            _searchEnterConsumed = true;
     }
 
     private void OnSearchEditKeyUp(object sender, KeyRoutedEventArgs args)
     {
+        if (args.Key == VirtualKey.Enter)
+        {
+            OnSearchEnterReleased(sender, args);
+            return;
+        }
         if (args.Key != VirtualKey.Back) return;
         var handledByEditor = _searchBackspaceHandled;
         _searchBackspaceHandled = false;
 
         // 微软拼音有时只让退格的抬起到达 WinUI。按下已到达或仍在组字时继续由系统编辑。
         if (handledByEditor || _searchComposing || sender is not TextBox { IsReadOnly: false } field
-            || IsSearchKeyDown(VirtualKey.Control) || IsSearchKeyDown(VirtualKey.Menu)
-            || IsSearchKeyDown(VirtualKey.LeftWindows) || IsSearchKeyDown(VirtualKey.RightWindows)) return;
+            || IsSearchShortcutModifierDown()) return;
 
         var start = field.SelectionStart;
         var length = field.SelectionLength;
@@ -79,6 +87,21 @@ public sealed partial class LibraryPage
         args.Handled = true;
     }
 
+    private void OnSearchEnterReleased(object sender, KeyRoutedEventArgs args)
+    {
+        var consumed = _searchEnterConsumed;
+        _searchEnterConsumed = false;
+        // 微软拼音可能漏送普通回车的按下。只有这次回车尚未被组字或查询消费时才补搜。
+        if (consumed || _searchComposing || !ReferenceEquals(args.OriginalSource, sender)
+            || sender is not TextBox field || IsSearchShortcutModifierDown()) return;
+        args.Handled = true;
+        _ = SubmitSearchAsync(field.Text);
+    }
+
+    private static bool IsSearchShortcutModifierDown() =>
+        IsSearchKeyDown(VirtualKey.Control) || IsSearchKeyDown(VirtualKey.Menu)
+        || IsSearchKeyDown(VirtualKey.LeftWindows) || IsSearchKeyDown(VirtualKey.RightWindows);
+
     private static bool IsSearchKeyDown(VirtualKey key) =>
         (InputKeyboardSource.GetKeyStateForCurrentThread(key) & CoreVirtualKeyStates.Down) != 0;
 
@@ -90,7 +113,8 @@ public sealed partial class LibraryPage
 
     private void OnSearchCompositionEnded(TextBox sender, TextCompositionEndedEventArgs args)
     {
-        // 最后一位拼音被退格清空时，组字结束可以先于按键抬起。
+        // 回车确认或退格清空组字时，组字结束可以先于按键抬起。
+        if (IsSearchKeyDown(VirtualKey.Enter)) _searchEnterConsumed = true;
         if (IsSearchKeyDown(VirtualKey.Back)) _searchBackspaceHandled = true;
         _searchComposing = false;
         // 文本可能已在组字期间变化，确认后用最终文字恢复媒体库原有的输入防抖。
@@ -99,7 +123,11 @@ public sealed partial class LibraryPage
 
     private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
-        // IME 可以消费按下而只留下回车抬起。仅接受控件原生的查询提交事件。
+        if (IsSearchKeyDown(VirtualKey.Enter))
+        {
+            if (_searchEnterConsumed) return;
+            _searchEnterConsumed = true;
+        }
         if (!_searchComposing) _ = SubmitSearchAsync(args.QueryText ?? sender.Text ?? string.Empty);
     }
 
