@@ -138,7 +138,8 @@ internal static class Program
             Assert.Equal(8d, page.EmbyContent.Margin.Top);
             Assert.Equal(Visibility.Collapsed, page.LibraryTitle.Visibility);
             Assert.Equal(900d, page.SearchSurface.Width);
-            Assert.Equal(480d, page.SourceTabs.Width);
+            // 五个来源平分这一条；上限从四个时的 480 提到 600，单格宽度不变。
+            Assert.Equal(600d, page.SourceTabs.Width);
         });
         Test("Attach未结束或布局未测量时不提前改动页头", () =>
         {

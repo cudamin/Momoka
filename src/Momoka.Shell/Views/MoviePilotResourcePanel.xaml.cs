@@ -9,10 +9,10 @@ namespace Momoka.Shell.Views;
 /// <summary>
 /// 一部片的资源（种子）列表，作为 <see cref="MoviePilotSearchPanel"/> 之上的一层覆盖面板。内容全在
 /// <see cref="MoviePilotResourceViewModel"/>；这里留的是：把服务和媒体交给视图模型并开搜、把下载确认接到本控件的
-/// <c>XamlRoot</c>、以及那颗返回键。进入面板后先选站点，由搜索按钮发起请求。
+/// <c>XamlRoot</c>、以及面板顶上的「返回」「搜索资源」两颗键。
 /// <para>
-/// 是覆盖面板而不是 <see cref="Windows.UI.Popups"/> 或 ContentDialog：下载要弹 <see cref="ConfirmDialog"/>（一个
-/// ContentDialog），而 WinUI 同时只让一个 ContentDialog 在场，列表若也是对话框就打架。做成面板，确认框就能照弹。
+/// 订阅详情那份资源结果页已按用户令（2026-11-22）撤掉，入口改在搜索页的 MoviePilot 资源来源；这一层现在只服务
+/// MoviePilot 订阅结果卡上的「搜索资源」。
 /// </para>
 /// </summary>
 public sealed partial class MoviePilotResourcePanel : UserControl
@@ -22,7 +22,7 @@ public sealed partial class MoviePilotResourcePanel : UserControl
         InitializeComponent();
     }
 
-    /// <summary>返回键按下：由 <see cref="MoviePilotSearchPanel"/> 收起这层覆盖面板。</summary>
+    /// <summary>返回键按下：由宿主收起这层覆盖面板。</summary>
     public event EventHandler? Closed;
 
     internal MoviePilotResourceViewModel ViewModel { get; } = new();
@@ -54,6 +54,8 @@ public sealed partial class MoviePilotResourcePanel : UserControl
             return await MoviePilotDialog.ShowAsync(dialog, service) == ContentDialogResult.Primary && !token.IsCancellationRequested ? path.Text : null;
         };
         ViewModel.PrepareSearch();
+        // 调用方通常先 Open 再把面板显示出来；等这一拍同步代码走完再量标题栏那一格。
+        DispatcherQueue.TryEnqueue(UpdateTitleBleed);
     }
 
     /// <summary>收起时收手：取消在飞的搜索。</summary>
@@ -67,4 +69,31 @@ public sealed partial class MoviePilotResourcePanel : UserControl
     private void OnRetry(object sender, RoutedEventArgs e) => _ = ViewModel.SearchAsync();
 
     private void OnClose(object sender, RoutedEventArgs e) => Closed?.Invoke(this, EventArgs.Empty);
+
+    private void OnPanelLoaded(object sender, RoutedEventArgs args) => UpdateTitleBleed();
+
+    private void OnPanelSizeChanged(object sender, SizeChangedEventArgs args) => UpdateTitleBleed();
+
+    /// <summary>
+    /// 把面板的纸色往上铺到窗口顶：面板只从页面顶端（标题栏下面那 48 像素）开始画，上面那一格仍是详情页的
+    /// 剧照（沉浸模式），两种颜色在那条线上断开。落位按本控件相对 XamlRoot 的实测偏移量算，商店模式那一档
+    /// 外壳的实色标题栏压在它上面，屏上不变的仍是标题栏那条面色。
+    /// </summary>
+    private void UpdateTitleBleed()
+    {
+        if (XamlRoot?.Content is not UIElement root || ActualWidth <= 0)
+        {
+            TitleBleed.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var top = TransformToVisual(root).TransformPoint(default).Y;
+        if (top <= 0.5)
+        {
+            TitleBleed.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TitleBleed.Height = top;
+        TitleBleed.Margin = new Thickness(0, -top, 0, 0);
+        TitleBleed.Visibility = Visibility.Visible;
+    }
 }

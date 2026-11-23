@@ -55,6 +55,17 @@ internal sealed record LibraryRequest
     public double MoviePilotScrollOffset { get; set; }
     public ViewModels.MoviePilotSearchSnapshot? MoviePilotSearch { get; set; }
 
+    /// <summary>
+    /// 从订阅详情「搜索资源」跳来时置真：MoviePilot 资源这一格一进来就用 <see cref="SearchTerm"/> 真搜一次，
+    /// 而不是先摆本次运行里保存的上一批结果。
+    /// </summary>
+    public bool MoviePilotResourceSearchNow { get; set; }
+
+    /// <summary>
+    /// 详情页带入的完整检索身份与方式。资源或字幕面板消费后清空，返回时恢复结果。
+    /// </summary>
+    public MoviePilot.MoviePilotDetailSearch? MoviePilotDetailSearch { get; set; }
+
     public double ScrollOffset { get; set; }
 
     public int LoadedCount { get; set; }

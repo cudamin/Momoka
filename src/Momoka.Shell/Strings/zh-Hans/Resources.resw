@@ -1813,6 +1813,12 @@
   <data name="LibraryPage_Localization6.Text" xml:space="preserve">
     <value>MoviePilot 资源</value>
   </data>
+  <data name="LibraryPage_MoviePilotSubtitleTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>MoviePilot 字幕搜索</value>
+  </data>
+  <data name="LibraryPage_MoviePilotSubtitleTabText.Text" xml:space="preserve">
+    <value>MoviePilot 字幕</value>
+  </data>
   <data name="LibraryPage_AniBtSourceTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>AniBT 搜索</value>
   </data>
@@ -2857,15 +2863,6 @@
   <data name="MoviePilotSiteDialog_ClearSelectedSites.Content" xml:space="preserve">
     <value>清空</value>
   </data>
-  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>刷新站点目录</value>
-  </data>
-  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>重新读取站点目录</value>
-  </data>
-  <data name="MoviePilotSiteDialog_Localization2.Text" xml:space="preserve">
-    <value>刷新</value>
-  </data>
   <data name="MoviePilotSiteDialog_UseDefaultSites.Content" xml:space="preserve">
     <value>默认站点</value>
   </data>
@@ -2873,7 +2870,13 @@
     <value>默认站点跟随 MoviePilot；点击卡片或全选可改为指定站点。确认后保存，取消不更改偏好。</value>
   </data>
   <data name="MoviePilotSiteDialog_NoSearchSites.Text" xml:space="preserve">
-    <value>没有可供搜索的已启用站点，可点击刷新重试。</value>
+    <value>没有可供搜索的已启用站点。</value>
+  </data>
+  <data name="MoviePilotSiteDialog_SearchNow.Content" xml:space="preserve">
+    <value>立即搜索</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Complete.Content" xml:space="preserve">
+    <value>完成</value>
   </data>
   <data name="MoviePilotSitePicker_SiteLabel.Text" xml:space="preserve">
     <value>搜索站点</value>

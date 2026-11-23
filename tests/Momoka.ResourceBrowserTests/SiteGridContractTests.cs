@@ -29,6 +29,19 @@ internal static class SiteGridContractTests
         });
 
         Test("站点网格：三列自适应、原生整卡Toggle与横向操作条", () => CheckGrid(Load(sourceRoot, "Views/MoviePilotSiteDialog.xaml")));
+        Test("站点网格：默认选项始终可见，每次打开自动重读且没有刷新入口", () =>
+        {
+            var dialog = Load(sourceRoot, "Views/MoviePilotSiteDialog.xaml");
+            Assert.True(Named(dialog, "UseDefaultSites").Ancestors().All(node => node.Attribute("Visibility") is null),
+                "默认站点不能因详情搜索模式隐藏");
+            Assert.False(dialog.Descendants().Any(node => node.Attribute(Xaml + "Name")?.Value == "ReloadSites"));
+            Assert.False(dialog.Descendants().Any(node => node.Attribute("Command")?.Value.Contains("RefreshCommand", StringComparison.Ordinal) == true));
+            var code = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotSiteDialog.xaml.cs"));
+            Assert.Contains("_ = ViewModel.ReloadAsync();", code);
+            Assert.DoesNotContain("_ = ViewModel.EnsureLoadedAsync();", code);
+            Assert.False(typeof(Momoka.Shell.ViewModels.MoviePilotSitePickerViewModel).GetProperties()
+                .Any(property => property.Name == "RefreshCommand"));
+        });
         Test("站点网格：退回竖表或固定卡宽被拒绝", () =>
         {
             var dialog = Load(sourceRoot, "Views/MoviePilotSiteDialog.xaml");
@@ -111,24 +124,28 @@ internal static class SiteGridContractTests
             Assert.Equal(1, fixture.Saves);
         });
 
-        Test("站点网格：忙态禁操作、失败可刷新、空态不扩大显式搜索", () =>
+        Test("站点网格：忙态禁操作，读取失败关闭后重开，空态不扩大显式搜索", () =>
         {
             using var fixture = new SiteFixture();
-            using var draft = fixture.Picker().CreateDraft();
+            using var owner = fixture.Picker();
+            using var draft = owner.CreateDraft();
             draft.Busy = true;
             Assert.False(draft.CanComplete || draft.CanSearch || draft.CanPick);
             Assert.False(draft.SelectAllCommand.CanExecute(null));
             draft.Busy = false;
             fixture.Transport.FailCatalogue = true;
             ResourceFixture.Complete(draft.EnsureLoadedAsync());
-            Assert.True(draft.NoticeOpen && draft.RefreshCommand.CanExecute(null));
+            Assert.True(draft.NoticeOpen);
+            Assert.Contains("重新打开", draft.NoticeTitle!);
+            draft.Cancel();
             fixture.Transport.FailCatalogue = false;
             fixture.Transport.Catalogue = "[]";
-            ResourceFixture.Complete(draft.ReloadAsync());
-            draft.UseDefault = false;
-            Assert.Equal(Visibility.Visible, draft.EmptyVisibility);
-            Assert.Equal("已选择 0/0", draft.SelectionText);
-            Assert.False(draft.CanSearch);
+            using var reopened = owner.CreateDraft();
+            ResourceFixture.Complete(reopened.ReloadAsync());
+            reopened.UseDefault = false;
+            Assert.Equal(Visibility.Visible, reopened.EmptyVisibility);
+            Assert.Equal("已选择 0/0", reopened.SelectionText);
+            Assert.False(reopened.CanSearch);
             Assert.Equal(0, fixture.Saves);
         });
 
@@ -195,6 +212,40 @@ internal static class SiteGridContractTests
             Assert.Equal(1, fixture.Saves);
             Assert.Equal("2", string.Join(',', fixture.Service.SearchSitePreference().SiteIds));
         });
+        Test("站点网格：搜索页那一份的底栏在完成左边给一颗立即搜索", () =>
+        {
+            var dialog = Load(sourceRoot, "Views/MoviePilotSiteDialog.xaml");
+            var footer = Named(dialog, "SearchNowFooter");
+            var searchNow = Named(dialog, "SearchNowButton");
+            var complete = Named(dialog, "CompleteButton");
+            Assert.True(footer.Ancestors().Contains(dialog.Root!), "底栏必须挂在弹窗内容里");
+            Assert.True(searchNow.Ancestors().Contains(footer) && complete.Ancestors().Contains(footer));
+            Assert.Equal("立即搜索", searchNow.Attribute("Content")?.Value);
+            Assert.Equal("完成", complete.Attribute("Content")?.Value);
+            Assert.Equal("1", complete.Attribute("Grid.Column")?.Value, "完成在右，立即搜索在它左边");
+            Assert.Equal("{x:Bind SearchNowVisibility}", footer.Attribute("Visibility")?.Value);
+            Assert.Equal("{StaticResource EgSecondaryButtonStyle}", searchNow.Attribute("Style")?.Value);
+            Assert.Equal("{StaticResource SiteDialogConfirmStyle}", complete.Attribute("Style")?.Value);
+        });
+
+        Test("站点网格：确认只保存，搜索页的立即搜索才发一次搜索", () =>
+        {
+            using var fixture = new SiteFixture();
+            fixture.Transport.SearchResults = "[" + SearchSitePreferenceTests.Result("既有资源", "站点甲") + "]";
+            var vm = new Momoka.Shell.ViewModels.MoviePilotVersionsViewModel();
+            vm.Attach(fixture.Service, new FixtureLauncher());
+            ResourceFixture.Complete(vm.SearchAsync("Target"));
+            var owner = vm.SearchSites;
+            using var draft = owner.CreateDraft();
+            ResourceFixture.Complete(draft.EnsureLoadedAsync());
+            draft.Sites[1].Selected = true;
+            Assert.True(draft.CommitSelection());
+            Assert.True(draft.IsDraftOwnerCurrent, "本次保存的同步服务事件不应使草稿过期");
+            Assert.Equal(1, fixture.Saves);
+            Assert.Equal("2", owner.Selection!.QueryValue());
+            Assert.Equal(1, vm.Versions.Count);
+            Assert.Equal(2, fixture.Transport.Requests.Count, "确认只保存，不由VM擅自发出搜索");
+        });
     }
 
     private static void CheckGrid(XDocument dialog)
@@ -211,8 +262,9 @@ internal static class SiteGridContractTests
         Assert.Equal("{x:Bind Selected, Mode=TwoWay}", card.Attribute("IsChecked")?.Value);
         Assert.True(card.Attribute("Width") is null);
         Assert.Equal("WrapRow", Named(dialog, "SiteActions").Name.LocalName);
-        foreach (var name in new[] { "SelectAllSites", "ClearSelectedSites", "ReloadSites", "SelectedSiteCount" })
+        foreach (var name in new[] { "SelectAllSites", "ClearSelectedSites", "SelectedSiteCount" })
             Assert.True(Named(dialog, name).Ancestors().Contains(Named(dialog, "SiteActions")));
+        Assert.False(dialog.Descendants().Any(node => node.Attribute(Xaml + "Name")?.Value == "ReloadSites"));
         Assert.False(dialog.Descendants().Any(node => node.Name.LocalName is "ListView" or "ItemsControl" or "StackLayout"));
     }
 

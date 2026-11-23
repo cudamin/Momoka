@@ -18,9 +18,10 @@ public sealed partial class MoviePilotResourceFacet(string key, string label, st
 
     internal void SetChoices(IEnumerable<(string Value, string Label)> values)
     {
-        Choices.Clear();
-        foreach (var (value, text) in values)
-            Choices.Add(new MoviePilotResourceChoice(value, text, Label, Changed));
+        var desired = values.Select(item => Choices.FirstOrDefault(choice =>
+            string.Equals(choice.Value, item.Value, StringComparison.OrdinalIgnoreCase))
+            ?? new MoviePilotResourceChoice(item.Value, item.Label, Label, Changed)).ToArray();
+        MoviePilotResourceBrowserViewModel.Sync(Choices, desired);
         Announce();
     }
 

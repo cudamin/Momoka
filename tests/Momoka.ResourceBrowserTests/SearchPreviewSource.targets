@@ -1,0 +1,72 @@
+<Project>
+  <!-- Compile the actual HTTP handlers and helpers without constructing the WinUI probe owner. -->
+  <UsingTask TaskName="ExtractSearchPreviewSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string> read = path => File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n");
+        Func<string, string, string, string> between = (source, begin, finish) =>
+        {
+            var start = source.IndexOf(begin, StringComparison.Ordinal);
+            if (start < 0 || source.IndexOf(begin, start + begin.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous preview source: " + begin);
+            var end = source.IndexOf(finish, start + begin.Length, StringComparison.Ordinal);
+            if (end <= start) throw new InvalidOperationException("Missing preview source end: " + finish);
+            return source.Substring(start, end - start);
+        };
+        Func<string, string, string> trailingClass = (source, begin) =>
+        {
+            var start = source.IndexOf(begin, StringComparison.Ordinal);
+            if (start < 0 || source.IndexOf(begin, start + begin.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous preview handler: " + begin);
+            var end = source.LastIndexOf("\n}", StringComparison.Ordinal);
+            if (end <= start || source.Substring(end).Trim() != "}")
+                throw new InvalidOperationException("Unexpected preview handler boundary");
+            return source.Substring(start, end - start);
+        };
+        const string previewPath = "src/Momoka.Shell/ShellNavigationProbe.SearchPreview.cs";
+        const string aniBtPath = "src/Momoka.Shell/ShellNavigationProbe.AniBt.cs";
+        const string searchPath = "src/Momoka.Shell/ShellNavigationProbe.SearchLayout.cs";
+        const string sharedPath = "src/Momoka.Shell/ShellNavigationProbe.cs";
+        var shared = read(sharedPath);
+        var generated = "// Actual production HTTP handlers and helpers; no WinUI probe initialization.\n#nullable enable\n" +
+            "using System.Collections.Concurrent;\nusing System.Net;\nusing System.Text;\nusing System.Text.Json;\n" +
+            "namespace Momoka.Shell;\ninternal sealed partial class ShellNavigationProbe\n{\n" +
+            trailingClass(read(previewPath), "    private sealed class SearchPreviewMoviePilotServer : HttpMessageHandler") + "\n" +
+            trailingClass(read(aniBtPath), "    private sealed class AniBtProbeServer : HttpMessageHandler") + "\n" +
+            trailingClass(read(searchPath), "    private sealed class SearchProbeServer : HttpMessageHandler") + "\n" +
+            between(shared, "    private static TaskCompletionSource<T> Pending<T>()", "    private static object? Call(") +
+            between(shared, "    private static string? Query(HttpRequestMessage request, string name)", "    private static HttpResponseMessage Items(") +
+            "}\n";
+        var hashes = new StringBuilder();
+        foreach (var path in new[] { previewPath, aniBtPath, searchPath, sharedPath })
+        {
+            using (var sha = SHA256.Create())
+                hashes.Append("        (\"").Append(path).Append("\", \"")
+                    .Append(BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(Path.Combine(Root, path)))).Replace("-", ""))
+                    .Append("\"),\n");
+        }
+        generated += "internal static class SearchPreviewSourceInputs\n{\n" +
+            "    internal static readonly (string Path, string Hash)[] Hashes =\n    [\n" + hashes + "    ];\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSearchPreviewSources" BeforeTargets="CoreCompile">
+    <ExtractSearchPreviewSources Root="$(MSBuildProjectDirectory)\..\.."
+                                 Output="$(IntermediateOutputPath)SearchPreviewSources.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)SearchPreviewSources.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

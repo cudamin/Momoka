@@ -246,11 +246,11 @@ internal static class MoviePilotLifetimeTests
             var page = new LibraryPage(); page.AttachFixture(f.Service);
             var before = f.Http.Searches;
             page.AniBtSourceTab.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
-            page.SwitchFixture(3);
+            page.SwitchFixture(4);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.AniBtPanel.Visibility);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
             page.AniBtSourceTab.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
-            page.SwitchFixture(3);
+            page.SwitchFixture(4);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.AniBtPanel.Visibility);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
             Check.Equal(before, f.Http.Searches);

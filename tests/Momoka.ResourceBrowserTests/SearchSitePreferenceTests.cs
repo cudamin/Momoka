@@ -2,6 +2,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
@@ -254,6 +255,69 @@ internal static class SearchSitePreferenceTests
             Assert.Equal("2", picker.Selection!.QueryValue());
         });
 
+        Test("资源搜索缓存：本次运行内同词复原、不同词不冒充、新搜索整份换掉", () =>
+        {
+            using var fixture = new SiteFixture();
+            fixture.Transport.SearchResults = "[" + Result("缓存命中", "站点甲") + "]";
+            var cache = new MoviePilotResourceSearchCache();
+            var first = new MoviePilotVersionsViewModel();
+            first.Attach(fixture.Service, new FixtureLauncher());
+            first.UseCache(cache);
+            ResourceFixture.Complete(first.SearchAsync("Target"));
+            var requests = fixture.Transport.Requests.Count;
+            Assert.Equal(1, first.Versions.Count);
+
+            var restored = new MoviePilotVersionsViewModel();
+            restored.Attach(fixture.Service, new FixtureLauncher());
+            restored.UseCache(cache);
+            Assert.True(restored.RestoreCached(" Target "));
+            Assert.Equal("缓存命中", restored.Versions.Single().Title);
+            Assert.Equal(requests, fixture.Transport.Requests.Count, "复原缓存不发请求");
+            Assert.False(restored.ShowEmptyNotice);
+
+            var other = new MoviePilotVersionsViewModel();
+            other.Attach(fixture.Service, new FixtureLauncher());
+            other.UseCache(cache);
+            Assert.False(other.RestoreCached("Other"), "搜别的片不许拿上一部的结果顶上");
+            Assert.Equal(0, other.Versions.Count);
+
+            fixture.Transport.SearchResults = "[" + Result("新词结果", "站点乙") + "]";
+            ResourceFixture.Complete(other.SearchAsync("Other"));
+            Assert.False(restored.RestoreCached("Target"), "新搜索已把缓存整份换掉");
+            Assert.True(other.RestoreCached("Other"));
+        });
+
+        Test("MoviePilot 字幕来源：片名找片后点一部读字幕，带身份可直接读", () =>
+        {
+            using var fixture = new SiteFixture();
+            fixture.Transport.SearchResults = "[{\"title\":\"Target\",\"type\":\"电视剧\",\"media_source\":\"themoviedb\",\"media_id\":\"42\"}]";
+            var vm = new MoviePilotSubtitleSearchViewModel();
+            vm.Attach(fixture.Service);
+            ResourceFixture.Complete(vm.SearchAsync("Target"));
+            Assert.Equal(1, vm.MediaResults.Count);
+            Assert.Equal(Visibility.Visible, vm.MediaListVisibility);
+            Assert.Equal("MoviePilot 字幕", vm.Heading);
+
+            fixture.Transport.SearchResults = "[{\"title\":\"示例字幕\",\"site\":8,\"language\":\"简中\",\"enclosure\":\"https://fixture.invalid/signed\"}]";
+            var media = vm.MediaResults.Single().Media;
+            ResourceFixture.Complete(vm.LoadSubtitlesAsync(media, null));
+            Assert.Equal(1, vm.Subtitles.Count);
+            Assert.Equal(Visibility.Visible, vm.SubtitlesVisibility);
+            Assert.Equal("Target · 字幕", vm.Heading);
+            Assert.Equal("1 个字幕", vm.CountText);
+            Assert.Contains("/api/v1/search/subtitle/media/42", fixture.Transport.Requests.Last());
+        });
+
+        Test("MoviePilot 字幕来源：空词回到提示、不读网络", () =>
+        {
+            using var fixture = new SiteFixture();
+            var vm = new MoviePilotSubtitleSearchViewModel();
+            vm.Attach(fixture.Service);
+            ResourceFixture.Complete(vm.SearchAsync(""));
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+            Assert.True(vm.ShowEmptyNotice);
+        });
+
         Test("搜索站点：真实设置文件重读后新服务恢复选择", () =>
         {
             var directory = Path.Combine(Path.GetTempPath(), "Momoka-SitePreferences-" + Guid.NewGuid().ToString("N"));
@@ -401,7 +465,8 @@ internal sealed class SiteTransport : HttpMessageHandler
         }
         Requests.Add(uri.PathAndQuery);
         var sites = uri.AbsolutePath.StartsWith("/api/v1/site/", StringComparison.Ordinal);
-        if (!sites && !uri.AbsolutePath.StartsWith("/api/v1/search/", StringComparison.Ordinal))
+        if (!sites && !uri.AbsolutePath.StartsWith("/api/v1/search/", StringComparison.Ordinal)
+            && !uri.AbsolutePath.Equals("/api/v1/media/search", StringComparison.Ordinal))
             throw new AssertionException("站点夹具拒绝未登记读取");
         if (sites && PendingCatalogue is { } pending) return pending.Task;
         return Task.FromResult(new HttpResponseMessage(sites && FailCatalogue ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)

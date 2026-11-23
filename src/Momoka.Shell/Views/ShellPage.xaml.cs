@@ -1434,6 +1434,43 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
+    /// 订阅详情里的「搜索资源」：站点表在详情页上确认之后，跳到搜索页的 MoviePilot 资源来源，并立刻用这个词搜一次
+    /// （用户令 2026-11-22「触发搜索后自动跳转到搜索页面，舍弃当前的订阅详情页资源搜索界面」）。
+    /// 搜索页自己的关键词框照旧可用，之后换词重搜走那一页。
+    /// </summary>
+    internal void OpenMoviePilotResourceSearch(string keyword)
+    {
+        if (_services is null) return;
+        var query = keyword.Trim();
+        if (query.Length == 0) return;
+        Log.Info(Category, $"在搜索页搜 MoviePilot 资源：{query}");
+        Open(
+            typeof(LibraryPage),
+            LibraryRequest.Search(_services, query) with { SearchSource = 2, MoviePilotResourceSearchNow = true },
+            LibraryRequest.SearchTitle(query),
+            LibraryRequest.SearchTag);
+    }
+
+    /// <summary>
+    /// 订阅详情的「搜索字幕」：跳到搜索页的 MoviePilot 字幕来源，按这部剧的 MoviePilot 身份直接读字幕
+    /// （字幕接口认 <c>media_id</c>＋<c>media_source</c>，没有按片名的关键词字幕搜索）。
+    /// </summary>
+    internal void OpenMoviePilotDetailSearch(MoviePilotDetailSearch search)
+    {
+        if (_services is null) return;
+        var title = search.Media.Title;
+        Open(
+            typeof(LibraryPage),
+            LibraryRequest.Search(_services, title) with
+            {
+                SearchSource = search.Options.Subtitles ? 3 : 2,
+                MoviePilotDetailSearch = search
+            },
+            LibraryRequest.SearchTitle(title),
+            LibraryRequest.SearchTag);
+    }
+
+    /// <summary>
     /// 「手动整理」（<see cref="IShellActions.ShowMoviePilotReorganize"/>）：主窗口上弹那张表单。文件清单和
     /// 身份由菜单那头收好（<see cref="Momoka.MoviePilot.MoviePilotTransferCollect"/>），这里只负责两件外壳
     /// 的事：容器里的 <c>MoviePilotService</c>，和对话框要挂的 <c>XamlRoot</c>（主窗口的根）。
@@ -1661,7 +1698,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, subscription,
             _session?.IsSignedIn == true ? _session.Capture() : null,
             target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes),
-            SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
+            OpenMoviePilotResourceSearch, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
             SetTitleStrip: SetTitleStrip,
             SearchAniBt: SearchAniBtVersions,
             Subscribed: subscribed,
@@ -1669,7 +1706,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             PlayTrailer: item => ((IShellActions)this).PlayAsync(item,
                 choice: new PlaybackChoice(null, null, null, false, 0) { ExactStart = true }),
             Paths: _services.GetRequiredService<AppPaths>(),
-            YouTube: _services.GetRequiredService<YouTubeSession>()), BrowseTransition());
+            YouTube: _services.GetRequiredService<YouTubeSession>(),
+            OpenDetailSearch: OpenMoviePilotDetailSearch), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();
@@ -1685,7 +1723,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Launcher: _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMedia: OpenMoviePilotMedia, Media: media,
             SetTitleStrip: SetTitleStrip, Subscribed: OpenMoviePilotSubscriptionsAfterSubscribe,
             Settings: _services.GetRequiredService<ISettingsService>(),
-            YouTube: _services.GetRequiredService<YouTubeSession>()), BrowseTransition());
+            YouTube: _services.GetRequiredService<YouTubeSession>(),
+            // 纯媒体页（搜索/推荐进来的那一种）也有同一排「搜索资源／搜索字幕」：回调不接，两颗键就只是摆着
+            //（用户 2026-11-23 报「点了没触发搜索」「搜索字幕不能选站点」）。
+            OpenResourceSearch: OpenMoviePilotResourceSearch,
+            OpenDetailSearch: OpenMoviePilotDetailSearch), BrowseTransition());
         _trail.Add(new Crumb(media.Display, string.Empty));
         _current = null;
         SyncChrome();

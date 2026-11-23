@@ -206,6 +206,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 删库文件后主页原地摘卡、保持滚动且重读不回来", MoviePilotDeleteRefreshAsync, 60, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 第五集删除切到第四集、唯一集回主页与多版本选择", MoviePilotEpisodeDeleteAcceptanceAsync, 90, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
+            await CaseAsync("MoviePilot 订阅详情搜索跳转后自动搜（资源、字幕与站点）", MoviePilotSearchJumpAsync, 60, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索进度流、五主题与窄窗卡片", MoviePilotSearchProgressAsync, 60, ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 未识别媒体、错误区分与重试恢复", MoviePilotMediaErrorAsync, 60, ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 版本窗口搜索区与默认搜索站点", MoviePilotSearchShellAsync, 90, ShellProbeSections.MoviePilot);
@@ -323,7 +324,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 无图季列表、筛选空态与图片恢复", MoviePilotCompactSeasonsAsync, 45, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 取消后重新订阅同步新编号", MoviePilotSubscriptionRecreateAsync, 25);
             await CaseAsync("MoviePilot 详情操作待核对与恢复", MoviePilotSubscriptionReviewAsync);
-            await CaseAsync("MoviePilot 媒体详情、剧集组浏览和真实资源入口", MoviePilotMediaBrowsingAsync);
+            await CaseAsync("MoviePilot 媒体详情、剧集组浏览和集搜索交给搜索页", MoviePilotMediaBrowsingAsync);
             // 长期无信号：按季订阅的完整模式切换在台账里连续多轮超时；同功能的「部分失败与核对」
             // 用例仍进全量，这一条按 moviepilot 分区单跑复核。
             await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync, defaultOff: true);
@@ -616,6 +617,8 @@ internal sealed partial class ShellNavigationProbe
                 // 注册进去的就是那个具体类型。
                 .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
                 .AddSingleton<BrowseSnapshotStore>()
+                // 搜索页的「MoviePilot 资源」这一格会去取本次运行内的结果缓存；正式外壳里也是单例。
+                .AddSingleton<Momoka.Shell.ViewModels.MoviePilotResourceSearchCache>()
                 // 订阅详情页现在要交一份 YouTube 会话（预告共用登录态）；探针不建 WebView2 环境，
                 // 只把服务登记齐，页面解析得到即可。
                 .AddSingleton(_ => new Media.YouTubeSession(

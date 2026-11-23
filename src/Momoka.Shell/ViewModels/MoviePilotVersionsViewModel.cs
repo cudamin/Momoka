@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Diagnostics;
@@ -16,7 +17,13 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
     private ISystemLauncher? _launcher;
     private string _lastKeyword = "";
     private int? _lastAutoEpisode;
+    private MoviePilotDetailSearch? _detailSearch;
+    private IReadOnlyList<MoviePilotResource> _resources = [];
+    private IReadOnlyList<MoviePilotSearchPage> _nextPages = [];
     private CancellationToken _query;
+
+    /// <summary>本次运行内的上一次结果；只有搜索页那一份接它（见 <see cref="UseCache"/>）。</summary>
+    private MoviePilotResourceSearchCache? _cache;
 
     /// <summary>
     /// 这一页的这次活跃期，不是某一次搜索：改站点会作废在飞的搜索，但留下的卡片仍可打开下载确认。
@@ -40,6 +47,8 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
     public MoviePilotResourceBrowserViewModel Browser { get; } = new();
     public MoviePilotSearchProgressViewModel SearchProgress { get; } = new();
     public ObservableCollection<MoviePilotResourceRow> Versions => Browser.Rows;
+    public Visibility MoreVisibility => Show(_nextPages.Count > 0);
+    private bool CanLoadMore => !Busy && _nextPages.Count > 0;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
@@ -55,16 +64,74 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
         SearchSites.Attach(service);
     }
 
-    public override Task ReloadAsync() => SearchAsync(_lastKeyword, _lastAutoEpisode);
+    /// <summary>
+    /// 搜索页那一份接上「本次运行内保留上一次结果」的缓存（用户令 2026-11-22）。独立窗口那一份不接：
+    /// 它每次都是按关键词现开的一趟，不该拿另一处的结果顶上。
+    /// </summary>
+    internal void UseCache(MoviePilotResourceSearchCache cache) => _cache = cache;
+
+    /// <summary>
+    /// 把缓存里同一个词的上一批结果直接摆出来（不发请求）。连接换过或词不同都返回 false，由调用方去真搜。
+    /// </summary>
+    internal bool RestoreCached(string keyword)
+    {
+        if (_service is not { Available: true } service || _cache is null
+            || _cache.Match(service.ConnectionStamp, keyword) is not { } snapshot) return false;
+        base.Cancel();
+        _lastKeyword = snapshot.Keyword;
+        _lastAutoEpisode = snapshot.AutoEpisode;
+        _detailSearch = snapshot.DetailSearch;
+        var preference = service.SearchSitePreference();
+        var sameSites = _detailSearch?.Sites is { } sites
+            ? !preference.UseDefault && preference.SiteIds.ToHashSet().SetEquals(sites.Ids)
+            : preference.UseDefault;
+        SetNextPages(sameSites ? snapshot.NextPages ?? [] : []);
+        ShowResources(service, snapshot.Resources, snapshot.AutoEpisode);
+        EmptyNotice = snapshot.EmptyNotice;
+        ShowEmptyNotice = snapshot.ShowEmptyNotice;
+        IsReady = true;
+        return true;
+    }
+
+    /// <summary>键入新词：收起上一批结果，不发请求（同搜索页其它非媒体库来源的规矩）。</summary>
+    internal void Clear()
+    {
+        base.Cancel();
+        _lastKeyword = "";
+        _lastAutoEpisode = null;
+        _detailSearch = null;
+        Browser.SetResults([]);
+        SetNextPages([]);
+        _resources = [];
+        EmptyNotice = IdlePrompt;
+        ShowEmptyNotice = true;
+    }
+
+    public override Task ReloadAsync() => SearchCoreAsync(_lastKeyword, _lastAutoEpisode);
+
+    internal Task SearchDetailAsync(MoviePilotDetailSearch search)
+    {
+        _detailSearch = search;
+        // 网页详情资源搜索保留完整结果，单集参数只用于字幕搜索。
+        return SearchCoreAsync(search.Media.Title, null);
+    }
 
     /// <summary>
     /// 搜一次关键词。<paramref name="autoEpisode"/> 是集页面开窗时带进来的目标集（词里已经不发集号了，见
     /// <see cref="MoviePilotVersionQuery.Keyword"/>）：结果出来后浏览器自动按这一集筛，用户改词自己搜时不传，
     /// 自动筛选随之解除；刷新（<see cref="ReloadAsync"/>）带着上次的目标集重搜。
     /// </summary>
-    internal async Task SearchAsync(string keyword, int? autoEpisode = null)
+    internal Task SearchAsync(string keyword, int? autoEpisode = null)
     {
-        if (_service is null) return;
+        if (_detailSearch is not null && string.Equals(keyword.Trim(), _lastKeyword, StringComparison.Ordinal))
+            return ReloadAsync();
+        _detailSearch = null;
+        return SearchCoreAsync(keyword, autoEpisode);
+    }
+
+    private async Task SearchCoreAsync(string keyword, int? autoEpisode)
+    {
+        if (_service is not { } service) return;
         var text = keyword.Trim();
         _lastKeyword = text;
         _lastAutoEpisode = autoEpisode;
@@ -72,6 +139,8 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
         _query = token;
         if (!IsCurrent(token)) return;
         Browser.SetResults([]);
+        SetNextPages([]);
+        _resources = [];
         ShowEmptyNotice = false;
         if (text.Length == 0)
         {
@@ -80,7 +149,11 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
             EndLoad(token);
             return;
         }
-        var progress = SearchProgress.Start("关键词：" + text, null, () => IsCurrent(token));
+        // 搜别的词从这一刻起就换掉缓存里的上一批：在飞期间离开再回来也不会把旧片的结果挂在新词下面。
+        var detail = _detailSearch;
+        _cache?.Save(new(service.ConnectionStamp, text, [], autoEpisode,
+            "上次搜索没有完成，按回车或点击搜索图标重新搜索", true, detail));
+        var progress = SearchProgress.Start(detail?.Media.Title ?? "关键词：" + text, detail?.Media.Year, () => IsCurrent(token));
         try
         {
             await SearchSites.PrepareSelectionAsync().ConfigureAwait(true);
@@ -91,14 +164,18 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
                 ShowEmptyNotice = true;
                 return;
             }
-            var found = await _service.SearchByKeywordAsync(text, token, SearchSites.Selection, progress).ConfigureAwait(true);
+            var sites = SearchSites.Selection;
+            if (detail is not null) _detailSearch = detail = detail with { Sites = sites };
+            var page = detail is null
+                ? new MoviePilotResourcePage(await service.SearchByKeywordAsync(text, token, sites, progress).ConfigureAwait(true), [])
+                : await service.SearchDetailResourcesAsync(detail, token, progress).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
-            Browser.SetResults(found.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
-            {
-                State = MoviePilotResourceRow.StateOf(_service.DownloadState(resource))
-            }), autoEpisode);
+            var found = page.Resources;
+            ShowResources(service, found, autoEpisode);
+            SetNextPages(page.NextPages);
             EmptyNotice = $"MoviePilot 上没搜到「{text}」的可下载版本，换个关键字或稍后再试";
             ShowEmptyNotice = found.Count == 0;
+            SaveResults(service);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -109,9 +186,70 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
         finally { EndLoad(token); }
     }
 
+    private void ShowResources(MoviePilotService service, IReadOnlyList<MoviePilotResource> resources, int? autoEpisode)
+    {
+        _resources = resources;
+        Browser.SetResults(resources.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
+        {
+            State = MoviePilotResourceRow.StateOf(service.DownloadState(resource))
+        }), autoEpisode);
+    }
+
+    private void SetNextPages(IReadOnlyList<MoviePilotSearchPage> pages)
+    {
+        _nextPages = pages;
+        OnPropertyChanged(nameof(MoreVisibility));
+        LoadMoreCommand.NotifyCanExecuteChanged();
+    }
+
+    private void SaveResults(MoviePilotService service) =>
+        _cache?.Save(new(service.ConnectionStamp, _lastKeyword, _resources, _lastAutoEpisode,
+            EmptyNotice, ShowEmptyNotice, _detailSearch, _nextPages));
+
+    [RelayCommand(CanExecute = nameof(CanLoadMore))]
+    private async Task LoadMore()
+    {
+        if (_service is not { } service || _detailSearch is not { } detail || !CanLoadMore) return;
+        var pages = _nextPages.ToArray();
+        var token = BeginLoad();
+        var progress = SearchProgress.Start(detail.Media.Title, detail.Media.Year, () => IsCurrent(token));
+        try
+        {
+            foreach (var page in pages)
+            {
+                try
+                {
+                    var result = await service.SearchDetailResourcesAsync(detail, token, progress, page).ConfigureAwait(true);
+                    if (!IsCurrent(token)) return;
+                    if (result.Resources.Count > 0)
+                    {
+                        _resources = [.. _resources, .. result.Resources];
+                        Browser.AppendResults(result.Resources.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
+                        {
+                            State = MoviePilotResourceRow.StateOf(service.DownloadState(resource))
+                        }));
+                        ShowEmptyNotice = false;
+                    }
+                    SetNextPages(_nextPages.Where(item => item != page).Concat(result.NextPages).ToArray());
+                    SaveResults(service);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception error)
+                {
+                    if (!IsCurrent(token)) return;
+                    Report("加载更多资源失败，可重试未完成的来源", error);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { if (IsCurrent(token)) Report("加载更多资源失败", error); }
+        finally { EndLoad(token); }
+    }
+
     protected override void BusyChanged()
     {
         if (!Busy) SearchProgress.Stop();
+        LoadMoreCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -121,7 +259,9 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
     private void OnSearchSitesChanged()
     {
         base.Cancel();
+        SetNextPages([]);
         IsReady = true;
+        if (_service is { } service) SaveResults(service);
         if (Browser.HasResults)
         {
             Notify("搜索站点已更改", "当前结果仍是刚才那次搜索的；按回车或点搜索图标后才会按新站点重搜。", InfoBarSeverity.Informational);
@@ -140,6 +280,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
 
     public override void Dispose()
     {
+        SearchSites.SelectionChanged -= OnSearchSitesChanged;
         SearchProgress.Stop();
         _life.Dispose();
         base.Dispose();

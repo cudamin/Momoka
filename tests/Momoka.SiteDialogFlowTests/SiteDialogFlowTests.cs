@@ -40,6 +40,62 @@ internal static class SiteDialogFlowTests
             Assert.True(picker.CurrentDialog is null);
         });
 
+        Test("站点对话流程：每次打开都重读目录，保留本机勾选并同步站点变化", () =>
+        {
+            using var fixture = new Fixture();
+            var picker = fixture.Picker(search: true);
+            var result = picker.OpenAsync();
+            var first = picker.CurrentDialog!;
+            first.ViewModel.Sites[1].Selected = true;
+            first.PressPrimary();
+            Assert.Equal(ContentDialogResult.Primary, Completed(result));
+            Assert.Equal(1, fixture.Saves);
+            Assert.Equal(1, fixture.Transport.Reads);
+            fixture.Transport.Catalogue = "[{\"id\":1,\"name\":\"更新后的甲站\",\"is_active\":true}]";
+            result = picker.OpenAsync();
+            var second = picker.CurrentDialog!;
+            Assert.Equal(2, fixture.Transport.Reads, "重开不复用宿主的旧目录");
+            Assert.Equal(1, second.ViewModel.Sites.Count);
+            Assert.Equal("更新后的甲站", second.ViewModel.Sites[0].Name);
+            Assert.Equal(0, second.ViewModel.SelectedCount);
+            Assert.False(second.CanConfirm, "本机显式勾选的站点暂缺时不能扩大搜索");
+            second.PressX();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            fixture.Transport.Catalogue = Transport.FullCatalogue;
+            result = picker.OpenAsync();
+            var restored = picker.CurrentDialog!;
+            Assert.Equal(3, fixture.Transport.Reads);
+            Assert.Equal("2", restored.ViewModel.Selection!.QueryValue());
+            restored.PressX();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            Assert.Equal(1, fixture.Saves);
+        });
+
+        Test("站点对话流程：目录失败提示重新打开，关闭后重开自动恢复", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Transport.FailCatalogue = true;
+            var picker = fixture.Picker(search: true);
+            var searches = 0;
+            picker.SearchRequested += (_, _) => searches++;
+            var result = picker.OpenAsync();
+            var failed = picker.CurrentDialog!;
+            Assert.True(failed.ViewModel.NoticeOpen);
+            Assert.Contains("重新打开", failed.ViewModel.NoticeTitle!);
+            failed.PressX();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            fixture.Transport.FailCatalogue = false;
+            result = picker.OpenAsync();
+            var reopened = picker.CurrentDialog!;
+            Assert.Equal(2, fixture.Transport.Reads);
+            Assert.Equal(2, reopened.ViewModel.Sites.Count);
+            Assert.False(reopened.ViewModel.NoticeOpen);
+            reopened.PressX();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            Assert.Equal(0, fixture.Saves);
+            Assert.Equal(0, searches);
+        });
+
         foreach (var dismissal in new[] { "X", "Esc", "遮罩" })
             Test("站点对话流程：" + dismissal + "取消None不保存不搜索且可重开", () =>
             {
@@ -85,6 +141,49 @@ internal static class SiteDialogFlowTests
             Assert.False(dialog.IsPrimaryButtonEnabled);
             dialog.PressPrimary();
             Assert.False(result.IsCompleted);
+            picker.ClosePopup();
+            Completed(result);
+        });
+
+        Test("站点对话流程：搜索页「完成」只保存、「立即搜索」保存并当场搜索", () =>
+        {
+            using var fixture = new Fixture();
+            var picker = fixture.Picker(searchNow: true);
+            var searches = 0;
+            picker.SearchRequested += (_, _) => searches++;
+            var result = picker.OpenAsync();
+            var dialog = picker.CurrentDialog!;
+            // 这一份不画 ContentDialog 的主键：底栏自己给「立即搜索」「完成」两颗，完成在右。
+            Assert.Equal("", dialog.ConfirmText);
+            Assert.Equal(Visibility.Visible, dialog.SearchNowVisibility);
+            dialog.ViewModel.ClearSelectionCommand.Execute(null);
+            Assert.True(dialog.CanConfirm);
+            dialog.PressComplete();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            Assert.Equal(0, searches);
+            Assert.Equal(1, fixture.Saves);
+
+            result = picker.OpenAsync();
+            dialog = picker.CurrentDialog!;
+            dialog.ViewModel.Sites[1].Selected = true;
+            dialog.PressSearchNow();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            Assert.Equal(1, searches);
+            Assert.Equal(2, fixture.Saves);
+            Assert.Equal("2", picker.ViewModel.Selection!.QueryValue());
+            Assert.True(picker.CurrentDialog is null);
+        });
+
+        Test("站点对话流程：搜索页底栏两颗键跟着草稿可确认状态一起亮暗", () =>
+        {
+            using var fixture = new Fixture();
+            var picker = fixture.Picker(searchNow: true);
+            var result = picker.OpenAsync();
+            var dialog = picker.CurrentDialog!;
+            Assert.True(dialog.SearchNowButton.IsEnabled && dialog.CompleteButton.IsEnabled);
+            dialog.ViewModel.ClearSelectionCommand.Execute(null);
+            Assert.True(dialog.SearchNowButton.IsEnabled, "清空后仍可完成保存");
+            fixture.Settings.MoviePilot.Username = "another-fixture";
             picker.ClosePopup();
             Completed(result);
         });
@@ -301,29 +400,37 @@ internal static class SiteDialogFlowTests
             typeof(MoviePilotService).GetField("_session", flags)!.SetValue(Service, session);
             typeof(MoviePilotService).GetField("_availableIdentity", flags)!.SetValue(Service, identity);
         }
-        internal MoviePilotSitePicker Picker(bool search = false)
+        internal MoviePilotSitePicker Picker(bool search = false, bool searchNow = false)
         {
             var model = new MoviePilotSitePickerViewModel();
             model.Attach(Service);
-            return new() { XamlRoot = new(), ViewModel = model, SearchOnConfirm = search };
+            return new() { XamlRoot = new(), ViewModel = model, SearchOnConfirm = search, SearchNow = searchNow };
         }
         public void Dispose() { Service.Dispose(); _client.Dispose(); }
     }
 
     private sealed class Transport : HttpMessageHandler
     {
+        internal const string FullCatalogue = "[{\"id\":1,\"name\":\"甲\",\"is_active\":true},{\"id\":2,\"name\":\"乙\",\"is_active\":true}]";
         internal TaskCompletionSource<HttpResponseMessage>? Pending { get; set; }
         internal int Reads { get; private set; }
+        internal string Catalogue { get; set; } = FullCatalogue;
+        internal bool FailCatalogue { get; set; }
         internal static HttpResponseMessage Response() => new(HttpStatusCode.OK)
         {
-            Content = new StringContent("[{\"id\":1,\"name\":\"甲\",\"is_active\":true},{\"id\":2,\"name\":\"乙\",\"is_active\":true}]", Encoding.UTF8, "application/json")
+            Content = new StringContent(FullCatalogue, Encoding.UTF8, "application/json")
         };
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Assert.True(request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath == "/api/v1/site/",
                 "站点流程夹具拒绝登录、搜索和所有真实写请求");
             Reads++;
-            return Pending?.Task ?? Task.FromResult(Response());
+            if (Pending is { } pending) return pending.Task;
+            if (FailCatalogue) return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(Catalogue, Encoding.UTF8, "application/json")
+            });
         }
     }
     private sealed class NoSecrets : ISecretProtector

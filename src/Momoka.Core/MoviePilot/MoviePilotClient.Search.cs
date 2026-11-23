@@ -10,7 +10,8 @@ public sealed partial class MoviePilotClient
     // resource.vue / search.py: each SSE request owns its progress and final result snapshot.
     // Never read system/progress/search: that shared slot can belong to another browser/search.
     internal async Task<JsonElement?> SearchStreamAsync(Uri apiBase, string token, string path,
-        IProgress<MoviePilotSearchProgress> progress, CancellationToken cancellationToken)
+        IProgress<MoviePilotSearchProgress> progress, CancellationToken cancellationToken,
+        Action<IReadOnlyList<MoviePilotSearchPage>>? pages = null)
     {
         var query = path.IndexOf('?');
         var streamPath = query < 0 ? path + "/stream" : path[..query] + "/stream" + path[query..];
@@ -35,7 +36,7 @@ public sealed partial class MoviePilotClient
 
             using var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            var state = new SearchStreamState(progress);
+            var state = new SearchStreamState(progress, pages);
             var line = new StringBuilder();
             var data = new StringBuilder();
             var buffer = new char[4096];
@@ -99,7 +100,8 @@ public sealed partial class MoviePilotClient
         }
     }
 
-    private sealed class SearchStreamState(IProgress<MoviePilotSearchProgress> progress)
+    private sealed class SearchStreamState(IProgress<MoviePilotSearchProgress> progress,
+        Action<IReadOnlyList<MoviePilotSearchPage>>? reportPages)
     {
         private List<JsonElement>? _final;
         private List<JsonElement>? _batch;
@@ -107,6 +109,7 @@ public sealed partial class MoviePilotClient
         private int _batchCount;
         private int _expectedItems;
         private double? _value;
+        private IReadOnlyList<MoviePilotSearchPage> _pages = [];
         public bool Done { get; private set; }
 
         public void Accept(string json)
@@ -117,12 +120,7 @@ public sealed partial class MoviePilotClient
             if (message.ValueKind != JsonValueKind.Object) throw Invalid();
             var type = MoviePilotTransfer.Text(message, "type");
             if (type == "heartbeat") return;
-            if (type == "error")
-            {
-                var error = MoviePilotTransfer.Text(message, "message_i18n");
-                if (error.Length == 0) error = MoviePilotTransfer.Text(message, "message");
-                throw new MoviePilotException(error.Length > 0 ? error : "搜索失败，请稍后重试");
-            }
+            if (type == "error") throw new MoviePilotSearchRejectedException();
             if (message.TryGetProperty("value", out var numeric) && numeric.ValueKind == JsonValueKind.Number
                 && numeric.TryGetDouble(out var number) && double.IsFinite(number))
                 _value = Math.Clamp(number, 0, 100);
@@ -149,12 +147,14 @@ public sealed partial class MoviePilotClient
                     if (_batch.Count != _expectedItems) throw Invalid();
                     _final = _batch;
                     _batch = null;
+                    ReadPages(message);
                 }
             }
             else if (type == "replace" || type == "done" && _final is null)
             {
                 if (!hasItems || _batch is not null || items.GetArrayLength() > 100_000) throw Invalid();
                 _final = items.EnumerateArray().Select(item => item.Clone()).ToList();
+                ReadPages(message);
             }
             // append contains unverified candidates during precise search. Only commit final snapshots.
             if (type == "done")
@@ -162,12 +162,32 @@ public sealed partial class MoviePilotClient
                 if (_batch is not null || _final is null) throw Invalid();
                 if (message.TryGetProperty("total_items", out _) &&
                     (!ReadInt(message, "total_items", out var total) || total != _final.Count)) throw Invalid();
+                ReadPages(message);
                 Done = true;
             }
         }
 
-        public JsonElement Result() => Done && _final is not null
-            ? JsonSerializer.SerializeToElement(_final) : throw Invalid();
+        public JsonElement Result()
+        {
+            if (!Done || _final is null) throw Invalid();
+            reportPages?.Invoke(_pages);
+            return JsonSerializer.SerializeToElement(_final);
+        }
+
+        private void ReadPages(JsonElement message)
+        {
+            if (reportPages is null || !message.TryGetProperty("sources", out var sources)
+                || sources.ValueKind != JsonValueKind.Array) return;
+            var pages = new List<MoviePilotSearchPage>();
+            foreach (var source in sources.EnumerateArray())
+            {
+                if (source.ValueKind != JsonValueKind.Object || !ReadInt(source, "page", out var page) || page >= int.MaxValue
+                    || !source.TryGetProperty("can_continue", out var more) || more.ValueKind != JsonValueKind.True
+                    || MoviePilotTransfer.Text(source, "source") is not { Length: > 0 } key) continue;
+                pages.Add(new(key, MoviePilotTransfer.Text(source, "error").Length > 0 ? page : page + 1));
+            }
+            _pages = pages;
+        }
 
         private static bool ReadInt(JsonElement data, string name, out int value)
         {

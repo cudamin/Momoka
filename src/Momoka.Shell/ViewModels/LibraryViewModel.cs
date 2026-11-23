@@ -573,7 +573,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility SearchVisibility => Show(_request?.IsSearch == true);
 
     /// <summary>
-    /// 搜索页的四个来源固定显示。连接与开关决定是否可以执行，不再决定导航入口在不在。
+    /// 搜索页的五个来源（媒体库／MP 订阅／MP 资源／MP 字幕／AniBT）固定显示。连接与开关决定是否可以执行，
+    /// 不再决定导航入口在不在。
     /// </summary>
     public Visibility MoviePilotTabsVisibility =>
         Show(_request?.IsSearch == true);

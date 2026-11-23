@@ -41,15 +41,18 @@ namespace Momoka.Shell.Views
         internal LibraryLifetimeViewModel ViewModel { get; } = new();
         private MoviePilotSearchPanel? _moviePilotPanel;
         private PanelBoundary? _moviePilotResources;
+        private PanelBoundary? _moviePilotSubtitles;
         private PanelBoundary? _aniBtPanel;
         private PickerBoundary? _filterPane;
         internal MoviePilotSearchPanel MoviePilotPanel => _moviePilotPanel ??= new();
         internal PanelBoundary MoviePilotResources => _moviePilotResources ??= new();
+        internal PanelBoundary MoviePilotSubtitles => _moviePilotSubtitles ??= new();
         internal PanelBoundary AniBtPanel => _aniBtPanel ??= new();
         internal PickerBoundary SearchSitePicker { get; } = new();
         internal PickerBoundary FilterPane => _filterPane ??= new();
         private MoviePilotSearchPanel EnsureMoviePilotPanel() => MoviePilotPanel;
         private PanelBoundary EnsureMoviePilotResources() => MoviePilotResources;
+        private PanelBoundary EnsureMoviePilotSubtitles() => MoviePilotSubtitles;
         private PanelBoundary EnsureAniBtPanel() => AniBtPanel;
         internal Microsoft.UI.Xaml.Controls.ComboBox SourceTabs { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement AniBtSourceTab { get; } = new();
@@ -84,6 +87,8 @@ namespace Momoka.Shell.Views
         private void RememberScrollAnchor(bool allowReleased = false) { }
         private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) { }
         private void OnAniBtSettingChanged(object? sender, EventArgs args) { }
+        // 来源钉定的窗口只属于真页面：这份夹具没有来源标签的 LayoutUpdated，收手是空操作。
+        private void StopSourcePin() { }
         internal void AttachFixture(Momoka.MoviePilot.MoviePilotService service)
         {
             if (_moviePilot is { } old) old.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;

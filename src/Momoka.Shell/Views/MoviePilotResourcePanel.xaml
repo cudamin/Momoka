@@ -6,10 +6,17 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:local="using:Momoka.Shell.Views"
     Background="{ThemeResource EgWindowBrush}">
-    <Grid Background="{ThemeResource EgWindowBrush}" RowSpacing="12">
+    <Grid x:Name="PanelLayout" Background="{ThemeResource EgWindowBrush}" RowSpacing="12"
+        Loaded="OnPanelLoaded" SizeChanged="OnPanelSizeChanged">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
         </Grid.RowDefinitions>
+        <!-- 面板盖住整页时，页面顶上那 48 像素还露着底下那页的剧照，和面板这张纸割成两种颜色
+             （用户令 2026-11-22「修复沉浸模式下标题和下方颜色不一致」）。把面板的底色往上铺到窗口顶，
+             标题栏与结果就接成同一种纸色；高度和位置由 code-behind 按面板在窗口里的实际落位算，
+             商店模式那一档仍由外壳那条实色标题栏盖住。不接指针，标题栏拖动与按钮照旧。 -->
+        <Border x:Name="TitleBleed" VerticalAlignment="Top" HorizontalAlignment="Stretch"
+            Background="{ThemeResource EgWindowBrush}" IsHitTestVisible="False" Visibility="Collapsed" />
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <Button x:Uid="MoviePilotResourcePanel_CloseButton" x:Name="CloseButton" Click="OnClose" Content="返回" Style="{StaticResource EgSecondaryButtonStyle}" />

@@ -206,8 +206,10 @@ internal sealed partial class ShellNavigationProbe
         var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => item.IsSeries);
         using var fixture = CreateFixture();
         var page = new MoviePilotSubscriptionPage();
+        var searched = new List<MoviePilotDetailSearch>();
         _root.Children.Add(page);
-        page.Attach(new(service, subscription, Launcher: fixture.Launcher));
+        page.Attach(new(service, subscription, Launcher: fixture.Launcher,
+            OpenDetailSearch: search => searched.Add(search)));
         try
         {
             var vm = page.MediaViewModel;
@@ -229,13 +231,37 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 await SaveSettledFrameAsync(page, $"mp-media-seasons-{width}.png");
             }
-            var resources = Get<MoviePilotResourcePanel>(page, "MediaResources");
-            var search = Descendants(page).OfType<Button>().First(button => button.Name == "SearchMediaEpisode");
+            // 资源搜索改成跳到搜索页（2026-11-22）：集搜索先在详情页弹站点表，确认后把完整身份交给外壳。
+            await UntilAsync(() => page.MediaViewModel.CanInteract);
+            var currentSeason = vm.Seasons.Single();
+            var episode = currentSeason.Episodes[0];
+            // 组切换后旧折叠栏可能仍在回收树里，按当前行的命令找到真正可交互的按钮。
+            await UntilAsync(() => Descendants(page).OfType<Button>().Any(button => button.Name == "SearchMediaEpisode"
+                && button.IsEnabled && button.IsLoaded && ReferenceEquals(button.Command, episode.SearchCommand)));
+            var search = Descendants(page).OfType<Button>().Single(button => button.Name == "SearchMediaEpisode"
+                && button.IsEnabled && button.IsLoaded && ReferenceEquals(button.Command, episode.SearchCommand));
+            var sitePicker = Get<MoviePilotSitePicker>(page, "SearchSitePicker");
+            var catalogueReads = server.SiteCatalogueReads.Count;
             InvokeSubscriptionButton(search);
-            Require(resources.Visibility == Visibility.Visible && !Get<ScrollViewer>(page, "DetailScroll").IsHitTestVisible,
-                "集搜索没有打开真实资源面板或在淡出期间底层仍可交互");
-            await UntilAsync(() => Get<ScrollViewer>(page, "DetailScroll").Visibility == Visibility.Collapsed);
-            Require(server.Writes.Count == 0, "打开资源面板触发订阅或下载");
+            await UntilAsync(() => sitePicker.CurrentDialog is not null);
+            var siteDialog = sitePicker.CurrentDialog!;
+            await UntilAsync(() => server.SiteCatalogueReads.Count > catalogueReads && siteDialog.ViewModel.Sites.Count > 0);
+            Require(server.SiteCatalogueReads.Skip(catalogueReads).All(path => path == "/api/v1/site/"),
+                "集搜索选站没有读取不限类型目录");
+            await LayoutAsync((FrameworkElement)siteDialog.Content);
+            Require(siteDialog.ViewModel.UseDefault && siteDialog.ViewModel.Selection is null
+                && siteDialog.ViewModel.SelectedCount == 0 && Get<CheckBox>(siteDialog, "UseDefaultSites").IsChecked == true,
+                "集搜索选站没有沿用本机默认站点");
+            await UntilAsync(() => DialogDismiss.TemplatePart(siteDialog, "PrimaryButton") is Button
+            { IsLoaded: true, ActualWidth: > 0, ActualHeight: > 0 });
+            await UntilAsync(() => siteDialog.IsPrimaryButtonEnabled);
+            ClickDialogPrimary(siteDialog);
+            await UntilAsync(() => searched.Count == 1);
+            Require(searched[0].Media.Season == currentSeason.Season.Number && searched[0].Options.Episode == episode.Episode.Number,
+                "集搜索没有把所点剧集组的季集交给搜索页");
+            Require(searched[0].Sites is null && service.SearchSitePreference().UseDefault,
+                "默认站点确认后应省略具体站点编号并保留本机默认模式");
+            Require(server.Writes.Count == 0, "集搜索触发订阅或下载");
         }
         finally { page.Release(); _root.Children.Remove(page); ResizeInspect(1420, 980); }
     }

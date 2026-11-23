@@ -110,6 +110,18 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         _seededEpisode = autoEpisode;
         _all.Clear();
         _all.AddRange(rows);
+        RefreshResults(resetFilters: true);
+        if (autoEpisode is { } episode) SelectedEpisode = EpisodeChoice(episode);
+    }
+
+    internal void AppendResults(IEnumerable<MoviePilotResourceRow> rows)
+    {
+        _all.AddRange(rows);
+        RefreshResults(resetFilters: false);
+    }
+
+    private void RefreshResults(bool resetFilters)
+    {
         _groups.Clear();
         var byResource = new Dictionary<MoviePilotResource, MoviePilotResourceRow>(ReferenceEqualityComparer.Instance);
         foreach (var row in _all) byResource[row.Resource] = row;
@@ -135,11 +147,23 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
             .Select(row => row.Resource.DownloadFactor!.Value).Distinct().Order()
             .Select(factor => (factor.ToString(CultureInfo.InvariantCulture),
                 factor == 0 ? "免费" : factor == 1 ? "普通" : $"{factor * 100:0.##}%")));
-        SortIndex = 0;
-        SortDescending = true;
+        if (resetFilters)
+        {
+            SortIndex = 0;
+            SortDescending = true;
+        }
         _resetting = false;
-        Reset();
-        if (autoEpisode is { } episode) SelectedEpisode = EpisodeChoice(episode);
+        if (resetFilters) Reset();
+        else
+        {
+            var season = SelectedNumber(SelectedSeason);
+            var seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToHashSet();
+            FillNumbers(Episodes, AllEpisodes, "E", EpisodeChoices(_all
+                .Where(row => (season is null || row.Resource.Seasons.Contains(season.Value))
+                    && (seasons.Count == 0 || row.Resource.Seasons.Any(seasons.Contains)))
+                .SelectMany(row => row.Resource.Episodes)));
+            Apply();
+        }
         OnPropertyChanged(nameof(FiltersVisibility));
     }
 
@@ -321,17 +345,12 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
 
     private static void FillNumbers(ObservableCollection<string> choices, string all, string prefix, IEnumerable<int> values)
     {
-        choices.Clear();
-        choices.Add(all);
-        foreach (var value in values.Distinct().Order()) choices.Add($"{prefix}{value:00}");
+        Sync(choices, new[] { all }.Concat(values.Distinct().Order().Select(value => $"{prefix}{value:00}")).ToArray());
     }
 
     private static void FillChoices(ObservableCollection<string> choices, string all, IEnumerable<string?> values)
     {
-        choices.Clear();
-        choices.Add(all);
-        foreach (var value in values.Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase))
-            choices.Add(value);
+        Sync(choices, new[] { all }.Concat(values.Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase)).ToArray());
     }
 }

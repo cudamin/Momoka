@@ -27,6 +27,8 @@
             </Button>
         </Grid>
     </ContentDialog.Title>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
     <ScrollViewer x:Name="SiteDialogScroll" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
         VerticalScrollBarVisibility="Auto" IsVerticalScrollChainingEnabled="False" Padding="0,0,4,0">
         <StackPanel x:Name="SiteDialogBody" Spacing="12">
@@ -34,13 +36,6 @@
                 <local:WrapRow x:Name="SiteActions" Spacing="8" RowSpacing="8">
                     <Button x:Uid="MoviePilotSiteDialog_SelectAllSites" x:Name="SelectAllSites" Content="全选" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.SelectAllCommand}" />
                     <Button x:Uid="MoviePilotSiteDialog_ClearSelectedSites" x:Name="ClearSelectedSites" Content="清空" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.ClearSelectionCommand}" />
-                    <Button x:Uid="MoviePilotSiteDialog_ReloadSites" x:Name="ReloadSites" Style="{StaticResource SiteDialogActionStyle}" Command="{x:Bind ViewModel.RefreshCommand}"
-                        AutomationProperties.Name="刷新站点目录" ToolTipService.ToolTip="重新读取站点目录">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgCaptionFontSize}" />
-                            <TextBlock x:Uid="MoviePilotSiteDialog_Localization2" Text="刷新" />
-                        </StackPanel>
-                    </Button>
                     <TextBlock x:Name="SelectedSiteCount" Text="{x:Bind ViewModel.SelectionText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                         Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />
                 </local:WrapRow>
@@ -82,8 +77,18 @@
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
             </ContentControl>
-            <TextBlock x:Uid="MoviePilotSiteDialog_NoSearchSites" x:Name="NoSearchSites" Text="没有可供搜索的已启用站点，可点击刷新重试。" Style="{StaticResource EgCaptionStyle}"
+            <TextBlock x:Uid="MoviePilotSiteDialog_NoSearchSites" x:Name="NoSearchSites" Text="没有可供搜索的已启用站点。" Style="{StaticResource EgCaptionStyle}"
                 TextWrapping="Wrap" Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
         </StackPanel>
     </ScrollViewer>
+        <!-- 搜索页那一份站点表（用户令 2026-11-22）：在「完成」左边多一颗「立即搜索」。
+             自定义底栏而不是 ContentDialog 的 Secondary 键：框架的双键模板把按钮平分整行，
+             两颗键会隔着一大段空白，不像一左一右挨着。立即搜索用次要样式，完成仍是强调键。 -->
+        <Grid x:Name="SearchNowFooter" Grid.Row="1" Margin="0,12,0,0" ColumnSpacing="8" HorizontalAlignment="Right"
+            Visibility="{x:Bind SearchNowVisibility}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <Button x:Uid="MoviePilotSiteDialog_SearchNow" x:Name="SearchNowButton" Content="立即搜索" Style="{StaticResource EgSecondaryButtonStyle}" Click="OnSearchNow" />
+            <Button x:Uid="MoviePilotSiteDialog_Complete" x:Name="CompleteButton" Grid.Column="1" Content="完成" Style="{StaticResource SiteDialogConfirmStyle}" Click="OnComplete" />
+        </Grid>
+    </Grid>
 </ContentDialog>

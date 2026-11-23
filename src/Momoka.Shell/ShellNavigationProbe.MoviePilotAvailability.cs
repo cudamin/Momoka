@@ -38,8 +38,8 @@ internal sealed partial class ShellNavigationProbe
             var page = (LibraryPage)frame.Content;
             await LayoutAsync(page);
             var tabs = Get<Segmented>(page, "SourceTabs");
-            Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 4,
-                "仅开启但未连接时固定四个搜索来源消失");
+            Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 5,
+                "仅开启但未连接时固定五个搜索来源消失");
             tabs.SelectedIndex = 1;
             await LayoutAsync(page);
             var unavailable = Get<StackPanel>(page, "SearchUnavailableSurface");

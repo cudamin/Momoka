@@ -202,6 +202,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => subscriptionCovers.ViewModel.Movies[0].SubscriberAvatar is not null);
         });
         AddCheck("InspectMoviePilotMenus", "MP 菜单未附加播放器与能力恢复", MoviePilotMenusAsync, ShellProbeSections.MoviePilot);
+        AddCheck("InspectMoviePilotSearchJump", "MP 详情选站与资源字幕跳页搜索", MoviePilotSearchJumpAsync, ShellProbeSections.MoviePilot);
+        AddCheck("InspectMoviePilotMediaSearch", "MP 剧集组与集搜索身份", MoviePilotMediaBrowsingAsync, ShellProbeSections.MoviePilot);
         AddCheck("InspectMoviePilotManagement", "MP 媒体管理菜单与权限恢复", MoviePilotMediaManagementAsync, ShellProbeSections.MoviePilot, 120);
         AddCheck("InspectMoviePilotSeasons", "MP 季订阅关窗与提交", MoviePilotSeasonSelectionAsync, ShellProbeSections.MoviePilot);
         AddCheck("InspectMoviePilotSeriesResources", "MP 剧资源菜单检查", MoviePilotSeriesReorganizeAsync);

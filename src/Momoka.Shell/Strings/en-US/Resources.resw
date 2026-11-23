@@ -1792,6 +1792,12 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="LibraryPage_Localization6.Text" xml:space="preserve">
     <value>MoviePilot releases</value>
   </data>
+  <data name="LibraryPage_MoviePilotSubtitleTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search MoviePilot subtitles</value>
+  </data>
+  <data name="LibraryPage_MoviePilotSubtitleTabText.Text" xml:space="preserve">
+    <value>MoviePilot subtitles</value>
+  </data>
   <data name="LibraryPage_AniBtSourceTab.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Search AniBT</value>
   </data>
@@ -2836,15 +2842,6 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="MoviePilotSiteDialog_ClearSelectedSites.Content" xml:space="preserve">
     <value>Clear</value>
   </data>
-  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Refresh site directory</value>
-  </data>
-  <data name="MoviePilotSiteDialog_ReloadSites.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>Reload site directory</value>
-  </data>
-  <data name="MoviePilotSiteDialog_Localization2.Text" xml:space="preserve">
-    <value>Refresh</value>
-  </data>
   <data name="MoviePilotSiteDialog_UseDefaultSites.Content" xml:space="preserve">
     <value>Default sites</value>
   </data>
@@ -2852,7 +2849,13 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Default sites follow MoviePilot. Select cards or Select all to choose specific sites. Confirm saves your choice; Cancel leaves it unchanged.</value>
   </data>
   <data name="MoviePilotSiteDialog_NoSearchSites.Text" xml:space="preserve">
-    <value>No enabled sites are available for searching. Refresh to try again.</value>
+    <value>No enabled sites are available for searching.</value>
+  </data>
+  <data name="MoviePilotSiteDialog_SearchNow.Content" xml:space="preserve">
+    <value>Search now</value>
+  </data>
+  <data name="MoviePilotSiteDialog_Complete.Content" xml:space="preserve">
+    <value>Done</value>
   </data>
   <data name="MoviePilotSitePicker_SiteLabel.Text" xml:space="preserve">
     <value>Search sites</value>

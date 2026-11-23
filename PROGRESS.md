@@ -18,6 +18,22 @@ Core、Tests 和 Shell Release 编译通过。代理专项 7/7，回环代理核
 
 本树 Release 编译零警告、零错误，搜索生命周期 53/53。分支发布件用实体退格键的扫描码在真实媒体库验证单字、选区、全选、空框、拼音组字及确认后的删除，未播放或写入服务端。补删后的 Ctrl+Z 未恢复文字。发布 DLL SHA256 为 C60BAC93A3D5D025217C8AB903A740F6D9FFDA35AE7909059FC69804B111FD8E，分支桌面入口已核对，待合并。实测记录见 `artifacts/search-key-repro/final-live.log`。
 
+## 2026-11-23 搜索框恢复系统文字编辑（分支 branch-X8LTcG）
+
+提交 `73f4987`。依用户确认保留 WinUI 输入框原生 Delete、Backspace、选区及撤销行为，移除应用层 Delete 拦截，保留组字期间的搜索提交保护。
+
+Release 构建零警告零错误，搜索生命周期 51/51。匿名 AniBT 搜索窗口（`shell-probe-20261123-074046651-14380`）用系统按键注入并以 UIA 读回：光标在中间按 Delete、撤销、末尾按 Delete 保留文字、Backspace、部分选中和全选删除、空框操作均通过。未做真实输入法组字验证。
+
+已刷新本树体验版及桌面快捷方式，目标和工作目录回读通过。发布 DLL SHA256 为 957757249EE117FF42EAB9C53A62CB6D22074A97435B310CCF324399FE5AF54B，最终发布件匿名 AniBT 窗口再次通过六项按键核对，发布日志见 artifacts/search-native-edit-publish.log。分支待合并。
+
+## 2026-11-23 搜索框 Delete 和输入法回车（分支 branch-X8LTcG）
+
+提交 `b0a188c`。搜索页的原生编辑框处理 Delete 前向删除和选区删除，修饰键与组字按键交给系统。移除回车抬起补搜，输入法组字期间不显式提交或启动防抖；文字确认后保留媒体库的输入防抖，普通回车及放大镜继续提交。
+
+当前树和独立暂存快照 Release 编译零警告零错误，搜索生命周期 54/54。当前树键盘流程 54/54、资源搜索 237/237、页面契约 403/403、架构 7/7。匿名原生搜索探针 12/13，搜索交互通过，宽窗来源栏的 480×32 DIP 断言失败（`shell-probe-20261123-072116497-3448`），尚未验证实键和真实输入法。
+
+已刷新本树体验版和 `Momoka-branch-X8LTcG.lnk`，快捷方式目标和工作目录回读通过。发布验证 548 个文件，`Momoka.dll` SHA256 `BD6AB0781316E2C037722480199E329475E5B2B05E6FEAAE4C5BA819F47C2EC7`，日志 `artifacts/search-input-publish.log`。分支待合并。
+
 ## 2026-11-23 媒体库搜索的订阅封面管理（分支 branch-X8LTcG）
 
 搜索页「媒体库」结果中的订阅封面漏接了管理事件。接回订阅列表共用的菜单与确认流程，菜单锚定封面的更多按钮；点封面仍打开详情。管理提交后按当前连接同步订阅卡片及媒体角标，确认取消订阅后立即移除对应命中。离页、切来源或断线时撤销旧页面的管理操作。
@@ -31,6 +47,88 @@ Core、Tests 和 Shell Release 编译通过。代理专项 7/7，回环代理核
 核对官方 `discover/browse.vue` 与 `app/api/endpoints/media.py`：稳定 v3.2.9 前端 `dbad4059d158eca46b667db359951ce049563fb8`、后端 `b186df432f2f1657f2e2e70e1fdedf78b4f3bde8`，以及检查时的前端 `96123f1b8a0d98bb419a7346af20dfc29e034b45`、后端 `68e62a007ba6eb820014d16d94430b483e558bf2`。本批未改变媒体搜索请求参数或上游服务缓存，也未连接真实部署。
 
 本树 Core、Shell、三个专项 Release 编译零警告零错误。搜索生命周期 48/48，订阅设置 79/79，页面契约 402/402，零失败零跳过。体验产物由包含前序未提交改动的本树在 13:52 发布，载荷校验通过；已回读分支桌面快捷方式，Shell 和 Core 的发布哈希分别与编译件一致。发布日志 `artifacts/mp-subscription-cache-publish.log`。分支待合并，暂无真实窗口关开、恢复位置或服务器结果证据。
+
+## 2026-11-23 MoviePilot 选站恢复本机偏好并移除刷新按钮（分支 branch-X8LTcG）
+
+详情页的标题、IMDb、字幕选择和搜索页恢复共用本机不限类型站点偏好。确认搜索后保存偏好并跳转，默认模式省略站点参数，手动清空会阻止开搜。选站表移除刷新按钮，每次打开自动读取目录，失败可关闭重开。标题、IMDb、字幕的身份与搜索协议沿用前一批。站点偏好变化后保留现有资源，停止旧查询及续页。
+
+Release Shell 和相关测试编译零警告零错误。资源 237/237、页面 402/402、站点弹窗 18/18、搜索生命周期 44/44、页头 21/21。匿名检查台验证详情选站、资源／字幕跳转和剧集组搜索 2/2，报告 `shell-probe-20261123-051716465-23944`。本次和前序未提交改动共用同一工作区，分支待合并。真实服务和在线对比沿用用户取消后的验收范围。
+
+分支体验版于 13:20 发布，载荷验证通过。已回读桌面 `Momoka-branch-X8LTcG.lnk` 的目标和起始目录，均指向本树新版本。编译和发布的 Shell DLL 哈希一致，SHA256 为 `063CB84852BDBB46580DD934EF09037365D94E0BF9C9796FD72D27843D803F75`。发布日志 `artifacts/mp-site-restore-publish.log`。文档链接、命令语法及变更文件格式检查通过。
+
+## 2026-11-23 MoviePilot 详情标题、IMDb、字幕与临时选站按上游源码修正（分支 branch-X8LTcG，临时选站已由上批替代）
+
+用户要求参考 MoviePilot 源码修正搜索和选站。用户随后明确取消真实网页端与 Momoka 的在线结果对比，本轮收尾使用离线回归与匿名原生检查。
+
+工作树已由用户移到 `C:/Users/89400/.codex/visualizations/2026/11/23/01a20660-bf3d-7293-b17a-a7a90d564650/fix-cover-preset-duplicate-YHgnsO/branch-X8LTcG`，分支 `branch-X8LTcG`，基点 `f7766c9`。源码与测试保留在工作区，尚未提交。当前修复依赖前序未提交的资源缓存、字幕来源与导航文件，同一文件包含两个批次的差异，未找到本轮开始源码基线，无法安全形成仅含本轮改动的独立提交。前序内容继续保留，台账开放。
+
+本轮已读官方前端 v3.2.9 `dbad4059d158eca46b667db359951ce049563fb8`、后端 v3.2.9 `b186df432f2f1657f2e2e70e1fdedf78b4f3bde8`，并核对当时 v3 前端 `4e4b15fe24dca8620c97a40c9398840292373758` 和后端 `68e62a007ba6eb820014d16d94430b483e558bf2`。主要入口为 MediaDetailView.vue、resource.vue、SearchSiteDialog.vue、useSearchPagination.ts、search.py、chain/search/facade.py 与 manual.py。此前只读服务版本为 v3.2.9，本轮后续缓存补查的 resource.vue/search.py 未重新证明固定版本归属。
+
+详情标题与 IMDb 搜索使用媒体检索接口，保留原生来源、编号、类型、标题、年份和实际季号，area 分别为 title/imdbid。资源请求沿上游保留季号，首轮展示全部返回对象。字幕保留季集、标题和年份，优先读取 SSE，首轮连接或解析失败回普通 GET，业务拒绝显示安全错误，401 仍触发会话重登。分页从完整 replace、末尾 replace_batch 或 done 读取来源摘要，等待完整结果和 done 后发布，按来源独立续页，失败来源保留原页号。重复资源原样追加，已有筛选与排序在追加后保留。
+
+三个详情入口统一在当前详情页读取公开默认站点与对应媒体类型启用目录，预选交集，确认后把本次临时选择与完整影片身份交给搜索页。零选阻止确认，空目录继续使用服务器原默认编号。搜索页消费导航请求后清掉一次性指令，返回恢复缓存，改站点取消旧搜索并撤回续页状态。季号回退保留 0 与非默认季号，资源首轮保持全量结果。
+
+本树 Shell 与受影响测试 Release 编译均为零警告零错误。资源搜索 233/233，含新增详情回归 38 项，页面契约 402/402，搜索生命周期 44/44，页头 21/21，选站流程 16/16，导航 10/10，协议边界 92/92，Cookie 归属 14/14。完整主测试最终串行 5344/5344，零失败零跳过，日志 `artifacts/mp-parity-main-tests-serial.log`。上一轮同时运行探针造成 16 条共享自检锁失败，锁释放后隔离专项 21/21 并完整串行复验通过。首次默认沙箱的本机目录权限与 SMB 环境失败保留在原日志。范围有重叠，数字不累加。
+
+原生 moviepilot 分区首次 38 项通过 36、失败 2，日志 `shell-probe-20261123-042756088-23172`。详情跳页检查在弹窗 ShowAsync 前已有目录时抢读 ToggleButton，已补正文排版与当前草稿行实现等待。剧集组检查使用硬编码季号并读取回收树旧集按钮，改为按当前季行 SearchCommand 定位真实按钮。两个检查加入匿名检查台定向入口，保留默认预选、临时改选、实际确认、完整身份、所点季集和零写入断言。最终定向两项均通过，报告 `shell-probe-20261123-045254366-14600/logs/shell-probe.json`，UIA 点击两项后按 InspectDone 正常退出。初次隐藏启动导致宿主可见初始化失败，以及中间版本定位回收旧行的失败保留原报告；修正后真实定向通过。当前证据覆盖两项定向检查。
+
+最终分支体验发布已通过，548 个文件、290.7 MB，14 GLSL、4 HOOK 与批准 mpv 清单 60 文件校验通过。2026-11-23 12:57 的 `Momoka.dll` 10,397,696 字节，SHA256 `04D09D745581703782021F984003BB36566A2EE7BBC3360B45658E1D143D6605`，Core SHA256 `F5F3269F7FB688B14485F757835BDEFF8AC7C0E0A013711A701EFEC2148F7D3B`。日志 `artifacts/mp-parity-publish-final.log`。桌面 `Momoka-branch-X8LTcG.lnk` 已刷新，真实本机权限回读目标与工作目录均为本树 `artifacts/publish/win-x64`，目标存在。最终 bin 与发布 Momoka.dll 哈希相同，发布后只更新记录。
+
+文档链接 183 文件零断链，文档命令 153 代码块零问题，63 个变更文本的行尾／BOM／空白与凭据零疑似检查通过。架构 7/7，修改后的探针文件空白格式检查通过。额外扫描完整测试日志发现 6 个测试名称中用于凭据安全回归的 URL 形状，已对证据日志脱敏并复查零疑似，测试汇总保持原结果。默认沙箱映射工作树被载荷验证识别为重解析路径，发布已从真实本机工作树执行成功。
+
+本轮在线实际结果对比已按用户要求取消。真实服务器字幕下载、五套主题与 DPI、窄窗、实际键盘／鼠标交互和快速前进返回仍待统一验证。
+
+## 2026-11-23 订阅／媒体详情三个搜索入口跳转即搜、字幕搜索可选站点与来源钉定（分支 branch-X8LTcG，日常界面批次）
+
+用户附订阅详情操作排与搜索页两张截图三条：「我点了搜索之后也没触发搜索啊？」「搜索字幕按钮怎么不能选择站点」「三个搜索项目点击搜索跳到搜索页面后要直接触发对应的搜索」。树 `c:/Users/89400/.trae-cn/worktrees/fix-cover-preset-duplicate-YHgnsO/branch-X8LTcG`，分支 `branch-X8LTcG`，基点 `f7766c9`，未提交、未合并、未上传；承接同日上一批（资源搜索改跳搜索页、五个来源、MoviePilot 字幕来源）。
+
+**探针先复现三个根因。** 一、纯媒体页（从搜索／推荐打开、没有订阅）构造 `MoviePilotSubscriptionRequest` 时没交 `OpenResourceSearch`／`OpenSubtitleSearch`，操作排上的「搜索资源」「搜索字幕」只是摆着，点了什么都不发生。二、详情页站点表按影片类型存偏好，而跳过去的搜索页做的是关键词资源／字幕搜索、读的是「不限类型」那一份：刚勾的站点跨页就丢；若那一份是「不用默认站点且一个也没勾」，搜索页连请求都不发，只留一句「请先选择搜索站点」。三、导航时写进 `SourceTabs.SelectedIndex` 的来源会被来源标签在加载时改回第一项，页面停在媒体库；那一格一接管就把刚由请求触发、正在飞的资源搜索一起收掉 —— 用户截图里的「媒体库 + 查询词」正是这个状态。
+
+**改法。** `ShellPage.OpenMoviePilotMedia` 补上两个搜索回调。详情页站点表改存／读「不限类型」那一份；「搜索字幕」与「搜索资源」同一条路：先在本页弹站点表，确认后才把影片身份交给外壳，取消则什么都不发生。搜索页的 MoviePilot 字幕来源接上同一颗站点入口（资源与字幕共用搜索框里那一颗，切来源时换绑），字幕请求带所选站点，没有选择时给出提示而不是静默不发；复用面板时用新的 `MoviePilotSitePickerViewModel.ReloadPreference()` 重读站点偏好（只读设置、不打断在飞的目录读取，连接换过才整份重接）。`ApplySource` 先接上要显示的那一格、再让别的收手，当前格在飞的搜索不会被补发的来源变更取消。来源标签在页面落定的一小段窗口里若被控件改回第一项就钉回请求的来源（`_requestedSource`／`TrackSourcePin`，第一次排版对上即收手；指针按下或方向键之后不再干预，程序化切换在落定后照常生效）。
+
+**探针。** 新增 `MoviePilotSearchJumpAsync`（moviepilot 分区）：详情页选站点→确认→词交给外壳；来源 2 进来就用这个词真搜、带 `sites=2` 并铺出结果；「搜索字幕」同样弹表并交出影片身份；来源 3 进来直接读字幕、带 `sites=2` 并铺出结果（面板上一轮已建过也照读）。修正三处过时断言：固定五个来源、集搜索改为站点表 + 交词（不再有页内 `MediaResources`）、订阅探针服务器补站点目录／关键词资源／字幕接口并对 SSE 进度流回 404 让客户端回退普通 GET。用例收尾把前台交回探针窗口，避免弹层关闭后影响后续用例。
+
+**验证。** Shell Release 0 警告 0 错误；`Momoka.PageContractTests` **402/402**、`Momoka.SearchLifetimeTests` **44/44**、`Momoka.ResourceBrowserTests` **194/194**、`Momoka.SiteDialogFlowTests` **16/16**，0 失败 0 跳过；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过。`--probe-shell --probe-section moviepilot --screen 1` 38 例：新增与收紧的用例全部通过；三条与本批路径无关的用例红：`MoviePilot 删库文件后主页原地摘卡…`（滚动请求没到位，读数里窗口只有 1264×892）、`MoviePilot 剧资源按 TMDB 筛选…`（`defaultOff` 长用例，菜单展开等待超时）、`MoviePilot 订阅详情沉浸与简洁模式切换`（长货架首项未虚拟化）；同一批在前几轮也出现过不同的无关红，按规则不重跑洗绿，记环境红。全部匿名离线，无登录、播放或服务器写入。
+
+**分支体验发布。** `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-branch-X8LTcG` 通过：548 文件、290.7 MB，14 GLSL、4 HOOK 与批准 mpv 清单 60 文件校验通过；`Momoka.dll` 10,382,848 字节、SHA256 `ACB054EB9436FE9791F2B67EFBD8A41ECF3F9DCB2F963A73D7E93604EE712B6C`（2026-11-23 02:03）。桌面 `Momoka-branch-X8LTcG.lnk` 的 TargetPath 与 WorkingDirectory 已回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
+
+**未验。** 真实 MoviePilot 下三个入口的站点表时序与结果、按 IMDb 搜索的实际命中、字幕接口返回与下载；纯媒体详情（搜索／推荐打开）上的两颗搜索键；搜索页五个来源在窄窗／DPI／五套主题下的排布；来源钉定在快速返回／前进与真实指针下的手感。日常不跑探针与截图（本轮因改探针才跑），分支未合并 master，台账保持开放。
+
+## 2026-11-22 资源搜索改跳搜索页、MoviePilot 字幕来源与站点表立即搜索（分支 branch-X8LTcG，日常界面批次）
+
+用户附订阅详情与搜索页两张截图四条：「1.选择站点的弹窗的界面要保持在订阅详情页，不要切到另一个页面 2.触发搜索后自动跳转到搜索页面，舍弃当前的订阅详情页资源搜索界面 3.持久化保存MoviePilot 资源 搜索的资源，搜索其他资源时重置 4.在搜索页面的mp搜索 选择站点弹窗处的完成左边新增一个立即搜索按钮」。两问后选定：结果只在本次运行内保留；三个入口都改走搜索页；「搜索字幕」在搜索页新增「MoviePilot 字幕」一栏。
+
+树 `c:/Users/89400/.trae-cn/worktrees/fix-cover-preset-duplicate-YHgnsO/branch-X8LTcG`，分支 `branch-X8LTcG`，基点 `f7766c9`，未提交、未合并、未上传。本批取代同日上一批（`UseSiteDialog`／页内资源面板）在订阅详情页的那一半。
+
+**订阅详情。** 页内的 `MoviePilotResourcePanel` 与成套覆盖层代码撤掉：`IShellBackHandler` 与 `ShellPage.GoBack` 里的改道、`UseSiteDialog`／`PromptSitesAsync`／`SearchOnSiteConfirm`、面板 Esc 加速器、`TitleBleed` 都不再服务这一页。页面只留一颗隐藏的 `MoviePilotSitePicker`，借它的 `XamlRoot` 在本页弹站点表（用户令「选择站点的弹窗的界面要保持在订阅详情页」）。「按标题搜索」「按 IMDb 搜索」与季集行的资源搜索都在本页弹表，确认后由外壳 `OpenMoviePilotResourceSearch` 跳到搜索页的 MoviePilot 资源来源，并用刚算好的关键词自动搜一次（IMDb 用媒体详情里的 `imdb_id`，取不到退回片名；季集入口仍拼「剧名 S0x E0x」）。「搜索字幕」交给 `OpenMoviePilotSubtitleSearch`，带着这部剧的 MoviePilot 身份跳到 MoviePilot 字幕来源直接读字幕。单集检索不再开第二个窗口。
+
+**搜索页。** 来源从四个变五个：媒体库／MoviePilot 订阅／MoviePilot 资源／MoviePilot 字幕／AniBT（索引 3、4 顺延；窄窗文案、UIA 名与来源可用性判据同步）。新增 `MoviePilotSubtitlePanel` 与 `MoviePilotSubtitleSearchViewModel`：关键词先按片名找片，点一部影片读它的字幕、下载沿用保存目录确认；从订阅详情带身份进来时跳过找片。MoviePilot 资源的上一批结果由单例 `MoviePilotResourceSearchCache` 在本次运行内保留：连接与关键词都相同才复原，任何一次新搜索（成功、空结果或失败）一开始就把缓存整份换掉；从详情跳来的那一次始终真搜，不拿缓存顶替。搜索页站点表把「完成」「立即搜索」做成底栏两颗自定义键（框架双键模板会平分整行、在中间留一大段空白）：立即搜索在左、完成在右，完成只保存这次选择，立即搜索保存后当场按框里的词重搜。
+
+**验证。** 全方案 `tools/quality.ps1` **9/9 通过**（`artifacts/quality/20261122-222655`）：编译 0 警告 0 错误、空白、64 个脚本、183 篇文档链接、153 个命令块、凭据 0 命中、架构 7/7、重复代码 68 段 0.48%、diff。`Momoka.Tests` 完整套件 **5344/5344、0 失败 0 跳过**（144 秒）；`Momoka.ResourceBrowserTests` **194/194**（新增缓存同词复原／换词重置、字幕来源找片与直接读字幕、空词零请求、「立即搜索」底栏契约）；`Momoka.SiteDialogFlowTests` **16/16**（新增完成只保存、立即搜索保存并搜索、底栏亮暗）；`Momoka.PageContractTests` **398/398**（改写订阅详情与搜索页五条契约）；`Momoka.SearchLifetimeTests` **44/44**、`Momoka.LibraryHeaderTests` **21/21**、`Momoka.NavigationStateTests` **10/10**。全部匿名离线，无窗口、登录、播放或服务器写入。
+
+**未验。** 真实 MoviePilot 下的站点表时序、跳页后自动搜索与字幕接口返回、搜索结果缓存跨页复原的实际手感；搜索页五个来源在窄窗／DPI／五套主题下的排布；新字幕列表的五套主题与下载目录弹窗；原生探针、自检与验收截图按日常界面规则未跑。分支内容尚未合并 master，台账保持开放。
+
+**分支体验发布。** 用户令「快捷方式」后按日常收尾发布：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-branch-X8LTcG` 通过——548 文件、290.7 MB，14 GLSL、4 HOOK 与批准 mpv 清单 60 文件校验通过；`Momoka.exe`（应用宿主）668,160 字节，实际代码在 `Momoka.dll`（10,363,392 字节、SHA256 `44543C769162B6BA80FCB3EB51F9B9F2CE3B170C98DF2F52B8724562DBC98D25`，2026-11-22 23:55，含同日跨页复搜补修）。桌面 `Momoka-branch-X8LTcG.lnk` 的 TargetPath 与 WorkingDirectory 已回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。
+
+**同日补记（跨页跳回已建面板）。** 用户指出不宜另开工作树，本批继续在 `branch-X8LTcG` 上修：搜索页 → 订阅详情 → 再从详情点「搜索资源」跳回时，`EnsureMoviePilotResources`／`EnsureMoviePilotSubtitles` 因面板已建而早返回，跨页请求 `_pendingMoviePilotResourceSearch`／`_pendingMoviePilotSubtitle` 不会被消费，表现为只把词填进搜索框、不触发搜索。两处改为「面板已存在也统一在方法末尾消费请求」：资源请求用当前搜索框的词真搜，字幕请求直接读带入的影片；新建面板时仍先恢复缓存，有跨页请求则不恢复。`tests/Momoka.PageContractTests/SubscriptionResourceFlowTests.cs` 同步改写两处旧断言并新增「面板已建过时跨页请求仍执行」。验证：Shell Release 0 警告 0 错误；`Momoka.PageContractTests` **399/399**、`Momoka.SearchLifetimeTests` **44/44**，0 失败 0 跳过。未跑探针与截图；真实 MoviePilot 下的复搜路径仍待统一验证。
+
+## 2026-11-22 订阅详情资源搜索改站点弹窗直搜与沉浸标题接缝（分支 branch-X8LTcG，日常界面批次；页内部分已被上一批取代）
+
+用户附订阅详情资源结果页截图两条：「从订阅详情页点击搜索后要弹出选择站点弹窗，点击搜索后要直接搜索，去掉上图左上角的返回还有右上角的搜索资源」「修复沉浸模式下标题和下方颜色不一致的问题」。两问后选定：结果页退出走窗口标题栏返回（含 Alt+←、鼠标侧键）与 Esc；首次站点弹窗取消即退回订阅详情。
+
+树 `c:/Users/89400/.trae-cn/worktrees/fix-cover-preset-duplicate-YHgnsO/branch-X8LTcG`，分支 `branch-X8LTcG`，基点 `f7766c9`，未提交、未合并、未上传。
+
+**搜索流程。** 订阅详情的资源面板改为「进入即弹站点表、确认直接开搜」：`MoviePilotResourcePanel.UseSiteDialog` 撤掉面板上的「返回」「搜索资源」两颗键，打开站点表的 `SearchOnConfirm` 并让确认事件直接调 `SearchAsync`；页面在 `OpenResources` 末尾调用新的 `PromptSitesAsync`，首次确认即搜、取消（含 Esc／点外）连面板一起收起。结果页里的「搜索站点」仍打开同一张表，改完点「搜索」重搜；提示语按有无那颗键分两种，不再让人点已撤掉的键。搜索页的覆盖面板不调这个入口，返回与搜索资源原样保留。
+
+**退出。** 新增内部接口 `IShellBackHandler`，`ShellPage.GoBack` 先问当前页；订阅详情在资源面板打开时收面板并吃掉这一按，再按才退页面。面板另挂 Esc 加速器，站点弹窗在场时让给弹窗自己关表。
+
+**标题接缝。** 沉浸模式下页面从标题栏下沿开始画，资源面板的实色纸面与标题栏那一格仍露着的详情页剧照断成两种颜色。面板新增 `TitleBleed`：按控件相对 XamlRoot 的实测偏移把 `EgWindowBrush` 往上铺满标题栏那一格；商店模式仍由外壳的实色标题栏盖住，搜索页那一份同样受益。
+
+**验证。** 全方案 `tools/quality.ps1` **9/9 通过**（`artifacts/quality/20261122-202243`）：编译 0 警告 0 错误、空白、64 个脚本、183 篇文档链接、153 个命令块、凭据 0 命中、架构 7/7、重复代码 66 段 0.46%、diff。`Momoka.Tests` 完整套件 **5344/5344、0 失败 0 跳过**（146 秒）；`Momoka.ResourceBrowserTests` **191/191**（新增两条：站点弹窗模式的空态与改站点提示、按钮模式的提示仍指向「搜索资源」）；`Momoka.PageContractTests` **397/397**（新增四条：首次弹表与直搜、两颗键撤掉而搜索页不变、返回／Esc 接线、标题纸色补齐）。`Momoka.NavigationStateTests` 需编译 `GoBack` 抽取源，补链生产 `IShellContent.cs` 后全方案编译通过。全部匿名离线，无窗口、登录、播放或服务器写入。
+
+**未验。** 真实 MoviePilot 服务器下的站点表时序与搜索耗时、真实沉浸窗口的标题栏接缝像素、五套主题／跟随系统／高对比、DPI、窄窗、键盘焦点与鼠标点外；原生探针、自检与验收截图按日常界面规则未跑。分支内容尚未合并 master，台账保持开放。
+
+**分支体验发布。** 用户令「快捷方式」后按日常收尾发布：本树原先缺被忽略的 `libmpv-2.dll`，从主树复制同一文件（101,242,880 字节）后运行 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-branch-X8LTcG` 通过——548 文件、290.7 MB，14 GLSL、4 HOOK 与批准 mpv 清单 60 文件校验通过；`Momoka.exe` 668,160 字节、SHA256 `A8702537E8A71A7A8BAEF81289DD6BECE8C68E571327ECAC302D0FF9F641FB63`（2026-11-22 20:33）。桌面 `Momoka-branch-X8LTcG.lnk` 的 TargetPath 与 WorkingDirectory 已回读为本树 `artifacts/publish/win-x64`，主树 `Momoka.lnk` 未覆盖。`libmpv-2.dll` 是忽略文件，不进入差异。
 
 ## 2026-11-22 叠卡悬浮扇形重设计（已合并 master，待统一验证）
 

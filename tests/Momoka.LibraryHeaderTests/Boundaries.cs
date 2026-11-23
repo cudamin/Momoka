@@ -168,7 +168,7 @@ namespace Momoka.Shell.Views
         private bool _attaching;
         internal (bool IsSearch, bool BoxShown) SearchState => (_request.IsSearch, true);
         private readonly HeaderRequest _request = new();
-        private readonly FrameworkElement _moviePilotPanel = new(), _moviePilotResources = new(), _aniBtPanel = new();
+        private readonly FrameworkElement _moviePilotPanel = new(), _moviePilotResources = new(), _moviePilotSubtitles = new(), _aniBtPanel = new();
         public HeaderViewModel ViewModel { get; } = new();
         public Grid HeaderLayout { get; } = new();
         public Grid PageRoot { get; } = new();

@@ -60,6 +60,9 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
         ? MoviePilotMediaSeason.Parse(seasons) : [];
     public string Genres => Names(MoviePilotSubscription.Member(Data, "genres"));
 
+    /// <summary>详情中的 IMDb 元数据编号（<c>tt…</c>），来源没给时是空串。</summary>
+    public string ImdbId => Text("imdb_id");
+
     /// <summary>出品国家，已按详情页的顿号连接；订阅页的 AniBT 入口据此判断日本动画。</summary>
     public string Countries => Names(MoviePilotSubscription.Member(Data, "production_countries"));
 

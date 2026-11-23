@@ -180,24 +180,38 @@ public sealed partial class MoviePilotService : IDisposable
         CancellationToken cancellationToken,
         MoviePilotSiteSelection? sites = null,
         MoviePilotMediaSearchOptions? options = null,
-        IProgress<MoviePilotSearchProgress>? progress = null)
+        IProgress<MoviePilotSearchProgress>? progress = null) =>
+        (await SearchMediaResourcesAsync(media, cancellationToken, sites, options, progress).ConfigureAwait(false)).Resources;
+
+    public Task<MoviePilotResourcePage> SearchDetailResourcesAsync(MoviePilotDetailSearch search, CancellationToken cancellationToken,
+        IProgress<MoviePilotSearchProgress> progress, MoviePilotSearchPage? page = null) =>
+        SearchMediaResourcesAsync(search.Media, cancellationToken, search.Sites, search.Options, progress, paged: true, page);
+
+    private async Task<MoviePilotResourcePage> SearchMediaResourcesAsync(MoviePilotMedia media, CancellationToken cancellationToken,
+        MoviePilotSiteSelection? sites, MoviePilotMediaSearchOptions? options, IProgress<MoviePilotSearchProgress>? progress,
+        bool paged = false, MoviePilotSearchPage? page = null)
     {
-        if (!media.CanSubscribe) return [];
+        if (!media.CanSubscribe) return new([], []);
 
         var identity = media.ConnectionStamp.Length == 0 ? CaptureIdentity() : RequireResultConnection(media.ConnectionStamp);
         var path = $"search/media/{Uri.EscapeDataString(media.MediaId!)}?media_source={Uri.EscapeDataString(media.MediaSource!)}";
         if (!string.IsNullOrWhiteSpace(media.Type)) path += $"&mtype={Uri.EscapeDataString(media.Type)}";
-        if (options is not null) path += "&area=" + (options.Area == "imdbid" ? "imdbid" : "title");
+        if (options is not null)
+            path += "&area=" + (options.Area == "imdbid" ? "imdbid" : "title") + SearchDisplayQuery(media);
         if (media.Season is >= 0 && media.Type == MoviePilotTransferRequest.TypeSeries)
             path += $"&season={media.Season.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
         path += SearchSitesQuery(sites);
-        var data = await ReadResourceSearchAsync(identity, path, progress, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<MoviePilotSearchPage> nextPages = [];
+        var streamQuery = paged ? "&manual_paging=true&page=" + (page?.Number ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
+        if (page is not null) streamQuery += "&source=" + Uri.EscapeDataString(page.Source);
+        var data = await ReadSearchAsync(identity, path, progress, cancellationToken, streamQuery: streamQuery,
+            pages: value => nextPages = value, continuation: page is not null, fallbackOnStreamFailure: paged).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var resources = MoviePilotMediaParser.ParseResources(data, media.MediaSource, media.MediaId, media)
             .Select(resource => resource with { ConnectionStamp = stamp }).ToList();
         Log.Info(Category, $"MoviePilot 为《{media.Title}》搜到 {resources.Count} 个资源");
-        return resources;
+        return new(resources, nextPages);
     }
 
     /// <summary>
@@ -217,7 +231,7 @@ public sealed partial class MoviePilotService : IDisposable
 
         var identity = CaptureIdentity();
         var path = $"search/title?keyword={Uri.EscapeDataString(text)}&page=0" + SearchSitesQuery(sites);
-        var data = await ReadResourceSearchAsync(identity, path, progress, cancellationToken).ConfigureAwait(false);
+        var data = await ReadSearchAsync(identity, path, progress, cancellationToken).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var resources = MoviePilotMediaParser.ParseResources(data, null, null)
@@ -226,8 +240,14 @@ public sealed partial class MoviePilotService : IDisposable
         return resources;
     }
 
-    private Task<System.Text.Json.JsonElement> ReadResourceSearchAsync(SessionIdentity identity, string path,
-        IProgress<MoviePilotSearchProgress>? progress, CancellationToken cancellationToken) =>
+    private static string SearchDisplayQuery(MoviePilotMedia media) =>
+        "&title=" + Uri.EscapeDataString(media.Title) + (media.Year is { } year
+            ? "&year=" + year.ToString(System.Globalization.CultureInfo.InvariantCulture) : "");
+
+    private Task<System.Text.Json.JsonElement> ReadSearchAsync(SessionIdentity identity, string path,
+        IProgress<MoviePilotSearchProgress>? progress, CancellationToken cancellationToken, bool subtitle = false,
+        string streamQuery = "", Action<IReadOnlyList<MoviePilotSearchPage>>? pages = null, bool continuation = false,
+        bool fallbackOnStreamFailure = false) =>
         CallAsync(async (apiBase, token, client) =>
         {
             if (progress is not null)
@@ -237,10 +257,20 @@ public sealed partial class MoviePilotService : IDisposable
                     CheckIdentity(identity, cancellationToken);
                     progress.Report(value);
                 });
-                var streamed = await client.SearchStreamAsync(apiBase, token, path, guarded, cancellationToken).ConfigureAwait(false);
-                if (streamed is { } result) return result;
-                progress.Report(new(null, "正在所选站点搜索资源…"));
+                try
+                {
+                    var streamed = await client.SearchStreamAsync(apiBase, token, path + streamQuery, guarded, cancellationToken, pages).ConfigureAwait(false);
+                    if (streamed is { } result) return result;
+                }
+                catch (MoviePilotException error) when (!continuation && (subtitle || fallbackOnStreamFailure)
+                    && error is not (MoviePilotSearchRejectedException or MoviePilotTokenExpiredException))
+                {
+                    // The resource cookie can be unavailable even when the ordinary API accepts the Bearer session.
+                    CheckIdentity(identity, cancellationToken);
+                }
+                guarded.Report(new(null, subtitle ? "正在所选站点搜索字幕…" : "正在所选站点搜索资源…"));
             }
+            if (continuation) throw new MoviePilotException("MoviePilot 未返回下一页，请重试");
             return await client.GetAsync(apiBase, token, path, cancellationToken).ConfigureAwait(false);
         }, cancellationToken, identity);
 

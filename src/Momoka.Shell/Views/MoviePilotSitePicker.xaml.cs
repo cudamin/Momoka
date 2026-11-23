@@ -11,6 +11,13 @@ public sealed partial class MoviePilotSitePicker : UserControl
     private Task<ContentDialogResult>? _opening;
 
     public bool SearchOnConfirm { get; set; }
+
+    /// <summary>
+    /// 搜索页的站点入口：确认键仍是「完成」，另在它左边给一颗「立即搜索」（用户令 2026-11-22）。
+    /// 只在那一个宿主上打开；设置页那份站点表不设它。
+    /// </summary>
+    public bool SearchNow { get; set; }
+
     public event EventHandler? SearchRequested;
     internal MoviePilotSiteDialog? CurrentDialog { get; private set; }
 
@@ -63,15 +70,16 @@ public sealed partial class MoviePilotSitePicker : UserControl
         if (XamlRoot is null || !ViewModel.IsCurrentConnection) return ContentDialogResult.None;
         var owner = ViewModel;
         var searchOnConfirm = SearchOnConfirm;
+        var searchNow = SearchNow;
         owner.RefreshSelection();
-        var dialog = new MoviePilotSiteDialog(owner, searchOnConfirm) { XamlRoot = XamlRoot, RequestedTheme = RequestedTheme };
+        var dialog = new MoviePilotSiteDialog(owner, searchOnConfirm, searchNow) { XamlRoot = XamlRoot, RequestedTheme = RequestedTheme };
         CurrentDialog = dialog;
         try
         {
             var result = await dialog.ShowAsync();
             // 换宿主/连接、离页关闭均不能借用旧弹窗的确认发起新搜索。
-            if (result == ContentDialogResult.Primary && ReferenceEquals(owner, ViewModel)
-                && dialog.ViewModel.IsDraftOwnerCurrent && searchOnConfirm)
+            var searched = searchOnConfirm ? result == ContentDialogResult.Primary : searchNow && dialog.Searched;
+            if (searched && ReferenceEquals(owner, ViewModel) && dialog.ViewModel.IsDraftOwnerCurrent)
                 SearchRequested?.Invoke(this, EventArgs.Empty);
             return result;
         }

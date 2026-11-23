@@ -164,6 +164,8 @@ internal static class ShellServices
             readProxyServer: () => provider.GetRequiredService<AppSettings>().Network.ProxyServer));
         services.AddSingleton<Momoka.AniBt.AniBtService>();
         services.AddSingleton<Momoka.Shell.Services.LocalLibraryCoordinator>();
+        // 搜索页「MoviePilot 资源」那一格的上一批结果：本次运行内保留，换页回来还能摆出来（用户令 2026-11-22）。
+        services.AddSingleton<Momoka.Shell.ViewModels.MoviePilotResourceSearchCache>();
 
         // ---- 检查更新 ---------------------------------------------------------------------------------
         // 「开启应用后自动检查有没有新版本」。单例不是为了共享状态（它没有状态），而是因为它自带一个

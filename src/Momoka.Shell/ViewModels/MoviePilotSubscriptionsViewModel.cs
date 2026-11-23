@@ -370,7 +370,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     { _playbackScope = scope; _play = play; RefreshCommands(); }
 
     /// <summary>
-    /// 「搜索这一集的资源」的出口。外壳递进来（打开 MoviePilot 资源窗口是外壳的事，同「搜索其他版本」），
+    /// 「搜索这一集的资源」的出口。外壳递进来（跳到搜索页的 MoviePilot 资源来源是外壳的事，同「搜索其他版本」），
     /// 页面只负责按订阅快照算出关键词。
     /// </summary>
     internal void AttachSearch(Action<string>? search) => _search = search;
@@ -760,7 +760,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         }
     }
 
-    /// <summary>某一集的「搜索资源」：用订阅快照里的剧名与季集号拼词，交给外壳开 MoviePilot 资源窗口。</summary>
+    /// <summary>某一集的「搜索资源」：用订阅快照里的剧名与季集号拼词，交给外壳跳到搜索页的 MoviePilot 资源来源。</summary>
     private void SearchEpisode(MoviePilotSubscriptionEpisodeRow row)
     {
         if (_search is null || Selected is not { } card || !_episodes.Contains(row)) return;
