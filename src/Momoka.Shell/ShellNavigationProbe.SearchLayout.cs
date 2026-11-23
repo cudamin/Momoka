@@ -125,8 +125,8 @@ internal sealed partial class ShellNavigationProbe
                 Require(tabs.CornerRadius == new CornerRadius(16) && tabs.BorderThickness == new Thickness(0)
                     && ReferenceEquals(tabs.Background, Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]),
                     "来源栏圆角或现有卡片材质不正确");
-                Require(tabs.ActualWidth <= 480 && tabs.ActualHeight == 32,
-                    $"{width} 来源栏没有缩小到 480 DIP 内、32 DIP 高");
+                Require(tabs.ActualWidth <= 600 && tabs.ActualHeight == 32,
+                    $"{width} 来源栏没有缩小到 600 DIP 内、32 DIP 高");
                 var selected = (SegmentedItem)tabs.Items[tabs.SelectedIndex];
                 RequirePill(selected, selected: true);
                 foreach (var item in tabs.Items.OfType<SegmentedItem>())

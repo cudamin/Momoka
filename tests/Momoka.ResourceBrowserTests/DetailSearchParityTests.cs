@@ -805,10 +805,25 @@ internal static class DetailSearchParityTests
             if (position == PageSummaryPosition.FinalBatch)
             {
                 var results = JsonSerializer.SerializeToElement(items).EnumerateArray().ToArray();
-                var first = JsonSerializer.Serialize(new { type = "replace", replace_batch = true, batch_index = 0,
-                    batch_count = 2, total_items = results.Length, items = results.Take(1).ToArray() });
-                var last = JsonSerializer.Serialize(new { type = "append", replace_batch = true, batch_index = 1,
-                    batch_count = 2, total_items = results.Length, items = results.Skip(1).ToArray(), sources });
+                var first = JsonSerializer.Serialize(new
+                {
+                    type = "replace",
+                    replace_batch = true,
+                    batch_index = 0,
+                    batch_count = 2,
+                    total_items = results.Length,
+                    items = results.Take(1).ToArray()
+                });
+                var last = JsonSerializer.Serialize(new
+                {
+                    type = "append",
+                    replace_batch = true,
+                    batch_index = 1,
+                    batch_count = 2,
+                    total_items = results.Length,
+                    items = results.Skip(1).ToArray(),
+                    sources
+                });
                 replace = first + "\n\ndata: " + last;
             }
             return new HttpResponseMessage(HttpStatusCode.OK)

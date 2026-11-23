@@ -68,7 +68,8 @@ internal sealed partial class ShellNavigationProbe
             RecognizedTitle = index % 3 == 0 ? "Affairs Not The Only Secret" : "The Affair Was Just The Beginning",
             SiteName = index % 2 == 0 ? "站点甲" : "站点乙",
             Description = "现在不是出轨的问题 / 2026 第1季全集 / 1080p SDR / 中文字幕 / 完整发布描述与长文本换行验证。",
-            SeasonEpisode = $"S01 E{index + 1:00}",
+            // 第二季那几条不带 season_episode：季筛选既要认原值，也要覆盖缺字段时回退季号的路径。
+            SeasonEpisode = index < 8 ? $"S01 E{index + 1:00}" : null,
             Seasons = [index < 8 ? 1 : 2],
             Episodes = [index + 1],
             Size = 2147483648L + index * 10240000,
