@@ -1,3 +1,13 @@
+## 2026-11-23 主页封面拖拽翻页合并 master
+
+用户令「合并」。分支提交 `7c8f346`（基点 `ba4c11b`）经 `--no-ff` 合并提交 `f642178` 进入本地 `master`（合并前 `87dba59`），19 个路径 +459/−8。冲突仅 `PROGRESS.md` 与 `docs/待交付批次.md` 两处文档，均保留双方记录；产品与测试代码无冲突。
+
+**主树复验（最终整合代码）。** `tools/quality.ps1` **9/9**（`artifacts/quality/20261123-213447`），全方案 Release 0 警告 0 错误，空白、脚本、文档链接、文档命令、报告凭据、架构 7/7、重复代码 68 段／0.47% 与 diff 全部通过。主测试 **5359/5359、0 失败 0 跳过**（149071 ms）；`Momoka.UiMotionTests` 102/102、`Momoka.HomeFoldCompletionTests` 102/102、`Momoka.PageContractTests` 408/408；`Momoka.SettingsProbeContractTests` 带本树 Release Shell DLL 与主树根运行 **39/39**。合并仅文档冲突，`CardStrip`、`ShelfStrip` 等合并结果与分支提交一致。
+
+**清理。** 分支 `feat-drag-cover-pagination-zoe0tp` 已删除；Git 工作树记录先因 Windows 长路径无法整树移除，`--force` 后记录已摘除，残留目录再用长路径 API 清空，`git worktree prune` 后无残留。桌面 `Momoka-feat-drag-cover-pagination-zoe0tp.lnk` 已删除，主树 `Momoka.lnk` 未动。
+
+**未验。** 按规则合并不跑探针与实窗；真实窗口拖动吸附与回弹、带首带尾与卡片按钮上的按下、开关开关与中断、触摸／触控笔、五套主题、高对比、DPI、窄窗、MoviePilot 订阅两排与轮播媒体库一份仍留待统一验证。未刷新主树体验包，未推送远端，台账保持开放。
+
 ## 2026-11-23 统一验证与本地交付（目标 a1e0bee 起，含修复提交）
 
 用户令「交付」。开始时目标为 `c149659`；验证期间另一会话把「媒体库动图原生分辨率与悬浮预览」合入 master（`9c6eadf`→`f88a165`→`a1e0bee`），本轮按整合后的最终代码重跑编译、测试和受影响探针，并记录目标移动。另有并行改动 `global.json`、`DetailSearchParityTests.cs`、`ShellNavigationProbe.SearchCards.cs` 和 480→600 断言已由 `ba4c11b` 纳入，不计入本任务提交。
