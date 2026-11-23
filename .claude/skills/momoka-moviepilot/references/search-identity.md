@@ -6,6 +6,7 @@
 
 - `GET /api/v1/media/search?title=<词>&type=media&page=1&count=N`。`media_source` 是**数组参数**：官方后端（`app/api/endpoints/media.py` 的 `search`）用 `MediaSourceQuery` 接收重复的 `media_source=<值>` 查询参数；**逗号分隔串只是旧客户端兼容**。客户端应发重复参数，不要自己拼逗号串。
 - 不传 `media_source` 就是全部来源，由服务器按它自己的来源顺序设置排序后分页（同一 endpoint 内先排序后切页）。
+- 「MoviePilot 订阅」页的最近一次已完成查询保留在本次运行的连接服务中。新面板遇到空框或相同关键词时可恢复作品结果，订阅状态独立补读；手动提交重新发请求。缓存不写入本地文件，退出或切换连接后失效。详情返回仍用自己的导航快照保留滚动位置。
 - 合法值是开放集合：内置 `themoviedb`、`douban`、`bangumi`、`anilist`、`imdb`、`tvdb`、`musicbrainz`、`theaudiodb`、`doubanmusic`，加上插件注册的动态标识（格式 `^[a-z][a-z0-9._-]{0,63}$`，见 MediaSource schema）。**不要写死白名单**；显示名来自 `GET /api/v1/media/source` 的 `name`。
 - `media/source` 每条带 `name`、`media_source`、`media_types`。影视能力按电影/电视剧/movie/tv 判断；前端 v3.1.0 的 `utils/mediaId.ts` 不再把显式空列表视为可用。后端插件 schema 在省略字段时会补默认类型，不能把省略默认与显式 `[]` 混为一谈。来源下拉以实际目录为准，仅请求失败时才退到内置清单，成功返回空目录不伪造 TMDB。
 

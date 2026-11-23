@@ -59,6 +59,8 @@ public sealed partial class MoviePilotService
             _session = null;
             _transportIdentity = null;
             _imageFetcher = null;
+            _lastSubscriptionMediaSearch = null;
+            _subscriptionMediaSearchRevision++;
         }
         // 配置变化即使发生在未连接状态，也要通知监测方重新检查。
         AvailabilityChanged?.Invoke(this, EventArgs.Empty);

@@ -13,6 +13,82 @@ internal static class MoviePilotLifetimeTests
     internal static void Register(List<(string Name, Func<Task> Run)> cases)
     {
         void Test(string name, Func<Task> run) => cases.Add(("PERF-01 " + name, run));
+        Test("重新建立订阅搜索面板，恢复上次关键词和媒体，仍核对订阅状态", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            var old = new MoviePilotSearchPanel();
+            old.Attach(f.Service, new Launcher());
+            await old.SearchAsync("  会话内的词  ");
+            var oldResult = old.ViewModel.Results.Single();
+            old.Release();
+
+            var fresh = new MoviePilotSearchPanel();
+            fresh.Attach(f.Service, new Launcher());
+            Check.Null(fresh.ViewModel.RestoreCached("其他词"));
+            Check.Equal("会话内的词", fresh.ViewModel.RestoreCached(""));
+            Check.Equal(1, f.Http.Searches);
+            var row = fresh.ViewModel.Results.Single();
+            Check.False(ReferenceEquals(oldResult, row));
+            Check.Equal(oldResult.Media, row.Media);
+            Check.Equal(MoviePilotSubscribeState.Unknown, row.State);
+            var before = f.Http.Requests.Count(request => request.Path == "subscribe/");
+            await fresh.ViewModel.RefreshSubscriptionStatesAsync();
+            Check.Equal(before + 1, f.Http.Requests.Count(request => request.Path == "subscribe/"));
+            Check.Equal(MoviePilotSubscribeState.Idle, row.State);
+            Check.Equal(1, f.Http.Searches);
+            fresh.Release();
+        });
+        Test("订阅搜索最新空结果取代旧结果，失败和其他入口搜索不覆盖缓存", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
+            await vm.SearchAsync("有结果");
+            f.Http.Before = (request, _) => Task.FromResult<System.Net.Http.HttpResponseMessage?>(
+                request.Path == "media/search"
+                    ? MoviePilotTransport.Reply("{}", System.Net.HttpStatusCode.BadRequest) : null);
+            await vm.SearchAsync("失败");
+            Check.Equal("有结果", f.Service.FindSubscriptionMediaSearch("")?.Term);
+            f.Http.Before = null;
+            await f.Service.SearchAsync("其他入口", default);
+            Check.Equal("有结果", f.Service.FindSubscriptionMediaSearch("")?.Term);
+
+            f.Http.SearchJson = "[]";
+            await vm.SearchAsync("无结果");
+            Check.Null(f.Service.FindSubscriptionMediaSearch("有结果"));
+            vm.Release(); vm.Attach(f.Service);
+            Check.Equal("无结果", vm.RestoreCached("无结果"));
+            Check.Equal(0, vm.Results.Count);
+            Check.True(vm.ShowEmptyNotice);
+            Check.Contains("无结果", vm.EmptyNotice);
+            Check.Equal(4, f.Http.Searches);
+        });
+        Test("更换 MoviePilot 账号和新应用服务都清空订阅搜索缓存", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            await f.Service.SearchSubscriptionMediaAsync("先前账号", default);
+            using var restarted = new MoviePilotFixture(); await restarted.ConnectAsync();
+            Check.Null(restarted.Service.FindSubscriptionMediaSearch(""));
+
+            f.Settings.MoviePilot.Username = "another-anonymous-user";
+            await f.ConnectAsync();
+            Check.Null(f.Service.FindSubscriptionMediaSearch(""));
+            await f.Service.SearchSubscriptionMediaAsync("当前账号", default);
+            f.Service.Dispose();
+            Check.Null(f.Service.FindSubscriptionMediaSearch(""));
+        });
+        Test("迟到的订阅查询不能覆盖随后完成的查询", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            var hold = new TaskCompletionSource<System.Net.Http.HttpResponseMessage?>();
+            f.Http.Before = (request, _) => request.Path == "media/search" && request.Query.Contains("old", StringComparison.Ordinal)
+                ? hold.Task : Task.FromResult<System.Net.Http.HttpResponseMessage?>(null);
+            var old = f.Service.SearchSubscriptionMediaAsync("old", default);
+            await Check.Until(() => f.Http.Searches == 1);
+            await f.Service.SearchSubscriptionMediaAsync("new", default);
+            hold.SetResult(MoviePilotTransport.Reply("[]")); await old;
+            Check.Equal("new", f.Service.FindSubscriptionMediaSearch("")?.Term);
+            Check.Equal(1, f.Service.FindSubscriptionMediaSearch("")?.Results.Count);
+        });
         Test("恢复通知重入新搜索，旧快照不覆盖新空态与通知", async () =>
         {
             using var f = new MoviePilotFixture(); await f.ConnectAsync();

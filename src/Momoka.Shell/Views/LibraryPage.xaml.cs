@@ -1796,6 +1796,11 @@ public sealed partial class LibraryPage : Page, IShellContent
             _pendingMoviePilotSearch = null;
             if (panel.ViewModel.Restore(snapshot)) _ = panel.ViewModel.RefreshSubscriptionStatesAsync();
         }
+        else if (panel.ViewModel.RestoreCached(ViewModel.SearchText) is { } restoredTerm)
+        {
+            ViewModel.SearchText = restoredTerm;
+            _ = panel.ViewModel.RefreshSubscriptionStatesAsync();
+        }
 
         return panel;
     }

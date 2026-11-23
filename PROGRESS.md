@@ -1,3 +1,11 @@
+## 2026-11-23 MoviePilot 订阅搜索缓存保留到退出（分支 branch-X8LTcG）
+
+最近一批已完成的影视搜索保留在本次运行的 MoviePilot 服务中。重新打开搜索并切到「MoviePilot 订阅」后，空框恢复该关键词，同词恢复结果，订阅状态重新核对。明确提交依旧向 MoviePilot 搜索。空结果可取代旧结果，失败或迟到响应不覆盖结果。退出及连接设置更改清空缓存；详情返回沿用带滚动位置的导航快照。
+
+核对官方 `discover/browse.vue` 与 `app/api/endpoints/media.py`：稳定 v3.2.9 前端 `dbad4059d158eca46b667db359951ce049563fb8`、后端 `b186df432f2f1657f2e2e70e1fdedf78b4f3bde8`，以及检查时的前端 `96123f1b8a0d98bb419a7346af20dfc29e034b45`、后端 `68e62a007ba6eb820014d16d94430b483e558bf2`。本批未改变媒体搜索请求参数或上游服务缓存，也未连接真实部署。
+
+本树 Core、Shell、三个专项 Release 编译零警告零错误。搜索生命周期 48/48，订阅设置 79/79，页面契约 402/402，零失败零跳过。体验产物由包含前序未提交改动的本树在 13:52 发布，载荷校验通过；已回读分支桌面快捷方式，Shell 和 Core 的发布哈希分别与编译件一致。发布日志 `artifacts/mp-subscription-cache-publish.log`。分支待合并，暂无真实窗口关开、恢复位置或服务器结果证据。
+
 ## 2026-11-22 叠卡悬浮扇形重设计（已合并 master，待统一验证）
 
 用户要求重新设计叠卡，并确认采用悬浮扇形方向。树 `C:/Users/89400/.codearts/worktrees/Momoka-stacked-card-redesign`（已清理），分支 `codex/stacked-card-redesign`（已删除），基点 `ed557b8`，首版产品提交 `da26f86`，多图追加产品提交 `8fa2be2`，已由 `acf5744` 合入 master，未上传。

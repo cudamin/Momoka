@@ -43,6 +43,8 @@ public sealed partial class MoviePilotService : IDisposable
             _session = null;
             _transportIdentity = null;
             _imageFetcher = null;
+            _lastSubscriptionMediaSearch = null;
+            _subscriptionMediaSearchRevision++;
         }
     }
     private const string Category = "moviepilot";
@@ -54,6 +56,8 @@ public sealed partial class MoviePilotService : IDisposable
 
     private readonly object _sessionGate = new();
     private CachedSession? _session;
+    private MoviePilotSubscriptionMediaSearch? _lastSubscriptionMediaSearch;
+    private long _subscriptionMediaSearchRevision;
 
     // 只比较密文快照；明文仅在实际登录时解开，不作为缓存键或诊断文字。
     private sealed record SessionIdentity(Uri ApiBase, string Username, string ProtectedPassword, long Generation)
@@ -77,8 +81,25 @@ public sealed partial class MoviePilotService : IDisposable
     /// 什么都不加 —— 由服务器按它自己的来源顺序排序分页。
     /// </para>
     /// </summary>
-    public async Task<IReadOnlyList<MoviePilotMedia>> SearchAsync(
-        string term, CancellationToken cancellationToken, IReadOnlyList<string>? sources = null)
+    public Task<IReadOnlyList<MoviePilotMedia>> SearchAsync(
+        string term, CancellationToken cancellationToken, IReadOnlyList<string>? sources = null) =>
+        SearchMediaAsync(term, cancellationToken, sources, remember: false);
+
+    internal Task<IReadOnlyList<MoviePilotMedia>> SearchSubscriptionMediaAsync(string term, CancellationToken cancellationToken) =>
+        SearchMediaAsync(term, cancellationToken, sources: null, remember: true);
+
+    internal MoviePilotSubscriptionMediaSearch? FindSubscriptionMediaSearch(string term)
+    {
+        var keyword = term.Trim();
+        lock (_sessionGate)
+        {
+            if (!Available || _lastSubscriptionMediaSearch is not { } last) return null;
+            return keyword.Length == 0 || string.Equals(keyword, last.Term, StringComparison.Ordinal) ? last : null;
+        }
+    }
+
+    private async Task<IReadOnlyList<MoviePilotMedia>> SearchMediaAsync(
+        string term, CancellationToken cancellationToken, IReadOnlyList<string>? sources, bool remember)
     {
         var keyword = term.Trim();
         if (keyword.Length == 0) return [];
@@ -93,13 +114,31 @@ public sealed partial class MoviePilotService : IDisposable
             path += $"&media_source={Uri.EscapeDataString(source)}";
 
         var identity = CaptureIdentity();
+        long revision = 0;
+        if (remember)
+        {
+            lock (_sessionGate)
+            {
+                CheckIdentity(identity, cancellationToken);
+                revision = ++_subscriptionMediaSearchRevision;
+            }
+        }
         var data = await CallAsync((apiBase, token, client) =>
             client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
-        var results = MoviePilotMediaParser.Parse(data).Select(media => media with { ConnectionStamp = stamp }).ToList();
+        var results = MoviePilotMediaParser.Parse(data).Select(media => media with { ConnectionStamp = stamp }).ToArray();
+        if (remember)
+        {
+            lock (_sessionGate)
+            {
+                CheckIdentity(identity, cancellationToken);
+                if (revision == _subscriptionMediaSearchRevision)
+                    _lastSubscriptionMediaSearch = new(stamp, keyword, Array.AsReadOnly(results));
+            }
+        }
         Log.Info(Category, $"MoviePilot 搜「{keyword}」" +
-            (selected.Count > 0 ? $"（{string.Join("、", selected)}）" : "") + $"：{results.Count} 条");
+            (selected.Count > 0 ? $"（{string.Join("、", selected)}）" : "") + $"：{results.Length} 条");
         return results;
     }
 
@@ -408,3 +447,6 @@ public sealed partial class MoviePilotService : IDisposable
         }
     }
 }
+
+// 跨搜索页保留最近一批媒体元数据。订阅状态、界面和提示都由新页面重新获取或生成。
+internal sealed record MoviePilotSubscriptionMediaSearch(string ConnectionStamp, string Term, IReadOnlyList<MoviePilotMedia> Results);
