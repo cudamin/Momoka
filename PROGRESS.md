@@ -1,3 +1,29 @@
+## 2026-11-24 0.3.2 统一验证与发布（闸门 1～4 通过；探针 192/227；未销账）
+
+用户令「1.先完成交付，跑探针和闸门，有红自己决定要不要修 2.提交代码到github 3.更新版本打包发布到GitHub，生成一个微软商店商店安装包」。
+
+**目标代码与版本。** 主树 `master`，起点 `5abbbe0`，版本由 `0.3.1` 升到 `0.3.2`／`0.3.2.0`（`Directory.Build.props`）。交付开始时工作区干净，`origin/master` 落后本地 4 个已合入提交。版本改动后重跑闸门 1 与主测试；离线专项与外部专项在版本改动前的同一源码上跑完，两轮只差版本号和 ProductVersion。
+
+**闸门 1。** `tools/quality.ps1` 首次（`artifacts/quality/20261123-233339`）与 0.3.2 复跑（`artifacts/quality/20261124-000559`）均 **9/9**：全方案 Release 0 警告 0 错误，空白、64 个脚本、183 篇文档链接与 153 个命令块、报告凭据 0、架构 7/7、重复代码 68 段／1227 行／258605 行＝0.47%、diff 全过。
+
+**闸门 2。** 0.3.2 的 `Momoka.Tests` Release 重编后全量 **5361/5361、0 失败 0 跳过**（144584 ms，`artifacts/delivery-gate2-main-final.log`）。`tools/run-regressions.ps1 -All -IncludeExternal` **82/82 套 passed、0 失败 0 跳过 0 deferred**（`artifacts/regressions/20261123-154421199-b1cf8bdc7a0647e4bbc9f8ebc29e6650/summary.json`，外部 Node／Playwright／Edge DOM 实际运行）。
+
+**环境阻塞与首轮作废。** 首轮全量探针（`shell-probe-20261123-161601880-24868`，227 项／193 过／34 红）与首次闸门 4（3 红）运行期间，桌面被 `PickerHost.exe` 的「即将注销你的登录」系统遮罩盖住（取屏 hwnd 指向该进程，与 0.2.9 同一签名）。已用 `shutdown /a` 中止这次计划注销，遮罩退出后重跑；首轮采屏与滚动红不作通过证据。
+
+**探针（干净桌面重跑）。** 发布件 `artifacts/publish/win-x64` 全量 `--probe-shell --screen 1`：**227 项、192 过、35 红、4 项默认不跑、0 未执行**（`shell-probe-20261123-173658643-11360`，范围文件写明「未执行区域：无」）。35 红与 0.3.1 记录的既有签名同类：①`ScrollView offset=0 / State=Idle` 让登录、侧栏、沉浸主页、人物页、飞牛详情、详情三页、背景渐变、简洁详情、悬浮卡片、删库摘卡、音乐墙等滚不动；②既有超时／旧红（亚克力按钮、媒体库弹窗五主题、设置搜索、弹幕热力像素、MoviePilot 背景与媒体详情、季页播放图标、五项性能、动效两条、长货架旧卡宽、MediaSimilar 右排、删除确认 1200→1545、搜索窄窗最右分类、快捷键窄窗）；③实屏像素采样（悬停预览夹具色差、动效封面标记）。没有一条指向本轮产品改动的断言。定向复跑：`--probe-section search` **13/13**（`shell-probe-20261123-171802692-2764`）；`settings` **26/28**（`shell-probe-20261123-171014601-19232`，设置搜索超时与商店版式下「主页媒体库位置」整行按规则隐藏、探针取不到，均既有红）；`moviepilot` 首跑 34/38、复跑 **35/38**（`shell-probe-20261123-172650017-15028`，订阅同号季一例为时序偶发、复跑转绿；其余三条为默认不跑的 TMDB 超时、滚动环境红与长货架夹具未虚拟化）。
+
+**本地播放探针。** 集成 `--probe-composition`（随仓库 `tests/fixtures/standalone-red.mp4`，`--screen 1`、`--screen 2` 各一次）均停在「没有检测到弹幕图层实际呈现的像素」（`composition-probe-20261123-183252463-2660`、`composition-probe-20261123-183314314-27280`），与 0.3.1 主屏弹幕像素采样同签名。独占 `--probe-standalone-playback` 红／青样片在识别到真实 mpv 窗口后被 `Chrome_RenderWidgetHostHWND`（pid 30584）遮挡而失败（`standalone-playback-probe-20261123-183328579-28200`），未结束用户进程、未改窗口。两项均留红，不作通过。
+
+**闸门 3。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：**548 个文件、290.8 MB**，14 GLSL、4 HOOK、批准 mpv 清单 60 个文件；`Momoka.exe` 668,160 字节、SHA256 `8CA51A58DCE2E9C15ADE25D1D85B03C56C6679607137FBF7B2377D047CD7F173`；`Momoka.dll` 10,435,584 字节、SHA256 `9462664358591005F876A61AC45C0F02D3FC6991812BDA84FA857E804185B5AF`；`Momoka.Core.dll` SHA256 `2C27CC87B8705CC98590FF25FB0BABC83B85B5D378DBAC5D295EE10421C31A0A`；`Momoka.pri` SHA256 `D2505AA5A6DE44A9D8F1879983AFBCB4CD8A4C6F05900C5710DAE856FD39F264`。桌面 `Momoka.lnk` 已写成功并回读本树发布目录。
+
+**闸门 4。** 遮罩退出后 `tools/selfcheck-diff.ps1` 跑发布件：**190 项、失败 0、消失 0、降级 0、新增 0，绿**（`artifacts/selfcheck/run-17a7e68e49ab4ae2bf4d4a4cf2eb8253`）。遮罩期间首轮 3 红与次轮只有 149 项收尾的日志保留，不记通过。
+
+**产物。** 安装包 `artifacts/Momoka_windows-x64_0.3.2.exe`（85,147,790 字节，SHA256 `83A546D8EDE82D70140615D82E8EE1D75C39EF8AF37416D196F4EBC7A51AA226`，文件版本 0.3.2.0）；免安装 ZIP `artifacts/Momoka-0.3.2-win-x64.zip`（119,505,583 字节，SHA256 `CBD09B75389C2890132914370BA919DBF9DC54EC7B2BAD20D7B124B28F5A15BA`，550 条目，根目录含 `Momoka.exe`）；商店上架包 `artifacts/Momoka-0.3.2-win-x64-store.msix`（122,362,512 字节，SHA256 `17767F993810D8C957303E600B50B23405BFBFC2614FC3A81D4C4B26280B5629`，554 条目，身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.3.2.0`／x64，未签名，核心四文件与发布目录逐字节一致，只留本地由用户在 Partner Center 上传）。`SHA256SUMS.txt` 只含前两件；商店 MSIX 不上传 Release。
+
+**远端。** 待推送与上传后回填。
+
+**未验证。** 真实 MoviePilot／Emby／Jellyfin／飞牛／Plex 实屏与真实播放／写入（未获授权）；五套固定深色与跟随系统深浅的逐张目视、高对比、跨 DPI、Narrator／触摸；商店包安装与 Partner Center 认证；35 条探针红与两项播放探针红保留原状态。按规则不整批销账，台账保持开放。
+
 ## 2026-11-23 主页封面拖拽翻页合并 master
 
 用户令「合并」。分支提交 `7c8f346`（基点 `ba4c11b`）经 `--no-ff` 合并提交 `f642178` 进入本地 `master`（合并前 `87dba59`），19 个路径 +459/−8。冲突仅 `PROGRESS.md` 与 `docs/待交付批次.md` 两处文档，均保留双方记录；产品与测试代码无冲突。
