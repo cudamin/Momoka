@@ -1,3 +1,9 @@
+## 2026-11-23 订阅详情按钮改名为「搜索AniBT」（已合并 master，待统一验证）
+
+简体中文资源与页面默认文案同步，按钮继续调用原搜索动作。产品提交 `6168628` 已快进合并 master。原主树未提交的 `global.json` 文件哈希一致，本轮临时分支和工作树已清理。
+
+分支及主树 Release/x64 应用和页面测试编译均为 0 警告 0 错误，页面测试各 394/394。主树体验发布通过载荷校验，普通 `Momoka.lnk` 已回读到发布件，资源索引包含「搜索AniBT」，主窗口已启动并响应。真实订阅详情与窄屏布局留待统一验证。
+
 ## 2026-11-23 搜索页「MP 资源」自动铺 MoviePilot 网页端上次搜索缓存（已合并 master，待统一验证）
 
 用户上传 Momoka 搜索页与 MoviePilot 网页资源搜索页截图，要求「momoka搜索页面的 mp资源 搜索页面下面要自动显示mp网页端已缓存的搜索结果」。树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-momoka-cached-search-x5iZTv`，分支 `feat-momoka-cached-search-x5iZTv`，基点 `db97463`。
