@@ -7,7 +7,7 @@ namespace Windows.UI
         public static Color FromArgb(byte a, byte r, byte g, byte b) => new(a, r, g, b);
     }
 }
-namespace Windows.System { public enum VirtualKey { Enter, Escape } }
+namespace Windows.System { public enum VirtualKey { Enter, Escape, Delete, Back } }
 namespace Microsoft.UI.Dispatching
 {
     public sealed class DispatcherQueue
@@ -22,7 +22,7 @@ namespace Microsoft.UI.Xaml
     public enum Visibility { Visible, Collapsed }
     public enum ElementTheme { Default, Light, Dark }
     public sealed class XamlRoot;
-    public class RoutedEventArgs : EventArgs;
+    public class RoutedEventArgs : EventArgs { public object? OriginalSource { get; init; } }
     public sealed class ExceptionRoutedEventArgs : RoutedEventArgs;
     public delegate void ExceptionRoutedEventHandler(object sender, ExceptionRoutedEventArgs args);
     public class FrameworkElement
@@ -39,6 +39,7 @@ namespace Microsoft.UI.Xaml.Input
 {
     public sealed class KeyRoutedEventArgs : EventArgs
     {
+        public object? OriginalSource { get; init; }
         public Windows.System.VirtualKey Key { get; set; }
         public bool Handled { get; set; }
     }
@@ -80,8 +81,46 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ItemsViewItemInvokedEventArgs : EventArgs { public object? InvokedItem { get; init; } }
     public sealed class TextBox : Microsoft.UI.Xaml.FrameworkElement
     {
-        public string? Text { get; set; }
+        public string Name { get; init; } = "TextBox";
+        public string Text { get; set; } = "";
         public string PlaceholderText { get; set; } = "";
+        public bool IsReadOnly { get; set; }
+        public int SelectionStart { get; private set; }
+        public int SelectionLength { get; private set; }
+        public string SelectedText
+        {
+            get => Text.Substring(SelectionStart, SelectionLength);
+            set
+            {
+                Text = Text.Remove(SelectionStart, SelectionLength).Insert(SelectionStart, value);
+                Select(SelectionStart + value.Length, 0);
+            }
+        }
+        public void Select(int start, int length) => (SelectionStart, SelectionLength) = (start, length);
+        public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? PreviewKeyDown;
+        public event Action<TextBox, TextCompositionStartedEventArgs>? TextCompositionStarted;
+        public event Action<TextBox, TextCompositionEndedEventArgs>? TextCompositionEnded;
+        public event Action<object, Microsoft.UI.Xaml.RoutedEventArgs>? LostFocus;
+        internal bool Press(Windows.System.VirtualKey key, object? source = null)
+        {
+            var args = new Microsoft.UI.Xaml.Input.KeyRoutedEventArgs { Key = key, OriginalSource = source ?? this };
+            PreviewKeyDown?.Invoke(this, args);
+            return args.Handled;
+        }
+        internal void BeginComposition() => TextCompositionStarted?.Invoke(this, new());
+        internal void EndComposition() => TextCompositionEnded?.Invoke(this, new());
+        internal void Blur() => LostFocus?.Invoke(this, new());
+    }
+    public sealed class TextCompositionStartedEventArgs : EventArgs;
+    public sealed class TextCompositionEndedEventArgs : EventArgs;
+    public sealed class AutoSuggestBox : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; }
+    public sealed class AutoSuggestBoxQuerySubmittedEventArgs : EventArgs { public string? QueryText { get; init; } }
+    public enum AutoSuggestionBoxTextChangeReason { UserInput, ProgrammaticChange }
+    public sealed class AutoSuggestBoxTextChangedEventArgs : EventArgs
+    {
+        public AutoSuggestionBoxTextChangeReason Reason { get; init; }
+        public bool Current { get; init; } = true;
+        public bool CheckCurrent() => Current;
     }
     public sealed class ComboBox : Microsoft.UI.Xaml.FrameworkElement { public int SelectedIndex { get; set; } }
     public sealed class Button : Microsoft.UI.Xaml.FrameworkElement { public bool IsEnabled { get; set; } = true; }

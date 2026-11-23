@@ -74,14 +74,12 @@ namespace Momoka.Shell.Views
         internal Momoka.Shell.ViewModels.MoviePilotSearchSnapshot? SavedMoviePilotSearch => _request.MoviePilotSearch;
         private double ContentScrollOffset => 73;
         internal int TypingCancellations { get; private set; }
-        internal int ImeCancellations { get; private set; }
         internal int HeaderUpdates { get; private set; }
         internal double SavedOffset => _request.ScrollOffset;
         internal int SavedCount => _request.LoadedCount;
         internal LibraryLifetimeRequest SavedSearch => _request;
         internal int Navigation => _navigation;
         private void CancelTyping() { TypingCancellations++; }
-        private void CancelImeSubmit() { ImeCancellations++; }
         private void ApplyHeaderLayout() { HeaderUpdates++; }
         private void RememberScrollAnchor(bool allowReleased = false) { }
         private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) { }

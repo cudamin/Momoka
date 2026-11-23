@@ -114,15 +114,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     internal FilterPanel FilterPane => _filterPane ?? EnsureFilterPanel();
     internal LibrarySettingsPanel SettingsPane => _settingsPane ?? EnsureSettingsPanel();
 
-    /// <summary>
-    /// 这一次回车有没有送到 keydown。输入法组字时没有（见 <see cref="OnSearchKeyUp"/>），
-    /// 只有普通回车才会让 <see cref="AutoSuggestBox.QuerySubmitted"/> 先提交一次。
-    /// </summary>
-    private bool _searchEnterDown;
-
-    /// <summary>组字回车补提交那一趟的取消源；离页、换来源与普通提交都收掉它。</summary>
-    private CancellationTokenSource? _imeSubmit;
-
     /// <summary>筛选、排序或分区切换已经把重查发出去：第一批结果落定时给整面墙补一段淡入。</summary>
     private bool _wallResetPending;
     private readonly SolidColorBrush _tabSelected = new();
@@ -176,13 +167,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         SourceTabs.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnSourceTabsPointerReleased), handledEventsToo: true);
         SourceTabs.PreviewKeyDown += OnSourceTabsKeyDown;
 
-        // 输入法组字时，回车被输入法吃掉：keydown（连同 QuerySubmitted）不发给页面，只有 keyup 到得了。
-        // 补提交的那一路见 OnSearchKeyUp。
-        SearchInput.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnSearchKeyDown), handledEventsToo: true);
-        SearchInput.AddHandler(UIElement.KeyUpEvent, new KeyEventHandler(OnSearchKeyUp), handledEventsToo: true);
+        SearchInput.GotFocus += OnSearchInputGotFocus;
         SearchInput.Loaded += (_, _) => PlaceSearchSites();
         ViewModel.SubmitRecentSearch = SubmitSearchAsync;
-        SearchInput.LostFocus += OnSearchLostFocus;
         SearchCategories.SelectionChanged += OnSearchCategoryChanged;
         HeaderLayout.SizeChanged += OnHeaderSizeChanged;
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
@@ -691,7 +678,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _moviePilot = null;
         if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
         CancelTyping();
-        CancelImeSubmit();
+        DetachSearchTextBox();
         _navigation++;
         SearchSitePicker.ClosePopup();
         if (_request is { } request)
@@ -1522,19 +1509,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnFilterChanged(object? sender, EventArgs e) => ViewModel.ApplyFilters();
 
     /// <summary>
-    /// 搜索页's own box. Handed to the view model rather than turned into a navigation: this is already
-    /// the right page, and one back-stack entry per word typed is not a history anyone wants to walk.
-    /// <para>
-    /// 按当前来源分流：在「MoviePilot」那一段时把词交给那半的面板，否则照旧搜 Emby 库。
-    /// </para>
-    /// </summary>
-    private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs e)
-    {
-        CancelImeSubmit();
-        _ = SubmitSearchAsync(e.QueryText ?? sender.Text ?? string.Empty);
-    }
-
-    /// <summary>
     /// 在系统 AutoSuggestBox 的清除键与查询键之间加一格，保留原生输入、清除和回车语义。
     /// 同时扩展模板的跨列表面，站点入口也在输入框边框内；模板重建时重新挂载。搜索页与「在 MoviePilot 搜索版本」
     /// 窗口共用 <see cref="SearchSiteSlot"/> 这一份做法。
@@ -1554,74 +1528,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
     }
 
-    private void OnSearchLostFocus(object sender, RoutedEventArgs args)
-    {
-        _searchEnterDown = false;
-        CancelImeSubmit();
-    }
-
-    private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key == Windows.System.VirtualKey.Enter) _searchEnterDown = true;
-    }
-
-    /// <summary>
-    /// 输入法组字时的回车只留下 keyup：keydown 与 <see cref="AutoSuggestBox.QuerySubmitted"/> 都被输入法
-    /// 吞掉，用户用中文打完词按一回车，只有候选上屏、搜索不动。这里把那一颗回车补成一次提交 —— 等组合上屏
-    /// （框里的字变了）或最多约 0.35 秒，再拿框里现在的词搜一次。普通回车有 keydown，QuerySubmitted 已经
-    /// 提交过，这一路不重复。
-    /// </summary>
-    private void OnSearchKeyUp(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key == Windows.System.VirtualKey.Escape)
-        {
-            CancelImeSubmit();
-            return;
-        }
-
-        if (e.Key != Windows.System.VirtualKey.Enter) return;
-        var submitted = _searchEnterDown;
-        _searchEnterDown = false;
-        if (!submitted) _ = SubmitImeEnterAsync();
-    }
-
-    /// <summary>
-    /// <see cref="OnSearchKeyUp"/> 的补提交。组字回车的那一下，框里刚提交的组合串可能还没落进 Text，
-    /// 所以先等文本变化（多在 100 毫秒上下），再提交上屏后的词；一直没变就按框里现有的词提交。
-    /// </summary>
-    internal async Task SubmitImeEnterAsync()
-    {
-        CancelImeSubmit();
-        var pending = new CancellationTokenSource();
-        _imeSubmit = pending;
-        var before = SearchInput.Text ?? string.Empty;
-        try
-        {
-            for (var attempt = 0; attempt < 14; attempt++)
-            {
-                await Task.Delay(25, pending.Token).ConfigureAwait(true);
-                if (string.Equals(SearchInput.Text, before, StringComparison.Ordinal)) continue;
-                await Task.Delay(60, pending.Token).ConfigureAwait(true);
-                break;
-            }
-
-            if (pending.IsCancellationRequested || _released) return;
-            await SubmitSearchAsync(SearchInput.Text ?? string.Empty).ConfigureAwait(true);
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            if (ReferenceEquals(_imeSubmit, pending)) _imeSubmit = null;
-            pending.Dispose();
-        }
-    }
-
-    private void CancelImeSubmit()
-    {
-        _imeSubmit?.Cancel();
-        _imeSubmit = null;
-    }
-
     internal Task SubmitSearchAsync(string text)
     {
         CancelTyping();
@@ -1629,13 +1535,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 从来源标签按回车后把焦点交回输入框，接着修改关键词不必再点一次。
         SearchInput.Focus(FocusState.Programmatic);
         return RunSearchAsync(text, remember: true);
-    }
-
-    private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
-    {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && args.CheckCurrent()
-            && !string.Equals(sender.Text, ViewModel.SearchText, StringComparison.Ordinal))
-            _ = SearchTypingAsync(sender.Text ?? string.Empty);
     }
 
     /// <summary>
@@ -1762,8 +1661,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_released || e.Key != Windows.System.VirtualKey.Enter) return;
         e.Handled = true;
         _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
-        // 提交把焦点交到输入框后，这颗回车的 keyup 也会过去，不能误认为输入法补提交。
-        _searchEnterDown = true;
     }
 
     private MoviePilotService? _moviePilot;
@@ -1892,7 +1789,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void ApplySource()
     {
         CancelTyping();
-        CancelImeSubmit();
         SearchSitePicker.ClosePopup();
         var source = SearchSource;
         var available = SearchSourceAvailable;
