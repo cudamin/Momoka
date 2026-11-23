@@ -61,6 +61,21 @@ internal static class MoviePilotCalendarWiringTests
             Assert.Contains("_forwardTrails.RemoveAt(index)", prune);
         });
 
+        Test("MP 日历接线：启动后台刷新只在开关开启时跑一趟并写入缓存", () =>
+        {
+            var moviePilot = Read("ShellPage.MoviePilot.cs");
+            var start = moviePilot.IndexOf("private async Task RefreshCalendarOnStartupAsync", StringComparison.Ordinal);
+            Assert.True(start >= 0, "缺少启动后台刷新入口");
+            var block = moviePilot[start..moviePilot.IndexOf("private void OnMoviePilotHistoryCapabilitiesChanged", start, StringComparison.Ordinal)];
+            Assert.Contains("_moviePilotCalendarRefreshStarted", block);
+            Assert.Contains("_moviePilotCalendarRefreshOnLaunch", block);
+            Assert.Contains("CalendarEnabled", block);
+            Assert.Contains("CalendarAsync(start, end, refresh.Token)", block);
+            Assert.Contains("_moviePilotCalendarRefreshOnLaunch = Settings.MoviePilot.CalendarEnabled && Settings.MoviePilot.CalendarRefreshOnStartup", moviePilot);
+            Assert.Contains("_ = RefreshCalendarOnStartupAsync(service);", moviePilot);
+            Assert.Contains("_moviePilotCalendarRefresh?.Cancel();", moviePilot);
+        });
+
         Test("MP 日历接线：Attach 与离页共用 Release，取消并退订重画", () =>
         {
             var page = Read("MoviePilotCalendarPage.xaml.cs");

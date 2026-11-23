@@ -217,6 +217,66 @@ internal static class MoviePilotCalendarTests
                 Assert.Throws<MoviePilotException>(() => Read(service));
             }
         });
+
+        Test("MoviePilot 日历缓存：按连接与窗口跨进程保存，换连接或窗口不命中", () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-calendar-cache").FullName;
+            try
+            {
+                const string connection = "https://fixture.invalid:3001/\nfixture";
+                var file = Path.Combine(directory, "calendar.json");
+                var cache = new MoviePilotCalendarCache(file);
+                Assert.Null(cache.Read(connection, Start, End));
+
+                var entry = Entry() with
+                {
+                    ConnectionStamp = "runtime-stamp",
+                    Episodes = [new MoviePilotCalendarEpisode(1, "第一集", true)]
+                };
+                cache.Write(connection, Start, End, [entry]);
+
+                var restored = new MoviePilotCalendarCache(file).Read(connection, Start, End);
+                Assert.NotNull(restored);
+                Assert.Equal(1, restored!.Count);
+                Assert.Equal("匿名卡片", restored[0].Title);
+                Assert.Equal(1, restored[0].Episodes.Count);
+                Assert.Equal(true, restored[0].Episodes[0].IsInLibrary);
+                Assert.Equal("", restored[0].ConnectionStamp, "运行期连接代次不跨进程");
+
+                Assert.Null(new MoviePilotCalendarCache(file).Read("https://fixture.invalid:3001/\nother", Start, End));
+                Assert.Null(new MoviePilotCalendarCache(file).Read(connection, Start.AddDays(-1), End));
+                Assert.NotNull(new MoviePilotCalendarCache(file).Read(connection, Start.AddDays(1), End.AddDays(-1)));
+
+                File.WriteAllText(file, "not-json");
+                Assert.Null(new MoviePilotCalendarCache(file).Read(connection, Start, End));
+                new MoviePilotCalendarCache(file).Write(connection, Start, End, [entry]);
+                Assert.Equal(1, new MoviePilotCalendarCache(file).Read(connection, Start, End)!.Count);
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        });
+
+        Test("MoviePilot 日历：成功读取后落缓存，换账号不读旧缓存", () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-calendar-service-cache").FullName;
+            try
+            {
+                var cache = new MoviePilotCalendarCache(Path.Combine(directory, "calendar.json"));
+                var settings = Settings();
+                using var transport = Transport().Answer("subscribe/calendar", Page(1, Movie));
+                using var service = Service(transport, settings, cache);
+                Assert.Null(service.CachedCalendar(Start, End));
+
+                Assert.Equal(1, Read(service).Count);
+                var cached = service.CachedCalendar(Start, End);
+                Assert.NotNull(cached);
+                Assert.Equal("日历电影", cached![0].Title);
+                Assert.Equal("", cached[0].ConnectionStamp);
+
+                settings.MoviePilot.Username = "replacement";
+                Assert.Null(service.CachedCalendar(Start, End), "换账号后旧缓存不得显示");
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        });
     }
 
     private static void PresentationTests()
@@ -311,6 +371,8 @@ internal static class MoviePilotCalendarTests
         new MoviePilotCredentials(PassthroughSecretProtector.Instance).SetPassword(settings.MoviePilot, "fixture");
         return settings;
     }
-    private static MoviePilotService Service(StubTransport transport, AppSettings? settings = null) =>
-        new(new MoviePilotClient(transport), new MoviePilotCredentials(PassthroughSecretProtector.Instance), settings ?? Settings());
+    private static MoviePilotService Service(StubTransport transport, AppSettings? settings = null,
+        MoviePilotCalendarCache? cache = null) =>
+        new(new MoviePilotClient(transport), new MoviePilotCredentials(PassthroughSecretProtector.Instance), settings ?? Settings(),
+            calendarCache: cache);
 }

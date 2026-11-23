@@ -4,6 +4,7 @@ using System.Text.Json;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
+using Momoka.Shell.Views;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -105,6 +106,30 @@ internal static class MoviePilotCalendarViewModelTests
             Assert.True(fixture.Transport.CalendarReads > reads, "重新进入应重新获取归属");
         }));
 
+        Test("MP 日历视图模型：先显示本地缓存，再用网络结果替换", () => Run(async () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-calendar-vm-cache").FullName;
+            try
+            {
+                using var model = new MoviePilotCalendarViewModel();
+                var (start, end) = MoviePilotCalendarLayout.Window(model.Month);
+                var cache = new MoviePilotCalendarCache(Path.Combine(directory, "calendar.json"));
+                cache.Write("https://fixture.invalid:3001/\nfixture", start, end,
+                    [new MoviePilotCalendarEntry { Date = start, SubscriptionId = 7, Title = "本地缓存电影", Type = "电影" }]);
+
+                using var fixture = await Fixture.Create(cache);
+                fixture.Transport.Hold = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+                Assert.Equal("本地缓存电影", model.Entries.Single().Title);
+                Assert.True(model.Busy, "缓存上屏后仍在读取最新安排");
+
+                fixture.Transport.ReleaseHeld();
+                Assert.True(SpinWait.SpinUntil(() => !model.Busy, TimeSpan.FromSeconds(15)), "最新安排未落屏");
+                Assert.Equal("匿名电影", model.Entries.Single().Title);
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        }));
+
         Test("MP 日历视图模型：可读空态与失败分开，重新加载恢复", () => Run(async () =>
         {
             using var fixture = await Fixture.Create();
@@ -139,7 +164,7 @@ internal static class MoviePilotCalendarViewModelTests
         private MoviePilotClient Client { get; }
         internal MoviePilotService Service { get; }
 
-        private Fixture()
+        private Fixture(MoviePilotCalendarCache? cache)
         {
             Settings.MoviePilot.Enabled = true;
             Settings.MoviePilot.Url = "https://fixture.invalid";
@@ -147,12 +172,12 @@ internal static class MoviePilotCalendarViewModelTests
             var credentials = new MoviePilotCredentials(PassthroughSecretProtector.Instance);
             credentials.SetPassword(Settings.MoviePilot, "fixture");
             Client = new MoviePilotClient(Transport);
-            Service = new MoviePilotService(Client, credentials, Settings);
+            Service = new MoviePilotService(Client, credentials, Settings, calendarCache: cache);
         }
 
-        internal static async Task<Fixture> Create()
+        internal static async Task<Fixture> Create(MoviePilotCalendarCache? cache = null)
         {
-            var fixture = new Fixture();
+            var fixture = new Fixture(cache);
             Assert.True(await fixture.Service.RefreshAvailabilityAsync());
             return fixture;
         }

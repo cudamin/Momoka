@@ -1408,6 +1408,20 @@ public sealed class MoviePilotSettings
     } = true;
 
     /// <summary>
+    /// 每次启动 Momoka 后在后台刷新本月日历，写入本地缓存（「在设置中新增一个开关，每次打开 momoka 自动在后台
+    /// 刷新日历，默认关闭」，用户令 2026-11-23）。
+    /// <para>
+    /// 只管启动那一趟后台读取。打开日历页本身仍会先摆缓存、再读最新安排；这个开关关着时，缓存只由用户真正打开
+    /// 日历页的那几次读取积累。默认关，缺键的旧设置文件读出来就是关，不需要迁移。
+    /// </para>
+    /// <para>
+    /// 不设事件：没有界面在运行中听它 —— 拨完只影响下一次启动。恢复默认与备份/恢复配置按偏好处理，见
+    /// <see cref="SettingsPreferences"/>。
+    /// </para>
+    /// </summary>
+    public bool CalendarRefreshOnStartup { get; set; }
+
+    /// <summary>
     /// The API address as typed, e.g. <c>192.0.2.10:3001</c>. Normalised through
     /// <see cref="MoviePilot.MoviePilotAddress"/> on the way in and out; stored as the user's own text so a
     /// half-typed address survives a restart.

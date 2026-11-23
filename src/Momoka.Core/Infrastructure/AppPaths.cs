@@ -27,6 +27,12 @@ public sealed class AppPaths
     public string ImageCacheDirectory => Path.Combine(Root, "cache", "images");
 
     /// <summary>
+    /// MoviePilot 日历的本地缓存。放在数据目录的 cache 下，和海报、着色器缓存同级 —— 它同样是「删了自动重建」
+    /// 的加速数据，不是设置或身份；写入时目录由 <see cref="AtomicFile"/> 按需创建。
+    /// </summary>
+    public string MoviePilotCalendarCacheFile => Path.Combine(Root, "cache", "moviepilot-calendar.json");
+
+    /// <summary>
     /// Where mpv keeps its compiled shader cache. It used to land in the mpv config directory via
     /// <c>gpu-shader-cache-dir="~~/cache/shaders_cache"</c>; with no config directory left, the client
     /// has to name a real one or every playback recompiles the whole chain.

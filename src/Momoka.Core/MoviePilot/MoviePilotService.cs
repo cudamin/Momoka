@@ -24,13 +24,16 @@ public sealed partial class MoviePilotService : IDisposable
     private readonly MoviePilotCredentials _credentials;
     private readonly AppSettings _settings;
     private readonly Action? _saveSettings;
+    private readonly MoviePilotCalendarCache? _calendarCache;
 
-    public MoviePilotService(MoviePilotClient client, MoviePilotCredentials credentials, AppSettings settings, Action? saveSettings = null)
+    public MoviePilotService(MoviePilotClient client, MoviePilotCredentials credentials, AppSettings settings, Action? saveSettings = null,
+        MoviePilotCalendarCache? calendarCache = null)
     {
         _client = client;
         _credentials = credentials;
         _settings = settings;
         _saveSettings = saveSettings;
+        _calendarCache = calendarCache;
         _configuration = ReadConfiguration();
         settings.MoviePilot.ConnectionChanged += OnConnectionChanged;
         settings.MoviePilot.AniBtChanged += OnAniBtChanged;

@@ -6,6 +6,8 @@
 
 日历离线专项：当前 Release/x64 Core、Tests 编译成功后运行 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -p:Platform=x64 -- moviepilot-calendar-fixture`；日期布局、真实 VM 迟到响应和显隐接线同时由 `Momoka.PageContractTests` 覆盖。均不登录真实服务器、读取真实配置或播放。
 
+每次成功读取的完整六周窗口会写进本地 `%LocalAppData%\Momoka\cache\moviepilot-calendar.json`（最多保留八个窗口，原子替换）。再次打开日历页时先把同一服务地址与用户名、覆盖这次窗口的缓存摆上屏，再向 MoviePilot 读取最新安排；缓存过时、损坏、换账号或换服务器时只当作没有缓存，不影响读取。设置 → MoviePilot 在「侧边栏显示日历」下方新增「启动时自动刷新日历」，默认关闭，拨一下下一次启动生效；打开后每次启动 Momoka 在首次连上 MoviePilot 时后台刷新本月窗口并写入缓存，只跑一趟，失败只写日志。
+
 主页和侧栏共用的订阅封面悬停时使用媒体库同款暗罩。集数右侧显示下载图标和 `last_update` 的相对时间；电影没有集数时单独显示时间，缺失或无效时间不显示。超过一天仍按天数显示，较短间隔显示小时、分钟或几秒。
 
 整份订阅列表包含至少两个不同的非空用户名时，封面左上角显示订阅人头像，悬停提示原始用户名。头像使用管理员用户目录的 `name/avatar`，支持服务端内嵌图片；缺图、读取失败或外部来源使用首字占位。恢复单用户时自动隐藏。`last_update` 也可能由集数变化、整理入库更新，不等同下载成功时间。

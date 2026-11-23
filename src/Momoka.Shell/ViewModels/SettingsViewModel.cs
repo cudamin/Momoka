@@ -2629,12 +2629,46 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingSection MoviePilotCard()
     {
         var moviePilot = Settings.MoviePilot;
-        var calendar = new SettingToggleRow("侧边栏显示日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
+        SettingSection? card = null;
+        SettingToggleRow? calendar = null;
+        SettingToggleRow? calendarRefresh = null;
+
+        // 两行都是日历入口的从属项：总开关关掉两行一起收起，日历入口关掉时只留入口本身。就地增删保留仍在场的
+        // 控件与焦点，不整卡替换。
+        void SyncCalendarRows()
+        {
+            if (card is null || calendar is not { } calendarRow || calendarRefresh is not { } refreshRow) return;
+            calendarRow.Reseed(moviePilot.CalendarEnabled);
+            refreshRow.Reseed(moviePilot.CalendarRefreshOnStartup);
+            if (!moviePilot.Enabled)
+            {
+                card.Rows.Remove(calendarRow);
+                card.Rows.Remove(refreshRow);
+                return;
+            }
+            if (!card.Rows.Contains(calendarRow)) card.Rows.Add(calendarRow);
+            if (moviePilot.CalendarEnabled)
+            {
+                if (!card.Rows.Contains(refreshRow)) card.Rows.Add(refreshRow);
+            }
+            else card.Rows.Remove(refreshRow);
+        }
+
+        calendar = new SettingToggleRow("侧边栏显示日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
             moviePilot.CalendarEnabled, value =>
             {
                 if (moviePilot.Enabled) moviePilot.CalendarEnabled = value;
+                SyncCalendarRows();
             }, Save);
-        SettingSection? card = null;
+
+        // 「每次打开 momoka 自动在后台刷新日历，默认关闭」（用户令 2026-11-23）。拨一下只影响下一次启动，
+        // 所以没有 after 钩子。
+        calendarRefresh = new SettingToggleRow("启动时自动刷新日历",
+            "每次打开 Momoka 后在后台刷新本月日历并写入本地缓存；打开日历页时先显示缓存，再读取最新安排。默认关闭，拨一下下一次启动生效。",
+            moviePilot.CalendarRefreshOnStartup, value =>
+            {
+                if (moviePilot.Enabled && moviePilot.CalendarEnabled) moviePilot.CalendarRefreshOnStartup = value;
+            }, Save);
 
         // 行本身只拿读写对，不碰设置对象（同这一页每一条的规矩）。密码那一对是个例外里的例外：写进去的是明文、
         // 存下来的是密文，所以包一层 —— 行永远只见到明文，包和拆都在 MoviePilotCredentials 里。
@@ -2651,13 +2685,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             value =>
             {
                 moviePilot.Enabled = value;
-                if (card is null) return;
-                if (value)
-                {
-                    calendar.Reseed(moviePilot.CalendarEnabled);
-                    card.Rows.Add(calendar);
-                }
-                else card.Rows.Remove(calendar);
+                SyncCalendarRows();
             },
             value => moviePilot.AniBtEnabled = value,
             value => moviePilot.Url = value,
@@ -2676,7 +2704,8 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         card = new SettingSection("MoviePilot", "MoviePilot",
             "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。",
-            moviePilot.Enabled ? [_moviePilotRow, calendar] : [_moviePilotRow]);
+            [_moviePilotRow]);
+        SyncCalendarRows();
         return card;
     }
 

@@ -152,18 +152,29 @@ internal static class SettingsSearchTests
             Assert.Equal(0, settings.TrySaveCalls);
 
             fixture.Set(connection, "Enabled", true);
-            Assert.Equal(2, rows.Count);
+            Assert.Equal(3, rows.Count);
             var calendar = rows[1]!;
             Assert.Equal("侧边栏显示日历", fixture.Get<string>(calendar, "Label"));
             Assert.True(fixture.Get<bool>(calendar, "IsOn"));
+            var calendarRefresh = rows[2]!;
+            Assert.Equal("启动时自动刷新日历", fixture.Get<string>(calendarRefresh, "Label"));
+            Assert.False(fixture.Get<bool>(calendarRefresh, "IsOn"));
             Assert.Equal(1, settings.TrySaveCalls);
             var suggestion = Results(vm).Single();
             Assert.True(ReferenceEquals(calendar, fixture.Get<object>(suggestion, "Row")));
             Assert.True((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
 
+            fixture.Set(calendarRefresh, "IsOn", true);
+            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup);
+            Assert.Equal(2, settings.TrySaveCalls);
+            Assert.Equal(3, rows.Count);
+
             fixture.Set(calendar, "IsOn", false);
             Assert.False(settings.Settings.MoviePilot.CalendarEnabled);
-            Assert.Equal(2, settings.TrySaveCalls);
+            Assert.Equal(2, rows.Count, "日历入口关掉后启动刷新行跟着收起");
+            Assert.Equal(3, settings.TrySaveCalls);
+            fixture.Set(calendarRefresh, "IsOn", false);
+            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup, "已隐藏行的迟到调用不能改变偏好");
             fixture.Set(connection, "Enabled", false);
             Assert.Equal(1, rows.Count);
             Assert.Equal(0, Results(vm).Count());

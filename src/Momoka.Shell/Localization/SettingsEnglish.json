@@ -264,6 +264,8 @@
   "没能确认开机自启改动已完成，请在系统启动项中核对。": "Could not confirm the startup change. Check the Windows startup apps list.",
   "侧边栏显示日历": "Show calendar in sidebar",
   "连接 MoviePilot 后，在侧边栏显示日历入口。": "Show the calendar shortcut in the sidebar when connected to MoviePilot.",
+  "启动时自动刷新日历": "Refresh calendar at startup",
+  "每次打开 Momoka 后在后台刷新本月日历并写入本地缓存；打开日历页时先显示缓存，再读取最新安排。默认关闭，拨一下下一次启动生效。": "Refresh this month's calendar in the background and save it locally each time Momoka starts. The calendar page shows the cached month first, then loads the latest schedule. Off by default; changes apply at the next startup.",
   "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），不是网页界面那个端口。打开后还可以决定是否显示 AniBT 入口。": "Connect your own MoviePilot to find missing episodes, subscribe, and search for resources. Choose HTTP or HTTPS, enter its host and API port (default 3001), not the web interface port. You can also choose whether AniBT appears.",
   "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。": "An optional service for searching, subscriptions, and missing episodes through your MoviePilot. Momoka also works without it.",
   "设置页还没准备好，稍后再试": "Settings are not ready yet. Please try again shortly.",

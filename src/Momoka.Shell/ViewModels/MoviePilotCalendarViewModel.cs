@@ -48,10 +48,13 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
         if (_service is not { Available: true } service || _settings?.CalendarEnabled != true) return;
         var token = BeginLoad();
         var revision = Interlocked.Read(ref _connectionRevision);
-        _entries = [];
+        var (start, end) = MoviePilotCalendarLayout.Window(Month);
+
+        // 上次成功读取留下的同一窗口先摆上屏。仍在读最新安排，所以 Busy 保持——用户看到的是旧内容加一条进度，
+        // 而不是空白页；网络失败时这份旧内容也继续留着，不会因为一次刷新失败把整月清空。
+        _entries = service.CachedCalendar(start, end) ?? [];
         UpdateEntries();
         Changed?.Invoke();
-        var (start, end) = MoviePilotCalendarLayout.Window(Month);
         try
         {
             var entries = await service.CalendarAsync(start, end, token);

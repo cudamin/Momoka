@@ -144,8 +144,9 @@ public static class SettingsPreferences
         ui.HomeRowsByIdentity = homeHistory;
         ui.RecentSearches = recentSearches;
 
-        // 日历入口是侧边栏偏好。MoviePilot 共用同一配置对象的账号、连接开关和凭据仍属于本机。
+        // 日历入口与启动后台刷新都是界面偏好。MoviePilot 共用同一配置对象的账号、连接开关和凭据仍属于本机。
         destination.MoviePilot.CalendarEnabled = source.MoviePilot.CalendarEnabled;
+        destination.MoviePilot.CalendarRefreshOnStartup = source.MoviePilot.CalendarRefreshOnStartup;
 
         // 身份（DeviceId、Servers、LastServerId、LastAccountId）留在目的地。AppSettings 本身不走整组覆盖，
         // 新增的身份字段也不会进入偏好备份。
