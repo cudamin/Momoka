@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.MoviePilot;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 
@@ -13,7 +14,8 @@ public sealed partial class ShellPage
     public event EventHandler? MoviePilotAvailabilityChanged;
     public bool MoviePilotMediaManagementEnabled => _moviePilotService?.CanManageHistory == true;
     public bool MoviePilotSmartReorganizeEnabled => _moviePilotService?.CanSmartReorganize == true;
-    private bool MoviePilotCalendarAvailable => _moviePilotService?.Available == true && Settings.MoviePilot.CalendarEnabled;
+    private bool CalendarAvailable => MoviePilotCalendarViewModel.HasMoviePilot(_moviePilotService, Settings.MoviePilot)
+        || MoviePilotCalendarViewModel.HasAniBt(Settings.MoviePilot);
 
     private void OpenMoviePilotSubscriptionsAfterSubscribe(MoviePilotMedia media)
     {
@@ -64,42 +66,41 @@ public sealed partial class ShellPage
     private void OnMoviePilotAniBtChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
     {
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
+        SyncCalendarAvailability();
     });
 
-    private void OnMoviePilotCalendarChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    private void OnMoviePilotCalendarChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(SyncCalendarAvailability);
+
+    private void SyncCalendarAvailability()
     {
         SyncSidebar();
-        if (!MoviePilotCalendarAvailable && ContentFrame.Content is MoviePilotCalendarPage) GoTo("home");
-        else if (ContentFrame.Content is MoviePilotCalendarPage calendar) _ = calendar.ViewModel.ReloadAsync();
+        if (ContentFrame.Content is MoviePilotCalendarPage calendar)
+        {
+            if (CalendarAvailable) calendar.ViewModel.RefreshSources();
+            else GoTo("home");
+        }
         PruneMoviePilotHistory();
         SyncChrome();
-    });
+    }
 
     private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
     {
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
-        // 侧边栏那两条订阅入口跟的是可用性，而**两个方向都要重算**：连上时它们要出现，断线时它们要收起。
-        // 所以这一句不能挪到下面那道「不可用才继续」的门里面 —— 那道门管的是「收起已经打开的附属界面」，
-        // 只走一个方向。
-        SyncSidebar();
-        if (_moviePilotService is null || _moviePilotService.Available)
+        if (_moviePilotService is { Available: false })
         {
-            if (MoviePilotCalendarAvailable && ContentFrame.Content is MoviePilotCalendarPage calendar) _ = calendar.ViewModel.ReloadAsync();
-            return;
+            _moviePilotWindow?.Hide();
+            _moviePilotDialog?.Hide();
+            if (IsMoviePilotPage(ContentFrame.Content?.GetType())) GoTo("home");
         }
-        _moviePilotWindow?.Hide();
-        _moviePilotDialog?.Hide();
-        if (IsMoviePilotPage(ContentFrame.Content?.GetType())) GoTo("home");
-        PruneMoviePilotHistory();
-        SyncChrome();
+        SyncCalendarAvailability();
     });
 
     /// <summary>连不上 MoviePilot 时不能再留着的两页：订阅列表（侧边栏那两条入口）和一条订阅的详情。</summary>
     private static bool IsMoviePilotPage(Type? type) =>
-        type == typeof(MoviePilotSubscriptionPage) || type == typeof(MoviePilotSubscriptionsPage) || type == typeof(MoviePilotCalendarPage);
+        type == typeof(MoviePilotSubscriptionPage) || type == typeof(MoviePilotSubscriptionsPage);
 
     private bool IsUnavailableMoviePilotPage(Type type) => type == typeof(MoviePilotCalendarPage)
-        ? !MoviePilotCalendarAvailable : _moviePilotService?.Available != true && IsMoviePilotPage(type);
+        ? !CalendarAvailable : _moviePilotService?.Available != true && IsMoviePilotPage(type);
 
     private void PruneMoviePilotHistory()
     {

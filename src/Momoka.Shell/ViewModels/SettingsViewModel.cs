@@ -2642,12 +2642,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingSection MoviePilotCard()
     {
         var moviePilot = Settings.MoviePilot;
-        var calendar = new SettingToggleRow("侧边栏显示日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
-            moviePilot.CalendarEnabled, value =>
-            {
-                if (moviePilot.Enabled) moviePilot.CalendarEnabled = value;
-            }, Save);
-        SettingSection? card = null;
+        var calendar = new SettingToggleRow("侧边栏显示日历", "启用 AniBT 或连上 MoviePilot 后，在侧边栏显示日历入口。",
+            moviePilot.CalendarEnabled, value => moviePilot.CalendarEnabled = value, Save);
 
         // 行本身只拿读写对，不碰设置对象（同这一页每一条的规矩）。密码那一对是个例外里的例外：写进去的是明文、
         // 存下来的是密文，所以包一层 —— 行永远只见到明文，包和拆都在 MoviePilotCredentials 里。
@@ -2655,23 +2651,13 @@ public sealed partial class SettingsViewModel : PageViewModel
             "MoviePilot",
             "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。"
                 + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
-                + "不是网页界面那个端口。打开后还可以决定是否显示 AniBT 入口。",
+                + "不是网页界面那个端口。",
             moviePilot.Enabled,
             moviePilot.AniBtEnabled,
             moviePilot.Url,
             moviePilot.Username,
             moviePilot.HasSavedPassword,
-            value =>
-            {
-                moviePilot.Enabled = value;
-                if (card is null) return;
-                if (value)
-                {
-                    calendar.Reseed(moviePilot.CalendarEnabled);
-                    card.Rows.Add(calendar);
-                }
-                else card.Rows.Remove(calendar);
-            },
+            value => moviePilot.Enabled = value,
             value => moviePilot.AniBtEnabled = value,
             value => moviePilot.Url = value,
             value => moviePilot.Username = value,
@@ -2687,10 +2673,9 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         SyncMoviePilotSites();
 
-        card = new SettingSection("MoviePilot", "MoviePilot",
+        return new SettingSection("MoviePilot", "MoviePilot",
             "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。",
-            moviePilot.Enabled ? [_moviePilotRow, calendar] : [_moviePilotRow]);
-        return card;
+            [_moviePilotRow, calendar]);
     }
 
     /// <summary>

@@ -125,13 +125,13 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "MoviePilot";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            AssertNote("关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。", hidden);
+            AssertNote("控制日历里的 AniBT 番剧来源，以及 AniBT 识别、搜索和版本来源。番剧日历可以独立使用。", hidden);
             AssertNote("搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。", hidden);
             Require(Descendants(page).OfType<ToggleSwitch>().Any(control => AutomationProperties.GetName(control) == "显示 AniBT 入口"),
                 "隐藏说明误收起 AniBT 控件");
             foreach (var (text, suffix) in new[]
             {
-                ("关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。", "anibt"),
+                ("控制日历里的 AniBT 番剧来源，以及 AniBT 识别、搜索和版本来源。番剧日历可以独立使用。", "anibt"),
                 ("搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。", "sites")
             })
             {

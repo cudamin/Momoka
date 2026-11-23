@@ -1373,7 +1373,7 @@ public sealed class MoviePilotSettings
 {
     public event EventHandler? ConnectionChanged;
 
-    /// <summary>AniBT 仅改变界面入口显隐，不重连 MoviePilot；菜单与搜索页据此当场收放。</summary>
+    /// <summary>AniBT 入口变化通知，包括番剧日历、菜单和搜索页，不重连 MoviePilot。</summary>
     public event EventHandler? AniBtChanged;
 
     /// <summary>日历的显示偏好独立于 MoviePilot 连接。</summary>
@@ -1391,8 +1391,7 @@ public sealed class MoviePilotSettings
     }
 
     /// <summary>
-    /// AniBT 识别、AniBT 搜索与「搜索不同版本」里的 AniBT 来源是否出现在界面上。默认开：老设置文件没有这一项时
-    /// 行为不变。关闭收起入口并撤销在途 AniBT 操作，不删已保存的连接、不解除整理防重，也不影响 MoviePilot 其他功能。
+    /// 是否提供 AniBT 番剧日历、识别、搜索和版本来源。默认开启；关闭会撤销在途 AniBT 操作并保留已保存的连接与整理状态。
     /// </summary>
     public bool AniBtEnabled
     {
@@ -1400,7 +1399,7 @@ public sealed class MoviePilotSettings
         set { if (field == value) return; field = value; AniBtChanged?.Invoke(this, EventArgs.Empty); }
     } = true;
 
-    /// <summary>侧边栏日历入口的显示偏好；MoviePilot 不可用时仍隐藏，但保留用户选择。</summary>
+    /// <summary>侧边栏日历的总开关；至少一个来源可用时提供入口。</summary>
     public bool CalendarEnabled
     {
         get;

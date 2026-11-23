@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Momoka.AniBt;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
@@ -16,7 +17,7 @@ internal static class MoviePilotCalendarViewModelTests
         {
             using var fixture = await Fixture.Create();
             using var model = new MoviePilotCalendarViewModel();
-            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
             var original = model.Month;
             var delta = (2026 - original.Year) * 12 + 12 - original.Month;
             model.MoveMonth(delta);
@@ -37,7 +38,7 @@ internal static class MoviePilotCalendarViewModelTests
         {
             using var fixture = await Fixture.Create();
             using var model = new MoviePilotCalendarViewModel();
-            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
             var oldMonth = model.Month;
             fixture.Transport.Hold = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var old = model.ReloadAsync();
@@ -61,7 +62,7 @@ internal static class MoviePilotCalendarViewModelTests
             {
                 using var fixture = await Fixture.Create();
                 using var model = new MoviePilotCalendarViewModel();
-                model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+                model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
                 fixture.Transport.Hold = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 var old = model.ReloadAsync();
                 Assert.False(old.IsCompleted);
@@ -79,7 +80,7 @@ internal static class MoviePilotCalendarViewModelTests
         {
             using var fixture = await Fixture.Create();
             using var model = new MoviePilotCalendarViewModel();
-            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
             fixture.Transport.Empty = true;
             fixture.Transport.Hold = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var old = model.ReloadAsync();
@@ -99,7 +100,7 @@ internal static class MoviePilotCalendarViewModelTests
             fixture.Settings.MoviePilot.CalendarEnabled = true;
             await model.ReloadAsync();
             Assert.Equal(reads, fixture.Transport.CalendarReads, "释放后失去服务归属，不应自行重启读取");
-            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
             await model.ReloadAsync();
             Assert.True(model.IsReady);
             Assert.True(fixture.Transport.CalendarReads > reads, "重新进入应重新获取归属");
@@ -110,7 +111,7 @@ internal static class MoviePilotCalendarViewModelTests
             using var fixture = await Fixture.Create();
             using var model = new MoviePilotCalendarViewModel();
             fixture.Transport.CalendarStatus = HttpStatusCode.Forbidden;
-            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
             Assert.True(model.IsReady);
             Assert.True(model.NoticeOpen);
             Assert.Contains("权限", model.NoticeMessage);
@@ -128,9 +129,101 @@ internal static class MoviePilotCalendarViewModelTests
             model.MediaType = 0;
             Assert.Equal(1, model.Entries.Count);
         }));
+
+        Test("AniBT 日历视图模型：没有 MoviePilot 时直接读取，关闭来源或总开关即阻止请求", () => Run(async () =>
+        {
+            var settings = new MoviePilotSettings();
+            using var transport = new AnimeTransport();
+            using var client = new AniBtClient(transport);
+            using var model = new MoviePilotCalendarViewModel();
+            model.Attach(null, settings, client);
+            await model.ReloadAsync();
+            Assert.Equal(CalendarSource.AniBt, model.Source);
+            Assert.False(model.MoviePilotAvailable);
+            Assert.True(model.AniBtAvailable);
+            Assert.Equal("匿名番剧", model.Entries.Single().Anime?.Title);
+            Assert.Null(model.Entries.Single().Subscription);
+            model.MediaType = 1;
+            Assert.Equal(0, model.Entries.Count);
+            model.MediaType = 2;
+            Assert.Equal(1, model.Entries.Count);
+            var reads = transport.Reads;
+            settings.AniBtEnabled = false;
+            await model.ReloadAsync();
+            Assert.False(model.AniBtAvailable);
+            settings.AniBtEnabled = true;
+            settings.CalendarEnabled = false;
+            await model.ReloadAsync();
+            Assert.False(model.AniBtAvailable);
+            Assert.Equal(reads, transport.Reads);
+        }));
+
+        Test("AniBT 日历视图模型：切回订阅后迟到番剧不能回填，断线时可回到番剧", () => Run(async () =>
+        {
+            using var fixture = await Fixture.Create();
+            var settings = fixture.Settings.MoviePilot;
+            using var transport = new AnimeTransport();
+            using var client = new AniBtClient(transport);
+            using var model = new MoviePilotCalendarViewModel();
+            model.Attach(fixture.Service, settings, client);
+            Assert.Equal(CalendarSource.MoviePilot, model.Source);
+            Assert.Equal(0, transport.Reads);
+
+            var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            transport.Hold = held;
+            model.SelectSource(CalendarSource.AniBt);
+            var pending = model.ReloadAsync();
+            Assert.False(pending.IsCompleted);
+            model.SelectSource(CalendarSource.MoviePilot);
+            await model.ReloadAsync();
+            held.SetResult();
+            await pending;
+            Assert.Equal("匿名电影", model.Entries.Single().Subscription?.Title);
+            Assert.False(model.NoticeOpen);
+
+            settings.Enabled = false;
+            model.RefreshSources();
+            await model.ReloadAsync();
+            Assert.Equal(CalendarSource.AniBt, model.Source);
+            Assert.Equal("匿名番剧", model.Entries.Single().Anime?.Title);
+            var reads = transport.Reads;
+            settings.Enabled = true;
+            Assert.True(await fixture.Service.RefreshAvailabilityAsync());
+            model.RefreshSources();
+            Assert.Equal(CalendarSource.AniBt, model.Source);
+            Assert.Equal(reads, transport.Reads);
+        }));
     }
 
     private static void Run(Func<Task> test) => test().GetAwaiter().GetResult();
+
+    private sealed class AnimeTransport : HttpMessageHandler
+    {
+        internal TaskCompletionSource? Hold { get; set; }
+        internal int Reads { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            Reads++;
+            Assert.Equal("https://anibt.net/api/seasons/anime", request.RequestUri?.GetLeftPart(UriPartial.Path));
+            if (Hold is { } held) await held.Task; // Ignore cancellation to exercise the VM's source guard.
+            var body = JsonSerializer.Serialize(new
+            {
+                ok = true,
+                data = new
+                {
+                    scope = new { kind = "season" },
+                    truncated = false,
+                    byWeekday = new[] { new { animes = new[] { new
+                    {
+                        animeId = "fixture-anime", title = new { primary = "匿名番剧" }, kind = "TV",
+                        premiereDate = DateOnly.FromDateTime(DateTime.Today), premierePrecision = "day"
+                    } } } }
+                }
+            });
+            return new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+        }
+    }
 
     private sealed class Fixture : IDisposable
     {

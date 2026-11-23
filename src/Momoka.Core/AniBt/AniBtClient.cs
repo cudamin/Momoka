@@ -214,7 +214,8 @@ public sealed partial class AniBtClient : IDisposable
                     if (body is not null || redirects >= 3 || next is null || !SameOrigin(next)
                         || next.AbsolutePath != uri.AbsolutePath || next.Fragment.Length != 0
                         || QueryValue(next, "episode") != QueryValue(uri, "episode")
-                        || QueryValue(next, "episodeKey") != QueryValue(uri, "episodeKey"))
+                        || QueryValue(next, "episodeKey") != QueryValue(uri, "episodeKey")
+                        || QueryValue(next, "season") != QueryValue(uri, "season"))
                         throw new AniBtException("AniBT 返回了无法使用的重定向", response.StatusCode);
                     uri = next;
                     continue;
@@ -236,17 +237,7 @@ public sealed partial class AniBtClient : IDisposable
                 var type = response.Content.Headers.ContentType?.MediaType;
                 if (type is not null && !(xml ? type is "application/xml" or "text/xml" or "application/rss+xml" : type == "application/json"))
                     throw InvalidResponse();
-                if (response.Content.Headers.ContentLength > MaximumResponseBytes) throw new AniBtException("AniBT 返回的结果过大");
-                await using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
-                using var memory = new MemoryStream();
-                var buffer = new byte[16384];
-                int count;
-                while ((count = await stream.ReadAsync(buffer, deadline.Token).ConfigureAwait(false)) > 0)
-                {
-                    if (memory.Length + count > MaximumResponseBytes) throw new AniBtException("AniBT 返回的结果过大");
-                    memory.Write(buffer, 0, count);
-                }
-                return (memory.ToArray(), uri);
+                return (await ReadBoundedContentAsync(response.Content, deadline.Token).ConfigureAwait(false), uri);
             }
         }
         catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested)
@@ -261,6 +252,21 @@ public sealed partial class AniBtClient : IDisposable
         {
             ReleaseConnection(connection);
         }
+    }
+
+    private static async Task<byte[]> ReadBoundedContentAsync(HttpContent content, CancellationToken cancellationToken)
+    {
+        if (content.Headers.ContentLength > MaximumResponseBytes) throw new AniBtException("AniBT 返回的结果过大");
+        await using var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var memory = new MemoryStream();
+        var buffer = new byte[16384];
+        int count;
+        while ((count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            if (memory.Length + count > MaximumResponseBytes) throw new AniBtException("AniBT 返回的结果过大");
+            memory.Write(buffer, 0, count);
+        }
+        return memory.ToArray();
     }
 
     private static AniBtAnime? ParseCandidate(JsonElement candidate)

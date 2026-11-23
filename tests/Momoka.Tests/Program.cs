@@ -504,6 +504,12 @@ internal static class Program
             MoviePilotCalendarTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["anibt-calendar-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            AniBtCalendarTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-login-redirect-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -795,6 +801,7 @@ internal static class Program
         MoviePilotLocalMediaTests.Register();
         TmdbLocalMediaTests.Register();
         AniBtTests.Register();
+        AniBtCalendarTests.Register();
         AniBtSeriesIdentityTests.Register();
         AniBtPrepareConcurrencyTests.Register();
         AniBtIntegrationTests.Register();

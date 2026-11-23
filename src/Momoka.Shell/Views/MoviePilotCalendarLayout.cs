@@ -1,5 +1,3 @@
-using Momoka.MoviePilot;
-
 namespace Momoka.Shell.Views;
 
 internal static class MoviePilotCalendarLayout
@@ -23,6 +21,6 @@ internal static class MoviePilotCalendarLayout
         return (start, start.AddDays(42));
     }
 
-    internal static IReadOnlyList<MoviePilotCalendarEntry> Filter(IEnumerable<MoviePilotCalendarEntry> entries, int type) =>
-        entries.Where(entry => type switch { 1 => entry.Type == "电影", 2 => entry.Type == "电视剧", _ => true }).ToArray();
+    internal static IReadOnlyList<T> Filter<T>(IEnumerable<T> entries, int type, Func<T, string> mediaType) =>
+        entries.Where(entry => type switch { 1 => mediaType(entry) == "电影", 2 => mediaType(entry) == "电视剧", _ => true }).ToArray();
 }

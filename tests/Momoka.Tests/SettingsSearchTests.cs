@@ -137,7 +137,7 @@ internal static class SettingsSearchTests
             fixture.List(section, "Rows").Add(Fact("旧设置项2"));
             Assert.Equal(0, Results(vm).Count());
         });
-        TestHarness.Test("MP 日历设置：实际卡片随总开关收放，搜索和保存保持同步", () =>
+        TestHarness.Test("日历设置：MoviePilot 关闭时仍可搜索、修改和保存日历及 AniBT 偏好", () =>
         {
             var settings = new SettingsPageStateTests.FakeSettings();
             var vm = fixture.NewViewModel();
@@ -147,31 +147,24 @@ internal static class SettingsSearchTests
             var rows = fixture.List(section, "Rows");
             var connection = rows[0]!;
             fixture.Set(vm, "SettingsSearchQuery", "侧边栏显示日历");
-            Assert.Equal(1, rows.Count);
-            Assert.Equal(0, Results(vm).Count());
-            Assert.Equal(0, settings.TrySaveCalls);
-
-            fixture.Set(connection, "Enabled", true);
             Assert.Equal(2, rows.Count);
             var calendar = rows[1]!;
             Assert.Equal("侧边栏显示日历", fixture.Get<string>(calendar, "Label"));
             Assert.True(fixture.Get<bool>(calendar, "IsOn"));
-            Assert.Equal(1, settings.TrySaveCalls);
+            Assert.False(settings.Settings.MoviePilot.Enabled);
+            Assert.Equal(0, settings.TrySaveCalls);
             var suggestion = Results(vm).Single();
             Assert.True(ReferenceEquals(calendar, fixture.Get<object>(suggestion, "Row")));
             Assert.True((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
 
             fixture.Set(calendar, "IsOn", false);
             Assert.False(settings.Settings.MoviePilot.CalendarEnabled);
+            Assert.Equal(1, settings.TrySaveCalls);
+            fixture.Set(connection, "AniBtEnabled", false);
+            Assert.False(settings.Settings.MoviePilot.AniBtEnabled);
             Assert.Equal(2, settings.TrySaveCalls);
-            fixture.Set(connection, "Enabled", false);
-            Assert.Equal(1, rows.Count);
-            Assert.Equal(0, Results(vm).Count());
-            Assert.False((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
-            fixture.Set(calendar, "IsOn", true);
-            Assert.False(settings.Settings.MoviePilot.CalendarEnabled, "已隐藏行的迟到调用不能改变偏好");
-
             fixture.Set(connection, "Enabled", true);
+            fixture.Set(connection, "Enabled", false);
             Assert.True(ReferenceEquals(calendar, rows[1]));
             Assert.False(fixture.Get<bool>(calendar, "IsOn"));
             Assert.Equal(1, Results(vm).Count());
