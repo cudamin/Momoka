@@ -109,7 +109,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 「关于」卡上的「备份配置文件」「恢复配置」两颗按钮要弹文件框，而文件框同样要这一页的 XamlRoot 才拿得到
         // 窗口句柄（见 SettingsFile）。同上一句一手交出去。
         ViewModel.UseFilePickers(SettingsFile.SaveFor(this), SettingsFile.OpenFor(this));
-        ViewModel.UsePlayerToolsPickers(SettingsFile.ExecutableFor(this), SettingsFile.DirectoryFor(this));
 
         // The two hosted entries are selected the same way a card is, so the frame that holds them has to
         // follow the selection rather than only the navigation parameter.

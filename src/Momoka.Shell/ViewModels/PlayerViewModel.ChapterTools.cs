@@ -46,12 +46,9 @@ public sealed partial class PlayerViewModel
         {
             try
             {
-                var directory = string.IsNullOrWhiteSpace(Settings.PlayerTools.OutputDirectory)
-                    ? AppPaths.ResolveScreenshotDirectory(Settings.Mpv.ScreenshotDirectory, AppPaths.Default.ScreenshotDirectory)!
-                    : Settings.PlayerTools.OutputDirectory;
+                var directory = AppPaths.ResolveScreenshotDirectory(Settings.Mpv.ScreenshotDirectory, AppPaths.Default.ScreenshotDirectory)!;
                 Directory.CreateDirectory(directory);
                 var path = Path.Combine(directory, "Momoka-chapters-" + Guid.NewGuid().ToString("N")[..8] + ".chp");
-                PlayerToolPaths.RequireOutput(path);
                 await using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                 await using var writer = new StreamWriter(stream);
                 await writer.WriteAsync(PlayerChapterDocument.Write(chapters, action.EndsWith("-ogm", StringComparison.Ordinal))).ConfigureAwait(true);

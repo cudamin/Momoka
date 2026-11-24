@@ -1,34 +1,21 @@
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.Extensions.DependencyInjection;
 using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
 
 public sealed partial class ShellPage
 {
-    private bool _playerToolDialogOpen;
+    private bool _playerDialogOpen;
 
     private async void OnPlayerDialogRequested(string action)
     {
-        if (_playerToolDialogOpen || Root.XamlRoot is not { } root) return;
+        if (_playerDialogOpen || Root.XamlRoot is not { } root) return;
         var vm = Player.ViewModel;
         var context = vm.CaptureInteraction();
-        _playerToolDialogOpen = true;
+        _playerDialogOpen = true;
         _window?.Activate();
         try
         {
-            if (action.StartsWith("capture-", StringComparison.Ordinal) && _services?.GetService<PlayerCaptureController>() is { } capture)
-            {
-                void Report(string message, bool error) => Notify(message, error ? InfoBarSeverity.Warning : InfoBarSeverity.Informational);
-                capture.Noticed += Report;
-                try
-                {
-                    if (action == "capture-stitch") await capture.StitchAsync().ConfigureAwait(true);
-                    else await capture.ShowCropAsync(root, action == "capture-subtitle").ConfigureAwait(true);
-                }
-                finally { capture.Noticed -= Report; }
-                return;
-            }
             if (action == "chapter-rename")
             {
                 var input = new TextBox { Text = vm.ChapterTitleDraft, MaxLength = 200 };
@@ -84,6 +71,6 @@ public sealed partial class ShellPage
         }
         catch (OperationCanceledException) { }
         catch (Exception) { Notify("字幕操作未完成，请重新打开菜单后重试。", InfoBarSeverity.Warning); }
-        finally { _playerToolDialogOpen = false; }
+        finally { _playerDialogOpen = false; }
     }
 }

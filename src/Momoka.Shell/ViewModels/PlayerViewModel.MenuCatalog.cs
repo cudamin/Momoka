@@ -48,8 +48,6 @@ public sealed partial class PlayerViewModel
             if (subtitleIndex >= 0) nodes[subtitleIndex] = nodes[subtitleIndex] with { Children = [.. nodes[subtitleIndex].Children, download] };
             else nodes.Add(DynamicGroup("字幕", [download]));
         }
-        var tools = ToolMenuRows();
-        if (tools.Count > 0) nodes.Add(DynamicGroup("片段与字幕工具", tools));
         return nodes;
 
         void AddTracks(string label, string type, string property, bool off)

@@ -39,7 +39,7 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
 - **Local folder organization:** Create a local library from a disk or network share, identify media with TMDB or MoviePilot, and organize it by renaming or using hard or symbolic links. Optional folder monitoring can scrape and import new items. Local libraries currently let you browse imported items; Momoka does not play them directly.
 - **Music:** Emby, Jellyfin, and fnOS Music share a music interface and playback bar. Plex currently has protocol adaptation only; live-server music playback has not been verified.
 - **Optional playback features:** Shaders, SVP frame interpolation integration, danmaku, subtitle selection, and real-time subtitle translation. SVP and translation are off by default. Translation requires your own service credentials and sends subtitle text to the selected provider when enabled.
-- **Media tools:** Configure local FFmpeg/FFprobe, subtitle synchronization, and speech recognition tools to export clips, GIFs, subtitles, screenshots, and chapter files.
+- **Chapter authoring:** Mark, edit, and remove chapters during playback, then export CHP or OGM chapter files without changing the original media or server chapters.
 
 ## Download and requirements
 

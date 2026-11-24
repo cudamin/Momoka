@@ -85,31 +85,6 @@ internal static class Program
             FnNasLibraryDisplayTests.Register();
             return TestHarness.Run();
         }
-        if (args is ["player-tool-download-fixture"])
-        {
-            PlayerToolDownloadTests.Register();
-            return TestHarness.Run();
-        }
-        if (args is ["player-tool-child-failure", var failureOutput])
-        {
-            File.WriteAllText(failureOutput, "partial");
-            return 7;
-        }
-        if (args is ["player-tool-child-wait", var waitingOutput])
-        {
-            // Publish the readiness receipt only after its writer has closed; File.Exists alone
-            // otherwise lets the parent race the exclusive File.WriteAllText handle.
-            var ready = waitingOutput + ".ready";
-            File.WriteAllText(ready, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            File.Move(ready, waitingOutput);
-            Thread.Sleep(30_000);
-            return 0;
-        }
-        if (args is ["player-tools-fixture"])
-        {
-            PlayerToolTests.Register();
-            return TestHarness.Run();
-        }
         if (args is ["native-menu-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -649,7 +624,6 @@ internal static class Program
         ExternalSubtitleSelectionTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
-        PlayerToolTests.Register();
         SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
         SubtitleTargetTests.Register();
@@ -818,7 +792,6 @@ internal static class Program
         ProbeEvidenceTests.Register();
         CompactImagesProbeTests.Register();
         PerformanceProbeRulesTests.Register();
-        PlayerToolDownloadTests.Register();
         MusicTests.Register();
         MusicLyricsTests.Register();
         CardPreviewPlacementTests.Register();

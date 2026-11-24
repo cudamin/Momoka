@@ -12,7 +12,7 @@ namespace Momoka.Tests;
 internal static class PlayerConstructorBoundary
 {
     private static readonly string[] Names = ["playback", "settings", "session", "images", "shaders", "ui", "dandanPlay",
-        "fonts", "playerTools", "playerCapture", "playerCapabilities"];
+        "fonts", "playerCapabilities"];
 
     internal static ConstructorInfo Require(Type viewModel, Type dispatcher)
     {
@@ -49,7 +49,7 @@ internal static class PlayerConstructorBoundary
 
     internal static object Create(ConstructorInfo constructor, params object?[] arguments)
     {
-        Assert.True(arguments.Length >= Names.Length - 4 && arguments.Length <= Names.Length,
+        Assert.True(arguments.Length >= Names.Length - 2 && arguments.Length <= Names.Length,
             "preserve seven mandatory dependencies and the reviewed optional player dependencies");
         Assert.True(arguments[6] is DandanPlayClient, "a null or unrelated seventh dependency must be rejected before invoking the VM");
         for (var index = 7; index < arguments.Length; index++)
@@ -63,19 +63,17 @@ internal static class PlayerConstructorBoundary
         return constructor.Invoke(filled);
     }
 
-    // Shell 侧的三个可选依赖在纯夹具工程里不引用程序集，只能按完整类型名核对。
+    // Shell 侧的两个可选依赖在纯夹具工程里不引用程序集，只能按完整类型名核对。
     private static bool MatchesOptionalSlot(int index, Type type) => index switch
     {
         7 => type == typeof(FontLibrary),
-        8 => type.FullName == "Momoka.Shell.Services.PlayerToolsController",
-        9 => type.FullName == "Momoka.Shell.PlayerCaptureController",
-        10 => type.FullName == "Momoka.Services.IServerCapabilities",
+        8 => type.FullName == "Momoka.Services.IServerCapabilities",
         _ => false
     };
 
     internal static void Register(Type viewModel, Type dispatcher)
     {
-        TestHarness.Test("播放器构造边界：七项必需依赖与四项可选依赖的名称类型顺序", () => _ = Require(viewModel, dispatcher));
+        TestHarness.Test("播放器构造边界：七项必需依赖与两项可选依赖的名称类型顺序", () => _ = Require(viewModel, dispatcher));
         TestHarness.Test("播放器构造边界：旧七参数签名与未审核新增尾参数均拒绝", () =>
         {
             var parameters = Shape(Require(viewModel, dispatcher));

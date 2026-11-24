@@ -271,8 +271,6 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("快捷键搜索、改绑、空态与恢复（宽窗）", () => SettingsShortcutSearchAsync(1100), 60, section: ShellProbeSections.Shortcuts);
             await CaseAsync("快捷键搜索、改绑、空态与恢复（窄窗）", () => SettingsShortcutSearchAsync(760), 60, section: ShellProbeSections.Shortcuts);
             await CaseAsync("新增快捷键命令、失败回执与队列隔离", PlayerAdditionalShortcutsAsync, 30, section: ShellProbeSections.Shortcuts);
-            await CaseAsync("截图裁切的真实控件、取消与宽窄布局", PlayerCaptureDialogAsync, 30, section: ShellProbeSections.Shortcuts);
-            await CaseAsync("播放工具设置三张卡的宽窄布局", PlayerToolsSettingsAsync, 45, section: ShellProbeSections.Shortcuts);
             await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
             // 长期无信号：窄窗这一档在台账里连续多轮记为既有超时；宽窗仍照常进全量。
             await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings, defaultOff: true);

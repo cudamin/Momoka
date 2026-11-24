@@ -306,8 +306,6 @@ public sealed partial class PlayerViewModel : ObservableObject
         IUiDispatcher ui,
         DandanPlayClient dandanPlay,
         FontLibrary? fonts = null,
-        Momoka.Shell.Services.PlayerToolsController? playerTools = null,
-        PlayerCaptureController? playerCapture = null,
         IServerCapabilities? playerCapabilities = null)
     {
         _playback = playback;
@@ -318,10 +316,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _ui = ui;
         _dandanPlay = dandanPlay;
         _danmakuFonts = fonts ?? new FontLibrary();
-        _playerTools = playerTools;
-        _playerCapture = playerCapture;
         _playerCapabilities = playerCapabilities;
-        if (playerTools is not null) playerTools.Changed += OnPlayerToolsChanged;
 
         // Every number the bar shows starts from the same empty snapshot the stop path returns it to, so
         // the clock reads 0:00 and the glyph reads 播放 before anything has ever played.
@@ -372,12 +367,6 @@ public sealed partial class PlayerViewModel : ObservableObject
     private async Task ShutdownPlaybackAsync()
     {
         _sessionQueue.Clear();
-        _playerCapture?.Cancel();
-        if (_playerTools is not null)
-        {
-            _playerTools.Changed -= OnPlayerToolsChanged;
-            _playerTools.Cancel();
-        }
         CancelEpisodeLookup();
         _startIntent.CancelAll();
         _preparing?.Cancel();

@@ -410,7 +410,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 「服务器／诊断」两张内嵌页之前 —— 它仍是可选的第二服务，不是本程序自己的行为。
     /// </remarks>
     private static readonly string[] CardCategories =
-        ["主页", "界面", "播放器", "播放工具", "播放行为", "视频输出", "音频输出", "字幕", "弹幕", "快捷键", "MoviePilot", "关于"];
+        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "弹幕", "快捷键", "MoviePilot", "关于"];
 
     /// <summary>
     /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的网页控制台。Entries in the same list
@@ -711,7 +711,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_disposed) return;
         Activate();
-        _playerToolsPickerVersion++;
         if (!ReferenceEquals(_capabilities, capabilities)) _administrationPages.Clear();
         _settings = settings;
         _secretProtector = protector ?? DpapiSecretProtector.Instance;
@@ -849,7 +848,6 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public override void Cancel()
     {
-        _playerToolsPickerVersion++;
         _active = false;
         _administrationLoads.Cancel();
         _ = FlushSettingsAsync();
@@ -858,7 +856,6 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     public override void Dispose()
     {
-        _playerToolsPickerVersion++;
         _disposed = true;
         _active = false;
         _administrationPages.Clear();
@@ -1185,7 +1182,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 视频输出五张（基础输出 / 画质与着色器 / HDR / 缓冲 / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、
         // 字幕四张（字幕 / 字幕外观 / 编码与画面 / 实时字幕翻译）、弹幕三张、关于五张。视频输出按用户指定次序：
         // 着色器在 HDR 上方，缓冲在补帧上方（2026-11-17 用户令「缓冲设置单独一个卡片，放补帧上面」），补帧在最后。
-        _playerToolsPickerVersion++;
         DetailCards.Clear();
         Sections.Clear();
         AddCards(HomeSections());
@@ -1198,7 +1194,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         AddCards(DetailLayoutCards());
         Sections.Add(PlayerCard());
         if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());
-        AddCards(PlayerToolsSections());
         AddCards(PlaybackSections());
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
@@ -1241,7 +1236,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         // 缓存重入只原位增删适用性变化的从属行，不整页 Reload，也不改半输入与保存状态。
         RefreshSettingsApplicability();
-        RefreshPlayerToolsRows();
         return FillAudioDevicesAsync();
     }
 

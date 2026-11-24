@@ -62,8 +62,6 @@ public sealed class AppSettings
 
     public SubtitleTranslationSettings SubtitleTranslation { get; set; } = new();
 
-    public PlayerToolsSettings PlayerTools { get; set; } = new();
-
     /// <summary>
     /// The MoviePilot service, if the user has one. Sits last because it is the newest and least central
     /// thing here — the whole app works without it, and it is off by default.

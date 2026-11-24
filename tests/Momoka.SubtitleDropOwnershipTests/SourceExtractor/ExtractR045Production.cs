@@ -100,6 +100,12 @@ public sealed class ExtractR045Production : BuildTask
             foreach (var name in new[] { "CaptureInteraction", "IsCurrentInteraction" }) vmCode += member(interaction, "method", name);
             vmCode += member(mpv, "method", "AddExternalSubtitlesAsync");
             vmCode += member(events, "method", "OnTracksChanged");
+            // 2026-11-24 长按快进状态机进入页面 Detach 的收尾路径。本套件只验证页面分离与字幕拖放归属，
+            // 不复制 SeekHold 的计时/松键实现；这里保留一个只满足页面边界的空收尾。
+            vmCode += """
+
+                    internal void CancelSeekHold() { }
+            """;
             vmCode += "}\n";
             Action<string, string> save = (name, contents) =>
             {

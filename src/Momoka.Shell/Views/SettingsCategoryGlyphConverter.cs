@@ -27,7 +27,6 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         // 字形语义核对：WinUI Gallery Samples/Iconography/IconsData.json
         // @ 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7。
         ["播放器"] = 0xE768,       // Play
-        ["播放工具"] = 0xE90F,     // Repair
         ["播放行为"] = 0xE81C,     // History（续播、进度）
         ["字幕"] = 0xF15F,         // ClosedCaptionsInternational
         ["弹幕"] = 0xE8F2,         // ChatBubbles

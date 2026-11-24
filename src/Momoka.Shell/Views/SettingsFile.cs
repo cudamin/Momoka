@@ -31,30 +31,6 @@ internal static class SettingsFile
     internal static SettingsViewModel.OpenFileRequest OpenFor(FrameworkElement owner) =>
         () => OpenAsync(owner);
 
-    internal static Func<Task<string?>> ExecutableFor(FrameworkElement owner) =>
-        () => ExecutableAsync(owner);
-
-    internal static Func<Task<string?>> DirectoryFor(FrameworkElement owner) =>
-        () => DirectoryAsync(owner);
-
-    private static async Task<string?> ExecutableAsync(FrameworkElement owner)
-    {
-        if (HandleOf(owner) is not { } handle) throw new InvalidOperationException("设置窗口尚未就绪，无法选择程序。");
-        var picker = new FileOpenPicker();
-        picker.FileTypeFilter.Add(".exe");
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, handle);
-        return (await picker.PickSingleFileAsync())?.Path;
-    }
-
-    private static async Task<string?> DirectoryAsync(FrameworkElement owner)
-    {
-        if (HandleOf(owner) is not { } handle) throw new InvalidOperationException("设置窗口尚未就绪，无法选择文件夹。");
-        var picker = new FolderPicker();
-        picker.FileTypeFilter.Add("*");
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, handle);
-        return (await picker.PickSingleFolderAsync())?.Path;
-    }
-
     private static async Task<string?> SaveAsync(FrameworkElement owner, string suggestedName)
     {
         if (HandleOf(owner) is not { } handle)

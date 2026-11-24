@@ -190,7 +190,7 @@ public static class ShortcutCatalog
         // 与菜单里那一行同一个动作；默认键 B 此前没人用（Alt+B 是次字幕 bidi，与它不同组合）。
         new("toggle-background-click", "窗口不在前台时单击画面播放/暂停", K("B")),
         .. NativeMenuShortcuts.Actions,
-        .. PlayerToolShortcuts.Actions
+        .. ChapterShortcuts.Actions
     ];
 
     /// <summary>这个动作此刻真正生效的键：动过就用动过的，没动过用默认，显式解绑（空串）就是 <see cref="KeyStroke.None"/>。</summary>

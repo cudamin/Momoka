@@ -57,7 +57,6 @@ internal static class ShellServices
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
         services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();
-        services.AddSingleton<PlayerCaptureController>();
         services.AddSingleton(provider => new DandanPlayBuiltInCredentialSource(
             provider.GetRequiredService<ISecretProtector>(),
             Path.Combine(paths.Root, "cache", "danmaku", "builtin-credential.bin")));
@@ -223,7 +222,6 @@ internal static class ShellServices
         // AttachWindow, which is the one place a container is in scope.
         services.AddSingleton<PlayerViewModel>();
         services.AddSingleton<MusicPlaybackViewModel>();
-        services.AddSingleton<Momoka.Shell.Services.PlayerToolsController>();
 
         return services.BuildServiceProvider(new ServiceProviderOptions
         {

@@ -82,30 +82,6 @@ internal static class SubtitleTransportTests
                 Assert.False(sent.Headers.ContainsKey("Authorization"));
             }
         }));
-        Test("真实字幕本地导出：每跳受限签名，跨源不携Auth或authx", () => Run(async () =>
-        {
-            var api = new Uri("https://signed.invalid/v/");
-            using var endpoint = new Endpoint();
-            endpoint.Reply = index => index switch
-            {
-                0 => Redirect("/v/api/v1/subtitle/dl/subtitle-b"),
-                1 => Redirect("https://foreign.invalid/subtitle.srt"),
-                _ => new(HttpStatusCode.OK) { Content = new StringContent("subtitle") }
-            };
-            using var client = new HttpClient(endpoint);
-            var output = Path.Combine(Path.GetTempPath(), "momoka-fnnas-subtitle-" + Guid.NewGuid().ToString("N") + ".srt");
-            try
-            {
-                await PlayerToolDownload.CopyAsync(client, FnNasClient.SubtitleUrl(api, "subtitle-a"),
-                    [new("Authorization", "placeholder")], output, null, CancellationToken.None, new(api));
-                Verify(endpoint.Sent[0]);
-                Verify(endpoint.Sent[1]);
-                Assert.False(endpoint.Sent[2].Headers.ContainsKey("authx"));
-                Assert.False(endpoint.Sent[2].Headers.ContainsKey("Authorization"));
-                Assert.Equal("subtitle", await File.ReadAllTextAsync(output));
-            }
-            finally { if (File.Exists(output)) File.Delete(output); }
-        }));
     }
 
     private static void Verify(Sent sent)

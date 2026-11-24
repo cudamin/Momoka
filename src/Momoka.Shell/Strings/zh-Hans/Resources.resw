@@ -3559,36 +3559,6 @@
   <data name="PersonPage_Localization8.Text" xml:space="preserve">
     <value>作品可能还在服务器上整理，也可能这个人物只有照片和简介。</value>
   </data>
-  <data name="PlayerCaptureDialog_Localization1.Title" xml:space="preserve">
-    <value>裁切截图</value>
-  </data>
-  <data name="PlayerCaptureDialog_Localization1.PrimaryButtonText" xml:space="preserve">
-    <value>保存裁切</value>
-  </data>
-  <data name="PlayerCaptureDialog_Localization1.CloseButtonText" xml:space="preserve">
-    <value>取消</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureInstruction.Text" xml:space="preserve">
-    <value>在图片上拖动选择区域，或输入像素位置与尺寸。</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureX.Header" xml:space="preserve">
-    <value>左侧 X（像素）</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureY.Header" xml:space="preserve">
-    <value>顶部 Y（像素）</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureWidth.Header" xml:space="preserve">
-    <value>宽度（像素）</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureHeight.Header" xml:space="preserve">
-    <value>高度（像素）</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureWholeImage.Content" xml:space="preserve">
-    <value>整张图片</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureSubtitleRegion.Content" xml:space="preserve">
-    <value>底部字幕区域</value>
-  </data>
   <data name="PlayerPage_DanmakuInputBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>弹幕内容</value>
   </data>

@@ -374,12 +374,7 @@ internal sealed partial class ShellNavigationProbe
         var shaders = new ShaderGroupResolver(fixture.Settings.Shaders);
         var playback = new PlaybackService(fixture.Session, fixture.Settings, () => throw new InvalidOperationException("快捷键探针禁止创建真实后端"),
             new PlaybackPlanner(fixture.Settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);
-        using var translationHttp = new HttpClient(new RejectNetwork());
-        using var translation = new SubtitleTranslationClient(translationHttp);
-        using var tools = new PlayerToolsController(playback, fixture.SettingsService, paths, translation,
-            new SubtitleTranslationCredentials(PassthroughSecretProtector.Instance));
-        var vm = new PlayerViewModel(playback, fixture.SettingsService, fixture.Session, fixture.Images, shaders, fixture.Dispatcher, client,
-            playerTools: tools);
+        var vm = new PlayerViewModel(playback, fixture.SettingsService, fixture.Session, fixture.Images, shaders, fixture.Dispatcher, client);
         var handle = new ShortcutProbeHandle();
         Field(playback, "_current", handle);
         // 模拟完整在播身份，让 SetProperty/音频延迟的生命周期守卫也参与测试；构造不会启动后端或上报。
@@ -489,7 +484,6 @@ internal sealed partial class ShellNavigationProbe
         {
             var readings = new List<string>();
             var menu = Get<MenuFlyout>(page, "PictureMenu");
-            Require(!Rows().Any(row => row.HostAction?.StartsWith("tool-", StringComparison.Ordinal) == true), "未配置工具仍显示操作");
             Require(Rows().Any(row => row.Commands.Any(command => command.Count > 2 && command[1] == "audio-device")), "音频设备列表缺失");
             foreach (var property in new[] { "vid", "aid", "sid", "secondary-sid" })
                 Require(Rows().Any(row => row.Commands.Any(command => command.Count > 2 && command[1] == property)), "动态轨道缺失:" + property);
@@ -511,20 +505,6 @@ internal sealed partial class ShellNavigationProbe
             Require(image.Any(row => row.Shortcut == "secondary-subtitle-next") && !image.Any(row => row.Shortcut == "secondary-subtitle-position-up"), "次字幕关闭仍显示位移操作或丢失选择入口");
             SetTracks([video, audio, ass, pgs with { Selected = false }, second]);
             Require(Rebuild().Any(row => row.Shortcut == "secondary-subtitle-position-up"), "次字幕恢复未恢复位移操作");
-            var toolDirectory = Path.Combine(paths.Root, "fake-tools");
-            Directory.CreateDirectory(toolDirectory);
-            foreach (var name in new[] { "ffmpeg.exe", "ffprobe.exe", "ffsubsync.exe", "alass.exe", "whisper.exe" })
-                File.WriteAllText(Path.Combine(toolDirectory, name), "Offline probe placeholder; never execute.");
-            var settings = fixture.Settings.PlayerTools;
-            settings.FfmpegPath = Path.Combine(toolDirectory, "ffmpeg.exe");
-            settings.FfsubsyncPath = Path.Combine(toolDirectory, "ffsubsync.exe");
-            settings.AlassPath = Path.Combine(toolDirectory, "alass.exe");
-            settings.FasterWhisperPath = Path.Combine(toolDirectory, "whisper.exe");
-            Require(Rebuild().Any(row => row.HostAction == "tool-subtitle-export")
-                && Rows().Any(row => row.HostAction == "tool-subtitle-sync") && Rows().Any(row => row.HostAction == "tool-subtitle-generate"), "配置工具没有恢复相应操作");
-            Require(!Rows().Any(row => row.HostAction is "tool-gif" or "tool-clip"), "没有完整时间区间仍显示导出操作");
-            settings.FfmpegPath = "";
-            Require(!Rebuild().Any(row => row.HostAction?.StartsWith("tool-", StringComparison.Ordinal) == true), "清空工具路径仍显示工具操作");
             var old = handle.Commands.Count;
             handle.Text["sigmoid-upscaling"] = null;
             Require(!Rebuild().Any(row => row.Shortcut == "video-nonlinear"), "内核属性未知仍显示无效操作");

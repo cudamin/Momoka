@@ -3,8 +3,7 @@ namespace Momoka.Mpv;
 /// <summary>
 /// 右键画面菜单里「去设置里改」的一行：菜单上写什么、独占模式回传什么令牌、设置窗口落在哪一张卡。
 /// </summary>
-/// <param name="Label">菜单上那一行的字（「字幕」「视频输出」「音频输出」「弹幕」等）。</param>
-/// <param name="Token">
+/// <param name="Label">菜单上那一行的字（「字幕」「视频输出」「音频输出」「弹幕」等）。</param>/// <param name="Token">
 /// 独占模式菜单行 <c>value</c> 里带的令牌（如 <c>subtitle</c>／<c>video</c>／<c>audio</c>）。ASCII、短、每个只有
 /// 一个含义 —— 契约 <see cref="VideoWindowContract.Parse"/> 收窄值域收的就是它，uosc 那头只把它原样发回来。
 /// </param>
@@ -38,7 +37,6 @@ public static class PlayerSettingsLinks
         new("字幕", "subtitle", "字幕"),
         new("视频输出", "video", "视频输出"),
         new("音频输出", "audio", "音频输出"),
-        new("播放工具", "tools", "播放工具"),
         new("弹幕", "danmaku", "弹幕"),
     ];
 

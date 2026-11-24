@@ -199,7 +199,7 @@ internal static class MusicPlaybackTests
             Assert.False(fixture.Service.IsPlaying);
         });
 
-        foreach (var operation in new[] { "截图目录", "截图选项", "字幕外观", "着色器", "播放器工具" })
+        foreach (var operation in new[] { "截图目录", "截图选项", "字幕外观", "着色器" })
         {
             Case($"音乐会话：{operation}入口不读写视频状态", async () =>
             {
@@ -216,10 +216,6 @@ internal static class MusicPlaybackTests
                         case "截图选项": await fixture.Service.ApplyScreenshotOptionsAsync(); break;
                         case "字幕外观": await fixture.Service.ApplySubtitleStyleAsync(); break;
                         case "着色器": Assert.False(await fixture.Service.SetShaderGroupAsync(null)); break;
-                        case "播放器工具":
-                            Assert.False(fixture.Service.CanUsePlayerTools);
-                            Assert.Null(fixture.Service.CapturePlayerToolSession());
-                            break;
                     }
                     Assert.Equal(0, handle.Writes.Count, "音乐不能收到视频选项写入");
                     Assert.Equal(0, handle.Reads, "音乐不读取视频恢复基线");

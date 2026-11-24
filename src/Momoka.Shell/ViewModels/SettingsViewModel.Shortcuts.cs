@@ -145,14 +145,11 @@ public sealed partial class SettingsViewModel
                 "vf-gamma", "vf-fps", "vf-pad", "vf-temperature"
             ]),
 
-        ("截图与工具",
-            "当前画面截图、逐帧截图，以及片段、GIF 与字幕工具；工具要先在「播放工具」里配好路径。",
+        ("截图",
+            "当前画面截图与逐帧截图。",
             [
                 "screenshot", "screenshot-original", "screenshot-window", "screenshot-subtitles",
-                "screenshot-each-frame-subtitles", "screenshot-each-frame-video", "screenshot-each-frame-window",
-                "capture-crop", "capture-subtitle", "capture-stitch",
-                "tool-start", "tool-end", "tool-clip", "tool-gif", "tool-gif-subtitles",
-                "tool-subtitle-export", "tool-subtitle-sync", "tool-subtitle-generate", "tool-subtitle-translate"
+                "screenshot-each-frame-subtitles", "screenshot-each-frame-video", "screenshot-each-frame-window"
             ]),
 
         ("弹幕",
@@ -260,7 +257,8 @@ public sealed partial class SettingsViewModel
             Func<int> read, Action<int> write)
         {
             var row = new SettingNumberRow(label, note, minimum, maximum, read(),
-                value => write((int)value), () => read(), Save) { IsSubordinate = true };
+                value => write((int)value), () => read(), Save)
+            { IsSubordinate = true };
             _shortcutSeekRows.TryAdd(id, []);
             _shortcutSeekRows[id].Add(row);
         }

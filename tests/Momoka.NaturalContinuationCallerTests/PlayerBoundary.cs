@@ -12,15 +12,10 @@ public sealed partial class PlayerViewModel
     private readonly FakePlayback _playback;
     private readonly MemorySettings _settings;
     private readonly Tape _tape;
-    // Optional video tool owners are absent in this caller-only fixture. Keep the real null-conditional
-    // cancellation sites intact; invoking an unarranged owner must fail rather than perform external work.
-    private CancellationBoundary? _playerTools = null;
-    private CancellationBoundary? _playerCapture = null;
 
-    private sealed class CancellationBoundary
-    {
-        internal void Cancel() => throw new InvalidOperationException("自然接续测试未安装视频工具所有者");
-    }
+    // 2026-11-24 长按快进状态机在页面退出/新起播时收尾。本 caller fixture 只跑自然接续控制流，
+    // 不复制 SeekHold 的计时轮询，保留一个空收尾以维持真实 Transport 的调用点。
+    internal void CancelSeekHold() { }
 
     internal PlayerViewModel(FakePlayback playback, MemorySettings settings, EmbySession session, Tape tape)
     {

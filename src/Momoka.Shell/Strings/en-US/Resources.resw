@@ -3538,36 +3538,6 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="PersonPage_Localization8.Text" xml:space="preserve">
     <value>The server may still be organizing their titles, or this person may only have a photo and biography.</value>
   </data>
-  <data name="PlayerCaptureDialog_Localization1.Title" xml:space="preserve">
-    <value>Crop screenshot</value>
-  </data>
-  <data name="PlayerCaptureDialog_Localization1.PrimaryButtonText" xml:space="preserve">
-    <value>Save crop</value>
-  </data>
-  <data name="PlayerCaptureDialog_Localization1.CloseButtonText" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureInstruction.Text" xml:space="preserve">
-    <value>Drag on the image to select an area, or enter its pixel position and dimensions.</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureX.Header" xml:space="preserve">
-    <value>Left X (pixels)</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureY.Header" xml:space="preserve">
-    <value>Top Y (pixels)</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureWidth.Header" xml:space="preserve">
-    <value>Width (pixels)</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureHeight.Header" xml:space="preserve">
-    <value>Height (pixels)</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureWholeImage.Content" xml:space="preserve">
-    <value>Entire image</value>
-  </data>
-  <data name="PlayerCaptureDialog_CaptureSubtitleRegion.Content" xml:space="preserve">
-    <value>Bottom subtitle area</value>
-  </data>
   <data name="PlayerPage_DanmakuInputBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Danmaku text</value>
   </data>

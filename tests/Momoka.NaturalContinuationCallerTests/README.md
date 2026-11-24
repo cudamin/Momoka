@@ -343,3 +343,7 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 ## 2026-11-21 CI 的 SDK 判据改为 global.json 策略
 
 GitHub `windows-2022` 的离线回归日志显示实际解析到 **10.0.404**（`rollForward=latestMinor` 允许），而 `Run-Caller.ps1` 原来要求 `dotnet --version` 精确等于 `10.0.400`，会让排在后面的本专项在同一次 `-All` 里必然失败。现在与 `tools/run-regressions.ps1` 用同一条判据：同一主版本、不低于 `global.json` 固定版本即接受，并把实际版本写进 `verification.json` 的 `sdk` 字段；`SourcePins.json`、离线还原、单节点构建与 81 项 caller 本身未改；本机仍解析到 10.0.400，本机运行没有走到「更新补丁」这一支，CI 才是它的实际验证点。
+
+## 2026-11-24 删除播放工具后的源同步
+
+播放器右键菜单的外部工具套件（片段/GIF、字幕导出、同步、AI 字幕、整份翻译、裁切截图与拼图）连同「设置 → 播放工具」一起删除，保留普通截图、章节制作与实时字幕翻译。`PlayerViewModel.Transport.cs` 只在起播/换片路径删掉工具与截图裁切的取消调用，自然接续的 ticket/lease/lifetime/取消控制流未改；`PlayerViewModel.cs` 只删掉两个可选构造参数及订阅，提取的 Start/Next/NowPlaying 成员一字未动。定点更新这两份完整源 SHA256：`PlayerViewModel.Transport.cs`（`a68a213a…` → `714e197c…`）、`PlayerViewModel.cs`（`a920fa39…` → `81108e9a…`）。另有 2026-11-24 长按快进批次把 `CancelSeekHold()` 接进 Transport，本 fixture 按既定边界保留空收尾，不复制 SeekHold 的计时轮询。其余 pins、`baseCommit`、提取器与拒绝条件不变。同步后实际 caller **88/88**、退出 0，证据 `artifacts/r046-caller/verify-20261124-230657-7031`；源提取 10 个反例均预期退出 1，随后当前源重编译并再跑 88/88，证据 `artifacts/r046-caller/extractor-20261124-231200-3281`。

@@ -25,7 +25,11 @@
           ? between(interaction,"    internal readonly record struct FreezeContext","\n    private VideoMenuSnapshot") : "";
         string source="#nullable enable\nusing Momoka.Emby; using Momoka.Playback; using Momoka.Mpv; using System; using System.Threading; using System.Threading.Tasks;\n" +
           "namespace Momoka.Shell.ViewModels { public sealed partial class PlayerViewModel {\n"+
-          between(interaction,"    internal readonly record struct InteractionContext","\n    private VideoMenuSnapshot") + "\n} }\n"+
+          between(interaction,"    internal readonly record struct InteractionContext","\n    private VideoMenuSnapshot") + "\n"+
+          "    // 2026-11-24 长按快进状态机进入快捷键分流。本套件只验证拖动/输入恢复，不复制计时轮询；\n"+
+          "    internal void NoteSeekKeyPress(string action, int keyCode, bool repeated = false) { }\n"+
+          "    internal void CancelSeekHold() { }\n"+
+          "} }\n"+
           "namespace Momoka.Shell.Views { using Windows.System; using Momoka.Shell.Interop; using Momoka.Diagnostics; using Momoka.Shell.ViewModels; public sealed partial class PlayerPage {\n"+
           between(page,"    private void SetPaused(bool paused)","\n    /// <summary>\n    /// 缓冲与布局") +
           between(page,"    private void BeginResizeFreeze()","\n    private void CancelResizeChange()") +

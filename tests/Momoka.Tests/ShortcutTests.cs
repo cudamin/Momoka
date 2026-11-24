@@ -20,7 +20,7 @@ internal static partial class ShortcutTests
         RegisterNativeMenu();
         Test("快捷键表：新增动作保留原有动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(163, ShortcutCatalog.Actions.Count);
+            Assert.Equal(151, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");
