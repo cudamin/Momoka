@@ -1,6 +1,6 @@
 ## 2026-11-24 媒体库动图封面帧节奏：50ms 帧被定时器抬到 62ms，改按合成器帧预约
 
-用户报「媒体库封面的 gif 动画怎么感觉有点卡顿？」，同时要求新增工作树分支。分支 `fix-library-cover-gif-jank-7a2b1f`，工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka`，基点 `f0890cd`（master）；产品提交 `5c2b2fe`。主树 `C:\Users\89400\Momoka` 保持干净，分支未合并、未推远端。
+用户报「媒体库封面的 gif 动画怎么感觉有点卡顿？」，同时要求新增工作树分支。分支 `fix-library-cover-gif-jank-7a2b1f`，工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka`，基点 `f0890cd`（master）；产品提交 `5c2b2fe`，记录提交 `47d8766`。用户令「合并」后以 `--no-ff` 合入 master，合并提交 `fdf6f47`；原分支、工作树与 `Momoka-gifjank.lnk` 已清理，未推远端。
 
 **先纠正对象。** 扫 `%LOCALAPPDATA%\Momoka` 全部文件，GIF 数量为 0；图片缓存里是同一张 APNG 的 4 份副本（`4-Primary-…-480.img`，1,501,156 字节，解析为 250×125、96 帧、每帧 50ms、无限循环）。用户说的「gif」实际是服务器返回、`AnimatedPoster` 接管的 APNG 封面；WinUI 原生 GIF 路径未改。`PosterLoader` 对动图仍 `DecodePixelWidth=0`，原生分辨率的产品决定不动。
 
@@ -13,6 +13,8 @@
 **闸门与发布。** 首次 `tools/quality.ps1` 在新工作树因 76 个项目缺 `obj/project.assets.json` 报 `NETSDK1004`，7/9；`dotnet restore Momoka.sln`（默认配置，不带 `-p:Platform=x64`，否则 `MSB4126`）还原 80 个项目后重跑 9/9（`artifacts/quality/20261124-162537`），编译 0 警告 0 错误，架构 7/7、重复代码 0.47%。发布从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-gifjank` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-gifjank.lnk` 回读指向本树 `artifacts/publish/win-x64/Momoka.exe`。`Momoka.exe` 668,160 字节 SHA256 `15F84290293B5A2EEB3DA6975211504690199FDC51938335281EA341009248A8`，`Momoka.dll` 10,448,384 字节 SHA256 `95D0B1E4C83A99D63A8C9E3267A6D90F84073E8D6AD5E4F88192457B84BF5254`，ProductVersion `0.3.2+5c2b2fe`；启动后窗口 `Momoka` 响应正常并已退出。
 
 **待统一验证。** 实屏看 20fps 观感、五套固定深色与跟随系统深浅、高对比、跨 DPI／窄窗、24 张网格与悬浮预览同时播放；合成器节拍下 60Hz 屏的理论上限仍是 20fps，不能承诺比片源更顺。后端只返回静图时仍不能当动图；GIF 原生路径未纳入本批。
+
+**合并与清理。** 用户令「合并」。主树合并前干净、master `f0890cd`；以 `--no-ff` 合入 `fix-library-cover-gif-jank-7a2b1f`，合并提交 `fdf6f47`，7 路径 +171/−14，无冲突。主树重编 `Momoka.DetailImageArrivalTests` Release/x64 为 0 警告 0 错误，专项 **40/40、0 失败 0 跳过**；未重跑闸门 1、主测试完整套件和实屏矩阵，交付前仍须在最终整合代码复验。`Momoka-gifjank.lnk` 已删除，分支与工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka` 已删除。主树 `Momoka.exe` 合并时仍在运行（发布件仍为 `0.3.2+5722c29`），本轮未发布、未刷新 `Momoka.lnk`；未推送远端。
 
 ## 2026-11-24 订阅悬停预览：右上角「编辑订阅」与去掉订阅状态行
 
