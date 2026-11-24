@@ -42,7 +42,7 @@ public sealed partial class SettingsViewModel
     [
         ("播放与进度",
             "播放、暂停与进度跳转。点右边方框后按键即可改绑，可带 Ctrl / Alt / Shift；冲突时可确认替换，× 清除。"
-                + "四颗方向键各有一对步长，方框下面那行就是「按一次跳多少秒」，集成与独占模式共用这几个数。",
+                + "四颗方向键各有一行步长，方框下面那行就是「按一次跳多少秒」；快退、快进再各有一行按住时的倍率。集成与独占模式共用这几个数。",
             [
                 "toggle-pause",
                 "seek-backward", "seek-forward", "seek-backward-long", "seek-forward-long",
@@ -233,9 +233,9 @@ public sealed partial class SettingsViewModel
     }
 
     /// <summary>
-    /// 快捷键行下面的附注行。2026-11-24 之前只有四行「跨度（秒）」；用户令在快退和快进下方再加一行
-    /// 「快进跨度（倍）」——「长按箭头以这个倍速播放」，所以 <c>seek-forward</c> 下面现在挂两行：先跳秒、
-    /// 后长按倍速。大步与精细那两颗不参与长按，仍只有一行。
+    /// 快捷键行下面的附注行。2026-11-24 之前只有四行「跨度（秒）」；用户先令在快进下面加「快进跨度（倍）」，
+    /// 随后「快退也要」，所以 <c>seek-backward</c> 与 <c>seek-forward</c> 下面现在各挂两行：先跳秒、
+    /// 后长按倍率（← 管回退速率、→ 管播放倍速，两格各自保存）。大步与精细那两颗不参与长按，仍只有一行。
     /// </summary>
     private void BuildShortcutSeekRows()
     {
@@ -243,6 +243,9 @@ public sealed partial class SettingsViewModel
         var playback = Settings.Playback;
         Subordinate("seek-backward", "快退跨度（秒）", "← 键跳这么多秒",
             1, 600, () => playback.SeekBackwardSeconds, value => playback.SeekBackwardSeconds = value);
+        Subordinate("seek-backward", "快退跨度（倍）", "长按箭头以这个倍速快退",
+            PlaybackSettings.MinimumSeekHoldMultiplier, PlaybackSettings.MaximumSeekHoldMultiplier,
+            () => playback.SeekBackwardHoldMultiplier, value => playback.SeekBackwardHoldMultiplier = value);
         Subordinate("seek-forward", "快进跨度（秒）", "→ 键跳这么多秒",
             1, 600, () => playback.SeekForwardSeconds, value => playback.SeekForwardSeconds = value);
         Subordinate("seek-forward", "快进跨度（倍）", "长按箭头以这个倍速播放",

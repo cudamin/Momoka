@@ -589,6 +589,8 @@ public static class SettingsMigration
         settings.Playback.SeekBackwardSeconds = Math.Clamp(settings.Playback.SeekBackwardSeconds, 1, 600);
         settings.Playback.SeekForwardLongSeconds = Math.Clamp(settings.Playback.SeekForwardLongSeconds, 1, 600);
         settings.Playback.SeekBackwardLongSeconds = Math.Clamp(settings.Playback.SeekBackwardLongSeconds, 1, 600);
+        settings.Playback.SeekBackwardHoldMultiplier = Math.Clamp(settings.Playback.SeekBackwardHoldMultiplier,
+            PlaybackSettings.MinimumSeekHoldMultiplier, PlaybackSettings.MaximumSeekHoldMultiplier);
         settings.Playback.SeekForwardHoldMultiplier = Math.Clamp(settings.Playback.SeekForwardHoldMultiplier,
             PlaybackSettings.MinimumSeekHoldMultiplier, PlaybackSettings.MaximumSeekHoldMultiplier);
         settings.Playback.ResumeRewindSeconds = Math.Clamp(settings.Playback.ResumeRewindSeconds, 0, 120);

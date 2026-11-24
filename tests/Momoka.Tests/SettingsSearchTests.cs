@@ -130,7 +130,7 @@ internal static class SettingsSearchTests
             fixture.Set(vm, "SettingsSearchQuery", "项目");
             Assert.Equal(40, Results(vm).Count());
         });
-        TestHarness.Test("快捷键页：分区卡覆盖全部动作，五行附注挂在对应快捷键下面", () =>
+        TestHarness.Test("快捷键页：分区卡覆盖全部动作，六行附注挂在对应快捷键下面", () =>
         {
             var settings = new SettingsPageStateTests.FakeSettings();
             var vm = fixture.NewViewModel();
@@ -170,14 +170,22 @@ internal static class SettingsSearchTests
                 Assert.True(fixture.Get<bool>(rows[spanIndex], "IsSubordinate"), $"{label} 不是缩进的从属行");
             }
 
-            // 2026-11-24：第五行附注是长按用的倍率，挂在「快进跨度（秒）」后面，仍是从属行。
-            var multiplierIndex = rows.FindIndex(row => Label(row) == "快进跨度（倍）");
-            Assert.True(multiplierIndex >= 0, "快进跨度（倍）没有排出来");
-            Assert.Equal(rows.IndexOf(shortcuts[shortcuts.FindIndex(row => fixture.Get<string>(row, "Id") == "seek-forward")]) + 2,
-                multiplierIndex, "快进跨度（倍）没有紧跟在快进跨度（秒）下面");
-            Assert.True(fixture.Get<bool>(rows[multiplierIndex], "IsSubordinate"), "快进跨度（倍）不是缩进的从属行");
-            Assert.Equal(2d, fixture.Get<double>(rows[multiplierIndex], "Minimum"));
-            Assert.Equal(10d, fixture.Get<double>(rows[multiplierIndex], "Maximum"));
+            // 2026-11-24 用户令「快退也要」：快退、快进各有一行长按倍率，分别紧跟在同向的「跨度（秒）」后面。
+            foreach (var (actionId, label, note) in new[]
+            {
+                ("seek-backward", "快退跨度（倍）", "长按箭头以这个倍速快退"),
+                ("seek-forward", "快进跨度（倍）", "长按箭头以这个倍速播放")
+            })
+            {
+                var multiplierIndex = rows.FindIndex(row => Label(row) == label);
+                Assert.True(multiplierIndex >= 0, $"{label} 没有排出来");
+                Assert.Equal(rows.IndexOf(shortcuts[shortcuts.FindIndex(row => fixture.Get<string>(row, "Id") == actionId)]) + 2,
+                    multiplierIndex, $"{label} 没有紧跟在同向步长下面");
+                Assert.True(fixture.Get<bool>(rows[multiplierIndex], "IsSubordinate"), $"{label} 不是缩进的从属行");
+                Assert.Equal(2d, fixture.Get<double>(rows[multiplierIndex], "Minimum"));
+                Assert.Equal(10d, fixture.Get<double>(rows[multiplierIndex], "Maximum"));
+                Assert.Equal(note, fixture.Get<string>(rows[multiplierIndex], "Note"));
+            }
         });
         TestHarness.Test("快捷键页：三条回退键只读说明行可搜、不计入可改数量", () =>
         {
@@ -196,8 +204,8 @@ internal static class SettingsSearchTests
             string Label(object row) => fixture.Get<string>(row, "Label");
             string Value(object row) => fixture.Get<string>(row, "Value");
 
-            // 可改动作 + 五行附注（挂在方向键下面）+ 三条回退键说明行 + 恢复入口。
-            Assert.Equal(expectedActions + 9, Rows().Count, "步长、长按倍率、回退键说明行与恢复入口应各占一行");
+            // 可改动作 + 六行附注（挂在方向键下面）+ 三条回退键说明行 + 恢复入口。
+            Assert.Equal(expectedActions + 10, Rows().Count, "步长、长按倍率、回退键说明行与恢复入口应各占一行");
             Assert.Equal("Esc", Value(Fixed("退出全屏 / 退出播放")));
             Assert.Equal("Del", Value(Fixed("关闭跳过片头 / 片尾提示")));
             Assert.Equal("回车", Value(Fixed("确认跳过片头 / 片尾")));
@@ -229,15 +237,19 @@ internal static class SettingsSearchTests
             Assert.Equal("快进跨度（倍）", Label(Rows()[2]!));
             Assert.Equal("恢复默认快捷键", Label(Rows()[3]!));
 
-            // 「长按箭头」只出现在长按倍率的说明里：同样带出整组，而不是只剩一行没有主人的附注。
+            // 「长按箭头」同时出现在快退、快进两行倍率说明里：两组的快捷键与全部附注都要带出来，而不是只剩附注。
             fixture.Set(vm, "ShortcutSearchQuery", "长按箭头");
-            Assert.Equal(4, Rows().Count, "搜索长按倍率说明应带出上面那颗快捷键与同组附注");
-            Assert.Equal("快进", Label(Rows()[0]!));
-            Assert.Equal("快进跨度（秒）", Label(Rows()[1]!));
-            Assert.Equal("快进跨度（倍）", Label(Rows()[2]!));
+            Assert.Equal(7, Rows().Count, "搜索长按倍率说明应带出两组快捷键与附注");
+            Assert.Equal("快退", Label(Rows()[0]!));
+            Assert.Equal("快退跨度（秒）", Label(Rows()[1]!));
+            Assert.Equal("快退跨度（倍）", Label(Rows()[2]!));
+            Assert.Equal("快进", Label(Rows()[3]!));
+            Assert.Equal("快进跨度（秒）", Label(Rows()[4]!));
+            Assert.Equal("快进跨度（倍）", Label(Rows()[5]!));
+            Assert.Equal("恢复默认快捷键", Label(Rows()[6]!));
 
             fixture.Set(vm, "ShortcutSearchQuery", "");
-            Assert.Equal(expectedActions + 9, Rows().Count, "清空搜索后步长、长按倍率与说明行应恢复且不改变可改数量");
+            Assert.Equal(expectedActions + 10, Rows().Count, "清空搜索后步长、长按倍率与说明行应恢复且不改变可改数量");
         });
         TestHarness.Test("设置搜索：替换分组解除旧行索引，旧分组变化不会返回失效项", () =>
         {

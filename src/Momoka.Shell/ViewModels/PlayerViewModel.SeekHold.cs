@@ -137,7 +137,7 @@ public sealed partial class PlayerViewModel
         // → 已经在倍速播放，不需要再做什么；← 每 200ms 按倍率往回推一步。
         if (active != SeekHold.Backward || Now < _seekHoldNextRewind) return;
         _seekHoldNextRewind = Now + SeekHold.RewindStepMilliseconds;
-        SeekBy(-SeekHold.RewindStepSeconds(Settings.Playback.SeekForwardHoldMultiplier));
+        SeekBy(-SeekHold.RewindStepSeconds(Settings.Playback.SeekBackwardHoldMultiplier));
     }
 
     private void BeginSeekHold(string action)

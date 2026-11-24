@@ -637,12 +637,27 @@ public sealed class PlaybackSettings
     public int SeekBackwardLongSeconds { get; set; } = 30;
 
     /// <summary>
+    /// 长按 ← 的倍率（2026-11-24 用户令「快退也要」，在快退下面同样挂一行「快退跨度（倍）」）。
+    /// <para>
+    /// 单击 ← 仍只跳 <see cref="SeekBackwardSeconds"/>；按住超过「长按判定时间」之后，每
+    /// <see cref="Momoka.Playback.SeekHold.RewindStepMilliseconds"/> 按「倍率 × 200ms」把进度往回推，
+    /// 不改播放速度。与 <see cref="SeekForwardHoldMultiplier"/> 分开两格：→ 管播放倍速、← 管回退速率，
+    /// 设置页各有一行，用户可以把两者调成不同的数。
+    /// </para>
+    /// <para>
+    /// 2～10 的整数，装机默认 2；旧设置文件缺这个键时读出来就是 2。范围在
+    /// <see cref="SettingsMigration"/> 夹取，与设置页那一行同一套。
+    /// </para>
+    /// </summary>
+    public int SeekBackwardHoldMultiplier { get; set; } = 2;
+
+    /// <summary>
     /// 长按 → 的倍速（2026-11-24 用户令「在快退和快进下方新增，快进跨度（倍），长按箭头以这个倍速播放」）。
     /// <para>
     /// 单击 → 仍只跳 <see cref="SeekForwardSeconds"/>；按住超过「长按判定时间」之后改为按这个倍率播放，
-    /// 松手回到按下之前的速度（不回到装机 1× —— 用户可能正停在 1.5×）。长按 ← 不用改播放速度，改的是
-    /// 进度往回移动的速率，同样取这个倍率。两条管线共用这一格：集成模式由播放页读，内置独占窗口由
-    /// 视频窗的 <c>momoka-shortcut</c> 消息走同一份视图模型。
+    /// 松手回到按下之前的速度（不回到装机 1× —— 用户可能正停在 1.5×）。长按 ← 的回退速率另住
+    /// <see cref="SeekBackwardHoldMultiplier"/>，不改播放速度。两条管线共用这两格：集成模式由播放页读，
+    /// 内置独占窗口由视频窗的 <c>momoka-shortcut</c> 消息走同一份视图模型。
     /// </para>
     /// <para>
     /// 2～10 的整数，装机默认 2；旧设置文件缺这个键时读出来就是 2，行为与从前只差「按住会加速」这一件

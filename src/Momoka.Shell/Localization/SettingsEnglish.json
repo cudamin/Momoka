@@ -121,6 +121,8 @@
   "→ 键跳这么多秒": "Seconds to seek with the right arrow key.",
   "快进跨度（倍）": "Seek forward (multiplier)",
   "长按箭头以这个倍速播放": "Play at this speed while the arrow key is held.",
+  "快退跨度（倍）": "Seek backward (multiplier)",
+  "长按箭头以这个倍速快退": "Rewind at this speed while the arrow key is held.",
   "快退跨度（秒）": "Seek backward (seconds)",
   "← 键跳这么多秒": "Seconds to seek with the left arrow key.",
   "大步快进跨度（秒）": "Large seek forward (seconds)",
