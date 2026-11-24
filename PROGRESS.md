@@ -1,3 +1,13 @@
+## 2026-11-24 删除「播放工具」设置页与外部播放工具，保留截图、章节与实时字幕翻译
+
+用户令「删掉播放工具页面和相关功能」。按 `docs/播放菜单与工具.md`、Shell／播放技能核对边界：移除设置「播放工具」分类及视频导出／字幕同步／AI 字幕三张卡，以及依赖外部程序或截图裁切的右键工具（视频片段／GIF、字幕导出／同步／AI 字幕／整份字幕翻译、裁切截图与字幕区域拼图）；保留 mpv 原生当前画面截图、章节标记／编辑／导出与实时字幕翻译。
+
+**改法。** Core 删 `PlayerToolsSettings`、`PlayerToolPlan/Runner/Paths/Download`、`PlayerImageTools`、`SrtDocument`、`PlaybackService.PlayerTools`、`PlayerToolShortcuts`；Shell 删 `PlayerToolsController`、`PlayerCaptureController/Geometry`、`PlayerCaptureDialog`、`SettingsViewModel.PlayerTools` 与截图裁切探针。`PlayerViewModel.PlayerTools.cs` 改为 `HostActions.cs`，只留章节、队列、字幕下载／正文与宿主菜单；`ShellPage.PlayerTools.cs` 改为 `PlayerDialogs.cs`。新增 Core `ChapterShortcuts`（5 个章节动作），快捷键目录与播放器额外分发改引用它，快捷键页工具组从「截图与工具」收成「截图」7 项。设置模型、迁移、偏好恢复、分类图标与英文词典去掉工具键；中英文 resw 各删 10 条 `PlayerCaptureDialog_*` 与样式条目；`PlayerSettingsLinks`、Mpv 菜单探针与本地化同步。章节导出目录不再依赖工具输出目录，改走 `AppPaths.ResolveScreenshotDirectory`。
+
+**验证。** 在独立工作树 `C:\Users\89400\Momoka-verify-playertools`（detached `6902406`）重跑，避开同树另一会话的未提交改动。全解决方案 Release **0 错误**（224 条警告全为 `Momoka.LibMpvEndFileTests` 生成代码的既有 CS0436）；`Momoka.Tests` **5345 项、5341 通过、4 失败、0 跳过**，4 红均为本机未开开发者模式、`LocalMediaTests` 建软链接「参数错误」的环境红。受影响五套全绿：飞牛字幕 96/96、设置生命周期 63/63、设置探针契约 39/39、页面契约 411/411、主页顺序 30/30。`tools/quality.ps1` **9/9**（`artifacts/quality/20261124-234850`，编译 0 警告 0 错误、空白、脚本、文档链接、文档命令、凭据、架构 7/7、重复 68 段／0.48%、diff）。源码残留扫描无 `PlayerTools`／`PlayerCapture`／Whisper／播放工具，余下 FFmpeg 字样均属补帧与轨道元数据。
+
+**提交与交付。** 产品改动 `bed2b5c`（70 文件 +144/−3049）已入 master；提交信息把保留收拢的章节功能写成「新增章节制作功能」，实际删除范围以本记录为准。同树另一会话随后合并 `6902406`，本轮复验即在该合并树。`PROGRESS`、`docs/技术文档.md`、`docs/播放菜单与工具.md`、README 中英文与 R046 源固定已同步。未跑设置页／播放器右键原生探针：`Momoka.exe`（PID 27372，23:52 启动，发布目录）占用单实例锁；按规则未杀进程。`Momoka.lnk` 仍指向 21:26 旧构建，发布目录被该实例占用，等待 30 秒未释放，本次跳过发布。未推送远端。
+
 ## 2026-11-24 删除「每页条目数」设置，库页改为 Emby 式虚拟滚动块内部取数（30 条/块）
 
 用户先贴设置页「每页条目数／媒体库一页列多少个，翻页按这个数走」截图问「网页端有这个选项吗？只读审查」，随后令「1.删掉每页条目数选项 2.改成跟Emby一样的库页是按虚拟滚动块内部取数；新增工作树分支，本次任务在分支工作树中工作」。只读审查结论：Jellyfin 网页端有对应项（`libraryPageSize`，0=关闭分页，存账号 `displayPrefs`）；Emby 4.10.1.0 显示设置没有这一项，库页按 `getVirtualChunkSize` 取块（横向版面宽窗 16／窄窗 12，其余 30），请求带 `StartIndex`、`Limit=块大小`、`EnableTotalRecordCount=false`；飞牛 0.9.8 只有通用分页组件文案与内部常量 22／200；Plex 网页端闭源，未核对。
