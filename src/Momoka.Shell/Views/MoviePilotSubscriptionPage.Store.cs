@@ -14,7 +14,8 @@ public sealed partial class MoviePilotSubscriptionPage
     private void PaintStoreBackdrop()
     {
         // 2026-11-17 卡片与窗口间距那条规则：内容列不再收进 1840 居中，改为铺满窗口，由视图模型的头部／
-        // 正文留白把整列内容按「1500 之后 170、2250 以上随窗口等比」收窄。
+        // 正文留白把整列内容按「1500 之后 170、2250 以上随窗口等比」收窄；2026-11-24 起两处再叠 1860 的卡片上限，
+        // 超过的宽度平分到两侧，画面与装饰带仍贴窗口右沿。
         StoreScrollContent.MaxWidth = double.PositiveInfinity;
         StoreScrollContent.HorizontalAlignment = HorizontalAlignment.Stretch;
         StoreScrollContent.Width = double.NaN;

@@ -333,10 +333,11 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public double HeroMinHeight => 0;
 
     /// <summary>
-    /// 商店档装饰背景与右侧剧照／预告的取宽基准：与媒体详情页同一档，最多按 1840 算（2026-11-17 起内容列
-    /// 本身已经铺满窗口，收窄由 <see cref="ContentGutterWidth"/> 管，这个数只留给装饰画面的大小）。
+    /// 商店档装饰背景与右侧剧照／预告的取宽基准：与媒体详情页同一档，最多按 <see cref="DetailHero.StoreCardMaxWidth"/>
+    /// （1860，与主页轮播同一个上限）算（2026-11-17 起内容列本身已经铺满窗口，收窄由
+    /// <see cref="ContentGutterWidth"/> 管，这个数只留给装饰画面的大小）。
     /// </summary>
-    public double StorePageWidth => Plain ? Math.Min(1840, PageWidth) : PageWidth;
+    public double StorePageWidth => Plain ? Math.Min(DetailHero.StoreCardMaxWidth, PageWidth) : PageWidth;
 
     /// <summary>右侧剧照盒的宽 —— 同媒体详情页 <c>DetailViewModel.StoreBackdropWidth</c>。</summary>
     public double StoreBackdropWidth => DetailHero.StoreBackdropWidth(StorePageWidth);
@@ -349,7 +350,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     /// <summary>
     /// 剧照、预告与亚克力视口共用的右边距。2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，
-    /// 跟随窗口不断变宽」：画面大小仍按 1840 的内容基准，右沿那道缝由
+    /// 跟随窗口不断变宽」：画面大小仍按 1860 的内容基准，右沿那道缝由
     /// <see cref="DetailHero.StorePreviewEdgeGap"/> 按窗口宽给。内容列与窗口同宽（2026-11-17 起不再收进
     /// 1840 居中），所以这一份就是相对窗口右沿的距离。
     /// </summary>
@@ -443,10 +444,17 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 切换间距，而是跟随窗口大小调整」，2026-11-18 再补「窗口最宽时卡片和侧边栏的间距为 300」。目标间距由
     /// <see cref="DetailHero.CardWindowGap"/> 给（2K 屏最大化 2560 宽时 300），减掉卡片原来的页边留白
     /// （商店 96、沉浸 32）就是这一份；头部与正文共用，列内对齐不变。窗口宽取整扇（含侧栏）。
+    /// <para>
+    /// 2026-11-24 用户令「媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致」：商店档再叠
+    /// <see cref="DetailHero.StoreCardCapGutter"/>，自然宽超过 <see cref="DetailHero.StoreCardMaxWidth"/>（1860）
+    /// 时两侧平分多出来的那一截，卡片与主页轮播同宽、同行；没超过的窗口这一笔是 0。
+    /// </para>
     /// </summary>
     public double ContentGutterWidth => DetailHero.CardWindowGutter(
         FullWindowWidth > 0 ? FullWindowWidth : PageWidth,
-        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left);
+        Plain ? DetailHero.StorePageInset(PageWidth) : PageMargin.Left)
+        + (Plain ? DetailHero.StoreCardCapGutter(PageWidth, DetailHero.StorePageInset(PageWidth),
+            FullWindowWidth > 0 ? FullWindowWidth : PageWidth) : 0);
 
     /// <summary>所有模式使用同一套紧凑留白；2026-11-17 起左右再叠加 <see cref="ContentGutterWidth"/>。</summary>
     public Thickness BodySheetPadding

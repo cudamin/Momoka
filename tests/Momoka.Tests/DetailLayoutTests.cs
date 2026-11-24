@@ -190,25 +190,58 @@ internal static class DetailLayoutTests
         {
             // 2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」，
             // 随后「全屏应再向左移动 200」「全屏挡再加 50」「再加 25」：窄档保持 16；
-            // 宽版式按窗口宽 3.5%，1920→2560 再让出 275，封顶 395；画面尺寸仍按内容列那两支。
+            // 宽版式按窗口宽 3.5%，1920→2560 再让出 425，封顶 545；画面尺寸仍按内容列那两支。
+            // 2026-11-24 用户令「背景图与边框的最大间距增加150（最大化时／窗口宽度占满屏幕两边时候与窗口
+            // 右侧的间距增加150，2k屏幕下）」：全屏那一段由 275 加到 425、封顶由 395 加到 545，
+            // 2K 最大化（2560）364.6 → 514.6，正好多 150。
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(0));
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(double.NaN));
             Assert.Equal(16d, DetailHero.StorePreviewEdgeGap(1023));
             Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1240) - 43.4) < 1e-6);
             Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1840) - 64.4) < 1e-6);
             Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(1920) - 67.2) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2240) - 215.9) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2560) - 364.6) < 1e-6);
-            // 2560 之后额外那 275 已经给满；再宽只涨比例部分，封顶 395。
-            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(3840) - 395) < 1e-6);
-            Assert.Equal(395d, DetailHero.StorePreviewEdgeGap(6000));
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2240) - 290.9) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(2560) - 514.6) < 1e-6);
+            // 2560 之后额外那 425 已经给满；再宽只涨比例部分，封顶 545。
+            Assert.True(Math.Abs(DetailHero.StorePreviewEdgeGap(3840) - 545) < 1e-6);
+            Assert.Equal(545d, DetailHero.StorePreviewEdgeGap(6000));
             // 画面还是按内容列的 60%、封顶 920 —— 不跟着窗口放大。
             Assert.Equal(920d, DetailHero.StoreBackdropWidth(2560));
             Assert.Equal(TrailerPreview.BackgroundWidth(1240), DetailHero.StoreBackdropWidth(1240));
             // 相对内容列右沿的 margin：不超宽时就是那道缝；超宽时减掉右半边 bleed。
             Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(1240, 1240) - 43.4) < 1e-6);
-            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(2560, 1840) - (364.6 - 360)) < 1e-6);
+            Assert.True(Math.Abs(DetailHero.StorePreviewRightMargin(2560, 1840) - (514.6 - 360)) < 1e-6);
             Assert.Equal(16d, DetailHero.StorePreviewRightMargin(0, 0));
+        });
+
+        Test("商店卡片封顶：上限与主页轮播同一条 1860，超过才收、没超过不动", () =>
+        {
+            // 2026-11-24 用户令「媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致」：
+            // 卡片的自然宽 = 页宽 − 2 ×（页边留白 + 170／300 那一档）；超过 1860 时两侧平分多出来的部分居中，
+            // 没超过时这一笔是 0，原来的间距规则一个像素都不动。
+            Assert.Equal(1860d, DetailHero.StoreCardMaxWidth);
+
+            // 无侧栏的 2K 最大化（整窗 2560）：自然宽 1960 → 每侧再收 50，合起来 350，卡片正好 1860。
+            var cap2K = DetailHero.StoreCardCapGutter(2560, DetailHero.StorePageInset(2560), 2560);
+            Assert.Equal(50d, cap2K);
+            Assert.Equal(1860d, 2560 - (2 * (DetailHero.StorePageInset(2560) + DetailHero.CardWindowGutter(2560, 96) + cap2K)));
+
+            // 商店模式展开侧栏（整窗 2560、内容区 2304）：自然宽 1704，还不到上限，版面照旧 300。
+            Assert.Equal(0d, DetailHero.StoreCardCapGutter(2304, DetailHero.StorePageInset(2304), 2560));
+            Assert.Equal(1704d, 2304 - (2 * (DetailHero.StorePageInset(2304) + DetailHero.CardWindowGutter(2560, 96))));
+
+            // 4K 一类的宽窗：两侧一起收，卡片停在 1860 并居中，左右外沿与轮播的同一条线。
+            var cap4K = DetailHero.StoreCardCapGutter(3584, DetailHero.StorePageInset(3584), 3840);
+            var inset4K = DetailHero.StorePageInset(3584) + DetailHero.CardWindowGutter(3840, 96) + cap4K;
+            Assert.Equal(862d, inset4K);
+            Assert.Equal((3584d - 1860) / 2, inset4K);
+
+            // 还没量到、坏数：不封顶（第一帧按未封顶版面排）。
+            Assert.Equal(0d, DetailHero.StoreCardCapGutter(0, 96, 0));
+            Assert.Equal(0d, DetailHero.StoreCardCapGutter(double.NaN, 96, 2560));
+            Assert.Equal(0d, DetailHero.StoreCardCapGutter(2560, double.NaN, 2560));
+            Assert.Equal(0d, DetailHero.StoreCardCapGutter(2560, 96, 0));
+            Assert.Equal(0d, DetailHero.StoreCardCapGutter(2560, 96, double.PositiveInfinity));
         });
 
         Test("商店尾部下限：下方卡片排在剧照与右沿空隙之后，不再替预告控制排让位", () =>

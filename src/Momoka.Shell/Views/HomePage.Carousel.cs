@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Momoka.Configuration;
+using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
 
@@ -13,8 +14,12 @@ public sealed partial class HomePage
     /// 商店模式主页内容的最大宽度（DIP）。2026-11-18 用户令「主页的轮播图的宽度还有下方媒体库的最大宽度
     /// 锁定为1860」：窗口比它宽时，轮播与下方货架一起停在 1860 并居中；窗口窄下来按原来的左脊线 36、
     /// 右侧滚动条车道 13 铺满。沉浸模式不受这一档限制，仍走通栏。
+    /// <para>
+    /// 2026-11-24 起这个数就是 <see cref="DetailHero.StoreCardMaxWidth"/>：用户令「媒体详情页和订阅详情页的
+    /// 卡片最大宽度，要和主页轮播图的最大宽度一致」，两处读同一个常量，不再各写一个字面 1860。
+    /// </para>
     /// </summary>
-    internal const double StoreContentMaxWidth = 1860;
+    internal static readonly double StoreContentMaxWidth = DetailHero.StoreCardMaxWidth;
 
     private void OnAppearanceChanged(UiSettings ui)
     {
