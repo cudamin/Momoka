@@ -16105,3 +16105,19 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 - `SettingsViewModel.Shortcuts.cs` 恢复 `_shortcutFixedRows` 并在搜索结果里并入；`ShellNavigationProbe.Shortcuts.cs` 增加三条行的存在、键值、搜索与计数断言，并在恢复默认后滚到底截 1100/760 实屏核对换行与裁切；`SettingsSearchTests` 新增 1 条真实 VM 回归。说明写进 `docs/弹幕与快捷键.md`。
 - 验证：Shell Release/x64 0 警告 0 错误；主 `Momoka.Tests` 5363 项，5359 通过、4 红，4 条均为本机 `Directory.CreateSymbolicLink` 权限（参数错误，既有环境红，与本批无关）；设置搜索专项 17/17；`--probe-shell --probe-section shortcuts --screen 1` **5/5、退出 0**（`shell-probe-20261124-094227427-27988`），宽窗 `settings-shortcut-search-restored-1100-screen.png` 与窄窗 `-760-screen.png` 已目视：三条说明行在列表末尾、说明在 760 下正常换行、恢复入口与「163 个可改快捷键」未被顶掉。`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
 - 产品提交 `9d35e82`。体验发布 `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件／290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件；`Momoka.lnk` 回读指向本树 `artifacts/publish/win-x64/Momoka.exe`。`Momoka.exe` SHA256 `9147420D7C475BBD1826FAEADBE14C284E280B1EEC716873161B29547912C0CD`，`Momoka.dll` SHA256 `7247FACB562C4A680167B43D3E026C5690CC17EE643C38646823C4C8D8958BCB`，ProductVersion `0.3.2+9d35e82`。未启动发布件、未登录、未播放、未读真实设置；未推送远端。待统一验证时复核英文界面、读屏、触摸与跨 DPI；本批不销账。
+
+## 2026-11-24 快捷键页：四行步长搬到对应快捷键下，163 个动作分十三张卡（分支，待统一验证）
+
+用户附图（设置「播放行为 → 跳转与步长」的四行秒数输入）并令「1.上图的设置移到快捷键页面对应快捷键下方 2.给设置中的快捷键页面分区」，同时要求新增工作树分支。分支 `feat-shortcut-seek-partition-4nRt8K`，工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-shortcut-seek-partition-4nRt8K`，基点 `9c3d143`（master）。
+
+**步长搬移。** 「播放行为」页删掉「跳转与步长」整张卡（只剩 播放行为／音轨／资源筛选／截图 四张），四行秒数输入搬到「快捷键」页，紧跟在各自快捷键行下面：`seek-backward` → 快退跨度（秒）「← 键跳这么多秒」，`seek-forward` → 快进跨度（秒）「→ 键跳这么多秒」，`seek-backward-long` → 大步快退跨度（秒）「↓ 键跳这么多秒」，`seek-forward-long` → 大步快进跨度（秒）「↑ 键跳这么多秒」。标签与说明照原图，1～600 秒，读写仍是 `PlaybackSettings.Seek*Seconds`。新增 `SettingRow.IsSubordinate`／`RowMargin`，只给从属行左侧缩进 20 DIP，其他 Number 行不受影响。
+
+**分区。** 快捷键页从一张 163 个可改动作的超长卡拆成十三张 `SettingSection`：播放与进度、播放控制、集数与章节、速度与循环、字幕、次字幕与兼容性、音轨与音频、画面与缩放、画质与色彩、视频与滤镜、截图与工具、弹幕、回退键与恢复默认。组内动作 Id 显式排序，脚本核对 Catalog 的 163 个 id 恰好覆盖、无缺失无重复；末卡保留三条只读回退键说明与「恢复默认快捷键」，未知动作归「其他」兜底组（当前为空）。搜索改为跨十三张卡筛选：搜到步长说明时把其上方快捷键行一起带出，步长紧跟其后；命中数仍只算动作与回退键行，摘要仍写「163 个可改快捷键」。英文词典补十三张分区标题、说明与「其他」兜底文案。
+
+**配套。** `ShortcutCatalog` 抽出公开纯函数 `MatchesText`，不含按键的步长行参与同一套搜索（空白与加号忽略、英文不分大小写、空格分词全部命中）。自检新增「快捷键分区与步长」（十三张卡标题顺序、四行步长紧跟对应 seek 行且 `IsSubordinate`）；播放行为分区期望改为四张。探针遍历全部快捷键卡，断言初始 171 行＝163 动作＋4 步长＋3 回退键＋恢复入口，清空搜索后同口径，并逐行核对四行步长的位置、从属标记与设置值。设置页状态、设置搜索与 `ShortcutTests` 补对应回归；`docs/弹幕与快捷键.md` 与自检基线同步。
+
+**验证。** 全解决方案 Release 0 警告 0 错误；`Momoka.Tests` 5364 项、5360 通过、4 失败、0 跳过，4 条均为本机未开开发者模式时 `LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关；`settings-page-state-fixture` 83/83、`settings-search-fixture` 18/18（含新增「快捷键页分区与步长」）；原生 `--probe-shell --probe-section shortcuts --screen 1` 5/5、退出 0（`shell-probe-20261124-103139909-12136`），宽窗与窄窗截图 `settings-shortcut-search-all-{1100,760}-screen.png` 已目视：快退/快进/大步快退/大步快进四行下面的秒数输入各自缩进一档挂在对应行下，分区卡之间有空当；`--probe-section settings` 27/28，唯一红「主页卡上的主页媒体库位置三档」是 2026-11-23 全量探针里已登记的既有红（`Sequence contains no matching element`），与本批无关。`git diff --check` 与改动 C# 的 `dotnet format whitespace --verify-no-changes` 通过。
+
+**发布与状态。** 从主树复制批准 `libmpv-2.dll` 到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-shortcut-seek-partition-4nRt8K` 通过：548 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件；桌面 `Momoka-feat-shortcut-seek-partition-4nRt8K.lnk` 目标与工作目录均回读为本树 `artifacts/publish/win-x64`。`Momoka.exe` 668,160 字节 SHA256 `5C3F36CCDCF21B832F2448FB61FE1D91A550C28BE6A85F829FCB0E4923425D70`，`Momoka.dll` 10,471,936 字节 SHA256 `832A41964FA77C5754DEBB126613D02F4E889DE2F0C1EEAC9C3FB9839E7B097C`，ProductVersion `0.3.2+8b7cce8`。未启动发布件、未登录、未播放、未写服务器；未推送远端。
+
+**待统一验证。** 真实窗口里十三张卡的滚动节奏与卡间距、四行秒数在五套固定深色与跟随系统深浅、高对比、跨 DPI、窄窗 760 与 600 下限的观感；英文界面下新分区标题与说明；读屏与触摸改值；搜索「→ 键跳」「跨度」「字幕」等词的完整结果与空态；播放行为页四张卡的既有检查。本批未合并 master，不销账。
