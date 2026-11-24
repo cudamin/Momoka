@@ -270,10 +270,9 @@ internal static class LibraryDeepReturnTests
             finally { ((IDisposable)vm).Dispose(); }
         });
 
-        Case("深返回：页大小 500 时快照仍有 400 上限，返回分页起点不混用局部数量", async () =>
+        Case("深返回：大窗口下快照仍有 400 上限，返回分页起点不混用局部数量", async () =>
         {
             using var fixture = Movies(shell);
-            fixture.Settings.TestPageSize = 500;
             var (vm, store) = await Window(fixture, 1500);
             try
             {
@@ -474,13 +473,12 @@ internal static class LibraryDeepReturnTests
 
         Case("暖页复用：新请求、可变分区和设置改变拒绝旧内容", async () =>
         {
-            foreach (var change in new[] { "request", "section", "display", "source", "large" })
+            foreach (var change in new[] { "request", "section", "display", "source" })
             {
                 using var fixture = Movies(shell);
                 var vm = fixture.CreateLibraryView(new BrowseSnapshotStore());
                 try
                 {
-                    if (change == "large") fixture.Settings.TestPageSize = 500;
                     await Load(vm, true);
                     var request = Request(vm);
                     shell.Invoke(vm, "Cancel");

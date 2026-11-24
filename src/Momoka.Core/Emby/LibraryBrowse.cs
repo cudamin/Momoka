@@ -39,6 +39,16 @@ public sealed record LibrarySectionEntry(LibrarySection Section, string Label);
 public static class LibraryBrowse
 {
     /// <summary>
+    /// 一次向服务器要多少条 —— Emby 网页端那块虚拟滚动的纵向档，不是用户能调的「每页」。
+    /// <para>
+    /// 数字照 <c>dashboard-ui/modules/emby-elements/emby-itemscontainer/emby-itemscontainer.js</c> 的
+    /// <c>getVirtualChunkSize</c>：横向版面在宽窗口（≥2200）取 16、否则 12；其余版面取 30。Momoka 的库页
+    /// （海报、缩略图、列表、表格）都是竖向滚，所以在 30 这一档；一屏没铺满时页面照旧按块补，滚到底再补下一块。
+    /// </para>
+    /// </summary>
+    public const int ChunkSize = 30;
+
+    /// <summary>
     /// 这个库的分类栏，按网页端的顺序。**三套名单互不通用**：电影库没有「合集」，混合内容库没有推荐、
     /// 预告与收藏，电视剧库也没有「合集」。名单照用户给的网页截图定，不因为别的库有这一项就补进来 ——
     /// 补一项就是给这一页装一个网页端没有的分区。

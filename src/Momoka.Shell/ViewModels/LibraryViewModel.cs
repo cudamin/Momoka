@@ -1631,7 +1631,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         && Cards.Count <= BrowseSnapshotStore.MaxItemsPerSnapshot && _scope?.IsAvailable == true;
 
     private string NavigationContentKey() => BrowseSnapshotKeys.Library(_sourceTokens, _request!, SortKey,
-        SortDescending, _filters, _fnNasFilters, _display, _settings!.PageSize, _plexFilters);
+        SortDescending, _filters, _fnNasFilters, _display, _plexFilters);
 
     private string NavigationPreferencesKey()
     {
@@ -1642,7 +1642,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         return JsonSerializer.Serialize(new object?[]
         {
             ui.Sort.GetValueOrDefault(key), ui.Filters.GetValueOrDefault(key),
-            ui.Display.GetValueOrDefault(key), ui.Views.GetValueOrDefault(key), ui.PlexFilters.GetValueOrDefault(key), _settings!.PageSize
+            ui.Display.GetValueOrDefault(key), ui.Views.GetValueOrDefault(key), ui.PlexFilters.GetValueOrDefault(key)
         }, EmbyHttp.Json);
     }
 
@@ -1707,7 +1707,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         _snapshotKey = BrowseSnapshotKeys.Library(
             _sourceTokens, _request, SortKey, SortDescending, _filters, _fnNasFilters, _display,
-            _settings.PageSize, _plexFilters);
+            _plexFilters);
         if (_request.AnchorQueryKey is not null && _request.AnchorQueryKey != _snapshotKey) ClearAnchor();
     }
 
@@ -1941,7 +1941,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken, int minimumRows = 0)
     {
         if (WindowEligible) return await RefreshWindowAsync(queryToken, background: false).ConfigureAwait(true);
-        var wanted = Math.Max(minimumRows, Math.Max(Cards.Count, _settings!.PageSize));
+        var wanted = Math.Max(minimumRows, Math.Max(Cards.Count, LibraryBrowse.ChunkSize));
         _firstPage = false;
         _jumps.Cancel();
         var token = BeginLoad();
@@ -2515,17 +2515,17 @@ public sealed partial class LibraryViewModel : PageViewModel
         scope.ThrowIfUnavailable();
         if (IsResumePage)
             return await scope
-                .ExecuteAsync((client, ct) => client.QueryResumeAsync(start, _settings!.PageSize, ct), token)
+                .ExecuteAsync((client, ct) => client.QueryResumeAsync(start, LibraryBrowse.ChunkSize, ct), token)
                 .ConfigureAwait(true);
 
         // Jellyfin 的「接下来看」页与网页端 list.html?type=nextup 同源：问 Shows/NextUp 本身，逐集列下一集。
         // 总数打开着回来，滚动加载与「共 N 项」都靠它；排序/筛选不参与这次请求（界面上也收着）。
         if (IsJellyfinNextUpPage)
             return await scope
-                .ExecuteAsync((client, ct) => client.QueryNextUpAsync(start, _settings!.PageSize, ct), token)
+                .ExecuteAsync((client, ct) => client.QueryNextUpAsync(start, LibraryBrowse.ChunkSize, ct), token)
                 .ConfigureAwait(true);
 
-        return await ReadSourceRangeAsync(scope, start, _settings!.PageSize, token).ConfigureAwait(true);
+        return await ReadSourceRangeAsync(scope, start, LibraryBrowse.ChunkSize, token).ConfigureAwait(true);
     }
 
     private async Task<ItemsResult> ReadSourceRangeAsync(EmbySessionScope scope, int start, int limit, CancellationToken token)
@@ -2789,7 +2789,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             SortBy = SortKey,
             Descending = SortDescending,
             StartIndex = start,
-            Limit = Math.Max(50, _settings?.PageSize ?? 50)
+            Limit = Math.Max(50, LibraryBrowse.ChunkSize)
         };
         return await scope.ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token).ConfigureAwait(true);
     }
@@ -3577,7 +3577,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private ItemQuery? BuildQuery(int start)
     {
-        return BuildRangeQuery(start, _settings!.PageSize);
+        return BuildRangeQuery(start, LibraryBrowse.ChunkSize);
     }
 
     private ItemQuery? BuildRangeQuery(int start, int limit)

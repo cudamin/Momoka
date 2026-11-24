@@ -63,7 +63,6 @@ internal static class BrowseSnapshotKeys
         ItemFilters filters,
         FnNasFilterSelection fnNasFilters,
         LibraryDisplay display,
-        int pageSize,
         Momoka.Plex.PlexFilterSelection? plexFilters = null)
     {
         var text = new StringBuilder(320);
@@ -124,7 +123,6 @@ internal static class BrowseSnapshotKeys
         Add(text, display.GroupIntoCollections);
         foreach (var field in display.Fields) Add(text, field.ToString());
 
-        Add(text, pageSize);
         return text.ToString();
     }
 

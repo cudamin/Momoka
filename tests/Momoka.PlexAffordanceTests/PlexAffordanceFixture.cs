@@ -132,7 +132,6 @@ internal sealed class PlexAffordanceFixture : IDisposable
 internal sealed class AffordanceSettings : ISettingsService
 {
     public AppSettings Settings { get; } = new() { AggregateMode = true };
-    public int PageSize => 20;
     public int SaveCalls { get; private set; }
     public event EventHandler? SaveStateChanged { add { } remove { } }
     public bool HasUnsavedChanges => false;

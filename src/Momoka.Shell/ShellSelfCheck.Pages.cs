@@ -127,7 +127,7 @@ internal static partial class ShellSelfCheck
         // Informational: the two readings the pages get from a service rather than from a handle on
         // everything, which is what the container was for.
         var version = services.GetRequiredService<IServerCapabilities>().ServerVersion;
-        report.AppendLine($"[信息] 服务读数 — 每页 {settings.PageSize} 条，服务器版本 {version?.ToString() ?? "未知"}");
+        report.AppendLine($"[信息] 服务读数 — 库页每次取 {LibraryBrowse.ChunkSize} 条（内部块），服务器版本 {version?.ToString() ?? "未知"}");
 
         // 着色器档位表点名的文件，在**发布出去的这个目录里**真的有没有。The unit test compares the table with
         // assets/shaders in the repository, which is a different question: the copy step, the csproj glob and

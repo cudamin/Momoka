@@ -21,13 +21,12 @@ internal static partial class SettingsTests
             Test($"R-007：当前预选账号 {field}=null 无备份时隔离并安全读取 Core 依赖", () =>
                 WithR007Store((store, protector) =>
                 {
-                    var damaged = R007NullDocument(R007Settings("main", 180), field);
+                    var damaged = R007NullDocument(R007Settings("main"), field);
                     File.WriteAllText(store.Paths.SettingsFile, damaged);
 
                     var loaded = store.Load();
                     AssertR007ReadDependencies(loaded, protector);
                     Assert.Equal(0, loaded.Servers.Sum(server => server.Accounts.Count), "坏身份不能作为成功读取结果穿透");
-                    Assert.Equal(100, loaded.Ui.PageSize);
                     AssertR007Quarantine(store.Paths, damaged);
                     Assert.False(File.Exists(store.Paths.SettingsBackupFile));
                     Assert.Equal(0, protector.ProtectCalls, "当前格式的损坏文件不能触发凭据重新包装");
@@ -35,15 +34,14 @@ internal static partial class SettingsTests
 
                     var reloaded = store.Load();
                     AssertR007ReadDependencies(reloaded, protector);
-                    Assert.Equal(100, reloaded.Ui.PageSize);
                     AssertR007Quarantine(store.Paths, damaged);
                 }));
 
             Test($"R-007：当前预选账号 {field}=null 不遮住有效备份且保留原文", () =>
                 WithR007Store((store, protector) =>
                 {
-                    var damaged = R007NullDocument(R007Settings("main", 180), field);
-                    var backup = R007Document(R007Settings("backup", 220));
+                    var damaged = R007NullDocument(R007Settings("main"), field);
+                    var backup = R007Document(R007Settings("backup"));
                     File.WriteAllText(store.Paths.SettingsFile, damaged);
                     File.WriteAllText(store.Paths.SettingsBackupFile, backup);
 
@@ -64,7 +62,7 @@ internal static partial class SettingsTests
             Test($"R-007：当前格式 {field}=null 的直接及严格读取拒绝但不改输入", () =>
                 WithR007Store((store, protector) =>
                 {
-                    var damaged = R007NullDocument(R007Settings("main", 180), field);
+                    var damaged = R007NullDocument(R007Settings("main"), field);
                     File.WriteAllText(store.Paths.SettingsFile, damaged);
 
                     Assert.Throws<InvalidDataException>(() => SettingsMigration.FromJson(damaged, protector));
@@ -80,10 +78,10 @@ internal static partial class SettingsTests
         Test("R-007：两项凭据和所有关键账号字段同时 null 仍恢复备份", () =>
             WithR007Store((store, protector) =>
             {
-                var damaged = R007NullDocument(R007Settings("main", 180),
+                var damaged = R007NullDocument(R007Settings("main"),
                     "Server.Id", "Account.Id", "Account.Username", "Account.UserId",
                     "Account.ProtectedPassword", "Account.ProtectedAccessToken");
-                var backup = R007Document(R007Settings("backup", 220));
+                var backup = R007Document(R007Settings("backup"));
                 File.WriteAllText(store.Paths.SettingsFile, damaged);
                 File.WriteAllText(store.Paths.SettingsBackupFile, backup);
 
@@ -97,10 +95,10 @@ internal static partial class SettingsTests
         Test("R-007：非预选账号的 null 也在 Load 内拒绝，不留到以后切换才崩", () =>
             WithR007Store((store, protector) =>
             {
-                var settings = R007Settings("main", 180);
+                var settings = R007Settings("main");
                 settings.LastAccountId = settings.Servers[0].Accounts[0].Id;
                 var damaged = R007NullDocument(settings, "Account.ProtectedPassword");
-                var backup = R007Document(R007Settings("backup", 220));
+                var backup = R007Document(R007Settings("backup"));
                 File.WriteAllText(store.Paths.SettingsFile, damaged);
                 File.WriteAllText(store.Paths.SettingsBackupFile, backup);
 
@@ -113,12 +111,11 @@ internal static partial class SettingsTests
         Test("R-007：只有坏备份时用默认值且保留备份原文，不把 null 当成成功", () =>
             WithR007Store((store, protector) =>
             {
-                var damagedBackup = R007NullDocument(R007Settings("backup", 220), "Account.ProtectedAccessToken");
+                var damagedBackup = R007NullDocument(R007Settings("backup"), "Account.ProtectedAccessToken");
                 File.WriteAllText(store.Paths.SettingsBackupFile, damagedBackup);
 
                 var loaded = store.Load();
                 AssertR007ReadDependencies(loaded, protector);
-                Assert.Equal(100, loaded.Ui.PageSize);
                 Assert.Equal(0, loaded.Servers.Sum(server => server.Accounts.Count));
                 Assert.False(File.Exists(store.Paths.SettingsFile));
                 Assert.Equal(damagedBackup, File.ReadAllText(store.Paths.SettingsBackupFile));
@@ -128,14 +125,13 @@ internal static partial class SettingsTests
         Test("R-007：主备都含坏字段时隔离主文件，保留备份并安全回到默认", () =>
             WithR007Store((store, protector) =>
             {
-                var damaged = R007NullDocument(R007Settings("main", 180), "Account.ProtectedPassword");
-                var damagedBackup = R007NullDocument(R007Settings("backup", 220), "Account.Username");
+                var damaged = R007NullDocument(R007Settings("main"), "Account.ProtectedPassword");
+                var damagedBackup = R007NullDocument(R007Settings("backup"), "Account.Username");
                 File.WriteAllText(store.Paths.SettingsFile, damaged);
                 File.WriteAllText(store.Paths.SettingsBackupFile, damagedBackup);
 
                 var loaded = store.Load();
                 AssertR007ReadDependencies(loaded, protector);
-                Assert.Equal(100, loaded.Ui.PageSize);
                 Assert.Equal(0, loaded.Servers.Sum(server => server.Accounts.Count));
                 AssertR007Quarantine(store.Paths, damaged);
                 Assert.Equal(damagedBackup, File.ReadAllText(store.Paths.SettingsBackupFile));
@@ -172,7 +168,7 @@ internal static partial class SettingsTests
         Test("R-007：可空选择和服务器远端身份仍合法，DeviceId=null 沿用原修复", () =>
         {
             var protector = new R007SecretProtector();
-            var settings = R007Settings("main", 180);
+            var settings = R007Settings("main");
             settings.LastServerId = null;
             settings.LastAccountId = null;
             settings.DeviceId = null!;
@@ -187,14 +183,13 @@ internal static partial class SettingsTests
             Assert.Null(loaded.Servers[0].ServerVersion);
             Assert.Equal(2, loaded.Servers[0].Accounts.Count);
             Assert.True(loaded.Servers[0].Accounts.All(account => account.AutoConnect is null));
-            Assert.Equal(180, loaded.Ui.PageSize);
         });
 
         Test("R-007：有效主文件优先且读取不包装凭据或改动主备", () =>
             WithR007Store((store, protector) =>
             {
-                var main = R007Document(R007Settings("main", 180));
-                var backup = R007Document(R007Settings("backup", 220));
+                var main = R007Document(R007Settings("main"));
+                var backup = R007Document(R007Settings("backup"));
                 File.WriteAllText(store.Paths.SettingsFile, main);
                 File.WriteAllText(store.Paths.SettingsBackupFile, backup);
 
@@ -203,7 +198,6 @@ internal static partial class SettingsTests
                 Assert.Equal("device-main", loaded.DeviceId);
                 Assert.Equal("server-main", loaded.LastServerId);
                 Assert.Equal("account-main", loaded.LastAccountId);
-                Assert.Equal(180, loaded.Ui.PageSize);
                 Assert.Equal("fake:main-password", loaded.ResolveLastAccount()!.ProtectedPassword);
                 Assert.Equal("fake:main-token", loaded.ResolveLastAccount()!.ProtectedAccessToken);
                 Assert.Equal(0, protector.ProtectCalls);
@@ -235,8 +229,8 @@ internal static partial class SettingsTests
         Test("R-007：有效字段的假解密失败仍要求重新输入，不回退备份或明文", () =>
             WithR007Store((store, protector) =>
             {
-                var main = R007Document(R007Settings("main", 180));
-                var backup = R007Document(R007Settings("backup", 220));
+                var main = R007Document(R007Settings("main"));
+                var backup = R007Document(R007Settings("backup"));
                 File.WriteAllText(store.Paths.SettingsFile, main);
                 File.WriteAllText(store.Paths.SettingsBackupFile, backup);
                 protector.FailUnprotect = true;
@@ -248,7 +242,6 @@ internal static partial class SettingsTests
                 Assert.True(account.HasSavedToken);
                 Assert.Equal("", vault.GetPassword(account));
                 Assert.Equal("", vault.GetAccessToken(account));
-                Assert.Equal(180, loaded.Ui.PageSize, "解密失败不是读取损坏字段，不意外换到另一个身份");
                 Assert.Equal(main, File.ReadAllText(store.Paths.SettingsFile));
                 Assert.Equal(backup, File.ReadAllText(store.Paths.SettingsBackupFile));
                 Assert.Equal(0, protector.ProtectCalls);
@@ -257,8 +250,8 @@ internal static partial class SettingsTests
         Test("R-007：主文件暂不可读仍按现有 Load 契约恢复备份且不破坏存储", () =>
             WithR007Store((store, protector) =>
             {
-                var main = R007Document(R007Settings("main", 180));
-                var backup = R007Document(R007Settings("backup", 220));
+                var main = R007Document(R007Settings("main"));
+                var backup = R007Document(R007Settings("backup"));
                 File.WriteAllText(store.Paths.SettingsFile, main);
                 File.WriteAllText(store.Paths.SettingsBackupFile, backup);
                 using (var held = new FileStream(store.Paths.SettingsFile, FileMode.Open, FileAccess.Read, FileShare.None))
@@ -273,11 +266,10 @@ internal static partial class SettingsTests
                 Assert.Equal(0, Directory.GetFiles(store.Paths.Root, "*.corrupt-*").Length);
                 var reloaded = store.Load();
                 AssertR007ReadDependencies(reloaded, protector);
-                Assert.Equal(180, reloaded.Ui.PageSize, "解除锁后可继续读取原主文件");
             }));
     }
 
-    private static AppSettings R007Settings(string identity, int pageSize)
+    private static AppSettings R007Settings(string identity)
     {
         var server = new ServerProfile
         {
@@ -300,8 +292,7 @@ internal static partial class SettingsTests
             DeviceId = $"device-{identity}",
             LastServerId = server.Id,
             LastAccountId = server.Accounts[1].Id,
-            Servers = [server],
-            Ui = new UiSettings { PageSize = pageSize }
+            Servers = [server]
         };
     }
 
@@ -348,7 +339,6 @@ internal static partial class SettingsTests
         Assert.Equal("device-backup", settings.DeviceId);
         Assert.Equal("server-backup", settings.LastServerId);
         Assert.Equal("account-backup", settings.LastAccountId);
-        Assert.Equal(220, settings.Ui.PageSize);
         var account = settings.ResolveLastAccount()!;
         Assert.Equal("backup-user", account.Username);
         Assert.Equal("remote-backup", account.UserId);

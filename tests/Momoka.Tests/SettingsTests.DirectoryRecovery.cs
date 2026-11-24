@@ -13,14 +13,14 @@ internal static partial class SettingsTests
             Test($"R-009：当前备份优先于旧主文件并保留选择与自动连接={autoConnect}", () =>
             {
                 var fixture = NewDirectoryRecovery();
-                var backup = RecoveryDocument("current", 240, autoConnect);
-                var old = RecoveryDocument("old", 80, !autoConnect);
+                var backup = RecoveryDocument("current", autoConnect);
+                var old = RecoveryDocument("old", !autoConnect);
                 File.WriteAllText(fixture.Paths.SettingsBackupFile, backup);
                 File.WriteAllText(fixture.Legacy.SettingsFile, old);
                 File.WriteAllText(Path.Combine(fixture.Legacy.Root, "old-only.txt"), "must not copy");
 
                 Assert.Null(fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-                AssertRecoveryChoice(fixture.Store.Load(), "current", 240, autoConnect);
+                AssertRecoveryChoice(fixture.Store.Load(), "current", autoConnect);
                 Assert.False(File.Exists(fixture.Paths.SettingsFile));
                 Assert.False(File.Exists(Path.Combine(fixture.Paths.Root, "old-only.txt")));
                 Assert.Equal(backup, File.ReadAllText(fixture.Paths.SettingsBackupFile));
@@ -31,18 +31,18 @@ internal static partial class SettingsTests
         {
             var fixture = NewDirectoryRecovery();
             const string damaged = "{broken-main";
-            var backup = RecoveryDocument("current", 240, false);
+            var backup = RecoveryDocument("current", false);
             File.WriteAllText(fixture.Paths.SettingsFile, damaged);
             File.WriteAllText(fixture.Paths.SettingsBackupFile, backup);
-            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", 80, true));
+            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", true));
 
-            AssertRecoveryChoice(fixture.Store.Load(), "current", 240, false);
+            AssertRecoveryChoice(fixture.Store.Load(), "current", false);
             Assert.False(File.Exists(fixture.Paths.SettingsFile));
             var preserved = Directory.GetFiles(fixture.Paths.Root, "settings.json.corrupt-*");
             Assert.Equal(1, preserved.Length);
             Assert.Equal(damaged, File.ReadAllText(preserved[0]));
             Assert.Null(fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-            AssertRecoveryChoice(new SettingsStore(fixture.Paths, Protector).Load(), "current", 240, false);
+            AssertRecoveryChoice(new SettingsStore(fixture.Paths, Protector).Load(), "current", false);
             Assert.Equal(backup, File.ReadAllText(fixture.Paths.SettingsBackupFile));
             Assert.Equal(damaged, File.ReadAllText(preserved[0]));
         });
@@ -52,24 +52,24 @@ internal static partial class SettingsTests
             var fixture = NewDirectoryRecovery();
             var second = new AppPaths(Path.Combine(fixture.Root, "legacy-second"));
             Directory.CreateDirectory(second.Root);
-            File.WriteAllText(fixture.Paths.SettingsBackupFile, RecoveryDocument("current", 240, false));
-            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", 80, true));
-            File.WriteAllText(second.SettingsFile, RecoveryDocument("older", 60, true));
+            File.WriteAllText(fixture.Paths.SettingsBackupFile, RecoveryDocument("current", false));
+            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", true));
+            File.WriteAllText(second.SettingsFile, RecoveryDocument("older", true));
             Assert.Null(fixture.Store.PrepareStartupData([fixture.Legacy.Root, second.Root]));
-            AssertRecoveryChoice(fixture.Store.Load(), "current", 240, false);
+            AssertRecoveryChoice(fixture.Store.Load(), "current", false);
         });
 
         Test("R-009：已有当前主文件仍优先，主备和旧源都不改写", () =>
         {
             var fixture = NewDirectoryRecovery();
-            var main = RecoveryDocument("main", 300, true);
-            var backup = RecoveryDocument("current", 240, false);
-            var old = RecoveryDocument("old", 80, false);
+            var main = RecoveryDocument("main", true);
+            var backup = RecoveryDocument("current", false);
+            var old = RecoveryDocument("old", false);
             File.WriteAllText(fixture.Paths.SettingsFile, main);
             File.WriteAllText(fixture.Paths.SettingsBackupFile, backup);
             File.WriteAllText(fixture.Legacy.SettingsFile, old);
             Assert.Null(fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-            AssertRecoveryChoice(fixture.Store.Load(), "main", 300, true);
+            AssertRecoveryChoice(fixture.Store.Load(), "main", true);
             Assert.Equal(main, File.ReadAllText(fixture.Paths.SettingsFile));
             Assert.Equal(backup, File.ReadAllText(fixture.Paths.SettingsBackupFile));
             Assert.Equal(old, File.ReadAllText(fixture.Legacy.SettingsFile));
@@ -79,11 +79,11 @@ internal static partial class SettingsTests
             Test("R-009：无效备份不封死旧目录迁移：" + damaged, () =>
             {
                 var fixture = NewDirectoryRecovery();
-                var old = RecoveryDocument("old", 80, false);
+                var old = RecoveryDocument("old", false);
                 File.WriteAllText(fixture.Paths.SettingsBackupFile, damaged);
                 File.WriteAllText(fixture.Legacy.SettingsFile, old);
                 Assert.Equal(fixture.Legacy.Root, fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-                AssertRecoveryChoice(fixture.Store.Load(), "old", 80, false);
+                AssertRecoveryChoice(fixture.Store.Load(), "old", false);
                 Assert.Equal(damaged, File.ReadAllText(fixture.Paths.SettingsBackupFile));
                 Assert.Equal(old, File.ReadAllText(fixture.Legacy.SettingsFile));
             });
@@ -91,25 +91,25 @@ internal static partial class SettingsTests
         Test("R-009：null 必需字段的不可用备份仍允许迁移旧有效主文件", () =>
         {
             var fixture = NewDirectoryRecovery();
-            var damaged = RecoveryDocument("current", 240, false).Replace("\"UserId\":\"remote-current\"", "\"UserId\":null", StringComparison.Ordinal);
+            var damaged = RecoveryDocument("current", false).Replace("\"UserId\":\"remote-current\"", "\"UserId\":null", StringComparison.Ordinal);
             Assert.Contains("\"UserId\":null", damaged);
             File.WriteAllText(fixture.Paths.SettingsBackupFile, damaged);
-            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", 80, true));
+            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", true));
             Assert.Equal(fixture.Legacy.Root, fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-            AssertRecoveryChoice(fixture.Store.Load(), "old", 80, true);
+            AssertRecoveryChoice(fixture.Store.Load(), "old", true);
             Assert.Equal(damaged, File.ReadAllText(fixture.Paths.SettingsBackupFile));
         });
 
         Test("R-009：备份暂不可读时迁移旧有效配置，不消费被锁的文件", () =>
         {
             var fixture = NewDirectoryRecovery();
-            var backup = RecoveryDocument("current", 240, false);
+            var backup = RecoveryDocument("current", false);
             File.WriteAllText(fixture.Paths.SettingsBackupFile, backup);
-            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", 80, true));
+            File.WriteAllText(fixture.Legacy.SettingsFile, RecoveryDocument("old", true));
             using (var locked = new FileStream(fixture.Paths.SettingsBackupFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
                 Assert.Equal(fixture.Legacy.Root, fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-                AssertRecoveryChoice(fixture.Store.Load(), "old", 80, true);
+                AssertRecoveryChoice(fixture.Store.Load(), "old", true);
             }
             Assert.Equal(backup, File.ReadAllText(fixture.Paths.SettingsBackupFile));
         });
@@ -117,13 +117,13 @@ internal static partial class SettingsTests
         Test("R-009：新装无当前主备仍复制旧目录，保留旧源与附属缓存", () =>
         {
             var fixture = NewDirectoryRecovery();
-            var old = RecoveryDocument("old", 80, true);
+            var old = RecoveryDocument("old", true);
             File.WriteAllText(fixture.Legacy.SettingsFile, old);
             var sourceCache = Path.Combine(fixture.Legacy.Root, "cache");
             Directory.CreateDirectory(sourceCache);
             File.WriteAllText(Path.Combine(sourceCache, "only.txt"), "synthetic cache");
             Assert.Equal(fixture.Legacy.Root, fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-            AssertRecoveryChoice(fixture.Store.Load(), "old", 80, true);
+            AssertRecoveryChoice(fixture.Store.Load(), "old", true);
             Assert.Equal(old, File.ReadAllText(fixture.Legacy.SettingsFile));
             Assert.Equal("synthetic cache", File.ReadAllText(Path.Combine(fixture.Paths.Root, "cache", "only.txt")));
             Assert.Null(fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
@@ -134,7 +134,6 @@ internal static partial class SettingsTests
             var fixture = NewDirectoryRecovery();
             File.WriteAllText(fixture.Paths.SettingsBackupFile, "{bad-json");
             Assert.Null(fixture.Store.PrepareStartupData([fixture.Legacy.Root]));
-            Assert.Equal(100, fixture.Store.Load().Ui.PageSize);
             Assert.Equal("{bad-json", File.ReadAllText(fixture.Paths.SettingsBackupFile));
             Assert.False(File.Exists(fixture.Paths.SettingsFile));
         });
@@ -151,7 +150,7 @@ internal static partial class SettingsTests
         return new(root, paths, legacy, new SettingsStore(paths, Protector));
     }
 
-    private static string RecoveryDocument(string identity, int pageSize, bool autoConnect)
+    private static string RecoveryDocument(string identity, bool autoConnect)
     {
         var account = new AccountProfile
         {
@@ -172,14 +171,12 @@ internal static partial class SettingsTests
             Servers = [server],
             DeviceId = "device-" + identity,
             LastServerId = server.Id,
-            LastAccountId = account.Id,
-            Ui = new UiSettings { PageSize = pageSize }
+            LastAccountId = account.Id
         });
     }
 
-    private static void AssertRecoveryChoice(AppSettings settings, string identity, int pageSize, bool autoConnect)
+    private static void AssertRecoveryChoice(AppSettings settings, string identity, bool autoConnect)
     {
-        Assert.Equal(pageSize, settings.Ui.PageSize);
         Assert.Equal("device-" + identity, settings.DeviceId);
         Assert.Equal("server-" + identity, settings.LastServerId);
         Assert.Equal("account-" + identity, settings.LastAccountId);

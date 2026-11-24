@@ -574,7 +574,6 @@ internal sealed class StartupShellFixture
 internal sealed class StartupMemorySettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
-    public int PageSize => 50;
     public bool HasUnsavedChanges { get; set; }
     public event EventHandler? SaveStateChanged { add { } remove { } }
     internal int Saves { get; private set; }

@@ -607,7 +607,6 @@ internal static class SettingsApplicabilityTests
     private sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int PageSize => 50;
         public int Saves { get; private set; }
         public bool SaveSucceeds { get; set; } = true;
         public event EventHandler? SaveStateChanged { add { } remove { } }

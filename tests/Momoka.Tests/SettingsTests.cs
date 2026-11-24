@@ -312,6 +312,21 @@ internal static partial class SettingsTests
                 }
         });
 
+        Test("设置：旧文档里的每页条目数被忽略且不再保存", () =>
+        {
+            // 这一格已从设置里删掉，旧文件里还留着它；读的时候不能因此读挂，存回去也不能再写出来。
+            var json = JsonSerializer.Serialize(new
+            {
+                SchemaVersion = AppSettings.CurrentSchemaVersion,
+                Ui = new { PageSize = 100, Theme = "midnight", AnimationsEnabled = false }
+            });
+            var settings = SettingsMigration.FromJson(json, Protector);
+            Assert.Equal("midnight", settings.Ui.Theme);
+            Assert.False(settings.Ui.AnimationsEnabled);
+            var saved = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+            Assert.DoesNotContain("PageSize", saved);
+        });
+
         Test("设置：UI 动画旧配置默认开启，关闭后保存读回仍关闭", () =>
         {
             var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);
@@ -389,7 +404,6 @@ internal static partial class SettingsTests
 
             Assert.Equal(90, settings.Playback.MarkWatchedPercent, "缺的那一节回到装机值");
             Assert.Equal("gpu-next", settings.Video.Renderer);
-            Assert.Equal(100, settings.Ui.PageSize);
             Assert.Equal(100, settings.Audio.Volume);
             Assert.False(settings.Shaders.Enabled, "缺的那一节回到装机值，而着色器的装机值是关");
             Assert.Equal("d-1", settings.DeviceId, "文件里还好的东西要留着，不能整份丢掉");
@@ -400,11 +414,11 @@ internal static partial class SettingsTests
             foreach (var version in new[] { 2, 6, AppSettings.CurrentSchemaVersion })
             {
                 var settings = SettingsMigration.FromJson($$$"""
-                    {"SchemaVersion":{{{version}}},"DeviceId":"fixture-device","Shaders":null,"MoviePilot":null,"Ui":{"PageSize":180}}
+                    {"SchemaVersion":{{{version}}},"DeviceId":"fixture-device","Shaders":null,"MoviePilot":null,"Ui":{"Theme":"midnight"}}
                     """, Protector);
                 Assert.NotNull(settings.Shaders);
                 Assert.NotNull(settings.MoviePilot);
-                Assert.Equal(180, settings.Ui.PageSize);
+                Assert.Equal("midnight", settings.Ui.Theme);
                 Assert.Equal("fixture-device", settings.DeviceId);
             }
         });
@@ -986,14 +1000,12 @@ internal static partial class SettingsTests
             Assert.Equal(85, settings.Playback.DonghuaMarkWatchedPercent);
             Assert.Equal(90, settings.Playback.MarkWatchedPercent);
 
-            settings.Ui.PageSize = 100000;
             settings.Playback.MarkWatchedPercent = 5;
             settings.Playback.DonghuaMarkWatchedPercent = 5;
             settings.Ui.ImageCacheMegabytes = 999999;
 
             SettingsMigration.Normalize(settings);
 
-            Assert.Equal(500, settings.Ui.PageSize);
             Assert.Equal(50, settings.Playback.MarkWatchedPercent);
             Assert.Equal(50, settings.Playback.DonghuaMarkWatchedPercent,
                 "国漫那一档的范围和全局那一档是同一对数");
@@ -1961,7 +1973,6 @@ internal static partial class SettingsTests
             // 「界面」那一组混着两类，这里只改设置页上有的那几行；记下来的那几项由下一条管。
             var ui = settings.Ui;
             ui.Theme = "midnight";
-            ui.PageSize = 37;
             ui.ShowHomeBanner = false;
             ui.CarouselLayout = CarouselLayout.Store;
             ui.CompactMode = true;
@@ -1991,7 +2002,6 @@ internal static partial class SettingsTests
 
             var fresh = new UiSettings();
             Assert.Equal(fresh.Theme, ui.Theme, "主题回默认那一套");
-            Assert.Equal(fresh.PageSize, ui.PageSize);
             Assert.Equal(fresh.ShowHomeBanner, ui.ShowHomeBanner, "「恢复默认」之后主页轮播大图要是开的");
             Assert.Equal(fresh.CarouselLayout, ui.CarouselLayout, "「恢复默认」之后轮播版式回到整宽大图");
             Assert.Equal(fresh.CompactMode, ui.CompactMode, "「恢复默认」之后精简模式要是关的（说明全部放回来）");
@@ -2113,7 +2123,6 @@ internal static partial class SettingsTests
                 foreach (var group in new object[] { source.Mpv, source.Playback, source.Video, source.Shaders })
                     Assert.True(MutateAll(group) > 0, $"{group.GetType().Name} 一项都没改，这一条会变空话");
                 source.Ui.Theme = "midnight";
-                source.Ui.PageSize = 37;
                 source.Ui.AnimationsEnabled = false;
                 source.Ui.EnableImmersive = false;
                 source.Trailer.HoverAutoplay = false;
@@ -2146,7 +2155,6 @@ internal static partial class SettingsTests
                 AssertDefaults(target.Video, loaded.Video);
                 AssertDefaults(target.Shaders, loaded.Shaders);
                 Assert.Equal("midnight", target.Ui.Theme);
-                Assert.Equal(37, target.Ui.PageSize);
                 Assert.False(target.Ui.AnimationsEnabled, "UI 动画偏好随备份恢复");
                 Assert.False(target.Ui.EnableImmersive, "商店模式随备份恢复并决定侧边栏");
                 AssertDefaults(target.Trailer, loaded.Trailer);
@@ -2433,14 +2441,12 @@ internal static partial class SettingsTests
                 var store = new SettingsStore(paths, Protector);
                 var settings = SettingsMigration.NewDefaults();
                 settings.Servers[0].Name = "备份里的服务器";
-                settings.Ui.PageSize = 160;
                 store.Save(settings);
                 File.Move(paths.SettingsFile, paths.SettingsBackupFile);
 
                 var loaded = store.Load();
 
                 Assert.Equal("备份里的服务器", loaded.Servers[0].Name);
-                Assert.Equal(160, loaded.Ui.PageSize);
                 Assert.True(File.Exists(paths.SettingsBackupFile), "恢复不能消耗仅存的备份");
             }
             finally
@@ -2504,15 +2510,15 @@ internal static partial class SettingsTests
                     var paths = new AppPaths(root);
                     var store = new SettingsStore(paths, Protector);
                     var settings = SettingsMigration.NewDefaults();
-                    settings.Ui.PageSize = 180;
+                    settings.Servers[0].Name = "备份里的服务器";
                     store.Save(settings);
                     File.Move(paths.SettingsFile, paths.SettingsBackupFile);
                     File.WriteAllText(paths.SettingsFile, invalid);
 
-                    Assert.Equal(180, store.Load().Ui.PageSize, "无效文档不能冒充读取成功");
+                    Assert.Equal("备份里的服务器", store.Load().Servers[0].Name, "无效文档不能冒充读取成功");
                     Assert.False(File.Exists(paths.SettingsFile));
                     Assert.Equal(invalid, File.ReadAllText(Directory.GetFiles(root, "*.corrupt-*").Single()));
-                    Assert.Equal(180, store.Load().Ui.PageSize, "再次启动仍可恢复同一备份");
+                    Assert.Equal("备份里的服务器", store.Load().Servers[0].Name, "再次启动仍可恢复同一备份");
                 }
                 finally { Cleanup(root); }
             });
@@ -2525,13 +2531,13 @@ internal static partial class SettingsTests
                 var paths = new AppPaths(root);
                 var store = new SettingsStore(paths, Protector);
                 var settings = SettingsMigration.NewDefaults();
-                settings.Ui.PageSize = 120;
+                settings.Servers[0].Name = "第一版";
                 store.Save(settings);
-                settings.Ui.PageSize = 160;
+                settings.Servers[0].Name = "第二版";
                 store.Save(settings);
                 var primary = File.ReadAllText(paths.SettingsFile);
                 var backup = File.ReadAllText(paths.SettingsBackupFile);
-                settings.Ui.PageSize = 200;
+                settings.Servers[0].Name = "第三版";
 
                 using (var locked = new FileStream(paths.SettingsFile, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
@@ -2543,7 +2549,7 @@ internal static partial class SettingsTests
                 Assert.Equal(backup, File.ReadAllText(paths.SettingsBackupFile));
                 Assert.Equal(2, Directory.GetFiles(root).Length, "失败后不留半份文件");
                 store.Save(settings);
-                Assert.Equal(200, store.Load().Ui.PageSize);
+                Assert.Equal("第三版", store.Load().Servers[0].Name);
                 Assert.Equal(primary, File.ReadAllText(paths.SettingsBackupFile), "成功才把原主文件变成备份");
             }
             finally { Cleanup(root); }
@@ -2558,7 +2564,6 @@ internal static partial class SettingsTests
                 var documents = Enumerable.Range(120, 16).Select(size =>
                 {
                     var settings = SettingsMigration.NewDefaults();
-                    settings.Ui.PageSize = size;
                     settings.Servers[0].Name = $"fixture-{size}";
                     return settings;
                 }).ToArray();
@@ -2567,7 +2572,7 @@ internal static partial class SettingsTests
                 foreach (var path in new[] { store.Paths.SettingsFile, store.Paths.SettingsBackupFile })
                 {
                     var saved = SettingsMigration.FromJson(File.ReadAllText(path), Protector);
-                    Assert.Equal($"fixture-{saved.Ui.PageSize}", saved.Servers[0].Name);
+                    Assert.True(documents.Any(document => document.Servers[0].Name == saved.Servers[0].Name));
                 }
                 Assert.Equal(2, Directory.GetFiles(root).Length);
             }

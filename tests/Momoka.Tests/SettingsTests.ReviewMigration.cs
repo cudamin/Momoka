@@ -48,10 +48,10 @@ internal static partial class SettingsTests
                 {
                     var paths = new AppPaths(directory);
                     var json = "{\"SchemaVersion\":" + schema
-                        + ",\"Playback\":null,\"DeviceId\":\"review-device\",\"Ui\":{\"PageSize\":77}}";
+                        + ",\"Playback\":null,\"DeviceId\":\"review-device\",\"Ui\":{\"Theme\":\"midnight\"}}";
                     File.WriteAllText(paths.SettingsFile, json);
                     var loaded = new SettingsStore(paths, Protector).Load();
-                    Assert.Equal(77, loaded.Ui.PageSize);
+                    Assert.Equal("midnight", loaded.Ui.Theme);
                     Assert.Equal("review-device", loaded.DeviceId);
                     Assert.True(loaded.Playback is not null);
                     Assert.Equal(json, File.ReadAllText(paths.SettingsFile));

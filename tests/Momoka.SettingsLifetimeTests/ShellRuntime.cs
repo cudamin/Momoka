@@ -105,7 +105,6 @@ internal sealed class ShellRuntime
 internal sealed class MemorySettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
-    public int PageSize => 60;
     public event EventHandler? SaveStateChanged;
     public int SaveSubscribers => SaveStateChanged?.GetInvocationList().Length ?? 0;
     public void CompleteSave(bool unsaved)

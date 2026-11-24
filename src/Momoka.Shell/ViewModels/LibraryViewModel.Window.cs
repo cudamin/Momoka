@@ -137,7 +137,7 @@ public sealed partial class LibraryViewModel
         if (!QueryCurrent(query)) return false;
         var range = SnapshotWindow();
         var start = _windowStart + range.LocalStart;
-        var wanted = Math.Max(range.Count, Math.Min(_settings!.PageSize, BrowseSnapshotStore.MaxItemsPerSnapshot));
+        var wanted = Math.Max(range.Count, Math.Min(LibraryBrowse.ChunkSize, BrowseSnapshotStore.MaxItemsPerSnapshot));
         var token = background ? BeginBackgroundLoad() : BeginLoad();
         try
         {
@@ -226,7 +226,7 @@ public sealed partial class LibraryViewModel
         var query = _queryToken;
         var previousStart = _windowStart;
         var columns = GridColumns;
-        var wanted = Math.Max(columns, Math.Max(1, _settings!.PageSize) / columns * columns);
+        var wanted = Math.Max(columns, Math.Max(1, LibraryBrowse.ChunkSize) / columns * columns);
         if (previousStart % columns != 0) wanted = previousStart % columns;
         var start = Math.Max(0, previousStart - wanted);
         // A restore can come from a different column count. Full row insertion retains the old row.
@@ -270,7 +270,7 @@ public sealed partial class LibraryViewModel
         if (!_active || !WindowEligible || Busy) return;
         var query = _queryToken;
         var columns = GridColumns;
-        var size = Math.Min(BrowseSnapshotStore.MaxItemsPerSnapshot, Math.Max(columns, Math.Max(1, _settings!.PageSize)));
+        var size = Math.Min(BrowseSnapshotStore.MaxItemsPerSnapshot, Math.Max(columns, Math.Max(1, LibraryBrowse.ChunkSize)));
         var start = Math.Max(0, absoluteIndex - size / 4);
         start -= start % columns;
         var token = BeginLoad();

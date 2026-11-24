@@ -21,7 +21,7 @@ internal static partial class SettingsTests
                 File.WriteAllText(lockedFile, "{\"DeviceId\":\"first\"}");
                 File.WriteAllText(Path.Combine(first, "settings.backup.json"), "{\"DeviceId\":\"wrong-backup\"}");
                 File.WriteAllText(Path.Combine(first, "first-only.txt"), "failed-source");
-                const string wanted = "{\"SchemaVersion\":27,\"DeviceId\":\"second\",\"Ui\":{\"PageSize\":77}}";
+                const string wanted = "{\"SchemaVersion\":27,\"DeviceId\":\"second\",\"Ui\":{\"Theme\":\"midnight\"}}";
                 File.WriteAllText(Path.Combine(second, "settings.json"), wanted);
                 var paths = new AppPaths(Path.Combine(root, "current"));
                 var store = new SettingsStore(paths, Protector);
@@ -33,7 +33,7 @@ internal static partial class SettingsTests
                     Assert.False(File.Exists(Path.Combine(paths.Root, "first-only.txt")));
                     var loaded = store.Load();
                     Assert.Equal("second", loaded.DeviceId);
-                    Assert.Equal(77, loaded.Ui.PageSize);
+                    Assert.Equal("midnight", loaded.Ui.Theme);
                     Assert.Equal(0, Directory.GetFiles(paths.Root, "*.tmp").Length);
                 }
                 Assert.Equal("{\"DeviceId\":\"first\"}", File.ReadAllText(lockedFile));

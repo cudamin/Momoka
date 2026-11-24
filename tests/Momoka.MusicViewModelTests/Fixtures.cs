@@ -113,7 +113,6 @@ internal sealed class QueueDispatcher : IUiDispatcher
 internal sealed class MemorySettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
-    public int PageSize => 80;
     public bool HasUnsavedChanges => false;
     public int Saves { get; private set; }
     public event EventHandler? SaveStateChanged { add { } remove { } }

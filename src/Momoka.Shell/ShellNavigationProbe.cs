@@ -597,7 +597,6 @@ internal sealed partial class ShellNavigationProbe
             // 探针绝大多数场景要两台服务器同时在线；聚合模式在设置里默认关着，所以这里显式打开。
             // 非聚合模式的收口由单测与「服务器页」那一条探针单独核对。
             Settings.AggregateMode = true;
-            Settings.Ui.PageSize = 20;
             // 普通离线夹具固定沉浸外壳；商店/默认启动由各自用例显式设置并核对。
             Settings.Ui.EnableImmersive = true;
             Settings.Ui.ShowHomeBanner = false;

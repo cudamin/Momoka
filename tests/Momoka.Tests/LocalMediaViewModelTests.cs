@@ -152,7 +152,6 @@ internal static class LocalMediaViewModelTests
     private sealed class MemorySettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int PageSize => 50;
         public void Save() { }
         public bool TrySave() => true;
         public bool HasUnsavedChanges => false;

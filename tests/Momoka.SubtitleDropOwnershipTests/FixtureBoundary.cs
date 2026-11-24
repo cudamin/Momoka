@@ -150,7 +150,6 @@ internal sealed class Fixture : IDisposable
 internal sealed class FakeSettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
-    public int PageSize => 50;
     public event EventHandler? SaveStateChanged { add { } remove { } }
     public bool HasUnsavedChanges => false;
     internal int ForbiddenCalls { get; private set; }

@@ -28,19 +28,19 @@ internal static class SettingsSaveSnapshotTests
     {
         using var fixture = new Fixture();
         var settings = fixture.Settings;
-        settings.Ui.PageSize = 900;
+        settings.Ui.ImageCacheMegabytes = 999999;
         settings.Playback.AudioLanguages = ["ja", "ja"];
         var languages = settings.Playback.AudioLanguages;
         var ui = settings.Ui;
         var history = RecentSearch.Read(ui, Connection);
         fixture.Store.Save(settings);
-        Assert.Equal(900, ui.PageSize, "存储层不能回写编辑状态");
+        Assert.Equal(999999, ui.ImageCacheMegabytes, "存储层不能回写编辑状态");
         Assert.True(ReferenceEquals(ui, settings.Ui));
         Assert.True(ReferenceEquals(languages, settings.Playback.AudioLanguages));
         Assert.Equal(2, languages.Count);
         Assert.True(ReferenceEquals(history, RecentSearch.Read(ui, Connection)));
         var saved = fixture.Store.Load();
-        Assert.Equal(500, saved.Ui.PageSize);
+        Assert.Equal(ImageCachePolicy.MaxMegabytes, saved.Ui.ImageCacheMegabytes);
         Assert.Equal(1, saved.Playback.AudioLanguages.Count);
         Assert.Equal(settings.DeviceId, saved.DeviceId);
     }
