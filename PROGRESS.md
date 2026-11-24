@@ -22,6 +22,12 @@
 
 **体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-music-search-backspace` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-fix-music-search-backspace.lnk` 已回读本树 `artifacts/publish/win-x64/Momoka.exe` 与同目录工作路径。`Momoka.exe` 668,160 字节 SHA256 `202F727F…DAAD57`，`Momoka.dll` SHA256 `1BA7F255…FAB1E7`，ProductVersion `0.3.2+f8c9d06`。启动核对窗口 `Momoka` 响应正常；主树既有实例未触碰，已关闭本树实例。
 
+**合并。** 用户令「合并」；主树 master 原 `f531053`（较分支基点 `6d17e02` 已前进 5 个快捷键／发布提交），工作区干净。执行 `git merge --no-ff fix-music-search-backspace -m "合并：音乐媒体库搜索框退格修复"`，仅 `PROGRESS.md` 冲突：HEAD 顶部是快捷键倍率条目，分支顶部是音乐搜索条目，手工保留双方并去掉冲突标记，提交合并 `93c3c47`（18 路径 +361/−125）。`docs/待交付批次.md` 自动合并。合并后主树 Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` **5366 项、5362 通过、4 失败、0 跳过**，4 红仍是本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关；专项 `Momoka.SearchLifetimeTests` **56/56**、`Momoka.MusicViewModelTests` **45/45**、`Momoka.NavigationStateTests` **10/10**。
+
+全方案闸门 1 `tools/quality.ps1` 在合并后仍红：9 项中 7 过，编译 12 条错误全部来自主树既有快捷键批次的测试边界未同步——`Momoka.PlayerInputRecoveryTests` 生成桩缺 `NoteSeekKeyPress`／`CancelSeekHold`、`Momoka.SubtitleDropOwnershipTests` 边界缺 `CancelSeekHold`、`Momoka.NaturalContinuationCallerTests` 对 `PlayerViewModel.Transport.cs` 的 `R046` 源哈希仍指向旧文件（`artifacts/quality/20261124-210848`）；与本批搜索框代码无关，按项目规则如实留红，未改测试边界或哈希基线洗绿。
+
+**主树发布与清理。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka.lnk` 回读本树 `artifacts/publish/win-x64/Momoka.exe` 与同目录工作路径。`Momoka.exe` 668,160 字节 SHA256 `FEE9A263EB1D60AF6C84F701B517340EC7CBB8B9E28D1CC06802031C40472282`，`Momoka.dll` 10,478,080 字节 SHA256 `A81E28E8D1CCAC020F61244254E6C917BF6D1D47C3FACCE038CDCF30E6F1FB6A`，ProductVersion `0.3.2+93c3c474a561784ee23b4f43b5a024e756f8ba77`。分支内容已确认全部进入 master、工作树干净；`Momoka-fix-music-search-backspace.lnk`、分支与工作树已清理，分支闸门证据已保留到 `artifacts/quality/fix-music-search-backspace-20261124-204802`，实屏截图已保留在主树 `artifacts/verification/music-search-backspace`。未推远端。
+
 ## 2026-11-24 音乐专辑悬停预览：1:1 方形封面，不再上下裁切
 
 用户报「重新设计主页音乐列表的悬浮，音乐专辑都是正方形的，下面都被裁切了」，并要求新增工作树分支。分支 `fix-home-music-hover-9c4d2e`，工作树 `C:/Users/89400/.doubao/worktrees/musichover/Momoka`，基点 `2eb6bfb`（master）。
