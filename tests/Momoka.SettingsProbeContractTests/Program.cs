@@ -207,6 +207,19 @@ internal static class Program
             context.Await(page.RefreshForContract());
             Assert.Equal(4, Groups(page).Length);
         }, MediaServerKind.Emby));
+        Test("0.3.3 设置页隐藏本机整理：左栏无入口、不算内嵌页、旧分类退回主页", () => WithPage((_, fixture, page) =>
+        {
+            var runtime = ShellRuntime.Current;
+            var labels = runtime.List(fixture.Vm, "Categories").Cast<object>()
+                .Select(entry => runtime.Get<string>(entry, "Label")).ToArray();
+            Assert.False(labels.Contains("本机整理", StringComparer.Ordinal), "左栏仍列出本机整理");
+            Assert.False(runtime.List(fixture.Vm, "AvailableHostedCategories").Cast<string>()
+                .Contains("本机整理", StringComparer.Ordinal), "隐藏页仍被当作内嵌页");
+            Assert.True(runtime.Invoke(fixture.Vm, "EntryFor", "本机整理") is null, "旧分类仍能命中入口");
+            page.SelectedCategory = "本机整理";
+            Assert.False(page.ViewModel.ShowsHosted, "隐藏分类仍打开内嵌页");
+            page.SelectedCategory = "主页";
+        }));
         Test("真实默认守卫拒绝旧刷新；Hide后迟到插件不换源，重开可恢复", () => WithPage((context, fixture, page) =>
         {
             ShellNavigationProbe.BeginVisitForContract(page);

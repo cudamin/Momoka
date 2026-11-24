@@ -55,10 +55,10 @@ internal sealed partial class ShellNavigationProbe
         _window.TopMost = true;
         try
         {
-            frame.Navigate(typeof(SettingsPage), new SettingsRequest(services, "本机整理"));
-            var settingsPage = (SettingsPage)frame.Content;
-            await UntilAsync(() => settingsPage.CurrentPage is LocalMediaPage);
-            var page = (LocalMediaPage)settingsPage.CurrentPage;
+            // 0.3.3 起设置页不再列出「本机整理」入口；页面本身仍保留，探针直接导航到页面核对内部布局。
+            frame.Navigate(typeof(LocalMediaPage), new LocalMediaRequest(services));
+            await UntilAsync(() => frame.Content is LocalMediaPage);
+            var page = (LocalMediaPage)frame.Content;
             await LayoutAsync(page);
             var vm = page.ViewModel;
             await vm.ScanAsync();
