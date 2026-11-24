@@ -645,7 +645,7 @@ public sealed partial class PlayerPage : IWin32KeySink
             || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)) return;
         var skipFallback = !Native.CtrlHeld && !Native.AltHeld && !Native.ShiftHeld && ViewModel.SkipOffered
             && e.Key is VirtualKey.Enter or VirtualKey.Delete;
-        if (e.Handled && FocusManager.GetFocusedElement() is ButtonBase or Slider
+        if (e.Handled && FocusedElement is ButtonBase or Slider
             && !HasExplicitShortcutBinding(e.Key, e.KeyStatus.IsExtendedKey) && !skipFallback) return;
 
         if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey, e.KeyStatus.WasKeyDown)) return;
@@ -906,7 +906,7 @@ public sealed partial class PlayerPage : IWin32KeySink
 
         var stroke = new KeyStroke("Space", Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
         if (ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke) != "toggle-pause") return;
-        if (FocusManager.GetFocusedElement() is ButtonBase) return;
+        if (FocusedElement is ButtonBase) return;
 
         // 这一下不唤控件，**两个方向都不唤**（用户令 2026-10-07「暂停时不要自动显示播放控件」，2026-10-10
         // 补上恢复那一半）：回执是那枚一秒的暂停／播放徽标，控件显隐继续由指针位置决定。这条专路没经过
@@ -947,7 +947,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     private void RestoreKeyboardFocus()
     {
         if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
-        if (FocusManager.GetFocusedElement() is not null) return;
+        if (FocusedElement is not null) return;
         Focus(FocusState.Programmatic);
     }
 
@@ -977,16 +977,29 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// <see cref="RestoreKeyboardFocus"/>）—— 那时键掉进岛里就死，兜底路要替 XAML 收下。回答由页面给，
     /// 钩子在线程上、与本页同一线程（线程钩子），读 FocusManager 无跨线之忧。
     /// </summary>
-    public bool IslandKeyboardFocusAlive => FocusManager.GetFocusedElement() is not null;
+    public bool IslandKeyboardFocusAlive => FocusedElement is not null;
+
+    /// <summary>
+    /// 此刻持有键盘焦点的元素。WinUI 3 里无参 <see cref="FocusManager.GetFocusedElement()"/> 恒返回 null
+    /// （它靠 CoreWindow，桌面岛没有），必须走 <see cref="FocusManager.GetFocusedElement(XamlRoot)"/>。
+    /// 用错的话「岛内有人接键」永远判成假，窗口钩子会把播放器快捷键从所有输入框手里抢走 ——
+    /// 搜索框里按不出字母正是这一条（2026-11-25 用户报）。
+    /// </summary>
+    private object? FocusedElement =>
+        XamlRoot is { } root ? FocusManager.GetFocusedElement(root) : null;
 
     /// <summary>
     /// 接。与岛内两条键路同一句话（<see cref="Dispatch"/>）：Esc 全屏则退全屏、非全屏则停止播放；Delete
     /// 只在提示立着时关闭提示、回车只在提示立着时确认跳过；空格走可重绑表 —— 表里默认绑在 toggle-pause 上，
     /// 重绑走了兜底路跟着走，岛内岛外永远做同一件事。
+    /// <para>
+    /// 播放层不在屏上（收起、退场已落定）时一概不接：这时按键属于浏览页的输入框，兜底路只服务正在播放的画面。
+    /// </para>
     /// </summary>
     bool IWin32KeySink.WantsKey(int virtualKey, bool extended)
     {
-        if (!Attached || _inputSuspended || DanmakuInputFocused || _holds.HasFlag(ChromeHold.Menu) || _chrome.PictureMenuOpen)
+        if (!Attached || Visibility != Visibility.Visible || _inputSuspended || DanmakuInputFocused
+            || _holds.HasFlag(ChromeHold.Menu) || _chrome.PictureMenuOpen)
             return false;
         return KeyStrokeInterop.Token((VirtualKey)virtualKey, extended) is { } token
             && CanDispatchStroke(ShortcutKeyCatalog.Stroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld));
