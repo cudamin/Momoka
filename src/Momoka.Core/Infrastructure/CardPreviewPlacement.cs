@@ -15,14 +15,25 @@ namespace Momoka.Infrastructure;
 public static class CardPreviewPlacement
 {
     /// <summary>
-    /// 缩略图的高宽比：宽是高的两倍。所有卡片共用同一个形状，竖版海报也裁进这个框。
-    /// 不是 16:9 —— 400 宽的面板配 16:9 的图有 225 高，整块预览压住了两排货架；2:1 的宽条是商店那块的比例，
-    /// 图仍然认得出是一格画面，面板却矮了四十像素。
+    /// 影视条目的缩略图高宽比：宽是高的两倍。竖版海报裁进这个框，取的是商店那块宽条的形状。
+    /// 不是 16:9 —— 400 宽的面板配 16:9 的图有 225 高，整块预览压住了两排货架；2:1 的图仍然认得出
+    /// 是一格画面，面板却矮了四十像素。
+    /// <para>
+    /// 音乐专辑例外：专辑封面本身就是 1:1 的正方形（2026-11-24 用户令「音乐专辑都是正方形的，
+    /// 下面都被裁切了」），再塞进 2:1 只会上下各裁一条。专辑改用 <see cref="SquareMediaHeight"/>，
+    /// 面板也相应收窄成 <see cref="AlbumPreviewWidth"/>。
+    /// </para>
     /// </summary>
     public const double WideRatio = 0.5;
 
-    /// <summary>面板宽 <paramref name="width"/> 时那块缩略图该多高。</summary>
+    /// <summary>音乐专辑的悬停面板宽。比影视的 400 窄，配正方形封面才不至于高过一屏。</summary>
+    public const double AlbumPreviewWidth = 360;
+
+    /// <summary>面板宽 <paramref name="width"/> 时那块影视缩略图该多高。</summary>
     public static double MediaHeight(double width) => width <= 0 ? 0 : Math.Round(width * WideRatio);
+
+    /// <summary>专辑那块缩略图是正方形：面板内容有多宽，图就多高，不再上下裁切。</summary>
+    public static double SquareMediaHeight(double width) => width <= 0 ? 0 : width;
 
     /// <summary>
     /// 面板左沿相对卡片左沿的偏移：先按「面板中心对卡片中心」算，再夹进窗口左右各留

@@ -69,5 +69,14 @@ internal static class CardPreviewPlacementTests
             Assert.Equal(186d, CardPreviewPlacement.MediaHeight(372), "372 宽");
             Assert.Equal(0d, CardPreviewPlacement.MediaHeight(0), "零宽");
         });
+
+        Test("悬停预览：音乐专辑用 1:1 的方形封面", () =>
+        {
+            // 360 面板、左右各 19 内边距：封面 322×322，正方形图不再被上下裁掉。
+            Assert.Equal(360d, CardPreviewPlacement.AlbumPreviewWidth, "专辑面板宽度");
+            Assert.Equal(322d, CardPreviewPlacement.SquareMediaHeight(322), "322 宽");
+            Assert.Equal(0d, CardPreviewPlacement.SquareMediaHeight(0), "零宽");
+            Assert.Equal(0d, CardPreviewPlacement.SquareMediaHeight(-8), "负宽");
+        });
     }
 }

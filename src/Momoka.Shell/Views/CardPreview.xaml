@@ -36,6 +36,10 @@
                         <TextBlock x:Name="TitleText"
                             MaxLines="2" Style="{StaticResource EgSectionTitleStyle}"
                             TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                        <!-- 专辑的悬停补一行艺术家：卡片底下那行副标题就是它，影视条目不显示。 -->
+                        <TextBlock x:Name="ArtistText" MaxLines="1" Margin="0,-2,0,0"
+                            Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                            TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
                     </StackPanel>
                     <Grid x:Name="FactsBlock">
                         <Grid.ColumnDefinitions>
