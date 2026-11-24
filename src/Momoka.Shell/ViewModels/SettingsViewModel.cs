@@ -1181,10 +1181,10 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些
         // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：主页两张（轮播图 /
-        // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出五张（基础输出 /
-        // 画质与着色器 / HDR / 缓冲 / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
-        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于五张。视频输出按用户指定次序：着色器在 HDR 上方，缓冲在补帧
-        // 上方（2026-11-17 用户令「缓冲设置单独一个卡片，放补帧上面」），补帧在最后。
+        // 主页版面）、播放行为四张（播放行为 / 音轨 / 资源筛选 / 截图）、快捷键十三张（见 SettingsViewModel.Shortcuts）、
+        // 视频输出五张（基础输出 / 画质与着色器 / HDR / 缓冲 / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、
+        // 字幕四张（字幕 / 字幕外观 / 编码与画面 / 实时字幕翻译）、弹幕三张、关于五张。视频输出按用户指定次序：
+        // 着色器在 HDR 上方，缓冲在补帧上方（2026-11-17 用户令「缓冲设置单独一个卡片，放补帧上面」），补帧在最后。
         _playerToolsPickerVersion++;
         DetailCards.Clear();
         Sections.Clear();
@@ -1213,7 +1213,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 弹幕分类三张卡（2026-10-27 拆卡，同日删掉「应用凭据」那张）：开关与匹配、显示与外观、类型与屏蔽，
         // 见 DanmakuSections。
         if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) AddCards(DanmakuSections());
-        Sections.Add(ShortcutsCard());
+        AddCards(ShortcutSections());
         Sections.Add(MoviePilotCard());
         AddCards(AboutSections());
         RefreshDanmakuAvailability();
@@ -1594,7 +1594,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         var playback = Settings.Playback;
 
         // 2026-10-27 拆卡（用户令「其他页也拆一下」）：原来十四行挤在一张卡里，「一集放完接不接下一集」和
-        // 「→ 键跳几秒」隔着半屏。现在按「这一行在回答哪个问题」分成播放行为、跳转与步长、音轨三张。
+        // 「→ 键跳几秒」隔着半屏。按「这一行在回答哪个问题」分成播放行为、跳转与步长、音轨三张；2026-11-24
+        // 用户令把四颗方向键的步长搬到快捷键页、挂在各自的行下面，剩下播放行为与音轨两张（另有下面的资源筛选、截图）。
         var behaviorRows = new List<SettingRow>
         {
             Toggle("向服务器汇报播放进度", "关闭后服务器不再记录本次播放进度", () => playback.ReportProgressToServer, value => playback.ReportProgressToServer = value),
@@ -1635,22 +1636,6 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "服务器只标了其中一类时，缺的那一类由播放器按文件章节补。同一段两边都标了时以服务器为准")
         };
 
-        var seekRows = new List<SettingRow>
-        {
-            // 四颗方向键、两对步长（2026-09-20 用户令）：← / → 用上面这两行，↑ / ↓ 用下面那两行。两对都印在
-            // 设置页上，因为两个管线各有一套输入处理 —— 集成模式的键盘归 shell 的快捷键表，独占模式的键盘是
-            // mpv 自己那层（keybind，见 <c>MpvSeekKeys</c>）—— 而两套都从这几个字段取值。屏上印的数字与按下
-            // 去的位移因此永远对得上，不会出现「改了设置、按键还是老样子」那种界面在骗人。
-            Number("快进跨度（秒）", 1, 600, () => playback.SeekForwardSeconds, value => playback.SeekForwardSeconds = value,
-                "→ 键跳这么多秒"),
-            Number("快退跨度（秒）", 1, 600, () => playback.SeekBackwardSeconds, value => playback.SeekBackwardSeconds = value,
-                "← 键跳这么多秒"),
-            Number("大步快进跨度（秒）", 1, 600, () => playback.SeekForwardLongSeconds, value => playback.SeekForwardLongSeconds = value,
-                "↑ 键跳这么多秒"),
-            Number("大步快退跨度（秒）", 1, 600, () => playback.SeekBackwardLongSeconds, value => playback.SeekBackwardLongSeconds = value,
-                "↓ 键跳这么多秒")
-        };
-
         var trackRows = new List<SettingRow>
         {
             // 音轨语言优先级, the same drop-down as the 字幕 card's since 2026-09-22（「给音轨新增语言优先级和格式
@@ -1674,8 +1659,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         [
             new SettingSection("播放行为", "播放行为",
                 "断点续播、进度上报、连播与全屏、看过多少算看完。", behaviorRows),
-            new SettingSection("播放行为", "跳转与步长",
-                "四颗方向键一次跳多少秒。集成模式与独占模式共用这几个数，屏上印的和按下去的永远对得上。", seekRows),
             new SettingSection("播放行为", "音轨",
                 "选哪条音轨：先按语言挑，再在同一语言里按编码与声道挑。", trackRows)
         ];

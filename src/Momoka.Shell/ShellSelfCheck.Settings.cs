@@ -261,27 +261,46 @@ internal static partial class ShellSelfCheck
                 ? "字幕卡上没有预览那一行"
                 : $"屏上那条画的是「{previewRow.Model.Text}」（{previewRow.Model.FontFamily}）；{previewProbe.Detail}");
 
-        // 快捷键那张卡（「参考上图在设置中新增快捷键功能」，2026-09-08）：问两件事 —— 卡上真有那些可重绑的行
-        // （一条不多一条不少），以及行本身那根「抓到键 → 交回 VM」的线通不通（假行拨两下，SettingShortcutRow.Probe）。
+        // 快捷键那几张卡（「参考上图在设置中新增快捷键功能」，2026-09-08）：问三件事 —— 分区卡真按十三个分区排出来、
+        // 卡上真有那些可重绑的行（一条不多一条不少）、四行步长紧跟在各自的快捷键行下面；以及行本身那根「抓到键 →
+        // 交回 VM」的线通不通（假行拨两下，SettingShortcutRow.Probe）。
         // 真正的判断（键归谁、冲不冲突）在 Core 的 ShortcutCatalog、单测钉着；派发那一头（每个动作都有处理器、默认键
         // 都拼得回来）由播放页的 ProbeShortcuts 另外一关盯。
         //
         // **该有几行是跟着设置走的**：弹幕那四条只在弹幕能画出来时才排出来（ShortcutCatalog.Available）。原先这里拿
         // 整张表 Actions 去比，2026-10-27 本机把弹幕关掉之后当场红成「59 行（应当 63 行）」—— 卡片是对的，判据错了。
         // 现在按同一份 Core 判据取期望值，并逐条核 Id：少一条别的、混进一条弹幕的都还是红。
-        var shortcutRows = page.ViewModel.Sections
-            .FirstOrDefault(section => section.Category == "快捷键")?.Rows ?? [];
+        var shortcutSections = page.ViewModel.Sections.Where(section => section.Category == "快捷键").ToList();
+        var shortcutRows = shortcutSections.SelectMany(section => section.Rows).ToList();
         var danmakuReady = page.ViewModel.DanmakuReady;
         var expectedShortcuts = ShortcutCatalog.Available(danmakuReady);
         var shortcutIds = shortcutRows.OfType<SettingShortcutRow>().Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
         var expectedIds = expectedShortcuts.Select(action => action.Id).ToHashSet(StringComparer.Ordinal);
         var shortcutProbe = SettingShortcutRow.Probe();
+        var seekSpans = new[] { ("seek-backward", "快退跨度（秒）"), ("seek-forward", "快进跨度（秒）"),
+            ("seek-backward-long", "大步快退跨度（秒）"), ("seek-forward-long", "大步快进跨度（秒）") };
+        var seekSpansOk = seekSpans.All(pair =>
+        {
+            var index = shortcutRows.FindIndex(row => row is SettingShortcutRow shortcut && shortcut.Id == pair.Item1);
+            return index >= 0 && index + 1 < shortcutRows.Count
+                && shortcutRows[index + 1] is SettingNumberRow span && span.Label == pair.Item2 && span.IsSubordinate;
+        });
+        var sectionTitles = shortcutSections.Select(section => section.Title).ToArray();
 
         check("快捷键行", shortcutIds.SetEquals(expectedIds) && shortcutProbe.Ok,
             $"{shortcutIds.Count} 行可重绑（应当 {expectedIds.Count} 行，弹幕可用={danmakuReady}）；"
             + (shortcutIds.SetEquals(expectedIds) ? "" : $"差集：{string.Join('、', expectedIds.Except(shortcutIds))}；"
                 + $"多的：{string.Join('、', shortcutIds.Except(expectedIds))}；")
             + shortcutProbe.Detail);
+
+        check("快捷键分区与步长", sectionTitles.SequenceEqual(new[]
+            {
+                "播放与进度", "播放控制", "集数与章节", "速度与循环", "字幕", "次字幕与兼容性", "音轨与音频",
+                "画面与缩放", "画质与色彩", "视频与滤镜", "截图与工具", "弹幕", "回退键与恢复默认"
+            }) && seekSpansOk,
+            $"{shortcutSections.Count} 张分区卡：{string.Join('／', sectionTitles)}；"
+            + $"四行步长{(seekSpansOk ? "都紧跟在各自的快捷键行下面" : "没有跟在各自的快捷键行下面")}；"
+            + $"最后一卡之前的动作行 {shortcutRows.Count(row => row is SettingShortcutRow)} 行");
 
         // 主题那一行的色板。什么都不点：这一行只在点中一块时写盘，而量它不需要真换一次主题 —— 角标落在存着
         // 的那一套上、几块颜色互不相同、屏上块数对得上，坏法就都在这三句里了（见 MeasureThemeSwatches）。
@@ -425,8 +444,9 @@ internal static partial class ShellSelfCheck
         // 留着的空行也算红。2026-10-16 用户令「内置播放器时自定义 mpv.conf 不自动隐藏，集成模式下这一项固定为关」：
         // 那张卡改随内置后端在场，集成模式下开关换成值为「关」的只读文字。2026-10-27 用户令「播放行为也拆成多张
         // 卡」（`725447a`）：这一类从三张变五张 —— 播放行为／跳转与步长／音轨／资源筛选／截图，截图卡仍是这一类的
-        // 末张。拆卡没同步这条判据，于是它拿三张去比五张报红；这里按拆完的五张改，覆盖仍是同一件事：分区数、分区
-        // 次序、资源筛选那两行、截图那三行在不在。落错卡或谁被搬走了照样当场红。
+        // 末张。拆卡没同步这条判据，于是它拿三张去比五张报红；这里按拆完的张数改，覆盖仍是同一件事：分区数、分区
+        // 次序、资源筛选那两行、截图那三行在不在。落错卡或谁被搬走了照样当场红。2026-11-24 用户令把四颗方向键的
+        // 步长搬到快捷键页、排在各自的快捷键行下面：这一类回到四张 —— 播放行为／音轨／资源筛选／截图。
         var playerSections = page.ViewModel.Sections
             .Where(section => section.Category == "播放器").ToList();
         var playerRows = playerSections.SelectMany(section => section.Rows).ToList();
@@ -464,7 +484,7 @@ internal static partial class ShellSelfCheck
                 && playerSections.Any(section => section.Title == "自定义 mpv.conf") == customAvailable
                 && customShapeOk
                 && playbackSections.Select(section => section.Title)
-                    .SequenceEqual(new[] { "播放行为", "跳转与步长", "音轨", "资源筛选", "截图" })
+                    .SequenceEqual(new[] { "播放行为", "音轨", "资源筛选", "截图" })
                 && resourceRows.Select(row => row.Label).SequenceEqual(new[] { "媒体源排序", "视频文件名筛选" })
                 && fixedPlaybackRows.All(label => playbackRows.Any(row => row.Label == label))
                 && screenshotNote.Contains("留空用装机落点", StringComparison.Ordinal),
@@ -473,7 +493,8 @@ internal static partial class ShellSelfCheck
                 + $"截图那行{(screenshotNote.Contains("留空用装机落点") ? "写明" : "没写明")}留空时的落点；"
                 + $"播放器分类 {playerSections.Count} 个分区共 {playerRows.Count} 行、"
                 + $"播放行为分类 {playbackSections.Count} 个分区共 {playbackRows.Count} 行"
-                + "（播放行为／跳转与步长／音轨／资源筛选／截图五张分区；外置两行仅外部后端在场，"
+                + "（播放行为／音轨／资源筛选／截图四张分区；四颗方向键的步长 2026-11-24 已搬到快捷键页；"
+                + "外置两行仅外部后端在场，"
                 + "自定义 mpv.conf 随内置后端在场、集成模式下那一项固定为关，WebP 的无损、质量和压缩行随当前设置变化）");
 
         // 音频输出设备那一行必须始终可用。设备列表要从 mpv 读（临时开一个 libmpv 句柄只为枚举），而那一趟可能

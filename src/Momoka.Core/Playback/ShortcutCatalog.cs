@@ -422,9 +422,20 @@ public static class ShortcutCatalog
             "BracketRight" => "] 右方括号",
             _ => ""
         };
-        var text = SearchText($"{label} {Format(stroke)} {Serialize(stroke)} {aliases}");
+        var text = $"{label} {Format(stroke)} {Serialize(stroke)} {aliases}";
+        return MatchesText(query, text);
+    }
+
+    /// <summary>
+    /// 搜索一段不含按键的文字，规则与 <see cref="MatchesSearch"/> 相同（空格分隔的词都要命中；空白与加号不参与
+    /// 匹配；英文不分大小写）。快捷键页里那四行步长不是快捷键，但同样该被搜索栏找到，所以把这段判断单独拿了出来。
+    /// </summary>
+    public static bool MatchesText(string? query, string text)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return true;
+        var searchable = SearchText(text);
         return query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(SearchText).All(word => text.Contains(word, StringComparison.OrdinalIgnoreCase));
+            .Select(SearchText).All(word => searchable.Contains(word, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string SearchText(string text) => new(text.Where(character =>

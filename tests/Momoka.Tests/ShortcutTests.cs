@@ -323,6 +323,16 @@ internal static partial class ShortcutTests
             Assert.True(ShortcutCatalog.MatchesSearch("Alt + [", "字幕缩小", Key("BracketLeft", alt: true)));
         });
 
+        Test("快捷键搜索：不含按键的文字按同一套词匹配（快捷键页的步长行）", () =>
+        {
+            Assert.True(ShortcutCatalog.MatchesText(null, "快进跨度（秒） ← 键跳这么多秒"));
+            Assert.True(ShortcutCatalog.MatchesText("  ", "快进跨度（秒）"));
+            Assert.True(ShortcutCatalog.MatchesText("快进 跨度", "快进跨度（秒） ← 键跳这么多秒"));
+            Assert.True(ShortcutCatalog.MatchesText("快退跨度", "快退跨度（秒） ← 键跳这么多秒"));
+            Assert.True(ShortcutCatalog.MatchesText("秒", "大步快退跨度（秒）"));
+            Assert.False(ShortcutCatalog.MatchesText("快进 字幕", "快进跨度（秒）"));
+        });
+
         Test("快捷键搜索：改绑后不搜索旧默认键，解绑显示未设置", () =>
         {
             var rebound = ShortcutCatalog.Resolve(new Dictionary<string, string> { ["toggle-pause"] = "Ctrl+K", ["toggle-mute"] = "" });

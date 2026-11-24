@@ -41,6 +41,15 @@ public abstract class SettingRow : ObservableObject
     /// <summary>The text in the left-hand column.</summary>
     public string Label { get; }
 
+    /// <summary>
+    /// 这一行是不是上一行的从属项（快捷键页里四颗方向键的步长挂在各自的快捷键行下面，2026-11-24）。只影响缩进：
+    /// 让读者一眼看出「这一行属于上面那一行」，而不是两张平级设置。
+    /// </summary>
+    public bool IsSubordinate { get; init; }
+
+    /// <summary>从属行的左侧缩进；普通行没有外边距。</summary>
+    public Thickness RowMargin => IsSubordinate ? new Thickness(20, 0, 0, 0) : new Thickness(0);
+
     /// <summary>Localized presentation; the original label remains the stable row identity.</summary>
     public string DisplayLabel => UiText.Translate(Label);
 

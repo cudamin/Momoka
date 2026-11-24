@@ -94,23 +94,43 @@ internal sealed partial class ShellNavigationProbe
                 + $"搜索框={searchBounds}；缩放={scale}；搜索框左右上缘均命中客户区。\n");
             int Hit(int x, int y) => (int)(long)Native.SendMessage(handle, Native.WmNcHitTest, IntPtr.Zero,
                 new IntPtr(((y & 0xFFFF) << 16) | (x & 0xFFFF)));
-            var card = page.ViewModel.Sections.Single(section => section.Category == "快捷键");
-            var originalRows = card.Rows.OfType<SettingShortcutRow>().ToDictionary(row => row.Id);
-            var source = card.Rows;
+            // 2026-11-24 用户令「给设置中的快捷键页面分区」：这一页不再是一张卡，按动作归组排成十三张；下列检查
+            // 一律按「所有分区的行」合计来数，免得把分区变化当成丢行。
+            var shortcutCards = page.ViewModel.Sections.Where(section => section.Category == "快捷键").ToList();
+            var allRows = shortcutCards.SelectMany(section => section.Rows).ToList();
+            var originalRows = allRows.OfType<SettingShortcutRow>().ToDictionary(row => row.Id);
+            var sources = shortcutCards.Select(section => (Section: section, Rows: section.Rows)).ToList();
             var search = Get<AutoSuggestBox>(page, "ShortcutSearchBox");
             var clear = Get<Button>(page, "ClearShortcutSearchButton");
             var input = Descendants(search).OfType<TextBox>().Single();
             Require(originalRows.Count == ShortcutCatalog.Actions.Count, "初始快捷键目录不完整");
-            Require(card.Rows.Count == originalRows.Count + 4, "可改动作之外应只有三条回退键说明行和恢复入口");
+            Require(allRows.Count == originalRows.Count + 8, "可改动作之外应只有四行步长、三条回退键说明行和恢复入口");
+            Require(shortcutCards.Count == 13, $"快捷键页应当分十三张卡，实际 {shortcutCards.Count} 张");
             Require(Fixed("退出全屏 / 退出播放")?.Value == "Esc", "Esc 回退键说明行缺失或键值不对");
             Require(Fixed("关闭跳过片头 / 片尾提示")?.Value == "Del", "Del 回退键说明行缺失或键值不对");
             Require(Fixed("确认跳过片头 / 片尾")?.Value == "回车", "回车回退键说明行缺失或键值不对");
+            // 四颗方向键的步长紧跟各自的快捷键行，且缩进一档（从属行）；数值仍是 PlaybackSettings 的那四个。
+            foreach (var (actionId, label, seconds) in new[]
+            {
+                ("seek-backward", "快退跨度（秒）", fixture.Settings.Playback.SeekBackwardSeconds),
+                ("seek-forward", "快进跨度（秒）", fixture.Settings.Playback.SeekForwardSeconds),
+                ("seek-backward-long", "大步快退跨度（秒）", fixture.Settings.Playback.SeekBackwardLongSeconds),
+                ("seek-forward-long", "大步快进跨度（秒）", fixture.Settings.Playback.SeekForwardLongSeconds)
+            })
+            {
+                var index = allRows.FindIndex(row => row is SettingShortcutRow shortcut && shortcut.Id == actionId);
+                Require(index >= 0, $"{label} 上面那颗快捷键行缺失");
+                Require(index + 1 < allRows.Count && allRows[index + 1] is SettingNumberRow span
+                    && span.Label == label && span.IsSubordinate && span.Value == seconds,
+                    $"{label} 没有紧跟在 {actionId} 下面，或不是从属行");
+            }
             Require(search.ActualWidth > 200 && clear.Visibility == Visibility.Collapsed, "搜索框过窄或空查询仍显示清空按钮");
             await SaveShortcutScreenAsync($"settings-shortcut-search-all-{width}-screen.png");
 
             await QueryAsync("字幕");
             Require(Shown().Any() && Shown().All(row => row.Label.Contains("字幕", StringComparison.Ordinal)), "操作名过滤不准确");
-            Require(ReferenceEquals(source, card.Rows) && Shown().All(row => ReferenceEquals(row, originalRows[row.Id])), "搜索重建了行或 ItemsSource");
+            Require(sources.All(source => ReferenceEquals(source.Rows, source.Section.Rows))
+                && Shown().All(row => ReferenceEquals(row, originalRows[row.Id])), "搜索重建了行或 ItemsSource");
             Require(clear.Visibility == Visibility.Visible && page.ViewModel.ShortcutSearchSummary.StartsWith("找到 ", StringComparison.Ordinal), "查询回执或清空入口缺失");
             await SaveShortcutScreenAsync($"settings-shortcut-search-subtitle-{width}-screen.png");
 
@@ -146,16 +166,16 @@ internal sealed partial class ShellNavigationProbe
             await QueryAsync("Alt + [");
             Require(Shown().Single().Id == "subtitle-scale-down", "方括号组合键搜索失败");
             await QueryAsync("Del");
-            Require(!Shown().Any() && Fixed("关闭跳过片头 / 片尾提示") is not null && card.Rows.Count == 2,
+            Require(!Shown().Any() && Fixed("关闭跳过片头 / 片尾提示") is not null && AllRows().Count == 2,
                 "Del 搜索应只命中关闭跳过提示的说明行与恢复入口");
             await QueryAsync("回车");
-            Require(!Shown().Any() && Fixed("确认跳过片头 / 片尾") is not null && card.Rows.Count == 2,
+            Require(!Shown().Any() && Fixed("确认跳过片头 / 片尾") is not null && AllRows().Count == 2,
                 "回车搜索应只命中确认跳过的说明行与恢复入口");
             await QueryAsync("未设置");
             Require(Shown().Single().Id == "video-pan-left", "未设置搜索未显示解绑动作");
             await QueryAsync("Esc");
             Require(!Shown().Any(), "未绑定的 Esc 不应匹配可改快捷键行");
-            Require(Fixed("退出全屏 / 退出播放") is not null && card.Rows.Count == 2,
+            Require(Fixed("退出全屏 / 退出播放") is not null && AllRows().Count == 2,
                 "Esc 搜索应只命中回退键说明行与恢复入口");
             originalRows["toggle-pause"].OnCommitted(capture, "Escape");
             await LayoutAsync(page);
@@ -164,8 +184,8 @@ internal sealed partial class ShellNavigationProbe
             originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
             await LayoutAsync(page);
             await QueryAsync("zzzz-not-a-shortcut");
-            Require(!Shown().Any() && card.Rows.Any(row => row.Label == "没有找到匹配的快捷键"), "空结果提示缺失");
-            Require(card.Rows.Any(row => row.Label == "恢复默认快捷键"), "搜索结果为空时丢了恢复默认入口");
+            Require(!Shown().Any() && AllRows().Any(row => row.Label == "没有找到匹配的快捷键"), "空结果提示缺失");
+            Require(AllRows().Any(row => row.Label == "恢复默认快捷键"), "搜索结果为空时丢了恢复默认入口");
             await SaveShortcutScreenAsync($"settings-shortcut-search-empty-{width}-screen.png");
             var emptyText = Descendants(page).OfType<TextBlock>().Single(text => text.Text == "没有找到匹配的快捷键");
             var shownEmptyPixels = EmptyPixels();
@@ -202,19 +222,19 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(search.Text == "弹幕" && Shown().Count() == 4, "切换分类后搜索状态没有保留");
 
-            var reset = card.Rows.OfType<SettingFactRow>().Single(row => row.Label == "恢复默认快捷键");
+            var reset = AllRows().OfType<SettingFactRow>().Single(row => row.Label == "恢复默认快捷键");
             reset.RunCommand.Execute(null);
             await LayoutAsync(page);
             Require(fixture.Settings.Shortcuts.Bindings.Count == 0, "搜索中恢复默认只清了可见动作");
             ((IInvokeProvider)new ButtonAutomationPeer(clear).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
             Require(search.Text.Length == 0 && Shown().Count() == ShortcutCatalog.Actions.Count, "清空搜索没有恢复完整列表");
-            Require(card.Rows.Count == ShortcutCatalog.Actions.Count + 4
+            Require(AllRows().Count == ShortcutCatalog.Actions.Count + 8
                 && Fixed("退出全屏 / 退出播放") is not null
                 && Fixed("关闭跳过片头 / 片尾提示") is not null
                 && Fixed("确认跳过片头 / 片尾") is not null,
                 "清空搜索后三条回退键说明行没有恢复，或混进了可改行计数");
-            Require(ReferenceEquals(source, card.Rows), "恢复默认替换了稳定集合");
+            Require(sources.All(source => ReferenceEquals(source.Rows, source.Section.Rows)), "恢复默认替换了稳定集合");
             // 三条回退键说明行在列表末尾，滚到底才看得到它们的实际换行与裁切；清空搜索后的
             // 新行表要等一拍布局，否则 ScrollableHeight 还是上一段短结果的高度。
             await LayoutAsync(page);
@@ -281,8 +301,9 @@ internal sealed partial class ShellNavigationProbe
                     $"HWND=0x{handle:X}; client={client.Width}x{client.Height}; root={content.ActualWidth}x{content.ActualHeight}; page={page.ActualWidth}x{page.ActualHeight}; " + string.Join("; ", readings));
                 await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, name));
             }
-            IEnumerable<SettingShortcutRow> Shown() => card.Rows.OfType<SettingShortcutRow>();
-            SettingFactRow? Fixed(string label) => card.Rows.OfType<SettingFactRow>()
+            IEnumerable<SettingShortcutRow> Shown() => AllRows().OfType<SettingShortcutRow>();
+            List<SettingRow> AllRows() => shortcutCards.SelectMany(section => section.Rows).ToList();
+            SettingFactRow? Fixed(string label) => AllRows().OfType<SettingFactRow>()
                 .FirstOrDefault(row => row.Label == label);
             async Task QueryAsync(string text)
             {

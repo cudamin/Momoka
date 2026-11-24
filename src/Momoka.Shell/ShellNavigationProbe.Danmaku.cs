@@ -212,8 +212,9 @@ internal sealed partial class ShellNavigationProbe
             var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
             await ScrollProbeAsync(scroll, 0);
             await LayoutAsync(page);
-            var shortcuts = page.ViewModel.Sections.Single(section => section.Category == "快捷键");
-            Require(shortcuts.Rows.OfType<SettingShortcutRow>().Count() == ShortcutCatalog.Actions.Count, "启用弹幕后快捷键目录不完整");
+            // 快捷键页 2026-11-24 按动作分区分成十三张卡；启用弹幕后按整页合计点行数，别按单张卡的。
+            var shortcuts = page.ViewModel.Sections.Where(section => section.Category == "快捷键").ToList();
+            Require(shortcuts.SelectMany(section => section.Rows).OfType<SettingShortcutRow>().Count() == ShortcutCatalog.Actions.Count, "启用弹幕后快捷键目录不完整");
             await SaveProbeScreenAsync($"settings-shortcuts-{width}-screen.png");
             var last = Descendants(page).OfType<ShortcutCaptureBox>().Last();
             last.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });

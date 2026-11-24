@@ -563,7 +563,9 @@ internal static class SettingsPageStateTests
             foreach (var (category, title) in new[]
             {
                 ("主页", "轮播图"), ("主页", "主页版面"),
-                ("播放行为", "播放行为"), ("播放行为", "跳转与步长"), ("播放行为", "音轨"),
+                // 2026-11-24 四颗方向键的步长从「跳转与步长」搬到快捷键页（SettingsSearchTests 另有分区与步长位置的断言），
+                // 播放行为只剩三张自家卡。
+                ("播放行为", "播放行为"), ("播放行为", "音轨"), ("播放行为", "资源筛选"), ("播放行为", "截图"),
                 ("音频输出", "输出设备"), ("音频输出", "响度"), ("音频输出", "直通"),
                 ("字幕", "字幕"), ("字幕", "字幕外观"), ("字幕", "编码与画面"),
                 ("关于", "关于"), ("关于", "启动"), ("关于", "更新"), ("关于", "网络"), ("关于", "文件与缓存"), ("关于", "备份与恢复")
@@ -572,6 +574,8 @@ internal static class SettingsPageStateTests
                 Assert.True(fixture.ViewModelSource.Contains($"new SettingSection(\"{category}\", \"{title}\"", StringComparison.Ordinal),
                     $"{category} 分类少了「{title}」那张卡");
             }
+            Assert.False(fixture.ViewModelSource.Contains("new SettingSection(\"播放行为\", \"跳转与步长\"", StringComparison.Ordinal),
+                "步长卡已经搬去快捷键页，播放行为不该再留一张");
             // 主卡用的是 TranslationCardTitle 常量（探针与刷新都按它找），另外两张写的是字面量。
             Assert.True(translation.Contains("new SettingSection(\"字幕\", TranslationCardTitle", StringComparison.Ordinal),
                 "实时字幕翻译少了主开关那张卡");
@@ -580,6 +584,7 @@ internal static class SettingsPageStateTests
                     $"实时字幕翻译少了「{title}」那张卡");
             Assert.True(fixture.ViewModelSource.Contains("AddCards(HomeSections());", StringComparison.Ordinal)
                 && fixture.ViewModelSource.Contains("AddCards(PlaybackSections());", StringComparison.Ordinal)
+                && fixture.ViewModelSource.Contains("AddCards(ShortcutSections());", StringComparison.Ordinal)
                 && fixture.ViewModelSource.Contains("AddCards(AudioSections());", StringComparison.Ordinal)
                 && fixture.ViewModelSource.Contains("AddCards(SubtitleSections());", StringComparison.Ordinal)
                 && fixture.ViewModelSource.Contains("AddCards(AboutSections());", StringComparison.Ordinal),

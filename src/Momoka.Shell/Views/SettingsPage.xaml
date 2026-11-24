@@ -545,7 +545,9 @@
 
             <local:SettingRowTemplates.Number>
                 <DataTemplate x:DataType="vm:SettingNumberRow">
-                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
+                    <!-- Margin 只对从属行生效（快捷键页四颗方向键的步长挂在各自的快捷键行下面，2026-11-24）：
+                         左侧缩进一档，读起来是「上面那颗键的步长」，不是又一条平级设置。 -->
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Margin="{x:Bind RowMargin}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
