@@ -25,7 +25,6 @@ internal static class ServiceTests
     {
         RegisterServerLookup();
         RegisterAccountLookup();
-        RegisterPageSize();
         RegisterSave();
         RegisterShaderStaging();
     }
@@ -178,35 +177,6 @@ internal static class ServiceTests
         });
     }
 
-    private static void RegisterPageSize()
-    {
-        Test("每页条数：夹在 20 到 500 之间", () =>
-        {
-            var (service, settings, root) = NewService();
-            try
-            {
-                settings.Ui.PageSize = 0;
-                Assert.Equal(20, service.PageSize, "一页 0 条会翻不动");
-
-                settings.Ui.PageSize = -100;
-                Assert.Equal(20, service.PageSize);
-
-                settings.Ui.PageSize = 5000;
-                Assert.Equal(500, service.PageSize, "一次要太多会把服务器和内存一起拖住");
-
-                settings.Ui.PageSize = 120;
-                Assert.Equal(120, service.PageSize, "范围内的值原样放过");
-
-                settings.Ui.PageSize = 500;
-                Assert.Equal(500, service.PageSize, "上限本身是允许的，设置页就让选到这里");
-            }
-            finally
-            {
-                Cleanup(root);
-            }
-        });
-    }
-
     private static void RegisterSave()
     {
         Test("保存：失败保留内存值和未保存状态，重试成功清除标记", () =>
@@ -238,13 +208,11 @@ internal static class ServiceTests
             try
             {
                 settings.Servers[0].Name = "果服";
-                settings.Ui.PageSize = 80;
                 service.Save();
 
                 var reread = new SettingsStore(new AppPaths(root), Protector).Load();
 
                 Assert.Equal("果服", reread.Servers[0].Name, "Save 要真的落盘，不然改完设置一重启就白改了");
-                Assert.Equal(80, reread.Ui.PageSize);
             }
             finally
             {

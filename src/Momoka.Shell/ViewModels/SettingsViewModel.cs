@@ -2359,12 +2359,6 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 那一行原来还负责「改完当场生效」这条线（ShellPrefs），而那条线还在 —— 图片缓存上限和主页版面
             // 照旧走它。
 
-            // Both ranges match what SettingsMigration.Normalize clamps these to. They have to: a box narrower
-            // than its setting shows a clamped number the file does not contain and writes it back on the next
-            // touch, and a box wider than its setting lets a value be typed that the save then silently moves.
-            Number("每页条目数", 20, 500, () => ui.PageSize, value => ui.PageSize = value,
-                "媒体库一页列多少个，翻页按这个数走"),
-
             // 「海报宽度（像素）」原来在这一行下面，2026-09-05 按用户的话整行删掉了（「删掉设置中的海报宽度」）
             // —— 卡片回到 CardSize 固定的默认尺寸，AppSettings.UiSettings 里那句注释记着这件事。
 
@@ -2394,7 +2388,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         };
 
         return new SettingSection("界面", "界面",
-            "选择模式、透明效果、主题色、UI 动画、隐藏功能下方说明和媒体库分页。",
+            "选择模式、透明效果、主题色、UI 动画和隐藏功能下方说明。",
             rows);
     }
 

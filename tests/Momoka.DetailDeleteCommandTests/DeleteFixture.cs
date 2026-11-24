@@ -180,7 +180,6 @@ internal sealed class DeleteFixture : IDisposable
     private sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int PageSize => 20;
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges => false;
         public int Writes { get; private set; }

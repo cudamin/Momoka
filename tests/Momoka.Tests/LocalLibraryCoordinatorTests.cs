@@ -158,7 +158,6 @@ internal static class LocalLibraryCoordinatorTests
         public AppSettings Settings { get; } = new();
         public bool Succeed { get; set; } = true;
         public bool Throws { get; set; }
-        public int PageSize => 50;
         public bool TrySave() => Throws ? throw new IOException("匿名保存失败") : Succeed;
         public void Save() { }
         public bool HasUnsavedChanges => !Succeed;

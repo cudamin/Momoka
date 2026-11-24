@@ -1535,8 +1535,6 @@ internal static class LibraryResumePagingTests
     internal sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int TestPageSize { get; set; } = 20;
-        public int PageSize => TestPageSize;
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges => false;
         public bool TrySave() => throw new AssertionException("禁止保存配置");

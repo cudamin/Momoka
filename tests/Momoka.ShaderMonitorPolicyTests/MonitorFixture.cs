@@ -151,7 +151,6 @@ internal sealed class MonitorFixture : IDisposable
 internal sealed class MonitorSettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
-    public int PageSize => 50;
     public event EventHandler? SaveStateChanged { add { } remove { } }
     public bool HasUnsavedChanges => false;
     internal int Writes { get; private set; }

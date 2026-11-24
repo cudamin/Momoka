@@ -115,7 +115,6 @@ internal sealed class SettingsVmProxy : IDisposable, INotifyPropertyChanged
 internal sealed class PermissionMemorySettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
-    public int PageSize => 60;
     public bool HasUnsavedChanges => false;
     public event EventHandler? SaveStateChanged { add { } remove { } }
     internal int Writes { get; private set; }

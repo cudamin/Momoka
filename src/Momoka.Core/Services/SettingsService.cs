@@ -9,7 +9,7 @@ namespace Momoka.Services;
 /// that does not exist yet, and the write-back.
 /// <para>
 /// An interface because this is what a page actually depends on. Handing every page the whole composition
-/// root gave a page that only wants 每页条数 the ability to reach the session, the image cache and the
+/// root gave a page that only wants the current profile the ability to reach the session, the image cache and the
 /// player as well — which is not a dependency anyone declared, and not one anything can substitute.
 /// </para>
 /// </summary>
@@ -20,9 +20,6 @@ public interface ISettingsService : ISettingsPersistence
     /// One instance for the process: two would mean an edit on one page invisible to the next.
     /// </summary>
     AppSettings Settings { get; }
-
-    /// <summary>How many items one browse request asks for.</summary>
-    int PageSize { get; }
 
     ServerProfile ResolveServer(string url);
 
@@ -77,13 +74,6 @@ public sealed class SettingsService(SettingsStore store, AppSettings settings) :
 
     /// <inheritdoc />
     public AppSettings Settings { get; } = settings;
-
-    /// <summary>
-    /// How many items one browse request asks for. The range is the one
-    /// <see cref="SettingsMigration.Normalize"/> clamps the setting to; a narrower one here would quietly
-    /// ignore the top of what the settings page lets a user choose.
-    /// </summary>
-    public int PageSize => Math.Clamp(Settings.Ui.PageSize, 20, 500);
 
     /// <summary>
     /// The saved profile for an address the user typed, creating one if this server is new. Matching is

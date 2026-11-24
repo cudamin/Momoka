@@ -1518,8 +1518,6 @@ public sealed class UiSettings
 {
     public Dictionary<string, List<RecentSearchEntry>> RecentSearches { get; set; } = new(StringComparer.Ordinal);
 
-    public int PageSize { get; set; } = 100;
-
     /// <summary>
     /// 选中那套主题的 id，见 <see cref="Theming.UiThemes"/>。
     /// <para>

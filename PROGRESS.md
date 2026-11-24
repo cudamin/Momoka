@@ -1,4 +1,16 @@
-## 2026-11-24 进度上报间隔改为按后端固定：Emby/Jellyfin 10 秒、飞牛 15 秒、Plex 10 秒
+## 2026-11-24 删除「每页条目数」设置，库页改为 Emby 式虚拟滚动块内部取数（30 条/块）
+
+用户先贴设置页「每页条目数／媒体库一页列多少个，翻页按这个数走」截图问「网页端有这个选项吗？只读审查」，随后令「1.删掉每页条目数选项 2.改成跟Emby一样的库页是按虚拟滚动块内部取数；新增工作树分支，本次任务在分支工作树中工作」。只读审查结论：Jellyfin 网页端有对应项（`libraryPageSize`，0=关闭分页，存账号 `displayPrefs`）；Emby 4.10.1.0 显示设置没有这一项，库页按 `getVirtualChunkSize` 取块（横向版面宽窗 16／窄窗 12，其余 30），请求带 `StartIndex`、`Limit=块大小`、`EnableTotalRecordCount=false`；飞牛 0.9.8 只有通用分页组件文案与内部常量 22／200；Plex 网页端闭源，未核对。
+
+**改法。** Core 删除 `UiSettings.PageSize`、`ISettingsService.PageSize` 与迁移里的 20–500 夹取，新增常量 `LibraryBrowse.ChunkSize = 30`（注释援引 Emby `getVirtualChunkSize`，说明 Momoka 库页都在纵向 30 档）。设置页删掉「每页条目数」一行并把界面卡说明改成不含媒体库分页，英文词典同步删两条键。库页所有取数改读常量：普通库页／续播／Jellyfin「接下来看」、搜索、`BuildQuery`、删除后回填、窗口刷新／向前补／定位、加载未铺满的续块；`BrowseSnapshotKeys.Library` 与导航偏好键不再带每页条数；自检读数改成「库页每次取 30 条（内部块）」，三处离线探针删掉写死 `Ui.PageSize` 的赋值。旧 settings.json 仍带这个键时按未知字段忽略，新增用例钉住「旧文档读得出来、存回去不再写这个键」。
+
+**分支与提交。** 分支 `feat-library-chunk`，工作树 `C:/Users/89400/.worktrees/Momoka/library-chunk`，基点 master `5efa13f`；产品提交 `42d3063`（42 文件 +118/−196）；未合并、未推送。
+
+**验证。** Core、Shell 与 `Momoka.Tests` Release 编译均 0 警告 0 错误；主测试 **5367 项、5363 通过、4 失败、0 跳过**，4 红均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关。专项 13 套全绿：设置页状态 39、设置行动效 46、设置搜索导航 19、设置生命周期 63、延迟保存 24、设置持久化 42、本地库页 17、音乐 VM 45、Plex 关联 85、当前权限快照 54、库页抬头 21、搜索生命周期 56、页面契约 411。全方案闸门 1 `tools/quality.ps1` **7/9**（`artifacts/quality/20261124-231815`）：空白、脚本、文档链接、文档命令、报告凭据、重复（68 段／0.47%）、diff 检查通过；编译 12 条错误全部为主树既有快捷键批次的测试边界未同步（`PlayerInputRecoveryTests` 生成桩缺 `NoteSeekKeyPress`／`CancelSeekHold`、`SubtitleDropOwnershipTests` 边界缺 `CancelSeekHold`、`NaturalContinuationCallerTests` 的 `R046` 源哈希仍指旧文件），架构闸门按脚本判定未执行；与本批无关，按规则如实留红，未改边界或哈希基线洗绿。未跑设置页实窗探针与真实库滚动目视。
+
+**体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-library-chunk` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-library-chunk.lnk` 的目标与工作目录回读为本树 `artifacts/publish/win-x64`。`Momoka.exe` 668,160 字节 SHA256 `564CD82F…A8E368`，`Momoka.dll` 10,477,056 字节 SHA256 `BDD4B773…F2F71BF`，ProductVersion `0.3.2+4eb4c40`。未启动窗口，未触碰其他工作树的实例；未推送远端。
+
+
 
 用户令「删除 进度上报间隔 选项，直接使用各家对应的间隔，plex先设为10」。只读核对已确认 Emby Web 4.10.1.0 与 Jellyfin Web 10.10.7 的网页播放器都是 10 秒一拍（Jellyfin 的 apiclient 还给 timeupdate 设了 10 秒下限），飞牛影视官方前端 0.9.8 的 `PLAYER_RECORD_INTERVAL` 是 15 秒；Plex 网页端闭源，按用户令先取 10 秒，不是对 Plex 网页端的源码结论。
 

@@ -241,7 +241,6 @@ internal static partial class PlayerVolumeGestureTests
     private sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int PageSize => 50;
         public bool SaveSucceeds { get; set; } = true;
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges { get; private set; }

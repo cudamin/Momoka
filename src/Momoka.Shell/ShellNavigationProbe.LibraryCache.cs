@@ -15,7 +15,6 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
-        fixture.Settings.Ui.PageSize = 100;
         var held = Pending<bool>();
         var holdNewLibrary = false;
         var reads = 0;

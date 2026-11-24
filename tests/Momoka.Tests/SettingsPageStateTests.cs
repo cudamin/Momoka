@@ -781,7 +781,6 @@ internal static class SettingsPageStateTests
     internal sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int PageSize => 50;
         public bool NextSaveSucceeds { get; set; } = true;
         public bool Unsaved { get; private set; }
         public int TrySaveCalls { get; private set; }

@@ -87,7 +87,7 @@ public sealed partial class LibraryViewModel
         if (channel is null) throw new OperationCanceledException("搜索来源已改变");
         var term = _request!.SearchTerm;
         var category = _request.SearchCategory;
-        var limit = _settings!.PageSize;
+        var limit = LibraryBrowse.ChunkSize;
         return channel.Source.ExecuteAsync((client, ct) => channel.People
             ? client.QuerySearchPeopleAsync(term, start, limit, ct)
             : client.SearchItemsAsync(term, category, start, limit, ct), token);

@@ -363,14 +363,14 @@ internal static class Program
             fixture.Value = 75;
             var originalServers = fixture.Document.Servers.Count;
             var snapshot = fixture.Store.CapturePendingSave(fixture.Document)!;
-            fixture.Document.Ui.PageSize = 280;
+            fixture.Document.Ui.CarouselCount = 8;
             fixture.Document.Servers.Add(new() { Id = "anonymous", Name = "仅内存服务器", Url = "http://offline.invalid" });
             Assert.True(await Task.Run(() => fixture.Store.TrySaveSnapshot(snapshot)));
-            Assert.Equal(280, fixture.Document.Ui.PageSize);
+            Assert.Equal(8, fixture.Document.Ui.CarouselCount);
             Assert.Equal(originalServers + 1, fixture.Document.Servers.Count);
             Assert.Equal(originalServers, fixture.Read().Servers.Count, "已捕获文档不再枚举活列表");
             Assert.True(fixture.Service.TrySave());
-            Assert.Equal(280, fixture.Read().Ui.PageSize);
+            Assert.Equal(8, fixture.Read().Ui.CarouselCount);
             Assert.Equal(originalServers + 1, fixture.Read().Servers.Count);
         });
         Case("非滑块同步编辑胜过旧延迟快照，不丢侧栏与滑块最终值", async fixture =>

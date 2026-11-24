@@ -88,7 +88,6 @@ internal sealed partial class ShellNavigationProbe
                 return kind == MediaServerKind.Jellyfin ? JellyfinResponse(message, poster) : FakeTransport.Standard(message);
             };
             await fixture.SelectAsync(host: "deep.invalid", kind: kind);
-            fixture.Settings.Ui.PageSize = 100;
             var frame = new Frame();
             _root.Children.Add(frame);
             try
