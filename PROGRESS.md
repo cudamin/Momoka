@@ -1,3 +1,11 @@
+## 2026-11-24 进度上报间隔改为按后端固定：Emby/Jellyfin 10 秒、飞牛 15 秒、Plex 10 秒
+
+用户令「删除 进度上报间隔 选项，直接使用各家对应的间隔，plex先设为10」。只读核对已确认 Emby Web 4.10.1.0 与 Jellyfin Web 10.10.7 的网页播放器都是 10 秒一拍（Jellyfin 的 apiclient 还给 timeupdate 设了 10 秒下限），飞牛影视官方前端 0.9.8 的 `PLAYER_RECORD_INTERVAL` 是 15 秒；Plex 网页端闭源，按用户令先取 10 秒，不是对 Plex 网页端的源码结论。
+
+**改法。** Core 新增纯函数 `PlaybackReportCadence.For(MediaServerKind)`：Emby、Jellyfin、Plex 与飞牛音乐 10 秒，飞牛影视 15 秒；`PlaybackService.MonitorAsync` 用它取代 `settings.Playback.ProgressReportIntervalSeconds`。删掉这一格设置属性、`SettingsMigration` 的 1–60 夹取、设置页「进度上报间隔（秒）」一行与英文词典键；旧 settings.json 里的这个键按未知字段忽略。测试夹具改走 `internal PlaybackService.ReportIntervalOverride`（Core 给 `Momoka.LibMpvEndFileTests`、`Momoka.PlaybackSourceRevocationTests` 补 `InternalsVisibleTo`），产品本身没有覆盖入口。新增「按后端取固定间隔」纯函数断言；到阈值那批仍把测试拍子压到 1 秒。
+
+**验证。** Core、Shell 与 `Momoka.Tests` Release 编译均 0 警告 0 错误；主测试 **5367 项、5363 通过、4 失败、0 跳过**，4 红均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关；`Momoka.LibMpvEndFileTests` **50/50**、`Momoka.PlaybackSourceRevocationTests` **31/31**。改动文件的 `dotnet format whitespace --verify-no-changes` 退出 0；Shell 全项目 whitespace 仍核到既有 `SettingsViewModel.Shortcuts.cs:263`（提交 `8b7cce89`，属快捷键批次，未动）。未做设置页实窗与四后端真实播放的服务器时间戳核对。
+
 ## 2026-11-24 快捷键页新增快退／快进「跨度（倍）」：长按箭头转倍速，两条管线共用
 
 用户拿「设置 → 快捷键」截图令「在快退和快进下方新增，快进跨度（倍）长按箭头以这个倍速播放」，看到成品后又令「快退也要」。四问确认后定为：单击 ←／→ 仍跳「跨度（秒）」；按住约半秒后 → 改按快进倍率播放、松手回到按下前速度；← 不改变播放速度，按快退倍率连续快退；两个倍率各自 2～10、默认 2，分别保存；集成与独占两条管线都生效。
