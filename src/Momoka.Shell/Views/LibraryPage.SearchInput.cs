@@ -1,145 +1,43 @@
-using System.Globalization;
-using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Windows.System;
-using Windows.UI.Core;
 
 namespace Momoka.Shell.Views;
 
 public sealed partial class LibraryPage
 {
-    private TextBox? _searchTextBox;
-    private bool _searchComposing;
-    private bool _searchBackspaceHandled;
-    private bool _searchEnterConsumed;
+    private SearchInputGuard? _searchInputGuard;
 
     private void OnSearchInputGotFocus(object sender, RoutedEventArgs args)
     {
+        if (_released) return;
         // 事件接到实际编辑框。模板重建后，下一次获得焦点会换到新的编辑框。
-        if (_released || args.OriginalSource is not TextBox { Name: "TextBox" } field
-            || ReferenceEquals(field, _searchTextBox)) return;
-        DetachSearchTextBox();
-        _searchTextBox = field;
-        field.TextCompositionStarted += OnSearchCompositionStarted;
-        field.TextCompositionEnded += OnSearchCompositionEnded;
-        field.LostFocus += OnSearchEditLostFocus;
-        field.PreviewKeyDown += OnSearchEditKeyDown;
-        field.KeyUp += OnSearchEditKeyUp;
+        // 退格与回车的输入法补偿和音乐库页共用 SearchInputGuard；这一页另接组字防抖与查询提交。
+        (_searchInputGuard ??= new SearchInputGuard(CancelTyping, ApplySearchEdit,
+            text => _ = SubmitSearchAsync(text))).Watch(args.OriginalSource);
     }
 
     private void DetachSearchTextBox()
     {
-        if (_searchTextBox is not { } field) return;
-        field.TextCompositionStarted -= OnSearchCompositionStarted;
-        field.TextCompositionEnded -= OnSearchCompositionEnded;
-        field.LostFocus -= OnSearchEditLostFocus;
-        field.PreviewKeyDown -= OnSearchEditKeyDown;
-        field.KeyUp -= OnSearchEditKeyUp;
-        _searchTextBox = null;
-        ResetSearchEditState();
-    }
-
-    private void OnSearchEditLostFocus(object sender, RoutedEventArgs args) => ResetSearchEditState();
-
-    private void ResetSearchEditState()
-    {
-        _searchComposing = false;
-        _searchBackspaceHandled = false;
-        _searchEnterConsumed = false;
-    }
-
-    private void OnSearchEditKeyDown(object sender, KeyRoutedEventArgs args)
-    {
-        if (args.Key == VirtualKey.Back) _searchBackspaceHandled = true;
-        if (args.Key == VirtualKey.Enter && (_searchComposing || IsSearchShortcutModifierDown()))
-            _searchEnterConsumed = true;
-    }
-
-    private void OnSearchEditKeyUp(object sender, KeyRoutedEventArgs args)
-    {
-        if (args.Key == VirtualKey.Enter)
-        {
-            OnSearchEnterReleased(sender, args);
-            return;
-        }
-        if (args.Key != VirtualKey.Back) return;
-        var handledByEditor = _searchBackspaceHandled;
-        _searchBackspaceHandled = false;
-
-        // 微软拼音有时只让退格的抬起到达 WinUI。按下已到达或仍在组字时继续由系统编辑。
-        if (handledByEditor || _searchComposing || sender is not TextBox { IsReadOnly: false } field
-            || IsSearchShortcutModifierDown()) return;
-
-        var start = field.SelectionStart;
-        var length = field.SelectionLength;
-        if (length == 0)
-        {
-            if (start == 0) return;
-            // 光标左边的一个可见字符可能由代理对或多个组合字符组成。
-            var characters = StringInfo.ParseCombiningCharacters(field.Text);
-            var index = Array.BinarySearch(characters, start);
-            var previous = characters[(index < 0 ? ~index : index) - 1];
-            field.Select(previous, start - previous);
-        }
-        field.SelectedText = string.Empty;
-        args.Handled = true;
-    }
-
-    private void OnSearchEnterReleased(object sender, KeyRoutedEventArgs args)
-    {
-        var consumed = _searchEnterConsumed;
-        _searchEnterConsumed = false;
-        // 微软拼音可能漏送普通回车的按下。只有这次回车尚未被组字或查询消费时才补搜。
-        if (consumed || _searchComposing || !ReferenceEquals(args.OriginalSource, sender)
-            || sender is not TextBox field || IsSearchShortcutModifierDown()) return;
-        args.Handled = true;
-        _ = SubmitSearchAsync(field.Text);
-    }
-
-    private static bool IsSearchShortcutModifierDown() =>
-        IsSearchKeyDown(VirtualKey.Control) || IsSearchKeyDown(VirtualKey.Menu)
-        || IsSearchKeyDown(VirtualKey.LeftWindows) || IsSearchKeyDown(VirtualKey.RightWindows);
-
-    private static bool IsSearchKeyDown(VirtualKey key) =>
-        (InputKeyboardSource.GetKeyStateForCurrentThread(key) & CoreVirtualKeyStates.Down) != 0;
-
-    private void OnSearchCompositionStarted(TextBox sender, TextCompositionStartedEventArgs args)
-    {
-        _searchComposing = true;
-        CancelTyping();
-    }
-
-    private void OnSearchCompositionEnded(TextBox sender, TextCompositionEndedEventArgs args)
-    {
-        // 回车确认或退格清空组字时，组字结束可以先于按键抬起。
-        if (IsSearchKeyDown(VirtualKey.Enter)) _searchEnterConsumed = true;
-        if (IsSearchKeyDown(VirtualKey.Back)) _searchBackspaceHandled = true;
-        _searchComposing = false;
-        // 文本可能已在组字期间变化，确认后用最终文字恢复媒体库原有的输入防抖。
-        ApplySearchEdit(sender.Text);
+        _searchInputGuard?.Release();
+        _searchInputGuard = null;
     }
 
     private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
-        if (IsSearchKeyDown(VirtualKey.Enter))
-        {
-            if (_searchEnterConsumed) return;
-            _searchEnterConsumed = true;
-        }
-        if (!_searchComposing) _ = SubmitSearchAsync(args.QueryText ?? sender.Text ?? string.Empty);
+        // 原生查询与抬起补搜共用一次回车；这里返回 false 表示已经由另一边处理或仍在组字。
+        if (_searchInputGuard?.TakeQuerySubmitted() == false) return;
+        _ = SubmitSearchAsync(args.QueryText ?? sender.Text ?? string.Empty);
     }
 
     private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
-        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && args.CheckCurrent())
-            ApplySearchEdit(sender.Text);
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && args.CheckCurrent()
+            && _searchInputGuard?.IsComposing != true) ApplySearchEdit(sender.Text);
     }
 
     private void ApplySearchEdit(string? text)
     {
-        if (!_searchComposing && !string.Equals(text, ViewModel.SearchText, StringComparison.Ordinal))
+        if (!string.Equals(text, ViewModel.SearchText, StringComparison.Ordinal))
             _ = SearchTypingAsync(text ?? string.Empty);
     }
 }

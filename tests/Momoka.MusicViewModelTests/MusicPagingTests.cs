@@ -2,10 +2,13 @@ using System.Collections.Specialized;
 using System.Globalization;
 using System.Net;
 using System.Xml.Linq;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
 using Momoka.Music;
 using Momoka.Shell.Views;
+using Windows.System;
 
 namespace Momoka.MusicViewModelTests;
 
@@ -18,6 +21,8 @@ internal static class MusicPagingTests
         yield return ("墙分页按钮随悬浮播放栏避让并能恢复", ClearanceAsync);
         yield return ("音乐长标题在剩余宽度裁切，读数与刷新独立保留", HeaderAsync);
         yield return ("Ctrl+F聚焦已附加且可用的音乐搜索，离页和隐藏时放行", FindAsync);
+        yield return ("音乐搜索框复用共用输入补偿，漏送退格按下删除单字或选区", MusicSearchBackspaceAsync);
+        yield return ("音乐搜索框原生退格、组字和修饰键不重复补删，离页解除", MusicSearchBackspaceGuardsAsync);
         foreach (var section in new[] { MusicSection.Albums, MusicSection.Artists, MusicSection.Playlists })
             foreach (var total in new[] { 81, 100, 160 })
                 yield return ($"{section} {total} 项能经正式页面入口取得第 81 项与末页", () => WallPagesAsync(section, total));
@@ -72,6 +77,47 @@ internal static class MusicPagingTests
         page.MusicSearch.AcceptFocus = true;
         page.ReleaseSearch();
         Require(!page.InvokeFind() && page.MusicSearch.FocusCalls == 2, "离页仍尝试聚焦");
+    }
+
+    private static Task MusicSearchBackspaceAsync()
+    {
+        var page = new MusicLibraryPage(new Momoka.Shell.ViewModels.MusicLibraryViewModel());
+        var field = new TextBox { Text = "甲👨‍👩‍👧乙" };
+        page.FocusSearch(field);
+        field.Select(field.Text.Length - 1, 0);
+        Require(field.Release(VirtualKey.Back), "漏送退格的抬起没有补删或标记处理");
+        Require(field.Text == "甲乙" && field.SelectionStart == 1, "补删没有按可见字符删除光标左边一字");
+        field.Select(0, 0);
+        Require(!field.Release(VirtualKey.Back) && field.Text == "甲乙", "开头退格越界删除或错误标记");
+        field.Select(0, field.Text.Length);
+        Require(field.Release(VirtualKey.Back) && field.Text.Length == 0, "选区没有被退格清空");
+        return Task.CompletedTask;
+    }
+
+    private static Task MusicSearchBackspaceGuardsAsync()
+    {
+        var page = new MusicLibraryPage(new Momoka.Shell.ViewModels.MusicLibraryViewModel());
+        var field = new TextBox { Text = "甲乙" };
+        page.FocusSearch(field);
+        field.Select(field.Text.Length, 0);
+        field.Press(VirtualKey.Back);
+        Require(!field.Release(VirtualKey.Back) && field.Text == "甲乙", "原生退格被重复补删");
+
+        field.BeginComposition();
+        Require(!field.Release(VirtualKey.Back) && field.Text == "甲乙", "组字期间退格被页面抢删");
+        InputKeyboardSource.KeysDown.Add(VirtualKey.Back);
+        try { field.EndComposition(); }
+        finally { InputKeyboardSource.KeysDown.Remove(VirtualKey.Back); }
+        Require(!field.Release(VirtualKey.Back) && field.Text == "甲乙", "组字末尾的退格被重复补删");
+
+        InputKeyboardSource.KeysDown.Add(VirtualKey.Control);
+        try { Require(!field.Release(VirtualKey.Back), "Ctrl+退格被页面抢处理"); }
+        finally { InputKeyboardSource.KeysDown.Remove(VirtualKey.Control); }
+        Require(field.Release(VirtualKey.Back) && field.Text == "甲", "后续普通退格不能恢复补删");
+
+        page.ReleaseSearchInput();
+        Require(!field.Release(VirtualKey.Back) && field.Text == "甲", "离页后仍补删");
+        return Task.CompletedTask;
     }
 
     private sealed class EmptySearchServices : IServiceProvider

@@ -2,7 +2,10 @@ using Momoka.Shell.ViewModels;
 
 namespace Microsoft.UI.Xaml
 {
-    public sealed class RoutedEventArgs : EventArgs;
+    public sealed class RoutedEventArgs : EventArgs
+    {
+        public object? OriginalSource { get; init; }
+    }
     public readonly record struct Thickness(double Left, double Top, double Right, double Bottom);
 }
 
@@ -39,6 +42,11 @@ namespace Momoka.Shell.Views
         internal void InvokeMore() => OnMore(this, new Microsoft.UI.Xaml.RoutedEventArgs());
         internal void AttachSearch(LibraryRequest request) { _request = request; _released = false; }
         internal void ReleaseSearch() => _released = true;
+        internal void ReleaseSearchInput() => DetachSearchInput();
+
+        // 输入法补偿的事件源接真实编辑框边界；页面不另做输入防抖，文字由绑定回 VM。
+        internal void FocusSearch(Microsoft.UI.Xaml.Controls.TextBox field) =>
+            OnMusicSearchGotFocus(this, new Microsoft.UI.Xaml.RoutedEventArgs { OriginalSource = field });
         internal bool InvokeFind()
         {
             var args = new Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs();

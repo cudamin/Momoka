@@ -20,6 +20,7 @@
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs" Link="Production\MoviePilotSearchPanel.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\FnNasMatchDialog.xaml.cs" Link="Production\FnNasMatchDialog.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\LibraryPage.SearchInput.cs" Link="Production\LibraryPage.SearchInput.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\SearchInputGuard.cs" Link="Production\SearchInputGuard.cs" />
     <EmbeddedResource Include="README.md" LogicalName="Project.README.md" />
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\FnNasMatchDialog.xaml" LogicalName="Production.FnNasMatchDialog.xaml" />
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\LibraryPage.xaml.cs" LogicalName="Production.LibraryPage.xaml.cs" />

@@ -295,6 +295,7 @@
                 PlaceholderText="搜索歌曲、专辑、艺术家或歌单"
                 KeyboardAcceleratorPlacementMode="Hidden"
                 QueryIcon="Find"
+                GotFocus="OnMusicSearchGotFocus"
                 QuerySubmitted="OnSearch"
                 Text="{x:Bind ViewModel.Search, Mode=TwoWay}"
                 Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
