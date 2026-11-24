@@ -8,6 +8,8 @@
 
 **验证。** Core、Shell 与 `Momoka.Tests` Release 编译均 0 警告 0 错误；主测试 **5367 项、5363 通过、4 失败、0 跳过**，4 红均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关。专项 13 套全绿：设置页状态 39、设置行动效 46、设置搜索导航 19、设置生命周期 63、延迟保存 24、设置持久化 42、本地库页 17、音乐 VM 45、Plex 关联 85、当前权限快照 54、库页抬头 21、搜索生命周期 56、页面契约 411。全方案闸门 1 `tools/quality.ps1` **7/9**（`artifacts/quality/20261124-231815`）：空白、脚本、文档链接、文档命令、报告凭据、重复（68 段／0.47%）、diff 检查通过；编译 12 条错误全部为主树既有快捷键批次的测试边界未同步（`PlayerInputRecoveryTests` 生成桩缺 `NoteSeekKeyPress`／`CancelSeekHold`、`SubtitleDropOwnershipTests` 边界缺 `CancelSeekHold`、`NaturalContinuationCallerTests` 的 `R046` 源哈希仍指旧文件），架构闸门按脚本判定未执行；与本批无关，按规则如实留红，未改边界或哈希基线洗绿。未跑设置页实窗探针与真实库滚动目视。
 
+**体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-library-chunk` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-library-chunk.lnk` 的目标与工作目录回读为本树 `artifacts/publish/win-x64`。`Momoka.exe` 668,160 字节 SHA256 `564CD82F…A8E368`，`Momoka.dll` 10,477,056 字节 SHA256 `BDD4B773…F2F71BF`，ProductVersion `0.3.2+4eb4c40`。未启动窗口，未触碰其他工作树的实例；未推送远端。
+
 
 
 用户令「删除 进度上报间隔 选项，直接使用各家对应的间隔，plex先设为10」。只读核对已确认 Emby Web 4.10.1.0 与 Jellyfin Web 10.10.7 的网页播放器都是 10 秒一拍（Jellyfin 的 apiclient 还给 timeupdate 设了 10 秒下限），飞牛影视官方前端 0.9.8 的 `PLAYER_RECORD_INTERVAL` 是 15 秒；Plex 网页端闭源，按用户令先取 10 秒，不是对 Plex 网页端的源码结论。
