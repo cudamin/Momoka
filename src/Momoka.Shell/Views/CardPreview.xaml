@@ -73,17 +73,9 @@
                         Minimum="0" Maximum="100" IsIndeterminate="False" Foreground="{ThemeResource EgAccentBrush}" />
                 </StackPanel>
                 <!-- 订阅封面也用同一块面板（2026-11-24 用户令「给主页订阅列表也加悬浮」）。订阅不是可播放条目，
-                     这里没有播放键和续播条，换成订阅自己的四行资料；空值整行收起。 -->
+                     这里没有播放键和续播条，换成订阅自己的资料行；空值整行收起。
+                     同日后续用户令「去掉 订阅状态 订阅中 那一行」：状态行整行删除，不再按值显隐。 -->
                 <StackPanel x:Name="SubscriptionBlock" Grid.Row="2" Margin="0,14,0,0" Spacing="6" Visibility="Collapsed">
-                    <Grid x:Name="SubscriptionStateRow" ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Uid="CardPreview_SubscriptionState" Style="{StaticResource EgCaptionStyle}" />
-                        <TextBlock x:Name="SubscriptionStateText" Grid.Column="1" HorizontalAlignment="Right"
-                            Style="{StaticResource EgDataStrongStyle}" TextTrimming="CharacterEllipsis" />
-                    </Grid>
                     <Grid x:Name="SubscriptionProgressRow" ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -121,6 +113,16 @@
                     <TextBlock x:Name="PlayText" />
                 </StackPanel>
             </Button>
+            <!-- 订阅预览的右上角操作（2026-11-24 用户令「右上角添加一个编辑订阅按钮」）：订阅没有播放键，
+                 这一格交给「编辑订阅」，点开这条订阅的编辑窗口。几何与播放键同一档，标题据此让出宽度。
+                 外面这层只负责与面板同样的 19 内边距，空处不吃指针，正文照旧点得到。 -->
+            <Grid x:Name="EditSubscriptionSlot" Padding="19" HorizontalAlignment="Right" VerticalAlignment="Top"
+                Visibility="Collapsed">
+                <Button x:Uid="CardPreview_EditSubscription" x:Name="EditSubscriptionButton"
+                    AutomationProperties.AutomationId="CardPreviewEditSubscription"
+                    Click="OnEditSubscriptionClicked" CornerRadius="10" Padding="14,8" Margin="0"
+                    Style="{StaticResource EgSecondaryButtonStyle}" Content="编辑订阅" />
+            </Grid>
             <!-- 同一个媒体表面随封面撑开；前层渐显新图，背后旧图保持不透明，不露出底色。 -->
             <Canvas IsHitTestVisible="False">
                 <Border x:Name="TransitionCover" CornerRadius="{StaticResource EgPosterCornerRadius}"

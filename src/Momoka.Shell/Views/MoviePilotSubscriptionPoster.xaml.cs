@@ -77,6 +77,9 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
 
     /// <summary>点预览面板正文：进这条订阅的详情页（不是封面本身的编辑入口）。</summary>
     public event EventHandler? DetailsRequested;
+
+    /// <summary>点预览面板右上角「编辑订阅」：先收起面板，再交给宿主打开编辑窗口。</summary>
+    public event EventHandler? EditRequested;
     internal FrameworkElement MenuAnchor => SubscriptionMore.Visibility == Visibility.Visible ? SubscriptionMore : SubscriptionCover;
     internal double Zoom => PosterMotion.ScaleX;
     internal int PointerEntries { get; private set; }
@@ -291,6 +294,11 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
             {
                 ClosePreview(immediately: true);
                 DetailsRequested?.Invoke(this, EventArgs.Empty);
+            };
+            _preview.EditRequested += (_, _) =>
+            {
+                ClosePreview(immediately: true);
+                EditRequested?.Invoke(this, EventArgs.Empty);
             };
 
             _previewHost = new Popup

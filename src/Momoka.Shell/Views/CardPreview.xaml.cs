@@ -26,6 +26,9 @@ public sealed partial class CardPreview : UserControl
     private const int ExitMs = 167;
     private const int ArtworkFadeMs = 200;
     private const double PanelPadding = 19;
+
+    /// <summary>右上角那颗动作键与标题之间的空隙（面板内边距之外，另留这一段）。</summary>
+    private const double HeadingActionGap = 12;
     private CompositionPropertySet? _state;
 
     /// <summary>
@@ -90,6 +93,9 @@ public sealed partial class CardPreview : UserControl
 
     internal event EventHandler? PlayRequested;
     internal event EventHandler? DetailsRequested;
+
+    /// <summary>订阅面板右上角「编辑订阅」被点：由宿主接上这条订阅的编辑窗口。</summary>
+    internal event EventHandler? EditRequested;
     internal FrameworkElement PlayAnchor => PlayButton;
     internal FrameworkElement DetailsAnchor => DetailsButton;
 
@@ -122,6 +128,7 @@ public sealed partial class CardPreview : UserControl
         ResumeProgress.Value = CardPreviewText.Progress(card.Item);
         AutomationProperties.SetName(ResumeProgress, $"观看进度 {ResumeText.Text}");
         PlayButton.Visibility = card.PlayVisibility;
+        EditSubscriptionSlot.Visibility = Visibility.Collapsed;
         PlayText.Text = CardPreviewText.PlayLabel(card.Item);
         AutomationProperties.SetName(PlayButton, card.Item.HasResumePosition ? card.PlayActionTip : PlayText.Text);
         ToolTipService.SetToolTip(PlayButton, PlayText.Text);
@@ -131,7 +138,8 @@ public sealed partial class CardPreview : UserControl
 
     /// <summary>
     /// 订阅封面的悬停预览（2026-11-24 用户令「给主页订阅列表也加悬浮」）。面板、撑开动画与摆位都沿用
-    /// 媒体卡那一份；订阅没有播放与续播，右上播放键收起，底部换成订阅状态、进度、订阅用户与上次更新。
+    /// 媒体卡那一份；订阅没有播放与续播，右上播放键换成「编辑订阅」，底部列订阅进度、订阅用户与上次更新
+    /// （订阅状态行同日按用户令整行删除）。
     /// </summary>
     internal void ShowSubscription(MoviePilotSubscriptionCard card)
     {
@@ -151,17 +159,27 @@ public sealed partial class CardPreview : UserControl
         ApplySubscriptionFacts(card);
         ResumeBlock.Visibility = Visibility.Collapsed;
         SubscriptionBlock.Visibility = Visibility.Visible;
-        SubscriptionStateText.Text = card.Status;
         SubscriptionProgressText.Text = card.ProgressCount;
         SubscriptionUserText.Text = card.SubscriberName;
         SubscriptionUpdatedText.Text = card.UpdatedText;
-        SubscriptionStateRow.Visibility = Shown(SubscriptionStateText.Text.Length > 0);
         SubscriptionProgressRow.Visibility = Shown(SubscriptionProgressText.Text.Length > 0);
         SubscriptionUserRow.Visibility = Shown(card.SubscriberVisibility == Visibility.Visible && SubscriptionUserText.Text.Length > 0);
         SubscriptionUpdatedRow.Visibility = Shown(SubscriptionUpdatedText.Text.Length > 0);
         PlayButton.Visibility = Visibility.Collapsed;
+        ShowEditSubscription();
         AutomationProperties.SetName(DetailsButton, $"查看{card.Title}订阅详情");
-        Heading.Margin = new Thickness(0);
+    }
+
+    /// <summary>
+    /// 订阅面板右上角的「编辑订阅」：按钮与播放键同格同档几何，标题要按它的实际宽度让位 ——
+    /// 中英文案长短不同，量一次比写死一个数稳。按钮在外层留白里没有自己的 Margin，量到的就是按钮本身；
+    /// 面板在 <see cref="Prepare"/> 定高之前调用这里，让标题的换行与面板高度一次算准。
+    /// </summary>
+    private void ShowEditSubscription()
+    {
+        EditSubscriptionSlot.Visibility = Visibility.Visible;
+        EditSubscriptionButton.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        Heading.Margin = new Thickness(0, 0, EditSubscriptionButton.DesiredSize.Width + HeadingActionGap, 0);
     }
 
     /// <summary>订阅的资料行：评分、来源／编号／类型／季，概要单独一行；没有的项不占位。</summary>
@@ -600,5 +618,6 @@ public sealed partial class CardPreview : UserControl
 
     private void OnPlayClicked(object sender, RoutedEventArgs e) => PlayRequested?.Invoke(this, EventArgs.Empty);
     private void OnDetailsClicked(object sender, RoutedEventArgs e) => DetailsRequested?.Invoke(this, EventArgs.Empty);
+    private void OnEditSubscriptionClicked(object sender, RoutedEventArgs e) => EditRequested?.Invoke(this, EventArgs.Empty);
     private static Visibility Shown(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 }

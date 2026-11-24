@@ -436,9 +436,6 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="CardPreview_Resume.Text" xml:space="preserve">
     <value>Continue watching</value>
   </data>
-  <data name="CardPreview_SubscriptionState.Text" xml:space="preserve">
-    <value>Status</value>
-  </data>
   <data name="CardPreview_SubscriptionProgress.Text" xml:space="preserve">
     <value>Progress</value>
   </data>
@@ -447,6 +444,9 @@ Closing the video window or leaving this page stops playback.</value>
   </data>
   <data name="CardPreview_SubscriptionUpdated.Text" xml:space="preserve">
     <value>Last updated</value>
+  </data>
+  <data name="CardPreview_EditSubscription.Content" xml:space="preserve">
+    <value>Edit subscription</value>
   </data>
   <data name="PosterCard_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>More</value>

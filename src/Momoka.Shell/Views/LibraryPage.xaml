@@ -164,7 +164,8 @@
                 <local:MoviePilotSubscriptionPoster Card="{x:Bind}" Width="{x:Bind CardWidth}" Height="{x:Bind PosterHeight}"
                     OpenRequested="OnSubscriptionMatchOpen" MenuRequested="OnSubscriptionMatchMenu"
                     PosterRequested="OnSubscriptionMatchPosterRequested"
-                    PreviewRequested="OnSubscriptionMatchPreviewRequested" DetailsRequested="OnSubscriptionMatchPreviewDetails" />
+                    PreviewRequested="OnSubscriptionMatchPreviewRequested" DetailsRequested="OnSubscriptionMatchPreviewDetails"
+                    EditRequested="OnSubscriptionMatchPreviewEdit" />
                 <TextBlock Text="{x:Bind Title, Mode=OneWay}" TextWrapping="Wrap"
                     Style="{StaticResource EgBodyStyle}" ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
             </StackPanel>

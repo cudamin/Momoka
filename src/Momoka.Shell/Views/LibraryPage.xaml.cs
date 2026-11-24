@@ -1749,6 +1749,18 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.OpenMatchingSubscription(card);
     }
 
+    /// <summary>搜索匹配的订阅预览右上角「编辑订阅」：与更多菜单里的「编辑」同一个入口。</summary>
+    private void OnSubscriptionMatchPreviewEdit(object? sender, EventArgs args)
+    {
+        if (_released || SearchSource != 0 || _moviePilot is not { Available: true } service
+            || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        var manager = ViewModel.GetMatchingSubscriptionManager(card,
+            ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
+        if (manager is null) return;
+        _ = manager.EditAsync(card,
+            (subscription, save, remove) => MoviePilotSubscriptionEditor.ShowAsync(this, subscription, service, save, remove));
+    }
+
     /// <summary>
     /// 指针点了来源标签：把光标交回搜索框。点击把焦点留在标签上，而用户接下来要么打新词、要么按回车
     /// 用现有的词搜 —— 两件事都要求焦点在框里。挂 <c>PointerReleased</c> 而不是无条件抢：键盘方向键

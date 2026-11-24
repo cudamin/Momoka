@@ -1,3 +1,15 @@
+## 2026-11-24 订阅悬停预览：右上角「编辑订阅」与去掉订阅状态行
+
+用户令「右上角添加一个编辑订阅按钮」，随后「去掉 订阅状态 订阅中 那一行」。都落在前一天刚接上的订阅悬停预览 `CardPreview` 上。
+
+**编辑键。** `CardPreview.xaml` 在播放键同一格加 `EditSubscriptionSlot`（19 内边距，`EgSecondaryButtonStyle` ＋ `CornerRadius 10`／`Padding 14,8`，与播放键同档；`AutomationProperties.AutomationId="CardPreviewEditSubscription"`，文案走 `CardPreview_EditSubscription.Content` 中英 resw）。订阅模式显示，媒体模式收起；标题按按钮实测宽度再加 12 DIP 让位，中英文案长短不同也不压字。点键抛 `EditRequested`，`MoviePilotSubscriptionPoster` 先收面板再交宿主：主页两排与订阅列表页（`MoviePilotSubscriptionsView`）复用封面点击那条 `ViewModel.EditAsync` ＋ `MoviePilotSubscriptionEditor` 入口；搜索页匹配订阅模板（`LibraryPage`）经 `GetMatchingSubscriptionManager` 接同一套编辑窗，服务不可用或结果已离开时不动。
+
+**状态行。** `SubscriptionStateRow`／`SubscriptionStateText` 与 `CardPreview_SubscriptionState.Text` 两语 resw 整行删除，底部只剩订阅进度、订阅用户、上次更新；其余空值仍整行收起。文档 `docs/MoviePilot订阅.md` 同步改写。
+
+**验证。** Shell Release/x64 两次 **0 警告 0 错误**；`Momoka.PageContractTests` 订阅悬浮契约补编辑键与状态行删除断言，最终代码 **411/411、0 失败**；`ui-language-fixture` **7/7**（中英键集与译文一致）；全量 `Momoka.Tests` **5361 项、5357 通过、4 失败 0 跳过**，4 条都是本机 `LocalMediaTests` 建软链接报「参数错误」（未开开发者模式／无权限的环境红，本轮未改本地媒体代码）。PageContractTests 中途有一轮日历视图模型「配置 A-B-A 后空响应也不能归属旧加载」偶发 **期望 0 实际 1**，其后连续 4 次（含最终代码）全过，按环境时序偶发记录、未改日历代码。重复检查 **68 段／1227 行／0.47%**（预算 70 段／1%）；`check-diff` 10 个变更路径行尾、BOM、末尾换行与空白通过，`dotnet format whitespace --verify-no-changes` 退出 0。
+
+**未验。** 日常未跑原生探针与实屏：按钮在真实悬停面板里的位置、标题让位与中英切换，点键后的编辑窗，三处宿主（主页两排／订阅列表页／搜索匹配），以及去行后的面板高度／底边留白，留待统一验证。台账未销账。
+
 ## 2026-11-24 主页与列表的订阅封面悬停预览
 
 用户令「给主页订阅列表也加悬浮」。订阅封面 `MoviePilotSubscriptionPoster` 接上与媒体卡同一条 `PosterHoverDwell`（指针连续静止 500ms）、同一块 `CardPreview` 面板与 `CardPreviewPlacement` 摆位：封面撑成 400 DIP 宽面板（窄窗最低 300），主图优先换成订阅的横版背景、读不到留海报；右上播放键与续播条收起，底部四行订阅状态、进度、订阅用户、上次更新，空值整行收起。指针离开封面与面板 180ms 后收起；按下、更多菜单、货架滚动、其他 Popup 立即收起；触控与触控笔不弹。点面板正文走 `Source.Open` 进订阅详情，封面点击保持原编辑入口。

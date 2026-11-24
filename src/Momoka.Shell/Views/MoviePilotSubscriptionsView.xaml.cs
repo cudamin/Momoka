@@ -102,6 +102,13 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
     { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) _ = ViewModel.LoadPreviewBackdropAsync(card); }
     private void OnPosterDetailsRequested(object? sender, EventArgs args)
     { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) Open(card); }
+    /// <summary>悬停预览右上角的「编辑订阅」：与点封面是同一个编辑入口，面板已由封面自己收起。</summary>
+    private void OnPosterEditRequested(object? sender, EventArgs args)
+    {
+        if (sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        _ = ViewModel.EditAsync(card,
+            (subscription, save, remove) => MoviePilotSubscriptionEditor.ShowAsync(this, subscription, Source.Service, save, remove));
+    }
     private void OnPosterMenu(object? sender, EventArgs args)
     {
         if (sender is MoviePilotSubscriptionPoster { Card: { } card } poster) Menu(card).ShowAt(poster.MenuAnchor);

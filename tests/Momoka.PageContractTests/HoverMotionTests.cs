@@ -163,9 +163,26 @@ internal static class HoverMotionTests
             Assert.Contains("card.ProgressCount", preview);
             Assert.Contains("card.SubscriberName", preview);
             Assert.Contains("查看{card.Title}订阅详情", preview);
-            Assert.Contains("CardPreview_SubscriptionState", Read("src/Momoka.Shell/Views/CardPreview.xaml"));
+            // 同日后续用户令「去掉 订阅状态 订阅中 那一行」：状态行连标签带值整行删除，不再按值显隐。
+            Assert.DoesNotContain("SubscriptionStateRow", Read("src/Momoka.Shell/Views/CardPreview.xaml"));
+            Assert.DoesNotContain("SubscriptionStateText", preview);
+            Assert.DoesNotContain("CardPreview_SubscriptionState.Text", Read("src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
+            Assert.DoesNotContain("CardPreview_SubscriptionState.Text", Read("src/Momoka.Shell/Strings/en-US/Resources.resw"));
             Assert.Contains("CardPreview_SubscriptionUpdated.Text", Read("src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
             Assert.Contains("CardPreview_SubscriptionUpdated.Text", Read("src/Momoka.Shell/Strings/en-US/Resources.resw"));
+
+            // 2026-11-24 用户令「右上角添加一个编辑订阅按钮」：媒体预播放键的位置在订阅模式换成编辑键，
+            // 标题按它的实际宽度让位；点它抛出 EditRequested，由宿主接上同一条订阅编辑窗口。
+            Assert.Contains("AutomationProperties.AutomationId=\"CardPreviewEditSubscription\"", Read("src/Momoka.Shell/Views/CardPreview.xaml"));
+            Assert.Contains("x:Name=\"EditSubscriptionSlot\"", Read("src/Momoka.Shell/Views/CardPreview.xaml"));
+            Assert.Contains("CardPreview_EditSubscription.Content", Read("src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
+            Assert.Contains("CardPreview_EditSubscription.Content", Read("src/Momoka.Shell/Strings/en-US/Resources.resw"));
+            Assert.Contains("internal event EventHandler? EditRequested;", preview);
+            Assert.Contains("EditSubscriptionSlot.Visibility = Visibility.Visible;", preview);
+            Assert.Contains("EditSubscriptionButton.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));", preview);
+            Assert.Contains("EditSubscriptionButton.DesiredSize.Width + HeadingActionGap", preview);
+            Assert.Contains("EditSubscriptionSlot.Visibility = Visibility.Collapsed;", preview);
+            Assert.Contains("EditRequested?.Invoke", preview);
 
             var poster = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionPoster.xaml.cs");
             Assert.Contains("private readonly PosterHoverDwell _previewDwell = new();", poster);
@@ -175,6 +192,8 @@ internal static class HoverMotionTests
             Assert.Contains("IsLightDismissEnabled = true,", poster);
             Assert.Contains("PreviewRequested?.Invoke", poster);
             Assert.Contains("DetailsRequested?.Invoke", poster);
+            Assert.Contains("_preview.EditRequested += (_, _) =>", poster);
+            Assert.Contains("EditRequested?.Invoke", poster);
             Assert.Contains("PreviewScrollWatch", poster);
             Assert.Contains("new PreviewCloseDelay(() => ClosePreview(), () => _hovered || _previewHovered)", poster);
             var shared = Read("src/Momoka.Shell/Views/PreviewPopupSupport.cs");
@@ -186,9 +205,13 @@ internal static class HoverMotionTests
             var view = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml");
             Assert.Contains("PreviewRequested=\"OnPosterPreviewRequested\"", view);
             Assert.Contains("DetailsRequested=\"OnPosterDetailsRequested\"", view);
+            Assert.Contains("EditRequested=\"OnPosterEditRequested\"", view);
+            Assert.Contains("private void OnPosterEditRequested(", Read("src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml.cs"));
             var page = Read("src/Momoka.Shell/Views/LibraryPage.xaml.cs");
             Assert.Contains("OnSubscriptionMatchPreviewRequested", page);
             Assert.Contains("ViewModel.OpenMatchingSubscription(card);", page[page.IndexOf("OnSubscriptionMatchPreviewDetails", StringComparison.Ordinal)..]);
+            Assert.Contains("OnSubscriptionMatchPreviewEdit", page);
+            Assert.Contains("EditRequested=\"OnSubscriptionMatchPreviewEdit\"", Read("src/Momoka.Shell/Views/LibraryPage.xaml"));
             var model = Read("src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs");
             Assert.Contains("public Task LoadPreviewBackdropAsync(MoviePilotSubscriptionCard card)", model);
         });
