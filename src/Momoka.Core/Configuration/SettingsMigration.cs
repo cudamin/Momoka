@@ -584,7 +584,6 @@ public static class SettingsMigration
         // 国漫单独一档（用户令 2026-09-26），范围与全局那一档相同，见设置页那两行。
         settings.Playback.DonghuaMarkWatchedPercent = Math.Clamp(settings.Playback.DonghuaMarkWatchedPercent, 50, 100);
 
-        settings.Playback.ProgressReportIntervalSeconds = Math.Clamp(settings.Playback.ProgressReportIntervalSeconds, 1, 60);
         settings.Playback.SeekForwardSeconds = Math.Clamp(settings.Playback.SeekForwardSeconds, 1, 600);
         settings.Playback.SeekBackwardSeconds = Math.Clamp(settings.Playback.SeekBackwardSeconds, 1, 600);
         settings.Playback.SeekForwardLongSeconds = Math.Clamp(settings.Playback.SeekForwardLongSeconds, 1, 600);

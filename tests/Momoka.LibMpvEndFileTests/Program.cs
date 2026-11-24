@@ -357,7 +357,7 @@ internal static class Program
         Test("实际 Service：redirect 后 timer/position 继续，不补满；Error 保留失败且 VM 不接集", async () =>
         {
             await using var f = new ServiceFixture();
-            f.Settings.Playback.ProgressReportIntervalSeconds = 1;
+            f.Service.ReportIntervalOverride = TimeSpan.FromSeconds(1);
             using var vm = new AutoNextBoundary();
             vm.Settings.Playback.AutoPlayNextEpisode = true;
             vm.Episodes = [f.Item, f.Target.Bind(new Momoka.Emby.EmbyItem

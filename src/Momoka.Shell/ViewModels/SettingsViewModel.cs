@@ -1630,7 +1630,6 @@ public sealed partial class SettingsViewModel : PageViewModel
             Number("国漫标记已观看阈值（%）", 50, 100, () => playback.DonghuaMarkWatchedPercent, value => playback.DonghuaMarkWatchedPercent = value,
                 "类型为动画、发行公司带腾讯、哔哩哔哩、优酷或爱奇艺的片子单独按这一档算，不吃上面那行的值"),
             Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
-            Number("进度上报间隔（秒）", 1, 60, () => playback.ProgressReportIntervalSeconds, value => playback.ProgressReportIntervalSeconds = value),
             Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value,
                 "优先用服务器识别出的片头片尾（Emby 的章节标记、Jellyfin 的媒体段、Plex 的标记）；"
                 + "服务器只标了其中一类时，缺的那一类由播放器按文件章节补。同一段两边都标了时以服务器为准")

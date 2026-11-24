@@ -40,7 +40,7 @@ public sealed partial class PlaybackService
         var handle = attempt.Handle;
         var request = attempt.Request;
         var exitTask = handle.WaitForExitAsync(cancellationToken);
-        var interval = TimeSpan.FromSeconds(Math.Clamp(settings.Playback.ProgressReportIntervalSeconds, 1, 60));
+        var interval = ReportIntervalOverride ?? PlaybackReportCadence.For(scope.Connection.ServerKind);
         var stopEnabled = !request.AudioOnly && scope.Connection.ServerKind == MediaServerKind.Emby && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
         var stopPercent = StopReportPercent(request.IsDonghua,
             settings.Playback.MarkWatchedPercent, settings.Playback.DonghuaMarkWatchedPercent);

@@ -117,7 +117,6 @@ internal static class SubtitleForcedOnlyTests
         settings.Playback.SubtitleLanguages = ["中文"];
         settings.Playback.ReportProgressToServer = false;
         settings.Playback.StopReportEnabled = false;
-        settings.Playback.ProgressReportIntervalSeconds = 60;
         settings.Playback.SubtitleAssOverride = "";
         settings.Shaders.Enabled = false;
         return settings;

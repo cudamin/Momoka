@@ -32,7 +32,6 @@ internal sealed class Fixture : IAsyncDisposable
     public Fixture()
     {
         Settings.Playback.ReportProgressToServer = true;
-        Settings.Playback.ProgressReportIntervalSeconds = 60;
         Settings.Playback.StopReportEnabled = false;
         Log.UseSink(LogSink);
         var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
@@ -47,6 +46,7 @@ internal sealed class Fixture : IAsyncDisposable
         Default(A);
         Service = new PlaybackService(Session, Settings, () => Backend,
             new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)));
+        Service.ReportIntervalOverride = TimeSpan.FromSeconds(60);
     }
 
     public EmbySessionScope Install(string name)

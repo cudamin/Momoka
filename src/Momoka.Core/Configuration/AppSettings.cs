@@ -380,8 +380,6 @@ public sealed class PlaybackSettings
     /// </summary>
     public bool StopReportEnabled { get; set; }
 
-    public int ProgressReportIntervalSeconds { get; set; } = 5;
-
     /// <summary>
     /// Audio-track languages in priority order: the first one the file actually has wins, and an empty list
     /// means 「whatever the server marks as default」.

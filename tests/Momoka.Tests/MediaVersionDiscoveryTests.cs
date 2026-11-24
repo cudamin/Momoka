@@ -336,7 +336,6 @@ internal static partial class MediaVersionDiscoveryTests
             Settings.AggregateMode = aggregateMode;
             Settings.Playback.ReportProgressToServer = true;
             Settings.Playback.ResumeRewindSeconds = 0;
-            Settings.Playback.ProgressReportIntervalSeconds = 60;
             Session = new EmbySession(Settings,
                 new SettingsStore(new AppPaths(Path.Combine(Path.GetTempPath(), "versions-" + Guid.NewGuid().ToString("N"))),
                     PassthroughSecretProtector.Instance),
@@ -350,8 +349,13 @@ internal static partial class MediaVersionDiscoveryTests
             Assert.True(await Session.TryRestoreAsync(server, account, default));
             return Session.Capture();
         }
-        public PlaybackService Playback(IPlaybackBackend backend) => new(Session, Settings, () => backend,
-            new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)));
+        public PlaybackService Playback(IPlaybackBackend backend)
+        {
+            var service = new PlaybackService(Session, Settings, () => backend,
+                new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)));
+            service.ReportIntervalOverride = TimeSpan.FromSeconds(60);
+            return service;
+        }
         public void Dispose() => Session.Dispose();
     }
 

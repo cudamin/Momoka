@@ -38,7 +38,6 @@ internal sealed class ServiceFixture : IAsyncDisposable
     {
         Settings.Playback.ReportProgressToServer = true;
         Settings.Playback.StopReportEnabled = true;
-        Settings.Playback.ProgressReportIntervalSeconds = 60;
         Settings.Playback.AutoPlayNextEpisode = true;
         Settings.Playback.ResumeRewindSeconds = 0;
         var secrets = new NoSecrets();
@@ -63,6 +62,7 @@ internal sealed class ServiceFixture : IAsyncDisposable
         Ticket = new PlaybackTicket { Item = Item, Source = source };
         Service = new PlaybackService(_session, Settings, () => new BackendBoundary(this),
             new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)));
+        Service.ReportIntervalOverride = TimeSpan.FromSeconds(60);
         Service.NowPlayingChanged += NowPlaying.Add;
     }
 

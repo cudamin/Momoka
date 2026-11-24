@@ -109,7 +109,6 @@
   "国漫标记已观看阈值（%）": "Chinese animation watched threshold (%)",
   "类型为动画、发行公司带腾讯、哔哩哔哩、优酷或爱奇艺的片子单独按这一档算，不吃上面那行的值": "A separate threshold for animation distributed by Tencent, Bilibili, Youku, or iQIYI. The threshold above does not apply to these items.",
   "续播自动快退（秒）": "Resume rewind (seconds)",
-  "进度上报间隔（秒）": "Progress reporting interval (seconds)",
   "跳过片头片尾": "Skip intros and credits",
   "退出全屏 / 退出播放": "Exit fullscreen / stop playback",
   "未被其他快捷键占用时生效；全屏时退出全屏，非全屏时停止播放": "Works only while no other shortcut uses this key; exits fullscreen when fullscreen, otherwise stops playback.",

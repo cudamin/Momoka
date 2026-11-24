@@ -76,6 +76,7 @@ internal static class PlaybackTests
         RegisterPlayerMenuFit();
         RegisterPlaybackGate();
         RegisterDonghua();
+        RegisterReportCadence();
         RegisterStopReport();
         RegisterPlaybackBatches();
     }
@@ -5901,6 +5902,18 @@ internal static class PlaybackTests
     // 取档与阈值是纯函数，直接摆矩阵；「报了几趟、报完之后还喂不喂进度」只有走真播放才看得见 —— 假传输层
     // 把每一趟请求都记了下来（StubTransport.SentTo），断言就落在那份清单上。
 
+    private static void RegisterReportCadence()
+    {
+        Test("进度上报节奏：按后端取官方网页端的固定间隔", () =>
+        {
+            Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.Emby));
+            Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.Jellyfin));
+            Assert.Equal(TimeSpan.FromSeconds(15), PlaybackReportCadence.For(MediaServerKind.FnNas));
+            Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.Plex));
+            Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.FnMusic));
+        });
+    }
+
     private static void RegisterStopReport()
     {
         Test("到阈值补报停止：阈值就是标记已看那两档，国漫走国漫那一档", () =>
@@ -6020,7 +6033,7 @@ internal static class PlaybackTests
     /// 「直接从进度条跳到已观看阈值区间时触发一次通知」（用户令 2026-09-29 第二条）。位置一直摆在 100 秒，
     /// 循环那一拍永远够不到线；只有播放器状态流把位置推过线 —— 报出去了就证明是它报的，不是循环那一拍。
     /// <para>
-    /// 状态流这一路是必要的：循环的拍子是 <c>ProgressReportIntervalSeconds</c>（默认 5 秒），跳进去又拖回来
+    /// 状态流这一路是必要的：循环的拍子按后端固定（Emby 10 秒，测试夹具压到 1 秒），跳进去又拖回来
     /// 就可能整段错过；状态流由 mpv 每帧报位置、压到 0.25 秒一次，跳完那一刻就报得出去。
     /// </para>
     /// </summary>
@@ -6337,15 +6350,14 @@ internal static class PlaybackTests
     }
 
     /// <summary>
-    /// 到阈值那一批的固定拨法：开着上报、把拍子压到 1 秒（<see cref="PlaybackSettings.ProgressReportIntervalSeconds"/>
-    /// 的下限 —— 测试要看的那一拍才等得起）、拨上那一格开关，并摆好那两档标记已看阈值。
-    /// 拍子压到下限是测试的事，不是产品行为。
+    /// 到阈值那一批的固定拨法：开着上报、把测试的拍子压到 1 秒（夹具的
+    /// <see cref="PlaybackService.ReportIntervalOverride"/>；产品本身按后端取 10／15 秒）、拨上那一格开关，
+    /// 并摆好那两档标记已看阈值。压拍子是测试的事，不是产品行为。
     /// </summary>
     private static Action<AppSettings> StopReportSettings(bool on = true, int markPercent = 90, int donghuaPercent = 85) =>
         settings =>
         {
             settings.Playback.ReportProgressToServer = true;
-            settings.Playback.ProgressReportIntervalSeconds = 1;
             settings.Playback.StopReportEnabled = on;
             settings.Playback.MarkWatchedPercent = markPercent;
             settings.Playback.DonghuaMarkWatchedPercent = donghuaPercent;
@@ -6786,6 +6798,7 @@ internal static class PlaybackTests
             settings,
             () => backend,
             new PlaybackPlanner(settings, new ShaderGroupResolver(settings.Shaders)));
+        service.ReportIntervalOverride = TimeSpan.FromSeconds(1);
         return (service, session, transport);
     }
 

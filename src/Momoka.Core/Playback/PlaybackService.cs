@@ -94,6 +94,10 @@ public sealed partial class PlaybackService(
     public bool CanControl => _current is IPlayerControl and IPlaybackHandle { HasControlChannel: true };
     public bool ReadsOverlap => _current?.ReadsOverlap ?? false;
     public PlaybackPlanner Planner => planner;
+
+    /// <summary>Offline fixture seam: fixes the report cadence instead of <see cref="PlaybackReportCadence.For"/>.</summary>
+    internal TimeSpan? ReportIntervalOverride { get; set; }
+
     public IReadOnlyList<KeyValuePair<string, string>> LaunchOptions => _launchOptions;
     public string? LaunchShaderProfile { get; private set; }
     public string? LaunchShaderReason { get; private set; }

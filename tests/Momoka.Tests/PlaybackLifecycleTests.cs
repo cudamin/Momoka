@@ -595,7 +595,6 @@ internal static class PlaybackLifecycleTests
         public Fixture()
         {
             Settings.Playback.ReportProgressToServer = true;
-            Settings.Playback.ProgressReportIntervalSeconds = 60;
             Settings.Playback.ResumeRewindSeconds = 0;
             Settings.Playback.SubtitleAssOverride = "";
             Session = new EmbySession(Settings,
@@ -606,6 +605,7 @@ internal static class PlaybackLifecycleTests
             Assert.True(Session.TryRestoreAsync(new ServerProfile { Url = "https://a.invalid" }, account, None).GetAwaiter().GetResult());
             Service = new PlaybackService(Session, Settings, () => Backend,
                 new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)));
+            Service.ReportIntervalOverride = TimeSpan.FromSeconds(60);
         }
 
         public void Dispose() => Session.Dispose();

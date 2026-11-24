@@ -989,7 +989,6 @@ internal static partial class SettingsTests
             settings.Ui.PageSize = 100000;
             settings.Playback.MarkWatchedPercent = 5;
             settings.Playback.DonghuaMarkWatchedPercent = 5;
-            settings.Playback.ProgressReportIntervalSeconds = 0;
             settings.Ui.ImageCacheMegabytes = 999999;
 
             SettingsMigration.Normalize(settings);
@@ -998,7 +997,6 @@ internal static partial class SettingsTests
             Assert.Equal(50, settings.Playback.MarkWatchedPercent);
             Assert.Equal(50, settings.Playback.DonghuaMarkWatchedPercent,
                 "国漫那一档的范围和全局那一档是同一对数");
-            Assert.Equal(1, settings.Playback.ProgressReportIntervalSeconds);
             Assert.Equal(Momoka.Emby.ImageCachePolicy.MaxMegabytes, settings.Ui.ImageCacheMegabytes,
                 "图片缓存上限的范围必须和设置页那一行是同一对数");
 

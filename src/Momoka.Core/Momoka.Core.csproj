@@ -24,6 +24,8 @@
     <InternalsVisibleTo Include="Momoka.MusicViewModelTests" />
 
     <InternalsVisibleTo Include="Momoka.SubtitleDialogTests" />
+    <InternalsVisibleTo Include="Momoka.LibMpvEndFileTests" />
+    <InternalsVisibleTo Include="Momoka.PlaybackSourceRevocationTests" />
   </ItemGroup>
 
 </Project>
