@@ -171,7 +171,9 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "播放行为";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            var section = page.ViewModel.Sections.Single(item => item.Title == "截图");
+            // 「截图」这个名字现在两张卡都有：播放行为下的截图保存卡，和快捷键页 2026-11-24 拆分出的截图组。
+            // 这里要的是前者，按分类一起认，不能只按标题在全部分区里挑唯一一张。
+            var section = page.ViewModel.Sections.Single(item => item.Category == "播放行为" && item.Title == "截图");
             var rows = Descendants(page).OfType<ItemsControl>().Single(control => ReferenceEquals(control.ItemsSource, section.Rows));
             await WaitForSettingsRowsLoadedAsync(page, rows); // 有尺寸/IsLoaded 不证明 Loaded 中的真实行接线已完成。
             var lossless = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "WebP 无损");
@@ -189,7 +191,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
             Require(!HasRow("WebP 质量") && !HasRow("WebP 压缩"), "开启无损没有收起完整从属行");
-            Require(ReferenceEquals(section, page.ViewModel.Sections.Single(item => item.Title == "截图"))
+            Require(ReferenceEquals(section, page.ViewModel.Sections.Single(item => item.Category == "播放行为" && item.Title == "截图"))
                 && Descendants(page).Any(element => ReferenceEquals(element, lossless))
                 && Descendants(page).Any(element => ReferenceEquals(element, format)), "显隐替换了上级控件或整张卡");
             Require(mpv.ScreenshotWebpQuality == 73 && mpv.ScreenshotWebpCompression == 2, "隐藏清空了画质偏好");
