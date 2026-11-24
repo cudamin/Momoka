@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Configuration;
 using Momoka.Playback;
 using Momoka.Shell.Localization;
 
@@ -13,7 +14,7 @@ public sealed partial class SettingsViewModel
     private readonly List<SettingShortcutRow> _shortcutRows = [];
     // 四颗方向键的步长挂在各自的快捷键行下面（用户令 2026-11-24「上图的设置移到快捷键页面对应快捷键下方」）。
     // 它们不是快捷键，不参与改绑，也不计入「可改快捷键」；值仍住 PlaybackSettings，读写与保存和从前一样。
-    private readonly Dictionary<string, SettingNumberRow> _shortcutSeekRows = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<SettingNumberRow>> _shortcutSeekRows = new(StringComparer.Ordinal);
     // 三条「没被别的动作占用时才成立」的回退键：Esc 全屏则退否则停，回车／Delete 只在跳过提示
     // 出现时有效。它们的事归播放页，不参与改绑，所以只能是只读说明行，不混进可改行计数。
     private readonly List<(SettingFactRow Row, KeyStroke Stroke)> _shortcutFixedRows = [];
@@ -232,30 +233,39 @@ public sealed partial class SettingsViewModel
     }
 
     /// <summary>
-    /// 四行步长。2026-11-24 之前它们是「播放行为 → 跳转与步长」那张卡的全部内容；用户令搬到快捷键页面后，
-    /// 各自挂在「快退」「快进」「快退（大步）」「快进（大步）」四行下面，缩进一档表示从属关系。
+    /// 快捷键行下面的附注行。2026-11-24 之前只有四行「跨度（秒）」；用户令在快退和快进下方再加一行
+    /// 「快进跨度（倍）」——「长按箭头以这个倍速播放」，所以 <c>seek-forward</c> 下面现在挂两行：先跳秒、
+    /// 后长按倍速。大步与精细那两颗不参与长按，仍只有一行。
     /// </summary>
     private void BuildShortcutSeekRows()
     {
         _shortcutSeekRows.Clear();
         var playback = Settings.Playback;
         Subordinate("seek-backward", "快退跨度（秒）", "← 键跳这么多秒",
-            () => playback.SeekBackwardSeconds, value => playback.SeekBackwardSeconds = value);
+            1, 600, () => playback.SeekBackwardSeconds, value => playback.SeekBackwardSeconds = value);
         Subordinate("seek-forward", "快进跨度（秒）", "→ 键跳这么多秒",
-            () => playback.SeekForwardSeconds, value => playback.SeekForwardSeconds = value);
+            1, 600, () => playback.SeekForwardSeconds, value => playback.SeekForwardSeconds = value);
+        Subordinate("seek-forward", "快进跨度（倍）", "长按箭头以这个倍速播放",
+            PlaybackSettings.MinimumSeekHoldMultiplier, PlaybackSettings.MaximumSeekHoldMultiplier,
+            () => playback.SeekForwardHoldMultiplier, value => playback.SeekForwardHoldMultiplier = value);
         Subordinate("seek-backward-long", "大步快退跨度（秒）", "↓ 键跳这么多秒",
-            () => playback.SeekBackwardLongSeconds, value => playback.SeekBackwardLongSeconds = value);
+            1, 600, () => playback.SeekBackwardLongSeconds, value => playback.SeekBackwardLongSeconds = value);
         Subordinate("seek-forward-long", "大步快进跨度（秒）", "↑ 键跳这么多秒",
-            () => playback.SeekForwardLongSeconds, value => playback.SeekForwardLongSeconds = value);
+            1, 600, () => playback.SeekForwardLongSeconds, value => playback.SeekForwardLongSeconds = value);
 
-        void Subordinate(string id, string label, string note, Func<int> read, Action<int> write) =>
-            _shortcutSeekRows[id] = new SettingNumberRow(label, note, 1, 600, read(),
+        void Subordinate(string id, string label, string note, int minimum, int maximum,
+            Func<int> read, Action<int> write)
+        {
+            var row = new SettingNumberRow(label, note, minimum, maximum, read(),
                 value => write((int)value), () => read(), Save) { IsSubordinate = true };
+            _shortcutSeekRows.TryAdd(id, []);
+            _shortcutSeekRows[id].Add(row);
+        }
     }
 
     /// <summary>
-    /// 一组的行。搜索时空查询不过滤；命中这一行的动作或它下面那行步长都算命中 —— 步长藏在快捷键行底下，
-    /// 只显示步长而没有上面那颗键就等于没说「这是谁在跳」。
+    /// 一组的行。搜索时空查询不过滤；命中这一行的动作或它下面任一附注都算命中 —— 附注藏在快捷键行底下，
+    /// 只显示附注而没有上面那颗键就等于没说「这是谁在跳」。
     /// </summary>
     private IReadOnlyList<SettingRow> ShortcutRowsFor(IReadOnlyList<string> ids, IReadOnlyDictionary<string, KeyStroke> effective)
     {
@@ -266,14 +276,14 @@ public sealed partial class SettingsViewModel
             var row = _shortcutRows.FirstOrDefault(candidate => candidate.Id == id);
             if (row is null) continue;
 
-            var span = _shortcutSeekRows.GetValueOrDefault(id);
+            var spans = _shortcutSeekRows.GetValueOrDefault(id);
             var matches = !searching
                 || ShortcutCatalog.MatchesSearch(ShortcutSearchQuery, row.Label, effective[id])
-                || (span is not null && ShortcutCatalog.MatchesText(ShortcutSearchQuery, $"{span.Label} {span.Note}"));
+                || (spans is not null && spans.Any(span => ShortcutCatalog.MatchesText(ShortcutSearchQuery, $"{span.Label} {span.Note}")));
             if (!matches) continue;
 
             rows.Add(row);
-            if (span is not null) rows.Add(span);
+            if (spans is not null) foreach (var span in spans) rows.Add(span);
         }
         return rows;
     }

@@ -66,9 +66,13 @@ public sealed partial class PlayerViewModel
 
     internal void SeekBackwardLong() => SeekBy(-Settings.Playback.SeekBackwardLongSeconds);
 
-    private void SeekBy(int seconds) => _ = _playback.CommandAsync(
+    /// <summary>
+    /// 相对跳 N 秒。整数来自设置项；长按 ← 的连续快退每一步是「倍率 × 0.2 秒」，会到小数，所以这里
+    /// 收 double 并按 0.### 发出去（2026-11-24）。
+    /// </summary>
+    private void SeekBy(double seconds) => _ = _playback.CommandAsync(
         "seek",
-        seconds.ToString(CultureInfo.InvariantCulture),
+        seconds.ToString("0.###", CultureInfo.InvariantCulture),
         "relative+exact");
 
     /// <summary>

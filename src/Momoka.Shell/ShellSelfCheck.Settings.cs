@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Playback;
 using Momoka.Shell.ViewModels;
@@ -285,6 +286,13 @@ internal static partial class ShellSelfCheck
             return index >= 0 && index + 1 < shortcutRows.Count
                 && shortcutRows[index + 1] is SettingNumberRow span && span.Label == pair.Item2 && span.IsSubordinate;
         });
+        // 2026-11-24 用户令：快进那行下面再挂一行「快进跨度（倍）」——单击跳秒、按住半秒后按这个倍率播。
+        var seekHoldRow = shortcutRows.FindIndex(row => row is SettingNumberRow number && number.Label == "快进跨度（倍）");
+        var seekForwardRow = shortcutRows.FindIndex(row => row is SettingShortcutRow shortcut && shortcut.Id == "seek-forward");
+        var seekHoldOk = seekHoldRow > 0 && seekHoldRow == seekForwardRow + 2
+            && shortcutRows[seekHoldRow] is SettingNumberRow { IsSubordinate: true } hold
+            && hold.Minimum == PlaybackSettings.MinimumSeekHoldMultiplier
+            && hold.Maximum == PlaybackSettings.MaximumSeekHoldMultiplier;
         var sectionTitles = shortcutSections.Select(section => section.Title).ToArray();
 
         check("快捷键行", shortcutIds.SetEquals(expectedIds) && shortcutProbe.Ok,
@@ -297,9 +305,10 @@ internal static partial class ShellSelfCheck
             {
                 "播放与进度", "播放控制", "集数与章节", "速度与循环", "字幕", "次字幕与兼容性", "音轨与音频",
                 "画面与缩放", "画质与色彩", "视频与滤镜", "截图与工具", "弹幕", "回退键与恢复默认"
-            }) && seekSpansOk,
+            }) && seekSpansOk && seekHoldOk,
             $"{shortcutSections.Count} 张分区卡：{string.Join('／', sectionTitles)}；"
             + $"四行步长{(seekSpansOk ? "都紧跟在各自的快捷键行下面" : "没有跟在各自的快捷键行下面")}；"
+            + $"长按倍率{(seekHoldOk ? "紧跟快进步长、范围 2–10" : "位置或范围不对")}；"
             + $"最后一卡之前的动作行 {shortcutRows.Count(row => row is SettingShortcutRow)} 行");
 
         // 主题那一行的色板。什么都不点：这一行只在点中一块时写盘，而量它不需要真换一次主题 —— 角标落在存着

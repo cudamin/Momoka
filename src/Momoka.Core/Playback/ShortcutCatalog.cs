@@ -428,7 +428,7 @@ public static class ShortcutCatalog
 
     /// <summary>
     /// 搜索一段不含按键的文字，规则与 <see cref="MatchesSearch"/> 相同（空格分隔的词都要命中；空白与加号不参与
-    /// 匹配；英文不分大小写）。快捷键页里那四行步长不是快捷键，但同样该被搜索栏找到，所以把这段判断单独拿了出来。
+    /// 匹配；英文不分大小写）。快捷键页里那几行步长与倍率不是快捷键，但同样该被搜索栏找到，所以把这段判断单独拿了出来。
     /// </summary>
     public static bool MatchesText(string? query, string text)
     {

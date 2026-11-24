@@ -403,6 +403,9 @@ public sealed partial class PlayerPage : UserControl
         // 未改绑的方向键仍归滑条自己（OnRootShortcut 的 Slider 豁免）。
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
         SeekSlider.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
+        // 长按 ← / → 的松开一路（2026-11-24）：方向键可能先被焦点控件标成 handled，这里照样要收到
+        // 「这颗键不在了」—— 收尾只认事实，不抢那一下的执行权。
+        Root.AddHandler(KeyUpEvent, new KeyEventHandler(OnRootKeyUp), handledEventsToo: true);
         // Click 的路由事件标识符在这套投影里没暴露（ButtonBase、Button 上都没有），所以这些不带菜单的
         // 按钮一颗颗订阅；带 Flyout 的六颗不订阅 —— 菜单要靠焦点接管上下键（见 OnChromeClick）。
         // 公共输入反馈也用于滑条以外的按钮。
@@ -617,6 +620,8 @@ public sealed partial class PlayerPage : UserControl
         if (!Attached) return;
         CloseDanmakuPanel();
         _presentationGeneration++;
+        // 长按 → 的临时倍速不跟着页面走：离开播放页时还原（停止播放那条路另有 StopAsync 收）。
+        ViewModel.CancelSeekHold();
 
         LeavePlayer();
         StopPlayerMotion();

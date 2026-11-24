@@ -138,6 +138,7 @@ public sealed partial class PlayerViewModel
     /// <summary>停止播放. Asks mpv to quit rather than cancelling, so the final position is still reported.</summary>
     internal Task StopAsync()
     {
+        CancelSeekHold();
         _sessionQueue.Clear();
         _playerTools?.Cancel();
         _playerCapture?.Cancel();
@@ -175,6 +176,8 @@ public sealed partial class PlayerViewModel
         long? continuingIntent = null,
         CancellationToken continuationCancellation = default, PlaybackContinuation? expectedContinuation = null)
     {
+        // 长按 → 的临时倍速不跨片：换集/换片一开始就还原，免得下一集带着 2× 起步（2026-11-24）。
+        CancelSeekHold();
         _lifetime.Token.ThrowIfCancellationRequested();
         continuationCancellation.ThrowIfCancellationRequested();
         if (continuingIntent is { } inherited && !_startIntent.IsCurrent(inherited)) return;

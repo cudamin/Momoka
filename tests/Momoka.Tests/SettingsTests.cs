@@ -1624,6 +1624,8 @@ internal static partial class SettingsTests
             settings.Playback.SeekBackwardSeconds = 9000;
             settings.Playback.SeekForwardLongSeconds = 0;
             settings.Playback.SeekBackwardLongSeconds = 9000;
+            // 长按倍率（2026-11-24）：2～10，越界的两头都夹回来。
+            settings.Playback.SeekForwardHoldMultiplier = 99;
             settings.Playback.ResumeRewindSeconds = -5;
             settings.Audio.DelayMilliseconds = 99999;
 
@@ -1633,6 +1635,8 @@ internal static partial class SettingsTests
             Assert.Equal(600, settings.Playback.SeekBackwardSeconds);
             Assert.Equal(1, settings.Playback.SeekForwardLongSeconds);
             Assert.Equal(600, settings.Playback.SeekBackwardLongSeconds);
+            Assert.Equal(10, settings.Playback.SeekForwardHoldMultiplier);
+            Assert.Equal(2, new PlaybackSettings().SeekForwardHoldMultiplier, "装机默认就是 2 倍");
             Assert.Equal(0, settings.Playback.ResumeRewindSeconds);
             Assert.Equal(5000, settings.Audio.DelayMilliseconds);
         });

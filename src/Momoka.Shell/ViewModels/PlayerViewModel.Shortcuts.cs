@@ -29,8 +29,8 @@ public sealed partial class PlayerViewModel
         switch (action)
         {
             case "toggle-pause": TogglePause(); break;
-            case "seek-backward": SeekBackward(); break;
-            case "seek-forward": SeekForward(); break;
+            case "seek-backward": NoteNativeSeek("seek-backward"); break;
+            case "seek-forward": NoteNativeSeek("seek-forward"); break;
             case "seek-backward-long": SeekBackwardLong(); break;
             case "seek-forward-long": SeekForwardLong(); break;
             case "volume-up": _ = AdjustNativeVolumeAsync("5"); break;

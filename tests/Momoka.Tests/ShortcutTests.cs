@@ -430,5 +430,35 @@ internal static partial class ShortcutTests
             Assert.Equal("播放 / 暂停", ShortcutCatalog.Label("toggle-pause"));
             Assert.Equal("没这个", ShortcutCatalog.Label("没这个"));
         });
+
+        Test("长按判据：半秒才转倍速，← 每步按倍率往回走，只认两颗短跳箭头", () =>
+        {
+            // 用户令 2026-11-24「长按箭头以这个倍速播放」，问答里选的是「单击跳秒、按住约半秒转倍速」。
+            Assert.False(SeekHold.IsSeek("seek-forward-long"), "大步不该吃长按");
+            Assert.False(SeekHold.IsSeek("seek-forward-fine"), "精细不该吃长按");
+            Assert.True(SeekHold.IsSeek("seek-forward") && SeekHold.IsSeek("seek-backward"));
+
+            const long pressed = 1000;
+            Assert.False(SeekHold.IsHeld(pressed, pressed + 499));
+            Assert.True(SeekHold.IsHeld(pressed, pressed + 500));
+
+            // 2 倍 → 0.4 秒／步（200ms 一步），10 倍 → 2 秒／步：进度往回走的速率就是倍率本身。
+            Assert.Equal(0.4, SeekHold.RewindStepSeconds(2));
+            Assert.Equal(2.0, SeekHold.RewindStepSeconds(10));
+            Assert.Equal(1.0, SeekHold.RewindStepSeconds(10, 100));
+            Assert.Equal(200, SeekHold.RewindStepMilliseconds);
+        });
+
+        Test("快捷键 token：能从回到 mpv 的那颗键反查物理键码，长按拿得到键", () =>
+        {
+            // 独占窗口不会送「松开」，播放页只能拿绑定去问 GetAsyncKeyState；查不到就退回单击跳秒。
+            Assert.Equal(0x25, ShortcutKeyCatalog.KeyCode("Left"));
+            Assert.Equal(0x27, ShortcutKeyCatalog.KeyCode("Right"));
+            Assert.Equal(0x25, ShortcutKeyCatalog.KeyCode("NumPadLeft"), "数字键盘左也落在同一个 VK");
+            Assert.Equal(0x20, ShortcutKeyCatalog.KeyCode("Space"));
+            Assert.Equal(0xFF, ShortcutKeyCatalog.KeyCode("VkFF"), "认不出的键以 VkXX 存下来，也要能反查");
+            Assert.Equal(0, ShortcutKeyCatalog.KeyCode("没这个"));
+            Assert.Equal(0, ShortcutKeyCatalog.KeyCode(""));
+        });
     }
 }

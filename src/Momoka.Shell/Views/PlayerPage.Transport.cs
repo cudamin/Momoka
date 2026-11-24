@@ -23,7 +23,7 @@ public sealed partial class PlayerPage
         SeekSlider.KeyCommand = e =>
         {
             if (!Attached || _inputSuspended || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)
-                || !Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return false;
+                || !Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey, e.KeyStatus.WasKeyDown)) return false;
             e.Handled = true;
             _lastDispatchedKeyEvent = e;
             if (wake && _chrome.WakeFully(Now)) Render();

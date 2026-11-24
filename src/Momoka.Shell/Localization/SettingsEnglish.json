@@ -119,6 +119,8 @@
   "优先用服务器识别出的片头片尾（Emby 的章节标记、Jellyfin 的媒体段、Plex 的标记）；服务器只标了其中一类时，缺的那一类由播放器按文件章节补。同一段两边都标了时以服务器为准": "Prefer server markers (Emby chapters, Jellyfin media segments, or Plex markers). Missing marker types fall back to file chapters. Server markers win when both describe the same section.",
   "快进跨度（秒）": "Seek forward (seconds)",
   "→ 键跳这么多秒": "Seconds to seek with the right arrow key.",
+  "快进跨度（倍）": "Seek forward (multiplier)",
+  "长按箭头以这个倍速播放": "Play at this speed while the arrow key is held.",
   "快退跨度（秒）": "Seek backward (seconds)",
   "← 键跳这么多秒": "Seconds to seek with the left arrow key.",
   "大步快进跨度（秒）": "Large seek forward (seconds)",

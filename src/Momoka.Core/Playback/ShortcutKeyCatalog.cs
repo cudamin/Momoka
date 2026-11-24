@@ -7,6 +7,33 @@ public static class ShortcutKeyCatalog
         .SelectMany(key => new[] { Token(key), Token(key, extended: true) })
         .Where(token => token is not null).Select(token => token!).ToHashSet(StringComparer.Ordinal);
 
+    /// <summary>
+    /// The reverse of <see cref="Token"/>: the Windows virtual-key code behind a persisted token.
+    /// <para>
+    /// Needed by the long-press seek (2026-11-24): the exclusive window only reports「这个动作按了一下」,
+    /// not「键还按着没有」, so the host polls <c>GetAsyncKeyState</c> with the key the action is bound to.
+    /// Tokens that <see cref="Token"/> preserves as <c>VkXX</c> resolve back to the same code; a token this
+    /// catalog did not produce (or an empty binding) returns 0, which the caller treats as「这把键判不了
+    /// 长按」 and falls back to the old one-press-one-jump behavior.
+    /// </para>
+    /// </summary>
+    public static int KeyCode(string token) => KeyCodes.TryGetValue(token, out var key) ? key : 0;
+
+    private static readonly Dictionary<string, int> KeyCodes = BuildKeyCodes();
+
+    private static Dictionary<string, int> BuildKeyCodes()
+    {
+        var map = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var key = 1; key <= 0xFF; key++)
+        {
+            foreach (var extended in new[] { false, true })
+            {
+                if (Token(key, extended) is { } token) map.TryAdd(token, key);
+            }
+        }
+        return map;
+    }
+
     public static string? Token(int key, bool extended = false)
     {
         if (key is >= 0x41 and <= 0x5A) return ((char)key).ToString();

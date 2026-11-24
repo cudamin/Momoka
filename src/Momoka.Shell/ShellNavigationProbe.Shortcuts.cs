@@ -104,7 +104,7 @@ internal sealed partial class ShellNavigationProbe
             var clear = Get<Button>(page, "ClearShortcutSearchButton");
             var input = Descendants(search).OfType<TextBox>().Single();
             Require(originalRows.Count == ShortcutCatalog.Actions.Count, "初始快捷键目录不完整");
-            Require(allRows.Count == originalRows.Count + 8, "可改动作之外应只有四行步长、三条回退键说明行和恢复入口");
+            Require(allRows.Count == originalRows.Count + 9, "可改动作之外应只有五行附注、三条回退键说明行和恢复入口");
             Require(shortcutCards.Count == 13, $"快捷键页应当分十三张卡，实际 {shortcutCards.Count} 张");
             Require(Fixed("退出全屏 / 退出播放")?.Value == "Esc", "Esc 回退键说明行缺失或键值不对");
             Require(Fixed("关闭跳过片头 / 片尾提示")?.Value == "Del", "Del 回退键说明行缺失或键值不对");
@@ -125,6 +125,17 @@ internal sealed partial class ShellNavigationProbe
                     $"{label} 没有紧跟在 {actionId} 下面，或不是从属行");
             }
             Require(search.ActualWidth > 200 && clear.Visibility == Visibility.Collapsed, "搜索框过窄或空查询仍显示清空按钮");
+            // 2026-11-24 用户令「在快退和快进下方新增，快进跨度（倍），长按箭头以这个倍速播放」：第五行附注
+            // 跟在前面的「快进跨度（秒）」下面，仍是从属行，范围 2～10、值来自 PlaybackSettings 那一格。
+            var multiplier = allRows.FindIndex(row => row is SettingNumberRow number && number.Label == "快进跨度（倍）");
+            Require(multiplier > 0 && allRows[multiplier] is SettingNumberRow { IsSubordinate: true } number
+                && number.Minimum == PlaybackSettings.MinimumSeekHoldMultiplier
+                && number.Maximum == PlaybackSettings.MaximumSeekHoldMultiplier
+                && number.Value == fixture.Settings.Playback.SeekForwardHoldMultiplier
+                && number.Note == "长按箭头以这个倍速播放",
+                "快进跨度（倍）没有挂在快进下面，或范围、初值、说明不对");
+            Require(multiplier > 0 && allRows[multiplier - 1] is SettingNumberRow { Label: "快进跨度（秒）" },
+                "快进跨度（倍）没有紧跟在快进跨度（秒）下面");
             await SaveShortcutScreenAsync($"settings-shortcut-search-all-{width}-screen.png");
 
             await QueryAsync("字幕");
@@ -229,7 +240,7 @@ internal sealed partial class ShellNavigationProbe
             ((IInvokeProvider)new ButtonAutomationPeer(clear).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
             Require(search.Text.Length == 0 && Shown().Count() == ShortcutCatalog.Actions.Count, "清空搜索没有恢复完整列表");
-            Require(AllRows().Count == ShortcutCatalog.Actions.Count + 8
+            Require(AllRows().Count == ShortcutCatalog.Actions.Count + 9
                 && Fixed("退出全屏 / 退出播放") is not null
                 && Fixed("关闭跳过片头 / 片尾提示") is not null
                 && Fixed("确认跳过片头 / 片尾") is not null,

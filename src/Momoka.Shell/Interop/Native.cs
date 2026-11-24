@@ -538,6 +538,17 @@ internal static partial class Native
     /// </summary>
     public static bool LeftButtonDown() => (GetAsyncKeyState(VkLeftButton) & 0x8000) != 0;
 
+    /// <summary>
+    /// Whether a virtual key is physically down this instant (2026-11-24, 长按 ← / → 倍速与连续快退).
+    /// <para>
+    /// 集成模式有 KeyUp 可听；内置独占窗口只有 mpv 转发来的「按了这个动作」，没有松开。拿着动作当刻的
+    /// 绑定去问键盘本身，是两条管线唯一一个共同、且不会把「窗口失焦漏了 KeyUp」变成卡在倍速上的答案。
+    /// 键码超出 1～0xFF 或绑定不是一个具体键时返回 false，调用方按「判不了长按」退回单击跳秒。
+    /// </para>
+    /// </summary>
+    public static bool KeyDown(int virtualKey) =>
+        virtualKey is > 0 and <= 0xFF && (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+
     private const int VkLeftButton = 0x01;
     private const int VkRightButton = 0x02;
 

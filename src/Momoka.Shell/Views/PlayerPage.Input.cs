@@ -622,7 +622,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     {
         if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
 
-        if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return;
+        if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey, e.KeyStatus.WasKeyDown)) return;
 
         e.Handled = true;
         _lastDispatchedKeyEvent = e;
@@ -648,11 +648,22 @@ public sealed partial class PlayerPage : IWin32KeySink
         if (e.Handled && FocusManager.GetFocusedElement() is ButtonBase or Slider
             && !HasExplicitShortcutBinding(e.Key, e.KeyStatus.IsExtendedKey) && !skipFallback) return;
 
-        if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey)) return;
+        if (!Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey, e.KeyStatus.WasKeyDown)) return;
         e.Handled = true;
         _lastDispatchedKeyEvent = e;
         if (wake && _cursorHidden) _woke = $"按键 {e.Key}";
         if (wake && _chrome.WakeFully(Now)) Render();
+    }
+
+    /// <summary>
+    /// 集成模式的松开一路（2026-11-24 长按 ← / →）：按下开始等长按，松开立刻收尾。Root 用
+    /// handledEventsToo 接，是因为方向键可能先被滑杆之类的控件标记 handled；我们要的是「这颗键不在了」
+    /// 这一件事实，不是那一下该归谁执行。
+    /// </summary>
+    private void OnRootKeyUp(object sender, KeyRoutedEventArgs e)
+    {
+        if (!Attached || _window is null || _inputSuspended) return;
+        ViewModel.ReleaseSeekKey((int)e.Key);
     }
 
     private KeyRoutedEventArgs? _lastDispatchedKeyEvent;
@@ -684,7 +695,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// 其余键走可重绑那张表：认不出的键、查不到动作、或没有处理器的，返回 false，那一下照旧不被吃掉。
     /// </para>
     /// </summary>
-    private bool Dispatch(VirtualKey key, out bool wakeChrome, bool extended = false)
+    private bool Dispatch(VirtualKey key, out bool wakeChrome, bool extended = false, bool repeated = false)
     {
         var token = KeyStrokeInterop.Token(key, extended);
         var stroke = token is null
@@ -724,7 +735,7 @@ public sealed partial class PlayerPage : IWin32KeySink
                 return true;
 
             default:
-                return ShortcutCommand(key, out wakeChrome, extended);
+                return ShortcutCommand(key, out wakeChrome, extended, repeated);
         }
 
         wakeChrome = true;
@@ -732,7 +743,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     }
 
     /// <summary>Dispatch 的后半截：可重绑那张表的查找与执行。单独一个方法只是为了让上面的 switch 能提前返回。</summary>
-    private bool ShortcutCommand(VirtualKey key, out bool wakeChrome, bool extended = false)
+    private bool ShortcutCommand(VirtualKey key, out bool wakeChrome, bool extended = false, bool repeated = false)
     {
         wakeChrome = true;
 
@@ -752,6 +763,20 @@ public sealed partial class PlayerPage : IWin32KeySink
             return true;
         }
         if (action is null) return false;
+
+        // 长按 ← / →（2026-11-24）：单击照旧跳秒，按住半秒后 → 倍速、← 连续快退。视图模型拿着这一按
+        // 的物理键去问 OS「还按着没有」，所以两条管线（这里的 KeyDown 与独占窗口的 momoka-shortcut）
+        // 走的是同一段判据；自动重复就到这儿为止，不再每一条都跳一次。
+        if (SeekHold.IsSeek(action))
+        {
+            wakeChrome = WakesChrome(action);
+            ViewModel.NoteSeekKeyPress(action, (int)key, repeated);
+            return true;
+        }
+
+        // 别的快捷键按下来时，先把还按着的方向键收尾：→ 的临时倍速要还原，← 的连续快退要停。
+        ViewModel.CancelSeekHold();
+
         if (!ShortcutHandlers.TryGetValue(action, out var run))
         {
             wakeChrome = WakesChrome(action);
