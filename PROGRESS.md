@@ -8,7 +8,7 @@
 
 **探针与边界。** 为核对设置页新增行，另发到 `artifacts/probe-hold/publish/win-x64`（548 文件、290.8 MB，发布验证通过）跑 `--probe-section shortcuts`。补上快退倍率后在副屏 `--screen 2` **5/5 通过、退出 0**（`shell-probe-20261124-122816004-11824`），1100／760 两档截图都拍到「快退跨度（倍）」「快进跨度（倍）」各自缩进挂在同向步长下。早前主屏被前台 Chrome 遮住像素采样、副屏一次窄窗抓键框偶发 `Single` 无匹配，均按环境差异记录、未改断言洗绿。真实播放的物理长按（→ 倍速、松手回原速、← 按快退倍率连续快退、暂停态、独占窗口与集成模式各一遍）仍未人工实测；菜单打开时 forced binding 被撤、极快两次单击被 pending 吞掉属已知取舍。
 
-**提交与发布。** 产品提交 `65fc235`（快进倍率）与 `fd2ce8d`（补快退倍率）。主树 `artifacts/publish/win-x64` 与桌面 `Momoka.lnk` 未刷新：`Momoka.exe`（PID 32704，旧发布件）仍在运行，等待 30 秒未退出，按规则未结束进程；快捷方式仍指向旧版，本轮新代码只在 `artifacts/probe-hold/publish/win-x64` 可体验。未推送远端。
+**提交与发布。** 产品提交 `65fc235`（快进倍率）与 `fd2ce8d`（补快退倍率）。用户令「你直接关」后关闭了仍占用旧发布目录的 `Momoka.exe`（PID 32704），`tools/publish.ps1 -NoArchive -Shortcut` 通过：**548 文件、290.8 MB**，批准 mpv 清单 60 文件；桌面 `C:\Users\89400\Desktop\Momoka.lnk` 的目标与工作目录回读为本树 `artifacts/publish/win-x64`。`Momoka.exe` 668,160 字节 SHA256 `BB9EEB5B…A5A0FC77`，`Momoka.dll` 10,477,056 字节 SHA256 `AC42CA8C…E3603A3939`，ProductVersion `0.3.2+e1dfbdb`。本轮新代码现在快捷方式直接可体验。未推送远端。
 
 ## 2026-11-24 音乐专辑悬停预览：1:1 方形封面，不再上下裁切
 
