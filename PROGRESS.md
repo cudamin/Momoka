@@ -10,6 +10,8 @@
 
 **未验与边界。** 日常未跑原生探针、未拍实屏：360 面板在 170 方卡上的撑开观感、322 方图与片名／艺术家／资料行的高度、窄窗 336/298 档、长专辑名两行、无艺术家或无简介、五套固定深色与跟随系统深浅、高对比、跨 DPI 和触控／指针移入移出，均留待统一验证。影视、订阅与音乐壁外的其他卡不受影响；未改服务器取图宽度与动图预览路径。
 
+**体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-musichover` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-musichover.lnk` 目标与工作目录均回读为本树发布目录。`Momoka.exe` 668,160 字节 SHA256 `3E68B810…45F177`，`Momoka.dll` SHA256 `9961C9E5…F18978`，ProductVersion `0.3.2+cf9e19f`；未启动窗口，留待用户直接点开体验。
+
 ## 2026-11-24 媒体库动图封面帧节奏：50ms 帧被定时器抬到 62ms，改按合成器帧预约
 
 用户报「媒体库封面的 gif 动画怎么感觉有点卡顿？」，同时要求新增工作树分支。分支 `fix-library-cover-gif-jank-7a2b1f`，工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka`，基点 `f0890cd`（master）；产品提交 `5c2b2fe`，记录提交 `47d8766`。用户令「合并」后以 `--no-ff` 合入 master，合并提交 `fdf6f47`；原分支、工作树与 `Momoka-gifjank.lnk` 已清理，未推远端。
