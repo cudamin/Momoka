@@ -8,7 +8,7 @@
 
 **验证。** 闸门 1 `tools/quality.ps1` **9/9**（`artifacts/quality/20261124-204106`；全方案 Release 编译 0 警告 0 错误、架构 7/7、重复 68 段／0.47%、diff 通过；新树首跑先因 76 个项目缺 assets 报 150 条 `NETSDK1004`，`dotnet restore Momoka.sln` 后余两条 `NavigationStateTests` 提取 `Release` 缺 `DetachSearchInput` 边界，补边界后通过）。Shell Release/x64 0 警告 0 错误。`Momoka.SearchLifetimeTests` **56/56**、`Momoka.MusicViewModelTests` **45/45**（新增两项音乐搜索框退格补偿：漏送抬起补删单字/选区、原生退格/组字/Ctrl 不重复且离页解除）、`Momoka.NavigationStateTests` **10/10**，均 0 失败 0 跳过。主测试 **5364 项、5360 通过、4 失败、0 跳过**，4 红均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关。真实 WinUI 体验：使用本机已登录音乐库（482 首，只读搜索，未播放/未写入），微软拼音输入 `hongdou` 确认「红豆」；普通退格只删一字（红豆→红），只送退格抬起时也能删掉「红」；Ctrl+A 后只送退格抬起清空选区；只送回车抬起把列表筛成「02 红豆」。截图在 `artifacts/verification/music-search-backspace/`（01 确认、02 普通退格、03 选区、04 抬起删选区、05/06 抬起删单字、07/08 回车抬起提交）。日常界面批未跑原生探针、未拍五主题/DPI/触摸矩阵。
 
-**体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-music-search-backspace` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-fix-music-search-backspace.lnk` 已回读本树 `artifacts/publish/win-x64/Momoka.exe` 与同目录工作路径。`Momoka.exe` 668,160 字节 SHA256 `CD70F505…D90CB61`，`Momoka.dll` SHA256 `0DA9810B…3D00DA862`，ProductVersion `0.3.2+6d17e02`。启动核对窗口 `Momoka` 响应正常；主树既有实例未触碰，已关闭本树实例。
+**体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-music-search-backspace` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-fix-music-search-backspace.lnk` 已回读本树 `artifacts/publish/win-x64/Momoka.exe` 与同目录工作路径。`Momoka.exe` 668,160 字节 SHA256 `202F727F…DAAD57`，`Momoka.dll` SHA256 `1BA7F255…FAB1E7`，ProductVersion `0.3.2+f8c9d06`。启动核对窗口 `Momoka` 响应正常；主树既有实例未触碰，已关闭本树实例。
 
 ## 2026-11-24 音乐专辑悬停预览：1:1 方形封面，不再上下裁切
 
