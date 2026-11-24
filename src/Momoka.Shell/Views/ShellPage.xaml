@@ -245,8 +245,8 @@
         </Grid>
 
         <!-- Gallery MainWindow.xaml at 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
-             标题栏用原生 AutoSuggestBox、Find 和 TextChanged/QuerySubmitted，适配现有窗口挖洞及搜索页生命周期。
-             Copyright (c) Microsoft Corporation. Licensed under the MIT License. -->
+             标题栏这颗只是进搜索页的入口（聚焦即跳转），输入在内容区那一只框里；它不接 TextChanged/QuerySubmitted。
+             适配现有窗口挖洞及搜索页生命周期。Copyright (c) Microsoft Corporation. Licensed under the MIT License. -->
         <AutoSuggestBox
             x:Name="TitleSearchBox"
             x:Uid="ShellPage_TitleSearchBox"

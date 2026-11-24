@@ -2415,11 +2415,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var shown = SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700;
         // 搜索页的输入在内容区（标题框点进来的那一只已经移到那里），标题栏这颗在这一页收起，离开再出现。
         var visible = shown && TitleSearchPage is null;
-        if (TitleSearchPage is null)
-        {
-            TitleSearchBox.Text = string.Empty;
-            TitleSearchBox.PlaceholderText = UiText.Translate("搜索媒体库、订阅等");
-        }
         TitleSearchBox.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
 
@@ -2590,10 +2585,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>
     /// The search page: the same grid as every library, with a term behind it instead of a folder.
     /// <para>
-    /// Three callers. 需求 1 的搜索键 opens it with nothing typed yet, and the page focuses its own box; the
-    /// box on that page re-queries in place rather than coming back through here; and a cast card on a detail
-    /// page arrives with a name already, because Emby's <c>People</c> entries carry a name and a portrait but
-    /// no browsable id, so a person's other work is a search and not a folder.
+    /// 标题栏那颗框和左上放大镜都走这里，进页时还没有词，光标由页面放进内容区的输入框；之后换词在那一页原地重查。
+    /// 带词的搜索页（人物、MoviePilot 资源与字幕）各自构造 <see cref="LibraryRequest.Search"/> 直接导航，不经过这里。
     /// </para>
     /// <para>
     /// A top-level destination with a tag of its own, so the trail and 「already there」 all behave the way
@@ -2602,19 +2595,18 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// up while search is showing.
     /// </para>
     /// </summary>
-    internal void OpenSearch(string term = "")
+    internal void OpenSearch()
     {
         if (_services is null) return;
 
-        var query = term.Trim();
-        if (query.Length == 0 && _current == LibraryRequest.SearchTag) return;
+        if (_current == LibraryRequest.SearchTag) return;
 
-        Log.Info(Category, query.Length == 0 ? "打开搜索页" : $"搜索：{query}");
+        Log.Info(Category, "打开搜索页");
 
         Open(
             typeof(LibraryPage),
-            LibraryRequest.Search(_services, query),
-            LibraryRequest.SearchTitle(query),
+            LibraryRequest.Search(_services),
+            LibraryRequest.SearchTitle(string.Empty),
             LibraryRequest.SearchTag);
     }
 

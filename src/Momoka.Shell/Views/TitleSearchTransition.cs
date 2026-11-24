@@ -65,7 +65,7 @@ internal static class TitleSearchTransition
         return true;
     }
 
-    internal static void Cancel(Frame? frame)
+    private static void Cancel(Frame? frame)
     {
         if (frame is null || !Tickets.TryGetValue(frame, out var ticket)) return;
         ticket.Resolve(started: false);

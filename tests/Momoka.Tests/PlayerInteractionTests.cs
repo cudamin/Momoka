@@ -88,8 +88,16 @@ internal static class PlayerInteractionTests
             // ↑↓ 会先被绑在方向键上的播放器动作抢走。豁免只认用户显式改绑，默认键仍遵循控件自己的语义。
             var input = File.ReadAllText(Path.Combine(
                 RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.Input.cs"));
-            Assert.Contains("FocusManager.GetFocusedElement() is ButtonBase or Slider", input);
+            Assert.Contains("FocusedElement is ButtonBase or Slider", input);
             Assert.Contains("HasExplicitShortcutBinding", input);
+
+            // WinUI 3 的无参 GetFocusedElement() 恒返回 null（靠 CoreWindow 的 API 桌面岛没有），
+            // 只能走 XamlRoot 重载。用错时窗口键盘兜底永远以为「岛内没人接键」，会把播放器快捷键里
+            // 的字母从搜索框手里抢走（2026-11-25 用户报搜索框无法直接输入字母）。
+            Assert.Contains("FocusManager.GetFocusedElement(root)", input);
+            Assert.DoesNotContain("FocusManager.GetFocusedElement() is", input);
+            // 播放层不在屏上时一概不接键，浏览页的输入框才拿得回自己的字母。
+            Assert.Contains("Visibility != Visibility.Visible", input);
 
             var page = File.ReadAllText(Path.Combine(
                 RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.xaml.cs"));
