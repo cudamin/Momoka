@@ -6,6 +6,9 @@
     <AssemblyName>Momoka.LibMpvEndFileTests</AssemblyName>
     <RootNamespace>Momoka.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <!-- CS0436 是这里故意链接 Core 源文件与 ProjectReference 并存的必然结果：夹具要执行本树逐字源码，
+         冲突时编译器采用源码副本，正是本项目的意图。只在编译本测试项目时抑制这一条，产品项目不抑制。 -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
