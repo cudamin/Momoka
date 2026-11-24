@@ -1,3 +1,27 @@
+## 2026-11-25 0.3.3 交付：设置页隐藏本机整理（闸门 1/2/3 通过；闸门 4 环境红；GitHub 发布受阻）
+
+用户令「0.这个版本（0.3.3）设置页面不显示本机整理相关功能，隐藏这个页面 1.交付，跑探针和闸门，有红自己决定要不要修 2.提交代码到github 3.更新版本为0.3.3打包发布到GitHub，生成一个微软商店商店安装包」。
+
+**目标代码与版本。** 主树 `master`，起点 `d9b506f`，版本由 `0.3.2` 升到 `0.3.3`／`0.3.3.0`（`Directory.Build.props`）。提交：`9de3721` 片尾夹具 CS0436 抑制、`414d8d9` 设置页隐藏本机整理、`91fb1e3` 版本号、`1ac57ae` 探针区分截图卡、`dcd7d58` 自检同步截图卡改名。交付开始时工作区干净，`origin/master` 落后本地 48 个提交。
+
+**本机整理隐藏。** `SettingsViewModel.SidebarCategories` 与 `FixedHostedCategories` 去掉「本机整理」，`SettingsPage.ShowHosted` 删除 `LocalMediaPage` 分支；页面、Core、后台监控与已配置的本地媒体库仍保留，已有本地库继续从首页打开。`ShellNavigationProbe.LocalMedia` 改为直接导航页面（不再要求设置分类存在）。`SettingsProbeContractTests` 新增「左栏无入口、不算内嵌页、旧分类退回主页」，40/40 通过；`docs/本机整理.md` 记录隐藏与恢复方式。`SettingsEnglish.json` 与分类图标映射保留，避免无谓删改。
+
+**探针修复。** 删除播放工具后快捷键页 2026-11-24 拆出「截图」卡，与播放行为的「截图」卡重名，`SettingsConditionalRowsAsync` 按标题取唯一卡报「Sequence contains more than one matching element」（宽窄两红）；改为按 `Category == "播放行为"` 限定，定向设置探针由 24/28 回到 **26/28**。`ShellSelfCheck.Settings`、`SettingsSearchTests` 与 `docs/弹幕与快捷键.md` 把旧名「截图与工具」同步为实际「截图」（播放工具已删除），自检「快捷键分区与步长」转绿。
+
+**闸门 1。** `tools/quality.ps1` 最终代码 **9/9**（`artifacts/quality/20261125-032825`：全方案 Release 0 警告 0 错误、空白、64 个脚本、183 篇文档链接、153 个命令块、凭据 0、架构 7/7、重复 68 段／1227 行／258125 行＝0.48%、diff 通过）。首跑 7/9，唯一红项是 `Momoka.LibMpvEndFileTests` 的既有 224 条 CS0436（链接 Core 源码与 ProjectReference 并存）；在该测试项目显式 `NoWarn CS0436` 并注释原因后转绿，产品项目不抑制。
+
+**闸门 2。** `Momoka.Tests` Release 全量 **5346/5346、0 失败 0 跳过**（`artifacts/delivery-gate2-main-0.3.3.log`）。`tools/run-regressions.ps1 -All -IncludeExternal` **82/82 套 passed、0 失败 0 跳过 0 deferred**（`artifacts/regressions/20261124-173211094-a33896b5c8b6471caddd28844b7dbce1/summary.json`，Node／Playwright／Edge DOM 实际运行；summary.head 为 `d9b506f`，源码树含未提交改动，随后已提交）。
+
+**探针。** 发布件全量 `--probe-shell --screen 1`：**225 项、191 过、34 红、4 项默认不跑、0 未执行**（`shell-probe-20261124-182514269-17880`）。34 红与 0.3.2 既有签名同类：滚动 offset=0／未完成、MoviePilot 背景/详情超时、弹幕热力像素、性能采样、动效像素与删除/返回时序；本机整理两项与「从属设置显隐动画（宽窄）」均通过，设置分区 26/28（两红为既有「设置搜索」超时与商店版式下「主页媒体库位置」取不到）。34 红明细保留在报告，不以布局断言当作像素通过。集成 `--probe-composition` 仍停在「没有检测到弹幕图层实际呈现的像素」（`composition-probe-20261124-194833460-37304`）；独占 `--probe-standalone-playback` **通过**（`standalone-playback-probe-20261124-194904330-21344`，真实窗口、同窗换片、关闭、重启与屏幕色彩变化均通过）。
+
+**闸门 3。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：**548 文件、290.7 MB**，14 GLSL、4 HOOK、批准 mpv 清单 60 文件；`Momoka.exe` 668,160 字节 SHA256 `A97800A48B3EFFC14CFC0FF7D2A0B85008B2440AF6EB10CD7E59664A16B76267`；`Momoka.dll` 10,411,008 字节 SHA256 `A0DD359961DB9E6ED4DAF01E962D28D5503D182A63AC1BE17BB60993A956683A`；`Momoka.Core.dll` SHA256 `3D02CCFF134D2124DD958736386236FE464F0BAB08C0EDB91E21DFF7A0EE292E`；`Momoka.pri` SHA256 `2D9493A6AAF0D23618269D3ED67B9226C5C0A0CF5EDC6EAC6441D47DBECEA30E`；ProductVersion `0.3.3+dcd7d587…`。桌面 `Momoka.lnk` 回读本树发布目录。
+
+**闸门 4（红，环境）。** `selfcheck-diff.ps1` 在最终代码上红：首次 191 项/4 红（含已修的「快捷键分区与步长」与「播放回来那一页」），修复后复跑 150 项/2 红、41 项消失；两轮共同红为「屏幕像素 — 整片 #16181C — XAML 岛没有合成任何东西」与「设置窗口底材 — 窗口没有材质，画布 255/255」。`--screen 1` 手动隔离复跑同样红。探针与自检的截图因此多为空白/纯色，不能作为视觉通过；本机无 XAML 合成，详情页检查未执行。按规则闸门 4 未过，GitHub 发布受阻；本机安装包、ZIP 与商店 MSIX 已生成，尚未上传。
+
+**产物（本地）。** 安装包 `artifacts/Momoka_windows-x64_0.3.3.exe`（85,135,348 字节，SHA256 `1d093451940d210c239cff56f4d133d7aaab3f71e882c12ac085b5b802efcd09`）；免安装 ZIP `artifacts/Momoka-0.3.3-win-x64.zip`（119,479,671 字节，SHA256 `b1ec999a9453f8c05e3407b7834013f48090beb3313871bf5be18ddbb7c17255`，550 条目，根目录含 `Momoka.exe`）；商店上架包 `artifacts/Momoka-0.3.3-win-x64-store.msix`（122,333,018 字节，SHA256 `083245ae7e4bcabd25c77df45a446f165a69bb041645fc5d38f41efd38e9e7fa`，554 条目，`MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.3.3.0`／x64，未签名，只留本地由用户在 Partner Center 上传）。`SHA256SUMS.txt` 只含 EXE 与 ZIP；商店 MSIX 不上传 Release。
+
+**远端与未验。** 代码已按本地提交提交，准备推送 `origin/master`；GitHub Release 与 `v0.3.3` 标签因闸门 4 红暂不创建，等待桌面恢复 XAML 合成后重跑闸门 4 再上传。真实 MoviePilot／Emby／Jellyfin／飞牛／Plex 实屏、真实播放/写入、五主题/系统深浅/高对比/跨 DPI/Narrator/触摸、商店包安装与 Partner Center 认证均未验；34 条探针红与集成播放弹幕像素红保留原状态。
+
 ## 2026-11-24 删除「播放工具」设置页与外部播放工具，保留截图、章节与实时字幕翻译
 
 用户令「删掉播放工具页面和相关功能」。按 `docs/播放菜单与工具.md`、Shell／播放技能核对边界：移除设置「播放工具」分类及视频导出／字幕同步／AI 字幕三张卡，以及依赖外部程序或截图裁切的右键工具（视频片段／GIF、字幕导出／同步／AI 字幕／整份字幕翻译、裁切截图与字幕区域拼图）；保留 mpv 原生当前画面截图、章节标记／编辑／导出与实时字幕翻译。
