@@ -16034,3 +16034,17 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 - 二改提交与发布：`31b107d`「补齐 MP 搜索页九组筛选分区与分组卡片」（14 文件 +287/−59）。提交后重跑 `tools/quality.ps1 -SkipBuild` 7/7 与 `check-diff` 通过；`tools/publish.ps1 -NoArchive -Shortcut` 退出 0（548 文件、290.7 MB、批准 mpv 清单 60 文件）。`Momoka.exe` SHA256 `96ACF564A3545E9A8886D88CBA9629F05401583FD75AC4EB153C38849B953497`，`Momoka.dll` SHA256 `10801F2F032EE952CD6E30B9C775869CA771E6AB89FF25CE8EEB8B39B9B1098A`，ProductVersion `0.3.1+31b107d514fcb789dc6f79ec7d6058c8a718b30e`；桌面快捷方式回读指向本树 `artifacts/publish/win-x64/Momoka.exe`。
 
 **合并与主树复验。** 用户令「合并到主树」。主树合并前干净、master `db97463`；以 `--no-ff` 合入 `fix-mp-search-page-VqkSeK`，合并提交 `9366aeb`，22 路径 +655/−118，无冲突。主树重编 Shell、Tests Release/x64 为 0 警告 0 错误；`Momoka.ResourceBrowserTests` **193/193**、主测试完整套件 **5350/5350、0 失败 0 跳过**（159405 ms）。首轮主测试 16 项自检隔离红，报「已有当前用户的自检运行中」，核对为另一路会话同时运行自检占用桌面互斥锁；锁释放后用同一构建整轮重跑全绿，首轮日志原样保留。合并本身不补跑闸门 1 与探针；未连真实 MoviePilot、未播放、未推送远端。主树未重新发布，`Momoka.lnk` 仍指向合并前的旧构建。分支桌面快捷方式已删除；工作树经扩展长度路径清理并 prune，`fix-mp-search-page-VqkSeK` 分支已删除。
+
+## 2026-11-24 商店详情卡片上限 1860 与背景图右沿再让 150（分支 feat-store-card-max-width-7gK2mQ，待统一验证）
+
+工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-store-card-max-width-7gK2mQ`，分支 `feat-store-card-max-width-7gK2mQ`，基点 `327e92f`，产品与测试提交 `b0657d6`；用户令「商店模式下 1.媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致 2.媒体详情页和订阅详情页的背景图与边框的最大间距增加150（最大化时／窗口宽度占满屏幕两边时候与窗口右侧的间距增加150，2k屏幕下）」。
+
+`DetailHero` 新增 `StoreCardMaxWidth = 1860` 与 `StoreCardCapGutter(pageWidth, cardEdgeInset, windowWidth)`：自然宽（页宽减两侧 `CardWindowGap` 170／300 与卡片页边留白）超过 1860 时给出「超出部分的一半」，两页在商店档把它叠进 `ContentGutterWidth`，头、尾、纸面、片名栏、角图与卡片同一条左沿一起收，卡片停在 1860 并居中；没到上限的窗口这一笔是 0，既有间距不动。沉浸、纸面与紧凑档不封顶。`HomePage.StoreContentMaxWidth` 改为读同一个常量（主页轮播 1860 不再另写一份字面值），订阅页 `StorePageWidth` 的装饰基准由 1840 收到 1860。`StorePreviewEdgeGap` 的全屏段额外让出 275 → 425、封顶 395 → 545。
+
+数值：2K 整窗 2560（无侧栏）卡片 1960 → 1860（每侧 350，与轮播同沿）；2K 展开侧栏、内容区 2304 时 1704 → 1704（未到上限，左右仍 300）；4K 一类内容区 3584 时 2984 → 1860（每侧 862）。背景图右沿：1920 67.2 不变、2240 215.9 → 290.9、2560 364.6 → 514.6、3840 395 → 545、6000 545。公式仍按内容区宽走，因此 2K 展开侧栏（2304）实际 245.6 → 335.6、侧栏收成 56（2504）338.9 → 475.4；`ViewModel.WindowWidth` 仍留窗口真实宽，剧照视口、环境底与淡墨仍贴窗口右沿。
+
+证据：Shell Release/x64 0 警告 0 错误；主测试 5362 项 5358 通过，4 红全是本机软链接权限（`Directory.CreateSymbolicLink` 参数错误，本机单独建链同样失败），与本批无关；`Momoka.MoviePilotSubscribeSettingsTests` 79/79；`Momoka.PageContractTests` 411/411；改动 C# 的 whitespace 检查退出 0。新增/更新 `DetailLayoutTests` 的 1860 封顶与 2240／2560／3840 空隙断言，`DetailShapeNotificationTests` 的 2560／3840 同沿断言，`SubscribeSettingsTests` 的 2560 封顶与沉浸不封顶断言。提交后最终代码 `tools/quality.ps1` 再跑一轮 9/9（`artifacts/quality/20261124-142352`，编译 0 警告 0 错误、格式、脚本、文档链接与命令、凭据扫描、架构、重复代码、Git 变更全过）。
+
+体验发布：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-store-card-max-width-7gK2mQ` 通过（548 文件／290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件）；`libmpv-2.dll` 从主树复制，前后 SHA256 均为登记的 `FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`。桌面 `Momoka-feat-store-card-max-width-7gK2mQ.lnk` 已回读指向本树 `artifacts/publish/win-x64/Momoka.exe`；`Momoka.exe` SHA256 `68A4037951ACBD2F375066CBA71C381A938C3C690B28698261829F22D8A7DF68`，`Momoka.dll` SHA256 `E234A1032D8FF2A6A91AB55702DD9D188886C7996EED117C9A5593546951F9DF`，ProductVersion `0.3.2+b0657d6`。已启动本树构建，`Momoka` 顶层窗口出现且可响应；未登录、未播放、未写服务器。
+
+留待统一验证：真实 2K 最大化展开／收成侧栏两态与 4K／超宽窗口的实屏，卡片 1860 与主页轮播同左沿、背景图右沿新空隙的实际观感；1240／1600／2304／2560 往返、五套固定深色与跟随系统深浅、高对比、跨 DPI；剧照再左移后与头部文字的实际叠压。未跑原生探针与截图，不合并、不上传、不销账。
