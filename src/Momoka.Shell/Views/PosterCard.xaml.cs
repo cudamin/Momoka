@@ -933,7 +933,10 @@ public sealed partial class PosterCard : UserControl
         var content = (UIElement)XamlRoot!.Content;
         var rootWidth = content is FrameworkElement page ? page.ActualWidth : 0;
         var rootHeight = content is FrameworkElement frame ? frame.ActualHeight : 0;
-        var width = Math.Min(PreviewWidth, Math.Max(PreviewMinWidth, rootWidth - (PreviewMargin * 2)));
+        // 音乐专辑的封面是正方形，面板比影视窄一档；宽窗口不给它继续长高。
+        var preferredWidth = Card?.Item.Type == EmbyItemType.MusicAlbum
+            ? CardPreviewPlacement.AlbumPreviewWidth : PreviewWidth;
+        var width = Math.Min(preferredWidth, Math.Max(PreviewMinWidth, rootWidth - (PreviewMargin * 2)));
 
         // Popup 偏移使用窗口坐标，居中与动画起点都使用不含标题的真实封面矩形。
         var origin = Root.TransformToVisual(content).TransformPoint(new Windows.Foundation.Point(0, 0));
@@ -944,7 +947,8 @@ public sealed partial class PosterCard : UserControl
         _preview.MinHeight = Math.Max(Root.ActualHeight, 0);
         _preview.Show(Card!);
 
-        // 量一遍才知道面板多高：图是固定的 2:1，字有几行却不一定（简介两行封顶，续播那块时有时无）。
+        // 量一遍才知道面板多高：影视图是固定的 2:1，专辑是 1:1 正方形；字有几行却不一定
+        // （简介两行封顶，续播那块时有时无）。
         _preview.Measure(new Windows.Foundation.Size(width, double.PositiveInfinity));
         var height = _preview.DesiredSize.Height;
 

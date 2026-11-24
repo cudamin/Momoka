@@ -46,6 +46,9 @@ public sealed partial class CardPreview : UserControl
 
     /// <summary>订阅模式下正被画的那张订阅卡；与 <see cref="_card"/> 二选一。</summary>
     private MoviePilotSubscriptionCard? _subscription;
+
+    /// <summary>音乐专辑的封面是正方形：媒体视口按 1:1 量，不把图上下裁掉。</summary>
+    private bool _album;
     private bool _running;
     private bool _shown;
     private int _generation;
@@ -103,7 +106,16 @@ public sealed partial class CardPreview : UserControl
     {
         Width = width;
         Height = double.NaN;
-        Media.MinHeight = CardPreviewPlacement.MediaHeight(Math.Max(0, width - (PanelPadding * 2)));
+        ApplyMediaHeight();
+    }
+
+    /// <summary>影视是 2:1 的宽条；音乐专辑按 1:1 的正方形封面量，不上下裁切。</summary>
+    private void ApplyMediaHeight()
+    {
+        var inner = Math.Max(0, Width - (PanelPadding * 2));
+        Media.MinHeight = _album
+            ? CardPreviewPlacement.SquareMediaHeight(inner)
+            : CardPreviewPlacement.MediaHeight(inner);
     }
 
     internal void Show(CardItem card)
@@ -118,11 +130,15 @@ public sealed partial class CardPreview : UserControl
             _card = card;
         }
         _subscription = null;
+        _album = card.Item.Type == EmbyItemType.MusicAlbum;
+        ApplyMediaHeight();
         SubscriptionBlock.Visibility = Visibility.Collapsed;
         LogoImage.Source = null;
         LogoSlot.Visibility = Shown(ItemArtwork.Plate(card.Item) is not null);
         TitleText.Text = card.Title;
         ApplyFacts(card.Item);
+        ArtistText.Text = _album ? card.Subtitle : "";
+        ArtistText.Visibility = Shown(_album && ArtistText.Text.Length > 0 && ArtistText.Text != MetaText.Text);
         ResumeText.Text = CardPreviewText.Resume(card.Item);
         ResumeBlock.Visibility = Shown(ResumeText.Text.Length > 0);
         ResumeProgress.Value = CardPreviewText.Progress(card.Item);
@@ -156,6 +172,10 @@ public sealed partial class CardPreview : UserControl
         LogoSlot.Visibility = Visibility.Collapsed;
         LogoImage.Source = null;
         TitleText.Text = card.Title;
+        _album = false;
+        ApplyMediaHeight();
+        ArtistText.Text = "";
+        ArtistText.Visibility = Visibility.Collapsed;
         ApplySubscriptionFacts(card);
         ResumeBlock.Visibility = Visibility.Collapsed;
         SubscriptionBlock.Visibility = Visibility.Visible;
@@ -526,6 +546,7 @@ public sealed partial class CardPreview : UserControl
         StopTrailer();
         _card = null;
         _subscription = null;
+        _album = false;
         Panel.Visibility = Visibility.Collapsed;
         PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;
     }
