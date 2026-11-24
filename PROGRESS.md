@@ -1,3 +1,19 @@
+## 2026-11-24 媒体库动图封面帧节奏：50ms 帧被定时器抬到 62ms，改按合成器帧预约
+
+用户报「媒体库封面的 gif 动画怎么感觉有点卡顿？」，同时要求新增工作树分支。分支 `fix-library-cover-gif-jank-7a2b1f`，工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka`，基点 `f0890cd`（master）；产品提交 `5c2b2fe`。主树 `C:\Users\89400\Momoka` 保持干净，分支未合并、未推远端。
+
+**先纠正对象。** 扫 `%LOCALAPPDATA%\Momoka` 全部文件，GIF 数量为 0；图片缓存里是同一张 APNG 的 4 份副本（`4-Primary-…-480.img`，1,501,156 字节，解析为 250×125、96 帧、每帧 50ms、无限循环）。用户说的「gif」实际是服务器返回、`AnimatedPoster` 接管的 APNG 封面；WinUI 原生 GIF 路径未改。`PosterLoader` 对动图仍 `DecodePixelWidth=0`，原生分辨率的产品决定不动。
+
+**根因。** `AnimatedPoster.PlayAsync` 原来用 `Task.Delay(remaining)` 排下一帧，等待落在线程池约 15.6ms 的系统定时节拍上。`Start-Sleep -Milliseconds 50` 实测 40 次为 56.6–75.4ms（平均 62.4），`NtQueryTimerResolution` 虽报 1ms 也不改线程池等待粒度。逐帧日志实测修前 166 个稳态帧平均 62.2ms、p50 62、p90 63、165 帧 ≥60、范围 55–76ms，即 20fps 片源实际约 16fps。解码不是瓶颈：`AnimatedPngFrames.OpenAsync` 约 4ms/全片，单帧平均 0.74–0.78ms、p90 约 1.0ms、最大 2.9ms；WIC 对该 APNG 的 `FrameCount=1`，自建逐帧路径仍必要。
+
+**改法。** `PlayAsync` 去掉 `Task.Delay`，新增私有静态 `FrameClock`：首帧立即落笔，之后按绝对截止时间 `due = Math.Max(due + delayTicks, paintedAt + delayTicks)` 累计，避免长卡顿后追帧爆发；`WaitAsync` 在临近截止（提前约 5ms）时直接落笔，否则登记到静态等待表并只在有等待者时订阅 `CompositionTarget.Rendering`，回调里按截止时间取走到期者，清空即退订。`TaskCompletionSource` 故意不加 `RunContinuationsAsynchronously`，让落笔在同一次渲染回调内完成；取消只 `TrySetCanceled`，由等待方在 UI 线程 `finally` 移除预约，不跨线程动 WinUI 静态事件。`MinimumFrameDelay=33ms`、解码槽、活动槽、画面预算、有限循环尾帧持有、悬浮预览复用均未改。
+
+**实测。** 同窗口修后 167 个稳态帧平均 50.7ms、p50 49、p90 56、p99 56、仅 1 帧 ≥60、最大 60、最小 46。日志：修前 `%LOCALAPPDATA%\Momoka\logs\app-20261124-000023.log`，修后 `app-20261124-000025.log`。专项 `Momoka.DetailImageArrivalTests` 40/40、0 失败 0 跳过；新增「动图帧只按合成器节奏推进，静止时不靠线程池定时器补帧」，校验等待期订阅=1、静置 150ms 不送帧时不得多画一帧、送帧后第二帧落地、离树后订阅=0；`CompositionTarget` 替身与 `UiPump` 60Hz 送帧入测试边界。`docs/技术文档.md` 9.6 与 `docs/开发与验证.md` 同名小节已记录改法、数据与边界。
+
+**闸门与发布。** 首次 `tools/quality.ps1` 在新工作树因 76 个项目缺 `obj/project.assets.json` 报 `NETSDK1004`，7/9；`dotnet restore Momoka.sln`（默认配置，不带 `-p:Platform=x64`，否则 `MSB4126`）还原 80 个项目后重跑 9/9（`artifacts/quality/20261124-162537`），编译 0 警告 0 错误，架构 7/7、重复代码 0.47%。发布从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-gifjank` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-gifjank.lnk` 回读指向本树 `artifacts/publish/win-x64/Momoka.exe`。`Momoka.exe` 668,160 字节 SHA256 `15F84290293B5A2EEB3DA6975211504690199FDC51938335281EA341009248A8`，`Momoka.dll` 10,448,384 字节 SHA256 `95D0B1E4C83A99D63A8C9E3267A6D90F84073E8D6AD5E4F88192457B84BF5254`，ProductVersion `0.3.2+5c2b2fe`；启动后窗口 `Momoka` 响应正常并已退出。
+
+**待统一验证。** 实屏看 20fps 观感、五套固定深色与跟随系统深浅、高对比、跨 DPI／窄窗、24 张网格与悬浮预览同时播放；合成器节拍下 60Hz 屏的理论上限仍是 20fps，不能承诺比片源更顺。后端只返回静图时仍不能当动图；GIF 原生路径未纳入本批。
+
 ## 2026-11-24 订阅悬停预览：右上角「编辑订阅」与去掉订阅状态行
 
 用户令「右上角添加一个编辑订阅按钮」，随后「去掉 订阅状态 订阅中 那一行」。都落在前一天刚接上的订阅悬停预览 `CardPreview` 上。
