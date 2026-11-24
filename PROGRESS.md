@@ -16047,7 +16047,7 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 
 **合并与主树复验。** 用户令「合并到主树」。主树合并前干净、master `db97463`；以 `--no-ff` 合入 `fix-mp-search-page-VqkSeK`，合并提交 `9366aeb`，22 路径 +655/−118，无冲突。主树重编 Shell、Tests Release/x64 为 0 警告 0 错误；`Momoka.ResourceBrowserTests` **193/193**、主测试完整套件 **5350/5350、0 失败 0 跳过**（159405 ms）。首轮主测试 16 项自检隔离红，报「已有当前用户的自检运行中」，核对为另一路会话同时运行自检占用桌面互斥锁；锁释放后用同一构建整轮重跑全绿，首轮日志原样保留。合并本身不补跑闸门 1 与探针；未连真实 MoviePilot、未播放、未推送远端。主树未重新发布，`Momoka.lnk` 仍指向合并前的旧构建。分支桌面快捷方式已删除；工作树经扩展长度路径清理并 prune，`fix-mp-search-page-VqkSeK` 分支已删除。
 
-## 2026-11-24 商店详情卡片上限 1860 与背景图右沿再让 150（分支 feat-store-card-max-width-7gK2mQ，待统一验证）
+## 2026-11-24 商店详情卡片上限 1860 与背景图右沿再让 150（已合并 master，待统一验证）
 
 工作树 `C:/Users/89400/.trae-cn/worktrees/Momoka/feat-store-card-max-width-7gK2mQ`，分支 `feat-store-card-max-width-7gK2mQ`，基点 `327e92f`，产品与测试提交 `b0657d6`；用户令「商店模式下 1.媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致 2.媒体详情页和订阅详情页的背景图与边框的最大间距增加150（最大化时／窗口宽度占满屏幕两边时候与窗口右侧的间距增加150，2k屏幕下）」。
 
@@ -16059,4 +16059,6 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 
 体验发布：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-store-card-max-width-7gK2mQ` 通过（548 文件／290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件）；`libmpv-2.dll` 从主树复制，前后 SHA256 均为登记的 `FE583AF31036BF3F3ADACF6659E1BD448B568091B0334675573A3E303EC89D17`。桌面 `Momoka-feat-store-card-max-width-7gK2mQ.lnk` 已回读指向本树 `artifacts/publish/win-x64/Momoka.exe`；`Momoka.exe` SHA256 `68A4037951ACBD2F375066CBA71C381A938C3C690B28698261829F22D8A7DF68`，`Momoka.dll` SHA256 `E234A1032D8FF2A6A91AB55702DD9D188886C7996EED117C9A5593546951F9DF`，ProductVersion `0.3.2+b0657d6`。已启动本树构建，`Momoka` 顶层窗口出现且可响应；未登录、未播放、未写服务器。
 
-留待统一验证：真实 2K 最大化展开／收成侧栏两态与 4K／超宽窗口的实屏，卡片 1860 与主页轮播同左沿、背景图右沿新空隙的实际观感；1240／1600／2304／2560 往返、五套固定深色与跟随系统深浅、高对比、跨 DPI；剧照再左移后与头部文字的实际叠压。未跑原生探针与截图，不合并、不上传、不销账。
+**合并与主树复验。** 用户令「合并到主树」。主树合并前干净、master `c90f83f`；以 `--no-ff` 合入 `feat-store-card-max-width-7gK2mQ`，合并提交 `5722c29`，11 路径 +171/−29，`PROGRESS.md` 与台账两处自动合并、无冲突。主树最终整合代码闸门 1 **9/9**（`artifacts/quality/20261124-143535`，编译 0 警告 0 错误）；主测试 5362 项 **5358 通过、4 红**，仍是本机软链接权限（`CreateSymbolicLink`「参数错误」）；离线专项 `run-regressions.ps1 -All` 82 套 **78 通过／3 失败／1 deferred**（`artifacts/regressions/20261124-064348401-2e2f318055094abcbe4f7adf514a4426`）：`Momoka.Tests` 同上 4 红，`Momoka.ResourceBudgetTests` 169/173（4 条重解析夹具因建链失败，报 alias／logs 不存在），`Momoka.AtomicFileWriteTests` 34/35（reader 跨提交读到 `FileNotFoundException`，同构建定向复跑 35/35 全过，首轮日志保留），`Momoka.ServerSettingsTabs.Tests` 外部 DOM 未提供前置、记 deferred；页面契约 411/411、订阅设置 79/79 在汇总内通过。主树体验包已刷新：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka` 通过（548 文件／290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件），`Momoka.lnk` 回读指向本树 `artifacts/publish/win-x64/Momoka.exe`；`Momoka.exe` SHA256 `3826711DD9CF9FE465FA0DFEE7AA90DFF2BC699F99F75B8D12FFDB519FE5D7F8`，`Momoka.dll` SHA256 `4F6C42608F7314B16F2AFE26D6E001D296E14F990DB5E042A5F71C87396B8E02`，ProductVersion `0.3.2+5722c29`。启动核对：首轮进程表里只有另一会话的实例（`C:\Users\89400\.codex\worktrees\4888\Momoka` 的 0.3.1 构建），主树构建窗口未取得，未结束他人进程；待其退出后重试，`Momoka` 顶层窗口出现、`Responding=True`，未登录、未播放。分支桌面快捷方式已删除，工作树经扩展长度路径清理并 `prune`，分支已删除。未连真实服务器、未播放、未推送远端。
+
+留待统一验证：真实 2K 最大化展开／收成侧栏两态与 4K／超宽窗口的实屏，卡片 1860 与主页轮播同左沿、背景图右沿新空隙的实际观感；1240／1600／2304／2560 往返、五套固定深色与跟随系统深浅、高对比、跨 DPI；剧照再左移后与头部文字的实际叠压；主树构建里两页实看。未跑原生探针与截图；已合并 master（`5722c29`），未推送、不销账。
