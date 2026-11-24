@@ -1,3 +1,15 @@
+## 2026-11-24 快捷键页新增「快进跨度（倍）」：长按箭头转倍速，两条管线共用
+
+用户拿「设置 → 快捷键」截图令「在快退和快进下方新增，快进跨度（倍）长按箭头以这个倍速播放」。四问确认后定为：单击 ←／→ 仍跳「跨度（秒）」；按住约半秒后 → 改按倍率播放、松手回到按下前速度；← 不改变播放速度，只按同一倍率连续快退；范围 2～10、默认 2；集成与独占两条管线都生效。
+
+**实现。** Core 新增 `PlaybackSettings.SeekForwardHoldMultiplier`（默认 2，夹在 2～10，`SettingsMigration.Normalize` 一并规整）与纯函数 `SeekHold`：`Forward`／`Backward` 动作名、500ms 转倍速、50ms 轮询、← 每 200ms 退 `倍率 × 0.2s`。`ShortcutKeyCatalog.KeyCode` 从持久化 token 反查虚拟键码，供独占管线核对物理键是否仍按下。Shell 新增 `PlayerViewModel.SeekHold.cs`：首按照常跳秒并进入 pending，同动作的重复消息吞掉；满 500ms 且键仍按下 → 开始长按，→ 记下 `SpeedValue` 并 `SetSpeed(倍率)`，← 按 200ms 步长循环相对 seek；松手／停止／换片／离开页面还原原速度（不弹提示）。`Native.KeyDown` 用 `GetAsyncKeyState` 读物理键态；`RunNativeShortcut` 的 seek 动作改走 `NoteNativeSeek`；`PlayerPage` 的键盘与 Root `handledEventsToo` 处理器分别接按下、重复与 KeyUp。设置页把四行秒数附注改成按快捷键分组的字典，在「快进跨度（秒）」后再挂「快进跨度（倍）」从属行（缩进 20、2～10、默认 2、说明「长按箭头以这个倍速播放」）；搜索命中动作或任一秒数／倍率附注时整组一起显示。英文词典与 `docs/弹幕与快捷键.md` 同步。
+
+**验证。** Shell Release／x64 **0 警告 0 错误**；`Momoka.Tests` **5366 项、5362 通过、4 失败、0 跳过**，4 条均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红。新增断言覆盖「半秒才转倍速、← 每步按倍率往回走、只认两颗短跳箭头」与「快捷键 token 反查键码」，均通过；`settings-search-fixture` **18/18**，`settings-page-state-fixture` **83/83**。自检与探针同步增加倍率行的位置、从属、范围与说明断言。
+
+**探针与边界。** 为核对设置页新增行，另发到 `artifacts/probe-hold/publish/win-x64`（548 文件、290.8 MB，发布验证通过）跑 `--probe-section shortcuts`。主屏 `shell-probe-20261124-120225420-15860` 前两项（1100／760 快捷键搜索、改绑、空态与恢复）**通过**，后三项被前台 Chrome 遮住像素采样；副屏 `shell-probe-20261124-120509052-27868` 过四项，760 窄窗在「Ctrl + F9」之后的抓键框断言报 `Single` 无匹配，同一构建在主屏 760 已通过，副屏旧发布件窄窗也有既存红，按环境差异记录，未改断言洗绿。真实播放的物理长按（→ 倍速、松手回原速、← 连续快退、暂停态、独占窗口与集成模式各一遍）仍未人工实测；菜单打开时 forced binding 被撤、极快两次单击被 pending 吞掉属已知取舍。
+
+**提交与发布。** 产品提交 `65fc235`。主树 `artifacts/publish/win-x64` 与桌面 `Momoka.lnk` 未刷新：`Momoka.exe`（PID 32704，旧发布件）仍在运行，等待 30 秒未退出，按规则未结束进程；快捷方式仍指向旧版，本轮新代码只在 `artifacts/probe-hold/publish/win-x64` 可体验。未推送远端。
+
 ## 2026-11-24 音乐专辑悬停预览：1:1 方形封面，不再上下裁切
 
 用户报「重新设计主页音乐列表的悬浮，音乐专辑都是正方形的，下面都被裁切了」，并要求新增工作树分支。分支 `fix-home-music-hover-9c4d2e`，工作树 `C:/Users/89400/.doubao/worktrees/musichover/Momoka`，基点 `2eb6bfb`（master）。
