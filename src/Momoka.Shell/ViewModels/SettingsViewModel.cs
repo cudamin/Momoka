@@ -2801,8 +2801,9 @@ public sealed partial class SettingsViewModel : PageViewModel
             }
 
             row.Value = UiText.Format("发现新版本 {0}", release.VersionText);
+            // 措辞与启动时那一趟共用 Core 的模板：两处各写一句，改了一处另一处就会留在旧版。
             if (await ConfirmAsync(UiText.Translate(UpdateNotice.Title),
-                    UiText.Format("Momoka {0} 已发布，当前是 {1}。是否打开下载页？", release.VersionText, current.ToString(3)),
+                    UiText.Format(UpdateNotice.PromptFormat, release.VersionText, current.ToString(3)),
                     UiText.Translate(UpdateNotice.OpenLabel))
                 .ConfigureAwait(true))
                 OpenReleasePage(release);

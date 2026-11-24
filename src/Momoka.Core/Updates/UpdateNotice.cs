@@ -25,11 +25,18 @@ public static class UpdateNotice
     public const string Failed = "检查失败";
 
     /// <summary>
-    /// 「Momoka 0.1.7 已发布，当前是 0.1.6。是否打开下载页？」—— 两边各是哪一版都写出来，用户才知道要不要去下。
-    /// 只说「有新版本」的话，用户手上这一版是多少、新的是多少都得自己猜。
+    /// 「Momoka 0.1.7 已发布，当前是 0.1.6。是否打开下载页？」加一段去向 —— 两边各是哪一版都写出来，用户才知道
+    /// 要不要去下；第二段写「设置 → 关于」里那个开关的名字，想关掉这类提示的人不用猜它在哪儿（2026-11-24 用户令）。
+    /// 带 <c>{0}</c>（新版）与 <c>{1}</c>（手上这一版）两个占位：设置页要按英文词典翻译这一句，得拿到模板本身，
+    /// 所以模板单独露出来，成品只由 <see cref="Prompt"/> 填。
     /// </summary>
+    public const string PromptFormat =
+        "Momoka {0} 已发布，当前是 {1}。是否打开下载页？\n\n"
+        + "设置 → 关于 里可以打开或关闭「" + ToggleLabel + "」，关掉后启动时不再提示。";
+
+    /// <summary>「Momoka 0.1.7 已发布，当前是 0.1.6。是否打开下载页？」—— 措辞见 <see cref="PromptFormat"/>。</summary>
     public static string Prompt(AppRelease release, Version current) =>
-        $"Momoka {release.VersionText} 已发布，当前是 {current.ToString(3)}。是否打开下载页？";
+        string.Format(PromptFormat, release.VersionText, current.ToString(3));
 
     /// <summary>
     /// 弹不出对话框时（窗口还没落到树上）退成一条不带按钮的提示用的话 —— 末尾不写「是否打开下载页」，因为那里

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Xml.Linq;
 using Momoka.Configuration;
+using Momoka.Shell.Localization;
 using Momoka.Updates;
 using static Momoka.Tests.TestHarness;
 
@@ -180,6 +181,35 @@ internal static class UpdateTests
             Assert.Equal("0.1.9", newest.VersionText);
             Assert.Null(UpdateVersion.NewestNewer(releases!, new Version(0, 1, 9)), "三段本地版本不重复提示");
             Assert.Null(UpdateVersion.NewestNewer(releases!, new Version(0, 1, 9, 0)), "商店四段版本不重复提示");
+        });
+
+        Test("检查更新：提示第二段写明在 设置 → 关于 里打开或关闭自动检查", () =>
+        {
+            var release = new AppRelease(new Version(0, 3, 2, 0), "v0.3.2", "https://example/0.3.2");
+            var current = new Version(0, 3, 1);
+
+            // 设置页拿模板走 UiText.Format、启动那一趟拿 Prompt：两处共用一份措辞，成品必须就是模板填出来的那一个。
+            Assert.Equal(
+                "Momoka 0.3.2 已发布，当前是 0.3.1。是否打开下载页？\n\n"
+                + "设置 → 关于 里可以打开或关闭「启动时自动检查新版本」，关掉后启动时不再提示。",
+                UpdateNotice.Prompt(release, current));
+            Assert.Equal(UpdateNotice.Prompt(release, current),
+                string.Format(UpdateNotice.PromptFormat, release.VersionText, current.ToString(3)));
+
+            // 第二段指向的必须是设置页上那个开关的真名，照旧写「自动检查更新」的话用户按这个名字去设置里找会找不到。
+            Assert.Contains(UpdateNotice.ToggleLabel, UpdateNotice.Prompt(release, current));
+
+            // 英文界面下两段都要有译文：按行翻译，第二段没有键的话会原样掉回中文。
+            var original = UiText.Language;
+            try
+            {
+                UiText.Language = UiLanguages.English;
+                Assert.Equal(
+                    "Momoka 0.3.2 is available. Your current version is 0.3.1. Open the download page?\n\n"
+                    + "You can turn the automatic update check on or off in Settings → About; turning it off stops these startup prompts.",
+                    UiText.Format(UpdateNotice.PromptFormat, release.VersionText, current.ToString(3)));
+            }
+            finally { UiText.Language = original; }
         });
 
         Test("检查更新：这一格装机默认开着，恢复默认也回到开", () =>

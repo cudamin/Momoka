@@ -890,6 +890,7 @@
   "已是最新版本（{0}）": "Up to date ({0})",
   "发现新版本 {0}": "New version available: {0}",
   "Momoka {0} 已发布，当前是 {1}。是否打开下载页？": "Momoka {0} is available. Your current version is {1}. Open the download page?",
+  "设置 → 关于 里可以打开或关闭「启动时自动检查新版本」，关掉后启动时不再提示。": "You can turn the automatic update check on or off in Settings → About; turning it off stops these startup prompts.",
   "正在检查…": "Checking…",
   "检查失败": "Check failed",
   "发现新版本": "New version available",
