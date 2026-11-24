@@ -12,6 +12,8 @@
 
 **体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-musichover` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-musichover.lnk` 目标与工作目录均回读为本树发布目录。`Momoka.exe` 668,160 字节 SHA256 `3E68B810…45F177`，`Momoka.dll` SHA256 `9961C9E5…F18978`，ProductVersion `0.3.2+cf9e19f`；未启动窗口，留待用户直接点开体验。
 
+**合并与清理。** 用户令「合并」。主树合并前干净、master `2eb6bfb`；以 `--no-ff` 合入，合并提交 `e40a8ca`，8 路径 +80/−8，无冲突。主树最终代码 Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` **5363 项、5359 通过、4 失败、0 跳过**，4 红同为本机未开开发者模式的 `LocalMediaTests` 软链接环境红。主树按日常收尾发布：`tools/publish.ps1 -NoArchive -Shortcut` 通过（548 文件／290.8 MB、批准 mpv 清单 60 文件），桌面 `Momoka.lnk` 回读本树 `artifacts/publish/win-x64/Momoka.exe`；`Momoka.exe` SHA256 `A81A0230…41BCC3`，`Momoka.dll` SHA256 `17CA1943…BD3D4A`，ProductVersion `0.3.2+e40a8ca`。原分支、工作树 `C:/Users/89400/.doubao/worktrees/musichover/Momoka` 与 `Momoka-musichover.lnk` 已删除，未推远端。
+
 ## 2026-11-24 媒体库动图封面帧节奏：50ms 帧被定时器抬到 62ms，改按合成器帧预约
 
 用户报「媒体库封面的 gif 动画怎么感觉有点卡顿？」，同时要求新增工作树分支。分支 `fix-library-cover-gif-jank-7a2b1f`，工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka`，基点 `f0890cd`（master）；产品提交 `5c2b2fe`，记录提交 `47d8766`。用户令「合并」后以 `--no-ff` 合入 master，合并提交 `fdf6f47`；原分支、工作树与 `Momoka-gifjank.lnk` 已清理，未推远端。
