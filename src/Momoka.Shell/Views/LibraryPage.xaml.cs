@@ -1797,7 +1797,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         e.Handled = true;
         _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
         // 提交会把焦点交回输入框。这个回车随后在输入框抬起时不应补搜。
-        _searchEnterConsumed = true;
+        _searchInputGuard?.MarkEnterConsumed();
     }
 
     private MoviePilotService? _moviePilot;

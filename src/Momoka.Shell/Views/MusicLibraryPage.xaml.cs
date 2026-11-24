@@ -59,6 +59,7 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
     public void Release()
     {
         _released = true;
+        DetachSearchInput();
         DetachWallArtwork();
         SetArtworkRealized(MusicRows, false);
         if (_music is not null) { _music.PropertyChanged -= OnMusicChanged; _music = null; }
@@ -87,8 +88,6 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
     }
 
     private async void OnRefresh(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync();
-
-    private async void OnSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) => await ViewModel.ReloadAsync();
 
     private async void OnMore(object sender, RoutedEventArgs args) => await ViewModel.LoadMoreAsync();
 

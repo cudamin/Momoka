@@ -138,6 +138,7 @@ namespace Momoka.Shell.Views
         internal int TrackArtworkStopsForTest { get; private set; }
         private FrameworkElement MusicRows { get; } = new();
         private void DetachWallArtwork() => ArtworkDetachesForTest++;
+        private void DetachSearchInput() { }
         private void SetArtworkRealized(FrameworkElement root, bool realized)
         {
             if (!ReferenceEquals(root, MusicRows) || realized)

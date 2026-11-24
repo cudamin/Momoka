@@ -10,6 +10,18 @@
 
 **提交与发布。** 产品提交 `65fc235`（快进倍率）与 `fd2ce8d`（补快退倍率）。用户令「你直接关」后关闭了仍占用旧发布目录的 `Momoka.exe`（PID 32704），`tools/publish.ps1 -NoArchive -Shortcut` 通过：**548 文件、290.8 MB**，批准 mpv 清单 60 文件；桌面 `C:\Users\89400\Desktop\Momoka.lnk` 的目标与工作目录回读为本树 `artifacts/publish/win-x64`。`Momoka.exe` 668,160 字节 SHA256 `BB9EEB5B…A5A0FC77`，`Momoka.dll` 10,477,056 字节 SHA256 `AC42CA8C…E3603A3939`，ProductVersion `0.3.2+e1dfbdb`。本轮新代码现在快捷方式直接可体验。未推送远端。
 
+## 2026-11-24 音乐媒体库搜索框无法退格：复用媒体库搜索输入补偿
+
+用户报「音乐媒体库搜索栏无法退格的问题」，要求新增工作树分支，并补充「复用标题搜索栏的的代码」。分支 `fix-music-search-backspace`，工作树 `C:/Users/89400/Worktrees/Momoka/fix-music-search-backspace`，基点 master `6d17e02`。
+
+**根因。** 媒体库页已在 `LibraryPage.SearchInput.cs` 中处理过微软拼音漏送退格/回车按下的问题：只补系统没做的那一下，原生按键、组字和修饰键组合都不重复处理。音乐库页的 `MusicSearch` 只是一个普通 `AutoSuggestBox`，没有接这段补偿；微软拼音只把退格的抬起送到 WinUI 时，框里的文字和选区都不动，正是用户看到的「无法退格」。
+
+**改法。** 把这段输入法补偿从 `LibraryPage.SearchInput.cs` 提取为 `Views/SearchInputGuard.cs`，由媒体库页和音乐库页共用，不复制一份到音乐页。补偿接在搜索框模板的实际编辑框上，覆盖漏送的退格（单字、选区、代理对/组合字符按可见字符删除）与回车（漏送时才补搜），并保留原生按键、组字中、Ctrl/Alt/Win 组合和 QuerySubmitted 的去重。媒体库页改用该类型后仍接原有的组字防抖、搜索编辑与提交；音乐库页在 `MusicSearch.GotFocus` 上挂同一份补偿，`OnSearch` 经 `TakeQuerySubmitted` 与抬起补搜共用一次回车，文字仍由原有双向绑定回 `MusicLibraryViewModel.Search`。`MusicLibraryPage` 离页时解除旧编辑框，模板重建后下一次聚焦换新编辑框。
+
+**验证。** 闸门 1 `tools/quality.ps1` **9/9**（`artifacts/quality/20261124-204802`；全方案 Release 编译 0 警告 0 错误、架构 7/7、重复 68 段／0.47%、diff 通过；新树首跑先因 76 个项目缺 assets 报 150 条 `NETSDK1004`，`dotnet restore Momoka.sln` 后余两条 `NavigationStateTests` 提取 `Release` 缺 `DetachSearchInput` 边界，补边界后通过）。Shell Release/x64 0 警告 0 错误。`Momoka.SearchLifetimeTests` **56/56**、`Momoka.MusicViewModelTests` **45/45**（新增两项音乐搜索框退格补偿：漏送抬起补删单字/选区、原生退格/组字/Ctrl 不重复且离页解除）、`Momoka.NavigationStateTests` **10/10**，均 0 失败 0 跳过。主测试 **5364 项、5360 通过、4 失败、0 跳过**，4 红均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关。真实 WinUI 体验：使用本机已登录音乐库（482 首，只读搜索，未播放/未写入），微软拼音输入 `hongdou` 确认「红豆」；普通退格只删一字（红豆→红），只送退格抬起时也能删掉「红」；Ctrl+A 后只送退格抬起清空选区；只送回车抬起把列表筛成「02 红豆」。截图在 `artifacts/verification/music-search-backspace/`（01 确认、02 普通退格、03 选区、04 抬起删选区、05/06 抬起删单字、07/08 回车抬起提交）。日常界面批未跑原生探针、未拍五主题/DPI/触摸矩阵。
+
+**体验发布。** 从主树复制批准 `libmpv-2.dll`（SHA256 `FE583AF3…C89D17`）到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-fix-music-search-backspace` 通过：548 文件、290.8 MB、批准 mpv 清单 60 文件；桌面 `Momoka-fix-music-search-backspace.lnk` 已回读本树 `artifacts/publish/win-x64/Momoka.exe` 与同目录工作路径。`Momoka.exe` 668,160 字节 SHA256 `202F727F…DAAD57`，`Momoka.dll` SHA256 `1BA7F255…FAB1E7`，ProductVersion `0.3.2+f8c9d06`。启动核对窗口 `Momoka` 响应正常；主树既有实例未触碰，已关闭本树实例。
+
 ## 2026-11-24 音乐专辑悬停预览：1:1 方形封面，不再上下裁切
 
 用户报「重新设计主页音乐列表的悬浮，音乐专辑都是正方形的，下面都被裁切了」，并要求新增工作树分支。分支 `fix-home-music-hover-9c4d2e`，工作树 `C:/Users/89400/.doubao/worktrees/musichover/Momoka`，基点 `2eb6bfb`（master）。
