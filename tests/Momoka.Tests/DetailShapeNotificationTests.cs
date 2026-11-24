@@ -163,9 +163,19 @@ internal static partial class DetailActionReadinessTests
             Assert.True(Math.Abs(Left("TailInset") + 24 - 170d) < 1e-6, "尾部没有跟头部、卡片一起收窄");
             Resize(2560d);
             Assert.Equal(300d, DetailHero.CardWindowGap(2560d));
-            var gap = DetailHero.CardWindowGap(2560d);
+            // 2026-11-24 用户令「媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致」：
+            // 自然宽 1960 过了 1860 的上限，两侧各再收 50，卡片停在 1860 —— 与主页轮播同一条左右边界。
+            var gap = DetailHero.CardWindowGap(2560d)
+                + DetailHero.StoreCardCapGutter(2560d, DetailHero.StorePageInset(2560d), 2560d);
+            Assert.Equal(350d, gap);
+            Assert.Equal(DetailHero.StoreCardMaxWidth, 2560d - (2 * gap));
             Assert.True(Math.Abs(Left("HeroInset") - gap) < 1e-6);
             Assert.True(Math.Abs(Left("SheetPadding") + 10 - gap) < 1e-6);
+            Assert.True(Math.Abs(Left("TailInset") + 24 - gap) < 1e-6);
+
+            // 4K 一类：两侧一起收，卡片仍是 1860、在页里居中。
+            Resize(3840d);
+            Assert.Equal(1860d, 3840d - (2 * Left("HeroInset")));
 
             // 沉浸档：正文卡片外沿也落在同一条目标间距上（头部既有的 24 内缩关系保持不变）。
             f.Ui.EnableImmersive = true;

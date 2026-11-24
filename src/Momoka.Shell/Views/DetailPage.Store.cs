@@ -118,6 +118,7 @@ public sealed partial class DetailPage
             // 2026-11-17 卡片与窗口间距那条规则：内容列不再收进 1840 居中，而是铺满窗口，由视图模型的
             // 头／尾／纸面留白把整列内容按「1500 之后 170、2250 以上随窗口等比」收窄。装饰带继续铺满窗口，
             // 列已经不窄了，bleed 因此是 0；这一支保留原来的形状，装饰层的四条边距仍从同一处写。
+            // 2026-11-24 起整列再叠一道 1860 的卡片上限（与主页轮播同一个常量），超过的宽度平分到两侧。
             StoreScrollContent.MaxWidth = double.PositiveInfinity;
             StoreScrollContent.HorizontalAlignment = store ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
             var columnWidth = Body.ActualWidth;

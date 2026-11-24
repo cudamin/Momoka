@@ -940,9 +940,14 @@ internal static class SubscribeSettingsTests
             vm.FullWindowWidth = 2560;
             var gap = DetailHero.CardWindowGap(2560);
             Check.Equal(300d, gap);
-            Check.True(System.Math.Abs(vm.HeaderPadding.Left - gap) < 1e-6);
-            Check.True(System.Math.Abs(vm.BodySheetPadding.Right - gap) < 1e-6);
-            // 沉浸档同一份收窄：卡片外沿也落在同一条目标间距上。
+            // 2026-11-24 用户令「媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致」：
+            // 自然宽 1960 过了 1860 的上限，两侧各再收 50，整列停在 1860。
+            var capped = gap + DetailHero.StoreCardCapGutter(2560, DetailHero.StorePageInset(2560), 2560);
+            Check.Equal(350d, capped);
+            Check.Equal(DetailHero.StoreCardMaxWidth, 2560 - (2 * capped));
+            Check.True(System.Math.Abs(vm.HeaderPadding.Left - capped) < 1e-6);
+            Check.True(System.Math.Abs(vm.BodySheetPadding.Right - capped) < 1e-6);
+            // 沉浸档同一份收窄、但不封顶：卡片外沿仍落在同一条目标间距上。
             vm.Immersive = true;
             Check.True(System.Math.Abs(vm.HeaderPadding.Left - gap) < 1e-6);
             Check.True(System.Math.Abs(vm.BodySheetPadding.Left - gap) < 1e-6);

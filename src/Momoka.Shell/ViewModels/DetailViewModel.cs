@@ -491,8 +491,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。与 <see cref="PageWidth"/> 不同：后者是排版用的
     /// 宽，商店档仍按窗口宽排（2026-11-17 起不再收进 1840 内容列，改由 <see cref="ContentGutterWidth"/> 把整列
-    /// 内容收窄），这个数保留窗口真实宽 —— 右侧剧照／预告与<em>窗口右边缘</em>之间的空隙据此随窗口不断加大
-    /// （2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」）。
+    /// 内容收窄；2026-11-24 起再叠 1860 的卡片上限），这个数保留窗口真实宽 —— 右侧剧照／预告与<em>窗口右边缘</em>
+    /// 之间的空隙据此随窗口不断加大（2026-11-17 用户令「加大背景图和右边窗口边缘之间的间距，跟随窗口不断变宽」）。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StoreBackdropWidth))]
@@ -1727,9 +1727,22 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 再补「窗口最宽时卡片和侧边栏的间距为 300」：目标间距由 <see cref="DetailHero.CardWindowGap"/> 给
     /// （2K 屏最大化 2560 宽时 300），减掉卡片原来的页边留白（<see cref="BaseCardEdge"/>）就是这一份；
     /// 三处一起加，头部、尾部与卡片的列内对齐因此不变。窗口宽取整扇（<see cref="FullWindowWidth"/>，含侧栏）。
+    /// <para>
+    /// 2026-11-24 用户令「媒体详情页和订阅详情页的卡片最大宽度，要和主页轮播图的最大宽度一致」：商店档再叠
+    /// <see cref="DetailHero.StoreCardCapGutter"/>，自然宽超过 <see cref="DetailHero.StoreCardMaxWidth"/>（1860）
+    /// 时两侧平分多出来的那一截，卡片与主页轮播同宽、同行；没超过的窗口这一笔是 0。沉浸、纸面与紧凑档不封顶。
+    /// </para>
     /// </summary>
     public double ContentGutterWidth => DetailHero.CardWindowGutter(
-        FullWindowWidth > 0 ? FullWindowWidth : StoreWindowWidth, BaseCardEdge);
+        FullWindowWidth > 0 ? FullWindowWidth : StoreWindowWidth, BaseCardEdge)
+        + (StoreMode ? StoreCardCapGutter : 0);
+
+    /// <summary>
+    /// 商店档卡片封顶的那一笔（<see cref="DetailHero.StoreCardCapGutter"/>）：页宽、卡片原本的页边留白与整扇
+    /// 窗口宽都取与 <see cref="ContentGutterWidth"/> 同一份数，两处相加才是屏上真正写进边距的值。
+    /// </summary>
+    private double StoreCardCapGutter => DetailHero.StoreCardCapGutter(
+        PageWidth, BaseCardEdge, FullWindowWidth > 0 ? FullWindowWidth : StoreWindowWidth);
 
     /// <summary>
     /// 收窄之前卡片外沿离内容列边缘的距离：商店档是 <c>StorePageInset</c>，沉浸／纸面档是纸面那 10 加

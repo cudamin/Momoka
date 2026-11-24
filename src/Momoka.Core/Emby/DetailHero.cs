@@ -147,6 +147,42 @@ public static class DetailHero
     public const double CardWindowGapMax = 300;
 
     /// <summary>
+    /// 商店模式下详情页整列内容（头部、尾部与正文卡片）的宽度上限 —— 2026-11-24 用户令「媒体详情页和订阅详情页
+    /// 的卡片最大宽度，要和主页轮播图的最大宽度一致」：主页轮播在 1860 停住（<c>HomePage.StoreContentMaxWidth</c>
+    /// 直接读这一档），媒体详情页与订阅详情页的卡片也停在这里，超出的宽度两侧平分、整列在页里居中 ——
+    /// 两处卡片的左右外沿因此与轮播同一条线。
+    /// <para>
+    /// 只在自然宽超过这一档时生效：页宽减两侧目标间距（<see cref="CardWindowGap"/>）还不到 1860 的窗口，
+    /// 卡片宽度与 170／300 的间距一个像素都不动。
+    /// </para>
+    /// </summary>
+    public const double StoreCardMaxWidth = 1860;
+
+    /// <summary>
+    /// 卡片封顶之后两侧各自还要再收多少 —— 0 表示还没到 <see cref="StoreCardMaxWidth"/>、版面不动；
+    /// 超过时给出「自然宽减上限」的一半，两页把它叠在 <c>ContentGutterWidth</c> 上，头、尾、纸面、
+    /// 片名栏与卡片一起收，列内对齐不变。
+    /// <para>
+    /// 自然宽 = 页宽 − 2 ×（卡片原本离页边的留白 + <see cref="CardWindowGutter"/> 那一份）。加完这一笔之后的
+    /// 卡片外沿可能比 <see cref="CardWindowGap"/> 的 170／300 离页边更远，那是封顶档的正常形态：宽度上限优先。
+    /// 「还没量」（页宽 0 或坏数）交 0，第一帧按未封顶的版面排，量到之后再来。
+    /// </para>
+    /// </summary>
+    /// <param name="pageWidth">这一页看得见的那一段有多宽（内容区，不含侧栏）。</param>
+    /// <param name="cardEdgeInset">同 <see cref="CardWindowGutter"/>：卡片原本离内容列边缘的距离。</param>
+    /// <param name="windowWidth">同 <see cref="CardWindowGap"/>：整扇窗口的宽（含侧栏）。</param>
+    public static double StoreCardCapGutter(double pageWidth, double cardEdgeInset, double windowWidth)
+    {
+        // 三个数任一没量到（0／NaN／∞）都不封顶：第一帧按未封顶的旧版面排，量到之后再来。
+        if (!(pageWidth > 0) || !double.IsFinite(pageWidth)) return 0;
+        if (!(windowWidth > 0) || !double.IsFinite(windowWidth)) return 0;
+        if (!double.IsFinite(cardEdgeInset)) return 0;
+
+        var natural = pageWidth - (2 * (Math.Max(0, cardEdgeInset) + CardWindowGutter(windowWidth, cardEdgeInset)));
+        return Math.Max(0, (natural - StoreCardMaxWidth) / 2);
+    }
+
+    /// <summary>
     /// 商店档左栏里封面那一栏至少占多宽 —— 四颗 44 的命中格共 176，加两侧一点余量就是 180
     /// （同 <c>DetailPage.StoreCoverColumnWidth</c>）。
     /// </summary>
@@ -284,11 +320,18 @@ public static class DetailHero
 
     /// <summary>
     /// 商店宽版式右侧剧照／预告视口与<em>窗口右边缘</em>之间的空隙 —— 2026-11-17 用户令「加大背景图和
-    /// 右边窗口边缘之间的间距，跟随窗口不断变宽」，随后「全屏应再向左移动 200」「全屏挡再加 50」「再加 25」。
+    /// 右边窗口边缘之间的间距，跟随窗口不断变宽」，随后「全屏应再向左移动 200」「全屏挡再加 50」「再加 25」；
+    /// 2026-11-24 再令「背景图与边框的最大间距增加150（最大化时／窗口宽度占满屏幕两边时候与窗口右侧的间距
+    /// 增加150，2k屏幕下）」。
     /// <para>
-    /// 窄档保持原来的 16；宽版式先按窗口宽的 3.5% 增长，再从 1920 到 2560 再让出 275 —— 全屏
-    /// （2560／3840 一类窗口）比只按比例那一版再往左 275；封顶 <see cref="StorePreviewEdgeGapLimit"/>。
-    /// 视口自身的大小不参与：它仍按内容列的 60% 走，变的只有画面与窗口边之间的距离。
+    /// 窄档保持原来的 16；宽版式先按窗口宽的 3.5% 增长，再从 1920 到 2560 再让出
+    /// <see cref="StorePreviewEdgeGapRampExtra"/> —— 全屏（2560／3840 一类窗口）比只按比例那一版再往左让出
+    /// 这一截；封顶 <see cref="StorePreviewEdgeGapLimit"/>。视口自身的大小不参与：它仍按内容列的 60% 走，
+    /// 变的只有画面与窗口边之间的距离。
+    /// </para>
+    /// <para>
+    /// 2026-11-24 之前全屏那一段额外让 275、封顶 395（2560 上是 364.6）；这一次两处一起加 150，2K 最大化
+    /// 正好 514.6、再宽封在 545。
     /// </para>
     /// </summary>
     /// <param name="windowWidth">这一页看得见的宽（窗口内容区，<c>Body.ActualWidth</c>）。</param>
@@ -313,14 +356,14 @@ public static class DetailHero
     public const double StorePreviewEdgeGapRampTo = 2560;
 
     /// <inheritdoc cref="StorePreviewEdgeGapRampFrom"/>
-    public const double StorePreviewEdgeGapRampExtra = 275;
+    public const double StorePreviewEdgeGapRampExtra = 425;
 
     /// <inheritdoc cref="StorePreviewEdgeGap"/>
-    public const double StorePreviewEdgeGapLimit = 395;
+    public const double StorePreviewEdgeGapLimit = 545;
 
     /// <summary>
-    /// 商店视口这回的右边距（<c>Margin.Right</c>，相对居中内容列的右沿）。内容列封顶 1840 并居中，
-    /// 窗口比它宽时两侧各让出等宽的 bleed；视口右沿要离<em>窗口</em>右边
+    /// 商店视口这回的右边距（<c>Margin.Right</c>，相对内容列的右沿）。内容列 2026-11-17 起铺满窗口，
+    /// 窗口比它宽时两侧各让出的 bleed 只是保留的兜底（居中列仍走这一支）；视口右沿要离<em>窗口</em>右边
     /// <see cref="StorePreviewEdgeGap"/>，所以这里要把右边那一段减掉 —— 窗口不超过内容列时就是那道空隙本身。
     /// </summary>
     /// <param name="windowWidth">这一页看得见的宽（<c>DetailViewModel.WindowWidth</c>）。</param>
