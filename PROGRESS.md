@@ -1,3 +1,15 @@
+## 2026-11-24 音乐专辑悬停预览：1:1 方形封面，不再上下裁切
+
+用户报「重新设计主页音乐列表的悬浮，音乐专辑都是正方形的，下面都被裁切了」，并要求新增工作树分支。分支 `fix-home-music-hover-9c4d2e`，工作树 `C:/Users/89400/.doubao/worktrees/musichover/Momoka`，基点 `2eb6bfb`（master）。
+
+**根因。** 主页音乐货架按专辑查询出方形卡（`HomeViewModel` 对音乐排给 1:1、副标题写艺术家），悬停却仍走影视那条 `CardPreview`：`CardPreviewPlacement.MediaHeight` 固定 2:1，方形封面塞进 400 宽的宽条视口、`PreviewImage` 又是 `UniformToFill`，上下各裁一条，正是截图里「专辑下面被切掉」。
+
+**改法。** `CardPreviewPlacement` 新增 `AlbumPreviewWidth = 360` 与 `SquareMediaHeight`：专辑面板比影视窄一档，缩略图高等于内容宽，1:1 完整露出。`PosterCard.OpenPreview` 按 `EmbyItemType.MusicAlbum` 选 360（窄窗仍按 300 下限收）；`CardPreview.SetSize` 改走 `ApplyMediaHeight`，`Show` 按条目类型切方形视口，`ShowSubscription` 与 `Reset` 回到影视档。面板在片名下新增 `ArtistText`，专辑取卡片副标题（主页音乐排与封面墙本来存的就是专辑艺术家），与 `MetaText` 同值（搜索页可能把「专辑」塞进副标题）时自动收起，影视与订阅不显示。媒体表面、撑开动画、摆位、播放键与续播逻辑均未改，仍是同一块 `CardPreview`。
+
+**验证。** 闸门 1 `tools/quality.ps1` **9/9**（`artifacts/quality/20261124-170341`；全方案 Release 编译 0 警告 0 错误、架构 7/7、重复 68 段／0.47%、diff 通过）。Shell Release/x64 **0 警告 0 错误**；`Momoka.Tests` 新增「音乐专辑用 1:1 的方形封面」纯算术断言（360 面板、322 封面、零／负宽归零），全套 **5363 项、5358 通过、5 失败、0 跳过**，5 条均为本机未开开发者模式、`LocalMediaTests` 建软链接报「参数错误」的环境红，与本批无关。`docs/音乐媒体库.md` 同步专辑悬停形状。
+
+**未验与边界。** 日常未跑原生探针、未拍实屏：360 面板在 170 方卡上的撑开观感、322 方图与片名／艺术家／资料行的高度、窄窗 336/298 档、长专辑名两行、无艺术家或无简介、五套固定深色与跟随系统深浅、高对比、跨 DPI 和触控／指针移入移出，均留待统一验证。影视、订阅与音乐壁外的其他卡不受影响；未改服务器取图宽度与动图预览路径。
+
 ## 2026-11-24 媒体库动图封面帧节奏：50ms 帧被定时器抬到 62ms，改按合成器帧预约
 
 用户报「媒体库封面的 gif 动画怎么感觉有点卡顿？」，同时要求新增工作树分支。分支 `fix-library-cover-gif-jank-7a2b1f`，工作树 `C:/Users/89400/.codex/worktrees/gifjank/Momoka`，基点 `f0890cd`（master）；产品提交 `5c2b2fe`，记录提交 `47d8766`。用户令「合并」后以 `--no-ff` 合入 master，合并提交 `fdf6f47`；原分支、工作树与 `Momoka-gifjank.lnk` 已清理，未推远端。
