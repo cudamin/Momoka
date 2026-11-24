@@ -11,6 +11,9 @@ public sealed partial class SettingsViewModel
 {
     // 全部可用行与搜索结果分开保管；过滤不能解绑、丢失行回调，或让恢复默认只作用于屏上的几行。
     private readonly List<SettingShortcutRow> _shortcutRows = [];
+    // 三条「没被别的动作占用时才成立」的回退键：Esc 全屏则退否则停，回车／Delete 只在跳过提示
+    // 出现时有效。它们的事归播放页，不参与改绑，所以只能是只读说明行，不混进可改行计数。
+    private readonly List<(SettingFactRow Row, KeyStroke Stroke)> _shortcutFixedRows = [];
     private SettingFactRow? _shortcutResetRow;
     private readonly SettingFactRow _shortcutEmptyRow = Fact("没有找到匹配的快捷键", "试试操作名称或按键，如「字幕」「Ctrl + ↑」；清空搜索可查看全部。", "");
 
@@ -41,6 +44,13 @@ public sealed partial class SettingsViewModel
         var effective = ShortcutCatalog.Resolve(Settings.Shortcuts.Bindings);
         _shortcutRows.Clear();
         _shortcutRows.AddRange(AvailableShortcutActions().Select(action => ShortcutRow(action, effective[action.Id])));
+        _shortcutFixedRows.Clear();
+        _shortcutFixedRows.Add((Fact("退出全屏 / 退出播放", "未被其他快捷键占用时生效；全屏时退出全屏，非全屏时停止播放", "Esc"),
+            new KeyStroke("Escape", false, false, false)));
+        _shortcutFixedRows.Add((Fact("关闭跳过片头 / 片尾提示", "未被其他快捷键占用时生效；只在出现跳过提示时有效", "Del"),
+            new KeyStroke("Delete", false, false, false)));
+        _shortcutFixedRows.Add((Fact("确认跳过片头 / 片尾", "未被其他快捷键占用时生效；只在出现跳过提示时有效", "回车"),
+            new KeyStroke("Enter", false, false, false)));
         _shortcutResetRow = Fact("恢复默认快捷键", "恢复全部快捷键，包括当前搜索未显示的项目；其他设置不受影响",
             UiText.Format("{0} 个可改快捷键", _shortcutRows.Count), "恢复默认", ClearAllShortcuts);
         return new SettingSection("快捷键", "快捷键",
@@ -53,6 +63,9 @@ public sealed partial class SettingsViewModel
         var rows = _shortcutRows.Where(row => ShortcutCatalog.MatchesSearch(ShortcutSearchQuery, row.Label,
             effective[row.Id]) || ShortcutCatalog.MatchesSearch(ShortcutSearchQuery, row.DisplayLabel, effective[row.Id]))
             .Cast<SettingRow>().ToList();
+        foreach (var (row, stroke) in _shortcutFixedRows)
+            if (ShortcutCatalog.MatchesSearch(ShortcutSearchQuery,
+                $"{row.Label} {row.Note} {row.DisplayLabel} {row.DisplayNote}", stroke)) rows.Add(row);
         var matched = rows.Count;
         var searching = !string.IsNullOrWhiteSpace(ShortcutSearchQuery);
         ShortcutSearchSummary = searching

@@ -101,6 +101,10 @@ internal sealed partial class ShellNavigationProbe
             var clear = Get<Button>(page, "ClearShortcutSearchButton");
             var input = Descendants(search).OfType<TextBox>().Single();
             Require(originalRows.Count == ShortcutCatalog.Actions.Count, "初始快捷键目录不完整");
+            Require(card.Rows.Count == originalRows.Count + 4, "可改动作之外应只有三条回退键说明行和恢复入口");
+            Require(Fixed("退出全屏 / 退出播放")?.Value == "Esc", "Esc 回退键说明行缺失或键值不对");
+            Require(Fixed("关闭跳过片头 / 片尾提示")?.Value == "Del", "Del 回退键说明行缺失或键值不对");
+            Require(Fixed("确认跳过片头 / 片尾")?.Value == "回车", "回车回退键说明行缺失或键值不对");
             Require(search.ActualWidth > 200 && clear.Visibility == Visibility.Collapsed, "搜索框过窄或空查询仍显示清空按钮");
             await SaveShortcutScreenAsync($"settings-shortcut-search-all-{width}-screen.png");
 
@@ -141,13 +145,22 @@ internal sealed partial class ShellNavigationProbe
 
             await QueryAsync("Alt + [");
             Require(Shown().Single().Id == "subtitle-scale-down", "方括号组合键搜索失败");
+            await QueryAsync("Del");
+            Require(!Shown().Any() && Fixed("关闭跳过片头 / 片尾提示") is not null && card.Rows.Count == 2,
+                "Del 搜索应只命中关闭跳过提示的说明行与恢复入口");
+            await QueryAsync("回车");
+            Require(!Shown().Any() && Fixed("确认跳过片头 / 片尾") is not null && card.Rows.Count == 2,
+                "回车搜索应只命中确认跳过的说明行与恢复入口");
             await QueryAsync("未设置");
             Require(Shown().Single().Id == "video-pan-left", "未设置搜索未显示解绑动作");
             await QueryAsync("Esc");
-            Require(!Shown().Any(), "未绑定的 Esc 不应匹配快捷键行");
+            Require(!Shown().Any(), "未绑定的 Esc 不应匹配可改快捷键行");
+            Require(Fixed("退出全屏 / 退出播放") is not null && card.Rows.Count == 2,
+                "Esc 搜索应只命中回退键说明行与恢复入口");
             originalRows["toggle-pause"].OnCommitted(capture, "Escape");
             await LayoutAsync(page);
             Require(Shown().Single().Id == "toggle-pause", "Esc 改绑后没有参与搜索");
+            Require(Fixed("退出全屏 / 退出播放") is not null, "改绑 Esc 后回退键说明行不见了");
             originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
             await LayoutAsync(page);
             await QueryAsync("zzzz-not-a-shortcut");
@@ -196,7 +209,19 @@ internal sealed partial class ShellNavigationProbe
             ((IInvokeProvider)new ButtonAutomationPeer(clear).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
             Require(search.Text.Length == 0 && Shown().Count() == ShortcutCatalog.Actions.Count, "清空搜索没有恢复完整列表");
+            Require(card.Rows.Count == ShortcutCatalog.Actions.Count + 4
+                && Fixed("退出全屏 / 退出播放") is not null
+                && Fixed("关闭跳过片头 / 片尾提示") is not null
+                && Fixed("确认跳过片头 / 片尾") is not null,
+                "清空搜索后三条回退键说明行没有恢复，或混进了可改行计数");
             Require(ReferenceEquals(source, card.Rows), "恢复默认替换了稳定集合");
+            // 三条回退键说明行在列表末尾，滚到底才看得到它们的实际换行与裁切；清空搜索后的
+            // 新行表要等一拍布局，否则 ScrollableHeight 还是上一段短结果的高度。
+            await LayoutAsync(page);
+            await Task.Delay(200);
+            scroll.UpdateLayout();
+            scroll.ChangeView(null, scroll.ScrollableHeight, null, true);
+            await Task.Delay(250);
             await SaveShortcutScreenAsync($"settings-shortcut-search-restored-{width}-screen.png");
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, $"settings-shortcut-search-{width}-evidence.txt"),
                 $"逻辑：名称／当前键／改绑／解绑／空态／固定键／能力隐藏恢复／分类保留／全部恢复／清空均通过。\n"
@@ -257,6 +282,8 @@ internal sealed partial class ShellNavigationProbe
                 await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, name));
             }
             IEnumerable<SettingShortcutRow> Shown() => card.Rows.OfType<SettingShortcutRow>();
+            SettingFactRow? Fixed(string label) => card.Rows.OfType<SettingFactRow>()
+                .FirstOrDefault(row => row.Label == label);
             async Task QueryAsync(string text)
             {
                 input.Text = text;

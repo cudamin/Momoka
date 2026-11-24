@@ -1,4 +1,5 @@
 using System.Collections;
+using Momoka.Playback;
 
 namespace Momoka.Tests;
 
@@ -128,6 +129,48 @@ internal static class SettingsSearchTests
             var (vm, _, _) = About(Enumerable.Range(0, 80).Select(index => Fact("项目" + index)).ToArray());
             fixture.Set(vm, "SettingsSearchQuery", "项目");
             Assert.Equal(40, Results(vm).Count());
+        });
+        TestHarness.Test("快捷键页：三条回退键只读说明行可搜、不计入可改数量", () =>
+        {
+            var settings = new SettingsPageStateTests.FakeSettings();
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var section = fixture.Invoke(vm, "ShortcutsCard")!;
+            fixture.List(vm, "Sections").Add(section);
+            var rows = fixture.List(section, "Rows");
+            var expectedActions = fixture.Get<bool>(vm, "DanmakuReady")
+                ? ShortcutCatalog.Actions.Count
+                : ShortcutCatalog.Actions.Count - 4;
+
+            object Fixed(string label) => rows.Cast<object>().Single(row => Label(row) == label);
+            string Label(object row) => fixture.Get<string>(row, "Label");
+            string Value(object row) => fixture.Get<string>(row, "Value");
+
+            Assert.Equal(expectedActions + 4, rows.Count, "三条回退键说明行与恢复入口应各占一行");
+            Assert.Equal("Esc", Value(Fixed("退出全屏 / 退出播放")));
+            Assert.Equal("Del", Value(Fixed("关闭跳过片头 / 片尾提示")));
+            Assert.Equal("回车", Value(Fixed("确认跳过片头 / 片尾")));
+            Assert.Equal("Collapsed", fixture.Get<object>(Fixed("退出全屏 / 退出播放"), "ActionVisibility").ToString(),
+                "回退键说明行不能长出可点的动作按钮");
+            Assert.Equal($"{expectedActions} 个可改快捷键", Value(Fixed("恢复默认快捷键")),
+                "只读说明行不应计入可改数量");
+
+            fixture.Set(vm, "ShortcutSearchQuery", "Esc");
+            Assert.Equal(2, rows.Count, "Esc 搜索应只剩说明行与恢复入口");
+            Assert.Equal("退出全屏 / 退出播放", Label(rows[0]!));
+            Assert.False(rows.Cast<object>().Any(row => row.GetType().Name == "SettingShortcutRow"),
+                "未绑定的 Esc 不应命中可改动作");
+
+            fixture.Set(vm, "ShortcutSearchQuery", "Del");
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("关闭跳过片头 / 片尾提示", Label(rows[0]!));
+
+            fixture.Set(vm, "ShortcutSearchQuery", "回车");
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("确认跳过片头 / 片尾", Label(rows[0]!));
+
+            fixture.Set(vm, "ShortcutSearchQuery", "");
+            Assert.Equal(expectedActions + 4, rows.Count, "清空搜索后说明行应恢复且不改变可改数量");
         });
         TestHarness.Test("设置搜索：替换分组解除旧行索引，旧分组变化不会返回失效项", () =>
         {
