@@ -308,7 +308,7 @@ internal static partial class ShellSelfCheck
         check("快捷键分区与步长", sectionTitles.SequenceEqual(new[]
             {
                 "播放与进度", "播放控制", "集数与章节", "速度与循环", "字幕", "次字幕与兼容性", "音轨与音频",
-                "画面与缩放", "画质与色彩", "视频与滤镜", "截图与工具", "弹幕", "回退键与恢复默认"
+                "画面与缩放", "画质与色彩", "视频与滤镜", "截图", "弹幕", "回退键与恢复默认"
             }) && seekSpansOk && seekHoldRowsOk,
             $"{shortcutSections.Count} 张分区卡：{string.Join('／', sectionTitles)}；"
             + $"四行步长{(seekSpansOk ? "都紧跟在各自的快捷键行下面" : "没有跟在各自的快捷键行下面")}；"

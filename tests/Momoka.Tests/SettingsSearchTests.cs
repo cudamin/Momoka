@@ -150,7 +150,7 @@ internal static class SettingsSearchTests
             Assert.True(titles.SequenceEqual(new[]
                 {
                     "播放与进度", "播放控制", "集数与章节", "速度与循环", "字幕", "次字幕与兼容性", "音轨与音频",
-                    "画面与缩放", "画质与色彩", "视频与滤镜", "截图与工具", "弹幕", "回退键与恢复默认"
+                    "画面与缩放", "画质与色彩", "视频与滤镜", "截图", "弹幕", "回退键与恢复默认"
                 }),
                 "分区卡的次序就是阅读次序：" + string.Join('、', titles));
             var shortcuts = rows.Where(row => row.GetType().Name == "SettingShortcutRow").ToList();
