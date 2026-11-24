@@ -16121,3 +16121,15 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 **发布与状态。** 从主树复制批准 `libmpv-2.dll` 到本树根，`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-shortcut-seek-partition-4nRt8K` 通过：548 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件；桌面 `Momoka-feat-shortcut-seek-partition-4nRt8K.lnk` 目标与工作目录均回读为本树 `artifacts/publish/win-x64`。`Momoka.exe` 668,160 字节 SHA256 `5C3F36CCDCF21B832F2448FB61FE1D91A550C28BE6A85F829FCB0E4923425D70`，`Momoka.dll` 10,471,936 字节 SHA256 `832A41964FA77C5754DEBB126613D02F4E889DE2F0C1EEAC9C3FB9839E7B097C`，ProductVersion `0.3.2+8b7cce8`。未启动发布件、未登录、未播放、未写服务器；未推送远端。
 
 **待统一验证。** 真实窗口里十三张卡的滚动节奏与卡间距、四行秒数在五套固定深色与跟随系统深浅、高对比、跨 DPI、窄窗 760 与 600 下限的观感；英文界面下新分区标题与说明；读屏与触摸改值；搜索「→ 键跳」「跨度」「字幕」等词的完整结果与空态；播放行为页四张卡的既有检查。本批未合并 master，不销账。
+
+## 2026-11-24 合并快捷键页步长搬移与分区（master）
+
+用户令「合并」。master 在 `9c3d143` 干净、分支工作树干净且无其他会话占用，按快进合并 `9c3d143..1b87b2a`（产品提交 `8b7cce8`、记录提交 `1b87b2a`），合并后 `git diff feat-shortcut-seek-partition-4nRt8K..master` 为空。合并本身不跑全量验证与探针；因要刷新主树交付，按最终整合代码重跑受影响检查。
+
+**验证。** 主树全解决方案 Release **0 警告 0 错误**（9 分 11 秒）；主测试 **5364 项，5360 通过、4 失败、0 跳过**，4 条仍是本机未开开发者模式时 `LocalMediaTests` 建软链接“参数错误”的环境红，与本批无关；`settings-page-state-fixture` **83/83**、`settings-search-fixture` **18/18**。主树发布构建上 `--probe-shell --probe-section shortcuts --screen 1` 首跑受共享桌面干扰：窄窗一次「搜索输入没有经绑定传给 ViewModel」，另两条像素探针被前台 Chrome 窗口遮住目标窗口而按守卫失败；改在副屏 `--screen 2` 重跑 **5/5、退出 0**（`shell-probe-20261124-111732781-16864`），未结束他人进程或绕锁。首跑失败不作为通过，已如实登记。
+
+**发布与收尾。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件；`Momoka.lnk` 回读指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。`Momoka.exe` 668,160 字节 SHA256 `D748DDF5D03BE10EC85E0341DE56F36A451555AC0550B181EE1D7CB55FC634A5`，`Momoka.dll` 10,471,936 字节 SHA256 `E375D52881F0FE8419B8A761DD0C8E46941845EFA4568BCA6618D9D9F873CBF9`，ProductVersion `0.3.2+1b87b2a41b6b2b832f60169cef62dec13c71a192`。未启动发布件、未登录、未播放、未写服务器；未推送远端。
+
+**分支清理。** 内容已全部进入 master、工作树干净、无其他会话使用，按规则删除桌面 `Momoka-feat-shortcut-seek-partition-4nRt8K.lnk`、工作树与本地分支，本地只留 master。
+
+**待统一验证。** 真实窗口里十三张卡的滚动节奏、四行秒数以五套固定深色／跟随系统／高对比／跨 DPI／760 与 600 下限的观感；英文界面、读屏与触摸；搜索「跨度」「字幕」等词完整结果与空态；播放行为页四张卡既有检查。合并与本次发布不改变这些待验边界，本批不销账。
