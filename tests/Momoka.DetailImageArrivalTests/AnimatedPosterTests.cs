@@ -206,6 +206,23 @@ internal static class AnimatedPosterTests
             Assert.Equal(painted, bitmap.PaintedPixels.Count);
             Assert.Equal(1, Storyboard.Created.Count);
         });
+        Test("动图帧只按合成器节奏推进，静止时不靠线程池定时器补帧", () =>
+        {
+            using var fixture = new Fixture(withArrival: false);
+            fixture.Image.Source = fixture.Original();
+            fixture.InView();
+            var surface = fixture.Surface();
+            Assert.Equal(1, surface.PaintedPixels.Count);
+            fixture.Ui.Until(() => Microsoft.UI.Xaml.Media.CompositionTarget.Subscriptions == 1,
+                "等待下一帧时没有挂到合成器帧");
+            Thread.Sleep(150);
+            fixture.Ui.Pump();
+            Assert.Equal(1, surface.PaintedPixels.Count, "没有合成器帧时线程池定时器补了帧");
+            fixture.Ui.Until(() => surface.PaintedPixels.Count >= 2, "合成器帧没有推进第二帧");
+            fixture.Image.Unload();
+            fixture.Ui.Until(() => Microsoft.UI.Xaml.Media.CompositionTarget.Subscriptions == 0,
+                "离树后仍挂着合成器帧");
+        });
         Test("换图拒绝已取消的旧解码，活动帧也不能覆盖更新绑定", () =>
         {
             using var fixture = new Fixture();
@@ -387,17 +404,31 @@ internal static class AnimatedPosterTests
 
         public override void Post(SendOrPostCallback callback, object? state) => _pending.Enqueue((callback, state));
 
+        internal void Pump()
+        {
+            while (_pending.TryDequeue(out var work))
+            {
+                work.Callback(work.State);
+                Handled++;
+            }
+        }
+
         internal void Until(Func<bool> ready, string message)
         {
-            Assert.True(SpinWait.SpinUntil(() =>
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var nextTick = 0.0;
+            while (!ready())
             {
-                while (_pending.TryDequeue(out var work))
+                Pump();
+                if (ready()) return;
+                if (clock.Elapsed.TotalMilliseconds >= nextTick)
                 {
-                    work.Callback(work.State);
-                    Handled++;
+                    nextTick += 1000.0 / 60.0;
+                    Microsoft.UI.Xaml.Media.CompositionTarget.Tick();
                 }
-                return ready();
-            }, TimeSpan.FromSeconds(3)), message);
+                if (clock.Elapsed > TimeSpan.FromSeconds(3)) throw new AssertionException(message);
+                Thread.Sleep(0);
+            }
         }
 
         public void Dispose() => SetSynchronizationContext(_original);

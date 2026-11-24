@@ -158,8 +158,7 @@ internal sealed class AnimatedPoster
                 .ReserveAsync(16L * decoded.Width * decoded.Height, token).ConfigureAwait(true);
             if (!IsCurrent(playback, original)) return;
             var bitmap = new WriteableBitmap(decoded.Width, decoded.Height);
-            long paintedAt = 0;
-            var delay = TimeSpan.Zero;
+            long due = 0;
 
             for (uint loop = 0; decoded.Plays == 0 || loop < decoded.Plays; loop++)
             {
@@ -169,9 +168,9 @@ internal sealed class AnimatedPoster
                     AnimatedPngFrame? frame;
                     try { frame = await decoded.ReadFrameAsync(index, token).ConfigureAwait(true); }
                     finally { DecodeSlots.Release(); }
-                    // Decode the next frame during the preceding frame's display interval.
-                    var remaining = delay - (paintedAt == 0 ? TimeSpan.Zero : Stopwatch.GetElapsedTime(paintedAt));
-                    if (remaining > TimeSpan.Zero) await Task.Delay(remaining, token).ConfigureAwait(true);
+                    // Decode the next frame during the preceding frame's display interval; the deadline
+                    // is carried across frames so 24/25fps still average out on a 60Hz compositor clock.
+                    if (due != 0) await FrameClock.WaitAsync(due, token).ConfigureAwait(true);
                     if (frame is null || !IsCurrent(playback, _surface is null ? original : bitmap))
                     {
                         if (ReferenceEquals(_playback, playback)) Stop();
@@ -183,8 +182,12 @@ internal sealed class AnimatedPoster
                         _surface = bitmap;
                         SetSource(bitmap);
                     }
-                    paintedAt = Stopwatch.GetTimestamp();
-                    delay = frame.Delay < MinimumFrameDelay ? MinimumFrameDelay : frame.Delay;
+                    var paintedAt = Stopwatch.GetTimestamp();
+                    var frameDelay = frame.Delay < MinimumFrameDelay ? MinimumFrameDelay : frame.Delay;
+                    var delayTicks = (long)(frameDelay.TotalSeconds * Stopwatch.Frequency);
+                    due = due == 0
+                        ? paintedAt + delayTicks
+                        : Math.Max(due + delayTicks, paintedAt + delayTicks);
                     if (decoded.Plays != 0 && loop == decoded.Plays - 1 && index == decoded.FrameCount - 1)
                     {
                         _heldSurface = surfaceReservation;
@@ -235,5 +238,84 @@ internal sealed class AnimatedPoster
         _writing = true;
         try { _image.Source = source; }
         finally { _writing = false; }
+    }
+
+    /// <summary>
+    /// Waits for the first compositor frame at or after a deadline. A thread-pool timer rounds a 50ms
+    /// frame up to the system tick (about 62ms measured in the running window), so a 20fps APNG played
+    /// at 16fps with jitter. Rendering callbacks arrive once per displayed frame; appointments are carried
+    /// across frames instead of restarting from the last paint, which keeps 24/25fps averaging out.
+    /// The subscription exists only while at least one frame is waiting.
+    /// </summary>
+    private static class FrameClock
+    {
+        private static readonly object Gate = new();
+        private static readonly List<Waiter> Waiting = [];
+        // A deadline a few milliseconds before a callback still belongs to that callback; without a
+        // tolerance a 50ms deadline lands microseconds before the third 60Hz tick and becomes 67ms.
+        private static readonly long EarlyTolerance = Stopwatch.Frequency / 200;
+        private static bool _hooked;
+
+        internal static async Task WaitAsync(long deadline, CancellationToken token)
+        {
+            if (Stopwatch.GetTimestamp() + EarlyTolerance >= deadline) return;
+            token.ThrowIfCancellationRequested();
+            // Deliberately not RunContinuationsAsynchronously: the paint should land in this same frame.
+            // Cancellation only completes the task; the awaiting UI continuation removes the appointment.
+            var completion = new TaskCompletionSource();
+            var waiter = new Waiter(deadline, completion);
+            lock (Gate)
+            {
+                Waiting.Add(waiter);
+                if (!_hooked)
+                {
+                    _hooked = true;
+                    CompositionTarget.Rendering += OnRendering;
+                }
+            }
+            using var registration = token.Register(() => completion.TrySetCanceled(token));
+            try { await completion.Task.ConfigureAwait(true); }
+            finally
+            {
+                registration.Dispose();
+                Remove(waiter);
+            }
+        }
+
+        private static void Remove(Waiter waiter)
+        {
+            lock (Gate)
+            {
+                if (!Waiting.Remove(waiter) || Waiting.Count > 0 || !_hooked) return;
+                _hooked = false;
+                CompositionTarget.Rendering -= OnRendering;
+            }
+        }
+
+        private static void OnRendering(object? sender, object args)
+        {
+            List<Waiter>? due = null;
+            lock (Gate)
+            {
+                if (!_hooked) return;
+                var now = Stopwatch.GetTimestamp();
+                for (var index = Waiting.Count - 1; index >= 0; index--)
+                {
+                    var waiter = Waiting[index];
+                    if (now + EarlyTolerance < waiter.Deadline) continue;
+                    Waiting.RemoveAt(index);
+                    (due ??= []).Add(waiter);
+                }
+                if (Waiting.Count == 0)
+                {
+                    _hooked = false;
+                    CompositionTarget.Rendering -= OnRendering;
+                }
+            }
+            if (due is null) return;
+            foreach (var waiter in due) waiter.Completion.TrySetResult();
+        }
+
+        private sealed record Waiter(long Deadline, TaskCompletionSource Completion);
     }
 }

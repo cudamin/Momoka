@@ -84,6 +84,12 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Media
 {
+    public static class CompositionTarget
+    {
+        public static event EventHandler<object>? Rendering;
+        internal static int Subscriptions => Rendering?.GetInvocationList().Length ?? 0;
+        internal static void Tick() => Rendering?.Invoke(null, EventArgs.Empty);
+    }
     public static class VisualTreeHelper
     {
         public static Microsoft.UI.Xaml.DependencyObject? GetParent(Microsoft.UI.Xaml.DependencyObject element) =>
