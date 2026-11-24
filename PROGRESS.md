@@ -1,3 +1,11 @@
+## 2026-11-24 主页与列表的订阅封面悬停预览
+
+用户令「给主页订阅列表也加悬浮」。订阅封面 `MoviePilotSubscriptionPoster` 接上与媒体卡同一条 `PosterHoverDwell`（指针连续静止 500ms）、同一块 `CardPreview` 面板与 `CardPreviewPlacement` 摆位：封面撑成 400 DIP 宽面板（窄窗最低 300），主图优先换成订阅的横版背景、读不到留海报；右上播放键与续播条收起，底部四行订阅状态、进度、订阅用户、上次更新，空值整行收起。指针离开封面与面板 180ms 后收起；按下、更多菜单、货架滚动、其他 Popup 立即收起；触控与触控笔不弹。点面板正文走 `Source.Open` 进订阅详情，封面点击保持原编辑入口。
+
+**接线。** 面板逻辑在 `CardPreview.xaml(.cs)` 新增 `ShowSubscription` 与 `SetSubscriptionPoster`，四行标签补 `CardPreview_Subscription*` 中英 resw。收起宽限、滚动监听与浮层检查抽成 `PreviewPopupSupport`（`PreviewCloseDelay`／`PreviewScrollWatch`／`PreviewPopupGate`），媒体卡与订阅卡共用；重复检查仍 **68 段／0.47%**。`MoviePilotSubscriptionsViewModel.LoadPreviewBackdropAsync` 只为 `Owns` 且连接可用的卡片读 960 宽底图，底图到达经 `PropertyChanged` 换进面板。主页两排与订阅列表页共用 `MoviePilotSubscriptionsView`，搜索页 `LibraryPage` 的匹配订阅模板也接 `PreviewRequested`／`DetailsRequested`；两处分别用订阅 VM 与 `_moviePilot` 服务取图，详情分别走 `Source.Open` 与 `ViewModel.OpenMatchingSubscription`。
+
+**验证。** Shell Release/x64 重构 **0 警告 0 错误**；`Momoka.PageContractTests` 新增一条订阅悬浮契约（静止计时、Popup 摆位、两个宿主接线、resw、底图取数），**411/411、0 失败**；重复检查 **68 段／0.47%**（预算 70 段／1%）。日常未跑原生探针；真实悬停计时与撑开／收起、背景图到达与缺失、面板进详情、滚动与浮层收起、三处实屏、五套主题、窄窗、高对比、触控／触控笔留待统一验证。已按日常收尾刷新主树快捷方式；首次发布后 Momoka 由用户打开，程序退出后已补发布最终内部整理版（13:33，548 个文件／290.8 MB，验证通过），快捷方式回读同一发布目录。台账未销账。
+
 ## 2026-11-24 0.3.2 统一验证与发布（闸门 1～4 通过；探针 192/227；未销账）
 
 用户令「1.先完成交付，跑探针和闸门，有红自己决定要不要修 2.提交代码到github 3.更新版本打包发布到GitHub，生成一个微软商店商店安装包」。

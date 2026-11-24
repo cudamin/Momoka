@@ -12,6 +12,7 @@ using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Media;
+using Momoka.Shell.ViewModels;
 using Windows.Foundation;
 using Windows.Media.Playback;
 using MediaSource = Windows.Media.Core.MediaSource;
@@ -39,6 +40,9 @@ public sealed partial class CardPreview : UserControl
     private BitmapImage? _pendingArtwork;
     private Storyboard? _artworkFade;
     private CardItem? _card;
+
+    /// <summary>订阅模式下正被画的那张订阅卡；与 <see cref="_card"/> 二选一。</summary>
+    private MoviePilotSubscriptionCard? _subscription;
     private bool _running;
     private bool _shown;
     private int _generation;
@@ -107,6 +111,8 @@ public sealed partial class CardPreview : UserControl
             PreviewImage.Source = card.Poster;
             _card = card;
         }
+        _subscription = null;
+        SubscriptionBlock.Visibility = Visibility.Collapsed;
         LogoImage.Source = null;
         LogoSlot.Visibility = Shown(ItemArtwork.Plate(card.Item) is not null);
         TitleText.Text = card.Title;
@@ -121,6 +127,56 @@ public sealed partial class CardPreview : UserControl
         ToolTipService.SetToolTip(PlayButton, PlayText.Text);
         AutomationProperties.SetName(DetailsButton, $"查看{card.Title}详情");
         Heading.Margin = new Thickness(0, 0, card.PlayVisibility == Visibility.Visible ? 116 : 0, 0);
+    }
+
+    /// <summary>
+    /// 订阅封面的悬停预览（2026-11-24 用户令「给主页订阅列表也加悬浮」）。面板、撑开动画与摆位都沿用
+    /// 媒体卡那一份；订阅没有播放与续播，右上播放键收起，底部换成订阅状态、进度、订阅用户与上次更新。
+    /// </summary>
+    internal void ShowSubscription(MoviePilotSubscriptionCard card)
+    {
+        StopTrailer();
+        Panel.Visibility = Visibility.Visible;
+        if (!ReferenceEquals(_subscription, card))
+        {
+            StopArtworkFade();
+            _pendingArtwork = null;
+            PreviewImage.Source = card.Poster;
+            _subscription = card;
+            _card = null;
+        }
+        LogoSlot.Visibility = Visibility.Collapsed;
+        LogoImage.Source = null;
+        TitleText.Text = card.Title;
+        ApplySubscriptionFacts(card);
+        ResumeBlock.Visibility = Visibility.Collapsed;
+        SubscriptionBlock.Visibility = Visibility.Visible;
+        SubscriptionStateText.Text = card.Status;
+        SubscriptionProgressText.Text = card.ProgressCount;
+        SubscriptionUserText.Text = card.SubscriberName;
+        SubscriptionUpdatedText.Text = card.UpdatedText;
+        SubscriptionStateRow.Visibility = Shown(SubscriptionStateText.Text.Length > 0);
+        SubscriptionProgressRow.Visibility = Shown(SubscriptionProgressText.Text.Length > 0);
+        SubscriptionUserRow.Visibility = Shown(card.SubscriberVisibility == Visibility.Visible && SubscriptionUserText.Text.Length > 0);
+        SubscriptionUpdatedRow.Visibility = Shown(SubscriptionUpdatedText.Text.Length > 0);
+        PlayButton.Visibility = Visibility.Collapsed;
+        AutomationProperties.SetName(DetailsButton, $"查看{card.Title}订阅详情");
+        Heading.Margin = new Thickness(0);
+    }
+
+    /// <summary>订阅的资料行：评分、来源／编号／类型／季，概要单独一行；没有的项不占位。</summary>
+    private void ApplySubscriptionFacts(MoviePilotSubscriptionCard card)
+    {
+        MetaText.Text = card.Meta;
+        MetaText.Visibility = Shown(MetaText.Text.Length > 0);
+        GenresText.Text = "";
+        GenresText.Visibility = Visibility.Collapsed;
+        RatingText.Text = card.HasRating ? card.RatingText : "";
+        RatingBlock.Visibility = Shown(card.HasRating);
+        AutomationProperties.SetName(RatingText, $"评分 {RatingText.Text}");
+        FactsBlock.Visibility = Shown(card.HasRating || MetaText.Text.Length > 0);
+        OverviewText.Text = card.Overview;
+        OverviewText.Visibility = Shown(OverviewText.Text.Length > 0);
     }
 
     /// <summary>
@@ -139,6 +195,15 @@ public sealed partial class CardPreview : UserControl
         FactsBlock.Visibility = Shown(MetaText.Text.Length + GenresText.Text.Length + RatingText.Text.Length > 0);
         OverviewText.Text = CardPreviewText.Overview(item);
         OverviewText.Visibility = Shown(OverviewText.Text.Length > 0);
+    }
+
+    /// <summary>订阅海报晚到时补上主图；横版背景已经铺好时不替换。</summary>
+    internal void SetSubscriptionPoster(BitmapImage? poster)
+    {
+        if (poster is null || !_shown || _subscription is null) return;
+        if (ReferenceEquals(_previewAnimation.OriginalSource, poster)) return;
+        if (PreviewImage.Source is not null) return;
+        PreviewImage.Source = poster;
     }
 
     internal void SetArtwork(BitmapImage? artwork)
@@ -442,6 +507,7 @@ public sealed partial class CardPreview : UserControl
         StopArtworkFade();
         StopTrailer();
         _card = null;
+        _subscription = null;
         Panel.Visibility = Visibility.Collapsed;
         PreviewImage.Source = TransitionImage.Source = LogoImage.Source = null;
     }

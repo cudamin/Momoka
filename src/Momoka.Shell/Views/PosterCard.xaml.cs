@@ -173,8 +173,6 @@ public sealed partial class PosterCard : UserControl
     /// 卡片与面板之间那一点空隙的宽限：指针从卡片跨到面板上时先经过一小段谁都不属于的地方，
     /// 太短会在半路把面板收掉，太长又像卡住。收起动画本身还要 120 毫秒，两者不叠加。
     /// </summary>
-    private const int PreviewCloseGraceMs = 180;
-
     /// <summary>
     /// 指针停在卡片上时整卡抬起的幅度。参考 WinUI Gallery 的悬停缩放（<c>Samples/XamlCompInterop</c>，
     /// 固定提交 6de91fe）：那份示例把 Scale 从 1 弹到 1.5，但那是单颗按钮的尺度；卡片在货架和网格里
@@ -196,7 +194,8 @@ public sealed partial class PosterCard : UserControl
     private DispatcherQueueTimer? _hoverDwellTimer;
 
     /// <summary>离开卡片之后到真正收起之间的宽限，指针进面板或回到卡片就取消。</summary>
-    private DispatcherQueueTimer? _previewClose;
+    private PreviewCloseDelay? _previewClose;
+    private PreviewScrollWatch? _previewScrollWatch;
 
     private Popup? _previewHost;
     private CardPreview? _preview;
@@ -213,9 +212,6 @@ public sealed partial class PosterCard : UserControl
     /// 与宽图分开取消，宽图到了不该把还在读的预告一并放掉。
     /// </summary>
     private CancellationTokenSource? _previewTrailer;
-
-    /// <summary>面板打开时盯住的那几条滚动：内容一动，卡片和面板就错位了，先收起再说。</summary>
-    private readonly List<ScrollViewer> _previewScrolls = [];
 
     private bool _previewOpen;
 
@@ -1112,31 +1108,10 @@ public sealed partial class PosterCard : UserControl
     private void SchedulePreviewClose()
     {
         if (!_previewOpen) return;
-
-        if (_previewClose is null)
-        {
-            _previewClose = DispatcherQueue.GetForCurrentThread()?.CreateTimer();
-            if (_previewClose is null) return;
-
-            _previewClose.Interval = TimeSpan.FromMilliseconds(PreviewCloseGraceMs);
-            _previewClose.IsRepeating = false;
-            _previewClose.Tick += OnPreviewCloseTick;
-        }
-
-        _previewClose.Stop();
-        _previewClose.Start();
+        (_previewClose ??= new PreviewCloseDelay(() => ClosePreview(), () => _hovered || _previewHovered)).Schedule();
     }
 
-    private void CancelPreviewClose() => _previewClose?.Stop();
-
-    private void OnPreviewCloseTick(DispatcherQueueTimer sender, object args)
-    {
-        sender.Stop();
-
-        // 宽限里指针可能已经站到面板上或回到卡片上 —— 那两个都不该收。
-        if (_hovered || _previewHovered) return;
-        ClosePreview();
-    }
+    private void CancelPreviewClose() => _previewClose?.Cancel();
 
     private void OnPreviewPointerEntered(object sender, PointerRoutedEventArgs e)
     {
@@ -1197,43 +1172,15 @@ public sealed partial class PosterCard : UserControl
     /// 卡片在横向货架里、货架又在页面的纵向滚动里，两条都要盯。
     /// </summary>
     private void WatchPreviewScroll()
-    {
-        if (_previewScrolls.Count > 0) return;
+        => (_previewScrollWatch ??= new PreviewScrollWatch(this, () => ClosePreview(immediately: true))).Watch();
 
-        for (var parent = VisualTreeHelper.GetParent(this); parent is not null; parent = VisualTreeHelper.GetParent(parent))
-        {
-            if (parent is not ScrollViewer viewer) continue;
-
-            viewer.ViewChanged += OnPreviewScrolled;
-            _previewScrolls.Add(viewer);
-        }
-    }
-
-    private void UnwatchPreviewScroll()
-    {
-        foreach (var viewer in _previewScrolls) viewer.ViewChanged -= OnPreviewScrolled;
-        _previewScrolls.Clear();
-    }
-
-    private void OnPreviewScrolled(object? sender, ScrollViewerViewChangedEventArgs e) => ClosePreview(immediately: true);
+    private void UnwatchPreviewScroll() => _previewScrollWatch?.Stop();
 
     /// <summary>
     /// 有没有别的浮层正开着（更多菜单、对话框、筛选面板）。面板自己不算，工具提示也不算 ——
     /// 提示是「指针正停在这颗按钮上」的副产品，它开着的时候预览该照常出现。
     /// </summary>
-    private bool AnotherPopupOpen()
-    {
-        if (XamlRoot is not { } root) return false;
-
-        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(root))
-        {
-            if (ReferenceEquals(popup, _previewHost)) continue;
-            if (popup.Child is ToolTip) continue;
-            return true;
-        }
-
-        return false;
-    }
+    private bool AnotherPopupOpen() => PreviewPopupGate.AnotherOpen(XamlRoot, _previewHost);
 
     /// <summary>
     /// 自检：reveals the hover buttons for one layout pass and reports what they are and where they

@@ -449,6 +449,18 @@
   <data name="CardPreview_Resume.Text" xml:space="preserve">
     <value>继续观看</value>
   </data>
+  <data name="CardPreview_SubscriptionState.Text" xml:space="preserve">
+    <value>订阅状态</value>
+  </data>
+  <data name="CardPreview_SubscriptionProgress.Text" xml:space="preserve">
+    <value>订阅进度</value>
+  </data>
+  <data name="CardPreview_SubscriptionUser.Text" xml:space="preserve">
+    <value>订阅用户</value>
+  </data>
+  <data name="CardPreview_SubscriptionUpdated.Text" xml:space="preserve">
+    <value>上次更新</value>
+  </data>
   <data name="PosterCard_MoreButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>更多</value>
   </data>

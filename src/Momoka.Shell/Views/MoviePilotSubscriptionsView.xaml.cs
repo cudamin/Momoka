@@ -98,6 +98,10 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
     }
     private void OnPosterRequested(object? sender, EventArgs args)
     { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) _ = ViewModel.LoadPosterAsync(card); }
+    private void OnPosterPreviewRequested(object? sender, EventArgs args)
+    { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) _ = ViewModel.LoadPreviewBackdropAsync(card); }
+    private void OnPosterDetailsRequested(object? sender, EventArgs args)
+    { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) Open(card); }
     private void OnPosterMenu(object? sender, EventArgs args)
     {
         if (sender is MoviePilotSubscriptionPoster { Card: { } card } poster) Menu(card).ShowAt(poster.MenuAnchor);

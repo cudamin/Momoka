@@ -560,6 +560,13 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public bool NeedsReview(MoviePilotSubscriptionCard card) => _service?.SubscriptionNeedsReview(card.Subscription) == true;
     public Task LoadPosterAsync(MoviePilotSubscriptionCard card) => Owns(card) && _service is { } service
         ? Task.WhenAll(card.LoadPosterAsync(service), card.LoadSubscriberAvatarAsync(service)) : Task.CompletedTask;
+
+    /// <summary>
+    /// 悬停预览要的横版背景。只给当前属主、当前连接仍在的卡片读；读不到就留着手上的海报，
+    /// 面板本身不因为这张图失败而收起。
+    /// </summary>
+    public Task LoadPreviewBackdropAsync(MoviePilotSubscriptionCard card) => Owns(card) && _service is { } service
+        ? card.LoadBackdropAsync(service) : Task.CompletedTask;
     public Task LoadEpisodeArtworkAsync(MoviePilotSubscriptionEpisodeRow row) => Live && _episodes.Contains(row)
         && _service is { } service && _lifetime is { } lifetime ? row.LoadArtworkAsync(service, lifetime.Token) : Task.CompletedTask;
 

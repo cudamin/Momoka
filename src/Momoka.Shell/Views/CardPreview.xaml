@@ -72,6 +72,46 @@
                     <ProgressBar x:Name="ResumeProgress" AutomationProperties.AutomationId="CardPreviewProgress"
                         Minimum="0" Maximum="100" IsIndeterminate="False" Foreground="{ThemeResource EgAccentBrush}" />
                 </StackPanel>
+                <!-- 订阅封面也用同一块面板（2026-11-24 用户令「给主页订阅列表也加悬浮」）。订阅不是可播放条目，
+                     这里没有播放键和续播条，换成订阅自己的四行资料；空值整行收起。 -->
+                <StackPanel x:Name="SubscriptionBlock" Grid.Row="2" Margin="0,14,0,0" Spacing="6" Visibility="Collapsed">
+                    <Grid x:Name="SubscriptionStateRow" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="CardPreview_SubscriptionState" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock x:Name="SubscriptionStateText" Grid.Column="1" HorizontalAlignment="Right"
+                            Style="{StaticResource EgDataStrongStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                    <Grid x:Name="SubscriptionProgressRow" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="CardPreview_SubscriptionProgress" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock x:Name="SubscriptionProgressText" Grid.Column="1" HorizontalAlignment="Right"
+                            Style="{StaticResource EgDataStrongStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                    <Grid x:Name="SubscriptionUserRow" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="CardPreview_SubscriptionUser" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock x:Name="SubscriptionUserText" Grid.Column="1" HorizontalAlignment="Right"
+                            Style="{StaticResource EgDataStrongStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                    <Grid x:Name="SubscriptionUpdatedRow" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="CardPreview_SubscriptionUpdated" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock x:Name="SubscriptionUpdatedText" Grid.Column="1" HorizontalAlignment="Right"
+                            Style="{StaticResource EgDataStrongStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </StackPanel>
             </Grid>
             <Button x:Name="PlayButton" AutomationProperties.AutomationId="CardPreviewPlay"
                 Click="OnPlayClicked" CornerRadius="10" Padding="14,8" Margin="19"

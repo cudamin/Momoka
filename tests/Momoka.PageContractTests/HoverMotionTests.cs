@@ -154,6 +154,44 @@ internal static class HoverMotionTests
             Assert.Contains("centre == Native.HitClient", frame);
             Assert.Contains("beyond == Native.HitCaption", frame);
         });
+        Test("订阅封面悬浮：主页两排与订阅列表共用同一条静止计时和预览面板", () =>
+        {
+            var preview = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");
+            Assert.Contains("internal void ShowSubscription(MoviePilotSubscriptionCard card)", preview);
+            Assert.Contains("SubscriptionBlock.Visibility = Visibility.Visible;", preview);
+            Assert.Contains("PlayButton.Visibility = Visibility.Collapsed;", preview);
+            Assert.Contains("card.ProgressCount", preview);
+            Assert.Contains("card.SubscriberName", preview);
+            Assert.Contains("查看{card.Title}订阅详情", preview);
+            Assert.Contains("CardPreview_SubscriptionState", Read("src/Momoka.Shell/Views/CardPreview.xaml"));
+            Assert.Contains("CardPreview_SubscriptionUpdated.Text", Read("src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
+            Assert.Contains("CardPreview_SubscriptionUpdated.Text", Read("src/Momoka.Shell/Strings/en-US/Resources.resw"));
+
+            var poster = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionPoster.xaml.cs");
+            Assert.Contains("private readonly PosterHoverDwell _previewDwell = new();", poster);
+            Assert.Contains("AnotherPopupOpen()", poster);
+            Assert.Contains("CardPreviewPlacement.Horizontal(", poster);
+            Assert.Contains("new Popup", poster);
+            Assert.Contains("IsLightDismissEnabled = true,", poster);
+            Assert.Contains("PreviewRequested?.Invoke", poster);
+            Assert.Contains("DetailsRequested?.Invoke", poster);
+            Assert.Contains("PreviewScrollWatch", poster);
+            Assert.Contains("new PreviewCloseDelay(() => ClosePreview(), () => _hovered || _previewHovered)", poster);
+            var shared = Read("src/Momoka.Shell/Views/PreviewPopupSupport.cs");
+            Assert.Contains("viewer.ViewChanged += OnScrolled;", shared);
+            Assert.Contains("if (keep()) return;", shared);
+            Assert.Contains("GraceMilliseconds = 180", shared);
+            Assert.Contains("internal static bool AnotherOpen(XamlRoot? root, Popup? own)", shared);
+
+            var view = Read("src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml");
+            Assert.Contains("PreviewRequested=\"OnPosterPreviewRequested\"", view);
+            Assert.Contains("DetailsRequested=\"OnPosterDetailsRequested\"", view);
+            var page = Read("src/Momoka.Shell/Views/LibraryPage.xaml.cs");
+            Assert.Contains("OnSubscriptionMatchPreviewRequested", page);
+            Assert.Contains("ViewModel.OpenMatchingSubscription(card);", page[page.IndexOf("OnSubscriptionMatchPreviewDetails", StringComparison.Ordinal)..]);
+            var model = Read("src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs");
+            Assert.Contains("public Task LoadPreviewBackdropAsync(MoviePilotSubscriptionCard card)", model);
+        });
         Test("悬停放大：预览面板用弹簧驱动 Progress，不再用关键帧", () =>
         {
             var source = Read("src/Momoka.Shell/Views/CardPreview.xaml.cs");

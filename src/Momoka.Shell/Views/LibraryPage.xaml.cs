@@ -1735,6 +1735,20 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.RequestMatchingSubscriptionPoster(card);
     }
 
+    /// <summary>搜索匹配到的订阅封面也弹同一块悬停预览；横版背景读不到就留海报。</summary>
+    private void OnSubscriptionMatchPreviewRequested(object? sender, EventArgs args)
+    {
+        if (_released || _moviePilot is not { Available: true } service
+            || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        _ = card.LoadBackdropAsync(service);
+    }
+
+    private void OnSubscriptionMatchPreviewDetails(object? sender, EventArgs args)
+    {
+        if (_released || sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        ViewModel.OpenMatchingSubscription(card);
+    }
+
     /// <summary>
     /// 指针点了来源标签：把光标交回搜索框。点击把焦点留在标签上，而用户接下来要么打新词、要么按回车
     /// 用现有的词搜 —— 两件事都要求焦点在框里。挂 <c>PointerReleased</c> 而不是无条件抢：键盘方向键
