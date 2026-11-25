@@ -4,7 +4,9 @@
 
 原生计算已读 microsoft/microsoft-ui-xaml 固定提交 `a97562621a1d1ea397a38a3f512c9eef99db52d8`（`winui3/release/2.3.1`），`src/controls/dev/Repeater/UniformGridLayout.cpp` 的 `GetItemsPerLine/Algorithm_GetExtent` 与 `UniformGridLayoutState.cpp` 的 `EnsureElementSize/CalculateAvailableSize/SetSize`：列数计算含末列间距补偿，None 使用指定尺寸。它是上游实现依据，不是本机 NuGet WinUI 2.3.9 的逐字节等价或实际窗口证据。无新控件、样式或资源键，不触发高风险 XAML 最小加载例外。
 
-验证：最终 Shell／Core／测试 Release/x64 0警告0错误；主测试5351/5351，PageContract422/422，DetailImageArrival44/44，实际四后端VM与深返回23/23，架构7/7；均0失败0跳过。格式、差异、183份文档链接与153代码块语法检查通过；重复68段／0.48%。首次编译因诊断仍引用CardMinWidth失败，恢复同源格宽兼容读数后通过；其余沙箱与测试前件失败见待交付批次129，日志保留，未改产品分页或基线洗绿。没有运行真实服务器、播放、探针、自检应用或验收截图；画面流畅度与输入／主题／DPI仍待统一验收。当前树体验发布与快捷方式结果随后记录，不合并不上传。
+验证：最终 Shell／Core／测试 Release/x64 0警告0错误；主测试5351/5351，PageContract422/422，DetailImageArrival44/44，实际四后端VM与深返回23/23，架构7/7；均0失败0跳过。格式、差异、183份文档链接与153代码块语法检查通过；重复68段／0.48%。首次编译因诊断仍引用CardMinWidth失败，恢复同源格宽兼容读数后通过；其余沙箱与测试前件失败见待交付批次129，日志保留，未改产品分页或基线洗绿。没有运行真实服务器、播放、探针、自检应用或验收截图；画面流畅度与输入／主题／DPI仍待统一验收。
+
+体验发布：产品提交 `22d5dd4`，当前树自包含发布校验通过（548文件／290.7MB，批准mpv清单60文件）；版本 `0.3.3+22d5dd44f92af5639d50767a35484e288f02d199`。`Momoka-library-cover-resize.lnk` 的TargetPath和WorkingDirectory已回读，指向本树 `artifacts/publish/win-x64`；未启动程序、不合并、不上传、不销账。三份程序SHA256与运行待验边界记在待交付批次129，发布日志 `artifacts/library-experience-publish.log`。
 
 ## 2026-11-25 去掉飞牛音乐的周期进度上报
 
