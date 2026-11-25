@@ -1758,8 +1758,6 @@
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
                     <ScrollViewer.Resources>
                         <ResourceDictionary>
-                        <Thickness x:Key="ScrollViewerScrollBarMargin">0</Thickness>
-
                         <!--
                           卡片里输入框的静止底色（2026-10-29 用户令：「点击输入框后输入框内部颜色要切换到设置
                           页面侧边栏背景的颜色」，「搜索框别改，保持原样」）。只挂在卡片这一列的滚动区上：
@@ -1862,7 +1860,7 @@
                 <!-- Transitions cleared for the same reason the shell's frame clears them (requirement 9). -->
                 <Frame
                     x:Name="HostedFrame"
-                    Margin="0,0,16,0"
+                    Margin="0"
                     Transitions="{x:Null}"
                     Visibility="{x:Bind ViewModel.HostedVisibility, Mode=OneWay}" />
             </Grid>

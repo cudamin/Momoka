@@ -107,14 +107,14 @@
                         <Setter Target="FormScroll.(Grid.Row)" Value="0" />
                         <Setter Target="FormScroll.(Grid.RowSpan)" Value="2" />
                         <Setter Target="FormScroll.(Grid.Column)" Value="1" />
-                        <Setter Target="FormScroll.Margin" Value="40,0,0,0" />
+                        <Setter Target="FormScroll.Margin" Value="40,0,-28,0" />
                         <Setter Target="SignInLayout.Margin" Value="28,48,28,28" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <Grid x:Name="SignInLayout" Margin="24,48,24,24" MaxWidth="1440">
+        <Grid x:Name="SignInLayout" Margin="24,48,24,24">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition x:Name="FormColumn" Width="0" />
@@ -164,9 +164,9 @@
                 </StackPanel>
             </Grid>
 
-            <ScrollView x:Name="FormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+            <ScrollView x:Name="FormScroll" Grid.Row="1" Margin="0,0,-24,0" VerticalScrollBarVisibility="Auto"
                 SizeChanged="OnFormViewportSizeChanged" HorizontalContentAlignment="Stretch">
-                <Border x:Name="SignInCard" MaxWidth="360" HorizontalAlignment="Stretch" Padding="0,24">
+                <Border x:Name="SignInCard" MaxWidth="360" HorizontalAlignment="Stretch" Margin="0,0,20,0" Padding="0,24">
                     <StackPanel x:Name="FormContent" Spacing="24" VerticalAlignment="Center">
                         <StackPanel Spacing="10">
                             <TextBlock Text="{x:Bind ViewModel.FormTitle, Mode=OneWay}"

@@ -128,7 +128,7 @@
             ContentOrientation="Vertical"
             HorizontalScrollBarVisibility="Hidden"
             HorizontalScrollMode="Disabled">
-            <StackPanel Margin="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpace2XL}">
+            <StackPanel Margin="32,28,20,28" Spacing="{StaticResource EgSpace2XL}">
                 <!-- 页头：照片和信息。窄窗时信息换到照片下面。 -->
                 <local:WrapRow Spacing="{StaticResource EgSpace2XL}" RowSpacing="{StaticResource EgSpaceXL}">
                     <Border

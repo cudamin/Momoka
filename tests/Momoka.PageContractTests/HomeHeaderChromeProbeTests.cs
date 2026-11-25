@@ -17,6 +17,21 @@ internal static class HomeHeaderChromeProbeTests
 
     internal static void Register()
     {
+        Test("主页滚动条读数：原生位置通过，缺件、轮播偏移和非法值拒绝", () =>
+        {
+            HomeHeaderChromeProbeReadings.ScrollBar(true, 0, 0);
+            foreach (var (found, top, right) in new[]
+            {
+                (false, 0d, 0d), (true, 240d, 0d), (true, 0d, 20d),
+                (true, double.NaN, 0d), (true, 0d, double.PositiveInfinity)
+            })
+                Assert.Throws<InvalidOperationException>(() => HomeHeaderChromeProbeReadings.ScrollBar(found, top, right));
+            var caller = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.Sidebar.cs"));
+            Assert.Contains("HomeHeaderChromeProbeReadings.ScrollBar(scrollBar is not null,", caller);
+            Assert.Contains("OwnedScrollBarParts(scroller)", caller);
+            var owners = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.cs"));
+            Assert.Contains("if (child is ScrollView or ScrollViewer) continue;", owners);
+        });
         Test("顶部返回等待：缓存就绪和旧偏移不得绕过本次Loaded、布局与恢复", () =>
         {
             var states = new[]

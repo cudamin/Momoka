@@ -22,6 +22,12 @@ internal sealed record HomeHeaderChromeReturnReading(
 
 internal static class HomeHeaderChromeProbeReadings
 {
+    internal static void ScrollBar(bool found, double top, double right)
+    {
+        Check(found && Finite(top, right) && Math.Abs(top) <= 0.5 && Math.Abs(right) <= 0.5,
+            "主页竖滚动条未与媒体详情页保持原生顶端、右沿位置");
+    }
+
     internal static bool ReturnReady(HomeHeaderChromeReturnReading actual) =>
         actual.CurrentPage && actual.ContentReady && actual.HomeLoaded && actual.ScrollLoaded
         && actual.PresenterLoaded && actual.HasXamlRoot && !actual.RestorePending && !actual.Restoring

@@ -143,7 +143,6 @@ namespace Momoka.Shell.Views
         internal TitleStrip CurrentTitle => _actions!.Current;
         internal void ApplyCarousel() => SyncCarouselLayout();
         internal void NotifyAppearance(Momoka.Configuration.UiSettings ui) => OnAppearanceChanged(ui);
-        private void PlaceScrollBar() { }
         internal FrameworkElement LibraryOverlay { get; } = new()
         {
             RenderTransform = new TranslateTransform(),

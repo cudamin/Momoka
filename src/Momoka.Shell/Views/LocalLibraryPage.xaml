@@ -43,6 +43,7 @@
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         <ListView x:Name="LocalLibraryEntries" Grid.Row="3" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+            Margin="0,0,-32,0" Padding="{StaticResource EgScrollBarLane}"
             SelectionMode="None" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:LocalLibraryRow">

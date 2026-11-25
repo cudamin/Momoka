@@ -217,9 +217,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 量的是外面这层滚动器而不是卡片墙自己：墙的宽度是算出来钉上去的（见 ApplyWallMetrics），
         // 量它自己等于拿上一帧的答案算这一帧。
         TableScroll.SizeChanged += (_, _) => OnWallWidthChanged();
-        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth - UpcomingScroll.Padding.Right);
+        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth - UpcomingGroups.Margin.Right);
         UpcomingScroll.ViewChanged += OnUpcomingViewChanged;
-        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth - FavoritesScroll.Padding.Right);
+        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth - FavoritesGroups.Margin.Right);
         SearchGroupsScroll.SizeChanged += (_, _) => OnSearchGroupsWidthChanged();
         SearchGroupsScroll.ViewChanged += OnSearchGroupsViewChanged;
 
@@ -914,7 +914,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         FnNasFilterPanel.Margin = headerByMargin ? new Thickness(0, 16, 0, 4) : new Thickness(0, 0, 0, 4);
         // 搜索页没有标题和外卡；间距放在可见内容上，收起状态行不会留下空槽。
         var searchGap = search ? new Thickness(0, 8, 0, 0) : new Thickness(0);
-        EmbyContent.Margin = headerByMargin ? contentGap : searchGap;
+        var contentMargin = headerByMargin ? contentGap : searchGap;
+        // 与详情页一样，滚动视口一直铺到页面右沿；安全留白由滚动内容提供。
+        EmbyContent.Margin = new Thickness(0, contentMargin.Top, -PageRoot.Margin.Right, contentMargin.Bottom);
         ApplySearchPanelMargins(searchGap);
         LibraryBusyBar.Margin = LibraryNoticeBar.Margin = compactResume ? new Thickness(0, 12, 0, 0)
             : headerByMargin ? contentGap : searchGap;
@@ -988,6 +990,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>搜索页各段共用的内容边距；只拨已经建出来的面板。</summary>
     private void ApplySearchPanelMargins(Thickness margin)
     {
+        margin = new Thickness(margin.Left, margin.Top, -PageRoot.Margin.Right, margin.Bottom);
         if (_moviePilotPanel is { } moviePilot) moviePilot.Margin = margin;
         if (_moviePilotResources is { } resources) resources.Margin = margin;
         if (_moviePilotSubtitles is { } subtitles) subtitles.Margin = margin;
@@ -1057,7 +1060,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnSearchGroupsWidthChanged()
     {
         if (!ViewModel.IsGroupedSearch) return;
-        var width = SearchGroupsScroll.ActualWidth - SearchGroupsScroll.Padding.Right;
+        var width = SearchGroupsScroll.ActualWidth - ((StackPanel)SearchGroupsScroll.Content).Padding.Right;
         if (width <= 0 || !double.IsFinite(width)) return;
         ViewModel.ResizeGrid(width);
         _gridResize.Stop();

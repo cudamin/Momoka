@@ -921,7 +921,7 @@
 
         <!-- Emby 结果区整块（网格 + 字母条 + 空态）包进 EmbyContent，好被「MoviePilot」分段一处切走
              （见 OnSourceChanged）。 -->
-        <Grid x:Name="EmbyContent" Grid.Row="2">
+        <Grid x:Name="EmbyContent" Grid.Row="2" Margin="0,0,-32,0">
             <!-- Grid so the letter bar can sit over the scroller's right edge without taking a column
                  away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
             <Grid x:Name="LibraryResultLayout" RowSpacing="16">
@@ -1026,13 +1026,12 @@
                 x:FieldModifier="internal"
                 Grid.Row="1"
                 Grid.RowSpan="2"
-                Padding="0,0,20,32"
                 HorizontalScrollBarVisibility="Disabled"
                 HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto"
                 VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.SearchGroupsVisibility, Mode=OneWay}">
-                <StackPanel Spacing="32">
+                <StackPanel Spacing="32" Padding="0,0,20,32">
                     <!-- 同时搜到的订阅排在最上面：它们往往就是用户正在找、媒体库里还没有的那一项。
                          摆法和下面那些类型组一致（组标题 + 同一档海报卡），读起来是同一张结果表里的一组。 -->
                     <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SubscriptionMatchesVisibility, Mode=OneWay}">
@@ -1073,14 +1072,13 @@
                 x:FieldModifier="internal"
                 Grid.Row="1"
                 Grid.RowSpan="2"
-                Padding="0,0,20,32"
                 HorizontalScrollBarVisibility="Disabled"
                 HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto"
                 VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.RecommendedVisibility, Mode=OneWay}">
                 <ItemsRepeater
-                    x:Name="RecommendedRows"
+                    x:Name="RecommendedRows" Margin="0,0,20,32"
                     x:FieldModifier="internal"
                     ItemTemplate="{StaticResource ShelfRowTemplate}"
                     ItemsSource="{x:Bind ViewModel.RecommendedShelves, Mode=OneWay}">
@@ -1092,11 +1090,11 @@
             </ScrollViewer>
 
             <ScrollViewer x:Name="FavoritesScroll" x:FieldModifier="internal"
-                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,20,32"
+                Grid.Row="1" Grid.RowSpan="2"
                 HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.FavoritesVisibility, Mode=OneWay}">
-                <ItemsRepeater x:Name="FavoritesGroups" x:FieldModifier="internal"
+                <ItemsRepeater x:Name="FavoritesGroups" Margin="0,0,20,32" x:FieldModifier="internal"
                     ItemsSource="{x:Bind ViewModel.VisibleFavoriteRows, Mode=OneWay}" ItemTemplate="{StaticResource FavoriteRowTemplate}">
                     <ItemsRepeater.Layout>
                         <StackLayout Orientation="Vertical" Spacing="40" />
@@ -1105,11 +1103,11 @@
             </ScrollViewer>
 
             <ScrollViewer x:Name="UpcomingScroll" x:FieldModifier="internal"
-                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,20,32"
+                Grid.Row="1" Grid.RowSpan="2"
                 HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.UpcomingVisibility, Mode=OneWay}">
-                <ItemsRepeater x:Name="UpcomingGroups" x:FieldModifier="internal"
+                <ItemsRepeater x:Name="UpcomingGroups" Margin="0,0,20,32" x:FieldModifier="internal"
                     ItemTemplate="{StaticResource UpcomingDayTemplate}"
                     ItemsSource="{x:Bind ViewModel.UpcomingDays, Mode=OneWay}">
                     <ItemsRepeater.Layout>
@@ -1122,6 +1120,7 @@
                  总数 > 30）。点击跳到该字母第一项；当前字母高亮随滚动更新。 -->
             <local:AlphaBar
                 x:Name="Alpha"
+                Margin="0,0,20,0"
                 Grid.Row="2"
                 JumpRequested="OnAlphaJump"
                 Visibility="{x:Bind ViewModel.AlphaVisibility, Mode=OneWay}" />
@@ -1151,7 +1150,7 @@
             </Border>
             <TextBlock Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}" TextWrapping="Wrap" TextAlignment="Center" />
         </StackPanel>
-            <Grid x:Name="RecentSearchSection" MaxWidth="900" RowSpacing="12" HorizontalAlignment="Stretch"
+            <Grid x:Name="RecentSearchSection" RowSpacing="12" HorizontalAlignment="Stretch"
                 Visibility="{x:Bind ViewModel.RecentSearchVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <Grid>

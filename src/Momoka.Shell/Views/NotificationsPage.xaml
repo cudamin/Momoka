@@ -114,8 +114,8 @@
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
         </StackPanel>
 
-        <ScrollView Grid.Row="2" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
+        <ScrollView Grid.Row="2" Margin="0,0,-32,0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Padding="{StaticResource EgScrollBarLane}">
                 <!--
                   通知接管（这一格做的事：进度到阈值、或者手动点「标记为已看」，补报播放停止。用户令 2026-09-29：
                   「在设置的通知中新增功能，播放进度达到自定义百分比的时候，自动触发发送 播放-停止」，同日续令

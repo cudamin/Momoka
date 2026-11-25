@@ -104,8 +104,8 @@ internal static class SettingsLayoutTests
             var scroll = Named(document, "SettingsScroll");
             Assert.Equal("16,8,0,16", Named(document, "SettingsLayout").Attribute("Margin")?.Value,
                 "滚动器所在正文应贴右边，卡片自身留内侧间距");
-            Assert.True(scroll.Descendants().Any(element => element.Attribute(Xaml + "Key")?.Value == "ScrollViewerScrollBarMargin"
-                && element.Value == "0"), "滚动条框架模板不再额外缩进");
+            Assert.False(scroll.Descendants().Any(element => element.Attribute(Xaml + "Key")?.Value == "ScrollViewerScrollBarMargin"),
+                "设置滚动条与媒体详情共用原生模板边距");
             Assert.Equal("ScrollViewer", scroll.Name.LocalName, "设置页不使用发布版位置钳制异常的合成滚动器");
             var cards = Named(document, "SettingsCardsContent");
             Assert.Equal("0,0,20,0", cards.Attribute("Margin")?.Value);
