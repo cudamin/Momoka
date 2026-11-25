@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Navigation;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
-using Momoka.Shell.Services;
 using Momoka.Shell.Views;
 using static Momoka.Tests.TestHarness;
 

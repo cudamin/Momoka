@@ -21,7 +21,6 @@ internal static class PageScrollChromeTests
                 ("LibraryPage.xaml", "FavoritesScroll"), ("LibraryPage.xaml", "UpcomingScroll"),
                 ("LibraryPage.xaml", "RecentSearchList"),
                 ("MusicLibraryPage.xaml", "MusicRows"), ("MusicLibraryPage.xaml", "MusicWall"),
-                ("LocalLibraryPage.xaml", "LocalLibraryGroups"), ("LocalMediaPage.xaml", "LocalMediaScroll"),
                 ("MoviePilotCalendarPage.xaml", "CalendarScroll"), ("MoviePilotSubscriptionPage.xaml", "DetailScroll"),
                 ("MoviePilotSubscriptionPage.xaml", "DetailErrorState"), ("SettingsPage.xaml", "SettingsScroll"),
                 ("FnNasLibrariesPage.xaml", "FnNasLibrariesList"), ("FnNasLibrariesPage.xaml", "FnNasLibraryEditorScroll"),
@@ -92,9 +91,9 @@ internal static class PageScrollChromeTests
         });
         Test("页面滚动条：几何检查会拒绝额外右移和外层裁切回归", () =>
         {
-            var local = Page("LocalLibraryPage.xaml");
-            Named(local, "LocalLibraryGroups").SetAttributeValue("Margin", "0");
-            Assert.Throws<AssertionException>(() => RequireRightEdge(Named(local, "LocalLibraryGroups"), "broken"));
+            var home = Page("HomePage.xaml");
+            Named(home, "Scroller").SetAttributeValue("Margin", "0,0,20,0");
+            Assert.Throws<AssertionException>(() => RequireRightEdge(Named(home, "Scroller"), "broken"));
         });
     }
 

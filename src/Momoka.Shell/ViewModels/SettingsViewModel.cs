@@ -394,16 +394,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         [.. MomokaAdministrationCategories(kind), .. ServerDirectoryCategories(kind)];
 
     /// <summary>
-    /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，本机整理、服务器、诊断内嵌页插在最后一张卡（关于）
+    /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断内嵌页插在最后一张卡（关于）
     /// 前面；Emby 通知入口插在服务器与诊断之间。Emby 的服务器设置目录不在这里 —— 它自成一档，
     /// 见 <see cref="BuildCategoryGroups"/>。
-    /// <para>
-    /// 0.3.4 按用户要求恢复「本机整理」，与 <see cref="FixedHostedCategories"/> 和
-    /// <c>SettingsPage.ShowHosted</c> 保持一致；本机功能不依赖服务器管理权限。
-    /// </para>
     /// </summary>
     private static IReadOnlyList<string> SidebarCategories(bool serverAdministration, MediaServerKind kind) =>
-        [.. CardCategories[..^1], "本机整理", "服务器",
+        [.. CardCategories[..^1], "服务器",
             .. (serverAdministration ? MomokaAdministrationCategories(kind) : []),
             "诊断", LastCardCategory];
 
@@ -431,7 +427,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 由 <see cref="ServerAdministrationCategories"/> 带着来去；Jellyfin 的「网页控制台」仍是固定一项。
     /// </para>
     /// </summary>
-    private static readonly string[] FixedHostedCategories = ["本机整理", "服务器", "诊断"];
+    private static readonly string[] FixedHostedCategories = ["服务器", "诊断"];
 
     /// <summary>
     /// 「通知」那一页. Named because the navigation switch and the self-check both have to say it —
@@ -1097,7 +1093,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void ReplaceCategories(IReadOnlyList<SettingsCategoryGroup> groups)
     {
         // 固定目录、插件结果和身份都没变时保留分组及其控件，避免首屏/重开重复构建。
-        if (SameCategoryGroups(_categoryGroups, groups)) return;
+        if (SameCategoryGroups(_categoryGroups, groups) && FindEntry(SelectedCategory) is not null) return;
 
         _categoryGroups = groups;
         var desired = groups.SelectMany(group => group.Entries).ToArray();
@@ -2963,10 +2959,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// 关于分类里的「网络」卡（2026-11-18 用户令「在设置关于中新增代理服务器，用于刮削和播放油管视频」）。
     /// <para>
-    /// 本机整理的 TMDB 刮削、详情页的 YouTube 预告和 AniBT 查询共用这项代理设置。
+    /// 详情页的 YouTube 预告、AniBT 和 Bangumi 查询共用这项代理设置。
     /// </para>
     /// <para>
-    /// TMDB 客户端重建时、YouTube 下次创建 WebView2 环境时、AniBT 下次查询时读取新值。
+    /// YouTube 下次创建 WebView2 环境时、AniBT 和 Bangumi 下次查询时读取新值。
     /// 归一化在 <see cref="ProxyEndpoint.Normalize"/>，认得出的地址整理成
     /// <c>scheme://host:port</c>，认不出的原样留着但不生效。
     /// </para>
@@ -2977,10 +2973,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("关于", "网络",
-                "设置 Momoka 连接 TMDB、YouTube 和 AniBT 时使用的代理。",
+                "设置 Momoka 连接 YouTube、AniBT 和 Bangumi 时使用的代理。",
                 [
                     new SettingTextRow("代理服务器",
-                        "用于 TMDB 刮削、YouTube 预告和 AniBT 搜索。支持 HTTP(S)、SOCKS5、SOCKS5H，留空时跟随系统代理。",
+                        "用于 YouTube 预告、AniBT 搜索和 Bangumi 评分。支持 HTTP(S)、SOCKS5、SOCKS5H，留空时跟随系统代理。",
                         "http://127.0.0.1:8686",
                         network.ProxyServer,
                         typed =>
@@ -2989,8 +2985,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                             network.ProxyServer = value;
                             return value;
                         },
-                        Save,
-                        () => ShellPrefs.ApplyProxy(network))
+                        Save)
                 ])
         ];
     }
@@ -3247,7 +3242,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         ShellPrefs.ApplySidebar(ui);
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyTrailers(Settings.Trailer);
-        ShellPrefs.ApplyProxy(Settings.Network);
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
         ShellPrefs.ApplySubtitleTranslation();

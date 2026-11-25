@@ -876,10 +876,7 @@ public static class ItemDetail
                 Type = EmbyItemType.Person,
                 IsStub = true,
                 PlexRelation = person.PlexRelation,
-                // 本机人像没有人物页可进：卡照画，点下去不空转。
                 IsDisplayOnly = person.DisplayWithoutIdentity && person.PlexRelation is null
-                    || person.LocalArtworkPath.Length > 0,
-                LocalArtworkPath = person.LocalArtworkPath
             };
             if (person.PrimaryImageTag is { Length: > 0 } tag) card.ImageTags["Primary"] = tag;
 

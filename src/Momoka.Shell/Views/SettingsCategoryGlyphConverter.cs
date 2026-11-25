@@ -35,7 +35,6 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         ["主页"] = 0xE80F,         // Home
         ["界面"] = 0xE771,         // Personalize
         ["快捷键"] = 0xEDA7,       // KeyboardShortcut
-        ["本机整理"] = 0xE8DE,     // MoveToFolder
         ["关于"] = 0xE946,         // Info
         ["服务器"] = 0xE753,       // Cloud（远端服务器）
         ["诊断"] = 0xE9D9,         // Diagnostic

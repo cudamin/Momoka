@@ -17,6 +17,5 @@
         <Compile Include="..\..\src\Momoka.Shell\Views\MusicLibraryPage.Artwork.cs" Link="Production\MusicLibraryPage.Artwork.cs" />
         <Compile Include="..\..\src\Momoka.Shell\MusicArtworkProbeRules.cs" Link="Production\MusicArtworkProbeRules.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
-        <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Production\LocalLibraryArtwork.cs" />
     </ItemGroup>
 </Project>

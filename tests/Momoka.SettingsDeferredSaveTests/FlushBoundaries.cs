@@ -3,21 +3,10 @@ using Momoka.Services;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    // Optional local monitoring is absent; the fixture resolves only its narrow settings owner.
+    // The fixture resolves only its narrow settings owner.
     internal static class FixtureResolution
     {
         internal static T? GetService<T>(this Momoka.Shell.FlushContainer container) where T : class => container.Settings as T;
-    }
-}
-
-namespace Momoka.Shell.Services
-{
-    // The real App close method asks for this optional owner. No local monitor is registered here,
-    // and an accidental request to stop a real filesystem monitor must fail rather than run one.
-    internal sealed class LocalLibraryCoordinator
-    {
-        internal Task StartAsync() => throw new InvalidOperationException("本夹具禁止本地目录监控");
-        internal Task StopAsync() => throw new InvalidOperationException("本夹具禁止本地目录监控");
     }
 }
 

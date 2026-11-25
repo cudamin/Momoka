@@ -20,17 +20,10 @@ internal static class Program
         AccountShutdownTests.Register(Test);
         FoundationProbeReadingTests.Register(Test);
         HomeEntranceTests.Register(Test);
-        Test("目录夹具新增本地媒体与播放器对话框边界均明确拒绝", () =>
+        Test("目录夹具系统启动与播放器对话框边界均明确拒绝", () =>
         {
             using var f = new Fixture(MediaServerKind.Emby);
-            Assert.Throws<AssertionException>(() => f.Shell.GoTo("local-library:unexpected"));
-            Assert.Equal(0, f.Shell.ContentFrame.Navigations);
-            Assert.Equal(0, f.Transport.Writes);
-            var local = new Momoka.Shell.Services.LocalLibraryCoordinator();
             var launcher = new Momoka.Shell.Platform.SystemLauncher();
-            Assert.Throws<AssertionException>(() => _ = local.Libraries);
-            Assert.Throws<AssertionException>(() => new LocalLibraryRequest(local, "unexpected", launcher));
-            Assert.Throws<AssertionException>(() => new LocalLibraryPage());
             Assert.Throws<AssertionException>(() => launcher.OpenFolder("unused"));
             Assert.Throws<AssertionException>(() => launcher.OpenUrl("https://unused.invalid"));
             Assert.Throws<AssertionException>(() => f.Shell.PlayerStop.RaisePlayerDialog("unexpected"));
@@ -42,10 +35,10 @@ internal static class Program
             Assert.Equal(1, requested);
             f.Shell.PlayerStop.PlayerDialogRequested -= RejectDialog;
             Assert.Equal(0, f.Shell.PlayerStop.PlayerDialogSubscribers);
-            Assert.True(ReferenceEquals(local, Microsoft.Extensions.DependencyInjection.BoundaryServiceExtensions
-                .GetRequiredService<Momoka.Shell.Services.LocalLibraryCoordinator>(new RegisteredBoundary(local))));
+            Assert.True(ReferenceEquals(launcher, Microsoft.Extensions.DependencyInjection.BoundaryServiceExtensions
+                .GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(new RegisteredBoundary(launcher))));
             Assert.Throws<AssertionException>(() => Microsoft.Extensions.DependencyInjection.BoundaryServiceExtensions
-                .GetRequiredService<Momoka.Shell.Services.LocalLibraryCoordinator>(new RegisteredBoundary(null)));
+                .GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(new RegisteredBoundary(null)));
             return Task.CompletedTask;
         });
         Test("浏览账号释放：清掉缓存页再恢复有限容量", () =>

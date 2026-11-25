@@ -759,7 +759,6 @@ public sealed partial class HomeViewModel : PageViewModel
         // 迟到的刷新也按此刻有效版式发布，不能沿用切到商店前压在主卡上的状态。
         if (LibraryPlacement == Emby.HomeLibraryPlacement.BelowCarousel) _libraryOnBanner = false;
         SyncMoviePilotLibrary();
-        SyncLocalLibraries();
         SyncLibraryCovers();
         var timing = NavigationTiming.Capture();
         timing?.Mark("home-shelves-begin");
@@ -1759,8 +1758,7 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         if (card.IsNavigation)
         {
-            if (_active && (_moviePilotLibraries.Values.Any(entry => ReferenceEquals(entry.Card, card))
-                || _localLibraryCards.Values.Any(entry => ReferenceEquals(entry.Card, card)))) card.OpenNavigation();
+            if (_active && _moviePilotLibraries.Values.Any(entry => ReferenceEquals(entry.Card, card))) card.OpenNavigation();
             return;
         }
         if (_actions is null || !Live || !card.IsCurrent) return;

@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["removed-local-media-fixture"])
+        {
+            RemovedLocalMediaTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["ui-language-fixture"])
         {
             UiLanguageTests.Register();
@@ -27,13 +32,6 @@ internal static class Program
             SystemThemeSettingsTests.Register();
             InputControlThemeTests.Register();
             InputFocusThemeTests.Register();
-            return TestHarness.Run();
-        }
-        if (args is ["local-media-layout-fixture"])
-        {
-            LocalMediaLayoutTests.Register();
-            SettingsLayoutTests.Register();
-            AgreementsTests.Register();
             return TestHarness.Run();
         }
         if (args is ["remote-image-search-fixture"])
@@ -94,26 +92,6 @@ internal static class Program
             MpvUiTests.Register();
             VideoOutputTests.Register();
             SvpTests.Register();
-            return TestHarness.Run();
-        }
-        if (args is ["local-media-settings-fixture"])
-        {
-            LocalMediaSettingsTests.Register();
-            return TestHarness.Run();
-        }
-        if (args is ["local-media-vm-fixture", var localMediaShell, var localMediaRoot])
-            return LocalMediaViewModelTests.Run(localMediaShell, localMediaRoot);
-        if (args is ["local-library-coordinator-fixture", var libraryShell, var libraryRoot])
-            return LocalLibraryCoordinatorTests.Run(libraryShell, libraryRoot);
-        if (args is ["local-media-fixture"])
-        {
-            LocalMediaSettingsTests.Register();
-            LocalMediaTests.Register();
-            LocalMediaMonitorTests.Register();
-            LocalLibraryHomeTests.Register();
-            LocalLibraryArtworkTests.Register();
-            MoviePilotLocalMediaTests.Register();
-            TmdbLocalMediaTests.Register();
             return TestHarness.Run();
         }
         if (args is ["trailer-fixture"])
@@ -343,6 +321,7 @@ internal static class Program
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             SettingsTests.Register();
+            RemovedLocalMediaTests.Register();
             return TestHarness.Run();
         }
         if (args is ["proxy-fixture"])
@@ -653,9 +632,9 @@ internal static class Program
         SelfCheckOutputIsolationTests.Register();
         UiLanguageTests.Register();
         SettingsTests.Register();
+        RemovedLocalMediaTests.Register();
         SettingsLayoutTests.Register();
         ProxySettingsTests.Register();
-        LocalMediaLayoutTests.Register();
         ToolbarIconTests.Register();
         StartupEntryTests.Register();
         NotificationTests.Register();
@@ -782,13 +761,6 @@ internal static class Program
         DanmakuTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
-        LocalMediaSettingsTests.Register();
-        LocalMediaTests.Register();
-        LocalMediaMonitorTests.Register();
-        LocalLibraryHomeTests.Register();
-        LocalLibraryArtworkTests.Register();
-        MoviePilotLocalMediaTests.Register();
-        TmdbLocalMediaTests.Register();
         AniBtTests.Register();
         AniBtCalendarTests.Register();
         BangumiRatingTests.Register();

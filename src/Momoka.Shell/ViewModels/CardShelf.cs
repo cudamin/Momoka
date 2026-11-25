@@ -206,7 +206,7 @@ public sealed partial class CardShelf : ObservableObject
 
     /// <summary>Publish the full episode index once; only layout access creates its card state.</summary>
     internal void FillDeferred(IReadOnlyList<EmbyItem> items, Func<EmbyItem, string?>? subtitle = null,
-        EmbyItem? page = null, Func<EmbyItem, string?>? posterPath = null)
+        EmbyItem? page = null)
     {
         foreach (var card in Cards.Materialized) card.AbandonPoster();
         NoteOverride = null;
@@ -214,8 +214,7 @@ public sealed partial class CardShelf : ObservableObject
         _cardTitle = null;
         Cards.ResetDeferred(items, item => new CardItem(item, _images, _width, _wide,
             subtitle?.Invoke(item), _indicators, page is not null && ItemDetail.IsCurrentEpisode(item, page),
-            sourceLine: _sourceLine, aspect: _aspect, preferShowThumb: _preferShowThumb,
-            localPosterPath: posterPath?.Invoke(item)));
+            sourceLine: _sourceLine, aspect: _aspect, preferShowThumb: _preferShowThumb));
     }
 
     /// <summary>
@@ -305,8 +304,7 @@ public sealed partial class CardShelf : ObservableObject
 
         foreach (var (item, subtitle) in items)
             Cards.Add(new CardItem(item, _images, _width, _wide, subtitle, _indicators,
-                sourceLine: _sourceLine, aspect: _aspect, preferShowThumb: _preferShowThumb,
-                localPosterPath: item.LocalArtworkPath));
+                sourceLine: _sourceLine, aspect: _aspect, preferShowThumb: _preferShowThumb));
     }
 
     /// <summary>

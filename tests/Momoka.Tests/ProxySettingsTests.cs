@@ -4,12 +4,11 @@ using System.Text;
 using Momoka.AniBt;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
-using Momoka.Metadata;
 
 namespace Momoka.Tests;
 
 /// <summary>
-/// 设置 → 关于 → 网络的地址解析、设置读写，以及 TMDB 和 AniBT 请求的代理出口。
+/// 设置 → 关于 → 网络的地址解析、设置读写，以及 AniBT 请求的代理出口。
 /// </summary>
 internal static class ProxySettingsTests
 {
@@ -103,34 +102,6 @@ internal static class ProxySettingsTests
 
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.Equal("", live.Network.ProxyServer);
-        });
-
-        // 填了代理，请求就该先到代理那里。回环上搭一个只收一行的假代理：HTTPS 目标会让 HttpClient 发
-        // CONNECT api.themoviedb.org:443，看到它就算这根线接上了；不回话，请求随后按超时收尾，不外连目标。
-        TestHarness.Test("代理：TMDB 请求交给代理而不是直连目标", () =>
-        {
-            using var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            string? head = null;
-            var accepted = Task.Run(async () =>
-            {
-                using var client = await listener.AcceptTcpClientAsync();
-                using var stream = client.GetStream();
-                var buffer = new byte[1024];
-                var read = await stream.ReadAsync(buffer);
-                head = Encoding.ASCII.GetString(buffer, 0, read);
-            });
-
-            using var tmdb = new TmdbClient("anonymous",
-                proxy: ProxyEndpoint.CreateWebProxy($"http://127.0.0.1:{port}"));
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            try { tmdb.SearchAsync("Movie", false, null, timeout.Token).GetAwaiter().GetResult(); }
-            catch (Exception) { /* 假代理不回话，这一趟必然失败；要看的是它先收到了连接。 */ }
-
-            Assert.True(accepted.Wait(TimeSpan.FromSeconds(5)), "代理端口没有收到任何连接");
-            Assert.True(head?.StartsWith("CONNECT api.themoviedb.org:443", StringComparison.Ordinal) == true,
-                head ?? "代理没有收到 CONNECT");
         });
 
         TestHarness.Test("代理：AniBT 目录搜索使用当前代理，切换地址保留正在进行的请求", async () =>

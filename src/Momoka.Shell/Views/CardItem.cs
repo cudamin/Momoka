@@ -53,7 +53,6 @@ public sealed partial class CardItem : INotifyPropertyChanged
     public bool AllowResumeRemoval { get; init; } = true;
     private readonly EmbyImageStore _images;
     private readonly Action? _navigate;
-    private readonly string _localPosterPath;
     private readonly Func<CancellationToken, Task<byte[]>>? _fetchPoster;
     /// <summary>
     /// 当前绘制宽度，也是下一次解码和取图的目标宽度。拖窗口先更新几何，停下后再补图；
@@ -339,14 +338,12 @@ public sealed partial class CardItem : INotifyPropertyChanged
         bool cardLayout = false,
         bool episodeFrame = false,
         Action? navigate = null,
-        string? localPosterPath = null,
         Func<CancellationToken, Task<byte[]>>? fetchPoster = null,
         bool preferShowThumb = false)
     {
         _item = item;
         _images = images;
         _navigate = navigate;
-        _localPosterPath = LocalLibraryArtwork.NormalizePath(localPosterPath);
         _fetchPoster = fetchPoster;
         Scope = navigate is null ? images.CaptureScope(item) : null;
         if (item.Source is null) Scope?.Bind(item);
@@ -666,14 +663,6 @@ public sealed partial class CardItem : INotifyPropertyChanged
 
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
 
-    /// <summary>本地媒体库的入库数量变化保持卡片及可见容器，直接通知已绑定文本。</summary>
-    internal void UpdateNavigationText(string title, string subtitle)
-    {
-        if (!IsNavigation) return;
-        if (_title != title) { _title = title; Raise(nameof(Title)); Raise(nameof(TitleVisibility)); }
-        if (_subtitle != subtitle) { _subtitle = subtitle; Raise(nameof(Subtitle)); Raise(nameof(SubtitleVisibility)); }
-    }
-
     /// <summary>
     /// 第三行：这一项属于哪个账号。空串时整行收起。只有多账号主页的继续观看卡会传
     /// <c>sourceLine: true</c>；浏览、搜索和详情货架一律空着。
@@ -861,7 +850,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     /// instead: a button offering to play one of them would be offering nothing.
     /// </summary>
     public Visibility PlayVisibility =>
-        Show(!_item.IsLocal && !IsSelecting && (!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
+        Show(!IsSelecting && (!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
             && (_item.IsPlayable || _item.Type is EmbyItemType.Series or EmbyItemType.Season));
 
     /// <summary>
@@ -875,7 +864,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     /// and this one is whether the action exists at all.
     /// </para>
     /// </summary>
-    public Visibility UserStateVisibility => Show(!_item.IsLocal && !IsSelecting && _item.TracksUserState);
+    public Visibility UserStateVisibility => Show(!IsSelecting && _item.TracksUserState);
 
     /// <summary>
     /// 收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。
@@ -959,7 +948,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
                 return;
             }
             // 订阅入口的预设海报由主页取好直接交进来（见 ApplyHomeLibraryCoverImages），
-            // 不再退回那张会被九宫格复制九份的合成封面；本地媒体库等导航卡仍走自己那张封面。
+            // 不再退回那张会被九宫格复制九份的合成封面；其他导航卡仍走自己那张封面。
             if (_homeLibraryCoverFromOwner) return;
         }
 
@@ -970,7 +959,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
         }
 
         if (_missing || (_poster is not null && _posterWidth == _width) || _loading is not null) return;
-        if (_localPosterPath.Length > 0 || _fetchPoster is not null)
+        if (_fetchPoster is not null)
         {
             await EnsureNavigationPosterAsync().ConfigureAwait(true);
             return;
@@ -1236,8 +1225,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
         RaiseImagePending();
         try
         {
-            var bytes = await (_fetchPoster is { } fetch ? fetch(loading.Token)
-                : LocalLibraryArtwork.ReadAsync(_localPosterPath, loading.Token)).ConfigureAwait(true);
+            var bytes = await _fetchPoster!(loading.Token).ConfigureAwait(true);
             if (!Current()) return;
             var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
             if (Current() && _wanted) Poster = bitmap;

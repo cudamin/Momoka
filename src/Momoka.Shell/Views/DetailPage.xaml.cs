@@ -2547,11 +2547,6 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnMoreClicked(object sender, RoutedEventArgs e)
     {
         if (sender is not Button anchor) return;
-        if (ViewModel.IsLocal)
-        {
-            ShowLocalMore(anchor);
-            return;
-        }
         if (_session is not { } session
             || _actions is not { } actions
             || _images is not { } images
@@ -2611,51 +2606,8 @@ public sealed partial class DetailPage : Page, IShellContent
         }
     }
 
-    /// <summary>本机条目的「更多」：只放本机做得到的事 —— 从头播放、打开所在文件夹、重新识别补全。</summary>
-    private void ShowLocalMore(Button anchor)
-    {
-        _moreMenu?.Hide();
-        var menu = new MenuFlyout { AreOpenCloseAnimationsEnabled = false };
-        if (ViewModel.PlayTarget is not null)
-        {
-            var restart = new MenuFlyoutItem { Text = "从头播放" };
-            restart.Click += (_, _) => ViewModel.RestartCommand.Execute(null);
-            menu.Items.Add(restart);
-        }
-        var folder = new MenuFlyoutItem { Text = "打开所在文件夹" };
-        folder.Click += (_, _) =>
-        {
-            var path = Path.GetDirectoryName(ViewModel.PlayTarget?.Path ?? "");
-            if (path is { Length: > 0 } && Directory.Exists(path)) _launcher?.OpenFolder(path);
-            else _actions?.Notify("文件夹已不存在，请刷新本地媒体库。", InfoBarSeverity.Warning);
-        };
-        menu.Items.Add(folder);
-
-        var refresh = new MenuFlyoutItem { Text = "重新识别并补全元数据" };
-        refresh.Click += (_, _) => _ = RetryLocalMetadataAsync();
-        menu.Items.Add(refresh);
-
-        _moreMenu = menu;
-        menu.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_moreMenu, menu)) _moreMenu = null;
-        };
-        menu.ShowAt(anchor);
-    }
-
-    private async Task RetryLocalMetadataAsync()
-    {
-        if (_request?.Services.GetService(typeof(LocalLibraryCoordinator)) is not LocalLibraryCoordinator coordinator) return;
-        var libraryId = ViewModel.LocalLibraryId;
-        if (libraryId.Length == 0) return;
-        await coordinator.RetryIncompleteAsync(libraryId);
-        _actions?.Notify("已开始重新识别并补全本机元数据。");
-    }
-
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args)
     {
-        // 本机条目的右键菜单全是服务器动作（已看/收藏/删除/媒体管理），这里不给；点卡片仍进它自己的页面。
-        if (ViewModel.IsLocal) { args.Handled = true; return; }
         var card = sender switch
         {
             PosterCard { Card: { } poster } => poster,

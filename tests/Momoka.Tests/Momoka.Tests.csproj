@@ -40,7 +40,6 @@
     <!-- Actual Shell color policy, without a WinUI dependency or a copied test model. -->
     <Compile Include="..\..\src\Momoka.Shell\Theme\InputControlTheme.cs" Link="Shell\InputControlTheme.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
-    <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Shell\LocalLibraryArtwork.cs" />
     <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">
       <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -116,7 +115,7 @@
             "        fixture.ReloadRow();\n        return fixture.ReloadFinish;\n    }\n" +
             "    private Task ReapplyPlaybackPreferencesAsync(string notice, string? startupReadFailure = null) => fixture.Push(notice, startupReadFailure);\n" +
             "    private static class ThemeHost { internal static void Apply(UiSettings ui) { } }\n" +
-            "    private static class ShellPrefs { internal static void Apply(UiSettings ui) { } internal static void ApplySidebar(UiSettings ui) { } internal static void ApplyTrailers(TrailerSettings trailer) { } internal static void ApplyProxy(NetworkSettings network) { } internal static void ApplyShortcuts() { } internal static void ApplyDanmaku() { } internal static void ApplySubtitleTranslation() { } internal static void ApplyActivationClick() { } }\n" +
+            "    private static class ShellPrefs { internal static void Apply(UiSettings ui) { } internal static void ApplySidebar(UiSettings ui) { } internal static void ApplyTrailers(TrailerSettings trailer) { } internal static void ApplyShortcuts() { } internal static void ApplyDanmaku() { } internal static void ApplySubtitleTranslation() { } internal static void ApplyActivationClick() { } }\n" +
             reapply + "\n    internal Task Run(string notice) => ReapplyAndReloadAsync(notice);\n" +
             "    internal Task ReloadOnly() => ReloadAsync();\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(Output));

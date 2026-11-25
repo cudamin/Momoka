@@ -27,12 +27,6 @@ public sealed class AppPaths
     public string ImageCacheDirectory => Path.Combine(Root, "cache", "images");
 
     /// <summary>
-    /// 本机整理刮削出的 NFO、海报与剧照的默认落点。视频文件保持原位，元数据集中放在这里，
-    /// 因此自定义目录留空时用的就是这一份；见 <c>LocalMediaSettings.MetadataDirectory</c>。
-    /// </summary>
-    public string LocalMediaMetadataDirectory => Path.Combine(Root, "metadata");
-
-    /// <summary>
     /// MoviePilot 日历的本地缓存。放在数据目录的 cache 下，和海报、着色器缓存同级 —— 它同样是「删了自动重建」
     /// 的加速数据，不是设置或身份；写入时目录由 <see cref="AtomicFile"/> 按需创建。
     /// </summary>
@@ -105,7 +99,6 @@ public sealed class AppPaths
         Directory.CreateDirectory(ImageCacheDirectory);
         Directory.CreateDirectory(ShaderCacheDirectory);
         Directory.CreateDirectory(LogDirectory);
-        Directory.CreateDirectory(LocalMediaMetadataDirectory);
 
         // Created up front rather than on the first screenshot: mpv creates it itself if it can, but a
         // failure there is a warning in a log nobody is reading while a film plays — and the 关于 card's

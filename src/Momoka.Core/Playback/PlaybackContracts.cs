@@ -90,17 +90,6 @@ public sealed record PlaybackTicket
     public double DisplayRefreshHz { get; init; }
 }
 
-/// <summary>已入库的本地文件：不经过任何服务器，直接交给 mpv 播放。</summary>
-public sealed record LocalPlaybackTicket
-{
-    public required string Path { get; init; }
-    public required string Title { get; init; }
-    public required EmbyItem Item { get; init; }
-    public int OutputWidth { get; init; }
-    public int OutputHeight { get; init; }
-    public double DisplayRefreshHz { get; init; }
-}
-
 /// <summary>
 /// What the user settled on before mpv is launched, when they were given the chance to settle on
 /// anything. Separate from <see cref="PlaybackTicket"/> because the shell still has to resolve the

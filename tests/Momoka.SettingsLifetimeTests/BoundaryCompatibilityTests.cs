@@ -14,11 +14,6 @@ internal static class BoundaryCompatibilityTests
 
     internal static void Register()
     {
-        TestHarness.Test("本地整理页面保留导航类型且惰性边界拒绝执行", () =>
-        {
-            var page = new Momoka.Shell.Views.LocalMediaPage();
-            Assert.Throws<InvalidOperationException>(() => page.Enter(new Momoka.Shell.Views.LocalMediaRequest(null!)));
-        });
         TestHarness.Test("Attach真实前14参数顺序保留，全部可选尾参数从实际默认值补足", () =>
         {
             var method = ShellRuntime.Current.Type("SettingsViewModel").GetMethod("Attach", Members)!;

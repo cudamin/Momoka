@@ -694,12 +694,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         Type page;
         object parameter;
 
-        if (category == "本机整理")
-        {
-            page = typeof(LocalMediaPage);
-            parameter = new LocalMediaRequest(services);
-        }
-        else if (category == "服务器")
+        if (category == "服务器")
         {
             page = typeof(ServersPage);
             parameter = new ServerRequest(services);

@@ -209,7 +209,7 @@ internal static class Program
         }, MediaServerKind.Emby));
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
         {
-            Test($"本机整理设置入口：{kind} 无需管理权限即可进入，刷新和重选保持内嵌页", () => WithPage((context, fixture, page) =>
+            Test($"退役本机整理：{kind} 无入口，旧选择回退且服务器页保持可用", () => WithPage((context, fixture, page) =>
             {
                 var runtime = ShellRuntime.Current;
                 fixture.Permission(fixture.Source("a"), false);
@@ -217,20 +217,20 @@ internal static class Program
                 context.Await(page.RefreshForContract());
                 var labels = runtime.List(fixture.Vm, "Categories").Cast<object>()
                     .Select(entry => runtime.Get<string>(entry, "Label")).ToArray();
-                Assert.Equal(1, labels.Count(label => label == "本机整理"));
-                Assert.True(Array.IndexOf(labels, "本机整理") < Array.IndexOf(labels, "服务器"));
-                Assert.True(runtime.List(fixture.Vm, "AvailableHostedCategories").Cast<string>()
-                    .Contains("本机整理", StringComparer.Ordinal), "本机整理没有作为内嵌页");
-                Assert.NotNull(runtime.Invoke(fixture.Vm, "EntryFor", "本机整理"));
+                Assert.False(labels.Contains("本机整理", StringComparer.Ordinal));
+                Assert.False(runtime.List(fixture.Vm, "AvailableHostedCategories").Cast<string>()
+                    .Contains("本机整理", StringComparer.Ordinal));
+                Assert.Null(runtime.Invoke(fixture.Vm, "EntryFor", "本机整理"));
                 page.SelectedCategory = "本机整理";
+                context.Await(page.RefreshForContract());
+                Assert.False(page.SelectedCategory == "本机整理");
+                Assert.False(page.ViewModel.ShowsHosted);
+                page.SelectedCategory = "服务器";
                 Assert.True(page.ViewModel.ShowsHosted);
                 context.Await(page.RefreshForContract());
-                Assert.Equal("本机整理", page.SelectedCategory);
-                Assert.True(page.ViewModel.ShowsHosted);
+                Assert.Equal("服务器", page.SelectedCategory);
                 page.SelectedCategory = "主页";
                 Assert.False(page.ViewModel.ShowsHosted);
-                page.SelectedCategory = "本机整理";
-                Assert.True(page.ViewModel.ShowsHosted);
             }, kind));
         }
         Test("真实默认守卫拒绝旧刷新；Hide后迟到插件不换源，重开可恢复", () => WithPage((context, fixture, page) =>

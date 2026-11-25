@@ -12,7 +12,6 @@ using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
-using Momoka.LocalMedia;
 using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
@@ -802,98 +801,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
             : Player.ViewModel.PlayAsync(item, parent, choice, episodes));
     }
 
-    /// <summary>
-    /// 从本机条目再开一层详情：集带里点一集、剧名点击等都会落到这里。按索引重新组出作品与全部集，
-    /// 所以详情页拿到的仍是完整的一页，而不是只有 id 的存根。
-    /// </summary>
-    private void OpenLocalItem(EmbyItem item)
-    {
-        if (_services?.GetService(typeof(LocalLibraryCoordinator)) is not LocalLibraryCoordinator service) return;
-        var entries = service.EntriesFor(item.LocalLibraryId).Where(entry => entry.IsInLibrary).ToArray();
-        if (entries.Length == 0) return;
-
-        if (item.Type == EmbyItemType.Movie)
-        {
-            var movie = entries.FirstOrDefault(entry => entry.Id == item.Id) ?? entries[0];
-            OpenDetail(DetailRequest.ForLocal(_services, Media.LocalMediaItems.Movie(movie)));
-            return;
-        }
-
-        var target = entries.FirstOrDefault(entry => entry.Id == item.Id);
-        if (target is null && item.Type != EmbyItemType.Series) return;
-        var key = target is null ? "" : LocalMediaEntryArtwork.GroupKey(target);
-        var members = target is null
-            ? entries.Where(entry => Media.LocalMediaItems.SeriesKey(item.LocalLibraryId, entry.Metadata) == item.Id).ToArray()
-            : entries.Where(entry => LocalMediaEntryArtwork.GroupKey(entry) == key).ToArray();
-        if (members.Length == 0) return;
-        var series = Media.LocalMediaItems.Series(item.LocalLibraryId, members);
-        var episodes = Media.LocalMediaItems.Sort(members.Select(Media.LocalMediaItems.Episode));
-        var seed = item.Type == EmbyItemType.Series
-            ? series
-            : episodes.FirstOrDefault(episode => episode.Id == item.Id) ?? series;
-        OpenDetail(DetailRequest.ForLocal(_services, seed, episodes));
-    }
-
-    /// <summary>
-    /// 本地媒体库的一张作品卡：造出详情页认得的条目，直接走现有的详情页（电影 / 剧集两种形态），
-    /// 剧集的集列表来自本机索引。不创建服务器会话，播放仍落在源文件上。
-    /// </summary>
-    private Task OpenLocalLibraryGroupAsync(LocalLibraryGroup group)
-    {
-        if (_services is null) return Task.CompletedTask;
-        var entries = group.Entries;
-        if (entries.Count == 0) return Task.CompletedTask;
-        if (group.IsMovie)
-        {
-            OpenDetail(DetailRequest.ForLocal(_services, Media.LocalMediaItems.Movie(entries[0])));
-            return Task.CompletedTask;
-        }
-
-        var series = Media.LocalMediaItems.Series(group.LibraryId, entries);
-        var episodes = Media.LocalMediaItems.Sort(entries.Select(Media.LocalMediaItems.Episode));
-        OpenDetail(DetailRequest.ForLocal(_services, series, episodes));
-        return Task.CompletedTask;
-    }
-
-    /// <summary>本地库条目直接起播：合成一个只属于本机的条目，不绑定任何服务器账号。</summary>
-    private async Task PlayLocalLibraryEntryAsync(LocalMediaLibraryEntry entry)
-    {
-        var metadata = entry.Metadata;
-        var episode = metadata.MediaType == LocalMediaType.Episode;
-        var path = entry.TargetPath;
-        var item = new EmbyItem
-        {
-            Id = entry.Id,
-            Name = episode && metadata.EpisodeTitle.Length > 0 ? metadata.EpisodeTitle : metadata.Title,
-            Type = episode ? EmbyItemType.Episode : EmbyItemType.Movie,
-            ProductionYear = metadata.Year,
-            Overview = episode && metadata.EpisodeOverview.Length > 0 ? metadata.EpisodeOverview : metadata.Overview,
-            Path = path,
-            IsLocal = true,
-            LocalLibraryId = entry.LibraryId,
-            LocalArtworkPath = LocalMediaEntryArtwork.PosterPath(entry),
-            LocalBackdropPath = LocalMediaEntryArtwork.BackdropPath(entry),
-            LocalThumbPath = LocalMediaEntryArtwork.ThumbPath(entry),
-            MediaSources =
-            [
-                new MediaSource
-                {
-                    Id = "local",
-                    Name = Path.GetFileName(path),
-                    Path = path,
-                    Container = Path.GetExtension(path).TrimStart('.')
-                }
-            ]
-        };
-        if (episode)
-        {
-            item.SeriesName = metadata.Title;
-            item.ParentIndexNumber = metadata.Season;
-            item.IndexNumber = metadata.Episode;
-        }
-        await PlayAsync(item).ConfigureAwait(true);
-    }
-
     private void PreparePlaybackPresentation(bool headless)
     {
         if (headless) Player.Detach();
@@ -1337,7 +1244,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
             {
                 OpenSubscriptionLibrary = key => GoTo(key),
-                OpenLocalLibrary = id => GoTo(LocalLibraryRequest.Prefix + id),
                 CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
                     ? _libraryViews.ToArray() : [],
                 LibraryDirectoryUpdated = (source, views) =>
@@ -1378,18 +1284,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
             if (_moviePilotService?.Available != true) return;
             var request = new MoviePilotSubscriptionsRequest(_moviePilotService, tag, OpenSubscription);
             Open(typeof(MoviePilotSubscriptionsPage), request, request.Title, tag);
-            return;
-        }
-
-        if (tag.StartsWith(LocalLibraryRequest.Prefix, StringComparison.Ordinal))
-        {
-            var service = _services.GetRequiredService<Momoka.Shell.Services.LocalLibraryCoordinator>();
-            var id = tag[LocalLibraryRequest.Prefix.Length..];
-            var localLibrary = service.Libraries.FirstOrDefault(library => library.Id == id && !string.IsNullOrWhiteSpace(library.SourceDirectory));
-            if (localLibrary is null) return;
-            var request = new LocalLibraryRequest(service, id, _services.GetRequiredService<Platform.ISystemLauncher>(),
-                entry => PlayLocalLibraryEntryAsync(entry), group => OpenLocalLibraryGroupAsync(group));
-            Open(typeof(LocalLibraryPage), request, localLibrary.Name, tag);
             return;
         }
 
@@ -1730,11 +1624,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         if (_services is null) return;
         if (item.IsDisplayOnly) return;
-        if (item.IsLocal)
-        {
-            OpenLocalItem(item);
-            return;
-        }
         if (item.Source is { IsAvailable: false })
         {
             Notify("此媒体所属的账号已退出，请重新登录后打开", InfoBarSeverity.Warning);

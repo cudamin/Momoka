@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Navigation;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
-using Momoka.Shell.Services;
 
 // Only platform/page-model boundaries are simulated. The extracted page visits and shell
 // navigation methods execute unchanged, without a HWND, saved account or media request.
@@ -109,10 +108,6 @@ namespace Momoka.Shell.ViewModels
         internal void Release() => Releases++;
     }
 }
-namespace Momoka.Shell.Services
-{
-    internal sealed class LocalLibraryCoordinator { internal IReadOnlyList<LocalMediaLibrarySettings> Libraries => []; }
-}
 namespace Momoka.Shell.Platform
 {
     internal interface ISystemLauncher;
@@ -152,7 +147,6 @@ namespace Momoka.Shell.Views
         Windowing.HostWindow? Window, Action<MoviePilotSubscription> Open)
     {
         internal Action<string>? OpenSubscriptionLibrary { get; init; }
-        internal Action<string>? OpenLocalLibrary { get; init; }
         internal Func<IReadOnlyList<EmbyItem>>? CurrentLibraryViews { get; init; }
         internal Action<EmbySessionScope, IReadOnlyList<EmbyItem>>? LibraryDirectoryUpdated { get; init; }
     }
@@ -175,12 +169,6 @@ namespace Momoka.Shell.Views
         internal const string LibraryKey = "mp-subscriptions";
         internal string Title => Key;
     }
-    public sealed class LocalLibraryPage : Page;
-    internal sealed record LocalLibraryRequest(Services.LocalLibraryCoordinator Service, string Id, Platform.ISystemLauncher Launcher,
-        Func<object, Task>? Play = null, Func<object, Task>? Open = null)
-    {
-        internal const string Prefix = "local-library:";
-    }
     internal sealed class MenuBoundary { internal int Hides { get; private set; } internal void Hide() => Hides++; }
     internal sealed partial class ShellPage
     {
@@ -199,8 +187,6 @@ namespace Momoka.Shell.Views
         private AppSettings Settings { get; } = new();
         private bool _closing;
         private string? _current;
-        private Task PlayLocalLibraryEntryAsync(object entry) => Task.CompletedTask;
-        private Task OpenLocalLibraryGroupAsync(object group) => Task.CompletedTask;
         private readonly MenuBoundary AccountMenu = new();
         internal Frame ContentFrame { get; } = new();
         internal string? CurrentForTest => _current;

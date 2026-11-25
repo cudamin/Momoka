@@ -36,7 +36,6 @@
 - **媒体库播放**：连接 Emby、Jellyfin、飞牛影视；Plex 支持仍属实验性，尚未用真实服务器验证。内置 libmpv 可在主窗口集成播放或独占窗口播放，也可调用本机 mpv。
 - **资源订阅与整理**：连接 MoviePilot 搜索资源、管理订阅、确认下载，并查看整理任务与历史。AniBT 可按番剧检索和核对资源，再交由 MoviePilot 下载或整理。
 - **媒体文件管理**：按服务器支持情况浏览媒体库、编辑元数据、换封面、管理字幕、标记观看状态，以及执行合集、播放列表等操作。
-- **本机目录整理**：把本地磁盘或网络共享目录建成本机媒体库，用 TMDB 或 MoviePilot 识别，并按改名、硬链接或软链接整理；可选监控目录并自动刮削入库。本机媒体库目前用于浏览已入库内容，不在 Momoka 内播放。
 - **音乐库**：Emby、Jellyfin 与飞牛音乐共用音乐界面和播放栏；Plex 目前只有协议适配，未验证真实服务器音乐播放。
 - **可选播放增强**：着色器、SVP 补帧接入、弹幕、字幕筛选与实时字幕翻译。SVP 和实时翻译默认关闭；翻译需自备服务密钥，启用后会把文字字幕发送给所选服务。
 - **章节制作**：在播放器中标记、编辑和删除章节，并导出 CHP 或 OGM 章节文件；不修改原媒体或服务器章节。
@@ -60,7 +59,7 @@ Momoka 是站在开源社区和服务提供方肩膀上的客户端，主要借�
 
 - **播放与画面**：[mpv / libmpv](https://github.com/mpv-player/mpv) 提供播放内核，[uosc](https://github.com/tomasklaen/uosc) 提供独占模式的控制条；uosc、stats.lua 与部分随包着色器经 [dyphire/mpv-config](https://github.com/dyphire/mpv-config) 整合包分发，着色器本体来自 [Anime4K](https://github.com/bloc97/Anime4K)、[ArtCNN](https://github.com/Artoriuz/ArtCNN)、CfL、[ravu](https://github.com/bjin/mpv-prescalers)、igv、Shiandow、an3223 等作者；`libmpv-2.dll` 使用 [zhongfly/mpv-winbuild](https://github.com/zhongfly/mpv-winbuild) 的 LGPL 构建，Vulkan 加载器来自 [Khronos](https://github.com/KhronosGroup/Vulkan-Loader)。
 - **平台与组件**：Microsoft 的 [WinUI 3 / Windows App SDK](https://github.com/microsoft/WindowsAppSDK)、.NET 运行时与 [CommunityToolkit](https://github.com/CommunityToolkit/Windows)；部分界面动效和图标参考 [WinUI Gallery](https://github.com/microsoft/WinUI-Gallery) 与 [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons)。
-- **服务生态**：[MoviePilot](https://github.com/jxxghp/MoviePilot) 串起订阅、下载与整理；Emby、Jellyfin、飞牛影视与 Plex 提供媒体服务；[TMDB](https://www.themoviedb.org) 提供元数据，[AniBT](https://wiki.anibt.net/docs/open-api) 提供番剧资源核对；[弹弹play](https://www.dandanplay.com) 与 [danmu_api](https://github.com/huangxd-/danmu_api) 提供弹幕；[SVP](https://www.svp-team.com) 提供补帧；实时字幕翻译可接 Google Cloud Translation、Microsoft Translator 或兼容 OpenAI Chat Completions 的服务。
+- **服务生态**：[MoviePilot](https://github.com/jxxghp/MoviePilot) 串起订阅、下载与整理；Emby、Jellyfin、飞牛影视与 Plex 提供媒体服务；[AniBT](https://wiki.anibt.net/docs/open-api) 提供番剧资源核对；[弹弹play](https://www.dandanplay.com) 与 [danmu_api](https://github.com/huangxd-/danmu_api) 提供弹幕；[SVP](https://www.svp-team.com) 提供补帧；实时字幕翻译可接 Google Cloud Translation、Microsoft Translator 或兼容 OpenAI Chat Completions 的服务。
 - **社区**：感谢每一位反馈问题、提出建议和帮忙试用新版本的朋友。
 
 这些项目与服务归各自作者和维护者所有，Momoka 与它们没有隶属关系。随包第三方组件的版本、许可证与出处见[第三方组件声明](THIRD-PARTY-NOTICES.md)。

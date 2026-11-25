@@ -139,8 +139,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.BrowsePresentationTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DetailImageArrivalTests", "tests\Momoka.DetailImageArrivalTests\Momoka.DetailImageArrivalTests.csproj", "{A1FBFBCD-362A-4030-B927-1886E8E2EB79}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.LocalLibraryPageTests", "tests\Momoka.LocalLibraryPageTests\Momoka.LocalLibraryPageTests.csproj", "{009F5E36-0D01-482B-9735-2714390403F1}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ResizeHandoffTests", "tests\Momoka.ResizeHandoffTests\Momoka.ResizeHandoffTests.csproj", "{F6DCBC1D-F68B-46BD-B8B9-971C347A5F1C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MusicViewModelTests", "tests\Momoka.MusicViewModelTests\Momoka.MusicViewModelTests.csproj", "{A36B4CF1-71F6-4F3C-A765-E3B84D3A8206}"
@@ -202,10 +200,6 @@ Global
 		{A36B4CF1-71F6-4F3C-A765-E3B84D3A8206}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A36B4CF1-71F6-4F3C-A765-E3B84D3A8206}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A36B4CF1-71F6-4F3C-A765-E3B84D3A8206}.Release|Any CPU.Build.0 = Release|Any CPU
-		{009F5E36-0D01-482B-9735-2714390403F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{009F5E36-0D01-482B-9735-2714390403F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{009F5E36-0D01-482B-9735-2714390403F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{009F5E36-0D01-482B-9735-2714390403F1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{13665BE0-73F3-57EB-A117-C17BB7EE3B6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{13665BE0-73F3-57EB-A117-C17BB7EE3B6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13665BE0-73F3-57EB-A117-C17BB7EE3B6B}.Release|Any CPU.ActiveCfg = Release|Any CPU

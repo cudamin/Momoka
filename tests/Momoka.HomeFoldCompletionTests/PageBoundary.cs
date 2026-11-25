@@ -81,13 +81,6 @@ namespace Momoka.Shell.Views
     {
         internal void Release() { }
     }
-    // Event-only source; this fold fixture never starts a local index or filesystem monitor.
-    internal sealed class TestLocalLibraries
-    {
-        internal event EventHandler? Changed;
-        internal int Subscribers => Changed?.GetInvocationList().Length ?? 0;
-        internal void Notify() => Changed?.Invoke(this, EventArgs.Empty);
-    }
     internal static class ShellPrefs
     {
         internal static event Action? Changed;
@@ -126,7 +119,6 @@ namespace Momoka.Shell.Views
         private readonly DispatcherQueueTimer _watch = new();
         private TestWindow? _window = new();
         private TestShellActions? _actions = new();
-        private TestLocalLibraries? _localLibraries;
         private TestHomeSettings? _homeSettings = new();
         private const double ChromeHeight = 48;
         private int _homeLibraryFlowIndex;
@@ -173,7 +165,6 @@ namespace Momoka.Shell.Views
         internal HomeFoldMotion? LateMotion => _foldLate;
         internal bool EntranceSuppressed => _entranceSuppressed;
         internal bool HasSettings => _homeSettings is not null;
-        internal bool HasLocalLibraries => _localLibraries is not null;
         internal DispatcherQueueTimer? Retry => _foldRetry;
         internal void Apply() => ApplyLibraryChrome();
         internal void UpdateFold() => UpdateLibraryOverlay();
@@ -198,13 +189,6 @@ namespace Momoka.Shell.Views
         private void OnHomeLibraryCoverChanged(Momoka.Configuration.UiSettings ui) { }
         internal void UseHomeDragPagingPreferences() => ShellPrefs.HomeDragPagingChanged += OnHomeDragPagingChanged;
         private void OnHomeDragPagingChanged(Momoka.Configuration.UiSettings ui) { }
-        internal void UseLocalLibraries(TestLocalLibraries source)
-        {
-            _localLibraries = source;
-            source.Changed += OnLocalLibrariesChanged;
-        }
-        private static void OnLocalLibrariesChanged(object? sender, EventArgs args) =>
-            throw new InvalidOperationException("翻档夹具禁止本地媒体库刷新");
         internal static Storyboard BoardOf(HomeFoldMotion motion) =>
             (Storyboard)(typeof(HomeFoldMotion).GetField("_board", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .GetValue(motion) ?? throw new InvalidOperationException("Missing production storyboard"));

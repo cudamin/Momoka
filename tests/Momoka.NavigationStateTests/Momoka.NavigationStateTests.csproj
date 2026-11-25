@@ -38,7 +38,7 @@
         var musicNavigation = read("ShellPage.Music.cs");
         var generated = "// Extracted verbatim from this tree; HWND/Frame/ViewModel boundaries are substitutes.\n#nullable enable\n" +
             "using System.ComponentModel;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Xaml.Media.Animation;\n" +
-            "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nusing Momoka.Music;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Momoka.Shell.Services;\nusing Momoka.Shell.ViewModels;\nnamespace Momoka.Shell.Views;\n" +
+            "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nusing Momoka.Music;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Momoka.Shell.ViewModels;\nnamespace Momoka.Shell.Views;\n" +
             between(shell, "public sealed record Crumb(", "\n\n/// <summary>") +
             "\npublic sealed partial class MusicLibraryPage : Page\n{\n" +
             between(music, "    protected override async void OnNavigatedTo(NavigationEventArgs args)", "\n    /// <summary>\n    /// 搜索框的宽度") +

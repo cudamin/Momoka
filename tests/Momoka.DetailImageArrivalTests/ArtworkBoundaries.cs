@@ -29,8 +29,6 @@ namespace Momoka.Shell.ViewModels
         private int HeroBlurTarget => 0;
         private bool _active = true;
         private bool _actionsReady;
-        private void ResetLocalVisit() { }
-        private Task LoadLocalArtworkAsync(EmbyItem item, CancellationTokenSource art) => Task.CompletedTask;
         private FakeSubjectCard? _subjectStateCard = null;
         private CancellationTokenSource? _versionLoad = null;
         private CancellationTokenSource? _blurCancel = null;

@@ -810,7 +810,7 @@ public sealed partial class PlayerViewModel
         // 靠这一趟才变成全剧；已经拿着一份全剧列表时这一趟只是确认。换集之间它多跑一趟 GET，与开文件并行。
         if (item.Type == EmbyItemType.Episode && _playbackScope is { } scope)
             _ = LoadSeriesEpisodesAsync(item, scope, _activeIntent);
-        if (!item.IsLocal) _ = LoadVersionsAsync(item, _generation, ++_versionDiscovery);
+        _ = LoadVersionsAsync(item, _generation, ++_versionDiscovery);
 
         // Before the player is shown rather than after: the window is reshaped for the picture while the
         // picture is still being opened, so the first frame arrives into a client area that is already its

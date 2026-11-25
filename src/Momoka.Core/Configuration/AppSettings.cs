@@ -53,7 +53,7 @@ public sealed class AppSettings
     /// <summary>封面悬停与详情页的预告片播放方式；设置页「界面 → 预告片」那一张卡。</summary>
     public TrailerSettings Trailer { get; set; } = new();
 
-    /// <summary>设置页「关于 → 网络」那一张卡：刮削与 YouTube 预告用的代理服务器。</summary>
+    /// <summary>设置页「关于 → 网络」那一张卡：YouTube 预告、AniBT 与 Bangumi 查询用的代理服务器。</summary>
     public NetworkSettings Network { get; set; } = new();
 
     public ShortcutSettings Shortcuts { get; set; } = new();
@@ -67,8 +67,6 @@ public sealed class AppSettings
     /// thing here — the whole app works without it, and it is off by default.
     /// </summary>
     public MoviePilotSettings MoviePilot { get; set; } = new();
-
-    public LocalMediaSettings LocalMedia { get; set; } = new();
 
     public ServerProfile? FindServer(string? id) =>
         id is null ? null : Servers.FirstOrDefault(server => server.Id == id);

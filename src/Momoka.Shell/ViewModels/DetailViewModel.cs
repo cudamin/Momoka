@@ -136,11 +136,6 @@ public sealed partial class DetailViewModel : PageViewModel
     private int _lifetime;
     private bool _syncingSeason;
     private EmbySessionScope? _scope;
-    /// <summary>这一页讲的是本机媒体库里的条目：条目、集列表与图片都读本机，不向服务器要。</summary>
-    private bool _local;
-    private IReadOnlyList<EmbyItem> _localEpisodes = [];
-    private EmbyItem? _localSeries;
-    private LocalLibraryCoordinator? _localState;
     private IReadOnlyList<MediaVersion> _versions = [];
     private int _versionGeneration;
     private CancellationTokenSource? _versionLoad;
@@ -2051,7 +2046,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     internal bool CanOpenGenre => SublineGenres.Any(CanOpenGenreValue);
 
-    internal bool CanOpenGenreValue(string genre) => !_local && Attached && _detail is { } item
+    internal bool CanOpenGenreValue(string genre) => Attached && _detail is { } item
         && item.Id == _seed?.Id && item.Source?.Key == _scope!.Key
         && (_scope.Connection.IsPlex ? item.PlexGenres.TryGetValue(genre, out var relation) && relation.IsValid
             : _scope.Connection.SupportsGenreBrowse);
@@ -2145,7 +2140,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private bool SpreadsBackdrop(EmbyItem item) =>
         (ImmersiveEnabled || item.Type is not (EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode))
-        && (item.IsLocal ? item.LocalBackdropPath.Length > 0 : ItemArtwork.Hero(item).Count > 0);
+        && ItemArtwork.Hero(item).Count > 0;
 
     /// <summary>
     /// Whether 单集 belongs down the page as rows rather than across it as cards. The rule itself is
@@ -2387,7 +2382,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility NotFavoriteVisibility => Show(!Favorite);
 
-    private bool FavoritesApplicable => Attached && (_local || _scope!.Connection.SupportsFavorites)
+    private bool FavoritesApplicable => Attached && _scope!.Connection.SupportsFavorites
         && (_seed ?? _detail)?.TracksUserState == true;
 
     public Visibility FavoriteActionVisibility => Show(FavoritesApplicable);
@@ -2731,7 +2726,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool CanToggleWatched => CanAct;
 
     private bool CanFavorite => CanAct && FavoritesApplicable && _detail is { } item
-        && item.Id == _seed?.Id && (_local || item.Source is null || item.Source.Key == _scope!.Key);
+        && item.Id == _seed?.Id && (item.Source is null || item.Source.Key == _scope!.Key);
 
     private bool CanPlay => CanAct && PlayTarget is not null;
 
@@ -2760,24 +2755,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// parameters, so this single question answers for all of them; past this gate they are dereferenced
     /// with <c>!</c>. <see cref="_seed"/> is a separate question — 「which item」 — and the loads ask both.
     /// </summary>
-    private bool Attached => _active && _settings is not null && (_scope?.IsAvailable == true || IsLocalVisit);
-
-    /// <summary>本机媒体的访问与服务器访问无关；分成一句，方便只提取父加载链的测试夹具给出固定答案。</summary>
-    private bool IsLocalVisit => _local;
-
-    private void ResetLocalVisit()
-    {
-        _local = false;
-        _localEpisodes = [];
-        _localSeries = null;
-        _localState = null;
-    }
-
-    /// <summary>本机媒体详情页：页面据此收起收藏、已看与更多等服务器动作，只留播放。</summary>
-    public bool IsLocal => _local;
-
-    /// <summary>本机条目所属媒体库；「更多」里的重新刮削用它。</summary>
-    public string LocalLibraryId => _detail?.LocalLibraryId ?? _seed?.LocalLibraryId ?? "";
+    private bool Attached => _active && _settings is not null && _scope?.IsAvailable == true;
 
     /// <summary>
     /// The live settings object, read through the service rather than copied: it is one instance for the
@@ -2808,11 +2786,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _active = true;
         _heroCacheTicket = null;
         _heroTiming = null;
-        _local = request.Item.IsLocal;
-        _localEpisodes = request.LocalEpisodes;
-        _localSeries = request.Item.Type == EmbyItemType.Series ? request.Item : null;
-        _localState = _local ? request.Services.GetService(typeof(LocalLibraryCoordinator)) as LocalLibraryCoordinator : null;
-        _scope = _local ? null : images.CaptureScope(request.Item);
+        _scope = images.CaptureScope(request.Item);
         _actions = actions;
         _seed = request.Item;
         _settings = settings;
@@ -2871,12 +2845,6 @@ public sealed partial class DetailViewModel : PageViewModel
             ClearDeletedSubject();
             return;
         }
-        if (IsLocalVisit)
-        {
-            await LoadLocalAsync().ConfigureAwait(true);
-            return;
-        }
-
         var token = BeginLoad(_ => { ResetTrailers(); ResetExtras(); ResetBangumiRating(); });
         NavigationTiming.Mark("load-begin");
 
@@ -2987,109 +2955,6 @@ public sealed partial class DetailViewModel : PageViewModel
     /// （生成的 setter 只在真变了的时候通知），而那四张图在图没变的时候整个留着（见 <see cref="Apply"/>）。
     /// </para>
     /// </summary>
-    /// <summary>
-    /// 本机媒体详情：条目、季与集全部来自本机索引，不向服务器要任何东西。先用点进来那张卡画一屏，
-    /// 再把集列表铺开；播放目标按剧页的规矩落在第一部未看（这里没有观看状态，就是第一集）上。
-    /// </summary>
-    private async Task LoadLocalAsync()
-    {
-        if (!Attached || _seed is not { } seed) return;
-        var token = BeginLoad(_ => { ResetTrailers(); ResetExtras(); });
-        try
-        {
-            Preview(seed);
-            Apply(seed);
-            if (!IsCurrent(token)) return;
-
-            if (seed.Type == EmbyItemType.Series && _localEpisodes.Count > 0)
-            {
-                _localSeries = seed;
-                var episodes = Media.LocalMediaItems.Sort(_localEpisodes);
-                PublishLocalEpisodes(seed, episodes);
-                if (!IsCurrent(token)) return;
-                PlayTarget = episodes.FirstOrDefault();
-                if (PlayTarget is not null) ShowTarget(PlayTarget);
-                _infoEpisode = PlayTarget;
-                _infoSource = SelectedSource?.Source;
-                RefreshOtherInfo();
-            }
-            else if (seed.Type == EmbyItemType.Episode)
-            {
-                _localSeries = LocalSeriesFor(seed);
-                _show = _localSeries;
-                if (_localEpisodes.Count > 0)
-                {
-                    PublishLocalEpisodes(seed, Media.LocalMediaItems.Sort(_localEpisodes), seed);
-                    if (!IsCurrent(token)) return;
-                }
-                _infoEpisode = seed;
-                _infoSource = SelectedSource?.Source;
-                RefreshOtherInfo();
-            }
-
-            if (IsCurrent(token)) EndLoad(token);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception error)
-        {
-            Log.Warn(Category, "加载本机媒体详情失败", error);
-            if (!IsCurrent(token)) return;
-            Report("加载详情失败", error);
-            EndLoad(token);
-        }
-    }
-
-    /// <summary>本机集列表：季清单由实际出现的季号生成，剧页摆全剧、集页只看自己那一季。</summary>
-    private void PublishLocalEpisodes(EmbyItem page, IReadOnlyList<EmbyItem> episodes, EmbyItem? anchor = null)
-    {
-        var series = page.Type == EmbyItemType.Series ? page : _localSeries ?? page;
-        var seasons = Media.LocalMediaItems.Seasons(series, episodes);
-        var wanted = anchor?.ParentIndexNumber ?? anchor?.IndexNumber ?? page.ParentIndexNumber;
-        var picked = seasons.FirstOrDefault(season => season.IndexNumber == wanted) ?? seasons.FirstOrDefault();
-
-        _syncingSeason = true;
-        try
-        {
-            Seasons.Clear();
-            foreach (var season in seasons) Seasons.Add(season);
-            SelectedSeason = picked;
-        }
-        finally { _syncingSeason = false; }
-        _loadedSeason = picked;
-
-        _episodes.Clear();
-        _episodes.AddRange(episodes);
-        _shownEpisodes.Clear();
-        _shownEpisodes.AddRange(page.Type == EmbyItemType.Episode && picked is not null
-            ? Media.LocalMediaItems.Sort(ItemDetail.DisplaySeasonEpisodes(episodes, Seasons, picked))
-            : episodes);
-
-        EpisodeShelf?.FillDeferred(_shownEpisodes, EpisodesAsList ? null : ItemDetail.EpisodeCardSubtitle, page, LocalEpisodePoster);
-        if (EpisodeShelf is { } shelf) shelf.Title = ItemDetail.EpisodeHeading(picked?.Name ?? "");
-        EpisodeFocus = page.Type == EmbyItemType.Series
-            ? Math.Max(0, ItemDetail.FirstEpisodeIndex(episodes, picked))
-            : Math.Max(0, _shownEpisodes.FindIndex(episode => episode.Id == page.Id));
-        OnPropertyChanged(nameof(CanPickEpisodeSeason));
-    }
-
-    private EmbyItem LocalSeriesFor(EmbyItem episode) => new()
-    {
-        Id = episode.Id + ":series",
-        Name = episode.SeriesName ?? episode.Name,
-        Type = EmbyItemType.Series,
-        ProductionYear = episode.ProductionYear,
-        Overview = episode.Overview ?? "",
-        IsLocal = true,
-        LocalLibraryId = episode.LocalLibraryId,
-        LocalArtworkPath = episode.LocalArtworkPath,
-        LocalBackdropPath = episode.LocalBackdropPath
-    };
-
-    private static string LocalEpisodePoster(EmbyItem episode) =>
-        episode.LocalThumbPath.Length > 0 ? episode.LocalThumbPath : episode.LocalArtworkPath;
-
     private void Preview(EmbyItem seed)
     {
         // **只在第一次载入时画。** 屏上已经有东西了就一个字都不许改：重新读取（「标记为已观看」之后那一次、手动
@@ -3382,8 +3247,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void Apply(EmbyItem item)
     {
-        // 本机条目不属于任何服务器账号，不能借当前登录会话建状态卡。
-        if (!_local) ObserveSubjectState(item);
+        ObserveSubjectState(item);
         if (item.Id == _seed?.Id && item.Source?.Key == _scope?.Key)
             item.MediaSources.RemoveAll(SourceWasDeleted);
         // 这一趟要不要重取那四张图：<see cref="Preview"/> 刚用卡片那一份起过一次，而完整条目回来时那几个图片标签
@@ -3552,7 +3416,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         if (Equals(SelectedSource, picked)) ShowSource(picked?.Source);
         else SelectedSource = picked;
-        if (Attached && !target.IsLocal) _ = LoadVersionsAsync(target, generation, _lifetime);
+        if (Attached) _ = LoadVersionsAsync(target, generation, _lifetime);
     }
 
     private async Task LoadVersionsAsync(EmbyItem target, int generation, int lifetime)
@@ -4106,11 +3970,6 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
         if (!Attached || !Fresh(art, item)) return;
-        if (item.IsLocal)
-        {
-            await LoadLocalArtworkAsync(item, art).ConfigureAwait(true);
-            return;
-        }
         NavigationTiming.Mark("art-load-begin");
         _heroTiming = NavigationTiming.Capture();
 
@@ -4469,8 +4328,7 @@ public sealed partial class DetailViewModel : PageViewModel
         {
             _shownEpisodes.Clear();
             _shownEpisodes.AddRange(ItemDetail.DisplaySeasonEpisodes(_episodes, Seasons, value));
-            shelf.FillDeferred(_shownEpisodes, ItemDetail.EpisodeCardSubtitle, _detail,
-                _local ? LocalEpisodePoster : null);
+            shelf.FillDeferred(_shownEpisodes, ItemDetail.EpisodeCardSubtitle, _detail);
             EpisodeFocus = 0;
         }
         UpdateEpisodeHeading(value);
@@ -4598,21 +4456,6 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task ToggleWatchedAsync()
     {
         if (!CanAct || _detail is not { } item) return;
-        if (_local)
-        {
-            var next = !Watched;
-            if (_localState?.SetLocalUserState(item.LocalLibraryId, item.LocalGroupKey, watched: next, favorite: null) != true) return;
-            Watched = next;
-            item.UserData ??= new EmbyUserData();
-            item.UserData.Played = next;
-            foreach (var episode in _localEpisodes)
-            {
-                episode.UserData ??= new EmbyUserData();
-                episode.UserData.Played = next;
-            }
-            return;
-        }
-
         var played = item.IsWatched;
         var lifetime = _lifetime;
         var scope = _scope!;
@@ -4656,21 +4499,6 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         // 旧命令可绕过 CanExecute；详情尚未换完时，也不能拿旧条目 ID 借新来源写入。
         if (!CanFavorite || _detail is not { } item) return;
-        if (_local)
-        {
-            var next = !Favorite;
-            if (_localState?.SetLocalUserState(item.LocalLibraryId, item.LocalGroupKey, watched: null, favorite: next) != true) return;
-            Favorite = next;
-            item.UserData ??= new EmbyUserData();
-            item.UserData.IsFavorite = next;
-            foreach (var episode in _localEpisodes)
-            {
-                episode.UserData ??= new EmbyUserData();
-                episode.UserData.IsFavorite = next;
-            }
-            return;
-        }
-
         var favorite = item.UserData?.IsFavorite == true;
         var lifetime = _lifetime;
         var scope = _scope!;
@@ -4730,11 +4558,6 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void OpenCard(CardItem card)
     {
         if (!Attached || card.Item.IsDisplayOnly) return;
-        if (_local)
-        {
-            _actions?.OpenItem(card.Item);
-            return;
-        }
         if (card.Scope?.Key != _scope!.Key) return;
         _actions?.OpenItem(card.Item);
     }
@@ -4970,40 +4793,6 @@ public sealed partial class DetailViewModel : PageViewModel
         finally { EndLoad(token); }
     }
 
-    /// <summary>
-    /// 本机条目的图：海报直接读元数据目录，背景图优先用 fanart、没有时退回海报。全部走普通文件读取，
-    /// 不经过服务器图片接口；读不到就安静地空着，页面照常可读可播。
-    /// </summary>
-    private async Task LoadLocalArtworkAsync(EmbyItem item, CancellationTokenSource art)
-    {
-        var posterBytes = await LocalLibraryArtwork.ReadAsync(item.LocalArtworkPath, art.Token).ConfigureAwait(true);
-        if (!Attached || !Fresh(art, item)) return;
-        if (posterBytes.Length > 0)
-        {
-            var poster = await PosterLoader.DecodeAsync(posterBytes, StillDecodeWidth).ConfigureAwait(true);
-            if (poster is not null && Attached && Fresh(art, item)) ShowStill(poster);
-            var colors = await HeroPictureLoader.DecodePixelsAsync(posterBytes, StillColorDecodeWidth, art.Token).ConfigureAwait(true);
-            if (colors is not null && Attached && Fresh(art, item)) RememberStillColor(colors);
-        }
-
-        var heroBytes = item.LocalBackdropPath.Length > 0
-            ? await LocalLibraryArtwork.ReadAsync(item.LocalBackdropPath, art.Token).ConfigureAwait(true)
-            : [];
-        if (heroBytes.Length == 0 || !Attached || !Fresh(art, item)) return;
-        var pixels = await HeroPictureLoader.DecodePixelsAsync(heroBytes, HeroDecodeWidth, art.Token).ConfigureAwait(true);
-        if (pixels is null || !Attached || !Fresh(art, item)) return;
-
-        HeroHeightRatio = pixels.Height / (double)pixels.Width;
-        _heroPixels = pixels;
-        _heroBlurRadius = HeroBlurTarget;
-        var generation = ++_heroBlurGeneration;
-        _heroRendering = true;
-        var rendered = await RenderHeroAsync(pixels, _heroBlurRadius, art.Token, null, null).ConfigureAwait(true);
-        if (rendered is null || !Attached || !Fresh(art, item) || generation != _heroBlurGeneration) return;
-        _heroRendering = false;
-        HeroImage = rendered;
-    }
-
     /// <inheritdoc />
     public override void Cancel()
     {
@@ -5013,7 +4802,6 @@ public sealed partial class DetailViewModel : PageViewModel
         _active = false;
         _actionsReady = false;
         DetachBangumiRating();
-        ResetLocalVisit();
         ResetTrailers();
         ResetExtras();
         _versionLoad?.Cancel();

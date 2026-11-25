@@ -1073,19 +1073,6 @@ internal static class Program
             Equal(0, ShellPrefs.HomeLibraryCoverSubscribers, "release detaches the cover preference notice");
             Equal(1, scene.Page.ViewModel.CancelCalls, "actual Release calls VM boundary Cancel once");
         });
-        Case("page/release-detaches-local-library-event-and-owner", () =>
-        {
-            var scene = new Scene();
-            var source = new TestLocalLibraries();
-            scene.Page.UseLocalLibraries(source);
-            Equal(1, source.Subscribers, "event-only source belongs to this visit");
-            scene.Page.Release();
-            Equal(0, source.Subscribers, "actual Release must detach local library notification");
-            Check(!scene.Page.HasLocalLibraries, "actual Release clears the optional source");
-            source.Notify();
-            scene.Page.Release();
-            Equal(0, source.Subscribers, "repeat Release remains detached");
-        });
         Case("page/playback-return-does-not-reanimate-async-layout", () =>
         {
             var scene = new Scene();

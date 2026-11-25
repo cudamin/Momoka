@@ -25,7 +25,7 @@ internal static class CardPresentationTests
                 Assert.False(root.Attributes().Any(attribute => attribute.Name.LocalName == "Template"));
             }
         });
-        Test("原生结果命名数据：正式CardItem标题覆盖与来源身份原地通知", () => CardImageContext.Run(async () =>
+        Test("原生结果命名数据：正式CardItem标题覆盖与来源身份", () => CardImageContext.Run(async () =>
         {
             await using var fixture = new CardImageFixture(false, MediaServerKind.Emby);
             var item = fixture.Scope.Bind(new EmbyItem { Id = "named-result", Name = "服务器影片名", Type = EmbyItemType.Movie });
@@ -33,13 +33,6 @@ internal static class CardPresentationTests
             Assert.Equal("展示影片名", card.Title);
             Assert.True(ReferenceEquals(item.Source, card.Item.Source));
             Assert.True(card.Title.Length > 0);
-            var navigational = new CardItem(new EmbyItem { Id = "navigation", Name = "原名" }, fixture.Images, 170, navigate: () => { });
-            var changed = new List<string?>();
-            navigational.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
-            navigational.UpdateNavigationText("新展示标题", "");
-            Assert.Equal("新展示标题", navigational.Title);
-            Assert.True(changed.Contains(nameof(CardItem.Title)));
-            navigational.AbandonPoster();
             card.AbandonPoster();
         }));
         Test("媒体多选：选择时收起单项动作，退出恢复并通知", () => CardImageContext.Run(async () =>

@@ -14,7 +14,7 @@ public sealed partial class DetailViewModel
     private bool _trailersReady;
     private bool _trailersEmpty;
 
-    public Visibility TrailerVisibility => Show(!_local && CanAct && _trailersReady && !_trailersEmpty
+    public Visibility TrailerVisibility => Show(CanAct && _trailersReady && !_trailersEmpty
         && _detail is { } item && ItemTrailers.HasAny(item, _scope!.Connection.ServerKind));
 
     private void ResetTrailers()

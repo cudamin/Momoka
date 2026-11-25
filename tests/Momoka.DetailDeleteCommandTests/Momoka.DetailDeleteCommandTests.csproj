@@ -16,7 +16,6 @@
     <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.FnNasRemoval.cs" Link="Production\ItemCommands.FnNasRemoval.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Services\FnNasLibraryRemovalService.cs" Link="Production\FnNasLibraryRemovalService.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
-    <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Production\LocalLibraryArtwork.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>
   <!-- Only the shared helpers, deletion/collection relationship commands and OnMoreClicked are extracted.

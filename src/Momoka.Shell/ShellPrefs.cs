@@ -161,14 +161,4 @@ public static class ShellPrefs
         ApplyHomeDragPaging(ui);
         Changed?.Invoke(ui);
     }
-
-    /// <summary>
-    /// 代理服务器（设置 → 关于 → 网络）改完的那一根线。设置页在另一个窗口里，而两处消费者都活在这一头：
-    /// 后台媒体库监控手里的 <c>TmdbClient</c>、以及本机整理页面握着的那个客户端。它们各自重建自己的
-    /// HttpClient，新请求就带上新代理；YouTube 那一头不订阅这里 —— 它每次建 WebView2 环境时直接读设置，
-    /// 不缓存旧的代理值。
-    /// </summary>
-    public static event Action<NetworkSettings>? ProxyChanged;
-
-    public static void ApplyProxy(NetworkSettings network) => ProxyChanged?.Invoke(network ?? new NetworkSettings());
 }
