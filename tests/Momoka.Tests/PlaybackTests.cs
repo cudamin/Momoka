@@ -5904,13 +5904,13 @@ internal static class PlaybackTests
 
     private static void RegisterReportCadence()
     {
-        Test("进度上报节奏：按后端取官方网页端的固定间隔", () =>
+        Test("进度上报节奏：按后端取官方网页端的固定间隔，飞牛音乐不排上报", () =>
         {
             Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.Emby));
             Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.Jellyfin));
             Assert.Equal(TimeSpan.FromSeconds(15), PlaybackReportCadence.For(MediaServerKind.FnNas));
             Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.Plex));
-            Assert.Equal(TimeSpan.FromSeconds(10), PlaybackReportCadence.For(MediaServerKind.FnMusic));
+            Assert.Null(PlaybackReportCadence.For(MediaServerKind.FnMusic));
         });
     }
 

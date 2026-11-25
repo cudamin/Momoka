@@ -57,7 +57,9 @@ public sealed partial class PlaybackService
         if (handle.HasControlChannel && handle is IPlayerControl control) control.StatusChanged += OnStatus;
         try
         {
-            using var timer = new PeriodicTimer(interval);
+            // 飞牛音乐没有进度上报（见 PlaybackReportCadence），不排定时器，只等播放结束。
+            if (interval is not { } period) return await exitTask.ConfigureAwait(false);
+            using var timer = new PeriodicTimer(period);
             while (true)
             {
                 var tick = timer.WaitForNextTickAsync(cancellationToken).AsTask();
