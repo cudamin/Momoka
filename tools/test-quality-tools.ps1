@@ -68,6 +68,14 @@ Check ($result.ExitCode -eq 1) 'check-diff 拒绝 CRLF'
 Check ($result.Output -match 'Crlf.cs 使用了 CRLF') 'check-diff 点名 CRLF 文件'
 Remove-Item -LiteralPath $crlf
 
+# Bare CR is not a valid LF-only line ending either.
+$bareCr = Join-Path $fixture 'src/BareCr.cs'
+Save-Bytes $bareCr ([Text.Encoding]::UTF8.GetBytes("namespace Fixture;`rinternal static class BareCr { }`n"))
+$result = Run-Script $diffChecker @('-Repo', $fixture)
+Check ($result.ExitCode -eq 1) 'check-diff 拒绝单独 CR'
+Check ($result.Output -match 'BareCr.cs 使用了单独 CR') 'check-diff 点名单独 CR 文件'
+Remove-Item -LiteralPath $bareCr
+
 # 末尾没有换行。
 $noNewline = Join-Path $fixture 'src/NoNewline.cs'
 Save-Bytes $noNewline ([Text.Encoding]::UTF8.GetBytes('namespace Fixture;'))

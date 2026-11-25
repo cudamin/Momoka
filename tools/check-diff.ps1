@@ -149,7 +149,11 @@ foreach ($relative in $files) {
     if ($isBinary) { continue }
 
     $text = [Text.Encoding]::UTF8.GetString($bytes)
-    if ($text.Contains("`r`n")) { Fail "$relative 使用了 CRLF（仓库约定 LF）" }
+    if ($text.Contains("`r`n")) {
+        Fail "$relative 使用了 CRLF（仓库约定 LF）"
+    } elseif ($text.Contains("`r")) {
+        Fail "$relative 使用了单独 CR（仓库约定 LF）"
+    }
     if ($bytes[$bytes.Length - 1] -ne 10) { Fail "$relative 末尾没有换行" }
 
     $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
