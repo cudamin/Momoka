@@ -6,7 +6,7 @@
 
 **合入后查出的两处红。** `Momoka.PlexAffordanceTests` 的严格容器守卫只放行 `RemovedMedia` 与 `ISystemLauncher`，详情接入新取 `BangumiClient` 后 45 条抛「不启动容器/App」——守卫改为对该类型返回 null（评分格保持收起、不发请求），85/85 复绿。首轮 `-All` 跑到架构套件时正撞上我在改 `DetailPage.xaml` 注释，增量编译报 CS1697 校验和不同、不算零警告；重跑即清，7/7 通过。
 
-**验证。** 合并后全方案 Release **0 警告 0 错误**（135.8 s）；主测试 **5373/5373、0 失败 0 跳过**（165 s）；离线专项 `run-regressions.ps1 -All` 82 套，除上述两处（已修并单独复跑全绿）与外部 DOM 1 套 deferred 外全部通过；闸门 1 `tools/quality.ps1` **9/9**（`artifacts/quality/20261125-180133`：编译、空白、脚本、文档链接、文档命令、凭据、架构 7/7、重复与 diff）。
+**验证。** 合并后全方案 Release **0 警告 0 错误**（135.8 s）；主测试 **5373/5373、0 失败 0 跳过**（165 s）；离线专项 `run-regressions.ps1 -All` 82 套，除上述两处（已修并单独复跑全绿）与外部 DOM 1 套 deferred 外全部通过；为补终态证据又跑一轮 `-All`，到 `Momoka.SubtitleTranslationRuntimeTests` 时被用户中止、未跑完，此前各套全绿，这半轮不按全量通过记账；闸门 1 `tools/quality.ps1` **9/9**（`artifacts/quality/20261125-185103`：编译、空白、脚本、文档链接、文档命令、凭据、架构 7/7、重复与 diff）。
 
 **发布。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：549 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件；`Momoka.exe` 668,160 字节 SHA256 `8A5099E9…A7B985F`，`Momoka.dll` 10,457,088 字节 SHA256 `0102B9C7…CA4E889`，`Momoka.Core.dll` 3,169,280 字节 SHA256 `84BD0B5C…7446A231`，ProductVersion `0.3.3+a3f3496…`。首跑覆盖旧 `Momoka.lnk` 报 UnauthorizedAccessException（旧文件被占用），删掉旧链接重建后回读目标与工作目录都指向本树 `artifacts/publish/win-x64`。
 
