@@ -8,6 +8,8 @@
 
 验证过程中保留：误用旧build.cmd的build分支忽略项目参数，触发未还原整方案NETSDK1004；改固定SDK定向编译。并行项目共享Core输出撞CS2012，等待释放后串行重建。PageContract首轮422/423，日历A-B-A夹具先Attach异步读取才设Empty，修为先配置空响应、显式建立空基线，保留旧响应拒绝断言；未改产品VM，独立提交80ddb7c。沙箱主测试5304过／49红／3跳过，失败为临时目录ACL，正常用户权限最终5356项全过；重复检查首轮npm缓存／网络EACCES，正常权限检查通过。体验发布回执补记在待交付批次130。
 
+体验发布：产品提交be5b9b5；当前树tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-library-cover-resize通过，548文件／304,851,076字节，批准mpv清单60文件校验通过。桌面Momoka-library-cover-resize.lnk的TargetPath／WorkingDirectory已回读指向本树artifacts/publish/win-x64；ProductVersion为0.3.3+be5b9b514b2d4abd3c951e915b89f2ae351f2850。发布日志artifacts/page-scroll-experience-publish.log，完整文件哈希与快捷方式回执artifacts/page-scroll-experience-receipt.json；三份程序SHA256同步台账130。发布时工作区干净，后续仅补本段和台账记录。
+
 未运行应用、实窗探针或验收截图；主题／DPI／键鼠／触摸、背景像素及拖动仍待统一验收。不合并、不上传、不销账。
 
 ## 2026-11-25 媒体库窄窗封面与连续缩放
