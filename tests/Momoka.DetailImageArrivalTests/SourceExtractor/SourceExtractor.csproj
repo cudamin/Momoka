@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.DetailImageArrivalSourceExtractor</AssemblyName>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <!-- Use Roslyn and MSBuild assemblies already supplied by the pinned .NET SDK. -->
+    <ItemGroup>
+        <Reference Include="Microsoft.Build.Framework">
+            <HintPath>$(MSBuildToolsPath)\Microsoft.Build.Framework.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Microsoft.Build.Utilities.Core">
+            <HintPath>$(MSBuildToolsPath)\Microsoft.Build.Utilities.Core.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Microsoft.CodeAnalysis">
+            <HintPath>$(MSBuildToolsPath)\Roslyn\bincore\Microsoft.CodeAnalysis.dll</HintPath>
+        </Reference>
+        <Reference Include="Microsoft.CodeAnalysis.CSharp">
+            <HintPath>$(MSBuildToolsPath)\Roslyn\bincore\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+</Project>

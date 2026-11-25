@@ -8,6 +8,8 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <ProjectReference Include="SourceExtractor\SourceExtractor.csproj" ReferenceOutputAssembly="false" />
+        <Compile Remove="SourceExtractor\**\*.cs" />
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\ImageArrivalFade.cs" Link="Production\ImageArrivalFade.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\AnimatedPoster.cs" Link="Production\AnimatedPoster.cs" />
@@ -15,57 +17,5 @@
         <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\DetailPage.ArtworkArrival.cs" Link="Production\DetailPage.ArtworkArrival.cs" />
     </ItemGroup>
-    <UsingTask TaskName="ExtractDetailArtworkSource" TaskFactory="RoslynCodeTaskFactory"
-               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-        <ParameterGroup>
-            <Source ParameterType="System.String" Required="true" />
-            <OutputSource ParameterType="System.String" Required="true" />
-        </ParameterGroup>
-        <Task>
-            <Using Namespace="System" />
-            <Using Namespace="System.IO" />
-            <Using Namespace="System.Text" />
-            <Code Type="Fragment" Language="cs"><![CDATA[
-                var source = File.ReadAllText(Source).Replace("\r\n", "\n");
-                Func<string, string, string> between = (start, end) =>
-                {
-                    var begin = source.IndexOf(start, StringComparison.Ordinal);
-                    if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
-                        throw new InvalidOperationException("Missing or ambiguous production source: " + start);
-                    var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
-                    if (finish < 0 || source.IndexOf(end, finish + end.Length, StringComparison.Ordinal) >= 0)
-                        throw new InvalidOperationException("Missing or ambiguous production end: " + end);
-                    return source.Substring(begin, finish - begin);
-                };
-                var generated = "// Complete production method, extracted verbatim at build time.\n#nullable enable\n" +
-                    "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Microsoft.UI.Xaml.Media.Imaging;\nnamespace Momoka.Shell.ViewModels;\n" +
-                    "internal sealed partial class DetailArtworkFixture\n{\n" +
-                    between("    private Task _imagePresentation =", "\n\n    /// <summary>\n    /// 自检用的三个数") +
-                    between("    internal void UseImagePresentation(Task ready)", "\n\n    /// <summary>\n    /// 解好的封面") +
-                    between("    private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)", "\n    /// <summary>\n    /// 封面到了") +
-                    between("    private void ShowStill(BitmapSource picture)", "\n    /// <summary>\n    /// 右上角那张艺术图到了") +
-                    between("    public override void Cancel()", "\n    /// <inheritdoc />\n    public override void Dispose()") +
-                    between("    private bool Fresh(CancellationTokenSource art, EmbyItem item) =>", "\n    private async Task<BitmapImage?> DecodeFirstAsync(\n        EmbyItem item,") + "\n}\n";
-                var posterSource = File.ReadAllText(Path.Combine(Path.GetDirectoryName(Source), "..", "Views", "PosterCard.xaml.cs")).Replace("\r\n", "\n");
-                var posterStart = posterSource.IndexOf("    internal Action RetainConnectedPoster()", StringComparison.Ordinal);
-                var posterEnd = posterSource.IndexOf("\n    /// <summary>删除确认后的离场动画", posterStart, StringComparison.Ordinal);
-                if (posterStart < 0 || posterEnd < 0) throw new InvalidOperationException("Missing connected poster retention source");
-                generated += "\nnamespace Momoka.Shell.Views\n{\ninternal sealed partial class PosterCard\n{\n" +
-                    posterSource.Substring(posterStart, posterEnd - posterStart) + "\n}\n}\n";
-                generated = generated.Replace("namespace Momoka.Shell.ViewModels;", "namespace Momoka.Shell.ViewModels\n{")
-                    .Replace("\nnamespace Momoka.Shell.Views\n", "\n}\nnamespace Momoka.Shell.Views\n");
-                generated = "using Microsoft.UI.Xaml.Controls;\n" + generated;
-                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
-                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
-                    File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
-            ]]></Code>
-        </Task>
-    </UsingTask>
-    <Target Name="GenerateDetailArtworkSource" BeforeTargets="CoreCompile">
-        <ExtractDetailArtworkSource Source="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\DetailViewModel.cs"
-                                   OutputSource="$(IntermediateOutputPath)DetailArtwork.g.cs" />
-        <ItemGroup>
-            <Compile Include="$(IntermediateOutputPath)DetailArtwork.g.cs" />
-        </ItemGroup>
-    </Target>
+    <Import Project="ExtractProductionSources.targets" />
 </Project>

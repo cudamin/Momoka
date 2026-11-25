@@ -1,0 +1,18 @@
+<Project>
+    <PropertyGroup>
+        <DetailArtworkSourceRoot Condition="'$(DetailArtworkSourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels</DetailArtworkSourceRoot>
+        <DetailArtworkPosterSource Condition="'$(DetailArtworkPosterSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PosterCard.xaml.cs</DetailArtworkPosterSource>
+    </PropertyGroup>
+    <UsingTask TaskName="Momoka.DetailImageArrivalTests.SourceExtractor.ExtractDetailArtwork"
+               AssemblyFile="$(MSBuildThisFileDirectory)SourceExtractor\bin\$(Configuration)\net10.0\Momoka.DetailImageArrivalSourceExtractor.dll" />
+    <Target Name="GenerateDetailArtworkSource" BeforeTargets="CoreCompile" DependsOnTargets="ResolveReferences">
+        <ExtractDetailArtwork
+            WorkspaceRoot="$(MSBuildProjectDirectory)\..\.."
+            SourceRoot="$(DetailArtworkSourceRoot)"
+            PosterSource="$(DetailArtworkPosterSource)"
+            OutputSource="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)DetailArtwork.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)DetailArtwork.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>
