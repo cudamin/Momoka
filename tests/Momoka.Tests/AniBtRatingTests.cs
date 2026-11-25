@@ -22,8 +22,14 @@ internal static class AniBtRatingTests
                 Assert.Equal<long?>(RequestedSubject, AniBtRatingIdentity.For(item));
             }
 
-            var season = new EmbyItem { Type = EmbyItemType.Season, SeriesId = "parent", IndexNumber = 2,
-                Name = "作品第二季", ProviderIds = new() { ["Tmdb"] = "123", ["Imdb"] = "tt123" } };
+            var season = new EmbyItem
+            {
+                Type = EmbyItemType.Season,
+                SeriesId = "parent",
+                IndexNumber = 2,
+                Name = "作品第二季",
+                ProviderIds = new() { ["Tmdb"] = "123", ["Imdb"] = "tt123" }
+            };
             Assert.Null(AniBtRatingIdentity.For(season));
             season.ProviderIds["Bgm"] = "456";
             Assert.Equal<long?>(456, AniBtRatingIdentity.For(season));
@@ -90,7 +96,7 @@ internal static class AniBtRatingTests
                          "/api/public/v1/anime?bgmId=123", "https://redirect.invalid/api/seasons/anime?bgmId=123" })
             {
                 using var transport = new Transport((_, _) => new(HttpStatusCode.TemporaryRedirect)
-                    { Headers = { Location = new Uri(location, UriKind.RelativeOrAbsolute) } });
+                { Headers = { Location = new Uri(location, UriKind.RelativeOrAbsolute) } });
                 using var client = new AniBtClient(transport);
                 Assert.Throws<AniBtException>(() => Read(client));
                 Assert.Equal(1, transport.Requests.Count);
