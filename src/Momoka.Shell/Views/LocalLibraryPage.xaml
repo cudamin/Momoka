@@ -60,7 +60,7 @@
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         <!-- 海报墙：和 Emby 媒体库页同一套读法 —— 一个作品一张卡，救回整页宽度重排，点开进详情页。 -->
         <ItemsView x:Name="LocalLibraryGroups" Grid.Row="3" ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}"
-            SelectionMode="None" IsItemInvokedEnabled="True" ItemInvoked="OnGroupInvoked"
+            Margin="0,0,-32,0" SelectionMode="None" IsItemInvokedEnabled="True" ItemInvoked="OnGroupInvoked"
             Padding="{StaticResource EgScrollBarLane}">
             <ItemsView.Layout>
                 <UniformGridLayout ItemsStretch="None" MinItemWidth="170" MinItemHeight="320"

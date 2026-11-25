@@ -163,23 +163,7 @@
       加载条放在 Overlay 已有的顶部留白内，不为短暂读取改变货架高度；提示条自带 12 的下边距。
     -->
     <ScrollView x:Name="Scroller" VerticalScrollBarVisibility="Auto">
-        <!--
-          「收窄首页右边滚动条的背景遮罩」（2026-10-01）：框架那条轨道底跟滚动条一样宽（12 像素），压在
-          这一页那张通栏剧照的右端就是一条亮边。EgNarrowScrollBarStyle 把轨道收成中间一条 6 像素，
-          把手与滚动能力一个字没动 —— 底与把手是两件事，用户点名的是「背景遮罩」。
-          **只挂这一页**（不动全应用）：理由与改一处记一处的老规矩写在 Styles.xaml 那支样式上面。
-          同日晚第二轮（用户复述同一请求）：查明框架暗色主题悬停并无底板、还宽的是把手本体，已把把手
-          可视条钉成同一条 6 像素（命中区不动）——现在任何状态下最宽就是中间那 6 像素，详见 Styles.xaml。
-          **第三轮定案（同日更晚）**：用户一句「遮海报遮太多了，不是滚动条的问题」点破——他指的一直是
-          下面 Overlay 右边那 36 像素的空底（海报在那儿被裁断，看着像盖住海报的遮罩），滚动条只是恰好在
-          那条带子里。真修在 Overlay 的 Padding 上（右 36→13）；这里的两轮收窄照留 —— 方向没错、也没坏处，
-          但都不是他点的那件事。
-          **第四轮（同日最晚）**：「滚动条不要延伸到轮播图上，在下半部分显示就行」——竖滚动条的顶由
-          HomePage.PlaceScrollBar 压到轮播下沿（随带高走，没幻灯片时回到通长），XAML 里没有它的数。
-        -->
-        <ScrollView.Resources>
-            <Style BasedOn="{StaticResource EgNarrowScrollBarStyle}" TargetType="ScrollBar" />
-        </ScrollView.Resources>
+        <!-- 与媒体详情页共用原生滚动条；背景铺满，内容内层预留右侧安全带。 -->
         <StackPanel>
             <!--
               **页头那块牌子（PageSlate）2026-09-11 删掉了** —— 他一句「去掉左上角的这些，不要留空位」，
@@ -221,9 +205,9 @@
 
               左右留白由 HomePage.SyncCarouselLayout 现算（2026-11-18 用户令「轮播图的宽度还有下方媒体库的
               最大宽度锁定为1860」）：窗口放得下 1860 时两侧平分多出来的宽度，轮播与下方货架一起停在 1860
-              并居中；放不下时仍是左脊线 36、右侧滚动条车道 13。这里写的是窄窗那一档的初值。
+              并居中；放不下时仍是左脊线 36、右侧滚动条车道 20。这里写的是窄窗那一档的初值。
             -->
-            <Grid x:Name="BannerZone" Margin="36,20,13,0">
+            <Grid x:Name="BannerZone" Margin="36,20,20,0">
                 <Border
                     x:Name="BannerCard"
                     Background="Transparent"
@@ -277,9 +261,7 @@
 
                  **右边那 36 2026-10-01 晚收到 13**（用户第三轮：「遮海报遮太多了，不是滚动条的问题」——他点的一直是
                  这条 36 像素的空底：海报在离窗口右缘 36 像素处被裁断，那块空底看着就像盖住海报的「背景遮罩」；
-                 前两轮拿它当滚动条改，方向错了）。13 = 滚动条自己那条车道（ScrollViewScrollBarsMargin 1 +
-                 ScrollBarSize 12）：海报的裁切线退到滚动条地界的左边一像素，内容区不再让出多余的一条，
-                 竖滚动条（悬停最宽 6 像素、贴在 13 的带子里）也永远不会压到海报上。**左边不动**：脊线和大图上
+                 右侧安全带统一为 20 DIP（与详情正文相同），由内容层提供；滚动条本身使用原生模板。
                  那块牌子仍是一条；右端读数、下载排跟着 Padding 一起右移，属同一件事。
 
                  2026-09-13「首页组件的上下间距弄紧凑一些」：上沿从 24 收到 16（轮播下沿到第一排牌子之间那一口气），
@@ -292,7 +274,7 @@
                  **左右两个数 2026-11-18 起也由 HomePage.SyncCarouselLayout 现算**（同一句「下方媒体库的最大
                  宽度锁定为1860」）：宽窗时与轮播一样停在 1860、平分两侧留白；窄窗回到这里的 36／13。
                  标记里这一份是窄窗那一档的初值。 -->
-            <Grid x:Name="Overlay" Background="Transparent" Padding="36,16,13,28">
+            <Grid x:Name="Overlay" Background="Transparent" Padding="36,16,20,28">
                 <StackPanel>
                     <!-- TwoWay on IsOpen, so dismissing the bar is recorded rather than only drawn: the next
                          failure has to be able to reopen it, and a view model that thinks it is still open

@@ -172,8 +172,6 @@ public sealed partial class HomePage : Page, IShellContent
         Scroller.StateChanged += OnHeaderViewChanged;
         Scroller.ScrollCompleted += OnHeaderScrollCompleted;
 
-        // 竖滚动条不从轮播图上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，
-        // 2026-10-01）。它只在带子可见时有意义 —— 没有幻灯片时 Apply 会把 Visibility 收起来，过一拍再对一遍。
         // 沉浸轮播恢复旧版贴顶；商店留白。幻灯片收起时同步撤销负边距与标题浅墨。
         Banner.Loaded += (_, _) => SyncCarouselLayout();
         Banner.SizeChanged += (_, _) => SyncCarouselLayout();
@@ -396,58 +394,6 @@ public sealed partial class HomePage : Page, IShellContent
                 + $"圆角 {(rounded ? $"{BannerCard.CornerRadius.TopLeft:0}" : "没有")}"
                 + $"，滚动视口从 {viewportTop:0} 起"
                 + (ok ? immersive ? " —— 沉浸通栏轮播" : " —— 商店圆角轮播" : " —— 大图的内缩、圆角或滚动视口不对"));
-    }
-
-    /// <summary>
-    /// 这一页自己的竖滚动条（EgNarrowScrollBarStyle 那支），模板树里找到后缓存。
-    /// </summary>
-    private Microsoft.UI.Xaml.Controls.Primitives.ScrollBar? _verticalScrollBar;
-
-    /// <summary>
-    /// 把竖滚动条的顶压到轮播的下沿（「滚动条不要延伸到轮播图上，在下半部分显示就行」，2026-10-01）。
-    /// 滚动条跟着视口铺满整页，而这一页第一块内容就是通栏轮播 —— 不挪的话，滚动或悬停时那条 bar 正压在
-    /// 剧照上。量 <see cref="HomeBanner.ActualHeight"/> 而不是按宽换算（HomeCarousel.Height）：轮播收起、
-    /// 矮窗档这些档位下事件来源（与 PlaceScrollBar 同一批 Banner 钩子）已把「带子变了」都送过来，读实际值
-    /// 省得再算；**窗口高矮不必单独听** —— 带高只随宽度走，宽度一变 Banner.SizeChanged 必响。没有幻灯片时
-    /// 带子收起（ActualHeight 归零），滚动条回到通长，本来就没有要避的东西。
-    /// <para>
-    /// 滚动条在 ScrollView 的模板树里，XAML 从外面够不着，只能下树找（这一页只此一处认识它）。找到之前
-    /// 每次触发都重试，找到后缓存 —— 模板件随控件生灭，页面活着它就活着。顺手的位置账：滚动时带子往上
-    /// 走、滚动条不动，它从「带子在顶部那一拍的下沿」起、一路到页底，正好就是「下半部分」。
-    /// </para>
-    /// </summary>
-    internal void PlaceScrollBar()
-    {
-        if (_verticalScrollBar is null)
-        {
-            _verticalScrollBar = FindVerticalScrollBar(Scroller);
-            if (_verticalScrollBar is null) return;
-        }
-
-        var top = Banner.Visibility == Visibility.Visible ? ViewportTopAtScrollZero(Banner) + Banner.ActualHeight : 0;
-        var sheet = _verticalScrollBar.Margin;
-        if (Math.Abs(sheet.Top - top) <= 0.5) return;
-        _verticalScrollBar.Margin = new Thickness(0, top, 0, 0);
-    }
-
-    private static Microsoft.UI.Xaml.Controls.Primitives.ScrollBar? FindVerticalScrollBar(DependencyObject root)
-    {
-        if (root is Microsoft.UI.Xaml.Controls.Primitives.ScrollBar bar && bar.Orientation == Orientation.Vertical)
-            return bar;
-
-        var children = VisualTreeHelper.GetChildrenCount(root);
-        for (var index = 0; index < children; index++)
-        {
-            var child = VisualTreeHelper.GetChild(root, index);
-            // 别走进内层滚动控件（货架那几条横带自己的 ScrollView）：它们模板里也有竖滚动条，
-            // 这一页要的是 Scroller 自己模板里的那一支 —— 内层的归内层。
-            if (child is Microsoft.UI.Xaml.Controls.ScrollView or Microsoft.UI.Xaml.Controls.ScrollViewer)
-                continue;
-            var found = FindVerticalScrollBar(child);
-            if (found is not null) return found;
-        }
-
-        return null;
     }
 
     /// <summary>单调钟（毫秒）。这一页只拿它量「距上一趟摆档过了多久」，见 <see cref="Fold"/>。</summary>

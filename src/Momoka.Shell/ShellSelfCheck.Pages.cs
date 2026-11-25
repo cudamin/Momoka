@@ -232,16 +232,14 @@ internal static partial class ShellSelfCheck
         // <c>CardSize.PosterWidth</c>，这一条改钉「默认宽到得了这一页」—— 卡宽照旧从页面读，单元宽照旧从活的
         // 版面上读，绑定没喊出声就读到 NaN，而不是这里替它算出来的数。
         //
-        // 2026-10-18 起那个「默认宽」不再是一个常量：用户令「封面随窗口大小变化，互相之间不要留太大的空隙」，
-        // 卡宽改成按窗口宽度算（<c>LibraryCardMetrics.Fit</c>），所以这一条钉两件事 —— 不小于图像大小那一档，
-        // 以及在 海报 里正好等于格子（格子比卡片宽，就是两张封面之间多出一条缝，正是这一天报的那一条）。
+        // 卡宽按窗口宽度计算；图像大小是目标值，允许略小于目标以免窄窗少排一列后封面骤大。
+        // 仍检查正的有限整 DIP 卡宽，以及 海报 里正好等于实际格宽、实际格高大于卡宽，防止绑定失效与额外空隙。
         //
         // The cell is only asked to equal the card in 海报: the other two shapes have cells of their own,
         // and those are the next check's business.
-        check("海报尺寸", library.CardWidth >= CardSize.PosterWidth
-                && (library.View != "Poster"
-                    || (library.CellWidth == library.CardWidth && library.CellHeight > library.CardWidth)),
-            $"卡片 {library.CardWidth}（档位宽 {CardSize.PosterWidth}），"
+        check("海报尺寸", SelfCheckLayoutRules.LibraryPosterSize(
+                library.View, library.CardWidth, library.CellWidth, library.CellHeight),
+            $"卡片 {library.CardWidth}（默认目标宽 {CardSize.PosterWidth}），"
                 + $"网格单元 {library.CellWidth:0}×{library.CellHeight:0}（视图「{library.View}」）");
 
         // WalkViews covers Emby's seven shapes — 海报、缩略图、列表、横幅图、光盘封面、徽标、表格 — in

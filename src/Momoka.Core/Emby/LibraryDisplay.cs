@@ -528,6 +528,25 @@ public static class LibraryCardMetrics
     }
 
     /// <summary>
+    /// 媒体库把图像大小当作目标宽度：选最接近目标的列数，余量平摊到各列。允许卡片略小于目标，
+    /// 避免窄窗口少排一列后把海报放大一档。布局直接使用这份列数与格宽，不再用 Fill 二次扩宽。
+    /// <see cref="Fit"/> 保留给仍按最小宽度铺排的订阅墙。
+    /// </summary>
+    public static (int Columns, int Cell) FitWall(double available, int preferred, double spacing = ColumnSpacing)
+    {
+        var target = Math.Max(1, preferred);
+        if (!double.IsFinite(available) || available <= 0) return (1, target);
+
+        var gap = double.IsFinite(spacing) ? Math.Max(0, spacing) : ColumnSpacing;
+        var columns = (int)Math.Clamp(Math.Round((available + gap) / (target + gap), MidpointRounding.AwayFromZero),
+            1, int.MaxValue);
+        var maximum = (int)Math.Clamp(Math.Floor((available + gap) / (1 + gap)), 1, int.MaxValue);
+        columns = Math.Min(columns, maximum);
+        var cell = (int)Math.Clamp(Math.Floor((available - (columns - 1) * gap) / columns), 1, int.MaxValue);
+        return (columns, cell);
+    }
+
+    /// <summary>
     /// 形状的高宽比：海报 2:3、光盘 1:1、横幅 1000:185（Emby 的横幅图就是那个比例）、
     /// 徽标与缩略图 16:9。列表与表格的图只是行首那一小张，同样按 16:9 算。
     /// <para>

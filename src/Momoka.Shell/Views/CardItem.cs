@@ -56,8 +56,8 @@ public sealed partial class CardItem : INotifyPropertyChanged
     private readonly string _localPosterPath;
     private readonly Func<CancellationToken, Task<byte[]>>? _fetchPoster;
     /// <summary>
-    /// 画出来、解码、取图三处共用的那个宽度。**不是 readonly**：窗口被拖动时整面墙一起换宽度（见
-    /// <see cref="Resize"/>），三处必须一起动，否则卡片要么糊要么白占内存。
+    /// 当前绘制宽度，也是下一次解码和取图的目标宽度。拖窗口先更新几何，停下后再补图；
+    /// 已显示图片由 <see cref="_posterWidth"/> 单独记录，补图期间继续显示，不闪回占位。
     /// </summary>
     private int _width;
 
@@ -137,12 +137,14 @@ public sealed partial class CardItem : INotifyPropertyChanged
     private DateTime _failedAt;
 
     private BitmapImage? _poster;
+    private int _posterWidth;
 
     /// <summary>
     /// 飞牛卡的封面拼图：文件夹的 <c>poster_list</c> 最多四张（官方按 1／2／3／4 格排版），
     /// 媒体库的 <c>posters</c> 最多三张（官方库卡并排三份）。
     /// </summary>
     private readonly BitmapImage?[] _collageTiles = new BitmapImage?[4];
+    private readonly int[] _collageWidths = new int[4];
 
     /// <summary>服务器明说没有的那几格；与单张海报的 <see cref="_missing"/> 同理，不再反复问。</summary>
     private readonly HashSet<int> _missingCollageTiles = [];
@@ -157,7 +159,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     private async Task EnsureCollageAsync(Task? presentation)
     {
         if (Scope is not { IsAvailable: true } scope || _loading is not null) return;
-        if (Enumerable.Range(0, CollageTileCount).All(index => _collageTiles[index] is not null)) return;
+        if (Enumerable.Range(0, CollageTileCount).All(index => _collageTiles[index] is not null && _collageWidths[index] == _width)) return;
         if (_missingCollageTiles.Count >= CollageTileCount) return;
         if (_failedAt != default && !ImageCachePolicy.WorthRetrying(_failedAt, DateTime.UtcNow)) return;
 
@@ -168,7 +170,8 @@ public sealed partial class CardItem : INotifyPropertyChanged
             var width = _width;
             for (var index = 0; index < CollageTileCount; index++)
             {
-                if (_collageTiles[index] is not null || _missingCollageTiles.Contains(index)) continue;
+                if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !scope.IsAvailable || width != _width) return;
+                if ((_collageTiles[index] is not null && _collageWidths[index] == width) || _missingCollageTiles.Contains(index)) continue;
                 var path = _item.PosterPaths[index];
                 var key = PosterCache.Key(scope.Connection, _item.Id, EmbyImageStore.Primary, path, width);
                 if (PosterCache.TryGet(key, out var kept))
@@ -183,7 +186,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
                 var bitmap = await _images.GetDecodedAsync(scope, _item.Id, EmbyImageStore.Primary, path,
                         EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cts.Token)
                     .ConfigureAwait(true);
-                if (cts.IsCancellationRequested || !scope.IsAvailable) return;
+                if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !scope.IsAvailable || width != _width) return;
                 if (bitmap is null)
                 {
                     _missingCollageTiles.Add(index);
@@ -222,6 +225,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     /// </summary>
     private void SetCollageTile(int index, BitmapImage bitmap)
     {
+        _collageWidths[index] = _width;
         if (ReferenceEquals(_collageTiles[index], bitmap)) return;
         _collageTiles[index] = bitmap;
         RaiseCollageTile(index);
@@ -231,6 +235,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     {
         for (var index = 0; index < _collageTiles.Length; index++)
         {
+            _collageWidths[index] = 0;
             if (_collageTiles[index] is null) continue;
             _collageTiles[index] = null;
             RaiseCollageTile(index);
@@ -270,6 +275,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     /// 但不该因窗口换宽另开请求；显式 EnsurePosterAsync（Loaded / 换卡）才重新开启。
     /// </summary>
     private bool _resizeWanted;
+    private bool _deferImageRefresh;
 
     /// <summary>
     /// 此刻装着这张卡的那个容器（可暂时离树），没有就是没有。**弱引用**：卡片活在页面的清单里（<c>CardShelf.Cards</c>），
@@ -283,9 +289,8 @@ public sealed partial class CardItem : INotifyPropertyChanged
     private WeakReference<object>? _holder;
 
     /// <param name="width">
-    /// The card's width in device-independent pixels. Used three times: to pick the size to ask the
-    /// server for, as the decode width, and as the width the card is drawn at — which is the point of
-    /// taking it here rather than in the DataTemplate, because those three can then not disagree.
+    /// The card's initial width in device-independent pixels. Drawing and the next image request
+    /// share this target; resizing can keep the previous decoded image until its replacement arrives.
     /// </param>
     /// <param name="wide">
     /// True for a 16:9 card (继续观看, 接下来看, 媒体库), which prefers the episode still over the poster.
@@ -693,27 +698,26 @@ public sealed partial class CardItem : INotifyPropertyChanged
     });
 
     /// <summary>
-    /// The size the card is drawn at, bound by the DataTemplate. Here rather than in the markup so that
-    /// the drawn width is provably the width the bitmap was decoded for; see <see cref="CardSize"/>.
+    /// The size the card is drawn at, bound by the DataTemplate. Image refresh may follow after the
+    /// resize settles; the previous bitmap remains visible until its replacement arrives.
     /// </summary>
     public double CardWidth => _width;
 
     /// <summary>
-    /// 这一张卡换个宽度重画（窗口被拖动时，一面墙上的卡片一起换）。
-    /// <para>
-    /// **宽度不只是画多大**：它是取图要的尺寸、解码宽度和画出来的宽度三件事，所以换宽度就得把图重新取一遍、
-    /// 重新解一遍 —— 旧宽度解出来的图放到新格子里就是一张糊图。
-    /// </para>
+    /// 立即更新这张卡的绘制宽高；已有图片保留到新尺寸图片成功后替换。
+    /// <paramref name="refreshImage"/> 为 false 时只更新几何，窗口停止拖动后由
+    /// <see cref="RefreshPosterSize"/> 补齐解码，避免每一帧重新取图。
     /// <para>
     /// 原地改而不是把卡片换掉：卡片对象活在页面的清单里（<c>LibraryViewModel.Cards</c>），删除、继续观看那一格、
     /// 探针都攥着这些对象；换掉对象等于把那些引用全作废（2026-10-18 探针「删除保持列表位置」就是这么红起来的）。
     /// </para>
     /// </summary>
-    internal void Resize(int width)
+    internal void Resize(int width, bool refreshImage = true)
     {
         if (width <= 0 || width == _width) return;
 
         _width = width;
+        _deferImageRefresh = !refreshImage;
         Raise(nameof(CardWidth));
         Raise(nameof(PosterHeight));
 
@@ -722,12 +726,20 @@ public sealed partial class CardItem : INotifyPropertyChanged
         _loading = null;
         RaiseImagePending();
 
-        Poster = null;
-        ClearCollageTiles();
-        ClearHomeLibraryCoverImages();
+        // 暂离树后旧请求仍可能填回图片；离屏换宽必须放掉它，但不另开新请求。
+        if (!_resizeWanted || Scope is { IsAvailable: false })
+        {
+            Poster = null;
+            ClearCollageTiles();
+            ClearHomeLibraryCoverImages();
+        }
+        if (refreshImage) RefreshPosterSize();
+    }
 
-        // 首图尚未返回也得重启；离屏后只是继续等旧图，不因此开启新宽度请求。
-        // 容器再把它递进来时，EnsurePosterAsync 会按最新宽度取。
+    /// <summary>几何落定后补图；已有目标尺寸图片和仍在途的同尺寸请求均复用。</summary>
+    internal void RefreshPosterSize()
+    {
+        _deferImageRefresh = false;
         if (_resizeWanted) _ = EnsurePosterAsync(_presentation);
     }
 
@@ -739,6 +751,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
         get => _poster;
         private set
         {
+            _posterWidth = value is null ? 0 : _width;
             if (ReferenceEquals(_poster, value)) return;
             _poster = value;
             Raise();
@@ -932,6 +945,10 @@ public sealed partial class CardItem : INotifyPropertyChanged
         _wanted = true;
         _resizeWanted = true;
         if (presentation is not null) _presentation = presentation;
+        // 重排时容器可能再发 Loaded / 换卡通知。已有画面继续显示，不能借 Ensure 绕过停拖防抖；
+        // 首张仍为空时照常加载，避免新进入视口的卡片被迫等待。真正离屏会清图并解除该标记。
+        if (_deferImageRefresh && (_poster is not null || _collageTiles.Any(image => image is not null)
+            || _homeLibraryCoverImages.Count > 0)) return;
 
         if (_homeLibraryCoverPreset == Configuration.HomeLibraryCoverPresets.Gradient) return;
         if (_homeLibraryCoverPreset is not null)
@@ -952,7 +969,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
             return;
         }
 
-        if (_missing || _poster is not null || _loading is not null) return;
+        if (_missing || (_poster is not null && _posterWidth == _width) || _loading is not null) return;
         if (_localPosterPath.Length > 0 || _fetchPoster is not null)
         {
             await EnsureNavigationPosterAsync().ConfigureAwait(true);
@@ -1007,7 +1024,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
                 }
             }, cts.Token).ConfigureAwait(true);
 
-            if (cts.IsCancellationRequested || !scope.IsAvailable) return;
+            if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !scope.IsAvailable || width != _width) return;
             if (bitmap is null)
             {
                 _missing = !transientFailure; // 只有全部明确缺图才记死；暂态或坏图仍按冷却重试。
@@ -1195,6 +1212,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
         if (!HeldBy(container)) return;
 
         _resizeWanted = false;
+        _deferImageRefresh = false;
         if (!keepWaiting)
         {
             _holder = null;
@@ -1256,6 +1274,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
         _holder = null;
         _wanted = false;
         _resizeWanted = false;
+        _deferImageRefresh = false;
         _loading?.Cancel();
         _loading = null;
         RaiseImagePending();

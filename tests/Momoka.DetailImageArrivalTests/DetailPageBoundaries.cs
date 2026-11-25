@@ -39,5 +39,5 @@ internal sealed partial class PosterCard
     internal CardItem? Card { get; set; }
     private readonly ImageArrivalFade _posterArrival;
 
-    internal PosterCard() => _posterArrival = new ImageArrivalFade(Poster);
+    internal PosterCard() => _posterArrival = new ImageArrivalFade(Poster, () => Card);
 }

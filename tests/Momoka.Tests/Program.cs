@@ -196,6 +196,14 @@ internal static class Program
             GaussianBackdropTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["page-scroll-chrome-fixture"])
+        {
+            PageScrollChromeTests.Register();
+            HomeChromeTests.Register();
+            SettingsLayoutTests.Register();
+            AcrylicControlsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["home-chrome-fixture"])
         {
             HomeChromeTests.Register();
@@ -717,6 +725,7 @@ internal static class Program
         HomeCarouselTests.Register();
         CarouselAmbientTests.Register();
         HomeChromeTests.Register();
+        PageScrollChromeTests.Register();
         ShellChromeTests.Register();
         HomeFoldTests.Register();
         BackdropBlurTests.Register();

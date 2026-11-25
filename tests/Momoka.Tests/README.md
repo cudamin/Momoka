@@ -4,6 +4,18 @@
 
 本页其余部分保留 AniBT 整理回执专项的详细说明；其他专项各自有 README。
 
+## 页面右侧滚动条专项
+
+在当前工作树先编译主测试，再运行 `page-scroll-chrome-fixture`：
+
+```powershell
+& "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-restore
+if ($LASTEXITCODE -ne 0) { throw '测试编译失败，停止' }
+& "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-build --no-restore -- page-scroll-chrome-fixture
+```
+
+入口覆盖主滚动视口右沿、内部内容安全带、原生滚动条资源与主页／设置布局契约，并运行既有材质控件检查。源码几何检查不证明背景像素、原生拖动、主题或 DPI 的实际效果；运行验收仍按待交付台账执行。
+
 
 ## AniBT 整理回执专项（R-038）
 

@@ -219,6 +219,70 @@ internal static class Program
             Assert.Equal(1, Storyboard.Created.Count);
             Assert.Equal(1d, image.Opacity);
         });
+        Test("同一卡片换封面尺寸保留可见且停止首次未完成淡入", () =>
+        {
+            ResetUi();
+            var identity = new object();
+            var image = new Image();
+            image.Load();
+            using var fade = new ImageArrivalFade(image, () => identity);
+            image.Source = new BitmapImage();
+            var first = Storyboard.Created.Single();
+            Assert.Equal(0d, image.Opacity);
+            image.Source = new BitmapImage();
+            Assert.Equal(1d, image.Opacity);
+            Assert.False(first.Running);
+            Assert.Equal(0, first.CompletionSubscriptions);
+            Assert.Equal(0, HomeMotion.Subscriptions);
+            Assert.Equal(0, UISettings.Created.Sum(settings => settings.Subscriptions));
+            image.Source = new BitmapImage();
+            Assert.Equal(1, Storyboard.Created.Count);
+            Assert.Equal(1d, image.Opacity);
+        });
+        Test("已有缓存图的卡片更新清晰度不重播淡入", () =>
+        {
+            ResetUi();
+            var identity = new object();
+            var image = new Image { Source = new BitmapImage() };
+            image.Load();
+            using var fade = new ImageArrivalFade(image, () => identity);
+            image.Source = new BitmapImage();
+            Assert.Equal(0, Storyboard.Created.Count);
+            Assert.Equal(1d, image.Opacity);
+        });
+        Test("卡片换项和真正清空后的首次图片仍淡入", () =>
+        {
+            ResetUi();
+            object? identity = new object();
+            var image = new Image { Source = new BitmapImage() };
+            image.Load();
+            using var fade = new ImageArrivalFade(image, () => identity);
+            identity = new object();
+            image.Source = new BitmapImage();
+            Assert.Equal(0d, image.Opacity);
+            Assert.Equal(1, Storyboard.Created.Count);
+            image.Source = null;
+            Assert.Equal(1d, image.Opacity);
+            image.Source = new BitmapImage();
+            Assert.Equal(0d, image.Opacity);
+            Assert.Equal(2, Storyboard.Created.Count);
+            fade.Stop();
+            identity = null;
+            image.Source = new BitmapImage();
+            Assert.Equal(0d, image.Opacity);
+            Assert.Equal(3, Storyboard.Created.Count);
+        });
+        Test("主海报及八个拼图表面都按Card身份区分清晰度替换与换卡", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "global.json"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
+            Assert.True(source.Contains("new ImageArrivalFade(Poster, () => Card)", StringComparison.Ordinal));
+            foreach (var name in new[] { "FnNasPosterBackground", "FolderPoster0", "FolderPoster1", "FolderPoster2", "FolderPoster3",
+                "LibraryPoster0", "LibraryPoster1", "LibraryPoster2" })
+                Assert.True(source.Contains($"new({name}, () => Card)", StringComparison.Ordinal), $"{name}缺少当前卡片身份");
+        });
         Test("离树迟到Source直接visible，Loaded不闪空", () =>
         {
             ResetUi();

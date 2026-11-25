@@ -22,7 +22,9 @@ internal sealed class ImageArrivalFade : IDisposable
     private readonly ImageBrush? _brush;
     private readonly double _finalOpacity;
     private readonly long _sourceToken;
+    private readonly Func<object?>? _contentIdentity;
     private ImageSource? _seen;
+    private object? _seenIdentity;
     private Storyboard? _board;
     private EventHandler<object>? _completed;
     private bool _watchingPreferences;
@@ -30,10 +32,17 @@ internal sealed class ImageArrivalFade : IDisposable
     private bool _suppressed;
 
     internal ImageArrivalFade(Image image)
+        : this(image, null)
+    {
+    }
+
+    internal ImageArrivalFade(Image image, Func<object?>? contentIdentity)
         : this(image, Image.SourceProperty, image, image.Opacity)
     {
         _image = image;
+        _contentIdentity = contentIdentity;
         _seen = image.Source;
+        _seenIdentity = contentIdentity?.Invoke();
         image.ImageFailed += OnImageFailed;
     }
 
@@ -65,9 +74,14 @@ internal sealed class ImageArrivalFade : IDisposable
         if (_disposed || IsUpdatingAnimatedFrame?.Invoke() == true) return;
         var source = _image is not null ? _image.Source : _brush?.ImageSource;
         if (ReferenceEquals(source, _seen)) return;
+        var identity = _contentIdentity?.Invoke();
+        // 同一张卡仅换解码尺寸时，旧图已经可见。高清替换直接落定；首次到图与容器换卡仍淡入。
+        var replacesVisibleContent = source is not null && _seen is not null && identity is not null
+            && ReferenceEquals(identity, _seenIdentity);
         _seen = source;
+        _seenIdentity = identity;
         Stop();
-        if (_suppressed || source is null || _host.XamlRoot is null || !HomeMotion.AnimationsEnabled) return;
+        if (_suppressed || replacesVisibleContent || source is null || _host.XamlRoot is null || !HomeMotion.AnimationsEnabled) return;
 
         // Repeater 的回收幻影可能把 IsLoaded 置为 false，但 XamlRoot 仍在、画面也仍在。
         WatchPreferences();

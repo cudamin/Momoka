@@ -13,7 +13,7 @@ public sealed partial class HomePage
     /// <summary>
     /// 商店模式主页内容的最大宽度（DIP）。2026-11-18 用户令「主页的轮播图的宽度还有下方媒体库的最大宽度
     /// 锁定为1860」：窗口比它宽时，轮播与下方货架一起停在 1860 并居中；窗口窄下来按原来的左脊线 36、
-    /// 右侧滚动条车道 13 铺满。沉浸模式不受这一档限制，仍走通栏。
+    /// 右侧滚动条车道 20 铺满。沉浸模式不受这一档限制，仍走通栏。
     /// <para>
     /// 2026-11-24 起这个数就是 <see cref="DetailHero.StoreCardMaxWidth"/>：用户令「媒体详情页和订阅详情页的
     /// 卡片最大宽度，要和主页轮播图的最大宽度一致」，两处读同一个常量，不再各写一个字面 1860。
@@ -58,8 +58,8 @@ public sealed partial class HomePage
         var (left, right) = immersive ? (0d, 0d) : StoreContentInsets(ActualWidth);
         var zone = new Thickness(left, immersive ? 0 : 20, right, 0);
         if (BannerZone.Margin != zone) BannerZone.Margin = zone;
-        // 下方货架与轮播走同一条左右边界：商店宽窗的上限落在两侧留白里，窄窗仍是脊线 36／车道 13。
-        var (shelfLeft, shelfRight) = immersive ? (36d, 13d) : (left, right);
+        // 下方货架与轮播走同一条左右边界：商店宽窗的上限落在两侧留白里，窄窗仍是脊线 36／车道 20。
+        var (shelfLeft, shelfRight) = immersive ? (36d, 20d) : (left, right);
         var padding = Overlay.Padding;
         if (padding.Left != shelfLeft || padding.Right != shelfRight)
             Overlay.Padding = new Thickness(shelfLeft, padding.Top, shelfRight, padding.Bottom);
@@ -72,18 +72,17 @@ public sealed partial class HomePage
         if (margin.Top != top) Scroller.Margin = new Thickness(margin.Left, top, margin.Right, margin.Bottom);
         PlaceLibraryOverlay();
         PaintInk();
-        PlaceScrollBar();
         ScheduleOverlay();
     }
 
     /// <summary>
     /// 商店模式的左右留白。宽到放得下 <see cref="StoreContentMaxWidth"/> 时两边平分多出来的宽度 ——
-    /// 轮播与下方货架因此一起停在 1860、在页面里居中；再窄一档照旧让出页脊线 36 与滚动条车道 13。
+    /// 轮播与下方货架因此一起停在 1860、在页面里居中；再窄一档照旧让出页脊线 36 与滚动条车道 20。
     /// </summary>
     private static (double Left, double Right) StoreContentInsets(double pageWidth)
     {
         var spare = pageWidth - StoreContentMaxWidth;
-        return spare >= 36 + 13 ? (spare / 2, spare / 2) : (36, 13);
+        return spare >= 36 + 20 ? (spare / 2, spare / 2) : (36, 20);
     }
 
     private void PaintInk()

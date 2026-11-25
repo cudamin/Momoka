@@ -360,34 +360,21 @@ public sealed partial class LibraryViewModel : PageViewModel
         or LibraryView.List or LibraryView.Table;
 
     /// <summary>
-    /// The width a card is built at in the current view — **not** the constant the shape prefers, but the
-    /// width this window's row can give it; see <see cref="LibraryCardMetrics.Fit"/>.
-    /// <para>
-    /// 从前它就是那个常量（海报 170、剧照 300）：格子按「塞得下几列」定，余下的宽度留在格子里，卡片居中，
-    /// 于是两张封面之间空出一条比封面还显眼的缝。2026-10-18 用户令「封面随窗口大小变化，互相之间不要留太大的
-    /// 空隙」之后，宽度由窗口算出来（<see cref="_gridWidth"/>）：列数按档位宽定，剩下的宽度平摊给这几列，
-    /// 卡片画出来的宽度就是格宽。
-    /// </para>
-    /// <para>
-    /// 还没量到窗口宽度时退回档位宽。新建的页面在第一帧之前就可能把卡片建好了，那时宽度无从谈起 ——
-    /// 量到之后 <see cref="RebuildGrid"/> 会按新宽度重造一遍。
-    /// </para>
+    /// 当前窗口给卡片的实际宽度。图像大小只作目标，列数、格宽和行高使用同一份计算；
+    /// 量到窗口宽度后原地更新卡片几何，图片刷新单独防抖。
     /// </summary>
     internal int CardBuildWidth => GridFit.Cell;
 
+    /// <summary>原生布局与现有诊断共用的格宽，不再把图像大小档位当作布局最小宽。</summary>
+    internal int CardMinWidth => CardBuildWidth;
+
     /// <summary>这一行排几列、每列多宽；还没量到宽度时就是档位宽一列。</summary>
     private (int Columns, int Cell) GridFit => _gridWidth > 0
-        ? LibraryCardMetrics.Fit(_gridWidth, MinimumCardWidth)
+        ? LibraryCardMetrics.FitWall(_gridWidth, MinimumCardWidth)
         : (1, MinimumCardWidth);
 
-    /// <summary>图像大小那一档给的最小宽度：列数与格宽都从它算起。</summary>
+    /// <summary>图像大小那一档给的目标宽度；窄窗可以略小，避免少排一列后封面骤大。</summary>
     private int MinimumCardWidth => LibraryCardMetrics.Width(View, CardSize, Section, IndexKind);
-
-    /// <summary>
-    /// 版面的 <c>MinItemWidth</c>。**是档位宽，不是 <see cref="CardBuildWidth"/>**：格宽是摊出来的，拿它当最小宽，
-    /// n 列加 n 条缝就比可用宽多出一条缝，版面只肯排 n-1 列（见 <see cref="LibraryCardMetrics.Fit"/>）。
-    /// </summary>
-    internal int CardMinWidth => MinimumCardWidth;
 
     /// <summary>
     /// 这张卡是不是 16:9 的宽卡（<see cref="CardItem"/> 拿它挑图、也拿它算高）。
@@ -1169,45 +1156,40 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 页面量到了这一面墙的可用宽度（窗口被拖动，或者这一页刚上屏）：列数、格宽、行高按它重算。
-    /// **只算账，不重造卡片** —— 拖窗口时每帧都会走到这里，而重造卡片要按新宽度重新解码（一趟一趟地取图），
-    /// 那一半交给窗口停下来之后的 <see cref="RebuildGrid"/>。
-    /// <para>
-    /// 格宽真变了才会喊一声：窗口挪几个像素时列数通常不变、格宽也不变，喊了也是白排一遍。
-    /// </para>
+    /// 同一轮更新卡片几何与网格尺寸，保留集合、卡片及旧图。只把新尺寸图片的读取交给停拖防抖。
     /// </summary>
-    /// <returns>格宽变了没有 —— 变了页面才要逼版面重排一次（见 <c>LibraryPage.RelayoutWall</c>）。</returns>
+    /// <returns>列数或格宽是否变化。</returns>
     internal bool ResizeGrid(double width)
     {
         if (!(width > 0) || !double.IsFinite(width)) return false;
         if (Math.Abs(width - _gridWidth) < 0.5) return false;
 
-        var before = CardBuildWidth;
+        var before = GridFit;
         _gridWidth = width;
-        if (CardBuildWidth == before) return false;
+        var next = GridFit;
+        if (next == before) return false;
 
-        // 它一变，RowHeight 与 CellWidth 跟着喊（见属性上的两个 NotifyPropertyChangedFor），
-        // 版面的 MinItemWidth / MinItemHeight 当场换成新的。
-        CardWidth = CardBuildWidth;
+        if (IsCardWall)
+            foreach (var card in Cards) card.Resize(next.Cell, refreshImage: false);
+        CardWidth = next.Cell;
+        OnPropertyChanged(nameof(CardMinWidth));
+        OnPropertyChanged(nameof(GridColumns));
         UpdateSearchGroupMetrics();
         return true;
     }
 
     /// <summary>
-    /// 窗口停下来之后按当前格宽重画这一面墙的卡片：宽度变了，取图尺寸、解码宽度和画出来的宽度一起换
-    /// （见 <see cref="CardItem.Resize"/>）。为旧宽度解出来的图放到新格子里就是一张糊图，这条账在
-    /// <see cref="ApplyDisplay"/> 上已经记过一遍，窗口拖宽是同一件事。
-    /// <para>
-    /// **原地改，不换卡片对象、也不清空列表**：卡片对象活在清单里，删除、继续观看那一格和探针都攥着它们；
-    /// 换掉对象等于把那些引用全作废，清空重填还会让滚到一半的一面墙跳回顶上。
-    /// </para>
+    /// 停拖后只刷新当前仍有容器持有的图片；旧图保留到新图成功。几何已由 ResizeGrid 同步更新。
     /// </summary>
     internal void RebuildGrid()
     {
         if (_images is null || Cards.Count == 0 || !IsCardWall) return;
 
-        var width = CardBuildWidth;
-        foreach (var card in Cards) card.Resize(width);
+        foreach (var card in Cards)
+        {
+            card.Resize(CardBuildWidth, refreshImage: false);
+            card.RefreshPosterSize();
+        }
     }
 
     internal void ResizeUpcoming(double width)
@@ -3444,6 +3426,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(RowHeight));
         OnPropertyChanged(nameof(CellWidth));
         OnPropertyChanged(nameof(CardMinWidth));
+        OnPropertyChanged(nameof(GridColumns));
         OnPropertyChanged(nameof(CardBuildWidth));
         OnPropertyChanged(nameof(CardImageTypes));
         UpdateSearchGroupMetrics();

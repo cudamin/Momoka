@@ -14,6 +14,58 @@ internal static class LibraryDeepReturnTests
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         var shell = new ShellFixture(shellPath, root);
+        Case("媒体库缩放：四后端卡片与行高同轮更新，跨列保留集合、卡片和选择", () =>
+        {
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
+            {
+                using var fixture = new Fixture(shell, 40, firstKind: kind);
+                var vm = fixture.CreateLibraryView();
+                try
+                {
+                    // 验证正式Attach后的几何链，不借只支持Emby分页的匿名HTTP响应模拟其它后端。
+                    var collection = (IList)shell.Get<object>(vm, "Cards");
+                    for (var index = 0; index < 12; index++)
+                        collection.Add(shell.Invoke(vm, "NewCard", fixture.Source("a").Bind(Movie(index)))!);
+                    var cards = Cards(vm).ToArray();
+                    Assert.Equal(12, cards.Length, kind + " 正式VM必须接入测试卡片");
+                    shell.Set(cards[0], "IsSelecting", true);
+                    var changes = new HashSet<string>();
+                    System.ComponentModel.PropertyChangedEventHandler changed = (_, args) => changes.Add(args.PropertyName ?? string.Empty);
+                    ((System.ComponentModel.INotifyPropertyChanged)vm).PropertyChanged += changed;
+                    foreach (var width in new[] { 734d, 730d, 633d, 635d, 1198d, 734d })
+                    {
+                        changes.Clear();
+                        shell.Invoke(vm, "ResizeGrid", width);
+                        var cardWidth = shell.Get<int>(vm, "CardWidth");
+                        Assert.Equal((double)cardWidth, shell.Get<double>(vm, "CellWidth"), kind + " 卡片和网格宽度必须同源");
+                        Assert.True(Cards(vm).All(card => shell.Get<double>(card, "CardWidth") == cardWidth),
+                            kind + " 拖动期间卡片不能等防抖才变宽");
+                        Assert.Equal(LibraryCardMetrics.Height(LibraryView.Poster, cardWidth)
+                            + Momoka.Infrastructure.CardSize.Chrome, shell.Get<double>(vm, "RowHeight"), kind + " 行高必须跟随卡片宽度");
+                        Assert.True(changes.Contains("GridColumns"), kind + " 原生布局必须收到列数通知");
+                        shell.Invoke(vm, "RebuildGrid");
+                        Assert.True(ReferenceEquals(collection, shell.Get<object>(vm, "Cards")), kind + " 绑定集合必须保留实例");
+                        Assert.True(Cards(vm).SequenceEqual(cards), kind + " 缩放不能重建卡片");
+                        Assert.True(shell.Get<bool>(cards[0], "IsSelecting"), kind + " 缩放不能清除选择状态");
+                    }
+                }
+                finally { ((IDisposable)vm).Dispose(); }
+            }
+            return Task.CompletedTask;
+        });
+        TestHarness.Test("媒体库缩放：原生布局不再二次Fill扩宽，列数与尺寸共用VM", () =>
+        {
+            var xaml = System.Xml.Linq.XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/LibraryPage.xaml"));
+            var layout = xaml.Descendants().Single(node => node.Name.LocalName == "UniformGridLayout"
+                && node.Attributes().Any(attribute => attribute.Name.LocalName == "Name" && attribute.Value == "CardLayout"));
+            Assert.Equal("None", layout.Attribute("ItemsStretch")!.Value);
+            Assert.Equal("{x:Bind ViewModel.GridColumns, Mode=OneWay}", layout.Attribute("MaximumRowsOrColumns")!.Value);
+            Assert.Equal("{x:Bind ViewModel.CellWidth, Mode=OneWay}", layout.Attribute("MinItemWidth")!.Value);
+            Assert.Equal("{x:Bind ViewModel.RowHeight, Mode=OneWay}", layout.Attribute("MinItemHeight")!.Value);
+            var page = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
+            Assert.False(page.Contains("UniformGridLayoutItemsStretch.Fill", StringComparison.Ordinal),
+                "ApplyView 不能覆盖静态None配置");
+        });
         Case("深返回：2000 项库在 1500 附近只恢复有限窗口且首个核对不读前缀", async () =>
         {
             using var fixture = Movies(shell);
@@ -23,8 +75,9 @@ internal static class LibraryDeepReturnTests
             try
             {
                 await Load(first, true);
-                for (var page = 1; page < 80; page++) await Load(first, false);
-                Assert.Equal(1600, Cards(first).Count);
+                var pages = (1600 + LibraryBrowse.ChunkSize - 1) / LibraryBrowse.ChunkSize;
+                for (var page = 1; page < pages; page++) await Load(first, false);
+                Assert.Equal(pages * LibraryBrowse.ChunkSize, Cards(first).Count, "按当前分页大小读到1600附近，保留1500锚点前后内容");
                 Assert.Equal(1, store.LibraryKeys.Count, "深读后必须保留有限快照，不能因历史超过 400 清掉整个缓存");
                 shell.Invoke(first, "CaptureAnchor", 1500, -19d, 6);
                 request = Request(first);
@@ -66,7 +119,9 @@ internal static class LibraryDeepReturnTests
                 var before = fixture.Transport.LibraryReads.Count;
                 await (Task)shell.Invoke(vm, "LoadPreviousAsync")!;
                 var inserted = start - shell.Get<int>(vm, "WindowStart");
-                Assert.True(inserted > 0 && inserted % columns == 0, "前插必须按当前列数补整行");
+                Assert.True(inserted > 0 && (start - inserted) % columns == 0, "换列数后先补齐余数，使新起点按当前列数对齐");
+                if (start % columns == 0)
+                    Assert.Equal(0, inserted % columns, "原起点已对齐时前插必须是当前列数的整行");
                 Assert.Equal(start - inserted, fixture.Transport.LibraryReads.ToArray()[before].Start);
                 Assert.True(ReferenceEquals(collection, shell.Get<object>(vm, "Cards")));
                 Assert.True(Cards(vm).Skip(inserted).Take(retained.Length).SequenceEqual(retained));

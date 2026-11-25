@@ -231,7 +231,7 @@ internal static class CardImageResizeTests
             Assert.True(ReferenceEquals(cached, fixture.Card.Poster));
         });
 
-        Case("R-012：已有图片换宽仍更新，旧解码不当作新宽度图片", async () =>
+        Case("R-012：已有图片换宽保持显示，新尺寸成功后原地替换", async () =>
         {
             await using var fixture = new CardImageFixture();
             var initial = fixture.Begin();
@@ -239,14 +239,210 @@ internal static class CardImageResizeTests
             await initial;
             await PosterAsync(fixture, 170, "initial-poster");
             var previous = fixture.Card.Poster;
+            var sawEmpty = false;
+            fixture.Card.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(fixture.Card.Poster) && fixture.Card.Poster is null) sawEmpty = true;
+            };
 
             fixture.Card.Resize(250);
-            Assert.Null(fixture.Card.Poster, "保留现有换宽时释放旧尺寸画面的行为");
+            Assert.True(ReferenceEquals(previous, fixture.Card.Poster), "换宽等图期间不能清空已显示封面");
+            Assert.Equal(250d, fixture.Card.CardWidth);
+            Assert.Equal(375d, fixture.Card.PosterHeight);
+            Assert.False(fixture.Card.ImagePending, "已有画面时不闪等待占位");
             await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "resized-poster");
             await PosterAsync(fixture, 250, "resized-poster");
+            Assert.False(sawEmpty, "整次换宽不能发出空封面通知");
             Assert.False(ReferenceEquals(previous, fixture.Card.Poster));
             Assert.True(PosterCache.TryGet(fixture.Key(170), out var oldCached));
             Assert.True(ReferenceEquals(previous, oldCached));
+        });
+
+        Case("封面自适应：连续几何变化保留旧图，停下只取最终尺寸", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var previous = await ReadyPosterAsync(fixture);
+            foreach (var width in new[] { 180, 200, 230, 250 })
+            {
+                fixture.Card.Resize(width, refreshImage: false);
+                Assert.Equal((double)width, fixture.Card.CardWidth);
+                Assert.True(ReferenceEquals(previous, fixture.Card.Poster));
+                Assert.Null(fixture.LoadingToken);
+            }
+            Assert.Equal(1, fixture.Handler.Count, "拖动几何更新不能逐帧取图");
+            fixture.Card.RefreshPosterSize();
+            var final = await fixture.Handler.AtAsync(1);
+            Assert.Equal(560, final.Width);
+            fixture.Card.RefreshPosterSize();
+            Assert.Equal(2, fixture.Handler.Count, "防抖补图和重复通知共用当前请求");
+            await fixture.DeliverAsync(final, "settled-size");
+            await PosterAsync(fixture, 250, "settled-size");
+            fixture.Card.RefreshPosterSize();
+            Assert.Equal(2, fixture.Handler.Count, "目标尺寸已到后不重复取图");
+        });
+
+        Case("封面自适应：首图在途时几何更新取消旧代次，落定后才重取", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var initial = fixture.Begin();
+            var old = await fixture.Handler.AtAsync(0);
+            var token = fixture.LoadingToken!.Value;
+            fixture.Card.Resize(250, refreshImage: false);
+            Assert.True(token.IsCancellationRequested);
+            Assert.Null(fixture.LoadingToken);
+            Assert.Equal(1, fixture.Handler.Count);
+            await fixture.DeliverAsync(old, "obsolete-first");
+            await initial;
+            Assert.Null(fixture.Card.Poster);
+            Assert.Equal(0, PosterLoader.Calls.Count);
+            fixture.Card.RefreshPosterSize();
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "settled-first");
+            await PosterAsync(fixture, 250, "settled-first");
+        });
+
+        Case("封面自适应：已有图容器重复Ensure不能绕过停拖防抖", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var previous = await ReadyPosterAsync(fixture);
+            fixture.Card.Resize(250, refreshImage: false);
+            await fixture.Ensure();
+            fixture.Card.Resize(330, refreshImage: false);
+            await fixture.Ensure();
+            Assert.True(ReferenceEquals(previous, fixture.Card.Poster));
+            Assert.Equal(1, fixture.Handler.Count, "Loaded或容器重新赋卡不能提前补旧封面的清晰度");
+            Assert.Null(fixture.LoadingToken);
+            fixture.Card.RefreshPosterSize();
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "after-container-reentry");
+            await PosterAsync(fixture, 330, "after-container-reentry");
+        });
+
+        Case("封面自适应：首张没有图片时新容器Ensure仍可立即加载", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            fixture.Card.Resize(250, refreshImage: false);
+            var loaded = fixture.Begin();
+            var request = await fixture.Handler.AtAsync(0);
+            Assert.Equal(560, request.Width);
+            await fixture.DeliverAsync(request, "first-visible-without-delay");
+            await loaded;
+            await PosterAsync(fixture, 250, "first-visible-without-delay");
+        });
+
+        Case("封面自适应：新尺寸解码失败保留旧图并遵守失败冷却", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var previous = await ReadyPosterAsync(fixture);
+            PosterLoader.ErrorFor = _ => new IOException("synthetic replacement decode failure");
+            fixture.Card.Resize(250);
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "failed-replacement");
+            await CardImageFixture.UntilAsync(() => fixture.LoadingToken is null, "replacement failure did not settle");
+            Assert.True(ReferenceEquals(previous, fixture.Card.Poster));
+            Assert.False(fixture.Card.ImagePending);
+            Assert.False(PosterCache.TryGet(fixture.Key(250), out _));
+            fixture.Card.RefreshPosterSize();
+            Assert.Equal(2, fixture.Handler.Count, "失败冷却不能因旧图存在而失效");
+        });
+
+        Case("封面自适应：新尺寸明确缺图仍保留旧图，不反复请求缺图", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var previous = await ReadyPosterAsync(fixture);
+            fixture.Card.Resize(250);
+            (await fixture.Handler.AtAsync(1)).Missing();
+            await CardImageFixture.UntilAsync(() => fixture.LoadingToken is null, "missing replacement did not settle");
+            Assert.True(ReferenceEquals(previous, fixture.Card.Poster));
+            fixture.Card.RefreshPosterSize();
+            Assert.Equal(2, fixture.Handler.Count);
+        });
+
+        Case("封面自适应：保留旧图不阻止目标尺寸热缓存同步替换", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            await ReadyPosterAsync(fixture);
+            var cached = new BitmapImage { DecodePixelWidth = 250, FixtureImage = "cached replacement" };
+            PosterCache.Remember(fixture.Key(250), cached);
+            fixture.Card.Resize(250, refreshImage: false);
+            fixture.Card.RefreshPosterSize();
+            Assert.True(ReferenceEquals(cached, fixture.Card.Poster));
+            Assert.Null(fixture.LoadingToken);
+            Assert.Equal(1, fixture.Handler.Count);
+        });
+
+        Case("封面自适应：高清补图再次被拖动取消，旧图持续到最终成功", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var previous = await ReadyPosterAsync(fixture);
+            PosterLoader.Hold = true;
+            fixture.Card.Resize(250);
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "middle-decode");
+            await CardImageFixture.UntilAsync(() => PosterLoader.Calls.Count == 2, "middle decode not started");
+            fixture.Card.Resize(330, refreshImage: false);
+            PosterLoader.Calls[1].Complete();
+            await CardImageFixture.UntilAsync(() => fixture.DownloadRunning == 0, "obsolete replacement did not leave");
+            Assert.True(ReferenceEquals(previous, fixture.Card.Poster));
+            Assert.False(PosterCache.TryGet(fixture.Key(250), out _));
+            fixture.Card.RefreshPosterSize();
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(2), "final-decode");
+            await CardImageFixture.UntilAsync(() => PosterLoader.Calls.Count == 3, "final decode not started");
+            PosterLoader.Calls[2].Complete();
+            await PosterAsync(fixture, 330, "final-decode");
+        });
+
+        Case("封面自适应：拖宽再回原宽复用原图，不把显示宽度当解码宽度", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var previous = await ReadyPosterAsync(fixture);
+            fixture.Card.Resize(250, refreshImage: false);
+            fixture.Card.Resize(170, refreshImage: false);
+            fixture.Card.RefreshPosterSize();
+            Assert.True(ReferenceEquals(previous, fixture.Card.Poster));
+            Assert.Equal(1, fixture.Handler.Count);
+            Assert.Null(fixture.LoadingToken);
+        });
+
+        Case("封面自适应：保留图期间离屏立即释放，落定补图不能复活旧容器", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            await ReadyPosterAsync(fixture);
+            fixture.Card.Resize(250, refreshImage: false);
+            fixture.Card.ReleasePoster(fixture.Container, keepWaiting: false);
+            fixture.Card.RefreshPosterSize();
+            Assert.Null(fixture.Card.Poster);
+            Assert.Null(fixture.LoadingToken);
+            Assert.Equal(1, fixture.Handler.Count);
+            var reloaded = fixture.Begin();
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "new-container-size");
+            await reloaded;
+            await PosterAsync(fixture, 250, "new-container-size");
+        });
+
+        Case("封面自适应：目录拼图逐格保留，失败格留旧图并释放离屏画面", async () =>
+        {
+            await using var fixture = new CardImageFixture(artwork: false);
+            fixture.Item.Type = Momoka.Emby.EmbyItemType.Folder;
+            fixture.Item.PosterPaths = ["tile-a", "tile-b"];
+            var initial = fixture.Begin();
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(0), "old-a");
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(1), "old-b");
+            await initial;
+            var old0 = fixture.Card.FolderTile0;
+            var old1 = fixture.Card.FolderTile1;
+            fixture.Card.Resize(250, refreshImage: false);
+            Assert.True(ReferenceEquals(old0, fixture.Card.FolderTile0));
+            Assert.True(ReferenceEquals(old1, fixture.Card.FolderTile1));
+            fixture.Card.RefreshPosterSize();
+            await fixture.DeliverAsync(await fixture.Handler.AtAsync(2), "new-a");
+            var second = await fixture.Handler.AtAsync(3);
+            Assert.Equal(250, fixture.Card.FolderTile0!.DecodePixelWidth);
+            Assert.Equal("new-a", fixture.Card.FolderTile0.FixtureImage);
+            Assert.True(ReferenceEquals(old1, fixture.Card.FolderTile1));
+            PosterLoader.ErrorFor = _ => new IOException("synthetic tile failure");
+            await fixture.DeliverAsync(second, "failed-b");
+            await CardImageFixture.UntilAsync(() => fixture.LoadingToken is null, "tile replacement failure did not settle");
+            Assert.True(ReferenceEquals(old1, fixture.Card.FolderTile1));
+            fixture.Card.ReleasePoster(fixture.Container, keepWaiting: false);
+            Assert.Null(fixture.Card.FolderTile0);
+            Assert.Null(fixture.Card.FolderTile1);
         });
 
         Case("R-012：从未上屏的卡换宽不开请求，Loaded显式取图采用新宽度", async () =>
@@ -546,6 +742,15 @@ internal static class CardImageResizeTests
     private static Task PosterAsync(CardImageFixture fixture, int width, string image) =>
         CardImageFixture.UntilAsync(() => fixture.Card.Poster is { } poster
             && poster.DecodePixelWidth == width && poster.FixtureImage == image, $"Expected poster {image} decoded at {width}");
+
+    private static async Task<BitmapImage> ReadyPosterAsync(CardImageFixture fixture)
+    {
+        var initial = fixture.Begin();
+        await fixture.DeliverAsync(await fixture.Handler.AtAsync(0), "initial-poster");
+        await initial;
+        await PosterAsync(fixture, 170, "initial-poster");
+        return fixture.Card.Poster!;
+    }
 
     private static void Case(string name, Func<Task> run) => Test(name, () => CardImageContext.Run(run));
 }

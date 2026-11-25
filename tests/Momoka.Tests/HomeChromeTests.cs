@@ -21,8 +21,8 @@ internal static class HomeChromeTests
         {
             var page = HomePage();
             var zone = Named(page, "BannerZone");
-            Assert.Equal("36,20,13,0", zone.Attribute("Margin")?.Value,
-                "轮播大图的四边留白变了（左 36 脊线、上 20、右 13 滚动条车道）");
+            Assert.Equal("36,20,20,0", zone.Attribute("Margin")?.Value,
+                "轮播大图的四边留白变了（左 36 脊线、上 20、右 20 滚动条车道）");
 
             // 圆角剪裁层只负责裁孩子，不再铺底：2026-11-13 用户令「删除轮播图外面那一圈卡片」。
             var card = Named(page, "BannerCard");

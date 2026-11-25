@@ -629,16 +629,16 @@ internal static class Program
             var slides = page.ViewModel.Slides;
             page.Ui.EnableImmersive = false;
             page.ApplyCarousel();
-            Equal(new Thickness(36, 20, 13, 0), page.BannerZone.Margin, "store insets");
+            Equal(new Thickness(36, 20, 20, 0), page.BannerZone.Margin, "store insets");
             Equal(36d, page.Overlay.Padding.Left, "store shelf left inset");
-            Equal(13d, page.Overlay.Padding.Right, "store shelf right inset");
+            Equal(20d, page.Overlay.Padding.Right, "store shelf right inset");
             page.ActualWidth = 2560;
             page.ApplyCarousel();
             Equal(new Thickness(350, 20, 350, 0), page.BannerZone.Margin, "store caps the carousel at 1860");
             Equal(new Thickness(350, 0, 350, 0), page.Overlay.Padding, "store caps the shelves at 1860");
             page.ActualWidth = 1422;
             page.ApplyCarousel();
-            Equal(new Thickness(36, 20, 13, 0), page.BannerZone.Margin, "narrow store keeps the spine");
+            Equal(new Thickness(36, 20, 20, 0), page.BannerZone.Margin, "narrow store keeps the spine");
             Equal(new CornerRadius(16), page.BannerCard.CornerRadius, "store corners");
             Equal(0d, page.Scroller.Margin.Top, "store leaves caption room");
             Equal(24d, page.LibraryOverlay.Margin.Left, "store overlay inset");
@@ -647,7 +647,7 @@ internal static class Program
             page.NotifyAppearance(page.Ui);
             Equal(new Thickness(0), page.BannerZone.Margin, "immersive spans width");
             Equal(36d, page.Overlay.Padding.Left, "immersive shelves keep their left inset");
-            Equal(13d, page.Overlay.Padding.Right, "immersive shelves keep their right inset");
+            Equal(20d, page.Overlay.Padding.Right, "immersive shelves keep their right inset");
             Equal(new CornerRadius(0), page.BannerCard.CornerRadius, "immersive square corners");
             Equal(-48d, page.Scroller.Margin.Top, "immersive extends through caption");
             Equal(36d, page.LibraryOverlay.Margin.Left, "immersive overlay follows shelf spine");

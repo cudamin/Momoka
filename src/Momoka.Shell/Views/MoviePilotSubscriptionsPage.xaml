@@ -19,7 +19,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     Background="Transparent">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceXL}">
+        <StackPanel Padding="32,28,20,28" Spacing="{StaticResource EgSpaceXL}">
             <TextBlock x:Name="PageTitle" Style="{StaticResource EgPageTitleStyle}" />
             <!-- 读取中那一档：整排还没立起来、服务器也还没回话时，屏上是一颗转圈加一句「正在读取订阅…」。
                  IsActive 跟着 Loading 走而不是钉在 True 上 —— 转圈是合成器动画，祖先收起它也不会停（同

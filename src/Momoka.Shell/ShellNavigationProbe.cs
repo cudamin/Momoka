@@ -562,6 +562,18 @@ internal sealed partial class ShellNavigationProbe
         }
         finally { _window.TopMost = topMost; }
     }
+    // Only this scroll owner's template. Nested shelves have their own hidden vertical bars.
+    private static IEnumerable<DependencyObject> OwnedScrollBarParts(DependencyObject root)
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            yield return child;
+            if (child is ScrollView or ScrollViewer) continue;
+            foreach (var part in OwnedScrollBarParts(child)) yield return part;
+        }
+    }
+
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
     {
         yield return root;

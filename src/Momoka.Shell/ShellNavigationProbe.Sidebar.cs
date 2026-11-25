@@ -199,12 +199,11 @@ internal sealed partial class ShellNavigationProbe
 
             void AssertCarouselScrollBar()
             {
-                var banner = Get<HomeBanner>(home, "Banner");
-                var scrollBar = Get<Microsoft.UI.Xaml.Controls.Primitives.ScrollBar>(home, "_verticalScrollBar");
-                var expected = banner.Visibility == Visibility.Visible
-                    ? (fixture.Settings.Ui.EnableImmersive ? 0 : 20) + banner.ActualHeight : 0;
-                Require(scrollBar is not null && Math.Abs(scrollBar.Margin.Top - expected) < 1,
-                    $"轮播滚动条没有固定在下沿：实际 {scrollBar?.Margin.Top:0.0}、预期 {expected:0.0}");
+                var scroller = Get<ScrollView>(home, "Scroller");
+                var scrollBar = OwnedScrollBarParts(scroller).OfType<Microsoft.UI.Xaml.Controls.Primitives.ScrollBar>()
+                    .SingleOrDefault(bar => bar.Name == "PART_VerticalScrollBar");
+                HomeHeaderChromeProbeReadings.ScrollBar(scrollBar is not null,
+                    scrollBar?.Margin.Top ?? double.NaN, scrollBar?.Margin.Right ?? double.NaN);
             }
 
             // 2026-11-14 用户令：点标题框，框用关联动画移进内容区；搜索页开着时标题框收起，离开再出现。

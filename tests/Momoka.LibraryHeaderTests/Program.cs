@@ -136,6 +136,7 @@ internal static class Program
             page.Apply(search: true);
             Assert.Equal(40d, page.PageRoot.Margin.Top);
             Assert.Equal(8d, page.EmbyContent.Margin.Top);
+            Assert.Equal(-page.PageRoot.Margin.Right, page.EmbyContent.Margin.Right);
             Assert.Equal(Visibility.Collapsed, page.LibraryTitle.Visibility);
             Assert.Equal(900d, page.SearchSurface.Width);
             // 五个来源平分这一条；上限从四个时的 480 提到 600，单格宽度不变。
