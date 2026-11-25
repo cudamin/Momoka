@@ -5,14 +5,16 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
+using Momoka.AniBt;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 
-internal sealed record MoviePilotCalendarRequest(MoviePilotService Service, MoviePilotSettings Settings);
+internal sealed record MoviePilotCalendarRequest(MoviePilotService? Service, MoviePilotSettings Settings, AniBtClient AniBt);
 
 public sealed partial class MoviePilotCalendarPage : Page, IShellContent
 {
@@ -23,7 +25,8 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
     private readonly Dictionary<string, Task<BitmapImage?>> _images = new(StringComparer.Ordinal);
     private CancellationTokenSource? _imagesLifetime;
     private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
-    private IReadOnlyList<MoviePilotCalendarEntry>? _renderedEntries;
+    private IReadOnlyList<CalendarCard>? _renderedEntries;
+    private CalendarSource _renderedSource;
     private int _renderedType;
     private DateOnly _renderedMonth;
     private int _toolbarMode = -1;
@@ -49,7 +52,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
         _request = request;
         Tag = Destination;
         ViewModel.Changed += OnChanged;
-        ViewModel.Attach(request.Service, request.Settings);
+        ViewModel.Attach(request.Service, request.Settings, request.AniBt);
         OnChanged();
     }
 
@@ -74,26 +77,40 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
         MonthTitle.Text = ViewModel.Month.ToString("yyyy年M月", CultureInfo.InvariantCulture);
         var entries = ViewModel.Entries;
         var count = entries.Count(entry => entry.Date.Month == ViewModel.Month.Month && entry.Date.Year == ViewModel.Month.Year);
-        MonthSummary.Text = ViewModel.Busy ? "正在读取日历…" : ViewModel.NoticeOpen ? "读取未完成，请点击刷新重试。"
-            : count == 0 ? "本月暂无符合条件的播出安排。" : $"本月共 {count} 项播出安排";
+        var isAniBt = ViewModel.Source == CalendarSource.AniBt;
+        MonthSummary.Text = ViewModel.Busy ? UiText.Translate("正在读取日历…")
+            : ViewModel.NoticeOpen ? ""
+            : count == 0 ? UiText.Translate("本月暂无符合条件的播出安排。") : UiText.Format("本月共 {0} 项播出安排", count);
+        MonthSummary.Visibility = MonthSummary.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        MoviePilotCalendarSource.Visibility = ViewModel.MoviePilotAvailable ? Visibility.Visible : Visibility.Collapsed;
+        AniBtCalendarSource.Visibility = ViewModel.AniBtAvailable ? Visibility.Visible : Visibility.Collapsed;
+        CalendarSources.Visibility = ViewModel.MoviePilotAvailable || ViewModel.AniBtAvailable ? Visibility.Visible : Visibility.Collapsed;
+        SetSelected(MoviePilotCalendarSource, !isAniBt);
+        SetSelected(AniBtCalendarSource, isAniBt);
+        SeriesMedia.Content = UiText.Translate(isAniBt ? "番剧" : "电视剧");
         var filters = new[] { AllMedia, MovieMedia, SeriesMedia };
         for (var index = 0; index < filters.Length; index++)
-        {
-            filters[index].Style = (Style)Application.Current.Resources[index == ViewModel.MediaType ? "EgPrimaryButtonStyle" : "EgSecondaryButtonStyle"];
-            AutomationProperties.SetName(filters[index], filters[index].Content + (index == ViewModel.MediaType ? "，已选中" : ""));
-        }
+            SetSelected(filters[index], index == ViewModel.MediaType);
         if (ViewModel.Busy || _imagesLifetime is null)
         {
             ReleaseImages();
             _imagesLifetime = new CancellationTokenSource();
-            _fetchImage = _request?.Service.CaptureImageFetcher();
+            if (_request is { } request)
+                _fetchImage = isAniBt ? request.AniBt.CalendarCoverAsync : request.Service?.CaptureImageFetcher();
         }
-        if (ReferenceEquals(_renderedEntries, entries) && _renderedMonth == ViewModel.Month) return;
-        if (_renderedMonth != ViewModel.Month || _renderedType != ViewModel.MediaType) _expandedDays.Clear();
+        if (ReferenceEquals(_renderedEntries, entries) && _renderedMonth == ViewModel.Month && _renderedSource == ViewModel.Source) return;
+        if (_renderedMonth != ViewModel.Month || _renderedType != ViewModel.MediaType || _renderedSource != ViewModel.Source) _expandedDays.Clear();
         RenderMonth(entries);
         _renderedEntries = entries;
         _renderedMonth = ViewModel.Month;
         _renderedType = ViewModel.MediaType;
+        _renderedSource = ViewModel.Source;
+    }
+
+    private static void SetSelected(Button button, bool selected)
+    {
+        button.Style = (Style)Application.Current.Resources[selected ? "EgPrimaryButtonStyle" : "EgSecondaryButtonStyle"];
+        AutomationProperties.SetName(button, selected ? UiText.Format("{0}，已选中", button.Content) : button.Content?.ToString());
     }
 
     private void ClearMonth()
@@ -115,7 +132,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
         _fetchImage = null;
     }
 
-    private void RenderMonth(IReadOnlyList<MoviePilotCalendarEntry> entries)
+    private void RenderMonth(IReadOnlyList<CalendarCard> entries)
     {
         // MoviePilot-Frontend e6a30ad4: FullCalendarView.vue, 6-week month, Monday first,
         // five cards per day, inline expansion. MIT, Copyright (c) 2023 jxxghp.
@@ -170,7 +187,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
         }
     }
 
-    private void ExpandDay(DateOnly day, StackPanel panel, Button more, IReadOnlyList<MoviePilotCalendarEntry> entries, int visible)
+    private void ExpandDay(DateOnly day, StackPanel panel, Button more, IReadOnlyList<CalendarCard> entries, int visible)
     {
         if (!_expandedDays.Add(day)) return;
         var revision = _calendarRevision;
@@ -194,10 +211,12 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
         });
     }
 
-    private MoviePilotCalendarEventCard EventCard(MoviePilotCalendarEntry entry)
+    private MoviePilotCalendarEventCard EventCard(CalendarCard entry)
     {
         var card = new MoviePilotCalendarEventCard();
-        card.Attach(entry, LoadImageAsync, _imagesLifetime?.Token ?? new CancellationToken(canceled: true));
+        var token = _imagesLifetime?.Token ?? new CancellationToken(canceled: true);
+        if (entry.Subscription is { } subscription) card.Attach(subscription, LoadImageAsync, token);
+        else if (entry.Anime is { } anime) card.Attach(anime, LoadImageAsync, token);
         _cards.Add(card);
         return card;
     }
@@ -267,6 +286,8 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
     private void OnNextMonth(object sender, RoutedEventArgs e) => ViewModel.MoveMonth(1);
     private void OnToday(object sender, RoutedEventArgs e) => ViewModel.Today();
     private void OnRefresh(object sender, RoutedEventArgs e) => _ = ViewModel.ReloadAsync();
+    private void OnMoviePilotSource(object sender, RoutedEventArgs e) => ViewModel.SelectSource(CalendarSource.MoviePilot);
+    private void OnAniBtSource(object sender, RoutedEventArgs e) => ViewModel.SelectSource(CalendarSource.AniBt);
     private void OnMediaTypeChanged(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: string tag } && int.TryParse(tag, out var type)) ViewModel.MediaType = type;

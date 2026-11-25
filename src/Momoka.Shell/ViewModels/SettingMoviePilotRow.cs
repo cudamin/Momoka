@@ -70,14 +70,11 @@ public sealed partial class SettingMoviePilotRow : SettingRow
     public partial bool Testing { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AniBtVisibility))]
     public partial bool Enabled { get; set; }
 
-    /// <summary>AniBT 入口是否显示；只在 MoviePilot 启用时可改，关闭 MoviePilot 时整段收起。</summary>
+    /// <summary>AniBT 功能是否启用，包括独立于 MoviePilot 的番剧日历。</summary>
     [ObservableProperty]
     public partial bool AniBtEnabled { get; set; }
-
-    public Visibility AniBtVisibility => Enabled ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// The protocol picker, as the index the ComboBox binds its <c>SelectedIndex</c> to: 0 = http, 1 = https.

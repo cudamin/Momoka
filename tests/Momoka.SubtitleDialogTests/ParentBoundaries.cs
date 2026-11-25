@@ -112,6 +112,9 @@ internal sealed partial class DetailViewModel : PageViewModel
     // its terminal boundary has no requests or presentation state to cancel.
     internal int TrailerResets { get; private set; }
     private void ResetTrailers() => TrailerResets++;
+    private void ResetBangumiRating() { }
+    private void UpdateBangumiRatingSubject(EmbyItem item) { }
+    private void DetachBangumiRating() { }
     private void ResetExtras() { }
     private static Task LoadExtrasAvailabilityAsync() => Task.CompletedTask;
     private sealed record FixtureSettings(AppSettings Settings);

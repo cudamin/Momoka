@@ -1860,13 +1860,11 @@ internal sealed partial class ShellNavigationProbe
             await SaveSettledFrameAsync(page, "settings-mp-anibt-on-render.png");
             var peer = new ToggleSwitchAutomationPeer(enabled);
             ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)).Toggle();
-            await UntilAsync(() => !enabled.IsOn && aniBtSection.Visibility == Visibility.Collapsed);
+            await UntilAsync(() => !enabled.IsOn);
             Require(!fixture.Settings.MoviePilot.Enabled, "关闭 MoviePilot 没有写入设置");
+            Require(aniBtSection.Visibility == Visibility.Visible, "关闭 MoviePilot 后仍需能控制 AniBT 番剧日历");
             await LayoutAsync(page);
             await SaveSettledFrameAsync(page, "settings-mp-anibt-off-render.png");
-            peer = new ToggleSwitchAutomationPeer(enabled);
-            ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)).Toggle();
-            await UntilAsync(() => enabled.IsOn && aniBtSection.Visibility == Visibility.Visible);
             ((IToggleProvider)new ToggleSwitchAutomationPeer(aniBt).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => !aniBt.IsOn && !fixture.Settings.MoviePilot.AniBtEnabled);
             Require(aniBt.IsOn == false && !fixture.Settings.MoviePilot.AniBtEnabled, "关闭 AniBT 没有写入设置");

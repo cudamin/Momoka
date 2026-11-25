@@ -2621,31 +2621,25 @@ public sealed partial class SettingsViewModel : PageViewModel
         SettingToggleRow? calendar = null;
         SettingToggleRow? calendarRefresh = null;
 
-        // 两行都是日历入口的从属项：总开关关掉两行一起收起，日历入口关掉时只留入口本身。就地增删保留仍在场的
-        // 控件与焦点，不整卡替换。
+        // 日历入口也供独立 AniBT 使用，保持可达；启动刷新目前只读取 MoviePilot，按其开关显隐。
+        // 就地增删保留仍在场的控件与焦点，不整卡替换。
         void SyncCalendarRows()
         {
             if (card is null || calendar is not { } calendarRow || calendarRefresh is not { } refreshRow) return;
             calendarRow.Reseed(moviePilot.CalendarEnabled);
             refreshRow.Reseed(moviePilot.CalendarRefreshOnStartup);
-            if (!moviePilot.Enabled)
-            {
-                card.Rows.Remove(calendarRow);
-                card.Rows.Remove(refreshRow);
-                return;
-            }
             if (!card.Rows.Contains(calendarRow)) card.Rows.Add(calendarRow);
-            if (moviePilot.CalendarEnabled)
+            if (moviePilot.Enabled && moviePilot.CalendarEnabled)
             {
                 if (!card.Rows.Contains(refreshRow)) card.Rows.Add(refreshRow);
             }
             else card.Rows.Remove(refreshRow);
         }
 
-        calendar = new SettingToggleRow("侧边栏显示日历", "连接 MoviePilot 后，在侧边栏显示日历入口。",
+        calendar = new SettingToggleRow("侧边栏显示日历", "启用 AniBT 或连上 MoviePilot 后，在侧边栏显示日历入口。",
             moviePilot.CalendarEnabled, value =>
             {
-                if (moviePilot.Enabled) moviePilot.CalendarEnabled = value;
+                moviePilot.CalendarEnabled = value;
                 SyncCalendarRows();
             }, Save);
 
@@ -2664,7 +2658,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             "MoviePilot",
             "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。"
                 + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
-                + "不是网页界面那个端口。打开后还可以决定是否显示 AniBT 入口。",
+                + "不是网页界面那个端口。",
             moviePilot.Enabled,
             moviePilot.AniBtEnabled,
             moviePilot.Url,

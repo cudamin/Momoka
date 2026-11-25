@@ -259,7 +259,7 @@ internal static class SettingsSearchTests
             fixture.List(section, "Rows").Add(Fact("旧设置项2"));
             Assert.Equal(0, Results(vm).Count());
         });
-        TestHarness.Test("MP 日历设置：实际卡片随总开关收放，搜索和保存保持同步", () =>
+        TestHarness.Test("日历设置：MoviePilot 关闭时仍可搜索、修改和保存日历及 AniBT 偏好", () =>
         {
             var settings = new SettingsPageStateTests.FakeSettings();
             var vm = fixture.NewViewModel();
@@ -269,45 +269,69 @@ internal static class SettingsSearchTests
             var rows = fixture.List(section, "Rows");
             var connection = rows[0]!;
             fixture.Set(vm, "SettingsSearchQuery", "侧边栏显示日历");
-            Assert.Equal(1, rows.Count);
-            Assert.Equal(0, Results(vm).Count());
-            Assert.Equal(0, settings.TrySaveCalls);
-
-            fixture.Set(connection, "Enabled", true);
-            Assert.Equal(3, rows.Count);
+            Assert.Equal(2, rows.Count);
             var calendar = rows[1]!;
             Assert.Equal("侧边栏显示日历", fixture.Get<string>(calendar, "Label"));
             Assert.True(fixture.Get<bool>(calendar, "IsOn"));
-            var calendarRefresh = rows[2]!;
-            Assert.Equal("启动时自动刷新日历", fixture.Get<string>(calendarRefresh, "Label"));
-            Assert.False(fixture.Get<bool>(calendarRefresh, "IsOn"));
-            Assert.Equal(1, settings.TrySaveCalls);
+            Assert.False(settings.Settings.MoviePilot.Enabled);
+            Assert.Equal(0, settings.TrySaveCalls);
             var suggestion = Results(vm).Single();
             Assert.True(ReferenceEquals(calendar, fixture.Get<object>(suggestion, "Row")));
             Assert.True((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
 
-            fixture.Set(calendarRefresh, "IsOn", true);
-            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup);
-            Assert.Equal(2, settings.TrySaveCalls);
-            Assert.Equal(3, rows.Count);
-
             fixture.Set(calendar, "IsOn", false);
             Assert.False(settings.Settings.MoviePilot.CalendarEnabled);
-            Assert.Equal(2, rows.Count, "日历入口关掉后启动刷新行跟着收起");
-            Assert.Equal(3, settings.TrySaveCalls);
-            fixture.Set(calendarRefresh, "IsOn", false);
-            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup, "已隐藏行的迟到调用不能改变偏好");
-            fixture.Set(connection, "Enabled", false);
-            Assert.Equal(1, rows.Count);
-            Assert.Equal(0, Results(vm).Count());
-            Assert.False((bool)fixture.Invoke(vm, "SelectSettingsSearchResult", suggestion)!);
-            fixture.Set(calendar, "IsOn", true);
-            Assert.False(settings.Settings.MoviePilot.CalendarEnabled, "已隐藏行的迟到调用不能改变偏好");
-
+            Assert.Equal(1, settings.TrySaveCalls);
+            fixture.Set(connection, "AniBtEnabled", false);
+            Assert.False(settings.Settings.MoviePilot.AniBtEnabled);
+            Assert.Equal(2, settings.TrySaveCalls);
             fixture.Set(connection, "Enabled", true);
+            fixture.Set(connection, "Enabled", false);
             Assert.True(ReferenceEquals(calendar, rows[1]));
             Assert.False(fixture.Get<bool>(calendar, "IsOn"));
             Assert.Equal(1, Results(vm).Count());
+        });
+        TestHarness.Test("日历启动刷新：仅 MoviePilot 可用时显示，关闭日历或服务后保留偏好并拒绝迟到修改", () =>
+        {
+            var settings = new SettingsPageStateTests.FakeSettings();
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var section = fixture.Invoke(vm, "MoviePilotCard")!;
+            fixture.List(vm, "Sections").Add(section);
+            var rows = fixture.List(section, "Rows");
+            var connection = rows[0]!;
+            var calendar = rows[1]!;
+            fixture.Set(vm, "SettingsSearchQuery", "启动时自动刷新日历");
+            Assert.Equal(0, Results(vm).Count());
+
+            fixture.Set(connection, "Enabled", true);
+            Assert.Equal(3, rows.Count);
+            var refresh = rows[2]!;
+            Assert.False(fixture.Get<bool>(refresh, "IsOn"));
+            Assert.Equal(1, Results(vm).Count());
+            fixture.Set(refresh, "IsOn", true);
+            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup);
+
+            fixture.Set(calendar, "IsOn", false);
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(0, Results(vm).Count());
+            fixture.Set(refresh, "IsOn", false);
+            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup);
+            fixture.Set(calendar, "IsOn", true);
+            Assert.True(ReferenceEquals(refresh, rows[2]));
+            Assert.True(fixture.Get<bool>(refresh, "IsOn"));
+
+            fixture.Set(connection, "Enabled", false);
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(0, Results(vm).Count());
+            fixture.Set(refresh, "IsOn", false);
+            Assert.True(settings.Settings.MoviePilot.CalendarRefreshOnStartup);
+            fixture.Set(calendar, "IsOn", false);
+            fixture.Set(calendar, "IsOn", true);
+            Assert.True(settings.Settings.MoviePilot.CalendarEnabled, "独立 AniBT 的日历开关仍可修改");
+            fixture.Set(connection, "Enabled", true);
+            Assert.True(ReferenceEquals(refresh, rows[2]));
+            Assert.True(fixture.Get<bool>(refresh, "IsOn"));
         });
         TestHarness.Test("MP 日历设置：重建卡片读取导入或恢复后的偏好", () =>
         {

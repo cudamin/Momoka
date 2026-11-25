@@ -20,8 +20,8 @@ internal static class MoviePilotCalendarWiringTests
             Assert.Contains("Destination = \"moviepilot:calendar\"", page);
             Assert.Contains("Tag = Destination;", page);
             var sidebar = Read("ShellPage.Sidebar.cs");
-            Assert.Contains("SidebarMoviePilotCalendar.Visibility = MoviePilotCalendarAvailable ? Visibility.Visible : Visibility.Collapsed", sidebar);
-            Assert.Contains("MoviePilotCalendarPage.Destination when MoviePilotCalendarAvailable => SidebarMoviePilotCalendar", sidebar);
+            Assert.Contains("SidebarMoviePilotCalendar.Visibility = CalendarAvailable ? Visibility.Visible : Visibility.Collapsed", sidebar);
+            Assert.Contains("MoviePilotCalendarPage.Destination when CalendarAvailable => SidebarMoviePilotCalendar", sidebar);
         });
 
         Test("MP 日历接线：直接导航再次核对可用性且不依赖媒体服务器登录", () =>
@@ -30,15 +30,16 @@ internal static class MoviePilotCalendarWiringTests
             var start = shell.IndexOf("if (tag == MoviePilotCalendarPage.Destination)", StringComparison.Ordinal);
             var end = shell.IndexOf("return;", start, StringComparison.Ordinal);
             Assert.True(start >= 0 && end > start);
-            Assert.Contains("if (!MoviePilotCalendarAvailable) return;", shell[start..(end + 7)]);
+            Assert.Contains("if (!CalendarAvailable) return;", shell[start..(end + 7)]);
             var block = shell[start..shell.IndexOf("// MoviePilot 的两条订阅入口", start, StringComparison.Ordinal)];
             Assert.Contains("Open(typeof(MoviePilotCalendarPage)", block);
             Assert.DoesNotContain("_session", block);
             var moviePilot = Read("ShellPage.MoviePilot.cs");
-            var availability = moviePilot[moviePilot.IndexOf("private bool MoviePilotCalendarAvailable", StringComparison.Ordinal)..];
+            var availability = moviePilot[moviePilot.IndexOf("private bool CalendarAvailable", StringComparison.Ordinal)..];
             availability = availability[..availability.IndexOf(';')];
-            Assert.Contains("Available == true", availability);
-            Assert.Contains("CalendarEnabled", availability);
+            Assert.Contains("HasMoviePilot(_moviePilotService, Settings.MoviePilot)", availability);
+            Assert.Contains("|| MoviePilotCalendarViewModel.HasAniBt(Settings.MoviePilot)", availability);
+            Assert.Contains("GetRequiredService<Momoka.AniBt.AniBtClient>()", block);
         });
 
         Test("MP 日历接线：设置关闭当场退页并清理双向历史", () =>
@@ -49,7 +50,8 @@ internal static class MoviePilotCalendarWiringTests
             var start = source.IndexOf("private void OnMoviePilotCalendarChanged", StringComparison.Ordinal);
             var handler = source[start..source.IndexOf("private void OnMoviePilotAvailabilityChanged", start, StringComparison.Ordinal)];
             Assert.Contains("SyncSidebar();", handler);
-            Assert.Contains("!MoviePilotCalendarAvailable && ContentFrame.Content is MoviePilotCalendarPage", handler);
+            Assert.Contains("ContentFrame.Content is MoviePilotCalendarPage calendar", handler);
+            Assert.Contains("if (CalendarAvailable) calendar.ViewModel.RefreshSources()", handler);
             Assert.Contains("GoTo(\"home\")", handler);
             Assert.Contains("PruneMoviePilotHistory();", handler);
             Assert.Contains("SyncChrome();", handler);
@@ -83,7 +85,7 @@ internal static class MoviePilotCalendarWiringTests
             attach = attach[..attach.IndexOf("protected override void OnNavigatedFrom", StringComparison.Ordinal)];
             Assert.True(attach.IndexOf("Release();", StringComparison.Ordinal) < attach.IndexOf("_request = request", StringComparison.Ordinal));
             Assert.Contains("ViewModel.Changed += OnChanged", attach);
-            Assert.Contains("ViewModel.Attach(request.Service, request.Settings)", attach);
+            Assert.Contains("ViewModel.Attach(request.Service, request.Settings, request.AniBt)", attach);
             var leave = page[page.IndexOf("protected override void OnNavigatedFrom", StringComparison.Ordinal)..];
             leave = leave[..leave.IndexOf("private void OnChanged", StringComparison.Ordinal)];
             Assert.Contains("Release();", leave);
@@ -147,7 +149,7 @@ internal static class MoviePilotCalendarWiringTests
             Assert.DoesNotContain("ReloadAsync(", expand);
             Assert.DoesNotContain("SelectDate(", page);
             var changed = Between(page, "private void OnChanged()", "private void ClearMonth()");
-            Assert.Contains("_renderedMonth != ViewModel.Month || _renderedType != ViewModel.MediaType) _expandedDays.Clear()", changed);
+            Assert.Contains("_renderedMonth != ViewModel.Month || _renderedType != ViewModel.MediaType || _renderedSource != ViewModel.Source) _expandedDays.Clear()", changed);
         });
 
         Test("MP 日历事件卡：同格海报、标题、集数、入库和更新时间均有原生展示", () =>
@@ -214,14 +216,29 @@ internal static class MoviePilotCalendarWiringTests
             var ownership = changed.IndexOf("if (ViewModel.Busy || _imagesLifetime is null)", StringComparison.Ordinal);
             var clear = changed.IndexOf("ReleaseImages();", ownership, StringComparison.Ordinal);
             var lifetime = changed.IndexOf("_imagesLifetime = new CancellationTokenSource();", clear, StringComparison.Ordinal);
-            var capture = changed.IndexOf("_fetchImage = _request?.Service.CaptureImageFetcher();", lifetime, StringComparison.Ordinal);
-            var reuse = changed.IndexOf("if (ReferenceEquals(_renderedEntries, entries) && _renderedMonth == ViewModel.Month) return;", StringComparison.Ordinal);
+            var capture = changed.IndexOf("_fetchImage = isAniBt ? request.AniBt.CalendarCoverAsync : request.Service?.CaptureImageFetcher();", lifetime, StringComparison.Ordinal);
+            var reuse = changed.IndexOf("if (ReferenceEquals(_renderedEntries, entries) && _renderedMonth == ViewModel.Month && _renderedSource == ViewModel.Source) return;", StringComparison.Ordinal);
             Assert.True(ownership >= 0 && clear > ownership && lifetime > clear && capture > lifetime && reuse > capture,
                 "空数组可能复用同一实例，不能先短路再更新海报的连接归属");
             var release = Between(Read("MoviePilotCalendarPage.xaml.cs"), "private void ReleaseImages()", "private void RenderMonth(");
             Assert.Contains("_imagesLifetime?.Cancel();", release);
             Assert.Contains("_images.Clear();", release);
             Assert.Contains("_fetchImage = null;", release);
+        });
+
+        Test("AniBT 日历：来源控件、独立封面和播出标签接入，卡片收起订阅专有字段", () =>
+        {
+            var xaml = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarPage.xaml"));
+            var choices = Named(xaml, "CalendarSources").Elements().ToArray();
+            Assert.True(choices.Select(element => element.Attribute("Content")?.Value).SequenceEqual(new[] { "MoviePilot 订阅", "AniBT 番剧" }));
+            Assert.True(choices.Select(element => element.Attribute("Click")?.Value).SequenceEqual(new[] { "OnMoviePilotSource", "OnAniBtSource" }));
+            var page = Read("MoviePilotCalendarPage.xaml.cs");
+            Assert.Contains("AniBtCalendarSource.Visibility = ViewModel.AniBtAvailable", page);
+            Assert.Contains("ViewModel.SelectSource(CalendarSource.AniBt)", page);
+            var card = Between(Read("MoviePilotCalendarEventCard.xaml.cs"), "internal void Attach(AniBtCalendarEntry", "private void SetDescription(");
+            Assert.Contains("LibraryRow.Visibility = LibraryBadge.Visibility = UpdatedRow.Visibility = RuntimeText.Visibility = Visibility.Collapsed", card);
+            Assert.Contains("entry.AiringAt is { } airing", card);
+            Assert.Contains("entry.IsPremiere", card);
         });
 
         Test("MP 日历海报：只通过捕获连接读取 HTTP 图片，不让 Image 直接发请求", () =>

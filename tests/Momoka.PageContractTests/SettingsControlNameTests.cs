@@ -19,8 +19,9 @@ internal static class SettingsControlNameTests
         Test("R15-006：四处功能说明消费统一NotesVisibility", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var notes = page.Descendants().Where(element => element.Name.LocalName == "TextBlock"
-                && ((string?)element.Attribute("Text") is { } text && (text.StartsWith("关闭后隐藏 AniBT", StringComparison.Ordinal)
+                && ((string?)element.Attribute("Text") is { } text && ((string?)element.Attribute(x + "Uid") == "SettingsPage_Localization3"
                     || text.StartsWith("搜索时默认使用的站点", StringComparison.Ordinal) || text == "{x:Bind PriorityHint}"
                     || element.Ancestors().Any(parent => parent.Name.LocalName == "DataTemplate" && ((string?)parent.Attribute(XName.Get("DataType", "http://schemas.microsoft.com/winfx/2006/xaml"))) == "vm:SettingSubtitlePreviewRow") && text == "{x:Bind DisplayNote}"))).ToList();
             Assert.Equal(4, notes.Count);
@@ -57,7 +58,7 @@ internal static class SettingsControlNameTests
                 Assert.False(BindsRowName(withUid, resourceOverride), "负向：资源覆盖具体名称必须被拒绝");
             });
 
-        Test("设置 AniBT 开关：MoviePilot 卡内可关闭且随启用状态收起", () =>
+        Test("设置 AniBT 开关：留在 MoviePilot 卡且可独立控制番剧日历", () =>
         {
             var root = FindRoot();
             var page = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
@@ -65,12 +66,10 @@ internal static class SettingsControlNameTests
                 && element.Attribute("AutomationProperties.Name")?.Value == "显示 AniBT 入口");
             Assert.Equal("{x:Bind AniBtEnabled, Mode=TwoWay}", toggle.Attribute("IsOn")?.Value);
             Assert.Equal("MoviePilotAniBtToggle", toggle.Attribute("AutomationProperties.AutomationId")?.Value);
-            var section = toggle.Ancestors().First(element => element.Name.LocalName == "StackPanel"
-                && element.Attribute("Visibility") is not null);
-            Assert.Equal("{x:Bind AniBtVisibility, Mode=OneWay}", section.Attribute("Visibility")?.Value);
+            Assert.True(toggle.Ancestors().TakeWhile(element => element.Name.LocalName != "DataTemplate")
+                .All(element => element.Attribute("Visibility") is null));
             var row = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingMoviePilotRow.cs"));
             Assert.Contains("_writeAniBt(value);", row);
-            Assert.Contains("AniBtVisibility => Enabled ? Visibility.Visible : Visibility.Collapsed", row);
             var viewModel = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
             Assert.Contains("value => moviePilot.AniBtEnabled = value", viewModel);
         });

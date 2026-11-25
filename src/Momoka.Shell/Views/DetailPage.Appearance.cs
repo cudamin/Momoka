@@ -345,7 +345,7 @@ public sealed partial class DetailPage
             resume.Foreground = onAccent is null || IsStoreCoverAction(button) ? resumeInk : button.Foreground;
             plain.Foreground = button.Foreground;
         }
-        foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText,
+        foreach (var text in new[] { TitleText, GenreLine, HeroFacts, Overview, ScoreText, CriticScoreText, BangumiRatingText,
             DetailVideoText, DetailDirectorsText })
         {
             var defaultBrush = text == GenreLine ? (SolidColorBrush)ViewModel.SublineBrush

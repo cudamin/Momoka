@@ -213,9 +213,14 @@ internal static partial class DetailActionReadinessTests
     private static IList TrailerOptions(object selection) => (IList)selection.GetType().GetProperty("Options")!.GetValue(selection)!;
     private static void OpenTrailer(Fixture f, object selection, object? option) => Await((Task)Invoke(f.Vm, "OpenTrailerAsync", selection, option)!);
 
-    private sealed class TrailerServices(object launcher) : IServiceProvider
+    private sealed class TrailerServices(object launcher, object? bangumi) : IServiceProvider
     {
-        public object? GetService(Type serviceType) => serviceType.Name == "ISystemLauncher" ? launcher : null;
+        public object? GetService(Type serviceType) => serviceType.Name switch
+        {
+            "ISystemLauncher" => launcher,
+            "BangumiClient" => bangumi,
+            _ => null
+        };
     }
 }
 

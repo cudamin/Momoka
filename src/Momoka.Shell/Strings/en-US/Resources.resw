@@ -2269,6 +2269,12 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="MissingEpisodesDialog_MissingAniBt.Text" xml:space="preserve">
     <value>Search using the AniBT API</value>
   </data>
+  <data name="MoviePilotCalendarPage_MoviePilotSource.Content" xml:space="preserve">
+    <value>MoviePilot subscriptions</value>
+  </data>
+  <data name="MoviePilotCalendarPage_AniBtSource.Content" xml:space="preserve">
+    <value>AniBT anime</value>
+  </data>
   <data name="MoviePilotCalendarPage_AllMedia.Content" xml:space="preserve">
     <value>All</value>
   </data>
@@ -3722,7 +3728,7 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Show</value>
   </data>
   <data name="SettingsPage_Localization3.Text" xml:space="preserve">
-    <value>Disabling hides AniBT identification, search and version source entry points. Other MoviePilot features are unaffected.</value>
+    <value>Controls the AniBT calendar, identification, search, and version source. The calendar can work independently of MoviePilot.</value>
   </data>
   <data name="SettingsPage_Localization4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>MoviePilot protocol</value>
@@ -3951,5 +3957,11 @@ Closing the video window or leaving this page stops playback.</value>
   </data>
   <data name="SubtitleDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Subtitle search results</value>
+  </data>
+  <data name="DetailPage_BangumiScoreRow.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Bangumi rating</value>
+  </data>
+  <data name="DetailPage_BangumiRatingText.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Bangumi rating</value>
   </data>
 </root>

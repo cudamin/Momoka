@@ -3,7 +3,9 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.AniBt;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.Views;
 
@@ -62,19 +64,41 @@ public sealed partial class MoviePilotCalendarEventCard : UserControl
         RuntimeText.Visibility = RuntimeText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         var description = string.Join("，", new[] { entry.Title, EpisodeText.Text, LibraryRow.Visibility == Visibility.Visible ? LibraryText.Text : "", UpdatedText.Text, RuntimeText.Text }
             .Where(text => text.Length > 0));
+        SetDescription(description);
+        StartPoster(entry.Poster, loadImage, token);
+    }
+
+    internal void Attach(AniBtCalendarEntry entry, Func<string, CancellationToken, Task<BitmapImage?>> loadImage,
+        CancellationToken token)
+    {
+        Release();
+        EventTitle.Text = entry.Title;
+        var label = UiText.Translate(entry.IsPremiere ? entry.IsMovie ? "上映" : "首播" : "播出");
+        EpisodeText.Text = entry.AiringAt is { } airing ? $"{label} {airing:HH:mm}" : label;
+        LibraryRow.Visibility = LibraryBadge.Visibility = UpdatedRow.Visibility = RuntimeText.Visibility = Visibility.Collapsed;
+        SetDescription(UiText.Format("{0}，{1}", entry.Title, EpisodeText.Text));
+        if (entry.ImageUrl is { Length: > 0 } cover) StartPoster(cover, loadImage, token);
+    }
+
+    private void SetDescription(string description)
+    {
         ToolTipService.SetToolTip(this, description);
         AutomationProperties.SetName(this, description);
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Content);
-        _load = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _ = LoadImageAsync(entry, loadImage, _load);
     }
 
-    private async Task LoadImageAsync(MoviePilotCalendarEntry entry, Func<string, CancellationToken, Task<BitmapImage?>> loadImage,
+    private void StartPoster(string url, Func<string, CancellationToken, Task<BitmapImage?>> loadImage, CancellationToken token)
+    {
+        _load = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _ = LoadImageAsync(url, loadImage, _load);
+    }
+
+    private async Task LoadImageAsync(string url, Func<string, CancellationToken, Task<BitmapImage?>> loadImage,
         CancellationTokenSource pending)
     {
         try
         {
-            var image = await loadImage(entry.Poster, pending.Token);
+            var image = await loadImage(url, pending.Token);
             if (!ReferenceEquals(_load, pending) || pending.IsCancellationRequested) return;
             PosterImage.Source = image;
             PosterPlaceholder.Visibility = image is null ? Visibility.Visible : Visibility.Collapsed;

@@ -2290,6 +2290,12 @@
   <data name="MissingEpisodesDialog_MissingAniBt.Text" xml:space="preserve">
     <value>使用 AniBT API 搜索</value>
   </data>
+  <data name="MoviePilotCalendarPage_MoviePilotSource.Content" xml:space="preserve">
+    <value>MoviePilot 订阅</value>
+  </data>
+  <data name="MoviePilotCalendarPage_AniBtSource.Content" xml:space="preserve">
+    <value>AniBT 番剧</value>
+  </data>
   <data name="MoviePilotCalendarPage_AllMedia.Content" xml:space="preserve">
     <value>全部</value>
   </data>
@@ -3743,7 +3749,7 @@
     <value>显示</value>
   </data>
   <data name="SettingsPage_Localization3.Text" xml:space="preserve">
-    <value>关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。</value>
+    <value>控制 AniBT 番剧日历、识别、搜索和版本来源。番剧日历可独立使用。</value>
   </data>
   <data name="SettingsPage_Localization4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>MoviePilot 协议</value>
@@ -3972,5 +3978,11 @@
   </data>
   <data name="SubtitleDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>字幕搜索结果</value>
+  </data>
+  <data name="DetailPage_BangumiScoreRow.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Bangumi 评分</value>
+  </data>
+  <data name="DetailPage_BangumiRatingText.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Bangumi 评分</value>
   </data>
 </root>

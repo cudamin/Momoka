@@ -45,16 +45,16 @@ internal static class MoviePilotCalendarLayoutTests
                 Entry(2, "电视剧", new(2026, 11, 20)),
                 Entry(3, "电视剧", new(2026, 11, 21)),
             };
-            var all = MoviePilotCalendarLayout.Filter(entries, 0);
+            var all = MoviePilotCalendarLayout.Filter(entries, 0, entry => entry.Type);
             Assert.Equal(3, all.Count);
             Assert.True(entries.SequenceEqual(all));
-            var movies = MoviePilotCalendarLayout.Filter(entries, 1);
+            var movies = MoviePilotCalendarLayout.Filter(entries, 1, entry => entry.Type);
             Assert.Equal(1, movies.Count);
             Assert.True(ReferenceEquals(entries[0], movies[0]));
-            var series = MoviePilotCalendarLayout.Filter(entries, 2);
+            var series = MoviePilotCalendarLayout.Filter(entries, 2, entry => entry.Type);
             Assert.Equal(2, series.Count);
             Assert.True(ReferenceEquals(entries[1], series[0]) && ReferenceEquals(entries[2], series[1]));
-            Assert.Equal(0, MoviePilotCalendarLayout.Filter(Array.Empty<MoviePilotCalendarEntry>(), 0).Count);
+            Assert.Equal(0, MoviePilotCalendarLayout.Filter(Array.Empty<MoviePilotCalendarEntry>(), 0, entry => entry.Type).Count);
             Assert.Equal(3, entries.Length, "筛选不能改写服务快照");
         });
 

@@ -1364,8 +1364,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         if (tag == MoviePilotCalendarPage.Destination)
         {
-            if (!MoviePilotCalendarAvailable) return;
-            Open(typeof(MoviePilotCalendarPage), new MoviePilotCalendarRequest(_moviePilotService!, Settings.MoviePilot), UiText.Translate("日历"), tag);
+            if (!CalendarAvailable) return;
+            var request = new MoviePilotCalendarRequest(_moviePilotService, Settings.MoviePilot,
+                _services.GetRequiredService<Momoka.AniBt.AniBtClient>());
+            Open(typeof(MoviePilotCalendarPage), request, UiText.Translate("日历"), tag);
             return;
         }
 

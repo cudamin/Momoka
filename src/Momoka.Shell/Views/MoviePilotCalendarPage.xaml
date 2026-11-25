@@ -7,27 +7,35 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Grid x:Name="CalendarToolbar" ColumnSpacing="12" RowSpacing="8">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <StackPanel x:Name="MediaType" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <Button x:Uid="MoviePilotCalendarPage_AllMedia" x:Name="AllMedia" Content="全部" Tag="0" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
-                <Button x:Uid="MoviePilotCalendarPage_MovieMedia" x:Name="MovieMedia" Content="电影" Tag="1" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
-                <Button x:Uid="MoviePilotCalendarPage_SeriesMedia" x:Name="SeriesMedia" Content="电视剧" Tag="2" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
+        <StackPanel Spacing="8">
+            <StackPanel x:Name="CalendarSources" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
+                <Button x:Uid="MoviePilotCalendarPage_MoviePilotSource" x:Name="MoviePilotCalendarSource" Content="MoviePilot 订阅"
+                    Click="OnMoviePilotSource" Style="{StaticResource EgSecondaryButtonStyle}" />
+                <Button x:Uid="MoviePilotCalendarPage_AniBtSource" x:Name="AniBtCalendarSource" Content="AniBT 番剧"
+                    Click="OnAniBtSource" Style="{StaticResource EgSecondaryButtonStyle}" />
             </StackPanel>
-            <TextBlock x:Name="MonthTitle" Grid.Column="1" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-            <StackPanel x:Name="MonthActions" Grid.Column="2" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <Button x:Uid="MoviePilotCalendarPage_CurrentMonth" x:Name="CurrentMonth" Content="今天" Click="OnToday" Style="{StaticResource EgSecondaryButtonStyle}" />
-                <Button x:Uid="MoviePilotCalendarPage_RefreshCalendar" x:Name="RefreshCalendar" Click="OnRefresh" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="刷新日历" ToolTipService.ToolTip="刷新">
-                    <FontIcon Glyph="&#xE72C;" />
-                </Button>
-                <Button x:Uid="MoviePilotCalendarPage_PreviousMonth" x:Name="PreviousMonth" Click="OnPreviousMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="上个月" ToolTipService.ToolTip="上个月">
-                    <FontIcon Glyph="&#xE76B;" />
-                </Button>
-                <Button x:Uid="MoviePilotCalendarPage_NextMonth" x:Name="NextMonth" Click="OnNextMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="下个月" ToolTipService.ToolTip="下个月">
-                    <FontIcon Glyph="&#xE76C;" />
-                </Button>
-            </StackPanel>
-        </Grid>
+            <Grid x:Name="CalendarToolbar" ColumnSpacing="12" RowSpacing="8">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <StackPanel x:Name="MediaType" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button x:Uid="MoviePilotCalendarPage_AllMedia" x:Name="AllMedia" Content="全部" Tag="0" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
+                    <Button x:Uid="MoviePilotCalendarPage_MovieMedia" x:Name="MovieMedia" Content="电影" Tag="1" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
+                    <Button x:Uid="MoviePilotCalendarPage_SeriesMedia" x:Name="SeriesMedia" Content="电视剧" Tag="2" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
+                </StackPanel>
+                <TextBlock x:Name="MonthTitle" Grid.Column="1" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <StackPanel x:Name="MonthActions" Grid.Column="2" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Uid="MoviePilotCalendarPage_CurrentMonth" x:Name="CurrentMonth" Content="今天" Click="OnToday" Style="{StaticResource EgSecondaryButtonStyle}" />
+                    <Button x:Uid="MoviePilotCalendarPage_RefreshCalendar" x:Name="RefreshCalendar" Click="OnRefresh" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="刷新日历" ToolTipService.ToolTip="刷新">
+                        <FontIcon Glyph="&#xE72C;" />
+                    </Button>
+                    <Button x:Uid="MoviePilotCalendarPage_PreviousMonth" x:Name="PreviousMonth" Click="OnPreviousMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="上个月" ToolTipService.ToolTip="上个月">
+                        <FontIcon Glyph="&#xE76B;" />
+                    </Button>
+                    <Button x:Uid="MoviePilotCalendarPage_NextMonth" x:Name="NextMonth" Click="OnNextMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="下个月" ToolTipService.ToolTip="下个月">
+                        <FontIcon Glyph="&#xE76C;" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
         <StackPanel Grid.Row="1" Spacing="8">
             <ProgressBar IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
             <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"

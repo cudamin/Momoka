@@ -5,6 +5,7 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
+using Momoka.Bangumi;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -33,6 +34,7 @@ internal static partial class DetailActionReadinessTests
             RegisterShapeTests(assembly, root);
             RegisterTrailerTests(assembly, root);
             RegisterExtraTests(assembly, root);
+            RegisterBangumiRatingTests(assembly, root);
 
             Test("P1 主体Apply前不提前放开按钮", () =>
             {
@@ -183,18 +185,21 @@ internal static partial class DetailActionReadinessTests
         private readonly EmbySession _session;
         private readonly EmbySessionScope _scope;
         private readonly EmbyImageStore _images;
+        private readonly BangumiClient? _bangumi;
         public ReadinessTransport Transport { get; } = new();
         public DetailDeleteActionsProxy Actions { get; }
         public TrailerLauncherProxy Launcher { get; }
         public object Vm { get; }
         public UiSettings Ui => _settings.Settings.Ui;
+        public MoviePilotSettings MoviePilot => _settings.Settings.MoviePilot;
         public EmbyItem Seed { get; }
         public bool Busy => Get("Busy") is true;
 
         public Fixture(Assembly assembly, string root, Shape shape, bool stub = false,
-            MediaServerKind kind = MediaServerKind.Emby, string version = "4.10.1.0")
+            MediaServerKind kind = MediaServerKind.Emby, string version = "4.10.1.0", BangumiClient? bangumi = null)
         {
             _assembly = assembly;
+            _bangumi = bangumi;
             // 行为夹具显式从沉浸起步，避免出厂显示模式改变关闭转场的覆盖。
             _settings.Settings.Ui.EnableImmersive = true;
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
@@ -272,7 +277,7 @@ internal static partial class DetailActionReadinessTests
             var assembly = _assembly;
             var request = Activator.CreateInstance(assembly.GetType("Momoka.Shell.Views.DetailRequest", true)!, nonPublic: true)!;
             request.GetType().GetProperty("Item")!.SetValue(request, item);
-            request.GetType().GetProperty("Services")!.SetValue(request, new TrailerServices(Launcher));
+            request.GetType().GetProperty("Services")!.SetValue(request, new TrailerServices(Launcher, _bangumi));
             Invoke(Vm, "Attach", request, Actions, _settings, _session, _images);
         }
 

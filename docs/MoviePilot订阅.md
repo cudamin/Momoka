@@ -1,10 +1,16 @@
 # MoviePilot 订阅
 
-侧边栏「日历」显示订阅的上映和播出安排：周一开始、固定六周的月视图，左侧全部／电影／电视剧筛选，中间年月、右侧翻月。海报、两行标题、分集、入库状态／进度和相对更新时间直接显示在日格内，同一天先显示五张卡，更多内容在原日期格内展开。设置的 MoviePilot 卡中「侧边栏显示日历」可关闭入口，关闭 MoviePilot 或失去连接也会立即隐藏；已打开的日历退出主页，前进／后退不再恢复不可用日历，偏好保留。设置导入和恢复默认只处理日历显示偏好，不覆盖 MoviePilot 连接。
+## 日历
+
+侧边栏「日历」共用周一开始、固定六周的月视图。同一天先显示五张卡，更多内容在原日期格内展开。「侧边栏显示日历」统一控制入口，即使关闭 MoviePilot 也可调整。两个来源都可用时可在「MoviePilot 订阅」与「AniBT 番剧」之间切换，每次显示一个来源。MoviePilot 来源随连接状态收起或恢复；AniBT 来源跟随「AniBT 功能」开关，可以在 MoviePilot 未连接时使用。其他来源的可用性变化会保留当前仍可用的来源；当前来源失效时切到另一个可用来源。关闭日历总开关或两者都不可用时，隐藏侧栏入口，已打开的日历退回主页并清理该页的前进／后退历史。设置导入和恢复默认保留 MoviePilot 连接。
+
+**MoviePilot** 显示当前账号的订阅上映和播出安排，可按全部／电影／电视剧筛选。海报、标题、分集、入库状态／进度和相对更新时间直接显示在日格内。
 
 接口为只读 `GET subscribe/calendar`，按月的完整六周窗口读取全部分页，再最多四路补查订阅文件的 `library` 事实；统计失败显示「入库状态未知」，不根据缺集数猜入库。旧版缺失日期接口时提示升级至 MoviePilot 3.2.3 或更新版本。上游前端 `e6a30ad4b6091859999f3bbbe7cffbcce782edf1` 的 `src/views/subscribe/FullCalendarView.vue` 与后端 `bf2236f024d4e3046be3b4376a986fb216142f02` 的日历 schema／chain 已核对，3.2.3 的后端日期契约一致。本地保留原生 WinUI 主题和今天／刷新操作，不嵌入网页；七列自动适应当前窗口，海报等比收紧、窄卡文字排到海报下方，不横向滚动，也不把全页文字缩小。海报复用绑定当前 MP 连接身份的取图通道，同 URL 同月合并读取，离页／翻月清理；全部日期和入库统计读完后显示，首次读取可能比网页分批展示慢。
 
-日历离线专项：当前 Release/x64 Core、Tests 编译成功后运行 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -p:Platform=x64 -- moviepilot-calendar-fixture`；日期布局、真实 VM 迟到响应和显隐接线同时由 `Momoka.PageContractTests` 覆盖。均不登录真实服务器、读取真实配置或播放。
+**AniBT 番剧** 按六周窗口所覆盖的自然季度，匿名读取 [AniBT 开放 API](https://wiki.anibt.net/docs/open-api) 的 `GET /api/seasons/anime`。上游精确到日的首播日期按原日历日期显示，已知的分集时间按电脑所在时区落到日格。同一作品同日的首播与分集安排合并；缺具体日期的作品不排入日格，接口仅提供下一集或最近一集时，不据此推算其余分集。入库进度和订阅管理属于 MoviePilot 来源。部分季度无法读取或上游标记结果截断时，保留已读安排并提示覆盖不完整；读取失败时提供重试。封面仅从 `r2.anibt.net` 经匿名 HTTPS 请求读取，切源、翻月和离开日历时释放该页取图任务。
+
+当前 Release/x64 Core、Tests 编译成功后，可分别用 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -p:Platform=x64 -- moviepilot-calendar-fixture` 和 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -p:Platform=x64 -- anibt-calendar-fixture` 运行两来源的离线协议专项。日期布局、视图模型迟到响应和显隐另由 `Momoka.PageContractTests` 覆盖。真实窗口和服务回包留待统一验收。
 
 每次成功读取的完整六周窗口会写进本地 `%LocalAppData%\Momoka\cache\moviepilot-calendar.json`（最多保留八个窗口，原子替换）。再次打开日历页时先把同一服务地址与用户名、覆盖这次窗口的缓存摆上屏，再向 MoviePilot 读取最新安排；缓存过时、损坏、换账号或换服务器时只当作没有缓存，不影响读取。设置 → MoviePilot 在「侧边栏显示日历」下方新增「启动时自动刷新日历」，默认关闭，拨一下下一次启动生效；打开后每次启动 Momoka 在首次连上 MoviePilot 时后台刷新本月窗口并写入缓存，只跑一趟，失败只写日志。
 
@@ -54,7 +60,17 @@ MP 没有原整理记录时，预览先核对实际 Emby 电影／整剧目标�
 
 只有唯一明确完成回执及不可变提交请求证明原媒体路径搬离，或成功旧目标被清理／换路径与存储时，客户端才请求 Emby 扫描一次。已接收／已跳过不是已完成，不触发扫描；扫描只表示请求已发，收录新路径和移除旧条目由服务器决定。主页正开着时，对话框收起后会随即核对一次新入库；这只是客户端刷新，不能替代服务器扫描。扫描失败或取消仍保留已完成整理，提示在正确媒体库手动扫描，不能因此重复整理。
 
-AniBT 的从属操作跟随 MP 的当前连接状态显示；关闭 MP、连接失败、切换地址或账号时撤销查询与旧结果。设置 → MoviePilot 的 **AniBT 功能** 关闭后，AniBT 识别、版本来源里的 AniBT、订阅详情的「搜索AniBT」和遗漏集的 AniBT 操作收起。搜索页的五个来源始终显示，不自动改选；不可用的来源显示恢复说明并拒绝查询。MoviePilot 其他功能、已保存连接与整理防重状态不受影响，重新打开后原设置恢复。提交采用逐文件状态和进程内防重，网络结果不明时要求先在 MP 核对，避免重复发送。公开查询规格见 [AniBT 开放 API](https://wiki.anibt.net/docs/open-api)。
+AniBT 搜索、识别、下载与整理等从属操作仍跟随 MP 的当前连接状态；关闭 MP、连接失败、切换地址或账号时撤销相关查询与旧结果。设置 → MoviePilot 的 **AniBT 功能** 可独立开关。关闭后收起日历中的 AniBT 来源、AniBT 识别、版本来源里的 AniBT、订阅详情的「搜索AniBT」和遗漏集的 AniBT 操作。搜索页的五个来源始终显示，不自动改选；不可用的来源显示恢复说明并拒绝查询。MoviePilot 其他功能、已保存连接与整理防重状态不受影响，重新打开后原设置恢复。提交采用逐文件状态和进程内防重，网络结果不明时要求先在 MP 核对，避免重复发送。公开查询规格见 [AniBT 开放 API](https://wiki.anibt.net/docs/open-api)。
+
+### Bangumi 评分
+
+影视媒体库详情优先按当前电影、剧或季自己的 Bangumi 编号匿名调用官方 `GET https://api.bgm.tv/v0/subjects/{id}`。电影和剧集缺少编号时，通过官方 `POST /v0/search/subjects` 搜索原文名与显示标题，按同年首播、电影／剧集形态，以及规范化后的主标题、中文名或官方别名精确匹配，唯一匹配后再读取官方条目评分。搜索最多读取 20 个同年影视候选，结果超限、同名歧义或编号冲突时隐藏。季页采用本季编号，通用季名与单集保持隐藏。自动搜索将作品标题和年份发送到 Bangumi。
+
+Bangumi 图标和十分制分数位于番茄评分右侧，直接使用原分数，整数显示为 `5`，小数显示为 `5.4`。接口 `rating.total` 大于零且 `rating.score` 有效时显示，无评分记录、无法匹配或查询失败时收起该格。大众分与影评指数沿用媒体服务器数据。此查询独立于 MoviePilot 与 AniBT 开关，使用应用网络代理。官方合并条目仅跟随 `api.bgm.tv` 同源的条目编号重定向。
+
+协议核对 `bangumi/server` 提交 `522cc1dedb6ff4f683b17856c3ba970e820ab6b4` 的 `web/handler/subject/get.go`、`web/res/subject.go`、`web/mw/ua/new.go`、`internal/search/subject/handle.go` 与 `pkg/vars/platform.go.json`，请求携带应用 User-Agent。图标采用 Bangumi 官网 `https://bgm.tv/img/favicon.ico` 的 16 像素资源，随应用保存为 `assets/icons/bangumi.png`。[官方 API](https://github.com/bangumi/api) · [服务端源码](https://github.com/bangumi/server/tree/522cc1dedb6ff4f683b17856c3ba970e820ab6b4)
+
+当前 Release Core、Tests 编译成功后，可用 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -- bangumi-rating-fixture` 核对评分接口、编号匹配、同源跳转和请求取消。该专项使用匿名离线传输。
 
 MoviePilot 从属功能仅在设置中开启且当前连接可用时显示，包括主页订阅、搜索其他版本和手动整理。启动后验证当前配置，连接失效时收起从属入口、已展开的 MP 菜单与下拉层、操作弹窗和独立搜索窗口；订阅详情回到主页，返回或前进不会重新打开失效页面。搜索页五个来源始终保留，当前选择不自动改选，不可用时提示恢复并阻止请求。已启用时每 30 秒检查连接，恢复后重新显示；修改地址或账号密码立即撤销旧连接，等待新配置验证。设置卡始终保留，“测试连接”不会自动打开开关，历史测试成功也不代表当前连接可用；测试过程中断线或认证失败也不会显示为连接成功。
 
