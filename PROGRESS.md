@@ -1,3 +1,13 @@
+## 2026-11-25 合并：本机整理多目录刮削与本地媒体库详情对齐（master）
+
+用户令「合并」。主树 master 原 `824f5d6`（飞牛音乐去掉周期上报），分支 `feat-media-card-scraping-0IrtV9` 提交 `57f5bd2`（76 文件 +3536/−1166）；`git merge --no-ff` 只有三份文档冲突（PROGRESS、docs/待交付批次、docs/本机整理），按时间序并入分支记录并保留 0.3.3 设置页隐藏说明，代码零冲突，合并提交 `cfc0d6f`（两父）。
+
+**验证。** 合并后全解决方案 Release **0 警告 0 错误**（3 分 24 秒）；主测试 **5355/5355、0 失败 0 跳过**（149 s）；`local-media-fixture` **190/190**、`local-media-vm-fixture` 与 `local-library-coordinator-fixture` 各 **7/7**、`local-media-layout-fixture` **24/24**；`Momoka.LocalLibraryPageTests` **21/21**；`Momoka.DetailDeleteCommandTests` **41/41**（`artifacts/r025-delete-command-fixture/run-20261125-152210`）；`Momoka.NaturalContinuationCallerTests` **88/88**；`Momoka.SettingsProbeContractTests` **40/40**（0.3.3 设置页隐藏入口的契约仍成立）；质量闸门 1 **9/9**（`artifacts/quality/20261125-152604`，编译 0 警告 0 错误、架构 7/7、重复 68 段／259844 行＝0.47%、diff 通过）。
+
+**发布与探针。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件；桌面 `Momoka.lnk` 回读 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe` 与同目录工作路径。`Momoka.exe` 668,160 字节 SHA256 `6FC6F975C2BF93DA9230546E73DF770CE38F389BE930CB1ED19AB9E96F3515C7`，`Momoka.dll` 10,446,336 字节 SHA256 `5AE75C0D3D82A786A60EB87E4083DC9D325A758F3AC675AA9BCB3F087B5098AF`，ProductVersion `0.3.3+cfc0d6f…`。发布件 `--probe-shell --probe-section local-media --screen 2` **2/2、退出 0**（`shell-probe-20261125-073647097-28524`）：目录列表、逐行保存、宽窄预览与确认取消，多库自动入库与首页逐库入口均通过；截图 `local-media-*-screen.png`、`local-libraries-*-screen.png` 同目录。
+
+**清理。** 按规则删除桌面 `Momoka-feat-media-card-scraping-0IrtV9.lnk`、分支工作树与本地分支；内容全部在 master。未推送远端；真实 TMDB 令牌下的播放、五主题／高对比／跨 DPI／触摸与读屏仍待用户实机复核，不销账。
+
 ## 2026-11-25 本机详情页与媒体库入口对齐（分支，待统一验证）
 
 用户附本机剧集页与 Emby 剧集页两张实屏，令「你这个媒体详情页怎么跟其他媒体库的详情页不一样，不是让你直接复用吗」，并指出首页「媒体库列表下面还自己加了个什么 本地 1项」。核对后确认页面复用的是同一个 `DetailPage`，差异来自四处：关闭沉浸模式后本机条目仍铺沉浸全幅背景（`SpreadsBackdrop` 只看本机背景路径，不看 `ImmersiveEnabled`）；演职人员头像与人物编号没有落盘，`ItemDetail.Cast` 因此筛不出卡片；「视频：」一行只从文件名读到制作组；详情页封面另压了本机专属的已看/收藏/更多三颗。首页本地媒体库卡则多一行「本地 · N 项」。
