@@ -1001,22 +1001,17 @@
                         ItemsSource="{x:Bind ViewModel.Cards, Mode=OneWay}"
                         SelectionMode="None">
                         <ItemsView.Layout>
-                            <!-- ItemsStretch="Fill" is what makes the grid reflow instead of leaving a ragged
-                                 right margin, and it is the reason resizing looks settled (requirement 1).
-
-                                 The cell size follows CardSize's poster width and the current view shape; the
-                                 height is the picture plus the two lines of text under it, worked out in the
-                                 view model rather than typed in here.
-
-                                 行距比列距大：卡片底下那两行字是它自己的（离画面 8 像素），一行一行之间要是和一列
-                                 一列之间一样宽，那两行字就悬在两张画面中间，读起来像是下一排卡片的标题。24 对 16
-                                 把每张画面和它自己的字归成一组，一面墙也就读成一行一行，而不是一片方块。 -->
+                            <!-- 列数、格宽、行高由 VM 统一给出；None 避免 Fill 按另一条列数算术再次扩宽。
+                                 上游核对：microsoft-ui-xaml a97562621a1d1ea397a38a3f512c9eef99db52d8，
+                                 src/controls/dev/Repeater/UniformGridLayout{,State}.cpp：
+                                 GetItemsPerLine 含末列后的间距补偿；None 保留指定尺寸。行距24、列距16。 -->
                             <UniformGridLayout
                                 x:Name="CardLayout"
-                                ItemsStretch="Fill"
+                                ItemsStretch="None"
+                                MaximumRowsOrColumns="{x:Bind ViewModel.GridColumns, Mode=OneWay}"
                                 MinColumnSpacing="16"
                                 MinItemHeight="{x:Bind ViewModel.RowHeight, Mode=OneWay}"
-                                MinItemWidth="{x:Bind ViewModel.CardMinWidth, Mode=OneWay}"
+                                MinItemWidth="{x:Bind ViewModel.CellWidth, Mode=OneWay}"
                                 MinRowSpacing="24" />
                         </ItemsView.Layout>
                     </ItemsView>

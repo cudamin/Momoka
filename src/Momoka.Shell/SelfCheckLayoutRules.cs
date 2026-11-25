@@ -6,6 +6,12 @@ namespace Momoka.Shell;
 /// <summary>Offline predicates shared by the real self-check and its malformed-reading tests.</summary>
 internal static class SelfCheckLayoutRules
 {
+    internal static bool LibraryPosterSize(string view, double cardWidth, double cellWidth, double cellHeight) =>
+        double.IsFinite(cardWidth) && cardWidth > 0 && cardWidth <= int.MaxValue
+        && cardWidth == Math.Round(cardWidth)
+        && (view != nameof(LibraryView.Poster)
+            || (cellWidth == cardWidth && double.IsFinite(cellHeight) && cellHeight > cardWidth));
+
     internal static bool LibraryViews(IReadOnlyList<(string Label, string Layout, double Cell, double Row)> walk,
         bool restored, int textHeight)
     {

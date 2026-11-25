@@ -113,6 +113,32 @@ internal static class LibraryDisplayTests
             Assert.Equal((1, 300), LibraryCardMetrics.Fit(0, 300));
             Assert.Equal((1, 300), LibraryCardMetrics.Fit(double.NaN, 300));
         });
+        Test("媒体库网格：窄窗围绕目标宽选列，不把默认海报放大一档", () =>
+        {
+            Assert.Equal((4, 171), LibraryCardMetrics.FitWall(734, 170));
+            Assert.Equal((4, 287), LibraryCardMetrics.FitWall(1198, 300));
+            Assert.Equal((3, 342), LibraryCardMetrics.FitWall(1058, 342));
+            Assert.Equal((1, 120), LibraryCardMetrics.FitWall(120, 170));
+            Assert.Equal((1, 170), LibraryCardMetrics.FitWall(double.NaN, 170));
+            Assert.Equal((1, 170), LibraryCardMetrics.FitWall(0, 170));
+            // 订阅墙继续按最小宽铺排，不能跟着媒体库改成目标宽。
+            Assert.Equal((3, 388), LibraryCardMetrics.Fit(1198, 300));
+        });
+        Test("媒体库网格：同列平滑缩放，跨列只在目标档位中点发生", () =>
+        {
+            Assert.Equal((3, 200), LibraryCardMetrics.FitWall(633, 170));
+            Assert.Equal((4, 146), LibraryCardMetrics.FitWall(635, 170));
+            Assert.Equal((4, 171), LibraryCardMetrics.FitWall(732, 170));
+            Assert.Equal((4, 175), LibraryCardMetrics.FitWall(748, 170));
+            foreach (var target in new[] { 80, 170, 300, 342, 540 })
+                for (var available = 100; available <= 2400; available++)
+                {
+                    var (columns, cell) = LibraryCardMetrics.FitWall(available, target);
+                    var used = cell * columns + (columns - 1) * LibraryCardMetrics.ColumnSpacing;
+                    Assert.True(used <= available, $"{available}/{target}: 最后一列越出边界");
+                    Assert.True(available - used < columns, $"{available}/{target}: 右侧多出空槽");
+                }
+        });
         Test("媒体库设置：分组只发给库内的条目查询，推荐不认这一键", () =>
         {
             var on = LibraryBrowse.Query("tvshows", "library-a", LibrarySection.Items, 0, 20,

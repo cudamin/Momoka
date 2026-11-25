@@ -10,6 +10,29 @@ internal static class SelfCheckLayoutRulesTests
 {
     public static void Register()
     {
+        Test("自检海报尺寸：窄窗允许小于目标但实际卡宽格宽必须一致", () =>
+        {
+            Assert.True(SelfCheckLayoutRules.LibraryPosterSize("Poster", 160, 160, 300));
+            Assert.True(SelfCheckLayoutRules.LibraryPosterSize("Poster", 170, 170, 317));
+            Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Poster", 160, 170, 300));
+            Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Poster", 170, 160, 317));
+            Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Poster", 160, double.NaN, 300));
+            Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Poster", 160, double.PositiveInfinity, 300));
+        });
+        Test("自检海报尺寸：非有限非整数卡宽和破损海报格高不能通过", () =>
+        {
+            foreach (var invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity,
+                0, -1, 160.5, (double)int.MaxValue + 1 })
+                Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Poster", invalid, invalid, 300));
+            foreach (var invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity, 0, 159, 160 })
+                Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Poster", 160, 160, invalid));
+        });
+        Test("自检海报尺寸：其他形状仍独立检查格宽格高且卡宽有效", () =>
+        {
+            Assert.True(SelfCheckLayoutRules.LibraryPosterSize("Thumb", 160, 300, 200));
+            Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Thumb", 0, 300, 200));
+            Assert.False(SelfCheckLayoutRules.LibraryPosterSize("Thumb", double.NaN, 300, 200));
+        });
         Test("自检布局：七种真实视图与原选择恢复", () =>
         {
             Assert.True(SelfCheckLayoutRules.LibraryViews(Views(), true, CardSize.Chrome));
@@ -174,6 +197,9 @@ internal static class SelfCheckLayoutRulesTests
             var detail = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/DetailPage.xaml.cs"));
             var style = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Theme/Styles.xaml"));
             var baseline = File.ReadAllText(Path.Combine(root, "docs/selfcheck-baseline.txt"));
+            Assert.Contains("check(\"海报尺寸\", SelfCheckLayoutRules.LibraryPosterSize(", pages);
+            Assert.Contains("library.View, library.CardWidth, library.CellWidth, library.CellHeight)", pages);
+            Assert.Contains("通过  海报尺寸", baseline);
             Assert.Contains("SelfCheckLayoutRules.LibraryViews(walk, library.ViewRestored, library.GridTextHeight)", pages);
             Assert.Contains("ViewModel.CellWidth, grid.MinItemHeight)", library);
             Assert.Contains("library.ViewModel.Fields.Contains(LibraryField.Tagline)", reads);

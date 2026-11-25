@@ -303,12 +303,13 @@ public sealed partial class PosterCard : UserControl
         Root.AddHandler(PointerMovedEvent, new PointerEventHandler(OnPointerMoved), true);
 
         // 绑定晚到就淡入，不依赖缓存 BitmapImage 不保证重发的 ImageOpened。
-        _posterArrival = new ImageArrivalFade(Poster);
+        _posterArrival = new ImageArrivalFade(Poster, () => Card);
         _tileArrivals =
         [
-            new(FnNasPosterBackground),
-            new(FolderPoster0), new(FolderPoster1), new(FolderPoster2), new(FolderPoster3),
-            new(LibraryPoster0), new(LibraryPoster1), new(LibraryPoster2),
+            new(FnNasPosterBackground, () => Card),
+            new(FolderPoster0, () => Card), new(FolderPoster1, () => Card),
+            new(FolderPoster2, () => Card), new(FolderPoster3, () => Card),
+            new(LibraryPoster0, () => Card), new(LibraryPoster1, () => Card), new(LibraryPoster2, () => Card),
         ];
         _ = new AnimatedPoster(Poster, _posterArrival);
         AttachAnimatedTiles();

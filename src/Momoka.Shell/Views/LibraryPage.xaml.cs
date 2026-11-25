@@ -145,8 +145,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private readonly SolidColorBrush _tabForeground = new();
 
     /// <summary>
-    /// 窗口停下来之后再去算这一面墙的格宽（见 <see cref="OnCardWallSizeChanged"/>）。拖动窗口时尺寸每帧都变，
-    /// 每帧重造一遍卡片等于每帧给几十张封面各发一趟请求。
+    /// 尺寸即时更新，只把图片重新取样留到停拖后，避免每帧为新宽度重复取图。
     /// </summary>
     private readonly DispatcherQueueTimer _gridResize;
 
@@ -158,7 +157,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         NavigationTiming.Mark("init-end");
         NavigationCacheMode = NavigationCacheMode.Enabled;
 
-        // 这一面墙一格多宽是按窗口宽度算的（见 LibraryViewModel.ResizeGrid）：窗口一停就把新宽度推过去。
+        // 几何在 SizeChanged 当场同步；停拖之后仅更新图片清晰度。
         // 计时器在这里建，是因为「停下来」这件事只有页面知道 —— 尺寸变化本身不带「这是最后一帧」。
         _gridResize = DispatcherQueue.CreateTimer();
         _gridResize.Interval = TimeSpan.FromMilliseconds(120);
@@ -829,9 +828,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnHeaderSizeChanged(object sender, SizeChangedEventArgs e) => ApplyHeaderLayout();
 
     /// <summary>
-    /// 这一面墙的可用宽度变了：先把格宽、行高算出来（拖窗口时每帧都要算，这一步只算账），再等窗口停下来
-    /// 重画卡片 —— 拖动时每帧重画一遍，等于每帧给几十张封面各发一趟请求，而解码宽度必须跟着画出来的宽度走，
-    /// 不能不重画（见 <see cref="LibraryViewModel.RebuildGrid"/>）。
+    /// 卡片与网格当场同步尺寸，图片刷新单独防抖。跨列数时继续保留原有滚动锚点。
     /// </summary>
     private void OnWallWidthChanged()
     {
@@ -849,7 +846,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 窗口停下来了：按当前格宽重画卡片。卡片是原地换宽度的（不换对象、不动列表），所以滚动位置不用管。
+    /// 窗口停下来后刷新当前尺寸的图片，等待期间继续显示旧图。
     /// </summary>
     private void RebuildWall()
     {
@@ -858,8 +855,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 按可用宽度算这一面墙的格子（格宽、行高）。版面的 <c>MinItemWidth</c> 是档位宽、不随窗口变，它自己会在
-    /// 可用尺寸变过时重算列数；格宽与行高按同一条算术跟着走（见 <see cref="LibraryCardMetrics.Fit"/>）。
+    /// 按滚动条车道之外的可用宽度统一计算列数、卡片宽度和行高。
     /// </summary>
     private void ApplyWallMetrics()
     {
@@ -2187,12 +2183,9 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ => CardLayout
         };
 
-        // 文件夹页只有少量文件夹卡；铺满列的排法会把它们全挤在左边。这一页改成「按卡片原宽、整行居中」，
-        // 其余页仍从左排满（2026-11-01 用户报「文件夹页面……没有居中显示」）。
-        // Jellyfin list 页不跟这一条：真库的文件夹名常比卡片宽，按原宽摆会把标题左端裁掉
-        // （2026-11-01 实机截图），仍用 Fill 铺满。
+        // 卡片与格子共用 VM 给出的实际宽度；文件夹页保留整行居中，其余页从左排。
         var centerCards = ViewModel.Section == LibrarySection.Folders;
-        CardLayout.ItemsStretch = centerCards ? UniformGridLayoutItemsStretch.None : UniformGridLayoutItemsStretch.Fill;
+        CardLayout.ItemsStretch = UniformGridLayoutItemsStretch.None;
         CardLayout.ItemsJustification = centerCards
             ? UniformGridLayoutItemsJustification.Center : UniformGridLayoutItemsJustification.Start;
 

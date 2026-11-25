@@ -85,8 +85,8 @@ internal static class NeutralFeedbackTests
             Assert.False(constructor.Contains("Paint();", StringComparison.Ordinal), "悬停或焦点不应反复重设同一封面样式");
             Assert.Equal(2, constructor.Split("AnimateCard();", StringSplitOptions.None).Length - 1,
                 "指针与焦点仍须各自更新动画");
-            Assert.True(constructor.Contains("new ImageArrivalFade(Poster)", StringComparison.Ordinal),
-                "海报须按实际图片Source到达启动淡入");
+            Assert.True(constructor.Contains("new ImageArrivalFade(Poster, () => Card)", StringComparison.Ordinal),
+                "首次图片Source到达淡入，同一张卡换清晰度保持可见");
         });
 
         Test("中性反馈：播放键探针先应用模板，异常时也恢复默认态", () =>

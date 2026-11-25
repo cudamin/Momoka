@@ -62,6 +62,8 @@ Use [architecture](architecture.md) and [page lifetimes](page-lifetimes.md) for 
 6. Bound long-lived subscriptions and queued DispatcherQueue updates; coalesce repeated notifications where safe. Avoid heavy I/O, sorting or synchronous waits on the UI thread.
 7. Compare CPU/frame time, realized count, allocations/working set and retained images under the same dataset and machine state. Use WPR/WPA or available equivalent tooling after validating the capture configuration; absence of a trace is not an improvement claim.
 
+For the video-library card wall, trace `LibraryCardMetrics.FitWall` → `LibraryViewModel.ResizeGrid` → `CardItem.Resize/RefreshPosterSize`: geometry updates together, while the page defers image-size refresh until resizing has stopped for 120ms. Preserve the visible old bitmap until replacement succeeds, and pass the current card identity to `ImageArrivalFade` so only same-card quality changes skip the arrival fade; retain ownership/cancellation guards and verify real resize continuity separately from offline tests.
+
 ## Motion and composition
 
 | Scenario | Prefer | Essential behavior |

@@ -1,3 +1,11 @@
+## 2026-11-25 媒体库窄窗封面与连续缩放
+
+用户在只读审查后授权直接实施。工作树 `C:\Users\89400\.codex\worktrees\5a19\Momoka`，分支 `codex/library-cover-resize`，起点 `824f5d6`。窄窗口按图像大小目标就近选列（例如可用734 DIP、默认170：由3列234改为4列171）；`Fit` 的旧最小宽语义仍留给 MoviePilot。原生布局用同源列数、格宽、行高，移除 Fill 二次扩宽与 ApplyView 的覆盖。卡片原地即时换宽，120ms 停拖后刷新图片；旧图保留到新图成功，加载失败保持，已有图的容器重入不能绕过防抖；首张无图允许立即加载。同 Card 身份的清晰度更新不重播淡入，首次到图、换卡及清图后的首次到图仍淡入。
+
+原生计算已读 microsoft/microsoft-ui-xaml 固定提交 `a97562621a1d1ea397a38a3f512c9eef99db52d8`（`winui3/release/2.3.1`），`src/controls/dev/Repeater/UniformGridLayout.cpp` 的 `GetItemsPerLine/Algorithm_GetExtent` 与 `UniformGridLayoutState.cpp` 的 `EnsureElementSize/CalculateAvailableSize/SetSize`：列数计算含末列间距补偿，None 使用指定尺寸。它是上游实现依据，不是本机 NuGet WinUI 2.3.9 的逐字节等价或实际窗口证据。无新控件、样式或资源键，不触发高风险 XAML 最小加载例外。
+
+验证：最终 Shell／Core／测试 Release/x64 0警告0错误；主测试5351/5351，PageContract422/422，DetailImageArrival44/44，实际四后端VM与深返回23/23，架构7/7；均0失败0跳过。格式、差异、183份文档链接与153代码块语法检查通过；重复68段／0.48%。首次编译因诊断仍引用CardMinWidth失败，恢复同源格宽兼容读数后通过；其余沙箱与测试前件失败见待交付批次129，日志保留，未改产品分页或基线洗绿。没有运行真实服务器、播放、探针、自检应用或验收截图；画面流畅度与输入／主题／DPI仍待统一验收。当前树体验发布与快捷方式结果随后记录，不合并不上传。
+
 ## 2026-11-25 去掉飞牛音乐的周期进度上报
 
 用户令「去掉飞牛音乐10秒的上报」。核对官方飞牛音乐网页产物与现有实现：网页端只有 `track_play` 历史事件和歌词偏移事件，没有进度／停止；本客户端的进度、暂停、停止对飞牛音乐本来就是空操作，只有 `PlaybackReportCadence` 仍给它排 10 秒定时器。
