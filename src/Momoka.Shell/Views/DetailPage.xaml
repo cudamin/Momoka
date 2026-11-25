@@ -888,7 +888,10 @@
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{x:Bind ViewModel.SublineVisibility, Mode=OneWay}" />
 
-                            <!-- 评分先于类型。依次为大众分、影评指数与 Bangumi 官方评分；无分时收起对应格。 -->
+                            <!-- 评分先于类型；日期、时长、分级仍在类型下方。
+                                 各评分各一格（2026-11-15 用户令「两个评分不要文字，用图标表示平台」）：星配大众分、
+                                 番茄配影评指数，2026-11-25 起右侧再加 Bangumi 官方评分那一格。哪一槽没分就只收哪一格，
+                                 三个都没有时整块收起来（ScoreVisibility）。 -->
                             <StackPanel
                                 x:Name="ScoreStack"
                                 VerticalAlignment="Center"
