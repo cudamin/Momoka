@@ -20,7 +20,7 @@
 
 **产物（本地）。** 安装包 `artifacts/Momoka_windows-x64_0.3.3.exe`（85,135,348 字节，SHA256 `1d093451940d210c239cff56f4d133d7aaab3f71e882c12ac085b5b802efcd09`）；免安装 ZIP `artifacts/Momoka-0.3.3-win-x64.zip`（119,479,671 字节，SHA256 `b1ec999a9453f8c05e3407b7834013f48090beb3313871bf5be18ddbb7c17255`，550 条目，根目录含 `Momoka.exe`）；商店上架包 `artifacts/Momoka-0.3.3-win-x64-store.msix`（122,333,018 字节，SHA256 `083245ae7e4bcabd25c77df45a446f165a69bb041645fc5d38f41efd38e9e7fa`，554 条目，`MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.3.3.0`／x64，未签名，只留本地由用户在 Partner Center 上传）。`SHA256SUMS.txt` 只含 EXE 与 ZIP；商店 MSIX 不上传 Release。
 
-**远端与未验。** 代码已按本地提交提交，准备推送 `origin/master`；GitHub Release 与 `v0.3.3` 标签因闸门 4 红暂不创建，等待桌面恢复 XAML 合成后重跑闸门 4 再上传。真实 MoviePilot／Emby／Jellyfin／飞牛／Plex 实屏、真实播放/写入、五主题/系统深浅/高对比/跨 DPI/Narrator/触摸、商店包安装与 Partner Center 认证均未验；34 条探针红与集成播放弹幕像素红保留原状态。
+**远端与未验。** 代码已推送 `origin/master` `dc1af76`（`bfd0a9b..dc1af76`）。本地已建 `v0.3.3` 标签（指向 `dcd7d58`），但标签推送与 `gh release create` 在 04:0x 因本机代理 `127.0.0.1:8686` 停止监听失败（直连 GitHub 也被重置），GitHub Release 与远端标签尚未创建；代理恢复后执行 `git push origin v0.3.3` 并重试三件资产（安装包、ZIP、SHA256SUMS），商店 MSIX 不上传。闸门 4 仍为环境红：XAML 岛不合成、设置窗口底材无材质，详情页检查因实服没有报告媒体库而未执行；真实 MoviePilot／Emby／Jellyfin／飞牛／Plex 实屏、真实播放/写入、五主题/系统深浅/高对比/跨 DPI/Narrator/触摸、商店包安装与 Partner Center 认证均未验；34 条探针红与集成播放弹幕像素红保留原状态。
 
 ## 2026-11-24 删除「播放工具」设置页与外部播放工具，保留截图、章节与实时字幕翻译
 
