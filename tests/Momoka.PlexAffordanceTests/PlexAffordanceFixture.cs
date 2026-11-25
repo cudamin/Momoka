@@ -355,6 +355,8 @@ internal sealed class ShellAssembly
     {
         private readonly RemovedMedia _removed = new();
         public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia) ? _removed
+            // 评分客户端只影响详情页那格分数，夹具不给它：Bangumi 评分保持收起，也不发请求。
+            : serviceType == typeof(Momoka.Bangumi.BangumiClient) ? null
             // A launcher is optional in the actual Attach path. This genre fixture never opens a
             // trailer/browser, so retain its null value without allowing another service to run.
             : serviceType.FullName == "Momoka.Shell.Platform.ISystemLauncher" ? null
