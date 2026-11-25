@@ -1,3 +1,13 @@
+## 2026-11-25 去掉飞牛音乐的周期进度上报
+
+用户令「去掉飞牛音乐10秒的上报」。核对官方飞牛音乐网页产物与现有实现：网页端只有 `track_play` 历史事件和歌词偏移事件，没有进度／停止；本客户端的进度、暂停、停止对飞牛音乐本来就是空操作，只有 `PlaybackReportCadence` 仍给它排 10 秒定时器。
+
+**改法。** `PlaybackReportCadence.For` 改为返回 `TimeSpan?`，飞牛音乐返回 `null`；`PlaybackService.MonitorAsync` 遇到 `null` 不创建 `PeriodicTimer`，只等播放结束。Emby／Jellyfin／Plex 10 秒、飞牛影视 15 秒不变；起播 `track_play` 仍发送。测试断言改为 `Assert.Null`，播放技能同步。提交 `a44abc3`（4 文件 +13/−6）。
+
+**验证。** 闸门 1 `tools/quality.ps1` **9/9**（`artifacts/quality/20261125-122029`，全方案 0 警告 0 错误、架构 7/7、重复 0.48%）。主测试 **5346/5346、0 失败 0 跳过**；`native-menu-fixture` 488/488。前两次全量各 16 个自检用例红，原因是另一工作树的 `--probe-shell --probe-section settings --screen 1` 持有跨树自检互斥锁；等待对方退出后复跑全绿。
+
+**体验发布。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：548 文件、290.7 MB，批准 mpv 清单 60 文件；`Momoka.exe` SHA256 `47BF2C9122E4455A97F43C3AC5046BF8BDB04F649FBDFCE570F61D140B6EE9D3`，`Momoka.dll` SHA256 `888AA6FA76C9B4A9CCE95E1C0C9CCA6D5654403F1D513918C59351E2899D414A`，`Momoka.Core.dll` SHA256 `02672BC4779761CCDAEFD3BC135A8035BE489B1E08E50C917111ED6EEF5E9CBC`，ProductVersion `0.3.3+a44abc3…`；`Momoka.lnk` 回读本树发布目录。未推送远端；真实飞牛音乐播放、真实服务器节奏与界面实屏待统一验证。
+
 ## 2026-11-25 0.3.3 交付：设置页隐藏本机整理（闸门 1/2/3 通过；闸门 4 环境红；GitHub pre-release 已发布）
 
 用户令「0.这个版本（0.3.3）设置页面不显示本机整理相关功能，隐藏这个页面 1.交付，跑探针和闸门，有红自己决定要不要修 2.提交代码到github 3.更新版本为0.3.3打包发布到GitHub，生成一个微软商店商店安装包」。
