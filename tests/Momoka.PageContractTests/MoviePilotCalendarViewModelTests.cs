@@ -81,6 +81,8 @@ internal static class MoviePilotCalendarViewModelTests
             using var fixture = await Fixture.Create();
             using var model = new MoviePilotCalendarViewModel();
             model.Attach(fixture.Service, fixture.Settings.MoviePilot, null);
+            // Finish the initial request before holding the request whose connection ownership is tested.
+            await model.ReloadAsync();
             fixture.Transport.Empty = true;
             fixture.Transport.Hold = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var old = model.ReloadAsync();
