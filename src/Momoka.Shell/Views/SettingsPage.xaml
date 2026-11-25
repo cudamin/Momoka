@@ -758,7 +758,7 @@
                                     OffContent="隐藏"
                                     OnContent="显示" />
                                 <TextBlock x:Uid="SettingsPage_Localization3" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
-                                    Text="控制日历里的 AniBT 番剧来源，以及 AniBT 识别、搜索和版本来源。番剧日历可以独立使用。" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
+                                    Text="控制 AniBT 番剧日历、详情参考分、识别、搜索和版本来源。番剧日历和参考分可独立使用。" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                             </StackPanel>
 
                             <!--

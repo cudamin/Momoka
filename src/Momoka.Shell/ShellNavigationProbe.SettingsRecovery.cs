@@ -113,6 +113,7 @@ internal sealed partial class ShellNavigationProbe
         var moviePilot = page.ViewModel.Sections.SelectMany(section => section.Rows).OfType<SettingMoviePilotRow>().Single();
         // Anonymous available-state boundary: only exercise these two template notes, never query a site.
         moviePilot.SitesAvailable = true;
+        const string aniBtNote = "控制 AniBT 番剧日历、详情参考分、识别、搜索和版本来源。番剧日历和参考分可独立使用。";
         foreach (var (hidden, state) in new[] { (false, "shown"), (true, "hidden"), (false, "restored") })
         {
             page.SelectedCategory = "界面";
@@ -125,13 +126,13 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "MoviePilot";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            AssertNote("控制日历里的 AniBT 番剧来源，以及 AniBT 识别、搜索和版本来源。番剧日历可以独立使用。", hidden);
+            AssertNote(aniBtNote, hidden);
             AssertNote("搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。", hidden);
             Require(Descendants(page).OfType<ToggleSwitch>().Any(control => AutomationProperties.GetName(control) == "显示 AniBT 入口"),
                 "隐藏说明误收起 AniBT 控件");
             foreach (var (text, suffix) in new[]
             {
-                ("控制日历里的 AniBT 番剧来源，以及 AniBT 识别、搜索和版本来源。番剧日历可以独立使用。", "anibt"),
+                (aniBtNote, "anibt"),
                 ("搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。", "sites")
             })
             {

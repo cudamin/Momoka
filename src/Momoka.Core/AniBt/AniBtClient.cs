@@ -215,7 +215,9 @@ public sealed partial class AniBtClient : IDisposable
                         || next.AbsolutePath != uri.AbsolutePath || next.Fragment.Length != 0
                         || QueryValue(next, "episode") != QueryValue(uri, "episode")
                         || QueryValue(next, "episodeKey") != QueryValue(uri, "episodeKey")
-                        || QueryValue(next, "season") != QueryValue(uri, "season"))
+                        || QueryValue(next, "season") != QueryValue(uri, "season")
+                        || (uri.AbsolutePath == "/api/seasons/anime" && QueryValue(uri, "bgmId") is not null
+                            && next.Query != uri.Query))
                         throw new AniBtException("AniBT 返回了无法使用的重定向", response.StatusCode);
                     uri = next;
                     continue;

@@ -939,6 +939,13 @@
                                 </StackPanel>
                             </StackPanel>
 
+                            <TextBlock
+                                x:Name="AniBtRatingText"
+                                Style="{StaticResource EgOnScrimDataStrongStyle}"
+                                Text="{x:Bind ViewModel.AniBtRatingText, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                Visibility="{x:Bind ViewModel.AniBtRatingVisibility, Mode=OneWay}" />
+
                             <Grid Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}">
                             <TextBlock
                                 x:Name="GenreLine"

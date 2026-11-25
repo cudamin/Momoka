@@ -3731,7 +3731,7 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Show</value>
   </data>
   <data name="SettingsPage_Localization3.Text" xml:space="preserve">
-    <value>Controls the AniBT calendar source, identification, search, and version source. The anime calendar can be used independently.</value>
+    <value>Controls the AniBT calendar, reference ratings, identification, search, and version source. The calendar and ratings can work independently of MoviePilot.</value>
   </data>
   <data name="SettingsPage_Localization4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>MoviePilot protocol</value>

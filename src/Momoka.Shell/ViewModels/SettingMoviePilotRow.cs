@@ -72,7 +72,7 @@ public sealed partial class SettingMoviePilotRow : SettingRow
     [ObservableProperty]
     public partial bool Enabled { get; set; }
 
-    /// <summary>AniBT 入口是否显示，包括独立于 MoviePilot 的番剧日历。</summary>
+    /// <summary>AniBT 功能是否启用，包括独立于 MoviePilot 的番剧日历和参考分。</summary>
     [ObservableProperty]
     public partial bool AniBtEnabled { get; set; }
 
