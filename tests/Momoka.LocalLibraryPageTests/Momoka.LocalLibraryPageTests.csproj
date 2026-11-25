@@ -10,7 +10,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="../../src/Momoka.Shell/ViewModels/PageViewModel.cs" Link="Production/PageViewModel.cs" />
     <Compile Include="../../src/Momoka.Shell/ViewModels/LocalLibraryViewModel.cs" Link="Production/LocalLibraryViewModel.cs" />
-    <Compile Include="../../src/Momoka.Shell/ViewModels/LocalLibraryRow.cs" Link="Production/LocalLibraryRow.cs" />
+    <Compile Include="../../src/Momoka.Shell/ViewModels/LocalLibraryGroup.cs" Link="Production/LocalLibraryGroup.cs" />
     <Compile Include="../../src/Momoka.Shell/Media/LocalLibraryArtwork.cs" Link="Production/LocalLibraryArtwork.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/LocalLibraryPage.xaml.cs" Link="Production/LocalLibraryPage.xaml.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/IShellContent.cs" Link="Production/IShellContent.cs" />

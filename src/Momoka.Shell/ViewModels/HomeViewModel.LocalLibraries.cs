@@ -1,5 +1,6 @@
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.LocalMedia;
 using Momoka.Shell.Services;
 using Momoka.Shell.Views;
 
@@ -43,10 +44,11 @@ public sealed partial class HomeViewModel
             {
                 var key = LocalLibraryRequest.Prefix + library.Id;
                 var entries = service.EntriesFor(library.Id).Where(entry => entry.IsInLibrary).ToArray();
-                var poster = entries.Select(LocalLibraryRow.PosterPathFor).FirstOrDefault(path => path.Length > 0) ?? "";
+                var poster = entries.Select(LocalMediaEntryArtwork.PosterPath).FirstOrDefault(path => path.Length > 0) ?? "";
                 var name = string.IsNullOrWhiteSpace(library.Name) ? Path.GetFileName(library.SourceDirectory.TrimEnd('\\', '/')) : library.Name;
                 if (string.IsNullOrWhiteSpace(name)) name = "本地媒体库";
-                var subtitle = $"本地 · {entries.Length} 项";
+                // 和服务器媒体库那一排一样只写库名：卡片底下的第二行留给「继续观看」那种真的多一行信息的排。
+                var subtitle = "";
                 var stamp = Momoka.Shell.Media.LocalLibraryArtwork.StampFor(poster);
                 if (!_localLibraryCards.TryGetValue(key, out var kept) || kept.Stamp != stamp)
                 {

@@ -56,6 +56,53 @@ internal static class PlaybackTests
                 "完整候选池都可接受时仍由 mpv 辨认未知简繁");
         });
 
+        Test("本地播放计划：文件 URI、标题与设置选项，不带服务器请求头", () =>
+        {
+            var settings = new AppSettings();
+            var planner = new PlaybackPlanner(settings, new ShaderGroupResolver(settings.Shaders));
+            var path = Path.Combine(Path.GetTempPath(), "momoka-local-playback-" + Guid.NewGuid().ToString("N") + ".mkv");
+            File.WriteAllText(path, "local");
+            try
+            {
+                var item = new EmbyItem { Id = "local-item", Name = "本地影片", Type = EmbyItemType.Movie, Path = path };
+                var request = planner.PlanLocal(new LocalPlaybackTicket { Path = path, Title = "本地影片", Item = item });
+                Assert.Equal(new Uri(path, UriKind.Absolute), request.MediaUrl);
+                Assert.True(request.MediaUrl.IsFile, "本地播放必须交给 mpv 文件地址");
+                Assert.Equal("本地影片", request.Title);
+                Assert.Equal("local-item", request.ItemId);
+                Assert.Equal("local", request.MediaSourceId);
+                Assert.Equal(0, request.HttpHeaders.Count);
+                Assert.True(request.PlayerOptions.Count > 0, "本地播放仍应带设置页的播放选项");
+            }
+            finally { File.Delete(path); }
+        });
+
+        Test("本地播放服务：直接起播原文件且不向服务器上报", () =>
+        {
+            var handle = new PlaybackStubHandle();
+            var (service, _, transport) = PlayingServiceWithTransport(null, handle);
+            var path = Path.Combine(Path.GetTempPath(), "momoka-local-service-" + Guid.NewGuid().ToString("N") + ".mkv");
+            File.WriteAllText(path, "local");
+            try
+            {
+                var item = new EmbyItem { Id = "local-item", Name = "本地影片", Type = EmbyItemType.Movie, Path = path, IsLocal = true };
+                var playback = service.PlayLocalAsync(new LocalPlaybackTicket { Path = path, Title = "本地影片", Item = item }, CancellationToken.None);
+                handle.Started.Task.WaitAsync(TimeSpan.FromSeconds(4)).GetAwaiter().GetResult();
+                handle.End(0, PlaybackEndReason.EndOfFile);
+                var result = playback.WaitAsync(TimeSpan.FromSeconds(4)).GetAwaiter().GetResult();
+                Assert.Equal(PlaybackEndReason.EndOfFile, result.Exit.Reason);
+                Assert.False(result.ProgressReported);
+                Assert.False(result.MarkedWatched);
+                Assert.True(handle.Request!.MediaUrl.IsFile);
+                Assert.Equal(0, transport.Count("Sessions/Playing"));
+            }
+            finally
+            {
+                service.ShutdownAsync().GetAwaiter().GetResult();
+                File.Delete(path);
+            }
+        });
+
         RegisterOutputOptions();
         RegisterSkipSections();
         RegisterChapterTimeline();

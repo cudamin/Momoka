@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text.Json;
 using Momoka.Configuration;
+using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Services;
 using static Momoka.Tests.TestHarness;
@@ -17,17 +17,12 @@ internal static class LocalMediaViewModelTests
         var loader = new SettingsPageStateTests.ShellFixture(shell, root);
         var assembly = AssemblyLoadContext.Default.Assemblies.Single(item => item.GetName().Name == "Momoka");
         var type = assembly.GetType("Momoka.Shell.ViewModels.LocalMediaViewModel", true)!;
-        Test("本机整理 VM：网络目录提示硬链接不可用", () =>
+        Test("本机整理 VM：保存的目录启用扫描且识别方式来自全局设置", () =>
         {
             using var fixture = new Fixture(type, loader, root);
-            fixture.Set("MethodIndex", 0);
-            fixture.Set("SourceDirectory", @"\\server\share\source");
-            Assert.Contains("网络目录不支持硬链接", fixture.Get<string>(fixture.Vm, "MethodNote"));
-            fixture.Set("MethodIndex", 1);
-            Assert.DoesNotContain("网络目录不支持硬链接", fixture.Get<string>(fixture.Vm, "MethodNote"));
-            fixture.Set("MethodIndex", 0);
-            fixture.Set("SourceDirectory", Path.GetDirectoryName(fixture.Source)!);
-            Assert.DoesNotContain("网络目录不支持硬链接", fixture.Get<string>(fixture.Vm, "MethodNote"));
+            Assert.True(fixture.Get<bool>(fixture.Vm, "CanScan"), "已保存目录没有启用扫描");
+            Assert.True(fixture.Get<bool>(fixture.Vm, "IsMoviePilot"), "识别方式没有读取全局设置");
+            Assert.Equal(1, ((IList)fixture.Get<object>(fixture.Vm, "Libraries")).Count);
         });
         Test("本机整理 VM：修改校正季集立即撤销旧预览", () =>
         {
@@ -38,27 +33,31 @@ internal static class LocalMediaViewModelTests
             Assert.False(fixture.Get<bool>(fixture.Row, "Ready"), "修改季集后仍允许按旧目标提交");
             Assert.False(fixture.Get<bool>(fixture.Vm, "CanApply"));
         });
-        Test("本机整理 VM：取消确认零文件写入，确认一次创建真实链接", () =>
+        Test("本机整理 VM：取消确认零写入，确认一次原地入库并写NFO", () =>
         {
             using var fixture = new Fixture(type, loader, root);
             fixture.Scan();
             fixture.Set("Confirm", (Func<string, Task<bool>>)(_ => Task.FromResult(false)));
             fixture.Run("ApplyAsync");
-            Assert.False(Directory.Exists(fixture.Target));
+            Assert.False(Directory.Exists(fixture.Metadata));
             fixture.Set("Confirm", (Func<string, Task<bool>>)(_ => Task.FromResult(true)));
             fixture.Run("ApplyAsync");
-            Assert.True(File.Exists(fixture.Source));
-            Assert.Equal(1, Directory.GetFiles(fixture.Target, "*.mkv", SearchOption.AllDirectories).Length);
-            Assert.True(fixture.Get<string>(fixture.Row, "ResultDetails").Contains(".nfo", StringComparison.Ordinal), "逐项回执没有保留NFO结果");
+            Assert.Equal("anonymous fixture video bytes", File.ReadAllText(fixture.Source));
+            Assert.Equal(0, Directory.GetFiles(fixture.Metadata, "*.mkv", SearchOption.AllDirectories).Length);
+            Assert.True(Directory.GetFiles(fixture.Metadata, "*.nfo", SearchOption.AllDirectories).Length == 1);
+            var details = fixture.Get<string>(fixture.Row, "ResultDetails");
+            var status = fixture.Get<string>(fixture.Row, "Status");
+            var notice = fixture.Get<string>(fixture.Vm, "Notice");
+            Assert.True(details.Contains(".nfo", StringComparison.Ordinal), $"回执=「{details}」状态=「{status}」提示=「{notice}」");
             Assert.False(fixture.Get<bool>(fixture.Vm, "CanApply"));
         });
-        Test("本机整理 VM：等待确认时切换整理方式不执行旧计划", () =>
+        Test("本机整理 VM：等待确认时切换识别方式不执行旧计划", () =>
         {
             using var fixture = new Fixture(type, loader, root);
             fixture.Scan();
-            fixture.Set("Confirm", (Func<string, Task<bool>>)(_ => { fixture.Set("MethodIndex", 1); return Task.FromResult(true); }));
+            fixture.Set("Confirm", (Func<string, Task<bool>>)(_ => { fixture.Set("ProviderIndex", 0); return Task.FromResult(true); }));
             fixture.Run("ApplyAsync");
-            Assert.False(Directory.Exists(fixture.Target));
+            Assert.False(Directory.Exists(fixture.Metadata));
         });
         Test("本机整理 VM：扫描错误不发送服务器整理和刷新请求", () =>
         {
@@ -66,7 +65,7 @@ internal static class LocalMediaViewModelTests
             fixture.Transport.Answer("media/recognize", """{"meta_info":{},"media_info":null}""");
             fixture.Scan();
             Assert.False(fixture.Get<bool>(fixture.Vm, "CanApply"));
-            Assert.False(Directory.Exists(fixture.Target));
+            Assert.False(Directory.Exists(fixture.Metadata));
             Assert.Equal(0, fixture.Transport.Count("transfer/"));
             Assert.Equal(0, fixture.Transport.Count("scrape"));
         });
@@ -79,7 +78,7 @@ internal static class LocalMediaViewModelTests
             Assert.DoesNotContain("source/", url);
             Assert.DoesNotContain("source\\", url);
         });
-        Test("本机整理 VM：校正搜索候选成功后更新预览，失败不能恢复旧目标", () =>
+        Test("本机整理 VM：校正搜索候选成功后更新识别，不复制或改名源文件", () =>
         {
             using var fixture = new Fixture(type, loader, root);
             fixture.Scan();
@@ -95,7 +94,9 @@ internal static class LocalMediaViewModelTests
             fixture.Transport.Answer("media/77", """{"title":"Other","year":"2026","type":"电影","media_source":"themoviedb","media_id":"77","tmdb_id":77}""");
             fixture.Run("CorrectAsync");
             Assert.True(fixture.Get<bool>(fixture.Row, "Ready"));
-            Assert.Contains("Other", fixture.Get<string>(fixture.Row, "Target"));
+            Assert.Contains("Other", fixture.Get<string>(fixture.Row, "Recognized"));
+            Assert.Equal(fixture.Source, fixture.Get<string>(fixture.Row, "VideoPath"));
+            Assert.Equal("anonymous fixture video bytes", File.ReadAllText(fixture.Source));
         });
         return TestHarness.Run();
     }
@@ -105,9 +106,10 @@ internal static class LocalMediaViewModelTests
         private readonly SettingsPageStateTests.ShellFixture _reflection;
         private readonly string _directory;
         private readonly MoviePilotService _service;
+        private readonly IDisposable _coordinator;
         public object Vm { get; }
         public string Source { get; }
-        public string Target { get; }
+        public string Metadata { get; }
         public StubTransport Transport { get; } = new();
         public object Row => ((IList)_reflection.Get<object>(Vm, "Rows"))[0]!;
         public Fixture(Type type, SettingsPageStateTests.ShellFixture reflection, string root)
@@ -118,11 +120,17 @@ internal static class LocalMediaViewModelTests
             Directory.CreateDirectory(sourceDirectory);
             Source = Path.Combine(sourceDirectory, "Example.2026.mkv");
             File.WriteAllText(Source, "anonymous fixture video bytes");
-            Target = Path.Combine(_directory, "output");
+            Metadata = Path.Combine(_directory, "metadata");
             var settings = new MemorySettings();
-            settings.Settings.LocalMedia.SourceDirectory = sourceDirectory;
-            settings.Settings.LocalMedia.TargetDirectory = Target;
             settings.Settings.LocalMedia.Provider = "moviepilot";
+            settings.Settings.LocalMedia.Libraries.Add(new()
+            {
+                Id = "one",
+                Name = "Example",
+                SourceDirectory = sourceDirectory,
+                MonitorEnabled = false
+            });
+            settings.Settings.LocalMedia.LibrariesMigrated = true;
             settings.Settings.MoviePilot.Enabled = true;
             settings.Settings.MoviePilot.Url = "https://fixture.invalid:3001";
             settings.Settings.MoviePilot.Username = "fixture";
@@ -137,6 +145,10 @@ internal static class LocalMediaViewModelTests
             Assert.True(_service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
             Vm = Activator.CreateInstance(type)!;
             _reflection.Invoke(Vm, "Attach", settings, PassthroughSecretProtector.Instance, _service);
+            var coordinatorType = Vm.GetType().Assembly.GetType("Momoka.Shell.Services.LocalLibraryCoordinator", true)!;
+            _coordinator = (IDisposable)Activator.CreateInstance(coordinatorType,
+                settings, PassthroughSecretProtector.Instance, _service, new AppPaths(_directory), null)!;
+            _reflection.Invoke(Vm, "UseLibraries", _coordinator);
         }
         public void Set(string name, object value) => _reflection.Set(Vm, name, value);
         public T Get<T>(object instance, string name) => _reflection.Get<T>(instance, name);
@@ -145,6 +157,7 @@ internal static class LocalMediaViewModelTests
         public void Dispose()
         {
             ((IDisposable)Vm).Dispose();
+            _coordinator.Dispose();
             _service.Dispose();
             Directory.Delete(_directory, recursive: true);
         }

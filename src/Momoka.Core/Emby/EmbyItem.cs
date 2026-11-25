@@ -532,6 +532,13 @@ public sealed class MediaSource
 
     public List<MediaStream> MediaStreams { get; set; } = [];
 
+    /// <summary>
+    /// 本机条目从文件名与文件长度读出的文件读数（大小 · 分辨率 · 视频编码 · 音频格式 · 制作组）。
+    /// 非空时 <see cref="ToFileInfoLabel"/> 直接用它：本机视频没有服务器媒体流，不必为了一行字造一批假轨道。
+    /// </summary>
+    [JsonIgnore]
+    public string LocalFileInfoLabel { get; set; } = "";
+
     [JsonIgnore]
     public IEnumerable<MediaStream> AudioStreams => MediaStreams.Where(stream => stream.IsAudio);
 
@@ -568,6 +575,8 @@ public sealed class MediaSource
     /// </summary>
     public string ToFileInfoLabel()
     {
+        if (LocalFileInfoLabel.Length > 0) return LocalFileInfoLabel;
+
         var parts = new List<string>(6);
         var video = PrimaryVideoStream;
 
@@ -682,6 +691,13 @@ public sealed class EmbyPerson
     /// <summary>Image cache tag for the portrait; null when the server holds no photo.</summary>
     public string? PrimaryImageTag { get; set; }
 
+    /// <summary>
+    /// 本机整理入库的人像路径（元数据目录里的普通文件）。服务器条目为空，照旧走图片缓存；
+    /// 本机条目的人像不经过服务器，演职人员卡直接读这个文件。
+    /// </summary>
+    [JsonIgnore]
+    public string LocalArtworkPath { get; set; } = "";
+
     /// <summary>What a portrait card shows under the name: the character, else the credit.</summary>
     [JsonIgnore]
     public string Credit => Role is { Length: > 0 } role ? role.Trim() : CreditName(Type);
@@ -726,6 +742,30 @@ public sealed class EmbyItem
     /// <summary>运行期所属服务器账号；不进入服务器 JSON 或持久化设置。</summary>
     [JsonIgnore]
     public EmbySessionScope? Source { get; set; }
+
+    /// <summary>本机整理入库的条目：Path 是原视频路径，播放不经过服务器会话。</summary>
+    [JsonIgnore]
+    public bool IsLocal { get; set; }
+
+    /// <summary>本机条目的海报或剧照路径；空串表示没有可直接读取的本地图片。</summary>
+    [JsonIgnore]
+    public string LocalArtworkPath { get; set; } = "";
+
+    /// <summary>本机条目的背景图路径；详情页头图优先用它，没有时退回 <see cref="LocalArtworkPath"/>。</summary>
+    [JsonIgnore]
+    public string LocalBackdropPath { get; set; } = "";
+
+    /// <summary>本机条目的单集剧照路径；集列表卡片用它，没有时退回作品海报。</summary>
+    [JsonIgnore]
+    public string LocalThumbPath { get; set; } = "";
+
+    /// <summary>本机条目所属的本地媒体库；空串表示不是本地条目，或调用方不需要回到索引。</summary>
+    [JsonIgnore]
+    public string LocalLibraryId { get; set; } = "";
+
+    /// <summary>本机条目的作品分组键；详情页的已看/收藏按这一组一起落盘。</summary>
+    [JsonIgnore]
+    public string LocalGroupKey { get; set; } = "";
 
     /// <summary>Local confirmation revision when the producing request began; never sent to a server.</summary>
     [JsonIgnore]

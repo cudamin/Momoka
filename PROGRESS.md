@@ -1,3 +1,25 @@
+## 2026-11-25 本机整理图片格式修复、重试未完成项与本机库海报墙/详情页复用
+
+用户附图报「入库部分失败或未完成」，令「修复图一」；随后令「媒体库页面参考emby媒体库页面做，媒体详情页面直接复用」。
+
+**根因与修复。** TMDB 图片 CDN 按 `Accept` 协商格式：请求头带 `image/webp` 时，`.jpg` 地址也回 WebP 字节，而本机入库按元数据计划的后缀校验实际图片格式，poster/fanart 因此被拒写、条目停在「部分附属文件未完成」。`TmdbClient.FetchImageAsync` 改为只接受 `image/jpeg,image/png`；真实 TMDB 图片响应已验证回 JPEG，测试固定请求头。
+
+**重试。** 本地库页在存在未完成条目时出现「重试未完成项」；`LocalMediaLibrary.RetryIncomplete` 只移除未完成条目的防重记录，组织器新增 `SameNfo`：已有 NFO 的 `uniqueid`、数据来源与季集号一致时复用，不覆盖、不改源文件，缺失海报/背景图/剧照照常补写；其他作品同名文件仍拒写。
+
+**页面。** 本机媒体库改为 Emby 风格海报墙：电影一条文件一张卡、剧集按 TMDB 作品聚合，顶部是作品数与刷新/重试/打开源目录工具栏，独立滚动与空态保留。点卡进入现有详情页：`LocalMediaItems` 把本机条目折成电影/剧集/单集 `EmbyItem`，`DetailRequest.ForLocal` 携带本机集列表，`DetailViewModel` 走本机加载与本地图片读取，播放目标落在第一集，收藏、已看与服务器侧「更多」收起；剧集页的「共 N 季」按实际季数而不是集数。
+
+**验证。** 质量闸门 1 **9/9**；全方案 Release 编译 0 警告 0 错误；主测试 **5344 项全部通过、0 失败 0 跳过**；`Momoka.LocalLibraryPageTests` **18/18**；字幕、详情图片、导航状态、自然接续提取夹具 **89/89、40/40、10/10、88/88**；原生 `--probe-shell --probe-section local-media --screen 1` **2/2**（`shell-probe-20261124-174821519-10740`），电影库/剧集库各一张作品卡，宽窗详情页核对标题、封面、`共 1 季`、第一集播放目标与两集卡片。真实 TMDB 令牌下的 `C:\Users\89400\Desktop\TEST` 重试补图、S01E75 播放与五主题/DPI/触摸矩阵仍未人工复核；未推送远端。
+
+## 2026-11-25 本机整理改为直接入库：目录列表置顶、元数据目录与应用内本地播放
+
+用户令取消卡片分区、目录列表放最上方并支持多个目录、一个目录一个媒体库、保存时设名称；元数据默认存 `%LOCALAPPDATA%\Momoka` 且可自定义；中文界面令牌改名「API 读访问令牌」；验收要求 `C:\Users\89400\Desktop\TEST` 文件正确识别 TMDB 与集数、直接刮削入库、可播放且不改名不建链接。随后追加「要加一个卡片当背景」，整页保留一张背景卡片，内部不再分区。
+
+**改法。** 删除硬链接／软链接／改名与目标目录；`LocalMediaOrganizer.Prepare` 改为原地入库，视频只做快照核对，NFO／海报／剧照写入 `AppPaths.LocalMediaMetadataDirectory`（默认 `%LOCALAPPDATA%\Momoka\metadata`，按媒体库名称分目录），同剧共用 `tvshow.nfo`／海报并核对身份。`LocalMediaSettings` 增加 `MetadataDirectory` 与全局识别方式，旧单目录迁移为第一个媒体库；旧 `local-library.json` 的输出枚举数值保持不变，避免旧索引错位。`LocalLibraryCoordinator` 逐库校验名称与目录，按元数据根启动监控；`LocalMediaViewModel` 改为目录行逐行保存、扫描全部已保存库；`LocalMediaPage` 单页平铺、`LocalMediaSurface` 一张背景卡片、目录列表置顶、元数据目录可保存／恢复默认。TMDB 识别新增 `TmdbLocalMedia.FindUniqueAsync`：整串、中文段、拉丁段依次搜索，`LocalMediaName` 归一化保留词边界（`A.B`≠`AB`，`Like Mother, Like Daughter`＝`Like Mother Like Daughter`，`爱·回家`＝`爱回家`）。本地库播放新增 `PlaybackService.PlayLocalAsync`／`PlaybackPlanner.PlanLocal`，`PlayerViewModel` 走 `IsLocal` 分支，直接以文件 URI 交给 mpv，不建立服务器会话、不上报进度；`ShellPage` 把本地库条目合成 EmbyItem 并接上播放回调。
+
+**验证。** Core、Shell、`Momoka.Tests` Release 均 0 警告 0 错误；主测试 **5342 项全部通过、0 失败 0 跳过**（新增原地入库、元数据路径、旧索引枚举、双语文件名与中文段回退匹配、本地播放计划／服务、页面单卡片背景与逐行保存契约）；`local-media-vm-fixture` **7/7**、`local-library-coordinator-fixture` **7/7**、`Momoka.LocalLibraryPageTests` **17/17**；`--probe-shell --probe-section local-media --screen 1` 两项均通过（目录列表、逐行保存、宽窄预览、确认取消、多库自动入库与首页入口）。用 `C:\Users\89400\Desktop\TEST` 的真实 MKV 和按 TMDB 331026／S01E75 构造的离线响应跑 Core 验收：解析为 S01E75、匹配 331026、NFO 写入临时元数据目录、源文件 SHA256 与时间戳不变、链接数仍为 1、元数据目录无视频文件；真实 TMDB 令牌请求与应用内播放仍需用户在应用里复核。验收脚本为临时工具，已删除。
+
+**发布。** 从主树复制批准 `libmpv-2.dll`（101,242,880 字节，2026-10-14），`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-media-card-scraping-0IrtV9` 通过：548 文件、290.7 MB，批准 mpv 清单 60 文件；桌面快捷方式已回读本树 `artifacts/publish/win-x64/Momoka.exe`。未跑完整闸门 1（用户中断）与统一验证，未推送远端。
+
 ## 2026-11-24 进度上报间隔改为按后端固定：Emby/Jellyfin 10 秒、飞牛 15 秒、Plex 10 秒
 
 用户令「删除 进度上报间隔 选项，直接使用各家对应的间隔，plex先设为10」。只读核对已确认 Emby Web 4.10.1.0 与 Jellyfin Web 10.10.7 的网页播放器都是 10 秒一拍（Jellyfin 的 apiclient 还给 timeupdate 设了 10 秒下限），飞牛影视官方前端 0.9.8 的 `PLAYER_RECORD_INTERVAL` 是 15 秒；Plex 网页端闭源，按用户令先取 10 秒，不是对 Plex 网页端的源码结论。
@@ -16171,3 +16193,25 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 **分支清理。** 内容已全部进入 master、工作树干净、无其他会话使用，按规则删除桌面 `Momoka-feat-shortcut-seek-partition-4nRt8K.lnk`、工作树与本地分支，本地只留 master。
 
 **待统一验证。** 真实窗口里十三张卡的滚动节奏、四行秒数以五套固定深色／跟随系统／高对比／跨 DPI／760 与 600 下限的观感；英文界面、读屏与触摸；搜索「跨度」「字幕」等词完整结果与空态；播放行为页四张卡既有检查。合并与本次发布不改变这些待验边界，本批不销账。
+
+## 2026-11-25 本机媒体库：补齐封面、背景图、元数据与封面操作（分支，待统一验证）
+
+用户附本机作品卡实屏（封面占位胶片图标、标题「爱·回家之三代同糖」、副标题「2026 · 第 1 季 · 1 集」）并报「没有封面没有背景图，没有元数据，封面上没有已看、收藏、更多菜单」。在上一批「海报墙与详情页复用」的基础上补齐四件事。
+
+- 封面与背景图：上一版取图被 TMDB 的 WebP 协商挡在 `.jpg` 目标之外；`TmdbClient.FetchImageAsync` 固定只接受 `image/jpeg,image/png`。启动监控时 `RetryBrokenArtwork` 自动放开「实际格式与预览目标后缀不一致」且未完成的旧条目一次，免去先点重试；补写沿用同作品 NFO，不改源文件。真实发布件启动后，`C:\Users\89400\Desktop\TEST` 的 S01E75 自动得到 `poster.jpg`（249,132 字节，JPEG 头 `FFD8FF`）与 `fanart.jpg`（741,965 字节，JPEG 头 `FFD8FF`），索引 `Complete=true`。
+- 元数据：TMDB 详情增加 `append_to_response=credits,aggregate_credits`，解析标语、评分、片长、类型、电视网/制作公司与演职人员；本机条目折成详情页条目时带上 `Genres`、`CommunityRating`、`RunTimeTicks`、`Taglines`、`Studios`、`People`，NFO 同步写 `tagline/runtime/ratings/genre/studio/actor/director`。真实数据补到评分 3、类型「喜剧/家庭/剧情」、TVB Jade 与 10 位演职人员。
+- 封面操作：本地作品卡与本地详情页封面都加已看、收藏、更多三颗（详情页沿用 `LocalCoverActionStyle`；作品卡用与 Emby 海报卡同一种无底图标与悬停遮罩）。已看与收藏按 `LocalMediaEntryArtwork.GroupKey` 整部作品写进 `local-library.json`；重试补写会用新元数据重建条目，已看与收藏现在显式随旧条目保留。卡片「更多」菜单提供播放、打开所在文件夹、重新识别并补全元数据、刷新媒体库。
+- 接线：`LocalLibraryGroup` 增加 `Watched/Favorite` 与 `SetUserState/RefreshEntries`，`LocalLibraryViewModel` 增加 `ToggleWatchedAsync/ToggleFavoriteAsync`，`LocalLibraryPage` 增加悬停浮层与菜单；详情页已有本机分支的已看/收藏命令复用同一份 `LocalLibraryCoordinator.SetLocalUserState`。
+- 验证：Shell 与 Tests Release/x64 **0 警告 0 错误**，全解决方案 Release **0 警告 0 错误**；主测试 **5347/5347、0 失败 0 跳过**；`local-media-fixture` **183/183**、`Momoka.LocalLibraryPageTests` **21/21**、`local-media-layout-fixture` **24/24**、`acrylic-controls-fixture` **38/38**、`Momoka.DetailDeleteCommandTests` **41/41**；质量闸门 1 **9/9**（`artifacts/quality/20261125-132349`）；主测试在最终代码上首跑 16 项自检隔离红（共享桌面锁），同一构建立即重跑 **5347/5347、0 失败 0 跳过**；原生 `--probe-shell --probe-section local-media --screen 2` **2/2、退出 0**（`shell-probe-20261125-052017138-25112`；首跑 screen 1 被另一进程的 mpv 窗口遮挡，按守卫停止后改副屏重跑），影片库/剧集库封面文件存在、封面三颗按钮在树、运行期 `FindName` 能找到操作组、详情 `StillImage` 与 `HeroImage` 非空、已看与收藏带进详情；实屏 `local-libraries-series-actions-screen.png`（卡片三颗）与 `local-libraries-detail-screen.png`（详情封面三颗、背景图、集卡角标）已目视。真实悬停的指针注入被同一桌面上的 mpv 与用户鼠标盖掉，探针改为核对运行期查找并把操作层亮出来拍实屏，真实悬停留给用户验收。
+- 发布：`tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-media-card-scraping-0IrtV9` 退出 0（548 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件），桌面快捷方式回读指向本树 `artifacts/publish/win-x64/Momoka.exe`；`Momoka.exe` SHA256 `B1087895AD202B4A3031062003488088F0CC3B594228E4025FC2D9AD8EC17E54`，`Momoka.dll` SHA256 `0770D3D73913A7191F065A30F79822B8E79EDD2C4D6B6B11CCDC1785DB137F04`，ProductVersion `0.3.2+bed2b5c`。
+- 待统一验证：用户关闭旧窗口后用新快捷方式打开，实看本机媒体库页的封面、悬停三颗、更多菜单与详情页元数据；真实 mpv 起播、连播与已看/收藏跨重启；五套主题、高对比、跨 DPI、窄窗与触摸/读屏。真实窗口截图里另有 `0.3.3` 更新提示，与本批无关。未提交、未合并、未推送远端；不销账。
+
+## 2026-11-25 本机详情页与媒体库入口对齐（分支，待统一验证）
+
+用户附本机剧集页与 Emby 剧集页两张实屏，令「你这个媒体详情页怎么跟其他媒体库的详情页不一样，不是让你直接复用吗」，并指出首页「媒体库列表下面还自己加了个什么 本地 1项」。核对后确认页面复用的是同一个 `DetailPage`，差异来自四处：关闭沉浸模式后本机条目仍铺沉浸全幅背景（`SpreadsBackdrop` 只看本机背景路径，不看 `ImmersiveEnabled`）；演职人员头像与人物编号没有落盘，`ItemDetail.Cast` 因此筛不出卡片；「视频：」一行只从文件名读到制作组；详情页封面另压了本机专属的已看/收藏/更多三颗。首页本地媒体库卡则多一行「本地 · N 项」。
+
+- 版式：`SpreadsBackdrop` 改成本机条目同样要求 `ImmersiveEnabled`（或非电影/剧/季/集页面）；关闭沉浸后本机详情页走与其他媒体库相同的商店版式。原生探针夹具设 `EnableImmersive=false`，断言 `StoreMode && !BackdropShown`。
+- 演职人员：`TmdbLocalPerson` 增加 TMDB 人物编号与头像地址，`LocalMediaPerson` 增加编号、来源与落盘路径；`LocalMediaOrganizer.Prepare` 按编号把头像写到作品目录 `people/{id}.jpg`，新 `LocalMediaOutputKind.PersonImage` 标记 `Optional`（下载失败不算未完成）；索引持久化 `Id/ImagePath`，`LocalMediaItems` 把头像路径带进 `EmbyPerson`，`ItemDetail.Cast` 生成本机人像卡（不可导航），`CardShelf` 的演职人员排直接读本机文件。旧索引没有人物编号的条目在启动时由 `LocalMediaLibrary.RetryMissingPeople` 放开一次；补写失败只留空消息尝试，不出现「待校正」。
+- 读数与入口：新增 `LocalMediaFileInfo`，从文件名与索引长度读大小、分辨率、视频编码、动态范围、音频格式、制作组；`MediaSource.Size` 与 `LocalFileInfoLabel` 供详情页「视频：」与媒体信息表。首页本地媒体库卡副标题置空；删除本机详情页封面上的三颗专属图标，已看/收藏/更多统一走标题下方标准操作排。
+- 验证：全解决方案 Release **0 警告 0 错误**；主测试 **5354/5354、0 失败 0 跳过**；`local-media-fixture` **190/190**；`Momoka.LocalLibraryPageTests` **21/21**；`Momoka.DetailDeleteCommandTests` **41/41**；`local-media-vm-fixture` 与 `local-library-coordinator-fixture` 各 **7/7**；`Momoka.NaturalContinuationCallerTests` **88/88**；`local-media-layout-fixture` **24/24**；质量闸门 1 **9/9**（`artifacts/quality/20261125-145509`）；原生 `--probe-shell --probe-section local-media --screen 2` **2/2、退出 0**（`shell-probe-20261125-064040489-6528`），实屏核对首页无「本地 · N 项」、详情页为商店版式且封面无额外图标。
+- 真实数据：旧条目补头像的首次启动补写在启动 8 秒时遇到一次「无法连接TMDB」；已确认该失败只留空消息尝试、不产生「待校正」。随后一次启动成功写入 **8 张人物头像**（10 位演职人员中 2 位 TMDB 无头像，按「隐藏没有封面的演职人员」收起），真实详情页实屏 `artifacts/shots/real-local-detail.png` 已核对演职人员行、视频读数「641 MB · 1080p · HEVC · AAC · ADWeb」、标题下方标准操作排，封面无额外图标。播放仍待用户复核。发布 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName Momoka-feat-media-card-scraping-0IrtV9` 退出 0（548 文件、290.8 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件），快捷方式指向本树 `artifacts/publish/win-x64/Momoka.exe`；`Momoka.exe` SHA256 `B1087895AD202B4A3031062003488088F0CC3B594228E4025FC2D9AD8EC17E54`，`Momoka.dll` SHA256 `417158D8A8CF17BFA68121C8F289048D858ABF14D0A6660254FA2AE11722752D`，ProductVersion `0.3.2+bed2b5c`。未提交、未合并、未推送远端；不销账。

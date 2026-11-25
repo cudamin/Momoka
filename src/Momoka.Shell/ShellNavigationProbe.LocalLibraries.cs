@@ -5,9 +5,11 @@ using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.LocalMedia;
 using Momoka.MoviePilot;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Services;
+using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
@@ -36,8 +38,11 @@ internal sealed partial class ShellNavigationProbe
         using var coordinator = new LocalLibraryCoordinator(fixture.SettingsService, PassthroughSecretProtector.Instance,
             fixture.Services.GetRequiredService<MoviePilotService>(), new AppPaths(root), dispatcher);
         var services = new LocalLibrariesProbeServices(fixture.Services, coordinator);
-        await coordinator.SaveAsync(new() { Id = "movies", Name = "本地电影", SourceDirectory = sourceA, TargetDirectory = Path.Combine(root, "movie-library"), Provider = "moviepilot", MonitorEnabled = true });
-        await coordinator.SaveAsync(new() { Id = "series", Name = "本地剧集", SourceDirectory = sourceB, TargetDirectory = Path.Combine(root, "series-library"), Provider = "moviepilot", MonitorEnabled = true });
+        fixture.Settings.LocalMedia.Provider = "moviepilot";
+        // 用户桌面上关闭了沉浸模式：本机详情页必须走与其他媒体库相同的商店版式，不许自己铺全幅背景。
+        fixture.Settings.Ui.EnableImmersive = false;
+        await coordinator.SaveAsync(new() { Id = "movies", Name = "本地电影", SourceDirectory = sourceA, MonitorEnabled = true });
+        await coordinator.SaveAsync(new() { Id = "series", Name = "本地剧集", SourceDirectory = sourceB, MonitorEnabled = true });
         var shell = new ShellPage();
         shell.Attach(services);
         Field(shell, "_window", _window);
@@ -63,24 +68,79 @@ internal sealed partial class ShellNavigationProbe
             var updateDeadline = Environment.TickCount64 + 15000;
             while (Environment.TickCount64 < updateDeadline && coordinator.EntriesFor("series").Count(entry => entry.IsInLibrary) < 2) await Task.Delay(50);
             Require(coordinator.EntriesFor("series").Count(entry => entry.IsInLibrary) == 2, "首页打开后的新文件没有自动入库");
-            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.SingleOrDefault(card => card.Item.Id == "local-library:series")?.Subtitle == "本地 · 2 项");
+            // 本地媒体库卡与服务器媒体库卡同一种写法：只写库名，不额外加「本地 · N 项」第二行。
+            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.SingleOrDefault(card => card.Item.Id == "local-library:series")?.Subtitle == "");
             foreach (var width in new[] { 1280, 760 })
             {
                 ResizeProbeClient(width, 860);
                 await UntilAsync(() => { _root.UpdateLayout(); return Math.Abs(_root.ActualWidth - width) < 1; });
                 await LayoutAsync(home);
                 await UntilAsync(() => Descendants(home).OfType<PosterCard>().Any(card => card.Card?.Item.Id == "local-library:series"
-                    && Get<TextBlock>(card, "SubLine").Text == "本地 · 2 项"));
+                    && Get<TextBlock>(card, "SubLine").Text.Length == 0));
                 await SaveProbeScreenAsync($"local-libraries-home-{width}-screen.png");
             }
             var localCard = home.ViewModel.LibraryShelf!.Cards.Single(card => card.Item.Id == "local-library:movies");
             home.ViewModel.Open(localCard);
             await UntilAsync(() => shell.Pages.Content is LocalLibraryPage);
-            await LayoutAsync((LocalLibraryPage)shell.Pages.Content);
+            var moviesPage = (LocalLibraryPage)shell.Pages.Content;
+            await UntilAsync(() => moviesPage.ViewModel.Groups.Count == 1);
+            await LayoutAsync(moviesPage);
+            Require(moviesPage.ViewModel.Groups.Single().IsMovie, "电影库的作品卡没有按本机条目出现");
             await SaveProbeScreenAsync("local-libraries-movies-screen.png");
             shell.GoTo("local-library:series");
-            await LayoutAsync((LocalLibraryPage)shell.Pages.Content);
+            await UntilAsync(() => shell.Pages.Content is LocalLibraryPage page && page.ViewModel.Groups.Count == 1);
+            var seriesPage = (LocalLibraryPage)shell.Pages.Content;
+            await LayoutAsync(seriesPage);
+            var seriesGroup = seriesPage.ViewModel.Groups.Single();
+            Require(seriesGroup.IsSeries && seriesGroup.Entries.Count == 2, "剧集库没有把同一部作品聚成一张卡");
+            var posterPath = seriesGroup.Entries.Select(LocalMediaEntryArtwork.PosterPath).FirstOrDefault(path => path.Length > 0) ?? "";
+            var backdropPath = seriesGroup.Entries.Select(LocalMediaEntryArtwork.BackdropPath).FirstOrDefault(path => path.Length > 0) ?? "";
+            Require(posterPath.Length > 0 && File.Exists(posterPath), "本机作品卡没有封面文件");
+            Require(backdropPath.Length > 0 && File.Exists(backdropPath), "本机作品卡没有背景图文件");
+            var coverButtons = Descendants(seriesPage).OfType<Button>().Count(button => button.Tag is LocalLibraryGroup);
+            Require(coverButtons >= 3, "作品卡封面上没有已看、收藏、更多");
             await SaveProbeScreenAsync("local-libraries-series-screen.png");
+            // 悬停的指针事件由输入系统驱动；共享桌面上另一个 mpv 窗口和真实鼠标正在使用，注入指针会被用户的
+            // 移动盖掉。这里先核对运行期 FindName 能找到操作组（PointerEntered 走的就是它），再把操作层亮出来
+            // 留一张实屏核对位置与对比度。真实悬停由用户验收。
+            var poster = Descendants(seriesPage).OfType<Grid>().FirstOrDefault(grid => grid.Name == "GroupPoster");
+            if (poster is null) throw new InvalidOperationException("作品卡没有封面层");
+            if (poster.FindName("GroupActions") is not StackPanel) throw new InvalidOperationException("作品卡封面层找不到操作组（FindName）");
+            var actions = Descendants(seriesPage).OfType<StackPanel>().FirstOrDefault(panel => panel.Name == "GroupActions");
+            if (actions is null) throw new InvalidOperationException("作品卡没有封面操作组");
+            actions.Visibility = Visibility.Visible;
+            actions.Opacity = 1;
+            if (Descendants(seriesPage).OfType<Border>().FirstOrDefault(border => border.Name == "GroupHoverShade") is { } shade)
+                shade.Opacity = 0.78;
+            await LayoutAsync(seriesPage);
+            await SaveProbeScreenAsync("local-libraries-series-actions-screen.png");
+            actions.Opacity = 0;
+            actions.Visibility = Visibility.Collapsed;
+            await seriesPage.ViewModel.ToggleWatchedAsync(seriesGroup);
+            Require(seriesGroup.Watched && coordinator.EntriesFor("series").All(entry => entry.Watched), "封面已看没有写入本机索引");
+            await seriesPage.ViewModel.ToggleFavoriteAsync(seriesGroup);
+            Require(seriesGroup.Favorite && coordinator.EntriesFor("series").All(entry => entry.Favorite), "封面收藏没有写入本机索引");
+            await seriesPage.ViewModel.OpenAsync(seriesGroup);
+            await UntilAsync(() => shell.Pages.Content is DetailPage detail && detail.ViewModel.IsLocal);
+            var localDetail = (DetailPage)shell.Pages.Content;
+            await UntilAsync(() => localDetail.ViewModel.PlayTarget is not null && localDetail.ViewModel.ShownEpisodes.Count == 2
+                && localDetail.ViewModel.IsReady && !localDetail.ViewModel.Busy);
+            ResizeProbeClient(1100, 860);
+            await UntilAsync(() => { _root.UpdateLayout(); return Math.Abs(_root.ActualWidth - 1100) < 1; });
+            await LayoutAsync(localDetail);
+            await Task.Delay(400);
+            await LayoutAsync(localDetail);
+            Require(localDetail.ViewModel.Title == "示例剧集" && localDetail.ViewModel.PlayTarget!.IsLocal,
+                "本地作品卡没有进入现有详情页，或播放目标不是本机条目");
+            Require(localDetail.ViewModel.IsLocal && localDetail.ViewModel.FavoriteActionVisibility == Visibility.Visible,
+                "本地详情页没有放开收藏");
+            Require(localDetail.ViewModel.StoreMode && !localDetail.ViewModel.BackdropShown,
+                "关闭沉浸后本机详情页仍按沉浸版式铺全幅背景");
+            await UntilAsync(() => localDetail.ViewModel.StillImage is not null && localDetail.ViewModel.HeroImage is not null, 200);
+            Require(localDetail.ViewModel.StillImage is not null, "本地详情封面没有显示海报");
+            Require(localDetail.ViewModel.HeroImage is not null, "本地详情没有背景图");
+            Require(localDetail.ViewModel.Watched && localDetail.ViewModel.Favorite, "封面已看与收藏没有带进详情页");
+            await SaveProbeScreenAsync("local-libraries-detail-screen.png");
             await coordinator.StopAsync();
             Require(server.Writes == 0, "自动本机整理向服务器提交了写操作");
         }
@@ -107,7 +167,7 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Task.FromResult(Json(new { access_token = "fixture-token" }));
             if (request.Method != HttpMethod.Get) { Writes++; throw new InvalidOperationException("禁止服务器媒体写入"); }
             var movie = new { title = "示例电影", year = "2026", type = "电影", media_source = "themoviedb", media_id = "42", tmdb_id = 42, poster_path = "https://artwork.invalid/poster.png", backdrop_path = "https://artwork.invalid/backdrop.png" };
-            var series = new { title = "示例剧集", year = "2026", type = "电视剧", media_source = "themoviedb", media_id = "43", tmdb_id = 43, poster_path = "https://artwork.invalid/series.png" };
+            var series = new { title = "示例剧集", year = "2026", type = "电视剧", media_source = "themoviedb", media_id = "43", tmdb_id = 43, poster_path = "https://artwork.invalid/series.png", backdrop_path = "https://artwork.invalid/series-backdrop.png" };
             if (path.EndsWith("system/cache/image", StringComparison.Ordinal)) return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Image) });
             object? data = path switch
             {

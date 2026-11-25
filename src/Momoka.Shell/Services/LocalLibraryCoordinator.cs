@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.LocalMedia;
@@ -15,7 +16,8 @@ public sealed class LocalLibraryCoordinator : IDisposable
     private readonly ISettingsService _settings;
     private readonly ISecretProtector _protector;
     private readonly MoviePilotService _moviePilot;
-    private readonly IUiDispatcher _dispatcher;
+    private readonly IUiDispatcher? _dispatcher;
+    private readonly AppPaths _paths;
     private readonly LocalMediaLibrary _library;
     private readonly SemaphoreSlim _changes = new(1, 1);
     private readonly Dictionary<string, RunningLibrary> _running = new(StringComparer.Ordinal);
@@ -28,9 +30,9 @@ public sealed class LocalLibraryCoordinator : IDisposable
     public event EventHandler? Changed;
 
     public LocalLibraryCoordinator(ISettingsService settings, ISecretProtector protector, MoviePilotService moviePilot,
-        AppPaths paths, IUiDispatcher dispatcher)
+        AppPaths paths, IUiDispatcher? dispatcher)
     {
-        _settings = settings; _protector = protector; _moviePilot = moviePilot; _dispatcher = dispatcher;
+        _settings = settings; _protector = protector; _moviePilot = moviePilot; _dispatcher = dispatcher; _paths = paths;
         LocalLibrarySettingsMigration.Normalize(settings.Settings.LocalMedia);
         _library = new(Path.Combine(paths.Root, "local-library.json"));
         _library.Changed += OnLibraryChanged;
@@ -43,6 +45,20 @@ public sealed class LocalLibraryCoordinator : IDisposable
     public IReadOnlyList<LocalMediaLibrarySettings> Libraries => _settings.Settings.LocalMedia.Libraries.Select(value => value.Copy()).ToArray();
     public IReadOnlyList<LocalMediaLibraryEntry> EntriesFor(string libraryId) =>
         _library.Entries.Where(entry => entry.LibraryId == libraryId).OrderByDescending(entry => entry.AddedAt).ToArray();
+
+    /// <summary>元数据默认落点；界面用它显示「留空时保存在哪里」。</summary>
+    public string DefaultMetadataDirectory => _paths.LocalMediaMetadataDirectory;
+
+    /// <summary>当前实际使用的元数据根目录：自定义值优先，空串回落到默认目录。</summary>
+    public string MetadataRoot => ResolveMetadataRoot(_settings.Settings.LocalMedia.MetadataDirectory);
+
+    internal string ResolveMetadataRoot(string? configured)
+    {
+        var value = TypedPath.Clean(configured);
+        if (value.Length == 0) return _paths.LocalMediaMetadataDirectory;
+        try { return Path.GetFullPath(value); }
+        catch (Exception) { return value; }
+    }
     public string StatusFor(string id)
     {
         if (_notices.TryGetValue(id, out var notice)) return notice;
@@ -121,6 +137,24 @@ public sealed class LocalLibraryCoordinator : IDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>重试本库已入库但附属文件未完成的条目；只补写缺失项，不覆盖已核对的同作品元数据。</summary>
+    public Task RetryIncompleteAsync(string id)
+    {
+        _library.RetryIncomplete(id);
+        if (_running.TryGetValue(id, out var running)) running.Monitor.Refresh();
+        Notify();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>本机详情页的已看/收藏：写到本地索引，作品分组一起改；成功返回 true。</summary>
+    public bool SetLocalUserState(string libraryId, string groupKey, bool? watched, bool? favorite)
+    {
+        if (_disposed) return false;
+        var updated = _library.SetUserState(libraryId, groupKey, watched, favorite);
+        if (updated) Notify();
+        return updated;
+    }
+
     internal async Task RecognitionChangedAsync()
     {
         try { if (_started && !_disposed) await ReconcileAsync(); }
@@ -137,9 +171,8 @@ public sealed class LocalLibraryCoordinator : IDisposable
         {
             var configuration = Libraries.SingleOrDefault(value => value.Id == libraryId)
                 ?? throw new InvalidOperationException("媒体库已移除，请重新打开。");
-            if (!SamePath(configuration.SourceDirectory, plan.Source.RootPath) || Mode(configuration.Method) != plan.Mode
-                || plan.Mode != LocalMediaLinkMode.Rename && !SamePath(configuration.TargetDirectory, plan.TargetRoot))
-                throw new InvalidOperationException("媒体库规则已经改变，请重新预览。");
+            if (!SamePath(configuration.SourceDirectory, plan.Source.RootPath))
+                throw new InvalidOperationException("媒体库目录已经改变，请重新预览。");
             await StopLibraryAsync(libraryId);
             run = new(CancellationTokenSource.CreateLinkedTokenSource(cancellationToken));
             _manual[libraryId] = run;
@@ -203,9 +236,10 @@ public sealed class LocalLibraryCoordinator : IDisposable
         if (!configuration.MonitorEnabled || _manual.ContainsKey(configuration.Id)) return;
         TmdbClient? tmdb = null;
         var mpGeneration = Interlocked.Read(ref _mpGeneration);
+        var provider = _settings.Settings.LocalMedia.Provider == "moviepilot" ? "moviepilot" : "momoka";
         Func<LocalMediaSource, CancellationToken, Task<LocalMediaMetadata>> recognize;
         Func<string, CancellationToken, Task<byte[]>> images;
-        if (configuration.Provider == "moviepilot")
+        if (provider == "moviepilot")
         {
             if (!_moviePilot.Available) { _notices[configuration.Id] = "等待 MoviePilot 连接恢复"; return; }
             var stamp = _moviePilot.ConnectionStamp;
@@ -224,7 +258,7 @@ public sealed class LocalLibraryCoordinator : IDisposable
             string credential;
             try { credential = _protector.Unprotect(_settings.Settings.LocalMedia.ProtectedTmdbToken); }
             catch (Exception) { credential = ""; }
-            if (string.IsNullOrWhiteSpace(credential)) { _notices[configuration.Id] = "请先保存 TMDB 读取令牌"; return; }
+            if (string.IsNullOrWhiteSpace(credential)) { _notices[configuration.Id] = "请先保存 API 读访问令牌"; return; }
             // 代理在每次重建监控时读一次：设置页改完会喊 ShellPrefs.ApplyProxy，这里重开监控就换上新代理。
             tmdb = new(credential, proxy: ProxyEndpoint.CreateWebProxy(_settings.Settings.Network.ProxyServer));
             var client = tmdb;
@@ -233,9 +267,8 @@ public sealed class LocalLibraryCoordinator : IDisposable
             {
                 var parsed = LocalMediaName.Parse(Path.GetRelativePath(source.RootPath, source.Path));
                 if (parsed.Problem.Length > 0) throw new InvalidOperationException(parsed.Problem);
-                var candidates = await client.SearchAsync(parsed.Title, parsed.IsSeries, parsed.Year, token);
-                var selected = LocalMediaName.UniqueExactMatch(parsed, candidates)
-                    ?? throw new InvalidOperationException("没有唯一匹配，请在本地整理中手动校正。");
+                var selected = await TmdbLocalMedia.FindUniqueAsync(client, parsed, token)
+                    ?? throw new InvalidOperationException("没有唯一匹配，请在本机整理中手动校正。");
                 return FromTmdb(await client.DetailsAsync(selected.Id, parsed.IsSeries, parsed.Season, parsed.Episode, token));
             };
         }
@@ -243,12 +276,16 @@ public sealed class LocalLibraryCoordinator : IDisposable
         monitor.Updated += OnLibraryChanged;
         var state = new RunningLibrary(monitor, tmdb);
         _running[configuration.Id] = state;
-        if (configuration.Provider == "moviepilot") _mpMonitors[configuration.Id] = monitor;
+        if (provider == "moviepilot") _mpMonitors[configuration.Id] = monitor;
         try
         {
-            await monitor.StartAsync(new(configuration.Id, configuration.SourceDirectory, configuration.TargetDirectory, Mode(configuration.Method))
-            { Recursive = configuration.Recursive, IncludeExisting = true, ProviderKey = configuration.Provider });
-            if (configuration.Provider == "moviepilot" && mpGeneration != Interlocked.Read(ref _mpGeneration)) monitor.Cancel();
+            // 旧版取图把 WebP 当后缀不符拒写；启动时自动补一次，用户不必先找到重试按钮。
+            _library.RetryBrokenArtwork(configuration.Id);
+            // 旧版没有人物编号与头像：同样在启动时补一次，本机详情页的演职人员才不会永久缺一块。
+            if (tmdb is not null) _library.RetryMissingPeople(configuration.Id);
+            await monitor.StartAsync(new(configuration.Id, configuration.SourceDirectory, MetadataRoot, configuration.Name)
+            { Recursive = configuration.Recursive, IncludeExisting = true, ProviderKey = provider });
+            if (provider == "moviepilot" && mpGeneration != Interlocked.Read(ref _mpGeneration)) monitor.Cancel();
         }
         catch
         {
@@ -279,31 +316,21 @@ public sealed class LocalLibraryCoordinator : IDisposable
     private void Validate(LocalMediaLibrarySettings configuration, bool requireSource = true)
     {
         if (string.IsNullOrWhiteSpace(configuration.Name) || string.IsNullOrWhiteSpace(configuration.SourceDirectory))
-            throw new InvalidOperationException("请填写媒体库名称和源目录。");
-        if (string.IsNullOrWhiteSpace(configuration.Id) || configuration.Method is not ("hardlink" or "symboliclink" or "rename")
-            || configuration.Provider is not ("momoka" or "moviepilot")) throw new InvalidOperationException("媒体库规则无效，请重新选择。");
+            throw new InvalidOperationException("请填写媒体库名称和目录。");
+        if (string.IsNullOrWhiteSpace(configuration.Id))
+            throw new InvalidOperationException("媒体库规则无效，请重新选择。");
         var root = Path.GetFullPath(configuration.SourceDirectory);
-        if (configuration.Method == "hardlink"
-            && (LocalMediaOrganizer.IsNetworkPath(root) || LocalMediaOrganizer.IsNetworkPath(configuration.TargetDirectory)))
-            throw new InvalidOperationException("网络目录不支持硬链接，请选择软链接或直接改名。");
-        if (requireSource && !Directory.Exists(root)) throw new DirectoryNotFoundException("源目录不存在或当前无法访问。");
-        if (configuration.Method != "rename" && string.IsNullOrWhiteSpace(configuration.TargetDirectory))
-            throw new InvalidOperationException("链接方式需要目标目录。");
+        if (requireSource && !Directory.Exists(root)) throw new DirectoryNotFoundException("媒体库目录不存在或当前无法访问。");
         foreach (var other in Libraries.Where(value => value.Id != configuration.Id && !string.IsNullOrWhiteSpace(value.SourceDirectory)))
         {
+            if (string.Equals(other.Name.Trim(), configuration.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("媒体库名称不能重复，元数据按名称分目录保存。");
             var existing = Path.GetFullPath(other.SourceDirectory);
             if (SamePath(existing, root) || existing.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
                 || root.StartsWith(Path.TrimEndingDirectorySeparator(existing) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("媒体库源目录不能重复或嵌套，请选择独立目录。");
-            if (configuration.Method != "rename" && Overlap(configuration.TargetDirectory, existing)
-                || other.Method != "rename" && !string.IsNullOrWhiteSpace(other.TargetDirectory) && Overlap(other.TargetDirectory, root))
-                throw new InvalidOperationException("一个媒体库的输出目录不能成为另一个媒体库的来源。");
+                throw new InvalidOperationException("媒体库目录不能重复或嵌套，请选择独立目录。");
         }
-        if (configuration.Method != "rename" && Overlap(configuration.TargetDirectory, root))
-            throw new InvalidOperationException("来源与输出目录不能重叠。");
     }
-
-    internal static LocalMediaLinkMode Mode(string mode) => mode switch { "rename" => LocalMediaLinkMode.Rename, "symboliclink" => LocalMediaLinkMode.SymbolicLink, _ => LocalMediaLinkMode.HardLink };
 
     /// <summary>代理改了：重开所有监控，每一份 TmdbClient 都按新代理重建。不重开的话后台刮削会一直用旧连接。</summary>
     private void OnProxyChanged(NetworkSettings network)
@@ -313,21 +340,20 @@ public sealed class LocalLibraryCoordinator : IDisposable
     }
 
     private static bool SamePath(string first, string second) => string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)), StringComparison.OrdinalIgnoreCase);
-    private static bool Overlap(string first, string second)
-    {
-        var a = Path.TrimEndingDirectorySeparator(Path.GetFullPath(first));
-        var b = Path.TrimEndingDirectorySeparator(Path.GetFullPath(second));
-        return SamePath(a, b) || a.StartsWith(b + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            || b.StartsWith(a + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-    }
     private static string SafeError(Exception error) => error is IOException or InvalidOperationException or ArgumentException or TmdbException or MoviePilotException ? error.Message : "本地媒体库处理失败，请检查目录和识别配置。";
     private void OnLibraryChanged(object? sender, EventArgs args) => Notify();
-    private void Notify() => _dispatcher.Post(() => { if (!_disposed) Changed?.Invoke(this, EventArgs.Empty); });
+    private void Notify()
+    {
+        if (_disposed) return;
+        if (_dispatcher is null) { Changed?.Invoke(this, EventArgs.Empty); return; }
+        _dispatcher.Post(() => { if (!_disposed) Changed?.Invoke(this, EventArgs.Empty); });
+    }
     private void OnAvailabilityChanged(object? sender, EventArgs args)
     {
         Interlocked.Increment(ref _mpGeneration);
         if (!_started || _disposed) return;
         foreach (var monitor in _mpMonitors.Values) monitor.Cancel();
+        if (_dispatcher is null) return;
         _dispatcher.Post(async () =>
         {
             try
@@ -336,7 +362,7 @@ public sealed class LocalLibraryCoordinator : IDisposable
                 try
                 {
                     if (!_started || _disposed) return;
-                    foreach (var configuration in Libraries.Where(value => value.Provider == "moviepilot"))
+                    foreach (var configuration in Libraries.Where(value => _settings.Settings.LocalMedia.Provider == "moviepilot"))
                     {
                         await StopLibraryAsync(configuration.Id);
                         await StartLibraryAsync(configuration);
@@ -387,6 +413,10 @@ public sealed class LocalLibraryCoordinator : IDisposable
             PosterUrl = media.PosterUrl ?? "",
             BackdropUrl = media.BackdropUrl ?? "",
             EpisodeImageUrl = value.EpisodeImageUrl ?? "",
+            Tagline = MoviePilotSubscription.Text(value.Detail.Data, "tagline"),
+            CommunityRating = media.Rating ?? (value.Detail.Vote is > 0 and var vote ? vote : null),
+            Genres = SplitNames(value.Detail.Genres),
+            Studios = MpNames(value.Detail.Data, value.Detail.Media.Type == "电视剧" ? "networks" : "production_companies"),
             Premiered = Date(value.Detail.Text("release_date", "first_air_date")),
             EpisodeAired = Date(value.EpisodeAirDate)
         };
@@ -403,8 +433,28 @@ public sealed class LocalLibraryCoordinator : IDisposable
         PosterUrl = value.PosterUrl,
         BackdropUrl = value.BackdropUrl,
         EpisodeImageUrl = value.EpisodeImageUrl,
+        Tagline = value.Tagline,
+        CommunityRating = value.Rating > 0 ? value.Rating : null,
+        RuntimeMinutes = value.Runtime > 0 ? value.Runtime : null,
+        Genres = value.Genres.ToArray(),
+        Studios = value.Studios.ToArray(),
+        People = value.People.Select(person => new LocalMediaPerson(person.Name, person.Role, person.Director)
+        {
+            Id = person.Id,
+            ImageUrl = person.ImageUrl
+        }).ToArray(),
         Premiered = Date(value.Premiered),
         EpisodeAired = Date(value.EpisodeAired)
     };
+    private static string[] SplitNames(string value) => string.IsNullOrWhiteSpace(value) ? [] : value
+        .Split(['/', '、', ',', '，', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Distinct(StringComparer.Ordinal).Take(8).ToArray();
+    private static string[] MpNames(JsonElement data, string field)
+    {
+        if (MoviePilotSubscription.Member(data, field) is not { ValueKind: JsonValueKind.Array } array) return [];
+        return array.EnumerateArray().Take(2)
+            .Select(item => item.ValueKind == JsonValueKind.Object ? MoviePilotSubscription.Text(item, "name").Trim() : "")
+            .Where(name => name.Length > 0).ToArray();
+    }
     private static DateOnly? Date(string? value) => DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;
 }

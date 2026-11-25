@@ -5,6 +5,20 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="Transparent">
+    <Page.Resources>
+        <!-- 和媒体库海报卡右下角那三颗同一种画法：只画图标、不带底色，悬停遮罩负责照片上的对比度。 -->
+        <Style x:Key="LocalCardActionStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+    </Page.Resources>
     <Grid Padding="{StaticResource EgPageMargin}" RowSpacing="{StaticResource EgSpaceL}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -17,9 +31,8 @@
                 AutomationProperties.HeadingLevel="Level1" />
             <TextBlock Text="{x:Bind ViewModel.SourceDirectory, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                 Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-            <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
-                 Samples/CommandBar/CommandBarPage.xaml, PrimaryCommandBar. Keep native labels,
-                 dynamic overflow, keyboard focus and light-dismiss; the count has its own column. -->
+            <!-- 与 Emby 媒体库页同一种页头：左边是这一屏有多少项，右边是整组能力键（刷新 / 重试 /
+                 打开源目录）。重试只在本库确实有未完成的附属文件时出现。 -->
             <Grid ColumnSpacing="{StaticResource EgSpaceL}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <TextBlock x:Name="LocalLibraryCount" Text="{x:Bind ViewModel.CountText, Mode=OneWay}"
@@ -29,6 +42,9 @@
                     <AppBarButton x:Uid="LocalLibraryPage_LocalLibraryRefresh" x:Name="LocalLibraryRefresh" Icon="Refresh" Label="刷新媒体库" Click="OnRefresh"
                         AutomationProperties.Name="刷新媒体库"
                         Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
+                    <AppBarButton x:Uid="LocalLibraryPage_LocalLibraryRetry" x:Name="LocalLibraryRetry" Icon="Sync" Label="重试未完成项" Click="OnRetryIncomplete"
+                        AutomationProperties.Name="重试未完成项"
+                        Visibility="{x:Bind ViewModel.RetryVisibility, Mode=OneWay}" />
                     <AppBarButton x:Uid="LocalLibraryPage_LocalLibraryOpenSource" x:Name="LocalLibraryOpenSource" Icon="OpenLocal" Label="打开源目录" Click="OnOpenSource"
                         AutomationProperties.Name="打开源目录"
                         Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
@@ -42,36 +58,81 @@
         <InfoBar x:Name="LocalLibraryNotice" Grid.Row="2" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-        <ListView x:Name="LocalLibraryEntries" Grid.Row="3" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
-            SelectionMode="None" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListView.ItemTemplate>
-                <DataTemplate x:DataType="vm:LocalLibraryRow">
-                    <Grid Margin="0,8,0,8" ColumnSpacing="{StaticResource EgSpaceL}" Tag="{x:Bind}"
-                        Loaded="OnRowLoaded" Unloaded="OnRowUnloaded" AutomationProperties.Name="{x:Bind Title}">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Width="96" Height="144" CornerRadius="{StaticResource EgPosterCornerRadius}" Background="{ThemeResource EgSurfaceBrush}">
-                            <Grid>
-                                <FontIcon Glyph="&#xE8B2;" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <Image Source="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" />
-                            </Grid>
-                        </Border>
-                        <StackPanel Grid.Column="1" Spacing="{StaticResource EgSpaceS}" VerticalAlignment="Center">
-                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
-                            <TextBlock Text="{x:Bind MetadataText}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
-                            <TextBlock Text="{x:Bind EpisodeTitle}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                            <TextBlock Text="{x:Bind TargetPath}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
-                                TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-                            <local:WrapRow Spacing="{StaticResource EgSpaceM}" RowSpacing="{StaticResource EgSpaceS}">
-                                <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-                                <Button x:Uid="LocalLibraryPage_LocalLibraryOpenLocation" x:Name="LocalLibraryOpenLocation" Content="打开所在文件夹" Tag="{x:Bind}" Click="OnOpenLocation" />
-                                <Button x:Uid="LocalLibraryPage_LocalLibraryPlay" x:Name="LocalLibraryPlay" Content="播放" Tag="{x:Bind}" Click="OnPlay"
-                                    Visibility="{x:Bind PlayVisibility, Mode=OneWay}" />
-                            </local:WrapRow>
-                        </StackPanel>
-                    </Grid>
+        <!-- 海报墙：和 Emby 媒体库页同一套读法 —— 一个作品一张卡，救回整页宽度重排，点开进详情页。 -->
+        <ItemsView x:Name="LocalLibraryGroups" Grid.Row="3" ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}"
+            SelectionMode="None" IsItemInvokedEnabled="True" ItemInvoked="OnGroupInvoked"
+            Padding="{StaticResource EgScrollBarLane}">
+            <ItemsView.Layout>
+                <UniformGridLayout ItemsStretch="None" MinItemWidth="170" MinItemHeight="320"
+                    MinColumnSpacing="16" MinRowSpacing="24" />
+            </ItemsView.Layout>
+            <ItemsView.ItemTemplate>
+                <DataTemplate x:DataType="vm:LocalLibraryGroup">
+                    <ItemContainer AutomationProperties.Name="{x:Bind Title}">
+                        <ItemContainer.Resources>
+                            <SolidColorBrush x:Key="ItemContainerPointerOverBackground" Color="Transparent" />
+                            <SolidColorBrush x:Key="ItemContainerPressedBackground" Color="Transparent" />
+                        </ItemContainer.Resources>
+                        <Grid Tag="{x:Bind}" Loaded="OnGroupLoaded" Unloaded="OnGroupUnloaded"
+                            Width="170" RowSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Border Height="255" CornerRadius="{StaticResource EgPosterCornerRadius}" Background="{ThemeResource EgSurfaceBrush}">
+                                <Grid x:Name="GroupPoster" PointerEntered="OnGroupPointerEntered" PointerExited="OnGroupPointerExited">
+                                    <FontIcon Glyph="&#xE8B2;" Foreground="{ThemeResource EgTextDimBrush}" />
+                                    <Image Source="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" />
+                                    <!-- 悬停才浮出来的封面操作，和 Emby 媒体库海报卡同一层遮罩、同一组三颗。 -->
+                                    <Border x:Name="GroupHoverShade" Background="{ThemeResource EgScrimBrush}"
+                                        IsHitTestVisible="False" Opacity="0" />
+                                    <StackPanel x:Name="GroupActions" Margin="0,0,6,4" HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="4"
+                                        Opacity="0" Visibility="Collapsed" Tapped="OnGroupActionTapped">
+                                        <StackPanel.Resources>
+                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
+                                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
+                                        </StackPanel.Resources>
+                                        <Button AutomationProperties.Name="{x:Bind WatchedActionTip}"
+                                            Click="OnGroupWatched" Style="{StaticResource LocalCardActionStyle}"
+                                            Tag="{x:Bind}" ToolTipService.ToolTip="{x:Bind WatchedActionTip}">
+                                            <Grid>
+                                                <FontIcon FontSize="{StaticResource EgTitleFontSize}" Glyph="&#xEC61;"
+                                                    Visibility="{x:Bind NotWatchedVisibility, Mode=OneWay}" />
+                                                <FontIcon FontSize="{StaticResource EgTitleFontSize}" Foreground="{ThemeResource EgAccentBrush}" Glyph="&#xEC61;"
+                                                    Visibility="{x:Bind WatchedVisibility, Mode=OneWay}" />
+                                            </Grid>
+                                        </Button>
+                                        <Button AutomationProperties.Name="{x:Bind FavoriteActionTip}"
+                                            Click="OnGroupFavorite" Style="{StaticResource LocalCardActionStyle}"
+                                            Tag="{x:Bind}" ToolTipService.ToolTip="{x:Bind FavoriteActionTip}">
+                                            <Grid>
+                                                <FontIcon FontSize="{StaticResource EgTitleFontSize}" Glyph="&#xEB52;"
+                                                    Visibility="{x:Bind NotFavoriteVisibility, Mode=OneWay}" />
+                                                <FontIcon FontSize="{StaticResource EgTitleFontSize}" Foreground="{ThemeResource EgDangerBrush}" Glyph="&#xEB52;"
+                                                    Visibility="{x:Bind FavoriteVisibility, Mode=OneWay}" />
+                                            </Grid>
+                                        </Button>
+                                        <Button AutomationProperties.Name="更多" x:Name="GroupMore"
+                                            Click="OnGroupMore" Style="{StaticResource LocalCardActionStyle}"
+                                            Tag="{x:Bind}" ToolTipService.ToolTip="更多">
+                                            <FontIcon FontSize="{StaticResource EgTitleFontSize}" Glyph="&#xE712;" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <TextBlock Grid.Row="1" Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}"
+                                TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                            <TextBlock Grid.Row="2" Text="{x:Bind Subtitle}" Style="{StaticResource EgCaptionStyle}"
+                                Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </ItemContainer>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </ItemsView.ItemTemplate>
+        </ItemsView>
         <TextBlock x:Uid="LocalLibraryPage_Localization2" Grid.Row="3" Text="还没有已入库的影视文件。后台扫描与刮削完成后会显示在这里。"
             Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap"
             Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" />

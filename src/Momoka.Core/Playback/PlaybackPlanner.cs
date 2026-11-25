@@ -142,6 +142,31 @@ public sealed class PlaybackPlanner(
         return request;
     }
 
+    /// <summary>
+    /// 本地库条目：不经过 Emby／Plex 等服务器，直接把文件路径交给 mpv。画面、音频与字幕外观仍按设置页
+    /// 的选项构造；没有服务器来源信息，所以不套用需要片源元数据的帧同步与裁切规则。
+    /// </summary>
+    public PlaybackRequest PlanLocal(LocalPlaybackTicket ticket, string? audioDevice = null)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        var options = new List<KeyValuePair<string, string>>(48);
+        options.AddRange(MpvBaseline.Build(
+            MpvBaseline.ScreenshotOptions.From(settings.Mpv),
+            shaderCacheDirectory, ScreenshotDirectory, fontsDirectory));
+        options.AddRange(MpvOutputOptions.Build(
+            settings.Video, settings.Audio, settings.Playback, null, false, ticket.DisplayRefreshHz, audioDevice,
+            MpvSvp.IsEnabled(settings.Mpv), settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || settings.Video.Renderer != "gpu"));
+        return new PlaybackRequest
+        {
+            MediaUrl = new Uri(ticket.Path, UriKind.Absolute),
+            Title = ticket.Title,
+            PlayerOptions = options,
+            RunTimeTicks = ticket.Item.RunTimeTicks ?? 0,
+            ItemId = ticket.Item.Id,
+            MediaSourceId = "local"
+        };
+    }
+
     private PlaybackRequest PlanAudio(PlaybackTicket ticket, EmbyConnection connection, string? audioDevice)
     {
         var source = ticket.Source;

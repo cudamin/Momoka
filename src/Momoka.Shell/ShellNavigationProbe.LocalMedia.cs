@@ -25,10 +25,10 @@ internal sealed partial class ShellNavigationProbe
         var directory = Path.Combine(_options.Paths.Root, "local-media-fixture");
         var source = Path.Combine(directory, "source");
         Directory.CreateDirectory(source);
-        await File.WriteAllTextAsync(Path.Combine(source, "Example.2026.mkv"), "anonymous probe video bytes");
+        var video = Path.Combine(source, "Example.2026.mkv");
+        const string original = "anonymous probe video bytes";
+        await File.WriteAllTextAsync(video, original);
         var settings = fixture.Settings.LocalMedia;
-        settings.SourceDirectory = source;
-        settings.TargetDirectory = Path.Combine(directory, "target");
         settings.Provider = "moviepilot";
         await ConnectMoviePilotAsync(fixture);
         using var coordinator = new LocalLibraryCoordinator(fixture.SettingsService, PassthroughSecretProtector.Instance,
@@ -61,11 +61,19 @@ internal sealed partial class ShellNavigationProbe
             var page = (LocalMediaPage)settingsPage.CurrentPage;
             await LayoutAsync(page);
             var vm = page.ViewModel;
+            Require(vm.Libraries.Count == 0, "未保存的目录不应自动占一行");
+            vm.NewLibrary();
+            var library = vm.Libraries.Single();
+            library.Name = "示例媒体库";
+            library.Directory = source;
+            await vm.SaveLibraryAsync(library);
+            Require(library.Saved && coordinator.Libraries.Count == 1, "目录没有按行保存为媒体库");
+            await LayoutAsync(page);
             await vm.ScanAsync();
-            Require(vm.Rows.Count == 1 && vm.Rows[0].Ready && vm.CanApply, "匿名电影没有生成实际链接计划");
-            var expectedProvider = vm.ProviderIndex;
-            var expectedMethod = vm.MethodIndex;
-            var expectedTarget = vm.TargetDirectory;
+            Require(vm.Rows.Count == 1 && vm.Rows[0].Ready && vm.CanApply, "匿名电影没有生成原地入库计划");
+            Require(File.Exists(video) && await File.ReadAllTextAsync(video) == original, "扫描改动了源文件");
+            var metadataRoot = paths.LocalMediaMetadataDirectory;
+            Require(!Directory.Exists(Path.Combine(directory, "target")), "不应再创建目标链接目录");
             var layoutReadings = new List<object>();
             foreach (var (width, screenshotSize) in new[] { (1100, "1100"), (760, "760"), (600, "600"), (1100, "restored-1100") })
             {
@@ -84,35 +92,12 @@ internal sealed partial class ShellNavigationProbe
                 }
                 Require(Math.Abs(_root.ActualWidth - width) < 1, $"窗口实际宽度 {_root.ActualWidth} 未达到 {width}；客户区 {_window.ClientSize}，缩放 {_root.XamlRoot.RasterizationScale}");
                 await LayoutAsync(page);
-                Require(Get<TextBox>(page, "LocalMediaSource").ActualWidth > 120, "窄窗源目录输入被挤出");
-                foreach (var cardName in new[] { "LocalLibraryCard", "LocalMediaRecognitionCard", "LocalMediaDirectoriesCard", "LocalLibraryAutomationCard" })
-                {
-                    var card = Get<Grid>(page, cardName);
-                    Require(card.ActualWidth > 200 && card.Children.OfType<StackPanel>().Any(header => header.Children.OfType<FontIcon>().Any()),
-                        $"{cardName} 没有展开或图标缺失");
-                    Require(card.Children.OfType<StackPanel>().Any(content => Grid.GetRow(content) == 1), "卡片内容没有在标题下展开");
-                    var cardPosition = card.TransformToVisual(page).TransformPoint(new Windows.Foundation.Point());
-                    Require(cardPosition.X >= 0 && cardPosition.X + card.ActualWidth <= page.ActualWidth + 1, "卡片超出页面边界");
-                }
-                foreach (var pickerName in new[] { "LocalMediaPickSource", "LocalMediaPickTarget" })
-                {
-                    var picker = Get<Button>(page, pickerName);
-                    var position = picker.TransformToVisual(page).TransformPoint(new Windows.Foundation.Point());
-                    Require(position.X >= 0 && position.X + picker.ActualWidth <= page.ActualWidth + 1, "目录选择按钮被长路径挤出");
-                }
-                var modes = Get<Grid>(page, "LocalMediaModes");
-                var method = Get<ComboBox>(page, "LocalMediaMethod");
-                var wide = modes.ActualWidth >= 520;
-                Require(width != 600 || !wide, $"600 DIP窗口没有覆盖窄态，内容实际宽度 {modes.ActualWidth}");
-                Require(width != 1100 || wide, $"1100 DIP窗口没有覆盖宽态，内容实际宽度 {modes.ActualWidth}");
-                Require(Grid.GetRow(method) == (wide ? 0 : 1) && Grid.GetColumn(method) == (wide ? 1 : 0)
-                    && method.Margin.Top == (wide ? 0 : 12)
-                    && (wide ? modes.ColumnDefinitions[1].ActualWidth > 100 : modes.ColumnDefinitions[1].ActualWidth == 0),
-                    "识别和整理选项没有按内容宽度折行或恢复");
-                Require(vm.ProviderIndex == expectedProvider && vm.MethodIndex == expectedMethod
-                    && vm.SourceDirectory == source && vm.TargetDirectory == expectedTarget,
-                    "宽窄布局切换改变了识别方式、整理方式或目录输入");
-                layoutReadings.Add(new { WindowWidth = width, ContentWidth = modes.ActualWidth, MethodRow = Grid.GetRow(method), MethodColumn = Grid.GetColumn(method), Restored = screenshotSize.StartsWith("restored", StringComparison.Ordinal) });
+                Require(Get<TextBox>(page, "LocalMediaMetadataDirectory").ActualWidth > 120, "窄窗元数据目录输入被挤出");
+                var list = Get<ItemsRepeater>(page, "LocalMediaLibraryList");
+                Require(list.ActualWidth > 200, "目录列表没有展开");
+                Require(vm.ProviderIndex == 1 && vm.Libraries.Count == 1 && vm.Libraries[0].Directory == source,
+                    "宽窄布局切换改变了识别方式或目录输入");
+                layoutReadings.Add(new { WindowWidth = width, ContentWidth = list.ActualWidth, Restored = screenshotSize.StartsWith("restored", StringComparison.Ordinal) });
                 await SaveProbeScreenAsync($"local-media-preview-{screenshotSize}-screen.png");
                 var scroll = Get<ScrollViewer>(page, "LocalMediaScroll");
                 scroll.ChangeView(null, scroll.ScrollableHeight, null, true);
@@ -124,38 +109,27 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
             }
             await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "local-media-layout.json"), JsonSerializer.Serialize(layoutReadings, new JsonSerializerOptions { WriteIndented = true }));
-            var applying = vm.ApplyAsync();
-            await UntilAsync(() => Get<ContentDialog?>(page, "_confirmation") is not null);
-            var confirmation = Get<ContentDialog>(page, "_confirmation");
-            await LayoutAsync(confirmation);
-            await SaveProbeScreenAsync("local-media-confirm-screen.png");
-            confirmation.Hide();
-            await applying;
-            await SettleAsync();
-            Require(!Directory.Exists(settings.TargetDirectory), "取消确认后仍创建文件");
-            Get<ComboBox>(page, "LocalMediaMethod").SelectedIndex = 2;
-            await LayoutAsync(page);
-            Require(!vm.NeedsTarget && !vm.CanApply && vm.SourceDirectory == source, "直接改名未收起目标目录或旧预览未撤销");
-            Require(Get<Grid>(page, "LocalMediaTargetRow").Visibility == Visibility.Collapsed
-                && Get<Grid>(page, "LocalMediaDirectoriesCard").Visibility == Visibility.Visible,
-                "直接改名没有完整隐藏目标行或误隐藏目录卡片");
-            Get<ComboBox>(page, "LocalMediaMethod").SelectedIndex = 1;
-            Require(vm.NeedsTarget && vm.TargetDirectory == settings.TargetDirectory, "软链接未恢复目标目录偏好");
-            Get<ComboBox>(page, "LocalMediaProvider").SelectedIndex = 0;
+            vm.Confirm = _ => Task.FromResult(false);
+            await vm.ApplyAsync();
+            Require(File.Exists(video) && await File.ReadAllTextAsync(video) == original, "取消确认后改动了源文件");
+            Require(!Directory.Exists(metadataRoot) || !Directory.EnumerateFiles(metadataRoot, "*.nfo", SearchOption.AllDirectories).Any(), "取消确认后仍写入元数据");
+            vm.Confirm = _ => Task.FromResult(true);
+            await vm.ApplyAsync();
+            Require(File.Exists(video) && await File.ReadAllTextAsync(video) == original, "入库改动了源文件");
+            Require(Directory.Exists(metadataRoot) && Directory.EnumerateFiles(metadataRoot, "*.nfo", SearchOption.AllDirectories).Any(),
+                "确认后没有把 NFO 写入元数据目录");
+            vm.ProviderIndex = 0;
             await LayoutAsync(page);
             Require(vm.IsMomoka && !vm.CanScan, "无TMDB凭据仍开放识别或错误依赖MP");
             Require(Get<StackPanel>(page, "LocalMediaTmdbCredentials").Visibility == Visibility.Visible
                 && Get<TextBlock>(page, "LocalMediaMpNotice").Visibility == Visibility.Collapsed, "识别凭据和来源说明没有整组切换");
             await SaveProbeScreenAsync("local-media-momoka-screen.png");
-            Get<ComboBox>(page, "LocalMediaProvider").SelectedIndex = 1;
+            vm.ProviderIndex = 1;
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => !vm.MpAvailable);
             Require(!vm.CanScan && !vm.CanApply, "MP断线仍能执行");
             await ConnectMoviePilotAsync(fixture);
             await UntilAsync(() => vm.MpAvailable);
-            Get<ComboBox>(page, "LocalMediaMethod").SelectedIndex = 0;
-            Require(vm.CanScan && vm.TargetDirectory == settings.TargetDirectory, "连接恢复未恢复输入");
-            Require(vm.Libraries.Count == 1 && vm.SelectedLibrary is not null, "旧目录没有成为一个本地媒体库");
             Require(server.Writes == 0, "本机整理发出了服务器写请求");
         }
         finally

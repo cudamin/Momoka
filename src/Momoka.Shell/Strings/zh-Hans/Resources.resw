@@ -2047,11 +2047,11 @@
   <data name="LocalLibraryPage_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>正在刷新本地媒体库</value>
   </data>
-  <data name="LocalLibraryPage_LocalLibraryOpenLocation.Content" xml:space="preserve">
-    <value>打开所在文件夹</value>
+  <data name="LocalLibraryPage_LocalLibraryRetry.Label" xml:space="preserve">
+    <value>重试未完成项</value>
   </data>
-  <data name="LocalLibraryPage_LocalLibraryPlay.Content" xml:space="preserve">
-    <value>播放</value>
+  <data name="LocalLibraryPage_LocalLibraryRetry.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>重试未完成项</value>
   </data>
   <data name="LocalLibraryPage_Localization2.Text" xml:space="preserve">
     <value>还没有已入库的影视文件。后台扫描与刮削完成后会显示在这里。</value>
@@ -2060,7 +2060,22 @@
     <value>本机整理</value>
   </data>
   <data name="LocalMediaPage_Localization2.Text" xml:space="preserve">
-    <value>识别本机或网络共享中的影视文件，预览后改名或创建链接，并写入 NFO、海报与背景图。</value>
+    <value>添加多个媒体库目录，识别后直接把 NFO、海报与剧照刮削入库；视频保持原位，不改名、不移动、不创建链接。</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaToken.Header" xml:space="preserve">
+    <value>API 读访问令牌</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataDirectory.Header" xml:space="preserve">
+    <value>元数据目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataPick.Content" xml:space="preserve">
+    <value>选择…</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataSave.Content" xml:space="preserve">
+    <value>保存目录</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataReset.Content" xml:space="preserve">
+    <value>恢复默认</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>媒体库</value>
@@ -2072,7 +2087,7 @@
     <value>媒体库</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryNew.Content" xml:space="preserve">
-    <value>添加媒体库</value>
+    <value>添加目录</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryName.Header" xml:space="preserve">
     <value>媒体库名称</value>
@@ -2081,7 +2096,7 @@
     <value>识别与整理</value>
   </data>
   <data name="LocalMediaPage_Localization4.Text" xml:space="preserve">
-    <value>识别与整理</value>
+    <value>识别</value>
   </data>
   <data name="LocalMediaPage_LocalMediaProvider.Header" xml:space="preserve">
     <value>识别方式</value>
@@ -2120,13 +2135,13 @@
     <value>目录</value>
   </data>
   <data name="LocalMediaPage_LocalMediaSource.Header" xml:space="preserve">
-    <value>源目录</value>
+    <value>目录</value>
   </data>
   <data name="LocalMediaPage_LocalMediaPickSource.Content" xml:space="preserve">
     <value>选择…</value>
   </data>
   <data name="LocalMediaPage_LocalMediaPickSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>选择源目录</value>
+    <value>选择媒体库目录</value>
   </data>
   <data name="LocalMediaPage_LocalMediaTarget.Header" xml:space="preserve">
     <value>目标目录</value>
@@ -2141,13 +2156,13 @@
     <value>包含子文件夹</value>
   </data>
   <data name="LocalMediaPage_Localization9.Text" xml:space="preserve">
-    <value>源目录和目标目录可以是本机盘符（C:\媒体）或网络共享（\\服务器\共享\媒体）；网络共享使用当前 Windows 账号访问。</value>
+    <value>一个目录就是一个本地媒体库。支持本机盘符（C:\媒体）或网络共享（\\服务器\共享\媒体）；网络共享使用当前 Windows 账号访问。</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryAutomationCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>自动入库</value>
   </data>
   <data name="LocalMediaPage_Localization10.Text" xml:space="preserve">
-    <value>自动入库</value>
+    <value>元数据</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryMonitor.Header" xml:space="preserve">
     <value>自动监控并刮削入库</value>
@@ -2159,13 +2174,13 @@
     <value>已关闭</value>
   </data>
   <data name="LocalMediaPage_Localization11.Text" xml:space="preserve">
-    <value>已有和新增文件都会处理。文件写入稳定后自动识别；结果不明确时等待手动校正。保存规则后生效。</value>
+    <value>默认目录：</value>
   </data>
   <data name="LocalMediaPage_LocalLibrarySave.Content" xml:space="preserve">
-    <value>保存媒体库规则</value>
+    <value>保存</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryRemove.Content" xml:space="preserve">
-    <value>移除媒体库</value>
+    <value>移除</value>
   </data>
   <data name="LocalMediaPage_LocalMediaScan.Content" xml:space="preserve">
     <value>扫描并识别</value>

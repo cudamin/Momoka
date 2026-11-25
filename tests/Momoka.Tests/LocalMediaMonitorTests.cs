@@ -12,27 +12,34 @@ public static class LocalMediaMonitorTests
         Test("本地媒体库：后台监控和持久索引能力可用", () =>
         {
             var assembly = typeof(Momoka.Configuration.AppSettings).Assembly;
-            Assert.NotNull(assembly.GetType("Momoka.LocalMedia.LocalMediaMonitor"), "自动整理必须由后台监控拥有生命周期");
-            Assert.NotNull(assembly.GetType("Momoka.LocalMedia.LocalMediaLibrary"), "成功整理应进入持久本地媒体库");
+            Assert.NotNull(assembly.GetType("Momoka.LocalMedia.LocalMediaMonitor"), "自动入库必须由后台监控拥有生命周期");
+            Assert.NotNull(assembly.GetType("Momoka.LocalMedia.LocalMediaLibrary"), "成功入库应进入持久本地媒体库");
         });
 
-        Test("本地媒体库：实际成功执行才入库并持久化且各库独立", () => Run(async () =>
+        Test("本地媒体库：原地入库保留源文件、元数据进库目录且各库独立", () => Run(async () =>
         {
             using var files = new Files();
             var source = files.Video("film.mkv");
+            var bytes = File.ReadAllBytes(source.Path);
             var library = new LocalMediaLibrary(files.Index);
-            var plan = LocalMediaOrganizer.Prepare(source, files.Target, Movie(), LocalMediaLinkMode.HardLink);
+            var plan = LocalMediaOrganizer.Prepare(source, files.Metadata, "One", Movie());
             Assert.True((await library.ExecuteAsync("one", plan, Image, CancellationToken.None)).Success);
             var entry = library.Entries.Single();
             Assert.Equal("one", entry.LibraryId);
             Assert.True(entry.IsInLibrary);
             Assert.True(entry.Complete);
+            Assert.Equal(source.Path, entry.TargetPath);
             Assert.True(File.Exists(entry.TargetPath));
+            Assert.True(bytes.SequenceEqual(File.ReadAllBytes(entry.TargetPath)));
+            Assert.True(File.Exists(entry.Outputs.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path));
             var loaded = new LocalMediaLibrary(files.Index);
             Assert.Equal(entry.Id, loaded.Entries.Single().Id);
-            var second = LocalMediaOrganizer.Prepare(source, Path.Combine(files.Target, "second"), Movie(), LocalMediaLinkMode.HardLink);
+            var second = LocalMediaOrganizer.Prepare(source, files.Metadata, "Two", Movie());
             Assert.True((await loaded.ExecuteAsync("two", second, Image, CancellationToken.None)).Success);
             Assert.Equal(2, loaded.Entries.Count);
+            Assert.True(Directory.Exists(Path.Combine(files.Metadata, "One")));
+            Assert.True(Directory.Exists(Path.Combine(files.Metadata, "Two")));
+            Assert.True(!Equals(loaded.Entries[0].Id, loaded.Entries[1].Id));
         }));
 
         Test("本地媒体库：图片失败仍入库但显示待补且重启不重放", () => Run(async () =>
@@ -40,7 +47,8 @@ public static class LocalMediaMonitorTests
             using var files = new Files();
             var source = files.Video("film.mkv");
             var library = new LocalMediaLibrary(files.Index);
-            var plan = LocalMediaOrganizer.Prepare(source, files.Target, Movie() with { PosterUrl = "https://example.invalid/image.jpg?secret=private" }, LocalMediaLinkMode.HardLink);
+            var plan = LocalMediaOrganizer.Prepare(source, files.Metadata, "One",
+                Movie() with { PosterUrl = "https://example.invalid/image.jpg?secret=private" });
             var result = await library.ExecuteAsync("one", plan, (_, _) => Task.FromException<byte[]>(new IOException("图片失败")), CancellationToken.None);
             Assert.False(result.Success);
             Assert.True(library.Entries.Single().IsInLibrary);
@@ -53,7 +61,7 @@ public static class LocalMediaMonitorTests
             Assert.Equal(0, calls);
         }));
 
-        Test("本地监控：真实创建事件等待分段写稳定后建立链接及NFO", () => Run(async () =>
+        Test("本地监控：真实创建事件等待分段写稳定后原地入库并写NFO", () => Run(async () =>
         {
             using var files = new Files();
             var library = new LocalMediaLibrary(files.Index);
@@ -68,29 +76,31 @@ public static class LocalMediaMonitorTests
                 Assert.Equal(0, calls);
                 stream.Write([3, 4]); stream.Flush();
                 await Task.Delay(350);
-                Assert.Equal(0, calls, "仍有写入句柄时不能识别或整理");
+                Assert.Equal(0, calls, "仍有写入句柄时不能识别或入库");
             }
             await Until(() => library.Entries.Count == 1);
             Assert.Equal(1, calls);
             Assert.True(library.Entries[0].IsInLibrary);
-            Assert.True(File.Exists(Path.ChangeExtension(library.Entries[0].TargetPath, ".nfo")));
+            Assert.Equal(video, library.Entries[0].TargetPath);
+            Assert.True(File.Exists(library.Entries[0].Outputs.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path));
             File.SetLastWriteTimeUtc(video, DateTime.UtcNow);
             await Task.Delay(500);
             Assert.Equal(1, calls, "重复事件不重复处理已经尝试的文件");
         }));
 
-        Test("本地监控：已有文件默认处理并且改名自事件不重复", () => Run(async () =>
+        Test("本地监控：已有文件默认处理但不改文件名", () => Run(async () =>
         {
             using var files = new Files();
-            files.Video("before.mkv");
+            var source = files.Video("before.mkv");
             var library = new LocalMediaLibrary(files.Index);
             var calls = 0;
             await using var monitor = new LocalMediaMonitor(library, (_, _) => { calls++; return Task.FromResult(Movie()); }, Image);
-            await monitor.StartAsync(files.Options() with { Mode = LocalMediaLinkMode.Rename });
+            await monitor.StartAsync(files.Options());
             await Until(() => library.Entries.Count == 1);
             await Task.Delay(450);
             Assert.Equal(1, calls);
-            Assert.Equal("Film (2026).mkv", Path.GetFileName(library.Entries[0].TargetPath));
+            Assert.Equal("before.mkv", Path.GetFileName(library.Entries[0].TargetPath));
+            Assert.Equal(source.Path, library.Entries[0].TargetPath);
         }));
 
         Test("本地监控：从临时后缀改名为视频触发真实事件", () => Run(async () =>
@@ -106,7 +116,7 @@ public static class LocalMediaMonitorTests
             Assert.True(library.Entries.Single().IsInLibrary);
         }));
 
-        Test("本地监控：识别失败不写不定时重试刷新仅重新读", () => Run(async () =>
+        Test("本地监控：识别失败不写元数据且刷新仅重新读", () => Run(async () =>
         {
             using var files = new Files();
             files.Video("film.mkv");
@@ -117,7 +127,7 @@ public static class LocalMediaMonitorTests
             await Until(() => calls == 1);
             await Task.Delay(500);
             Assert.Equal(1, calls);
-            Assert.False(Directory.Exists(files.Target));
+            Assert.False(Directory.Exists(files.Metadata));
             Assert.Equal(0, library.Entries.Count);
             monitor.Refresh();
             await Until(() => calls == 2);
@@ -136,29 +146,19 @@ public static class LocalMediaMonitorTests
             var stop = monitor.StopAsync();
             release.SetResult(Movie());
             await stop;
-            Assert.False(Directory.Exists(files.Target));
+            Assert.False(Directory.Exists(files.Metadata));
             Assert.Equal(0, library.Entries.Count);
             files.Video("later.mkv");
             await Task.Delay(350);
-            Assert.False(Directory.Exists(files.Target));
+            Assert.False(Directory.Exists(files.Metadata));
         }));
 
-        Test("本地监控：网络目录硬链接在启动前拒绝", () => Run(async () =>
-        {
-            using var files = new Files();
-            await using var monitor = new LocalMediaMonitor(new(files.Index), (_, _) => Task.FromResult(Movie()), Image);
-            var error = Assert.Catch<IOException>(() => monitor.StartAsync(
-                new("one", @"\\server\share\source", @"\\server\share\target", LocalMediaLinkMode.HardLink)).GetAwaiter().GetResult());
-            Assert.Contains("网络目录不支持硬链接", error.Message);
-            Assert.False(Directory.Exists(files.Target));
-        }));
-
-        Test("本地监控：回环网络共享上的新建文件自动改名", () => Run(async () =>
+        Test("本地监控：网络目录可以原地入库", () => Run(async () =>
         {
             var share = LoopbackShare(Path.GetTempPath());
             if (share is null)
             {
-                Skip("本地监控：回环网络共享上的新建文件自动改名", "本机没有可访问的回环 SMB 管理共享");
+                Skip("本地监控：网络目录可以原地入库", "本机没有可访问的回环 SMB 管理共享");
                 return;
             }
             var root = Path.Combine(share, "momoka-unc-monitor-" + Guid.NewGuid().ToString("N"));
@@ -169,7 +169,7 @@ public static class LocalMediaMonitorTests
                 Directory.CreateDirectory(sourceRoot);
                 var library = new LocalMediaLibrary(index);
                 await using var monitor = new LocalMediaMonitor(library, (_, _) => Task.FromResult(Movie()), Image);
-                await monitor.StartAsync(new("one", sourceRoot, "", LocalMediaLinkMode.Rename)
+                await monitor.StartAsync(new("one", sourceRoot, Path.Combine(Path.GetTempPath(), "momoka-unc-meta-" + Guid.NewGuid().ToString("N")), "UNC")
                 {
                     IncludeExisting = false,
                     SettleTime = TimeSpan.FromMilliseconds(150),
@@ -189,7 +189,7 @@ public static class LocalMediaMonitorTests
             }
         }));
 
-        Test("本地监控：配置切换等待旧识别退出且不向旧目标写", () => Run(async () =>
+        Test("本地监控：配置切换等待旧识别退出且不向旧元数据目录写", () => Run(async () =>
         {
             using var files = new Files();
             files.Video("film.mkv");
@@ -200,23 +200,26 @@ public static class LocalMediaMonitorTests
             await using var monitor = new LocalMediaMonitor(library, (_, _) => { if (++calls == 1) { started.SetResult(); return release.Task; } return Task.FromResult(Movie()); }, Image);
             await monitor.StartAsync(files.Options());
             await started.Task.WaitAsync(TimeSpan.FromSeconds(4));
-            var newTarget = files.Target + "-new";
-            var update = monitor.UpdateAsync(files.Options() with { TargetRoot = newTarget, ProviderKey = "other" });
+            var newMetadata = files.Metadata + "-new";
+            var update = monitor.UpdateAsync(files.Options() with { MetadataRoot = newMetadata, LibraryName = "Other", ProviderKey = "other" });
             release.SetResult(Movie());
             await update;
             await Until(() => library.Entries.Count == 1);
-            Assert.False(Directory.Exists(files.Target));
-            Assert.True(library.Entries.Single().TargetPath.StartsWith(newTarget, StringComparison.Ordinal));
+            Assert.False(Directory.Exists(files.Metadata));
+            Assert.True(library.Entries.Single().TargetPath.StartsWith(files.Source, StringComparison.Ordinal));
+            Assert.True(File.Exists(library.Entries.Single().Outputs.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path));
+            Assert.True(library.Entries.Single().Outputs.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path
+                .StartsWith(newMetadata, StringComparison.Ordinal));
         }));
 
-        Test("本地媒体库：实际视频成功但NFO失败不能称入库", () => Run(async () =>
+        Test("本地媒体库：源视频成功但NFO失败不能称入库", () => Run(async () =>
         {
             using var files = new Files();
             var source = files.Video("film.mkv");
             var library = new LocalMediaLibrary(files.Index);
-            var plan = LocalMediaOrganizer.Prepare(source, files.Target, Movie() with { Overview = "invalid\u0001xml" }, LocalMediaLinkMode.HardLink);
+            var plan = LocalMediaOrganizer.Prepare(source, files.Metadata, "One", Movie() with { Overview = "invalid\u0001xml" });
             Assert.False((await library.ExecuteAsync("one", plan, Image, CancellationToken.None)).Success);
-            Assert.True(File.Exists(plan.TargetPath));
+            Assert.True(File.Exists(plan.VideoPath));
             Assert.False(library.Entries.Single().IsInLibrary);
             Assert.False(library.Entries.Single().Complete);
             var loaded = new LocalMediaLibrary(files.Index);
@@ -231,7 +234,7 @@ public static class LocalMediaMonitorTests
             await using var one = new LocalMediaMonitor(library, (_, _) => Task.FromResult(Movie()), Image);
             await using var two = new LocalMediaMonitor(library, (_, _) => Task.FromResult(Movie()), Image);
             await one.StartAsync(files.Options());
-            await two.StartAsync(files.Options() with { LibraryId = "two", TargetRoot = files.Target + "-two" });
+            await two.StartAsync(files.Options() with { LibraryId = "two", LibraryName = "Two" });
             await Until(() => library.Entries.Count == 2);
             Assert.Equal(2, library.Entries.Select(entry => entry.LibraryId).Distinct().Count());
             Assert.Equal(2, library.Entries.Select(entry => entry.Id).Distinct().Count());
@@ -248,7 +251,7 @@ public static class LocalMediaMonitorTests
                 await monitor.StartAsync(files.Options());
                 await Until(() => library.Issues.Count == 1);
                 Assert.False(library.Issues.Single().WriteAttempted);
-                Assert.False(Directory.Exists(files.Target));
+                Assert.False(Directory.Exists(files.Metadata));
             }
             var calls = 0;
             await using var restarted = new LocalMediaMonitor(new(files.Index), (_, _) => { calls++; return Task.FromResult(Movie()); }, Image);
@@ -289,7 +292,7 @@ public static class LocalMediaMonitorTests
             cancel!.Invoke(monitor, null);
             release.SetResult(Movie());
             await monitor.StopAsync();
-            Assert.False(Directory.Exists(files.Target));
+            Assert.False(Directory.Exists(files.Metadata));
             Assert.Equal(0, library.Entries.Count);
         }));
 
@@ -315,7 +318,7 @@ public static class LocalMediaMonitorTests
             var source = files.Video("film.mkv");
             var library = new LocalMediaLibrary(files.Index);
             library.Changed += (_, _) => throw new InvalidOperationException("页面已释放");
-            var plan = LocalMediaOrganizer.Prepare(source, files.Target, Movie(), LocalMediaLinkMode.HardLink);
+            var plan = LocalMediaOrganizer.Prepare(source, files.Metadata, "One", Movie());
             Assert.True((await library.ExecuteAsync("one", plan, Image, CancellationToken.None)).Success);
             Assert.True(library.Entries.Single().IsInLibrary);
             Assert.Throws<NotSupportedException>(() => ((IList<LocalMediaItemResult>)library.Entries.Single().Outputs).Clear());
@@ -339,7 +342,7 @@ public static class LocalMediaMonitorTests
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "Momoka-monitor-" + Guid.NewGuid().ToString("N"));
         public string Source => Path.Combine(_root, "source");
-        public string Target => Path.Combine(_root, "target");
+        public string Metadata => Path.Combine(_root, "metadata");
         public string Index => Path.Combine(_root, "index.json");
         public Files() => Directory.CreateDirectory(Source);
         public LocalMediaSource Video(string name)
@@ -347,7 +350,7 @@ public static class LocalMediaMonitorTests
             File.WriteAllText(Path.Combine(Source, name), "video");
             return LocalMediaOrganizer.Scan(Source, true, CancellationToken.None).Single(item => Path.GetFileName(item.Path) == name);
         }
-        public LocalMediaMonitorOptions Options() => new("one", Source, Target, LocalMediaLinkMode.HardLink)
+        public LocalMediaMonitorOptions Options() => new("one", Source, Metadata, "One")
         { SettleTime = TimeSpan.FromMilliseconds(150), PollInterval = TimeSpan.FromMilliseconds(50), RescanInterval = TimeSpan.FromSeconds(10) };
         public void Dispose() { if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true); }
     }

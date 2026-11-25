@@ -43,6 +43,9 @@ internal sealed partial class DetailViewModel : PageViewModel
     // Movies have no episode shelf; retain the real Cancel call without constructing a UI collection.
     private EpisodeShelfBoundary? EpisodeShelf => null;
     private EmbySessionScope? _scope;
+    private bool IsLocalVisit => false;
+    private void ResetLocalVisit() { }
+    private Task LoadLocalAsync() => Task.CompletedTask;
     private EmbyItem? _seed;
     private EmbyItem? _detail;
     private CardItem? _subjectStateCard;
