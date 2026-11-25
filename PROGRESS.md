@@ -2,7 +2,7 @@
 
 用户要求更新版本和桌面快捷方式，并在设置中显示「本机整理」。从干净的 master `44c3b38` 开始，版本、程序集与文件版本统一升至 0.3.4；设置左栏在「服务器」前恢复入口，固定内嵌页名单和 `LocalMediaPage` 路由同步接回。不依赖媒体服务器种类或管理权限，沿用现有页面、后台与凭据保护。隐藏契约改为四后端普通账号的入口、刷新和重选回归；功能文档和后端能力矩阵同步。
 
-全方案 Release 编译零警告零错误，质量检查 9/9（`artifacts/quality/20261125-195505`），主测试 5383/5383、设置入口契约 43/43，均零失败零跳过。专项全量含外部 DOM 正在执行；发布、快捷方式回读与自检待执行。仅更新本地主树体验版，其他待交付批次保持开放。
+全方案 Release 编译零警告零错误，质量检查 9/9（`artifacts/quality/20261125-195505`），主测试 5383/5383、设置入口契约 43/43，均零失败零跳过。离线与外部专项 82 套全部通过、0 deferred，汇总 `artifacts/local-media-0.3.4/regressions/summary.json`；全量期间两项源码提取专项首次运行受本轮质量构建留下的可复用 MSBuild 节点锁 DLL 影响，完整首轮报告保留。正常关闭 MSBuild 节点后，`Momoka.NaturalContinuationCallerTests` 重跑 88/88（`artifacts/r046-caller/reverify-20261125-202900`），`Momoka.SubtitleDropOwnershipTests` 重编零警告错误并运行 75/75（`artifacts/local-media-0.3.4/subtitle-drop-reverify-build.log`、`subtitle-drop-reverify-run.log`），均无失败、跳过。闸门 1、2 通过；发布、快捷方式回读、实际开页和自检待执行。仅更新本地主树体验版，其他待交付批次保持开放。
 
 ## 2026-11-25 合并：媒体库封面缩放与全页面滚动条（master）
 
