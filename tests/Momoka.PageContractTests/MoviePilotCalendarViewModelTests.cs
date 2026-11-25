@@ -80,8 +80,11 @@ internal static class MoviePilotCalendarViewModelTests
         {
             using var fixture = await Fixture.Create();
             using var model = new MoviePilotCalendarViewModel();
-            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            // Attach starts a load. Establish the empty baseline before testing the held A-B-A request.
             fixture.Transport.Empty = true;
+            model.Attach(fixture.Service, fixture.Settings.MoviePilot);
+            await model.ReloadAsync();
+            Assert.Equal(0, model.Entries.Count, "空响应前置不能混入 Attach 的非空首趟");
             fixture.Transport.Hold = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var old = model.ReloadAsync();
             Assert.False(old.IsCompleted);
