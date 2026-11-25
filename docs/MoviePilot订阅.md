@@ -60,9 +60,11 @@ AniBT 搜索、识别、下载与整理等从属操作仍跟随 MP 的当前连�
 
 ### Bangumi 评分
 
-影视媒体库详情按当前电影、剧或季自己的 Bangumi 编号匿名调用官方 `GET https://api.bgm.tv/v0/subjects/{id}`。Bangumi 图标和十分制分数位于番茄评分右侧，直接使用原分数，整数显示为 `5`，小数显示为 `5.4`。接口 `rating.total` 大于零且 `rating.score` 有效时显示，无评分记录、无明确编号或查询失败时收起该格。季的参考分采用本季编号，大众分与影评指数沿用媒体服务器数据。此查询独立于 MoviePilot 与 AniBT 开关，使用应用网络代理。官方合并条目仅跟随 `api.bgm.tv` 同源的条目编号重定向。
+影视媒体库详情优先按当前电影、剧或季自己的 Bangumi 编号匿名调用官方 `GET https://api.bgm.tv/v0/subjects/{id}`。电影和剧集缺少编号时，通过官方 `POST /v0/search/subjects` 搜索原文名与显示标题，按同年首播、电影／剧集形态，以及规范化后的主标题、中文名或官方别名精确匹配，唯一匹配后再读取官方条目评分。搜索最多读取 20 个同年影视候选，结果超限、同名歧义或编号冲突时隐藏。季页采用本季编号，通用季名与单集保持隐藏。自动搜索将作品标题和年份发送到 Bangumi。
 
-协议核对 `bangumi/server` 提交 `522cc1dedb6ff4f683b17856c3ba970e820ab6b4` 的 `web/handler/subject/get.go`、`web/res/subject.go` 和 `web/mw/ua/new.go`，请求携带应用 User-Agent。图标采用 Bangumi 官网 `https://bgm.tv/img/favicon.ico` 的 16 像素资源，随应用保存为 `assets/icons/bangumi.png`。[官方 API](https://github.com/bangumi/api) · [服务端源码](https://github.com/bangumi/server/tree/522cc1dedb6ff4f683b17856c3ba970e820ab6b4)
+Bangumi 图标和十分制分数位于番茄评分右侧，直接使用原分数，整数显示为 `5`，小数显示为 `5.4`。接口 `rating.total` 大于零且 `rating.score` 有效时显示，无评分记录、无法匹配或查询失败时收起该格。大众分与影评指数沿用媒体服务器数据。此查询独立于 MoviePilot 与 AniBT 开关，使用应用网络代理。官方合并条目仅跟随 `api.bgm.tv` 同源的条目编号重定向。
+
+协议核对 `bangumi/server` 提交 `522cc1dedb6ff4f683b17856c3ba970e820ab6b4` 的 `web/handler/subject/get.go`、`web/res/subject.go`、`web/mw/ua/new.go`、`internal/search/subject/handle.go` 与 `pkg/vars/platform.go.json`，请求携带应用 User-Agent。图标采用 Bangumi 官网 `https://bgm.tv/img/favicon.ico` 的 16 像素资源，随应用保存为 `assets/icons/bangumi.png`。[官方 API](https://github.com/bangumi/api) · [服务端源码](https://github.com/bangumi/server/tree/522cc1dedb6ff4f683b17856c3ba970e820ab6b4)
 
 当前 Release Core、Tests 编译成功后，可用 `dotnet run --project tests/Momoka.Tests -c Release --no-build --no-restore -- bangumi-rating-fixture` 核对评分接口、编号匹配、同源跳转和请求取消。该专项使用匿名离线传输。
 

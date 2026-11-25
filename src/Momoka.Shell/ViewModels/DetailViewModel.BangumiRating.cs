@@ -37,15 +37,15 @@ public sealed partial class DetailViewModel
     private void UpdateBangumiRatingSubject(EmbyItem detail)
     {
         ResetBangumiRating();
-        if (Attached && _bangumiRatingClient is { } client && BangumiRatingIdentity.For(detail) is { } subject)
-            _ = LoadBangumiRatingAsync(client, subject, _bangumiRatingLoads.Begin());
+        if (Attached && _bangumiRatingClient is { } client)
+            _ = LoadBangumiRatingAsync(client, detail, _bangumiRatingLoads.Begin());
     }
 
-    private async Task LoadBangumiRatingAsync(BangumiClient client, long subject, CancellationToken token)
+    private async Task LoadBangumiRatingAsync(BangumiClient client, EmbyItem detail, CancellationToken token)
     {
         try
         {
-            var score = await client.RatingAsync(subject, token).ConfigureAwait(true);
+            var score = await client.RatingAsync(detail, token).ConfigureAwait(true);
             if (score is { } value && Attached && _bangumiRatingLoads.IsCurrent(token))
                 BangumiRatingText = value.ToString("0.##", CultureInfo.InvariantCulture);
         }

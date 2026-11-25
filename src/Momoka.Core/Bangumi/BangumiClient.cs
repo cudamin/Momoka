@@ -5,8 +5,8 @@ using Momoka.Infrastructure;
 
 namespace Momoka.Bangumi;
 
-/// <summary>按明确条目编号匿名读取 Bangumi 官方评分。</summary>
-public sealed class BangumiClient : IDisposable
+/// <summary>按条目编号或核验后的作品标题匿名读取 Bangumi 官方评分。</summary>
+public sealed partial class BangumiClient : IDisposable
 {
     private const int MaximumResponseBytes = 1024 * 1024;
     private readonly Lock _connectionLock = new();
@@ -63,18 +63,9 @@ public sealed class BangumiClient : IDisposable
                     uri = target;
                     continue;
                 }
-                if (!response.IsSuccessStatusCode || !TrySubject(uri, out var returnedId)
-                    || response.Content.Headers.ContentLength > MaximumResponseBytes) return null;
-                using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
-                using var body = new MemoryStream();
-                var buffer = new byte[8192];
-                int read;
-                while ((read = await stream.ReadAsync(buffer, deadline.Token).ConfigureAwait(false)) > 0)
-                {
-                    if (body.Length + read > MaximumResponseBytes) return null;
-                    body.Write(buffer, 0, read);
-                }
-                using var document = JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
+                if (!response.IsSuccessStatusCode || !TrySubject(uri, out var returnedId)) return null;
+                using var document = await ReadDocumentAsync(response, deadline.Token).ConfigureAwait(false);
+                if (document is null) return null;
                 var root = document.RootElement;
                 // Official DTO web/res/subject.go exposes the actual vote count separately from the score.
                 if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("id", out var id)
@@ -97,6 +88,21 @@ public sealed class BangumiClient : IDisposable
         catch (IOException) { return null; }
         catch (UriFormatException) { return null; }
         finally { ReleaseConnection(connection); }
+    }
+
+    private static async Task<JsonDocument?> ReadDocumentAsync(HttpResponseMessage response, CancellationToken token)
+    {
+        if (response.Content.Headers.ContentLength > MaximumResponseBytes) return null;
+        using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+        using var body = new MemoryStream();
+        var buffer = new byte[8192];
+        int read;
+        while ((read = await stream.ReadAsync(buffer, token).ConfigureAwait(false)) > 0)
+        {
+            if (body.Length + read > MaximumResponseBytes) return null;
+            body.Write(buffer, 0, read);
+        }
+        return JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
     }
 
     private static bool TrySubject(Uri uri, out long subject)

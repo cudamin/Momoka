@@ -6,13 +6,14 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class BangumiRatingTests
+internal static partial class BangumiRatingTests
 {
     private const long RequestedSubject = 123;
     private const string ExactUrl = "https://api.bgm.tv/v0/subjects/123";
 
     internal static void Register()
     {
+        RegisterSearchTests();
         Test("Bangumi 评分读取明确的作品、剧或季编号，拒绝借用父剧和单集编号", () =>
         {
             foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season })
