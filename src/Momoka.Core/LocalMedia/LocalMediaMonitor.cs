@@ -174,7 +174,7 @@ public sealed class LocalMediaMonitor(LocalMediaLibrary library,
         {
             var metadata = await recognize(source, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            plan = LocalMediaOrganizer.Prepare(source, options.TargetRoot, metadata, options.Mode, cancellationToken);
+            plan = LocalMediaOrganizer.Prepare(source, options.MetadataRoot, options.LibraryName, metadata, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
@@ -208,16 +208,14 @@ public sealed class LocalMediaMonitor(LocalMediaLibrary library,
     private static LocalMediaMonitorOptions Normalize(LocalMediaMonitorOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(options.LibraryId);
-        if (!Enum.IsDefined(options.Mode) || options.PollInterval < TimeSpan.FromMilliseconds(25) || options.PollInterval > TimeSpan.FromMinutes(1) ||
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.LibraryName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.MetadataRoot);
+        if (options.PollInterval < TimeSpan.FromMilliseconds(25) || options.PollInterval > TimeSpan.FromMinutes(1) ||
             options.SettleTime < TimeSpan.FromMilliseconds(50) || options.SettleTime > TimeSpan.FromMinutes(10) || options.RescanInterval < options.PollInterval)
             throw new ArgumentException("目录监控方式或等待时间无效");
         var source = LocalMediaFiles.FullPath(options.SourceRoot);
-        var target = options.Mode == LocalMediaLinkMode.Rename ? "" : LocalMediaFiles.FullPath(options.TargetRoot);
-        if (options.Mode == LocalMediaLinkMode.HardLink && (LocalMediaFiles.IsNetwork(source) || LocalMediaFiles.IsNetwork(target)))
-            throw new IOException("网络目录不支持硬链接，请选择软链接或直接改名");
-        if (target.Length > 0 && (target.Equals(source, StringComparison.OrdinalIgnoreCase) || target.StartsWith(source + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
-            throw new IOException("监控目标不能位于源目录内");
-        return options with { SourceRoot = source, TargetRoot = target };
+        var metadata = LocalMediaFiles.FullPath(options.MetadataRoot);
+        return options with { SourceRoot = source, MetadataRoot = metadata };
     }
 
     private void SetStatus(LocalMediaMonitorStatus status)

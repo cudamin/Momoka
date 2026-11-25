@@ -73,7 +73,7 @@ public sealed class TmdbClient : IDisposable
         if ((!series && (season.HasValue || episode.HasValue)) || season < 0 || episode <= 0 || (episode.HasValue && !season.HasValue))
             throw new ArgumentException("请核对媒体类型、季号和集号。特别篇可使用季号0。", nameof(season));
         var canonicalId = number.ToString(CultureInfo.InvariantCulture);
-        using var json = await ApiAsync($"{(series ? "tv" : "movie")}/{canonicalId}?language=zh-CN", ct).ConfigureAwait(false);
+        using var json = await ApiAsync($"{(series ? "tv" : "movie")}/{canonicalId}?language=zh-CN&append_to_response=credits,aggregate_credits", ct).ConfigureAwait(false);
         var root = json.RootElement;
         ValidateMedia(root, series);
         if (Id(root) != canonicalId) throw InvalidResponse();
@@ -90,7 +90,13 @@ public sealed class TmdbClient : IDisposable
             Premiered = premiered,
             Overview = Text(root, "overview"),
             PosterUrl = ImageUrl(root, "poster_path"),
-            BackdropUrl = ImageUrl(root, "backdrop_path")
+            BackdropUrl = ImageUrl(root, "backdrop_path"),
+            Tagline = OptionalText(root, "tagline"),
+            Rating = OptionalNumber(root, "vote_average"),
+            Runtime = RuntimeOf(root, series),
+            Genres = Names(root, "genres", 12),
+            Studios = Names(root, series ? "networks" : "production_companies", 2),
+            People = PeopleOf(root, series)
         };
         if (!episode.HasValue) return details;
 
@@ -107,7 +113,8 @@ public sealed class TmdbClient : IDisposable
             EpisodeTitle = episodeTitle,
             EpisodeOverview = Text(one, "overview"),
             EpisodeImageUrl = ImageUrl(one, "still_path"),
-            EpisodeAired = Date(one, "air_date")
+            EpisodeAired = Date(one, "air_date"),
+            Runtime = RuntimeOf(one, series: false) is > 0 and var minutes ? minutes : details.Runtime
         };
     }
 
@@ -119,7 +126,9 @@ public sealed class TmdbClient : IDisposable
             || !uri.AbsolutePath.StartsWith("/t/p/", StringComparison.Ordinal))
             throw new ArgumentException("图片必须来自TMDB的HTTPS图片地址。", nameof(url));
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-        request.Headers.Accept.ParseAdd("image/jpeg,image/png,image/webp");
+        // 不索取 image/webp：TMDB 的图片 CDN 会按 Accept 协商格式，即使在 .jpg 地址上也会回 WebP。
+        // 元数据目录里的图片按计划后缀落盘（poster.jpg 等），实际字节必须是同一种格式才不会被拒写。
+        request.Headers.Accept.ParseAdd("image/jpeg,image/png");
         using var timeout = RequestTimeout(ct);
         try
         {
@@ -262,6 +271,84 @@ public sealed class TmdbClient : IDisposable
         if (!ImagePath.IsMatch(path)) throw InvalidResponse();
         return ImageBase + path;
     }
+
+    /// <summary>详情页可显示的补充资料：没有这一项就是空，不影响媒体身份校验。</summary>
+    private static string OptionalText(JsonElement value, string field) =>
+        value.ValueKind == JsonValueKind.Object && value.TryGetProperty(field, out var property)
+        && property.ValueKind == JsonValueKind.String ? property.GetString()?.Trim() ?? "" : "";
+
+    private static double OptionalNumber(JsonElement value, string field) =>
+        value.ValueKind == JsonValueKind.Object && value.TryGetProperty(field, out var property)
+        && property.ValueKind == JsonValueKind.Number && property.TryGetDouble(out var number) && number > 0 ? number : 0;
+
+    private static IReadOnlyList<string> Names(JsonElement value, string field, int maximum)
+    {
+        if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty(field, out var array)
+            || array.ValueKind != JsonValueKind.Array) return [];
+        return array.EnumerateArray().Take(maximum)
+            .Select(item => item.ValueKind == JsonValueKind.Object ? OptionalText(item, "name") : "")
+            .Where(name => name.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static int RuntimeOf(JsonElement value, bool series)
+    {
+        if (!series) return (int)Math.Round(OptionalNumber(value, "runtime"));
+        var runtime = FirstArrayNumber(value, "episode_run_time");
+        if (runtime == 0 && value.TryGetProperty("last_episode_to_air", out var last) && last.ValueKind == JsonValueKind.Object)
+            runtime = (int)Math.Round(OptionalNumber(last, "runtime"));
+        return runtime;
+    }
+
+    private static int FirstArrayNumber(JsonElement value, string field)
+    {
+        if (!value.TryGetProperty(field, out var array) || array.ValueKind != JsonValueKind.Array) return 0;
+        foreach (var item in array.EnumerateArray())
+            if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var number) && number > 0) return number;
+        return 0;
+    }
+
+    /// <summary>电影取 credits 里的演员与导演；电视剧优先取 aggregate_credits，并把 created_by 当导演。</summary>
+    private static IReadOnlyList<TmdbLocalPerson> PeopleOf(JsonElement root, bool series)
+    {
+        var people = new List<TmdbLocalPerson>();
+        if (series && root.TryGetProperty("created_by", out var created) && created.ValueKind == JsonValueKind.Array)
+            foreach (var item in created.EnumerateArray().Take(2))
+                Add(item, "", director: true);
+
+        var credits = Member(root, "credits");
+        var cast = series ? Member(Member(root, "aggregate_credits"), "cast") : Member(credits, "cast");
+        if (cast.ValueKind == JsonValueKind.Array)
+            foreach (var item in cast.EnumerateArray().Take(10))
+            {
+                var role = series
+                    ? (Member(item, "roles") is { ValueKind: JsonValueKind.Array } roles
+                        ? roles.EnumerateArray().Take(1).Select(value => OptionalText(value, "character")).FirstOrDefault() ?? ""
+                        : "")
+                    : OptionalText(item, "character");
+                Add(item, role, director: false);
+            }
+
+        if (!series && Member(credits, "crew") is { ValueKind: JsonValueKind.Array } crew)
+            foreach (var item in crew.EnumerateArray().Take(30).Where(item => OptionalText(item, "job") == "Director"))
+                Add(item, "", director: true);
+
+        return people.DistinctBy(person => (person.Name, person.Director)).Take(12).ToArray();
+
+        void Add(JsonElement item, string role, bool director)
+        {
+            if (item.ValueKind != JsonValueKind.Object) return;
+            var name = OptionalText(item, "name");
+            if (name.Length == 0) return;
+            var id = item.TryGetProperty("id", out var number) && number.ValueKind == JsonValueKind.Number
+                && number.TryGetInt32(out var value) && value > 0 ? value.ToString(CultureInfo.InvariantCulture) : "";
+            people.Add(new(name, role, director) { Id = id, ImageUrl = ImageUrl(item, "profile_path") });
+        }
+    }
+
+    private static JsonElement Member(JsonElement value, string field) =>
+        value.ValueKind == JsonValueKind.Object && value.TryGetProperty(field, out var property) ? property : default;
 
     private static TmdbException InvalidResponse() => new("TMDB响应内容或媒体身份不符合预期。");
     public void Dispose() => _http.Dispose();

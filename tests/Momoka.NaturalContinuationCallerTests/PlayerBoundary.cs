@@ -17,6 +17,10 @@ public sealed partial class PlayerViewModel
     // 不复制 SeekHold 的计时轮询，保留一个空收尾以维持真实 Transport 的调用点。
     internal void CancelSeekHold() { }
 
+    // 本机条目起播不经过服务器会话，自然接续夹具只跑服务器那条路径；保留 Transport 的真实分支调用点。
+    private Task StartLocalPlaybackAsync(EmbyItem item, bool replaceExisting, CancellationToken continuationCancellation) =>
+        Task.CompletedTask;
+
     internal PlayerViewModel(FakePlayback playback, MemorySettings settings, EmbySession session, Tape tape)
     {
         _playback = playback;

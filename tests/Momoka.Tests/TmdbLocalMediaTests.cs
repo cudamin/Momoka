@@ -85,6 +85,38 @@ internal static class TmdbLocalMediaTests
             Assert.Equal(exact, LocalMediaName.UniqueExactMatch(parsed, [exact, exact]));
             Assert.Null(LocalMediaName.UniqueExactMatch(parsed, [exact with { Title = "AB" }]));
         });
+        Test("原生识别：双语片名整串搜不到时改用中文段命中 TMDB", () =>
+        {
+            var parsed = LocalMediaName.Parse("爱·回家之三代同糖.Like.Mother.Like.Daughter.S01E75.2026.1080p.MyTVSuper.WEB-DL.H265.AAC-ADWeb.mkv");
+            Assert.Equal(1, parsed.Season);
+            Assert.Equal(75, parsed.Episode);
+            using var handler = new BilingualSearchHandler();
+            using var client = new TmdbClient("anonymous-read-token", handler);
+            var match = TmdbLocalMedia.FindUniqueAsync(client, parsed, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.NotNull(match);
+            Assert.Equal("331026", match!.Id);
+            Assert.True(handler.Queries.Count >= 2, string.Join(" | ", handler.Queries));
+            Assert.Contains("爱·回家之三代同糖", handler.Queries[^1]);
+        });
+    }
+
+    /// <summary>整串双语片名按 TMDB 的真实行为答空，只有中文段命中；用来验证关键词回退而不是假命中。</summary>
+    private sealed class BilingualSearchHandler : HttpMessageHandler
+    {
+        public List<string> Queries { get; } = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var query = Uri.UnescapeDataString(request.RequestUri!.Query);
+            var text = query.Split("query=", StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault()?.Split('&')[0] ?? "";
+            Queries.Add(text);
+            var body = text == "爱·回家之三代同糖"
+                ? """{"page":1,"results":[{"id":331026,"name":"爱·回家之三代同糖","original_name":"愛·回家之三代同糖","first_air_date":"2026-08-10","media_type":"tv","overview":""}],"total_pages":1,"total_results":1}"""
+                : """{"page":1,"results":[],"total_pages":1,"total_results":0}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            });
+        }
     }
 
     private static void HttpTests()
@@ -120,13 +152,39 @@ internal static class TmdbLocalMediaTests
             using var stub = new StubTransport().Answer("/movie/42?", MovieJson());
             using var client = new TmdbClient("anonymous", stub);
             var details = client.DetailsAsync("42", false, null, null, default).GetAwaiter().GetResult();
-            Assert.Equal("https://api.themoviedb.org/3/movie/42?language=zh-CN", stub.Only("/movie/42?").Url);
+            Assert.Equal("https://api.themoviedb.org/3/movie/42?language=zh-CN&append_to_response=credits,aggregate_credits", stub.Only("/movie/42?").Url);
             Assert.Equal("42", details.Id);
             Assert.Equal("Movie", details.Title);
             Assert.Equal("Original Movie", details.OriginalTitle);
             Assert.Equal("2024-01-02", details.Premiered);
             Assert.Equal("https://image.tmdb.org/t/p/original/poster.jpg", details.PosterUrl);
             Assert.Equal("Movie overview", details.Overview);
+        });
+        Test("TMDB 详情：类型、评分、片长与演职人员随本机条目返回", () =>
+        {
+            const string body = """
+                {"id":42,"title":"Movie","original_title":"Original Movie","release_date":"2024-01-02",
+                 "overview":"Movie overview","poster_path":"/poster.jpg","backdrop_path":"/backdrop.jpg",
+                 "tagline":"A tagline","vote_average":8.6,"runtime":128,
+                 "genres":[{"id":18,"name":"剧情"},{"id":35,"name":"喜剧"}],
+                 "production_companies":[{"id":1,"name":"示例影业"}],
+                 "credits":{"cast":[{"id":101,"name":"演员甲","character":"角色甲","profile_path":"/person-a.jpg"},
+                                    {"id":102,"name":"演员乙","character":"角色乙","profile_path":"/person-b.jpg"}],
+                            "crew":[{"id":201,"name":"导演丙","job":"Director","profile_path":"/person-c.jpg"}]}}
+                """;
+            using var stub = new StubTransport().Answer("/movie/42?", body);
+            using var client = new TmdbClient("anonymous", stub);
+            var details = client.DetailsAsync("42", false, null, null, default).GetAwaiter().GetResult();
+
+            Assert.Equal("A tagline", details.Tagline);
+            Assert.Equal(8.6, details.Rating);
+            Assert.Equal(128, details.Runtime);
+            Assert.Equal("剧情,喜剧", string.Join(',', details.Genres));
+            Assert.Equal("示例影业", string.Join(',', details.Studios));
+            Assert.Equal("演员甲:角色甲|演员乙:角色乙|导演丙:Director",
+                string.Join('|', details.People.Select(person => $"{person.Name}:{(person.Director ? "Director" : person.Role)}")));
+            Assert.Equal("101,102,201", string.Join(',', details.People.Select(person => person.Id)));
+            Assert.Equal("https://image.tmdb.org/t/p/original/person-a.jpg", details.People[0].ImageUrl);
         });
         Test("TMDB 特别篇：S00与单集信息保留，剧集与单集ID分开", () =>
         {
@@ -144,6 +202,7 @@ internal static class TmdbLocalMediaTests
             Assert.Equal("2020-01-02", details.Premiered);
             Assert.Equal("2020-05-06", details.EpisodeAired);
             Assert.Equal("https://image.tmdb.org/t/p/original/still.jpg", details.EpisodeImageUrl);
+            Assert.Equal(43, details.Runtime);
         });
         foreach (var (series, body) in new[] { (false, MovieJson().Replace("\"id\":42", "\"id\":43", StringComparison.Ordinal)),
             (false, SeriesJson()), (true, MovieJson()) })
@@ -269,6 +328,8 @@ internal static class TmdbLocalMediaTests
             Assert.Null(handler.LastAuthorization);
             Assert.Equal("GET", handler.LastMethod);
             Assert.Equal("https://image.tmdb.org/t/p/original/poster.jpg", handler.LastUrl);
+            // TMDB 会按 Accept 协商格式；索取 webp 会让 .jpg 地址回 WebP 字节，与元数据目录的落盘后缀冲突。
+            Assert.Equal("image/jpeg, image/png", handler.LastAccept);
         });
         foreach (var url in new[] { "http://image.tmdb.org/t/p/original/a.jpg", "https://example.invalid/a.jpg",
             "https://image.tmdb.org.example.invalid/a.jpg", "https://user@image.tmdb.org/a.jpg", "https://image.tmdb.org:444/a.jpg",
@@ -395,7 +456,7 @@ internal static class TmdbLocalMediaTests
     private static string MovieJson() => """{"id":42,"title":"Movie","original_title":"Original Movie","release_date":"2024-01-02","overview":"Movie overview","poster_path":"/poster.jpg","backdrop_path":"/backdrop.jpg"}""";
     private static string SeriesJson() => """{"id":42,"name":"Series","original_name":"Original Series","first_air_date":"2020-01-02","overview":"Series overview","poster_path":"/poster.jpg"}""";
     private static string EpisodeJson(int season, int episode) =>
-        $$"""{"id":84,"show_id":42,"name":"Special","season_number":{{season}},"episode_number":{{episode}},"air_date":"2020-05-06","overview":"Episode overview","still_path":"/still.jpg"}""";
+        $$"""{"id":84,"show_id":42,"name":"Special","season_number":{{season}},"episode_number":{{episode}},"air_date":"2020-05-06","overview":"Episode overview","still_path":"/still.jpg","runtime":43}""";
 
     private static HttpResponseMessage ImageResponse(byte[] bytes, string type, long? length = null)
     {
@@ -427,6 +488,7 @@ internal static class TmdbLocalMediaTests
         public string? LastAuthorization { get; private set; }
         public string? LastMethod { get; private set; }
         public string? LastUrl { get; private set; }
+        public string? LastAccept { get; private set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -434,6 +496,7 @@ internal static class TmdbLocalMediaTests
             LastAuthorization = request.Headers.Authorization?.ToString();
             LastMethod = request.Method.Method;
             LastUrl = request.RequestUri?.AbsoluteUri;
+            LastAccept = request.Headers.Accept.ToString();
             return Task.FromResult(answer());
         }
     }

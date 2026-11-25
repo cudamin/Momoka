@@ -15,7 +15,7 @@ public sealed partial class DetailViewModel
     private bool _extrasEmpty;
     private long _extraEpoch;
 
-    public Visibility ExtraVisibility => Show(CanAct && _extrasReady && _extrasChecked && !_extrasEmpty
+    public Visibility ExtraVisibility => Show(!_local && CanAct && _extrasReady && _extrasChecked && !_extrasEmpty
         && _detail is { } item && ItemExtras.CanRead(item, _scope!.Connection.ServerKind));
 
     private void ResetExtras()

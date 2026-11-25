@@ -11,7 +11,7 @@ public sealed partial class PlaybackService
         var attempt = _active;
         var handle = _current;
         if (attempt is null || handle is not IPlayerControl control || !handle.HasControlChannel
-            || !ReferenceEquals(attempt.Handle, handle) || !IsCurrent(attempt) || !attempt.Scope.IsAvailable)
+            || !ReferenceEquals(attempt.Handle, handle) || !IsCurrent(attempt) || attempt.Scope is not { IsAvailable: true })
             return null;
         var scoped = control as IFileScopedPlayerControl;
         return new TranslationSession(this, attempt, handle, control, scoped, scoped?.FileGeneration);
@@ -22,9 +22,9 @@ public sealed partial class PlaybackService
         : ISubtitleTranslationPlaybackSession
     {
         public long Generation => attempt.Generation;
-        public CancellationToken Lifetime => attempt.Scope.Lifetime;
+        public CancellationToken Lifetime => attempt.Scope?.Lifetime ?? CancellationToken.None;
         public bool IsCurrent => owner.IsCurrent(attempt) && owner.IsCurrent(handle, Generation)
-            && attempt.Scope.IsAvailable && (scoped is null || scoped.FileGeneration == fileGeneration);
+            && attempt.Scope is { IsAvailable: true } && (scoped is null || scoped.FileGeneration == fileGeneration);
 
         public async Task<bool> EnsureOverlayAsync(string scriptPath, CancellationToken cancellationToken)
         {

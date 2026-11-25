@@ -4,129 +4,105 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    xmlns:configuration="using:Momoka.Configuration"
     Background="Transparent">
     <Page.Resources>
         <DataTemplate x:Key="CandidateTemplate" x:DataType="vm:LocalMediaCandidate">
             <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
         </DataTemplate>
-        <DataTemplate x:Key="LocalLibraryTemplate" x:DataType="configuration:LocalMediaLibrarySettings">
-            <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgBodyStyle}" />
+        <DataTemplate x:Key="LocalLibraryTemplate" x:DataType="vm:LocalMediaLibraryRow">
+            <Border Padding="14" CornerRadius="{StaticResource EgCardCornerRadius}" BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderThickness="1" Background="{ThemeResource EgSurfaceBrush}" Margin="0,0,0,10">
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <TextBox x:Uid="LocalMediaPage_LocalLibraryName" x:Name="LibraryNameBox" Style="{StaticResource EgTextBoxStyle}"
+                            Header="媒体库名称" Text="{x:Bind Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                        <Grid Grid.Column="1" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox x:Uid="LocalMediaPage_LocalMediaSource" x:Name="LibraryDirectoryBox" Style="{StaticResource EgTextBoxStyle}"
+                                Header="目录" Text="{x:Bind Directory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                            <Button x:Uid="LocalMediaPage_LocalMediaPickSource" x:Name="LibraryPick" Grid.Column="1" Content="选择…"
+                                VerticalAlignment="Bottom" Tag="{x:Bind}" Click="OnPickLibraryDirectory" AutomationProperties.Name="选择媒体库目录" />
+                        </Grid>
+                    </Grid>
+                    <local:WrapRow Spacing="12" RowSpacing="8">
+                        <CheckBox x:Uid="LocalMediaPage_LocalMediaRecursive" x:Name="LibraryRecursive" Content="包含子文件夹"
+                            IsChecked="{x:Bind Recursive, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                        <ToggleSwitch x:Uid="LocalMediaPage_LocalLibraryMonitor" x:Name="LibraryMonitor" Style="{StaticResource DefaultToggleSwitchStyle}"
+                            Header="自动监控并刮削入库" OnContent="已开启" OffContent="已关闭"
+                            IsOn="{x:Bind MonitorEnabled, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                    </local:WrapRow>
+                    <local:WrapRow Spacing="10" RowSpacing="8">
+                        <Button x:Name="LibrarySave" Content="{x:Bind SaveLabel, Mode=OneWay}" AutomationProperties.Name="保存目录"
+                            IsEnabled="{x:Bind CanSave, Mode=OneWay}" Tag="{x:Bind}" Click="OnSaveLibraryRow" />
+                        <Button x:Uid="LocalMediaPage_LocalLibraryRemove" x:Name="LibraryRemove" Content="移除"
+                            IsEnabled="{x:Bind CanRemove, Mode=OneWay}" Tag="{x:Bind}" Click="OnRemoveLibraryRow" />
+                        <TextBlock x:Name="LibraryStatus" Text="{x:Bind Status, Mode=OneWay}" TextWrapping="Wrap"
+                            Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                    </local:WrapRow>
+                </StackPanel>
+            </Border>
         </DataTemplate>
-        <!-- Gallery Pages/SettingsPage.xaml @ 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
-             分组标题与线性图标；卡片表面沿用 SettingsPage.xaml 的系统卡片资源。
-             Toolkit 当前包的 Vertical 触发器在本项目未生效，改用原生 Grid 组合，保证多字段展开和限宽。 -->
-        <Style x:Key="LocalMediaCardStyle" TargetType="Grid">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="Padding" Value="20" />
-            <Setter Property="RowSpacing" Value="16" />
-            <Setter Property="CornerRadius" Value="12" />
-        </Style>
     </Page.Resources>
     <Grid>
-        <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="LocalMediaLayoutStates">
-                <VisualState x:Name="LocalMediaNarrow" />
-                <VisualState x:Name="LocalMediaWide">
-                    <VisualState.Setters>
-                        <Setter Target="LocalMediaMethodColumn.Width" Value="*" />
-                        <Setter Target="LocalMediaMethod.(Grid.Column)" Value="1" />
-                        <Setter Target="LocalMediaMethod.(Grid.Row)" Value="0" />
-                        <Setter Target="LocalMediaMethod.Margin" Value="0" />
-                    </VisualState.Setters>
-                </VisualState>
-            </VisualStateGroup>
-        </VisualStateManager.VisualStateGroups>
         <ScrollViewer x:Name="LocalMediaScroll" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="LocalMediaBody" Spacing="16" Padding="0,0,20,28" MaxWidth="1200" HorizontalAlignment="Stretch">
+            <!-- 一张整页背景卡片，不再按目录／识别／元数据拆成多张分区卡片。 -->
+            <Border x:Name="LocalMediaSurface" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20" HorizontalAlignment="Stretch">
+                <StackPanel x:Name="LocalMediaBody" Spacing="18" MaxWidth="1200" HorizontalAlignment="Stretch">
                 <StackPanel Spacing="8">
                     <TextBlock x:Uid="LocalMediaPage_Localization1" Text="本机整理" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                    <TextBlock x:Uid="LocalMediaPage_Localization2" Text="识别本机或网络共享中的影视文件，预览后改名或创建链接，并写入 NFO、海报与背景图。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock x:Uid="LocalMediaPage_Localization2" Text="添加多个媒体库目录，识别后直接把 NFO、海报与剧照刮削入库；视频保持原位，不改名、不移动、不创建链接。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                 </StackPanel>
-                <Grid x:Uid="LocalMediaPage_LocalLibraryCard" x:Name="LocalLibraryCard" Style="{StaticResource LocalMediaCardStyle}" AutomationProperties.Name="媒体库">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <FontIcon Glyph="&#xE8F1;" FontSize="{StaticResource EgTitleFontSize}" AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Uid="LocalMediaPage_Localization3" Text="媒体库" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Spacing="12">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <ComboBox x:Uid="LocalMediaPage_LocalLibraryPicker" x:Name="LocalLibraryPicker" Style="{StaticResource EgComboBoxStyle}" Header="媒体库" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedLibrary, Mode=TwoWay}"
-                                ItemTemplate="{StaticResource LocalLibraryTemplate}" HorizontalAlignment="Stretch" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
-                            <Button x:Uid="LocalMediaPage_LocalLibraryNew" x:Name="LocalLibraryNew" Grid.Column="1" Content="添加媒体库" VerticalAlignment="Bottom" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" Click="OnNewLibrary" />
-                        </Grid>
-                        <TextBox x:Uid="LocalMediaPage_LocalLibraryName" x:Name="LocalLibraryName" Style="{StaticResource EgTextBoxStyle}" Header="媒体库名称" Text="{x:Bind ViewModel.LibraryName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
-                    </StackPanel>
-                </Grid>
-                <Grid x:Uid="LocalMediaPage_LocalMediaRecognitionCard" x:Name="LocalMediaRecognitionCard" Style="{StaticResource LocalMediaCardStyle}" AutomationProperties.Name="识别与整理">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <FontIcon Glyph="&#xE9F5;" FontSize="{StaticResource EgTitleFontSize}" AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Uid="LocalMediaPage_Localization4" Text="识别与整理" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Spacing="12">
-                        <Grid x:Name="LocalMediaModes" ColumnSpacing="16" SizeChanged="OnModesSizeChanged">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="LocalMediaMethodColumn" Width="0" /></Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <ComboBox x:Uid="LocalMediaPage_LocalMediaProvider" x:Name="LocalMediaProvider" Style="{StaticResource EgComboBoxStyle}" Header="识别方式" SelectedIndex="{x:Bind ViewModel.ProviderIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}">
-                                <ComboBoxItem Content="Momoka · TMDB" /><ComboBoxItem Content="MoviePilot" />
-                            </ComboBox>
-                            <ComboBox x:Uid="LocalMediaPage_LocalMediaMethod" x:Name="LocalMediaMethod" Style="{StaticResource EgComboBoxStyle}" Grid.Row="1" Margin="0,12,0,0" Header="整理方式" SelectedIndex="{x:Bind ViewModel.MethodIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}">
-                                <ComboBoxItem x:Uid="LocalMediaPage_Localization5" Content="硬链接" /><ComboBoxItem x:Uid="LocalMediaPage_Localization6" Content="软链接" /><ComboBoxItem x:Uid="LocalMediaPage_Localization7" Content="直接改源文件名" />
-                            </ComboBox>
-                        </Grid>
-                        <TextBlock Text="{x:Bind ViewModel.MethodNote, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                        <StackPanel x:Name="LocalMediaTmdbCredentials" Spacing="8" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.IsMomoka), Mode=OneWay}">
-                            <PasswordBox x:Uid="LocalMediaPage_LocalMediaToken" x:Name="LocalMediaToken" Header="TMDB API Read Access Token" PlaceholderText="填入读取令牌，保存后由 Windows 加密保管" />
-                            <local:WrapRow Spacing="10" RowSpacing="8">
-                                <Button x:Uid="LocalMediaPage_LocalMediaSaveToken" x:Name="LocalMediaSaveToken" Content="保存令牌" Click="OnSaveToken" />
-                                <Button x:Uid="LocalMediaPage_LocalMediaClearToken" x:Name="LocalMediaClearToken" Content="清除令牌" Click="OnClearToken" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.HasToken), Mode=OneWay}" />
-                                <HyperlinkButton x:Uid="LocalMediaPage_LocalMediaTmdbSettings" x:Name="LocalMediaTmdbSettings" Content="打开 TMDB API 设置" NavigateUri="https://www.themoviedb.org/settings/api" />
-                            </local:WrapRow>
-                            <TextBlock Text="{x:Bind ViewModel.TokenStatus, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                        </StackPanel>
-                        <TextBlock x:Uid="LocalMediaPage_LocalMediaMpNotice" x:Name="LocalMediaMpNotice" Text="MoviePilot 只接收目录与文件名文本，不接收视频；连接不可用时，请先到 MoviePilot 设置中连接。"
-                            Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.IsMoviePilot), Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                    </StackPanel>
-                </Grid>
-                <Grid x:Uid="LocalMediaPage_LocalMediaDirectoriesCard" x:Name="LocalMediaDirectoriesCard" Style="{StaticResource LocalMediaCardStyle}" AutomationProperties.Name="目录">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <FontIcon Glyph="&#xE838;" FontSize="{StaticResource EgTitleFontSize}" AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Uid="LocalMediaPage_Localization8" Text="目录" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Spacing="12">
-                        <Grid ColumnSpacing="10">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBox x:Uid="LocalMediaPage_LocalMediaSource" x:Name="LocalMediaSource" Style="{StaticResource EgTextBoxStyle}" Header="源目录" Text="{x:Bind ViewModel.SourceDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
-                            <Button x:Uid="LocalMediaPage_LocalMediaPickSource" x:Name="LocalMediaPickSource" Grid.Column="1" Content="选择…" VerticalAlignment="Bottom" Click="OnPickSource" AutomationProperties.Name="选择源目录" />
-                        </Grid>
-                        <Grid x:Name="LocalMediaTargetRow" ColumnSpacing="10" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.NeedsTarget), Mode=OneWay}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBox x:Uid="LocalMediaPage_LocalMediaTarget" x:Name="LocalMediaTarget" Style="{StaticResource EgTextBoxStyle}" Header="目标目录" Text="{x:Bind ViewModel.TargetDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
-                            <Button x:Uid="LocalMediaPage_LocalMediaPickTarget" x:Name="LocalMediaPickTarget" Grid.Column="1" Content="选择…" VerticalAlignment="Bottom" Click="OnPickTarget" AutomationProperties.Name="选择目标目录" />
-                        </Grid>
-                        <CheckBox x:Uid="LocalMediaPage_LocalMediaRecursive" x:Name="LocalMediaRecursive" Content="包含子文件夹" IsChecked="{x:Bind ViewModel.Recursive, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
-                        <TextBlock x:Uid="LocalMediaPage_Localization9" Text="源目录和目标目录可以是本机盘符（C:\媒体）或网络共享（\\服务器\共享\媒体）；网络共享使用当前 Windows 账号访问。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                    </StackPanel>
-                </Grid>
-                <Grid x:Uid="LocalMediaPage_LocalLibraryAutomationCard" x:Name="LocalLibraryAutomationCard" Style="{StaticResource LocalMediaCardStyle}" AutomationProperties.Name="自动入库">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <FontIcon Glyph="&#xE8F7;" FontSize="{StaticResource EgTitleFontSize}" AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Uid="LocalMediaPage_Localization10" Text="自动入库" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Spacing="12">
-                        <ToggleSwitch x:Uid="LocalMediaPage_LocalLibraryMonitor" x:Name="LocalLibraryMonitor" Style="{StaticResource DefaultToggleSwitchStyle}" Header="自动监控并刮削入库" OnContent="已开启" OffContent="已关闭" IsOn="{x:Bind ViewModel.MonitorEnabled, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
-                        <TextBlock x:Uid="LocalMediaPage_Localization11" Text="已有和新增文件都会处理。文件写入稳定后自动识别；结果不明确时等待手动校正。保存规则后生效。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="LocalMediaPage_Localization8" Text="目录" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" VerticalAlignment="Center" />
+                        <Button x:Uid="LocalMediaPage_LocalLibraryNew" x:Name="LocalMediaLibraryNew" Grid.Column="1" Content="添加目录"
+                            IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" Click="OnNewLibrary" />
+                    </Grid>
+                    <ItemsRepeater x:Name="LocalMediaLibraryList" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" ItemTemplate="{StaticResource LocalLibraryTemplate}">
+                        <ItemsRepeater.Layout><StackLayout Spacing="0" /></ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                    <TextBlock x:Uid="LocalMediaPage_Localization9" Text="一个目录就是一个本地媒体库。支持本机盘符（C:\媒体）或网络共享（\\服务器\共享\媒体）；网络共享使用当前 Windows 账号访问。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                </StackPanel>
+                <StackPanel Spacing="10">
+                    <TextBlock x:Uid="LocalMediaPage_Localization4" Text="识别" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" />
+                    <ComboBox x:Uid="LocalMediaPage_LocalMediaProvider" x:Name="LocalMediaProvider" Style="{StaticResource EgComboBoxStyle}"
+                        Header="识别方式" SelectedIndex="{x:Bind ViewModel.ProviderIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}">
+                        <ComboBoxItem Content="Momoka · TMDB" /><ComboBoxItem Content="MoviePilot" />
+                    </ComboBox>
+                    <StackPanel x:Name="LocalMediaTmdbCredentials" Spacing="8" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.IsMomoka), Mode=OneWay}">
+                        <PasswordBox x:Uid="LocalMediaPage_LocalMediaToken" x:Name="LocalMediaToken" Header="API 读访问令牌" PlaceholderText="填入读取令牌，保存后由 Windows 加密保管" />
                         <local:WrapRow Spacing="10" RowSpacing="8">
-                            <Button x:Uid="LocalMediaPage_LocalLibrarySave" x:Name="LocalLibrarySave" Content="保存媒体库规则" IsEnabled="{x:Bind ViewModel.CanSaveLibrary, Mode=OneWay}" Click="OnSaveLibrary" />
-                            <Button x:Uid="LocalMediaPage_LocalLibraryRemove" x:Name="LocalLibraryRemove" Content="移除媒体库" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.CanRemoveLibrary), Mode=OneWay}" Click="OnRemoveLibrary" />
+                            <Button x:Uid="LocalMediaPage_LocalMediaSaveToken" x:Name="LocalMediaSaveToken" Content="保存令牌" Click="OnSaveToken" />
+                            <Button x:Uid="LocalMediaPage_LocalMediaClearToken" x:Name="LocalMediaClearToken" Content="清除令牌" Click="OnClearToken" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.HasToken), Mode=OneWay}" />
+                            <HyperlinkButton x:Uid="LocalMediaPage_LocalMediaTmdbSettings" x:Name="LocalMediaTmdbSettings" Content="打开 TMDB API 设置" NavigateUri="https://www.themoviedb.org/settings/api" />
                         </local:WrapRow>
-                        <TextBlock x:Name="LocalLibraryStatus" Text="{x:Bind ViewModel.LibraryStatus, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                        <TextBlock Text="{x:Bind ViewModel.TokenStatus, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                     </StackPanel>
-                </Grid>
+                    <TextBlock x:Uid="LocalMediaPage_LocalMediaMpNotice" x:Name="LocalMediaMpNotice" Text="MoviePilot 只接收目录与文件名文本，不接收视频；连接不可用时，请先到 MoviePilot 设置中连接。"
+                        Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.IsMoviePilot), Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                </StackPanel>
+                <StackPanel Spacing="10">
+                    <TextBlock x:Uid="LocalMediaPage_Localization10" Text="元数据" Style="{StaticResource EgSubheadStyle}" AutomationProperties.HeadingLevel="Level2" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Uid="LocalMediaPage_LocalMediaMetadataDirectory" x:Name="LocalMediaMetadataDirectory" Style="{StaticResource EgTextBoxStyle}"
+                            Header="元数据目录" Text="{x:Bind ViewModel.MetadataDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" />
+                        <Button x:Uid="LocalMediaPage_LocalMediaMetadataPick" x:Name="LocalMediaMetadataPick" Grid.Column="1" Content="选择…"
+                            VerticalAlignment="Bottom" Click="OnPickMetadataDirectory" AutomationProperties.Name="选择元数据目录" />
+                        <Button x:Uid="LocalMediaPage_LocalMediaMetadataSave" x:Name="LocalMediaMetadataSave" Grid.Column="2" Content="保存目录"
+                            VerticalAlignment="Bottom" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" Click="OnSaveMetadataDirectory" />
+                        <Button x:Uid="LocalMediaPage_LocalMediaMetadataReset" x:Name="LocalMediaMetadataReset" Grid.Column="3" Content="恢复默认"
+                            VerticalAlignment="Bottom" IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" Click="OnResetMetadataDirectory" />
+                    </Grid>
+                    <TextBlock x:Uid="LocalMediaPage_Localization11" Text="默认目录：" Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock x:Name="LocalMediaMetadataDefault" Text="{x:Bind ViewModel.DefaultMetadataDirectory, Mode=OneWay}" TextWrapping="Wrap"
+                        IsTextSelectionEnabled="True" Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock x:Name="LocalMediaMetadataStatus" Text="{x:Bind ViewModel.MetadataStatus, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                </StackPanel>
                 <local:WrapRow Spacing="12" RowSpacing="8">
                     <Button x:Uid="LocalMediaPage_LocalMediaScan" x:Name="LocalMediaScan" Content="扫描并识别" IsEnabled="{x:Bind ViewModel.CanScan, Mode=OneWay}" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.ProviderReady), Mode=OneWay}" Click="OnScan" />
                     <Button x:Name="LocalMediaApply" Content="{x:Bind ViewModel.ApplyLabel, Mode=OneWay}" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.CanApply), Mode=OneWay}" Click="OnApply" />
@@ -146,9 +122,10 @@
                                         <TextBlock Grid.Column="1" Text="{x:Bind FileName}" TextWrapping="Wrap" Style="{StaticResource EgDataStrongStyle}" VerticalAlignment="Center" />
                                         <Button x:Uid="LocalMediaPage_LocalMediaCorrectFile" x:Name="LocalMediaCorrectFile" Grid.Column="2" Content="校正" Click="OnCorrectFile" Tag="{x:Bind}" />
                                     </Grid>
+                                    <TextBlock Text="{x:Bind LibraryName}" Style="{StaticResource EgCaptionStyle}" />
                                     <TextBlock Text="{x:Bind Recognized, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
                                     <TextBlock Text="{x:Bind SourcePath}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Style="{StaticResource EgCaptionStyle}" />
-                                    <TextBlock Text="{x:Bind Target, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Style="{StaticResource EgCaptionStyle}" />
+                                    <TextBlock Text="{x:Bind VideoPath, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Style="{StaticResource EgCaptionStyle}" />
                                     <TextBlock Text="{x:Bind Status, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                                     <TextBlock Text="{x:Bind ResultDetails, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" Style="{StaticResource EgCaptionStyle}" />
                                 </StackPanel>
@@ -157,26 +134,27 @@
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>
                 <ContentControl IsEnabled="{x:Bind ViewModel.Editable, Mode=OneWay}" HorizontalContentAlignment="Stretch" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.ShowCorrection), Mode=OneWay}">
-                <StackPanel x:Name="LocalMediaCorrection" Spacing="10">
-                    <TextBlock x:Uid="LocalMediaPage_Localization12" Text="校正所选文件" Style="{StaticResource EgSubheadStyle}" />
-                    <TextBlock Text="{x:Bind ViewModel.CurrentFileName, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                    <Grid ColumnSpacing="10">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBox x:Uid="LocalMediaPage_LocalMediaSearchText" x:Name="LocalMediaSearchText" Header="片名" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ComboBox x:Uid="LocalMediaPage_LocalMediaSearchType" x:Name="LocalMediaSearchType" Header="类型" Grid.Column="1" SelectedIndex="{x:Bind ViewModel.SearchTypeIndex, Mode=TwoWay}"><ComboBoxItem x:Uid="LocalMediaPage_Localization13" Content="电影" /><ComboBoxItem x:Uid="LocalMediaPage_Localization14" Content="电视剧" /></ComboBox>
-                        <Button x:Uid="LocalMediaPage_LocalMediaSearch" x:Name="LocalMediaSearch" Content="搜索" Grid.Column="2" VerticalAlignment="Bottom" IsEnabled="{x:Bind ViewModel.CanCorrect, Mode=OneWay}" Click="OnSearch" />
-                    </Grid>
-                    <ComboBox x:Uid="LocalMediaPage_LocalMediaCandidates" x:Name="LocalMediaCandidates" Header="识别结果" ItemsSource="{x:Bind ViewModel.Candidates, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Candidate, Mode=TwoWay}" ItemTemplate="{StaticResource CandidateTemplate}" HorizontalAlignment="Stretch" />
-                    <Grid ColumnSpacing="12" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.ShowEpisodeFields), Mode=OneWay}">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <TextBox x:Uid="LocalMediaPage_LocalMediaSeason" x:Name="LocalMediaSeason" Header="季号（特别篇为 0）" Text="{x:Bind ViewModel.SeasonText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBox x:Uid="LocalMediaPage_LocalMediaEpisode" x:Name="LocalMediaEpisode" Grid.Column="1" Header="集号" Text="{x:Bind ViewModel.EpisodeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </Grid>
-                    <Button x:Uid="LocalMediaPage_LocalMediaUpdatePreview" x:Name="LocalMediaUpdatePreview" Content="使用所选作品更新预览" IsEnabled="{x:Bind ViewModel.CanChooseCandidate, Mode=OneWay}" Click="OnUpdatePreview" />
-                </StackPanel>
+                    <StackPanel x:Name="LocalMediaCorrection" Spacing="10">
+                        <TextBlock x:Uid="LocalMediaPage_Localization12" Text="校正所选文件" Style="{StaticResource EgSubheadStyle}" />
+                        <TextBlock Text="{x:Bind ViewModel.CurrentFileName, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox x:Uid="LocalMediaPage_LocalMediaSearchText" x:Name="LocalMediaSearchText" Header="片名" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <ComboBox x:Uid="LocalMediaPage_LocalMediaSearchType" x:Name="LocalMediaSearchType" Header="类型" Grid.Column="1" SelectedIndex="{x:Bind ViewModel.SearchTypeIndex, Mode=TwoWay}"><ComboBoxItem x:Uid="LocalMediaPage_Localization13" Content="电影" /><ComboBoxItem x:Uid="LocalMediaPage_Localization14" Content="电视剧" /></ComboBox>
+                            <Button x:Uid="LocalMediaPage_LocalMediaSearch" x:Name="LocalMediaSearch" Content="搜索" Grid.Column="2" VerticalAlignment="Bottom" IsEnabled="{x:Bind ViewModel.CanCorrect, Mode=OneWay}" Click="OnSearch" />
+                        </Grid>
+                        <ComboBox x:Uid="LocalMediaPage_LocalMediaCandidates" x:Name="LocalMediaCandidates" Header="识别结果" ItemsSource="{x:Bind ViewModel.Candidates, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Candidate, Mode=TwoWay}" ItemTemplate="{StaticResource CandidateTemplate}" HorizontalAlignment="Stretch" />
+                        <Grid ColumnSpacing="12" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.ShowEpisodeFields), Mode=OneWay}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBox x:Uid="LocalMediaPage_LocalMediaSeason" x:Name="LocalMediaSeason" Header="季号（特别篇为 0）" Text="{x:Bind ViewModel.SeasonText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox x:Uid="LocalMediaPage_LocalMediaEpisode" x:Name="LocalMediaEpisode" Grid.Column="1" Header="集号" Text="{x:Bind ViewModel.EpisodeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Button x:Uid="LocalMediaPage_LocalMediaUpdatePreview" x:Name="LocalMediaUpdatePreview" Content="使用所选作品更新预览" IsEnabled="{x:Bind ViewModel.CanChooseCandidate, Mode=OneWay}" Click="OnUpdatePreview" />
+                    </StackPanel>
                 </ContentControl>
                 <TextBlock Text="This product uses the TMDB API but is not endorsed or certified by TMDB." TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" Visibility="{x:Bind local:LocalMediaPage.Show(ViewModel.IsMomoka), Mode=OneWay}" />
-            </StackPanel>
+                </StackPanel>
+            </Border>
         </ScrollViewer>
     </Grid>
 </Page>

@@ -37,24 +37,27 @@ internal static class LocalLibraryHomeTests
             var release = page[start..page.IndexOf("\n    }", start, StringComparison.Ordinal)];
             Assert.True(release.Contains("Changed -= OnLocalLibrariesChanged", StringComparison.Ordinal));
         });
-        Test("本地媒体库：列表独立滚动，路径与状态可读，播放未接时隐藏", () =>
+        Test("本地媒体库：海报墙独立滚动，作品卡保留本地图与完成状态", () =>
         {
             var xml = XDocument.Parse(Read("Views/LocalLibraryPage.xaml"));
             XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
-            var list = xml.Descendants(xaml + "ListView").Single();
-            Assert.False(list.Ancestors(xaml + "ScrollViewer").Any(), "ListView 自身滚动，不能嵌套整页滚动器");
+            var wall = xml.Descendants(xaml + "ItemsView").Single();
+            Assert.Equal("{x:Bind ViewModel.Groups, Mode=OneWay}", wall.Attribute("ItemsSource")?.Value);
+            Assert.Equal("OnGroupInvoked", wall.Attribute("ItemInvoked")?.Value);
+            Assert.False(wall.Ancestors(xaml + "ScrollViewer").Any(), "ItemsView 自身滚动，不能嵌套整页滚动器");
             var source = Read("ViewModels/LocalLibraryViewModel.cs");
             Assert.True(source.Contains("entry.IsInLibrary", StringComparison.Ordinal));
             Assert.False(source.Contains("Momoka.Emby", StringComparison.Ordinal));
             Assert.True(source.Contains("ReferenceEquals(service, _service)", StringComparison.Ordinal));
             Assert.True(source.Contains("_visit", StringComparison.Ordinal));
             Assert.True(source.Contains("_play is null", StringComparison.Ordinal));
-            var row = Read("ViewModels/LocalLibraryRow.cs");
-            Assert.True(row.Contains("LocalMediaOutputKind.Poster", StringComparison.Ordinal));
-            Assert.True(row.Contains("output.Success", StringComparison.Ordinal));
-            Assert.False(row.Contains("PosterUrl", StringComparison.Ordinal), "不能自动回退到互联网海报");
-            Assert.True(row.Contains("entry.TargetPath", StringComparison.Ordinal));
-            Assert.True(row.Contains("entry.Complete", StringComparison.Ordinal));
+            var group = Read("ViewModels/LocalLibraryGroup.cs");
+            Assert.True(group.Contains("LocalMediaEntryArtwork.PosterPath", StringComparison.Ordinal));
+            Assert.False(group.Contains("PosterUrl", StringComparison.Ordinal), "不能自动回退到互联网海报");
+            Assert.True(group.Contains("entry.Complete", StringComparison.Ordinal));
+            Assert.True(source.Contains("TargetPath", StringComparison.Ordinal), "打开所在文件夹仍用源文件路径");
+            Assert.True(Read("Views/ShellPage.xaml.cs").Contains("DetailRequest.ForLocal(", StringComparison.Ordinal),
+                "本地作品卡必须走现有详情页");
         });
         Test("本地媒体库：导航在服务器库查找之前解析本地钥匙", () =>
         {

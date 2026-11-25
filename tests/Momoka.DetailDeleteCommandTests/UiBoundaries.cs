@@ -163,6 +163,8 @@ namespace Momoka.Shell.Views
             ViewModel = vm;
         }
         internal void OpenMore(FrameworkElement owner) => OnMoreClicked(owner, new RoutedEventArgs());
+        // 本机媒体库的「更多」属于详情页复用的另一条支线；删除命令夹具只验证服务器条目的菜单组装。
+        private void ShowLocalMore(Button owner) { }
         // 预告片菜单属于另一条播放生命周期；本夹具只验证「更多」那一拍的菜单组装。
         private Task ShowTrailersAsync(FrameworkElement anchor) => Task.CompletedTask;
     }

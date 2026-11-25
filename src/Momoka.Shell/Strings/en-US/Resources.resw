@@ -2026,11 +2026,11 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="LocalLibraryPage_Localization1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Refreshing local library</value>
   </data>
-  <data name="LocalLibraryPage_LocalLibraryOpenLocation.Content" xml:space="preserve">
-    <value>Open containing folder</value>
+  <data name="LocalLibraryPage_LocalLibraryRetry.Label" xml:space="preserve">
+    <value>Retry incomplete items</value>
   </data>
-  <data name="LocalLibraryPage_LocalLibraryPlay.Content" xml:space="preserve">
-    <value>Play</value>
+  <data name="LocalLibraryPage_LocalLibraryRetry.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Retry incomplete items</value>
   </data>
   <data name="LocalLibraryPage_Localization2.Text" xml:space="preserve">
     <value>No media files have been added yet. They will appear after background scanning and metadata retrieval finish.</value>
@@ -2039,7 +2039,22 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Local organization</value>
   </data>
   <data name="LocalMediaPage_Localization2.Text" xml:space="preserve">
-    <value>Identify media files on this computer or a network share, preview renaming or links, and write NFO files, posters and backdrops.</value>
+    <value>Add one or more library directories, identify files and write NFO, posters and stills. Videos stay in place: no renaming, moving or links.</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaToken.Header" xml:space="preserve">
+    <value>API Read Access Token</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataDirectory.Header" xml:space="preserve">
+    <value>Metadata directory</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataPick.Content" xml:space="preserve">
+    <value>Choose…</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataSave.Content" xml:space="preserve">
+    <value>Save directory</value>
+  </data>
+  <data name="LocalMediaPage_LocalMediaMetadataReset.Content" xml:space="preserve">
+    <value>Restore default</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Libraries</value>
@@ -2051,7 +2066,7 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Libraries</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryNew.Content" xml:space="preserve">
-    <value>Add library</value>
+    <value>Add directory</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryName.Header" xml:space="preserve">
     <value>Library name</value>
@@ -2060,7 +2075,7 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Identify and organize</value>
   </data>
   <data name="LocalMediaPage_Localization4.Text" xml:space="preserve">
-    <value>Identify and organize</value>
+    <value>Identify</value>
   </data>
   <data name="LocalMediaPage_LocalMediaProvider.Header" xml:space="preserve">
     <value>Identification method</value>
@@ -2099,13 +2114,13 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Directories</value>
   </data>
   <data name="LocalMediaPage_LocalMediaSource.Header" xml:space="preserve">
-    <value>Source directory</value>
+    <value>Directory</value>
   </data>
   <data name="LocalMediaPage_LocalMediaPickSource.Content" xml:space="preserve">
     <value>Choose…</value>
   </data>
   <data name="LocalMediaPage_LocalMediaPickSource.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Choose source directory</value>
+    <value>Choose library directory</value>
   </data>
   <data name="LocalMediaPage_LocalMediaTarget.Header" xml:space="preserve">
     <value>Destination directory</value>
@@ -2120,13 +2135,13 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Include subfolders</value>
   </data>
   <data name="LocalMediaPage_Localization9.Text" xml:space="preserve">
-    <value>Source and destination directories may be local paths (C:Media) or network shares (\serversharemedia). Network shares use the current Windows account.</value>
+    <value>One directory is one local library. Local paths (C:\Media) and network shares (\\server\share\media) both work; network shares use the current Windows account.</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryAutomationCard.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Automatic library import</value>
   </data>
   <data name="LocalMediaPage_Localization10.Text" xml:space="preserve">
-    <value>Automatic library import</value>
+    <value>Metadata</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryMonitor.Header" xml:space="preserve">
     <value>Monitor and fetch metadata automatically</value>
@@ -2138,13 +2153,13 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Disabled</value>
   </data>
   <data name="LocalMediaPage_Localization11.Text" xml:space="preserve">
-    <value>Existing and new files are processed. Identification starts after file writes settle; unclear matches wait for manual correction. Takes effect after saving the rules.</value>
+    <value>Default directory:</value>
   </data>
   <data name="LocalMediaPage_LocalLibrarySave.Content" xml:space="preserve">
-    <value>Save library rules</value>
+    <value>Save</value>
   </data>
   <data name="LocalMediaPage_LocalLibraryRemove.Content" xml:space="preserve">
-    <value>Remove library</value>
+    <value>Remove</value>
   </data>
   <data name="LocalMediaPage_LocalMediaScan.Content" xml:space="preserve">
     <value>Scan and identify</value>

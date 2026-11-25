@@ -176,7 +176,8 @@ namespace Momoka.Shell.Views
         internal string Title => Key;
     }
     public sealed class LocalLibraryPage : Page;
-    internal sealed record LocalLibraryRequest(Services.LocalLibraryCoordinator Service, string Id, Platform.ISystemLauncher Launcher)
+    internal sealed record LocalLibraryRequest(Services.LocalLibraryCoordinator Service, string Id, Platform.ISystemLauncher Launcher,
+        Func<object, Task>? Play = null, Func<object, Task>? Open = null)
     {
         internal const string Prefix = "local-library:";
     }
@@ -198,6 +199,8 @@ namespace Momoka.Shell.Views
         private AppSettings Settings { get; } = new();
         private bool _closing;
         private string? _current;
+        private Task PlayLocalLibraryEntryAsync(object entry) => Task.CompletedTask;
+        private Task OpenLocalLibraryGroupAsync(object group) => Task.CompletedTask;
         private readonly MenuBoundary AccountMenu = new();
         internal Frame ContentFrame { get; } = new();
         internal string? CurrentForTest => _current;

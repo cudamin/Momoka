@@ -387,9 +387,8 @@ public static class SettingsMigration
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
         settings.LocalMedia ??= new();
         settings.LocalMedia.SourceDirectory ??= "";
-        settings.LocalMedia.TargetDirectory ??= "";
+        settings.LocalMedia.MetadataDirectory ??= "";
         settings.LocalMedia.ProtectedTmdbToken ??= "";
-        if (settings.LocalMedia.Method is not ("rename" or "hardlink" or "symboliclink")) settings.LocalMedia.Method = "hardlink";
         if (settings.LocalMedia.Provider is not ("momoka" or "moviepilot")) settings.LocalMedia.Provider = "momoka";
         LocalLibrarySettingsMigration.Normalize(settings.LocalMedia);
         // 与账号密文一致：显式 null 是损坏文档，不能当作未保存密码继续读入。

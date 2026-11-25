@@ -848,7 +848,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     /// instead: a button offering to play one of them would be offering nothing.
     /// </summary>
     public Visibility PlayVisibility =>
-        Show(!IsSelecting && (!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
+        Show(!_item.IsLocal && !IsSelecting && (!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
             && (_item.IsPlayable || _item.Type is EmbyItemType.Series or EmbyItemType.Season));
 
     /// <summary>
@@ -862,7 +862,7 @@ public sealed partial class CardItem : INotifyPropertyChanged
     /// and this one is whether the action exists at all.
     /// </para>
     /// </summary>
-    public Visibility UserStateVisibility => Show(!IsSelecting && _item.TracksUserState);
+    public Visibility UserStateVisibility => Show(!_item.IsLocal && !IsSelecting && _item.TracksUserState);
 
     /// <summary>
     /// 收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。

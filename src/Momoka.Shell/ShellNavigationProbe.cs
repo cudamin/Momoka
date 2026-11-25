@@ -109,8 +109,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("启动时侧边栏模式已经开着", SidebarAtStartupAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
             await CaseAsync("首页 MP 订阅库入口、汇总与连接恢复", HomeMoviePilotLibraryAsync, 60, section: ShellProbeSections.MoviePilot);
-            await CaseAsync("本机整理：三种方式、双识别入口、宽窄预览与确认取消", LocalMediaAsync, 75, section: ShellProbeSections.LocalMedia);
-            await CaseAsync("多个本地媒体库：目录事件自动刮削已有与新增、首页逐库入口", LocalLibrariesAsync, 90, section: ShellProbeSections.LocalMedia);
+            await CaseAsync("本机整理：目录列表、逐行保存、宽窄预览与确认取消", LocalMediaAsync, 75, section: ShellProbeSections.LocalMedia);
+            await CaseAsync("多个本地媒体库：目录事件自动入库、首页逐库入口", LocalLibrariesAsync, 90, section: ShellProbeSections.LocalMedia);
             await CaseAsync("电影/剧/季页连续缩放跨断点后布局稳定", DetailResizeAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("详情封面与面包屑等距", DetailCoverGapAsync, 60, section: ShellProbeSections.Library);
             // 长期无信号：预告网页起播在匿名夹具里等不到（台账多轮记为既有超时）。保留分区单跑入口，

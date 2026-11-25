@@ -13,9 +13,6 @@ public static partial class LocalLibrarySettingsMigration
                 {
                     Name = Path.GetFileName(settings.SourceDirectory.TrimEnd('\\', '/')) is { Length: > 0 } name ? name : "本地媒体库",
                     SourceDirectory = settings.SourceDirectory,
-                    TargetDirectory = settings.TargetDirectory,
-                    Method = settings.Method,
-                    Provider = settings.Provider,
                     Recursive = settings.Recursive
                 });
             settings.LibrariesMigrated = true;
@@ -31,9 +28,6 @@ public static partial class LocalLibrarySettingsMigration
             }
             library.Name = string.IsNullOrWhiteSpace(library.Name) ? "本地媒体库" : library.Name.Trim();
             library.SourceDirectory ??= "";
-            library.TargetDirectory ??= "";
-            if (library.Method is not ("hardlink" or "symboliclink" or "rename")) { library.Method = "hardlink"; library.MonitorEnabled = false; }
-            if (library.Provider is not ("momoka" or "moviepilot")) { library.Provider = "momoka"; library.MonitorEnabled = false; }
         }
         if (settings.SelectedLibraryId is null || !ids.Contains(settings.SelectedLibraryId))
             settings.SelectedLibraryId = settings.Libraries.FirstOrDefault()?.Id ?? "";

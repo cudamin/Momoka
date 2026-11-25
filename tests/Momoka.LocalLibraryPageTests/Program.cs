@@ -31,7 +31,12 @@ internal static class Program
             Assert.Equal("Auto", (string?)columns[0].Attribute("Width"));
             Assert.Equal("*", (string?)columns[1].Attribute("Width"));
             Assert.True(ReferenceEquals(Named("LocalLibraryCount").Parent, bar.Parent));
-            foreach (var (name, handler) in new[] { ("LocalLibraryRefresh", "OnRefresh"), ("LocalLibraryOpenSource", "OnOpenSource") })
+            foreach (var (name, handler, visibility) in new[]
+            {
+                ("LocalLibraryRefresh", "OnRefresh", (string?)bar.Attribute("Visibility")),
+                ("LocalLibraryOpenSource", "OnOpenSource", (string?)bar.Attribute("Visibility")),
+                ("LocalLibraryRetry", "OnRetryIncomplete", "{x:Bind ViewModel.RetryVisibility, Mode=OneWay}")
+            })
             {
                 var command = Named(name);
                 Assert.Equal("AppBarButton", command.Name.LocalName);
@@ -39,7 +44,7 @@ internal static class Program
                 Assert.True(ReferenceEquals(command.Parent, bar));
                 Assert.False(string.IsNullOrWhiteSpace((string?)command.Attribute("Label")));
                 Assert.Equal((string?)command.Attribute("Label"), (string?)command.Attribute("AutomationProperties.Name"));
-                Assert.Equal((string?)bar.Attribute("Visibility"), (string?)command.Attribute("Visibility"));
+                Assert.Equal(visibility, (string?)command.Attribute("Visibility"));
             }
         });
         Test("本地库命令栏：真实页面刷新接线守卫重复提交、离页与移除", () =>
@@ -51,8 +56,8 @@ internal static class Program
             service.Refresh = id => { Assert.Equal("one", id); calls++; return pending.Task; };
             var page = new LocalLibraryPage();
             page.Attach(new(service, "one", new Launcher()));
-            var rows = page.ViewModel.Rows;
-            var row = rows.Single();
+            var groups = page.ViewModel.Groups;
+            var group = groups.Single();
             page.InvokeRefresh();
             page.InvokeRefresh();
             Assert.Equal(1, calls);
@@ -60,7 +65,7 @@ internal static class Program
             pending.SetResult();
             context.RunNext();
             Assert.False(page.ViewModel.Busy);
-            Assert.True(ReferenceEquals(rows, page.ViewModel.Rows) && ReferenceEquals(row, rows.Single()));
+            Assert.True(ReferenceEquals(groups, page.ViewModel.Groups) && ReferenceEquals(group, groups.Single()));
             page.InvokeRefresh();
             Assert.Equal(2, calls);
             page.Release();
@@ -108,9 +113,29 @@ internal static class Program
             page.Attach(new(service, "two", new Launcher()));
             context.RunNext();
             Assert.Equal("剧集库", page.ViewModel.Title);
-            Assert.Equal("two-entry", page.ViewModel.Rows.Single().Id);
+            Assert.Equal("two-entry", page.ViewModel.Groups.Single().Id);
             Assert.False(page.ViewModel.Busy || page.ViewModel.NoticeOpen);
             page.Release();
+        });
+        Test("本地库命令栏：重试未完成项接线守卫重复提交与离页", () =>
+        {
+            using var context = new CommandContext();
+            var service = Service();
+            var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var calls = 0;
+            service.RetryIncomplete = id => { Assert.Equal("one", id); calls++; return pending.Task; };
+            var page = new LocalLibraryPage();
+            page.Attach(new(service, "one", new Launcher()));
+            page.InvokeRetry();
+            page.InvokeRetry();
+            Assert.Equal(1, calls);
+            Assert.True(page.ViewModel.Busy);
+            pending.SetResult();
+            context.RunNext();
+            Assert.False(page.ViewModel.Busy);
+            page.Release();
+            page.InvokeRetry();
+            Assert.Equal(1, calls);
         });
         Test("本地库VM：仅显示当前库已入库文件，重复通知保留行集合", () =>
         {
@@ -118,15 +143,15 @@ internal static class Program
             using var vm = new LocalLibraryViewModel();
             var actions = new Queue<Action>();
             vm.Attach(service, "one", new Launcher(), action => { actions.Enqueue(action); return true; });
-            var rows = vm.Rows;
-            var row = rows.Single();
+            var groups = vm.Groups;
+            var group = groups.Single();
             Assert.Equal("电影库", vm.Title);
             Assert.Equal("1 项", vm.CountText);
             Assert.False(vm.CanPlay);
             service.RaiseChanged();
             actions.Dequeue()();
-            Assert.True(ReferenceEquals(rows, vm.Rows));
-            Assert.True(ReferenceEquals(row, vm.Rows.Single()));
+            Assert.True(ReferenceEquals(groups, vm.Groups));
+            Assert.True(ReferenceEquals(group, vm.Groups.Single()));
         });
         Test("本地库VM：换库后旧队列通知无效，离页退订", () =>
         {
@@ -157,7 +182,7 @@ internal static class Program
             };
             vm.Attach(service, "one", new Launcher(), action => { action(); return true; });
             Assert.Equal("剧集库", vm.Title);
-            Assert.Equal("two-entry", vm.Rows.Single().Id);
+            Assert.Equal("two-entry", vm.Groups.Single().Id);
             Assert.Equal(service.Configurations[1].SourceDirectory, vm.SourceDirectory);
             Assert.Equal(1, service.Subscribers);
         });
@@ -168,7 +193,7 @@ internal static class Program
             var launcher = new Launcher();
             vm.Attach(service, "one", launcher, action => { action(); return true; });
             vm.OpenSourceDirectory();
-            vm.OpenLocation(vm.Rows.Single());
+            vm.OpenLocation(vm.Groups.Single());
             Assert.Equal(0, launcher.Opens);
             Assert.True(vm.NoticeOpen);
         });
@@ -184,6 +209,75 @@ internal static class Program
             Assert.True(task.IsCompletedSuccessfully);
             Assert.Equal(0, refreshes);
             Assert.False(vm.Busy);
+        });
+        Test("本地库作品卡：封面已看与收藏按作品写入索引，失败不改卡片", () =>
+        {
+            var service = Service();
+            using var vm = new LocalLibraryViewModel();
+            vm.Attach(service, "one", new Launcher(), action => { action(); return true; });
+            var group = vm.Groups.Single();
+            var calls = new List<(string Library, string GroupKey, bool? Watched, bool? Favorite)>();
+            service.SetUserState = (library, key, watched, favorite) =>
+            {
+                calls.Add((library, key, watched, favorite));
+                return true;
+            };
+            Assert.False(group.Watched || group.Favorite);
+
+            vm.ToggleWatchedAsync(group);
+            Assert.True(group.Watched);
+            vm.ToggleFavoriteAsync(group);
+            Assert.True(group.Favorite);
+            Assert.Equal(2, calls.Count);
+            Assert.Equal("one", calls[0].Library);
+            Assert.Equal(LocalMediaEntryArtwork.GroupKey(group.Entries[0]), calls[0].GroupKey);
+            Assert.True(calls[0].Watched == true && calls[0].Favorite is null, "已看只写已看");
+            Assert.True(calls[1].Favorite == true && calls[1].Watched is null, "收藏只写收藏");
+
+            service.SetUserState = (_, _, _, _) => false;
+            vm.ToggleWatchedAsync(group);
+            Assert.True(group.Watched, "索引没有接受时卡片不能自己翻状态");
+        });
+        Test("本地库作品卡：索引里的已看收藏刷新后同一张卡跟着变", () =>
+        {
+            var service = Service();
+            using var vm = new LocalLibraryViewModel();
+            vm.Attach(service, "one", new Launcher(), action => { action(); return true; });
+            var group = vm.Groups.Single();
+            Assert.False(group.Watched || group.Favorite);
+
+            service.Entries[0] = service.Entries[0] with { Watched = true, Favorite = true };
+            service.RaiseChanged();
+
+            Assert.True(ReferenceEquals(group, vm.Groups.Single()), "状态变化不应重建作品卡");
+            Assert.True(group.Watched && group.Favorite);
+            Assert.Equal(Microsoft.UI.Xaml.Visibility.Visible, group.WatchedVisibility);
+            Assert.Equal(Microsoft.UI.Xaml.Visibility.Visible, group.FavoriteVisibility);
+        });
+        Test("本地库作品卡：封面三颗操作与更多菜单接线", () =>
+        {
+            var xml = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "LocalLibraryPage.xaml"));
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var buttons = xml.Descendants(xaml + "Button")
+                .Where(button => (string?)button.Attribute("Click") is "OnGroupWatched" or "OnGroupFavorite" or "OnGroupMore")
+                .ToArray();
+            Assert.Equal(3, buttons.Length, "封面应有已看、收藏、更多三颗");
+            foreach (var button in buttons)
+            {
+                Assert.Equal("{x:Bind}", (string?)button.Attribute("Tag"));
+                Assert.Equal("{StaticResource LocalCardActionStyle}", (string?)button.Attribute("Style"));
+            }
+            var surface = xml.Descendants(xaml + "Grid")
+                .Single(grid => (string?)grid.Attribute("PointerEntered") == "OnGroupPointerEntered");
+            Assert.Equal("OnGroupPointerExited", (string?)surface.Attribute("PointerExited"));
+            Assert.NotNull(surface.Descendants(xaml + "Border")
+                .SingleOrDefault(border => (string?)border.Attribute(x + "Name") == "GroupHoverShade"), "缺少悬停遮罩");
+            Assert.NotNull(surface.Descendants(xaml + "StackPanel")
+                .SingleOrDefault(panel => (string?)panel.Attribute(x + "Name") == "GroupActions"), "缺少封面操作组");
+            var page = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "LocalLibraryPage.xaml.cs"));
+            Assert.True(page.Contains("new MenuFlyout()", StringComparison.Ordinal) && page.Contains("menu.ShowAt(anchor)", StringComparison.Ordinal),
+                "更多必须开出菜单");
         });
         return Run();
     }

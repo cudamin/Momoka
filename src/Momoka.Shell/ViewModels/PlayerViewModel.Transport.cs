@@ -164,6 +164,86 @@ public sealed partial class PlayerViewModel
         if (attempt == _playbackAttempt) await _playback.StopAsync().ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// 本机库条目的起播：没有服务器会话，所以只准备窗口和遮罩，把原文件直接交给播放服务。
+    /// 标题、季度集数和简介来自本地刮削结果；播放进度只留在本机，不上报任何服务器。
+    /// </summary>
+    private async Task StartLocalPlaybackAsync(EmbyItem item, bool replaceExisting, CancellationToken continuationCancellation)
+    {
+        if (!replaceExisting && _playback.IsPlaying)
+        {
+            Noticed?.Invoke("已经有内容正在播放，请先停止", InfoBarSeverity.Warning);
+            return;
+        }
+        if (_playback.Validate() is { } problem)
+        {
+            Noticed?.Invoke(problem, InfoBarSeverity.Error);
+            if (_playerHold == 0 && !_playback.IsPlaying) LeavePlayer();
+            return;
+        }
+        if (item.Path is not { Length: > 0 } path || !File.Exists(path))
+        {
+            Noticed?.Invoke("本地文件已不在原处，请刷新媒体库。", InfoBarSeverity.Error);
+            return;
+        }
+        continuationCancellation.ThrowIfCancellationRequested();
+        _sessionQueue.Clear();
+        CancelEpisodeLookup();
+        InvalidateMenuInteractions();
+        ResetTimelineDrag();
+        var intent = _startIntent.Begin();
+        var attempt = ++_playbackAttempt;
+        _replacingPlayback = replaceExisting;
+        if (_playerHold++ == 0) _playbackIdle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            var headless = Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv
+                && Settings.Mpv.Pipeline == VideoPipelineKind.Standalone;
+            _preparingPictureInHost = Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv && !headless;
+            PreparePresentation?.Invoke(headless);
+            if (_presentedHeadless != headless) _playerUp = false;
+            _presentedHeadless = headless;
+            ShowCover(replaceExisting ? "正在切换…" : "正在打开本地文件…");
+            EnterPlayer();
+            _parent = null;
+            Episodes = [];
+            _playbackScope = null;
+            _activeIntent = intent;
+            _activePlaybackAttempt = attempt;
+            _activeStartTicks = 0;
+            var ticket = new LocalPlaybackTicket
+            {
+                Path = path,
+                Title = item.ToPlaybackHeadline(),
+                Item = item,
+                DisplayRefreshHz = MeasureRefreshHz?.Invoke() ?? 0
+            };
+            var result = await _playback.PlayLocalAsync(ticket, _lifetime.Token).ConfigureAwait(true);
+            var newest = attempt == _playbackAttempt || attempt == _activePlaybackAttempt;
+            if (newest) RefreshRequested?.Invoke();
+            if (newest && (result.Exit.IsFailure || result.Exit.Reason == PlaybackEndReason.Error))
+                Noticed?.Invoke(result.ToChinese(), InfoBarSeverity.Error);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            Log.Error(Category, "本地播放失败", error);
+            Noticed?.Invoke($"播放失败：{error.Message}", InfoBarSeverity.Error);
+        }
+        finally
+        {
+            _playerHold--;
+            try
+            {
+                if (_playerHold == 0 && !_playback.IsPlaying && !_lifetime.IsCancellationRequested) LeavePlayer();
+            }
+            finally
+            {
+                if (_playerHold == 0) _playbackIdle?.TrySetResult();
+            }
+        }
+    }
+
     private async Task StartPlaybackAsync(
         EmbyItem item,
         EmbyItem? parent,
@@ -178,6 +258,11 @@ public sealed partial class PlayerViewModel
         CancelSeekHold();
         _lifetime.Token.ThrowIfCancellationRequested();
         continuationCancellation.ThrowIfCancellationRequested();
+        if (item.IsLocal)
+        {
+            await StartLocalPlaybackAsync(item, replaceExisting, continuationCancellation).ConfigureAwait(true);
+            return;
+        }
         if (continuingIntent is { } inherited && !_startIntent.IsCurrent(inherited)) return;
         if (!replaceExisting && _playback.IsPlaying)
         {

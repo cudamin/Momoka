@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Xml.Linq;
+using Momoka.Emby;
 using Momoka.LocalMedia;
+using Momoka.Metadata;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -25,49 +27,44 @@ public static class LocalMediaTests
             Assert.False(LocalMediaOrganizer.IsNetworkPath(@"\\.\C:\"));
         });
 
-        Test("本机整理路径：UNC 改名使用扩展前缀", () =>
+        Test("本机整理路径：UNC 使用扩展前缀", () =>
         {
             Assert.Equal(@"\\?\UNC\server\share\dir\file.mkv", LocalMediaFiles.ExtendedPath(@"\\server\share\dir\file.mkv"));
             Assert.Equal(@"\\?\C:\dir\file.mkv", LocalMediaFiles.ExtendedPath(@"C:\dir\file.mkv"));
         });
 
-        Test("本机整理规划：网络目标上的硬链接在读取前拒绝", () =>
-        {
-            using var fixture = Video();
-            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
-            Assert.Throws<IOException>(() => LocalMediaOrganizer.Prepare(source, @"\\server\share\movies", Movie(), LocalMediaLinkMode.HardLink));
-        });
-
-        Test("本机整理：回环网络共享上的扫描、预览、直接改名与附属文件", () =>
+        Test("本机整理：回环网络共享上的扫描与原地入库", () =>
         {
             var share = LoopbackShare(Path.GetTempPath());
             if (share is null)
             {
-                Skip("本机整理：回环网络共享上的扫描、预览、直接改名与附属文件", "本机没有可访问的回环 SMB 管理共享");
+                Skip("本机整理：回环网络共享上的扫描与原地入库", "本机没有可访问的回环 SMB 管理共享");
                 return;
             }
             var root = Path.Combine(share, "momoka-unc-" + Guid.NewGuid().ToString("N"));
             var sourceRoot = Path.Combine(root, "source");
+            var metadata = Path.Combine(Path.GetTempPath(), "momoka-unc-meta-" + Guid.NewGuid().ToString("N"));
             try
             {
                 Directory.CreateDirectory(sourceRoot);
                 File.WriteAllText(Path.Combine(sourceRoot, "original.mkv"), "network-video");
                 var source = LocalMediaOrganizer.Scan(sourceRoot, true, CancellationToken.None).Single();
                 Assert.True(source.Path.StartsWith(@"\\localhost\", StringComparison.OrdinalIgnoreCase), "扫描结果应保持网络路径");
-                var plan = LocalMediaOrganizer.Prepare(source, "", Movie(), LocalMediaLinkMode.Rename);
+                var plan = LocalMediaOrganizer.Prepare(source, metadata, "UNC", Movie());
                 var result = Execute(plan);
                 Assert.True(result.Success, result.Summary + string.Join(";", result.Items.Select(item => item.Message)));
-                Assert.Equal("network-video", File.ReadAllText(plan.TargetPath));
-                Assert.False(File.Exists(source.Path));
-                Assert.True(File.Exists(Path.Combine(sourceRoot, "Film (2026).nfo")));
+                Assert.Equal("network-video", File.ReadAllText(source.Path));
+                Assert.Equal(source.Path, plan.VideoPath);
+                Assert.True(File.Exists(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path));
             }
             finally
             {
                 if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+                if (Directory.Exists(metadata)) Directory.Delete(metadata, recursive: true);
             }
         });
 
-        Test("本机链接扫描：只列具体视频且递归选项生效", () =>
+        Test("本机扫描：只列具体视频且递归选项生效", () =>
         {
             using var fixture = new MediaFiles();
             fixture.Write("source/a.mkv", "video-a");
@@ -82,45 +79,47 @@ public static class LocalMediaTests
             Assert.Equal(2, recursive.Cast<object>().Count());
         });
 
-        Test("本机链接规划：电影年份、危险字符、语言字幕后缀", () =>
-        {
-            using var fixture = new MediaFiles();
-            fixture.Write("source/original.mkv", "video");
-            fixture.Write("source/original.zh-Hans.srt", "字幕");
-            fixture.Write("source/original.eng.ass", "subtitle");
-            fixture.Write("source/unrelated.srt", "unrelated");
-            var plan = Prepare(fixture, new("A: Film?", 2026, LocalMediaType.Movie, "themoviedb", "123"));
-            Assert.Equal(Path.Combine(fixture.Target, "A_ Film_ (2026)", "A_ Film_ (2026).mkv"), plan.TargetPath);
-            Assert.Equal(2, plan.Sidecars.Count(item => item.Kind == LocalMediaOutputKind.SubtitleLink));
-            Assert.True(plan.Sidecars.Any(item => item.Path.EndsWith("A_ Film_ (2026).zh-Hans.srt", StringComparison.Ordinal)));
-        });
-
-        Test("本机链接规划：Windows设备名不作为目录名", () =>
-        {
-            using var fixture = Video();
-            var plan = Prepare(fixture, new("CON", null, LocalMediaType.Movie, "themoviedb", "123"));
-            Assert.Equal(Path.Combine(fixture.Target, "_CON", "_CON.mkv"), plan.TargetPath);
-        });
-
-        Test("本机链接规划：拒绝目标位于源扫描树", () =>
+        Test("本机规划：视频保持原位，NFO与图片写入元数据目录", () =>
         {
             using var fixture = Video();
             var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
-            Assert.Throws<IOException>(() => LocalMediaOrganizer.Prepare(source, Path.Combine(fixture.Source, "output"), Movie(), LocalMediaLinkMode.HardLink));
+            var plan = LocalMediaOrganizer.Prepare(source, fixture.Metadata, "Library", new("A: Film?", 2026, LocalMediaType.Movie, "themoviedb", "123")
+            {
+                PosterUrl = "https://example.invalid/poster.jpg",
+                BackdropUrl = "https://example.invalid/fanart.webp"
+            });
+            Assert.Equal(source.Path, plan.VideoPath);
+            Assert.False(File.Exists(Path.Combine(fixture.Source, "A_ Film_ (2026).mkv")));
+            var directory = Path.Combine(fixture.Metadata, "Library", "A_ Film_ (2026)");
+            Assert.Equal(Path.Combine(directory, "A_ Film_ (2026).nfo"),
+                plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path);
+            Assert.Equal(Path.Combine(directory, "poster.jpg"),
+                plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster).Path);
+            Assert.Equal(Path.Combine(directory, "fanart.webp"),
+                plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Backdrop).Path);
+            Assert.False(plan.Sidecars.Any(item => item.Kind is LocalMediaOutputKind.Video));
         });
 
-        Test("本机链接规划：已有目标绝不覆盖", () =>
+        Test("本机规划：Windows设备名不作为目录名", () =>
         {
             using var fixture = Video();
-            fixture.Write("target/Film (2026)/Film (2026).mkv", "existing");
+            var plan = LocalMediaOrganizer.Prepare(LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single(),
+                fixture.Metadata, "Library", new("CON", null, LocalMediaType.Movie, "themoviedb", "123"));
+            Assert.True(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path.Contains(
+                Path.Combine("Library", "_CON"), StringComparison.Ordinal));
+        });
+
+        Test("本机规划：已有元数据不覆盖", () =>
+        {
+            using var fixture = Video();
+            var existing = fixture.Write("metadata/Library/Film (2026)/Film (2026).nfo", "existing");
             Assert.Throws<IOException>(() => Prepare(fixture, Movie()));
-            Assert.Equal("existing", File.ReadAllText(Path.Combine(fixture.Target, "Film (2026)", "Film (2026).mkv")));
+            Assert.Equal("existing", File.ReadAllText(existing));
         });
 
-        Test("本机硬链接执行：真实链接、源保持和movie XML", () =>
+        Test("本机入库执行：源文件不改动且movie XML写入元数据目录", () =>
         {
             using var fixture = Video();
-            fixture.Write("source/original.zh.srt", "字幕");
             var source = Path.Combine(fixture.Source, "original.mkv");
             var sourceTime = File.GetLastWriteTimeUtc(source);
             var plan = Prepare(fixture, Movie() with { Overview = "A & B < C" });
@@ -128,11 +127,11 @@ public static class LocalMediaTests
             Assert.True(result.Success, result.Summary + string.Join(";", result.Items.Select(item => item.Message)));
             Assert.Equal("video", File.ReadAllText(source));
             Assert.Equal(sourceTime, File.GetLastWriteTimeUtc(source));
-            Assert.Equal("video", File.ReadAllText(plan.TargetPath));
-            Assert.Equal(2u, NativeLinkCount(source));
-            Assert.Equal("字幕", File.ReadAllText(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.SubtitleLink).Path));
+            Assert.Equal(source, plan.VideoPath);
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.Video && item.Success));
             var nfoPath = plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path;
-            Assert.True(File.Exists(nfoPath), string.Join(";", Directory.EnumerateFiles(fixture.Target, "*", SearchOption.AllDirectories)));
+            Assert.True(File.Exists(nfoPath), string.Join(";", Directory.EnumerateFiles(fixture.Metadata, "*", SearchOption.AllDirectories)));
+            Assert.True(nfoPath.StartsWith(fixture.Metadata, StringComparison.OrdinalIgnoreCase));
             var nfo = XDocument.Load(nfoPath);
             Assert.Equal("movie", nfo.Root!.Name.LocalName);
             Assert.Equal("123", nfo.Root.Element("uniqueid")!.Value);
@@ -145,7 +144,6 @@ public static class LocalMediaTests
             var metadata = new LocalMediaMetadata("Series", 2020, LocalMediaType.Episode, "themoviedb", "100")
             { Season = 0, Episode = 2, EpisodeId = "200", EpisodeTitle = "Special", EpisodeAired = new DateOnly(2020, 1, 2) };
             var plan = Prepare(fixture, metadata);
-            Assert.Equal(Path.Combine(fixture.Target, "Series (2020)", "Season 00", "Series - S00E02.mkv"), plan.TargetPath);
             Assert.True(Execute(plan).Success);
             var episode = XDocument.Load(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.EpisodeNfo).Path);
             Assert.Equal("episodedetails", episode.Root!.Name.LocalName);
@@ -162,7 +160,7 @@ public static class LocalMediaTests
             Assert.Throws<ArgumentException>(() => Prepare(fixture, Movie() with { MediaId = "" }));
         });
 
-        Test("本机链接执行：同长度同时间改内容也拒绝", () =>
+        Test("本机入库执行：同长度同时间改内容也拒绝", () =>
         {
             using var fixture = Video();
             var plan = Prepare(fixture, Movie());
@@ -170,20 +168,10 @@ public static class LocalMediaTests
             File.SetLastWriteTimeUtc(plan.Source.Path, plan.Source.LastWriteTimeUtc);
             var result = Execute(plan);
             Assert.False(result.Success);
-            Assert.False(File.Exists(plan.TargetPath));
+            Assert.False(Directory.Exists(fixture.Metadata));
         });
 
-        Test("本机链接执行：预览后字幕改变整项拒绝", () =>
-        {
-            using var fixture = Video();
-            var subtitle = fixture.Write("source/original.zh.srt", "before");
-            var plan = Prepare(fixture, Movie());
-            File.WriteAllText(subtitle, "after");
-            Assert.False(Execute(plan).Success);
-            Assert.False(File.Exists(plan.TargetPath));
-        });
-
-        Test("本机链接执行：计划单次消费且取消不能重放", () =>
+        Test("本机入库执行：计划单次消费且取消不能重放", () =>
         {
             using var fixture = Video();
             var plan = Prepare(fixture, Movie());
@@ -192,46 +180,250 @@ public static class LocalMediaTests
             var first = LocalMediaOrganizer.ExecuteAsync(plan, Images, cancellation.Token).GetAwaiter().GetResult();
             Assert.True(first.Cancelled);
             Assert.False(Execute(plan).Success);
-            Assert.False(File.Exists(plan.TargetPath));
+            Assert.False(Directory.Exists(fixture.Metadata));
         });
 
-        Test("本机链接执行：图片失败准确保留部分完成", () =>
+        Test("本机入库执行：图片失败准确保留部分完成", () =>
         {
             using var fixture = Video();
             var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/poster" });
             var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromException<byte[]>(new IOException("图片失败")), CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(result.Success);
-            Assert.True(File.Exists(plan.TargetPath));
-            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.VideoLink && item.Success));
+            Assert.True(File.Exists(plan.VideoPath));
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.Video && item.Success));
             Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.Poster && !item.Success));
             Assert.False(File.Exists(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster).Path));
         });
 
-        Test("本机直接改名：视频字幕更名、旁车按stem命名且忽略目标根", () =>
+        Test("本机入库重试：同作品NFO复用并补写缺失图片，别的作品仍拒写", () =>
         {
             using var fixture = Video();
-            fixture.Write("source/original.zh.srt", "字幕");
-            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
-            var plan = LocalMediaOrganizer.Prepare(source, "not-a-target", Movie() with { PosterUrl = "https://example.invalid/a" }, LocalMediaLinkMode.Rename);
-            Assert.Equal(Path.Combine(fixture.Source, "Film (2026).mkv"), plan.TargetPath);
-            Assert.True(Execute(plan).Success);
-            Assert.False(File.Exists(source.Path));
-            Assert.Equal("video", File.ReadAllText(plan.TargetPath));
-            Assert.Equal("字幕", File.ReadAllText(Path.Combine(fixture.Source, "Film (2026).zh.srt")));
-            Assert.True(File.Exists(Path.Combine(fixture.Source, "Film (2026).nfo")));
-            Assert.True(File.Exists(Path.Combine(fixture.Source, "Film (2026)-poster.jpg")));
-            Assert.False(File.Exists(Path.Combine(fixture.Source, "poster.jpg")));
+            var metadata = Movie() with { PosterUrl = "https://example.invalid/poster.jpg" };
+            var first = Prepare(fixture, metadata);
+            var posterPath = first.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster).Path;
+            var nfoPath = first.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path;
+            var failed = LocalMediaOrganizer.ExecuteAsync(first, (_, _) =>
+                Task.FromException<byte[]>(new IOException("图片失败")), CancellationToken.None).GetAwaiter().GetResult();
+            Assert.False(failed.Success);
+            var nfoBytes = File.ReadAllBytes(nfoPath);
+
+            var retry = Prepare(fixture, metadata);
+            var result = Execute(retry);
+            Assert.True(result.Success, result.Summary + string.Join(";", result.Items.Select(item => item.Message)));
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.MovieNfo && item.Success
+                && item.Message.Contains("复用", StringComparison.Ordinal)));
+            Assert.True(nfoBytes.SequenceEqual(File.ReadAllBytes(nfoPath)), "重试不应改写已核对的 NFO");
+            Assert.True(File.Exists(posterPath));
+            Assert.Throws<IOException>(() => Prepare(fixture, metadata with { MediaId = "999" }));
         });
 
-        Test("本机改名执行：确认后出现同名文件拒绝并保留源", () =>
+        Test("本机规划：演职人员头像按人物编号写入 people 子目录", () =>
         {
             using var fixture = Video();
-            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
-            var plan = LocalMediaOrganizer.Prepare(source, "", Movie(), LocalMediaLinkMode.Rename);
-            File.WriteAllText(plan.TargetPath, "existing");
-            Assert.False(Execute(plan).Success);
-            Assert.Equal("video", File.ReadAllText(source.Path));
-            Assert.Equal("existing", File.ReadAllText(plan.TargetPath));
+            var metadata = Movie() with
+            {
+                People =
+                [
+                    new LocalMediaPerson("演员甲", "角色甲", false) { Id = "101", ImageUrl = "https://image.tmdb.org/t/p/original/a.jpg" },
+                    new LocalMediaPerson("导演乙", "", true) { Id = "201", ImageUrl = "https://image.tmdb.org/t/p/original/c.png" },
+                    new LocalMediaPerson("无头像", "", false) { Id = "301" }
+                ]
+            };
+            var plan = Prepare(fixture, metadata);
+            var images = plan.Sidecars.Where(item => item.Kind == LocalMediaOutputKind.PersonImage).ToArray();
+            Assert.Equal(2, images.Length);
+            Assert.True(images.All(item => item.Optional));
+            Assert.True(images[0].Path.EndsWith(Path.Combine("people", "101.jpg"), StringComparison.OrdinalIgnoreCase));
+            Assert.True(images[1].Path.EndsWith(Path.Combine("people", "201.png"), StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(images[0].Path, plan.Metadata.People[0].ImagePath);
+            Assert.Equal("", plan.Metadata.People[2].ImagePath);
+        });
+
+        Test("本机入库执行：头像失败只少一张脸，算完成", () =>
+        {
+            using var fixture = Video();
+            var metadata = Movie() with
+            {
+                People = [new LocalMediaPerson("演员甲", "角色甲", false)
+                    { Id = "101", ImageUrl = "https://image.tmdb.org/t/p/original/a.jpg" }]
+            };
+            var plan = Prepare(fixture, metadata);
+            var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) =>
+                Task.FromException<byte[]>(new IOException("头像失败")), CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(result.Success, result.Summary);
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.PersonImage && !item.Success && item.Optional));
+            Assert.True(File.Exists(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.MovieNfo).Path));
+        });
+
+        Test("本机入库重试：已写好的头像与 NFO 一并复用", () =>
+        {
+            using var fixture = Video();
+            var metadata = Movie() with
+            {
+                People = [new LocalMediaPerson("演员甲", "角色甲", false)
+                    { Id = "101", ImageUrl = "https://image.tmdb.org/t/p/original/a.jpg" }]
+            };
+            var first = Prepare(fixture, metadata);
+            var firstResult = Execute(first);
+            Assert.True(firstResult.Success, firstResult.Summary);
+            var portrait = first.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.PersonImage).Path;
+            Assert.True(File.Exists(portrait));
+
+            var retry = Execute(Prepare(fixture, metadata));
+            Assert.True(retry.Success, retry.Summary);
+            Assert.True(retry.Items.Any(item => item.Kind == LocalMediaOutputKind.PersonImage && item.Success
+                && item.Message.Contains("复用", StringComparison.Ordinal)));
+        });
+
+        Test("本机索引：旧版没有人物编号的条目自动放开一次补头像", () =>
+        {
+            using var fixture = Video();
+            var index = Path.Combine(Path.GetTempPath(), "momoka-library-" + Guid.NewGuid().ToString("N"), "local-library.json");
+            try
+            {
+                var library = new LocalMediaLibrary(index);
+                var old = Movie() with { People = [new LocalMediaPerson("演员甲", "角色甲", false)] };
+                var plan = Prepare(fixture, old);
+                _ = library.ExecuteAsync("lib", plan, Images, CancellationToken.None).GetAwaiter().GetResult();
+                Assert.True(library.WasAttempted("lib", plan.Source.Path));
+                Assert.Equal("", library.Entries.Single().Metadata.People.Single().Id);
+
+                library.RetryMissingPeople("lib");
+                Assert.False(library.WasAttempted("lib", plan.Source.Path));
+
+                var upgraded = old with
+                {
+                    People = [new LocalMediaPerson("演员甲", "角色甲", false)
+                        { Id = "101", ImageUrl = "https://image.tmdb.org/t/p/original/a.jpg" }]
+                };
+                var retry = Prepare(fixture, upgraded);
+                _ = library.ExecuteAsync("lib", retry, Images, CancellationToken.None).GetAwaiter().GetResult();
+                var entry = library.Entries.Single();
+                Assert.True(entry.Complete);
+                Assert.Equal("101", entry.Metadata.People.Single().Id);
+                Assert.True(entry.Metadata.People.Single().ImagePath.EndsWith(
+                    Path.Combine("people", "101.jpg"), StringComparison.OrdinalIgnoreCase));
+                Assert.Equal("", entry.Metadata.People.Single().ImageUrl);
+
+                library.RetryMissingPeople("lib");
+                Assert.True(library.WasAttempted("lib", retry.Source.Path), "补过头像后不应再放开");
+            }
+            finally
+            {
+                var directory = Path.GetDirectoryName(index)!;
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
+        });
+
+        Test("本机索引：补头像失败不把已入库条目变成待校正", () =>
+        {
+            using var fixture = Video();
+            var index = Path.Combine(Path.GetTempPath(), "momoka-library-" + Guid.NewGuid().ToString("N"), "local-library.json");
+            try
+            {
+                var library = new LocalMediaLibrary(index);
+                var old = Movie() with { People = [new LocalMediaPerson("演员甲", "角色甲", false)] };
+                var plan = Prepare(fixture, old);
+                _ = library.ExecuteAsync("lib", plan, Images, CancellationToken.None).GetAwaiter().GetResult();
+                Assert.True(library.Entries.Single().Complete);
+
+                library.RetryMissingPeople("lib");
+                library.RecognitionFailed("lib", plan.Source.Path, "无法连接TMDB，请检查网络后重试。");
+                Assert.Equal(0, library.Issues.Count);
+                Assert.True(library.Entries.Single().Complete);
+            }
+            finally
+            {
+                var directory = Path.GetDirectoryName(index)!;
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
+        });
+
+        Test("本机索引：只放开未完成条目的重试记录", () =>
+        {
+            using var fixture = Video();
+            var index = Path.Combine(Path.GetTempPath(), "momoka-library-" + Guid.NewGuid().ToString("N"), "local-library.json");
+            try
+            {
+                var library = new LocalMediaLibrary(index);
+                var metadata = Movie() with { PosterUrl = "https://example.invalid/poster.jpg" };
+                var plan = Prepare(fixture, metadata);
+                _ = library.ExecuteAsync("lib", plan, (_, _) =>
+                    Task.FromException<byte[]>(new IOException("图片失败")), CancellationToken.None).GetAwaiter().GetResult();
+                Assert.True(library.WasAttempted("lib", plan.Source.Path));
+                Assert.False(library.Entries.Single().Complete);
+
+                library.RetryIncomplete("lib");
+                Assert.False(library.WasAttempted("lib", plan.Source.Path));
+
+                var retry = Prepare(fixture, metadata);
+                _ = library.ExecuteAsync("lib", retry, Images, CancellationToken.None).GetAwaiter().GetResult();
+                Assert.True(library.Entries.Single().Complete);
+                library.RetryIncomplete("lib");
+                Assert.True(library.WasAttempted("lib", retry.Source.Path));
+            }
+            finally
+            {
+                var directory = Path.GetDirectoryName(index)!;
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
+        });
+
+        Test("本机索引：旧版图片格式失败的条目自动放开一次重试", () =>
+        {
+            using var fixture = Video();
+            var index = Path.Combine(Path.GetTempPath(), "momoka-library-" + Guid.NewGuid().ToString("N"), "local-library.json");
+            try
+            {
+                var library = new LocalMediaLibrary(index);
+                var metadata = Movie() with { PosterUrl = "https://example.invalid/poster.jpg" };
+                var plan = Prepare(fixture, metadata);
+                // 目标后缀是 .jpg，实际回 PNG：旧版就是这样把 TMDB 的图片拒在外面。
+                _ = library.ExecuteAsync("lib", plan, (_, _) =>
+                    Task.FromResult(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }), CancellationToken.None).GetAwaiter().GetResult();
+                Assert.False(library.Entries.Single().Complete);
+                Assert.True(library.WasAttempted("lib", plan.Source.Path));
+
+                library.RetryBrokenArtwork("lib");
+                Assert.False(library.WasAttempted("lib", plan.Source.Path));
+
+                var retry = Prepare(fixture, metadata);
+                _ = library.ExecuteAsync("lib", retry, Images, CancellationToken.None).GetAwaiter().GetResult();
+                Assert.True(library.Entries.Single().Complete);
+            }
+            finally
+            {
+                var directory = Path.GetDirectoryName(index)!;
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
+        });
+
+        Test("本机索引：已看与收藏按作品分组保存并可重读", () =>
+        {
+            using var fixture = Video();
+            var index = Path.Combine(Path.GetTempPath(), "momoka-library-" + Guid.NewGuid().ToString("N"), "local-library.json");
+            try
+            {
+                var library = new LocalMediaLibrary(index);
+                var plan = Prepare(fixture, Movie());
+                _ = library.ExecuteAsync("lib", plan, Images, CancellationToken.None).GetAwaiter().GetResult();
+                var entry = library.Entries.Single();
+                Assert.False(entry.Watched || entry.Favorite);
+
+                Assert.True(library.SetUserState("lib", LocalMediaEntryArtwork.GroupKey(entry), watched: true, favorite: true));
+                // 重试补写会用这一轮的新元数据重建条目；已看与收藏是用户状态，不能跟着清零。
+                library.RetryIncomplete("lib");
+                _ = library.ExecuteAsync("lib", Prepare(fixture, Movie()), Images, CancellationToken.None).GetAwaiter().GetResult();
+                Assert.True(library.Entries.Single().Watched && library.Entries.Single().Favorite);
+                var reopened = new LocalMediaLibrary(index);
+                var saved = reopened.Entries.Single();
+                Assert.True(saved.Watched && saved.Favorite);
+            }
+            finally
+            {
+                var directory = Path.GetDirectoryName(index)!;
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
         });
 
         Test("本机扫描：源目录和文件重解析点不跟随", () =>
@@ -242,15 +434,6 @@ public static class LocalMediaTests
             File.CreateSymbolicLink(Path.Combine(fixture.Source, "alias.mkv"), destination);
             Assert.Equal(1, LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Count);
             Assert.Throws<IOException>(() => LocalMediaOrganizer.Scan(Path.Combine(fixture.Source, "junction"), true, CancellationToken.None));
-        });
-
-        Test("本机规划：目标祖先重解析点拒绝", () =>
-        {
-            using var fixture = Video();
-            Directory.CreateDirectory(fixture.Target);
-            Directory.CreateSymbolicLink(Path.Combine(fixture.Source, "target-link"), fixture.Target);
-            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
-            Assert.Throws<IOException>(() => LocalMediaOrganizer.Prepare(source, Path.Combine(fixture.Source, "target-link", "nested"), Movie(), LocalMediaLinkMode.HardLink));
         });
 
         Test("本机剧集：同作品共享series NFO且不同作品拒绝混用", () =>
@@ -264,28 +447,7 @@ public static class LocalMediaTests
             Assert.Throws<IOException>(() => Prepare(fixture, metadata with { MediaId = "999", Episode = 3 }));
         });
 
-        Test("本机软链接：真实目标路径且无复制降级", () =>
-        {
-            using var fixture = Video();
-            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
-            var plan = LocalMediaOrganizer.Prepare(source, fixture.Target, Movie(), LocalMediaLinkMode.SymbolicLink);
-            var result = Execute(plan);
-            Assert.True(result.Success, string.Join(";", result.Items.Select(item => item.Message)));
-            Assert.Equal(source.Path, new FileInfo(plan.TargetPath).ResolveLinkTarget(false)!.FullName);
-            Assert.Equal("video", File.ReadAllText(source.Path));
-        });
-
-        Test("本机链接执行：任意图片服务失败也是部分失败回执", () =>
-        {
-            using var fixture = Video();
-            var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/a" });
-            var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromException<byte[]>(new InvalidOperationException("识别服务已断开")), CancellationToken.None).GetAwaiter().GetResult();
-            Assert.False(result.Success);
-            Assert.True(File.Exists(plan.TargetPath));
-            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.Poster && !item.Success));
-        });
-
-        Test("本机链接执行：新同名文件在图片等待读取中出现也不覆盖", () =>
+        Test("本机图像执行：新同名文件在图片等待读取中出现也不覆盖", () =>
         {
             using var fixture = Video();
             var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/a" });
@@ -300,7 +462,7 @@ public static class LocalMediaTests
             Assert.False(Directory.EnumerateFiles(Path.GetDirectoryName(poster)!, ".momoka-*.tmp").Any());
         });
 
-        Test("本机链接执行：图片等待期间取消保留链接并列明取消", () =>
+        Test("本机图像执行：图片等待期间取消保留视频回执并列明取消", () =>
         {
             using var fixture = Video();
             using var cancellation = new CancellationTokenSource();
@@ -312,18 +474,18 @@ public static class LocalMediaTests
             }, cancellation.Token).GetAwaiter().GetResult();
             Assert.True(result.Cancelled);
             Assert.False(result.Success);
-            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.VideoLink && item.Success));
-            Assert.True(File.Exists(plan.TargetPath));
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.Video && item.Success));
+            Assert.True(File.Exists(plan.VideoPath));
             Assert.False(File.Exists(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster).Path));
         });
 
-        Test("本机链接执行：源已被别的写句柄占用就拒绝", () =>
+        Test("本机入库执行：源已被别的写句柄占用就拒绝", () =>
         {
             using var fixture = Video();
             var plan = Prepare(fixture, Movie());
             using var writer = new FileStream(plan.Source.Path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
             Assert.False(Execute(plan).Success);
-            Assert.False(File.Exists(plan.TargetPath));
+            Assert.False(Directory.Exists(fixture.Metadata));
         });
 
         Test("本机剧集：缺单集ID不把整剧ID写到单集NFO", () =>
@@ -338,27 +500,8 @@ public static class LocalMediaTests
         Test("本机剧集：series NFO禁止DTD及重解析文件", () =>
         {
             using var fixture = Video();
-            fixture.Write("target/Series (2020)/tvshow.nfo", "<!DOCTYPE tvshow [<!ENTITY external SYSTEM 'file:///missing'>]><tvshow><uniqueid type='tmdb'>100</uniqueid></tvshow>");
+            fixture.Write("metadata/Library/Series (2020)/tvshow.nfo", "<!DOCTYPE tvshow [<!ENTITY external SYSTEM 'file:///missing'>]><tvshow><uniqueid type='tmdb'>100</uniqueid></tvshow>");
             Assert.Throws<System.Xml.XmlException>(() => Prepare(fixture, new("Series", 2020, LocalMediaType.Episode, "themoviedb", "100") { Season = 1, Episode = 2 }));
-        });
-
-        Test("本机链接执行：确认后目标祖先替换为重解析路径拒绝", () =>
-        {
-            using var fixture = Video();
-            var plan = Prepare(fixture, Movie());
-            var elsewhere = fixture.Write("elsewhere/keep.txt", "keep");
-            Directory.CreateSymbolicLink(fixture.Target, Path.GetDirectoryName(elsewhere)!);
-            Assert.False(Execute(plan).Success);
-            Assert.Equal("keep", File.ReadAllText(elsewhere));
-            Assert.False(File.Exists(Path.Combine(Path.GetDirectoryName(elsewhere)!, "Film (2026)", "Film (2026).mkv")));
-        });
-
-        Test("本机链接规划：目标根在外但作品目录落入源树仍拒绝", () =>
-        {
-            using var fixture = new MediaFiles();
-            fixture.Write("source/Film (2026)/original.mkv", "video");
-            var source = LocalMediaOrganizer.Scan(Path.Combine(fixture.Source, "Film (2026)"), true, CancellationToken.None).Single();
-            Assert.Throws<IOException>(() => LocalMediaOrganizer.Prepare(source, fixture.Source, Movie(), LocalMediaLinkMode.HardLink));
         });
 
         Test("本机扫描：检查取消而不继续遍历", () =>
@@ -403,7 +546,7 @@ public static class LocalMediaTests
             var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(bytes), CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(result.Success);
             Assert.False(File.Exists(image.Path));
-            Assert.True(File.Exists(plan.TargetPath));
+            Assert.True(File.Exists(plan.VideoPath));
             Assert.DoesNotContain("private", string.Join(";", result.Items.Select(item => item.Message)));
         });
 
@@ -424,11 +567,11 @@ public static class LocalMediaTests
             var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/image.jpg" });
             var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(new byte[] { 1, 2, 3 }), CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(result.Success);
-            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.VideoLink && item.Success));
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.Video && item.Success));
             Assert.False(File.Exists(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster).Path));
         });
 
-        Test("本机规划：开始已取消时不读取hash也不写目标", () =>
+        Test("本机规划：开始已取消时不读取hash也不写元数据", () =>
         {
             using var fixture = Video();
             var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
@@ -436,9 +579,62 @@ public static class LocalMediaTests
             cancellation.Cancel();
             var method = typeof(LocalMediaOrganizer).GetMethods().SingleOrDefault(item => item.Name == "Prepare" && item.GetParameters().Length == 5);
             Assert.NotNull(method, "Prepare应接收取消令牌");
-            var error = Assert.Catch<TargetInvocationException>(() => method!.Invoke(null, [source, fixture.Target, Movie(), LocalMediaLinkMode.HardLink, cancellation.Token]));
+            var error = Assert.Catch<TargetInvocationException>(() => method!.Invoke(null, [source, fixture.Metadata, "Library", Movie(), cancellation.Token]));
             Assert.True(error.InnerException is OperationCanceledException);
-            Assert.False(Directory.Exists(fixture.Target));
+            Assert.False(Directory.Exists(fixture.Metadata));
+        });
+
+        Test("TMDB 识别：中英双语片名与集数能从验收文件名中拆出并匹配中文标题", () =>
+        {
+            const string context = "爱·回家之三代同糖.Like.Mother.Like.Daughter.S01.2026.1080p.MyTVSuper.WEB-DL.H265.AAC-ADWeb/爱·回家之三代同糖.Like.Mother.Like.Daughter.S01E75.2026.1080p.MyTVSuper.WEB-DL.H265.AAC-ADWeb.mkv";
+            var parsed = LocalMediaName.Parse(context);
+            Assert.Equal(1, parsed.Season);
+            Assert.Equal(75, parsed.Episode);
+            Assert.True(parsed.IsSeries);
+            Assert.Equal("", parsed.Problem);
+            Assert.Contains("Like Mother Like Daughter", parsed.Title);
+            var queries = LocalMediaName.SearchQueries(parsed);
+            Assert.True(queries.Any(query => query.Contains("爱·回家之三代同糖", StringComparison.Ordinal)));
+            Assert.True(queries.Any(query => query.Contains("Like Mother Like Daughter", StringComparison.Ordinal)));
+            var candidates = new[]
+            {
+                new TmdbMediaCandidate { Id = "331026", Title = "爱·回家之三代同糖", OriginalTitle = "愛·回家之三代同糖", Year = 2026, IsSeries = true }
+            };
+            var match = LocalMediaName.UniqueExactMatch(parsed, candidates);
+            Assert.NotNull(match);
+            Assert.Equal("331026", match!.Id);
+        });
+
+        Test("本机文件读数：从文件名读出大小、分辨率、编码、音频与制作组", () =>
+        {
+            Assert.Equal("641 MB  ·  1080p  ·  HEVC  ·  AAC  ·  ADWeb",
+                LocalMediaFileInfo.Label(
+                    @"C:\TEST\爱·回家之三代同糖.Like.Mother.Like.Daughter.S01E75.2026.1080p.MyTVSuper.WEB-DL.H265.AAC-ADWeb.mkv",
+                    672126840));
+            Assert.Equal("1.2 GB  ·  2160p  ·  H264  ·  EAC3", LocalMediaFileInfo.Label("Movie.2160p.H264.EAC3.mkv", 1288490189));
+            Assert.Equal("", LocalMediaFileInfo.Label("Movie.mkv", null));
+        });
+
+        Test("演职人员：本机头像直接带进卡片且不冒充可导航人物", () =>
+        {
+            var item = new EmbyItem
+            {
+                Type = EmbyItemType.Series,
+                People =
+                [
+                    new EmbyPerson
+                    {
+                        Id = "local-person:101", Name = "演员甲", Role = "角色甲", Type = "Actor",
+                        PrimaryImageTag = "local", LocalArtworkPath = @"C:\meta\people\101.jpg"
+                    },
+                    new EmbyPerson { Id = "local-person:201", Name = "无头像", Type = "Actor" }
+                ]
+            };
+            var cast = ItemDetail.Cast(item, portraitsOnly: true);
+            Assert.Equal(1, cast.Count);
+            Assert.Equal(@"C:\meta\people\101.jpg", cast[0].Card.LocalArtworkPath);
+            Assert.True(cast[0].Card.IsDisplayOnly);
+            Assert.Equal("角色甲", cast[0].Credit);
         });
     }
 
@@ -450,32 +646,16 @@ public static class LocalMediaTests
         return fixture;
     }
     private static LocalMediaPlan Prepare(MediaFiles files, LocalMediaMetadata metadata) =>
-        LocalMediaOrganizer.Prepare(LocalMediaOrganizer.Scan(files.Source, true, CancellationToken.None).Single(), files.Target, metadata, LocalMediaLinkMode.HardLink);
+        LocalMediaOrganizer.Prepare(LocalMediaOrganizer.Scan(files.Source, true, CancellationToken.None).Single(), files.Metadata, "Library", metadata);
     private static byte[] Jpeg() => [255, 216, 255, 224, 0, 2, 255, 217];
     private static Task<byte[]> Images(string _, CancellationToken cancellation) => Task.FromResult(Jpeg());
     private static LocalMediaResult Execute(LocalMediaPlan plan) => LocalMediaOrganizer.ExecuteAsync(plan, Images, CancellationToken.None).GetAwaiter().GetResult();
-    private static uint NativeLinkCount(string path)
-    {
-        using var handle = File.OpenHandle(path);
-        Assert.True(GetFileInformationByHandle(handle, out var info));
-        return info.LinkCount;
-    }
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    private struct FileInformation
-    {
-        public uint Attributes;
-        public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime, LastAccessTime, LastWriteTime;
-        public uint VolumeSerial, SizeHigh, SizeLow, LinkCount, IndexHigh, IndexLow;
-    }
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static extern bool GetFileInformationByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle handle, out FileInformation info);
 
     private sealed class MediaFiles : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "Momoka-local-media-" + Guid.NewGuid().ToString("N"));
         public string Source => Path.Combine(_root, "source");
-        public string Target => Path.Combine(_root, "target");
+        public string Metadata => Path.Combine(_root, "metadata");
         public MediaFiles() => Directory.CreateDirectory(Source);
         public string Write(string path, string text)
         {

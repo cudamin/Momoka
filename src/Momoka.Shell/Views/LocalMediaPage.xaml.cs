@@ -56,18 +56,30 @@ public sealed partial class LocalMediaPage : Page, IShellContent
     }
 
     public static Visibility Show(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
-    private void OnModesSizeChanged(object sender, SizeChangedEventArgs args)
-    {
-        // 量的是卡片内真正可用的宽度，独立页面和设置窗口的左栏占宽都能正确折行。
-        VisualStateManager.GoToState(this, args.NewSize.Width >= 520 ? "LocalMediaWide" : "LocalMediaNarrow", false);
-    }
     private async void OnScan(object sender, RoutedEventArgs args) => await ViewModel.ScanAsync();
     private async void OnApply(object sender, RoutedEventArgs args) => await ViewModel.ApplyAsync();
     private async void OnSearch(object sender, RoutedEventArgs args) => await ViewModel.SearchAsync();
     private async void OnUpdatePreview(object sender, RoutedEventArgs args) => await ViewModel.CorrectAsync();
     private void OnNewLibrary(object sender, RoutedEventArgs args) => ViewModel.NewLibrary();
-    private async void OnSaveLibrary(object sender, RoutedEventArgs args) => await ViewModel.SaveLibraryAsync();
-    private async void OnRemoveLibrary(object sender, RoutedEventArgs args) => await ViewModel.RemoveLibraryAsync();
+    private async void OnSaveLibraryRow(object sender, RoutedEventArgs args)
+    {
+        if (sender is FrameworkElement { Tag: LocalMediaLibraryRow row }) await ViewModel.SaveLibraryAsync(row);
+    }
+    private async void OnRemoveLibraryRow(object sender, RoutedEventArgs args)
+    {
+        if (sender is FrameworkElement { Tag: LocalMediaLibraryRow row }) await ViewModel.RemoveLibraryAsync(row);
+    }
+    private async void OnPickLibraryDirectory(object sender, RoutedEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: LocalMediaLibraryRow row }) return;
+        if (await PickFolderAsync("选择媒体库目录") is { } path && !_released) row.Directory = path;
+    }
+    private async void OnPickMetadataDirectory(object sender, RoutedEventArgs args)
+    {
+        if (await PickFolderAsync("选择元数据目录") is { } path && !_released) ViewModel.MetadataDirectory = path;
+    }
+    private async void OnSaveMetadataDirectory(object sender, RoutedEventArgs args) => await ViewModel.SaveMetadataDirectoryAsync();
+    private async void OnResetMetadataDirectory(object sender, RoutedEventArgs args) => await ViewModel.ResetMetadataDirectoryAsync();
     private void OnStop(object sender, RoutedEventArgs args) => ViewModel.Stop();
     private void OnSaveToken(object sender, RoutedEventArgs args) { ViewModel.SaveToken(LocalMediaToken.Password); LocalMediaToken.Password = ""; }
     private void OnClearToken(object sender, RoutedEventArgs args) { ViewModel.SaveToken(""); LocalMediaToken.Password = ""; }
@@ -76,14 +88,6 @@ public sealed partial class LocalMediaPage : Page, IShellContent
         if (ViewModel.Busy || sender is not FrameworkElement { Tag: LocalMediaRow row } || row.Attempted) return;
         ViewModel.CurrentRow = row;
         LocalMediaCorrection.StartBringIntoView();
-    }
-    private async void OnPickSource(object sender, RoutedEventArgs args)
-    {
-        if (await PickFolderAsync("选择源目录") is { } path && !_released) ViewModel.SourceDirectory = path;
-    }
-    private async void OnPickTarget(object sender, RoutedEventArgs args)
-    {
-        if (await PickFolderAsync("选择目标目录") is { } path && !_released) ViewModel.TargetDirectory = path;
     }
     private async Task<string?> PickFolderAsync(string title)
     {

@@ -69,7 +69,8 @@ namespace Momoka.Shell.Views
     internal sealed class LocalLibraryRequest
     {
         internal const string Prefix = "local-library:";
-        internal LocalLibraryRequest(Services.LocalLibraryCoordinator service, string id, Platform.ISystemLauncher launcher) =>
+        internal LocalLibraryRequest(Services.LocalLibraryCoordinator service, string id, Platform.ISystemLauncher launcher,
+            Func<object, Task>? play = null, Func<object, Task>? open = null) =>
             throw new Momoka.Tests.AssertionException("匿名服务器目录夹具禁止本地媒体库请求");
     }
     internal sealed class LocalLibraryPage
@@ -144,6 +145,8 @@ namespace Momoka.Shell.Views
         private readonly List<object> _forwardTrails = [];
         private readonly List<Crumb> _trail = [];
         private string? _current;
+        private Task PlayLocalLibraryEntryAsync(object entry) => Task.CompletedTask;
+        private Task OpenLocalLibraryGroupAsync(object group) => Task.CompletedTask;
         private bool _librariesFailed;
         private string _displayedSources = "";
         private readonly EmbySession? _session;

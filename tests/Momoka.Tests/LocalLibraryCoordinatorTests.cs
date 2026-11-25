@@ -44,7 +44,7 @@ internal static class LocalLibraryCoordinatorTests
             Assert.True(rejected);
             Assert.Equal(2, fixture.Settings.Settings.LocalMedia.Libraries.Count);
         });
-        Test("多库协调：启动后已有与新增电影自动链接、NFO和索引归各库", async () =>
+        Test("多库协调：启动后已有与新增电影原地入库、NFO进各自元数据目录", async () =>
         {
             using var fixture = new Fixture(coordinatorType, dispatcherType, root);
             File.WriteAllText(Path.Combine(fixture.Source("a"), "Example.2026.mkv"), "existing movie fixture");
@@ -54,7 +54,9 @@ internal static class LocalLibraryCoordinatorTests
             File.WriteAllText(Path.Combine(fixture.Source("b"), "Example.2026.mkv"), "new movie fixture");
             await WaitAsync(() => fixture.Entries("a") == 1 && fixture.Entries("b") == 1);
             Assert.Equal(1, Directory.GetFiles(fixture.Output("a"), "*.nfo", SearchOption.AllDirectories).Length);
-            Assert.Equal(1, Directory.GetFiles(fixture.Output("b"), "*.mkv", SearchOption.AllDirectories).Length);
+            Assert.Equal(1, Directory.GetFiles(fixture.Output("b"), "*.nfo", SearchOption.AllDirectories).Length);
+            Assert.Equal(0, Directory.GetFiles(fixture.Output("a"), "*.mkv", SearchOption.AllDirectories).Length);
+            Assert.Equal("existing movie fixture", File.ReadAllText(Path.Combine(fixture.Source("a"), "Example.2026.mkv")));
             await fixture.CallAsync("StopAsync");
             File.WriteAllText(Path.Combine(fixture.Source("a"), "Stopped.2026.mkv"), "must stay unprocessed");
             await Task.Delay(200);
@@ -69,18 +71,21 @@ internal static class LocalLibraryCoordinatorTests
             Assert.Contains("不可用", fixture.Status("offline"));
             Assert.Equal(1, fixture.Settings.Settings.LocalMedia.Libraries.Count);
         });
-        Test("多库协调：网络目录硬链接在保存前拒绝且不改配置", async () =>
+        Test("多库协调：媒体库名称重复在保存前拒绝且不改配置", async () =>
         {
             using var fixture = new Fixture(coordinatorType, dispatcherType, root);
-            var configuration = fixture.Configuration("net");
-            configuration.SourceDirectory = @"\\server\share\source";
-            configuration.TargetDirectory = @"\\server\share\output";
-            configuration.Method = "hardlink";
+            await fixture.SaveAsync(fixture.Configuration("a"));
+            var duplicate = new LocalMediaLibrarySettings
+            {
+                Id = "c",
+                Name = "媒体库a",
+                SourceDirectory = fixture.Source("c")
+            };
             var rejected = false;
-            try { await fixture.SaveAsync(configuration); }
-            catch (InvalidOperationException error) { rejected = error.Message.Contains("网络目录不支持硬链接", StringComparison.Ordinal); }
+            try { await fixture.SaveAsync(duplicate); }
+            catch (InvalidOperationException error) { rejected = error.Message.Contains("名称不能重复", StringComparison.Ordinal); }
             Assert.True(rejected);
-            Assert.Equal(0, fixture.Settings.Settings.LocalMedia.Libraries.Count);
+            Assert.Equal(1, fixture.Settings.Settings.LocalMedia.Libraries.Count);
         });
         Test("多库协调：保存等待期间取消，不保存或启用规则", async () =>
         {
@@ -135,12 +140,14 @@ internal static class LocalLibraryCoordinatorTests
             _mp = new(new(transport), credentials, Settings.Settings);
             Assert.True(_mp.RefreshAvailabilityAsync().GetAwaiter().GetResult());
             var proxy = DispatchProxy.Create(dispatcher, typeof(LocalLibraryDispatcherProxy));
+            Settings.Settings.LocalMedia.Provider = "moviepilot";
+            Settings.Settings.LocalMedia.MetadataDirectory = Path.Combine(_root, "metadata");
             _coordinator = Activator.CreateInstance(type, Settings, PassthroughSecretProtector.Instance, _mp, new AppPaths(_root), proxy)!;
         }
         public string Source(string id) { var path = Path.Combine(_root, "source-" + id); Directory.CreateDirectory(path); return path; }
-        public string Output(string id) => Path.Combine(_root, "output-" + id);
+        public string Output(string id) => Path.Combine(_root, "metadata", "媒体库" + id);
         public LocalMediaLibrarySettings Configuration(string id, bool monitor = false) => new()
-        { Id = id, Name = "媒体库" + id, SourceDirectory = Source(id), TargetDirectory = Output(id), MonitorEnabled = monitor, Provider = "moviepilot" };
+        { Id = id, Name = "媒体库" + id, SourceDirectory = Source(id), MonitorEnabled = monitor };
         public Task SaveAsync(LocalMediaLibrarySettings value) => CallAsync("SaveAsync", value, CancellationToken.None);
         public Task CallAsync(string name, params object?[] args) => (Task)_type.GetMethod(name)!.Invoke(_coordinator, args)!;
         public int Entries(string id) => ((System.Collections.IEnumerable)_type.GetMethod("EntriesFor")!.Invoke(_coordinator, [id])!).Cast<object>().Count();

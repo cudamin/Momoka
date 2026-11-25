@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Momoka.Configuration;
 using Momoka.Shell.Services;
 
 namespace Momoka.Shell.ViewModels;
@@ -8,140 +8,169 @@ namespace Momoka.Shell.ViewModels;
 public sealed partial class LocalMediaViewModel
 {
     private LocalLibraryCoordinator? _coordinator;
-    private bool _selectingLibrary;
-    public ObservableCollection<LocalMediaLibrarySettings> Libraries { get; } = [];
-    [ObservableProperty] public partial LocalMediaLibrarySettings? SelectedLibrary { get; set; }
-    [ObservableProperty] public partial string LibraryName { get; set; } = "本地媒体库";
-    [ObservableProperty] public partial bool MonitorEnabled { get; set; }
-    [ObservableProperty] public partial string LibraryStatus { get; set; } = "保存媒体库后可开启自动监控";
-    public bool CanSaveLibrary => _coordinator is not null && !Busy && !string.IsNullOrWhiteSpace(LibraryName) && !string.IsNullOrWhiteSpace(SourceDirectory);
-    public bool CanRemoveLibrary => _coordinator is not null && !Busy && SelectedLibrary is { } selected && _coordinator.Libraries.Any(value => value.Id == selected.Id);
+
+    public ObservableCollection<LocalMediaLibraryRow> Libraries { get; } = [];
+
+    /// <summary>界面上的元数据目录；留空时实际使用 <see cref="DefaultMetadataDirectory"/>。</summary>
+    [ObservableProperty]
+    public partial string MetadataDirectory { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string MetadataStatus { get; set; } = "";
+
+    public string DefaultMetadataDirectory => _coordinator?.DefaultMetadataDirectory ?? "";
+
     public bool HasLibraries => Libraries.Count > 0;
-    public bool HasSavedRule => _coordinator is null || SelectedLibrary is { } selected && _coordinator.Libraries.Any(value =>
-        value.Id == selected.Id && value.SourceDirectory == SourceDirectory && value.TargetDirectory == TargetDirectory
-        && value.Provider == (IsMoviePilot ? "moviepilot" : "momoka")
-        && value.Method == (MethodIndex switch { 1 => "symboliclink", 2 => "rename", _ => "hardlink" }) && value.Recursive == Recursive);
+    public bool HasSavedLibrary => Libraries.Any(row => row.Saved);
 
     internal void UseLibraries(LocalLibraryCoordinator coordinator)
     {
-        _coordinator = coordinator;
-        coordinator.Changed += LibrariesChanged;
-        ReloadLibraries(_settings?.Settings.LocalMedia.SelectedLibraryId);
+        if (!ReferenceEquals(_coordinator, coordinator))
+        {
+            if (_coordinator is not null) _coordinator.Changed -= LibrariesChanged;
+            _coordinator = coordinator;
+            coordinator.Changed += LibrariesChanged;
+        }
+        OnPropertyChanged(nameof(DefaultMetadataDirectory));
+        ReloadLibraries();
     }
 
-    private void ReloadLibraries(string? selectedId)
+    private void ReloadLibraries()
     {
         if (_coordinator is null) return;
-        _selectingLibrary = true;
+        foreach (var row in Libraries) row.PropertyChanged -= LibraryRowChanged;
         Libraries.Clear();
-        foreach (var configuration in _coordinator.Libraries) Libraries.Add(configuration);
-        SelectedLibrary = Libraries.FirstOrDefault(value => value.Id == selectedId) ?? Libraries.FirstOrDefault();
-        _selectingLibrary = false;
-        if (SelectedLibrary is { } selected) LoadLibrary(selected);
-        else
+        foreach (var library in _coordinator.Libraries)
         {
-            _selectingLibrary = true;
-            SelectedLibrary = new();
-            Libraries.Add(SelectedLibrary);
-            _selectingLibrary = false;
-            LoadLibrary(SelectedLibrary);
+            var row = new LocalMediaLibraryRow(library, _coordinator.StatusFor(library.Id), persisted: true);
+            row.PropertyChanged += LibraryRowChanged;
+            Libraries.Add(row);
         }
+        var saved = _settings?.Settings.LocalMedia.MetadataDirectory ?? "";
+        MetadataDirectory = saved.Length > 0 ? saved : DefaultMetadataDirectory;
+        MetadataStatus = saved.Length > 0 ? "自定义目录" : "默认目录";
         LibrariesStateChanged();
     }
 
     public void NewLibrary()
     {
         if (Busy) return;
-        _selectingLibrary = true;
-        SelectedLibrary = new();
-        Libraries.Add(SelectedLibrary);
-        _selectingLibrary = false;
-        LoadLibrary(SelectedLibrary);
-        Notice = "填写独立目录和媒体库名称，保存后将在首页显示。";
-    }
-
-    private void LoadLibrary(LocalMediaLibrarySettings selected)
-    {
-        _selectingLibrary = true;
-        Stop();
-        ClearRows();
-        LibraryName = selected.Name;
-        SourceDirectory = selected.SourceDirectory;
-        TargetDirectory = selected.TargetDirectory;
-        MethodIndex = selected.Method switch { "symboliclink" => 1, "rename" => 2, _ => 0 };
-        ProviderIndex = selected.Provider == "moviepilot" ? 1 : 0;
-        Recursive = selected.Recursive;
-        MonitorEnabled = selected.MonitorEnabled;
-        _selectingLibrary = false;
-        if (_settings is not null) _settings.Settings.LocalMedia.SelectedLibraryId = selected.Id;
-        LibraryStatus = _coordinator?.StatusFor(selected.Id) ?? "自动监控未开启";
-        Invalidate(save: false);
+        var row = new LocalMediaLibraryRow(new(), "填写媒体库名称和目录后保存", persisted: false);
+        row.PropertyChanged += LibraryRowChanged;
+        Libraries.Add(row);
+        Notice = "填写媒体库名称和目录，保存后开始识别与入库。";
         LibrariesStateChanged();
     }
 
-    public async Task SaveLibraryAsync()
+    public async Task SaveLibraryAsync(LocalMediaLibraryRow row)
     {
-        if (!CanSaveLibrary || _coordinator is null || SelectedLibrary is null) return;
-        var configuration = new LocalMediaLibrarySettings
+        if (!row.CanSave || _coordinator is null || !Libraries.Contains(row) || Busy) return;
+        var configuration = row.ToSettings();
+        using var operation = Begin();
+        row.Busy = true;
+        try
         {
-            Id = SelectedLibrary.Id,
-            Name = LibraryName.Trim(),
-            SourceDirectory = SourceDirectory.Trim(),
-            TargetDirectory = TargetDirectory.Trim(),
-            Method = MethodIndex switch { 1 => "symboliclink", 2 => "rename", _ => "hardlink" },
-            Provider = IsMoviePilot ? "moviepilot" : "momoka",
-            Recursive = Recursive,
-            MonitorEnabled = MonitorEnabled
-        };
+            await _coordinator.SaveAsync(configuration, operation.Token);
+            row.MarkSaved(_coordinator.StatusFor(configuration.Id));
+            Invalidate("媒体库已保存；文件保持原位，元数据写入元数据目录。", save: false);
+            Notice = row.MonitorEnabled
+                ? "媒体库已保存，已有和新增文件将自动识别入库。"
+                : "媒体库已保存，可手动扫描入库。";
+            LibrariesStateChanged();
+        }
+        catch (OperationCanceledException) { Notice = "已取消保存。"; }
+        catch (Exception error) { row.Status = ErrorText(error); Notice = row.Status; }
+        finally { row.Busy = false; End(operation); }
+    }
+
+    public async Task RemoveLibraryAsync(LocalMediaLibraryRow row)
+    {
+        if (!row.CanRemove || _coordinator is null || !Libraries.Contains(row) || Busy) return;
+        if (!row.Saved)
+        {
+            RemoveRow(row);
+            Notice = "已移除未保存的目录。";
+            return;
+        }
+        if (Confirm is null) return;
+        using var operation = Begin();
+        row.Busy = true;
+        try
+        {
+            if (!await Confirm($"移除媒体库“{row.Name}”？\n\n将停止该库的自动监控并从首页隐藏。源文件与已刮削的元数据都保留。")) return;
+            operation.Token.ThrowIfCancellationRequested();
+            await _coordinator.RemoveAsync(row.Id, operation.Token);
+            RemoveRow(row);
+            Invalidate("媒体库已移除，文件与元数据保留。", save: false);
+            Notice = "媒体库已移除，文件与元数据保留。";
+        }
+        catch (OperationCanceledException) { Notice = "已取消移除。"; }
+        catch (Exception error) { row.Status = ErrorText(error); Notice = row.Status; }
+        finally { row.Busy = false; End(operation); }
+    }
+
+    public async Task SaveMetadataDirectoryAsync()
+    {
+        if (!_attached || Busy || _settings is null) return;
+        var value = MetadataDirectory.Trim();
+        if (value.Length > 0)
+        {
+            try { value = Path.GetFullPath(value); }
+            catch (Exception) { Notice = "元数据目录路径无效，请检查后重试。"; return; }
+            if (string.Equals(value, DefaultMetadataDirectory, StringComparison.OrdinalIgnoreCase)) value = "";
+        }
         using var operation = Begin();
         try
         {
-            if (configuration.MonitorEnabled)
-            {
-                if (Confirm is null || !await Confirm($"开启“{configuration.Name}”的自动监控？\n\n源目录：{configuration.SourceDirectory}\n"
-                    + (configuration.Method == "rename" ? "直接修改源文件名。" : $"目标目录：{configuration.TargetDirectory}\n{MethodNote}")
-                    + "\n\n已有和新增文件都会自动识别并整理，生成 NFO 和图片。文件写入稳定后才处理，识别不明确的项目等待校正。关闭设置页后继续，退出 Momoka 后停止。")) return;
-            }
-            operation.Token.ThrowIfCancellationRequested();
-            await _coordinator.SaveAsync(configuration, operation.Token);
-            ReloadLibraries(configuration.Id);
-            Notice = configuration.MonitorEnabled ? "媒体库已保存，已有和新增文件将自动识别整理。" : "媒体库已保存，可手动识别整理。";
+            _settings.Settings.LocalMedia.MetadataDirectory = value;
+            if (!_settings.TrySave()) throw new IOException();
+            MetadataDirectory = value.Length > 0 ? value : DefaultMetadataDirectory;
+            MetadataStatus = value.Length > 0 ? "自定义目录" : "默认目录";
+            Invalidate("元数据目录已保存，请重新扫描。", save: false);
+            if (_coordinator is not null) await _coordinator.RecognitionChangedAsync();
+            Notice = value.Length > 0 ? "元数据目录已保存。" : $"已恢复默认元数据目录：{DefaultMetadataDirectory}";
         }
-        catch (OperationCanceledException) { Notice = "已取消保存。"; }
-        catch (Exception error) { Notice = ErrorText(error); }
+        catch (OperationCanceledException) { Notice = "已取消保存元数据目录。"; }
+        catch (Exception) { Notice = "无法保存元数据目录，请检查本机设置文件权限后重试。"; }
         finally { End(operation); }
     }
 
-    public async Task RemoveLibraryAsync()
+    public async Task ResetMetadataDirectoryAsync()
     {
-        if (!CanRemoveLibrary || SelectedLibrary is not { } selected || _coordinator is null || Confirm is null) return;
-        using var operation = Begin();
-        try
-        {
-            if (!await Confirm($"移除媒体库“{selected.Name}”？\n\n将停止该库的监控，并从首页隐藏。源文件、链接和刮削文件都保留。")) return;
-            operation.Token.ThrowIfCancellationRequested();
-            await _coordinator.RemoveAsync(selected.Id, operation.Token);
-            ReloadLibraries(null);
-            Notice = "媒体库配置已移除，文件已保留。";
-        }
-        catch (OperationCanceledException) { Notice = "已取消移除。"; }
-        catch (Exception error) { Notice = ErrorText(error); }
-        finally { End(operation); }
+        MetadataDirectory = DefaultMetadataDirectory;
+        await SaveMetadataDirectoryAsync();
+    }
+
+    private void RemoveRow(LocalMediaLibraryRow row)
+    {
+        row.PropertyChanged -= LibraryRowChanged;
+        Libraries.Remove(row);
+        LibrariesStateChanged();
     }
 
     private void LibrariesChanged(object? sender, EventArgs args)
     {
-        if (!_attached || SelectedLibrary is null) return;
-        LibraryStatus = _coordinator!.StatusFor(SelectedLibrary.Id);
+        if (!_attached || _coordinator is null) return;
+        foreach (var row in Libraries.Where(row => row.Saved))
+            if (_coordinator.Libraries.Any(library => library.Id == row.Id))
+                row.Status = _coordinator.StatusFor(row.Id);
         LibrariesStateChanged();
     }
+
+    private void LibraryRowChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (sender is not LocalMediaLibraryRow row) return;
+        if (row.Saved && args.PropertyName is nameof(LocalMediaLibraryRow.Name) or nameof(LocalMediaLibraryRow.Directory)
+            or nameof(LocalMediaLibraryRow.Recursive) or nameof(LocalMediaLibraryRow.MonitorEnabled))
+            row.Status = "有未保存的更改";
+        LibrariesStateChanged();
+    }
+
     private void LibrariesStateChanged()
     {
-        OnPropertyChanged(nameof(CanSaveLibrary));
-        OnPropertyChanged(nameof(CanRemoveLibrary));
         OnPropertyChanged(nameof(HasLibraries));
-        OnPropertyChanged(nameof(HasSavedRule));
+        OnPropertyChanged(nameof(HasSavedLibrary));
+        OnPropertyChanged(nameof(CanScan));
+        OnPropertyChanged(nameof(CanApply));
     }
-    partial void OnSelectedLibraryChanged(LocalMediaLibrarySettings? value) { if (!_selectingLibrary && value is not null && !Busy) LoadLibrary(value); }
-    partial void OnLibraryNameChanged(string value) => LibrariesStateChanged();
 }

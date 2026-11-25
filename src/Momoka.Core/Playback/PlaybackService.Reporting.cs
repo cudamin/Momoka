@@ -35,20 +35,23 @@ public sealed partial class PlaybackService
         catch (Exception error) { Log.Warn(Category, "选择目标外挂字幕失败", error); }
     }
 
-    private async Task<PlaybackExit> MonitorAsync(EmbySessionScope scope, PlayingAttempt attempt, CancellationToken cancellationToken)
+    private async Task<PlaybackExit> MonitorAsync(EmbySessionScope? scope, PlayingAttempt attempt, CancellationToken cancellationToken)
     {
         var handle = attempt.Handle;
         var request = attempt.Request;
         var exitTask = handle.WaitForExitAsync(cancellationToken);
-        var interval = ReportIntervalOverride ?? PlaybackReportCadence.For(scope.Connection.ServerKind);
-        var stopEnabled = !request.AudioOnly && scope.Connection.ServerKind == MediaServerKind.Emby && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
+        var interval = ReportIntervalOverride ?? (scope is null ? TimeSpan.FromSeconds(1) : PlaybackReportCadence.For(scope.Connection.ServerKind));
+        var stopEnabled = scope is not null && !request.AudioOnly && scope.Connection.ServerKind == MediaServerKind.Emby && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
         var stopPercent = StopReportPercent(request.IsDonghua,
             settings.Playback.MarkWatchedPercent, settings.Playback.DonghuaMarkWatchedPercent);
 
-        void OnPause(bool paused) => _ = ReportPauseAsync(scope, attempt, paused);
+        void OnPause(bool paused)
+        {
+            if (scope is not null) _ = ReportPauseAsync(scope, attempt, paused);
+        }
         void OnStatus(PlayerStatus status)
         {
-            if (!IsCurrent(attempt) || !status.HasPosition || !double.IsFinite(status.Position)) return;
+            if (scope is null || !IsCurrent(attempt) || !status.HasPosition || !double.IsFinite(status.Position)) return;
             var ticks = TimeFormat.ToTicks(status.Position);
             if (ShouldReportStop(ticks, request.RunTimeTicks, stopEnabled, stopPercent))
                 _ = ReportThresholdAsync(scope, attempt, ticks);
@@ -72,9 +75,10 @@ public sealed partial class PlaybackService
                 attempt.HasStarted |= seconds > request.StartSeconds + 0.5;
                 var ticks = TimeFormat.ToTicks(seconds);
                 Raise(ProgressChanged, new PlaybackProgress(ticks, request.RunTimeTicks, handle.IsPaused, request.Title, attempt.Generation) { AudioOnly = request.AudioOnly });
-                if (ShouldReportStop(ticks, request.RunTimeTicks, stopEnabled, stopPercent))
+                if (scope is not null && ShouldReportStop(ticks, request.RunTimeTicks, stopEnabled, stopPercent))
                     await ReportThresholdAsync(scope, attempt, ticks).ConfigureAwait(false);
-                await ReportProgressAsync(scope, attempt, ticks, handle.IsPaused, "timeupdate", cancellationToken).ConfigureAwait(false);
+                if (scope is not null)
+                    await ReportProgressAsync(scope, attempt, ticks, handle.IsPaused, "timeupdate", cancellationToken).ConfigureAwait(false);
             }
             return await exitTask.ConfigureAwait(false);
         }
@@ -86,9 +90,9 @@ public sealed partial class PlaybackService
         }
     }
 
-    private async Task ReportThresholdAsync(EmbySessionScope scope, PlayingAttempt attempt, long ticks)
+    private async Task ReportThresholdAsync(EmbySessionScope? scope, PlayingAttempt attempt, long ticks)
     {
-        if (!IsCurrent(attempt) || Interlocked.CompareExchange(ref attempt.ThresholdPending, 1, 0) != 0) return;
+        if (scope is null || !IsCurrent(attempt) || Interlocked.CompareExchange(ref attempt.ThresholdPending, 1, 0) != 0) return;
         try
         {
             await attempt.Reports.WaitAsync().ConfigureAwait(false);
@@ -196,7 +200,7 @@ public sealed partial class PlaybackService
         var ticks = item.RunTimeTicks.Value;
         if (scope.Connection.ServerKind != MediaServerKind.Emby) return false;
 
-        if (_active is { Ending: false } attempt && attempt.Request.ItemId == item.Id && attempt.Scope.Key == scope.Key)
+        if (_active is { Ending: false } attempt && attempt.Request.ItemId == item.Id && attempt.Scope?.Key == scope.Key)
         {
             await attempt.Reports.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -315,8 +319,9 @@ public sealed partial class PlaybackService
         IsPaused = false
     };
 
-    private async Task ReportPauseAsync(EmbySessionScope scope, PlayingAttempt attempt, bool paused)
+    private async Task ReportPauseAsync(EmbySessionScope? scope, PlayingAttempt attempt, bool paused)
     {
+        if (scope is null) return;
         var revision = Interlocked.Increment(ref attempt.PauseRevision);
         bool Current() => IsCurrent(attempt) && revision == Volatile.Read(ref attempt.PauseRevision);
         try
@@ -338,9 +343,10 @@ public sealed partial class PlaybackService
         catch (Exception error) { Log.Warn(Category, "暂停状态读取失败", error); }
     }
 
-    private async Task ReportProgressAsync(EmbySessionScope scope, PlayingAttempt attempt,
+    private async Task ReportProgressAsync(EmbySessionScope? scope, PlayingAttempt attempt,
         long ticks, bool paused, string eventName, CancellationToken cancellationToken, long? pauseRevision = null)
     {
+        if (scope is null) return;
         await attempt.Reports.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -352,11 +358,17 @@ public sealed partial class PlaybackService
         finally { attempt.Reports.Release(); }
     }
 
-    private async Task<PlaybackResult> FinishAsync(EmbySessionScope scope, PlayingAttempt attempt, PlaybackExit exit, PlaybackTicket ticket)
+    private async Task<PlaybackResult> FinishAsync(EmbySessionScope? scope, PlayingAttempt attempt, PlaybackExit exit, PlaybackTicket ticket)
     {
         var request = attempt.Request;
         var positionTicks = ResolveFinalPosition(exit, request, ticket);
         attempt.HasStarted |= exit.PositionSeconds is { } seconds && double.IsFinite(seconds) && seconds > request.StartSeconds + 0.5;
+        if (scope is null)
+        {
+            var offline = new PlaybackResult(exit, positionTicks, false, false) { HasStarted = attempt.HasStarted };
+            Log.Info(Category, $"《{request.Title}》{offline.ToChinese()}，位置 {TimeFormat.Clock(positionTicks)}");
+            return offline;
+        }
         await attempt.Reports.WaitAsync().ConfigureAwait(false);
         try
         {

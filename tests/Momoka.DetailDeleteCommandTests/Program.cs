@@ -110,6 +110,7 @@ internal sealed class DetailVmBridge(object vm, EmbyImageStore images)
 {
     public object Vm { get; } = vm;
     public EmbyItem? CurrentItem => ShellRuntime.Get(Vm, "CurrentItem") as EmbyItem;
+    public bool IsLocal => (bool)ShellRuntime.Get(Vm, "IsLocal")!;
     public Microsoft.UI.Xaml.Visibility RestartVisibility =>
         (Microsoft.UI.Xaml.Visibility)Convert.ToInt32(ShellRuntime.Get(Vm, "RestartVisibility"));
     public Microsoft.UI.Xaml.Visibility TrailerButtonVisibility =>

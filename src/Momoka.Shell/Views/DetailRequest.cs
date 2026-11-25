@@ -16,10 +16,20 @@ internal sealed record DetailRequest
     /// <summary>What the grid or shelf had. Used for the id, the type and the first heading.</summary>
     public required EmbyItem Item { get; init; }
 
+    /// <summary>
+    /// 本机媒体的集列表（剧集页/集页）。空表示这一页不是本地条目，或本地电影没有集。
+    /// 有值时详情页不向任何服务器请求条目、季和集。
+    /// </summary>
+    public IReadOnlyList<EmbyItem> LocalEpisodes { get; init; } = [];
+
     public string Title => Item.Name;
 
     public static DetailRequest For(IServiceProvider services, EmbyItem item) =>
         new() { Services = services, Item = item };
+
+    /// <summary>本机媒体的详情页请求：条目与集都来自本机索引，不连服务器。</summary>
+    public static DetailRequest ForLocal(IServiceProvider services, EmbyItem item, IReadOnlyList<EmbyItem>? episodes = null) =>
+        new() { Services = services, Item = item, LocalEpisodes = episodes ?? [] };
 
     /// <summary>
     /// Whether this item has a detail page at all, so the grid and the home shelves route the same way.

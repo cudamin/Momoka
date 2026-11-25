@@ -22,6 +22,10 @@ public static class LocalMediaName
     private static readonly Regex EpisodeRange = Pattern(@"(?:E\d{1,4})[ ._]*[-~至][ ._]*(?:E)?\d{1,4}(?!\d)");
     private static readonly Regex SeasonRange = Pattern(@"(?:S\d{1,3})[ ._]*[-~至][ ._]*(?:S)?\d{1,3}(?!\d)");
     private static readonly Regex Years = Pattern(@"(?<!\d)(?:19|20|21)\d{2}(?!\d)");
+    // 中英双语片名常写成「爱·回家之三代同糖.Like.Mother.Like.Daughter」：整串拿去搜 TMDB 往往找不到，
+    // 需要把中文段和拉丁字母段分别作为候选关键词。只分析文件名文本，不访问媒体。
+    private static readonly Regex CjkRun = Pattern(@"[\p{IsCJKUnifiedIdeographs}\p{IsCJKCompatibilityIdeographs}\p{IsHiragana}\p{IsKatakana}·・]+");
+    private static readonly Regex LatinRun = Pattern(@"[A-Za-z][A-Za-z0-9 '’:&!?,\-]*");
     private static readonly Regex TechnicalTail = Pattern(@"(?<![A-Za-z0-9])(?:\d{3,4}p|2160i|1080i|720i|WEB[ ._-]?DL|WEBRip|Blu[ ._-]?Ray|BDRip|BRRip|HDTV|DVDRip|REMUX|x26[45]|H[ ._-]?26[45]|HEVC|AVC|AV1|HDR10\+?|HDR|DV|Dolby[ ._-]?Vision)(?![A-Za-z0-9])");
     private static readonly Regex OnlyTechnical = Pattern(@"^(?:[ ._\[\]()]|\d{3,4}[pi]|WEB[ ._-]?DL|WEBRip|Blu[ ._-]?Ray|BDRip|BRRip|HDTV|DVDRip|REMUX|x26[45]|H[ ._-]?26[45]|HEVC|AVC|AV1|HDR10\+?|HDR|DV|Dolby[ ._-]?Vision|AAC(?:[ ._-]?\d(?:[ ._-]\d)?)?|DDP?(?:[ ._-]?\d(?:[ ._-]\d)?)?|DTS(?:[ ._-]?HD)?|TrueHD|Atmos|FLAC|10bit|8bit)*(?:-[A-Za-z0-9][A-Za-z0-9._-]*)?$");
     private static readonly Regex Whitespace = Pattern(@"\s+");
@@ -86,15 +90,42 @@ public static class LocalMediaName
         ArgumentNullException.ThrowIfNull(parsed);
         ArgumentNullException.ThrowIfNull(candidates);
         if (parsed.Problem.Length > 0 || parsed.Title.Length == 0) return null;
-        var title = NormalizeTitle(parsed.Title);
+        var titles = SearchQueries(parsed).Select(NormalizeTitle).ToHashSet(StringComparer.Ordinal);
         var matches = candidates.Where(candidate => candidate.IsSeries == parsed.IsSeries
             && (!parsed.Year.HasValue || candidate.Year == parsed.Year)
-            && (string.Equals(title, NormalizeTitle(candidate.Title), StringComparison.OrdinalIgnoreCase)
-                || string.Equals(title, NormalizeTitle(candidate.OriginalTitle), StringComparison.OrdinalIgnoreCase)))
+            && (titles.Contains(NormalizeTitle(candidate.Title)) || titles.Contains(NormalizeTitle(candidate.OriginalTitle))))
             .ToArray();
         if (matches.Any(candidate => !candidate.AutoMatchEligible)) return null;
         var unique = matches.DistinctBy(candidate => candidate.Id, StringComparer.Ordinal).ToArray();
         return unique.Length == 1 ? unique[0] : null;
+    }
+
+    /// <summary>
+    /// 依次用整串片名、中文段、拉丁段去搜；第一个得到唯一精确匹配的关键词胜出。
+    /// 这样「爱·回家之三代同糖.Like.Mother.Like.Daughter」不会因为整串搜不到而放弃。
+    /// </summary>
+    public static IReadOnlyList<string> SearchQueries(ParsedLocalMediaName parsed)
+    {
+        ArgumentNullException.ThrowIfNull(parsed);
+        var queries = new List<string>();
+        void Add(string value)
+        {
+            value = Whitespace.Replace(value.Replace('.', ' ').Replace('_', ' '), " ")
+                .Trim(' ', '-', '[', ']', '(', ')', '{', '}');
+            if (value.Length < 2) return;
+            var key = NormalizeTitle(value);
+            if (key.Length < 2 || queries.Any(existing => NormalizeTitle(existing) == key)) return;
+            queries.Add(value);
+        }
+
+        Add(parsed.Title);
+        foreach (var chunk in parsed.Title.Split(['|', '/', '\\', ';', '；', '、'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            Add(chunk);
+            foreach (Match run in CjkRun.Matches(chunk)) Add(run.Value);
+            foreach (Match run in LatinRun.Matches(chunk)) Add(run.Value);
+        }
+        return queries;
     }
 
     private static (string Title, int? Year) ExtractTitle(string scope)
@@ -121,8 +152,21 @@ public static class LocalMediaName
         return (title, year);
     }
 
-    private static string NormalizeTitle(string title) =>
-        Whitespace.Replace(title.Normalize(NormalizationForm.FormKC).Trim(), " ");
+    private static string NormalizeTitle(string title)
+    {
+        var text = title.Normalize(NormalizationForm.FormKC).Trim().ToLowerInvariant();
+        var builder = new StringBuilder(text.Length);
+        foreach (var character in text)
+        {
+            if (char.IsLetterOrDigit(character)) builder.Append(character);
+            // 间隔号与撇号只是排版分隔，不制造词边界：爱·回家 ＝ 爱回家，Schindler's ＝ Schindlers。
+            else if (character is '·' or '・' or '\'') continue;
+            // 空格、逗号、冒号等保留成一个词边界：A.B 与 AB 仍然不同，Like Mother, Like Daughter 与
+            // Like Mother Like Daughter 相同。
+            else builder.Append(' ');
+        }
+        return Whitespace.Replace(builder.ToString(), " ").Trim();
+    }
 
     private static int Number(Match match) => int.Parse(match.Groups["number"].Value, CultureInfo.InvariantCulture);
     private static Regex Pattern(string pattern) => new(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
