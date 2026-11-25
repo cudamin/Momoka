@@ -55,7 +55,7 @@ internal sealed partial class ShellNavigationProbe
         _window.TopMost = true;
         try
         {
-            // 0.3.3 起设置页不再列出「本机整理」入口；页面本身仍保留，探针直接导航到页面核对内部布局。
+            // 直接导航到本机整理页面核对内部布局，设置左栏的分类接线另由设置契约覆盖。
             frame.Navigate(typeof(LocalMediaPage), new LocalMediaRequest(services));
             await UntilAsync(() => frame.Content is LocalMediaPage);
             var page = (LocalMediaPage)frame.Content;

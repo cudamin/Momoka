@@ -394,17 +394,16 @@ public sealed partial class SettingsViewModel : PageViewModel
         [.. MomokaAdministrationCategories(kind), .. ServerDirectoryCategories(kind)];
 
     /// <summary>
-    /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
+    /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，本机整理、服务器、诊断内嵌页插在最后一张卡（关于）
     /// 前面；Emby 通知入口插在服务器与诊断之间。Emby 的服务器设置目录不在这里 —— 它自成一档，
     /// 见 <see cref="BuildCategoryGroups"/>。
     /// <para>
-    /// 0.3.3 用户令：设置页不显示「本机整理」相关功能，隐藏这一页。入口从这里和
-    /// <see cref="FixedHostedCategories"/> 一并拿掉；页面、后台监控与 Core 能力保留，
-    /// 将来恢复时把名字加回两处，并在 <c>SettingsPage.ShowHosted</c> 接回 <c>LocalMediaPage</c>。
+    /// 0.3.4 按用户要求恢复「本机整理」，与 <see cref="FixedHostedCategories"/> 和
+    /// <c>SettingsPage.ShowHosted</c> 保持一致；本机功能不依赖服务器管理权限。
     /// </para>
     /// </summary>
     private static IReadOnlyList<string> SidebarCategories(bool serverAdministration, MediaServerKind kind) =>
-        [.. CardCategories[..^1], "服务器",
+        [.. CardCategories[..^1], "本机整理", "服务器",
             .. (serverAdministration ? MomokaAdministrationCategories(kind) : []),
             "诊断", LastCardCategory];
 
@@ -432,7 +431,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 由 <see cref="ServerAdministrationCategories"/> 带着来去；Jellyfin 的「网页控制台」仍是固定一项。
     /// </para>
     /// </summary>
-    private static readonly string[] FixedHostedCategories = ["服务器", "诊断"];
+    private static readonly string[] FixedHostedCategories = ["本机整理", "服务器", "诊断"];
 
     /// <summary>
     /// 「通知」那一页. Named because the navigation switch and the self-check both have to say it —
