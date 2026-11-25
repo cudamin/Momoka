@@ -19,6 +19,7 @@ if (-not $Repo) { $Repo = Join-Path $PSScriptRoot '..' }
 #   编译 + 空白        —— 闸门 1 的两条，参数与 docs/开发与验证.md 完全一致
 #   脚本检查           —— tools/check-scripts.ps1（BOM、LF、语法）
 #   文档链接           —— tools/check-docs.py（相对路径、锚点与技能索引）
+#   官网部署镜像       —— tools/check-website-mirror.py（静态源文件与 dist）
 #   文档命令           —— tools/check-doc-commands.ps1（PowerShell 代码块，只解析）
 #   证据凭据           —— tools/check-report-credentials.py（只报位置与类别）
 #   架构依赖           —— tests/Momoka.ArchitectureTests（NetArchTest）
@@ -109,6 +110,25 @@ try {
         if ($LASTEXITCODE -ne 0) {
             Get-Content -LiteralPath $log -Tail 20 | ForEach-Object { Write-Output $_ }
             throw "文档链接检查失败，日志 $log"
+        }
+    }
+
+    Invoke-Step '官网静态部署镜像检查（源文件与 dist）' {
+        $checkLog = Join-Path $evidence 'website-mirror.log'
+        $selfTestLog = Join-Path $evidence 'website-mirror-self-test.log'
+        $savedEa = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & py (Join-Path $root 'tools/check-website-mirror.py') *> $checkLog
+            if ($LASTEXITCODE -ne 0) {
+                Get-Content -LiteralPath $checkLog -Tail 20 | ForEach-Object { Write-Output $_ }
+                throw "官网静态部署镜像检查失败，日志 $checkLog"
+            }
+            & py (Join-Path $root 'tools/check-website-mirror.py') --self-test *> $selfTestLog
+        } finally { $ErrorActionPreference = $savedEa }
+        if ($LASTEXITCODE -ne 0) {
+            Get-Content -LiteralPath $selfTestLog -Tail 20 | ForEach-Object { Write-Output $_ }
+            throw "官网静态部署镜像自测失败，日志 $selfTestLog"
         }
     }
 
