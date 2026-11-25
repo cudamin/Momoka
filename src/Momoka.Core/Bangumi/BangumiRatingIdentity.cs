@@ -1,9 +1,9 @@
 using System.Globalization;
 using Momoka.Emby;
 
-namespace Momoka.AniBt;
+namespace Momoka.Bangumi;
 
-internal static class AniBtRatingIdentity
+internal static class BangumiRatingIdentity
 {
     internal static long? For(EmbyItem item)
     {

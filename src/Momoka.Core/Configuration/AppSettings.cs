@@ -1391,7 +1391,7 @@ public sealed class MoviePilotSettings
     }
 
     /// <summary>
-    /// 是否提供 AniBT 番剧日历、参考分、识别、搜索和版本来源。默认开启；关闭会撤销在途 AniBT 操作并保留已保存的连接与整理状态。
+    /// 是否提供 AniBT 番剧日历、识别、搜索和版本来源。默认开启；关闭会撤销在途 AniBT 操作并保留已保存的连接与整理状态。
     /// </summary>
     public bool AniBtEnabled
     {

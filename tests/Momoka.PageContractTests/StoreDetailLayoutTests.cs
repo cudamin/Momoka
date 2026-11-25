@@ -365,6 +365,12 @@ internal static class StoreDetailLayoutTests
             var order = page.Descendants().ToList();
             Assert.True(order.IndexOf(score) < order.IndexOf(genre) && order.IndexOf(genre) < order.IndexOf(facts),
                 "头部顺序不是评分、类型、日期时长分级");
+            var rows = score.Elements().Select(element => (string?)element.Attribute(X + "Name")).ToArray();
+            Assert.True(rows.SequenceEqual(new[] { "CommunityScoreRow", "CriticScoreRow", "BangumiScoreRow" }));
+            var bangumi = score.Elements().Last();
+            Assert.Equal("{x:Bind ViewModel.BangumiRatingVisibility, Mode=OneWay}", (string?)bangumi.Attribute("Visibility"));
+            Assert.Equal("ms-appx:///Assets/bangumi.png", (string?)bangumi.Elements().First().Attribute("Source"));
+            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "AniBtRatingText"));
         });
 
         Test("详情头部：去掉工作室且日期时长分级没有丢失，轮播事实保持原格式", () =>

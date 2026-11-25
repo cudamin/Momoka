@@ -2143,7 +2143,7 @@ public sealed partial class DetailViewModel : PageViewModel
         value is { } number ? number.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "没给";
 
     public Visibility ScoreVisibility =>
-        Show(!string.IsNullOrWhiteSpace(CommunityScore) || !string.IsNullOrWhiteSpace(CriticScore));
+        Show(!string.IsNullOrWhiteSpace(CommunityScore) || !string.IsNullOrWhiteSpace(CriticScore) || BangumiRatingText is not null);
 
     public Visibility CommunityVisibility => Show(!string.IsNullOrWhiteSpace(CommunityScore));
 
@@ -2784,7 +2784,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _images = images;
         _removed = request.Services?.GetService(typeof(RemovedMedia)) as RemovedMedia;
         _trailerLauncher = request.Services?.GetService(typeof(Platform.ISystemLauncher)) as Platform.ISystemLauncher;
-        AttachAniBtRating(request.Services);
+        AttachBangumiRating(request.Services);
 
         // 版面高在这一句就定了下来，早于任何一次网络往返 —— 「点击主页封面后窗口会闪一下」说的就是这一句以前
         // 得等图。列表接口回来的条目已经带着 ImageTags，而这一页正是从那张列表上点进来的。
@@ -2829,7 +2829,7 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var token = BeginLoad(_ => { ResetTrailers(); ResetExtras(); ResetAniBtRating(); });
+        var token = BeginLoad(_ => { ResetTrailers(); ResetExtras(); ResetBangumiRating(); });
         NavigationTiming.Mark("load-begin");
 
         try
@@ -2851,7 +2851,7 @@ public sealed partial class DetailViewModel : PageViewModel
             NavigationTiming.Mark("apply-begin");
             Apply(detail);
             if (!IsCurrent(token)) return;
-            UpdateAniBtRatingSubject(detail);
+            UpdateBangumiRatingSubject(detail);
             NavigationTiming.Mark("apply-end");
 
             // 更多类似 only needs the item this page is about, so it has no business waiting behind the
@@ -4786,7 +4786,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _subjectStateCard = null;
         _active = false;
         _actionsReady = false;
-        DetachAniBtRating();
+        DetachBangumiRating();
         ResetTrailers();
         ResetExtras();
         _versionLoad?.Cancel();
@@ -4808,7 +4808,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public override void Dispose()
     {
         Cancel();
-        _aniBtRatingLoads.Dispose();
+        _bangumiRatingLoads.Dispose();
         base.Dispose();
 
         _art?.Cancel();

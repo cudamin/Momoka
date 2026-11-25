@@ -510,10 +510,10 @@ internal static class Program
             AniBtCalendarTests.Register();
             return TestHarness.Run();
         }
-        if (args is ["anibt-rating-fixture"])
+        if (args is ["bangumi-rating-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            AniBtRatingTests.Register();
+            BangumiRatingTests.Register();
             return TestHarness.Run();
         }
         if (args is ["moviepilot-login-redirect-fixture"])
@@ -808,7 +808,7 @@ internal static class Program
         TmdbLocalMediaTests.Register();
         AniBtTests.Register();
         AniBtCalendarTests.Register();
-        AniBtRatingTests.Register();
+        BangumiRatingTests.Register();
         AniBtSeriesIdentityTests.Register();
         AniBtPrepareConcurrencyTests.Register();
         AniBtIntegrationTests.Register();

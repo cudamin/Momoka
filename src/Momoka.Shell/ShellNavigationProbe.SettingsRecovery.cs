@@ -113,7 +113,7 @@ internal sealed partial class ShellNavigationProbe
         var moviePilot = page.ViewModel.Sections.SelectMany(section => section.Rows).OfType<SettingMoviePilotRow>().Single();
         // Anonymous available-state boundary: only exercise these two template notes, never query a site.
         moviePilot.SitesAvailable = true;
-        const string aniBtNote = "控制 AniBT 番剧日历、详情参考分、识别、搜索和版本来源。番剧日历和参考分可独立使用。";
+        const string aniBtNote = "控制 AniBT 番剧日历、识别、搜索和版本来源。番剧日历可独立使用。";
         foreach (var (hidden, state) in new[] { (false, "shown"), (true, "hidden"), (false, "restored") })
         {
             page.SelectedCategory = "界面";

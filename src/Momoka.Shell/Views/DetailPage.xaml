@@ -888,10 +888,7 @@
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{x:Bind ViewModel.SublineVisibility, Mode=OneWay}" />
 
-                            <!-- 评分先于类型；日期、时长、分级仍在类型下方。
-                                 两个评分各一格（2026-11-15 用户令「两个评分不要文字，用图标表示平台」）：
-                                 星配大众分、番茄配影评指数，不再带「公众评分」「烂番茄」那两行字。哪一槽没分就
-                                 只收哪一格，两个都没有整块收起来（ScoreVisibility）。 -->
+                            <!-- 评分先于类型。依次为大众分、影评指数与 Bangumi 官方评分；无分时收起对应格。 -->
                             <StackPanel
                                 x:Name="ScoreStack"
                                 VerticalAlignment="Center"
@@ -937,14 +934,28 @@
                                         Text="{x:Bind ViewModel.CriticScore, Mode=OneWay}" />
                                     </Grid>
                                 </StackPanel>
+                                <StackPanel
+                                    x:Uid="DetailPage_BangumiScoreRow"
+                                    x:Name="BangumiScoreRow"
+                                    Orientation="Horizontal"
+                                    Spacing="5"
+                                    ToolTipService.ToolTip="Bangumi 评分"
+                                    Visibility="{x:Bind ViewModel.BangumiRatingVisibility, Mode=OneWay}">
+                                    <Image
+                                        Width="12"
+                                        Height="12"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.AccessibilityView="Raw"
+                                        Source="ms-appx:///Assets/bangumi.png" />
+                                    <TextBlock
+                                        x:Uid="DetailPage_BangumiRatingText"
+                                        x:Name="BangumiRatingText"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="Bangumi 评分"
+                                        Style="{StaticResource EgOnScrimDataStrongStyle}"
+                                        Text="{x:Bind ViewModel.BangumiRatingText, Mode=OneWay}" />
+                                </StackPanel>
                             </StackPanel>
-
-                            <TextBlock
-                                x:Name="AniBtRatingText"
-                                Style="{StaticResource EgOnScrimDataStrongStyle}"
-                                Text="{x:Bind ViewModel.AniBtRatingText, Mode=OneWay}"
-                                TextWrapping="Wrap"
-                                Visibility="{x:Bind ViewModel.AniBtRatingVisibility, Mode=OneWay}" />
 
                             <Grid Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}">
                             <TextBlock

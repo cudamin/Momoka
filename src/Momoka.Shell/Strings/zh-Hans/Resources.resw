@@ -3752,7 +3752,7 @@
     <value>显示</value>
   </data>
   <data name="SettingsPage_Localization3.Text" xml:space="preserve">
-    <value>控制 AniBT 番剧日历、详情参考分、识别、搜索和版本来源。番剧日历和参考分可独立使用。</value>
+    <value>控制 AniBT 番剧日历、识别、搜索和版本来源。番剧日历可独立使用。</value>
   </data>
   <data name="SettingsPage_Localization4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>MoviePilot 协议</value>
@@ -3981,5 +3981,11 @@
   </data>
   <data name="SubtitleDialog_Results.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>字幕搜索结果</value>
+  </data>
+  <data name="DetailPage_BangumiScoreRow.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Bangumi 评分</value>
+  </data>
+  <data name="DetailPage_BangumiRatingText.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Bangumi 评分</value>
   </data>
 </root>

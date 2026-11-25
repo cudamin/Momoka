@@ -1,4 +1,5 @@
 {
+  "Bangumi 评分": "Bangumi rating",
   "连接服务器": "Connect to a server",
   "登录账号": "Sign in",
   "欢迎回来": "Welcome back",
@@ -81,7 +82,6 @@
   "MP 订阅": "MP subscriptions",
   "MoviePilot 订阅": "MoviePilot subscriptions",
   "AniBT 日历数据不完整": "Incomplete AniBT calendar",
-  "AniBT 参考分 {0:0.0#}": "AniBT reference rating {0:0.0#}",
   "部分季度读取失败，请点击刷新重试。": "Some seasons could not be loaded. Select Refresh to try again.",
   "AniBT 返回的季度结果达到上限，部分番剧可能未列出。": "AniBT reached its seasonal result limit. Some anime may be missing.",
   "日历读取失败": "Could not load the calendar",
