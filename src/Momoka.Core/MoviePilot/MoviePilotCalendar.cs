@@ -94,13 +94,11 @@ internal static class MoviePilotCalendar
             MoviePilotSubscription.Text(subscription, "last_update"));
     }
 
-    internal static bool IsLegacyEndpoint(MoviePilotException error)
+    internal static bool HasLegacyRouteDetail(string body)
     {
-        if (error.Status == System.Net.HttpStatusCode.NotFound) return true;
-        if (error.Status != System.Net.HttpStatusCode.UnprocessableEntity || error.Body is null) return false;
         try
         {
-            using var document = JsonDocument.Parse(error.Body);
+            using var document = JsonDocument.Parse(body);
             var details = MoviePilotSubscription.Member(document.RootElement, "detail");
             if (details.ValueKind != JsonValueKind.Array) return false;
             return details.EnumerateArray().Any(detail => MoviePilotSubscription.Text(detail, "type") == "int_parsing"

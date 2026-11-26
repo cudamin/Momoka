@@ -30,7 +30,7 @@ public sealed record MoviePilotTransferHistory
 
     public JsonElement TransferFile => Success && Mode.Contains("move", StringComparison.OrdinalIgnoreCase) ? TargetFile : SourceFile;
     public string TransferPath => MoviePilotTransfer.Text(TransferFile, "path");
-    public string Display => $"#{Id} · {Title} · {Seasons}{Episodes} · {(Success ? "成功" : "失败")} · {Date}";
+    public string Display => $"#{Id} · {MoviePilotDisplayText.Label(Title)} · {MoviePilotDisplayText.Label(Seasons + Episodes)} · {(Success ? "成功" : "失败")} · {MoviePilotDisplayText.Label(Date)}";
     public bool Matches(string path) => MoviePilotTransfer.SamePath(TargetPath, path) || MoviePilotTransfer.SamePath(SourcePath, path);
 
     public static MoviePilotTransferHistory? Parse(JsonElement item)
@@ -133,8 +133,8 @@ public static class MoviePilotTransferHistoryMatch
             var candidates = Candidates(records, file.Path);
             if (candidates.Count != 1)
                 throw new MoviePilotException(candidates.Count == 0
-                    ? $"没有找到此文件的原整理记录：{file.Path}。请先在 MoviePilot 核对整理历史及路径映射；不会改为整理父目录。"
-                    : $"此文件有 {candidates.Count} 条原整理记录，请先选择要重新整理的那一条：{file.Path}");
+                    ? $"没有找到此文件的原整理记录：{MoviePilotDisplayText.Path(file.Path)}。请先在 MoviePilot 核对整理历史及路径映射；不会改为整理父目录。"
+                    : $"此文件有 {candidates.Count} 条原整理记录，请先选择要重新整理的那一条：{MoviePilotDisplayText.Path(file.Path)}");
             matched.Add(candidates[0]);
         }
         if (matched.DistinctBy(history => history.Id).Count() != matched.Count)
@@ -152,7 +152,7 @@ public static class MoviePilotTransferHistoryMatch
         {
             var candidates = DeletionCandidates(records, file.Path, requireDestination);
             if (candidates.Count == 0)
-                throw new MoviePilotException($"没有找到此文件的原整理记录：{file.Path}。请先在 MoviePilot 核对整理历史及路径映射；不会改为删除父目录。");
+                throw new MoviePilotException($"没有找到此文件的原整理记录：{MoviePilotDisplayText.Path(file.Path)}。请先在 MoviePilot 核对整理历史及路径映射；不会改为删除父目录。");
             matched.AddRange(candidates);
         }
         return matched.DistinctBy(history => history.Id).ToList();

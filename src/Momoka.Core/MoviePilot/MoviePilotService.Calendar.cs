@@ -93,7 +93,7 @@ public sealed partial class MoviePilotService
             _calendarCache?.Write(CalendarCacheConnection(identity), start, endExclusive, result);
             return result;
         }
-        catch (MoviePilotException error) when (MoviePilotCalendar.IsLegacyEndpoint(error))
+        catch (MoviePilotException error) when (error.Status == HttpStatusCode.NotFound || error.LegacyCalendarRoute)
         {
             throw new MoviePilotException("当前 MoviePilot 版本不支持日历日期窗口，请升级到 3.2.3 或更新版本", error.Status);
         }

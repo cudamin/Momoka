@@ -246,6 +246,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
             var preview = await _service.TransferPreviewAsync(request, files, _lifetime.Token).ConfigureAwait(true);
             if (_lifetime.IsCancellationRequested || revision != _revision || request != Request) return;
             Fill(preview.Result);
+            if (preview.HasHiddenPaths) { Say("整理路径已隐藏，无法核对文件，请在 MoviePilot 中处理。"); return; }
             if (!preview.CanSubmit) { Say(preview.Result.Message.Length > 0 ? preview.Result.Message : "预览不完整、有失败或没有目标文件，请修正后重试"); return; }
             _preview = preview;
             if (_submissionProblem is not null) { Say(_submissionProblem, InfoBarSeverity.Warning); return; }

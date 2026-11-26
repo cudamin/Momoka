@@ -60,9 +60,9 @@ public sealed class MoviePilotHistoryPlan
         : DeleteSource || DeleteDestination
             ? "将直接在 MoviePilot 服务器删除下列文件及转移记录，无法在这里撤销。删除源文件可能影响做种及其他链接；删除媒体库文件会使对应内容不可播放。"
             : "只删除 MoviePilot 的转移记录，保留源文件和媒体库文件。后续将无法再通过这条记录重新整理。";
-    public string Summary => $"「{Title}」 · {Histories.Count.ToString(CultureInfo.InvariantCulture)} 条记录\n{ActionLabel}";
+    public string Summary => $"「{MoviePilotDisplayText.Label(Title)}」 · {Histories.Count.ToString(CultureInfo.InvariantCulture)} 条记录\n{ActionLabel}";
     public string Details => string.Join("\n\n", Histories.Select(history =>
-        $"{history.Display}\n源文件{(DeleteSource ? "（删除）" : Smart ? "" : "（保留）")}：{history.SourcePath}\n媒体库文件{(DeleteDestination ? "（删除）" : Smart ? "" : "（保留）")}：{history.TargetPath}"));
+        $"{history.Display}\n源文件{(DeleteSource ? "（删除）" : Smart ? "" : "（保留）")}：{MoviePilotDisplayText.Path(history.SourcePath)}\n媒体库文件{(DeleteDestination ? "（删除）" : Smart ? "" : "（保留）")}：{MoviePilotDisplayText.Path(history.TargetPath)}"));
 
     /// <summary>只缩小已核对范围；合法选择消费原确认，保留原记录顺序与快照，不能派生多份可提交计划。</summary>
     public MoviePilotHistoryPlan SelectRecords(IReadOnlyCollection<long> ids)
@@ -112,15 +112,13 @@ public sealed record MoviePilotHistoryReceipt(long Id, string Source, string Des
         if (!Valid(source) || !Valid(destination) || history is not ("deleted" or "retained" or "not_found") ||
             !plan.DeleteSource && source is not "not_requested" || !plan.DeleteDestination && destination is not "not_requested")
             throw new MoviePilotException("删除回执缺少可核对的分项结果；请到 MoviePilot 核对，勿重复发送");
+        var complete = history is "deleted" or "not_found" &&
+            (!plan.DeleteSource || source is "deleted" or "already_missing") &&
+            (!plan.DeleteDestination || destination is "deleted" or "already_missing");
         return new(id, source, destination, history,
-            string.Join("；", new[] { reply.Message, MoviePilotTransfer.Text(data, "message"),
-                MoviePilotTransfer.Text(MoviePilotTransferHistory.Member(data, "source"), "message"),
-                MoviePilotTransfer.Text(MoviePilotTransferHistory.Member(data, "destination"), "message") }
-                .Where(value => value.Length > 0).Distinct(StringComparer.Ordinal)))
+            complete ? "" : "部分删除结果待核对，请到 MoviePilot 核对；不要重复提交。")
         {
-            Complete = history is "deleted" or "not_found" &&
-                (!plan.DeleteSource || source is "deleted" or "already_missing") &&
-                (!plan.DeleteDestination || destination is "deleted" or "already_missing")
+            Complete = complete
         };
     }
 

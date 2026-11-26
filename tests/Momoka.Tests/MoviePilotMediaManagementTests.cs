@@ -729,6 +729,36 @@ internal static class MoviePilotMediaManagementTests
             Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(f.Prepare(MoviePilotHistoryAction.DeleteAll, true)));
             Assert.Equal(1, f.Transport.Writes.Count);
         });
+        Test("MP 删除回执：各层 message 不回显，部分完成与结果待核对仍保留", () =>
+        {
+            const string marker = "fixture-q006-private";
+            using var f = new HistoryFixture();
+            var plan = f.Prepare(MoviePilotHistoryAction.DeleteAll);
+            f.Transport.Fault = "sensitive-receipt";
+            var result = f.Submit(plan);
+
+            Assert.True(result.NeedsReview);
+            Assert.Equal("deleted", result.Receipts.Single().Source);
+            Assert.Equal("failed", result.Receipts.Single().Destination);
+            Assert.Equal("retained", result.Receipts.Single().History);
+            Assert.False(result.Receipts.Single().Complete);
+            Assert.DoesNotContain(marker, result.Receipts.Single().Message);
+            Assert.DoesNotContain(marker, result.Receipts.Single().Display);
+            Assert.DoesNotContain(marker, result.Problem);
+            Assert.Equal(1, f.Transport.Writes.Count);
+
+            var unsafeHistory = new MoviePilotTransferHistory
+            {
+                Id = 9,
+                Title = "password=" + marker,
+                SourcePath = "/downloads/access_token=" + marker + "/one.mkv",
+                TargetPath = "/library/api_token=" + marker + "/one.mkv"
+            };
+            var displayPlan = new MoviePilotHistoryPlan("Fixture", MoviePilotHistoryAction.DeleteAll,
+                false, "fixture", [unsafeHistory]);
+            Assert.DoesNotContain(marker, unsafeHistory.Display);
+            Assert.DoesNotContain(marker, displayPlan.Details);
+        });
         foreach (var fault in new[] { "lost", "write-json", "no-receipt", "401-second" })
         {
             Test("MP 批量删除回执不明：" + fault + " 不重放已发请求", () =>
@@ -987,6 +1017,12 @@ internal sealed class HistoryTransport : HttpMessageHandler
             if (Fault == "write-json") return Reply("{");
             if (Fault == "no-receipt") return Reply("{\"success\":true,\"data\":{}}");
             if (Fault == "record-gone") return Json(new { source = new { status = "not_requested" }, destination = new { status = "not_requested" }, history = "not_found" });
+            if (Fault == "sensitive-receipt") return Reply("""
+                {"success":false,"message":"api_token=fixture-q006-private","data":{
+                  "source":{"status":"deleted","message":"password=fixture-q006-private"},
+                  "destination":{"status":"failed","message":"cookie=fixture-q006-private"},
+                  "history":"retained","message":"Bearer fixture-q006-private"}}
+                """);
             if (Fault == "401-second" && Writes.Count == 2) return Reply("expired", HttpStatusCode.Unauthorized);
             if (request.Method == HttpMethod.Post)
             {

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.MoviePilot;
 using static Momoka.Tests.TestHarness;
 
@@ -200,16 +201,35 @@ internal static class MoviePilotTests
 
         Test("MoviePilot 客户端：HTTP 200 但 success 是 false 也要当失败", () =>
         {
-            // 有些接口用 200 揣着一个业务错误，只认状态码的话这种错会被当成成功 —— 上面拿到一份没有字段的
-            // 空数据，屏上显示成「连接成功」。
+            // 有些接口用 200 揣着一个业务错误，只认状态码的话这种错会被当成成功 —— 但正文里的 message 仍是不可信数据。
             var transport = new StubTransport().Answer("dashboard/system",
-                """{"success":false,"message":"SUPERUSER 对应用户不存在、未启用或非超级管理员","data":null}""");
+                """{"success":false,"message":"api_token=fixture-q006-private","data":null}""");
 
             using var client = new MoviePilotClient(transport);
             var error = Assert.Catch<MoviePilotException>(() =>
                 client.GetAsync(Base, "jwt", "dashboard/system", CancellationToken.None).GetAwaiter().GetResult());
 
-            Assert.Contains("SUPERUSER", error.Message, "服务器自己那句话比任何转述都准");
+            Assert.Contains("核对服务端状态", error.Message);
+            Assert.DoesNotContain("fixture-q006-private", error.Message);
+            Assert.DoesNotContain("fixture-q006-private", error.ToString());
+        });
+
+        Test("MoviePilot 客户端：HTTP 错误只用受控状态提示，不回显服务端 message", () =>
+        {
+            foreach (var status in new[] { HttpStatusCode.BadRequest, HttpStatusCode.Forbidden, HttpStatusCode.NotFound })
+            {
+                const string marker = "api_token=fixture-q006-private";
+                using var transport = new StubTransport().Sequence("dashboard/system",
+                    (status, "{\"message\":\"" + marker + "\"}"));
+                using var client = new MoviePilotClient(transport);
+                var error = Assert.Catch<MoviePilotException>(() =>
+                    client.GetAsync(Base, "jwt", "dashboard/system", CancellationToken.None).GetAwaiter().GetResult());
+
+                Assert.Equal<HttpStatusCode?>(status, error.Status);
+                Assert.DoesNotContain(marker, error.Message);
+                Assert.DoesNotContain(marker, Failure.Describe(error));
+                Assert.DoesNotContain(marker, error.ToString());
+            }
         });
 
         Test("MoviePilot 客户端：读取遇到 401 是一种单独的失败，因为它要重新登录", () =>
@@ -225,13 +245,14 @@ internal static class MoviePilotTests
         Test("MoviePilot 客户端：连不上时那句话里带得出主机名", () =>
         {
             var transport = new StubTransport().Throw("dashboard/system",
-                new HttpRequestException("由于目标计算机积极拒绝，无法连接。"));
+                new HttpRequestException("test-private-transport"));
 
             using var client = new MoviePilotClient(transport);
             var error = Assert.Catch<MoviePilotUnreachableException>(() =>
                 client.GetAsync(Base, "jwt", "dashboard/system", CancellationToken.None).GetAwaiter().GetResult());
 
             Assert.Contains("192.0.2.10", error.Message, "连不上时得说连的是哪儿");
+            Assert.DoesNotContain("test-private-transport", error.ToString());
         });
     }
 
@@ -512,7 +533,7 @@ internal static class MoviePilotTests
             {
                 var error = Assert.Catch<MoviePilotException>(() =>
                     client.PostAsync(Base, "jwt", "subscribe/", new { }, CancellationToken.None).GetAwaiter().GetResult());
-                Assert.Contains("media_source", error.Message, "服务器自己那句话要带出来");
+                Assert.Equal("MoviePilot 未完成请求，请核对服务端状态", error.Message);
             }
         });
     }

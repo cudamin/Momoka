@@ -302,7 +302,7 @@ internal static class MoviePilotSafetyTests
         Test("MoviePilot 整理确认：logid 即使未开重新整理也提示旧目标清理", () =>
         {
             var history = MoviePilotTransferHistory.Parse(Json(HistoryJson()))!;
-            var result = MoviePilotTransfer.ParseResult(Json(PreviewData), true, "", true);
+            var result = MoviePilotTransfer.ParseResult(Json(PreviewData), true, true);
             var text = MoviePilotTransfer.Confirmation(Request(history), result, false);
             Assert.Contains("旧目标", text);
             Assert.Contains("清理", text);

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Diagnostics;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -61,6 +62,31 @@ internal static class MoviePilotLifetimeTests
             Check.True(vm.ShowEmptyNotice);
             Check.Contains("无结果", vm.EmptyNotice);
             Check.Equal(4, f.Http.Searches);
+        });
+        Test("MoviePilot 搜索异常：服务端敏感 message 不进入提示或日志", async () =>
+        {
+            const string marker = "api_token=fixture-q006-private";
+            var sink = new RingBufferLogSink();
+            Log.UseSink(sink);
+            try
+            {
+                using var f = new MoviePilotFixture(); await f.ConnectAsync();
+                using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
+                f.Http.Before = (request, _) => Task.FromResult<System.Net.Http.HttpResponseMessage?>(
+                    request.Path == "media/search"
+                        ? MoviePilotTransport.Reply("{\"message\":\"" + marker + "\"}", System.Net.HttpStatusCode.Forbidden)
+                        : null);
+
+                await vm.SearchAsync("匿名错误");
+
+                Check.True(vm.NoticeOpen);
+                Check.Contains("权限", vm.NoticeMessage ?? "");
+                Check.False(vm.NoticeMessage!.Contains(marker, StringComparison.Ordinal));
+                var entries = sink.Snapshot();
+                Check.True(entries.Any(entry => entry.Level == LogLevel.Warn && entry.Detail?.Contains("权限", StringComparison.Ordinal) == true));
+                Check.True(entries.All(entry => !entry.ToString().Contains(marker, StringComparison.Ordinal)));
+            }
+            finally { Log.UseSink(NullLogSink.Instance); }
         });
         Test("更换 MoviePilot 账号和新应用服务都清空订阅搜索缓存", async () =>
         {

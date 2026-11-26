@@ -183,14 +183,15 @@ internal static class MoviePilotTransferTests
                    {"source":"/x/a.mkv","target":"/media/电影/星际穿越/星际穿越.mkv","success":true,
                     "type":"电影","title":"星际穿越","season":null,"episode":null},
                    {"source":"/x/b.mkv","target":null,"success":false,"message":"无法识别"}]}
-                """), success: true, "信封的话", preview: true);
+                """), success: true, preview: true);
 
             Assert.Equal(2, result.Items.Count);
             Assert.True(result.IsPreview);
             Assert.Equal("/media/电影/星际穿越/星际穿越.mkv", result.Items[0].Headline);
             Assert.Equal("可整理", result.Items[0].StatusLine);
             Assert.Equal("/x/b.mkv", result.Items[1].Headline, "失败的那行大字退到源路径");
-            Assert.Contains("无法识别", result.Items[1].StatusLine);
+            Assert.Contains("重新预览", result.Items[1].StatusLine);
+            Assert.DoesNotContain("无法识别", result.Items[1].StatusLine);
             Assert.Contains("无法整理", result.Items[1].StatusLine);
 
             Assert.False(result.CanSubmit, "预览里有失败就不放提交");
@@ -202,7 +203,7 @@ internal static class MoviePilotTransferTests
                 {"items":[{"state":"accepted","success":true,"target":"/media/x.mkv"},
                           {"state":"completed","success":true,"target":"/media/y.mkv"},
                           {"state":"failed","success":false,"message":"目标已存在"}]}
-                """), success: true, "", preview: false);
+                """), success: true, preview: false);
 
             Assert.Equal("已接收，等待整理", result.Items[0].Status);
             Assert.Equal("已完成", result.Items[1].Status);
@@ -217,11 +218,33 @@ internal static class MoviePilotTransferTests
             // success:false 的信封也要留下 items —— 服务器已经收走了一半，把整批再发一遍等于搬两次。
             var result = MoviePilotTransfer.ParseResult(Json("""
                 {"items":[{"state":"completed","success":true},{"state":"failed","success":false}]}
-                """), success: false, "1 个失败", preview: false);
+                """), success: false, preview: false);
 
             Assert.False(result.Success);
             Assert.Equal(2, result.Items.Count);
-            Assert.Equal("1 个失败", result.Message);
+            Assert.Contains("不要整批重试", result.Message);
+        });
+
+        Test("手动整理回执：敏感说明被丢弃，路径只改展示值且仍可匹配", () =>
+        {
+            const string marker = "fixture-q006-private";
+            var result = MoviePilotTransfer.ParseResult(Json("""
+                {"message":"api_token=fixture-q006-private","items":[
+                  {"source":"/downloads/source.mkv","target":"/library/api_token=fixture-q006-private/new.mkv",
+                   "title":"Bearer fixture-q006-private","success":true,"message":"password=fixture-q006-private"}]}
+                """), success: true, preview: true);
+            var request = Request() with { Files = [new MoviePilotTransferFile("source.mkv", "/downloads/source.mkv")] };
+            var preview = new MoviePilotTransferPreview(request, [File("/downloads/source.mkv")], result);
+
+            Assert.False(preview.CanSubmit, "用户无法核对已隐藏的目标");
+            Assert.Equal("/library/Basic Instinct (1992)/Compass: Marker.mkv",
+                MoviePilotDisplayText.Path("/library/Basic Instinct (1992)/Compass: Marker.mkv"));
+            Assert.Equal("对象桶/剧集/第1集.mkv", MoviePilotDisplayText.Path("对象桶/剧集/第1集.mkv"));
+            Assert.Equal("/library/api_token=" + marker + "/new.mkv", result.Items.Single().Target);
+            Assert.Equal("/downloads/source.mkv", result.Items.Single().DisplaySource);
+            Assert.Equal("[路径已隐藏]", result.Items.Single().Headline);
+            Assert.DoesNotContain(marker, result.Message);
+            Assert.DoesNotContain(marker, result.Items.Single().StatusLine);
         });
 
         Test("手动整理回执：预览全绿才放行提交", () =>
@@ -359,7 +382,8 @@ internal static class MoviePilotTransferTests
             var result = service.TransferSubmitAsync(preview, background: false, CancellationToken.None).GetAwaiter().GetResult();
 
             Assert.False(result.Success);
-            Assert.Equal("部分文件整理失败", result.Message);
+            Assert.Equal("整理结果未完全确认，请到 MoviePilot 核对整理历史；不要整批重试。", result.Message);
+            Assert.DoesNotContain("部分文件整理失败", result.Message);
             Assert.Equal("失败", result.Items[0].Status);
         });
 
@@ -555,7 +579,7 @@ internal static class MoviePilotTransferTests
     }
 
     private static MoviePilotTransferResult Parse(JsonElement data, bool preview) =>
-        MoviePilotTransfer.ParseResult(data, success: true, "", preview);
+        MoviePilotTransfer.ParseResult(data, success: true, preview);
 
     private static MoviePilotService ServiceOn(StubTransport transport)
     {

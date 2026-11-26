@@ -16,19 +16,19 @@ public sealed partial class MoviePilotSeriesTransferRow(MoviePilotTransferHistor
     internal void BindImages(Func<string, CancellationToken, Task<byte[]>> fetch) => _fetchImage ??= fetch;
 
     public MoviePilotTransferHistory History { get; } = history;
-    public string Title => History.Title;
-    public string EpisodeLabel => History.Seasons + History.Episodes;
-    public string YearLabel => History.Year;
+    public string Title => MoviePilotDisplayText.Label(History.Title);
+    public string EpisodeLabel => MoviePilotDisplayText.Label(History.Seasons + History.Episodes);
+    public string YearLabel => MoviePilotDisplayText.Label(History.Year);
     public Visibility YearVisibility => History.Year.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-    public string SourcePath => History.SourcePath;
-    public string TargetPath => History.TargetPath.Length > 0 ? History.TargetPath : "尚未整理到目标文件";
+    public string SourcePath => MoviePilotDisplayText.Path(History.SourcePath);
+    public string TargetPath => History.TargetPath.Length > 0 ? MoviePilotDisplayText.Path(History.TargetPath) : "尚未整理到目标文件";
     public string SourceStorage => "源 · " + Storage(History.SourceStorage);
     public string TargetStorage => "目标 · " + Storage(History.TargetStorage);
     public string Status => History.Success ? "成功" : "失败";
     public Visibility SuccessVisibility => History.Success ? Visibility.Visible : Visibility.Collapsed;
     public Visibility FailureVisibility => History.Success ? Visibility.Collapsed : Visibility.Visible;
-    public string Mode => MoviePilotTransferHistoryView.ModeLabel(History.Mode);
-    public string Details => string.Join(" · ", new[] { Mode, TimeFormat.FileSize(History.Size), History.Date }
+    public string Mode => MoviePilotDisplayText.Label(MoviePilotTransferHistoryView.ModeLabel(History.Mode));
+    public string Details => string.Join(" · ", new[] { Mode, TimeFormat.FileSize(History.Size), MoviePilotDisplayText.Label(History.Date) }
         .Where(value => value.Length > 0));
     [ObservableProperty]
     public partial bool Selected { get; set; }
@@ -67,5 +67,5 @@ public sealed partial class MoviePilotSeriesTransferRow(MoviePilotTransferHistor
         _artworkLoad?.Cancel();
     }
 
-    private static string Storage(string storage) => storage switch { "local" => "本地", "" => "存储未返回", _ => storage };
+    private static string Storage(string storage) => storage switch { "local" => "本地", "" => "存储未返回", _ => MoviePilotDisplayText.Label(storage) };
 }

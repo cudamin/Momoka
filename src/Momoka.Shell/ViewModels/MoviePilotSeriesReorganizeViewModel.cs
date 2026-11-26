@@ -181,8 +181,8 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
             foreach (var row in visible) Rows.Add(row);
             Groups.Clear();
             if (Grouped)
-                foreach (var group in visible.GroupBy(row => row.Title, StringComparer.Ordinal))
-                    Groups.Add(new MoviePilotSeriesTransferGroup(group.Key, group.ToArray(), true));
+                foreach (var group in visible.GroupBy(row => row.History.Title, StringComparer.Ordinal))
+                    Groups.Add(new MoviePilotSeriesTransferGroup(MoviePilotDisplayText.Label(group.Key), group.ToArray(), true));
             else if (visible.Length > 0) Groups.Add(new MoviePilotSeriesTransferGroup("", visible, false));
         }
         finally

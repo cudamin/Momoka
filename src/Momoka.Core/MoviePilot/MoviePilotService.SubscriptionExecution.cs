@@ -48,7 +48,7 @@ public sealed partial class MoviePilotService
                 $"subscribe/execution/batches/{Uri.EscapeDataString(batch.BatchId)}/cancel", null, cancellationToken),
             cancellationToken).ConfigureAwait(false);
         lock (_operationGate) _operations.Remove(key);
-        if (!reply.Success) throw new MoviePilotException(ReplyMessage(reply));
+        if (!reply.Success) throw new MoviePilotException(MoviePilotReply.Rejected);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public sealed partial class MoviePilotService
             client.MutateReplyAsync(address, token, HttpMethod.Post, "user/config/" + configKey, body, cancellationToken),
             cancellationToken).ConfigureAwait(false);
         lock (_operationGate) _operations.Remove(key);
-        if (!reply.Success) throw new MoviePilotException(ReplyMessage(reply));
+        if (!reply.Success) throw new MoviePilotException(MoviePilotReply.Rejected);
     }
 
     /// <summary>
@@ -181,11 +181,8 @@ public sealed partial class MoviePilotService
         }, cancellationToken).ConfigureAwait(false);
         lock (_operationGate) _operations.Remove(key);
         // 「没有需要搜索的订阅」这类 success:false 是明确拒绝：什么都没安排，不锁核对。
-        if (!reply.Success) throw new MoviePilotException(ReplyMessage(reply));
+        if (!reply.Success) throw new MoviePilotException(MoviePilotReply.Rejected);
         Log.Info(Category, $"MoviePilot 订阅维护：{action}（{type}）");
         return parse(reply.Data);
     }
-
-    private static string ReplyMessage(MoviePilotReply reply) =>
-        string.IsNullOrWhiteSpace(reply.Message) ? "MoviePilot 报告了一个错误" : reply.Message;
 }

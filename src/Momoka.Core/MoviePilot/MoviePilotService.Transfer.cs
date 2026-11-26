@@ -29,13 +29,13 @@ public sealed partial class MoviePilotService
             .ConfigureAwait(false))
             .Where(item => MoviePilotTransfer.Text(item, "name").Length > 0)
             .Select(item => new MoviePilotStorage(
-                MoviePilotTransfer.Text(item, "name"), MoviePilotTransfer.Text(item, "type")))
+                MoviePilotDisplayText.Label(MoviePilotTransfer.Text(item, "name")), MoviePilotTransfer.Text(item, "type")))
             .ToList();
 
         var directories = MoviePilotTransfer.Array(await CallAsync((apiBase, token, client) =>
             client.GetAsync(apiBase, token, "storage/directories?directory_type=library", cancellationToken),
             cancellationToken, identity).ConfigureAwait(false))
-            .Where(item => MoviePilotTransfer.Text(item, "library_path").Length > 0)
+            .Where(item => MoviePilotTransfer.Text(item, "library_path") is { Length: > 0 } path && MoviePilotDisplayText.CanDisplay(path))
             .Select(item => new MoviePilotDirectory(
                 MoviePilotTransfer.Text(item, "library_storage") is { Length: > 0 } storage ? storage : "local",
                 MoviePilotTransfer.Text(item, "library_path"),
@@ -104,7 +104,7 @@ public sealed partial class MoviePilotService
             MoviePilotTransfer.SamePath(MoviePilotTransfer.Text(item, "path"), sourcePath));
         if (file.ValueKind is not JsonValueKind.Object || !reply.Success)
             throw new MoviePilotException(
-                $"MoviePilot 看不到这个文件：{sourcePath}。它是 MoviePilot 那台机器上的路径吗？（不会改为整理父目录）");
+                $"MoviePilot 看不到这个文件：{MoviePilotDisplayText.Path(sourcePath)}。它是 MoviePilot 那台机器上的路径吗？（不会改为整理父目录）");
 
         MoviePilotTransfer.RequireFile(file, sourcePath);
         return file.Clone();
@@ -132,7 +132,7 @@ public sealed partial class MoviePilotService
             new Dictionary<string, object?> { ["fileitem"] = file }, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
 
-        if (!reply.Success) throw new MoviePilotException(reply.Message);
+        if (!reply.Success) throw new MoviePilotException("MoviePilot 未返回可用的整理目标，请核对服务端状态");
         return ParseTransferTarget(reply.Data);
     }
 
@@ -220,7 +220,7 @@ public sealed partial class MoviePilotService
         var reply = await WriteAsync(identity, TransferKeys(preview), (apiBase, token, client) => client.PostReplyAsync(
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken).ConfigureAwait(false);
-        var result = MoviePilotTransfer.ParseResult(reply.Data, reply.Success, reply.Message, preview: false);
+        var result = MoviePilotTransfer.ParseResult(reply.Data, reply.Success, preview: false);
         result = MoviePilotTransfer.CompleteReceipt(result, preview);
         Log.Info(Category, $"MoviePilot 手动整理（{(background ? "队列" : "同步")}）：{result.Summary}");
         return result;
@@ -291,7 +291,7 @@ public sealed partial class MoviePilotService
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
 
-        return MoviePilotTransfer.ParseResult(reply.Data, reply.Success, reply.Message, preview);
+        return MoviePilotTransfer.ParseResult(reply.Data, reply.Success, preview);
     }
 
     /// <summary>media/source 里没有 media_types 时的容错：缺这个键就当不限类型。</summary>

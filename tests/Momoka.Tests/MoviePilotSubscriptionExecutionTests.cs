@@ -54,7 +54,7 @@ internal static class MoviePilotSubscriptionExecutionTests
             var error = Assert.Catch<MoviePilotException>(() => Service(transport).SubscriptionExecutionBatchesAsync(CancellationToken.None).GetAwaiter().GetResult());
             Assert.Contains("格式不正确", error.Message);
         });
-        Test("MoviePilot 订阅执行批次：停止走 PUT，明确拒绝按原话抛且不锁核对", () =>
+        Test("MoviePilot 订阅执行批次：停止走 PUT，明确拒绝给出受控提示且不锁核对", () =>
         {
             using var transport = new StubTransport().Answer("login/access-token", Session)
                 .Sequence("subscribe/execution/batches/b1/cancel",
@@ -68,7 +68,7 @@ internal static class MoviePilotSubscriptionExecutionTests
             Assert.Equal("PUT", sent.Method);
             Assert.Equal("", sent.Body);
             var error = Assert.Catch<MoviePilotException>(() => service.CancelSubscriptionExecutionBatchAsync(batch, CancellationToken.None).GetAwaiter().GetResult());
-            Assert.Equal("已经结束，暂时无法停止", error.Message);
+            Assert.Equal("MoviePilot 未完成请求，请核对服务端状态", error.Message);
             Assert.False(error is MoviePilotOperationBlockedException);
             Assert.Equal(2, transport.Count("subscribe/execution/batches/b1/cancel"));
         });
@@ -112,7 +112,7 @@ internal static class MoviePilotSubscriptionExecutionTests
             var service = Service(transport);
             service.SaveSubscriptionOrderAsync(false, [5, 2], CancellationToken.None).GetAwaiter().GetResult();
             var error = Assert.Catch<MoviePilotException>(() => service.SaveSubscriptionOrderAsync(false, [5, 2], CancellationToken.None).GetAwaiter().GetResult());
-            Assert.Equal("配置内容过大", error.Message);
+            Assert.Equal("MoviePilot 未完成请求，请核对服务端状态", error.Message);
             Assert.False(error is MoviePilotOperationBlockedException);
             service.SaveSubscriptionOrderAsync(false, [5, 2], CancellationToken.None).GetAwaiter().GetResult();
             var sent = transport.SentTo("user/config/SubscribeMovieOrder");
@@ -205,7 +205,7 @@ internal static class MoviePilotSubscriptionExecutionTests
                 .Answer("subscribe/search?type=", "{\"success\":false,\"message\":\"没有需要搜索的订阅\"}");
             var service = Service(transport);
             var error = Assert.Catch<MoviePilotException>(() => service.SearchAllSubscriptionsAsync(true, CancellationToken.None).GetAwaiter().GetResult());
-            Assert.Equal("没有需要搜索的订阅", error.Message);
+            Assert.Equal("MoviePilot 未完成请求，请核对服务端状态", error.Message);
             Assert.False(error is MoviePilotOperationBlockedException);
             Assert.Catch<MoviePilotException>(() => service.SearchAllSubscriptionsAsync(true, CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(2, transport.Count("subscribe/search?type="));

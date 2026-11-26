@@ -18,7 +18,9 @@ public sealed class MoviePilotHistoryRecordRow
     public string DestinationDirectory => Directory(DestinationPath);
     public string SourceStorage => Storage(Media.History.SourceStorage);
     public string DestinationStorage => Storage(Media.History.TargetStorage);
-    public string Subtitle => string.Join(" / ", new[] { Media.History.Type, Media.History.Year }.Where(value => value.Length > 0));
+    public string Subtitle => string.Join(" / ", new[]
+        { MoviePilotDisplayText.Label(Media.History.Type), MoviePilotDisplayText.Label(Media.History.Year) }
+        .Where(value => value.Length > 0));
     public string SourceStatus { get; }
     public string DestinationStatus { get; }
     public string HistoryStatus { get; }
@@ -39,14 +41,13 @@ public sealed class MoviePilotHistoryRecordRow
     {
         var receipt = result?.Receipts.FirstOrDefault(value => value.Id == history.Id);
         var accepted = result?.AcceptedIds.Contains(history.Id) == true;
-        var episode = history.Seasons + history.Episodes;
         var review = result is not null && (result.Smart ? !accepted : receipt?.Complete != true);
         Media = media ?? new MoviePilotSeriesTransferRow(history) { Selected = true };
         Id = history.Id;
-        Title = episode.Length > 0 ? history.Title + " " + episode : history.Title;
+        Title = Media.EpisodeLabel.Length > 0 ? Media.Title + " " + Media.EpisodeLabel : Media.Title;
         Metadata = "#" + history.Id.ToString(CultureInfo.InvariantCulture);
-        SourcePath = history.SourcePath;
-        DestinationPath = history.TargetPath;
+        SourcePath = MoviePilotDisplayText.Path(history.SourcePath);
+        DestinationPath = MoviePilotDisplayText.Path(history.TargetPath);
         SourceStatus = Status(plan.Smart, plan.DeleteSource, result, receipt?.Source);
         DestinationStatus = Status(plan.Smart, plan.DeleteDestination, result, receipt?.Destination);
         HistoryStatus = result is null ? plan.Smart ? "保留" : "将删除" : result.Smart ? "保留" : receipt?.History switch
@@ -60,7 +61,8 @@ public sealed class MoviePilotHistoryRecordRow
                 : result.Smart ? accepted ? "已提交" : "待核对" : review ? "待核对" : "已完成";
         Message = result is null ? "" : result.Smart
                 ? accepted ? "已交给智能助手，文件处理尚未确认完成。" : "未取得提交回执，请到 MoviePilot 核对。"
-                : receipt is null ? "未取得回执，请到 MoviePilot 核对；不要重复提交。" : review ? receipt.Message : "";
+                : receipt is null ? "未取得回执，请到 MoviePilot 核对；不要重复提交。"
+                : review ? receipt.Message : "";
         NeedsReview = review;
         Selectable = result is null;
         Complete = result is { Smart: false } && receipt?.Complete == true;
@@ -89,5 +91,5 @@ public sealed class MoviePilotHistoryRecordRow
         return end < 0 ? "" : path[..(end + 1)];
     }
 
-    private static string Storage(string storage) => storage switch { "local" => "本地", "" => "存储未知", _ => storage };
+    private static string Storage(string storage) => storage switch { "local" => "本地", "" => "存储未知", _ => MoviePilotDisplayText.Label(storage) };
 }

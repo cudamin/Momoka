@@ -86,13 +86,13 @@ public sealed partial class MoviePilotClient
             cancellationToken.ThrowIfCancellationRequested();
             return state.Result();
         }
-        catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new MoviePilotUnreachableException("搜索进度连接超时，请稍后重试", error);
+            throw new MoviePilotUnreachableException("搜索进度连接超时，请稍后重试");
         }
-        catch (IOException error)
+        catch (IOException)
         {
-            throw new MoviePilotUnreachableException("搜索进度连接已中断，请稍后重试", error);
+            throw new MoviePilotUnreachableException("搜索进度连接已中断，请稍后重试");
         }
         catch (JsonException)
         {

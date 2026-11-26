@@ -78,12 +78,12 @@ internal static class MoviePilotLoginRedirectTests
             () => BodyTimeoutAsync().GetAwaiter().GetResult());
         Test("MoviePilot R031 双回环：最终来源直接 200 保留登录、表单编码与用户名去空格",
             () => DirectAsync(HttpStatusCode.OK, LoginReply).GetAwaiter().GetResult());
-        Test("MoviePilot R031 双回环：401 保留账号密码错误及原始响应",
+        Test("MoviePilot R031 双回环：401 保留账号密码错误及原始状态",
             () => DirectAsync(HttpStatusCode.Unauthorized, "{\"message\":\"fixture rejected\"}", "用户名或密码不正确").GetAwaiter().GetResult());
         Test("MoviePilot R031 双回环：403 保留无权限错误及原始状态",
             () => DirectAsync(HttpStatusCode.Forbidden, "", "这个账号没有权限").GetAwaiter().GetResult());
-        Test("MoviePilot R031 双回环：403 仍优先服务端错误消息",
-            () => DirectAsync(HttpStatusCode.Forbidden, "{\"message\":\"fixture permission denied\"}", "fixture permission denied").GetAwaiter().GetResult());
+        Test("MoviePilot R031 双回环：403 不回显服务端错误消息",
+            () => DirectAsync(HttpStatusCode.Forbidden, "{\"message\":\"api_token=fixture-q006-private\"}", "没有权限").GetAwaiter().GetResult());
         Test("MoviePilot R031 双回环：200 缺令牌仍失败且不重试",
             () => DirectAsync(HttpStatusCode.OK, "{}", "没有返回访问令牌").GetAwaiter().GetResult());
         Test("MoviePilot R031 双回环：200 非法 JSON 仍失败且不重试",
@@ -178,7 +178,6 @@ internal static class MoviePilotLoginRedirectTests
         if (sensitiveReply)
         {
             Assert.DoesNotContain("r031-do-not-echo", attempt.Error!.Message);
-            Assert.Null(((MoviePilotException)attempt.Error).Body, "跳转回复不保留可回显敏感内容的正文");
         }
     }
 
@@ -318,7 +317,7 @@ internal static class MoviePilotLoginRedirectTests
             if (status != HttpStatusCode.OK)
             {
                 Assert.Equal<HttpStatusCode?>(status, error.Status);
-                Assert.Equal(body, error.Body, "保留原有 401/403 状态和正文错误语义");
+                Assert.DoesNotContain("fixture-q006-private", error.ToString());
             }
         }
     }
@@ -418,7 +417,6 @@ internal static class MoviePilotLoginRedirectTests
         Assert.False(error is MoviePilotTokenExpiredException);
         Assert.Contains("不自动跳转", error.Message);
         Assert.Contains("最终", error.Message, "错误应提示连接配置指向最终来源");
-        Assert.Null(error.Body, "跳转正文可能回显凭据，不带入错误对象");
     }
 
     private static void Receipt(string scenario, LoopbackServer source, LoopbackServer next,

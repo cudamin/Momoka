@@ -188,7 +188,7 @@ public sealed partial class MoviePilotReorganizeDialog
         if (storage is null)
         {
             if (type.Length == 0) return;
-            storage = new MoviePilotStorage(type == "local" ? "本地" : type, type);
+            storage = new MoviePilotStorage(type == "local" ? "本地" : MoviePilotDisplayText.Label(type), type);
             items.Add(storage);
             TargetStorageBox.ItemsSource = items;
         }
@@ -262,19 +262,19 @@ public sealed partial class MoviePilotReorganizeDialog
     private void UpdateMatchVisibility()
     {
         MatchedPathPanel.Visibility = AutomaticPath && _histories.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        UseMatchedPathButton.Visibility = _matchedDirectory is not null ? Visibility.Visible : Visibility.Collapsed;
+        UseMatchedPathButton.Visibility = _matchedDirectory is not null && MoviePilotDisplayText.CanDisplay(_matchedDirectory.Path) ? Visibility.Visible : Visibility.Collapsed;
         if (_matchedDirectory is not { } directory)
         {
             MatchedPathText.Text = "没有匹配到目的目录，可手动选择；预览会显示实际目标。";
             return;
         }
         var storage = _options?.Storages.FirstOrDefault(item => item.Type == directory.Storage)?.Name ?? directory.Storage;
-        MatchedPathText.Text = $"自动匹配到 {storage} · {directory.Path}";
+        MatchedPathText.Text = $"自动匹配到 {MoviePilotDisplayText.Label(storage)} · {MoviePilotDisplayText.Path(directory.Path)}";
     }
 
     private void OnUseMatchedPath(object sender, RoutedEventArgs args)
     {
-        if (_busy || _submitted || _matchedDirectory is not { } directory) return;
+        if (_busy || _submitted || _matchedDirectory is not { } directory || !MoviePilotDisplayText.CanDisplay(directory.Path)) return;
         ApplyDirectory(directory);
     }
 

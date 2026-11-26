@@ -91,7 +91,7 @@ public sealed partial class MoviePilotClient : IDisposable
     }
 
     /// <summary>
-    /// Signs in and returns the JWT, or throws with the server's own words.
+    /// Signs in and returns the JWT, or throws a locally classified error.
     /// <para>
     /// The password is only ever in memory here and in the caller's own field — it is not logged, and the
     /// request body is built by hand rather than through a logging helper for that reason.
@@ -149,13 +149,13 @@ public sealed partial class MoviePilotClient : IDisposable
             await response.Content.LoadIntoBufferAsync(_http.MaxResponseContentBufferSize, timeout.Token).ConfigureAwait(false);
             body = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new MoviePilotUnreachableException($"连接 {url.Host} 超时", error);
+            throw new MoviePilotUnreachableException($"连接 {url.Host} 超时");
         }
-        catch (HttpRequestException error)
+        catch (HttpRequestException)
         {
-            throw new MoviePilotUnreachableException($"无法连接到 {url.Host}：{error.Message}", error);
+            throw new MoviePilotUnreachableException($"无法连接到 {url.Host}，请检查地址和网络");
         }
 
         if (!response.IsSuccessStatusCode)
@@ -166,19 +166,19 @@ public sealed partial class MoviePilotClient : IDisposable
                 // configured credentials and direct the user to its supported login flow.
                 if (response.Headers.TryGetValues("X-MFA-Required", out var challenge)
                     && challenge.Any(value => value.Equals("true", StringComparison.OrdinalIgnoreCase)))
-                    throw new MoviePilotException("此账号需要二次验证，当前连接方式尚不支持验证码；请在 MoviePilot 网页端核对登录方式", response.StatusCode, body);
-                throw new MoviePilotException("用户名或密码不正确", response.StatusCode, body);
+                    throw new MoviePilotException("此账号需要二次验证，当前连接方式尚不支持验证码；请在 MoviePilot 网页端核对登录方式", response.StatusCode);
+                throw new MoviePilotException("用户名或密码不正确", response.StatusCode);
             }
 
             throw new MoviePilotException(
-                Describe(response, body, "登录"), response.StatusCode, body);
+                Describe(response, "登录"), response.StatusCode);
         }
 
         var result = Parse<MoviePilotSignInResult>(body, "登录");
         if (string.IsNullOrWhiteSpace(result.AccessToken))
             throw new MoviePilotException("MoviePilot 没有返回访问令牌");
 
-        Log.Info(Category, $"已登录 MoviePilot（用户 {result.UserName ?? username}，超级管理员={result.SuperUser}）");
+        Log.Info(Category, $"已登录 MoviePilot（超级管理员={result.SuperUser}）");
         return new MoviePilotSession(apiBase, result.AccessToken!, result.UserName ?? username, result.SuperUser);
     }
 
@@ -199,7 +199,7 @@ public sealed partial class MoviePilotClient : IDisposable
 
         if (!response.IsSuccessStatusCode)
             throw new MoviePilotException(
-                $"取图失败：{(int)response.StatusCode} {response.ReasonPhrase}", response.StatusCode);
+                Describe(response, "取图"), response.StatusCode);
 
         return await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -273,7 +273,7 @@ public sealed partial class MoviePilotClient : IDisposable
     }
 
     /// <summary>
-    /// Turns one response into its <c>data</c>, or throws with the server's own words. Shared by
+    /// Turns one response into its <c>data</c>, or throws a locally classified error. Shared by
     /// <see cref="GetAsync"/> and <see cref="PostAsync"/> so the three failure modes below are handled once.
     /// <para>
     /// 401 单独一档（令牌到期，得重登，见 <see cref="MoviePilotTokenExpiredException"/>）；有些接口用 HTTP 200
@@ -305,7 +305,7 @@ public sealed partial class MoviePilotClient : IDisposable
     private static JsonElement DataOrThrow(MoviePilotReply reply)
     {
         if (!reply.Success)
-            throw new MoviePilotException(string.IsNullOrWhiteSpace(reply.Message) ? "MoviePilot 报告了一个错误" : reply.Message);
+            throw new MoviePilotException(MoviePilotReply.Rejected);
         return reply.Data;
     }
 
@@ -330,10 +330,13 @@ public sealed partial class MoviePilotClient : IDisposable
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
-            throw new MoviePilotTokenExpiredException(Describe(response, body, "请求"));
+            throw new MoviePilotTokenExpiredException("MoviePilot 登录状态已过期，请重新连接");
 
         if (!response.IsSuccessStatusCode)
-            throw new MoviePilotException(Describe(response, body, "请求"), response.StatusCode, body);
+            throw new MoviePilotException(Describe(response, "请求"), response.StatusCode)
+            {
+                LegacyCalendarRoute = response.StatusCode == HttpStatusCode.UnprocessableEntity && MoviePilotCalendar.HasLegacyRouteDetail(body)
+            };
 
         JsonElement root;
         try
@@ -350,10 +353,9 @@ public sealed partial class MoviePilotClient : IDisposable
         if (requireEnvelope && flag.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
             throw new MoviePilotException("MoviePilot 没有返回明确的操作回执，请先核对服务端状态");
         var success = flag.ValueKind != JsonValueKind.False;
-        var message = MoviePilotTransfer.Text(root, "message");
         var data = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var inner)
             ? inner.Clone() : root.Clone();
-        return new MoviePilotReply(success, message, data);
+        return new MoviePilotReply(success, data);
     }
 
     private async Task<HttpResponseMessage> SendAsync(
@@ -395,53 +397,26 @@ public sealed partial class MoviePilotClient : IDisposable
             }
             return response;
         }
-        catch (TaskCanceledException error) when (!cancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new MoviePilotUnreachableException($"连接 {request.RequestUri?.Host} 超时", error);
+            throw new MoviePilotUnreachableException($"连接 {request.RequestUri?.Host} 超时");
         }
-        catch (HttpRequestException error)
+        catch (HttpRequestException)
         {
             throw new MoviePilotUnreachableException(
-                $"无法连接到 {request.RequestUri?.Host}：{error.Message}", error);
+                $"无法连接到 {request.RequestUri?.Host}，请检查地址和网络");
         }
     }
 
-    /// <summary>
-    /// One sentence about a failed call, preferring what the server said over the status code — a
-    /// MoviePilot error message is written for a person and a bare 404 is not.
-    /// </summary>
-    private static string Describe(HttpResponseMessage response, string body, string action)
+    /// <summary>服务端正文不可信；只根据 HTTP 状态生成可显示的提示。</summary>
+    private static string Describe(HttpResponseMessage response, string action)
     {
-        var message = TryReadMessage(body);
-        if (!string.IsNullOrWhiteSpace(message)) return message!;
-
         return response.StatusCode switch
         {
             HttpStatusCode.NotFound => $"{action}失败：MoviePilot 上没有这个接口（{(int)response.StatusCode}），版本可能不匹配",
             HttpStatusCode.Forbidden => $"{action}失败：这个账号没有权限",
-            _ => $"{action}失败：服务器返回 {(int)response.StatusCode} {response.ReasonPhrase}"
+            _ => $"{action}失败：服务器返回 HTTP {(int)response.StatusCode}"
         };
-    }
-
-    /// <summary>Pulls <c>message</c> out of a MoviePilot error envelope, if there is one and it says something.</summary>
-    private static string? TryReadMessage(string body)
-    {
-        if (string.IsNullOrWhiteSpace(body)) return null;
-
-        try
-        {
-            using var document = JsonDocument.Parse(body);
-            if (document.RootElement.ValueKind != JsonValueKind.Object) return null;
-            if (!document.RootElement.TryGetProperty("message", out var message)) return null;
-
-            var text = message.ValueKind == JsonValueKind.String ? message.GetString() : null;
-            return string.IsNullOrWhiteSpace(text) ? null : text;
-        }
-        catch (JsonException)
-        {
-            // Not JSON — a proxy's HTML error page, or a truncated body. Nothing useful to lift out of it.
-            return null;
-        }
     }
 
     private static T Parse<T>(string body, string action)
@@ -451,9 +426,9 @@ public sealed partial class MoviePilotClient : IDisposable
             return JsonSerializer.Deserialize<T>(body, Emby.EmbyHttp.Json)
                 ?? throw new MoviePilotException($"{action}失败：MoviePilot 返回了空响应");
         }
-        catch (JsonException error)
+        catch (JsonException)
         {
-            throw new MoviePilotException($"{action}失败：无法解析 MoviePilot 的响应（{error.Message}）", null, body, error);
+            throw new MoviePilotException($"{action}失败：无法解析 MoviePilot 的响应");
         }
     }
 
@@ -479,4 +454,7 @@ public sealed partial class MoviePilotClient : IDisposable
 /// </summary>
 public sealed record MoviePilotSession(Uri ApiBase, string AccessToken, string UserName, bool SuperUser);
 
-internal sealed record MoviePilotReply(bool Success, string Message, JsonElement Data);
+internal sealed record MoviePilotReply(bool Success, JsonElement Data)
+{
+    internal const string Rejected = "MoviePilot 未完成请求，请核对服务端状态";
+}

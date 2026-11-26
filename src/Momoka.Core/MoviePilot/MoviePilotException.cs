@@ -2,24 +2,18 @@ using System.Net;
 
 namespace Momoka.MoviePilot;
 
-/// <summary>
-/// Anything MoviePilot said no to. Shaped after <see cref="Emby.EmbyApiException"/> so the two sibling
-/// clients fail in the same vocabulary: a message already written for the user to read, plus the status and
-/// body for the log.
-/// </summary>
+/// <summary>只保留客户端生成的提示和 HTTP 状态。</summary>
 public class MoviePilotException : Exception
 {
-    public MoviePilotException(string message, HttpStatusCode? status = null, string? body = null, Exception? inner = null)
+    public MoviePilotException(string message, HttpStatusCode? status = null, Exception? inner = null)
         : base(message, inner)
     {
         Status = status;
-        Body = body;
     }
 
     public HttpStatusCode? Status { get; }
 
-    /// <summary>The response body as it arrived, for the log only — never shown in the UI as-is.</summary>
-    public string? Body { get; }
+    internal bool LegacyCalendarRoute { get; init; }
 }
 
 /// <summary>提交前校验失败，尚未发出实际整理请求。</summary>

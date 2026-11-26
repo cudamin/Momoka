@@ -122,7 +122,6 @@ internal static class MoviePilotCalendarTests
                 using var service = Service(transport);
                 var error = Assert.Catch<MoviePilotException>(() => Read(service));
                 Assert.Contains("3.2.3", error.Message);
-                Assert.Null(error.Body);
                 Assert.Equal(1, transport.Count("subscribe/calendar"));
             }
         });
@@ -136,7 +135,6 @@ internal static class MoviePilotCalendarTests
                 var error = Assert.Catch<MoviePilotException>(() => Read(service));
                 Assert.DoesNotContain("3.2.3", error.Message);
                 Assert.DoesNotContain("anonymous-private-marker", error.ToString());
-                Assert.Null(error.Body);
                 if (status == HttpStatusCode.Forbidden) Assert.Contains("权限", error.Message);
             }
         });
@@ -147,7 +145,6 @@ internal static class MoviePilotCalendarTests
             using var service = Service(transport);
             var error = Assert.Catch<MoviePilotException>(() => Read(service));
             Assert.DoesNotContain("anonymous-private-marker", error.ToString());
-            Assert.Null(error.Body);
         });
 
         Test("MoviePilot 日历：无效日期窗口、禁用与外部取消均不请求", () =>

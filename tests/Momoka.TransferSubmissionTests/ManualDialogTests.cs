@@ -109,6 +109,29 @@ internal static class ManualDialogTests
             Assert.Equal(0, fixture.Transport.Writes);
             dialog.EmitClosed();
         });
+        Test("手动整理窗口：下拉隐藏敏感值，保留云目录与请求中的存储身份", () =>
+        {
+            const string marker = "test-private-q006";
+            using var fixture = new TransferSubmissionFixture();
+            fixture.Transport.SensitiveOptions = true;
+            var dialog = Load(fixture);
+            var paths = (IEnumerable<string>)dialog.TargetPathBox.ItemsSource!;
+            Assert.True(paths.SequenceEqual(new[] { "自动", "cloud/series", "cloud/unlisted" }));
+            var storage = ((IEnumerable<MoviePilotStorage>)dialog.TargetStorageBox.ItemsSource!).Single(item => item.Type == "fixture-cloud");
+            Assert.Equal("[内容已隐藏]", storage.Name);
+
+            dialog.TargetPathBox.Text = "cloud/series";
+            TransferSubmissionFixture.Complete(dialog.FixturePreviewAsync());
+            Assert.Equal("cloud/series", fixture.Transport.LastBody.GetProperty("target_path").GetString());
+            Assert.Equal("fixture-cloud", fixture.Transport.LastBody.GetProperty("target_storage").GetString());
+
+            dialog.TargetPathBox.Text = "cloud/unlisted";
+            var fallback = (MoviePilotStorage)dialog.TargetStorageBox.SelectedItem!;
+            Assert.Equal("[内容已隐藏]", fallback.Name);
+            Assert.Equal("token=" + marker, fallback.Type);
+            Assert.Equal(0, fixture.Transport.Writes);
+            dialog.EmitClosed();
+        });
         Test("手动整理窗口：选目录自动带出存储、方式、分类与刮削", () =>
         {
             using var fixture = new TransferSubmissionFixture();
@@ -254,6 +277,22 @@ internal static class ManualDialogTests
             Assert.Equal(1, fixture.Transport.Writes);
             Assert.True(fixture.Transport.LastBackground);
             Assert.Equal("group-1", fixture.Transport.LastBody.GetProperty("episode_group").GetString());
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：含隐藏目标的预览不开放确认或队列", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var dialog = Load(fixture);
+            fixture.Transport.Failure = "hidden-preview";
+            TransferSubmissionFixture.Complete(dialog.FixturePreviewAsync());
+            Assert.Contains("路径已隐藏", dialog.Lines.Single().Headline);
+            Assert.Contains("无法核对", dialog.Problem.Message);
+            Assert.DoesNotContain("test-private-q006", dialog.Lines.Single().StatusLine + dialog.Problem.Message + dialog.ConfirmationText.Text);
+            dialog.FixtureConfirm();
+            Assert.False(dialog.ReorganizeButton.IsEnabled);
+            Assert.False(dialog.QueueButton.IsEnabled);
+            TransferSubmissionFixture.Complete(dialog.FixtureSubmitAsync());
+            Assert.Equal(0, fixture.Transport.Writes);
             dialog.EmitClosed();
         });
         Test("手动整理窗口：修改表单撤销旧确认，取消窗口不写服务器", () =>

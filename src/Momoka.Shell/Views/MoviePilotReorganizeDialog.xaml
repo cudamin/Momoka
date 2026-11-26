@@ -261,7 +261,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="moviepilot:MoviePilotTransferLine">
                             <StackPanel Spacing="4" Padding="10" Margin="0,0,0,8" Background="{ThemeResource EgSurfaceAltBrush}">
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{x:Bind Source}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{x:Bind DisplaySource}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                                 <TextBlock Style="{StaticResource EgBodyStyle}" Text="{x:Bind Headline}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                                 <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{x:Bind StatusLine}" TextWrapping="Wrap" />
                             </StackPanel>

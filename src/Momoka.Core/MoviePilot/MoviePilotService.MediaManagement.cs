@@ -207,11 +207,11 @@ public sealed partial class MoviePilotService
                     System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.Forbidden or
                     System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.UnprocessableEntity)
                 { throw; }
-                catch (Exception error)
+                catch (Exception)
                 {
                     // 不自动重发有已完成步骤的批次；401 也不能把前面的 DELETE 一起重放。
                     return new MoviePilotHistoryResult(false, "", [], receipts.AsReadOnly(), plan.Histories.Count,
-                        $"记录 #{history.Id} 未取得完整结果：{Diagnostics.Failure.Describe(error)}。后续未发送，请到 MP 核对。");
+                        $"记录 #{history.Id} 未取得完整结果。后续未发送，请到 MP 核对。");
                 }
                 if (!receipts[^1].Complete)
                     return new MoviePilotHistoryResult(false, "", [], receipts.AsReadOnly(), plan.Histories.Count,
@@ -242,6 +242,9 @@ public sealed partial class MoviePilotService
     {
         foreach (var history in plan.Histories)
         {
+            if (((plan.DeleteSource || plan.Smart) && !MoviePilotDisplayText.CanDisplay(history.SourcePath)) ||
+                ((plan.DeleteDestination || plan.Smart) && !MoviePilotDisplayText.CanDisplay(history.TargetPath)))
+                throw new MoviePilotOperationBlockedException("文件路径已隐藏，无法核对操作范围，请在 MoviePilot 中处理。");
             if (!plan.Smart && !plan.LibraryPaths.Any(path =>
                 MoviePilotTransferHistoryMatch.DeletionCandidates([history], path, plan.DeleteDestination).Count == 1))
                 throw new MoviePilotOperationBlockedException("原记录不能证明属于当前本地库文件，请重新核对；本次没有提交");

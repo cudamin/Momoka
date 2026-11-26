@@ -601,12 +601,11 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 : "MoviePilot 没有返回逐文件回执，状态未确认；请先核对整理历史，勿重复提交";
         var messages = result.Items.Select(line =>
         {
-            var status = line.State switch
+            var status = line.ReceiptState switch
             {
-                "completed" when line.Success => line.Target.Length > 0
-                    ? $"已完成整理，已重新整理到 {line.Target}"
+                "completed" => line.Target.Length > 0
+                    ? $"已完成整理，已重新整理到 {line.DisplayTarget}"
                     : "已完成整理，目标路径未返回，请核对",
-                "completed" => "completed 与成功标志不一致，状态待核对",
                 "accepted" => "已接收，等待整理完成（完成状态待确认）",
                 "skipped" => "已跳过整理",
                 "failed" => "整理失败",
@@ -615,9 +614,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 _ => "状态未确认，待核对"
             };
             // 多行或部分回执保留每个文件的状态；顶层成功信封不能覆盖 line.State。
-            var file = line.Source.Length > 0 ? line.Source : line.Target;
+            var file = line.Source.Length > 0 ? line.DisplaySource : line.DisplayTarget;
             var message = $"MoviePilot 回执{(file.Length > 0 ? $"（{file}）" : "")}：{status}";
-            if (line.State != "completed" && line.Target.Length > 0) message += $"，回执目标：{line.Target}";
+            if (line.ReceiptState != "completed" && line.Target.Length > 0) message += $"，回执目标：{line.DisplayTarget}";
             if (line.Message.Length > 0) message += " — " + line.Message;
             return message;
         });
@@ -630,9 +629,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         if (result.Items.Count != 1)
             return "结果待核对，请在 MoviePilot 查看，勿重复提交";
         var line = result.Items[0];
-        return line.State switch
+        return line.ReceiptState switch
         {
-            "completed" when line.Success => "整理完成",
+            "completed" => "整理完成",
             "accepted" => "已接收，等待 MoviePilot 完成整理",
             "skipped" => "已跳过整理",
             "retry_wait" => "等待 MoviePilot 重试",
@@ -656,7 +655,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 targetIsLocal && !MoviePilotTransfer.IsAbsolutePath(completed.Target)) continue;
             if (request.TransferType == "move" && (!targetIsLocal || !MoviePilotTransfer.SamePath(expected.Source, completed.Target)) &&
                 request.Files.Any(file => MoviePilotTransfer.SamePath(file.Path, expected.Source)))
-                return $"原媒体路径 {expected.Source} 已换到 {completed.Target}，需要服务器核对旧条目";
+                return $"原媒体路径 {expected.DisplaySource} 已换到 {completed.DisplayTarget}，需要服务器核对旧条目";
             // 按 logid 重整成功历史会处理旧目标，不只受 Reorganize 或历史 mode 控制。
             // copy/link/softlink 虽保留原下载源，旧入库目标被清理并换路径/存储时仍要请求服务器核对。
             var cleaned = request.Histories.FirstOrDefault(history => history.Success &&

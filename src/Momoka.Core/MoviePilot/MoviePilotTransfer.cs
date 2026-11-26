@@ -87,8 +87,8 @@ public sealed record MoviePilotTransferRequest
         : Files.Select(file => file.Path).ToList()) switch
     {
         [] => "",
-        [var path] => path,
-        var paths => $"{paths[0]} 等 {paths.Count} 个文件"
+        [var path] => MoviePilotDisplayText.Path(path),
+        var paths => $"{MoviePilotDisplayText.Path(paths[0])} 等 {paths.Count} 个文件"
     };
 
     public string? Problem
@@ -199,8 +199,14 @@ public sealed class MoviePilotTransferLine
     public string State { get; set; } = "";
     public bool Success { get; set; }
     public string Message { get; set; } = "";
+    internal bool PathsVisible => MoviePilotDisplayText.CanDisplay(Source) && MoviePilotDisplayText.CanDisplay(Target);
+    public string DisplaySource => MoviePilotDisplayText.Path(Source);
+    public string DisplayTarget => MoviePilotDisplayText.Path(Target);
 
-    public string Status => State switch
+    // 上游允许 skipped 与 success:false 同时出现，retry_wait 也不代表已完成。
+    internal string ReceiptState => !Success && State is ("completed" or "accepted") ? "" : State;
+
+    public string Status => ReceiptState switch
     {
         "preview" => Success ? "可整理" : "无法整理",
         "accepted" => "已接收，等待整理",
@@ -213,19 +219,11 @@ public sealed class MoviePilotTransferLine
     };
 
     /// <summary>预览清单里一行的大字：会搬到哪儿（或源是什么）。</summary>
-    public string Headline =>
-        Target is { Length: > 0 } ? Target : Source is { Length: > 0 } ? Source : Title is { Length: > 0 } ? Title : "（没有路径）";
+    public string Headline => Target.Length > 0 ? DisplayTarget : Source.Length > 0 ? DisplaySource
+        : Title.Length > 0 ? MoviePilotDisplayText.Label(Title) : "（没有路径）";
 
     /// <summary>同一行的小字：状态加失败的那句话。</summary>
-    public string StatusLine
-    {
-        get
-        {
-            var line = Status;
-            if (Message is { Length: > 0 }) line += $" — {Message}";
-            return line;
-        }
-    }
+    public string StatusLine => Message.Length == 0 ? Status : $"{Status} — {Message}";
 }
 
 public sealed record MoviePilotTransferResult(
@@ -233,12 +231,12 @@ public sealed record MoviePilotTransferResult(
 {
     /// <summary>预览可整理才放行提交 —— 没看过预览就按整理，等于蒙着眼搬文件。</summary>
     public bool CanSubmit => IsPreview && Success && Items.Count > 0 &&
-        Items.All(item => item.Success && item.Target.Length > 0);
+        Items.All(item => item.Success && !string.IsNullOrWhiteSpace(item.Target) && item.PathsVisible);
 
     public string Summary => IsPreview
         ? $"预览 {Items.Count} 项：可整理 {Items.Count(item => item.Success)}，失败 {Items.Count(item => !item.Success)}"
-        : $"已完成 {Items.Count(item => item.State == "completed")}，已接收 {Items.Count(item => item.State == "accepted")}，" +
-          $"已跳过 {Items.Count(item => item.State == "skipped")}，失败或待处理 {Items.Count(item => item.State is not ("completed" or "accepted" or "skipped"))}";
+        : $"已完成 {Items.Count(item => item.ReceiptState == "completed")}，已接收 {Items.Count(item => item.ReceiptState == "accepted")}，" +
+          $"已跳过 {Items.Count(item => item.ReceiptState == "skipped")}，失败或待处理 {Items.Count(item => item.ReceiptState is not ("completed" or "accepted" or "skipped"))}";
 }
 
 public sealed class MoviePilotTransferPreview
@@ -264,7 +262,9 @@ public sealed class MoviePilotTransferPreview
     public MoviePilotTransferResult Result { get; }
     internal string ConnectionStamp { get; private set; } = "";
 
-    public bool CanSubmit => Volatile.Read(ref _submissionStarted) == 0 && Result.CanSubmit &&
+    public bool HasHiddenPaths => Result.Items.Any(item => !item.PathsVisible) ||
+        Request.Histories.Any(history => !MoviePilotDisplayText.CanDisplay(history.TargetPath));
+    public bool CanSubmit => Volatile.Read(ref _submissionStarted) == 0 && Result.CanSubmit && !HasHiddenPaths &&
         Result.Items.Count == Files.Count &&
         Files.All(file => Result.Items.Count(item => MoviePilotTransfer.SamePath(item.Source,
             MoviePilotTransfer.Text(file, "path"))) == 1);
@@ -294,6 +294,8 @@ public sealed class MoviePilotTransferPreview
 
 public static class MoviePilotTransfer
 {
+    private const string ReviewReceipt = "整理结果未完全确认，请到 MoviePilot 核对整理历史；不要整批重试。";
+
     public static string PathName(string path) => path.Replace('\\', '/').TrimEnd('/').Split('/')[^1];
 
     /// <summary>
@@ -337,7 +339,7 @@ public static class MoviePilotTransfer
             Text(file, "type") != "file" ||
             !SamePath(Text(file, "path"), path))
             throw new MoviePilotException(
-                $"MoviePilot 返回的文件和要整理的路径对不上（{path}），已停止；不会改为整理别的目录");
+                $"MoviePilot 返回的文件和要整理的路径对不上（{MoviePilotDisplayText.Path(path)}），已停止；不会改为整理别的目录");
     }
 
     public static string ParentPath(string path)
@@ -349,7 +351,7 @@ public static class MoviePilotTransfer
         return last == 0 ? "/" : normal[..last];
     }
 
-    public static MoviePilotTransferResult ParseResult(JsonElement data, bool success, string message, bool preview)
+    public static MoviePilotTransferResult ParseResult(JsonElement data, bool success, bool preview)
     {
         var lines = new List<MoviePilotTransferLine>();
         if (data.ValueKind == JsonValueKind.Object &&
@@ -359,20 +361,23 @@ public static class MoviePilotTransfer
             foreach (var item in items.EnumerateArray())
             {
                 if (item.ValueKind != JsonValueKind.Object) continue;
+                var itemSuccess = Bool(item, "success");
                 lines.Add(new MoviePilotTransferLine
                 {
                     Source = Text(item, "source"),
                     Target = Text(item, "target"),
                     Title = Text(item, "title"),
                     State = preview ? "preview" : Text(item, "state"),
-                    Success = Bool(item, "success"),
-                    Message = Text(item, "message")
+                    Success = itemSuccess,
+                    Message = itemSuccess ? "" : preview ? "请核对文件和整理选项后重新预览。" : "请在 MoviePilot 核对整理历史，勿重复提交。"
                 });
             }
         }
 
-        var detail = Text(data, "message");
-        return new MoviePilotTransferResult(success, detail.Length > 0 ? detail : message, lines, preview);
+        var detail = success && lines.All(line => line.Success) ? ""
+            : preview ? "预览未完成，请核对文件和整理选项后重新预览。"
+            : ReviewReceipt;
+        return new MoviePilotTransferResult(success, detail, lines, preview);
     }
 
     internal static MoviePilotTransferResult CompleteReceipt(MoviePilotTransferResult result, MoviePilotTransferPreview preview)
@@ -393,9 +398,11 @@ public static class MoviePilotTransfer
                 Message = legacyAccepted ? "服务器已接收，完成状态待确认" : "此文件没有唯一的明确回执，请在 MoviePilot 核对，勿重复提交"
             });
         }
+        var confirmed = result.Success && lines.All(line => line.Success && line.State is "completed" or "accepted" or "skipped");
         return result with
         {
-            Success = result.Success && lines.All(line => line.Success && line.State is "completed" or "accepted" or "skipped"),
+            Success = confirmed,
+            Message = confirmed ? "" : ReviewReceipt,
             Items = lines
         };
     }
@@ -412,14 +419,16 @@ public static class MoviePilotTransfer
             _ => "按目的目录的配置（可能是移动）"
         };
 
-        var paths = string.Join("\n", preview.Items.Select(item => $"源：{item.Source}\n目标：{item.Target}"));
+        var paths = string.Join("\n", preview.Items.Select(item =>
+            $"源：{item.DisplaySource}\n目标：{item.DisplayTarget}"));
         var oldTargets = request.Histories.Select(history => history.TargetPath).Where(path => path.Length > 0)
             .Distinct(StringComparer.Ordinal).ToList();
         return $"{(background ? "把整理加入 MoviePilot 队列" : "现在整理")}，预览共 {preview.Items.Count} 项。\n" +
             $"整理方式：{mode}\n{paths}\n" +
             "目标同名文件按 MoviePilot 的覆盖规则处理，同名字幕、音轨可能一起整理；Emby 里记录的原路径可能失效。" +
             (request.Reorganize ? "\n重新整理会清理命中的成功历史和旧目标文件，这一步无法在本客户端撤销。" : "") +
-            (oldTargets.Count > 0 ? "\n按原记录整理仍可能清理以下旧目标（关闭重新整理也不代表保留）：\n" + string.Join("\n", oldTargets) : "") +
+            (oldTargets.Count > 0 ? "\n按原记录整理仍可能清理以下旧目标（关闭重新整理也不代表保留）：\n" +
+                string.Join("\n", oldTargets.Select(MoviePilotDisplayText.Path)) : "") +
             (request.FromHistory ? "\n已开启复用历史识别，旧历史里的媒体信息优先于本次填写的编号。" : "");
     }
 

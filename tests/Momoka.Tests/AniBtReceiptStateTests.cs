@@ -68,15 +68,17 @@ internal static class AniBtReceiptStateTests
             fixture.AssertReplayBlocked();
         });
 
-        Test("R038 实际 Submit：成功标志与 completed 矛盾仍待核对，不扫描", () =>
-        {
-            using var fixture = new ReceiptFixture(new FileCase(LineSuccess: false));
-            var row = fixture.Submit().Single();
-            Assert.False(row.Success);
-            Assert.Contains("待核对", row.Message);
-            Assert.DoesNotContain("已完成整理", row.Message);
-            fixture.AssertTraffic(1, 0, 1);
-        });
+        foreach (var state in new[] { "completed", "accepted" })
+            Test("R038 实际 Submit：成功标志与 " + state + " 矛盾仍待核对，不扫描", () =>
+            {
+                using var fixture = new ReceiptFixture(new FileCase(State: state, LineSuccess: false));
+                var row = fixture.Submit().Single();
+                Assert.False(row.Success);
+                Assert.Contains("待核对", row.Message);
+                Assert.DoesNotContain("已完成整理", row.Message);
+                Assert.DoesNotContain("已接收", row.Message);
+                fixture.AssertTraffic(1, 0, 1);
+            });
 
         Test("R038 实际 Submit：completed 无目标路径不猜路径影响", () =>
         {

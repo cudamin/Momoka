@@ -12,6 +12,46 @@ internal static class MoviePilotTransferSubmissionTests
 {
     public static void Register()
     {
+        Test("整理回执：顶层成功、逐项状态未知时需核对且同一预览不重发", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var preview = fixture.Preview();
+            fixture.Transport.Failure = "write-unknown-state";
+            var result = fixture.Submit(preview);
+            Assert.False(result.Success);
+            Assert.Contains("不要整批重试", result.Message);
+            Assert.Equal("状态未确认", result.Items.Single().Status);
+            Assert.Throws<MoviePilotTransferBlockedException>(() => fixture.Submit(preview));
+            Assert.Equal(1, fixture.Transport.Writes);
+        });
+        foreach (var (state, itemSuccess, rowStatus, counts) in new[]
+        {
+            ("completed", false, "状态未确认", "已完成 0，已接收 0，已跳过 0，失败或待处理 1"),
+            ("accepted", false, "状态未确认", "已完成 0，已接收 0，已跳过 0，失败或待处理 1"),
+            ("skipped", false, "已跳过", "已完成 0，已接收 0，已跳过 1，失败或待处理 0"),
+            ("retry_wait", true, "等待重试", "已完成 0，已接收 0，已跳过 0，失败或待处理 1")
+        })
+        {
+            Test("整理回执：逐项状态与汇总一致 " + state, () =>
+            {
+                using var fixture = new TransferSubmissionFixture();
+                var preview = fixture.Preview();
+                fixture.Transport.WriteReceipt = JsonSerializer.Serialize(new
+                {
+                    success = state != "skipped",
+                    data = new { items = new[] { new { source = "/downloads/source.mkv", state, success = itemSuccess } } }
+                });
+
+                var result = fixture.Submit(preview);
+
+                Assert.False(result.Success);
+                Assert.Equal(rowStatus, result.Items.Single().Status);
+                Assert.Equal(counts, result.Summary);
+                Assert.Contains("不要整批重试", result.Message);
+                Assert.Throws<MoviePilotTransferBlockedException>(() => fixture.Submit(preview));
+                Assert.Equal(1, fixture.Transport.Writes);
+            });
+        }
         foreach (var background in new[] { false, true })
             Test("整理清理范围：预览后新增同源另一目标历史必须阻止 " + background, () =>
             {
@@ -238,6 +278,8 @@ internal sealed class TransferSubmissionFixture : IDisposable
 internal sealed class TransferSubmissionTransport : HttpMessageHandler
 {
     public string Failure { get; set; } = "";
+    public string? WriteReceipt { get; set; }
+    public bool SensitiveOptions { get; set; }
     public bool DuplicateHistory { get; set; }
     public bool OtherSourceHistory { get; set; }
     public string TargetType { get; set; } = "file";
@@ -287,10 +329,19 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
         if (url.AbsolutePath == "/api/v1/storage/options")
         {
             if (Failure == "options-500") return Reply("server-error", HttpStatusCode.InternalServerError);
+            if (SensitiveOptions) return Reply("""
+                {"success":true,"data":[{"name":"本地","type":"local"},
+                 {"name":"api_token=test-private-q006","type":"fixture-cloud"}]}
+                """);
             return Reply("""{"success":true,"data":[{"name":"本地","type":"local"}]}""");
         }
         if (url.AbsolutePath == "/api/v1/storage/directories")
-            return Reply("""{"success":true,"data":[{"library_storage":"local","library_path":"/library","transfer_type":"softlink","scraping":true,"library_type_folder":true,"library_category_folder":false}]}""");
+            return SensitiveOptions ? Reply("""
+                {"success":true,"data":[
+                  {"library_storage":"fixture-cloud","library_path":"cloud/series","transfer_type":"copy"},
+                  {"library_storage":"fixture-cloud","library_path":"cloud/token=test-private-q006"},
+                  {"library_storage":"token=test-private-q006","library_path":"cloud/unlisted","transfer_type":"copy"}]}
+                """) : Reply("""{"success":true,"data":[{"library_storage":"local","library_path":"/library","transfer_type":"softlink","scraping":true,"library_type_folder":true,"library_category_folder":false}]}""");
         if (url.AbsolutePath == "/api/v1/media/source")
             return Reply("""{"success":true,"data":[{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电影","电视剧"]},{"name":"豆瓣","media_source":"douban","media_types":["电影","电视剧"]}]}""");
         if (url.AbsolutePath == "/api/v1/system/global/user")
@@ -310,6 +361,10 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
             LastBody = body.RootElement.Clone();
             var preview = body.RootElement.GetProperty("preview").GetBoolean();
+            if (preview && Failure == "hidden-preview") return Reply("""
+                {"success":true,"message":"test-private-q006","data":{"items":[{"source":"/downloads/source.mkv",
+                 "target":"fixture/path%253Ftoken%253Dtest-private-q006","success":true,"message":"test-private-q006"}]}}
+                """);
             if (preview) Previews++;
             else
             {
@@ -317,6 +372,10 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
                 LastBackground = url.Query == "?background=true";
                 if (Failure == "write-lost") throw new HttpRequestException("anonymous fixture write response lost");
                 if (Failure == "write-canceled") throw new OperationCanceledException("anonymous fixture write interrupted");
+                if (WriteReceipt is { } receipt) return Reply(receipt);
+                if (Failure == "write-unknown-state") return Reply("""
+                    {"success":true,"data":{"items":[{"source":"/downloads/source.mkv","state":"unspecified","success":true}]}}
+                    """);
                 if (Failure == "write-json") return Reply("{");
                 if (Failure == "write-rejected") return Reply("missing", HttpStatusCode.NotFound);
                 if (Failure == "write-500") return Reply("failed", HttpStatusCode.InternalServerError);
