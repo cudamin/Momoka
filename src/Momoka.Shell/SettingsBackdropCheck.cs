@@ -4,5 +4,5 @@ namespace Momoka.Shell;
 internal static class SettingsBackdropCheck
 {
     internal static bool Matches(bool supported, bool assigned, byte alpha, bool highContrast, bool effects) =>
-        assigned == supported && alpha == (supported && !highContrast && effects ? 0x99 : 0xFF);
+        assigned == supported && alpha == (supported && !highContrast && effects ? 0x00 : 0xFF);
 }

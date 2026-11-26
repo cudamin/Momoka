@@ -194,8 +194,8 @@ internal static class MicaMaterialTests
 
             // 窗口级那一层：普通窗口用 Base，和主窗口同一个档位。
             Assert.Contains("new MicaBackdrop { Kind = MicaKind.Base }", window, "设置窗口没有挂 Mica（Base）");
-            // 画布浓度与主窗口成对；回退路必须落回不透明，否则没材质时整窗是透明的。
-            Assert.Contains("private const byte CanvasAlpha = 0x99", window, "设置窗口的画布浓度和主窗口不是一档");
+            // 设置窗口正常态不再叠加共享画布；回退路必须落回不透明，否则没材质时整窗是透明的。
+            Assert.Contains("private const byte CanvasAlpha = 0x00", window, "设置窗口正常态仍叠加了共享画布");
             Assert.Contains("_canvas.Color = SelectCanvasColor(systemAppearance, WindowColor(theme), _mica)", window,
                 "换主题时画布没有按系统状态重新算");
             Assert.Contains("created.InvalidateSystemAppearance();", window,

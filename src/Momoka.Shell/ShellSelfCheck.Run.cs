@@ -288,9 +288,8 @@ internal static partial class ShellSelfCheck
                     ? $"{(settingsWindow.Open ? "已弹出" : "已建但没弹出")}，{settingsWindow.Width}×{settingsWindow.Height} 物理像素"
                     : "没建出设置窗口（已回退到主窗口内的设置页）");
 
-            // 「设置页面改为云母材质，通过 Mica 实现应用分层」（2026-11-12 用户令）。两节一起看：窗口级
-            // Mica Base 在 SettingsWindow，中间那层画布是 60% —— 画布还实着则材质白开，材质没挂上则整窗是
-            // 一块平色。支持检查和系统回退分开：高对比或关闭透明时画布应为实色，controller仍可连接。
+            // 设置窗口使用 Mica Base，普通状态直接显示系统云母；高对比或关闭透明时画布应为实色，
+            // controller 是否连接与最终可见回退分开检查。
             var micaSupported = MicaController.IsSupported();
             var backdrop = shell.SettingsBackdrop;
             var backdropOk = SettingsBackdropCheck.Matches(micaSupported, backdrop.Mica, backdrop.CanvasAlpha,

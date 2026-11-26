@@ -76,6 +76,21 @@ internal static class SettingsLayoutTests
             Assert.True(panel.Attribute("Background") is null, "不得用底色和 1px 缝重新制造选项分隔线");
             Assert.Equal("0", list.Parent?.Attribute("BorderThickness")?.Value);
         });
+        TestHarness.Test("设置材质：窗口不铺共用底，每张设置卡只用一层 Fluent 填充", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+            var section = Named(document, "SettingsSection");
+            var cardSurfaces = section.Elements()
+                .Where(element => element.Name.LocalName == "Border" && element.Attribute("Background") is not null)
+                .ToArray();
+
+            Assert.Equal(1, cardSurfaces.Length, "设置卡不能再叠加页面级或分组级背景");
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+                cardSurfaces[0].Attribute("Background")?.Value);
+            Assert.True(section.Attribute("Background") is null, "设置分组根不应再铺共用背景");
+            Assert.True(cardSurfaces[0].Elements().Any(element => element.Name.LocalName == "ItemsControl"),
+                "设置卡的唯一表面应承载设置行列表");
+        });
         TestHarness.Test("设置布局：说明收起时行顶画细线，首行不画", () =>
         {
             var document = Page("SettingsPage.xaml");
