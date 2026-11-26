@@ -16412,3 +16412,9 @@ Q-017 仍待匿名窗口与视觉验收，并与其余未完成候选一并纳�
 订阅编辑器两个站点/分组选择框的 Checked、CheckedPointerOver、CheckedPressed 描边改用现有 EgAccentBrush，让主题宿主原位更新与高对比映射继续生效。主测试 5214/5214、Momoka.SubscriptionEditorTests 21/21，均 0 失败、0 跳过；Shell 与测试 Release 构建 0 警告、0 错误。高风险匿名最小加载实际创建编辑器并应用 XBF/模板，午夜切换到石墨后两字段三种选中态均匹配当前强调色，HTTP 请求 0，源文件前后哈希一致。报告 artifacts/subscription-editor-load/run-q008-20261126/anonymous-editor-load.json，构建日志 artifacts/subscription-editor-load-host/build.log。
 
 本轮未做像素、真实输入、高对比、全部主题和尺寸验收；这些仍待统一验证。未连接真实 MoviePilot 或读取账号。
+
+## 2026-11-26 Q-009 字幕搜索本地化
+
+字幕找片初始提示、结果数量、空态/错误标题、下载状态与提交通知改走 UiText；保存路径与下载确认对话框使用现有译文，列表按钮通过双语 x:Uid 资源显示。用户输入的片名和服务端字幕/来源信息不作翻译。Shell 与 ResourceBrowserTests Release 均 0 警告/0 错误，detail-search 50/50；订阅编辑专项 21/21（含匿名入口参数防护）。匿名窗口实际加载字幕面板 XBF 和一条匿名条目，确认两颗 x:Uid 按钮为英文、初始提示为英文；HTTP 请求 0，受测源码哈希前后一致。回执 artifacts/subscription-editor-load/run-q009-20261126/anonymous-editor-load.json，最终构建日志 artifacts/subscription-editor-load-host/build.log。
+
+匿名宿主首轮编译因新增入口缺少两个 using 未启动应用；补齐 Momoka.Configuration 与 Momoka.Shell.ViewModels 后复验通过。脚本复跑覆盖了首轮完整 build.log，错误根因摘要保留于 artifacts/subscription-editor-load/run-q009-20261126/host-build-attempt1-summary.txt。未做像素与真实输入验收；未连接 MoviePilot 或读取账号。

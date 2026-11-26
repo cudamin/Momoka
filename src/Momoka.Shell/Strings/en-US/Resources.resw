@@ -3772,4 +3772,10 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="DetailPage_BangumiRatingText.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Bangumi rating</value>
   </data>
+  <data name="MoviePilotSubtitlePanel_BackToMedia.Content" xml:space="preserve">
+    <value>Choose another title</value>
+  </data>
+  <data name="MoviePilotSubtitlePanel_ViewSubtitles.Content" xml:space="preserve">
+    <value>View subtitles</value>
+  </data>
 </root>

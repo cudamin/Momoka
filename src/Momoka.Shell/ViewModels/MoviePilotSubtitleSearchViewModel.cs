@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Diagnostics;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -42,7 +43,7 @@ public sealed partial class MoviePilotSubtitleMediaRow : ObservableObject
 public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
 {
     private const string Category = "moviepilot";
-    private const string IdlePrompt = "输入片名，按回车查找影片；点一部影片查看它的 MoviePilot 字幕";
+    private static string IdlePrompt => UiText.Translate("输入片名，按回车查找影片；点一部影片查看它的 MoviePilot 字幕");
 
     private MoviePilotService? _service;
     private string _lastKeyword = "";
@@ -79,10 +80,10 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
     public Visibility BackVisibility => Show(_media is not null && MediaResults.Count > 0);
 
     internal bool HasSelectedMedia => _media is not null;
-    public string Heading => _media is { } media ? media.Display + " · 字幕" : "MoviePilot 字幕";
+    public string Heading => _media is { } media ? UiText.Format("{0} · 字幕", media.Display) : UiText.Translate("MoviePilot 字幕");
     public string CountText => _media is not null
-        ? Subtitles.Count == 0 ? "" : $"{Subtitles.Count} 个字幕"
-        : MediaResults.Count == 0 ? "" : $"{MediaResults.Count} 部影片";
+        ? Subtitles.Count == 0 ? "" : UiText.Format("{0} 个字幕", Subtitles.Count)
+        : MediaResults.Count == 0 ? "" : UiText.Format("{0} 部影片", MediaResults.Count);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
@@ -144,7 +145,7 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
                 if (!IsCurrent(token)) return;
                 MediaResults.Add(new MoviePilotSubtitleMediaRow(media, OpenMedia));
             }
-            EmptyNotice = $"MoviePilot 上没搜到「{text}」的可搜字幕影片，换个片名或稍后再试";
+            EmptyNotice = UiText.Format("MoviePilot 上没搜到「{0}」的可搜字幕影片，换个片名或稍后再试", text);
             ShowEmptyNotice = MediaResults.Count == 0;
             OnPropertyChanged(nameof(MediaListVisibility));
             OnPropertyChanged(nameof(BackVisibility));
@@ -155,7 +156,7 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
         {
             if (!IsCurrent(token)) return;
             Log.Warn(Category, $"找片「{text}」失败", error);
-            Report("查找影片失败", error);
+            Report(UiText.Translate("查找影片失败"), error);
             MediaResults.Clear();
             ShowEmptyNotice = false;
             OnPropertyChanged(nameof(MediaListVisibility));
@@ -191,7 +192,7 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
         ShowEmptyNotice = false;
         if (!media.CanSubscribe || string.IsNullOrWhiteSpace(media.Type))
         {
-            EmptyNotice = "这部剧缺少 MoviePilot 的影片身份，暂时搜不了字幕";
+            EmptyNotice = UiText.Translate("这部剧缺少 MoviePilot 的影片身份，暂时搜不了字幕");
             ShowEmptyNotice = true;
             EndLoad(token);
             return;
@@ -202,7 +203,7 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
             if (!IsCurrent(token)) return;
             if (!SearchSites.HasSelection)
             {
-                EmptyNotice = "请先选择搜索站点，或使用 MoviePilot 默认站点";
+                EmptyNotice = UiText.Translate("请先选择搜索站点，或使用 MoviePilot 默认站点");
                 ShowEmptyNotice = true;
                 return;
             }
@@ -214,7 +215,7 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
                 if (!IsCurrent(token)) return;
                 Subtitles.Add(new(subtitle, DownloadSubtitleAsync, service.SubtitleState(subtitle)));
             }
-            EmptyNotice = "没有找到字幕";
+            EmptyNotice = UiText.Translate("没有找到字幕");
             ShowEmptyNotice = found.Count == 0;
             OnPropertyChanged(nameof(CountText));
         }
@@ -223,7 +224,7 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
         {
             if (!IsCurrent(token)) return;
             Log.Warn(Category, $"搜《{media.Title}》字幕失败", error);
-            Report("搜索字幕失败", error);
+            Report(UiText.Translate("搜索字幕失败"), error);
             Subtitles.Clear();
             ShowEmptyNotice = false;
             OnPropertyChanged(nameof(CountText));
@@ -294,12 +295,14 @@ public sealed partial class MoviePilotSubtitleSearchViewModel : PageViewModel
             var count = await _service.DownloadSubtitleAsync(row.Subtitle, path, query);
             if (query.IsCancellationRequested) return;
             row.State = MoviePilotOperationState.Submitted;
-            Notify("字幕下载", count > 0 ? $"MoviePilot 已保存 {count} 个字幕文件。" : "请求已提交，请在 MoviePilot 核对保存结果。", InfoBarSeverity.Success);
+            Notify(UiText.Translate("字幕下载"), count > 0
+                ? UiText.Format("MoviePilot 已保存 {0} 个字幕文件。", count)
+                : UiText.Translate("请求已提交，请在 MoviePilot 核对保存结果。"), InfoBarSeverity.Success);
         }
         catch (Exception error)
         {
             row.State = _service.SubtitleState(row.Subtitle);
-            if (!query.IsCancellationRequested) Report("字幕下载失败", error);
+            if (!query.IsCancellationRequested) Report(UiText.Translate("字幕下载失败"), error);
         }
     }
 

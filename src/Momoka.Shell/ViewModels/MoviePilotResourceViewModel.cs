@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Momoka.Diagnostics;
 using Momoka.MoviePilot;
 using Momoka.Shell.Platform;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -21,7 +22,13 @@ public sealed partial class MoviePilotSubtitleRow(Momoka.MoviePilot.MoviePilotSu
     [NotifyCanExecuteChangedFor(nameof(DownloadCommand))]
     public partial MoviePilotOperationState State { get; set; } = state;
     public bool CanDownload => State == MoviePilotOperationState.Idle;
-    public string DownloadLabel => State switch { MoviePilotOperationState.Working => "下载中…", MoviePilotOperationState.Submitted => "已提交", MoviePilotOperationState.Uncertain => "请先核对", _ => "下载字幕" };
+    public string DownloadLabel => UiText.Translate(State switch
+    {
+        MoviePilotOperationState.Working => "下载中…",
+        MoviePilotOperationState.Submitted => "已提交",
+        MoviePilotOperationState.Uncertain => "请先核对",
+        _ => "下载字幕"
+    });
     [RelayCommand(CanExecute = nameof(CanDownload))]
     private Task DownloadAsync() => download(this);
 }

@@ -3793,4 +3793,10 @@
   <data name="DetailPage_BangumiRatingText.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Bangumi 评分</value>
   </data>
+  <data name="MoviePilotSubtitlePanel_BackToMedia.Content" xml:space="preserve">
+    <value>重新选择影片</value>
+  </data>
+  <data name="MoviePilotSubtitlePanel_ViewSubtitles.Content" xml:space="preserve">
+    <value>查看字幕</value>
+  </data>
 </root>

@@ -7,10 +7,13 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Views;
+using Momoka.Shell.ViewModels;
 using Momoka.Shell.Windowing;
 
 namespace Momoka.Shell;
@@ -37,6 +40,10 @@ internal static class AnonymousEditorEntry
             paths.EnsureCreated();
             var sources = new[] { "src/Momoka.Shell/App.xaml.cs", "src/Momoka.Shell/App.xaml",
                 "src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml", "src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml.cs",
+                "src/Momoka.Shell/Views/MoviePilotSubtitlePanel.xaml", "src/Momoka.Shell/Views/MoviePilotSubtitlePanel.xaml.cs",
+                "src/Momoka.Shell/ViewModels/MoviePilotSubtitleSearchViewModel.cs", "src/Momoka.Shell/ViewModels/MoviePilotResourceViewModel.cs",
+                "src/Momoka.Shell/Localization/ShellEnglish.json", "src/Momoka.Shell/Strings/en-US/Resources.resw",
+                "src/Momoka.Shell/Strings/zh-Hans/Resources.resw",
                 "src/Momoka.Shell/Theme/ThemeHost.cs", "src/Momoka.Shell/Theme/Palette.xaml" };
             var before = sources.ToDictionary(name => name, name => Hash(Path.Combine(root, name)));
             WinRT.ComWrappersSupport.InitializeComWrappers();
@@ -52,7 +59,7 @@ internal static class AnonymousEditorEntry
             var receipt = new { passed, pid = Environment.ProcessId, executable = Environment.ProcessPath,
                 output, httpRequests = network.Count, loaded = app?.Loaded, checks = app?.Checks,
                 failureType = app?.FailureType, sourcesBefore = before, sourcesAfter = after,
-                coverage = "Actual App resources and editor XBF/templates; no services, settings, accounts or HTTP; no pixel/input acceptance" };
+                coverage = "Actual App resources and editor/subtitle XBF/templates; no services, settings, accounts or HTTP; no pixel/input acceptance" };
             File.WriteAllText(Path.Combine(output, "anonymous-editor-load.json"), JsonSerializer.Serialize(receipt,
                 new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
             return passed ? 0 : 1;
@@ -99,6 +106,8 @@ internal sealed class AnonymousEditorApp(AppPaths paths) : App(new StartupOption
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        // Set both MRT and the app dictionary before constructing the subtitle panel XAML.
+        UiLanguage.Initialize(UiLanguages.English);
         var root = new Grid { Padding = new Thickness(16) };
         ThemeHost.Register(root);
         _window = new HostWindow { Content = root };
@@ -120,6 +129,20 @@ internal sealed class AnonymousEditorApp(AppPaths paths) : App(new StartupOption
                 await LayoutAsync(root);
                 VerifyAccent(editor);
                 Checks.Add("actual editor XBF/templates loaded; both fields and three states follow initial and changed accent");
+
+                var subtitles = new MoviePilotSubtitlePanel();
+                root.Children.Add(subtitles);
+                await LayoutAsync(root);
+                var mediaList = (ListView)subtitles.FindName("SubtitleMediaResults");
+                mediaList.Visibility = Visibility.Visible;
+                subtitles.ViewModel.MediaResults.Add(new MoviePilotSubtitleMediaRow(
+                    new MoviePilotMedia { Title = "Anonymous title", Type = "电视剧", MediaSource = "themoviedb", MediaId = "1" }, _ => { }));
+                await LayoutAsync(root);
+                var labels = Descendants(subtitles).OfType<Button>().Select(button => button.Content?.ToString()).ToArray();
+                if (!labels.Contains("Choose another title") || !labels.Contains("View subtitles")
+                    || subtitles.ViewModel.EmptyNotice != "Enter a title and press Enter to find media, then choose one to view its MoviePilot subtitles")
+                    throw new InvalidOperationException("Subtitle panel did not load its English XAML resources");
+                Checks.Add("actual subtitle panel XBF loaded; both x:Uid buttons and the initial English prompt resolved");
                 Passed = true;
             }
             catch (Exception error) { FailureType = error.GetType().FullName; }

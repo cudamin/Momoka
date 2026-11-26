@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
@@ -25,15 +26,15 @@ public sealed partial class MoviePilotSubtitlePanel : UserControl
         SearchProgress.Attach(ViewModel.SearchProgress);
         ViewModel.ChooseSubtitlePath = async (subtitle, paths, token) =>
         {
-            var path = new ComboBox { Header = "服务器保存路径", IsEditable = true, HorizontalAlignment = HorizontalAlignment.Stretch, PlaceholderText = "留空使用 MoviePilot 默认路径" };
+            var path = new ComboBox { Header = UiText.Translate("服务器保存路径"), IsEditable = true, HorizontalAlignment = HorizontalAlignment.Stretch, PlaceholderText = UiText.Translate("留空使用 MoviePilot 默认路径") };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(path, "SubtitleSavePath");
             foreach (var value in paths) path.Items.Add(value);
             var dialog = new ContentDialog
             {
                 XamlRoot = XamlRoot,
-                Title = "下载字幕",
-                PrimaryButtonText = "下载",
-                CloseButtonText = "取消",
+                Title = UiText.Translate("下载字幕"),
+                PrimaryButtonText = UiText.Translate("下载"),
+                CloseButtonText = UiText.Translate("取消"),
                 DefaultButton = ContentDialogButton.Close,
                 Content = path,
                 RequestedTheme = ActualTheme

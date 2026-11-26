@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
+using Momoka.Shell.Localization;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -18,6 +19,7 @@ internal static class DetailSearchParityTests
 {
     internal static void Register()
     {
+        RegisterSubtitleLocalization();
         foreach (var area in new[] { "title", "imdbid" })
         {
             Test("详情搜索：原生身份、类型、季和站点送进精确分页入口 " + area, () =>
@@ -624,6 +626,129 @@ internal static class DetailSearchParityTests
         FinalBatch
     }
 
+    private static void RegisterSubtitleLocalization()
+    {
+        Test("Q009 字幕找片的英文标题、初始提示、计数和返回保留外部片名", () => English(() =>
+        {
+            using var fixture = new ParityFixture(useDefault: true);
+            using var vm = new MoviePilotSubtitleSearchViewModel();
+            vm.Attach(fixture.Service);
+            Assert.Equal("MoviePilot subtitles", vm.Heading);
+            Assert.Equal("Enter a title and press Enter to find media, then choose one to view its MoviePilot subtitles", vm.EmptyNotice);
+            ResourceFixture.Complete(vm.SearchAsync("匿名影片"));
+            Assert.Equal("2 titles", vm.CountText);
+            Assert.Equal("匿名影片 (2024)", vm.MediaResults[0].Title);
+            ResourceFixture.Complete(vm.LoadSubtitlesAsync(vm.MediaResults[0].Media, null));
+            Assert.Equal("匿名影片 (2024) · Subtitles", vm.Heading);
+            Assert.Equal("2 subtitles", vm.CountText);
+            Assert.Equal("简体字幕", vm.Subtitles[0].Title);
+            Assert.Contains("站点乙", vm.Subtitles[0].Meta);
+            foreach (var entry in new[]
+            {
+                (MoviePilotOperationState.Idle, "Download subtitles"),
+                (MoviePilotOperationState.Working, "Downloading…"),
+                (MoviePilotOperationState.Submitted, "Submitted"),
+                (MoviePilotOperationState.Uncertain, "Review first")
+            })
+            {
+                vm.Subtitles[0].State = entry.Item1;
+                Assert.Equal(entry.Item2, vm.Subtitles[0].DownloadLabel);
+            }
+            vm.BackToMediaListCommand.Execute(null);
+            Assert.Equal("MoviePilot subtitles", vm.Heading);
+            Assert.Equal("2 titles", vm.CountText);
+            vm.Clear();
+            Assert.Equal("", vm.CountText);
+            Assert.Equal("Enter a title and press Enter to find media, then choose one to view its MoviePilot subtitles", vm.EmptyNotice);
+        }));
+        Test("Q009 字幕找片空态翻译模板而保留原关键词", () => English(() =>
+        {
+            using var fixture = new ParityFixture(useDefault: true);
+            fixture.Transport.EmptyMedia = true;
+            using var vm = new MoviePilotSubtitleSearchViewModel();
+            vm.Attach(fixture.Service);
+            ResourceFixture.Complete(vm.SearchAsync("原样关键词"));
+            Assert.Equal("No subtitle-searchable media found for “原样关键词” on MoviePilot. Try another title or try again later", vm.EmptyNotice);
+            Assert.True(vm.ShowEmptyNotice);
+        }));
+        Test("Q009 字幕影片缺身份与缺站点提示使用英文", () => English(() =>
+        {
+            using var fixture = new ParityFixture();
+            using var vm = new MoviePilotSubtitleSearchViewModel();
+            vm.Attach(fixture.Service);
+            ResourceFixture.Complete(vm.LoadSubtitlesAsync(fixture.Media with { MediaId = null }, null));
+            Assert.Equal("This title has no MoviePilot media identity, so subtitles cannot be searched yet", vm.EmptyNotice);
+            fixture.Transport.EmptyCatalogue = true;
+            ResourceFixture.Complete(vm.LoadSubtitlesAsync(fixture.Media, null));
+            Assert.Equal("Select search sites first, or use the MoviePilot default sites", vm.EmptyNotice);
+        }));
+        Test("Q009 字幕列表空态使用英文", () => English(() =>
+        {
+            using var fixture = new ParityFixture(useDefault: true);
+            fixture.Transport.EmptySubtitles = true;
+            using var vm = new MoviePilotSubtitleSearchViewModel();
+            vm.Attach(fixture.Service);
+            ResourceFixture.Complete(vm.LoadSubtitlesAsync(fixture.Media, null));
+            Assert.Equal("No subtitles found", vm.EmptyNotice);
+            Assert.True(vm.ShowEmptyNotice);
+        }));
+        foreach (var mediaSearch in new[] { true, false })
+            Test("Q009 字幕搜索失败标题使用英文 media=" + mediaSearch, () => English(() =>
+            {
+                using var fixture = new ParityFixture(useDefault: true);
+                fixture.Transport.FailMediaSearch = mediaSearch;
+                fixture.Transport.FailSubtitleSearch = !mediaSearch;
+                using var vm = new MoviePilotSubtitleSearchViewModel();
+                vm.Attach(fixture.Service);
+                ResourceFixture.Complete(mediaSearch ? vm.SearchAsync("匿名影片") : vm.LoadSubtitlesAsync(fixture.Media, null));
+                Assert.Equal(mediaSearch ? "Media search failed" : "Subtitle search failed", vm.NoticeTitle);
+                Assert.True(vm.NoticeOpen);
+            }));
+        foreach (var files in new[] { 0, 2 })
+            Test("Q009 字幕下载成功和待核对通知使用英文 files=" + files, () => English(() =>
+            {
+                using var fixture = new ParityFixture(useDefault: true);
+                fixture.Transport.SubtitleDownloadFiles = files;
+                using var vm = new MoviePilotSubtitleSearchViewModel();
+                vm.Attach(fixture.Service);
+                vm.ChooseSubtitlePath = (_, paths, _) =>
+                {
+                    Assert.Equal("/anonymous/subtitles", paths.Single());
+                    return Task.FromResult<string?>("");
+                };
+                ResourceFixture.Complete(vm.LoadSubtitlesAsync(fixture.Media, null));
+                ResourceFixture.Complete(vm.Subtitles[0].DownloadCommand.ExecuteAsync(null));
+                Assert.Equal("Subtitle download", vm.NoticeTitle);
+                Assert.Equal(files > 0 ? "MoviePilot saved 2 subtitle files." : "Request submitted. Check the saved result in MoviePilot.", vm.NoticeMessage);
+                Assert.Equal("Submitted", vm.Subtitles[0].DownloadLabel);
+                Assert.Equal(1, fixture.Transport.SubtitleWrites);
+            }));
+        Test("Q009 中文默认和外部字幕内容保持原样", () =>
+        {
+            var previous = UiText.Language;
+            try
+            {
+                UiText.Language = UiLanguages.Chinese;
+                using var fixture = new ParityFixture(useDefault: true);
+                using var vm = new MoviePilotSubtitleSearchViewModel();
+                vm.Attach(fixture.Service);
+                Assert.Equal("MoviePilot 字幕", vm.Heading);
+                ResourceFixture.Complete(vm.LoadSubtitlesAsync(fixture.Media, null));
+                Assert.Equal("2 个字幕", vm.CountText);
+                Assert.Equal("下载字幕", vm.Subtitles[0].DownloadLabel);
+                Assert.Equal("简体字幕", vm.Subtitles[0].Title);
+            }
+            finally { UiText.Language = previous; }
+        });
+
+        static void English(Action action)
+        {
+            var previous = UiText.Language;
+            try { UiText.Language = UiLanguages.English; action(); }
+            finally { UiText.Language = previous; }
+        }
+    }
+
     private sealed class ParityFixture : IDisposable
     {
         private readonly MoviePilotClient _client;
@@ -682,6 +807,12 @@ internal static class DetailSearchParityTests
         internal List<Uri> Reads { get; } = [];
         internal List<Uri> SearchRequests { get; } = [];
         internal bool EmptyCatalogue { get; set; }
+        internal bool EmptyMedia { get; set; }
+        internal bool EmptySubtitles { get; set; }
+        internal bool FailMediaSearch { get; set; }
+        internal bool FailSubtitleSearch { get; set; }
+        internal int? SubtitleDownloadFiles { get; set; }
+        internal int SubtitleWrites { get; private set; }
         internal bool SubtitleFallback { get; set; }
         internal bool FailContinuation { get; set; }
         internal bool MultipleSources { get; set; }
@@ -694,12 +825,24 @@ internal static class DetailSearchParityTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (request.Method == HttpMethod.Post && SubtitleDownloadFiles is { } files)
+            {
+                Assert.Equal("/api/v1/download/subtitle", request.RequestUri!.AbsolutePath, "only the explicitly enabled anonymous subtitle endpoint may write");
+                SubtitleWrites++;
+                return Reply(new { success = true, data = new { files = Enumerable.Range(0, files).Select(index => "/anonymous/subtitle-" + index + ".srt").ToArray() } });
+            }
             Assert.Equal(HttpMethod.Get, request.Method, "匿名夹具拒绝登录、下载和其他写请求");
             Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
             Assert.DoesNotContain("anonymous-token", request.RequestUri!.AbsoluteUri);
             var uri = request.RequestUri;
             Reads.Add(uri);
             var path = uri.AbsolutePath;
+            if (path == "/api/v1/download/paths" && SubtitleDownloadFiles is not null)
+                return Reply(new[] { new { save_path = "/anonymous/subtitles" } });
+            if ((path == "/api/v1/media/search" && FailMediaSearch)
+                || (path.StartsWith("/api/v1/search/subtitle/", StringComparison.Ordinal) && FailSubtitleSearch))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+            if (path == "/api/v1/media/search" && EmptyMedia) return Reply(Array.Empty<object>());
             if (path == "/api/v1/media/search") return Reply(new[]
             {
                 new { title = "匿名影片", media_source = "themoviedb", media_id = "42", type = "电视剧", year = 2024 },
@@ -747,7 +890,8 @@ internal static class DetailSearchParityTests
                 if (path.EndsWith("/stream", StringComparison.Ordinal) && SubtitleFallback)
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 if (path.EndsWith("/stream", StringComparison.Ordinal) && PendingSubtitle is { } pending) return pending.Task;
-                return path.EndsWith("/stream", StringComparison.Ordinal) ? Stream(SubtitleItems(), []) : Reply(SubtitleItems());
+                var subtitles = EmptySubtitles ? Array.Empty<object>() : SubtitleItems();
+                return path.EndsWith("/stream", StringComparison.Ordinal) ? Stream(subtitles, []) : Reply(subtitles);
             }
             var query = Query(uri);
             var continuation = query.GetValueOrDefault("page") == "1";

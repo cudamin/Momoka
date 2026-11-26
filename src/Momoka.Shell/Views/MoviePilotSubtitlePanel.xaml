@@ -29,7 +29,7 @@
                 <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                     Foreground="{ThemeResource EgTextDimBrush}" />
             </StackPanel>
-            <Button Grid.Column="1" Content="重新选择影片" Command="{x:Bind ViewModel.BackToMediaListCommand}"
+            <Button x:Uid="MoviePilotSubtitlePanel_BackToMedia" Grid.Column="1" Content="重新选择影片" Command="{x:Bind ViewModel.BackToMediaListCommand}"
                 Style="{StaticResource EgSecondaryButtonStyle}" VerticalAlignment="Center"
                 Visibility="{x:Bind ViewModel.BackVisibility, Mode=OneWay}" />
         </Grid>
@@ -48,7 +48,7 @@
                                 <TextBlock Text="{x:Bind Meta}" Style="{StaticResource EgCaptionStyle}"
                                     Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind MetaVisibility}" />
                             </StackPanel>
-                            <Button Grid.Column="1" Content="查看字幕" Command="{x:Bind OpenCommand}"
+                            <Button x:Uid="MoviePilotSubtitlePanel_ViewSubtitles" Grid.Column="1" Content="查看字幕" Command="{x:Bind OpenCommand}"
                                 Style="{StaticResource EgSecondaryButtonStyle}" VerticalAlignment="Center" />
                         </Grid>
                     </DataTemplate>
