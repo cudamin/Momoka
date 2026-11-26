@@ -56,6 +56,12 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 - 优先原生控件、系统资源和平台交互。用户要求与已核实的平台硬限制、官方建议冲突，或要改变已确认的产品例外时，先只读核对版本与依据，再就可行方案、代价和验证办法请用户选择。记录确认的范围与取舍，范围或实质代价变动再确认。硬限制不能靠确认解除。普通实现取舍由 AI 完成，只有用户明确要求才先做 Demo。
 - 保留五套固定深色主题及跟随系统。集成管线的自定义 `mpv.conf` 固定关闭且只读。「更多」菜单中既定的实心弹窗背景继续使用实心，卡片与按钮按主题可用亚克力。运行验收按[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)选适用的宽窄、DPI、焦点、键盘、读屏、高对比和动效中断场景。
 
+### Fluent 界面验收
+
+Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/components/windows) 在 Windows 上的设计原则和 [Windows 应用设计指南](https://learn.microsoft.com/windows/apps/design/guidelines-overview)为标准。按本次受影响界面核对布局层级、间距对齐、文字与图标、主题色与材质、原生控件及交互状态、键盘焦点与可访问性、动效与关闭动效后的行为。项目已确认的例外按上一节执行。
+
+按交付级别选择适用场景，验收记录列出实际检查的界面、状态、判据与结果。需要运行证据时，用截图核对画面，用实际交互或 UIA 核对控件状态与行为。缺少所需证据的项目标为未验证。取证入口和示例见 [WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md#fluent-design-acceptance)。
+
 ### 功能可用性与显隐
 
 不可用的动作、设置、从属说明及整组空白一起隐藏，启用入口保持可达。切换条件、重入、导入或恢复默认时立即重算，隐藏不清空偏好。加载和失败要给进度或恢复动作。搜索来源栏保留以下例外。「媒体库／MoviePilot 订阅／MoviePilot 资源／MoviePilot 字幕／AniBT」始终显示，保留选中项，不可用时给出恢复说明并阻止请求。验收切换前、失效、恢复三态，断言失效期间直接调用命令也不发请求。

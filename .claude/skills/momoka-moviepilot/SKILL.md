@@ -1,6 +1,6 @@
 ---
 name: "momoka-moviepilot"
-description: "Develop, review and verify Momoka's MoviePilot integration: availability, media-source identity, searches, torrent results and download confirmation, subscriptions, library playback and reorganization. Use for MoviePilot C# or WinUI changes, MP subscription-library refresh and notifications, upstream source comparisons, dependent-entry visibility and safe live troubleshooting. Review the official GitHub source and synchronize applicable changes with the affected local components and tests. The playback pipeline itself belongs to the playback skill."
+description: "Develop, review and verify Momoka's MoviePilot integration: availability, media-source identity, searches, torrent results and download confirmation, subscriptions, library playback and reorganization. Use for MoviePilot C# or WinUI changes, MP subscription-library refresh and notifications, upstream source comparisons, dependent-entry visibility and safe live troubleshooting. Check the applicable official source when the task compares or relies on upstream behavior. The playback pipeline itself belongs to the playback skill."
 ---
 
 # Momoka — MoviePilot integration
@@ -10,25 +10,23 @@ description: "Develop, review and verify Momoka's MoviePilot integration: availa
 ## 开始之前
 
 - 当前工作树里的 `src/Momoka.Core/MoviePilot/` 是协议与业务规则；Shell 的 `MoviePilot*ViewModel` / `MoviePilot*` 视图负责界面；服务注册在 `Composition/ShellServices.cs`。
-- 先确认实际 MoviePilot 版本。过去某次连接成功不代表服务器仍是该版本。`dashboard/system` 的 `version` 是可靠入口；`openapi.json` 未必可用（在 API 基址下曾返回 404），拿不到就以对应 tag 的官方前后端源码为准，不要猜字段，也不要因此跳过版本确认。
+- 判断特定 MoviePilot 版本的协议或界面时，先用本轮已有证据确认适用版本。仅在本轮允许读取目标服务器时，用 `dashboard/system` 的 `version` 补证据。`openapi.json` 未必可用，按对应 tag 核对官方源码。版本缺失时标出受影响的结论。
 - 不整份输出 OpenAPI、设置或资源回话。按当前接口投影字段；`torrent_info` 可能带站点 Cookie、下载凭据和私有 URL。
 - 本仓库 ignored `work/` 的上游快照和诊断宿主只可作为经检查后的本机辅助；干净检出不能依赖它们。业务测试使用匿名夹具与 `StubTransport`；默认传输的登录跳转边界使用下方独立双回环测试。
 
-## Review the upstream source every time
+## Upstream source comparison
 
-- For every MoviePilot feature review or change, open the relevant official frontend and backend source on GitHub before assessing the local implementation. This is [CLAUDE.md's source-first rule](../../../CLAUDE.md#参考与复刻先读源码) applied to MoviePilot: screenshots and earlier notes are entry points, not the basis for behavior. Use the [source map and comparison procedure](references/upstream-download.md); the download entries are explicit, and other features follow their imports and routes in the same repositories.
-- **Compare the visible interface, not only requests and fields.** For every affected screen, open the corresponding upstream component and its tests — for the season picker, `src/components/dialog/SubscribeSeasonDialog.vue` and `SubscribeSeasonDialog.spec.ts` — and inventory every control and state: defaults, disabled/empty states, per-item actions, labels, retry/error paths and conditional visibility. Add, remove or update the applicable local controls, view-model rules and regression tests in the same task. A backend-only diff is not a UI review. Record intentional omissions and their reason in the work record; do not silently keep an upstream-added option missing or an upstream-removed control present.
-- Resolve the live branch and commit, then check the tag or revision applicable to the configured server. Record both revisions and the comparison result in the work record. A saved screenshot, local `work/` snapshot or previous review does not establish the current source.
-- If an upstream change affects the feature's visible behavior, field mapping, supported options or request/response contract, update the affected local components and regression tests in the same task. Do not stop at listing the difference or updating this skill. Trace downstream callers so the new choice takes effect in the actual request.
-- Apply changes within Momoka's supported feature and server-version scope. Record unrelated changes as such; do not add unsupported music flows, upgrade dependencies, or copy a frontend/backend mismatch merely because upstream contains it. Preserve CLAUDE.md's identity, cancellation, credential and verification boundaries.
-- If current source or the applicable server revision cannot be established, state the missing evidence and the exact affected comparison. Do not label the implementation synchronized. This procedure runs during a review; it does not create a background monitor.
+- For an upstream comparison, reproduction, or change that relies on upstream behavior, read the relevant official frontend or backend at the applicable tag or commit. Start with the [source map and comparison procedure](references/upstream-download.md) and follow imports and routes for the feature in scope. For Momoka-only defects with no upstream dependency, trace local callers and regression tests under [CLAUDE.md's source-first rule](../../../CLAUDE.md#参考与复刻先读源码).
+- For a UI comparison, read the upstream component and its tests. For the season picker, use `src/components/dialog/SubscribeSeasonDialog.vue` and `SubscribeSeasonDialog.spec.ts`. Check defaults, disabled or empty states, per-item actions, labels, retry paths and conditional visibility alongside the request contract.
+- Record the revision, paths, relevant symbols and observed differences. If the source or applicable revision is unavailable, identify the comparison that remains unverified.
+- In a read-only review, report the differences and their impact. For an authorized implementation, update the affected local controls, view models and regression tests within Momoka's supported features and server versions. Trace downstream callers to the actual request and record intentional differences.
 
 ## 按问题选择资料
 
 - 搜片、来源选择、跨库编号、同名结果、订阅身份：[来源与搜索](references/search-identity.md)。
 - 订阅列表与管理、文件统计（已入库／待入库／缺集）、已入库内容的播放入口：[订阅与入库](references/subscriptions.md)。
 - 原记录、路径、预览、重新整理、部分成功：[整理与副作用](references/reorganization.md)。
-- Download confirmation, upstream GitHub paths and local component mapping: [Upstream source and download parity](references/upstream-download.md). Review the source even when the request appears to concern layout only.
+- 下载确认、上游源码路径及本地对应实现见[上游源码和下载确认](references/upstream-download.md)。
 
 ## 可用性与入口显隐
 

@@ -1,7 +1,10 @@
 """Check the repository's development policy and the routes to its authoritative sections.
 
 Run: py tools/check-main-tree-policy.py --self-test
-Reads tracked policy documents and runs in-memory counterexamples. No application or Git mutations.
+Reads selected repository documents and runs in-memory counterexamples. The checks
+pin decisions and links to their owners and catch specific retired or conflicting
+phrases. They cannot validate arbitrary wording or product behavior.
+No application or Git mutations.
 """
 from __future__ import annotations
 
@@ -44,7 +47,15 @@ DECISIONS = {
         ("新控件类型", "须查", "Gallery 源码", "既有控件", "直接改"),
         ("官方建议冲突", "只读核对", "请用户选择"),
     ),
+    "Fluent 界面验收": (
+        ("Microsoft Fluent 2", "Windows 应用设计指南", "为标准"),
+        ("需要运行证据时", "用截图核对画面", "实际交互或 UIA", "标为未验证"),
+    ),
     "功能可用性与显隐": (("MoviePilot 字幕", "始终显示", "保留选中项", "阻止请求"),),
+    "弹窗": (
+        ("点外关闭", "只返回取消", "禁止触发保存或确认"),
+        ("EgDialogSurfaceStyle", "DialogChromeTests", "IsLightDismissEnabled"),
+    ),
     "凭据": (
         ("客户端持久化须走", "ISecretProtector", "DPAPI"),
         ("凭据禁止进入 URL", "子进程参数", "禁止鉴权跨源", "按未支持处理"),
@@ -96,8 +107,9 @@ DECISIONS = {
 
 # Consumer documents route to the owner instead of restating all of the mandatory decisions.
 ROUTES = {
-    DOC: ("git-与协作", "四道闸门与日常交付", "资源占用与等待", "发布状态与销账"),
-    SKILL: ("git-与协作", "四道闸门与日常交付", "资源占用与等待", "发布状态与销账"),
+    DOC: ("git-与协作", "四道闸门与日常交付", "资源占用与等待", "发布状态与销账", "播放相关改动的验证三档",
+          "fluent-界面验收"),
+    SKILL: ("git-与协作", "四道闸门与日常交付", "资源占用与等待", "发布状态与销账", "fluent-界面验收"),
     LEDGER: ("git-与协作", "四道闸门与日常交付", "发布状态与销账"),
     MATRIX: ("播放相关改动的验证三档",),
 }
@@ -120,6 +132,7 @@ FORBIDDEN = {
     ),
     DOC: (
         "合并与日常收尾不跑这一闸",
+        "真实服务器播放无需用户授权",
     ),
     SKILL: (
         "At batch close, run gate 2, the affected runtime checks/probes and gate 3 once",
@@ -180,7 +193,7 @@ def validate(texts: dict[str, str]) -> None:
         prose[name] = "\n".join(prose_lines(text))
         for phrase in FORBIDDEN.get(name, ()):
             if phrase in prose[name]:
-                raise ValueError(f"superseded rule: {name}: {phrase}")
+                raise ValueError(f"superseded or conflicting rule: {name}: {phrase}")
 
     policy = sections(prose[POLICY].splitlines())
     for title, rules in DECISIONS.items():
@@ -249,8 +262,13 @@ def self_test(texts: dict[str, str]) -> int:
         ("凭据禁止进入 URL", "凭据允许进入 URL"),
         ("预发布与正式发布均须明确上传授权", "预发布可以免验并上传"),
         ("无法安全隔离或加载失败时，暂缓体验发布", "无法安全隔离或加载失败时，照常体验发布"),
+        ("禁止触发保存或确认", "可以触发保存或确认"),
+        ("为标准。按本次受影响界面", "作为可选参考。按本次受影响界面"),
+        ("需要运行证据时，用截图核对画面，用实际交互或 UIA 核对控件状态与行为。", "截图和交互证据均可省略。"),
     ):
         must_reject(POLICY, old, wrong)
+    must_reject(POLICY, "\n### 弹窗\n", "")
+    must_reject(POLICY, "\n### Fluent 界面验收\n", "")
     release = next(line for line in sections(prose_lines(texts[POLICY]))["发布状态与销账"]
                    if "预发布与正式发布均须明确上传授权" in line)
     must_reject(LEDGER, "写清树与合并状态", "<!--写清树与合并状态-->")

@@ -1,6 +1,6 @@
 # Upstream source and download parity
 
-Use this reference when reviewing MoviePilot resources, download confirmation, download choices or media identity. The maintenance requirement is in [the owning skill](../SKILL.md#review-the-upstream-source-every-time); project policy remains in [CLAUDE.md](../../../../CLAUDE.md).
+Use this reference to compare MoviePilot resources, download confirmation, download choices or media identity with upstream. Follow the [comparison procedure](../SKILL.md#upstream-source-comparison) and [project policy](../../../../CLAUDE.md).
 
 ## Official repositories and entry points
 
@@ -48,11 +48,11 @@ Search for callers before assuming this table is complete. A shared confirmation
 
 ## Compare behavior, then synchronize
 
-1. Establish the server version through the existing safe read path, and resolve the official frontend/backend revisions. Record the inspected revisions and source paths in `PROGRESS.md`; do not freeze volatile commit IDs into this skill. If only source or fixture evidence is available, label it accurately.
+1. Resolve the relevant official frontend/backend revisions using the server-version evidence already available. Use the existing read path if a live version check is within the task's scope. Record inspected revisions, source paths and evidence limits in the review or authorized implementation record.
 2. Compare the visible flow and data lineage: heading/subheading, raw torrent title, `seeders`/`peers`, description, size, downloader, download directory, advanced expansion, media type, source-native ID and media search/lookup. Preserve useful fields without exposing the original torrent object or credentials.
 3. Read both request construction and the backend signature. Check default omission versus explicit selection, the source catalog's media-type capabilities, path serialization, success/business-error handling and cancellation. Read related upstream tests for intended behavior, but use the accepting backend as the contract for what is actually effective.
-4. Map each applicable difference to its owning Core, view-model, view and callers. Implement the corresponding local changes and regression coverage during the review task. Cosmetic differences can use native WinUI controls, project typography and theme roles while preserving the requested hierarchy and interaction. Do not leave a control that changes only its label while the request still uses the old value.
-5. Run the applicable final-code checks from CLAUDE.md. Use anonymous fake transport for submission tests, inspect actual dialog screenshots at affected widths, and verify cancellation makes zero write requests. Report verified behavior, server/version limits and any remaining failed or unexecuted checks.
+4. Map each applicable difference to its owning Core, view-model, view and callers. In a read-only review, report the difference and its impact. For authorized changes, update the affected path and regression coverage together, including the request behavior behind changed options.
+5. For implementation, select the final-code checks by the project delivery level. Use anonymous fake transport for submission tests, verify cancellation makes zero write requests, and inspect dialog states and screenshots when runtime UI acceptance applies. Report the measured scope and missing evidence.
 
 ## Contract traps to recheck
 

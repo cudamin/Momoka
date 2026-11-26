@@ -2,6 +2,19 @@
 
 Policy and gate timing belong to [CLAUDE.md](../../../../CLAUDE.md). Commands and argument syntax belong to [development documentation](../../../../docs/开发与验证.md). This matrix selects evidence for affected features; it does not require every combination for a text edit or every small UI change.
 
+## Fluent design acceptance
+
+Use [the project acceptance rule](../../../../CLAUDE.md#fluent-界面验收) to select applicable observations for the changed surface.
+
+| Area | What to observe |
+| --- | --- |
+| Layout, type and icons | The primary action and reading order are clear. Related controls align and group consistently. Important labels, icons and actions remain readable and reachable at the affected window sizes and text scales. |
+| Color and materials | Foreground, focus and selected states remain distinguishable under the affected themes and contrast modes. Check readable fallbacks where the surface uses an effect. |
+| Controls and interaction | Exercise relevant hover, pressed, selected, disabled, loading and recovery states. Check keyboard focus, accessible names and announcements for the affected flow. |
+| Motion | Transitions communicate the change and leave focus, selection and the final layout correct when interrupted or when motion is disabled. |
+
+Record the affected surface and state, the expected result and the observed evidence. Use the corresponding sections below for test inputs and evidence limits.
+
 ## Evidence types
 
 | Evidence | Establishes | Does not establish |

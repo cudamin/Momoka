@@ -9,6 +9,8 @@ description: "Verify Momoka changes using CLAUDE.md: fresh build/test evidence, 
 
 ## Select WinUI evidence by feature
 
+For UI acceptance, apply the [Fluent design standard](../../../CLAUDE.md#fluent-界面验收) using the applicable observations in the [WinUI validation matrix](references/winui-validation.md#fluent-design-acceptance).
+
 For material, layout/DPI, input/accessibility, binding, collection, animation, window or deployment changes, read the relevant rows of the [WinUI validation matrix](references/winui-validation.md). For Mica/Acrylic also read the [surface and API guide](../momoka-winui-shell/references/materials.md). Source/API support, recommended placement, real pixels and measured performance are separate claims.
 
 Use [CLAUDE.md's official-guidance confirmation rule](../../../CLAUDE.md#winui-官方优先与偏离确认) before a requested deviation is implemented. A visual test cannot retrospectively approve an unconfirmed product choice. Keep unavailable system/monitor/assistive-technology coverage explicit; a simulated configuration is only evidence for the simulated boundary.
