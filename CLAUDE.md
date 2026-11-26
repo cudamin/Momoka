@@ -58,7 +58,7 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 
 ### Fluent 界面验收
 
-Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/components/windows) 在 Windows 上的设计原则和 [Windows 应用设计指南](https://learn.microsoft.com/windows/apps/design/guidelines-overview)为标准。按本次受影响界面核对布局层级、间距对齐、文字与图标、主题色与材质、原生控件及交互状态、键盘焦点与可访问性、动效与关闭动效后的行为。项目已确认的例外按上一节执行。具体字号、颜色令牌、间距、圆角、材质与动效数值，以及可逐项判定的检查表，见 [Fluent 设计](.claude/skills/fluent-design/SKILL.md)。
+Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/components/windows) 为标准。按本次受影响界面核对布局层级、间距对齐、文字与图标、主题色与材质、原生控件及交互状态、键盘焦点与可访问性、动效与关闭动效后的行为；Windows 分支按 Fluent 2 官方指定的 WinUI 3 落地，[Windows 应用设计指南](https://learn.microsoft.com/windows/apps/design/guidelines-overview)用于平台细节。项目已确认的例外按上一节执行。具体字号、颜色令牌、间距、圆角、材质与动效数值，以及可逐项判定的检查表，见 [Fluent 设计](.claude/skills/fluent-design/SKILL.md)。
 
 按交付级别选择适用场景，验收记录列出实际检查的界面、状态、判据与结果。需要运行证据时，用截图核对画面，用实际交互或 UIA 核对控件状态与行为。缺少所需证据的项目标为未验证。取证入口和示例见 [WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md#fluent-design-acceptance)。
 

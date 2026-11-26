@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Scan XAML files for Fluent design token violations.
+"""Scan XAML files for Fluent 2 token violations on the Windows branch.
+
+Standard: Fluent 2. Windows branch: WinUI 3 theme resources.
 
 Rules:
   F001  hard-coded color in a visual attribute
   F002  literal FontSize (should come from a type-ramp style)
   F003  literal CornerRadius (should use ControlCornerRadius / OverlayCornerRadius)
   F004  Bold/Black/ExtraBold font weight, or italic style
-  F005  FontSize below 12 (unreadable in some languages)
+  F005  FontSize below 12 (Windows branch minimum; Fluent 2 web caption2 10px is not used)
 
 Usage:
   python audit_fluent.py <path> [<path> ...] [--format text|json]

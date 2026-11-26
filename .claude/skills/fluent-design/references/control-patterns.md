@@ -1,16 +1,24 @@
-# 常见控件的 Fluent 用法
+# Fluent 2 常见控件用法
 
-来源：WinUI 3 `generic.xaml` 默认样式与 Microsoft Learn 控件指南。数值是 WinUI 3 默认值；产品可以整体调整密度，但不要逐个控件微调。
+标准：Fluent 2 组件规范。Windows 分支：Fluent 2 官方指定的 WinUI 3。下表同时给 Fluent 2 规格与 Windows 分支默认值；没有特别说明时，Windows 分支的数值来自 WinUI 3 `generic.xaml` 2.7.0。
 
 ## 1. 按钮
 
-| 类型 | 几何 | 关键令牌 | 用法 |
-| --- | --- | --- | --- |
-| 标准按钮 | `MinHeight=32`，`Padding=11,5,11,6`，圆角 4 | `ControlFillColorDefaultBrush` / `ControlStrokeColorDefaultBrush` | 次要操作、取消、普通命令 |
-| 强调按钮 | 同标准按钮 | `AccentButtonStyle`，`AccentFillColorDefaultBrush` | 一屏一个主操作 |
-| 图标按钮 | 图形 16 或 20，点击区 32 或 40 | 前景色跟随 `TextFillColorPrimaryBrush` | 工具栏、命令栏；必须有名称与 ToolTip |
-| 拆分按钮 | 两半相接，中间不圆角 | 同标准按钮 | 主操作加下拉选项 |
-| 切换按钮 | 同标准按钮 | 选中用 `AccentFillColorDefaultBrush` | 视图切换、筛选开关 |
+Fluent 2 按钮按 small / medium / large 三档，默认 medium；圆角 `borderRadiusMedium` 4；图标 20（large 24）；高度由行高、上下 padding 与 1px 描边推导。
+
+| 尺寸 | Fluent 2 高度 | Fluent 2 字号 / 行高 | Fluent 2 上下 padding | Windows 分支 |
+| --- | --- | --- | --- | --- |
+| small | 24 | 12 / 16 | 3 | 显式 `MinHeight=24` |
+| medium | 32 | 14 / 20 | 5 | 默认 `MinHeight=32`，`Padding=11,5,11,6` |
+| large | 40 | 16 / 22 | 8 | 显式 `MinHeight=40` |
+
+| 类型 | 用法 | 关键点 |
+| --- | --- | --- |
+| 标准按钮 | 次要操作、取消、普通命令 | `ControlFillColorDefaultBrush` / `ControlStrokeColorDefaultBrush` |
+| 品牌按钮 | 一屏一个主操作 | `AccentButtonStyle`；Fluent 2 用 `colorBrandBackground` |
+| 图标按钮 | 工具栏、命令栏 | 图形 20 或 24，点击区 32 或 40；必须有名称与 ToolTip |
+| 拆分按钮 | 主操作加下拉选项 | 两半相接，中间不圆角 |
+| 切换按钮 | 视图切换、筛选开关 | 选中用品牌色；不要只改文字颜色 |
 
 规则：
 
@@ -21,9 +29,11 @@
 
 ## 2. 输入控件
 
-| 控件 | 默认几何 | 关键令牌 | 注意 |
+Fluent 2 组件普遍提供 small / medium / large 三档，默认 medium；Windows 分支的 TextBox、PasswordBox、NumberBox、ComboBox、AutoSuggestBox 默认 `MinHeight=32`。
+
+| 控件 | Windows 分支几何 | 关键令牌 | 注意 |
 | --- | --- | --- | --- |
-| TextBox | `MinHeight=32` | `ControlFillColorDefaultBrush`，聚焦 `ControlFillColorInputActiveBrush` | 占位符用 Tertiary；错误用 `SystemFillColorCriticalBrush` 加文案 |
+| TextBox | `MinHeight=32` | `ControlFillColorDefaultBrush`，聚焦 `ControlFillColorInputActiveBrush` | 占位符用 `TextFillColorTertiaryBrush`；错误用 `SystemFillColorCriticalBrush` 加文案 |
 | PasswordBox | 同 TextBox | 同上 | 提供显示密码的切换；不要记录明文 |
 | NumberBox | 同 TextBox | 同上 | 范围与步进写清楚；无效输入给内联错误 |
 | ComboBox | `MinHeight=32` | `ControlFillColorDefaultBrush`，下拉用 Acrylic/实心 | 选项按逻辑排序；长列表可搜索 |
@@ -55,14 +65,14 @@
 
 ## 4. 卡片与列表
 
-| 项 | 值 | 说明 |
+| 项 | Fluent 2 | Windows 分支 |
 | --- | --- | --- |
-| 内容卡片圆角 | 8 | 与浮层同一套圆角；也可按产品统一为 4 |
-| 列表项圆角 | 4 | `ListViewItemCornerRadius` |
-| 列表项最小高度 | 40 | `ListViewItemMinHeight` |
-| 卡片内边距 | 16 | 四边一致；紧凑卡片可用 12 |
-| 卡片边框 | 1px `CardStrokeColorDefaultBrush` | 默认不加阴影 |
-| 列表选中 | `SubtleFillColorSecondaryBrush` + 3px 强调条 | 强调条用 `AccentFillColorDefaultBrush` |
+| 内容卡片圆角 | `borderRadiusXLarge` 8（或按层级用 4） | 8，或按产品统一为 4 |
+| 列表项圆角 | `borderRadiusMedium` 4 | `ListViewItemCornerRadius` 4 |
+| 列表项最小高度 | 按组件规范 | `ListViewItemMinHeight` 40 |
+| 卡片内边距 | `spacingHorizontalL` 16 | 16；紧凑卡片 12 |
+| 卡片边框 | `colorNeutralStroke2` 1px | `CardStrokeColorDefaultBrush` 1px |
+| 列表选中 | `colorNeutralBackground1Selected` + 品牌指示条 | `SubtleFillColorSecondaryBrush` + 3px 强调条 |
 
 规则：
 
@@ -73,16 +83,17 @@
 
 ## 5. 对话框
 
-| 项 | 值 | 说明 |
+| 项 | Windows 分支 | 说明 |
 | --- | --- | --- |
 | 最小宽度 | 320 | `ContentDialogMinWidth` |
 | 最大宽度 | 548 | `ContentDialogMaxWidth` |
 | 圆角 | 8 | `OverlayCornerRadius` |
-| 内容边距 | 24 | 标题、正文、按钮区对齐 |
-| 按钮 | 主操作强调色，次操作标准，关闭用「取消」 | 主操作在右 |
+| 内容边距 | 24 | `ContentDialogPadding` |
+| 按钮 | 主操作品牌色，次操作标准，关闭用「取消」 | 主操作在右 |
 
 规则：
 
+- Fluent 2 的对话框规格以组件页为准；Windows 分支用上面的 WinUI 默认值，不把 548 当成跨平台规范。
 - 标题说明要做什么，正文说明后果；不要用「提示」当标题。
 - 破坏性操作把动词写进按钮（「删除」「覆盖」），不要用「确定」。
 - 对话框点外关闭只返回取消，不触发保存；`Closing` 防护要保留。
@@ -91,13 +102,13 @@
 
 ## 6. 浮层与菜单
 
-| 项 | 值 | 说明 |
+| 项 | Fluent 2 | Windows 分支 |
 | --- | --- | --- |
-| 圆角 | 8 | `OverlayCornerRadius` |
-| 边框 | 1px `SurfaceStrokeColorDefaultBrush` | 与背景分离 |
-| 背景 | Acrylic 或 `SolidBackgroundFillColorQuarternaryBrush` | 长文用实心 |
-| 内容边距 | 16 | `FlyoutContentPadding` 接近 16,15,16,17 |
-| 高程 | 32 | 已内置阴影 |
+| 圆角 | `borderRadius2XLarge` 12（sheet/popover）；菜单可用 8 | `OverlayCornerRadius` 8 |
+| 边框 | `colorNeutralStroke2` 1px | `SurfaceStrokeColorDefaultBrush` 1px |
+| 背景 | Acrylic 或 `colorNeutralBackground1` | Acrylic 或 `SolidBackgroundFillColorQuarternaryBrush` |
+| 内容边距 | `spacingHorizontalL` 16 | `FlyoutContentPadding` 16,15,16,17 |
+| 阴影 | `shadow16` / `shadow28` | 内置阴影；高程 32 |
 
 规则：
 
@@ -108,7 +119,7 @@
 
 ## 7. 导航
 
-| 项 | 值 | 说明 |
+| 项 | Windows 分支 | 说明 |
 | --- | --- | --- |
 | 展开面板宽度 | 320 | `SplitViewOpenPaneThemeLength` |
 | 紧凑面板宽度 | 48 | `NavigationViewCompactPaneLength` |
@@ -122,6 +133,7 @@
 - 导航层级不超过两级；更多层级用页面内 Tab 或分区。
 - Small 宽度用 `LeftMinimal` 或底部导航；不要保留被压扁的展开面板。
 - 切换页面保留滚动位置与选中项；返回时不要重置。
+- Fluent 2 的跨端导航尺寸以组件页为准；Windows 分支用上面的 WinUI 值。
 
 ## 8. 状态与提示
 
@@ -132,7 +144,7 @@
 | ProgressBar | 已知进度 | 显示百分比或阶段；不确定进度用 indeterminate |
 | ProgressRing | 短时等待 | 超过 1 秒才显示；避免闪烁 |
 | ToolTip | 补充说明 | 不能承载关键信息；键盘聚焦也要能出现 |
-| Empty state | 无数据 | `Title Large` 或 `Subtitle` + 说明 + 主操作 |
+| Empty state | 无数据 | `Large Title` 或 `Subtitle` + 说明 + 主操作 |
 
 规则：
 
@@ -145,7 +157,7 @@
 
 - 用卡片分组，每张卡片一个主题；卡片内边距 16，卡片之间 16。
 - 每行左侧是标签与说明（14 / 12），右侧是控件；行高至少 40。
-- 说明文字用 Secondary 色；不要用 ToolTip 代替说明。
+- 说明文字用 `colorNeutralForeground2`；不要用 ToolTip 代替说明。
 - 开关立即生效；需要重启或重新登录的设置要明确写出。
 - 不可用的设置整行隐藏或禁用并给原因；不要留下空白分组。
 - 恢复默认放在分组底部或页面底部，不要和每项设置混排。
@@ -154,8 +166,9 @@
 
 | 反例 | 问题 | 修法 |
 | --- | --- | --- |
-| 每个按钮都用强调色 | 主操作失焦 | 一屏一个强调按钮 |
-| 对话框宽度随内容拉伸到 900 | 阅读困难，按钮离正文太远 | 最大 548，长内容滚动 |
+| 每个按钮都用品牌色 | 主操作失焦 | 一屏一个品牌按钮 |
+| 按钮圆角 8 | Fluent 2 按钮用 `borderRadiusMedium` 4 | 4 |
+| 对话框宽度随内容拉伸到 900 | 阅读困难，按钮离正文太远 | Windows 分支最大 548，长内容滚动 |
 | 卡片内再放一张卡片 | 层级重复 | 用分隔线或间距 |
 | 列表项 48 高又加 16 内边距 | 密度过低 | 标准 40，紧凑 32 |
 | 导航项用 24 图标配 12 文字 | 比例失衡 | 16 图标配 14 文字 |

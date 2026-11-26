@@ -1,158 +1,208 @@
-# 布局、间距与形状
+# Fluent 2 布局、间距与形状
 
-来源：Microsoft Learn Layout / Geometry / Screen sizes and breakpoints / Iconography，WinUI 3 `generic.xaml`。标注「平台」的是硬约束；标注「推荐」的是可随产品调整的项目约定。
+标准：Fluent 2（Layout / Shapes / Elevation）。Windows 分支：Fluent 2 官方指定的 WinUI 3。标注「Fluent 2」的是设计标准；标注「Windows 分支」的是平台落地值。
 
-## 1. 4px 栅格
+来源：Fluent 2 Layout / Shapes / Elevation / Iconography；`microsoft/fluentui` `packages/tokens` 提交 `ff7ee75` 的 `spacings.ts`、`borderRadius.ts`、`strokeWidths.ts`、`utils/shadows.ts`；Microsoft Learn Geometry / Screen sizes and breakpoints / Iconography；WinUI 3 `generic.xaml` 2.7.0。
 
-- **平台**：尺寸、边距、位置一律取 4 epx 的倍数。原因是 Windows 的缩放档位为 100%、125%、150%、175%、200%、225%、250%、300%、350%、400%，4 在这些档位下都得到整数（4 × 125% = 5，4 × 150% = 6）。
-- 文字不受 4px 限制；字号按字体阶梯走。
-- 1px 描边、2px 焦点环、2px 图标与文字间距是栅格的例外，允许存在。
-- 设计稿按 72 DPI、目标断点的有效分辨率出图，不要按物理像素。
+## 1. Fluent 2 间距 ramp
 
-## 2. 间距刻度
+Fluent 2 的基准单位是 4px，但 ramp 故意包含 2、6、10 三个非 4 倍数值，用来补偿 Fluent 图标的额外内边距，让图标与 4px 栅格对齐。间距从元素的边界框量起。
 
-| 值 | 用途 |
-| --- | --- |
-| 2 | 图标与文字之间的紧贴间距；徽标内边距 |
-| 4 | 同组元素的最小间距；复选框与标签 |
-| 8 | 图标与文字、按钮内图标与文字、紧凑列表行间距 |
-| 12 | 卡片内相关元素、按钮组、表单项之间 |
-| 16 | 卡片内边距、列表项左右内边距、对话框内容边距 |
-| 20 | 卡片之间的宽松间距 |
-| 24 | 区块之间、页面内容边距（中等宽度） |
-| 32 | 大区块之间、页面顶部留白 |
-| 36 | 页面内容边距（宽屏） |
-| 48 | 首屏大留白、空状态上下留白 |
+| 设计 token | 值 | 代码 token | 用途 |
+| --- | --- | --- | --- |
+| `sizeNone` | 0 | `spacing*None` | 无间距 |
+| `size20` | 2 | `spacing*XXS` | 图标内边距、紧贴 |
+| `size40` | 4 | `spacing*XS` | 基础单位、复选框与标签 |
+| `size60` | 6 | `spacing*SNudge` | 图标对齐 |
+| `size80` | 8 | `spacing*S` | 图标与文字、按钮内图标与文字 |
+| `size100` | 10 | `spacing*MNudge` | 图标对齐 |
+| `size120` | 12 | `spacing*M` | 组件内相关元素、按钮组 |
+| `size160` | 16 | `spacing*L` | 卡片内边距、列表项内边距 |
+| `size200` | 20 | `spacing*XL` | 区块之间 |
+| `size240` | 24 | `spacing*XXL` | 区块之间、页面边距 |
+| `size280` | 28 | — | 设计 ramp |
+| `size320` | 32 | `spacing*XXXL` | 大区块 |
+| `size360` | 36 | — | 页面边距 |
+| `size400` | 40 | — | 页面边距 |
+| `size480` | 48 | — | 大留白 |
+| `size520` | 52 | — | 大留白 |
+| `size560` | 56 | — | 大留白 |
 
 规则：
 
-- 同一层级的间距必须一致。不要出现 10、14、18 这类非 4 倍数值。
-- 用间距分组，不要用边框分组。标题与内容的距离小于内容与下一块标题的距离，分组自然成立。
-- 卡片之间优先 12 或 16；卡片内部 16；卡片标题与正文 8 或 12。
+- 用 ramp 里的值。不要用 14、18、22、26、30 这类不在 ramp 的间距。
+- 2 / 6 / 10 只用于图标对齐与紧贴，不用来随意微调布局。
+- 代码令牌只到 `spacing*XXXL` 32；28–56 用于设计稿与大留白，代码里用字面值或组件自有间距，并在评审记录说明。
+- 同一层级的间距必须一致。用间距分组，不要用边框分组。
 
-## 3. 页面结构
+## 2. 栅格
 
-| 区域 | 推荐做法 |
+- Fluent 2 常用 12 列栅格：列、gutter、margin 三部分；gutter 与 margin 取 4 的倍数。
+- 基线网格用于多列文本：文本基线对齐，建立垂直节奏。
+- 内容按「区域」组织：最重要的内容占最大列宽；不要把所有内容平均分栏。
+- 响应式技巧：重排（reposition）、缩放（resize）、回流（reflow）、显示/隐藏（show/hide）、重构（re-architect）。先丢次要信息，再收导航，最后才缩小字号。
+
+## 3. 断点
+
+### Fluent 2 跨端断点
+
+| 尺寸类 | 范围 |
 | --- | --- |
-| 页面标题 | `TitleTextBlockStyle`（28 / 36 Semibold），左对齐，与内容间距 24 |
-| 页面副标题 | `BodyTextBlockStyle`，Secondary 色，与标题间距 4–8 |
-| 区块标题 | `SubtitleTextBlockStyle`（20 / 28 Semibold），与上一区块间距 32，与内容间距 12 |
-| 正文 | `BodyTextBlockStyle`（14 / 20），行宽 50–60 字符 |
-| 命令区 | 页面标题右侧或内容上方；主操作不超过一个 |
-| 页面边距 | 推荐：Small 16、Medium 24、Large 36；四边一致 |
+| small | 320–479 |
+| medium | 480–639 |
+| large | 640–1023 |
+| x-large | 1024–1365 |
+| xx-large | 1366–1919 |
+| xxx-large | 1920 以上 |
 
-- 内容左对齐是默认。不要把正文居中，除非是空状态或引导页。
-- 标题层级最多三级（页面标题、区块标题、卡片标题）。第四级用 `BodyStrong`，不要再造一个字号。
-- 页面根默认透明，让窗口的 Mica 透出来；只有需要独立底色的内容区才铺实心或 Layer。
+### Windows 分支
 
-## 4. 控件高度与点击区
+| 尺寸类 | 宽度 |
+| --- | --- |
+| Small | 不超过 640 |
+| Medium | 641–1007 |
+| Large | 不小于 1008 |
 
-| 项 | 值 | 说明 |
+规则：
+
+- Momoka 是 Windows 桌面应用，布局验收用 Windows 分支的 640 / 1008；设计稿可以标注 Fluent 2 的 size class 作为跨端参考。
+- 按**应用窗口的内容区宽度**判断，不按物理屏幕宽度。侧栏占掉的宽度不算内容区。
+- `NavigationView` 默认阈值与 Windows 分支一致：`CompactModeThresholdWidth=641`、`ExpandedModeThresholdWidth=1008`。
+- Small：单列、页面边距 16、隐藏次要命令、导航收成 `LeftMinimal` 或底部。
+- Medium：两列或收窄的导航；保留主操作。
+- Large：展开导航、多列、完整命令区；正文仍限制行宽。
+
+## 4. 圆角
+
+Fluent 2 的圆角令牌：
+
+| 令牌 | 值 | 典型用途 |
 | --- | --- | --- |
-| 标准控件高度 | 32 | WinUI Button、TextBox、ComboBox 等的默认 `MinHeight` |
-| 紧凑控件高度 | 24 | 需显式设置；只用于高密度表格或工具条，不在同一组里混用 |
-| 大按钮高度 | 40 | 主操作、触控场景；不是平台默认 |
-| 触摸目标 | 不小于 40 × 40 | 7.5mm 见方；鼠标专用的小图标也要保证可点 |
-| 相邻目标间距 | 不小于 8 | 避免误触 |
+| `borderRadiusNone` | 0 | 贴边、相接元素、导航条 |
+| `borderRadiusSmall` | 2 | 小徽标、小于 32px 的元素 |
+| `borderRadiusMedium` | 4 | 按钮、下拉框、输入框 |
+| `borderRadiusLarge` | 6 | 大按钮、较大的控件 |
+| `borderRadiusXLarge` | 8 | 大按钮、卡片、浮层 |
+| `borderRadius2XLarge` | 12 | sheet、popover、按钮面板 |
+| `borderRadius3XLarge` | 16 | 大容器 |
+| `borderRadius4XLarge` | 24 | 大面板 |
+| `borderRadius5XLarge` | 32 | 特大容器 |
+| `borderRadius6XLarge` | 40 | 特大容器 |
+| `borderRadiusCircular` | 10000px | 头像、圆形按钮 |
 
-- 图标按钮的可见图形可以是 16 或 20，但点击区要撑到 32 或 40。
-- 不要用 `Height` 写死控件高度；用 `MinHeight` 加内边距，让内容与本地化文本能撑开。
-- 紧凑密度只在数据密集区域使用；设置页、对话框保持标准密度。
+Fluent 2 Shapes 页面的简化映射：
 
-## 5. 圆角
+- 小于 32px 的元素：2
+- 按钮、下拉：4
+- 大按钮：8
+- 按钮面板、popover：12
+- 人物头像：50%
+
+Windows 分支：
 
 | 值 | 用途 | 令牌 |
 | --- | --- | --- |
 | 8 | 窗口、对话框、Flyout、MenuFlyout、TeachingTip | `OverlayCornerRadius` |
 | 4 | Button、CheckBox、ComboBox、TextBox、ListView 项、进度条、滚动条、Slider、ToolTip | `ControlCornerRadius` |
 | 0 | 相接元素（SplitButton 两半）、贴窗口边缘、窗口贴边或最大化 | 无 |
-| 2 | Fluent 2 中小于 32px 的元素；WinUI 不强制，按需 | 无 |
+| 2 | Fluent 2 小元素；WinUI 不强制，按需 | 无 |
 
 规则：
 
-- 不要给每个容器自造圆角。用全局 `ControlCornerRadius` / `OverlayCornerRadius`，需要全局调整时在 `App.xaml` 覆盖。
+- 不要给每个容器自造圆角。用 Fluent 2 令牌或 Windows 分支的全局圆角。
 - 相接的两个元素之间不留缝、不圆角，否则会出现缺口。
 - 图片圆角与所在卡片一致；卡片 8 时图片也用 8，不要图片 4、卡片 8。
+- 12 是 `borderRadius2XLarge`，用于 sheet / popover；不要给普通卡片或按钮用 12。
+
+## 5. 描边
+
+| Fluent 2 令牌 | 值 | 用途 |
+| --- | --- | --- |
+| `strokeWidthThin` | 1 | 默认描边、分割线 |
+| `strokeWidthThick` | 2 | 焦点环、强调边界 |
+| `strokeWidthThicker` | 3 | 大元素强调 |
+| `strokeWidthThickest` | 4 | 特殊图形 |
+
+Windows 分支默认 1px。不要用 2px 边框表达层级；层级用表面与高程。焦点环用 2px（Fluent 2 `strokeWidthThick`）。
 
 ## 6. 高程与阴影
 
-| 表面 | 高程 | 描边 |
-| --- | --- | --- |
-| Window | 128 | 1px |
-| Dialog | 128 | 1px |
-| Flyout / MenuFlyout | 32 | 1px |
-| ToolTip | 16 | 1px |
-| Card | 8 | 1px |
-| Control | 2 | 1px |
-| Layer（页面底层） | 1 | 1px |
+Fluent 2 用 `shadow2` / `shadow4` / `shadow8` / `shadow16` / `shadow28` / `shadow64` 表示高程。Windows 分支用 1px 描边代替 key shadow，并用高程值表达层级：
 
-状态变化：
-
-| 状态 | 高程 | 说明 |
+| 表面 | Fluent 2 阴影档位 | Windows 分支高程 |
 | --- | --- | --- |
-| Rest | 2 | 默认 |
-| PointerOver | 2 | 高程不变，阴影强度随主题变化 |
-| Pressed | 1 | 下沉；控件底改用 `ControlFillColorTertiaryBrush` |
-| Disabled | 2 | 不投阴影，降透明度 |
+| Layer（页面底层） | 无 | 1 + 1px 描边 |
+| Control | `shadow2` | 2 + 1px 描边 |
+| Card | `shadow2`（浅）/ `shadow4`（深） | 8 + 1px 描边 |
+| ToolTip | `shadow8` | 16 + 1px 描边 |
+| Flyout / MenuFlyout | `shadow8`–`shadow16` | 32 + 1px 描边 |
+| Dialog | `shadow64` | 128 + 1px 描边 |
+
+Fluent 2 Elevation 页面明确说明：**Windows uses strokes instead of key shadows to outline an object.** 所以 Windows 分支的卡片默认只有 1px 描边，不加阴影；需要浮起（拖拽、选中预览）时才加阴影。
+
+完整阴影 CSS 值见 `materials-motion-states.md`。
+
+## 7. 控件高度与点击区
+
+Fluent 2 按钮尺寸（由 `useButtonStyles.styles.ts` 的 line-height、padding、1px stroke 推导）：
+
+| 尺寸 | 高度 | 字号 / 行高 | 上下 padding | 图标 |
+| --- | --- | --- | --- | --- |
+| small | 24 | 12 / 16 | 3 | 20 |
+| medium | 32 | 14 / 20 | 5 | 20 |
+| large | 40 | 16 / 22 | 8 | 24 |
+
+Windows 分支：
+
+| 项 | 值 | 说明 |
+| --- | --- | --- |
+| 标准控件高度 | 32 | WinUI Button、TextBox、ComboBox 的默认 `MinHeight` |
+| 紧凑控件高度 | 24 | 需显式设置；只用于高密度表格或工具条 |
+| 大按钮高度 | 40 | 主操作、触控场景 |
+| 触摸目标 | 不小于 40 × 40 | Windows 分支；Fluent 2 web/iOS 建议 44 × 44，Android 48 × 48 |
+| 相邻目标间距 | 不小于 8 | 避免误触 |
 
 规则：
 
-- 高程越高，阴影越大越柔。Flyout、Dialog、ToolTip 已内置匹配的阴影，不要再手动加。
-- 卡片默认只有 1px 描边，不加阴影。卡片浮起（拖拽、选中预览）时才加阴影。
-- 同一位置只渲染高程最高的对象。不要用阴影去补一个本来就该用层级解决的问题。
-- 按下必须下沉。只改颜色不改高程，会显得「软」。
-
-## 7. 断点与响应式
-
-| 尺寸类 | 宽度 | 典型设备 |
-| --- | --- | --- |
-| Small | 不超过 640 | 手机、平板竖屏、电视（按有效像素） |
-| Medium | 641–1007 | 平板、窄窗口 |
-| Large | 不小于 1008 | 桌面、笔记本、Surface Hub |
-
-- 按**应用窗口的内容区宽度**判断，不按物理屏幕宽度。多栏布局尤其要注意：侧栏占掉的宽度不算内容区。
-- `NavigationView` 默认阈值与断点一致：`CompactModeThresholdWidth=641`、`ExpandedModeThresholdWidth=1008`。
-- Small：单列、减少页面边距（16）、隐藏次要命令、导航收成 `LeftMinimal` 或底部。
-- Medium：两列或收窄的导航；保留主操作。
-- Large：展开导航、多列、完整命令区；正文仍限制行宽。
-- 窗口从宽到窄时，先丢次要信息，再收导航，最后才缩小字号。字号不随窗口缩放。
+- 不要用 `Height` 写死控件高度；用 `MinHeight` 加内边距，让内容与本地化文本能撑开。
+- 紧凑密度只在数据密集区域使用；设置页、对话框保持标准密度。
+- 同一组控件高度一致；主操作可以更大，但不要在同一行混用 24 与 40。
 
 ## 8. 图标
 
-- 字体：`Segoe Fluent Icons`；Windows 10 20H2 及更早回退 `Segoe MDL2 Assets`。`FontIcon` / `SymbolIcon` 的默认字体是 `SymbolThemeFontFamily`。
-- 所有字形是 1 epx 单线风格。不要混用填充图标与线性图标；选中态可用填充版本表达状态。
-- 图标尺寸按正方形 em 设计：16 号字即 16 × 16 的图标区域。
-- 常用档位（推荐，不是平台强制）：
-
-| 尺寸 | 典型用途 |
-| --- | --- |
-| 16 | 命令栏、导航项、列表行内、菜单 |
-| 20 | 工具栏、分段控件、需要更大点击暗示的按钮 |
-| 24 | 页面标题旁、卡片头部 |
-| 32 | 卡片占位、空状态 |
-| 48 | 空状态、首屏插画 |
-
+- Fluent 2 系统图标有 Regular 与 Filled 两套：Regular 用于导航与操作，Filled 用于选中态或需要更大视觉重量的场景。
+- Fluent 2 建议 12px 图标只用于信息提示，太小不适合交互；图标尺寸随使用场景变化，交互图标要保证点击区。
+- Windows 分支：`Segoe Fluent Icons`，1px 单线；常用档位 16 / 20 / 24 / 32 / 48（推荐，不是平台强制）。
 - 同一界面只用一个档位；需要强调时改颜色或容器，不要混用 16 与 24。
 - 图标跟随前景色。语义色只给状态图标，不要给每个功能图标配不同颜色。
 - 图标与文字间距 8；纯图标按钮必须提供 `AutomationProperties.Name` 与 `ToolTip`。
 
-## 9. 对齐与密度
+## 9. 页面结构
 
-- 左对齐为主。数字列右对齐，单位与表头对齐。
-- 同一行的控件基线对齐；图标与文字用 `VerticalAlignment=Center`。
-- 卡片内元素左边缘统一；不要让标题缩进、正文不缩进。
-- 标准密度与紧凑密度不要在同一屏混用。紧凑密度只用于表格、日志、批量操作。
-- 空状态用 `Title Large` 或 `Subtitle` 加说明，再给一个主操作；不要只放一个图标。
+| 区域 | 推荐做法 |
+| --- | --- |
+| 页面标题 | `title2` 28 / 36（Windows 分支 `TitleTextBlockStyle`），左对齐，与内容间距 24 |
+| 页面副标题 | `body1` 14 / 20，`colorNeutralForeground2`，与标题间距 4–8 |
+| 区块标题 | `subtitle1` 20 / 26（Windows 分支 20 / 28），与上一区块间距 32，与内容间距 12 |
+| 正文 | `body1` 14 / 20，行宽 50–60 字符 |
+| 命令区 | 页面标题右侧或内容上方；主操作不超过一个 |
+| 页面边距 | Fluent 2 ramp：16 / 24 / 36；Windows 分支按断点取 16 / 24 / 36 |
+
+- 内容左对齐是默认。不要把正文居中，除非是空状态或引导页。
+- 标题层级最多三级（页面标题、区块标题、卡片标题）。第四级用 `BodyStrong`，不要再造一个字号。
+- 页面根默认透明，让窗口的 Mica 透出来；只有需要独立底色的内容区才铺实心或 Layer。
 
 ## 10. 反例
 
 | 反例 | 问题 | 修法 |
 | --- | --- | --- |
-| `Margin="10,14,10,14"` | 非 4 倍数，缩放下发虚 | `12,16,12,16` |
-| 页面边距固定 48 | 窄窗口内容被挤没 | 按断点降到 24 或 16 |
-| 卡片圆角 6 | 不在令牌里 | 4（控件）或 8（浮层/卡片组） |
-| 卡片加阴影又加边框 | 过度表达层级 | 只留 1px 描边 |
-| 图标 16 与 24 混排 | 视觉重量不一致 | 统一 16 或 20 |
+| `Margin="14,18,14,18"` | 不在 Fluent 2 ramp | 用 12 / 16 / 20 |
+| 看到 6px 或 10px 就判错 | 2 / 6 / 10 是 ramp 的图标对齐值 | 按用途判断，不按「是否 4 的倍数」 |
+| 按钮圆角 6 | Fluent 2 按钮用 `borderRadiusMedium` 4 | 4 |
+| 普通卡片圆角 12 | 12 是 `borderRadius2XLarge`，用于 sheet / popover | 4 或 8 |
+| 卡片加阴影又加边框 | Windows 分支用描边代替 key shadow | 只留 1px 描边 |
 | 用 `Height="32"` 写死按钮 | 本地化文本被裁 | `MinHeight="32"` |
+| 页面边距固定 48 | 窄窗口内容被挤没 | 按断点降到 24 或 16 |
+| 图标 16 与 24 混排 | 视觉重量不一致 | 统一 16 或 20 |
 | 只看窗口宽度切布局 | 侧栏占宽后内容区过窄 | 用内容区宽度判断 |
 | 窄窗口缩小字号 | 可读性下降 | 保持字号，减少列与次要信息 |
