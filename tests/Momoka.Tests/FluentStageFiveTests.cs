@@ -181,6 +181,30 @@ internal static class FluentStageFiveTests
             foreach (var member in new[] { "CanMoveUp", "CanMoveDown", "ReorderVisibility", "MoveUpName", "MoveDownName" })
                 Assert.Contains(member, rowCode);
         });
+
+        Test("自检对齐：封面框三主题厚度与播放菜单回退检查一致", () =>
+        {
+            var palette = Read("src/Momoka.Shell/Theme/Palette.xaml");
+            var themeDicts = palette.Descendants(Xaml + "ResourceDictionary")
+                .Where(d => d.Attribute(X + "Key") is not null)
+                .ToDictionary(d => d.Attribute(X + "Key")!.Value);
+            foreach (var (themeKey, thickness) in new[] { ("Dark", "0"), ("Light", "0"), ("HighContrast", "1") })
+            {
+                var entry = themeDicts[themeKey].Elements(Xaml + "Thickness")
+                    .Single(e => (string?)e.Attribute(X + "Key") == "EgFrameBorderThickness");
+                Assert.Equal(thickness, entry.Value.Trim(), themeKey);
+            }
+
+            var styles = Read("src/Momoka.Shell/Theme/Styles.xaml");
+            var frameStyle = KeyedStyle(styles, "EgFrameStyle");
+            Assert.Equal("{ThemeResource EgFrameBorderThickness}", SetterValue(frameStyle, "BorderThickness"));
+            Assert.Equal("{ThemeResource EgBorderBrush}", SetterValue(frameStyle, "BorderBrush"));
+
+            var playerPalette = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/Views/PlayerPage.Palette.cs"));
+            Assert.Contains("private static ThemeColor MenuBrushColor(", playerPalette);
+            Assert.Contains("MenuBrushColor(key, colour)", playerPalette);
+            Assert.Contains("ThemeHost.ToColor(MenuBrushColor(key, colour))", playerPalette);
+        });
     }
 
     private static void AssertUnifiedSubpage(string fileName, XDocument doc)

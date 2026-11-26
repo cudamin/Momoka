@@ -52,17 +52,17 @@ public sealed partial class PlayerPage
         }
 
         foreach (var (key, colour) in PlayerPalette.Brushes)
-        {
-            var effective = key == "PlayerMenuBrush" && !ThemeHost.TransparencyEnabled
-                ? colour.WithAlpha(0xFF)
-                : colour;
-            ((SolidColorBrush)Resources[key]).Color = ThemeHost.ToColor(effective);
-        }
+            ((SolidColorBrush)Resources[key]).Color = ThemeHost.ToColor(MenuBrushColor(key, colour));
 
         ApplyTopGlass(_topGlassDepth);
 
         PaintExit();
     }
+
+    private static ThemeColor MenuBrushColor(string key, ThemeColor colour) =>
+        key == "PlayerMenuBrush" && !ThemeHost.TransparencyEnabled
+            ? colour.WithAlpha(0xFF)
+            : colour;
 
     private void PaintHighContrastPalette()
     {
@@ -161,7 +161,7 @@ public sealed partial class PlayerPage
             // 正是本页此刻这一档」。那条曲线本身在 ProbeClearance 里逐档钉住 —— 两支合起来才是这件事的全貌。
             var want = key == PlayerPalette.TopGlassKey
                 ? ThemeHost.ToColor(colour.WithAlpha(PlayerPalette.TopGlassAlphaAt(_topGlassDepth)))
-                : ThemeHost.ToColor(colour);
+                : ThemeHost.ToColor(MenuBrushColor(key, colour));
 
             if (brush.Color != want)
             {

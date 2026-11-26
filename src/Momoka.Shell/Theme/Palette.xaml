@@ -83,6 +83,7 @@
             <SolidColorBrush x:Key="EgBorderBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="EgBorderStrongBrush" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="EgCardStrokeBrush" Color="Transparent" />
+            <Thickness x:Key="EgFrameBorderThickness">0</Thickness>
             <SolidColorBrush x:Key="EgTextBrush" Color="{StaticResource EgTextColor}" />
             <SolidColorBrush x:Key="EgTextDimBrush" Color="{StaticResource EgTextDimColor}" />
             <SolidColorBrush x:Key="EgTextFaintBrush" Color="{StaticResource EgTextFaintColor}" />
@@ -438,6 +439,7 @@
             <SolidColorBrush x:Key="EgBorderBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="EgBorderStrongBrush" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="EgCardStrokeBrush" Color="Transparent" />
+            <Thickness x:Key="EgFrameBorderThickness">0</Thickness>
             <SolidColorBrush x:Key="EgTextBrush" Color="{StaticResource EgTextColor}" />
             <SolidColorBrush x:Key="EgTextDimBrush" Color="{StaticResource EgTextDimColor}" />
             <SolidColorBrush x:Key="EgTextFaintBrush" Color="{StaticResource EgTextFaintColor}" />
@@ -673,6 +675,7 @@
             <SolidColorBrush x:Key="EgBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgBorderStrongBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgCardStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <Thickness x:Key="EgFrameBorderThickness">1</Thickness>
             <SolidColorBrush x:Key="EgTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgTextDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgTextFaintBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
