@@ -3,6 +3,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Mpv;
+using Momoka.Scrobbling;
 
 namespace Momoka.Playback;
 
@@ -37,7 +38,8 @@ public sealed partial class PlaybackService(
     PlaybackPlanner planner,
     AudioDeviceCatalogue? audioDevices = null,
     bool allowPlayback = true,
-    Func<IPlaybackBackend>? audioBackendFactory = null)
+    Func<IPlaybackBackend>? audioBackendFactory = null,
+    IPlaybackScrobbler? scrobbler = null)
 {
     private const string Category = "playback";
     private const int MarkWatchedFloor = 50;

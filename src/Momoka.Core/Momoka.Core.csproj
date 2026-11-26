@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Scrobbling\BangumiTmdbMap.bin.gz" LogicalName="Momoka.Scrobbling.BangumiTmdbMap.bin.gz" WithCulture="false" />
     <InternalsVisibleTo Include="Momoka" />
     <InternalsVisibleTo Include="Momoka.Tests" />
     <!-- Source-linked page/card tests exercise the same internal source lifetime as production. -->

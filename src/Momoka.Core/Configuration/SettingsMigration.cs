@@ -385,6 +385,11 @@ public static class SettingsMigration
         if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
         if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
+        settings.Scrobbling ??= new();
+        settings.Scrobbling.Bangumi ??= new();
+        settings.Scrobbling.Douban ??= new();
+        if (settings.Scrobbling.Bangumi.ProtectedAccessToken is null)
+            throw new InvalidDataException("Bangumi 凭据字段不能为 null");
         // 与账号密文一致：显式 null 是损坏文档，不能当作未保存密码继续读入。
         // 缺键或合法空串仍由初始化器保留；Store 会保留坏主文件并尝试有效备份。
         if (settings.MoviePilot.ProtectedPassword is null)

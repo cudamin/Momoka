@@ -56,6 +56,14 @@ namespace Momoka.Shell.Platform
         public void OpenUrl(string url) => throw new Momoka.Tests.AssertionException("匿名目录夹具禁止系统浏览器启动");
     }
 }
+namespace Momoka.Shell.Media
+{
+    internal sealed class DoubanSession
+    {
+        internal void Attach(Microsoft.UI.Xaml.FrameworkElement host) { }
+        internal void Dispose() { }
+    }
+}
 namespace Momoka.Shell.Views
 {
     internal sealed class BrowsePresentation
@@ -198,6 +206,10 @@ namespace Momoka.Shell.Views
             public Task ProbeAsync(CancellationToken token = default) => Task.CompletedTask;
         }
         private sealed class ServicesBoundary(Momoka.Shell.Services.SubtitleTranslationController? translation) : IServiceProvider
-        { public object? GetService(Type serviceType) => serviceType == typeof(Momoka.Shell.Services.SubtitleTranslationController) ? translation : throw new Momoka.Tests.AssertionException("夹具不创建产品服务"); }
+        {
+            public object? GetService(Type serviceType) => serviceType == typeof(Momoka.Shell.Services.SubtitleTranslationController) ? translation
+                : serviceType == typeof(Momoka.Scrobbling.ScrobblingService) || serviceType == typeof(Momoka.Shell.Media.DoubanSession) ? null
+                : throw new Momoka.Tests.AssertionException("夹具不创建产品服务");
+        }
     }
 }

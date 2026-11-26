@@ -592,7 +592,7 @@ internal static class PlaybackLifecycleTests
         public EmbySession Session { get; }
         public PlaybackService Service { get; }
 
-        public Fixture()
+        public Fixture(Momoka.Scrobbling.IPlaybackScrobbler? scrobbler = null)
         {
             Settings.Playback.ReportProgressToServer = true;
             Settings.Playback.ResumeRewindSeconds = 0;
@@ -604,7 +604,7 @@ internal static class PlaybackLifecycleTests
             var account = new AccountProfile { UserId = "a", Username = "a", ProtectedAccessToken = "offline-a" };
             Assert.True(Session.TryRestoreAsync(new ServerProfile { Url = "https://a.invalid" }, account, None).GetAwaiter().GetResult());
             Service = new PlaybackService(Session, Settings, () => Backend,
-                new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)));
+                new PlaybackPlanner(Settings, new ShaderGroupResolver(Settings.Shaders)), scrobbler: scrobbler);
             Service.ReportIntervalOverride = TimeSpan.FromSeconds(60);
         }
 
@@ -675,7 +675,7 @@ internal static class PlaybackLifecycleTests
         public Func<CancellationToken, Task<double?>>? ReadPosition { get; init; }
         public Func<string, CancellationToken, Task<string?>>? ReadText { get; set; }
         public Func<CancellationToken, Task<IReadOnlyList<MpvTrack>>>? ReadTracks { get; set; }
-        public PlayerStatus Status { get; private set; } = new();
+        public PlayerStatus Status { get; set; } = new();
         public event Action<bool>? PauseChanged;
         public event Action<IReadOnlyList<MpvTrack>>? TracksChanged;
         public event Action<bool>? TopMostChanged;

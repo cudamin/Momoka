@@ -7,6 +7,8 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Scrobbling;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Security;
@@ -54,6 +56,31 @@ internal static class ShellServices
             Path.Combine(paths.WebViewDirectory, "youtube"),
             () => provider.GetRequiredService<AppSettings>().Network.ProxyServer));
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
+        services.AddSingleton<BangumiClient>();
+        services.AddSingleton(provider => new DoubanSession(Path.Combine(paths.WebViewDirectory, "douban"), provider.GetRequiredService<IUiDispatcher>()));
+        services.AddSingleton<IDoubanScrobblingClient>(provider => provider.GetRequiredService<DoubanSession>());
+        services.AddSingleton(provider =>
+        {
+            var settings = provider.GetRequiredService<AppSettings>();
+            var dispatcher = provider.GetRequiredService<IUiDispatcher>();
+            return new ScrobblingService(settings, provider.GetRequiredService<ISecretProtector>(),
+                provider.GetRequiredService<BangumiClient>(), provider.GetRequiredService<IDoubanScrobblingClient>(),
+                (site, outcome, reason) => dispatcher.Post(() =>
+                {
+                    if (!settings.Scrobbling.NotifyOnFailure) return;
+                    var title = (site, outcome) switch
+                    {
+                        (ScrobblingProvider.Bangumi, ScrobblingRecordOutcome.Skipped) => "Bangumi 打格子已跳过",
+                        (ScrobblingProvider.Douban, ScrobblingRecordOutcome.Skipped) => "豆瓣打格子已跳过",
+                        (null, ScrobblingRecordOutcome.Skipped) => "Bangumi 和豆瓣打格子已跳过",
+                        (ScrobblingProvider.Bangumi, ScrobblingRecordOutcome.Failed) => "Bangumi 打格子失败",
+                        (ScrobblingProvider.Douban, ScrobblingRecordOutcome.Failed) => "豆瓣打格子失败",
+                        (null, ScrobblingRecordOutcome.Failed) => "Bangumi 和豆瓣打格子失败",
+                        _ => null
+                    };
+                    if (title is not null) SystemNotification.Show(UiText.Translate(title), UiText.Translate(reason));
+                }), identityLookup: provider.GetRequiredService<MoviePilotService>());
+        });
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
         services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();
@@ -139,7 +166,8 @@ internal static class ShellServices
             // 目录与播放服务同进程单例 —— 设置页枚举过一次的结果，起播核对直接复用。
             provider.GetRequiredService<AudioDeviceCatalogue>(),
             allowPlayback: !selfCheck,
-            audioBackendFactory: provider.GetRequiredService<PlaybackBackendFactory>().CreateAudio));
+            audioBackendFactory: provider.GetRequiredService<PlaybackBackendFactory>().CreateAudio,
+            scrobbler: selfCheck ? null : provider.GetRequiredService<ScrobblingService>()));
 
         // ---- the optional second service ---------------------------------------------------------------
         // MoviePilot, when the user has one. Registered unconditionally rather than behind a check on the

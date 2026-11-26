@@ -12,16 +12,23 @@ public sealed partial class SettingSecretRow : SettingRow
     private readonly Func<bool> _stored;
     private readonly Func<bool> _save;
     private readonly Action _after;
+    private readonly Func<bool>? _canWrite;
     private bool _unsaved;
     private string? _protectionError;
 
     internal SettingSecretRow(string label, Action<string> write, Func<bool> stored, Func<bool> save, Action after)
+        : this(label, write, stored, save, after, null)
+    {
+    }
+
+    internal SettingSecretRow(string label, Action<string> write, Func<bool> stored, Func<bool> save, Action after, Func<bool>? canWrite)
         : base(label, StorageNote)
     {
         _write = write;
         _stored = stored;
         _save = save;
         _after = after;
+        _canWrite = canWrite;
     }
 
     [ObservableProperty]
@@ -46,6 +53,7 @@ public sealed partial class SettingSecretRow : SettingRow
 
     private void Write(string value)
     {
+        if (_canWrite?.Invoke() == false) return;
         try
         {
             _write(value);

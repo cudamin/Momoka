@@ -388,16 +388,23 @@ public sealed partial class SettingToggleRow : SettingRow
     private readonly Action<bool> _write;
     private readonly Action _save;
     private readonly Action? _after;
+    private readonly Func<bool>? _canWrite;
     private readonly bool _seeded;
     private bool _resetting;
 
     internal SettingToggleRow(string label, string note, bool value, Action<bool> write, Action save, Action? after = null)
+        : this(label, note, value, write, save, after, null)
+    {
+    }
+
+    internal SettingToggleRow(string label, string note, bool value, Action<bool> write, Action save, Action? after, Func<bool>? canWrite)
         : base(label, note)
     {
         IsOn = value;
         _write = write;
         _save = save;
         _after = after;
+        _canWrite = canWrite;
         _seeded = true;
     }
 
@@ -420,10 +427,15 @@ public sealed partial class SettingToggleRow : SettingRow
         finally { _resetting = false; }
     }
 
-    partial void OnIsOnChanged(bool value)
+    partial void OnIsOnChanged(bool oldValue, bool newValue)
     {
         if (!_seeded || _resetting) return;
-        _write(value);
+        if (_canWrite?.Invoke() == false)
+        {
+            Reseed(oldValue);
+            return;
+        }
+        _write(newValue);
         _save();
         _after?.Invoke();
     }
@@ -909,6 +921,10 @@ public sealed partial class SettingFactRow : SettingRow
     public string ActionLabel { get; }
 
     public string DisplayActionLabel => UiText.Translate(ActionLabel);
+
+    public string ActionAutomationName => ActionLabel.Length == 0
+        ? DisplayLabel
+        : DisplayLabel + "，" + DisplayActionLabel;
 
     /// <summary>没有按钮的那几行不给它留位置，同 <see cref="SettingRow.NoteVisibility"/>。</summary>
     public Visibility ActionVisibility =>

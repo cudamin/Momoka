@@ -207,6 +207,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     ];
 
     private ISettingsService? _settings;
+    private ISecretProtector _secretProtector = DpapiSecretProtector.Instance;
     private ShaderStaging? _shaders;
     private FontLibrary? _fonts;
     private AppPaths? _paths;
@@ -402,6 +403,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             .. (serverAdministration ? MomokaAdministrationCategories(kind) : []),
             "诊断", LastCardCategory];
 
+    internal const string MoviePilotCategory = "MoviePilot";
+
     /// <summary>The cards, in the order they appear in the left-hand list.</summary>
     /// <remarks>
     /// 用户令 2026-10-11「调整左侧选项排序」：主页与界面领队（进设置先收拾界面本身），播放器、播放行为、
@@ -409,7 +412,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 「服务器／诊断」两张内嵌页之前 —— 它仍是可选的第二服务，不是本程序自己的行为。
     /// </remarks>
     private static readonly string[] CardCategories =
-        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "弹幕", "快捷键", "MoviePilot", "关于"];
+        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "弹幕", "快捷键", MoviePilotCategory, "关于"];
 
     /// <summary>
     /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的网页控制台。Entries in the same list
@@ -490,7 +493,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     [ObservableProperty]
     public partial SettingsCategoryEntry? SelectedEntry { get; set; }
 
-    internal SettingsCategoryEntry? EntryFor(string value) => FindEntry(value);
+    internal SettingsCategoryEntry? EntryFor(string value) => FindEntry(value == "打格子" ? MoviePilotCategory : value);
 
     private SettingsCategoryEntry? FindEntry(string value) =>
         Categories.FirstOrDefault(entry => string.Equals(entry.Key, value, StringComparison.Ordinal))
@@ -705,12 +708,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         UpdateClient updates,
         IServerCapabilities capabilities,
         EmbyImageStore? images = null,
-        SubtitleTranslationCredentials? translationCredentials = null)
+        SubtitleTranslationCredentials? translationCredentials = null,
+        ISecretProtector? protector = null)
     {
         if (_disposed) return;
         Activate();
         if (!ReferenceEquals(_capabilities, capabilities)) _administrationPages.Clear();
         _settings = settings;
+        _secretProtector = protector ?? DpapiSecretProtector.Instance;
         _shaders = shaders;
         _fonts = fonts;
         _paths = paths;
@@ -1207,6 +1212,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) AddCards(DanmakuSections());
         AddCards(ShortcutSections());
         Sections.Add(MoviePilotCard());
+        AddCards(ScrobblingSections());
         AddCards(AboutSections());
         RefreshDanmakuAvailability();
         _ = MeasureImageCacheAsync();
@@ -2647,10 +2653,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 行本身只拿读写对，不碰设置对象（同这一页每一条的规矩）。密码那一对是个例外里的例外：写进去的是明文、
         // 存下来的是密文，所以包一层 —— 行永远只见到明文，包和拆都在 MoviePilotCredentials 里。
         _moviePilotRow = new SettingMoviePilotRow(
-            "MoviePilot",
+            MoviePilotCategory,
             "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。"
                 + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
-                + "不是网页界面那个端口。",
+                + "不是网页界面那个端口。打格子自动识别需要可用的 MoviePilot 连接。",
             moviePilot.Enabled,
             moviePilot.AniBtEnabled,
             moviePilot.Url,
@@ -2676,7 +2682,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         SyncMoviePilotSites();
 
-        card = new SettingSection("MoviePilot", "MoviePilot",
+        card = new SettingSection(MoviePilotCategory, MoviePilotCategory,
             "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。",
             [_moviePilotRow]);
         SyncCalendarRows();

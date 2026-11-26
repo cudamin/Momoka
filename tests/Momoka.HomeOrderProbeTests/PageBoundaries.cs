@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using Momoka.Scrobbling;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
@@ -82,6 +83,11 @@ namespace Momoka.Shell.ViewModels
     {
         internal object Inner { get; } = ShellRuntime.Current.TakePageViewModel();
         private ShellRuntime Runtime => ShellRuntime.Current;
+        public void UseScrobbling(ScrobblingService service, Func<Task> loginDouban, Func<Task> logoutDouban, Func<Task>? verify = null) =>
+            Runtime.Invoke(Inner, "UseScrobbling", service, loginDouban, logoutDouban, verify);
+        public void UseScrobblingRecords(Action<ScrobblingProvider> showRecords) =>
+            Runtime.Invoke(Inner, "UseScrobblingRecords", showRecords);
+        public void RefreshScrobblingRows() => Runtime.Invoke(Inner, "RefreshScrobblingRows");
         public event PropertyChangedEventHandler? PropertyChanged
         {
             add => ((INotifyPropertyChanged)Inner).PropertyChanged += value;
@@ -162,5 +168,23 @@ namespace Momoka.Shell
             target.GetType().GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(target, value);
         private static T Get<T>(object target, string name) =>
             (T)target.GetType().GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(target)!;
+    }
+}
+
+namespace Momoka.Shell.Media
+{
+    internal sealed class DoubanSession
+    {
+        internal void Attach(Microsoft.UI.Xaml.FrameworkElement host) { }
+        internal void Dispose() { }
+    }
+}
+
+namespace Microsoft.Extensions.DependencyInjection
+{
+    internal static class FixtureServicesExtensions
+    {
+        public static T GetRequiredService<T>(this IServiceProvider services) where T : class =>
+            (T)(services.GetService(typeof(T)) ?? throw new InvalidOperationException("未授权的服务边界 " + typeof(T).Name));
     }
 }

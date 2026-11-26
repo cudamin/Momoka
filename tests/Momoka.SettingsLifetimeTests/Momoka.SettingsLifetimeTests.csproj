@@ -21,6 +21,7 @@
     <ParameterGroup>
       <PageSource ParameterType="System.String" Required="true" />
       <AppearanceColorsSource ParameterType="System.String" Required="true" />
+      <ScrobblingSource ParameterType="System.String" Required="true" />
       <WindowSource ParameterType="System.String" Required="true" />
       <OutputSource ParameterType="System.String" Required="true" />
     </ParameterGroup>
@@ -40,11 +41,12 @@
         };
         var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
         var colors = File.ReadAllText(AppearanceColorsSource).Replace("\r\n", "\n");
+        var scrobbling = File.ReadAllText(ScrobblingSource).Replace("\r\n", "\n");
         var window = File.ReadAllText(WindowSource).Replace("\r\n", "\n");
         var generated = "// Extracted verbatim from current production at build time; do not edit.\n#nullable enable\n" +
             "using System.ComponentModel;\nusing Momoka.Infrastructure;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\n" +
             "using Momoka.Emby;\nusing Momoka.MoviePilot;\nusing Momoka.Playback;\nusing Momoka.Services;\nusing Momoka.Updates;\n" +
-            "using Momoka.Shell.ViewModels;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.UI.Xaml;\n" +
+            "using Momoka.Shell.ViewModels;\nusing Momoka.Shell.Media;\nusing Momoka.Scrobbling;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.UI.Xaml;\n" +
             "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Windowing;\n" +
             "using Momoka.Shell.Interop;\nnamespace Momoka.Shell.Views;\n" +
             between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
@@ -55,6 +57,8 @@
             between(page, "    private bool Select(string category)", "\n    /// <summary>\n    /// What is really on screen") +
             between(page, "    internal object CurrentPage =>", "\n    /// <summary>\n    /// Drops whatever") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
+            between(scrobbling, "    private ScrobblingService? _scrobblingService;", "\n}") +
+            "    private Task ShowScrobblingRecordsAsync(ScrobblingProvider provider) => Task.CompletedTask;\n" +
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\ninternal sealed partial class SettingsWindow\n{\n" +
             between(window, "    private const string Category = \"设置窗口\";", "    private SettingsWindow(Window window, Frame frame, SolidColorBrush canvas, bool mica)") +
@@ -73,6 +77,7 @@
     <ExtractSettingsLifetimeSources
       PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs"
       AppearanceColorsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.AppearanceColors.cs"
+      ScrobblingSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.Scrobbling.cs"
       WindowSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsWindow.cs"
       OutputSource="$(IntermediateOutputPath)SettingsLifetime.g.cs" />
     <ItemGroup>

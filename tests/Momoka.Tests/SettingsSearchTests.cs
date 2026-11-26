@@ -16,6 +16,7 @@ internal static class SettingsSearchTests
 
     private static void Register(SettingsPageStateTests.ShellFixture fixture)
     {
+        SettingsScrobblingTests.RegisterSearch(fixture);
         TestHarness.Test("设置标题：每张卡都保留自己的标题", () =>
         {
             var home = fixture.NewRow("SettingSection", "主页", "主页", "说明", Rows(Fact("主页选项")));

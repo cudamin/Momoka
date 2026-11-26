@@ -73,6 +73,7 @@ public sealed partial class PlaybackService
                 if (!IsCurrent(attempt) || exitTask.IsCompleted) break;
                 if (position is not { } seconds || !double.IsFinite(seconds) || seconds < 0) continue;
                 attempt.HasStarted |= seconds > request.StartSeconds + 0.5;
+                attempt.Scrobbling?.Observe(seconds, seconds > request.StartSeconds + 0.5);
                 var ticks = TimeFormat.ToTicks(seconds);
                 Raise(ProgressChanged, new PlaybackProgress(ticks, request.RunTimeTicks, handle.IsPaused, request.Title, attempt.Generation) { AudioOnly = request.AudioOnly });
                 if (scope is not null && ShouldReportStop(ticks, request.RunTimeTicks, stopEnabled, stopPercent))
@@ -383,7 +384,32 @@ public sealed partial class PlaybackService
             Log.Info(Category, $"《{request.Title}》{result.ToChinese()}，位置 {TimeFormat.Clock(positionTicks)}");
             return result;
         }
-        finally { attempt.Reports.Release(); }
+        finally
+        {
+            attempt.Reports.Release();
+            await FinishScrobblingAsync(attempt, exit).ConfigureAwait(false);
+        }
+    }
+
+    private async Task FinishScrobblingAsync(PlayingAttempt attempt, PlaybackExit exit)
+    {
+        if (attempt.Scrobbling is not { } scrobbling) return;
+        double? position = exit.PositionSeconds is { } actual && double.IsFinite(actual) && actual >= 0 ? actual : null;
+        // Ending is already true; the playback gate still owns this file during final reporting.
+        if (position is null && ReferenceEquals(_active, attempt) && attempt.Scope is { IsAvailable: true } scope
+            && (attempt.Handle is not IFileScopedPlayerControl file || attempt.FileGeneration == file.FileGeneration))
+        {
+            try
+            {
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(scope.Lifetime);
+                deadline.CancelAfter(TimeSpan.FromSeconds(2));
+                position = await attempt.Handle.GetPositionAsync(deadline.Token).WaitAsync(deadline.Token).ConfigureAwait(false);
+            }
+            catch (Exception) { /* Unknown positions cannot complete a third-party record. */ }
+        }
+        // Never use ResolveFinalPosition: EOF intentionally fills the server timeline there.
+        await scrobbling.FinishAsync(position, attempt.HasStarted
+            || position is { } seconds && double.IsFinite(seconds) && seconds > attempt.Request.StartSeconds + 0.5).ConfigureAwait(false);
     }
 
     private static long ResolveFinalPosition(PlaybackExit exit, PlaybackRequest request, PlaybackTicket ticket)

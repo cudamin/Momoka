@@ -324,6 +324,29 @@ internal static class Program
             RemovedLocalMediaTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["scrobbling-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ScrobblingSettingsTests.Register();
+            ScrobblingServiceTests.Register();
+            ScrobblingPlaybackTests.Register();
+            ScrobblingBangumiTests.Register();
+            MoviePilotScrobblingTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["scrobbling-dom-scripts", var output])
+        {
+            File.WriteAllText(output, System.Text.Json.JsonSerializer.Serialize(new
+            {
+                LoginState = Momoka.Scrobbling.DoubanProtocol.LoginStateScript,
+                Metadata = Momoka.Scrobbling.DoubanProtocol.PrepareScript(8, "fixture-nonce"),
+                Search = Momoka.Scrobbling.DoubanProtocol.SearchScript("测试作品", "fixture-nonce"),
+                PrepareDoing = Momoka.Scrobbling.DoubanProtocol.PrepareMarkScript(8, false, "fixture-nonce"),
+                PrepareDone = Momoka.Scrobbling.DoubanProtocol.PrepareMarkScript(8, true, "fixture-nonce"),
+                Commit = Momoka.Scrobbling.DoubanProtocol.CommitScript("fixture-nonce")
+            }));
+            return 0;
+        }
         if (args is ["proxy-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -609,6 +632,11 @@ internal static class Program
         MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
+        ScrobblingSettingsTests.Register();
+        ScrobblingServiceTests.Register();
+        ScrobblingPlaybackTests.Register();
+        ScrobblingBangumiTests.Register();
+        MoviePilotScrobblingTests.Register();
         R10ReportingTests.Register();
         MediaVersionDiscoveryTests.Register();
         MediaSourceSizeTests.Register();

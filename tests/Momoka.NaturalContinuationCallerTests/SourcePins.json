@@ -25,7 +25,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
-      "sha256": "5e2ba14e8bfc64dfafad841e25d9b82f8567d7ca0837987e003e7a8eaa81da83"
+      "sha256": "041502547af1d7b49044f67a8ea4cefb4ce411aafce9250130caf81c3af434fd"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",

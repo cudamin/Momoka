@@ -14,6 +14,7 @@
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="Support\ShellRuntime.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\LifetimeFixture.cs" Link="Support\LifetimeFixture.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\DoubanSessionBoundary.cs" Link="Support\DoubanSessionBoundary.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\AppearanceColorFixture.cs" Link="Support\AppearanceColorFixture.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\ShellNavigationProbe.InputThemeFixture.cs" Link="Production\InputThemeFixture.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
@@ -55,6 +56,7 @@
         };
         var page = read("src/Momoka.Shell/Views/SettingsPage.xaml.cs");
         var colors = read("src/Momoka.Shell/Views/SettingsPage.AppearanceColors.cs");
+        var scrobbling = read("src/Momoka.Shell/Views/SettingsPage.Scrobbling.cs");
         var probe = read("src/Momoka.Shell/ShellNavigationProbe.Settings.cs");
         var motion = read("src/Momoka.Shell/ShellNavigationProbe.SettingsMotion.cs");
         var search = read("src/Momoka.Shell/ShellNavigationProbe.SettingsSearch.cs");
@@ -63,9 +65,9 @@
         var support = read("tests/Momoka.SettingsLifetimeTests/Program.cs");
         var usings = "#nullable enable\nusing System.Collections.Concurrent;\nusing System.ComponentModel;\nusing System.Reflection;\n" +
             "using Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nusing Momoka.Emby;\n" +
-            "using Momoka.Services;\nusing Momoka.Mpv;\nusing Momoka.Shell.ViewModels;\nusing Momoka.Shell.Views;\n" +
+            "using Momoka.Services;\nusing Momoka.Scrobbling;\nusing Momoka.Mpv;\nusing Momoka.Shell.ViewModels;\nusing Momoka.Shell.Views;\n" +
             "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media;\n" +
-            "using Microsoft.UI.Xaml.Automation.Peers;\nusing Microsoft.UI.Xaml.Automation.Provider;\nusing Microsoft.UI.Xaml.Navigation;\n";
+            "using Microsoft.UI.Xaml.Automation.Peers;\nusing Microsoft.UI.Xaml.Automation.Provider;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.Extensions.DependencyInjection;\n";
         var generated = "// Verbatim current-source contracts; do not edit generated output.\n" + usings +
             "namespace Momoka.Shell.Views\n{\n" +
             between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
@@ -74,6 +76,8 @@
             between(page, "    private async Task RefreshServerAdministrationAsync()", "\n    private void UpdateCategoryGroups()") +
             between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Ends this visit\u0027s reads") +
+            between(scrobbling, "    private ScrobblingService? _scrobblingService;", "    private async Task LoginDoubanAsync(") +
+            "    private Task ShowScrobblingRecordsAsync(ScrobblingProvider provider) => Task.CompletedTask;\n" +
             between(page, "    public void Release() => ReleaseHosted();", "\n") +
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +

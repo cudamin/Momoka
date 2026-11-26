@@ -746,7 +746,7 @@
       "arguments": [],
       "wrapper": null,
       "readme": "tests/Momoka.Tests/README.md",
-      "notes": "完整 Core 离线主套件；有匿名回环、子进程与同用户 SelfCheckRun mutex，须与其他诊断串行。"
+      "notes": "完整 Core 离线主套件，含打格子协议和播放状态；有匿名回环、子进程与同用户 SelfCheckRun mutex，须与其他诊断串行。"
     },
     {
       "id": "Momoka.TransferSubmissionTests",

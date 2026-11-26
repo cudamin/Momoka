@@ -443,6 +443,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         _activityToken = _activity.Begin();
         ViewModel.Activate();
         _request = request;
+        AttachScrobblingForVisit(request.Services.GetRequiredService<Momoka.Scrobbling.ScrobblingService>(),
+            LoginDoubanAsync, LogoutDoubanAsync);
         ViewModel.UseHomeLibraryDirectory(request.ReadLibraryDirectory);
         // Hide 后 XAML 仍可保持 Loaded；重开不能只等另一次 Loaded 才恢复动效偏好通知。
         HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
@@ -488,7 +490,8 @@ public sealed partial class SettingsPage : Page, IShellContent
 
                 // 「关于」卡上的图片缓存读数与清除：它数的是本机缓存目录，不是某台服务器，所以搬出了服务器页。
                 request.Services.GetRequiredService<EmbyImageStore>(),
-                request.Services.GetService(typeof(SubtitleTranslationCredentials)) as SubtitleTranslationCredentials);
+                request.Services.GetService(typeof(SubtitleTranslationCredentials)) as SubtitleTranslationCredentials,
+                request.Services.GetRequiredService<ISecretProtector>());
             ViewModel.UseHeroCacheClear(request.Services.GetRequiredService<Media.DetailHeroCache>().Clear);
             _ = ViewModel.ReloadAsync();
         }
@@ -786,6 +789,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     internal void ReleaseHosted()
     {
+        DismissScrobblingRecords();
+        StopScrobblingMonitoring();
         CancelAppearanceColors();
         // Hide 不触发 Frame.OnNavigatedFrom；先结束整页活动期，旧队列和 await 都不能重建内嵌页。
         _activity.Cancel();
