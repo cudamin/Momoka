@@ -15,12 +15,15 @@ namespace Momoka.Shell.Views;
 public sealed partial class ShellPage
 {
     private const double SidebarWideThreshold = 1008;
+    private const double SidebarMinimalThreshold = 641;
     private readonly Dictionary<string, NavigationViewItem> _sidebarLibraries = new(StringComparer.Ordinal);
     private CompositeTransform? _sidebarPaneClip;
     private bool _sidebarMode;
     private bool _sidebarPlaying;
     private bool _sidebarTitleLayoutPending;
     private bool _syncingSidebar;
+
+    private bool MinimalSidebar => double.IsFinite(ActualWidth) && ActualWidth > 0 && ActualWidth < SidebarMinimalThreshold;
 
     /// <summary>
     /// 进侧边栏模式时还没量到宽度（<c>Loaded</c> 那一刻 ActualWidth 是 0），而且用户还没有存过开合选择时，
@@ -285,8 +288,7 @@ public sealed partial class ShellPage
         // 栏里第一项就是「主页」、收藏那条也在栏里 —— 同一页不出两个同样的入口。
         HomeButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
         SettingsButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
-        TitleUtilities.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
-        // 搜索框（标题栏正中）与那一排里的放大镜：门槛与顶班规则在 SyncTitleSearch 里。
+        // 搜索框（标题栏正中）与工具排的放大镜（含 TitleUtilities 容器显隐）：门槛与顶班规则在 SyncTitleSearch 里。
         SyncTitleSearch();
         // 主页、返回与前进每一档都在；设置、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
         // 搜索 2026-11-13 起只在标题栏正中那颗框里，栏里不再有第二份入口。
@@ -329,9 +331,12 @@ public sealed partial class ShellPage
 
     private void ApplySidebarLayout()
     {
-        // This control only hosts the menu. Explicitly select compact presentation
-        // when its host shrinks, and retain persistent navigation while expanded.
-        var mode = Sidebar.IsPaneOpen ? NavigationViewPaneDisplayMode.Left : NavigationViewPaneDisplayMode.LeftCompact;
+        // This control only hosts the menu. Explicitly select LeftMinimal (< 641 DIP)
+        // or Left / LeftCompact (>= 641 DIP) according to width and pane state.
+        var minimal = MinimalSidebar;
+        var mode = minimal ? NavigationViewPaneDisplayMode.LeftMinimal
+            : Sidebar.IsPaneOpen ? NavigationViewPaneDisplayMode.Left
+            : NavigationViewPaneDisplayMode.LeftCompact;
         if (Sidebar.PaneDisplayMode != mode)
         {
             Sidebar.PaneDisplayMode = mode;
@@ -342,18 +347,24 @@ public sealed partial class ShellPage
         }
         AlignSidebarPaneClip();
         var shown = SidebarShown;
-        if (!shown || Sidebar.IsPaneOpen) HideLibraryPreview();
-        var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
+        if (!shown || Sidebar.IsPaneOpen || minimal) HideLibraryPreview();
+        var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : minimal ? 0 : Sidebar.CompactPaneLength : 0;
+        SidebarHost.Visibility = shown && (!minimal || Sidebar.IsPaneOpen) ? Visibility.Visible : Visibility.Collapsed;
         SidebarHost.Width = width;
-        // 拖动条只跟着展开档走：收成 56 的图标栏没有可拖宽的一档，开合仍归标题栏那颗折叠键。
+        var minimalOpen = shown && minimal && Sidebar.IsPaneOpen;
+        SidebarOverlayBackdrop.Visibility = minimalOpen ? Visibility.Visible : Visibility.Collapsed;
+        SidebarDismissScrim.Visibility = minimalOpen ? Visibility.Visible : Visibility.Collapsed;
+        // 拖动条只跟着非窄窗展开档走：收成 56 的图标栏或 Minimal 覆盖抽屉都不支持拖宽，开合仍归折叠键。
         // 它整个站在内容区一侧（左沿 = 栏的右沿），所以栏里的条目与滚动条照旧拿得到命中。
         var resizable = shown && Sidebar.IsPaneOpen;
+        if (minimal) resizable = false;
         if (!resizable && _resizingSidebar) EndSidebarResize(persist: false);
         SidebarResizeGrip.Visibility = resizable ? Visibility.Visible : Visibility.Collapsed;
         if (resizable) SidebarResizeGrip.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
         // 商店模式让画布与页面一起避开标题栏，让标题栏那一条（与栏同色的 TitleBarBackground）整条露出；
-        // 沉浸模式恢复旧版画布铺入标题栏、页内用 Padding 让位的排法。两档页面起点相同，切换不把顶端控件压进标题栏。
-        ContentHost.Margin = new Thickness(width, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);
+        // Minimal 抽屉浮在内容区之上，不挤压内容宽度；沉浸模式恢复画布铺入标题栏、页内 Padding 让位。
+        var contentLeft = minimal ? 0 : width;
+        ContentHost.Margin = new Thickness(contentLeft, _sidebarMode ? HomePage.ChromeHeight : 0, 0, 0);
         ContentHost.Padding = new Thickness(0, _sidebarMode ? 0 : HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();
 
@@ -608,6 +619,7 @@ public sealed partial class ShellPage
         if (tag == "settings")
         {
             ShowSettings();
+            if (MinimalSidebar && Sidebar.IsPaneOpen) Sidebar.IsPaneOpen = false;
             return;
         }
         // Invoking the selected home item must still retry a failed directory request.
@@ -618,6 +630,7 @@ public sealed partial class ShellPage
             if (_librariesFailed) _ = RetryLibrariesAsync();
         }
         SyncSidebar();
+        if (MinimalSidebar && Sidebar.IsPaneOpen) Sidebar.IsPaneOpen = false;
     }
 
     private void OnSidebarSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -626,5 +639,21 @@ public sealed partial class ShellPage
             || tag == "settings") return;
         SuppressLibraryPreview(args.SelectedItem as NavigationViewItem);
         GoTo(tag);
+        if (MinimalSidebar && Sidebar.IsPaneOpen) Sidebar.IsPaneOpen = false;
+    }
+
+    private void OnSidebarDismissPointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (!SidebarShown || !MinimalSidebar || !Sidebar.IsPaneOpen) return;
+        Sidebar.IsPaneOpen = false;
+        e.Handled = true;
+    }
+
+    private void OnSidebarHostKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != Windows.System.VirtualKey.Escape || !SidebarShown || !MinimalSidebar || !Sidebar.IsPaneOpen) return;
+        Sidebar.IsPaneOpen = false;
+        NavToggleButton.Focus(FocusState.Keyboard);
+        e.Handled = true;
     }
 }

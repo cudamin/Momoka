@@ -109,15 +109,17 @@ internal static class ToolbarIconTests
             Assert.Equal("Collapsed", box.Attribute("Visibility")?.Value);
             Assert.Equal("搜索媒体库、订阅等", box.Attribute("PlaceholderText")?.Value);
         });
-        TestHarness.Test("标题栏搜索：商店侧栏使用居中框，搜索页收起，沉浸宽窄窗口恢复左上放大镜", () =>
+        TestHarness.Test("标题栏搜索：商店侧栏宽窗使用居中框、窄窗放开左上放大镜，搜索页均收起", () =>
         {
             var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
             var method = source[source.IndexOf("    private void SyncTitleSearch()", StringComparison.Ordinal)..];
             method = method[..method.IndexOf("\n    }", StringComparison.Ordinal)];
-            Assert.Contains("SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700", method);
-            Assert.Contains("var visible = shown && TitleSearchPage is null", method);
-            Assert.Contains("TitleSearchBox.Visibility = visible ? Visibility.Visible : Visibility.Collapsed", method);
-            Assert.Contains("SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible", method);
+            Assert.Contains("SidebarShown && Chrome.Visibility == Visibility.Visible && TitleSearchPage is null", method);
+            Assert.Contains("ActualWidth >= 700", method);
+            Assert.Contains("ActualWidth < 700", method);
+            Assert.Contains("TitleSearchBox.Visibility =", method);
+            Assert.Contains("SearchButton.Visibility =", method);
+            Assert.Contains("TitleUtilities.Visibility =", method);
             Assert.DoesNotContain("1000", method);
             var search = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.Search.cs"));
             Assert.Contains("TitleSearchTransition.Prepare(ContentFrame, TitleSearchBox)", search);

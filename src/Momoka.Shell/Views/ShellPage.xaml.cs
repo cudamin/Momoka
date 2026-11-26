@@ -145,8 +145,20 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private readonly SolidColorBrush _titleInk = new();
 
-    /// <summary>无底板按钮的悬停与按下前景；高对比度下跟随系统文字色。</summary>
+    /// <summary>标题按钮的悬停与按下前景；高对比度下配合高亮底板使用 HighlightText。</summary>
     private readonly SolidColorBrush _titleInkHover = new();
+
+    /// <summary>标题按钮禁用态前景：平底使用 EgTextFaintBrush，暗罩压图使用淡白，高对比度跟随 GrayText。</summary>
+    private readonly SolidColorBrush _titleInkDisabled = new();
+
+    /// <summary>标题按钮与账号按钮的悬停/按下半透明圆角底板；高对比度切到系统 Highlight。</summary>
+    private readonly SolidColorBrush _titleOverlayHover = new();
+
+    /// <inheritdoc cref="_titleOverlayHover"/>
+    private readonly SolidColorBrush _titleOverlayPressed = new();
+
+    private bool _accountPointerOver;
+    private bool _accountPointerPressed;
 
     /// <summary>
     /// 账号那一组（账号 + 设置）的墨。和 <see cref="_titleInk"/> 分开两支：它 2026-10-13 起在侧边栏模式里
@@ -297,22 +309,26 @@ public sealed partial class ShellPage : UserControl, IShellActions
         }
     }
 
-    /// <summary>两侧标题按钮所有状态均透明，前景和图标缩放提供反馈；原生焦点框仍由 Button 保留。</summary>
+    /// <summary>标题按钮静止/禁用底板保持透明，悬停和按下叠半透明圆角底板；原生焦点框仍由 Button 保留。</summary>
     private void PaintTitleActions()
     {
         var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         foreach (var key in new[]
         {
-            "ButtonBackground", "ButtonBackgroundPointerOver", "ButtonBackgroundPressed",
-            "ButtonBackgroundDisabled", "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed",
-            "ButtonBorderBrushDisabled"
+            "ButtonBackground", "ButtonBackgroundDisabled",
+            "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed", "ButtonBorderBrushDisabled"
         })
         {
             Chrome.Resources[key] = transparent;
-            // 账号那一组现在是 Root 的孩子（见 AccountCluster）：它不在 Chrome 的树下，那几支透明底要
-            // 在它自己这一层再说一遍，否则它一悬停就铺出一块默认灰底，和旁边那几颗不一样。
+            // 账号那一组现在是 Root 的孩子（见 AccountCluster）：它不在 Chrome 的树下，状态资源要在
+            // 它自己这一层同步写入，否则它一悬停就铺出一块默认灰底，和旁边那几颗不一样。
             AccountCluster.Resources[key] = transparent;
         }
+
+        Chrome.Resources["ButtonBackgroundPointerOver"] = _titleOverlayHover;
+        Chrome.Resources["ButtonBackgroundPressed"] = _titleOverlayPressed;
+        AccountCluster.Resources["ButtonBackgroundPointerOver"] = _titleOverlayHover;
+        AccountCluster.Resources["ButtonBackgroundPressed"] = _titleOverlayPressed;
     }
 
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
@@ -330,25 +346,45 @@ public sealed partial class ShellPage : UserControl, IShellActions
             button.KeyUp += OnTitleKeyUp;
             button.IsEnabledChanged += (_, _) =>
             {
-                if (!button.IsEnabled) ScaleTitleButton(button, 1, animate: false);
+                if (!button.IsEnabled)
+                {
+                    ScaleTitleButton(button, 1, animate: false);
+                    if (ReferenceEquals(button, AccountButton)) SetAccountState(over: false, pressed: false);
+                }
             };
-            button.Unloaded += (_, _) => ScaleTitleButton(button, 1, animate: false);
+            button.Unloaded += (_, _) =>
+            {
+                ScaleTitleButton(button, 1, animate: false);
+                if (ReferenceEquals(button, AccountButton)) SetAccountState(over: false, pressed: false);
+            };
         }
     }
 
     private void OnTitlePointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is Button { IsEnabled: true } button) ScaleTitleButton(button, 1.08f);
+        if (sender is Button { IsEnabled: true } button)
+        {
+            ScaleTitleButton(button, 1.08f);
+            if (ReferenceEquals(button, AccountButton)) SetAccountState(over: true, pressed: _accountPointerPressed);
+        }
     }
 
     private void OnTitlePointerExited(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is Button button && !InsideTitleButton(button, e)) ScaleTitleButton(button, 1);
+        if (sender is Button button && !InsideTitleButton(button, e))
+        {
+            ScaleTitleButton(button, 1);
+            if (ReferenceEquals(button, AccountButton)) SetAccountState(over: false, pressed: false);
+        }
     }
 
     private void OnTitlePointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is Button { IsEnabled: true } button) ScaleTitleButton(button, 0.9f);
+        if (sender is Button { IsEnabled: true } button)
+        {
+            ScaleTitleButton(button, 0.9f);
+            if (ReferenceEquals(button, AccountButton)) SetAccountState(over: true, pressed: true);
+        }
     }
 
     private void OnTitlePointerReleased(object sender, PointerRoutedEventArgs e)
@@ -358,25 +394,45 @@ public sealed partial class ShellPage : UserControl, IShellActions
             && e.Pointer.PointerDeviceType == PointerDeviceType.Mouse
             && InsideTitleButton(button, e);
         ScaleTitleButton(button, hover ? 1.08f : 1);
+        if (ReferenceEquals(button, AccountButton)) SetAccountState(over: hover, pressed: false);
     }
 
     private void OnTitlePointerCanceled(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is Button button) ScaleTitleButton(button, 1);
+        if (sender is Button button)
+        {
+            ScaleTitleButton(button, 1);
+            if (ReferenceEquals(button, AccountButton)) SetAccountState(over: false, pressed: false);
+        }
     }
 
     private void OnTitleKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (sender is Button { IsEnabled: true } button &&
             e.Key is Windows.System.VirtualKey.Space or Windows.System.VirtualKey.Enter)
+        {
             ScaleTitleButton(button, 0.9f);
+            if (ReferenceEquals(button, AccountButton)) SetAccountState(over: _accountPointerOver, pressed: true);
+        }
     }
 
     private void OnTitleKeyUp(object sender, KeyRoutedEventArgs e)
     {
         if (sender is Button button &&
             e.Key is Windows.System.VirtualKey.Space or Windows.System.VirtualKey.Enter)
+        {
             ScaleTitleButton(button, 1);
+            if (ReferenceEquals(button, AccountButton)) SetAccountState(over: _accountPointerOver, pressed: false);
+        }
+    }
+
+    private void SetAccountState(bool over, bool pressed)
+    {
+        if (_accountPointerOver == over && _accountPointerPressed == pressed) return;
+        _accountPointerOver = over;
+        _accountPointerPressed = pressed;
+        SyncAccountInk(new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast,
+            _titleStrip == TitleStrip.OnScrim);
     }
 
     private static bool InsideTitleButton(Button button, PointerRoutedEventArgs e)
@@ -450,7 +506,26 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
         _titleInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextBrush");
-        _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
+        _titleInkHover.Color = Ink(highContrast ? "SystemColorHighlightTextColor" : "EgAccentBrush");
+        if (highContrast)
+        {
+            _titleInkDisabled.Color = Ink("SystemColorGrayTextColor");
+            _titleOverlayHover.Color = Ink("SystemColorHighlightColor");
+            _titleOverlayPressed.Color = Ink("SystemColorHighlightColor");
+        }
+        else if (onScrim)
+        {
+            var scrim = Ink("EgOnScrimBrush");
+            _titleInkDisabled.Color = Windows.UI.Color.FromArgb(0x66, scrim.R, scrim.G, scrim.B);
+            _titleOverlayHover.Color = Windows.UI.Color.FromArgb(0x23, 0xFF, 0xFF, 0xFF);
+            _titleOverlayPressed.Color = Windows.UI.Color.FromArgb(0x37, 0xFF, 0xFF, 0xFF);
+        }
+        else
+        {
+            _titleInkDisabled.Color = Ink("EgTextFaintBrush");
+            _titleOverlayHover.Color = Ink("EgOverlayHoverBrush");
+            _titleOverlayPressed.Color = Ink("EgOverlayPressedBrush");
+        }
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
         AppTitleLabel.Foreground = _titleInk;
 
@@ -459,39 +534,47 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 有图（OnScrim）与页面自己洗过（PagePainted）两档本来就不涂，现在三种页型一致。
         TrailBar.Background = null;
 
-        // 状态画刷对象保持不变，主题切换只修改颜色；悬停以图标前景反馈，不铺背景。停用那一档也指回
-        // 静止那支（见 _titleInk 的注释）：走不动的箭头不再变淡。
+        // 状态画刷对象保持不变，主题、高对比度与悬停状态通过颜色原位更新。
         AppTitleBar.Resources["ButtonForeground"] = _titleInk;
         AppTitleBar.Resources["ButtonForegroundPointerOver"] = _titleInkHover;
         AppTitleBar.Resources["ButtonForegroundPressed"] = _titleInkHover;
-        AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInk;
+        AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInkDisabled;
 
-        // 账号那几样直接写在元素上，不走键：那行字一个走 FontWeight、一个走 EgDataStyle，而样式自己设了
-        // Foreground —— 写在元素上的值压得过样式里的 setter，写进字典里的键则压不过。
-        //
-        // 它自己那两支墨（见 _accountInk）：2026-11-13 起这颗两种模式都在标题栏右上角，压在那一层材质上，
-        // 有剧照那几页就跟着浅墨走 —— 不再有「在栏里、压栏底色」那一档。
-        var accountOnScrim = onScrim;
-        _accountInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : accountOnScrim ? "EgOnScrimBrush" : "EgTextBrush");
-        _accountInkDim.Color = Ink(highContrast ? "SystemColorWindowTextColor" : accountOnScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
-        AccountUser.Foreground = _accountInk;
-        AccountDot.Foreground = _accountInkDim;
-        AccountServer.Foreground = _accountInkDim;
-        AccountChevron.Foreground = _accountInkDim;
-        AccountGlyph.Foreground = _accountInk;
+        SyncAccountInk(highContrast, onScrim);
         // 栏底那颗设置（页脚项）不在这里涂：它的墨归 NavigationViewItemForeground，见 Palette.xaml。
 
         // 系统那三颗归窗口画：它们不在这棵树上，是 Win32 的非客户区。洗过那一档跟着「不在图上」走 ——
         // 那时它们压的是页面洗出来的正文底色，白墨在一套浅色主题上就没了。
         _window?.SetCaptionOnScrim(onScrim);
-
-        static Windows.UI.Color Ink(string key) => Application.Current.Resources[key] switch
-        {
-            SolidColorBrush brush => brush.Color,
-            Windows.UI.Color color => color,
-            _ => Microsoft.UI.Colors.White
-        };
     }
+
+    private void SyncAccountInk(bool highContrast, bool onScrim)
+    {
+        // 账号那几样直接写在元素上，不走键：高对比度悬停/按下匹配 HighlightText，确保对比度。
+        if (highContrast && (_accountPointerOver || _accountPointerPressed))
+        {
+            var highlightText = Ink("SystemColorHighlightTextColor");
+            _accountInk.Color = highlightText;
+            _accountInkDim.Color = highlightText;
+        }
+        else
+        {
+            _accountInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextBrush");
+            _accountInkDim.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
+        }
+        AccountUser.Foreground = _accountInk;
+        AccountDot.Foreground = _accountInkDim;
+        AccountServer.Foreground = _accountInkDim;
+        AccountChevron.Foreground = _accountInkDim;
+        AccountGlyph.Foreground = _accountInk;
+    }
+
+    private static Windows.UI.Color Ink(string key) => Application.Current.Resources[key] switch
+    {
+        SolidColorBrush brush => brush.Color,
+        Windows.UI.Color color => color,
+        _ => Microsoft.UI.Colors.White
+    };
 
     /// <summary>
     /// The settings document, for the three places routing reads it: the auto-login decision, the server
@@ -2406,14 +2489,27 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void SyncTitleSearch()
     {
-        var shown = SidebarShown && Chrome.Visibility == Visibility.Visible && ActualWidth >= 700;
-        // 搜索页的输入在内容区（标题框点进来的那一只已经移到那里），标题栏这颗在这一页收起，离开再出现。
-        var visible = shown && TitleSearchPage is null;
-        TitleSearchBox.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
+        var searchBoxArea = SidebarShown && Chrome.Visibility == Visibility.Visible && TitleSearchPage is null;
+        var shown = searchBoxArea && ActualWidth >= 700;
+        var searchBoxVisibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        var buttonShown = !SidebarShown || (searchBoxArea && ActualWidth < 700);
+        var buttonVisibility = buttonShown ? Visibility.Visible : Visibility.Collapsed;
+        var utilitiesVisibility = !SidebarShown || buttonShown ? Visibility.Visible : Visibility.Collapsed;
+        var layoutChanged = TitleSearchBox.Visibility != searchBoxVisibility
+            || SearchButton.Visibility != buttonVisibility
+            || TitleUtilities.Visibility != utilitiesVisibility;
 
-        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，没有栏里的搜索）。
-        SearchButton.Visibility = SidebarShown ? Visibility.Collapsed : Visibility.Visible;
+        TitleSearchBox.Visibility = searchBoxVisibility;
+        if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
+        // 窄窗（< 700px）侧边栏模式下正中搜索框收起，放开标题栏左排放大镜；搜索页自身已有输入框时收起。
+        SearchButton.Visibility = buttonVisibility;
+        TitleUtilities.Visibility = utilitiesVisibility;
+
+        if (layoutChanged)
+        {
+            _sidebarTitleLayoutPending = true;
+            ReportTitleBarHoles();
+        }
     }
 
     /// <summary>
