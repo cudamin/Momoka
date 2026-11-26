@@ -19,6 +19,7 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
     private MoviePilotSettings? _settings;
     private IReadOnlyList<CalendarCard> _entries = [];
     private IReadOnlyList<CalendarCard> _visibleEntries = [];
+    private (CalendarSource Source, DateOnly Month, long Revision)? _entryWindow;
     private int _mediaType;
     private long _moviePilotRevision;
     private long _aniBtRevision;
@@ -29,6 +30,7 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
     internal DateOnly SelectedDate { get; private set; } = DateOnly.FromDateTime(DateTime.Today);
     internal IReadOnlyList<CalendarCard> Entries => _visibleEntries;
     internal CalendarSource Source { get; private set; }
+    internal long SourceRevision => Revision(Source);
 
     internal static bool HasMoviePilot(MoviePilotService? service, MoviePilotSettings settings) =>
         settings.CalendarEnabled && service?.Available == true;
@@ -99,53 +101,89 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
     {
         var source = Source;
         if (!IsAvailable(source)) return;
-        var token = BeginLoad();
-        var revision = _loadedRevision = Revision(source);
-        var (start, end) = MoviePilotCalendarLayout.Window(Month);
-
-        // 上次成功读取留下的同一窗口先摆上屏。仍在读最新安排，所以 Busy 保持——用户看到的是旧内容加一条进度，
-        // 而不是空白页；网络失败时这份旧内容也继续留着，不会因为一次刷新失败把整月清空。
-        _entries = source == CalendarSource.MoviePilot && _service?.CachedCalendar(start, end) is { } cached
-            ? cached.Select(entry => new CalendarCard(entry.Date, entry, null)).ToArray()
-            : [];
-        UpdateEntries();
-        Changed?.Invoke();
+        var month = Month;
+        var revision = Revision(source);
+        var token = BeginLoad(_ => _loadedRevision = revision);
+        if (!IsCurrent(token)) return;
         try
         {
+            if (!CanPublish()) return;
+            var (start, end) = MoviePilotCalendarLayout.Window(month);
+            var window = (source, month, revision);
+            if (_entryWindow != window)
+            {
+                // 新窗口先显示同连接的缓存。同窗口刷新继续使用已有条目，保留展开状态与滚动位置。
+                _entryWindow = window;
+                _entries = source == CalendarSource.MoviePilot && _service?.CachedCalendar(start, end) is { } cached
+                    ? cached.Select(entry => new CalendarCard(entry.Date, entry, null)).ToArray()
+                    : [];
+                UpdateEntries();
+            }
+            Changed?.Invoke();
+            if (!CanPublish()) return;
+
             if (source == CalendarSource.MoviePilot && _service is { } service)
             {
-                var entries = await service.CalendarAsync(start, end, token);
-                if (!CanPublish() || entries.Any(entry => !service.IsCurrentConnection(entry.ConnectionStamp))) return;
-                _entries = entries.Select(entry => new CalendarCard(entry.Date, entry, null)).ToArray();
+                var first = _entries.Count == 0
+                    ? new TaskCompletionSource<IReadOnlyList<MoviePilotCalendarEntry>>(TaskCreationOptions.RunContinuationsAsynchronously)
+                    : null;
+                var read = service.CalendarAsync(start, end, token, first is null ? null : entries => first.TrySetResult(entries));
+                IReadOnlyList<MoviePilotCalendarEntry>? shown = null;
+                if (first is not null && !read.IsCompleted && await Task.WhenAny(read, first.Task) == first.Task)
+                {
+                    var schedule = await first.Task;
+                    if (CanPublishMoviePilot(schedule, service))
+                    {
+                        SetMoviePilotEntries(schedule);
+                        shown = schedule;
+                        Changed?.Invoke();
+                    }
+                }
+                var entries = await read;
+                if (!ReferenceEquals(entries, shown) && CanPublishMoviePilot(entries, service))
+                    SetMoviePilotEntries(entries);
             }
             else if (_aniBt is { } client)
             {
                 var result = await client.CalendarAsync(start, end, token);
                 if (!CanPublish()) return;
                 _entries = result.Entries.Select(entry => new CalendarCard(entry.Date, null, entry)).ToArray();
+                UpdateEntries();
                 if (result.PartialFailure || result.Truncated)
                 {
                     var message = result.PartialFailure
                         ? "部分季度读取失败，请点击刷新重试。"
                         : "AniBT 返回的季度结果达到上限，部分番剧可能未列出。";
-                    Notify(UiText.Translate("AniBT 日历数据不完整"), UiText.Translate(message), InfoBarSeverity.Warning);
+                    Notify(UiText.Translate("AniBT 日历数据不完整"), UiText.Translate(message), InfoBarSeverity.Warning,
+                        result.PartialFailure ? UiText.Translate("重试") : null,
+                        result.PartialFailure ? () => _ = ReloadAsync() : null);
                 }
             }
-            UpdateEntries();
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
             if (CanPublish()) Notify(UiText.Translate("日历读取失败"),
-                UiText.Format("{0}。请点击刷新重试。", Momoka.Diagnostics.Failure.Describe(error).TrimEnd('。')), InfoBarSeverity.Error);
+                UiText.Format("{0}。请点击刷新重试。", Momoka.Diagnostics.Failure.Describe(error).TrimEnd('。')), InfoBarSeverity.Error,
+                UiText.Translate("重试"), () => _ = ReloadAsync());
         }
         finally
         {
+            if (IsCurrent(token) && !CanPublish()) ClearEntries();
             EndLoad(token);
             if (IsCurrent(token)) Changed?.Invoke();
         }
 
-        bool CanPublish() => IsCurrent(token) && revision == Revision(source) && IsAvailable(source);
+        bool CanPublish() => IsCurrent(token) && Month == month && Source == source && revision == Revision(source) && IsAvailable(source);
+
+        bool CanPublishMoviePilot(IReadOnlyList<MoviePilotCalendarEntry> entries, MoviePilotService service) =>
+            CanPublish() && (entries.Count == 0 || service.IsCurrentConnection(entries[0].ConnectionStamp));
+    }
+
+    private void SetMoviePilotEntries(IReadOnlyList<MoviePilotCalendarEntry> entries)
+    {
+        _entries = entries.Select(entry => new CalendarCard(entry.Date, entry, null)).ToArray();
+        UpdateEntries();
     }
 
     internal void MoveMonth(int delta)
@@ -160,7 +198,13 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
     internal void Today()
     {
         SelectedDate = DateOnly.FromDateTime(DateTime.Today);
-        Month = MoviePilotCalendarLayout.Month(SelectedDate);
+        var month = MoviePilotCalendarLayout.Month(SelectedDate);
+        if (Month == month)
+        {
+            Changed?.Invoke();
+            return;
+        }
+        Month = month;
         _ = ReloadAsync();
     }
 
@@ -173,6 +217,12 @@ public sealed class MoviePilotCalendarViewModel : PageViewModel
     public override void Cancel()
     {
         base.Cancel();
+        ClearEntries();
+    }
+
+    private void ClearEntries()
+    {
+        _entryWindow = null;
         _entries = [];
         UpdateEntries();
     }

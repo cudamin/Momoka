@@ -16,6 +16,7 @@ public static class ShellProbeSections
     public const string Person = "person";
     public const string Search = "search";
     public const string MoviePilot = "moviepilot";
+    public const string Calendar = "calendar";
     public const string AniBt = "anibt";
     public const string Accounts = "accounts";
     public const string Covers = "covers";
@@ -35,7 +36,7 @@ public static class ShellProbeSections
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, DetailCards, Person, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, JellyfinUpload, Music, Motion, FnNasSubtitles,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, DetailCards, Person, Search, MoviePilot, Calendar, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, JellyfinUpload, Music, Motion, FnNasSubtitles,
     ];
 
     public static bool IsKnown(string name) =>

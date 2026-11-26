@@ -2077,6 +2077,12 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="MissingEpisodesDialog_MissingAniBt.Text" xml:space="preserve">
     <value>Search using the AniBT API</value>
   </data>
+  <data name="MoviePilotCalendarPage_CalendarSources.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Calendar source</value>
+  </data>
+  <data name="MoviePilotCalendarPage_MediaType.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Media type</value>
+  </data>
   <data name="MoviePilotCalendarPage_MoviePilotSource.Content" xml:space="preserve">
     <value>MoviePilot subscriptions</value>
   </data>

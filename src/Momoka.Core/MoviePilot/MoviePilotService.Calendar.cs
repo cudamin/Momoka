@@ -25,8 +25,14 @@ public sealed partial class MoviePilotService
         identity.ApiBase.AbsoluteUri + "\n" + identity.Username;
 
     /// <summary>读取左闭右开的真实播出日窗口。关闭入口、取消或连接换代后不交付旧结果。</summary>
-    public async Task<IReadOnlyList<MoviePilotCalendarEntry>> CalendarAsync(
-        DateOnly start, DateOnly endExclusive, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<MoviePilotCalendarEntry>> CalendarAsync(
+        DateOnly start, DateOnly endExclusive, CancellationToken cancellationToken = default) =>
+        CalendarAsync(start, endExclusive, cancellationToken, null);
+
+    /// <summary>完整日期窗口可在补查可选入库统计前交付；返回值仍包含最终统计。</summary>
+    internal async Task<IReadOnlyList<MoviePilotCalendarEntry>> CalendarAsync(
+        DateOnly start, DateOnly endExclusive, CancellationToken cancellationToken,
+        Action<IReadOnlyList<MoviePilotCalendarEntry>>? scheduleReady)
     {
         if (endExclusive.DayNumber - start.DayNumber is not (> 0 and <= 93))
             throw new ArgumentOutOfRangeException(nameof(endExclusive), "日历日期窗口必须大于 0 且不超过 93 天");
@@ -61,24 +67,39 @@ public sealed partial class MoviePilotService
                     throw new MoviePilotException("MoviePilot 日历分页没有前进，请刷新重试");
             }
 
+            var schedule = entries.Values.OrderBy(entry => entry.Date).ThenBy(entry => entry.Title, StringComparer.Ordinal)
+                .ThenBy(entry => entry.SubscriptionId).ToArray();
             // lack_episode 是下载进度；只有文件统计中的 library 才能确认某一集已入库。
             var library = new ConcurrentDictionary<int, MoviePilotCalendarLibrarySnapshot>();
-            var candidates = entries.Values.Where(entry => entry.Type == "电视剧" && entry.Episodes.Count > 0)
+            var candidates = schedule.Where(entry => entry.Type == "电视剧" && entry.Episodes.Count > 0)
                 .DistinctBy(entry => entry.SubscriptionId).ToArray();
-            await Parallel.ForEachAsync(candidates, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = token }, async (entry, readToken) =>
-            {
-                try
-                {
-                    var path = "subscribe/files/" + entry.SubscriptionId.ToString(CultureInfo.InvariantCulture);
-                    var data = await CallAsync((address, session, client) => client.GetAsync(address, session, path, readToken), readToken, identity)
-                        .ConfigureAwait(false);
-                    library[entry.SubscriptionId] = MoviePilotCalendar.LibraryEpisodes(data, entry);
-                }
-                catch (OperationCanceledException) { throw; }
-                catch (MoviePilotException error) when (!ConnectionFailed(error)) { /* 可选统计失败时保留未知，不猜入库集。 */ }
-            }).ConfigureAwait(false);
             CheckIdentity(identity, token);
-            var result = entries.Values.Select(entry => library.TryGetValue(entry.SubscriptionId, out var snapshot)
+            if (candidates.Length > 0)
+            {
+                scheduleReady?.Invoke(schedule);
+                await Parallel.ForEachAsync(candidates, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = token }, async (entry, readToken) =>
+                {
+                    var availabilityRevision = Interlocked.Read(ref _availabilityRevision);
+                    try
+                    {
+                        var path = "subscribe/files/" + entry.SubscriptionId.ToString(CultureInfo.InvariantCulture);
+                        var data = await CallWithSessionAsync((address, session, client) => client.GetAsync(address, session, path, readToken), readToken, identity)
+                            .ConfigureAwait(false);
+                        library[entry.SubscriptionId] = MoviePilotCalendar.LibraryEpisodes(data, entry);
+                    }
+                    catch (MoviePilotException error) when (error.Status == HttpStatusCode.Unauthorized)
+                    {
+                        SetAvailable(identity, availabilityRevision, false);
+                        throw;
+                    }
+                    catch (MoviePilotException)
+                    {
+                        // 可选统计读不到时，该剧显示未知；已读日程和其他订阅仍可使用。
+                    }
+                }).ConfigureAwait(false);
+            }
+            CheckIdentity(identity, token);
+            var result = library.IsEmpty ? schedule : schedule.Select(entry => library.TryGetValue(entry.SubscriptionId, out var snapshot)
                     ? entry with
                     {
                         Episodes = entry.Episodes.Select(episode => episode with { IsInLibrary = snapshot.Episodes.Contains(episode.Number) }).ToArray(),
@@ -86,8 +107,7 @@ public sealed partial class MoviePilotService
                         LibraryTotalEpisodes = snapshot.TotalEpisodes,
                         LastUpdate = snapshot.LastUpdate.Length > 0 ? snapshot.LastUpdate : entry.LastUpdate
                     }
-                    : entry)
-                .OrderBy(entry => entry.Date).ThenBy(entry => entry.Title, StringComparer.Ordinal).ThenBy(entry => entry.SubscriptionId).ToArray();
+                    : entry).ToArray();
 
             // 读成功后立刻落本地：翻月、退出应用之后下次进来先显示这一份，再向 MoviePilot 要最新的。
             _calendarCache?.Write(CalendarCacheConnection(identity), start, endExclusive, result);

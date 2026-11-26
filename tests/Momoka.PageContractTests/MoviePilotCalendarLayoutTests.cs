@@ -70,18 +70,19 @@ internal static class MoviePilotCalendarLayoutTests
             Assert.Equal(0, MoviePilotCalendarLayout.VisibleCount(-1, expanded: true));
         });
 
-        Test("日历自适应：窄格海报等比收紧并在文字上方重排", () =>
+        Test("日历自适应：海报随列宽重排，极窄时给标题让出整列", () =>
         {
-            foreach (var width in new[] { 0d, 20, 42, 60, 99, 100, 149.9, 150, 179.9, 180, 200, 400 })
+            foreach (var width in new[] { 0d, 20, 42, 61.9, 62, 63, 99, 100, 119.9, 120, 121, 149.9, 150, 179.9, 180, 200, 400 })
             {
                 var layout = MoviePilotCalendarLayout.FitCard(width);
-                Assert.Equal(width < 150, layout.Stacked);
+                Assert.Equal(width < 120, layout.Stacked);
+                Assert.Equal(width < 62, layout.PosterWidth == 0);
                 Assert.True(layout.PosterWidth >= 0 && layout.PosterWidth <= 56);
                 Assert.True(layout.PosterWidth + (2 * layout.Padding) <= Math.Max(width, 2 * layout.Padding));
                 if (!layout.Stacked) Assert.True(layout.PosterWidth + layout.Gap + (2 * layout.Padding) < width);
             }
             Assert.Equal(56d, MoviePilotCalendarLayout.FitCard(200).PosterWidth);
-            Assert.Equal(30d, MoviePilotCalendarLayout.FitCard(60).PosterWidth);
+            Assert.Equal(31d, MoviePilotCalendarLayout.FitCard(62).PosterWidth);
             foreach (var width in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity, -1 })
                 Assert.Equal(0d, MoviePilotCalendarLayout.FitCard(width).PosterWidth);
         });

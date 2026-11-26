@@ -110,6 +110,23 @@ internal static class MoviePilotCalendarTests
             }
         });
 
+        Test("MoviePilot 日历：文件统计暂时不可用时仍返回播出日程和其他入库状态", () =>
+        {
+            var other = Series.Replace("\"id\":12", "\"id\":14", StringComparison.Ordinal);
+            using var transport = Transport().Answer("subscribe/calendar", Page(2, Series, other))
+                .Sequence("subscribe/files/12", (HttpStatusCode.ServiceUnavailable, ""))
+                .Answer("subscribe/files/14", """{"subscribe":{"id":14,"name":"日历剧集","type":"电视剧","season":0},"episodes":{"1":{"library":[{}]}}}""");
+            using var service = Service(transport);
+            var entries = Read(service);
+            Assert.True(entries.Select(entry => entry.SubscriptionId).SequenceEqual([12, 14]));
+            Assert.Null(entries[0].Episodes[0].IsInLibrary);
+            Assert.Equal(true, entries[1].Episodes[0].IsInLibrary);
+            Assert.True(service.Available);
+            Assert.Equal(1, transport.Count("subscribe/calendar"));
+            Assert.Equal(1, transport.Count("subscribe/files/12"));
+            Assert.Equal(1, transport.Count("subscribe/files/14"));
+        });
+
         Test("MoviePilot 日历：无日历接口和精确旧路由422给升级指引", () =>
         {
             foreach (var response in new[]
@@ -344,6 +361,33 @@ internal static class MoviePilotCalendarTests
             Assert.Equal("2026-11-20 播出", MoviePilotCalendarPresentation.ScheduleText(Entry()));
             Assert.Equal("", MoviePilotCalendarPresentation.RuntimeText(movie with { RuntimeMinutes = 0 }));
             Assert.Equal("", MoviePilotCalendarPresentation.RuntimeText(movie with { RuntimeMinutes = null }));
+        });
+
+        Test("MoviePilot 日历卡片：本地化只替换显示标签，保留集号、时长和更新时间", () =>
+        {
+            var now = new DateTimeOffset(2026, 11, 21, 12, 0, 0, TimeSpan.FromHours(8));
+            var series = Entry() with
+            {
+                Episodes = [new(1, ""), new(3, "")],
+                LibraryEpisodeCount = 1,
+                LastUpdate = "2026-11-21 11:55:00"
+            };
+            var movie = Entry() with { Type = "电影", RuntimeMinutes = 120 };
+            Assert.Equal("Ep. 1, 3", MoviePilotCalendarPresentation.EpisodeLabel(series, Translate));
+            Assert.Equal("Movie", MoviePilotCalendarPresentation.EpisodeLabel(movie, Translate));
+            Assert.Equal("120 min", MoviePilotCalendarPresentation.RuntimeText(movie, Translate));
+            Assert.Equal("Updated 5 min ago", MoviePilotCalendarPresentation.UpdatedText(series, now, Translate));
+
+            static string Translate(string label) => label switch
+            {
+                "第 {0} 集" => "Ep. {0}",
+                "、" => ", ",
+                "电影" => "Movie",
+                "{0} 分钟" => "{0} min",
+                "{0}更新" => "Updated {0}",
+                "{0} 分钟前" => "{0} min ago",
+                _ => throw new InvalidOperationException(label)
+            };
         });
     }
 
