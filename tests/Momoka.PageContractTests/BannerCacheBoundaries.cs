@@ -20,15 +20,20 @@ namespace Momoka.Shell.Media
         public static bool RenderFails { get; set; }
         public static Func<string, Exception?>? DecodeError { get; set; }
         public static int Renders { get; private set; }
+        public static Func<bool, Task>? HoldDecodeByExtension { get; set; }
+        public static bool IdentifyExtension { get; set; }
 
-        public static Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, bool extendLeft, CancellationToken token)
+        public static async Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, bool extendLeft, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             Decodes++;
             Requests.Add((Encoding.UTF8.GetString(bytes), maxWidth));
             Extensions.Add(extendLeft);
             if (DecodeError?.Invoke(Encoding.UTF8.GetString(bytes)) is { } error) throw error;
-            return Task.FromResult<HeroPictureLoader.HeroPixels?>(new(bytes, maxWidth, Math.Max(1, maxWidth * 9 / 16)));
+            if (HoldDecodeByExtension is { } hold) await hold(extendLeft);
+            token.ThrowIfCancellationRequested();
+            var pixels = IdentifyExtension ? Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(bytes) + (extendLeft ? "|extended" : "|original")) : bytes;
+            return new(pixels, maxWidth, Math.Max(1, maxWidth * 9 / 16));
         }
 
         public static async Task<BitmapImage?> RenderAsync(HeroPictureLoader.HeroPixels pixels, bool gaussian, CancellationToken token)
@@ -73,6 +78,9 @@ namespace Momoka.Shell.Media
             HoldByMode = null;
             RenderFails = false;
             DecodeError = null;
+            HoldDecodeByExtension = null;
+            IdentifyExtension = false;
+            Extensions.Clear();
             Requests.Clear();
         }
     }

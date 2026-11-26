@@ -129,8 +129,13 @@ public sealed class BannerSlide : INotifyPropertyChanged
         if (_extendLeft == enabled) return;
 
         _extendLeft = enabled;
+        _loading?.Cancel();
+        _loading = null;
+        _asked = false;
         _effectGeneration++;
         _effect?.Cancel();
+        _effect = null;
+        _effectTask = null;
         _ambient = null;
         if (_scope?.IsAvailable != true) { Release(); return; }
 
@@ -144,13 +149,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
             return;
         }
 
-        if (!_asked) return;
-
-        // 旧模式解出来的图和像素都不能交给新模式。取消并清空当前加载，让下一趟从新模式重新开始；
-        // 旧任务回来时 _loading 已经不是它，StillWanted 会拒绝它写回。
-        _loading?.Cancel();
-        _loading = null;
-        _asked = false;
+        // 新模式未缓存时即使尚未 Ensure，也必须丢掉构造时命中的旧模式图。
         _backdropPixels = null;
         _pictureImage = null;
         Raise(nameof(Picture));
@@ -251,11 +250,13 @@ public sealed class BannerSlide : INotifyPropertyChanged
         _asked = true;
         var unavailable = false;
         var cacheGeneration = BannerBackdropCache.Generation;
+        var extendLeft = _extendLeft;
+        var backdropKey = _backdropKey;
 
         try
         {
             // 被 Release 放掉之后又转回来时再查一次：缓存里还留着同一张就不必走一遍取字节和解码。
-            if (Picture is null && _backdropKey is { } cachedKey
+            if (Picture is null && backdropKey is { } cachedKey
                 && BannerBackdropCache.TryGet(cachedKey, _useGaussian, out var cached))
             {
                 _renderedGaussian = _useGaussian;
@@ -268,20 +269,20 @@ public sealed class BannerSlide : INotifyPropertyChanged
                 if (!await WaitForPresentationAsync(cts, presentation).ConfigureAwait(true)) return;
                 // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
                 // it, and the two together would otherwise race for the one connection the session holds.
-                if (_backdropKey is { } pixelsKey && BannerBackdropCache.TryGetPixels(pixelsKey, out var keptPixels))
+                if (backdropKey is { } pixelsKey && BannerBackdropCache.TryGetPixels(pixelsKey, out var keptPixels))
                     _backdropPixels = keptPixels;
                 else
                 {
                     var pixels = _picture is { } reference && _scope is { IsAvailable: true } scope
                         ? await _images.GetDecodedAsync(scope, reference.ItemId, reference.ImageType, reference.Tag,
                             EmbyImageStore.RequestWidth(PictureWidth),
-                            bytes => BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, _extendLeft, cts.Token), cts.Token).ConfigureAwait(true)
+                            bytes => BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, extendLeft, cts.Token), cts.Token).ConfigureAwait(true)
                         : null;
                     if (!StillWanted(cts)) return;
                     if (pixels is not null)
                     {
                         _backdropPixels = pixels;
-                        if (_backdropKey is { } key) BannerBackdropCache.RememberPixels(key, pixels, cacheGeneration);
+                        if (backdropKey is { } key) BannerBackdropCache.RememberPixels(key, pixels, cacheGeneration);
                     }
                 }
                 if (_backdropPixels is not null)
@@ -371,14 +372,15 @@ public sealed class BannerSlide : INotifyPropertyChanged
         var effect = new CancellationTokenSource();
         _effect = effect;
         var gaussian = _useGaussian;
+        var backdropKey = _backdropKey;
         var cacheGeneration = requestGeneration ?? BannerBackdropCache.Generation;
         try
         {
             var picture = await BannerPictureLoader.RenderAsync(pixels, gaussian, effect.Token).ConfigureAwait(true);
             if (generation != _effectGeneration || effect.IsCancellationRequested || _scope?.IsAvailable != true
-                || gaussian != _useGaussian || picture is null) return;
+                || gaussian != _useGaussian || backdropKey != _backdropKey || picture is null) return;
             _renderedGaussian = gaussian;
-            if (_backdropKey is { } key) BannerBackdropCache.Remember(key, picture, gaussian, cacheGeneration);
+            if (backdropKey is { } key) BannerBackdropCache.Remember(key, picture, gaussian, cacheGeneration);
             Picture = picture;
         }
         catch (OperationCanceledException) { }

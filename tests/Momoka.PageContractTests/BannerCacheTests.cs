@@ -15,10 +15,11 @@ namespace Momoka.Tests;
 /// 沿用旧画面。这里编译链接真实 <see cref="BannerSlide"/> 与 <see cref="BannerBackdropCache"/>，磁盘缓存
 /// 和缓存键走真实 Core；只有 WinUI 解码和位图是边界替身。
 /// </summary>
-internal static class BannerCacheTests
+internal static partial class BannerCacheTests
 {
     public static void Register()
     {
+        RegisterExtensionOwnership();
         Case("R16-002：轮播坏磁盘缓存重取有效图，重入不再请求", async () =>
         {
             var http = new RecoveryHttp();

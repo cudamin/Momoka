@@ -9,6 +9,7 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["banner-cache-fixture"]) { BannerCacheTests.Register(); return TestHarness.Run(); }
         if (args is ["library-anchor-page-fixture"]) return LibraryAnchorTests.Run();
         if (args is ["sidebar-icons-fixture"])
         {

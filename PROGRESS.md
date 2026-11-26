@@ -16400,3 +16400,9 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 首轮构建的残留符号与源码哈希错误保留在 artifacts/remove-local-media/build.log；设置契约首轮 39/43 暴露分组未变时无效旧分类不能回退，修复早退条件后四后端 43/43。详情图片专项首轮因 MSBuild 节点锁 DLL 构建失败，正常关闭节点后复验 44/44；设置搜索导航 19/19、关闭排空 24/24。上述原失败报告均保留，之前中断的质量检查不算通过。主树期间新增的 51434a6 仅为另一项文档计划，原样保留；本轮最终构建和质量检查基于该 HEAD 加本轮工作区差异，产品文件在专项与最终质量之间未再变化。日常收尾未运行原生界面／播放探针、未读取真实设置或连接真实服务器；实际窗口、主题、DPI、输入与四后端验收仍登记台账 132，不自动销账。
 
 **本地体验发布。** 产品提交 `305244e`，发布时工作区干净；`tools/publish.ps1 -NoArchive -Shortcut` 成功，549 文件／290.4 MB、14 GLSL／4 HOOK、批准 mpv 清单 60 文件全部校验通过。发布过程中 NuGet 漏洞数据服务索引不可达，Core／Shell 报 NU1900，未取得新的漏洞数据；原警告保留在 artifacts/remove-local-media/publish-final.log，不改变此前完整质量构建零警告零错误的记录。版本维持 0.3.4，ProductVersion 为 `0.3.4+305244eb654cb9ed4e287b40d537ea39e5940c04`；`Momoka.exe` 668160 字节、SHA256 `933EEFD0427B5D293C84D315F82E3CB3126018B75E12C754BA6757AB16CC2289`，`Momoka.dll` 10234880 字节、SHA256 `7F52990BB709A651CE84EC6787A1DBE86F2E53C956556E686DE8D8A71361340F`，`Momoka.Core.dll` 3019776 字节、SHA256 `74AC263C13840D75310DCF89CA4E05220A02751F3C2F4A96B16ABB9B16DB6CA9`。桌面 `Momoka.lnk` 目标与工作目录回读均指向本树 `C:\Users\89400\Momoka\artifacts\publish\win-x64`，参数为空；程序集静态扫描确认两张专用页面、VM、后台协调器及本机播放符号已不存在，共享服务器页与播放服务仍在。回读证据 artifacts/remove-local-media/publish-readback.json。未启动发布件，未推送远端；仅刷新本地体验，不销账。
+
+## 2026-11-26 代码质量重构续
+
+Q-017 已修复：BannerSlide 在扩边模式变化时取消旧加载与渲染并清空旧像素；解码和渲染捕获扩边模式及缓存键，迟到结果不得写入新模式缓存。新增缓存命中后反向切换、迟到解码和构造暖缓存切换三项归属回归。Shell Release 构建 0 警告/0 错误，Momoka.PageContractTests Release 构建 0 警告/0 错误，banner-cache-fixture 18/18。未连接媒体服务、未启动播放。
+
+Q-017 仍待匿名窗口与视觉验收，并与其余未完成候选一并纳入后续统一验证；本轮未运行完整质量入口、全量主测试或体验发布。
