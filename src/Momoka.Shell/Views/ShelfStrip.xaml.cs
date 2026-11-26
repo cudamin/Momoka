@@ -74,8 +74,8 @@ public sealed partial class ShelfStrip : UserControl
         new PropertyMetadata(false, OnScrimSwitched));
 
     /// <summary>
-    /// 这一排能不能用鼠标拖动翻页。主页按设置 → 主页 → 主页版面的开关交给每一排；详情页的几条带不设，
-    /// 保持原样（只翻页箭头、键盘和触摸屏平移）。规则在 Core 的 <see cref="CardStrip.DragTargetFor"/>。
+    /// 这一排能不能用鼠标拖动翻页。主页按设置 → 主页 → 主页版面的开关交给每一排；详情页的四条横向带
+    /// 直接开启。翻页箭头、键盘和触摸屏平移照旧可用。规则在 Core 的 <see cref="CardStrip.DragTargetFor"/>。
     /// </summary>
     public static readonly DependencyProperty DragPagingProperty = DependencyProperty.Register(
         nameof(DragPaging),
@@ -365,7 +365,7 @@ public sealed partial class ShelfStrip : UserControl
 
     // ---- 拖动翻页 ---------------------------------------------------------------
     //
-    // 主页那几排按设置里的开关可以按住封面拖动：内容跟手走，松手按 CardStrip.DragTargetFor 落到整页位置。
+    // 主页按设置里的开关、详情页直接开启封面拖动：内容跟手走，松手按 CardStrip.DragTargetFor 落到整页位置。
     // 触摸和触控笔仍由 ScrollView 自己的平移接管，这里只认鼠标左键 —— 两种输入各走各的，不会互相抢指针。
     //
     // Gallery 对照（microsoft/WinUI-Gallery @ 6de91feccadfbb0a796b71caedead5a2284f730e，

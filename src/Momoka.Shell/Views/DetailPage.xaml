@@ -1974,6 +1974,7 @@
                                 </ItemsRepeater>
                                 <local:ShelfStrip
                                     x:Name="EpisodeStrip"
+                                    DragPaging="True"
                                     FocusIndex="{x:Bind ViewModel.EpisodeFocus, Mode=OneWay}"
                                     Height="{x:Bind ViewModel.EpisodeShelf.RowHeight, Mode=OneWay}"
                                     ItemSpacing="16"
@@ -2068,6 +2069,7 @@
                             <StackPanel x:Name="SeasonPanelContent">
                                 <local:ShelfStrip
                                     x:Name="SeasonRow"
+                                    DragPaging="True"
                                     Height="{x:Bind ViewModel.SeasonShelf.RowHeight, Mode=OneWay}"
                                     ItemSpacing="16"
                                     ItemTemplate="{StaticResource CardTemplate}"
@@ -2091,6 +2093,7 @@
                             <StackPanel x:Name="CastPanelContent">
                                 <local:ShelfStrip
                                     x:Name="CastRow"
+                                    DragPaging="True"
                                     Height="{x:Bind ViewModel.CastShelf.RowHeight, Mode=OneWay}"
                                     ItemSpacing="16"
                                     ItemTemplate="{StaticResource PersonTemplate}"
@@ -2112,6 +2115,7 @@
                             <StackPanel x:Name="SimilarPanelContent">
                                 <local:ShelfStrip
                                     x:Name="SimilarRow"
+                                    DragPaging="True"
                                     Height="{x:Bind ViewModel.SimilarShelf.RowHeight, Mode=OneWay}"
                                     ItemSpacing="16"
                                     ItemTemplate="{StaticResource CardTemplate}"

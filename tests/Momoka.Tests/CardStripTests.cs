@@ -21,6 +21,18 @@ internal static class CardStripTests
 {
     public static void Register()
     {
+        foreach (var name in new[] { "EpisodeStrip", "SeasonRow", "CastRow", "SimilarRow" })
+        {
+            Test("详情页拖动翻页：" + name, () =>
+            {
+                var page = XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+                var strip = page.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == name);
+                Assert.Equal("ShelfStrip", strip.Name.LocalName, "详情列表应复用现有卡片带的指针与翻页行为");
+                Assert.Equal("True", strip.Attribute("DragPaging")?.Value,
+                    "详情列表应直接启用鼠标拖动翻页，不依赖主页的专用开关");
+            });
+        }
+
         Test("卡片带：一页翻几张卡", () =>
         {
             // 视口 900、间距 186：(900+16)/186 = 4.92 → 4 张 → 744。按整数倍翻，所以翻完之后卡片仍然左边沿
