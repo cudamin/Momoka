@@ -18,9 +18,6 @@ FILES = (
     "tests/Momoka.ImagePerformanceTests/README.md",
     "tests/Momoka.PageContractTests/README.md",
     "PROGRESS.md",
-    ".qoder/team-runs/20261025-032101-8172a0/results/T4.md",
-    ".qoder/team-runs/20261025-032101-8172a0/run.json",
-    ".qoder/team-runs/20261025-032101-8172a0/trajectory.jsonl",
 )
 
 
@@ -63,7 +60,7 @@ def check(root: Path) -> dict[str, bool]:
         and "等功能恢复或改用自定义凭据" not in endpoint
         and "自定义凭据只映射" not in protocol
         and "内置来源或自定义凭据齐全" not in dandan,
-        "R18-006": "四个来源始终显示" in moviepilot and "不自动改选" in moviepilot
+        "R18-006": "五个来源始终显示" in moviepilot and "不自动改选" in moviepilot
         and "搜索页回到媒体库" not in moviepilot
         and "搜索页的 AniBT 来源、版本来源" not in moviepilot,
         "R18-007": "与飞牛影视同样待遇" not in texts["docs/Plex支持.md"],

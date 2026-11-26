@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -17,14 +19,38 @@ class ReviewDocsTests(unittest.TestCase):
             with self.subTest(finding=finding):
                 self.assertTrue(passed, finding)
 
+    def copy_inputs(self, root):
+        for name in docs.FILES:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+
+    def run_checker(self, root):
+        return subprocess.run([sys.executable, str(ROOT / "tools/check-review-docs.py"),
+                               "--root", str(root)], capture_output=True, text=True, check=False)
+
+    def test_anonymous_checkout_needs_no_machine_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_inputs(root)
+            self.assertFalse((root / ".qoder").exists())
+            result = self.run_checker(root)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_missing_required_document_is_controlled_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_inputs(root)
+            (root / "README.md").unlink()
+            result = self.run_checker(root)
+            self.assertEqual(1, result.returncode)
+            self.assertIn("Documentation input rejected: FileNotFoundError", result.stdout)
+            self.assertEqual("", result.stderr)
+
     def mutate(self, path, old, new, finding):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for name in docs.FILES:
-                source = ROOT / name
-                target = root / name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source, target)
+            self.copy_inputs(root)
             # The referenced playback skill is already one of the exact fixture inputs.
             target = root / path
             content = target.read_text(encoding="utf-8")
@@ -48,10 +74,10 @@ class ReviewDocsTests(unittest.TestCase):
         self.mutate("docs/开发与验证.md", "Handshake", "`api_key` 与 `deviceId` 进查询串", "R18-004")
 
     def test_retired_credentials(self):
-        self.mutate(docs.FILES[8], "未过期缓存继续用", "用户可改用自定义凭据", "R18-005")
+        self.mutate(docs.FILES[8], "未过期缓存可继续用", "用户可改用自定义凭据", "R18-005")
 
     def test_search_navigation_exception(self):
-        self.mutate("docs/MoviePilot订阅.md", "四个来源始终显示", "来源隐藏", "R18-006")
+        self.mutate("docs/MoviePilot订阅.md", "五个来源始终显示", "来源隐藏", "R18-006")
 
     def test_plex_fnnas_scope(self):
         self.mutate("docs/Plex支持.md", "Plex 没有", "与飞牛影视同样待遇；Plex 没有", "R18-007")
