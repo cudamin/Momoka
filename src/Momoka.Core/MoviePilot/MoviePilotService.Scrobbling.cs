@@ -205,13 +205,13 @@ public sealed partial class MoviePilotService : IScrobblingIdentityLookup
             var hasNativeId = anchors.TryGetValue(source, out var nativeId);
             if (nativeId is not null)
             {
-                var direct = await VerifySiteAsync(source, nativeId, tmdbId, allowDirect: true).ConfigureAwait(false);
+                var direct = await VerifySiteAsync(source, nativeId, tmdbId, tmdbDetail, allowDirect: true).ConfigureAwait(false);
                 if (direct.Id is not null || !direct.MapsToOtherSeason || source != "douban" || season <= 1) return direct.Id;
                 // 共享关系已把库的豆瓣 ID 指向同一剧的另一季；候选仍须有当前季的共享关系。
             }
             var known = ScrobblingId(source, MoviePilotSubscription.Text(tmdbDetail, ScrobblingIdField(source)));
             if (!hasNativeId && known is not null
-                && (await VerifySiteAsync(source, known, tmdbId).ConfigureAwait(false)).Id is { } idByLink) return idByLink;
+                && (await VerifySiteAsync(source, known, tmdbId, tmdbDetail).ConfigureAwait(false)).Id is { } idByLink) return idByLink;
 
             // 系列与每季的中文名常不同。优先使用明确季名，避免把同名首季当后续季。
             var seasonInfo = MoviePilotSubscription.Member(tmdbDetail, "season_info");
@@ -273,7 +273,7 @@ public sealed partial class MoviePilotService : IScrobblingIdentityLookup
             foreach (var id in ids.Take(4))
             {
                 var verifyByTitle = !hasNativeId && exact.Count == 1 && exact.Contains(id);
-                var candidate = await VerifySiteAsync(source, id, tmdbId, exactTitles: verifyByTitle ? exactTitles : null,
+                var candidate = await VerifySiteAsync(source, id, tmdbId, tmdbDetail, exactTitles: verifyByTitle ? exactTitles : null,
                     exactYear: verifyByTitle ? exactYear : null, independentSeason: hasNativeId).ConfigureAwait(false);
                 if (candidate.Id is not { } verified) continue;
                 if (result is not null) return null;
@@ -292,7 +292,7 @@ public sealed partial class MoviePilotService : IScrobblingIdentityLookup
             return seasonAgrees ? ScrobblingNumber(id) : null;
         }
 
-        async Task<(long? Id, bool MapsToOtherSeason)> VerifySiteAsync(string source, string id, string tmdbId, bool allowDirect = false,
+        async Task<(long? Id, bool MapsToOtherSeason)> VerifySiteAsync(string source, string id, string tmdbId, JsonElement tmdbDetail, bool allowDirect = false,
             string[]? exactTitles = null, int? exactYear = null, bool independentSeason = false)
         {
             var detail = await DetailAsync(source, id, independentSeason).ConfigureAwait(false);
@@ -314,14 +314,24 @@ public sealed partial class MoviePilotService : IScrobblingIdentityLookup
                         && ScrobblingYear(info) == exactYear && ScrobblingTitleAgrees(info, exactTitles));
                 return (acceptsDirectEvidence ? ScrobblingNumber(id) : null, false);
             }
-            var sameSourceSeason = number is null
-                ? MoviePilotSubscription.Member(mapping, "season").ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
-                : MoviePilotSubscription.Number(mapping, "season") == number;
-            if (!sameSourceSeason || MoviePilotSubscription.Text(mapping, "media_source") != source
+            if (MoviePilotSubscription.Text(mapping, "media_source") != source
                 || ScrobblingId(source, MoviePilotSubscription.Text(mapping, "media_id")) != id
                 || MoviePilotSubscription.Text(mapping, "type") != "tv" || MoviePilotSubscription.Text(mapping, "tmdb_type") != "tv"
-                || ScrobblingId(ScrobblingTmdb, MoviePilotSubscription.Text(mapping, "tmdb_id")) != tmdbId
-                || MoviePilotSubscription.Number(mapping, "tmdb_season") is not int mappedSeason
+                || ScrobblingId(ScrobblingTmdb, MoviePilotSubscription.Text(mapping, "tmdb_id")) != tmdbId)
+                return default;
+            var mappedSource = MoviePilotSubscription.Member(mapping, "season").ValueKind;
+            if (source == "douban" && !independentSeason && season == 1 && NativeSeason(info)
+                && mappedSource == JsonValueKind.Null && MoviePilotSubscription.Member(mapping, "tmdb_season").ValueKind == JsonValueKind.Null)
+            {
+                // MoviePilot can return a series-to-series mapping. Establish the only regular season
+                // from the TMDB series, and independently confirm which Douban subject this is.
+                var confirmedSubject = allowDirect || ReadScrobblingNumber(tmdbDetail, "douban_id") == ScrobblingNumber(id)
+                    || exactYear.HasValue && ScrobblingYear(info) == exactYear && exactTitles is not null && ScrobblingTitleAgrees(info, exactTitles);
+                return (confirmedSubject && HasSingleFirstSeason(tmdbDetail) ? ScrobblingNumber(id) : null, false);
+            }
+            var sameSourceSeason = number is null ? mappedSource is JsonValueKind.Null or JsonValueKind.Undefined
+                : MoviePilotSubscription.Number(mapping, "season") == number;
+            if (!sameSourceSeason || MoviePilotSubscription.Number(mapping, "tmdb_season") is not int mappedSeason
                 || mappedSeason is <= 0 or > 10000)
                 return default;
             return mappedSeason == season ? (ScrobblingNumber(id), false) : (null, true);
@@ -429,6 +439,21 @@ public sealed partial class MoviePilotService : IScrobblingIdentityLookup
             if (DateOnly.TryParseExact(MoviePilotSubscription.Text(data, field), "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out var date)) return date.Year;
         return null;
+    }
+
+    private static bool HasSingleFirstSeason(JsonElement detail)
+    {
+        var seasons = MoviePilotSubscription.Member(detail, "season_info");
+        if (seasons.ValueKind != JsonValueKind.Array || MoviePilotSubscription.Number(detail, "number_of_seasons") != 1) return false;
+        var found = false;
+        foreach (var entry in seasons.EnumerateArray())
+        {
+            var number = MoviePilotSubscription.Number(entry, "season_number");
+            if (number == 0) continue;
+            if (number != 1 || found) return false;
+            found = true;
+        }
+        return found;
     }
 
     private static int? ReadScrobblingSeasonEnd(JsonElement data, JsonElement detail, int season, string tmdbId)

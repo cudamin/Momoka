@@ -112,6 +112,58 @@ internal static class MoviePilotScrobblingTests
                 Assert.DoesNotContain("media/mapping/match", string.Join(',', transport.SentTo("/media/").Select(request => request.Url)));
             });
         }
+        Test("MP 打格子：豆瓣整剧关系季号为空时，核实唯一正季及同名同年条目后识别作品", () =>
+        {
+            const string seasons = """
+                {"number_of_seasons":1,"season_info":[{"season_number":0},{"season_number":1}]}
+                """;
+            const string site = """
+                {"media_source":"douban","media_id":"84","type":"电视剧","title":"示例剧","year":2024}
+                """;
+            const string mapping = """
+                {"media_source":"douban","media_id":"84","type":"tv","season":null,"tmdb_type":"tv","tmdb_id":42,"tmdb_season":null}
+                """;
+            using var transport = new StubTransport().Answer(SearchPath, "[" + site + "]").Answer(SiteDetail, site)
+                .Answer(MappingPath, mapping);
+            using var fixture = new ConnectedFixture(transport);
+            void SetSeasons(string metadata) => transport.Answer(SeriesDetail, Series[..^1] + "," + metadata[1..]);
+            long? Identify() => fixture.Resolve(season: 1, episode: 0)?.DoubanId;
+
+            SetSeasons(seasons);
+            Assert.Equal(84L, Identify());
+            Assert.Equal(0, transport.SentTo("/tmdb/").Count);
+            transport.Answer(SiteDetail, site[..^1] + ",\"season\":1}");
+            Assert.Equal(84L, Identify());
+            transport.Answer(SiteDetail, site);
+
+            foreach (var invalid in new[]
+            {
+                seasons.Replace("seasons\":1", "seasons\":2", StringComparison.Ordinal),
+                seasons.Replace("number\":0", "number\":2", StringComparison.Ordinal),
+                seasons.Replace("number\":0", "number\":1", StringComparison.Ordinal),
+                seasons.Replace("number\":0", "number\":null", StringComparison.Ordinal)
+            })
+            {
+                SetSeasons(invalid);
+                Assert.Null(Identify());
+            }
+            SetSeasons(seasons);
+            foreach (var invalid in new[]
+            {
+                mapping.Replace("tmdb_id\":42", "tmdb_id\":43", StringComparison.Ordinal),
+                mapping.Replace("tmdb_type\":\"tv", "tmdb_type\":\"movie", StringComparison.Ordinal),
+                mapping.Replace("tmdb_season\":null", "tmdb_season\":0", StringComparison.Ordinal),
+                mapping.Replace("tmdb_season\":null", "tmdb_season\":2", StringComparison.Ordinal),
+                mapping.Replace("\"season\":null", "\"season\":2", StringComparison.Ordinal)
+            })
+            {
+                transport.Answer(MappingPath, invalid);
+                Assert.Null(Identify());
+            }
+            transport.Answer(MappingPath, mapping);
+            transport.Answer(SiteDetail, site.Replace("示例剧", "另一部剧", StringComparison.Ordinal));
+            Assert.Null(Identify());
+        });
         Test("MP 打格子：无库 ID 时唯一标题及年份须回读，豆瓣第二季用明确季名定位并核验共享关系", () =>
         {
             using var transport = new StubTransport()
