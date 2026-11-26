@@ -6234,13 +6234,14 @@ internal static class PlaybackTests
     /// </summary>
     private static async Task MarkedWatchedSeasonReportsLastEpisodeAsync()
     {
+        var futurePremiere = DateTimeOffset.Now.AddDays(30).ToString("O", System.Globalization.CultureInfo.InvariantCulture);
         var (service, session, transport) = PlayingServiceWithTransport(StopReportSettings());
         using var sessionLifetime = session;
         transport.Answer("Shows/77/Episodes", """
             {
               "Items": [
                 { "Id": "e12", "Name": "第十二集", "Type": "Episode", "IndexNumber": 12, "ParentIndexNumber": 1,
-                  "RunTimeTicks": 14400000000, "PremiereDate": "2026-12-01T00:00:00Z" },
+                  "RunTimeTicks": 14400000000, "PremiereDate": "FUTURE_PREMIERE" },
                 { "Id": "e11", "Name": "第十一集", "Type": "Episode", "IndexNumber": 11, "ParentIndexNumber": 1,
                   "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" },
                 { "Id": "e5", "Name": "某特别篇", "Type": "Episode", "IndexNumber": 5, "ParentIndexNumber": 0,
@@ -6250,7 +6251,7 @@ internal static class PlaybackTests
               ],
               "TotalRecordCount": 4
             }
-            """);
+            """.Replace("FUTURE_PREMIERE", futurePremiere, StringComparison.Ordinal));
 
         var season = Item("某季", id: "s1", type: EmbyItemType.Season);
         season.SeriesId = "77";
@@ -6285,6 +6286,7 @@ internal static class PlaybackTests
     /// </summary>
     private static async Task MarkedWatchedSeriesReportsLastEpisodeAsync()
     {
+        var futurePremiere = DateTimeOffset.Now.AddDays(30).ToString("O", System.Globalization.CultureInfo.InvariantCulture);
         var (service, session, transport) = PlayingServiceWithTransport(StopReportSettings());
         using var sessionLifetime = session;
         transport.Answer("Shows/77/Episodes", """
@@ -6295,13 +6297,13 @@ internal static class PlaybackTests
                 { "Id": "e10", "Name": "第一季第十集", "Type": "Episode", "IndexNumber": 10, "ParentIndexNumber": 1,
                   "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" },
                 { "Id": "e21", "Name": "第二季第八集", "Type": "Episode", "IndexNumber": 8, "ParentIndexNumber": 2,
-                  "RunTimeTicks": 14400000000, "PremiereDate": "2026-12-01T00:00:00Z" },
+                  "RunTimeTicks": 14400000000, "PremiereDate": "FUTURE_PREMIERE" },
                 { "Id": "e20", "Name": "第二季第七集", "Type": "Episode", "IndexNumber": 7, "ParentIndexNumber": 2,
                   "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" }
               ],
               "TotalRecordCount": 4
             }
-            """);
+            """.Replace("FUTURE_PREMIERE", futurePremiere, StringComparison.Ordinal));
 
         var series = Item("某部剧", id: "77", type: EmbyItemType.Series);
 

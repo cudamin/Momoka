@@ -1207,10 +1207,16 @@ internal static class ItemDetailTests
                 IndexNumber = 3,
                 Name = "汽笛声",
                 RunTimeTicks = 24 * Minute,
-                PremiereDate = new DateTimeOffset(2016, 4, 17, 0, 0, 0, TimeSpan.Zero)
+                PremiereDate = new DateTimeOffset(new DateTime(2016, 4, 17, 12, 0, 0, DateTimeKind.Local))
             };
             Assert.Equal("3. 汽笛声", ItemDetail.EpisodeRowTitle(full));
             Assert.Equal("2016/4/17  ·  24 分钟", ItemDetail.EpisodeRowInfo(full));
+            var sameInstant = full.PremiereDate!.Value;
+            foreach (var offset in new[] { TimeSpan.FromHours(-12), TimeSpan.FromHours(14) })
+            {
+                full.PremiereDate = sameInstant.ToOffset(offset);
+                Assert.Equal("2016/4/17  ·  24 分钟", ItemDetail.EpisodeRowInfo(full));
+            }
 
             // No premiere date reads 「46 分钟」 rather than 「 · 46 分钟」; no number reads the name alone.
             Assert.Equal("24 分钟", ItemDetail.EpisodeRowInfo(new EmbyItem { RunTimeTicks = 24 * Minute }));
@@ -1454,6 +1460,17 @@ internal static class ItemDetailTests
                 PremiereDate = new DateTimeOffset(2026, 10, 10, 0, 0, 0, zone)
             };
             Assert.False(ItemDetail.MissingIsUnaired(today, now), "Emby 只发日期不发时刻，当天开播的算已播出");
+        });
+
+        Test("遗漏集：按本地日判断前日、当日和翌日，不受响应UTC偏移表示影响", () =>
+        {
+            var now = new DateTimeOffset(new DateTime(2026, 10, 10, 12, 0, 0, DateTimeKind.Local));
+            foreach (var days in new[] { -1, 0, 1 })
+                foreach (var offset in new[] { TimeSpan.FromHours(-12), TimeSpan.Zero, TimeSpan.FromHours(14) })
+                {
+                    var episode = new EmbyItem { PremiereDate = now.AddDays(days).ToOffset(offset) };
+                    Assert.Equal(days > 0, ItemDetail.MissingIsUnaired(episode, now));
+                }
         });
 
         Test("遗漏集：那一行的剧照借的是剧集那一层", () =>
