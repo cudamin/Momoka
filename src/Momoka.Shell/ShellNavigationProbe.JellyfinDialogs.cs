@@ -78,7 +78,7 @@ internal sealed partial class ShellNavigationProbe
                     finally { identify.Hide(); await identifyShown; }
 
                     var cover = new CoverDialog(item, (_, _, _, _) => Task.FromResult(new RemoteImageResult()),
-                        (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _, _) => Task.CompletedTask,
+                        (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _) => Task.CompletedTask,
                         (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask,
                         _ => Task.FromResult<EmbyItem?>(item), supported ? (_, _) => Task.FromResult<byte[]?>(null) : null)
                     { XamlRoot = _root.XamlRoot };

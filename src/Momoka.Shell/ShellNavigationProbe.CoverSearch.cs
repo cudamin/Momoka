@@ -34,7 +34,7 @@ internal sealed partial class ShellNavigationProbe
                     if (!search.IncludeAllLanguages) return Task.FromResult(new RemoteImageResult { Providers = ["FanArt", "TheTVDB"] });
                     if (failed) return Task.FromException<RemoteImageResult>(new InvalidOperationException("离线搜索失败"));
                     return Task.FromResult(Results("new"));
-                }, (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _, _) => Task.CompletedTask,
+                }, (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _) => Task.CompletedTask,
                     (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask,
                     _ => Task.FromResult<EmbyItem?>(item), (_, _) => Task.FromResult<byte[]?>(image))
                 { XamlRoot = _root.XamlRoot };

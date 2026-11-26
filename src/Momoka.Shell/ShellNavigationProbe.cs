@@ -237,6 +237,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("封面选择取消不接受迟到上传", CoverPickRaceAsync);
             await CaseAsync("图片来源语言筛选、旧结果取消与光盘空态", CoverSearchFiltersAsync, 45, section: ShellProbeSections.Covers);
             await CaseAsync("封面列表及绑定跟随刷新", CoverRefreshAsync);
+            await CaseAsync("背景图空列表搜索、取消与连续追加", CoverBackdropSearchAsync, section: ShellProbeSections.Covers);
             await CaseAsync("封面确认复用对话框且取消安全", CoverCancelAsync);
             await CaseAsync("封面写入期间等待关闭", CoverWriteAsync);
             await CaseAsync("封面结果不明须先刷新", CoverUncertainAsync);

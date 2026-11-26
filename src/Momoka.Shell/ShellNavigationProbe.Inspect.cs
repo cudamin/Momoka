@@ -242,7 +242,12 @@ internal sealed partial class ShellNavigationProbe
             var dialog = new CoverDialog(item,
                 (_, _, _, _) => Task.FromResult(new RemoteImageResult { Images = [new RemoteImageInfo { Url = "https://fixture.invalid/art", ProviderName = "离线候选", Width = 320, Height = 200 }] }),
                 (_, _, _, _, _) => Task.FromResult<byte[]?>(image),
-                (_, type, _, _) => { item.ImageTags[type] = "changed"; return Task.CompletedTask; },
+                (_, type, _) =>
+                {
+                    if (type == EmbyImageStore.Backdrop) item.BackdropImageTags.Add("new-backdrop-" + item.BackdropImageTags.Count);
+                    else item.ImageTags[type] = "changed";
+                    return Task.CompletedTask;
+                },
                 (_, type, index) =>
                 {
                     if (type == "Backdrop" && index is { } at) item.BackdropImageTags.RemoveAt(at);

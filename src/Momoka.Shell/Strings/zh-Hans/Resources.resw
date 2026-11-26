@@ -955,17 +955,20 @@
   <data name="CoverDialog_Localization7.Content" xml:space="preserve">
     <value>重试预览</value>
   </data>
-  <data name="CoverDialog_Localization8.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>从刮削源另加一张（保留现有背景图）</value>
+  <data name="CoverDialog_SearchBackdrop.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>搜索背景图</value>
+  </data>
+  <data name="CoverDialog_SearchBackdrop.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>搜索背景图</value>
   </data>
   <data name="CoverDialog_Localization9.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>删掉这一张（不可撤销）</value>
   </data>
   <data name="CoverDialog_AddBackdropButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>从本机再加一张背景图</value>
+    <value>从本机添加背景图</value>
   </data>
-  <data name="CoverDialog_Localization10.Text" xml:space="preserve">
-    <value>从本机再加一张背景图…</value>
+  <data name="CoverDialog_AddBackdropButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>从本机添加背景图</value>
   </data>
   <data name="CoverPickerDialog_SourcePicker.Header" xml:space="preserve">
     <value>来源</value>

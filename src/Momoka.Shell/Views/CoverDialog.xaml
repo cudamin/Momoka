@@ -88,7 +88,20 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <StackPanel Spacing="{StaticResource EgSpaceM}">
-                    <TextBlock x:Uid="CoverDialog_Localization5" Style="{StaticResource EgSectionTitleStyle}" Text="背景图" />
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
+                        <TextBlock x:Uid="CoverDialog_Localization5" VerticalAlignment="Center"
+                            Style="{StaticResource EgSectionTitleStyle}" Text="背景图" />
+                        <Button x:Uid="CoverDialog_SearchBackdrop" x:Name="AddRemoteBackdrop" Click="OnSearchBackdrop"
+                            AutomationProperties.Name="搜索背景图" Style="{StaticResource EgIconButtonStyle}"
+                            ToolTipService.ToolTip="搜索背景图">
+                            <FontIcon FontSize="14" Glyph="&#xE721;" />
+                        </Button>
+                        <Button x:Uid="CoverDialog_AddBackdropButton" x:Name="AddBackdropButton" Click="OnAddBackdrop"
+                            AutomationProperties.Name="从本机添加背景图" Style="{StaticResource EgIconButtonStyle}"
+                            ToolTipService.ToolTip="从本机添加背景图">
+                            <FontIcon FontSize="14" Glyph="&#xE710;" />
+                        </Button>
+                    </StackPanel>
                     <ItemsControl x:Name="BackdropSlots" ItemsSource="{x:Bind Backdrops}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -116,31 +129,16 @@
                                         AutomationProperties.AutomationId="RetryCurrentArtworkPreview"
                                         Style="{StaticResource EgSecondaryButtonStyle}" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                         Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
-                                        <Button x:Uid="CoverDialog_Localization8" Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
-                                            AutomationProperties.AutomationId="AddRemoteBackdrop" AutomationProperties.Name="{x:Bind Hint}"
-                                            Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
-                                            ToolTipService.ToolTip="从刮削源另加一张（保留现有背景图）">
-                                            <FontIcon FontSize="14" Glyph="&#xE710;" />
-                                        </Button>
-                                        <Button x:Uid="CoverDialog_Localization9" Click="OnDelete" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
-                                            AutomationProperties.AutomationId="DeleteArtwork" AutomationProperties.Name="{x:Bind DeleteName}"
-                                            Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
-                                            ToolTipService.ToolTip="删掉这一张（不可撤销）">
-                                            <FontIcon FontSize="14" Glyph="&#xE74D;" />
-                                        </Button>
-                                    </StackPanel>
+                                    <Button x:Uid="CoverDialog_Localization9" Click="OnDelete" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
+                                        HorizontalAlignment="Center" AutomationProperties.AutomationId="DeleteArtwork" AutomationProperties.Name="{x:Bind DeleteName}"
+                                        Style="{StaticResource EgIconButtonStyle}" Tag="{x:Bind}"
+                                        ToolTipService.ToolTip="删掉这一张（不可撤销）">
+                                        <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button x:Uid="CoverDialog_AddBackdropButton" x:Name="AddBackdropButton" Click="OnAddBackdrop" Style="{StaticResource EgSecondaryButtonStyle}"
-                        AutomationProperties.Name="从本机再加一张背景图">
-                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
-                            <FontIcon FontSize="14" Glyph="&#xE710;" />
-                            <TextBlock x:Uid="CoverDialog_Localization10" Style="{StaticResource EgBodyStyle}" Text="从本机再加一张背景图…" />
-                        </StackPanel>
-                    </Button>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

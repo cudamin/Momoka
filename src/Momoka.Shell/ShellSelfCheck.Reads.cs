@@ -791,7 +791,7 @@ internal static partial class ShellSelfCheck
 
         static Task<byte[]?> Fetch(string itemId, string imageType, string tag, int width, int? index) => Task.FromResult<byte[]?>(null);
 
-        static Task Swap(string itemId, string imageType, int index, RemoteImageInfo chosen) => Task.CompletedTask;
+        static Task Swap(string itemId, string imageType, RemoteImageInfo chosen) => Task.CompletedTask;
 
         static Task Delete(string itemId, string imageType, int? index) => Task.CompletedTask;
 

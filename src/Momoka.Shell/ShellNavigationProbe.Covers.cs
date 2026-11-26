@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
 using Momoka.Shell.Views;
@@ -13,7 +14,7 @@ internal sealed partial class ShellNavigationProbe
         Func<Task>? delete = null, FetchArtwork? fetch = null, FetchRemote? remote = null) => new(item,
         (_, _, _, _) => Task.FromResult(new RemoteImageResult()),
         fetch ?? ((_, _, _, _, _) => Task.FromResult<byte[]?>(null)),
-        (_, _, _, _) => Task.CompletedTask, (_, _, _) => delete?.Invoke() ?? Task.CompletedTask,
+        (_, _, _) => Task.CompletedTask, (_, _, _) => delete?.Invoke() ?? Task.CompletedTask,
         (_, _, _) => Task.CompletedTask, _ => reload(), remote ?? ((_, _) => Task.FromResult<byte[]?>(null)))
         { XamlRoot = _root.XamlRoot };
 
@@ -60,11 +61,65 @@ internal sealed partial class ShellNavigationProbe
             Require(slot.Has && button.IsEnabled && backdropList.Items.Count == 2 && indexes.Contains(1), "图片绑定、列表或背景图序号未更新");
             Require(AutomationProperties.GetName(button) == "删除封面海报图", "删除按钮读屏名必须包含动作");
             var upload = Get<Button>(dialog, "AddBackdropButton");
-            Require(upload.ActualWidth > 160, "带文字的添加背景图按钮不能套固定40宽的图标样式");
+            Require(upload.Content is FontIcon { Glyph: "\uE710" } && upload.ActualWidth == 40
+                && !string.IsNullOrWhiteSpace(AutomationProperties.GetName(upload)), "本机添加应显示带读屏名称的加号按钮");
             var tiles = Descendants(dialog).OfType<Button>().Where(row => AutomationProperties.GetAutomationId(row) == "ArtworkTile");
             Require(tiles.All(tile => tile.ActualHeight >= 96), "无图格子必须保留可识别的图片框高度");
         }
         finally { dialog.Hide(); await shown; }
+    }
+
+    private async Task CoverBackdropSearchAsync()
+    {
+        var item = new EmbyItem { Id = "fixture", Name = "离线背景图" };
+        var candidate = new RemoteImageInfo { Url = "https://fixture.invalid/backdrop", ProviderName = "Fixture" };
+        var searches = 0;
+        var dialog = new CoverDialog(item, (id, type, _, _) =>
+        {
+            Require(id == item.Id && type == EmbyImageStore.Backdrop, "搜索目标应为当前条目的背景图");
+            searches++;
+            return Task.FromResult(new RemoteImageResult { Images = [candidate] });
+        }, (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (id, type, chosen) =>
+        {
+            Require(id == item.Id && type == EmbyImageStore.Backdrop && chosen == candidate, "应追加刚选中的背景图");
+            item.BackdropImageTags.Add($"tag-{searches}");
+            return Task.CompletedTask;
+        }, (_, _, _) => throw new InvalidOperationException("追加背景图不应删除原图"),
+            (_, _, _) => throw new InvalidOperationException("搜索候选不应走本机上传"),
+            _ => Task.FromResult<EmbyItem?>(item), null)
+        { XamlRoot = _root.XamlRoot };
+        var shown = dialog.ShowAsync().AsTask();
+        try
+        {
+            foreach (var confirm in new[] { false, true, true })
+            {
+                await LayoutAsync(dialog);
+                var search = Get<Button>(dialog, "AddRemoteBackdrop");
+                Require(search.IsEnabled && search.Content is FontIcon { Glyph: "\uE721" }
+                    && search.ActualWidth == 40, "空列表和已有图片时都应有可用的搜索按钮");
+                var previous = dialog.Backdrops.Select(row => row.Tag).ToList();
+                var expectedSearches = searches + 1;
+                new ButtonAutomationPeer(search).Invoke();
+                await UntilAsync(() => Get<TaskCompletionSource<ContentDialogResult>?>(dialog, "_panelCompletion") is not null);
+                await LayoutAsync(dialog);
+                Descendants(dialog).OfType<GridView>().Single().SelectedIndex = 0;
+                Require(dialog.IsPrimaryButtonEnabled && searches == expectedSearches, "选择候选后应可确认，打开只发一次搜索");
+                Get<TaskCompletionSource<ContentDialogResult>>(dialog, "_panelCompletion")
+                    .SetResult(confirm ? ContentDialogResult.Primary : ContentDialogResult.None);
+                await UntilAsync(() => !Get<bool>(dialog, "_busy"));
+                if (confirm) previous.Add($"tag-{searches}");
+                Require(dialog.Backdrops.Select(row => row.Tag).SequenceEqual(previous)
+                    && item.BackdropImageTags.SequenceEqual(previous) && dialog.Touched == confirm,
+                    "取消应保留原列表，确认应仅追加一张并刷新");
+            }
+        }
+        finally
+        {
+            Get<TaskCompletionSource<ContentDialogResult>?>(dialog, "_panelCompletion")?.TrySetResult(ContentDialogResult.None);
+            await UntilAsync(() => !Get<bool>(dialog, "_busy"));
+            dialog.Hide();
+            await shown;
+        }
     }
 
     private async Task CoverCancelAsync()

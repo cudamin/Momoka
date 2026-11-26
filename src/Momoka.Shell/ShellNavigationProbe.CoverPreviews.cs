@@ -82,6 +82,8 @@ internal sealed partial class ShellNavigationProbe
                 var backdropTile = Descendants(dialog).OfType<Button>().Single(button => ReferenceEquals(button.Tag, backdropSlot)
                     && Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(button) == "ArtworkTile");
                 CoverViewportBounds(backdropTile, scroll, $"{width} 背景图");
+                CoverViewportBounds(Get<Button>(dialog, "AddRemoteBackdrop"), scroll, $"{width} 搜索背景图");
+                CoverViewportBounds(Get<Button>(dialog, "AddBackdropButton"), scroll, $"{width} 从本机添加背景图");
                 await SaveProbeScreenAsync($"cover-preview-series-backdrops-{width}.png");
             }
             finally { dialog.Hide(); await shown; }
@@ -241,7 +243,10 @@ internal sealed partial class ShellNavigationProbe
         await ScrollProbeAsync(scroll, scroll.VerticalOffset + point.Y - 12);
         await LayoutAsync(dialog);
         var buttons = Descendants(stack).OfType<Button>().Where(button => button.Visibility == Visibility.Visible).ToArray();
-        Require(buttons.Length >= (slot.Kind.Many ? 3 : 4), $"{slot.Caption} 必须保留完整预览和操作按钮");
+        string[] required = slot.Kind.Many ? ["ArtworkTile", "DeleteArtwork"]
+            : ["ArtworkTile", "ChangeArtwork", "ViewArtwork", "DeleteArtwork"];
+        Require(required.All(id => buttons.Any(button => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(button) == id)),
+            $"{slot.Caption} 缺少预览或操作按钮");
         foreach (var button in buttons)
         {
             var action = Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(button);
@@ -349,7 +354,7 @@ internal sealed partial class ShellNavigationProbe
         var calls = new List<string>();
         var item = new EmbyItem { Id = "candidate-list", Name = "离线完整候选列表" };
         var dialog = new CoverDialog(item, (_, _, _, _) => Task.FromResult(new RemoteImageResult()),
-            (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _, _) => Task.CompletedTask,
+            (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _) => Task.CompletedTask,
             (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask,
             _ => Task.FromResult<EmbyItem?>(item), async (address, token) =>
             {
@@ -414,7 +419,7 @@ internal sealed partial class ShellNavigationProbe
         var allowRetry = false;
         var item = new EmbyItem { Id = "remote-preview", Name = "离线候选图" };
         var dialog = new CoverDialog(item, (_, _, _, _) => Task.FromResult(new RemoteImageResult()),
-            (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _, _) => Task.CompletedTask,
+            (_, _, _, _, _) => Task.FromResult<byte[]?>(null), (_, _, _) => Task.CompletedTask,
             (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask,
             _ => Task.FromResult<EmbyItem?>(item), (address, token) =>
             {

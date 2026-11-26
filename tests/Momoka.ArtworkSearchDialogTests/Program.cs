@@ -492,6 +492,24 @@ internal static class Program
 
     private static void RegisterXamlContracts()
     {
+        foreach (var (handle, glyph) in new[] { ("AddRemoteBackdrop", "\uE721"), ("AddBackdropButton", "\uE710") })
+        {
+            Test($"背景图：{handle} 是独立于图片列表的具名图标按钮", () =>
+            {
+                var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Production", "CoverDialog.xaml"));
+                XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+                var button = document.Descendants().Single(element => element.Name.LocalName == "Button"
+                    && (element.Attribute(x + "Name")?.Value == handle || element.Attribute("AutomationProperties.AutomationId")?.Value == handle));
+                Assert.False(button.Ancestors().Any(element => element.Name.LocalName == "DataTemplate"), "空列表也要能触发");
+                var icon = button.Elements().Single();
+                Assert.Equal("FontIcon", icon.Name.LocalName);
+                Assert.Equal(glyph, icon.Attribute("Glyph")?.Value);
+                Assert.True(!string.IsNullOrWhiteSpace(button.Attribute("AutomationProperties.Name")?.Value));
+                Assert.True(!string.IsNullOrWhiteSpace(button.Attribute("ToolTipService.ToolTip")?.Value));
+                if (handle == "AddBackdropButton") Assert.Equal("OnAddBackdrop", button.Attribute("Click")?.Value);
+            });
+        }
+
         Test("图片XAML：筛选默认值、实际事件和自动化名称保持接通", () =>
         {
             var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Production", "CoverPickerDialog.xaml"));

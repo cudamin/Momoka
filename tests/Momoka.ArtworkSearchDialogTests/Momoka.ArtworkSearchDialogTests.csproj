@@ -12,5 +12,6 @@
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="../Momoka.SubtitleDialogTests/UiQueue.cs" Link="UiQueue.cs" />
     <None Include="../../src/Momoka.Shell/Views/CoverPickerDialog.xaml" Link="Production/CoverPickerDialog.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/Momoka.Shell/Views/CoverDialog.xaml" Link="Production/CoverDialog.xaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

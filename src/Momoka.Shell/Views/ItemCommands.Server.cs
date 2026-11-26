@@ -446,7 +446,7 @@ internal static partial class ItemCommands
                 },
                 (id, type, tag, width, index) => FetchAsync(session, (client, token) =>
                     client.GetImageBytesAsync(id, type, tag, width, token, index)),
-                (id, type, index, chosen) => TellAsync(session, (client, token) => client.ApplyRemoteImageAsync(
+                (id, type, chosen) => TellAsync(session, (client, token) => client.ApplyRemoteImageAsync(
                     id, type, chosen.Url, chosen.ProviderName, token), shell, ItemCommand.ChangeCover),
                 (id, type, index) => TellAsync(session, (client, token) =>
                     client.DeleteImageAsync(id, type, index, token), shell, ItemCommand.ChangeCover),

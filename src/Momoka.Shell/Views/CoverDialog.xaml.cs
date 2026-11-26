@@ -37,8 +37,7 @@ public sealed partial class ArtworkSlot : INotifyPropertyChanged
     public int PreviewWidth => Kind.Many ? 188 : 140;
     public double FrameHeight => Kind is { ImageType: "Primary", Ratio: > 1 }
         ? PreviewWidth / Kind.Ratio : Kind.FrameHeight(PreviewWidth);
-    public string Hint => Kind.Many ? "另加一张背景图（保留现有图片）"
-        : Has ? $"换一张{Kind.Name}" : $"还没有{Kind.Name}，点这里加一张";
+    public string Hint => Has ? $"换一张{Kind.Name}" : $"还没有{Kind.Name}，点这里加一张";
 
     public BitmapImage? Picture
     {
@@ -265,6 +264,7 @@ public sealed partial class CoverDialog : ContentDialog
         if (_closed || _busy || (_uncertain && !refresh)) return false;
         _busy = true;
         foreach (var slot in _slots) slot.Busy = true;
+        AddRemoteBackdrop.IsEnabled = false;
         AddBackdropButton.IsEnabled = false;
         RefreshArtworkButton.IsEnabled = false;
         IsPrimaryButtonEnabled = false;
@@ -276,6 +276,7 @@ public sealed partial class CoverDialog : ContentDialog
     {
         _busy = false;
         foreach (var slot in _slots) slot.Busy = _uncertain;
+        AddRemoteBackdrop.IsEnabled = !_uncertain;
         AddBackdropButton.IsEnabled = !_uncertain;
         RefreshArtworkButton.IsEnabled = true;
         IsPrimaryButtonEnabled = true;
@@ -312,19 +313,25 @@ public sealed partial class CoverDialog : ContentDialog
 
     private async void OnSwap(object sender, RoutedEventArgs e)
     {
-        if (SlotOf(sender) is not { } slot) return;
-        await OperateAsync("换封面图失败", async () =>
+        if (SlotOf(sender) is { } slot)
+            await ChooseArtworkAsync(slot.Kind).ConfigureAwait(true);
+    }
+
+    private async void OnSearchBackdrop(object sender, RoutedEventArgs e) =>
+        await ChooseArtworkAsync(ItemArtwork.MultipleKinds.Single(kind => kind.ImageType == EmbyImageStore.Backdrop)).ConfigureAwait(true);
+
+    private Task ChooseArtworkAsync(ArtworkKind kind) =>
+        OperateAsync("选择图片失败", async () =>
         {
-            var found = await FindAsync(slot.ImageType, new RemoteImageSearch(), CancellationToken.None).ConfigureAwait(true);
-            var picker = new CoverPickerDialog(_item, slot.Kind, found, this);
+            var found = await FindAsync(kind.ImageType, new RemoteImageSearch(), CancellationToken.None).ConfigureAwait(true);
+            var picker = new CoverPickerDialog(_item, kind, found, this);
             var result = await ShowPanelAsync(picker).ConfigureAwait(true);
             if (result != ContentDialogResult.Primary) return;
             if (picker.Uploaded is { Bytes.Length: > 0 } uploaded)
-                await WriteAsync(() => _upload(_item.Id, slot.ImageType, uploaded)).ConfigureAwait(true);
+                await WriteAsync(() => _upload(_item.Id, kind.ImageType, uploaded)).ConfigureAwait(true);
             else if (picker.Picked is { } chosen)
-                await WriteAsync(() => _swap(_item.Id, slot.ImageType, slot.Index, chosen)).ConfigureAwait(true);
-        }).ConfigureAwait(true);
-    }
+                await WriteAsync(() => _swap(_item.Id, kind.ImageType, chosen)).ConfigureAwait(true);
+        });
 
     private async void OnView(object sender, RoutedEventArgs e)
     {
@@ -365,8 +372,7 @@ public sealed partial class CoverDialog : ContentDialog
     private async void OnAddBackdrop(object sender, RoutedEventArgs e) => await OperateAsync("上传背景图失败", async () =>
     {
         if (await PickArtworkAsync() is not { Bytes.Length: > 0 } picked) return;
-        if (ItemArtwork.MultipleKinds.FirstOrDefault() is not { ImageType.Length: > 0 } kind) return;
-        await WriteAsync(() => _upload(_item.Id, kind.ImageType, picked)).ConfigureAwait(true);
+        await WriteAsync(() => _upload(_item.Id, EmbyImageStore.Backdrop, picked)).ConfigureAwait(true);
     }).ConfigureAwait(true);
 
     private async void OnRetryPreview(object sender, RoutedEventArgs e)
@@ -484,7 +490,7 @@ public sealed partial class CoverDialog : ContentDialog
 
 public delegate Task<RemoteImageResult> FindArtwork(string itemId, string imageType, RemoteImageSearch search, CancellationToken cancellationToken);
 public delegate Task<byte[]?> FetchArtwork(string itemId, string imageType, string tag, int width, int? index);
-public delegate Task SwapArtwork(string itemId, string imageType, int index, RemoteImageInfo chosen);
+public delegate Task SwapArtwork(string itemId, string imageType, RemoteImageInfo chosen);
 public delegate Task DeleteArtwork(string itemId, string imageType, int? index);
 public delegate Task UploadArtwork(string itemId, string imageType, PickedArtwork picked);
 public delegate Task<byte[]?> FetchRemote(string address, CancellationToken cancellationToken);

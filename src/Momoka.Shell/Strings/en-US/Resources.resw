@@ -934,8 +934,11 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="CoverDialog_Localization7.Content" xml:space="preserve">
     <value>Retry preview</value>
   </data>
-  <data name="CoverDialog_Localization8.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>Add from a provider (keep existing backdrops)</value>
+  <data name="CoverDialog_SearchBackdrop.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Search for backdrops</value>
+  </data>
+  <data name="CoverDialog_SearchBackdrop.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Search for backdrops</value>
   </data>
   <data name="CoverDialog_Localization9.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Delete this image (cannot be undone)</value>
@@ -943,8 +946,8 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="CoverDialog_AddBackdropButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Add a backdrop from this computer</value>
   </data>
-  <data name="CoverDialog_Localization10.Text" xml:space="preserve">
-    <value>Add a backdrop from this computer…</value>
+  <data name="CoverDialog_AddBackdropButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Add a backdrop from this computer</value>
   </data>
   <data name="CoverPickerDialog_SourcePicker.Header" xml:space="preserve">
     <value>Source</value>
