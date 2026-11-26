@@ -7,8 +7,8 @@
 #
 #   .\tools\shortcut.ps1                     指向 artifacts\publish\win-x64\Momoka.exe
 #   .\tools\shortcut.ps1 -Exe <路径>         指向别的 exe（比如调试输出）
-#   .\tools\shortcut.ps1 -Name 'Momoka-通知接管'    给临时分支单独建一条，不覆盖主树的 Momoka
-#   .\tools\shortcut.ps1 -Remove -Name 'Momoka-通知接管'  分支合并后删掉它
+#   .\tools\shortcut.ps1 -Name '通知接管'    给临时分支单独建一条（不带 Momoka- 前缀），不覆盖主树的 Momoka
+#   .\tools\shortcut.ps1 -Remove -Name '通知接管'  分支合并后删掉它
 [CmdletBinding()]
 param(
     [string]$Exe,

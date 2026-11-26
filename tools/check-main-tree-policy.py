@@ -81,7 +81,8 @@ DECISIONS = {
         ("tools/quality.ps1", "0 警告、0 错误", "-SkipBuild", "-SkipDuplication", "仅供定位"),
         ("编译成功才可", "--no-build", "失败 0、跳过 0", "deferred", "-All -IncludeExternal",
          "summary.json", "无延期、跳过、失败及遗漏"),
-        ("verify-publish.ps1", "TargetPath", "WorkingDirectory", "Momoka-<中文简述>.lnk", "改了什么或新增了什么功能"),
+        ("verify-publish.ps1", "TargetPath", "WorkingDirectory", "<中文简述>.lnk", "不带 `Momoka-` 前缀",
+         "改了什么或新增了什么功能"),
         ("本次发布件", "selfcheck-diff.ps1", "缺项", "通过降级", "只比较既有报告", "禁止靠接纳失败"),
     ),
     "资源占用与等待": (
@@ -115,7 +116,7 @@ ROUTES = {
 }
 REQUIRED = {
     DOC: ("tools/check-doc-commands.ps1", "py tools/check-main-tree-policy.py --self-test",
-          "](待交付批次.md)", "Momoka-<中文简述>", "TargetPath", "WorkingDirectory"),
+          "](待交付批次.md)", "<中文简述>", "不带 `Momoka-` 前缀", "TargetPath", "WorkingDirectory"),
     SKILL: ("../../../docs/待交付批次.md", "instantiate the affected production view",
             "apply its template", "deferred external suites", "working directory"),
     LEDGER: ("写清树与合并状态", "未纳入的批次保持待合并", "保留剩余未销账条目", "## 交付时怎么做", "## 已交付"),
