@@ -36,8 +36,7 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
 - **Media server playback:** Connect to Emby, Jellyfin, and fnOS Media. Plex support is experimental and has not been verified against a live server. The built-in libmpv player runs embedded in the main window or in a dedicated window; Momoka can also launch a local mpv executable.
 - **Subscriptions and media organization:** Connect to MoviePilot to search for resources, manage subscriptions, confirm downloads, and review organization jobs and history. AniBT helps find and check anime releases, then hands download or organization tasks to MoviePilot.
 - **Library management:** Browse server libraries and, where supported by the server, edit metadata, change artwork, manage subtitles, update watched status, and work with collections or playlists.
-- **Local folder organization:** Create a local library from a disk or network share, identify media with TMDB or MoviePilot, and organize it by renaming or using hard or symbolic links. Optional folder monitoring can scrape and import new items. Local libraries currently let you browse imported items; Momoka does not play them directly.
-- **Music:** Emby, Jellyfin, and fnOS Music share a music interface and playback bar. Plex currently has protocol adaptation only; live-server music playback has not been verified.
+- **Music:** Emby, Jellyfin, fnOS Music, and Plex share a music interface and playback bar. Plex music library access and playback still need live-server verification.
 - **Optional playback features:** Shaders, SVP frame interpolation integration, danmaku, subtitle selection, and real-time subtitle translation. SVP and translation are off by default. Translation requires your own service credentials and sends subtitle text to the selected provider when enabled.
 - **Chapter authoring:** Mark, edit, and remove chapters during playback, then export CHP or OGM chapter files without changing the original media or server chapters.
 
@@ -48,7 +47,7 @@ Momoka is for Windows users who already have an Emby, Jellyfin, or fnOS Media se
 
 Requires Windows 10 version 1809 or later, x64. Emby, Jellyfin, or fnOS features require access to the corresponding media server. Resource subscriptions, downloads, and organization require a separately hosted and configured MoviePilot instance.
 
-Verified compatibility notes: Jellyfin 10.10.7 has been checked for saved-login restoration, library reads, original-quality playback, and resume. The same scope has been checked with fnOS Media Web 0.9.8 / Service 0.8.43. Management writes have not been verified for Jellyfin or fnOS Media. Other coverage boundaries are documented in the [Jellyfin notes](docs/Jellyfin支持.md) and [fnOS notes](docs/飞牛影视.md). Plex has offline protocol adaptation only; live connection, browsing, and playback have not been verified. See the [Plex notes](docs/Plex支持.md). These version records are not guarantees of compatibility with every release.
+Verified compatibility notes: Jellyfin 10.10.7 has been checked for saved-login restoration, library reads, original-quality playback, and resume. The same scope has been checked with fnOS Media Web 0.9.8 / Service 0.8.43. Management writes have not been verified for Jellyfin or fnOS Media. Other coverage boundaries are documented in the [Jellyfin notes](docs/Jellyfin支持.md) and [fnOS notes](docs/飞牛影视.md). Plex has offline protocol and feature coverage. Connecting to, browsing, and playing media from a live Plex server still need verification. See the [Plex notes](docs/Plex支持.md). These version records are not guarantees of compatibility with every release.
 
 ## Development and verification
 
