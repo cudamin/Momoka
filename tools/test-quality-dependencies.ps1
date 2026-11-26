@@ -17,6 +17,21 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'check-doc-commands.ps1') -Desti
 & git -C $fixture init --quiet
 if ($LASTEXITCODE -ne 0) { throw 'Cannot initialize anonymous command-check fixture.' }
 foreach ($name in @('check-docs.py', 'check-report-credentials.py')) { Save ("tools/$name") '' }
+Save 'tools/check-website-mirror.py' @'
+from pathlib import Path
+import sys
+root = Path(__file__).resolve().parents[1]
+step = 'mirror-self-test' if sys.argv[1:] == ['--self-test'] else 'mirror-check'
+with (root / 'calls.log').open('a', encoding='utf-8') as output:
+    print(step, file=output)
+mode = (root / 'mode.txt').read_text(encoding='utf-8-sig')
+raise SystemExit(19 if mode == step + '-failure' else 0)
+'@
+# CI must keep both halves of the mirror contract alongside the canonical quality entry.
+$workflow = [IO.File]::ReadAllText((Join-Path $repo '.github/workflows/windows-ci.yml'))
+foreach ($command in @('python .\tools\check-website-mirror.py', 'python .\tools\check-website-mirror.py --self-test')) {
+    if (-not ($workflow -split "`n" | Where-Object { $_.Trim() -eq $command })) { throw 'CI mirror coverage is incomplete.' }
+}
 Save 'fake-dotnet.ps1' @'
 [IO.File]::AppendAllText((Join-Path $PSScriptRoot 'calls.log'), (($args | ConvertTo-Json -Compress) + "`n"))
 $mode = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'mode.txt'))
@@ -32,7 +47,7 @@ if ($Suite.Count -ne 1 -or $Suite[0] -ne 'Momoka.ArchitectureTests') { throw 'un
 exit 0
 '@
 $results = @()
-foreach ($mode in @('failure', 'warning', 'success', 'skip-build', 'command-syntax')) {
+foreach ($mode in @('failure', 'warning', 'success', 'skip-build', 'command-syntax', 'mirror-check-failure', 'mirror-self-test-failure')) {
     Save 'mode.txt' $mode
     Save 'calls.log' ''
     $example = if ($mode -eq 'command-syntax') { '"$HOME/.dotnet/dotnet.exe" build ./fixture.csproj' }
@@ -48,7 +63,11 @@ foreach ($mode in @('failure', 'warning', 'success', 'skip-build', 'command-synt
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = $saved }
     $calls = [IO.File]::ReadAllText((Join-Path $fixture 'calls.log'))
-    $passed = if ($mode -in @('failure', 'warning')) { $code -ne 0 -and -not $calls.Contains('"run"') -and [IO.File]::ReadAllText($log).Contains('未执行') }
+    $mirrorPassed = $calls.Contains('mirror-check') -and $calls.Contains('mirror-self-test')
+    $passed = if ($mode -eq 'mirror-check-failure') { $code -ne 0 -and $calls.Contains('mirror-check') -and -not $calls.Contains('mirror-self-test') }
+        elseif ($mode -eq 'mirror-self-test-failure') { $code -ne 0 -and $mirrorPassed }
+        elseif (-not $mirrorPassed) { $false }
+        elseif ($mode -in @('failure', 'warning')) { $code -ne 0 -and -not $calls.Contains('"run"') -and [IO.File]::ReadAllText($log).Contains('未执行') }
         elseif ($mode -eq 'command-syntax') { $code -ne 0 -and [IO.File]::ReadAllText($log).Contains('UnexpectedToken') }
         elseif ($mode -eq 'skip-build') { $code -eq 0 -and $calls.Contains('fresh-architecture-runner') }
         else { $code -eq 0 -and $calls.Contains('"run"') }

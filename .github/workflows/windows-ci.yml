@@ -54,6 +54,10 @@ jobs:
         shell: pwsh
         run: |
           python .\tools\check-docs.py
+          python .\tools\check-website-mirror.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .\tools\check-website-mirror.py --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\tools\check-scripts.ps1
           .\tools\check-doc-commands.ps1
           python .\tools\check-report-credentials.py
