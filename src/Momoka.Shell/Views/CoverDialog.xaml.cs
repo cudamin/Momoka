@@ -450,6 +450,22 @@ public sealed partial class CoverDialog : ContentDialog
         if (_closed || _panelCompletion is not null) return ContentDialogResult.None;
         var saved = (Content, Title, PrimaryButtonText, SecondaryButtonText, CloseButtonText, DefaultButton, IsPrimaryButtonEnabled);
         var content = panel.Content;
+        // The dialog itself includes the overlay. Keep the visible editor surface when swapping in search.
+        var surface = panel is CoverPickerDialog ? DialogDismiss.Surface(this) : null;
+        var layoutRoot = surface?.Parent as FrameworkElement;
+        var originalSize = surface?.ActualSize ?? default;
+        void FitSearchToWindow(object sender, SizeChangedEventArgs args)
+        {
+            if (surface is null) return;
+            surface.Width = Math.Min(originalSize.X, args.NewSize.Width);
+            surface.Height = Math.Min(originalSize.Y, args.NewSize.Height);
+        }
+        if (surface is not null)
+        {
+            surface.Width = originalSize.X;
+            surface.Height = originalSize.Y;
+            if (layoutRoot is not null) layoutRoot.SizeChanged += FitSearchToWindow;
+        }
         var completion = new TaskCompletionSource<ContentDialogResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         _panelCompletion = completion;
         panel.Content = null;
@@ -482,6 +498,12 @@ public sealed partial class CoverDialog : ContentDialog
             if (panel is CoverPickerDialog finishedPicker) { finishedPicker.UploadCompleted -= Uploaded; finishedPicker.CancelLoads(); }
             Content = null;
             panel.Content = content;
+            if (surface is not null)
+            {
+                if (layoutRoot is not null) layoutRoot.SizeChanged -= FitSearchToWindow;
+                surface.ClearValue(WidthProperty);
+                surface.ClearValue(HeightProperty);
+            }
             (Content, Title, PrimaryButtonText, SecondaryButtonText, CloseButtonText, DefaultButton, IsPrimaryButtonEnabled) = saved;
             _panelCompletion = null;
         }

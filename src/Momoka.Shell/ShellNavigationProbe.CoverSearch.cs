@@ -43,9 +43,15 @@ internal sealed partial class ShellNavigationProbe
                 try
                 {
                     await LayoutAsync(cover);
+                    var surface = DialogDismiss.Surface(cover) ?? throw new InvalidOperationException("找不到封面管理弹窗");
+                    var original = surface.ActualSize;
+                    void RequireOriginalSize(string state) =>
+                        Require(Math.Abs(surface.ActualWidth - original.X) <= 1 && Math.Abs(surface.ActualHeight - original.Y) <= 1,
+                            $"{width} {state}：原弹窗 {original.X}×{original.Y}，当前 {surface.ActualWidth}×{surface.ActualHeight}");
                     var picker = new CoverPickerDialog(item, ItemArtwork.SingleKinds.Single(kind => kind.ImageType == "Thumb"), Results("initial"), cover);
                     panel = (Task<ContentDialogResult>)Call(cover, "ShowPanelAsync", picker)!;
                     await LayoutAsync(cover);
+                    RequireOriginalSize("有候选");
                     var source = Get<ComboBox>(picker, "SourcePicker");
                     var languages = Get<ToggleSwitch>(picker, "AllLanguagesToggle");
                     var grid = Get<GridView>(picker, "Grid");
@@ -81,10 +87,13 @@ internal sealed partial class ShellNavigationProbe
                         && Get<Button>(picker, "UploadArtworkButton").Visibility == Visibility.Visible,
                         "语言开关未发送服务器筛选或无结果隐藏了本机上传");
                     await LayoutAsync(cover);
+                    RequireOriginalSize("筛选后没有图片");
                     await SaveProbeScreenAsync($"artwork-search-empty-{width}.png");
                     failed = true;
                     languages.IsOn = true;
                     await UntilAsync(() => Get<Button>(picker, "RetryArtworkSearch").Visibility == Visibility.Visible);
+                    await LayoutAsync(cover);
+                    RequireOriginalSize("搜索失败");
                     failed = false;
                     Call(picker, "OnRetrySearch", picker, new RoutedEventArgs());
                     await UntilAsync(() => choices.Count == 1 && Get<Button>(picker, "RetryArtworkSearch").Visibility == Visibility.Collapsed);
@@ -93,6 +102,16 @@ internal sealed partial class ShellNavigationProbe
                     var disc = new CoverPickerDialog(item, ItemArtwork.SingleKinds.Single(kind => kind.ImageType == "Disc"), new RemoteImageResult(), cover);
                     panel = (Task<ContentDialogResult>)Call(cover, "ShowPanelAsync", disc)!;
                     await LayoutAsync(cover);
+                    RequireOriginalSize("打开时没有图片");
+                    if (width == 1000)
+                    {
+                        ResizeProbeClient(760, 700);
+                        await UntilAsync(() => surface.ActualWidth < original.X && surface.ActualHeight < original.Y);
+                        await LayoutAsync(cover);
+                        CoverViewportBounds(Get<Button>(disc, "UploadArtworkButton"), cover, "缩小窗口后的空结果上传入口");
+                        ResizeProbeClient(width, 800);
+                        await UntilAsync(() => Math.Abs(surface.ActualWidth - original.X) <= 1 && Math.Abs(surface.ActualHeight - original.Y) <= 1);
+                    }
                     var notice = Get<TextBlock>(disc, "Notice").Text;
                     Require(notice.Contains("光盘封面", StringComparison.Ordinal) && !notice.Contains("刮削源", StringComparison.Ordinal)
                         && !notice.Contains("对上", StringComparison.Ordinal) && string.IsNullOrEmpty(cover.PrimaryButtonText),
