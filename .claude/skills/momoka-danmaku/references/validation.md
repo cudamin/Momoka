@@ -4,7 +4,7 @@
 
 | 场景 | 应能得到的决定 |
 | --- | --- |
-| 配置自部署根地址及令牌；自动匹配时没有视频哈希 | 找到 `DanmuApiEndpoint`；根路径、转义令牌、`api/v2` 顺序明确；POST 只有元数据构造的 `fileName`，无哈希占位 |
+| 部署要求访问令牌，自动匹配没有视频哈希 | 确认旧 `DanmuApiEndpoint` 会将非空令牌写入路径而停止接入；用匿名夹具核对仅以元数据构造 `fileName` 的请求。 |
 | Both 两源返回同一个 episodeId，其中一源失败或返回空列表 | 身份带来源；区分匹配和读取失败；成功空列表计为加载，读取失败允许另一源继续；合并排序后受上限约束，过滤另做去重 |
 | Both 下手动只加载 danmu_api，随后发送 | 手动加载替换原结果；没有已加载弹弹play库就不能发送；纯 danmu_api 不显示输入栏 |
 | 自部署读取 200 却解析失败 | 找到 `DANMU_OUTPUT_FORMAT` 与 Momoka 未传 `format=json` 的差异，不把 HTTP 200 当作兼容证明 |
@@ -23,4 +23,4 @@
 
 ## 结构与引用
 
-运行项目技能检查器，核对主技能和所有参考页的相对链接、源码锚点、UTF-8/LF、目录与 frontmatter 名称、CLAUDE.md 登记及现行调用者。旧目录不再作为活动入口；历史审查报告中的旧路径保留原始证据语义。`tools/check-review-docs.py` 必须读取改名后的三份既有文档，新增本页与 danmu_api 参考由技能链接检查覆盖。
+运行 `py tools/check-docs.py` 检查相对链接和 CLAUDE 技能索引，用 `tools/check-diff.ps1` 检查编码及行尾，再按当前源码核对方法、路径和行为。`tools/check-review-docs.py` 另查指定文档的跨页约定。

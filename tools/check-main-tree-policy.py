@@ -1,13 +1,13 @@
-"""Offline checks for Momoka's main-tree, deferred-merge and delivery documentation.
+"""Check the repository's development policy and the routes to its authoritative sections.
 
 Run: py tools/check-main-tree-policy.py --self-test
-This only reads text and checks in-memory negative fixtures. It never merges, builds,
-launches the application, publishes, or changes branches or settings.
+Reads tracked policy documents and runs in-memory counterexamples. No application or Git mutations.
 """
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from posixpath import dirname, relpath
 import re
 
 POLICY = "CLAUDE.md"
@@ -15,151 +15,115 @@ DOC = "docs/开发与验证.md"
 SKILL = ".claude/skills/momoka-verification/SKILL.md"
 LEDGER = "docs/待交付批次.md"
 MATRIX = "docs/后端能力矩阵.md"
+
+# A tuple belongs to one decision (a paragraph, bullet or table row) inside a specific
+# section. Keep short condition/action/assertion fragments here, not mirrors of paragraphs.
+DECISIONS = {
+    "优先级与完成条件": (
+        ("P0 红线", "授权", "真实数据与凭据", "证据真实性"),
+        ("P1 必做", "阻断", "检查并集"),
+        ("P2 默认", "等效实现", "证据"),
+        ("上下文压缩后先重读", "当前工作树"),
+        ("可独立回滚", "一个 Git 提交", "修复缺陷必须有相应测试"),
+        ("待提交差异", "调用链", "错误出口"),
+        ("失败", "未执行", "不适用", "缺少", "未验证"),
+    ),
+    "动手前核对项目配置": (("global.json", ".csproj", "nuget.config", "前滚策略"),),
+    "分层与代码风格": (
+        ("禁止 Core 引用 Shell", "框架外运行时", "Windowing 禁止回依赖 Views", "架构专项"),
+        ("后端能力矩阵", "显隐、契约测试", "分管线检查"),
+        ("AgreementsTests", "逐项更新并运行"),
+    ),
+    "异常、并发与数据兼容": (
+        ("丢弃迟到结果", "复查该身份及权限", "切换默认账号", "原账号退出"),
+        ("结果未知", "禁止对回执丢失的写入盲目重发", "实际调用次数"),
+        ("损坏文件", "无效输入须报错且不写入", "旧快照不能覆盖新值"),
+    ),
+    "参考与复刻先读源码": (("版本源码", "固定提交或版本", "未引用外部实现", "直接查本仓"),),
+    "WinUI 官方优先与偏离确认": (
+        ("新控件类型", "须查", "Gallery 源码", "既有控件", "直接改"),
+        ("官方建议冲突", "只读核对", "请用户选择"),
+    ),
+    "功能可用性与显隐": (("MoviePilot 字幕", "始终显示", "保留选中项", "阻止请求"),),
+    "凭据": (
+        ("客户端持久化须走", "ISecretProtector", "DPAPI"),
+        ("凭据禁止进入 URL", "子进程参数", "禁止鉴权跨源", "按未支持处理"),
+        ("占位令牌", "禁止出口", "check-report-credentials.py", "--file", "疑似值必须为零"),
+    ),
+    "播放相关改动的验证（三档）": (
+        ("默认展示", "不起播", "隔离目录"),
+        ("隔离本地播放", "不登录、不上报", "拒绝 URL", "两段哈希"),
+        ("真实服务器播放或写入", "明确授权", "账号和操作", "未获授权改用匿名夹具"),
+    ),
+    "依赖与分析器升级": (
+        ("稳定发行版", "传递依赖", "未核", "先还原", "四道闸门"),
+        ("独立可信来源", "禁止从待验发布目录反向生成白名单"),
+        ("分发权未核实", "适用的对应源码义务", "禁止装入发行包"),
+    ),
+    "四道闸门与日常交付": (
+        ("提交级", "编译受影响项目及测试", "覆盖改动的用例", "纯文档", "不发布应用"),
+        ("批次级", "日常 UI 默认不跑探针", "自动发布本树", "刷新快捷方式", "体验刷新不销账", "仅合并不触发"),
+        ("统一交付级", "用户明确要求", "目标提交", "已纳入", "最终整合代码", "闸门 2", "闸门 3"),
+        ("四闸全验", "发新版本", "升级依赖或分析器", "失败、跳过或未执行", "阻断"),
+        ("高风险 XAML", "首次引用控件基样式", "跨资源字典取键", "字典加载顺序",
+         "匿名隔离", "应用模板", "无法安全隔离或加载失败时，暂缓体验发布"),
+        ("tools/quality.ps1", "0 警告、0 错误", "-SkipBuild", "-SkipDuplication", "仅供定位"),
+        ("编译成功才可", "--no-build", "失败 0、跳过 0", "deferred", "-All -IncludeExternal",
+         "summary.json", "无延期、跳过、失败及遗漏"),
+        ("verify-publish.ps1", "TargetPath", "WorkingDirectory", "Momoka-<分支标识>.lnk"),
+        ("本次发布件", "selfcheck-diff.ps1", "缺项", "通过降级", "只比较既有报告", "禁止靠接纳失败"),
+    ),
+    "资源占用与等待": (
+        ("只读探针", "可中断等待", "释放后由正式操作重新取得锁", "竞争失败继续等待"),
+        ("禁止结束用户或其他会话的进程、绕过锁", "最多等待 30 秒", "跳过本次发布", "快捷方式仍指向旧版"),
+        ("超时或确需用户处理", "具体占用", "未完成检查"),
+    ),
+    "发布状态与销账": (
+        ("Directory.Build.props", "UpdateTests", "实际程序集", "清单身份"),
+        ("预发布与正式发布均须明确上传授权", "四闸", "验收全过", "目标提交", "SHA-256", "上传状态"),
+        ("只关闭已合入 master", "目标提交", "必需检查全过", "交付产物已核对", "继续保留"),
+        ("合并后的代码必须重新验证", "分支报告只覆盖该分支", "主树实际目录并核对快捷方式"),
+    ),
+    "Git 与协作": (
+        ("唯一长期主树", "一个写入会话"),
+        ("只在用户明确要求合并时合入 master", "未合并保留分支"),
+        ("按内容确认全部进入 master", "工作树干净", "没有未保留改动或独有提交", "没有其他会话占用",
+         "立即删除分支快捷方式、临时分支及其工作树", "任一项不明则登记待清理", "未合并分支禁止删除"),
+        ("只暂存本任务", "不写死协作者模型版本", "获明确上传授权后", "git push origin master"),
+    ),
+    "文档查阅与维护": (("文档验收", "check-docs.py", "check-main-tree-policy.py --self-test", "纯文档不构建应用"),),
+}
+
+# Consumer documents route to the owner instead of restating all of the mandatory decisions.
+ROUTES = {
+    DOC: ("git-与协作", "四道闸门与日常交付", "资源占用与等待", "发布状态与销账"),
+    SKILL: ("git-与协作", "四道闸门与日常交付", "资源占用与等待", "发布状态与销账"),
+    LEDGER: ("git-与协作", "四道闸门与日常交付", "发布状态与销账"),
+    MATRIX: ("播放相关改动的验证三档",),
+}
 REQUIRED = {
-    POLICY: (
-        "每个可独立回滚的逻辑变更对应一个 Git 提交",
-        "新增行为或修复缺陷必须有相应测试",
-        "只修项目内既有缺陷且不参考外部实现时，不强制另找外部源码",
-        "强制查 Gallery 与外部源码",
-        "按项目既有规范直接改",
-        "提交级",
-        "批次级",
-        "统一交付级",
-        "高风险 XAML 最小加载检查",
-        "无法安全隔离或加载失败时，暂缓体验发布",
-        "先按目标提交筛选已纳入的未销账批次",
-        "预发布标记不豁免必需检查",
-        "未合并、失败或未验条目继续保留",
-        "未合并不得销账",
-        "日常体验刷新最多等待 30 秒",
-        "不在正文写死协作者模型版本",
-        "全域凭据红线",
-        "py tools/check-report-credentials.py",
-        "后端能力矩阵",
-        "只维护 `master` 主树，其他分支都是临时分支",
-        "分支以后不自动合并，我要要求了再合并",
-        "改好收尾自动刷新桌面快捷方式",
-        "自动刷新快捷方式不等于交付",
-        "临时分支完成后不自动合入主树",
-        "合并后的代码必须重新验证，通过后才能交付",
-        "以主树最终整合代码为准",
-        "分支上的通过报告只覆盖分支代码",
-        "验证全部通过后，再发布到主树实际交付目录并核对桌面快捷方式",
-        "待交付批次台账",
-        "分支收尾即删，本地只留 `master`",
-        "立即删除该分支及其工作树",
-        "合并完成后立即删除该分支的桌面快捷方式",
-        "判定以内容为准，不只看分支指针",
-        "没有未保留的改动或提交",
-        "不是其他聊天正在开发的树",
-        "条件未确认时只登记待清理，不执行删除",
-        "日常改界面不跑探针",
-        "统一验证",
-        "Momoka-<分支标识>",
-        "用探针等待释放后自动继续，不反复让用户关闭",
-        "不得擅自结束其他聊天或用户的进程、绕过锁",
-        "由正式操作重新取得锁，竞争失败时回到等待",
-        "等待超时或证据表明必须由用户处理时",
-    ),
-    DOC: (
-        "../CLAUDE.md#git-与协作",
-        "../CLAUDE.md#四道闸门与日常交付",
-        "](待交付批次.md)",
-        "涉及应用运行产物时，改好收尾只发布当前树并刷新快捷方式",
-        "纯文档、仅测试或不随应用发布的检查工具不刷新应用快捷方式",
-        "最多 30 秒的只读等待",
-        "每个提交先编译本提交触及的项目与测试",
-        "tools/check-doc-commands.ps1",
-        "高风险 XAML 最小加载",
-        "先按目标提交筛选已纳入的未销账批次",
-        "预发布标记不豁免必需检查",
-        "合并不跑这一闸",
-        "py tools/check-main-tree-policy.py --self-test",
-        "只检查文档，不合并、不构建、不运行应用或发布",
-        "../CLAUDE.md#资源占用与等待",
-        "使用只读轻量探针、短间隔等待释放后自动继续",
-        "日常改 UI 不跑探针",
-        "用户要求合并时再合入 master",
-        "Momoka-<分支标识>.lnk",
-    ),
-    SKILL: (
-        "../../../CLAUDE.md#git-与协作",
-        "../../../CLAUDE.md#四道闸门与日常交付",
-        "../../../docs/待交付批次.md",
-        "Every commit must compile the projects/tests it touches",
-        "A change that affects shipped runtime output publishes the current tree",
-        "non-shipped checking tools",
-        "wait at most 30 seconds",
-        "Daily UI edits run no probes",
-        "high-risk XAML exception",
-        "Loading failure or unavailable isolation defers the experience publish",
-        "first select open batches whose changes are included in the target commit",
-        "The prerelease flag never waives required checks",
-        "unmerged batches cannot be closed",
-        "Branches are not merged automatically",
-        "Merge only on an explicit user request",
-        "confirming by content that everything is in `master`",
-        "the worktree is clean with no unpreserved changes or commits",
-        "it is not another chat's tree",
-        "register it as pending cleanup and do not delete",
-        "run it against the final integrated master tree",
-        "Do not reuse branch-only reports",
-        "Momoka-<branch>",
-        "../../../CLAUDE.md#资源占用与等待",
-        "short interruptible waits, then continue automatically after release",
-        "the real operation must recheck its target and acquire its own lock",
-    ),
-    LEDGER: (
-        "../CLAUDE.md#四道闸门与日常交付",
-        "../CLAUDE.md#git-与协作",
-        "改好即追加、统一验证通过才销账",
-        "统一验证",
-        "自动刷新快捷方式不销账",
-        "写清树与合并状态",
-        "Momoka-<分支标识>",
-        "以内容确认全部进入 master",
-        "工作树干净",
-        "没有未保留改动或提交",
-        "不是其他聊天正在开发的树",
-        "只登记待清理，不执行删除",
-        "## 交付时怎么做",
-        "## 已交付",
-        "先按目标提交筛选已纳入的未销账批次",
-        "未纳入的批次保持待合并",
-        "预发布标记不豁免必需检查",
-        "未合并不得销账",
-        "保留剩余未销账条目",
-    ),
-    MATRIX: (
-        "| 共享能力 | Emby | Jellyfin | 飞牛影视 | Plex |",
-        "仅离线协议与夹具，未连真实服务器",
-        "真实管理写入未验证",
-        "未接入；入口按条目来源隐藏",
-        "代码中的能力声明、适配器和契约测试是实现真源",
-        "同一批次更新本表",
-    ),
+    DOC: ("tools/check-doc-commands.ps1", "py tools/check-main-tree-policy.py --self-test",
+          "](待交付批次.md)", "Momoka-<分支标识>", "TargetPath", "WorkingDirectory"),
+    SKILL: ("../../../docs/待交付批次.md", "instantiate the affected production view",
+            "apply its template", "deferred external suites", "working directory"),
+    LEDGER: ("写清树与合并状态", "未纳入的批次保持待合并", "保留剩余未销账条目", "## 交付时怎么做", "## 已交付"),
+    MATRIX: ("| 共享能力 | Emby | Jellyfin | 飞牛影视 | Plex |", "真实验证按后端分开记账",
+             "只证明各自覆盖", "代码中的能力声明、适配器和契约测试是实现真源", "同一批次更新本表"),
 }
 FORBIDDEN = {
     POLICY: (
         "文件锁须请用户关闭",
-        "在所属交付批次的测试与适用验证全部通过后才交付",
-        "批次收尾时更新桌面快捷方式指向",
         "分支做完只合并",
         "临时分支完成后主动合入主树",
         "分支做完自动合并",
         "合进 master 才算这一轮做完",
     ),
     DOC: (
-        "批次收尾再对最终代码跑闸门 2、受影响的运行检查/探针和闸门 3",
-        "**闸门 3：刷新实际交付目录（批次收尾）。**",
         "合并与日常收尾不跑这一闸",
-        "改了被探针覆盖的代码才重跑全量探针",
-        "分支收尾合入 master 时不跑全量",
     ),
     SKILL: (
         "At batch close, run gate 2, the affected runtime checks/probes and gate 3 once",
         "Merging closes a batch; publishing happens only on an explicit delivery request",
-        "explicit request to defer merging keeps that pending item open",
         "Daily UI edits run no probes, native run checks or acceptance screenshots",
         "A user request to deliver closes the pending ledger entries at the requested commit",
     ),
@@ -172,74 +136,146 @@ FORBIDDEN = {
 }
 
 
+HEADING = re.compile(r"^#{1,6} (.+)$")
+LINK = re.compile(r"\]\(([^)]+)\)")
+
+
+def prose_lines(text: str) -> list[str]:
+    """Omit fenced examples and comments so a retired rule cannot satisfy a decision."""
+    lines: list[str] = []
+    fence = ""
+    for line in re.sub(r"<!--.*?-->", "", text, flags=re.S).splitlines():
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if fence:
+            if marker and marker[1].startswith(fence) and not line[marker.end():].strip():
+                fence = ""
+        elif marker:
+            fence = marker[1]
+        else:
+            lines.append(line)
+    return lines
+
+
+def sections(lines: list[str]) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    body: list[str] = []
+    for line in lines:
+        heading = HEADING.fullmatch(line)
+        if heading:
+            title = heading[1]
+            if title in result:
+                raise ValueError(f"duplicate policy heading: {title}")
+            body = []
+            result[title] = body
+        else:
+            body.append(line)
+    return result
+
+
 def validate(texts: dict[str, str]) -> None:
-    for relative, phrases in REQUIRED.items():
-        text = texts[relative]
+    prose: dict[str, str] = {}
+    for name, text in texts.items():
         if "\r" in text or not text.endswith("\n"):
-            raise ValueError(f"non-LF or missing final newline: {relative}")
+            raise ValueError(f"non-LF or missing final newline: {name}")
+        prose[name] = "\n".join(prose_lines(text))
+        for phrase in FORBIDDEN.get(name, ()):
+            if phrase in prose[name]:
+                raise ValueError(f"superseded rule: {name}: {phrase}")
+
+    policy = sections(prose[POLICY].splitlines())
+    for title, rules in DECISIONS.items():
+        for fragments in rules:
+            if not any(all(part in line for part in fragments) for line in policy.get(title, ())):
+                raise ValueError(f"missing decision: {POLICY} / {title}: {', '.join(fragments)}")
+
+    anchors = {re.sub(r"[^\w -]", "", heading.lower()).replace(" ", "-") for heading in policy}
+    for name, required_anchors in ROUTES.items():
+        links = LINK.findall(re.sub(r"`[^`\n]*`", "", prose[name]))
+        for anchor in required_anchors:
+            target = f"{relpath(POLICY, dirname(name))}#{anchor}"
+            if target not in links or anchor not in anchors:
+                raise ValueError(f"missing policy link: {name}: {target}")
+    for name, phrases in REQUIRED.items():
         for phrase in phrases:
-            if phrase not in text:
-                raise ValueError(f"missing rule or synchronization: {relative}: {phrase}")
-        for phrase in FORBIDDEN.get(relative, ()):
-            if phrase in text:
-                raise ValueError(f"superseded occupancy rule: {relative}: {phrase}")
-    for heading in ("## Git 与协作", "## 四道闸门与日常交付", "### 资源占用与等待"):
-        if f"{heading}\n" not in texts[POLICY]:
-            raise ValueError(f"broken policy anchor: {heading}")
-
-
-def check_links(root: Path, texts: dict[str, str]) -> None:
-    for relative in (DOC, SKILL, LEDGER):
-        # Validate this change's required links; unrelated existing policy anchors are not this check's scope.
-        targets = [target for target in REQUIRED[relative] if "CLAUDE.md#" in target]
-        actual = re.findall(r"\]\(([^)]+CLAUDE\.md(?:#[^)]+)?)\)", texts[relative])
-        for target in targets:
-            if target not in actual:
-                raise ValueError(f"missing Markdown policy link: {relative}: {target}")
-            path, _, anchor = target.partition("#")
-            if (root / relative).parent.joinpath(path).resolve() != (root / POLICY).resolve():
-                raise ValueError(f"wrong policy link: {relative}: {target}")
-            if anchor not in {"git-与协作", "四道闸门与日常交付", "资源占用与等待"}:
-                raise ValueError(f"unknown policy anchor: {relative}: {target}")
+            if phrase not in prose[name]:
+                raise ValueError(f"missing document contract: {name}: {phrase}")
 
 
 def self_test(texts: dict[str, str]) -> int:
     rejected = 0
-    for relative, phrases in REQUIRED.items():
+
+    def must_reject(name: str, old: str, new: str, *, append: bool = False) -> None:
+        nonlocal rejected
+        original = texts[name]
+        mutated = original + new + "\n" if append else original.replace(old, new)
+        if original == mutated:
+            raise AssertionError(f"fixture did not change {name}: {old}")
+        try:
+            validate({**texts, name: mutated})
+        except ValueError:
+            rejected += 1
+        else:
+            raise AssertionError(f"invalid policy passed: {name}: {old or new}")
+
+    for rules in DECISIONS.values():
+        for fragments in rules:
+            for fragment in fragments:
+                must_reject(POLICY, fragment, "")
+    for name, phrases in REQUIRED.items():
         for phrase in phrases:
-            broken = dict(texts)
-            broken[relative] = broken[relative].replace(phrase, "")
-            try:
-                validate(broken)
-            except ValueError:
-                rejected += 1
-            else:
-                raise AssertionError(f"missing text incorrectly passed: {relative}: {phrase}")
-    for relative, phrases in FORBIDDEN.items():
+            must_reject(name, phrase, "")
+    for name, phrases in FORBIDDEN.items():
         for phrase in phrases:
-            broken = dict(texts)
-            broken[relative] += phrase + "\n"
-            try:
-                validate(broken)
-            except ValueError:
-                rejected += 1
-            else:
-                raise AssertionError(f"superseded rule incorrectly passed: {relative}: {phrase}")
+            must_reject(name, "", phrase, append=True)
+    for name, link_anchors in ROUTES.items():
+        for anchor in link_anchors:
+            old = f"{relpath(POLICY, dirname(name))}#{anchor}"
+            must_reject(name, old, old.replace("CLAUDE.md", "README.md"))
+
+    # Coverage in an individual matrix cell can change as new evidence arrives.
+    matrix = texts[MATRIX]
+    row = next(line for line in matrix.splitlines() if line.startswith("| ") and len(line.split("|")) == 7
+               and "共享能力" not in line and "---" not in line)
+    cells = row.split("|")
+    cells[-2] = " 新增实服证据见本批记录 "
+    validate({**texts, MATRIX: matrix.replace(row, "|".join(cells))})
+
+    # Exercise meaning-changing edits, including a good rule hidden outside its owner.
+    for old, wrong in (
+        ("仅供定位", "结果也算完整闸门"),
+        ("无延期、跳过、失败及遗漏", "允许延期、跳过、失败及遗漏"),
+        ("只比较既有报告", "可用旧报告验收当前构建"),
+        ("只在用户明确要求合并时合入 master", "完成就合入 master"),
+        ("凭据禁止进入 URL", "凭据允许进入 URL"),
+        ("预发布与正式发布均须明确上传授权", "预发布可以免验并上传"),
+        ("无法安全隔离或加载失败时，暂缓体验发布", "无法安全隔离或加载失败时，照常体验发布"),
+    ):
+        must_reject(POLICY, old, wrong)
+    release = next(line for line in sections(prose_lines(texts[POLICY]))["发布状态与销账"]
+                   if "预发布与正式发布均须明确上传授权" in line)
+    must_reject(LEDGER, "写清树与合并状态", "<!--写清树与合并状态-->")
+    must_reject(POLICY, release, f"<!-- {release} -->")
+    must_reject(POLICY, release, f"```text\n{release}\n```")
+    broken = texts[POLICY].replace(release, "")
+    must_reject(POLICY, texts[POLICY], broken + "\n" + release + "\n")
     return rejected
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
-    root = args.root.resolve()
-    texts = {relative: (root / relative).read_bytes().decode("utf-8-sig") for relative in REQUIRED}
-    validate(texts)
-    check_links(root, texts)
-    count = self_test(texts) if args.self_test else 0
-    print(f"Main-tree policy check passed: {len(texts)} documents, {count} rejected negative fixtures; no merge/build/app/publish.")
+    try:
+        texts = {name: (args.root / name).read_bytes().decode("utf-8") for name in (POLICY, *ROUTES)}
+        validate(texts)
+        count = self_test(texts) if args.self_test else 0
+    except (OSError, ValueError) as error:
+        print(f"Policy check failed: {error}")
+        return 1
+    print(f"Policy check passed: {len(texts)} documents, {count} rejected negative fixtures; no app or publish.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

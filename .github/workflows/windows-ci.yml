@@ -50,6 +50,10 @@ jobs:
         shell: pwsh
         run: dotnet run --project .\tests\Momoka.Tests\Momoka.Tests.csproj -c Release --no-build --no-restore
 
+      - name: Check development policy and its negative fixtures
+        shell: pwsh
+        run: python .\tools\check-main-tree-policy.py --self-test
+
       - name: Run repository checks
         shell: pwsh
         run: |

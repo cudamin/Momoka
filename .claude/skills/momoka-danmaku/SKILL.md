@@ -17,7 +17,7 @@ metadata: {agent_created: true}
 | 边界 | 弹弹play | danmu_api |
 | --- | --- | --- |
 | 服务地址 | 固定官方 `api.dandanplay.net` | 用户部署的根地址，可含反向代理前缀；Momoka 不提供公共服务 |
-| 鉴权 | Momoka 内置应用凭据，三个签名头 | 可选访问令牌，转义后放入 URL 路径；不签名，不取内置凭据 |
+| 鉴权 | Momoka 内置应用凭据，三个签名头 | 仅接入允许无令牌请求的部署。旧实现会把非空令牌放进路径，限制见[凭据规则](../../../CLAUDE.md#凭据) |
 | 自动匹配 | 标题与集号搜索，再判断唯一精确标题 | `POST /api/v2/match`，正文只有 `fileName` |
 | 手动搜索 | 一次选择这个来源 | 一次选择这个来源 |
 | 弹幕读取 | v2 JSON；可包含关联弹幕 | 兼容的 v2 JSON；不启用弹弹play 的关联选项 |
@@ -62,7 +62,7 @@ metadata: {agent_created: true}
 
 - `IsSourceReady` / `IsAvailable` 是本地前置条件：总开关开启、使用内置 libmpv；danmu_api 还要求地址合法。它们不验证服务在线、令牌可解密或凭据有效。`Both` 缺 danmu_api 地址仍可使用弹弹play；实际请求在 `ResolveAsync` 才解密并校验令牌。
 - 弹弹play只使用内置凭据。已退役的用户 AppId/AppSecret 不恢复为额度耗尽时的兜底；danmu_api 的访问令牌是另一套凭据。内置密文下发和 DPAPI 缓存不提供应用密钥的保密保证，额度由所有内置用户共享。
-- danmu_api 地址与令牌分开填写；令牌保存后不回填明文。`DanmuApiEndpoint` 保留地址路径前缀、补末尾斜杠、追加转义令牌段，再接 `api/v2/...`。地址不含账号、查询或片段；诊断时隐藏完整令牌路径。
+- `DanmuApiEndpoint` 保留根地址前缀。当前非空令牌会随 URL 路径离开进程，DPAPI 只保护本机存储。对要求路径令牌的实例停止接入和真实验证；仅用占位数据描述旧行为。
 - 两源 GET 共用每次 30 秒排队与读取预算、32 MiB 响应上限、两小时缓存和最多 16 份 JSON。缓存文件名只用哈希：官方按应用与凭据身份隔离，自部署按地址与令牌摘要隔离。失败不缓存；`MatchAsync` 的 POST 不走 GET 缓存。
 - 只有官方 GET 的 401/403 会使内置凭据失效并换一份重试一次。danmu_api 鉴权失败直接提示检查令牌；发送不自动重试。错误正文和未知鉴权头不回显。
 - 修改客户端关闭流程时，保持 `ShutdownAsync` 停止接收、取消并等待所有活动操作退出后再释放 HTTP 和请求闸门，包含缓存解析和已被新请求替代的旧操作。
@@ -85,7 +85,7 @@ metadata: {agent_created: true}
 按 CLAUDE.md 选择改动对应检查；技能文字维护只检查内容、链接、命令和差异。产品逻辑改动先编译当前 Release 测试项目，再运行正式测试或 `danmaku-fixture` 参数；该参数属于测试程序，不是 Shell 开关。
 
 ```powershell
-& "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
+& "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-restore
 & "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-build -- danmaku-fixture
 py tools/test-danmaku.py --output work/danmaku-lua-new
 py tools/test-uosc.py --output work/uosc-new
@@ -93,7 +93,7 @@ node --test website/worker/credential.test.mjs
 ```
 
 - Lua 检查使用尚不存在的输出目录。协议测试用假 HTTP、固定凭据和临时缓存；真实发送会写入真实弹幕并消耗共享额度，按 CLAUDE.md 的授权边界执行。
-- 设置/入口/发送 UI 改动用正式 Shell 的 `--probe-shell --probe-section settings,playback --screen 1`，检查报告和截图。它与 Lua 测试都不证明真实服务、独占真实播放或外部 mpv 覆盖。
+- 统一验收设置、入口或发送 UI 时，用正式 Shell 的 `--probe-shell --probe-section settings,playback --screen 1` 核对报告和截图，另列真实服务、独占播放或外部 mpv 的覆盖边界。
 - 改凭据信封时同步 `website/worker/credential.js`、客户端解析、Worker 测试和 `DanmakuTests` 跨语言向量；本仓文件与生产部署分别核对。
 - 更新功能文档、PROGRESS、本技能和受影响参考，按 CLAUDE.md 提交。技能改名同步规则索引与 `tools/check-review-docs.py`；历史报告中的旧路径作为当时证据保留，用户级技能安装另行处理。
 - 使用 [技能复核场景](references/validation.md) 检查两源边界和触发范围；人工走读不等于测得自动触发率。

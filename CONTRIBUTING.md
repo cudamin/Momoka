@@ -1,6 +1,6 @@
 # 参与贡献
 
-感谢你帮助改进 Momoka。提交代码前，请先开 Issue 说明问题或方案；小范围文档修正可以直接提交 Pull Request。
+感谢你帮助改进 Momoka。向本仓库提议外部代码贡献时，请先开 Issue 说明问题或方案。小范围文档修正可以直接提交 Pull Request。维护者在工作区直接委托的开发按项目规则执行。
 
 动手前先读[项目常设规则](CLAUDE.md)，再按[技术文档与专题地图](docs/技术文档.md#14-文档地图)查阅相关实现说明。文档维护与清理遵守 [CLAUDE 的文档规则](CLAUDE.md#文档查阅与维护)，相关行为变化与文档在同一逻辑变更中更新。
 
@@ -15,13 +15,14 @@
 
 ## 提交前检查
 
-在仓库根目录运行：
+按[项目规则的验证分级表](CLAUDE.md#四道闸门与日常交付)选择所需检查。纯文档使用[文档验收](CLAUDE.md#文档查阅与维护)列出的检查。以下是代码改动的构建和离线检查示例，在当前工作树根目录运行。
 
 ```powershell
-dotnet restore .\Momoka.sln --disable-parallel -p:NuGetAudit=false
+dotnet restore .\Momoka.sln
 dotnet build .\Momoka.sln -c Release --no-restore -warnaserror
 dotnet run --project .\tests\Momoka.Tests\Momoka.Tests.csproj -c Release --no-build --no-restore
 py .\tools\check-docs.py
+py .\tools\check-main-tree-policy.py --self-test
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\check-scripts.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\check-doc-commands.ps1
 py .\tools\check-report-credentials.py
