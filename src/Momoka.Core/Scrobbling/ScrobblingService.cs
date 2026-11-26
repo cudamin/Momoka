@@ -12,6 +12,8 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     private readonly ISecretProtector _protector;
     private readonly BangumiClient _bangumi;
     private readonly IDoubanScrobblingClient _douban;
+    private readonly object _recordsGate = new();
+    private readonly List<ScrobblingRecord> _records = [];
     private Snapshot _snapshot;
     private string _lastStatus = "尚未同步观看记录";
     private bool _disposed;
@@ -32,6 +34,11 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
 
     public string LastStatus => Volatile.Read(ref _lastStatus);
     public event Action? Changed;
+
+    public IReadOnlyList<ScrobblingRecord> GetRecords(ScrobblingProvider provider)
+    {
+        lock (_recordsGate) return _records.Where(record => record.Provider == provider).Reverse().ToArray();
+    }
 
     public void SetDoubanSessionChanging(bool changing)
     {
@@ -70,6 +77,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         var seriesIdSnapshot = ticket.Item.SeriesId!;
         var seasonSnapshot = ticket.Item.ParentIndexNumber!.Value;
         var episodeSnapshot = ticket.Item.IndexNumber!.Value;
+        var episodeTitleSnapshot = ticket.Item.Name;
         var providers = new List<ScrobblingProvider>();
         if (snapshot.Bangumi && snapshot.Token.Length > 0)
             providers.Add(ScrobblingProvider.Bangumi);
@@ -100,7 +108,10 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || !Allowed()) { return; }
             catch (Exception)
             {
-                if (Allowed()) SetStatus("自动匹配读取媒体库信息失败，已跳过同步");
+                if (Allowed())
+                    foreach (var provider in providers)
+                        AddRecord(provider, episodeTitleSnapshot, episodeSnapshot, ScrobblingRecordOutcome.Failed,
+                            "自动匹配读取媒体库信息失败，已跳过同步");
                 return;
             }
             foreach (var provider in providers)
@@ -119,21 +130,30 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
                         var access = _protector.Unprotect(snapshot.Token);
                         var episodes = await _bangumi.GetEpisodesAsync(match.Id, access, token).ConfigureAwait(false);
                         var episode = episodes.SingleOrDefault(episode => episode.Number == number);
-                        if (episode is null) { SetStatus("Bangumi 对应集号无法确认，已跳过"); continue; }
+                        if (episode is null)
+                        {
+                            AddRecord(provider, match.Title, number, ScrobblingRecordOutcome.Skipped, "对应集号无法确认，已跳过");
+                            continue;
+                        }
                         await _bangumi.MarkEpisodeAsync(match.Id, episode.Id, access, Allowed, token).ConfigureAwait(false);
-                        SetStatus("Bangumi 对应集已标记看过");
+                        if (!Allowed()) return;
+                        AddRecord(provider, match.Title, number, ScrobblingRecordOutcome.Watched, "对应集已标记看过");
                     }
                     else
                     {
                         var finished = await _douban.MarkEpisodeAsync(match.Id, number, completed, Allowed, token).ConfigureAwait(false);
-                        SetStatus(finished ? "豆瓣已标记看过" : "豆瓣已标记在看");
+                        if (!Allowed()) return;
+                        AddRecord(provider, match.Title, number,
+                            finished ? ScrobblingRecordOutcome.Watched : ScrobblingRecordOutcome.Watching,
+                            finished ? "已标记看过" : "已标记在看");
                     }
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested || !Allowed()) { }
                 catch (Exception)
                 {
-                    SetStatus(provider == ScrobblingProvider.Bangumi
-                    ? "Bangumi 同步失败，请检查令牌和网络" : "豆瓣同步失败，请重新登录或检查网络");
+                    if (Allowed()) AddRecord(provider, match.Title, match.EpisodeNumber, ScrobblingRecordOutcome.Failed,
+                        provider == ScrobblingProvider.Bangumi
+                            ? "Bangumi 同步失败，请检查令牌和网络" : "豆瓣同步失败，请重新登录或检查网络");
                 }
             }
         }
@@ -189,7 +209,8 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
                 if (subjectId is null)
                 {
                     result[provider] = null;
-                    SetStatus("没有找到标题、年份和集数均能唯一确认的 " + ProviderName(provider) + " 作品，已跳过同步");
+                    AddRecord(provider, library.Series.Name, library.EpisodeNumber, ScrobblingRecordOutcome.Skipped,
+                        "没有找到标题、年份和集数均能唯一确认的作品，已跳过同步");
                     continue;
                 }
                 var subject = provider == ScrobblingProvider.Bangumi
@@ -198,7 +219,8 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
                 if (subject.EpisodeCount != library.EpisodeCount)
                 {
                     result[provider] = null;
-                    SetStatus(ProviderName(provider) + "总集数与媒体库不一致，已跳过同步");
+                    AddRecord(provider, subject.Title, library.EpisodeNumber, ScrobblingRecordOutcome.Skipped,
+                        "站点总集数与媒体库不一致，已跳过同步");
                     continue;
                 }
                 result[provider] = new(subject.Id, subject.Title, library.EpisodeNumber);
@@ -207,7 +229,8 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
             catch (Exception)
             {
                 result[provider] = null;
-                SetStatus(ProviderName(provider) + "自动匹配失败，已跳过同步");
+                AddRecord(provider, library.Series.Name, library.EpisodeNumber, ScrobblingRecordOutcome.Failed,
+                    "自动匹配失败，已跳过同步");
             }
         }
         return result;
@@ -283,6 +306,32 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     {
         Volatile.Write(ref _lastStatus, message);
         try { Changed?.Invoke(); } catch (Exception) { /* Optional presentation only. */ }
+    }
+
+    private void AddRecord(ScrobblingProvider provider, string? title, int? episodeNumber,
+        ScrobblingRecordOutcome outcome, string detail)
+    {
+        var safeTitle = CleanRecordText(title, 160);
+        var safeDetail = CleanRecordText(detail, 240);
+        var record = new ScrobblingRecord(DateTimeOffset.UtcNow, provider, safeTitle, episodeNumber, outcome, safeDetail);
+        lock (_recordsGate)
+        {
+            _records.Add(record);
+            var providerRecords = _records.Count(item => item.Provider == provider);
+            if (providerRecords > 100)
+            {
+                var oldest = _records.FindIndex(item => item.Provider == provider);
+                if (oldest >= 0) _records.RemoveAt(oldest);
+            }
+        }
+        SetStatus(ProviderName(provider) + "：" + safeDetail);
+    }
+
+    private static string CleanRecordText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "未知作品";
+        var clean = new string(value.Where(character => !char.IsControl(character)).ToArray()).Trim();
+        return clean.Length <= maxLength ? clean : clean[..maxLength];
     }
 
     public void Dispose()

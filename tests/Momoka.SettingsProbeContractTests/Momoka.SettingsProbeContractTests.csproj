@@ -77,6 +77,7 @@
             between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Ends this visit\u0027s reads") +
             between(scrobbling, "    private ScrobblingService? _scrobblingService;", "    private async Task LoginDoubanAsync(") +
+            "    private Task ShowScrobblingRecordsAsync(ScrobblingProvider provider) => Task.CompletedTask;\n" +
             between(page, "    public void Release() => ReleaseHosted();", "\n") +
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +

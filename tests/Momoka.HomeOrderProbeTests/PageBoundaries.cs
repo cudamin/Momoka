@@ -85,6 +85,8 @@ namespace Momoka.Shell.ViewModels
         private ShellRuntime Runtime => ShellRuntime.Current;
         public void UseScrobbling(ScrobblingService service, Func<Task> loginDouban, Func<Task> logoutDouban, Func<Task>? verify = null) =>
             Runtime.Invoke(Inner, "UseScrobbling", service, loginDouban, logoutDouban, verify);
+        public void UseScrobblingRecords(Action<ScrobblingProvider> showRecords) =>
+            Runtime.Invoke(Inner, "UseScrobblingRecords", showRecords);
         public void RefreshScrobblingRows() => Runtime.Invoke(Inner, "RefreshScrobblingRows");
         public event PropertyChangedEventHandler? PropertyChanged
         {

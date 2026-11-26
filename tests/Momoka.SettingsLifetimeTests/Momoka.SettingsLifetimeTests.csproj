@@ -58,6 +58,7 @@
             between(page, "    internal object CurrentPage =>", "\n    /// <summary>\n    /// Drops whatever") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
             between(scrobbling, "    private ScrobblingService? _scrobblingService;", "\n}") +
+            "    private Task ShowScrobblingRecordsAsync(ScrobblingProvider provider) => Task.CompletedTask;\n" +
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\ninternal sealed partial class SettingsWindow\n{\n" +
             between(window, "    private const string Category = \"设置窗口\";", "    private SettingsWindow(Window window, Frame frame, SolidColorBrush canvas, bool mica)") +

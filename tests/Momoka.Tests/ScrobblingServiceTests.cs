@@ -133,6 +133,11 @@ internal static class ScrobblingServiceTests
             Assert.Equal("8:doing", fixture.Douban.Describe());
             Assert.True(fixture.Douban.Searches.SequenceEqual(["Offline Series"]));
             Assert.Equal(1, fixture.Playback.Transport.Requests.Count(request => request.Path.EndsWith("/Users/a/Items/series", StringComparison.Ordinal)));
+            var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
+            Assert.Equal(ScrobblingRecordOutcome.Watching, record.Outcome);
+            Assert.Equal(1, record.EpisodeNumber);
+            Assert.DoesNotContain("Bangumi", string.Join(" ", fixture.Service.GetRecords(ScrobblingProvider.Douban).Select(item => item.Detail)));
+            Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Count);
         });
 
         Case("打格子服务：候选歧义、年份冲突或条目集数不匹配时不写入", async () =>
@@ -150,6 +155,8 @@ internal static class ScrobblingServiceTests
                 fixture.Refresh();
                 await fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
                 Assert.Equal("", fixture.Douban.Describe(), issue);
+                Assert.Equal(issue == "search-failure" ? ScrobblingRecordOutcome.Failed : ScrobblingRecordOutcome.Skipped,
+                    fixture.Service.GetRecords(ScrobblingProvider.Douban).Single().Outcome, issue);
             }
         });
 
@@ -235,6 +242,29 @@ internal static class ScrobblingServiceTests
                 Assert.DoesNotContain("synthetic-bangumi-placeholder", request.Query);
                 Assert.DoesNotContain("synthetic-bangumi-placeholder", request.Body);
             }
+            var record = fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single();
+            Assert.Equal(ScrobblingRecordOutcome.Watched, record.Outcome);
+            Assert.Equal(1, record.EpisodeNumber);
+            Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
+        });
+
+        Case("打格子服务：同一集的两站记录互相隔离", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Refresh();
+            await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
+            var bangumi = fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single();
+            var douban = fixture.Service.GetRecords(ScrobblingProvider.Douban).First();
+            Assert.Equal(ScrobblingRecordOutcome.Watched, bangumi.Outcome);
+            Assert.Equal(ScrobblingRecordOutcome.Watching, douban.Outcome);
+            Assert.Equal(8, bangumi.EpisodeNumber);
+            Assert.Equal(8, douban.EpisodeNumber);
+            Assert.True(fixture.Service.GetRecords(ScrobblingProvider.Douban)
+                .All(record => record.Outcome == ScrobblingRecordOutcome.Watching));
+            Assert.Equal(ScrobblingProvider.Bangumi, bangumi.Provider);
+            Assert.Equal(ScrobblingProvider.Douban, douban.Provider);
         });
 
         Case("打格子服务：Bangumi 编号优先，保留已有收藏和已看集", async () =>
@@ -523,13 +553,21 @@ internal static class ScrobblingServiceTests
             if (sent.Key == "POST /v0/search/subjects")
                 return Json("{\"data\":[{\"id\":101,\"name_cn\":\"Offline Series\",\"name\":\"Offline Series\",\"date\":\"2024-01-01\",\"eps\":12}]}");
             if (sent.Key == "GET /v0/subjects/101") return Json("{\"id\":101,\"name_cn\":\"Offline Series\",\"eps\":12}");
-            if (sent.Key == "GET /v0/episodes") return Json("{\"data\":[{\"id\":1001,\"sort\":1,\"type\":0}],\"total\":1}");
+            if (sent.Key == "GET /v0/episodes")
+            {
+                var episodes = Enumerable.Range(1, 12)
+                    .Select(number => new { id = 1000 + number, sort = number, type = 0 }).ToArray();
+                return Json(JsonSerializer.Serialize(new { data = episodes, total = episodes.Length }));
+            }
             if (sent.Key == "GET /v0/me") return Json("{\"username\":\"bangumi-fixture\"}");
             if (sent.Key == "GET /v0/users/bangumi-fixture/collections/101")
                 return Json("{\"type\":2,\"rate\":8,\"comment\":\"keep\",\"tags\":[\"keep\"]}", CollectionExists ? HttpStatusCode.OK : HttpStatusCode.NotFound);
             if (sent.Key == "POST /v0/users/-/collections/101") return Json("{}", HttpStatusCode.NoContent);
-            if (sent.Key == "GET /v0/users/-/collections/-/episodes/1001")
-                return Json(EpisodeWatched ? "{\"episode\":{\"id\":1001},\"type\":2}" : "{\"episode\":{\"id\":1001},\"type\":0}");
+            if (sent.Key.StartsWith("GET /v0/users/-/collections/-/episodes/", StringComparison.Ordinal))
+            {
+                var episodeId = long.Parse(sent.Key[(sent.Key.LastIndexOf('/') + 1)..]);
+                return Json(JsonSerializer.Serialize(new { episode = new { id = episodeId }, type = EpisodeWatched ? 2 : 0 }));
+            }
             if (sent.Key == "PATCH /v0/users/-/collections/101/episodes") return Json("{}", HttpStatusCode.NoContent);
             return Json("{}", HttpStatusCode.NotFound);
         }

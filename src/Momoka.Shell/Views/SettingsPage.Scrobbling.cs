@@ -8,10 +8,12 @@ public sealed partial class SettingsPage
     private ScrobblingService? _scrobblingService;
     private Action? _scrobblingChanged;
     private CancellationTokenSource? _scrobblingCheck;
+    private Action? _dismissScrobblingRecords;
 
     private void AttachScrobblingForVisit(ScrobblingService service, Func<Task> loginDouban, Func<Task> logoutDouban)
     {
         ViewModel.UseScrobbling(service, loginDouban, logoutDouban, VerifyScrobblingAsync);
+        ViewModel.UseScrobblingRecords(provider => _ = ShowScrobblingRecordsAsync(provider));
         WatchScrobbling();
         _ = VerifyScrobblingAsync();
     }
@@ -38,6 +40,13 @@ public sealed partial class SettingsPage
         if (_scrobblingService is { } service && _scrobblingChanged is { } changed) service.Changed -= changed;
         _scrobblingService = null;
         _scrobblingChanged = null;
+    }
+
+    private void DismissScrobblingRecords()
+    {
+        var dismiss = _dismissScrobblingRecords;
+        _dismissScrobblingRecords = null;
+        dismiss?.Invoke();
     }
 
     private async Task VerifyScrobblingAsync()
@@ -81,4 +90,5 @@ public sealed partial class SettingsPage
             await VerifyScrobblingAsync();
         }
     }
+
 }

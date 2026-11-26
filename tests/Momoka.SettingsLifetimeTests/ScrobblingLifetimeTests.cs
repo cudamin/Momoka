@@ -84,6 +84,21 @@ internal static class ScrobblingLifetimeTests
             fixture.Scrobbling.SetStatus("释放后状态");
             Assert.Equal(0, page.DispatcherQueue.Count, "ReleaseHosted 必须移除真实服务事件订阅");
         });
+        TestHarness.Test("释放设置页时关闭打格子记录对话框", () =>
+        {
+            using var fixture = new LifetimeFixture();
+            var page = fixture.NewCachedPage("主页");
+            var dismissed = false;
+            var callback = typeof(SettingsPage).GetField("_dismissScrobblingRecords",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.True(callback is not null, "页面必须保留活动记录对话框的关闭回调");
+            callback!.SetValue(page, (Action)(() => dismissed = true));
+
+            page.ReleaseHosted();
+
+            Assert.True(dismissed, "释放活动期应关闭记录对话框");
+            Assert.Null(callback.GetValue(page), "关闭回调应在释放时清空");
+        });
 
         TestHarness.Test("打格子导航在设置请求切换后只调用一次真实接线助手", () =>
         {

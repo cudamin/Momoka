@@ -111,6 +111,27 @@ internal static class SettingsScrobblingTests
             fixture.Command(secret, "CommitCommand").Execute(null);
             Assert.Equal(2, checks);
         });
+        TestHarness.Test("打格子设置：两张站点卡的查看记录按钮分别带出站点", () =>
+        {
+            using var state = new State(fixture, bangumi: true);
+            fixture.Set(state.Row("启用豆瓣自动标记"), "IsOn", true);
+            using var bangumi = new BangumiClient();
+            using var service = new ScrobblingService(state.Settings.Settings, PassthroughSecretProtector.Instance,
+                bangumi, new StatusDouban());
+            var viewed = new List<ScrobblingProvider>();
+            fixture.Invoke(state.Vm, "UseScrobbling", service, (Func<Task>)(() => Task.CompletedTask),
+                (Func<Task>)(() => Task.CompletedTask), (Func<Task>)(() => Task.CompletedTask));
+            fixture.Invoke(state.Vm, "UseScrobblingRecords", (Action<ScrobblingProvider>)(provider => viewed.Add(provider)));
+            fixture.Invoke(state.Vm, "RefreshScrobblingRows");
+            foreach (var label in new[] { "Bangumi 同步记录", "豆瓣同步记录" })
+            {
+                Assert.Equal("查看记录", fixture.Get<string>(state.Row(label), "ActionLabel"));
+                Assert.Contains(label, fixture.Get<string>(state.Row(label), "ActionAutomationName"));
+            }
+            fixture.Command(state.Row("Bangumi 同步记录"), "RunCommand").Execute(null);
+            fixture.Command(state.Row("豆瓣同步记录"), "RunCommand").Execute(null);
+            Assert.Equal("Bangumi,Douban", string.Join(",", viewed));
+        });
     }
 
     internal static void RegisterSearch(SettingsPageStateTests.ShellFixture fixture)

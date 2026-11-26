@@ -910,6 +910,10 @@ public sealed partial class SettingFactRow : SettingRow
 
     public string DisplayActionLabel => UiText.Translate(ActionLabel);
 
+    public string ActionAutomationName => ActionLabel.Length == 0
+        ? DisplayLabel
+        : DisplayLabel + "，" + DisplayActionLabel;
+
     /// <summary>没有按钮的那几行不给它留位置，同 <see cref="SettingRow.NoteVisibility"/>。</summary>
     public Visibility ActionVisibility =>
         _act is null || ActionLabel.Length == 0 ? Visibility.Collapsed : Visibility.Visible;

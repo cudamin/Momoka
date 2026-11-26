@@ -1460,6 +1460,7 @@
                             Grid.Column="1"
                             Command="{x:Bind RunCommand}"
                             Content="{x:Bind DisplayActionLabel}"
+                              AutomationProperties.Name="{x:Bind ActionAutomationName}"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Visibility="{x:Bind ActionVisibility}" />

@@ -2,10 +2,13 @@ namespace Momoka.Scrobbling;
 
 public enum ScrobblingProvider { Bangumi, Douban }
 public enum ScrobblingConnectionState { Unchecked, Checking, Connected, MissingCredential, SignedOut, Failed }
+public enum ScrobblingRecordOutcome { Watching, Watched, Skipped, Failed }
 
 public sealed record ScrobblingSubject(long Id, string Title, int? EpisodeCount);
 public sealed record ScrobblingCandidate(long Id, string Title, int? Year, int? EpisodeCount, string? Detail = null);
 public sealed record BangumiEpisode(long Id, int Number);
+public sealed record ScrobblingRecord(DateTimeOffset At, ScrobblingProvider Provider, string Title,
+    int? EpisodeNumber, ScrobblingRecordOutcome Outcome, string Detail);
 
 /// <summary>Douban requests remain inside its trusted WebView session; no cookies cross this boundary.</summary>
 public interface IDoubanScrobblingClient

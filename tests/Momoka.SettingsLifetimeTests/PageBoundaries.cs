@@ -203,6 +203,8 @@ namespace Momoka.Shell.ViewModels
             LastScrobblingService = service;
             Runtime.Invoke(Inner, "UseScrobbling", service, loginDouban, logoutDouban, verify);
         }
+        public void UseScrobblingRecords(Action<ScrobblingProvider> showRecords) =>
+            Runtime.Invoke(Inner, "UseScrobblingRecords", showRecords);
         public void RefreshScrobblingRows()
         {
             ScrobblingRefreshCalls++;

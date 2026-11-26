@@ -12,6 +12,7 @@ public sealed partial class SettingsViewModel
     private Func<Task>? _doubanLogin;
     private Func<Task>? _doubanLogout;
     private Func<Task>? _verifyScrobbling;
+    private Action<ScrobblingProvider>? _showScrobblingRecords;
     private bool _scrobblingActionBusy;
     private SettingSecretRow? _bangumiSecret;
 
@@ -23,6 +24,8 @@ public sealed partial class SettingsViewModel
         _verifyScrobbling = verify;
         if (IsReady) RefreshScrobblingRows();
     }
+
+    internal void UseScrobblingRecords(Action<ScrobblingProvider> showRecords) => _showScrobblingRecords = showRecords;
 
     private IReadOnlyList<SettingSection> ScrobblingSections()
     {
@@ -52,6 +55,8 @@ public sealed partial class SettingsViewModel
             bangumiRows.Add(Fact("获取 Bangumi Access Token", "在 Bangumi 官方页面创建具有收藏写入权限的个人令牌。",
                 "", "打开令牌页面", OpenBangumiTokenPage));
             AddScrobblingStatus(bangumiRows);
+            bangumiRows.Add(Fact("Bangumi 同步记录", "查看本次运行中的自动匹配和标记结果。", "", "查看记录",
+                () => _showScrobblingRecords?.Invoke(ScrobblingProvider.Bangumi)));
         }
         var doubanRows = new List<SettingRow>
         {
@@ -69,6 +74,8 @@ public sealed partial class SettingsViewModel
                 doubanRows.Add(Fact("退出豆瓣", "清除 Momoka 内的豆瓣登录状态。", "", "退出登录",
                     () => _ = RunScrobblingActionAsync(ScrobblingProvider.Douban, _doubanLogout)));
             AddScrobblingStatus(doubanRows);
+            doubanRows.Add(Fact("豆瓣同步记录", "查看本次运行中的自动匹配和标记结果。", "", "查看记录",
+                () => _showScrobblingRecords?.Invoke(ScrobblingProvider.Douban)));
         }
         return
         [
