@@ -44,8 +44,9 @@ param(
     # not. Pass it on the machine that actually runs the app.
     [switch]$Shortcut,
 
-    # Master uses "Momoka"; a temporary branch should pass "Momoka-<branch>" so the branch build and the
-    # master build can coexist on the desktop. Same validation as shortcut.ps1: no path separators.
+    # Master uses "Momoka"; a temporary branch should pass a Chinese name such as "Momoka-通知接管" so
+    # the branch build and the master build can coexist on the desktop. Same validation as shortcut.ps1:
+    # letters, digits and ._- only, so spaces and punctuation are rejected.
     [ValidatePattern('^[\p{L}\p{N}._-]+$')]
     [string]$ShortcutName = 'Momoka',
 

@@ -111,7 +111,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 | --- | --- |
 | 1 构建与质量 | `tools/quality.ps1` 是完整入口。用当前源码构建，0 警告、0 错误，各子检查通过。`-SkipBuild` 或 `-SkipDuplication` 仅供定位。架构和重复率预算以实际脚本为准。 |
 | 2 测试 | 当前 Release 测试及 Core 编译成功才可 `--no-build`。主测试退出 0、失败 0、跳过 0。离线专项 `-All` 可能把外部 DOM 记为 `deferred`。完整闸门须用 `-All -IncludeExternal` 实跑，核对 `summary.json` 无延期、跳过、失败及遗漏。新增主测试接入完整主运行器。独立专项接入[专项清单](tools/regression-suites.json)，按[专项说明](tools/README.Regressions.md)运行。 |
-| 3 发布与快捷方式 | 发布本树 `artifacts/publish/win-x64`，通过 `verify-publish.ps1` 后回读 `.lnk` 的 `TargetPath` 与 `WorkingDirectory`。主树用 `Momoka.lnk`，临时分支用 `-ShortcutName` 传不带扩展名的名称，回读 `Momoka-<分支标识>.lnk`，禁止覆盖主树快捷方式。 |
+| 3 发布与快捷方式 | 发布本树 `artifacts/publish/win-x64`，通过 `verify-publish.ps1` 后回读 `.lnk` 的 `TargetPath` 与 `WorkingDirectory`。主树用 `Momoka.lnk`；临时分支用 `-ShortcutName` 传 `Momoka-<中文简述>`，不带扩展名，`<中文简述>` 用简短中文说明本次改了什么或新增了什么功能（如 `Momoka-通知接管`），回读 `Momoka-<中文简述>.lnk`，禁止覆盖主树快捷方式。 |
 | 4 自检 | 在本次发布件上运行 `tools/selfcheck-diff.ps1`，核对失败、缺项和通过降级。`-Log` 只比较既有报告。复核新增、改名或退役的检查后才逐行更新基线，禁止靠接纳失败洗绿。 |
 
 **证据按实际执行范围记。** 失败保留首份日志，修正代码或运行条件后重跑受影响检查。多步脚本逐步传递退出码，并核对套件实际执行数与范围。CI 绿只覆盖其工作流。`--probe-section` 读 `shell-probe-scope.txt`，定向探针、源码断言、夹具和截图各自只证明实际观察到的行为。自检默认副屏，单屏回退。主题验收覆盖 `UiThemes.cs` 的在用主题及跟随系统的实际深浅状态，实屏与渲染截图分别标明。
