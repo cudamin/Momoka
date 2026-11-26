@@ -5,26 +5,14 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="Transparent">
     <Page.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        <Style x:Key="FnNasCard" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource EgCardStrokeBrush}" />
-            <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="20" />
-        </Style>
         <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
             <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
         <DataTemplate x:Key="FnNasPermissionTemplate" x:DataType="vm:FnNasChoice">
             <CheckBox x:Name="FnNasPermissionCheck" Content="{x:Bind Name}" IsChecked="{x:Bind Selected, Mode=TwoWay}" Margin="0,3" />
         </DataTemplate>
-        </ResourceDictionary>
     </Page.Resources>
-    <Grid x:Name="PageLayout" RowSpacing="12">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <StackPanel Spacing="8">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -36,16 +24,27 @@
             <Grid RowSpacing="16" Visibility="{x:Bind ViewModel.ListVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <StackPanel Spacing="12">
-                    <TextBlock x:Uid="FnNasLibrariesPage_Localization1" Text="媒体库" Style="{StaticResource EgPageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                    <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                            <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE8B7;" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock x:Uid="FnNasLibrariesPage_Localization1" Text="媒体库" Style="{StaticResource EgSubpageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                            <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button x:Uid="FnNasLibrariesPage_FnNasLibrariesNew" x:Name="FnNasLibrariesNew" Content="新增媒体库" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.NewLibraryCommand}" />
+                        <Button x:Uid="FnNasLibrariesPage_FnNasLibrariesNew" x:Name="FnNasLibrariesNew" Content="新增媒体库" Style="{StaticResource EgSubpagePrimaryButtonStyle}" Command="{x:Bind ViewModel.NewLibraryCommand}" />
                         <Button x:Uid="FnNasLibrariesPage_FnNasLibrariesSort" x:Name="FnNasLibrariesSort" Content="排序" Command="{x:Bind ViewModel.SortCommand}" />
                         <Button x:Uid="FnNasLibrariesPage_FnNasLibrariesScanAll" x:Name="FnNasLibrariesScanAll" Content="扫描全部" Command="{x:Bind ViewModel.ScanAllCommand}" />
                         <Button x:Uid="FnNasLibrariesPage_FnNasLibrariesRefresh" x:Name="FnNasLibrariesRefresh" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
                     </StackPanel>
                 </StackPanel>
-                <ListView x:Name="FnNasLibrariesList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnLibraryClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
+                <ListView x:Name="FnNasLibrariesList" Grid.Row="1" Margin="0,0,-32,0" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnLibraryClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="vm:FnNasLibraryRow">
                             <Grid ColumnSpacing="16" Padding="8,12">
@@ -77,7 +76,7 @@
                     <Button x:Uid="FnNasLibrariesPage_FnNasLibraryBack" x:Name="FnNasLibraryBack" Content="返回" Command="{x:Bind ViewModel.BackCommand}" />
                     <TextBlock Text="{x:Bind ViewModel.EditorTitle, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                 </StackPanel>
-                <ScrollView x:Name="FnNasLibraryEditorScroll" Grid.Row="1" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
+                <ScrollView x:Name="FnNasLibraryEditorScroll" Grid.Row="1" Margin="0,0,-32,0" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
                     <StackPanel Spacing="16" Padding="0,0,20,16">
                         <Border Style="{StaticResource FnNasCard}">
                             <StackPanel Spacing="16">
@@ -104,7 +103,7 @@
                         </Border>
                         <Border Style="{StaticResource FnNasCard}" Visibility="{x:Bind ViewModel.IptvVisibility, Mode=OneWay}">
                             <StackPanel Spacing="16">
-                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasReplacePlaylist" x:Name="FnNasReplacePlaylist" Header="更换当前播放列表" IsOn="{x:Bind ViewModel.ReplacePlaylist, Mode=TwoWay}" Visibility="{x:Bind ViewModel.KeepPlaylistVisibility, Mode=OneWay}" />
+                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasReplacePlaylist" x:Name="FnNasReplacePlaylist" Header="更换当前播放列表" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.ReplacePlaylist, Mode=TwoWay}" Visibility="{x:Bind ViewModel.KeepPlaylistVisibility, Mode=OneWay}" />
                                 <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.PlaylistEditorVisibility, Mode=OneWay}">
                                     <ComboBox x:Uid="FnNasLibrariesPage_FnNasPlaylistMode" x:Name="FnNasPlaylistMode" Header="播放列表来源" HorizontalAlignment="Stretch" SelectedIndex="{x:Bind ViewModel.PlaylistMode, Mode=TwoWay}">
                                         <x:String>在线地址</x:String><x:String>粘贴内容</x:String><x:String>NAS 文件</x:String><x:String>本地上传</x:String>
@@ -142,17 +141,17 @@
                         <Border Style="{StaticResource FnNasCard}" Visibility="{x:Bind ViewModel.FilesVisibility, Mode=OneWay}">
                             <StackPanel Spacing="16">
                                 <TextBlock x:Uid="FnNasLibrariesPage_Localization4" Text="高级设置" Style="{StaticResource EgSubheadStyle}" />
-                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasPreferNfo" x:Name="FnNasPreferNfo" Header="优先使用本地 NFO 和图片" IsOn="{x:Bind ViewModel.PreferLocalNfo, Mode=TwoWay}" />
-                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasFilterSmall" x:Name="FnNasFilterSmall" Header="过滤较小的文件" IsOn="{x:Bind ViewModel.FilterSmallFiles, Mode=TwoWay}" />
-                                <NumberBox x:Uid="FnNasLibrariesPage_FnNasMinimumFileSize" x:Name="FnNasMinimumFileSize" CornerRadius="{StaticResource EgSettingsInputCornerRadius}" Header="跳过小于此大小的文件（MB）" Minimum="1" Maximum="1024" SmallChange="1" Value="{x:Bind ViewModel.MinimumFileSize, Mode=TwoWay}" Visibility="{x:Bind ViewModel.MinimumSizeVisibility, Mode=OneWay}" />
+                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasPreferNfo" x:Name="FnNasPreferNfo" Header="优先使用本地 NFO 和图片" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.PreferLocalNfo, Mode=TwoWay}" />
+                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasFilterSmall" x:Name="FnNasFilterSmall" Header="过滤较小的文件" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.FilterSmallFiles, Mode=TwoWay}" />
+                                <NumberBox x:Uid="FnNasLibrariesPage_FnNasMinimumFileSize" x:Name="FnNasMinimumFileSize" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="跳过小于此大小的文件（MB）" Minimum="1" Maximum="1024" SmallChange="1" Value="{x:Bind ViewModel.MinimumFileSize, Mode=TwoWay}" Visibility="{x:Bind ViewModel.MinimumSizeVisibility, Mode=OneWay}" />
                                 <ComboBox x:Uid="FnNasLibrariesPage_FnNasLibraryLanguage" x:Name="FnNasLibraryLanguage" Header="元数据语言" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.Language, Mode=TwoWay}" />
-                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasIncludeAdult" x:Name="FnNasIncludeAdult" Header="包含成人内容" IsOn="{x:Bind ViewModel.IncludeAdult, Mode=TwoWay}" />
-                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasProgressThumb" x:Name="FnNasProgressThumb" Header="生成进度预览缩略图" IsOn="{x:Bind ViewModel.ProgressThumb, Mode=TwoWay}" />
+                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasIncludeAdult" x:Name="FnNasIncludeAdult" Header="包含成人内容" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.IncludeAdult, Mode=TwoWay}" />
+                                <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasProgressThumb" x:Name="FnNasProgressThumb" Header="生成进度预览缩略图" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.ProgressThumb, Mode=TwoWay}" />
                                 <ComboBox x:Uid="FnNasLibrariesPage_FnNasViewType" x:Name="FnNasViewType" Header="显示方式" HorizontalAlignment="Stretch" SelectedIndex="{x:Bind ViewModel.ViewType, Mode=TwoWay}" Visibility="{x:Bind ViewModel.ViewTypeVisibility, Mode=OneWay}">
                                     <x:String>按文件夹显示</x:String><x:String>平铺显示</x:String>
                                 </ComboBox>
                                 <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
-                                    <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasAutoSubtitle" x:Name="FnNasAutoSubtitle" Header="自动下载字幕" IsOn="{x:Bind ViewModel.AutoSubtitle, Mode=TwoWay}" />
+                                    <ToggleSwitch x:Uid="FnNasLibrariesPage_FnNasAutoSubtitle" x:Name="FnNasAutoSubtitle" Header="自动下载字幕" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.AutoSubtitle, Mode=TwoWay}" />
                                     <ComboBox x:Uid="FnNasLibrariesPage_FnNasSubtitleLanguage" x:Name="FnNasSubtitleLanguage" Header="首选字幕语言" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.SubtitleLanguage, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
@@ -160,7 +159,7 @@
                         <Button x:Uid="FnNasLibrariesPage_FnNasLibraryDelete" x:Name="FnNasLibraryDelete" Content="移除媒体库" Command="{x:Bind ViewModel.DeleteCommand}" Visibility="{x:Bind ViewModel.DeleteVisibility, Mode=OneWay}" />
                     </StackPanel>
                 </ScrollView>
-                <Button x:Uid="FnNasLibrariesPage_FnNasLibrarySave" x:Name="FnNasLibrarySave" Grid.Row="2" Content="保存媒体库" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                <Button x:Uid="FnNasLibrariesPage_FnNasLibrarySave" x:Name="FnNasLibrarySave" Grid.Row="2" Content="保存媒体库" Style="{StaticResource EgSubpagePrimaryButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
             </Grid>
         </Grid>
     </Grid>

@@ -821,6 +821,7 @@ internal static class Program
         CardPreviewTextTests.Register();
         PreviewHeadingPlacementTests.Register();
         KeyboardFocusNavigationTests.Register();
+        FluentStageFiveTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

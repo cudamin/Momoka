@@ -5,35 +5,34 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="Transparent">
     <Page.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        <Style x:Key="FnNasCard" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource EgCardStrokeBrush}" />
-            <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="20" />
-        </Style>
         <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
             <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
-        </ResourceDictionary>
     </Page.Resources>
-    <Grid x:Name="PageLayout" RowSpacing="12">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <StackPanel Spacing="8">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
             <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         </StackPanel>
-        <ScrollView Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
-            <StackPanel Spacing="16" Padding="0,0,20,20" MaxWidth="720" HorizontalAlignment="Left">
-                <TextBlock x:Uid="FnNasPreferencesPage_Localization1" Text="播放偏好" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+        <Grid Grid.Row="1" ColumnSpacing="16" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE768;" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock x:Uid="FnNasPreferencesPage_Localization1" Text="播放偏好" Style="{StaticResource EgSubpageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                 <TextBlock x:Uid="FnNasPreferencesPage_Localization2" Text="偏好保存在飞牛影视服务器上，作为服务器播放与字幕选择的默认语言；Momoka 自己的播放语言仍按「设置 → 字幕」执行。"
                     Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+        <ScrollView Grid.Row="2" Margin="0,0,-32,0" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <StackPanel Spacing="16" Padding="0,0,20,20" MaxWidth="720" HorizontalAlignment="Left">
                 <Border Style="{StaticResource FnNasCard}">
                     <StackPanel Spacing="16">
                         <ComboBox x:Uid="FnNasPreferencesPage_FnNasSubtitleLanguage" x:Name="FnNasSubtitleLanguage" Header="首选字幕语言" HorizontalAlignment="Stretch"
@@ -50,7 +49,7 @@
                             Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
-                <Button x:Uid="FnNasPreferencesPage_FnNasPreferencesSave" x:Name="FnNasPreferencesSave" Content="保存修改" Style="{StaticResource AccentButtonStyle}"
+                <Button x:Uid="FnNasPreferencesPage_FnNasPreferencesSave" x:Name="FnNasPreferencesSave" Content="保存修改" Style="{StaticResource EgSubpagePrimaryButtonStyle}"
                     Command="{x:Bind ViewModel.SaveCommand}" HorizontalAlignment="Left" />
             </StackPanel>
         </ScrollView>

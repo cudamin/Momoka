@@ -3,9 +3,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views">
-    <!-- 进度卡与设置卡片同一层低透明度亚克力：长标题和资源信息仍落在原来的面色上，只多一层模糊与噪点。 -->
-    <Border x:Name="ProgressCard" Padding="16,14" CornerRadius="12"
+    <!-- 进度卡与设置卡片同一层低透明度亚克力：圆角和描边对齐全站卡片规格。 -->
+    <Border x:Name="ProgressCard" Padding="16,12" CornerRadius="{StaticResource EgCardCornerRadius}"
         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource EgCardStrokeBrush}"
+        BorderThickness="{StaticResource EgCardBorderThickness}"
         Visibility="{x:Bind ViewModel.Visibility, Mode=OneWay}">
         <Grid RowSpacing="12">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -23,12 +25,12 @@
                     <TextBlock x:Name="ProgressStatus" Text="{x:Bind ViewModel.Status, Mode=OneWay}"
                         Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <local:WrapRow Spacing="6" RowSpacing="4">
-                        <Border Padding="8,3" CornerRadius="10" Background="{ThemeResource EgAccentSoftBrush}"
+                        <Border Padding="8,4" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgAccentSoftBrush}"
                             HorizontalAlignment="Left" MaxWidth="600">
                             <TextBlock Text="{x:Bind ViewModel.TitleText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                 Foreground="{ThemeResource EgAccentBrush}" TextTrimming="CharacterEllipsis" />
                         </Border>
-                        <Border Padding="8,3" CornerRadius="10" Background="{ThemeResource EgAccentSoftBrush}"
+                        <Border Padding="8,4" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgAccentSoftBrush}"
                             HorizontalAlignment="Left" Visibility="{x:Bind ViewModel.YearVisibility, Mode=OneWay}">
                             <TextBlock Text="{x:Bind ViewModel.YearText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                 Foreground="{ThemeResource EgAccentBrush}" />

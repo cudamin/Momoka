@@ -192,10 +192,19 @@ internal static class SearchCompactMergeTests
             Assert.True(tabs.Descendants().Any(node => node.Attribute("BasedOn")?.Value == "{StaticResource ButtonSegmentedItemStyle}"));
             Assert.False(tabs.Descendants().Any(node => node.Name.LocalName == "ControlTemplate"),
                 "来源胶囊不应替换框架的单选、键盘和辅助功能模板");
-            Assert.Equal("EgAccentSoftBrush", tabs.Descendants().Single(node =>
-                node.Attribute(Xaml + "Key")?.Value == "ButtonItemBackgroundSelected").Attribute("ResourceKey")?.Value);
-            Assert.Equal("EgAccentBrush", tabs.Descendants().Single(node =>
-                node.Attribute(Xaml + "Key")?.Value == "ButtonItemForegroundSelected").Attribute("ResourceKey")?.Value);
+            var dark = tabs.Descendants(xml.Root!.Name.Namespace + "ResourceDictionary")
+                .Single(node => (string?)node.Attribute(Xaml + "Key") == "Dark");
+            var light = tabs.Descendants(xml.Root!.Name.Namespace + "ResourceDictionary")
+                .Single(node => (string?)node.Attribute(Xaml + "Key") == "Light");
+            foreach (var dict in new[] { dark, light })
+            {
+                Assert.Equal("EgAccentSoftBrush", dict.Elements().Single(node =>
+                    node.Attribute(Xaml + "Key")?.Value == "ButtonItemBackgroundSelected").Attribute("ResourceKey")?.Value);
+                Assert.Equal("EgAccentBrush", dict.Elements().Single(node =>
+                    node.Attribute(Xaml + "Key")?.Value == "ButtonItemForegroundSelected").Attribute("ResourceKey")?.Value);
+            }
+            Assert.NotNull(tabs.Descendants(xml.Root!.Name.Namespace + "ResourceDictionary")
+                .SingleOrDefault(node => (string?)node.Attribute(Xaml + "Key") == "HighContrast"));
         });
 
         Test("搜索胶囊：窄窗宽度扣除内边距和间隔且不会回退查询来源", () =>
@@ -243,8 +252,8 @@ internal static class SearchCompactMergeTests
         Test("搜索合并：焦点契约拒绝误恢复强调色", () =>
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
-            xml.Descendants().Single(node => node.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused")
-                .SetAttributeValue("ResourceKey", "EgAccentBrush");
+            foreach (var node in xml.Descendants().Where(node => node.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused"))
+                node.SetAttributeValue("ResourceKey", "EgAccentBrush");
             Assert.Throws<AssertionException>(() => CheckSearchEntry(xml));
         });
 
@@ -277,10 +286,18 @@ internal static class SearchCompactMergeTests
         Assert.Equal("OnSearchSubmitted", input.Attribute("QuerySubmitted")?.Value);
         Assert.Equal("OnSearchTextChanged", input.Attribute("TextChanged")?.Value);
         Assert.Equal("{x:Bind ViewModel.SearchText, Mode=OneWay}", input.Attribute("Text")?.Value);
-        Assert.Equal("EgBorderBrush", input.Descendants().Single(node =>
-            node.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused").Attribute("ResourceKey")?.Value);
-        Assert.Equal("1", input.Descendants().Single(node =>
-            node.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused").Value);
+        var ns = xml.Root!.Name.Namespace;
+        foreach (var theme in new[] { "Dark", "Light" })
+        {
+            var dict = input.Descendants(ns + "ResourceDictionary")
+                .Single(node => (string?)node.Attribute(Xaml + "Key") == theme);
+            Assert.Equal("EgBorderBrush", dict.Elements().Single(node =>
+                node.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused").Attribute("ResourceKey")?.Value);
+            Assert.Equal("1", dict.Elements().Single(node =>
+                node.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused").Value);
+        }
+        Assert.NotNull(input.Descendants(ns + "ResourceDictionary")
+            .SingleOrDefault(node => (string?)node.Attribute(Xaml + "Key") == "HighContrast"));
     }
 
     private static void CheckSearchTextAlignment(XDocument xml, XDocument styles)

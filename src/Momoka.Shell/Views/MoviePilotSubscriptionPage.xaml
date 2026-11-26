@@ -391,7 +391,7 @@
                         <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
                         <!-- 媒体字段之后是订阅摘要（用户令 2026-11-17「给订阅详情页的卡片添加更多信息」）：
                              纯媒体详情没有订阅时整段收起，不画小标题也不留空行。 -->
-                        <Border BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" Padding="14,12,14,2"
+                        <Border BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" Padding="16,12,16,4"
                             Visibility="{x:Bind ViewModel.DetailSummaryVisibility, Mode=OneWay}">
                             <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization4" Text="订阅" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
                         </Border>
@@ -481,7 +481,7 @@
                     <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Top">
                         <Border Width="72" Height="20" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
                             HorizontalAlignment="Left" Background="{ThemeResource EgSurfaceAltBrush}" />
-                        <Border Height="36" MaxWidth="320" HorizontalAlignment="Stretch" CornerRadius="8"
+                        <Border Height="36" MaxWidth="320" HorizontalAlignment="Stretch" CornerRadius="{StaticResource EgSearchCornerRadius}"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
                         <Border Height="14" MaxWidth="180" HorizontalAlignment="Stretch" CornerRadius="4"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
@@ -516,7 +516,7 @@
                 <StackPanel Spacing="12">
                     <Border Height="56" CornerRadius="{StaticResource EgCardCornerRadius}"
                         Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Width="120" Height="24" CornerRadius="6" HorizontalAlignment="Left"
+                    <Border Width="120" Height="24" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" HorizontalAlignment="Left"
                         Background="{ThemeResource EgSurfaceAltBrush}" />
                     <StackPanel Orientation="Horizontal" Spacing="16">
                         <Border Width="128" Height="184" CornerRadius="{StaticResource EgPosterCornerRadius}"

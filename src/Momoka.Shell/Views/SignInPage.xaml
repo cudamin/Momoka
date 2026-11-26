@@ -43,14 +43,14 @@
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
             <Style x:Key="SignInPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
-                <Setter Property="MinHeight" Value="50" />
+                <Setter Property="MinHeight" Value="48" />
                 <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
                 <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
-                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
             </Style>
             <Style x:Key="SignInSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgSecondaryButtonStyle}">
                 <Setter Property="MinHeight" Value="44" />
-                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
                 <Setter Property="Background" Value="{ThemeResource EgWindowBrush}" />
             </Style>
             <DataTemplate x:Key="UserTemplate" x:DataType="emby:EmbyUser">
@@ -124,7 +124,7 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Grid x:Name="WelcomePanel" CornerRadius="20" MaxWidth="360" Margin="0,0,0,24">
+            <Grid x:Name="WelcomePanel" CornerRadius="{StaticResource EgCardCornerRadius}" MaxWidth="360" Margin="0,0,0,24">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />

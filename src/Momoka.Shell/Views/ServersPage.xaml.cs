@@ -1,12 +1,16 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
+using Windows.System;
+using Windows.UI.Core;
 
 namespace Momoka.Shell.Views;
 
@@ -204,6 +208,71 @@ public sealed partial class ServersPage : Page, IShellContent
     private void OnAccountDragCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
         if (sender is ListView list && _accountMotions.TryGetValue(list, out var motion)) motion.EndDrag();
+    }
+
+    private void OnServerListPreviewKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (TryKeyboardReorder(e, ServersList, item => item as ServerRow,
+            (row, offset) => ViewModel.MoveServer(row, offset)))
+            e.Handled = true;
+    }
+
+    private void OnAccountListPreviewKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (sender is ListView list
+            && TryKeyboardReorder(e, list, item => item as AccountRow,
+                (row, offset) => ViewModel.MoveAccount(row, offset)))
+            e.Handled = true;
+    }
+
+    private bool TryKeyboardReorder<TRow>(KeyRoutedEventArgs e, ListView list,
+        Func<object?, TRow?> asRow, Func<TRow, int, bool> move) where TRow : class
+    {
+        var offset = e.Key switch
+        {
+            VirtualKey.Up => -1,
+            VirtualKey.Down => 1,
+            _ => 0
+        };
+        if (offset == 0 || (InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Menu) & CoreVirtualKeyStates.Down) == 0)
+            return false;
+
+        var focused = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject;
+        ListViewItem? container = null;
+        for (var node = focused; node is not null && !ReferenceEquals(node, list); node = VisualTreeHelper.GetParent(node))
+            if (node is ListViewItem item) { container = item; break; }
+        if (container is null) return false;
+        var row = asRow(list.ItemFromContainer(container));
+        if (row is null || !move(row, offset)) return false;
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            list.UpdateLayout();
+            if (list.ContainerFromItem(row) is Control target)
+                target.Focus(FocusState.Keyboard);
+        });
+        return true;
+    }
+
+    private void OnShiftButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.IsEnabled) return;
+        var siblingName = button.Name switch
+        {
+            "ServerMoveUpButton" => "ServerMoveDownButton",
+            "ServerMoveDownButton" => "ServerMoveUpButton",
+            "AccountMoveUpButton" => "AccountMoveDownButton",
+            "AccountMoveDownButton" => "AccountMoveUpButton",
+            _ => null
+        };
+        if (siblingName is null || VisualTreeHelper.GetParent(button) is not DependencyObject parent) return;
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+            if (VisualTreeHelper.GetChild(parent, index) is Button { Name: var name, IsEnabled: true } sibling
+                && name == siblingName)
+            {
+                sibling.Focus(FocusState.Keyboard);
+                return;
+            }
     }
 
     private void DetachMotions()

@@ -5,26 +5,14 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="Transparent">
     <Page.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        <Style x:Key="FnNasCard" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource EgCardStrokeBrush}" />
-            <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="20" />
-        </Style>
         <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
             <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
         <DataTemplate x:Key="FnNasPermissionTemplate" x:DataType="vm:FnNasChoice">
             <CheckBox x:Name="FnNasPermissionCheck" Content="{x:Bind Name}" IsChecked="{x:Bind Selected, Mode=TwoWay}" Margin="0,3" />
         </DataTemplate>
-        </ResourceDictionary>
     </Page.Resources>
-    <Grid x:Name="PageLayout" RowSpacing="12">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <StackPanel Spacing="8">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -32,14 +20,18 @@
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         </StackPanel>
-        <Grid Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
-            <ScrollView x:Name="FnNasSettingsScroll" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
+        <Grid Grid.Row="1" RowSpacing="16" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                    <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE713;" />
+                </Border>
+                <TextBlock Grid.Column="1" x:Uid="FnNasSettingsPage_Localization1" Text="设置" Style="{StaticResource EgSubpageTitleStyle}" VerticalAlignment="Center" AutomationProperties.HeadingLevel="Level1" />
+                <Button x:Uid="FnNasSettingsPage_FnNasSettingsRefresh" x:Name="FnNasSettingsRefresh" Grid.Column="2" Content="刷新" VerticalAlignment="Center" Command="{x:Bind ViewModel.RefreshCommand}" />
+            </Grid>
+            <ScrollView x:Name="FnNasSettingsScroll" Grid.Row="1" Margin="0,0,-32,0" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
                 <StackPanel Spacing="16" Padding="0,0,20,20">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock x:Uid="FnNasSettingsPage_Localization1" Text="设置" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                        <Button x:Uid="FnNasSettingsPage_FnNasSettingsRefresh" x:Name="FnNasSettingsRefresh" Grid.Column="1" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
-                    </Grid>
                     <StackPanel Spacing="16">
                         <Border Style="{StaticResource FnNasCard}">
                             <StackPanel Spacing="16">
@@ -51,11 +43,11 @@
                             <StackPanel Spacing="16">
                                 <ComboBox x:Uid="FnNasSettingsPage_FnNasMetadataVolume" x:Name="FnNasMetadataVolume" Header="元数据保存位置" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Volumes, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.MetadataVolume, Mode=TwoWay}" />
                                 <ComboBox x:Uid="FnNasSettingsPage_FnNasPlaybackCacheVolume" x:Name="FnNasPlaybackCacheVolume" Header="播放临时文件缓存位置" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Volumes, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.PlaybackCacheVolume, Mode=TwoWay}" />
-                                <ToggleSwitch x:Uid="FnNasSettingsPage_FnNasFileMonitor" x:Name="FnNasFileMonitor" Header="实时监控文件更新" IsOn="{x:Bind ViewModel.FileMonitor, Mode=TwoWay}" />
+                                <ToggleSwitch x:Uid="FnNasSettingsPage_FnNasFileMonitor" x:Name="FnNasFileMonitor" Header="实时监控文件更新" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.FileMonitor, Mode=TwoWay}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                    <Button x:Uid="FnNasSettingsPage_FnNasSettingsSave" x:Name="FnNasSettingsSave" Content="保存设置" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                    <Button x:Uid="FnNasSettingsPage_FnNasSettingsSave" x:Name="FnNasSettingsSave" Content="保存设置" Style="{StaticResource EgSubpagePrimaryButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
                     <Border Style="{StaticResource FnNasCard}">
                         <StackPanel Spacing="12">
                             <TextBlock x:Uid="FnNasSettingsPage_Localization2" Text="搜索索引" Style="{StaticResource EgSubheadStyle}" />

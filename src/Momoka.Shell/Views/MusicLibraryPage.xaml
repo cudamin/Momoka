@@ -86,7 +86,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="MinHeight" Value="58" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="CornerRadius" Value="8" />
         </Style>
 
         <!-- 曲目表的一行：左缘那条「正在放」的竖线、44 的方封面、标题与副标题、等宽时长。

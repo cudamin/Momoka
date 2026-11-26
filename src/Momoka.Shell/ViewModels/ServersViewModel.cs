@@ -163,11 +163,51 @@ public sealed partial class ServersViewModel : PageViewModel
     {
         var before = _serverDragOrder;
         _serverDragOrder = null;
+        UpdateReorderStates();
         if (before is not null && !before.SequenceEqual(Servers)) CommitManualOrder();
     }
 
+    [RelayCommand]
+    private void MoveServerUp(ServerRow? row) => MoveServer(row, -1);
+
+    [RelayCommand]
+    private void MoveServerDown(ServerRow? row) => MoveServer(row, 1);
+
+    [RelayCommand]
+    private void MoveAccountUp(AccountRow? row) => MoveAccount(row, -1);
+
+    [RelayCommand]
+    private void MoveAccountDown(AccountRow? row) => MoveAccount(row, 1);
+
+    internal bool MoveServer(ServerRow? row, int offset)
+    {
+        if (!Attached || row is null || _serverDragOrder is not null) return false;
+
+        var from = Servers.IndexOf(row);
+        var to = from + offset;
+        if (from < 0 || to < 0 || to >= Servers.Count) return false;
+
+        Servers.Move(from, to);
+        CommitManualOrder();
+        return true;
+    }
+
+    internal bool MoveAccount(AccountRow? row, int offset)
+    {
+        var group = row?.ServerGroup;
+        if (!Attached || row is null || group is null || group.IsReorderingAccounts) return false;
+
+        var from = group.Accounts.IndexOf(row);
+        var to = from + offset;
+        if (from < 0 || to < 0 || to >= group.Accounts.Count) return false;
+
+        group.Accounts.Move(from, to);
+        CommitManualOrder();
+        return true;
+    }
+
     /// <summary>
-    /// 拖拽完成后把屏上顺序写成保存顺序：服务器组、每组账号各写一次，同时切回手动排序 ——
+    /// 拖拽或键盘调整完成后把屏上顺序写成保存顺序：服务器组、每组账号各写一次，同时切回手动排序 ——
     /// 用户亲手挪过之后，下一次 Refresh 必须停在刚摆好的这个次序上，而不是按旧的排序模式再排一遍。
     /// </summary>
     internal void CommitManualOrder()
@@ -182,11 +222,18 @@ public sealed partial class ServersViewModel : PageViewModel
         }
 
         foreach (var row in Servers) row.CommitAccountOrder();
+        UpdateReorderStates();
 
         _sortMode = ServerSortMode.Manual;
         _sortDescending = false;
         PersistSort();
         NotifySortChanged();
+    }
+
+    private void UpdateReorderStates()
+    {
+        for (var index = 0; index < Servers.Count; index++)
+            Servers[index].UpdateReorderStates(index, Servers.Count);
     }
 
     /// <summary>
@@ -278,6 +325,7 @@ public sealed partial class ServersViewModel : PageViewModel
             row => row.Name, row => row.StatusRank);
         Servers.Clear();
         foreach (var row in ordered) Servers.Add(row);
+        UpdateReorderStates();
         OnPropertyChanged(nameof(AggregateOptionsVisibility));
         OnPropertyChanged(nameof(NoteVisibility));
 

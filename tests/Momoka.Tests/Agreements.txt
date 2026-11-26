@@ -40,49 +40,48 @@
 # 的九张分组卡（站点、季、源、字幕、促销状态、视频编码、质量、分辨率、制作组），每组带全选/清除；
 # Browser 句柄新增 WebSourceFilter / SubtitleFilter，FilterDialog 新增 DialogFacetGroups 与组内
 # SelectAllGroup / ClearGroup（模板内，每个分组实例各一份）。
+# 2026-11-27（Fluent 设计重构第 2–5 阶段）：移除未使用的嵌套 .Note 绑定（15→12），压降 Palette / DetailPage / HomeBanner
+# 硬编码色数（146→134）与多页内联字号计数（79→52，NotificationsPage 归零）；同步登记第 3–5 阶段新增句柄
+# （AppTitleLabel / SidebarDismissScrim / SidebarOverlayBackdrop / HoverPlayButton / Server&Account 上下移动键）。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
-bind  Views/DetailPage.xaml  ViewModel.CastShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Title
 bind  Views/DetailPage.xaml  ViewModel.EpisodeShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.EpisodeShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.EpisodeShelf.Title
 bind  Views/DetailPage.xaml  ViewModel.SeasonShelf.Cards
-bind  Views/DetailPage.xaml  ViewModel.SeasonShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SeasonShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SeasonShelf.Title
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
-bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  91
-color  Views/DetailPage.xaml  18
-color  Views/HomeBanner.xaml  18
+color  Theme/Palette.xaml  90
+color  Views/DetailPage.xaml  16
+color  Views/HomeBanner.xaml  15
 color  Views/HtmlColorPicker.xaml  11
 color  Views/MoviePilotSubscriptionPage.xaml  6
 color  Views/PlayerPage.xaml  2
 font-size  Theme/Styles.xaml  2
 font-size  Views/CoverDialog.xaml  6
 font-size  Views/CoverPickerDialog.xaml  1
-font-size  Views/DashboardPage.xaml  5
-font-size  Views/DetailPage.xaml  21
-font-size  Views/DiagnosticsPage.xaml  2
+font-size  Views/DashboardPage.xaml  1
+font-size  Views/DetailPage.xaml  19
+font-size  Views/DiagnosticsPage.xaml  1
 font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
 font-size  Views/LibraryPage.xaml  8
-font-size  Views/MoviePilotSearchPanel.xaml  2
+font-size  Views/MoviePilotSearchPanel.xaml  1
 font-size  Views/MusicLibraryPage.xaml  3
-font-size  Views/NotificationsPage.xaml  3
-font-size  Views/PosterCard.xaml  9
-font-size  Views/ServersPage.xaml  5
-font-size  Views/SettingsPage.xaml  10
+font-size  Views/PosterCard.xaml  8
+font-size  Views/ServersPage.xaml  1
+font-size  Views/SettingsPage.xaml  4
 font-size  Views/ShelfHead.xaml  1
 font-size  Views/ShelfStrip.xaml  2
 font-size  Views/ShellPage.xaml  3
 font-size  Views/ShortcutCaptureBox.xaml  1
-font-size  Views/SignInPage.xaml  7
+font-size  Views/SignInPage.xaml  1
 handle  Views/AlphaBar.xaml  Compact
 handle  Views/AlphaBar.xaml  Full
 handle  Views/AlphaBar.xaml  HeightStates
@@ -584,9 +583,13 @@ handle  Views/ServersPage.xaml  ServersDiscoveredList
 handle  Views/ServersPage.xaml  ServersRefreshButton
 handle  Views/ServersPage.xaml  AccountDeleteButton
 handle  Views/ServersPage.xaml  AccountLoginButton
+handle  Views/ServersPage.xaml  AccountMoveDownButton
+handle  Views/ServersPage.xaml  AccountMoveUpButton
 handle  Views/ServersPage.xaml  AccountOfflineButton
 handle  Views/ServersPage.xaml  ServerDeleteButton
 handle  Views/ServersPage.xaml  ServerLoginButton
+handle  Views/ServersPage.xaml  ServerMoveDownButton
+handle  Views/ServersPage.xaml  ServerMoveUpButton
 handle  Views/ServersPage.xaml  ServersAggregateCard
 handle  Views/SettingsPage.xaml  CategoryNavigation
 handle  Views/SettingsPage.xaml  CheckGlyph
@@ -653,6 +656,7 @@ handle  Views/ShellPage.xaml  AccountSignOutItem
 handle  Views/ShellPage.xaml  AccountText
 handle  Views/ShellPage.xaml  AccountUser
 handle  Views/ShellPage.xaml  AppTitleBar
+handle  Views/ShellPage.xaml  AppTitleLabel
 handle  Views/ShellPage.xaml  BackButton
 handle  Views/ShellPage.xaml  Chrome
 handle  Views/ShellPage.xaml  ContentFrame
@@ -674,12 +678,14 @@ handle  Views/ShellPage.xaml  Root
 handle  Views/ShellPage.xaml  SearchButton
 handle  Views/ShellPage.xaml  SettingsButton
 handle  Views/ShellPage.xaml  Sidebar
+handle  Views/ShellPage.xaml  SidebarDismissScrim
 handle  Views/ShellPage.xaml  SidebarFavorites
 handle  Views/ShellPage.xaml  SidebarHome
 handle  Views/ShellPage.xaml  SidebarHost
 handle  Views/ShellPage.xaml  SidebarLibrariesHeader
 handle  Views/ShellPage.xaml  SidebarMoviePilotMovies
 handle  Views/ShellPage.xaml  SidebarMoviePilotSeries
+handle  Views/ShellPage.xaml  SidebarOverlayBackdrop
 handle  Views/ShellPage.xaml  SidebarResizeGrip
 handle  Views/ShellPage.xaml  SidebarLibraryPreviewMore
 handle  Views/ShellPage.xaml  SidebarSettings
