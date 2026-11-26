@@ -4,6 +4,8 @@
 
 本页其余部分保留 AniBT 整理回执专项的详细说明；其他专项各自有 README。
 
+本测试宿主还登记 `scrobbling-fixture`，覆盖 Bangumi／豆瓣只读连接检查、所有媒体账号自动识别、集号映射和播放阈值；实际生成的豆瓣脚本由 `tools/test-scrobbling-dom.ps1` 独立离线执行。入口和边界见[打格子](../../docs/打格子.md)。
+
 
 ## AniBT 整理回执专项（R-038）
 

@@ -4,6 +4,8 @@
 
 共享匿名夹具在两张设置卡各建一行真实确认颜色，改草稿后检查释放恢复原色、结束编辑、不保存，重复释放也只结束一次。SettingsLifetime 另覆盖 Hide、标题栏X、离页、Release、Close；Probe/HomeOrder覆盖 ReleaseHosted与Release。所有既有守卫、集合/行身份、草稿、行类型及动画拒绝检查保留。它们不证明实际WinUI拾色器或弹窗关闭。
 
+SettingsLifetime 还构建时原样提取 SettingsPage.Scrobbling 的全部接线、连接检查与登录／退出尾部，并由加载的真实 Shell SettingsViewModel 接收真实 Core ScrobblingService。假 Dispatcher 验证单订阅、ReleaseHosted 解绑、旧活动期排队回调被拒绝、重入后单次恢复；连接检查以可控内存端点验证进入设置、关闭登录窗口后自动检查及离开取消，登录窗口本身使用可控替身。Bangumi HTTP、作品读取与豆瓣写入均为拒绝网络边界。窄源码契约验证生产导航先写当前请求、只调用一次助手，且助手先绑定 VM 再订阅。此夹具不执行完整 WinUI OnNavigatedTo、真实登录、弹窗、播放或第三方写入。
+
 在当前树使用SDK10.0.400，restore显式 --packages C:\Users\89400\.nuget\packages；构建统一Release/x64、单节点、BuildInParallel=false、UseSharedCompilation=false、MSBuildNodeReuse=false、DebugSymbols=false、DebugType=None。先成功编译当前Shell与专项，再直接运行本轮 tests/Momoka.SettingsLifetimeTests/bin/x64/Release/net10.0/Momoka.SettingsLifetimeTests.dll，传本树标准x64 Release Momoka.dll及本树绝对根。下文历史计数/命令不代替本轮证据。
 
 本轮证据：本树5c9afa0三专项原始Release/x64编译各0警告1个CancelAppearanceColors错误。修后当前Shell及三专项构建0警告0错误；最终SettingsLifetime60/60、SettingsProbeContract33/33、HomeOrder21/21，均零失败零跳过。新增9项在生成取消方法空实现的独立复制项目中分别5/2/2失败，保留原色未恢复证据。三生成器缺方法/重复方法各拒绝、合法方法各成功；SettingsProbe颜色partial编译后漂移拒绝且恢复再33/33，共15项成功/拒绝判定通过。定向whitespace退出0但有工作区加载警告，14文本编码/diff通过。首driver继承负例LASTEXITCODE、hash项目参数拼接MSB1008过程失败保留；最终driver显式0。无产品变动、实际WinUI/native/真实服务器/设置操作或发布。 证据目录为本树artifacts/review-batch9-settings；父会话负责主树整合和最终验证交付。

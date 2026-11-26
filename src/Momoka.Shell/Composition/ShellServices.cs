@@ -7,6 +7,7 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Scrobbling;
 using Momoka.Shell.Media;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Security;
@@ -54,6 +55,10 @@ internal static class ShellServices
             Path.Combine(paths.WebViewDirectory, "youtube"),
             () => provider.GetRequiredService<AppSettings>().Network.ProxyServer));
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
+        services.AddSingleton<BangumiClient>();
+        services.AddSingleton(provider => new DoubanSession(Path.Combine(paths.WebViewDirectory, "douban"), provider.GetRequiredService<IUiDispatcher>()));
+        services.AddSingleton<IDoubanScrobblingClient>(provider => provider.GetRequiredService<DoubanSession>());
+        services.AddSingleton<ScrobblingService>();
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
         services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();
@@ -140,7 +145,8 @@ internal static class ShellServices
             // 目录与播放服务同进程单例 —— 设置页枚举过一次的结果，起播核对直接复用。
             provider.GetRequiredService<AudioDeviceCatalogue>(),
             allowPlayback: !selfCheck,
-            audioBackendFactory: provider.GetRequiredService<PlaybackBackendFactory>().CreateAudio));
+            audioBackendFactory: provider.GetRequiredService<PlaybackBackendFactory>().CreateAudio,
+            scrobbler: selfCheck ? null : provider.GetRequiredService<ScrobblingService>()));
 
         // ---- the optional second service ---------------------------------------------------------------
         // MoviePilot, when the user has one. Registered unconditionally rather than behind a check on the

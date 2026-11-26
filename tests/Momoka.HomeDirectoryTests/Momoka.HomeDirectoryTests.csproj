@@ -36,7 +36,7 @@
         var shell = File.ReadAllText(Path.Combine(SourceRoot, "ShellPage.xaml.cs")).Replace("\r\n", "\n");
         var home = File.ReadAllText(Path.Combine(SourceRoot, "HomePage.xaml.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Current tree production control flow, extracted verbatim at every build.\n" +
-            "using Momoka.Emby;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Xaml.Media.Animation;\nusing Microsoft.Extensions.DependencyInjection;\nnamespace Momoka.Shell.Views;\n" +
+            "using Momoka.Emby;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Momoka.Shell.Media;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Xaml.Media.Animation;\nusing Microsoft.Extensions.DependencyInjection;\nnamespace Momoka.Shell.Views;\n" +
             between(home, "internal sealed record HomeRequest(\n", "\n/// <summary>\n/// The home page's view.") +
             "\ninternal sealed partial class ShellPage\n{\n" +
             between(shell, "    private const int BrowsePageCacheSize", "\n\n    public FavoritesViewModel") +

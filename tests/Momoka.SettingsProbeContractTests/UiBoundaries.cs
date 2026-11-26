@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using Momoka.Scrobbling;
 using Momoka.Tests;
+using Microsoft.Extensions.DependencyInjection;
 
 // No HWND, WinRT, desktop, real XAML or animation clock exists in these boundaries. The actual
 // page/row/HomeMotion bodies are source-linked; view-model behavior always lives in Momoka.dll.
@@ -703,6 +705,9 @@ namespace Momoka.Shell.ViewModels
     {
         internal object Inner { get; } = ShellRuntime.Current.TakePageViewModel();
         private ShellRuntime Runtime => ShellRuntime.Current;
+        public void UseScrobbling(ScrobblingService service, Func<Task> loginDouban, Func<Task> logoutDouban, Func<Task>? verify = null) =>
+            Runtime.Invoke(Inner, "UseScrobbling", service, loginDouban, logoutDouban, verify);
+        public void RefreshScrobblingRows() => Runtime.Invoke(Inner, "RefreshScrobblingRows");
         public event PropertyChangedEventHandler? PropertyChanged
         {
             add => ((INotifyPropertyChanged)Inner).PropertyChanged += value;
@@ -761,5 +766,15 @@ namespace Momoka.Shell
             for (var index = 0; index < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root); index++)
                 foreach (var child in Descendants(Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, index))) yield return child;
         }
+    }
+}
+
+
+namespace Microsoft.Extensions.DependencyInjection
+{
+    internal static class FixtureServicesExtensions
+    {
+        public static T GetRequiredService<T>(this IServiceProvider services) where T : class =>
+            (T)(services.GetService(typeof(T)) ?? throw new InvalidOperationException("未授权的服务边界 " + typeof(T).Name));
     }
 }

@@ -386,6 +386,11 @@ public static class SettingsMigration
         if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
         settings.LocalMedia ??= new();
+        settings.Scrobbling ??= new();
+        settings.Scrobbling.Bangumi ??= new();
+        settings.Scrobbling.Douban ??= new();
+        if (settings.Scrobbling.Bangumi.ProtectedAccessToken is null)
+            throw new InvalidDataException("Bangumi 凭据字段不能为 null");
         settings.LocalMedia.SourceDirectory ??= "";
         settings.LocalMedia.TargetDirectory ??= "";
         settings.LocalMedia.ProtectedTmdbToken ??= "";

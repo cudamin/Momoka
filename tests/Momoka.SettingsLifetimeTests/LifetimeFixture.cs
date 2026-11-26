@@ -6,6 +6,7 @@ using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
+using Momoka.Scrobbling;
 using Momoka.Services;
 using Momoka.Shell.Views;
 
@@ -18,12 +19,17 @@ internal sealed class LifetimeFixture : IDisposable
     private readonly Dictionary<string, EmbySessionScope> _sources;
     private readonly MoviePilotClient _moviePilotClient;
     private readonly MoviePilotService _moviePilot;
+    private readonly BangumiClient _bangumi;
+    private readonly HttpClient _scrobblingHttp;
     public MemorySettings Settings { get; } = new();
     public FakeReads Reads { get; } = new();
     public AppPaths Paths { get; }
     public EmbySession Session { get; }
     public ServerCapabilities Capabilities { get; }
     public FixtureServices Services { get; } = new();
+    public ScrobblingService Scrobbling { get; }
+    public RejectDoubanScrobblingClient Douban { get; } = new();
+    public Momoka.Shell.Media.DoubanSession DoubanSession { get; } = new();
     public object Vm { get; }
 
     public LifetimeFixture(MediaServerKind kind = MediaServerKind.Jellyfin, bool? administrator = true,
@@ -42,10 +48,15 @@ internal sealed class LifetimeFixture : IDisposable
         ShellRuntime.Current.Attach(Vm, Settings, Paths, capabilities ?? Capabilities);
         _moviePilotClient = new MoviePilotClient(new RejectHttp());
         _moviePilot = new MoviePilotService(_moviePilotClient, new MoviePilotCredentials(protector), Settings.Settings);
+        _scrobblingHttp = new HttpClient(new RejectScrobblingHttp());
+        _bangumi = new BangumiClient(_scrobblingHttp);
+        Scrobbling = new ScrobblingService(Settings.Settings, protector, _bangumi, Douban);
         Services.Add(Session);
         Services.Add<ISettingsService>(Settings);
         Services.Add(_moviePilot);
         Services.Add<IServerCapabilities>(capabilities ?? Capabilities);
+        Services.Add(Scrobbling);
+        Services.Add(DoubanSession);
     }
 
     public EmbySessionScope Add(string serverId, string accountId, MediaServerKind kind, bool? administrator = true)
@@ -116,12 +127,34 @@ internal sealed class LifetimeFixture : IDisposable
     public void Dispose()
     {
         ShellRuntime.Current.Invoke(Vm, "Dispose");
+        Scrobbling.Dispose();
+        _bangumi.Dispose();
+        _scrobblingHttp.Dispose();
         _moviePilot.Dispose();
         _moviePilotClient.Dispose();
         Session.Dispose();
         foreach (var lifetime in _lifetimes) lifetime.Dispose();
         Reads.Dispose();
     }
+}
+
+internal sealed class RejectDoubanScrobblingClient : IDoubanScrobblingClient
+{
+    public Func<CancellationToken, Task<bool>>? LoginCheck { get; set; }
+    public Task<bool> CheckLoginAsync(CancellationToken cancellationToken) =>
+        LoginCheck?.Invoke(cancellationToken) ?? throw new InvalidOperationException("Unexpected Douban login check");
+    public Task<IReadOnlyList<ScrobblingCandidate>> SearchSubjectsAsync(string query, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("设置生命周期夹具禁止豆瓣会话操作");
+    public Task<ScrobblingSubject> SubjectAsync(long id, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("设置生命周期夹具禁止豆瓣会话操作");
+    public Task MarkAsync(long id, bool completed, Func<bool> stillAllowed, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("设置生命周期夹具禁止豆瓣写入");
+}
+
+internal sealed class RejectScrobblingHttp : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>
+        throw new InvalidOperationException("设置生命周期夹具禁止任何 Bangumi HTTP 请求");
 }
 
 internal sealed class FixtureServices : IServiceProvider

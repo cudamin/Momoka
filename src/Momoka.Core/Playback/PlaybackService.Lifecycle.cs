@@ -35,6 +35,7 @@ public sealed partial class PlaybackService
         public volatile bool Ending;
         public bool StopReported { get; set; }
         public bool HasStarted { get; set; }
+        public Momoka.Scrobbling.PlaybackScrobblingAttempt? Scrobbling { get; set; }
         public int ThresholdPending;
         public long PauseRevision;
         public int ExternalSubtitleSelection;
@@ -294,7 +295,7 @@ public sealed partial class PlaybackService
                 {
                     BackendKind = backendKind,
                     HasStarted = handle is IPlayerControl { Status: { HasPosition: true } status }
-                        && status.Position > request.StartSeconds + 0.5
+                        && double.IsFinite(status.Position) && status.Position > request.StartSeconds + 0.5
                 };
                 // Reserve the start report's place before publishing an attempt that manual
                 // watched reporting can borrow. Track discovery must not let a stop overtake it.
@@ -318,9 +319,17 @@ public sealed partial class PlaybackService
             var startReserved = true;
             try
             {
+                if (!request.AudioOnly && scrobbler is not null)
+                {
+                    try { attempt.Scrobbling = scrobbler.CreateAttempt(ticket, scope, request); }
+                    catch (Exception) { Log.Warn(Category, "观看记录同步初始化失败，继续播放"); }
+                }
                 Subscribe(attempt);
                 if (attempt.Handle is IPlayerControl trackControl && attempt.Handle.HasControlChannel)
                 {
+                    var status = trackControl.Status;
+                    attempt.Scrobbling?.Observe(status.HasPosition ? status.Position : null,
+                        status.PictureStarted || status.HasPosition && double.IsFinite(status.Position) && status.Position > request.StartSeconds + 0.5);
                     var trackRevision = trackState.Revision;
                     using var snapshotDeadline = CancellationTokenSource.CreateLinkedTokenSource(operation.Lifetime.Token);
                     snapshotDeadline.CancelAfter(TimeSpan.FromSeconds(2));
@@ -376,6 +385,8 @@ public sealed partial class PlaybackService
                 attempt.Ending = true;
                 try { attempt.Unsubscribe?.Invoke(); }
                 catch (Exception error) { Log.Warn(Category, "退订播放事件失败", error); }
+                if (attempt.Scrobbling is { } scrobbling)
+                    await scrobbling.FinishAsync(null, attempt.HasStarted).ConfigureAwait(false);
                 if (ReferenceEquals(_active, attempt)) _active = null;
             }
             bool retain;
@@ -415,7 +426,9 @@ public sealed partial class PlaybackService
         void OnStatus(PlayerStatus status)
         {
             if (!IsCurrent(attempt)) return;
-            attempt.HasStarted |= status.PictureStarted || status.HasPosition && status.Position > attempt.Request.StartSeconds + 0.5;
+            attempt.HasStarted |= status.PictureStarted || status.HasPosition && double.IsFinite(status.Position) && status.Position > attempt.Request.StartSeconds + 0.5;
+            attempt.Scrobbling?.Observe(status.HasPosition ? status.Position : null,
+                status.PictureStarted || status.HasPosition && double.IsFinite(status.Position) && status.Position > attempt.Request.StartSeconds + 0.5);
             Raise(StatusUpdated, new PlaybackUpdate<PlayerStatus>(attempt.Generation, status) { AudioOnly = attempt.Request.AudioOnly });
             Raise(StatusChanged, status);
         }

@@ -45,17 +45,19 @@
         var probe = File.ReadAllText(ProbeSource).Replace("\r\n", "\n");
         var utilities = File.ReadAllText(UtilitiesSource).Replace("\r\n", "\n");
         var settingsProbe = File.ReadAllText(SettingsProbeSource).Replace("\r\n", "\n");
+        var scrobbling = File.ReadAllText(Path.Combine(Path.GetDirectoryName(PageSource), "SettingsPage.Scrobbling.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Extracted verbatim from current source at every build; do not edit.\n" +
             "using System.Reflection;\nusing System.Collections;\nusing System.ComponentModel;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\n" +
             "using Momoka.Infrastructure;\nusing Momoka.MoviePilot;\nusing Momoka.Mpv;\nusing Momoka.Playback;\n" +
-            "using Momoka.Services;\nusing Momoka.Updates;\nusing Momoka.Shell.ViewModels;\nusing Momoka.Shell.Views;\n" +
+            "using Momoka.Services;\nusing Momoka.Scrobbling;\nusing Momoka.Updates;\nusing Momoka.Shell.ViewModels;\nusing Momoka.Shell.Views;\n" +
             "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
-            "using Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views\n{\n" +
+            "using Microsoft.UI.Xaml.Navigation;\nusing Microsoft.Extensions.DependencyInjection;\nusing Momoka.Shell.Media;\nnamespace Momoka.Shell.Views\n{\n" +
             between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
             "\npublic sealed partial class SettingsPage : Page, IShellContent\n{\n" +
             between(page, "    private const string Category = \"设置\";", "    internal bool IsReady =>") +
             between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
+            between(scrobbling, "    private ScrobblingService? _scrobblingService;", "    private async Task LoginDoubanAsync(") +
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(settingsProbe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +

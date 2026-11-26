@@ -5,6 +5,7 @@ using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
+using Momoka.Scrobbling;
 using Momoka.Services;
 using Momoka.Tests;
 
@@ -193,6 +194,20 @@ namespace Momoka.Shell.ViewModels
         public void UseHeroCacheClear(Action clear) => Runtime.Invoke(Inner, "UseHeroCacheClear", clear);
         public void UseHomeLibraryDirectory(Func<IReadOnlyList<EmbyItem>>? readDirectory) =>
             Runtime.Invoke(Inner, "UseHomeLibraryDirectory", readDirectory);
+        internal int ScrobblingUseCalls { get; private set; }
+        internal int ScrobblingRefreshCalls { get; private set; }
+        internal ScrobblingService? LastScrobblingService { get; private set; }
+        public void UseScrobbling(ScrobblingService service, Func<Task> loginDouban, Func<Task> logoutDouban, Func<Task>? verify = null)
+        {
+            ScrobblingUseCalls++;
+            LastScrobblingService = service;
+            Runtime.Invoke(Inner, "UseScrobbling", service, loginDouban, logoutDouban, verify);
+        }
+        public void RefreshScrobblingRows()
+        {
+            ScrobblingRefreshCalls++;
+            Runtime.Invoke(Inner, "RefreshScrobblingRows");
+        }
         internal object Inner { get; } = ShellRuntime.Current.TakePageViewModel();
         private ShellRuntime Runtime => ShellRuntime.Current;
         public event PropertyChangedEventHandler? PropertyChanged
@@ -299,6 +314,15 @@ namespace Momoka.Shell.Views
         private void StopSettingsContentMotion() { }
         internal Task RefreshForFixture() => RefreshServerAdministrationAsync();
         internal void PrepareCached(SettingsRequest request) => _request = request;
+        internal void BeginScrobblingVisitForFixture()
+        {
+            _activityToken = _activity.Begin();
+            ViewModel.Activate();
+        }
+        internal void AttachScrobblingForFixture(ScrobblingService service) =>
+            AttachScrobblingForVisit(service, () => Task.CompletedTask, () => Task.CompletedTask);
+        internal Task VerifyScrobblingForFixture() => VerifyScrobblingAsync();
+        internal Task LoginDoubanForFixture() => LoginDoubanAsync();
     }
 
     internal sealed partial class SettingsWindow

@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\Momoka.Shell\Platform\CancelableDialog.cs" Link="Shell\CancelableDialog.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Localization\UiText.cs" Link="Shell\UiText.cs" />
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Localization\*English.json" />
     <Compile Include="..\..\src\Momoka.Shell\Views\StoreTrailerDocument.cs" Link="Shell\StoreTrailerDocument.cs" />

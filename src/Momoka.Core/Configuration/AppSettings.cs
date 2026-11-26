@@ -70,6 +70,8 @@ public sealed class AppSettings
 
     public LocalMediaSettings LocalMedia { get; set; } = new();
 
+    public ScrobblingSettings Scrobbling { get; set; } = new();
+
     public ServerProfile? FindServer(string? id) =>
         id is null ? null : Servers.FirstOrDefault(server => server.Id == id);
 

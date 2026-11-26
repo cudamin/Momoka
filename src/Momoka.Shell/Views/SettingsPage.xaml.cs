@@ -443,6 +443,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         _activityToken = _activity.Begin();
         ViewModel.Activate();
         _request = request;
+        AttachScrobblingForVisit(request.Services.GetRequiredService<Momoka.Scrobbling.ScrobblingService>(),
+            LoginDoubanAsync, LogoutDoubanAsync);
         ViewModel.UseHomeLibraryDirectory(request.ReadLibraryDirectory);
         // Hide 后 XAML 仍可保持 Loaded；重开不能只等另一次 Loaded 才恢复动效偏好通知。
         HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
@@ -787,6 +789,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     internal void ReleaseHosted()
     {
+        StopScrobblingMonitoring();
         CancelAppearanceColors();
         // Hide 不触发 Frame.OnNavigatedFrom；先结束整页活动期，旧队列和 await 都不能重建内嵌页。
         _activity.Cancel();

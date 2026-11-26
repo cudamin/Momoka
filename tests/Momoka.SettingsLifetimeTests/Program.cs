@@ -19,6 +19,7 @@ internal static class Program
             _ = new ShellRuntime(shellAssembly, sourceRoot);
             AdministrationLifetimeTests.Register();
             SettingsHiddenLifetimeTests.Register();
+            ScrobblingLifetimeTests.Register(sourceRoot);
             SaveStateLifetimeTests.Register();
             BoundaryCompatibilityTests.Register();
             return TestHarness.Run();

@@ -663,6 +663,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         if (_services is null) return;
         _window = window;
+        _services.GetRequiredService<Media.DoubanSession>().Attach(Root);
         Player.Attach(_services.GetRequiredService<PlayerViewModel>(), this, window);
         AttachMusic();
         Player.ViewModel.Noticed += Notify;
@@ -726,6 +727,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         // 在首个关闭等待前撤销登录，并永久拒绝迟到通知或新账号操作重建外壳。
         _closing = true;
+        _services?.GetService<Momoka.Scrobbling.ScrobblingService>()?.Dispose();
+        _services?.GetService<Media.DoubanSession>()?.Dispose();
         SignIn.SignedIn -= OnSignedIn;
         SignIn.ViewModel.Dispose();
         _aggregateLoads.Cancel();
