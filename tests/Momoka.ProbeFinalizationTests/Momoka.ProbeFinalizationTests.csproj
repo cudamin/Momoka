@@ -51,13 +51,16 @@
                 };
                 var run = File.ReadAllText(RunSource).Replace("\r\n", "\n");
                 var schedule = File.ReadAllText(ScheduleSource).Replace("\r\n", "\n");
-                var tail = between(run, "        report.AppendLine();\n        report.AppendLine(failures == 0", "\n    }\n}\n");
+                var tail = between(run, "        if (_requiredEvidenceFailed)\n", "\n    }\n}\n");
                 var callback = between(schedule, "            await FinishAsync(async () =>", "\n        };\n        _timer.Start();");
+                var evidenceWriters = between(schedule, "        _writePlaybackReturnTrace = text => Write(options.Paths, \"selfcheck-playback-return.json\", text);",
+                    "        // Invalidate the last run's report before this one has anything to say.");
                 var generated = "// Compiled verbatim from current production at build time; do not edit.\n#nullable enable\n" +
                     "using System.Text;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell;\ninternal static partial class ShellSelfCheck\n{\n" +
                     "    private static void Run(ProbeWindow window, ProbeShell shell, IServiceProvider services, SelfCheckInput options)\n    {\n" +
                     "        options.BeforeReadings?.Invoke();\n        var report = new StringBuilder(options.Readings);\n        var failures = options.Failures;\n" +
                     tail + "\n    }\n" +
+                    "    internal static void BindEvidenceForFixture(SelfCheckInput options)\n    {\n" + evidenceWriters + "\n    }\n" +
                     "    internal static async Task RunScheduledForFixture(ProbeWindow window, SelfCheckInput options)\n    {\n" +
                     "        var shell = new ProbeShell(options);\n        IServiceProvider services = null!;\n" +
                     callback + "\n    }\n}\n";

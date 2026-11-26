@@ -23,6 +23,7 @@ internal static partial class Program
         _output = Path.Combine(root, "artifacts", "r071-r072", "fixture", "run-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_output);
         RegisterSelfCheck();
+        RegisterSelfCheckEvidence();
         Test("R03-006 ordinary-close-exit", () =>
         {
             Equal(0, ProgramExitFixture.Exit(new(Paths("ordinary-close"))), "normal close succeeds without selfcheck");

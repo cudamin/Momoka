@@ -33,6 +33,9 @@ internal static partial class ShellSelfCheck
         }
         catch (Exception error)
         {
+            // Action writers discard the return value, so retain every evidence failure for finalization.
+            _requiredEvidenceFailed = true;
+            ExitCode = 1;
             Log.Error(Category, $"写入自检报告 {name} 失败", error);
             return false;
         }
