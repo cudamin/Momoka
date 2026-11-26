@@ -259,6 +259,10 @@ internal static partial class Native
     /// </summary>
     public const uint WmActivate = 0x0006;
 
+    /// <summary>WM_SETTINGCHANGE / WM_THEMECHANGED: system high-contrast or visual settings changed.</summary>
+    public const uint WmSettingChange = 0x001A;
+    public const uint WmThemeChanged = 0x031A;
+
     /// <summary>
     /// WM_TIMER. <see cref="WmActivateApp"/> only speaks when activation crosses <em>this</em>
     /// application's boundary, so a fullscreen window that let another app have the foreground never hears
@@ -1151,6 +1155,9 @@ internal static partial class Native
 
     [LibraryImport("gdi32.dll")]
     public static partial IntPtr CreateSolidBrush(uint color);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial int DeleteObject(IntPtr handle);
 
     [LibraryImport("user32.dll")]
     public static partial IntPtr GetDC(IntPtr window);

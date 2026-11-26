@@ -48,7 +48,7 @@
         </CommandBar>
 
         <Border Grid.Row="1" Background="{ThemeResource EgSurfaceBrush}" Padding="14,12"
-            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+            BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}">
             <Grid x:Name="StatusCards" ColumnSpacing="16" RowSpacing="12">
                 <Grid.ColumnDefinitions>
@@ -185,7 +185,7 @@
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
             <Border x:Name="LogPanel" Grid.Row="1" Background="{ThemeResource EgSurfaceBrush}"
-                BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>

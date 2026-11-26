@@ -31,7 +31,8 @@ internal static class DialogChromeTests
             var setters = Setters(style);
             Assert.Equal("{ThemeResource EgSurfaceBrush}", setters.GetValueOrDefault("Background"));
             Assert.Equal("{ThemeResource EgTextBrush}", setters.GetValueOrDefault("Foreground"));
-            Assert.Equal("0", setters.GetValueOrDefault("BorderThickness"));
+            Assert.Equal("{ThemeResource EgCardStrokeBrush}", setters.GetValueOrDefault("BorderBrush"));
+            Assert.Equal("{StaticResource EgCardBorderThickness}", setters.GetValueOrDefault("BorderThickness"));
             Assert.Equal("{StaticResource EgCardCornerRadius}", setters.GetValueOrDefault("CornerRadius"));
         });
 
@@ -90,9 +91,21 @@ internal static class DialogChromeTests
             var folder = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
             foreach (var type in LibraryDialogs)
             {
-                var alias = XDocument.Load(Path.Combine(folder, type + ".xaml")).Descendants().Single(element =>
-                    element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay");
-                Assert.Equal("LayerFillColorDefaultBrush", alias.Attribute("ResourceKey")?.Value);
+                var doc = XDocument.Load(Path.Combine(folder, type + ".xaml"));
+                var presentation = doc.Root!.Name.Namespace;
+                var themes = doc.Descendants(presentation + "ResourceDictionary.ThemeDictionaries").SingleOrDefault();
+                Assert.NotNull(themes, $"{type} 应使用 ThemeDictionaries 区分 Dark/Light/HighContrast 顶盖");
+                foreach (var key in new[] { "Dark", "Light" })
+                {
+                    var dict = themes!.Elements(presentation + "ResourceDictionary")
+                        .Single(element => element.Attribute(Xaml + "Key")?.Value == key);
+                    var alias = dict.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay");
+                    Assert.Equal("LayerFillColorDefaultBrush", alias.Attribute("ResourceKey")?.Value);
+                }
+                var hc = themes!.Elements(presentation + "ResourceDictionary")
+                    .Single(element => element.Attribute(Xaml + "Key")?.Value == "HighContrast");
+                var hcOverlay = hc.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay");
+                Assert.Equal("{ThemeResource SystemColorWindowColor}", hcOverlay.Attribute("Color")?.Value);
             }
             foreach (var file in Directory.GetFiles(folder, "MoviePilot*.xaml"))
                 Assert.False(File.ReadAllText(file).Contains("ContentDialogTopOverlay", StringComparison.Ordinal), "MP叠色被修改");
@@ -180,6 +193,7 @@ internal static class DialogChromeTests
                 {
                     root!.Attribute("Background")?.Value,
                     root.Attribute("Foreground")?.Value,
+                    root.Attribute("BorderBrush")?.Value,
                     root.Attribute("BorderThickness")?.Value,
                     root.Attribute("CornerRadius")?.Value
                 };
@@ -188,8 +202,9 @@ internal static class DialogChromeTests
                 {
                     Assert.Equal("{ThemeResource EgSurfaceBrush}", values[0], "下载弹窗的样板底色被改了");
                     Assert.Equal("{ThemeResource EgTextBrush}", values[1], "下载弹窗的样板前景色被改了");
-                    Assert.Equal("0", values[2], "下载弹窗的样板边框被改了");
-                    Assert.Equal("{StaticResource EgCardCornerRadius}", values[3], "下载弹窗的样板圆角被改了");
+                    Assert.Equal("{ThemeResource EgCardStrokeBrush}", values[2], "下载弹窗的样板描边色被改了");
+                    Assert.Equal("{StaticResource EgCardBorderThickness}", values[3], "下载弹窗的样板边框被改了");
+                    Assert.Equal("{StaticResource EgCardCornerRadius}", values[4], "下载弹窗的样板圆角被改了");
                     continue;
                 }
 

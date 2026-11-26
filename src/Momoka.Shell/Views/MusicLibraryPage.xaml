@@ -29,31 +29,54 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!--
-          分区药丸。与媒体库的 LibraryTabStyle 同一档高度、同一档圆角：两页的「换个分区看」是同一种东西。
-          选中的底色/字色接主题角色而不是写死颜色 —— ThemeResource 会跟着换主题，不需要代码在换主题时重涂。
-        -->
-        <Style x:Key="MusicTabStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-            <Setter Property="Height" Value="30" />
-            <Setter Property="MinWidth" Value="0" />
-            <Setter Property="Padding" Value="14,0" />
-            <Setter Property="CornerRadius" Value="15" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{ThemeResource EgTextDimBrush}" />
-        </Style>
-
-        <!-- 选中态：抬起一档的面色 + 正文墨。三态同色，指针压在已选中的那一颗上不再变深。 -->
-        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgSurfaceHoverBrush" />
-        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
-        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgSurfaceHoverBrush" />
-        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextBrush" />
-        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextBrush" />
-        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextBrush" />
-        <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgTextBrush" />
-        <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgTextBrush" />
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- 选中态：抬起一档的面色 + 正文墨；列表和封面墙悬停/按压随主题翻色，高对比度交回系统原生槽位。 -->
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                    <StaticResource x:Key="ItemContainerPointerOverBackground" ResourceKey="EgSurfaceBrush" />
+                    <StaticResource x:Key="ItemContainerPressedBackground" ResourceKey="EgSurfaceAltBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgSurfaceHoverBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgTextBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                    <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                    <StaticResource x:Key="ItemContainerPointerOverBackground" ResourceKey="EgSurfaceBrush" />
+                    <StaticResource x:Key="ItemContainerPressedBackground" ResourceKey="EgSurfaceAltBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast" />
+            </ResourceDictionary.ThemeDictionaries>
+            <!--
+              分区药丸。与媒体库的 LibraryTabStyle 同一档高度、同一档圆角：两页的「换个分区看」是同一种东西。
+              选中的底色/字色接主题角色而不是写死颜色 —— ThemeResource 会跟着换主题，不需要代码在换主题时重涂。
+            -->
+            <Style x:Key="MusicTabStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                <Setter Property="Height" Value="30" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Padding" Value="14,0" />
+                <Setter Property="CornerRadius" Value="15" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{ThemeResource EgTextDimBrush}" />
+            </Style>
 
         <!--
           曲目表的一行。指针上来是「抬起一档的面色」而不是框架那层中灰：这一页的底就是窗口纸面，
@@ -65,12 +88,6 @@
             <Setter Property="MinHeight" Value="58" />
             <Setter Property="CornerRadius" Value="10" />
         </Style>
-        <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
-        <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-
-        <!-- 封面墙一格：指针上来抬起一档，按压再深一档。PosterCard 不在这一页，所以这层底由格子自己画。 -->
-        <StaticResource x:Key="ItemContainerPointerOverBackground" ResourceKey="EgSurfaceBrush" />
-        <StaticResource x:Key="ItemContainerPressedBackground" ResourceKey="EgSurfaceAltBrush" />
 
         <!-- 曲目表的一行：左缘那条「正在放」的竖线、44 的方封面、标题与副标题、等宽时长。
              分隔线只从标题那一列开始画：封面那一列没有横线，一列图才读成一列。 -->
@@ -186,6 +203,7 @@
                 </Grid>
             </ItemContainer>
         </DataTemplate>
+        </ResourceDictionary>
     </Page.Resources>
 
     <Grid x:Name="Root" Padding="{StaticResource EgPageMargin}">

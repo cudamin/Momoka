@@ -76,8 +76,14 @@ internal static class ShellChromeTests
 
         Test("侧边栏度量：条目 40 高、图标盒 20、按钮左右各留 8，选中项铺实心底", () =>
         {
-            var resources = Named(Shell(), "Sidebar").Elements()
-                .Single(element => element.Name.LocalName == "NavigationView.Resources");
+            var document = Shell();
+            var presentation = document.Root!.Name.Namespace;
+            var resources = Named(document, "Sidebar").Elements()
+                .Single(element => element.Name.LocalName == "NavigationView.Resources")
+                .Element(presentation + "ResourceDictionary")!;
+            var dark = resources.Element(presentation + "ResourceDictionary.ThemeDictionaries")!
+                .Elements(presentation + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(Xaml + "Key") == "Dark");
 
             string? Value(string key) => resources.Elements()
                 .FirstOrDefault(element => element.Attribute(Xaml + "Key")?.Value == key)
@@ -94,7 +100,7 @@ internal static class ShellChromeTests
                 "NavigationViewItemBackgroundSelectedPressed"
             })
             {
-                var entry = resources.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == key);
+                var entry = dark.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == key);
                 Assert.Equal("EgSurfaceHoverBrush", entry.Attribute("ResourceKey")?.Value,
                     $"{key} 不是实心的角色色");
             }

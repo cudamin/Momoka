@@ -574,10 +574,28 @@
                     IsTabStop="False"
                     Click="OnPrevClicked">
                     <Button.Resources>
-                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
-                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
-                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
-                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
+                        <ResourceDictionary>
+                            <ResourceDictionary.ThemeDictionaries>
+                                <ResourceDictionary x:Key="Dark">
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
+                                </ResourceDictionary>
+                                <ResourceDictionary x:Key="Light">
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
+                                </ResourceDictionary>
+                                <ResourceDictionary x:Key="HighContrast">
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                                </ResourceDictionary>
+                            </ResourceDictionary.ThemeDictionaries>
+                        </ResourceDictionary>
                     </Button.Resources>
                 </Button>
 
@@ -592,10 +610,28 @@
                     IsTabStop="False"
                     Click="OnNextClicked">
                     <Button.Resources>
-                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
-                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
-                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
-                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
+                        <ResourceDictionary>
+                            <ResourceDictionary.ThemeDictionaries>
+                                <ResourceDictionary x:Key="Dark">
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
+                                </ResourceDictionary>
+                                <ResourceDictionary x:Key="Light">
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
+                                </ResourceDictionary>
+                                <ResourceDictionary x:Key="HighContrast">
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                                </ResourceDictionary>
+                            </ResourceDictionary.ThemeDictionaries>
+                        </ResourceDictionary>
                     </Button.Resources>
                 </Button>
 

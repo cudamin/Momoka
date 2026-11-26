@@ -61,7 +61,7 @@
             Margin="0,16,0,0"
             Background="{ThemeResource EgSurfaceBrush}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
-            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderBrush="{ThemeResource EgCardStrokeBrush}"
             BorderThickness="{StaticResource EgCardBorderThickness}">
             <Grid>
                 <WebView2 x:Name="Web" />

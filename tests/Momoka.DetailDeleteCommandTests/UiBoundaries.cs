@@ -24,6 +24,10 @@ namespace Microsoft.UI.Xaml
     }
     public sealed class XamlRoot;
     public sealed class Style;
+    public sealed class ResourceDictionary : Dictionary<string, object>
+    {
+        public Dictionary<string, object> ThemeDictionaries { get; } = [];
+    }
     public sealed class Application
     {
         public static Application Current { get; } = new();
@@ -85,7 +89,7 @@ namespace Microsoft.UI.Xaml.Controls
     public class ContentDialog : ContentControl
     {
         public Style? Style { get; set; }
-        public Dictionary<string, object> Resources { get; } = [];
+        public ResourceDictionary Resources { get; } = [];
         public ElementTheme RequestedTheme { get; set; }
         public object? Title { get; set; }
         public string PrimaryButtonText { get; set; } = "";

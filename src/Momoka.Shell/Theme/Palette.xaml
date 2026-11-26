@@ -28,9 +28,6 @@
     <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#15FFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#08FFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
-    <!-- 商店（简洁）模式的操作按钮与闭合选择框：浅色高透明底（2026-11-15 用户令「换成浅色高透明背景」）。
-         颜色是白，四态靠 ControlBackgroundBrushes 的定值浓度分档，不读主题面色。 -->
-    <SolidColorBrush x:Key="EgStoreControlBrush" Color="#FFFFFFFF" />
     <!-- 头图压着深色遮罩，与当前主题无关；媒体卡片通过主题别名支持系统高对比度覆盖。 -->
     <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
     <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
@@ -85,6 +82,7 @@
             <SolidColorBrush x:Key="EgSurfaceHoverBrush" Color="{StaticResource EgSurfaceHoverColor}" />
             <SolidColorBrush x:Key="EgBorderBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="EgBorderStrongBrush" Color="{StaticResource EgBorderStrongColor}" />
+            <SolidColorBrush x:Key="EgCardStrokeBrush" Color="Transparent" />
             <SolidColorBrush x:Key="EgTextBrush" Color="{StaticResource EgTextColor}" />
             <SolidColorBrush x:Key="EgTextDimBrush" Color="{StaticResource EgTextDimColor}" />
             <SolidColorBrush x:Key="EgTextFaintBrush" Color="{StaticResource EgTextFaintColor}" />
@@ -103,6 +101,8 @@
             <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
             <StaticResource x:Key="EgMediaCaptionForegroundBrush" ResourceKey="EgOnScrimBrush" />
             <StaticResource x:Key="EgMediaCaptionSecondaryBrush" ResourceKey="EgOnScrimDimBrush" />
+            <!-- 商店（简洁）模式按钮固定面色基底：深色主题叠白色高透明，浅色主题叠黑色半透明。 -->
+            <SolidColorBrush x:Key="EgStoreControlBrush" Color="White" />
 
             <!-- 详情页正文那几块玻璃 —— 「把下面的板块也坐上亚克力效果」。
                  这支亚克力要的就是「透出背后那张图，但透得看不清」，而它
@@ -437,6 +437,7 @@
             <SolidColorBrush x:Key="EgSurfaceHoverBrush" Color="{StaticResource EgSurfaceHoverColor}" />
             <SolidColorBrush x:Key="EgBorderBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="EgBorderStrongBrush" Color="{StaticResource EgBorderStrongColor}" />
+            <SolidColorBrush x:Key="EgCardStrokeBrush" Color="Transparent" />
             <SolidColorBrush x:Key="EgTextBrush" Color="{StaticResource EgTextColor}" />
             <SolidColorBrush x:Key="EgTextDimBrush" Color="{StaticResource EgTextDimColor}" />
             <SolidColorBrush x:Key="EgTextFaintBrush" Color="{StaticResource EgTextFaintColor}" />
@@ -454,6 +455,8 @@
             <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
             <StaticResource x:Key="EgMediaCaptionForegroundBrush" ResourceKey="EgOnScrimBrush" />
             <StaticResource x:Key="EgMediaCaptionSecondaryBrush" ResourceKey="EgOnScrimDimBrush" />
+            <!-- 商店（简洁）模式按钮固定面色基底：深色主题叠白色高透明，浅色主题叠黑色半透明。 -->
+            <SolidColorBrush x:Key="EgStoreControlBrush" Color="Black" />
 
             <!-- 同上，浓一档，而且这一档不跟着 Default 那份松：这一边的字是深色的，背后透上来的剧照是亮的，
                  一成半的画面就够把 #64676B 那档说明字吃掉 —— 深色那边是亮画面把玻璃抬高、暗字更难读，浅色
@@ -573,7 +576,7 @@
             <!-- 同 Dark 那颗：侧边栏自己那层更实的面色，和内容画布拉开一档。 -->
             <SolidColorBrush x:Key="EgSidebarBrush" Color="#D9FFFFFF" />
             <SolidColorBrush x:Key="EgDetailContentLayerBrush" Color="{ThemeResource LayerFillColorDefault}" />
-            <!-- 同 Dark 那份的卡片玻璃：浅色这边 tint 取白面（原来的卡面），浓度 0.8。 -->
+            <!-- 同 Dark 那份的卡片玻璃：浅色这边 tint 取 SurfaceAlt，浓度 0.45 / 0.65。 -->
             <AcrylicBrush
                 x:Key="CardBackgroundFillColorDefaultBrush"
                 FallbackColor="{StaticResource EgSurfaceAltColor}"
@@ -662,12 +665,14 @@
             <SolidColorBrush x:Key="EgCanvasBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSidebarBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgDetailContentLayerBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceAltBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceElevatedBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgBorderStrongBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgCardStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgTextDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgTextFaintBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
@@ -702,6 +707,7 @@
             <SolidColorBrush x:Key="EgFieldFillBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgStoreControlBrush" Color="{ThemeResource SystemColorWindowColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 

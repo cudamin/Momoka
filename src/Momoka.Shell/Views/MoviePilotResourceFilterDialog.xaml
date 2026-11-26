@@ -46,10 +46,23 @@
                                 Background="{ThemeResource ControlFillColorTransparentBrush}" BorderThickness="0"
                                 Foreground="{ThemeResource EgAccentBrush}" Padding="7,2" MinHeight="26" VerticalAlignment="Center">
                                 <Button.Resources>
-                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
-                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
-                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast" />
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </Button.Resources>
                             </Button>
                             <Button x:Uid="MoviePilotResourceFilterDialog_ClearGroup" x:Name="ClearGroup" Grid.Column="3" Content="清除"
@@ -58,10 +71,23 @@
                                 Background="{ThemeResource ControlFillColorTransparentBrush}" BorderThickness="0"
                                 Foreground="{ThemeResource EgDangerBrush}" Padding="7,2" MinHeight="26" VerticalAlignment="Center">
                                 <Button.Resources>
-                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
-                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgDangerBrush" />
-                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgDangerBrush" />
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgDangerBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgDangerBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgDangerBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgDangerBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast" />
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </Button.Resources>
                             </Button>
                         </Grid>
@@ -90,10 +116,23 @@
                 Background="{ThemeResource ControlFillColorTransparentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource EgDangerBrush}">
                 <Button.Resources>
-                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
-                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgDangerBrush" />
-                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgDangerBrush" />
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgDangerBrush" />
+                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgDangerBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgDangerBrush" />
+                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgDangerBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast" />
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
                 </Button.Resources>
             </Button>
         </Grid>

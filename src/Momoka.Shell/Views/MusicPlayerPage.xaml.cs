@@ -10,6 +10,8 @@ using Momoka.Infrastructure;
 using Momoka.Music;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Windowing;
+using Momoka.Theming;
+using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
@@ -19,6 +21,7 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed partial class MusicPlayerPage : UserControl
 {
+    private readonly AccessibilitySettings _accessibility = new();
     private readonly Dictionary<string, Geometry> _iconGeometry = [];
     private HostWindow? _window;
     private SurfaceMotion? _motion;
@@ -36,6 +39,32 @@ public sealed partial class MusicPlayerPage : UserControl
         // 用户自己拨歌词时先别抢回滚动位；下一次换句时再看这 8 秒有没有过去。
         LyricsList.AddHandler(PointerWheelChangedEvent,
             new PointerEventHandler((_, _) => _lyricsPauseUntil = Environment.TickCount64 + 8000), true);
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs args)
+    {
+        ThemeHost.Changed -= OnThemeChanged;
+        ThemeHost.Changed += OnThemeChanged;
+        ApplySurfaceAppearance();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs args) => ThemeHost.Changed -= OnThemeChanged;
+
+    private void OnThemeChanged(UiTheme _) => ApplySurfaceAppearance();
+
+    private void ApplySurfaceAppearance()
+    {
+        var contrast = _accessibility.HighContrast;
+        RequestedTheme = contrast ? ElementTheme.Default : ElementTheme.Dark;
+        Ambient.Visibility = contrast ? Visibility.Collapsed : Visibility.Visible;
+        if (Resources is ResourceDictionary root
+            && root.ThemeDictionaries.TryGetValue("Dark", out var darkEntry)
+            && darkEntry is ResourceDictionary dark
+            && dark.TryGetValue("MusicPageGlassBrush", out var brush)
+            && brush is AcrylicBrush glass)
+            glass.AlwaysUseFallback = !ThemeHost.TransparencyEnabled;
     }
 
     public MusicPlaybackViewModel ViewModel { get; private set; } = null!;

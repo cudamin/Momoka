@@ -210,7 +210,7 @@ internal static class SelfCheckLayoutRulesTests
             Assert.Contains("var bareFrame = !Rings(EpisodePanel);", detail);
             Assert.Contains("panel.Background is SolidColorBrush { Color.A: > 0 }", detail);
             Assert.Contains("ok &= order && below && bareFrame;", detail);
-            Assert.Contains("<Thickness x:Key=\"EgCardBorderThickness\">0</Thickness>", style);
+            Assert.Contains("<Thickness x:Key=\"EgCardBorderThickness\">1</Thickness>", style);
             foreach (var name in new[] { "媒体库七种视图的布局", "视频输出包含 HDR 与着色器", "集页首屏（文件页）" })
                 Assert.Contains("通过  " + name, baseline);
         });

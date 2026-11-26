@@ -57,7 +57,7 @@
         <DataTemplate x:Key="AccountTemplate" x:DataType="vm:AccountRow">
             <Border Tag="{x:Bind}"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderBrush="{ThemeResource EgCardStrokeBrush}"
                 BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Margin="0,0,0,10"
@@ -210,7 +210,7 @@
                     Unloaded="OnAccountListUnloaded" />
                 <!-- 空服务器仍有登录、删除入口；没有账号时不伪造一张账号卡。 -->
                 <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource EgBorderBrush}"
+                    BorderBrush="{ThemeResource EgCardStrokeBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}"
                     CornerRadius="{StaticResource EgCardCornerRadius}"
                     Margin="0,0,0,10" Padding="16,12" Visibility="{x:Bind EmptyVisibility}">
@@ -285,7 +285,7 @@
             AutomationProperties.AutomationId="ServersAggregateCard"
             Grid.Row="1"
             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderBrush="{ThemeResource EgCardStrokeBrush}"
             BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="10,8">
@@ -474,7 +474,7 @@
 
         <ScrollView Grid.Row="4" Margin="0,0,-32,0" VerticalScrollBarVisibility="Auto">
             <StackPanel Padding="{StaticResource EgScrollBarLane}">
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgCardStrokeBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="400">

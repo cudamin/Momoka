@@ -13,10 +13,20 @@ internal static class NeutralFeedbackTests
         {
             var search = View("LibraryPage.xaml").Descendants().Single(element => Name(element) == "SearchInput");
             var resources = search.Elements().Single(element => element.Name.LocalName == "AutoSuggestBox.Resources");
-            Assert.Equal("EgBorderBrush", resources.Elements().Single(element =>
-                element.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused").Attribute("ResourceKey")?.Value);
-            Assert.Equal("1", resources.Elements().Single(element =>
-                element.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused").Value);
+            var presentation = resources.Name.Namespace;
+            var themes = resources.Element(presentation + "ResourceDictionary")!
+                .Element(presentation + "ResourceDictionary.ThemeDictionaries")!;
+            foreach (var key in new[] { "Dark", "Light" })
+            {
+                var dict = themes.Elements(presentation + "ResourceDictionary")
+                    .Single(element => element.Attribute(Xaml + "Key")?.Value == key);
+                Assert.Equal("EgBorderBrush", dict.Elements().Single(element =>
+                    element.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused").Attribute("ResourceKey")?.Value);
+                Assert.Equal("1", dict.Elements().Single(element =>
+                    element.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused").Value);
+            }
+            Assert.NotNull(themes.Elements(presentation + "ResourceDictionary")
+                .SingleOrDefault(element => element.Attribute(Xaml + "Key")?.Value == "HighContrast"));
             Assert.Equal("OnSearchSubmitted", search.Attribute("QuerySubmitted")?.Value);
             Assert.Equal("OnSearchTextChanged", search.Attribute("TextChanged")?.Value);
             var palette = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Palette.xaml"));
@@ -108,6 +118,9 @@ internal static class NeutralFeedbackTests
             var card = View("PosterCard.xaml");
             var button = card.Descendants().Single(element => Name(element) == "PlayButton");
             var resources = button.Elements().Single(element => element.Name.LocalName == "Button.Resources");
+            var presentation = resources.Name.Namespace;
+            var themes = resources.Element(presentation + "ResourceDictionary")!
+                .Element(presentation + "ResourceDictionary.ThemeDictionaries")!;
             var expected = new Dictionary<string, string>
             {
                 ["ButtonBackgroundPointerOver"] = "EgPlayGlassHoverBrush",
@@ -115,10 +128,17 @@ internal static class NeutralFeedbackTests
                 ["ButtonForegroundPointerOver"] = "EgTextOnAccentBrush",
                 ["ButtonForegroundPressed"] = "EgTextOnAccentBrush"
             };
-            Assert.Equal(expected.Count, resources.Elements().Count());
-            foreach (var (key, role) in expected)
-                Assert.Equal(role, resources.Elements().Single(element =>
-                    element.Attribute(Xaml + "Key")?.Value == key).Attribute("ResourceKey")?.Value);
+            foreach (var themeKey in new[] { "Dark", "Light" })
+            {
+                var dict = themes.Elements(presentation + "ResourceDictionary")
+                    .Single(element => element.Attribute(Xaml + "Key")?.Value == themeKey);
+                Assert.Equal(expected.Count, dict.Elements().Count());
+                foreach (var (key, role) in expected)
+                    Assert.Equal(role, dict.Elements().Single(element =>
+                        element.Attribute(Xaml + "Key")?.Value == key).Attribute("ResourceKey")?.Value);
+            }
+            Assert.NotNull(themes.Elements(presentation + "ResourceDictionary")
+                .SingleOrDefault(element => element.Attribute(Xaml + "Key")?.Value == "HighContrast"));
             Assert.False(card.Descendants().Any(element => Name(element) == "Hover"
                 && element.Attribute("Background")?.Value?.Contains("Accent", StringComparison.Ordinal) == true));
         });

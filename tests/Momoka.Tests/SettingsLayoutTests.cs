@@ -74,7 +74,7 @@ internal static class SettingsLayoutTests
             var panel = list.Descendants().Single(element => element.Name.LocalName == "StackPanel");
             Assert.Equal("0", panel.Attribute("Spacing")?.Value);
             Assert.True(panel.Attribute("Background") is null, "不得用底色和 1px 缝重新制造选项分隔线");
-            Assert.Equal("0", list.Parent?.Attribute("BorderThickness")?.Value);
+            Assert.Equal("{StaticResource EgCardBorderThickness}", list.Parent?.Attribute("BorderThickness")?.Value);
         });
         TestHarness.Test("设置材质：窗口不铺共用底，每张设置卡只用一层 Fluent 填充", () =>
         {

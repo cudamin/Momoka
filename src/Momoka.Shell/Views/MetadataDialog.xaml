@@ -14,11 +14,23 @@
     DefaultButton="Primary">
 
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
-        <!-- Wide enough for a two-column form; the default 548 puts 类型 and 标签 on top of each
-             other and turns 简介 into a slot. -->
-        <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+        <ResourceDictionary>
+            <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- Wide enough for a two-column form; the default 548 puts 类型 and 标签 on top of each
+                 other and turns 简介 into a slot. -->
+            <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+        </ResourceDictionary>
     </ContentDialog.Resources>
 
     <ScrollViewer

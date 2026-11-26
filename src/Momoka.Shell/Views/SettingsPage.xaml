@@ -171,10 +171,23 @@
                 Style="{StaticResource EgSwatchStyle}"
                 ToolTipService.ToolTip="{x:Bind DisplayNote}">
                 <Button.Resources>
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
-                    <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
-                    <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast" />
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
                 </Button.Resources>
                 <Grid Background="{x:Bind Window}">
                     <Grid.RowDefinitions>
@@ -952,7 +965,7 @@
                                 Tag="{x:Bind}"
                                 Loaded="OnColorSwatchLoaded"
                                 Background="{x:Bind Swatch, Mode=OneWay}"
-                                BorderBrush="{StaticResource EgBorderBrush}"
+                                BorderBrush="{ThemeResource EgBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="4"
                                 Height="30"
@@ -1824,8 +1837,8 @@
                                             AutomationProperties.HeadingLevel="Level2" />
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="0"
+                                            BorderBrush="{ThemeResource EgCardStrokeBrush}"
+                                            BorderThickness="{StaticResource EgCardBorderThickness}"
                                             CornerRadius="12"
                                             Padding="6">
                                             <ItemsControl x:Name="SettingsRowsList" Tag="{x:Bind}"

@@ -74,27 +74,57 @@
                                  收起是组合框的底与边，悬停／按下跟
                                  组合框一样，展开时描边换成强调色。 -->
                             <ToggleButton.Resources>
-                                <StaticResource x:Key="ToggleButtonBackground" ResourceKey="ComboBoxBackground" />
-                                <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="ComboBoxBackgroundPressed" />
-                                <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ComboBoxBackground" />
-                                <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ComboBoxBackgroundPressed" />
-                                <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="ComboBoxBackgroundDisabled" />
-                                <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
-                                <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
-                                <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="ComboBoxForegroundPressed" />
-                                <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ComboBoxForeground" />
-                                <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ComboBoxForegroundPressed" />
-                                <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="ComboBoxForegroundDisabled" />
+                                <ResourceDictionary>
+                                    <ResourceDictionary.ThemeDictionaries>
+                                        <ResourceDictionary x:Key="Dark">
+                                            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="ComboBoxBackgroundDisabled" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
+                                            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="ComboBoxForegroundDisabled" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="Light">
+                                            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="ComboBoxBackgroundDisabled" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
+                                            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="ComboBoxForegroundDisabled" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="HighContrast" />
+                                    </ResourceDictionary.ThemeDictionaries>
+                                </ResourceDictionary>
                             </ToggleButton.Resources>
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="38" /></Grid.ColumnDefinitions>
@@ -115,12 +145,25 @@
                             Margin="0,2,0,0" Padding="0,4" Background="Transparent"
                             BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgSearchCornerRadius}">
                             <Border.Resources>
-                                <!-- 框架给复选框的四条行底都是透明，悬停只有那只 20 的小方块会亮；就地钉成
-                                     ComboBoxItem 用的那对细分底色，悬停时整行才有一块高亮。 -->
-                                <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
-                                <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
-                                <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
-                                <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                <ResourceDictionary>
+                                    <!-- 框架给复选框的四条行底都是透明，悬停只有那只 20 的小方块会亮；就地钉成
+                                         ComboBoxItem 用的那对细分底色，悬停时整行才有一块高亮。 -->
+                                    <ResourceDictionary.ThemeDictionaries>
+                                        <ResourceDictionary x:Key="Dark">
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="Light">
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="HighContrast" />
+                                    </ResourceDictionary.ThemeDictionaries>
+                                </ResourceDictionary>
                             </Border.Resources>
                             <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.Sites, Mode=OneWay}" ItemTemplate="{StaticResource EditorSiteOptionTemplate}">
@@ -161,27 +204,57 @@
                             IsChecked="{x:Bind ViewModel.FilterGroupsExpanded, Mode=TwoWay}"
                             AutomationProperties.Name="优先级规则组" AutomationProperties.HelpText="展开或收起规则组列表">
                             <ToggleButton.Resources>
-                                <StaticResource x:Key="ToggleButtonBackground" ResourceKey="ComboBoxBackground" />
-                                <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="ComboBoxBackgroundPressed" />
-                                <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ComboBoxBackground" />
-                                <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ComboBoxBackgroundPressed" />
-                                <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="ComboBoxBackgroundDisabled" />
-                                <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
-                                <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
-                                <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
-                                <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="ComboBoxForegroundPressed" />
-                                <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ComboBoxForeground" />
-                                <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
-                                <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ComboBoxForegroundPressed" />
-                                <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="ComboBoxForegroundDisabled" />
+                                <ResourceDictionary>
+                                    <ResourceDictionary.ThemeDictionaries>
+                                        <ResourceDictionary x:Key="Dark">
+                                            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="ComboBoxBackgroundDisabled" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
+                                            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="ComboBoxForegroundDisabled" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="Light">
+                                            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ComboBoxBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ComboBoxBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ComboBoxBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="ComboBoxBackgroundDisabled" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
+                                            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ComboBoxForeground" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ComboBoxForegroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="ComboBoxForegroundDisabled" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="HighContrast" />
+                                    </ResourceDictionary.ThemeDictionaries>
+                                </ResourceDictionary>
                             </ToggleButton.Resources>
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="38" /></Grid.ColumnDefinitions>
@@ -202,10 +275,23 @@
                             Margin="0,2,0,0" Padding="0,4" Background="Transparent"
                             BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgSearchCornerRadius}">
                             <Border.Resources>
-                                <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
-                                <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
-                                <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
-                                <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                <ResourceDictionary>
+                                    <ResourceDictionary.ThemeDictionaries>
+                                        <ResourceDictionary x:Key="Dark">
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="Light">
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPointerOver" Color="{ThemeResource SubtleFillColorSecondary}" />
+                                            <SolidColorBrush x:Key="CheckBoxBackgroundCheckedPressed" Color="{ThemeResource SubtleFillColorTertiary}" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="HighContrast" />
+                                    </ResourceDictionary.ThemeDictionaries>
+                                </ResourceDictionary>
                             </Border.Resources>
                             <StackPanel>
                                 <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">

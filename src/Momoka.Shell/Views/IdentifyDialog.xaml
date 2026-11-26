@@ -20,10 +20,22 @@
     DefaultButton="Primary">
 
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
-        <!-- 比默认的 548 宽一档：一屏结果要排得下三张海报，标识符那几格也不至于挤成一列。 -->
-        <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+        <ResourceDictionary>
+            <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- 比默认的 548 宽一档：一屏结果要排得下三张海报，标识符那几格也不至于挤成一列。 -->
+            <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+        </ResourceDictionary>
     </ContentDialog.Resources>
 
     <Grid RowSpacing="{StaticResource EgSpaceL}">

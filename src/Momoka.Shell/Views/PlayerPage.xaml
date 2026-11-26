@@ -713,6 +713,7 @@
                                         <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="PlayerGlassTopBrush" />
                                         <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="PlayerGlassTopBrush" />
                                     </ResourceDictionary>
+                                    <ResourceDictionary x:Key="HighContrast" />
                                 </ResourceDictionary.ThemeDictionaries>
                             </ResourceDictionary>
                         </TextBox.Resources>
@@ -1010,10 +1011,30 @@
             AutomationProperties.Name="{x:Bind ViewModel.SkipCaption, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.SkipVisibility, Mode=OneWay}">
             <Button.Resources>
-                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerSkipHoverBrush" />
-                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerSkipPressedBrush" />
-                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="PlayerEdgeStrongBrush" />
-                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="PlayerEdgeStrongBrush" />
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerSkipHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerSkipPressedBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="PlayerEdgeStrongBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="PlayerEdgeStrongBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerSkipHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerSkipPressedBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="PlayerEdgeStrongBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="PlayerEdgeStrongBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerSkipHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerSkipPressedBrush" />
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="PlayerStripHoverInkBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="PlayerEdgeStrongBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="PlayerEdgeStrongBrush" />
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
             </Button.Resources>
             <StackPanel x:Name="SkipRow" Orientation="Horizontal" Spacing="7.5">
                 <FontIcon x:Name="SkipGlyph" Glyph="&#xE893;" FontSize="{StaticResource PlayerSkipGlyphFontSize}"

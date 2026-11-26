@@ -173,13 +173,22 @@ internal static class InputControlThemeTests
                 var panel = page.Descendants(Xaml + "StackPanel")
                     .Single(element => (string?)element.Attribute(X + "Name") == name);
                 var resources = panel.Element(Xaml + "StackPanel.Resources")!;
-                foreach (var key in ComboBackgroundKeys)
+                var themes = resources.Element(Xaml + "ResourceDictionary")!
+                    .Element(Xaml + "ResourceDictionary.ThemeDictionaries")!;
+                foreach (var themeKey in new[] { "Dark", "Light" })
                 {
-                    var state = key["ComboBoxBackground".Length..];
-                    var target = "ButtonBackground" + (state is "Focused" or "Unfocused" ? "" : state);
-                    AssertAlias(resources, key, target);
+                    var dict = themes.Elements(Xaml + "ResourceDictionary")
+                        .Single(element => (string?)element.Attribute(X + "Key") == themeKey);
+                    foreach (var key in ComboBackgroundKeys)
+                    {
+                        var state = key["ComboBoxBackground".Length..];
+                        var target = "ButtonBackground" + (state is "Focused" or "Unfocused" ? "" : state);
+                        AssertAlias(dict, key, target);
+                    }
                 }
-                Assert.False(resources.Elements().Any(element =>
+                Assert.NotNull(themes.Elements(Xaml + "ResourceDictionary")
+                    .SingleOrDefault(element => (string?)element.Attribute(X + "Key") == "HighContrast"));
+                Assert.False(resources.Descendants().Any(element =>
                     (string?)element.Attribute(X + "Key") == "ComboBoxDropDownBackground"), "弹层背景被局部覆盖");
                 var pickers = panel.Descendants().Where(element => element.Name.LocalName == "EgPicker").ToArray();
                 Assert.Equal(3, pickers.Length, name + " 的文件选项范围变了");
@@ -520,8 +529,12 @@ internal static class InputControlThemeTests
             Assert.Equal("{StaticResource EditorSitePicker}", (string?)field.Attribute("Style"));
             Assert.Equal("{x:Bind ViewModel.SitesExpanded, Mode=TwoWay}", (string?)field.Attribute("IsChecked"));
             Assert.Equal("订阅站点", (string?)field.Attribute("AutomationProperties.Name"));
-            // 三态颜色接 ComboBox 的键：收起是组合框的底与边，展开时描边接强调色。
-            var fieldResources = field.Element(Xaml + "ToggleButton.Resources")!;
+            // 三态颜色接 ComboBox 的键：收起是组合框的底与边，展开时描边接强调色，并按 ThemeDictionaries 解析。
+            var fieldResources = field.Element(Xaml + "ToggleButton.Resources")!
+                .Element(Xaml + "ResourceDictionary")!
+                .Element(Xaml + "ResourceDictionary.ThemeDictionaries")!
+                .Elements(Xaml + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(X + "Key") == "Dark");
             var keys = fieldResources.Elements()
                 .Select(brush => (string?)brush.Attribute(X + "Key")).ToHashSet();
             foreach (var key in new[] { "ToggleButtonBorderBrushChecked", "ToggleButtonBackgroundChecked",
@@ -530,7 +543,11 @@ internal static class InputControlThemeTests
             foreach (var pickerName in new[] { "SubscriptionSitesInput", "FilterGroupsInput" })
                 foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed" })
                 {
-                    var local = Named(editor, pickerName).Element(Xaml + "ToggleButton.Resources")!;
+                    var local = Named(editor, pickerName).Element(Xaml + "ToggleButton.Resources")!
+                        .Element(Xaml + "ResourceDictionary")!
+                        .Element(Xaml + "ResourceDictionary.ThemeDictionaries")!
+                        .Elements(Xaml + "ResourceDictionary")
+                        .Single(element => (string?)element.Attribute(X + "Key") == "Dark");
                     var checkedBorder = local.Elements().Single(brush =>
                         (string?)brush.Attribute(X + "Key") == "ToggleButtonBorderBrush" + state);
                     Assert.Equal(Xaml + "StaticResource", checkedBorder.Name);

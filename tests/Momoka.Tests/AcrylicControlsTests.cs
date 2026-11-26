@@ -420,7 +420,12 @@ internal static class AcrylicControlsTests
             Assert.Equal("32", (string?)storeSwitchScale.Attribute("Height"));
             Assert.Equal("Uniform", (string?)storeSwitchScale.Attribute("Stretch"));
             var switchAliases = storeSwitch.Elements()
-                .Single(element => element.Name.LocalName == "ToggleSwitch.Resources").Elements().ToArray();
+                .Single(element => element.Name.LocalName == "ToggleSwitch.Resources")
+                .Element(Xaml + "ResourceDictionary")!
+                .Element(Xaml + "ResourceDictionary.ThemeDictionaries")!
+                .Elements(Xaml + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(X + "Key") == "Dark")
+                .Elements().ToArray();
             var neutralResources = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["ToggleSwitchFillOn"] = "EgTextDimBrush",
@@ -541,7 +546,7 @@ internal static class AcrylicControlsTests
             foreach (var card in cards)
             {
                 Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", (string?)card.Attribute("Background"));
-                Assert.Equal("{ThemeResource EgBorderBrush}", (string?)card.Attribute("BorderBrush"));
+                Assert.Equal("{ThemeResource EgCardStrokeBrush}", (string?)card.Attribute("BorderBrush"));
                 Assert.Equal("{StaticResource EgCardBorderThickness}", (string?)card.Attribute("BorderThickness"));
                 Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)card.Attribute("CornerRadius"));
             }

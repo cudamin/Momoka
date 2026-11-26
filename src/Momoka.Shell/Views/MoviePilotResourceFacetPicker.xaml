@@ -28,15 +28,31 @@
         BorderThickness="0" AutomationProperties.Name="{x:Bind Facet.Summary, Mode=OneWay}"
         Visibility="{x:Bind Facet.Visibility, Mode=OneWay}">
         <DropDownButton.Resources>
-            <!-- 框架模板的悬停/按下会切到 ButtonBackgroundPointerOver 等浅色默认槽；不钉住这里，
-                 鼠标一过按钮底色变浅、图标字色跟着 ContentPresenter 换掉，看起来像丢了颜色。 -->
-            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
-            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="DropDownButtonForegroundSecondary" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="DropDownButtonForegroundSecondaryPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="DropDownButtonForegroundSecondaryPressed" ResourceKey="EgAccentBrush" />
+            <ResourceDictionary>
+                <ResourceDictionary.ThemeDictionaries>
+                    <!-- 框架模板的悬停/按下会切到 ButtonBackgroundPointerOver 等浅色默认槽；不钉住这里，
+                         鼠标一过按钮底色变浅、图标字色跟着 ContentPresenter 换掉，看起来像丢了颜色。 -->
+                    <ResourceDictionary x:Key="Dark">
+                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                        <StaticResource x:Key="DropDownButtonForegroundSecondary" ResourceKey="EgAccentBrush" />
+                        <StaticResource x:Key="DropDownButtonForegroundSecondaryPointerOver" ResourceKey="EgAccentHoverBrush" />
+                        <StaticResource x:Key="DropDownButtonForegroundSecondaryPressed" ResourceKey="EgAccentBrush" />
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Light">
+                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                        <StaticResource x:Key="DropDownButtonForegroundSecondary" ResourceKey="EgAccentBrush" />
+                        <StaticResource x:Key="DropDownButtonForegroundSecondaryPointerOver" ResourceKey="EgAccentHoverBrush" />
+                        <StaticResource x:Key="DropDownButtonForegroundSecondaryPressed" ResourceKey="EgAccentBrush" />
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="HighContrast" />
+                </ResourceDictionary.ThemeDictionaries>
+            </ResourceDictionary>
         </DropDownButton.Resources>
         <StackPanel Orientation="Horizontal" Spacing="6">
             <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="{x:Bind Facet.Glyph, Mode=OneWay}"

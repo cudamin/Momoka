@@ -60,8 +60,8 @@ internal sealed partial class HostWindow : IDisposable
     private const string Category = "窗口";
     private const string ClassName = "MomokaHost";
 
-    /// <summary>Matches <c>Palette.Window</c> (#16181C) as a COLORREF, which is 0x00BBGGRR.</summary>
-    private const uint BaseColorRef = 0x001C1816;
+    /// <summary>Matches <c>UiThemes.Default.Colors.Window</c> (#0C1116) as a COLORREF, which is 0x00BBGGRR.</summary>
+    private const uint BaseColorRef = 0x0016110C;
 
     private const int DefaultHeight = 800;
 
@@ -2513,19 +2513,32 @@ internal sealed partial class HostWindow : IDisposable
     /// <see cref="LeaveFullscreen"/>），回到窗口化时圆角照旧。
     /// </para>
     /// </summary>
+    private IntPtr _eraseBrush;
+    private uint _eraseColorRef = BaseColorRef;
+
+    private IntPtr CurrentEraseBrush => _eraseBrush != IntPtr.Zero ? _eraseBrush : BaseBrush;
+
+    private void UpdateEraseBrush(CaptionAppearance.SystemPalette system)
+    {
+        var color = system.HighContrast ? system.Background : ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
+        var colorRef = CaptionAppearance.ToColorRef(color);
+        if (colorRef == _eraseColorRef && _eraseBrush != IntPtr.Zero) return;
+
+        var created = Native.CreateSolidBrush(colorRef);
+        if (created == IntPtr.Zero) return;
+
+        var previous = _eraseBrush;
+        _eraseBrush = created;
+        _eraseColorRef = colorRef;
+        if (previous != IntPtr.Zero) Native.DeleteObject(previous);
+    }
+
     private void ApplyWindowsChrome()
     {
-        var dark = ThemeHost.Current.IsDark ? 1 : 0;
-        Native.DwmSetWindowAttribute(Handle, Native.DwmUseImmersiveDarkMode, ref dark, sizeof(int));
-
-        var corners = Fullscreen ? Native.DwmCornerDoNotRound : Native.DwmCornerRound;
-        Native.DwmSetWindowAttribute(Handle, Native.DwmWindowCornerPreference, ref corners, sizeof(int));
-
-        // Ignored with a non-zero HRESULT on Win10, where the attribute does not exist. Nothing to
-        // handle: the caption is then the flat dark fill immersive dark mode already gave it.
-        // 设置页的「透明效果」关掉时，非客户区也不挂 Mica —— 窗口化成一块实心窗口色。
-        var backdrop = ThemeHost.TransparencyEnabled ? Native.DwmBackdropMica : Native.DwmBackdropNone;
-        Native.DwmSetWindowAttribute(Handle, Native.DwmSystemBackdropType, ref backdrop, sizeof(int));
+        var system = CaptionAppearance.ReadSystem();
+        UpdateEraseBrush(system);
+        CaptionAppearance.ApplyDwmChrome(
+            Handle, ThemeHost.Current, _useBackdrop, Fullscreen, system.HighContrast);
     }
 
     /// <summary>
@@ -2625,42 +2638,9 @@ internal sealed partial class HostWindow : IDisposable
     /// </summary>
     private void PaintCaption(AppWindowTitleBar titleBar)
     {
-        var theme = ThemeHost.Current;
-
-        // 压在剧照上时不跟主题走：图顶上那层暗罩是黑的，而浅色主题（晴昼）的墨是深色 —— 深墨画在上面就是
-        // 三颗看不见的按钮，其中一颗是关闭。#F3F5F8 是 Palette.xaml 里 EgOnScrimBrush 那一支，图上所有
-        // 的字用的都是它。
-        var onScrim = _captionOnScrim;
-
-        // 底色透明（2026-11-12 晚「侧边栏和标题栏采用云母 Alt」）：标题栏那一块现在露的是窗口材质，
-        // 铺一个不透明的窗口色会在右上角那三颗按钮底下留一块方角的实底，和左边的材质对不上。
-        // 压在剧照上那一档（详情页沉浸）也不受影响 —— 剧照归页面画，这一层本来就是透明的。
-        titleBar.BackgroundColor = Color.FromArgb(0, 0, 0, 0);
-        titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
-        titleBar.ButtonBackgroundColor = Color.FromArgb(0, 0, 0, 0);
-        titleBar.ButtonForegroundColor = onScrim
-            ? Color.FromArgb(255, 0xF3, 0xF5, 0xF8)
-            : ThemeHost.ToColor(theme.Colors.Text);
-
-        // 悬停和按下那两层跟着底走，不跟着主题走：底是黑的（深色主题，或者压在剧照上）就叠白，反之叠黑。
-        titleBar.ButtonHoverBackgroundColor = theme.IsDark || onScrim
-            ? Color.FromArgb(35, 255, 255, 255)
-            : Color.FromArgb(25, 0, 0, 0);
-        titleBar.ButtonPressedBackgroundColor = theme.IsDark || onScrim
-            ? Color.FromArgb(55, 255, 255, 255)
-            : Color.FromArgb(45, 0, 0, 0);
-
-        // 「点击其他窗口或桌面后会变色」. Every colour above has an Inactive twin, and a twin left
-        // unset does not inherit its active partner — it falls back to the system's own idea of an
-        // inactive caption, which under a light system theme is a pale grey strip across the top
-        // right of a window whose every other pixel is the theme's window colour. The app has one
-        // appearance, so the twins are the same colours: what the window looks like is not a function
-        // of which window the user last clicked. The buttons keep their ink for the same reason —
-        // greyed ones read as disabled, and they are not: clicking close on an inactive window closes it.
-        titleBar.InactiveBackgroundColor = titleBar.BackgroundColor;
-        titleBar.InactiveForegroundColor = titleBar.ForegroundColor;
-        titleBar.ButtonInactiveBackgroundColor = titleBar.ButtonBackgroundColor;
-        titleBar.ButtonInactiveForegroundColor = titleBar.ButtonForegroundColor;
+        CaptionAppearance.PaintTitleBar(
+            titleBar, ThemeHost.Current, CaptionAppearance.ReadSystem(), _captionOnScrim,
+            transparentSurface: true, dimInactive: true);
     }
 
     /// <summary>
@@ -3087,7 +3067,7 @@ internal sealed partial class HostWindow : IDisposable
         try
         {
             var whole = new NativeRect { Left = 0, Top = 0, Right = client.Width, Bottom = client.Height };
-            Native.FillRect(device, ref whole, BaseBrush);
+            Native.FillRect(device, ref whole, CurrentEraseBrush);
         }
         finally
         {
@@ -3145,7 +3125,7 @@ internal sealed partial class HostWindow : IDisposable
                 // dark UI on startup and on every resize. Filling with the base colour is the fix;
                 // the window never gets a WM_PAINT at all, because the island covers it completely.
                 Native.GetClientRect(window, out var erase);
-                Native.FillRect(wParam, ref erase, BaseBrush);
+                Native.FillRect(wParam, ref erase, CurrentEraseBrush);
                 return new IntPtr(1);
 
             case Native.WmSize:
@@ -3198,6 +3178,13 @@ internal sealed partial class HostWindow : IDisposable
                 FocusChanged?.Invoke((wParam.ToInt64() & 0xFFFF) != 0);
                 break;
 
+            case Native.WmSettingChange:
+            case Native.WmThemeChanged:
+                ApplyWindowsChrome();
+                if (_appWindow?.TitleBar is { } changedBar) PaintCaption(changedBar);
+                _backdrop?.ApplyTheme();
+                break;
+
             case Native.WmActivateApp:
                 ApplyFullscreenZOrder(wParam != IntPtr.Zero);
                 break;
@@ -3232,6 +3219,12 @@ internal sealed partial class HostWindow : IDisposable
                 RestoreTray();
                 Windows.Remove(window);
                 Handle = IntPtr.Zero;
+
+                if (_eraseBrush != IntPtr.Zero)
+                {
+                    Native.DeleteObject(_eraseBrush);
+                    _eraseBrush = IntPtr.Zero;
+                }
 
                 // 静态事件，退订在这里：留着的话 ThemeHost 会一直握着一个 HWND 已经是 0 的窗口，
                 // 下一次换主题就是往一个不存在的标题栏上设颜色。

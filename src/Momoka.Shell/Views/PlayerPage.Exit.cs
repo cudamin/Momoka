@@ -158,6 +158,12 @@ public sealed partial class PlayerPage
     /// </summary>
     private void PaintExit()
     {
+        if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
+        {
+            ((SolidColorBrush)Resources["PlayerExitBrush"]).Color =
+                new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Background);
+            return;
+        }
         // 解析不到就保持上一支：这个色号在每一套主题里都是一个「窗口色的近黑」，画错的代价远小于不画 ——
         // 不画的话退场底是全透明的，等于回到了用户截图里那个观感。
         if (Application.Current.Resources["EgWindowBrush"] is not SolidColorBrush reference) return;
@@ -166,10 +172,10 @@ public sealed partial class PlayerPage
     }
 
     /// <summary>
-    /// 换主题时重画一次退场底。挂在与 <c>PaintPalette</c> 同一处（构造函数的同一行序列里），因为两件事
-    /// 的理由是同一个：这几支颜色是画上去的，不是 <c>ThemeResource</c> 求出来的。
+    /// 换主题与透明设置时重画播放器调色板与退场底。挂在与 <c>PaintPalette</c> 同一处，因为这几支
+    /// 颜色是画上去的，不是 <c>ThemeResource</c> 求出来的。
     /// </summary>
-    private void WireExitTheme() => ThemeHost.Changed += _ => PaintExit();
+    private void WireExitTheme() => ThemeHost.Changed += _ => PaintPalette();
 
     /// <summary>
     /// 退场底此刻的颜色，自检读它。<b>故意它不在 <see cref="ProbePalette"/> 那张表里</b>：那张表比的是

@@ -45,7 +45,8 @@
                             <DataTemplate x:DataType="vm:AniBtAnimeRow">
                                 <Button x:Name="OpenAnimeResources" Command="{x:Bind OpenCommand}" AutomationProperties.Name="{x:Bind OpenAutomationName}"
                                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-                                    Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                                    Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
                                     CornerRadius="{StaticResource EgPosterCornerRadius}">
                                     <Grid RowSpacing="7">
                                         <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="82" /></Grid.RowDefinitions>

@@ -396,8 +396,21 @@
                                 <!-- 搜索框聚焦仍用 EgBorderBrush 和 1 DIP 细边，保留输入光标与框架模板。
                                      其他输入框继续沿用全局中性焦点边线，不随这个局部覆盖改变。 -->
                                 <AutoSuggestBox.Resources>
-                                    <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
-                                    <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                                                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                                                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast">
+                                                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                                            </ResourceDictionary>
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </AutoSuggestBox.Resources>
                             </AutoSuggestBox>
                             <local:MoviePilotSitePicker x:Name="SearchSitePicker"
@@ -419,18 +432,37 @@
                                         <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/SegmentedItem/SegmentedItem.xaml" />
                                         <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/Segmented/Segmented.xaml" />
                                     </ResourceDictionary.MergedDictionaries>
-                                    <StaticResource x:Key="ButtonItemBackground" ResourceKey="SubtleFillColorTransparentBrush" />
-                                    <StaticResource x:Key="ButtonItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
-                                    <StaticResource x:Key="ButtonItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-                                    <StaticResource x:Key="ButtonItemBackgroundSelected" ResourceKey="EgAccentSoftBrush" />
-                                    <StaticResource x:Key="ButtonItemBackgroundSelectedPointerOver" ResourceKey="EgAccentSoftBrush" />
-                                    <StaticResource x:Key="ButtonItemBackgroundSelectedPressed" ResourceKey="EgAccentSoftBrush" />
-                                    <StaticResource x:Key="ButtonItemForeground" ResourceKey="EgTextDimBrush" />
-                                    <StaticResource x:Key="ButtonItemForegroundPointerOver" ResourceKey="EgTextBrush" />
-                                    <StaticResource x:Key="ButtonItemForegroundPressed" ResourceKey="EgTextBrush" />
-                                    <StaticResource x:Key="ButtonItemForegroundSelected" ResourceKey="EgAccentBrush" />
-                                    <StaticResource x:Key="ButtonItemForegroundSelectedPointerOver" ResourceKey="EgAccentBrush" />
-                                    <StaticResource x:Key="ButtonItemForegroundSelectedPressed" ResourceKey="EgAccentBrush" />
+                                    <ResourceDictionary.ThemeDictionaries>
+                                        <ResourceDictionary x:Key="Dark">
+                                            <StaticResource x:Key="ButtonItemBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundSelected" ResourceKey="EgAccentSoftBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundSelectedPointerOver" ResourceKey="EgAccentSoftBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundSelectedPressed" ResourceKey="EgAccentSoftBrush" />
+                                            <StaticResource x:Key="ButtonItemForeground" ResourceKey="EgTextDimBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundPointerOver" ResourceKey="EgTextBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundPressed" ResourceKey="EgTextBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundSelected" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundSelectedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundSelectedPressed" ResourceKey="EgAccentBrush" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="Light">
+                                            <StaticResource x:Key="ButtonItemBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundSelected" ResourceKey="EgAccentSoftBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundSelectedPointerOver" ResourceKey="EgAccentSoftBrush" />
+                                            <StaticResource x:Key="ButtonItemBackgroundSelectedPressed" ResourceKey="EgAccentSoftBrush" />
+                                            <StaticResource x:Key="ButtonItemForeground" ResourceKey="EgTextDimBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundPointerOver" ResourceKey="EgTextBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundPressed" ResourceKey="EgTextBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundSelected" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundSelectedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ButtonItemForegroundSelectedPressed" ResourceKey="EgAccentBrush" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="HighContrast" />
+                                    </ResourceDictionary.ThemeDictionaries>
                                 </ResourceDictionary>
                             </local:SearchSourceTabs.Resources>
                             <local:SearchSourceTabs.Style>
@@ -1226,8 +1258,22 @@
                 Padding="0"
                 VerticalAlignment="Stretch">
                 <Button.Resources>
-                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
-                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
                 </Button.Resources>
             </Button>
         </Grid>
@@ -1253,9 +1299,23 @@
                 Padding="0"
                 VerticalAlignment="Stretch">
                 <Button.Resources>
-                    <!-- 三态同一个色：遮罩不是一颗会被按下去的键，它是「面板外面」那片地方。 -->
-                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
-                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <!-- 三态同一个色：遮罩不是一颗会被按下去的键，它是「面板外面」那片地方。 -->
+                            <ResourceDictionary x:Key="Dark">
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
                 </Button.Resources>
             </Button>
         </Grid>

@@ -184,6 +184,16 @@ internal static class Program
             Assert.Equal(1, backdrop.SolidTargetCount); Assert.True(backdrop.NeedsSolidSurface);
             backdrop.Disconnect(target); Assert.Equal(0, backdrop.TargetCount); Assert.Equal(0, ThemeHost.Subscribers);
         });
+        Case("菜单：关闭透明效果时回退实色且不创建controller", () =>
+        {
+            ThemeHost.SetTransparency(false);
+            var backdrop = new DetailMenuBackdrop(); var target = new MaterialTarget();
+            backdrop.Connect(target, new());
+            Assert.Equal(0, MaterialFaults.Controllers.Count); Assert.Equal(1, backdrop.TargetCount);
+            Assert.Equal(1, backdrop.SolidTargetCount); Assert.True(backdrop.NeedsSolidSurface);
+            ThemeHost.SetTransparency(true);
+            backdrop.Disconnect(target); Assert.Equal(0, backdrop.TargetCount); Assert.Equal(0, ThemeHost.Subscribers);
+        });
         foreach (var point in new[] { "framework.GetConfiguration", "acrylic.IsSupported", "acrylic.New", "acrylic.Kind", "acrylic.Tint", "acrylic.Fallback", "acrylic.TintOpacity", "acrylic.Luminosity", "acrylic.SetConfiguration", "acrylic.AddBefore", "acrylic.AddAfter" })
             Case("菜单：初始化故障进入实色并释放controller/" + point, () =>
             {

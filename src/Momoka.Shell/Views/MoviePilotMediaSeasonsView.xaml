@@ -45,19 +45,35 @@
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
                     <Expander x:Name="ExpandMediaSeason" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgCardStrokeBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}"
                         IsExpanded="{x:Bind Expanded, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Title}">
                         <!-- 框架的折叠栏画刷已提前解析，须在此覆盖它实际读取的键，避免默认半透明白叠在深色面板上。 -->
                         <Expander.Resources>
-                            <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="CardBackgroundFillColorDefaultBrush" />
-                            <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="EgBorderBrush" />
-                            <StaticResource x:Key="ExpanderHeaderBorderPointerOverBrush" ResourceKey="EgBorderStrongBrush" />
-                            <StaticResource x:Key="ExpanderHeaderBorderPressedBrush" ResourceKey="EgBorderStrongBrush" />
-                            <StaticResource x:Key="ExpanderHeaderDisabledBorderBrush" ResourceKey="EgBorderBrush" />
-                            <StaticResource x:Key="ExpanderChevronPointerOverBackground" ResourceKey="EgSurfaceHoverBrush" />
-                            <StaticResource x:Key="ExpanderChevronPressedBackground" ResourceKey="EgSurfaceElevatedBrush" />
+                            <ResourceDictionary>
+                                <ResourceDictionary.ThemeDictionaries>
+                                    <ResourceDictionary x:Key="Dark">
+                                        <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="CardBackgroundFillColorDefaultBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="EgBorderBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderBorderPointerOverBrush" ResourceKey="EgBorderStrongBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderBorderPressedBrush" ResourceKey="EgBorderStrongBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderDisabledBorderBrush" ResourceKey="EgBorderBrush" />
+                                        <StaticResource x:Key="ExpanderChevronPointerOverBackground" ResourceKey="EgSurfaceHoverBrush" />
+                                        <StaticResource x:Key="ExpanderChevronPressedBackground" ResourceKey="EgSurfaceElevatedBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="Light">
+                                        <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="CardBackgroundFillColorDefaultBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="EgBorderBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderBorderPointerOverBrush" ResourceKey="EgBorderStrongBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderBorderPressedBrush" ResourceKey="EgBorderStrongBrush" />
+                                        <StaticResource x:Key="ExpanderHeaderDisabledBorderBrush" ResourceKey="EgBorderBrush" />
+                                        <StaticResource x:Key="ExpanderChevronPointerOverBackground" ResourceKey="EgSurfaceHoverBrush" />
+                                        <StaticResource x:Key="ExpanderChevronPressedBackground" ResourceKey="EgSurfaceElevatedBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="HighContrast" />
+                                </ResourceDictionary.ThemeDictionaries>
+                            </ResourceDictionary>
                         </Expander.Resources>
                         <Expander.Header>
                             <Grid ColumnSpacing="8">

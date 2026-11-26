@@ -88,10 +88,23 @@
                     <Button x:Uid="MoviePilotResourceBrowser_FilterExpander" x:Name="FilterExpander" CornerRadius="16"
                         AutomationProperties.Name="综合筛选" Style="{StaticResource EgResourceButtonStyle}" Click="OnAdvancedFilters">
                         <Button.Resources>
-                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
-                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
-                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
-                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                            <ResourceDictionary>
+                                <ResourceDictionary.ThemeDictionaries>
+                                    <ResourceDictionary x:Key="Dark">
+                                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+                                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="Light">
+                                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+                                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="HighContrast" />
+                                </ResourceDictionary.ThemeDictionaries>
+                            </ResourceDictionary>
                         </Button.Resources>
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE71C;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
