@@ -131,18 +131,7 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
             await _gate.WaitAsync(token);
             try
             {
-                return await WithPageAsync(id, async core =>
-                {
-                    EnsureAllowed(stillAllowed, token);
-                    var nonce = Guid.NewGuid().ToString("N");
-                    var prepared = await RunAsync(core, id, _ => DoubanProtocol.PrepareMarkScript(id, completed, nonce), token, nonce);
-                    if (prepared.State == "done") return true;
-                    await EnsurePreparedAsync(core, prepared.State, token);
-                    EnsureAllowed(stillAllowed, token);
-                    var result = await RunAsync(core, id, _ => DoubanProtocol.CommitScript(nonce), token, nonce);
-                    if (result.State != "done") throw Failure();
-                    return true;
-                }, token);
+                return await WithPageAsync(id, core => MarkOnPageAsync(core, id, completed, stillAllowed, token), token);
             }
             finally { _gate.Release(); }
         }, cancellationToken);
@@ -150,28 +139,39 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
     public Task<bool> MarkEpisodeAsync(long id, int episodeNumber, bool completed, Func<bool> stillAllowed, CancellationToken cancellationToken) =>
         OnUiAsync(async token =>
         {
+            if (episodeNumber < 1) throw Failure();
             await _gate.WaitAsync(token);
             try
             {
                 return await WithPageAsync(id, async core =>
                 {
-                    var metadata = await RunAsync(core, id, nonce => DoubanProtocol.PrepareScript(id, nonce), token);
-                    if (metadata.State != "metadata" || string.IsNullOrWhiteSpace(metadata.Title)
-                        || episodeNumber < 1 || metadata.Count is { } count && episodeNumber > count) throw Failure();
-                    var finished = completed && metadata.Count is > 0 && episodeNumber == metadata.Count;
                     EnsureAllowed(stillAllowed, token);
-                    var nonce = Guid.NewGuid().ToString("N");
-                    var prepared = await RunAsync(core, id, _ => DoubanProtocol.PrepareMarkScript(id, finished, nonce), token, nonce);
-                    if (prepared.State == "done") return finished;
-                    await EnsurePreparedAsync(core, prepared.State, token);
-                    EnsureAllowed(stillAllowed, token);
-                    var result = await RunAsync(core, id, _ => DoubanProtocol.CommitScript(nonce), token, nonce);
-                    if (result.State != "done") throw Failure();
-                    return finished;
+                    if (completed)
+                    {
+                        var metadata = await RunAsync(core, id, nonce => DoubanProtocol.PrepareScript(id, nonce), token);
+                        if (metadata.State != "metadata" || string.IsNullOrWhiteSpace(metadata.Title)) throw Failure();
+                        if (metadata.Count != episodeNumber) return false;
+                    }
+                    return await MarkOnPageAsync(core, id, completed, stillAllowed, token);
                 }, token);
             }
             finally { _gate.Release(); }
         }, cancellationToken);
+
+    private static async Task<bool> MarkOnPageAsync(CoreWebView2 core, long id, bool completed, Func<bool> stillAllowed,
+        CancellationToken token)
+    {
+        EnsureAllowed(stillAllowed, token);
+        var nonce = Guid.NewGuid().ToString("N");
+        var prepared = await RunAsync(core, id, _ => DoubanProtocol.PrepareMarkScript(id, completed, nonce), token, nonce);
+        if (prepared.State == "watched") return true;
+        if (prepared.State == "watching") return false;
+        await EnsurePreparedAsync(core, prepared.State, token);
+        EnsureAllowed(stillAllowed, token);
+        var result = await RunAsync(core, id, _ => DoubanProtocol.CommitScript(nonce), token, nonce);
+        if (result.State != "done") throw Failure();
+        return completed;
+    }
 
     private static async Task EnsurePreparedAsync(CoreWebView2 core, string state, CancellationToken token)
     {

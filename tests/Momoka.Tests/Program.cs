@@ -344,6 +344,7 @@ internal static class Program
             ScrobblingServiceTests.Register();
             ScrobblingPlaybackTests.Register();
             ScrobblingBangumiTests.Register();
+            MoviePilotScrobblingTests.Register();
             return TestHarness.Run();
         }
         if (args is ["scrobbling-dom-scripts", var output])
@@ -636,6 +637,7 @@ internal static class Program
         ScrobblingServiceTests.Register();
         ScrobblingPlaybackTests.Register();
         ScrobblingBangumiTests.Register();
+        MoviePilotScrobblingTests.Register();
         R10ReportingTests.Register();
         MediaVersionDiscoveryTests.Register();
         MediaSourceSizeTests.Register();

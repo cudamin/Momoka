@@ -96,7 +96,8 @@ public static class DoubanProtocol
               const form = doc.querySelector('form');
               if (!form) { send({state:'form'}); return; }
               const current = form.querySelector('input[name="interest"]:checked')?.value;
-              if (current === 'collect' || current === interest) { send({state:'done'}); return; }
+              if (current === 'collect') { send({state:'watched'}); return; }
+              if (current === interest) { send({state:'watching'}); return; }
               const choices = [...form.querySelectorAll('input[name="interest"]')];
               if (!choices.some(input => input.value === interest)) { send({state:'form'}); return; }
               const action = new URL(form.getAttribute('action') || '', location.origin);

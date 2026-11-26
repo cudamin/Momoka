@@ -1,3 +1,5 @@
+using Momoka.MoviePilot;
+
 namespace Momoka.Scrobbling;
 
 public enum ScrobblingProvider { Bangumi, Douban }
@@ -10,6 +12,15 @@ public sealed record BangumiEpisode(long Id, int Number);
 public sealed record ScrobblingRecord(DateTimeOffset At, ScrobblingProvider Provider, string Title,
     int? EpisodeNumber, ScrobblingRecordOutcome Outcome, string Detail);
 
+internal interface IScrobblingIdentityLookup
+{
+    string ScrobblingConnectionStamp { get; }
+    bool IsCurrentScrobblingConnection(string stamp);
+    Task<MoviePilotScrobblingMatch?> ResolveScrobblingEpisodeAsync(string title, string? originalTitle,
+        int? year, IReadOnlyDictionary<string, string>? providerIds, int season, int episode,
+        bool includeBangumi, bool includeDouban, CancellationToken cancellationToken, string expectedConnectionStamp);
+}
+
 /// <summary>Douban requests remain inside its trusted WebView session; no cookies cross this boundary.</summary>
 public interface IDoubanScrobblingClient
 {
@@ -20,11 +31,9 @@ public interface IDoubanScrobblingClient
 
     async Task<bool> MarkEpisodeAsync(long id, int episodeNumber, bool completed, Func<bool> stillAllowed, CancellationToken token)
     {
-        var subject = await SubjectAsync(id, token).ConfigureAwait(false);
-        if (episodeNumber < 1 || subject.EpisodeCount is { } count && episodeNumber > count)
-            throw new InvalidOperationException("豆瓣条目集号不匹配");
-        var finished = completed && subject.EpisodeCount is > 0 && episodeNumber == subject.EpisodeCount;
-        await MarkAsync(id, finished, stillAllowed, token).ConfigureAwait(false);
-        return finished;
+        if (episodeNumber < 1) throw new ArgumentOutOfRangeException(nameof(episodeNumber));
+        if (completed && (await SubjectAsync(id, token).ConfigureAwait(false)).EpisodeCount != episodeNumber) return false;
+        await MarkAsync(id, completed, stillAllowed, token).ConfigureAwait(false);
+        return completed;
     }
 }

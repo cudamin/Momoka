@@ -79,7 +79,7 @@ internal static class ShellServices
                         _ => null
                     };
                     if (title is not null) SystemNotification.Show(UiText.Translate(title), UiText.Translate(reason));
-                }));
+                }), identityLookup: provider.GetRequiredService<MoviePilotService>());
         });
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());

@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Momoka.Configuration;
 using Momoka.Emby;
+using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Scrobbling;
 using static Momoka.Tests.TestHarness;
@@ -122,61 +123,199 @@ internal static class ScrobblingServiceTests
             fixture.Refresh();
             var allowed = fixture.Create(ticket);
             await allowed.FinishAsync(null, false);
+            Assert.Equal(0, fixture.Identity.Requests.Count);
+            Assert.Equal(0, fixture.Douban.Marks.Count);
             Assert.Equal(0, fixture.Douban.SubjectReads.Count);
             Assert.Equal(0, fixture.BangumiTransport.Requests.Count);
         });
 
-        Case("打格子服务：唯一标题和年份自动匹配，豆瓣先标记在看", async () =>
+        Case("打格子服务：起播按 MoviePilot 确认的豆瓣作品标记在看", async () =>
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Douban);
-            fixture.Douban.SearchResults = [new(8, "Offline-Series", 2024, null)];
             fixture.Refresh();
-            await fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
+            var recorded = Signal();
+            fixture.Service.Changed += () =>
+            {
+                if (fixture.Service.GetLatestRecord(ScrobblingProvider.Douban)?.Outcome == ScrobblingRecordOutcome.Watching)
+                    recorded.TrySetResult();
+            };
+            var attempt = fixture.Create(fixture.Ticket());
+            attempt.Observe(5, true);
+            try { await recorded.Task.WaitAsync(TimeSpan.FromSeconds(3)); }
+            finally { await attempt.FinishAsync(5, true); }
             Assert.Equal("8:doing", fixture.Douban.Describe());
-            Assert.True(fixture.Douban.Searches.SequenceEqual(["Offline Series"]));
+            Assert.Equal(0, fixture.Douban.Searches.Count);
+            Assert.Equal(0, fixture.Douban.SubjectReads.Count);
+            Assert.Equal("Offline Series", fixture.Identity.Requests.Single().Title);
             Assert.Equal(1, fixture.Playback.Transport.Requests.Count(request => request.Path.EndsWith("/Users/a/Items/series", StringComparison.Ordinal)));
             var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
             Assert.Equal(ScrobblingRecordOutcome.Watching, record.Outcome);
-            Assert.Equal(1, record.EpisodeNumber);
+            Assert.Null(record.EpisodeNumber);
             Assert.DoesNotContain("Bangumi", string.Join(" ", fixture.Service.GetRecords(ScrobblingProvider.Douban).Select(item => item.Detail)));
             Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Count);
         });
 
-        Case("打格子服务：候选歧义、年份冲突或条目集数不匹配时不写入", async () =>
+        Case("打格子服务：多季且本地缺集时，豆瓣在实际起播后记录在看", async () =>
         {
-            foreach (var issue in new[] { "ambiguous", "wrong-year", "wrong-count", "missing-year", "search-failure" })
+            using var fixture = new Fixture
+            {
+                SeasonNumbers = [1, 2],
+                EpisodeSeason = 2,
+                MissingEpisodeNumber = 4,
+                EpisodeCount = 8
+            };
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.SeriesProviderIds["Douban"] = "77";
+            fixture.Douban.SubjectEpisodeCount = null;
+            fixture.Refresh();
+
+            await fixture.Create(fixture.Ticket(8, season: 2)).FinishAsync(5, true);
+
+            var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
+            Assert.Equal(ScrobblingRecordOutcome.Watching, record.Outcome, record.Detail);
+            Assert.Equal("77:doing", fixture.Douban.Describe());
+        });
+
+        Case("打格子服务：豆瓣起播不等季集或 Bangumi，末集复核与 Bangumi 独立", async () =>
+        {
+            using var responses = new StubTransport()
+                .Answer("/login/access-token", """{"access_token":"anonymous-only"}""")
+                .Answer("/dashboard/system", "{}")
+                .Answer("/media/42?", """{"media_source":"themoviedb","media_id":42,"type":"电视剧"}""")
+                .Answer("/tmdb/42/1", """[{"id":700,"show_id":42,"season_number":1,"episode_number":1}]""")
+                .Answer("/media/84?", """{"media_source":"douban","media_id":84,"type":"电视剧","tmdb_id":42,"season":1}""");
+            using var transport = new PendingMoviePilotDetail(responses);
+            using var client = new MoviePilotClient(transport);
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.MoviePilot.Enabled = true;
+            fixture.Settings.MoviePilot.Url = "https://fixture.invalid:3001";
+            fixture.Settings.MoviePilot.Username = "fixture";
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            var credentials = new MoviePilotCredentials(PassthroughSecretProtector.Instance);
+            credentials.SetPassword(fixture.Settings.MoviePilot, "anonymous-only");
+            using var moviePilot = new MoviePilotService(client, credentials, fixture.Settings);
+            Assert.True(await moviePilot.RefreshAvailabilityAsync());
+            fixture.SeriesProviderIds["Tmdb"] = "42";
+            fixture.SeriesProviderIds["Douban"] = "84";
+            fixture.SeriesProviderIds["Bangumi"] = "101";
+            fixture.Douban.SubjectEpisodeCount = 1;
+            var watching = Signal();
+            var watched = Signal();
+            using var service = new ScrobblingService(fixture.Settings, PassthroughSecretProtector.Instance,
+                fixture.Bangumi, fixture.Douban,
+                (provider, outcome, detail) => fixture.Notifications.Enqueue((provider, outcome, detail)), identityLookup: moviePilot);
+            service.Changed += () =>
+            {
+                var outcome = service.GetLatestRecord(ScrobblingProvider.Douban)?.Outcome;
+                if (outcome == ScrobblingRecordOutcome.Watching) watching.TrySetResult();
+                if (outcome == ScrobblingRecordOutcome.Watched) watched.TrySetResult();
+            };
+            var attempt = service.CreateAttempt(fixture.Ticket(), fixture.Scope, Request())!;
+            attempt.Observe(5, true);
+            try
+            {
+                await watching.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(transport.EpisodesEntered.IsCompleted);
+                Assert.False(transport.BangumiEntered.IsCompleted);
+                var finish = attempt.FinishAsync(90, true);
+                await transport.EpisodesEntered.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.Equal("84:doing", fixture.Douban.Describe());
+                transport.ReleaseEpisodes();
+                await transport.BangumiEntered.WaitAsync(TimeSpan.FromSeconds(3));
+                await watched.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(finish.IsCompleted);
+                transport.ReleaseBangumi();
+                await finish;
+            }
+            finally
+            {
+                transport.ReleaseEpisodes();
+                transport.ReleaseBangumi();
+                await attempt.FinishAsync(90, true);
+            }
+
+            Assert.Equal("84:doing,84:done", fixture.Douban.Describe());
+            Assert.Equal(ScrobblingProvider.Bangumi, fixture.Notifications.Single().Provider);
+            Assert.Equal(ScrobblingRecordOutcome.Failed, service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+            Assert.Equal(0, fixture.BangumiTransport.Requests.Count);
+            Assert.Equal(1, fixture.Playback.Transport.Requests.Count(request => request.Path.EndsWith("/Items/series", StringComparison.Ordinal)));
+        });
+
+        Case("打格子服务：豆瓣按已确认作品记在看，单集坐标不完整时不标看过", async () =>
+        {
+            foreach (var issue in new[] { "unknown-number", "unknown-season", "special", "merged", "unknown-tmdb-season-end" })
             {
                 using var fixture = new Fixture();
                 fixture.Enable(ScrobblingProvider.Douban);
-                if (issue == "ambiguous") fixture.Douban.SearchResults =
-                    [new(8, "Offline Series", 2024, null), new(9, "Offline-Series", 2024, null)];
-                else if (issue == "wrong-year") fixture.Douban.SearchResults = [new(8, "Offline Series", 2023, null)];
-                else if (issue == "wrong-count") fixture.Douban.SubjectEpisodeCount = 11;
-                else if (issue == "search-failure") fixture.Douban.SearchFailure = new HttpRequestException("offline fixture failure");
-                else fixture.SeriesYear = null;
+                fixture.Enable(ScrobblingProvider.Bangumi);
+                fixture.SeriesProviderIds["Douban"] = "77";
+                fixture.Douban.SubjectEpisodeCount = 8;
                 fixture.Refresh();
-                await fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
-                Assert.Equal("", fixture.Douban.Describe(), issue);
-                Assert.Equal(issue == "search-failure" ? ScrobblingRecordOutcome.Failed : ScrobblingRecordOutcome.Skipped,
-                    fixture.Service.GetRecords(ScrobblingProvider.Douban).Single().Outcome, issue);
+                var ticket = fixture.Ticket(8, season: issue == "special" ? 0 : 1);
+                if (issue is "unknown-number" or "unknown-season")
+                {
+                    if (issue == "unknown-number") ticket.Item.IndexNumber = null;
+                    else ticket.Item.ParentIndexNumber = null;
+                    fixture.EpisodeDetail = new()
+                    {
+                        Id = ticket.Item.Id,
+                        Type = EmbyItemType.Episode,
+                        SeriesId = ticket.Item.SeriesId,
+                        ParentIndexNumber = ticket.Item.ParentIndexNumber,
+                        IndexNumber = ticket.Item.IndexNumber
+                    };
+                }
+                if (issue == "merged") ticket.Item.IndexNumberEnd = 9;
+                if (issue == "unknown-tmdb-season-end")
+                {
+                    fixture.SeriesProviderIds["Tmdb"] = "123";
+                    fixture.Identity.TmdbSeasonLastEpisode = null;
+                    fixture.Identity.HasTmdbEpisode = false;
+                }
+
+                await fixture.Create(ticket).FinishAsync(90, true);
+
+                Assert.Equal("77:doing", fixture.Douban.Describe(), issue);
+                Assert.Equal(0, fixture.Douban.SubjectReads.Count, issue);
+                var match = fixture.Identity.Requests.Single(request => request.Douban && request.Episode == 0);
+                Assert.Equal(issue is "unknown-season" or "special" ? 0 : 1, match.Season, issue);
+                Assert.False(match.Bangumi, issue);
+                Assert.Equal(issue == "unknown-tmdb-season-end" ? 1 : 0,
+                    fixture.Identity.Requests.Count(request => request.Bangumi), issue);
+                Assert.Equal(issue == "unknown-tmdb-season-end" ? 1 : 0,
+                    fixture.Identity.Requests.Count(request => request.Douban && request.Episode > 0), issue);
+                var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
+                Assert.Equal(ScrobblingRecordOutcome.Watching, record.Outcome, issue);
+                Assert.Null(record.EpisodeNumber);
+                Assert.False(fixture.BangumiTransport.Requests.Any(request => request.Method == "PATCH"), issue);
             }
         });
 
-        Case("打格子服务：优先用媒体库 Douban 编号并在站点核对集数", async () =>
+        Case("打格子服务：未连接、识别不到、识别异常都留记录且不写豆瓣", async () =>
         {
-            using var fixture = new Fixture();
-            fixture.Enable(ScrobblingProvider.Douban);
-            fixture.SeriesProviderIds["Douban"] = "77";
-            fixture.Refresh();
-            await fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
-            Assert.Equal("77:doing", fixture.Douban.Describe());
-            Assert.Equal(0, fixture.Douban.Searches.Count);
+            foreach (var issue in new[] { "disconnected", "no-match", "lookup-error", "wrong-coordinate" })
+            {
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Douban);
+                if (issue == "disconnected") fixture.Identity.Stamp = "";
+                else if (issue == "no-match") fixture.Identity.Reply = (_, _) => Task.FromResult<MoviePilotScrobblingMatch?>(null);
+                else if (issue == "lookup-error") fixture.Identity.Reply = (_, _) => throw new IOException("synthetic-private-error");
+                else fixture.Identity.Reply = (_, _) => Task.FromResult<MoviePilotScrobblingMatch?>(
+                    new(fixture.Identity.Stamp, "themoviedb", "11", 11, 9, 1, 100, null, 8));
+                fixture.Refresh();
 
-            fixture.Douban.SubjectEpisodeCount = 11;
-            fixture.Douban.Marks.Clear();
-            await fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
-            Assert.Equal("", fixture.Douban.Describe());
+                await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+
+                Assert.Equal("", fixture.Douban.Describe(), issue);
+                Assert.Equal(0, fixture.Douban.Searches.Count);
+                var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
+                Assert.Equal(issue == "lookup-error" ? ScrobblingRecordOutcome.Failed : ScrobblingRecordOutcome.Skipped,
+                    record.Outcome, issue);
+                Assert.DoesNotContain("synthetic-private-error", record.Detail);
+            }
         });
 
         Case("打格子服务：连载第八集跳过特别篇，Bangumi 按集标记且豆瓣保持在看", async () =>
@@ -198,50 +337,146 @@ internal static class ScrobblingServiceTests
             var update = fixture.BangumiTransport.Requests.Single(request => request.Key == "PATCH /v0/users/-/collections/101/episodes");
             using var body = JsonDocument.Parse(update.Body);
             Assert.Equal(1008L, body.RootElement.GetProperty("episode_id")[0].GetInt64());
+            fixture.Settings.Scrobbling.Douban.Enabled = false;
+            fixture.Refresh();
             Assert.Null(fixture.Service.CreateAttempt(fixture.Ticket(1, season: 0), fixture.Scope, Request()));
         });
 
-        Case("打格子服务：已完结或状态未知的缺集、连载超出站点总集数均跳过", async () =>
+        Case("打格子服务：实际末集由 MoviePilot 季和豆瓣条目核对，不看本地库存", async () =>
         {
-            foreach (var (status, count) in new (string?, int)[] { ("Ended", 8), (null, 8), ("Continuing", 13) })
+            foreach (var count in new int?[] { null, 7, 8 })
             {
-                using var fixture = new Fixture();
+                using var fixture = new Fixture { EpisodeCount = 4, SeasonNumbers = [1, 2], EpisodeSeason = 2 };
                 fixture.Enable(ScrobblingProvider.Douban);
-                fixture.SeriesStatus = status;
-                fixture.EpisodeCount = count;
+                fixture.SeriesProviderIds["Tmdb"] = "123";
+                fixture.Identity.TmdbSeasonLastEpisode = 8;
+                fixture.Douban.SubjectEpisodeCount = count;
                 fixture.Refresh();
-                await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
-                Assert.Equal(0, fixture.Douban.Marks.Count);
-                var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
-                Assert.Equal(ScrobblingRecordOutcome.Skipped, record.Outcome);
-                Assert.Equal("站点总集数与媒体库不一致，已跳过同步", record.Detail);
+
+                await fixture.Create(fixture.Ticket(8, season: 2)).FinishAsync(90, true);
+
+                Assert.Equal(count == 8 ? "8:doing,8:done" : "8:doing", fixture.Douban.Describe());
+                Assert.Equal(count == 8 ? ScrobblingRecordOutcome.Watched : ScrobblingRecordOutcome.Watching,
+                    fixture.Service.GetLatestRecord(ScrobblingProvider.Douban)!.Outcome);
+                Assert.True(fixture.Service.GetRecords(ScrobblingProvider.Douban).All(record => record.EpisodeNumber is null));
+                Assert.False(fixture.Playback.Transport.Requests.Any(request => request.Path.Contains("/Shows/series/", StringComparison.Ordinal)));
             }
         });
 
-        Case("打格子服务：复杂季度和不连续、合并集号都跳过", async () =>
+        Case("打格子服务：末集核对时豆瓣条目改了，保留起播时的在看状态", async () =>
         {
-            foreach (var issue in new[] { "second-season", "special-season", "missing-number", "merged-episode", "episode-id-mismatch" })
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            fixture.Identity.Reply = (request, _) => Task.FromResult<MoviePilotScrobblingMatch?>(new(
+                fixture.Identity.Stamp, "themoviedb", "123", 123, request.Season, request.Episode,
+                request.Episode == 0 ? null : 999, null, request.Episode == 0 ? 8 : 9, TmdbSeasonLastEpisode: 12));
+            fixture.Refresh();
+
+            await fixture.Create(fixture.Ticket(12)).FinishAsync(90, true);
+
+            Assert.Equal("8:doing", fixture.Douban.Describe());
+            Assert.Equal(0, fixture.Douban.SubjectReads.Count);
+            Assert.Equal(2, fixture.Identity.Requests.Count);
+            Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Notifications.Single().Outcome);
+            Assert.True(fixture.Service.GetRecords(ScrobblingProvider.Douban).Select(record => record.Outcome)
+                .SequenceEqual([ScrobblingRecordOutcome.Skipped, ScrobblingRecordOutcome.Watching]));
+        });
+
+        Case("打格子服务：末集查询故障只通知一次，保留豆瓣在看", async () =>
+        {
+            foreach (var failed in new[] { false, true })
             {
                 using var fixture = new Fixture();
-                fixture.Enable(ScrobblingProvider.Bangumi);
                 fixture.Enable(ScrobblingProvider.Douban);
                 fixture.Settings.Scrobbling.NotifyOnFailure = true;
-                fixture.SeriesStatus = "Continuing";
-                if (issue == "second-season") fixture.SeasonNumbers = [1, 2];
-                if (issue == "special-season") fixture.SeasonNumbers = [0];
-                if (issue == "missing-number") fixture.MissingEpisodeNumber = 3;
-                if (issue == "merged-episode") fixture.MergedEpisodeNumber = 1;
+                fixture.Identity.Reply = (request, _) => Task.FromResult<MoviePilotScrobblingMatch?>(new(
+                    fixture.Identity.Stamp, "themoviedb", "123", 123, request.Season, request.Episode,
+                    null, null, 8, TmdbSeasonLookupFailed: failed && request.Episode > 0));
+                fixture.Refresh();
+
+                await fixture.Create(fixture.Ticket(12)).FinishAsync(90, true);
+
+                Assert.Equal("8:doing", fixture.Douban.Describe());
+                Assert.Equal(0, fixture.Douban.SubjectReads.Count);
+                Assert.Equal(2, fixture.Identity.Requests.Count);
+                var records = fixture.Service.GetRecords(ScrobblingProvider.Douban);
+                Assert.Equal(ScrobblingRecordOutcome.Watching, records.Last().Outcome);
+                Assert.Equal(failed ? 2 : 1, records.Count);
+                if (failed)
+                {
+                    Assert.Equal(ScrobblingRecordOutcome.Failed, records[0].Outcome);
+                    Assert.Equal((ScrobblingProvider.Douban, ScrobblingRecordOutcome.Failed, records[0].Detail), fixture.Notifications.Single());
+                }
+                else Assert.Equal(0, fixture.Notifications.Count);
+            }
+        });
+
+        Case("打格子服务：豆瓣直给的后续季再次核实同一作品和站点公开集数后才标看过", async () =>
+        {
+            foreach (var (lastEpisode, completionId, count) in new (int?, long, int?)[]
+            {
+                (8, 77, 8), (null, 77, 8), (8, 78, 8), (8, 77, 12), (8, 77, null)
+            })
+            {
+                using var fixture = new Fixture { EpisodeCount = 4, SeasonNumbers = [1, 2], EpisodeSeason = 2 };
+                fixture.Enable(ScrobblingProvider.Douban);
+                fixture.SeriesProviderIds["Douban"] = "77";
+                fixture.Douban.SubjectEpisodeCount = count;
+                fixture.Identity.Reply = (request, _) => Task.FromResult<MoviePilotScrobblingMatch?>(new(
+                    fixture.Identity.Stamp, "douban", "77", null, request.Season, request.Episode, null, null,
+                    request.Episode == 0 ? 77 : completionId, DoubanEpisode: request.Episode == 0 ? null : lastEpisode));
+                fixture.Refresh();
+
+                await fixture.Create(fixture.Ticket(8, season: 2)).FinishAsync(90, true);
+
+                Assert.Equal(lastEpisode == 8 && completionId == 77 && count == 8 ? "77:doing,77:done" : "77:doing",
+                    fixture.Douban.Describe());
+                Assert.True(fixture.Identity.Requests.Select(request => (request.Season, request.Episode))
+                    .SequenceEqual([(2, 0), (2, 8)]));
+                Assert.Equal(lastEpisode == 8 && completionId == 77 ? 1 : 0, fixture.Douban.SubjectReads.Count);
+            }
+        });
+
+        Case("打格子服务：豆瓣已经看过时保留看过，末集不重复写入", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Douban.AlreadyWatched = true;
+            fixture.Refresh();
+
+            await fixture.Create(fixture.Ticket(12)).FinishAsync(90, true);
+
+            var record = fixture.Service.GetRecords(ScrobblingProvider.Douban).Single();
+            Assert.Equal(ScrobblingRecordOutcome.Watched, record.Outcome);
+            Assert.Null(record.EpisodeNumber);
+            Assert.Equal(0, fixture.Douban.Marks.Count);
+            Assert.Equal(0, fixture.Douban.SubjectReads.Count);
+        });
+
+        Case("打格子服务：详情补齐父剧再匹配，父剧缺失或集号冲突会记录跳过", async () =>
+        {
+            foreach (var issue in new[] { "ready", "no-data", "wrong-episode" })
+            {
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Douban);
+                fixture.EpisodeDetail = issue switch
+                {
+                    "ready" => new() { Id = "episode-1", Type = EmbyItemType.Episode, SeriesId = "series", ParentIndexNumber = 1, IndexNumber = 1 },
+                    "wrong-episode" => new() { Id = "episode-1", Type = EmbyItemType.Episode, SeriesId = "series", ParentIndexNumber = 1, IndexNumber = 2 },
+                    _ => null
+                };
                 fixture.Refresh();
                 var ticket = fixture.Ticket(1);
-                if (issue == "episode-id-mismatch") ticket.Item.Id = "different-episode";
-                await fixture.Create(ticket).FinishAsync(90, true);
-                Assert.Equal(0, fixture.Douban.SubjectReads.Count, issue);
-                Assert.Equal(0, fixture.BangumiTransport.Requests.Count, issue);
-                foreach (var provider in new[] { ScrobblingProvider.Bangumi, ScrobblingProvider.Douban })
-                    Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(provider).Single().Outcome, issue);
-                var notification = fixture.Notifications.Single();
-                Assert.Null(notification.Provider);
-                Assert.Equal(ScrobblingRecordOutcome.Skipped, notification.Outcome);
+                ticket.Item.SeriesId = null;
+                ticket.Item.ParentIndexNumber = null;
+
+                await fixture.Create(ticket).FinishAsync(5, true);
+
+                Assert.Equal(issue == "ready" ? "8:doing" : "", fixture.Douban.Describe(), issue);
+                Assert.Equal(issue == "ready" ? ScrobblingRecordOutcome.Watching : ScrobblingRecordOutcome.Skipped,
+                    fixture.Service.GetLatestRecord(ScrobblingProvider.Douban)!.Outcome, issue);
+                Assert.Equal(issue == "ready" ? 1 : 0, fixture.Identity.Requests.Count);
             }
         });
 
@@ -326,7 +561,7 @@ internal static class ScrobblingServiceTests
             fixture.Refresh();
             await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
             Assert.Equal(0, fixture.Notifications.Count);
-            fixture.Douban.SearchResults = [];
+            fixture.Identity.Reply = (_, _) => Task.FromResult<MoviePilotScrobblingMatch?>(null);
             await fixture.Create(fixture.Ticket()).FinishAsync(90, true);
 
             Assert.True(fixture.Service.GetRecords(ScrobblingProvider.Douban).Select(record => record.Outcome)
@@ -414,17 +649,18 @@ internal static class ScrobblingServiceTests
             Assert.Equal("8:doing,8:doing,8:doing,8:done", fixture.Douban.Describe());
         });
 
-        Case("打格子服务：总集数未知时不能自动匹配", async () =>
+        Case("打格子服务：豆瓣集数未知仍可在看，不标看过", async () =>
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Douban);
             fixture.Douban.SubjectEpisodeCount = null;
             fixture.Refresh();
-            await fixture.Create(fixture.Ticket(12)).FinishAsync(5, true);
-            Assert.Equal("", fixture.Douban.Describe());
+            await fixture.Create(fixture.Ticket(12)).FinishAsync(90, true);
+            Assert.Equal("8:doing", fixture.Douban.Describe());
+            Assert.Equal(ScrobblingRecordOutcome.Watching, fixture.Service.GetLatestRecord(ScrobblingProvider.Douban)!.Outcome);
         });
 
-        Case("打格子服务：Bangumi按标题自动匹配并按集标记", async () =>
+        Case("打格子服务：用 MoviePilot 识别的 Bangumi 作品按集标记", async () =>
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Bangumi);
@@ -433,7 +669,8 @@ internal static class ScrobblingServiceTests
             Assert.Equal(0, fixture.BangumiTransport.Requests.Count);
             await fixture.Create(fixture.Ticket(1)).FinishAsync(90, true);
             var sent = fixture.BangumiTransport.Requests.ToArray();
-            Assert.True(sent.Any(request => request.Key == "POST /v0/search/subjects"));
+            Assert.False(sent.Any(request => request.Key == "POST /v0/search/subjects"));
+            Assert.Equal(1, fixture.Identity.Requests.Count);
             Assert.True(sent.Any(request => request.Key == "GET /v0/subjects/101"));
             Assert.True(sent.Any(request => request.Key == "GET /v0/episodes"));
             Assert.True(sent.Any(request => request.Key == "GET /v0/users/-/collections/-/episodes/1001"));
@@ -490,7 +727,7 @@ internal static class ScrobblingServiceTests
 
         Case("打格子服务：TMDB 精确对应无法核实或本地集号冲突时只记录跳过", async () =>
         {
-            foreach (var issue in new[] { "unmapped", "subject-404", "episode-404", "wrong-subject", "special", "local-mismatch", "merged" })
+            foreach (var issue in new[] { "unmapped", "subject-404", "episode-404", "wrong-subject", "special" })
             {
                 using var fixture = new Fixture();
                 fixture.Enable(ScrobblingProvider.Bangumi);
@@ -501,10 +738,8 @@ internal static class ScrobblingServiceTests
                 if (issue != "episode-404")
                     fixture.BangumiTransport.EpisodeDetails[1521517] = (issue == "wrong-subject" ? 587454 : 524707,
                         issue == "special" ? 1 : 0);
-                if (issue == "merged") fixture.MergedEpisodeNumber = 8;
                 fixture.Refresh();
                 var ticket = fixture.Ticket(issue == "unmapped" ? 18 : 8);
-                if (issue == "local-mismatch") ticket.Item.Id = "wrong-episode";
 
                 await fixture.Create(ticket).FinishAsync(90, true);
 
@@ -514,13 +749,14 @@ internal static class ScrobblingServiceTests
             }
         });
 
-        Case("打格子服务：TMDB 按当前正规季定位单集，豆瓣仍验证单一第一季", async () =>
+        Case("打格子服务：TMDB 定位多季 Bangumi 单集，豆瓣缺少季关联时跳过", async () =>
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Bangumi);
             fixture.Enable(ScrobblingProvider.Douban);
             fixture.Settings.Scrobbling.NotifyOnFailure = true;
             fixture.SeriesProviderIds["Tmdb"] = "137";
+            fixture.Identity.DoubanId = null;
             fixture.SeasonNumbers = [1, 2];
             fixture.EpisodeSeason = 2;
             fixture.BangumiTransport.SubjectId = 307402;
@@ -539,37 +775,68 @@ internal static class ScrobblingServiceTests
             Assert.Equal(954032L, body.RootElement.GetProperty("episode_id")[0].GetInt64());
         });
 
-        Case("打格子服务：库内明确 Bangumi 编号优先，无 TMDB 对照时仍可严格匹配标题", async () =>
+        Case("打格子服务：截图的飙马野郎由 MoviePilot 核实后只写同一确切 Bangumi 单集", async () =>
         {
-            foreach (var explicitSiteId in new[] { true, false })
-            {
-                using var fixture = new Fixture();
-                fixture.Enable(ScrobblingProvider.Bangumi);
-                fixture.SeriesProviderIds["Tmdb"] = explicitSiteId ? "277513" : int.MaxValue.ToString();
-                if (explicitSiteId) fixture.SeriesProviderIds["Bangumi"] = "101";
-                fixture.Refresh();
-                await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
-                Assert.Equal(ScrobblingRecordOutcome.Watched, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
-                Assert.Equal(!explicitSiteId, fixture.BangumiTransport.Requests.Any(request => request.Key == "POST /v0/search/subjects"));
-                Assert.Equal("PATCH /v0/users/-/collections/101/episodes",
-                    fixture.BangumiTransport.Requests.Single(request => request.Method == "PATCH").Key);
-            }
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.SeriesProviderIds["Tmdb"] = "45790";
+            fixture.BangumiTransport.SubjectId = 639938;
+            fixture.BangumiTransport.EpisodeDetails[1716920] = (639938, 0);
+            fixture.Refresh();
+
+            await fixture.Create(fixture.Ticket(10, season: 6)).FinishAsync(90, true);
+
+            Assert.Equal((6, 10), (fixture.Identity.Requests.Single().Season, fixture.Identity.Requests.Single().Episode));
+            Assert.Equal(ScrobblingRecordOutcome.Watched, fixture.Service.GetLatestRecord(ScrobblingProvider.Bangumi)!.Outcome);
+            var write = fixture.BangumiTransport.Requests.Single(request => request.Method == "PATCH");
+            Assert.Equal("PATCH /v0/users/-/collections/639938/episodes", write.Key);
+            using var body = JsonDocument.Parse(write.Body);
+            Assert.Equal(1716920L, body.RootElement.GetProperty("episode_id")[0].GetInt64());
         });
 
-        Case("打格子服务：冲突的 Bangumi 或 TMDB 编号不回退标题", async () =>
+        Case("打格子服务：MoviePilot 连接代次改变，旧识别结果不能提交", async () =>
         {
-            foreach (var provider in new[] { "Bangumi", "Tmdb" })
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Douban);
+            var entered = Signal();
+            var release = Signal();
+            fixture.Identity.Reply = async (request, _) =>
             {
-                using var fixture = new Fixture();
-                fixture.Enable(ScrobblingProvider.Bangumi);
-                fixture.SeriesProviderIds["Tmdb"] = "277513";
-                if (provider == "Bangumi") fixture.SeriesProviderIds[provider] = "101";
-                fixture.SeriesProviderIds[provider.ToLowerInvariant()] = "102";
-                fixture.Refresh();
-                await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
-                Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
-                Assert.Equal(0, fixture.BangumiTransport.Requests.Count);
+                entered.TrySetResult();
+                await release.Task.ConfigureAwait(false);
+                return new("offline-mp", "themoviedb", "11", 11, request.Season, request.Episode, 1234, null, 8);
+            };
+            fixture.Refresh();
+            var sync = fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+            try
+            {
+                await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                fixture.Identity.Stamp = "replacement-mp";
             }
+            finally { release.TrySetResult(); }
+            await sync;
+            Assert.Equal(0, fixture.Douban.Marks.Count);
+            Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
+        });
+
+        Case("打格子服务：创建场次后起播前切换 MoviePilot，旧场次不向新连接发请求", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            fixture.Refresh();
+            var attempt = fixture.Create(fixture.Ticket(12));
+            fixture.Identity.Stamp = "replacement-mp";
+
+            await attempt.FinishAsync(90, true);
+
+            Assert.Equal(0, fixture.Identity.Requests.Count);
+            Assert.Equal(0, fixture.BangumiTransport.Requests.Count);
+            Assert.Equal(0, fixture.Douban.Marks.Count);
+            Assert.Equal(0, fixture.Notifications.Count);
+            Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
+            Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Count);
         });
 
         Case("打格子通知：已匹配 Bangumi 作品但找不到对应集时提醒，零收藏写入", async () =>
@@ -599,7 +866,7 @@ internal static class ScrobblingServiceTests
             Assert.Equal(ScrobblingRecordOutcome.Watched, bangumi.Outcome);
             Assert.Equal(ScrobblingRecordOutcome.Watching, douban.Outcome);
             Assert.Equal(8, bangumi.EpisodeNumber);
-            Assert.Equal(8, douban.EpisodeNumber);
+            Assert.Null(douban.EpisodeNumber);
             Assert.Equal(ScrobblingProvider.Bangumi, bangumi.Provider);
             Assert.Equal(ScrobblingProvider.Douban, douban.Provider);
         });
@@ -637,7 +904,7 @@ internal static class ScrobblingServiceTests
             Assert.Equal("8:doing,8:doing", fixture.Douban.Describe());
         });
 
-        Case("打格子通知：配置修改或退出媒体账号取消在途匹配，迟到失败不会通知", async () =>
+        Case("打格子通知：配置修改或退出媒体账号取消在途写入，迟到失败不会通知", async () =>
         {
             foreach (var revokeAccount in new[] { false, true })
             {
@@ -646,12 +913,12 @@ internal static class ScrobblingServiceTests
                 fixture.Settings.Scrobbling.NotifyOnFailure = true;
                 var entered = Signal();
                 var cancelled = Signal();
-                var lateReply = new TaskCompletionSource<ScrobblingSubject>();
-                fixture.Douban.Read = async (_, token) =>
+                var lateReply = new TaskCompletionSource();
+                fixture.Douban.Write = async (_, _, token) =>
                 {
                     using var registration = token.Register(() => cancelled.TrySetResult());
                     entered.TrySetResult();
-                    return await lateReply.Task.ConfigureAwait(false);
+                    await lateReply.Task.ConfigureAwait(false);
                 };
                 fixture.Refresh();
                 var finish = fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
@@ -668,7 +935,7 @@ internal static class ScrobblingServiceTests
                 }
                 finally { lateReply.TrySetException(new IOException("synthetic response after cancellation")); }
                 await finish;
-                Assert.Equal(0, fixture.Douban.Marks.Count);
+                Assert.Equal(1, fixture.Douban.Marks.Count);
                 Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
                 Assert.Equal(0, fixture.Notifications.Count);
             }
@@ -757,12 +1024,13 @@ internal static class ScrobblingServiceTests
         public IReadOnlyList<int> SeasonNumbers { get; set; } = [1];
         public bool IncludeInterleavedSpecial { get; set; }
         public int? MissingEpisodeNumber { get; set; }
-        public int? MergedEpisodeNumber { get; set; }
         public int EpisodeCount { get; set; } = 12;
         public int EpisodeSeason { get; set; } = 1;
         public AppSettings Settings => Playback.Settings;
         public EmbySessionScope Scope { get; }
         public FakeDouban Douban { get; } = new();
+        public FakeIdentityLookup Identity { get; } = new();
+        public EmbyItem? EpisodeDetail { get; set; }
         public BangumiTransport BangumiTransport { get; } = new();
         public HttpClient Http { get; }
         public BangumiClient Bangumi { get; }
@@ -780,7 +1048,7 @@ internal static class ScrobblingServiceTests
                 {
                     Notifications.Enqueue((provider, outcome, detail));
                     onNotification?.Invoke();
-                }, syncTimeout);
+                }, syncTimeout, Identity);
         }
 
         public void Enable(ScrobblingProvider provider)
@@ -819,6 +1087,8 @@ internal static class ScrobblingServiceTests
 
         private Task<HttpResponseMessage> ReplyPlaybackAsync(PlaybackLifecycleTests.Sent sent, CancellationToken token)
         {
+            if (sent.Path.EndsWith($"/Items/{EpisodeDetail?.Id ?? "episode-1"}", StringComparison.Ordinal))
+                return Task.FromResult(Json(JsonSerializer.Serialize(EpisodeDetail ?? new EmbyItem())));
             if (sent.Path.EndsWith("/Items/series", StringComparison.Ordinal))
                 return Task.FromResult(Json(JsonSerializer.Serialize(new
                 {
@@ -843,7 +1113,6 @@ internal static class ScrobblingServiceTests
                     Id = $"episode-{index}",
                     Type = "Episode",
                     IndexNumber = index,
-                    IndexNumberEnd = MergedEpisodeNumber == index ? index + 1 : (int?)null,
                     ParentIndexNumber = EpisodeSeason
                 }).ToList();
                 if (IncludeInterleavedSpecial) episodes.Add(new
@@ -851,12 +1120,76 @@ internal static class ScrobblingServiceTests
                     Id = "special-1",
                     Type = "Episode",
                     IndexNumber = 1,
-                    IndexNumberEnd = (int?)null,
                     ParentIndexNumber = 0
                 });
                 return Task.FromResult(Json(JsonSerializer.Serialize(new { Items = episodes })));
             }
             return Task.FromResult(Json("{}"));
+        }
+    }
+
+    private sealed class PendingMoviePilotDetail(HttpMessageHandler inner) : DelegatingHandler(inner)
+    {
+        private readonly TaskCompletionSource _episodesEntered = Signal();
+        private readonly TaskCompletionSource _bangumiEntered = Signal();
+        private readonly TaskCompletionSource _releaseEpisodes = Signal();
+        private readonly TaskCompletionSource _releaseBangumi = Signal();
+
+        public Task EpisodesEntered => _episodesEntered.Task;
+        public Task BangumiEntered => _bangumiEntered.Task;
+        public void ReleaseEpisodes() => _releaseEpisodes.TrySetResult();
+        public void ReleaseBangumi() => _releaseBangumi.TrySetResult();
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri?.AbsolutePath;
+            if (path?.EndsWith("/media/101", StringComparison.Ordinal) == true)
+            {
+                _bangumiEntered.TrySetResult();
+                await _releaseBangumi.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                return new(HttpStatusCode.ServiceUnavailable);
+            }
+            if (path?.EndsWith("/tmdb/42/1", StringComparison.Ordinal) == true)
+            {
+                _episodesEntered.TrySetResult();
+                await _releaseEpisodes.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private sealed record LookupRequest(string Title, int Season, int Episode, bool Bangumi, bool Douban);
+
+    private sealed class FakeIdentityLookup : IScrobblingIdentityLookup
+    {
+        public ConcurrentQueue<LookupRequest> Requests { get; } = new();
+        public string Stamp { get; set; } = "offline-mp";
+        public long? DoubanId { get; set; } = 8;
+        public int? TmdbSeasonLastEpisode { get; set; } = 12;
+        public bool HasTmdbEpisode { get; set; } = true;
+        public Func<LookupRequest, CancellationToken, Task<MoviePilotScrobblingMatch?>>? Reply { get; set; }
+        public string ScrobblingConnectionStamp => Stamp;
+
+        public bool IsCurrentScrobblingConnection(string stamp) => Stamp.Length > 0 && stamp == Stamp;
+
+        public Task<MoviePilotScrobblingMatch?> ResolveScrobblingEpisodeAsync(string title, string? originalTitle,
+            int? year, IReadOnlyDictionary<string, string>? providerIds, int season, int episode,
+            bool includeBangumi, bool includeDouban, CancellationToken cancellationToken, string expectedConnectionStamp)
+        {
+            if (!IsCurrentScrobblingConnection(expectedConnectionStamp)) return Task.FromResult<MoviePilotScrobblingMatch?>(null);
+            var request = new LookupRequest(title, season, episode, includeBangumi, includeDouban);
+            Requests.Enqueue(request);
+            if (Reply is { } reply) return reply(request, cancellationToken);
+            var tmdbId = Number("Tmdb");
+            var source = tmdbId.HasValue ? "themoviedb" : includeDouban ? "douban" : "bangumi";
+            var mediaId = tmdbId ?? (includeDouban ? Number("Douban") ?? DoubanId : Number("Bangumi") ?? 101);
+            var match = new MoviePilotScrobblingMatch(Stamp, source, mediaId?.ToString() ?? "11",
+                tmdbId is { } id ? (int)id : null, season, episode, tmdbId is not null && HasTmdbEpisode ? 999 : null,
+                includeBangumi ? Number("Bangumi") ?? 101 : null, includeDouban ? Number("Douban") ?? DoubanId : null,
+                TmdbSeasonLastEpisode: tmdbId is null ? null : TmdbSeasonLastEpisode);
+            return Task.FromResult<MoviePilotScrobblingMatch?>(match);
+
+            long? Number(string key) => long.TryParse(providerIds?.GetValueOrDefault(key), out var value) ? value : null;
         }
     }
 
@@ -869,25 +1202,22 @@ internal static class ScrobblingServiceTests
         public ConcurrentQueue<long> SubjectReads { get; } = new();
         public ConcurrentQueue<DoubanMark> Marks { get; } = new();
         public ConcurrentQueue<string> Searches { get; } = new();
-        public IReadOnlyList<ScrobblingCandidate> SearchResults { get; set; } = [new(8, "Offline Series", 2024, null)];
         public int? SubjectEpisodeCount { get; set; } = 12;
-        public Exception? SearchFailure { get; set; }
-        public Func<long, CancellationToken, Task<ScrobblingSubject>>? Read { get; set; }
+        public bool AlreadyWatched { get; set; }
         public Func<long, bool, CancellationToken, Task>? Write { get; set; }
 
         public Task<IReadOnlyList<ScrobblingCandidate>> SearchSubjectsAsync(string query, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Searches.Enqueue(query);
-            if (SearchFailure is not null) throw SearchFailure;
-            return Task.FromResult(SearchResults);
+            return Task.FromResult<IReadOnlyList<ScrobblingCandidate>>([]);
         }
 
         public Task<ScrobblingSubject> SubjectAsync(long id, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             SubjectReads.Enqueue(id);
-            return Read?.Invoke(id, cancellationToken) ?? Task.FromResult(new ScrobblingSubject(id, "Offline Series", SubjectEpisodeCount));
+            return Task.FromResult(new ScrobblingSubject(id, "Offline Series", SubjectEpisodeCount));
         }
 
         public Task MarkAsync(long id, bool completed, Func<bool> stillAllowed, CancellationToken cancellationToken)
@@ -896,6 +1226,16 @@ internal static class ScrobblingServiceTests
             if (!stillAllowed()) throw new OperationCanceledException(cancellationToken);
             Marks.Enqueue(new(id, completed));
             return Write?.Invoke(id, completed, cancellationToken) ?? Task.CompletedTask;
+        }
+
+        public async Task<bool> MarkEpisodeAsync(long id, int episodeNumber, bool completed,
+            Func<bool> stillAllowed, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (AlreadyWatched) return true;
+            if (completed && (await SubjectAsync(id, cancellationToken)).EpisodeCount != episodeNumber) return false;
+            await MarkAsync(id, completed, stillAllowed, cancellationToken);
+            return completed;
         }
 
         public string Describe() => string.Join(",", Marks.Select(mark => $"{mark.Subject}:{(mark.Completed ? "done" : "doing")}"));

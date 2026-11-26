@@ -288,15 +288,23 @@ test('commit preserves score, comment, tags, private and existing fields', async
 
 test('collected subject never downgrades to doing', async () => {
   const fixture = environment({ current: 'collect' });
-  assert.equal((await fixture.run(scripts.PrepareDoing)).state, 'done');
+  assert.equal((await fixture.run(scripts.PrepareDoing)).state, 'watched');
+  assert.equal((await fixture.run(scripts.PrepareDone)).state, 'watched');
   assert.equal(fixture.requests.filter(request => request.method === 'POST').length, 0);
   assert.equal(fixture.context.__momokaCollection, undefined);
 });
 
 test('already doing subject requires no mutation', async () => {
   const fixture = environment({ current: 'do' });
-  assert.equal((await fixture.run(scripts.PrepareDoing)).state, 'done');
+  assert.equal((await fixture.run(scripts.PrepareDoing)).state, 'watching');
   assert.equal(fixture.requests.filter(request => request.method === 'POST').length, 0);
+});
+
+test('doing subject can still be marked watched after the last episode', async () => {
+  const fixture = environment({ current: 'do' });
+  assert.equal((await fixture.run(scripts.PrepareDone)).state, 'ready');
+  assert.equal((await fixture.run(scripts.Commit)).state, 'done');
+  assert.equal(new URLSearchParams(fixture.requests[1].body).get('interest'), 'collect');
 });
 
 for (const action of ['https://evil.invalid/j/subject/8/interest', '//evil.invalid/j/subject/8/interest',
