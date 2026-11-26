@@ -3,23 +3,23 @@
     x:Class="Momoka.Shell.Views.ScrobblingRecordsView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Momoka.Shell.Views"
-    Loaded="OnLoaded" Unloaded="OnUnloaded">
+    xmlns:local="using:Momoka.Shell.Views">
     <Grid RowSpacing="{StaticResource EgSpaceM}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Grid x:Name="RecordsToolbar" ColumnSpacing="{StaticResource EgSpaceM}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <local:WrapRow Spacing="{StaticResource EgSpaceM}" RowSpacing="{StaticResource EgSpaceS}">
             <TextBlock x:Name="RecordsSummary" Style="{StaticResource EgCaptionStyle}"
-                TextWrapping="Wrap" VerticalAlignment="Center" />
-            <ComboBox x:Name="ScrobblingRecordsFilter" Grid.Column="1" VerticalAlignment="Center"
-                SelectionChanged="OnFilterChanged" />
-        </Grid>
+                TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+            <ComboBox x:Name="ScrobblingRecordsFilter" VerticalAlignment="Center" SelectionChanged="OnFilterChanged">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:ScrobblingRecordsFilterOption">
+                        <TextBlock Text="{x:Bind Text, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </local:WrapRow>
         <ListView x:Name="ScrobblingRecordsList" Grid.Row="1" SelectionMode="None"
             ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             ScrollViewer.VerticalScrollBarVisibility="Auto">
@@ -49,6 +49,6 @@
             </ListView.ItemTemplate>
         </ListView>
         <TextBlock x:Name="RecordsEmpty" Grid.Row="1" Style="{StaticResource EgBodyStyle}"
-            TextWrapping="Wrap" Margin="0,12" />
+            TextWrapping="Wrap" Margin="0,12" AutomationProperties.LiveSetting="Polite" />
     </Grid>
 </UserControl>

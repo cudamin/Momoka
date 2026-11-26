@@ -93,6 +93,8 @@ public static class SettingsPreferences
         destination.SubtitleTranslation.FontSize = source.SubtitleTranslation.FontSize;
         destination.SubtitleTranslation.Position = source.SubtitleTranslation.Position;
 
+        destination.Scrobbling.NotifyOnFailure = source.Scrobbling.NotifyOnFailure;
+
         // 弹幕外观属于偏好；总启用开关、来源模式、danmu_api 地址与加密令牌属于本机连接，绝不导出，
         // 也不被恢复配置覆盖。应用凭据 2026-10-27 起一律由内置端点下发，设置里已经没有 AppId／密钥字段。
         var danmaku = destination.Danmaku;

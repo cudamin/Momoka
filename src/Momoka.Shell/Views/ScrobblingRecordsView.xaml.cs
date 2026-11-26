@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -6,7 +9,20 @@ using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.Views;
 
-internal sealed record ScrobblingRecordRow(string Timestamp, string Outcome, string EpisodeTitle, string Detail);
+internal sealed class ScrobblingRecordRow(ScrobblingRecord record, string timestamp, string outcome, string episodeTitle, string detail)
+{
+    internal ScrobblingRecord Record { get; } = record;
+    public string Timestamp { get; } = timestamp;
+    public string Outcome { get; } = outcome;
+    public string EpisodeTitle { get; } = episodeTitle;
+    public string Detail { get; } = detail;
+}
+
+internal sealed partial class ScrobblingRecordsFilterOption : ObservableObject
+{
+    [ObservableProperty]
+    public partial string Text { get; set; } = "";
+}
 
 public sealed partial class ScrobblingRecordsView : UserControl
 {
@@ -19,23 +35,42 @@ public sealed partial class ScrobblingRecordsView : UserControl
         (ScrobblingRecordOutcome.Failed, "失败")
     ];
 
-    private readonly (ScrobblingRecordOutcome Outcome, ScrobblingRecordRow Row)[] _rows;
-    private XamlRoot? _layoutRoot;
+    private readonly ScrobblingRecordsFilterOption[] _filterOptions = Filters.Select(_ => new ScrobblingRecordsFilterOption()).ToArray();
+    private readonly ObservableCollection<ScrobblingRecordRow> _visibleRows = [];
+    private ScrobblingRecordRow[] _rows = [];
 
-    internal ScrobblingRecordsView(IReadOnlyList<ScrobblingRecord> records)
+    internal ScrobblingRecordsView(IReadOnlyList<ScrobblingRecord> records, ScrobblingRecordOutcome? initialOutcome = null)
     {
-        _rows = records.Select(record => (record.Outcome, ToRow(record))).ToArray();
         InitializeComponent();
         AutomationProperties.SetName(ScrobblingRecordsFilter, UiText.Translate("按同步结果筛选"));
+        ScrobblingRecordsList.ItemsSource = _visibleRows;
+        ScrobblingRecordsFilter.ItemsSource = _filterOptions;
+        ScrobblingRecordsFilter.SelectedIndex = Math.Max(0, Array.FindIndex(Filters, filter => filter.Outcome == initialOutcome));
+        ShowRecords(records);
+    }
+
+    internal void UpdateRecords(IReadOnlyList<ScrobblingRecord> records)
+    {
+        if (_rows.Select(row => row.Record).SequenceEqual(records, ReferenceEqualityComparer.Instance)) return;
+        ShowRecords(records);
+    }
+
+    private void ShowRecords(IReadOnlyList<ScrobblingRecord> records)
+    {
+        var existing = new Dictionary<ScrobblingRecord, ScrobblingRecordRow>(ReferenceEqualityComparer.Instance);
+        foreach (var row in _rows) existing[row.Record] = row;
+        _rows = records.Select(record => existing.TryGetValue(record, out var row) ? row : ToRow(record)).ToArray();
+
         RecordsSummary.Text = string.Format(UiText.Translate("本次运行已保留 {0} / {1} 条，退出应用后清空。"),
             records.Count, ScrobblingService.RecordLimitPerProvider);
-        foreach (var (outcome, label) in Filters)
+        for (var index = 0; index < Filters.Length; index++)
         {
-            var count = outcome is null ? _rows.Length : _rows.Count(entry => entry.Outcome == outcome);
-            ScrobblingRecordsFilter.Items.Add($"{UiText.Translate(label)} ({count})");
+            var (outcome, label) = Filters[index];
+            var count = outcome is null ? _rows.Length : _rows.Count(row => row.Record.Outcome == outcome);
+            _filterOptions[index].Text = $"{UiText.Translate(label)} ({count})";
         }
         ScrobblingRecordsFilter.Visibility = records.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        ScrobblingRecordsFilter.SelectedIndex = 0;
+        ApplyFilter(resetScroll: false);
     }
 
     private static ScrobblingRecordRow ToRow(ScrobblingRecord record)
@@ -44,41 +79,46 @@ public sealed partial class ScrobblingRecordsView : UserControl
         var episode = record.EpisodeNumber is { } number
             ? string.Format(UiText.Translate("第 {0} 集"), number)
             : UiText.Translate("集数未知");
-        return new ScrobblingRecordRow(record.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+        return new ScrobblingRecordRow(record, record.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
             UiText.Translate(outcome), $"{record.Title} · {episode}", UiText.Translate(record.Detail));
     }
 
-    private void OnFilterChanged(object sender, SelectionChangedEventArgs args)
+    private void OnFilterChanged(object sender, SelectionChangedEventArgs args) => ApplyFilter(resetScroll: true);
+
+    private void ApplyFilter(bool resetScroll)
     {
-        if (ScrobblingRecordsFilter.SelectedIndex < 0) return;
-        var outcome = Filters[ScrobblingRecordsFilter.SelectedIndex].Outcome;
-        var rows = _rows.Where(entry => outcome is null || entry.Outcome == outcome).Select(entry => entry.Row).ToArray();
-        ScrobblingRecordsList.ItemsSource = rows;
+        var index = ScrobblingRecordsFilter.SelectedIndex;
+        if (index < 0 || index >= Filters.Length) return;
+        var outcome = Filters[index].Outcome;
+        var rows = _rows.Where(row => outcome is null || row.Record.Outcome == outcome).ToArray();
+        if (!_visibleRows.SequenceEqual(rows))
+        {
+            // At the top, show incoming rows immediately. Farther down, keep the item being read in view.
+            if (ScrobblingRecordsList.ItemsPanelRoot is ItemsStackPanel panel)
+            {
+                var offset = ScrobblingRecordsList.FindDescendant<ScrollViewer>()?.VerticalOffset ?? 0;
+                panel.ItemsUpdatingScrollMode = resetScroll || offset < 1
+                    ? ItemsUpdatingScrollMode.KeepScrollOffset : ItemsUpdatingScrollMode.KeepItemsInView;
+            }
+
+            var desired = rows.ToHashSet();
+            for (var remove = _visibleRows.Count - 1; remove >= 0; remove--)
+                if (!desired.Contains(_visibleRows[remove])) _visibleRows.RemoveAt(remove);
+
+            // Records only arrive at the head or leave at the retention limit. A filter switch
+            // adds back rows at their positions without recreating the rows that remain visible.
+            for (var insert = 0; insert < rows.Length; insert++)
+                if (insert >= _visibleRows.Count || !ReferenceEquals(_visibleRows[insert], rows[insert]))
+                    _visibleRows.Insert(insert, rows[insert]);
+        }
         ScrobblingRecordsList.Visibility = rows.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         RecordsEmpty.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (rows.Length > 0) ScrobblingRecordsList.ScrollIntoView(rows[0]);
-        else RecordsEmpty.Text = UiText.Translate(_rows.Length == 0
-            ? "还没有自动标记记录。"
-            : "这个分类下还没有同步记录。");
+        if (resetScroll && rows.Length > 0) ScrobblingRecordsList.ScrollIntoView(rows[0], ScrollIntoViewAlignment.Leading);
+        if (rows.Length == 0) RecordsEmpty.Text = UiText.Translate(_rows.Length == 0
+            ? "还没有自动标记记录。" : "这个分类下还没有同步记录。");
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs args)
-    {
-        _layoutRoot = XamlRoot;
-        if (_layoutRoot is not { } root) return;
-        ApplySize(root);
-        root.Changed += OnRootChanged;
-    }
-
-    private void OnUnloaded(object sender, RoutedEventArgs args)
-    {
-        if (_layoutRoot is { } root) root.Changed -= OnRootChanged;
-        _layoutRoot = null;
-    }
-
-    private void OnRootChanged(XamlRoot root, XamlRootChangedEventArgs args) => ApplySize(root);
-
-    private void ApplySize(XamlRoot root)
+    internal void ApplySize(XamlRoot root)
     {
         Width = Math.Clamp(root.Size.Width - 96, 1, 620);
         ScrobblingRecordsList.MaxHeight = Math.Clamp(root.Size.Height - 220, 80, 440);

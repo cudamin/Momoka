@@ -48,6 +48,7 @@ internal static class ScrobblingServiceTests
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
             fixture.Refresh();
             fixture.Douban.LoginCheck = _ => Task.FromResult(false);
             await fixture.Service.CheckConnectionsAsync(CancellationToken.None);
@@ -55,6 +56,8 @@ internal static class ScrobblingServiceTests
             fixture.Douban.LoginCheck = _ => throw new HttpRequestException("synthetic failure");
             await fixture.Service.CheckConnectionsAsync(CancellationToken.None);
             Assert.Equal(ScrobblingConnectionState.Failed, fixture.Service.DoubanConnection);
+            Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
+            Assert.Equal(0, fixture.Notifications.Count);
         });
         Case("打格子验证：Bangumi失效密钥与服务故障分别显示", async () =>
         {
@@ -238,11 +241,12 @@ internal static class ScrobblingServiceTests
             }
         });
 
-        Case("打格子服务：读取失败每站只记录一次，不显示服务器响应正文", async () =>
+        Case("打格子通知：共享媒体库读取失败每站只记一次，两站只通知一条且不带响应正文", async () =>
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Bangumi);
             fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
             fixture.Playback.Transport.Reply = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
             {
                 Content = new StringContent("synthetic server response")
@@ -258,6 +262,133 @@ internal static class ScrobblingServiceTests
                 Assert.Equal(ScrobblingRecordOutcome.Failed, record.Outcome);
                 Assert.Equal("自动匹配读取媒体库信息失败，已跳过同步", record.Detail);
             }
+            var notification = fixture.Notifications.Single();
+            Assert.Null(notification.Provider);
+            Assert.Equal("自动匹配读取媒体库信息失败，已跳过同步", notification.Detail);
+        });
+
+        Case("打格子通知：默认关闭，播放中改开关依然记录失败并按新值通知", async () =>
+        {
+            const string AnonymousResponse = "synthetic-secret-for-notice";
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Refresh();
+            Assert.False(fixture.Settings.Scrobbling.NotifyOnFailure);
+
+            fixture.Douban.Write = (_, _, _) => throw new IOException(AnonymousResponse);
+            await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+            Assert.Equal(ScrobblingRecordOutcome.Failed, fixture.Service.GetRecords(ScrobblingProvider.Douban).Single().Outcome);
+            Assert.Equal(0, fixture.Notifications.Count);
+
+            foreach (var enabled in new[] { true, false })
+            {
+                var entered = Signal();
+                var release = Signal();
+                fixture.Douban.Write = async (_, _, token) =>
+                {
+                    entered.TrySetResult();
+                    await release.Task.WaitAsync(token);
+                    throw new IOException(AnonymousResponse);
+                };
+                var attempt = fixture.Create(fixture.Ticket(12));
+                var finish = attempt.FinishAsync(90, true);
+                try
+                {
+                    await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                    fixture.Settings.Scrobbling.NotifyOnFailure = enabled;
+                }
+                finally { release.TrySetResult(); }
+                await finish;
+                Assert.Equal(1, fixture.Notifications.Count);
+            }
+
+            var notification = fixture.Notifications.Single();
+            Assert.Equal(ScrobblingProvider.Douban, notification.Provider);
+            Assert.Equal("未能确认同步结果，请到站点核对", notification.Detail);
+            Assert.DoesNotContain(AnonymousResponse, notification.Detail);
+            Assert.DoesNotContain("Offline Series", notification.Detail);
+            var records = fixture.Service.GetRecords(ScrobblingProvider.Douban);
+            Assert.Equal(3, records.Count);
+            Assert.True(records.All(record => record.Outcome == ScrobblingRecordOutcome.Failed));
+            Assert.Equal("8:doing,8:doing,8:doing", fixture.Douban.Describe(), "结果未确认时不能继续写入看过状态");
+        });
+
+        Case("打格子通知：成功和无法可靠匹配的正常跳过都保持静默", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            fixture.Refresh();
+            await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+            fixture.Douban.SearchResults = [];
+            await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+
+            Assert.True(fixture.Service.GetRecords(ScrobblingProvider.Douban).Select(record => record.Outcome)
+                .SequenceEqual([ScrobblingRecordOutcome.Skipped, ScrobblingRecordOutcome.Watching]));
+            Assert.Equal("8:doing", fixture.Douban.Describe());
+            Assert.Equal(0, fixture.Notifications.Count);
+        });
+
+        Case("打格子通知：豆瓣已确认退出时提示重新登录且不继续写入", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            fixture.Douban.Write = (_, _, _) => throw new HttpRequestException("synthetic-private-response", null, HttpStatusCode.Unauthorized);
+            fixture.Refresh();
+
+            await fixture.Create(fixture.Ticket(12)).FinishAsync(90, true);
+
+            const string Reason = "豆瓣拒绝请求，请重新登录";
+            Assert.Equal((ScrobblingProvider.Douban, Reason), fixture.Notifications.Single());
+            Assert.Equal(Reason, fixture.Service.GetRecords(ScrobblingProvider.Douban).Single().Detail);
+            Assert.Equal("8:doing", fixture.Douban.Describe());
+        });
+
+        Case("打格子通知：只报告超时站点，晚到回执不改记录且不重发", async () =>
+        {
+            var notified = Signal();
+            using var fixture = new Fixture(TimeSpan.FromMilliseconds(500), () => notified.TrySetResult());
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            var bangumiCompleted = Signal();
+            fixture.Service.Changed += () =>
+            {
+                if (fixture.Service.GetLatestRecord(ScrobblingProvider.Bangumi)?.Outcome == ScrobblingRecordOutcome.Watched)
+                    bangumiCompleted.TrySetResult();
+            };
+            var entered = Signal();
+            // Run the fake response's awaiting continuation inline when releasing the already timed-out write.
+            var lateReply = new TaskCompletionSource();
+            fixture.Douban.Write = (_, completed, _) =>
+            {
+                if (!completed) return Task.CompletedTask;
+                entered.TrySetResult();
+                return lateReply.Task;
+            };
+            fixture.Refresh();
+            var attempt = fixture.Create(fixture.Ticket(12));
+            var finish = attempt.FinishAsync(90, true);
+            try
+            {
+                await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                await bangumiCompleted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                await notified.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                await finish;
+            }
+            finally { lateReply.TrySetResult(); }
+
+            var notification = fixture.Notifications.Single();
+            Assert.Equal(ScrobblingProvider.Douban, notification.Provider);
+            Assert.Equal("同步超时，结果未确认，请到站点核对", notification.Detail);
+            var doubanRecords = fixture.Service.GetRecords(ScrobblingProvider.Douban);
+            Assert.True(doubanRecords.Select(record => record.Outcome)
+                .SequenceEqual([ScrobblingRecordOutcome.Failed, ScrobblingRecordOutcome.Watching]));
+            Assert.Equal(notification.Detail, doubanRecords[0].Detail);
+            Assert.Equal(ScrobblingRecordOutcome.Watched, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+            Assert.Equal("8:doing,8:done", fixture.Douban.Describe());
+            Assert.Equal(1, fixture.BangumiTransport.Requests.Count(request => request.Method == "PATCH"));
         });
 
         Case("打格子服务：末集达到标记已看进度后才标记看过", async () =>
@@ -365,29 +496,41 @@ internal static class ScrobblingServiceTests
             Assert.Equal("8:doing,8:doing", fixture.Douban.Describe());
         });
 
-        Case("打格子服务：配置修改取消在途自动匹配并阻止写入", async () =>
+        Case("打格子通知：配置修改或退出媒体账号取消在途匹配，迟到失败不会通知", async () =>
         {
-            using var fixture = new Fixture();
-            fixture.Enable(ScrobblingProvider.Douban);
-            var entered = Signal();
-            var cancelled = Signal();
-            fixture.Douban.Read = async (id, token) =>
+            foreach (var revokeAccount in new[] { false, true })
             {
-                using var registration = token.Register(() => cancelled.TrySetResult());
-                entered.TrySetResult();
-                await Task.Delay(Timeout.Infinite, token);
-                return new(id, "Offline Series", 12);
-            };
-            fixture.Refresh();
-            var attempt = fixture.Create(fixture.Ticket(1));
-            attempt.Observe(5, true);
-            var finish = attempt.FinishAsync(5, true);
-            await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
-            fixture.Settings.Scrobbling.Douban.Enabled = false;
-            fixture.Refresh();
-            await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(3));
-            await finish;
-            Assert.Equal(0, fixture.Douban.Marks.Count);
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Douban);
+                fixture.Settings.Scrobbling.NotifyOnFailure = true;
+                var entered = Signal();
+                var cancelled = Signal();
+                var lateReply = new TaskCompletionSource<ScrobblingSubject>();
+                fixture.Douban.Read = async (_, token) =>
+                {
+                    using var registration = token.Register(() => cancelled.TrySetResult());
+                    entered.TrySetResult();
+                    return await lateReply.Task.ConfigureAwait(false);
+                };
+                fixture.Refresh();
+                var finish = fixture.Create(fixture.Ticket(1)).FinishAsync(5, true);
+                try
+                {
+                    await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                    if (revokeAccount) fixture.Playback.Session.SignOut();
+                    else
+                    {
+                        fixture.Settings.Scrobbling.Douban.Enabled = false;
+                        fixture.Refresh();
+                    }
+                    await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                }
+                finally { lateReply.TrySetException(new IOException("synthetic response after cancellation")); }
+                await finish;
+                Assert.Equal(0, fixture.Douban.Marks.Count);
+                Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
+                Assert.Equal(0, fixture.Notifications.Count);
+            }
         });
 
         Case("打格子服务：豆瓣切换登录期间撤销旧任务并恢复后自动标记", async () =>
@@ -421,16 +564,19 @@ internal static class ScrobblingServiceTests
             Assert.False(fixture.Playback.Transport.Requests.Any(request => request.Path.EndsWith("/Users/a/Items/changed-series", StringComparison.Ordinal)));
         });
 
-        Case("打格子服务：Bangumi失败不阻止豆瓣自动完成", async () =>
+        Case("打格子通知：Bangumi 和通知宿主失败不阻止豆瓣自动完成", async () =>
         {
-            using var fixture = new Fixture();
+            using var fixture = new Fixture(onNotification: () => throw new IOException("synthetic notification failure"));
             fixture.Enable(ScrobblingProvider.Bangumi);
             fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
             fixture.BangumiTransport.Reject = true;
             fixture.Refresh();
             await fixture.Create(fixture.Ticket(12)).FinishAsync(100, true);
             Assert.Equal("8:doing,8:done", fixture.Douban.Describe());
             Assert.True(fixture.BangumiTransport.Requests.Count > 0);
+            Assert.Equal(ScrobblingRecordOutcome.Failed, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+            Assert.Equal(ScrobblingProvider.Bangumi, fixture.Notifications.Single().Provider);
         });
 
         Case("打格子服务：双次释放和释放后配置更新均安全", async () =>
@@ -478,14 +624,20 @@ internal static class ScrobblingServiceTests
         public HttpClient Http { get; }
         public BangumiClient Bangumi { get; }
         public ScrobblingService Service { get; }
+        public ConcurrentQueue<(ScrobblingProvider? Provider, string Detail)> Notifications { get; } = new();
 
-        public Fixture()
+        public Fixture(TimeSpan? syncTimeout = null, Action? onNotification = null)
         {
             Scope = Playback.Session.Capture();
             Playback.Transport.Reply = ReplyPlaybackAsync;
             Http = new HttpClient(BangumiTransport);
             Bangumi = new BangumiClient(Http);
-            Service = new ScrobblingService(Settings, PassthroughSecretProtector.Instance, Bangumi, Douban);
+            Service = new ScrobblingService(Settings, PassthroughSecretProtector.Instance, Bangumi, Douban,
+                (provider, detail) =>
+                {
+                    Notifications.Enqueue((provider, detail));
+                    onNotification?.Invoke();
+                }, syncTimeout);
         }
 
         public void Enable(ScrobblingProvider provider)
@@ -527,8 +679,13 @@ internal static class ScrobblingServiceTests
             if (sent.Path.EndsWith("/Items/series", StringComparison.Ordinal))
                 return Task.FromResult(Json(JsonSerializer.Serialize(new
                 {
-                    Id = "series", Type = "Series", Name = "Offline Series", OriginalTitle = "",
-                    ProductionYear = SeriesYear, Status = SeriesStatus, ProviderIds = SeriesProviderIds
+                    Id = "series",
+                    Type = "Series",
+                    Name = "Offline Series",
+                    OriginalTitle = "",
+                    ProductionYear = SeriesYear,
+                    Status = SeriesStatus,
+                    ProviderIds = SeriesProviderIds
                 })));
             if (sent.Path.EndsWith("/Shows/series/Seasons", StringComparison.Ordinal))
                 return Task.FromResult(Json(JsonSerializer.Serialize(new
@@ -548,7 +705,11 @@ internal static class ScrobblingServiceTests
                 }).ToList();
                 if (IncludeInterleavedSpecial) episodes.Add(new
                 {
-                    Id = "special-1", Type = "Episode", IndexNumber = 1, IndexNumberEnd = (int?)null, ParentIndexNumber = 0
+                    Id = "special-1",
+                    Type = "Episode",
+                    IndexNumber = 1,
+                    IndexNumberEnd = (int?)null,
+                    ParentIndexNumber = 0
                 });
                 return Task.FromResult(Json(JsonSerializer.Serialize(new { Items = episodes })));
             }
@@ -569,6 +730,7 @@ internal static class ScrobblingServiceTests
         public int? SubjectEpisodeCount { get; set; } = 12;
         public Exception? SearchFailure { get; set; }
         public Func<long, CancellationToken, Task<ScrobblingSubject>>? Read { get; set; }
+        public Func<long, bool, CancellationToken, Task>? Write { get; set; }
 
         public Task<IReadOnlyList<ScrobblingCandidate>> SearchSubjectsAsync(string query, CancellationToken cancellationToken)
         {
@@ -590,7 +752,7 @@ internal static class ScrobblingServiceTests
             cancellationToken.ThrowIfCancellationRequested();
             if (!stillAllowed()) throw new OperationCanceledException(cancellationToken);
             Marks.Enqueue(new(id, completed));
-            return Task.CompletedTask;
+            return Write?.Invoke(id, completed, cancellationToken) ?? Task.CompletedTask;
         }
 
         public string Describe() => string.Join(",", Marks.Select(mark => $"{mark.Subject}:{(mark.Completed ? "done" : "doing")}"));

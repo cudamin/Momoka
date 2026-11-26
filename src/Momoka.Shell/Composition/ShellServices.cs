@@ -8,6 +8,7 @@ using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Scrobbling;
+using Momoka.Shell.Localization;
 using Momoka.Shell.Media;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Security;
@@ -58,7 +59,24 @@ internal static class ShellServices
         services.AddSingleton<BangumiClient>();
         services.AddSingleton(provider => new DoubanSession(Path.Combine(paths.WebViewDirectory, "douban"), provider.GetRequiredService<IUiDispatcher>()));
         services.AddSingleton<IDoubanScrobblingClient>(provider => provider.GetRequiredService<DoubanSession>());
-        services.AddSingleton<ScrobblingService>();
+        services.AddSingleton(provider =>
+        {
+            var settings = provider.GetRequiredService<AppSettings>();
+            var dispatcher = provider.GetRequiredService<IUiDispatcher>();
+            return new ScrobblingService(settings, provider.GetRequiredService<ISecretProtector>(),
+                provider.GetRequiredService<BangumiClient>(), provider.GetRequiredService<IDoubanScrobblingClient>(),
+                (site, reason) => dispatcher.Post(() =>
+                {
+                    if (!settings.Scrobbling.NotifyOnFailure) return;
+                    var title = site switch
+                    {
+                        ScrobblingProvider.Bangumi => "Bangumi 打格子失败",
+                        ScrobblingProvider.Douban => "豆瓣打格子失败",
+                        _ => "Bangumi 和豆瓣打格子失败"
+                    };
+                    SystemNotification.Show(UiText.Translate(title), UiText.Translate(reason));
+                }));
+        });
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
         services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();

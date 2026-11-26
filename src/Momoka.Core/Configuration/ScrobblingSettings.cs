@@ -1,8 +1,11 @@
 namespace Momoka.Configuration;
 
-/// <summary>Local scrobbling connections; never included in preference backups.</summary>
+/// <summary>Scrobbling preferences and local-only site connections.</summary>
 public sealed class ScrobblingSettings
 {
+    private volatile bool _notifyOnFailure;
+
+    public bool NotifyOnFailure { get => _notifyOnFailure; set => _notifyOnFailure = value; }
     public BangumiScrobblingSettings Bangumi { get; set; } = new();
     public DoubanScrobblingSettings Douban { get; set; } = new();
 }

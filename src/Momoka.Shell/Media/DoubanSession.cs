@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -36,28 +37,34 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
                     await InitializeAsync(web, token);
                     var core = web.CoreWebView2;
                     Guard(core, false);
-                    var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                    void Navigated(object? sender, CoreWebView2NavigationCompletedEventArgs args)
-                    {
-                        if (args.IsSuccess) loaded.TrySetResult();
-                        else loaded.TrySetException(Failure());
-                    }
-                    core.NavigationCompleted += Navigated;
-                    try
-                    {
-                        core.Navigate("https://movie.douban.com/");
-                        await loaded.Task.WaitAsync(token);
-                    }
-                    finally { core.NavigationCompleted -= Navigated; }
-                    token.ThrowIfCancellationRequested();
-                    var state = await core.ExecuteScriptAsync(DoubanProtocol.LoginStateScript).AsTask().WaitAsync(token);
-                    token.ThrowIfCancellationRequested();
-                    return state switch { "\"connected\"" => true, "\"signed-out\"" => false, _ => throw Failure() };
+                    return await ReadLoginStateAsync(core, token);
                 }
                 finally { web.Close(); host.Children.Remove(web); }
             }
             finally { _gate.Release(); }
         }, deadline.Token);
+    }
+
+    private static async Task<bool> ReadLoginStateAsync(CoreWebView2 core, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Navigated(object? sender, CoreWebView2NavigationCompletedEventArgs args)
+        {
+            if (args.IsSuccess) loaded.TrySetResult();
+            else loaded.TrySetException(Failure());
+        }
+        core.NavigationCompleted += Navigated;
+        try
+        {
+            core.Navigate("https://movie.douban.com/");
+            await loaded.Task.WaitAsync(token);
+        }
+        finally { core.NavigationCompleted -= Navigated; }
+        token.ThrowIfCancellationRequested();
+        var state = await core.ExecuteScriptAsync(DoubanProtocol.LoginStateScript).AsTask().WaitAsync(token);
+        token.ThrowIfCancellationRequested();
+        return state switch { "\"connected\"" => true, "\"signed-out\"" => false, _ => throw Failure() };
     }
 
     public async Task<IReadOnlyList<ScrobblingCandidate>> SearchSubjectsAsync(string query, CancellationToken cancellationToken)
@@ -130,7 +137,7 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
                     var nonce = Guid.NewGuid().ToString("N");
                     var prepared = await RunAsync(core, id, _ => DoubanProtocol.PrepareMarkScript(id, completed, nonce), token, nonce);
                     if (prepared.State == "done") return true;
-                    if (prepared.State != "ready") throw Failure();
+                    await EnsurePreparedAsync(core, prepared.State, token);
                     EnsureAllowed(stillAllowed, token);
                     var result = await RunAsync(core, id, _ => DoubanProtocol.CommitScript(nonce), token, nonce);
                     if (result.State != "done") throw Failure();
@@ -156,7 +163,7 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
                     var nonce = Guid.NewGuid().ToString("N");
                     var prepared = await RunAsync(core, id, _ => DoubanProtocol.PrepareMarkScript(id, finished, nonce), token, nonce);
                     if (prepared.State == "done") return finished;
-                    if (prepared.State != "ready") throw Failure();
+                    await EnsurePreparedAsync(core, prepared.State, token);
                     EnsureAllowed(stillAllowed, token);
                     var result = await RunAsync(core, id, _ => DoubanProtocol.CommitScript(nonce), token, nonce);
                     if (result.State != "done") throw Failure();
@@ -165,6 +172,15 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
             }
             finally { _gate.Release(); }
         }, cancellationToken);
+
+    private static async Task EnsurePreparedAsync(CoreWebView2 core, string state, CancellationToken token)
+    {
+        if (state == "ready") return;
+        // The preparation script also uses "login" for an HTTP failure or missing form data.
+        // Read the trusted homepage before treating the failure as confirmed sign-out.
+        if (state == "login" && !await ReadLoginStateAsync(core, token)) throw new SignedOutException();
+        throw Failure();
+    }
 
     private async Task<T> WithPageAsync<T>(long id, Func<CoreWebView2, Task<T>> action, CancellationToken token)
     {
@@ -367,9 +383,12 @@ internal sealed class DoubanSession(string profileFolder, IUiDispatcher dispatch
                 result.TrySetResult(await work(linked.Token));
             }
             catch (OperationCanceledException) { result.TrySetCanceled(); }
+            catch (SignedOutException error) { result.TrySetException(error); }
             catch (Exception) { result.TrySetException(Failure()); }
         }
     }
+
+    private sealed class SignedOutException() : HttpRequestException("豆瓣登录已失效，请重新登录", null, HttpStatusCode.Unauthorized);
 
     private static InvalidOperationException Failure() => new("豆瓣会话操作未完成，请重新登录或检查网络");
     private static void EnsureAllowed(Func<bool> allowed, CancellationToken token)

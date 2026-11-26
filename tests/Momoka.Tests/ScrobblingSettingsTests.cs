@@ -1,6 +1,7 @@
-using System.Text.Json;
 using System.IO;
+using System.Text.Json;
 using Momoka.Configuration;
+using Momoka.Infrastructure;
 using Momoka.Scrobbling;
 using static Momoka.Tests.TestHarness;
 
@@ -53,6 +54,23 @@ internal static class ScrobblingSettingsTests
             Assert.Contains("'/subject/'+id+'/interest'", script);
             Assert.Contains("action.search || action.hash", script);
         });
+        Test("豆瓣会话：准备收藏失败时，只传递经可信首页确认的未登录状态", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Media", "DoubanSession.cs"));
+            var start = source.IndexOf("public Task<bool> MarkEpisodeAsync", StringComparison.Ordinal);
+            var end = source.IndexOf("private static async Task EnsurePreparedAsync", StringComparison.Ordinal);
+            Assert.True(start >= 0 && end > start);
+            var episodeWrite = source[start..end];
+            var prepare = episodeWrite.IndexOf("DoubanProtocol.PrepareMarkScript", StringComparison.Ordinal);
+            var confirm = episodeWrite.IndexOf("await EnsurePreparedAsync(core, prepared.State, token)", StringComparison.Ordinal);
+            var commit = episodeWrite.IndexOf("DoubanProtocol.CommitScript", StringComparison.Ordinal);
+            Assert.True(prepare >= 0 && confirm > prepare && commit > confirm);
+            Assert.Contains("if (state == \"login\" && !await ReadLoginStateAsync(core, token)) throw new SignedOutException();", source);
+            Assert.Contains("core.Navigate(\"https://movie.douban.com/\")", source);
+            Assert.Contains("core.ExecuteScriptAsync(DoubanProtocol.LoginStateScript)", source);
+            Assert.Contains("catch (SignedOutException error) { result.TrySetException(error); }", source);
+            Assert.Contains("HttpStatusCode.Unauthorized", source);
+        });
         Test("打格子配置：缺键和空分区均默认关闭", () =>
         {
             foreach (var json in new[] { "{\"SchemaVersion\":29}", "{\"SchemaVersion\":29,\"Scrobbling\":null}",
@@ -61,6 +79,7 @@ internal static class ScrobblingSettingsTests
                 var settings = SettingsMigration.FromJson(json, PassthroughSecretProtector.Instance);
                 Assert.False(settings.Scrobbling.Bangumi.Enabled);
                 Assert.False(settings.Scrobbling.Douban.Enabled);
+                Assert.False(settings.Scrobbling.NotifyOnFailure);
                 Assert.DoesNotContain("Mappings", JsonSerializer.Serialize(settings.Scrobbling));
             }
         });
@@ -81,12 +100,39 @@ internal static class ScrobblingSettingsTests
         {
             var settings = new AppSettings();
             settings.Scrobbling.Bangumi.Enabled = true;
+            settings.Scrobbling.Douban.Enabled = true;
             settings.Scrobbling.Bangumi.ProtectedAccessToken = "synthetic-protected-token";
+            settings.Scrobbling.NotifyOnFailure = true;
             var json = JsonSerializer.Serialize(SettingsPreferences.ToBackupDocument(settings));
             Assert.DoesNotContain("synthetic-protected-token", json);
+            var backup = SettingsMigration.FromJson(json, PassthroughSecretProtector.Instance);
+            Assert.False(backup.Scrobbling.Bangumi.Enabled);
+            Assert.False(backup.Scrobbling.Douban.Enabled);
+            Assert.True(backup.Scrobbling.NotifyOnFailure);
             SettingsPreferences.Apply(settings, new AppSettings());
+            Assert.False(settings.Scrobbling.NotifyOnFailure);
+            SettingsPreferences.Apply(settings, backup);
+            Assert.True(settings.Scrobbling.NotifyOnFailure);
             Assert.True(settings.Scrobbling.Bangumi.Enabled);
+            Assert.True(settings.Scrobbling.Douban.Enabled);
             Assert.Equal("synthetic-protected-token", settings.Scrobbling.Bangumi.ProtectedAccessToken);
+        });
+        Test("打格子设置：Windows 通知开关保存重读，拒绝无效值", () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-scrobbling-notification");
+            try
+            {
+                var paths = new AppPaths(directory.FullName);
+                var store = new SettingsStore(paths, PassthroughSecretProtector.Instance);
+                var settings = store.Load();
+                Assert.False(settings.Scrobbling.NotifyOnFailure);
+                settings.Scrobbling.NotifyOnFailure = true;
+                store.Save(settings);
+                Assert.True(new SettingsStore(paths, PassthroughSecretProtector.Instance).Load().Scrobbling.NotifyOnFailure);
+                Assert.Throws<JsonException>(() => SettingsMigration.FromJson(
+                    "{\"SchemaVersion\":29,\"Scrobbling\":{\"NotifyOnFailure\":\"invalid\"}}", PassthroughSecretProtector.Instance));
+            }
+            finally { directory.Delete(recursive: true); }
         });
         Test("豆瓣来源：只接受精确可信HTTPS主机", () =>
         {

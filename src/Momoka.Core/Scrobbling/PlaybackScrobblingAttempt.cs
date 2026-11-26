@@ -51,7 +51,6 @@ public sealed class PlaybackScrobblingAttempt
             if (_finish is not null) return _finish;
             ObserveLocked(realPosition, started);
             _closed = true;
-            _lifetime.CancelAfter(Timeout);
             return _finish = FinishCoreAsync(_tail);
         }
     }
@@ -91,30 +90,32 @@ public sealed class PlaybackScrobblingAttempt
         }
         catch (OperationCanceledException)
         {
-            if (!_cancellation.IsCancellationRequested) ReportFailure("观看记录同步超时，请检查登录状态");
+            if (!_cancellation.IsCancellationRequested && _isAllowed()) ReportFailure("观看记录同步超时，请检查登录状态");
         }
-        catch (Exception) { ReportFailure("观看记录同步失败，请检查登录状态和网络连接"); }
+        catch (Exception)
+        {
+            if (!_cancellation.IsCancellationRequested && _isAllowed()) ReportFailure("观看记录同步失败，请检查登录状态和网络连接");
+        }
     }
 
     private async Task FinishCoreAsync(Task pending)
     {
         await Task.Yield();
+        var cleanup = pending;
         try { await pending.WaitAsync(Timeout).ConfigureAwait(false); }
         catch (TimeoutException)
         {
-            _lifetime.CancelAfter(TimeSpan.Zero);
-            ReportFailure("观看记录同步等待超时");
+            var wasAllowed = !_cancellation.IsCancellationRequested && _isAllowed();
+            cleanup = Task.WhenAll(pending, _lifetime.CancelAsync());
+            if (wasAllowed && _isAllowed()) ReportFailure("观看记录同步等待超时");
         }
-        finally
-        {
-            if (pending.IsCompleted) _lifetime.Dispose();
-            else _ = DisposeAfterAsync(pending);
-        }
+        finally { _ = DisposeAfterAsync(cleanup); }
     }
 
     private async Task DisposeAfterAsync(Task pending)
     {
         try { await pending.ConfigureAwait(false); }
+        catch (Exception) { ReportFailure("结束观看记录同步时出错"); }
         finally { _lifetime.Dispose(); }
     }
 
