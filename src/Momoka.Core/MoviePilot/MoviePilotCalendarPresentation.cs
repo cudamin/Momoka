@@ -25,9 +25,9 @@ public static class MoviePilotCalendarPresentation
         _ => "入库状态未知"
     };
 
-    public static string EpisodeLabel(MoviePilotCalendarEntry entry)
+    public static string EpisodeLabel(MoviePilotCalendarEntry entry, Func<string, string>? translate = null)
     {
-        if (entry.Type == "电影") return "电影";
+        if (entry.Type == "电影") return translate?.Invoke("电影") ?? "电影";
         var numbers = entry.Episodes.Select(episode => episode.Number).Where(number => number > 0).Distinct().Order().ToArray();
         if (numbers.Length == 0) return "";
         var groups = new List<string>();
@@ -39,7 +39,8 @@ public static class MoviePilotCalendarPresentation
             groups.Add(start == end ? start.ToString(CultureInfo.InvariantCulture)
                 : $"{start.ToString(CultureInfo.InvariantCulture)}-{end.ToString(CultureInfo.InvariantCulture)}");
         }
-        return "第 " + string.Join('、', groups) + " 集";
+        return string.Format(CultureInfo.InvariantCulture, translate?.Invoke("第 {0} 集") ?? "第 {0} 集",
+            string.Join(translate?.Invoke("、") ?? "、", groups));
     }
 
     public static string LibraryProgressText(MoviePilotCalendarEntry entry)
@@ -50,17 +51,19 @@ public static class MoviePilotCalendarPresentation
             ? $"已入库 {entry.LibraryEpisodeCount}/{total} 集" : $"已入库 {entry.LibraryEpisodeCount} 集";
     }
 
-    public static string RuntimeText(MoviePilotCalendarEntry entry) => entry.RuntimeMinutes is > 0 and var runtime
-        ? runtime.ToString(CultureInfo.InvariantCulture) + " 分钟" : "";
+    public static string RuntimeText(MoviePilotCalendarEntry entry, Func<string, string>? translate = null) =>
+        entry.RuntimeMinutes is > 0 and var runtime
+            ? string.Format(CultureInfo.InvariantCulture, translate?.Invoke("{0} 分钟") ?? "{0} 分钟", runtime) : "";
 
     /// <summary>上游 date 只有日历日期，没有时区；电影为上映日期，剧集为播出日期。</summary>
     public static string ScheduleText(MoviePilotCalendarEntry entry) => entry.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
         + (entry.Type == "电影" ? " 上映" : " 播出");
 
-    public static string UpdatedText(MoviePilotCalendarEntry entry, DateTimeOffset now)
+    public static string UpdatedText(MoviePilotCalendarEntry entry, DateTimeOffset now, Func<string, string>? translate = null)
     {
         if (entry.LibraryEpisodeCount is not > 0 || !TryUpdate(entry.LastUpdate, now.Offset, out var updated)) return "";
-        return AniBtReleaseLabels.Published(updated, now) + "更新";
+        return string.Format(CultureInfo.InvariantCulture, translate?.Invoke("{0}更新") ?? "{0}更新",
+            AniBtReleaseLabels.Published(updated, now, translate));
     }
 
     private static bool TryUpdate(string value, TimeSpan offset, out DateTimeOffset updated)

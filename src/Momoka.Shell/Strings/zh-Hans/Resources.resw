@@ -2098,6 +2098,12 @@
   <data name="MissingEpisodesDialog_MissingAniBt.Text" xml:space="preserve">
     <value>使用 AniBT API 搜索</value>
   </data>
+  <data name="MoviePilotCalendarPage_CalendarSources.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>日历来源</value>
+  </data>
+  <data name="MoviePilotCalendarPage_MediaType.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>媒体类型</value>
+  </data>
   <data name="MoviePilotCalendarPage_MoviePilotSource.Content" xml:space="preserve">
     <value>MoviePilot 订阅</value>
   </data>

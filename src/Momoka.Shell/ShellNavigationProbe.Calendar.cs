@@ -36,6 +36,7 @@ internal sealed partial class ShellNavigationProbe
         shell.Attach(fixture.Services);
         Field(shell, "_window", _window);
         _root.Children.Add(shell);
+        var navigationCompleted = false;
         try
         {
             HomeMotion.ApplyPreference(false);
@@ -50,6 +51,7 @@ internal sealed partial class ShellNavigationProbe
             Require(entry.Visibility == Visibility.Visible, "匿名来源均可用时侧栏没有日历");
             SelectSidebarItem(entry);
             await UntilAsync(() => shell.Pages.Content is MoviePilotCalendarPage && moviePilot.InitialRead.Task.IsCompleted);
+            navigationCompleted = true;
             var page = (MoviePilotCalendarPage)shell.Pages.Content;
             await LayoutAsync(page);
             var scroll = Get<ScrollViewer>(page, "CalendarScroll");
@@ -133,6 +135,12 @@ internal sealed partial class ShellNavigationProbe
                 RequireCalendarControlFits(page, filters);
                 Require(Get<TextBlock>(seriesCard, "EventTitle").ActualWidth > 0 &&
                     ReferenceEquals(seriesCard, CalendarCards(crowdedDay).First()), "缩放没有保留实际卡片或标题被挤没");
+                var compact = seriesCard.ActualWidth < MoviePilotCalendarLayout.TextOnlyCardWidth;
+                var expectedVisibility = compact ? Visibility.Collapsed : Visibility.Visible;
+                var posterVisibility = Get<Border>(seriesCard, "PosterFrame").Visibility;
+                Require((width != 600 || compact) && posterVisibility == expectedVisibility && library.Visibility == expectedVisibility
+                    && AutomationProperties.GetName(seriesCard).Contains("1/1", StringComparison.Ordinal),
+                    $"{width} DIP 窗口，卡宽 {seriesCard.ActualWidth:0.0}，海报 {posterVisibility}，入库 {library.Visibility}：极窄布局或完整可访问名称错误");
                 if (width != 1240) await SaveProbeScreenAsync($"calendar-{width}-screen.png");
             }
 
@@ -147,6 +155,18 @@ internal sealed partial class ShellNavigationProbe
                         $"日历月份的文字未跟随 {actualTheme.Id} 主题");
                 await SaveProbeScreenAsync($"calendar-theme-{actualTheme.Id}-screen.png");
             }
+            InvokeCalendarButton(Get<Button>(page, "CurrentMonth"));
+            var todayCell = CalendarDay(grid, today);
+            await UntilAsync(() =>
+            {
+                var box = Bounds(todayCell, scroll);
+                return box.Top < scroll.ViewportHeight && box.Bottom > 0;
+            });
+            Require(moviePilot.CalendarReads == 1 && AutomationProperties.GetName(todayCell)
+                .Contains(today.ToString("D", CultureInfo.GetCultureInfo(UiText.Language)), StringComparison.Ordinal),
+                "同月今天按钮重新请求了日历，或当天缺少完整日期");
+            await SaveProbeScreenAsync("calendar-today-screen.png");
+            await ScrollProbeAsync(scroll, 0);
             Require(FrameworkElementAutomationPeer.CreatePeerForElement(next)?.GetName() is { Length: > 0 }
                 && next.Focus(FocusState.Keyboard) && ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), next),
                 "翻月按钮没有辅助功能名称或键盘焦点");
@@ -211,7 +231,8 @@ internal sealed partial class ShellNavigationProbe
             moviePilot.StatisticsReply.TrySetResult(true);
             moviePilot.PosterReply.TrySetResult(true);
             Call(shell, "StopMoviePilotMonitoring");
-            Call(shell, "ReleaseContent");
+            if (navigationCompleted) Call(shell, "ReleaseContent");
+            else if (shell.Pages.Content is IShellContent content) content.Release();
             shell.SignInRoot.Detach();
             _root.Children.Remove(shell);
             ThemeHost.Apply(originalTheme);
@@ -388,9 +409,8 @@ internal sealed partial class ShellNavigationProbe
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Require(request.Method == HttpMethod.Get && request.RequestUri is
-                { Scheme: "https", Host: "anibt.net", AbsolutePath: "/api/seasons/anime" },
-                "日历探针拒绝 AniBT 未登记的目标或动作");
+            var endpoint = request.RequestUri is { Scheme: "https", Host: "anibt.net", AbsolutePath: "/api/seasons/anime" };
+            Require(request.Method == HttpMethod.Get && endpoint, "日历探针拒绝 AniBT 未登记的目标或动作");
             Require(request.Headers.Authorization is null, "匿名 AniBT 日历被附加了凭据");
             Interlocked.Increment(ref _reads);
             return Task.FromResult(Json(new

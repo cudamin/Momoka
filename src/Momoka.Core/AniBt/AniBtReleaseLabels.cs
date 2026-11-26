@@ -44,22 +44,24 @@ public static class AniBtReleaseLabels
     /// 一周以内说“多久以前”，更早的给日期。用 <paramref name="now"/> 的时区显示日期，
     /// 这样跨时区测试与界面拿到的是同一个字符串。
     /// </summary>
-    public static string Published(DateTimeOffset? published, DateTimeOffset now)
+    public static string Published(DateTimeOffset? published, DateTimeOffset now, Func<string, string>? translate = null)
     {
         if (published is not { } time) return UnknownPublished;
 
         var elapsed = now - time;
         if (elapsed >= TimeSpan.Zero)
         {
-            if (elapsed < TimeSpan.FromMinutes(1)) return "刚刚";
+            if (elapsed < TimeSpan.FromMinutes(1)) return translate?.Invoke("刚刚") ?? "刚刚";
             if (elapsed < TimeSpan.FromHours(1))
-                return $"{Math.Max(1, (int)elapsed.TotalMinutes)} 分钟前";
+                return Relative("{0} 分钟前", (int)elapsed.TotalMinutes);
             if (elapsed < TimeSpan.FromDays(1))
-                return $"{Math.Max(1, (int)elapsed.TotalHours)} 小时前";
+                return Relative("{0} 小时前", (int)elapsed.TotalHours);
             if (elapsed < TimeSpan.FromDays(7))
-                return $"{Math.Max(1, (int)elapsed.TotalDays)} 天前";
+                return Relative("{0} 天前", (int)elapsed.TotalDays);
         }
 
         return time.ToOffset(now.Offset).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        string Relative(string label, int count) => string.Format(CultureInfo.CurrentCulture, translate?.Invoke(label) ?? label, count);
     }
 }

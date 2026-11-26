@@ -95,29 +95,29 @@ internal static class MoviePilotCalendarWiringTests
             Assert.Contains("ReleaseImages();", leave);
             var clear = page[page.IndexOf("private void ClearMonth()", StringComparison.Ordinal)..];
             clear = clear[..clear.IndexOf("private void ReleaseImages()", StringComparison.Ordinal)];
-            Assert.Contains("foreach (var card in _cards) card.Release();", clear);
-            Assert.Contains("_cards.Clear();", clear);
+            Assert.Contains("cell.Cards.Children.Concat(cell.ExtraCards.Children)", clear);
+            Assert.Contains("card.Release();", clear);
+            Assert.Contains("_days.Clear();", clear);
             Assert.Contains("MonthGrid.Children.Clear();", clear);
         });
 
-        Test("日历月视图：顶部筛选、中央年月、右侧翻月，七列适应窗口且不横滚", () =>
+        Test("日历月视图：月份操作、单选筛选与提示条接线，七列不横滚", () =>
         {
             var page = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarPage.xaml"));
             var filters = Named(page, "MediaType");
-            Assert.Equal("Horizontal", filters.Attribute("Orientation")?.Value);
+            Assert.Equal("SearchSourceTabs", filters.Name.LocalName);
+            Assert.Equal("OnMediaTypeChanged", filters.Attribute("SelectionChanged")?.Value);
             var choices = filters.Elements().ToArray();
             Assert.Equal(3, choices.Length);
             Assert.True(choices.Select(element => element.Attribute("Content")?.Value).SequenceEqual(new[] { "全部", "电影", "电视剧" }));
-            Assert.True(choices.Select(element => element.Attribute("Tag")?.Value).SequenceEqual(new[] { "0", "1", "2" }));
-            Assert.True(choices.All(element => element.Attribute("Click")?.Value == "OnMediaTypeChanged"));
+            Assert.True(choices.All(element => element.Name.LocalName == "SegmentedItem"));
             var month = Named(page, "MonthTitle");
-            Assert.Equal("1", month.Attribute("Grid.Column")?.Value);
-            Assert.Equal("Center", month.Attribute("HorizontalAlignment")?.Value);
             var actions = Named(page, "MonthActions");
-            Assert.Equal("2", actions.Attribute("Grid.Column")?.Value);
-            Assert.Equal("Right", actions.Attribute("HorizontalAlignment")?.Value);
-            foreach (var (name, handler) in new[] { ("PreviousMonth", "OnPreviousMonth"), ("NextMonth", "OnNextMonth"), ("CurrentMonth", "OnToday"), ("RefreshCalendar", "OnRefresh") })
+            Assert.Equal(month.Parent, actions.Parent);
+            Assert.Equal("1", actions.Attribute("Grid.Column")?.Value);
+            foreach (var (name, handler) in new[] { ("PreviousMonth", "OnPreviousMonth"), ("NextMonth", "OnNextMonth"), ("CurrentMonth", "OnToday"), ("RefreshCalendar", "OnRefresh"), ("RetryCalendar", "OnRetry") })
                 Assert.Equal(handler, Named(page, name).Attribute("Click")?.Value);
+            Assert.True(Named(page, "RetryCalendar").Ancestors().Any(element => element.Name.LocalName == "InfoBar.ActionButton"));
             var scroll = Named(page, "CalendarScroll");
             Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollMode")?.Value);
             Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollBarVisibility")?.Value);
@@ -129,34 +129,27 @@ internal static class MoviePilotCalendarWiringTests
         Test("MP 日历日格：事件卡直接在日期内排列，超过五项只展开该天", () =>
         {
             var page = Read("MoviePilotCalendarPage.xaml.cs");
-            var render = Between(page, "private void RenderMonth(", "private void ExpandDay(");
-            Assert.DoesNotContain("MonthGrid.MinWidth", render);
+            var render = Between(page, "private void BuildMonth(", "private Border Cell(");
+            Assert.DoesNotContain("MonthGrid.MinWidth", page);
             Assert.DoesNotContain("MonthGrid.Width", page);
-            Assert.Contains("MoviePilotCalendarLayout.VisibleCount(events.Length, _expandedDays.Contains(day))", render);
-            Assert.Contains("for (var index = 0; index < visible; index++) panel.Children.Add(EventCard(events[index]))", render);
-            Assert.Contains("if (events.Length > visible)", render);
-            Assert.Contains("more.Click += (_, _) => ExpandDay(day, panel, more, events, visible)", render);
-            Assert.Contains("cell.MinHeight = 180", render);
-            Assert.Contains("Grid.SetColumn(cell, offset % 7)", render);
-            Assert.Contains("Grid.SetRow(cell, 1 + (offset / 7))", render);
-            var expand = Between(page, "private void ExpandDay(", "private MoviePilotCalendarEventCard EventCard(");
-            Assert.Contains("if (!_expandedDays.Add(day)) return", expand);
-            Assert.Contains("panel.Children.Remove(more)", expand);
-            Assert.Contains("for (var index = visible; index < entries.Count; index++) panel.Children.Add(EventCard(entries[index]))", expand);
-            Assert.DoesNotContain("RenderMonth(", expand);
-            Assert.DoesNotContain("ViewModel.", expand);
-            Assert.DoesNotContain("GoTo(", expand);
-            Assert.DoesNotContain("ReloadAsync(", expand);
+            Assert.Contains("cell.Expanded = !cell.Expanded", render);
+            Assert.Contains("SyncDay(day, cell, cell.Entries)", render);
+            Assert.Contains("Grid.SetColumn(border, offset % 7)", render);
+            Assert.Contains("Grid.SetRow(border, 1 + (offset / 7))", render);
+            var sync = Between(page, "private void SyncDay(", "private void FocusCalendar(");
+            Assert.Contains("MoviePilotCalendarLayout.VisibleCount(entries.Count, false)", sync);
+            Assert.Contains("SyncCards(cell.Cards, entries, 0, preview)", sync);
+            Assert.Contains("SyncCards(cell.ExtraCards, entries, preview, cell.Expanded ? entries.Count - preview : 0)", sync);
+            Assert.Contains("existing.Update(entry, LoadImageAsync, token)", sync);
+            Assert.DoesNotContain("ReloadAsync(", sync);
             Assert.DoesNotContain("SelectDate(", page);
-            var changed = Between(page, "private void OnChanged()", "private void ClearMonth()");
-            Assert.Contains("_renderedMonth != ViewModel.Month || _renderedType != ViewModel.MediaType || _renderedSource != ViewModel.Source) _expandedDays.Clear()", changed);
         });
 
         Test("MP 日历事件卡：同格海报、标题、集数、入库和更新时间均有原生展示", () =>
         {
             var card = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarEventCard.xaml"));
             var names = card.Descendants().Select(Name).Where(name => name is not null).ToHashSet();
-            foreach (var name in new[] { "PosterImage", "PosterPlaceholder", "EventTitle", "EpisodeText", "LibraryRow", "LibraryText", "UpdatedRow", "UpdatedText" })
+            foreach (var name in new[] { "PosterImage", "PosterPlaceholder", "EventTitle", "EpisodeText", "LibraryText", "UpdatedText", "RuntimeText" })
                 Assert.True(names.Contains(name), "事件卡缺少 " + name);
             var poster = card.Descendants().Single(element => Name(element) == "PosterImage");
             Assert.Equal("UniformToFill", poster.Attribute("Stretch")?.Value);
@@ -169,11 +162,11 @@ internal static class MoviePilotCalendarWiringTests
             Assert.Equal("CharacterEllipsis", title.Attribute("TextTrimming")?.Value);
 
             var source = Read("MoviePilotCalendarEventCard.xaml.cs");
-            Assert.Contains("MoviePilotCalendarPresentation.EpisodeLabel(entry)", source);
+            Assert.Contains("MoviePilotCalendarPresentation.EpisodeLabel(entry, UiText.Translate)", source);
             Assert.Contains("MoviePilotCalendarPresentation.LibraryState(entry)", source);
             Assert.Contains("MoviePilotCalendarPresentation.LibraryStateText(entry)", source);
-            Assert.Contains("MoviePilotCalendarPresentation.UpdatedText(entry, DateTimeOffset.Now)", source);
-            Assert.Contains("UpdatedText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed", source);
+            Assert.Contains("MoviePilotCalendarPresentation.UpdatedText(entry, DateTimeOffset.Now, UiText.Translate)", source);
+            Assert.Contains("SetDetail(UpdatedText, updated)", source);
             Assert.Contains("AutomationProperties.SetName(this, description)", source);
             Assert.Contains("ToolTipService.SetToolTip(this, description)", source);
             Assert.DoesNotContain("CompletedEpisodes", source);
@@ -183,15 +176,16 @@ internal static class MoviePilotCalendarWiringTests
         Test("日历事件卡：缩放只重排现有控件，不重新读取或销毁卡片", () =>
         {
             var source = Read("MoviePilotCalendarEventCard.xaml.cs");
-            var resize = Between(source, "private void OnCardSizeChanged(", "internal void Attach(");
+            var resize = Between(source, "private void OnCardSizeChanged(", "internal bool Matches(");
             Assert.Contains("Math.Abs(width - _layoutWidth) < 0.5", resize);
             Assert.Contains("MoviePilotCalendarLayout.FitCard(width)", resize);
             Assert.Contains("PosterFrame.Height = layout.PosterWidth * 1.5", resize);
-            Assert.Contains("Grid.SetRow(TextPanel, layout.Stacked ? 1 : 0)", resize);
+            Assert.Contains("Grid.SetRow(TextPanel, layout.Stacked && layout.PosterWidth > 0 ? 1 : 0)", resize);
+            Assert.Contains("UpdateDetailVisibility()", resize);
             foreach (var forbidden in new[] { "LoadImageAsync", "Release(", "Attach(", "RenderMonth(", "DecodeAsync" })
                 Assert.DoesNotContain(forbidden, resize);
             var xaml = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarEventCard.xaml"));
-            foreach (var name in new[] { "EpisodeText", "LibraryText", "CompleteText", "PartialText", "UpdatedText" })
+            foreach (var name in new[] { "EpisodeText", "LibraryText", "UpdatedText" })
                 Assert.Equal("Wrap", Named(xaml, name).Attribute("TextWrapping")?.Value);
             Assert.False(xaml.Descendants().Any(element => element.Name.LocalName == "Viewbox"));
         });
@@ -199,10 +193,10 @@ internal static class MoviePilotCalendarWiringTests
         Test("MP 日历事件卡：离页取消旧海报，迟到读取不能覆盖重用的卡片", () =>
         {
             var source = Read("MoviePilotCalendarEventCard.xaml.cs");
-            var attach = source[source.IndexOf("internal void Attach(", StringComparison.Ordinal)..];
-            attach = attach[..attach.IndexOf("private async Task LoadImageAsync", StringComparison.Ordinal)];
-            Assert.True(attach.IndexOf("Release();", StringComparison.Ordinal) < attach.IndexOf("EventTitle.Text = entry.Title", StringComparison.Ordinal));
-            Assert.Contains("CancellationTokenSource.CreateLinkedTokenSource(token)", attach);
+            Assert.Contains("PosterFrame.EffectiveViewportChanged += OnPosterViewportChanged", source);
+            var poster = Between(source, "private void StartVisiblePoster()", "private async Task LoadImageAsync(");
+            Assert.Contains("if (!_inViewport || PosterFrame.Visibility != Visibility.Visible || _posterAttempted", poster);
+            Assert.Contains("CancellationTokenSource.CreateLinkedTokenSource(_posterLifetime)", poster);
             Assert.Contains("!ReferenceEquals(_load, pending) || pending.IsCancellationRequested", source);
             Assert.Contains("_load?.Cancel();", source);
             Assert.Contains("_load?.Dispose();", source);
@@ -212,15 +206,16 @@ internal static class MoviePilotCalendarWiringTests
 
         Test("MP 日历海报：相同空列表短路前仍撤销旧图片归属并捕获新连接", () =>
         {
-            var changed = Between(Read("MoviePilotCalendarPage.xaml.cs"), "private void OnChanged()", "private void ClearMonth()");
-            var ownership = changed.IndexOf("if (ViewModel.Busy || _imagesLifetime is null)", StringComparison.Ordinal);
+            var changed = Between(Read("MoviePilotCalendarPage.xaml.cs"), "private void OnChanged()", "private void SyncToolbar(");
+            Assert.Contains("_renderedSourceRevision != ViewModel.SourceRevision", changed);
+            var ownership = changed.IndexOf("if (ownershipChanged)", StringComparison.Ordinal);
             var clear = changed.IndexOf("ReleaseImages();", ownership, StringComparison.Ordinal);
             var lifetime = changed.IndexOf("_imagesLifetime = new CancellationTokenSource();", clear, StringComparison.Ordinal);
-            var capture = changed.IndexOf("_fetchImage = isAniBt ? request.AniBt.CalendarCoverAsync : request.Service?.CaptureImageFetcher();", lifetime, StringComparison.Ordinal);
-            var reuse = changed.IndexOf("if (ReferenceEquals(_renderedEntries, entries) && _renderedMonth == ViewModel.Month && _renderedSource == ViewModel.Source) return;", StringComparison.Ordinal);
+            var capture = changed.IndexOf("request.Service?.CaptureImageFetcher()", lifetime, StringComparison.Ordinal);
+            var reuse = changed.IndexOf("ReferenceEquals(_renderedEntries, entries)", StringComparison.Ordinal);
             Assert.True(ownership >= 0 && clear > ownership && lifetime > clear && capture > lifetime && reuse > capture,
                 "空数组可能复用同一实例，不能先短路再更新海报的连接归属");
-            var release = Between(Read("MoviePilotCalendarPage.xaml.cs"), "private void ReleaseImages()", "private void RenderMonth(");
+            var release = Between(Read("MoviePilotCalendarPage.xaml.cs"), "private void ReleaseImages()", "private void BuildMonth(");
             Assert.Contains("_imagesLifetime?.Cancel();", release);
             Assert.Contains("_images.Clear();", release);
             Assert.Contains("_fetchImage = null;", release);
@@ -229,14 +224,16 @@ internal static class MoviePilotCalendarWiringTests
         Test("AniBT 日历：来源控件、独立封面和播出标签接入，卡片收起订阅专有字段", () =>
         {
             var xaml = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Views/MoviePilotCalendarPage.xaml"));
-            var choices = Named(xaml, "CalendarSources").Elements().ToArray();
+            var sources = Named(xaml, "CalendarSources");
+            var choices = sources.Elements().ToArray();
             Assert.True(choices.Select(element => element.Attribute("Content")?.Value).SequenceEqual(new[] { "MoviePilot 订阅", "AniBT 番剧" }));
-            Assert.True(choices.Select(element => element.Attribute("Click")?.Value).SequenceEqual(new[] { "OnMoviePilotSource", "OnAniBtSource" }));
+            Assert.Equal("OnSourceChanged", sources.Attribute("SelectionChanged")?.Value);
             var page = Read("MoviePilotCalendarPage.xaml.cs");
             Assert.Contains("AniBtCalendarSource.Visibility = ViewModel.AniBtAvailable", page);
-            Assert.Contains("ViewModel.SelectSource(CalendarSource.AniBt)", page);
-            var card = Between(Read("MoviePilotCalendarEventCard.xaml.cs"), "internal void Attach(AniBtCalendarEntry", "private void SetDescription(");
-            Assert.Contains("LibraryRow.Visibility = LibraryBadge.Visibility = UpdatedRow.Visibility = RuntimeText.Visibility = Visibility.Collapsed", card);
+            Assert.Contains("ViewModel.SelectSource((CalendarSource)CalendarSources.SelectedIndex)", page);
+            Assert.Contains("request.AniBt.CalendarCoverAsync", page);
+            var card = Between(Read("MoviePilotCalendarEventCard.xaml.cs"), "private void PresentAnime(", "private void PresentDetails(");
+            Assert.Contains("PresentDetails(entry.AiringAt", card);
             Assert.Contains("entry.AiringAt is { } airing", card);
             Assert.Contains("entry.IsPremiere", card);
         });
@@ -251,7 +248,8 @@ internal static class MoviePilotCalendarWiringTests
             var fetch = load.IndexOf("ReadImageAsync(url, _fetchImage, _imagesLifetime.Token)", StringComparison.Ordinal);
             Assert.True(absolute >= 0 && scheme > absolute && reject > scheme && fetch > reject,
                 "本地文件、自定义协议和相对路径必须在读取图片之前拒绝");
-            var read = Between(page, "private static async Task<BitmapImage?> ReadImageAsync(", "private Border Cell(");
+            var read = Between(page, "private static async Task<BitmapImage?> ReadImageAsync(", "private void OnToolbarSizeChanged(");
+            Assert.Contains("await PosterSlots.WaitAsync(token)", read);
             Assert.Contains("await fetch(url, token)", read);
             Assert.Contains("PosterLoader.DecodeAsync(bytes, 56)", read);
             Assert.Contains("token.ThrowIfCancellationRequested();", read);

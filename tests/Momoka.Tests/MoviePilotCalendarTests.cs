@@ -362,6 +362,33 @@ internal static class MoviePilotCalendarTests
             Assert.Equal("", MoviePilotCalendarPresentation.RuntimeText(movie with { RuntimeMinutes = 0 }));
             Assert.Equal("", MoviePilotCalendarPresentation.RuntimeText(movie with { RuntimeMinutes = null }));
         });
+
+        Test("MoviePilot 日历卡片：本地化只替换显示标签，保留集号、时长和更新时间", () =>
+        {
+            var now = new DateTimeOffset(2026, 11, 21, 12, 0, 0, TimeSpan.FromHours(8));
+            var series = Entry() with
+            {
+                Episodes = [new(1, ""), new(3, "")],
+                LibraryEpisodeCount = 1,
+                LastUpdate = "2026-11-21 11:55:00"
+            };
+            var movie = Entry() with { Type = "电影", RuntimeMinutes = 120 };
+            Assert.Equal("Ep. 1, 3", MoviePilotCalendarPresentation.EpisodeLabel(series, Translate));
+            Assert.Equal("Movie", MoviePilotCalendarPresentation.EpisodeLabel(movie, Translate));
+            Assert.Equal("120 min", MoviePilotCalendarPresentation.RuntimeText(movie, Translate));
+            Assert.Equal("Updated 5 min ago", MoviePilotCalendarPresentation.UpdatedText(series, now, Translate));
+
+            static string Translate(string label) => label switch
+            {
+                "第 {0} 集" => "Ep. {0}",
+                "、" => ", ",
+                "电影" => "Movie",
+                "{0} 分钟" => "{0} min",
+                "{0}更新" => "Updated {0}",
+                "{0} 分钟前" => "{0} min ago",
+                _ => throw new InvalidOperationException(label)
+            };
+        });
     }
 
     private static MoviePilotCalendarEntry Entry() => new()

@@ -2,50 +2,122 @@
     x:Class="Momoka.Shell.Views.MoviePilotCalendarPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     Background="Transparent">
-    <Grid Padding="{StaticResource EgPageMargin}" RowSpacing="12">
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/SegmentedItem/SegmentedItem.xaml" />
+                <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/Segmented/Segmented.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <StaticResource x:Key="ButtonItemBackgroundSelected" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ButtonItemBackgroundSelectedPointerOver" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ButtonItemBackgroundSelectedPressed" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ButtonItemForegroundSelected" ResourceKey="AccentTextFillColorPrimaryBrush" />
+            <StaticResource x:Key="ButtonItemForegroundSelectedPointerOver" ResourceKey="AccentTextFillColorPrimaryBrush" />
+            <StaticResource x:Key="ButtonItemForegroundSelectedPressed" ResourceKey="AccentTextFillColorPrimaryBrush" />
+            <Style x:Key="CalendarSegmentedStyle" TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
+                <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgCornerBadgeCornerRadius}" />
+                <Setter Property="Padding" Value="2" />
+            </Style>
+            <Style x:Key="CalendarSegmentedItemStyle" TargetType="toolkit:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Padding" Value="8,4" />
+            </Style>
+            <Style x:Key="CalendarWeekdayStyle" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}" />
+            <Style x:Key="CalendarDateStyle" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+            <Style x:Key="CalendarAdjacentDateStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarDateStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource EgTextDimBrush}" />
+                <Setter Property="FontWeight" Value="Normal" />
+            </Style>
+            <Style x:Key="CalendarTodayDateStyle" TargetType="TextBlock" BasedOn="{StaticResource CalendarDateStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
+            </Style>
+            <Style x:Key="CalendarTodayBadgeStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+            </Style>
+            <Style x:Key="CalendarDayCellStyle" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{ThemeResource DividerStrokeColorDefaultBrush}" />
+            </Style>
+        </ResourceDictionary>
+    </Page.Resources>
+    <Grid x:Name="CalendarLayout" Padding="24,16,24,12" RowSpacing="8">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel Spacing="8">
-            <StackPanel x:Name="CalendarSources" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
-                <Button x:Uid="MoviePilotCalendarPage_MoviePilotSource" x:Name="MoviePilotCalendarSource" Content="MoviePilot 订阅"
-                    Click="OnMoviePilotSource" Style="{StaticResource EgSecondaryButtonStyle}" />
-                <Button x:Uid="MoviePilotCalendarPage_AniBtSource" x:Name="AniBtCalendarSource" Content="AniBT 番剧"
-                    Click="OnAniBtSource" Style="{StaticResource EgSecondaryButtonStyle}" />
+        <Grid x:Name="CalendarToolbar" ColumnSpacing="8" RowSpacing="4" SizeChanged="OnToolbarSizeChanged">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="MonthTitle" Style="{StaticResource EgSubpageTitleStyle}" VerticalAlignment="Center"
+                TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level1" AutomationProperties.LiveSetting="Polite" />
+            <StackPanel x:Name="MonthActions" Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button x:Uid="MoviePilotCalendarPage_CurrentMonth" x:Name="CurrentMonth" Content="今天" Click="OnToday" />
+                <Button x:Uid="MoviePilotCalendarPage_PreviousMonth" x:Name="PreviousMonth" Click="OnPreviousMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="上个月" ToolTipService.ToolTip="上个月">
+                    <FontIcon Glyph="&#xE76B;" />
+                </Button>
+                <Button x:Uid="MoviePilotCalendarPage_NextMonth" x:Name="NextMonth" Click="OnNextMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="下个月" ToolTipService.ToolTip="下个月">
+                    <FontIcon Glyph="&#xE76C;" />
+                </Button>
+                <Button x:Uid="MoviePilotCalendarPage_RefreshCalendar" x:Name="RefreshCalendar" Click="OnRefresh" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="刷新日历" ToolTipService.ToolTip="刷新">
+                    <FontIcon Glyph="&#xE72C;" />
+                </Button>
             </StackPanel>
-            <Grid x:Name="CalendarToolbar" ColumnSpacing="12" RowSpacing="8">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <StackPanel x:Name="MediaType" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <Button x:Uid="MoviePilotCalendarPage_AllMedia" x:Name="AllMedia" Content="全部" Tag="0" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
-                    <Button x:Uid="MoviePilotCalendarPage_MovieMedia" x:Name="MovieMedia" Content="电影" Tag="1" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
-                    <Button x:Uid="MoviePilotCalendarPage_SeriesMedia" x:Name="SeriesMedia" Content="电视剧" Tag="2" Click="OnMediaTypeChanged" Style="{StaticResource EgSecondaryButtonStyle}" />
-                </StackPanel>
-                <TextBlock x:Name="MonthTitle" Grid.Column="1" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                <StackPanel x:Name="MonthActions" Grid.Column="2" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Uid="MoviePilotCalendarPage_CurrentMonth" x:Name="CurrentMonth" Content="今天" Click="OnToday" Style="{StaticResource EgSecondaryButtonStyle}" />
-                    <Button x:Uid="MoviePilotCalendarPage_RefreshCalendar" x:Name="RefreshCalendar" Click="OnRefresh" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="刷新日历" ToolTipService.ToolTip="刷新">
-                        <FontIcon Glyph="&#xE72C;" />
-                    </Button>
-                    <Button x:Uid="MoviePilotCalendarPage_PreviousMonth" x:Name="PreviousMonth" Click="OnPreviousMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="上个月" ToolTipService.ToolTip="上个月">
-                        <FontIcon Glyph="&#xE76B;" />
-                    </Button>
-                    <Button x:Uid="MoviePilotCalendarPage_NextMonth" x:Name="NextMonth" Click="OnNextMonth" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="下个月" ToolTipService.ToolTip="下个月">
-                        <FontIcon Glyph="&#xE76C;" />
-                    </Button>
-                </StackPanel>
+        </Grid>
+        <local:WrapRow Grid.Row="1" Spacing="16" RowSpacing="8">
+            <TextBlock x:Name="SingleCalendarSource" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center"
+                Margin="0,7" Visibility="Collapsed" />
+            <local:SearchSourceTabs x:Uid="MoviePilotCalendarPage_CalendarSources" x:Name="CalendarSources"
+                Style="{StaticResource CalendarSegmentedStyle}" ItemContainerStyle="{StaticResource CalendarSegmentedItemStyle}"
+                SelectionChanged="OnSourceChanged" AutomationProperties.Name="日历来源" Visibility="Collapsed">
+                <toolkit:SegmentedItem x:Uid="MoviePilotCalendarPage_MoviePilotSource" x:Name="MoviePilotCalendarSource" Content="MoviePilot 订阅" />
+                <toolkit:SegmentedItem x:Uid="MoviePilotCalendarPage_AniBtSource" x:Name="AniBtCalendarSource" Content="AniBT 番剧" />
+            </local:SearchSourceTabs>
+            <local:SearchSourceTabs x:Uid="MoviePilotCalendarPage_MediaType" x:Name="MediaType"
+                Style="{StaticResource CalendarSegmentedStyle}" ItemContainerStyle="{StaticResource CalendarSegmentedItemStyle}"
+                SelectionChanged="OnMediaTypeChanged" AutomationProperties.Name="媒体类型">
+                <toolkit:SegmentedItem x:Uid="MoviePilotCalendarPage_AllMedia" x:Name="AllMedia" Content="全部" />
+                <toolkit:SegmentedItem x:Uid="MoviePilotCalendarPage_MovieMedia" x:Name="MovieMedia" Content="电影" />
+                <toolkit:SegmentedItem x:Uid="MoviePilotCalendarPage_SeriesMedia" x:Name="SeriesMedia" Content="电视剧" />
+            </local:SearchSourceTabs>
+        </local:WrapRow>
+        <StackPanel Grid.Row="2" Spacing="6">
+            <Grid Height="4">
+                <ProgressBar IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
             </Grid>
+            <InfoBar x:Name="CalendarNotice" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False"
+                Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+                Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}">
+                <InfoBar.ActionButton>
+                    <Button x:Name="RetryCalendar" Content="{x:Bind ViewModel.NoticeActionLabel, Mode=OneWay}"
+                        Visibility="{x:Bind ViewModel.NoticeActionVisibility, Mode=OneWay}" Click="OnRetry" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <TextBlock x:Name="MonthSummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
-        <StackPanel Grid.Row="1" Spacing="8">
-            <ProgressBar IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-            <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
-                Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
-                Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <TextBlock x:Name="MonthSummary" Style="{StaticResource EgCaptionStyle}" AutomationProperties.LiveSetting="Polite" />
-        </StackPanel>
-        <ScrollViewer x:Name="CalendarScroll" Grid.Row="2" Margin="0,0,-32,0" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+        <ScrollViewer x:Name="CalendarScroll" Grid.Row="3" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
             VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto">
-            <Grid x:Name="MonthGrid" Margin="0,0,20,0" HorizontalAlignment="Stretch" />
+            <Border VerticalAlignment="Top" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1,1,0,0"
+                CornerRadius="{StaticResource EgCornerBadgeCornerRadius}">
+                <Grid x:Name="MonthGrid" HorizontalAlignment="Stretch" />
+            </Border>
         </ScrollViewer>
     </Grid>
 </Page>
