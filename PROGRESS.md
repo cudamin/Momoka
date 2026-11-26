@@ -1,3 +1,13 @@
+## 2026-11-26 MoviePilot 打格子与豆瓣作品状态
+
+工作树 `C:\Users\89400\.codex\worktrees\a16f\Momoka`，分支 `codex/scrobbling-settings`。通知修复 `856b9d0`、设置迁移 `afa3cca`、播放识别 `7a8e37b`，待合并。工作区之前已有的豆瓣登录与退出测试差异单独保留。
+
+- 已复现原实现在多季缺集的媒体库中把豆瓣起播记为跳过。豆瓣现在通过实际播放所属账号和 MoviePilot 确认作品，起播只标在看。达到已看阈值后另查末集，从两次识别中确认是同一个豆瓣作品，再用站点总集数核对。已看作品重播保留已看。Bangumi 单独按集同步，站点卡和通知开关迁到 MoviePilot 设置。
+- 另复现 Windows App SDK 自包含部署注册返回 `0x8007007E`。仅在已验证的未打包部署条件下保留通知发送能力。两种发布形态的匿名宿主均在 Windows 通知中心读回一条消息，随后按 ID 清除该条通知并清理测试身份。Windows 横幅、点击激活及实际商店安装尚待验证。
+- Release 运行程序及主测试工程均零警告、零错误。打格子专项 135/135、豆瓣 DOM 29/29、设置状态 82/82、搜索 21/21、生命周期 68/68、设置探针契约 40/40、架构 7/7。匿名 WinUI 真窗口 1/1，验证站点入口、通知开关、豆瓣作品标题、Bangumi 集号、筛选、实时记录和窄窗。协议回归使用匿名来源与可控 HTTP，包括多季、站点阻塞、旧连接和末集证据改变。未在真实媒体库起播或写第三方账号。
+- 最终串行主测试 5481/5481，均已执行。首轮 16 项自检共用的桌面锁被占用，释放后定向 21/21；第二轮有一项本地目录监控在 4 秒内未就绪，其所属专项 186/186，最后整套通过，保留两次失败的运行记录。可查看 `artifacts/scrobbling-validation/moviepilot-scrobbling/final-main-serial-shareable.log`，已遮盖测试标题中模拟凭据的字样并复扫为零。空白检查退出 0，有工作区加载提示；重复代码 68 段、0.47%，在预算内。
+- 本树自包含体验版 `0.3.3+7a8e37b87c89a8c26c0260f66731f2d24a226601` 发布校验通过，共 548 个文件、291.9 MB。桌面 `Momoka-scrobbling-settings.lnk` 的目标、工作目录和发布程序集版本均已回读核对。回执位于 `artifacts/scrobbling-validation/moviepilot-scrobbling/publish-receipt.json`。
+
 ## 2026-11-26 打格子用 TMDB 精确识别并提醒跳过
 
 工作树 `C:\Users\89400\.codex\worktrees\a16f\Momoka`，分支 `codex/scrobbling-settings`，功能提交 `b76bd0c`，待合并。保留已有分类图标、布局及连接状态测试的工作区差异。
