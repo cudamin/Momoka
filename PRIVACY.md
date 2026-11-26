@@ -1,10 +1,10 @@
 # Momoka 隐私政策
 
-最后更新：2026-11-21
+最后更新：2026-11-26
 
 ## 一句话
 
-Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统计或账号数据**；应用连接你配置的媒体服务、你选择的 Plex 账号服务、可关闭的发布页更新检查、你明确开启的弹幕与字幕翻译服务，以及为弹弹play 下发内置凭据的 Momoka 端点。本机设置与凭据保存在你的电脑上；启用的第三方功能会向相应服务发送完成该功能所需的信息。
+Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统计或账号数据**。本机设置与凭据保存在你的电脑上。应用会向配置的媒体服务和下文列出的第三方服务发送完成相应功能所需的信息，包括打开符合条件的媒体详情时自动查询 Bangumi 评分。
 
 ## 1. 适用范围
 
@@ -55,11 +55,12 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 
 9. **YouTube（只有你播放 YouTube 预告时）** —— 详情页右上角的预告预览与「播放」窗会加载 `www.youtube.com` 的公开页面。默认匿名加载；如果 YouTube 要求登录才能播放，详情页的提示条会给你一个「登录 YouTube」按钮，登录在应用内的 WebView2 页面里完成，账号 Cookie 保存在 `webview2\youtube\`，只供这支预告配置使用；不读取、不记录 Cookie 值。登录不是必须的，你也可以不登录而把视频交给系统浏览器打开，那时由浏览器自己的登录态与隐私设置决定。
 
-10. **AniBT 番剧日历与参考分**。查看日历中的 AniBT 来源时，应用向 `anibt.net` 匿名查询所需年份和季度，并从 `r2.anibt.net` 匿名读取公开封面。开启「AniBT 功能」后，打开有确切 Bangumi 编号的影视媒体库详情时，应用也会向 `anibt.net` 发送该公开编号查询参考分。这些请求不携带影片库清单、媒体服务器地址、账号或访问令牌。关闭「AniBT 功能」后，日历和参考分停止查询。
+10. **AniBT 番剧日历**。查看日历中的 AniBT 来源时，应用向 `anibt.net` 匿名查询所需年份和季度，并从 `r2.anibt.net` 读取公开封面。关闭「AniBT 功能」会停止该日历来源的查询。
+11. **Bangumi 官方评分**。打开符合条件的影视媒体库详情时，应用自动向 `api.bgm.tv` 发送公开 Bangumi 条目编号查询评分。部分缺少编号的电影和剧集会发送作品原名或显示标题及首播年份范围用于匹配。请求带有应用名和版本，不发送媒体服务器地址、整库清单、账号、访问令牌或播放记录。评分不写入磁盘。离开详情页会取消尚在处理的查询，已经发送的内容无法撤回。此功能没有独立开关，且不受 MoviePilot 和 AniBT 开关控制。
 
 发往媒体服务器的请求带有这些标识：客户端名 `Momoka`、**本机计算机名**、随机生成并保存在本机的设备 ID、应用版本号，以及你的访问令牌。这些只发给**你自己的服务器**，用途是让服务器认出「这是哪台设备」。
 
-**开发者不会接收上述媒体服务凭据与使用数据。** 第 2、5、6 项是非媒体服务器地址：Plex 只在你选择登录时使用，更新源只带客户端名与版本号，弹弹play 只在明确开启后使用，带作品查询与应用鉴权信息。第 7 项是开发者运营的凭据端点，只用于下发应用凭据，不承载你的作品查询或播放数据。第 2、6 项的数据由对应第三方服务处理，不是开发者运营的服务。关于页的 GitHub 点星与弹弹play 网站按钮仅在点击后交给默认浏览器打开。
+**开发者不会接收上述媒体服务凭据与使用数据。** Plex 登录、弹幕、番剧日历和评分请求由对应服务处理。第 7 项是开发者运营的凭据端点，只用于下发应用凭据，不承载你的作品查询或播放数据。关于页的 GitHub 点星与弹弹play 网站按钮仅在点击后交给默认浏览器打开。
 
 **实时字幕翻译（可选、默认关闭）**：你开启并配置 API 密钥后，当前显示的主文字字幕会逐句发给 Google Cloud Translation、Microsoft Translator，或你配置的兼容 OpenAI AI 服务。请求包含字幕原文、源/目标语言与服务所需配置；密钥只在请求头，不进入 URL、日志或子进程参数。谷歌/微软只允许官方端点，AI 自定义端点只允许 HTTPS 或本机 HTTP 回环地址。第三方可能按量收费并按其隐私政策处理原文。应用仅缓存每片最多 256 句译文于内存，切片清除，不保存字幕原文/译文文件；关闭、注销与切片撤销旧请求。没有文字字幕、PGS/VOBSUB 图形字幕不作 OCR 或语音识别。网络取消不能撤回第三方已经收到的文本。
 
@@ -99,11 +100,11 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 
 # Momoka Privacy Policy
 
-Last updated: 2026-11-21
+Last updated: 2026-11-26
 
 Momoka is a Windows desktop client for an Emby, Jellyfin, 飞牛影视 or Plex media server that you own or are authorized to use.
 
-**The developer collects no telemetry, analytics, or account data.** Enabled features send the information needed for their function to your selected services. The app contains no telemetry, analytics, advertising, or crash reporting. Apart from the built-in DandanPlay credential endpoint described below — which only returns an application credential — it does not contact any service operated by the developer.
+**The developer collects no telemetry, analytics, or account data.** The app sends the information required for each feature to the destinations listed below, including automatic Bangumi ratings lookups for eligible library titles. The app contains no telemetry, analytics, advertising, or crash reporting. Apart from the built-in DandanPlay credential endpoint described below — which only returns an application credential — it does not contact any service operated by the developer.
 
 Local application data defaults to `%LOCALAPPDATA%\Momoka`: your server address, account name and preferences (`settings.json`); passwords, access tokens, Translation API keys and an optional danmu_api access token encrypted with Windows DPAPI; logs without credentials; poster/backdrop and shader caches; screenshots; and WebView2 browsing data. Screenshots may use a directory you select; downloaded media goes to the Momoka subdirectory of the system Videos folder. DandanPlay uses only Momoka's built-in application credential, cached under `cache/danmaku/builtin-credential.bin`, encrypted with Windows DPAPI and refreshed before it expires. User-provided DandanPlay AppId/AppSecret settings are retired. Its search/comment cache lives in `cache/danmaku`, expires after two hours, and keeps at most 16 files. Preference backups exclude credentials. The local font list is only displayed locally.
 
@@ -118,6 +119,10 @@ Uninstalling the app does not delete the data listed above. After exiting the ap
 An additional optional destination is the official DandanPlay open comment network. It is off by default and uses only Momoka's built-in application credential. Once enabled, automatic matching and manual searches send a work title and episode number to `api.dandanplay.net`; fetching comments sends the comment-library ID and related-comment preference. Requests carry the application ID, timestamp and signature, not a plaintext AppSecret. Official HTTPS CDN redirects are allowed only within `dandanplay.net`; cross-origin requests carry no authentication headers. No video content, media-server address, media account or access token is sent. The comment network itself is a third-party service; the credential endpoint described above is operated by the developer. Posting is performed only when the user clicks Send or presses Enter in the comment input. It sends the text, comment-library time, fixed white scrolling mode and the application nickname Momoka to the application's private comment library, without automatic retries. DandanPlay login and playback-history APIs are not used. The built-in credential is shared across Momoka users and is not a confidentiality mechanism: it is distributed with the client and can be extracted, but it is kept out of the public source and can be rotated server-side. About-page website buttons open the default browser only when clicked.
 
 Optional self-hosted danmu_api receives work searches, item identifiers and comment-reading requests at the address you configure. Its optional dedicated access token is placed in the URL path by that protocol; the service and its proxy may see or log it. Use only deployments that already allow requests without a token. Leave the token field empty for a new setup. If you previously saved a token, select **Clear key** and confirm that no key is saved. Instances requiring a path token are currently unsupported. It is separate from a DandanPlay application credential. Momoka provides no public danmu_api service. Combined source mode requests both destinations; comment posting uses only DandanPlay.
+
+The AniBT calendar source sends the requested years and quarters to `anibt.net` and fetches public covers from `r2.anibt.net`. Turning off AniBT stops these calendar requests.
+
+Opening an eligible library detail page automatically queries official ratings from `api.bgm.tv` using a public Bangumi subject ID. For some movies or series without an ID, the app sends the original or displayed title and the premiere-year range to match the work. Requests include the app name and version. They omit the media server address, library inventory, account, access token and playback history. Ratings are held in memory. Leaving the detail page cancels an in-progress lookup. Information already sent cannot be recalled. The lookup has no separate switch and runs independently of MoviePilot and AniBT settings.
 
 Optional real-time Subtitle Translation is off by default. When enabled with an API key, the currently displayed primary text subtitle is sent to Google Cloud Translation, Microsoft Translator, or your configured OpenAI-compatible AI service. Requests contain the subtitle text, source/target language and required service configuration. Keys go in request headers, never URLs, logs or process arguments. Google/Microsoft use official endpoints; AI endpoints allow HTTPS or local HTTP loopback. Services may impose usage charges and process the text under their privacy policies. Up to 256 translated lines per file are held in memory and cleared on file changes; no original/translated subtitle file is saved. Disabling the feature, signing out or switching files cancels old requests, but cancellation cannot retract text already received by the provider. Image subtitles are not transcribed or processed with OCR.
 
