@@ -841,35 +841,19 @@ internal static class DanmakuTests
             Assert.False(DanmakuSourceRules.IsAvailable(settings));
         });
 
-        Test("弹幕：danmu_api 地址只接受 http/https 完整地址，令牌作为独立路径段", () =>
+        Test("弹幕：danmu_api 地址只接受 http/https 完整地址，保留反代前缀", () =>
         {
-            Assert.True(DanmuApiEndpoint.TryCreate("http://127.0.0.1:9321", "", out var baseUri, out var error), error);
+            Assert.True(DanmuApiEndpoint.TryCreate("http://127.0.0.1:9321", out var baseUri, out var error), error);
             Assert.Equal("http://127.0.0.1:9321/", baseUri.AbsoluteUri);
-            Assert.True(DanmuApiEndpoint.TryCreate("http://127.0.0.1:9321/", "abc-123", out baseUri, out error), error);
-            Assert.Equal("http://127.0.0.1:9321/abc-123/", baseUri.AbsoluteUri);
-            Assert.True(DanmuApiEndpoint.TryCreate("https://example.test/danmu", "a/b?c", out baseUri, out error), error);
-            Assert.Equal("https://example.test/danmu/a%2Fb%3Fc/", baseUri.AbsoluteUri);
+            Assert.True(DanmuApiEndpoint.TryCreate("https://example.test/danmu", out baseUri, out error), error);
+            Assert.Equal("https://example.test/danmu/", baseUri.AbsoluteUri);
 
             foreach (var bad in new[] { "", "127.0.0.1:9321", "ftp://host", "http://user:pass@host",
                 "http://host/?q=1", "http://host/#frag", "http:///missing" })
-                Assert.False(DanmuApiEndpoint.TryCreate(bad, "", out _, out _), bad);
-            Assert.False(DanmuApiEndpoint.TryCreate("http://host", "a\nb", out _, out _));
-            Assert.False(DanmuApiEndpoint.TryCreate("http://host", new string('x', 513), out _, out _));
+                Assert.False(DanmuApiEndpoint.TryCreate(bad, out _, out _), bad);
         });
 
-        Test("弹幕：danmu_api 令牌用 DPAPI 保护，空值清除，解不开要明说", () =>
-        {
-            var protector = new PrefixProtector();
-            var protectedText = DanmuApiToken.Protect(protector, " abc ");
-            Assert.Equal("cipher:" + Convert.ToBase64String(Encoding.UTF8.GetBytes("abc")), protectedText);
-            Assert.Equal("abc", DanmuApiToken.Unprotect(protector, protectedText, out var error));
-            Assert.Equal("", error);
-            Assert.Equal("", DanmuApiToken.Protect(protector, "  "));
-            Assert.Equal("", DanmuApiToken.Unprotect(null, protectedText, out error));
-            Assert.Contains("无法解密", error);
-        });
-
-        Test("danmu_api：搜索走令牌路径、不签名、不碰内置凭据", () => InFixture(fixture =>
+        Test("danmu_api：搜索走无令牌路径、不签名、不碰内置凭据", () => InFixture(fixture =>
         {
             UseDanmuApi(fixture);
             fixture.Transport.Response = _ => Reply(Search);
@@ -878,7 +862,7 @@ internal static class DanmakuTests
             var request = fixture.Transport.Requests.Single();
             Assert.Equal("danmu.test", request.Uri.Host);
             Assert.Equal(9321, request.Uri.Port);
-            Assert.Equal("/fixture-token/api/v2/search/episodes", request.Uri.AbsolutePath);
+            Assert.Equal("/api/v2/search/episodes", request.Uri.AbsolutePath);
             Assert.Contains(Uri.EscapeDataString("测试作品"), request.Uri.Query);
             Assert.Contains("&episode=1", request.Uri.Query);
             Assert.False(request.Headers.ContainsKey("X-AppId"));
@@ -910,7 +894,7 @@ internal static class DanmakuTests
             Assert.Equal(3, fixture.Transport.Requests.Count);
         }));
 
-        Test("danmu_api：地址无效、令牌解不开或来源未包含时不发请求", () => InFixture(fixture =>
+        Test("danmu_api：地址无效、保存有旧令牌或来源未包含时不发请求", () => InFixture(fixture =>
         {
             fixture.Settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
             var error = Assert.Catch<DandanPlayException>(() =>
@@ -922,7 +906,7 @@ internal static class DanmakuTests
             fixture.Settings.Danmaku.ProtectedDanmuApiToken = "not-a-cipher";
             error = Assert.Catch<DandanPlayException>(() =>
                 fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
-            Assert.Contains("无法解密", error.Message);
+            Assert.Contains("清除", error.Message);
             Assert.Equal(0, fixture.Transport.Requests.Count);
 
             fixture.Settings.Danmaku.ProtectedDanmuApiToken = "";
@@ -931,6 +915,43 @@ internal static class DanmakuTests
                 fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
             Assert.Contains("来源", error.Message);
             Assert.Equal(0, fixture.Transport.Requests.Count);
+        }));
+
+        Test("danmu_api：旧令牌阻止搜索、匹配和读取，清除后只发无令牌请求", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            var danmaku = fixture.Settings.Danmaku;
+            const string sentinel = "anonymous-danmu-regression";
+            danmaku.ProtectedDanmuApiToken = fixture.Protector.Protect(sentinel);
+            fixture.Transport.Response = _ => Reply(Search);
+
+            foreach (var request in new Action[]
+            {
+                () => fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult(),
+                () => fixture.Client.MatchAsync("测试作品 S01E01").GetAwaiter().GetResult(),
+                () => fixture.Client.GetCommentsAsync(1, false, DanmakuSource.DanmuApi).GetAwaiter().GetResult()
+            })
+            {
+                var error = Assert.Catch<DandanPlayException>(request);
+                Assert.Contains("清除", error.Message);
+                Assert.DoesNotContain(sentinel, error.Message);
+                Assert.Equal(0, fixture.Transport.Requests.Count);
+            }
+            Assert.False(DanmakuSourceRules.IsSourceReady(fixture.Settings, DanmakuSource.DanmuApi));
+            danmaku.Source = DanmakuSourceMode.Both;
+            Assert.True(DanmakuSourceRules.IsAvailable(fixture.Settings));
+            Assert.Equal(DanmakuSource.DandanPlay, DanmakuSourceRules.AvailableSources(fixture.Settings).Single());
+
+            danmaku.ProtectedDanmuApiToken = "";
+            Assert.True(DanmakuSourceRules.IsSourceReady(fixture.Settings, DanmakuSource.DanmuApi));
+            fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult();
+            var requestAfterClear = fixture.Transport.Requests.Single();
+            Assert.Equal("/api/v2/search/episodes", requestAfterClear.Uri.AbsolutePath);
+            Assert.DoesNotContain(sentinel, requestAfterClear.Uri.AbsoluteUri);
+            Assert.False(requestAfterClear.Headers.ContainsKey("Authorization"));
+            var file = Directory.GetFiles(fixture.Cache).Single();
+            Assert.DoesNotContain(sentinel, Path.GetFileName(file));
+            Assert.DoesNotContain(sentinel, File.ReadAllText(file));
         }));
 
         Test("danmu_api：401、403、404、限额与5xx只给来源提示，不回显正文", () => InFixture(fixture =>
@@ -975,7 +996,7 @@ internal static class DanmakuTests
             Assert.Equal("测试作品(2025)", match.AnimeTitle);
             var request = fixture.Transport.Requests.Single();
             Assert.Equal(HttpMethod.Post, request.Method);
-            Assert.Equal("/fixture-token/api/v2/match", request.Uri.AbsolutePath);
+            Assert.Equal("/api/v2/match", request.Uri.AbsolutePath);
             Assert.False(request.Headers.ContainsKey("X-AppId"));
             Assert.False(request.Headers.ContainsKey("X-Signature"));
             using (var body = JsonDocument.Parse(request.Body))
@@ -985,16 +1006,6 @@ internal static class DanmakuTests
             fixture.Transport.Response = _ => Reply("""{"success":true,"errorCode":0,"isMatched":false,"matches":[]}""");
             Assert.Null(fixture.Client.MatchAsync("测试作品").GetAwaiter().GetResult());
             Assert.Equal(1, fixture.Transport.Requests.Count);
-        }));
-
-        Test("danmu_api：缓存文件名和内容不含令牌", () => InFixture(fixture =>
-        {
-            UseDanmuApi(fixture);
-            fixture.Transport.Response = _ => Reply(Search);
-            fixture.Client.SearchAsync("测试", "1", DanmakuSource.DanmuApi).GetAwaiter().GetResult();
-            var file = Directory.GetFiles(fixture.Cache).Single();
-            Assert.DoesNotContain("fixture-token", Path.GetFileName(file));
-            Assert.DoesNotContain("fixture-token", File.ReadAllText(file));
         }));
 
         Test("弹幕：danmu_api 自动匹配文件名带年份，续季按季集号匹配", () =>
@@ -1180,12 +1191,10 @@ internal static class DanmakuTests
         return result;
     }
 
-    private static void UseDanmuApi(Fixture fixture, string address = "http://danmu.test:9321", string token = "fixture-token")
+    private static void UseDanmuApi(Fixture fixture, string address = "http://danmu.test:9321")
     {
         fixture.Settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
         fixture.Settings.Danmaku.DanmuApiBaseUrl = address;
-        fixture.Settings.Danmaku.ProtectedDanmuApiToken =
-            token.Length == 0 ? "" : DanmuApiToken.Protect(fixture.Protector, token);
     }
 
     private static void InFixture(Action<Fixture> action, bool withoutCredentials = false)
@@ -1236,7 +1245,7 @@ internal static class DanmakuTests
                     "https://credential.test/credential", BuiltInKey, Transport, () => Now);
             IDandanPlayCredentialSource? source = null;
             if (!withoutCredentials) source = BuiltIn is null ? Credentials : BuiltIn;
-            Client = new(Settings, Cache, Transport, () => Now, source, Protector);
+            Client = new(Settings, Cache, Transport, () => Now, source);
         }
 
         public void Dispose()

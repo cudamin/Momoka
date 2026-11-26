@@ -989,7 +989,7 @@ Closing the video window or leaving this page stops playback.</value>
     <value>Danmaku source</value>
   </data>
   <data name="DanmakuPanel_Localization2.Text" xml:space="preserve">
-    <value>Combining sources requests both and uses the shared Dandanplay quota.</value>
+    <value>Combined mode queries available sources and uses the shared DandanPlay quota.</value>
   </data>
   <data name="DanmakuPanel_Localization3.Text" xml:space="preserve">
     <value>Choose a danmaku library</value>

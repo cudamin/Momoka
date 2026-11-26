@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Danmaku;
@@ -29,13 +30,13 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             BeginSettingsFixtureVisit(page);
-            ResizeProbeClient(width, 900);
             await page.ViewModel.ReloadAsync();
             page.SelectedCategory = "弹幕";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
+            await WaitForClientWidthAsync();
             // 2026-11-02 起「弹幕」分类是四张卡：弹幕（开关与匹配）、来源与聚合、显示与外观、类型与屏蔽。
-            // 2026-10-27 删掉的「应用凭据」卡不再回来；danmu_api 令牌是用户自部署服务的本机设置，不是应用凭据。
+            // 旧版弹弹play应用凭据和 danmu_api 令牌都不再有输入行。
             var cards = DanmakuCards(page);
             Require(cards.Length == 4, "弹幕分类应分成四张卡");
             var first = cards[0];
@@ -53,28 +54,49 @@ internal sealed partial class ShellNavigationProbe
             var sourceCombo = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "弹幕来源");
             Require(sourceCombo.Items.Count == sourceRow.Choices.Count, "来源下拉没有画全三档");
 
-            // 2026-11-08 出厂来源改成「两个都用」：合并模式下 danmu_api 的地址与令牌两行本来就该在。
+            // 合并模式的新配置只有服务地址。
             Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.Both, "出厂来源不是「两个都用」");
             Require(DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "合并模式下没有地址行");
-            Require(DanmakuRows(page).OfType<SettingSecretRow>().Any(row => row.Label == "danmu_api 令牌"), "合并模式下没有令牌行");
+            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "合并模式仍显示令牌输入");
+            Require(!DanmakuRows(page).Any(row => row.Label == "danmu_api 旧令牌"), "新配置不应显示清除旧令牌");
             sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "弹弹play");
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.DandanPlay, "来源下拉未写回弹弹play");
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "弹弹play 来源下不应出现地址行");
-            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "弹弹play 来源下仍出现 danmu_api 令牌行");
+            Require(!DanmakuRows(page).Any(row => row.Label == "danmu_api 旧令牌"), "弹弹play 来源下仍显示清除旧令牌");
 
+            fixture.Settings.Danmaku.ProtectedDanmuApiToken = "anonymous-legacy-token";
             sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label.StartsWith("danmu_api", StringComparison.Ordinal));
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.DanmuApi, "来源下拉未写回 danmu_api");
             Require(DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "danmu_api 来源下没有地址行");
-            Require(DanmakuRows(page).OfType<SettingSecretRow>().Any(row => row.Label == "danmu_api 令牌"), "danmu_api 来源下没有令牌行");
+            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "danmu_api 来源仍显示令牌输入");
             Require(!DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "包含关联弹幕"), "danmu_api 来源下仍显示弹弹play 的关联弹幕");
             var addressRow = DanmakuRows(page).OfType<SettingTextRow>().Single(row => row.Label == "danmu_api 地址");
             addressRow.Text = "http://127.0.0.1:9321";
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.DanmuApiBaseUrl == "http://127.0.0.1:9321", "danmu_api 地址未写回偏好");
+            Require(!page.ViewModel.DanmakuReady, "保存有旧令牌时不应允许 danmu_api 查询");
+            var clearRow = DanmakuRows(page).OfType<SettingFactRow>().Single(row => row.Label == "danmu_api 旧令牌");
+            var clearButton = Descendants(page).OfType<Button>().Single(button => ReferenceEquals(button.Command, clearRow.RunCommand));
+            clearButton.StartBringIntoView();
+            await LayoutAsync(page);
+            var clearPeer = new ButtonAutomationPeer(clearButton);
+            Require(clearPeer.GetName() == "清除旧令牌", "清除旧令牌按钮没有可访问名称");
+            Require(clearButton.Focus(FocusState.Keyboard), "清除旧令牌按钮无法取得键盘焦点");
+            await UntilAsync(() => ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), clearButton));
+            await WaitForClientWidthAsync();
+            await SaveProbeScreenAsync($"settings-danmaku-legacy-token-{width}-screen.png");
+            ((IInvokeProvider)clearPeer.GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => !fixture.Settings.Danmaku.HasLegacyDanmuApiToken());
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            Require(!fixture.Settings.Danmaku.HasLegacyDanmuApiToken() && page.ViewModel.DanmakuReady,
+                "清除旧令牌后未恢复无令牌来源");
+            Require(!DanmakuRows(page).Any(row => row.Label == "danmu_api 旧令牌"), "清除后仍显示旧令牌行");
+            await WaitForClientWidthAsync();
             await SaveProbeScreenAsync($"settings-danmaku-source-{width}-screen.png");
             sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "两者合并");
             await UntilAsync(() => page.IsContentMotionSettled);
@@ -85,7 +107,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "回到弹弹play 后地址行未收起");
-            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "回到弹弹play 后令牌行未收起");
+            Require(!DanmakuRows(page).Any(row => row.Label == "danmu_api 旧令牌"), "回到弹弹play 后清除行未收起");
             Require(ReferenceEquals(first, DanmakuCards(page)[0]), "开关变更替换了卡片");
             var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "不透明度（%）");
             opacity.Value = 55;
@@ -262,7 +284,20 @@ internal sealed partial class ShellNavigationProbe
                     bounds.Width * scale, bounds.Height * scale));
             }
         }
-        finally { page.Release(); _root.Children.Remove(page); }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            ResizeInspect(1420, 980);
+        }
+
+        async Task WaitForClientWidthAsync()
+        {
+            ResizeProbeClient(width, 900);
+            var clientWidth = (int)Math.Round(width * _root.XamlRoot.RasterizationScale);
+            await UntilAsync(() => Interop.Native.GetClientRect(_window!.Handle, out var client)
+                && Math.Abs(client.Width - clientWidth) <= 1 && Math.Abs(page.ActualWidth - width) <= 2);
+        }
     }
 
     private async Task DanmakuPanelAsync(int width)

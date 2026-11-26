@@ -17,7 +17,7 @@ metadata: {agent_created: true}
 | 边界 | 弹弹play | danmu_api |
 | --- | --- | --- |
 | 服务地址 | 固定官方 `api.dandanplay.net` | 用户部署的根地址，可含反向代理前缀；Momoka 不提供公共服务 |
-| 鉴权 | Momoka 内置应用凭据，三个签名头 | 仅接入允许无令牌请求的部署。旧实现会把非空令牌放进路径，限制见[凭据规则](../../../CLAUDE.md#凭据) |
+| 鉴权 | Momoka 内置应用凭据，三个签名头 | 仅接入允许无令牌请求的部署；旧令牌未清除时不可用 |
 | 自动匹配 | 标题与集号搜索，再判断唯一精确标题 | `POST /api/v2/match`，正文只有 `fileName` |
 | 手动搜索 | 一次选择这个来源 | 一次选择这个来源 |
 | 弹幕读取 | v2 JSON；可包含关联弹幕 | 兼容的 v2 JSON；不启用弹弹play 的关联选项 |
@@ -32,7 +32,7 @@ metadata: {agent_created: true}
 | --- | --- |
 | `src/Momoka.Core/Danmaku/DandanPlayClient.cs` | 按来源连接、搜索与读取、鉴权、重定向、限长、缓存和关闭时排空请求 |
 | `src/Momoka.Core/Danmaku/DandanPlayClient.Match.cs` / `DandanPlayClient.Send.cs` | danmu_api 自动匹配 / 弹弹play私有库发送 |
-| `src/Momoka.Core/Danmaku/DanmuApiEndpoint.cs`、`src/Momoka.Core/Configuration/DanmuApiToken.cs` | 自部署地址、路径令牌与 DPAPI |
+| `src/Momoka.Core/Danmaku/DanmuApiEndpoint.cs`、`src/Momoka.Core/Configuration/DanmakuSettings.cs` | 自部署地址、旧密文的本机兼容与清除 |
 | `src/Momoka.Core/Danmaku/DanmakuSourceRules.cs` / `DanmakuSource.cs` | 模式、来源身份、本地可用性、手动来源与发送能力 |
 | `src/Momoka.Core/Danmaku/DandanPlayMatching.cs` / `DanmakuMatchRules.cs` | 官方唯一精确匹配 / 自部署文件名与返回集号校验 |
 | `src/Momoka.Core/Danmaku/DanmakuComment.cs` | 两源共用解析、排序合并、屏蔽与去重 |
@@ -60,11 +60,11 @@ metadata: {agent_created: true}
 
 ## 连接、凭据与缓存
 
-- `IsSourceReady` / `IsAvailable` 是本地前置条件：总开关开启、使用内置 libmpv；danmu_api 还要求地址合法。它们不验证服务在线、令牌可解密或凭据有效。`Both` 缺 danmu_api 地址仍可使用弹弹play；实际请求在 `ResolveAsync` 才解密并校验令牌。
-- 弹弹play只使用内置凭据。已退役的用户 AppId/AppSecret 不恢复为额度耗尽时的兜底；danmu_api 的访问令牌是另一套凭据。内置密文下发和 DPAPI 缓存不提供应用密钥的保密保证，额度由所有内置用户共享。
-- `DanmuApiEndpoint` 保留根地址前缀。当前非空令牌会随 URL 路径离开进程，DPAPI 只保护本机存储。对要求路径令牌的实例停止接入和真实验证；仅用占位数据描述旧行为。
-- 两源 GET 共用每次 30 秒排队与读取预算、32 MiB 响应上限、两小时缓存和最多 16 份 JSON。缓存文件名只用哈希：官方按应用与凭据身份隔离，自部署按地址与令牌摘要隔离。失败不缓存；`MatchAsync` 的 POST 不走 GET 缓存。
-- 只有官方 GET 的 401/403 会使内置凭据失效并换一份重试一次。danmu_api 鉴权失败直接提示检查令牌；发送不自动重试。错误正文和未知鉴权头不回显。
+- `IsSourceReady` / `IsAvailable` 核对本地配置。danmu_api 要求地址合法且无旧令牌。`Both` 在该来源不可用时仍可使用弹弹play。搜索、匹配和读取都在 `ResolveAsync` 再检查，拒绝读取旧缓存或发请求。
+- 弹弹play只使用内置凭据。内置密文下发和 DPAPI 缓存不提供应用密钥的保密保证，额度由所有内置用户共享。
+- `DanmuApiEndpoint` 保留根地址前缀。旧令牌密文只保留在本机，用于判断是否需要提示清除。实际支持范围见[自部署来源](references/danmu-api.md#地址与鉴权)。
+- 两源 GET 共用每次 30 秒排队与读取预算、32 MiB 响应上限、两小时缓存和最多 16 份 JSON。缓存文件名用哈希，官方按应用与凭据身份隔离，自部署按无令牌地址隔离。失败不缓存，`MatchAsync` 的 POST 不走 GET 缓存。
+- 只有官方 GET 的 401/403 会使内置凭据失效并换一份重试一次。danmu_api 鉴权失败提示仅支持允许无令牌访问的部署。发送不自动重试。错误正文和未知鉴权头不回显。
 - 修改客户端关闭流程时，保持 `ShutdownAsync` 停止接收、取消并等待所有活动操作退出后再释放 HTTP 和请求闸门，包含缓存解析和已被新请求替代的旧操作。
 
 ## 设置、渲染与发送
@@ -73,7 +73,7 @@ metadata: {agent_created: true}
 - 内置后端关闭服务时保留启用行；danmu_api 地址无效时保留来源配置恢复入口。外部 mpv 隐藏整个弹幕分类、播放入口和快捷键，切回恢复偏好。稳定卡片按标题 `UpdateRows`，空卡完整收起；使用 `DanmakuCards` / `DanmakuRows`，不要 `Single(Category == "弹幕")`。
 - `WithRelated` 及其设置只属于弹弹play，Shell 向 danmu_api 传 `false`。纯 danmu_api 隐藏输入栏和发送相关设置；`CanSend(mode)` 仅表示模式包含弹弹play。真正发送还要求正在播放、显示和输入栏开启、读取已成功，且 `_danmakuEpisode` 指向已加载的弹弹play库。Both 仅加载 danmu_api 时不能发送。
 - 发送提示在 Both 下写“发到弹弹play”；只写 `/api/v2/comment/{episodeId}/app` 本应用私有库。必须同时有 `success=true`、`errorCode=0`、`cid>0` 才确认成功；未确认结果可能已经送达。请求派发后清两种关联 GET 缓存，成功只追加本地评论，不额外读取。
-- `Enabled`、`Source`、自部署地址和受保护令牌属于本机连接：不导出，不被偏好恢复覆盖。`RestoreAppearance` 保留连接、匹配、显示开关、类型与屏蔽列表。
+- `Enabled`、`Source`、自部署地址和旧令牌密文属于本机连接，不导出、不被偏好恢复覆盖。仅有旧令牌时显示清除按钮，保存成功才恢复来源。`RestoreAppearance` 保留连接、匹配、显示开关、类型与屏蔽列表。
 - 分类名和设置跳转是跨文件契约：修改时一起核对 `CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`、探针与 `MpvUiTests`；跳转令牌保持 `danmaku`，服务名“弹弹play”不等于分类名。
 - 两源都解析 `p/m`：模式只接受 1/4/5，时间 0–86400 秒且有限，颜色 24 位，去控制字符、文本最多 300 字符。宿主过滤后按 `begin → chunk(128 条) → commit` 传给 Lua；文件序号与传输序号拒绝迟到数据。
 - 进度条热力由 `DanmakuHeat` 从已加载弹幕本地算出，不受颜色、类型和屏蔽词影响，也不额外请求；快照在加载、发送、换片和时长变化时重建，集成页由 `PlayerPage.DanmakuHeat.cs` 画在滑杆之上、缓存之下，独占 uosc 不画。`ShowHeatmap` 默认开，随 `Show` 一起收起。

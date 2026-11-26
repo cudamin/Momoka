@@ -9,7 +9,7 @@
 - 端点只下发 Momoka 应用的 AppId/AppSecret，不代理搜索、弹幕读取或发送；客户端继续直连官方来源。
 - AppSecret 配在 Cloudflare Secret，AES key 随客户端分发，所以密文分发不提供密钥保密保证；所有内置用户共享应用额度。
 - 客户端使用无查询参数的 GET，不发送作品名、集数、媒体服务器信息或评论；Worker 按路径和方法路由，并未禁止查询串。网络侧仍可看到时间、IP、User-Agent 和标准 HTTP 头。
-- 设置页没有用户自己的 AppId/AppSecret。端点不可用或额度受限时等待恢复；已配置的 danmu_api 是独立来源，其令牌不代替官方应用凭据。
+- 设置页没有用户自己的 AppId/AppSecret。端点不可用或额度受限时等待恢复。允许无令牌访问的 danmu_api 部署是独立来源。
 
 ## Worker 与四个 Secret
 

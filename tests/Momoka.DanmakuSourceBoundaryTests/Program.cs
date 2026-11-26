@@ -34,6 +34,27 @@ internal static class Program
                 Momoka.Tests.Assert.Equal(valid, labels.Contains("自动匹配弹幕"));
                 Momoka.Tests.Assert.Equal(valid, labels.Contains("弹幕字体"));
             });
+        Momoka.Tests.TestHarness.Test("R-003 旧令牌可以清除，保存失败时来源仍不可用", () =>
+        {
+            var settings = Settings();
+            settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+            settings.Danmaku.ProtectedDanmuApiToken = "anonymous-saved-value";
+            var rows = new SettingsRows(settings) { CanSave = false };
+            var clear = rows.ClearTokenRow();
+            Momoka.Tests.Assert.True(rows.Labels().Contains("danmu_api 地址"));
+            Momoka.Tests.Assert.False(rows.Labels().Contains("自动匹配弹幕"));
+            clear.Run();
+            Momoka.Tests.Assert.Equal("anonymous-saved-value", settings.Danmaku.ProtectedDanmuApiToken);
+            Momoka.Tests.Assert.Equal(0, rows.Refreshes);
+            Momoka.Tests.Assert.True(rows.Labels().Contains("danmu_api 旧令牌"));
+
+            rows.CanSave = true;
+            clear.Run();
+            Momoka.Tests.Assert.Equal("", settings.Danmaku.ProtectedDanmuApiToken);
+            Momoka.Tests.Assert.Equal(1, rows.Refreshes);
+            Momoka.Tests.Assert.False(rows.Labels().Contains("danmu_api 旧令牌"));
+            Momoka.Tests.Assert.True(rows.Labels().Contains("自动匹配弹幕"));
+        });
         Momoka.Tests.TestHarness.Test("R14-005 closing an old panel does not cancel resident replacement search", () =>
         {
             var endpoint = new PanelEndpoint();
@@ -135,7 +156,7 @@ internal static class Program
                     host.Change();
                     Momoka.Tests.Assert.Equal(change == "related", host.LoadSelections.Any(x => x.Source == DanmakuSource.DanmuApi));
                     Momoka.Tests.Assert.Equal(dandan, host.LoadSelections.Any(x => x.Source == DanmakuSource.DandanPlay));
-                    Momoka.Tests.Assert.Equal(change != "related" && !dandan ? 1 : 0, host.AutoMatches);
+                    Momoka.Tests.Assert.Equal(change == "address" && !dandan ? 1 : 0, host.AutoMatches);
                     Momoka.Tests.Assert.Equal((0, 0, "", ""), host.ResetSnapshot);
                 });
         foreach (var pipeline in new[] { VideoPipelineKind.Integrated, VideoPipelineKind.Standalone })

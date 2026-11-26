@@ -20,7 +20,7 @@
             <StackPanel x:Name="SourceModeSection" Spacing="4" Visibility="Collapsed">
                 <ComboBox x:Uid="DanmakuPanel_SourceModeBox" x:Name="SourceModeBox" Header="弹幕来源" HorizontalAlignment="Stretch"
                           SelectionChanged="OnSourceModeChanged" AutomationProperties.Name="弹幕来源" />
-                <TextBlock x:Uid="DanmakuPanel_Localization2" Text="两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。"
+                <TextBlock x:Uid="DanmakuPanel_Localization2" Text="两者合并会请求当前可用的来源，并消耗弹弹play 的共享额度。"
                            Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
             </StackPanel>
 

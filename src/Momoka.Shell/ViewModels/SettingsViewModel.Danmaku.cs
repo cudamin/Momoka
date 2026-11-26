@@ -31,7 +31,7 @@ public sealed partial class SettingsViewModel
     /// 「弹幕」分类下的四张卡：开关与匹配、来源与聚合、显示与外观、类型与屏蔽。
     /// <para>
     /// 2026-10-27 用户令拆卡，同一天又令删掉「应用凭据」卡。2026-11-02 接 danmu_api 时新增「来源与聚合」卡：
-    /// 每个人填自己部署的地址与令牌，Momoka 不提供公共服务。三张旧卡的实例继续保留，来源卡也走
+    /// 每个人填自己部署的地址，Momoka 不提供公共服务。三张旧卡的实例继续保留，来源卡也走
     /// <see cref="SettingSection.UpdateRows"/> 原地增删行，行数归零时整张收起。
     /// </para>
     /// </summary>
@@ -61,21 +61,21 @@ public sealed partial class SettingsViewModel
         if (settings.Enabled && DandanPlayMatching.CanRender(Settings.Mpv))
         {
             sourceRows.Add(Choice("弹幕来源", DanmakuSources, () => settings.Source, value => settings.Source = value,
-                "每个人填自己部署的 danmu_api；Momoka 不提供公共服务。两者合并会同时请求两个来源，"
+                "每个人填自己部署的 danmu_api；Momoka 不提供公共服务。两者合并会请求当前可用的来源，"
                 + "并消耗弹弹play 的共享额度。",
                 after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDanmuApi(settings.Source))
             {
                 sourceRows.Add(Text("danmu_api 地址", "http://192.168.1.10:9321",
                     () => settings.DanmuApiBaseUrl, value => settings.DanmuApiBaseUrl = value,
-                    "只填服务根地址，不要带令牌；令牌在下一行单独填写。",
+                    "只填服务根地址，不要带令牌。仅支持原本允许无令牌访问的部署。",
                     after: RefreshDanmakuRows));
-                var tokenRow = new SettingSecretRow("danmu_api 令牌",
-                    value => settings.ProtectedDanmuApiToken = DanmuApiToken.Protect(_secretProtector, value),
-                    () => !string.IsNullOrEmpty(settings.ProtectedDanmuApiToken),
-                    TrySaveDanmuApiToken, RefreshDanmakuRows);
-                tokenRow.Restate("可选。服务未启用令牌时留空；保存后不回填明文，也不进入配置备份。");
-                sourceRows.Add(tokenRow);
+                if (settings.HasLegacyDanmuApiToken())
+                    sourceRows.Add(Fact("danmu_api 旧令牌", "清除旧令牌后才能查询允许无令牌访问的部署。",
+                        "", "清除旧令牌", () =>
+                        {
+                            if (settings.TryClearLegacyDanmuApiToken(TrySaveDanmuApiToken)) RefreshDanmakuRows();
+                        }));
             }
         }
 
@@ -139,7 +139,7 @@ public sealed partial class SettingsViewModel
                 rows),
             new SettingSection(DanmakuCategory, "来源与聚合",
                 "弹弹play 使用 Momoka 内置凭据；danmu_api 需要你自己部署并填写地址。"
-                + "两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。",
+                + "两者合并会请求当前可用的来源，并消耗弹弹play 的共享额度。",
                 sourceRows),
             new SettingSection(DanmakuCategory, "显示与外观",
                 "弹幕开关、输入栏和画面上的大小与疏密；改完立刻作用到正在播的片子。", displayRows),

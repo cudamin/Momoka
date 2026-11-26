@@ -23,7 +23,6 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromHours(2);
     private readonly AppSettings _settings;
     private readonly IDandanPlayCredentialSource? _credentials;
-    private readonly ISecretProtector? _protector;
     private readonly string _cacheDirectory;
     private readonly HttpClient _http;
     private readonly Func<DateTimeOffset> _clock;
@@ -37,11 +36,10 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
 
     public DandanPlayClient(AppSettings settings, string cacheDirectory,
         HttpMessageHandler? handler = null, Func<DateTimeOffset>? clock = null,
-        IDandanPlayCredentialSource? credentials = null, ISecretProtector? protector = null)
+        IDandanPlayCredentialSource? credentials = null)
     {
         _settings = settings;
         _credentials = credentials;
-        _protector = protector;
         _cacheDirectory = cacheDirectory;
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _http = new HttpClient(handler ?? new SocketsHttpHandler
@@ -241,13 +239,13 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
             return new(DanmakuSource.DandanPlay, new Uri(ApiOrigin + "/"), identity, credential.AppId, credential.Secret);
         }
 
-        var token = DanmuApiToken.Unprotect(_protector, _settings.Danmaku.ProtectedDanmuApiToken, out var tokenError);
-        if (tokenError.Length > 0) throw new DandanPlayException(tokenError);
-        if (!DanmuApiEndpoint.TryCreate(_settings.Danmaku.DanmuApiBaseUrl, token, out var baseUri, out var addressError))
+        if (_settings.Danmaku.HasLegacyDanmuApiToken())
+            throw new DandanPlayException("danmu_api 已停用旧令牌，请在弹幕设置中清除旧令牌。");
+        if (!DanmuApiEndpoint.TryCreate(_settings.Danmaku.DanmuApiBaseUrl, out var baseUri, out var addressError))
             throw new DandanPlayException(addressError);
-        // 缓存身份包含地址和令牌摘要：换服务器或换令牌都不能复用上一份结果，也不能把令牌写进缓存名。
+        // 保留旧版无令牌缓存的键。旧版需要令牌的缓存不会被当成无令牌结果读取。
         var customIdentity = "danmuapi:" + Convert.ToHexStringLower(SHA256.HashData(
-            Encoding.UTF8.GetBytes(baseUri.AbsoluteUri + "\n" + token)));
+            Encoding.UTF8.GetBytes(baseUri.AbsoluteUri + "\n")));
         return new(DanmakuSource.DanmuApi, baseUri, customIdentity, null, null);
     }
 
@@ -259,7 +257,7 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         if (connection.Source == DanmakuSource.DanmuApi)
             return new DandanPlayException(response.StatusCode switch
             {
-                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "danmu_api 鉴权失败，请检查访问令牌。",
+                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "danmu_api 鉴权失败，仅支持允许无令牌访问的部署。",
                 HttpStatusCode.TooManyRequests => "danmu_api 请求过于频繁，请稍后再试。",
                 HttpStatusCode.NotFound => "danmu_api 没有找到这条弹幕库，请重新搜索。",
                 _ => $"danmu_api 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",

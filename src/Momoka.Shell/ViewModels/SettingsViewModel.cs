@@ -207,7 +207,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     ];
 
     private ISettingsService? _settings;
-    private ISecretProtector _secretProtector = DpapiSecretProtector.Instance;
     private ShaderStaging? _shaders;
     private FontLibrary? _fonts;
     private AppPaths? _paths;
@@ -706,14 +705,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         UpdateClient updates,
         IServerCapabilities capabilities,
         EmbyImageStore? images = null,
-        SubtitleTranslationCredentials? translationCredentials = null,
-        ISecretProtector? protector = null)
+        SubtitleTranslationCredentials? translationCredentials = null)
     {
         if (_disposed) return;
         Activate();
         if (!ReferenceEquals(_capabilities, capabilities)) _administrationPages.Clear();
         _settings = settings;
-        _secretProtector = protector ?? DpapiSecretProtector.Instance;
         _shaders = shaders;
         _fonts = fonts;
         _paths = paths;

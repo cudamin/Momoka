@@ -1,9 +1,9 @@
 namespace Momoka.Danmaku;
 
-/// <summary>用户自部署的 danmu_api 服务地址与可选令牌拼成的请求基址。</summary>
+/// <summary>验证自部署地址，并保留反向代理的路径前缀。</summary>
 public static class DanmuApiEndpoint
 {
-    public static bool TryCreate(string? address, string? token, out Uri baseUri, out string error)
+    public static bool TryCreate(string? address, out Uri baseUri, out string error)
     {
         baseUri = null!;
         error = "";
@@ -25,22 +25,9 @@ public static class DanmuApiEndpoint
             return false;
         }
 
-        var cleanToken = (token ?? "").Trim();
-        if (cleanToken.Any(char.IsControl))
-        {
-            error = "danmu_api 令牌不能包含控制字符。";
-            return false;
-        }
-        if (cleanToken.Length > 512)
-        {
-            error = "danmu_api 令牌过长。";
-            return false;
-        }
-
         var path = parsed.AbsolutePath;
         if (path.Length == 0) path = "/";
         if (!path.EndsWith('/')) path += "/";
-        if (cleanToken.Length > 0) path += Uri.EscapeDataString(cleanToken) + "/";
         baseUri = new UriBuilder(parsed) { Path = path, Query = "", Fragment = "" }.Uri;
         return true;
     }

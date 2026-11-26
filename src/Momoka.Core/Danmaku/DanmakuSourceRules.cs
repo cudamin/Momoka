@@ -24,11 +24,12 @@ public static class DanmakuSourceRules
     {
         DanmakuSource.DandanPlay => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv),
         DanmakuSource.DanmuApi => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv)
-            && DanmuApiEndpoint.TryCreate(settings.Danmaku.DanmuApiBaseUrl, null, out _, out _),
+            && !settings.Danmaku.HasLegacyDanmuApiToken()
+            && DanmuApiEndpoint.TryCreate(settings.Danmaku.DanmuApiBaseUrl, out _, out _),
         _ => false
     };
 
-    /// <summary>至少有一个被选中的来源可以发起请求；合并模式缺 danmu_api 地址时仍可用弹弹play。</summary>
+    /// <summary>至少有一个被选中的来源可以发起请求；danmu_api 不可用时，合并模式仍可用弹弹play。</summary>
     public static bool IsAvailable(AppSettings settings) => IsSourceReady(settings, DanmakuSource.DandanPlay)
         && IncludesDandanPlay(settings.Danmaku.Source)
         || IsSourceReady(settings, DanmakuSource.DanmuApi) && IncludesDanmuApi(settings.Danmaku.Source);

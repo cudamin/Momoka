@@ -488,8 +488,7 @@ public sealed partial class SettingsPage : Page, IShellContent
 
                 // 「关于」卡上的图片缓存读数与清除：它数的是本机缓存目录，不是某台服务器，所以搬出了服务器页。
                 request.Services.GetRequiredService<EmbyImageStore>(),
-                request.Services.GetService(typeof(SubtitleTranslationCredentials)) as SubtitleTranslationCredentials,
-                request.Services.GetRequiredService<ISecretProtector>());
+                request.Services.GetService(typeof(SubtitleTranslationCredentials)) as SubtitleTranslationCredentials);
             ViewModel.UseHeroCacheClear(request.Services.GetRequiredService<Media.DetailHeroCache>().Clear);
             _ = ViewModel.ReloadAsync();
         }

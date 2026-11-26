@@ -1010,7 +1010,7 @@
     <value>弹幕来源</value>
   </data>
   <data name="DanmakuPanel_Localization2.Text" xml:space="preserve">
-    <value>两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。</value>
+    <value>两者合并会请求当前可用的来源，并消耗弹弹play 的共享额度。</value>
   </data>
   <data name="DanmakuPanel_Localization3.Text" xml:space="preserve">
     <value>选择弹幕库</value>

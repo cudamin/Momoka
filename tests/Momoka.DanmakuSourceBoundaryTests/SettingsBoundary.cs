@@ -11,10 +11,9 @@ internal sealed class SettingSection(string category, string title, string descr
     internal string Description { get; } = description;
     internal List<SettingRow> Rows { get; } = rows;
 }
-internal sealed class SettingSecretRow : SettingRow
+internal sealed class SettingFactRow(string label, Action action) : SettingRow(label)
 {
-    internal SettingSecretRow(string label, Action<string> set, Func<bool> hasValue, Func<bool> save, Action after) : base(label) { }
-    internal void Restate(string description) { }
+    internal void Run() => action();
 }
 internal sealed class SettingTextRow : SettingRow
 {
@@ -27,23 +26,21 @@ internal sealed partial class SettingsRows(AppSettings settings)
     private static readonly (string Label, int Value)[] DanmakuBorderStyles = [("描边", 0), ("重墨", 1), ("45° 投影", 2)];
     private static readonly (string Label, DanmakuSourceMode Value)[] DanmakuSources =
         [("弹弹play", DanmakuSourceMode.DandanPlay), ("danmu_api（自己部署）", DanmakuSourceMode.DanmuApi), ("两者合并", DanmakuSourceMode.Both)];
-    private readonly ISecretProtector _secretProtector = new NoSecrets();
     private AppSettings Settings { get; } = settings;
     private bool DanmakuReady => DanmakuSourceRules.IsAvailable(Settings);
+    internal bool CanSave { get; set; } = true;
+    internal int Refreshes { get; private set; }
     internal string[] Labels() => DanmakuSections().SelectMany(s => s.Rows).Select(r => r.Label).ToArray();
+    internal SettingFactRow ClearTokenRow() => DanmakuSections().SelectMany(s => s.Rows).OfType<SettingFactRow>()
+        .Single(row => row.Label == "danmu_api 旧令牌");
     private static SettingRow Toggle(string label, string description, Func<bool> get, Action<bool> set, Action after) => new(label);
     private static SettingRow Choice<T>(string label, (string Label, T Value)[] choices, Func<T> get, Action<T> set, string description, Action after) => new(label);
     private static SettingRow Text(string label, string placeholder, Func<string> get, Action<string> set, string description, Action after) => new(label);
     private static SettingRow Slider(string label, double min, double max, double step, Func<double> get, Action<double> set, string description = "", Action? after = null) => new(label);
-    private static SettingRow Fact(string label, string description, string value, string button, Action action) => new(label);
+    private static SettingRow Fact(string label, string description, string value, string button, Action action) => new SettingFactRow(label, action);
     private static SettingRow DanmakuFont(DanmakuSettings settings) => new("弹幕字体");
     private void Save() { }
-    private void RefreshDanmakuRows() { }
+    private void RefreshDanmakuRows() => Refreshes++;
     private static void ApplyDanmakuSettings() { }
-    private bool TrySaveDanmuApiToken() => true;
-    private sealed class NoSecrets : ISecretProtector
-    {
-        public string Protect(string plainText) => throw new InvalidOperationException("Fixture never reads or writes secrets.");
-        public string Unprotect(string cipherText) => throw new InvalidOperationException("Fixture never reads or writes secrets.");
-    }
+    private bool TrySaveDanmuApiToken() => CanSave;
 }

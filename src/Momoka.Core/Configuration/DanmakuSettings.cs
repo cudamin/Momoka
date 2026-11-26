@@ -2,10 +2,12 @@ namespace Momoka.Configuration;
 
 /// <summary>
 /// 弹弹play 连接与弹幕偏好。服务默认关闭，应用凭据固定由 Momoka 内置端点下发（2026-10-27 起不再支持
-/// 用户自己的 AppId／AppSecret），所以这里只有外观与匹配偏好，没有密钥字段。
+/// 用户自己的 AppId／AppSecret）。
 /// </summary>
 public sealed class DanmakuSettings
 {
+    private readonly Lock _danmuApiTokenGate = new();
+
     public bool Enabled { get; set; }
 
     /// <summary>
@@ -15,7 +17,33 @@ public sealed class DanmakuSettings
     /// </summary>
     public DanmakuSourceMode Source { get; set; } = DanmakuSourceMode.Both;
     public string DanmuApiBaseUrl { get; set; } = "";
+    /// <summary>保留旧设置里的密文，供用户在设置中清除。现行客户端不读取它的明文。</summary>
     public string ProtectedDanmuApiToken { get; set; } = "";
+
+    public bool HasLegacyDanmuApiToken()
+    {
+        lock (_danmuApiTokenGate) return !string.IsNullOrEmpty(ProtectedDanmuApiToken);
+    }
+
+    public bool TryClearLegacyDanmuApiToken(Func<bool> save)
+    {
+        lock (_danmuApiTokenGate)
+        {
+            var previous = ProtectedDanmuApiToken;
+            if (string.IsNullOrEmpty(previous)) return true;
+            ProtectedDanmuApiToken = "";
+            var saved = false;
+            try
+            {
+                saved = save();
+                return saved;
+            }
+            finally
+            {
+                if (!saved) ProtectedDanmuApiToken = previous;
+            }
+        }
+    }
 
     public bool AutoMatch { get; set; } = true;
     public bool WithRelated { get; set; } = true;
