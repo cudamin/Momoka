@@ -175,8 +175,10 @@ internal static class LogProbeArtifactsTests
     {
         var start = new ProcessStartInfo("cmd.exe")
         {
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         foreach (var argument in new[] { "/c", "mklink", "/J", link, target }) start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
