@@ -8,6 +8,8 @@ namespace Momoka.Scrobbling;
 /// <summary>Finds a unique site subject from the playing library episode before any external write.</summary>
 public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
 {
+    public const int RecordLimitPerProvider = 100;
+
     private readonly AppSettings _settings;
     private readonly ISecretProtector _protector;
     private readonly BangumiClient _bangumi;
@@ -21,7 +23,8 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
 
     private sealed record Snapshot(bool Bangumi, string Token, bool Douban,
         CancellationTokenSource Lifetime, CancellationToken Cancellation);
-    private sealed record MatchedSubject(long Id, string Title, int EpisodeNumber);
+    private sealed record PlayingEpisode(string Id, string SeriesId, int SeasonNumber, int Number, string Title);
+    private sealed record MatchedSubject(long Id, string Title, int EpisodeNumber, int EpisodeCount);
 
     public ScrobblingService(AppSettings settings, ISecretProtector protector, BangumiClient bangumi, IDoubanScrobblingClient douban)
     {
@@ -69,15 +72,14 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
 
     public PlaybackScrobblingAttempt? CreateAttempt(PlaybackTicket ticket, EmbySessionScope scope, PlaybackRequest request)
     {
-        if (_disposed || request.AudioOnly || ticket.Item.Type != EmbyItemType.Episode
-            || ticket.Item.IndexNumber is not > 0 || ticket.Item.ParentIndexNumber is not > 0
-            || string.IsNullOrWhiteSpace(ticket.Item.SeriesId)
-            || ticket.Item.IndexNumberEnd is { } last && last > ticket.Item.IndexNumber) return null;
+        var item = ticket.Item;
+        if (_disposed || request.AudioOnly || item.Type != EmbyItemType.Episode
+            || item.IndexNumber is not int episodeNumber || episodeNumber <= 0
+            || item.ParentIndexNumber is not int seasonNumber || seasonNumber <= 0
+            || string.IsNullOrWhiteSpace(item.SeriesId)
+            || item.IndexNumberEnd is { } last && last > episodeNumber) return null;
         var snapshot = Volatile.Read(ref _snapshot);
-        var seriesIdSnapshot = ticket.Item.SeriesId!;
-        var seasonSnapshot = ticket.Item.ParentIndexNumber!.Value;
-        var episodeSnapshot = ticket.Item.IndexNumber!.Value;
-        var episodeTitleSnapshot = ticket.Item.Name;
+        var playing = new PlayingEpisode(item.Id, item.SeriesId, seasonNumber, episodeNumber, item.SeriesName ?? item.Name);
         var providers = new List<ScrobblingProvider>();
         if (snapshot.Bangumi && snapshot.Token.Length > 0)
             providers.Add(ScrobblingProvider.Bangumi);
@@ -95,8 +97,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         var lookupGate = new object();
         Task<IReadOnlyDictionary<ScrobblingProvider, MatchedSubject?>> ResolveOnceAsync(CancellationToken cancellationToken)
         {
-            lock (lookupGate) return lookup ??= ResolveSubjectsAsync(snapshot, scope, seriesIdSnapshot, seasonSnapshot,
-                episodeSnapshot, providers, cancellationToken);
+            lock (lookupGate) return lookup ??= ResolveSubjectsAsync(snapshot, scope, playing, providers, Allowed, cancellationToken);
         }
         async Task Sync(bool completed, CancellationToken cancellationToken)
         {
@@ -106,18 +107,11 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
             IReadOnlyDictionary<ScrobblingProvider, MatchedSubject?> matches;
             try { matches = await ResolveOnceAsync(cancellationToken).ConfigureAwait(false); }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || !Allowed()) { return; }
-            catch (Exception)
-            {
-                if (Allowed())
-                    foreach (var provider in providers)
-                        AddRecord(provider, episodeTitleSnapshot, episodeSnapshot, ScrobblingRecordOutcome.Failed,
-                            "自动匹配读取媒体库信息失败，已跳过同步");
-                return;
-            }
             foreach (var provider in providers)
             {
                 if (provider == ScrobblingProvider.Bangumi && !completed) continue;
                 if (!matches.TryGetValue(provider, out var match) || match is null) continue;
+                if (provider == ScrobblingProvider.Douban && completed && match.EpisodeNumber != match.EpisodeCount) continue;
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetime);
                 var token = linked.Token;
                 try
@@ -163,81 +157,121 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     }
 
     private async Task<IReadOnlyDictionary<ScrobblingProvider, MatchedSubject?>> ResolveSubjectsAsync(Snapshot snapshot,
-        EmbySessionScope scope, string seriesId, int seasonNumber, int episodeNumber,
-        IReadOnlyList<ScrobblingProvider> providers, CancellationToken cancellationToken)
+        EmbySessionScope scope, PlayingEpisode playing, IReadOnlyList<ScrobblingProvider> providers,
+        Func<bool> allowed, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(seriesId)) throw new InvalidOperationException("缺少剧集身份");
-        var library = await scope.ExecuteAsync(async (client, token) =>
-        {
-            var series = await client.GetItemAsync(seriesId, token, "ProviderIds,OriginalTitle,ProductionYear,PremiereDate").ConfigureAwait(false);
-            if (series.Type != EmbyItemType.Series || !string.Equals(series.Id, seriesId, StringComparison.Ordinal))
-                throw new InvalidOperationException("媒体服务器未返回对应剧集");
-            var seasons = await client.GetSeasonsAsync(seriesId, token).ConfigureAwait(false);
-            if (seasons.Count != 1 || seasons[0].Type != EmbyItemType.Season
-                || string.IsNullOrWhiteSpace(seasons[0].Id) || seasons[0].IndexNumber is not > 0
-                || seasons[0].IndexNumber != 1 || seasonNumber != 1)
-                throw new InvalidOperationException("多季度或特殊季度无法安全换算集号");
-            var episodes = await client.GetEpisodesAsync(seriesId, seasons[0].Id, token, "IndexNumber,IndexNumberEnd,ParentIndexNumber")
-                .ConfigureAwait(false);
-            if (episodes.Count is 0 or > 1000) throw new InvalidOperationException("媒体服务器季度集数无法确认");
-            var numbers = new HashSet<int>();
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var episode in episodes)
-            {
-                if (episode.Type != EmbyItemType.Episode || string.IsNullOrWhiteSpace(episode.Id)
-                    || !ids.Add(episode.Id)
-                    || episode.ParentIndexNumber is { } parent && parent != seasons[0].IndexNumber
-                    || episode.IndexNumber is not > 0 || episode.IndexNumberEnd is { } end && end > episode.IndexNumber
-                    || !numbers.Add(episode.IndexNumber.Value))
-                    throw new InvalidOperationException("媒体服务器集号不完整或存在合并集");
-            }
-            if (numbers.Count != episodes.Count || Enumerable.Range(1, numbers.Count).Any(number => !numbers.Contains(number))
-                || !numbers.Contains(episodeNumber))
-                throw new InvalidOperationException("媒体服务器季度集号不连续");
-            return (Series: series, EpisodeCount: episodes.Count, EpisodeNumber: episodeNumber);
-        }, cancellationToken).ConfigureAwait(false);
-
         var result = new Dictionary<ScrobblingProvider, MatchedSubject?>();
+        void RecordLibraryResult(string title, ScrobblingRecordOutcome outcome, string reason)
+        {
+            // 起播和完成共用一次媒体库读取，同一个失败或跳过原因每站只写一条。
+            if (!allowed() || cancellationToken.IsCancellationRequested) return;
+            foreach (var provider in providers)
+                AddRecord(provider, title, playing.Number, outcome, reason);
+        }
+
+        (EmbyItem? Series, int EpisodeCount, string? SkipReason) library;
+        try
+        {
+            library = await scope.ExecuteAsync((client, token) => ReadLibrarySeasonAsync(client, playing, token),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || !allowed()) { throw; }
+        catch (Exception)
+        {
+            RecordLibraryResult(playing.Title, ScrobblingRecordOutcome.Failed, "自动匹配读取媒体库信息失败，已跳过同步");
+            return result;
+        }
+        if (library.SkipReason is { } reason)
+        {
+            RecordLibraryResult(library.Series?.Name ?? playing.Title, ScrobblingRecordOutcome.Skipped, reason);
+            return result;
+        }
+        var series = library.Series!;
         foreach (var provider in providers)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                var subjectId = await FindSubjectIdAsync(snapshot, provider, library.Series, library.EpisodeCount, cancellationToken)
+                var subjectId = await FindSubjectIdAsync(snapshot, provider, series, cancellationToken)
                     .ConfigureAwait(false);
                 if (subjectId is null)
                 {
                     result[provider] = null;
-                    AddRecord(provider, library.Series.Name, library.EpisodeNumber, ScrobblingRecordOutcome.Skipped,
+                    AddRecord(provider, series.Name, playing.Number, ScrobblingRecordOutcome.Skipped,
                         "没有找到标题、年份和集数均能唯一确认的作品，已跳过同步");
                     continue;
                 }
                 var subject = provider == ScrobblingProvider.Bangumi
                     ? await BangumiSubjectAsync(snapshot, subjectId.Value, cancellationToken).ConfigureAwait(false)
                     : await _douban.SubjectAsync(subjectId.Value, cancellationToken).ConfigureAwait(false);
-                if (subject.EpisodeCount != library.EpisodeCount)
+                if (subject.EpisodeCount is not int episodeCount || !SubjectCountMatches(episodeCount, library.EpisodeCount, series.Status))
                 {
                     result[provider] = null;
-                    AddRecord(provider, subject.Title, library.EpisodeNumber, ScrobblingRecordOutcome.Skipped,
+                    AddRecord(provider, subject.Title, playing.Number, ScrobblingRecordOutcome.Skipped,
                         "站点总集数与媒体库不一致，已跳过同步");
                     continue;
                 }
-                result[provider] = new(subject.Id, subject.Title, library.EpisodeNumber);
+                result[provider] = new(subject.Id, subject.Title, playing.Number, episodeCount);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception)
             {
                 result[provider] = null;
-                AddRecord(provider, library.Series.Name, library.EpisodeNumber, ScrobblingRecordOutcome.Failed,
+                AddRecord(provider, series.Name, playing.Number, ScrobblingRecordOutcome.Failed,
                     "自动匹配失败，已跳过同步");
             }
         }
         return result;
     }
 
+    private static async Task<(EmbyItem? Series, int EpisodeCount, string? SkipReason)> ReadLibrarySeasonAsync(
+        EmbyClient client, PlayingEpisode playing, CancellationToken token)
+    {
+        var series = await client.GetItemAsync(playing.SeriesId, token, "ProviderIds,OriginalTitle,ProductionYear,PremiereDate,Status")
+            .ConfigureAwait(false);
+        if (series.Type != EmbyItemType.Series || !string.Equals(series.Id, playing.SeriesId, StringComparison.Ordinal))
+            return (null, 0, "媒体服务器未返回对应剧集，已跳过同步");
+
+        var seasons = await client.GetSeasonsAsync(playing.SeriesId, token).ConfigureAwait(false);
+        var regularSeasons = seasons.Where(season => season.IndexNumber != 0).Take(2).ToArray();
+        if (regularSeasons is not [{ IndexNumber: 1, Type: EmbyItemType.Season } regularSeason]
+            || playing.SeasonNumber != 1 || string.IsNullOrWhiteSpace(regularSeason.Id)
+            || seasons.Any(season => season.Type != EmbyItemType.Season))
+            return (series, 0, "无法确认唯一的常规第一季，已跳过同步");
+
+        var episodes = await client.GetEpisodesAsync(playing.SeriesId, regularSeason.Id, token).ConfigureAwait(false);
+        var numbers = new HashSet<int>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var currentEpisodeFound = false;
+        const string InvalidNumbers = "媒体库集号不完整、不连续或存在合并集，已跳过同步";
+        if (episodes.Count is 0 or > 1000) return (series, 0, InvalidNumbers);
+        foreach (var episode in episodes)
+        {
+            // 媒体服务器可以在常规季内显示穿插的特别篇，季 0 的集号不参与常规集映射。
+            if (episode is { Type: EmbyItemType.Episode, ParentIndexNumber: 0 }) continue;
+            if (episode.Type != EmbyItemType.Episode || string.IsNullOrWhiteSpace(episode.Id)
+                || !ids.Add(episode.Id) || episode.ParentIndexNumber is { } parent && parent != 1
+                || !string.IsNullOrWhiteSpace(episode.SeasonId) && episode.SeasonId != regularSeason.Id
+                || episode.IndexNumber is not > 0 || episode.IndexNumberEnd is { } end && end > episode.IndexNumber
+                || !numbers.Add(episode.IndexNumber.Value))
+                return (series, 0, InvalidNumbers);
+            if (episode.IndexNumber == playing.Number && episode.Id == playing.Id)
+                currentEpisodeFound = true;
+        }
+        if (numbers.Count == 0 || Enumerable.Range(1, numbers.Count).Any(number => !numbers.Contains(number)))
+            return (series, 0, InvalidNumbers);
+        if (!currentEpisodeFound)
+            return (series, 0, "当前播放集与媒体库集号无法对应，已跳过同步");
+        return (series, numbers.Count, null);
+    }
+
+    private static bool SubjectCountMatches(int siteCount, int libraryCount, string? seriesStatus) =>
+        siteCount == libraryCount || siteCount > libraryCount
+            && string.Equals(seriesStatus, "Continuing", StringComparison.OrdinalIgnoreCase);
+
     private async Task<long?> FindSubjectIdAsync(Snapshot snapshot, ScrobblingProvider provider, EmbyItem series,
-        int libraryEpisodeCount, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
         var providerName = provider == ScrobblingProvider.Bangumi ? "Bangumi" : "Douban";
         var known = series.ProviderIds.FirstOrDefault(pair => pair.Key.Equals(providerName, StringComparison.OrdinalIgnoreCase)).Value;
@@ -318,7 +352,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         {
             _records.Add(record);
             var providerRecords = _records.Count(item => item.Provider == provider);
-            if (providerRecords > 100)
+            if (providerRecords > RecordLimitPerProvider)
             {
                 var oldest = _records.FindIndex(item => item.Provider == provider);
                 if (oldest >= 0) _records.RemoveAt(oldest);
