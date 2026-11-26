@@ -110,6 +110,23 @@ internal static class MoviePilotCalendarTests
             }
         });
 
+        Test("MoviePilot 日历：文件统计暂时不可用时仍返回播出日程和其他入库状态", () =>
+        {
+            var other = Series.Replace("\"id\":12", "\"id\":14", StringComparison.Ordinal);
+            using var transport = Transport().Answer("subscribe/calendar", Page(2, Series, other))
+                .Sequence("subscribe/files/12", (HttpStatusCode.ServiceUnavailable, ""))
+                .Answer("subscribe/files/14", """{"subscribe":{"id":14,"name":"日历剧集","type":"电视剧","season":0},"episodes":{"1":{"library":[{}]}}}""");
+            using var service = Service(transport);
+            var entries = Read(service);
+            Assert.True(entries.Select(entry => entry.SubscriptionId).SequenceEqual([12, 14]));
+            Assert.Null(entries[0].Episodes[0].IsInLibrary);
+            Assert.Equal(true, entries[1].Episodes[0].IsInLibrary);
+            Assert.True(service.Available);
+            Assert.Equal(1, transport.Count("subscribe/calendar"));
+            Assert.Equal(1, transport.Count("subscribe/files/12"));
+            Assert.Equal(1, transport.Count("subscribe/files/14"));
+        });
+
         Test("MoviePilot 日历：无日历接口和精确旧路由422给升级指引", () =>
         {
             foreach (var response in new[]
