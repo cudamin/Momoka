@@ -215,7 +215,8 @@ internal static class HomeCarouselLayoutTests
 
             var slide = Source("Momoka.Shell/Views/BannerSlide.cs");
             Assert.Contains("internal void SetLeftExtension(bool enabled)", slide);
-            Assert.Contains("DecodePixelsAsync(bytes, PictureWidth, _extendLeft, cts.Token)", slide);
+            Assert.Contains("var extendLeft = _extendLeft;", slide);
+            Assert.Contains("DecodePixelsAsync(bytes, PictureWidth, extendLeft, cts.Token)", slide);
 
             var loader = Source("Momoka.Shell/Media/BannerPictureLoader.cs");
             Assert.Contains("if (!extendLeft) return new HeroPictureLoader.HeroPixels(pixels, width, height);", loader);
