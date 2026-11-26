@@ -24,6 +24,7 @@ internal static partial class Program
         Directory.CreateDirectory(_output);
         RegisterSelfCheck();
         RegisterSelfCheckEvidence();
+        RegisterSelfCheckCrashStages();
         Test("R03-006 ordinary-close-exit", () =>
         {
             Equal(0, ProgramExitFixture.Exit(new(Paths("ordinary-close"))), "normal close succeeds without selfcheck");

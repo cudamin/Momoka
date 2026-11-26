@@ -30,8 +30,9 @@ internal static partial class ShellSelfCheck
         {
             0 => "主页",
             1 => "媒体库页面",
-            2 => "服务器页面",
-            3 => "诊断页面",
+            2 => "详情页面",
+            3 => "服务器页面",
+            4 => "诊断页面",
 
             // The settings stage walks its own cards, so which one it died on is worth saying: a template
             // that throws does so the first time its card is opened, and that is the card named here.

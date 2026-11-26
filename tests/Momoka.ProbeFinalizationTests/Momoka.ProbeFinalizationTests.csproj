@@ -21,6 +21,7 @@
         <ParameterGroup>
             <RunSource ParameterType="System.String" Required="true" />
             <ScheduleSource ParameterType="System.String" Required="true" />
+            <CrashSource ParameterType="System.String" Required="true" />
             <SubtitleSource ParameterType="System.String" Required="true" />
             <NavigationSource ParameterType="System.String" Required="true" />
             <InspectSource ParameterType="System.String" Required="true" />
@@ -64,6 +65,10 @@
                     "    internal static async Task RunScheduledForFixture(ProbeWindow window, SelfCheckInput options)\n    {\n" +
                     "        var shell = new ProbeShell(options);\n        IServiceProvider services = null!;\n" +
                     callback + "\n    }\n}\n";
+                var crash = File.ReadAllText(CrashSource).Replace("\r\n", "\n");
+                var reportCrash = between(crash, "    public static void ReportCrash(",
+                    "    /// <summary>\n    /// Writes a PNG of the shell beside the report");
+                generated += "\ninternal static partial class ShellSelfCheck\n{\n" + reportCrash + "\n}\n";
                 var subtitle = File.ReadAllText(SubtitleSource).Replace("\r\n", "\n");
                 var navigation = File.ReadAllText(NavigationSource).Replace("\r\n", "\n");
                 var subtitleProperty = between(subtitle, "    internal static int ExitCode", "\n    internal static async Task RunAsync");
@@ -152,6 +157,7 @@
         <ExtractProbeFinalizationSources
             RunSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Run.cs"
             ScheduleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.cs"
+            CrashSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Output.cs"
             SubtitleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\SubtitleSettingsProbe.cs"
             NavigationSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
             InspectSource="$(InspectOwnerSource)"
