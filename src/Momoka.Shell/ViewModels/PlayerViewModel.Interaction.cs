@@ -18,24 +18,18 @@ public sealed partial class PlayerViewModel
     /// <summary>
     /// 同一场播放还在不在 —— 与 <see cref="IsCurrentInteraction"/> 只差「菜单那一版」那一位。
     /// <para>
-    /// 窗口切换的暂停账问的是「<b>哪一部片子</b>被我冻住了」，不是「<b>哪一份菜单</b>还开着」。菜单版本在
-    /// 换片、停止，以及每一条 now-playing 更新（<see cref="OnNowPlayingChanged"/>）时都会涨，拿它当播放身份
-    /// 会让一笔正在走的切换在半路被判定失效 —— 画面那一半停下来是对的（那份菜单确实过期了），暂停那一半
-    /// 却因此没人放开，片子就停在暂停上（2026-10-22 那一晚的账）。
-    /// </para>
-    /// <para>
-    /// 反过来的保护照旧：换了片、停了播，这一问答假，于是我们不会替新的那一场发 <c>pause=no</c>。
+    /// 用于忽略菜单刷新但仍依赖当前条目的操作。窗口切换的暂停责任使用
+    /// <see cref="FreezeContext"/>，因为首次 NowPlaying 更新时被暂停的文件可能已经在播。
     /// </para>
     /// </summary>
     internal bool IsCurrentPlayback(InteractionContext context) => !_lifetime.IsCancellationRequested
         && context.Attempt == _playbackAttempt && context.Generation == _generation
         && context.PlaybackGeneration == _playback.Generation && ReferenceEquals(context.Item, _nowPlaying);
 
-    internal readonly record struct FreezeContext(long Generation, long? FileGeneration);
-    internal FreezeContext CaptureFreeze() => new(_playback.Generation, _playback.ActiveFileGeneration);
-    internal bool IsCurrentFreeze(FreezeContext context) => !_lifetime.IsCancellationRequested && _playback.IsPlaying
-        && _playback.CanControl && context.Generation == _playback.Generation
-        && context.FileGeneration == _playback.ActiveFileGeneration;
+    internal readonly record struct FreezeContext(long Generation, long? FileGeneration, bool Playing);
+    internal FreezeContext CaptureFreeze() => new(_playback.Generation, _playback.ActiveFileGeneration, _playback.IsPlaying);
+    internal bool IsCurrentFreeze(FreezeContext context) => !_lifetime.IsCancellationRequested
+        && context.Playing && _playback.CanControl && CaptureFreeze() == context;
 
     internal Task<bool> SetFrozenPausedAsync(FreezeContext context, bool paused)
     {

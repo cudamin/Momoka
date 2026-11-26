@@ -1,12 +1,12 @@
+using System.Collections.Concurrent;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using System.Collections.Concurrent;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class Program
+internal static partial class Program
 {
     private static int Main()
     {
@@ -286,6 +286,7 @@ internal static class Program
             Assert.True(overlay.Disposed);
             Assert.True(page.ViewModel.Playback.Pauses.SequenceEqual([true, false]));
         });
+        RegisterWindowChanges();
         return Run();
     }
 
@@ -325,7 +326,7 @@ internal static class Program
         var watch = System.Diagnostics.Stopwatch.StartNew();
         while (!task.IsCompleted && watch.Elapsed < TimeSpan.FromSeconds(5))
             _ui.One(TimeSpan.FromMilliseconds(20));
-        Assert.True(task.IsCompleted, "拖边任务未完成");
+        Assert.True(task.IsCompleted, "窗口交接任务未完成");
         _ui.Drain();
         if (task.Exception is { } error) throw error.InnerException!;
     }

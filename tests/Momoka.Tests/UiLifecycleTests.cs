@@ -160,25 +160,23 @@ internal static class UiLifecycleTests
         {
             var pause = new HandoffPause();
             Assert.True(pause.Acquire(paused: false));
-            Assert.False(pause.Release(pending: true, playbackCurrent: true));
             Assert.False(pause.Acquire(paused: true));
-            Assert.False(pause.Release(pending: true, playbackCurrent: true));
-            Assert.False(pause.Acquire(paused: true));
-            Assert.True(pause.Release(pending: false, playbackCurrent: true));
-            Assert.False(pause.Release(pending: false, playbackCurrent: true));
+            Assert.False(pause.Acquire(paused: false), "状态尚未回读也不重复取得暂停责任");
+            Assert.True(pause.Release(playbackCurrent: true));
+            Assert.False(pause.Release(playbackCurrent: true));
         });
         Test("窗口切换：用户原先暂停不能被自动恢复", () =>
         {
             var pause = new HandoffPause();
             Assert.False(pause.Acquire(paused: true));
-            Assert.False(pause.Release(pending: false, playbackCurrent: true));
+            Assert.False(pause.Release(playbackCurrent: true));
         });
         Test("窗口切换：换片或停播不替下一场放开", () =>
         {
             var pause = new HandoffPause();
             Assert.True(pause.Acquire(paused: false));
-            Assert.False(pause.Release(pending: false, playbackCurrent: false), "冻的是上一部，放开会落到别人头上");
-            Assert.False(pause.Release(pending: false, playbackCurrent: true), "账已经抹掉，不重复放开");
+            Assert.False(pause.Release(playbackCurrent: false), "冻的是上一部，放开会落到别人头上");
+            Assert.False(pause.Release(playbackCurrent: true), "账已经抹掉，不重复放开");
         });
         Test("窗口切换：切换半路被作废，片子还是那一部就必须放开", () =>
         {
@@ -187,7 +185,7 @@ internal static class UiLifecycleTests
             // 画面那一半作废是应当的，暂停这一笔不行。
             var pause = new HandoffPause();
             Assert.True(pause.Acquire(paused: false));
-            Assert.True(pause.Release(pending: false, playbackCurrent: true), "冻过就得还，哪怕这一趟已经不算数");
+            Assert.True(pause.Release(playbackCurrent: true), "冻过就得还，哪怕这一趟已经不算数");
         });
     }
 

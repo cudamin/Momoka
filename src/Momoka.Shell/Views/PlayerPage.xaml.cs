@@ -1120,7 +1120,7 @@ public sealed partial class PlayerPage : UserControl
         if (aspect <= 0) return;
 
         if (_onStage && ViewModel.AutoFullscreenOnPlayback
-            && (_startupHandoverPending || _fullscreenWanted == true || ViewModel.CoverUp)) return;
+            && (_startupHandoverPending || FullscreenWanted == true || ViewModel.CoverUp)) return;
 
         _window.FitToPicture();
     }

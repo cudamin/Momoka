@@ -720,7 +720,7 @@ public sealed partial class PlayerPage : IWin32KeySink
 
             // 退全屏不给控件宽限（用户令 2026-10-10「退出全屏的时候也不要自动显示播放控件」）：与 F 键
             // 那一半走同一句判据（<see cref="WakesChrome"/>），一处改两处跟着走。窗口形状变了本身就是回执。
-            case VirtualKey.Escape when fixedFallback && (_window!.Fullscreen || _fullscreenWanted == true):
+            case VirtualKey.Escape when fixedFallback && (_window!.Fullscreen || FullscreenWanted == true):
                 SetFullscreen(false);
                 wakeChrome = WakesChrome("toggle-fullscreen");
                 return true;
@@ -1050,7 +1050,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         }
         if (_window is null) return;
 
-        SetFullscreen(!(_fullscreenWanted ?? _window.Fullscreen));
+        SetFullscreen(!(FullscreenWanted ?? _window.Fullscreen));
     }
 
     /// <summary>

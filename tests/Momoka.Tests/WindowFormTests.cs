@@ -134,7 +134,11 @@ internal static class WindowFormTests
             // 两个名字是实参）都会被那种钝判据误报 —— 第一版就是这么红的。括号与分号因此都在禁止字符里，
             // 名字与操作符之间也只留 12 个字符的余量。
             var conjunction = new System.Text.RegularExpressions.Regex(
-                @"(Fullscreen|IsMaximized|IsZoomed)[^;()|&]{0,12}(\|\||&&)[^;()]*?(Fullscreen|IsMaximized|IsZoomed)");
+                @"\b(Fullscreen|IsMaximized|IsZoomed)\b[^;()|&]{0,12}(\|\||&&)[^;()]*?\b(Fullscreen|IsMaximized|IsZoomed)\b");
+            Assert.True(conjunction.IsMatch("window.Fullscreen || window.IsMaximized"));
+            Assert.True(conjunction.IsMatch("window.IsMaximized && window.Fullscreen"));
+            // 待执行的请求不是窗口的实际形态，不能只匹配属性名的开头。
+            Assert.False(conjunction.IsMatch("window.Fullscreen || FullscreenWanted == true"));
 
             var offenders = new List<string>();
 

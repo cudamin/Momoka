@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using Momoka.Emby;
+using Momoka.Infrastructure;
 using Momoka.Shell.Interop;
+using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
 
 namespace Momoka.Shell.ViewModels
@@ -13,16 +15,20 @@ namespace Momoka.Shell.ViewModels
         public bool CanControl { get; set; } = true;
         public bool RejectPause { get; set; }
         public TaskCompletionSource? PendingPause { get; set; }
+        public TaskCompletionSource? PendingResume { get; set; }
         public Action<bool>? PauseApplied { get; set; }
         public List<bool> Pauses { get; } = [];
+        public List<bool> PauseRequests { get; } = [];
         public async Task<bool> CommandForActiveFileAsync(long generation, long? file, params string[] args)
         {
             if (args is not ["set", "pause", var value]) throw new InvalidOperationException("Unexpected playback command");
-            if (value == "yes" && RejectPause) return false;
-            if (value == "yes" && PendingPause is { } pending) await pending.Task;
+            var pause = value == "yes";
+            PauseRequests.Add(pause);
+            if (pause && RejectPause) return false;
+            if ((pause ? PendingPause : PendingResume) is { } pending) await pending.Task;
             if (generation != Generation || file != ActiveFileGeneration || !IsPlaying) return false;
-            Pauses.Add(value == "yes");
-            PauseApplied?.Invoke(value == "yes");
+            Pauses.Add(pause);
+            PauseApplied?.Invoke(pause);
             return true;
         }
     }
@@ -32,12 +38,19 @@ namespace Momoka.Shell.ViewModels
         private readonly CancellationTokenSource _lifetime = new();
         private readonly PlaybackBoundary _playback = new();
         private int _playbackAttempt = 1, _generation = 1, _interactionVersion = 1;
-        private readonly EmbyItem? _nowPlaying = new() { Id = "anonymous" };
+        private EmbyItem? _nowPlaying;
         public bool Paused { get; set; }
         public bool PictureInHostWindow { get; set; } = true;
+        internal FrameBoundary? CoverBackdropFrame => null;
         public PlaybackBoundary Playback => _playback;
         public void SwapFile() => _playback.ActiveFileGeneration++;
         public void RefreshMenus() => _interactionVersion++;
+        public void PublishNowPlaying()
+        {
+            _interactionVersion++;
+            _generation++;
+            _nowPlaying = new EmbyItem { Id = "anonymous" };
+        }
     }
 }
 
@@ -51,6 +64,10 @@ namespace Momoka.Shell.Windowing
         public bool HasAttachedVisual { get; set; } = true;
         public bool IsContentReady { get; set; } = true;
         public bool IsInteractiveResize { get; private set; }
+        public bool GeometryHeld { get; private set; }
+        public (int Width, int Height) AttachedContentSize => (Native.Client.Width, Native.Client.Height);
+        public (double Width, double Height) HostSize => AttachedContentSize;
+        public double RasterizationScale => 1;
         public TaskCompletionSource? PendingCommit { get; set; }
         public FrameBoundary? CompletedFrame { get; set; }
         public List<TaskCompletionSource<FrameBoundary?>> Captures { get; } = [];
@@ -64,6 +81,7 @@ namespace Momoka.Shell.Windowing
             return capture.Task;
         }
         public void SetInteractiveResize(bool active) { IsInteractiveResize = active; Trace.Add(active ? "interactive" : "settling"); }
+        public void HoldGeometry(bool hold) => GeometryHeld = hold;
         public void ResizePresentation(NativeRect client) => Trace.Add($"size:{client.Width}x{client.Height}");
         public void RefreshPresentation() { }
         public Task CommitPresentationAsync() { Trace.Add("commit"); return PendingCommit?.Task ?? Task.CompletedTask; }
@@ -77,7 +95,8 @@ namespace Momoka.Shell.Windowing
         public FrameBoundary Frame { get; }
         public bool Disposed { get; private set; }
         public List<NativeRect> Shows { get; } = [];
-        public VideoFrameOverlay(IntPtr handle, FrameBoundary frame) { Frame = frame; Created.Add(this); }
+        public VideoFrameOverlay(IntPtr handle, FrameBoundary frame, bool cover = false) { Frame = frame; Created.Add(this); }
+        public VideoFrameOverlay(IntPtr handle, uint color) : this(handle, new FrameBoundary(0), cover: true) { }
         public void Show(NativeRect client, bool topmost)
         {
             if (ThrowOnShow) throw new InvalidOperationException("Anonymous overlay failure");
@@ -85,6 +104,8 @@ namespace Momoka.Shell.Windowing
         }
         public void Dispose() => Disposed = true;
         public static NativeRect ClientRect(IntPtr handle) => Native.Client;
+        public static NativeRect FullscreenRect(IntPtr handle) => Native.Client;
+        public static NativeRect WorkArea(IntPtr handle) => Native.Client;
         public static void Flush() => Flushes++;
         public static void Reset() { Created.Clear(); Flushes = 0; ThrowOnShow = false; }
     }
@@ -97,8 +118,30 @@ namespace Momoka.Shell.Windowing
         internal event Action<NativeRect>? ClientSizeChanged;
         internal event Action<bool>? InteractiveResizeChanged;
         public IntPtr Handle { get; set; } = (IntPtr)1;
-        public bool Fullscreen { get; set; }
+        private bool _fullscreen;
+        private bool _maximized;
+        public bool Fullscreen
+        {
+            get => _fullscreen;
+            set
+            {
+                if (value == _fullscreen) return;
+                _fullscreen = value;
+                Forms.Add(Form);
+            }
+        }
+        public WindowForm Form => WindowForms.Of(Fullscreen, _maximized);
+        public (int Width, int Height) ClientSize => (Native.Client.Width, Native.Client.Height);
         public bool TopMost { get; set; }
+        internal List<WindowForm> Forms { get; } = [];
+        internal void ToggleMaximize()
+        {
+            if (Fullscreen) return;
+            _maximized = !_maximized;
+            Forms.Add(Form);
+        }
+        internal void HideTrayForImminentFullscreen() { }
+        internal void CancelImminentFullscreenTray() { }
         public bool FreeSizing => true;
         public double PictureAspect => 16d / 9;
         private int MinimumWidth => 640;
@@ -139,7 +182,7 @@ namespace Momoka.Shell.Views
 {
     public sealed partial class PlayerPage
     {
-        private readonly HostWindow _window = new();
+        private HostWindow? _window;
         private readonly VideoTargetBoundary _videoTarget = new();
         private readonly CoverBoundary Cover = new();
         private bool _onStage = true, _resizeLoop, _resizePaused, _resizeCaptureFailed, _freezePauseAccepted;
@@ -153,11 +196,12 @@ namespace Momoka.Shell.Views
         private Momoka.Shell.ViewModels.PlayerViewModel.FreezeContext _resizeFreezeContext;
         private long _handoffMutedAt;
         private static long Now => Environment.TickCount64;
-        private const int HandoffSettleMilliseconds = 120;
+        private bool _startupHandoverPending;
+        private Dictionary<string, object?> Resources { get; } = new() { ["PlayerCoverBrush"] = null };
         public bool Attached { get; set; } = true;
         public Momoka.Shell.ViewModels.PlayerViewModel ViewModel { get; } = new();
         internal Action<bool>? PauseRequested { get; set; }
-        internal HostWindow Window => _window;
+        internal HostWindow Window => _window!;
         internal VideoTargetBoundary Target => _videoTarget;
         internal VideoFrameOverlay? Overlay => _resizeFrame;
         internal Task Capture => _resizeCapture ?? Task.CompletedTask;
@@ -166,16 +210,36 @@ namespace Momoka.Shell.Views
         internal bool Frozen => _resizePaused;
         internal PlayerPage()
         {
-            _window.ClientSizeChanging += OnClientSizeChanging;
-            _window.ClientSizeChanged += OnClientSizeChanged;
-            _window.InteractiveResizeChanged += OnInteractiveResizeChanged;
-            _window.ConnectNative();
+            _window = new HostWindow();
+            Window.ClientSizeChanging += OnClientSizeChanging;
+            Window.ClientSizeChanged += OnClientSizeChanged;
+            Window.InteractiveResizeChanged += OnInteractiveResizeChanged;
+            Window.ConnectNative();
             ViewModel.Playback.PauseApplied = paused => { ViewModel.Paused = paused; _videoTarget.Trace.Add(paused ? "pause" : "resume"); };
         }
         internal void Leave() { _onStage = false; CancelResizeChange(); }
-        internal Task Finish() => FinishResizeAsync(_window, _resizeGeneration);
+        internal void LeaveWindow()
+        {
+            CancelWindowChange();
+            _onStage = false;
+        }
+        internal void ReplaceWindow()
+        {
+            LeaveWindow();
+            _window = new HostWindow();
+            _onStage = true;
+        }
+        internal void Fullscreen(bool on) => RequestFullscreen(on);
+        internal void Maximize(bool on) => RequestMaximize(on);
+        internal void SetCoverVisible() => Cover.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+        private void ApplyFullscreen(bool on) => Window.Fullscreen = on;
+        private void CancelStartupCover() { if (_startupHandoverPending) _startupHandoverPending = false; }
+        internal Task Finish() => FinishResizeAsync(Window, _resizeGeneration);
     }
-    internal sealed class CoverBoundary { public Microsoft.UI.Xaml.Visibility Visibility => Microsoft.UI.Xaml.Visibility.Collapsed; }
+    internal sealed class CoverBoundary
+    {
+        public Microsoft.UI.Xaml.Visibility Visibility { get; set; } = Microsoft.UI.Xaml.Visibility.Collapsed;
+    }
 }
 
 namespace Momoka.Shell.Interop
@@ -215,3 +279,43 @@ namespace Momoka.Shell.Interop
 }
 
 namespace Microsoft.UI.Xaml { internal enum Visibility { Visible, Collapsed } }
+
+namespace Microsoft.UI
+{
+    internal readonly record struct Color(byte R, byte G, byte B);
+    internal static class Colors
+    {
+        internal static Color Black => default;
+    }
+}
+
+namespace Microsoft.UI.Xaml.Media
+{
+    internal sealed class SolidColorBrush
+    {
+        internal Microsoft.UI.Color Color => default;
+    }
+}
+
+namespace Microsoft.UI.Xaml.Hosting
+{
+    internal static class ElementCompositionPreview
+    {
+        internal static CompositionBoundary GetElementVisual(PlayerPage page) => new();
+    }
+
+    internal sealed class CompositionBoundary
+    {
+        internal CompositorBoundary Compositor { get; } = new();
+    }
+
+    internal sealed class CompositorBoundary
+    {
+        internal CommitBoundary RequestCommitAsync() => new();
+    }
+
+    internal sealed class CommitBoundary
+    {
+        internal Task AsTask() => Task.CompletedTask;
+    }
+}

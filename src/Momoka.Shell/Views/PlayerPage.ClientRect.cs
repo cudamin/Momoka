@@ -10,8 +10,8 @@ namespace Momoka.Shell.Views;
 
 public sealed partial class PlayerPage
 {
-    private bool? _fullscreenWanted;
-    private bool? _maximizeWanted;
+    private WindowChangeRequest? _windowRequest;
+    private bool _changingWindow;
     private Task _windowChange = Task.CompletedTask;
     private VideoFrameOverlay? _windowFrame;
     private int _windowChangeGeneration;
@@ -93,6 +93,21 @@ public sealed partial class PlayerPage
     internal Task WindowChange => _windowChange;
     internal bool FullscreenFrameVisible => _windowFrame is not null;
 
+    private readonly record struct WindowChangeOwner(
+        HostWindow Window,
+        PlayerViewModel ViewModel,
+        int Generation,
+        PlayerViewModel.InteractionContext Interaction,
+        PlayerViewModel.FreezeContext Playback);
+
+    private sealed record WindowChangeRequest(WindowChangeOwner Owner, bool? Fullscreen, bool? Maximize)
+    {
+        internal bool Growing => Fullscreen == true || Maximize == true;
+    }
+
+    private bool? FullscreenWanted => _windowRequest is { } request && IsCurrentWindowChange(request.Owner)
+        ? request.Fullscreen : null;
+
     /// <summary>
     /// 加载遮罩那支底色，折成分层窗口用的不透明 BGRA。起播自动全屏那一趟没有画面帧可抓，
     /// 用它铺一块与 <c>Cover</c> 同色的纯色覆盖层挡住窗口长大那一拍（见 <see cref="ChangeWindowAsync"/>）。
@@ -124,234 +139,258 @@ public sealed partial class PlayerPage
             : new VideoFrameOverlay(window, CoverOverlayColor());
 
     /// <summary>想要全屏／退出全屏；与最大化请求互斥（后一个请求作废前一个）。</summary>
-    private void RequestFullscreen(bool on)
-    {
-        _fullscreenWanted = on;
-        _maximizeWanted = null;
-        StartWindowChange();
-    }
+    private void RequestFullscreen(bool on) => RequestWindowChange(fullscreen: on, maximize: null);
 
     /// <summary>想要最大化／还原；与全屏请求互斥。</summary>
-    private void RequestMaximize(bool on)
+    private void RequestMaximize(bool on) => RequestWindowChange(fullscreen: null, maximize: on);
+
+    private void RequestWindowChange(bool? fullscreen, bool? maximize)
     {
-        _maximizeWanted = on;
-        _fullscreenWanted = null;
-        StartWindowChange();
+        if (_window is not { } window || !Attached || !_onStage || window.Handle == IntPtr.Zero) return;
+        var viewModel = ViewModel;
+        var owner = new WindowChangeOwner(window, viewModel, _windowChangeGeneration,
+            viewModel.CaptureInteraction(), viewModel.CaptureFreeze());
+        var request = new WindowChangeRequest(owner, fullscreen, maximize);
+        _windowRequest = request;
+        if (Pending(request)) CancelStartupCover();
+        if (!_changingWindow) _windowChange = ChangeWindowAsync();
     }
 
-    private void StartWindowChange()
-    {
-        if (_window is { } window && Pending(window)) CancelStartupCover();
-        if (!_windowChange.IsCompleted) return;
-        CancelResizeChange();
-        _windowChange = ChangeWindowAsync();
-    }
+    private bool IsCurrentWindowChange(WindowChangeOwner owner) =>
+        owner.Generation == _windowChangeGeneration && _window == owner.Window
+        && owner.Window.Handle != IntPtr.Zero && _onStage && Attached && ViewModel == owner.ViewModel
+        && owner.ViewModel.IsCurrentInteraction(owner.Interaction) && owner.ViewModel.CaptureFreeze() == owner.Playback;
 
     /// <summary>此刻还有没有没落地的窗口状态。最大化那一支比的是形态本身（全屏优先，见 WindowForms）。</summary>
-    private bool Pending(Windowing.HostWindow window) =>
-        (_fullscreenWanted is { } fullscreen && window.Fullscreen != fullscreen)
-        || (_maximizeWanted is { } maximized && window.Form != WindowForms.Of(false, maximized));
+    private static bool Pending(WindowChangeRequest request) =>
+        (request.Fullscreen is { } fullscreen && request.Owner.Window.Fullscreen != fullscreen)
+        || (request.Maximize is { } maximized && request.Owner.Window.Form != WindowForms.Of(false, maximized));
 
-    private void ApplyPending(Windowing.HostWindow window)
+    private WindowChangeRequest? PendingWindowChange(WindowChangeOwner owner) =>
+        _windowRequest is { } request && request.Owner == owner && IsCurrentWindowChange(owner) && Pending(request)
+            ? request : null;
+
+    private void ApplyPending(WindowChangeRequest request)
     {
-        if (_fullscreenWanted is { } fullscreen && window.Fullscreen != fullscreen)
+        if (request.Fullscreen is { } fullscreen)
         {
             ApplyFullscreen(fullscreen);
             return;
         }
 
-        if (_maximizeWanted is { } maximized && window.Form != WindowForms.Of(false, maximized))
-            window.ToggleMaximize();
+        request.Owner.Window.ToggleMaximize();
     }
 
     private async Task ChangeWindowAsync()
     {
-        var context = ViewModel.CaptureInteraction();
-        var playback = ViewModel.CaptureFreeze();
-        await _resizeChange;
-        if (!Attached || !_onStage || !ViewModel.IsCurrentInteraction(context)) return;
-        var pause = new HandoffPause();
-        while (_window is { } window && Pending(window) && _onStage && ViewModel.IsCurrentInteraction(context))
+        _changingWindow = true;
+        try
         {
-            var generation = _windowChangeGeneration;
-            bool Current() => generation == _windowChangeGeneration && _window == window
-                && window.Handle != IntPtr.Zero && _onStage && Attached && ViewModel.IsCurrentInteraction(context);
-            var held = false;
-            VideoFrameOverlay? growCover = null;
-            try
+            CancelResizeChange();
+            await _resizeChange;
+            while (_windowRequest is { } request)
+                await ApplyWindowChangesAsync(request.Owner);
+        }
+        finally
+        {
+            _changingWindow = false;
+        }
+    }
+
+    private async Task ApplyWindowChangesAsync(WindowChangeOwner owner)
+    {
+        var pause = new HandoffPause();
+        try
+        {
+            while (PendingWindowChange(owner) is { } request)
             {
-                // 先把播放冻住，再抓帧。
-                //
-                // 用户 2026-09-22：「可以想办法在切全屏和窗口化的时候暂停播放，和截图无缝衔接嘛」。
-                // 实测（`work/probe-pause-resize.py`，无窗口对照：播放中 vs 暂停中，各把 composition 尺寸
-                // 从 1280x720 改成 1920x1080）：**暂停之后 mpv 照样在 100ms 内按新尺寸重建了缓冲**
-                // （描述符 1280x720 -> 1920x1080，与播放中同速），而押帧计数 `120 -> 121` 之后就静止 ——
-                // 播放中那一边是每 100ms 涨三帧。两件事一次拿到：等待判据（`ResizeSettled`）到得了，
-                // 且抓到的这一帧与撤掉保留帧时屏上那一帧**同帧**。
-                // 「播放中抓帧」给不了后一件：覆盖层每多盖一毫秒，撤掉时就多跳一毫秒的内容 ——
-                // 用户看到的那一下「退回」有它一半。
-                await FreezeForHandoffAsync(pause, playback);
-                if (!Current()) break;
-
-                // 这一趟是不是「变大」（进全屏／最大化）—— 抓帧铺覆盖层与下面加载态的纯色覆盖层都看它。
-                var growing = _fullscreenWanted == true || _maximizeWanted == true;
-
-                if (_videoTarget.HasAttachedVisual && Cover.Visibility != Microsoft.UI.Xaml.Visibility.Visible)
-                {
-                    _videoTarget.HoldGeometry(true);
-                    held = true;
-                    var frame = await _videoTarget.CaptureFrameAsync().WaitAsync(TimeSpan.FromMilliseconds(750));
-                    if (!Current()) break;
-
-                    if (frame is not null)
-                    {
-                        _windowFrame = new VideoFrameOverlay(window.Handle, frame);
-                        // 变大那一趟（进全屏／最大化）先按<b>目标</b>矩形摆好，再动窗口：合成器若先吐
-                        // 一拍「新几何 + 旧内容」，屏上已经是对的样子。变小那一趟缩到哪要等窗口自己算
-                        // （还原矩形 + 按比例整形），所以仍旧先按当前矩形摆、改完再摆一次。
-                        var bounds = growing
-                            ? (_fullscreenWanted == true
-                                ? VideoFrameOverlay.FullscreenRect(window.Handle)
-                                : VideoFrameOverlay.WorkArea(window.Handle))
-                            : VideoFrameOverlay.ClientRect(window.Handle);
-                        _windowFrame.Show(bounds, window.Fullscreen || window.TopMost || growing);
-                        VideoFrameOverlay.Flush();
-                    }
-                    else
-                    {
-                        // 取不到帧＝这一趟没有任何东西替画面挡着，合成器那一拍「新几何 + 旧内容」会原样
-                        // 露出来。2026-09-22 之前这里是静默的，于是「切换时闪一下」在日志里分不出是
-                        // 「抓帧没成」还是「盖得不够久」—— 这两件事的修法完全不同，得先能分开。
-                        Log.Warn("播放器", "窗口切换取不到帧，这一趟没有保留帧遮挡");
-                    }
-                }
-
-                // 起播自动全屏那一趟没有画面帧可抓（还在加载、Cover 立着），而窗口马上要长到全屏 ——
-                // 手动全屏靠上面抓到的帧盖住长大那一拍，这里没有帧，就用加载遮罩同色的纯色顶层层盖同一拍。
-                // 少了它，窗口长到全屏那一下右下角会露一下：SetWindowPos 是瞬时的，岛的合成提交晚它一两拍，
-                // 而加载遮罩是岛内 XAML，SynchronizeContentLayout 只同步布局、提交仍滞后（用户 2026-09-25 报
-                // 「起播自动全屏时窗口右下角闪一下」，且「先进播放页再手动全屏没有」——那条走的正是上面抓帧的路）。
-                if (_windowFrame is null && growing && Cover.Visibility == Microsoft.UI.Xaml.Visibility.Visible)
-                {
-                    var target = _fullscreenWanted == true
-                        ? VideoFrameOverlay.FullscreenRect(window.Handle)
-                        : VideoFrameOverlay.WorkArea(window.Handle);
-                    // 进全屏的那一档与起播整屏同一条理（见 EnterFullscreenAtOnce）：任务栏先收、覆盖层后上，
-                    // 收不回来由本趟 finally 的 Cancel 凭记账放回。最大化盖的是工作区，够不着任务栏，不动。
-                    if (_fullscreenWanted == true) window.HideTrayForImminentFullscreen();
-                    growCover = StartupCover(window.Handle);
-                    growCover.Show(target, topmost: true);
-                    VideoFrameOverlay.Flush();
-                }
-
-                ApplyPending(window);
-
-                if (growCover is not null)
-                {
-                    // 窗口已长到位：把纯色层挪到最终客户区，逼一次页面提交把全屏 Cover 排上屏，再撤层 ——
-                    // 撤早了（全屏 Cover 还没提交）右下角照样露一拍，所以先等这一次提交落地。
-                    growCover.Show(VideoFrameOverlay.ClientRect(window.Handle), topmost: true);
-                    VideoFrameOverlay.Flush();
-                    try
-                    {
-                        await Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(this).Compositor
-                            .RequestCommitAsync().AsTask().WaitAsync(TimeSpan.FromMilliseconds(350));
-                    }
-                    catch (Exception commit)
-                    {
-                        Log.Debug("播放器", $"起播全屏覆盖层提交未确认，照撤：{commit.Message}");
-                    }
-                    if (!Current()) break;
-                    growCover.Dispose();
-                    growCover = null;
-                }
-
-                if (_windowFrame is { } overlay)
-                    overlay.Show(VideoFrameOverlay.ClientRect(window.Handle), window.Fullscreen || window.TopMost);
-                if (held)
-                {
-                    _videoTarget.HoldGeometry(false);
-                    held = false;
-                }
-
-                if (_windowFrame is not null || Cover.Visibility == Microsoft.UI.Xaml.Visibility.Visible)
-                {
-                    var covered = _windowFrame is not null;
-                    var clock = Stopwatch.StartNew();
-                    var settledAt = -1L;
-                    var content = _videoTarget.AttachedContentSize;
-                    var layoutWidth = 0;
-                    var layoutHeight = 0;
-                    var clientWidth = 0;
-                    var clientHeight = 0;
-
-                    // 缓冲、布局和合成提交各自异步完成，保留帧必须盖住这段交接。
-                    while (clock.ElapsedMilliseconds < 750 && Current())
-                    {
-                        _videoTarget.RefreshPresentation();
-                        var client = window.ClientSize;
-                        var layout = _videoTarget.HostSize;
-                        var raster = _videoTarget.RasterizationScale;
-                        content = _videoTarget.AttachedContentSize;
-                        layoutWidth = (int)Math.Round(layout.Width * raster);
-                        layoutHeight = (int)Math.Round(layout.Height * raster);
-                        clientWidth = client.Width;
-                        clientHeight = client.Height;
-                        var settled = _windowFrame is null && !_videoTarget.HasAttachedVisual
-                            ? VideoPresentation.Matches(layoutWidth, layoutHeight, clientWidth, clientHeight)
-                            : VideoPresentation.ResizeSettled(content.Width, content.Height,
-                                layoutWidth, layoutHeight, clientWidth, clientHeight);
-
-                        if (!settled) settledAt = -1;
-                        else if (settledAt < 0) settledAt = clock.ElapsedMilliseconds;
-                        var ready = settled
-                            && clock.ElapsedMilliseconds - settledAt >= HandoffSettleMilliseconds;
-                        if (ready) break;
-                        await Task.Delay(16);
-                    }
-                    if (!Current()) break;
-                    await _videoTarget.CommitPresentationAsync().WaitAsync(TimeSpan.FromMilliseconds(250));
-                    VideoFrameOverlay.Flush();
-                    if (covered)
-                        Log.Debug("播放器", $"窗口切换保留帧：盖了 {clock.ElapsedMilliseconds}ms"
-                            + $"（缓冲 {content.Width}x{content.Height}、布局 {layoutWidth}x{layoutHeight}、"
-                            + $"客户区 {clientWidth}x{clientHeight}）");
-                }
-            }
-            catch (Exception error)
-            {
-                Log.Warn("播放器", "窗口切换保留帧不可用，回退直接切换", error);
-                if (Current()) ApplyPending(window);
-            }
-            finally
-            {
-                _windowFrame?.Dispose();
-                _windowFrame = null;
-                growCover?.Dispose();
-                // 全屏没进成的那几条路（中途失效、异常回退）：前半拍预收的任务栏凭记账放回。
-                // 全屏已落地时这是一句空操作。
-                window.CancelImminentFullscreenTray();
-                if (held) _videoTarget.HoldGeometry(false);
-
-                // 替用户把播放放开 —— 但要等**整趟事务**走完，不是这一趟走完。快速反向（连点全屏／
-                // 窗口化）会连着跑好几趟，每趟收尾都放开的话，下一趟抓到的就是在动的帧、白丢一次
-                // 「同帧」，声音还会跟着「断-续-断-续」。`Pending` 还立着就继续冻着。
-                // 静默锚在这里再推一次：mpv 把 `pause=false` 报回来还要一程，那一下同样不是用户按的
-                //（见 `PlayerPage.Muted` 与 `HandoffPulseMuteMilliseconds`）。
-                //
-                // **放开的判据是「片子还是那一部」，不是「这趟还算不算数」**（2026-10-22）：这趟切换
-                // 半路被作废（页面退场、now-playing 更新把交互版本顶掉）时，画面那一半确实不该再动，
-                // 可暂停是另一笔账 —— 冻过就得还，否则片子停在那里再没人放开。换片／停播才不还
-                //（`IsCurrentPlayback` 为假），因为那时的 `pause=no` 会落到别人头上。
-                if (pause.Release(Pending(window), ViewModel.IsCurrentFreeze(playback)))
-                {
-                    _handoffMutedAt = Now;
-                    await ViewModel.SetFrozenPausedAsync(playback, false).ConfigureAwait(true);
-                }
+                await ApplyWindowChangeAsync(owner, pause);
+                if (ReferenceEquals(_windowRequest, request)) break;
             }
         }
-        _fullscreenWanted = null;
-        _maximizeWanted = null;
+        finally
+        {
+            // 旧窗口请求到此作废；await 恢复期间来的新请求留给外层继续处理。
+            if (_windowRequest?.Owner == owner) _windowRequest = null;
+
+            // 首次 NowPlaying 也会更换交互身份；恢复只看当时被冻住的播放仍是否当前。
+            // 快速反向若仍属于同一场交接，以上循环几趟共用一次暂停。
+            if (pause.Release(owner.ViewModel.IsCurrentFreeze(owner.Playback)))
+            {
+                _handoffMutedAt = Now;
+                await owner.ViewModel.SetFrozenPausedAsync(owner.Playback, false).ConfigureAwait(true);
+            }
+        }
+    }
+
+    private async Task ApplyWindowChangeAsync(WindowChangeOwner owner, HandoffPause pause)
+    {
+        var window = owner.Window;
+        var viewModel = owner.ViewModel;
+        bool Current() => _windowRequest?.Owner == owner && IsCurrentWindowChange(owner);
+        var held = false;
+        var trayPrepared = false;
+        VideoFrameOverlay? growCover = null;
+        try
+        {
+            // 先把播放冻住，再抓帧。
+            //
+            // 用户 2026-09-22：「可以想办法在切全屏和窗口化的时候暂停播放，和截图无缝衔接嘛」。
+            // 实测（`work/probe-pause-resize.py`，无窗口对照：播放中 vs 暂停中，各把 composition 尺寸
+            // 从 1280x720 改成 1920x1080）：**暂停之后 mpv 照样在 100ms 内按新尺寸重建了缓冲**
+            // （描述符 1280x720 -> 1920x1080，与播放中同速），而押帧计数 `120 -> 121` 之后就静止 ——
+            // 播放中那一边是每 100ms 涨三帧。两件事一次拿到：等待判据（`ResizeSettled`）到得了，
+            // 且抓到的这一帧与撤掉保留帧时屏上那一帧**同帧**。
+            // 「播放中抓帧」给不了后一件：覆盖层每多盖一毫秒，撤掉时就多跳一毫秒的内容 ——
+            // 用户看到的那一下「退回」有它一半。
+            await FreezeForHandoffAsync(pause, viewModel, owner.Playback);
+            if (PendingWindowChange(owner) is not { } request) return;
+
+            if (_videoTarget.HasAttachedVisual && Cover.Visibility != Microsoft.UI.Xaml.Visibility.Visible)
+            {
+                _videoTarget.HoldGeometry(true);
+                held = true;
+                var frame = await _videoTarget.CaptureFrameAsync().WaitAsync(TimeSpan.FromMilliseconds(750));
+                if (PendingWindowChange(owner) is not { } latest) return;
+                request = latest;
+
+                if (frame is not null)
+                {
+                    _windowFrame = new VideoFrameOverlay(window.Handle, frame);
+                    // 变大那一趟（进全屏／最大化）先按<b>目标</b>矩形摆好，再动窗口：合成器若先吐
+                    // 一拍「新几何 + 旧内容」，屏上已经是对的样子。变小那一趟缩到哪要等窗口自己算
+                    // （还原矩形 + 按比例整形），所以仍旧先按当前矩形摆、改完再摆一次。
+                    var bounds = request.Growing
+                        ? (request.Fullscreen == true
+                            ? VideoFrameOverlay.FullscreenRect(window.Handle)
+                            : VideoFrameOverlay.WorkArea(window.Handle))
+                        : VideoFrameOverlay.ClientRect(window.Handle);
+                    _windowFrame.Show(bounds, window.Fullscreen || window.TopMost || request.Growing);
+                    VideoFrameOverlay.Flush();
+                }
+                else
+                {
+                    // 取不到帧＝这一趟没有任何东西替画面挡着，合成器那一拍「新几何 + 旧内容」会原样
+                    // 露出来。2026-09-22 之前这里是静默的，于是「切换时闪一下」在日志里分不出是
+                    // 「抓帧没成」还是「盖得不够久」—— 这两件事的修法完全不同，得先能分开。
+                    Log.Warn("播放器", "窗口切换取不到帧，这一趟没有保留帧遮挡");
+                }
+            }
+
+            // 起播自动全屏那一趟没有画面帧可抓（还在加载、Cover 立着），而窗口马上要长到全屏 ——
+            // 手动全屏靠上面抓到的帧盖住长大那一拍，这里没有帧，就用加载遮罩同色的纯色顶层层盖同一拍。
+            // 少了它，窗口长到全屏那一下右下角会露一下：SetWindowPos 是瞬时的，岛的合成提交晚它一两拍，
+            // 而加载遮罩是岛内 XAML，SynchronizeContentLayout 只同步布局、提交仍滞后（用户 2026-09-25 报
+            // 「起播自动全屏时窗口右下角闪一下」，且「先进播放页再手动全屏没有」——那条走的正是上面抓帧的路）。
+            if (_windowFrame is null && request.Growing && Cover.Visibility == Microsoft.UI.Xaml.Visibility.Visible)
+            {
+                var target = request.Fullscreen == true
+                    ? VideoFrameOverlay.FullscreenRect(window.Handle)
+                    : VideoFrameOverlay.WorkArea(window.Handle);
+                // 进全屏的那一档与起播整屏同一条理（见 EnterFullscreenAtOnce）：任务栏先收、覆盖层后上，
+                // 收不回来由本趟 finally 的 Cancel 凭记账放回。最大化盖的是工作区，够不着任务栏，不动。
+                if (request.Fullscreen == true)
+                {
+                    trayPrepared = true;
+                    window.HideTrayForImminentFullscreen();
+                }
+                growCover = StartupCover(window.Handle);
+                growCover.Show(target, topmost: true);
+                VideoFrameOverlay.Flush();
+            }
+
+            if (PendingWindowChange(owner) is not { } pending) return;
+            ApplyPending(pending);
+            if (!Current()) return;
+
+            if (growCover is not null)
+            {
+                // 窗口已长到位：把纯色层挪到最终客户区，逼一次页面提交把全屏 Cover 排上屏，再撤层 ——
+                // 撤早了（全屏 Cover 还没提交）右下角照样露一拍，所以先等这一次提交落地。
+                growCover.Show(VideoFrameOverlay.ClientRect(window.Handle), topmost: true);
+                VideoFrameOverlay.Flush();
+                try
+                {
+                    await Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(this).Compositor
+                        .RequestCommitAsync().AsTask().WaitAsync(TimeSpan.FromMilliseconds(350));
+                }
+                catch (Exception commit)
+                {
+                    Log.Debug("播放器", $"起播全屏覆盖层提交未确认，照撤：{commit.Message}");
+                }
+                if (!Current()) return;
+                growCover.Dispose();
+                growCover = null;
+            }
+
+            if (_windowFrame is { } overlay)
+                overlay.Show(VideoFrameOverlay.ClientRect(window.Handle), window.Fullscreen || window.TopMost);
+            if (held)
+            {
+                _videoTarget.HoldGeometry(false);
+                held = false;
+            }
+
+            if (_windowFrame is not null || Cover.Visibility == Microsoft.UI.Xaml.Visibility.Visible)
+            {
+                var covered = _windowFrame is not null;
+                var clock = Stopwatch.StartNew();
+                var settledAt = -1L;
+                var content = _videoTarget.AttachedContentSize;
+                var layoutWidth = 0;
+                var layoutHeight = 0;
+                var clientWidth = 0;
+                var clientHeight = 0;
+
+                // 缓冲、布局和合成提交各自异步完成，保留帧必须盖住这段交接。
+                while (clock.ElapsedMilliseconds < 750 && Current())
+                {
+                    _videoTarget.RefreshPresentation();
+                    var client = window.ClientSize;
+                    var layout = _videoTarget.HostSize;
+                    var raster = _videoTarget.RasterizationScale;
+                    content = _videoTarget.AttachedContentSize;
+                    layoutWidth = (int)Math.Round(layout.Width * raster);
+                    layoutHeight = (int)Math.Round(layout.Height * raster);
+                    clientWidth = client.Width;
+                    clientHeight = client.Height;
+                    var settled = _windowFrame is null && !_videoTarget.HasAttachedVisual
+                        ? VideoPresentation.Matches(layoutWidth, layoutHeight, clientWidth, clientHeight)
+                        : VideoPresentation.ResizeSettled(content.Width, content.Height,
+                            layoutWidth, layoutHeight, clientWidth, clientHeight);
+
+                    if (!settled) settledAt = -1;
+                    else if (settledAt < 0) settledAt = clock.ElapsedMilliseconds;
+                    var ready = settled
+                        && clock.ElapsedMilliseconds - settledAt >= HandoffSettleMilliseconds;
+                    if (ready) break;
+                    await Task.Delay(16);
+                }
+                if (!Current()) return;
+                await _videoTarget.CommitPresentationAsync().WaitAsync(TimeSpan.FromMilliseconds(250));
+                if (!Current()) return;
+                VideoFrameOverlay.Flush();
+                if (covered)
+                    Log.Debug("播放器", $"窗口切换保留帧：盖了 {clock.ElapsedMilliseconds}ms"
+                        + $"（缓冲 {content.Width}x{content.Height}、布局 {layoutWidth}x{layoutHeight}、"
+                        + $"客户区 {clientWidth}x{clientHeight}）");
+            }
+        }
+        catch (Exception error)
+        {
+            Log.Warn("播放器", "窗口切换保留帧不可用，回退直接切换", error);
+            if (PendingWindowChange(owner) is { } pending) ApplyPending(pending);
+        }
+        finally
+        {
+            _windowFrame?.Dispose();
+            _windowFrame = null;
+            growCover?.Dispose();
+            // 全屏没进成的那几条路（中途失效、异常回退）：前半拍预收的任务栏凭记账放回。
+            // 全屏已落地时这是一句空操作。
+            if (trayPrepared) window.CancelImminentFullscreenTray();
+            if (held && owner.Generation == _windowChangeGeneration) _videoTarget.HoldGeometry(false);
+        }
     }
 
     /// <summary>
@@ -368,21 +407,22 @@ public sealed partial class PlayerPage
     /// 只有「本来在放、被我们冻住」才记着这一笔要在收尾还回去。
     /// </para>
     /// </summary>
-    private async Task FreezeForHandoffAsync(HandoffPause pause, PlayerViewModel.FreezeContext playback)
+    private async Task FreezeForHandoffAsync(
+        HandoffPause pause, PlayerViewModel viewModel, PlayerViewModel.FreezeContext playback)
     {
-        if (!ViewModel.IsCurrentFreeze(playback) || !pause.Acquire(ViewModel.Paused)) return;
+        if (!viewModel.IsCurrentFreeze(playback) || !pause.Acquire(viewModel.Paused)) return;
 
         _handoffMutedAt = Now;
-        if (!await ViewModel.SetFrozenPausedAsync(playback, true).ConfigureAwait(true))
+        if (!await viewModel.SetFrozenPausedAsync(playback, true).ConfigureAwait(true))
         {
-            pause.Release(pending: false, playbackCurrent: false);
+            pause.Release(playbackCurrent: false);
             return;
         }
 
         // 命令已确认，再等状态观察到暂停后抓帧。
         // 上限只给 12 拍（约 190ms）：真等不到也照走，坏处不过是抓到一帧在动的画面，
         // 不至于把用户按下去的那一下拖住。
-        for (var step = 0; step < 12 && !ViewModel.Paused; step++)
+        for (var step = 0; step < 12 && viewModel.IsCurrentFreeze(playback) && !viewModel.Paused; step++)
             await Task.Delay(16);
     }
 
@@ -391,8 +431,7 @@ public sealed partial class PlayerPage
         _windowChangeGeneration++;
         CancelStartupCover();
         _startupHandoverPending = false;
-        _fullscreenWanted = null;
-        _maximizeWanted = null;
+        _windowRequest = null;
         _windowFrame?.Dispose();
         _windowFrame = null;
         CancelResizeChange();

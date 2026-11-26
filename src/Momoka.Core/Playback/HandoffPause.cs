@@ -25,18 +25,13 @@ public sealed class HandoffPause
     /// <summary>
     /// 这一趟的暂停账收尾。
     /// </summary>
-    /// <param name="pending">
-    /// 还有下一趟接着冻（快速反向时同一个实例会被连着用几趟）：账留在自己手里，这一趟不还。
-    /// </param>
     /// <param name="playbackCurrent">
     /// 冻住的那一场播放<b>还是现在这一场</b>。为假＝已经换片或停了 —— 这时发 <c>pause=no</c> 会落到
     /// 别人头上，所以只把账抹掉、不还。
     /// </param>
     /// <returns>True 表示调用方现在就该发「恢复播放」。</returns>
-    public bool Release(bool pending, bool playbackCurrent)
+    public bool Release(bool playbackCurrent)
     {
-        if (pending) return false;
-
         var resume = _owned && playbackCurrent;
         _owned = false;
         return resume;

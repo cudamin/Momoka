@@ -27,11 +27,15 @@
         string interaction=read("src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs");
         string host=read("src/Momoka.Shell/Windowing/HostWindow.cs");
         string native=read("src/Momoka.Shell/Interop/Native.cs");
+        const string pageDeclaration = "public sealed partial class PlayerPage\n{\n";
+        string windowFields=between(page,pageDeclaration,"    private int _resizeGeneration;").Substring(pageDeclaration.Length);
         string source="#nullable enable\nusing System; using System.Diagnostics; using System.Runtime.InteropServices; using System.Threading; using System.Threading.Tasks; using Momoka.Diagnostics; using Momoka.Emby; using Momoka.Infrastructure; using Momoka.Playback; using Momoka.Shell.Interop; using Momoka.Shell.ViewModels; using Momoka.Shell.Windowing;\n"+
           "namespace Momoka.Shell.ViewModels { public sealed partial class PlayerViewModel {\n"+
           between(interaction,"    internal readonly record struct InteractionContext","\n    internal async Task<bool?> ScrollStatsAsync")+"\n} }\n"+
           "namespace Momoka.Shell.Views { public sealed partial class PlayerPage {\n"+
+          windowFields+
           between(page,"    private void SetPaused(bool paused)","\n    /// <summary>\n    /// 缓冲与布局")+
+          between(page,"    private const int HandoffSettleMilliseconds","\n    /// <summary>\n    /// 客户区跳变")+
           between(page,"    private bool OnClientSizeChanging(","\n    private void EnterAutoFullscreen()")+"\n} }\n"+
           "namespace Momoka.Shell.Windowing { public sealed partial class HostWindow {\n"+
           between(host,"    internal void CancelPendingInteractiveResize()","\n    internal event Action<bool>? InteractiveResizeChanged;")+
