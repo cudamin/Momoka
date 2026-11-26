@@ -31,46 +31,45 @@
                     </local:WrapRow>
                 </local:WrapRow>
                 <Grid Grid.Row="1">
-                    <GridView x:Name="AnimeResults" SelectionMode="None" IsItemClickEnabled="False"
+                    <ItemsView x:Name="AnimeResults" SelectionMode="None" IsItemInvokedEnabled="True"
+                        ItemInvoked="OnAnimeItemInvoked"
                         IsEnabled="{x:Bind ViewModel.CanChooseAnime, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.VisibleResults, Mode=OneWay}"
-                        SizeChanged="OnResultsSizeChanged" Loaded="OnResultsLoaded" Padding="0,0,20,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="170" ItemHeight="336" /></ItemsPanelTemplate></GridView.ItemsPanel>
-                        <GridView.ItemContainerStyle>
-                            <Style TargetType="GridViewItem">
-                                <Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,10,12" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Stretch" />
-                            </Style>
-                        </GridView.ItemContainerStyle>
-                        <GridView.ItemTemplate>
+                        SizeChanged="OnResultsSizeChanged" Loaded="OnResultsLoaded" Padding="0,0,20,8">
+                        <ItemsView.Layout>
+                            <UniformGridLayout Orientation="Horizontal" MinItemWidth="156" MinItemHeight="324"
+                                MinColumnSpacing="10" MinRowSpacing="12" ItemsJustification="Start" ItemsStretch="Fill" />
+                        </ItemsView.Layout>
+                        <ItemsView.ItemTemplate>
                             <DataTemplate x:DataType="vm:AniBtAnimeRow">
-                                <Button x:Name="OpenAnimeResources" Command="{x:Bind OpenCommand}" AutomationProperties.Name="{x:Bind OpenAutomationName}"
-                                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-                                    Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                    BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
-                                    CornerRadius="{StaticResource EgPosterCornerRadius}">
-                                    <Grid RowSpacing="7">
-                                        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="82" /></Grid.RowDefinitions>
-                                        <Border Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}">
-                                            <Grid>
-                                                <TextBlock Text="{x:Bind Initial}" Style="{StaticResource EgPageTitleStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
-                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Image Source="{x:Bind Artwork}" Stretch="UniformToFill" />
+                                <ItemContainer x:Name="OpenAnimeResources" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                                    AutomationProperties.Name="{x:Bind OpenAutomationName}">
+                                    <Border Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                                        CornerRadius="{StaticResource EgPosterCornerRadius}">
+                                        <Grid RowSpacing="7">
+                                            <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="82" /></Grid.RowDefinitions>
+                                            <Border Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}">
+                                                <Grid>
+                                                    <TextBlock Text="{x:Bind Initial}" Style="{StaticResource EgPageTitleStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Image Source="{x:Bind Artwork}" Stretch="UniformToFill" />
+                                                </Grid>
+                                            </Border>
+                                            <Grid Grid.Row="1" RowSpacing="3" Margin="3,0,3,3">
+                                                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="18" /><RowDefinition Height="18" /></Grid.RowDefinitions>
+                                                <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" MaxLines="2"
+                                                    TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                                                <TextBlock Grid.Row="1" Text="{x:Bind OriginalTitle}" Style="{StaticResource EgCaptionStyle}"
+                                                    Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Row="2" Text="{x:Bind CompactDescription}" Style="{StaticResource EgCaptionStyle}"
+                                                    Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" />
                                             </Grid>
-                                        </Border>
-                                        <Grid Grid.Row="1" RowSpacing="3" Margin="3,0,3,3">
-                                            <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="18" /><RowDefinition Height="18" /></Grid.RowDefinitions>
-                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" MaxLines="2"
-                                                TextWrapping="Wrap" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
-                                            <TextBlock Grid.Row="1" Text="{x:Bind OriginalTitle}" Style="{StaticResource EgCaptionStyle}"
-                                                Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Row="2" Text="{x:Bind CompactDescription}" Style="{StaticResource EgCaptionStyle}"
-                                                Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" />
                                         </Grid>
-                                    </Grid>
-                                </Button>
+                                    </Border>
+                                </ItemContainer>
                             </DataTemplate>
-                        </GridView.ItemTemplate>
-                    </GridView>
+                        </ItemsView.ItemTemplate>
+                    </ItemsView>
                     <StackPanel x:Name="AnimeEmptyState" Margin="24,48" HorizontalAlignment="Center" VerticalAlignment="Top" Spacing="8"
                         Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                         <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgTitleFontSize}" Foreground="{ThemeResource EgTextFaintBrush}" />

@@ -185,7 +185,7 @@
                  Padding 4 与下面圆点的 6 号直径合起来 14，加上圆点那一行上下各 10／4 的呼吸正好是
                  HomeCarousel.DotsHeight（28）。 -->
             <Style x:Key="EgBannerDotButtonStyle" TargetType="Button">
-                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinWidth" Value="28" />
                 <Setter Property="MinHeight" Value="0" />
                 <Setter Property="Padding" Value="4" />
                 <Setter Property="Background" Value="Transparent" />
@@ -571,7 +571,6 @@
                     Content="&#xE76B;"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     FontSize="14"
-                    IsTabStop="False"
                     Click="OnPrevClicked">
                     <Button.Resources>
                         <ResourceDictionary>
@@ -607,7 +606,6 @@
                     Content="&#xE76C;"
                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                     FontSize="14"
-                    IsTabStop="False"
                     Click="OnNextClicked">
                     <Button.Resources>
                         <ResourceDictionary>

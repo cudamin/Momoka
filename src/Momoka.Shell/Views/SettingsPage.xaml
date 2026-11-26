@@ -1621,7 +1621,7 @@
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
                     <Button x:Uid="SettingsPage_SettingsSearchButton" x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
-                        HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" CornerRadius="8"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" CornerRadius="8" IsTabStop="False"
                         Background="Transparent" BorderThickness="0" AutomationProperties.Name="搜索设置项"
                         Click="OnSettingsSearchClick">
                         <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgBodyFontSize}"

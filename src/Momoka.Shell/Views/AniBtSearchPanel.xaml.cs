@@ -87,13 +87,21 @@ public sealed partial class AniBtSearchPanel : UserControl
     private void OnResultsLoaded(object sender, RoutedEventArgs args) => ResizeResults();
     private void OnResultsSizeChanged(object sender, SizeChangedEventArgs args) => ResizeResults();
 
+    private void OnAnimeItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
+    {
+        if (ViewModel.CanChooseAnime && args.InvokedItem is AniBtAnimeRow row)
+            row.OpenCommand.Execute(null);
+    }
+
     private void ResizeResults()
     {
-        if (AnimeResults.ItemsPanelRoot is not ItemsWrapGrid layout || AnimeResults.ActualWidth < 1) return;
-        var available = Math.Max(1, AnimeResults.ActualWidth - 12);
+        if (AnimeResults.Layout is not UniformGridLayout layout || AnimeResults.ActualWidth < 1) return;
+        var available = Math.Max(1, AnimeResults.ActualWidth - 20);
         var columns = available is >= 240 and < 420 ? 2 : Math.Max(1, (int)(available / 168));
-        layout.ItemWidth = Math.Floor(available / columns);
-        layout.ItemHeight = (layout.ItemWidth - 18) * 1.45 + 108;
+        var spacing = 10d;
+        var cardWidth = Math.Max(110, Math.Floor((available - spacing * Math.Max(0, columns - 1)) / columns));
+        layout.MinItemWidth = cardWidth;
+        layout.MinItemHeight = (cardWidth - 8) * 1.45 + 100;
     }
 
     private void OnHeroSizeChanged(object sender, SizeChangedEventArgs args)

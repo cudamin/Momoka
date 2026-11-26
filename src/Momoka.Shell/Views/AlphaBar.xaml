@@ -81,7 +81,7 @@
             Margin="0,4,2,4"
             Padding="0,5"
             VerticalAlignment="Center">
-            <ContentControl x:Name="Letters" HorizontalContentAlignment="Center" />
+            <ContentControl x:Name="Letters" HorizontalContentAlignment="Center" IsTabStop="False" />
         </Border>
     </Grid>
 </UserControl>

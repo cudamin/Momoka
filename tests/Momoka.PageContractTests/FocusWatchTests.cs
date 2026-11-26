@@ -26,6 +26,7 @@ internal static class FocusWatchTests
                     watch.Attach();
                     watch.Attach();
                     Assert.True(watch.Probe());
+                    Assert.True(ReferenceEquals(host, watch.HostControl), "挂载后 HostControl 应指向当前宿主容器");
                     Assert.Equal(1, host.GotHandlers, "重复 Attach 不重复订阅");
                     Assert.Equal(0, card.GotHandlers, "不能接在 UserControl 自身");
                     Assert.Equal(0, outer.GotHandlers, "不能接在整张列表");
@@ -36,6 +37,7 @@ internal static class FocusWatchTests
                     host.RaiseLostFocus();
                     Assert.False(changes.Last());
                     watch.Detach();
+                    Assert.True(watch.HostControl is null, "释放后 HostControl 必须清空");
                     Assert.Equal(0, host.GotHandlers);
                     Assert.Equal(0, host.LostHandlers);
                     var detachedCount = changes.Count;
@@ -45,6 +47,7 @@ internal static class FocusWatchTests
                     var replacement = new Button { FocusState = FocusState.Keyboard };
                     card.TreeParent = replacement;
                     watch.Attach();
+                    Assert.True(ReferenceEquals(replacement, watch.HostControl), "重新挂接后 HostControl 应指向新宿主容器");
                     Assert.True(changes.Last(), "重新挂接应读取新容器当前焦点");
                     Assert.Equal(1, replacement.GotHandlers);
                     Assert.Equal(0, host.GotHandlers);

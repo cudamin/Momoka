@@ -99,7 +99,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Uid="DiagnosticsPage_TextBlock13" Style="{StaticResource EgSubheadStyle}" />
                         <Button x:Uid="DiagnosticsPage_DiagnosticsDetailsButton" x:Name="DiagnosticsDetailsButton" Grid.Column="1" Content="详情"
-                            AutomationProperties.Name="运行状态详情" Padding="6,0" MinHeight="22"
+                            AutomationProperties.Name="运行状态详情" Padding="10,4" MinWidth="32" MinHeight="32"
                             Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
                             <Button.Flyout>
                                 <Flyout x:Name="DiagnosticsDetailsFlyout">

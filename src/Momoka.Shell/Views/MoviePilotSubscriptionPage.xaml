@@ -468,40 +468,46 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Grid ColumnSpacing="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border Width="140" Height="210" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                    Background="{ThemeResource EgSurfaceAltBrush}" />
-                <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Top">
-                    <Border Width="72" Height="20" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
-                        HorizontalAlignment="Left" Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="36" MaxWidth="320" HorizontalAlignment="Stretch" CornerRadius="8"
+            <StackPanel Spacing="{StaticResource EgSpaceM}">
+                <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="{x:Bind MediaViewModel.SkeletonPosterWidth, Mode=OneWay}"
+                        Height="{x:Bind MediaViewModel.SkeletonPosterHeight, Mode=OneWay}"
+                        CornerRadius="{StaticResource EgPosterCornerRadius}"
                         Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="180" HorizontalAlignment="Stretch" CornerRadius="4"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="96" HorizontalAlignment="Stretch" CornerRadius="4"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="420" HorizontalAlignment="Stretch" CornerRadius="4"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="360" HorizontalAlignment="Stretch" CornerRadius="4"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="300" HorizontalAlignment="Stretch" CornerRadius="4"
-                        Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <local:WrapRow Spacing="10" RowSpacing="10">
-                        <Border Width="96" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                    <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Top">
+                        <Border Width="72" Height="20" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
+                            HorizontalAlignment="Left" Background="{ThemeResource EgSurfaceAltBrush}" />
+                        <Border Height="36" MaxWidth="320" HorizontalAlignment="Stretch" CornerRadius="8"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
-                        <Border Width="96" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        <Border Height="14" MaxWidth="180" HorizontalAlignment="Stretch" CornerRadius="4"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
-                        <Border Width="96" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        <Border Height="14" MaxWidth="96" HorizontalAlignment="Stretch" CornerRadius="4"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
-                        <Border Width="48" Height="32" CornerRadius="{StaticResource EgCardCornerRadius}"
-                            Background="{ThemeResource EgSurfaceAltBrush}" />
-                    </local:WrapRow>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Spacing="10">
+                    <Border Height="14" MaxWidth="420" HorizontalAlignment="Left" Width="420" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="360" HorizontalAlignment="Left" Width="360" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Height="14" MaxWidth="300" HorizontalAlignment="Left" Width="300" CornerRadius="4"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
                 </StackPanel>
-            </Grid>
+                <local:WrapRow Spacing="10" RowSpacing="10">
+                    <Border Width="96" Height="{StaticResource EgActionHeight}" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="96" Height="{StaticResource EgActionHeight}" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="96" Height="{StaticResource EgActionHeight}" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                    <Border Width="{StaticResource EgActionHeight}" Height="{StaticResource EgActionHeight}" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        Background="{ThemeResource EgSurfaceAltBrush}" />
+                </local:WrapRow>
+            </StackPanel>
             <Grid Grid.Row="1" ColumnSpacing="24">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -527,6 +533,7 @@
                     Background="{ThemeResource EgSurfaceAltBrush}" />
             </Grid>
             <local:Shimmer x:Name="DetailLoadingShimmer" Grid.RowSpan="2"
+                CornerRadius="{StaticResource EgCardCornerRadius}"
                 IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}" />
         </Grid>
         <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization7" Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Bottom"

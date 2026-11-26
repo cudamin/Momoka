@@ -694,7 +694,7 @@
                     HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,5,4,0"
                     Visibility="{x:Bind ViewModel.DanmakuInputVisibility, Mode=OneWay}"
                     GotFocus="OnDanmakuInputGotFocus" LostFocus="OnDanmakuInputLostFocus">
-                    <TextBox x:Uid="PlayerPage_DanmakuInputBox" x:Name="DanmakuInputBox" Width="208" MinWidth="40" Height="30" MinHeight="30" Padding="8,3"
+                    <TextBox x:Uid="PlayerPage_DanmakuInputBox" x:Name="DanmakuInputBox" Width="208" MinWidth="40" Height="32" MinHeight="32" Padding="8,4"
                         FontSize="{StaticResource EgBodyFontSize}" MaxLength="100"
                         Background="{StaticResource PlayerGlassTopBrush}" Foreground="{StaticResource PlayerInkBrush}"
                         Text="{x:Bind ViewModel.DanmakuDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -718,14 +718,14 @@
                             </ResourceDictionary>
                         </TextBox.Resources>
                     </TextBox>
-                    <Button x:Uid="PlayerPage_SendDanmakuButton" x:Name="SendDanmakuButton" Height="30" MinWidth="44" Padding="8,0"
+                    <Button x:Uid="PlayerPage_SendDanmakuButton" x:Name="SendDanmakuButton" Height="32" MinHeight="32" MinWidth="44" Padding="8,0"
                         Content="{x:Bind ViewModel.DanmakuSendButtonText, Mode=OneWay}"
                         Command="{x:Bind ViewModel.SendDanmakuCommand}"
                         IsEnabled="{x:Bind ViewModel.DanmakuSendEnabled, Mode=OneWay}"
                         Visibility="{x:Bind ViewModel.DanmakuSendVisibility, Mode=OneWay}"
                         AutomationProperties.Name="发送弹幕" />
                 </StackPanel>
-                <TextBlock x:Name="DanmakuInputStatus" Grid.Column="1" Margin="8,40,8,0" MaxWidth="320"
+                <TextBlock x:Name="DanmakuInputStatus" Grid.Column="1" Margin="8,42,8,0" MaxWidth="320"
                     VerticalAlignment="Top" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}"
                     Text="{x:Bind ViewModel.DanmakuSendStatus, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.DanmakuInputVisibility, Mode=OneWay}" />

@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
@@ -451,6 +452,12 @@ public sealed partial class PosterCard : UserControl
     {
         _live = true;
         _focus.Attach();
+        if (_focus.HostControl is { } host
+            && AutomationProperties.GetHelpText(Root) is { Length: > 0 } help
+            && string.IsNullOrEmpty(AutomationProperties.GetHelpText(host)))
+        {
+            AutomationProperties.SetHelpText(host, help);
+        }
 
         // 这张卡站在什么底上，问的是它所在的那条带（ShelfStrip.OnScrim）。上树这一刻问是唯一一定问得到的时机：
         // 带那边翻开关时这张卡可能还没建出来，而建出来的那一刻它自己还没套上模板。找不到带就是别处用的卡片
@@ -518,20 +525,22 @@ public sealed partial class PosterCard : UserControl
         // 预览面板开着也算「这张卡正被看着」：指针移到面板上时卡片不退回静止，否则那一对读起来像
         // 两块无关的东西。操作层仍只跟指针走 —— 指针不在卡片上时那几颗按钮按不到，就不该留在屏上。
         // 焦点来源可能在同一按钮上改变而没有新的 GotFocus；每次动画都核对当前实际焦点。
-        var keyboardFocused = _focused && XamlRoot is { } root
-            && FocusManager.GetFocusedElement(root) is Control { FocusState: FocusState.Keyboard };
+        var keyboardFocused = XamlRoot is { } root
+            && FocusManager.GetFocusedElement(root) is Control { FocusState: FocusState.Keyboard } focusedControl
+            && (_focused || IsDescendantOf(focusedControl, Root));
+        var actionsVisible = _hovered || keyboardFocused;
         var active = _hoverDwell.IsReady || keyboardFocused || _previewOpen;
         // 指针在卡上（或预览面板还开着）整卡抬起一档；键盘焦点只推近封面，不让 Tab 扫过时整排卡片跟着跳。
         // 1.03 只让描边向外多出三四个像素，外层按钮和滚动视口仍按布局尺寸裁剪。
         var lifted = _hoverDwell.IsReady || _previewOpen;
         var scale = enabled && _pressed ? 0.985 : lifted ? HoverScale : 1;
         var zoom = enabled && active ? 1.045 : 1;
-        var opacity = _hovered ? 1 : 0;
-        var shade = _hovered || _previewOpen ? 0.78 : 0;
-        var play = enabled && !_hovered ? 0.92 : 1;
+        var opacity = actionsVisible ? 1 : 0;
+        var shade = actionsVisible || _previewOpen ? 0.78 : 0;
+        var play = enabled && !actionsVisible ? 0.92 : 1;
 
         Hover.IsHitTestVisible = _hovered;
-        if (_hovered) Hover.Visibility = Visibility.Visible;
+        if (actionsVisible) Hover.Visibility = Visibility.Visible;
 
         void Settle()
         {
@@ -540,7 +549,14 @@ public sealed partial class PosterCard : UserControl
             Hover.Opacity = opacity;
             HoverShade.Opacity = shade;
             PlayMotion.ScaleX = PlayMotion.ScaleY = play;
-            if (!_hovered) Hover.Visibility = Visibility.Collapsed;
+            if (!actionsVisible) Hover.Visibility = Visibility.Collapsed;
+        }
+
+        static bool IsDescendantOf(DependencyObject node, DependencyObject ancestor)
+        {
+            for (var current = node; current is not null; current = VisualTreeHelper.GetParent(current))
+                if (ReferenceEquals(current, ancestor)) return true;
+            return false;
         }
 
         if (!_live || XamlRoot is null || !enabled)

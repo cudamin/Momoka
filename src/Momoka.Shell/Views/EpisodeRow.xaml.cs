@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell.Views;
 
@@ -50,6 +52,9 @@ public sealed partial class EpisodeRow : UserControl
 
     public static Visibility TrailingVisibility(bool enabled, Visibility playable) => enabled ? playable : Visibility.Collapsed;
 
+    /// <summary>右侧常驻播放键已经占了一个 Tab 位时，封面浮层按键不再重复抢焦点。</summary>
+    public static bool HoverPlayTabStop(bool showTrailingPlay) => !showTrailingPlay;
+
     /// <summary>
     /// Tracked rather than read from <c>IsLoaded</c>, as on <see cref="PosterCard"/>: the two events
     /// below are the authority on when a recycled container is in the tree, and a field cannot disagree
@@ -81,14 +86,15 @@ public sealed partial class EpisodeRow : UserControl
 
         _watch = new HoverWatch(Root, up =>
         {
-            Hover.Visibility = up ? Visibility.Visible : Visibility.Collapsed;
             _hovered = up;
+            UpdateHover();
             Paint();
         });
 
         _focus = new FocusWatch(Root, on =>
         {
             _focused = on;
+            UpdateHover();
             Paint();
         });
 
@@ -135,6 +141,12 @@ public sealed partial class EpisodeRow : UserControl
     {
         _live = true;
         _focus.Attach();
+        if (_focus.HostControl is { } host
+            && AutomationProperties.GetHelpText(Root) is { Length: > 0 } help
+            && string.IsNullOrEmpty(AutomationProperties.GetHelpText(host)))
+        {
+            AutomationProperties.SetHelpText(host, help);
+        }
         Begin();
     }
 
@@ -151,6 +163,22 @@ public sealed partial class EpisodeRow : UserControl
         _watch.Leave();
         _hovered = false;
         _focus.Detach();
+        UpdateHover();
+    }
+
+    private void UpdateHover()
+    {
+        var keyboardFocused = XamlRoot is { } root
+            && FocusManager.GetFocusedElement(root) is Control { FocusState: FocusState.Keyboard } focusedControl
+            && (_focused || IsDescendantOf(focusedControl, Root));
+        Hover.Visibility = _hovered || keyboardFocused ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static bool IsDescendantOf(DependencyObject node, DependencyObject ancestor)
+    {
+        for (var current = node; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (ReferenceEquals(current, ancestor)) return true;
+        return false;
     }
 
     /// <summary>胶片格那圈线，与 <see cref="PosterCard.Paint"/> 同一对样式键、同一个理由。</summary>

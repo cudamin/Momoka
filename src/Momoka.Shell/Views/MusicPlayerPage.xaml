@@ -272,14 +272,14 @@
                                 AutomationProperties.Name="音乐进度"
                                 HorizontalAlignment="Stretch">
                                 <Slider.Resources>
-                                    <x:Double x:Key="SliderHorizontalHeight">12</x:Double>
+                                    <x:Double x:Key="SliderHorizontalHeight">32</x:Double>
                                     <x:Double x:Key="SliderPreContentMargin">4</x:Double>
                                     <x:Double x:Key="SliderPostContentMargin">4</x:Double>
-                                    <x:Double x:Key="SliderHorizontalThumbWidth">12</x:Double>
-                                    <x:Double x:Key="SliderHorizontalThumbHeight">12</x:Double>
+                                    <x:Double x:Key="SliderHorizontalThumbWidth">14</x:Double>
+                                    <x:Double x:Key="SliderHorizontalThumbHeight">14</x:Double>
                                     <x:Double x:Key="SliderInnerThumbWidth">8</x:Double>
                                     <x:Double x:Key="SliderInnerThumbHeight">8</x:Double>
-                                    <CornerRadius x:Key="SliderThumbCornerRadius">6</CornerRadius>
+                                    <CornerRadius x:Key="SliderThumbCornerRadius">7</CornerRadius>
                                 </Slider.Resources>
                             </Slider>
                             <Grid Grid.Row="1">

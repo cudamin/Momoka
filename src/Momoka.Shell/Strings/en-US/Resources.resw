@@ -3784,6 +3784,12 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="MoviePilotSubtitlePanel_BackToMedia.Content" xml:space="preserve">
     <value>Choose another title</value>
   </data>
+  <data name="EpisodeRow_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Press Enter to open details, Tab for play button, or Shift+F10 for context menu</value>
+  </data>
+  <data name="PosterCard_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>Press Enter to open details, Tab for card quick actions, or Shift+F10 for context menu</value>
+  </data>
   <data name="MoviePilotSubtitlePanel_ViewSubtitles.Content" xml:space="preserve">
     <value>View subtitles</value>
   </data>

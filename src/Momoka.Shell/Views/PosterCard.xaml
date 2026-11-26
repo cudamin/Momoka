@@ -35,6 +35,7 @@
     <!-- 宽度和海报比例继续由页面的 CardSize 决定，动画只改变绘制，不改变测量。 -->
     <Grid
         x:Name="Root"
+        x:Uid="PosterCard_Root"
         Width="{x:Bind CardWidth, Mode=OneWay}"
         Background="Transparent"
         HorizontalAlignment="Center"
