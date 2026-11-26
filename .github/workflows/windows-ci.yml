@@ -58,14 +58,19 @@ jobs:
         shell: pwsh
         run: |
           python .\tools\check-docs.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .\tools\check-website-mirror.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .\tools\check-website-mirror.py --self-test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\tools\check-scripts.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\tools\check-doc-commands.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .\tools\check-report-credentials.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\tools\check-duplication.ps1 -ReportDirectory .\artifacts\ci-duplication
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Check committed diff format
         shell: pwsh
