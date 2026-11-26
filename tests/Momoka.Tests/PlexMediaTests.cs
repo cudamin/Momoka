@@ -29,6 +29,7 @@ internal static partial class PlexMediaTests
         RegisterWatchedCounts();
         RegisterWatchedWrites();
         RegisterNextUpPaging();
+        RegisterLatestPaging();
         RegisterBrowsePeople();
         PlexMultipartTests.Register();
         PlexV2LoginTests.Register();

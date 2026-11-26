@@ -1,3 +1,7 @@
+## 2026-11-26 质量重构：Plex 最近添加类型与分页（Q-002）
+
+Plex 最近添加保留服务端原始顺序，按请求媒体类型过滤；混合库中过滤后不足时按原始数量跨页补足，后页失败／取消不返回部分结果，空类型仍保持原单请求语义。新增跨页、短页、总数格式、取消、失败和真实首页 ViewModel 参数链回归。Core、Tests、Shell Release 编译均为 0 警告、0 错误；主测试 5214/5214，home-performance-fixture 65/65。首跑专用夹具误传输出目录而非工作树根，入口拒绝；按文档传入本树 Shell DLL 和根目录后通过。日志 artifacts/quality-refactor/q002-*.log。未连接真实 Plex。
+
 ## 2026-11-26 质量重构：自检崩溃阶段标签（Q-013）
 
 崩溃报告阶段 2/3/4 与主页导航顺序对齐为详情／服务器／诊断。测试在匿名专项中原样提取生产 `ReportCrash`，覆盖阶段 0–6、设置分类后缀、失败摘要和计时器停止。Shell 与 `Momoka.ProbeFinalizationTests` Release 编译均为 0 警告、0 错误；专项 132/132、0 失败、0 跳过（`artifacts/quality-refactor/q013-probe-finalization.log`）。没有启动应用或连接服务。该应用改动的本地体验发布留到重构批次收尾。

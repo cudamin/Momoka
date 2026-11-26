@@ -188,10 +188,6 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         return new ItemsResult { Items = [.. found.Skip(query.StartIndex).Take(query.Limit)], TotalRecordCount = found.Count };
     }
 
-    public async Task<List<EmbyItem>> GetLatestAsync(string? parentId, int limit, string? types, CancellationToken ct) =>
-        Items(await client.GetRecentlyAddedAsync(connection, parentId, 0, limit, ct).ConfigureAwait(false))
-            .Select(Item).ToList();
-
     /// <summary>
     /// 随机挑选. Plex has no whole-server random: <c>sort=random</c> is a property of one library, so this
     /// samples every video library and shuffles the union. Bounded by the number of libraries, which on a

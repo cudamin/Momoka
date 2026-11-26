@@ -1276,6 +1276,7 @@ internal static class LibraryResumePagingTests
         public ConcurrentQueue<string> Requests { get; } = new();
         public TaskCompletionSource<Uri>? RecentPosterRequested { get; set; }
         public Func<Uri, HttpResponseMessage>? LatestReply { get; set; }
+        public Func<HttpRequestMessage, Task<HttpResponseMessage>>? PlexHomeReply { get; set; }
         public bool HomeReads { get; set; }
         public int HomeLatestCount { get; set; } = 1;
         public bool HomeWatchUsesCurrentResult { get; set; }
@@ -1337,6 +1338,7 @@ internal static class LibraryResumePagingTests
                 .Select(value => value.Split('=', 2)).ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]), StringComparer.Ordinal);
             if (HomeReads && uri.AbsolutePath.Contains("/library/", StringComparison.Ordinal))
             {
+                if (PlexHomeReply is { } plexHome) return await plexHome(request).ConfigureAwait(false);
                 var resume = uri.AbsolutePath.EndsWith("/onDeck", StringComparison.Ordinal);
                 var latest = uri.AbsolutePath.EndsWith("/recentlyAdded", StringComparison.Ordinal);
                 Assert.True(resume || latest || uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal),
