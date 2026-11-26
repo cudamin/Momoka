@@ -76,11 +76,11 @@ public sealed partial class ScrobblingRecordsView : UserControl
     private static ScrobblingRecordRow ToRow(ScrobblingRecord record)
     {
         var outcome = Filters.FirstOrDefault(filter => filter.Outcome == record.Outcome).Label ?? "未知";
-        var episode = record.EpisodeNumber is { } number
-            ? string.Format(UiText.Translate("第 {0} 集"), number)
-            : UiText.Translate("集数未知");
+        var title = record.Provider == ScrobblingProvider.Douban ? record.Title
+            : record.EpisodeNumber is { } number ? $"{record.Title} · {string.Format(UiText.Translate("第 {0} 集"), number)}"
+            : $"{record.Title} · {UiText.Translate("集数未知")}";
         return new ScrobblingRecordRow(record, record.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
-            UiText.Translate(outcome), $"{record.Title} · {episode}", UiText.Translate(record.Detail));
+            UiText.Translate(outcome), title, UiText.Translate(record.Detail));
     }
 
     private void OnFilterChanged(object sender, SelectionChangedEventArgs args) => ApplyFilter(resetScroll: true);

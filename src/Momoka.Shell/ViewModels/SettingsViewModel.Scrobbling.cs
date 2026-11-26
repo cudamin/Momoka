@@ -7,7 +7,6 @@ namespace Momoka.Shell.ViewModels;
 
 public sealed partial class SettingsViewModel
 {
-    private const string ScrobblingCategory = "打格子";
     private ScrobblingService? _scrobbling;
     private Func<Task>? _doubanLogin;
     private Func<Task>? _doubanLogout;
@@ -64,7 +63,7 @@ public sealed partial class SettingsViewModel
 
         var doubanRows = new List<SettingRow>
         {
-            Toggle("启用豆瓣自动标记", "实际起播后标记在看；最后一集达到标记已看进度后，标记看过。",
+            Toggle("启用豆瓣自动标记", "豆瓣打格子会在实际起播后标记在看，最后一集达到标记已看进度后标记看过。",
                 () => douban.Enabled, value => douban.Enabled = value, after: ScrobblingConfigurationChanged)
         };
         if (douban.Enabled)
@@ -97,9 +96,9 @@ public sealed partial class SettingsViewModel
             : [];
         return
         [
-            new(ScrobblingCategory, "Bangumi 打格子", "完成判断沿用播放行为中的标记已看进度；国漫使用国漫进度。", bangumiRows),
-            new(ScrobblingCategory, "豆瓣自动标记在看 / 已看", "自动匹配唯一作品；无法确认作品或季集时跳过同步。", doubanRows),
-            new(ScrobblingCategory, "同步通知", "", notificationRows)
+            new(MoviePilotCategory, "Bangumi 打格子", "完成判断沿用播放行为中的标记已看进度；国漫使用国漫进度。", bangumiRows),
+            new(MoviePilotCategory, "豆瓣自动标记在看 / 已看", "使用 MoviePilot 识别作品，按作品同步豆瓣观看状态。", doubanRows),
+            new(MoviePilotCategory, "同步通知", "", notificationRows)
         ];
     }
 
@@ -236,7 +235,7 @@ public sealed partial class SettingsViewModel
     internal void RefreshScrobblingRows()
     {
         if (!ScrobblingActive) return;
-        var current = Sections.Where(section => section.Category == ScrobblingCategory).ToArray();
+        var current = Sections.Where(section => section.Category == MoviePilotCategory).ToArray();
         foreach (var desired in ScrobblingSections()) current.FirstOrDefault(section => section.Title == desired.Title)?.UpdateRows(desired.Rows);
     }
 }

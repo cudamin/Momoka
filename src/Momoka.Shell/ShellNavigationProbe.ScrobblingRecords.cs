@@ -8,6 +8,7 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Scrobbling;
 using Momoka.Shell.Localization;
+using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
@@ -39,8 +40,10 @@ internal sealed partial class ShellNavigationProbe
                 Require(filter.Visibility == Visibility.Visible && filter.SelectedIndex == 0 && filter.Items.Count == 5
                     && !string.IsNullOrEmpty(AutomationProperties.GetName(filter)), "同步记录没有完整且可访问的筛选选项");
                 Require(list.Items.Count == 4 && list.Visibility == Visibility.Visible, "全部记录未完整显示");
+                Require(list.Items[0] is ScrobblingRecordRow doubanRow && doubanRow.EpisodeTitle == "离线示例一",
+                    "豆瓣记录标题应只显示作品名");
                 await UntilAsync(() => Descendants(list).OfType<TextBlock>()
-                    .Any(text => text.Text.StartsWith("离线示例一", StringComparison.Ordinal) && text.ActualHeight > 0));
+                    .Any(text => text.Text == "离线示例一" && text.ActualHeight > 0));
                 var outcomes = new[] { "在看", "已看", "已跳过", "失败" };
                 for (var index = 0; index < outcomes.Length; index++)
                 {
@@ -115,6 +118,11 @@ internal sealed partial class ShellNavigationProbe
             Record(ScrobblingProvider.Bangumi, "首次失败", ScrobblingRecordOutcome.Failed);
             await UntilAsync(() => list.Items.Count == 1);
             Require(list.Visibility == Visibility.Visible && empty.Visibility == Visibility.Collapsed, "筛选空状态未恢复为新记录");
+            var episodeTitle = $"首次失败 · {string.Format(UiText.Translate("第 {0} 集"), 8)}";
+            Require(list.Items[0] is ScrobblingRecordRow bangumiRow && bangumiRow.EpisodeTitle == episodeTitle,
+                "Bangumi 记录标题应显示作品名和集号");
+            await UntilAsync(() => Descendants(list).OfType<TextBlock>()
+                .Any(text => text.Text == episodeTitle && text.ActualHeight > 0));
         }, ScrobblingRecordOutcome.Failed);
         await InspectScrobblingNotificationToggleAsync();
     }
@@ -123,6 +131,7 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        fixture.Settings.MoviePilot.Enabled = false;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-scrobbling"));
         paths.EnsureCreated();
         var page = CreateMotionSettingsPage(fixture, moviePilot, paths);
@@ -131,9 +140,16 @@ internal sealed partial class ShellNavigationProbe
         {
             BeginSettingsFixtureVisit(page);
             await page.ViewModel.ReloadAsync();
-            page.SelectedCategory = "打格子";
+            Require(page.Categories.Contains(SettingsViewModel.MoviePilotCategory) && !page.Categories.Contains("打格子"),
+                "打格子应归入 MoviePilot，且 MoviePilot 关闭时设置入口仍可用");
+            const string Bangumi = "启用 Bangumi 打格子";
+            page.ViewModel.SettingsSearchQuery = Bangumi;
+            var result = page.ViewModel.SettingsSearchResults.Single(entry => entry.Label == Bangumi);
+            Require(page.NavigateSettingsSearchResult(result) && page.SelectedCategory == SettingsViewModel.MoviePilotCategory,
+                "应通过设置搜索跳到 MoviePilot 下的 Bangumi 开关");
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
+            await UntilAsync(() => page.SearchNavigationReading.Contains("完成=", StringComparison.Ordinal));
 
             const string Notification = "打格子失败或跳过时发送系统通知";
             ToggleSwitch? VisibleToggle(string label) => Descendants(page).OfType<ToggleSwitch>()
@@ -141,9 +157,11 @@ internal sealed partial class ShellNavigationProbe
             static void Toggle(ToggleSwitch control) =>
                 ((IToggleProvider)new ToggleSwitchAutomationPeer(control).GetPattern(PatternInterface.Toggle)).Toggle();
 
+            Require(VisibleToggle(SettingsViewModel.MoviePilotCategory) is { IsOn: false }
+                && VisibleToggle("启用豆瓣自动标记") is not null, "MoviePilot 关闭时应保留连接恢复和两个打格子入口");
             Require(VisibleToggle(Notification) is null && !fixture.Settings.Scrobbling.NotifyOnFailure,
                 "两站关闭时通知开关未隐藏或开启了默认通知");
-            var bangumi = VisibleToggle("启用 Bangumi 打格子") ?? throw new InvalidOperationException("找不到 Bangumi 启用开关");
+            var bangumi = VisibleToggle(Bangumi) ?? throw new InvalidOperationException("找不到 Bangumi 启用开关");
             Toggle(bangumi);
             await UntilAsync(() => VisibleToggle(Notification) is not null);
             var notification = VisibleToggle(Notification)!;

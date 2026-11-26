@@ -16,12 +16,13 @@ internal static class SettingsScrobblingTests
 
     internal static void RegisterState(SettingsPageStateTests.ShellFixture fixture)
     {
-        TestHarness.Test("打格子设置：默认两张卡各只有总开关，建卡不写配置", () =>
+        TestHarness.Test("打格子设置：默认两张卡归入 MoviePilot，仅显示总开关且建卡不写配置", () =>
         {
             using var state = new State(fixture);
             Assert.Equal(3, state.Sections.Length);
             Assert.Equal("Bangumi 打格子", fixture.Get<string>(state.Sections[0], "Title"));
             Assert.Equal("豆瓣自动标记在看 / 已看", fixture.Get<string>(state.Sections[1], "Title"));
+            Assert.True(state.Sections.All(section => fixture.Get<string>(section, "Category") == "MoviePilot"));
             foreach (var section in state.Sections.Take(2))
             {
                 var rows = fixture.List(section, "Rows");
@@ -29,9 +30,15 @@ internal static class SettingsScrobblingTests
                 Assert.Equal("SettingToggleRow", rows[0]!.GetType().Name);
                 Assert.False(fixture.Get<bool>(rows[0]!, "IsOn"));
             }
-            Assert.True(fixture.List(state.Vm, "Categories").Cast<object>()
-                .Any(entry => fixture.Get<string>(entry, "Label") == "打格子"));
-            fixture.Set(state.Vm, "SelectedCategory", "打格子");
+            var categories = fixture.List(state.Vm, "Categories").Cast<object>().Select(entry => fixture.Get<string>(entry, "Label")).ToArray();
+            Assert.False(categories.Contains("打格子"));
+            Assert.True(categories.Contains("MoviePilot"));
+            var oldEntry = fixture.Invoke(state.Vm, "EntryFor", "打格子");
+            Assert.NotNull(oldEntry);
+            Assert.Equal("MoviePilot", fixture.Get<string>(oldEntry!, "Key"));
+            fixture.Set(state.Vm, "SelectedCategory", "MoviePilot");
+            Assert.False(fixture.Get<bool>(state.Row("MoviePilot"), "Enabled"));
+            Assert.True(state.Sections.Take(2).All(section => fixture.Get<object>(section, "SectionVisibility").ToString() == "Visible"));
             Assert.Equal("Collapsed", fixture.Get<object>(state.Sections[2], "SectionVisibility").ToString());
             Assert.Equal(0, fixture.List(state.Sections[2], "Rows").Count);
             Assert.Equal(0, state.Settings.TrySaveCalls);
@@ -171,10 +178,12 @@ internal static class SettingsScrobblingTests
             fixture.Command(state.Row("豆瓣同步记录"), "RunCommand").Execute(null);
             Assert.Equal("Bangumi,Douban", string.Join(",", viewed));
         });
-        TestHarness.Test("打格子设置：只显示本站最近结果，关闭站点后仍可查看已有记录", () =>
+        TestHarness.Test("打格子设置：只显示本站最近结果，关闭 MoviePilot 和站点后仍可查看已有记录", () =>
         {
             using var state = new State(fixture, bangumi: true);
             fixture.Set(state.Row("启用豆瓣自动标记"), "IsOn", true);
+            fixture.Set(state.Row("MoviePilot"), "Enabled", true);
+            fixture.Set(state.Vm, "SelectedCategory", "MoviePilot");
             using var playback = new PlaybackLifecycleTests.Fixture();
             playback.Transport.Reply = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
             using var bangumi = new BangumiClient();
@@ -206,6 +215,11 @@ internal static class SettingsScrobblingTests
             var doubanRecord = state.Row("豆瓣同步记录");
             Assert.Equal("尚未同步观看记录", fixture.Get<string>(bangumiRecord, "Value"));
             Assert.Equal("自动匹配读取媒体库信息失败，已跳过同步", fixture.Get<string>(doubanRecord, "Value"));
+            fixture.Set(state.Row("MoviePilot"), "Enabled", false);
+            Assert.False(state.Settings.Settings.MoviePilot.Enabled);
+            Assert.Equal("MoviePilot", fixture.Get<string>(state.Vm, "SelectedCategory"));
+            Assert.Equal("Visible", fixture.Get<object>(state.Sections[1], "SectionVisibility").ToString());
+            Assert.True(state.ContainsRow("豆瓣登录状态"));
             fixture.Set(state.Row("启用豆瓣自动标记"), "IsOn", false);
             Assert.True(ReferenceEquals(doubanRecord, state.Row("豆瓣同步记录")));
             Assert.False(state.ContainsRow("豆瓣登录状态"));
@@ -273,24 +287,32 @@ internal static class SettingsScrobblingTests
 
     internal static void RegisterSearch(SettingsPageStateTests.ShellFixture fixture)
     {
-        TestHarness.Test("打格子搜索：中英文分类命中同一个原始导航键", () =>
+        TestHarness.Test("打格子搜索：中英文命中两个站点启用开关，跳到 MoviePilot", () =>
         {
             using var state = new State(fixture);
+            const string Bangumi = "启用 Bangumi 打格子";
+            const string Douban = "启用豆瓣自动标记";
             var language = LanguageOf(state);
             var original = language.GetValue(null);
             try
             {
                 language.SetValue(null, UiLanguages.Chinese);
                 fixture.Set(state.Vm, "SettingsSearchQuery", "打格子");
-                var chinese = state.Results().Single(result => fixture.Get<string>(result, "Label") == "打格子");
-                Assert.Equal("打格子", fixture.Get<string>(chinese, "CategoryKey"));
+                var chinese = state.Results().Single(result => fixture.Get<string>(result, "Label") == Bangumi);
+                var chineseDouban = state.Results().Single(result => fixture.Get<string>(result, "Label") == Douban);
+                Assert.False(state.Results().Any(result => fixture.Get<string>(result, "Label") == "打格子"));
+                Assert.Equal("MoviePilot", fixture.Get<string>(chinese, "CategoryKey"));
+                Assert.Equal("MoviePilot", fixture.Get<string>(chineseDouban, "CategoryKey"));
                 language.SetValue(null, UiLanguages.English);
                 fixture.Set(state.Vm, "SettingsSearchQuery", "Scrobbling");
-                var english = state.Results().Single(result => fixture.Get<string>(result, "Label") == "打格子");
-                Assert.Equal("Scrobbling", fixture.Get<string>(english, "DisplayLabel"));
-                Assert.Equal("打格子", fixture.Get<string>(english, "CategoryKey"));
+                var english = state.Results().Single(result => fixture.Get<string>(result, "Label") == Bangumi);
+                var englishDouban = state.Results().Single(result => fixture.Get<string>(result, "Label") == Douban);
+                Assert.Equal("Enable Bangumi scrobbling", fixture.Get<string>(english, "DisplayLabel"));
+                Assert.Equal("MoviePilot / Bangumi scrobbling", fixture.Get<string>(english, "DisplayLocation"));
+                Assert.Equal("MoviePilot", fixture.Get<string>(english, "CategoryKey"));
+                Assert.Equal("MoviePilot", fixture.Get<string>(englishDouban, "CategoryKey"));
                 Assert.True((bool)fixture.Invoke(state.Vm, "SelectSettingsSearchResult", english)!);
-                Assert.Equal("打格子", fixture.Get<string>(state.Vm, "SelectedCategory"));
+                Assert.Equal("MoviePilot", fixture.Get<string>(state.Vm, "SelectedCategory"));
             }
             finally { language.SetValue(null, original); }
         });
@@ -309,7 +331,7 @@ internal static class SettingsScrobblingTests
                 var result = state.Results().Single(entry => fixture.Get<string>(entry, "Label") == NotificationLabel);
                 Assert.Equal("Show a Windows notification when scrobbling fails or is skipped", fixture.Get<string>(result, "DisplayLabel"));
                 Assert.True((bool)fixture.Invoke(state.Vm, "SelectSettingsSearchResult", result)!);
-                Assert.Equal("打格子", fixture.Get<string>(state.Vm, "SelectedCategory"));
+                Assert.Equal("MoviePilot", fixture.Get<string>(state.Vm, "SelectedCategory"));
                 fixture.Set(state.Row("启用 Bangumi 打格子"), "IsOn", false);
                 Assert.False(state.Results().Any(entry => fixture.Get<string>(entry, "Label") == NotificationLabel));
                 Assert.False((bool)fixture.Invoke(state.Vm, "SelectSettingsSearchResult", result)!);
@@ -355,6 +377,7 @@ internal static class SettingsScrobblingTests
             Settings.Settings.Scrobbling.Bangumi.Enabled = bangumi;
             Vm = fixture.NewViewModel();
             fixture.Attach(Vm, Settings, fixture.NewLauncher());
+            fixture.List(Vm, "Sections").Add(fixture.Invoke(Vm, "MoviePilotCard")!);
             Sections = ((IEnumerable)fixture.Invoke(Vm, "ScrobblingSections")!).Cast<object>().ToArray();
             foreach (var section in Sections) fixture.List(Vm, "Sections").Add(section);
         }
