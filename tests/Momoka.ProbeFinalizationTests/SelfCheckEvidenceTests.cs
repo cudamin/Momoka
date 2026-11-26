@@ -63,5 +63,23 @@ internal static partial class Program
                 Ensure(ReadSelf(paths).Contains("结果：1 项失败", StringComparison.Ordinal), "recovered helper write does not wash the report green");
             });
         }
+
+        Test("Q011-ui-tree-write-failure-keeps-final-report-red", async () =>
+        {
+            var paths = Paths("Q011-ui-tree-write-failure");
+            paths.EnsureCreated();
+            Directory.CreateDirectory(Path.Combine(paths.LogDirectory, "selfcheck-shell-tree.txt"));
+            var sink = new RingBufferLogSink();
+            Log.UseSink(sink);
+
+            var window = new ProbeWindow();
+            await ShellSelfCheck.RunScheduledForFixture(window, new(paths) { DumpUi = true });
+
+            Equal(1, ShellSelfCheck.ExitCode, "tree dump failure is reflected in final exit code");
+            Equal(1, window.Closed, "tree dump failure still reaches scheduled close");
+            Ensure(ReadSelf(paths).Contains("[失败] 必需证据", StringComparison.Ordinal), "final report identifies missing UI tree evidence");
+            Ensure(ReadSelf(paths).Contains("结果：1 项失败", StringComparison.Ordinal), "final report stays red after tree dump failure");
+            Ensure(!sink.Snapshot().Any(entry => entry.Message == "自检全部通过"), "success log is not emitted after tree dump failure");
+        });
     }
 }

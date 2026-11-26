@@ -52,7 +52,7 @@
                 };
                 var run = File.ReadAllText(RunSource).Replace("\r\n", "\n");
                 var schedule = File.ReadAllText(ScheduleSource).Replace("\r\n", "\n");
-                var tail = between(run, "        if (_requiredEvidenceFailed)\n", "\n    }\n}\n");
+                var tail = between(run, "        if (options.DumpUi)\n", "\n    }\n}\n");
                 var callback = between(schedule, "            await FinishAsync(async () =>", "\n        };\n        _timer.Start();");
                 var evidenceWriters = between(schedule, "        _writePlaybackReturnTrace = text => Write(options.Paths, \"selfcheck-playback-return.json\", text);",
                     "        // Invalidate the last run's report before this one has anything to say.");

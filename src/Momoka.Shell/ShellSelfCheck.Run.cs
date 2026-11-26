@@ -457,6 +457,13 @@ internal static partial class ShellSelfCheck
         // 真窗口进一次全屏、钉一次置顶，量完把窗口原样放回去 —— 两条一起跑，中间不做别的动窗口的事。
         ReportSettingsOverPicture(window, shell, Check);
 
+        if (options.DumpUi)
+        {
+            var tree = new StringBuilder();
+            Dump(shell, tree, 0);
+            if (!Write(options.Paths, "selfcheck-shell-tree.txt", tree.ToString())) ExitCode = 1;
+        }
+
         if (_requiredEvidenceFailed)
         {
             report.AppendLine("[失败] 必需证据 — 自检证据缺失或未能写出，详见应用日志");
@@ -467,13 +474,6 @@ internal static partial class ShellSelfCheck
         report.AppendLine(failures == 0 ? "结果：全部通过" : $"结果：{failures} 项失败");
 
         var reportWritten = CompleteReport(options.Paths, report.ToString(), failures);
-
-        if (options.DumpUi)
-        {
-            var tree = new StringBuilder();
-            Dump(shell, tree, 0);
-            if (!Write(options.Paths, "selfcheck-shell-tree.txt", tree.ToString())) ExitCode = 1;
-        }
 
         Log.Info(Category, !reportWritten ? "自检报告未能写出"
             : failures == 0 ? "自检全部通过" : $"自检有 {failures} 项失败");
