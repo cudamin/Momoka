@@ -112,12 +112,12 @@
             </InfoBar>
             <TextBlock x:Name="MonthSummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
-        <ScrollViewer x:Name="CalendarScroll" Grid.Row="3" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+        <ScrollViewer x:Name="CalendarScroll" Grid.Row="3" Margin="0,0,-24,0"
+            HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
             VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto">
-            <Border VerticalAlignment="Top" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1,1,0,0"
-                CornerRadius="{StaticResource EgCornerBadgeCornerRadius}">
-                <Grid x:Name="MonthGrid" HorizontalAlignment="Stretch" />
-            </Border>
+            <Grid x:Name="MonthGrid" Margin="{StaticResource EgScrollBarLane}" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1,1,0,0"
+                CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" />
         </ScrollViewer>
     </Grid>
 </Page>
