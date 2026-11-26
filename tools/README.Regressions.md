@@ -1,5 +1,7 @@
 # 专项测试统一入口
 
+截图工具的路径回归使用 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-shot-path.ps1`，只原样抽取并执行生产路径选择函数，不启动、附着或拍摄窗口；默认程序来自当前树发布目录，显式路径与 Attach 分别覆盖。
+
 2026-11-10：Windows PowerShell 5.1下原生stderr只记日志，恢复错误偏好后按真实退出码判定；调用前清空退出码，未取得退出码也失败。runner回归使用真实.cmd/PowerShell子进程覆盖stderr成功、退出17及未取得退出码，仍保留编译失败、skip、外部 deferred/-IncludeExternal 实跑和清单完整性检查。
 
 

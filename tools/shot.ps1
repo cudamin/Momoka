@@ -2,7 +2,7 @@
 # Screen capture rather than PrintWindow: the UI is a XAML island composited by DWM, and PrintWindow
 # on the host HWND returns the erased background without the island's content.
 param(
-    [string]$Exe = "src\Momoka.Shell\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\Momoka.exe",
+    [string]$Exe = "",
     [string]$Out = "shell.png",
     # Long enough for the saved token, the library list and the home page's three requests: the shot
     # is of real server data now, not of a mock grid that was up the moment the window was.
@@ -23,6 +23,19 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+function Resolve-ShotExecutable([string]$Executable, [string]$RepositoryRoot, [switch]$Attach) {
+    if ($Attach) { return $null }
+    $path = if ([string]::IsNullOrWhiteSpace($Executable)) {
+        Join-Path $RepositoryRoot 'artifacts/publish/win-x64/Momoka.exe'
+    } else { $Executable }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw '截图程序不存在，请先发布当前树或用 -Exe 指定已有程序。'
+    }
+    return (Resolve-Path -LiteralPath $path).ProviderPath
+}
+
+$launchExe = Resolve-ShotExecutable -Executable $Exe -RepositoryRoot (Join-Path $PSScriptRoot '..') -Attach:$Attach
 
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
@@ -71,7 +84,7 @@ if ($Attach) {
     if (-not $process) { throw "没有正在运行的 Momoka 窗口可供附着" }
 }
 else {
-    $launch = @{ FilePath = (Resolve-Path $Exe); PassThru = $true }
+    $launch = @{ FilePath = $launchExe; PassThru = $true }
     $flags = $ExeArgs.Split(@(' ', ','), [StringSplitOptions]::RemoveEmptyEntries)
     if ($flags.Count -gt 0) { $launch.ArgumentList = $flags }
     $process = Start-Process @launch
