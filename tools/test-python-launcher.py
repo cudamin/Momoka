@@ -55,11 +55,8 @@ try:
         override = run(project, ["-getProperty:PythonLauncher", "-p:PythonLauncher=" + override_path],
                        name + "-override.log")
         check(override.returncode == 0 and override.stdout.strip() == override_path, name + "/override-evaluation")
-        missing = run(project, ["-t:" + target, "-p:PythonLauncher=" + override_path], name + "-missing.log")
-        check(missing.returncode != 0 and "MSB3073" in missing.stdout + missing.stderr, name + "/missing-rejected")
-
-        # Execute the actual project target and real extraction script in a new repository containing
-        # a wrong source marker. This never compiles or runs Momoka or changes the original sources.
+        # Use a fresh repository for both Exec failures. In the working tree an up-to-date generated
+        # file can skip the target entirely, even when the configured launcher does not exist.
         fixture = output / name / "repository"
         folder = fixture / "tests" / name
         folder.mkdir(parents=True)
@@ -71,6 +68,8 @@ try:
         source = fixture / source_path
         source.parent.mkdir(parents=True)
         source.write_text("wrong source extraction boundary\n", encoding="utf-8")
+        missing = run(fixture_project, ["-t:" + target, "-p:PythonLauncher=" + override_path], name + "-missing.log")
+        check(missing.returncode != 0 and "MSB3073" in missing.stdout + missing.stderr, name + "/missing-rejected")
         failed = run(fixture_project, ["-t:" + target, "-p:PythonLauncher=" + str(args.python_launcher)],
                      name + "-source-failure.log")
         check(failed.returncode != 0 and "MSB3073" in failed.stdout + failed.stderr
