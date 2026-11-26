@@ -106,6 +106,7 @@ internal sealed partial class ShellNavigationProbe
             return Task.CompletedTask;
         });
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
+        AddCheck("InspectScrobblingRecords", "打格子记录筛选与空态", ScrobblingRecordsAsync, ShellProbeSections.Settings, timeoutSeconds: 20);
         AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
         AddCheck("InspectLibraryCollections", "合集移除与权限", LibraryCollectionsAsync);
         AddCheck("InspectJellyfinUpload", "Jellyfin字幕上传", JellyfinUploadAsync);
