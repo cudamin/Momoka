@@ -135,7 +135,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
 
-            const string Notification = "打格子失败时发送系统通知";
+            const string Notification = "打格子失败或跳过时发送系统通知";
             ToggleSwitch? VisibleToggle(string label) => Descendants(page).OfType<ToggleSwitch>()
                 .FirstOrDefault(control => AutomationProperties.GetName(control) == UiText.Translate(label) && control.ActualHeight > 0);
             static void Toggle(ToggleSwitch control) =>

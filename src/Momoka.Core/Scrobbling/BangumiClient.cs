@@ -20,18 +20,37 @@ public sealed class BangumiClient : IDisposable
         { Timeout = TimeSpan.FromSeconds(20) };
     }
 
-    public async Task<ScrobblingSubject> SubjectAsync(long id, string token, CancellationToken cancellationToken)
+    public async Task<ScrobblingSubject> SubjectAsync(long id, string token, CancellationToken cancellationToken) =>
+        await ReadSubjectAsync(id, token, allowNotFound: false, cancellationToken).ConfigureAwait(false) ?? throw InvalidResponse();
+
+    internal Task<ScrobblingSubject?> FindSubjectAsync(long id, string token, CancellationToken cancellationToken) =>
+        ReadSubjectAsync(id, token, allowNotFound: true, cancellationToken);
+
+    private async Task<ScrobblingSubject?> ReadSubjectAsync(long id, string token, bool allowNotFound, CancellationToken cancellationToken)
     {
         ValidateId(id);
-        using var document = await SendAsync(HttpMethod.Get, $"v0/subjects/{id}", token, null, null, false, cancellationToken).ConfigureAwait(false)
-            ?? throw InvalidResponse();
+        using var document = await SendAsync(HttpMethod.Get, $"v0/subjects/{id}", token, null, null, allowNotFound, cancellationToken)
+            .ConfigureAwait(false);
+        if (document is null) return null;
         var root = document.RootElement;
-        if (root.GetProperty("id").GetInt64() != id) throw InvalidResponse();
+        if (root.GetProperty("id").GetInt64() != id || root.GetProperty("type").GetInt32() != 2) throw InvalidResponse();
         var title = Text(root, "name_cn");
         if (string.IsNullOrWhiteSpace(title)) title = Text(root, "name");
         if (string.IsNullOrWhiteSpace(title)) throw InvalidResponse();
         int? count = root.TryGetProperty("eps", out var eps) && eps.TryGetInt32(out var value) && value > 0 ? value : null;
         return new(id, title, count);
+    }
+
+    internal async Task<bool> ConfirmRegularEpisodeAsync(long subjectId, long episodeId, string token, CancellationToken cancellationToken)
+    {
+        ValidateId(subjectId);
+        ValidateId(episodeId);
+        using var document = await SendAsync(HttpMethod.Get, $"v0/episodes/{episodeId}", token, null, null, true, cancellationToken)
+            .ConfigureAwait(false);
+        return document is not null
+            && document.RootElement.GetProperty("id").GetInt64() == episodeId
+            && document.RootElement.GetProperty("subject_id").GetInt64() == subjectId
+            && document.RootElement.GetProperty("type").GetInt32() == 0;
     }
 
     /// <summary>Read-only credential check. A successful identity read does not prove collection write permission.</summary>

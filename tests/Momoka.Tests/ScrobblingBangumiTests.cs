@@ -106,7 +106,7 @@ internal static class ScrobblingBangumiTests
         Case("Bangumi：条目优先中文名称并读取本篇总集数", async () =>
         {
             using var transport = new Transport(Reply(HttpMethod.Get, "/v0/subjects/8",
-                Json(new { id = 8, name_cn = "测试作品", name = "Fixture", eps = 12 })));
+                Json(new { id = 8, type = 2, name_cn = "测试作品", name = "Fixture", eps = 12 })));
             using var http = new HttpClient(transport);
             using var client = new BangumiClient(http);
             var subject = await client.SubjectAsync(8, Token, CancellationToken.None);
@@ -119,7 +119,7 @@ internal static class ScrobblingBangumiTests
         Case("Bangumi：未知集数保留为空且无中文名时使用原名", async () =>
         {
             using var transport = new Transport(Reply(HttpMethod.Get, "/v0/subjects/8",
-                Json(new { id = 8, name_cn = "", name = "Fixture", eps = 0 })));
+                Json(new { id = 8, type = 2, name_cn = "", name = "Fixture", eps = 0 })));
             using var http = new HttpClient(transport);
             using var client = new BangumiClient(http);
             var subject = await client.SubjectAsync(8, Token, CancellationToken.None);
@@ -128,7 +128,18 @@ internal static class ScrobblingBangumiTests
             transport.AssertComplete();
         });
 
-        Case("Bangumi：搜索只返回动画候选并保留年份集数，使用Bearer与固定API来源", async () =>
+        TestHarness.Test("Bangumi：所读编号一致也不能将非动画条目用于同步", () =>
+        {
+            using var transport = new Transport(Reply(HttpMethod.Get, "/v0/subjects/8",
+                Json(new { id = 8, type = 4, name_cn = "测试游戏", eps = 12 })));
+            using var http = new HttpClient(transport);
+            using var client = new BangumiClient(http);
+            Assert.Throws<InvalidOperationException>(() => client.SubjectAsync(8, Token, CancellationToken.None)
+                .GetAwaiter().GetResult());
+            transport.AssertComplete();
+        });
+
+        Case("Bangumi：搜索请求设置动画筛选并保留年份和集数，使用 Bearer 与固定 API 来源", async () =>
         {
             using var transport = new Transport(request =>
             {

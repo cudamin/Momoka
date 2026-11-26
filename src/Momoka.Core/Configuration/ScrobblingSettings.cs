@@ -5,6 +5,7 @@ public sealed class ScrobblingSettings
 {
     private volatile bool _notifyOnFailure;
 
+    // Keep the persisted setting name so existing preferences also apply to recorded skips.
     public bool NotifyOnFailure { get => _notifyOnFailure; set => _notifyOnFailure = value; }
     public BangumiScrobblingSettings Bangumi { get; set; } = new();
     public DoubanScrobblingSettings Douban { get; set; } = new();

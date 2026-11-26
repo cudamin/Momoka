@@ -65,16 +65,20 @@ internal static class ShellServices
             var dispatcher = provider.GetRequiredService<IUiDispatcher>();
             return new ScrobblingService(settings, provider.GetRequiredService<ISecretProtector>(),
                 provider.GetRequiredService<BangumiClient>(), provider.GetRequiredService<IDoubanScrobblingClient>(),
-                (site, reason) => dispatcher.Post(() =>
+                (site, outcome, reason) => dispatcher.Post(() =>
                 {
                     if (!settings.Scrobbling.NotifyOnFailure) return;
-                    var title = site switch
+                    var title = (site, outcome) switch
                     {
-                        ScrobblingProvider.Bangumi => "Bangumi 打格子失败",
-                        ScrobblingProvider.Douban => "豆瓣打格子失败",
-                        _ => "Bangumi 和豆瓣打格子失败"
+                        (ScrobblingProvider.Bangumi, ScrobblingRecordOutcome.Skipped) => "Bangumi 打格子已跳过",
+                        (ScrobblingProvider.Douban, ScrobblingRecordOutcome.Skipped) => "豆瓣打格子已跳过",
+                        (null, ScrobblingRecordOutcome.Skipped) => "Bangumi 和豆瓣打格子已跳过",
+                        (ScrobblingProvider.Bangumi, ScrobblingRecordOutcome.Failed) => "Bangumi 打格子失败",
+                        (ScrobblingProvider.Douban, ScrobblingRecordOutcome.Failed) => "豆瓣打格子失败",
+                        (null, ScrobblingRecordOutcome.Failed) => "Bangumi 和豆瓣打格子失败",
+                        _ => null
                     };
-                    SystemNotification.Show(UiText.Translate(title), UiText.Translate(reason));
+                    if (title is not null) SystemNotification.Show(UiText.Translate(title), UiText.Translate(reason));
                 }));
         });
         services.AddSingleton<SubtitleTranslationCredentials>();

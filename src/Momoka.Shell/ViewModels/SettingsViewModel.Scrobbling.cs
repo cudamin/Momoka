@@ -90,7 +90,7 @@ public sealed partial class SettingsViewModel
         AddScrobblingRecords(doubanRows, ScrobblingProvider.Douban, douban.Enabled);
 
         IReadOnlyList<SettingRow> notificationRows = bangumi.Enabled || douban.Enabled
-            ? [new SettingToggleRow("打格子失败时发送系统通知", "自动同步失败时通过 Windows 通知提醒，可到同步记录查看原因。",
+            ? [new SettingToggleRow("打格子失败或跳过时发送系统通知", "自动同步失败或跳过时通过 Windows 通知提醒，可到同步记录查看原因。",
                 settings.NotifyOnFailure, value => settings.NotifyOnFailure = value, Save, after: null,
                 canWrite: () => ScrobblingActive && ReferenceEquals(settings, Settings.Scrobbling)
                     && (settings.Bangumi.Enabled || settings.Douban.Enabled))]

@@ -12,7 +12,7 @@ namespace Momoka.Tests;
 internal static class SettingsScrobblingTests
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-    private const string NotificationLabel = "打格子失败时发送系统通知";
+    private const string NotificationLabel = "打格子失败或跳过时发送系统通知";
 
     internal static void RegisterState(SettingsPageStateTests.ShellFixture fixture)
     {
@@ -307,7 +307,7 @@ internal static class SettingsScrobblingTests
                 language.SetValue(null, UiLanguages.English);
                 fixture.Set(state.Vm, "SettingsSearchQuery", "Windows notification");
                 var result = state.Results().Single(entry => fixture.Get<string>(entry, "Label") == NotificationLabel);
-                Assert.Equal("Show a Windows notification when scrobbling fails", fixture.Get<string>(result, "DisplayLabel"));
+                Assert.Equal("Show a Windows notification when scrobbling fails or is skipped", fixture.Get<string>(result, "DisplayLabel"));
                 Assert.True((bool)fixture.Invoke(state.Vm, "SelectSettingsSearchResult", result)!);
                 Assert.Equal("打格子", fixture.Get<string>(state.Vm, "SelectedCategory"));
                 fixture.Set(state.Row("启用 Bangumi 打格子"), "IsOn", false);

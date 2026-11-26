@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using Momoka.Configuration;
@@ -15,7 +16,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     private readonly ISecretProtector _protector;
     private readonly BangumiClient _bangumi;
     private readonly IDoubanScrobblingClient _douban;
-    private readonly Action<ScrobblingProvider?, string>? _notifyFailure;
+    private readonly Action<ScrobblingProvider?, ScrobblingRecordOutcome, string>? _notifyIssue;
     private readonly TimeSpan _syncTimeout;
     private readonly object _recordsGate = new();
     private readonly List<ScrobblingRecord> _records = [];
@@ -27,8 +28,9 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     private sealed record Snapshot(bool Bangumi, string Token, bool Douban,
         CancellationTokenSource Lifetime, CancellationToken Cancellation);
     private sealed record PlayingEpisode(string Id, string SeriesId, int SeasonNumber, int Number, string Title);
-    private sealed record SubjectMatch(ScrobblingSubject? Subject, string Title, string? SkipReason);
-    private sealed record LibrarySeason(EmbyItem? Series, int EpisodeCount, string? SkipReason);
+    private sealed record SubjectMatch(ScrobblingSubject? Subject, string Title, string? SkipReason, long? EpisodeId = null);
+    private sealed record LibrarySeason(EmbyItem? Series, int EpisodeCount, string? SkipReason,
+        (long SubjectId, long EpisodeId)? BangumiTarget = null);
     private sealed record SyncResult(ScrobblingRecordOutcome Outcome, string Detail);
 
     public ScrobblingService(AppSettings settings, ISecretProtector protector, BangumiClient bangumi, IDoubanScrobblingClient douban)
@@ -37,13 +39,14 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     }
 
     internal ScrobblingService(AppSettings settings, ISecretProtector protector, BangumiClient bangumi,
-        IDoubanScrobblingClient douban, Action<ScrobblingProvider?, string>? notifyFailure, TimeSpan? syncTimeout = null)
+        IDoubanScrobblingClient douban, Action<ScrobblingProvider?, ScrobblingRecordOutcome, string>? notifyIssue,
+        TimeSpan? syncTimeout = null)
     {
         _settings = settings;
         _protector = protector;
         _bangumi = bangumi;
         _douban = douban;
-        _notifyFailure = notifyFailure;
+        _notifyIssue = notifyIssue;
         _syncTimeout = syncTimeout ?? TimeSpan.FromSeconds(45);
         _snapshot = Capture();
     }
@@ -94,7 +97,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         if (_disposed || request.AudioOnly || item.Type != EmbyItemType.Episode
             || item.IndexNumber is not int episodeNumber || episodeNumber <= 0
             || item.ParentIndexNumber is not int seasonNumber || seasonNumber <= 0
-            || string.IsNullOrWhiteSpace(item.SeriesId)
+            || string.IsNullOrWhiteSpace(item.Id) || string.IsNullOrWhiteSpace(item.SeriesId)
             || item.IndexNumberEnd is { } last && last > episodeNumber) return null;
         var snapshot = Volatile.Read(ref _snapshot);
         var playing = new PlayingEpisode(item.Id, item.SeriesId, seasonNumber, episodeNumber, item.SeriesName ?? item.Name);
@@ -120,8 +123,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         {
             foreach (var provider in providers)
                 AddRecord(provider, title, playing.Number, outcome, reason);
-            if (outcome == ScrobblingRecordOutcome.Failed)
-                NotifyFailure(providers.Count == 1 ? providers[0] : null, reason);
+            NotifyIssue(providers.Count == 1 ? providers[0] : null, outcome, reason);
         }
 
         async Task Sync(bool completed, CancellationToken cancellationToken)
@@ -138,11 +140,12 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
             async Task<LibrarySeason?> ReadAsync()
             {
                 var season = await RunStageAsync(
-                    () => scope.ExecuteAsync((client, token) => ReadLibrarySeasonAsync(client, playing, token), cancellationToken),
+                    () => scope.ExecuteAsync((client, token) => ReadLibrarySeasonAsync(client, playing,
+                        providers.Contains(ScrobblingProvider.Bangumi), token), cancellationToken),
                     Allowed, cancellationToken,
                     _ => "自动匹配读取媒体库信息失败，已跳过同步", "读取媒体库信息超时，已跳过同步",
                     reason => RecordLibraryResult(playing.Title, ScrobblingRecordOutcome.Failed, reason)).ConfigureAwait(false);
-                if (season?.SkipReason is not { } skip) return season;
+                if (season?.SkipReason is not { } skip || season.BangumiTarget is not null) return season;
                 if (Allowed() && !cancellationToken.IsCancellationRequested)
                     RecordLibraryResult(season.Series?.Name ?? playing.Title, ScrobblingRecordOutcome.Skipped, skip);
                 return null;
@@ -150,19 +153,21 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
 
             async Task SyncProviderAsync(ScrobblingProvider provider)
             {
-                void Failed(string title, string reason)
+                void RecordIssue(string title, ScrobblingRecordOutcome outcome, string reason)
                 {
-                    AddRecord(provider, title, playing.Number, ScrobblingRecordOutcome.Failed, reason);
-                    NotifyFailure(provider, reason);
+                    AddRecord(provider, title, playing.Number, outcome, reason);
+                    NotifyIssue(provider, outcome, reason);
                 }
                 async Task<SubjectMatch?> MatchAsync()
                 {
                     var found = await RunStageAsync(
-                        () => FindMatchAsync(snapshot, provider, series, library.EpisodeCount, Allowed, cancellationToken),
+                        () => FindMatchAsync(snapshot, provider, series, library, Allowed, cancellationToken),
                         Allowed, cancellationToken, error => ProviderFailure(provider, error, "自动匹配失败，已跳过同步"),
-                        "查询作品超时，已跳过同步", reason => Failed(series.Name, reason)).ConfigureAwait(false);
+                        "查询作品超时，已跳过同步",
+                        reason => RecordIssue(series.Name, ScrobblingRecordOutcome.Failed, reason)).ConfigureAwait(false);
                     if (found?.SkipReason is not { } skip) return found;
-                    if (Allowed()) AddRecord(provider, found.Title, playing.Number, ScrobblingRecordOutcome.Skipped, skip);
+                    if (Allowed() && !cancellationToken.IsCancellationRequested)
+                        RecordIssue(found.Title, ScrobblingRecordOutcome.Skipped, skip);
                     return null;
                 }
 
@@ -181,13 +186,18 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
                 var result = await RunStageAsync(() =>
                     {
                         if (douban && !completed) Volatile.Write(ref doubanWatchingUnconfirmed, 1);
-                        return WriteAsync(snapshot, provider, subject.Id, playing.Number, completed, Allowed, cancellationToken);
+                        return WriteAsync(snapshot, provider, subject.Id, playing.Number, match.EpisodeId,
+                            completed, Allowed, cancellationToken);
                     },
                     Allowed, cancellationToken, error => ProviderFailure(provider, error, "未能确认同步结果，请到站点核对"),
-                    "同步超时，结果未确认，请到站点核对", reason => Failed(match.Title, reason)).ConfigureAwait(false);
+                    "同步超时，结果未确认，请到站点核对",
+                    reason => RecordIssue(match.Title, ScrobblingRecordOutcome.Failed, reason)).ConfigureAwait(false);
                 if (result is null || !Allowed()) return;
                 if (douban && !completed) Volatile.Write(ref doubanWatchingUnconfirmed, 0);
-                AddRecord(provider, match.Title, playing.Number, result.Outcome, result.Detail);
+                if (result.Outcome == ScrobblingRecordOutcome.Skipped)
+                    RecordIssue(match.Title, result.Outcome, result.Detail);
+                else
+                    AddRecord(provider, match.Title, playing.Number, result.Outcome, result.Detail);
             }
         }
         return new(request.RunTimeTicks, PlaybackService.StopReportPercent(request.IsDonghua,
@@ -219,8 +229,25 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
     }
 
     private async Task<SubjectMatch?> FindMatchAsync(Snapshot snapshot, ScrobblingProvider provider,
-        EmbyItem series, int libraryEpisodeCount, Func<bool> allowed, CancellationToken token)
+        EmbyItem series, LibrarySeason library, Func<bool> allowed, CancellationToken token)
     {
+        if (provider == ScrobblingProvider.Bangumi && library.BangumiTarget is { } target)
+        {
+            const string Unverified = "Bangumi 无法核实 TMDB 对应的单集，已跳过同步";
+            var access = _protector.Unprotect(snapshot.Token);
+            var mappedSubject = await _bangumi.FindSubjectAsync(target.SubjectId, access, token).ConfigureAwait(false);
+            if (!allowed() || token.IsCancellationRequested) return null;
+            if (mappedSubject is null) return new(null, series.Name, Unverified);
+            var verified = await _bangumi.ConfirmRegularEpisodeAsync(target.SubjectId, target.EpisodeId, access, token)
+                .ConfigureAwait(false);
+            return verified
+                ? new(mappedSubject, mappedSubject.Title, null, target.EpisodeId)
+                : new(null, mappedSubject.Title, Unverified);
+        }
+        if (library.SkipReason is { } skip) return new(null, series.Name, skip);
+        if (provider == ScrobblingProvider.Bangumi && LibraryProviderId(series, "Bangumi") is null
+            && (LibraryProviderId(series, "Tmdb") is "" || LibraryTmdbId(series) is { } tmdbId && BangumiTmdbMap.ContainsSeries(tmdbId)))
+            return new(null, series.Name, "没有找到 TMDB 对应的唯一 Bangumi 单集，已跳过同步");
         var id = await FindSubjectIdAsync(snapshot, provider, series, token).ConfigureAwait(false);
         if (!allowed() || token.IsCancellationRequested) return null;
         if (id is null) return new(null, series.Name, "没有找到标题、年份和集数均能唯一确认的作品，已跳过同步");
@@ -228,21 +255,24 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
             ? await BangumiSubjectAsync(snapshot, id.Value, token).ConfigureAwait(false)
             : await _douban.SubjectAsync(id.Value, token).ConfigureAwait(false);
         if (!allowed() || token.IsCancellationRequested) return null;
-        return subject.EpisodeCount is int episodeCount && SubjectCountMatches(episodeCount, libraryEpisodeCount, series.Status)
+        return subject.EpisodeCount is int episodeCount && SubjectCountMatches(episodeCount, library.EpisodeCount, series.Status)
             ? new(subject, subject.Title, null)
             : new(null, subject.Title, "站点总集数与媒体库不一致，已跳过同步");
     }
 
     private async Task<SyncResult?> WriteAsync(Snapshot snapshot, ScrobblingProvider provider,
-        long subjectId, int episodeNumber, bool completed, Func<bool> allowed, CancellationToken token)
+        long subjectId, int episodeNumber, long? episodeId, bool completed, Func<bool> allowed, CancellationToken token)
     {
         if (provider == ScrobblingProvider.Bangumi)
         {
             var access = _protector.Unprotect(snapshot.Token);
-            var episodes = await _bangumi.GetEpisodesAsync(subjectId, access, token).ConfigureAwait(false);
-            var episode = episodes.SingleOrDefault(episode => episode.Number == episodeNumber);
-            if (episode is null) return new(ScrobblingRecordOutcome.Skipped, "对应集号无法确认，已跳过");
-            await _bangumi.MarkEpisodeAsync(subjectId, episode.Id, access, allowed, token).ConfigureAwait(false);
+            if (episodeId is null)
+            {
+                var episodes = await _bangumi.GetEpisodesAsync(subjectId, access, token).ConfigureAwait(false);
+                episodeId = episodes.SingleOrDefault(episode => episode.Number == episodeNumber)?.Id;
+            }
+            if (episodeId is null) return new(ScrobblingRecordOutcome.Skipped, "对应集号无法确认，已跳过");
+            await _bangumi.MarkEpisodeAsync(subjectId, episodeId.Value, access, allowed, token).ConfigureAwait(false);
             return new(ScrobblingRecordOutcome.Watched, "对应集已标记看过");
         }
         var finished = await _douban.MarkEpisodeAsync(subjectId, episodeNumber, completed, allowed, token).ConfigureAwait(false);
@@ -255,26 +285,45 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
             : fallback;
 
     private static async Task<LibrarySeason?> ReadLibrarySeasonAsync(
-        EmbyClient client, PlayingEpisode playing, CancellationToken token)
+        EmbyClient client, PlayingEpisode playing, bool matchBangumi, CancellationToken token)
     {
         var series = await client.GetItemAsync(playing.SeriesId, token, "ProviderIds,OriginalTitle,ProductionYear,PremiereDate,Status")
             .ConfigureAwait(false);
         if (series.Type != EmbyItemType.Series || !string.Equals(series.Id, playing.SeriesId, StringComparison.Ordinal))
             return new(null, 0, "媒体服务器未返回对应剧集，已跳过同步");
 
+        var mapped = matchBangumi && LibraryTmdbId(series) is { } tmdbId
+            ? BangumiTmdbMap.Find(tmdbId, playing.SeasonNumber, playing.Number) : null;
         var seasons = await client.GetSeasonsAsync(playing.SeriesId, token).ConfigureAwait(false);
-        var regularSeasons = seasons.Where(season => season.IndexNumber != 0).Take(2).ToArray();
-        if (regularSeasons is not [{ IndexNumber: 1, Type: EmbyItemType.Season } regularSeason]
-            || playing.SeasonNumber != 1 || string.IsNullOrWhiteSpace(regularSeason.Id)
-            || seasons.Any(season => season.Type != EmbyItemType.Season))
-            return new(series, 0, "无法确认唯一的常规第一季，已跳过同步");
+        var regularSeasons = seasons.Where(season => season.IndexNumber != 0).ToArray();
+        var singleFirstSeason = regularSeasons is [{ IndexNumber: 1 }] && playing.SeasonNumber == 1;
+        const string InvalidSeason = "无法确认唯一的常规第一季，已跳过同步";
+        if ((!singleFirstSeason && mapped is null) || seasons.Any(season => season.Type != EmbyItemType.Season)
+            || regularSeasons.Where(season => season.IndexNumber == playing.SeasonNumber).Take(2).ToArray() is not [var regularSeason]
+            || string.IsNullOrWhiteSpace(regularSeason.Id))
+            return new(series, 0, InvalidSeason);
 
         var episodes = await client.GetEpisodesAsync(playing.SeriesId, regularSeason.Id, token).ConfigureAwait(false);
+        const string InvalidNumbers = "媒体库集号不完整、不连续或存在合并集，已跳过同步";
+        const string InvalidEpisode = "当前播放集与媒体库集号无法对应，已跳过同步";
+        if (episodes.Count is 0 or > 1000) return new(series, 0, InvalidNumbers);
+        if (mapped is not null)
+        {
+            // 精确映射只使用当前播放项所属的正规季集；媒体库其他集可以缺失。
+            var current = episodes.Where(episode => episode.ParentIndexNumber != 0
+                && (episode.Id == playing.Id || episode.IndexNumber == playing.Number)).Take(2).ToArray();
+            if (current is not [var episode] || episode.Type != EmbyItemType.Episode || episode.Id != playing.Id
+                || episode.IndexNumber != playing.Number
+                || (episode.ParentIndexNumber is { } parent && parent != playing.SeasonNumber)
+                || (!string.IsNullOrWhiteSpace(episode.SeasonId) && episode.SeasonId != regularSeason.Id)
+                || (!string.IsNullOrWhiteSpace(episode.SeriesId) && episode.SeriesId != playing.SeriesId)
+                || (episode.IndexNumberEnd is { } end && end > playing.Number))
+                return new(series, 0, InvalidEpisode);
+        }
+        if (!singleFirstSeason) return new(series, 0, InvalidSeason, mapped);
         var numbers = new HashSet<int>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var currentEpisodeFound = false;
-        const string InvalidNumbers = "媒体库集号不完整、不连续或存在合并集，已跳过同步";
-        if (episodes.Count is 0 or > 1000) return new(series, 0, InvalidNumbers);
         foreach (var episode in episodes)
         {
             // 媒体服务器可以在常规季内显示穿插的特别篇，季 0 的集号不参与常规集映射。
@@ -284,15 +333,15 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
                 || !string.IsNullOrWhiteSpace(episode.SeasonId) && episode.SeasonId != regularSeason.Id
                 || episode.IndexNumber is not > 0 || episode.IndexNumberEnd is { } end && end > episode.IndexNumber
                 || !numbers.Add(episode.IndexNumber.Value))
-                return new(series, 0, InvalidNumbers);
+                return new(series, 0, InvalidNumbers, mapped);
             if (episode.IndexNumber == playing.Number && episode.Id == playing.Id)
                 currentEpisodeFound = true;
         }
         if (numbers.Count == 0 || Enumerable.Range(1, numbers.Count).Any(number => !numbers.Contains(number)))
-            return new(series, 0, InvalidNumbers);
+            return new(series, 0, InvalidNumbers, mapped);
         if (!currentEpisodeFound)
-            return new(series, 0, "当前播放集与媒体库集号无法对应，已跳过同步");
-        return new(series, numbers.Count, null);
+            return new(series, 0, InvalidEpisode);
+        return new(series, numbers.Count, null, mapped);
     }
 
     private static bool SubjectCountMatches(int siteCount, int libraryCount, string? seriesStatus) =>
@@ -303,7 +352,7 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         CancellationToken cancellationToken)
     {
         var providerName = provider == ScrobblingProvider.Bangumi ? "Bangumi" : "Douban";
-        var known = series.ProviderIds.FirstOrDefault(pair => pair.Key.Equals(providerName, StringComparison.OrdinalIgnoreCase)).Value;
+        var known = LibraryProviderId(series, providerName);
         if (known is not null) return long.TryParse(known, out var parsed) && parsed > 0 ? parsed : null;
 
         var year = series.ProductionYear is > 0 ? series.ProductionYear : series.PremiereDate?.Year;
@@ -326,6 +375,19 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
                         && normalizedTitles.Contains(NormalizeTitle(detail))))
             .Select(candidate => candidate.Id).Distinct().Take(2).ToArray();
         return matches.Length == 1 ? matches[0] : null;
+    }
+
+    private static int? LibraryTmdbId(EmbyItem series) => LibraryProviderId(series, "Bangumi") is null
+        && int.TryParse(LibraryProviderId(series, "Tmdb"), NumberStyles.None, CultureInfo.InvariantCulture, out var id)
+        && id > 0 ? id : null;
+
+    private static string? LibraryProviderId(EmbyItem series, string name)
+    {
+        var values = series.ProviderIds?.Where(pair => pair.Key.Equals(name, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(pair.Value))
+            .Select(pair => pair.Value.Trim()).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        // Empty metadata is absent. Conflicting populated keys must not fall back to another identity.
+        return values switch { null or [] => null, [var value] => value, _ => "" };
     }
 
     private async Task<ScrobblingSubject> BangumiSubjectAsync(Snapshot snapshot, long id, CancellationToken cancellationToken) =>
@@ -372,10 +434,10 @@ public sealed partial class ScrobblingService : IPlaybackScrobbler, IDisposable
         try { Changed?.Invoke(); } catch (Exception) { /* Optional presentation only. */ }
     }
 
-    private void NotifyFailure(ScrobblingProvider? provider, string reason)
+    private void NotifyIssue(ScrobblingProvider? provider, ScrobblingRecordOutcome outcome, string reason)
     {
         if (!_settings.Scrobbling.NotifyOnFailure) return;
-        try { _notifyFailure?.Invoke(provider, reason); }
+        try { _notifyIssue?.Invoke(provider, outcome, reason); }
         catch (Exception) { /* The optional notification sink cannot change sync results or interrupt playback. */ }
     }
 

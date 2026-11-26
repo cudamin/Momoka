@@ -225,6 +225,7 @@ internal static class ScrobblingServiceTests
                 using var fixture = new Fixture();
                 fixture.Enable(ScrobblingProvider.Bangumi);
                 fixture.Enable(ScrobblingProvider.Douban);
+                fixture.Settings.Scrobbling.NotifyOnFailure = true;
                 fixture.SeriesStatus = "Continuing";
                 if (issue == "second-season") fixture.SeasonNumbers = [1, 2];
                 if (issue == "special-season") fixture.SeasonNumbers = [0];
@@ -238,6 +239,9 @@ internal static class ScrobblingServiceTests
                 Assert.Equal(0, fixture.BangumiTransport.Requests.Count, issue);
                 foreach (var provider in new[] { ScrobblingProvider.Bangumi, ScrobblingProvider.Douban })
                     Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(provider).Single().Outcome, issue);
+                var notification = fixture.Notifications.Single();
+                Assert.Null(notification.Provider);
+                Assert.Equal(ScrobblingRecordOutcome.Skipped, notification.Outcome);
             }
         });
 
@@ -264,6 +268,7 @@ internal static class ScrobblingServiceTests
             }
             var notification = fixture.Notifications.Single();
             Assert.Null(notification.Provider);
+            Assert.Equal(ScrobblingRecordOutcome.Failed, notification.Outcome);
             Assert.Equal("自动匹配读取媒体库信息失败，已跳过同步", notification.Detail);
         });
 
@@ -313,20 +318,27 @@ internal static class ScrobblingServiceTests
             Assert.Equal("8:doing,8:doing,8:doing", fixture.Douban.Describe(), "结果未确认时不能继续写入看过状态");
         });
 
-        Case("打格子通知：成功和无法可靠匹配的正常跳过都保持静默", async () =>
+        Case("打格子通知：成功保持静默，无法可靠匹配只提示一次", async () =>
         {
             using var fixture = new Fixture();
             fixture.Enable(ScrobblingProvider.Douban);
             fixture.Settings.Scrobbling.NotifyOnFailure = true;
             fixture.Refresh();
             await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+            Assert.Equal(0, fixture.Notifications.Count);
             fixture.Douban.SearchResults = [];
-            await fixture.Create(fixture.Ticket()).FinishAsync(5, true);
+            await fixture.Create(fixture.Ticket()).FinishAsync(90, true);
 
             Assert.True(fixture.Service.GetRecords(ScrobblingProvider.Douban).Select(record => record.Outcome)
                 .SequenceEqual([ScrobblingRecordOutcome.Skipped, ScrobblingRecordOutcome.Watching]));
             Assert.Equal("8:doing", fixture.Douban.Describe());
-            Assert.Equal(0, fixture.Notifications.Count);
+            var notification = fixture.Notifications.Single();
+            Assert.Equal(ScrobblingProvider.Douban, notification.Provider);
+            Assert.Equal(ScrobblingRecordOutcome.Skipped, notification.Outcome);
+            Assert.Equal(fixture.Service.GetLatestRecord(ScrobblingProvider.Douban)!.Detail, notification.Detail);
+            fixture.Settings.Scrobbling.NotifyOnFailure = false;
+            await fixture.Create(fixture.Ticket()).FinishAsync(90, true);
+            Assert.Equal(1, fixture.Notifications.Count);
         });
 
         Case("打格子通知：豆瓣已确认退出时提示重新登录且不继续写入", async () =>
@@ -340,7 +352,7 @@ internal static class ScrobblingServiceTests
             await fixture.Create(fixture.Ticket(12)).FinishAsync(90, true);
 
             const string Reason = "豆瓣拒绝请求，请重新登录";
-            Assert.Equal((ScrobblingProvider.Douban, Reason), fixture.Notifications.Single());
+            Assert.Equal((ScrobblingProvider.Douban, ScrobblingRecordOutcome.Failed, Reason), fixture.Notifications.Single());
             Assert.Equal(Reason, fixture.Service.GetRecords(ScrobblingProvider.Douban).Single().Detail);
             Assert.Equal("8:doing", fixture.Douban.Describe());
         });
@@ -444,6 +456,135 @@ internal static class ScrobblingServiceTests
             Assert.Equal(ScrobblingRecordOutcome.Watched, record.Outcome);
             Assert.Equal(1, record.EpisodeNumber);
             Assert.Equal(0, fixture.Service.GetRecords(ScrobblingProvider.Douban).Count);
+        });
+
+        Case("打格子服务：TMDB 第 8 集与第 13 集精确对应不同的 Bangumi 条目", async () =>
+        {
+            foreach (var (number, subject, episodeId) in new[] { (8, 524707, 1521517), (13, 587454, 1568817) })
+            {
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Bangumi);
+                fixture.SeriesProviderIds["Tmdb"] = "277513";
+                fixture.SeriesProviderIds["Bangumi"] = "";
+                fixture.SeriesYear = 2025;
+                fixture.SeriesName = "我们不可能成为恋人！绝对不行。（※似乎可行！？）";
+                fixture.EpisodeCount = number == 8 ? 17 : 13;
+                fixture.MissingEpisodeNumber = number == 13 ? 4 : null;
+                fixture.BangumiTransport.SubjectId = subject;
+                fixture.BangumiTransport.SubjectEpisodeCount = number == 8 ? 12 : 5;
+                fixture.BangumiTransport.EpisodeDetails[episodeId] = (subject, 0);
+                fixture.Refresh();
+
+                await fixture.Create(fixture.Ticket(number)).FinishAsync(90, true);
+
+                var record = fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single();
+                Assert.Equal(ScrobblingRecordOutcome.Watched, record.Outcome, record.Detail);
+                Assert.Equal(number, record.EpisodeNumber);
+                Assert.False(fixture.BangumiTransport.Requests.Any(request => request.Key == "POST /v0/search/subjects"));
+                var update = fixture.BangumiTransport.Requests.Single(request => request.Method == "PATCH");
+                Assert.Equal($"PATCH /v0/users/-/collections/{subject}/episodes", update.Key);
+                using var body = JsonDocument.Parse(update.Body);
+                Assert.Equal((long)episodeId, body.RootElement.GetProperty("episode_id")[0].GetInt64());
+            }
+        });
+
+        Case("打格子服务：TMDB 精确对应无法核实或本地集号冲突时只记录跳过", async () =>
+        {
+            foreach (var issue in new[] { "unmapped", "subject-404", "episode-404", "wrong-subject", "special", "local-mismatch", "merged" })
+            {
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Bangumi);
+                fixture.Settings.Scrobbling.NotifyOnFailure = true;
+                fixture.SeriesProviderIds["Tmdb"] = "277513";
+                fixture.EpisodeCount = 18;
+                fixture.BangumiTransport.SubjectId = issue == "subject-404" ? 101 : 524707;
+                if (issue != "episode-404")
+                    fixture.BangumiTransport.EpisodeDetails[1521517] = (issue == "wrong-subject" ? 587454 : 524707,
+                        issue == "special" ? 1 : 0);
+                if (issue == "merged") fixture.MergedEpisodeNumber = 8;
+                fixture.Refresh();
+                var ticket = fixture.Ticket(issue == "unmapped" ? 18 : 8);
+                if (issue == "local-mismatch") ticket.Item.Id = "wrong-episode";
+
+                await fixture.Create(ticket).FinishAsync(90, true);
+
+                Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome, issue);
+                Assert.False(fixture.BangumiTransport.Requests.Any(request => request.Method != "GET"), issue);
+                Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Notifications.Single().Outcome, issue);
+            }
+        });
+
+        Case("打格子服务：TMDB 按当前正规季定位单集，豆瓣仍验证单一第一季", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.Enable(ScrobblingProvider.Douban);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            fixture.SeriesProviderIds["Tmdb"] = "137";
+            fixture.SeasonNumbers = [1, 2];
+            fixture.EpisodeSeason = 2;
+            fixture.BangumiTransport.SubjectId = 307402;
+            fixture.BangumiTransport.EpisodeDetails[954032] = (307402, 0);
+            fixture.Refresh();
+            await fixture.Create(fixture.Ticket(8, season: 2)).FinishAsync(90, true);
+
+            Assert.Equal(ScrobblingRecordOutcome.Watched, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+            Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(ScrobblingProvider.Douban).Single().Outcome);
+            Assert.Equal(0, fixture.Douban.Searches.Count);
+            Assert.Equal(0, fixture.Douban.Marks.Count);
+            Assert.Equal(ScrobblingProvider.Douban, fixture.Notifications.Single().Provider);
+            var update = fixture.BangumiTransport.Requests.Single(request => request.Method == "PATCH");
+            Assert.Equal("PATCH /v0/users/-/collections/307402/episodes", update.Key);
+            using var body = JsonDocument.Parse(update.Body);
+            Assert.Equal(954032L, body.RootElement.GetProperty("episode_id")[0].GetInt64());
+        });
+
+        Case("打格子服务：库内明确 Bangumi 编号优先，无 TMDB 对照时仍可严格匹配标题", async () =>
+        {
+            foreach (var explicitSiteId in new[] { true, false })
+            {
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Bangumi);
+                fixture.SeriesProviderIds["Tmdb"] = explicitSiteId ? "277513" : int.MaxValue.ToString();
+                if (explicitSiteId) fixture.SeriesProviderIds["Bangumi"] = "101";
+                fixture.Refresh();
+                await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
+                Assert.Equal(ScrobblingRecordOutcome.Watched, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+                Assert.Equal(!explicitSiteId, fixture.BangumiTransport.Requests.Any(request => request.Key == "POST /v0/search/subjects"));
+                Assert.Equal("PATCH /v0/users/-/collections/101/episodes",
+                    fixture.BangumiTransport.Requests.Single(request => request.Method == "PATCH").Key);
+            }
+        });
+
+        Case("打格子服务：冲突的 Bangumi 或 TMDB 编号不回退标题", async () =>
+        {
+            foreach (var provider in new[] { "Bangumi", "Tmdb" })
+            {
+                using var fixture = new Fixture();
+                fixture.Enable(ScrobblingProvider.Bangumi);
+                fixture.SeriesProviderIds["Tmdb"] = "277513";
+                if (provider == "Bangumi") fixture.SeriesProviderIds[provider] = "101";
+                fixture.SeriesProviderIds[provider.ToLowerInvariant()] = "102";
+                fixture.Refresh();
+                await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
+                Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+                Assert.Equal(0, fixture.BangumiTransport.Requests.Count);
+            }
+        });
+
+        Case("打格子通知：已匹配 Bangumi 作品但找不到对应集时提醒，零收藏写入", async () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Enable(ScrobblingProvider.Bangumi);
+            fixture.Settings.Scrobbling.NotifyOnFailure = true;
+            fixture.SeriesProviderIds["Bangumi"] = "101";
+            fixture.BangumiTransport.Episodes = [(1001, 1)];
+            fixture.Refresh();
+            await fixture.Create(fixture.Ticket(8)).FinishAsync(90, true);
+            Assert.Equal(ScrobblingRecordOutcome.Skipped, fixture.Service.GetRecords(ScrobblingProvider.Bangumi).Single().Outcome);
+            Assert.Equal((ScrobblingProvider.Bangumi, ScrobblingRecordOutcome.Skipped, "对应集号无法确认，已跳过"),
+                fixture.Notifications.Single());
+            Assert.True(fixture.BangumiTransport.Requests.All(request => request.Method == "GET"));
         });
 
         Case("打格子服务：同一集的两站记录互相隔离", async () =>
@@ -609,14 +750,16 @@ internal static class ScrobblingServiceTests
     private sealed class Fixture : IDisposable
     {
         public PlaybackLifecycleTests.Fixture Playback { get; } = new();
+        public string SeriesName { get; set; } = "Offline Series";
         public int? SeriesYear { get; set; } = 2024;
         public string? SeriesStatus { get; set; }
-        public Dictionary<string, string> SeriesProviderIds { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> SeriesProviderIds { get; } = new(StringComparer.Ordinal);
         public IReadOnlyList<int> SeasonNumbers { get; set; } = [1];
         public bool IncludeInterleavedSpecial { get; set; }
         public int? MissingEpisodeNumber { get; set; }
         public int? MergedEpisodeNumber { get; set; }
         public int EpisodeCount { get; set; } = 12;
+        public int EpisodeSeason { get; set; } = 1;
         public AppSettings Settings => Playback.Settings;
         public EmbySessionScope Scope { get; }
         public FakeDouban Douban { get; } = new();
@@ -624,7 +767,7 @@ internal static class ScrobblingServiceTests
         public HttpClient Http { get; }
         public BangumiClient Bangumi { get; }
         public ScrobblingService Service { get; }
-        public ConcurrentQueue<(ScrobblingProvider? Provider, string Detail)> Notifications { get; } = new();
+        public ConcurrentQueue<(ScrobblingProvider? Provider, ScrobblingRecordOutcome Outcome, string Detail)> Notifications { get; } = new();
 
         public Fixture(TimeSpan? syncTimeout = null, Action? onNotification = null)
         {
@@ -633,9 +776,9 @@ internal static class ScrobblingServiceTests
             Http = new HttpClient(BangumiTransport);
             Bangumi = new BangumiClient(Http);
             Service = new ScrobblingService(Settings, PassthroughSecretProtector.Instance, Bangumi, Douban,
-                (provider, detail) =>
+                (provider, outcome, detail) =>
                 {
-                    Notifications.Enqueue((provider, detail));
+                    Notifications.Enqueue((provider, outcome, detail));
                     onNotification?.Invoke();
                 }, syncTimeout);
         }
@@ -681,7 +824,7 @@ internal static class ScrobblingServiceTests
                 {
                     Id = "series",
                     Type = "Series",
-                    Name = "Offline Series",
+                    Name = SeriesName,
                     OriginalTitle = "",
                     ProductionYear = SeriesYear,
                     Status = SeriesStatus,
@@ -701,7 +844,7 @@ internal static class ScrobblingServiceTests
                     Type = "Episode",
                     IndexNumber = index,
                     IndexNumberEnd = MergedEpisodeNumber == index ? index + 1 : (int?)null,
-                    ParentIndexNumber = 1
+                    ParentIndexNumber = EpisodeSeason
                 }).ToList();
                 if (IncludeInterleavedSpecial) episodes.Add(new
                 {
@@ -770,6 +913,11 @@ internal static class ScrobblingServiceTests
         public bool EpisodeWatched { get; set; }
         public bool Reject { get; set; }
         public HttpStatusCode? FailureStatus { get; set; }
+        public int SubjectId { get; set; } = 101;
+        public int SubjectEpisodeCount { get; set; } = 12;
+        public Dictionary<int, (int SubjectId, int Type)> EpisodeDetails { get; } = [];
+        public IReadOnlyList<(int Id, int Number)> Episodes { get; set; } = Enumerable.Range(1, 12)
+            .Select(number => (1000 + number, number)).ToArray();
 
         public void ClearRequests()
         {
@@ -788,23 +936,26 @@ internal static class ScrobblingServiceTests
             if (Reject) return Json("{}", HttpStatusCode.ServiceUnavailable);
             if (sent.Key == "POST /v0/search/subjects")
                 return Json("{\"data\":[{\"id\":101,\"name_cn\":\"Offline Series\",\"name\":\"Offline Series\",\"date\":\"2024-01-01\",\"eps\":12}]}");
-            if (sent.Key == "GET /v0/subjects/101") return Json("{\"id\":101,\"name_cn\":\"Offline Series\",\"eps\":12}");
+            if (sent.Key == $"GET /v0/subjects/{SubjectId}")
+                return Json(JsonSerializer.Serialize(new { id = SubjectId, type = 2, name_cn = "Offline Series", eps = SubjectEpisodeCount }));
+            if (sent.Key.StartsWith("GET /v0/episodes/", StringComparison.Ordinal)
+                && int.TryParse(uri.Segments[^1], out var id) && EpisodeDetails.TryGetValue(id, out var detail))
+                return Json(JsonSerializer.Serialize(new { id, subject_id = detail.SubjectId, type = detail.Type }));
             if (sent.Key == "GET /v0/episodes")
             {
-                var episodes = Enumerable.Range(1, 12)
-                    .Select(number => new { id = 1000 + number, sort = number, type = 0 }).ToArray();
+                var episodes = Episodes.Select(episode => new { id = episode.Id, sort = episode.Number, type = 0 }).ToArray();
                 return Json(JsonSerializer.Serialize(new { data = episodes, total = episodes.Length }));
             }
             if (sent.Key == "GET /v0/me") return Json("{\"username\":\"bangumi-fixture\"}");
-            if (sent.Key == "GET /v0/users/bangumi-fixture/collections/101")
+            if (sent.Key == $"GET /v0/users/bangumi-fixture/collections/{SubjectId}")
                 return Json("{\"type\":2,\"rate\":8,\"comment\":\"keep\",\"tags\":[\"keep\"]}", CollectionExists ? HttpStatusCode.OK : HttpStatusCode.NotFound);
-            if (sent.Key == "POST /v0/users/-/collections/101") return Json("{}", HttpStatusCode.NoContent);
+            if (sent.Key == $"POST /v0/users/-/collections/{SubjectId}") return Json("{}", HttpStatusCode.NoContent);
             if (sent.Key.StartsWith("GET /v0/users/-/collections/-/episodes/", StringComparison.Ordinal))
             {
                 var episodeId = long.Parse(sent.Key[(sent.Key.LastIndexOf('/') + 1)..]);
                 return Json(JsonSerializer.Serialize(new { episode = new { id = episodeId }, type = EpisodeWatched ? 2 : 0 }));
             }
-            if (sent.Key == "PATCH /v0/users/-/collections/101/episodes") return Json("{}", HttpStatusCode.NoContent);
+            if (sent.Key == $"PATCH /v0/users/-/collections/{SubjectId}/episodes") return Json("{}", HttpStatusCode.NoContent);
             return Json("{}", HttpStatusCode.NotFound);
         }
 
