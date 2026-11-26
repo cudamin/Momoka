@@ -22,7 +22,7 @@ internal static class ScrobblingBangumiTests
             transport.AssertComplete();
         });
 
-        Case("Bangumi：未收藏条目先创建在看，再只标目标单话", async () =>
+        Case("Bangumi：用站点接受的 JSON 请求头创建在看，再只标目标单话", async () =>
         {
             using var transport = new Transport(
                 Reply(HttpMethod.Get, "/v0/me", Me()),
@@ -35,6 +35,8 @@ internal static class ScrobblingBangumiTests
             await client.MarkEpisodeAsync(8, 10, Token, () => true, CancellationToken.None);
             var mutations = transport.Sent.Where(request => request.Method != HttpMethod.Get).ToArray();
             Assert.Equal(2, mutations.Length);
+            Assert.Equal("application/json", mutations[0].ContentType);
+            Assert.Equal("application/json", mutations[1].ContentType);
             using var created = JsonDocument.Parse(mutations[0].Body);
             Assert.Equal(3, created.RootElement.GetProperty("type").GetInt32());
             Assert.Equal(1, created.RootElement.EnumerateObject().Count());
@@ -348,7 +350,8 @@ internal static class ScrobblingBangumiTests
     };
     private static void Case(string name, Func<Task> action) => TestHarness.Test(name, () => action().GetAwaiter().GetResult());
 
-    private sealed record Sent(HttpMethod Method, Uri Uri, string Body, string? AuthScheme, string? AuthValue, string UserAgent, bool HasCookie);
+    private sealed record Sent(HttpMethod Method, Uri Uri, string Body, string? ContentType, string? AuthScheme,
+        string? AuthValue, string UserAgent, bool HasCookie);
 
     private sealed class Transport(params Func<Sent, HttpResponseMessage>[] replies) : HttpMessageHandler
     {
@@ -359,7 +362,8 @@ internal static class ScrobblingBangumiTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             var sent = new Sent(request.Method, request.RequestUri!, request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken),
-                request.Headers.Authorization?.Scheme, request.Headers.Authorization?.Parameter, request.Headers.UserAgent.ToString(), request.Headers.Contains("Cookie"));
+                request.Content?.Headers.ContentType?.ToString(), request.Headers.Authorization?.Scheme,
+                request.Headers.Authorization?.Parameter, request.Headers.UserAgent.ToString(), request.Headers.Contains("Cookie"));
             Sent.Add(sent);
             Assert.True(_replies.Count > 0, "出现预期外的 Bangumi 请求");
             return _replies.Dequeue()(sent);

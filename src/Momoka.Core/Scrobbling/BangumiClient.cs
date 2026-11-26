@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 namespace Momoka.Scrobbling;
@@ -152,7 +151,12 @@ public sealed class BangumiClient : IDisposable
         using var request = new HttpRequestMessage(method, new Uri(ApiRoot, path));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
         request.Headers.UserAgent.ParseAdd("Momoka/1.0 (+https://github.com/cudamin/Momoka)");
-        if (payload is not null) request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        if (payload is not null)
+        {
+            // Bangumi compares the entire Content-Type header before accepting collection writes.
+            request.Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(payload));
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        }
         using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (allowNotFound && response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode)
