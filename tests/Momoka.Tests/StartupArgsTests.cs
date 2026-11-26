@@ -57,6 +57,17 @@ internal static class StartupArgsTests
             Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "MUSIC"])!.SetEquals(["music"]));
             Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "music", "--play"]));
         });
+        Test("日历界面探针：匿名分区进入全量目录并拒绝与播放混用", () =>
+        {
+            Assert.True(ShellProbeSections.All.Contains(ShellProbeSections.Calendar));
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "calendar,CALENDAR"])!
+                .SetEquals([ShellProbeSections.Calendar]));
+            StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "calendar", "--screen", "1"]);
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "calendar", "--play"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "inspect", "--probe-section", "calendar"]));
+        });
         Test("Jellyfin最新货架：独立匿名区域拒绝播放和手动检查混用", () =>
         {
             Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "JELLYFIN-LATEST"])!
