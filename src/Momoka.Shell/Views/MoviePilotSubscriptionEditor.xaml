@@ -84,9 +84,9 @@
                                 <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
                                 <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
                                 <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
-                                <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="{ThemeResource EgAccentColor}" />
-                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="{ThemeResource EgAccentColor}" />
-                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="{ThemeResource EgAccentColor}" />
+                                <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
                                 <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
                                 <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
                                 <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />
@@ -171,9 +171,9 @@
                                 <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="ComboBoxBorderBrush" />
                                 <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="ComboBoxBorderBrushPointerOver" />
                                 <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="ComboBoxBorderBrushPressed" />
-                                <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="{ThemeResource EgAccentColor}" />
-                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="{ThemeResource EgAccentColor}" />
-                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="{ThemeResource EgAccentColor}" />
+                                <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentBrush" />
                                 <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="ComboBoxBorderBrushDisabled" />
                                 <StaticResource x:Key="ToggleButtonForeground" ResourceKey="ComboBoxForeground" />
                                 <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="ComboBoxForegroundPointerOver" />

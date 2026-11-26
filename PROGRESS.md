@@ -16406,3 +16406,9 @@ Shell、主测试和 ServerSettingsReviewTests 当前 Release 编译均 0 警告
 Q-017 已修复：BannerSlide 在扩边模式变化时取消旧加载与渲染并清空旧像素；解码和渲染捕获扩边模式及缓存键，迟到结果不得写入新模式缓存。新增缓存命中后反向切换、迟到解码和构造暖缓存切换三项归属回归。Shell Release 构建 0 警告/0 错误，Momoka.PageContractTests Release 构建 0 警告/0 错误，banner-cache-fixture 18/18。未连接媒体服务、未启动播放。
 
 Q-017 仍待匿名窗口与视觉验收，并与其余未完成候选一并纳入后续统一验证；本轮未运行完整质量入口、全量主测试或体验发布。
+
+## 2026-11-26 Q-008 主题强调资源修复
+
+订阅编辑器两个站点/分组选择框的 Checked、CheckedPointerOver、CheckedPressed 描边改用现有 EgAccentBrush，让主题宿主原位更新与高对比映射继续生效。主测试 5214/5214、Momoka.SubscriptionEditorTests 21/21，均 0 失败、0 跳过；Shell 与测试 Release 构建 0 警告、0 错误。高风险匿名最小加载实际创建编辑器并应用 XBF/模板，午夜切换到石墨后两字段三种选中态均匹配当前强调色，HTTP 请求 0，源文件前后哈希一致。报告 artifacts/subscription-editor-load/run-q008-20261126/anonymous-editor-load.json，构建日志 artifacts/subscription-editor-load-host/build.log。
+
+本轮未做像素、真实输入、高对比、全部主题和尺寸验收；这些仍待统一验证。未连接真实 MoviePilot 或读取账号。

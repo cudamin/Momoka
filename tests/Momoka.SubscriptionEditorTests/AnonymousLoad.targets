@@ -1,0 +1,9 @@
+<Project>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Momoka.Shell'">
+    <Compile Include="$(MSBuildThisFileDirectory)AnonymousLoadInput.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Native/AnonymousEditorEntry.cs" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Momoka.Shell'">
+    <StartupObject>Momoka.Shell.AnonymousEditorEntry</StartupObject>
+  </PropertyGroup>
+</Project>

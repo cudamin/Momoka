@@ -4,6 +4,7 @@
     <AssemblyName>Momoka.Tests</AssemblyName><RootNamespace>Momoka.Tests</RootNamespace><IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Native/**/*.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />

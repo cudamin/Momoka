@@ -527,9 +527,16 @@ internal static class InputControlThemeTests
             foreach (var key in new[] { "ToggleButtonBorderBrushChecked", "ToggleButtonBackgroundChecked",
                 "ToggleButtonBorderBrushPointerOver", "ToggleButtonForeground" })
                 Assert.True(keys.Contains(key), "订阅站点字段缺颜色键 " + key);
-            var checkedBorder = fieldResources.Elements()
-                .Single(brush => (string?)brush.Attribute(X + "Key") == "ToggleButtonBorderBrushChecked");
-            Assert.Equal("{ThemeResource EgAccentColor}", (string?)checkedBorder.Attribute("Color"));
+            foreach (var pickerName in new[] { "SubscriptionSitesInput", "FilterGroupsInput" })
+                foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed" })
+                {
+                    var local = Named(editor, pickerName).Element(Xaml + "ToggleButton.Resources")!;
+                    var checkedBorder = local.Elements().Single(brush =>
+                        (string?)brush.Attribute(X + "Key") == "ToggleButtonBorderBrush" + state);
+                    Assert.Equal(Xaml + "StaticResource", checkedBorder.Name);
+                    Assert.Equal("EgAccentBrush", (string?)checkedBorder.Attribute("ResourceKey"),
+                        "选中描边必须复用 ThemeHost 会就地更新、且高对比度已有系统映射的强调画刷");
+                }
             var hover = fieldResources.Elements()
                 .Single(brush => (string?)brush.Attribute(X + "Key") == "ToggleButtonBackgroundPointerOver");
             Assert.Equal("ComboBoxBackgroundPointerOver", (string?)hover.Attribute("ResourceKey"),
