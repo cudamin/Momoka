@@ -1246,10 +1246,8 @@
                                         </StackPanel>
                                     </ToggleButton>
 
-                                    <!-- 商店档的连播开关（2026-11-16 用户参考图「把商店页面的连播开关改为这种」）：
-                                         开启时轨道就是主题强调色（EgAccentBrush 三态），滑块与开关文字交给平台；
-                                         左边那行「连播」是标签（用户令「左边加个连播，开什么？」）。
-                                         商店模式把这整条挂到集卡右上角，沉浸档仍用上面那颗药丸。 -->
+                                    <!-- 商店档的连播开关：保留原生切换和绑定，整体略缩小并用中性色。
+                                         左侧标签保持原字号；沉浸档仍用上面那颗药丸。 -->
                                     <StackPanel
                                         x:Name="StoreContinueEntry"
                                         VerticalAlignment="Center"
@@ -1260,20 +1258,34 @@
                                             VerticalAlignment="Center"
                                             Style="{StaticResource EgCaptionStyle}"
                                             Text="连播" />
-                                        <ToggleSwitch x:Uid="DetailPage_StoreContinueSwitch"
-                                            x:Name="StoreContinueSwitch"
-                                            MinWidth="0"
-                                            VerticalAlignment="Center"
-                                            AutomationProperties.Name="连播"
-                                            IsOn="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
-                                            OffContent="关"
-                                            OnContent="开">
-                                            <ToggleSwitch.Resources>
-                                                <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
-                                                <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
-                                                <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
-                                            </ToggleSwitch.Resources>
-                                        </ToggleSwitch>
+                                        <Viewbox x:Name="StoreContinueSwitchScale"
+                                            Height="32"
+                                            Stretch="Uniform"
+                                            VerticalAlignment="Center">
+                                            <ToggleSwitch x:Uid="DetailPage_StoreContinueSwitch"
+                                                x:Name="StoreContinueSwitch"
+                                                MinWidth="0"
+                                                VerticalAlignment="Center"
+                                                AutomationProperties.Name="连播"
+                                                IsOn="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
+                                                OffContent="关"
+                                                OnContent="开">
+                                                <ToggleSwitch.Resources>
+                                                    <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgTextDimBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgTextBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgTextFaintBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchFillOnDisabled" ResourceKey="EgTextFaintBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchStrokeOn" ResourceKey="EgTextDimBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchStrokeOnPointerOver" ResourceKey="EgTextBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchStrokeOnPressed" ResourceKey="EgTextFaintBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchStrokeOnDisabled" ResourceKey="EgTextFaintBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgWindowBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgWindowBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgWindowBrush" />
+                                                    <StaticResource x:Key="ToggleSwitchKnobFillOnDisabled" ResourceKey="EgWindowBrush" />
+                                                </ToggleSwitch.Resources>
+                                            </ToggleSwitch>
+                                        </Viewbox>
                                     </StackPanel>
 
                                     <Button x:Uid="DetailPage_ButtonA1"

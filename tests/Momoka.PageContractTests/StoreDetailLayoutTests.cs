@@ -140,13 +140,33 @@ internal static class StoreDetailLayoutTests
             Assert.Equal("连播", (string?)continueLabel.Attribute("Text"));
             var continueSwitch = Named("StoreContinueSwitch");
             Assert.Equal("ToggleSwitch", continueSwitch.Name.LocalName);
-            Assert.Equal("StoreContinueEntry", (string?)continueSwitch.Parent!.Attribute(X + "Name"));
+            var continueSwitchScale = continueSwitch.Parent!;
+            Assert.Equal("Viewbox", continueSwitchScale.Name.LocalName);
+            Assert.Equal("StoreContinueSwitchScale", (string?)continueSwitchScale.Attribute(X + "Name"));
+            Assert.Equal("32", (string?)continueSwitchScale.Attribute("Height"));
+            Assert.Equal("Uniform", (string?)continueSwitchScale.Attribute("Stretch"));
+            Assert.Equal("StoreContinueEntry", (string?)continueSwitchScale.Parent!.Attribute(X + "Name"));
             Assert.Equal("{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}", (string?)continueSwitch.Attribute("IsOn"));
             Assert.Equal("开", (string?)continueSwitch.Attribute("OnContent"));
             Assert.Equal("关", (string?)continueSwitch.Attribute("OffContent"));
             var switchResources = continueSwitch.Elements().Single(element => element.Name.LocalName == "ToggleSwitch.Resources")
                 .Elements().ToArray();
-            Assert.Equal(3, switchResources.Length);
+            var neutralSwitchResources = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["ToggleSwitchFillOn"] = "EgTextDimBrush",
+                ["ToggleSwitchFillOnPointerOver"] = "EgTextBrush",
+                ["ToggleSwitchFillOnPressed"] = "EgTextFaintBrush",
+                ["ToggleSwitchFillOnDisabled"] = "EgTextFaintBrush",
+                ["ToggleSwitchStrokeOn"] = "EgTextDimBrush",
+                ["ToggleSwitchStrokeOnPointerOver"] = "EgTextBrush",
+                ["ToggleSwitchStrokeOnPressed"] = "EgTextFaintBrush",
+                ["ToggleSwitchStrokeOnDisabled"] = "EgTextFaintBrush",
+                ["ToggleSwitchKnobFillOn"] = "EgWindowBrush",
+                ["ToggleSwitchKnobFillOnPointerOver"] = "EgWindowBrush",
+                ["ToggleSwitchKnobFillOnPressed"] = "EgWindowBrush",
+                ["ToggleSwitchKnobFillOnDisabled"] = "EgWindowBrush",
+            };
+            Assert.Equal(neutralSwitchResources.Count, switchResources.Length);
             foreach (var resource in switchResources)
             {
                 var key = (string?)resource.Attribute(X + "Key");
@@ -154,14 +174,13 @@ internal static class StoreDetailLayoutTests
                 Assert.Equal("StaticResource", resource.Name.LocalName);
                 Assert.NotNull(key);
                 Assert.NotNull(resourceKey);
-                Assert.True(key!.StartsWith("ToggleSwitchFillOn", StringComparison.Ordinal),
-                    "连播开关的轨道别名不是三态前缀：" + key);
-                Assert.True(resourceKey!.EndsWith("Brush", StringComparison.Ordinal),
-                    "连播开关的轨道别名不是主题画刷：" + resourceKey);
+                Assert.True(neutralSwitchResources.TryGetValue(key!, out var expectedResourceKey),
+                    "连播开关含有未审核的开启状态资源：" + key);
+                Assert.Equal(expectedResourceKey, resourceKey);
             }
             Assert.False(continueSwitch.Descendants().Any(element =>
                 element.Name.LocalName == "SolidColorBrush" || element.Attribute("Color") is not null),
-                "连播开关写死了颜色，没有走主题强调色");
+                "连播开关应使用主题中性色，不应写死颜色");
             // 沉浸档那颗药丸在商店模式让位给开关。
             Assert.Equal("{x:Bind ViewModel.ColumnContinueVisibility, Mode=OneWay}",
                 (string?)Named("ColumnContinueButton").Attribute("Visibility"));

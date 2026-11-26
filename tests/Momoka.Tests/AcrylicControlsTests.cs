@@ -403,8 +403,7 @@ internal static class AcrylicControlsTests
                 Assert.Equal("{ThemeResource EgDetailActionTextBrush}", (string?)label.Attribute("Foreground"));
             }
             Assert.Equal(glyphs.Length, seen, "详情页的连播开关数量变了");
-            // 2026-11-16 用户参考图「把商店页面的连播开关改为这种」，并令「左边加个连播」：
-            // 整条是「连播 + 开关」，商店档出现；轨道直接用主题强调色三态（不写死颜色值）。
+            // 商店档连播开关缩小，开启轨道和滑块使用主题中性色三态，且不继承主题强调色。
             var storeEntry = page.Descendants(Xaml + "StackPanel").Single(panel =>
                 (string?)panel.Attribute(X + "Name") == "StoreContinueEntry");
             Assert.Equal("{x:Bind ViewModel.StoreContinueVisibility, Mode=OneWay}",
@@ -415,14 +414,39 @@ internal static class AcrylicControlsTests
             Assert.Equal("{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}", (string?)storeSwitch.Attribute("IsOn"));
             Assert.Equal("开", (string?)storeSwitch.Attribute("OnContent"));
             Assert.Equal("关", (string?)storeSwitch.Attribute("OffContent"));
+            var storeSwitchScale = storeSwitch.Parent!;
+            Assert.Equal("Viewbox", storeSwitchScale.Name.LocalName);
+            Assert.Equal("StoreContinueSwitchScale", (string?)storeSwitchScale.Attribute(X + "Name"));
+            Assert.Equal("32", (string?)storeSwitchScale.Attribute("Height"));
+            Assert.Equal("Uniform", (string?)storeSwitchScale.Attribute("Stretch"));
             var switchAliases = storeSwitch.Elements()
                 .Single(element => element.Name.LocalName == "ToggleSwitch.Resources").Elements().ToArray();
-            Assert.Equal(3, switchAliases.Length);
-            Assert.Equal("EgAccentBrush", (string?)switchAliases[0].Attribute("ResourceKey"));
-            Assert.Equal("EgAccentHoverBrush", (string?)switchAliases[1].Attribute("ResourceKey"));
-            Assert.Equal("EgAccentPressedBrush", (string?)switchAliases[2].Attribute("ResourceKey"));
+            var neutralResources = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["ToggleSwitchFillOn"] = "EgTextDimBrush",
+                ["ToggleSwitchFillOnPointerOver"] = "EgTextBrush",
+                ["ToggleSwitchFillOnPressed"] = "EgTextFaintBrush",
+                ["ToggleSwitchFillOnDisabled"] = "EgTextFaintBrush",
+                ["ToggleSwitchStrokeOn"] = "EgTextDimBrush",
+                ["ToggleSwitchStrokeOnPointerOver"] = "EgTextBrush",
+                ["ToggleSwitchStrokeOnPressed"] = "EgTextFaintBrush",
+                ["ToggleSwitchStrokeOnDisabled"] = "EgTextFaintBrush",
+                ["ToggleSwitchKnobFillOn"] = "EgWindowBrush",
+                ["ToggleSwitchKnobFillOnPointerOver"] = "EgWindowBrush",
+                ["ToggleSwitchKnobFillOnPressed"] = "EgWindowBrush",
+                ["ToggleSwitchKnobFillOnDisabled"] = "EgWindowBrush",
+            };
+            Assert.Equal(neutralResources.Count, switchAliases.Length);
+            foreach (var resource in switchAliases)
+            {
+                var key = (string?)resource.Attribute(X + "Key");
+                Assert.NotNull(key);
+                Assert.True(neutralResources.TryGetValue(key!, out var expectedResource),
+                    "连播开关含有未审核的开启状态资源：" + key);
+                Assert.Equal(expectedResource, (string?)resource.Attribute("ResourceKey"));
+            }
             Assert.False(storeSwitch.Descendants().Any(element => element.Name.LocalName == "SolidColorBrush"),
-                "连播开关写死了颜色，没有走主题强调色");
+                "连播开关应使用主题中性色，不应写死颜色");
             Assert.Equal("{x:Bind ViewModel.ColumnContinueVisibility, Mode=OneWay}",
                 (string?)page.Descendants(Xaml + "ToggleButton").Single(element =>
                     (string?)element.Attribute(X + "Name") == "ColumnContinueButton").Attribute("Visibility"));
