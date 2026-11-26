@@ -51,15 +51,8 @@ public static class LogProbeArtifacts
         if (retain < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(retain));
         ArgumentOutOfRangeException.ThrowIfNegative(maximumDeletes);
 
-        // 日志目录本身被换成链接时，删除会跑到另一个位置。与 FileLogSink.GuardDirectoryPath 同一个前提：
-        // 只接管普通目录。查不到（还没建）就是没有可回收的。
-        try
-        {
-            if ((File.GetAttributes(logDirectory) & (FileAttributes.Directory | FileAttributes.ReparsePoint))
-                != FileAttributes.Directory) return 0;
-        }
-        catch (IOException) { return 0; }
-        catch (UnauthorizedAccessException) { return 0; }
+        // 与 FileLogSink 相同，目录及祖先都必须是普通目录；容器也不能把回收引到树外。
+        if (!IsOrdinaryDirectoryPath(logDirectory)) return 0;
 
         var cutoff = now - retain;
         var candidates = new List<Candidate>();
@@ -107,9 +100,26 @@ public static class LogProbeArtifacts
 
     private static string[] Directories(string path)
     {
-        try { return Directory.GetDirectories(path); }
+        try
+        {
+            if (!IsOrdinaryDirectoryPath(path)) return [];
+            return Directory.GetDirectories(path).Where(IsOrdinaryDirectoryPath).ToArray();
+        }
         catch (IOException) { return []; }
         catch (UnauthorizedAccessException) { return []; }
+    }
+
+    private static bool IsOrdinaryDirectoryPath(string path)
+    {
+        try
+        {
+            for (var directory = new DirectoryInfo(path); directory is not null; directory = directory.Parent)
+                if ((File.GetAttributes(directory.FullName) & (FileAttributes.Directory | FileAttributes.ReparsePoint))
+                    != FileAttributes.Directory) return false;
+            return true;
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     private static DateTime LastWriteUtc(string path)
@@ -155,9 +165,8 @@ public static class LogProbeArtifacts
     {
         try
         {
-            // 索引里可能是被替换过的目录；绝不对链接做递归删除。
-            if ((File.GetAttributes(path) & (FileAttributes.Directory | FileAttributes.ReparsePoint))
-                != FileAttributes.Directory) return false;
+            // 枚举后容器或祖先可能被替换，删除前重新检查整条路径。
+            if (!IsOrdinaryDirectoryPath(path)) return false;
             Directory.Delete(path, recursive: true);
             return true;
         }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using Momoka.Diagnostics;
 using static Momoka.Tests.TestHarness;
 
@@ -119,6 +120,71 @@ internal static class LogProbeArtifactsTests
             var missing = Path.Combine(Path.GetTempPath(), "Momoka-日志-不存在-" + Guid.NewGuid().ToString("N")[..8]);
             Assert.Equal(0, LogProbeArtifacts.Prune(missing, Now, TimeSpan.FromDays(3)));
         });
+
+        foreach (var name in new[] { "trailer-preview", "trailer-web-fixture" })
+            Test($"探针产物：拒绝 {name} 容器链接，树外旧证据不删除", () => InTempDirectory(root =>
+            {
+                var logs = Directory.CreateDirectory(Path.Combine(root, "logs")).FullName;
+                var outside = Directory.CreateDirectory(Path.Combine(root, "outside")).FullName;
+                var stale = NewProfile(outside, Now.AddDays(-6));
+                var latest = NewProfile(outside, Now.AddDays(-5));
+                WithJunction(Path.Combine(logs, name), outside, _ =>
+                {
+                    Assert.Equal(0, LogProbeArtifacts.Prune(logs, Now, TimeSpan.FromDays(3)));
+                    Assert.True(File.Exists(Path.Combine(stale, "profile", "index.html")));
+                    Assert.True(Directory.Exists(latest));
+                });
+            }));
+
+        Test("探针产物：日志根或祖先为链接时拒绝回收", () => InTempDirectory(root =>
+        {
+            var outside = Directory.CreateDirectory(Path.Combine(root, "outside")).FullName;
+            var stale = NewRun(outside, "shell-probe", Now.AddDays(-6), 1);
+            NewRun(outside, "shell-probe", Now.AddDays(-5), 2);
+            var nested = Directory.CreateDirectory(Path.Combine(outside, "nested")).FullName;
+            var nestedStale = NewRun(nested, "shell-probe", Now.AddDays(-6), 3);
+            NewRun(nested, "shell-probe", Now.AddDays(-5), 4);
+            WithJunction(Path.Combine(root, "linked"), outside, link =>
+            {
+                Assert.Equal(0, LogProbeArtifacts.Prune(link, Now, TimeSpan.FromDays(3)));
+                Assert.Equal(0, LogProbeArtifacts.Prune(Path.Combine(link, "nested"), Now, TimeSpan.FromDays(3)));
+                Assert.True(Directory.Exists(stale));
+                Assert.True(Directory.Exists(nestedStale));
+            });
+        }));
+
+        Test("探针产物：运行链接不参与最新保留，普通目录仍按上限回收", () => InTempDirectory(root =>
+        {
+            var logs = Directory.CreateDirectory(Path.Combine(root, "logs")).FullName;
+            var outside = NewRun(root, "shell-probe", Now.AddDays(-1), 1);
+            var stale = NewRun(logs, "shell-probe", Now.AddDays(-6), 2);
+            var latest = NewRun(logs, "shell-probe", Now.AddDays(-5), 3);
+            WithJunction(Path.Combine(logs, Path.GetFileName(outside)), outside, _ =>
+            {
+                Assert.Equal(0, LogProbeArtifacts.Prune(logs, Now, TimeSpan.FromDays(3), maximumDeletes: 0));
+                Assert.True(Directory.Exists(stale));
+                Assert.Equal(1, LogProbeArtifacts.Prune(logs, Now, TimeSpan.FromDays(3), maximumDeletes: 1));
+                Assert.False(Directory.Exists(stale));
+                Assert.True(Directory.Exists(latest));
+                Assert.True(File.Exists(Path.Combine(outside, "screenshots", "shot.png")));
+            });
+        }));
+    }
+
+    private static void WithJunction(string link, string target, Action<string> body)
+    {
+        var start = new ProcessStartInfo("cmd.exe")
+        {
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true
+        };
+        foreach (var argument in new[] { "/c", "mklink", "/J", link, target }) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode, "隔离 junction 夹具必须创建成功：" + output);
+        try { body(link); }
+        finally { Directory.Delete(link); }
     }
 
     private static string NewRun(string root, string prefix, DateTimeOffset started, int pid)
