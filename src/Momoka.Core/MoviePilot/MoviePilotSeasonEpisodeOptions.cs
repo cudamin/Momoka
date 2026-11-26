@@ -55,9 +55,13 @@ public static partial class MoviePilotSeasonEpisodeOptions
     {
         var match = Format().Match(value);
         if (!match.Success) return default;
-        var season = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
-        var episode = match.Groups[3].Success ? int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture) : 0;
-        var maxEpisode = match.Groups[4].Success ? int.Parse(match.Groups[4].Value, CultureInfo.InvariantCulture) : episode;
+        // 外部字段可能溢出或包含正则接受、Int32 不接受的 Unicode 数字；单项按未知格式降级。
+        if (!int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var season)) return default;
+        if (match.Groups[2].Success && !int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out _)) return default;
+        var episode = 0;
+        if (match.Groups[3].Success && !int.TryParse(match.Groups[3].Value, NumberStyles.None, CultureInfo.InvariantCulture, out episode)) return default;
+        var maxEpisode = episode;
+        if (match.Groups[4].Success && !int.TryParse(match.Groups[4].Value, NumberStyles.None, CultureInfo.InvariantCulture, out maxEpisode)) return default;
         return new Parsed(true, season, episode, maxEpisode, !match.Groups[3].Success);
     }
 

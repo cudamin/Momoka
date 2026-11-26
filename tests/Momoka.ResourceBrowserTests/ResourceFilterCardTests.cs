@@ -15,6 +15,19 @@ internal static class ResourceFilterCardTests
 {
     public static void Register(string sourceRoot)
     {
+        Test("资源筛选卡片：坏季集字段不阻断整批铺设，筛选与清除保留集合", () =>
+        {
+            var vm = new MoviePilotResourceBrowserViewModel();
+            var rows = vm.Rows;
+            vm.SetResults(new[] { Season("正常", "S02", 2), Season("超长", "S2147483648", 1),
+                Season("Unicode", "S０１E０２", 1), Season("范围", "S01-S99999999999999999", 1) }.Select(Row));
+            Assert.Equal(4, vm.Rows.Count);
+            Choice(vm.SeasonFacet.Choices, "S02").Selected = true;
+            Assert.Equal("正常", Titles(vm));
+            vm.ResetCommand.Execute(null);
+            Assert.Equal(4, vm.Rows.Count);
+            Assert.True(ReferenceEquals(rows, vm.Rows));
+        });
         Test("资源筛选卡片：同维度多选并集、跨维度交集、X只移除本项", () =>
         {
             var vm = Browser();

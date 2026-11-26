@@ -187,6 +187,22 @@ internal static class MoviePilotResourceOptionsTests
             Assert.Equal(2, MoviePilotSeasonEpisodeOptions.SeasonNumber("S02E12"));
             Assert.True(MoviePilotSeasonEpisodeOptions.SeasonNumber("Special") is null);
         });
+        Test("MoviePilot 季筛选：溢出与Unicode数字按未知项稳定降级，精确筛选仍保留原值", () =>
+        {
+            var unknown = new[] { "S2147483648", "S01-S99999999999999999999", "S01E2147483648",
+                "S01E01-E2147483648", "S０１E０２", "S١E٢", "Special" };
+            foreach (var value in unknown) Assert.True(MoviePilotSeasonEpisodeOptions.SeasonNumber(value) is null);
+            var ordered = MoviePilotSeasonEpisodeOptions.Order(unknown.Concat(["S02", "S01E03", "S00000000000000000000001"]));
+            Assert.Equal("S02,S00000000000000000000001,S01E03," + string.Join(',', unknown), string.Join(',', ordered));
+            Assert.Equal(int.MaxValue, MoviePilotSeasonEpisodeOptions.SeasonNumber("S2147483647"));
+            var rows = Parse("""
+                [{"torrent_info":{"title":"正常"},"meta_info":{"season_episode":"S02"}},
+                 {"torrent_info":{"title":"超长"},"meta_info":{"season_episode":"S2147483648"}},
+                 {"torrent_info":{"title":"Unicode"},"meta_info":{"season_episode":"S０１E０２"}}]
+                """);
+            Assert.Equal(3, MoviePilotSeasonEpisodeOptions.Order(rows.Select(row => row.SeasonEpisode!)).Count);
+            Assert.Equal("超长", new MoviePilotResourceFilter { SeasonEpisodes = ["S2147483648"] }.Apply(rows, DateTimeOffset.Now).Single().Title);
+        });
         Test("MoviePilot 下载选项：目录只读取名称及保存路径，远程路径不丢存储前缀", () =>
         {
             using var transport = Transport()
