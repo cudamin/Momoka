@@ -49,10 +49,9 @@ internal sealed partial class SettingsWindow
     private const string Category = "设置窗口";
 
     /// <summary>
-    /// 画布压在 Mica 上的浓度，与主窗口的 <c>EgCanvasBrush</c> 是同一个数（见 <c>ThemeHost.CanvasAlpha</c>）。
-    /// 两个窗口是同一套外观，底也不能一个 60%、一个别的。
+    /// 设置窗口在透明效果开启时不再叠加窗口色，直接显示系统 Mica；关闭透明效果或高对比度时改为不透明窗口色。
     /// </summary>
-    private const byte CanvasAlpha = 0x99;
+    private const byte CanvasAlpha = 0x00;
 
     /// <summary>Logical pixels, scaled to the owner's DPI in <see cref="Place"/>.</summary>
     private const int LogicalWidth = 1100;
@@ -92,9 +91,9 @@ internal sealed partial class SettingsWindow
     }
 
     /// <summary>
-    /// 整扇窗唯一的那层画布，挂在根 Grid 上：材质那一档是 60% 的窗口色，回退那一档是不透明窗口色。
+    /// 整扇窗唯一的根画布，挂在根 Grid 上：Mica 正常态完全透明，回退那一档是不透明窗口色。
     /// 改这一个对象的颜色，已经画上去的那块当场跟着变（同 ThemeHost 的手法）。标题栏和正文共用它，
-    /// 所以窗口从上沿到下沿是一块，不是「标题一条、内容一块」。
+    /// 所以窗口从上沿到下沿直接露出同一块系统云母，不是「标题一条、内容一块」。
     /// <para>
     /// 写在构造函数下面，不在上面那一组字段里：<c>Momoka.SettingsLifetimeTests</c> 按「<c>Category</c>
     /// 常量 → 构造函数」切一段源码进那个没有 WinUI 引用的测试项目，<see cref="SolidColorBrush"/> 字段留在
@@ -123,8 +122,7 @@ internal sealed partial class SettingsWindow
     internal SizeInt32 Size => _window.AppWindow.Size;
 
     /// <summary>
-    /// 自检用：窗口级底材是不是 Mica、那层画布多浓。两样一起报，是因为它们是一条链上的两节 —— 窗口没有
-    /// 材质时画布必须落回不透明，材质在而画布还实着则等于白开。
+    /// 自检用：窗口级底材是不是 Mica、窗口画布是否按系统状态透明或回退实色。
     /// </summary>
     internal (bool Mica, byte CanvasAlpha) BackdropState => (_mica, _canvas.Color.A);
 
@@ -164,14 +162,13 @@ internal sealed partial class SettingsWindow
     {
         try
         {
-            // 这扇窗和主窗口一样上 Mica（Base）。主窗口是在 HWND 上直接问 DWM，这里走框架的窗口级
-            // SystemBackdrop：两者的档位与画布浓度必须成对，见 ApplyBackdrop 与 Palette 的 EgCanvasBrush。
-            // 设置页的「透明效果」关掉时不挂底材，画布直接落成不透明窗口色。
+            // 这扇窗使用窗口级 Mica（Base）。设置页不再叠加共享的半透明窗口色；透明效果关闭时，
+            // 画布回退为不透明窗口色，确保文字清晰。
             var mica = MicaController.IsSupported();
             var useMica = mica && ThemeHost.TransparencyEnabled;
             var canvas = new SolidColorBrush(useMica ? CanvasColor(ThemeHost.Current) : WindowColor(ThemeHost.Current));
 
-            // 画布挂在根 Grid 上，Frame 让空：两层都画就是 60% 叠 60%，Mica 白开。
+            // 画布挂在根 Grid 上；透明效果开启时该画布本身透明，卡片各自承担唯一的 Fluent 表面层。
             var frame = new Frame
             {
                 // 需求 9 的同一条：没有过渡。也让第一次导航不闪。
@@ -380,7 +377,8 @@ internal sealed partial class SettingsWindow
         Momoka.Infrastructure.ScreenPlacement.FitAxis(logical, minimum, available, scale);
 
     /// <summary>
-    /// 窗口级底材：Mica（Base），这是当前项目的档位选择。**整窗只有这一块底和一层画布**：标题栏、分类栏、正文压在同一个画布
+    /// 窗口级底材：Mica（Base），这是当前项目的档位选择。整窗直接显示这块系统底材；透明效果关闭时
+    /// 使用同一个根画布回退到不透明窗口色。标题栏、分类栏、正文不再另铺共享亚克力。
     /// 对象上，没有「标题一条、侧栏一块」的分块（2026-11-12 用户令「不是，你为什么一定要给标题和侧边栏
     /// 加卡片」）。层次由设置卡自己的底色给出，不靠窗口再切几块。
     /// </summary>
@@ -408,8 +406,7 @@ internal sealed partial class SettingsWindow
         }
         catch (Exception error)
         {
-            // Mica is a nicety. 关了透明效果、远程桌面或 GPU 不支持时，这扇窗必须还是一扇读得清的实色窗
-            // —— 画布那一支换成不透明窗口色就够了：标题栏和正文用的是同一个对象，一处改、整窗跟上。
+            // Mica is a nicety. 透明效果不可用、远程桌面或 GPU 不支持时，这扇窗必须还是一扇读得清的实色窗。
             Log.Warn(Category, "设置 Mica 背景失败，改用纯色底", error);
             _mica = false;
             _canvas.Color = WindowColor(ThemeHost.Current);
@@ -462,7 +459,7 @@ internal sealed partial class SettingsWindow
             var titleBar = _window.AppWindow.TitleBar;
             if (titleBar is null) return false;
 
-            // 画布：Mica 那一档是 60% 的窗口色，回退那一档是不透明窗口色。改颜色而不是换画刷 —— 根 Grid
+            // 画布：Mica 那一档完全透明，回退那一档是不透明窗口色。改颜色而不是换画刷 —— 根 Grid
             // 上挂的就是这个对象，标题栏和正文当场一起变。
             titleBar.ForegroundColor = systemAppearance.HighContrast
                 ? systemAppearance.Foreground : ThemeHost.ToColor(theme.Colors.Text);
@@ -495,7 +492,7 @@ internal sealed partial class SettingsWindow
         }
     }
 
-    /// <summary>压在 Mica 上的那层画布：窗口角色加浓度。</summary>
+    /// <summary>设置窗口的共享画布：Mica 正常态透明，回退态由系统状态决定。</summary>
     private static Color CanvasColor(UiTheme theme) =>
         ThemeHost.ToColor(theme.Colors.Window.WithAlpha(CanvasAlpha));
 

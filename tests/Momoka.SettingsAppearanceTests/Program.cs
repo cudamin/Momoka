@@ -10,11 +10,11 @@ internal static class Program
     private static int Main()
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
-        Case("真实画布规则：普通Mica/effects开取99alpha，实底不取桌面效果", () =>
+        Case("真实画布规则：普通Mica/effects开直接透明，实底不取桌面效果", () =>
         {
             var state = State(); var input = Color.FromArgb(40, 80, 90, 100);
             var result = SettingsWindow.SelectCanvasColor(state, input, true);
-            Assert.Equal(Color.FromArgb(0x99, 80, 90, 100), result);
+            Assert.Equal(Color.FromArgb(0x00, 80, 90, 100), result);
             Assert.Equal((byte)40, input.A, "值类型入参没有被修改");
             Assert.Equal(Color.FromArgb(255, 80, 90, 100), SettingsWindow.SelectCanvasColor(state, input, false));
         });
@@ -92,9 +92,9 @@ internal static class Program
         });
         Case("真实观察：effects关/开还原画布alpha且不改变Mica赋值标记", () =>
         {
-            using var window = Window(); Assert.Equal((byte)0x99, window.CanvasForTest.A);
+            using var window = Window(); Assert.Equal((byte)0x00, window.CanvasForTest.A);
             AppearanceFaults.Effects = false; AppearanceFaults.FireEffects(); window.Queue.Drain(); Assert.Equal((byte)255, window.CanvasForTest.A);
-            AppearanceFaults.Effects = true; AppearanceFaults.FireEffects(); window.Queue.Drain(); Assert.Equal((byte)0x99, window.CanvasForTest.A);
+            AppearanceFaults.Effects = true; AppearanceFaults.FireEffects(); window.Queue.Drain(); Assert.Equal((byte)0x00, window.CanvasForTest.A);
         });
         Case("真实观察：Foreground/Highlight变化也更新快照", () =>
         {
@@ -131,7 +131,7 @@ internal static class Program
             AppearanceFaults.Effects = false; timer.Fire(); Assert.Equal((byte)255, window.CanvasForTest.A);
             window.HideForTest(); Assert.False(timer.IsRunning); var paints = window.PaintCalls;
             AppearanceFaults.Effects = true; timer.Fire(); Assert.Equal(paints, window.PaintCalls);
-            window.ShowForTest(); Assert.Equal((byte)0x99, window.CanvasForTest.A);
+            window.ShowForTest(); Assert.Equal((byte)0x00, window.CanvasForTest.A);
             Assert.Equal(1, window.Queue.Timers.Count); Assert.Equal(1, timer.Subscribers);
             window.Dispose(); Assert.False(timer.IsRunning); Assert.Equal(0, timer.Subscribers);
         });
@@ -159,7 +159,7 @@ internal static class Program
                 AppearanceFaults.FailOnce(point); using var window = Window();
                 Assert.Equal(0, window.PaintCalls);
                 window.ActivateForTest(); Assert.Equal(1, window.PaintCalls);
-                Assert.Equal((byte)0x99, window.CanvasForTest.A);
+                Assert.Equal((byte)0x00, window.CanvasForTest.A);
             });
         Case("真实观察：缺event且隐藏timer意外tick会主动Stop", () =>
         {
@@ -181,7 +181,7 @@ internal static class Program
             AppearanceFaults.FailOnce("caption.Paint");
             using var window = Window(); Assert.Equal(0, window.PaintCalls);
             window.ActivateForTest(); Assert.Equal(1, window.PaintCalls);
-            Assert.Equal((byte)0x99, window.CanvasForTest.A);
+            Assert.Equal((byte)0x00, window.CanvasForTest.A);
         });
         foreach (var point in new[] { "timer.Create", "timer.Start", "timer.Stop" })
             Case("降级timer故障不阻断显示隐藏和后续清理/" + point, () =>
@@ -202,7 +202,7 @@ internal static class Program
             AppearanceFaults.FailOnce("caption.Paint"); window.ThemeForTest();
             Assert.Equal(original, window.PaintCalls);
             window.ActivateForTest(); Assert.Equal(original + 1, window.PaintCalls);
-            Assert.Equal(Color.FromArgb(0x99, 54, 65, 76), window.CanvasForTest);
+            Assert.Equal(Color.FromArgb(0x00, 54, 65, 76), window.CanvasForTest);
         });
         Case("真实自检判据：支持、回退与错误alpha逐项区分", () =>
         {
@@ -210,10 +210,10 @@ internal static class Program
                 foreach (var contrast in new[] { false, true })
                     foreach (var effects in new[] { false, true })
                     {
-                        var alpha = (byte)(supported && !contrast && effects ? 0x99 : 0xFF);
+                        var alpha = (byte)(supported && !contrast && effects ? 0x00 : 0xFF);
                         Assert.True(SettingsBackdropCheck.Matches(supported, supported, alpha, contrast, effects));
                         Assert.False(SettingsBackdropCheck.Matches(supported, !supported, alpha, contrast, effects));
-                        Assert.False(SettingsBackdropCheck.Matches(supported, supported, (byte)(alpha == 0x99 ? 0xFF : 0x99), contrast, effects));
+                        Assert.False(SettingsBackdropCheck.Matches(supported, supported, (byte)(alpha == 0x00 ? 0xFF : 0x00), contrast, effects));
                     }
         });
         Case("材质赋值失败且首次重画读取失败后，同一系统状态仍可恢复", () =>

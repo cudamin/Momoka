@@ -223,7 +223,7 @@ namespace Momoka.Shell.Views
     internal sealed partial class SettingsWindow : IDisposable
     {
         private const string Category = "settings-appearance-fixture";
-        private const byte CanvasAlpha = 0x99;
+        private const byte CanvasAlpha = 0x00;
         private readonly Window _window = new();
         private bool _open;
         private bool _mica = true;

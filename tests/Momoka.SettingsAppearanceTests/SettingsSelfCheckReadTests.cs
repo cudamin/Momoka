@@ -11,7 +11,7 @@ namespace Momoka.Tests
                 foreach (var contrast in new[] { false, true })
                     foreach (var effects in new[] { false, true })
                     {
-                        var expectedAlpha = (byte)(supported && !contrast && effects ? 0x99 : 0xFF);
+                        var expectedAlpha = (byte)(supported && !contrast && effects ? 0x00 : 0xFF);
                         Test($"原样自检控制流：supported={supported}/HC={contrast}/effects={effects}", () =>
                         {
                             AppearanceFaults.Reset();
@@ -24,7 +24,7 @@ namespace Momoka.Tests
                             Assert.Contains($"{expectedAlpha}/255", good.Detail);
                             // Re-run the actual production check with the wrong live reading. Do not
                             // compute a second implementation of SettingsBackdropCheck in this fixture.
-                            var badAlpha = Read(supported, (byte)(expectedAlpha == 0x99 ? 0xFF : 0x99));
+                            var badAlpha = Read(supported, (byte)(expectedAlpha == 0x00 ? 0xFF : 0x00));
                             Assert.False(badAlpha.Passed, "真实caller没有拒绝错误画布alpha");
                             var badAssignment = Read(!supported, expectedAlpha);
                             Assert.False(badAssignment.Passed, "真实caller没有拒绝错误Mica赋值读数");
