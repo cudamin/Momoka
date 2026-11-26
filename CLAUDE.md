@@ -58,7 +58,7 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 
 ### Fluent 界面验收
 
-Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/components/windows) 在 Windows 上的设计原则和 [Windows 应用设计指南](https://learn.microsoft.com/windows/apps/design/guidelines-overview)为标准。按本次受影响界面核对布局层级、间距对齐、文字与图标、主题色与材质、原生控件及交互状态、键盘焦点与可访问性、动效与关闭动效后的行为。项目已确认的例外按上一节执行。
+Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/components/windows) 在 Windows 上的设计原则和 [Windows 应用设计指南](https://learn.microsoft.com/windows/apps/design/guidelines-overview)为标准。按本次受影响界面核对布局层级、间距对齐、文字与图标、主题色与材质、原生控件及交互状态、键盘焦点与可访问性、动效与关闭动效后的行为。项目已确认的例外按上一节执行。具体字号、颜色令牌、间距、圆角、材质与动效数值，以及可逐项判定的检查表，见 [Fluent 设计](.claude/skills/fluent-design/SKILL.md)。
 
 按交付级别选择适用场景，验收记录列出实际检查的界面、状态、判据与结果。需要运行证据时，用截图核对画面，用实际交互或 UIA 核对控件状态与行为。缺少所需证据的项目标为未验证。取证入口和示例见 [WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md#fluent-design-acceptance)。
 
@@ -152,5 +152,6 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 - 服务协议按来源读 [Emby](.claude/skills/momoka-emby-api/SKILL.md)、[Jellyfin](.claude/skills/momoka-jellyfin-api/SKILL.md)、[飞牛影视](.claude/skills/momoka-fnnas-media-api/SKILL.md)、[Plex](.claude/skills/momoka-plex-api/SKILL.md)。
 - 播放按路径读[播放](.claude/skills/momoka-playback/SKILL.md)、[字幕](.claude/skills/momoka-subtitles/SKILL.md)、[弹幕](.claude/skills/momoka-danmaku/SKILL.md)、[视频输出](.claude/skills/momoka-video-output/SKILL.md)、[音频输出](.claude/skills/momoka-audio-output/SKILL.md)、[着色器](.claude/skills/mpv-shader-quality/SKILL.md)。
 - 集成及取证读 [MoviePilot](.claude/skills/momoka-moviepilot/SKILL.md) 和[验证技能](.claude/skills/momoka-verification/SKILL.md)。
+- Fluent 设计规范、主题资源与界面评审读 [Fluent 设计](.claude/skills/fluent-design/SKILL.md)。
 
 **交付回复用简体中文。** 写清改了什么、哪项检查实际通过、失败或待验，必要时附提交、报告、产物位置及代价。用普通用户能理解的说法，不贴代码。
