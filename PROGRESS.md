@@ -1,3 +1,9 @@
+## 2026-11-26 质量重构：弹幕加载与换片归属（Q-014、Q-015）
+
+只有本次自动匹配成功、返回零条且没有读取错误时才会尝试备选；兜底沿用播放、连接、搜索、加载与取消令牌，换片、换连接或手动重选后迟到的结果不能覆盖新内容。换片通知先交付本次父级与来源；只对同一来源身份、同一 SeriesId 的父剧复用首播年。保留同剧、电影、合并来源与手动搜索行为。
+
+主树 Release 零警告零错误。弹幕 99/99、来源 23/23、发送收尾 7/7；自然接续提取器 10 个反例均按预期拒绝后重建当前源码，实际调用链 89/89。20 项来源指纹逐项匹配，仅修改换片事件文件的一项。证据 `artifacts/refactor-nov26/recheck-danmaku.log`、`integrated-Momoka.DanmakuSourceBoundaryTests.log`、`integrated-caller-counterexamples.log`。使用匿名传输，没有播放服务器媒体或查真实弹幕。
+
 ## 2026-11-26 质量重构：源码提取工具的失败用例隔离
 
 Q-014 核验时发现计划外的检查阻塞：已有订阅夹具生成文件时，MSBuild 会跳过整个提取目标，旧测试没执行“启动器不存在”就拿到成功退出码。该反例现与坏源码反例一样在新临时树使用项目原目标；不删除工作树缓存，不改变产品或拒绝条件。保留首跑失败，修改后 `tools/test-python-launcher.py` 的三个项目共 18/18 通过，证据 `artifacts/refactor-nov26/integrated-python-launcher-isolated.log`。

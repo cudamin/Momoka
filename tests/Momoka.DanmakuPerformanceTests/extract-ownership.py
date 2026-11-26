@@ -9,16 +9,30 @@ parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
 source = args.root.resolve() / 'src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs'
 text = source.read_text(encoding='utf-8')
-start = '    internal Task LoadDanmakuAsync(DandanPlayEpisode episode) =>'
-end = '    private async Task PushDanmakuAsync()'
-if text.count(start) != 1 or text.count(end) != 1:
-    raise SystemExit('Production danmaku ownership method boundaries changed; inspect before updating fixture.')
-method = text[text.index(start):text.index(end)].rstrip()
-if not method.endswith('}'):
-    raise SystemExit('Incomplete production ownership method')
+def between(text, start, end):
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise SystemExit(f'Production danmaku ownership boundaries changed; inspect marker: {start}')
+    first = text.index(start)
+    last = text.index(end, first + len(start))
+    return text[first:last].rstrip()
+
+methods = [
+    between(text, '    private int CancelDanmakuSearch()', '    internal void RequestDanmaku()'),
+    between(text, '    private string DefaultDanmakuStatus', '    private void RefreshDanmakuProperties()'),
+    between(text, '    private void DanmakuSettingsChanged()', '    private async Task ScheduleDanmakuPushAsync()'),
+    between(text, '    private DanmakuSource DefaultSearchSource()', '    private async Task PushDanmakuAsync()'),
+]
+
+interaction_source = source.with_name('PlayerViewModel.Interaction.cs')
+interaction = interaction_source.read_text(encoding='utf-8')
+methods += [
+    between(interaction, '    internal readonly record struct InteractionContext(', '    internal bool IsCurrentInteraction('),
+    between(interaction, '    internal bool IsCurrentPlayback(', '    internal readonly record struct FreezeContext('),
+]
 output = args.output.resolve()
 output.parent.mkdir(parents=True, exist_ok=True)
-output.write_text('// Production source SHA256: ' + hashlib.sha256(source.read_bytes()).hexdigest()
-                  + '\nusing Momoka.Danmaku;\nnamespace Momoka.Tests;\n'
-                  + 'internal sealed partial class PlayerViewModel\n{\n' + method + '\n}\n',
+hashes = '\n'.join('// Production source SHA256: ' + hashlib.sha256(path.read_bytes()).hexdigest()
+                   for path in (source, interaction_source))
+output.write_text(hashes + '\n#nullable enable\nusing Momoka.Danmaku;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nnamespace Momoka.Tests;\n'
+                  + 'internal sealed partial class PlayerViewModel\n{\n' + '\n\n'.join(methods) + '\n}\n',
                   encoding='utf-8', newline='\n')

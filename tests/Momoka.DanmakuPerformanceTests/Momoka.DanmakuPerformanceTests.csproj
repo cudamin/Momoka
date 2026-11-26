@@ -14,7 +14,7 @@
         <Compile Include="$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs" />
     </ItemGroup>
     <Target Name="ExtractDanmakuLoadOwnership" BeforeTargets="BeforeCompile"
-            Inputs="$(MSBuildThisFileDirectory)extract-ownership.py;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\PlayerViewModel.Danmaku.cs"
+            Inputs="$(MSBuildThisFileDirectory)extract-ownership.py;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\PlayerViewModel.Danmaku.cs;$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\PlayerViewModel.Interaction.cs"
             Outputs="$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs">
         <Exec Command="&quot;$(PythonLauncher)&quot; &quot;$(MSBuildThisFileDirectory)extract-ownership.py&quot; --root &quot;$(MSBuildThisFileDirectory)..\..&quot; --output &quot;$(MSBuildProjectDirectory)\$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs&quot;" />
     </Target>

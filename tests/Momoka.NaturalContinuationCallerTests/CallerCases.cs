@@ -8,6 +8,7 @@ internal static class CallerCases
     internal static void Register(CaseRunner runner, string output)
     {
         ChapterSkipCases.Register(runner, output);
+        runner.Test("Q-015-now-playing-commits-parent-and-source-before-danmaku-reset", () => DanmakuContext(output));
         R10CallerCases.Register(runner, output);
         SessionQueueCases.Register(runner, output);
         foreach (var mode in new[] { "cross-series", "shuffle", "ordinary" })
@@ -44,6 +45,42 @@ internal static class CallerCases
             runner.Test("failed-replace-original-reference-" + clone, () => FailedReplace(output, clone));
         foreach (var mode in new[] { "local-step", "stale-success", "stale-error", "stop" })
             runner.Test("episode-lookup-owner-" + mode, () => EpisodeLookupCases.Run(output, mode));
+    }
+
+    private static async Task DanmakuContext(string output)
+    {
+        await using var f = new Fixture(output, "danmaku-context");
+        var a = f.Episode("A");
+        var aParent = f.ParentFor();
+        aParent.ProductionYear = 2001;
+        var b = f.Episode("B", f.B);
+        b.SeriesId = "different-series";
+        var bParent = f.ParentFor(f.B);
+        bParent.Id = b.SeriesId;
+        bParent.ProductionYear = 2018;
+        f.Transport.Episodes(f.B, bParent.Id, []);
+        var contexts = new List<(EmbyItem? Item, EmbyItem? Parent, EmbySessionScope? Scope)>();
+        f.Vm.DanmakuReset = item =>
+        {
+            if (item is not null) contexts.Add((f.Vm.NowPlaying, f.Vm.Parent, f.Vm.PlayingScope));
+        };
+
+        var first = f.Plan();
+        var aRun = f.Start(a, parent: aParent);
+        await Signals.Done(first.Accepted.Task);
+        var second = f.Plan();
+        var bRun = f.Start(b, parent: bParent, replace: true);
+        await Signals.Done(second.Accepted.Task);
+
+        Check.Equal(2, contexts.Count, "one danmaku reset per playback");
+        Check.Equal((a, aParent, f.A.UserStateOwner), (contexts[0].Item, contexts[0].Parent, contexts[0].Scope?.UserStateOwner),
+            "first playback has already committed its parent and scope");
+        Check.Equal((b, bParent, f.B.UserStateOwner), (contexts[1].Item, contexts[1].Parent, contexts[1].Scope?.UserStateOwner),
+            "retained player must synchronously hand danmaku over to the new series and source");
+
+        first.Result.TrySetResult(Fixture.Stopped());
+        second.Result.TrySetResult(Fixture.Stopped());
+        await Signals.Done(Task.WhenAll(aRun, bRun));
     }
 
     private static async Task Terminal(string output, string mode)

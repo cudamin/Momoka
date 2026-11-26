@@ -689,7 +689,7 @@ public sealed partial class PlayerViewModel
         _seekTouched = 0;
         _seekSent = null;
         _nowPlaying = item;
-        ResetDanmaku(item);
+        if (item is null) ResetDanmaku(null);
         if (item is not null
             && string.Equals(_episodeSwitchTargetId, item.IdentityKey, StringComparison.Ordinal))
             _episodeSwitchTargetId = null;
@@ -778,6 +778,8 @@ public sealed partial class PlayerViewModel
             AdoptQueueStart(item, pending);
             _pendingPlayback = null;
         }
+        // 纯 danmu_api 可在调用当拍读取剧首播年，先交接该次播放的父条目和来源。
+        ResetDanmaku(item);
         PlayingItemId = item.Id;
         Title = item.ToPlaybackHeadline();
         AdoptShaderLaunch(item);

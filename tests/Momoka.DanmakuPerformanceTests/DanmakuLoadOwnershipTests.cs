@@ -1,56 +1,107 @@
 using Momoka.Configuration;
 using Momoka.Danmaku;
+using Momoka.Emby;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-// LoadDanmakuAsync 自当前 Shell 源码提取并编译；下方仅替代播放身份、UI 呈现和宿主发送边界。
-internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettings settings) : IDisposable
+// Match, load, and cancellation come from production. Only the UI and playback backend are substitutes.
+internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettings settings, EmbySession? session = null) : IDisposable
 {
     private readonly DandanPlayClient _dandanPlay = client;
+    private readonly EmbySession _session = session!;
     private bool _disposed;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly SyntheticPlayback _playback = new();
     private CancellationTokenSource? _danmakuLoad;
-    private int _danmakuRequest, _danmakuTransfer;
-    private readonly int _danmakuSerial = 1;
+    private CancellationTokenSource? _danmakuSearch;
+    private CancellationTokenSource? _danmakuStylePush;
+    private int _danmakuRequest, _danmakuSearchRequest, _danmakuTransfer;
+    private int _danmakuSerial = 1;
+    private readonly int _playbackAttempt = 1;
+    private readonly int _interactionVersion = 1;
+    private int _generation;
+    private EmbyItem? _nowPlaying;
+    private EmbyItem? _parent;
     private IReadOnlyList<DanmakuComment> _danmakuComments = [];
     private DandanPlayEpisode? _danmakuEpisode;
     private DandanPlayEpisode? _danmakuDanmuApiEpisode;
     private bool _danmakuFetched;
     private int _danmakuDandanCount;
     private int _danmakuDanmuApiCount;
+    private double _danmakuDelay;
+    private string _danmakuConnection = "";
+    private string _danmuApiConnection = "";
     private string _danmakuLabel = "";
     private string _danmakuWarning = "";
     private string _danmakuSourceSummary = "";
+    private IReadOnlyList<DandanPlayEpisode> _danmakuCandidates = [];
+    private DanmakuSource _danmakuCandidatesSource;
+    private int _danmakuCandidatesVersion;
+    private int DanmakuConnectionVersion { get; set; }
+    private int DanmakuCandidatesVersion => _danmakuCandidatesVersion;
     internal AppSettings Settings { get; } = settings;
     internal bool DanmakuAvailable { get; set; } = true;
     internal string DanmakuStatus { get; set; } = "";
-    internal int Generation { get; set; }
+    internal int Generation { get => _generation; set => _generation = value; }
     internal int Pushes { get; private set; }
     internal bool Fetched => _danmakuFetched;
     internal IReadOnlyList<DanmakuComment> Applied => _danmakuComments;
+    internal IReadOnlyList<DandanPlayEpisode> Candidates => _danmakuCandidates;
+    internal DandanPlayEpisode? CustomEpisode => _danmakuDanmuApiEpisode;
     internal Func<Task>? ClearHook { get; set; }
+    internal Func<Task>? PresentHook { get; set; }
     internal List<bool> InputResetPreferences { get; } = [];
-    private void CancelDanmakuSearch() { }
-    private int CaptureInteraction() => Generation;
-    private bool IsCurrentPlayback(int context) => context == Generation && _playback.IsPlaying;
+
+    internal void SwitchForFixture(EmbyItem item, EmbyItem? parent = null)
+    {
+        _playback.Generation++;
+        Generation++;
+        _nowPlaying = item;
+        _parent = parent;
+        ResetDanmaku(item);
+        _danmakuSerial = 1;
+    }
+
+    internal Task MatchForFixture(EmbyItem item) => AutoMatchDanmakuAsync(item);
+    internal void ChangeConnectionForFixture(string address)
+    {
+        Settings.Danmaku.DanmuApiBaseUrl = address;
+        DanmakuSettingsChanged();
+    }
+
     private void ResetDanmakuInput(bool preserveDraft = false) => InputResetPreferences.Add(preserveDraft);
     private void RefreshDanmakuInput() { }
     private void RefreshDanmakuHeat() { }
+    private void RefreshDanmakuProperties() { }
+    private void OnPropertyChanged(string property)
+    {
+        _ = (_danmakuDelay, _danmakuCandidatesSource);
+    }
     private Task ClearDanmakuAsync() => ClearHook?.Invoke() ?? Task.CompletedTask;
     private Task PingDanmakuAsync() => Task.CompletedTask;
-    private Task PushDanmakuAsync() { Pushes++; return Task.CompletedTask; }
+    private Task PushDanmakuVisibilityAsync() => Task.CompletedTask;
+    private Task ScheduleDanmakuPushAsync() => Task.CompletedTask;
+    private Task PushDanmakuAsync()
+    {
+        Pushes++;
+        return PresentHook?.Invoke() ?? Task.CompletedTask;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-        _danmakuLoad?.Cancel();
-        _danmakuLoad?.Dispose();
+        CancelDanmakuRequests();
         _lifetime.Cancel();
         _lifetime.Dispose();
     }
-    private sealed class SyntheticPlayback { internal bool IsPlaying { get; } = true; }
+
+    private sealed class SyntheticPlayback
+    {
+        internal bool IsPlaying { get; } = true;
+        internal long Generation { get; set; }
+    }
 }
 
 internal static class DanmakuLoadOwnershipTests

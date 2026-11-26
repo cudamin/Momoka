@@ -79,10 +79,11 @@ public sealed partial class PlayerViewModel
         ShellPrefs.ApplyDanmaku();
     }
 
-    internal void CancelDanmakuSearch()
+    private int CancelDanmakuSearch()
     {
-        _danmakuSearchRequest++;
+        var request = ++_danmakuSearchRequest;
         _danmakuSearch?.Cancel();
+        return request;
     }
 
     internal void RequestDanmaku() { if (DanmakuAvailable) DanmakuRequested?.Invoke(); }
@@ -311,8 +312,9 @@ public sealed partial class PlayerViewModel
             if (customMatch is not null) selections.Add((DanmakuSource.DanmuApi, customMatch));
             if (selections.Count > 0)
             {
-                await LoadSourcesAsync(selections).ConfigureAwait(true);
-                await TryEmptyDanmakuFallbackAsync(item, selections).ConfigureAwait(true);
+                var emptyLoad = await LoadSourcesAsync(selections).ConfigureAwait(true);
+                if (emptyLoad is { } empty)
+                    await TryEmptyDanmakuFallbackAsync(item, empty).ConfigureAwait(true);
                 return;
             }
 
@@ -329,11 +331,16 @@ public sealed partial class PlayerViewModel
     private async Task<int?> DanmakuSeriesYearAsync(EmbyItem item, CancellationToken cancellationToken)
     {
         if (item.Type != EmbyItemType.Episode) return null;
-        if (_parent is { Type: EmbyItemType.Series, ProductionYear: > 0 } parent) return parent.ProductionYear;
         if (string.IsNullOrWhiteSpace(item.SeriesId)) return null;
         try
         {
-            var series = await _session.Capture(item)
+            var scope = _session.Capture(item);
+            if (_parent is { Type: EmbyItemType.Series, ProductionYear: > 0 } parent
+                && string.Equals(parent.Id, item.SeriesId, StringComparison.Ordinal)
+                && ReferenceEquals(parent.Source?.UserStateOwner, scope.UserStateOwner))
+                return parent.ProductionYear;
+
+            var series = await scope
                 .ExecuteAsync((client, token) => client.GetItemAsync(item.SeriesId, token, EmbyFields.Browse), cancellationToken)
                 .ConfigureAwait(true);
             return series.ProductionYear is > 0 ? series.ProductionYear : null;
@@ -351,37 +358,27 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// danmu_api 的 match 可能命中同名但零弹幕的条目，同一作品的其它平台行仍可能有数据。
-    /// 只对自动匹配的单源 danmu_api 结果兜底：换一条同名同集候选试一次；仍为空就把候选交给面板。
+    /// danmu_api 自动匹配成功但返回零条时，用该次加载的身份试一个同名同集候选；
+    /// 仍为空时可以把候选交给面板。合并模式保留已有的弹弹play 内容。
     /// </summary>
-    private async Task TryEmptyDanmakuFallbackAsync(EmbyItem item,
-        IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections)
+    private async Task TryEmptyDanmakuFallbackAsync(EmbyItem item, EmptyDanmakuLoad empty)
     {
-        if (!selections.Any(selection => selection.Source == DanmakuSource.DanmuApi)) return;
-        // 合并模式下弹弹play 已有结果时保留它，只补 danmu_api 的同作品行；单源模式则整体改选。
-        if (!_danmakuFetched || _danmakuDanmuApiCount != 0 || _danmakuWarning.Length > 0) return;
-        if (!DanmakuAvailable || !_playback.IsPlaying) return;
-        var context = CaptureInteraction();
-        var connectionVersion = DanmakuConnectionVersion;
-        var searchRequest = _danmakuSearchRequest;
-        var token = _danmakuLoad?.Token ?? _lifetime.Token;
-        var attempted = selections.First(selection => selection.Source == DanmakuSource.DanmuApi).Episode;
-        Log.Debug("danmaku", $"零弹幕兜底：fetched={_danmakuFetched} custom={_danmakuDanmuApiCount} "
-            + $"warning={_danmakuWarning.Length} available={DanmakuAvailable} playing={_playback.IsPlaying}");
+        var (owner, attempted) = empty;
+        if (!IsCurrentDanmakuFallback(owner)) return;
+
         DanmakuStatus = $"danmu_api 匹配到的「{attempted.Label}」没有弹幕，正在尝试其他来源行…";
         var (matches, error) = await SearchSourceAsync(DandanPlayMatching.Title(item),
-            DandanPlayMatching.EpisodeNumber(item), DanmakuSource.DanmuApi, token).ConfigureAwait(true);
+            DandanPlayMatching.EpisodeNumber(item), DanmakuSource.DanmuApi, owner.Token).ConfigureAwait(true);
+        if (!IsCurrentDanmakuFallback(owner)) return;
         Log.Debug("danmaku", $"零弹幕兜底：搜索 error={error} 候选={matches.Episodes.Count}");
-        if (!DanmakuAvailable || !IsCurrentPlayback(context) || connectionVersion != DanmakuConnectionVersion
-            || searchRequest != _danmakuSearchRequest) return;
         if (error.Length > 0)
         {
             DanmakuStatus = $"自动匹配到的「{attempted.Label}」没有弹幕；{error}";
             return;
         }
-        var seriesYear = await DanmakuSeriesYearAsync(item, token).ConfigureAwait(true);
-        if (!DanmakuAvailable || !IsCurrentPlayback(context) || connectionVersion != DanmakuConnectionVersion
-            || searchRequest != _danmakuSearchRequest) return;
+
+        var seriesYear = await DanmakuSeriesYearAsync(item, owner.Token).ConfigureAwait(true);
+        if (!IsCurrentDanmakuFallback(owner)) return;
         var candidates = DanmakuMatchRules.Alternatives(item, matches.Episodes, attempted.EpisodeId, seriesYear);
         Log.Debug("danmaku", $"零弹幕兜底：year={seriesYear} 同作品候选={candidates.Count}"
             + (candidates.Count > 0 ? $" 首个={candidates[0].EpisodeId}" : ""));
@@ -390,24 +387,24 @@ public sealed partial class PlayerViewModel
             try
             {
                 var fetched = await _dandanPlay.GetCommentsAsync(candidates[0].EpisodeId, false,
-                    DanmakuSource.DanmuApi, token).ConfigureAwait(true);
+                    DanmakuSource.DanmuApi, owner.Token).ConfigureAwait(true);
+                if (!IsCurrentDanmakuFallback(owner)) return;
                 Log.Debug("danmaku", $"零弹幕兜底：候选 {candidates[0].EpisodeId} 读取 {fetched.Count} 条");
-                if (fetched.Count > 0 && DanmakuAvailable && IsCurrentPlayback(context)
-                    && connectionVersion == DanmakuConnectionVersion && searchRequest == _danmakuSearchRequest)
+                if (fetched.Count > 0)
                 {
                     var merged = new List<(DanmakuSource Source, DandanPlayEpisode Episode)>(2);
                     if (_danmakuDandanCount > 0 && _danmakuEpisode is { } dandan)
                         merged.Add((DanmakuSource.DandanPlay, dandan));
                     merged.Add((DanmakuSource.DanmuApi, candidates[0]));
-                    await LoadSourcesAsync(merged).ConfigureAwait(true);
+                    await LoadSourcesAsync(merged, owner).ConfigureAwait(true);
                     return;
                 }
             }
             catch (OperationCanceledException) { return; }
             catch (DandanPlayException) { }
         }
-        if (!DanmakuAvailable || !IsCurrentPlayback(context) || connectionVersion != DanmakuConnectionVersion
-            || searchRequest != _danmakuSearchRequest) return;
+
+        if (!IsCurrentDanmakuFallback(owner)) return;
         // 弹弹play 已经有内容时不拿空结果或候选去覆盖它。
         if (_danmakuDandanCount > 0) return;
         if (candidates.Count == 0)
@@ -487,17 +484,39 @@ public sealed partial class PlayerViewModel
         await LoadSourcesAsync(selections).ConfigureAwait(true);
     }
 
-    private async Task LoadSourcesAsync(IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections)
+    private readonly record struct DanmakuLoadOwner(InteractionContext Playback, int ConnectionVersion,
+        int SearchRequest, int LoadRequest, CancellationToken Token);
+
+    private readonly record struct EmptyDanmakuLoad(DanmakuLoadOwner Owner, DandanPlayEpisode Episode);
+
+    private bool IsCurrentDanmakuLoad(DanmakuLoadOwner owner) => DanmakuAvailable && _playback.IsPlaying
+        && IsCurrentPlayback(owner.Playback) && !owner.Token.IsCancellationRequested
+        && owner.ConnectionVersion == DanmakuConnectionVersion && owner.LoadRequest == _danmakuRequest;
+
+    private bool IsCurrentDanmakuFallback(DanmakuLoadOwner owner) =>
+        IsCurrentDanmakuLoad(owner) && owner.SearchRequest == _danmakuSearchRequest;
+
+    private DanmakuLoadOwner BeginDanmakuLoad()
     {
-        if (!DanmakuAvailable || !_playback.IsPlaying || selections.Count == 0) return;
-        CancelDanmakuSearch();
+        var context = CaptureInteraction();
+        var connectionVersion = DanmakuConnectionVersion;
+        // 新加载会取消搜索；只让兜底继承这次加载接管后的搜索代数。
+        var searchRequest = CancelDanmakuSearch();
         _danmakuLoad?.Cancel();
         _danmakuLoad?.Dispose();
         var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _danmakuLoad = cancellation;
-        var token = cancellation.Token;
-        var request = ++_danmakuRequest;
-        var context = CaptureInteraction();
+        return new(context, connectionVersion, searchRequest, ++_danmakuRequest, cancellation.Token);
+    }
+
+    private async Task<EmptyDanmakuLoad?> LoadSourcesAsync(
+        IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections, DanmakuLoadOwner? fallbackOwner = null)
+    {
+        if (!DanmakuAvailable || !_playback.IsPlaying || selections.Count == 0) return null;
+        var owner = fallbackOwner ?? BeginDanmakuLoad();
+        bool Current() => fallbackOwner is null ? IsCurrentDanmakuLoad(owner) : IsCurrentDanmakuFallback(owner);
+        if (!Current()) return null;
+
         _danmakuComments = [];
         _danmakuEpisode = null;
         _danmakuDanmuApiEpisode = null;
@@ -513,7 +532,7 @@ public sealed partial class PlayerViewModel
         _danmakuTransfer++;
         DanmakuStatus = $"正在加载{_danmakuSourceSummary} 弹幕：{_danmakuLabel}…";
         await ClearDanmakuAsync().ConfigureAwait(true);
-        if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
+        if (!Current()) return null;
 
         var comments = new List<DanmakuComment>();
         var loaded = new List<string>();
@@ -525,9 +544,9 @@ public sealed partial class PlayerViewModel
             try
             {
                 var fetched = await _dandanPlay.GetCommentsAsync(episode.EpisodeId,
-                        source == DanmakuSource.DandanPlay && Settings.Danmaku.WithRelated, source, token)
+                        source == DanmakuSource.DandanPlay && Settings.Danmaku.WithRelated, source, owner.Token)
                     .ConfigureAwait(true);
-                if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
+                if (!Current()) return null;
                 comments.AddRange(fetched);
                 if (source == DanmakuSource.DandanPlay)
                 {
@@ -544,22 +563,22 @@ public sealed partial class PlayerViewModel
                 loaded.Add($"{DanmakuSourceRules.SourceName(source)} {fetched.Count} 条");
                 sourceLabels.Add(DanmakuSourceRules.SourceName(source));
             }
-            catch (OperationCanceledException) { return; }
+            catch (OperationCanceledException) { return null; }
             catch (DandanPlayException error)
             {
-                if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
+                if (!Current()) return null;
                 var name = DanmakuSourceRules.SourceName(source);
                 errors.Add(error.Message.StartsWith(name, StringComparison.Ordinal)
                     ? error.Message
                     : $"{name}：{error.Message}");
             }
         }
-        if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
+        if (!Current()) return null;
         if (loaded.Count == 0)
         {
             DanmakuStatus = errors.Count > 0 ? string.Join("；", errors) : "没有加载到弹幕。";
             _danmakuFetched = false;
-            return;
+            return null;
         }
 
         _danmakuComments = DanmakuComments.Combine(comments);
@@ -569,6 +588,7 @@ public sealed partial class PlayerViewModel
         _danmakuWarning = errors.Count > 0 ? string.Join("；", errors) : "";
         DanmakuStatus = $"来源：{string.Join(" + ", loaded)} · {_danmakuLabel}"
             + (_danmakuWarning.Length > 0 ? $"；{_danmakuWarning}" : "");
+        var empty = errors.Count == 0 && _danmakuDanmuApiCount == 0 ? _danmakuDanmuApiEpisode : null;
         RefreshDanmakuInput();
         if (_danmakuSerial == 0)
         {
@@ -576,6 +596,8 @@ public sealed partial class PlayerViewModel
             await PingDanmakuAsync().ConfigureAwait(true);
         }
         else await PushDanmakuAsync().ConfigureAwait(true);
+
+        return empty is not null && IsCurrentDanmakuFallback(owner) ? new EmptyDanmakuLoad(owner, empty) : null;
     }
 
     private async Task PushDanmakuAsync()

@@ -51,9 +51,9 @@ metadata: {agent_created: true}
 
 - 自动入口共用 `DanmakuMatchRules.CanAutoMatch`：电影，或第 1 季及以后且集号为正的单集；第 0 季（特别篇）和其他类型不发自动请求，保留手动选择。
 - 弹弹play按元数据标题搜索；`SeriesName` 优先，Unicode 归一化后只比较字母数字、忽略大小写。`UniqueMatch` 只收唯一结果；`HasMore`、本地截断和多个候选都不能证明唯一。续季按候选标题里的季标记（第二季／第2季／Season 2／2nd Season／S3）与当前 `ParentIndexNumber` 核对；裸标题只认第一季，季标记缺失或对不上就留给手动选择。
-- danmu_api 使用 `DanmakuMatchRules.MatchFileName` 拼出 `标题 (年份) S02E06`，电影省略季集号。单集优先用所属剧首播年，取不到才退回本集年份。`DanmakuSeriesYearAsync` 可能只读媒体服务器取得剧年份；不会下载视频来算哈希。`MatchAsync` 只取有效的 `matches[0]`，再由 `Accepts` 拒绝明确集号冲突；结果未写集号时不据此拒绝，也不能宣称已验证集号一致。续季的季号由文件名携带，客户端不另行核对结果标题的季标记。
+- danmu_api 使用 `DanmakuMatchRules.MatchFileName` 拼出 `标题 (年份) S02E06`，电影省略季集号。单集优先用所属剧首播年，取不到才退回本集年份。换片先提交父条目和来源再启动匹配，仅对同一账号身份且 `SeriesId` 一致的剧条目复用年份。`DanmakuSeriesYearAsync` 可能只读媒体服务器取得剧年份；不会下载视频来算哈希。`MatchAsync` 只取有效的 `matches[0]`，再由 `Accepts` 拒绝明确集号冲突；结果未写集号时不据此拒绝，也不能宣称已验证集号一致。续季的季号由文件名携带，客户端不另行核对结果标题的季标记。
 - `Both` 自动流程依次匹配两源，再由 `LoadSourcesAsync` 依次读取成功匹配的选择。任一源有匹配就继续；另一源的匹配错误目前不会带入加载后的状态。读取阶段一源失败时保留成功来源，并显示读取失败警告。
-- 成功返回空 `comments` 也算已加载，记录为零条；全部读取失败才保持未加载。弹弹play成功但零条仍可建立发送目标。
+- 成功返回空 `comments` 也算已加载，记录为零条；全部读取失败才保持未加载。弹弹play成功但零条仍可建立发送目标。danmu_api 自动匹配的零条兜底沿用成功加载的播放、连接、搜索与加载身份；换片、换连接或手动操作作废旧兜底。
 - **手动一次只搜索和加载一源。** `AvailableSources` 列出模式包含且本地配置有效的来源；`LoadDanmakuAsync` 只传一个选择并替换原加载结果。不能把手动选择描述成逐次累加两源。
 - `DanmakuComments.Combine` 按时间排序，先取最终最多 40,000 条；它不去重。随后 `Filter` 根据类型、颜色、屏蔽词和 `Deduplicate` 过滤；开启去重时相同文本忽略大小写、距上次保留项严格小于 10 秒才丢弃。
 - 保留来源身份贯穿请求、缓存、选择、数量与发送目标。不要用一个裸 `episodeId` 代替两源选择，也不要把 danmu_api 服务端自己的多平台聚合等同于 Momoka 的 `Both`。

@@ -133,7 +133,8 @@ public sealed partial class PlayerViewModel
     private static Task PopulateTracksAsync(int generation) => Task.CompletedTask;
     // These are presentation/network neighbours, not continuation or skip-plan substitutes.
     // The complete current OnNowPlayingChanged still resolves Emby's marker plan in real Core.
-    private static void ResetDanmaku(EmbyItem? item) { }
+    internal Action<EmbyItem?>? DanmakuReset { get; set; }
+    private void ResetDanmaku(EmbyItem? item) => DanmakuReset?.Invoke(item);
     private static Task RefineChapterMarksAsync(int generation) => Task.CompletedTask;
     private static Task ApplyAspectAsync(int generation) => Task.CompletedTask;
     private static Task NoteAudioDeviceAsync(int generation) => Task.CompletedTask;
