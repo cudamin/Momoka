@@ -1,3 +1,10 @@
+## 2026-11-27 审查并优化 CLAUDE.md 开发政策
+
+工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/review_claude_md`，分支 `review_claude_md`，基点 `bef1f1b`，优化提交 `e2c9d3f`，待合并（主树 `C:/Users/89400/Momoka` 未改动，保留原有未提交修改）。
+
+- 对照当前源码与验证脚本更新 [CLAUDE](CLAUDE.md)、[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)、[材质指南](.claude/skills/momoka-winui-shell/references/materials.md)与[架构专项说明](tests/Momoka.ArchitectureTests/README.md)，并在 `tools/check-main-tree-policy.py` 扩充策略断言与反例校验（318 项）。
+- 校验：`py tools/check-main-tree-policy.py --self-test`（5 篇文档、318 项拒绝反例）、`py tools/check-docs.py`（183 篇、0 断链与索引缺口，含 `--self-test`）、`tools/check-doc-commands.ps1`（183 篇文档、161 个代码块、0 问题）、`py tools/check-report-credentials.py`（0 疑似值，含 `--self-test`）、`tools/check-scripts.ps1`（67 个脚本）、`tools/check-diff.ps1` 与 `git diff --check` 均通过。纯文档与政策检查工具改动，未构建应用、跑桌面探针、发布或创建快捷方式。
+
 ## 2026-11-26 详情页横向列表拖动翻页
 
 合并记录：按用户要求，本地主树 `master` 从 `a140565` 快进至 `ee41111`，完整纳入 `542a427`、`0a31b16`、`ee41111` 三个提交，无冲突。逐项核对传入的七个文件，四条详情列表均启用拖动；主树原有 scrobbling 清理记录的一行新增逐字保留为未提交修改，未纳入本次提交。仅合并未重跑全量构建、探针或发布，下列测试与体验版结果仍属于来源分支，不作为合并后运行验收。源工作树的独有报告、分支体验版及「详情列表拖拽」快捷方式暂留，清理前须转存证据并核对占用，登记待清理。
