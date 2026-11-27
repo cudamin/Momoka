@@ -1,3 +1,12 @@
+## 2026-11-27 合并侧栏预览查看更多右移与封面悬浮主题色操作键（主树 master，已合并／已发布／待统一验证）
+
+按用户「查看更多按钮，然后合并」要求，将工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-7d0beecc` 分支 `workbuddy/master-7d0beecc` 的 `777b8e4`、`d868cbf` 经合并提交 `8b0e360` 并入本地主树 `C:/Users/89400/Momoka` 的 `master`（合并前 `fc1b3c1`），未推送。工作树与主树无分叉，合并树与分支上已验证的树逐路径一致，分支的编译与测试结果据实沿用，本轮未重跑应用测试、原生探针或实屏。
+
+- **改动**：新增共享样式 `EgPreviewActionButtonStyle`（基 `EgPrimaryButtonStyle`，40 高／14,8 内边距／10 圆角），封面悬浮的播放键与订阅卡的编辑订阅键改接它，走系统强调色模板，换主题实时生效；侧栏折叠预览的「查看更多」从封面下整行挪到库名行最右列，聚合模式关闭时整颗收起，句柄与点击逻辑不变。分支验证：Shell Release/x64 0 警告 0 错误，页面契约 433/433（新增一条钉住两处共用样式与按钮所在列），侧栏预览专项 52/52，主测试 5381/5381、0 失败 0 跳过。
+- **正式发布**：`tools/publish.ps1 -Shortcut` 首次清旧 `artifacts/publish/win-x64`（549 文件）撞本环境批量删除守卫（`SAFE_DELETE_BULK_CONFIRM_REQUIRED`，阈值 50）；按仓库既有做法把旧目录整体改名为 `artifacts/publish/win-x64-pre-preview-actions` 留档（293 MB 原样保留，未删除），第二跑发布成功：**549 文件／291.7 MB**，批准 mpv 清单 60 文件、14 个 GLSL 与 4 个 HOOK 着色器逐文件校验通过，ZIP `Momoka-0.3.4-win-x64.zip`。发布件 `Momoka.dll` 10,447,360 字节、SHA256 `80dbf44b535411780db2e66c4e1b61fcc2dd5465c19d24df9b3de8a10ba6cf2e`，与 `src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll` 一致；`libmpv-2.dll` 在包内（101,242,880 字节），内置播放可用。
+- **快捷方式**：`tools/shortcut.ps1` 重写桌面 `Momoka.lnk` 被本机 ACL 拒绝（`UnauthorizedAccessException`，历史老问题），`.lnk` mtime 仍为 12:09:30；按二进制回读，目标为 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`，正是本次刷新的同一路径，桌面启动的即这一版。
+- **边界**：真实悬停的强调色与悬停／按下／禁用／高对比四态、标题让位与中英文案、面板高度、五套主题与跟随系统、窄窗、跨 DPI、键盘焦点与读屏均未跑，登记[批次 146](docs/待交付批次.md) 待统一验证，不销账。分支体验包 `artifacts/experience-no-libmpv/20261127-preview-actions` 与桌面 `悬浮操作键.lnk` 仍在（无内置播放内核），留待用户决定是否清理；未推送。
+
 ## 2026-11-27 合并主页媒体库季集文字裁切自动上移（主树 master，已合并／待统一验证）
 
 按用户「合并」要求，将 `codex/fix-home-library-auto-rise` 的 `32721c6`、`3c4ca05`、`365ef34`、`61ec331` 从共同基点 `e5cad5f` 非快进合入本地主树 `C:/Users/89400/Momoka` 的 `master`；目标合并前为 `2b40d0b`，未推送。保留主树音频选择栏、快捷键自定义及桌面入口清理提交。主树批次 143、144 不变，来源主页自动上移原批次 143 顺延为[批次 145](docs/待交付批次.md)。
