@@ -316,6 +316,32 @@ internal static class HoverMotionTests
             Assert.Contains("ReferenceEquals(Item.Source?.UserStateOwner, other.Source?.UserStateOwner)", transition);
             Assert.Contains("Capture.Matches(request.Item)", transition);
         });
+        Test("悬浮预览：右上角操作键共用主题色样式，侧栏预览的「查看更多」在标题行右端", () =>
+        {
+            // 2026-11-27 用户令「查看更多移到右上角、按钮用主题色、圆角与封面悬浮一致」与「封面悬浮右上角的按钮用主题色」。
+            // 两块浮层的同一颗键因此共用一份几何；底色交给强调键模板，标记里不另写颜色 —— 换主题时跟着 ThemeHost 走。
+            var styles = Read("src/Momoka.Shell/Theme/Styles.xaml");
+            var shared = styles[styles.IndexOf("x:Key=\"EgPreviewActionButtonStyle\"", StringComparison.Ordinal)..];
+            shared = shared[..shared.IndexOf("</Style>", StringComparison.Ordinal)];
+            Assert.Contains("BasedOn=\"{StaticResource EgPrimaryButtonStyle}\"", shared);
+            Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"10\" />", shared);
+
+            var card = Read("src/Momoka.Shell/Views/CardPreview.xaml");
+            Assert.DoesNotContain("EgSecondaryButtonStyle", card);
+            const string action = "Style=\"{StaticResource EgPreviewActionButtonStyle}\"";
+            var first = card.IndexOf(action, StringComparison.Ordinal);
+            Assert.True(first >= 0 && card.IndexOf(action, first + 1, StringComparison.Ordinal) > first,
+                "封面悬浮的播放键与编辑订阅键没有共用主题色样式");
+
+            // 「查看更多」在库名那一行的最后一列，不再占封面下面整行；聚合模式关掉时整颗收起。
+            var shell = Read("src/Momoka.Shell/Views/ShellPage.xaml");
+            var more = shell[shell.IndexOf("x:Name=\"LibraryPreviewMore\"", StringComparison.Ordinal)..];
+            more = more[..more.IndexOf("/>", StringComparison.Ordinal)];
+            Assert.Contains("Grid.Column=\"1\"", more);
+            Assert.Contains(action, more);
+            Assert.DoesNotContain("Grid.Row=\"2\"", more);
+            Assert.DoesNotContain("HorizontalAlignment=\"Stretch\"", more);
+        });
     }
 
     private static string Read(string relativePath)

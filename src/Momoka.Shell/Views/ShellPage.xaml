@@ -551,7 +551,12 @@
 
              内容只有三块：库名那一行（聚合模式下是「用户名 · 库名」，见 ShellPage.Sidebar.cs 的 RebuildSidebarLibraries）、
              最多三张媒体封面、以及聚合模式下的一颗「查看更多」。副标题 2026-11-16 按用户令去掉，控件留在原处收着。
-            封面在代码里按面板宽现摆，面板本身不做虚拟化 —— 一次最多三张，没有长列表要收。 -->
+             封面在代码里按面板宽现摆，面板本身不做虚拟化 —— 一次最多三张，没有长列表要收。
+
+             「查看更多」2026-11-27 按用户令挪到标题那一行的右端（「移到右上角，按钮要用主题色，圆角要和封面悬浮一致」）：
+             它原先占着封面下面整一行、横向撑满，一出现就把面板撑高一整颗键；现在和库名同一行、只在本行末尾，
+             底色换成强调色（EgPreviewActionButtonStyle 与封面悬浮的播放键同一份几何，10 圆角）。
+             聚合模式关掉时整颗收起，库名照旧占满整行。 -->
         <Border
             x:Name="LibraryPreviewPanel"
             Canvas.ZIndex="2"
@@ -571,22 +576,40 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Spacing="2">
-                    <TextBlock
-                        x:Name="LibraryPreviewTitle"
-                        MaxLines="1"
-                        Style="{StaticResource EgSubheadStyle}"
-                        TextTrimming="CharacterEllipsis" />
-                    <TextBlock
-                        x:Name="LibraryPreviewMeta"
-                        MaxLines="1"
-                        Style="{StaticResource EgCaptionStyle}"
-                        TextTrimming="CharacterEllipsis"
+                <!-- 库名与「查看更多」同一行：库名在左、按钮钉在右上角，库名按按钮实际占的宽度让位。
+                     行高由按钮的 40 撑起来，库名因此在行内竖直居中；没有按钮时这一行就是原来那条标题。 -->
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock
+                            x:Name="LibraryPreviewTitle"
+                            MaxLines="1"
+                            Style="{StaticResource EgSubheadStyle}"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            x:Name="LibraryPreviewMeta"
+                            MaxLines="1"
+                            Style="{StaticResource EgCaptionStyle}"
+                            TextTrimming="CharacterEllipsis"
+                            Visibility="Collapsed" />
+                    </StackPanel>
+
+                    <Button x:Uid="ShellPage_LibraryPreviewMore"
+                        x:Name="LibraryPreviewMore"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="SidebarLibraryPreviewMore"
+                        Click="OnLibraryPreviewMoreClicked"
+                        Content="查看更多"
+                        Style="{StaticResource EgPreviewActionButtonStyle}"
+                        VerticalAlignment="Top"
                         Visibility="Collapsed" />
-                </StackPanel>
+                </Grid>
 
                 <Grid Grid.Row="1" MinHeight="120">
                     <Grid x:Name="LibraryPreviewCovers" ColumnSpacing="10" HorizontalAlignment="Left">
@@ -612,16 +635,6 @@
                         TextWrapping="Wrap"
                         Visibility="Collapsed" />
                 </Grid>
-
-                <Button x:Uid="ShellPage_LibraryPreviewMore"
-                    x:Name="LibraryPreviewMore"
-                    Grid.Row="2"
-                    AutomationProperties.AutomationId="SidebarLibraryPreviewMore"
-                    Click="OnLibraryPreviewMoreClicked"
-                    Content="查看更多"
-                    HorizontalAlignment="Stretch"
-                    Style="{StaticResource EgSecondaryButtonStyle}"
-                    Visibility="Collapsed" />
             </Grid>
         </Border>
 
