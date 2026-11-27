@@ -35,6 +35,7 @@
 - 首轮主测试 5360/5361，唯一失败是跨文件集号英文译文冲突，修正后重新编译并完整通过。首轮测试编译的退役属性错误，以及误用方案扩展名、自然接续输出目录约束的命令失败日志均保留。本次证据在主树 `artifacts/scrobbling-merge` 与 `artifacts/r046-caller/scrobbling-merge-20261126`。文档链接、示例语法、变更文件格式、Git 空白与报告凭据检查通过。
 - 本次为本地合并及离线回归，未运行桌面探针、自检、真实账号写入或发布，未推送远端。此前分支的实服验收范围仍以原条目为准，不将其写成合并后的实测。
 - 来源树 `a16f` 仍有原有 `tests/Momoka.Tests/SettingsScrobblingTests.cs` 未提交修改，前后 SHA-256 相同，未纳入本次合并。该工作树、临时分支与分支快捷方式登记待清理，保留未提交内容。
+- 2026-11-26 清理：按内容确认 18 个提交全部在 master 后，临时分支 `codex/scrobbling-settings`（was `bdcf3da`）与桌面快捷方式 `Momoka-scrobbling-settings.lnk`（入回收站）已删。工作树 `a16f` 内文件与子目录已全部清空（0 文件残留）；其中未提交的豆瓣登录／退出显隐测试断言差异备份至 `artifacts/scrobbling-merge/a16f-uncommitted-backup/SettingsScrobblingTests.diff`，master 的 `SettingsScrobblingTests.cs` 248–278 行另有等价的显隐覆盖。`a16f` 与 `a16f/Momoka` 两个空目录壳因另一 codex 会话进程以该路径为工作目录占用句柄暂留，待其释放后补删。
 
 ## 2026-11-26 Bangumi 单集写入与观看记录验收
 
