@@ -1,3 +1,15 @@
+## 2026-11-27 合并设置页功能名称、分类导航、布局排版与说明文案优化（主树 master，已合并／已发布／待统一验证）
+
+按用户「合并到主树」「把验证记到交付里，你只需要负责合并，然后删除这个工作树就可以」要求，将工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/settings_ui_polish` 分支 `settings_ui_polish`（基点 `e5cad5f`，提交 `faad988`，59 个变更路径）非快进合入本地主树 `C:/Users/89400/Momoka` 的 `master`（合并前 `798b2aa`），未推送；并已删除该工作树、分支及临时桌面快捷方式 `Momoka-设置优化.lnk`（主树 `Momoka.lnk` 保留未动）。
+
+- **改动范围**：补回 `SettingSection.DisplayDescription` 独立渲染（不因 `NotesHidden` 隐藏）；修正「主页版面」「字幕字号」「弹幕不透明度（%）」「主页栏目顺序」「详情页显示模式」「MoviePilot 连接」「长按快退倍率」「长按快进倍速」「直通 TrueHD」「其他语言」等中英文名称、说明与占位提示，补全 `audio-channels`、`媒体库入口`、`播放后端`、`续播自动快退（秒）` 等缺漏说明并修正 `SettingsViewModel.Video.cs`、`SettingsViewModel.FrameInterpolation.cs` 拼接翻译与 `SettingsEnglish.json`、`ScrobblingEnglish.json` 译文；将「直通格式」多选组拆为 5 个独立开关，统一 `ToggleGroup`/`Theme` 标签至 `EgSettingLabel`，`Fact` 按钮居中，搜索框 `TextMemberPath="DisplayLabel"`，补全响应式 `SettingRow.ControlColumnWidth`（`< 580` 切 `180`，否则 `320`），统一 10 个宿主设置子页边距 `EgSettingsSubpageMargin`（`0,12,32,12`）与主列表边距（`0,12,20,12`）；新增非 Momoka 分组前缀 `PickerLabel`、`Jellyfin` 组名、移除 `SettingsCategoryGlyphConverter` 废弃项并更新探针与测试。
+- **来源分支验证**：`tools/quality.ps1 -Tests` 前 10 项全通过（全方案 Release 0 警告 0 错误、`dotnet format whitespace`、67 个 PowerShell 脚本、文档链接、官网镜像、183 文档命令、凭据扫描、`Momoka.ArchitectureTests` 7/7、`jscpd` 69 段 / 0.47%、`check-diff.ps1` 59 文件），第 11 项 `run-regressions.ps1 -All` 因基线既有 `Momoka.SystemNotificationTests` 未入清单退出 1；直接跑通清单内全部 80/80 离线专项（`Momoka.ServerSettingsTabs.Tests` 为 `external` 记为 `deferred`）；`Momoka.Tests.exe` 专项 26/27 通过（`settings-page-state-fixture` 87/87、`settings-search-fixture` 23/23、`settings-applicability-fixture` 38/38 等，1 项未改动分支的 `moviepilot-subscription-page-state-fixture` 39/40 为基线既有失败）。
+- **主树合并后验证与发布**：
+  - `tools/quality.ps1 -Tests`：`dotnet format whitespace`、PowerShell 脚本（67 个）、文档链接、官网静态部署镜像、文档命令语法（186 文档 / 161 块）、报告凭据扫描、`jscpd` 重复率（69 段、0.47% ≤ 1.00%）、`check-diff.ps1` 均通过；全方案构建因基线既有 `Momoka.NaturalContinuationCallerTests` 的 `R046 SOURCE_HASH_MISMATCH`（`PlayerViewModel.Transport.cs`，非本次分支改动）失败，`Momoka.Shell` 与 `Momoka.Core` 已成功编译（0 警告 0 错误）；`run-regressions.ps1 -All` 仍因基线既有 `Momoka.SystemNotificationTests` 未入清单退出 1。
+  - 主树直跑测试：`Momoka.ArchitectureTests.exe` **7/7** 通过；`Momoka.Tests.exe` 全量套件 **5381/5381**（0 失败 0 跳过，152001 ms）；设置定向专项 `settings-page-state-fixture` **87/87**、`settings-search-fixture` **23/23**、`settings-applicability-fixture` **38/38** 全通过。
+  - 主树正式发布：`tools/publish.ps1 -NoArchive` 验证通过（**549 个文件，291.7 MB**，14 个 GLSL、4 个 HOOK 着色器含许可逐文件校验，批准 mpv 清单 60 个文件；发布至 `artifacts/publish/win-x64/Momoka.exe`）。
+- **待统一验证**：真实 WinUI 窗口下卡片副标题、5 项直通开关、窄宽响应式栏宽切换（`< 580` / `>= 580`）、十个子页边距、英文模式完整界面及 `Momoka.ServerSettingsTabs.Tests` 外部 DOM 探针与实屏视觉走查继续登记[批次 147](docs/待交付批次.md)待统一验证，不销账。
+
 ## 2026-11-27 合并侧栏预览查看更多右移与封面悬浮主题色操作键（主树 master，已合并／已发布／待统一验证）
 
 按用户「查看更多按钮，然后合并」要求，将工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-7d0beecc` 分支 `workbuddy/master-7d0beecc` 的 `777b8e4`、`d868cbf` 经合并提交 `8b0e360` 并入本地主树 `C:/Users/89400/Momoka` 的 `master`（合并前 `fc1b3c1`），未推送。工作树与主树无分叉，合并树与分支上已验证的树逐路径一致，分支的编译与测试结果据实沿用，本轮未重跑应用测试、原生探针或实屏。
