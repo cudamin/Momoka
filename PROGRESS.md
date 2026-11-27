@@ -1,9 +1,9 @@
 ## 2026-11-27 审查并优化 CLAUDE.md 开发政策
 
-工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/review_claude_md`，分支 `review_claude_md`，基点 `bef1f1b`，优化提交 `e2c9d3f`，待合并（主树 `C:/Users/89400/Momoka` 未改动，保留原有未提交修改）。
+工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/review_claude_md`，分支 `review_claude_md`，基点 `bef1f1b`，优化与补全提交 `e2c9d3f`、`58fee43`，待合并（主树 `C:/Users/89400/Momoka` 未改动，保留原有未提交修改）。
 
-- 对照当前源码与验证脚本更新 [CLAUDE](CLAUDE.md)、[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)、[材质指南](.claude/skills/momoka-winui-shell/references/materials.md)与[架构专项说明](tests/Momoka.ArchitectureTests/README.md)，并在 `tools/check-main-tree-policy.py` 扩充策略断言与反例校验（318 项）。
-- 校验：`py tools/check-main-tree-policy.py --self-test`（5 篇文档、318 项拒绝反例）、`py tools/check-docs.py`（183 篇、0 断链与索引缺口，含 `--self-test`）、`tools/check-doc-commands.ps1`（183 篇文档、161 个代码块、0 问题）、`py tools/check-report-credentials.py`（0 疑似值，含 `--self-test`）、`tools/check-scripts.ps1`（67 个脚本）、`tools/check-diff.ps1` 与 `git diff --check` 均通过。纯文档与政策检查工具改动，未构建应用、跑桌面探针、发布或创建快捷方式。
+- 对照当前源码与验证脚本更新 [CLAUDE](CLAUDE.md)、[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)、[材质指南](.claude/skills/momoka-winui-shell/references/materials.md)与[架构专项说明](tests/Momoka.ArchitectureTests/README.md)，并补全 `ReparsePoint` 禁止、分析器降级与 `async void` 兜底、`website/worker` 与 `dist` 镜像边界、对外支持文档脱敏范围、`store-identity.json` 与分发形态差异、`jscpd` 预算、CI `NuGetAudit=false`、系统副作用专项自清理及禁入库产物规则；同步在 `tools/check-main-tree-policy.py` 扩充策略断言与反例校验（358 项）。
+- 校验：`py tools/check-main-tree-policy.py --self-test`（5 篇文档、358 项拒绝反例）、`py tools/check-docs.py`（183 篇、0 断链与索引缺口，含 `--self-test`）、`tools/check-doc-commands.ps1`（183 篇文档、161 个代码块、0 问题）、`py tools/check-website-mirror.py`（0 不一致，含 `--self-test`）、`node --test website/worker/credential.test.mjs`（4/4 通过）、`py tools/check-report-credentials.py`（0 疑似值，含 `--self-test`）、`tools/check-scripts.ps1`（67 个脚本）、`tools/check-diff.ps1` 与 `git diff --check` 均通过。另按当前实现注记：`tools/check-server-support-docs.py` 因既有 `README.md` Plex 用语变更返回 `Plex must remain unverified`，本次未将其写入阻断检查。纯文档与政策检查工具改动，未构建应用、跑桌面探针、发布或创建快捷方式。
 
 ## 2026-11-26 详情页横向列表拖动翻页
 
