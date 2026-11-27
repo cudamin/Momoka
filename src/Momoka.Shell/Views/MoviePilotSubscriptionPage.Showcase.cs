@@ -239,7 +239,9 @@ public sealed partial class MoviePilotSubscriptionPage
         SeasonPanelHeader.Visibility = plain ? Visibility.Visible : Visibility.Collapsed;
         SeasonPanel.Background = plain ? StoreCardMaterialSource.Background : CardMaterialSource.Background;
         SeasonPanel.BorderThickness = plain ? default : (Thickness)Application.Current.Resources["EgCardBorderThickness"];
-        HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
+        // 2026-11-28：简洁档的「其他信息」也用同一块官方实色卡片。从前接 MicaLayerSource —— 那是页面画布，
+        // 跟正文卡同一个毛病：卡片拿了页面的面色，看起来就像没有卡面。
+        HeroFacts.Background = plain ? StoreCardMaterialSource.Background : CardMaterialSource.Background;
     }
 
     private void SettleShowcase()

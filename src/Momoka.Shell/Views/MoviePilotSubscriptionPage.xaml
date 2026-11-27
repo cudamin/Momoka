@@ -101,8 +101,10 @@
              那两档白的卡片层（EgCardFillBrush），不再用 65% 染色的卡片亚克力。 -->
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource EgCardFillBrush}" />
+        <!-- 同媒体详情页：简洁档的卡面就是设置页那支官方卡片层（CardBackgroundFillColorDefault 的 5% 白），
+             半透明、底色随背后画布走；从前这里接的是 EgSurfaceBrush（页面面色，不是卡片色）。 -->
         <Border x:Name="StoreCardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
-                Background="{ThemeResource EgSurfaceBrush}" />
+                Background="{ThemeResource EgCardFillBrush}" />
     <Grid x:Name="DetailContent" Visibility="{x:Bind MediaViewModel.DetailContentVisibility, Mode=OneWay}">
     <Grid x:Name="DetailBackdropRoot" IsHitTestVisible="False" Visibility="{x:Bind MediaViewModel.BackdropVisibility, Mode=OneWay}">
         <Border x:Name="DetailBackdropBand" Opacity="0.9" VerticalAlignment="Top"

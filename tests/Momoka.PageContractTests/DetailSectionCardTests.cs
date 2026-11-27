@@ -62,7 +62,7 @@ internal static class DetailSectionCardTests
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var styles = xml.Root!.Elements().Where(element => element.Name.LocalName == "Style" && element.Attribute(x + "Key") is not null)
                 .ToDictionary(element => (string)element.Attribute(x + "Key")!);
-            Assert.Equal("{ThemeResource EgSurfaceBrush}", Setter(styles["EgStoreDetailCardStyle"], "Background"));
+            Assert.Equal("{ThemeResource EgCardFillBrush}", Setter(styles["EgStoreDetailCardStyle"], "Background"));
             Assert.Equal("0,0,0,1", Setter(styles["EgStoreDetailCardHeaderStyle"], "BorderThickness"));
             Assert.Equal("{ThemeResource DividerStrokeColorDefaultBrush}", Setter(styles["EgStoreDetailCardHeaderStyle"], "BorderBrush"));
             Assert.Equal("24", Setter(styles["EgStoreDetailCardContentStyle"], "Padding"));

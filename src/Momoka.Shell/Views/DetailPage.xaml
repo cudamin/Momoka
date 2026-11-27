@@ -278,8 +278,10 @@
              底材，压在那张纸上就等于一块实心板。 -->
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource EgCardFillBrush}" />
+        <!-- 简洁档的卡面就是设置页那支官方卡片层（CardBackgroundFillColorDefault 的 5% 白）：半透明，
+             底色随背后的剧照/画布走，跟设置卡同一个材质；不再接 EgSurfaceBrush（那是页面面色，不是卡片色）。 -->
         <Border x:Name="StoreCardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
-                Background="{ThemeResource EgSurfaceBrush}" />
+                Background="{ThemeResource EgCardFillBrush}" />
         <Border x:Name="BackdropThemeSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource EgWindowBrush}" />
 

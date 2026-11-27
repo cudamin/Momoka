@@ -595,9 +595,11 @@
 
     <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
          Controls/ControlExample.xaml、Styles/Grid.xaml 使用原生圆角表面与分隔线。
-         Gallery 没有卡内标题和媒体货架的成套样例，详情两页共用这一组原生组合，圆角继承 EgCardCornerRadius（16）。 -->
+         Gallery 没有卡内标题和媒体货架的成套样例，详情两页共用这一组原生组合，圆角继承 EgCardCornerRadius（16）。
+         卡面与设置卡同一支官方卡片层（CardBackgroundFillColorDefault 的 5% 白，EgCardFillBrush），
+         不再接 EgSurfaceBrush —— 那是页面面色，当卡面用就会「看起来没有卡片底」。 -->
     <Style x:Key="EgStoreDetailCardStyle" TargetType="StackPanel" BasedOn="{StaticResource EgBodyPanelStyle}">
-        <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+        <Setter Property="Background" Value="{ThemeResource EgCardFillBrush}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Spacing" Value="0" />
     </Style>
