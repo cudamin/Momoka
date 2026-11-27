@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using StoreBackdropBlend = Momoka.Shell.Views.StoreBackdropBlend;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -301,6 +302,93 @@ internal static class StoreDetailLayoutTests
             Assert.Contains("? (Body.ActualWidth - columnWidth) / 2 : 0;", store);
             Assert.Contains("StoreAmbient.Margin = bleedMargin;", store);
             Assert.Contains("StoreShade.Margin = bleedMargin;", store);
+        });
+        Test("商店渐变：深色主题左侧浓墨按剧照几何换算，浅色照旧那道淡墨", () =>
+        {
+            // 2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」：横向那道按主题取两份。
+            var pages = new[]
+            {
+                ("DetailPage.xaml", "ViewModel", "DetailPage.Store.cs"),
+                ("MoviePilotSubscriptionPage.xaml", "MediaViewModel", "MoviePilotSubscriptionPage.Store.cs")
+            };
+            foreach (var (xaml, vm, code) in pages)
+            {
+                var sheet = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", xaml));
+                var shade = sheet.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "StoreShade");
+                var borders = shade.Elements().Where(element => element.Name.LocalName == "Border").ToArray();
+                Assert.Equal(2, borders.Length);
+                Assert.Equal("StoreShadeAcross", (string?)borders[0].Attribute(X + "Name"));
+                Assert.Equal("StoreShadeDown", (string?)borders[1].Attribute(X + "Name"));
+                // 两页的 code-behind 都按主题在浅色静态那支与深色几何那支之间换，几何与预告片同一套坐标。
+                var source = Source("Views/" + code);
+                Assert.Contains("StoreShadeAcross.Background = StoreBackdropStyle.Shade.Across;", source);
+                Assert.Contains("if (ThemeHost.Current.IsDark)", source);
+                Assert.Contains("_storeShadeDark.Resolve(", source);
+                Assert.Contains("StoreBackdropBlend.PictureFade * " + vm + ".StoreBackdropWidth", source);
+                Assert.Contains(vm + ".StorePreviewMargin.Right - " + vm + ".StoreBackdropWidth", source);
+                Assert.Contains("StoreShadeDown.Background = StoreBackdropStyle.Shade.Down;", source);
+            }
+            var style = Source("Views/StoreBackdropStyle.cs");
+            Assert.Contains("internal static class Shade", style);
+            Assert.Contains("internal sealed class ShadeDark", style);
+            Assert.Contains("StoreBackdropBlend.ShadeDarkStops(pageWidth, leftColumn, fadeWidth)", style);
+            // 画刷方向跟色标那一道一致：横向左 → 右，竖向上 → 下（两档同一支）。搭反了在屏上是另一道渐变。
+            Assert.Contains("internal static Brush Across => _across ??= ShadeBrush(StoreBackdropBlend.ShadeAcross, vertical: false);", style);
+            Assert.Contains("internal static Brush Down => _down ??= ShadeBrush(StoreBackdropBlend.ShadeDown, vertical: true);", style);
+            Assert.Contains("StartPoint = vertical ? new Point(0.5, 0) : new Point(0, 0.5),", style);
+            Assert.Contains("EndPoint = vertical ? new Point(0.5, 1) : new Point(1, 0.5)", style);
+            Assert.Contains("return _brush = ShadeBrush(stops, vertical: false);", style);
+            // 预告片叠图按同一份浓墨补端点色：缓存键带上深浅，两页都把当前主题传进去。
+            var brush = Source("Views/StoreVideoBrush.cs");
+            Assert.Contains("double ShadeWidth, double ShadeHeight, bool Dark) _layout;", brush);
+            Assert.Contains("shadeWidth, shadeHeight, dark);", brush);
+            Assert.Contains("Math.Max(ViewModel.StoreAmbientHeight, ViewModel.Viewport), ThemeHost.Current.IsDark)", Source("Views/DetailPage.StoreTrailer.cs"));
+            Assert.Contains("Math.Max(MediaViewModel.StoreAmbientHeight, MediaViewModel.Viewport), ThemeHost.Current.IsDark)", Source("Views/MoviePilotSubscriptionPage.Trailer.cs"));
+
+            // 色标按几何换算成整页比例：1240 宽（视口 744、右缝 16）剧照左沿在 480，渐隐带 312，满色前退完。
+            var stops = StoreBackdropBlend.ShadeDarkStops(1240, 480, 312);
+            Assert.Equal(5, stops.Length);
+            Assert.Equal(0, stops[0].Position);
+            Assert.Equal(0xD9 / 255d, stops[0].Alpha);
+            Assert.True(Math.Abs(stops[1].Position - 480 / 1240d) < 1e-9 && Math.Abs(stops[1].Alpha - 0xA6 / 255d) < 1e-9, "左列末色没有接上渐隐带起点");
+            Assert.True(Math.Abs(stops[^1].Position - 792 / 1240d) < 1e-9 && stops[^1].Alpha == 0, "浓墨没有在剧照满色前散尽");
+            for (var index = 1; index < stops.Length; index++)
+                Assert.True(stops[index].Position > stops[index - 1].Position && stops[index].Alpha < stops[index - 1].Alpha, "浓墨没有往右单调放亮");
+            // 2K 全屏（右缝涨到五百多）剧照左沿只占整页两成：浓墨跟着左移，仍止于剧照满色处，不压中段。
+            var wide = StoreBackdropBlend.ShadeDarkStops(2560, 509, 645);
+            Assert.Equal(0xD9 / 255d, wide[0].Alpha);
+            Assert.True(wide[^1].Position < 0.5 && Math.Abs(wide[^1].Position - 1154 / 2560d) < 1e-9, "宽屏上浓墨压到了剧照满色段");
+            // 窄窗没有左列：从渐隐带起点（0xA6）直接起坡；页宽没量到时给空表。
+            var narrow = StoreBackdropBlend.ShadeDarkStops(760, 0, 319);
+            Assert.Equal(4, narrow.Length);
+            Assert.Equal(0, narrow[0].Position);
+            Assert.Equal(0xA6 / 255d, narrow[0].Alpha);
+            Assert.Equal(0, StoreBackdropBlend.ShadeDarkStops(0, 0, 0).Length);
+            Assert.Equal(0, StoreBackdropBlend.ShadeDarkStops(double.NaN, 10, 10).Length);
+            // 一点上的浓度：左列缓降、接缝处连续、剧照满色处为 0；竖向那道与浅色同一支，两道叠起来。
+            const double page = 1240, left = 480, fade = 312, height = 640;
+            Assert.Equal(0xD9 / 255d, StoreBackdropBlend.ShadeDark(0, height, left, fade, height));
+            Assert.Equal(0xA6 / 255d, StoreBackdropBlend.ShadeDark(left, height, left, fade, height));
+            Assert.True(Math.Abs(StoreBackdropBlend.ShadeDark(left - 1, height, left, fade, height) - StoreBackdropBlend.ShadeDark(left + 1, height, left, fade, height)) < 0.01,
+                "左列与渐隐带接缝处有折痕");
+            Assert.Equal(0d, StoreBackdropBlend.ShadeDark(left + fade, height, left, fade, height));
+            Assert.Equal(0d, StoreBackdropBlend.ShadeDark(page, height, left, fade, height));
+            Assert.True(StoreBackdropBlend.ShadeDark(0.35 * page, height, left, fade, height) > StoreBackdropBlend.ShadeDark(0.45 * page, height, left, fade, height),
+                "浓墨没有往右散尽");
+            Assert.True(Math.Abs(StoreBackdropBlend.ShadeDark(0.22 * page, 0, left, fade, height) - (1 - (1 - StoreBackdropBlend.ShadeDark(0.22 * page, height, left, fade, height)) * (1 - (0x30 / 255d)))) < 1e-9,
+                "顶边没有把两道淡墨叠起来");
+            Assert.Equal(0d, StoreBackdropBlend.ShadeDark(double.NaN, 0, left, fade, height));
+            Assert.Equal(0d, StoreBackdropBlend.ShadeDark(0, 0, left, fade, 0));
+            // 浅色照旧：左沿透明、30% 处 0x24、58% 处散尽 —— 与两页 XAML 逐档同值的那一份。
+            Assert.Equal(0d, StoreBackdropBlend.Shade(0, height, page, height));
+            Assert.True(Math.Abs(StoreBackdropBlend.Shade(0.3 * page, height, page, height) - (0x24 / 255d)) < 1e-9, "浅色淡墨 30% 处的浓度变了");
+            Assert.Equal(0d, StoreBackdropBlend.Shade(0.58 * page, height, page, height));
+            // 深色在剧照左沿之前处处比浅色浓；浅色在 58% 之后为 0，深色到剧照满色处才退完。
+            foreach (var x in new[] { 0d, 0.1, 0.22, 0.3 })
+                Assert.True(StoreBackdropBlend.ShadeDark(x * page, height, left, fade, height) > StoreBackdropBlend.Shade(x * page, height, page, height));
+            // 渐隐带的终点就是剧照满色那一档：那一点上剧照横向已 ≥ 96%（取竖向还没开始衰减的上段），再往前 0.05 还没有。
+            Assert.True(StoreBackdropBlend.Alpha(StoreBackdropBlend.PictureFade, 0.15, ambient: false) >= 0.95, "渐隐带终点不是剧照满色处");
+            Assert.True(StoreBackdropBlend.Alpha(StoreBackdropBlend.PictureFade - 0.05, 0.15, ambient: false) < 0.95, "渐隐带终点之后剧照还在起坡");
         });
         Test("商店艺术图：顶部换成封面取色的纯色底，铺满左右上角", () =>
         {

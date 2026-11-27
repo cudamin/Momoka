@@ -203,6 +203,111 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    /// <summary>
+    /// 检查台手点那一项（2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」）：同一张
+    /// 商店详情在深／浅两档、宽（1240）窄（760）两档各留一张实屏（store-shade-{dark|light}-{宽}-screen.png），
+    /// 并核横向那道淡墨的画刷跟着主题换了 —— 深色是浓墨那份（≥ 4 档、左沿不透明度 ≥ 0xA0），浅色仍是
+    /// 原来那三档淡墨（左沿透明）。另一档的期望拿来核必须被拒绝，证明这条判断分得开两档。
+    /// </summary>
+    private async Task StoreShadeAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var savedTheme = ThemeHost.Current.Id;
+        var motion = HomeMotion.PreferenceEnabled;
+        var frame = new Frame();
+        try
+        {
+            HomeMotion.ApplyPreference(false);
+            var poster = await FixtureImageAsync(400, 600);
+            var backdrop = await StoreBackdropFixtureAsync(ambient: true);
+            var series = Series();
+            series.Name = "商店淡墨";
+            series.Overview = "首字完整。" + ResponsiveOverview;
+            series.ImageTags["Primary"] = "store-poster";
+            series.BackdropImageTags = ["store-backdrop"];
+            fixture.Transport.Reply = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                if (path.Contains("/Images/", StringComparison.Ordinal))
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    { Content = new ByteArrayContent(path.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop) });
+                return Task.FromResult(path.EndsWith("/Items/show", StringComparison.Ordinal) ? Json(series)
+                    : FakeTransport.Standard(request));
+            };
+            fixture.Settings.Ui.EnableImmersive = false;
+            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+            _root.Children.Add(frame);
+            Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, series)), "商店淡墨检查导航失败");
+            var page = (DetailPage)frame.Content;
+            page.SetStorePreviewActive(false);
+            page.AttachWindow(_window!);
+            await UntilAsync(() => page.IsReady && page.IsLoaded && page.ViewModel.HeroImage is not null
+                && Get<bool>(page, "_appearanceObserved"));
+            foreach (var dark in new[] { true, false })
+            {
+                // 只注入有效配色，不改 Windows 应用模式（同 StoreDetailBackdropAsync）。
+                typeof(ThemeHost).GetMethod("ApplyResolved", System.Reflection.BindingFlags.NonPublic
+                    | System.Reflection.BindingFlags.Static)!.Invoke(null, [UiThemes.System(dark)]);
+                foreach (var width in new[] { 1240, 760 })
+                {
+                    await ResizeResponsiveAsync(page, width, 900);
+                    await LayoutAsync(page);
+                    await LayoutAsync(page);
+                    var brush = Get<Border>(page, "StoreShadeAcross").Background;
+                    Require(IsStoreShade(brush, dark), dark ? "深色主题横向淡墨没有换成浓墨那份" : "浅色主题横向淡墨不再是原来那道");
+                    var rejected = false;
+                    try { Require(IsStoreShade(brush, !dark), "反例"); }
+                    catch (InvalidOperationException) { rejected = true; }
+                    Require(rejected, "淡墨画刷检查没有拒绝另一档");
+                    // 竖向那道两档同一支、方向仍是上 → 下：横向色标搭成竖向起止点（或反过来）在屏上是另一道渐变。
+                    Require(IsStoreShadeDown(Get<Border>(page, "StoreShadeDown").Background), "竖向淡墨不是原来那道（方向或色标变了）");
+                    await SaveProbeScreenAsync($"store-shade-{(dark ? "dark" : "light")}-{width}-screen.png");
+                }
+            }
+        }
+        finally
+        {
+            try { (frame.Content as IShellContent)?.Release(); }
+            finally
+            {
+                _root.Children.Remove(frame);
+                ShellPrefs.ApplyAppearance(new());
+                ThemeHost.Apply(savedTheme);
+                HomeMotion.ApplyPreference(motion);
+            }
+        }
+    }
+
+    private static bool IsStoreShade(Brush? brush, bool dark)
+    {
+        if (brush is not LinearGradientBrush gradient) return false;
+        // 方向也对才算：左沿铺到右沿，起止点落在同一条水平线上。
+        if (!IsAcross(gradient)) return false;
+        var stops = gradient.GradientStops;
+        if (dark ? stops.Count < 4 || stops[0].Color.A < 0xA0 : stops.Count != 3 || stops[0].Color.A != 0) return false;
+        return stops.All(stop => stop.Color.R == 0x0C && stop.Color.G == 0x0E && stop.Color.B == 0x11) && stops[^1].Color.A == 0;
+    }
+
+    /// <summary>竖向那道（两档同一支）：从顶铺到底，0x30 → 0x10（35%）→ 散尽，色仍是 0C0E11。</summary>
+    private static bool IsStoreShadeDown(Brush? brush)
+    {
+        if (brush is not LinearGradientBrush gradient || IsAcross(gradient)
+            || !Near(gradient.StartPoint.X, 0.5) || !Near(gradient.StartPoint.Y, 0)
+            || !Near(gradient.EndPoint.X, 0.5) || !Near(gradient.EndPoint.Y, 1)) return false;
+        var stops = gradient.GradientStops;
+        if (stops.Count != 3 || !Near(stops[0].Offset, 0) || stops[0].Color.A != 0x30
+            || !Near(stops[1].Offset, 0.35) || stops[1].Color.A != 0x10
+            || !Near(stops[2].Offset, 1) || stops[2].Color.A != 0) return false;
+        return stops.All(stop => stop.Color.R == 0x0C && stop.Color.G == 0x0E && stop.Color.B == 0x11);
+    }
+
+    private static bool IsAcross(LinearGradientBrush gradient) =>
+        Near(gradient.StartPoint.X, 0) && Near(gradient.StartPoint.Y, 0.5)
+        && Near(gradient.EndPoint.X, 1) && Near(gradient.EndPoint.Y, 0.5);
+
+    private static bool Near(double value, double expected) => Math.Abs(value - expected) < 1e-6;
+
     private static StoreFadeRead ReadStoreMask(DetailPage page, string name)
     {
         var brush = Get<Border>(page, name).Background as ImageBrush;

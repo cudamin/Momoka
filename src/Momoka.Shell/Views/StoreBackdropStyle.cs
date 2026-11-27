@@ -109,4 +109,66 @@ internal static class StoreBackdropStyle
             });
         return brush;
     }
+
+    /// <summary>
+    /// 淡墨画刷：色标换算成固定 #0C0E11 的透明度档，横向（左 → 右）或竖向（上 → 下）。方向必须跟色标
+    /// 那一道一致 —— 横向那组色标搭成竖向起止点，画出来就是另一道渐变。
+    /// </summary>
+    private static LinearGradientBrush ShadeBrush((double Position, double Alpha)[] stops, bool vertical)
+    {
+        var ink = StoreBackdropBlend.ShadeInk;
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = vertical ? new Point(0.5, 0) : new Point(0, 0.5),
+            EndPoint = vertical ? new Point(0.5, 1) : new Point(1, 0.5)
+        };
+        foreach (var (position, alpha) in stops)
+            brush.GradientStops.Add(new GradientStop
+            {
+                Offset = position,
+                Color = ThemeHost.ToColor(ink.WithAlpha((byte)Math.Round(255 * alpha)))
+            });
+        return brush;
+    }
+
+    /// <summary>
+    /// 左上角淡墨（<c>StoreShade</c>）不随几何变的那两支画刷，色标只在 <see cref="StoreBackdropBlend"/> 一处：
+    /// 浅色主题的横向那道与两档同一支的竖向那道。都是静态的 —— 颜色与曲线不随页面、像素或色板变，
+    /// 两页共用；XAML 里那两支只是上树第一帧的初值，与这里浅色那份逐档同值（测试核对）。
+    /// 深色主题的横向那道随剧照位置变，见 <see cref="ShadeDark"/>。
+    /// </summary>
+    internal static class Shade
+    {
+        private static Brush? _across, _down;
+
+        /// <summary>浅色主题横向那道（2026-11-27 之前两档共用的那道淡墨，浅色照旧）。</summary>
+        internal static Brush Across => _across ??= ShadeBrush(StoreBackdropBlend.ShadeAcross, vertical: false);
+
+        /// <summary>竖向那道（压顶上，两档同一支）。</summary>
+        internal static Brush Down => _down ??= ShadeBrush(StoreBackdropBlend.ShadeDown, vertical: true);
+    }
+
+    /// <summary>
+    /// 深色主题横向那道（2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」）：
+    /// 色标按左列宽与剧照渐隐带宽换算成整页的比例停点（<see cref="StoreBackdropBlend.ShadeDarkStops"/>），
+    /// 几何变了才重搭，拖窗口时同宽不重建；页宽没量到时不画。
+    /// </summary>
+    internal sealed class ShadeDark
+    {
+        private static readonly SolidColorBrush Empty = new(Microsoft.UI.Colors.Transparent);
+        private (double Page, double Left, double Fade) _geometry;
+        private Brush? _brush;
+
+        internal void Clear() => _brush = null;
+
+        internal Brush Resolve(double pageWidth, double leftColumn, double fadeWidth)
+        {
+            var geometry = (pageWidth, leftColumn, fadeWidth);
+            if (_brush is not null && _geometry == geometry) return _brush;
+            var stops = StoreBackdropBlend.ShadeDarkStops(pageWidth, leftColumn, fadeWidth);
+            _geometry = geometry;
+            if (stops.Length == 0) return _brush = Empty;
+            return _brush = ShadeBrush(stops, vertical: false);
+        }
+    }
 }

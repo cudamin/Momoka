@@ -10,7 +10,7 @@ internal sealed class StoreVideoBrush
 {
     private byte[]? _ambient;
     private (ThemeColor Window, double Page, double Ambient, double Width, double Height, double Gap,
-        double ShadeWidth, double ShadeHeight) _layout;
+        double ShadeWidth, double ShadeHeight, bool Dark) _layout;
     private ImageBrush? _brush;
     private (ThemeColor Window, double Page, double Width, double Height, double Gap) _foundationLayout;
     private ImageBrush? _foundation;
@@ -30,13 +30,13 @@ internal sealed class StoreVideoBrush
     }
 
     internal ImageBrush Resolve(byte[]? ambient, ThemeColor window, double page, double ambientHeight,
-        double width, double height, double gap, double shadeWidth, double shadeHeight)
+        double width, double height, double gap, double shadeWidth, double shadeHeight, bool dark)
     {
-        var layout = (window, page, ambientHeight, width, height, gap, shadeWidth, shadeHeight);
+        var layout = (window, page, ambientHeight, width, height, gap, shadeWidth, shadeHeight, dark);
         if (_brush is not null && ReferenceEquals(_ambient, ambient) && _layout == layout) return _brush;
         var bitmap = new WriteableBitmap(StoreBackdropBlend.Side, StoreBackdropBlend.Side);
         var pixels = StoreBackdropBlend.Video(ambient, window, page, ambientHeight, width, height, gap,
-            shadeWidth, shadeHeight);
+            shadeWidth, shadeHeight, dark);
         using (var stream = bitmap.PixelBuffer.AsStream()) stream.Write(pixels);
         bitmap.Invalidate();
         _ambient = ambient;

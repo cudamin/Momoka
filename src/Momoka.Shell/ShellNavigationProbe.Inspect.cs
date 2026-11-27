@@ -359,6 +359,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
         AddCheck("InspectDetailMica", "商店详情背景与底材验证", DetailMicaAsync);
         AddCheck("InspectStoreDetailBackdrop", "商店渐隐与首卡首字验证", StoreDetailBackdropAsync, ShellProbeSections.DetailCards);
+        AddCheck("InspectStoreShade", "商店左侧淡墨深浅实屏", StoreShadeAsync, ShellProbeSections.DetailCards);
         AddCheck("InspectStoreDetailCards", "商店媒体订阅卡片与恢复", StoreDetailCardsAsync, ShellProbeSections.DetailCards);
         AddCheck("InspectMoviePilotMica", "MP 商店背景与底材验证", MoviePilotSubscriptionShowcaseAsync);
         AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);

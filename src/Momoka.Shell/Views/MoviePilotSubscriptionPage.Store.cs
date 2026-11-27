@@ -10,6 +10,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private StoreBackdropFade? _storeAmbientFade;
     private readonly StoreBackdropStyle.Tint _storeTint = new();
     private readonly StoreAmbientBrush _storeAmbientBrush = new();
+    private readonly StoreBackdropStyle.ShadeDark _storeShadeDark = new();
 
     private void PaintStoreBackdrop()
     {
@@ -24,6 +25,19 @@ public sealed partial class MoviePilotSubscriptionPage
         StoreBackdrop.Visibility = storeShown && !_trailerOpened ? Visibility.Visible : Visibility.Collapsed;
         // 左上角那道淡墨跟着装饰背景同进同退（复刻媒体详情页商店档，2026-11-17）：背景不在时它没有东西可压。
         StoreShade.Visibility = storeShown ? Visibility.Visible : Visibility.Collapsed;
+        // 2026-11-27 同媒体详情页（用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」）：横向那道
+        // 按主题取，深色压深左侧（左列一整片深色，剧照从暗里浮出来）、浅色仍是原来那道淡墨；竖向那道两档同一支。
+        // 换主题走 OnShowcaseThemeChanged → ApplyMaterialAppearance → 这一条，所以每次重画都重取。
+        // 深色的几何与 LayoutStoreTrailer 同一套坐标：页宽取窗口宽，剧照左沿 = 页宽 − 右沿空隙 − 视口宽。
+        StoreShadeAcross.Background = StoreBackdropStyle.Shade.Across;
+        if (ThemeHost.Current.IsDark)
+        {
+            var shadePage = MediaViewModel.PageWidth > 0 ? MediaViewModel.PageWidth : MediaViewModel.StorePageWidth;
+            StoreShadeAcross.Background = _storeShadeDark.Resolve(shadePage,
+                Math.Max(0, shadePage - MediaViewModel.StorePreviewMargin.Right - MediaViewModel.StoreBackdropWidth),
+                StoreBackdropBlend.PictureFade * MediaViewModel.StoreBackdropWidth);
+        }
+        StoreShadeDown.Background = StoreBackdropStyle.Shade.Down;
         var width = MediaViewModel.StorePageWidth;
         StoreBackdrop.Height = MediaViewModel.StoreBackdropHeight;
         StoreBackdrop.Width = MediaViewModel.StoreBackdropWidth;
