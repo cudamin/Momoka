@@ -1,0 +1,3 @@
+interface:
+  display_name: "Fluent 2 设计与验收"
+  short_description: "面向 Windows 与 WinUI 的 Fluent 2 界面开发、设计检查和验收规范"

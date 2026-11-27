@@ -153,6 +153,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 按任务选用仓库内的技能。通用技能与本文件相冲突时，遵循本文件。
 
 - C# / XAML 修改、审查或规划先读 [WinUI Shell](.claude/skills/momoka-winui-shell/SKILL.md)。
+- Fluent 2 界面设计、开发判据与验收读 [Fluent 2 设计与验收](.claude/skills/fluent2-design/SKILL.md)，运行场景沿用验证矩阵。
 - 服务协议按来源读 [Emby](.claude/skills/momoka-emby-api/SKILL.md)、[Jellyfin](.claude/skills/momoka-jellyfin-api/SKILL.md)、[飞牛影视](.claude/skills/momoka-fnnas-media-api/SKILL.md)、[Plex](.claude/skills/momoka-plex-api/SKILL.md)。
 - 播放按路径读[播放](.claude/skills/momoka-playback/SKILL.md)、[字幕](.claude/skills/momoka-subtitles/SKILL.md)、[弹幕](.claude/skills/momoka-danmaku/SKILL.md)、[视频输出](.claude/skills/momoka-video-output/SKILL.md)、[音频输出](.claude/skills/momoka-audio-output/SKILL.md)、[着色器](.claude/skills/mpv-shader-quality/SKILL.md)。
 - 集成及取证读 [MoviePilot](.claude/skills/momoka-moviepilot/SKILL.md) 和[验证技能](.claude/skills/momoka-verification/SKILL.md)。

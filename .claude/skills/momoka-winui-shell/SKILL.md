@@ -24,6 +24,7 @@ For a new control base style, a key resolved across resource dictionaries, or a 
 
 | Task | Required reference |
 | --- | --- |
+| Fluent 2 layout, visual hierarchy, component states or design acceptance | [Fluent 2 design and acceptance](../fluent2-design/SKILL.md); use its design criteria without replacing project policy or this skill's implementation guidance |
 | Mica, Acrylic, transparency, materials on any surface, fallback or backdrop settings | [Detailed materials guide](references/materials.md), then the affected entries of the [WinUI validation matrix](../momoka-verification/references/winui-validation.md) |
 | Choose controls, adapt window sizes, DPI/text scaling, keyboard/Narrator, motion, deployment | [WinUI feature guidance](references/winui-features.md) |
 | Find official examples, compare versions or explain a recommendation | [Gallery source map](references/gallery-source-map.md) |
