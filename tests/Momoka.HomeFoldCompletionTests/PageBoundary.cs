@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Xml.Linq;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,6 +12,7 @@ namespace Momoka.Shell.Views
 {
     internal sealed class CardShelf
     {
+        internal string HomeKey { get; set; } = "";
         internal double RowHeight { get; set; } = 180;
         internal bool OnScrim { get; set; }
     }
@@ -18,7 +20,92 @@ namespace Momoka.Shell.Views
     {
         internal double RowHeight { get; set; }
     }
-    internal sealed class ShelfStrip : FrameworkElement;
+    internal sealed class ShelfStrip : FrameworkElement
+    {
+        internal List<PosterCard> RealizedCards { get; } = [];
+        internal void ForEachRealizedCard(Action<PosterCard> apply)
+        {
+            foreach (var card in RealizedCards) apply(card);
+        }
+    }
+    internal sealed partial class PosterCard : FrameworkElement
+    {
+        private readonly CaptionWatchBoundary _watch = new();
+        internal void ChangeCard() => OnCardChanged(this, new DependencyPropertyChangedEventArgs());
+        private void ApplyCaptionStyles() { }
+        private void ClosePreview(bool immediately) { }
+        private void CancelHoverDwell() { }
+        private void ResetMotion() { }
+        private void Begin() { }
+        internal FrameworkElement Root { get; } = new()
+        {
+            RenderTransform = new CompositeTransform(),
+            TestUseLocalCoordinates = true
+        };
+        internal TextBlock TitleLine { get; } = new()
+        {
+            Text = "Anonymous series",
+            ActualHeight = 24,
+            TestTop = 52,
+            TestUseLocalCoordinates = true
+        };
+        internal TextBlock SubLine { get; } = new()
+        {
+            Text = "S01E07 - Episode 7",
+            ActualHeight = 18,
+            TestTop = 82,
+            TestUseLocalCoordinates = true
+        };
+        internal TextBlock SourceLine { get; } = new()
+        {
+            Text = "Anonymous account",
+            ActualHeight = 18,
+            TestTop = 106,
+            TestUseLocalCoordinates = true
+        };
+        internal PosterCard()
+        {
+            TestUseLocalCoordinates = true;
+            TestChildren.Add(Root);
+            Root.TestParent = this;
+            foreach (var text in new[] { TitleLine, SubLine, SourceLine })
+            {
+                Root.TestChildren.Add(text);
+                text.TestParent = Root;
+            }
+            var xaml = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "PosterCard.xaml"));
+            XNamespace xamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+            foreach (var (name, line) in new[] { ("TitleLine", TitleLine), ("SubLine", SubLine) })
+            {
+                var node = xaml.Descendants().Single(element => element.Attribute(xamlNamespace + "Name")?.Value == name);
+                if (node.Attribute("Loaded")?.Value is { } loaded)
+                {
+                    var method = GetType().GetMethod(loaded, BindingFlags.Instance | BindingFlags.NonPublic)
+                        ?? throw new InvalidOperationException("Missing production caption Loaded handler " + loaded);
+                    line.Loaded += method.CreateDelegate<EventHandler<RoutedEventArgs>>(this);
+                }
+                if (node.Attribute("SizeChanged")?.Value is { } sizeChanged)
+                {
+                    var method = GetType().GetMethod(sizeChanged, BindingFlags.Instance | BindingFlags.NonPublic)
+                        ?? throw new InvalidOperationException("Missing production caption SizeChanged handler " + sizeChanged);
+                    line.SizeChanged += method.CreateDelegate<EventHandler<SizeChangedEventArgs>>(this);
+                }
+            }
+        }
+    }
+    internal sealed class CardItem
+    {
+        internal void ClaimCard(PosterCard card) { }
+        internal void ReleasePoster(PosterCard card, bool keepWaiting) { }
+    }
+    internal sealed class CaptionWatchBoundary
+    {
+        internal void Leave() { }
+    }
+    internal sealed class HomeRowsLayout
+    {
+        internal double Spacing { get; set; } = 4;
+    }
     internal sealed class ShelfHead : FrameworkElement;
     internal sealed class TestHomeState
     {
@@ -113,6 +200,21 @@ namespace Momoka.Shell.Views
 
     public sealed partial class HomePage
     {
+        public HomePage()
+        {
+            // Read the production XAML event names; a missing hook must leave the behavior test red.
+            var page = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "HomePage.xaml"));
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+            foreach (var (name, element) in new (string, FrameworkElement)[] { ("Scroller", Scroller), ("ShelfRepeater", ShelfRepeater) })
+            {
+                var node = page.Descendants().Single(node => node.Attribute(xaml + "Name")?.Value == name);
+                if (node.Attribute("SizeChanged")?.Value is not { } handler) continue;
+                var method = GetType().GetMethod(handler, BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException("Missing production size handler " + handler);
+                element.SizeChanged += method.CreateDelegate<EventHandler<SizeChangedEventArgs>>(this);
+            }
+        }
+
         private const string Category = "主页";
         private const double LibraryOverlayBaseWidth = 660;
         private Momoka.Diagnostics.NavigationTimingRun? _timing;
@@ -123,7 +225,6 @@ namespace Momoka.Shell.Views
         private const double ChromeHeight = 48;
         private int _homeLibraryFlowIndex;
         private double? _restoredScroll;
-        private double _libraryFlowHeight;
         internal TestHomeState ViewModel { get; } = new();
         internal ObservableCollection<object> HomeRows { get; } = [];
         internal TestSubscriptions Subscriptions { get; } = new();
@@ -142,7 +243,7 @@ namespace Momoka.Shell.Views
             TestTop = 260
         };
         internal ContentControl LibraryHost { get; } = new();
-        internal ItemsRepeater ShelfRepeater { get; } = new();
+        internal ItemsRepeater ShelfRepeater { get; } = new() { Layout = new HomeRowsLayout { Spacing = 4 } };
         internal ScrollView Scroller { get; } = new() { ActualHeight = 900 };
         internal int HeaderRefreshes => _actions!.HeaderRefreshes;
         internal bool RestoringHeader => _restoringHeaderScroll;
@@ -180,6 +281,15 @@ namespace Momoka.Shell.Views
         internal void ResumeVisit() { _released = false; _navigation++; }
         internal void SetPlaced(bool on) => _foldOn = on;
         internal (double Line, bool HasNext)? ReadCoversLine() => MeasureCoversLine();
+        internal void BindCaptionGeometry(PosterCard card)
+        {
+            var page = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "HomePage.xaml"));
+            var node = page.Descendants().Single(element => element.Name.LocalName == "PosterCard");
+            if (node.Attribute("CaptionGeometryChanged")?.Value is not { } handler) return;
+            var method = GetType().GetMethod(handler, BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Missing production caption handler " + handler);
+            card.CaptionGeometryChanged += method.CreateDelegate<EventHandler>(this);
+        }
         internal void ReplaceMain(HomeFoldMotion motion) => _fold = motion;
         internal void ReplaceLate(HomeFoldMotion motion) => _foldLate = motion;
         internal void SetFlowIndex(int index) => _homeLibraryFlowIndex = index;

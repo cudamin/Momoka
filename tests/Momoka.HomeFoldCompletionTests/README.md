@@ -10,7 +10,11 @@
 
 - 编译链接完整真实 `src/Momoka.Shell/Views/HomeFoldMotion.cs`。构建时以唯一首尾标记从当前 HomePage.xaml.cs **原样提取** fold 字段、Fold／量测／UpdateLibraryOverlay／ScheduleFold／ApplyLibraryChrome／HandBack、完成／取消以及 PreparePlaybackReturn／Release 方法；**不改、不测试 R062 目录快照**。找不到或标记不唯一即构建失败。
 - UI 元素、预先给定的布局值、宿主 Content／Visibility、DispatcherQueue 与 Storyboard 是无 HWND／WinRT 的框架边界。Storyboard 可保留已排队 Completed、重复投递、控制 Begin 失败和 Stop 重入；Stop 先退回 Begin 保存的本地值，真实动画类再落定到 Y=0／Opacity=1。
-- 默认档量测回归执行真实 ViewportTopAtScrollZero／LayoutTopIn／HeadOf／MeasureCoversLine，框架边界可累加到目标坐标系之前的父链位移。模板根入场 Y=20、整排及祖先正负位移、单个后续货架和滚动恢复都不能改变界线，也不能清除仍在运行的变换。普通导航的 Loaded／Frame 与实际混排仍由匿名 WinUI 探针覆盖。
+- 自动档量测回归执行真实 ViewportTopAtScrollZero／LayoutTopIn／HeadOf／MeasureCoversLine，并原样提取 PosterCard 的文字行量测与几何通知。季集副标题优先、无副标题回退片名；账号行、媒体库整排下沿、幅宽和轮播自然带高都不参与文字裁切阈值。已实现卡片中最低文字行距视口下沿只剩 8 DIP 以内（含 8 DIP）时上移；默认与压上两档还原同一条线，保留滚动偏移、混排顺序、末排不折叠和未布局不猜测的边界。
+- 压上状态的默认档几何还原使用实际流内量测缓存。本专项覆盖冷缓存先回流并排队重测、流内媒体库整排或 strip 尚未就绪时等待、更换媒体库对象使旧缓存失效；overlay 中 ShelfStrip 增高 32 DIP 后，连续三次读取均按当前与缓存的高度差还原，不重复累加；目标标题增高 6 DIP 会要求回流，重测后再次上移不重复校准。更换目标对象、strip 变矮、标题间距变化、overlay 宿主或 strip 未就绪，以及校准是否准确只排一拍，本专项尚无对应行为断言。
+- 框架边界可累加到目标坐标系之前的父链位移，并提供 Root 上悬停／按压的 CompositeTransform。模板根入场 Y=20、整排及祖先正负位移、单个后续货架和滚动恢复都不能改变界线，也不能清除仍在运行的变换。普通导航的 Loaded／Frame 与实际混排仍由匿名 WinUI 探针覆盖。
+- 几何重判从生产 `HomePage.xaml` 读取 Scroller／ShelfRepeater 的 `SizeChanged` 和卡片 `CaptionGeometryChanged` 接线，从 `PosterCard.xaml` 读取 TitleLine／SubLine 的 Loaded／SizeChanged 接线，再绑定原样提取的生产处理器；覆盖外层尺寸不变而文字才就绪／换内容、仅视口变高变矮、货架文字行落定、重复事件合并、布局重入校正、离页/返页与排队拒绝后恢复。旧 XAML 漏接线时行为断言会失败；无 HWND 边界不证明实际窗口尺寸事件时机与视觉效果。
+- 纯 `HomeFoldThresholdProbeContract` 回归从生产探针原样提取 helper，覆盖后续文字行有效值与无效几何拒绝、文字仍可见且距底不超过 8 DIP 的上移采样、按真实 client／viewport／文字行换算客户区目标高度，以及最终文字位置／档位／overlay 宿主状态核对。它只证明匿名输入下 helper 的成功与失败路径；没有运行原生 `HomeFoldThresholdAsync()`，无 HWND 的结果不证明实际 WinUI 排版、窗口尺寸事件、动画时序、实屏截图、点击命中或焦点。
 - HomeViewModel 不复制：夹具只喂 LibraryOnBanner／Shelf／Slides 等读值，并在现有 SetLibraryOverlay 端口发布预先给定的布局快照。使用真实 Core 的 HomeFold／HomeCarousel 和 NullLogSink；混排目录、未用页面／设置／业务／播放器边界拒绝执行。
 - 实际数量以本次运行 TOTAL 为准。新增同档媒体库视口为轮播读数留出右边距、读数隐藏后恢复及重复应用不另起动画。核心回归为压上动画完成 → 关闭轮播 → 宿主 Content=null、Overlay=Collapsed、当前横排媒体库一份；同时覆盖真正回程保留原载体、迟一拍在主动画完成后仍可跑、快速翻档／旧完成／规划失败／离页／播放返回／关闭动画，以及原 260ms、150+110ms 换手与 520ms 防抖等待。
 - 没有启动 App、真实 UI／输入／截图、native 或播放器，不读取真实设置／凭据／DPAPI／服务器，不 publish／push／升级／放宽基线。本结果**不是**实际 WinUI 渲染、焦点、命中、帧时序或真实播放验收。

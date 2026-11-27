@@ -416,6 +416,31 @@ public sealed partial class PosterCard : UserControl
         }
     }
 
+    /// <summary>文字布局就绪或变化时通知主页重算裁切线，卡片自身不重排页面。</summary>
+    public event EventHandler? CaptionGeometryChanged;
+
+    private void OnFoldCaptionLoaded(object sender, RoutedEventArgs e) => NotifyFoldCaptionGeometryChanged();
+
+    private void OnFoldCaptionSizeChanged(object sender, SizeChangedEventArgs e) => NotifyFoldCaptionGeometryChanged();
+
+    private void NotifyFoldCaptionGeometryChanged() => CaptionGeometryChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>季集行的稳定布局下沿；没有副标题则保护片名，未排完不提供假读数。</summary>
+    internal double? FoldCaptionBottomIn(UIElement space)
+    {
+        var line = SubLine.Visibility == Visibility.Visible && !string.IsNullOrWhiteSpace(SubLine.Text)
+            ? SubLine : TitleLine;
+        if (line.Visibility != Visibility.Visible || string.IsNullOrWhiteSpace(line.Text) || line.ActualHeight <= 0) return null;
+
+        // Root 上的悬停缩放/按压/移除位移只改绘制；在 Root 自己的坐标系里量文字，不把它们算进裁切界线。
+        var bottom = line.TransformToVisual(Root).TransformPoint(new Point(0, line.ActualHeight)).Y;
+        var top = TransformToVisual(space).TransformPoint(new Point(0, 0)).Y;
+        for (DependencyObject? node = this; node is not null && !ReferenceEquals(node, space);
+            node = VisualTreeHelper.GetParent(node))
+            if (node is FrameworkElement { RenderTransform: TranslateTransform drift }) top -= drift.Y;
+        return double.IsFinite(top + bottom) ? top + bottom : null;
+    }
+
     private static void OnCardChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var card = (PosterCard)sender;
@@ -446,6 +471,7 @@ public sealed partial class PosterCard : UserControl
         // 一种原因：回收池把这个容器交给这一条目摆上屏。首次赋卡尚未挂树时由 Loaded 再请求，
         // 已经显示却收到回收幻影的容器仍有 XamlRoot，Begin 不能把它拦住。
         card.Begin();
+        card.NotifyFoldCaptionGeometryChanged();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

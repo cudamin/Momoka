@@ -83,6 +83,13 @@ namespace Microsoft.UI.Dispatching
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+    public sealed class RoutedEventArgs : EventArgs;
+    public sealed class SizeChangedEventArgs : EventArgs;
+    public sealed class DependencyPropertyChangedEventArgs : EventArgs
+    {
+        public object? NewValue { get; set; }
+        public object? OldValue { get; set; }
+    }
     public enum FocusState { Programmatic }
     public readonly record struct Duration(TimeSpan TimeSpan);
     public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
@@ -127,6 +134,10 @@ namespace Microsoft.UI.Xaml
     }
     public class FrameworkElement : UIElement
     {
+        public event EventHandler<RoutedEventArgs>? Loaded;
+        public void RaiseLoaded() => Loaded?.Invoke(this, new RoutedEventArgs());
+        public event EventHandler<SizeChangedEventArgs>? SizeChanged;
+        public void RaiseSizeChanged() => SizeChanged?.Invoke(this, new SizeChangedEventArgs());
         public Thickness Margin { get; set; }
         public Thickness Padding { get; set; }
         public double MaxWidth { get; set; } = double.PositiveInfinity;
@@ -135,6 +146,7 @@ namespace Microsoft.UI.Xaml
         public double Opacity { get; set; } = 1;
         public Transform? RenderTransform { get; set; } = new MatrixTransform();
         public double TestTop { get; set; }
+        public bool TestUseLocalCoordinates { get; set; }
         public GeneralTransform TransformToVisual(UIElement? space) => new(TestTop, this, space);
     }
     public sealed class Border : FrameworkElement
@@ -151,14 +163,26 @@ namespace Microsoft.UI.Xaml.Media
     {
         public double Y { get; set; }
     }
+    public sealed class CompositeTransform : Transform
+    {
+        public double TranslateY { get; set; }
+        public double ScaleY { get; set; } = 1;
+        public double CenterY { get; set; }
+    }
     public sealed class GeneralTransform(double top, DependencyObject element, UIElement? space)
     {
         public Point TransformPoint(Point point)
         {
-            var translated = 0.0;
+            var y = point.Y + top;
             for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, space); node = node.TestParent)
-                if (node is FrameworkElement { RenderTransform: TranslateTransform drift }) translated += drift.Y;
-            return new Point(point.X, point.Y + top + translated);
+            {
+                if (node is not FrameworkElement current) continue;
+                if (!ReferenceEquals(node, element) && current.TestUseLocalCoordinates) y += current.TestTop;
+                if (current.RenderTransform is TranslateTransform drift) y += drift.Y;
+                else if (current.RenderTransform is CompositeTransform transform)
+                    y = (y - transform.CenterY) * transform.ScaleY + transform.CenterY + transform.TranslateY;
+            }
+            return new Point(point.X, y);
         }
     }
     public static class VisualTreeHelper
@@ -171,6 +195,10 @@ namespace Microsoft.UI.Xaml.Media
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class TextBlock : FrameworkElement
+    {
+        public string Text { get; set; } = "";
+    }
     public class Page : FrameworkElement
     {
         public object? XamlRoot { get; set; } = new();

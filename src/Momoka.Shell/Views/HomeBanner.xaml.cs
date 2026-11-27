@@ -545,7 +545,7 @@ public sealed partial class HomeBanner : UserControl
         }
     }
 
-    /// <summary>按设计形状、不被一屏封住的带高（矮窗档界线读它）。</summary>
+    /// <summary>按设计形状、不受一屏高度限制的带高；不参与媒体库自动上移判定。</summary>
     internal double NaturalBandHeight => HomeCarousel.NaturalBandHeight(_layout, ActualWidth, _railShown);
 
     public HomeBanner()

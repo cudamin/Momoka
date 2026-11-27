@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
+using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Windows.Foundation;
 
@@ -10,15 +11,14 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>
-    /// 矮窗档的判定线（2026-11-13 用户报「这都重叠了媒体库还不下移」）：窗口 1064×761（页面宽 807、视口 744、
-    /// 轮播带宽 758）时，媒体库那一排整排都放得进第一屏，旧判定线（看下面第二排的封面顶）却还把它压上圆角轮播，
-    /// 播放键离压上来的卡片只剩几个像素。线改成媒体库整排自己的下沿之后，同一窗口留在轮播下方；窗口矮到
-    /// 整排被第一屏裁掉才压上，压上档里轮播字块与那一排之间还得留出空当。
+    /// 整宽主页的自动档保护真实继续观看季集行：文字尚未裁掉、距视口下沿只剩 8 DIP 就上移。
+    /// 两个幅宽只作布局输入，每次从真实文字线换算客户区高度，不把某组窗口尺寸当成上移／下移门槛。
     /// </summary>
     private async Task HomeFoldThresholdAsync()
     {
         using var fixture = CreateFixture();
-        fixture.Settings.Ui.EnableImmersive = false;
+        fixture.Settings.Ui.EnableImmersive = true;
+        fixture.Settings.Ui.CarouselLayout = CarouselLayout.Full;
         await fixture.SelectAsync();
         var libraries = Enumerable.Range(0, 3).Select(index => new EmbyItem
         {
@@ -30,16 +30,19 @@ internal sealed partial class ShellNavigationProbe
         foreach (var library in libraries) fixture.Session.Capture().Bind(library);
         fixture.Settings.Ui.ShowHomeBanner = true;
         fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.Auto;
-        fixture.Settings.Ui.HomeRows = HomeLayout.Save(HomeLayout.Plan(null, libraries));
+        fixture.Settings.Ui.HomeRows = HomeLayout.Save(HomeLayout.Plan(null, libraries, librariesFirst: true));
         foreach (var row in fixture.Settings.Ui.HomeRows)
             row.Visible = row.Key is HomeLayout.Libraries or HomeLayout.Resume;
         var picture = await FixtureImageAsync(1280, 720);
         var items = Enumerable.Range(0, 8).Select(index => new EmbyItem
         {
-            Id = "fold-film-" + index,
-            Name = "匿名影片 " + (index + 1),
+            Id = "fold-episode-" + index,
+            Name = "第" + (index + 1) + "集",
+            SeriesName = "匿名剧集 " + (index + 1),
+            ParentIndexNumber = 1,
+            IndexNumber = index + 1,
             Overview = "剧情说明用于验证轮播字块与压上来的媒体库之间留出的空当。",
-            Type = EmbyItemType.Movie,
+            Type = EmbyItemType.Episode,
             ImageTags = new() { ["Primary"] = "poster" },
             BackdropImageTags = ["backdrop"]
         }).ToArray();
@@ -60,49 +63,123 @@ internal sealed partial class ShellNavigationProbe
             frame.Navigate(typeof(HomePage), new HomeRequest(fixture.Services, libraries, null));
             var home = (HomePage)frame.Content;
             await UntilAsync(() => home.IsReady && home.ViewModel.Slides.Count > 0
-                && home.ViewModel.LibraryShelf is { Cards.Count: > 0 } && home.HomeRows.Count >= 2);
+                && home.ViewModel.LibraryShelf is { Cards.Count: > 0 }
+                && home.HomeRows.OfType<CardShelf>().Any(shelf => shelf.HomeKey == HomeLayout.Resume));
             await LayoutAsync(home);
 
             var banner = Get<HomeBanner>(home, "Banner");
             var overlay = Get<Border>(home, "LibraryOverlay");
             var scroller = Get<ScrollView>(home, "Scroller");
+            var repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
+            Require(banner.Layout == CarouselLayout.Full, "自动裁切夹具没有启用整宽轮播");
+            var plan = fixture.Settings.Ui.HomeRows.Where(row => row.Visible).Select(row => row.Key).ToArray();
+            Require(plan.SequenceEqual(new[] { HomeLayout.Libraries, HomeLayout.Resume }),
+                "自动裁切夹具必须明确把媒体库排在继续观看之前");
 
-            // 用户那一档的页面宽高（侧栏展开 256 时窗口 1064 → 页面 807）。探针里页面就是整幅客户区。
-            ResizeProbeClient(807, 761);
-            await LayoutAsync(home);
-            await UntilAsync(() => !home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Collapsed);
-            await Task.Delay(700);
-            await LayoutAsync(home);
+            double CaptionLine()
+            {
+                var resumeIndex = Enumerable.Range(0, home.HomeRows.Count)
+                    .FirstOrDefault(index => home.HomeRows[index] is CardShelf { HomeKey: HomeLayout.Resume }, -1);
+                Require(resumeIndex >= 0, "继续观看匿名货架未生成");
+                var row = repeater.TryGetElement(resumeIndex) as FrameworkElement
+                    ?? throw new InvalidOperationException("继续观看匿名货架未实现");
+                var cards = HomeFoldMotion.Find<ShelfStrip>(row)
+                    ?? throw new InvalidOperationException("继续观看匿名卡片条带未实现");
+                var measured = 0;
+                cards.ForEachRealizedCard(card =>
+                {
+                    var line = Get<TextBlock>(card, "SubLine");
+                    Require(line.Visibility == Visibility.Visible && line.ActualHeight > 0
+                        && line.Text.StartsWith("S01E", StringComparison.Ordinal),
+                        "继续观看夹具没有真实可见的季集文字行");
+                    measured++;
+                });
+                Require(measured > 0, "继续观看没有可测的已实现季集卡片");
+                return HomeFoldThresholdProbeContract.CaptionLine(
+                    ((double Line, bool HasNext)?)Call(home, "MeasureCoversLine"));
+            }
 
-            var line = ((ValueTuple<double, bool>)Call(home, "MeasureCoversLine")!).Item1;
-            Require(scroller.ActualHeight > line,
-                $"媒体库整排已经放得下，判定线却还在第一屏外（线 {line:0}、视口 {scroller.ActualHeight:0}）");
-            Require(!home.ViewModel.LibraryOnBanner, "媒体库放得下的窗口仍压上轮播");
-            Require(overlay.Visibility == Visibility.Collapsed, "回默认档还留着轮播上的媒体库宿主");
-            var band = HomeCarousel.Height(scroller.ActualHeight, banner.ActualWidth);
-            Require(Math.Abs(banner.ActualHeight - band) <= 1.5,
-                $"这一档的轮播不是设计形状（{banner.ActualHeight:0} 对 {band:0}）");
-            await SaveProbeScreenAsync("home-fold-room-below-screen.png");
-
-            // 矮到媒体库整排被第一屏裁掉：这一档要压上轮播，字块与那一排之间不能贴上。
-            ResizeProbeClient(807, 560);
-            await UntilAsync(() => home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Visible);
-            await Task.Delay(700);
-            await LayoutAsync(home);
-
-            var foldedLine = ((ValueTuple<double, bool>)Call(home, "MeasureCoversLine")!).Item1;
-            Require(foldedLine >= scroller.ActualHeight - 0.5,
-                $"压上档的判定线不在第一屏外（线 {foldedLine:0}、视口 {scroller.ActualHeight:0}）");
-            var infoBottom = banner.InfoBlock.TransformToVisual(banner)
-                .TransformPoint(new Point(0, banner.InfoBlock.ActualHeight)).Y;
-            var overlayTop = overlay.TransformToVisual(banner).TransformPoint(new Point(0, 0)).Y;
-            Require(overlayTop - infoBottom >= 0,
-                $"压上来的媒体库盖住了轮播字块（字块底 {infoBottom:0}、宿主顶 {overlayTop:0}）");
-            await SaveProbeScreenAsync("home-fold-on-screen.png");
+            foreach (var width in new[] { 760, 1100 })
+            {
+                ResizeProbeClient(width, 1000);
+                foreach (var on in new[] { false, true })
+                {
+                    var placed = false;
+                    for (var attempt = 0; attempt < 6; attempt++)
+                    {
+                        await LayoutAsync(home);
+                        Call(home, "UpdateLibraryOverlay");
+                        await Task.Delay(700);
+                        await LayoutAsync(home);
+                        var line = CaptionLine();
+                        if (HomeFoldThresholdProbeContract.AtTarget(line, scroller.ActualHeight, on))
+                        {
+                            HomeFoldThresholdProbeContract.RequirePlacement(line, scroller.ActualHeight, on,
+                                home.ViewModel.LibraryOnBanner, overlay.Visibility == Visibility.Visible);
+                            placed = true;
+                            break;
+                        }
+                        ResizeProbeClient(width, HomeFoldThresholdProbeContract.ClientHeight(
+                            _root.ActualHeight, scroller.ActualHeight, line, on));
+                    }
+                    Require(placed, $"宽 {width} 的真实字幕裁切边界在有限布局校正后仍未达到（上移 {on}）");
+                    // 等两阶段换手和防抖都结束，再重读同一条默认布局字幕线，不能只验动画途中。
+                    await Task.Delay(700);
+                    await LayoutAsync(home);
+                    HomeFoldThresholdProbeContract.RequirePlacement(CaptionLine(), scroller.ActualHeight, on,
+                        home.ViewModel.LibraryOnBanner, overlay.Visibility == Visibility.Visible);
+                    if (on)
+                    {
+                        var infoBottom = banner.InfoBlock.TransformToVisual(banner)
+                            .TransformPoint(new Point(0, banner.InfoBlock.ActualHeight)).Y;
+                        var overlayTop = overlay.TransformToVisual(banner).TransformPoint(new Point(0, 0)).Y;
+                        Require(overlayTop - infoBottom >= 0,
+                            $"压上来的媒体库盖住了轮播字块（字块底 {infoBottom:0}、宿主顶 {overlayTop:0}）");
+                    }
+                    if (width == 760)
+                        await SaveProbeScreenAsync(on ? "home-fold-on-screen.png" : "home-fold-room-below-screen.png");
+                }
+            }
         }
         finally
         {
             _root.Children.Remove(frame);
         }
+    }
+}
+
+/// <summary>仅供匿名原生探针换算尺寸和验读数；不替主页决定位置。</summary>
+internal static class HomeFoldThresholdProbeContract
+{
+    internal static double CaptionLine((double Line, bool HasNext)? site) =>
+        site is { HasNext: true } measured && double.IsFinite(measured.Line) && measured.Line > 0
+            ? measured.Line
+            : throw new InvalidOperationException("匿名主页没有可用的继续观看字幕裁切线");
+
+    internal static bool AtTarget(double line, double viewport, bool on)
+    {
+        CaptionLine((line, true));
+        if (!double.IsFinite(viewport) || viewport <= 0)
+            throw new InvalidOperationException("匿名主页视口裁切边界无效");
+        return on
+            ? line < viewport && line + HomeFold.CaptionClearance >= viewport
+            : line + HomeFold.CaptionClearance < viewport;
+    }
+
+    internal static int ClientHeight(double client, double viewport, double line, bool on)
+    {
+        AtTarget(line, viewport, on);
+        var wanted = line + HomeFold.CaptionClearance + (on ? -HomeFold.CaptionClearance / 2 : 24);
+        var height = Math.Ceiling(client + wanted - viewport);
+        return double.IsFinite(client) && client > 0 && double.IsFinite(height) && height > 0 && height <= int.MaxValue
+            ? (int)height
+            : throw new InvalidOperationException("匿名主页无法从实测字幕线换算客户区高度");
+    }
+
+    internal static void RequirePlacement(double line, double viewport, bool on, bool actualOn, bool overlayVisible)
+    {
+        if (!AtTarget(line, viewport, on) || actualOn != on || overlayVisible != on)
+            throw new InvalidOperationException($"季集文字行裁切状态不符（字幕底 {line:0.0}、视口 {viewport:0.0}、"
+                + $"提前 {HomeFold.CaptionClearance:0} DIP、预期上移 {on}、实际 {actualOn}、宿主可见 {overlayVisible}）");
     }
 }

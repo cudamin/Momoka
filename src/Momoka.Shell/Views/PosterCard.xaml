@@ -419,6 +419,8 @@
             <StackPanel>
                 <TextBlock
                     x:Name="TitleLine"
+                    Loaded="OnFoldCaptionLoaded"
+                    SizeChanged="OnFoldCaptionSizeChanged"
                     FontWeight="SemiBold"
                     MaxLines="1"
                     Style="{StaticResource EgBodyStyle}"
@@ -429,6 +431,8 @@
                     ToolTipService.ToolTip="{x:Bind Card.Title, Mode=OneWay}" />
                 <TextBlock
                     x:Name="SubLine"
+                    Loaded="OnFoldCaptionLoaded"
+                    SizeChanged="OnFoldCaptionSizeChanged"
                     MaxLines="1"
                     Style="{StaticResource EgDataStyle}"
                     Text="{x:Bind Card.Subtitle, Mode=OneWay}"
