@@ -1,3 +1,14 @@
+## 2026-11-27 修复详情页音频选择栏展开后收窄
+
+工作树 `C:/Users/89400/.codex/worktrees/eaa1/Momoka`，分支 `codex/fix-detail-audio-dropdown`，基点 `e5cad5f`，逻辑变更为本节所在提交，待合并、未推送。用户要求修复音频选择栏展开后自动收窄、遮挡右侧字母的问题；按日常 UI 批次实现并验证，开放项记入[待交付批次 143](docs/待交付批次.md)。
+
+- **改动与边界**：详情页音频／字幕两行模板仍用原生 ComboBox 部件。共享 `EgPicker` 原先读取直接父级实宽；打开后正文隐藏，自然宽父级随之塌缩，上限反而把展开前宽度压窄。改为保存闭合态的测量约束；展开列表条目晚到变宽时继续撑宽，同次展开不回缩，有限栏宽仍封顶。关闭、卸载、重套模板、旧异步请求和尺寸事件的清理保留。共享控件还服务详情媒体源和 AniBT 筛选，未改后端能力、请求、播放或选项模板。
+- **缺陷回归**：专项逐字编译生产 `EgPicker.cs`，只替换 WinUI 测量、尺寸和事件边界。相同 28 项断言对修前源码为 23 通过、5 失败，对修后为 28/28；覆盖自然宽父级塌缩、晚到增长、同次展开不回缩、固定 Width 不覆盖原约束、关闭后重测及既有生命周期。最终收窄测试名称后重新编译并实跑 28/28。证据 `artifacts/audio-picker/regression-before.log`、`regression-after.log`、`picker-final-build.log` 与 `Momoka.PickerLifecycleTests.log`。数值边界不证明原生 WinUI 的测量入参或最终文字像素。
+- **构建与质量**：当前树用 SDK 10.0.400 和仓库包源还原。首轮完整质量 8/10，因新树尚未生成 `DetailImageArrivalTests/SourceExtractor` 的 DLL 导致构建失败，架构检查未执行，保留 `artifacts/quality/20261127-122256`。单独生成该既有提取工具（零警告零错误）后完整重跑，`artifacts/quality/20261127-122701` 为 10/10：全方案 Release 零警告零错误、架构 7/7、重复率 0.47%（69 段，预算内），格式、脚本、文档、官网镜像与凭据检查均通过。未修改无关提取器或降低检查。
+- **测试**：当前 Release 主测试 5373/5373，相关四套专项 PickerLifecycle 28/28、DetailStickyHeader 104/104、PageContract 432/432、AppearanceOpacity 64/64，均零失败零跳过；日志在 `artifacts/audio-picker`。统一 `run-regressions.ps1` 在清单前检因当前基线已有 `Momoka.SystemNotificationTests` 未登记而终止，首份日志 `regressions-console.log` 保留；随后直接运行本树四套测试程序集，不记统一入口或全量专项通过。
+- **本地体验**：显式从主树提供 `libmpv-2.dll`，复制前后按当前批准载荷清单核验，SHA-256 为 `fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17`，不入 Git。本树通过 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName '音频选择栏修复'` 发布，进程退出 0，载荷验证 549 文件、291.7 MB。桌面 `音频选择栏修复.lnk` 的 TargetPath 与 WorkingDirectory 已回读，分别指向本树 `artifacts/publish/win-x64/Momoka.exe` 及其目录。版本 `0.3.4+e5cad5f40f3f4599c345112be95df9507c525f47` 为基点加本次提交前代码差异，发布 DLL SHA-256 为 `adf63f53921c45c3fb9298adbd032882779b7b4f535d8e7fdb4a5a54dfa82c1e`；证据 `publish.log`、`publish-receipt.json`。未启动应用、未生成 ZIP 或商店包、未上传。
+- **待验与保留**：原生两行长标题、商店／沉浸、宽窄窗与展开中缩放、其他共享选择栏、开关换选、键盘／Escape／焦点、主题／高对比、DPI／文字缩放、触摸和读屏尚未验证；本轮未跑原生探针、截图或自检，未播放或写入真实服务器。分支、工作树及体验快捷方式保留，待明确合并和统一验证后再销账。
+
 ## 2026-11-27 合入 CLAUDE.md 审查优化与规则补全
 
 按用户要求，将临时分支 `review_claude_md`（工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/review_claude_md`，基点 `bef1f1b`，提交 `e2c9d3f`、`a89df06`、`58fee43`、`c47763a`）以非快进合并入本地主树 `C:/Users/89400/Momoka`（基点 `0ee3c09`，未推送远端）。合并保留 `master` 上「WinUI 外壳 Fluent 2 重构」条目；主树原有未提交的 scrobbling 工作树清理记录一行暂避并在合并提交后逐字恢复为未提交改动，未纳入本次提交。

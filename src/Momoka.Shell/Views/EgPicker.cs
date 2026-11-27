@@ -41,7 +41,7 @@ namespace Momoka.Shell.Views;
 /// （`detail-picker-open.txt`，电影页尾部那一排，长名音轨）：框 44–616 弹开时塌成 44–244、44–577 塌成
 /// 44–244，弹层两次都是 44–602 —— 整排跟着重排，右边那一颗往左挪进弹层底下，屏上就是「选择栏与右侧的
 /// 组件重叠」。所以展开这一拍把框的宽度钉到列表那一份的宽度上（取展开前那一拍的宽度与列表宽度里大的
-/// 那个，免得选中最长那条时反被收窄；再按容器里剩下的地方封顶，免得把这一排顶出界）。收起时把
+/// 那个，免得选中最长那条时反被收窄；再按闭合态测量收到的可用栏宽封顶，免得把这一排顶出界）。收起时把
 /// <c>Width</c> 清回去，闭合态照旧由内容（选中那条轨道名）撑。弹层自己也跟着封顶（2026-11-08）：框被栏宽
 /// 压着的时候，弹层同样收到那个宽 —— 探出去的那一截会压在右边那张艺术图上。
 /// </para>
@@ -68,6 +68,9 @@ public sealed class EgPicker : ComboBox
     /// </para>
     /// </summary>
     private double _restingWidth;
+
+    /// <summary>收起态测量收到的可用栏宽；自然宽父级可给无限宽，不能用其内容实宽代替。</summary>
+    private double _availableWidth = double.PositiveInfinity;
 
     /// <summary>展开中的那一份弹层内容 —— 只在展开期间挂着，收起时解掉订阅并清掉封顶。</summary>
     private FrameworkElement? _dropDown;
@@ -137,6 +140,14 @@ public sealed class EgPicker : ComboBox
     /// </summary>
     internal Popup? PopupPart { get; private set; }
 
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        // 展开后 Width 已固定，框架传给 MeasureOverride 的宽度可能只是这份临时值。
+        // 只记录闭合态的真实约束，避免把自然宽父级随正文隐藏而塌缩的尺寸当作上限。
+        if (!IsDropDownOpen && !_widthPinned) _availableWidth = availableSize.Width;
+        return base.MeasureOverride(availableSize);
+    }
+
     protected override void PrepareContainerForItemOverride(DependencyObject element, object item)
     {
         base.PrepareContainerForItemOverride(element, item);
@@ -182,24 +193,24 @@ public sealed class EgPicker : ComboBox
     /// 展开态把框撑到列表那一份的宽度 —— 列表的宽度就是最宽那条轨道名撑出来的，框跟它齐平之后右邻才站得开。
     /// <para>
     /// 取「展开前那一拍的宽度」与「列表宽度」里大的那个：选中的正好是最长那条时，框自己的宽度（还带着那颗
-    /// 下拉箭头）会比列表略宽，按列表收窄会让选中项的文本被截。再按容器里剩下的地方封顶：这一颗在宽版式里
-    /// 站在片名那一栏的 <c>*</c> 格上，那格的宽就是它的上限，不封顶会把这一排顶出栏外（自检的
+    /// 下拉箭头）会比列表略宽，按列表收窄会让选中项的文本被截。再按闭合态测量收到的可用栏宽封顶：宽版式里
+    /// 片名栏的 <c>*</c> 格给出有限约束；商店模式 Canvas 按自然宽测量，不拿展开时已塌缩的父级实宽封顶（自检的
     /// <c>PickerFit</c> 读的就是这条）。
     /// </para>
     /// <para>
     /// 框被栏宽压着的时候，弹层自己也跟着封顶（2026-11-08）：它按最宽那条轨道名撑，会探出选择框右沿 —— 电影页
     /// 1280 上右上角那张艺术图占掉一栏之后实测探出 95 像素，探出去的那一截正压在那张画上（集页从 2026-09-12 起
     /// 一直是同一个处境，只是没有哪一条读数盯着它）。**不能只在展开那一拍量一次**：那一拍列表还是框那么宽，
-    /// 条目实例化之后才撑开，所以这里挂 <see cref="FrameworkElement.SizeChanged"/> 一路盯着。
+    /// 条目实例化之后才撑开，所以这里挂 <see cref="FrameworkElement.SizeChanged"/> 继续撑宽，同次展开不回缩。
     /// </para>
     /// </summary>
     private void WidenToDropDown()
     {
         if (PopupPart?.Child is not FrameworkElement list) return;
 
-        var room = RoomInParent();
-        var width = Math.Min(Math.Max(_restingWidth, list.ActualWidth), room);
-        if (width > 0)
+        var currentWidth = _widthPinned ? Width : 0;
+        var width = Math.Min(Math.Max(Math.Max(_restingWidth, list.ActualWidth), currentWidth), _availableWidth);
+        if (width > 0 && (!_widthPinned || Math.Abs(Width - width) > 0.5))
         {
             Width = width;
             _widthPinned = true;
@@ -231,7 +242,7 @@ public sealed class EgPicker : ComboBox
     private void OnDropDownSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (IsLoaded && IsDropDownOpen && PopupPart is { IsOpen: true } popup
-            && ReferenceEquals(sender, _dropDown) && ReferenceEquals(popup.Child, _dropDown)) ClampDropDown();
+            && ReferenceEquals(sender, _dropDown) && ReferenceEquals(popup.Child, _dropDown)) WidenToDropDown();
     }
 
     /// <summary>收起时把展开态钉下的宽度放回去 —— 下一次展开照旧由内容与容器重新撑。</summary>
@@ -303,13 +314,5 @@ public sealed class EgPicker : ComboBox
         if (!MemberLookup.TryGetValue(key, out var property))
             MemberLookup[key] = property = item.GetType().GetProperty(path);
         return property?.GetValue(item)?.ToString() ?? item.ToString();
-    }
-
-    /// <summary>这一颗在它的父级里还剩多少横向地方；父级量不出来时不给上限（<c>WrapRow</c> 自己会换行）。</summary>
-    private double RoomInParent()
-    {
-        if (Parent is not FrameworkElement parent || parent.ActualWidth <= 0) return double.PositiveInfinity;
-
-        return parent.ActualWidth - TransformToVisual(parent).TransformPoint(new Point()).X;
     }
 }

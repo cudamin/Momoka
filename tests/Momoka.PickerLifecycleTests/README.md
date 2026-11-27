@@ -2,7 +2,9 @@
 
 逐字编译链接当前生产 `Views/EgPicker.cs`；`TrackRow` 使用真实 Core 项目。替身只提供无 HWND/WinRT 的 ComboBox、Popup、DispatcherQueue、布局数值和事件边界。
 
-覆盖同一存活打开的延迟撑宽、快速开关/重开、重复通知、卸载/重载、延迟 Unloaded、重套或缺失模板、派发拒绝、Popup 已关和晚到旧尺寸事件；保留父级限宽、列表封顶恢复、原生 `ShouldConstrainToRootBounds` 与轨道可用性。每项结束核对列表订阅和 MaxWidth 均已清理。
+覆盖同一存活打开的延迟撑宽、快速开关/重开、重复通知、卸载/重载、延迟 Unloaded、重套或缺失模板、派发拒绝、Popup 已关和晚到旧尺寸事件；保留可用栏宽上限、列表封顶恢复、原生 `ShouldConstrainToRootBounds` 与轨道可用性。每项结束核对列表订阅和 MaxWidth 均已清理。
+
+测量边界把闭合态可用栏宽交给生产 `MeasureOverride`，覆盖自然宽父级展开时塌缩、条目晚到后继续撑宽、同次展开不回缩、展开态固定 Width 不覆盖原约束，以及关闭后重新测量更新上限。修前源码反例在同样 28 项中失败 5 项，修复后全部通过；这些数值边界不能证明真实 WinUI 的测量入参、文字省略或最终画面。
 
 闭合正文边界模拟固定 WinUI 源码 `693f472aeaf89c6dff66256ee6fcd453e5d553b8` 的 `ComboBox_Partial.cpp`：`FinishClosingDropDown` 在 `DropDownClosed` 前通过 `SetContentPresenter` 重写选中项和列表模板。使用真实 `TrackRow` 验证 Text／ShortText 恢复、两行模板清空、快速重开取最新项、重套模板拒绝旧正文，以及未设闭合成员时保留框架显示；这些离线边界不证明当前 WinUI 二进制的最终像素。
 

@@ -107,6 +107,8 @@ namespace Microsoft.UI.Xaml
             ActualWidth = width;
             _sizeChanged?.Invoke(this, new(new(width, 40)));
         }
+        public void Measure(double width) => MeasureOverride(new(width, 40));
+        protected virtual Windows.Foundation.Size MeasureOverride(Windows.Foundation.Size availableSize) => availableSize;
         public void Load() { IsLoaded = true; Loaded?.Invoke(this, new()); }
         public void Unload() { IsLoaded = false; Unloaded?.Invoke(this, new()); }
         public void DelayedUnload() => Unloaded?.Invoke(this, new());

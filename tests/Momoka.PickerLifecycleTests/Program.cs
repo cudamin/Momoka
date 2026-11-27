@@ -59,8 +59,8 @@ internal static class Program
         Case("已展开卸载即释放尺寸订阅和封顶", fixture =>
         {
             fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
-            fixture.List.Arrange(420);
-            Assert.Equal(240d, fixture.List.MaxWidth);
+            fixture.List.Arrange(620);
+            Assert.Equal(580d, fixture.List.MaxWidth);
             fixture.Picker.Unload();
             Assert.True(double.IsNaN(fixture.Picker.Width));
             Assert.Equal(0, fixture.List.SizeSubscribers);
@@ -144,24 +144,56 @@ internal static class Program
             Assert.Equal(1, replacement.SizeSubscribers);
             Assert.Equal(330d, fixture.Picker.Width);
         });
-        Case("框保留闭合宽度并按父级剩余空间封顶", fixture =>
+        Case("框保留闭合宽度并按测量阶段的可用空间封顶", fixture =>
         {
             fixture.Picker.Arrange(270); fixture.List.Arrange(210);
             fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
             Assert.Equal(270d, fixture.Picker.Width);
             fixture.Close();
             fixture.Picker.ParentOffsetX = 380; fixture.List.Arrange(500);
+            fixture.Picker.Measure(220);
             fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
             Assert.Equal(220d, fixture.Picker.Width);
             Assert.Equal(220d, fixture.List.MaxWidth);
         });
-        Case("同一列表长宽变化保留封顶和恢复算法", fixture =>
+        Case("条目晚到撑宽列表时选择框跟随增长，列表回落不再收窄", fixture =>
         {
             fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
-            fixture.List.Arrange(500); Assert.Equal(240d, fixture.List.MaxWidth);
-            fixture.List.Arrange(210); Assert.True(double.IsPositiveInfinity(fixture.List.MaxWidth));
+            fixture.List.Arrange(500); Assert.Equal(500d, fixture.Picker.Width);
+            fixture.List.Arrange(210); Assert.Equal(500d, fixture.Picker.Width);
             fixture.Close(); fixture.List.Arrange(330);
             Assert.True(double.IsPositiveInfinity(fixture.List.MaxWidth));
+        });
+        Case("自然宽父级在展开时塌缩不再压窄选择框和列表", fixture =>
+        {
+            fixture.Picker.Measure(double.PositiveInfinity);
+            fixture.Picker.Arrange(270);
+            ((FrameworkElement)fixture.Picker.Parent!).Arrange(100);
+            fixture.List.Arrange(310);
+            fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
+            Assert.Equal(310d, fixture.Picker.Width);
+            Assert.True(double.IsPositiveInfinity(fixture.List.MaxWidth));
+            fixture.List.Arrange(420);
+            Assert.Equal(420d, fixture.Picker.Width);
+        });
+        Case("展开态固定Width引起的重新测量不覆盖真实栏宽", fixture =>
+        {
+            fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
+            fixture.Picker.Measure(240);
+            fixture.List.Arrange(500);
+            Assert.Equal(500d, fixture.Picker.Width);
+            fixture.List.Arrange(620);
+            Assert.Equal(580d, fixture.Picker.Width);
+            Assert.Equal(580d, fixture.List.MaxWidth);
+        });
+        Case("关闭后重新测量更新下一次展开上限而非沿用旧宽", fixture =>
+        {
+            fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
+            fixture.List.Arrange(500);
+            fixture.Close(); fixture.Picker.Arrange(160); fixture.Picker.Measure(200);
+            fixture.Open(); fixture.Picker.DispatcherQueue.Drain();
+            Assert.Equal(200d, fixture.Picker.Width);
+            Assert.Equal(200d, fixture.List.MaxWidth);
         });
         Case("首次重套模板不清调用方闭合Width", fixture =>
         {
@@ -303,6 +335,7 @@ internal static class Program
             List.Arrange(240); Lists.Add(List);
             Popup = new() { Child = List };
             Picker.ReapplyTemplate(Popup); Picker.Load(); Picker.Arrange(180);
+            Picker.Measure(580);
         }
 
         internal void Open() => Picker.IsDropDownOpen = true;
