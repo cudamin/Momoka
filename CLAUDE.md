@@ -8,7 +8,7 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 | --- | --- | --- |
 | P0 红线 | 用户授权、真实数据与凭据、分发许可、他人工作区、证据真实性 | 可能越界就停下对应操作，继续能安全完成的部分。按已获授权的对象、动作和范围执行，不自行扩大。 |
 | P1 必做 | 本文各节的触发条件、产品契约、提交和交付门槛 | 满足触发条件就执行。失败或缺少必需证据，阻断对应提交、体验发布或交付。多类改动取检查并集。 |
-| P2 默认 | 模块放置、项目惯用写法、已有实现的复用方式 | AI 可自行选择更简单的等效实现。在差异、测试或提交说明中留下原约束、选择理由和证据。偏离分层惯例时在 PROGRESS 记一行。 |
+| P2 默认 | 模块放置、项目惯用写法、已有实现的复用方式 | AI 可自行选择更简单的等效实现。在差异、测试或提交说明中留下原约束、选择理由和证据。在不突破硬性依赖边界的前提下偏离代码组织惯例时，在 PROGRESS 记一行。 |
 
 1. **开始。** 从用户要求写出本次可观察的结果，定位正常入口、受影响调用者、数据和验证方式。小改动可用一句话，不要求另建计划。上下文压缩后先重读当前工作树的本文件，再恢复任务范围、授权与未完成检查。
 2. **实现。** 每个可独立回滚的逻辑变更对应一个 Git 提交。新增行为或修复缺陷必须有相应测试。纯重构用既有测试时，指出它覆盖了哪些入口和不变量。缺陷回归先用匿名输入复现，证明用例能识别旧错误，再以相同断言验证修复。无法安全运行旧实现时，通过可控替身触发失败分支并注明边界。
@@ -18,19 +18,19 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 ## 动手前核对项目配置
 
 - 从 `git rev-parse --show-toplevel` 确认本树，检查分支、HEAD、暂存区和未提交差异。编译、测试、发布及取证都用这一棵树。跨树或相关配置变化时重新核对。
-- 改 C#、XAML 或构建依赖前，读 [编码配置](.editorconfig)、受影响的项目及测试 `.csproj`、[SDK 选择](global.json)、[共享构建属性](Directory.Build.props)和适用的导入文件。还原用[仓库包源](nuget.config)。核对实际选中的 SDK 与前滚策略、目标框架和架构，按[开发与验证](docs/开发与验证.md#标准命令)运行 Release 构建。
-- 新工作树、包源或版本变更先还原。脚本从仓库根或显式参数定位工具和产物，禁止把开发机绝对路径、用户目录内容或上次的 `bin/obj/artifacts` 当成依赖。缺 SDK、原生库、匿名夹具或外部浏览器时，记录缺件及受阻的检查。
+- 改 C#、XAML 或构建依赖前，读 [编码配置](.editorconfig)、受影响的项目及测试 `.csproj`、[SDK 选择](global.json)、[共享构建属性](Directory.Build.props)和适用的导入文件。还原用[仓库包源](nuget.config)。核对实际选中的 SDK 与前滚策略（仓库工具常用 `$HOME/.dotnet/dotnet.exe`、`py` 与 Windows `powershell`）、目标框架和架构（桌面 Shell 为 `x64`），按[开发与验证现行规范](docs/开发与验证.md#现行规范先读这里)运行 Release 构建（历史命令见[标准命令](docs/开发与验证.md#标准命令)）。
+- 新工作树、包源或版本变更先还原；未跟踪的原生库（如 `libmpv-2.dll`）不会自动带入新工作树。脚本从仓库根或显式参数定位工具和产物，禁止把开发机绝对路径、用户目录内容或上次的 `bin/obj/artifacts` 当成隐式依赖。缺 SDK、原生库、匿名夹具或外部浏览器时，如实记录缺件及受阻的检查（涉及发布需显式提供与清单一致的 `libmpv-2.dll`）。
 
 ## 分层与代码风格
 
 | 变更位置 | 必做与禁止 | 验收依据 |
 | --- | --- | --- |
 | Core、Shell | Core 放协议、持久化与无 UI 的业务规则。禁止 Core 引用 Shell、UI 技术栈或框架外运行时程序集。Shell 的 Services、Media、Windowing 禁止回依赖 Views，产品工程禁止依赖测试工程。 | 核对项目引用，用当前编译的程序集运行[架构专项](tests/Momoka.ArchitectureTests/README.md)。 |
-| 页面与服务 | code-behind 处理焦点、输入和纯展示，HTTP、持久化、播放生命周期归服务。普通页面通过 `Attach` 接收依赖，跨页视频和音乐播放视图模型由[组合根](src/Momoka.Shell/Composition/ShellServices.cs)持有。只为替换、隔离或收窄能力引入接口，小型纯函数就近复用。 | 从正常页面或命令追到生产实现。生命周期变化覆盖离页、重入、释放与重订阅。 |
-| 共享能力 | 影视库按四家服务分别实现与验证。MoviePilot、AniBT 跨服务通用。音乐库共用界面和底栏，动作仍按来源能力执行。集成交换链与独占原生窗口/uosc 分管线检查，另区分内置和外部播放后端。 | 共享模型或 UI 能力变化，同批更新[后端能力矩阵](docs/后端能力矩阵.md)和受影响后端的显隐、契约测试。默认管线查 `AppSettings`，同窗换片查 `InlineSwitch`。 |
-| 可读性与界面约定 | 用项目命名、字号刻度、主题角色、`Eg*Style`。保留绑定集合身份，刷新时保持选择和滚动。界面文案与无障碍名称同步中英文资源及占位符，保留片名和用户输入的原文。 | 以 `.editorconfig` 和启用的分析器为准，文本用 LF、PowerShell 用 UTF-8 BOM。新增普通控件用 `tools/scan-automation-ids.js` 检查定位，已有 `x:Name` 不重复设同值 ID。模板还须在适用的运行验收中核对 UIA 树。 |
+| 页面与服务 | code-behind 处理焦点、输入和纯展示，HTTP、持久化、播放生命周期归服务。普通页面通过 `Attach` 接收依赖（局部既有偏差如 `FilterPanelViewModel` 见架构说明），跨页视频和音乐播放视图模型由[组合根](src/Momoka.Shell/Composition/ShellServices.cs)持有。只为替换、隔离或收窄能力引入接口，小型纯函数就近复用。 | 从正常页面或命令追到生产实现。生命周期变化覆盖离页、重入、释放与重订阅。 |
+| 共享能力 | 影视库按四家服务分别实现与验证。MoviePilot、AniBT 跨服务通用。音乐库共用界面和底栏，动作仍按来源能力执行。集成交换链与独占原生窗口/uosc 分管线检查，另区分内置和外部播放后端（自定义 `mpv.conf` 仅内置独占管线可用，集成管线固定关闭只读，外部后端隐藏设置卡片并忽略）。 | 共享模型或 UI 能力变化，同批更新[后端能力矩阵](docs/后端能力矩阵.md)和受影响后端的显隐、契约测试。默认管线查 `AppSettings`，同窗换片查 `InlineSwitch`，自定义配置查 `MpvCustomConfig`。 |
+| 可读性与界面约定 | 用项目命名、字号刻度、主题角色、`Eg*Style`。保留绑定集合身份，刷新时保持选择和滚动。界面文案与无障碍名称同步中英文资源及占位符，保留片名和用户输入的原文。 | 以 `.editorconfig` 和启用的分析器为准；文本用 LF 与末尾换行，PowerShell 脚本带 UTF-8 BOM，其余文本文件禁带 BOM。新增普通控件用 `tools/scan-automation-ids.js` 检查定位，已有 `x:Name` 不重复设同值 ID。模板还须在适用的运行验收中核对 UIA 树。 |
 
-主测试宿主 [Momoka.Tests](tests/Momoka.Tests/Momoka.Tests.csproj) 只项目引用 Core，可选择性编译没有 WinUI 依赖的 Shell 源文件。测试优先调用生产代码，替身只放在服务或系统边界。源码文本检查可验证接线，涉及执行结果时还须断言行为。
+主测试宿主 [Momoka.Tests](tests/Momoka.Tests/Momoka.Tests.csproj) 只项目引用 Core，可选择性编译没有 WinUI 依赖的 Shell 源文件；需要反射加载主程序的夹具要求先生成 x64 Release 的 `Momoka.dll` 与一致的 `Momoka.Core.dll`。测试优先调用生产代码，替身只放在服务或系统边界。源码文本检查可验证接线，涉及执行结果时还须断言行为。
 
 嵌套绑定先查 Shell 项目的 `WUI2010` 前提。改字号、命名或其他约定时核对 [AgreementsTests](tests/Momoka.Tests/AgreementsTests.cs) 与[基线](tests/Momoka.Tests/Agreements.txt)。内联字号和颜色基线默认只减不增，必要例外说明无法使用现有角色的具体原因并给出验收证据。禁止为消警扩大抑制范围或整份接受快照。检查合法改名、合并或退役，须说明旧检查覆盖的行为、替代检查和调用者，逐项更新并运行。
 
@@ -54,7 +54,7 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 
 - 新控件类型、新手势/拖拽/弹层/导航、复刻第三方界面或判断样例行为，须查适用版本的官方指南与 Gallery 源码。复用匹配实现，核对 XAML、后台、资源、焦点与生命周期，并在代码注释留固定提交和路径。无匹配样例记录查过的入口。文案、间距、颜色、既有控件或交互模型内的修复按项目既有规范直接改。
 - 优先原生控件、系统资源和平台交互。用户要求与已核实的平台硬限制、官方建议冲突，或要改变已确认的产品例外时，先只读核对版本与依据，再就可行方案、代价和验证办法请用户选择。记录确认的范围与取舍，范围或实质代价变动再确认。硬限制不能靠确认解除。普通实现取舍由 AI 完成，只有用户明确要求才先做 Demo。
-- 保留五套固定深色主题及跟随系统。集成管线的自定义 `mpv.conf` 固定关闭且只读。「更多」菜单中既定的实心弹窗背景继续使用实心，卡片与按钮按主题可用亚克力。运行验收按[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)选适用的宽窄、DPI、焦点、键盘、读屏、高对比和动效中断场景。
+- 保留「选择模式」（深色/浅色/跟随系统）、五套固定深色配色与系统浅色配色。对话框表面（`ContentDialog` 继承 `EgDialogSurfaceStyle`）及标准 `Flyout`/`MenuFlyout` 既定实心弹窗背景继续使用实心；详情「更多」菜单（`EgDetailMenuPresenterStyle`）及按主题启用的卡片与按钮可用亚克力（相关外观例外与已确认产品偏离均归口本项）。运行验收按[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)选适用的宽窄、DPI、焦点、键盘、读屏、高对比和动效中断场景。
 
 ### Fluent 界面验收
 
@@ -68,7 +68,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 ### 弹窗
 
-对话框、菜单和交互弹层点外关闭，只返回取消 `None`，保留 `Closing` 防护，禁止触发保存或确认。`ContentDialog` 继承 `EgDialogSurfaceStyle` 的 `DialogDismiss.ClosesOnOutsideClick`，新增派生类型登记并通过 [DialogChromeTests](tests/Momoka.Tests/DialogChromeTests.cs)。`Flyout`/`MenuFlyout` 保留原生行为，交互 `Popup` 启用 `IsLightDismissEnabled`。
+对话框、菜单和交互弹层点外关闭，只返回取消 `None`，保留 `Closing` 防护，禁止触发保存或确认。通用 `ContentDialog` 继承 `EgDialogSurfaceStyle`（特殊内容对话框如 `MoviePilotDownloadDialog` 按测试允许范围显式设置 `DialogDismiss.ClosesOnOutsideClick`），新增派生类型须登记并通过 [DialogChromeTests](tests/Momoka.Tests/DialogChromeTests.cs)。`Flyout`/`MenuFlyout` 保留原生行为，交互 `Popup` 启用 `IsLightDismissEnabled`。
 
 ## 凭据
 
@@ -85,7 +85,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 | 隔离本地播放 | 管线变更在相应运行验收中用匿名本地探针，不登录、不上报。拒绝 URL、网络盘、重解析路径及外部引用。 | 集成管线用集成探针。独占管线用两段哈希已核对的仓库素材，检查 libmpv/uosc 窗口、同窗换片、关闭和重启。分别记录外部 mpv、真实输入、实服的覆盖。 |
 | 真实服务器播放或写入 | 须有当次明确授权，或已明确授权的专用测试账号与范围。限定服务、账号和操作。`--play`、UIA 播放键等真起播路径同属此档。 | 真实播放会改观看历史/续播点。建立账号、删除媒体或修改共享数据分别核对授权。未获授权改用匿名夹具并保留实测缺口。 |
 
-优先命令行导航，禁止用坐标点击导航或点击海报本体、卡片中央。移动指针前读验证技能，确认目标窗口实际收到输入，禁止权限被拒后换工具绕过。`--show-menu`、`--show-osd`、`--hide-cursor` 与 `--self-check` 分开运行，各探针单独执行。
+优先命令行导航，禁止用坐标点击导航或点击海报本体、卡片中央。移动指针前读验证技能，确认目标窗口实际收到输入，禁止权限被拒后换工具绕过。`--show-*`、`--hide-cursor`、`--navigation-timing` 与 `--self-check` 均须互斥分开运行，各 `--probe-*` 探针单独执行（完整开关见[命令行开关](docs/开发与验证.md#命令行开关)）。
 
 ## 依赖与分析器升级
 
@@ -96,12 +96,12 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 ## 四道闸门与日常交付
 
-先选本次需完成的级别，再按变更类型补足证据。下列检查由执行任务的 AI 运行。命令参数、工具前置和报告位置见[开发与验证](docs/开发与验证.md#标准命令)。
+先选本次需完成的级别，再按变更类型补足证据。下列检查由执行任务的 AI 运行。命令参数、工具前置和报告位置见[开发与验证现行规范](docs/开发与验证.md#现行规范先读这里)（历史命令见[标准命令](docs/开发与验证.md#标准命令)）。
 
 | 级别和触发条件 | 必做检查与通过条件 |
 | --- | --- |
 | 提交级 · 每个逻辑变更 | 编译受影响项目及测试，0 警告、0 错误，运行覆盖改动的用例，核对预期用例确已执行并检查待提交差异。纯文档做内容、链接、命令和格式检查。仅测试或非随包检查工具运行自身受影响的成功与失败路径，不发布应用。 |
-| 批次级 · 日常收尾 | 补齐受影响的编译、单测、格式、架构和脚本检查。日常 UI 默认不跑探针或验收截图。涉及运行产物时，在上述检查及适用的最小加载检查通过后自动发布本树、刷新快捷方式。其余运行验收写入[待交付批次台账](docs/待交付批次.md)，体验刷新不销账。仅合并不触发全量验证、探针或发布。 |
+| 批次级 · 日常收尾 | 补齐受影响的编译、单测、格式、架构和脚本检查。日常 UI 默认不跑探针或验收截图。涉及运行产物时，在上述检查及适用的最小加载检查通过且备齐清单一致的 `libmpv-2.dll` 后自动发布本树、刷新快捷方式（缺 `libmpv-2.dll` 时禁止绕过发布，记为受阻）。其余运行验收写入[待交付批次台账](docs/待交付批次.md)，体验刷新不销账。仅合并不触发全量验证、探针或发布。 |
 | 统一交付级 · 用户明确要求统一验证或交付 | 先按目标提交筛选已纳入的未销账批次，在最终整合代码重编译，跑闸门 2、受影响的运行检查/探针和截图，完成闸门 3。默认用最终 master，指定分支只记分支结果。只合并目的、条件和预期都相同的检查，每个独有行为仍须验收。 |
 | 四闸全验 · 发新版本、升级依赖或分析器、用户明确要求全验 | 在同一最终代码上完成下列四闸及适用的运行验收。对外发布另须明确上传授权。任何必需项失败、跳过或未执行都阻断对应交付。 |
 
@@ -110,15 +110,15 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 | 闸门 | 验收依据 |
 | --- | --- |
 | 1 构建与质量 | `tools/quality.ps1` 是完整入口。用当前源码构建，0 警告、0 错误，各子检查通过。`-SkipBuild` 或 `-SkipDuplication` 仅供定位。架构和重复率预算以实际脚本为准。 |
-| 2 测试 | 当前 Release 测试及 Core 编译成功才可 `--no-build`。主测试退出 0、失败 0、跳过 0。离线专项 `-All` 可能把外部 DOM 记为 `deferred`。完整闸门须用 `-All -IncludeExternal` 实跑，核对 `summary.json` 无延期、跳过、失败及遗漏。新增主测试接入完整主运行器。独立专项接入[专项清单](tools/regression-suites.json)，按[专项说明](tools/README.Regressions.md)运行。 |
-| 3 发布与快捷方式 | 发布本树 `artifacts/publish/win-x64`，通过 `verify-publish.ps1` 后回读 `.lnk` 的 `TargetPath` 与 `WorkingDirectory`。主树用 `Momoka.lnk`；临时分支用 `-ShortcutName` 传 `<中文简述>`，不带 `Momoka-` 前缀，也不带扩展名，`<中文简述>` 用简短中文说明本次改了什么或新增了什么功能（如 `通知接管`），回读 `<中文简述>.lnk`，禁止覆盖主树快捷方式。 |
-| 4 自检 | 在本次发布件上运行 `tools/selfcheck-diff.ps1`，核对失败、缺项和通过降级。`-Log` 只比较既有报告。复核新增、改名或退役的检查后才逐行更新基线，禁止靠接纳失败洗绿。 |
+| 2 测试 | 当前 Release 测试及 Core 编译成功才可 `--no-build`（含反射夹具时须同编 x64 Release Shell）。主测试退出 0、失败 0、跳过 0。使用 `tools/run-regressions.ps1` 时，离线 `-All` 可能把外部 DOM 记为 `deferred`，完整闸门须用 `-All -IncludeExternal` 实跑，核对 `summary.json` 无延期、跳过、失败及遗漏。新增主测试接入完整主运行器，独立专项接入[专项清单](tools/regression-suites.json)，按[专项说明](tools/README.Regressions.md)运行。 |
+| 3 发布与快捷方式 | 用 `tools/publish.ps1` 发布本树 `artifacts/publish/win-x64`（需根目录 `libmpv-2.dll`），通过 `tools/verify-publish.ps1` 后回读 `.lnk` 的 `TargetPath` 与 `WorkingDirectory`。主树用 `Momoka.lnk`；临时分支通过 `-ShortcutName`（或 `tools/shortcut.ps1`）传 `<中文简述>`，不带 `Momoka-` 前缀，也不带扩展名，仅允许字母、数字、`. _ -`（无空格或标点），`<中文简述>` 用简短中文说明本次改了什么或新增了什么功能（如 `通知接管`），回读 `<中文简述>.lnk`，清理时用 `-Remove` 移除且禁止覆盖主树快捷方式。 |
+| 4 自检 | 在本次发布件上运行 `tools/selfcheck-diff.ps1`（对照[自检基线](docs/selfcheck-baseline.txt)并调用 `check-report-credentials.py --file` 查凭据），核对失败、缺项和通过降级。`-Log` 只比较既有报告。复核新增、改名或退役的检查后才逐行更新基线，禁止靠接纳失败洗绿。 |
 
 **证据按实际执行范围记。** 失败保留首份日志，修正代码或运行条件后重跑受影响检查。多步脚本逐步传递退出码，并核对套件实际执行数与范围。CI 绿只覆盖其工作流。`--probe-section` 读 `shell-probe-scope.txt`，定向探针、源码断言、夹具和截图各自只证明实际观察到的行为。自检默认副屏，单屏回退。主题验收覆盖 `UiThemes.cs` 的在用主题及跟随系统的实际深浅状态，实屏与渲染截图分别标明。
 
 ### 资源占用与等待
 
-共享桌面和用户数据验收串行。遇占用用只读探针核对目标进程、路径或锁，短间隔可中断等待，释放后由正式操作重新取得锁，竞争失败继续等待。禁止结束用户或其他会话的进程、绕过锁。日常体验刷新最多等待 30 秒，仍占用则跳过本次发布，报告「程序运行中，快捷方式仍指向旧版」。交付等待超时或确需用户处理时，指出具体占用与未完成检查。
+共享桌面与用户数据验收、单实例自检互斥锁（`SelfCheckRun.MutexName`，覆盖完整测试、自检与界面探针）以及发布目录文件占用（运行中的 `Momoka.exe`）均须串行。遇占用用只读探针核对目标进程、路径或锁，短间隔可中断等待，释放后由正式操作重新取得锁，竞争失败继续等待。禁止结束用户或其他会话的进程、绕过锁。日常体验刷新最多等待 30 秒，仍占用则跳过本次发布，报告「程序运行中，快捷方式仍指向旧版」。交付等待超时或确需用户处理时，指出具体占用与未完成检查。
 
 ### 发布状态与销账
 
@@ -128,7 +128,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 ## Git 与协作
 
-- `master` 是唯一长期主树。一个工作树同一时间只有一个写入会话，并行开发用独立工作树。保护已有改动，禁止 `reset` 或用 `checkout/restore` 覆盖工作区。撤销实验先读差异，定点还原本任务内容。
+- `master` 是唯一长期主树。一个工作树同一时间只有一个写入会话，并行开发或主树已有他人/用户未提交改动时用独立工作树。保护已有改动，禁止 `reset` 或用 `checkout/restore` 覆盖工作区。撤销实验先读差异，定点还原本任务内容。
 - 临时分支只在用户明确要求合并时合入 master。未合并保留分支，并在 [PROGRESS](PROGRESS.md) 记录树、分支、提交与待合并状态。用户已明确授权的相同合并或上传无需重复询问。
 - 分支清理只在按内容确认全部进入 master、工作树干净、没有未保留改动或独有提交、且没有其他会话占用后执行。条件齐全立即删除分支快捷方式、临时分支及其工作树。任一项不明则登记待清理。未合并分支禁止删除。
 - 检查通过后只暂存本任务文件或差异，核对 `git diff --cached`，用中文提交并复查实际提交与工作树状态。作者取本机 Git 配置，提交正文不写死协作者模型版本。获明确上传授权后核对 `origin` 为 `https://github.com/cudamin/Momoka.git`，主树推送 `git push origin master`，回读远端。凭据由 Git Credential Manager 管理。
@@ -142,9 +142,9 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 | 可见功能、服务支持或数据流 | 按影响改功能说明、后端矩阵、隐私或许可记录。区分代码声明、匿名夹具和实服证据。 |
 | 常设政策、授权或交付条件 | 只在本文件定义。同步链接它的手册、技能与受影响检查，退役旧指令。历史证据留在 PROGRESS，开放项留在台账。 |
 
-新增说明先查现有主题。可复用的结论放回维护入口。删除重复文档前核对链接、源码注释、脚本和测试，保留独有的许可、证据及未决事项。禁止在 `.workbuddy/` 或 `.zcode/` 镜像政策。受版本影响的数字和参数从当前源码或报告读取。
+新增说明先查现有主题。可复用的结论放回维护入口。删除重复文档前核对链接、源码注释、脚本和测试，保留独有的许可、证据及未决事项。禁止在 `.workbuddy/`、`.zcode/`、`.opencode/` 等工具私有目录镜像政策或技能。受版本影响的数字和参数从当前源码或报告读取。
 
-**文档验收。** 核对本次陈述与当前实现，运行 `py tools/check-docs.py`、`tools/check-doc-commands.ps1`、`tools/check-diff.ps1` 和 `git diff --check`。改规则或其路由再运行 `py tools/check-main-tree-policy.py --self-test`，修改检查工具须验证反例会失败。链接和命令语法通过只证明可定位、可解析。纯文档不构建应用、不跑探针、不发布或刷新快捷方式。
+**文档验收。** 核对本次陈述与当前实现，运行 `py tools/check-docs.py`、`tools/check-doc-commands.ps1`、`tools/check-diff.ps1` 和 `git diff --check`（改台账或进展报告补跑 `py tools/check-report-credentials.py`，改官网补跑 `py tools/check-website-mirror.py`）。改规则或其路由再运行 `py tools/check-main-tree-policy.py --self-test`，修改检查工具须验证反例会失败（Python 工具跑 `--self-test`，PowerShell 工具跑对应 `tools/test-quality-*.ps1`）。链接和命令语法通过只证明可定位、可解析。纯文档不构建应用、不跑探针、不发布或刷新快捷方式。
 
 按任务选用仓库内的技能。通用技能与本文件相冲突时，遵循本文件。
 
