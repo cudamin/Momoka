@@ -105,7 +105,7 @@ internal static class InputFocusThemeTests
             Assert.Equal("{ThemeResource EgWindowBrush}", settings.Descendants().Single(element =>
                 element.Attribute(Xaml + "Name")?.Value == "SettingsSearchBox").Attribute("Background")?.Value);
             var shortcut = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShortcutCaptureBox.xaml"));
-            Assert.Equal("{ThemeResource EgInputGlassBrush}", shortcut.Descendants().Single(element =>
+            Assert.Equal("{ThemeResource EgControlFillBrush}", shortcut.Descendants().Single(element =>
                 element.Attribute(Xaml + "Name")?.Value == "ComboBorder").Attribute("Background")?.Value);
         });
 

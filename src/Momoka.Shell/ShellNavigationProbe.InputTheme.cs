@@ -22,7 +22,9 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             var background = ThemeHost.ToColor(theme.Colors.Window);
-            var glass = ThemeHost.ToColor(InputControlTheme.Glass(theme));
+            // 2026-11-28：卡片区的输入框与选择框改吃官方控件面（6% 白 / 浅色 70% 白），不再断言亚克力 tint。
+            var controlFill = ThemeHost.ColorOf("Dark", "EgControlFillBrush")
+                ?? throw new InvalidOperationException("官方控件面缺色");
             var border = ThemeHost.ToColor(theme.Colors.BorderStrong);
             foreach (var entry in InputControlTheme.Brushes)
                 foreach (var dictionary in new[] { "Dark", "Light" })
@@ -44,12 +46,12 @@ internal sealed partial class ShellNavigationProbe
             // 窄窗还存在分类 ComboBox；按业务行名称选同一控件，不能随布局改成验证分类选择器。
             var combo = Descendants(page).OfType<ComboBox>()
                 .Single(control => AutomationProperties.GetName(control) == "轮播图用什么媒体");
-            AssertGlass(combo.Background, "闭合下拉框");
+            AssertControlFill(combo.Background, "闭合下拉框");
             await FocusAsync(combo, "闭合下拉框");
             var comboBorder = Descendants(combo).OfType<Border>().Single(control => control.Name == "Background");
             AssertRadius(combo, "闭合下拉框");
             Require(comboBorder.CornerRadius == new CornerRadius(10), "下拉框真实模板未接收设置圆角");
-            AssertGlass(comboBorder.Background, "聚焦下拉框");
+            AssertControlFill(comboBorder.Background, "聚焦下拉框");
             var comboHighlight = Descendants(combo).OfType<Border>().Single(control => control.Name == "HighlightBackground");
             Require(comboHighlight.BorderBrush is SolidColorBrush focusedCombo && focusedCombo.Color == border,
                 $"{theme.Id} 下拉框键盘焦点仍使用主题色");
@@ -57,7 +59,7 @@ internal sealed partial class ShellNavigationProbe
             Require(!TextFocusSettled(searchInput, TextFrame(searchInput)), "焦点检查没有拒绝已经离焦的搜索框");
             var number = Descendants(page).OfType<NumberBox>()
                 .Single(control => AutomationProperties.GetName(control) == "轮播图张数");
-            AssertGlass(number.Background, "数字框外层");
+            AssertControlFill(number.Background, "数字框外层");
             var numberInput = Descendants(number).OfType<TextBox>().Single(control => control.Name == "InputBox");
             AssertRadius(number, "数字框外层");
             AssertRadius(numberInput, "数字框内层");
@@ -72,15 +74,15 @@ internal sealed partial class ShellNavigationProbe
             scroll.Focus(FocusState.Programmatic);
             try
             {
-                await UntilAsync(() => TextFrame(numberInput).Background is AcrylicBrush acrylic
-                    && acrylic.TintColor == glass && !TextFocusSettled(numberInput, TextFrame(numberInput)));
+                await UntilAsync(() => TextFrame(numberInput).Background is SolidColorBrush rest
+                    && rest.Color == controlFill && !TextFocusSettled(numberInput, TextFrame(numberInput)));
             }
             catch (TimeoutException error)
             {
                 throw new InvalidOperationException(
-                    $"{theme.Id}/{width}/数字框 失焦后没有回到输入玻璃；{Describe(numberInput, TextFrame(numberInput))}", error);
+                    $"{theme.Id}/{width}/数字框 失焦后没有回到官方控件面；{Describe(numberInput, TextFrame(numberInput))}", error);
             }
-            reads.AppendLine($"数字框失焦恢复：玻璃 tint={glass}");
+            reads.AppendLine($"数字框失焦恢复：控件面={controlFill}");
             await CaptureAsync($"settings-inputs-restored-{theme.Id}-{width}", page);
 
             page.SelectedCategory = "播放行为";
@@ -169,10 +171,10 @@ internal sealed partial class ShellNavigationProbe
                     Require(TextFrame(text).CornerRadius == new CornerRadius(10), $"{name} 真实模板未接收设置圆角");
                 reads.AppendLine($"{name}：圆角={control.CornerRadius}");
             }
-            void AssertGlass(Brush brush, string name)
+            void AssertControlFill(Brush brush, string name)
             {
-                Require(brush is AcrylicBrush acrylic && acrylic.TintColor == glass, $"{theme.Id}/{name} 未使用输入玻璃");
-                reads.AppendLine($"{name}：玻璃 tint={glass}");
+                Require(brush is SolidColorBrush solid && solid.Color == controlFill, $"{theme.Id}/{name} 未使用官方控件面");
+                reads.AppendLine($"{name}：控件面={controlFill}");
             }
             async Task AssertTextBorderAsync(TextBox control, string name)
             {

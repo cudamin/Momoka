@@ -76,6 +76,17 @@ internal static class SettingsLayoutTests
             Assert.True(panel.Attribute("Background") is null, "不得用底色和 1px 缝重新制造选项分隔线");
             Assert.Equal("{StaticResource EgCardBorderThickness}", list.Parent?.Attribute("BorderThickness")?.Value);
         });
+        TestHarness.Test("设置布局：分区标题下不再显示说明，卡片只剩标题一行", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+            var section = Named(document, "SettingsSection");
+            var header = section.Elements()
+                .Single(element => element.Name.LocalName == "StackPanel"
+                    && element.Elements().Any(child => child.Attribute(Xaml + "Name")?.Value == "SettingsSectionTitle"));
+            Assert.Equal(1, header.Elements().Count(), "分区抬头只留标题一行");
+            Assert.False(document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "SettingsSectionDescription"),
+                "2026-11-28 用户令：设置页面分区下面的说明不再上屏");
+        });
         TestHarness.Test("设置材质：窗口不铺共用底，每张设置卡只用一层 Fluent 填充", () =>
         {
             var document = Page("SettingsPage.xaml");
@@ -85,8 +96,9 @@ internal static class SettingsLayoutTests
                 .ToArray();
 
             Assert.Equal(1, cardSurfaces.Length, "设置卡不能再叠加页面级或分组级背景");
-            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
-                cardSurfaces[0].Attribute("Background")?.Value);
+            Assert.Equal("{ThemeResource EgSettingsCardBrush}",
+                cardSurfaces[0].Attribute("Background")?.Value,
+                "2026-11-28 用户令「修复卡片一点都不透」：设置卡改用白纱玻璃，不再用 65% 深面染色的卡片亚克力");
             Assert.True(section.Attribute("Background") is null, "设置分组根不应再铺共用背景");
             Assert.True(cardSurfaces[0].Elements().Any(element => element.Name.LocalName == "ItemsControl"),
                 "设置卡的唯一表面应承载设置行列表");

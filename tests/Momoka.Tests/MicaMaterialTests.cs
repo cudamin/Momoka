@@ -25,8 +25,12 @@ internal static class MicaMaterialTests
             Assert.Contains("page.ViewModel.StoreMode ? store", probe);
             Assert.Contains("page.ViewModel.Showcase && panel.Name == \"InfoPanel\" ? infoFill : fill", probe);
             Assert.Contains("ReferenceEquals(panel.Background, expected)", probe);
-            Assert.Contains("SolidColorBrush expected => actual.AlwaysUseFallback && actual.FallbackColor == expected.Color", probe);
-            Assert.Contains("actual.TintLuminosityOpacity == expected.TintLuminosityOpacity", probe);
+            // 2026-11-28 起卡片层是半透明 SolidColorBrush（官方 CardBackgroundFillColorDefault 两档白），
+            // 探针比对的是 Color 而不是亚克力的 tint/回退参数。
+            Assert.Contains("private static void RequireDetailPanelSource(SolidColorBrush actual, Brush source)", probe);
+            Assert.Contains("SolidColorBrush expected => actual.Color == expected.Color,", probe);
+            Assert.Contains("var fill = Get<SolidColorBrush>(page, \"_panelFill\")", probe);
+            Assert.Contains("var infoFill = Get<SolidColorBrush>(page, \"_infoCardFill\")", probe);
             Assert.Contains("RequireDetailPanelMaterials(page, stage + \"错误背景反例\")", probe);
             Assert.Contains("finally { info.Background = original; }", probe);
             Assert.Contains("RequireDetailPanelMaterials(page, stage + \"反例恢复\")", probe);

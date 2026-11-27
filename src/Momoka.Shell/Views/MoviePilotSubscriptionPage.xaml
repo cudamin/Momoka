@@ -97,8 +97,10 @@
              了外壳画布，同一格设置在主页与媒体详情页是「Base ＋ 画布」、在这一页却是「Alt 原样」。 -->
         <Border x:Name="MicaLayerSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
+        <!-- 2026-11-28 用户令「媒体详情页和订阅详情页的卡片也要改成一样的」：订阅详情页的正文卡也接官方
+             那两档白的卡片层（EgCardFillBrush），不再用 65% 染色的卡片亚克力。 -->
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                Background="{ThemeResource EgCardFillBrush}" />
         <Border x:Name="StoreCardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource EgSurfaceBrush}" />
     <Grid x:Name="DetailContent" Visibility="{x:Bind MediaViewModel.DetailContentVisibility, Mode=OneWay}">

@@ -381,16 +381,16 @@ internal sealed partial class ShellNavigationProbe
                 CheckDetailPanelMaterials(page, "初次呈现");
                 var materialSource = Get<Border>(page, "CardMaterialSource");
                 var originalMaterial = materialSource.Background;
-                var privateMaterial = Get<AcrylicBrush>(page, "_panelFill");
+                var privateMaterial = Get<SolidColorBrush>(page, "_panelFill");
                 try
                 {
                     materialSource.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
-                    Require(privateMaterial.AlwaysUseFallback && privateMaterial.FallbackColor == Microsoft.UI.Colors.White,
+                    Require(privateMaterial.Color == Microsoft.UI.Colors.White,
                         "卡片没有随系统资源切换到实色");
                     RequireDetailPanelSource(privateMaterial, materialSource.Background);
                     // 信息卡自己那一支也跟着系统资源走 —— 2026-11-15 起它是沉浸档唯一还铺卡面的正文板。
-                    var infoMaterial = Get<AcrylicBrush>(page, "_infoCardFill");
-                    Require(infoMaterial.AlwaysUseFallback && infoMaterial.FallbackColor == Microsoft.UI.Colors.White,
+                    var infoMaterial = Get<SolidColorBrush>(page, "_infoCardFill");
+                    Require(infoMaterial.Color == Microsoft.UI.Colors.White,
                         "信息卡的卡片底没有随系统资源切换到实色");
                     RequireDetailPanelMaterials(page, "系统实色回退");
                 }
@@ -669,15 +669,11 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private static void RequireDetailPanelSource(AcrylicBrush actual, Brush source)
+    private static void RequireDetailPanelSource(SolidColorBrush actual, Brush source)
     {
         var matches = source switch
         {
-            AcrylicBrush expected => actual.AlwaysUseFallback == expected.AlwaysUseFallback
-                && actual.TintColor == expected.TintColor && actual.FallbackColor == expected.FallbackColor
-                && actual.TintOpacity == expected.TintOpacity
-                && actual.TintLuminosityOpacity == expected.TintLuminosityOpacity,
-            SolidColorBrush expected => actual.AlwaysUseFallback && actual.FallbackColor == expected.Color,
+            SolidColorBrush expected => actual.Color == expected.Color,
             _ => false
         };
         Require(matches, "卡片资源恢复后未同步原画刷的材质参数");
@@ -688,9 +684,9 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireDetailPanelMaterials(DetailPage page, string stage)
     {
         var panels = Get<StackPanel>(page, "BodySheet").Children.OfType<StackPanel>().ToArray();
-        var fill = Get<AcrylicBrush>(page, "_panelFill");
+        var fill = Get<SolidColorBrush>(page, "_panelFill");
         var line = Get<SolidColorBrush>(page, "_panelLine");
-        var infoFill = Get<AcrylicBrush>(page, "_infoCardFill");
+        var infoFill = Get<SolidColorBrush>(page, "_infoCardFill");
         var store = Get<Border>(page, "StoreCardMaterialSource").Background;
         foreach (var panel in panels)
         {

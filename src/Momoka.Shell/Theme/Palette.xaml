@@ -195,6 +195,19 @@
             <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="#24FFFFFF" />
             <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="#1FFFFFFF" />
 
+            <!-- 官方控件面（2026-11-28 用户令「这些框也是官方用法吗？一起修一下」）。WinUI 主题字典里
+                 ControlFillColorDefaultBrush / ControlStrokeColorDefaultBrush 这一族就是控件自己的表面：
+                 半透明、跟 Mica 一起工作 —— 深色 6%/8%/3%/4% 白与 7%/9% 白描边，浅色 70%/50%/30% 白与
+                 6%/16% 黑。设置页卡片区的输入框与选择框接到这一族上，不再自造亚克力浓度：亚克力只模糊
+                 窗口内的 XAML 内容，采不到 Mica，铺在卡片上就是一整块不动的灰（卡片那边同一个坑）。
+                 这一族是常驻画刷，ThemeHost 按主题就地重涂，别处拿到的仍是同一个对象。 -->
+            <SolidColorBrush x:Key="EgControlFillBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="EgControlFillSecondaryBrush" Color="#15FFFFFF" />
+            <SolidColorBrush x:Key="EgControlFillTertiaryBrush" Color="#08FFFFFF" />
+            <SolidColorBrush x:Key="EgControlFillDisabledBrush" Color="#0BFFFFFF" />
+            <SolidColorBrush x:Key="EgControlStrokeBrush" Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="EgControlStrokeSecondaryBrush" Color="#18FFFFFF" />
+
             <!-- what the framework's own controls read -->
             <!-- The accent brushes are what a Button, ToggleSwitch, Slider, RatingControl and
                  NavigationView selection indicator actually paint with. Overriding SystemAccentColor
@@ -310,6 +323,20 @@
             <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Color="{StaticResource EgBorderStrongColor}" />
+
+            <!-- 设置页卡片（2026-11-28 用户令「参考官方用法修改卡片，别自己猜」）。
+                 官方用法就在 WinUI 的主题字典里：CardBackgroundFillColorDefaultBrush 是一块 5% 白
+                 （浅色 70% 白）的半透明面，配 CardStrokeColorDefaultBrush 压在 Mica 上；
+                 微软的 WinUI 3 应用结构文档原话是「个别内容卡需要底色时，用主题字典里分层的
+                 CardBackgroundFillColorDefaultBrush —— 它是半透明的，跟 Mica 一起工作」。
+                 亚克力在这里帮不上忙：AcrylicBrush 只模糊窗口内的 XAML 内容，采不到窗口底材，
+                 卡片压在 Mica 上取样面是空的，染色一浓就等于一块实心板（2026-11-05 的实拍也记过）。
+                 所以这一支不再自造 tint 浓度，直接取官方那两档白：深色 5% 白、浅色 70% 白。 -->
+            <SolidColorBrush x:Key="EgSettingsCardBrush" Color="#0DFFFFFF" />
+            <!-- 详情页与订阅页内容卡的官方卡片层（2026-11-28 用户令「媒体详情页和订阅详情页的卡片也要改成一样的」）：
+                 与设置页那张卡同一支两档白（深色 5%、浅色 70%），媒体详情页与订阅详情页的 CardMaterialSource
+                 接这一支，正文面板就不再是 65% 亚克力的实心板。 -->
+            <SolidColorBrush x:Key="EgCardFillBrush" Color="#0DFFFFFF" />
 
             <!-- 对话框、飞出菜单、TeachingTip 的底。框架自己那三档是中性灰，主题换了色相之后它们会是画面上
                  唯一没跟着走的一块，所以也接到我们的面上来。 -->
@@ -527,6 +554,14 @@
             <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="#1A000000" />
             <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="#24000000" />
 
+            <!-- 同 Dark 那六颗官方控件面：浅色这边就是 WinUI 主题字典的 70%/50%/30% 白与 6%/16% 黑。 -->
+            <SolidColorBrush x:Key="EgControlFillBrush" Color="#B3FFFFFF" />
+            <SolidColorBrush x:Key="EgControlFillSecondaryBrush" Color="#80F9F9F9" />
+            <SolidColorBrush x:Key="EgControlFillTertiaryBrush" Color="#4DF9F9F9" />
+            <SolidColorBrush x:Key="EgControlFillDisabledBrush" Color="#4DF9F9F9" />
+            <SolidColorBrush x:Key="EgControlStrokeBrush" Color="#0F000000" />
+            <SolidColorBrush x:Key="EgControlStrokeSecondaryBrush" Color="#29000000" />
+
             <Color x:Key="SystemAccentColor">#FF2E7D32</Color>
             <Color x:Key="SystemAccentColorLight1">#FF479045</Color>
             <Color x:Key="SystemAccentColorLight2">#FF60A45C</Color>
@@ -594,6 +629,11 @@
             <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Color="{StaticResource EgBorderStrongColor}" />
+
+            <!-- 同 Dark 那颗设置卡片：官方浅色卡片层取 70% 白。 -->
+            <!-- 同 Dark 那支：设置页卡片与全站内容卡都取官方那两档白。 -->
+            <SolidColorBrush x:Key="EgSettingsCardBrush" Color="#B3FFFFFF" />
+            <SolidColorBrush x:Key="EgCardFillBrush" Color="#B3FFFFFF" />
 
             <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="{StaticResource EgSurfaceColor}" />
@@ -698,6 +738,8 @@
                  正文那张纸于是是实心的，背后那张剧照被它整块盖住 —— 这正是该有的样子。
                  输入玻璃同理：设置页把它接到输入框的静止底色上，这里退回系统窗口色。 -->
             <SolidColorBrush x:Key="EgFrostBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgSettingsCardBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgCardFillBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgInputGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgActionGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgActionGlassHoverBrush" Color="{ThemeResource SystemColorWindowColor}" />
@@ -710,6 +752,13 @@
             <SolidColorBrush x:Key="EgFieldFillBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <!-- 高对比度下官方控件面同样落成系统色：面用窗口底、边线用窗口文字色。 -->
+            <SolidColorBrush x:Key="EgControlFillBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgControlFillSecondaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgControlFillTertiaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgControlFillDisabledBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgControlStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgControlStrokeSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgStoreControlBrush" Color="{ThemeResource SystemColorWindowColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>

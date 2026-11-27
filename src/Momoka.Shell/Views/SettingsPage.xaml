@@ -1779,25 +1779,52 @@
                     <ScrollViewer.Resources>
                         <ResourceDictionary>
                         <!--
-                          卡片里输入框的静止底色（2026-10-29 用户令：「点击输入框后输入框内部颜色要切换到设置
-                          页面侧边栏背景的颜色」，「搜索框别改，保持原样」）。只挂在卡片这一列的滚动区上：
-                          TextBox/PasswordBox/NumberBox 的静止与悬停底色接输入玻璃，聚焦态不覆盖 —— 框架的
-                          TextControlBackgroundFocused 仍是全局窗口色（= 侧边栏底色），点进去那一刻整块由
-                          玻璃切成侧栏色，失焦又回到玻璃。左侧搜索框在这一层之外，因此一个像素不变。
-                          Disabled 不覆盖，留全局窗口色，停用的框和可输入的框还分得开。
+                          卡片里输入框与选择框的表面（2026-11-28 用户令「这些框也是官方用法吗？一起修一下」）。
+                          改成 WinUI 主题字典里那套官方控件面：ControlFillColorDefaultBrush 那一族是半透明面
+                          （深色 6% 白、浅色 70% 白），配 ControlStrokeColor* 的 7%/9% 白描边，压在卡片上与
+                          Mica 一起工作。项目原先在这块滚动区里只把 TextBox 的静止与悬停底色接到
+                          输入玻璃（亚克力）—— 亚克力只模糊窗口内的 XAML 内容、采不到窗口底材，铺在卡片上
+                          就是一块不透明的灰，和卡片「一点都不透」是同一个坑；那一条 2026-10-29 的输入玻璃令
+                          由本令覆盖，只在卡片区生效。
+                          左侧搜索框在这一层之外，仍按 2026-10-29 的意思保持 EgWindowBrush 原样；聚焦态
+                          不覆盖，点进去仍回全局的侧栏色（同一条令），停用的框也留全局窗口色，两者分得开。
                         -->
                         <ResourceDictionary.ThemeDictionaries>
                             <ResourceDictionary x:Key="Dark">
-                                <StaticResource x:Key="TextControlBackground" ResourceKey="EgInputGlassBrush" />
-                                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+                                <StaticResource x:Key="TextControlBackground" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgControlFillSecondaryBrush" />
+                                <StaticResource x:Key="TextControlBorderBrush" ResourceKey="EgControlStrokeBrush" />
+                                <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="EgControlStrokeSecondaryBrush" />
+                                <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgControlFillSecondaryBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgControlFillTertiaryBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgControlFillDisabledBrush" />
                             </ResourceDictionary>
                             <ResourceDictionary x:Key="Light">
-                                <StaticResource x:Key="TextControlBackground" ResourceKey="EgInputGlassBrush" />
-                                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+                                <StaticResource x:Key="TextControlBackground" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgControlFillSecondaryBrush" />
+                                <StaticResource x:Key="TextControlBorderBrush" ResourceKey="EgControlStrokeBrush" />
+                                <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="EgControlStrokeSecondaryBrush" />
+                                <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgControlFillSecondaryBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgControlFillTertiaryBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgControlFillBrush" />
+                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgControlFillDisabledBrush" />
                             </ResourceDictionary>
                             <ResourceDictionary x:Key="HighContrast">
                                 <SolidColorBrush x:Key="TextControlBackground" Color="{ThemeResource SystemColorWindowColor}" />
                                 <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="TextControlBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                                <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+                                <SolidColorBrush x:Key="ComboBoxBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{ThemeResource SystemColorWindowColor}" />
                             </ResourceDictionary>
                         </ResourceDictionary.ThemeDictionaries>
                         </ResourceDictionary>
@@ -1842,18 +1869,16 @@
                                         <StackPanel.RenderTransform>
                                             <TranslateTransform />
                                         </StackPanel.RenderTransform>
-                                        <!-- 每张卡都写自己的标题与说明：与侧栏同名也保留，卡片因此自成一段。 -->
-                                        <StackPanel Margin="8,0,0,12" Spacing="4">
+                                        <!-- 每张卡只写自己的标题（2026-11-28 用户令「去掉设置页面分区下面的说明」）。
+                                             分区说明不再上屏；那段文字仍留在 SettingSection.Description 里，
+                                             给设置搜索当索引用。 -->
+                                        <StackPanel Margin="8,0,0,12">
                                             <TextBlock x:Name="SettingsSectionTitle"
                                                 Text="{x:Bind DisplayTitle, Mode=OneWay}" Style="{StaticResource EgSettingsSectionTitle}"
                                                 AutomationProperties.HeadingLevel="Level2" />
-                                            <TextBlock x:Name="SettingsSectionDescription"
-                                                Style="{StaticResource EgSettingNote}"
-                                                Text="{x:Bind DisplayDescription, Mode=OneWay}"
-                                                Visibility="{x:Bind DescriptionVisibility, Mode=OneWay}" />
                                         </StackPanel>
                                         <Border
-                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            Background="{ThemeResource EgSettingsCardBrush}"
                                             BorderBrush="{ThemeResource EgCardStrokeBrush}"
                                             BorderThickness="{StaticResource EgCardBorderThickness}"
                                             CornerRadius="{StaticResource EgCardCornerRadius}"

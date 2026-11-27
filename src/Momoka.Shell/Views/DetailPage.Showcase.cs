@@ -49,7 +49,7 @@ public sealed partial class DetailPage
     }
 
     /// <summary>五块正文面板的底 —— 沉浸档里淡到 0，纸面让开之后不再有「板里的板」那一层。</summary>
-    private readonly AcrylicBrush _panelFill = new();
+    private readonly SolidColorBrush _panelFill = new();
 
     /// <summary>五块正文面板的描边，同 <see cref="_panelFill"/>。</summary>
     private readonly SolidColorBrush _panelLine = new();
@@ -63,7 +63,7 @@ public sealed partial class DetailPage
     /// 只有面色与圆角，不描边（<c>EgCardBorderThickness</c> 是 0）。
     /// </para>
     /// </summary>
-    private readonly AcrylicBrush _infoCardFill = new();
+    private readonly SolidColorBrush _infoCardFill = new();
 
     /// <summary>宽高批量写入期间，背景渲染结果等待同一次布局结算。</summary>
     private bool _sizing;
@@ -117,24 +117,11 @@ public sealed partial class DetailPage
 
     private void RefreshPanelBrushes()
     {
-        if (CardMaterialSource.Background is AcrylicBrush template)
+        // 2026-11-28：卡片层换成官方那两档白（EgCardFillBrush 是一支 SolidColorBrush），私有副本只抄颜色 ——
+        // 高对比度那块系统给的是 SystemColorWindowColor，也是实色，同一条路。
+        if (CardMaterialSource.Background is SolidColorBrush template)
         {
-            foreach (var fill in new[] { _panelFill, _infoCardFill })
-            {
-                fill.AlwaysUseFallback = template.AlwaysUseFallback;
-                fill.TintColor = template.TintColor;
-                fill.FallbackColor = template.FallbackColor;
-                fill.TintOpacity = template.TintOpacity;
-                fill.TintLuminosityOpacity = template.TintLuminosityOpacity;
-            }
-        }
-        else if (CardMaterialSource.Background is SolidColorBrush contrast)
-        {
-            foreach (var fill in new[] { _panelFill, _infoCardFill })
-            {
-                fill.AlwaysUseFallback = true;
-                fill.FallbackColor = contrast.Color;
-            }
+            foreach (var fill in new[] { _panelFill, _infoCardFill }) fill.Color = template.Color;
         }
         _panelLine.Color = BrushColor("EgBorderBrush");
     }

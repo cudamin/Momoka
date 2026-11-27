@@ -282,9 +282,12 @@
         <!-- 顶部内容卡共享窗口云母，采用系统内容层色；不复用项目中已改作不透明浮层的 LayerFillColorDefaultBrush。 -->
         <Border x:Name="HeroContentLayerSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource EgDetailContentLayerBrush}" />
-        <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。 -->
+        <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。
+             2026-11-28 用户令「媒体详情页和订阅详情页的卡片也要改成一样的」：这里接官方那两档白的卡片层
+             （EgCardFillBrush），不再接 65% 染色的卡片亚克力 —— 亚克力只模糊窗口内的 XAML 内容、采不到
+             底材，压在那张纸上就等于一块实心板。 -->
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                Background="{ThemeResource EgCardFillBrush}" />
         <Border x:Name="StoreCardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource EgSurfaceBrush}" />
         <Border x:Name="BackdropThemeSource" Width="0" Height="0" IsHitTestVisible="False"
