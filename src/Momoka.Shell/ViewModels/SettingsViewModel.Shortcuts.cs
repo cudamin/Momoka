@@ -15,9 +15,8 @@ public sealed partial class SettingsViewModel
     // 四颗方向键的步长挂在各自的快捷键行下面（用户令 2026-11-24「上图的设置移到快捷键页面对应快捷键下方」）。
     // 它们不是快捷键，不参与改绑，也不计入「可改快捷键」；值仍住 PlaybackSettings，读写与保存和从前一样。
     private readonly Dictionary<string, List<SettingNumberRow>> _shortcutSeekRows = new(StringComparer.Ordinal);
-    // 三条「没被别的动作占用时才成立」的回退键：Esc 全屏则退否则停，回车／Delete 只在跳过提示
-    // 出现时有效。它们的事归播放页，不参与改绑，所以只能是只读说明行，不混进可改行计数。
-    private readonly List<(SettingFactRow Row, KeyStroke Stroke)> _shortcutFixedRows = [];
+    private static readonly string[] ShortcutTailIds =
+        [ShortcutCatalog.ExitPlayback, ShortcutCatalog.DismissSkip, ShortcutCatalog.TakeSkip];
     private SettingFactRow? _shortcutResetRow;
     private readonly SettingFactRow _shortcutEmptyRow = Fact("没有找到匹配的快捷键", "试试操作名称或按键，如「字幕」「Ctrl + ↑」；清空搜索可查看全部。", "");
 
@@ -181,7 +180,7 @@ public sealed partial class SettingsViewModel
 
     /// <summary>
     /// 快捷键页的全部分区卡。2026-11-24 之前这一页只有一张「快捷键」卡；用户令分区后按 <see cref="ShortcutGroups"/>
-    /// 建卡，末尾再跟一张「回退键与恢复默认」。
+    /// 建卡，末尾再跟一张「退出、跳过与恢复默认」。
     /// </summary>
     private IReadOnlyList<SettingSection> ShortcutSections()
     {
@@ -189,19 +188,12 @@ public sealed partial class SettingsViewModel
         _shortcutRows.Clear();
         _shortcutRows.AddRange(AvailableShortcutActions().Select(action => ShortcutRow(action, effective[action.Id])));
         BuildShortcutSeekRows();
-        _shortcutFixedRows.Clear();
-        _shortcutFixedRows.Add((Fact("退出全屏 / 退出播放", "未被其他快捷键占用时生效；全屏时退出全屏，非全屏时停止播放", "Esc"),
-            new KeyStroke("Escape", false, false, false)));
-        _shortcutFixedRows.Add((Fact("关闭跳过片头 / 片尾提示", "未被其他快捷键占用时生效；只在出现跳过提示时有效", "Del"),
-            new KeyStroke("Delete", false, false, false)));
-        _shortcutFixedRows.Add((Fact("确认跳过片头 / 片尾", "未被其他快捷键占用时生效；只在出现跳过提示时有效", "回车"),
-            new KeyStroke("Enter", false, false, false)));
         _shortcutResetRow = Fact("恢复默认快捷键", "恢复全部快捷键，包括当前搜索未显示的项目；其他设置不受影响",
             UiText.Format("{0} 个可改快捷键", _shortcutRows.Count), "恢复默认", ClearAllShortcuts);
 
         _shortcutSectionPlans.Clear();
         var sections = new List<SettingSection>();
-        var covered = new HashSet<string>(StringComparer.Ordinal);
+        var covered = new HashSet<string>(ShortcutTailIds, StringComparer.Ordinal);
         foreach (var group in ShortcutGroups)
         {
             covered.UnionWith(group.Ids);
@@ -220,10 +212,11 @@ public sealed partial class SettingsViewModel
             sections.Add(section);
         }
 
-        var tail = new SettingSection("快捷键", "回退键与恢复默认",
-            "没有绑定时才生效的三颗回退键，以及把所有快捷键恢复装机默认。",
-            ShortcutTailRows(sections.Sum(section => section.Rows.Count)));
-        _shortcutSectionPlans.Add(new ShortcutSectionPlan(tail, [], Tail: true));
+        var tailActions = ShortcutRowsFor(ShortcutTailIds, effective);
+        var tail = new SettingSection("快捷键", "退出、跳过与恢复默认",
+            "退出键在全屏时退出全屏，非全屏时停止播放。关闭、确认跳过提示的按键可与其他快捷键重复；提示出现时优先处理提示，消失后恢复其他动作。关闭与确认两者仍需使用不同按键。",
+            ShortcutTailRows(sections.Sum(section => section.Rows.Count) + tailActions.Count, tailActions));
+        _shortcutSectionPlans.Add(new ShortcutSectionPlan(tail, ShortcutTailIds, Tail: true));
         sections.Add(tail);
         RefreshShortcutFilter();
         return sections;
@@ -289,15 +282,12 @@ public sealed partial class SettingsViewModel
         return rows;
     }
 
-    /// <summary>最后一张卡：三条只读回退键、空结果说明与恢复默认入口。空结果说明只在整页一条都没命中时出现。</summary>
-    private IReadOnlyList<SettingRow> ShortcutTailRows(int actionMatches, int? fixedMatches = null)
+    /// <summary>最后一张卡：退出和跳过提示的可改按键、空结果说明与恢复默认入口。</summary>
+    private IReadOnlyList<SettingRow> ShortcutTailRows(int actionMatches, IReadOnlyList<SettingRow> actions)
     {
         var searching = !string.IsNullOrWhiteSpace(ShortcutSearchQuery);
-        var rows = new List<SettingRow>();
-        foreach (var (row, stroke) in _shortcutFixedRows)
-            if (!searching || ShortcutCatalog.MatchesSearch(ShortcutSearchQuery,
-                $"{row.Label} {row.Note} {row.DisplayLabel} {row.DisplayNote}", stroke)) rows.Add(row);
-        if (searching && actionMatches + (fixedMatches ?? rows.Count) == 0) rows.Add(_shortcutEmptyRow);
+        var rows = new List<SettingRow>(actions);
+        if (searching && actionMatches == 0) rows.Add(_shortcutEmptyRow);
         if (_shortcutResetRow is not null) rows.Add(_shortcutResetRow);
         return rows;
     }
@@ -315,15 +305,14 @@ public sealed partial class SettingsViewModel
             matched += rows.Count;
         }
 
-        // 回退键那三条也算「找到」：它们可按名称或键命中，只是不进可改数量。恢复入口与空结果说明不计入匹配数。
         var searching = !string.IsNullOrWhiteSpace(ShortcutSearchQuery);
-        var fixedMatches = _shortcutFixedRows.Count(pair => !searching || ShortcutCatalog.MatchesSearch(ShortcutSearchQuery,
-            $"{pair.Row.Label} {pair.Row.Note} {pair.Row.DisplayLabel} {pair.Row.DisplayNote}", pair.Stroke));
         var tail = _shortcutSectionPlans.First(plan => plan.Tail);
-        tail.Section.UpdateRows(ShortcutTailRows(matched, fixedMatches));
+        var tailActions = ShortcutRowsFor(tail.Ids, effective);
+        matched += tailActions.Count;
+        tail.Section.UpdateRows(ShortcutTailRows(matched, tailActions));
 
         ShortcutSearchSummary = searching
-            ? UiText.Format("找到 {0} 项 · 共 {1} 个可改快捷键", matched + fixedMatches, _shortcutRows.Count)
+            ? UiText.Format("找到 {0} 项 · 共 {1} 个可改快捷键", matched, _shortcutRows.Count)
             : UiText.Format("{0} 个可改快捷键 · 支持按名称或当前按键搜索", _shortcutRows.Count);
     }
 

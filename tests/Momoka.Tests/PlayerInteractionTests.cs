@@ -68,16 +68,25 @@ internal static class PlayerInteractionTests
             Assert.DoesNotContain("foreach (var view in Enum.GetValues<LibraryView>())", text);
             Assert.Equal(7, Momoka.Emby.LibraryDisplayCatalog.EmbyViews.Count);
         });
-        TestHarness.Test("跳过键位：Esc 归全屏，Delete 关提示、回车确认跳过", () =>
+        TestHarness.Test("跳过键位：退出和提示走可重绑目录，预览接线先于焦点控件", () =>
         {
             var code = File.ReadAllText(Path.Combine(
                 RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.Input.cs"));
 
-            Assert.Contains("case VirtualKey.Delete when token == \"Delete\" && ViewModel.SkipOffered && fixedFallback:", code);
-            Assert.Contains("case VirtualKey.Enter when token == \"Enter\" && ViewModel.SkipOffered && fixedFallback:", code);
-            Assert.Contains("reboundAction is null", code);
-            Assert.Contains("fixedFallback", code);
+            Assert.Contains("ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke, ViewModel.SkipOffered)", code);
+            Assert.Contains("[ShortcutCatalog.ExitPlayback] = ExitFullscreenOrStop", code);
+            Assert.Contains("[ShortcutCatalog.DismissSkip] = () => ViewModel.DismissSkip()", code);
+            Assert.Contains("[ShortcutCatalog.TakeSkip] = () => ViewModel.TakeSkip()", code);
+            Assert.DoesNotContain("fixedFallback", code);
             Assert.Contains("CanDispatchVirtualKey", code);
+            Assert.Contains("SkipPromptShortcut(e.Key, e.KeyStatus.IsExtendedKey, e.KeyStatus.WasKeyDown)", code);
+            Assert.Contains("ReleaseSkipPromptKey(e.Key, e.KeyStatus.IsExtendedKey)", code);
+            Assert.Contains("ReferenceEquals(_lastDispatchedKeyEvent, e)", code);
+            var page = File.ReadAllText(Path.Combine(
+                RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.xaml.cs"));
+            Assert.Contains("PreviewKeyDown += OnPreviewSkipShortcut;", page);
+            Assert.Contains("PreviewKeyUp += OnPreviewSkipKeyUp;", page);
+            Assert.Contains("_skipPreviewArmed = true;", page);
 
             // 焦点掉出 XAML 岛时走的是窗口钩子；页面点头还不够，钩子自己的白名单也得放行 Delete。
             var host = File.ReadAllText(Path.Combine(
@@ -189,7 +198,14 @@ internal static class PlayerInteractionTests
         {
             var defaults = VideoWindowShortcuts.Bindings(new Dictionary<string, string>());
             Assert.Equal(ShortcutCatalog.Actions.Count, defaults.Count);
-            Assert.True(ShortcutCatalog.Actions.All(action => defaults.Values.Contains(action.Id)));
+            Assert.True(ShortcutCatalog.Actions.Where(action => !ShortcutCatalog.IsSkipPrompt(action.Id))
+                .All(action => defaults.Values.Contains(action.Id)));
+            Assert.Equal("", defaults["ENTER"]);
+            Assert.Equal("", defaults["DEL"]);
+            Assert.Equal(ShortcutCatalog.ExitPlayback, defaults["ESC"]);
+            var offered = VideoWindowShortcuts.Bindings(new Dictionary<string, string>(), skipOffered: true);
+            Assert.True(ShortcutCatalog.Actions.All(action => offered.Values.Contains(action.Id)));
+            Assert.Equal(ShortcutCatalog.TakeSkip, offered["KP_ENTER"]);
             var changed = VideoWindowShortcuts.Bindings(new Dictionary<string, string>
             {
                 ["toggle-pause"] = "Ctrl+F9",
@@ -198,7 +214,9 @@ internal static class PlayerInteractionTests
             Assert.Equal("", changed["SPACE"]);
             Assert.Equal("", changed["f"]);
             Assert.Equal("toggle-pause", changed["Ctrl+F9"]);
-            Assert.False(changed.Keys.Any(key => key.Contains("ESC", StringComparison.Ordinal) || key.Contains("ENTER", StringComparison.Ordinal)));
+            Assert.Equal(ShortcutCatalog.ExitPlayback, changed["ESC"]);
+            Assert.Equal("", changed["ENTER"]);
+            Assert.Equal("", changed["DEL"]);
         });
         TestHarness.Test("独占快捷键：大小写修饰符及标点只走受支持的键名", () =>
         {

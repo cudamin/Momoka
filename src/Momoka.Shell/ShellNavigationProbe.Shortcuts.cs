@@ -104,11 +104,11 @@ internal sealed partial class ShellNavigationProbe
             var clear = Get<Button>(page, "ClearShortcutSearchButton");
             var input = Descendants(search).OfType<TextBox>().Single();
             Require(originalRows.Count == ShortcutCatalog.Actions.Count, "初始快捷键目录不完整");
-            Require(allRows.Count == originalRows.Count + 10, "可改动作之外应只有六行附注、三条回退键说明行和恢复入口");
+            Require(allRows.Count == originalRows.Count + 7, "可改动作之外应只有六行附注和恢复入口");
             Require(shortcutCards.Count == 13, $"快捷键页应当分十三张卡，实际 {shortcutCards.Count} 张");
-            Require(Fixed("退出全屏 / 退出播放")?.Value == "Esc", "Esc 回退键说明行缺失或键值不对");
-            Require(Fixed("关闭跳过片头 / 片尾提示")?.Value == "Del", "Del 回退键说明行缺失或键值不对");
-            Require(Fixed("确认跳过片头 / 片尾")?.Value == "回车", "回车回退键说明行缺失或键值不对");
+            Require(originalRows[ShortcutCatalog.ExitPlayback].ComboText == "Esc", "退出全屏／退出播放的可改行缺失或默认键不对");
+            Require(originalRows[ShortcutCatalog.DismissSkip].ComboText == "Del", "关闭跳过提示的可改行缺失或默认键不对");
+            Require(originalRows[ShortcutCatalog.TakeSkip].ComboText == "回车", "确认跳过的可改行缺失或默认键不对");
             // 四颗方向键的步长紧跟各自的快捷键行，且缩进一档（从属行）；数值仍是 PlaybackSettings 的那四个。
             foreach (var (actionId, label, seconds) in new[]
             {
@@ -187,23 +187,39 @@ internal sealed partial class ShellNavigationProbe
             await QueryAsync("Alt + [");
             Require(Shown().Single().Id == "subtitle-scale-down", "方括号组合键搜索失败");
             await QueryAsync("Del");
-            Require(!Shown().Any() && Fixed("关闭跳过片头 / 片尾提示") is not null && AllRows().Count == 2,
-                "Del 搜索应只命中关闭跳过提示的说明行与恢复入口");
+            Require(Shown().Single().Id == ShortcutCatalog.DismissSkip && AllRows().Count == 2,
+                "Del 搜索应命中关闭跳过提示的可改行与恢复入口");
             await QueryAsync("回车");
-            Require(!Shown().Any() && Fixed("确认跳过片头 / 片尾") is not null && AllRows().Count == 2,
-                "回车搜索应只命中确认跳过的说明行与恢复入口");
+            Require(Shown().Single().Id == ShortcutCatalog.TakeSkip && AllRows().Count == 2,
+                "回车搜索应命中确认跳过的可改行与恢复入口");
             await QueryAsync("未设置");
             Require(Shown().Single().Id == "video-pan-left", "未设置搜索未显示解绑动作");
             await QueryAsync("Esc");
-            Require(!Shown().Any(), "未绑定的 Esc 不应匹配可改快捷键行");
-            Require(Fixed("退出全屏 / 退出播放") is not null && AllRows().Count == 2,
-                "Esc 搜索应只命中回退键说明行与恢复入口");
-            originalRows["toggle-pause"].OnCommitted(capture, "Escape");
+            Require(Shown().Single().Id == ShortcutCatalog.ExitPlayback && AllRows().Count == 2,
+                "Esc 搜索应命中退出全屏／退出播放的可改行与恢复入口");
+            originalRows[ShortcutCatalog.ExitPlayback].OnCommitted(capture, "Ctrl+F10");
             await LayoutAsync(page);
-            Require(Shown().Single().Id == "toggle-pause", "Esc 改绑后没有参与搜索");
-            Require(Fixed("退出全屏 / 退出播放") is not null, "改绑 Esc 后回退键说明行不见了");
-            originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
+            Require(!Shown().Any(), "退出动作改绑后仍能用旧 Esc 找到");
+            await QueryAsync("Ctrl+F10");
+            Require(Shown().Single().Id == ShortcutCatalog.ExitPlayback, "退出动作没有按新键参与搜索");
+
+            // 提示键与普通动作重叠时不弹替换框，也不交换普通动作的键；两条提示动作各自保持可达。
+            originalRows[ShortcutCatalog.DismissSkip].OnCommitted(capture, "Ctrl+F8");
+            originalRows[ShortcutCatalog.TakeSkip].OnCommitted(capture, "F");
             await LayoutAsync(page);
+            Require(originalRows[ShortcutCatalog.DismissSkip].ComboText == "Ctrl + F8"
+                && originalRows["toggle-pause"].ComboText == "Ctrl + F8"
+                && originalRows[ShortcutCatalog.TakeSkip].ComboText == "F"
+                && originalRows["toggle-fullscreen"].ComboText == "F",
+                "跳过提示键与普通键重叠后没有即时刷新，或改变了普通动作");
+            await QueryAsync("Ctrl+F8");
+            Require(Shown().Select(row => row.Id).ToHashSet(StringComparer.Ordinal)
+                .SetEquals(new[] { "toggle-pause", ShortcutCatalog.DismissSkip }),
+                "共用按键搜索没有同时显示提示动作和普通动作");
+            await QueryAsync("Del");
+            Require(!Shown().Any(), "提示动作改绑后仍能用旧 Del 找到");
+            await QueryAsync("回车");
+            Require(!Shown().Any(), "提示动作改绑后仍能用旧回车找到");
             await QueryAsync("zzzz-not-a-shortcut");
             Require(!Shown().Any() && AllRows().Any(row => row.Label == "没有找到匹配的快捷键"), "空结果提示缺失");
             Require(AllRows().Any(row => row.Label == "恢复默认快捷键"), "搜索结果为空时丢了恢复默认入口");
@@ -250,13 +266,13 @@ internal sealed partial class ShellNavigationProbe
             ((IInvokeProvider)new ButtonAutomationPeer(clear).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
             Require(search.Text.Length == 0 && Shown().Count() == ShortcutCatalog.Actions.Count, "清空搜索没有恢复完整列表");
-            Require(AllRows().Count == ShortcutCatalog.Actions.Count + 10
-                && Fixed("退出全屏 / 退出播放") is not null
-                && Fixed("关闭跳过片头 / 片尾提示") is not null
-                && Fixed("确认跳过片头 / 片尾") is not null,
-                "清空搜索后三条回退键说明行没有恢复，或混进了可改行计数");
+            Require(AllRows().Count == ShortcutCatalog.Actions.Count + 7
+                && originalRows[ShortcutCatalog.ExitPlayback].ComboText == "Esc"
+                && originalRows[ShortcutCatalog.DismissSkip].ComboText == "Del"
+                && originalRows[ShortcutCatalog.TakeSkip].ComboText == "回车",
+                "搜索中恢复默认后退出、关闭提示和确认跳过没有恢复默认键，或行数不正确");
             Require(sources.All(source => ReferenceEquals(source.Rows, source.Section.Rows)), "恢复默认替换了稳定集合");
-            // 三条回退键说明行在列表末尾，滚到底才看得到它们的实际换行与裁切；清空搜索后的
+            // 退出与跳过三条可改行在列表末尾，滚到底才看得到它们的实际换行与裁切；清空搜索后的
             // 新行表要等一拍布局，否则 ScrollableHeight 还是上一段短结果的高度。
             await LayoutAsync(page);
             await Task.Delay(200);
@@ -265,7 +281,7 @@ internal sealed partial class ShellNavigationProbe
             await Task.Delay(250);
             await SaveShortcutScreenAsync($"settings-shortcut-search-restored-{width}-screen.png");
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, $"settings-shortcut-search-{width}-evidence.txt"),
-                $"逻辑：名称／当前键／改绑／解绑／空态／固定键／能力隐藏恢复／分类保留／全部恢复／清空均通过。\n"
+                $"逻辑：名称／当前键／改绑／解绑／空态／退出与提示键自定义／提示键重叠／能力隐藏恢复／分类保留／全部恢复／清空均通过。\n"
                 + $"实屏空结果文字：显示 {shownEmptyPixels} 亮像素，隐藏 {hiddenEmptyPixels} 亮像素。\n");
             Require(shownEmptyPixels > 20, "空结果文字没有实际画到屏幕，不能把旧卡片截图当成快捷键页；控件逻辑已全部检查，视觉闸门仍未通过");
             Require(hiddenEmptyPixels == 0, "屏幕检查无法识别故意隐藏的空结果文字");
@@ -324,8 +340,6 @@ internal sealed partial class ShellNavigationProbe
             }
             IEnumerable<SettingShortcutRow> Shown() => AllRows().OfType<SettingShortcutRow>();
             List<SettingRow> AllRows() => shortcutCards.SelectMany(section => section.Rows).ToList();
-            SettingFactRow? Fixed(string label) => AllRows().OfType<SettingFactRow>()
-                .FirstOrDefault(row => row.Label == label);
             async Task QueryAsync(string text)
             {
                 input.Text = text;
@@ -441,6 +455,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => handle.Commands.Contains("set|audio-delay|0"));
 
             await CheckDynamicMenusAsync();
+            await CheckNativeShortcutQueueAsync();
 
             // 拒绝第一轴后继续复位第二轴，最后不能显示成功通知。
             handle.Accept = arguments => !(arguments.Count > 1 && arguments[1] == "video-pan-x");
@@ -478,6 +493,101 @@ internal sealed partial class ShellNavigationProbe
         {
             Field(vm, "<Tracks>k__BackingField", value);
             handle.Tracks = value;
+        }
+
+        async Task CheckNativeShortcutQueueAsync()
+        {
+            var bindings = fixture.Settings.Shortcuts.Bindings;
+            var savedBindings = bindings.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            var savedPictureInHostWindow = handle.PictureInHostWindow;
+            var savedInteractionVersion = Get<int>(vm, "_interactionVersion");
+            var savedCache = Get<string?>(vm, "_nativeShortcutsSent");
+            TaskCompletionSource<bool>? gate = null;
+            var evidence = new List<string>();
+            try
+            {
+                handle.PictureInHostWindow = false;
+                Require(vm.HeadlessPlayback && playback.IsPlaying, "原生快捷键队列没有进入假独占在播环境");
+                bindings.Clear();
+                Field(vm, "_nativeShortcutsSent", null);
+                await PushAsync();
+                var jsonA = handle.NativeShortcutPayloads.Last();
+                Require(handle.NativeShortcutsApplied == jsonA && Get<string?>(vm, "_nativeShortcutsSent") == jsonA,
+                    "原生快捷键初始映射没有实际送达并缓存");
+
+                // A 已缓存时让 B 卡在真实 VM -> PlaybackService -> 假后端链上，再请求 A。
+                // 在途刷新菜单不应使同一场播放的映射失效，也不能因旧缓存 A 而漏发最后的 A。
+                var before = handle.NativeShortcutPayloads.Count;
+                bindings["toggle-pause"] = "Ctrl+F9";
+                gate = Pending<bool>();
+                handle.NativeShortcutPending = gate;
+                var blockedB = PushAsync();
+                await UntilAsync(() => handle.NativeShortcutPayloads.Count == before + 1);
+                var jsonB = handle.NativeShortcutPayloads.Last();
+                Require(jsonA != jsonB && !blockedB.IsCompleted, "原生快捷键 B 映射没有被假后端阻塞");
+                Field(vm, "_interactionVersion", savedInteractionVersion + 1);
+                bindings.Clear();
+                var restoreA = PushAsync();
+                Require(handle.NativeShortcutPayloads.Count == before + 1 && !restoreA.IsCompleted,
+                    "原生快捷键 A 越过了在途 B，或没有等待发送队列");
+                gate.SetResult(true);
+                await Task.WhenAll(blockedB, restoreA);
+                gate = null;
+                Require(handle.NativeShortcutPayloads.Skip(before).SequenceEqual([jsonB, jsonA])
+                    && handle.NativeShortcutsApplied == jsonA && Get<string?>(vm, "_nativeShortcutsSent") == jsonA
+                    && handle.NativeShortcutMaxConcurrent == 1, "原生快捷键 A-B-A 没有串行恢复到最后请求，或菜单刷新误伤同场播放");
+                evidence.Add("cached A -> blocked B -> requested A: applied A; max concurrent sends=1; menu refresh preserved playback identity");
+
+                // 同映射的 force 请求有独立责任，后续普通重复请求不能把排队中的 force 合并掉。
+                before = handle.NativeShortcutPayloads.Count;
+                gate = Pending<bool>();
+                handle.NativeShortcutPending = gate;
+                var blockedForce = PushAsync(force: true);
+                await UntilAsync(() => handle.NativeShortcutPayloads.Count == before + 1);
+                var queuedForce = PushAsync(force: true);
+                var ordinaryDuplicate = PushAsync();
+                Require(!blockedForce.IsCompleted && !queuedForce.IsCompleted && !ordinaryDuplicate.IsCompleted
+                    && handle.NativeShortcutPayloads.Count == before + 1, "同映射 force 请求没有留在串行队列");
+                gate.SetResult(true);
+                await Task.WhenAll(blockedForce, queuedForce, ordinaryDuplicate);
+                gate = null;
+                Require(handle.NativeShortcutPayloads.Skip(before).SequenceEqual([jsonA, jsonA])
+                    && handle.NativeShortcutsApplied == jsonA && handle.NativeShortcutMaxConcurrent == 1,
+                    "排队中的 force 原生快捷键推送被普通重复请求吞掉，或重复请求未去重");
+                evidence.Add("same JSON: blocked force + queued force + ordinary duplicate produced exactly two serial sends");
+
+                // 先直接核对生产 PlaybackService 将后端异常转换为 false，再核对 VM 队列自身可重试。
+                handle.NativeShortcutThrowNext = true;
+                Require(!await playback.CommandAsync("script-message", VideoWindowContract.Shortcuts, jsonB),
+                    "原生快捷键后端异常没有被 PlaybackService 转换为失败回执");
+                Require(handle.NativeShortcutsApplied == jsonA, "失败的原生快捷键推送仍覆盖了已应用映射");
+                bindings["toggle-pause"] = "Ctrl+F9";
+                handle.NativeShortcutThrowNext = true;
+                before = handle.NativeShortcutPayloads.Count;
+                await PushAsync();
+                Require(handle.NativeShortcutPayloads.Count == before + 1 && handle.NativeShortcutsApplied == jsonA
+                    && Get<string?>(vm, "_nativeShortcutsSent") == jsonA, "失败的 VM 推送错误地更新了原生快捷键缓存");
+                await PushAsync();
+                Require(handle.NativeShortcutPayloads.Skip(before).SequenceEqual([jsonB, jsonB])
+                    && handle.NativeShortcutsApplied == jsonB && Get<string?>(vm, "_nativeShortcutsSent") == jsonB
+                    && handle.NativeShortcutMaxConcurrent == 1, "原生快捷键推送失败后没有以同一映射成功恢复");
+                evidence.Add("backend throw: PlaybackService returned false; failed VM send retained A; next same-B request succeeded and cached B");
+                File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "native-shortcut-queue-evidence.txt"), evidence);
+            }
+            finally
+            {
+                gate?.TrySetResult(true);
+                handle.NativeShortcutPending?.TrySetResult(true);
+                handle.NativeShortcutPending = null;
+                await Get<Task>(vm, "_nativeShortcutTail");
+                bindings.Clear();
+                foreach (var pair in savedBindings) bindings[pair.Key] = pair.Value;
+                handle.PictureInHostWindow = savedPictureInHostWindow;
+                Field(vm, "_interactionVersion", savedInteractionVersion);
+                Field(vm, "_nativeShortcutsSent", savedCache);
+            }
+
+            Task PushAsync(bool force = false) => (Task)Call(vm, "PushNativeShortcutsAsync", force)!;
         }
 
         async Task CheckDynamicMenusAsync()
@@ -615,8 +725,14 @@ internal sealed partial class ShellNavigationProbe
         public IReadOnlyList<MpvTrack> Tracks { get; set; } = [];
         public Func<IReadOnlyList<string>, bool> Accept { get; set; } = _ => true;
         public TaskCompletionSource<bool>? Pending { get; set; }
+        public TaskCompletionSource<bool>? NativeShortcutPending { get; set; }
+        public bool NativeShortcutThrowNext { get; set; }
+        public List<string> NativeShortcutPayloads { get; } = [];
+        public string? NativeShortcutsApplied { get; private set; }
+        public int NativeShortcutMaxConcurrent { get; private set; }
+        private int _nativeShortcutInFlight;
         public bool HasControlChannel => true;
-        public bool? PictureInHostWindow => true;
+        public bool? PictureInHostWindow { get; set; } = true;
         public bool IsPaused => false;
         public PlayerStatus Status { get; } = new() { Loaded = true, Duration = 1000, Position = 100 };
         public event Action<bool>? PauseChanged { add { } remove { } }
@@ -637,10 +753,33 @@ internal sealed partial class ShellNavigationProbe
         public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             Commands.Add(string.Join('|', arguments));
+            if (arguments.Count > 2 && arguments[0] == "script-message" && arguments[1] == VideoWindowContract.Shortcuts)
+                return SendNativeShortcutsAsync(arguments);
             if (arguments.Count > 2 && arguments[0] == "set" && double.TryParse(arguments[2], CultureInfo.InvariantCulture, out var number)) Numbers[arguments[1]] = number;
             if (Pending is not { } pending) return Task.FromResult(Accept(arguments));
             Pending = null;
             return pending.Task;
+        }
+        private async Task<bool> SendNativeShortcutsAsync(IReadOnlyList<string> arguments)
+        {
+            var json = arguments[2];
+            NativeShortcutPayloads.Add(json);
+            var concurrent = Interlocked.Increment(ref _nativeShortcutInFlight);
+            NativeShortcutMaxConcurrent = Math.Max(NativeShortcutMaxConcurrent, concurrent);
+            var pending = NativeShortcutPending;
+            NativeShortcutPending = null;
+            try
+            {
+                if (NativeShortcutThrowNext)
+                {
+                    NativeShortcutThrowNext = false;
+                    throw new InvalidOperationException("离线原生快捷键队列预期失败");
+                }
+                var accepted = pending is null ? Accept(arguments) : await pending.Task.ConfigureAwait(false);
+                if (accepted) NativeShortcutsApplied = json;
+                return accepted;
+            }
+            finally { Interlocked.Decrement(ref _nativeShortcutInFlight); }
         }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }

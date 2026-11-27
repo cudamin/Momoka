@@ -44,6 +44,7 @@ public sealed class SkipCoordinator
     private double _armedAt;
     private double _duration;
     private bool _answered;
+    private IReadOnlyDictionary<string, string> _shortcutBindings = new Dictionary<string, string>();
 
     /// <summary>Read from the settings on every update, so switching it takes effect mid-file.</summary>
     public SkipSectionMode Mode { get; set; } = SkipSectionMode.Ask;
@@ -54,6 +55,13 @@ public sealed class SkipCoordinator
 
     /// <summary>The run time the current sections were planned against, in seconds.</summary>
     public double Duration => _duration;
+
+    /// <summary>Refreshes key hints without restarting an unanswered offer or advancing playback.</summary>
+    public void SetShortcutBindings(IReadOnlyDictionary<string, string> bindings)
+    {
+        _shortcutBindings = bindings;
+        if (Prompt.Visible && _armed is { } section) Prompt = Prompt with { Tip = Describe(section) };
+    }
 
     /// <summary>Starts a new file, forgetting every decision taken about the last one.</summary>
     public void Begin(IReadOnlyList<SkipSection> sections, double duration)
@@ -180,9 +188,13 @@ public sealed class SkipCoordinator
     {
         var target = TimeFormat.Clock(TimeSpan.FromSeconds(TargetOf(section)));
         var source = section.Origin == SkipSectionOrigin.Player ? "播放器识别" : "服务器标记";
-        // 键名跟着键位改动走（用户令）：确认跳过 Y→回车（2026-09-26）、关闭 N→Esc→Delete（2026-11-02），
-        // 画面提示与之一致。
-        return $"跳到 {target}（{source}：{section.Label}） · 回车跳过 · Del 关闭";
+        var shortcuts = ShortcutCatalog.Resolve(_shortcutBindings);
+        var tip = $"跳到 {target}（{source}：{section.Label}）";
+        if (!shortcuts[ShortcutCatalog.TakeSkip].IsEmpty)
+            tip += $" · {ShortcutCatalog.Format(shortcuts[ShortcutCatalog.TakeSkip])}跳过";
+        if (!shortcuts[ShortcutCatalog.DismissSkip].IsEmpty)
+            tip += $" · {ShortcutCatalog.Format(shortcuts[ShortcutCatalog.DismissSkip])} 关闭";
+        return tip;
     }
 
     /// <summary>The same section, allowing for a rounding error in the reported start.</summary>

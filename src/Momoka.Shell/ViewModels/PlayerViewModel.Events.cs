@@ -167,14 +167,14 @@ public sealed partial class PlayerViewModel
                 break;
 
             case VideoWindowContract.SkipTake:
-                // 独占模式那颗「跳过」按钮被点了（或 offer 立着时按了回车）。与集成模式那颗 XAML 按钮、
-                // 快捷键回车同一句执行 —— 都走 AcceptSkip（seek 到片段另一端并 show-text）；offer 是否
+                // 独占模式那颗「跳过」按钮被点了。与集成模式那颗 XAML 按钮、
+                // 自定义确认快捷键同一句执行 —— 都走 AcceptSkip（seek 到片段另一端并 show-text）；offer 是否
                 // 还立着由 SkipCoordinator 自己判。
                 TakeSkip();
                 break;
 
             case VideoWindowContract.SkipDismiss:
-                // offer 立着时按了 Esc（独占模式那把运行期绑定送来的）。与集成模式同一句：
+                // 独占模式请求关闭提示。与集成模式同一句：
                 // SkipCoordinator.Decline + 收起提示，且只要位置还在这一段里就不再冒出来。
                 DismissSkip();
                 break;
@@ -1511,6 +1511,7 @@ public sealed partial class PlayerViewModel
     internal void ApplySkipOffer()
     {
         _skips.Mode = Settings.Playback.SkipSections;
+        _skips.SetShortcutBindings(ShortcutBindings);
 
         var live = _playback.IsPlaying && _playback.CanControl && _playerUp;
 
@@ -1571,7 +1572,7 @@ public sealed partial class PlayerViewModel
 
     /// <summary>
     /// Takes the standing offer: seek to the far side of the section. Shared by the button, by
-    /// <c>Y</c>, and by the automatic jump — which arrives already decided, so the offer is not
+    /// the configured confirmation key, and by the automatic jump — which arrives already decided, so the offer is not
     /// consulted a second time.
     /// </summary>
     private void AcceptSkip(SkipJump? decided)

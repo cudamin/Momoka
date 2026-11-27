@@ -36,14 +36,21 @@ public sealed record ShortcutAction(string Id, string Label, KeyStroke Default);
 /// 自然落到它的默认上。
 /// </para>
 /// <para>
-/// Esc、回车和 Delete 没有自己的动作行；它们的旧固定行为仅在没有用户快捷键绑定时作为回退。用户把任意动作
-/// 绑定到这些键后，绑定动作优先。这让设置页可以覆盖原固定键，同时保留未改设置用户的原行为。
+/// 退出播放与跳过提示也在动作目录中。两个跳过提示动作可与普通动作共用按键；提示出现时先处理提示，
+/// 提示收起后回到普通动作。两个提示动作彼此仍保持唯一，防止确认与关闭同时命中。
 /// </para>
 /// </summary>
 public static class ShortcutCatalog
 {
+    public const string ExitPlayback = "exit-fullscreen-or-stop";
+    public const string DismissSkip = "dismiss-skip";
+    public const string TakeSkip = "take-skip";
+
+    /// <summary>只在跳过提示显示时参与派发的动作；它们与普通动作分别检查按键占用。</summary>
+    public static bool IsSkipPrompt(string id) => id is DismissSkip or TakeSkip;
+
     /// <summary>
-    /// 不再有保留键。Esc、Enter、Delete 的既有播放器行为只在没有对应用户绑定时回退执行；录制时 Esc 可绑定，
+    /// 不再有保留键。Esc、Enter、Delete 与其他键一样可以改绑；录制时 Esc 可绑定，
     /// 离开捕获框或按 Tab（未捕获时）结束录制。
     /// </summary>
     public static readonly IReadOnlyList<string> ReservedKeys = [];
@@ -189,6 +196,9 @@ public static class ShortcutCatalog
         // 「窗口不在前台时单击画面播放/暂停」的开关（2026-11-20 用户令「记得加快捷键」）。B＝Background，
         // 与菜单里那一行同一个动作；默认键 B 此前没人用（Alt+B 是次字幕 bidi，与它不同组合）。
         new("toggle-background-click", "窗口不在前台时单击画面播放/暂停", K("B")),
+        new(ExitPlayback, "退出全屏 / 退出播放", K("Escape")),
+        new(DismissSkip, "关闭跳过片头 / 片尾提示", K("Delete")),
+        new(TakeSkip, "确认跳过片头 / 片尾", K("Enter")),
         .. NativeMenuShortcuts.Actions,
         .. ChapterShortcuts.Actions
     ];
@@ -209,30 +219,44 @@ public static class ShortcutCatalog
     {
         var result = Actions.ToDictionary(action => action.Id, _ => KeyStroke.None, StringComparer.Ordinal);
         var used = new HashSet<KeyStroke>();
+        var promptUsed = new HashSet<KeyStroke>();
         // 先放用户显式绑定，再放默认键。升级新增 D 等动作时不能抢走用户早已绑到 D 的旧动作。
         foreach (var action in Actions.Where(action => bindings.ContainsKey(action.Id)))
         {
             var stroke = Effective(bindings, action);
-            if (!stroke.IsEmpty && used.Add(stroke)) result[action.Id] = stroke;
+            var occupied = IsSkipPrompt(action.Id) ? promptUsed : used;
+            if (!stroke.IsEmpty && occupied.Add(stroke)) result[action.Id] = stroke;
         }
         foreach (var action in Actions.Where(action => !bindings.ContainsKey(action.Id)))
-            if (used.Add(action.Default)) result[action.Id] = action.Default;
+        {
+            var occupied = IsSkipPrompt(action.Id) ? promptUsed : used;
+            if (occupied.Add(action.Default)) result[action.Id] = action.Default;
+        }
         return result;
     }
 
     /// <summary>
     /// 按下这个组合键该触发哪个动作，没有就返回 null。空组合键谁都不触发。
     /// <para>
-    /// 正常情况下 <see cref="Rebind"/> 保证不会两个动作共用一个键，所以最多命中一个；万一手改文件造出了重复，
-    /// 按 <see cref="Actions"/> 的次序返回头一个 —— 派发是确定的，不会随机。
+    /// 提示显示时先找确认/关闭动作；其余时间只找普通动作。同一组内由 <see cref="Resolve"/> 保持唯一，
+    /// 因此一次按键最多派发一个动作。默认确认键兼容小键盘回车，改绑或解绑后不再保留这个别名。
     /// </para>
     /// </summary>
-    public static string? Lookup(IReadOnlyDictionary<string, string> bindings, KeyStroke stroke)
+    public static string? Lookup(IReadOnlyDictionary<string, string> bindings, KeyStroke stroke, bool skipOffered = false)
     {
         if (stroke.IsEmpty) return null;
 
-        foreach (var (id, effective) in Resolve(bindings))
-            if (effective == stroke) return id;
+        var resolved = Resolve(bindings);
+        if (skipOffered)
+        {
+            foreach (var (id, effective) in resolved)
+                if (IsSkipPrompt(id) && effective == stroke) return id;
+
+            if (!bindings.ContainsKey(TakeSkip) && resolved[TakeSkip] == K("Enter")
+                && stroke == K("NumPadEnter")) return TakeSkip;
+        }
+        foreach (var (id, effective) in resolved)
+            if (!IsSkipPrompt(id) && effective == stroke) return id;
 
         return null;
     }
@@ -244,7 +268,8 @@ public static class ShortcutCatalog
     /// 把 <paramref name="id"/> 这个动作绑到 <paramref name="stroke"/> 上。
     /// <para>
     /// 默认冲突时保持原绑定不变。调用方明确选择替换时，新动作接收此键、旧占用者接收新动作原来的键；若新动作
-    /// 原来未绑定，旧占用者就解绑。这样始终保持唯一映射，且不静默改变其他动作。绑回自己的默认键会删掉改动记录。
+    /// 原来未绑定，旧占用者就解绑。普通动作与跳过提示动作分别保持唯一，跨组允许共用；
+    /// 不静默改变其他动作。绑回自己的默认键会删掉改动记录。
     /// </para>
     /// <para>空键或未知动作原样返回；全部按键（包含 Esc、回车和 Delete）均可绑定。</para>
     /// </summary>
@@ -258,7 +283,7 @@ public static class ShortcutCatalog
         ShortcutAction? occupant = null;
         foreach (var other in Actions)
         {
-            if (other.Id == id) continue;
+            if (other.Id == id || IsSkipPrompt(other.Id) != IsSkipPrompt(id)) continue;
             if (effective[other.Id] == stroke)
             {
                 occupant = other;

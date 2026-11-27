@@ -22,7 +22,7 @@ public sealed partial class PlayerPage
         SeekSlider.PositionValue = TimelinePositionValue;
         SeekSlider.KeyCommand = e =>
         {
-            if (!Attached || _inputSuspended || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)
+            if (ReferenceEquals(_lastDispatchedKeyEvent, e) || !Attached || _inputSuspended || !CanDispatchVirtualKey(e.Key, e.KeyStatus.IsExtendedKey)
                 || !Dispatch(e.Key, out var wake, e.KeyStatus.IsExtendedKey, e.KeyStatus.WasKeyDown)) return false;
             e.Handled = true;
             _lastDispatchedKeyEvent = e;

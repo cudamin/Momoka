@@ -392,6 +392,9 @@ public sealed partial class PlayerPage : UserControl
         Tapped += OnTapped;
         DoubleTapped += OnDoubleTapped;
         KeyDown += OnKeyDown;
+        PreviewKeyDown += OnPreviewSkipShortcut;
+        PreviewKeyUp += OnPreviewSkipKeyUp;
+        _skipPreviewArmed = true;
 
         // 空格总归「播放/暂停」，连被控件标了已处理的那几下也要收得到 —— 页面这一层收不到那样的键，所以
         // 挂在 Root 上带 handledEventsToo（见 OnSpaceShortcut）。点过的 chrome 按钮把焦点还给页面，别让
@@ -399,7 +402,7 @@ public sealed partial class PlayerPage : UserControl
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnSpaceShortcut), handledEventsToo: true);
 
         // 所有重绑键都从 Root 接 handledEventsToo：按钮、滑条先处理按键时也不能让设置的快捷键失效。
-        // Dispatch 只在确有绑定/固定回退时标记 handled；普通输入仍交给焦点控件 —— 焦点在音量滑条上时
+        // Dispatch 只在确有绑定时标记 handled；普通输入仍交给焦点控件 —— 焦点在音量滑条上时
         // 未改绑的方向键仍归滑条自己（OnRootShortcut 的 Slider 豁免）。
         Root.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);
         SeekSlider.AddHandler(KeyDownEvent, new KeyEventHandler(OnRootShortcut), handledEventsToo: true);

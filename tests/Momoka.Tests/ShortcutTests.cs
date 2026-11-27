@@ -18,9 +18,124 @@ internal static partial class ShortcutTests
     public static void Register()
     {
         RegisterNativeMenu();
+        Test("退出与跳过提示：三颗原固定键成为默认可改动作", () =>
+        {
+            var effective = ShortcutCatalog.Resolve(Empty());
+            Assert.True(effective.TryGetValue("exit-fullscreen-or-stop", out var exit), "退出动作没有加入可改目录");
+            Assert.Equal(Key("Escape"), exit);
+            Assert.True(effective.TryGetValue("dismiss-skip", out var dismiss), "关闭提示没有加入可改目录");
+            Assert.Equal(Key("Delete"), dismiss);
+            Assert.True(effective.TryGetValue("take-skip", out var take), "确认跳过没有加入可改目录");
+            Assert.Equal(Key("Enter"), take);
+        });
+        Test("跳过提示：自定义按键可与普通动作重叠且两边都保留", () =>
+        {
+            var rebound = ShortcutCatalog.Rebind(Empty(), "dismiss-skip", Key("Space"));
+            Assert.Null(rebound.Conflict);
+            Assert.True(rebound.Bindings.TryGetValue("dismiss-skip", out var stored), "提示动作未保存自定义键");
+            Assert.Equal("Space", stored);
+            var effective = ShortcutCatalog.Resolve(rebound.Bindings);
+            Assert.Equal(Key("Space"), effective["dismiss-skip"]);
+            Assert.Equal(Key("Space"), effective["toggle-pause"]);
+            var reversed = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Delete"));
+            Assert.Null(reversed.Conflict);
+            Assert.Equal(Key("Delete"), ShortcutCatalog.Resolve(reversed.Bindings)["dismiss-skip"]);
+        });
+        Test("跳过提示：两个提示动作彼此仍检查冲突", () =>
+        {
+            var rejected = ShortcutCatalog.Rebind(Empty(), "take-skip", Key("Delete"));
+            Assert.Equal("dismiss-skip", rejected.Conflict);
+            Assert.Equal(0, rejected.Bindings.Count);
+            var swapped = ShortcutCatalog.Rebind(Empty(), ShortcutCatalog.TakeSkip, Key("Delete"), replaceConflict: true);
+            Assert.True(swapped.Replaced);
+            Assert.Equal(Key("Delete"), ShortcutCatalog.Resolve(swapped.Bindings)[ShortcutCatalog.TakeSkip]);
+            Assert.Equal(Key("Enter"), ShortcutCatalog.Resolve(swapped.Bindings)[ShortcutCatalog.DismissSkip]);
+        });
+        Test("跳过提示：显示时独占重叠键，收起后恢复普通动作", () =>
+        {
+            foreach (var prompt in new[] { ShortcutCatalog.DismissSkip, ShortcutCatalog.TakeSkip })
+            {
+                var bindings = ShortcutCatalog.Rebind(Empty(), prompt, Key("Space")).Bindings;
+                Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(bindings, Key("Space")));
+                Assert.Equal(prompt, ShortcutCatalog.Lookup(bindings, Key("Space"), skipOffered: true));
+                var cleared = ShortcutCatalog.Clear(bindings, prompt);
+                Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(cleared, Key("Space"), skipOffered: true));
+                Assert.True(ShortcutCatalog.Resolve(cleared)[prompt].IsEmpty);
+            }
+            Assert.Null(ShortcutCatalog.Lookup(Empty(), Key("Enter")));
+            Assert.Null(ShortcutCatalog.Lookup(Empty(), Key("Delete")));
+            Assert.Equal(ShortcutCatalog.TakeSkip, ShortcutCatalog.Lookup(Empty(), Key("Enter"), skipOffered: true));
+            Assert.Equal(ShortcutCatalog.DismissSkip, ShortcutCatalog.Lookup(Empty(), Key("Delete"), skipOffered: true));
+        });
+        Test("跳过提示：两个提示都可重叠普通键，普通改绑也不挤掉提示", () =>
+        {
+            var bindings = ShortcutCatalog.Rebind(Empty(), ShortcutCatalog.DismissSkip, Key("M")).Bindings;
+            bindings = ShortcutCatalog.Rebind(bindings, ShortcutCatalog.TakeSkip, Key("Space")).Bindings;
+            Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(bindings, Key("M")));
+            Assert.Equal(ShortcutCatalog.DismissSkip, ShortcutCatalog.Lookup(bindings, Key("M"), skipOffered: true));
+            Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(bindings, Key("Space")));
+            Assert.Equal(ShortcutCatalog.TakeSkip, ShortcutCatalog.Lookup(bindings, Key("Space"), skipOffered: true));
+
+            foreach (var (prompt, key) in new[] { (ShortcutCatalog.DismissSkip, "Delete"), (ShortcutCatalog.TakeSkip, "Enter") })
+            {
+                var rebound = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key(key));
+                Assert.Null(rebound.Conflict);
+                Assert.False(rebound.Replaced);
+                Assert.Equal(Key(key), ShortcutCatalog.Resolve(rebound.Bindings)[prompt]);
+                Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(rebound.Bindings, Key(key)));
+                Assert.Equal(prompt, ShortcutCatalog.Lookup(rebound.Bindings, Key(key), skipOffered: true));
+            }
+        });
+        Test("退出播放：普通冲突仍需确认，升级保留旧用户的 Esc 绑定", () =>
+        {
+            var rejected = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Escape"));
+            Assert.Equal(ShortcutCatalog.ExitPlayback, rejected.Conflict);
+            var replaced = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Escape"), replaceConflict: true);
+            Assert.True(replaced.Replaced);
+            Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(replaced.Bindings, Key("Escape")));
+            Assert.Equal(ShortcutCatalog.ExitPlayback, ShortcutCatalog.Lookup(replaced.Bindings, Key("Space")));
+            var previousUser = new Dictionary<string, string> { ["toggle-pause"] = "Escape" };
+            Assert.True(ShortcutCatalog.Resolve(previousUser)[ShortcutCatalog.ExitPlayback].IsEmpty);
+            Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(previousUser, Key("Escape")));
+            Assert.Equal(ShortcutCatalog.ExitPlayback, ShortcutCatalog.Lookup(Empty(), Key("Escape")));
+            Assert.Null(ShortcutCatalog.Lookup(ShortcutCatalog.Clear(Empty(), ShortcutCatalog.ExitPlayback), Key("Escape")));
+        });
+        Test("确认跳过：默认兼容小键盘回车，改绑与解绑不残留旧键", () =>
+        {
+            Assert.Equal(ShortcutCatalog.TakeSkip, ShortcutCatalog.Lookup(Empty(), Key("NumPadEnter"), skipOffered: true));
+            Assert.Null(ShortcutCatalog.Lookup(Empty(), Key("NumPadEnter")));
+            Assert.Null(ShortcutCatalog.Lookup(Empty(), Key("NumPadEnter", ctrl: true), skipOffered: true));
+            var changed = ShortcutCatalog.Rebind(Empty(), ShortcutCatalog.TakeSkip, Key("K", ctrl: true)).Bindings;
+            Assert.Equal(ShortcutCatalog.TakeSkip, ShortcutCatalog.Lookup(changed, Key("K", ctrl: true), skipOffered: true));
+            Assert.Null(ShortcutCatalog.Lookup(changed, Key("Enter"), skipOffered: true));
+            Assert.Null(ShortcutCatalog.Lookup(changed, Key("NumPadEnter"), skipOffered: true));
+            var cleared = ShortcutCatalog.Clear(Empty(), ShortcutCatalog.TakeSkip);
+            Assert.Null(ShortcutCatalog.Lookup(cleared, Key("Enter"), skipOffered: true));
+            Assert.Null(ShortcutCatalog.Lookup(cleared, Key("NumPadEnter"), skipOffered: true));
+            var keypad = ShortcutCatalog.Rebind(Empty(), ShortcutCatalog.TakeSkip, Key("NumPadEnter")).Bindings;
+            Assert.Equal(ShortcutCatalog.TakeSkip, ShortcutCatalog.Lookup(keypad, Key("NumPadEnter"), skipOffered: true));
+            Assert.Null(ShortcutCatalog.Lookup(keypad, Key("Enter"), skipOffered: true));
+        });
+        Test("跳过提示：重叠配置清理后不丢失，手改的同组冲突仍唯一", () =>
+        {
+            var bindings = new Dictionary<string, string>
+            {
+                ["toggle-pause"] = "Ctrl+F8",
+                [ShortcutCatalog.DismissSkip] = "Ctrl+F8",
+                [ShortcutCatalog.TakeSkip] = "Ctrl+F8"
+            };
+            var clean = ShortcutCatalog.Clean(bindings);
+            Assert.Equal(3, clean.Count);
+            var effective = ShortcutCatalog.Resolve(clean);
+            Assert.Equal(Key("F8", ctrl: true), effective["toggle-pause"]);
+            Assert.Equal(Key("F8", ctrl: true), effective[ShortcutCatalog.DismissSkip]);
+            Assert.True(effective[ShortcutCatalog.TakeSkip].IsEmpty);
+            Assert.Equal("toggle-pause", ShortcutCatalog.Lookup(clean, Key("F8", ctrl: true)));
+            Assert.Equal(ShortcutCatalog.DismissSkip, ShortcutCatalog.Lookup(clean, Key("F8", ctrl: true), skipOffered: true));
+        });
         Test("快捷键表：新增动作保留原有动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(151, ShortcutCatalog.Actions.Count);
+            Assert.Equal(154, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");
@@ -184,9 +299,9 @@ internal static partial class ShortcutTests
             Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("M")));
         });
 
-        Test("Rebind：Esc、回车、Delete 可绑定，空键仍是空操作", () =>
+        Test("Rebind：Esc 可确认替换、回车和 Delete 可重叠，空键仍是空操作", () =>
         {
-            var esc = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Escape"));
+            var esc = ShortcutCatalog.Rebind(Empty(), "toggle-pause", Key("Escape"), replaceConflict: true);
             Assert.Null(esc.Conflict);
             Assert.Equal("Escape", esc.Bindings["toggle-pause"]);
 
@@ -291,7 +406,7 @@ internal static partial class ShortcutTests
             Assert.Equal(Key("Left", shift: true), ShortcutCatalog.Actions.Single(action => action.Id == "seek-backward-fine").Default);
             Assert.Equal(Key("Left", alt: true), ShortcutCatalog.Actions.Single(action => action.Id == "video-pan-left").Default);
             Assert.Equal(Key("Z", ctrl: true), ShortcutCatalog.Actions.Single(action => action.Id == "subtitle-delay-reset").Default);
-            foreach (var action in ShortcutCatalog.Actions.Skip(38))
+            foreach (var action in ShortcutCatalog.Actions.Skip(38).Where(action => !ShortcutCatalog.IsSkipPrompt(action.Id)))
             {
                 var bindings = new Dictionary<string, string> { ["toggle-mute"] = ShortcutCatalog.Serialize(action.Default) };
                 var effective = ShortcutCatalog.Resolve(bindings);
@@ -416,7 +531,8 @@ internal static partial class ShortcutTests
             {
                 var key = Momoka.Mpv.VideoWindowShortcuts.Key(action.Default);
                 Assert.True(key is not null, action.Id + " 独占模式不可达");
-                Assert.Equal(action.Id, native[key!]);
+                Assert.Equal(ShortcutCatalog.IsSkipPrompt(action.Id) ? "" : action.Id, native[key!]);
+                Assert.Equal(action.Id, Momoka.Mpv.VideoWindowShortcuts.Bindings(empty, skipOffered: true)[key!]);
             }
             var changed = Momoka.Mpv.VideoWindowShortcuts.Bindings(new Dictionary<string, string>
             { ["video-pan-left"] = "Ctrl+F9", ["toggle-ab-loop"] = "" });

@@ -33,7 +33,7 @@
           "namespace Momoka.Shell.Views { using Windows.System; using Momoka.Shell.Interop; using Momoka.Diagnostics; using Momoka.Shell.ViewModels; public sealed partial class PlayerPage {\n"+
           between(page,"    private void SetPaused(bool paused)","\n    /// <summary>\n    /// 缓冲与布局") +
           between(page,"    private void BeginResizeFreeze()","\n    private void CancelResizeChange()") +
-          between(input,"    private bool ShortcutCommand(","\n    /// <summary>\n    /// 这一下可重绑键") + "\n} }\n";
+          between(input,"    private readonly HashSet<(VirtualKey Key, bool Extended)> _skipPromptKeys","\n    /// <summary>\n    /// 这一下可重绑键") + "\n} }\n";
         Directory.CreateDirectory(Path.GetDirectoryName(Output));File.WriteAllText(Output,source,new UTF8Encoding(false));
       ]]></Code>
     </Task>

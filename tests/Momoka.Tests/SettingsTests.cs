@@ -2371,6 +2371,9 @@ internal static partial class SettingsTests
 
                 settings.Shortcuts.Bindings["toggle-mute"] = "Ctrl+M"; // 改过
                 settings.Shortcuts.Bindings["toggle-pin"] = "";        // 显式解绑
+                settings.Shortcuts.Bindings[ShortcutCatalog.ExitPlayback] = "Ctrl+F8";
+                settings.Shortcuts.Bindings[ShortcutCatalog.DismissSkip] = "Ctrl+M";
+                settings.Shortcuts.Bindings[ShortcutCatalog.TakeSkip] = "";
 
                 store.Save(settings);
                 var loaded = store.Load();
@@ -2379,6 +2382,15 @@ internal static partial class SettingsTests
                 Assert.Equal("", loaded.Shortcuts.Bindings["toggle-pin"], "显式解绑要原样读回来，不能被当空丢掉");
                 Assert.Equal("toggle-mute",
                     ShortcutCatalog.Lookup(loaded.Shortcuts.Bindings, new KeyStroke("M", true, false, false)));
+                Assert.Equal("Ctrl+F8", loaded.Shortcuts.Bindings[ShortcutCatalog.ExitPlayback]);
+                Assert.Equal("Ctrl+M", loaded.Shortcuts.Bindings[ShortcutCatalog.DismissSkip]);
+                Assert.Equal("", loaded.Shortcuts.Bindings[ShortcutCatalog.TakeSkip]);
+                Assert.Equal(ShortcutCatalog.DismissSkip,
+                    ShortcutCatalog.Lookup(loaded.Shortcuts.Bindings, new KeyStroke("M", true, false, false), skipOffered: true));
+                Assert.Equal(ShortcutCatalog.ExitPlayback,
+                    ShortcutCatalog.Lookup(loaded.Shortcuts.Bindings, new KeyStroke("F8", true, false, false)));
+                Assert.Null(ShortcutCatalog.Lookup(loaded.Shortcuts.Bindings, new KeyStroke("Enter", false, false, false), skipOffered: true));
+                Assert.Null(ShortcutCatalog.Lookup(loaded.Shortcuts.Bindings, new KeyStroke("NumPadEnter", false, false, false), skipOffered: true));
             }
             finally
             {

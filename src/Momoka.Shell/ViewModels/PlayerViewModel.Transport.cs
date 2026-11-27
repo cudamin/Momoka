@@ -55,11 +55,10 @@ public sealed partial class PlayerViewModel
     internal void TakeSkip() => AcceptSkip(null);
 
     /// <summary>
-    /// 关掉正立着的 跳过 提议而不跳转（快捷键 Esc，与 <see cref="TakeSkip"/> 的回车成一对；2026-09-26 起由
-    /// 原 N 挪到 Esc，用户令「把关闭跳过按钮从 N 改成 ESC」）：按钮当场收起，且只要
+    /// 关掉正立着的 跳过 提议而不跳转（默认 Delete，可在快捷键设置改绑）：按钮当场收起，且只要
     /// 位置还留在这一段里就不再冒出来；退出这一段再回来是一次刻意的操作，会重新提议 —— 这套语义全在
     /// <see cref="SkipCoordinator.Decline"/>，这里只把它接到视图模型的可见状态上。键盘那一路（<c>PlayerPage.Dispatch</c>）
-    /// 只在提示立着时才把 Esc 交到这里，所以进来时 <see cref="SkipOffered"/> 必真；那道判断留作第二重保险。
+    /// 只在提示立着时派发关闭动作，所以进来时 <see cref="SkipOffered"/> 必真；那道判断留作第二重保险。
     /// </summary>
     internal void DismissSkip()
     {
@@ -68,9 +67,8 @@ public sealed partial class PlayerViewModel
         _skips.Decline();
         SkipOffered = false;
 
-        // 独占模式那颗 uosc 按钮当场收起（与 AcceptSkip 同一句）。这一句不只是观感：uosc 那侧把
-        // 「offer 立着」当运行期键绑定的开关 —— 收到空文案才 keyunbind ENTER/ESC、把内建还给 mpv
-        // （见 elements/SkipButton.lua）。少了它，用户按 Del 关掉提示之后 Del 会一直被我们占着。
+        // 独占模式那颗 uosc 按钮当场收起（与 AcceptSkip 同一句）。SkipOffered 的变更也会推送
+        // 最新快捷键映射，把提示借用的按键交还普通动作。
         // 集成模式白推（HeadlessPlayback 闸，见 PushSkipToVideoWindow）。
         PushSkipToVideoWindow(false, "");
     }
