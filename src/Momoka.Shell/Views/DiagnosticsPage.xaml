@@ -16,7 +16,7 @@
         </Style>
     </Page.Resources>
 
-    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16" SizeChanged="OnLayoutSizeChanged">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgSettingsSubpageMargin}" RowSpacing="16" SizeChanged="OnLayoutSizeChanged">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />

@@ -112,6 +112,7 @@ internal static class PageScrollChromeTests
     {
         if (value is null) return 0;
         if (value == "{StaticResource EgPageMargin}") return 32;
+        if (value == "{StaticResource EgSettingsSubpageMargin}") return 32;
         if (value == "{StaticResource EgScrollBarLane}") return 20;
         if (value.StartsWith('{')) return 0; // VM-owned detail decoration does not position the viewport.
         var parts = value.Split(',').Select(part => double.Parse(part, CultureInfo.InvariantCulture)).ToArray();

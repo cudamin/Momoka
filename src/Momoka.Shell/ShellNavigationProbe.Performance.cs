@@ -559,9 +559,9 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             var row = page.ViewModel.Sections.SelectMany(section => section.Rows).OfType<SettingSliderRow>()
-                .Single(item => item.Label == "字号");
+                .Single(item => item.Label == "字幕字号");
             var control = Descendants(page).OfType<Slider>()
-                .Single(slider => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(slider) == "字号");
+                .Single(slider => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(slider) == "字幕字号");
             var oldCapture = captures;
             var oldSuccess = Volatile.Read(ref successfulWrites);
             var watch = Stopwatch.StartNew();

@@ -2465,9 +2465,9 @@ internal static class PlaybackTests
             Assert.True(off.Disabled, "关掉回退就该明确不显示字幕");
         });
 
-        Test("选轨：「其他字幕」兜住优先级里没点名的所有语言", () =>
+        Test("选轨：「其他语言」兜住优先级里没点名的所有语言", () =>
         {
-            // 「字幕优先级新增预设可选的其他字幕」（2026-09-06）：填在最后就是「前面的都要不到时，有一条
+            // 「字幕优先级新增预设可选的其他语言」（原名「其他字幕」）：填在最后就是「前面的都要不到时，有一条
             // 别的语言的也行」。它跟「没有匹配语言时使用默认字幕」的差别在取谁 —— 开关只肯拿文件自带的
             // 那一条，名字能从剩下的全部里挑最好的。
             var source = SourceWith(
@@ -2477,31 +2477,35 @@ internal static class PlaybackTests
 
             var settings = Playback(subtitles: ["简体中文", TrackLanguagePriority.Any]);
             Assert.Equal(1, TrackSelection.Resolve(settings, source).Subtitle.Stream!.Index,
-                "韩语英语都不是点名的语言，「其他字幕」在剩下的里面挑了文件默认的那条");
+                "韩语英语都不是点名的语言，「其他语言」在剩下的里面挑了文件默认的那条");
 
             // 排在前头就轮不到点名语言了 —— 它跟任何轨道都匹配，位置就是先后。
             settings.SubtitleLanguages = [TrackLanguagePriority.Any, "英语"];
             Assert.Equal(1, TrackSelection.Resolve(settings, source).Subtitle.Stream!.Index,
-                "「其他字幕」排第一时谁都拦不住它");
+                "「其他语言」排第一时谁都拦不住它");
         });
 
-        Test("选轨：「其他字幕」不进交给 mpv 的语言表", () =>
+        Test("选轨：「其他语言」不进交给 mpv 的语言表", () =>
         {
             // mpv 的 slang 没有「任何语言」这一档，它的规矩本来就是列表都对不上时自己兜底 ——
             // 把这个名字翻译成码发过去只会添一个永远匹配不上的词。
             Assert.Null(TrackLanguagePriority.ToMpvValue(TrackLanguagePriority.Any));
             Assert.Equal("zh,chi,zho",
                 TrackLanguagePriority.ToMpvValue("中文, " + TrackLanguagePriority.Any),
-                "别的语言照常翻译，「其他字幕」只从码表里缺席");
+                "别的语言照常翻译，「其他语言」只从码表里缺席");
 
-            // 存档那头要认它、留它，不跟不认识的名字一样原样当代码发。
+            // 存档那头要认它、留它，并将旧名称「其他字幕」归一化成「其他语言」，不原样当代码发。
             Assert.Equal(TrackLanguagePriority.Any,
-                string.Join(",", TrackLanguagePriority.CleanList(["其他字幕"])), "归一化把这个名字留在表里");
+                string.Join(",", TrackLanguagePriority.CleanList([TrackLanguagePriority.Any])), "归一化把这个名字留在表里");
+            Assert.Equal(TrackLanguagePriority.Any,
+                string.Join(",", TrackLanguagePriority.CleanList(["其他字幕"])), "旧名称「其他字幕」应归一化为「其他语言」");
 
             // 它跟任何轨道都匹配，音频那边也一样能用。
             Assert.True(TrackLanguagePriority.Matches(TrackLanguagePriority.Any, "kor", "kor", "한국어"));
+            Assert.True(TrackLanguagePriority.Matches("其他字幕", "kor", "kor", "한국어"), "旧名称「其他字幕」仍应兼容匹配");
             Assert.True(TrackLanguagePriority.Matches(TrackLanguagePriority.Any, "", "", ""), "什么都没标的轨道也算「其他」");
-            Assert.False(TrackLanguagePriority.Matches("其他字幕x", "kor", "", ""), "得是整个名字，不是前缀");
+            Assert.False(TrackLanguagePriority.Matches("其他语言x", "kor", "", ""), "得是整个名字，不是前缀");
+            Assert.False(TrackLanguagePriority.Matches("其他字幕x", "kor", "", ""), "旧名称也得是完整名称，不是前缀");
         });
 
         Test("OrderedChoices：下拉那张表的排法", () =>
@@ -2509,12 +2513,12 @@ internal static class PlaybackTests
             static string Checked(IEnumerable<(string Name, bool Checked)> choices) =>
                 string.Join(",", choices.Where(choice => choice.Checked).Select(choice => choice.Name));
 
-            // 什么都没选：整目录都在、一个都不勾，「其他字幕」垫底。头一项是目录里第一个（简体中文），没勾。
+            // 什么都没选：整目录都在、一个都不勾，「其他语言」垫底。头一项是目录里第一个（简体中文），没勾。
             var empty = TrackLanguagePriority.OrderedChoices([]);
             Assert.Equal("", Checked(empty), "没存过就一个都不勾");
             Assert.Equal(("简体中文", false), empty[0]);
-            Assert.Equal((TrackLanguagePriority.Any, false), empty[^1], "「其他字幕」垫在最后");
-            Assert.Equal(TrackLanguagePriority.Catalogue.Count + 1, empty.Count, "整目录加一个「其他字幕」");
+            Assert.Equal((TrackLanguagePriority.Any, false), empty[^1], "「其他语言」垫在最后");
+            Assert.Equal(TrackLanguagePriority.Catalogue.Count + 1, empty.Count, "整目录加一个「其他语言」");
             Assert.Equal(empty.Count, empty.Select(choice => choice.Name).Distinct().Count(), "不许有重的");
 
             // 选过的排在前头，照存的次序；勾了的滤出来照原样，就是存回去的优先级列表。
@@ -2528,17 +2532,20 @@ internal static class PlaybackTests
             // 存档里的码和别名先归一化再排：chs → 简体中文，勾着，排头一个。
             Assert.Equal(("简体中文", true), TrackLanguagePriority.OrderedChoices(["chs"])[0], "码先归一化成名字");
 
-            // 存档里带「其他字幕」：勾着排在选过的那批里，底下不再多出一个。
+            // 存档里带「其他语言」或旧名称「其他字幕」：勾着排在选过的那批里，底下不再多出一个。
             var withAny = TrackLanguagePriority.OrderedChoices(["简体中文", TrackLanguagePriority.Any]);
-            Assert.Equal("简体中文,其他字幕", Checked(withAny));
-            Assert.Equal(1, withAny.Count(choice => choice.Name == TrackLanguagePriority.Any), "「其他字幕」只出现一次");
+            Assert.Equal("简体中文,其他语言", Checked(withAny));
+            Assert.Equal(1, withAny.Count(choice => choice.Name == TrackLanguagePriority.Any), "「其他语言」只出现一次");
+            var withLegacyAny = TrackLanguagePriority.OrderedChoices(["简体中文", "其他字幕"]);
+            Assert.Equal("简体中文,其他语言", Checked(withLegacyAny));
+            Assert.Equal(1, withLegacyAny.Count(choice => choice.Name == TrackLanguagePriority.Any), "旧名称「其他字幕」迁移后也只出现一次");
 
             // 字幕表排掉普通话、粤语（「删掉字幕优先级里的普通话、粤语」）：offered 不列、总数少两个；
             // 就算存档里有也不出现（下次存盘就掉了）。目录本身没删它们 —— 音轨那份还要用。
             string[] exclude = ["普通话", "粤语"];
             var subtitle = TrackLanguagePriority.OrderedChoices([], exclude);
             Assert.False(subtitle.Any(choice => choice.Name is "普通话" or "粤语"), "字幕表不列普通话、粤语");
-            Assert.Equal(TrackLanguagePriority.Catalogue.Count - 1, subtitle.Count, "少两个语言、加一个「其他字幕」");
+            Assert.Equal(TrackLanguagePriority.Catalogue.Count - 1, subtitle.Count, "少两个语言、加一个「其他语言」");
             var hadThem = TrackLanguagePriority.OrderedChoices(["粤语", "简体中文"], exclude);
             Assert.Equal("简体中文", Checked(hadThem), "存档里的粤语也不显示，只留下没被排除的");
             Assert.True(TrackLanguagePriority.Catalogue.Any(entry => entry.Label == "粤语"), "目录本身仍留着粤语给音轨用");

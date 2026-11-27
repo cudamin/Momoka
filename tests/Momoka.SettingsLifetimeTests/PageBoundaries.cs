@@ -310,6 +310,7 @@ namespace Momoka.Shell.Views
         private void InitializeComponent() { }
         private void ObserveCategoryGroups() { }
         private void ApplySettingsMotionPreference() { }
+        private void SyncControlColumnWidth() { }
         private void QueueSettingsEntrance() { }
         private void StopSettingsEntrance() { }
         private void DetachSettingsContentMotion() { }

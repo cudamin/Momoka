@@ -42,7 +42,7 @@ public sealed partial class SettingsViewModel
     [
         ("播放与进度",
             "播放、暂停与进度跳转。点右边方框后按键即可改绑，可带 Ctrl / Alt / Shift；冲突时可确认替换，× 清除。"
-                + "四颗方向键各有一行步长，方框下面那行就是「按一次跳多少秒」；快退、快进再各有一行按住时的倍率。集成与独占模式共用这几个数。",
+                + "四颗方向键各有一行跳转跨度，快退、快进另有长按倍率／倍速行。集成与独占模式共用这些数值。",
             [
                 "toggle-pause",
                 "seek-backward", "seek-forward", "seek-backward-long", "seek-forward-long",
@@ -238,19 +238,19 @@ public sealed partial class SettingsViewModel
     {
         _shortcutSeekRows.Clear();
         var playback = Settings.Playback;
-        Subordinate("seek-backward", "快退跨度（秒）", "← 键跳这么多秒",
+        Subordinate("seek-backward", "快退跨度（秒）", "短按「快退」快捷键时跳转的秒数（默认 ←）",
             1, 600, () => playback.SeekBackwardSeconds, value => playback.SeekBackwardSeconds = value);
-        Subordinate("seek-backward", "快退跨度（倍）", "长按箭头以这个倍速快退",
+        Subordinate("seek-backward", "长按快退倍率", "按住「快退」快捷键时，每 200ms 连续回退「倍率 × 200ms」进度，不改变播放倍速",
             PlaybackSettings.MinimumSeekHoldMultiplier, PlaybackSettings.MaximumSeekHoldMultiplier,
             () => playback.SeekBackwardHoldMultiplier, value => playback.SeekBackwardHoldMultiplier = value);
-        Subordinate("seek-forward", "快进跨度（秒）", "→ 键跳这么多秒",
+        Subordinate("seek-forward", "快进跨度（秒）", "短按「快进」快捷键时跳转的秒数（默认 →）",
             1, 600, () => playback.SeekForwardSeconds, value => playback.SeekForwardSeconds = value);
-        Subordinate("seek-forward", "快进跨度（倍）", "长按箭头以这个倍速播放",
+        Subordinate("seek-forward", "长按快进倍速", "按住「快进」快捷键时，以该倍速连续快进",
             PlaybackSettings.MinimumSeekHoldMultiplier, PlaybackSettings.MaximumSeekHoldMultiplier,
             () => playback.SeekForwardHoldMultiplier, value => playback.SeekForwardHoldMultiplier = value);
-        Subordinate("seek-backward-long", "大步快退跨度（秒）", "↓ 键跳这么多秒",
+        Subordinate("seek-backward-long", "大步快退跨度（秒）", "按下「快退（大步）」快捷键时跳转的秒数（默认 ↓）",
             1, 600, () => playback.SeekBackwardLongSeconds, value => playback.SeekBackwardLongSeconds = value);
-        Subordinate("seek-forward-long", "大步快进跨度（秒）", "↑ 键跳这么多秒",
+        Subordinate("seek-forward-long", "大步快进跨度（秒）", "按下「快进（大步）」快捷键时跳转的秒数（默认 ↑）",
             1, 600, () => playback.SeekForwardLongSeconds, value => playback.SeekForwardLongSeconds = value);
 
         void Subordinate(string id, string label, string note, int minimum, int maximum,

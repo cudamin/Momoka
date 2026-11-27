@@ -541,7 +541,7 @@ internal sealed partial class ShellNavigationProbe
             ];
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
-            var jellyfinGroups = new[] { "Momoka", "服务器", "设备", "电视直播", "插件", "高级" };
+            var jellyfinGroups = new[] { "Momoka", "Jellyfin", "设备", "电视直播", "插件", "高级" };
             Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(jellyfinGroups),
                 "连接 Jellyfin 后左栏不是五段 Jellyfin 目录");
             Require(!page.Categories.Contains(SettingsViewModel.DashboardCategory)
@@ -803,7 +803,7 @@ internal sealed partial class ShellNavigationProbe
 
             // 各产品的原生分区标题也要按原次序分回来，不能把所有入口摊成一整条。
             Require(Sections(emby).SequenceEqual(new[] { "Emby Server", "设备", "高级" })
-                && Sections(jellyfin).SequenceEqual(new[] { "服务器", "设备", "电视直播", "插件", "高级" })
+                && Sections(jellyfin).SequenceEqual(new[] { "Jellyfin", "设备", "电视直播", "插件", "高级" })
                 && Sections(fnNas).SequenceEqual(new[] { "帐号", "影视服务器" }),
                 "多服务器分组丢了各产品的原生分区：" +
                 $"{string.Join("/", Sections(emby))}；{string.Join("/", Sections(jellyfin))}；{string.Join("/", Sections(fnNas))}");
@@ -1850,7 +1850,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsLoaded);
             ToggleSwitch Find(string name) => Descendants(page).OfType<ToggleSwitch>()
                 .Single(control => AutomationProperties.GetName(control) == name);
-            var enabled = Find("MoviePilot");
+            var enabled = Find("MoviePilot 连接");
             var aniBt = Find("显示 AniBT 入口");
             Require(AutomationProperties.GetAutomationId(aniBt) == "MoviePilotAniBtToggle",
                 "AniBT 设置开关没有稳定的自动化定位句柄");

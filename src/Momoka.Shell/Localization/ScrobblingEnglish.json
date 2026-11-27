@@ -1,5 +1,5 @@
 {
-  "使用 MoviePilot 识别作品，按作品同步豆瓣观看状态。": "Identify shows through MoviePilot and update each show's watch status on Douban.",
+  "使用 MoviePilot 识别作品，按作品同步豆瓣观看状态；需要可用的 MoviePilot 连接。": "Identify shows through MoviePilot and update each show's watch status on Douban; requires an active MoviePilot connection.",
   "媒体库无法确认当前播放的季集，已跳过同步": "The library could not verify the playing episode. Sync skipped.",
   "请先连接 MoviePilot，已跳过打格子": "Connect to MoviePilot to enable scrobbling. Sync skipped.",
   "MoviePilot 打格子识别失败，请检查连接和媒体资料": "MoviePilot could not identify the show. Check the connection and its metadata.",

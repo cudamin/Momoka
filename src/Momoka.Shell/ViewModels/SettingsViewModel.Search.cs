@@ -70,25 +70,36 @@ public sealed partial class SettingsViewModel
             }, entry.Label, entry.PickerLabel);
             if (IsHostedEntry(entry)) continue;
             foreach (var section in Sections.Where(section => section.Category == entry.CardCategory && section.Rows.Count > 0))
+            {
+                var location = section.Title == entry.Label ? entry.PickerLabel : entry.PickerLabel + " / " + section.Title;
+                var displayLocation = section.Title == entry.Label ? entry.DisplayPickerLabel : entry.DisplayPickerLabel + " / " + section.DisplayTitle;
+                var sectionText = section.Description + " " + section.DisplayDescription;
                 foreach (var row in section.Rows)
                 {
-                    var location = section.Title == entry.Label ? entry.PickerLabel : entry.PickerLabel + " / " + section.Title;
-                    var displayLocation = section.Title == entry.Label ? entry.DisplayPickerLabel : entry.DisplayPickerLabel + " / " + section.DisplayTitle;
                     if (row is SettingToggleGroupRow group)
                     {
                         foreach (var toggle in group.Toggles)
-                            Add(new(toggle.Label, location, entry.Key, section, row) { DisplayLocation = displayLocation }, toggle.Label, location + " " + toggle.Note);
+                            Add(new(toggle.Label, location, entry.Key, section, row) { DisplayLocation = displayLocation },
+                                toggle.Label, location + " " + toggle.Note + " " + UiText.Translate(toggle.Note), sectionText);
                     }
-                    else Add(new(row.Label, location, entry.Key, section, row) { DisplayLocation = displayLocation }, row.Label, location + " " + row.Note);
+                    else
+                    {
+                        var choiceText = row is SettingChoiceRow choice
+                            ? " " + string.Join(' ', choice.Choices.Select(item => item.Label + " " + item.DisplayLabel))
+                            : "";
+                        Add(new(row.Label, location, entry.Key, section, row) { DisplayLocation = displayLocation },
+                            row.Label, location + " " + row.Note + " " + UiText.Translate(row.Note) + choiceText, sectionText);
+                    }
                 }
+            }
         }
         foreach (var match in matches.OrderBy(match => match.Rank).Take(40)) SettingsSearchResults.Add(match.Result);
 
-        void Add(SettingsSearchResult result, string label, string context)
+        void Add(SettingsSearchResult result, string label, string context, string sectionText = "")
         {
             var displayLabel = result.DisplayLabel;
-            var searchable = label + " " + context + " " + displayLabel + " " + result.DisplayLocation
-                + " " + UiText.Translate(result.Row?.Note ?? "");
+            var rowSearchable = label + " " + displayLabel + " " + context + " " + result.DisplayLocation;
+            var searchable = sectionText.Length == 0 ? rowSearchable : rowSearchable + " " + sectionText;
             if (!words.All(word => searchable.Contains(word, StringComparison.CurrentCultureIgnoreCase))) return;
             var query = SettingsSearchQuery.Trim();
             var rank = label.Equals(query, StringComparison.CurrentCultureIgnoreCase)
@@ -96,7 +107,8 @@ public sealed partial class SettingsViewModel
                 : label.StartsWith(query, StringComparison.CurrentCultureIgnoreCase)
                     || displayLabel.StartsWith(query, StringComparison.CurrentCultureIgnoreCase) ? 1
                 : words.All(word => label.Contains(word, StringComparison.CurrentCultureIgnoreCase)
-                    || displayLabel.Contains(word, StringComparison.CurrentCultureIgnoreCase)) ? 2 : 3;
+                    || displayLabel.Contains(word, StringComparison.CurrentCultureIgnoreCase)) ? 2
+                : words.All(word => rowSearchable.Contains(word, StringComparison.CurrentCultureIgnoreCase)) ? 3 : 4;
             matches.Add((result, rank));
         }
     }

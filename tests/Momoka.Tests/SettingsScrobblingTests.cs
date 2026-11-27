@@ -37,7 +37,7 @@ internal static class SettingsScrobblingTests
             Assert.NotNull(oldEntry);
             Assert.Equal("MoviePilot", fixture.Get<string>(oldEntry!, "Key"));
             fixture.Set(state.Vm, "SelectedCategory", "MoviePilot");
-            Assert.False(fixture.Get<bool>(state.Row("MoviePilot"), "Enabled"));
+            Assert.False(fixture.Get<bool>(state.Row("MoviePilot 连接"), "Enabled"));
             Assert.True(state.Sections.Take(2).All(section => fixture.Get<object>(section, "SectionVisibility").ToString() == "Visible"));
             Assert.Equal("Collapsed", fixture.Get<object>(state.Sections[2], "SectionVisibility").ToString());
             Assert.Equal(0, fixture.List(state.Sections[2], "Rows").Count);
@@ -182,7 +182,7 @@ internal static class SettingsScrobblingTests
         {
             using var state = new State(fixture, bangumi: true);
             fixture.Set(state.Row("启用豆瓣自动标记"), "IsOn", true);
-            fixture.Set(state.Row("MoviePilot"), "Enabled", true);
+            fixture.Set(state.Row("MoviePilot 连接"), "Enabled", true);
             fixture.Set(state.Vm, "SelectedCategory", "MoviePilot");
             using var playback = new PlaybackLifecycleTests.Fixture();
             playback.Transport.Reply = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
@@ -215,7 +215,7 @@ internal static class SettingsScrobblingTests
             var doubanRecord = state.Row("豆瓣同步记录");
             Assert.Equal("尚未同步观看记录", fixture.Get<string>(bangumiRecord, "Value"));
             Assert.Equal("自动匹配读取媒体库信息失败，已跳过同步", fixture.Get<string>(doubanRecord, "Value"));
-            fixture.Set(state.Row("MoviePilot"), "Enabled", false);
+            fixture.Set(state.Row("MoviePilot 连接"), "Enabled", false);
             Assert.False(state.Settings.Settings.MoviePilot.Enabled);
             Assert.Equal("MoviePilot", fixture.Get<string>(state.Vm, "SelectedCategory"));
             Assert.Equal("Visible", fixture.Get<object>(state.Sections[1], "SectionVisibility").ToString());

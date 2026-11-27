@@ -19,9 +19,9 @@ public sealed partial class SettingsViewModel
             ("运动补偿（CPU）", FrameInterpolationMode.MotionCompensated)
         };
         var custom = MpvCustomConfig.IsAvailable(Settings.Mpv) && Settings.Mpv.CustomConfigEnabled;
-        var note = "关闭只关闭这张卡的功能，保留基础输出中的插值与算法偏好。平滑插值混合相邻帧，"
-            + "不做运动估计；运动补偿使用随包 FFmpeg 的 CPU minterpolate，不是 GPU／AI 补帧。";
-        if (custom) note += " 自定义 mpv.conf 会在本页选项之后加载，可能覆盖补帧、同步或硬解；不保证本页选择最终生效。";
+        var note = UiText.Translate("关闭只关闭这张卡的功能，保留基础输出中的插值与算法偏好。平滑插值混合相邻帧，"
+            + "不做运动估计；运动补偿使用随包 FFmpeg 的 CPU minterpolate，不是 GPU／AI 补帧。");
+        if (custom) note += UiText.Translate(" 自定义 mpv.conf 会在本页选项之后加载，可能覆盖补帧、同步或硬解；不保证本页选择最终生效。");
 
         var svp = MpvSvp.IsEnabled(Settings.Mpv);
         var rows = new List<SettingRow>();

@@ -12,7 +12,7 @@
             <CheckBox x:Name="FnNasPermissionCheck" Content="{x:Bind Name}" IsChecked="{x:Bind Selected, Mode=TwoWay}" Margin="0,3" />
         </DataTemplate>
     </Page.Resources>
-    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgSettingsSubpageMargin}" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <StackPanel Spacing="8">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />

@@ -66,14 +66,6 @@
         <local:SettingsCategoryMarkConverter x:Key="MoviePilotMark" />
 
         <!--
-          控件那一列有多宽。一个数写在一处，六种行（开关、下拉、数字、滑块、输入、字体）共用：这几行的控件
-          必须落在同一条竖线上，各写一遍的下场是它们各自跟着自己那点内容飘。
-          左边那一列是 *，所以标签和说明拿的是剩下的全部 —— 说明原来被挤在 190 宽里折两行，而右边空着
-          四百多像素。
-        -->
-        <GridLength x:Key="EgSettingControlWidth">320</GridLength>
-
-        <!--
           The label and its optional second line, shared by every row shape that has a label column.
           正文字和小字两档都从词表里来（Theme/Styles.xaml）—— 这两个样式以前只写了字号和颜色，没写字体，
           于是整页六十行标签落回框架默认那支字，比界面里别处的正文大一点也不是同一种字。
@@ -443,7 +435,7 @@
             <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                    <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -468,7 +460,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -488,7 +480,6 @@
                             DisplayMemberPath="DisplayLabel"
                             HorizontalAlignment="Stretch"
                             ItemsSource="{x:Bind Choices, Mode=OneWay}"
-                            MinWidth="260"
                             SelectedItem="{x:Bind Selected, Mode=TwoWay}"
                             VerticalAlignment="Center" />
                     </Grid>
@@ -503,9 +494,8 @@
             <local:SettingRowTemplates.ToggleGroup>
                 <DataTemplate x:DataType="vm:SettingToggleGroupRow">
                     <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
-                        <!-- 词表里的小标题（Theme/Styles.xaml 的 EgSubheadStyle）：以前这里只写了 SemiBold，
-                             没写字体也没写字号，一组开关的标题于是比同一张卡片上的别的字都大一点。 -->
-                        <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind DisplayLabel}" />
+                        <!-- 与卡片内其余设置行标题共用 EgSettingLabel，保持视觉层级一致。 -->
+                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                         <ItemsControl
                             ItemTemplate="{StaticResource EgSettingToggle}"
                             ItemsSource="{x:Bind Toggles}">
@@ -530,7 +520,7 @@
             <local:SettingRowTemplates.Theme>
                 <DataTemplate x:DataType="vm:SettingThemeRow">
                     <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
-                        <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind DisplayLabel}" />
+                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
                         <TextBlock
                             Style="{StaticResource EgSettingNote}"
                             Text="{x:Bind DisplayNote}"
@@ -561,7 +551,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Margin="{x:Bind RowMargin}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -597,7 +587,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -606,25 +596,32 @@
                                 Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <Grid Grid.Column="1" ColumnSpacing="8" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
                             <CheckBox x:Uid="SettingsPage_UseAutomaticValue"
                                 x:Name="UseAutomaticValue"
                                 AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 Content="自动"
                                 IsChecked="{x:Bind Automatic, Mode=TwoWay}" />
                             <NumberBox
+                                Grid.Column="1"
                                 CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 x:Name="ManualValue"
                                 AutomationProperties.Name="{x:Bind DisplayLabel}"
+                                HorizontalAlignment="Stretch"
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
                                 Visibility="{x:Bind InputVisibility, Mode=OneWay}"
                                 Minimum="{x:Bind Minimum}"
                                 Maximum="{x:Bind Maximum}"
+                                MaxWidth="160"
+                                MinWidth="80"
                                 SpinButtonPlacementMode="Hidden"
                                 Value="{x:Bind Value, Mode=TwoWay}"
-                                VerticalAlignment="Center"
-                                Width="160" />
-                        </StackPanel>
+                                VerticalAlignment="Center" />
+                        </Grid>
                     </Grid>
                 </DataTemplate>
             </local:SettingRowTemplates.OptionalNumber>
@@ -634,7 +631,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -657,7 +654,7 @@
                                 HorizontalAlignment="Stretch"
                                 Maximum="{x:Bind Maximum}"
                                 Minimum="{x:Bind Minimum}"
-                                MinWidth="240"
+                                MinWidth="100"
                                 SnapsTo="StepValues"
                                 StepFrequency="{x:Bind Step}"
                                 TickFrequency="{x:Bind Step}"
@@ -684,7 +681,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -699,7 +696,6 @@
                             LostFocus="OnSettingTextLostFocus"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
-                            MinWidth="260"
                             AutomationProperties.Name="{x:Bind DisplayLabel}"
                             PlaceholderText="{x:Bind DisplayPlaceholder}"
                             Text="{x:Bind Text, Mode=TwoWay}"
@@ -713,7 +709,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -782,7 +778,7 @@
                               横排、各自定宽、靠左摆（用户令「地址框别弄那么长」）：地址一个 IP 或主机名 240 够宽，
                               不跟着卡面拉满；下面用户名/密码才是整幅宽的框。
                             -->
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <local:WrapRow Spacing="8" RowSpacing="8">
                                 <ComboBox x:Uid="SettingsPage_Localization4"
                                     MinWidth="88"
                                     AutomationProperties.Name="MoviePilot 协议"
@@ -804,7 +800,7 @@
                                     InputScope="Number"
                                     PlaceholderText="3001"
                                     Text="{x:Bind Port, Mode=TwoWay}" />
-                            </StackPanel>
+                            </local:WrapRow>
 
                             <TextBox x:Uid="SettingsPage_Localization7"
                                 AutomationProperties.Name="MoviePilot 用户名"
@@ -881,7 +877,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Top">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -890,7 +886,7 @@
                                 Text="{x:Bind DisplayNote}"
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" MinWidth="260" Spacing="6">
+                        <StackPanel Grid.Column="1" Spacing="6">
                             <TextBox
                                 x:Uid="SettingsPage_TextBox3"
                                 GotFocus="{x:Bind OpenList}"
@@ -942,7 +938,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -1263,7 +1259,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -1277,8 +1273,7 @@
                             AutomationProperties.Name="{x:Bind DisplayLabel}"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Left"
-                            MinWidth="260">
+                            HorizontalContentAlignment="Left">
                             <TextBlock
                                 Text="{x:Bind DisplaySummary, Mode=OneWay}"
                                 TextTrimming="CharacterEllipsis" />
@@ -1464,7 +1459,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" />
@@ -1483,9 +1478,9 @@
                             Grid.Column="1"
                             Command="{x:Bind RunCommand}"
                             Content="{x:Bind DisplayActionLabel}"
-                              AutomationProperties.Name="{x:Bind ActionAutomationName}"
+                            AutomationProperties.Name="{x:Bind ActionAutomationName}"
                             HorizontalAlignment="Left"
-                            VerticalAlignment="Top"
+                            VerticalAlignment="Center"
                             Visibility="{x:Bind ActionVisibility}" />
                     </Grid>
                 </DataTemplate>
@@ -1502,7 +1497,7 @@
                     <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                            <ColumnDefinition Width="{x:Bind ControlColumnWidth, Mode=OneWay}" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind DisplayLabel}" TextWrapping="Wrap" />
                         <local:ShortcutCaptureBox
@@ -1613,7 +1608,7 @@
                         AutomationProperties.Name="搜索设置"
                         Text="{x:Bind ViewModel.SettingsSearchQuery, Mode=TwoWay}"
                         ItemsSource="{x:Bind ViewModel.SettingsSearchResults, Mode=OneWay}"
-                        TextMemberPath="Label"
+                        TextMemberPath="DisplayLabel"
                         UpdateTextOnSelect="False"
                         MaxSuggestionListHeight="420"
                         QuerySubmitted="OnSettingsSearchSubmitted">
@@ -1778,6 +1773,7 @@
                     HorizontalContentAlignment="Stretch"
                     HorizontalScrollMode="Disabled"
                     HorizontalScrollBarVisibility="Disabled"
+                    SizeChanged="OnSettingsScrollSizeChanged"
                     VerticalScrollBarVisibility="Auto"
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
                     <ScrollViewer.Resources>
@@ -1806,8 +1802,8 @@
                         </ResourceDictionary.ThemeDictionaries>
                         </ResourceDictionary>
                     </ScrollViewer.Resources>
-                    <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域。 -->
-                    <StackPanel x:Name="SettingsCardsContent" Margin="0,0,20,0">
+                    <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域，上下与宿主二级页统一留白 12 DIP。 -->
+                    <StackPanel x:Name="SettingsCardsContent" Margin="0,12,20,12">
                         <StackPanel Spacing="8" Margin="0,0,0,20"
                             Visibility="{x:Bind ViewModel.ShortcutSearchVisibility, Mode=OneWay}">
                             <Grid ColumnSpacing="8">
@@ -1846,10 +1842,16 @@
                                         <StackPanel.RenderTransform>
                                             <TranslateTransform />
                                         </StackPanel.RenderTransform>
-                                        <!-- 每张卡都写自己的标题：与侧栏同名也保留，卡片因此自成一段。 -->
-                                        <TextBlock x:Name="SettingsSectionTitle" Margin="8,0,0,12"
-                                            Text="{x:Bind DisplayTitle, Mode=OneWay}" Style="{StaticResource EgSettingsSectionTitle}"
-                                            AutomationProperties.HeadingLevel="Level2" />
+                                        <!-- 每张卡都写自己的标题与说明：与侧栏同名也保留，卡片因此自成一段。 -->
+                                        <StackPanel Margin="8,0,0,12" Spacing="4">
+                                            <TextBlock x:Name="SettingsSectionTitle"
+                                                Text="{x:Bind DisplayTitle, Mode=OneWay}" Style="{StaticResource EgSettingsSectionTitle}"
+                                                AutomationProperties.HeadingLevel="Level2" />
+                                            <TextBlock x:Name="SettingsSectionDescription"
+                                                Style="{StaticResource EgSettingNote}"
+                                                Text="{x:Bind DisplayDescription, Mode=OneWay}"
+                                                Visibility="{x:Bind DescriptionVisibility, Mode=OneWay}" />
+                                        </StackPanel>
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource EgCardStrokeBrush}"

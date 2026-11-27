@@ -101,17 +101,19 @@ public sealed partial class SettingsViewModel
                 if (settings.DensityMode != 2)
                     displayRows.Add(Toggle("智能防挡弹幕", "在本地避免弹幕相互重叠和追尾。",
                         () => settings.PreventOverlap, value => settings.PreventOverlap = value, after: ApplyDanmakuSettings));
-                displayRows.Add(Slider("不透明度（%）", 10, 100, 5, () => settings.Opacity, value => settings.Opacity = value, after: ApplyDanmakuSettings));
-                displayRows.Add(Slider("字号", 20, 64, 2, () => settings.FontSize, value => settings.FontSize = value,
+                displayRows.Add(Slider("弹幕不透明度（%）", 10, 100, 5, () => settings.Opacity, value => settings.Opacity = value,
+                    "调整弹幕文字的整体不透明度，数值越低越不遮挡画面。", after: ApplyDanmakuSettings));
+                displayRows.Add(Slider("弹幕字号", 20, 64, 2, () => settings.FontSize, value => settings.FontSize = value,
                     "独立于字幕字号；缩放方式由「弹幕随窗口缩放」控制。", after: ApplyDanmakuSettings));
-                displayRows.Add(Slider("弹幕速度（倍）", 0.5, 2, 0.1, () => settings.Speed, value => settings.Speed = value, after: ApplyDanmakuSettings));
+                displayRows.Add(Slider("弹幕速度（倍）", 0.5, 2, 0.1, () => settings.Speed, value => settings.Speed = value,
+                    "调整滚动弹幕横穿画面的移动速度倍率；小于 1 倍更慢，大于 1 倍更快。", after: ApplyDanmakuSettings));
                 displayRows.Add(Toggle("弹幕速度同步播放倍数", "开启时弹幕随播放倍数加速；关闭时补偿播放倍数，保持弹幕移动速度。",
                     () => settings.SpeedSyncPlayback, value => settings.SpeedSyncPlayback = value, after: ApplyDanmakuSettings));
                 displayRows.Add(DanmakuFont(settings));
                 displayRows.Add(Toggle("弹幕粗体", "使用所选字体的粗体。", () => settings.Bold, value => settings.Bold = value, after: ApplyDanmakuSettings));
-                displayRows.Add(Choice("描边类型", DanmakuBorderStyles, () => settings.BorderStyle, value => settings.BorderStyle = value,
+                displayRows.Add(Choice("弹幕描边类型", DanmakuBorderStyles, () => settings.BorderStyle, value => settings.BorderStyle = value,
                     "描边、加粗黑边或右下方 45° 投影。", after: ApplyDanmakuSettings));
-                displayRows.Add(Slider("显示区域（%）", 25, 100, 25, () => settings.Area, value => settings.Area = value,
+                displayRows.Add(Slider("弹幕显示区域（%）", 25, 100, 25, () => settings.Area, value => settings.Area = value,
                     "25% 顶部四分之一、50% 半屏、75% 四分之三、100% 全屏。", after: ApplyDanmakuSettings));
                 displayRows.Add(Slider("同屏弹幕上限", 10, 100, 10, () => settings.Density, value => settings.Density = (int)value,
                     "达到上限后丢弃新弹幕，不保证所有弹幕都能显示。", after: ApplyDanmakuSettings));
@@ -135,7 +137,7 @@ public sealed partial class SettingsViewModel
         return
         [
             new SettingSection(DanmakuCategory, "弹幕",
-                "参考 B 站的显示与屏蔽设置。弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。",
+                "弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。",
                 rows),
             new SettingSection(DanmakuCategory, "来源与聚合",
                 "弹弹play 使用 Momoka 内置凭据；danmu_api 需要你自己部署并填写地址。"

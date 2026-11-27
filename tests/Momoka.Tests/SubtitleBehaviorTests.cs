@@ -209,7 +209,7 @@ internal static class SubtitleBehaviorTests
             Assert.True(TrackSelection.Resolve(settings, source).Subtitle.Disabled);
             settings.SubtitleLanguages = [TrackLanguagePriority.Any];
             Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index,
-                "任意轨兜底明确通过其他字幕表达，标题规则在这里有效");
+                "任意轨兜底明确通过其他语言表达，标题规则在这里有效");
         });
 
         Test("字幕回退：默认轨仍须可播放并服从强制字幕模式", () =>

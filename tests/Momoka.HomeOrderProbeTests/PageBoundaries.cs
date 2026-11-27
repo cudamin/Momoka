@@ -140,6 +140,7 @@ namespace Momoka.Shell.Views
         private void ObserveCategoryGroups() { }
         internal void UpdateCategoryGroupsForFixture() => UpdateCategoryGroups();
         private void ApplySettingsMotionPreference() { }
+        private void SyncControlColumnWidth() { }
         private void QueueSettingsEntrance() { }
         private void StopSettingsEntrance() { }
         private void DetachSettingsContentMotion() { }

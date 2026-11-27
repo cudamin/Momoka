@@ -172,7 +172,7 @@ internal static class Program
                 context.Await(page.RefreshForContract());
                 var expected = kind == MediaServerKind.Emby
                     ? new[] { "Momoka", "Emby Server", "设备", "高级" }
-                    : new[] { "Momoka", "服务器", "设备", "电视直播", "插件", "高级" };
+                    : new[] { "Momoka", "Jellyfin", "设备", "电视直播", "插件", "高级" };
                 SameStrings(expected, GroupNames(page));
                 Assert.True(fixture.Reads.PluginReads > 0);
                 fixture.Permission(fixture.Source("a"), false);

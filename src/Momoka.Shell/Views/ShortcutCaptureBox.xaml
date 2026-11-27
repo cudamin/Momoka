@@ -46,7 +46,7 @@
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="{StaticResource EgHairline}"
             CornerRadius="{StaticResource EgSearchCornerRadius}"
-            MinWidth="150"
+            MinWidth="110"
             Padding="12,7">
             <TextBlock
                 x:Name="ComboLabel"

@@ -262,7 +262,7 @@ public static class MpvOutputOptions
         new("eac3", "EAC3"),
         new("dts", "DTS"),
         new("dts-hd", "DTS-HD"),
-        new("truehd", "True HD")
+        new("truehd", "TrueHD")
     ];
 
     /// <summary>

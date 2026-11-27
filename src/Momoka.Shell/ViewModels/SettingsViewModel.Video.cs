@@ -194,7 +194,7 @@ public sealed partial class SettingsViewModel
 
     private SettingOptionalNumberRow Optional(string label, Func<double?> read, Action<double?> write,
         double fallback, string note, string option) =>
-        new(label, Annotate(note + " 亮度按整数 nits 保存，小数四舍五入。", option)!, HdrOptions.MinimumNits, HdrOptions.MaximumNits,
+        new(label, Annotate(UiText.Translate(note) + " " + UiText.Translate("亮度按整数 nits 保存，小数四舍五入。"), option)!, HdrOptions.MinimumNits, HdrOptions.MaximumNits,
             fallback, read(), write, Save, HdrOptions.ClampNits);
 
     /// <summary>
@@ -242,8 +242,10 @@ public sealed partial class SettingsViewModel
         {
             // 自动识别动画决定「这片算不算动画」，下面那条 Anime4K 只在它打开时才有意义，所以跟着它显隐：
             // 关掉识别，Anime4K 也选不中任何片源（见 ShaderAutomationSettings.Resolve 的 animated 判据）。
-            rows.Add(Toggle("自动识别动画", "按 Emby 类型与标签匹配当前关键词：" + string.Join("、", shaders.AnimeKeywords)
-                + "。命中后按下方选择使用动画链或 Anime4K，手动指定的档位优先。",
+            rows.Add(Toggle("自动识别动画", UiText.Translate("按 Emby 类型与标签匹配当前关键词：")
+                + (UiText.Language == UiLanguages.English ? " " : "")
+                + string.Join(UiText.Translate("、"), shaders.AnimeKeywords)
+                + UiText.Translate("。命中后按下方选择使用动画链或 Anime4K，手动指定的档位优先。"),
                 () => shaders.AutoAnimeProfile, value => shaders.AutoAnimeProfile = value, after: RefreshShaderCard));
             if (shaders.AutoAnimeProfile)
                 rows.Add(Toggle("动画自动使用 Anime4K", "识别为动画的片源改用 Anime4K 柔化修复链（Krig + Restore Soft M + Clamp + SSim），"

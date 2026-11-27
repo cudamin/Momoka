@@ -152,6 +152,33 @@ public abstract class SettingRow : ObservableObject
         OnPropertyChanged(nameof(DividerThickness));
     }
 
+    internal const double DefaultControlColumnWidth = 320;
+    internal const double NarrowViewportThreshold = 580;
+    internal const double NarrowControlColumnWidth = 180;
+    private static double s_controlColumnWidth = DefaultControlColumnWidth;
+
+    internal static double CurrentControlColumnWidth => s_controlColumnWidth;
+
+    /// <summary>
+    /// 控件那一列的宽度：宽窗固定 320 DIP（所有行控件落在同一条竖线上），
+    /// 视口窄于 580 DIP 时缩到 180 DIP，免得左边标签列被挤成竖排。
+    /// </summary>
+    public GridLength ControlColumnWidth => new(s_controlColumnWidth);
+
+    internal static double ComputeControlColumnWidth(double viewportWidth) =>
+        viewportWidth > 0 && viewportWidth < NarrowViewportThreshold
+            ? NarrowControlColumnWidth
+            : DefaultControlColumnWidth;
+
+    internal static bool SetControlColumnWidth(double width)
+    {
+        if (Math.Abs(s_controlColumnWidth - width) < 0.01) return false;
+        s_controlColumnWidth = width;
+        return true;
+    }
+
+    internal void RefreshControlColumnWidth() => OnPropertyChanged(nameof(ControlColumnWidth));
+
     /// <summary>
     /// 自检：精简模式收得下、放得出。就地造一行假开关行拨一遍 —— 单元测试进不到外壳这个程序集，这一条非有
     /// 不可的理由同 <see cref="SettingChoiceRow.Probe"/>：收/放任何一档卡住，屏上的样子都是「拨了没反应」，

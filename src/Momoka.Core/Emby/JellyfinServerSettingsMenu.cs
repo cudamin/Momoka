@@ -21,7 +21,7 @@ public static class JellyfinServerSettingsMenu
     public const string MetadataManagerLabel = "媒体资料管理器";
     public const string MetadataManagerRoute = "metadata";
 
-    public const string ServerGroupLabel = "服务器";
+    public const string ServerGroupLabel = "Jellyfin";
     public const string DevicesGroupLabel = "设备";
     public const string LiveTvGroupLabel = "电视直播";
     public const string PluginsGroupLabel = "插件";

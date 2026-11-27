@@ -337,7 +337,7 @@
         </DataTemplate>
     </Page.Resources>
 
-    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgSettingsSubpageMargin}" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
