@@ -62,6 +62,28 @@ internal static class SeriesResourceViewTests
             vm.StatusFilter = MoviePilotTransferStatusFilter.All;
             Assert.Equal(0, vm.SelectedCount);
         });
+        Test("剧清单VM：同一个按钮全选当前结果，再清空已选项", () =>
+        {
+            using var fixture = new SeriesViewFixture();
+            var vm = fixture.ViewModel;
+            vm.SetSelected([vm.Rows[0]], true);
+            Assert.Equal("全选", vm.SelectionActionLabel);
+            vm.ToggleSelection();
+            Assert.Equal(3, vm.SelectedCount);
+            Assert.Equal("清空选择", vm.SelectionActionLabel);
+            vm.ToggleSelection();
+            Assert.Equal(0, vm.SelectedCount);
+            Assert.Equal("全选", vm.SelectionActionLabel);
+
+            vm.SearchText = "s01e02";
+            vm.ToggleSelection();
+            Assert.Equal(2L, vm.Select().Single().Id);
+            Assert.Equal("清空选择", vm.SelectionActionLabel);
+            vm.SearchText = "没有匹配";
+            vm.ToggleSelection();
+            Assert.Equal(0, vm.SelectedCount);
+            Assert.Equal("全选", vm.SelectionActionLabel);
+        });
         Test("剧清单VM：排序、方向和分组不发请求且保留当前选择", () =>
         {
             using var fixture = new SeriesViewFixture();
@@ -214,8 +236,7 @@ internal static class SeriesResourceViewTests
             XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
             const string toolbarRadius = "{StaticResource EgSearchCornerRadius}";
             Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") == "ReloadResources"), "工具栏不再显示刷新按钮");
-            foreach (var name in new[] { "StatusFilterButton", "ResourceSortButton", "ResourceViewButton",
-                "SelectAllResources", "ClearResourceSelection" })
+            foreach (var name in new[] { "StatusFilterButton", "ResourceSortButton", "ResourceViewButton", "ToggleResourceSelection" })
                 Assert.Equal(toolbarRadius, (string?)Named(name).Attribute("CornerRadius"), name);
             var toolbarStyle = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "SeriesResourceToolbarButtonStyle");
             const string toolbarHeight = "{StaticResource SeriesResourceToolbarHeight}";
@@ -252,6 +273,25 @@ internal static class SeriesResourceViewTests
                 Assert.Equal("Bottom", (string?)Named(menu).Attribute("Placement"));
                 Assert.Equal("True", (string?)Named(menu).Attribute("ShouldConstrainToRootBounds"));
                 Assert.Equal("{StaticResource SeriesResourceMenuStyle}", (string?)Named(menu).Attribute("MenuFlyoutPresenterStyle"));
+                foreach (var option in Named(menu).Elements().Where(element => element.Name.LocalName == "RadioMenuFlyoutItem"))
+                    Assert.Equal("{StaticResource SeriesResourceRadioItemStyle}", (string?)option.Attribute("Style"), "菜单单选项共用紧凑样式");
+            }
+            Assert.Equal("{StaticResource SeriesResourceMenuItemStyle}", (string?)Named("SortDirection").Attribute("Style"));
+            var toolbar = Named("ResourceToolbar");
+            Assert.Equal("Horizontal", (string?)toolbar.Attribute("Orientation"));
+            foreach (var name in new[] { "ToggleResourceSelection", "StatusFilterButton", "ResourceSortButton", "ResourceViewButton" })
+                Assert.Equal(toolbar, Named(name).Parent, name + " 与工具栏操作保持同一行");
+            Assert.Equal("{x:Bind ViewModel.SelectionActionLabel, Mode=OneWay}", (string?)Named("ToggleResourceSelection").Attribute("Content"));
+            Assert.Equal("OnToggleSelection", (string?)Named("ToggleResourceSelection").Attribute("Click"));
+            foreach (var (key, baseStyle) in new[] { ("SeriesResourceRadioItemStyle", "DefaultRadioMenuFlyoutItemStyle"),
+                ("SeriesResourceMenuItemStyle", "DefaultMenuFlyoutItemStyle") })
+            {
+                var style = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == key);
+                Assert.Equal("{StaticResource " + baseStyle + "}", (string?)style.Attribute("BasedOn"));
+                Assert.Equal("{StaticResource EgListRowCornerRadius}", (string?)style.Elements().Single(element =>
+                    (string?)element.Attribute("Property") == "CornerRadius").Attribute("Value"));
+                Assert.Equal("{StaticResource SeriesResourceMenuItemPadding}", (string?)style.Elements().Single(element =>
+                    (string?)element.Attribute("Property") == "Padding").Attribute("Value"));
             }
         });
     }

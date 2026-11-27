@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.MoviePilot;
 using Momoka.Shell.Interop;
@@ -23,8 +24,8 @@ internal sealed partial class ShellNavigationProbe
         RequireSearchRadius(search);
         Require(!Descendants(picker).OfType<Button>().Any(button => button.Name == "ReloadResources"),
             "整理清单仍显示刷新按钮");
-        foreach (var name in new[] { "StatusFilterButton", "ResourceSortButton", "ResourceViewButton",
-            "SelectAllResources", "ClearResourceSelection" })
+        var toolbarButtons = new[] { "ToggleResourceSelection", "StatusFilterButton", "ResourceSortButton", "ResourceViewButton" };
+        foreach (var name in toolbarButtons)
         {
             var button = Get<Button>(picker, name);
             Require(button.CornerRadius == search.CornerRadius, $"整理清单工具栏圆角未对齐：{name}");
@@ -52,7 +53,7 @@ internal sealed partial class ShellNavigationProbe
                     $"搜索文字事件未接通：内部文字={input.Text}，查询文字={search.Text}，状态={vm.SearchText}");
                 ((AutoSuggestBoxAutomationPeer)searchPeer).Invoke();
             }
-            InvokeSeriesButton(picker, "SelectAllResources");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
             await EnterAsync("*S01E0?*.mkv E02");
             await UntilAsync(() => vm.Rows.Count == 1 && vm.Rows[0].History.Id == 2);
             Require(vm.SelectedCount == 1 && original.Where(row => row.History.Id != 2).All(row => !row.Selected),
@@ -97,7 +98,8 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(picker);
             Require(vm.Groups[0].Count == 0 && vm.SelectedCount == 1 && picker.IsPrimaryButtonEnabled,
                 "折叠分组丢失原勾选，或折叠时不能继续已明确选择的范围");
-            InvokeSeriesButton(picker, "ClearResourceSelection");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
             Require(vm.SelectedCount == 0 && !picker.IsPrimaryButtonEnabled, "折叠分组后清空没有撤销选择");
             var groupSelect = Descendants(list).OfType<Button>().Single(button => button.Name == "SelectSeriesResourceGroup");
             InvokeGroup(groupSelect);
@@ -110,7 +112,7 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync("mp-series-group-expanded-screen.png");
             await ChooseAsync("ResourceViewButton", "ResourceViewMenu", "ViewList");
             Require(!vm.Grouped && vm.SelectedCount == 6 && ReferenceEquals(list.ItemsSource, vm.Rows), "返回列表模式丢失当前选择或仍显示分组头");
-            InvokeSeriesButton(picker, "ClearResourceSelection");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
             var originalTheme = ThemeHost.Current.Id;
             try
             {
@@ -126,9 +128,9 @@ internal sealed partial class ShellNavigationProbe
             finally { ThemeHost.Apply(originalTheme); }
             Require(server.Queries.Count == historyReads && server.Writes == 0 && server.PreviewIds.Length == 0,
                 "搜索、筛选、排序、分组或选择发起了额外历史读取或整理预览/写入");
-            foreach (var width in new[] { 1120, 760, 420 })
+            foreach (var (width, height) in new[] { (1120, 960), (760, 820), (420, 640) })
             {
-                ResizeInspect(width, 960);
+                ResizeInspect(width, height);
                 await LayoutAsync(picker);
                 var panel = Get<Grid>(picker, "ResourcePanel");
                 Require(search.ActualWidth > 120 && list.ActualWidth > 180 && list.ActualHeight > 100, "窄窗搜索或清单被工具栏挤没");
@@ -137,6 +139,15 @@ internal sealed partial class ShellNavigationProbe
                 var searchFrame = Descendants(input).OfType<Border>().Single(border => border.Name == "BorderElement");
                 Require(searchFrame.BorderThickness != default && Math.Abs(searchFrame.ActualHeight - 32) < 1,
                     $"搜索栏描边或高度不正确：{searchFrame.ActualHeight} DIP");
+                var selection = Get<Button>(picker, "ToggleResourceSelection");
+                var toolbarTop = selection.TransformToVisual(panel).TransformPoint(default).Y;
+                foreach (var name in toolbarButtons)
+                {
+                    var action = Get<Button>(picker, name);
+                    var position = action.TransformToVisual(panel).TransformPoint(default);
+                    Require(Math.Abs(position.Y - toolbarTop) < 1 && position.X + action.ActualWidth <= panel.ActualWidth + 1,
+                        $"{name} 未在同一排或超出工具栏");
+                }
                 foreach (var (button, menu) in new[]
                 {
                     ("StatusFilterButton", "StatusFilterMenu"), ("ResourceSortButton", "ResourceSortMenu"), ("ResourceViewButton", "ResourceViewMenu")
@@ -148,8 +159,13 @@ internal sealed partial class ShellNavigationProbe
                         $"{button} 未与搜索栏同高：{frame.ActualHeight} / {searchFrame.ActualHeight} DIP");
                     Require(button == "ResourceViewButton" || frame.BorderThickness != default, $"{button} 丢失描边");
                     await OpenAsync(button, menu);
+                    var flyout = Get<MenuFlyout>(picker, menu);
+                    var selected = flyout.Items.OfType<RadioMenuFlyoutItem>().Single(item => item.IsChecked);
+                    Require(selected.Focus(FocusState.Keyboard), $"{menu} 的已选项不可用键盘聚焦");
+                    await UntilAsync(() => ReferenceEquals(FocusManager.GetFocusedElement(selected.XamlRoot), selected));
+                    Require(flyout.IsOpen, $"{menu} 聚焦时意外收起");
                     await SaveProbeScreenAsync($"mp-series-{menu}-{width}-screen.png");
-                    await CloseAsync(Get<MenuFlyout>(picker, menu), () => Get<MenuFlyout>(picker, menu).Hide());
+                    await CloseAsync(flyout, () => flyout.Hide());
                 }
             }
         }
@@ -192,6 +208,15 @@ internal sealed partial class ShellNavigationProbe
             var bounds = presenter.TransformToVisual(_root).TransformBounds(new Windows.Foundation.Rect(0, 0, presenter.ActualWidth, presenter.ActualHeight));
             Require(bounds.X >= -1 && bounds.Y >= -1 && bounds.Right <= _root.ActualWidth + 1 && bounds.Bottom <= _root.ActualHeight + 1,
                 "整理清单菜单超出窗口可用边界：" + bounds);
+            foreach (var name in toolbarButtons)
+            {
+                var action = Get<Button>(picker, name);
+                if (action.Visibility != Visibility.Visible) continue;
+                var position = action.TransformToVisual(_root).TransformPoint(default);
+                var overlaps = position.X < bounds.Right - 1 && position.X + action.ActualWidth > bounds.Left + 1 &&
+                    position.Y < bounds.Bottom - 1 && position.Y + action.ActualHeight > bounds.Top + 1;
+                Require(!overlaps, $"展开 {menuName} 时遮挡了 {name}");
+            }
             var choices = menu.Items.OfType<RadioMenuFlyoutItem>().ToArray();
             Require(choices.Count(item => item.IsChecked) == 1 && choices.All(item => item.GroupName == choices[0].GroupName),
                 "整理清单菜单没有唯一单选标记或共享本组标识");
@@ -200,6 +225,10 @@ internal sealed partial class ShellNavigationProbe
                 var peer = FrameworkElementAutomationPeer.CreatePeerForElement(item);
                 Require(peer is not null && peer.GetAutomationId() == item.Name && peer.GetName() == item.Text,
                     "菜单缺少运行时UIA句柄或名称：" + item.Name);
+                var row = Descendants(item).OfType<Grid>().Single(element => element.Name == "LayoutRoot");
+                Require(item.ActualHeight <= 32 && item.UseSystemFocusVisuals &&
+                    row.CornerRadius == (CornerRadius)Application.Current.Resources["EgListRowCornerRadius"] && item.CornerRadius == row.CornerRadius,
+                    $"{menuName} 的 {item.Name} 未使用紧凑行和共享焦点圆角：{item.ActualHeight} DIP");
             }
         }
         async Task CloseAsync(MenuFlyout menu, Action request)

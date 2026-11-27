@@ -42,8 +42,7 @@ public sealed partial class MoviePilotSeriesReorganizeDialog : ContentDialog
         FitPanel();
         await ViewModel.ReloadAsync().ConfigureAwait(true);
     }
-    private void OnSelectAll(object sender, RoutedEventArgs args) => ViewModel.SelectAll();
-    private void OnClearSelection(object sender, RoutedEventArgs args) => ViewModel.ClearSelection();
+    private void OnToggleSelection(object sender, RoutedEventArgs args) => ViewModel.ToggleSelection();
     private void OnResourceClicked(object sender, ItemClickEventArgs args)
     {
         if (args.ClickedItem is MoviePilotSeriesTransferRow row) ViewModel.SetSelected([row], !row.Selected);

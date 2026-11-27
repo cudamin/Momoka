@@ -29,8 +29,10 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     public string CountLabel => Rows.Count == _allRows.Count ? $"共 {_allRows.Count} 条资源" : $"显示 {Rows.Count} / {_allRows.Count} 条资源";
     public int SelectedCount => Rows.Count(row => row.Selected);
     public string SelectionLabel => $"已选 {SelectedCount} 条";
+    public string SelectionActionLabel => UiText.Translate(AllSelected ? "清空选择" : "全选");
     public string SubmitLabel => SelectedCount == 0 ? "选择要重新整理的资源" : $"批量重新整理（{SelectedCount}）";
     public bool CanSelect => !_released && !Busy && Rows.Count > 0;
+    private bool AllSelected => CanSelect && SelectedCount == Rows.Count;
     public bool CanContinue => CanSelect && SelectedCount > 0 && _service?.Available == true && _service.IsCurrentConnection(_connection);
     public Visibility EmptyVisibility => Show(IsReady && !Busy && !NoticeOpen && Rows.Count == 0);
     public Visibility SelectionVisibility => Show(Rows.Count > 0);
@@ -120,6 +122,12 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
 
     internal void SelectAll() => UpdateSelection(Rows, true);
     internal void ClearSelection() => UpdateSelection(Rows, false);
+    internal void ToggleSelection()
+    {
+        if (!CanSelect) return;
+        if (AllSelected) ClearSelection();
+        else SelectAll();
+    }
     internal void SetSelected(IEnumerable<MoviePilotSeriesTransferRow> rows, bool selected) => UpdateSelection(rows, selected);
     internal void ToggleGroup(MoviePilotSeriesTransferGroup group)
     {
@@ -198,7 +206,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     {
         foreach (var name in new[]
         {
-            nameof(CountLabel), nameof(SelectedCount), nameof(SelectionLabel), nameof(SubmitLabel), nameof(CanSelect), nameof(CanContinue),
+            nameof(CountLabel), nameof(SelectedCount), nameof(SelectionLabel), nameof(SelectionActionLabel), nameof(SubmitLabel), nameof(CanSelect), nameof(CanContinue),
             nameof(EmptyVisibility), nameof(SelectionVisibility), nameof(EmptyTitle), nameof(EmptyMessage), nameof(StatusLabel), nameof(SortLabel),
             nameof(StatusAutomationName), nameof(SortAutomationName), nameof(ViewAutomationName), nameof(ViewGlyph), nameof(DirectionAction), nameof(DirectionVisibility)
         }) OnPropertyChanged(name);

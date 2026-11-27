@@ -53,11 +53,15 @@ internal sealed partial class ShellNavigationProbe
             picker.ViewModel.SetSelected([picker.ViewModel.Rows[1]], true);
             Require(picker.ViewModel.SelectedCount == 2 && picker.IsPrimaryButtonEnabled, "多选与批量按钮没有同步");
             var retained = picker.ViewModel.Rows[0];
-            InvokeSeriesButton(picker, "ClearResourceSelection");
+            var selectionAction = Get<Button>(picker, "ToggleResourceSelection");
+            Require(Equals(selectionAction.Content, "全选"), "部分勾选时合并按钮未提供全选");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
+            Require(picker.ViewModel.SelectedCount == 6 && Equals(selectionAction.Content, "清空选择"), "全选后按钮未切换到清空");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
             Require(picker.ViewModel.SelectedCount == 0 && !picker.IsPrimaryButtonEnabled && ReferenceEquals(retained, picker.ViewModel.Rows[0]),
                 "清空选择丢失行对象或没有关闭继续入口");
             await MoviePilotSeriesResourceBrowserAsync(picker, server);
-            InvokeSeriesButton(picker, "SelectAllResources");
+            InvokeSeriesButton(picker, "ToggleResourceSelection");
             Require(picker.ViewModel.SelectedCount == 6 && picker.ViewModel.Rows.All(row => row.Selected),
                 "全选未选齐当前剧资源或没有同步复选框");
             foreach (var width in new[] { 1120, 760, 420 })
@@ -66,7 +70,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(picker);
                 await Task.Delay(200);
                 Require(list.ActualWidth > 180 && list.ActualHeight > 100, "窄窗资源清单被压没");
-                Require(Get<Button>(picker, "SelectAllResources").ActualWidth > 30 &&
+                Require(selectionAction.ActualWidth > 30 &&
                     Get<TextBlock>(picker, "SelectedResourcesCount").ActualWidth > 30, "窄窗的选择工具不可见");
                 await SaveProbeScreenAsync($"mp-series-reorganize-{width}-screen.png");
             }
