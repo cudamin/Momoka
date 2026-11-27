@@ -14,6 +14,8 @@ internal static class Program
     {
         RegisterMotion();
         RegisterPage();
+        RegisterCaptionGeometry();
+        HomeFoldThresholdProbeTests.Register(Case);
         BannerCycleClockTests.Register(Case);
         Cases.Add(("poster/demand-waits-for-tree-and-captures-own-gate", () =>
         {
@@ -380,6 +382,94 @@ internal static class Program
         });
     }
 
+    private static void RegisterCaptionGeometry()
+    {
+        Case("poster/fold-caption-prefers-episode-subtitle-and-falls-back-to-title", () =>
+        {
+            var card = new PosterCard();
+            Equal(100d, card.FoldCaptionBottomIn(card)!.Value, "episode row protects its real subtitle bottom");
+            card.SourceLine.TestTop = 500;
+            Equal(100d, card.FoldCaptionBottomIn(card)!.Value, "account/source text does not redefine the episode line");
+            card.SubLine.Visibility = Visibility.Collapsed;
+            Equal(76d, card.FoldCaptionBottomIn(card)!.Value, "a hidden subtitle protects the title instead");
+            card.SubLine.Visibility = Visibility.Visible;
+            card.SubLine.Text = "  \t";
+            Equal(76d, card.FoldCaptionBottomIn(card)!.Value, "an empty subtitle also uses the laid-out title");
+            card.SubLine.Text = "S01E07 - Episode 7";
+            card.SubLine.ActualHeight = 0;
+            Check(card.FoldCaptionBottomIn(card) is null, "an existing episode line waits until its actual height is ready");
+            card.SubLine.Visibility = Visibility.Collapsed;
+            card.TitleLine.Text = "";
+            Check(card.FoldCaptionBottomIn(card) is null, "no visible caption cannot become a guessed bound");
+        });
+        Case("poster/fold-caption-ignores-hover-press-and-ancestor-animation", () =>
+        {
+            var space = new FrameworkElement();
+            var ancestor = new FrameworkElement
+            {
+                TestParent = space,
+                RenderTransform = new TranslateTransform { Y = 92 }
+            };
+            var card = new PosterCard
+            {
+                TestTop = 140,
+                TestParent = ancestor,
+                RenderTransform = new TranslateTransform { Y = -35 }
+            };
+            var rootMotion = (CompositeTransform)card.Root.RenderTransform!;
+            rootMotion.ScaleY = 1.4;
+            rootMotion.TranslateY = 120;
+            rootMotion.CenterY = 50;
+            Equal(240d, card.FoldCaptionBottomIn(space)!.Value, "only the stable card top and Root-local text height count");
+            Equal(-35d, ((TranslateTransform)card.RenderTransform!).Y, "measurement cannot stop the card animation");
+            Equal(1.4, rootMotion.ScaleY, "measurement cannot reset hover scaling");
+            Equal(120d, rootMotion.TranslateY, "measurement cannot reset press/removal translation");
+            card.TestTop = double.NaN;
+            Check(card.FoldCaptionBottomIn(space) is null, "non-finite layout remains unmeasurable");
+        });
+        Case("page/recycled-caption-data-rechecks-without-any-outer-resize", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.UpdateFold();
+            scene.AssertFlowOnly();
+            scene.ResumeCard.SubLine.TestTop = 130;
+            scene.ResumeCard.ChangeCard();
+            Equal(1, scene.Page.DispatcherQueue!.PendingCount, "production CardChanged publishes a geometry wakeup");
+            scene.Drain();
+            scene.AssertOverlayOnly();
+        });
+        foreach (var lineName in new[] { "TitleLine", "SubLine" })
+            foreach (var loaded in new[] { true, false })
+                Case($"page/caption-only-{lineName}-{(loaded ? "loaded" : "size")}-wakeup-rechecks-unchanged-outer-layout", () =>
+                {
+                    HomeMotion.AnimationsEnabled = false;
+                    var scene = new Scene();
+                    scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+                    var rowHeight = scene.FillerRow.ActualHeight;
+                    var viewportHeight = scene.Page.Scroller.ActualHeight;
+                    var watched = lineName == "SubLine" ? scene.ResumeCard.SubLine : scene.ResumeCard.TitleLine;
+                    if (lineName == "TitleLine") scene.ResumeCard.SubLine.Visibility = Visibility.Collapsed;
+                    watched.ActualHeight = 0;
+                    scene.Page.UpdateFold();
+                    scene.AssertFlowOnly();
+                    watched.ActualHeight = 18;
+                    watched.TestTop = 130;
+                    if (loaded) watched.RaiseLoaded();
+                    else watched.RaiseSizeChanged();
+                    Equal(1, scene.Page.DispatcherQueue!.PendingCount, "real caption XAML events reach the real page scheduler");
+                    scene.Drain();
+                    Check(scene.Page.ViewModel.LibraryOnBanner, "a newly measured caption near the bottom must move up immediately");
+                    scene.AssertOverlayOnly();
+                    Equal(rowHeight, scene.FillerRow.ActualHeight, "the outer row did not resize");
+                    Equal(viewportHeight, scene.Page.Scroller.ActualHeight, "the viewport did not resize");
+                    scene.Page.Release();
+                    watched.RaiseSizeChanged();
+                    Equal(0, scene.Page.DispatcherQueue.PendingCount, "late caption notifications cannot resurrect a released page");
+                });
+    }
+
     private static void RegisterPage()
     {
         foreach (var preference in new[] { HomeLibraryPlacement.Auto, HomeLibraryPlacement.OnCarousel })
@@ -672,6 +762,198 @@ internal static class Program
             page.ApplyCarousel();
             Equal(new Thickness(9), page.BannerZone.Margin, "released page ignores late banner layout callbacks");
         });
+        Case("page/auto-moves-before-resume-caption-is-clipped", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.Scroller.ActualHeight = 864;
+            scene.Page.UpdateFold();
+            Check(scene.Page.ViewModel.LibraryOnBanner,
+                "resume caption bottom 860 is within the 8 DIP guard even though the library bottom 760 fits");
+            scene.AssertOverlayOnly();
+        });
+        Case("page/auto-measures-resume-caption-instead-of-library-row-bottom", () =>
+        {
+            var scene = new Scene();
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "threshold is the measured resume text line");
+            scene.LibraryRow.ActualHeight = 480;
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "unrelated library row bottom does not replace the caption");
+            scene.ResumeCard.SourceLine.TestTop = 400;
+            scene.ResumeCard.SourceLine.ActualHeight = 80;
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "the extra account line is outside the episode caption threshold");
+        });
+        Case("page/auto-caption-guard-has-an-exact-eight-dip-boundary", () =>
+        {
+            foreach (var (viewport, expected) in new[] { (868.01, false), (868d, true), (860d, true), (840d, true) })
+            {
+                HomeMotion.AnimationsEnabled = false;
+                var scene = new Scene();
+                scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+                scene.Page.Scroller.ActualHeight = viewport;
+                scene.Page.UpdateFold();
+                Equal(expected, scene.Page.ViewModel.LibraryOnBanner, "only the measured text line and eight DIP guard choose Auto");
+            }
+        });
+        Case("page/auto-caption-threshold-does-not-use-width-or-natural-banner-height", () =>
+        {
+            foreach (var width in new[] { 640d, 1280d, 2400d })
+                foreach (var naturalHeight in new[] { 200d, 900d, 1600d })
+                {
+                    HomeMotion.AnimationsEnabled = false;
+                    var scene = new Scene();
+                    scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+                    scene.Page.Banner.ActualWidth = width;
+                    scene.Page.Banner.NaturalBandHeight = naturalHeight;
+                    scene.Page.Scroller.ActualHeight = 864;
+                    scene.Page.UpdateFold();
+                    Check(scene.Page.ViewModel.LibraryOnBanner, "matching caption clipping always moves the library up");
+                }
+        });
+        Case("page/auto-folded-and-flow-layouts-reconstruct-the-same-caption-line", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            var stable = scene.Page.ReadCoversLine()!.Value.Line;
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.Scroller.ActualHeight = stable + 4;
+            scene.Page.UpdateFold();
+            scene.Drain();
+            for (var pass = 0; pass < 4; pass++)
+            {
+                scene.Page.ExpireSettle();
+                Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "fold restores the removed row and native row gap exactly once");
+                scene.Page.UpdateFold();
+                scene.AssertOverlayOnly();
+            }
+            scene.Page.ExpireSettle();
+            scene.Page.Scroller.ActualHeight = stable + 20;
+            scene.Page.UpdateFold();
+            scene.Drain();
+            scene.AssertFlowOnly();
+            Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "returning to flow keeps the original caption line");
+        });
+        Case("page/auto-uses-lowest-realized-caption-in-the-resume-shelf", () =>
+        {
+            var scene = new Scene();
+            var second = new PosterCard { TestTop = -72, TestParent = scene.FillerStrip };
+            scene.FillerStrip.RealizedCards.Add(second);
+            Equal(888d, scene.Page.ReadCoversLine()!.Value.Line, "all realized captions must fit rather than only the first card");
+            scene.FillerStrip.RealizedCards.Reverse();
+            Equal(888d, scene.Page.ReadCoversLine()!.Value.Line, "realization order cannot move the threshold");
+        });
+        Case("page/auto-cold-overlay-calibrates-in-flow-and-rechecks-once", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene(initialOn: true);
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.Scroller.ActualHeight = 864;
+            scene.Page.UpdateFold();
+            scene.AssertFlowOnly();
+            Check(scene.Page.DispatcherQueue!.PendingCount > 0, "cold cache explicitly queues a measurement after returning to flow");
+            scene.Page.ExpireSettle();
+            scene.Drain();
+            scene.AssertOverlayOnly();
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "flow calibration restores the exact caption line");
+        });
+        Case("page/auto-flow-waits-for-the-library-height-before-removing-it", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.Scroller.ActualHeight = 864;
+            scene.LibraryRow.ActualHeight = 0;
+            Check(scene.Page.ReadCoversLine() is null, "ready caption cannot replace an unmeasured library row");
+            scene.Page.UpdateFold();
+            scene.AssertFlowOnly();
+            scene.LibraryRow.ActualHeight = 240;
+            scene.LibraryRow.TestChildren.OfType<ShelfStrip>().Single().ActualHeight = 0;
+            Check(scene.Page.ReadCoversLine() is null, "the strip must be ready for a stable removed height");
+            scene.LibraryRow.TestChildren.OfType<ShelfStrip>().Single().ActualHeight = 180;
+            scene.Page.UpdateFold();
+            scene.AssertOverlayOnly();
+        });
+        Case("page/auto-overlay-cannot-borrow-the-previous-library-height", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ReadCoversLine();
+            scene.Change(true);
+            scene.Page.ViewModel.LibraryShelf = new CardShelf();
+            Equal((0d, false), scene.Page.ReadCoversLine()!.Value, "a different library must obtain its own flow measurement");
+        });
+        Case("page/auto-overlay-strip-height-change-updates-the-default-caption-line", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ReadCoversLine();
+            scene.Change(true);
+            scene.OverlayStrip.ActualHeight += 32;
+            for (var pass = 0; pass < 3; pass++)
+                Equal(892d, scene.Page.ReadCoversLine()!.Value.Line, "current strip size changes the removed row height without accumulating");
+        });
+        Case("page/auto-caption-header-change-calibrates-once-with-current-layout", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ReadCoversLine();
+            scene.Change(true);
+            scene.FillerRow.TestChildren.OfType<ShelfHead>().Single().ActualHeight += 6;
+            Equal((0d, false), scene.Page.ReadCoversLine()!.Value, "changed typography requires a fresh library header measurement");
+            scene.Change(false);
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "flow measurement renews the header baseline");
+            scene.Change(true);
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "renewed baseline does not cause a second calibration");
+        });
+        Case("page/auto-without-resume-falls-back-to-the-first-following-card-shelf", () =>
+        {
+            var scene = new Scene();
+            scene.Filler.HomeKey = "recent-first";
+            scene.Below.HomeKey = "recent-later";
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "missing resume uses the first actual following card shelf");
+            scene.Page.HomeRows.Insert(1, new MoviePilotHomeRow { RowHeight = 20 });
+            scene.Page.ShelfRepeater.Elements[3] = scene.Page.ShelfRepeater.Elements[2];
+            scene.Page.ShelfRepeater.Elements[2] = scene.Page.ShelfRepeater.Elements[1];
+            scene.Page.ShelfRepeater.Elements[1] = new FrameworkElement { TestTop = 760, ActualHeight = 20 };
+            Equal(860d, scene.Page.ReadCoversLine()!.Value.Line, "a non-card row cannot be mistaken for a caption shelf");
+        });
+        Case("page/auto-missing-caption-geometry-does-not-guess-or-use-a-different-shelf", () =>
+        {
+            var scene = new Scene();
+            scene.ResumeCard.SubLine.ActualHeight = 0;
+            scene.ResumeCard.TitleLine.ActualHeight = 0;
+            Check(scene.Page.ReadCoversLine() is null, "present resume with no laid-out text must wait");
+            scene.Filler.HomeKey = "recent";
+            Check(scene.Page.ReadCoversLine() is null, "an unmeasurable first fallback does not skip to a later shelf");
+            scene.FillerStrip.RealizedCards.Clear();
+            Check(scene.Page.ReadCoversLine() is null, "unrealized horizontal cards do not trigger synthetic geometry");
+        });
+        Case("page/auto-last-library-row-has-no-useful-fold", () =>
+        {
+            var scene = new Scene();
+            scene.Page.HomeRows.RemoveAt(2);
+            scene.Page.HomeRows.RemoveAt(1);
+            Equal((0d, false), scene.Page.ReadCoversLine()!.Value, "the last library row cannot move a following row up");
+            scene.Page.ViewModel.LibraryOnBanner = true;
+            scene.Page.HomeRows.Clear();
+            Equal((0d, false), scene.Page.ReadCoversLine()!.Value, "a removed last row returns to flow");
+        });
+        Case("page/auto-resume-before-library-does-not-add-removed-flow-height", () =>
+        {
+            var scene = new Scene();
+            scene.Page.HomeRows.Clear();
+            scene.Page.HomeRows.Add(scene.Filler);
+            scene.Page.HomeRows.Add(scene.Library);
+            scene.Page.HomeRows.Add(scene.Below);
+            scene.Page.ShelfRepeater.Elements[0] = scene.FillerRow;
+            scene.Page.ShelfRepeater.Elements[1] = scene.LibraryRow;
+            scene.Page.SetFlowIndex(1);
+            var stable = scene.Page.ReadCoversLine()!.Value.Line;
+            scene.Page.ViewModel.LibraryOnBanner = true;
+            scene.Page.HomeRows.RemoveAt(1);
+            scene.Page.ShelfRepeater.Elements[1] = scene.Page.ShelfRepeater.Elements[2];
+            Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "a caption before the removed library does not move with it");
+        });
         Case("page/auto-return-entrance-does-not-move-library-onto-carousel", () =>
         {
             var scene = new Scene();
@@ -679,10 +961,10 @@ internal static class Program
             var stable = scene.Page.ReadCoversLine()!.Value.Line;
             scene.Page.Scroller.ActualHeight = stable + 10;
             var template = new FrameworkElement { RenderTransform = new TranslateTransform() };
-            scene.LibraryRow.TestChildren.Add(template);
-            foreach (var child in scene.LibraryRow.TestChildren.Where(child => !ReferenceEquals(child, template)))
+            scene.FillerRow.TestChildren.Add(template);
+            foreach (var child in scene.FillerRow.TestChildren.Where(child => !ReferenceEquals(child, template)))
                 child.TestParent = template;
-            template.TestParent = scene.LibraryRow;
+            template.TestParent = scene.FillerRow;
 
             foreach (var shift in new[] { 20d, 10d, 5d, 0d })
             {
@@ -699,8 +981,8 @@ internal static class Program
             var scene = new Scene();
             var stable = scene.Page.ReadCoversLine()!.Value.Line;
             var ancestor = new FrameworkElement { RenderTransform = new TranslateTransform { Y = -80 } };
-            scene.LibraryRow.TestParent = ancestor;
-            ((TranslateTransform)scene.LibraryRow.RenderTransform!).Y = 240;
+            scene.FillerRow.TestParent = ancestor;
+            ((TranslateTransform)scene.FillerRow.RenderTransform!).Y = 240;
             Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "row and parent motion leave the threshold unchanged");
         });
         Case("page/library-viewport-reserves-and-restores-carousel-status-room", () =>
@@ -782,9 +1064,9 @@ internal static class Program
             var scene = new Scene();
             scene.Page.HomeRows.RemoveAt(2);
             var stable = scene.Page.ReadCoversLine()!.Value.Line;
-            scene.LibraryRow.TestTop -= 120;
+            scene.FillerRow.TestTop -= 120;
             scene.Page.Scroller.VerticalOffset = 120;
-            var drift = (TranslateTransform)scene.LibraryRow.RenderTransform!;
+            var drift = (TranslateTransform)scene.FillerRow.RenderTransform!;
             drift.Y = -90;
             Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "scroll restoration and animation preserve the single-row threshold");
             Equal(-90d, drift.Y, "measurement cannot stop or reset the running visual animation");
@@ -1126,11 +1408,11 @@ internal static class Program
             scene.Page.UpdateFold();
             scene.AssertFlowOnly();
 
-            scene.LibraryRow.ActualHeight = 420;
+            scene.ResumeCard.SubLine.TestTop += 180;
             scene.Page.ShelfRepeater.RaiseSizeChanged();
             Equal(1, scene.Page.DispatcherQueue!.PendingCount, "shelf layout must schedule a fresh measurement");
             scene.Drain();
-            Check(scene.Page.ViewModel.LibraryOnBanner, "settled library bottom outside viewport must move up");
+            Check(scene.Page.ViewModel.LibraryOnBanner, "settled resume caption outside viewport must move up");
             scene.AssertOverlayOnly();
             scene.Page.ShelfRepeater.RaiseSizeChanged();
             scene.Drain();
@@ -1319,27 +1601,50 @@ internal static class Program
     {
         internal HomePage Page { get; } = new();
         internal CardShelf Library { get; } = new();
-        private CardShelf Filler { get; } = new();
-        private CardShelf Below { get; } = new();
+        internal CardShelf Filler { get; } = new() { HomeKey = HomeLayout.Resume };
+        internal CardShelf Below { get; } = new();
         internal FrameworkElement LibraryRow { get; } = Row(520);
         internal FrameworkElement FillerRow { get; } = Row(760);
         private FrameworkElement BelowRow { get; } = Row(1020);
         internal ShelfStrip FillerStrip => FillerRow.TestChildren.OfType<ShelfStrip>().Single();
+        internal PosterCard ResumeCard => FillerStrip.RealizedCards.Single();
+        internal ShelfStrip OverlayStrip { get; } = new() { ActualHeight = 180 };
         internal Scene(bool initialOn = false)
         {
+            Page.LibraryHost.TestChildren.Add(OverlayStrip);
             Page.ViewModel.LibraryShelf = Library;
             Page.ViewModel.Shelves.AddRange([Library, Filler, Below]);
             Page.ViewModel.LibraryOnBanner = initialOn;
             Page.ViewModel.PublishLayout = Publish;
             Publish(initialOn);
+            foreach (var card in new[] { LibraryRow, FillerRow, BelowRow }
+                .SelectMany(row => row.TestChildren.OfType<ShelfStrip>()).SelectMany(strip => strip.RealizedCards))
+                Page.BindCaptionGeometry(card);
             Page.Apply();
             Page.ExpireSettle();
         }
         private static FrameworkElement Row(double top)
         {
-            var row = new FrameworkElement { ActualHeight = 240, TestTop = top, RenderTransform = new TranslateTransform() };
-            row.TestChildren.Add(new ShelfHead { ActualHeight = 36, TestTop = 0 });
-            row.TestChildren.Add(new ShelfStrip { ActualHeight = 180, TestTop = top + 100 });
+            var row = new FrameworkElement
+            {
+                ActualHeight = 240,
+                TestTop = top,
+                RenderTransform = new TranslateTransform(),
+                TestUseLocalCoordinates = true
+            };
+            var head = new ShelfHead { ActualHeight = 36, TestTop = 0, TestParent = row, TestUseLocalCoordinates = true };
+            row.TestChildren.Add(head);
+            var strip = new ShelfStrip
+            {
+                ActualHeight = 180,
+                TestTop = 100,
+                TestParent = row,
+                TestUseLocalCoordinates = true
+            };
+            var card = new PosterCard { TestTop = -100, TestParent = strip };
+            strip.RealizedCards.Add(card);
+            strip.TestChildren.Add(card);
+            row.TestChildren.Add(strip);
             return row;
         }
         // Precomputed framework layout snapshots, not a duplicate VM or fold planner.
@@ -1355,8 +1660,8 @@ internal static class Program
             var index = on ? 0 : 1;
             Page.HomeRows.Add(Filler);
             Page.HomeRows.Add(Below);
-            FillerRow.TestTop = on ? 520 : 760;
-            BelowRow.TestTop = on ? 780 : 1020;
+            FillerRow.TestTop = on ? 516 : 760;
+            BelowRow.TestTop = on ? 776 : 1020;
             Page.ShelfRepeater.Elements.Add(index, FillerRow);
             Page.ShelfRepeater.Elements.Add(index + 1, BelowRow);
         }

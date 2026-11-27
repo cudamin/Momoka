@@ -9,6 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
         <None Include="..\..\src\Momoka.Shell\Views\HomePage.xaml" Link="HomePage.xaml" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\..\src\Momoka.Shell\Views\PosterCard.xaml" Link="PosterCard.xaml" CopyToOutputDirectory="PreserveNewest" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeFoldMotion.cs" Link="Production\HomeFoldMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Carousel.cs" Link="Production\HomePage.Carousel.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Header.cs" Link="Production\HomePage.Header.cs" />
@@ -25,6 +26,7 @@
             <CountdownSource ParameterType="System.String" Required="true" />
             <PosterSource ParameterType="System.String" Required="true" />
             <EpisodeSource ParameterType="System.String" Required="true" />
+            <ProbeSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -45,7 +47,7 @@
                 var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
                 var generated = "// Extracted verbatim from this tree's current production at build time; do not edit.\n#nullable enable\n" +
                     "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Dispatching;\nusing Microsoft.UI.Xaml;\n" +
-                    "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media;\nnamespace Momoka.Shell.Views;\n" +
+                    "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media;\nusing Windows.Foundation;\nnamespace Momoka.Shell.Views;\n" +
                     "public sealed partial class HomePage : Page\n{\n" +
                     between(page, "    private bool _entranceSuppressed;", "\n    /// <summary>\n    /// Resolved on navigation") +
                     between(page, "    private bool _foldScheduled;", "\n    public HomePage()") +
@@ -69,11 +71,19 @@
                 generated += "\ninternal sealed partial class BannerDemandFixture\n{\n" +
                     between(banner, "    private void Prefetch()", "\n    /// <summary>\n    /// 箭头在不在屏上。") + "\n}\n";
                 var poster = File.ReadAllText(PosterSource).Replace("\r\n", "\n");
+                generated += "\ninternal sealed partial class PosterCard\n{\n" +
+                    between(poster, "    public event EventHandler? CaptionGeometryChanged;", "\n    private void OnLoaded") + "\n}\n";
                 generated += "\ninternal sealed partial class PosterDemandFixture\n{\n" +
                     between(poster, "    private void Begin()", "\n    private void OnPointerEntered") + "\n}\n";
                 var episode = File.ReadAllText(EpisodeSource).Replace("\r\n", "\n");
                 generated += "\ninternal sealed partial class EpisodeDemandFixture\n{\n" +
                     between(episode, "    private void Begin()", "\n    private void OnPointerEntered") + "\n}\n";
+                var probe = File.ReadAllText(ProbeSource).Replace("\r\n", "\n");
+                const string probeContract = "internal static class HomeFoldThresholdProbeContract";
+                var probeStart = probe.IndexOf(probeContract, StringComparison.Ordinal);
+                if (probeStart < 0 || probe.IndexOf(probeContract, probeStart + probeContract.Length, StringComparison.Ordinal) >= 0)
+                    throw new InvalidOperationException("Missing or ambiguous production probe contract");
+                generated += "\n" + probe.Substring(probeStart);
                 generated = generated.Replace("using Microsoft.UI.Xaml.Controls;\n", "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media.Animation;\nusing Microsoft.UI.Xaml.Media.Imaging;\n");
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
@@ -88,6 +98,7 @@
             CountdownSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomeBanner.Countdown.cs"
             PosterSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PosterCard.xaml.cs"
             EpisodeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\EpisodeRow.xaml.cs"
+            ProbeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.HomeFold.cs"
             OutputSource="$(IntermediateOutputPath)HomeFoldPage.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)HomeFoldPage.g.cs" />

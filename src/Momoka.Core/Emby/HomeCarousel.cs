@@ -309,9 +309,8 @@ public static class HomeCarousel
     }
 
     /// <summary>
-    /// 带子按设计形状的高：随宽度换算、<see cref="MinHeight"/> 兜底，**不被一屏封住**的那一份。矮窗档判
-    /// 「轮播上下裁切有没有超出默认形状」（<see cref="HomeFold.LibraryOnBanner"/>）用的就是它：一屏够不到
-    /// 这一份，带子就被压矮，剧照上下多裁出一截。
+    /// 带子按设计形状的高：随宽度换算、<see cref="MinHeight"/> 兜底，不受一屏高度限制。
+    /// 用于轮播自身的设计尺寸，不参与媒体库自动位置判定；自动位置保护继续观看卡片的实际文字行。
     /// </summary>
     public static double NaturalHeight(double width) => Height(0, width);
 

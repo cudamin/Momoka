@@ -224,7 +224,7 @@
   "封面轮换秒数": "Seconds per carousel image",
   "一张封面站多少秒再换下一张，指针停在带上的时候不计时": "Seconds before the next image. Pauses while the pointer is over the carousel.",
   "主页媒体库位置": "Home library position",
-  "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：窗口矮到快看不见下面那几排时，它自己压到轮播封面的左下角，窗口拉高又落回轮播下面；另两档钉死，不看窗口高矮。轮播收起来时（关掉大图，或一张幻灯片都没有）没有轮播可依，「固定在轮播图中」按「在下方」显示。": "Position the library shortcuts on the first Home screen. Automatic follows window height: libraries move into the carousel when the window is short and below it when taller. The other choices fix the position. Without a carousel, the inside-carousel choice is displayed below instead.",
+  "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：继续观看卡片的季集文字行快被裁切时，媒体库上移到轮播封面的左下角，文字行有足够空间时落回下方；按内容实际位置判断，不设窗口宽高门槛。另两档固定位置。轮播收起来时（关掉大图，或一张幻灯片都没有），「固定在轮播图中」按「在下方」显示。": "Position the library shortcuts on the first Home screen. Automatic moves them into the carousel just before the Continue Watching episode text is clipped, and back below when that text has enough room. It follows the actual content position without window width or height breakpoints. The other choices fix the position. Without a carousel, the inside-carousel choice is displayed below instead.",
   "随窗口高度变换": "Follow window height",
   "固定在轮播图中": "Inside the carousel",
   "固定在轮播图下方": "Below the carousel",

@@ -50,6 +50,7 @@
                     <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
                 </Button.Resources>
                 <local:PosterCard
+                    CaptionGeometryChanged="OnFoldCaptionGeometryChanged"
                     ActionRequested="OnCardActionRequested"
                     Card="{x:Bind}"
                     CardWidth="{x:Bind CardWidth}"

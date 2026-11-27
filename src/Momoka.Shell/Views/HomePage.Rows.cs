@@ -10,7 +10,6 @@ public sealed partial class HomePage
 {
     private ISettingsService? _homeSettings;
     private int _homeLibraryFlowIndex = -1;
-    private double _libraryFlowHeight;
     internal MoviePilotHomeSubscriptions Subscriptions { get; } = new();
     internal ObservableCollection<object> HomeRows { get; } = [];
 
