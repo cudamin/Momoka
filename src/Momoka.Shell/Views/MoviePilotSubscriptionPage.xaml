@@ -157,13 +157,17 @@
          两道都用比例停点，元素跟着窗口拉高拉长时整道渐变一起拉伸；高取环境底与视口里大的那个（MinHeight）。
          压在静图与环境底上、预告片那块之前：视频与它那排控制键不该跟着变暗。
          颜色取固定的 0C0E11 一家（同主页大图与详情页）：高对比度那本词典里只有画刷没有颜色键，
-         渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。 -->
+         渐变里写 ThemeResource 的颜色键会在运行时抛。不接指针，只当一层画。
+         2026-11-27 同媒体详情页（用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」）：横向那道
+         按主题取两份，深色压深左侧（左列一整片浓墨、剧照渐隐带里分三段散尽）、浅色仍是这一道淡墨；色标都在
+         StoreBackdropBlend（ShadeAcross 浅；ShadeDarkLeft／ShadeDarkFade 深），MoviePilotSubscriptionPage.Store.cs
+         的 PaintStoreBackdrop 按主题换画刷（StoreBackdropStyle.Shade／ShadeDark），XAML 这两支只是上树第一帧的初值。 -->
     <Grid x:Name="StoreShade"
           Height="{x:Bind MediaViewModel.StoreAmbientHeight, Mode=OneWay}"
           MinHeight="{x:Bind MediaViewModel.Viewport, Mode=OneWay}"
           HorizontalAlignment="Stretch" VerticalAlignment="Top"
           IsHitTestVisible="False" Visibility="Collapsed">
-        <Border>
+        <Border x:Name="StoreShadeAcross">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
                     <GradientStop Offset="0" Color="#000C0E11" />
@@ -172,7 +176,7 @@
                 </LinearGradientBrush>
             </Border.Background>
         </Border>
-        <Border>
+        <Border x:Name="StoreShadeDown">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                     <GradientStop Offset="0" Color="#300C0E11" />

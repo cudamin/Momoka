@@ -421,13 +421,20 @@
                  2026-11-16 用户令「渐变要填满左右两边」：这一层与环境底在 DetailPage.Store.cs 里一起铺满窗口。
                  2026-11-17 内容列不再收进 1840 居中，这一层随内容列一起铺满，不再需要负边距越过内容列。
                  2026-11-16 用户令「在左上角加一层跟右侧一样的渐变」：左沿从透明升到 30% 那一档，
-                 与环境底同一个收边方向；左上角不再是一道硬边。 -->
+                 与环境底同一个收边方向；左上角不再是一道硬边。
+                 2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」：横向那一道按主题
+                 取两份 —— 深色主题左列（0 → 剧照左沿）是一整片浓墨，剧照自己的渐隐带里再分三段散尽、在剧照
+                 满色之前退完（剧照从暗里浮出来，左列的字落在一整片深色上）；浅色主题仍是上面这一道淡墨。
+                 两份色标都在 StoreBackdropBlend（ShadeAcross 浅；ShadeDarkLeft／ShadeDarkFade 深，按本次几何
+                 换算成整页比例停点），DetailPage.Store.cs 的 PaintStoreBackdrop 按主题把画刷换上
+                 （StoreBackdropStyle.Shade／ShadeDark），XAML 里这两支只是上树第一帧的初值，与浅色那份逐档同值；
+                 竖向那一道两档同一支。预告片叠图那条路按同一份色标补端点色，否则视频左沿露接缝。 -->
             <Grid x:Name="StoreShade"
                   Height="{x:Bind ViewModel.StoreAmbientHeight, Mode=OneWay}"
                   MinHeight="{x:Bind ViewModel.Viewport, Mode=OneWay}"
                   HorizontalAlignment="Stretch" VerticalAlignment="Top"
                   IsHitTestVisible="False" Visibility="Collapsed">
-                <Border>
+                <Border x:Name="StoreShadeAcross">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
                             <GradientStop Offset="0" Color="#000C0E11" />
@@ -436,7 +443,7 @@
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
-                <Border>
+                <Border x:Name="StoreShadeDown">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                             <GradientStop Offset="0" Color="#300C0E11" />

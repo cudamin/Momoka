@@ -1,4 +1,5 @@
 using Momoka.Theming;
+using StoreBackdropBlend = Momoka.Shell.Views.StoreBackdropBlend;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -140,6 +141,53 @@ internal static class ArtworkAmbientTests
             Assert.True(blend(0.3 * page, 0, page, shadeHeight) < 1, "淡墨叠成了实色");
             Assert.Equal(0d, blend(0.3 * page, 0, 0, shadeHeight));
             Assert.Equal(0d, blend(double.NaN, 0, page, shadeHeight));
+        });
+        Test("视频渐变：深色主题按浓墨那份补端点色，右侧与底边仍与浅色同值", () =>
+        {
+            // 2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」：深色下压在视频下面的
+            // 那道浓得多，叠图的左沿端点得按它补；右侧与底边在浓墨散尽之后，两档一个色阶都不差。
+            var ambient = ArtworkAmbient.Render(Split(), 40, 24, UiThemes.Default.Colors.Window, true);
+            var window = UiThemes.Default.Colors.Window;
+            const double page = 1240, ambientHeight = 520, videoWidth = 744, videoHeight = 418.5, gap = 16, shadeHeight = 640;
+            const double left = page - gap - videoWidth;
+            var side = StoreBackdropBlend.Side;
+            int At(int x, int y) => (y * side + x) * 4;
+            var deep = StoreBackdropBlend.Video(ambient, window, page, ambientHeight, videoWidth, videoHeight, gap, page, shadeHeight, dark: true);
+            var pale = StoreBackdropBlend.Video(ambient, window, page, ambientHeight, videoWidth, videoHeight, gap, page, shadeHeight);
+            Assert.True(deep[At(0, 60)] < pale[At(0, 60)], "深色下视频左沿仍按浅色淡墨补色");
+            Assert.Equal(pale[At(side - 1, 60)], deep[At(side - 1, 60)]);
+            Assert.Equal(pale[At(side - 1, 60) + 2], deep[At(side - 1, 60) + 2]);
+            Assert.Equal(pale[At(60, side - 1)], deep[At(60, side - 1)]);
+            Assert.Equal(pale[At(75, 20) + 3], deep[At(75, 20) + 3]);
+            // 端点色 == 窗口底 ← 环境底 ← 浓墨（左列末色 0xA6 与竖向那道叠起来）：差一个色阶，屏上就是一道竖线。
+            ThemeColor Background(double leftColumn, double ax, double ay, double shadeX, double shadeY)
+            {
+                var at = ((int)Math.Round(ay * (ArtworkAmbient.Height - 1)) * ArtworkAmbient.Width
+                    + (int)Math.Round(ax * (ArtworkAmbient.Width - 1))) * 4;
+                return window.Mix(ThemeColor.Rgb(ambient[at + 2], ambient[at + 1], ambient[at]),
+                    StoreBackdropBlend.Alpha(ax, ay, ambient: true)).Mix(StoreBackdropBlend.ShadeInk,
+                    StoreBackdropBlend.ShadeDark(shadeX, shadeY, leftColumn, StoreBackdropBlend.PictureFade * videoWidth, shadeHeight));
+            }
+            foreach (var (x, y) in new[] { (0, 20), (0, 60), (0, side - 1) })
+            {
+                var ax = (left + x / (double)(side - 1) * videoWidth) / page;
+                var ay = y / (double)(side - 1) * videoHeight / ambientHeight;
+                var expect = Background(left, ax, ay, left + x / (double)(side - 1) * videoWidth, y / (double)(side - 1) * videoHeight);
+                Assert.True(Math.Abs(deep[At(x, y)] - expect.B) <= 1 && Math.Abs(deep[At(x, y) + 1] - expect.G) <= 1
+                    && Math.Abs(deep[At(x, y) + 2] - expect.R) <= 1,
+                    $"深色视频端点与环境底对不上（{x},{y}）：{deep[At(x, y) + 2]},{deep[At(x, y) + 1]},{deep[At(x, y)]}"
+                    + $" 对 {expect.R},{expect.G},{expect.B}");
+            }
+            for (var at = 0; at < deep.Length; at += 4)
+                Assert.True(deep[at] <= deep[at + 3] && deep[at + 1] <= deep[at + 3] && deep[at + 2] <= deep[at + 3], "深色叠图没有预乘");
+            // 窄窗：视频铺满整幅、没有左列，浓墨从渐隐带起点直接起坡，左沿端点同样接得住，且仍比浅色那份暗。
+            const double narrowPage = 760;
+            var narrowDeep = StoreBackdropBlend.Video(ambient, window, narrowPage, ambientHeight, videoWidth, videoHeight, gap, narrowPage, shadeHeight, dark: true);
+            var narrowPale = StoreBackdropBlend.Video(ambient, window, narrowPage, ambientHeight, videoWidth, videoHeight, gap, narrowPage, shadeHeight);
+            var narrowExpect = Background(0, 0, 60 / 127d * videoHeight / ambientHeight, 0, 60 / 127d * videoHeight);
+            Assert.True(narrowDeep[At(0, 60)] < narrowPale[At(0, 60)], "窄窗深色左沿没有比浅色暗");
+            Assert.True(Math.Abs(narrowDeep[At(0, 60)] - narrowExpect.B) <= 1 && Math.Abs(narrowDeep[At(0, 60) + 2] - narrowExpect.R) <= 1,
+                "窄窗深色视频端点与环境底对不上");
         });
         Test("环境渐变：保留左右红蓝色区，过渡连续且原像素不变", () =>
         {

@@ -29,7 +29,7 @@ internal static class StoreBackdropBlend
         [(0, 1), (0.42, 1), (0.7, 0.68), (1, 0)];
 
     /// <summary>
-    /// 商店档左上角那道淡墨（<c>StoreShade</c>）横向那一道的色标。与 DetailPage.xaml、
+    /// 商店档左上角那道淡墨（<c>StoreShade</c>）横向那一道的色标，浅色主题用这一份。与 DetailPage.xaml、
     /// MoviePilotSubscriptionPage.xaml 里那支 <c>LinearGradientBrush</c> 逐档同值，
     /// <c>StoreDetailLayoutTests</c> 读那两份 XAML 核对。
     /// <para>
@@ -42,6 +42,29 @@ internal static class StoreBackdropBlend
     internal static readonly (double Position, double Alpha)[] ShadeAcross =
         [(0, 0), (0.3, 0x24 / 255d), (0.58, 0)];
 
+    /// <summary>
+    /// 横向那一道在<em>深色主题</em>下的两段色标（2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题
+    /// 时候保持浅色」）。浅色那份是给左列的字垫一层淡墨；深色下环境底是剧照取的色，亮剧照会把左边
+    /// 抬成一片灰，用户要左侧是一整片深色、剧照从暗里浮出来。所以按几何分两段：
+    /// <list type="bullet">
+    /// <item><see cref="ShadeDarkLeft"/>：左列（0 → 剧照左沿），从浓墨缓降，一整片深色。</item>
+    /// <item><see cref="ShadeDarkFade"/>：剧照自己的渐隐带（剧照左沿 → <see cref="PictureFade"/> 处满色），
+    /// 从左列末色分三段散尽，剧照满色之前退完 —— 剧照的中段与右侧一个色阶都不动。</item>
+    /// </list>
+    /// 两段都是各自区间的比例停点；<see cref="ShadeDarkStops"/> 把它们按本次几何换算成整页的比例停点，
+    /// 画刷与 <see cref="ShadeDark"/> 共用这一份。宽屏上右沿空隙会涨到五百多，剧照左沿在整页里的位置
+    /// 跟着变，所以不能写成整页的固定比例。
+    /// </summary>
+    internal static readonly (double Position, double Alpha)[] ShadeDarkLeft =
+        [(0, 0xD9 / 255d), (1, 0xA6 / 255d)];
+
+    /// <inheritdoc cref="ShadeDarkLeft"/>
+    internal static readonly (double Position, double Alpha)[] ShadeDarkFade =
+        [(0, 0xA6 / 255d), (0.35, 0x66 / 255d), (0.7, 0x26 / 255d), (1, 0)];
+
+    /// <summary>剧照横向渐隐到满色的位置（<see cref="PictureAcross"/> 第 0.96 那一档）：深色淡墨在这一处散尽。</summary>
+    internal static double PictureFade => PictureAcross[2].Position;
+
     /// <inheritdoc cref="ShadeAcross"/>
     internal static readonly (double Position, double Alpha)[] ShadeDown =
         [(0, 0x30 / 255d), (0.35, 0x10 / 255d), (1, 0)];
@@ -50,9 +73,9 @@ internal static class StoreBackdropBlend
     internal static readonly ThemeColor ShadeInk = ThemeColor.Rgb(0x0C, 0x0E, 0x11);
 
     /// <summary>
-    /// 一点上的淡墨不透明度：横向那道压左沿、竖向那道压顶上，两道各自线性过渡后叠起来（两层同色，
-    /// 合成一层等价）。<paramref name="width"/>／<paramref name="height"/> 是那道淡墨自己那一格的尺寸 ——
-    /// XAML 里取环境底与视口里大的那个。
+    /// 一点上的淡墨不透明度（浅色那一份）：横向那道压左沿、竖向那道压顶上，两道各自线性过渡后叠起来
+    /// （两层同色，合成一层等价）。<paramref name="width"/>／<paramref name="height"/> 是那道淡墨自己那一格
+    /// 的尺寸 —— XAML 里取环境底与视口里大的那个。
     /// </summary>
     internal static double Shade(double x, double y, double width, double height)
     {
@@ -60,6 +83,39 @@ internal static class StoreBackdropBlend
         var across = Linear(x / width, ShadeAcross);
         var down = Linear(y / height, ShadeDown);
         return 1 - (1 - across) * (1 - down);
+    }
+
+    /// <summary>
+    /// 一点上的淡墨不透明度（深色那一份）：<paramref name="leftColumn"/> 是剧照左沿（左列的宽），
+    /// <paramref name="fadeWidth"/> 是剧照渐隐带的宽，横向那道按 <see cref="ShadeDarkLeft"/>／
+    /// <see cref="ShadeDarkFade"/> 两段取；竖向那道与浅色同一支。
+    /// </summary>
+    internal static double ShadeDark(double x, double y, double leftColumn, double fadeWidth, double height)
+    {
+        if (!(height > 0) || !double.IsFinite(x) || !double.IsFinite(y)) return 0;
+        var left = Math.Max(0, leftColumn);
+        double across;
+        if (left > 0 && x < left) across = Linear(x / left, ShadeDarkLeft);
+        else across = fadeWidth > 0 ? Linear((x - left) / fadeWidth, ShadeDarkFade) : 0;
+        var down = Linear(y / height, ShadeDown);
+        return 1 - (1 - across) * (1 - down);
+    }
+
+    /// <summary>
+    /// 深色横向那道的整页比例停点：<see cref="ShadeDarkLeft"/> 铺在 0 → <paramref name="leftColumn"/>，
+    /// <see cref="ShadeDarkFade"/> 铺在 <paramref name="leftColumn"/> → <paramref name="leftColumn"/> +
+    /// <paramref name="fadeWidth"/>，两段接缝处同色（0xA6），屏上没有折痕。页宽没量到时给空表（画刷不画）。
+    /// </summary>
+    internal static (double Position, double Alpha)[] ShadeDarkStops(double pageWidth, double leftColumn, double fadeWidth)
+    {
+        if (!(pageWidth > 0) || !double.IsFinite(pageWidth)) return [];
+        var left = Math.Clamp(leftColumn, 0, pageWidth);
+        var fade = Math.Clamp(fadeWidth, 0, pageWidth - left);
+        var stops = new List<(double Position, double Alpha)>(ShadeDarkFade.Length + 1);
+        if (left > 0) stops.Add((0, ShadeDarkLeft[0].Alpha));
+        foreach (var (position, alpha) in ShadeDarkFade)
+            stops.Add(((left + position * fade) / pageWidth, alpha));
+        return stops.ToArray();
     }
 
     internal static double Alpha(double x, double y, bool ambient) => ambient
@@ -124,10 +180,12 @@ internal static class StoreBackdropBlend
     /// <paramref name="shadeWidth"/>／<paramref name="shadeHeight"/> 是压在环境底上那道淡墨（<c>StoreShade</c>）
     /// 自己那一格的尺寸：淡墨在视频下面，叠图看不见它，端点的颜色就得自己把淡墨补进去 ——
     /// 少了这一步，视频左沿在屏上是一道竖直的接缝（2026-11-18 用户报的「预告片左边的边缘没遮住」）。
+    /// <paramref name="dark"/> 跟着主题：深色下横向那道浓得多，补少了同样是一道接缝；深色的几何
+    /// （左列宽、渐隐带宽）由视频自己的位置与宽给，与画刷那头同一套数。
     /// </para>
     /// </summary>
     internal static byte[] Video(byte[]? ambient, ThemeColor window, double pageWidth, double ambientHeight,
-        double videoWidth, double videoHeight, double rightGap, double shadeWidth, double shadeHeight)
+        double videoWidth, double videoHeight, double rightGap, double shadeWidth, double shadeHeight, bool dark = false)
     {
         var pixels = new byte[Side * Side * 4];
         var valid = ambient?.Length == ArtworkAmbient.Width * ArtworkAmbient.Height * 4
@@ -148,7 +206,11 @@ internal static class StoreBackdropBlend
                         + (int)Math.Round(ax * (ArtworkAmbient.Width - 1))) * 4;
                     color = window.Mix(ThemeColor.Rgb(ambient![at + 2], ambient[at + 1], ambient[at]), Alpha(ax, ay, ambient: true));
                 }
-                color = color.Mix(ShadeInk, Shade(left + nx * videoWidth, ny * videoHeight, shadeWidth, shadeHeight));
+                var shadeX = left + nx * videoWidth;
+                var shade = dark
+                    ? ShadeDark(shadeX, ny * videoHeight, left, PictureFade * videoWidth, shadeHeight)
+                    : Shade(shadeX, ny * videoHeight, shadeWidth, shadeHeight);
+                color = color.Mix(ShadeInk, shade);
                 var offset = (y * Side + x) * 4;
                 pixels[offset] = Channel(color.B * amount);
                 pixels[offset + 1] = Channel(color.G * amount);

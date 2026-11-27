@@ -154,10 +154,11 @@ public sealed partial class DetailPage
             window, StoreTrailerHost.Width, StoreTrailerHost.Height, gap);
         // 叠图的端点色要跟「压了淡墨之后」的环境底同值：淡墨那道在视频下面（视频不跟着变暗），
         // 所以这里得把它的尺寸一起给进去，否则视频左沿露出一道竖直的接缝。淡墨自己那一格的高取
-        // XAML 里 Height（StoreAmbientHeight）与 MinHeight（Viewport）里大的那个。
+        // XAML 里 Height（StoreAmbientHeight）与 MinHeight（Viewport）里大的那个。深浅也一起给：
+        // 深色主题横向那道浓得多（2026-11-27），按浅色那份补色同样会露接缝。
         StoreTrailerFade.Background = _storeVideoBrush.Resolve(_storeAmbientBrush.Frame, ThemeHost.Current.Colors.Window,
             window, ViewModel.StoreAmbientHeight, StoreTrailerHost.Width, StoreTrailerHost.Height, gap,
-            window, Math.Max(ViewModel.StoreAmbientHeight, ViewModel.Viewport));
+            window, Math.Max(ViewModel.StoreAmbientHeight, ViewModel.Viewport), ThemeHost.Current.IsDark);
     }
 
     private async Task StartStoreTrailerAsync(EmbyItem subject, int generation, CancellationToken token)

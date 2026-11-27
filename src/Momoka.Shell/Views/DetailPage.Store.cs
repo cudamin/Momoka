@@ -23,6 +23,7 @@ public sealed partial class DetailPage
     private readonly StoreBackdropStyle.Tint _storeTint = new();
     private readonly StoreAmbientBrush _storeAmbientBrush = new();
     private readonly StoreBackdropStyle.Wash _storeArtWash = new();
+    private readonly StoreBackdropStyle.ShadeDark _storeShadeDark = new();
 
     private void PaintStoreBackdrop()
     {
@@ -34,6 +35,19 @@ public sealed partial class DetailPage
         StoreAmbient.Visibility = StoreBackdrop.Visibility;
         // 左上角那道淡墨也一样：压在装饰背景上，背景不在时它没有东西可压。
         StoreShade.Visibility = StoreBackdrop.Visibility;
+        // 2026-11-27 用户令「把详情页背景图左侧改成深色的，浅色主题时候保持浅色」：横向那道按主题取 ——
+        // 深色压深左侧（左列一整片深色，剧照从暗里浮出来），浅色仍是原来那道淡墨；竖向那道两档同一支。
+        // 换主题走的是 OnThemeChanged → ApplyAppearance → SettleShowcase 这一条，所以这里每次重画都重取。
+        // 深色的几何与 LayoutStoreTrailer 同一套坐标：页宽取窗口宽，剧照左沿 = 页宽 − 右沿空隙 − 视口宽。
+        StoreShadeAcross.Background = StoreBackdropStyle.Shade.Across;
+        if (ThemeHost.Current.IsDark)
+        {
+            var shadePage = ViewModel.WindowWidth > 0 ? ViewModel.WindowWidth : ViewModel.PageWidth;
+            StoreShadeAcross.Background = _storeShadeDark.Resolve(shadePage,
+                Math.Max(0, shadePage - ViewModel.StorePreviewMargin.Right - ViewModel.StoreBackdropWidth),
+                StoreBackdropBlend.PictureFade * ViewModel.StoreBackdropWidth);
+        }
+        StoreShadeDown.Background = StoreBackdropStyle.Shade.Down;
         StoreBackdropSides.Background = _storeAmbientBrush.Resolve(ViewModel.BackdropPixels,
             StoreAmbient.Visibility == Visibility.Visible, ThemeHost.Current);
         // 艺术图那一档没有剧照可铺，顶部换成封面取色的纯色底（2026-11-17 用户令「要纯色，铺满左上角和
