@@ -13,7 +13,7 @@ public sealed partial class MoviePilotReorganizeDialog
     }
 
     /// <summary>
-    /// ContentDialog 的表面宽度跟着内容走；给正文定宽，保持网页端的两列表单比例。
+    /// ContentDialog 的表面宽度跟着内容走；给正文定宽，给两列和整行路径留空间。
     /// </summary>
     private void OnDialogSizeChanged(object sender, SizeChangedEventArgs args)
     {
@@ -21,7 +21,7 @@ public sealed partial class MoviePilotReorganizeDialog
     }
 
     /// <summary>
-    /// 网页端保持两列，窄窗口退为单列；表单可滚动，操作按钮固定。
+    /// 窄窗口退为单列，表单可滚动，操作按钮固定。
     /// </summary>
     private void OnBodySizeChanged(object sender, SizeChangedEventArgs args)
     {
@@ -59,7 +59,7 @@ public sealed partial class MoviePilotReorganizeDialog
         grid.RowDefinitions.Clear();
         for (var index = 0; index < (visible.Length + columns - 1) / columns; index++)
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.ColumnSpacing = columns > 1 ? 24 : 0;
+        grid.ColumnSpacing = columns > 1 ? 20 : 0;
         for (var index = 0; index < visible.Length; index++)
         {
             Grid.SetColumn(visible[index], index % columns);
