@@ -283,10 +283,11 @@ internal sealed partial class ShellNavigationProbe
         {
             await UntilAsync(() => popup.IsOpen && popup.Child is not null);
             var popupRoot = popup.Child;
-            var surface = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
+            var surface = popupRoot is Border { Name: "PopupBorder" } frame ? frame : Descendants(popupRoot).OfType<Border>()
                 .First(border => border.Name == "PopupBorder");
             await UntilAsync(() => Descendants(surface).OfType<ComboBoxItem>().Any());
-            Require(surface.CornerRadius == (CornerRadius)resources["OverlayCornerRadius"], $"{label} 展开层未接入浮层圆角");
+            Require(surface.CornerRadius == background.CornerRadius,
+                $"{label} 展开与闭合的圆角不一致：{surface.CornerRadius} / {background.CornerRadius}");
             var row = Descendants(surface).OfType<ComboBoxItem>().First();
             var rowSurface = Descendants(row).OfType<Grid>().First(grid => grid.Name == "LayoutRoot");
             Require(row.CornerRadius == (CornerRadius)resources["ControlCornerRadius"] && rowSurface.CornerRadius == row.CornerRadius,

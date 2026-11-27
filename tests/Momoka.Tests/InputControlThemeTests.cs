@@ -408,6 +408,13 @@ internal static class InputControlThemeTests
                 Assert.Equal("{StaticResource EgSelectionItemStyle}", (string?)combo.Attribute("ItemContainerStyle"));
             }
         });
+        Test("设置圆角：主页栏目中的媒体库展开行复用输入圆角", () =>
+        {
+            var page = Read("src/Momoka.Shell/Views/SettingsPage.xaml");
+            var expander = Named(page, "HomeLibraryEntriesExpander");
+            Assert.Equal(Xaml + "Expander", expander.Name);
+            Assert.Equal(SearchRadius, (string?)expander.Attribute("CornerRadius"));
+        });
         Test("设置输入圆角：拒绝搜索恢复 8 DIP、输入框自设旧值和飞牛数字框漏接", () =>
         {
             var oldSearch = Read("src/Momoka.Shell/Views/SettingsPage.xaml");
@@ -697,7 +704,7 @@ internal static class InputControlThemeTests
         foreach (var type in new[] { "TextBox", "PasswordBox", "ComboBox" })
         {
             AssertRadiusStyle(Resource(document.Root!, "Eg" + type + "Style"), type,
-                $"{{StaticResource Default{type}Style}}", SearchRadius);
+                $"{{StaticResource Default{type}Style}}", SearchRadius, matchPopup: type == "ComboBox");
             var style = ImplicitStyle(document, type);
             Assert.Equal($"{{StaticResource Eg{type}Style}}", (string?)style.Attribute("BasedOn"));
             Assert.Equal(0, style.Elements().Count());
@@ -778,17 +785,25 @@ internal static class InputControlThemeTests
             identity + " 必须继承或显式引用全站统一输入圆角");
     }
 
-    private static void AssertRadiusStyle(XElement style, string type, string basedOn, string radius = SearchRadius)
+    private static void AssertRadiusStyle(XElement style, string type, string basedOn, string radius = SearchRadius,
+        bool matchPopup = false)
     {
         Assert.Equal(Xaml + "Style", style.Name);
         Assert.Equal(type, (string?)style.Attribute("TargetType"));
         Assert.Equal(basedOn, (string?)style.Attribute("BasedOn"));
-        Assert.Equal(1, style.Elements().Count(), type + " 不改颜色、模板、绑定或内边距");
-        var setter = style.Elements().Single();
+        Assert.Equal(matchPopup ? 2 : 1, style.Elements().Count(), type + " 只处理圆角");
+        var setter = style.Elements().Single(element => (string?)element.Attribute("Property") == "CornerRadius");
         Assert.Equal(Xaml + "Setter", setter.Name);
-        Assert.Equal("CornerRadius", (string?)setter.Attribute("Property"));
         Assert.Equal(radius, (string?)setter.Attribute("Value"));
         Assert.Equal(0, setter.Elements().Count());
+        if (matchPopup)
+        {
+            var popup = style.Elements().Single(element => (string?)element.Attribute("Property") ==
+                "local:ComboBoxPopupChrome.MatchControlCornerRadius");
+            Assert.Equal(Xaml + "Setter", popup.Name);
+            Assert.Equal("True", (string?)popup.Attribute("Value"));
+            Assert.Equal(0, popup.Elements().Count());
+        }
     }
 
     private static void AssertSettingsInputControls(string name, XDocument page)

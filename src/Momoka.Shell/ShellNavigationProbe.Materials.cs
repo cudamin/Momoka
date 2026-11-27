@@ -364,8 +364,9 @@ internal sealed partial class ShellNavigationProbe
                                     ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
                                     .First(border => border.Name == "PopupBorder");
-                                Require(popup.CornerRadius == (CornerRadius)Application.Current.Resources["OverlayCornerRadius"],
-                                    "详情下拉列表没有使用共享浮层圆角");
+                                var pickerBackground = Descendants(openPicker).OfType<Border>().Single(border => border.Name == "Background");
+                                Require(popup.CornerRadius == pickerBackground.CornerRadius,
+                                    $"详情下拉展开与闭合的圆角不一致：{popup.CornerRadius} / {pickerBackground.CornerRadius}");
                                 bool GlassPopup() => popup.Background is AcrylicBrush brush
                                     && brush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated)
                                     && Math.Abs(brush.TintOpacity - 0.55) < 0.001
@@ -572,6 +573,22 @@ internal sealed partial class ShellNavigationProbe
                     settingsPage.SelectedCategory = "主页";
                     await LayoutAsync(settingsPage);
                     await WaitForSettingsSettledAsync(settingsPage);
+                    var libraryEntries = Descendants(settingsPage).OfType<Expander>().Single(expander =>
+                        expander.Name == "HomeLibraryEntriesExpander" && expander.Visibility == Visibility.Visible);
+                    var entriesRadius = (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"];
+                    libraryEntries.ApplyTemplate();
+                    var entriesHeader = Descendants(libraryEntries).OfType<ToggleButton>().Single(header => header.Name == "ExpanderHeader");
+                    var entriesContent = Descendants(libraryEntries).OfType<Border>().Single(border => border.Name == "ExpanderContent");
+                    Require(!libraryEntries.IsExpanded && entriesHeader.CornerRadius == entriesRadius, "主页媒体库收起时未使用输入圆角");
+                    entriesHeader.IsChecked = true;
+                    await LayoutAsync(settingsPage);
+                    Require(libraryEntries.IsExpanded && entriesContent.Visibility == Visibility.Visible
+                        && entriesHeader.CornerRadius == new CornerRadius(entriesRadius.TopLeft, entriesRadius.TopRight, 0, 0)
+                        && entriesContent.CornerRadius == new CornerRadius(0, 0, entriesRadius.BottomRight, entriesRadius.BottomLeft),
+                        "主页媒体库展开后外缘圆角与收起时不一致");
+                    entriesHeader.IsChecked = false;
+                    await LayoutAsync(settingsPage);
+                    reads.Add($"settings/home-library: 收起及展开外缘圆角={entriesRadius.TopLeft} DIP");
                     await RequireSelectionCornersAsync(Descendants(settingsPage).OfType<ComboBox>().Single(control =>
                         AutomationProperties.GetName(control) == "轮播图用什么媒体"));
                     settingsPage.SelectedCategory = "播放行为";
@@ -583,6 +600,11 @@ internal sealed partial class ShellNavigationProbe
                     Require(languages.CornerRadius == (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"]
                         && Descendants(languages).OfType<Grid>().First(grid => grid.Name == "RootGrid").CornerRadius == languages.CornerRadius,
                         "音轨语言优先级未使用输入控件圆角");
+                    settingsPage.SelectedCategory = "播放器";
+                    await LayoutAsync(settingsPage);
+                    await WaitForSettingsSettledAsync(settingsPage);
+                    await RequireSelectionCornersAsync(Descendants(settingsPage).OfType<ComboBox>().Single(control =>
+                        AutomationProperties.GetName(control) == "播放后端"));
                     settingsPage.SelectedCategory = "界面";
                     foreach (var theme in UiThemes.All)
                     {

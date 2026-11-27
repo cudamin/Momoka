@@ -401,7 +401,7 @@
         </Style>
 
         <!-- 本页所有下拉（选择行、字幕标题筛选那几颗小的、紧凑模式那颗分类框）都吃这一条：
-             列表项沿用原样，闭合框只接统一圆角，不替换平台模板。 -->
+             闭合框和展开菜单外缘共用圆角，列表项仍使用自己的样式。 -->
         <Style TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="ItemContainerStyle" Value="{StaticResource EgComboItemStyle}" />
         </Style>
@@ -1137,6 +1137,7 @@
                                             x:Name="HomeLibraryEntriesExpander"
                                             Grid.Column="1"
                                             Collapsed="OnHomeLibraryEntriesCollapsed"
+                                            CornerRadius="{StaticResource EgSearchCornerRadius}"
                                             Header="{x:Bind Caption}"
                                             HorizontalAlignment="Stretch"
                                             HorizontalContentAlignment="Stretch"
