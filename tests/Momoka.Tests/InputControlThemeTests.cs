@@ -170,23 +170,39 @@ internal static class InputControlThemeTests
             Assert.Equal("SolidColorBrush", glass.Name.LocalName);
             Assert.Equal("{ThemeResource SystemColorWindowColor}", (string?)glass.Attribute("Color"));
         });
-        Test("输入主题：设置卡片区的输入静止玻璃、聚焦回侧栏色，搜索框留在原样", () =>
+        Test("输入主题：设置卡片区的输入框与选择框改吃官方控件面，聚焦仍回侧栏色，搜索框留在原样", () =>
         {
             var page = Read("src/Momoka.Shell/Views/SettingsPage.xaml");
             var scroll = page.Descendants(Xaml + "ScrollViewer")
                 .Single(element => (string?)element.Attribute(X + "Name") == "SettingsScroll");
             var resources = scroll.Element(Xaml + "ScrollViewer.Resources")!.Element(Xaml + "ResourceDictionary")!;
+            var comboStates = new (string Key, string Resource)[]
+            {
+                ("ComboBoxBackground", "EgControlFillBrush"),
+                ("ComboBoxBackgroundPointerOver", "EgControlFillSecondaryBrush"),
+                ("ComboBoxBackgroundPressed", "EgControlFillTertiaryBrush"),
+                ("ComboBoxBackgroundFocused", "EgControlFillBrush"),
+                ("ComboBoxBackgroundUnfocused", "EgControlFillBrush"),
+                ("ComboBoxBackgroundDisabled", "EgControlFillDisabledBrush")
+            };
             foreach (var theme in new[] { "Dark", "Light" })
             {
                 var dictionary = resources.Descendants(Xaml + "ResourceDictionary")
                     .Single(element => (string?)element.Attribute(X + "Key") == theme);
-                AssertAlias(dictionary, "TextControlBackground", "EgInputGlassBrush");
-                AssertAlias(dictionary, "TextControlBackgroundPointerOver", "EgInputGlassBrush");
+                AssertAlias(dictionary, "TextControlBackground", "EgControlFillBrush");
+                AssertAlias(dictionary, "TextControlBackgroundPointerOver", "EgControlFillSecondaryBrush");
+                AssertAlias(dictionary, "TextControlBorderBrush", "EgControlStrokeBrush");
+                AssertAlias(dictionary, "TextControlBorderBrushPointerOver", "EgControlStrokeSecondaryBrush");
+                foreach (var (key, resource) in comboStates) AssertAlias(dictionary, key, resource);
             }
             var contrast = resources.Descendants(Xaml + "ResourceDictionary")
                 .Single(element => (string?)element.Attribute(X + "Key") == "HighContrast");
-            foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver" })
+            foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver",
+                "ComboBoxBackground", "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed",
+                "ComboBoxBackgroundFocused", "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled" })
                 Assert.Equal("{ThemeResource SystemColorWindowColor}", (string?)Resource(contrast, key).Attribute("Color"));
+            foreach (var key in new[] { "TextControlBorderBrush", "TextControlBorderBrushPointerOver" })
+                Assert.Equal("{ThemeResource SystemColorWindowTextColor}", (string?)Resource(contrast, key).Attribute("Color"));
             Assert.True(!resources.Descendants().Any(element =>
                 (string?)element.Attribute(X + "Key") == "TextControlBackgroundFocused"), "聚焦底色被局部覆盖，回不到侧栏色");
 
@@ -201,6 +217,27 @@ internal static class InputControlThemeTests
                 Assert.Equal("Hidden", (string?)number.Attribute("SpinButtonPlacementMode"));
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
+        });
+        Test("输入主题：官方控件面六档就是 WinUI 主题字典的 ControlFillColor* / ControlStrokeColor* 数值", () =>
+        {
+            var expected = new[]
+            {
+                ("EgControlFillBrush", "#0FFFFFFF", "#B3FFFFFF"),
+                ("EgControlFillSecondaryBrush", "#15FFFFFF", "#80F9F9F9"),
+                ("EgControlFillTertiaryBrush", "#08FFFFFF", "#4DF9F9F9"),
+                ("EgControlFillDisabledBrush", "#0BFFFFFF", "#4DF9F9F9"),
+                ("EgControlStrokeBrush", "#12FFFFFF", "#0F000000"),
+                ("EgControlStrokeSecondaryBrush", "#18FFFFFF", "#29000000")
+            };
+            foreach (var theme in new[] { "Dark", "Light" })
+            {
+                var dictionary = Dictionaries().Single(element => (string?)element.Attribute(X + "Key") == theme);
+                foreach (var (key, dark, light) in expected)
+                    Assert.Equal(theme == "Dark" ? dark : light, (string?)Resource(dictionary, key).Attribute("Color"),
+                        $"{theme}/{key}");
+            }
+            var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "ThemeHost.cs"));
+            foreach (var (key, _, _) in expected) Assert.Contains($"(\"{key}\", theme =>", host);
         });
         Test("输入主题：详情文件选项共用输入和选项圆角、保持按钮底色，集列表牌子不再挂下拉", () =>
         {
@@ -318,12 +355,13 @@ internal static class InputControlThemeTests
                 foreach (var key in new[] { "TextControlBackgroundPointerOver", "TextControlBackgroundFocused" })
                     Assert.Equal("PlayerGlassTopBrush", (string?)Resource(dictionary, key).Attribute("ResourceKey"));
         });
-        Test("输入主题：快捷键抓键框静止用输入玻璃，抓键中回侧栏色和中性焦点", () =>
+        Test("输入主题：快捷键抓键框静止用官方控件面，抓键中回侧栏色和中性焦点", () =>
         {
             var capture = Read("src/Momoka.Shell/Views/ShortcutCaptureBox.xaml");
             var border = capture.Descendants(Xaml + "Border")
                 .Single(element => (string?)element.Attribute(X + "Name") == "ComboBorder");
-            Assert.Equal("{ThemeResource EgInputGlassBrush}", (string?)border.Attribute("Background"));
+            Assert.Equal("{ThemeResource EgControlFillBrush}", (string?)border.Attribute("Background"));
+            Assert.Equal("{ThemeResource EgControlStrokeBrush}", (string?)border.Attribute("BorderBrush"));
             var focus = capture.Descendants(Xaml + "Setter")
                 .Single(element => (string?)element.Attribute("Target") == "ComboBorder.BorderBrush");
             Assert.Equal("{ThemeResource EgBorderStrongBrush}", (string?)focus.Attribute("Value"));

@@ -211,7 +211,7 @@ internal sealed partial class ShellNavigationProbe
                     // 「给沉浸模式下的更多信息卡片加背景卡片」），不能被顶部那块内容层的回调换掉。
                     var source = Get<Border>(page, "HeroContentLayerSource");
                     var savedLayer = source.Background;
-                    var infoCard = Get<AcrylicBrush>(page, "_infoCardFill");
+                    var infoCard = Get<SolidColorBrush>(page, "_infoCardFill");
                     try
                     {
                         source.Background = new SolidColorBrush(Microsoft.UI.Colors.Black);

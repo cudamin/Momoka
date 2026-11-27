@@ -402,7 +402,7 @@ internal sealed partial class ShellNavigationProbe
                     RequireResponsiveBindings(page);
                     if (width == 820)
                     {
-                        var fill = Get<AcrylicBrush>(page, "_panelFill");
+                        var fill = Get<SolidColorBrush>(page, "_panelFill");
                         var opacity = fill.Opacity;
                         try
                         {
@@ -448,7 +448,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(!emptyPage.ViewModel.BackdropShown && !emptyPage.ViewModel.Showcase,
                     "无图单集错误进入沉浸或保留旧背景");
                 Require(Get<Grid>(emptyPage, "Backdrop").Visibility == Visibility.Collapsed
-                    && Get<AcrylicBrush>(emptyPage, "_panelFill").Opacity == 1,
+                    && Get<SolidColorBrush>(emptyPage, "_panelFill").Opacity == 1,
                     "无图单集没有恢复可读正文卡面");
                 RequireEpisodeSubject(emptyPage, noArtwork);
                 await SaveProbeScreenAsync($"detail-episode-no-artwork-{width}.png");

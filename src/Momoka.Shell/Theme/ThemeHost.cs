@@ -84,6 +84,14 @@ public static class ThemeHost
     private const byte SidebarSurfaceAlpha = 0xD9;
 
     /// <summary>
+    /// 设置页卡片的官方卡片层（<c>EgSettingsCardBrush</c>，2026-11-28）：深色 5% 白、浅色 70% 白，
+    /// 与 WinUI 主题字典里 <c>CardBackgroundFillColorDefaultBrush</c> 同档。
+    /// </summary>
+    private const byte CardVeilDarkAlpha = 0x0D;
+
+    private const byte CardVeilLightAlpha = 0xB3;
+
+    /// <summary>
     /// 每个画刷键 → 这套主题里的哪个角色。前二十条是我们自己的角色名，后面那些是框架控件真正读的键。
     /// <para>
     /// 后半截必须在这里再写一遍，不能只覆盖 <c>SystemAccentColor</c>：框架在解析它自己那份字典时就用
@@ -156,6 +164,17 @@ public static class ThemeHost
         ("EgFieldFillHoverBrush", theme => theme.IsDark ? White.WithAlpha(0x24) : Black.WithAlpha(0x1A)),
         ("EgFieldStrokeBrush", theme => theme.IsDark ? White.WithAlpha(0x1F) : Black.WithAlpha(0x24)),
 
+        // 官方控件面（2026-11-28）：设置页卡片区的输入框与选择框改吃 WinUI 的 ControlFillColor* /
+        // ControlStrokeColor* 那一族 —— 半透明的控件表面，压在 Mica 上跟卡片一样会透。
+        // 数值就是框架主题字典里那几档：深色 6%/8%/3%/4% 白、7%/9% 白描边；浅色 70%/50%/30% 白、
+        // 6%/16% 黑（次级那两档的底色是 #F9F9F9，不是纯白）。
+        ("EgControlFillBrush", theme => theme.IsDark ? White.WithAlpha(0x0F) : White.WithAlpha(0xB3)),
+        ("EgControlFillSecondaryBrush", theme => theme.IsDark ? White.WithAlpha(0x15) : ThemeColor.Rgb(0xF9, 0xF9, 0xF9).WithAlpha(0x80)),
+        ("EgControlFillTertiaryBrush", theme => theme.IsDark ? White.WithAlpha(0x08) : ThemeColor.Rgb(0xF9, 0xF9, 0xF9).WithAlpha(0x4D)),
+        ("EgControlFillDisabledBrush", theme => theme.IsDark ? White.WithAlpha(0x0B) : ThemeColor.Rgb(0xF9, 0xF9, 0xF9).WithAlpha(0x4D)),
+        ("EgControlStrokeBrush", theme => theme.IsDark ? White.WithAlpha(0x12) : Black.WithAlpha(0x0F)),
+        ("EgControlStrokeSecondaryBrush", theme => theme.IsDark ? White.WithAlpha(0x18) : Black.WithAlpha(0x29)),
+
         // 框架的强调色一族：按钮、开关、滑块、评分、导航栏那条选中指示。
         ("AccentFillColorDefaultBrush", theme => theme.Colors.Accent),
         ("AccentFillColorSecondaryBrush", theme => theme.Colors.Accent.WithAlpha(0xE8)),
@@ -194,6 +213,16 @@ public static class ThemeHost
         ("LayerFillColorAltBrush", theme => theme.Colors.Surface.WithAlpha(SidebarLayerAlpha)),
         ("CardBackgroundFillColorDefaultBrush", theme => theme.Colors.SurfaceAlt),
         ("CardBackgroundFillColorSecondaryBrush", theme => theme.Colors.SurfaceAlt),
+        // 设置页卡片取官方 Fluent 卡片层的那两档白：深色 5%、浅色 70%（同 WinUI 的
+        // CardBackgroundFillColorDefaultBrush）。它是半透明面，压在 Mica 上能透出壁纸；
+        // 「透明效果」关掉时落回同主题的实心面色 —— 与设置页那颗开关的承诺一致。
+        ("EgSettingsCardBrush", theme => TransparencyEnabled
+            ? White.WithAlpha(theme.IsDark ? CardVeilDarkAlpha : CardVeilLightAlpha)
+            : theme.Colors.SurfaceAlt),
+        // 全站内容卡的卡片层（2026-11-28：媒体详情页与订阅详情页的正文卡也接这一支）。
+        ("EgCardFillBrush", theme => TransparencyEnabled
+            ? White.WithAlpha(theme.IsDark ? CardVeilDarkAlpha : CardVeilLightAlpha)
+            : theme.Colors.SurfaceAlt),
         ("CardStrokeColorDefaultBrush", theme => theme.Colors.Border),
         ("ControlStrokeColorDefaultBrush", theme => theme.Colors.Border),
         ("ControlStrokeColorSecondaryBrush", theme => theme.Colors.BorderStrong),

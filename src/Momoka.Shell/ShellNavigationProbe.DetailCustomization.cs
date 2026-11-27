@@ -381,16 +381,16 @@ internal sealed partial class ShellNavigationProbe
                 CheckDetailPanelMaterials(page, "初次呈现");
                 var materialSource = Get<Border>(page, "CardMaterialSource");
                 var originalMaterial = materialSource.Background;
-                var privateMaterial = Get<AcrylicBrush>(page, "_panelFill");
+                var privateMaterial = Get<SolidColorBrush>(page, "_panelFill");
                 try
                 {
                     materialSource.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
-                    Require(privateMaterial.AlwaysUseFallback && privateMaterial.FallbackColor == Microsoft.UI.Colors.White,
+                    Require(privateMaterial.Color == Microsoft.UI.Colors.White,
                         "卡片没有随系统资源切换到实色");
                     RequireDetailPanelSource(privateMaterial, materialSource.Background);
                     // 信息卡自己那一支也跟着系统资源走 —— 2026-11-15 起它是沉浸档唯一还铺卡面的正文板。
-                    var infoMaterial = Get<AcrylicBrush>(page, "_infoCardFill");
-                    Require(infoMaterial.AlwaysUseFallback && infoMaterial.FallbackColor == Microsoft.UI.Colors.White,
+                    var infoMaterial = Get<SolidColorBrush>(page, "_infoCardFill");
+                    Require(infoMaterial.Color == Microsoft.UI.Colors.White,
                         "信息卡的卡片底没有随系统资源切换到实色");
                     RequireDetailPanelMaterials(page, "系统实色回退");
                 }
@@ -669,15 +669,11 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private static void RequireDetailPanelSource(AcrylicBrush actual, Brush source)
+    private static void RequireDetailPanelSource(SolidColorBrush actual, Brush source)
     {
         var matches = source switch
         {
-            AcrylicBrush expected => actual.AlwaysUseFallback == expected.AlwaysUseFallback
-                && actual.TintColor == expected.TintColor && actual.FallbackColor == expected.FallbackColor
-                && actual.TintOpacity == expected.TintOpacity
-                && actual.TintLuminosityOpacity == expected.TintLuminosityOpacity,
-            SolidColorBrush expected => actual.AlwaysUseFallback && actual.FallbackColor == expected.Color,
+            SolidColorBrush expected => actual.Color == expected.Color,
             _ => false
         };
         Require(matches, "卡片资源恢复后未同步原画刷的材质参数");
@@ -688,9 +684,9 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireDetailPanelMaterials(DetailPage page, string stage)
     {
         var panels = Get<StackPanel>(page, "BodySheet").Children.OfType<StackPanel>().ToArray();
-        var fill = Get<AcrylicBrush>(page, "_panelFill");
+        var fill = Get<SolidColorBrush>(page, "_panelFill");
         var line = Get<SolidColorBrush>(page, "_panelLine");
-        var infoFill = Get<AcrylicBrush>(page, "_infoCardFill");
+        var infoFill = Get<SolidColorBrush>(page, "_infoCardFill");
         var store = Get<Border>(page, "StoreCardMaterialSource").Background;
         foreach (var panel in panels)
         {
@@ -741,7 +737,7 @@ internal sealed partial class ShellNavigationProbe
         Require(Get<Border>(page, "HeroCardTop").Visibility == Visibility.Collapsed
             && Get<Border>(page, "HeroCardBottom").Visibility == Visibility.Collapsed,
             "沉浸头部卡面没有完整收起");
-        Require(Get<AcrylicBrush>(page, "_panelFill").Opacity == 0
+        Require(Get<SolidColorBrush>(page, "_panelFill").Opacity == 0
             && Get<SolidColorBrush>(page, "_panelLine").Opacity == 0,
             "沉浸正文仍保留卡片底色或描边");
         Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 },
@@ -750,8 +746,8 @@ internal sealed partial class ShellNavigationProbe
         // （2026-11-14 曾按「改为去掉其他信息的背景卡片」整块让开；其余四块正文板仍让开）。
         // 卡面垫在底下之后，表里的字照旧吃压图那套浅墨 —— 那支比主题暗字亮，压在深色卡上读得出来。
         var info = Get<StackPanel>(page, "InfoPanel");
-        Require(ReferenceEquals(info.Background, Get<AcrylicBrush>(page, "_infoCardFill"))
-            && info.Background is AcrylicBrush { Opacity: 1 },
+        Require(ReferenceEquals(info.Background, Get<SolidColorBrush>(page, "_infoCardFill"))
+            && info.Background is SolidColorBrush { Opacity: 1 },
             "沉浸信息卡没有铺自己那块卡片底，或那块底被淡掉了");
         RequireCardInk(page, onScrim: true);
         Require(!page.ViewModel.ShowShelfLines && page.ViewModel.TailMinHeight == 0

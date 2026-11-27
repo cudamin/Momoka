@@ -138,7 +138,8 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private readonly SolidColorBrush _sheetBrush = new();
 
-    private readonly AcrylicBrush _panelFill = new();
+    // 2026-11-28：正文卡接官方卡片层（EgCardFillBrush），私有副本是一支 SolidColorBrush，只抄颜色。
+    private readonly SolidColorBrush _panelFill = new();
     private readonly SolidColorBrush _panelLine = new();
 
     // 季区始终保留 EgBodyPanelStyle 的主题亚克力，只有下方货架随沉浸模式让开底色。
@@ -189,19 +190,9 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void RefreshPanelBrushes()
     {
-        if (CardMaterialSource.Background is AcrylicBrush template)
-        {
-            _panelFill.AlwaysUseFallback = template.AlwaysUseFallback;
-            _panelFill.TintColor = template.TintColor;
-            _panelFill.FallbackColor = template.FallbackColor;
-            _panelFill.TintOpacity = template.TintOpacity;
-            _panelFill.TintLuminosityOpacity = template.TintLuminosityOpacity;
-        }
-        else if (CardMaterialSource.Background is SolidColorBrush contrast)
-        {
-            _panelFill.AlwaysUseFallback = true;
-            _panelFill.FallbackColor = contrast.Color;
-        }
+        // 2026-11-28：卡片层换成官方那两档白（SolidColorBrush），私有副本只抄颜色；高对比度那块
+        // 系统给的是 SystemColorWindowColor，也是实色，同一条路。
+        if (CardMaterialSource.Background is SolidColorBrush template) _panelFill.Color = template.Color;
         _panelLine.Color = BrushColor("EgBorderBrush");
     }
 

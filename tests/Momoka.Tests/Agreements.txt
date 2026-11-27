@@ -43,6 +43,11 @@
 # 2026-11-27（Fluent 设计重构第 2–5 阶段）：移除未使用的嵌套 .Note 绑定（15→12），压降 Palette / DetailPage / HomeBanner
 # 硬编码色数（146→134）与多页内联字号计数（79→52，NotificationsPage 归零）；同步登记第 3–5 阶段新增句柄
 # （AppTitleLabel / SidebarDismissScrim / SidebarOverlayBackdrop / HoverPlayButton / Server&Account 上下移动键）。
+# 2026-11-28（卡片与控件面全部取 Fluent 官方值）：用户三连令「参考官方用法修改卡片，别自己猜」「这些框也是官方用法吗」
+# 「媒体详情页和订阅详情页的卡片也要改成一样的」。Palette 新增 8 支角色刷的 Dark/Light 两套、共 16 处字面值：
+# EgSettingsCardBrush / EgCardFillBrush（官方 CardBackgroundFillColorDefault 的 5% 与 70% 白，亚克力在 Mica 上会
+# 变成实心板所以改按官方半透明面）、EgControlFill 四档与 EgControlStroke 两档（官方控件面与控件线）；
+# 高对比度一本走系统色键、不写字面值。Palette 颜色计数 90→106，与 WinUI 主题字典逐条对得上。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -57,7 +62,7 @@ bind  Views/DetailPage.xaml  ViewModel.SeasonShelf.Title
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  90
+color  Theme/Palette.xaml  106
 color  Views/DetailPage.xaml  16
 color  Views/HomeBanner.xaml  15
 color  Views/HtmlColorPicker.xaml  11

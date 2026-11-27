@@ -185,7 +185,7 @@ internal static class AcrylicControlsTests
             Assert.Contains(": ViewModel.Showcase ? _infoCardFill : _panelFill;", code);
             // 卡面是这一块自己的那一支：跟其余四块共用的那支在沉浸档是 0。
             var showcase = Source("Views/DetailPage.Showcase.cs");
-            Assert.Contains("private readonly AcrylicBrush _infoCardFill = new();", showcase);
+            Assert.Contains("private readonly SolidColorBrush _infoCardFill = new();", showcase);
             Assert.Contains("foreach (var fill in new[] { _panelFill, _infoCardFill })", showcase);
             // 卡面垫在底下，字照旧是压图那套浅墨；行是回收着建的，ElementPrepared 也要接住。
             Assert.Contains("PaintInfoInk();", code);
@@ -548,6 +548,55 @@ internal static class AcrylicControlsTests
             }
         });
 
+        Test("设置卡：官方 Fluent 卡片层，深色 5% 白、浅色 70% 白，高对比度系统实色", () =>
+        {
+            // 2026-11-28 用户令「参考官方用法修改卡片，别自己猜」：取 WinUI 主题字典里
+            // CardBackgroundFillColorDefaultBrush 的两档（深色 #0DFFFFFF、浅色 #B3FFFFFF）。
+            var dark = Resource(Theme("Dark"), "EgSettingsCardBrush");
+            Assert.Equal("SolidColorBrush", dark.Name.LocalName, "深色设置卡应取官方半透明卡片面");
+            Assert.Equal("#0DFFFFFF", (string?)dark.Attribute("Color"));
+            var light = Resource(Theme("Light"), "EgSettingsCardBrush");
+            Assert.Equal("SolidColorBrush", light.Name.LocalName, "浅色设置卡应取官方半透明卡片面");
+            Assert.Equal("#B3FFFFFF", (string?)light.Attribute("Color"));
+            Assert.Equal("SolidColorBrush", Resource(Theme("HighContrast"), "EgSettingsCardBrush").Name.LocalName);
+            Assert.Equal("{ThemeResource SystemColorWindowColor}",
+                (string?)Resource(Theme("HighContrast"), "EgSettingsCardBrush").Attribute("Color"));
+
+            // 运行期只在官方两档之间重涂；卡片不能再回落到深面染色（那正是「一点都不透」的来源）。
+            // 「透明效果」关掉时按设置页那颗开关的承诺落回实心面色。
+            var host = Source("Theme/ThemeHost.cs");
+            Assert.Contains("(\"EgSettingsCardBrush\", theme => TransparencyEnabled", host);
+            Assert.Contains("White.WithAlpha(theme.IsDark ? CardVeilDarkAlpha : CardVeilLightAlpha)", host);
+            Assert.Contains("CardVeilDarkAlpha = 0x0D", host);
+            Assert.Contains("CardVeilLightAlpha = 0xB3", host);
+        });
+        Test("详情卡片：媒体详情页与订阅详情页的正文卡取和设置页同一支官方白", () =>
+        {
+            // 2026-11-28 用户令「媒体详情页和订阅详情页的卡片也要改成一样的」：两页的 CardMaterialSource
+            // 都接 EgCardFillBrush（深色 5% 白、浅色 70% 白），私有副本改抄这支 SolidColorBrush 的颜色。
+            foreach (var theme in new[] { "Dark", "Light" })
+            {
+                Assert.Equal("SolidColorBrush", Resource(Theme(theme), "EgCardFillBrush").Name.LocalName);
+                Assert.Equal(theme == "Dark" ? "#0DFFFFFF" : "#B3FFFFFF",
+                    (string?)Resource(Theme(theme), "EgCardFillBrush").Attribute("Color"), theme);
+            }
+            Assert.Equal("{ThemeResource SystemColorWindowColor}",
+                (string?)Resource(Theme("HighContrast"), "EgCardFillBrush").Attribute("Color"));
+            Assert.Contains("(\"EgCardFillBrush\", theme => TransparencyEnabled", Source("Theme/ThemeHost.cs"));
+            foreach (var (view, code) in new[]
+            {
+                ("Views/DetailPage.xaml", "Views/DetailPage.Showcase.cs"),
+                ("Views/MoviePilotSubscriptionPage.xaml", "Views/MoviePilotSubscriptionPage.Showcase.cs")
+            })
+            {
+                Assert.Equal("{ThemeResource EgCardFillBrush}",
+                    (string?)Named(Read(view), "CardMaterialSource").Attribute("Background"), view);
+                Assert.Contains("is SolidColorBrush template", Source(code));
+            }
+            var detail = Source("Views/DetailPage.Showcase.cs");
+            Assert.Contains("private readonly SolidColorBrush _panelFill = new();", detail);
+            Assert.Contains("private readonly SolidColorBrush _infoCardFill = new();", detail);
+        });
         Test("设置卡片亚克力：账号、聚合工具、通知条目和接管复用设置卡片刷子", () =>
         {
             var servers = Read("Views/ServersPage.xaml");
