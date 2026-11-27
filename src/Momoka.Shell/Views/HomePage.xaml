@@ -162,7 +162,7 @@
       轮播关闭或没有幻灯片时撤销顶部扩展；不复制图片控件或改变幻灯片加载、翻页、货架和滚动恢复。
       加载条放在 Overlay 已有的顶部留白内，不为短暂读取改变货架高度；提示条自带 12 的下边距。
     -->
-    <ScrollView x:Name="Scroller" VerticalScrollBarVisibility="Auto">
+    <ScrollView x:Name="Scroller" SizeChanged="OnFoldGeometryChanged" VerticalScrollBarVisibility="Auto">
         <!-- 与媒体详情页共用原生滚动条；背景铺满，内容内层预留右侧安全带。 -->
         <StackPanel>
             <!--
@@ -292,6 +292,7 @@
 
                     <ItemsRepeater
                         x:Name="ShelfRepeater"
+                        SizeChanged="OnFoldGeometryChanged"
                         ItemTemplate="{StaticResource HomeRowTemplates}"
                         ItemsSource="{x:Bind HomeRows, Mode=OneWay}">
                         <ItemsRepeater.Layout>

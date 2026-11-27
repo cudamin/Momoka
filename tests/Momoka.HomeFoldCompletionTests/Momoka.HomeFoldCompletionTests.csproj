@@ -8,6 +8,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <None Include="..\..\src\Momoka.Shell\Views\HomePage.xaml" Link="HomePage.xaml" CopyToOutputDirectory="PreserveNewest" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomeFoldMotion.cs" Link="Production\HomeFoldMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Carousel.cs" Link="Production\HomePage.Carousel.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\HomePage.Header.cs" Link="Production\HomePage.Header.cs" />

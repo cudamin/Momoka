@@ -1118,6 +1118,85 @@ internal static class Program
             scene.Drain();
             Equal(0, scene.Page.DispatcherQueue.PendingCount, "drained overlay does not leave a wakeup");
         });
+        Case("page/auto-rechecks-when-only-shelf-height-settles", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.UpdateFold();
+            scene.AssertFlowOnly();
+
+            scene.LibraryRow.ActualHeight = 420;
+            scene.Page.ShelfRepeater.RaiseSizeChanged();
+            Equal(1, scene.Page.DispatcherQueue!.PendingCount, "shelf layout must schedule a fresh measurement");
+            scene.Drain();
+            Check(scene.Page.ViewModel.LibraryOnBanner, "settled library bottom outside viewport must move up");
+            scene.AssertOverlayOnly();
+            scene.Page.ShelfRepeater.RaiseSizeChanged();
+            scene.Drain();
+            Equal(0, scene.Page.DispatcherQueue.PendingCount, "the post-fold correction must settle");
+            scene.AssertOverlayOnly();
+        });
+        Case("page/auto-follows-viewport-height-without-page-or-banner-resize", () =>
+        {
+            HomeMotion.AnimationsEnabled = false;
+            var scene = new Scene();
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            scene.Page.UpdateFold();
+            scene.AssertFlowOnly();
+            scene.Page.Scroller.ActualHeight = 700;
+            scene.Page.Scroller.RaiseSizeChanged();
+            scene.Page.Scroller.RaiseSizeChanged();
+            scene.Page.ShelfRepeater.RaiseSizeChanged();
+            Equal(1, scene.Page.DispatcherQueue!.PendingCount, "viewport and shelf resize must coalesce");
+            scene.Drain();
+            Check(scene.Page.ViewModel.LibraryOnBanner, "shorter viewport must move the library up");
+            scene.AssertOverlayOnly();
+
+            scene.Page.ExpireSettle();
+            scene.Page.Scroller.ActualHeight = 900;
+            scene.Page.Scroller.RaiseSizeChanged();
+            scene.Drain();
+            Check(!scene.Page.ViewModel.LibraryOnBanner, "taller viewport must return the library below");
+            scene.AssertFlowOnly();
+            Equal(0, scene.Page.DispatcherQueue.PendingCount, "stable viewport leaves no retry loop");
+        });
+        Case("page/size-wakeup-during-layout-runs-one-correction-and-ignores-release", () =>
+        {
+            var scene = new Scene();
+            var layouts = 0;
+            scene.Page.TestLayout = () =>
+            {
+                if (layouts++ == 0) scene.Page.ShelfRepeater.RaiseSizeChanged();
+            };
+            scene.Page.Scroller.RaiseSizeChanged();
+            scene.Drain();
+            Equal(2, scene.Page.OverlayPasses, "layout reentry must request exactly one correction");
+            Equal(0, scene.Page.DispatcherQueue!.PendingCount, "correction completes without an endless loop");
+            scene.Page.Release();
+            scene.Page.Scroller.RaiseSizeChanged();
+            scene.Page.ShelfRepeater.RaiseSizeChanged();
+            Equal(0, scene.Page.DispatcherQueue.PendingCount, "released page ignores child size changes");
+            scene.Page.ResumeVisit();
+            scene.Page.Scroller.RaiseSizeChanged();
+            scene.Page.ShelfRepeater.RaiseSizeChanged();
+            Equal(1, scene.Page.DispatcherQueue.PendingCount, "return keeps a single working subscription");
+            scene.Drain();
+        });
+        Case("page/rejected-overlay-wakeup-can-be-scheduled-again", () =>
+        {
+            var scene = new Scene();
+            var queue = scene.Page.DispatcherQueue!;
+            queue.AcceptEnqueue = false;
+            scene.Page.QueueOverlay();
+            Equal(0, queue.PendingCount, "rejected dispatch has no pending callback");
+            queue.AcceptEnqueue = true;
+            scene.Page.QueueOverlay();
+            Equal(1, queue.PendingCount, "rejected dispatch must release the coalescing flag");
+            scene.Drain();
+            Equal(1, scene.Page.OverlayPasses, "the later wakeup really executes the production measurement");
+            Equal(0, queue.PendingCount, "recovered scheduler drains normally");
+        });
         Case("page/unchanged-chrome-skips-writes-and-forced-layout", () =>
         {
             var scene = new Scene();

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Xml.Linq;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -113,6 +114,21 @@ namespace Momoka.Shell.Views
 
     public sealed partial class HomePage
     {
+        public HomePage()
+        {
+            // Read the production XAML event names; a missing hook must leave the behavior test red.
+            var page = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "HomePage.xaml"));
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+            foreach (var (name, element) in new (string, FrameworkElement)[] { ("Scroller", Scroller), ("ShelfRepeater", ShelfRepeater) })
+            {
+                var node = page.Descendants().Single(node => node.Attribute(xaml + "Name")?.Value == name);
+                if (node.Attribute("SizeChanged")?.Value is not { } handler) continue;
+                var method = GetType().GetMethod(handler, BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException("Missing production size handler " + handler);
+                element.SizeChanged += method.CreateDelegate<EventHandler<SizeChangedEventArgs>>(this);
+            }
+        }
+
         private const string Category = "主页";
         private const double LibraryOverlayBaseWidth = 660;
         private Momoka.Diagnostics.NavigationTimingRun? _timing;

@@ -705,8 +705,10 @@ public sealed partial class HomePage : Page, IShellContent
         timing?.Mark("home-force-layout-end", 1);
     }
 
+    private void OnFoldGeometryChanged(object sender, SizeChangedEventArgs e) => ScheduleOverlay();
+
     /// <summary>
-    /// 货架集合、页面尺寸、轮播尺寸和幻灯片变化之后排一拍重查：事件当场树上还是半成品，量不出数；
+    /// 货架集合、页面/视口/货架尺寸、轮播尺寸和幻灯片变化之后排一拍重查：事件当场树上还是半成品，量不出数；
     /// 连续的变化也只留最后一趟。<see cref="_foldScheduled"/> 把排队的并成一拍。
     /// </summary>
     private void ScheduleOverlay()
@@ -722,12 +724,12 @@ public sealed partial class HomePage : Page, IShellContent
 
         _foldScheduled = true;
         var navigation = _navigation;
-        queue.TryEnqueue(() =>
+        if (!queue.TryEnqueue(() =>
         {
             if (_released || navigation != _navigation) return;
             _foldScheduled = false;
             UpdateLibraryOverlay();
-        });
+        })) _foldScheduled = false;
     }
 
     /// <summary>货架集合变化沿用的旧名字；排队与合并的规则在 <see cref="ScheduleOverlay"/>。</summary>

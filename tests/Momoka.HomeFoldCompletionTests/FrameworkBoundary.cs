@@ -83,6 +83,7 @@ namespace Microsoft.UI.Dispatching
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+    public sealed class SizeChangedEventArgs : EventArgs;
     public enum FocusState { Programmatic }
     public readonly record struct Duration(TimeSpan TimeSpan);
     public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
@@ -127,6 +128,8 @@ namespace Microsoft.UI.Xaml
     }
     public class FrameworkElement : UIElement
     {
+        public event EventHandler<SizeChangedEventArgs>? SizeChanged;
+        public void RaiseSizeChanged() => SizeChanged?.Invoke(this, new SizeChangedEventArgs());
         public Thickness Margin { get; set; }
         public Thickness Padding { get; set; }
         public double MaxWidth { get; set; } = double.PositiveInfinity;
