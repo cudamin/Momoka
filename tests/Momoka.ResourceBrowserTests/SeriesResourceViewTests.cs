@@ -126,10 +126,12 @@ internal static class SeriesResourceViewTests
             fixture.Transport.EmptyHistory = true;
             ResourceFixture.Complete(vm.ReloadAsync());
             Assert.Contains("当前剧", vm.EmptyTitle);
+            Assert.Contains("重新打开", vm.EmptyMessage);
             Assert.Equal(Visibility.Visible, vm.EmptyVisibility);
             fixture.Transport.FailHistory = true;
             ResourceFixture.Complete(vm.ReloadAsync());
             Assert.True(vm.NoticeOpen);
+            Assert.Contains("重新打开", vm.NoticeTitle);
             Assert.Equal(Visibility.Collapsed, vm.EmptyVisibility);
         });
         Test("剧清单VM：刷新保留筛选偏好，但撤销旧资源选择", () =>
@@ -197,11 +199,36 @@ internal static class SeriesResourceViewTests
             Assert.Equal(0, vm.Rows.Count);
             Assert.False(vm.CanContinue);
         });
+        Test("剧清单封面：列表里的小封面采用小图圆角", () =>
+        {
+            var document = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotSeriesReorganizeDialog.xaml"));
+            var thumbnail = document.Descendants().Single(element => element.Name.LocalName == "Border"
+                && (string?)element.Attribute("Width") == "48" && (string?)element.Attribute("Height") == "72");
+            Assert.Equal("{StaticResource EgSmallArtworkCornerRadius}", (string?)thumbnail.Attribute("CornerRadius"));
+            Assert.Equal("{StaticResource EgFrameStyle}", (string?)thumbnail.Attribute("Style"));
+        });
         Test("剧清单模板：原生搜索、筛选排序菜单、真实分组与单集边界保留", () =>
         {
             var document = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotSeriesReorganizeDialog.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+            const string toolbarRadius = "{StaticResource EgSearchCornerRadius}";
+            Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") == "ReloadResources"), "工具栏不再显示刷新按钮");
+            foreach (var name in new[] { "StatusFilterButton", "ResourceSortButton", "ResourceViewButton",
+                "SelectAllResources", "ClearResourceSelection" })
+                Assert.Equal(toolbarRadius, (string?)Named(name).Attribute("CornerRadius"), name);
+            var toolbarStyle = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "SeriesResourceToolbarButtonStyle");
+            const string toolbarHeight = "{StaticResource SeriesResourceToolbarHeight}";
+            Assert.Equal(toolbarHeight, (string?)Named("ResourceSearch").Attribute("Height"));
+            Assert.Equal(toolbarHeight, (string?)Named("ResourceViewButton").Attribute("Height"));
+            Assert.Equal("{StaticResource EgSecondaryButtonStyle}", (string?)toolbarStyle.Attribute("BasedOn"));
+            foreach (var property in new[] { "Height", "MinHeight" })
+                Assert.Equal(toolbarHeight, (string?)toolbarStyle.Elements().Single(element => (string?)element.Attribute("Property") == property).Attribute("Value"));
+            foreach (var name in new[] { "StatusFilterButton", "ResourceSortButton" })
+                Assert.Equal("{StaticResource SeriesResourceToolbarButtonStyle}", (string?)Named(name).Attribute("Style"), name);
+            var menuStyle = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "SeriesResourceMenuStyle");
+            Assert.Equal(toolbarRadius, (string?)menuStyle.Elements().SingleOrDefault(element =>
+                (string?)element.Attribute("Property") == "CornerRadius")?.Attribute("Value"));
             Assert.Equal("AutoSuggestBox", Named("ResourceSearch").Name.LocalName);
             Assert.Equal("OnSearchTextChanged", (string?)Named("ResourceSearch").Attribute("TextChanged"));
             Assert.Equal("OnSearchSubmitted", (string?)Named("ResourceSearch").Attribute("QuerySubmitted"));

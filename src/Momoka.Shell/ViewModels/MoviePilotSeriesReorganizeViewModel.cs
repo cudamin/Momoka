@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -35,7 +36,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     public Visibility SelectionVisibility => Show(Rows.Count > 0);
     public string EmptyTitle => _allRows.Count == 0 ? "没有找到当前剧的整理记录" : "没有符合搜索与筛选条件的资源";
     public string EmptyMessage => _allRows.Count == 0
-        ? "可刷新重试，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。"
+        ? UiText.Translate("可关闭后重新打开，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。")
         : "修改关键词或切回全部状态即可恢复；不会整理被筛掉的资源。";
     public string StatusLabel => StatusFilter switch { MoviePilotTransferStatusFilter.Success => "成功", MoviePilotTransferStatusFilter.Failed => "失败", _ => "全部" };
     public string SortLabel => Sort switch
@@ -100,7 +101,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token) && !_released) Report("读取当前剧的整理资源失败", error);
+            if (IsCurrent(token) && !_released) Report(UiText.Translate("读取当前剧的整理资源失败，请关闭后重新打开"), error);
         }
         finally
         {

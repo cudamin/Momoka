@@ -48,7 +48,7 @@ internal static class DialogChromeTests
                 ("CoverDialog.xaml", "RefreshArtworkButton"), ("CoverPickerDialog.xaml", "UploadArtworkButton"),
                 ("FnNasSubtitleDialog.xaml", "SearchButton"), ("IdentifyDialog.xaml", "SearchButton"),
                 ("MetadataListEditor.xaml", "ApplyEntryButton"), ("MoviePilotReorganizeDialog.xaml", "DismissReorganize"),
-                ("MoviePilotSeriesReorganizeDialog.xaml", "StatusFilterButton"), ("SubtitleDialog.xaml", "HeaderCloseButton")
+                ("SubtitleDialog.xaml", "HeaderCloseButton")
             })
             {
                 var view = XDocument.Load(Path.Combine(views, file));

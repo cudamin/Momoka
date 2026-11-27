@@ -27,11 +27,18 @@
                 <ResourceDictionary x:Key="HighContrast" />
             </ResourceDictionary.ThemeDictionaries>
             <CollectionViewSource x:Name="SeriesGroupsSource" IsSourceGrouped="True" />
+            <x:Double x:Key="SeriesResourceToolbarHeight">32</x:Double>
+            <Style x:Key="SeriesResourceToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource EgSecondaryButtonStyle}">
+                <Setter Property="Height" Value="{StaticResource SeriesResourceToolbarHeight}" />
+                <Setter Property="MinHeight" Value="{StaticResource SeriesResourceToolbarHeight}" />
+                <Setter Property="Padding" Value="12,0" />
+            </Style>
             <!-- 清单上的菜单使用实色浮层，长路径不能从底下透过来干扰选项文字。 -->
             <Style x:Key="SeriesResourceMenuStyle" TargetType="MenuFlyoutPresenter">
                 <Setter Property="Background" Value="{ThemeResource EgSurfaceElevatedBrush}" />
                 <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
                 <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
             </Style>
             <Style x:Key="SeriesGroupHeaderStyle" TargetType="ListViewHeaderItem">
                 <Setter Property="Background" Value="Transparent" />
@@ -75,17 +82,12 @@
             </local:WrapRow>
         </StackPanel>
         <StackPanel Grid.Row="1" Spacing="8">
-            <Grid ColumnSpacing="8">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <AutoSuggestBox x:Uid="MoviePilotSeriesReorganizeDialog_ResourceSearch" x:Name="ResourceSearch" PlaceholderText="搜索标题、季集或路径，支持 * / ?"
-                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}" QueryIcon="Find" VerticalAlignment="Center"
-                    TextChanged="OnSearchTextChanged" QuerySubmitted="OnSearchSubmitted" AutomationProperties.Name="搜索当前剧的整理资源"
-                    ToolTipService.ToolTip="输入自定义关键词；多个词用空格分隔，* 匹配任意文字，? 匹配一个字符。" />
-                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ReloadResources" x:Name="ReloadResources" Grid.Column="1" Content="刷新" Click="OnReload" VerticalAlignment="Center"
-                    IsEnabled="{x:Bind local:MoviePilotSeriesReorganizeDialog.CanReload(ViewModel.Busy), Mode=OneWay}" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}" />
-            </Grid>
+            <AutoSuggestBox x:Uid="MoviePilotSeriesReorganizeDialog_ResourceSearch" x:Name="ResourceSearch" PlaceholderText="搜索标题、季集或路径，支持 * / ?"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}" QueryIcon="Find" Height="{StaticResource SeriesResourceToolbarHeight}"
+                TextChanged="OnSearchTextChanged" QuerySubmitted="OnSearchSubmitted" AutomationProperties.Name="搜索当前剧的整理资源"
+                ToolTipService.ToolTip="输入自定义关键词；多个词用空格分隔，* 匹配任意文字，? 匹配一个字符。" />
             <local:WrapRow Spacing="8">
-                <Button x:Name="StatusFilterButton" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}"
+                <Button x:Name="StatusFilterButton" CornerRadius="{StaticResource EgSearchCornerRadius}" Style="{StaticResource SeriesResourceToolbarButtonStyle}"
                     AutomationProperties.Name="{x:Bind ViewModel.StatusAutomationName, Mode=OneWay}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE71C;" FontSize="{StaticResource EgCaptionFontSize}" />
@@ -104,7 +106,7 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="ResourceSortButton" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}"
+                <Button x:Name="ResourceSortButton" CornerRadius="{StaticResource EgSearchCornerRadius}" Style="{StaticResource SeriesResourceToolbarButtonStyle}"
                     AutomationProperties.Name="{x:Bind ViewModel.SortAutomationName, Mode=OneWay}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8CB;" FontSize="{StaticResource EgCaptionFontSize}" />
@@ -126,7 +128,8 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ResourceViewButton" x:Name="ResourceViewButton" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgIconButtonStyle}"
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ResourceViewButton" x:Name="ResourceViewButton" CornerRadius="{StaticResource EgSearchCornerRadius}" Style="{StaticResource EgIconButtonStyle}"
+                    Height="{StaticResource SeriesResourceToolbarHeight}" Width="{StaticResource SeriesResourceToolbarHeight}"
                     AutomationProperties.Name="{x:Bind ViewModel.ViewAutomationName, Mode=OneWay}" ToolTipService.ToolTip="列表 / 分组模式">
                     <FontIcon Glyph="{x:Bind ViewModel.ViewGlyph, Mode=OneWay}" />
                     <Button.Flyout>
@@ -144,8 +147,10 @@
         <Grid Grid.Row="2" ColumnSpacing="12" Visibility="{x:Bind ViewModel.SelectionVisibility, Mode=OneWay}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button x:Uid="MoviePilotSeriesReorganizeDialog_SelectAllResources" x:Name="SelectAllResources" Content="全选" Click="OnSelectAll" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
-                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ClearResourceSelection" x:Name="ClearResourceSelection" Content="清空选择" Click="OnClearSelection" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_SelectAllResources" x:Name="SelectAllResources" Content="全选" Click="OnSelectAll"
+                    CornerRadius="{StaticResource EgSearchCornerRadius}" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
+                <Button x:Uid="MoviePilotSeriesReorganizeDialog_ClearResourceSelection" x:Name="ClearResourceSelection" Content="清空选择" Click="OnClearSelection"
+                    CornerRadius="{StaticResource EgSearchCornerRadius}" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
             </StackPanel>
             <TextBlock x:Name="SelectedResourcesCount" Grid.Column="1" Text="{x:Bind ViewModel.SelectionLabel, Mode=OneWay}"
                 Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
@@ -209,7 +214,8 @@
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                <Border Grid.RowSpan="3" Style="{StaticResource EgFrameStyle}" Width="48" Height="72" VerticalAlignment="Top">
+                                <Border x:Name="SeriesResourceArtwork" Grid.RowSpan="3" Style="{StaticResource EgFrameStyle}"
+                                    CornerRadius="{StaticResource EgSmallArtworkCornerRadius}" Width="48" Height="72" VerticalAlignment="Top">
                                     <Grid>
                                         <FontIcon Glyph="&#xE8B2;" Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind EmptyArtworkVisibility, Mode=OneWay}" />
                                         <Border><Border.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background></Border>

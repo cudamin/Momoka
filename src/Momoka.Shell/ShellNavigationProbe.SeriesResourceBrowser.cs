@@ -21,6 +21,17 @@ internal sealed partial class ShellNavigationProbe
         ResizeInspect(1120, 960);
         await LayoutAsync(picker);
         RequireSearchRadius(search);
+        Require(!Descendants(picker).OfType<Button>().Any(button => button.Name == "ReloadResources"),
+            "整理清单仍显示刷新按钮");
+        foreach (var name in new[] { "StatusFilterButton", "ResourceSortButton", "ResourceViewButton",
+            "SelectAllResources", "ClearResourceSelection" })
+        {
+            var button = Get<Button>(picker, name);
+            Require(button.CornerRadius == search.CornerRadius, $"整理清单工具栏圆角未对齐：{name}");
+        }
+        var artwork = Descendants(list).OfType<Border>().First(border => border.Name == "SeriesResourceArtwork");
+        Require(artwork.CornerRadius == (CornerRadius)Application.Current.Resources["EgSmallArtworkCornerRadius"],
+            "整理清单小封面未使用小图圆角");
         var original = vm.Rows.ToArray();
         var historyReads = server.Queries.Count;
         var topMost = _window!.TopMost;
@@ -122,12 +133,20 @@ internal sealed partial class ShellNavigationProbe
                 var panel = Get<Grid>(picker, "ResourcePanel");
                 Require(search.ActualWidth > 120 && list.ActualWidth > 180 && list.ActualHeight > 100, "窄窗搜索或清单被工具栏挤没");
                 var bounds = search.TransformToVisual(panel).TransformBounds(new Windows.Foundation.Rect(0, 0, search.ActualWidth, search.ActualHeight));
-                Require(bounds.X >= -1 && bounds.Right <= panel.ActualWidth + 1, "搜索栏超出窄窗内容边界");
+                Require(Math.Abs(bounds.X) < 1 && Math.Abs(bounds.Right - panel.ActualWidth) < 1, "搜索栏未铺满工具栏宽度");
+                var searchFrame = Descendants(input).OfType<Border>().Single(border => border.Name == "BorderElement");
+                Require(searchFrame.BorderThickness != default && Math.Abs(searchFrame.ActualHeight - 32) < 1,
+                    $"搜索栏描边或高度不正确：{searchFrame.ActualHeight} DIP");
                 foreach (var (button, menu) in new[]
                 {
                     ("StatusFilterButton", "StatusFilterMenu"), ("ResourceSortButton", "ResourceSortMenu"), ("ResourceViewButton", "ResourceViewMenu")
                 })
                 {
+                    var anchor = Get<Button>(picker, button);
+                    var frame = Descendants(anchor).OfType<ContentPresenter>().Single(presenter => presenter.Name == "ContentPresenter");
+                    Require(Math.Abs(frame.ActualHeight - searchFrame.ActualHeight) < 1,
+                        $"{button} 未与搜索栏同高：{frame.ActualHeight} / {searchFrame.ActualHeight} DIP");
+                    Require(button == "ResourceViewButton" || frame.BorderThickness != default, $"{button} 丢失描边");
                     await OpenAsync(button, menu);
                     await SaveProbeScreenAsync($"mp-series-{menu}-{width}-screen.png");
                     await CloseAsync(Get<MenuFlyout>(picker, menu), () => Get<MenuFlyout>(picker, menu).Hide());
@@ -167,6 +186,7 @@ internal sealed partial class ShellNavigationProbe
             var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                 .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Single();
             await LayoutAsync(presenter);
+            Require(presenter.CornerRadius == button.CornerRadius, $"整理清单的菜单圆角未对齐：{menuName}");
             Require(BrushColor(presenter.Background).A == 255,
                 "整理清单菜单仍为透明背景，长路径会与选项文字重叠");
             var bounds = presenter.TransformToVisual(_root).TransformBounds(new Windows.Foundation.Rect(0, 0, presenter.ActualWidth, presenter.ActualHeight));

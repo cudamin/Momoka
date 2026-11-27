@@ -146,20 +146,31 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => retry.ViewModel.IsReady && !retry.ViewModel.Busy);
             Require(retry.ViewModel.NoticeOpen && retry.ViewModel.Rows.Count == 0 && !retry.IsPrimaryButtonEnabled,
                 "读取失败仍留可执行旧资源");
+            Require(retry.ViewModel.NoticeTitle?.Contains("重新打开", StringComparison.Ordinal) == true, "读取失败缺少重新加载指引");
             await LayoutAsync(retry);
             await SaveProbeScreenAsync("mp-series-reorganize-failed-screen.png");
-            server.FailHistory = false;
-            InvokeSeriesButton(retry, "ReloadResources");
-            await UntilAsync(() => !retry.ViewModel.Busy && retry.ViewModel.Rows.Count == 6);
-            Require(!retry.ViewModel.NoticeOpen && retry.ViewModel.SelectedCount == 0, "重试未恢复资源或保留了旧授权");
-            server.EmptyHistory = true;
-            InvokeSeriesButton(retry, "ReloadResources");
-            await UntilAsync(() => !retry.ViewModel.Busy && retry.ViewModel.Rows.Count == 0);
-            Require(retry.ViewModel.EmptyVisibility == Visibility.Visible && !retry.IsPrimaryButtonEnabled,
-                "空清单没有明确空态或仍允许整理");
-            await SaveProbeScreenAsync("mp-series-reorganize-empty-screen.png");
             retry.Hide();
             await retrying;
+
+            server.FailHistory = false;
+            var reopened = new MoviePilotSeriesReorganizeDialog(service, context) { XamlRoot = _root.XamlRoot };
+            var reopening = MoviePilotDialog.ShowAsync(reopened, service);
+            await UntilAsync(() => !reopened.ViewModel.Busy && reopened.ViewModel.Rows.Count == 6);
+            Require(!reopened.ViewModel.NoticeOpen && reopened.ViewModel.SelectedCount == 0, "重新打开未恢复资源或保留了旧授权");
+            reopened.Hide();
+            await reopening;
+
+            server.EmptyHistory = true;
+            var empty = new MoviePilotSeriesReorganizeDialog(service, context) { XamlRoot = _root.XamlRoot };
+            var showingEmpty = MoviePilotDialog.ShowAsync(empty, service);
+            await UntilAsync(() => empty.ViewModel.IsReady && !empty.ViewModel.Busy);
+            Require(empty.ViewModel.EmptyVisibility == Visibility.Visible && !empty.IsPrimaryButtonEnabled,
+                "空清单没有明确空态或仍允许整理");
+            Require(empty.ViewModel.EmptyMessage.Contains("重新打开", StringComparison.Ordinal), "空清单缺少重新加载指引");
+            await LayoutAsync(empty);
+            await SaveProbeScreenAsync("mp-series-reorganize-empty-screen.png");
+            empty.Hide();
+            await showingEmpty;
             server.EmptyHistory = false;
             server.PendingHistory = Pending<bool>();
             var late = new MoviePilotSeriesReorganizeDialog(service, context) { XamlRoot = _root.XamlRoot };

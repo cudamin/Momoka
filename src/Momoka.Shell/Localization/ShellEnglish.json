@@ -445,6 +445,8 @@
   "字母跳转失败": "Could not jump to this letter",
   "读取媒体库筛选项失败，请稍后重试": "Could not load library filters. Try again later.",
   "读取下载选项失败，可刷新重试或使用默认设置": "Could not load download options. Refresh to retry or use the defaults.",
+  "读取当前剧的整理资源失败，请关闭后重新打开": "Could not load this show's resources. Close and reopen this dialog to try again.",
+  "可关闭后重新打开，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。": "Close and reopen this dialog to try again, or check the show's TMDB ID in MoviePilot's media organization history.",
   "读取媒体数据源失败": "Could not load media sources",
   "无法核对媒体编号": "Could not verify the media ID",
   "搜索媒体失败": "Media search failed",
