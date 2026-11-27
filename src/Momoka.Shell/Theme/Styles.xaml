@@ -648,6 +648,21 @@
     </Style>
 
     <!--
+      浮层右上角那颗小操作键（2026-11-27 用户令「封面悬浮右上角的按钮要用主题色」「侧栏预览的查看更多移到右上角、
+      用主题色、圆角与封面悬浮一致」）：封面悬浮的播放／编辑键和侧栏折叠预览的「查看更多」共用这一份，
+      两处各写一遍迟早只改一处。
+
+      底色、悬停、按下、禁用和高对比度都交给系统的强调键模板（EgPrimaryButtonStyle 那条链），
+      换主题时由 ThemeHost 涂的那几支强调色画刷当场跟着变，不在这里另写颜色。
+      几何取封面悬浮原来那颗键的读数：40 高、14,8 内边距、10 圆角 —— 侧栏预览那颗照此对齐。
+    -->
+    <Style x:Key="EgPreviewActionButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="14,8" />
+    </Style>
+
+    <!--
       弹窗底部一排行动键（2026-11-19）。
 
       用户指着「编辑订阅」底部那三颗键说形状要统一：当时「保存」接的是 22 DIP 圆角的胶囊，
