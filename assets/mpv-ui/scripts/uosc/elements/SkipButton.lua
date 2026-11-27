@@ -12,50 +12,17 @@ local Element = require('elements/Element')
 -- —— 与集成模式一致（片头那 15 秒里就算手没动，那颗按钮也得看得见）。curtain（≡ 菜单那种压暗
 -- 全屏的模态）升起时，本元件 render_order(6) < curtain(999) 会自动让位。
 --
--- ── MOMOKA[skip-keys] 2026-09-30：offer 立着那一段替宿主接住回车与删除键 ─────────────────
--- 用户报「按回车和 esc 确认跳过不生效」，两种模式都不生效，独占这一半的根因是**键权归属**：独占模式
--- 的键盘归 mpv（起播参数 input-default-bindings=yes、input-vo-keyboard=yes），回车压根没有绑定 ——
--- 不会到 shell 的 Dispatch 那里，提示立着按了也白按。2026-11-02 用户令「关闭跳过片头/片尾的快捷键
--- 从 Esc 改为删除键、Esc 退出全屏」，借的键因此从 ENTER/ESC 改成 ENTER/DEL —— Esc 内建的「退全屏/
--- 退出」不再被这段压着，没有提示时与有提示时都归 mpv。
---
--- 修法是**只在那一段里借键**：offer 立起时（set_offer 非空）用 keybind 把 ENTER/DEL 按到比内建高一级的
--- 优先级上、指向本元件所在脚本的两条无默认键的绑定（main.lua 的 bind_command('momoka-ui-skip-take' /
--- 'momoka-ui-skip-dismiss')），offer 收摊时（空文案，含点按钮跳过、按 Del 关掉、15 秒到点、换集）
--- 立刻把原行为还原。
---
--- ── MOMOKA[skip-keys-restore] 2026-10-02：还键不能走 keyunbind ───────────────────────────
--- 用户再报同样的话、并补「点击第二屏的窗口之后就不生效」。随包内核实测（work/probe-keybind-family.py
--- 的 command-list、work/probe-skip-keys.py 的运行实录）：这份 libmpv（v0.41.0-923）**只有 keybind、
--- 没有 keyunbind**，2026-09-30 那版收摊时调 keyunbind 条条报「Command 'keyunbind' not found.」
--- （宿主日志 app-20261002.log 08:48:49 起两对实录），借走的键从此不还。
--- 还原因此改成**原样按回**：借键前先从 input-bindings 抄下这一颗此刻最前面的「别人的」绑定，收摊时
--- 用 keybind 原样按回去。它落在 keybind 那档优先级（实测 13）而不是内建原来的 0 —— 本项目 config=no
--- 起播、没有用户 input.conf，13 与 0 之间没有别的绑定，行为与还原前一字不差。
---
--- 两条绑定名守 MOMOKA[ui-bind]：绑定一律 momoka-ui-…、回宿主的消息一律 momoka-…，两套不许同名。
+-- MOMOKA[skip-keys] 2026-11-27：确认与关闭按键由宿主的可重绑目录统一决定。
+-- 提示显隐时，宿主重推 momoka-shortcuts，提示键在出现时覆盖同键的普通动作、收起时恢复。
+-- 本元件只管理画面与点击，不再另行借用 ENTER/KP_ENTER/DEL，避免固定键遮住自定义设置。
 
 ---@class SkipButton : Element
 local SkipButton = class(Element)
-
--- 借来的键。值＝要按上去的绑定名（脚本名前缀由 keybind 那行拼）。
--- KP_ENTER 2026-10-02 补：实机日志（app-20261002.log 08:48:47「No key binding found for key
--- 'KP_ENTER'」）说明用户按的是小键盘回车 —— 集成模式里两颗回车都是 VirtualKey.Enter、走同一句
--- Dispatch，独占这里只借 ENTER 就把小键盘那颗漏在了门外。
--- DEL 是 mpv 对删除键的键名（2026-11-02 用户令关闭键从 ESC 换成删除键）。
-local BORROWED_KEYS = {
-	ENTER = 'momoka-ui-skip-take',
-	KP_ENTER = 'momoka-ui-skip-take',
-	DEL = 'momoka-ui-skip-dismiss',
-}
 
 function SkipButton:new() return Class.new(self) --[[@as SkipButton]] end
 function SkipButton:init()
 	Element.init(self, 'skip_button', {render_order = 6})
 	self.caption = nil
-	self.keys_borrowed = false
-	-- 还键的凭据：借键前抄下的每颗键原来的绑定命令（见文件头 MOMOKA[skip-keys-restore]）。
-	self.originals = {}
 	-- 别在这里读 state.scale：元件在 set_scale 之前构造，那时它还是 nil。真正的字号在 layout 里算。
 	self.font_size = 16
 end
@@ -65,52 +32,8 @@ function SkipButton:set_offer(caption)
 	self.caption = (caption and caption ~= '') and caption or nil
 	-- offer 在就常驻可见（不靠指针唤出）；不在就交回代理，min_visibility 归零、按钮消失。
 	self.min_visibility = self.caption and 1 or 0
-	-- 借键／还键跟着 offer 走 —— 这是本元件唯一改动全局键盘的地方（见文件头 MOMOKA[skip-keys]）。
-	self:borrow_keys(self.caption ~= nil)
 	self:layout()
 	request_render()
-end
-
----offer 立着时把 ENTER/KP_ENTER/DEL 借过来，收摊时原样还回去。幂等：同一状态重复调用不发第二条命令。
----@param borrow boolean
-function SkipButton:borrow_keys(borrow)
-	if borrow == self.keys_borrowed then return end
-	self.keys_borrowed = borrow
-
-	for key, binding in pairs(BORROWED_KEYS) do
-		if borrow then
-			-- 抄原绑定必须在 keybind 之前：之后 input-bindings 里最前面的就是自己那条了。只抄第一次
-			-- （originals 里已记下的键不再抄）—— 收摊的还原本身也是一条 keybind，二次借键若再抄就会
-			-- 把还原那条当成「原绑定」，一借一还之间账本越滚越厚。
-			if self.originals[key] == nil then
-				self.originals[key] = self:topmost_foreign_binding(key)
-			end
-			-- 不传 flags：mpv 的 keybind 默认就落在比内建高一级的优先级上（与宿主给 MBTN_RIGHT/MENU
-			-- 那两把同一个写法，见 MpvUi.MenuKeys）。
-			mp.commandv('keybind', key, 'script-binding uosc/' .. binding)
-		else
-			-- 还原＝原样按回（keyunbind 在随包内核里不存在，见文件头 MOMOKA[skip-keys-restore]）。
-			-- 原来就没绑定的键（小键盘回车在这套内建里一颗绑定都没有）按一条 ignore 顶住 —— 行为与
-			-- 「没绑定」等价：键不干活，也不再刷「No key binding found」。
-			mp.commandv('keybind', key, self.originals[key] or 'ignore')
-		end
-	end
-end
-
----这一颗键此刻真正接活儿的那条绑定命令（优先级最高的非本脚本条目），没有则 nil。
----@param key string
----@return string|nil
-function SkipButton:topmost_foreign_binding(key)
-	local best, best_priority = nil, nil
-	for _, entry in ipairs(mp.get_property_native('input-bindings') or {}) do
-		if entry.key == key and not tostring(entry.cmd or ''):find('momoka-ui-skip-', 1, true) then
-			local priority = tonumber(entry.priority) or -math.huge
-			if best_priority == nil or priority > best_priority then
-				best, best_priority = entry.cmd, priority
-			end
-		end
-	end
-	return best
 end
 
 function SkipButton:on_display() self:layout() end

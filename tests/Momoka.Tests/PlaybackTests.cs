@@ -3803,6 +3803,35 @@ internal static class PlaybackTests
 
     private static void RegisterSkipCoordinator()
     {
+        Test("跳过：改绑立即刷新提示键名，解绑移除提示且不重启倒计时", () =>
+        {
+            var skips = Coordinator(out _);
+            skips.Advance(10, playing: true);
+            skips.Advance(15, playing: true);
+            var remaining = skips.Prompt.Remaining;
+            skips.SetShortcutBindings(new Dictionary<string, string>
+            {
+                [ShortcutCatalog.TakeSkip] = "Ctrl+F8",
+                [ShortcutCatalog.DismissSkip] = "Space"
+            });
+            Assert.Contains("Ctrl + F8跳过", skips.Prompt.Tip);
+            Assert.Contains("空格 关闭", skips.Prompt.Tip);
+            Assert.DoesNotContain("回车跳过", skips.Prompt.Tip);
+            Assert.DoesNotContain("Del 关闭", skips.Prompt.Tip);
+            Assert.Equal(remaining, skips.Prompt.Remaining);
+            skips.SetShortcutBindings(new Dictionary<string, string>
+            {
+                [ShortcutCatalog.TakeSkip] = "",
+                [ShortcutCatalog.DismissSkip] = ""
+            });
+            Assert.DoesNotContain("跳过", skips.Prompt.Tip);
+            Assert.DoesNotContain("关闭", skips.Prompt.Tip);
+            Assert.Contains("1:30", skips.Prompt.Tip);
+            Assert.Equal(remaining, skips.Prompt.Remaining);
+            skips.Advance(25, playing: true);
+            Assert.False(skips.Prompt.Visible, "改绑延长了原来的十五秒提示");
+        });
+
         Test("跳过：进入区间后提示，15 秒无人理会就收回", () =>
         {
             var skips = Coordinator(out _);

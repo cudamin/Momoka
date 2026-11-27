@@ -1,4 +1,5 @@
 using Momoka.Mpv;
+using Momoka.Playback;
 
 namespace Momoka.Tests;
 
@@ -801,15 +802,8 @@ internal static class MpvUiTests
         // 元件实例化、元件本体里的点击回推、以及 start-file 收摊。都是运行期观感（三条离线探针固定走集成
         // 管线、不覆盖 uosc），这里只保证补丁没被 uosc 升级冲掉。
         //
-        // 2026-09-30 添第六头：offer 立着时借 ENTER/ESC 的那对 keybind（用户报「按回车和 esc
-        // 确认跳过不生效」）。这一头丢了不会崩、也看不出来 —— Esc 退回「退全屏」、回车彻底没反应，
-        // 正是被报上来的那个症状，所以对着源码把它钉死。
-        // 2026-10-02 改钉还原写法：随包内核没有 keyunbind（v0.41.0-923，work/probe-keybind-family.py
-        // 的 command-list 实录），收摊的 keyunbind 条条报错、借走的键不还 —— Esc 的「退全屏」被永久
-        // 顶掉（宿主日志 app-20261002.log 08:48:49 起两对实录）。还原改成借前抄原绑定、还时 keybind
-        // 原样按回，外加 KP_ENTER（用户按的是小键盘回车，实机日志「No key binding found for key
-        // 'KP_ENTER'」）—— 对着源码一并钉住。
-        TestHarness.Test("独占模式跳过按钮：uosc 补丁六头都在", () =>
+        // 按键归宿主共享目录统一解析，Lua 元件只负责绘制与点击；上下文切换的行为在下面实测映射。
+        TestHarness.Test("独占模式跳过按钮：画面接线保留且不抢固定键", () =>
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
@@ -829,31 +823,52 @@ internal static class MpvUiTests
             Assert.True(main.Contains("Elements.skip_button:set_offer('')"),
                 "换源没清 offer：换集途中会挂着上一集的「跳过片尾」");
 
-            // 第五头：两条无默认键的绑定（回车＝确认跳过、Del＝关掉提示）。按键由元件按上去，
-            // 少了这两条，keybind 指向的绑定不存在、按下去只是被 mpv 拒掉一条命令。
-            Assert.True(main.Contains("bind_command('momoka-ui-skip-take'"),
-                "回车那条绑定没登记：offer 立着时回车没有落脚处");
-            Assert.True(main.Contains("bind_command('momoka-ui-skip-dismiss'"),
-                "Del 那条绑定没登记：offer 立着时 Del 关不掉提示");
-
-            // 第六头：元件里真正借键／还键的那一段。还键尤其不能少、也不能再走 keyunbind —— 少了它
-            // 或调了内核里不存在的命令，用户按 Del 关掉提示之后 Del 会一直被我们占着。
-            Assert.True(element.Contains("self:borrow_keys(self.caption ~= nil)"),
-                "offer 立起/收摊没有借还键：回车/Del 要么没反应、要么关掉提示后一直被占着");
-            Assert.True(element.Contains("mp.commandv('keybind', key"),
-                "没把 ENTER/DEL 按上去：offer 立着时回车/Del 到不了宿主（用户报的那个症状）");
-            Assert.True(element.Contains("mp.commandv('keybind', key, self.originals[key] or 'ignore')"),
-                "收摊没有把原绑定 keybind 按回去：内核没有 keyunbind，借走的键会一直不还");
-            Assert.True(element.Contains("self:topmost_foreign_binding(key)"),
-                "借键前没抄原绑定：还键时无从还原，等于不还");
-            Assert.True(element.Contains("KP_ENTER = 'momoka-ui-skip-take'"),
-                "小键盘回车没借：用户按 KP_ENTER 没反应（实机日志 No key binding found for key 'KP_ENTER'）");
-            Assert.True(element.Contains("DEL = 'momoka-ui-skip-dismiss'"),
-                "删除键没借：offer 立着时按 Del 没有落脚处（2026-11-02 用户令）");
-            Assert.False(element.Contains("ESC = 'momoka-ui-skip-dismiss'"),
-                "还在借 ESC：独占模式下 Esc 被提示占用，退不出全屏（2026-11-02 用户令）");
+            Assert.False(element.Contains("borrow_keys"), "提示元件还在独立借键，会覆盖用户配置");
+            Assert.False(element.Contains("commandv('keybind'"), "提示元件还在替固定键写入全局绑定");
             Assert.False(element.Contains("commandv('keyunbind'"),
                 "还在调 keyunbind：随包内核没有这条命令，收摊时条条报错、键不还");
+        });
+
+        TestHarness.Test("独占快捷键：提示显示覆盖重叠键，关闭后恢复且改绑清除旧键", () =>
+        {
+            var bindings = new Dictionary<string, string>
+            {
+                [ShortcutCatalog.TakeSkip] = "Space",
+                [ShortcutCatalog.DismissSkip] = "Escape"
+            };
+            var hidden = VideoWindowShortcuts.Bindings(bindings);
+            Assert.Equal("toggle-pause", hidden["SPACE"]);
+            Assert.Equal(ShortcutCatalog.ExitPlayback, hidden["ESC"]);
+            Assert.Equal("", hidden["ENTER"]);
+            Assert.Equal("", hidden["DEL"]);
+            var offered = VideoWindowShortcuts.Bindings(bindings, skipOffered: true);
+            Assert.Equal(ShortcutCatalog.TakeSkip, offered["SPACE"]);
+            Assert.Equal(ShortcutCatalog.DismissSkip, offered["ESC"]);
+            Assert.Equal("", offered["ENTER"]);
+            Assert.False(offered.ContainsKey("KP_ENTER"), "确认键改绑后仍留下小键盘回车别名");
+            var restored = VideoWindowShortcuts.Bindings(bindings);
+            Assert.Equal("toggle-pause", restored["SPACE"]);
+            Assert.Equal(ShortcutCatalog.ExitPlayback, restored["ESC"]);
+        });
+
+        TestHarness.Test("独占快捷键：默认小键盘回车兼容，自定义和解绑后不残留", () =>
+        {
+            var defaults = VideoWindowShortcuts.Bindings(new Dictionary<string, string>(), skipOffered: true);
+            Assert.Equal(ShortcutCatalog.TakeSkip, defaults["ENTER"]);
+            Assert.Equal(ShortcutCatalog.TakeSkip, defaults["KP_ENTER"]);
+            Assert.Equal(ShortcutCatalog.DismissSkip, defaults["DEL"]);
+            var changed = new Dictionary<string, string>
+            {
+                [ShortcutCatalog.ExitPlayback] = "Ctrl+F8",
+                [ShortcutCatalog.DismissSkip] = "",
+                [ShortcutCatalog.TakeSkip] = ""
+            };
+            var cleared = VideoWindowShortcuts.Bindings(changed, skipOffered: true);
+            Assert.Equal(ShortcutCatalog.ExitPlayback, cleared["Ctrl+F8"]);
+            Assert.Equal("", cleared["ESC"]);
+            Assert.Equal("", cleared["ENTER"]);
+            Assert.Equal("", cleared["DEL"]);
+            Assert.False(cleared.ContainsKey("KP_ENTER"));
         });
 
         // 左上角第二行的文件信息契约（用户令 2026-09-27「下方的片名改为视频编码+音轨+组名……两模式一致」）：

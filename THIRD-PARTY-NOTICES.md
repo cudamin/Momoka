@@ -163,6 +163,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 `assets/mpv-ui/README.md`。按 LGPL-2.1 第 2 条，**这些修改部分本身也以 LGPL-2.1 授权**，
 完整对应源码见 <https://github.com/cudamin/Momoka> 的 `assets/mpv-ui` 目录。
 
+2026-11-27 修改 `elements/SkipButton.lua` 与 `lib/momoka_shortcuts.lua`：移除固定的回车／Delete 借键，改由宿主共享快捷键映射随提示显隐分配确认与关闭操作，支持自定义和与普通快捷键共用；提示键按住时占用到松开，并按键名固定绑定标识，避免收起后误触普通动作或把旧长按派给另一键。绘制与点击仍由原元件负责。修改部分继续按 LGPL-2.1 授权。
+
 ### Material Icons Round（字体） — `Apache-2.0`
 
 | 项 | 值 |

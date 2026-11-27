@@ -146,12 +146,12 @@ internal static class SettingsSearchTests
 
             string Label(object row) => fixture.Get<string>(row, "Label");
 
-            Assert.Equal(13, sections.Count, "快捷键页应当拆成十三张分区卡（含回退键与恢复默认）");
+            Assert.Equal(13, sections.Count, "快捷键页应当拆成十三张分区卡（含退出、跳过与恢复默认）");
             var titles = sections.Select(section => fixture.Get<string>(section, "Title")).ToArray();
             Assert.True(titles.SequenceEqual(new[]
                 {
                     "播放与进度", "播放控制", "集数与章节", "速度与循环", "字幕", "次字幕与兼容性", "音轨与音频",
-                    "画面与缩放", "画质与色彩", "视频与滤镜", "截图", "弹幕", "回退键与恢复默认"
+                    "画面与缩放", "画质与色彩", "视频与滤镜", "截图", "弹幕", "退出、跳过与恢复默认"
                 }),
                 "分区卡的次序就是阅读次序：" + string.Join('、', titles));
             var shortcuts = rows.Where(row => row.GetType().Name == "SettingShortcutRow").ToList();
@@ -188,7 +188,7 @@ internal static class SettingsSearchTests
                 Assert.Equal(note, fixture.Get<string>(rows[multiplierIndex], "Note"));
             }
         });
-        TestHarness.Test("快捷键页：三条回退键只读说明行可搜、不计入可改数量", () =>
+        TestHarness.Test("快捷键页：退出与两条跳过提示键可改、可搜并计入数量", () =>
         {
             var settings = new SettingsPageStateTests.FakeSettings();
             var vm = fixture.NewViewModel();
@@ -201,25 +201,30 @@ internal static class SettingsSearchTests
                 : ShortcutCatalog.Actions.Count - 4;
             List<object> Rows() => sections.SelectMany(section => fixture.List(section, "Rows").Cast<object>()).ToList();
 
-            object Fixed(string label) => Rows().Single(row => Label(row) == label);
+            object Row(string label) => Rows().Single(row => Label(row) == label);
             string Label(object row) => fixture.Get<string>(row, "Label");
             string Value(object row) => fixture.Get<string>(row, "Value");
 
-            // 可改动作 + 六行附注（挂在方向键下面）+ 三条回退键说明行 + 恢复入口。
-            Assert.Equal(expectedActions + 10, Rows().Count, "步长、长按倍率、回退键说明行与恢复入口应各占一行");
-            Assert.Equal("Esc", Value(Fixed("退出全屏 / 退出播放")));
-            Assert.Equal("Del", Value(Fixed("关闭跳过片头 / 片尾提示")));
-            Assert.Equal("回车", Value(Fixed("确认跳过片头 / 片尾")));
-            Assert.Equal("Collapsed", fixture.Get<object>(Fixed("退出全屏 / 退出播放"), "ActionVisibility").ToString(),
-                "回退键说明行不能长出可点的动作按钮");
-            Assert.Equal($"{expectedActions} 个可改快捷键", Value(Fixed("恢复默认快捷键")),
-                "步长与只读说明行不应计入可改数量");
+            Assert.Equal(expectedActions + 7, Rows().Count, "可改动作之外只有六行附注与恢复入口");
+            foreach (var (label, id, combo) in new[]
+            {
+                ("退出全屏 / 退出播放", ShortcutCatalog.ExitPlayback, "Esc"),
+                ("关闭跳过片头 / 片尾提示", ShortcutCatalog.DismissSkip, "Del"),
+                ("确认跳过片头 / 片尾", ShortcutCatalog.TakeSkip, "回车")
+            })
+            {
+                var row = Row(label);
+                Assert.Equal("SettingShortcutRow", row.GetType().Name, "必须使用可录入按键的现有控件");
+                Assert.Equal(id, fixture.Get<string>(row, "Id"));
+                Assert.Equal(combo, fixture.Get<string>(row, "ComboText"));
+            }
+            Assert.Equal($"{expectedActions} 个可改快捷键", Value(Row("恢复默认快捷键")),
+                "三条新动作必须计入可改数量");
 
             fixture.Set(vm, "ShortcutSearchQuery", "Esc");
-            Assert.Equal(2, Rows().Count, "Esc 搜索应只剩说明行与恢复入口");
+            Assert.Equal(2, Rows().Count, "Esc 搜索应只剩退出快捷键与恢复入口");
             Assert.Equal("退出全屏 / 退出播放", Label(Rows()[0]!));
-            Assert.False(Rows().Any(row => row.GetType().Name == "SettingShortcutRow"),
-                "未绑定的 Esc 不应命中可改动作");
+            Assert.Equal("SettingShortcutRow", Rows()[0].GetType().Name);
 
             fixture.Set(vm, "ShortcutSearchQuery", "Del");
             Assert.Equal(2, Rows().Count);
@@ -250,7 +255,29 @@ internal static class SettingsSearchTests
             Assert.Equal("恢复默认快捷键", Label(Rows()[6]!));
 
             fixture.Set(vm, "ShortcutSearchQuery", "");
-            Assert.Equal(expectedActions + 10, Rows().Count, "清空搜索后步长、长按倍率与说明行应恢复且不改变可改数量");
+            Assert.Equal(expectedActions + 7, Rows().Count, "清空搜索后应恢复全部可改动作与附注");
+
+            var dismiss = Row("关闭跳过片头 / 片尾提示");
+            var take = Row("确认跳过片头 / 片尾");
+            var exit = Row("退出全屏 / 退出播放");
+            fixture.Invoke(dismiss, "OnCommitted", dismiss, "Space");
+            fixture.Invoke(take, "OnCommitted", take, "F");
+            fixture.Invoke(exit, "OnCommitted", exit, "Ctrl+F10");
+            Assert.Equal("空格", fixture.Get<string>(dismiss, "ComboText"));
+            Assert.Equal("F", fixture.Get<string>(take, "ComboText"));
+            Assert.Equal("Ctrl + F10", fixture.Get<string>(exit, "ComboText"));
+            Assert.Equal("空格", fixture.Get<string>(Row("播放 / 暂停"), "ComboText"), "重叠不应改掉普通动作");
+            Assert.Equal("F", fixture.Get<string>(Row("全屏切换"), "ComboText"));
+            fixture.Set(vm, "ShortcutSearchQuery", "Ctrl+F10");
+            Assert.Equal(2, Rows().Count);
+            Assert.True(ReferenceEquals(exit, Rows()[0]), "改绑后仍应保留原行与回调");
+            fixture.Set(vm, "ShortcutSearchQuery", "Esc");
+            Assert.Equal("没有找到匹配的快捷键", Label(Rows()[0]));
+            fixture.Invoke(vm, "ClearAllShortcuts");
+            Assert.Equal("Esc", fixture.Get<string>(exit, "ComboText"));
+            Assert.Equal("Del", fixture.Get<string>(dismiss, "ComboText"));
+            Assert.Equal("回车", fixture.Get<string>(take, "ComboText"));
+            Assert.True(ReferenceEquals(exit, Rows()[0]), "过滤时恢复默认也应恢复隐藏的动作");
         });
         TestHarness.Test("设置搜索：替换分组解除旧行索引，旧分组变化不会返回失效项", () =>
         {

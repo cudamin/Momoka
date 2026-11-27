@@ -7,20 +7,34 @@ namespace Momoka.Shell.ViewModels;
 public sealed partial class PlayerViewModel
 {
     private string? _nativeShortcutsSent;
-    private int _nativeShortcutRequest;
+    private Task _nativeShortcutTail = Task.CompletedTask;
 
-    private void NativeShortcutsChanged() => _ = PushNativeShortcutsAsync();
-
-    private async Task PushNativeShortcutsAsync(bool force = false)
+    private void NativeShortcutsChanged()
     {
-        if (!HeadlessPlayback || !_playback.IsPlaying) return;
-        var json = JsonSerializer.Serialize(VideoWindowShortcuts.Bindings(ShortcutBindings));
-        if (!force && json == _nativeShortcutsSent) return;
+        _skips.SetShortcutBindings(ShortcutBindings);
+        _ = PushNativeShortcutsAsync();
+    }
+    partial void OnSkipOfferedChanged(bool value) => _ = PushNativeShortcutsAsync();
+
+    private Task PushNativeShortcutsAsync(bool force = false)
+    {
+        if (!HeadlessPlayback || !_playback.IsPlaying) return Task.CompletedTask;
+        var json = JsonSerializer.Serialize(VideoWindowShortcuts.Bindings(ShortcutBindings, SkipOffered));
         var context = CaptureInteraction();
-        var request = ++_nativeShortcutRequest;
-        if (await _playback.CommandAsync("script-message", VideoWindowContract.Shortcuts, json).ConfigureAwait(true)
-            && IsCurrentInteraction(context) && request == _nativeShortcutRequest)
-            _nativeShortcutsSent = json;
+        var previous = _nativeShortcutTail;
+        _nativeShortcutTail = SendAsync();
+        return _nativeShortcutTail;
+
+        async Task SendAsync()
+        {
+            await previous.ConfigureAwait(true);
+            if (!IsCurrentPlayback(context)
+                || !HeadlessPlayback || !_playback.IsPlaying) return;
+            // 比较必须等上一份写完；显示后立即关闭时，不能因为缓存仍是隐藏态而漏掉最后的恢复。
+            if (!force && json == _nativeShortcutsSent) return;
+            if (await _playback.CommandAsync("script-message", VideoWindowContract.Shortcuts, json).ConfigureAwait(true)
+                && IsCurrentPlayback(context)) _nativeShortcutsSent = json;
+        }
     }
 
     private void RunNativeShortcut(string action)
@@ -28,6 +42,9 @@ public sealed partial class PlayerViewModel
         if (!HeadlessPlayback || !_playback.CanControl) return;
         switch (action)
         {
+            case ShortcutCatalog.ExitPlayback: ExitNativeFullscreenOrStop(); break;
+            case ShortcutCatalog.DismissSkip: DismissSkip(); break;
+            case ShortcutCatalog.TakeSkip when SkipOffered: TakeSkip(); break;
             case "toggle-pause": TogglePause(); break;
             case "seek-backward": NoteNativeSeek("seek-backward"); break;
             case "seek-forward": NoteNativeSeek("seek-forward"); break;

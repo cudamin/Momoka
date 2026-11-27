@@ -38,8 +38,8 @@
     {
       "path": "THIRD-PARTY-NOTICES.md",
       "source": "THIRD-PARTY-NOTICES.md",
-      "size": 38178,
-      "sha256": "1f2489563a4d214a9c51c2c0bfb6c9fe71ec994cad28a176b5cdbd4683ec4e2c"
+      "size": 38634,
+      "sha256": "7e6abb6565714f21d76e6bc442c0a819bee5aa9366953a49c8ca947cb4779225"
     },
     {
       "path": "LICENSE.Apache-2.0.txt",
@@ -188,8 +188,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/SkipButton.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/SkipButton.lua",
-      "size": 11465,
-      "sha256": "c0fae83c7a55b191bcba0ae55a815cd424070e12e908b33ce97ee8a03f57a740"
+      "size": 6463,
+      "sha256": "e9970d24e33696e3d46d562f8fca472edf67e394520a0c4579e62f01fcab68ed"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Speed.lua",
@@ -338,8 +338,8 @@
     {
       "path": "mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
       "source": "assets/mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
-      "size": 3367,
-      "sha256": "d9e6dbd667d61a58995c4e29af137d784d3c6a8c471bd8400b805ebb4d1c56e2"
+      "size": 4367,
+      "sha256": "b0c93cd2a82c7d2c7b498be64c89c8e59f6df9196aa7b6fc64f48f6df71c9793"
     },
     {
       "path": "mpv-ui/scripts/uosc/lib/std.lua",

@@ -1,6 +1,7 @@
 -- MOMOKA[shortcuts]: the host owns action identities; modal menus temporarily own their keys.
 local bindings = {}
 local active = {}
+local skip_pressed = {}
 
 -- Match the host's canonical key spelling. A punctuation key is one key, never command text.
 local named_keys = {
@@ -32,28 +33,45 @@ local function valid_key(key)
 	return number ~= nil and tonumber(number) >= 1 and tonumber(number) <= 24
 end
 
-function momoka_clear_shortcuts()
+function momoka_clear_shortcuts(preserve_pressed)
 	for _, name in ipairs(active) do mp.remove_key_binding(name) end
 	active = {}
+	if not preserve_pressed then skip_pressed = {} end
 end
 
 function momoka_refresh_shortcuts()
-	momoka_clear_shortcuts()
-	if Menu:is_open() or Elements:v('danmaku_input', 'focused', false) then return end
-	local index = 0
+	momoka_clear_shortcuts(true)
+	if Menu:is_open() or Elements:v('danmaku_input', 'focused', false) then
+		skip_pressed = {}
+		return
+	end
 	for key, action in pairs(bindings) do
-		index = index + 1
-		local name = 'momoka-action-' .. index
+		-- mpv can retain the old binding name until release; never reuse it for another key.
+		local name = 'momoka-action-' .. key:gsub('.', function(char) return string.format('%02x', char:byte()) end)
 		active[#active + 1] = name
-		mp.add_forced_key_binding(key, name, function()
-			if action ~= '' then momoka_notify('momoka-shortcut', action) end
-		end, {repeatable = action:find('seek-', 1, true) == 1 or action:find('volume-', 1, true) == 1
+		local repeatable = action:find('seek-', 1, true) == 1 or action:find('volume-', 1, true) == 1
 			or action:find('subtitle-seek-', 1, true) == 1 or action:find('subtitle-scale-', 1, true) == 1
 			or action:find('subtitle-position-', 1, true) == 1
 			or action == 'video-zoom-in' or action == 'video-zoom-out'
-			or (action:find('video-pan-', 1, true) == 1 and action ~= 'video-pan-reset')})
+			or (action:find('video-pan-', 1, true) == 1 and action ~= 'video-pan-reset')
+		mp.add_forced_key_binding(key, name, function(info)
+			local event = info and info.event or 'press'
+			if event == 'up' then
+				-- Replacing a binding may cancel its old down; only the real release ends this press.
+				if not info.canceled then skip_pressed[key] = nil end
+				return
+			end
+			if event == 'repeat' and (skip_pressed[key] or not repeatable) then return end
+			if event == 'down' or event == 'press' then skip_pressed[key] = nil end
+			-- The prompt can disappear before release and restore a repeating seek/volume action.
+			if action == 'take-skip' or action == 'dismiss-skip' then skip_pressed[key] = true end
+			if action ~= '' then momoka_notify('momoka-shortcut', action) end
+		end, {complex = true, repeatable = repeatable})
 	end
 end
+
+mp.register_event('start-file', function() skip_pressed = {} end)
+mp.register_event('end-file', function() skip_pressed = {} end)
 
 mp.register_script_message('momoka-shortcuts', function(json)
 	local values = utils.parse_json(json)

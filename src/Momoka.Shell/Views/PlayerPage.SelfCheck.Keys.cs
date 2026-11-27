@@ -101,7 +101,8 @@ public sealed partial class PlayerPage
         [
             "toggle-pause", "seek-backward", "seek-forward", "seek-backward-long", "seek-forward-long",
             "toggle-fullscreen", "volume-up", "volume-down", "toggle-mute", "seek-backward-fine", "seek-forward-fine",
-            "subtitle-seek-previous", "subtitle-seek-next"
+            "subtitle-seek-previous", "subtitle-seek-next",
+            ShortcutCatalog.ExitPlayback, ShortcutCatalog.DismissSkip, ShortcutCatalog.TakeSkip
         ];
 
         var actions = ShortcutCatalog.Actions;

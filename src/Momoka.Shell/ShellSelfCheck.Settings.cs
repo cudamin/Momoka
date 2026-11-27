@@ -308,12 +308,14 @@ internal static partial class ShellSelfCheck
         check("快捷键分区与步长", sectionTitles.SequenceEqual(new[]
             {
                 "播放与进度", "播放控制", "集数与章节", "速度与循环", "字幕", "次字幕与兼容性", "音轨与音频",
-                "画面与缩放", "画质与色彩", "视频与滤镜", "截图", "弹幕", "回退键与恢复默认"
-            }) && seekSpansOk && seekHoldRowsOk,
+                "画面与缩放", "画质与色彩", "视频与滤镜", "截图", "弹幕", "退出、跳过与恢复默认"
+            }) && seekSpansOk && seekHoldRowsOk
+                && shortcutSections.Last().Rows.OfType<SettingShortcutRow>().Select(row => row.Id)
+                    .SequenceEqual(new[] { ShortcutCatalog.ExitPlayback, ShortcutCatalog.DismissSkip, ShortcutCatalog.TakeSkip }),
             $"{shortcutSections.Count} 张分区卡：{string.Join('／', sectionTitles)}；"
             + $"四行步长{(seekSpansOk ? "都紧跟在各自的快捷键行下面" : "没有跟在各自的快捷键行下面")}；"
             + $"长按倍率{(seekHoldRowsOk ? "快退、快进各紧跟步长、范围 2–10" : "位置或范围不对")}；"
-            + $"最后一卡之前的动作行 {shortcutRows.Count(row => row is SettingShortcutRow)} 行");
+            + $"可改动作 {shortcutRows.Count(row => row is SettingShortcutRow)} 行，最后一卡包含退出与两条跳过提示动作");
 
         // 主题那一行的色板。什么都不点：这一行只在点中一块时写盘，而量它不需要真换一次主题 —— 角标落在存着
         // 的那一套上、几块颜色互不相同、屏上块数对得上，坏法就都在这三句里了（见 MeasureThemeSwatches）。

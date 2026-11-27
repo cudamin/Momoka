@@ -33,7 +33,8 @@ namespace Momoka.Shell.ViewModels
         private EmbyItem? _nowPlaying;
         public bool Paused { get; set; }
         public bool PictureInHostWindow { get; set; } = true;
-        public IReadOnlyDictionary<string, string> ShortcutBindings { get; } = new Dictionary<string, string>();
+        public bool SkipOffered { get; set; }
+        public Dictionary<string, string> ShortcutBindings { get; } = new();
         public bool RunAdditionalShortcut(string action) => true;
         public FakePlayback Playback => _playback;
         public void FirstPublish() { _generation++; _interactionVersion++; _nowPlaying = new EmbyItem { Id = "current" }; }
@@ -75,6 +76,8 @@ namespace Momoka.Shell.Views
             ShortcutHandlers["seek-forward-long"] = () => Actions.Add("seek-forward-long");
             ShortcutHandlers["chapter-previous"] = () => Actions.Add("chapter-previous");
             ShortcutHandlers["chapter-next"] = () => Actions.Add("chapter-next");
+            foreach (var action in new[] { "toggle-pause", "dismiss-skip", "take-skip" })
+                ShortcutHandlers[action] = () => { Actions.Add(action); ViewModel.SkipOffered = false; };
         }
         public List<bool> Pauses { get; } = [];
         internal Action<bool>? PauseRequested { get; set; }
@@ -82,11 +85,20 @@ namespace Momoka.Shell.Views
         public Task Release() => ReleaseResizeFreezeAsync();
         public void NextDrag() => _resizeGeneration++;
         public Task Key(Windows.System.VirtualKey key) { ShortcutCommand(key, out _); return _statsKeyTail; }
+        public void PreviewKey(Windows.System.VirtualKey key, bool repeated = false, bool extended = false)
+        {
+            // 控件默认动作只在预览未接手时发生；提取的是生产提示判据和真实快捷键执行路径。
+            if (SkipPromptShortcut(key, extended, repeated)) return;
+            FocusedDefaults++;
+            ShortcutCommand(key, out _, extended, repeated);
+        }
+        public bool ReleasePreviewKey(Windows.System.VirtualKey key, bool extended = false) => ReleaseSkipPromptKey(key, extended);
+        public int FocusedDefaults { get; private set; }
     }
     public sealed class Chrome { public bool WakeFully(long now) => false; }
 }
 
-namespace Windows.System { public enum VirtualKey { Up, Down, PageUp, PageDown } }
+namespace Windows.System { public enum VirtualKey { Up, Down, PageUp, PageDown, Space, Enter, Delete } }
 namespace Momoka.Shell.Interop
 {
     public static class Native { public static bool CtrlHeld => false; public static bool AltHeld => false; public static bool ShiftHeld => false; }
