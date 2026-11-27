@@ -205,6 +205,19 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
             Assert.True(ReferenceEquals(Named("HeroOverview").ElementsBeforeSelf().Last(), Named("HeroGrid")));
             Assert.True(ReferenceEquals(Named("HeroOverview").ElementsAfterSelf().First(), Named("DetailActions")));
+            var actions = Named("DetailActions");
+            foreach (var name in new[] { "SearchSubscription", "SearchAniBt", "SearchMediaSubtitles", "ChooseSubscribeSeasons",
+                         "PlayMediaLibraryItem", "PlaySubscriptionTrailer", "EditSubscription", "MoreActions" })
+            {
+                var button = Named(name);
+                var key = name == "MoreActions" ? "EgRoundButtonStyle" : "EgActionButtonStyle";
+                Assert.True(ReferenceEquals(button.Parent, actions));
+                Assert.Equal($"{{StaticResource {key}}}", (string?)button.Attribute("Style"));
+                Assert.Null(button.Attribute("CornerRadius"));
+                var style = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == key);
+                Assert.Equal("{StaticResource EgMediaActionCornerRadius}", (string?)style.Elements()
+                    .Single(setter => (string?)setter.Attribute("Property") == "CornerRadius").Attribute("Value"));
+            }
             // 同日用户令「TMDB IMDb 移到 一场生日，两个世界。 下面」。
             Assert.True(ReferenceEquals(Named("MediaSourceLinks").Parent, Named("HeroContent")));
             Assert.True(ReferenceEquals(Named("MediaSourceLinks").ElementsBeforeSelf().Last(), Named("MediaTagline")));

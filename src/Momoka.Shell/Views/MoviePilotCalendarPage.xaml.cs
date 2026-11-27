@@ -179,6 +179,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
 
         var (start, end) = MoviePilotCalendarLayout.Window(month);
         var today = DateOnly.FromDateTime(DateTime.Today);
+        var dateCorners = (CornerRadius)Application.Current.Resources["EgPill28CornerRadius"];
         for (var date = start; date < end; date = date.AddDays(1))
         {
             var day = date;
@@ -200,7 +201,7 @@ public sealed partial class MoviePilotCalendarPage : Page, IShellContent
                 MinHeight = 28,
                 Padding = new Thickness(3, 0, 3, 0),
                 HorizontalAlignment = HorizontalAlignment.Center,
-                CornerRadius = new CornerRadius(14)
+                CornerRadius = dateCorners
             };
             if (isToday) badge.Style = (Style)Resources["CalendarTodayBadgeStyle"];
             var cards = new StackPanel { Spacing = 4, Visibility = Visibility.Collapsed };

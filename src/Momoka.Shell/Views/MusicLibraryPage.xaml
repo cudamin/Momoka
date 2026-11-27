@@ -70,7 +70,8 @@
                 <Setter Property="Height" Value="30" />
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="Padding" Value="14,0" />
-                <Setter Property="CornerRadius" Value="15" />
+                <!-- 分区胶囊的圆角是 30 DIP 高度的一半。 -->
+                <Setter Property="CornerRadius" Value="{StaticResource EgPill30CornerRadius}" />
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
@@ -86,7 +87,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="MinHeight" Value="58" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgListRowCornerRadius}" />
         </Style>
 
         <!-- 曲目表的一行：左缘那条「正在放」的竖线、44 的方封面、标题与副标题、等宽时长。
@@ -103,7 +104,7 @@
                 <!-- 正在放的就是这一行。3 像素，和详情页「你在这里」那条同一档宽。 -->
                 <Border
                     Background="{ThemeResource EgAccentBrush}"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgProgressCornerRadius}"
                     Margin="0,6"
                     Visibility="{x:Bind PlayingVisibility, Mode=OneWay}" />
 
@@ -112,7 +113,7 @@
                     Width="44"
                     Height="44"
                     Background="{ThemeResource EgSurfaceAltBrush}"
-                    CornerRadius="8"
+                    CornerRadius="{StaticResource EgSmallArtworkCornerRadius}"
                     VerticalAlignment="Center">
                     <Grid>
                         <FontIcon
@@ -170,7 +171,7 @@
 
         <!-- 封面墙的一格：方封面加两行字。专辑第二行是艺术家；艺术家与歌单没有稳定可说的话，那一行收起。 -->
         <DataTemplate x:Key="MusicTileTemplate" x:DataType="local:CardItem">
-            <ItemContainer CornerRadius="12" Width="{x:Bind CardWidth, Mode=OneWay}">
+            <ItemContainer CornerRadius="{StaticResource EgPosterCornerRadius}" Width="{x:Bind CardWidth, Mode=OneWay}">
                 <Grid RowSpacing="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -256,12 +257,12 @@
 
         <Border Grid.Row="1" Margin="0,10,0,0" Style="{StaticResource EgRuleStyle}" />
 
-        <!-- 分区药丸与搜索框：宽的时候并排，窄了自己换行（WrapRow）。 -->
+        <!-- 分区胶囊与搜索框可换行。胶囊外层圆角由 15 DIP 的标签圆角加 3 DIP 的内边距得到。 -->
         <local:WrapRow x:Name="Toolbar" Grid.Row="2" Margin="0,14,0,0" Spacing="12" RowSpacing="10">
             <Border
                 x:Name="SectionSurface"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                CornerRadius="18"
+                CornerRadius="{StaticResource EgPill36CornerRadius}"
                 Padding="3"
                 Visibility="{x:Bind ViewModel.TabsVisibility, Mode=OneWay}">
                 <local:WrapRow x:Name="SectionTabs" Spacing="0" RowSpacing="4" CenterRows="True">

@@ -193,7 +193,7 @@ public sealed partial class DetailPage
     /// <summary>
     /// 商店模式的操作键（2026-11-16 用户令：四颗键全放在片名下面那行「播放日期」的下方）：
     /// 已看、收藏、更多三颗收成图标排成一行，主播放键放在它们下面，宽度与上面那一行相同；
-    /// 播放键回到 2026-11-14 的主题色药丸样式（用户令「还原成之前的样式」），带「播放」文字。
+    /// 播放键保留主题色和「播放」文字，圆角与上方三个图标键相同。
     /// 四颗保留原控件、命令、自动化名称与状态；连播在商店档是集列表卡片右上角那颗开关
     /// （<c>StoreContinueSwitch</c>，2026-11-16 用户令），沉浸档的药丸留在操作排里。
     /// <para>
@@ -241,8 +241,7 @@ public sealed partial class DetailPage
                 button.Background = StoreActionRestFrame;
                 button.Opacity = 1;
             }
-            // 主播放键走回带字的药丸键：底色是 PrepareAppearance 种下的那组画刷，
-            // 由 ApplyAppearance 在商店档涂成强调色面（见 IsStorePlay）。
+            // PrepareAppearance 种下的底色由 ApplyAppearance 在商店档涂成强调色面（见 IsStorePlay）。
             if (!ReferenceEquals(ColumnPlayButton.Style, Resources["EgPlayButtonStyle"]))
                 ColumnPlayButton.Style = (Style)Resources["EgPlayButtonStyle"];
             if (ColumnPlayButton.Resources.ContainsKey("ButtonBackground"))

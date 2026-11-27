@@ -1117,7 +1117,7 @@ public sealed partial class PlayerPage
 
         // 单行展示取代原倒计时插值检查；时限和暂停语义继续由 SkipCoordinator 的测试覆盖。
         Want("跳过按钮只有图标和标题", SkipContentIsSimple);
-        Want("跳过按钮使用独占模式的小圆角", Math.Abs(SkipButton.CornerRadius.TopLeft - WindowSkipCorner) < GeometrySlack);
+        Want("跳过按钮使用播放器的统一圆角", SkipButton.CornerRadius == PlayerControlCorners(fullscreen: false));
 
         // 按下判定（用户令 2026-09-26「点击按钮跳过片头/片尾的时候 进度条会出来闪一下」）：offer 立着时
         // 按在按钮上的那一下算按钮的、不叫控件 —— 判定（PressOnSkipButton）与几何在这里钉住；接线本身

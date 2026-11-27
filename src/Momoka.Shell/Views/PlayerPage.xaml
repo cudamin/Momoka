@@ -193,7 +193,7 @@
             <Setter Property="Foreground" Value="{StaticResource PlayerInkBrush}" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="MinWidth" Value="40" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSmallActionCornerRadius}" />
             <Setter Property="FontFamily" Value="{StaticResource EgUiFontFamily}" />
             <Setter Property="UseSystemFocusVisuals" Value="True" />
         </Style>
@@ -276,7 +276,7 @@
         <Style x:Key="TransportButtonStyle" TargetType="Button" BasedOn="{StaticResource OsdButtonStyle}">
             <Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="32" /><Setter Property="MinHeight" Value="32" />
-            <Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="{StaticResource EgPlayerControlCornerRadius}" />
         </Style>
         <!-- 进度条上面那一行按钮的图标（用户令 2026-09-28「集成模式进度条上面的图标要和独占模式一样，全屏时
              稍微放大」）。**这两档数是量出来的，不是估的。**
@@ -366,7 +366,7 @@
              不在（OnStripControl 的名单只有那五颗控件，压在标题文字上仍算按在条上、可以拖窗口）。 -->
         <Style x:Key="OsdGlassStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource PlayerGlassBrush}" />
-            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPlayerControlCornerRadius}" />
             <Setter Property="IsHitTestVisible" Value="False" />
         </Style>
 
@@ -612,7 +612,7 @@
                     x:Uid="PlayerPage_BackButton"
                     Command="{x:Bind ViewModel.StopCommand}"
                     Style="{StaticResource OsdButtonStyle}"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                     Width="30"
                     Height="30"
                     MinWidth="30"
@@ -678,7 +678,7 @@
                 Margin="1,5,0,0"
                 Height="30"
                 Padding="10,0"
-                CornerRadius="2"
+                CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                 Background="{StaticResource PlayerGlassTopBrush}"
                 IsHitTestVisible="False">
                 <TextBlock
@@ -819,7 +819,7 @@
                     Click="OnTogglePin"
                     Background="Transparent"
                     BorderThickness="0"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                     Foreground="{StaticResource PlayerInkBrush}"
                     Padding="0"
                     Width="35"
@@ -861,7 +861,7 @@
                     Click="OnMinimizeWindow"
                     Background="Transparent"
                     BorderThickness="0"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                     Foreground="{StaticResource PlayerInkBrush}"
                     Padding="0"
                     Width="35"
@@ -885,7 +885,7 @@
                     Click="OnToggleMaximizeWindow"
                     Background="Transparent"
                     BorderThickness="0"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                     Foreground="{StaticResource PlayerInkBrush}"
                     Padding="0"
                     Width="35"
@@ -909,7 +909,7 @@
                     Click="OnCloseWindow"
                     Background="Transparent"
                     BorderThickness="0"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                     Padding="0"
                     Width="35"
                     Height="35">
@@ -943,7 +943,7 @@
                 Margin="5,36,0,0"
                 Height="24"
                 Padding="10,0"
-                CornerRadius="2"
+                CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
                 Background="{StaticResource PlayerGlassTopBrush}"
                 IsHitTestVisible="False"
                 Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
@@ -1006,7 +1006,7 @@
             Background="{StaticResource PlayerSkipBrush}"
             BorderBrush="{StaticResource PlayerEdgeStrongBrush}"
             BorderThickness="1"
-            CornerRadius="2"
+            CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
             Command="{x:Bind ViewModel.TakeSkipCommand}"
             AutomationProperties.Name="{x:Bind ViewModel.SkipCaption, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.SkipVisibility, Mode=OneWay}">
@@ -1207,18 +1207,17 @@
                                         <Setter Property="Background" Value="Transparent" />
                                         <Setter Property="BorderThickness" Value="0" />
                                         <Setter Property="Padding" Value="0" />
-                                        <Setter Property="CornerRadius" Value="0" />
+                                        <Setter Property="CornerRadius" Value="{StaticResource EgBleedCornerRadius}" />
                                         <Setter Property="IsDefaultShadowEnabled" Value="False" />
                                     </Style>
                                 </Flyout.FlyoutPresenterStyle>
-                                <!-- 面板的底与六个菜单同一支（2026-11-03 用户令「集成模式下所有的菜单都要用
-                                     亚克力背景」）：倍速轮盘也是菜单，它原先是音量条那支实心的牌子色。 -->
+                                <!-- 轮盘沿用菜单画刷，外框与 40 DIP 高的中线高亮带使用各自的轮廓。 -->
                                 <Border
                                     x:Name="SpeedWheelPanel"
                                     Width="104"
                                     Height="252"
                                     Background="{StaticResource PlayerMenuBrush}"
-                                    CornerRadius="20">
+                                    CornerRadius="{StaticResource EgSpeedWheelCornerRadius}">
                                     <Grid>
                                         <!-- 中线高亮带：当前值停的那一格。IsHitTestVisible=False —— 拖拽的
                                              手从头到尾只归面板一家记，刻度与高亮带都不许抢。 -->
@@ -1227,7 +1226,7 @@
                                             Margin="10,0"
                                             VerticalAlignment="Center"
                                             Background="{StaticResource PlayerTrackBrush}"
-                                            CornerRadius="10"
+                                            CornerRadius="{StaticResource EgSpeedWheelSelectionCornerRadius}"
                                             IsHitTestVisible="False" />
                                         <!-- 刻度带：刻度由代码摆上来（PlayerPage.SpeedWheel.BuildSpeedWheel），
                                              Canvas.Top 按 SpeedWheel.TickOffset 逐拍走。 -->
@@ -1439,7 +1438,7 @@
             Background="{StaticResource PlayerPeekBrush}"
             BorderBrush="{StaticResource PlayerEdgeBrush}"
             BorderThickness="1"
-            CornerRadius="2"
+            CornerRadius="{StaticResource EgPlayerControlCornerRadius}"
             IsHitTestVisible="False"
             Visibility="Collapsed">
             <Border.RenderTransform>

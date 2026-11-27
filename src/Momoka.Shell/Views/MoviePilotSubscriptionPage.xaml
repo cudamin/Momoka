@@ -9,14 +9,14 @@
         <Style x:Key="EgActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="Padding" Value="18,0,20,2" />
         </Style>
         <Style x:Key="EgRoundButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
         <!-- 预告片控制排：同媒体详情页那颗 40×40 的圆形底色键（Gallery CommandBar 样例同一档尺寸）。 -->
@@ -24,7 +24,7 @@
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgIconButtonCornerRadius}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
         </Style>
@@ -78,8 +78,8 @@
                     <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
                 </Button.Resources>
                 <StackPanel Spacing="8">
-                    <Border x:Name="RelatedArtwork" Height="184" CornerRadius="6" Background="{ThemeResource EgSurfaceAltBrush}">
-                        <Border CornerRadius="6">
+                    <Border x:Name="RelatedArtwork" Height="184" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
+                        <Border CornerRadius="{StaticResource EgCornerBadgeCornerRadius}">
                             <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
                         </Border>
                     </Border>
@@ -452,7 +452,7 @@
             </Viewbox>
             <StackPanel Spacing="10" HorizontalAlignment="Center">
                 <TextBlock x:Uid="MoviePilotSubscriptionPage_Localization6" Text="出错啦！" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
-                <Border Width="44" Height="3" Background="{ThemeResource EgAccentBrush}" CornerRadius="2" />
+                <Border Width="44" Height="3" Background="{ThemeResource EgAccentBrush}" CornerRadius="{StaticResource EgProgressCornerRadius}" />
             </StackPanel>
             <TextBlock x:Name="DetailErrorMessage" Text="{x:Bind MediaViewModel.DetailError, Mode=OneWay}"
                 Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
@@ -487,18 +487,18 @@
                             HorizontalAlignment="Left" Background="{ThemeResource EgSurfaceAltBrush}" />
                         <Border Height="36" MaxWidth="320" HorizontalAlignment="Stretch" CornerRadius="{StaticResource EgSearchCornerRadius}"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
-                        <Border Height="14" MaxWidth="180" HorizontalAlignment="Stretch" CornerRadius="4"
+                        <Border Height="14" MaxWidth="180" HorizontalAlignment="Stretch" CornerRadius="{ThemeResource ControlCornerRadius}"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
-                        <Border Height="14" MaxWidth="96" HorizontalAlignment="Stretch" CornerRadius="4"
+                        <Border Height="14" MaxWidth="96" HorizontalAlignment="Stretch" CornerRadius="{ThemeResource ControlCornerRadius}"
                             Background="{ThemeResource EgSurfaceAltBrush}" />
                     </StackPanel>
                 </Grid>
                 <StackPanel Spacing="10">
-                    <Border Height="14" MaxWidth="420" HorizontalAlignment="Left" Width="420" CornerRadius="4"
+                    <Border Height="14" MaxWidth="420" HorizontalAlignment="Left" Width="420" CornerRadius="{ThemeResource ControlCornerRadius}"
                         Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="360" HorizontalAlignment="Left" Width="360" CornerRadius="4"
+                    <Border Height="14" MaxWidth="360" HorizontalAlignment="Left" Width="360" CornerRadius="{ThemeResource ControlCornerRadius}"
                         Background="{ThemeResource EgSurfaceAltBrush}" />
-                    <Border Height="14" MaxWidth="300" HorizontalAlignment="Left" Width="300" CornerRadius="4"
+                    <Border Height="14" MaxWidth="300" HorizontalAlignment="Left" Width="300" CornerRadius="{ThemeResource ControlCornerRadius}"
                         Background="{ThemeResource EgSurfaceAltBrush}" />
                 </StackPanel>
                 <local:WrapRow Spacing="10" RowSpacing="10">

@@ -12,7 +12,7 @@
             </ResourceDictionary.MergedDictionaries>
             <Style x:Key="ResourceTag" TargetType="Border">
                 <Setter Property="Padding" Value="5,2" />
-                <Setter Property="CornerRadius" Value="3" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgResourceTagCornerRadius}" />
                 <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
             </Style>
             <Style x:Key="ResourceTagText" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
@@ -29,13 +29,13 @@
         </Grid.RowDefinitions>
         <StackPanel Spacing="8" Margin="0,0,0,8" Visibility="{x:Bind ViewModel.FiltersVisibility, Mode=OneWay}">
             <TextBlock x:Uid="MoviePilotResourceBrowser_Localization1" Text="资源搜索结果" Style="{StaticResource EgSubheadStyle}" />
-            <Border Padding="10" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8">
+            <Border Padding="10" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgSmallSurfaceCornerRadius}">
                 <local:WrapRow x:Name="FilterToolbar" Spacing="8" RowSpacing="8">
-                    <Border Padding="10,6" CornerRadius="16" Background="{ThemeResource EgAccentBrush}" VerticalAlignment="Center">
+                    <Border Padding="10,6" CornerRadius="{StaticResource EgSegmentedTrackCornerRadius}" Background="{ThemeResource EgAccentBrush}" VerticalAlignment="Center">
                         <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextOnAccentBrush}"
                             Text="{x:Bind ViewModel.CountText, Mode=OneWay}" />
                     </Border>
-                    <DropDownButton x:Name="SortOrder" Height="32" MinWidth="0" Padding="12,4,6,4" CornerRadius="4"
+                    <DropDownButton x:Name="SortOrder" Height="32" MinWidth="0" Padding="12,4,6,4" CornerRadius="{ThemeResource ControlCornerRadius}"
                         Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgTextDimBrush}" BorderThickness="0"
                         VerticalAlignment="Center" AutomationProperties.Name="{x:Bind ViewModel.SortAutomationName, Mode=OneWay}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -85,7 +85,7 @@
                     <!-- 2026-11-22 用户令「参考网页端源码，修改综合筛选，做成弹窗」：网页端的全部筛选是居中弹窗，
                          这里改成按钮 + ContentDialog；弹窗内容见 MoviePilotResourceFilterDialog.xaml。
                          悬停/按下状态钉在强调色柔和底上，避免框架默认的浅色悬停背景把图标衬没。 -->
-                    <Button x:Uid="MoviePilotResourceBrowser_FilterExpander" x:Name="FilterExpander" CornerRadius="16"
+                    <Button x:Uid="MoviePilotResourceBrowser_FilterExpander" x:Name="FilterExpander" CornerRadius="{StaticResource EgSegmentedTrackCornerRadius}"
                         AutomationProperties.Name="综合筛选" Style="{StaticResource EgResourceButtonStyle}" Click="OnAdvancedFilters">
                         <Button.Resources>
                             <ResourceDictionary>
@@ -112,7 +112,7 @@
                                 MaxWidth="220" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </Button>
-                    <Button x:Uid="MoviePilotResourceBrowser_ResetFilters" x:Name="ResetFilters" Content="清除筛选" Padding="10,4" MinHeight="30" CornerRadius="16"
+                    <Button x:Uid="MoviePilotResourceBrowser_ResetFilters" x:Name="ResetFilters" Content="清除筛选" Padding="10,4" MinHeight="30" CornerRadius="{StaticResource EgSegmentedTrackCornerRadius}"
                         Command="{x:Bind ViewModel.ResetCommand}" Visibility="{x:Bind ViewModel.ResetVisibility, Mode=OneWay}" />
                 </local:WrapRow>
             </Border>
@@ -123,14 +123,14 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MoviePilotResourceChoice">
                     <Border x:Name="ActiveFilterTag" Background="{ThemeResource EgAccentSoftBrush}" BorderBrush="{ThemeResource EgAccentMutedBrush}"
-                        BorderThickness="1" CornerRadius="16" Padding="10,0,2,0">
+                        BorderThickness="1" CornerRadius="{StaticResource EgSegmentedTrackCornerRadius}" Padding="10,0,2,0">
                         <Grid ColumnSpacing="4">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBlock Text="{x:Bind FilterLabel}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}"
                                 VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="220" />
                             <Button x:Name="RemoveFilter" Grid.Column="1" Command="{x:Bind RemoveCommand}"
                                 AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="{x:Bind RemoveName}"
-                                CornerRadius="14" Padding="6" MinWidth="28" MinHeight="28"
+                                CornerRadius="{StaticResource EgPill28CornerRadius}" Padding="6" MinWidth="28" MinHeight="28"
                                 Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgAccentBrush}"
                                 BorderThickness="0" UseSystemFocusVisuals="True">
                                 <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgCaptionFontSize}" />
@@ -154,7 +154,7 @@
                     <DataTemplate x:DataType="vm:MoviePilotResourceRow">
                         <ItemContainer AutomationProperties.Name="{x:Bind CardAutomationName, Mode=OneWay}"
                             AutomationProperties.HelpText="{x:Bind CardHint, Mode=OneWay}">
-                            <Grid x:Name="ResourceCard" Height="364" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8"
+                            <Grid x:Name="ResourceCard" Height="364" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource EgSmallSurfaceCornerRadius}"
                                 ToolTipService.ToolTip="{x:Bind CardHint, Mode=OneWay}">
                                 <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid Padding="14,14,14,8" RowSpacing="6">
@@ -189,13 +189,13 @@
                                     <TextBlock Grid.Row="7" Text="{x:Bind LabelsText}" Style="{StaticResource EgCaptionStyle}" MaxLines="1" TextTrimming="CharacterEllipsis"
                                         Foreground="{ThemeResource EgAccentBrush}" Visibility="{x:Bind LabelsVisibility}" />
                                 </Grid>
-                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Padding="7,3" CornerRadius="0,8,0,5"
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Padding="7,3" CornerRadius="{StaticResource EgResourcePromotionCornerRadius}"
                                     Background="{ThemeResource EgWarningBrush}" Visibility="{x:Bind PromotionVisibility}" ToolTipService.ToolTip="{x:Bind PromotionText}">
                                     <TextBlock Text="{x:Bind PromotionBadge}" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold" Foreground="{ThemeResource EgTextOnAccentBrush}" />
                                 </Border>
                                 <!-- 已加入下载：整圈强调色，和网页端「已下载」的绿框同一个意思；只是读的状态，不接指针。 -->
                                 <Border BorderBrush="{ThemeResource EgAccentBrush}" BorderThickness="{StaticResource EgOutlineThickness}"
-                                    CornerRadius="8" IsHitTestVisible="False" Visibility="{x:Bind SubmittedVisibility, Mode=OneWay}" />
+                                    CornerRadius="{StaticResource EgSmallSurfaceCornerRadius}" IsHitTestVisible="False" Visibility="{x:Bind SubmittedVisibility, Mode=OneWay}" />
                                 <Grid Grid.Row="1" Padding="12,8" ColumnSpacing="8" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource EgBorderBrush}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />

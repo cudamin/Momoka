@@ -262,6 +262,24 @@ internal static class MicaMaterialTests
                 Entry(dictionaries["HighContrast"], "EgDetailContentLayerBrush").Attribute("Color")?.Value,
                 "高对比度不能使用系统层色的占位 Color，必须使用系统窗口色");
         });
+
+        Test("媒体详情：保留徽标、艺术图和底部横幅的直角", () =>
+        {
+            var page = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "DetailPage.xaml"));
+            var storeArt = Named(page, "StoreArt");
+            var presentation = storeArt.Name.Namespace;
+            Assert.Equal("{StaticResource EgBleedCornerRadius}", storeArt.Attribute("CornerRadius")?.Value);
+            Assert.Equal("{x:Bind ViewModel.CornerImage, Mode=OneWay}",
+                storeArt.Descendants(presentation + "ImageBrush").Single().Attribute("ImageSource")?.Value);
+
+            foreach (var name in new[] { "TitlePlate", "CornerArt", "FooterBanner" })
+            {
+                var image = Named(page, name);
+                Assert.Equal(presentation + "Image", image.Name);
+                Assert.True(image.Attribute("Clip") is null && image.Element(presentation + "Image.Clip") is null,
+                    $"{name} 应保留原图形状");
+            }
+        });
     }
 
     private static XDocument Palette() =>

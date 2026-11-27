@@ -79,7 +79,7 @@
                                     <Button x:Name="PickEpisodeGroup" Width="168" Padding="0" Command="{x:Bind SwitchCommand}"
                                         Style="{StaticResource EgArtworkTileStyle}" AutomationProperties.Name="{x:Bind SwitchName}">
                                         <Grid MinHeight="44">
-                                            <Border Background="{ThemeResource EgAccentMutedBrush}" CornerRadius="8" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
+                                            <Border Background="{ThemeResource EgAccentMutedBrush}" CornerRadius="{StaticResource EgListRowCornerRadius}" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
                                             <StackPanel Orientation="Horizontal" Padding="10,7" Spacing="8">
                                                 <FontIcon Glyph="{x:Bind PickerGlyph}" FontSize="{StaticResource EgBodyFontSize}" Foreground="{x:Bind PickerBrush}" />
                                                 <StackPanel Width="118" Spacing="1">
@@ -87,7 +87,7 @@
                                                     <TextBlock Text="{x:Bind PickerSummary}" Style="{StaticResource EgCaptionStyle}" Foreground="{x:Bind PickerBrush}" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
                                             </StackPanel>
-                                            <Border Style="{StaticResource EgFrameActiveStyle}" CornerRadius="8" Background="Transparent" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
+                                            <Border Style="{StaticResource EgFrameActiveStyle}" CornerRadius="{StaticResource EgListRowCornerRadius}" Background="Transparent" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
                                         </Grid>
                                     </Button>
                                 </DataTemplate>
@@ -127,13 +127,13 @@
                                         IsEnabled="{x:Bind Editable, Mode=OneWay}" AutomationProperties.Name="{x:Bind PickerTitle}">
                                         <Grid ColumnSpacing="10">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                            <Border Width="58" Height="87" CornerRadius="4" VerticalAlignment="Top" Background="{ThemeResource EgSurfaceAltBrush}">
+                                            <Border Width="58" Height="87" CornerRadius="{ThemeResource ControlCornerRadius}" VerticalAlignment="Top" Background="{ThemeResource EgSurfaceAltBrush}">
                                                 <Image Source="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.Name="{x:Bind PickerTitle}" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Top">
                                                 <TextBlock Text="{x:Bind PickerTitle}" Style="{StaticResource EgBodyStyle}" Foreground="{x:Bind PickerTitleBrush, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                 <local:WrapRow Spacing="10" RowSpacing="3">
-                                                    <Border Padding="6,1" CornerRadius="9" Background="{ThemeResource EgAccentMutedBrush}" VerticalAlignment="Center" Visibility="{x:Bind RatingVisibility}">
+                                                    <Border Padding="6,1" CornerRadius="{StaticResource EgRatingBadgeCornerRadius}" Background="{ThemeResource EgAccentMutedBrush}" VerticalAlignment="Center" Visibility="{x:Bind RatingVisibility}">
                                                         <TextBlock Text="{x:Bind RatingText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" FontWeight="SemiBold" />
                                                     </Border>
                                                     <Grid ColumnSpacing="4" VerticalAlignment="Center" Visibility="{x:Bind AirDateVisibility}">
@@ -147,10 +147,10 @@
                                                     </StackPanel>
                                                 </local:WrapRow>
                                                 <local:WrapRow Spacing="6" RowSpacing="3">
-                                                    <Border Padding="6,1" CornerRadius="9" Background="{ThemeResource EgSurfaceAltBrush}">
+                                                    <Border Padding="6,1" CornerRadius="{StaticResource EgRatingBadgeCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
                                                         <TextBlock Text="{x:Bind Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{x:Bind StatusBrush, Mode=OneWay}" />
                                                     </Border>
-                                                    <Border Padding="6,1" CornerRadius="9" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind SubscriptionVisibility, Mode=OneWay}">
+                                                    <Border Padding="6,1" CornerRadius="{StaticResource EgRatingBadgeCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind SubscriptionVisibility, Mode=OneWay}">
                                                         <TextBlock x:Uid="MoviePilotSeasonPicker_Localization4" Text="已订阅" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgDangerBrush}" />
                                                     </Border>
                                                 </local:WrapRow>

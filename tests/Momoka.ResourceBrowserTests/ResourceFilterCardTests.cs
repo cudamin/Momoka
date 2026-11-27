@@ -424,7 +424,7 @@ internal static class ResourceFilterCardTests
             }
             var canonical = string.Concat(structure.ToString(SaveOptions.DisableFormatting).Where(character => !char.IsWhiteSpace(character)));
             Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Named(xml, "ResourceCard").Attribute("Background")?.Value);
-            Assert.Equal("D51477DBB1D37698A365639A4E3B759A5FE349CF3EA5AA4C36E63753CC1BB82E", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
+            Assert.Equal("6E659467B05107E6CAB68B3950CDC498C44DE263107DF19FDD4EDAB29E1ADEB0", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
         });
         foreach (var width in new[] { 240d, 280d })
         {

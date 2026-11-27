@@ -153,10 +153,11 @@ internal static class AniBtResourceLayoutTests
             Assert.Equal("{x:Bind DownloadLabel, Mode=OneWay}", download.Attribute("ToolTipService.ToolTip")?.Value);
             Assert.Equal("{x:Bind DownloadAutomationName, Mode=OneWay}", download.Attribute("AutomationProperties.Name")?.Value);
             var style = xml.Descendants().Single(node => node.Attribute(x + "Key")?.Value == "ReleaseActionButtonStyle");
-            double Value(string name) => double.Parse(style.Elements().Single(node => node.Attribute("Property")?.Value == name)
-                .Attribute("Value")!.Value, CultureInfo.InvariantCulture);
+            string SetterValue(string name) => style.Elements().Single(node => node.Attribute("Property")?.Value == name)
+                .Attribute("Value")!.Value;
+            double Value(string name) => double.Parse(SetterValue(name), CultureInfo.InvariantCulture);
             Assert.Equal(Value("Width"), Value("Height"));
-            Assert.True(Value("CornerRadius") > 0 && Value("CornerRadius") < Value("Width") / 2);
+            Assert.Equal("{StaticResource EgListRowCornerRadius}", SetterValue("CornerRadius"));
         });
 
         Test("AniBT 删除 RSS、二次文本筛选及四项资源筛选，保留分组列表", () =>

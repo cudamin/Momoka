@@ -36,7 +36,7 @@ internal static class PlayerInteractionTests
             Assert.Equal("7.5", row.Attribute("Spacing")?.Value);
             Assert.Equal("FontIcon,TextBlock", string.Join(',', row.Elements().Select(element => element.Name.LocalName)));
             Assert.Equal("18,21", button.Attribute("Padding")?.Value);
-            Assert.Equal("2", button.Attribute("CornerRadius")?.Value);
+            Assert.Equal("{StaticResource EgPlayerControlCornerRadius}", button.Attribute("CornerRadius")?.Value);
             Assert.Equal("Bold", row.Elements().Last().Attribute("FontWeight")?.Value);
             Assert.False(button.Descendants().Any(element => element.Name.LocalName == "ProgressBar"));
             Assert.False(button.Descendants().Any(element => element.Attributes().Any(attribute => attribute.Value.Contains("SkipTip", StringComparison.Ordinal))));

@@ -244,7 +244,7 @@ internal static class SearchCompactMergeTests
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
             Named(xml, "SourceTabs").Descendants().Single(node => node.Name.LocalName == "Setter"
-                && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16")
+                && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "{StaticResource EgSegmentedTrackCornerRadius}")
                 .SetAttributeValue("Value", "0");
             Assert.Throws<AssertionException>(() => CheckSearchCapsules(xml));
         });
@@ -324,9 +324,9 @@ internal static class SearchCompactMergeTests
         Assert.Equal("{StaticResource EgSearchCornerRadius}", input.Attribute("CornerRadius")?.Value);
         var tabs = Named(xml, "SourceTabs");
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
-            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16"));
+            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "{StaticResource EgSegmentedTrackCornerRadius}"));
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
-            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "12"));
+            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "{StaticResource EgSegmentedItemCornerRadius}"));
     }
 
     /// <summary>

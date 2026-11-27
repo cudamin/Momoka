@@ -103,7 +103,9 @@ public sealed partial class MusicPlayerBar : UserControl
         BarGrid.RowSpacing = narrow ? 8 : 0;
         BarGrid.Margin = new Thickness(narrow ? 6 : 12, 8, narrow ? 6 : 12, 8);
         // 正常窗宽两端保持半圆；两行窄窗用24圆角，避免切掉边缘按钮。
-        Surface.CornerRadius = new CornerRadius(narrow ? 24 : args.NewSize.Height / 2);
+        Surface.CornerRadius = narrow
+            ? (CornerRadius)Application.Current.Resources["EgMusicBarCompactCornerRadius"]
+            : new CornerRadius(args.NewSize.Height / 2);
         SurfaceGlass.CornerRadius = Surface.CornerRadius;
         Grid.SetColumn(TrackInfo, narrow ? 0 : 2);
         Grid.SetColumnSpan(TrackInfo, narrow ? 4 : 1);

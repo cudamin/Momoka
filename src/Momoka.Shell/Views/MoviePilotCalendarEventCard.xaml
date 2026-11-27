@@ -25,7 +25,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Border x:Name="PosterFrame" Width="56" Height="84" VerticalAlignment="Top" HorizontalAlignment="Left"
-                CornerRadius="4" Background="{ThemeResource EgSurfaceAltBrush}">
+                CornerRadius="{ThemeResource ControlCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
                 <Grid>
                     <FontIcon x:Name="PosterPlaceholder" Glyph="&#xE8B2;" FontSize="{StaticResource EgBodyFontSize}"
                         Foreground="{ThemeResource EgTextDimBrush}" AutomationProperties.AccessibilityView="Raw" />

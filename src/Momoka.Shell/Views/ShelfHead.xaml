@@ -12,7 +12,7 @@
     <UserControl.Resources>
         <Style x:Key="ShelfNoteStyle" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPill28CornerRadius}" />
             <Setter Property="Padding" Value="10,4" />
         </Style>
 
@@ -31,7 +31,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Grid x:Name="ScopeChrome" Background="Transparent" CornerRadius="4">
+                        <Grid x:Name="ScopeChrome" Background="Transparent" CornerRadius="{ThemeResource ControlCornerRadius}">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
                                     <VisualState x:Name="Normal" />
@@ -83,7 +83,7 @@
                     Width="3"
                     Height="20"
                     Background="{ThemeResource EgAccentBrush}"
-                    CornerRadius="2"
+                    CornerRadius="{StaticResource EgProgressCornerRadius}"
                     VerticalAlignment="Center" />
                 <!-- 标题和它自己的下划线。下划线用 Opacity 显隐而不是 Visibility —— Collapsed 会在悬停的一瞬间
                      把整条牌子撑高又缩回去，通栏线跟着跳；Opacity 0 的元素照旧占位，出现了也不动布局。 -->
@@ -102,7 +102,7 @@
                         Margin="0,2,0,0"
                         Opacity="0"
                         Background="{ThemeResource EgAccentBrush}"
-                        CornerRadius="1" />
+                        CornerRadius="{StaticResource EgHairlineCornerRadius}" />
                 </StackPanel>
                 <Border
                     x:Name="NoteCapsule"

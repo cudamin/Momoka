@@ -55,7 +55,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="MinHeight" Value="0" />
             <Setter Property="Padding" Value="12,4,8,4" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
@@ -258,7 +258,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="UseSystemFocusVisuals" Value="True" />
             <Setter Property="FocusVisualMargin" Value="-3" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBoxItem">
@@ -961,7 +961,7 @@
                                 Background="{x:Bind Swatch, Mode=OneWay}"
                                 BorderBrush="{ThemeResource EgBorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="4"
+                                CornerRadius="{ThemeResource ControlCornerRadius}"
                                 Height="30"
                                 Padding="0"
                                 Width="56">
@@ -1271,6 +1271,7 @@
                         </StackPanel>
                         <DropDownButton
                             AutomationProperties.Name="{x:Bind DisplayLabel}"
+                            CornerRadius="{StaticResource EgSearchCornerRadius}"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left">
@@ -1631,7 +1632,7 @@
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
                     <Button x:Uid="SettingsPage_SettingsSearchButton" x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
-                        HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" CornerRadius="8" IsTabStop="False"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" CornerRadius="{ThemeResource ControlCornerRadius}" IsTabStop="False"
                         Background="Transparent" BorderThickness="0" AutomationProperties.Name="搜索设置项"
                         Click="OnSettingsSearchClick">
                         <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgBodyFontSize}"

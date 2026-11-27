@@ -459,7 +459,7 @@ internal static class StoreDetailLayoutTests
                 Source("ViewModels/DetailViewModel.cs"));
             // 商店简介的左内边距是 0，而 EgBodyPanelStyle 带 16 的圆角；圆角留着会把第一个字的左上角剪掉
             // （2026-11-15 用户报「剧情说明第一个字的左上角少了一点」）。这块本来就不画底和框，圆角归零。
-            Assert.Equal("0", (string?)overview.Attribute("CornerRadius"));
+            Assert.Equal("{StaticResource EgBleedCornerRadius}", (string?)overview.Attribute("CornerRadius"));
             var store = Source("Views/DetailPage.Store.cs");
             Assert.Contains("StoreHeroDetails.Children.Insert(0, OverviewPanel);", store);
             Assert.Contains("StoreHeroDetails.Children.Add(FileOptions);", store);

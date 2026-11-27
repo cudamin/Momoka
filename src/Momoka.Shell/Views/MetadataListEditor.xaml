@@ -13,7 +13,7 @@
                 <ComboBox x:Uid="MetadataListEditor_EntryTypeBox" x:Name="EntryTypeBox" Header="人物类型" HorizontalAlignment="Stretch" />
                 <InfoBar x:Name="DraftProblem" IsClosable="False" IsOpen="False" Severity="Error" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button x:Uid="MetadataListEditor_ApplyEntryButton" x:Name="ApplyEntryButton" Content="确定" Click="OnApplyEntry" Style="{StaticResource EgPrimaryButtonStyle}" />
+                    <Button x:Uid="MetadataListEditor_ApplyEntryButton" x:Name="ApplyEntryButton" Content="确定" Click="OnApplyEntry" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgPrimaryButtonStyle}" />
                     <Button x:Uid="MetadataListEditor_CancelEntryButton" x:Name="CancelEntryButton" Content="取消" Click="OnCancelEntry" />
                 </StackPanel>
             </StackPanel>
@@ -58,11 +58,11 @@
                                 Visibility="{x:Bind DescriptionVisibility}" />
                         </StackPanel>
                         <Button x:Uid="MetadataListEditor_EditEntry" x:Name="EditEntry" Grid.Column="1" Tag="{x:Bind}" Click="OnEdit"
-                            Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="编辑此项" ToolTipService.ToolTip="编辑">
+                            CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="编辑此项" ToolTipService.ToolTip="编辑">
                             <FontIcon Glyph="&#xE70F;" />
                         </Button>
                         <Button x:Uid="MetadataListEditor_RemoveEntry" x:Name="RemoveEntry" Grid.Column="2" Tag="{x:Bind}" Click="OnRemove"
-                            Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="移除此项" ToolTipService.ToolTip="移除">
+                            CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="移除此项" ToolTipService.ToolTip="移除">
                             <FontIcon Glyph="&#xE738;" />
                         </Button>
                         <FontIcon x:Uid="MetadataListEditor_Localization1" Grid.Column="3" Glyph="&#xE700;" VerticalAlignment="Center"

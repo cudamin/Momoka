@@ -13,7 +13,7 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
-            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgOverlayPlayCornerRadius}" />
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />

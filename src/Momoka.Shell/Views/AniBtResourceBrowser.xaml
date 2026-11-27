@@ -15,7 +15,7 @@
                 <Setter Property="MinWidth" Value="36" />
                 <Setter Property="MinHeight" Value="36" />
                 <Setter Property="Padding" Value="0" />
-                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgListRowCornerRadius}" />
             </Style>
             <DataTemplate x:Key="ReleaseTemplate" x:DataType="vm:AniBtResourceRow">
                 <Grid x:Name="ReleaseRow" Padding="0,6" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
@@ -25,10 +25,10 @@
                             TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
                         <local:WrapRow Spacing="8" RowSpacing="6">
                             <TextBlock Text="{x:Bind EpisodeText}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-                            <Border Padding="5,2" CornerRadius="3" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind ResolutionVisibility}">
+                            <Border Padding="5,2" CornerRadius="{StaticResource EgResourceTagCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind ResolutionVisibility}">
                                 <TextBlock Text="{x:Bind ResolutionText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgInfoBrush}" />
                             </Border>
-                            <Border Padding="5,2" CornerRadius="3" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind LanguageVisibility}">
+                            <Border Padding="5,2" CornerRadius="{StaticResource EgResourceTagCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind LanguageVisibility}">
                                 <TextBlock Text="{x:Bind LanguageText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
                             </Border>
                             <TextBlock Text="{x:Bind TechnicalText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
@@ -100,7 +100,7 @@
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="vm:AniBtProgressCell">
                                         <Grid ToolTipService.ToolTip="{x:Bind Description}" AutomationProperties.Name="{x:Bind Description}">
-                                            <Border Height="5" VerticalAlignment="Bottom" Background="{ThemeResource EgAccentBrush}" Opacity="{x:Bind FillOpacity}" CornerRadius="2" />
+                                            <Border Height="5" VerticalAlignment="Bottom" Background="{ThemeResource EgAccentBrush}" Opacity="{x:Bind FillOpacity}" CornerRadius="{StaticResource EgProgressCornerRadius}" />
                                             <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
                                                 HorizontalAlignment="Center" Margin="0,0,0,9" />
                                         </Grid>

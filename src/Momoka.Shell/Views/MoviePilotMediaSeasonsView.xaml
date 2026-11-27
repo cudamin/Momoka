@@ -81,7 +81,7 @@
                                 <StackPanel VerticalAlignment="Center">
                                     <local:WrapRow Spacing="8" RowSpacing="4">
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="8" Padding="8,2">
+                                        <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="{StaticResource EgSmallMediaOverlayBadgeCornerRadius}" Padding="8,2">
                                             <TextBlock Text="{x:Bind EpisodeCountLabel}" Style="{StaticResource EgDataStyle}" />
                                         </Border>
                                     </local:WrapRow>
@@ -125,7 +125,7 @@
                                                     <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
                                                         <local:WrapRow Spacing="8" RowSpacing="4">
                                                             <TextBlock Text="{x:Bind RowTitle}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                                            <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="6" Padding="6,2" Visibility="{x:Bind AirDateVisibility}">
+                                                            <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Padding="6,2" Visibility="{x:Bind AirDateVisibility}">
                                                                 <TextBlock Text="{x:Bind AirDateLabel}" Style="{StaticResource EgDataStyle}" />
                                                             </Border>
                                                             <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
@@ -161,7 +161,7 @@
                                             <Grid SizeChanged="OnEpisodeSizeChanged" MinHeight="32">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                <Border Width="144" Height="81" CornerRadius="4" Margin="0,0,16,0" VerticalAlignment="Top" Visibility="{x:Bind ArtworkVisibility, Mode=OneWay}">
+                                                <Border Width="144" Height="81" CornerRadius="{ThemeResource ControlCornerRadius}" Margin="0,0,16,0" VerticalAlignment="Top" Visibility="{x:Bind ArtworkVisibility, Mode=OneWay}">
                                                     <Border.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">

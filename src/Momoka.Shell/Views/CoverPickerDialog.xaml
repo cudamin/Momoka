@@ -54,7 +54,7 @@
             TextWrapping="Wrap"
             Visibility="Collapsed" />
         <Button x:Uid="CoverPickerDialog_RetryArtworkSearch" x:Name="RetryArtworkSearch" Content="重新搜索" Click="OnRetrySearch" Visibility="Collapsed"
-            Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.AutomationId="RetryArtworkSearch" />
+            CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.AutomationId="RetryArtworkSearch" />
 
         <GridView
             x:Name="Grid"
@@ -95,7 +95,7 @@
                         <Grid Height="40" Visibility="{x:Bind PreviewVisibility}">
                             <Button x:Uid="CoverPickerDialog_Localization1" Click="OnRetry" Content="重试预览" Tag="{x:Bind}"
                                 AutomationProperties.AutomationId="RetryArtworkPreview"
-                                Style="{StaticResource EgSecondaryButtonStyle}"
+                                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}"
                                 Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
                         </Grid>
                     </StackPanel>
@@ -106,13 +106,13 @@
         <TextBlock x:Name="PreviewNotice" Style="{StaticResource EgDataStyle}"
             TextWrapping="Wrap" Visibility="Collapsed" />
         <Button x:Uid="CoverPickerDialog_RetryArtworkPreviews" x:Name="RetryArtworkPreviews" Click="OnRetry" Content="重试预览"
-            Style="{StaticResource EgSecondaryButtonStyle}" Visibility="Collapsed" />
+            CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}" Visibility="Collapsed" />
 
         <!-- 这一条路和上面那些候选是同一件事的两个答案，所以摆在同一张表里。 -->
         <Button
             x:Name="UploadArtworkButton"
             Click="OnUpload"
-            Style="{StaticResource EgSecondaryButtonStyle}">
+            CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
                 <FontIcon FontSize="14" Glyph="&#xE710;" />
                 <TextBlock x:Uid="CoverPickerDialog_Localization2" Style="{StaticResource EgBodyStyle}" Text="从本机传一张…" />

@@ -86,7 +86,7 @@
             </Canvas>
 
             <!-- 当前颜色的那一长条，底下压着颜色代码。 -->
-            <Border x:Name="PreviewBlock" Height="20" CornerRadius="4" BorderThickness="1" BorderBrush="{ThemeResource EgBorderBrush}" />
+            <Border x:Name="PreviewBlock" Height="20" CornerRadius="{ThemeResource ControlCornerRadius}" BorderThickness="1" BorderBrush="{ThemeResource EgBorderBrush}" />
 
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock
@@ -117,7 +117,7 @@
                 Background="Transparent"
                 BorderBrush="{ThemeResource EgTextBrush}"
                 BorderThickness="2"
-                CornerRadius="2" />
+                CornerRadius="{StaticResource EgProgressCornerRadius}" />
         </Canvas>
 
         <StackPanel Grid.Column="2" Spacing="8">

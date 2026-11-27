@@ -69,7 +69,7 @@
                 <WebView2 x:Name="Web" />
                 <StackPanel x:Name="NoticePanel" Margin="32" MaxWidth="520" HorizontalAlignment="Center"
                     VerticalAlignment="Center" Spacing="20" Visibility="Collapsed">
-                    <Border Width="72" Height="72" CornerRadius="24" Background="{ThemeResource EgAccentSoftBrush}">
+                    <Border Width="72" Height="72" CornerRadius="{StaticResource EgStatusIconCornerRadius}" Background="{ThemeResource EgAccentSoftBrush}">
                         <FontIcon Glyph="&#xE774;" FontSize="32" Foreground="{ThemeResource EgAccentBrush}" />
                     </Border>
                     <TextBlock x:Name="Notice" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"

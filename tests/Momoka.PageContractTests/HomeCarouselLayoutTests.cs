@@ -194,7 +194,7 @@ internal static class HomeCarouselLayoutTests
             var round = banner.Descendants().Single(element => (string?)element.Attribute(X + "Key") == "EgBannerPageRoundStyle");
             Assert.Equal("30", (string?)round.Elements().Single(element => element.Name.LocalName == "Setter"
                 && (string?)element.Attribute("Property") == "Width").Attribute("Value"));
-            Assert.Equal("15", (string?)round.Elements().Single(element => element.Name.LocalName == "Setter"
+            Assert.Equal("{StaticResource EgPill30CornerRadius}", (string?)round.Elements().Single(element => element.Name.LocalName == "Setter"
                 && (string?)element.Attribute("Property") == "CornerRadius").Attribute("Value"));
             Assert.NotNull(host);
 
@@ -263,13 +263,14 @@ internal static class HomeCarouselLayoutTests
             var host = banner.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "PictureHost");
             var clip = host.Descendants().Single(element => (string?)element.Attribute(X + "Name") == "PictureClip");
             Assert.Equal("1", (string?)clip.Attribute("Margin"));
-            Assert.Equal("15", (string?)clip.Attribute("CornerRadius"));
+            Assert.Null(clip.Attribute("CornerRadius"));
             Assert.NotNull(clip.Attribute("Background"));
             foreach (var layer in new[] { "LayerA", "LayerB" })
                 Assert.True(clip.Descendants().Any(element => (string?)element.Attribute(X + "Name") == layer),
                     layer + " 不在剧照自己的圆角层里");
 
             var code = Source("Momoka.Shell/Views/HomeBanner.xaml.cs");
+            Assert.Contains("SetCardCornerRadius((CornerRadius)Application.Current.Resources[\"EgCardCornerRadius\"]);", code);
             Assert.Contains("PictureClip.CornerRadius = inner", code);
             Assert.Contains("PictureClip.Margin = inset", code);
             Assert.Contains("var inset = PictureClip.Margin.Left;", code);

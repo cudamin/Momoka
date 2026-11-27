@@ -136,7 +136,7 @@
                 <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
                     <Setter Property="Background" Value="Transparent" />
                     <Setter Property="BorderThickness" Value="0" />
-                    <Setter Property="CornerRadius" Value="8" />
+                    <Setter Property="CornerRadius" Value="{StaticResource EgChromeButtonCornerRadius}" />
                     <!-- 2026-11-13 用户令「参考 codex 窗口边框的宽度和高度」：标题栏 40→48、侧栏 48→56，
                          托盘跟着长到 40×40（和栏里那些按钮同一块方格），图标 26→28，从标题栏顶下 4 起，
                          上下各留 4、底边正好落在 48 的下沿。 -->
@@ -824,7 +824,7 @@
             VerticalAlignment="Top"
             Margin="0,60,0,0"
             MaxWidth="560"
-            CornerRadius="16"
+            CornerRadius="{StaticResource EgCardCornerRadius}"
             IsClosable="True"
             IsOpen="False" />
     </Grid>

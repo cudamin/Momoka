@@ -17,6 +17,19 @@ internal static class HomeChromeTests
 
     public static void Register()
     {
+        Test("主页轮播：播放使用媒体操作圆角，保留强调样式和点击入口", () =>
+        {
+            var root = Path.Combine(Root(), "src", "Momoka.Shell");
+            var banner = XDocument.Load(Path.Combine(root, "Views", "HomeBanner.xaml"));
+            var button = Named(banner, "PlayButton");
+            Assert.Equal("{StaticResource EgBannerPlayStyle}", button.Attribute("Style")?.Value);
+            Assert.Equal("OnPlayClicked", button.Attribute("Click")?.Value);
+            var style = banner.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgBannerPlayStyle");
+            Assert.Equal("{StaticResource AccentButtonStyle}", style.Attribute("BasedOn")?.Value);
+            Assert.Equal("{StaticResource EgMediaActionCornerRadius}", style.Elements()
+                .Single(setter => setter.Attribute("Property")?.Value == "CornerRadius").Attribute("Value")?.Value);
+        });
+
         Test("主页轮播：默认商店圆角留白，沉浸恢复通栏且外沿没有光晕或卡片圈", () =>
         {
             var page = HomePage();

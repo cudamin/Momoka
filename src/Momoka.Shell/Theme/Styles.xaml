@@ -86,38 +86,58 @@
 
     <!-- ============================ 几何 ============================ -->
 
-    <!-- 你会去点的面板：设置卡片、账号那一块、对话框、浮出菜单。留着圆角，手感上它还是个 Windows 应用。 -->
-    <CornerRadius x:Key="EgCardCornerRadius">16</CornerRadius>
-
-    <!--
-      同一档圆角，给「一块板要分两截画」的那一处（集页整段上方那块大面板：上截贴在头图那一格里、下截贴在
-      尾部那一格，两截各自只有外侧两个角）。这两个键里的 16 必须和上面那个一样 —— XAML 里没有「取一个
-      CornerRadius 的前两个角」这种写法，所以是抄一份数而不是引用一份，改圆角要三处一起改。
-    -->
-    <CornerRadius x:Key="EgCardCornerRadiusTop">16,16,0,0</CornerRadius>
-    <CornerRadius x:Key="EgCardCornerRadiusBottom">0,0,16,16</CornerRadius>
-
-    <!--
-      封面的圆角（「把封面改成圆角的」）：海报、剧照、单集缩略图那一格，也就是 EgFrameStyle 和详情页头部
-      那张海报。8 和上面那个面板的圆角同一个数 —— 整套界面只有这一档圆角，两个键是为了以后能各自改。
-      在这之前它是 0：胶片格本来是方的，一墙密排的海报靠直角读得清。现在照用户说的走，圆角回来了。
-      圆角只有 Border 剪得动 —— Border 会按自己的 CornerRadius 裁掉孩子，Grid 和 Panel 只是把自己的底色
-      和框线画圆，孩子照旧方着。所以凡是「里面那张图自己铺到四边」的块，用下面那个 0，见那条说明。
-    -->
-    <CornerRadius x:Key="EgPosterCornerRadius">12</CornerRadius>
-
-    <!--
-      还是方的那几块：设置里那六块色板。它们的共同点不是「大」，是**里面的东西自己画到边而外面那层剪不动它**：
-      那一处外面是 Button，圆角只会让底色缩进去、露出孩子的直角。
-      （主页那条通栏轮播从前也在这里 —— 它四边就是窗口的边和侧边栏那道竖线；2026-09-10「弄个框把轮播图框起来
-      （圆角）」之后它换成了自己的 EgFrame 圆角框（HomeBanner.xaml 里 Frame 那一段），不再用这个键。）
-    -->
+    <!-- 界面圆角集中在这里。按用途改共享值，原生控件和浮层分别读取两个 WinUI 资源。 -->
+    <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="OverlayCornerRadius">8</CornerRadius>
     <CornerRadius x:Key="EgBleedCornerRadius">0</CornerRadius>
 
-    <!-- 所有输入框统一使用用户截图中搜索框的圆角。保留平台模板、颜色与输入行为；
-         旧的详情/设置键作为别名，避免不同页面再次各自定义同一档几何。 -->
-    <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
+    <!-- 卡片、对话框、封面和列表容器。详情卡片的拼接轮廓由完整卡片圆角派生。 -->
+    <CornerRadius x:Key="EgCardCornerRadius">16</CornerRadius>
+    <CornerRadius x:Key="EgPosterCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="EgSmallArtworkCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="EgLargeArtworkCornerRadius">24</CornerRadius>
+    <CornerRadius x:Key="EgLibraryCoverTileCornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="EgSmallSurfaceCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="EgListRowCornerRadius">8</CornerRadius>
     <CornerRadius x:Key="EgPickerCornerRadius">12</CornerRadius>
+
+    <!-- 输入、操作和分段选择。输入和媒体操作各自是可独立调整的一组。 -->
+    <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="EgMediaActionCornerRadius">16</CornerRadius>
+    <CornerRadius x:Key="EgSmallActionCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="EgChromeButtonCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="EgPrimaryActionCornerRadius">22</CornerRadius>
+    <CornerRadius x:Key="EgSecondaryActionCornerRadius">20</CornerRadius>
+    <CornerRadius x:Key="EgIconButtonCornerRadius">20</CornerRadius>
+    <CornerRadius x:Key="EgOverlayPlayCornerRadius">24</CornerRadius>
+    <CornerRadius x:Key="EgSegmentedTrackCornerRadius">16</CornerRadius>
+    <CornerRadius x:Key="EgSegmentedItemCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="EgPill28CornerRadius">14</CornerRadius>
+    <CornerRadius x:Key="EgPill30CornerRadius">15</CornerRadius>
+    <CornerRadius x:Key="EgPill34CornerRadius">17</CornerRadius>
+    <CornerRadius x:Key="EgPill36CornerRadius">18</CornerRadius>
+
+    <!-- 播放器、进度条和按内容形状定制的徽标。 -->
+    <CornerRadius x:Key="EgPlayerControlCornerRadius">2</CornerRadius>
+    <CornerRadius x:Key="EgSpeedWheelCornerRadius">20</CornerRadius>
+    <CornerRadius x:Key="EgSpeedWheelSelectionCornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="EgMusicBarCornerRadius">36</CornerRadius>
+    <CornerRadius x:Key="EgMusicBarCompactCornerRadius">24</CornerRadius>
+    <CornerRadius x:Key="EgMusicTransportCornerRadius">28</CornerRadius>
+    <CornerRadius x:Key="EgMusicSliderThumbCornerRadius">7</CornerRadius>
+    <CornerRadius x:Key="EgThinAccentCornerRadius">1.5</CornerRadius>
+    <CornerRadius x:Key="EgHairlineCornerRadius">1</CornerRadius>
+    <CornerRadius x:Key="EgProgressCornerRadius">2</CornerRadius>
+    <CornerRadius x:Key="EgAlphaIndicatorCornerRadius">13</CornerRadius>
+    <CornerRadius x:Key="EgAlphaIndicatorCompactCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="EgArtworkBadgeCornerRadius">5</CornerRadius>
+    <CornerRadius x:Key="EgCornerBadgeCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="EgMediaOverlayBadgeCornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="EgSmallMediaOverlayBadgeCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="EgRatingBadgeCornerRadius">9</CornerRadius>
+    <CornerRadius x:Key="EgResourceTagCornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="EgResourcePromotionCornerRadius">0,8,0,5</CornerRadius>
+    <CornerRadius x:Key="EgStatusIconCornerRadius">24</CornerRadius>
 
     <!-- 详情文件选项的行高，纯文字与选择框共用。DetailPage 同步选择框内边距及箭头的
          ComboBoxMinHeight；保留 MinHeight 让长文字仍能换行。探针核对实际控件高度与两种音轨状态的间距。
@@ -144,6 +164,9 @@
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>
     <Style TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}" />
+    <Style x:Key="EgSelectionItemStyle" TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
+    </Style>
     <Style TargetType="AutoSuggestBox" BasedOn="{StaticResource DefaultAutoSuggestBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>
@@ -284,7 +307,6 @@
       右上角那一角同时在框的圆角里（EgFrameStyle 按 12 剪孩子，比 6 大），所以那一角实际看的是框的弧，
       另外三个角看这里的 6。数字和对勾共用这一颗，圆角自然也共用。
     -->
-    <CornerRadius x:Key="EgCornerBadgeCornerRadius">6</CornerRadius>
 
     <!-- 看到一半时压在下边框线上的那条进度，2px —— 比发丝线粗一档，才看得出它是「读数」不是「边」。 -->
     <x:Double x:Key="EgProgressThickness">2</x:Double>
@@ -635,14 +657,14 @@
     <!-- 保留系统模板的焦点、键盘和高对比行为，只统一交互表面的尺寸。 -->
     <Style x:Key="EgPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
         <Setter Property="MinHeight" Value="44" />
-        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgPrimaryActionCornerRadius}" />
         <Setter Property="Padding" Value="22,10" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
     <Style x:Key="EgSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
         <Setter Property="MinHeight" Value="40" />
-        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgSecondaryActionCornerRadius}" />
         <Setter Property="Padding" Value="18,8" />
         <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
@@ -659,7 +681,7 @@
     -->
     <Style x:Key="EgPreviewActionButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
         <Setter Property="MinHeight" Value="40" />
-        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
         <Setter Property="Padding" Value="14,8" />
     </Style>
 
@@ -679,26 +701,26 @@
     -->
     <Style x:Key="EgDialogPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
         <Setter Property="MinHeight" Value="32" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
         <Setter Property="Padding" Value="11,5,11,6" />
     </Style>
 
     <Style x:Key="EgSubpagePrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
         <Setter Property="MinHeight" Value="32" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
         <Setter Property="Padding" Value="12,6" />
     </Style>
 
     <Style x:Key="EgDialogSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
         <Setter Property="MinHeight" Value="32" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
         <Setter Property="Padding" Value="11,5,11,6" />
     </Style>
 
     <Style x:Key="EgIconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
         <Setter Property="Width" Value="40" />
         <Setter Property="Height" Value="40" />
-        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgIconButtonCornerRadius}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
@@ -720,7 +742,7 @@
         <Setter Property="Height" Value="48" />
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgOverlayPlayCornerRadius}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Background" Value="{ThemeResource EgPlayGlassBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />

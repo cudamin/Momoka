@@ -364,6 +364,8 @@ internal sealed partial class ShellNavigationProbe
                                     ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
                                     .First(border => border.Name == "PopupBorder");
+                                Require(popup.CornerRadius == (CornerRadius)Application.Current.Resources["OverlayCornerRadius"],
+                                    "详情下拉列表没有使用共享浮层圆角");
                                 bool GlassPopup() => popup.Background is AcrylicBrush brush
                                     && brush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated)
                                     && Math.Abs(brush.TintOpacity - 0.55) < 0.001
@@ -379,6 +381,9 @@ internal sealed partial class ShellNavigationProbe
                                 Require(GlassPopup(), "展开面亚克力恢复失败");
                                 var row = Descendants(popup).OfType<ComboBoxItem>().First();
                                 var rowSurface = Descendants(row).OfType<Grid>().First(part => part.Name == "LayoutRoot");
+                                Require(row.CornerRadius == (CornerRadius)Application.Current.Resources["ControlCornerRadius"]
+                                    && rowSurface.CornerRadius == row.CornerRadius,
+                                    "详情下拉条目的实际模板没有接入共享圆角");
                                 foreach (var (state, alpha) in new[] { ("PointerOver", 15), ("Pressed", 10), ("Selected", 15),
                                     ("SelectedUnfocused", 10), ("SelectedPointerOver", 10), ("SelectedPressed", 15) })
                                 {
@@ -557,12 +562,27 @@ internal sealed partial class ShellNavigationProbe
             {
                 var paths = new Momoka.Infrastructure.AppPaths(Path.Combine(_options.Paths.Root, "card-settings"));
                 paths.EnsureCreated();
+                PrepareSettingsInputFixture(fixture.Settings.Ui);
                 var settingsPage = CreateMotionSettingsPage(fixture, moviePilot, paths);
                 _root.Children.Add(settingsPage);
                 try
                 {
                     BeginSettingsFixtureVisit(settingsPage);
                     await settingsPage.ViewModel.ReloadAsync();
+                    settingsPage.SelectedCategory = "主页";
+                    await LayoutAsync(settingsPage);
+                    await WaitForSettingsSettledAsync(settingsPage);
+                    await RequireSelectionCornersAsync(Descendants(settingsPage).OfType<ComboBox>().Single(control =>
+                        AutomationProperties.GetName(control) == "轮播图用什么媒体"));
+                    settingsPage.SelectedCategory = "播放行为";
+                    await LayoutAsync(settingsPage);
+                    await WaitForSettingsSettledAsync(settingsPage);
+                    var languages = Descendants(settingsPage).OfType<DropDownButton>().Single(control =>
+                        AutomationProperties.GetName(control) == "音轨语言优先级");
+                    languages.ApplyTemplate();
+                    Require(languages.CornerRadius == (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"]
+                        && Descendants(languages).OfType<Grid>().First(grid => grid.Name == "RootGrid").CornerRadius == languages.CornerRadius,
+                        "音轨语言优先级未使用输入控件圆角");
                     settingsPage.SelectedCategory = "界面";
                     foreach (var theme in UiThemes.All)
                     {
@@ -814,6 +834,9 @@ internal sealed partial class ShellNavigationProbe
             picker.ApplyTemplate();
             var background = Descendants(picker).OfType<Border>().Single(border => border.Name == "Background");
             var highlight = Descendants(picker).OfType<Border>().Single(border => border.Name == "HighlightBackground");
+            Require(picker.CornerRadius == (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"]
+                && background.CornerRadius == picker.CornerRadius,
+                "详情选择框的实际模板没有接入共享输入圆角");
             try
             {
                 foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })

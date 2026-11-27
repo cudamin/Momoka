@@ -28,7 +28,7 @@
             AutomationProperties.Name="{x:Bind Card.SubscriberTooltip, Mode=OneWay}"
             ToolTipService.ToolTip="{x:Bind Card.SubscriberTooltip, Mode=OneWay}" />
         <Border x:Name="SubscriptionMetadata" VerticalAlignment="Bottom" Margin="6,8,43,8"
-            Background="{ThemeResource EgScrimBrush}" CornerRadius="6" Padding="2,4" IsHitTestVisible="False"
+            Background="{ThemeResource EgScrimBrush}" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Padding="2,4" IsHitTestVisible="False"
             Visibility="{x:Bind Card.MetadataVisibility, Mode=OneWay}">
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
               <Grid ColumnSpacing="4">

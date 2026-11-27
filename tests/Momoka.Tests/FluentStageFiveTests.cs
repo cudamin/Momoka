@@ -87,7 +87,7 @@ internal static class FluentStageFiveTests
             var music = Read("src/Momoka.Shell/Views/MusicLibraryPage.xaml");
             var trackItemStyle = music.Descendants(Xaml + "Style")
                 .Single(s => (string?)s.Attribute("TargetType") == "ListViewItem" && s.Attribute(X + "Key") is null);
-            Assert.Equal("8", SetterValue(trackItemStyle, "CornerRadius"));
+            Assert.Equal("{StaticResource EgListRowCornerRadius}", SetterValue(trackItemStyle, "CornerRadius"));
 
             var person = Read("src/Momoka.Shell/Views/PersonPage.xaml");
             var creditStyle = KeyedStyle(person, "PersonCreditRowStyle");

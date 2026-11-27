@@ -73,7 +73,7 @@ internal static class NeutralFeedbackTests
             Assert.Equal("{ThemeResource EgTextBrush}", Setter(style, "Foreground"));
             Assert.Equal("48", Setter(style, "Width"));
             Assert.Equal("48", Setter(style, "Height"));
-            Assert.Equal("24", Setter(style, "CornerRadius"));
+            Assert.Equal("{StaticResource EgOverlayPlayCornerRadius}", Setter(style, "CornerRadius"));
             Assert.Equal("0", Setter(style, "BorderThickness"));
             var glyph = styles.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgPlayGlyphStyle");
             Assert.Equal("20", Setter(glyph, "FontSize"));

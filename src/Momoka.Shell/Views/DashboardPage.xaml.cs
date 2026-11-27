@@ -345,7 +345,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
             PageLayout.Margin = new Thickness(0);
             PageLayout.RowSpacing = 0;
             WebFrame.Margin = new Thickness(0);
-            WebFrame.CornerRadius = new CornerRadius(0);
+            WebFrame.CornerRadius = default;
             WebFrame.BorderThickness = new Thickness(0);
         }
 
