@@ -1,3 +1,12 @@
+## 2026-11-27 日历页筛选改成搜索来源栏同款胶囊（分支 workbuddy/master-bf1b6e53，待统一验证）
+
+用户附搜索来源栏与日历页两排筛选的截图，令「参考图一原码修改图二」。在独立工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-bf1b6e53`（分支 `workbuddy/master-bf1b6e53`，基点 `4dd55e6`）只改 `MoviePilotCalendarPage.xaml` 的 `CalendarSegmentedStyle` / `CalendarSegmentedItemStyle`；未合并、未推送、未发布。
+
+- **改动**：日历页「来源」和「类型」两排 `SearchSourceTabs` 由「32 DIP 项 + 2 内边距 + 1 描边、6 圆角、默认 14 号字」改成搜索来源栏同一套几何：条身 32 DIP（24 项 + 4 内边距）、16 圆角、去描边、`CardBackgroundFillColorDefaultBrush`；胶囊 24 DIP、12 圆角、8,2 内边距、`EgCaptionFontSize`（12）半粗。选中与未选中的颜色接线不动，仍是 `AccentFillColorDefaultBrush` 实心胶囊配 `TextOnAccentFillColorPrimaryBrush` 深墨字、未选中 `TextFillColorPrimaryBrush` 亮字，由 `ThemeHost` 映射到五套主题的强调色。文案、`x:Uid`、`x:Name`、显隐与 `SelectionChanged` 全部保留。
+- **编译与测试**：Shell Release/x64 **0 警告 0 错误**（4 分 01 秒）；`Momoka.PageContractTests` **433/433**；`Momoka.Tests` **5381/5381**、0 失败 0 跳过（含 Agreements 字号／颜色／句柄基线）；`Momoka.ArchitectureTests` **7/7**。全方案 Release 仍有 **1 个既有错误**：`Momoka.NaturalContinuationCallerTests` 的 `R046 SOURCE_HASH_MISMATCH` —— `SourcePins.json` 固定 `714e197c…`，而 `PlayerViewModel.Transport.cs` 在 `186a656`（退出与跳过提示快捷键自定义）之后是 `5816d234…`；本次未改该文件。`tools/quality.ps1` 因此 **8/10**（编译失败、架构未由其入口执行）。首轮质量另有新树未还原测试项目、缺 `DetailImageArrival SourceExtractor` DLL 两条环境失败，补齐还原并单独编译该提取工具后复跑，只剩上面这一条；首份日志都保留。
+- **原生窗口证据**：`--probe-shell --probe-section calendar --screen 2 --theme emby-dark`（`shell-probe-20261127-142309956-35756`）在既有的「600 DIP 卡片宽 72、海报仍显示」断言处停止；改动前的主树发布件（`shell-probe-20261127-142250417-3568`）同一断言、同一读数，不是本次引入。停止前 1240／760／600 三档的两排控件贴合检查都已通过，并保存 `calendar-760-screen.png`：实测筛选条 **32 px** 高、胶囊 **24 px** 高，选中实心薄荷配深墨字、未选中亮字，与参考图一致；三格对比图在 `work/calendar-pill/compare.png`（参考／改前／改后）。
+- **边界**：探针在 600 DIP 卡片断言处中断，主题轮播、悬停／按下／禁用、键盘焦点、读屏、跨 DPI、跟随系统深浅及窄窗换行未由探针覆盖。未发布体验版：本树缺 `libmpv-2.dll`，且闸门 1 被上面那条既有固定哈希错误阻断，按规则不绕过发布。登记[批次 147](docs/待交付批次.md)。
+
 ## 2026-11-27 合并侧栏预览查看更多右移与封面悬浮主题色操作键（主树 master，已合并／已发布／待统一验证）
 
 按用户「查看更多按钮，然后合并」要求，将工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-7d0beecc` 分支 `workbuddy/master-7d0beecc` 的 `777b8e4`、`d868cbf` 经合并提交 `8b0e360` 并入本地主树 `C:/Users/89400/Momoka` 的 `master`（合并前 `fc1b3c1`），未推送。工作树与主树无分叉，合并树与分支上已验证的树逐路径一致，分支的编译与测试结果据实沿用，本轮未重跑应用测试、原生探针或实屏。
