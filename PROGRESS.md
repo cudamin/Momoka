@@ -1,13 +1,14 @@
-## 2026-11-27 修复详情页音频选择栏展开后收窄
+## 2026-11-27 修复详情页音频选择栏展开后收窄（已合并／待统一验证）
 
-工作树 `C:/Users/89400/.codex/worktrees/eaa1/Momoka`，分支 `codex/fix-detail-audio-dropdown`，基点 `e5cad5f`，逻辑变更为本节所在提交，待合并、未推送。用户要求修复音频选择栏展开后自动收窄、遮挡右侧字母的问题；按日常 UI 批次实现并验证，开放项记入[待交付批次 143](docs/待交付批次.md)。
+实现时工作树 `C:/Users/89400/.codex/worktrees/eaa1/Momoka`，来源分支 `codex/fix-detail-audio-dropdown`，基点 `e5cad5f`，修复提交 `60ff29b`。按用户后续「合并」要求，已快进合入本地主树 `C:/Users/89400/Momoka` 的 `master`，未推送。用户要求修复音频选择栏展开后自动收窄、遮挡右侧字母的问题；按日常 UI 批次实现并验证，开放项记入[待交付批次 143](docs/待交付批次.md)。以下构建、测试和体验发布数据均为来源分支证据。
 
 - **改动与边界**：详情页音频／字幕两行模板仍用原生 ComboBox 部件。共享 `EgPicker` 原先读取直接父级实宽；打开后正文隐藏，自然宽父级随之塌缩，上限反而把展开前宽度压窄。改为保存闭合态的测量约束；展开列表条目晚到变宽时继续撑宽，同次展开不回缩，有限栏宽仍封顶。关闭、卸载、重套模板、旧异步请求和尺寸事件的清理保留。共享控件还服务详情媒体源和 AniBT 筛选，未改后端能力、请求、播放或选项模板。
 - **缺陷回归**：专项逐字编译生产 `EgPicker.cs`，只替换 WinUI 测量、尺寸和事件边界。相同 28 项断言对修前源码为 23 通过、5 失败，对修后为 28/28；覆盖自然宽父级塌缩、晚到增长、同次展开不回缩、固定 Width 不覆盖原约束、关闭后重测及既有生命周期。最终收窄测试名称后重新编译并实跑 28/28。证据 `artifacts/audio-picker/regression-before.log`、`regression-after.log`、`picker-final-build.log` 与 `Momoka.PickerLifecycleTests.log`。数值边界不证明原生 WinUI 的测量入参或最终文字像素。
 - **构建与质量**：当前树用 SDK 10.0.400 和仓库包源还原。首轮完整质量 8/10，因新树尚未生成 `DetailImageArrivalTests/SourceExtractor` 的 DLL 导致构建失败，架构检查未执行，保留 `artifacts/quality/20261127-122256`。单独生成该既有提取工具（零警告零错误）后完整重跑，`artifacts/quality/20261127-122701` 为 10/10：全方案 Release 零警告零错误、架构 7/7、重复率 0.47%（69 段，预算内），格式、脚本、文档、官网镜像与凭据检查均通过。未修改无关提取器或降低检查。
 - **测试**：当前 Release 主测试 5373/5373，相关四套专项 PickerLifecycle 28/28、DetailStickyHeader 104/104、PageContract 432/432、AppearanceOpacity 64/64，均零失败零跳过；日志在 `artifacts/audio-picker`。统一 `run-regressions.ps1` 在清单前检因当前基线已有 `Momoka.SystemNotificationTests` 未登记而终止，首份日志 `regressions-console.log` 保留；随后直接运行本树四套测试程序集，不记统一入口或全量专项通过。
 - **本地体验**：显式从主树提供 `libmpv-2.dll`，复制前后按当前批准载荷清单核验，SHA-256 为 `fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17`，不入 Git。本树通过 `tools/publish.ps1 -NoArchive -Shortcut -ShortcutName '音频选择栏修复'` 发布，进程退出 0，载荷验证 549 文件、291.7 MB。桌面 `音频选择栏修复.lnk` 的 TargetPath 与 WorkingDirectory 已回读，分别指向本树 `artifacts/publish/win-x64/Momoka.exe` 及其目录。版本 `0.3.4+e5cad5f40f3f4599c345112be95df9507c525f47` 为基点加本次提交前代码差异，发布 DLL SHA-256 为 `adf63f53921c45c3fb9298adbd032882779b7b4f535d8e7fdb4a5a54dfa82c1e`；证据 `publish.log`、`publish-receipt.json`。未启动应用、未生成 ZIP 或商店包、未上传。
-- **待验与保留**：原生两行长标题、商店／沉浸、宽窄窗与展开中缩放、其他共享选择栏、开关换选、键盘／Escape／焦点、主题／高对比、DPI／文字缩放、触摸和读屏尚未验证；本轮未跑原生探针、截图或自检，未播放或写入真实服务器。分支、工作树及体验快捷方式保留，待明确合并和统一验证后再销账。
+- **合并复核与清理**：合并前主树 `master` 在 `e5cad5f`，索引和工作区均干净；唯一来源提交为 `60ff29b`，范围仅生产 `EgPicker`、PickerLifecycle 三个测试／说明文件、PROGRESS 和台账。执行 `git merge --ff-only` 后到 `60ff29b`，四个代码／测试文件相对来源提交无差异。来源 33 份日志／回执／反例源码按 SHA-256 核对后转存至主树 `artifacts/audio-picker-merge`，另存合并回执。来源工作树干净、无独有提交、运行实例为 0，且协作复审已转向主树；已删除桌面「音频选择栏修复」快捷方式。`git worktree remove --force` 移除了 Git 登记但因 Windows 长路径未能删净目录，后续 PowerShell 递归清理被自动审批拦截，未换工具绕过；已删除完全合入的临时分支，剩余 `C:/Users/89400/.codex/worktrees/eaa1/Momoka` 目录待清理。主树原有桌面 `Momoka.lnk` 未刷新。本次仅合并和记录核对，未把来源测试或发布报告称为合并后重跑。
+- **待验**：原生两行长标题、商店／沉浸、宽窄窗与展开中缩放、其他共享选择栏、开关换选、键盘／Escape／焦点、主题／高对比、DPI／文字缩放、触摸和读屏尚未验证；实现和合并均未跑原生探针、截图或自检，未播放或写入真实服务器。合并不销账，待最终整合代码统一验证和核对主树发布件。
 
 ## 2026-11-27 合入 CLAUDE.md 审查优化与规则补全
 
