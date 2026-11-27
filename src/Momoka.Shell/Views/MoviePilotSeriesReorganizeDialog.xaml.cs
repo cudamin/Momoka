@@ -42,9 +42,7 @@ public sealed partial class MoviePilotSeriesReorganizeDialog : ContentDialog
         FitPanel();
         await ViewModel.ReloadAsync().ConfigureAwait(true);
     }
-    private async void OnReload(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync().ConfigureAwait(true);
-    private void OnSelectAll(object sender, RoutedEventArgs args) => ViewModel.SelectAll();
-    private void OnClearSelection(object sender, RoutedEventArgs args) => ViewModel.ClearSelection();
+    private void OnToggleSelection(object sender, RoutedEventArgs args) => ViewModel.ToggleSelection();
     private void OnResourceClicked(object sender, ItemClickEventArgs args)
     {
         if (args.ClickedItem is MoviePilotSeriesTransferRow row) ViewModel.SetSelected([row], !row.Selected);
@@ -125,5 +123,4 @@ public sealed partial class MoviePilotSeriesReorganizeDialog : ContentDialog
         ResourcePanel.Width = Math.Clamp(root.Size.Width - 96, 240, 940);
         ResourcePanel.MaxHeight = Math.Clamp(root.Size.Height - 220, 120, 660);
     }
-    public static bool CanReload(bool busy) => !busy;
 }

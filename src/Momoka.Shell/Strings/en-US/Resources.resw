@@ -2629,9 +2629,6 @@ Closing the video window or leaving this page stops playback.</value>
   <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Enter custom keywords separated by spaces. * matches any text; ? matches one character.</value>
   </data>
-  <data name="MoviePilotSeriesReorganizeDialog_ReloadResources.Content" xml:space="preserve">
-    <value>Refresh</value>
-  </data>
   <data name="MoviePilotSeriesReorganizeDialog_StatusAll.Text" xml:space="preserve">
     <value>All</value>
   </data>
@@ -2670,12 +2667,6 @@ Closing the video window or leaving this page stops playback.</value>
   </data>
   <data name="MoviePilotSeriesReorganizeDialog_ViewGrouped.Text" xml:space="preserve">
     <value>Grouped view</value>
-  </data>
-  <data name="MoviePilotSeriesReorganizeDialog_SelectAllResources.Content" xml:space="preserve">
-    <value>Select all</value>
-  </data>
-  <data name="MoviePilotSeriesReorganizeDialog_ClearResourceSelection.Content" xml:space="preserve">
-    <value>Clear selection</value>
   </data>
   <data name="MoviePilotSeriesReorganizeDialog_SeriesResources.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Organized releases for this show</value>

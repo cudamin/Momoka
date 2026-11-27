@@ -310,7 +310,33 @@ internal static class ManualDialogTests
             dialog.EmitClosed();
             Assert.Equal(0, fixture.Transport.Writes);
         });
-        Test("手动整理窗口接线：网页两列顺序、固定操作、无折叠和当前文件", () =>
+        Test("手动整理窗口样式：字段使用订阅表单的原生标题和紧凑共享控件", () =>
+        {
+            var root = RepositoryRoot();
+            var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotReorganizeDialog.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+            foreach (var (name, fieldType, sharedStyle) in new[]
+            {
+                ("TargetStorageBox", "ComboBox", "EgComboBoxStyle"), ("TransferTypeBox", "ComboBox", "EgComboBoxStyle"),
+                ("TargetPathBox", "ComboBox", "EgComboBoxStyle"), ("TypeBox", "ComboBox", "EgComboBoxStyle"),
+                ("SourceBox", "ComboBox", "EgComboBoxStyle"), ("PartBox", "TextBox", "EgTextBoxStyle"),
+                ("MinSizeBox", "TextBox", "EgTextBoxStyle")
+            })
+            {
+                var field = Named(name);
+                Assert.Equal("{StaticResource " + sharedStyle + "}", (string?)field.Attribute("Style"), name);
+                Assert.Equal("StackPanel", field.Parent!.Name.LocalName, name);
+                Assert.True(field.Elements().Any(element => element.Name.LocalName == fieldType + ".Header"
+                    && element.Elements().Single().Name.LocalName == "TextBlock"), name + " 没有接入原生字段标题");
+                foreach (var property in new[] { "MinHeight", "Padding", "Background", "BorderBrush", "CornerRadius" })
+                    Assert.Null(field.Attribute(property));
+            }
+            Assert.Equal("True", (string?)Named("TargetPathBox").Attribute("IsEditable"));
+            Assert.Equal("True", (string?)Named("EpisodeGroupBox").Attribute("IsEditable"));
+            Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Key") == "ComboBoxEditableTextPadding"));
+        });
+        Test("手动整理窗口接线：两列顺序、固定操作、无折叠和当前文件", () =>
         {
             var root = RepositoryRoot();
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotReorganizeDialog.xaml"));
@@ -322,7 +348,7 @@ internal static class ManualDialogTests
             foreach (var removed in new[] { "SourcePathBox", "OriginalSourceBox", "AdvancedOptions", "BatchSelectionSummary" })
                 Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") == removed));
             Assert.Equal("Collapsed", (string?)Named("HistoryLookupPanel").Attribute("Visibility"));
-            Assert.Equal("0,12,0,0", (string?)Named("DestinationGrid").Attribute("Margin"));
+            Assert.Null(Named("DestinationGrid").Attribute("Margin"));
             foreach (var option in new[] { "TypeFolderToggle", "CategoryFolderToggle", "ScrapeToggle", "FromHistoryToggle" })
             {
                 Assert.Equal("ToggleSwitch", Named(option).Name.LocalName);
@@ -335,6 +361,8 @@ internal static class ManualDialogTests
             {
                 var definitions = Named(grid).Elements().Single(element => element.Name.LocalName == "Grid.ColumnDefinitions");
                 Assert.Equal(2, definitions.Elements().Count(definition => definition.Name.LocalName == "ColumnDefinition"));
+                Assert.Equal("20", (string?)Named(grid).Attribute("ColumnSpacing"));
+                Assert.Equal("16", (string?)Named(grid).Attribute("RowSpacing"));
             }
             var blocks = Named("DestinationGrid").Parent!.Elements()
                 .Select(element => (string?)element.Attribute(x + "Name")).Where(name => name is not null).ToArray();

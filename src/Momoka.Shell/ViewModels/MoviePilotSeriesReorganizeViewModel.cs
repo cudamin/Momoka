@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -28,14 +29,16 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     public string CountLabel => Rows.Count == _allRows.Count ? $"共 {_allRows.Count} 条资源" : $"显示 {Rows.Count} / {_allRows.Count} 条资源";
     public int SelectedCount => Rows.Count(row => row.Selected);
     public string SelectionLabel => $"已选 {SelectedCount} 条";
+    public string SelectionActionLabel => UiText.Translate(AllSelected ? "清空选择" : "全选");
     public string SubmitLabel => SelectedCount == 0 ? "选择要重新整理的资源" : $"批量重新整理（{SelectedCount}）";
     public bool CanSelect => !_released && !Busy && Rows.Count > 0;
+    private bool AllSelected => CanSelect && SelectedCount == Rows.Count;
     public bool CanContinue => CanSelect && SelectedCount > 0 && _service?.Available == true && _service.IsCurrentConnection(_connection);
     public Visibility EmptyVisibility => Show(IsReady && !Busy && !NoticeOpen && Rows.Count == 0);
     public Visibility SelectionVisibility => Show(Rows.Count > 0);
     public string EmptyTitle => _allRows.Count == 0 ? "没有找到当前剧的整理记录" : "没有符合搜索与筛选条件的资源";
     public string EmptyMessage => _allRows.Count == 0
-        ? "可刷新重试，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。"
+        ? UiText.Translate("可关闭后重新打开，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。")
         : "修改关键词或切回全部状态即可恢复；不会整理被筛掉的资源。";
     public string StatusLabel => StatusFilter switch { MoviePilotTransferStatusFilter.Success => "成功", MoviePilotTransferStatusFilter.Failed => "失败", _ => "全部" };
     public string SortLabel => Sort switch
@@ -100,7 +103,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token) && !_released) Report("读取当前剧的整理资源失败", error);
+            if (IsCurrent(token) && !_released) Report(UiText.Translate("读取当前剧的整理资源失败，请关闭后重新打开"), error);
         }
         finally
         {
@@ -119,6 +122,12 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
 
     internal void SelectAll() => UpdateSelection(Rows, true);
     internal void ClearSelection() => UpdateSelection(Rows, false);
+    internal void ToggleSelection()
+    {
+        if (!CanSelect) return;
+        if (AllSelected) ClearSelection();
+        else SelectAll();
+    }
     internal void SetSelected(IEnumerable<MoviePilotSeriesTransferRow> rows, bool selected) => UpdateSelection(rows, selected);
     internal void ToggleGroup(MoviePilotSeriesTransferGroup group)
     {
@@ -197,7 +206,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     {
         foreach (var name in new[]
         {
-            nameof(CountLabel), nameof(SelectedCount), nameof(SelectionLabel), nameof(SubmitLabel), nameof(CanSelect), nameof(CanContinue),
+            nameof(CountLabel), nameof(SelectedCount), nameof(SelectionLabel), nameof(SelectionActionLabel), nameof(SubmitLabel), nameof(CanSelect), nameof(CanContinue),
             nameof(EmptyVisibility), nameof(SelectionVisibility), nameof(EmptyTitle), nameof(EmptyMessage), nameof(StatusLabel), nameof(SortLabel),
             nameof(StatusAutomationName), nameof(SortAutomationName), nameof(ViewAutomationName), nameof(ViewGlyph), nameof(DirectionAction), nameof(DirectionVisibility)
         }) OnPropertyChanged(name);

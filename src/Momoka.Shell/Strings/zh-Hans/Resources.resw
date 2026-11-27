@@ -2650,9 +2650,6 @@
   <data name="MoviePilotSeriesReorganizeDialog_ResourceSearch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>输入自定义关键词；多个词用空格分隔，* 匹配任意文字，? 匹配一个字符。</value>
   </data>
-  <data name="MoviePilotSeriesReorganizeDialog_ReloadResources.Content" xml:space="preserve">
-    <value>刷新</value>
-  </data>
   <data name="MoviePilotSeriesReorganizeDialog_StatusAll.Text" xml:space="preserve">
     <value>全部</value>
   </data>
@@ -2691,12 +2688,6 @@
   </data>
   <data name="MoviePilotSeriesReorganizeDialog_ViewGrouped.Text" xml:space="preserve">
     <value>分组模式</value>
-  </data>
-  <data name="MoviePilotSeriesReorganizeDialog_SelectAllResources.Content" xml:space="preserve">
-    <value>全选</value>
-  </data>
-  <data name="MoviePilotSeriesReorganizeDialog_ClearResourceSelection.Content" xml:space="preserve">
-    <value>清空选择</value>
   </data>
   <data name="MoviePilotSeriesReorganizeDialog_SeriesResources.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>当前剧的整理资源</value>
