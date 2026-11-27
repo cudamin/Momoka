@@ -6,7 +6,7 @@
 
 | 规则 | 想守住的东西 |
 | --- | --- |
-| Core 不依赖 UI 技术栈 | `Microsoft.UI` / `Windows.UI` / `Microsoft.Windows` / `System.Windows` / `System.Drawing` 都不许进 Core（CLAUDE.md「Core 不依赖 UI 框架」） |
+| Core 不依赖 UI 技术栈 | `Microsoft.UI` / `Windows.UI` / `Microsoft.Windows` / `System.Windows` / `System.Drawing` 都不许进 Core（CLAUDE.md「分层与代码风格 · Core、Shell」） |
 | Core 不依赖 Shell | 依赖方向只能是 Shell → Core |
 | Shell 不依赖任何测试程序集 | 测试类型不许漏进发布件 |
 | Shell.Services 不依赖 Views | 服务层不回头摸视图 |

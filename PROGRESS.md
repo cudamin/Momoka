@@ -1,3 +1,10 @@
+## 2026-11-27 合入 CLAUDE.md 审查优化与规则补全
+
+按用户要求，将临时分支 `review_claude_md`（工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/review_claude_md`，基点 `bef1f1b`，提交 `e2c9d3f`、`a89df06`、`58fee43`、`c47763a`）以非快进合并入本地主树 `C:/Users/89400/Momoka`（基点 `0ee3c09`，未推送远端）。合并保留 `master` 上「WinUI 外壳 Fluent 2 重构」条目；主树原有未提交的 scrobbling 工作树清理记录一行暂避并在合并提交后逐字恢复为未提交改动，未纳入本次提交。
+
+- **范围与校验**：整合 [CLAUDE](CLAUDE.md)、[WinUI 验证矩阵](.claude/skills/momoka-verification/references/winui-validation.md)、[材质指南](.claude/skills/momoka-winui-shell/references/materials.md)、[架构专项说明](tests/Momoka.ArchitectureTests/README.md) 与 [check-main-tree-policy.py](tools/check-main-tree-policy.py)，在主树复核策略自检（358 项拒绝反例）、文档链接、文档命令语法、官网镜像、报告凭据、PowerShell 脚本与 Worker 凭据测试；纯文档与非随包策略检查工具变更，仅合并不触发全量编译、桌面探针、发布或快捷方式刷新。
+- **待清理**：`review_claude_md` 内容已全部进入本地 `master` 且分支工作树干净，未创建桌面分支快捷方式；因当前会话工作目录仍在 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/review_claude_md`，该临时分支与工作树目录登记待清理，退出当前会话后从主树移除工作树并删除分支即可。
+
 ## 2026-11-27 WinUI 外壳 Fluent 2 重构（主树 master，已合并／待统一验证）
 
 按用户要求，将临时分支 `fluent_design_refactor`（工作树 `C:/Users/89400/.gemini/antigravity/worktrees/Momoka/fluent_design_refactor`，基于 `a140565`，提交 `7ad03d4`、`7a32951`、`847042d`、`801f90f`、`1742529`、`2e0455c`）以非快进合并入本地主树 `C:/Users/89400/Momoka`（基点 `bef1f1b`，未推送远端）。合并集成主树自 `a140565` 之后的 `542a427`、`0a31b16`、`ee41111`、`ed278f1` 与 `bef1f1b`；唯一文本冲突为 `PROGRESS.md`（已保留「详情页横向列表拖动翻页」与本条记录），主树原有未提交的 scrobbling 工作树清理记录一行暂存并将在本次提交后逐字恢复为未提交改动，未纳入本次提交。逐项核对自动合并的 `src/Momoka.Shell/Views/DetailPage.xaml` 与 `tests/Momoka.Tests/CardStripTests.cs`，四条详情列表的 `DragPaging="True"` 及四项「详情页拖动翻页」用例与本分支 Fluent 2 改动均完整保留。

@@ -124,7 +124,7 @@ Current Momoka canvas/sidebar alpha constants and DetailMenuBackdrop's 0.65/0.45
 
 | Condition | Required engineering behavior | Evidence limitation |
 | --- | --- | --- |
-| Light/dark/selected Momoka palette | Readable background, foreground, borders, selected/hover/pressed states and caption buttons | All current shipped Momoka palettes are dark. Light/system mode requires the product decision; an isolated light resource test is not a shipped light theme. |
+| Light/dark/system mode and Momoka palettes | Readable background, foreground, borders, selected/hover/pressed states and caption buttons | Exercise the shipped dark/light/system selection modes across the five fixed dark palettes and `SystemLight`; label any synthetic fixture as a fixture rather than a product mode. |
 | High contrast | System foreground/background/highlight roles; no forced decorative tint defeating contrast | A nonempty HighContrast dictionary does not prove every popup/custom controller uses it. |
 | Transparency effects off | Respect the actual API/system fallback, maintain contrast | Do not force active material or fake blur to defeat the preference. A simulated bool is only logic coverage. |
 | Inactive desktop window | Preserve the system's material policy and readable controls; restore on reactivation | Background Acrylic and in-app Acrylic need not behave identically. |
