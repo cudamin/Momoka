@@ -30,17 +30,22 @@
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast" />
             </ResourceDictionary.ThemeDictionaries>
+            <!-- 2026-11-27 用户令「参考图一原码修改图二」：日历页的来源与类型两排跟搜索来源栏同一套几何 ——
+                 整条 32 DIP、16 圆角、不描边、用同一块卡片材质；胶囊 24 DIP、12 圆角、12 号半粗字。 -->
             <Style x:Key="CalendarSegmentedStyle" TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
-                <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
-                <Setter Property="BorderBrush" Value="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="{StaticResource EgCornerBadgeCornerRadius}" />
-                <Setter Property="Padding" Value="2" />
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="4" />
             </Style>
             <Style x:Key="CalendarSegmentedItemStyle" TargetType="toolkit:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
+                <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="MinWidth" Value="0" />
-                <Setter Property="MinHeight" Value="32" />
-                <Setter Property="Padding" Value="8,4" />
+                <Setter Property="MinHeight" Value="24" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="Padding" Value="8,2" />
+                <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
             <Style x:Key="CalendarWeekdayStyle" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}" />
             <Style x:Key="CalendarDateStyle" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
