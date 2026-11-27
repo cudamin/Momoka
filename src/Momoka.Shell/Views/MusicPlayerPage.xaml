@@ -112,13 +112,15 @@
         <Style x:Key="MusicPageGlassButtonStyle" TargetType="Button" BasedOn="{StaticResource EgIconButtonStyle}">
             <Setter Property="Width" Value="44" />
             <Setter Property="Height" Value="44" />
-            <Setter Property="CornerRadius" Value="22" />
+            <!-- 44 DIP 圆形按键，圆角为高度的一半。 -->
+            <Setter Property="CornerRadius" Value="{StaticResource EgPrimaryActionCornerRadius}" />
             <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
         </Style>
         <Style x:Key="MusicTransportButtonStyle" TargetType="Button" BasedOn="{StaticResource EgIconButtonStyle}">
             <Setter Property="Width" Value="56" />
             <Setter Property="Height" Value="56" />
-            <Setter Property="CornerRadius" Value="28" />
+            <!-- 播放与换曲按钮是直径 56 DIP 的圆。 -->
+            <Setter Property="CornerRadius" Value="{StaticResource EgMusicTransportCornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style x:Key="MusicPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource MusicTransportButtonStyle}">
@@ -127,7 +129,7 @@
         <Style x:Key="MusicSmallButtonStyle" TargetType="Button" BasedOn="{StaticResource EgIconButtonStyle}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
-            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgIconButtonCornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <!-- 歌词：与播放页的标题簇同一支正文族，字号取项目 20 的刻度，不另造一档。 -->
@@ -201,7 +203,7 @@
                     <Border
                         x:Name="CoverFrame"
                         Background="{ThemeResource EgSurfaceAltBrush}"
-                        CornerRadius="24">
+                        CornerRadius="{StaticResource EgLargeArtworkCornerRadius}">
                         <Grid>
                             <FontIcon Style="{StaticResource MusicCoverGlyphStyle}" Foreground="{ThemeResource EgTextFaintBrush}" Glyph="&#xE8D6;" />
                             <Image local:CardArtwork.Item="{x:Bind ViewModel.CoverArtwork, Mode=OneWay}" Stretch="UniformToFill" />
@@ -279,7 +281,7 @@
                                     <x:Double x:Key="SliderHorizontalThumbHeight">14</x:Double>
                                     <x:Double x:Key="SliderInnerThumbWidth">8</x:Double>
                                     <x:Double x:Key="SliderInnerThumbHeight">8</x:Double>
-                                    <CornerRadius x:Key="SliderThumbCornerRadius">7</CornerRadius>
+                                    <StaticResource x:Key="SliderThumbCornerRadius" ResourceKey="EgMusicSliderThumbCornerRadius" />
                                 </Slider.Resources>
                             </Slider>
                             <Grid Grid.Row="1">
@@ -292,7 +294,7 @@
                                 <Border
                                     Grid.Column="1"
                                     Background="{ThemeResource EgSurfaceAltBrush}"
-                                    CornerRadius="4"
+                                    CornerRadius="{ThemeResource ControlCornerRadius}"
                                     HorizontalAlignment="Center"
                                     Padding="6,0"
                                     Visibility="{x:Bind ViewModel.FormatVisibility, Mode=OneWay}">

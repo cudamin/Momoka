@@ -21,7 +21,7 @@
         <Style x:Key="MusicButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSmallActionCornerRadius}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -29,7 +29,7 @@
         <Style x:Key="MusicToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSmallActionCornerRadius}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -44,7 +44,7 @@
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSmallArtworkCornerRadius}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -55,7 +55,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}" />
         </Style>
         <Style TargetType="FontIcon">
             <Setter Property="FontSize" Value="18" />
@@ -69,10 +69,11 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
     </UserControl.Resources>
-    <Border x:Name="Surface" HorizontalAlignment="Center" CornerRadius="36">
+    <!-- 初次布局前的轮廓，实际圆角由尺寸变化时的布局计算决定。 -->
+    <Border x:Name="Surface" HorizontalAlignment="Center" CornerRadius="{StaticResource EgMusicBarCornerRadius}">
         <Grid>
             <!-- 胶囊的那层亚克力单独一块，主题变了由 ThemeResource 自己换；主页上把它收起来，只留控件。 -->
-            <Border x:Name="SurfaceGlass" Background="{ThemeResource EgActionGlassBrush}" CornerRadius="36" />
+            <Border x:Name="SurfaceGlass" Background="{ThemeResource EgActionGlassBrush}" CornerRadius="{StaticResource EgMusicBarCornerRadius}" />
             <Grid x:Name="BarGrid" ColumnSpacing="12" RowSpacing="8" Margin="12,6">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -86,7 +87,7 @@
                 </StackPanel>
                 <Button x:Uid="MusicPlayerBar_CoverButton" x:Name="CoverButton" Grid.Column="1" Click="OnExpand" Style="{StaticResource MusicCoverButtonStyle}"
                     VerticalAlignment="Center" AutomationProperties.Name="展开音乐播放页" ToolTipService.ToolTip="打开播放页">
-                    <Border x:Name="CoverFrame" Width="42" Height="42" CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
+                    <Border x:Name="CoverFrame" Width="42" Height="42" CornerRadius="{StaticResource EgSmallArtworkCornerRadius}" Background="{ThemeResource EgSurfaceBrush}" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
                         <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
                     </Border>
                 </Button>
@@ -120,7 +121,7 @@
                             <x:Double x:Key="SliderHorizontalThumbHeight">14</x:Double>
                             <x:Double x:Key="SliderInnerThumbWidth">8</x:Double>
                             <x:Double x:Key="SliderInnerThumbHeight">8</x:Double>
-                            <CornerRadius x:Key="SliderThumbCornerRadius">7</CornerRadius>
+                            <StaticResource x:Key="SliderThumbCornerRadius" ResourceKey="EgMusicSliderThumbCornerRadius" />
                         </Slider.Resources>
                     </Slider>
                 </Grid>

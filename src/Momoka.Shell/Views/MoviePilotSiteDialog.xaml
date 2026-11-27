@@ -63,9 +63,9 @@
                                 Style="{StaticResource SiteCardToggleStyle}">
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Width="16" Height="16" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource EgTextDimBrush}"
+                                    <Border Width="16" Height="16" CornerRadius="{StaticResource EgSmallSurfaceCornerRadius}" BorderThickness="1" BorderBrush="{ThemeResource EgTextDimBrush}"
                                         VerticalAlignment="Center" Visibility="{x:Bind UnselectedVisibility, Mode=OneWay}" IsHitTestVisible="False" />
-                                    <Border Width="16" Height="16" CornerRadius="8" Background="{ThemeResource EgAccentBrush}"
+                                    <Border Width="16" Height="16" CornerRadius="{StaticResource EgSmallSurfaceCornerRadius}" Background="{ThemeResource EgAccentBrush}"
                                         VerticalAlignment="Center" Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                         <FontIcon Glyph="&#xE8FB;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextOnAccentBrush}" />
                                     </Border>

@@ -63,9 +63,9 @@
                         <Button.Flyout>
                             <Flyout x:Name="CreatedDateFlyout" Opening="OnCreatedDateOpening" FlyoutPresenterStyle="{StaticResource EgLibraryFlyoutSurfaceStyle}">
                                 <StackPanel Width="284" Spacing="12">
-                                    <CalendarDatePicker x:Uid="EmbyMetadataDialog_AddedDatePicker" x:Name="AddedDatePicker" Header="加入日期" HorizontalAlignment="Stretch"
+                                    <CalendarDatePicker x:Uid="EmbyMetadataDialog_AddedDatePicker" x:Name="AddedDatePicker" Header="加入日期" HorizontalAlignment="Stretch" CornerRadius="{StaticResource EgSearchCornerRadius}"
                                         DateFormat="{}{year.full}-{month.integer(2)}-{day.integer(2)}" />
-                                    <TimePicker x:Uid="EmbyMetadataDialog_AddedTimePicker" x:Name="AddedTimePicker" Header="时间" ClockIdentifier="24HourClock" HorizontalAlignment="Stretch" />
+                                    <TimePicker x:Uid="EmbyMetadataDialog_AddedTimePicker" x:Name="AddedTimePicker" Header="时间" ClockIdentifier="24HourClock" HorizontalAlignment="Stretch" CornerRadius="{StaticResource EgSearchCornerRadius}" />
                                     <Button x:Uid="EmbyMetadataDialog_ApplyCreatedDateButton" x:Name="ApplyCreatedDateButton" Content="确定" Click="OnApplyCreatedDate" />
                                 </StackPanel>
                             </Flyout>
@@ -94,7 +94,7 @@
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
                 </Grid>
-                <CalendarDatePicker x:Uid="EmbyMetadataDialog_PremiereDatePicker" x:Name="PremiereDatePicker" Header="发行日期" HorizontalAlignment="Stretch"
+                <CalendarDatePicker x:Uid="EmbyMetadataDialog_PremiereDatePicker" x:Name="PremiereDatePicker" Header="发行日期" HorizontalAlignment="Stretch" CornerRadius="{StaticResource EgSearchCornerRadius}"
                     PlaceholderText="选择日期" DateFormat="{}{year.full}-{month.integer(2)}-{day.integer(2)}" DateChanged="OnDateChanged" />
                 <Button x:Uid="EmbyMetadataDialog_ClearPremiereDate" x:Name="ClearPremiereDate" Content="清除发行日期" HorizontalAlignment="Left" Click="OnClearDate" />
                 <TextBox x:Uid="EmbyMetadataDialog_ProductionYearBox" x:Name="ProductionYearBox" Header="年份" TextChanged="OnEdited" />

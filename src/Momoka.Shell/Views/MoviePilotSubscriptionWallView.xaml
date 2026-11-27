@@ -34,7 +34,7 @@
             <Setter Property="MinHeight" Value="32" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="8,0" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSmallActionCornerRadius}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>

@@ -333,6 +333,13 @@ internal sealed partial class ShellNavigationProbe
         state.InsertScalar("Progress", 0.5f);
         await SaveProbeScreenAsync("hover-preview-morph-midpoint-screen.png");
         var surface = Get<Border>(preview, "Surface");
+        var corners = surface.CornerRadius;
+        var clip = Get<RectangleClip>(preview, "_clip");
+        Require(clip.TopLeftRadius == new System.Numerics.Vector2((float)corners.TopLeft)
+            && clip.TopRightRadius == new System.Numerics.Vector2((float)corners.TopRight)
+            && clip.BottomRightRadius == new System.Numerics.Vector2((float)corners.BottomRight)
+            && clip.BottomLeftRadius == new System.Numerics.Vector2((float)corners.BottomLeft),
+            "预览动画的裁剪与实际卡面圆角不一致");
         var middle = surface.TransformToVisual(preview).TransformBounds(new Rect(0, 0, surface.ActualWidth, surface.ActualHeight));
         Require(middle.Width > 170 && middle.Width < preview.ActualWidth - 1,
             $"半程边框没有实际撑开：{middle.Width:0.0}/{preview.ActualWidth:0.0}");

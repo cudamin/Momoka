@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
@@ -57,20 +58,40 @@ internal sealed partial class ShellNavigationProbe
                     {
                         await LayoutAsync(dialog);
                         if (dialog is IdentifyDialog)
+                        {
                             RequireSearchRadius(Get<TextBox>(dialog, "NameBox"));
+                            RequireDialogActionRadius(Get<Button>(dialog, "SearchButton"));
+                        }
                         if (dialog is FnNasMatchDialog)
                             RequireSearchRadius(Get<TextBox>(dialog, "KeywordBox"));
+                        if (dialog is CoverDialog)
+                            RequireDialogActionRadius(Get<Button>(dialog, "RefreshArtworkButton"));
+                        if (dialog is EmbyMetadataDialog editor)
+                        {
+                            RequireDialogActionRadius(MetadataButton(dialog, "PrimaryButton"));
+                            RequireDialogActionRadius(MetadataButton(dialog, "CloseButton"));
+                            RequireDialogActionRadius(Get<ToggleButton>(dialog, "NameLock"));
+                            RequireDialogActionRadius(Get<Button>(dialog, "PickCreatedDateButton"));
+                            var datePicker = Get<CalendarDatePicker>(editor, "PremiereDatePicker");
+                            datePicker.ApplyTemplate();
+                            var dateBorder = Descendants(datePicker).OfType<Border>().Single(border => border.Name == "Background");
+                            Require(datePicker.CornerRadius == (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"]
+                                && dateBorder.CornerRadius == datePicker.CornerRadius,
+                                "日期字段没有使用输入框的圆角");
+                        }
                         if (dialog is ArtworkViewer)
                             Require(ElementCompositionPreview.GetElementChildVisual(Get<Grid>(dialog, "ViewerRoot")) is not null,
                                 "看大图的画框没有装上阴影");
                         Require(dialog.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
                             $"{theme.Id}/{dialog.GetType().Name} 未使用统一圆角");
-                        Require(dialog.BorderThickness == new Thickness(0), $"{dialog.GetType().Name} 留下了方形外边框");
+                        Require(dialog.BorderThickness == (Thickness)Application.Current.Resources["EgCardBorderThickness"],
+                            $"{dialog.GetType().Name} 未沿用统一的对话框描边宽度");
                         Require(BrushColor(dialog.Background) == ThemeHost.ToColor(theme.Colors.Window),
                             $"{theme.Id}/{dialog.GetType().Name} 背景与设置侧栏不一致");
                         var surface = Descendants(dialog).OfType<Border>().First(border => border.Name == "BackgroundElement");
-                        Require(surface.CornerRadius == dialog.CornerRadius && BrushColor(surface.Background) == BrushColor(dialog.Background),
-                            $"{dialog.GetType().Name} 模板没有实际消费圆角或背景");
+                        Require(surface.CornerRadius == dialog.CornerRadius && surface.BorderThickness == dialog.BorderThickness
+                            && BrushColor(surface.Background) == BrushColor(dialog.Background),
+                            $"{dialog.GetType().Name} 模板没有实际消费圆角、描边或背景");
                         var contentScroll = Descendants(dialog).OfType<ScrollViewer>().Single(view => view.Name == "ContentScrollViewer");
                         Require(contentScroll.Content is Grid top && BrushColor(top.Background) == ThemeHost.ToColor(theme.Colors.Window),
                             $"{dialog.GetType().Name} 正文仍被框架顶层叠色覆盖");
@@ -95,6 +116,11 @@ internal sealed partial class ShellNavigationProbe
                         Require(BrushColor(border.Background) == ThemeHost.ToColor(theme.Colors.Window)
                             && border.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
                             $"{theme.Id}/{name} 没有统一圆角或底色");
+                        if (panel is LibrarySettingsPanel settings)
+                        {
+                            await RequireSelectionCornersAsync(settings.ViewCombo);
+                            await RequireSelectionCornersAsync(settings.SizeCombo);
+                        }
                         await SaveProbeScreenAsync($"library-dialog-{name}-{theme.Id}-screen.png");
                     }
                     finally { _root.Children.Remove(holder); }
@@ -139,6 +165,14 @@ internal sealed partial class ShellNavigationProbe
             await CoverLoadingShimmerAsync();
         }
         finally { ThemeHost.Apply(savedTheme); }
+    }
+
+    private static void RequireDialogActionRadius(ButtonBase button)
+    {
+        button.ApplyTemplate();
+        var presenter = Descendants(button).OfType<ContentPresenter>().Single(element => element.Name == "ContentPresenter");
+        Require(button.CornerRadius == (CornerRadius)Application.Current.Resources["ControlCornerRadius"]
+            && presenter.CornerRadius == button.CornerRadius, $"{button.Name} 的按钮模板没有使用紧凑圆角");
     }
 
     /// <summary>

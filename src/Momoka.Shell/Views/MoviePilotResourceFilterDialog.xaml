@@ -149,7 +149,7 @@
             </ItemsRepeater>
             <!-- 网页端没有的本地条件放在一张通栏卡里，不混进上面那排与网页端一一对应的分组。 -->
             <Border Background="{ThemeResource EgSurfaceAltBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1" CornerRadius="12" Padding="14">
+                BorderThickness="1" CornerRadius="{StaticResource EgPickerCornerRadius}" Padding="14">
                 <StackPanel Spacing="12">
                     <TextBlock x:Uid="MoviePilotResourceFilterDialog_MoreFilters" Text="更多条件" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
                     <TextBox x:Uid="MoviePilotResourceBrowser_FilterText" x:Name="FilterText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="在结果中筛选" PlaceholderText="标题、副标题或标签"

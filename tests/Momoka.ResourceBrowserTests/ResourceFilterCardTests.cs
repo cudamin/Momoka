@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.UI.Xaml;
+using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
@@ -15,6 +16,34 @@ internal static class ResourceFilterCardTests
 {
     public static void Register(string sourceRoot)
     {
+        Test("资源计数徽标：完整、筛选、零匹配和恢复时更新计数，支持中英文", () =>
+        {
+            var previousLanguage = UiText.Language;
+            try
+            {
+                UiText.Language = UiLanguages.Chinese;
+                var vm = Browser();
+                Assert.Equal("4 个资源", vm.CountText);
+                var updates = new List<string>();
+                vm.PropertyChanged += (_, args) =>
+                {
+                    if (args.PropertyName == nameof(vm.CountText)) updates.Add(vm.CountText);
+                };
+
+                vm.Text = "Chinese";
+                vm.Text = "absent";
+                vm.ResetCommand.Execute(null);
+                Assert.Equal("1 / 4 个资源|0 / 4 个资源|4 个资源", string.Join('|', updates));
+
+                UiText.Language = UiLanguages.English;
+                Assert.Equal("4 resources", vm.CountText);
+                vm.Text = "Chinese";
+                Assert.Equal("1 / 4 resources", vm.CountText);
+                vm.SetResults([vm.Rows.Single()]);
+                Assert.Equal("1 resource", vm.CountText);
+            }
+            finally { UiText.Language = previousLanguage; }
+        });
         Test("资源筛选卡片：坏季集字段不阻断整批铺设，筛选与清除保留集合", () =>
         {
             var vm = new MoviePilotResourceBrowserViewModel();
@@ -424,7 +453,7 @@ internal static class ResourceFilterCardTests
             }
             var canonical = string.Concat(structure.ToString(SaveOptions.DisableFormatting).Where(character => !char.IsWhiteSpace(character)));
             Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Named(xml, "ResourceCard").Attribute("Background")?.Value);
-            Assert.Equal("D51477DBB1D37698A365639A4E3B759A5FE349CF3EA5AA4C36E63753CC1BB82E", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
+            Assert.Equal("6E659467B05107E6CAB68B3950CDC498C44DE263107DF19FDD4EDAB29E1ADEB0", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
         });
         foreach (var width in new[] { 240d, 280d })
         {

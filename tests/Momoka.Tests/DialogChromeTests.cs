@@ -36,6 +36,40 @@ internal static class DialogChromeTests
             Assert.Equal("{StaticResource EgCardCornerRadius}", setters.GetValueOrDefault("CornerRadius"));
         });
 
+        Test("详情更多弹窗：操作按钮用紧凑圆角，媒体缩略图和日期输入各保留自己的形状", () =>
+        {
+            var views = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
+            var styles = XDocument.Load(Path.Combine(views, "..", "Theme", "Styles.xaml"));
+            Assert.NotNull(styles.Descendants().SingleOrDefault(element => element.Name.LocalName == "CornerRadius"
+                && element.Attribute(Xaml + "Key")?.Value == "ControlCornerRadius"));
+
+            foreach (var (file, buttonName) in new[]
+            {
+                ("CoverDialog.xaml", "RefreshArtworkButton"), ("CoverPickerDialog.xaml", "UploadArtworkButton"),
+                ("FnNasSubtitleDialog.xaml", "SearchButton"), ("IdentifyDialog.xaml", "SearchButton"),
+                ("MetadataListEditor.xaml", "ApplyEntryButton"), ("MoviePilotReorganizeDialog.xaml", "DismissReorganize"),
+                ("MoviePilotSeriesReorganizeDialog.xaml", "StatusFilterButton"), ("SubtitleDialog.xaml", "HeaderCloseButton")
+            })
+            {
+                var view = XDocument.Load(Path.Combine(views, file));
+                var button = view.Descendants().Single(element => element.Name.LocalName == "Button"
+                    && element.Attribute(Xaml + "Name")?.Value == buttonName);
+                Assert.Equal("{ThemeResource ControlCornerRadius}", button.Attribute("CornerRadius")?.Value, file + "/" + buttonName);
+            }
+
+            var cover = XDocument.Load(Path.Combine(views, "CoverDialog.xaml"));
+            var tiles = cover.Descendants().Where(element => element.Name.LocalName == "Button")
+                .Where(button => button.Attribute("Style")?.Value == "{StaticResource EgArtworkTileStyle}").ToArray();
+            Assert.Equal(2, tiles.Length);
+            Assert.True(tiles.All(tile => tile.Attribute("CornerRadius") is null), "封面卡沿用封面圆角");
+
+            var editor = XDocument.Load(Path.Combine(views, "EmbyMetadataDialog.xaml"));
+            var dateInputs = editor.Descendants().Where(element => element.Name.LocalName is "CalendarDatePicker" or "TimePicker").ToArray();
+            Assert.Equal(3, dateInputs.Length);
+            foreach (var input in dateInputs)
+                Assert.Equal("{StaticResource EgSearchCornerRadius}", input.Attribute("CornerRadius")?.Value);
+        });
+
         Test("菜单与浮出层：深浅字典都是实心面色和主题边线，弹窗不再上亚克力", () =>
         {
             var palette = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Palette.xaml"));
@@ -220,13 +254,13 @@ internal static class DialogChromeTests
             Assert.Equal("Button", primary.Attribute("TargetType")?.Value);
             Assert.Equal("{StaticResource EgPrimaryButtonStyle}", primary.Attribute("BasedOn")?.Value);
             var primarySetters = Setters(primary);
-            Assert.Equal("4", primarySetters.GetValueOrDefault("CornerRadius"));
+            Assert.Equal("{ThemeResource ControlCornerRadius}", primarySetters.GetValueOrDefault("CornerRadius"));
 
             var secondary = styles.Single(style => style.Attribute(Xaml + "Key")?.Value == "EgDialogSecondaryButtonStyle");
             Assert.Equal("Button", secondary.Attribute("TargetType")?.Value);
             Assert.Equal("{StaticResource DefaultButtonStyle}", secondary.Attribute("BasedOn")?.Value);
             var setters = Setters(secondary);
-            Assert.Equal("4", setters.GetValueOrDefault("CornerRadius"));
+            Assert.Equal("{ThemeResource ControlCornerRadius}", setters.GetValueOrDefault("CornerRadius"));
 
             // 同高同内边距：两条样式各写一次 32 高与常规内边距（EgPrimaryButtonStyle 的 44 胶囊尺寸被盖掉），
             // 以后谁单独调一处，三颗又会长短不一。

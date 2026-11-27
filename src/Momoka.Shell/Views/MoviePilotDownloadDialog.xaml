@@ -88,11 +88,11 @@
                 <FontIcon Grid.Row="2" Glyph="&#xEDA2;" Foreground="{ThemeResource EgTextDimBrush}"
                     Visibility="{x:Bind ViewModel.SizeVisibility, Mode=OneWay}" />
                 <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <Border Padding="10,4" CornerRadius="4" Background="{ThemeResource EgSurfaceAltBrush}"
+                    <Border Padding="10,4" CornerRadius="{ThemeResource ControlCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}"
                         Visibility="{x:Bind ViewModel.SizeVisibility, Mode=OneWay}">
                         <TextBlock Text="{x:Bind ViewModel.SizeText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
                     </Border>
-                    <Border Padding="10,4" CornerRadius="4" Background="{ThemeResource EgAccentSoftBrush}"
+                    <Border Padding="10,4" CornerRadius="{ThemeResource ControlCornerRadius}" Background="{ThemeResource EgAccentSoftBrush}"
                         Visibility="{x:Bind ViewModel.PromotionVisibility, Mode=OneWay}">
                         <TextBlock Text="{x:Bind ViewModel.PromotionText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                             Foreground="{ThemeResource EgAccentBrush}" />

@@ -180,41 +180,41 @@
                 x:Name="SearchButton"
                 Click="OnSearch"
                 Content="搜索"
-                Style="{StaticResource EgPrimaryButtonStyle}" />
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgPrimaryButtonStyle}" />
             <Button x:Uid="IdentifyDialog_RemoveButton"
                 x:Name="RemoveButton"
                 Click="OnAskRemove"
                 Content="移除识别"
-                Style="{StaticResource EgSecondaryButtonStyle}" />
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}" />
             <Button x:Uid="IdentifyDialog_ConfirmRemoveButton"
                 x:Name="ConfirmRemoveButton"
                 Click="OnConfirmRemove"
                 Content="移除识别"
-                Style="{StaticResource EgPrimaryButtonStyle}"
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgPrimaryButtonStyle}"
                 Visibility="Collapsed" />
             <Button x:Uid="IdentifyDialog_CancelRemoveButton"
                 x:Name="CancelRemoveButton"
                 Click="OnCancelRemove"
                 Content="取消"
-                Style="{StaticResource EgSecondaryButtonStyle}"
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}"
                 Visibility="Collapsed" />
             <Button x:Uid="IdentifyDialog_ApplyButton"
                 x:Name="ApplyButton"
                 Click="OnApply"
                 Content="识别"
-                Style="{StaticResource EgPrimaryButtonStyle}"
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgPrimaryButtonStyle}"
                 Visibility="Collapsed" />
             <Button x:Uid="IdentifyDialog_BackToFormButton"
                 x:Name="BackToFormButton"
                 Click="OnBackToForm"
                 Content="返回搜索条件"
-                Style="{StaticResource EgSecondaryButtonStyle}"
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}"
                 Visibility="Collapsed" />
             <Button x:Uid="IdentifyDialog_BackToResultsButton"
                 x:Name="BackToResultsButton"
                 Click="OnBackToResults"
                 Content="返回搜索结果"
-                Style="{StaticResource EgSecondaryButtonStyle}"
+                CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgSecondaryButtonStyle}"
                 Visibility="Collapsed" />
         </StackPanel>
     </Grid>

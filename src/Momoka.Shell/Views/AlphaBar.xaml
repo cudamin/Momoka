@@ -23,7 +23,7 @@
             <VisualState x:Name="Compact">
                 <VisualState.Setters>
                     <Setter Target="Rail.Padding" Value="0,3" />
-                    <Setter Target="Rail.CornerRadius" Value="12" />
+                    <Setter Target="Rail.CornerRadius" Value="{StaticResource EgAlphaIndicatorCompactCornerRadius}" />
                 </VisualState.Setters>
             </VisualState>
             <VisualState x:Name="Hidden">
@@ -76,7 +76,7 @@
             Background="{ThemeResource EgSurfaceBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="1"
-            CornerRadius="13"
+            CornerRadius="{StaticResource EgAlphaIndicatorCornerRadius}"
             HorizontalAlignment="Right"
             Margin="0,4,2,4"
             Padding="0,5"

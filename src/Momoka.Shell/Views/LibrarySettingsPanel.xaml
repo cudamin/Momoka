@@ -58,6 +58,7 @@
                             x:Name="ViewCombo" x:FieldModifier="internal"
                             AutomationProperties.Name="视图"
                             HorizontalAlignment="Stretch"
+                            ItemContainerStyle="{StaticResource EgSelectionItemStyle}"
                             SelectionChanged="OnViewChanged" />
                     </StackPanel>
 
@@ -69,6 +70,7 @@
                             x:Name="SizeCombo" x:FieldModifier="internal"
                             AutomationProperties.Name="图像大小"
                             HorizontalAlignment="Stretch"
+                            ItemContainerStyle="{StaticResource EgSelectionItemStyle}"
                             SelectionChanged="OnSizeChanged" />
                         <TextBlock x:Uid="LibrarySettingsPanel_Localization4"
                             Foreground="{ThemeResource EgTextFaintBrush}"

@@ -96,6 +96,9 @@ public sealed partial class DetailPage : Page, IShellContent
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
         NavigationTiming.Mark("init-end");
+        var cardCorners = (CornerRadius)Application.Current.Resources["EgCardCornerRadius"];
+        HeroCardTop.CornerRadius = new CornerRadius(cardCorners.TopLeft, cardCorners.TopRight, 0, 0);
+        HeroCardBottom.CornerRadius = new CornerRadius(0, 0, cardCorners.BottomRight, cardCorners.BottomLeft);
         WatchArtworkArrival();
         PrepareAppearance();
         PaintScrim();

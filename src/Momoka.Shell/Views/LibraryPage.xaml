@@ -32,7 +32,7 @@
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSegmentedTrackCornerRadius}" />
             <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
@@ -42,7 +42,7 @@
             <Setter Property="Height" Value="28" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="14,0" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPill28CornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
@@ -81,7 +81,7 @@
             <Setter Property="MinHeight" Value="28" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="10,0" />
-            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPill28CornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
@@ -351,7 +351,7 @@
                 <!-- 分类胶囊和下面两条搜索容器都是页面上的一层低透明度玻璃：tint 与设置卡片同族，
                      压在纯色页面上只透出一点模糊和噪点，字和圆角保持原样。 -->
                 <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="18" Padding="3"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource EgPill36CornerRadius}" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
                     <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
                 </Border>
@@ -469,12 +469,12 @@
                                 <Style TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
                                     <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
                                     <Setter Property="Padding" Value="4" />
-                                    <Setter Property="CornerRadius" Value="16" />
+                                    <Setter Property="CornerRadius" Value="{StaticResource EgSegmentedTrackCornerRadius}" />
                                 </Style>
                             </local:SearchSourceTabs.Style>
                             <local:SearchSourceTabs.ItemContainerStyle>
                                 <Style TargetType="tkcontrols:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
-                                    <Setter Property="CornerRadius" Value="12" />
+                                    <Setter Property="CornerRadius" Value="{StaticResource EgSegmentedItemCornerRadius}" />
                                     <Setter Property="MinWidth" Value="0" />
                                     <Setter Property="MinHeight" Value="24" />
                                     <Setter Property="Height" Value="24" />
@@ -836,7 +836,7 @@
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1"
-                CornerRadius="12"
+                CornerRadius="{StaticResource EgPickerCornerRadius}"
                 Visibility="{x:Bind ViewModel.FnNasFilterVisibility, Mode=OneWay}"
                 local:VisibilityReveal.IsEnabled="True">
                 <StackPanel Spacing="10">
@@ -1177,7 +1177,7 @@
             VerticalAlignment="Top"
             Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}"
             local:VisibilityReveal.IsEnabled="True">
-            <Border Width="72" Height="72" CornerRadius="24" Background="{ThemeResource EgSurfaceAltBrush}">
+            <Border Width="72" Height="72" CornerRadius="{StaticResource EgStatusIconCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
                 <FontIcon Glyph="&#xE721;" FontSize="28" Foreground="{ThemeResource EgAccentBrush}" />
             </Border>
             <TextBlock Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}" TextWrapping="Wrap" TextAlignment="Center" />
@@ -1252,7 +1252,7 @@
                 Background="{ThemeResource EgScrimBrush}"
                 BorderThickness="0"
                 Click="OnFilterScrimClicked"
-                CornerRadius="0"
+                CornerRadius="{StaticResource EgBleedCornerRadius}"
                 HorizontalAlignment="Stretch"
                 IsTabStop="False"
                 Padding="0"
@@ -1293,7 +1293,7 @@
                 Background="{ThemeResource EgScrimBrush}"
                 BorderThickness="0"
                 Click="OnSettingsScrimClicked"
-                CornerRadius="0"
+                CornerRadius="{StaticResource EgBleedCornerRadius}"
                 HorizontalAlignment="Stretch"
                 IsTabStop="False"
                 Padding="0"

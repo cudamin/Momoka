@@ -400,8 +400,6 @@ public sealed partial class PlayerPage
     private const double FullscreenSkipGlyph = 15.6;
     private const double WindowSkipCaption = 12;
     private const double FullscreenSkipCaption = 15.6;
-    private const double WindowSkipCorner = 2;
-    private const double FullscreenSkipCorner = 2.6;
 
     /// <summary>
     /// 暂停/播放徽标的**两档方框**（用户令 2026-11-17「集成模式点击屏幕暂停/开始时出现的图标全屏时要放大
@@ -450,13 +448,27 @@ public sealed partial class PlayerPage
     /// </summary>
     private bool BigChrome => _window is { Fullscreen: true } or { IsMaximized: true };
 
+    private const double FullscreenChromeScale = 1.3;
+
     /// <summary>
-    /// 「按窗口尺寸现算」的两处（<see cref="ArrangeTransport"/> 的倍速条宽度档与音量轨高度上限）用的
-    /// 档位倍率 —— 就是独占 <c>scale_fullscreen</c> 那个 1.3，判据同 <see cref="BigChrome"/>。写死的两档
-    /// 常量不走它；只有动态公式里这两处拿它乘，免得再埋一份判据。hidpi 那一半不用复刻：WinUI 的
-    /// 有效像素本来就随系统 DPI 走（uosc 的 hidpi_scale 是给 ASS 物理像素补的那一层）。
+    /// <see cref="ArrangeTransport"/> 用当前档位计算倍速条宽度档与音量轨高度上限。
     /// </summary>
-    private double ChromeFactor => BigChrome ? 1.3 : 1.0;
+    private double ChromeFactor => BigChrome ? FullscreenChromeScale : 1.0;
+
+    private static CornerRadius PlayerControlCorners(bool fullscreen, bool round = true)
+    {
+        var corners = (CornerRadius)Application.Current.Resources["EgPlayerControlCornerRadius"];
+        if (!fullscreen) return corners;
+
+        return new CornerRadius(Scale(corners.TopLeft), Scale(corners.TopRight),
+            Scale(corners.BottomRight), Scale(corners.BottomLeft));
+
+        double Scale(double corner)
+        {
+            var scaled = corner * FullscreenChromeScale;
+            return round ? Math.Round(scaled, MidpointRounding.AwayFromZero) : scaled;
+        }
+    }
 
     /// <summary>按窗口**这一刻的形态**摆两档尺寸（判据见 <see cref="BigChrome"/>）。进页面、窗口形态变了都走它。</summary>
     internal void ApplyChromeScale() => ApplyTitleScale(BigChrome);
@@ -558,7 +570,7 @@ public sealed partial class PlayerPage
         var glyph = fullscreen ? FullscreenTransportGlyph : WindowTransportGlyph;
         var cell = fullscreen ? FullscreenTransportCell : WindowTransportCell;
         var gap = fullscreen ? FullscreenTransportGap : WindowTransportGap;
-        var corner = fullscreen ? 3d : 2d;
+        var corners = PlayerControlCorners(fullscreen);
         TransportRow.Margin = new Thickness(fullscreen ? FullscreenTransportInset : WindowTransportInset);
         TransportRow.ColumnSpacing = gap;
         foreach (var group in new[] { TransportLeft, TransportMiddle, TransportRight })
@@ -578,7 +590,7 @@ public sealed partial class PlayerPage
                 if (GlyphOf(button) is { } icon) icon.FontSize = glyph;
                 button.Width = button.MinWidth = cell;
                 button.Height = button.MinHeight = cell;
-                button.CornerRadius = new CornerRadius(corner);
+                button.CornerRadius = corners;
             }
         }
         // 字幕/音轨与全屏之间空一个键位（用户令 2026-09-29「集成模式右下角的字幕和音轨键向左移一个键的空位，
@@ -627,11 +639,11 @@ public sealed partial class PlayerPage
         // 格：可见底就是按钮自己的 Width/Height（悬停那两档底画在这块上，格涨它们跟着涨；置顶那颗
         // 2026-09-29 起不再有已置顶那一档的底）。
         var cell = fullscreen ? FullscreenCommandCell : WindowCommandCell;
-        var corner = fullscreen ? 3d : 2d;
+        var corners = PlayerControlCorners(fullscreen);
         foreach (var button in new[] { PinButton, MinimizeButton, MaximizeButton, CloseButton })
         {
             button.Width = button.Height = cell;
-            button.CornerRadius = new CornerRadius(corner);
+            button.CornerRadius = corners;
         }
         WindowButtons.Spacing = fullscreen ? FullscreenCommandGap : WindowCommandGap;
         WindowButtons.Margin = new Thickness(0,
@@ -681,7 +693,7 @@ public sealed partial class PlayerPage
         var padY = fullscreen ? FullscreenSkipPadY : WindowSkipPadY;
         SkipButton.Margin = new Thickness(0, 0, padY, SkipButton.Margin.Bottom);
         SkipButton.Padding = new Thickness(padX, padY, padX, padY);
-        SkipButton.CornerRadius = new CornerRadius(fullscreen ? FullscreenSkipCorner : WindowSkipCorner);
+        SkipButton.CornerRadius = PlayerControlCorners(fullscreen, round: false);
         SkipRow.Spacing = fullscreen ? FullscreenSkipGap : WindowSkipGap;
         SkipGlyph.FontSize = fullscreen ? FullscreenSkipGlyph : WindowSkipGlyph;
         SkipText.FontSize = fullscreen ? FullscreenSkipCaption : WindowSkipCaption;

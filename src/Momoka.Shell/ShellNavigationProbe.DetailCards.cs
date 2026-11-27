@@ -22,7 +22,8 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(panel.Background, source.Background) && panel.Background is SolidColorBrush { Color.A: 255 },
                 name + " 商店卡片缺少当前主题实色表面");
             Require(ReferenceEquals(panel.Style, Application.Current.Resources["EgStoreDetailCardStyle"])
-                && panel.Padding == default && panel.Spacing == 0 && panel.CornerRadius == new CornerRadius(8),
+                && panel.Padding == default && panel.Spacing == 0
+                && panel.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
                 name + " 商店卡片格式不一致");
             var header = (Border)panel.Children[0];
             var content = (StackPanel)panel.Children[1];
@@ -448,6 +449,7 @@ internal sealed partial class ShellNavigationProbe
             "商店操作块不是常驻可命中状态");
         var icons = row.Children.OfType<Button>().ToArray();
         Require(icons.Length == 3, "商店图标键不是三颗");
+        var corner = (CornerRadius)Application.Current.Resources["EgMediaActionCornerRadius"];
         foreach (var button in icons)
         {
             Require(button.Style == (Style)page.Resources["EgStoreCoverActionButtonStyle"]
@@ -455,15 +457,14 @@ internal sealed partial class ShellNavigationProbe
                 "图标按钮丢失平台按钮样式、无边框、常驻或键盘入口");
             Require(!string.IsNullOrWhiteSpace(AutomationProperties.GetName(button))
                 && ToolTipService.GetToolTip(button) is not null, "图标按钮缺少名称或提示");
+            Require(button.CornerRadius == corner, "图标键没有使用共享操作按钮圆角");
             button.ApplyTemplate();
             if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
             {
                 // 2026-11-17 用户令「这三个按钮的框改为鼠标移到按钮上的时候才显示」：常态不铺框，
-                // 指针移上去之后才由 PointerOver／Pressed 读那支固定面色；圆角和闭合选择框同一档。
+                // 指针移上去之后才由 PointerOver／Pressed 读那支固定面色。
                 Require(button.Background is SolidColorBrush { Color.A: 0 }, "图标键常态仍然铺着框");
                 RequireFixedSurface([button], restHidden: true);
-                Require(button.CornerRadius == (CornerRadius)page.Resources["EgDetailPickerCornerRadius"],
-                    "图标键圆角没有跟下方选择框同一档");
             }
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
             {
@@ -472,7 +473,7 @@ internal sealed partial class ShellNavigationProbe
             }
             VisualStateManager.GoToState(button, "Normal", false);
         }
-        // 主播放键回到带字的主题色药丸（2026-11-16 用户令「还原成之前的样式」）。
+        // 主播放键仍使用带字的主题色，圆角与上排图标键一致。
         var play = slot.Children.OfType<Button>().Single();
         var accent = ((SolidColorBrush)Application.Current.Resources["EgAccentBrush"]).Color;
         // 滚过阈值后顶部悬浮栏会接手主播放键：原键按设计收成透明、不可命中，顶栏那颗顶上。
@@ -480,8 +481,9 @@ internal sealed partial class ShellNavigationProbe
         var stickyHolding = !play.IsHitTestVisible && Get<bool>(page, "_headerShown");
         Require(play.Style == (Style)page.Resources["EgPlayButtonStyle"]
             && (stickyHolding ? Math.Abs(play.Opacity) < 0.01 && !play.IsTabStop : play.Opacity == 1 && play.IsHitTestVisible),
-            $"主播放键没有回到带字的药丸样式或常驻状态（样式 {(ReferenceEquals(play.Style, page.Resources["EgPlayButtonStyle"]) ? "药丸" : play.Style is null ? "空" : "其他")}、"
-            + $"透明度 {play.Opacity:0.##}、命中 {play.IsHitTestVisible}、顶栏接手 {stickyHolding}）");
+            $"主播放键样式或常驻状态不对（透明度 {play.Opacity:0.##}、命中 {play.IsHitTestVisible}、顶栏接手 {stickyHolding}）");
+        Require(play.CornerRadius == corner && Get<Button>(page, "CompactPlayButton").CornerRadius == corner
+            && Get<Button>(page, "StickyPlayButton").CornerRadius == corner, "商店播放键的圆角与上排图标键不一致");
         if (stickyHolding)
         {
             var sticky = Get<Button>(page, "StickyPlayButton");

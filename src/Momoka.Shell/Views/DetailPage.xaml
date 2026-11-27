@@ -34,23 +34,13 @@
         <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="MinHeight" Value="{StaticResource EgPickerRowHeight}" />
             <Setter Property="Padding" Value="10,3,0,3" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource EgSelectionItemStyle}" />
         </Style>
-        <!-- 文件选项的六颗下拉：圆角矩形，不是胶囊（2026-11-15 用户令「不要胶囊形状，矩形加一点圆角」，
-             当天更晚又令「圆角不够圆，加高选择框的高度」）。
-             28 DIP 的行高下，EgCardCornerRadius 的 16 画出来是两端半圆的胶囊，于是先试过 4 —— 4 在同样
-             的窄边里又只剩一道方槽，圆角看不出来。36 高配 12 圆角那一版四角是圆的、腰身是直的；
-             2026-11-16 用户令「这个选择框弄扁一点」把行高收到 32，圆角按同一比例收到 10：
-             半个高度是 16，10 还差 6 才到半圆，仍是「矩形加圆角」那一档，也回到全站输入框的
-             10 DIP 语义（EgSearchCornerRadius 管设置与搜索的框）。
-             只作用于本页六颗 EgPicker，下方操作按钮与全局 EgPicker 照旧。 -->
-        <CornerRadius x:Key="EgDetailPickerCornerRadius">10</CornerRadius>
-        <!-- 头图上那六颗键：带字的两颗一个高度，只有图标的四颗是同边长的方块。三个样式的高度、边长和
-             圆角都取词表 —— 以前是写死的 38 配 19，19 是「一半高」也就是药丸，而这一版里圆角只有两档：
-             图是 0，你会去按的东西是 8。两个都必须 BasedOn 框架自己的样式，否则连模板都拿不到。 -->
+        <!-- 带字键和方形图标键共用操作圆角，控件模板继续采用平台样式。 -->
         <Style x:Key="EgPillButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="Padding" Value="18,0,20,2" />
         </Style>
 
@@ -62,7 +52,7 @@
         <Style x:Key="EgPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="Padding" Value="18,0,20,2" />
             <!-- 底半透明了，字得回到压在图上那支浅墨上 —— 从前那支深墨（EgTextOnAccent）是给实心强调色面
                  配的，现在底是暗的，深墨压上去读不出来。 -->
@@ -91,7 +81,7 @@
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="Padding" Value="18,0,20,2" />
         </Style>
 
@@ -99,15 +89,15 @@
             <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
         <!-- 商店模式片名下方那三颗图标键（已看、收藏、更多）。2026-11-16 用户令「用下方音频/字幕
              选择框一样的材质背景还有圆角」：底色不再交给 SubtleButtonStyle 的透明常态，改回平台默认
              按钮模板 —— 常态与三态读的是 ControlBackgroundBrushes 构造时种进按钮局部资源的
              ButtonBackground* 画刷，和下方六颗闭合选择框共用同一支固定面色（EgStoreControlBrush
-             的四档浓度，商店档由 ApplyAppearance 涂上）。圆角取那一档选择框的小圆角
-             （EgDetailPickerCornerRadius），不再是胶囊或直角；仍是 44 的方形命中格、无边框，
+             的四档浓度，商店档由 ApplyAppearance 涂上）。圆角与播放键共用 EgMediaActionCornerRadius；
+             仍是 44 的方形命中格、无边框，
              悬停、按下与焦点反馈仍由平台模板给。 -->
         <Style x:Key="EgStoreCoverActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="BorderThickness" Value="0" />
@@ -116,7 +106,7 @@
             <Setter Property="MinWidth" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinHeight" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgDetailPickerCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgMediaActionCornerRadius}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -464,7 +454,7 @@
                         Height="{x:Bind ViewModel.StoreArtHeight, Mode=OneWay}"
                         HorizontalAlignment="Right" VerticalAlignment="Top"
                         Margin="{x:Bind ViewModel.StoreArtMargin, Mode=OneWay}"
-                        CornerRadius="{StaticResource EgCardCornerRadius}"
+                        CornerRadius="{StaticResource EgBleedCornerRadius}"
                         Visibility="{x:Bind ViewModel.StoreCornerArtVisibility, Mode=OneWay}"
                         IsHitTestVisible="False"
                         AutomationProperties.AccessibilityView="Raw">
@@ -495,7 +485,7 @@
                         <CommandBar.Resources>
                             <Style TargetType="AppBarButton" BasedOn="{StaticResource DefaultAppBarButtonStyle}">
                                 <Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" />
-                                <Setter Property="MinWidth" Value="0" /><Setter Property="CornerRadius" Value="20" />
+                                <Setter Property="MinWidth" Value="0" /><Setter Property="CornerRadius" Value="{StaticResource EgIconButtonCornerRadius}" />
                                 <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
                             </Style>
                         </CommandBar.Resources>
@@ -578,7 +568,6 @@
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgCardStrokeBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
-                        CornerRadius="{StaticResource EgCardCornerRadiusTop}"
                         Margin="{x:Bind ViewModel.HeroCardTopMargin, Mode=OneWay}"
                         Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
 
@@ -1137,7 +1126,6 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                             DisplayMemberPath="Text"
                                             ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                             MinWidth="0"
@@ -1170,7 +1158,6 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                             ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                             ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -1208,7 +1195,6 @@
                                             Background="{ThemeResource ButtonBackground}"
                                             Grid.Column="1"
                                             HorizontalAlignment="Left"
-                                            CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                             ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                             ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                             MinWidth="0"
@@ -1572,7 +1558,6 @@
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgCardStrokeBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
-                        CornerRadius="{StaticResource EgCardCornerRadiusBottom}"
                         IsHitTestVisible="False"
                         Margin="{x:Bind ViewModel.HeroCardBottomMargin, Mode=OneWay}"
                         Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
@@ -1635,8 +1620,7 @@
 
                              里面那一层是 WrapRow 而不是横排的 StackPanel：下拉的宽度按各自最长那条轨道名撑，
                              窄窗口下三个加起来能超过一行，横排会把最右边那个切在窗口右沿上。宽窗口下两者摆出来
-                             一模一样，见 WrapRow 的注释。三颗下拉走本页的小圆角（EgDetailPickerCornerRadius），
-                             集页宽版式那一份也用这一支；下方操作按钮仍是 EgCardCornerRadius。
+                             一模一样，见 WrapRow 的注释。六颗下拉沿用共享输入圆角与列表项圆角。
                              三颗都是 local:EgPicker 而不是框架的 ComboBox —— 它是 ComboBox 的一点壳，只把弹层
                              从「开窗口」改回「同一棵树」，好让浮层那支应用内亚克力采得到底下这一页（用户
                              2026-09-27：「把音频和字幕的选择栏改成亚克力背景」；为什么这么改写在 EgPicker.cs）。
@@ -1649,7 +1633,7 @@
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
-                            CornerRadius="0"
+                            CornerRadius="{StaticResource EgBleedCornerRadius}"
                             Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.PickersVisibility, Mode=OneWay}">
                             <StackPanel.Resources>
@@ -1681,7 +1665,6 @@
                                     x:Name="SourcePicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
                                     MinWidth="260"
@@ -1695,7 +1678,6 @@
                                     x:Name="AudioPicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                     ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                     ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                     MinWidth="200"
@@ -1710,7 +1692,6 @@
                                     x:Name="SubtitlePicker"
                                     FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
-                                    CornerRadius="{StaticResource EgDetailPickerCornerRadius}"
                                     ItemTemplate="{StaticResource TrackPickerRowTemplate}"
                                     ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
                                     MinWidth="200"
@@ -1753,7 +1734,7 @@
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
-                            CornerRadius="0"
+                            CornerRadius="{StaticResource EgBleedCornerRadius}"
                             Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.CompactVisibility, Mode=OneWay}">
@@ -1920,7 +1901,7 @@
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
-                            CornerRadius="0"
+                            CornerRadius="{StaticResource EgBleedCornerRadius}"
                             Padding="{x:Bind ViewModel.OverviewPanelPadding, Mode=OneWay}"
                             Spacing="0"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
@@ -2231,7 +2212,7 @@
                              居中、Uniform、上限 760×140：它是一处收尾而不是又一张头图，通栏铺开会读成第二块头图；
                              760 也是它的解码宽度（DetailViewModel.FooterDecodeWidth），因为这张图上的字是位图。
                              上边距 12 加上这张纸自己的 20 行距 —— 收尾和最后一排卡片之间要看得出是两件事。
-                             读屏跳过它（AccessibilityView=Raw）：片名这一页从头到尾都有字的出处，这一张是装饰。 -->
+                             页尾横幅保留直角，直接用 Image 显示。读屏跳过这张装饰图。 -->
                         <Image
                             x:Name="FooterBanner"
                             AutomationProperties.AccessibilityView="Raw"

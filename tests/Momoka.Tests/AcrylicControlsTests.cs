@@ -35,8 +35,17 @@ internal static class AcrylicControlsTests
                 Assert.Equal("{StaticResource EgActionHeight}", Setter(style, dimension));
             // 2026-11-16 用户令「用下方音频/字幕选择框一样的材质背景还有圆角」：圆角取闭合选择框
             // 那一档，底色仍是 ControlBackgroundBrushes 种进按钮局部资源的 ButtonBackground*。
-            Assert.Equal("{StaticResource EgDetailPickerCornerRadius}", Setter(style, "CornerRadius"));
+            Assert.Equal("{StaticResource EgMediaActionCornerRadius}", Setter(style, "CornerRadius"));
             Assert.Null(Setter(style, "Background"));
+            var playbackStyle = Resource(page.Root!.Element(Xaml + "Page.Resources")!, "EgPlayButtonStyle");
+            Assert.Equal("{StaticResource DefaultButtonStyle}", (string?)playbackStyle.Attribute("BasedOn"));
+            Assert.Equal(Setter(style, "CornerRadius"), Setter(playbackStyle, "CornerRadius"));
+            foreach (var name in new[] { "ColumnPlayButton", "CompactPlayButton", "StickyPlayButton" })
+            {
+                var button = Named(page, name);
+                Assert.Equal("{StaticResource EgPlayButtonStyle}", (string?)button.Attribute("Style"));
+                Assert.Equal("{x:Bind ViewModel.PlayCommand}", (string?)button.Attribute("Command"));
+            }
             var hover = Source("Views/DetailPage.CoverPlay.cs");
             Assert.DoesNotContain("StoreCoverActions", hover);
             var appearance = Source("Views/DetailPage.Appearance.cs");
@@ -750,7 +759,7 @@ internal static class AcrylicControlsTests
                 .Single(element => element.Name.LocalName == "SearchSourceTabs.Style")
                 .Elements().Single(element => element.Name.LocalName == "Style");
             Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Setter(style, "Background"));
-            Assert.Equal("16", Setter(style, "CornerRadius"), "来源栏圆角应保持原样");
+            Assert.Equal("{StaticResource EgSegmentedTrackCornerRadius}", Setter(style, "CornerRadius"));
         });
 
         Test("卡片亚克力：MoviePilot 与 AniBT 资源卡、进度卡复用设置卡片刷子", () =>

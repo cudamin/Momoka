@@ -57,7 +57,7 @@
                 <TextBlock x:Uid="MoviePilotReorganizeDialog_Localization1" Text="手动整理" Style="{StaticResource EgSectionTitleStyle}" />
                 <TextBlock x:Name="ReorganizeSubtitle" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" MaxLines="1" />
             </StackPanel>
-            <Button x:Uid="MoviePilotReorganizeDialog_DismissReorganize" x:Name="DismissReorganize" Grid.Column="2" Click="OnDismiss" Style="{StaticResource EgIconButtonStyle}"
+            <Button x:Uid="MoviePilotReorganizeDialog_DismissReorganize" x:Name="DismissReorganize" Grid.Column="2" Click="OnDismiss" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgIconButtonStyle}"
                 AutomationProperties.Name="关闭手动整理" ToolTipService.ToolTip="关闭">
                 <FontIcon Glyph="&#xE8BB;" FontSize="{StaticResource EgSubheadFontSize}" />
             </Button>
@@ -291,7 +291,7 @@
                 <Button x:Uid="MoviePilotReorganizeDialog_QueueButton" x:Name="QueueButton" AutomationProperties.Name="加入整理队列" Grid.Column="1" Click="OnQueueSubmit" Style="{StaticResource ReorganizeActionStyle}">
                     <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock x:Uid="MoviePilotReorganizeDialog_Localization38" Text="加入整理队列" /></StackPanel>
                 </Button>
-                <Button x:Uid="MoviePilotReorganizeDialog_ReorganizeButton" x:Name="ReorganizeButton" AutomationProperties.Name="重新整理" Grid.Column="3" Click="OnReorganizeSubmit" Style="{StaticResource AccentButtonStyle}" MinHeight="36">
+                <Button x:Uid="MoviePilotReorganizeDialog_ReorganizeButton" x:Name="ReorganizeButton" AutomationProperties.Name="重新整理" Grid.Column="3" Click="OnReorganizeSubmit" CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource AccentButtonStyle}" MinHeight="36">
                     <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock x:Uid="MoviePilotReorganizeDialog_Localization39" Text="重新整理" /></StackPanel>
                 </Button>
             </Grid>

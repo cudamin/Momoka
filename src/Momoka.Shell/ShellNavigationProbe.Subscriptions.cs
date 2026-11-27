@@ -459,6 +459,9 @@ internal sealed partial class ShellNavigationProbe
                 Require(rowButtons.Select(button => button.Name).SequenceEqual(
                         new[] { "SearchSubscription", "SearchAniBt", "SearchMediaSubtitles", "ChooseSubscribeSeasons", "PlayMediaLibraryItem", "PlaySubscriptionTrailer", "EditSubscription", "MoreActions" }),
                     "操作排不是「搜索资源 + AniBT + 搜索字幕 + 播放 + 预告片 + 编辑 + 更多」：" + string.Join("、", rowButtons.Select(button => button.Name)));
+                var actionCorner = (CornerRadius)Application.Current.Resources["EgMediaActionCornerRadius"];
+                Require(rowButtons.All(button => button.CornerRadius == actionCorner),
+                    "订阅详情操作按钮没有共用媒体详情的圆角");
                 Require(rowButtons.Select(button => button.Content as string).SequenceEqual(
                         new[] { "搜索资源", "搜索AniBT", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "预告片", "编辑订阅", null }),
                     "操作排上的文案不对：" + string.Join("、", rowButtons.Select(button => button.Content?.ToString() ?? "（图标）")));

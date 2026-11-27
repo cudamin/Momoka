@@ -67,7 +67,7 @@ public sealed partial class PosterCard
                         for (var column = 0; column < 3; column++)
                             AddImage(images[order[row * 3 + column] % images.Count],
                                 106 + column * 50.5 - row * 18.9, -36 + row * 67.2,
-                                44.5, 66.2, 15.8, 1, 3);
+                                44.5, 66.2, 15.8);
                     // 左侧文字区保持足够对比，右端渐隐到海报墙，底色与整张封面同源。
                     var shade = new Rectangle
                     {
@@ -92,7 +92,7 @@ public sealed partial class PosterCard
             {
                 Width = 20,
                 Height = 3,
-                CornerRadius = new(1.5),
+                CornerRadius = (CornerRadius)Application.Current.Resources["EgThinAccentCornerRadius"],
                 Background = new SolidColorBrush(Color(palette.Accent))
             };
             Canvas.SetLeft(accent, 12);
@@ -124,6 +124,7 @@ public sealed partial class PosterCard
         void AddStackCard(BitmapImage source, double x, double y, double width, double height,
             double rotation = 0, double opacity = 1)
         {
+            var corners = (CornerRadius)Application.Current.Resources["EgSmallArtworkCornerRadius"];
             var card = new Grid
             {
                 Width = width,
@@ -136,18 +137,18 @@ public sealed partial class PosterCard
             card.Children.Add(new Border
             {
                 Margin = new Thickness(-3, 5, -3, -1),
-                CornerRadius = new(10),
+                CornerRadius = ShadowCorners(2),
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(22, 0, 0, 0))
             });
             card.Children.Add(new Border
             {
                 Margin = new Thickness(-1, 3, -1, 1),
-                CornerRadius = new(9),
+                CornerRadius = ShadowCorners(1),
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(42, 0, 0, 0))
             });
             card.Children.Add(new Border
             {
-                CornerRadius = new(8),
+                CornerRadius = corners,
                 BorderThickness = new Thickness(1),
                 BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(36, 255, 255, 255)),
                 Child = new Image { Source = source, Stretch = Stretch.UniformToFill }
@@ -155,17 +156,18 @@ public sealed partial class PosterCard
             Canvas.SetLeft(card, x);
             Canvas.SetTop(card, y);
             canvas.Children.Add(card);
+
+            CornerRadius ShadowCorners(double spread) => new(corners.TopLeft + spread, corners.TopRight + spread,
+                corners.BottomRight + spread, corners.BottomLeft + spread);
         }
 
-        void AddImage(BitmapImage source, double x, double y, double width, double height,
-            double rotation = 0, double opacity = 1, double corner = 0)
+        void AddImage(BitmapImage source, double x, double y, double width, double height, double rotation)
         {
             var frame = new Border
             {
                 Width = width,
                 Height = height,
-                CornerRadius = new(corner),
-                Opacity = opacity,
+                CornerRadius = (CornerRadius)Application.Current.Resources["EgLibraryCoverTileCornerRadius"],
                 RenderTransformOrigin = new(0.5, 0.5),
                 RenderTransform = new RotateTransform { Angle = rotation },
                 Child = new Image { Source = source, Stretch = Stretch.UniformToFill }

@@ -149,7 +149,7 @@
                         Grid.RowSpan="{x:Bind Card.FolderTile0RowSpan, Mode=OneWay}"
                         Grid.ColumnSpan="{x:Bind Card.FolderTile0ColumnSpan, Mode=OneWay}"
                         Background="Transparent"
-                        CornerRadius="4"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
                         Visibility="{x:Bind Card.FolderTile0Visibility, Mode=OneWay}">
                         <Image x:Name="FolderPoster0" Source="{x:Bind Card.FolderTile0, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
@@ -159,7 +159,7 @@
                         Grid.RowSpan="{x:Bind Card.FolderTile1RowSpan, Mode=OneWay}"
                         Grid.ColumnSpan="{x:Bind Card.FolderTile1ColumnSpan, Mode=OneWay}"
                         Background="Transparent"
-                        CornerRadius="4"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
                         Visibility="{x:Bind Card.FolderTile1Visibility, Mode=OneWay}">
                         <Image x:Name="FolderPoster1" Source="{x:Bind Card.FolderTile1, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
@@ -169,7 +169,7 @@
                         Grid.RowSpan="{x:Bind Card.FolderTile2RowSpan, Mode=OneWay}"
                         Grid.ColumnSpan="{x:Bind Card.FolderTile2ColumnSpan, Mode=OneWay}"
                         Background="Transparent"
-                        CornerRadius="4"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
                         Visibility="{x:Bind Card.FolderTile2Visibility, Mode=OneWay}">
                         <Image x:Name="FolderPoster2" Source="{x:Bind Card.FolderTile2, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
@@ -179,7 +179,7 @@
                         Grid.RowSpan="{x:Bind Card.FolderTile3RowSpan, Mode=OneWay}"
                         Grid.ColumnSpan="{x:Bind Card.FolderTile3ColumnSpan, Mode=OneWay}"
                         Background="Transparent"
-                        CornerRadius="4"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
                         Visibility="{x:Bind Card.FolderTile3Visibility, Mode=OneWay}">
                         <Image x:Name="FolderPoster3" Source="{x:Bind Card.FolderTile3, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
@@ -208,20 +208,20 @@
                     <ContentPresenter x:Name="LibraryCoverHost" ActualThemeChanged="OnLibraryCoverThemeChanged"
                         Content="{x:Bind LibraryCover(Card.HomeLibraryCoverPreset, Card.HomeLibraryCoverImages, Card.Poster, Card.LibraryTile0, Card.Title, Card.Item.IdentityKey), Mode=OneWay}" />
                 </Border>
-                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="{ThemeResource ControlCornerRadius}"
                     Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">
                     <TextBlock Text="{x:Bind Card.DurationText, Mode=OneWay}" Style="{StaticResource EgDataStyle}"
                         Foreground="{ThemeResource EgOnScrimBrush}" />
                 </Border>
-                <Border HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="5"
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="{StaticResource EgArtworkBadgeCornerRadius}"
                     Margin="8" Padding="7,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.RatingVisibility, Mode=OneWay}">
                     <TextBlock Text="{x:Bind Card.RatingText, Mode=OneWay}" FontWeight="SemiBold"
                         Style="{StaticResource EgDataStrongStyle}"
                         Foreground="{ThemeResource EgWarningBrush}" />
                 </Border>
-                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="5"
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="{StaticResource EgArtworkBadgeCornerRadius}"
                     Margin="8" Padding="7,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.ResolutionVisibility, Mode=OneWay}">
                     <TextBlock Text="{x:Bind Card.ResolutionText, Mode=OneWay}" FontWeight="SemiBold"
@@ -415,7 +415,7 @@
             Visibility="{x:Bind IsSelected, Mode=OneWay}" />
 
         <Border x:Name="CaptionSurface" Grid.Row="1" Margin="{x:Bind Card.TextMargin, Mode=OneWay}"
-            Background="Transparent" CornerRadius="4">
+            Background="Transparent" CornerRadius="{ThemeResource ControlCornerRadius}">
             <StackPanel>
                 <TextBlock
                     x:Name="TitleLine"

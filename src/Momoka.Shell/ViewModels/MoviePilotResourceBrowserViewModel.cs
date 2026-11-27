@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Momoka.MoviePilot;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -88,7 +89,15 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     /// <summary>当前这批结果有没有内容（不是当前筛剩几条）：改站点时用它判断要不要保留屏幕上的清单。</summary>
     public bool HasResults => _all.Count > 0;
     public Visibility NoMatchesVisibility => _all.Count > 0 && Rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    public string CountText => $"{Rows.Count} / {_all.Count} 个资源";
+    public string CountText
+    {
+        get
+        {
+            var visible = Rows.Count;
+            if (visible != _all.Count) return UiText.Format("{0} / {1} 个资源", visible, _all.Count);
+            return visible == 1 ? UiText.Translate("1 个资源") : UiText.Format("{0} 个资源", visible);
+        }
+    }
     public Visibility ActiveChoicesVisibility => ActiveChoices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ResetVisibility => ActiveChoices.Count > 0 || Text.Length > 0 || SelectedLabel != AllLabels ||
         SelectedEpisode != AllEpisodes || SelectedSeason != AllSeasons || PromotionIndex != 0 || DateIndex != 0 ||

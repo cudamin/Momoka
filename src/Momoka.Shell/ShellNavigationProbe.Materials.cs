@@ -364,6 +364,9 @@ internal sealed partial class ShellNavigationProbe
                                     ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
                                     .First(border => border.Name == "PopupBorder");
+                                var pickerBackground = Descendants(openPicker).OfType<Border>().Single(border => border.Name == "Background");
+                                Require(popup.CornerRadius == pickerBackground.CornerRadius,
+                                    $"详情下拉展开与闭合的圆角不一致：{popup.CornerRadius} / {pickerBackground.CornerRadius}");
                                 bool GlassPopup() => popup.Background is AcrylicBrush brush
                                     && brush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated)
                                     && Math.Abs(brush.TintOpacity - 0.55) < 0.001
@@ -379,6 +382,9 @@ internal sealed partial class ShellNavigationProbe
                                 Require(GlassPopup(), "展开面亚克力恢复失败");
                                 var row = Descendants(popup).OfType<ComboBoxItem>().First();
                                 var rowSurface = Descendants(row).OfType<Grid>().First(part => part.Name == "LayoutRoot");
+                                Require(row.CornerRadius == (CornerRadius)Application.Current.Resources["ControlCornerRadius"]
+                                    && rowSurface.CornerRadius == row.CornerRadius,
+                                    "详情下拉条目的实际模板没有接入共享圆角");
                                 foreach (var (state, alpha) in new[] { ("PointerOver", 15), ("Pressed", 10), ("Selected", 15),
                                     ("SelectedUnfocused", 10), ("SelectedPointerOver", 10), ("SelectedPressed", 15) })
                                 {
@@ -557,12 +563,48 @@ internal sealed partial class ShellNavigationProbe
             {
                 var paths = new Momoka.Infrastructure.AppPaths(Path.Combine(_options.Paths.Root, "card-settings"));
                 paths.EnsureCreated();
+                PrepareSettingsInputFixture(fixture.Settings.Ui);
                 var settingsPage = CreateMotionSettingsPage(fixture, moviePilot, paths);
                 _root.Children.Add(settingsPage);
                 try
                 {
                     BeginSettingsFixtureVisit(settingsPage);
                     await settingsPage.ViewModel.ReloadAsync();
+                    settingsPage.SelectedCategory = "主页";
+                    await LayoutAsync(settingsPage);
+                    await WaitForSettingsSettledAsync(settingsPage);
+                    var libraryEntries = Descendants(settingsPage).OfType<Expander>().Single(expander =>
+                        expander.Name == "HomeLibraryEntriesExpander" && expander.Visibility == Visibility.Visible);
+                    var entriesRadius = (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"];
+                    libraryEntries.ApplyTemplate();
+                    var entriesHeader = Descendants(libraryEntries).OfType<ToggleButton>().Single(header => header.Name == "ExpanderHeader");
+                    var entriesContent = Descendants(libraryEntries).OfType<Border>().Single(border => border.Name == "ExpanderContent");
+                    Require(!libraryEntries.IsExpanded && entriesHeader.CornerRadius == entriesRadius, "主页媒体库收起时未使用输入圆角");
+                    entriesHeader.IsChecked = true;
+                    await LayoutAsync(settingsPage);
+                    Require(libraryEntries.IsExpanded && entriesContent.Visibility == Visibility.Visible
+                        && entriesHeader.CornerRadius == new CornerRadius(entriesRadius.TopLeft, entriesRadius.TopRight, 0, 0)
+                        && entriesContent.CornerRadius == new CornerRadius(0, 0, entriesRadius.BottomRight, entriesRadius.BottomLeft),
+                        "主页媒体库展开后外缘圆角与收起时不一致");
+                    entriesHeader.IsChecked = false;
+                    await LayoutAsync(settingsPage);
+                    reads.Add($"settings/home-library: 收起及展开外缘圆角={entriesRadius.TopLeft} DIP");
+                    await RequireSelectionCornersAsync(Descendants(settingsPage).OfType<ComboBox>().Single(control =>
+                        AutomationProperties.GetName(control) == "轮播图用什么媒体"));
+                    settingsPage.SelectedCategory = "播放行为";
+                    await LayoutAsync(settingsPage);
+                    await WaitForSettingsSettledAsync(settingsPage);
+                    var languages = Descendants(settingsPage).OfType<DropDownButton>().Single(control =>
+                        AutomationProperties.GetName(control) == "音轨语言优先级");
+                    languages.ApplyTemplate();
+                    Require(languages.CornerRadius == (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"]
+                        && Descendants(languages).OfType<Grid>().First(grid => grid.Name == "RootGrid").CornerRadius == languages.CornerRadius,
+                        "音轨语言优先级未使用输入控件圆角");
+                    settingsPage.SelectedCategory = "播放器";
+                    await LayoutAsync(settingsPage);
+                    await WaitForSettingsSettledAsync(settingsPage);
+                    await RequireSelectionCornersAsync(Descendants(settingsPage).OfType<ComboBox>().Single(control =>
+                        AutomationProperties.GetName(control) == "播放后端"));
                     settingsPage.SelectedCategory = "界面";
                     foreach (var theme in UiThemes.All)
                     {
@@ -647,6 +689,7 @@ internal sealed partial class ShellNavigationProbe
             CheckCardMaterial(Get<Border>(progressCard!, "ProgressCard"), "MoviePilot 搜索进度卡", theme);
             CheckCardMaterial(Descendants(moviePilotCards!).OfType<Grid>().First(grid =>
                 grid.Name == "ResourceCard" && grid.ActualWidth > 100), "MoviePilot 资源卡", theme);
+            RequireMoviePilotCountBadge(moviePilotCards!, "1 个资源");
         }
         async Task CheckAniBtCardsAsync(UiTheme theme)
         {
@@ -814,6 +857,9 @@ internal sealed partial class ShellNavigationProbe
             picker.ApplyTemplate();
             var background = Descendants(picker).OfType<Border>().Single(border => border.Name == "Background");
             var highlight = Descendants(picker).OfType<Border>().Single(border => border.Name == "HighlightBackground");
+            Require(picker.CornerRadius == (CornerRadius)Application.Current.Resources["EgSearchCornerRadius"]
+                && background.CornerRadius == picker.CornerRadius,
+                "详情选择框的实际模板没有接入共享输入圆角");
             try
             {
                 foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })

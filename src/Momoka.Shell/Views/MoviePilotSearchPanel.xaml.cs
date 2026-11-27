@@ -22,6 +22,12 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     public static Windows.UI.Color FadeStart() => Fade(0);
     public static Windows.UI.Color FadeMiddle() => Fade(180);
     public static Windows.UI.Color FadeEnd() => Fade(255);
+
+    public static CornerRadius PosterBottomCorners()
+    {
+        var poster = (CornerRadius)Application.Current.Resources["EgPosterCornerRadius"];
+        return new CornerRadius(0, 0, poster.BottomRight, poster.BottomLeft);
+    }
     private static Windows.UI.Color Fade(byte alpha)
     {
         var ink = Momoka.Emby.DetailHero.ScrimInk;

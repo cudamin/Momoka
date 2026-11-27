@@ -34,7 +34,7 @@
                     <StackPanel Padding="0,12,16,12" Spacing="6"
                         BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0">
                         <local:WrapRow Spacing="10" RowSpacing="4">
-                            <Border Padding="7,2" CornerRadius="4" Background="{ThemeResource EgSurfaceAltBrush}">
+                            <Border Padding="7,2" CornerRadius="{ThemeResource ControlCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
                                 <TextBlock Text="{x:Bind Outcome}" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold"
                                     Foreground="{ThemeResource EgTextBrush}" />
                             </Border>

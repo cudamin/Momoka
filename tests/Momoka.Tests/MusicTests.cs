@@ -103,6 +103,7 @@ internal static class MusicTests
             Assert.Equal("{x:Bind ViewModel.Shuffle, Mode=OneWay}", (string?)Named("ShuffleButton").Attribute("IsChecked"));
             Assert.False(document.Descendants().Any(element => element.Name.LocalName == "CommandBar"), "本批不应重排命令位置");
             Assert.Equal("42", (string?)Named("CoverFrame").Attribute("Width"));
+            Assert.Equal("{StaticResource EgSmallArtworkCornerRadius}", (string?)Named("CoverFrame").Attribute("CornerRadius"));
             Assert.Equal("2", (string?)Named("TrackInfo").Attribute("Grid.Column"));
             Assert.Equal("360", (string?)Named("TrackInfo").Attribute("MaxWidth"));
             Assert.Equal("360", (string?)Named("SeekSlider").Attribute("MaxWidth"));
@@ -176,6 +177,17 @@ internal static class MusicTests
                 "NextButton", "ShuffleButton", "FavoriteButton", "VolumeButton", "QueueButton", "LyricsList"
             })
                 Assert.True(names.Contains(name), name);
+
+            var bar = XDocument.Load(Path.Combine(Path.GetDirectoryName(pagePath)!, "MusicPlayerBar.xaml"));
+            foreach (var view in new[] { page, bar })
+            {
+                var seek = view.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SeekSlider");
+                var thumb = seek.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "SliderThumbCornerRadius");
+                Assert.Equal("StaticResource", thumb.Name.LocalName);
+                Assert.Equal("EgMusicSliderThumbCornerRadius", (string?)thumb.Attribute("ResourceKey"));
+            }
+            var cover = page.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "CoverFrame");
+            Assert.Equal("{StaticResource EgLargeArtworkCornerRadius}", (string?)cover.Attribute("CornerRadius"));
 
             var userControl = page.Root!;
             Assert.Equal("Dark", (string?)userControl.Attribute("RequestedTheme"));

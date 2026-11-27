@@ -1,7 +1,9 @@
+using System.Reflection;
 using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
@@ -262,5 +264,35 @@ internal sealed partial class ShellNavigationProbe
         {
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, $"input-theme-{theme.Id}-{width}.txt"), reads.ToString());
         }
+    }
+
+    private static async Task RequireSelectionCornersAsync(ComboBox combo)
+    {
+        var label = AutomationProperties.GetName(combo);
+        combo.ApplyTemplate();
+        var resources = Application.Current.Resources;
+        var background = Descendants(combo).OfType<Border>().Single(border => border.Name == "Background");
+        Require(combo.CornerRadius == (CornerRadius)resources["EgSearchCornerRadius"] && background.CornerRadius == combo.CornerRadius,
+            $"{label} 闭合模板未接入输入框圆角");
+        // 原生 ComboBox 的弹层可能有自己的窗口，不能从页面 XamlRoot 枚举。
+        var getPart = typeof(Control).GetMethod("GetTemplateChild", BindingFlags.Instance | BindingFlags.NonPublic);
+        var popup = getPart?.Invoke(combo, ["Popup"]) as Popup
+            ?? throw new InvalidOperationException($"{label} 缺少原生下拉弹层");
+        combo.IsDropDownOpen = true;
+        try
+        {
+            await UntilAsync(() => popup.IsOpen && popup.Child is not null);
+            var popupRoot = popup.Child;
+            var surface = popupRoot is Border { Name: "PopupBorder" } frame ? frame : Descendants(popupRoot).OfType<Border>()
+                .First(border => border.Name == "PopupBorder");
+            await UntilAsync(() => Descendants(surface).OfType<ComboBoxItem>().Any());
+            Require(surface.CornerRadius == background.CornerRadius,
+                $"{label} 展开与闭合的圆角不一致：{surface.CornerRadius} / {background.CornerRadius}");
+            var row = Descendants(surface).OfType<ComboBoxItem>().First();
+            var rowSurface = Descendants(row).OfType<Grid>().First(grid => grid.Name == "LayoutRoot");
+            Require(row.CornerRadius == (CornerRadius)resources["ControlCornerRadius"] && rowSurface.CornerRadius == row.CornerRadius,
+                $"{label} 下拉选项未接入小控件圆角");
+        }
+        finally { combo.IsDropDownOpen = false; }
     }
 }

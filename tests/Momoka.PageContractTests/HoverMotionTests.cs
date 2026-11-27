@@ -324,7 +324,7 @@ internal static class HoverMotionTests
             var shared = styles[styles.IndexOf("x:Key=\"EgPreviewActionButtonStyle\"", StringComparison.Ordinal)..];
             shared = shared[..shared.IndexOf("</Style>", StringComparison.Ordinal)];
             Assert.Contains("BasedOn=\"{StaticResource EgPrimaryButtonStyle}\"", shared);
-            Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"10\" />", shared);
+            Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"{StaticResource EgMediaActionCornerRadius}\" />", shared);
 
             var card = Read("src/Momoka.Shell/Views/CardPreview.xaml");
             Assert.DoesNotContain("EgSecondaryButtonStyle", card);

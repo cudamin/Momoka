@@ -257,8 +257,8 @@ public sealed partial class HomeBanner : UserControl
             {
                 mark.Width = size;
                 mark.Height = size;
-                mark.CornerRadius = new CornerRadius(size / 2);
             }
+            mark.CornerRadius = new CornerRadius(size / 2);
             mark.Background = PageDotBrush(active);
             AutomationProperties.SetName(_dots[index], HomeCarousel.Position(index, _slides.Count));
         }
@@ -315,7 +315,6 @@ public sealed partial class HomeBanner : UserControl
             {
                 Width = 5,
                 Height = 5,
-                CornerRadius = new CornerRadius(2.5),
                 VerticalAlignment = VerticalAlignment.Center
             };
             var dot = new Button
@@ -551,6 +550,7 @@ public sealed partial class HomeBanner : UserControl
     public HomeBanner()
     {
         InitializeComponent();
+        SetCardCornerRadius((CornerRadius)Application.Current.Resources["EgCardCornerRadius"]);
         _pointerGlow = new BannerPointerGlow(PointerGlow, PointerGlowBrush, Root);
         PaintPointerGlowInk();
 

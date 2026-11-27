@@ -433,7 +433,11 @@ public sealed partial class CardPreview : UserControl
         _state ??= compositor.CreatePropertySet();
         if (!_running) _state.InsertScalar("Progress", _shown ? 1 : 0);
         _clip ??= compositor.CreateRectangleClip();
-        _clip.TopLeftRadius = _clip.TopRightRadius = _clip.BottomLeftRadius = _clip.BottomRightRadius = new Vector2(16);
+        var corners = Surface.CornerRadius;
+        _clip.TopLeftRadius = new Vector2((float)corners.TopLeft);
+        _clip.TopRightRadius = new Vector2((float)corners.TopRight);
+        _clip.BottomRightRadius = new Vector2((float)corners.BottomRight);
+        _clip.BottomLeftRadius = new Vector2((float)corners.BottomLeft);
         ElementCompositionPreview.GetElementVisual(Panel).Clip = _clip;
         // XAML 命中测试会读取 InsetClip；RectangleClip 只负责圆角绘制。
         _hitClip ??= compositor.CreateInsetClip();

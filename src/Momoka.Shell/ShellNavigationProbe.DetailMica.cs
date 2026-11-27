@@ -322,6 +322,10 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireSharedDetailContentLayer(DetailPage page)
     {
         Require(!DetailHasLocalBackdrop(page), "详情页又创建了局部系统材质");
+        var corners = (CornerRadius)Application.Current.Resources["EgCardCornerRadius"];
+        Require(Get<Border>(page, "HeroCardTop").CornerRadius == new CornerRadius(corners.TopLeft, corners.TopRight, 0, 0)
+            && Get<Border>(page, "HeroCardBottom").CornerRadius == new CornerRadius(0, 0, corners.BottomRight, corners.BottomLeft),
+            "分段卡片没有跟随共享外圆角，或接缝出现了圆角");
         foreach (var name in new[] { "HeroCardTop", "HeroCardBottom" })
         {
             var card = Get<Border>(page, name);

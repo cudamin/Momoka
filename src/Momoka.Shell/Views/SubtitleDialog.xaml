@@ -41,7 +41,7 @@
             <!-- 尺寸统一至少 32x32 并复用圆角图标键形；字号取次标题档压在 20 号标题右边。 -->
             <Button x:Uid="SubtitleDialog_HeaderCloseButton" x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
                 AutomationProperties.Name="关闭字幕管理" Background="Transparent" BorderThickness="0"
-                MinWidth="32" MinHeight="32" Padding="8" CornerRadius="{StaticResource EgSearchCornerRadius}"
+                MinWidth="32" MinHeight="32" Padding="8" CornerRadius="{ThemeResource ControlCornerRadius}"
                 ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
             </Button>

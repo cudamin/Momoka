@@ -87,7 +87,7 @@
                     <ComboBox x:Uid="FnNasSubtitleDialog_LanguageBox" x:Name="LanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
                         SelectionChanged="OnLanguageChanged" AutomationProperties.Name="飞牛字幕搜索语言" />
                     <Button x:Uid="FnNasSubtitleDialog_SearchButton" x:Name="SearchButton" Content="搜索字幕" Click="OnSearch"
-                        Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch" />
+                        CornerRadius="{ThemeResource ControlCornerRadius}" Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch" />
                     <TextBlock x:Uid="FnNasSubtitleDialog_NoSearchResults" x:Name="NoSearchResults" Text="没有找到字幕，请更换语言后重试。"
                         Visibility="Collapsed" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                     <ItemsControl x:Name="Results">

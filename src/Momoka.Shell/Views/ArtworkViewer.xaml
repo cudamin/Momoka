@@ -36,7 +36,6 @@
                 x:Key="ViewerShadow"
                 BlurRadius="30"
                 Color="Black"
-                CornerRadius="12"
                 IsMasked="False"
                 Offset="0,10,0"
                 Opacity="0.45" />
@@ -49,7 +48,7 @@
             x:Name="ShadowHost"
             Background="Transparent"
             ui:Effects.Shadow="{StaticResource ViewerShadow}">
-            <Border MaxHeight="640" Style="{StaticResource EgFrameStyle}">
+            <Border x:Name="PictureFrame" MaxHeight="640" Style="{StaticResource EgFrameStyle}">
                 <Image
                     x:Name="Shot"
                     Stretch="Uniform" />
