@@ -70,9 +70,9 @@ public sealed partial class PlayerPage
         DanmakuInputStatus.MaxWidth = Math.Max(0, inputWidth - 16);
         DanmakuInputBox.Width = Math.Max(44, inputWidth - (ViewModel.DanmakuCanSend ? 70 : 16));
         DanmakuInputBar.Margin = new Thickness(8, BigChrome ? 6 : 5, 4, 0);
-        DanmakuInputBox.Height = BigChrome ? 40 : 30;
+        DanmakuInputBox.Height = BigChrome ? 40 : 32;
         SendDanmakuButton.Height = DanmakuInputBox.Height;
-        DanmakuInputStatus.Margin = new Thickness(8, BigChrome ? 50 : 40, 8, 0);
+        DanmakuInputStatus.Margin = new Thickness(8, BigChrome ? 50 : 42, 8, 0);
     }
 
     private Flyout? _danmakuFlyout;

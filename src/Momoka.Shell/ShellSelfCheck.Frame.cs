@@ -157,20 +157,24 @@ internal static partial class ShellSelfCheck
     {
         if (window.TitleBarColours is not { } bar) return (false, "没有自定义标题栏可问颜色");
 
-        var same = Same(bar.Fill, bar.InactiveFill)
-            && Same(bar.Text, bar.InactiveText)
-            && Same(bar.Button, bar.InactiveButton)
-            && Same(bar.Glyph, bar.InactiveGlyph);
+        var stripSame = Same(bar.Fill, bar.InactiveFill)
+            && Same(bar.Button, bar.InactiveButton);
+        var dimmed = Dimmed(bar.Text, bar.InactiveText)
+            && Dimmed(bar.Glyph, bar.InactiveGlyph);
+        var ok = stripSame && dimmed;
 
-        return (same,
+        return (ok,
             $"底色 {Show(bar.Fill)}→{Show(bar.InactiveFill)}、文字 {Show(bar.Text)}→{Show(bar.InactiveText)}"
             + $"、按钮底 {Show(bar.Button)}→{Show(bar.InactiveButton)}"
             + $"、按钮图标 {Show(bar.Glyph)}→{Show(bar.InactiveGlyph)}"
-            + (same ? "，失焦不变" : "，失焦会变"));
+            + (ok ? "，失焦条底不变、前景色淡化" : "，失焦状态不符合预期"));
 
         // Field by field: a projected WinRT struct is not something to trust an operator to.
         static bool Same(Windows.UI.Color? active, Windows.UI.Color? inactive) =>
             active is { } a && inactive is { } b && a.A == b.A && a.R == b.R && a.G == b.G && a.B == b.B;
+
+        static bool Dimmed(Windows.UI.Color? active, Windows.UI.Color? inactive) =>
+            active is { } a && inactive is { } b && (a.A != b.A || a.R != b.R || a.G != b.G || a.B != b.B);
 
         static string Show(Windows.UI.Color? colour) =>
             colour is { } c ? $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}" : "未设";

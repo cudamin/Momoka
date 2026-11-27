@@ -39,18 +39,58 @@ public sealed partial class PlayerPage
     /// </summary>
     private void PaintPalette()
     {
-        foreach (var (key, colour) in PlayerPalette.Brushes)
-            ((SolidColorBrush)Resources[key]).Color = ThemeHost.ToColor(colour);
+        var contrast = _timelineAccessibility.HighContrast;
+        RequestedTheme = contrast ? ElementTheme.Default : ElementTheme.Dark;
+        if (Resources.TryGetValue("PlayerAcrylicBackdrop", out var backdropObj) && backdropObj is SystemBackdrop backdrop)
+            SpeedWheelFlyout.SystemBackdrop = !contrast && ThemeHost.TransparencyEnabled ? backdrop : null;
 
-        // 两条浮层底（标题条、控制条）都是表里那一支普通的半透明纯色，上面这一句就把它们填了。2026-09-27
-        // 试过亚克力，压在视频上什么也采不到、屏上是一块不透的黑；同一天控制条背后那道「上沿全透明、
-        // 往下渐深」的罩子也随用户令退役 —— 整笔账见 PlayerPalette.GlassAlpha 的注释。
-        //
-        // 左上角那三块（返回键、标题、剧名）的那一支**值不是常数**：表里给的是最浅那一档，到底多深由指针
-        // 说了算。这里先把基准档立住 —— 页面构造完到第一记指针读数之间、以及自检读它的时候，屏上都是这一档。
-        ApplyTopGlass(0);
+        if (contrast)
+        {
+            PaintHighContrastPalette();
+            PaintExit();
+            return;
+        }
+
+        foreach (var (key, colour) in PlayerPalette.Brushes)
+            ((SolidColorBrush)Resources[key]).Color = ThemeHost.ToColor(MenuBrushColor(key, colour));
+
+        ApplyTopGlass(_topGlassDepth);
 
         PaintExit();
+    }
+
+    private static ThemeColor MenuBrushColor(string key, ThemeColor colour) =>
+        key == "PlayerMenuBrush" && !ThemeHost.TransparencyEnabled
+            ? colour.WithAlpha(0xFF)
+            : colour;
+
+    private void PaintHighContrastPalette()
+    {
+        var bg = _timelineUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background);
+        var fg = _timelineUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground);
+        var highlight = _timelineUiSettings.UIElementColor(Windows.UI.ViewManagement.UIElementType.Highlight);
+        var highlightText = _timelineUiSettings.UIElementColor(Windows.UI.ViewManagement.UIElementType.HighlightText);
+        var gray = _timelineUiSettings.UIElementColor(Windows.UI.ViewManagement.UIElementType.GrayText);
+        var hotlight = _timelineUiSettings.UIElementColor(Windows.UI.ViewManagement.UIElementType.Hotlight);
+
+        foreach (var (key, _) in PlayerPalette.Brushes)
+        {
+            if (Resources[key] is not SolidColorBrush brush) continue;
+            brush.Color = key switch
+            {
+                "PlayerInkBrush" or "PlayerInkSoftBrush" or "PlayerInkMetaBrush"
+                    or "PlayerEdgeFaintBrush" or "PlayerEdgeBrush" or "PlayerEdgeStrongBrush"
+                    or "PlayerTickBrush" or "PlayerPulseBrush" => fg,
+                "PlayerInkDimBrush" or "PlayerInkFaintBrush" => gray,
+                "PlayerStripHoverBrush" or "PlayerStripPressedBrush"
+                    or "PlayerCloseHoverBrush" or "PlayerClosePressedBrush"
+                    or "PlayerSkipHoverBrush" or "PlayerSkipPressedBrush" => highlight,
+                "PlayerStripHoverInkBrush" => highlightText,
+                "PlayerTrackFillBrush" => highlight,
+                "PlayerDanmakuHeatBrush" => hotlight,
+                _ => bg
+            };
+        }
     }
 
     /// <summary>
@@ -80,6 +120,7 @@ public sealed partial class PlayerPage
     private void ApplyTopGlass(double depth)
     {
         _topGlassDepth = depth;
+        if (_timelineAccessibility.HighContrast) return;
 
         if (Resources[PlayerPalette.TopGlassKey] is SolidColorBrush brush)
             brush.Color = ThemeHost.ToColor(PlayerPalette.Film.WithAlpha(PlayerPalette.TopGlassAlphaAt(depth)));
@@ -120,7 +161,7 @@ public sealed partial class PlayerPage
             // 正是本页此刻这一档」。那条曲线本身在 ProbeClearance 里逐档钉住 —— 两支合起来才是这件事的全貌。
             var want = key == PlayerPalette.TopGlassKey
                 ? ThemeHost.ToColor(colour.WithAlpha(PlayerPalette.TopGlassAlphaAt(_topGlassDepth)))
-                : ThemeHost.ToColor(colour);
+                : ThemeHost.ToColor(MenuBrushColor(key, colour));
 
             if (brush.Color != want)
             {

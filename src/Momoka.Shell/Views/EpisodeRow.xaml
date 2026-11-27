@@ -53,6 +53,7 @@
          Button 盖住，所以整行（包括右侧文字区）都是点击目标，和 Emby 的 listItem 一致。 -->
     <Grid
         x:Name="Root"
+        x:Uid="EpisodeRow_Root"
         Background="Transparent"
         PointerEntered="OnPointerEntered"
         PointerExited="OnPointerExited">
@@ -126,8 +127,11 @@
                      Grid 不接指针事件，卡片自己的悬浮跟踪不会被它截走。 -->
                 <Grid x:Name="Hover" Visibility="Collapsed">
                     <Button
+                        x:Name="HoverPlayButton"
+                        AutomationProperties.Name="{x:Bind Card.PlayActionTip, Mode=OneWay}"
                         Click="OnPlayClicked"
                         HorizontalAlignment="Center"
+                        IsTabStop="{x:Bind local:EpisodeRow.HoverPlayTabStop(ShowTrailingPlay), Mode=OneWay}"
                         Style="{StaticResource EgRowPlayButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind Card.PlayActionTip, Mode=OneWay}"
                         VerticalAlignment="Center"

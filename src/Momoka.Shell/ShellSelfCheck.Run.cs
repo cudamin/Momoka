@@ -47,7 +47,7 @@ internal static partial class ShellSelfCheck
         Check("自定义标题栏", window.UsesCustomTitleBar, "InputNonClientPointerSource 已初始化");
 
         var caption = ReportTitleBarColours(window);
-        Check("标题栏失焦不变色", caption.Ok, caption.Detail);
+        Check("标题栏失焦态", caption.Ok, caption.Detail);
 
         Check("客户区尺寸", width > 0 && height > 0, $"{width}x{height} 物理像素");
 

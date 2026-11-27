@@ -5,13 +5,6 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="Transparent">
     <Page.Resources>
-        <Style x:Key="FnNasCard" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
-            <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="20" />
-        </Style>
         <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
             <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
@@ -19,7 +12,7 @@
             <CheckBox x:Name="FnNasPermissionCheck" Content="{x:Bind Name}" IsChecked="{x:Bind Selected, Mode=TwoWay}" Margin="0,3" />
         </DataTemplate>
     </Page.Resources>
-    <Grid x:Name="PageLayout" RowSpacing="12">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <StackPanel Spacing="8">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -27,17 +20,21 @@
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         </StackPanel>
-        <Grid Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
-            <ScrollView x:Name="FnNasTasksScroll">
+        <Grid Grid.Row="1" RowSpacing="16" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                    <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE787;" />
+                </Border>
+                <TextBlock Grid.Column="1" x:Uid="FnNasTasksPage_Localization1" Text="任务计划" Style="{StaticResource EgSubpageTitleStyle}" VerticalAlignment="Center" AutomationProperties.HeadingLevel="Level1" />
+                <Button x:Uid="FnNasTasksPage_FnNasTasksRefresh" x:Name="FnNasTasksRefresh" Grid.Column="2" Content="刷新" VerticalAlignment="Center" Command="{x:Bind ViewModel.RefreshCommand}" />
+            </Grid>
+            <ScrollView x:Name="FnNasTasksScroll" Grid.Row="1" Margin="0,0,-32,0">
                 <StackPanel Spacing="16" Padding="0,0,20,20">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock x:Uid="FnNasTasksPage_Localization1" Text="任务计划" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                        <Button x:Uid="FnNasTasksPage_FnNasTasksRefresh" x:Name="FnNasTasksRefresh" Grid.Column="1" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
-                    </Grid>
                     <Border Style="{StaticResource FnNasCard}">
                         <StackPanel Spacing="12">
-                            <ToggleSwitch x:Uid="FnNasTasksPage_FnNasTasksEnabled" x:Name="FnNasTasksEnabled" Header="定时执行任务" IsOn="{x:Bind ViewModel.Enabled, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanSave, Mode=OneWay}" />
+                            <ToggleSwitch x:Uid="FnNasTasksPage_FnNasTasksEnabled" x:Name="FnNasTasksEnabled" Header="定时执行任务" OnContent="" OffContent="" IsOn="{x:Bind ViewModel.Enabled, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanSave, Mode=OneWay}" />
                             <TextBlock x:Uid="FnNasTasksPage_Localization2" Text="每天凌晨自动执行任务，以提升日常使用影视的体验。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -55,7 +52,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button x:Uid="FnNasTasksPage_FnNasTasksSave" x:Name="FnNasTasksSave" Content="保存任务计划" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                    <Button x:Uid="FnNasTasksPage_FnNasTasksSave" x:Name="FnNasTasksSave" Content="保存任务计划" Style="{StaticResource EgSubpagePrimaryButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
                 </StackPanel>
             </ScrollView>
         </Grid>

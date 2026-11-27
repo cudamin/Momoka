@@ -73,7 +73,7 @@
         <Grid>
             <!-- 胶囊的那层亚克力单独一块，主题变了由 ThemeResource 自己换；主页上把它收起来，只留控件。 -->
             <Border x:Name="SurfaceGlass" Background="{ThemeResource EgActionGlassBrush}" CornerRadius="36" />
-            <Grid x:Name="BarGrid" ColumnSpacing="12" RowSpacing="8" Margin="12,8">
+            <Grid x:Name="BarGrid" ColumnSpacing="12" RowSpacing="8" Margin="12,6">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <StackPanel x:Name="Transport" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
@@ -90,7 +90,7 @@
                         <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
                     </Border>
                 </Button>
-                <Grid x:Name="TrackInfo" Grid.Column="2" MaxWidth="360" RowSpacing="2" VerticalAlignment="Center" SizeChanged="OnTrackInfoSizeChanged">
+                <Grid x:Name="TrackInfo" Grid.Column="2" MaxWidth="360" RowSpacing="0" VerticalAlignment="Center" SizeChanged="OnTrackInfoSizeChanged">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <Button x:Uid="MusicPlayerBar_TitleButton" x:Name="TitleButton" Click="OnExpand" Style="{StaticResource MusicTitleButtonStyle}"
                         AutomationProperties.Name="展开音乐播放页" ToolTipService.ToolTip="打开播放页">
@@ -113,14 +113,14 @@
                     <Slider x:Uid="MusicPlayerBar_SeekSlider" x:Name="SeekSlider" Grid.Row="2" Width="360" MaxWidth="360" HorizontalAlignment="Left" Minimum="0" Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
                         Value="{x:Bind ViewModel.Position, Mode=OneWay}" ValueChanged="OnSeek" AutomationProperties.Name="音乐进度" MinWidth="20">
                         <Slider.Resources>
-                            <x:Double x:Key="SliderHorizontalHeight">12</x:Double>
+                            <x:Double x:Key="SliderHorizontalHeight">32</x:Double>
                             <x:Double x:Key="SliderPreContentMargin">4</x:Double>
                             <x:Double x:Key="SliderPostContentMargin">4</x:Double>
-                            <x:Double x:Key="SliderHorizontalThumbWidth">12</x:Double>
-                            <x:Double x:Key="SliderHorizontalThumbHeight">12</x:Double>
+                            <x:Double x:Key="SliderHorizontalThumbWidth">14</x:Double>
+                            <x:Double x:Key="SliderHorizontalThumbHeight">14</x:Double>
                             <x:Double x:Key="SliderInnerThumbWidth">8</x:Double>
                             <x:Double x:Key="SliderInnerThumbHeight">8</x:Double>
-                            <CornerRadius x:Key="SliderThumbCornerRadius">6</CornerRadius>
+                            <CornerRadius x:Key="SliderThumbCornerRadius">7</CornerRadius>
                         </Slider.Resources>
                     </Slider>
                 </Grid>

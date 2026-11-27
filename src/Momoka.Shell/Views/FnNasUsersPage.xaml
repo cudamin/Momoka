@@ -5,26 +5,14 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="Transparent">
     <Page.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        <Style x:Key="FnNasCard" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
-            <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="20" />
-        </Style>
         <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
             <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
         <DataTemplate x:Key="FnNasPermissionTemplate" x:DataType="vm:FnNasChoice">
             <CheckBox x:Name="FnNasPermissionCheck" Content="{x:Bind Name}" IsChecked="{x:Bind Selected, Mode=TwoWay}" Margin="0,3" />
         </DataTemplate>
-        </ResourceDictionary>
     </Page.Resources>
-    <Grid x:Name="PageLayout" RowSpacing="12">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <StackPanel Spacing="8">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -36,15 +24,26 @@
             <Grid RowSpacing="16" Visibility="{x:Bind ViewModel.ListVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <StackPanel Spacing="12">
-                    <TextBlock x:Uid="FnNasUsersPage_Localization1" Text="用户" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
-                    <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                            <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE716;" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock x:Uid="FnNasUsersPage_Localization1" Text="用户" Style="{StaticResource EgSubpageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                            <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                        </StackPanel>
+                    </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button x:Uid="FnNasUsersPage_FnNasUsersNew" x:Name="FnNasUsersNew" Content="新增用户" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.NewUserCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
+                        <Button x:Uid="FnNasUsersPage_FnNasUsersNew" x:Name="FnNasUsersNew" Content="新增用户" Style="{StaticResource EgSubpagePrimaryButtonStyle}" Command="{x:Bind ViewModel.NewUserCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
                         <Button x:Uid="FnNasUsersPage_FnNasUsersDefaults" x:Name="FnNasUsersDefaults" Content="新用户默认权限" Command="{x:Bind ViewModel.DefaultsCommand}" Visibility="{x:Bind ViewModel.DefaultActionsVisibility, Mode=OneWay}" />
                         <Button x:Uid="FnNasUsersPage_FnNasUsersRefresh" x:Name="FnNasUsersRefresh" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
                     </StackPanel>
                 </StackPanel>
-                <ListView x:Name="FnNasUsersList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.Users, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnUserClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
+                <ListView x:Name="FnNasUsersList" Grid.Row="1" Margin="0,0,-32,0" ItemsSource="{x:Bind ViewModel.Users, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnUserClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="vm:FnNasUserRow">
                             <Grid ColumnSpacing="16" Padding="8,12">
@@ -70,7 +69,7 @@
                     <Button x:Uid="FnNasUsersPage_FnNasUserBack" x:Name="FnNasUserBack" Content="返回" Command="{x:Bind ViewModel.BackCommand}" />
                     <TextBlock Text="{x:Bind ViewModel.EditorTitle, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                 </StackPanel>
-                <ScrollView x:Name="FnNasUserEditorScroll" Grid.Row="1" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
+                <ScrollView x:Name="FnNasUserEditorScroll" Grid.Row="1" Margin="0,0,-32,0" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
                     <StackPanel Spacing="16" Padding="0,0,20,16">
                         <Border Style="{StaticResource FnNasCard}" Visibility="{x:Bind ViewModel.IdentityVisibility, Mode=OneWay}">
                             <StackPanel Spacing="16">
@@ -94,7 +93,7 @@
                         </StackPanel>
                     </StackPanel>
                 </ScrollView>
-                <Button x:Uid="FnNasUsersPage_FnNasUserSave" x:Name="FnNasUserSave" Grid.Row="2" Content="保存" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
+                <Button x:Uid="FnNasUsersPage_FnNasUserSave" x:Name="FnNasUserSave" Grid.Row="2" Content="保存" Style="{StaticResource EgSubpagePrimaryButtonStyle}" Command="{x:Bind ViewModel.SaveCommand}" />
             </Grid>
         </Grid>
     </Grid>

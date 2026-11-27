@@ -72,7 +72,11 @@ internal static class ConfirmDialog
             if (library)
             {
                 dialog.Style = (Style)Application.Current.Resources["EgLibraryDialogSurfaceStyle"];
-                dialog.Resources["ContentDialogTopOverlay"] = Application.Current.Resources["LayerFillColorDefaultBrush"];
+                var overlay = Application.Current.Resources["LayerFillColorDefaultBrush"];
+                dialog.Resources["ContentDialogTopOverlay"] = overlay;
+                dialog.Resources.ThemeDictionaries["Dark"] = new ResourceDictionary { ["ContentDialogTopOverlay"] = overlay };
+                dialog.Resources.ThemeDictionaries["Light"] = new ResourceDictionary { ["ContentDialogTopOverlay"] = overlay };
+                dialog.Resources.ThemeDictionaries["HighContrast"] = new ResourceDictionary();
             }
             var result = show is null ? await dialog.ShowAsync() : await show(dialog);
             return result == ContentDialogResult.Primary;

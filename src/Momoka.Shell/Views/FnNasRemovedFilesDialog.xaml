@@ -11,8 +11,20 @@
     PrimaryButtonClick="OnRestore"
     Closing="OnClosing">
     <ContentDialog.Resources>
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
-        <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+        </ResourceDictionary>
     </ContentDialog.Resources>
     <Grid MinWidth="240" RowSpacing="12">
         <Grid.RowDefinitions>

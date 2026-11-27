@@ -207,8 +207,13 @@ internal static class AniBtResourceLayoutTests
             Assert.Equal(2, tabs.Elements().Count(node => node.Name.LocalName == "SegmentedItem"));
             foreach (var item in tabs.Elements().Where(node => node.Name.LocalName == "SegmentedItem"))
                 Assert.Equal("{StaticResource PivotSegmentedItemStyle}", item.Attribute("Style")?.Value);
-            var underline = tabs.Descendants().Single(node => node.Attribute(x + "Key")?.Value == "PivotItemPillBackground");
-            Assert.Equal("EgAccentBrush", underline.Attribute("ResourceKey")?.Value);
+            foreach (var theme in new[] { "Dark", "Light" })
+            {
+                var dict = tabs.Descendants().Single(node => node.Name.LocalName == "ResourceDictionary" && (string?)node.Attribute(x + "Key") == theme);
+                var underline = dict.Elements().Single(node => node.Attribute(x + "Key")?.Value == "PivotItemPillBackground");
+                Assert.Equal("EgAccentBrush", underline.Attribute("ResourceKey")?.Value);
+            }
+            Assert.NotNull(tabs.Descendants().SingleOrDefault(node => node.Name.LocalName == "ResourceDictionary" && (string?)node.Attribute(x + "Key") == "HighContrast"));
             Assert.False(tabs.Descendants().Any(node => node.Name.LocalName == "ControlTemplate"));
         });
 

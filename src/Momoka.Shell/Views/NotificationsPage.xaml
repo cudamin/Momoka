@@ -21,7 +21,7 @@
         <DataTemplate x:Key="EntryTemplate" x:DataType="vm:NotificationRow">
             <Border
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderBrush="{ThemeResource EgCardStrokeBrush}"
                 BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Margin="0,0,0,12"
@@ -86,8 +86,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Border Width="48" Height="48" CornerRadius="16" Background="{ThemeResource EgAccentSoftBrush}">
-                <FontIcon Glyph="&#xE7E7;" Foreground="{ThemeResource EgAccentBrush}" FontSize="24" />
+            <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE7E7;" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="4">
                 <TextBlock x:Uid="NotificationsPage_Heading" Style="{StaticResource EgSubpageTitleStyle}" />
@@ -95,7 +95,8 @@
             </StackPanel>
             <CommandBar Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
                 DefaultLabelPosition="Right" Background="{ThemeResource EgSurfaceBrush}"
-                CornerRadius="12" IsOpen="False">
+                BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                CornerRadius="{StaticResource EgCardCornerRadius}" IsOpen="False">
                 <AppBarButton x:Uid="NotificationsPage_AddAction" AutomationProperties.AutomationId="NotificationsAddButton"
                     Icon="Add" Command="{x:Bind ViewModel.AddNotificationCommand}" />
                 <AppBarButton x:Uid="NotificationsPage_RefreshAction" AutomationProperties.AutomationId="NotificationsRefreshButton"
@@ -129,7 +130,7 @@
                   最后一集。所以它落在 settings.json，一个字节都不上服务器，阈值也不在这一页 —— 它读的就是
                   「播放行为」里那两行。
                 -->
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgCardStrokeBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20,16" Margin="0,0,0,12">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
@@ -156,11 +157,11 @@
                     </Grid>
                 </Border>
 
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgCardStrokeBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="420">
-                        <FontIcon Glyph="&#xE7E7;" FontSize="40" Foreground="{ThemeResource EgAccentBrush}" />
+                        <FontIcon Glyph="&#xE7E7;" FontSize="{StaticResource EgEmptyIconFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
                         <TextBlock x:Uid="NotificationsPage_EmptyHeading" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
                         <TextBlock x:Uid="NotificationsPage_TextBlock8" Foreground="{ThemeResource EgTextDimBrush}"
                             TextWrapping="Wrap" TextAlignment="Center" />

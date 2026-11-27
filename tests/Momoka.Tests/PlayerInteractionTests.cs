@@ -51,7 +51,10 @@ internal static class PlayerInteractionTests
             var caption = button.Descendants().Single(element => element.Name.LocalName == "TextBlock");
             Assert.Equal("{x:Bind ViewModel.SkipCaption, Mode=OneWay}", caption.Attribute("Text")?.Value);
             XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
-            var resources = button.Descendants().Where(element => element.Name.LocalName == "StaticResource")
+            var presentation = button.Name.Namespace;
+            var dark = button.Descendants(presentation + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(xaml + "Key") == "Dark");
+            var resources = dark.Elements(presentation + "StaticResource")
                 .ToDictionary(element => element.Attribute(xaml + "Key")!.Value, element => element.Attribute("ResourceKey")!.Value);
             Assert.Equal("PlayerSkipHoverBrush", resources["ButtonBackgroundPointerOver"]);
             Assert.Equal("PlayerSkipPressedBrush", resources["ButtonBackgroundPressed"]);

@@ -10,24 +10,37 @@
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanContinue, Mode=OneWay}"
     CloseButtonText="取消" DefaultButton="None" PrimaryButtonClick="OnContinue">
     <ContentDialog.Resources>
-        <CollectionViewSource x:Name="SeriesGroupsSource" IsSourceGrouped="True" />
-        <!-- 清单上的菜单使用实色浮层，长路径不能从底下透过来干扰选项文字。 -->
-        <Style x:Key="SeriesResourceMenuStyle" TargetType="MenuFlyoutPresenter">
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceElevatedBrush}" />
-            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
-        </Style>
-        <Style x:Key="SeriesGroupHeaderStyle" TargetType="ListViewHeaderItem">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="MinHeight" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        </Style>
-        <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
-        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
-        <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
-        <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast" />
+            </ResourceDictionary.ThemeDictionaries>
+            <CollectionViewSource x:Name="SeriesGroupsSource" IsSourceGrouped="True" />
+            <!-- 清单上的菜单使用实色浮层，长路径不能从底下透过来干扰选项文字。 -->
+            <Style x:Key="SeriesResourceMenuStyle" TargetType="MenuFlyoutPresenter">
+                <Setter Property="Background" Value="{ThemeResource EgSurfaceElevatedBrush}" />
+                <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+            </Style>
+            <Style x:Key="SeriesGroupHeaderStyle" TargetType="ListViewHeaderItem">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+            <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
+        </ResourceDictionary>
     </ContentDialog.Resources>
     <ContentDialog.PrimaryButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">

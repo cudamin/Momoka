@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Emby;
+using Momoka.Shell.Localization;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -13,7 +15,7 @@ namespace Momoka.Shell.ViewModels;
 /// 绑定的集合本身保持不变。
 /// </para>
 /// </summary>
-public sealed class ServerRow
+public sealed partial class ServerRow : ObservableObject
 {
     internal ServerRow(ServersViewModel owner, ServerProfile profile, bool current, AccountProfile? currentAccount,
         IReadOnlyList<EmbySessionScope> sources, bool aggregate)
@@ -28,6 +30,7 @@ public sealed class ServerRow
         Accounts = new ObservableCollection<AccountRow>(profile.Accounts.Select(account =>
             new AccountRow(this, account, current && ReferenceEquals(account, currentAccount),
                 online.Contains(account.Id), aggregate)));
+        UpdateAccountReorderStates();
     }
 
     /// <summary>模板通过行访问页面的命令，每张卡片以自己的账号作为命令参数。</summary>
@@ -51,7 +54,11 @@ public sealed class ServerRow
     /// <summary>按当前排序方式重排账号卡；Manual 保留保存顺序，不移动集合。</summary>
     internal void SortAccounts(ServerSortMode mode, bool descending)
     {
-        if (mode == ServerSortMode.Manual) return;
+        if (mode == ServerSortMode.Manual)
+        {
+            UpdateAccountReorderStates();
+            return;
+        }
 
         var ordered = ServerListOrder.Apply(Accounts, mode, descending,
             account => account.Username, account => account.StatusRank);
@@ -60,9 +67,42 @@ public sealed class ServerRow
             var from = Accounts.IndexOf(ordered[index]);
             if (from >= 0 && from != index) Accounts.Move(from, index);
         }
+        UpdateAccountReorderStates();
     }
 
     private List<AccountRow>? _accountDragOrder;
+
+    [ObservableProperty]
+    public partial bool CanMoveUp { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanMoveDown { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReorderVisibility))]
+    public partial bool CanReorder { get; set; }
+
+    public Visibility ReorderVisibility => CanReorder ? Visibility.Visible : Visibility.Collapsed;
+
+    public string MoveUpName => UiText.Format("上移 {0}", Name);
+
+    public string MoveDownName => UiText.Format("下移 {0}", Name);
+
+    internal bool IsReorderingAccounts => _accountDragOrder is not null;
+
+    internal void UpdateReorderStates(int index, int count)
+    {
+        CanReorder = count > 1;
+        CanMoveUp = index > 0;
+        CanMoveDown = index >= 0 && index < count - 1;
+        UpdateAccountReorderStates();
+    }
+
+    internal void UpdateAccountReorderStates()
+    {
+        for (var index = 0; index < Accounts.Count; index++)
+            Accounts[index].UpdateReorderStates(index, Accounts.Count);
+    }
 
     /// <summary>拖拽换位会 Remove + Add；中间少一条的集合不写盘，完成后再提交一次最终顺序。</summary>
     internal void BeginAccountReorder() => _accountDragOrder ??= [.. Accounts];
@@ -71,6 +111,7 @@ public sealed class ServerRow
     {
         var before = _accountDragOrder;
         _accountDragOrder = null;
+        UpdateAccountReorderStates();
         if (before is not null && !before.SequenceEqual(Accounts)) Owner.CommitManualOrder();
     }
 
@@ -86,7 +127,7 @@ public sealed class ServerRow
 }
 
 /// <summary>一个保存的账号对应一张卡片；保留所属服务器，让每个动作明确作用于这个账号。</summary>
-public sealed class AccountRow
+public sealed partial class AccountRow : ObservableObject
 {
     internal AccountRow(ServerRow serverGroup, AccountProfile account, bool current, bool connected, bool aggregate)
     {
@@ -95,6 +136,29 @@ public sealed class AccountRow
         IsCurrent = current;
         IsConnected = connected;
         Aggregate = aggregate;
+    }
+
+    [ObservableProperty]
+    public partial bool CanMoveUp { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanMoveDown { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReorderVisibility))]
+    public partial bool CanReorder { get; set; }
+
+    public Visibility ReorderVisibility => CanReorder ? Visibility.Visible : Visibility.Collapsed;
+
+    public string MoveUpName => UiText.Format("上移 {0}", Username);
+
+    public string MoveDownName => UiText.Format("下移 {0}", Username);
+
+    internal void UpdateReorderStates(int index, int count)
+    {
+        CanReorder = count > 1;
+        CanMoveUp = index > 0;
+        CanMoveDown = index >= 0 && index < count - 1;
     }
 
     public ServerRow ServerGroup { get; }

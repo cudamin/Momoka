@@ -13,9 +13,21 @@
     xmlns:views="using:Momoka.Shell.Views">
 
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
-        <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+        <ResourceDictionary>
+            <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+        </ResourceDictionary>
     </ContentDialog.Resources>
 
     <ContentDialog.Title>
@@ -26,11 +38,11 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="DialogTitleText" Style="{StaticResource EgSectionTitleStyle}"
                 TextWrapping="Wrap" VerticalAlignment="Center" />
-            <!-- 尺寸与筛选面板那颗 ✕ 同一套：透明底、8 DIP 内边距、E711；字号取次标题那档，
-                 压在 20 号标题右边才不至于显得是个小点（同下载弹窗的取消下载）。 -->
+            <!-- 尺寸统一至少 32x32 并复用圆角图标键形；字号取次标题档压在 20 号标题右边。 -->
             <Button x:Uid="SubtitleDialog_HeaderCloseButton" x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
                 AutomationProperties.Name="关闭字幕管理" Background="Transparent" BorderThickness="0"
-                Padding="8" ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
+                MinWidth="32" MinHeight="32" Padding="8" CornerRadius="{StaticResource EgSearchCornerRadius}"
+                ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
             </Button>
         </Grid>
@@ -66,7 +78,7 @@
                     <TextBlock x:Uid="SubtitleDialog_Localization3" Text="文件原样上传到选定的媒体版本。支持 SUB、SRT、VTT、ASS、SSA、MKS，最大 10 MiB。"
                         Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
                     <Button x:Uid="SubtitleDialog_UploadSubtitleButton" x:Name="UploadSubtitleButton" Content="上传字幕" Click="OnUploadSubtitle"
-                        Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch"
+                        Style="{StaticResource EgSubpagePrimaryButtonStyle}" HorizontalAlignment="Stretch"
                         AutomationProperties.Name="上传所选字幕文件" />
                 </StackPanel>
                 <Border Style="{StaticResource EgRuleStyle}" />
@@ -103,14 +115,18 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Border x:Name="DeleteConfirmation" Visibility="Collapsed" BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1" Padding="12">
-                <StackPanel Spacing="8">
+            <Border x:Name="DeleteConfirmation" Visibility="Collapsed"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource EgCardCornerRadius}" Padding="16">
+                <StackPanel Spacing="12">
                     <TextBlock x:Uid="SubtitleDialog_Localization4" Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
                     <TextBlock x:Name="DeleteConfirmationText" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
-                    <StackPanel Spacing="8">
-                        <Button x:Uid="SubtitleDialog_CancelDeleteButton" x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
-                        <Button x:Uid="SubtitleDialog_ConfirmDeleteButton" x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Uid="SubtitleDialog_CancelDeleteButton" x:Name="CancelDeleteButton" Content="取消"
+                            Style="{StaticResource EgDialogSecondaryButtonStyle}" Click="OnCancelDelete" />
+                        <Button x:Uid="SubtitleDialog_ConfirmDeleteButton" x:Name="ConfirmDeleteButton" Content="删除服务器文件"
+                            Style="{StaticResource EgDialogSecondaryButtonStyle}" Foreground="{ThemeResource EgDangerBrush}" Click="OnConfirmDelete" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -137,7 +153,7 @@
                 </Grid>
 
                 <Button x:Name="SearchButton" x:Uid="SubtitleDialog_SearchButton"
-                    Click="OnSearch" Style="{StaticResource EgPrimaryButtonStyle}"
+                    Click="OnSearch" Style="{StaticResource EgSubpagePrimaryButtonStyle}"
                     HorizontalAlignment="Stretch" Margin="0,8,0,0" AutomationProperties.Name="搜索字幕" />
             </StackPanel>
 

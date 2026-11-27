@@ -27,6 +27,8 @@
              见 DetailPage.Appearance 的 PaintContinueInk。只有高对比度由 ApplyAppearance 换回系统前景。
              用页面局部的一支画刷而不是替换模板里的资源键：模板拿到的是这个对象，改它的颜色就够了。 -->
         <SolidColorBrush x:Key="EgActionActiveBrush" Color="#FF52B54B" />
+        <SolidColorBrush x:Key="EgHeroOverlayHoverBrush" Color="#26FFFFFF" />
+        <SolidColorBrush x:Key="EgHeroOverlayPressedBrush" Color="#3DFFFFFF" />
         <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起长（行高 EgPickerRowHeight）。仅作用于详情页。 -->
         <x:Double x:Key="ComboBoxMinHeight">32</x:Double>
         <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
@@ -567,7 +569,7 @@
                     <Border
                         x:Name="HeroCardTop"
                         Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}"
+                        BorderBrush="{ThemeResource EgCardStrokeBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusTop}"
                         Margin="{x:Bind ViewModel.HeroCardTopMargin, Mode=OneWay}"
@@ -669,10 +671,23 @@
                                 Padding="0"
                                 ToolTipService.ToolTip="{x:Bind ViewModel.TitleTip, Mode=OneWay}">
                                 <Button.Resources>
-                                    <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
-                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#26FFFFFF" />
-                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#3DFFFFFF" />
-                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgHeroOverlayHoverBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgHeroOverlayPressedBrush" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgHeroOverlayHoverBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgHeroOverlayPressedBrush" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast" />
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </Button.Resources>
                                 <Border
                                     x:Name="PosterStill"
@@ -742,10 +757,23 @@
                                 ToolTipService.ToolTip="{x:Bind ViewModel.PlayText, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.CoverPlayVisibility, Mode=OneWay}">
                                 <Button.Resources>
-                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
-                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
-                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
-                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast" />
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </Button.Resources>
                                 <Button.RenderTransform>
                                     <ScaleTransform x:Name="CoverPlayMotion" ScaleX="0.92" ScaleY="0.92" />
@@ -847,10 +875,23 @@
                                 Padding="8,2,8,4"
                                 ToolTipService.ToolTip="{x:Bind ViewModel.TitleTip, Mode=OneWay}">
                                 <Button.Resources>
-                                    <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
-                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#26FFFFFF" />
-                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#3DFFFFFF" />
-                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgHeroOverlayHoverBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgHeroOverlayPressedBrush" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
+                                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgHeroOverlayHoverBrush" />
+                                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgHeroOverlayPressedBrush" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast" />
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </Button.Resources>
                                     <!-- 这一格就是片名本身（「把当前页面徽标所在地方替换为剧名」）。原来这里是一格
                                          里摆着两样东西：徽标图解出来了就顶替文字标题，两个 Visibility 一对反的，永远
@@ -1039,12 +1080,27 @@
                                     <!-- 文件选项复用上方按钮的常态、悬停与按压背景；聚焦和失焦回常态。
                                          闭合框的圆角走本页的小圆角，弹层仍沿用选择框自己的资源。 -->
                                     <StackPanel.Resources>
-                                        <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
-                                        <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
-                                        <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
-                                        <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
-                                        <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
-                                        <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
+                                        <ResourceDictionary>
+                                            <ResourceDictionary.ThemeDictionaries>
+                                                <ResourceDictionary x:Key="Dark">
+                                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
+                                                </ResourceDictionary>
+                                                <ResourceDictionary x:Key="Light">
+                                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
+                                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
+                                                </ResourceDictionary>
+                                                <ResourceDictionary x:Key="HighContrast" />
+                                            </ResourceDictionary.ThemeDictionaries>
+                                        </ResourceDictionary>
                                     </StackPanel.Resources>
                                     <Grid
                                         MinHeight="{StaticResource EgPickerRowHeight}"
@@ -1271,18 +1327,39 @@
                                                 OffContent="关"
                                                 OnContent="开">
                                                 <ToggleSwitch.Resources>
-                                                    <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgTextDimBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgTextBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgTextFaintBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchFillOnDisabled" ResourceKey="EgTextFaintBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchStrokeOn" ResourceKey="EgTextDimBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchStrokeOnPointerOver" ResourceKey="EgTextBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchStrokeOnPressed" ResourceKey="EgTextFaintBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchStrokeOnDisabled" ResourceKey="EgTextFaintBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgWindowBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgWindowBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgWindowBrush" />
-                                                    <StaticResource x:Key="ToggleSwitchKnobFillOnDisabled" ResourceKey="EgWindowBrush" />
+                                                    <ResourceDictionary>
+                                                        <ResourceDictionary.ThemeDictionaries>
+                                                            <ResourceDictionary x:Key="Dark">
+                                                                <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgTextDimBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgTextBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchFillOnDisabled" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOn" ResourceKey="EgTextDimBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOnPointerOver" ResourceKey="EgTextBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOnPressed" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOnDisabled" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgWindowBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgWindowBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgWindowBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOnDisabled" ResourceKey="EgWindowBrush" />
+                                                            </ResourceDictionary>
+                                                            <ResourceDictionary x:Key="Light">
+                                                                <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgTextDimBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgTextBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchFillOnDisabled" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOn" ResourceKey="EgTextDimBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOnPointerOver" ResourceKey="EgTextBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOnPressed" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchStrokeOnDisabled" ResourceKey="EgTextFaintBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgWindowBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgWindowBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgWindowBrush" />
+                                                                <StaticResource x:Key="ToggleSwitchKnobFillOnDisabled" ResourceKey="EgWindowBrush" />
+                                                            </ResourceDictionary>
+                                                            <ResourceDictionary x:Key="HighContrast" />
+                                                        </ResourceDictionary.ThemeDictionaries>
+                                                    </ResourceDictionary>
                                                 </ToggleSwitch.Resources>
                                             </ToggleSwitch>
                                         </Viewbox>
@@ -1486,7 +1563,7 @@
                     <Border
                         x:Name="HeroCardBottom"
                         Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}"
+                        BorderBrush="{ThemeResource EgCardStrokeBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusBottom}"
                         IsHitTestVisible="False"
@@ -1569,13 +1646,28 @@
                             Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.PickersVisibility, Mode=OneWay}">
                             <StackPanel.Resources>
-                                <!-- 同集页宽版式：闭合表面与上方按钮同底，弹层继续用全局亚克力。 -->
-                                <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
-                                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
-                                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
-                                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
-                                <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
-                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
+                                <ResourceDictionary>
+                                    <ResourceDictionary.ThemeDictionaries>
+                                        <ResourceDictionary x:Key="Dark">
+                                            <!-- 同集页宽版式：闭合表面与上方按钮同底，弹层继续用全局亚克力。 -->
+                                            <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
+                                            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+                                            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
+                                            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
+                                            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
+                                            <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="Light">
+                                            <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
+                                            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+                                            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
+                                            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
+                                            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
+                                            <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
+                                        </ResourceDictionary>
+                                        <ResourceDictionary x:Key="HighContrast" />
+                                    </ResourceDictionary.ThemeDictionaries>
+                                </ResourceDictionary>
                             </StackPanel.Resources>
                             <local:WrapRow RowSpacing="10" Spacing="14">
                                 <local:EgPicker

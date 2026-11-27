@@ -23,10 +23,10 @@
         <!-- 人物作品的一行：整行可点，悬停用框架自己的按钮底。行里三格：年份、片名、署名。 -->
         <Style x:Key="PersonCreditRowStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="MinHeight" Value="0" />
-            <Setter Property="Padding" Value="0,9" />
+            <Setter Property="Padding" Value="12,8" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgPosterCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>

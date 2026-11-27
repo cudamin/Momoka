@@ -149,8 +149,11 @@ internal static class StoreDetailLayoutTests
             Assert.Equal("{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}", (string?)continueSwitch.Attribute("IsOn"));
             Assert.Equal("开", (string?)continueSwitch.Attribute("OnContent"));
             Assert.Equal("关", (string?)continueSwitch.Attribute("OffContent"));
-            var switchResources = continueSwitch.Elements().Single(element => element.Name.LocalName == "ToggleSwitch.Resources")
-                .Elements().ToArray();
+            var switchThemeDicts = continueSwitch.Elements().Single(element => element.Name.LocalName == "ToggleSwitch.Resources")
+                .Elements().Single(element => element.Name.LocalName == "ResourceDictionary")
+                .Elements().Single(element => element.Name.LocalName == "ResourceDictionary.ThemeDictionaries")
+                .Elements().ToDictionary(dict => (string?)dict.Attribute(X + "Key") ?? string.Empty);
+            Assert.True(switchThemeDicts.ContainsKey("HighContrast"), "连播开关缺少高对比度主题分支");
             var neutralSwitchResources = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["ToggleSwitchFillOn"] = "EgTextDimBrush",
@@ -166,17 +169,22 @@ internal static class StoreDetailLayoutTests
                 ["ToggleSwitchKnobFillOnPressed"] = "EgWindowBrush",
                 ["ToggleSwitchKnobFillOnDisabled"] = "EgWindowBrush",
             };
-            Assert.Equal(neutralSwitchResources.Count, switchResources.Length);
-            foreach (var resource in switchResources)
+            foreach (var theme in new[] { "Dark", "Light" })
             {
-                var key = (string?)resource.Attribute(X + "Key");
-                var resourceKey = (string?)resource.Attribute("ResourceKey");
-                Assert.Equal("StaticResource", resource.Name.LocalName);
-                Assert.NotNull(key);
-                Assert.NotNull(resourceKey);
-                Assert.True(neutralSwitchResources.TryGetValue(key!, out var expectedResourceKey),
-                    "连播开关含有未审核的开启状态资源：" + key);
-                Assert.Equal(expectedResourceKey, resourceKey);
+                Assert.True(switchThemeDicts.TryGetValue(theme, out var dict), "连播开关缺少主题分支：" + theme);
+                var switchResources = dict!.Elements().ToArray();
+                Assert.Equal(neutralSwitchResources.Count, switchResources.Length);
+                foreach (var resource in switchResources)
+                {
+                    var key = (string?)resource.Attribute(X + "Key");
+                    var resourceKey = (string?)resource.Attribute("ResourceKey");
+                    Assert.Equal("StaticResource", resource.Name.LocalName);
+                    Assert.NotNull(key);
+                    Assert.NotNull(resourceKey);
+                    Assert.True(neutralSwitchResources.TryGetValue(key!, out var expectedResourceKey),
+                        "连播开关含有未审核的开启状态资源：" + key);
+                    Assert.Equal(expectedResourceKey, resourceKey);
+                }
             }
             Assert.False(continueSwitch.Descendants().Any(element =>
                 element.Name.LocalName == "SolidColorBrush" || element.Attribute("Color") is not null),

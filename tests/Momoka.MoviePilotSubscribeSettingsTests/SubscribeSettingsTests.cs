@@ -891,12 +891,24 @@ internal static class SubscribeSettingsTests
             var subscriptionPage = XDocument.Parse(Resource("Production.MoviePilotSubscriptionPage.xaml"));
             var loadingShimmer = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoadingShimmer");
             Check.Contains("InitialLoading", loadingShimmer.Attribute("IsActive")?.Value ?? "");
+            Check.Equal("{StaticResource EgCardCornerRadius}", (string?)loadingShimmer.Attribute("CornerRadius"));
             var loadingPanel = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoading");
             Check.Contains("InitialLoadingVisibility", loadingPanel.Attribute("Visibility")?.Value ?? "");
+            var skeleton = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoadingSkeleton");
+            Check.True(skeleton.Descendants().Any(item =>
+                (string?)item.Attribute("Width") == "{x:Bind MediaViewModel.SkeletonPosterWidth, Mode=OneWay}"
+                && (string?)item.Attribute("Height") == "{x:Bind MediaViewModel.SkeletonPosterHeight, Mode=OneWay}"),
+                "骨架海报尺寸应跟随商店/沉浸模式切换");
             Check.False(subscriptionPage.Descendants().Any(item => item.Name.LocalName == "ProgressBar"),
                 "订阅页又画了那条细进度条");
             Check.False(subscriptionPage.Descendants().Any(item => item.Name.LocalName == "ProgressRing"),
                 "订阅页又用转圈当加载动画");
+            using var vm = new MoviePilotMediaViewModel { Immersive = false };
+            Check.Equal(140d, vm.SkeletonPosterWidth);
+            Check.Equal(210d, vm.SkeletonPosterHeight);
+            vm.Immersive = true;
+            Check.Equal(238d, vm.SkeletonPosterWidth);
+            Check.Equal(340d, vm.SkeletonPosterHeight);
             return Task.CompletedTask;
         });
         Test("订阅商店档顶部留白与媒体详情同一条顶线，窄档与左右同值，沉浸档保留 12", () =>

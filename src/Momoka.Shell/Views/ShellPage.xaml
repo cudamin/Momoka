@@ -261,8 +261,21 @@
             GotFocus="OnTitleSearchGotFocus"
             Visibility="Collapsed">
             <AutoSuggestBox.Resources>
-                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
-                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
             </AutoSuggestBox.Resources>
         </AutoSuggestBox>
 
@@ -405,12 +418,27 @@
                             <ToggleSwitch x:Uid="ShellPage_AggregateModeItem" x:Name="AggregateModeItem" Grid.Column="1" OnContent="开" OffContent="关"
                                 MinWidth="0" FontSize="{StaticResource EgCaptionFontSize}" AutomationProperties.Name="聚合模式" Toggled="OnAggregateModeToggled">
                                 <ToggleSwitch.Resources>
-                                    <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
-                                    <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentBrush" />
-                                    <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentBrush" />
-                                    <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgTextOnAccentBrush" />
-                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgTextOnAccentBrush" />
-                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgTextOnAccentBrush" />
+                                    <ResourceDictionary>
+                                        <ResourceDictionary.ThemeDictionaries>
+                                            <ResourceDictionary x:Key="Dark">
+                                                <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgTextOnAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgTextOnAccentBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="Light">
+                                                <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgTextOnAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                                <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgTextOnAccentBrush" />
+                                            </ResourceDictionary>
+                                            <ResourceDictionary x:Key="HighContrast" />
+                                        </ResourceDictionary.ThemeDictionaries>
+                                    </ResourceDictionary>
                                 </ToggleSwitch.Resources>
                             </ToggleSwitch>
                         </Grid>
@@ -615,8 +643,24 @@
              改由标题栏上那条 TitleBarBackground 出，栏因此从标题栏下沿（48）起画（Margin 见下），
              两边同色、整条标题栏连成一片，且 85% 的底只叠一次。栏自己的 NavigationViewDefaultPaneBackground
              早在 2026-10-14 就钉成 Transparent，所以整条栏只有这一道底，没有第二道面。 -->
+        <Border
+            x:Name="SidebarDismissScrim"
+            Canvas.ZIndex="1"
+            Margin="0,48,0,0"
+            Background="Transparent"
+            Visibility="Collapsed"
+            PointerPressed="OnSidebarDismissPointerPressed" />
+
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
-            Margin="0,48,0,0" Background="{ThemeResource EgSidebarBrush}" Visibility="Collapsed">
+            Margin="0,48,0,0" Background="{ThemeResource EgSidebarBrush}" Visibility="Collapsed"
+            KeyDown="OnSidebarHostKeyDown">
+            <Border
+                x:Name="SidebarOverlayBackdrop"
+                Background="{ThemeResource EgFrostBrush}"
+                BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderThickness="0,0,1,0"
+                IsHitTestVisible="False"
+                Visibility="Collapsed" />
             <NavigationView x:Name="Sidebar"
                 PaneDisplayMode="Left" OpenPaneLength="256" CompactPaneLength="56"
                 IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
@@ -637,12 +681,24 @@
                      压在云母上几乎看不出来。取 EgSurfaceHoverBrush —— 不透明、和别处的悬停面同一支角色色，
                      换主题时由 ThemeHost 顺手涂过去。 -->
                 <NavigationView.Resources>
-                    <x:Double x:Key="NavigationViewItemOnLeftMinHeight">40</x:Double>
-                    <x:Double x:Key="NavigationViewItemOnLeftIconBoxHeight">20</x:Double>
-                    <Thickness x:Key="NavigationViewItemButtonMargin">4,2</Thickness>
-                    <StaticResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="EgSurfaceHoverBrush" />
-                    <StaticResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
-                    <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="EgSurfaceHoverBrush" />
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <StaticResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="EgSurfaceHoverBrush" />
+                                <StaticResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                                <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="EgSurfaceHoverBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <StaticResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="EgSurfaceHoverBrush" />
+                                <StaticResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                                <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="EgSurfaceHoverBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast" />
+                        </ResourceDictionary.ThemeDictionaries>
+                        <x:Double x:Key="NavigationViewItemOnLeftMinHeight">40</x:Double>
+                        <x:Double x:Key="NavigationViewItemOnLeftIconBoxHeight">20</x:Double>
+                        <Thickness x:Key="NavigationViewItemButtonMargin">4,2</Thickness>
+                    </ResourceDictionary>
                 </NavigationView.Resources>
                 <NavigationView.MenuItems>
                     <NavigationViewItem x:Uid="ShellPage_SidebarHome" x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />

@@ -1,4 +1,5 @@
 using Microsoft.UI;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -9,6 +10,7 @@ using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Platform;
+using Momoka.Shell.Windowing;
 using Windows.Graphics;
 using Windows.UI;
 
@@ -17,16 +19,9 @@ namespace Momoka.Shell.Views;
 /// <summary>
 /// 「在 MoviePilot 搜索其他版本」的独立窗口 —— 用户在「更多」菜单点那一条时弹出来（<c>ShellPage.SearchMoviePilotVersions</c>）。
 /// <para>
-/// 照 <see cref="SettingsWindow"/> 的路子办：一个真正的第二顶层 <see cref="Window"/>（主窗口是带 mpv 子窗口的
-/// 裸 <see cref="Windowing.HostWindow"/>，容不下第二个视频，而这个窗口里没有视频，交给框架自己的窗口就白得
-/// 标题栏、缩放边框和 DPI 处理）。危险也一样：WinUI 应用最后一个 <see cref="Window"/> 关掉时整个进程就退，而
-/// 这个应用平时一个都没有 —— 所以标题栏的 X 不能真关（<see cref="OnClosing"/> 拦下来改成隐藏），真关只有
-/// <see cref="Close"/>，从 <c>ShellPage.Shutdown</c> 出进程时走一次。
-/// </para>
-/// <para>
-/// 建一次留着、每次点重新填词再弹（<see cref="Show"/>），不是每次点新造一个 —— 既省得留下一堆关不掉的窗口撞上
-/// 面那条「最后一个窗口关掉就退进程」的坑，也和设置窗口一个脾气。无主（unowned）：它不该老压在全屏播放上面，
-/// 能被切到后面、再点一次「搜索版本」带回来。
+/// 照 <see cref="SettingsWindow"/> 的路子办：使用 <see cref="MicaBackdrop"/>（<c>MicaKind.Base</c>）与扩展标题栏，
+/// 透明效果关闭或高对比度下回退到实色窗口底。标题栏的 X 只隐藏不真关闭，避免最后一个 <see cref="Window"/>
+/// 关闭触发进程退出。
 /// </para>
 /// </summary>
 internal sealed class MoviePilotWindow
@@ -41,8 +36,12 @@ internal sealed class MoviePilotWindow
     private readonly Window _window;
     private readonly MoviePilotVersionsView _view;
     private readonly AniBtSearchPanel _anime;
+    private readonly SolidColorBrush _canvas;
+    private readonly TextBlock _titleLabel;
+    private readonly bool _micaSupported;
+    private bool _mica;
 
-    /// <summary>换主题时重画标题栏；存下来是为了 <see cref="Close"/> 里退订。</summary>
+    /// <summary>换主题或透明效果时重画标题栏与云母；存下来是为了 <see cref="Close"/> 里退订。</summary>
     private readonly Action<Momoka.Theming.UiTheme> _repaint;
 
     /// <summary>Set only by <see cref="Close"/>, so <see cref="OnClosing"/> knows to let one through.</summary>
@@ -50,17 +49,32 @@ internal sealed class MoviePilotWindow
 
     private bool _open;
 
-    private MoviePilotWindow(Window window, MoviePilotVersionsView view, AniBtSearchPanel anime)
+    private MoviePilotWindow(
+        Window window,
+        MoviePilotVersionsView view,
+        AniBtSearchPanel anime,
+        SolidColorBrush canvas,
+        TextBlock titleLabel,
+        bool micaSupported)
     {
         _window = window;
         _view = view;
         _anime = anime;
+        _canvas = canvas;
+        _titleLabel = titleLabel;
+        _micaSupported = micaSupported;
 
-        _repaint = _ => PaintCaption();
+        _repaint = _ =>
+        {
+            ApplyBackdrop();
+            PaintCaption();
+        };
         ThemeHost.Changed += _repaint;
-
+        window.Activated += OnWindowActivated;
         window.AppWindow.Closing += OnClosing;
     }
+
+    private void OnWindowActivated(object sender, WindowActivatedEventArgs args) => PaintCaption();
 
     /// <summary>Whether the window is on screen. Tracked here, like <see cref="SettingsWindow"/>.</summary>
     internal bool IsOpen => _open;
@@ -86,25 +100,50 @@ internal sealed class MoviePilotWindow
     {
         try
         {
-            var view = new MoviePilotVersionsView { Background = WindowFill() };
+            var micaSupported = MicaController.IsSupported();
+            var canvas = new SolidColorBrush(WindowColor(ThemeHost.Current));
+            var view = new MoviePilotVersionsView { Background = new SolidColorBrush(Colors.Transparent) };
             var anime = new AniBtSearchPanel { Padding = new Thickness(16), Visibility = Visibility.Collapsed };
-            var content = new Grid { Background = WindowFill() };
-            content.Children.Add(view);
-            content.Children.Add(anime);
+
+            var root = new Grid { Background = canvas };
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            var titleLabel = new TextBlock
+            {
+                Text = "在 MoviePilot 搜索版本",
+                Margin = new Thickness(16, 0, 140, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 12,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            var caption = new Border { Name = "MoviePilotWindowTitleBar", Background = new SolidColorBrush(Colors.Transparent) };
+            caption.Child = titleLabel;
+            root.Children.Add(caption);
+
+            var body = new Grid();
+            Grid.SetRow(body, 1);
+            body.Children.Add(view);
+            body.Children.Add(anime);
+            root.Children.Add(body);
 
             // 深浅跟着当前主题走（这个窗口里是框架控件 + 我们的 Eg* 样式，只认 ElementTheme）。
-            ThemeHost.Register(content);
+            ThemeHost.Register(root);
 
             if (Application.Current.Resources.TryGetValue("EgUiFontFamily", out var font) && font is FontFamily family)
             {
                 view.FontFamily = family;
                 anime.FontFamily = family;
+                titleLabel.FontFamily = family;
             }
 
-            var window = new Window { Content = content, Title = "在 MoviePilot 搜索版本" };
+            var window = new Window { ExtendsContentIntoTitleBar = true, Content = root, Title = "在 MoviePilot 搜索版本" };
+            window.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
+            window.SetTitleBar(caption);
 
             Place(window, owner);
-            var created = new MoviePilotWindow(window, view, anime);
+            var created = new MoviePilotWindow(window, view, anime, canvas, titleLabel, micaSupported);
+            created.ApplyBackdrop();
             created.PaintCaption();
 
             Log.Info(Category, "MoviePilot 版本窗口已创建");
@@ -136,8 +175,10 @@ internal sealed class MoviePilotWindow
         Release();
         _anime.Visibility = Visibility.Collapsed;
         _view.Visibility = Visibility.Visible;
-        _window.Title = "在 MoviePilot 搜索版本";
+        SetWindowTitle("在 MoviePilot 搜索版本");
         _view.Search(service, keyword, launcher, episode);
+        ApplyBackdrop();
+        PaintCaption();
         _window.AppWindow.Show();
         _window.Activate();
         _open = true;
@@ -148,11 +189,43 @@ internal sealed class MoviePilotWindow
         Release();
         _view.Visibility = Visibility.Collapsed;
         _anime.Visibility = Visibility.Visible;
-        _window.Title = "在 AniBT 搜索版本";
+        SetWindowTitle("在 AniBT 搜索版本");
         _anime.Search(animeService, service, launcher, query);
+        ApplyBackdrop();
+        PaintCaption();
         _window.AppWindow.Show();
         _window.Activate();
         _open = true;
+    }
+
+    private void SetWindowTitle(string title)
+    {
+        _window.Title = title;
+        _titleLabel.Text = title;
+    }
+
+    private void ApplyBackdrop()
+    {
+        var system = CaptionAppearance.ReadSystem();
+        if (!_micaSupported || !ThemeHost.TransparencyEnabled || system.HighContrast)
+        {
+            try { _window.SystemBackdrop = null; }
+            catch (Exception error) { Log.Warn(Category, "撤除 MoviePilot 窗口 Mica 失败", error); }
+            _mica = false;
+            return;
+        }
+
+        if (_mica) return;
+        try
+        {
+            _window.SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
+            _mica = true;
+        }
+        catch (Exception error)
+        {
+            Log.Warn(Category, "设置 MoviePilot 窗口 Mica 失败，改用纯色底", error);
+            _mica = false;
+        }
     }
 
     private void Release()
@@ -180,6 +253,7 @@ internal sealed class MoviePilotWindow
         _closing = true;
         _open = false;
         ThemeHost.Changed -= _repaint;
+        _window.Activated -= OnWindowActivated;
         Release();
 
         try
@@ -237,45 +311,29 @@ internal sealed class MoviePilotWindow
             Math.Min((int)Math.Round(logical * scale), available - (int)Math.Round(48 * scale)));
 
     /// <summary>
-    /// The same caption as the main window's, for the same reason: the app has one appearance. Colours come
-    /// from the current theme, so this re-runs on a theme change (<see cref="_repaint"/>). Mirrors
-    /// <c>HostWindow.ConfigureTitleBar</c> / <see cref="SettingsWindow"/>, including the blank-icon trick:
-    /// 左上角那颗图标不要（2026-10-30 用户令），第二窗口和设置窗口同一个样子。
+    /// 统一主窗口与设置窗口的标题栏着墨、圆角、空白小图标和高对比度回退。
     /// </summary>
     private void PaintCaption()
     {
         try
         {
             var theme = ThemeHost.Current;
+            var system = CaptionAppearance.ReadSystem();
+            var canvasColor = system.HighContrast ? system.Background : WindowColor(theme);
+            canvasColor.A = !system.HighContrast && _mica && system.AdvancedEffects ? (byte)0x00 : (byte)0xFF;
+            _canvas.Color = canvasColor;
+            _titleLabel.Foreground = new SolidColorBrush(system.HighContrast ? system.Foreground : ThemeHost.ToColor(theme.Colors.Text));
+
             var handle = Win32Interop.GetWindowFromWindowId(_window.AppWindow.Id);
+            CaptionAppearance.ApplyDwmChrome(handle, theme, _mica && system.AdvancedEffects, fullscreen: false, system.HighContrast);
 
-            var dark = theme.IsDark ? 1 : 0;
-            Native.DwmSetWindowAttribute(handle, Native.DwmUseImmersiveDarkMode, ref dark, sizeof(int));
-
-            var corners = Native.DwmCornerRound;
-            Native.DwmSetWindowAttribute(handle, Native.DwmWindowCornerPreference, ref corners, sizeof(int));
-
-            // 发空句柄摘不掉标题栏图标 —— 系统的查找链会把窗口类或 exe 里那颗补回来（见 SettingsWindow 的
-            // 老账），所以换上一颗全透明的、把那一档占住。大档不动：任务栏和 Alt-Tab 照旧拿应用图标。
+            // 发空句柄摘不掉标题栏图标 —— 换上一颗全透明的、把那一档占住；大档不动。
             Native.SendMessage(handle, Native.WmSetIcon, (IntPtr)0, BlankCaptionIcon.Handle);
 
             var titleBar = _window.AppWindow.TitleBar;
             if (titleBar is null) return;
 
-            titleBar.BackgroundColor = ThemeHost.ToColor(theme.Colors.Window);
-            titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
-            titleBar.ButtonBackgroundColor = titleBar.BackgroundColor;
-            titleBar.ButtonForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
-            titleBar.ButtonHoverBackgroundColor = theme.IsDark
-                ? Color.FromArgb(35, 255, 255, 255)
-                : Color.FromArgb(25, 0, 0, 0);
-            titleBar.ButtonPressedBackgroundColor = theme.IsDark
-                ? Color.FromArgb(55, 255, 255, 255)
-                : Color.FromArgb(45, 0, 0, 0);
-            titleBar.InactiveBackgroundColor = titleBar.BackgroundColor;
-            titleBar.InactiveForegroundColor = titleBar.ForegroundColor;
-            titleBar.ButtonInactiveBackgroundColor = titleBar.ButtonBackgroundColor;
-            titleBar.ButtonInactiveForegroundColor = titleBar.ButtonForegroundColor;
+            CaptionAppearance.PaintTitleBar(titleBar, theme, system, onScrim: false, transparentSurface: true, dimInactive: true);
         }
         catch (Exception error)
         {
@@ -283,14 +341,5 @@ internal sealed class MoviePilotWindow
         }
     }
 
-    /// <summary>
-    /// What the view paints under itself. <c>EgWindowBrush</c> lives in <c>Palette.xaml</c>'s
-    /// <c>ThemeDictionaries</c>, which only the XAML parser resolves — a code lookup does not see them — so
-    /// this is <c>TryGetValue</c> plus the literal <c>EgWindowColor</c> dark value as the fallback, exactly
-    /// as <c>SettingsWindow.WindowFill</c> does it.
-    /// </summary>
-    private static Brush WindowFill() =>
-        Application.Current.Resources.TryGetValue("EgWindowBrush", out var value) && value is Brush brush
-            ? brush
-            : new SolidColorBrush(Color.FromArgb(255, 0x16, 0x18, 0x1C));
+    private static Color WindowColor(Momoka.Theming.UiTheme theme) => ThemeHost.ToColor(theme.Colors.Window);
 }

@@ -50,6 +50,7 @@ public sealed partial class PlayerPage
             _timelineEnding.Color = _timelineOpening.Color;
             _timelineAd.Color = contrast ? _timelineUiSettings.UIElementColor(UIElementType.Hotlight)
                 : ThemeHost.ToColor(TimelineChapterMap.AdvertisementColor);
+            PaintPalette();
         }
     }
 }

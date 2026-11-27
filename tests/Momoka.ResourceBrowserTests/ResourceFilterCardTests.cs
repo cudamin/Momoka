@@ -322,10 +322,15 @@ internal static class ResourceFilterCardTests
             foreach (var (xml, element) in new[] { (browser, expander), (picker, Named(picker, "OpenFacet")) })
             {
                 var resources = element.Elements().Single(node => node.Name.LocalName == "Button.Resources" || node.Name.LocalName == "DropDownButton.Resources");
-                Assert.True(resources.Elements().Any(node => node.Attribute(X + "Key")?.Value == "ButtonBackgroundPointerOver"
-                    && node.Attribute("ResourceKey")?.Value == "EgAccentMutedBrush"), "悬停背景没钉在强调色柔和底上");
-                Assert.True(resources.Elements().Any(node => node.Attribute(X + "Key")?.Value == "ButtonBackgroundPressed"
-                    && node.Attribute("ResourceKey")?.Value == "EgAccentSoftBrush"), "按下背景没钉住");
+                foreach (var theme in new[] { "Dark", "Light" })
+                {
+                    var dict = resources.Descendants().Single(node => node.Name.LocalName == "ResourceDictionary" && (string?)node.Attribute(X + "Key") == theme);
+                    Assert.True(dict.Elements().Any(node => node.Attribute(X + "Key")?.Value == "ButtonBackgroundPointerOver"
+                        && node.Attribute("ResourceKey")?.Value == "EgAccentMutedBrush"), "悬停背景没钉在强调色柔和底上");
+                    Assert.True(dict.Elements().Any(node => node.Attribute(X + "Key")?.Value == "ButtonBackgroundPressed"
+                        && node.Attribute("ResourceKey")?.Value == "EgAccentSoftBrush"), "按下背景没钉住");
+                }
+                Assert.NotNull(resources.Descendants().SingleOrDefault(node => node.Name.LocalName == "ResourceDictionary" && (string?)node.Attribute(X + "Key") == "HighContrast"));
             }
             foreach (var (name, source) in new[] { ("WebSourceFilter", "ViewModel.WebSourceFacet"), ("SubtitleFilter", "ViewModel.SubtitleFacet") })
             {

@@ -12,16 +12,29 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast" />
+            </ResourceDictionary.ThemeDictionaries>
             <!-- 2026-11-13 用户令「这个弹窗窗口缩小一点，紧凑一点」：比原来那版窄一档，四边留白也收了一档。 -->
             <x:Double x:Key="ContentDialogMaxWidth">620</x:Double>
             <Thickness x:Key="ContentDialogPadding">16</Thickness>
             <Thickness x:Key="ContentDialogTitleMargin">0,0,0,10</Thickness>
-            <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
-            <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
             <!-- 三种订阅方式：网页端一枚图标配一句短名，这里用 SegmentedItem 自带的 Icon 位，
                  字形在 16 的方框里，和旁边那颗开关同一行高。 -->
             <Style x:Key="SeasonModeItemStyle" TargetType="toolkit:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">

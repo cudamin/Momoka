@@ -16,19 +16,31 @@
     CloseButtonText="关闭">
 
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
-        <x:Double x:Key="ContentDialogMaxWidth">1200</x:Double>
-        <!-- 系统给 ContentDialog 的那层影子落在窗口外沿，不落在画框上；看大图时这张画自己也得离底
-             一档。IsMasked 必须关掉：宿主是一块透明面板，按 alpha 取形状会什么都取不到。 -->
-        <ui:AttachedDropShadow
-            x:Key="ViewerShadow"
-            BlurRadius="30"
-            Color="Black"
-            CornerRadius="12"
-            IsMasked="False"
-            Offset="0,10,0"
-            Opacity="0.45" />
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+            <x:Double x:Key="ContentDialogMaxWidth">1200</x:Double>
+            <!-- 系统给 ContentDialog 的那层影子落在窗口外沿，不落在画框上；看大图时这张画自己也得离底
+                 一档。IsMasked 必须关掉：宿主是一块透明面板，按 alpha 取形状会什么都取不到。 -->
+            <ui:AttachedDropShadow
+                x:Key="ViewerShadow"
+                BlurRadius="30"
+                Color="Black"
+                CornerRadius="12"
+                IsMasked="False"
+                Offset="0,10,0"
+                Opacity="0.45" />
+        </ResourceDictionary>
     </ContentDialog.Resources>
 
     <!-- 24 的余量是影子要的地方：CastTo 是这块面板，子视觉裁在它的边界上，画框贴边就一点影子也看不见。 -->

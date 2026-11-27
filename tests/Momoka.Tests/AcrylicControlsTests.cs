@@ -75,11 +75,19 @@ internal static class AcrylicControlsTests
                 }
             Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
                 Setter(Resource(Read("Theme/Styles.xaml").Root!, "EgBodyPanelStyle"), "Background"));
+            var sharedFnCard = Resource(Read("Theme/Styles.xaml").Root!, "FnNasCard");
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Setter(sharedFnCard, "Background"));
+            Assert.Equal("{ThemeResource EgCardStrokeBrush}", Setter(sharedFnCard, "BorderBrush"));
+            Assert.Equal("{StaticResource EgCardBorderThickness}", Setter(sharedFnCard, "BorderThickness"));
+            Assert.Equal("{StaticResource EgCardCornerRadius}", Setter(sharedFnCard, "CornerRadius"));
             foreach (var name in new[] { "FnNasPassword", "FnNasPreferences", "FnNasLibraries", "FnNasSettings", "FnNasTasks", "FnNasUsers" })
             {
                 var page = Read("Views/" + name + "Page.xaml");
-                var card = page.Descendants(Xaml + "Style").Single(row => (string?)row.Attribute(X + "Key") == "FnNasCard");
-                Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Setter(card, "Background"));
+                Assert.False(page.Descendants(Xaml + "Style").Any(row => (string?)row.Attribute(X + "Key") == "FnNasCard"),
+                    name + " 不应重复定义本地 FnNasCard 样式");
+                Assert.True(page.Descendants(Xaml + "Border").Any(border =>
+                    (string?)border.Attribute("Style") == "{StaticResource FnNasCard}"),
+                    name + " 未使用共享 FnNasCard 样式");
             }
         });
         Test("详情音视频行：文字与选择框统一正文字号", () =>
@@ -420,7 +428,12 @@ internal static class AcrylicControlsTests
             Assert.Equal("32", (string?)storeSwitchScale.Attribute("Height"));
             Assert.Equal("Uniform", (string?)storeSwitchScale.Attribute("Stretch"));
             var switchAliases = storeSwitch.Elements()
-                .Single(element => element.Name.LocalName == "ToggleSwitch.Resources").Elements().ToArray();
+                .Single(element => element.Name.LocalName == "ToggleSwitch.Resources")
+                .Element(Xaml + "ResourceDictionary")!
+                .Element(Xaml + "ResourceDictionary.ThemeDictionaries")!
+                .Elements(Xaml + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(X + "Key") == "Dark")
+                .Elements().ToArray();
             var neutralResources = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["ToggleSwitchFillOn"] = "EgTextDimBrush",
@@ -541,7 +554,7 @@ internal static class AcrylicControlsTests
             foreach (var card in cards)
             {
                 Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", (string?)card.Attribute("Background"));
-                Assert.Equal("{ThemeResource EgBorderBrush}", (string?)card.Attribute("BorderBrush"));
+                Assert.Equal("{ThemeResource EgCardStrokeBrush}", (string?)card.Attribute("BorderBrush"));
                 Assert.Equal("{StaticResource EgCardBorderThickness}", (string?)card.Attribute("BorderThickness"));
                 Assert.Equal("{StaticResource EgCardCornerRadius}", (string?)card.Attribute("CornerRadius"));
             }

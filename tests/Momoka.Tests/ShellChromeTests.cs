@@ -76,8 +76,14 @@ internal static class ShellChromeTests
 
         Test("侧边栏度量：条目 40 高、图标盒 20、按钮左右各留 8，选中项铺实心底", () =>
         {
-            var resources = Named(Shell(), "Sidebar").Elements()
-                .Single(element => element.Name.LocalName == "NavigationView.Resources");
+            var document = Shell();
+            var presentation = document.Root!.Name.Namespace;
+            var resources = Named(document, "Sidebar").Elements()
+                .Single(element => element.Name.LocalName == "NavigationView.Resources")
+                .Element(presentation + "ResourceDictionary")!;
+            var dark = resources.Element(presentation + "ResourceDictionary.ThemeDictionaries")!
+                .Elements(presentation + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(Xaml + "Key") == "Dark");
 
             string? Value(string key) => resources.Elements()
                 .FirstOrDefault(element => element.Attribute(Xaml + "Key")?.Value == key)
@@ -94,7 +100,7 @@ internal static class ShellChromeTests
                 "NavigationViewItemBackgroundSelectedPressed"
             })
             {
-                var entry = resources.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == key);
+                var entry = dark.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == key);
                 Assert.Equal("EgSurfaceHoverBrush", entry.Attribute("ResourceKey")?.Value,
                     $"{key} 不是实心的角色色");
             }
@@ -117,6 +123,38 @@ internal static class ShellChromeTests
             var children = cluster.Elements().Where(element => element.Name.LocalName == "Button").ToArray();
             Assert.Equal(1, children.Length);
             Assert.Equal("AccountButton", children[0].Attribute(Xaml + "Name")?.Value);
+        });
+
+        Test("标题栏按钮态：悬停按下使用圆角半透明底板，禁用态与高对比度独立着墨", () =>
+        {
+            var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
+            Assert.Contains("Chrome.Resources[\"ButtonBackgroundPointerOver\"] = _titleOverlayHover;", code);
+            Assert.Contains("Chrome.Resources[\"ButtonBackgroundPressed\"] = _titleOverlayPressed;", code);
+            Assert.Contains("AccountCluster.Resources[\"ButtonBackgroundPointerOver\"] = _titleOverlayHover;", code);
+            Assert.Contains("AccountCluster.Resources[\"ButtonBackgroundPressed\"] = _titleOverlayPressed;", code);
+            Assert.Contains("AppTitleBar.Resources[\"ButtonForegroundDisabled\"] = _titleInkDisabled;", code);
+            Assert.Contains("Ink(\"SystemColorHighlightTextColor\")", code);
+            Assert.Contains("Ink(\"SystemColorGrayTextColor\")", code);
+            Assert.Contains("Ink(\"SystemColorHighlightColor\")", code);
+            Assert.Contains("Ink(\"EgTextFaintBrush\")", code);
+            Assert.Contains("Ink(\"EgOverlayHoverBrush\")", code);
+            Assert.Contains("Ink(\"EgOverlayPressedBrush\")", code);
+        });
+
+        Test("窄窗侧栏：低于 641 DIP 折叠为覆盖抽屉，不挤占内容宽且支持遮罩与 Esc 收起", () =>
+        {
+            var document = Shell();
+            Assert.Equal("0,48,0,0", Named(document, "SidebarDismissScrim").Attribute("Margin")?.Value);
+            Assert.Equal("OnSidebarDismissPointerPressed", Named(document, "SidebarDismissScrim").Attribute("PointerPressed")?.Value);
+            Assert.Equal("{ThemeResource EgFrostBrush}", Named(document, "SidebarOverlayBackdrop").Attribute("Background")?.Value);
+            Assert.Equal("OnSidebarHostKeyDown", Named(document, "SidebarHost").Attribute("KeyDown")?.Value);
+
+            var sidebarCode = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShellPage.Sidebar.cs"));
+            Assert.Contains("SidebarMinimalThreshold = 641;", sidebarCode);
+            Assert.Contains("NavigationViewPaneDisplayMode.LeftMinimal", sidebarCode);
+            Assert.Contains("var contentLeft = minimal ? 0 : width;", sidebarCode);
+            Assert.Contains("SidebarDismissScrim.Visibility =", sidebarCode);
+            Assert.Contains("SidebarOverlayBackdrop.Visibility =", sidebarCode);
         });
     }
 

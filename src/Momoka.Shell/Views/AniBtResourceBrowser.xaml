@@ -57,10 +57,23 @@
             SelectedIndex="{x:Bind ViewModel.ViewIndex, Mode=TwoWay}"
             HorizontalAlignment="Left" Visibility="{x:Bind ViewModel.TabsVisibility, Mode=OneWay}">
             <toolkit:Segmented.Resources>
-                <StaticResource x:Key="PivotItemPillBackground" ResourceKey="EgAccentBrush" />
-                <StaticResource x:Key="PivotItemPillBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-                <StaticResource x:Key="PivotItemPillBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
-                <StaticResource x:Key="PivotItemPillBackgroundDisabled" ResourceKey="EgTextFaintBrush" />
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <StaticResource x:Key="PivotItemPillBackground" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="PivotItemPillBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                            <StaticResource x:Key="PivotItemPillBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                            <StaticResource x:Key="PivotItemPillBackgroundDisabled" ResourceKey="EgTextFaintBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <StaticResource x:Key="PivotItemPillBackground" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="PivotItemPillBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                            <StaticResource x:Key="PivotItemPillBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                            <StaticResource x:Key="PivotItemPillBackgroundDisabled" ResourceKey="EgTextFaintBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast" />
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
             </toolkit:Segmented.Resources>
             <toolkit:SegmentedItem x:Name="ProgressTab" Style="{StaticResource PivotSegmentedItemStyle}" Content="{x:Bind ViewModel.ProgressTabText, Mode=OneWay}" />
             <toolkit:SegmentedItem x:Name="ResourcesTab" Style="{StaticResource PivotSegmentedItemStyle}" Content="{x:Bind ViewModel.ResourcesTabText, Mode=OneWay}" />

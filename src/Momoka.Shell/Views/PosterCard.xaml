@@ -9,7 +9,6 @@
     <UserControl.Resources>
         <Style x:Key="FolderFrameStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
             <Setter Property="Background" Value="{ThemeResource EgTextFaintBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
         </Style>
         <!-- 搜索结果的单集：比其余卡片多一圈强调色粗框。别处的单集（季里的集页）不经过这一档。 -->
         <Style x:Key="EpisodeFrameStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
@@ -36,6 +35,7 @@
     <!-- 宽度和海报比例继续由页面的 CardSize 决定，动画只改变绘制，不改变测量。 -->
     <Grid
         x:Name="Root"
+        x:Uid="PosterCard_Root"
         Width="{x:Bind CardWidth, Mode=OneWay}"
         Background="Transparent"
         HorizontalAlignment="Center"
@@ -319,10 +319,23 @@
                         VerticalAlignment="Center"
                         Visibility="{x:Bind Card.PlayVisibility, Mode=OneWay}">
                         <Button.Resources>
-                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
-                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
-                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
-                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                            <ResourceDictionary>
+                                <ResourceDictionary.ThemeDictionaries>
+                                    <ResourceDictionary x:Key="Dark">
+                                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
+                                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="Light">
+                                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
+                                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="HighContrast" />
+                                </ResourceDictionary.ThemeDictionaries>
+                            </ResourceDictionary>
                         </Button.Resources>
                         <Button.RenderTransform>
                             <ScaleTransform x:Name="PlayMotion" ScaleX="0.92" ScaleY="0.92" />
@@ -337,10 +350,23 @@
                         Spacing="4"
                         VerticalAlignment="Bottom">
                         <StackPanel.Resources>
-                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
-                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
-                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
-                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
+                            <ResourceDictionary>
+                                <ResourceDictionary.ThemeDictionaries>
+                                    <ResourceDictionary x:Key="Dark">
+                                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="Light">
+                                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
+                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="HighContrast" />
+                                </ResourceDictionary.ThemeDictionaries>
+                            </ResourceDictionary>
                         </StackPanel.Resources>
                         <Button
                             x:Name="WatchedButton"

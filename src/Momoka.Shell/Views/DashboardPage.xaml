@@ -33,17 +33,19 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Border Width="48" Height="48" CornerRadius="16" Background="{ThemeResource EgAccentSoftBrush}">
-                <FontIcon Glyph="&#xE774;" Foreground="{ThemeResource EgAccentBrush}" FontSize="24" />
+            <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE774;" />
             </Border>
             <StackPanel Grid.Column="1" Spacing="4">
                 <TextBlock x:Uid="DashboardPage_Heading" Style="{StaticResource EgSubpageTitleStyle}" />
                 <!-- Address and lifecycle remain selectable text, without exposing the session token. -->
-                <TextBlock x:Name="Readout" Foreground="{ThemeResource EgTextDimBrush}"
-                    FontSize="13" IsTextSelectionEnabled="True" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="Readout" Style="{StaticResource EgCaptionStyle}"
+                    IsTextSelectionEnabled="True" TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <CommandBar Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
-                DefaultLabelPosition="Right" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="12" IsOpen="False">
+                DefaultLabelPosition="Right" Background="{ThemeResource EgSurfaceBrush}"
+                BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                CornerRadius="{StaticResource EgCardCornerRadius}" IsOpen="False">
                 <AppBarButton x:Uid="DashboardPage_RefreshAction" AutomationProperties.AutomationId="DashboardRefreshButton"
                     Icon="Refresh" Click="OnRefresh" />
                 <AppBarButton x:Uid="DashboardPage_OpenAction" AutomationProperties.AutomationId="DashboardOpenInBrowserButton"
@@ -61,7 +63,7 @@
             Margin="0,16,0,0"
             Background="{ThemeResource EgSurfaceBrush}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
-            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderBrush="{ThemeResource EgCardStrokeBrush}"
             BorderThickness="{StaticResource EgCardBorderThickness}">
             <Grid>
                 <WebView2 x:Name="Web" />
@@ -70,8 +72,8 @@
                     <Border Width="72" Height="72" CornerRadius="24" Background="{ThemeResource EgAccentSoftBrush}">
                         <FontIcon Glyph="&#xE774;" FontSize="32" Foreground="{ThemeResource EgAccentBrush}" />
                     </Border>
-                    <TextBlock x:Name="Notice" Foreground="{ThemeResource EgTextDimBrush}" FontSize="15"
-                        LineHeight="25" TextAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock x:Name="Notice" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                        LineHeight="24" TextAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
             </Grid>
         </Border>

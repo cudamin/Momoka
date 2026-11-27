@@ -100,6 +100,10 @@ public static class ThemeHost
         ("EgSurfaceHoverBrush", theme => theme.Colors.SurfaceHover),
         ("EgBorderBrush", theme => theme.Colors.Border),
         ("EgBorderStrongBrush", theme => theme.Colors.BorderStrong),
+        // 商店模式固定面色：深色下白底高透明，浅色下黑底半透明，确保浅底上仍能辨识按钮边界。
+        ("EgStoreControlBrush", theme => theme.IsDark ? White : Black),
+        // Dark/Light 下保持卡片和弹窗无边框观感；HighContrast 由 Palette 映射到系统文字色显出 1px 描边。
+        ("EgCardStrokeBrush", _ => Black.WithAlpha(0)),
         ("EgTextBrush", theme => theme.Colors.Text),
         ("EgTextDimBrush", theme => theme.Colors.TextDim),
         ("EgTextFaintBrush", theme => theme.Colors.TextFaint),
@@ -327,9 +331,29 @@ public static class ThemeHost
         var theme = Current.IsDark
             ? Current
             : UiThemes.Compose(UiThemes.DefaultId, UiThemes.ModeDark, true);
+        var template = Dictionary("Dark");
         var entries = new ResourceDictionary();
         foreach (var (key, pick) in Brushes)
-            entries[key] = new SolidColorBrush(ToColor(pick(theme)));
+        {
+            var color = pick(theme);
+            if (template is not null && template.TryGetValue(key, out var found) && found is AcrylicBrush source)
+            {
+                var tint = ToColor(color);
+                entries[key] = new AcrylicBrush
+                {
+                    TintColor = tint,
+                    FallbackColor = tint,
+                    TintOpacity = source.TintOpacity,
+                    TintLuminosityOpacity = source.TintLuminosityOpacity,
+                    Opacity = source.Opacity,
+                    AlwaysUseFallback = !TransparencyEnabled
+                };
+                continue;
+            }
+            if (!TransparencyEnabled && key is "EgCanvasBrush" or "EgSidebarBrush" or "LayerFillColorAltBrush")
+                color = color.WithAlpha(0xFF);
+            entries[key] = new SolidColorBrush(ToColor(color));
+        }
         foreach (var (key, pick) in Colors)
             entries[key] = ToColor(pick(theme));
         // Only Dark is locally overridden; Windows HighContrast continues to resolve system resources.
@@ -448,6 +472,7 @@ public static class ThemeHost
 
     private static ResourceDictionary? Dictionary(string theme)
     {
+        if (Application.Current is null) return null;
         foreach (var merged in Application.Current.Resources.MergedDictionaries)
         {
             // 按 Source 认自己那份：XamlControlsResources 就并在旁边，它也带 Dark 和 Light。

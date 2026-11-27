@@ -481,6 +481,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
                 Plain ? DetailHero.StorePageInset(PageWidth) + gutter : PageMargin.Right + gutter, 0);
         }
     }
+    public double SkeletonPosterWidth => Plain ? 140d : 238d;
+    public double SkeletonPosterHeight => Plain ? 210d : 340d;
     public double BodySheetSpacing => Plain ? 10 : 8;
     public Thickness BodyPanelPadding => new(12);
 
@@ -511,6 +513,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(StoreWide));
         OnPropertyChanged(nameof(StoreTailHeight));
         OnPropertyChanged(nameof(TrailerButtonVisibility));
+        OnPropertyChanged(nameof(SkeletonPosterWidth));
+        OnPropertyChanged(nameof(SkeletonPosterHeight));
     }
 
     /// <summary>页面内边距（<c>EgPageMargin</c>）—— 页面标记与这里读同一个资源，不在两处各写一套数。</summary>

@@ -31,6 +31,9 @@ internal sealed class FocusWatch(FrameworkElement inside, Action<bool> paint)
 {
     private Control? _host;
 
+    /// <summary>供宿主卡片将本地化无障碍 HelpText 同步到外层焦点容器。</summary>
+    internal Control? HostControl => _host;
+
     /// <summary>
     /// 挂上。<c>Loaded</c> 里调用，不能更早：容器是在卡片进树之后才在它上面的，构造函数里往上找什么都
     /// 找不到。重复调用无害。

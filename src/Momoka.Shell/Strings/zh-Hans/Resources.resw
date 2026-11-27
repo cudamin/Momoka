@@ -3805,6 +3805,12 @@
   <data name="MoviePilotSubtitlePanel_BackToMedia.Content" xml:space="preserve">
     <value>重新选择影片</value>
   </data>
+  <data name="EpisodeRow_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>按 Enter 打开详情，按 Tab 进入播放按钮，按 Shift+F10 打开右键菜单</value>
+  </data>
+  <data name="PosterCard_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve">
+    <value>按 Enter 打开详情，按 Tab 进入封面快捷操作，按 Shift+F10 打开右键菜单</value>
+  </data>
   <data name="MoviePilotSubtitlePanel_ViewSubtitles.Content" xml:space="preserve">
     <value>查看字幕</value>
   </data>

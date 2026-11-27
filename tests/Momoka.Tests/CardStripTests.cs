@@ -206,7 +206,7 @@ internal static class CardStripTests
             Assert.Equal("2", outline.Value);
             Assert.Equal("{StaticResource EgOutlineThickness}", PageButtonStyle().Elements().Single(element =>
                 element.Attribute("Property")?.Value == "BorderThickness").Attribute("Value")?.Value);
-            Assert.Equal("0", styles.Descendants().Single(element =>
+            Assert.Equal("1", styles.Descendants().Single(element =>
                 element.Attribute(Xaml + "Key")?.Value == "EgCardBorderThickness").Value);
 
             // 2026-10-27 用户令：封面四周不再有那圈绿框。静止那一档就是它唯一的一档，指针和焦点都不换样式。

@@ -56,6 +56,7 @@ public sealed partial class ShellPage
         // 页面是盖在内容上的整层；把内容与侧栏收起，Tab 与读屏不会跑进被盖住的那一页。
         ContentHost.Visibility = Visibility.Collapsed;
         SidebarHost.Visibility = Visibility.Collapsed;
+        SidebarDismissScrim.Visibility = Visibility.Collapsed;
         SignIn.Visibility = Visibility.Collapsed;
         MusicPlayer.Open();
         PlaceMusicBar();

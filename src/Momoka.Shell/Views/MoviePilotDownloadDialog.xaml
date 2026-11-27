@@ -5,20 +5,33 @@
     xmlns:moviepilot="using:Momoka.MoviePilot"
     PrimaryButtonText="开始下载" CloseButtonText="取消" DefaultButton="None"
     Background="{ThemeResource EgSurfaceBrush}" Foreground="{ThemeResource EgTextBrush}"
-    BorderThickness="0" CornerRadius="{StaticResource EgCardCornerRadius}"
+    BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}">
     <ContentDialog.Resources>
-        <x:Double x:Key="ContentDialogMaxWidth">536</x:Double>
-        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
-        <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
-        <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
-        <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast" />
+            </ResourceDictionary.ThemeDictionaries>
+            <x:Double x:Key="ContentDialogMaxWidth">536</x:Double>
+            <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="BorderThickness" Value="0,0,0,1" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+                <Setter Property="Background" Value="Transparent" />
+            </Style>
+        </ResourceDictionary>
     </ContentDialog.Resources>
     <ContentDialog.PrimaryButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">

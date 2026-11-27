@@ -23,13 +23,10 @@
 
     <Page.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
-            </ResourceDictionary.MergedDictionaries>
         <CollectionViewSource x:Name="CategoryGroupsSource" IsSourceGrouped="True" />
         <Style x:Key="SettingsSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
             <Setter Property="Padding" Value="32,6,8,6" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgSettingsInputCornerRadius}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
         </Style>
         <!-- 分组头：默认的 ListViewHeaderItem 会垫一层底、留一段内边距；多服务器折叠头要的是一行小标题。 -->
         <Style x:Key="SettingsGroupHeader" TargetType="ListViewHeaderItem">
@@ -171,10 +168,23 @@
                 Style="{StaticResource EgSwatchStyle}"
                 ToolTipService.ToolTip="{x:Bind DisplayNote}">
                 <Button.Resources>
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
-                    <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
-                    <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast" />
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
                 </Button.Resources>
                 <Grid Background="{x:Bind Window}">
                     <Grid.RowDefinitions>
@@ -231,8 +241,9 @@
             <!-- 墨走角色表，不吃按钮自己那档：框架那档在 daylight 下是白底上的一层浅灰，两颗箭头几乎看不出在那儿。
                  置灰那一档不受影响 —— 「不可用」是视觉状态刷的，盖得过这里的设定（同上头色板那一段）。 -->
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
-            <Setter Property="Padding" Value="6,1,6,1" />
-            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="MinWidth" Value="32" />
+            <Setter Property="MinHeight" Value="32" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
@@ -399,7 +410,7 @@
 
         <!-- 本页所有下拉（选择行、字幕标题筛选那几颗小的、紧凑模式那颗分类框）都吃这一条：
              列表项沿用原样，闭合框只接统一圆角，不替换平台模板。 -->
-        <Style TargetType="ComboBox" BasedOn="{StaticResource EgSettingsComboBoxStyle}">
+        <Style TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="ItemContainerStyle" Value="{StaticResource EgComboItemStyle}" />
         </Style>
 
@@ -566,7 +577,7 @@
                           （SettingNumberRow.Placeholder）。
                         -->
                         <NumberBox
-                            CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
+                            CornerRadius="{StaticResource EgSearchCornerRadius}"
                             Grid.Column="1"
                             AutomationProperties.Name="{x:Bind DisplayLabel}"
                             HorizontalAlignment="Left"
@@ -602,7 +613,7 @@
                                 Content="自动"
                                 IsChecked="{x:Bind Automatic, Mode=TwoWay}" />
                             <NumberBox
-                                CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
+                                CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 x:Name="ManualValue"
                                 AutomationProperties.Name="{x:Bind DisplayLabel}"
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
@@ -952,7 +963,7 @@
                                 Tag="{x:Bind}"
                                 Loaded="OnColorSwatchLoaded"
                                 Background="{x:Bind Swatch, Mode=OneWay}"
-                                BorderBrush="{StaticResource EgBorderBrush}"
+                                BorderBrush="{ThemeResource EgBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="4"
                                 Height="30"
@@ -1193,12 +1204,12 @@
                                             Grid.Column="2"
                                             Command="{x:Bind UpCommand}"
                                             IsEnabled="{x:Bind CanUp, Mode=OneWay}"
-                                            Margin="0,8,0,0"
+                                            Margin="0,4,0,0"
                                             VerticalAlignment="Top"
                                             Style="{StaticResource EgHomeShiftStyle}">
                                             <FontIcon
                                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                FontSize="12"
+                                                FontSize="{StaticResource EgCaptionFontSize}"
                                                 Glyph="&#xE70E;" />
                                         </Button>
 
@@ -1206,12 +1217,12 @@
                                             Grid.Column="3"
                                             Command="{x:Bind DownCommand}"
                                             IsEnabled="{x:Bind CanDown, Mode=OneWay}"
-                                            Margin="0,8,0,0"
+                                            Margin="0,4,0,0"
                                             VerticalAlignment="Top"
                                             Style="{StaticResource EgHomeShiftStyle}">
                                             <FontIcon
                                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                FontSize="12"
+                                                FontSize="{StaticResource EgCaptionFontSize}"
                                                 Glyph="&#xE70D;" />
                                         </Button>
 
@@ -1221,7 +1232,7 @@
                                         <FontIcon
                                             Grid.Column="4"
                                             FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                            FontSize="14"
+                                            FontSize="{StaticResource EgBodyFontSize}"
                                             Foreground="{ThemeResource EgTextFaintBrush}"
                                             Glyph="{x:Bind HandleGlyph}"
                                             Height="40"
@@ -1314,7 +1325,7 @@
                                                         Style="{StaticResource EgHomeShiftStyle}">
                                                         <FontIcon
                                                             FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                            FontSize="12"
+                                                            FontSize="{StaticResource EgCaptionFontSize}"
                                                             Glyph="&#xE70E;" />
                                                     </Button>
 
@@ -1325,7 +1336,7 @@
                                                         Style="{StaticResource EgHomeShiftStyle}">
                                                         <FontIcon
                                                             FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                            FontSize="12"
+                                                            FontSize="{StaticResource EgCaptionFontSize}"
                                                             Glyph="&#xE70D;" />
                                                     </Button>
 
@@ -1333,7 +1344,7 @@
                                                     <FontIcon
                                                         Grid.Column="4"
                                                         FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                                        FontSize="14"
+                                                        FontSize="{StaticResource EgBodyFontSize}"
                                                         Foreground="{ThemeResource EgTextFaintBrush}"
                                                         Glyph="&#xE76F;"
                                                         VerticalAlignment="Center" />
@@ -1383,7 +1394,12 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock x:Uid="SettingsPage_Localization12" Text="≡" VerticalAlignment="Center" Opacity="0.55"
+                                        <FontIcon x:Uid="SettingsPage_Localization12"
+                                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                            FontSize="{StaticResource EgBodyFontSize}"
+                                            Foreground="{ThemeResource EgTextFaintBrush}"
+                                            Glyph="&#xE76F;"
+                                            VerticalAlignment="Center"
                                             ToolTipService.ToolTip="按住拖动调整优先级" />
                                         <TextBlock Grid.Column="1" Text="{x:Bind Position, Mode=OneWay}"
                                             VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.65" />
@@ -1392,16 +1408,28 @@
                                         <ComboBox x:Name="PriorityRuleState" Grid.Column="3" MinWidth="88"
                                             AutomationProperties.Name="{x:Bind Term}"
                                             ItemsSource="{x:Bind DisplayStateLabels}" SelectedItem="{x:Bind DisplaySelectedState, Mode=TwoWay}" />
-                                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2">
-                                            <Button x:Uid="SettingsPage_PriorityRuleUp" x:Name="PriorityRuleUp" Content="↑" MinWidth="28" Padding="4"
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
+                                            <Button x:Uid="SettingsPage_PriorityRuleUp" x:Name="PriorityRuleUp"
+                                                Style="{StaticResource EgHomeShiftStyle}"
                                                 Command="{x:Bind UpCommand}" IsEnabled="{x:Bind CanUp, Mode=OneWay}"
-                                                AutomationProperties.Name="{x:Bind UpName}" ToolTipService.ToolTip="提高优先级" />
-                                            <Button x:Uid="SettingsPage_PriorityRuleDown" x:Name="PriorityRuleDown" Content="↓" MinWidth="28" Padding="4"
+                                                AutomationProperties.Name="{x:Bind UpName}" ToolTipService.ToolTip="提高优先级">
+                                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                    FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70E;" />
+                                            </Button>
+                                            <Button x:Uid="SettingsPage_PriorityRuleDown" x:Name="PriorityRuleDown"
+                                                Style="{StaticResource EgHomeShiftStyle}"
                                                 Command="{x:Bind DownCommand}" IsEnabled="{x:Bind CanDown, Mode=OneWay}"
-                                                AutomationProperties.Name="{x:Bind DownName}" ToolTipService.ToolTip="降低优先级" />
-                                            <Button x:Uid="SettingsPage_PriorityRuleDelete" x:Name="PriorityRuleDelete" Content="✕" MinWidth="28" Padding="4"
+                                                AutomationProperties.Name="{x:Bind DownName}" ToolTipService.ToolTip="降低优先级">
+                                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                    FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
+                                            </Button>
+                                            <Button x:Uid="SettingsPage_PriorityRuleDelete" x:Name="PriorityRuleDelete"
+                                                Style="{StaticResource EgHomeShiftStyle}"
                                                 Command="{x:Bind RemoveSelfCommand}"
-                                                AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="删除这个关键词" />
+                                                AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="删除这个关键词">
+                                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                    FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE711;" />
+                                            </Button>
                                         </StackPanel>
                                     </Grid>
                                 </DataTemplate>
@@ -1578,7 +1606,7 @@
                     <AutoSuggestBox
                         x:Name="SettingsSearchBox"
                         x:Uid="SettingsSearchBox"
-                        Background="{ThemeResource EgWindowBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
+                        Background="{ThemeResource EgWindowBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{StaticResource EgSearchCornerRadius}"
                         TextBoxStyle="{StaticResource SettingsSearchTextBox}"
                         PlaceholderText="搜索设置项"
                         KeyboardAcceleratorPlacementMode="Hidden"
@@ -1608,7 +1636,7 @@
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
                     <Button x:Uid="SettingsPage_SettingsSearchButton" x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
-                        HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" CornerRadius="8"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" CornerRadius="8" IsTabStop="False"
                         Background="Transparent" BorderThickness="0" AutomationProperties.Name="搜索设置项"
                         Click="OnSettingsSearchClick">
                         <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgBodyFontSize}"
@@ -1824,9 +1852,9 @@
                                             AutomationProperties.HeadingLevel="Level2" />
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="0"
-                                            CornerRadius="12"
+                                            BorderBrush="{ThemeResource EgCardStrokeBrush}"
+                                            BorderThickness="{StaticResource EgCardBorderThickness}"
+                                            CornerRadius="{StaticResource EgCardCornerRadius}"
                                             Padding="6">
                                             <ItemsControl x:Name="SettingsRowsList" Tag="{x:Bind}"
                                                 Loaded="OnSettingsRowsLoaded" Unloaded="OnSettingsRowsUnloaded"

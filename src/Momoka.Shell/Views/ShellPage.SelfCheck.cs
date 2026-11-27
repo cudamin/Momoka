@@ -80,6 +80,12 @@ public sealed partial class ShellPage
 
             // 收藏是唯一会自己收放的一颗：判据与 SyncTitleActions 同一句 —— 有收藏且不在侧边栏模式。
             var favoritesShown = !SidebarShown && _session?.IsSignedIn == true && Favorites.HasItems;
+            var narrowSearchExpected = SidebarShown && Chrome.Visibility == Visibility.Visible
+                && ActualWidth < 700 && TitleSearchPage is null;
+            var searchButtonExpected = (!SidebarShown || narrowSearchExpected) ? Visibility.Visible : Visibility.Collapsed;
+            var searchBoxExpected = SidebarShown && Chrome.Visibility == Visibility.Visible
+                && ActualWidth >= 700 && TitleSearchPage is null
+                ? Visibility.Visible : Visibility.Collapsed;
             var backExpected = ContentHost.Visibility == Visibility.Visible
                 ? _sidebarMode ? BackVisibilityFor(_current) : Visibility.Visible
                 : Visibility.Collapsed;
@@ -89,7 +95,9 @@ public sealed partial class ShellPage
                 && NavToggleButton.Visibility == (SidebarShown ? Visibility.Visible : Visibility.Collapsed)
                 && HomeButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible)
                 && FavoritesButton.Visibility == (favoritesShown ? Visibility.Visible : Visibility.Collapsed)
-                && SettingsButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible);
+                && SettingsButton.Visibility == (SidebarShown ? Visibility.Collapsed : Visibility.Visible)
+                && SearchButton.Visibility == searchButtonExpected
+                && TitleSearchBox.Visibility == searchBoxExpected;
 
             // 先量真实布局；随后为主页展开返回的那一拍仅检查排列，不替产品代码补间距。
             var backPlacement = _sidebarMode || ForwardButton.Visibility == Visibility.Collapsed
@@ -105,7 +113,7 @@ public sealed partial class ShellPage
 
             // 当前集合顺序就是视觉顺序，SyncTitleActions 按模式移动同一控件。
             FrameworkElement[] order =
-                _sidebarMode ? [BackButton, NavToggleButton]
+                _sidebarMode ? [BackButton, NavToggleButton, SearchButton]
                     : [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton];
             var keys = order.Where(key => key.Visibility == Visibility.Visible).ToArray();
             var places = keys.Select(At).ToArray();

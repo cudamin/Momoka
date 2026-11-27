@@ -921,6 +921,7 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     private static bool Rings(FrameworkElement element) => element is StackPanel panel
         && panel.Background is SolidColorBrush { Color.A: > 0 }
+        && panel.BorderBrush is SolidColorBrush { Color.A: > 0 }
         && panel.BorderThickness is { Left: > 0, Top: > 0, Right: > 0, Bottom: > 0 };
 
     /// <summary>

@@ -16,7 +16,7 @@
         </Style>
     </Page.Resources>
 
-    <Grid x:Name="PageLayout" Margin="24,20" RowSpacing="12" SizeChanged="OnLayoutSizeChanged">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16" SizeChanged="OnLayoutSizeChanged">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -25,18 +25,18 @@
 
         <!-- Commands share the title row; the platform overflow keeps them reachable in narrow panes. -->
         <CommandBar x:Name="DiagnosticsToolbar" DefaultLabelPosition="Right" IsOpen="False"
-            Background="Transparent" HorizontalAlignment="Stretch" Padding="0" MinHeight="40">
+            Background="Transparent" HorizontalAlignment="Stretch" Padding="0" MinHeight="48">
             <CommandBar.Content>
-                <Grid ColumnSpacing="10" VerticalAlignment="Center">
+                <Grid ColumnSpacing="16" VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Border Width="36" Height="36" CornerRadius="12" Background="{ThemeResource EgAccentSoftBrush}">
-                        <FontIcon Glyph="&#xE9D9;" FontSize="20" Foreground="{ThemeResource EgAccentBrush}" />
+                    <Border Style="{StaticResource EgSubpageBadgeBorderStyle}">
+                        <FontIcon Style="{StaticResource EgSubpageBadgeIconStyle}" Glyph="&#xE9D9;" />
                     </Border>
                     <TextBlock Grid.Column="1" x:Uid="DiagnosticsPage_Heading"
-                        Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                        Style="{StaticResource EgSubpageTitleStyle}" VerticalAlignment="Center" />
                 </Grid>
             </CommandBar.Content>
             <AppBarButton x:Uid="DiagnosticsPage_RefreshAction" AutomationProperties.AutomationId="DiagnosticsRefreshButton"
@@ -48,7 +48,7 @@
         </CommandBar>
 
         <Border Grid.Row="1" Background="{ThemeResource EgSurfaceBrush}" Padding="14,12"
-            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+            BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}">
             <Grid x:Name="StatusCards" ColumnSpacing="16" RowSpacing="12">
                 <Grid.ColumnDefinitions>
@@ -99,7 +99,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Uid="DiagnosticsPage_TextBlock13" Style="{StaticResource EgSubheadStyle}" />
                         <Button x:Uid="DiagnosticsPage_DiagnosticsDetailsButton" x:Name="DiagnosticsDetailsButton" Grid.Column="1" Content="详情"
-                            AutomationProperties.Name="运行状态详情" Padding="6,0" MinHeight="22"
+                            AutomationProperties.Name="运行状态详情" Padding="10,4" MinWidth="32" MinHeight="32"
                             Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
                             <Button.Flyout>
                                 <Flyout x:Name="DiagnosticsDetailsFlyout">
@@ -173,7 +173,7 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2" Margin="0,0,-24,0">
+        <Grid Grid.Row="2" Margin="0,0,-32,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -185,7 +185,7 @@
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
             <Border x:Name="LogPanel" Grid.Row="1" Background="{ThemeResource EgSurfaceBrush}"
-                BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                BorderBrush="{ThemeResource EgCardStrokeBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>

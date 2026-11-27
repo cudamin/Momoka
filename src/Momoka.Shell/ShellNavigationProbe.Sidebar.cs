@@ -210,15 +210,21 @@ internal sealed partial class ShellNavigationProbe
             Require(nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
                 .All(item => item.Tag as string != "search"), "侧边栏里仍有搜索入口");
             var titleSearch = Get<AutoSuggestBox>(shell, "TitleSearchBox");
+            var titleSearchButton = Get<Button>(shell, "SearchButton");
             Require(titleSearch.Visibility == Visibility.Visible, "宽窗侧边栏模式没有标题搜索框");
-            foreach (var width in new[] { 699, 700, 1240 })
+            foreach (var width in new[] { 600, 640, 641, 699, 700, 1240 })
             {
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
                 Require(titleSearch.Visibility == (width >= 700 ? Visibility.Visible : Visibility.Collapsed),
                     $"商店搜索框没有随尺寸切换（{width}）");
-                Require(Get<Button>(shell, "SearchButton").Visibility == Visibility.Collapsed,
-                    "商店模式出现第二份搜索入口");
+                Require(titleSearchButton.Visibility == (width < 700 ? Visibility.Visible : Visibility.Collapsed),
+                    $"商店窄窗搜索按钮显隐不对（{width}）：{titleSearchButton.Visibility}");
+                var expectedMode = width < 641
+                    ? NavigationViewPaneDisplayMode.LeftMinimal
+                    : nav.IsPaneOpen ? NavigationViewPaneDisplayMode.Left : NavigationViewPaneDisplayMode.LeftCompact;
+                Require(nav.PaneDisplayMode == expectedMode,
+                    $"侧栏模式没有在 641 断点切换（{width}）：{nav.PaneDisplayMode}");
                 if (width >= 700) Require(Math.Abs(titleSearch.ActualWidth - Math.Clamp(shell.ActualWidth * 0.30, 220, 420)) < 1,
                     "商店搜索框宽度没有随窗口恢复");
             }
@@ -374,9 +380,15 @@ internal sealed partial class ShellNavigationProbe
             Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "宽窄往返改写了侧栏开合");
             var paneToggle = Get<Button>(shell, "NavToggleButton");
             Require(paneToggle.Visibility == Visibility.Visible, "侧栏在屏上时导航开关没出现");
+            var railSpot = (X: 28.0, Y: shell.ActualHeight * 0.7);
+            var railColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
             ((IInvokeProvider)new ButtonAutomationPeer(paneToggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
             Require(nav.IsPaneOpen && Math.Abs(host.ActualWidth - nav.OpenPaneLength) < 1, "折叠键没有把侧栏展开");
+            // 展开前后同一格必须同色（2026-10-14 用户：「侧边栏展开后不要变色」），在 LeftCompact <-> Left 档测量。
+            var expandedColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
+            Require(railColor == expandedColor,
+                $"侧栏展开后底色变了：收起时 {railColor}、展开后 {expandedColor}");
             ((IInvokeProvider)new ButtonAutomationPeer(paneToggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
             Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 56) < 1, "折叠键没有把侧栏收回去");
@@ -390,33 +402,31 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(600, 650);
             shell.ShowAccount("用于验证窄窗的很长很长的账号名称", "名称很长的离线服务器");
             await LayoutAsync(shell);
-            // 收起那一档先读一格底色：栏 56 宽，x=28 落在它的中线上；y 取七成高，两档都落在栏的空白上
-            // （条目到 236 为止，栏底那颗设置从 613 起）。
-            var railSpot = (X: 28.0, Y: shell.ActualHeight * 0.7);
-            var railColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
-            // 2026-10-13 起开合由标题栏左上角那颗导航开关负责（框架自带那颗收掉了），它同时把菜单项
-            // 往上顶到标题栏下沿。走的仍是 UIA 的 Invoke，和用户按下去是同一条路。
+            Require(nav.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftMinimal && !nav.IsPaneOpen
+                && host.Visibility == Visibility.Collapsed,
+                $"< 641 窄窗收起时未切换为 LeftMinimal：{nav.PaneDisplayMode} open={nav.IsPaneOpen} vis={host.Visibility}");
+            Require(Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
+                && Get<AutoSuggestBox>(shell, "TitleSearchBox").Visibility == Visibility.Collapsed,
+                "< 700 窄窗商店模式没有放开标题栏放大镜搜索入口");
+            AssertSidebarGeometry(shell, host, true);
+            DumpSidebarLayout(shell, "600 minimal collapsed");
+            await SaveProbeScreenAsync("sidebar-collapsed-600-screen.png");
+
             var toggle = Get<Button>(shell, "NavToggleButton");
             Require(toggle.Visibility == Visibility.Visible, "侧栏在屏上时导航开关没出现");
             ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
-            Require(nav.IsPaneOpen, "侧栏展开按钮没有生效");
+            Require(nav.IsPaneOpen && nav.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftMinimal
+                && host.Visibility == Visibility.Visible
+                && Get<Border>(shell, "SidebarOverlayBackdrop").Visibility == Visibility.Visible
+                && Get<Border>(shell, "SidebarDismissScrim").Visibility == Visibility.Visible,
+                "600px LeftMinimal 覆盖抽屉未正确展开");
             AssertSidebarGeometry(shell, host, true);
-            // 展开前后同一格必须同色（2026-10-14 用户：「侧边栏展开后不要变色」）。只比属性证明不了屏上
-            // 画了什么 —— 这里读的是元素树自己渲染出来的那一格像素。
-            var expandedColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
-            Require(railColor == expandedColor,
-                $"侧栏展开后底色变了：收起时 {railColor}、展开后 {expandedColor}");
-            // 2026-11-14 按用户令「侧边栏与内容区之间对比度不够高，侧栏加深一层面色」：栏这一列铺
-            // EgSidebarBrush（85% 窗口色），比内容画布的 60% 更实一档；仍是半透明，Mica Alt 透得上来。
-            // 只读属性证明不了屏上的分界，但能钉住「这一层还在、并且没有变成实心或全透明」。
             Require(Get<Grid>(shell, "SidebarHost").Background is SolidColorBrush { Color.A: > 0 and < 0xFF },
                 "侧边栏那层加深的面色不见或变成了实心/全透明");
-            DumpSidebarLayout(shell, "600 expanded");
+            DumpSidebarLayout(shell, "600 minimal expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
-            // 账号那一颗 2026-11-13 起回到标题栏右上角（用户令「人像图标移到最小化左边、和搜索栏对齐」）：
-            // 整排必须留在标题栏里（不越出那 48），账号落在右上角、只留一颗 40 见方的人像。
             Require(Top(title, shell) + title.ActualHeight <= HomePage.ChromeHeight + 1,
                 "标题栏那一排被挤出了标题栏");
             Require(Left(account, shell) > shell.ActualWidth / 2
@@ -425,8 +435,6 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(account.ActualHeight - 40) <= 0.5,
                 $"账号没有落在标题栏右上角：({Left(account, shell):0},{Top(account, shell):0}) "
                     + $"{account.ActualWidth:0}×{account.ActualHeight:0}");
-            // 2026-11-12 晚的排法（用户令「主页不显示返回按钮…放左上角，折叠侧边栏按钮移到它右边」）：
-            // 这一跑停在详情页（非主页），返回在最左、折叠键紧贴它右边；标题 2026-11-13 删掉。
             var backButton = Get<Button>(shell, "BackButton");
             Require(backButton.Visibility == Visibility.Visible
                 && Left(toggle, shell) >= Left(backButton, shell) + backButton.ActualWidth
@@ -435,9 +443,10 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync("sidebar-expanded-600-screen.png");
             ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
+            Require(!nav.IsPaneOpen && host.Visibility == Visibility.Collapsed
+                && Get<Border>(shell, "SidebarDismissScrim").Visibility == Visibility.Collapsed,
+                "600px LeftMinimal 抽屉收起后未隐藏");
             AssertSidebarGeometry(shell, host, true);
-            DumpSidebarLayout(shell, "600 collapsed");
-            await SaveProbeScreenAsync("sidebar-collapsed-600-screen.png");
 
             favorite = true;
             await shell.Favorites.RefreshAsync();
@@ -766,19 +775,22 @@ internal sealed partial class ShellNavigationProbe
     private void AssertSidebarGeometry(ShellPage shell, Grid host, bool shown)
     {
         var pane = Get<NavigationView>(shell, "Sidebar");
+        var minimal = pane.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftMinimal;
+        var paneVisible = shown && (!minimal || pane.IsPaneOpen);
         Require(Get<PathIcon>(shell, "NavPaneExpandedIcon").Visibility
             == (pane.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed), "展开图标未随面板更新");
         Require(Get<PathIcon>(shell, "NavPaneCollapsedIcon").Visibility
             == (pane.IsPaneOpen ? Visibility.Collapsed : Visibility.Visible), "收起图标未随面板更新");
         var content = Get<Grid>(shell, "ContentHost");
-        Require(Math.Abs(Left(content, shell) - (shown ? host.ActualWidth : 0)) < 1
+        var expectedLeft = shown && !minimal ? host.ActualWidth : 0;
+        Require(Math.Abs(Left(content, shell) - expectedLeft) < 1
             && Math.Abs(content.ActualWidth + Left(content, shell) - shell.ActualWidth) < 1, "侧栏与内容区重叠或出现空白");
 
         // 标题栏左上那两颗（返回、折叠）的字形要和栏里那几项的图标落在同一条竖线上（用户 2026-10-13：
         // 「关闭导航没和下面对齐」，2026-11-13 又钉了一次：「返回键出现时要和下面那一列对齐」）。
         // 两档的图标中线不一样（展开 32、收成图标栏 28，见 ShellPage.Sidebar.cs 的 ApplySidebarLayout），
         // 而那一排的缩进跟着档走，所以两档都该对得上 —— 容差 3 像素，钉的是「不再差一整格」。
-        if (shown && Get<NavigationViewItem>(shell, "SidebarHome").Icon is { ActualWidth: > 0 } homeIcon)
+        if (paneVisible && Get<NavigationViewItem>(shell, "SidebarHome").Icon is { ActualWidth: > 0 } homeIcon)
         {
             var railCentre = Left(homeIcon, shell) + homeIcon.ActualWidth / 2;
             var back = Get<Button>(shell, "BackButton");
@@ -814,36 +826,37 @@ internal sealed partial class ShellNavigationProbe
             .Invoke(null, [_window, title.X + title.Width / 2, title.Y + title.Height / 2])!;
         Require(hit == Native.HitClient, "侧栏收放后标题栏仍把按钮当拖动区");
 
-        // 栏底那颗设置（2026-11-13 回到 FooterMenuItems）：它和栏里那些条目走同一条度量，得整块留在栏内、
-        // 贴着窗口下沿，尺寸也和条目一致 —— 用户令「统一侧边栏按钮的大小」要的正是这个。
-        var nav = Get<NavigationView>(shell, "Sidebar");
+        // 栏底那颗设置（2026-11-13 回到 FooterMenuItems）：在非 Minimal 或 Minimal 已展开时检查几何与裁剪。
         var settings = Get<NavigationViewItem>(shell, "SidebarSettings");
-        var settingsAt = settings.TransformToVisual(shell).TransformPoint(new Windows.Foundation.Point());
-        Require(settings.ActualHeight > 0 && settingsAt.Y + settings.ActualHeight <= shell.ActualHeight + 1,
-            "栏底的设置入口被裁掉");
-        Require(settingsAt.X >= -1 && settingsAt.X + settings.ActualWidth <= host.ActualWidth + 1,
-            "栏底的设置入口跑到栏外");
-        if (Get<NavigationViewItem>(shell, "SidebarHome") is { ActualHeight: > 0 } sizedHome)
+        if (paneVisible)
         {
-            Require(Math.Abs(settings.ActualHeight - sizedHome.ActualHeight) <= 0.5
-                && Math.Abs(settings.ActualWidth - sizedHome.ActualWidth) <= 0.5,
-                $"栏底的设置和条目不一样大：{settings.ActualWidth:0.#}×{settings.ActualHeight:0.#} 对 "
-                    + $"{sizedHome.ActualWidth:0.#}×{sizedHome.ActualHeight:0.#}");
-        }
-        foreach (var item in nav.MenuItems.Concat(nav.FooterMenuItems).OfType<NavigationViewItem>()
-            .Where(item => item.Visibility == Visibility.Visible))
-        {
-            var icon = item.Icon;
-            Require(icon is { ActualWidth: > 0, ActualHeight: > 0 }, $"侧栏入口 {item.Content} 的图标没有尺寸");
-            var bounds = Bounds(icon, host);
-            Require(bounds.Left >= -1 && bounds.Right <= host.ActualWidth + 1
-                && bounds.Top >= 0 && bounds.Bottom <= host.ActualHeight + 1,
-                $"侧栏入口 {item.Content} 的图标位于可见栏外：{bounds}");
-            // 只看 TransformToVisual 的矩形是假绿：SplitView 的紧凑栏会把整块面板用裁剪几何推出栏外，
-            // 元素位置和尺寸都照旧。这里按裁剪后的可见面积判断，图标必须整块留在栏内。
-            var area = bounds.Width * bounds.Height;
-            Require(VisibleArea(icon, host) >= area - 0.5,
-                $"侧栏入口 {item.Content} 的图标被裁到栏外：可见 {VisibleArea(icon, host):F1}/{area:F1} 平方像素");
+            var settingsAt = settings.TransformToVisual(shell).TransformPoint(new Windows.Foundation.Point());
+            Require(settings.ActualHeight > 0 && settingsAt.Y + settings.ActualHeight <= shell.ActualHeight + 1,
+                "栏底的设置入口被裁掉");
+            Require(settingsAt.X >= -1 && settingsAt.X + settings.ActualWidth <= host.ActualWidth + 1,
+                "栏底的设置入口跑到栏外");
+            if (Get<NavigationViewItem>(shell, "SidebarHome") is { ActualHeight: > 0 } sizedHome)
+            {
+                Require(Math.Abs(settings.ActualHeight - sizedHome.ActualHeight) <= 0.5
+                    && Math.Abs(settings.ActualWidth - sizedHome.ActualWidth) <= 0.5,
+                    $"栏底的设置和条目不一样大：{settings.ActualWidth:0.#}×{settings.ActualHeight:0.#} 对 "
+                        + $"{sizedHome.ActualWidth:0.#}×{sizedHome.ActualHeight:0.#}");
+            }
+            foreach (var item in pane.MenuItems.Concat(pane.FooterMenuItems).OfType<NavigationViewItem>()
+                .Where(item => item.Visibility == Visibility.Visible))
+            {
+                var icon = item.Icon;
+                Require(icon is { ActualWidth: > 0, ActualHeight: > 0 }, $"侧栏入口 {item.Content} 的图标没有尺寸");
+                var bounds = Bounds(icon, host);
+                Require(bounds.Left >= -1 && bounds.Right <= host.ActualWidth + 1
+                    && bounds.Top >= 0 && bounds.Bottom <= host.ActualHeight + 1,
+                    $"侧栏入口 {item.Content} 的图标位于可见栏外：{bounds}");
+                // 只看 TransformToVisual 的矩形是假绿：SplitView 的紧凑栏会把整块面板用裁剪几何推出栏外，
+                // 元素位置和尺寸都照旧。这里按裁剪后的可见面积判断，图标必须整块留在栏内。
+                var area = bounds.Width * bounds.Height;
+                Require(VisibleArea(icon, host) >= area - 0.5,
+                    $"侧栏入口 {item.Content} 的图标被裁到栏外：可见 {VisibleArea(icon, host):F1}/{area:F1} 平方像素");
+            }
         }
 
         // 账号那一颗在标题栏右上角（2026-11-13）：侧边栏模式里只留一颗人像，字形整块在格子里，
@@ -1170,7 +1183,7 @@ internal sealed partial class ShellNavigationProbe
             HomeMotion.ApplyPreference(false);
             await (Task)Call(shell, "EnterShellAsync")!;
             await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 14);
-            foreach (var width in new[] { 760, 600 })
+            foreach (var width in new[] { 760, 641 })
             {
                 ResizeProbeClient(width, 650);
                 var navView = Get<NavigationView>(shell, "Sidebar");

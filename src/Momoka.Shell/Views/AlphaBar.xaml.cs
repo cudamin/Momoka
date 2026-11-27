@@ -41,17 +41,23 @@ public sealed partial class AlphaBar : UserControl
         // Built here rather than in markup: twenty-seven buttons is a loop, and the loop is also where
         // the click wiring and the button map live — keeping the three together is the whole point of
         // not writing the alphabet out in XAML.
-        var panel = new StackPanel { Spacing = 0 };
+        var panel = new StackPanel
+        {
+            Spacing = 0,
+            TabFocusNavigation = KeyboardNavigationMode.Once,
+            XYFocusKeyboardNavigation = XYFocusKeyboardNavigationMode.Enabled
+        };
         foreach (var letter in Alphabet)
         {
             var button = new Button
             {
                 Content = letter,
                 Style = (Style)Resources["EgAlphaButtonStyle"],
-                TabIndex = Array.IndexOf(Alphabet, letter),
+                IsTabStop = letter == Alphabet[0],
                 UseSystemFocusVisuals = true
             };
             button.Click += (_, _) => JumpRequested?.Invoke(this, letter);
+            button.GotFocus += (_, _) => ActivateTabStop(button);
             button.KeyDown += OnLetterKeyDown;
             _buttons[letter] = button;
             panel.Children.Add(button);
@@ -73,6 +79,8 @@ public sealed partial class AlphaBar : UserControl
     {
         _currentLetter = letter;
         ApplyButtonStyles();
+        if (!HasFocusedButton() && letter is not null && _buttons.TryGetValue(letter, out var current))
+            ActivateTabStop(current);
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -121,7 +129,23 @@ public sealed partial class AlphaBar : UserControl
         next = Math.Clamp(next, 0, Alphabet.Length - 1);
         if (next == index) return;
 
-        e.Handled = _buttons[Alphabet[next]].Focus(FocusState.Keyboard);
+        var target = _buttons[Alphabet[next]];
+        ActivateTabStop(target);
+        e.Handled = target.Focus(FocusState.Keyboard);
+    }
+
+    private bool HasFocusedButton()
+    {
+        foreach (var button in _buttons.Values)
+            if (button.FocusState != FocusState.Unfocused) return true;
+        return false;
+    }
+
+    private void ActivateTabStop(Button target)
+    {
+        target.IsTabStop = true;
+        foreach (var button in _buttons.Values)
+            if (!ReferenceEquals(button, target)) button.IsTabStop = false;
     }
 
     /// <summary>

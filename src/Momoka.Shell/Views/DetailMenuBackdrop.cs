@@ -27,6 +27,12 @@ public sealed class DetailMenuBackdrop : SystemBackdrop
         try
         {
             configuration = GetDefaultSystemBackdropConfiguration(connectedTarget, xamlRoot);
+            if (!ThemeHost.TransparencyEnabled || configuration.IsHighContrast)
+            {
+                AddEntry(connectedTarget, new Entry(null, configuration));
+                NotifySurface();
+                return;
+            }
             if (DesktopAcrylicController.IsSupported())
             {
                 // 先取得所有权再设置属性，setter 失败也能释放已创建的 controller。
@@ -68,7 +74,7 @@ public sealed class DetailMenuBackdrop : SystemBackdrop
 
     private void OnThemeChanged(UiTheme theme)
     {
-        foreach (var entry in _entries.Values) Update(entry);
+        foreach (var (target, entry) in _entries) Update(target, entry);
         NotifySurface();
     }
 
@@ -80,16 +86,25 @@ public sealed class DetailMenuBackdrop : SystemBackdrop
         try
         {
             entry.Configuration = GetDefaultSystemBackdropConfiguration(target, xamlRoot);
-            Update(entry);
+            Update(target, entry);
             NotifySurface();
         }
         catch (Exception error) { Log.Warn(Category, "更新菜单系统配置失败", error); }
     }
 
-    private void Update(Entry entry)
+    private static void Update(ICompositionSupportsSystemBackdrop target, Entry entry)
     {
         try
         {
+            if (!ThemeHost.TransparencyEnabled || entry.Configuration?.IsHighContrast == true)
+            {
+                if (entry.Controller is { } obsolete)
+                {
+                    entry.Controller = null;
+                    ReleaseController(obsolete, target, true);
+                }
+                return;
+            }
             if (entry.Controller is { } controller) Paint(controller);
         }
         catch (Exception error) { Log.Warn(Category, "更新菜单颜色失败", error); }
@@ -159,7 +174,7 @@ public sealed class DetailMenuBackdrop : SystemBackdrop
     private sealed class Entry(
         DesktopAcrylicController? controller, SystemBackdropConfiguration? configuration)
     {
-        internal DesktopAcrylicController? Controller { get; } = controller;
+        internal DesktopAcrylicController? Controller { get; set; } = controller;
         internal SystemBackdropConfiguration? Configuration { get; set; } = configuration;
     }
 }
