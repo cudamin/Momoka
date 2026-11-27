@@ -86,6 +86,7 @@ public sealed partial class SettingsPage : Page, IShellContent
             ApplySettingsMotionPreference();
             ShellPrefs.DanmakuChanged -= ViewModel.OnDanmakuPreferencesChanged;
             ShellPrefs.DanmakuChanged += ViewModel.OnDanmakuPreferencesChanged;
+            SyncControlColumnWidth();
             QueueSettingsEntrance();
         };
         Unloaded += (_, _) =>
@@ -185,6 +186,21 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     private void OnSettingsSearchClick(object sender, RoutedEventArgs args) => SubmitSettingsSearch(SettingsSearchBox, null);
+
+    private void SyncControlColumnWidth() => SyncControlColumnWidth(SettingsScroll.ViewportWidth);
+
+    private void SyncControlColumnWidth(double viewportWidth)
+    {
+        if (viewportWidth <= 0) return;
+        if (SettingRow.SetControlColumnWidth(SettingRow.ComputeControlColumnWidth(viewportWidth)))
+            ViewModel.RefreshControlColumnWidth();
+    }
+
+    private void OnSettingsScrollSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var viewportWidth = SettingsScroll.ViewportWidth > 0 ? SettingsScroll.ViewportWidth : e.NewSize.Width;
+        SyncControlColumnWidth(viewportWidth);
+    }
 
     /// <summary>
     /// Whether the 字幕 card's font picker holds the machine's families yet. Read by the self-check only:

@@ -210,7 +210,7 @@ internal static class FluentStageFiveTests
     private static void AssertUnifiedSubpage(string fileName, XDocument doc)
     {
         var layout = Named(doc, "PageLayout");
-        Assert.Equal("{StaticResource EgPageMargin}", (string?)layout.Attribute("Margin"), fileName);
+        Assert.Equal("{StaticResource EgSettingsSubpageMargin}", (string?)layout.Attribute("Margin"), fileName);
 
         var hasBadge = doc.Descendants(Xaml + "Border").Any(border =>
             (string?)border.Attribute("Style") == "{StaticResource EgSubpageBadgeBorderStyle}"

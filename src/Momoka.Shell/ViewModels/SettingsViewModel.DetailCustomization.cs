@@ -13,7 +13,7 @@ public sealed partial class SettingsViewModel
         // 显示模式排在按钮材质前面（2026-11-11 用户令）：它决定下面几组在不在，先说它，再列从属于它的行。
         var rows = new List<SettingRow>
         {
-            Choice("显示模式", new[] { ("沉浸模式", true), ("商店模式", false) },
+            Choice("详情页显示模式", new[] { ("沉浸模式", true), ("商店模式", false) },
                 () => ui.EnableImmersive,
                 value => ui.EnableImmersive = value,
                 "沉浸模式使用标题栏导航；商店模式使用侧边栏和居中搜索框，并立即切换电影、剧、季、单集与 MoviePilot 详情布局，"
@@ -117,7 +117,7 @@ public sealed partial class SettingsViewModel
     private SettingSection DetailContentCard()
     {
         var ui = Settings.Ui;
-        return new SettingSection("界面", "详情页内容", "详情页正文里各块内容显示什么。",
+        return new SettingSection("界面", "详情页内容", "控制详情页正文区块的显示方式；修改立即生效。",
         [
             Toggle("隐藏没有封面的演职人员",
                 "演职人员那一排只列有头像的人；没有头像的人收起，一个都没有时这一块整块收起。关掉后照旧全部列出。"
@@ -158,7 +158,7 @@ public sealed partial class SettingsViewModel
         SettingSection Card(string title, string type, Action<List<DetailCardSetting>> write)
         {
             SettingHomeLayoutRow? row = null;
-            row = new SettingHomeLayoutRow(title, "拖拽调整顺序，取消勾选隐藏；没有内容的卡片自动收起。",
+            row = new SettingHomeLayoutRow("卡片排序与显示", "拖拽调整顺序，取消勾选隐藏；没有内容的卡片自动收起。",
                 DetailLayout.For(ui, type).Select(card => new HomeRowChoice(card.Key, DetailLayout.Title(card.Key), card.Visible)),
                 choices =>
                 {

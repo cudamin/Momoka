@@ -75,8 +75,7 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         ["修改密码"] = 0xE72E,     // Lock
         ["播放偏好"] = 0xE768,     // Play
         ["外观"] = 0xE790,         // Color（调色板）
-        ["网页控制台"] = 0xE774,   // Globe
-        ["恢复默认"] = 0xE72C      // Refresh（还原、重来一遍）
+        ["网页控制台"] = 0xE774    // Globe
     };
 
     public object Convert(object value, Type targetType, object parameter, string language) =>

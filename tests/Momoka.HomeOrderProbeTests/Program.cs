@@ -223,7 +223,7 @@ internal static class Program
         {
             using var f = new HomeOrderFixture();
             await f.Open();
-            Assert.Equal("媒体库顺序", HomeOrderFixture.Runtime.Get<string>(f.Table, "Label"));
+            Assert.Equal("主页栏目顺序", HomeOrderFixture.Runtime.Get<string>(f.Table, "Label"));
             Assert.Equal(4, f.Rows.Count);
             f.Settings.Settings.MoviePilot.Enabled = true;
             f.Drain();

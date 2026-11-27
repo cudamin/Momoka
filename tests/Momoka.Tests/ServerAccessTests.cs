@@ -104,7 +104,7 @@ internal static class ServerAccessTests
         {
             var groups = JellyfinServerSettingsMenu.Build();
 
-            Assert.Equal("服务器,设备,电视直播,插件,高级",
+            Assert.Equal("Jellyfin,设备,电视直播,插件,高级",
                 string.Join(",", groups.Select(group => group.Label)));
             Assert.Equal(
                 "控制台,常规,用户,媒体库,显示,元数据,NFO 设置,转码,继续观看,流媒体,特技播放",

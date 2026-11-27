@@ -97,7 +97,7 @@ public sealed partial class SettingsViewModel
         return
         [
             new(MoviePilotCategory, "Bangumi 打格子", "完成判断沿用播放行为中的标记已看进度；国漫使用国漫进度。", bangumiRows),
-            new(MoviePilotCategory, "豆瓣自动标记在看 / 已看", "使用 MoviePilot 识别作品，按作品同步豆瓣观看状态。", doubanRows),
+            new(MoviePilotCategory, "豆瓣自动标记在看 / 已看", "使用 MoviePilot 识别作品，按作品同步豆瓣观看状态；需要可用的 MoviePilot 连接。", doubanRows),
             new(MoviePilotCategory, "同步通知", "", notificationRows)
         ];
     }

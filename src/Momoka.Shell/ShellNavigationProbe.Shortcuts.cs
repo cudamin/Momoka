@@ -129,8 +129,8 @@ internal sealed partial class ShellNavigationProbe
             // 快退与快进各挂一行倍率，紧跟各自的「跨度（秒）」，仍是从属行，范围 2～10，值来自 PlaybackSettings。
             foreach (var (actionId, label, note, value) in new[]
             {
-                ("seek-backward", "快退跨度（倍）", "长按箭头以这个倍速快退", fixture.Settings.Playback.SeekBackwardHoldMultiplier),
-                ("seek-forward", "快进跨度（倍）", "长按箭头以这个倍速播放", fixture.Settings.Playback.SeekForwardHoldMultiplier)
+                ("seek-backward", "长按快退倍率", "按住「快退」快捷键时，每 200ms 连续回退「倍率 × 200ms」进度，不改变播放倍速", fixture.Settings.Playback.SeekBackwardHoldMultiplier),
+                ("seek-forward", "长按快进倍速", "按住「快进」快捷键时，以该倍速连续快进", fixture.Settings.Playback.SeekForwardHoldMultiplier)
             })
             {
                 var multiplier = allRows.FindIndex(row => row is SettingNumberRow number && number.Label == label);

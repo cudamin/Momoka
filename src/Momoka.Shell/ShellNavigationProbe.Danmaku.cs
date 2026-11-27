@@ -109,7 +109,7 @@ internal sealed partial class ShellNavigationProbe
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "回到弹弹play 后地址行未收起");
             Require(!DanmakuRows(page).Any(row => row.Label == "danmu_api 旧令牌"), "回到弹弹play 后清除行未收起");
             Require(ReferenceEquals(first, DanmakuCards(page)[0]), "开关变更替换了卡片");
-            var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "不透明度（%）");
+            var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "弹幕不透明度（%）");
             opacity.Value = 55;
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.Opacity == 55, "真实滑块未写回偏好");
@@ -160,7 +160,7 @@ internal sealed partial class ShellNavigationProbe
             ((IToggleProvider)new ToggleSwitchAutomationPeer(heatToggle).GetPattern(PatternInterface.Toggle)).Toggle();
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.ShowHeatmap, "恢复热力开关未保存开启偏好");
-            Require(DanmakuRows(page).OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
+            Require(DanmakuRows(page).OfType<SettingSliderRow>().Single(row => row.Label == "弹幕不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
             enabled.IsOn = false;
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(DanmakuRows(page).Length == 1 && fixture.Settings.Danmaku.Opacity == 55, "关闭服务未隐藏从属区域或清空偏好");

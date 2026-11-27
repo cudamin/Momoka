@@ -174,8 +174,8 @@ internal static class SettingsSearchTests
             // 2026-11-24 用户令「快退也要」：快退、快进各有一行长按倍率，分别紧跟在同向的「跨度（秒）」后面。
             foreach (var (actionId, label, note) in new[]
             {
-                ("seek-backward", "快退跨度（倍）", "长按箭头以这个倍速快退"),
-                ("seek-forward", "快进跨度（倍）", "长按箭头以这个倍速播放")
+                ("seek-backward", "长按快退倍率", "按住「快退」快捷键时，每 200ms 连续回退「倍率 × 200ms」进度，不改变播放倍速"),
+                ("seek-forward", "长按快进倍速", "按住「快进」快捷键时，以该倍速连续快进")
             })
             {
                 var multiplierIndex = rows.FindIndex(row => Label(row) == label);
@@ -234,24 +234,24 @@ internal static class SettingsSearchTests
             Assert.Equal(2, Rows().Count);
             Assert.Equal("确认跳过片头 / 片尾", Label(Rows()[0]!));
 
-            // 「→ 键跳」只出现在快进跨度那行的说明里：命中步长应带出它上面那颗快捷键和同组的两行附注，
+            // 「默认 →」只出现在快进跨度那行的说明里：命中步长应带出它上面那颗快捷键和同组的两行附注，
             // 末尾恢复入口照旧在。
-            fixture.Set(vm, "ShortcutSearchQuery", "→ 键跳");
+            fixture.Set(vm, "ShortcutSearchQuery", "默认 →");
             Assert.Equal(4, Rows().Count, "搜索步长说明应带出上面那颗快捷键与同组附注");
             Assert.Equal("快进", Label(Rows()[0]!));
             Assert.Equal("快进跨度（秒）", Label(Rows()[1]!));
-            Assert.Equal("快进跨度（倍）", Label(Rows()[2]!));
+            Assert.Equal("长按快进倍速", Label(Rows()[2]!));
             Assert.Equal("恢复默认快捷键", Label(Rows()[3]!));
 
-            // 「长按箭头」同时出现在快退、快进两行倍率说明里：两组的快捷键与全部附注都要带出来，而不是只剩附注。
-            fixture.Set(vm, "ShortcutSearchQuery", "长按箭头");
+            // 「按住「」同时出现在快退、快进两行倍率说明里：两组的快捷键与全部附注都要带出来，而不是只剩附注。
+            fixture.Set(vm, "ShortcutSearchQuery", "按住「");
             Assert.Equal(7, Rows().Count, "搜索长按倍率说明应带出两组快捷键与附注");
             Assert.Equal("快退", Label(Rows()[0]!));
             Assert.Equal("快退跨度（秒）", Label(Rows()[1]!));
-            Assert.Equal("快退跨度（倍）", Label(Rows()[2]!));
+            Assert.Equal("长按快退倍率", Label(Rows()[2]!));
             Assert.Equal("快进", Label(Rows()[3]!));
             Assert.Equal("快进跨度（秒）", Label(Rows()[4]!));
-            Assert.Equal("快进跨度（倍）", Label(Rows()[5]!));
+            Assert.Equal("长按快进倍速", Label(Rows()[5]!));
             Assert.Equal("恢复默认快捷键", Label(Rows()[6]!));
 
             fixture.Set(vm, "ShortcutSearchQuery", "");
@@ -379,6 +379,70 @@ internal static class SettingsSearchTests
             Assert.True(fixture.Get<bool>(fixture.List(section, "Rows")[1]!, "IsOn"));
             Assert.True(settings.Settings.MoviePilot.Enabled);
             Assert.Equal(0, settings.TrySaveCalls, "重建只读，不补写配置");
+        });
+        TestHarness.Test("设置搜索：未选中选项与卡片说明进入索引且次序低于行标题，英文位置含分组前缀", () =>
+        {
+            var c0 = fixture.NewRow("SettingChoice", "常规选项", (Action)(() => { }));
+            var c1 = fixture.NewRow("SettingChoice", "稀有选项词甲", (Action)(() => { }));
+            var choices = Array.CreateInstance(c0.GetType(), 2);
+            choices.SetValue(c0, 0);
+            choices.SetValue(c1, 1);
+            var choiceRow = fixture.NewRow("SettingChoiceRow", "测试编码选项", "普通说明", choices, c0, (Action)(() => { }), null);
+            var descOnlyRow = Fact("甲行", "普通说明");
+            var noteRow = Fact("乙行", "说明含卡片独特词乙");
+            var labelRow = Fact("包含卡片独特词乙的行", "普通说明");
+
+            var vm = fixture.NewViewModel();
+            fixture.List(vm, "Sections").Add(fixture.NewSection("关于", "草稿卡零", "其他简介", choiceRow));
+            fixture.List(vm, "Sections").Add(fixture.NewSection("关于", "草稿卡一", "这里包含卡片独特词乙与特有描述词", descOnlyRow));
+            fixture.List(vm, "Sections").Add(fixture.NewSection("关于", "草稿卡二", "其余简介", noteRow, labelRow));
+
+            fixture.Set(vm, "SettingsSearchQuery", "稀有选项词甲");
+            Assert.True(ReferenceEquals(choiceRow, fixture.Get<object>(Results(vm).Single(), "Row")),
+                "SettingChoiceRow 未选中的选项也应可被设置搜索命中");
+
+            fixture.Set(vm, "SettingsSearchQuery", "特有描述词");
+            Assert.Equal(1, Results(vm).Count(), "卡片 Description 应在 rank 4 命中该卡内的行");
+
+            fixture.Set(vm, "SettingsSearchQuery", "卡片独特词乙");
+            var ranked = Results(vm).ToArray();
+            Assert.Equal(3, ranked.Length);
+            Assert.True(ReferenceEquals(labelRow, fixture.Get<object>(ranked[0], "Row")), "标题命中（rank 2）应排最前");
+            Assert.True(ReferenceEquals(noteRow, fixture.Get<object>(ranked[1], "Row")), "行说明命中（rank 3）应排在卡片说明前");
+            Assert.True(ReferenceEquals(descOnlyRow, fixture.Get<object>(ranked[2], "Row")), "卡片说明命中（rank 4）应排最后");
+
+            fixture.WithUiLanguage(Configuration.UiLanguages.English, () =>
+            {
+                var attached = fixture.NewViewModel();
+                fixture.Attach(attached, new SettingsPageStateTests.FakeSettings(), fixture.NewLauncher());
+                try
+                {
+                    foreach (var section in ((IEnumerable)fixture.Invoke(attached, "AudioSections")!).Cast<object>())
+                        fixture.List(attached, "Sections").Add(section);
+                    fixture.Set(attached, "SettingsSearchQuery", "TrueHD passthrough");
+                    var trueHdResults = Results(attached).ToArray();
+                    Assert.Equal(2, trueHdResults.Length);
+                    var trueHd = trueHdResults[0];
+                    Assert.Equal("TrueHD passthrough", fixture.Get<string>(trueHd, "DisplayLabel"));
+                    Assert.Equal("Audio output / Passthrough", fixture.Get<string>(trueHd, "DisplayLocation"));
+                    Assert.Equal("动态范围压缩", fixture.Get<string>(trueHdResults[1], "Label"));
+                    Assert.True((bool)fixture.Invoke(attached, "SelectSettingsSearchResult", trueHd)!);
+                    Assert.Equal("音频输出", fixture.Get<string>(attached, "SelectedCategory"));
+
+                    var account = fixture.NewRow("SettingsCategoryGroup", "帐号", null, false, true);
+                    var entry = fixture.Invoke(account, "Add", "外观", null, null, "界面", null)!;
+                    fixture.List(attached, "Categories").Add(entry);
+                    fixture.List(attached, "Sections").Add(fixture.NewSection("界面", "详情页外观", "详情卡说明", Fact("外观实验项")));
+                    fixture.Set(attached, "SettingsSearchQuery", "Appearance");
+                    var categoryResult = Results(attached).Single(item => fixture.Get<string>(item, "CategoryKey") == "外观"
+                        && fixture.Get<object?>(item, "Row") is null);
+                    Assert.Equal("Account", fixture.Get<string>(categoryResult, "DisplayLocation"));
+                    fixture.Set(attached, "SettingsSearchQuery", "外观实验项");
+                    var rowResult = Results(attached).Single(item => fixture.Get<string>(item, "CategoryKey") == "外观");
+                    Assert.Equal("Account · Appearance / Details appearance", fixture.Get<string>(rowResult, "DisplayLocation"));
+                }
+                finally { ((IDisposable)attached).Dispose(); }
+            });
         });
 
         Array Rows(params object[] rows)

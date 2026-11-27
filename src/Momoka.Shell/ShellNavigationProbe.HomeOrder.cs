@@ -67,7 +67,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(settings);
             var table = settings.ViewModel.HomeRows!;
             var choices = table.Rows;
-            Require(table.Label == "媒体库顺序" && choices.All(row => !HomeLayout.IsMoviePilot(row.Key)), "关闭时排序表仍有 MP 或标题未改");
+            Require(table.Label == "主页栏目顺序" && choices.All(row => !HomeLayout.IsMoviePilot(row.Key)), "关闭时排序表仍有 MP 或标题未改");
             fixture.Settings.MoviePilot.Enabled = true;
             await LayoutAsync(settings);
             Require(choices.All(row => !HomeLayout.IsMoviePilot(row.Key)), "未连接时排序表显示 MP");

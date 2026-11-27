@@ -118,10 +118,12 @@ public sealed partial class SettingsCategoryEntry : ObservableObject
     public Visibility SectionVisibility => IsSection ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility EntryVisibility => IsSection ? Visibility.Collapsed : Visibility.Visible;
-    public string PickerLabel => Group.SourceKey is null
+    public string PickerLabel => Group.Name == "Momoka"
         ? SourceDisplayName is null ? Label : Label + " · " + SourceDisplayName
-        : Group.Name + " · " + Label;
-    public string DisplayPickerLabel => Group.SourceKey is null ? DisplayLabel : Group.Name + " · " + DisplayLabel;
+        : Group.Name + " · " + (SourceDisplayName is null ? Label : Label + " · " + SourceDisplayName);
+    public string DisplayPickerLabel => Group.Name == "Momoka"
+        ? DisplayLabel
+        : Group.DisplayName + " · " + DisplayLabel;
     public string CardCategory { get; }
     public SettingsCategoryGroup Group { get; }
     public string? SourceKey { get; }

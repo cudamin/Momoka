@@ -18,7 +18,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
-    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="0">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgSettingsSubpageMargin}" RowSpacing="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

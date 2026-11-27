@@ -19,7 +19,7 @@ public sealed partial class SettingsViewModel
         var mainRows = new List<SettingRow>
         {
             Toggle("启用实时字幕翻译", "开启后把正在显示的文字字幕逐句发送给所选服务；需要 API 密钥，可能按量收费。"
-                    + "原字幕保留，译文使用独立图层。不是语音识别；没有文字字幕或 PGS／VOBSUB 图形字幕时不能翻译。",
+                    + "原字幕保留，译文使用独立图层。不是语音识别；没有文字字幕，或只有 PGS／VOBSUB 图形字幕时无法翻译。",
                 () => settings.Enabled, value => settings.Enabled = value, after: RefreshSubtitleTranslationRows)
         };
 
@@ -99,7 +99,7 @@ public sealed partial class SettingsViewModel
         [
             new SettingSection("字幕", TranslationCardTitle,
                 "把正在显示的文字字幕逐句翻成另一种语言。自动保存，开关、服务与外观立即应用到当前播放；"
-                    + "只保留最多 256 句的内存缓存，切片清除，不保存原文或译文文件。", mainRows),
+                    + "只保留最多 256 句的内存缓存，切换视频时清空，不保存原文或译文文件。", mainRows),
             new SettingSection("字幕", "服务与密钥",
                 "连哪个翻译服务、用哪种语言、密钥存哪儿。地址随所选服务变化；密钥只保存在本机。", serviceRows),
             new SettingSection("字幕", "译文外观",

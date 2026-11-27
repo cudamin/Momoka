@@ -90,7 +90,7 @@ internal static class SettingsPageStateTests
                         foreach (var section in sections) fixture.List(vm, "Sections").Add(section);
                         var carousel = fixture.List(sections[0], "Rows");
                         var layout = fixture.List(sections[1], "Rows");
-                        var homeRows = layout.Cast<object>().Single(row => Label(row) == "媒体库顺序");
+                        var homeRows = layout.Cast<object>().Single(row => Label(row) == "主页栏目顺序");
                         var style = carousel.Cast<object>().Single(row => Label(row) == "轮播图版式");
                         var toggle = carousel.Cast<object>().Single(row => Label(row) == "显示主页轮播大图");
                         var choices = fixture.List(style, "Choices").Cast<object>().ToArray();
@@ -154,7 +154,7 @@ internal static class SettingsPageStateTests
             fixture.Set(toggle, "IsOn", true);
             Assert.Equal(6, rows.Count);
             Assert.True(ReferenceEquals(toggle, rows[0]));
-            var layoutRow = fixture.List(sections[1], "Rows").Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "媒体库顺序");
+            var layoutRow = fixture.List(sections[1], "Rows").Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "主页栏目顺序");
             Assert.True(ReferenceEquals(layoutRow, fixture.Get<object>(vm, "HomeRows")), "轮播显隐不能把主页排序行的所有者换掉");
             fixture.Set(toggle, "IsOn", false);
             Assert.Equal(1, rows.Count);
@@ -228,7 +228,7 @@ internal static class SettingsPageStateTests
             var section = fixture.Invoke(vm, "DetailAppearanceCard")!;
             fixture.List(vm, "Sections").Add(section);
             var rows = fixture.List(section, "Rows");
-            var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
+            var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "详情页显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
             Assert.Equal("沉浸模式使用标题栏导航；商店模式使用侧边栏和居中搜索框，并立即切换电影、剧、季、单集与 MoviePilot 详情布局，"
                 + "按钮与选择框换成固定材质，下面两组参数随之收起。",
@@ -237,7 +237,7 @@ internal static class SettingsPageStateTests
             // 亚克力这套：色调 + 两档浓度，没有第四格整体浓度；背景那三行排在按钮之后。
             Assert.True(Labels().SequenceEqual(new[]
             {
-                "显示模式", "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
+                "详情页显示模式", "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
                 "按钮与选择框明暗不透明度（%）", "背景亚克力色调",
                 "背景染色不透明度（%）", "背景明暗不透明度（%）"
             }), "亚克力模式的行集合不对：" + string.Join('|', Labels()));
@@ -254,9 +254,9 @@ internal static class SettingsPageStateTests
             Assert.False(settings.Settings.Ui.EnableImmersive);
             Assert.True(notifications.SequenceEqual(new[] { "sidebar:False", "appearance:False" }),
                 "商店切换须同步侧栏和详情，不能重查主页：" + string.Join('|', notifications));
-            // 商店模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效；整张卡只剩显示模式与
+            // 商店模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效；整张卡只剩详情页显示模式与
             // 2026-11-17 新增的「右上角显示」那一行。
-            Assert.True(Labels().SequenceEqual(new[] { "显示模式", "右上角显示" }),
+            Assert.True(Labels().SequenceEqual(new[] { "详情页显示模式", "右上角显示" }),
                 "商店模式没有收起按钮与背景两组：" + string.Join('|', Labels()));
             Assert.Equal("#654321", settings.Settings.Ui.ControlBackgroundColor);
             Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
@@ -530,6 +530,105 @@ internal static class SettingsPageStateTests
             }
 
             Assert.Equal(0, Top(fixture.Get<object>(second, "DividerThickness")));
+        });
+
+        TestHarness.Test("设置卡片说明：独立于精简模式显隐，空白折叠且英文前缀拆分正确", () =>
+        {
+            var blank = fixture.NewSection("关于", "空白卡", "   ");
+            Assert.Equal("Collapsed", fixture.Get<object>(blank, "DescriptionVisibility").ToString());
+
+            var withPrefix = fixture.NewSection("视频输出", "着色器", "自动保存，下次播放生效。 预设与着色器开关相互独立。");
+            var prefixOnly = fixture.NewSection("视频输出", "基础输出", "自动保存，下次播放生效。");
+            Assert.Equal("Visible", fixture.Get<object>(withPrefix, "DescriptionVisibility").ToString());
+
+            fixture.SetStatic("SettingRow", "NotesHidden", true);
+            try
+            {
+                Assert.Equal("Visible", fixture.Get<object>(withPrefix, "DescriptionVisibility").ToString(),
+                    "隐藏功能下方说明不能把卡片级别的 Description 收起");
+            }
+            finally { fixture.SetStatic("SettingRow", "NotesHidden", false); }
+
+            fixture.WithUiLanguage(UiLanguages.English, () =>
+            {
+                Assert.Equal("Saves automatically; applies to the next playback.",
+                    fixture.Get<string>(prefixOnly, "DisplayDescription"));
+                Assert.Equal("Saves automatically; applies to the next playback. Presets and shader enablement are independent.",
+                    fixture.Get<string>(withPrefix, "DisplayDescription"));
+            });
+        });
+
+        TestHarness.Test("设置行：响应式控件列宽按 580 阈值与 0.01 滞回切换并通知页面所有行", () =>
+        {
+            static double ColumnWidth(object row)
+            {
+                var gridLength = row.GetType().GetProperty("ControlColumnWidth")!.GetValue(row)!;
+                return (double)gridLength.GetType().GetProperty("Value")!.GetValue(gridLength)!;
+            }
+
+            var restore = fixture.GetStatic<double>("SettingRow", "CurrentControlColumnWidth");
+            var row = fixture.NewRow("SettingFactRow", "行宽", "说明", "值", null, null);
+            var vm = fixture.NewViewModel();
+            fixture.List(vm, "Sections").Add(fixture.NewSection(row));
+            var changes = new List<string>();
+            ((INotifyPropertyChanged)row).PropertyChanged += (_, args) => changes.Add(args.PropertyName ?? "");
+            try
+            {
+                Assert.Equal(180d, (double)fixture.InvokeStatic("SettingRow", "ComputeControlColumnWidth", 400d)!);
+                Assert.Equal(180d, (double)fixture.InvokeStatic("SettingRow", "ComputeControlColumnWidth", 579.9d)!);
+                foreach (var wide in new[] { 580d, 900d, 0d, -50d, double.NaN })
+                    Assert.Equal(320d, (double)fixture.InvokeStatic("SettingRow", "ComputeControlColumnWidth", wide)!);
+
+                Assert.True((bool)fixture.InvokeStatic("SettingRow", "SetControlColumnWidth", 320d)!
+                    || Math.Abs(fixture.GetStatic<double>("SettingRow", "CurrentControlColumnWidth") - 320d) < 0.01);
+                Assert.False((bool)fixture.InvokeStatic("SettingRow", "SetControlColumnWidth", 320.005d)!);
+                Assert.True((bool)fixture.InvokeStatic("SettingRow", "SetControlColumnWidth", 180d)!);
+                Assert.Equal(180d, fixture.GetStatic<double>("SettingRow", "CurrentControlColumnWidth"));
+                Assert.Equal(180d, ColumnWidth(row));
+                Assert.False((bool)fixture.InvokeStatic("SettingRow", "SetControlColumnWidth", 180.005d)!);
+
+                fixture.Invoke(vm, "RefreshControlColumnWidth");
+                Assert.Equal(1, changes.Count(name => name == "ControlColumnWidth"));
+
+                Assert.True((bool)fixture.InvokeStatic("SettingRow", "SetControlColumnWidth", 320d)!);
+                fixture.Invoke(vm, "RefreshControlColumnWidth");
+                Assert.Equal(320d, ColumnWidth(row));
+                Assert.Equal(2, changes.Count(name => name == "ControlColumnWidth"));
+            }
+            finally
+            {
+                fixture.InvokeStatic("SettingRow", "SetControlColumnWidth", restore);
+                ((IDisposable)vm).Dispose();
+            }
+        });
+
+        TestHarness.Test("音频输出：直通卡片拆为五个独立开关并逐项持久化", () =>
+        {
+            var settings = new FakeSettings();
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            try
+            {
+                var passthrough = ((IEnumerable)fixture.Invoke(vm, "AudioSections")!).Cast<object>()
+                    .Single(card => fixture.Get<string>(card, "Title") == "直通");
+                var rows = fixture.List(passthrough, "Rows").Cast<object>().ToArray();
+                Assert.Equal(5, rows.Length);
+                Assert.Equal(5, (int)fixture.InvokeStatic("SettingsViewModel", "Containers", passthrough)!);
+                Assert.True(rows.All(row => row.GetType().Name == "SettingToggleRow"));
+                Assert.True(rows.Select(row => fixture.Get<string>(row, "Label"))
+                    .SequenceEqual(new[] { "直通 AC3", "直通 EAC3", "直通 DTS", "直通 DTS-HD", "直通 TrueHD" }));
+                foreach (var row in rows)
+                    Assert.Contains("mpv：audio-spdif", fixture.Get<string>(row, "Note"));
+
+                var trueHd = rows[4];
+                fixture.Set(trueHd, "IsOn", true);
+                Assert.True(settings.Settings.Audio.PassthroughCodecs.Contains("truehd", StringComparer.OrdinalIgnoreCase));
+                Assert.Equal(1, settings.TrySaveCalls);
+                fixture.Set(trueHd, "IsOn", false);
+                Assert.False(settings.Settings.Audio.PassthroughCodecs.Contains("truehd", StringComparer.OrdinalIgnoreCase));
+                Assert.Equal(2, settings.TrySaveCalls);
+            }
+            finally { ((IDisposable)vm).Dispose(); }
         });
 
         // 2026-10-27 用户令：弹幕一页先拆成四张卡，同日又令「删除这个」，最下面那张「应用凭据」整张退役。
@@ -914,12 +1013,41 @@ internal static class SettingsPageStateTests
             _shell.GetType("Momoka.Shell.ViewModels." + type, throwOnError: true)!
                 .GetProperty(name, Members | BindingFlags.Static)!.SetValue(null, value);
 
-        public object NewSection(params object[] rows)
+        public T GetStatic<T>(string type, string name) =>
+            (T)_shell.GetType("Momoka.Shell.ViewModels." + type, throwOnError: true)!
+                .GetProperty(name, Members | BindingFlags.Static)!.GetValue(null)!;
+
+        public object? InvokeStatic(string type, string name, params object?[] args) =>
+            _shell.GetType("Momoka.Shell.ViewModels." + type, throwOnError: true)!
+                .GetMethod(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!
+                .Invoke(null, args);
+
+        public void WithUiLanguage(string language, Action verify)
+        {
+            var property = _shell.GetType("Momoka.Shell.Localization.UiText", throwOnError: true)!
+                .GetProperty("Language", BindingFlags.Static | BindingFlags.Public)!;
+            var original = (string)property.GetValue(null)!;
+            try
+            {
+                property.SetValue(null, language);
+                verify();
+            }
+            finally { property.SetValue(null, original); }
+        }
+
+        public string TranslateUiText(string source) =>
+            (string)_shell.GetType("Momoka.Shell.Localization.UiText", throwOnError: true)!
+                .GetMethod("Translate", BindingFlags.Static | BindingFlags.Public)!
+                .Invoke(null, [source])!;
+
+        public object NewSection(params object[] rows) => NewSection("关于", "草稿卡", "隔离测试", rows);
+
+        public object NewSection(string category, string title, string description, params object[] rows)
         {
             var rowType = _shell.GetType("Momoka.Shell.ViewModels.SettingRow", throwOnError: true)!;
             var array = Array.CreateInstance(rowType, rows.Length);
             for (var index = 0; index < rows.Length; index++) array.SetValue(rows[index], index);
-            return NewRow("SettingSection", "关于", "草稿卡", "隔离测试", array);
+            return NewRow("SettingSection", category, title, description, array);
         }
 
         public void ReenterCached(object vm)

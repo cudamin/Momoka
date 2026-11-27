@@ -78,7 +78,7 @@ internal static class NativeMenuShortcuts
         new("subtitle-blend", "字幕混合视频帧切换", K("T", alt: true, shift: true)),
         new("subtitle-color-compat", "字幕颜色转换方式切换", K("J", ctrl: true, shift: true)),
         new("subtitle-video-data", "字幕使用视频信息切换", K("V", ctrl: true)),
-        new("subtitle-bidi", "bidi 双向检测兼容开关", K("B", alt: true)),
+        new("subtitle-bidi", "Bidi 双向检测兼容开关", K("B", alt: true)),
         new("subtitle-border-scale", "ASS 阴影边框缩放切换", K("X", ctrl: true, alt: true, shift: true)),
         new("subtitle-font", "切换默认字幕字体", K("F", shift: true)),
         new("subtitle-reset", "恢复主次字幕位置、缩放与延迟", K("Back", ctrl: true, shift: true))

@@ -341,6 +341,7 @@
       ScrollView 上用 Margin="0,0,-32,0" 把滚动条贴回视口右沿，内容仍保留 EgScrollBarLane 的 20 DIP 安全带）。
     -->
     <Thickness x:Key="EgPageMargin">32,28,32,28</Thickness>
+    <Thickness x:Key="EgSettingsSubpageMargin">0,12,32,12</Thickness>
 
     <!--
       页面级滚动条的车道。WinUI 的竖向滚动条压在滚动内容的右缘上（ScrollBarSize 12 +

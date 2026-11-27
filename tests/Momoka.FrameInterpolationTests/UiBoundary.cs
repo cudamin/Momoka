@@ -8,6 +8,11 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
 
+    public readonly struct GridLength(double pixels)
+    {
+        public double Value { get; } = pixels;
+    }
+
     /// <summary>
     /// 生产 <see cref="Momoka.Shell.ViewModels.SettingRow.DividerThickness"/> 的返回类型，也是行模板
     /// <c>BorderThickness</c> 绑定的那个值。真类型在 WinUI 里，这个项目不引 Windows App SDK，只能替身；

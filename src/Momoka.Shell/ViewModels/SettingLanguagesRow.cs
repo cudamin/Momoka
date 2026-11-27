@@ -19,7 +19,7 @@ namespace Momoka.Shell.ViewModels;
 /// </para>
 /// <para>
 /// 表里的每一项从 <see cref="TrackLanguagePriority.OrderedChoices"/> 来：已选的排在前头（照存档的次序），后面接上
-/// 目录里还没选的语言，末了是「其他字幕」这个兜底项。存盘时把勾了的那些名字照屏上次序滤出来 —— 那正是 mpv 的
+/// 目录里还没选的语言，末了是「其他语言」这个兜底项。存盘时把勾了的那些名字照屏上次序滤出来 —— 那正是 mpv 的
 /// slang 想要的优先级次序。
 /// </para>
 /// </summary>

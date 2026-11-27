@@ -535,7 +535,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 var section = page.ViewModel.Sections.Single(item => item.Category == "界面" && item.Title == "详情页外观");
                 var row = section.Rows.OfType<SettingChoiceRow>()
-                    .Single(item => item.Label == "显示模式");
+                    .Single(item => item.Label == "详情页显示模式");
                 var picker = Descendants(page).OfType<ComboBox>().Single(item => ReferenceEquals(item.ItemsSource, row.Choices));
                 picker.StartBringIntoView();
                 await LayoutAsync(picker);

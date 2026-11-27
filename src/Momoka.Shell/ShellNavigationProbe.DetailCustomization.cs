@@ -212,11 +212,11 @@ internal sealed partial class ShellNavigationProbe
                 "背景染色参数没有写回设置");
             // 显示模式排在最前（2026-11-11 用户令），商店模式把按钮与背景两组整块收起，只留它自己。
             // 行是整组重建的：切完重新从 appearance.Rows 里拿那一行，不拿切换前那个实例。
-            var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
-            Require(ReferenceEquals(appearance.Rows[0], modeRow), "显示模式没有排在详情页外观的第一行");
+            var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "详情页显示模式");
+            Require(ReferenceEquals(appearance.Rows[0], modeRow), "详情页显示模式没有排在详情页外观的第一行");
             modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "商店模式");
             // 2026-11-17 商店档多了一行「右上角显示」（背景图/预告 或 艺术图），按钮与背景两组照旧收起。
-            Require(appearance.Rows.Count == 2 && appearance.Rows[0].Label == "显示模式"
+            Require(appearance.Rows.Count == 2 && appearance.Rows[0].Label == "详情页显示模式"
                 && appearance.Rows[1].Label == "右上角显示"
                 && appearance.Rows[0] is SettingChoiceRow { Selected.Label: "商店模式" },
                 "商店模式没有收起按钮与背景两组：" + string.Join('|', appearance.Rows.Select(row => row.Label)));
@@ -228,13 +228,13 @@ internal sealed partial class ShellNavigationProbe
             appearanceTitle.StartBringIntoView();
             await LayoutAsync(appearanceTitle);
             await SaveProbeScreenAsync("settings-detail-appearance-plain-screen.png");
-            var restoredMode = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
+            var restoredMode = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "详情页显示模式");
             restoredMode.Selected = restoredMode.Choices.Single(choice => choice.Label == "沉浸模式");
             await UntilAsync(() => fixture.Settings.Ui.EnableImmersive);
             Require(appearance.Rows.OfType<SettingColorRow>().Any(row => row.Label == "背景亚克力色调")
                 && appearance.Rows.OfType<SettingColorRow>().Any(row => row.Label == "按钮与选择框颜色")
                 && fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态或恢复按钮与背景行");
-            Require(appearance.Rows[0].Label == "显示模式", "切回沉浸模式后显示模式没有留在第一行");
+            Require(appearance.Rows[0].Label == "详情页显示模式", "切回沉浸模式后显示模式没有留在第一行");
             var immersiveHost = Descendants(page).OfType<ContentPresenter>().First(item => ReferenceEquals(item.Content, appearance.Rows[0]));
             immersiveHost.StartBringIntoView();
             await LayoutAsync(immersiveHost);

@@ -286,8 +286,8 @@ internal static partial class ShellSelfCheck
             return index >= 0 && index + 1 < shortcutRows.Count
                 && shortcutRows[index + 1] is SettingNumberRow span && span.Label == pair.Item2 && span.IsSubordinate;
         });
-        // 2026-11-24 用户令：快退、快进各挂一行「跨度（倍）」——单击跳秒、按住半秒后按这个倍率走。
-        var seekHoldRowsOk = new[] { ("seek-backward", "快退跨度（倍）"), ("seek-forward", "快进跨度（倍）") }
+        // 2026-11-24 用户令：快退、快进各挂一行长按倍率——单击跳秒、按住半秒后按这个倍率走。
+        var seekHoldRowsOk = new[] { ("seek-backward", "长按快退倍率"), ("seek-forward", "长按快进倍速") }
             .All(pair =>
             {
                 var row = shortcutRows.FindIndex(row => row is SettingNumberRow number && number.Label == pair.Item2);

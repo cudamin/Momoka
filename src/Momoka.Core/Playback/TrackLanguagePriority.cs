@@ -44,7 +44,10 @@ public static class TrackLanguagePriority
     /// the list can use it identically.
     /// </para>
     /// </summary>
-    public const string Any = "其他字幕";
+    public const string Any = "其他语言";
+    private const string LegacyAny = "其他字幕";
+
+    private static bool IsAny(string trimmed) => trimmed == Any || trimmed == LegacyAny;
 
     /// <summary>
     /// Every language the client can name, in the order the settings page lists them. The code lists
@@ -276,6 +279,7 @@ public static class TrackLanguagePriority
     {
         var trimmed = (token ?? "").Trim();
         if (trimmed.Length == 0) return "";
+        if (IsAny(trimmed)) return Any;
         return ByToken.TryGetValue(trimmed, out var entry) ? entry.Label : trimmed;
     }
 
@@ -360,7 +364,7 @@ public static class TrackLanguagePriority
     public static IReadOnlyList<string> Codes(string? token)
     {
         var trimmed = (token ?? "").Trim();
-        if (trimmed.Length == 0 || trimmed == Any) return [];
+        if (trimmed.Length == 0 || IsAny(trimmed)) return [];
         return ByName.TryGetValue(trimmed, out var entry) ? entry.Codes : [trimmed];
     }
 
@@ -499,7 +503,7 @@ public static class TrackLanguagePriority
     {
         var trimmed = (token ?? "").Trim();
         if (trimmed.Length == 0) return false;
-        if (trimmed == Any) return true;
+        if (IsAny(trimmed)) return true;
 
         var entry = ByToken.GetValueOrDefault(trimmed);
         // Spoken variants outrank a broad Chinese tag when the audio title identifies the voice.

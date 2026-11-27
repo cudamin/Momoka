@@ -575,6 +575,7 @@ namespace Momoka.Shell.Views
             SettingsContent.ActualHeight = 900;
         }
         private void ObserveCategoryGroups() => _observedGroups.Clear();
+        private void SyncControlColumnWidth() { }
         private void ShowHosted() => HostedReads++;
         private void StopSourceMonitoring() { if (_session is not null) _session = null; }
         private void StopSettingsSaveState() { }

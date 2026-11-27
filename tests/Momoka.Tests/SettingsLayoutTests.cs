@@ -123,7 +123,7 @@ internal static class SettingsLayoutTests
                 "设置滚动条与媒体详情共用原生模板边距");
             Assert.Equal("ScrollViewer", scroll.Name.LocalName, "设置页不使用发布版位置钳制异常的合成滚动器");
             var cards = Named(document, "SettingsCardsContent");
-            Assert.Equal("0,0,20,0", cards.Attribute("Margin")?.Value);
+            Assert.Equal("0,12,20,12", cards.Attribute("Margin")?.Value);
             Assert.True(cards.Ancestors().Contains(scroll));
             Assert.Equal("Auto", scroll.Attribute("VerticalScrollBarVisibility")?.Value);
             Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollBarVisibility")?.Value,

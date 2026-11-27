@@ -110,7 +110,7 @@ internal static class SubtitleSettingsProbe
 
             // 2026-10-27 起字幕分类拆成三张卡：字号、缩放、底板颜色这些都在「字幕外观」那一张。
             var rows = page.ViewModel.Sections.Single(section => section.Title == "字幕外观").Rows;
-            var fontSize = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字号");
+            var fontSize = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字幕字号");
             fontSize.Value = 55;
             Record("外观实时委托", pushes > 0 && settings.Playback.SubtitleFontSize == 55, "改变真实设置行后写入临时文件并调用实时外观委托");
             using (var locked = new FileStream(options.Paths.SettingsFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -127,7 +127,7 @@ internal static class SubtitleSettingsProbe
             Record("字幕应用失败可见", await page.ViewModel.ProbeSubtitlePushFailureAsync(), "假应用委托失败显示提示，不伪装全部成功");
             rows = page.ViewModel.Sections.Single(section => section.Title == "字幕外观").Rows;
             var preview = rows.OfType<SettingSubtitlePreviewRow>().Single();
-            var sizeRow = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字号");
+            var sizeRow = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字幕字号");
             var scaleRow = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字幕缩放（%）");
             var opacityRow = rows.OfType<SettingSliderRow>().Single(row => row.Label == "底板不透明度（%）");
             var backRow = rows.OfType<SettingColorRow>().Single(row => row.Label == "底板颜色");

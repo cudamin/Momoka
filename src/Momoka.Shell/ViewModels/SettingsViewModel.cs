@@ -86,6 +86,9 @@ public sealed partial class SettingSection : ObservableObject
         }
     }
 
+    public Visibility DescriptionVisibility =>
+        string.IsNullOrWhiteSpace(Description) ? Visibility.Collapsed : Visibility.Visible;
+
     public ObservableCollection<SettingRow> Rows { get; }
 
     /// <summary>
@@ -1421,7 +1424,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         var rows = new List<SettingRow>
         {
-            Pick("播放后端", null, Backends, () => Settings.Mpv.Backend, value => Settings.Mpv.Backend = value,
+            Pick("播放后端", "决定用程序内嵌的 libmpv 播，还是启动电脑里独立安装的 mpv.exe。切换后保留各自的管线与参数，下次播放生效",
+                Backends, () => Settings.Mpv.Backend, value => Settings.Mpv.Backend = value,
                 EqualityComparer<MpvBackendKind>.Default, after: RefreshPlayerBackend)
         };
         if (Settings.Mpv.Backend == MpvBackendKind.ExternalMpv)
@@ -1626,7 +1630,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             // DonghuaRule（类型：动画 ∧ 发行公司带腾讯/哔哩哔哩），这里只管数值。现读设置，下一次播放结束就认。
             Number("国漫标记已观看阈值（%）", 50, 100, () => playback.DonghuaMarkWatchedPercent, value => playback.DonghuaMarkWatchedPercent = value,
                 "类型为动画、发行公司带腾讯、哔哩哔哩、优酷或爱奇艺的片子单独按这一档算，不吃上面那行的值"),
-            Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
+            Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value,
+                "每次从保存位置续播时自动往前多退回几秒，方便接上上下文；0 为不快退"),
             Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value,
                 "优先用服务器识别出的片头片尾（Emby 的章节标记、Jellyfin 的媒体段、Plex 的标记）；"
                 + "服务器只标了其中一类时，缺的那一类由播放器按文件章节补。同一段两边都标了时以服务器为准")
@@ -1640,21 +1645,20 @@ public sealed partial class SettingsViewModel : PageViewModel
             // in the menu —— they name a spoken variant, which is exactly an 音轨 distinction.
             LanguagePriority("音轨语言优先级", "未指定，跟随服务器默认音轨", () => playback.AudioLanguages, value => playback.AudioLanguages = value,
                 "勾选语言并排序（拖动或箭头换次序），越靠上越优先。空着就是「跟随服务器默认音轨」。"
-                    + "「其他字幕」这类兜底项对音轨同样代表「前面都没有时，有一条别的语言的总比没有好」。下次播放生效"),
+                    + "「其他语言」这类兜底项对音轨同样代表「前面都没有时，有一条别的语言的总比没有好」。下次播放生效"),
 
             // 音轨格式筛选（「给音轨新增语言优先级和格式优先级」，2026-09-22）：语言选完之后，在同一语言那批轨里按
             // 编码／声道的关键词再挑一遍。和字幕标题筛选、视频文件名筛选同一套控件与有序优先级（KeywordRules），只是它看的
             // 是 TrueHD／DTS-HD／Atmos／7.1／5.1 这些格式词。出厂几条常见词都设成默认（不生效）。
             KeywordRules("音轨格式筛选", () => playback.AudioFormatRules, value => playback.AudioFormatRules = value,
-                "语言选出「哪几条是这个语言」之后，再按编码／声道里的词挑一遍：优先＝含这个词的排前头，候补＝排到最后"
-                    + "（同语言只剩它时仍会给一条），默认＝不生效。预置 Atmos、TrueHD、DTS-HD、DTS、FLAC、7.1、5.1，"
-                    + "可自定义添加、拖动调次序。格式只在同一语言内部作用，不越过语言优先级。下次播放生效")
+                "按语言选出候选音轨后，再按编码或声道关键词排序：优先＝含该词排前头，候补＝排到最后（同语言只剩它时仍会保留）。"
+                    + "预置 Atmos、TrueHD、DTS-HD、DTS、FLAC、7.1、5.1，可自定义添加。格式筛选仅在同一语言内部生效，不越过语言优先级。下次播放生效")
         };
 
         return
         [
             new SettingSection("播放行为", "播放行为",
-                "断点续播、进度上报、连播与全屏、看过多少算看完。", behaviorRows),
+                "断点续播、续播快退、进度上报、连播、自动全屏、已看阈值与跳过片头片尾。", behaviorRows),
             new SettingSection("播放行为", "音轨",
                 "选哪条音轨：先按语言挑，再在同一语言里按编码与声道挑。", trackRows)
         ];
@@ -1683,9 +1687,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 视频文件名筛选（「参考标题筛选，新增视频文件名筛选」，2026-09-22）：一个条目挂多版本（多个文件）时，
             // 默认播哪一版按文件名里的关键词挑。和字幕标题筛选同一套控件与有序优先级，只是它筛的是版本文件名。
             KeywordRules("视频文件名筛选", () => playback.VideoFileRules, value => playback.VideoFileRules = value,
-                "一部片子有多个版本（多个文件）时，按文件名里的词决定默认播哪一版：越靠上优先级越高；"
-                    + "优先＝含这个词的版本排前头，候补＝往后排（只剩它时仍会用它），默认＝不生效。"
-                    + "可自定义添加词，如 REMUX、4K、HDR、枪版。只有一个版本的片子不受影响。下次播放生效")
+                "一部片子有多个版本（多个文件）时，按文件名关键词决定默认播放版本：优先＝排前头，候补＝往后排（只剩它时仍会选用）。"
+                    + "可自定义添加词，如 REMUX、4K、HDR、枪版；单版本影片不受影响。下次播放生效")
         ]);
     }
 
@@ -1705,21 +1708,21 @@ public sealed partial class SettingsViewModel : PageViewModel
         var languageRows = new List<SettingRow>
         {
             LanguagePriority("字幕语言优先级", "未指定，跟随文件默认字幕", () => playback.SubtitleLanguages, value => playback.SubtitleLanguages = value,
-                "勾选语言并排序（拖动或箭头换次序），越靠上越优先。「其他字幕」是一个预设项，代表任何别的语言的字幕 —— "
+                "勾选语言并排序（拖动或箭头换次序），越靠上越优先。「其他语言」是一个预设项，代表任何别的语言的字幕 —— "
                     + "排在最后就是「前面都不匹配时，有一条别的语言的总比没有好」。空列表只跟随明确的默认轨；"
-                    + "仍服从显示模式，没有默认轨就不显示。下次播放生效",
+                    + "仍服从字幕显示模式，没有默认轨就不显示。下次播放生效",
                 // 普通话、粤语是「说的是哪种」，那是音轨的区分，字幕轨不按这个标；字幕表不列它们（音轨那份仍可用）。
                 exclude: ["普通话", "粤语"]),
 
             // 标题筛选：语言选完之后按标题里的关键词再挑一遍（「先确定哪几条是中文，再决定不要双语和特效」）。
             // 语言和标题从此分家 —— 语言只看轨的语言字段，这里只看标题；表内次序就是优先级。
             KeywordRules("标题筛选", () => playback.SubtitleTitleRules, value => playback.SubtitleTitleRules = value,
-                "语言选出「哪几条是中文」之后，再按标题里的词挑一遍：越靠上优先级越高；优先＝含这个词的排前头，"
-                    + "候补＝排到最后（同语言只剩它时仍会给一条，不至于没字幕），默认＝不生效。可自定义添加词。"
-                    + "另：字幕语言里选了「简体中文」时，会自动把标题带「繁 / 繁体」的排为候补。下次播放生效"),
-            Choice("显示模式", SubtitleModes, () => playback.SubtitleMode, value => playback.SubtitleMode = value),
+                "按语言选出候选字幕后，再按标题关键词排序：优先＝含该词排前头，候补＝排到最后（同语言只剩它时仍会保留，不至于没字幕）。"
+                    + "可自定义添加词。另：字幕语言里选了「简体中文」时，会自动将标题带「繁 / 繁体」的排为候补。下次播放生效"),
+            Choice("字幕显示模式", SubtitleModes, () => playback.SubtitleMode, value => playback.SubtitleMode = value,
+                "决定何时自动挂载字幕：总是显示匹配字幕、只显示强制字幕（标为 forced 的台词或铭文轨）、音轨为外语时显示，或从不显示。下次播放生效"),
             Toggle("没有匹配语言时使用默认字幕", "只回退服务器指定或文件标记的默认字幕，不再按标题改选别的轨道；没有默认轨就不显示。"
-                + "要任意语言兜底，请在语言列表末尾加入「其他字幕」。空语言列表不受本开关影响", () => playback.SubtitleFallbackToDefault, value => playback.SubtitleFallbackToDefault = value)
+                + "要任意语言兜底，请在语言列表末尾加入「其他语言」。空语言列表不受本开关影响", () => playback.SubtitleFallbackToDefault, value => playback.SubtitleFallbackToDefault = value)
         };
 
         var appearanceRows = new List<SettingRow>
@@ -1739,7 +1742,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
             // 字号那一行原本能存 0（「不指定，mpv 自己是 38」），滑块没有「不指定」这个状态，所以装值时把 0
             // 落到 38 上 —— 那是同一个大小换了个写法；拖一下就把 38 写实了（见 UnitSlider 那条注释，同一件事）。
-            Slider("字号", PlaybackSettings.MinimumSubtitleFontSize, PlaybackSettings.MaximumSubtitleFontSize, 1,
+            Slider("字幕字号", PlaybackSettings.MinimumSubtitleFontSize, PlaybackSettings.MaximumSubtitleFontSize, 1,
                 () => playback.SubtitleFontSize > 0 ? playback.SubtitleFontSize : SubtitlePreviewPlan.MpvDefaultFontSize,
                 Live<double>(value => playback.SubtitleFontSize = PlaybackSettings.ClampFontSize((int)value)),
                 "字幕文字的大小，出厂 50；mpv 自己是 38", "sub-font-size"),
@@ -1758,12 +1761,13 @@ public sealed partial class SettingsViewModel : PageViewModel
             UnitSlider("描边大小", SubtitlePreviewPlan.MpvDefaultBorderSize,
                 () => playback.SubtitleBorderSize, Live<string>(value => playback.SubtitleBorderSize = value),
                 "文字外那一圈边的宽度，0 就是没有描边。出厂 0.5，mpv 自己是 1.65", "sub-border-size"),
-            ColorRow("描边颜色", () => playback.SubtitleBorderColor, Live<string>(value => playback.SubtitleBorderColor = value), "sub-border-color"),
+            ColorRow("描边颜色", () => playback.SubtitleBorderColor, Live<string>(value => playback.SubtitleBorderColor = value), "sub-border-color",
+                "HTML 颜色代码（#RRGGBB），点色块从拾色器里挑；逐行盒模式下描边盒也使用这一颜色"),
             SubtitleShadowRow(),
 
             Mpv("字幕底板", MpvOutputOptions.SubtitleBackStyles, () => playback.SubtitleBackStyle,
                 Live<string>(value => playback.SubtitleBackStyle = value),
-                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影", RefreshSubtitleBackRows)
+                "sub-border-style", "文字背后的底板样式：关着时只有描边和阴影；可选包住整段的多行整体背景盒（使用底板颜色），或逐行描边与阴影盒（分别使用描边颜色与底板颜色）", RefreshSubtitleBackRows)
         };
         appearanceRows.InsertRange(appearanceRows.FindIndex(row => row.Label == "字幕底板") + 1, SubtitleBackRows());
 
@@ -1780,8 +1784,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("字幕", "字幕",
-                "挑哪条字幕轨：先按语言，再按标题里的词。勾选语言并排序，越靠上越优先；「其他字幕」代表任何别的"
-                    + "语言的字幕、放在最后可兜底。这几行下次播放生效。", languageRows),
+                "挑哪条字幕轨：先按语言，再按标题关键词；找不到匹配语言时可回退默认轨或用「其他语言」兜底。这几行下次播放生效。", languageRows),
             new SettingSection("字幕", "字幕外观",
                 "字幕长什么样。这一组改完立刻作用到正在播的片子；ASS/SSA 字幕要不要被覆盖由第一行说了算。",
                 appearanceRows),
@@ -1880,7 +1883,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         deviceRows.AddRange(
         [
             Mpv("扬声器布局", MpvOutputOptions.Channels, () => audio.Channels, value => audio.Channels = value,
-                "audio-channels"),
+                "audio-channels", "默认「不指定（等同自动·安全）」；「自动（安全）」按当前输出设备稳妥混音，也可固定立体声 2.0 或 5.1 / 7.1 环绕"),
             Toggle("音频独占模式", "播放时把声卡占下来、绕过系统混音，声音更原样；代价是放片的时候别的程序出不了声",
                 () => audio.ExclusiveMode, value => audio.ExclusiveMode = value,
                 "audio-exclusive"),
@@ -1907,10 +1910,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "audio-normalize-downmix")
         };
 
-        var passthroughRows = new List<SettingRow>
-        {
-            new SettingToggleGroupRow("直通格式", passthrough)
-        };
+        var passthroughRows = new List<SettingRow>(passthrough);
 
         return
         [
@@ -1959,7 +1959,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var libraryEntries = CreateHomeLibraryEntries(ui);
 
         HomeRows = new SettingHomeLayoutRow(
-            "媒体库顺序",
+            "主页栏目顺序",
             HomeRowsNote(ui),
             CurrentHomeChoices(libraryEntries),
             rows =>
@@ -2020,7 +2020,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value =>
                 {
                     ui.ShowHomeBanner = value;
-                    // 轮播开关也管「媒体库顺序」那一排的固定：开着时它钉在第一位，关掉就放开。说明和那张表
+                    // 轮播开关也管「主页栏目顺序」那一排的固定：开着时它钉在第一位，关掉就放开。说明和那张表
                     // 当场一起换，不等重开这一页（同页状态变化当场更新的规矩）。
                     HomeRows?.Restate(HomeRowsNote(ui));
                     RefreshHomeRows();
@@ -2116,10 +2116,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("主页", "轮播图",
-                "主页最上面那条会自己走的大图：摆不摆、哪一版、放哪一类、几张、一张站几秒。",
+                "主页顶部的轮播大图：是否显示、使用哪种版式、展示哪类媒体、条目来源、张数与轮换秒数。",
                 ui.ShowHomeBanner ? carouselRows : carouselRows.Take(1).ToArray()),
             new SettingSection("主页", "主页版面",
-                "媒体库那一排摆在第一屏的哪儿，主页封面能不能拖动翻页，以及那几排的次序和显示与否。",
+                "媒体库那一排的摆放方式（全宽轮播开启时可选）、封面列表是否支持拖动翻页，以及主页各栏目的显示与排列顺序。",
                 layoutRows),
             HomeLibraryCoverCard()
         ];
@@ -2142,7 +2142,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     internal SettingHomeLayoutRow? HomeRows { get; private set; }
 
     /// <summary>
-    /// 「媒体库顺序」那一行的说明。轮播图开着时多一句：那一排固定在第一位（2026-10-31 用户令）。
+    /// 「主页栏目顺序」那一行的说明。轮播图开着时多一句：那一排固定在第一位（2026-10-31 用户令）。
     /// 轮播开关一拨这句就换，见那把 <c>Toggle</c> 的 <c>write</c>。
     /// </summary>
     private static string HomeRowsNote(UiSettings ui) =>
@@ -2210,7 +2210,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     private SettingHomeLayoutRow CreateHomeLibraryEntries(UiSettings ui) => new(
-        "媒体库入口", null, CurrentHomeLibraryChoices(ui), rows =>
+        "媒体库入口", "勾选要在主页与侧边栏显示的媒体库入口，并拖动或用箭头调整顺序。", CurrentHomeLibraryChoices(ui), rows =>
         {
             var directory = HomeLibraryDirectory();
             var current = directory.Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
@@ -2390,7 +2390,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         };
 
         return new SettingSection("界面", "界面",
-            "选择模式、透明效果、主题色、UI 动画和隐藏功能下方说明。",
+            "选择外观模式、透明效果、主题色板、UI 动画、隐藏功能下方说明与界面语言。",
             rows);
     }
 
@@ -2594,6 +2594,13 @@ public sealed partial class SettingsViewModel : PageViewModel
                 row.RefreshNoteVisibility();
     }
 
+    internal void RefreshControlColumnWidth()
+    {
+        foreach (var section in Sections)
+            foreach (var row in section.Rows)
+                row.RefreshControlColumnWidth();
+    }
+
     /// <summary>
     /// MoviePilot 接入卡（用户的话，2026-09-14：「放设置页」）。一个开关、服务地址、用户名、密码、一颗测试按钮。
     /// <para>
@@ -2652,7 +2659,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 行本身只拿读写对，不碰设置对象（同这一页每一条的规矩）。密码那一对是个例外里的例外：写进去的是明文、
         // 存下来的是密文，所以包一层 —— 行永远只见到明文，包和拆都在 MoviePilotCredentials 里。
         _moviePilotRow = new SettingMoviePilotRow(
-            MoviePilotCategory,
+            "MoviePilot 连接",
             "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。"
                 + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
                 + "不是网页界面那个端口。打格子自动识别需要可用的 MoviePilot 连接。",
@@ -2682,7 +2689,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         SyncMoviePilotSites();
 
         card = new SettingSection(MoviePilotCategory, MoviePilotCategory,
-            "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。",
+            "接上你自己的 MoviePilot 服务来查缺集、订阅、搜资源和识别打格子；AniBT 番剧搜索与日历开关也可在此独立控制。",
             [_moviePilotRow]);
         SyncCalendarRows();
         return card;
@@ -2946,7 +2953,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("关于", "关于",
-                "这份程序是哪一版、拿哪个内核在放，以及弹幕数据从哪来。", infoRows),
+                "查看客户端版本、构建时间、播放内核与项目 GitHub 主页。", infoRows),
             .. StartupSections(),
             new SettingSection("关于", "更新",
                 "启动时要不要顺路问一句有没有新版本，以及现在就想知道结果时按这里。", updateRows),
@@ -3511,7 +3518,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// A priority list picked from a drop-down of check-boxes rather than typed out — 字幕语言优先级 became this
     /// on 2026-09-22（「参考上图改成复选下拉」）. The list arrives ordered by <see cref="TrackLanguagePriority.OrderedChoices"/>
-    /// (chosen first, in stored order, then the rest of the catalogue, then 其他字幕); ticking a language adds it,
+    /// (chosen first, in stored order, then the rest of the catalogue, then 其他语言); ticking a language adds it,
     /// dragging or the arrows set its priority, and what is stored is the ticked names in that order. See
     /// <see cref="SettingLanguagesRow"/> — it and <see cref="Languages"/> reach the same
     /// <see cref="PlaybackSettings.SubtitleLanguages"/>, so a settings file written by either still reads back.
