@@ -18,8 +18,8 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 ## 动手前核对项目配置
 
 - 从 `git rev-parse --show-toplevel` 确认本树，检查分支、HEAD、暂存区和未提交差异。编译、测试、发布及取证都用这一棵树。跨树或相关配置变化时重新核对。
-- 改 C#、XAML 或构建依赖前，读 [编码配置](.editorconfig)、受影响的项目及测试 `.csproj`、[SDK 选择](global.json)、[共享构建属性](Directory.Build.props)和适用的导入文件。还原用[仓库包源](nuget.config)。核对实际选中的 SDK 与前滚策略（仓库工具常用 `$HOME/.dotnet/dotnet.exe`、`py` 与 Windows `powershell`）、目标框架和架构（桌面 Shell 为 `x64`），按[开发与验证现行规范](docs/开发与验证.md#现行规范先读这里)运行 Release 构建（历史命令见[标准命令](docs/开发与验证.md#标准命令)）。
-- 新工作树、包源或版本变更先还原；未跟踪的原生库（如 `libmpv-2.dll`）不会自动带入新工作树。脚本从仓库根或显式参数定位工具和产物，禁止把开发机绝对路径、用户目录内容或上次的 `bin/obj/artifacts` 当成隐式依赖。缺 SDK、原生库、匿名夹具或外部浏览器时，如实记录缺件及受阻的检查（涉及发布需显式提供与清单一致的 `libmpv-2.dll`）。
+- 改 C#、XAML 或构建依赖前，读 [编码配置](.editorconfig)、受影响的项目及测试 `.csproj`、[SDK 选择](global.json)、[共享构建属性](Directory.Build.props)和适用的导入文件。还原用[仓库包源](nuget.config)。核对实际选中的 SDK 与前滚策略（仓库工具常用 `$HOME/.dotnet/dotnet.exe`、`py` 与 Windows `powershell`；涉及 `Appx`/WindowsAppRuntime 查询须用 `powershell`）、目标框架和架构（桌面 Shell 为 `x64`），按[开发与验证现行规范](docs/开发与验证.md#现行规范先读这里)运行 Release 构建（历史命令见[标准命令](docs/开发与验证.md#标准命令)）。
+- 新工作树、包源或版本变更先还原；未跟踪的原生库（如 `libmpv-2.dll`）不会自动带入新工作树。脚本从仓库根或显式参数定位工具和产物，工作树、发布目录与 mpv 载荷须为普通路径（禁止符号链接、联接点等 `ReparsePoint`），禁止把开发机绝对路径、用户目录内容或上次的 `bin/obj/artifacts` 当成隐式依赖。缺 SDK、原生库、匿名夹具或外部浏览器时，如实记录缺件及受阻的检查（涉及发布需显式提供与清单一致的 `libmpv-2.dll`）。
 
 ## 分层与代码风格
 
@@ -32,7 +32,7 @@ Momoka 是面向 Emby、Jellyfin、飞牛影视和 Plex 的 Windows 媒体客户
 
 主测试宿主 [Momoka.Tests](tests/Momoka.Tests/Momoka.Tests.csproj) 只项目引用 Core，可选择性编译没有 WinUI 依赖的 Shell 源文件；需要反射加载主程序的夹具要求先生成 x64 Release 的 `Momoka.dll` 与一致的 `Momoka.Core.dll`。测试优先调用生产代码，替身只放在服务或系统边界。源码文本检查可验证接线，涉及执行结果时还须断言行为。
 
-嵌套绑定先查 Shell 项目的 `WUI2010` 前提。改字号、命名或其他约定时核对 [AgreementsTests](tests/Momoka.Tests/AgreementsTests.cs) 与[基线](tests/Momoka.Tests/Agreements.txt)。内联字号和颜色基线默认只减不增，必要例外说明无法使用现有角色的具体原因并给出验收证据。禁止为消警扩大抑制范围或整份接受快照。检查合法改名、合并或退役，须说明旧检查覆盖的行为、替代检查和调用者，逐项更新并运行。
+嵌套绑定先查 Shell 项目的 `WUI2010` 前提。改字号、命名或其他约定时核对 [AgreementsTests](tests/Momoka.Tests/AgreementsTests.cs) 与[基线](tests/Momoka.Tests/Agreements.txt)。内联字号和颜色基线默认只减不增，必要例外说明无法使用现有角色的具体原因并给出验收证据。禁止为消警扩大抑制范围或整份接受快照；降级分析器规则、修改 [BannedSymbols.txt](tools/BannedSymbols.txt) 或新增 `NoWarn` 须写出实测现场与失效条件，WinUI 事件处理器留用 `async void` 须在处理器内兜底异常。检查合法改名、合并或退役，须说明旧检查覆盖的行为、替代检查和调用者，逐项更新并运行。
 
 ## 异常、并发与数据兼容
 
@@ -72,7 +72,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 ## 凭据
 
-- **存储。** 媒体服务、MoviePilot、AniBT、TMDB、字幕、弹幕、代理及网页会话的密码、密钥、Cookie 和令牌均属凭据。客户端持久化须走 `ISecretProtector`／DPAPI。WebView2 自管会话留在受信任来源的安全存储，网页控制台仅向可信服务器来源的 `localStorage` 注入会话。
+- **存储。** 媒体服务、MoviePilot、AniBT、TMDB、字幕、弹幕、代理及网页会话的密码、密钥、Cookie 和令牌均属凭据。客户端持久化须走 `ISecretProtector`／DPAPI。WebView2 自管会话留在受信任来源的安全存储，网页控制台仅向可信服务器来源的 `localStorage` 注入会话。`website/worker/` 仅用 `wrangler secret` 存放内置弹幕应用机密，严禁写入 `wrangler.jsonc`、`dist/` 或仓库；改动密钥或加解密同步 [DandanPlayBuiltIn](src/Momoka.Core/Danmaku/DandanPlayBuiltIn.cs) 并运行 `node --test website/worker/credential.test.mjs`。
 - **传输。** 凭据禁止进入 URL 的任何部分、助手命令、子进程参数、偏好备份、用户错误、日志或报告。使用进程内请求或已验证的进程间通道。发送前核对目的来源，禁止鉴权跨源转发或降级。响应正文、`Location`、Cookie 和 torrent 元数据可含凭据，诊断只留状态、脱敏路径和自建说明。播放器同样适用。协议只支持 URL 凭据时按未支持处理，已有冲突记入台账，禁止延用为新例外。
 - **验收。** 改凭据、重定向、导出、诊断或播放器交接，用唯一的占位令牌走受影响的成功、失败和跨界路径，断言仅授权目的端收到，受影响的禁止出口均无该标记。运行 `py tools/check-report-credentials.py` 检查默认记录，对生成报告另用 `--file` 检查，疑似值必须为零。扫描范围限已知形状，不能替代出口断言。安全问题和暴露处置按 [SECURITY.md](SECURITY.md)记录，禁止在公开记录重现敏感值。
 - **隐私。** 变更网络目的地、发送字段、用户数据存储或导出范围时，说明触发动作、最小必需字段、保存位置与撤销方式，同批更新[中英文隐私说明](PRIVACY.md)。对外提供的日志、截图和样例使用匿名材料，公开前核对服务器、账号、媒体路径和凭据有无泄露。保持项目无遥测、广告和使用统计。
@@ -89,7 +89,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 ## 依赖与分析器升级
 
-- 依赖维护任务主动核对稳定发行版。新增或升级前核对现有实现，固定直接版本和来源，查受影响的传递依赖、官方公告或还原审计结果。命中适用漏洞时记录公告与修复版本。无法证实已修复、不受影响或已有有效缓解时，暂停分发该依赖。数据不可用记为未核，禁止把关闭审计当作通过。升级独立成批，先还原，再跑四道闸门。禁止引入预览包或 SonarAnalyzer/SonarQube。
+- 依赖维护任务主动核对稳定发行版。新增或升级前核对现有实现，固定直接版本和来源，查受影响的传递依赖、官方公告或还原审计结果。命中适用漏洞时记录公告与修复版本。无法证实已修复、不受影响或已有有效缓解时，暂停分发该依赖。数据不可用记为未核，禁止把关闭审计当作通过（CI 或离线构建中的 `-p:NuGetAudit=false` 仅作确定性隔离参数，不替代依赖维护的漏洞审计）。升级独立成批，先还原，再跑四道闸门。禁止引入预览包或 SonarAnalyzer/SonarQube。
 - 保留 WindowsAppSDK 的拆分子包和 `.csproj` 有说明的占位依赖。用同架构、同发布模式对比文件清单与体积，列出新增运行时和字节差。新增整套运行时或引入体积显著的额外载荷时，列明增长最大的组件、实测差额及可行选项，由用户决定是否接受。
 - 换原生库、分析器、着色器或其他分发资源，须固定来源版本、核对许可和实际文件摘要。`libmpv-2.dll` 与配套原生依赖按清单核验并测试受影响管线。发版使用仓库固定的分析器，`refresh-analyzers.ps1 -Check` 只查本机差异。批准值从独立可信来源逐项核对，禁止从待验发布目录反向生成白名单。
 - 引入、修改或分发第三方代码及素材，同批维护[归属清单](THIRD-PARTY-NOTICES.md)、许可正文、组件许可要求的修改说明与对应源码。按[项目许可记录](docs/第三方组件许可合规.md)核对 GPL-3.0-or-later 及限定的微软组件附加许可。来源或分发权未核实，或未履行该组件适用的对应源码义务，禁止装入发行包。
@@ -109,7 +109,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 | 闸门 | 验收依据 |
 | --- | --- |
-| 1 构建与质量 | `tools/quality.ps1` 是完整入口。用当前源码构建，0 警告、0 错误，各子检查通过。`-SkipBuild` 或 `-SkipDuplication` 仅供定位。架构和重复率预算以实际脚本为准。 |
+| 1 构建与质量 | `tools/quality.ps1` 是完整入口。用当前源码构建，0 警告、0 错误，各子检查通过。`-SkipBuild` 或 `-SkipDuplication` 仅供定位。架构和重复率预算以实际脚本为准，重复率超预算须先审新增克隆，仅确属模板化/刻意结构时才调高上限并在提交说明写理由，禁止为凑指标拆碎清晰逻辑。 |
 | 2 测试 | 当前 Release 测试及 Core 编译成功才可 `--no-build`（含反射夹具时须同编 x64 Release Shell）。主测试退出 0、失败 0、跳过 0。使用 `tools/run-regressions.ps1` 时，离线 `-All` 可能把外部 DOM 记为 `deferred`，完整闸门须用 `-All -IncludeExternal` 实跑，核对 `summary.json` 无延期、跳过、失败及遗漏。新增主测试接入完整主运行器，独立专项接入[专项清单](tools/regression-suites.json)，按[专项说明](tools/README.Regressions.md)运行。 |
 | 3 发布与快捷方式 | 用 `tools/publish.ps1` 发布本树 `artifacts/publish/win-x64`（需根目录 `libmpv-2.dll`），通过 `tools/verify-publish.ps1` 后回读 `.lnk` 的 `TargetPath` 与 `WorkingDirectory`。主树用 `Momoka.lnk`；临时分支通过 `-ShortcutName`（或 `tools/shortcut.ps1`）传 `<中文简述>`，不带 `Momoka-` 前缀，也不带扩展名，仅允许字母、数字、`. _ -`（无空格或标点），`<中文简述>` 用简短中文说明本次改了什么或新增了什么功能（如 `通知接管`），回读 `<中文简述>.lnk`，清理时用 `-Remove` 移除且禁止覆盖主树快捷方式。 |
 | 4 自检 | 在本次发布件上运行 `tools/selfcheck-diff.ps1`（对照[自检基线](docs/selfcheck-baseline.txt)并调用 `check-report-credentials.py --file` 查凭据），核对失败、缺项和通过降级。`-Log` 只比较既有报告。复核新增、改名或退役的检查后才逐行更新基线，禁止靠接纳失败洗绿。 |
@@ -120,10 +120,12 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 
 共享桌面与用户数据验收、单实例自检互斥锁（`SelfCheckRun.MutexName`，覆盖完整测试、自检与界面探针）以及发布目录文件占用（运行中的 `Momoka.exe`）均须串行。遇占用用只读探针核对目标进程、路径或锁，短间隔可中断等待，释放后由正式操作重新取得锁，竞争失败继续等待。禁止结束用户或其他会话的进程、绕过锁。日常体验刷新最多等待 30 秒，仍占用则跳过本次发布，报告「程序运行中，快捷方式仍指向旧版」。交付等待超时或确需用户处理时，指出具体占用与未完成检查。
 
+向宿主系统写入可见状态的专项测试或工具操作（如系统通知投递、桌面主题、测试快捷方式或本机自签证书），须使用匿名测试标识、先核对当次权限与桌面锁并在完成或失败退出前自清理测试状态，禁止残留测试项。
+
 ### 发布状态与销账
 
-- **版本。** 日常改动沿用现有发行号。升版从 [Directory.Build.props](Directory.Build.props) 修改三段 `Version`，程序集与文件版本为对应四段 `.0`。已发布版本禁止覆盖或复用。对外契约有破坏性变化时写明受影响用户、迁移与恢复方法。重新编译运行 [UpdateTests](tests/Momoka.Tests/UpdateTests.cs)，核对实际程序集、包名、标签与包内版本。商店包另核对清单身份、架构和版本。
-- **发行。** GitHub 预发布与正式发布均须明确上传授权、当前版本四闸和适用运行验收全过。先验最终代码与对应源码、构建资料，再核对实际交付目录或包内容。`-SkipPublish` 复用目录时须能证明其来源与哈希。记录目标提交、工作区差异、四闸各自结果、具体失败/未验项、各产物 SHA-256 与实际上传状态。上传后回读目标版本及附件。生成商店包、提交商店、安装和认证分别按实际结果记载。
+- **版本。** 日常改动沿用现有发行号。升版从 [Directory.Build.props](Directory.Build.props) 修改三段 `Version`，程序集与文件版本为对应四段 `.0`。已发布版本禁止覆盖或复用。对外契约有破坏性变化时写明受影响用户、迁移与恢复方法。重新编译运行 [UpdateTests](tests/Momoka.Tests/UpdateTests.cs)，核对实际程序集、包名、标签与包内版本。商店包另核对清单身份、架构和版本，预留商店身份以 [store-identity.json](tools/store-identity.json) 为单一来源同步清单。涉及通知等对分发形态敏感的 Windows App SDK 行为时，分别按自包含与框架依赖形态验证（后者须目标机具备匹配版本 Windows App Runtime）。
+- **发行。** GitHub 预发布与正式发布均须明确上传授权、当前版本四闸和适用运行验收全过。先验最终代码与对应源码、构建资料，再核对实际交付目录或包内容。`-SkipPublish` 复用目录时须能证明其来源与哈希；通过 `tools/installer.ps1` 打安装包即使传 `-SkipPublish` 也须先通过 `tools/verify-publish.ps1`。`tools/sign-release.ps1` 自签证书与 `tools/unblock-momoka.ps1` 仅作本机或受管环境排障，对外分发的 SmartScreen 判定与未签名相同，仓库与交付目录勿保留低强制完整性标签（`Mandatory Label\Low`）。记录目标提交、工作区差异、四闸各自结果、具体失败/未验项、各产物 SHA-256 与实际上传状态。上传后回读目标版本及附件。生成商店包、提交商店、安装和认证分别按实际结果记载。
 - **销账。** 只关闭已合入 master、已纳入目标提交、必需检查全过且交付产物已核对的条目。未合并、失败或未验的部分继续保留，混合条目拆开。合并后的代码必须重新验证，分支报告只覆盖该分支。主树交付须在整合后的代码验收通过后发布到主树实际目录并核对快捷方式。
 
 ## Git 与协作
@@ -131,7 +133,7 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 - `master` 是唯一长期主树。一个工作树同一时间只有一个写入会话，并行开发或主树已有他人/用户未提交改动时用独立工作树。保护已有改动，禁止 `reset` 或用 `checkout/restore` 覆盖工作区。撤销实验先读差异，定点还原本任务内容。
 - 临时分支只在用户明确要求合并时合入 master。未合并保留分支，并在 [PROGRESS](PROGRESS.md) 记录树、分支、提交与待合并状态。用户已明确授权的相同合并或上传无需重复询问。
 - 分支清理只在按内容确认全部进入 master、工作树干净、没有未保留改动或独有提交、且没有其他会话占用后执行。条件齐全立即删除分支快捷方式、临时分支及其工作树。任一项不明则登记待清理。未合并分支禁止删除。
-- 检查通过后只暂存本任务文件或差异，核对 `git diff --cached`，用中文提交并复查实际提交与工作树状态。作者取本机 Git 配置，提交正文不写死协作者模型版本。获明确上传授权后核对 `origin` 为 `https://github.com/cudamin/Momoka.git`，主树推送 `git push origin master`，回读远端。凭据由 Git Credential Manager 管理。
+- 检查通过后只暂存本任务文件或差异，核对 `git diff --cached`，用中文提交并复查实际提交与工作树状态，禁止将 `.gitignore` 排除的截图（`shots/`、`docs/shots/`、`shell.png`）、构建产物与日志（`bin/`、`obj/`、`artifacts/`）、`libmpv-2.dll`、本机环境兜底（`envprobe.props`）或工具私有状态强制纳入版本控制。作者取本机 Git 配置，提交正文不写死协作者模型版本。获明确上传授权后核对 `origin` 为 `https://github.com/cudamin/Momoka.git`，主树推送 `git push origin master`，回读远端。凭据由 Git Credential Manager 管理。
 
 ## 文档查阅与维护
 
@@ -140,6 +142,8 @@ Momoka 的界面验收以 [Microsoft Fluent 2](https://fluent2.microsoft.design/
 | 模块职责、启动或播放链、公共契约 | 先读[技术文档及文档地图](docs/技术文档.md#14-文档地图)，再改对应架构或专题段，并核对生产调用者。 |
 | 操作开关、命令或构建前置 | 改[开发与验证](docs/开发与验证.md)的现行入口，验证参数与组合。专项做法改所属技能。 |
 | 可见功能、服务支持或数据流 | 按影响改功能说明、后端矩阵、隐私或许可记录。区分代码声明、匿名夹具和实服证据。 |
+| 对外支持文档 | 修改 `README.md`、[Jellyfin支持](docs/Jellyfin支持.md)、[飞牛影视](docs/飞牛影视.md)或[Plex支持](docs/Plex支持.md)时，明确已实测服务端版本与未验证范围，严禁写入私网 IP、凭据字段名或 URL 凭据写法。 |
+| 官网静态与 Worker | 改动 `website/` 静态源文件（`index.html`、`styles.css`、`main.js`、`assets/`）须同批镜像同步至 `website/dist/` 并跑通 `py tools/check-website-mirror.py`（含 `--self-test`）；改内置弹幕 Worker 同步凭据边界测试（`node --test website/worker/credential.test.mjs`）。 |
 | 常设政策、授权或交付条件 | 只在本文件定义。同步链接它的手册、技能与受影响检查，退役旧指令。历史证据留在 PROGRESS，开放项留在台账。 |
 
 新增说明先查现有主题。可复用的结论放回维护入口。删除重复文档前核对链接、源码注释、脚本和测试，保留独有的许可、证据及未决事项。禁止在 `.workbuddy/`、`.zcode/`、`.opencode/` 等工具私有目录镜像政策或技能。受版本影响的数字和参数从当前源码或报告读取。
