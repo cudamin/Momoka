@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
@@ -131,6 +132,7 @@ internal sealed partial class ShellNavigationProbe
                     $"资源卡宽度不足：window={width}, cards={string.Join(',', resourceCards.Select(card => card.ActualWidth.ToString("0.##")))}");
                 RequireScrollBarLane(Get<ItemsView>(resourceView, "ResourceList"), "ResourceCard", $"资源结果 {width}", requireBar: true);
                 var toolbar = Get<WrapRow>(resourceView, "FilterToolbar");
+                RequireMoviePilotCountBadge(resourceView, "12 个资源");
                 foreach (var child in toolbar.Children.OfType<FrameworkElement>().Where(child => child.Visibility == Visibility.Visible))
                 {
                     var origin = child.TransformToVisual(toolbar).TransformPoint(default);
@@ -156,6 +158,16 @@ internal sealed partial class ShellNavigationProbe
                 QuietTooltips(resourceView);
                 await SaveProbeScreenAsync($"mp-search-resources-{theme.Id}-screen.png");
             }
+            var countLabel = Get<TextBlock>(resourceView, "ResultCountLabel");
+            browser.VideoFacet.Choices.Single(choice => choice.Value == "H264").Selected = true;
+            await LayoutAsync(resourceView);
+            Require(countLabel.Text == "6 / 12 个资源", "筛选后的资源计数未同步到徽标");
+            browser.Text = "不存在的关键词";
+            await LayoutAsync(resourceView);
+            Require(countLabel.Text == "0 / 12 个资源", "零匹配时的资源计数未同步到徽标");
+            browser.ResetCommand.Execute(null);
+            await LayoutAsync(resourceView);
+            Require(countLabel.Text == "12 个资源", "清除条件时未恢复完整计数");
             browser.SetResults([new MoviePilotResourceRow(new MoviePilotResource { Title = "无元数据资源", TorrentInfo = JsonSerializer.SerializeToElement(new { }) }, _ => Task.CompletedTask)]);
             await LayoutAsync(resourceView);
             Require(Get<MoviePilotResourceFacetPicker>(resourceView, "VideoFilter").Visibility == Visibility.Collapsed &&
@@ -205,6 +217,19 @@ internal sealed partial class ShellNavigationProbe
             foreach (var element in Descendants(view).OfType<FrameworkElement>())
                 ToolTipService.SetToolTip(element, null);
         }
+    }
+
+    private static void RequireMoviePilotCountBadge(MoviePilotResourceBrowser resourceView, string expectedCount)
+    {
+        var badge = Get<Border>(resourceView, "ResultCountBadge");
+        var count = Get<TextBlock>(resourceView, "ResultCountLabel");
+        var icon = Get<FontIcon>(resourceView, "ResultCountIcon");
+        Require(badge.CornerRadius == (CornerRadius)Application.Current.Resources["EgPill28CornerRadius"],
+            "资源计数徽标未使用共享圆角");
+        Require(icon.Glyph == "\uE721" && icon.ActualWidth > 0 && AutomationProperties.GetAccessibilityView(icon) == AccessibilityView.Raw,
+            "资源计数徽标的放大镜未布局或进入读屏内容");
+        Require(count.Text == expectedCount && FrameworkElementAutomationPeer.CreatePeerForElement(count)?.GetName() == expectedCount,
+            $"资源计数徽标的文字或可读名称错误：期望 {expectedCount}，看到 {count.Text}");
     }
 
     /// <summary>BitmapImage 使用平台 HTTP；只在回环上提供一张匿名 PNG，不经过真实服务或外网。</summary>

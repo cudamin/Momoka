@@ -31,9 +31,14 @@
             <TextBlock x:Uid="MoviePilotResourceBrowser_Localization1" Text="资源搜索结果" Style="{StaticResource EgSubheadStyle}" />
             <Border Padding="10" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgSmallSurfaceCornerRadius}">
                 <local:WrapRow x:Name="FilterToolbar" Spacing="8" RowSpacing="8">
-                    <Border Padding="10,6" CornerRadius="{StaticResource EgSegmentedTrackCornerRadius}" Background="{ThemeResource EgAccentBrush}" VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextOnAccentBrush}"
-                            Text="{x:Bind ViewModel.CountText, Mode=OneWay}" />
+                    <Border x:Name="ResultCountBadge" MinHeight="28" Padding="8,4,10,4"
+                        CornerRadius="{StaticResource EgPill28CornerRadius}" Background="{ThemeResource EgAccentBrush}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <FontIcon x:Name="ResultCountIcon" Glyph="&#xE721;" FontSize="{StaticResource EgCaptionFontSize}"
+                                Foreground="{ThemeResource EgTextOnAccentBrush}" VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock x:Name="ResultCountLabel" Style="{StaticResource EgDataStyle}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                Foreground="{ThemeResource EgTextOnAccentBrush}" Text="{x:Bind ViewModel.CountText, Mode=OneWay}" />
+                        </StackPanel>
                     </Border>
                     <DropDownButton x:Name="SortOrder" Height="32" MinWidth="0" Padding="12,4,6,4" CornerRadius="{ThemeResource ControlCornerRadius}"
                         Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgTextDimBrush}" BorderThickness="0"

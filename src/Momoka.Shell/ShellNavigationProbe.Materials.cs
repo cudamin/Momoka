@@ -689,6 +689,7 @@ internal sealed partial class ShellNavigationProbe
             CheckCardMaterial(Get<Border>(progressCard!, "ProgressCard"), "MoviePilot 搜索进度卡", theme);
             CheckCardMaterial(Descendants(moviePilotCards!).OfType<Grid>().First(grid =>
                 grid.Name == "ResourceCard" && grid.ActualWidth > 100), "MoviePilot 资源卡", theme);
+            RequireMoviePilotCountBadge(moviePilotCards!, "1 个资源");
         }
         async Task CheckAniBtCardsAsync(UiTheme theme)
         {
