@@ -46,8 +46,18 @@ if ($ExistingReport) {
     $reportPath = Join-Path $ReportDirectory 'jscpd-report.json'
 
     Write-Output "正在扫描 $sourcePath（jscpd $JscpdVersion，C#，min-lines 12 / min-tokens 80）"
-    & $npx.Source --yes "jscpd@$JscpdVersion" $sourcePath --format csharp --min-lines 12 --min-tokens 80 `
-        --mode strict --reporters json --output $ReportDirectory --ignore '**/obj/**,**/bin/**' *> $log
+    # npx 会把 npm 的更新通知写到原生 stderr；Windows PowerShell 5.1 在 Stop 模式下把这条 stderr
+    # 当成终止错误，哪怕 jscpd 已经写完报告也会把整步判红（2026-11-28 实测：报告 69 段／0.47%
+    # 完整落盘，进程却以退出码 1 结束）。照 quality.ps1 对 dotnet 的处理，这一段只按退出码与报告判定，
+    # 结束后恢复原错误偏好。
+    $savedErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $npx.Source --yes "jscpd@$JscpdVersion" $sourcePath --format csharp --min-lines 12 --min-tokens 80 `
+            --mode strict --reporters json --output $ReportDirectory --ignore '**/obj/**,**/bin/**' *> $log
+    } finally {
+        $ErrorActionPreference = $savedErrorAction
+    }
     if ($LASTEXITCODE -ne 0) {
         Get-Content -LiteralPath $log -Tail 15 | ForEach-Object { Write-Output $_ }
         throw "jscpd 退出码 $LASTEXITCODE；完整日志 $log"

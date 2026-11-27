@@ -63,9 +63,10 @@ internal sealed partial class ShellNavigationProbe
         {
             Require(Top(season, page) >= Top(body, page) && Top(season, page) >= Top(flow, page) - 0.5,
                 "季区没有落在正文左列");
-            Require(page.MediaViewModel.Plain ? season.Background is SolidColorBrush { Color.A: 255 }
-                : season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
-                "季区域没有保留主题材质或高对比度实色回退");
+            // 2026-11-28：两档都接官方卡片层（EgCardFillBrush，半透明 SolidColorBrush），高对比度仍是
+            // 系统实色，A 同样大于 0。旧断言只认实色／亚克力，会把用户点名的透明卡面判红。
+            Require(season.Background is SolidColorBrush { Color.A: > 0 } or AcrylicBrush { Opacity: 1 },
+                "季区域没有保留主题卡片底或高对比度实色回退");
         }
         Require(side
             ? Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
@@ -531,8 +532,9 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     Require(expander.IsExpanded == expanded && season.Expanded == expanded, "季折叠状态未同步");
                     Require(summary.Text == originalSummary, "折叠切换丢失了入库摘要");
-                    Require(Get<StackPanel>(page, "SeasonPanel").Background is AcrylicBrush { Opacity: 1 },
-                        "整个季区域的亚克力背景在沉浸模式被隐藏");
+                    Require(Get<StackPanel>(page, "SeasonPanel").Background is SolidColorBrush { Color.A: > 0 }
+                        or AcrylicBrush { Opacity: 1 },
+                        "整个季区域的卡片底在沉浸模式被隐藏");
                     Require(header.Background is AcrylicBrush headerBrush
                         && headerBrush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
                         && expander.Background is AcrylicBrush contentBrush
@@ -614,7 +616,8 @@ internal sealed partial class ShellNavigationProbe
             Require(backdrop.Visibility == Visibility.Visible, "沉浸档没有画背景图");
             Require(sheet.Background is SolidColorBrush { Color.A: 0 },
                 "沉浸档正文仍有独立底色，上下背景出现分层");
-            Require(panel.Background is AcrylicBrush { Opacity: 0 }, "沉浸档的正文面板底没有淡到 0");
+            Require(panel.Background is AcrylicBrush { Opacity: 0 } or SolidColorBrush { Opacity: 0 },
+                "沉浸档的正文面板底没有淡到 0");
             Require(fade.Visibility == Visibility.Collapsed, "沉浸档图下沿的黑色渐变没有收起");
             Require(!media.ShowShelfLines, "沉浸档的货架标题仍然画着横线");
             // 2026-11-14 用户令「去掉订阅详情页的卡片」：头部这一叠直接落在剧照上。
@@ -732,7 +735,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => media.WideLayout && media.Showcase);
             await LayoutAsync(page);
             Require(sheet.Background is SolidColorBrush { Color.A: 0 }
-                && panel.Background is AcrylicBrush { Opacity: 0 },
+                && (panel.Background is AcrylicBrush { Opacity: 0 } or SolidColorBrush { Opacity: 0 }),
                 "拉宽回沉浸档后纸面或面板没有跟着翻");
             RequireSubscriptionBodyLayout(page, true);
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-wide.png");

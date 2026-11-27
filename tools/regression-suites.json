@@ -867,6 +867,16 @@
       "wrapper": null,
       "readme": "tests/Momoka.ResizeHandoffTests/README.md",
       "notes": "逐字提取真实拖边首帧/收尾/待矩形方法与播放守卫；匿名内存端点，不启动WinUI、mpv或真实服务。"
+    },
+    {
+      "id": "Momoka.SystemNotificationTests",
+      "project": "tests/Momoka.SystemNotificationTests/Momoka.SystemNotificationTests.csproj",
+      "mode": "wrapper",
+      "requiresShell": false,
+      "arguments": ["-Dotnet", "{dotnet}", "-EvidenceRoot", "{output}"],
+      "wrapper": "tests/Momoka.SystemNotificationTests/Run-Fixture.ps1",
+      "readme": "tests/Momoka.SystemNotificationTests/README.md",
+      "notes": "Windows 通知中心投递与清理：自包含与框架依赖两形态各发一条匿名通知并按 ID 清除；占用共享桌面锁，不登录、不播放、不写服务器。"
     }
   ]
 }

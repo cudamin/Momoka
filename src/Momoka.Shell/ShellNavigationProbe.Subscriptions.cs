@@ -429,9 +429,11 @@ internal sealed partial class ShellNavigationProbe
                 // 一张卡：正文右栏那第二张（DetailFacts）已经取消，屏上只剩资料卡这一张。
                 Require(Descendants(page).OfType<FrameworkElement>().All(element => element.Name != "DetailFacts"),
                     "页面上还立着第二张资料卡");
-                // 资料卡是半透明亚克力（压在固定的剧照上才透得出底下那张图）；简介那一块**不画底也不画外圈**
+                // 资料卡是半透明卡片层（2026-11-28 起与设置卡同一支官方 EgCardFillBrush，压在固定剧照上；
+                // 从前是 65% 亚克力，卡面看着不透）；简介那一块**不画底也不画外圈**
                 //（用户令 2026-10-12「去掉这个背景」）：这几行字照电影详情页那样直接落在剧照上。
-                Require(facts.Background is Microsoft.UI.Xaml.Media.AcrylicBrush, "资料卡的底不是半透明亚克力");
+                Require(facts.Background is Microsoft.UI.Xaml.Media.AcrylicBrush
+                    or Microsoft.UI.Xaml.Media.SolidColorBrush { Color.A: > 0 }, "资料卡的底不是当前主题卡片层");
                 Require(heroOverview.BorderThickness == default(Thickness)
                     && heroOverview.Background is not Microsoft.UI.Xaml.Media.AcrylicBrush
                     && (heroOverview.Background is not Microsoft.UI.Xaml.Media.SolidColorBrush fill || fill.Color.A == 0),
@@ -563,12 +565,13 @@ internal sealed partial class ShellNavigationProbe
                         $"{name} 应填满正文左列且不与资料卡重叠：{panel.ActualWidth:0.0}/{expectedWidth:0.0}");
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
-                    // 商店档板底是主题实色表面（与媒体详情的分区卡同一套），沉浸档仍是半透明亚克力。
-                    Require(media.Plain
-                            ? panel.Background is Microsoft.UI.Xaml.Media.SolidColorBrush { Color.A: 255 }
-                                && ReferenceEquals(panel.Style, Application.Current.Resources["EgStoreDetailCardStyle"])
-                            : panel.Background is Microsoft.UI.Xaml.Media.AcrylicBrush { FallbackColor.A: > 0 },
-                        $"{name} 那一段没有板底（商店档实色卡面，沉浸档亚克力）");
+                    // 2026-11-28 起两档板底都是官方卡片层（EgCardFillBrush 半透明固体／亚克力），
+                    // 商店档不再要求 A=255 的实心板；高对比度仍是系统实色。
+                    var hasCardSurface = panel.Background is Microsoft.UI.Xaml.Media.SolidColorBrush { Color.A: > 0 }
+                        or Microsoft.UI.Xaml.Media.AcrylicBrush { FallbackColor.A: > 0 };
+                    Require(hasCardSurface
+                            && (!media.Plain || ReferenceEquals(panel.Style, Application.Current.Resources["EgStoreDetailCardStyle"])),
+                        $"{name} 那一段没有板底（两档都是当前主题卡片层）");
                     Require(Descendants(strip).OfType<ScrollViewer>().Count() == 0 && Descendants(strip).OfType<ScrollView>().Any(),
                         $"{name} 里还有内层 ScrollViewer —— 指针停在带上时它会吃掉整页的竖向滚轮");
                     Require(strip.Visibility == Visibility.Visible && ReferenceEquals(strip.ItemsSource, cards),

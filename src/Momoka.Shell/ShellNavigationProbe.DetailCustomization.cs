@@ -679,7 +679,7 @@ internal sealed partial class ShellNavigationProbe
         Require(matches, "卡片资源恢复后未同步原画刷的材质参数");
     }
 
-    // 正式三种表面分别验收：简洁实色、沉浸信息卡自带卡片底、普通纸面共享材料。
+    // 正式三种表面分别验收：简洁官方卡片层、沉浸信息卡自带卡片底、普通纸面共享材料。
     // 不以亚克力对象存在代替当前模式的实测背景归属。
     private static void RequireDetailPanelMaterials(DetailPage page, string stage)
     {
@@ -701,7 +701,9 @@ internal sealed partial class ShellNavigationProbe
         }
         if (page.ViewModel.StoreMode)
         {
-            Require(store is SolidColorBrush { Color.A: 255, Opacity: 1 }, "简洁卡片没有不透明实色源");
+            // 2026-11-28 用户令：简洁档卡面与设置卡同一支官方半透明卡片层（EgCardFillBrush），
+            // 不再要求 A=255 的实心板；高对比度仍是系统实色，A 同样大于 0。
+            Require(store is SolidColorBrush { Color.A: > 0, Opacity: 1 }, "简洁卡片没有当前主题卡片源");
             RequireStoreDetailCards(page, panels.Select(panel => panel.Name).ToArray());
         }
         else

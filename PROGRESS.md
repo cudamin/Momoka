@@ -1,3 +1,23 @@
+## 2026-11-28 统一交付：四道闸门、受影响界面探针与 GitHub 提交（主树 master，已发布，未销账）
+
+用户令「交付，跑探针和闸门，有红自己决定要不要修」「提交代码到 github」。目标为 `origin/master` 之后 45 个本地提交（批次 144–150 及补改），在最终 master（`b9421f3` 加本轮修复）上重编译并跑闸门与探针。
+
+**闸门 1 构建与质量。** `tools/quality.ps1` **10/10**（`artifacts/quality/20261128-034846`）：全方案 Release 0 警告 0 错误、`dotnet format whitespace`、68 个 PowerShell 脚本、文档链接、官网镜像、186 文档／161 块命令语法、报告凭据、架构 7/7、重复率 69 段／0.47%、`check-diff` 均通过。首轮 7/10 的两条红都是本轮代码引出，已修：①`Momoka.SearchLifetimeTests` 源码链接的 `MoviePilotSearchPanel.xaml.cs` 新增 `PosterBottomCorners()`（`7194014` 圆角统一），测试替身补 `Microsoft.UI.Xaml.CornerRadius` 与 `Application`／`ResourceDictionary`；②`tools/check-duplication.ps1` 在 Windows PowerShell 5.1 下把 npx 的 npm notice（stderr）当终止错误，报告 69 段／0.47% 已完整落盘却退出 1，照 `quality.ps1` 对 dotnet 的处理只按退出码与报告判定，`tools/test-quality-tools.ps1` **33/33**（反例仍拒绝超预算）。探针断言修正后重跑完整闸门时 MSBuild 节点死锁（18 分 36 秒无推进，任务终止，首份日志保留），改用单节点全方案构建 **0 警告 0 错误**（`artifacts/solution-build-20261128.log`）加 `quality.ps1 -SkipBuild` **8/8**（`artifacts/quality/20261128-061052`）复核全部非构建项；两步合起来覆盖闸门 1 的全部检查。
+
+**R046 来源固定。** `PlayerViewModel.Transport.cs`（只有注释）与 `PlayerViewModel.Events.cs`（注释加 `ApplySkipOffer` 的 `SetShortcutBindings` 一行）定点同步 SHA256，提取的 `OnNowPlayingChanged`／`ConsiderPlayerSkipSections`／`_volumeReady`／`_volumeConfirmedSample` 未变。实际 caller **89/89**、提取器反例 **10/10** 加外树拒绝，之后当前源重新零警告构建复验（`artifacts/r046-caller/verify-20261128-033620-2496`、`extractor-20261128-033712-9426`）。
+
+**闸门 2 测试与专项。** `Momoka.Tests` **5392/5392**、0 失败 0 跳过（152121 ms）；`run-regressions.ps1 -All -IncludeExternal` **82/82**，`includeExternal=true`、`deferredExternal` 空（`artifacts/regressions/20261127-195848396-52b022d5ceef4bc2ba2abcf73d1e1d27`）。Windows 通知专项此前一直不在清单里：新增 `tests/Momoka.SystemNotificationTests/Run-Fixture.ps1`（自包含与框架依赖两形态各自 publish 后投递匿名通知、按 ID 回读并清除），在 `tools/regression-suites.json` 登记为 wrapper；单项与全量均通过（自包含 ID 116266、框架依赖 ID 116267，清理后剩 0 条）。
+
+**受影响界面探针。** 在最终构建上用 `--probe-shell --screen 2 --theme emby-dark` 跑 settings、materials、shortcuts、calendar、library、detail-cards、moviepilot：settings **28 项 5 红**（`shell-probe-20261127-202212922-35248`）、materials+shortcuts+calendar **6 项 2 红**（`…-202754284-40088`；shortcuts 3/3、calendar 600 DIP 既有红）、library+detail-cards+moviepilot **88 项 19 红**（`…-212000741-15292`）。`b9421f3` 把简洁档卡面统一到 `EgCardFillBrush` 后，六处「必须实色／AcrylicBrush」的探针断言失效，已按用户令改为接受官方半透明卡片层并复跑（`ShellNavigationProbe.DetailCards` 商店卡片、`DetailCustomization` 简洁卡源、`MediaDetail` 季区与沉浸面板两处、`Subscriptions` 资料卡与板底）；复跑后商店卡片、集页、订阅资料卡、面板底等断言通过或前进到既有红。其余红与本轮改动无关：materials 的货架翻页超时在 `origin/master` 工作树同屏复现（`shell-probe-20261127-203452882-18616`）；settings 五红是此前记录的聚合设置窗口 DI 缺 `ScrobblingService`、设置卡外框 1px 描边（`3af294f` 之前就有 `BorderBrush`／`BorderThickness`）、清除旧令牌按钮无名称、主页媒体库位置取不到；calendar 600 DIP 卡片为批次 148 已记；library／moviepilot 余下是滚动未到位／超时、探针引用的 `_previewScrolls`（基线与当前产品都没有这个字段）、商店连播开关（批次 149 已记）、主页折叠阈值（批次 150 已记）、两条长期 `defaultOff`。真实剧照下的观感、物理输入、五主题与跟随系统、高对比、跨 DPI 仍未验。
+
+**闸门 3 发布与快捷方式。** 旧发布目录整体留档 `artifacts/publish/win-x64-pre-delivery-20261128`（未删除）。`tools/publish.ps1 -NoArchive -Shortcut` 验证通过：**549 文件／291.8 MB**，14 GLSL、4 HOOK、批准 mpv 清单 60 文件逐项校验；`Momoka.exe` 668160 字节 SHA256 `D2B7FAB686F63C614E12A5CDD8655862F91D518EFCB6F15ABDBA4C32AE3E82AB`，`Momoka.dll` 10486784 字节 SHA256 `4C8C1EDA04793246F92D545EE728F26C77D209C29B0B3989285055A01DFAC6F5`。写桌面 `Momoka.lnk` 仍被本机 ACL 拒绝（`UnauthorizedAccessException`，历史老问题），回读目标与工作目录仍为 `%USERPROFILE%\Momoka\artifacts\publish\win-x64`，即本次产物。
+
+**闸门 4 自检（未通过，环境受限）。** 本次发布件跑了三次：①`run-cacfeff2…` 服务器图片返回 HTTP 500，媒体库页面未打开，41 项消失；②`run-04e9ac12…` 完整 191 项、2 失败（「播放回来那一页」返回后滚动位置 895→556、「日志行模板」一行未画）；③`run-6577706…` 进程崩溃（0xC0000409），报告不完整。用同一把尺跑上一轮发布件（`artifacts/publish/win-x64-pre-delivery-20261128`，`b9421f3` 之前）两次：一次 191 项全绿（`run-9ed5ee6e…`），一次同样 2 项失败（`artifacts/selfcheck-20261128-previous-b.log`），说明这两条是自检在这台机器上的时序／环境抖动（三次自检留下 4 个未退出的 `--self-check` 孤儿进程，线程数为 0 且结束请求被拒），不是本轮产品差异。本轮没有更新自检基线，也不把闸门 4 记为通过。
+
+**Git。** 本轮修复与记录随同批中文提交推送 `origin/master`（`cudamin/Momoka`），作者取本机配置，正文不写协作者。
+
+**边界与销账。** 真实服务器播放／写入、物理键盘与指针、五主题实屏走查、高对比、跨 DPI、通知横幅点击等仍未验；批次 144–150 继续留在[待交付批次](docs/待交付批次.md)，不销账。
+
 ## 2026-11-28 设置卡片、设置内输入框与媒体/订阅详情卡改官方 Fluent 材质（分支 feat-settings-card-glass，已合并／已发布／待统一验证）
 
 用户三连令：①「参考官方用法修改卡片，别自己猜」②「这些框也是官方用法吗？麻烦一起修一下」③「媒体详情页和订阅详情页的卡片也要改成一样的」；另令去掉设置页分区标题下面的说明。

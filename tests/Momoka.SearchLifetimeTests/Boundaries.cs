@@ -32,6 +32,27 @@ namespace Microsoft.UI.Xaml
     public enum Visibility { Visible, Collapsed }
     public enum ElementTheme { Default, Light, Dark }
     public sealed class XamlRoot;
+    public sealed class ResourceDictionary : Dictionary<object, object>;
+    public struct CornerRadius
+    {
+        public CornerRadius(double uniformRadius) : this(uniformRadius, uniformRadius, uniformRadius, uniformRadius) { }
+        public CornerRadius(double topLeft, double topRight, double bottomRight, double bottomLeft)
+        {
+            TopLeft = topLeft;
+            TopRight = topRight;
+            BottomRight = bottomRight;
+            BottomLeft = bottomLeft;
+        }
+        public double TopLeft { get; set; }
+        public double TopRight { get; set; }
+        public double BottomRight { get; set; }
+        public double BottomLeft { get; set; }
+    }
+    public sealed class Application
+    {
+        public static Application Current { get; } = new();
+        public ResourceDictionary Resources { get; } = new() { ["EgPosterCornerRadius"] = new CornerRadius(8) };
+    }
     public class RoutedEventArgs : EventArgs { public object? OriginalSource { get; init; } }
     public sealed class ExceptionRoutedEventArgs : RoutedEventArgs;
     public delegate void ExceptionRoutedEventHandler(object sender, ExceptionRoutedEventArgs args);

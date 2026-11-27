@@ -19,8 +19,11 @@ internal sealed partial class ShellNavigationProbe
         foreach (var name in names)
         {
             var panel = Get<StackPanel>(page, name);
-            Require(ReferenceEquals(panel.Background, source.Background) && panel.Background is SolidColorBrush { Color.A: 255 },
-                name + " 商店卡片缺少当前主题实色表面");
+            // 2026-11-28 用户令：简洁档卡面与设置卡同一支官方半透明卡片层（EgCardFillBrush，5% 白），
+            // 不再是页面色的实心板。只要求与随主题切换的 StoreCardMaterialSource 同刷、且确有底色；
+            // 高对比度那块仍是系统实色，A 同样大于 0。
+            Require(ReferenceEquals(panel.Background, source.Background) && panel.Background is SolidColorBrush { Color.A: > 0 },
+                name + " 商店卡片缺少当前主题卡片表面");
             Require(ReferenceEquals(panel.Style, Application.Current.Resources["EgStoreDetailCardStyle"])
                 && panel.Padding == default && panel.Spacing == 0
                 && panel.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
