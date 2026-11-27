@@ -1,3 +1,19 @@
+## 2026-11-28 设置卡片、设置内输入框与媒体/订阅详情卡改官方 Fluent 材质（分支 feat-settings-card-glass，已合并／已发布／待统一验证）
+
+用户三连令：①「参考官方用法修改卡片，别自己猜」②「这些框也是官方用法吗？麻烦一起修一下」③「媒体详情页和订阅详情页的卡片也要改成一样的」；另令去掉设置页分区标题下面的说明。
+
+**卡片层。** 旧方案自造 8% 白纱亚克力会把卡片整块提亮成 #B5B5B5（settings-glass-v1.png）：AcrylicBrush 只模糊窗口内的 XAML、采不到 Mica，65% 深面染色即实心板（旧 65% 亚克力版 settings-card-inspect.png 同一现象）。改取 WinUI 2.3.9 主题字典里 CardBackgroundFillColorDefaultBrush 的两档（实机 generic.xaml 逐条核对：深色 5% 白、浅色 70% 白），新增角色刷 EgSettingsCardBrush 与 EgCardFillBrush（内容卡同一支；高对比度走 SystemColorWindowColor），ThemeHost 的 Brushes 表按主题重涂，透明效果关掉时落回 theme.Colors.SurfaceAlt。`SettingsSectionDescription` 不再上屏（`SettingSection.Description` 仍留给设置搜索当索引），分区 StackPanel 去掉 Spacing。
+
+**控件面。** 设置卡片里的 TextBox/ComboBox 原先走 `EgInputGlassBrush` 的亚克力，深浅两档都把底色抬成灰板。按官方 ControlFillColor* 与 ControlStrokeColor* 改成六支常驻刷（Dark 四档 5%／8%／6%／4% 白与两道 7%／9% 白线；Light 70%／50%／30% 白面与 6%／16% 黑线；HC 系统色），`SettingsScroll` 的主题字典把 TextControlBackground/PointerOver、TextControlBorderBrush/PointerOver 与 ComboBox 六态全部指过去；快捷键抓键框同换 EgControlFillBrush／EgControlStrokeBrush。刻意不覆盖 `TextControlBackgroundFocused`（保留 2026-10-29 令「点输入框后内部切侧栏色」）；左侧搜索框仍吃 `EgWindowBrush`。
+
+**详情与订阅卡。** DetailPage（媒体详情）与 MoviePilotSubscriptionPage 的零尺寸 `CardMaterialSource` 改接 `EgCardFillBrush`，Showcase 的 `_panelFill`／`_infoCardFill` 由 AcrylicBrush 改成 SolidColorBrush，RefreshPanelBrushes 只把模板色抄给两支私有刷、描边另取 EgBorderBrush；`StoreCardMaterialSource` 与 `MicaLayerSource` 各管各的。全局 `CardBackgroundFillColorDefaultBrush`（65% 亚克力）不动，库页／季视图／日历／AniBT 不受影响。
+
+**测试与探针。** 单测新增「官方控件面六档就是 WinUI 主题字典数值」「详情卡片与设置页同一支官方白」等用例；InputControlThemeTests／InputFocusThemeTests／SettingsLayoutTests／AcrylicControlsTests 同步；InputTheme 探针改断官方控件面实色，DetailCustomization 的 `_panelFill`／`_infoCardFill` 改 SolidColorBrush，合并时顺带修掉 DetailMica 与 EpisodeBand 里残留的 `Get<AcrylicBrush>` 取法。Agreements 基线登记 Palette 颜色计数 90→106（8 支角色刷 × Dark/Light 共 16 处字面值，HC 不写字面值）。
+
+**验证。** 分支 Shell Release 0 警告 0 错误，主测试 5385/5385；专项 acrylic-controls 40/40、input-theme 29/29、page-scroll-chrome 61/61。合并 master（adfc046，产品提交 3af294f；合并时 master 已推进到 d7c3511，InputControlThemeTests 一处标题冲突按 master 的圆角文案保留、新用例照收）后再跑 Shell 与测试 0 警告 0 错误、主测试 5392/5392（179241 ms）。实拍：设置界面卡片 (41,43,49) 对页面 (31,32,34)（≈5% 白）、下拉内部 #36383A；媒体详情页正文卡 #141B22 对画布 #070E1C（≈5% 白），「更多来自：第 1 季」与「其他信息」两块都随底透上来（settings-glass-merged.png／detail-merged.png）。设置分区运行探针 28 例 5 失败，均为 master 既有（聚合设置窗口 DI 缺 ScrobblingService、设置卡片分隔边框、清除旧令牌按钮无名称、主页媒体库位置取不到），非本批引入。
+
+**发布与待办。** `tools/publish.ps1 -NoArchive -Shortcut` 通过：549 文件／291.8 MB，ProductVersion `0.3.4+adfc046`，`Momoka.exe` 668160 字节 SHA256 `B49B76A1…`，`Momoka.dll` 10483712 字节 SHA256 `85D9CC44…`，桌面 Momoka.lnk 指向主树发布件。发布后主树又被另一会话并入 52d403c（剧资源工具栏），本批提交在其下、未被覆盖。未实拍订阅详情页（与媒体详情页同一支 CardMaterialSource／Showcase 路径）；detail-cards、library 分区探针与「透明效果」关灯后的实色档未跑；这些留待统一验证。
+
 ## 2026-11-28 按控件用途统一桌面端圆角（本地 master）
 
 - 工作树 `C:/Users/89400/.codex/worktrees/cd48/Momoka`，基点 `6a5dfe8`，代码提交 `7194014`。共用圆角在 [Styles.xaml](src/Momoka.Shell/Theme/Styles.xaml) 的「几何」区维护。控件和浮层分别走系统圆角资源，输入、媒体操作、卡片、封面等按用途独立。拼接卡片、画框阴影和播放器缩放随对应的基础值计算。源码检查拒绝在页面和控件模板里重新写圆角数值或覆盖共享键。
